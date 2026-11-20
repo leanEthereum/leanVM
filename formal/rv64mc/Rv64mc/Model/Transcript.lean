@@ -12,7 +12,8 @@ public import Rv64mc.Model.Multilinear
 passes each root to `merkle` itself). The proof is the statement's `Proof`: the Rust's stream is
 its scalars' limbs, and a Rust `MerklePath` is `MerklePathRust.ofOpening` of an opening. A Rust
 function that takes `&mut Transcript` and returns a `Result` is mirrored in `TM`, the state monad
-over `TState` that fails on any `Err` or panic.
+over `TState`. Where the Rust panics a mirror may return anything; it fails (`none`) only where the
+Rust fails, an `Err` or a panic the verifier relies on (`Sponge::absorb`'s assert).
 
 `SimR m P r` says the mirror `m` runs the statement's program fragment `P` up to `r`: from a state
 keeping `TState.Inv` (the sponge's shape, the offsets within the proof, checked mode, every leaf
@@ -25,7 +26,13 @@ what `m` returns satisfies `R`.
 The methods: `next_scalar`, `sample`, `next_scalars`, `samples`, `grind_check` (with
 `grinding_bits`), `merkle`, `sumcheck_round_poly`, `sumcheck` and `finish`, each with its
 simulation (`merkle` from a root the statement read, `merkle_run`), and a root's read as the
-verifier makes it (`next_scalars(2)` and `Digest::from_halves`, `TM.commit`).
+verifier makes it (`next_scalars(2)` and `Digest::from_halves`, `TM.commit`). Since a
+simulation holds of a mirror that always fails, each method also has a success lemma (the mirror
+succeeds when the Rust's checks pass, `nextScalar_succeeds` and the others, at the end).
+
+The monad `TM`, `SimR`, `Sim`, `SimUnit`, `Returns` and their combinators are the API the other
+modules' mirrors (the Keccak GKR, WHIR, the layout, the bus, the walk) are written on, whether or
+not this module uses them.
 -/
 
 namespace Rv64mc.Model
@@ -95,46 +102,9 @@ theorem runK_bind {α β : Type} (P : VerifierProgram α) (Q : α → VerifierPr
       | some (a, σ') => runK (Q a) σ'
       | none => none := by
   show runK (P.bind Q) σ = _
-  induction P generalizing σ with
-  | ret a => rfl
-  | fail => rfl
-  | read k ih =>
-    simp only [VerifierProgram.bind, runK]
-    rw [Compile.run, Compile.run]
-    split
-    · exact ih _ _
-    · rfl
-  | sample k ih =>
-    simp only [VerifierProgram.bind, runK]
-    rw [Compile.run, Compile.run]
-    exact ih _ _
-  | grind bits k ih =>
-    simp only [VerifierProgram.bind, runK]
-    rw [Compile.run, Compile.run]
-    split
-    · simp only [Id.run, bind, pure]
-      rename_i _ _ n _ _ _
-      obtain ⟨pow, sp⟩ := absorbNonce (m := Id) keccakF1600 σ.sponge n
-      dsimp only
-      split_ifs
-      · exact ih _
-      · rfl
-    · rfl
-  | commit h w k ih =>
-    simp only [VerifierProgram.bind, runK]
-    rw [Compile.run, Compile.run]
-    split
-    · exact ih _
-    · rfl
-  | query i ps k ih =>
-    simp only [VerifierProgram.bind, runK]
-    rw [Compile.run, Compile.run]
-    split
-    · simp only [Id.run, bind, pure]
-      split
-      · exact ih _ _
-      · rfl
-    · rfl
+  induction P generalizing σ <;>
+    simp only [VerifierProgram.bind, runK, Compile.run, Id.run, bind, pure] at * <;>
+    split <;> split <;> (try split_ifs) <;> simp_all
 
 theorem VerifierProgram.bind_assoc' {α β γ : Type} (P : VerifierProgram α)
     (f : α → VerifierProgram β) (g : β → VerifierProgram γ) :
@@ -310,14 +280,14 @@ theorem SimR.streamPosition_left {γ δ : Type} {k : ℕ → TM γ} {Q : Verifie
 
 /-! ## Reading and sampling -/
 
-theorem drop_cons_of_getElem? {α : Type} {l : List α} {i : ℕ} {x : α} (h : l[i]? = some x) :
+private theorem drop_cons_of_getElem? {α : Type} {l : List α} {i : ℕ} {x : α} (h : l[i]? = some x) :
     l.drop i = x :: l.drop (i + 1) := by
   have hlt : i < l.length := by
     by_contra hc; rw [List.getElem?_eq_none (by omega)] at h; cases h
   rw [List.getElem?_eq_getElem hlt] at h
   rw [List.drop_eq_getElem_cons hlt, Option.some.inj h]
 
-theorem lt_of_getElem? {α : Type} {l : List α} {i : ℕ} {x : α} (h : l[i]? = some x) :
+private theorem lt_of_getElem? {α : Type} {l : List α} {i : ℕ} {x : α} (h : l[i]? = some x) :
     i < l.length := by
   by_contra hc; rw [List.getElem?_eq_none (by omega)] at h; cases h
 
@@ -431,29 +401,6 @@ def grindingBitsRust (numerator : BitVec 128) : ℕ :=
   let log := if numerator ≤ 1#128 then 0 else 128 - (numerator - 1#128).clz.toNat
   log - (128 - 125)
 
-theorem sub_clz_eq_bitLength128 (x : BitVec 128) : 128 - x.clz.toNat = bitLength x.toNat := by
-  by_cases hx : x = 0#128
-  · subst hx
-    have : (0#128).clz = 128#128 := BitVec.clz_eq_iff_eq_zero.mpr rfl
-    simp [this, bitLength]
-  · have hlt : x.clz < 128#128 := BitVec.clz_lt_iff_ne_zero.mpr hx
-    have hlt' : x.clz.toNat < 128 := by
-      have := BitVec.lt_def.mp hlt
-      simpa using this
-    have hlo := BitVec.two_pow_sub_clz_le_toNat_of_ne_zero (by norm_num) hx
-    have hhi := BitVec.toNat_lt_two_pow_sub_clz (x := x)
-    have hne : x.toNat ≠ 0 := by
-      intro h
-      exact hx (BitVec.eq_of_toNat_eq (by simpa using h))
-    have hlog : Nat.log2 x.toNat = 128 - 1 - x.clz.toNat := by
-      rw [Nat.log2_eq_iff hne]
-      refine ⟨hlo, ?_⟩
-      have : 128 - 1 - x.clz.toNat + 1 = 128 - x.clz.toNat := by omega
-      rw [this]
-      exact hhi
-    simp only [bitLength, hne, ite_false, hlog]
-    omega
-
 /-- **`grinding_bits` is `grindingBits`.** -/
 theorem grindingBitsRust_eq (numerator : BitVec 128) :
     grindingBitsRust numerator = grindingBits numerator.toNat := by
@@ -462,7 +409,7 @@ theorem grindingBitsRust_eq (numerator : BitVec 128) :
   · have h' : numerator.toNat ≤ 1 := by simpa [BitVec.le_def] using h
     rw [ite_eq_left h, ite_eq_left h']
   · have h' : ¬ numerator.toNat ≤ 1 := by simpa [BitVec.le_def] using h
-    rw [ite_eq_right h, ite_eq_right h', sub_clz_eq_bitLength128, bitLength]
+    rw [ite_eq_right h, ite_eq_right h', sub_clz_eq_bitLength, bitLength]
     have hne : (numerator - 1#128).toNat ≠ 0 := by
       rw [BitVec.toNat_sub_of_le (by rw [BitVec.le_def]; simp; omega)]
       simp
@@ -471,7 +418,8 @@ theorem grindingBitsRust_eq (numerator : BitVec 128) :
     simp
 
 /-- The proof-of-work mask: `1u64.checked_shl(bits).map_or(u64::MAX, |bit| bit - 1)`. -/
-def powMask (bits : ℕ) : BitVec 64 := if bits < 64 then (1#64 <<< bits) - 1#64 else BitVec.allOnes 64
+def powMask (bits : ℕ) : BitVec 64 :=
+  if bits < 64 then (1#64 <<< bits) - 1#64 else BitVec.allOnes 64
 
 theorem powMask_iff (bits : ℕ) (pow : BitVec 64) :
     pow &&& powMask bits = 0#64 ↔ powOk bits (UInt64.ofBitVec pow) = true := by
@@ -585,7 +533,7 @@ theorem nextScalar_some {t t' : TState} {x : E} (h : TM.nextScalar.run t = some 
       exact ⟨s, hy, hs, rfl⟩
   · cases h
 
-theorem runK_readCommitment_of (height width : ℕ) (σ : VerifierProgramState) {x0 x1 : E}
+private theorem runK_readCommitment_of (height width : ℕ) (σ : VerifierProgramState) {x0 x1 : E}
     {xs : List E} (hs : σ.stream = x0 :: x1 :: xs) (hg : σ.sponge.ground = none) :
     runK (VerifierProgram.readCommitment height width) σ = some ((), { σ with
       sponge := (absorb (m := Id) keccakF1600
@@ -653,7 +601,8 @@ namespace TM
 
 /-- `Transcript::merkle(root, block_length, queries, leaf_words)`: `log2_strict(block_length)?`,
 the next phase of openings (`opening_offset += 1`), then its shape, its positions and, in checked
-mode, its roots; the leaves. -/
+mode, its roots; the leaves. The compiled code tests only `x & (x - 1) == 0` in `log2_strict`:
+LTO knows `block_length ≠ 0` at every call. -/
 def merkle (root : List (BitVec 8)) (blockLength : BitVec 64) (queries : List (BitVec 64))
     (leafWords : ℕ) : TM (List (List (BitVec 64))) := fun t ↦
   match log2StrictRust blockLength with
@@ -673,14 +622,6 @@ def merkle (root : List (BitVec 8)) (blockLength : BitVec 64) (queries : List (B
 
 end TM
 
-theorem digestBits_injective : Function.Injective digestBits := by
-  intro a b h
-  have h' := congrArg digestWordsRust h
-  rw [digestBits, digestBits, digestWordsRust_digestBytes, digestWordsRust_digestBytes] at h'
-  have hl : a.toList = b.toList :=
-    List.map_injective_iff.mpr (fun x y hxy ↦ UInt64.toBitVec_inj.mp hxy) h'
-  exact Vector.toList_inj.mp hl
-
 theorem log2StrictRust_two_pow {height : ℕ} (hh : height < 64) :
     log2StrictRust (BitVec.ofNat 64 (2 ^ height)) = some height := by
   rw [log2StrictRust_eq, BitVec.toNat_ofNat,
@@ -691,7 +632,7 @@ theorem log2StrictRust_two_pow {height : ℕ} (hh : height < 64) :
     ite_eq_right (Nat.two_pow_pos height).ne', Nat.log2_two_pow, Nat.add_sub_cancel]
 
 /-- The statement's `openAll` when every opening climbs to the root at its own position. -/
-theorem openAll_of_all (root : Digest) (height width : ℕ) :
+private theorem openAll_of_all (root : Digest) (height width : ℕ) :
     ∀ (phase : List Opening),
       (∀ o ∈ phase, openOne (m := Id) keccakF1600 root height width o.leafIndex o = true) →
       (openAll (m := Id) keccakF1600 root height width (phase.map Opening.leafIndex) phase :
@@ -701,14 +642,15 @@ theorem openAll_of_all (root : Digest) (height width : ℕ) :
     have ho := h o (by simp)
     have hos := openAll_of_all root height width os fun o' ho' ↦ h o' (by simp [ho'])
     simp only [List.map_cons, openAll]
-    have hob : openOne (m := Id) keccakF1600 root height width o.leafIndex o = (true : Id Bool) := ho
+    have hob : openOne (m := Id) keccakF1600 root height width o.leafIndex o = (true : Id Bool) :=
+      ho
     rw [hob]
     show Option.map (fun r ↦ (o.leaf :: r.1, r.2)) (openAll (m := Id) keccakF1600 root height width
       (os.map Opening.leafIndex) os : Option (List (List K) × List Opening)) = _
     rw [hos]
     rfl
 
-theorem openOne_of_root (root : Digest) (height width : ℕ) (o : Opening)
+private theorem openOne_of_root (root : Digest) (height width : ℕ) (o : Opening)
     (hi : o.leafIndex < 2 ^ 64) (hw : o.leaf.length = width) (hh : o.path.length = height)
     (hh64 : height < 64) (hr : (MerklePathRust.ofOpening o).root = digestBits root) :
     openOne (m := Id) keccakF1600 root height width o.leafIndex o = true := by
@@ -778,6 +720,14 @@ theorem merkle_run {t t' : TState} {rows : List (List (BitVec 64))} (hi : t.Inv)
 /-- `usize` subtraction, wrapping (no overflow checks). -/
 def usizeSub (a b : ℕ) : ℕ := (BitVec.ofNat 64 a - BitVec.ofNat 64 b).toNat
 
+/-- `usize` addition, wrapping. -/
+def usizeAdd (a b : ℕ) : ℕ := (BitVec.ofNat 64 a + BitVec.ofNat 64 b).toNat
+
+theorem usizeAdd_eq {a b : ℕ} (h : a + b < 2 ^ 64) : usizeAdd a b = a + b := by
+  rw [usizeAdd, BitVec.toNat_add, BitVec.toNat_ofNat, BitVec.toNat_ofNat,
+    Nat.mod_eq_of_lt (by omega : a < 2 ^ 64), Nat.mod_eq_of_lt (by omega : b < 2 ^ 64),
+    Nat.mod_eq_of_lt h]
+
 theorem usizeSub_eq {a b : ℕ} (h : b ≤ a) (ha : a < 2 ^ 64) : usizeSub a b = a - b := by
   rw [usizeSub, BitVec.toNat_sub_of_le (by
     rw [BitVec.le_def, BitVec.toNat_ofNat, BitVec.toNat_ofNat, Nat.mod_eq_of_lt ha,
@@ -799,12 +749,12 @@ def sumcheckRoundPoly (count : ℕ) (claim : E) : Option E → TM (List E)
     let constant ← nextScalar
     let tail ← nextScalars (usizeSub count 2)
     let poly := [constant, claim + sumRust tail] ++ tail
-    grindCheck (grindingBitsRust (BitVec.ofNat 128 (usizeSub count 1 + 0)))
+    grindCheck (grindingBitsRust (BitVec.ofNat 128 (usizeAdd (usizeSub count 1) 0)))
     Pure.pure poly
   | some eqFactor => do
     let tail ← nextScalars (usizeSub count 1)
     let poly := [claim + eqFactor * sumRust tail] ++ tail
-    grindCheck (grindingBitsRust (BitVec.ofNat 128 (usizeSub count 1 + 1)))
+    grindCheck (grindingBitsRust (BitVec.ofNat 128 (usizeAdd (usizeSub count 1) 1)))
     Pure.pure poly
 
 /-- One iteration of `sumcheck`'s loop: the round polynomial, the challenge, `point.push`, the
@@ -825,19 +775,21 @@ theorem grindingBitsRust_ofNat {n : ℕ} (h : n < 2 ^ 64) :
   rw [grindingBitsRust_eq, BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega)]
 
 /-- **`sumcheck_round_poly` runs `sumcheckRoundPoly`**, for the counts of the verifier's rounds
-(`2 ≤ count`: neither subtraction wraps). -/
+(`2 ≤ count`: no subtraction wraps; the verifier's counts are at most `5`). -/
 theorem Sim.sumcheckRoundPoly {count : ℕ} (hc : 2 ≤ count) (hc' : count < 2 ^ 64) (claim : E)
     (e : Option E) :
     Sim (TM.sumcheckRoundPoly count claim e) (sumcheckRoundPoly count claim e) := by
   cases e with
   | none =>
     simp only [TM.sumcheckRoundPoly, usizeSub_eq (by omega : 2 ≤ count) hc',
-      usizeSub_eq (by omega : 1 ≤ count) hc', Nat.add_zero,
+      usizeSub_eq (by omega : 1 ≤ count) hc', usizeAdd_eq (by omega : count - 1 + 0 < 2 ^ 64),
+      Nat.add_zero,
       grindingBitsRust_ofNat (by omega : count - 1 < 2 ^ 64), sumRust_eq]
     exact Sim.bind Sim.nextScalar fun x ↦ Sim.bind (Sim.nextScalars _) fun xs ↦
       Sim.bind (Sim.grindCheck _) fun _ ↦ Sim.pure _
   | some f =>
     simp only [TM.sumcheckRoundPoly, usizeSub_eq (by omega : 1 ≤ count) hc',
+      usizeAdd_eq (by omega : count - 1 + 1 < 2 ^ 64),
       grindingBitsRust_ofNat (by omega : count - 1 + 1 < 2 ^ 64), sumRust_eq]
     exact Sim.bind (Sim.nextScalars _) fun xs ↦ Sim.bind (Sim.grindCheck _) fun _ ↦ Sim.pure _
 
@@ -944,6 +896,107 @@ theorem runProof_of_sim {m : TM Bool} {P : VerifierProgram Bool} (hs : Sim m P) 
         proof.stream, proof.openings, []⟩ : Option (Bool × VerifierProgramState)) =
         some (true, t₁.toSpec) from hr]
       exact hfin
+
+/-! ## The methods succeed when the Rust's checks pass
+
+Each simulation above holds of a mirror that fails; these say the mirrors do not fail where the
+Rust does not. -/
+
+private theorem absorb_ground_eq (s : Sponge) (x : E) (tag : ℕ) :
+    (absorb (m := Id) keccakF1600 s x tag : Sponge).ground = s.ground := by
+  unfold absorb
+  split <;> rfl
+
+theorem absorb_some_ground_none {r r' : SpongeRust} (hi : r.Inv) {v : E} {t : BitVec 64}
+    (h : r.absorb v t = some r') : r'.ground = none := by
+  have hg := absorb_some_ground h
+  rw [← toSpec_ground, (absorb_some hi h).2, absorb_ground_eq, toSpec_ground, hg]
+
+/-- `next_scalar` succeeds on a scalar left in the stream when no ground challenge waits. -/
+theorem nextScalar_succeeds {t : TState} (hi : t.Inv)
+    (hl : t.streamOffset < t.proof.stream.length) (hg : t.sponge.ground = none) :
+    ∃ t', TM.nextScalar.run t = some (t.proof.stream[t.streamOffset], t') ∧ t'.Inv ∧
+      t'.sponge.ground = none ∧ t'.streamOffset = t.streamOffset + 1 ∧ t'.proof = t.proof := by
+  obtain ⟨r', h', hi', -⟩ := absorb_toSpec t.sponge hi.1 hg t.proof.stream[t.streamOffset]
+    dsObserveR
+  refine ⟨{ t with streamOffset := t.streamOffset + 1, sponge := r' }, ?_,
+    ⟨hi', by dsimp only; omega, hi.2.2⟩, absorb_some_ground_none hi.1 h', rfl, rfl⟩
+  simp only [TM.nextScalar, StateT.run, List.getElem?_eq_getElem hl, SpongeRust.observe, h',
+    Option.map_some]
+
+/-- `next_scalars(n)` succeeds on `n` scalars left in the stream when no ground challenge
+waits. -/
+theorem nextScalars_succeeds : ∀ (n : ℕ) {t : TState}, t.Inv →
+    t.streamOffset + n ≤ t.proof.stream.length → t.sponge.ground = none →
+    ∃ xs t', (TM.nextScalars n).run t = some (xs, t') ∧ t'.Inv ∧ t'.sponge.ground = none ∧
+      t'.streamOffset = t.streamOffset + n ∧ t'.proof = t.proof
+  | 0, t, hi, _, hg => ⟨[], t, rfl, hi, hg, rfl, rfl⟩
+  | n + 1, t, hi, hl, hg => by
+    obtain ⟨t1, h1, hi1, hg1, ho1, hp1⟩ := nextScalar_succeeds hi (by omega) hg
+    obtain ⟨xs, t2, h2, hi2, hg2, ho2, hp2⟩ :=
+      nextScalars_succeeds n hi1 (by rw [ho1, hp1]; omega) hg1
+    refine ⟨t.proof.stream[t.streamOffset] :: xs, t2, ?_, hi2, hg2, by omega, hp2.trans hp1⟩
+    simp only [TM.nextScalars, StateT.run_bind, h1, Option.bind_eq_bind, Option.bind_some, h2]
+    rfl
+
+/-- `samples` never fails. -/
+theorem sample_succeeds (t : TState) : (TM.sample.run t).isSome := rfl
+
+/-- `grind_check(0)` does nothing. -/
+theorem grindCheck_zero (t : TState) : (TM.grindCheck 0).run t = some ((), t) := rfl
+
+/-- `grind_check(bits)` succeeds on a nonce left in the stream, no ground challenge waiting,
+when the permutation's proof of work has its `bits` low bits zero. -/
+theorem grindCheck_succeeds {t : TState} (hi : t.Inv) {bits : ℕ} (hb : bits ≠ 0)
+    (hl : t.streamOffset < t.proof.stream.length) (hg : t.sponge.ground = none) :
+    ∃ pow s, t.sponge.absorbNonce t.proof.stream[t.streamOffset] = some (pow, s) ∧
+      (powOk bits (UInt64.ofBitVec pow) = true →
+        ∃ t', (TM.grindCheck bits).run t = some ((), t')) := by
+  obtain ⟨pow, s, h, -, -⟩ := absorbNonce_toSpec t.sponge hi.1 hg t.proof.stream[t.streamOffset]
+  refine ⟨pow, s, h, fun hp ↦ ⟨{ t with streamOffset := t.streamOffset + 1, sponge := s }, ?_⟩⟩
+  simp only [TM.grindCheck, StateT.run, hb, ↓reduceIte, List.getElem?_eq_getElem hl, h,
+    (powMask_iff bits pow).mpr hp, hi.2.2.2.1, Bool.not_true, decide_true, Bool.or_true]
+
+/-- A root's read succeeds on two scalars left in the stream when no ground challenge waits. -/
+theorem commit_succeeds {t : TState} (hi : t.Inv) (height width : ℕ)
+    (hl : t.streamOffset + 2 ≤ t.proof.stream.length) (hg : t.sponge.ground = none) :
+    ∃ root t', (TM.commit height width).run t = some (root, t') := by
+  obtain ⟨xs, t', h, -⟩ := nextScalars_succeeds 2 hi hl hg
+  refine ⟨digestFromHalvesRust (limbs (xs.getD 0 0)) (limbs (xs.getD 1 0)),
+    { t' with roots := t'.roots ++ [(digestFromHalves (xs.getD 0 0, xs.getD 1 0), height, width)] },
+    ?_⟩
+  simp only [TM.commit, StateT.run_bind, h, Option.bind_eq_bind, Option.bind_some]
+  rfl
+
+/-- `merkle` succeeds on the next phase when its shape, positions and roots check. -/
+theorem merkle_succeeds {t : TState} {height width : ℕ} (hh : height < 64)
+    {root : List (BitVec 8)} {queries : List (BitVec 64)} {phase : List Opening}
+    (hp : t.proof.openings[t.openingOffset]? = some phase)
+    (hshape : ∀ o ∈ phase, o.leaf.length = width ∧ o.path.length = height)
+    (hpos : phase.map (fun o ↦ BitVec.ofNat 64 o.leafIndex) = queries)
+    (hroot : ∀ o ∈ phase, (MerklePathRust.ofOpening o).root = root) :
+    ∃ t', (TM.merkle root (BitVec.ofNat 64 (2 ^ height)) queries width).run t =
+      some ((phase.map MerklePathRust.ofOpening).map (·.leaf), t') := by
+  refine ⟨{ t with openingOffset := t.openingOffset + 1 }, ?_⟩
+  have h1 : ((phase.map MerklePathRust.ofOpening).all fun p ↦
+      p.leaf.length == width && p.siblings.length == height) = true := by
+    simp only [List.all_map, List.all_eq_true]
+    intro o ho
+    simp [MerklePathRust.ofOpening, hshape o ho]
+  have h2 : (phase.map MerklePathRust.ofOpening).map (·.leafIndex) = queries := by
+    rw [← hpos, List.map_map]
+    rfl
+  have h3 : ((phase.map MerklePathRust.ofOpening).all fun p ↦ p.root == root) = true := by
+    simp only [List.all_map, List.all_eq_true]
+    intro o ho
+    simp [hroot o ho]
+  simp only [TM.merkle, StateT.run, log2StrictRust_two_pow hh, hp, h1, h2, h3, ↓reduceIte,
+    Bool.or_true]
+
+/-- `finish` succeeds once the whole proof is read. -/
+theorem finish_succeeds {t : TState} (hs : t.streamOffset = t.proof.stream.length)
+    (ho : t.openingOffset = t.proof.openings.length) : TM.finish.run t = some ((), t) := by
+  simp [TM.finish, StateT.run, hs, ho]
 
 end
 

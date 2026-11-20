@@ -54,7 +54,8 @@ theorem keccakPiRust_eq : keccakPiRust = (List.range 25).map keccakPi := by deci
 into the rows, ρ and π into `b`, χ row by row from `b`, then ι. -/
 def keccakRoundRust (a : List (BitVec 64)) (rc : BitVec 64) : List (BitVec 64) :=
   let c := (List.range 5).map fun x ↦
-    a.getD x 0 ^^^ a.getD (x + 5) 0 ^^^ a.getD (x + 10) 0 ^^^ a.getD (x + 15) 0 ^^^ a.getD (x + 20) 0
+    a.getD x 0 ^^^ a.getD (x + 5) 0 ^^^ a.getD (x + 10) 0 ^^^ a.getD (x + 15) 0 ^^^
+      a.getD (x + 20) 0
   let d := (List.range 5).map fun x ↦
     c.getD ((x + 4) % 5) 0 ^^^ (c.getD ((x + 1) % 5) 0).rotateLeft 1
   let a := (List.range 5).foldl (fun a y ↦ (List.range 5).foldl
@@ -73,7 +74,7 @@ def keccakFRust (a : List (BitVec 64)) : List (BitVec 64) := keccakRCRust.foldl 
 /-- The state as the Rust holds it. -/
 def stateBits (a : KeccakState) : List (BitVec 64) := a.toList.map UInt64.toBitVec
 
-theorem rot_toBitVec (x : UInt64) {n : ℕ} (hn : n < 64) :
+private theorem rot_toBitVec (x : UInt64) {n : ℕ} (hn : n < 64) :
     (Keccak.rot x n).toBitVec = x.toBitVec.rotateLeft n := by
   rw [BitVec.rotateLeft_def, Nat.mod_eq_of_lt hn, Keccak.rot]
   split
@@ -106,7 +107,7 @@ theorem round_toBitVec (a : KeccakState) (rc : UInt64) :
         20, 21, 22, 23, 24] from rfl]
     simp [rot_toBitVec, UInt64.toBitVec_xor, UInt64.toBitVec_and, UInt64.toBitVec_not]
 
-theorem keccakF_foldl (rcs : List UInt64) (a : KeccakState) :
+private theorem keccakF_foldl (rcs : List UInt64) (a : KeccakState) :
     (rcs.map UInt64.toBitVec).foldl keccakRoundRust (stateBits a) =
       stateBits (rcs.foldl Keccak.round a) := by
   induction rcs generalizing a with
@@ -114,7 +115,8 @@ theorem keccakF_foldl (rcs : List UInt64) (a : KeccakState) :
   | cons rc rcs ih => simp only [List.map_cons, List.foldl_cons, round_toBitVec, ih]
 
 /-- **`keccak_f` is Keccak-f[1600].** -/
-theorem keccakFRust_eq (a : KeccakState) : keccakFRust (stateBits a) = stateBits (keccakF1600 a) := by
+theorem keccakFRust_eq (a : KeccakState) :
+    keccakFRust (stateBits a) = stateBits (keccakF1600 a) := by
   rw [keccakFRust, keccakRCRust_eq, keccakF_foldl, keccakF1600]
 
 /-! ## `xor_block`, `keccak_hash`, `Digest::words` -/
@@ -156,7 +158,8 @@ def digestWordsRust (value : List (BitVec 8)) : List (BitVec 64) :=
 /-- Bytes as the Rust holds them. -/
 def byteBits (bytes : List UInt8) : List (BitVec 8) := bytes.map UInt8.toBitVec
 
-theorem foldl_hom_mem {α β γ : Type} (h : α → β) (f : α → γ → α) (g : β → γ → β) (l : List γ)
+private theorem foldl_hom_mem {α β γ : Type} (h : α → β) (f : α → γ → α) (g : β → γ → β)
+    (l : List γ)
     (H : ∀ a, ∀ x ∈ l, h (f a x) = g (h a) x) (a : α) : h (l.foldl f a) = l.foldl g (h a) := by
   induction l generalizing a with
   | nil => rfl
@@ -164,13 +167,13 @@ theorem foldl_hom_mem {α β γ : Type} (h : α → β) (f : α → γ → α) (
     simp only [List.foldl_cons]
     rw [ih (fun b y hy ↦ H b y (by simp [hy])), H a x (by simp)]
 
-theorem getD_byteBits_take_drop (bytes : List UInt8) (i k : ℕ) (hk : k < 8) :
+private theorem getD_byteBits_take_drop (bytes : List UInt8) (i k : ℕ) (hk : k < 8) :
     (((byteBits bytes).drop (8 * i)).take 8).getD k 0 = (bytes.getD (8 * i + k) 0).toBitVec := by
   simp only [byteBits, List.getD_eq_getElem?_getD, List.getElem?_take, List.getElem?_drop,
     List.getElem?_map, hk, ↓reduceIte]
   cases bytes[8 * i + k]? <;> rfl
 
-theorem fromLeBytes_byteBits (bytes : List UInt8) (i : ℕ) :
+private theorem fromLeBytes_byteBits (bytes : List UInt8) (i : ℕ) :
     fromLeBytes (((byteBits bytes).drop (8 * i)).take 8) = (littleEndianLane bytes i).toBitVec := by
   rw [fromLeBytes, littleEndianLane]
   symm
@@ -183,7 +186,7 @@ theorem fromLeBytes_byteBits (bytes : List UInt8) (i : ℕ) :
   rw [UInt64.toBitVec_or, UInt64.toBitVec_shiftLeft, BitVec.shiftLeft_eq', hs,
     UInt8.toBitVec_toUInt64, getD_byteBits_take_drop _ _ _ hk]
 
-theorem getElem?_foldl_xor (G : ℕ → BitVec 64) (l : List (BitVec 64)) :
+private theorem getElem?_foldl_xor (G : ℕ → BitVec 64) (l : List (BitVec 64)) :
     ∀ (n j : ℕ), ((List.range n).foldl (fun s i ↦ s.set i (s.getD i 0 ^^^ G i)) l)[j]? =
       l[j]?.map fun x ↦ if j < n then x ^^^ G j else x
   | 0, j => by simp
@@ -214,10 +217,10 @@ theorem xorBlockRust_eq (s : KeccakState) (block : List UInt8) :
     split_ifs <;> simp
   · simp [stateBits, hj]
 
-theorem length_byteBits (bytes : List UInt8) : (byteBits bytes).length = bytes.length :=
+private theorem length_byteBits (bytes : List UInt8) : (byteBits bytes).length = bytes.length :=
   List.length_map _
 
-theorem byteBits_set_xor (l : List UInt8) (i : ℕ) (c : UInt8) :
+private theorem byteBits_set_xor (l : List UInt8) (i : ℕ) (c : UInt8) :
     (byteBits l).set i ((byteBits l).getD i 0 ^^^ c.toBitVec) =
       byteBits (l.set i (l[i]?.getD default ^^^ c)) := by
   rw [byteBits, byteBits, List.map_set, List.getD_eq_getElem?_getD, List.getElem?_map,
@@ -237,18 +240,18 @@ theorem padBlockRust_eq (rem : List UInt8) :
     List.modify_eq_set]
   rfl
 
-theorem absorbWith_succ (n : ℕ) (s : KeccakState) (data : List UInt8) :
+private theorem absorbWith_succ (n : ℕ) (s : KeccakState) (data : List UInt8) :
     absorbWith (m := Id) keccakF1600 (n + 1) s data =
       absorbWith (m := Id) keccakF1600 n (absorbBlockWith (m := Id) keccakF1600 s (data.take rate))
         (data.drop rate) := rfl
 
-theorem absorbBlock_eq (s : KeccakState) (block : List UInt8) :
+private theorem absorbBlock_eq (s : KeccakState) (block : List UInt8) :
     keccakFRust (xorBlockRust (stateBits s) (byteBits block)) =
       stateBits (absorbBlockWith (m := Id) keccakF1600 s block) := by
   rw [xorBlockRust_eq, keccakFRust_eq]
   rfl
 
-theorem absorb_eq : ∀ (n : ℕ) (s : KeccakState) (data : List UInt8),
+private theorem absorb_eq : ∀ (n : ℕ) (s : KeccakState) (data : List UInt8),
     keccakFRust (xorBlockRust ((List.range n).foldl (fun state j ↦
       keccakFRust (xorBlockRust state (((byteBits data).drop (136 * j)).take 136))) (stateBits s))
       (padBlockRust ((byteBits data).drop (136 * n)))) =
@@ -260,7 +263,8 @@ theorem absorb_eq : ∀ (n : ℕ) (s : KeccakState) (data : List UInt8),
   | n + 1, s, data => by
     rw [List.range_succ_eq_map, List.foldl_cons, List.foldl_map, absorbWith_succ,
       ← absorb_eq n _ (data.drop rate), ← absorbBlock_eq]
-    have hd : ∀ j, (byteBits data).drop (136 * Nat.succ j) = (byteBits (data.drop rate)).drop (136 * j) := by
+    have hd : ∀ j, (byteBits data).drop (136 * Nat.succ j) =
+        (byteBits (data.drop rate)).drop (136 * j) := by
       intro j
       rw [byteBits, byteBits, List.map_drop, List.drop_drop, Nat.mul_succ, Nat.add_comm]
       rfl

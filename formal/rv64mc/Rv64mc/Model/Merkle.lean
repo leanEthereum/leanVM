@@ -23,6 +23,48 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 /-- A digest's `32` bytes, as the Rust holds them. -/
 def digestBits (d : Digest) : List (BitVec 8) := byteBits (digestBytes d)
 
+theorem toLeBytes_fromLeBytes {l : List (BitVec 8)} (h : l.length = 8) :
+    toLeBytes (fromLeBytes l) = l := by
+  match l, h with
+  | [b0, b1, b2, b3, b4, b5, b6, b7], _ =>
+    simp only [toLeBytes, fromLeBytes, show List.range 8 = [0, 1, 2, 3, 4, 5, 6, 7] from rfl,
+      List.map_cons, List.map_nil, List.foldl_cons, List.foldl_nil, List.getD_cons_succ,
+      List.getD_cons_zero, List.cons.injEq, and_true]
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+    · apply BitVec.eq_of_getLsbD_eq
+      intro i hi
+      interval_cases i <;> simp
+
+theorem digestBits_eq (d : Digest) :
+    digestBits d = d.toList.flatMap fun w ↦ toLeBytes w.toBitVec := by
+  rw [digestBits, digestBytes, byteBits, List.map_flatMap]
+  exact List.flatMap_congr fun w _ ↦ (toLeBytes_toBitVec w).symm
+
+/-- A digest's bytes determine it. -/
+theorem digestBits_injective : Function.Injective digestBits := by
+  intro a b h
+  have h' := congrArg digestWordsRust h
+  rw [digestBits, digestBits, digestWordsRust_digestBytes, digestWordsRust_digestBytes] at h'
+  have hl : a.toList = b.toList :=
+    List.map_injective_iff.mpr (fun x y hxy ↦ UInt64.toBitVec_inj.mp hxy) h'
+  exact Vector.toList_inj.mp hl
+
+/-- Every `[u8; 32]` is a digest's bytes. -/
+theorem exists_digestBits {b : List (BitVec 8)} (h : b.length = 32) :
+    ∃ d : Digest, digestBits d = b := by
+  have hc : ∀ n, n ≤ 24 → ((b.drop n).take 8).length = 8 := fun n hn ↦ by simp [h]; omega
+  have htd : ∀ n, (b.drop n).take 8 ++ b.drop (n + 8) = b.drop n := fun n ↦ by
+    rw [← List.drop_drop, List.take_append_drop]
+  refine ⟨#v[⟨fromLeBytes ((b.drop 0).take 8)⟩, ⟨fromLeBytes ((b.drop 8).take 8)⟩,
+    ⟨fromLeBytes ((b.drop 16).take 8)⟩, ⟨fromLeBytes ((b.drop 24).take 8)⟩], ?_⟩
+  rw [digestBits_eq]
+  simp only [Vector.toList_mk, List.flatMap_cons, List.flatMap_nil, List.append_nil]
+  rw [toLeBytes_fromLeBytes (hc 0 (by norm_num)), toLeBytes_fromLeBytes (hc 8 (by norm_num)),
+    toLeBytes_fromLeBytes (hc 16 (by norm_num)), toLeBytes_fromLeBytes (hc 24 (by norm_num)),
+    List.take_of_length_le (by simp [h] : (b.drop 24).length ≤ 8), ← List.append_assoc,
+    show (24 : ℕ) = 16 + 8 from rfl, htd, List.append_assoc, show (16 : ℕ) = 8 + 8 from rfl, htd,
+    List.drop_zero, List.take_append_drop]
+
 /-- `hash_pair(left, right)`: Keccak-256 of the `64` bytes `left ‖ right` (both `[u8; 32]`). -/
 def hashPairRust (left right : List (BitVec 8)) : List (BitVec 8) := keccakHashRust (left ++ right)
 
@@ -76,12 +118,12 @@ theorem hashLeafRust_eq (leaf : List K) :
   rw [hashLeafRust, h, keccakHashRust_eq]
   rfl
 
-theorem bit_eq_zero_iff (idx : BitVec 64) {n : ℕ} (hn : n < 64) :
+private theorem bit_eq_zero_iff (idx : BitVec 64) {n : ℕ} (hn : n < 64) :
     (idx >>> (n % 64)) &&& 1#64 = 0#64 ↔ idx.toNat / 2 ^ n % 2 = 0 := by
   rw [Nat.mod_eq_of_lt hn, ← BitVec.toNat_inj, BitVec.toNat_and, BitVec.toNat_ushiftRight,
     BitVec.toNat_ofNat, BitVec.toNat_ofNat, Nat.and_one_is_mod, Nat.shiftRight_eq_div_pow]
 
-theorem rootLoop_eq (idx : BitVec 64) : ∀ (ss : List Digest) (n : ℕ) (node : Digest),
+private theorem rootLoop_eq (idx : BitVec 64) : ∀ (ss : List Digest) (n : ℕ) (node : Digest),
     n + ss.length ≤ 64 →
     ((ss.map digestBits).zipIdx n).foldl (rootStep idx) (digestBits node) =
       digestBits (climb (m := Id) keccakF1600 node (idx.toNat / 2 ^ n) ss)

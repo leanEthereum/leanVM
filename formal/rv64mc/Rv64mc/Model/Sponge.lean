@@ -1,6 +1,7 @@
 module
 
 public import Rv64mc.Model.Merkle
+import Mathlib.Data.List.GetD
 
 /-!
 # `transcript.rs`'s `Sponge` as the Rust computes it
@@ -28,30 +29,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 
 /-! ## Lists of lanes -/
 
-theorem getD_set' {α : Type} (l : List α) (i j : ℕ) (a d : α) :
-    (l.set i a).getD j d = if i = j ∧ i < l.length then a else l.getD j d := by
-  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_set]
-  by_cases h1 : i = j
-  · subst h1
-    by_cases h2 : i < l.length
-    · simp [h2]
-    · simp [h2]
-  · simp [h1]
-
-theorem getD_append_left' {α : Type} {l₁ : List α} (l₂ : List α) {j : ℕ} (d : α)
-    (h : j < l₁.length) : (l₁ ++ l₂).getD j d = l₁.getD j d := by
-  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_append_left h]
-
-theorem getD_append_right' {α : Type} {l₁ : List α} (l₂ : List α) {j : ℕ} (d : α)
-    (h : l₁.length ≤ j) : (l₁ ++ l₂).getD j d = l₂.getD (j - l₁.length) d := by
-  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_append_right h]
-
-theorem getD_map' {α β : Type} (f : α → β) (l : List α) (i : ℕ) (d : α) :
-    (l.map f).getD i (f d) = f (l.getD i d) := by
-  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_map]
-  cases l[i]? <;> rfl
-
-theorem list_ext_getD {α : Type} {l₁ l₂ : List α} (d : α) (h : l₁.length = l₂.length)
+private theorem list_ext_getD {α : Type} {l₁ l₂ : List α} (d : α) (h : l₁.length = l₂.length)
     (h' : ∀ j < l₁.length, l₁.getD j d = l₂.getD j d) : l₁ = l₂ := by
   apply List.ext_getElem h
   intro j h1 h2
@@ -62,17 +40,12 @@ theorem list_ext_getD {α : Type} {l₁ l₂ : List α} (d : α) (h : l₁.lengt
 /-- A state of the Rust's `25` lanes as the statement's. -/
 def ofStateBits (l : List (BitVec 64)) : KeccakState := Vector.ofFn fun i ↦ ⟨l.getD i 0⟩
 
-theorem lane_ofStateBits (l : List (BitVec 64)) {i : ℕ} (hi : i < 25) :
+private theorem lane_ofStateBits (l : List (BitVec 64)) {i : ℕ} (hi : i < 25) :
     Keccak.lane (ofStateBits l) i = ⟨l.getD i 0⟩ := by
   simp [Keccak.lane, ofStateBits, hi]
 
-theorem stateBits_length (a : KeccakState) : (stateBits a).length = 25 := by simp [stateBits]
-
-theorem stateBits_ofStateBits {l : List (BitVec 64)} (h : l.length = 25) :
-    stateBits (ofStateBits l) = l := by
-  refine list_ext_getD 0 (by rw [stateBits_length, h]) fun j hj ↦ ?_
-  rw [stateBits_length] at hj
-  rw [getD_stateBits _ hj, lane_ofStateBits _ hj]
+private theorem stateBits_length (a : KeccakState) : (stateBits a).length = 25 := by
+  simp [stateBits]
 
 theorem ofStateBits_stateBits (a : KeccakState) : ofStateBits (stateBits a) = a := by
   apply Vector.ext
@@ -170,59 +143,54 @@ def SpongeRust.new (iv publicInput : List (BitVec 8)) : SpongeRust :=
 
 /-! ## The lanes of a duplex -/
 
-theorem length_foldl_of {α β : Type} (step : List α → β → List α)
+private theorem length_foldl_of {α β : Type} (step : List α → β → List α)
     (h : ∀ s k, (step s k).length = s.length) (L : List β) (s : List α) :
     (L.foldl step s).length = s.length := by
   induction L generalizing s with
   | nil => rfl
   | cons a L ih => rw [List.foldl_cons, ih, h]
 
-theorem getD_fillRate (s : List (BitVec 64)) (j : ℕ) :
-    (fillRate s).getD j 0 = if j < 16 ∧ j < s.length then 0 else s.getD j 0 := by
-  suffices ∀ n, ((List.range n).foldl (fun s i ↦ s.set i 0#64) s).getD j 0 =
-      if j < n ∧ j < s.length then 0 else s.getD j 0 from this 16
-  intro n
-  induction n with
-  | zero => simp
-  | succ n ih =>
-    rw [List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil, getD_set', ih,
-      length_foldl_of _ (fun _ _ ↦ List.length_set ..)]
-    by_cases h1 : n = j
-    · subst h1; by_cases h2 : n < s.length <;> simp [h2]
-    · by_cases h3 : j < n <;> simp [h1, h3, show (j < n + 1) = (j < n) by
-        apply propext; omega]
-
-theorem length_fillRate (s : List (BitVec 64)) : (fillRate s).length = s.length :=
-  length_foldl_of _ (fun _ _ ↦ List.length_set ..) _ _
-
-theorem length_writeLanes (s : List (BitVec 64)) (i : ℕ) (w : List (BitVec 64)) :
-    (writeLanes s i w).length = s.length :=
-  length_foldl_of _ (fun _ _ ↦ List.length_set ..) _ _
-
-theorem getD_writeLanes (s : List (BitVec 64)) (i : ℕ) (w : List (BitVec 64)) (j : ℕ) :
-    (writeLanes s i w).getD j 0 =
-      if 4 * i ≤ j ∧ j < 4 * i + 4 ∧ j < s.length then w.getD (j - 4 * i) 0 else s.getD j 0 := by
-  suffices ∀ n ≤ 4, ((List.range n).foldl (fun s k ↦ s.set (4 * i + k) (w.getD k 0#64)) s).getD
-      j 0 = if 4 * i ≤ j ∧ j < 4 * i + n ∧ j < s.length then w.getD (j - 4 * i) 0 else
-      s.getD j 0 from this 4 le_rfl
-  intro n hn
+private theorem getD_foldl_set_range (o n : ℕ) (f : ℕ → BitVec 64) (s : List (BitVec 64)) (j : ℕ) :
+    ((List.range n).foldl (fun s i ↦ s.set (o + i) (f i)) s).getD j 0 =
+      if o ≤ j ∧ j < o + n ∧ j < s.length then f (j - o) else s.getD j 0 := by
   induction n with
   | zero =>
     simp only [List.range_zero, List.foldl_nil, Nat.add_zero]
     rw [ite_eq_right (by omega)]
   | succ n ih =>
-    rw [List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil, getD_set',
-      ih (by omega), length_foldl_of _ (fun _ _ ↦ List.length_set ..)]
-    by_cases h1 : 4 * i + n = j
+    rw [List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil, getD_set, ih,
+      length_foldl_of _ (fun _ _ ↦ List.length_set ..)]
+    by_cases h1 : o + n = j
     · subst h1
-      by_cases h2 : 4 * i + n < s.length <;> simp [h2]
-    · by_cases h3 : 4 * i ≤ j ∧ j < 4 * i + n ∧ j < s.length
-      · simp [h1, h3, show j < 4 * i + (n + 1) by omega]
-      · have h4 : ¬ (4 * i ≤ j ∧ j < 4 * i + (n + 1) ∧ j < s.length) := by omega
+      by_cases h2 : o + n < s.length <;> simp [h2]
+    · by_cases h3 : o ≤ j ∧ j < o + n ∧ j < s.length
+      · simp [h1, h3, show j < o + (n + 1) by omega]
+      · have h4 : ¬ (o ≤ j ∧ j < o + (n + 1) ∧ j < s.length) := by omega
         simp [h1, h3, h4]
 
+private theorem getD_fillRate (s : List (BitVec 64)) (j : ℕ) :
+    (fillRate s).getD j 0 = if j < 16 ∧ j < s.length then 0 else s.getD j 0 := by
+  have e : fillRate s = (List.range 16).foldl (fun s i ↦ s.set (0 + i) ((fun _ ↦ 0#64) i)) s := by
+    simp only [fillRate, Nat.zero_add]
+  rw [e, getD_foldl_set_range]
+  simp only [Nat.zero_le, true_and, Nat.zero_add]
+  rfl
+
+private theorem length_fillRate (s : List (BitVec 64)) : (fillRate s).length = s.length :=
+  length_foldl_of _ (fun _ _ ↦ List.length_set ..) _ _
+
+private theorem length_writeLanes (s : List (BitVec 64)) (i : ℕ) (w : List (BitVec 64)) :
+    (writeLanes s i w).length = s.length :=
+  length_foldl_of _ (fun _ _ ↦ List.length_set ..) _ _
+
+private theorem getD_writeLanes (s : List (BitVec 64)) (i : ℕ) (w : List (BitVec 64)) (j : ℕ) :
+    (writeLanes s i w).getD j 0 =
+      if 4 * i ≤ j ∧ j < 4 * i + 4 ∧ j < s.length then w.getD (j - 4 * i) 0 else s.getD j 0 := by
+  rw [writeLanes, getD_foldl_set_range]
+  rfl
+
 /-- The writes of the waiting scalars `ps`, the `k`-th at slot `n + k`. -/
-theorem getD_writes (ps : List (E × BitVec 64)) (n : ℕ) (s : List (BitVec 64))
+private theorem getD_writes (ps : List (E × BitVec 64)) (n : ℕ) (s : List (BitVec 64))
     (hs : s.length = 25) (hn : 4 * (n + ps.length) ≤ 16) (j : ℕ) :
     ((ps.zipIdx n).foldl (fun s pi ↦ writeLanes s pi.2 (pendingWords pi.1)) s).getD j 0 =
       if 4 * n ≤ j ∧ j < 4 * (n + ps.length) then
@@ -246,7 +214,7 @@ theorem getD_writes (ps : List (E × BitVec 64)) (n : ℕ) (s : List (BitVec 64)
         omega
       · rw [ite_eq_right (by omega), ite_eq_right (by omega)]
 
-theorem getD_pendingLanes (ps : List (E × ℕ)) (j : ℕ) :
+private theorem getD_pendingLanes (ps : List (E × ℕ)) (j : ℕ) :
     (pendingLanes ps).getD j 0 =
       if j < 4 * ps.length then
         [((ps.getD (j / 4) (0, 0)).1.limb 0).lane, ((ps.getD (j / 4) (0, 0)).1.limb 1).lane, 0,
@@ -258,9 +226,9 @@ theorem getD_pendingLanes (ps : List (E × ℕ)) (j : ℕ) :
     rw [pendingLanes, List.flatMap_cons, ← pendingLanes]
     simp only [List.length_cons]
     by_cases h : j < 4
-    · rw [getD_append_left' _ _ (by simpa using h), ite_eq_left (by omega),
+    · rw [List.getD_append _ _ _ _ (by simpa using h), ite_eq_left (by omega),
         show j / 4 = 0 by omega, show j % 4 = j by omega, List.getD_cons_zero]
-    · rw [getD_append_right' _ _ (by simp; omega), ih]
+    · rw [List.getD_append_right _ _ _ _ (by simp; omega), ih]
       simp only [show [((p.1.limb 0).lane), ((p.1.limb 1).lane), 0,
         p.2.toUInt64].length = 4 from rfl]
       by_cases h' : j - 4 < 4 * ps.length
@@ -268,18 +236,18 @@ theorem getD_pendingLanes (ps : List (E × ℕ)) (j : ℕ) :
           List.getD_cons_succ, show (j - 4) % 4 = j % 4 by omega]
       · rw [ite_eq_right h', ite_eq_right (by omega)]
 
-theorem length_writes (ps : List (E × BitVec 64)) (n : ℕ) (s : List (BitVec 64)) :
+private theorem length_writes (ps : List (E × BitVec 64)) (n : ℕ) (s : List (BitVec 64)) :
     ((ps.zipIdx n).foldl (fun s pi ↦ writeLanes s pi.2 (pendingWords pi.1)) s).length =
       s.length := by
   induction ps generalizing n s with
   | nil => rfl
   | cons p ps ih => rw [List.zipIdx_cons, List.foldl_cons, ih, length_writeLanes]
 
-theorem lane_ofFn (f : Fin 25 → UInt64) {j : ℕ} (hj : j < 25) :
+private theorem lane_ofFn (f : Fin 25 → UInt64) {j : ℕ} (hj : j < 25) :
     Keccak.lane (Vector.ofFn f) j = f ⟨j, hj⟩ := by
   simp [Keccak.lane, hj]
 
-theorem length_duplexLanes (r : SpongeRust) : (duplexLanes r).length = r.state.length := by
+private theorem length_duplexLanes (r : SpongeRust) : (duplexLanes r).length = r.state.length := by
   rw [duplexLanes, length_writes, length_fillRate]
 
 /-- **The lanes `Sponge::duplex` permutes are the statement's `duplexInput`.** -/
@@ -296,7 +264,7 @@ theorem duplexLanes_eq (r : SpongeRust) (h : r.Inv) :
   · rw [ite_eq_left h1, ite_eq_left (show j < 16 by omega), getD_pendingLanes, SpongeRust.toSpec]
     simp only [List.length_map, htake, ite_eq_left h1]
     rw [show ((0 : E), (0 : ℕ)) = (fun p : E × BitVec 64 ↦ (p.1, p.2.toNat)) (0, 0#64) from rfl,
-      getD_map']
+      List.getD_map]
     generalize (r.pending.take r.nPending).getD (j / 4) (0, 0#64) = p
     rcases (show j % 4 = 0 ∨ j % 4 = 1 ∨ j % 4 = 2 ∨ j % 4 = 3 by omega) with h | h | h | h <;>
       simp [h, pendingWords, limbs, K.lane]
@@ -315,7 +283,7 @@ by `keccakFRust_eq`. -/
 
 attribute [local irreducible] keccakFRust
 
-theorem take_succ_set {α : Type} (l : List α) (n : ℕ) (p : α) (h : n < l.length) :
+private theorem take_succ_set {α : Type} (l : List α) (n : ℕ) (p : α) (h : n < l.length) :
     (l.set n p).take (n + 1) = l.take n ++ [p] := by
   rw [List.take_add_one, List.getElem?_set_self h, List.take_set,
     List.set_eq_of_length_le (by simp)]
@@ -333,10 +301,10 @@ theorem take_succ_set {α : Type} (l : List α) (n : ℕ) (p : α) (h : n < l.le
   rfl
 
 /-- `duplex` over Keccak-f[1600]. -/
-theorem duplex_id (s : Sponge) :
+private theorem duplex_id (s : Sponge) :
     (duplex (m := Id) keccakF1600 s : Sponge) = ⟨keccakF1600 (duplexInput s), [], s.ground⟩ := rfl
 
-theorem duplex_state (r : SpongeRust) (h : r.Inv) :
+private theorem duplex_state (r : SpongeRust) (h : r.Inv) :
     r.duplex.state = stateBits (keccakF1600 (duplexInput r.toSpec)) := by
   rw [SpongeRust.duplex]
   dsimp only
@@ -353,19 +321,20 @@ theorem duplex_toSpec (r : SpongeRust) (h : r.Inv) :
     duplex_nPending, duplex_ground, List.take_zero, List.map_nil]
   rfl
 
-theorem toSpec_pending_length (r : SpongeRust) (h : r.Inv) :
+private theorem toSpec_pending_length (r : SpongeRust) (h : r.Inv) :
     r.toSpec.pending.length = r.nPending := by
   have := h.2.2
   simp [SpongeRust.toSpec, h.2.1]
   omega
 
-theorem push_toSpec (r : SpongeRust) (h : r.Inv) (h4 : r.nPending < 4) (v : E) (t : BitVec 64) :
+private theorem push_toSpec (r : SpongeRust) (h : r.Inv) (h4 : r.nPending < 4) (v : E)
+    (t : BitVec 64) :
     (r.push (v, t)).toSpec = { r.toSpec with pending := r.toSpec.pending ++ [(v, t.toNat)] } := by
   simp only [SpongeRust.toSpec, push_state, push_pending, push_nPending, push_ground]
   rw [take_succ_set _ _ _ (by rw [h.2.1]; exact h4), List.map_append]
   rfl
 
-theorem push_inv (r : SpongeRust) (h : r.Inv) (h4 : r.nPending < 4) (p : E × BitVec 64) :
+private theorem push_inv (r : SpongeRust) (h : r.Inv) (h4 : r.nPending < 4) (p : E × BitVec 64) :
     (r.push p).Inv :=
   ⟨by rw [push_state]; exact h.1, by rw [push_pending, List.length_set]; exact h.2.1,
     by rw [push_nPending]; omega⟩
@@ -398,7 +367,8 @@ theorem absorb_ground (r : SpongeRust) (hg : r.ground.isSome) (v : E) (t : BitVe
     r.absorb v t = none := by
   simp [SpongeRust.absorb, hg]
 
-theorem challengeRust_stateBits (a : KeccakState) : challengeRust (stateBits a) = challengeOf a := by
+private theorem challengeRust_stateBits (a : KeccakState) :
+    challengeRust (stateBits a) = challengeOf a := by
   rw [challengeRust, getD_stateBits _ (by norm_num), getD_stateBits _ (by norm_num)]
   rfl
 
@@ -426,47 +396,26 @@ theorem absorbNonce_toSpec (r : SpongeRust) (h : r.Inv) (hg : r.ground = none) (
         (absorbNonce (m := Id) keccakF1600 r.toSpec n : UInt64 × Sponge) := by
   obtain ⟨r1, h1, hi1, hs1⟩ := absorb_toSpec r h hg n dsPowNonceR
   have hd := duplex_inv r1 hi1
-  refine ⟨r1.duplex.state.getD 2 0, { r1.duplex with ground := some (challengeRust r1.duplex.state) },
+  refine ⟨r1.duplex.state.getD 2 0,
+    { r1.duplex with ground := some (challengeRust r1.duplex.state) },
     ?_, ⟨hd.1, hd.2.1, hd.2.2⟩, ?_⟩
   · simp only [SpongeRust.absorbNonce, h1]
     rfl
   · have e : (absorbNonce (m := Id) keccakF1600 r.toSpec n : UInt64 × Sponge) =
         (Keccak.lane (duplex (m := Id) keccakF1600 r1.toSpec : Sponge).state 2,
           { (duplex (m := Id) keccakF1600 r1.toSpec : Sponge) with
-            ground := some (challengeOf (duplex (m := Id) keccakF1600 r1.toSpec : Sponge).state) }) := by
+            ground :=
+              some (challengeOf (duplex (m := Id) keccakF1600 r1.toSpec : Sponge).state) }) := by
       rw [hs1]
       rfl
     rw [e, ← duplex_toSpec r1 hi1]
     simp only [SpongeRust.toSpec, duplex_state r1 hi1, ofStateBits_stateBits, duplex_pending,
       duplex_nPending, challengeRust_stateBits, getD_stateBits _ (show 2 < 25 by norm_num)]
 
-theorem getD_foldl_set_range (o n : ℕ) (f : ℕ → BitVec 64) (s : List (BitVec 64)) (j : ℕ) :
-    ((List.range n).foldl (fun s i ↦ s.set (o + i) (f i)) s).getD j 0 =
-      if o ≤ j ∧ j < o + n ∧ j < s.length then f (j - o) else s.getD j 0 := by
-  induction n with
-  | zero =>
-    simp only [List.range_zero, List.foldl_nil, Nat.add_zero]
-    rw [ite_eq_right (by omega)]
-  | succ n ih =>
-    rw [List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil, getD_set', ih,
-      length_foldl_of _ (fun _ _ ↦ List.length_set ..)]
-    by_cases h1 : o + n = j
-    · subst h1
-      by_cases h2 : o + n < s.length <;> simp [h2]
-    · by_cases h3 : o ≤ j ∧ j < o + n ∧ j < s.length
-      · simp [h1, h3, show j < o + (n + 1) by omega]
-      · have h4 : ¬ (o ≤ j ∧ j < o + (n + 1) ∧ j < s.length) := by omega
-        simp [h1, h3, h4]
-
-theorem getD_words (d : Digest) {j : ℕ} (hj : j < 4) :
+private theorem getD_words (d : Digest) {j : ℕ} (hj : j < 4) :
     (digestWordsRust (digestBits d)).getD j 0 = d[j].toBitVec := by
   rw [digestBits, digestWordsRust_digestBytes]
   simp [List.getD_eq_getElem?_getD, hj]
-
-theorem getD_replicate' {α : Type} (n : ℕ) (a d : α) (i : ℕ) :
-    (List.replicate n a).getD i d = if i < n then a else d := by
-  rw [List.getD_eq_getElem?_getD, List.getElem?_replicate]
-  split <;> rfl
 
 /-- The lanes `Sponge::new` permutes. -/
 def newLanes (iv publicInput : List (BitVec 8)) : List (BitVec 64) :=
@@ -474,10 +423,10 @@ def newLanes (iv publicInput : List (BitVec 8)) : List (BitVec 64) :=
     ((List.range 4).foldl (fun s i ↦ s.set i ((digestWordsRust iv).getD i 0))
       (List.replicate 25 0#64))
 
-theorem new_state (iv publicInput : List (BitVec 8)) :
+private theorem new_state (iv publicInput : List (BitVec 8)) :
     (SpongeRust.new iv publicInput).state = keccakFRust (newLanes iv publicInput) := rfl
 
-theorem newLanes_eq (iv publicInput : Digest) :
+private theorem newLanes_eq (iv publicInput : Digest) :
     newLanes (digestBits iv) (digestBits publicInput) = stateBits (seedInput iv publicInput) := by
   have hlen : (newLanes (digestBits iv) (digestBits publicInput)).length = 25 := by
     rw [newLanes, length_foldl_of _ (fun _ _ ↦ List.length_set ..),
@@ -488,7 +437,9 @@ theorem newLanes_eq (iv publicInput : Digest) :
   refine list_ext_getD 0 (by rw [hlen, stateBits_length]) fun j hj ↦ ?_
   rw [hlen] at hj
   rw [newLanes, getD_foldl_set_range, h1, getD_stateBits _ hj, seedInput, lane_ofFn _ hj,
-    length_foldl_of _ (fun _ _ ↦ List.length_set ..), List.length_replicate, getD_replicate']
+    length_foldl_of _ (fun _ _ ↦ List.length_set ..), List.length_replicate,
+    show (List.replicate 25 0#64).getD j 0 = 0 by
+      rw [List.getD_eq_getElem?_getD, List.getElem?_replicate, ite_eq_left hj]; rfl]
   by_cases ha : j < 4
   · rw [ite_eq_right (by omega), ite_eq_left ⟨by omega, by omega, by omega⟩]
     simp only [ha, ↓reduceDIte, Nat.sub_zero]
@@ -497,7 +448,7 @@ theorem newLanes_eq (iv publicInput : Digest) :
     · rw [ite_eq_left ⟨by omega, by omega, by omega⟩]
       simp only [ha, hb, ↓reduceDIte]
       exact getD_words publicInput (by omega)
-    · rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left hj]
+    · rw [ite_eq_right (by omega), ite_eq_right (by omega)]
       simp only [ha, hb, ↓reduceDIte]
       rfl
 

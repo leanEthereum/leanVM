@@ -52,98 +52,81 @@ abbrev ex : E := ofK g
 /-- `E` has characteristic two, as its base field does. -/
 instance instCharPE : CharP E 2 := charP_of_injective_algebraMap' (R := K) (A := E) 2
 
-theorem ofK_add' (a b : K) : ofK (a + b) = ofK a + ofK b := map_add (algebraMap K E) a b
+theorem ofK_add (a b : K) : ofK (a + b) = ofK a + ofK b := map_add (algebraMap K E) a b
 
-theorem ofK_mul' (a b : K) : ofK (a * b) = ofK a * ofK b := map_mul (algebraMap K E) a b
+theorem ofK_mul (a b : K) : ofK (a * b) = ofK a * ofK b := map_mul (algebraMap K E) a b
 
-theorem E.ext' {x z : E} (h : ∀ i, x.limb i = z.limb i) : x = z := Ext.ext h
+theorem E.ext {x z : E} (h : ∀ i, x.limb i = z.limb i) : x = z := Ext.ext h
 
-@[simp] theorem limb_ofLimbs' (c0 c1 : K) (i : Fin 2) :
+@[simp] theorem limb_ofLimbs (c0 c1 : K) (i : Fin 2) :
     (E.ofLimbs c0 c1).limb i = ![c0, c1] i := by
   fin_cases i <;> rfl
 
-@[simp] theorem limb_ofK' (a : K) (i : Fin 2) :
+@[simp] private theorem limb_ofK (a : K) (i : Fin 2) :
     (ofK a).limb i = if (i : ℕ) = 0 then a else 0 :=
   Ext.coeff_ofBase (P := eParams) a i
 
-theorem ofK_injective' : Function.Injective ofK := fun a b h ↦ by
+private theorem ofK_injective : Function.Injective ofK := fun a b h ↦ by
   simpa using congrArg (·.limb 0) h
 
-theorem limb_add' (x z : E) (i : Fin 2) : (x + z).limb i = x.limb i + z.limb i :=
+private theorem limb_add (x z : E) (i : Fin 2) : (x + z).limb i = x.limb i + z.limb i :=
   Ext.coeff_add x z i
 
-theorem ey_sq : ey ^ 2 = ex * ey + 1 := by
+private theorem ey_sq : ey ^ 2 = ex * ey + 1 := by
   have h : Polynomial.aeval ey ePoly = 0 := by rw [← eParams_poly]; exact Ext.aeval_gen_poly
   simp only [ePoly, map_add, map_pow, map_mul, Polynomial.aeval_X, Polynomial.aeval_C, map_one,
     Ext.algebraMap_eq_ofBase] at h
   rw [← sub_eq_zero, CharTwo.sub_eq_add, ← add_assoc]
   exact h
 
-theorem eq_sum_limbs (x : E) : x = ofK (x.limb 0) + ofK (x.limb 1) * ey := by
+private theorem eq_sum_limbs (x : E) : x = ofK (x.limb 0) + ofK (x.limb 1) * ey := by
   apply Ext.toQuot_injective
   have hx : Ext.toQuot x = ∑ i : Fin 2,
       algebraMap K (AdjoinRoot eParams.poly) (x.limb i) * Ext.rt eParams ^ (i : ℕ) := rfl
   rw [hx, Fin.sum_univ_two]
   simp
 
-theorem ofLimbs_eq' (c0 c1 : K) : E.ofLimbs c0 c1 = ofK c0 + ofK c1 * ey := by
+private theorem ofLimbs_eq (c0 c1 : K) : E.ofLimbs c0 c1 = ofK c0 + ofK c1 * ey := by
   conv_lhs => rw [eq_sum_limbs (E.ofLimbs c0 c1)]
   simp
 
-theorem ofLimbs_limb' (x : E) : E.ofLimbs (x.limb 0) (x.limb 1) = x :=
-  E.ext' fun i ↦ by fin_cases i <;> simp
+private theorem ofLimbs_limb (x : E) : E.ofLimbs (x.limb 0) (x.limb 1) = x :=
+  E.ext fun i ↦ by fin_cases i <;> simp
 
-theorem mul_limbs' (a0 a1 b0 b1 : K) :
+private theorem mul_limbs (a0 a1 b0 b1 : K) :
     E.ofLimbs a0 a1 * E.ofLimbs b0 b1 =
       E.ofLimbs (a0 * b0 + a1 * b1) (a0 * b1 + a1 * b0 + g * (a1 * b1)) := by
-  simp only [ofLimbs_eq', ofK_add', ofK_mul']
+  simp only [ofLimbs_eq, ofK_add, ofK_mul]
   linear_combination (ofK a1 * ofK b1) * ey_sq
-
-theorem add_limbs' (a0 a1 b0 b1 : K) :
-    E.ofLimbs a0 a1 + E.ofLimbs b0 b1 = E.ofLimbs (a0 + b0) (a1 + b1) :=
-  E.ext' fun i ↦ by rw [limb_add']; fin_cases i <;> simp
 
 theorem limbs_ofLimbs (a b : K) : limbs (E.ofLimbs a b) = (a.toBitVec, b.toBitVec) := by
   simp [limbs]
 
-theorem ofLimbsW_limbs (x : E) : ofLimbsW (limbs x) = x := ofLimbs_limb' x
-
-theorem limbs_ofLimbsW (w : Limbs) : limbs (ofLimbsW w) = w := by
-  rw [ofLimbsW, limbs_ofLimbs]
-  rfl
-
-theorem limbs_injective : Function.Injective limbs := fun x z h ↦ by
-  rw [← ofLimbsW_limbs x, ← ofLimbsW_limbs z, h]
-
-/-- A word from its limbs. -/
-theorem eq_ofLimbs_limbs (x : E) : x = E.ofLimbs (BF64.ofBitVec (limbs x).1)
-    (BF64.ofBitVec (limbs x).2) := (ofLimbsW_limbs x).symm
+theorem ofLimbsW_limbs (x : E) : ofLimbsW (limbs x) = x := ofLimbs_limb x
 
 theorem limbs_ofK (a : K) : limbs (ofK a) = (a.toBitVec, 0#64) := by
   simp [limbs]
 
 theorem toBitVec_add (a b : K) : (a + b).toBitVec = a.toBitVec ^^^ b.toBitVec := rfl
 
-theorem two_K : (2 : K) = 0 := CharTwo.two_eq_zero
-
 /-! ## The reduction, through the quotient -/
 
-theorem toQuot_eq (a : K) :
+private theorem toQuot_eq (a : K) :
     BF64.toQuot a = AdjoinRoot.mk BF64.basePoly (toPoly a.toBitVec) := rfl
 
-theorem toQuot_g : BF64.toQuot g = AdjoinRoot.mk BF64.basePoly Polynomial.X := by
+private theorem toQuot_g : BF64.toQuot g = AdjoinRoot.mk BF64.basePoly Polynomial.X := by
   rw [toQuot_eq,
     show toPoly g.toBitVec = Polynomial.X ^ 1 from toPoly_one_shiftLeft (w := 64) 1 (by norm_num),
     pow_one]
 
 /-- The `K` word `BF64.reduce x` is the class of `x`. -/
-theorem toQuot_reduce (x : BitVec 128) :
+private theorem toQuot_reduce (x : BitVec 128) :
     BF64.toQuot (BF64.ofBitVec (BF64.reduce x)) = AdjoinRoot.mk BF64.basePoly (toPoly x) := by
   rw [toQuot_eq, BF64.toBitVec_ofBitVec, BF64.toPoly_reduce, AdjoinRoot.mk_eq_mk]
   exact ⟨-(toPoly x / BF64.basePoly), by rw [EuclideanDomain.mod_eq_sub_mul_div]; ring⟩
 
 /-- **A reduced 128-bit word is the `K` word of its class.** -/
-theorem reduce_eq_of_mk (x : BitVec 128) (k : K)
+private theorem reduce_eq_of_mk (x : BitVec 128) (k : K)
     (h : AdjoinRoot.mk BF64.basePoly (toPoly x) = BF64.toQuot k) :
     BF64.reduce x = k.toBitVec := by
   have : BF64.ofBitVec (BF64.reduce x) = k := BF64.toQuot_injective (by rw [toQuot_reduce, h])
@@ -153,11 +136,11 @@ theorem reduce_eq_of_mk (x : BitVec 128) (k : K)
 /-- The carry-less product as one 128-bit word. -/
 def cl (a b : BitVec 64) : BitVec 128 := carryLessMul (w := 128) a b
 
-theorem toPoly_cl (a b : BitVec 64) : toPoly (cl a b) = toPoly a * toPoly b :=
+private theorem toPoly_cl (a b : BitVec 64) : toPoly (cl a b) = toPoly a * toPoly b :=
   toPoly_carryLessMul a b (by norm_num)
 
 /-- A carry-less product of 64-bit words has degree at most `126`. -/
-theorem cl_lt (a b : BitVec 64) : (cl a b).toNat < 2 ^ 127 := by
+private theorem cl_lt (a b : BitVec 64) : (cl a b).toNat < 2 ^ 127 := by
   apply BitVec_lt_two_pow_of_toPoly_degree_lt
   rw [toPoly_cl]
   have ha := toPoly_degree_of_lt_two_pow a (d := 64) a.isLt
@@ -175,7 +158,7 @@ theorem cl_lt (a b : BitVec 64) : (cl a b).toNat < 2 ^ 127 := by
   rw [← Nat.cast_add]
   exact_mod_cast (show (toPoly a).natDegree + (toPoly b).natDegree < 127 by omega)
 
-theorem toPoly_cl_shl (a b : BitVec 64) :
+private theorem toPoly_cl_shl (a b : BitVec 64) :
     toPoly (cl a b <<< 1) = toPoly a * toPoly b * Polynomial.X := by
   rw [toPoly_shiftLeft_no_overflow _ (cl_lt a b) (by norm_num), toPoly_cl, pow_one]
 
@@ -195,7 +178,8 @@ def clmul (a b : BitVec 64) : BitVec 128 :=
   let high := (clmulLow a.reverse b.reverse).reverse >>> 1
   high.setWidth 128 <<< 64 ||| low.setWidth 128
 
-theorem u128_eq_append (hi lo : BitVec 64) : hi.setWidth 128 <<< 64 ||| lo.setWidth 128 = hi ++ lo := by
+private theorem u128_eq_append (hi lo : BitVec 64) :
+    hi.setWidth 128 <<< 64 ||| lo.setWidth 128 = hi ++ lo := by
   apply BitVec.eq_of_getLsbD_eq
   intro i hi'
   simp only [BitVec.getLsbD_or, BitVec.getLsbD_shiftLeft, BitVec.getLsbD_setWidth,
@@ -216,7 +200,7 @@ def reduce (p : BitVec 128) : BitVec 64 :=
 /-- `base_mul(a, b)`. -/
 def baseMul (a b : BitVec 64) : BitVec 64 := reduce (clmul a b)
 
-theorem card_pairs_reverse (a b : BitVec 64) (k : ℕ) (hk : k ≤ 126) :
+private theorem card_pairs_reverse (a b : BitVec 64) (k : ℕ) (hk : k ≤ 126) :
     (pairs a.reverse b.reverse k).card = (pairs a b (126 - k)).card := by
   apply Finset.card_nbij' (fun uv ↦ (63 - uv.1, 63 - uv.2)) (fun uv ↦ (63 - uv.1, 63 - uv.2))
   · intro uv huv
@@ -251,7 +235,7 @@ theorem card_pairs_reverse (a b : BitVec 64) (k : ℕ) (hk : k ≤ 126) :
     have := BitVec.lt_of_getLsbD huv.1.2
     ext <;> simp <;> omega
 
-theorem pairs_eq_empty (a b : BitVec 64) (k : ℕ) (hk : 126 < k) : pairs a b k = ∅ := by
+private theorem pairs_eq_empty (a b : BitVec 64) (k : ℕ) (hk : 126 < k) : pairs a b k = ∅ := by
   ext uv
   simp only [pairs, Finset.mem_filter, Finset.mem_product, mem_bitSet, Finset.notMem_empty,
     iff_false, not_and]
@@ -278,7 +262,7 @@ theorem clmul_eq (a b : BitVec 64) : clmul a b = cl a b := by
         Bool.true_and, getLsbD_clmulLow _ _ _ (by omega), card_pairs_reverse _ _ _ (by omega),
         show 126 - (64 - 1 - (p - 63)) = p by omega]
 
-theorem setWidth_ushiftRight_append (p : BitVec 128) :
+private theorem setWidth_ushiftRight_append (p : BitVec 128) :
     (p >>> 64).setWidth 64 ++ p.setWidth 64 = p := by
   apply BitVec.eq_of_getLsbD_eq
   intro i hi
@@ -318,11 +302,11 @@ def spread (a : BitVec 64) : BitVec 128 :=
 
 /-- After the step of shift `s`, bit `k` (with `k % 2s < s`) holds bit `(k / 2s) s + k % 2s` of
 `a`, and the other bits are clear. -/
-def Spread (a : BitVec 64) (s : ℕ) (x : BitVec 128) : Prop :=
+private def Spread (a : BitVec 64) (s : ℕ) (x : BitVec 128) : Prop :=
   ∀ k, x.getLsbD k =
     (decide (k < 128) && decide (k % (2 * s) < s) && a.getLsbD (k / (2 * s) * s + k % (2 * s)))
 
-theorem spread_start (a : BitVec 64) : Spread a 64 (a.setWidth 128) := by
+private theorem spread_start (a : BitVec 64) : Spread a 64 (a.setWidth 128) := by
   intro k
   rw [BitVec.getLsbD_setWidth]
   by_cases hk : k < 128
@@ -332,7 +316,7 @@ theorem spread_start (a : BitVec 64) : Spread a 64 (a.setWidth 128) := by
     · simp [hk, h, BitVec.getLsbD_of_ge a k (by omega)]
   · simp [hk, BitVec.getLsbD_of_ge a k (by omega)]
 
-theorem spread_step (a : BitVec 64) (s : ℕ) (x m : BitVec 128)
+private theorem spread_step (a : BitVec 64) (s : ℕ) (x m : BitVec 128)
     (hs : s = 32 ∨ s = 16 ∨ s = 8 ∨ s = 4 ∨ s = 2 ∨ s = 1)
     (hm : ∀ k : Fin 128, m.getLsbD k = decide (k.val % (2 * s) < s)) (hx : Spread a (2 * s) x) :
     Spread a s ((x ||| x <<< s) &&& m) := by
@@ -355,25 +339,25 @@ theorem spread_step (a : BitVec 64) (s : ℕ) (x m : BitVec 128)
       rcases hs with rfl | rfl | rfl | rfl | rfl | rfl <;> (congr 1; omega)
   · rw [BitVec.getLsbD_of_ge _ k (by omega)]; simp [hk]
 
-theorem mask32 : ∀ k : Fin 128, (0x00000000FFFFFFFF00000000FFFFFFFF#128).getLsbD k =
+private theorem mask32 : ∀ k : Fin 128, (0x00000000FFFFFFFF00000000FFFFFFFF#128).getLsbD k =
     decide (k.val % (2 * 32) < 32) := by decide +kernel
 
-theorem mask16 : ∀ k : Fin 128, (0x0000FFFF0000FFFF0000FFFF0000FFFF#128).getLsbD k =
+private theorem mask16 : ∀ k : Fin 128, (0x0000FFFF0000FFFF0000FFFF0000FFFF#128).getLsbD k =
     decide (k.val % (2 * 16) < 16) := by decide +kernel
 
-theorem mask8 : ∀ k : Fin 128, (0x00FF00FF00FF00FF00FF00FF00FF00FF#128).getLsbD k =
+private theorem mask8 : ∀ k : Fin 128, (0x00FF00FF00FF00FF00FF00FF00FF00FF#128).getLsbD k =
     decide (k.val % (2 * 8) < 8) := by decide +kernel
 
-theorem mask4 : ∀ k : Fin 128, (0x0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F#128).getLsbD k =
+private theorem mask4 : ∀ k : Fin 128, (0x0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F#128).getLsbD k =
     decide (k.val % (2 * 4) < 4) := by decide +kernel
 
-theorem mask2 : ∀ k : Fin 128, (0x33333333333333333333333333333333#128).getLsbD k =
+private theorem mask2 : ∀ k : Fin 128, (0x33333333333333333333333333333333#128).getLsbD k =
     decide (k.val % (2 * 2) < 2) := by decide +kernel
 
-theorem mask1 : ∀ k : Fin 128, (0x55555555555555555555555555555555#128).getLsbD k =
+private theorem mask1 : ∀ k : Fin 128, (0x55555555555555555555555555555555#128).getLsbD k =
     decide (k.val % (2 * 1) < 1) := by decide +kernel
 
-theorem spread_spread (a : BitVec 64) : Spread a 1 (spread a) :=
+private theorem spread_spread (a : BitVec 64) : Spread a 1 (spread a) :=
   spread_step a 1 _ _ (by simp) mask1 <| spread_step a 2 _ _ (by simp) mask2 <|
     spread_step a 4 _ _ (by simp) mask4 <| spread_step a 8 _ _ (by simp) mask8 <|
     spread_step a 16 _ _ (by simp) mask16 <| spread_step a 32 _ _ (by simp) mask32 <|
@@ -428,7 +412,7 @@ def kInv (a : BitVec 64) : BitVec 64 :=
   let t63 := baseMul (kSq t60 3) t3
   kSq t63 1
 
-theorem kSq_succ (v : BitVec 64) (n : ℕ) : kSq v (n + 1) = kSquare (kSq v n) := by
+private theorem kSq_succ (v : BitVec 64) (n : ℕ) : kSq v (n + 1) = kSquare (kSq v n) := by
   rw [kSq, List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil, ← kSq]
 
 theorem kSq_eq (a : K) (n : ℕ) : kSq a.toBitVec n = (a ^ 2 ^ n).toBitVec := by
@@ -436,7 +420,8 @@ theorem kSq_eq (a : K) (n : ℕ) : kSq a.toBitVec n = (a ^ 2 ^ n).toBitVec := by
   | zero => simp [kSq]
   | succ n ih => rw [kSq_succ, ih, kSquare_eq, ← sq, ← pow_mul, pow_succ]
 
-theorem chain_step {a x y : K} {n m k : ℕ} (hx : x = a ^ (2 ^ n - 1)) (hy : y = a ^ (2 ^ m - 1))
+private theorem chain_step {a x y : K} {n m k : ℕ} (hx : x = a ^ (2 ^ n - 1))
+    (hy : y = a ^ (2 ^ m - 1))
     (hk : n + m = k) : x ^ 2 ^ m * y = a ^ (2 ^ k - 1) := by
   subst hx hy hk
   rw [← pow_mul, ← pow_add]
@@ -481,7 +466,7 @@ theorem kInv_eq (a : K) : kInv a.toBitVec = a⁻¹.toBitVec := by
 /-- `times_x(value)`: `value << 1 ^ (0u64.wrapping_sub(value >> 63) & 0x1B)`. -/
 def timesX (v : BitVec 64) : BitVec 64 := v <<< 1 ^^^ ((0#64 - (v >>> 63)) &&& 0x1B#64)
 
-theorem cl_two (a : BitVec 64) : cl a 2#64 = (a >>> 63) ++ (a <<< 1) := by
+private theorem cl_two (a : BitVec 64) : cl a 2#64 = (a >>> 63) ++ (a <<< 1) := by
   have h : (a >>> 63) ++ (a <<< 1) = zeroExtendTo (w := 128) a <<< 1 := by
     apply BitVec.eq_of_getLsbD_eq
     intro k hk
@@ -501,7 +486,7 @@ theorem cl_two (a : BitVec 64) : cl a 2#64 = (a >>> 63) ++ (a <<< 1) := by
     toPoly_zeroExtendTo _ (by norm_num),
     show toPoly 2#64 = Polynomial.X ^ 1 from toPoly_one_shiftLeft (w := 64) 1 (by norm_num)]
 
-theorem reduce_append (hi lo : BitVec 64) :
+private theorem reduce_append (hi lo : BitVec 64) :
     reduce (hi ++ lo) = lo ^^^ (hi ^^^ ((hi >>> 63) ^^^ (hi >>> 61) ^^^ (hi >>> 60))) ^^^
       ((hi ^^^ ((hi >>> 63) ^^^ (hi >>> 61) ^^^ (hi >>> 60))) <<< 1) ^^^
       ((hi ^^^ ((hi >>> 63) ^^^ (hi >>> 61) ^^^ (hi >>> 60))) <<< 3) ^^^
@@ -544,7 +529,8 @@ def eOne : Limbs := (1#64, 0#64)
 /-- `GEN = E::new(2, 0)`. -/
 def eGen : Limbs := (2#64, 0#64)
 
-@[simp] theorem limb_zero' (i : Fin 2) : (0 : E).limb i = 0 := Ext.coeff_zero (P := eParams) i
+@[simp] private theorem limb_zero (i : Fin 2) : (0 : E).limb i = 0 :=
+  Ext.coeff_zero (P := eParams) i
 
 theorem limbs_zero : limbs (0 : E) = eZero := by
   simp [limbs, eZero]
@@ -561,7 +547,7 @@ theorem limbs_gen : limbs LeanVM.Protocol.Verifier.gen = eGen := by
 def eAdd (a b : Limbs) : Limbs := (a.1 ^^^ b.1, a.2 ^^^ b.2)
 
 theorem eAdd_eq (x z : E) : eAdd (limbs x) (limbs z) = limbs (x + z) := by
-  simp only [eAdd, limbs, limb_add', toBitVec_add]
+  simp only [eAdd, limbs, limb_add, toBitVec_add]
 
 /-- `From<K> for E`: `E::new(value.0, 0)`. -/
 def eOfK (a : BitVec 64) : Limbs := (a, 0#64)
@@ -577,19 +563,19 @@ def eMul (a b : Limbs) : Limbs :=
   (reduce (p0 ^^^ p1), reduce (middle ^^^ p1 <<< 1))
 
 /-- Every word is `E.ofLimbs` of its limbs. -/
-theorem exists_ofLimbs (x : E) : ∃ a b : K, x = E.ofLimbs a b := ⟨_, _, (ofLimbs_limb' x).symm⟩
+theorem exists_ofLimbs (x : E) : ∃ a b : K, x = E.ofLimbs a b := ⟨_, _, (ofLimbs_limb x).symm⟩
 
-theorem ofK_eq_ofLimbs' (a : K) : ofK a = E.ofLimbs a 0 := by
-  rw [ofLimbs_eq', show ofK (0 : K) = 0 from map_zero (algebraMap K E), zero_mul, add_zero]
+theorem ofK_eq_ofLimbs (a : K) : ofK a = E.ofLimbs a 0 := by
+  rw [ofLimbs_eq, show ofK (0 : K) = 0 from map_zero (algebraMap K E), zero_mul, add_zero]
 
 /-- **The Rust's `E` product is `E` multiplication.** -/
 theorem eMul_eq (x z : E) : eMul (limbs x) (limbs z) = limbs (x * z) := by
   obtain ⟨a0, a1, rfl⟩ := exists_ofLimbs x
   obtain ⟨b0, b1, rfl⟩ := exists_ofLimbs z
-  rw [mul_limbs', limbs_ofLimbs, limbs_ofLimbs, limbs_ofLimbs,
+  rw [mul_limbs, limbs_ofLimbs, limbs_ofLimbs, limbs_ofLimbs,
     show a0 * b1 + a1 * b0 + g * (a1 * b1) =
       (a0 + a1) * (b0 + b1) + a0 * b0 + a1 * b1 + a1 * b1 * g by
-      linear_combination (-(a0 * b0 + a1 * b1)) * two_K]
+      linear_combination (-(a0 * b0 + a1 * b1)) * (CharTwo.two_eq_zero : (2 : K) = 0)]
   simp only [eMul, clmul_eq, reduce_eq, Prod.mk.injEq]
   constructor <;> limb_quot
 
@@ -598,7 +584,7 @@ def eMulK (a : Limbs) (k : BitVec 64) : Limbs := (baseMul a.1 k, baseMul a.2 k)
 
 theorem eMulK_eq (x : E) (k : K) : eMulK (limbs x) k.toBitVec = limbs (x * ofK k) := by
   obtain ⟨a0, a1, rfl⟩ := exists_ofLimbs x
-  rw [ofK_eq_ofLimbs', mul_limbs', limbs_ofLimbs, limbs_ofLimbs]
+  rw [ofK_eq_ofLimbs, mul_limbs, limbs_ofLimbs, limbs_ofLimbs]
   simp only [eMulK, baseMul_eq, mul_zero, add_zero, zero_add]
 
 /-! ## `E::square`, `frobenius`, `pow`, `inv`, `sum` -/
@@ -612,9 +598,9 @@ def eSquare (a : Limbs) : Limbs :=
 /-- **`E::square` is the square.** -/
 theorem eSquare_eq (x : E) : eSquare (limbs x) = limbs (x * x) := by
   obtain ⟨a0, a1, rfl⟩ := exists_ofLimbs x
-  rw [mul_limbs', limbs_ofLimbs, limbs_ofLimbs,
+  rw [mul_limbs, limbs_ofLimbs, limbs_ofLimbs,
     show a0 * a1 + a1 * a0 + g * (a1 * a1) = a1 * a1 * g by
-      linear_combination (a0 * a1) * two_K]
+      linear_combination (a0 * a1) * (CharTwo.two_eq_zero : (2 : K) = 0)]
   simp only [eSquare, spread_eq, reduce_eq, Prod.mk.injEq]
   constructor <;> limb_quot
 
@@ -683,16 +669,16 @@ def eInv (x : Limbs) : Limbs :=
   eMul m (eOfK (kInv norm.1))
 
 /-- The norm: a word times its conjugate lies in `K`. -/
-theorem norm_ofLimbs (a b : K) :
+private theorem norm_ofLimbs (a b : K) :
     E.ofLimbs a b * E.ofLimbs (a + b * g) b = ofK (a * (a + b * g) + b * b) := by
-  rw [mul_limbs', ofK_eq_ofLimbs']
+  rw [mul_limbs, ofK_eq_ofLimbs]
   congr 1
-  linear_combination (a * b + b * b * g) * two_K
+  linear_combination (a * b + b * b * g) * (CharTwo.two_eq_zero : (2 : K) = 0)
 
-theorem ofLimbs_eq_zero {a b : K} (h : E.ofLimbs a b = 0) : a = 0 ∧ b = 0 := by
+private theorem ofLimbs_eq_zero {a b : K} (h : E.ofLimbs a b = 0) : a = 0 ∧ b = 0 := by
   have h0 := congrArg (·.limb 0) h
   have h1 := congrArg (·.limb 1) h
-  simp only [limb_ofLimbs', limb_zero'] at h0 h1
+  simp only [limb_ofLimbs, limb_zero] at h0 h1
   exact ⟨h0, h1⟩
 
 /-- **`E::inv` is the inverse**, zero to zero. -/
@@ -707,7 +693,7 @@ theorem eInv_eq (x : E) : eInv (limbs x) = limbs x⁻¹ := by
   by_cases hx : E.ofLimbs a b = 0
   · have hn : n = 0 := by
       rw [hx, zero_mul, ← hof0] at hN
-      exact ofK_injective' hN.symm
+      exact ofK_injective hN.symm
     rw [hx, inv_zero, hn, inv_zero, hof0, mul_zero]
   · have hn0 : n ≠ 0 := by
       rintro rfl
@@ -717,15 +703,15 @@ theorem eInv_eq (x : E) : eInv (limbs x) = limbs x⁻¹ := by
       · obtain ⟨h0, rfl⟩ := ofLimbs_eq_zero h
         rw [zero_mul, add_zero] at h0
         subst h0
-        exact hx (by rw [← ofK_eq_ofLimbs', hof0])
+        exact hx (by rw [← ofK_eq_ofLimbs, hof0])
     apply eq_inv_of_mul_eq_one_right
-    rw [← mul_assoc, hN, ← ofK_mul', mul_inv_cancel₀ hn0]
+    rw [← mul_assoc, hN, ← ofK_mul, mul_inv_cancel₀ hn0]
     exact map_one (algebraMap K E)
 
 /-- `E::sum(values)`: the fold from `ZERO`. -/
 def eSum (values : List Limbs) : Limbs := values.foldl eAdd eZero
 
-theorem foldl_eAdd (l : List E) (acc : E) :
+private theorem foldl_eAdd (l : List E) (acc : E) :
     (l.map limbs).foldl eAdd (limbs acc) = limbs (l.foldl (· + ·) acc) := by
   induction l generalizing acc with
   | nil => rfl
@@ -744,7 +730,7 @@ def powersM (base : Limbs) (count : ℕ) : List Limbs :=
   ((List.range count).foldl (fun (st : List Limbs × Limbs) _ ↦ (st.1 ++ [st.2], eMul st.2 base))
     ([], eOne)).1
 
-theorem powersFrom_succ (acc base : E) (n : ℕ) :
+private theorem powersFrom_succ (acc base : E) (n : ℕ) :
     LeanVM.Protocol.Verifier.powersFrom acc base (n + 1) =
       LeanVM.Protocol.Verifier.powersFrom acc base n ++ [acc * base ^ n] := by
   induction n generalizing acc with
@@ -780,22 +766,22 @@ def ltimesX (p : Limbs) : Limbs := (timesX p.1, timesX p.2)
 /-- `monomial` times `y`, with `y^2 = x y + 1`: `E::new(m.c1, m.c0 ^ times_x(m.c1))`. -/
 def ltimesY (m : Limbs) : Limbs := (m.2, m.1 ^^^ timesX m.2)
 
-theorem ltimesX_eq (z : E) : ltimesX (limbs z) = limbs (z * ex) := by
+private theorem ltimesX_eq (z : E) : ltimesX (limbs z) = limbs (z * ex) := by
   obtain ⟨a, b, rfl⟩ := exists_ofLimbs z
-  rw [show ex = E.ofLimbs g 0 from ofK_eq_ofLimbs' g, mul_limbs', limbs_ofLimbs, limbs_ofLimbs]
+  rw [show ex = E.ofLimbs g 0 from ofK_eq_ofLimbs g, mul_limbs, limbs_ofLimbs, limbs_ofLimbs]
   simp only [ltimesX, timesX_eq, mul_zero, add_zero, zero_add]
 
-theorem ey_eq : ey = E.ofLimbs 0 1 := by
-  rw [ofLimbs_eq', show ofK (0 : K) = 0 from map_zero (algebraMap K E),
+private theorem ey_eq : ey = E.ofLimbs 0 1 := by
+  rw [ofLimbs_eq, show ofK (0 : K) = 0 from map_zero (algebraMap K E),
     show ofK (1 : K) = 1 from map_one (algebraMap K E), zero_add, one_mul]
 
-theorem ltimesY_eq (z : E) : ltimesY (limbs z) = limbs (z * ey) := by
+private theorem ltimesY_eq (z : E) : ltimesY (limbs z) = limbs (z * ey) := by
   obtain ⟨a, b, rfl⟩ := exists_ofLimbs z
-  rw [ey_eq, mul_limbs', limbs_ofLimbs, limbs_ofLimbs]
+  rw [ey_eq, mul_limbs, limbs_ofLimbs, limbs_ofLimbs]
   simp only [ltimesY, timesX_eq, mul_zero, mul_one, zero_add, add_zero, toBitVec_add, mul_comm g]
 
 /-- A word of `K` is the sum of the powers of `x` at its set bits. -/
-theorem sum_bits (c : BitVec 64) :
+private theorem sum_bits (c : BitVec 64) :
     ∑ k ∈ Finset.range 64, (if c.getLsbD k then g ^ k else 0) = BF64.ofBitVec c := by
   apply BF64.toQuot_injective
   let φ : K →+ BF64.BF64Quot := AddMonoidHom.mk' BF64.toQuot BF64.toQuot_add
@@ -808,18 +794,13 @@ theorem sum_bits (c : BitVec 64) :
     apply_ite (AdjoinRoot.mk _), map_pow, map_zero]
   rfl
 
-theorem ofK_sum_bits (c : BitVec 64) :
+private theorem ofK_sum_bits (c : BitVec 64) :
     ∑ k ∈ Finset.range 64, (if c.getLsbD k then ex ^ k else 0) = ofK (BF64.ofBitVec c) := by
   rw [← sum_bits c]
   change _ = algebraMap K E _
   rw [map_sum]
   refine Finset.sum_congr rfl fun k _ ↦ ?_
   split <;> simp [map_pow]
-
-/-- A word from its limbs, in the basis `1, y`. -/
-theorem eq_of_limbs_sum (a : E) :
-    a = ofK (BF64.ofBitVec (limbs a).1) + ofK (BF64.ofBitVec (limbs a).2) * ey :=
-  eq_sum_limbs a
 
 /-! ### The tables
 
@@ -851,25 +832,23 @@ def scaledNew (r : Limbs) : List Limbs :=
 
 /-- Entry `i` of the tables: table `i / 64` is window `j = i % 704 / 64` of limb `t = i / 704`,
 and its entry `n = i % 64` is the sum of `r y^t x^(6j + b)` over the set bits `b` of `n`. -/
-def entry (r : E) (i : ℕ) : E :=
+private def entry (r : E) (i : ℕ) : E :=
   ∑ b ∈ Finset.range 6,
     if (i % 64).testBit b then r * ey ^ (i / 704) * ex ^ (6 * (i % 704 / 64) + b) else 0
 
 /-- The tables hold `entry` below `p`, and zero from `p` on. -/
-def Filled (r : E) (p : ℕ) (tables : List Limbs) : Prop :=
+private def Filled (r : E) (p : ℕ) (tables : List Limbs) : Prop :=
   tables.length = 1408 ∧ ∀ i, tables.getD i eZero = if i < p then limbs (entry r i) else eZero
 
-theorem getD_set (l : List Limbs) (i j : ℕ) (a d : Limbs) :
+theorem getD_set {α : Type} (l : List α) (i j : ℕ) (a d : α) :
     (l.set i a).getD j d = if i = j ∧ i < l.length then a else l.getD j d := by
   rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_set]
   by_cases h1 : i = j
   · subst h1
-    by_cases h2 : i < l.length
-    · simp [h2]
-    · simp [h2]
+    by_cases h2 : i < l.length <;> simp [h2]
   · simp [h1]
 
-theorem testBit_two_pow_add (k m b : ℕ) (hm : m < 2 ^ k) :
+private theorem testBit_two_pow_add (k m b : ℕ) (hm : m < 2 ^ k) :
     (2 ^ k + m).testBit b = (m.testBit b || decide (b = k)) := by
   rcases (show b < k ∨ b = k ∨ k < b by omega) with h | h | h
   · rw [Nat.testBit_two_pow_add_gt h]; simp [show b ≠ k by omega]
@@ -879,7 +858,7 @@ theorem testBit_two_pow_add (k m b : ℕ) (hm : m < 2 ^ k) :
       Nat.testBit_lt_two_pow (by rw [pow_succ] at hb; omega)]
     simp [show b ≠ k by omega]
 
-theorem sum_bits_add (f : ℕ → E) (k m : ℕ) (hk : k < 6) (hm : m < 2 ^ k) :
+private theorem sum_bits_add (f : ℕ → E) (k m : ℕ) (hk : k < 6) (hm : m < 2 ^ k) :
     ∑ b ∈ Finset.range 6, (if (2 ^ k + m).testBit b then f b else 0) =
       ∑ b ∈ Finset.range 6, (if m.testBit b then f b else 0) + f k := by
   have hk' : m.testBit k = false := Nat.testBit_lt_two_pow hm
@@ -891,7 +870,7 @@ theorem sum_bits_add (f : ℕ → E) (k m : ℕ) (hk : k < 6) (hm : m < 2 ^ k) :
   · subst hb; simp [hk']
   · simp [hb]
 
-theorem entry_add (r : E) (t j k m : ℕ) (hj : j < 11) (hk : k < 6) (hm : m < 2 ^ k) :
+private theorem entry_add (r : E) (t j k m : ℕ) (hj : j < 11) (hk : k < 6) (hm : m < 2 ^ k) :
     entry r ((t * 11 + j) * 64 + 2 ^ k + m) =
       entry r ((t * 11 + j) * 64 + m) + r * ey ^ t * ex ^ (6 * j + k) := by
   have hP : 2 ^ k ≤ 32 := by
@@ -907,7 +886,7 @@ theorem entry_add (r : E) (t j k m : ℕ) (hj : j < 11) (hk : k < 6) (hm : m < 2
   rw [e1, e2, e3, e4, e5, e6, ← hP']
   exact sum_bits_add (fun b ↦ r * ey ^ t * ex ^ (6 * j + b)) k m hk (hP' ▸ hm)
 
-theorem fillBit_prefix (base bit : ℕ) (power : Limbs) (l : List Limbs)
+private theorem fillBit_prefix (base bit : ℕ) (power : Limbs) (l : List Limbs)
     (hlen : base + 2 ^ (bit + 1) ≤ l.length) (m : ℕ) (hm : m ≤ 2 ^ bit) :
     ((List.range m).foldl (fillStep base bit power) l).length = l.length ∧
       ∀ i, ((List.range m).foldl (fillStep base bit power) l).getD i eZero =
@@ -935,7 +914,7 @@ theorem fillBit_prefix (base bit : ℕ) (power : Limbs) (l : List Limbs)
       · rw [ite_eq_left hr, ite_eq_left ⟨hr.1, by omega⟩]
       · rw [ite_eq_right hr, ite_eq_right (by omega)]
 
-theorem fillBit_filled (r : E) (t j k : ℕ) (ht : t < 2) (hj : j < 11) (hk : k < 6)
+private theorem fillBit_filled (r : E) (t j k : ℕ) (ht : t < 2) (hj : j < 11) (hk : k < 6)
     (l : List Limbs) (hl : Filled r ((t * 11 + j) * 64 + 2 ^ k) l) :
     Filled r ((t * 11 + j) * 64 + 2 ^ (k + 1))
       (fillBit ((t * 11 + j) * 64) k (limbs (r * ey ^ t * ex ^ (6 * j + k))) l) := by
@@ -959,12 +938,12 @@ theorem fillBit_filled (r : E) (t j k : ℕ) (ht : t < 2) (hj : j < 11) (hk : k 
     · rw [ite_eq_left h1, ite_eq_left (by omega)]
     · rw [ite_eq_right h1, ite_eq_right (by omega)]
 
-theorem entry_base (r : E) (t j : ℕ) : entry r ((t * 11 + j) * 64) = 0 := by
+private theorem entry_base (r : E) (t j : ℕ) : entry r ((t * 11 + j) * 64) = 0 := by
   unfold entry
   rw [show (t * 11 + j) * 64 % 64 = 0 by omega]
   simp
 
-theorem fillTable_filled (r : E) (t j : ℕ) (ht : t < 2) (hj : j < 11) (l : List Limbs)
+private theorem fillTable_filled (r : E) (t j : ℕ) (ht : t < 2) (hj : j < 11) (l : List Limbs)
     (hl : Filled r ((t * 11 + j) * 64) l) :
     Filled r ((t * 11 + j) * 64 + 64)
         (fillTable ((t * 11 + j) * 64) (l, limbs (r * ey ^ t * ex ^ (6 * j)))).1 ∧
@@ -999,7 +978,7 @@ theorem fillTable_filled (r : E) (t j : ℕ) (ht : t < 2) (hj : j < 11) (l : Lis
   obtain ⟨h1, h2⟩ := key 6 le_rfl
   exact ⟨h1, by rw [fillTable, h2]; ring_nf⟩
 
-theorem fillLimb_filled (r : E) (t : ℕ) (ht : t < 2) (l : List Limbs)
+private theorem fillLimb_filled (r : E) (t : ℕ) (ht : t < 2) (l : List Limbs)
     (hl : Filled r (t * 11 * 64) l) :
     Filled r ((t + 1) * 704) (fillLimb t (l, limbs (r * ey ^ t))).1 := by
   have key : ∀ w ≤ 11,
@@ -1025,7 +1004,7 @@ theorem fillLimb_filled (r : E) (t : ℕ) (ht : t < 2) (l : List Limbs)
   rw [show (t * 11 + 11) * 64 = (t + 1) * 704 by ring] at this
   exact this
 
-theorem scaledNew_filled (r : E) : Filled r 1408 (scaledNew (limbs r)) := by
+private theorem scaledNew_filled (r : E) : Filled r 1408 (scaledNew (limbs r)) := by
   have key : ∀ u ≤ 2,
       Filled r (u * 704)
           ((List.range u).foldl
@@ -1064,7 +1043,7 @@ def scaledMul (tables : List Limbs) (a : Limbs) : Limbs :=
   ([a.1, a.2].foldl
     (fun state limb ↦ (List.range 11).foldl (mulStep tables limb) state) (eZero, 0)).1
 
-theorem sum_range_six_mul (f : ℕ → E) (n : ℕ) :
+private theorem sum_range_six_mul (f : ℕ → E) (n : ℕ) :
     ∑ k ∈ Finset.range (6 * n), f k =
       ∑ j ∈ Finset.range n, ∑ b ∈ Finset.range 6, f (6 * j + b) := by
   induction n with
@@ -1073,7 +1052,7 @@ theorem sum_range_six_mul (f : ℕ → E) (n : ℕ) :
     rw [show 6 * (n + 1) = 6 * n + 6 by ring, Finset.sum_range_add, ih,
       Finset.sum_range_succ (fun j ↦ ∑ b ∈ Finset.range 6, f (6 * j + b)) n]
 
-theorem windows_sum (r : E) (t : ℕ) (c : BitVec 64) :
+private theorem windows_sum (r : E) (t : ℕ) (c : BitVec 64) :
     ∑ j ∈ Finset.range 11, entry r ((t * 11 + j) * 64 + (c >>> (6 * j)).toNat % 64) =
       r * ey ^ t * ofK (BF64.ofBitVec c) := by
   rw [← ofK_sum_bits, Finset.mul_sum]
@@ -1099,7 +1078,7 @@ theorem windows_sum (r : E) (t : ℕ) (c : BitVec 64) :
     simp [hb]
   rw [this]
 
-theorem mulStep_fold (r : E) (tables : List Limbs) (htab : Filled r 1408 tables) (t : ℕ)
+private theorem mulStep_fold (r : E) (tables : List Limbs) (htab : Filled r 1408 tables) (t : ℕ)
     (ht : t < 2) (c : BitVec 64) (p : E) :
     (List.range 11).foldl (mulStep tables c) (limbs p, t * 11) =
       (limbs (p + r * ey ^ t * ofK (BF64.ofBitVec c)), (t + 1) * 11) := by
@@ -1126,8 +1105,8 @@ theorem scaledMul_eq (r a : E) : scaledMul (scaledNew (limbs r)) (limbs a) = lim
   rw [List.foldl_cons, List.foldl_cons, List.foldl_nil,
     show (eZero, 0) = (limbs 0, 0 * 11) by rw [limbs_zero],
     mulStep_fold r _ htab 0 (by norm_num), mulStep_fold r _ htab 1 (by norm_num)]
-  conv_rhs => rw [eq_of_limbs_sum a]
-  exact congrArg limbs (by ring)
+  conv_rhs => rw [eq_sum_limbs a]
+  exact congrArg limbs (by simp only [limbs, BF64.ofBitVec_toBitVec]; ring)
 
 /-! ## `E`-valued forms, for the other modules' mirrors -/
 

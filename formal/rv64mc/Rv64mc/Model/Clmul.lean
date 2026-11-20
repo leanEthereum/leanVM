@@ -43,7 +43,7 @@ def clmulLow (a b : BitVec 64) : BitVec 64 :=
   let z3 := x0 * y3 ^^^ x1 * y2 ^^^ x2 * y1 ^^^ x3 * y0
   z0 &&& m0 ||| z1 &&& m1 ||| z2 &&& m2 ||| z3 &&& m3
 
-theorem getLsbD_classMask {i : ℕ} (hi : i < 4) (u : ℕ) :
+private theorem getLsbD_classMask {i : ℕ} (hi : i < 4) (u : ℕ) :
     (classMask i).getLsbD u = decide (u < 64 ∧ u % 4 = i) := by
   by_cases hu : u < 64
   · interval_cases i <;> revert u <;> decide
@@ -58,7 +58,7 @@ theorem mem_bitSet {v : BitVec 64} {u : ℕ} : u ∈ bitSet v ↔ v.getLsbD u :=
   simp only [bitSet, mem_filter, mem_range, and_iff_right_iff_imp]
   exact fun h ↦ BitVec.lt_of_getLsbD h
 
-theorem toNat_eq_sum (v : BitVec 64) : v.toNat = ∑ u ∈ bitSet v, 2 ^ u := by
+private theorem toNat_eq_sum (v : BitVec 64) : v.toNat = ∑ u ∈ bitSet v, 2 ^ u := by
   conv_lhs => rw [← Finset.sum_toFinset_bitIndices_two_pow v.toNat]
   congr 1
   ext u
@@ -68,7 +68,7 @@ theorem toNat_eq_sum (v : BitVec 64) : v.toNat = ∑ u ∈ bitSet v, 2 ^ u := by
 def pairs (x y : BitVec 64) (q : ℕ) : Finset (ℕ × ℕ) :=
   (bitSet x ×ˢ bitSet y).filter fun uv ↦ uv.1 + uv.2 = q
 
-theorem toNat_mul_toNat (x y : BitVec 64) :
+private theorem toNat_mul_toNat (x y : BitVec 64) :
     x.toNat * y.toNat = ∑ q ∈ range 128, (pairs x y q).card * 2 ^ q := by
   rw [toNat_eq_sum x, toNat_eq_sum y, sum_mul_sum, ← sum_product']
   simp_rw [← pow_add]
@@ -86,7 +86,7 @@ theorem toNat_mul_toNat (x y : BitVec 64) :
 
 /-- A sum of `c q · 2^q` whose nonzero digits sit in one class mod 4, each below 16 under bit
 `p`: below `p` it stays below `2^p`. -/
-theorem sum_lt_of_digits (c : ℕ → ℕ) (r : ℕ) (hr : r < 4) (hsupp : ∀ q, c q ≠ 0 → q % 4 = r)
+private theorem sum_lt_of_digits (c : ℕ → ℕ) (r : ℕ) (hr : r < 4) (hsupp : ∀ q, c q ≠ 0 → q % 4 = r)
     (m : ℕ) (hsmall : ∀ q < r + 4 * m, c q ≤ 15) :
     ∑ q ∈ range (r + 4 * m), c q * 2 ^ q < 2 ^ (r + 4 * m) := by
   induction m with
@@ -118,7 +118,7 @@ theorem sum_lt_of_digits (c : ℕ → ℕ) (r : ℕ) (hr : r < 4) (hsupp : ∀ q
     simp only [zero_mul, add_zero]
     omega
 
-theorem testBit_sum_digits (c : ℕ → ℕ) (K p : ℕ) (hp : p < K)
+private theorem testBit_sum_digits (c : ℕ → ℕ) (K p : ℕ) (hp : p < K)
     (hsupp : ∀ q, c q ≠ 0 → q % 4 = p % 4) (hsmall : ∀ q < p, c q ≤ 15) :
     (∑ q ∈ range K, c q * 2 ^ q).testBit p = decide (c p % 2 = 1) := by
   set r := p % 4
@@ -151,9 +151,9 @@ theorem testBit_sum_digits (c : ℕ → ℕ) (K p : ℕ) (hp : p < K)
 /-! ## A product of two classes -/
 
 /-- Each set bit of a class-`i` word is in class `i`. -/
-def InClass (x : BitVec 64) (i : ℕ) : Prop := ∀ u, x.getLsbD u → u % 4 = i
+private def InClass (x : BitVec 64) (i : ℕ) : Prop := ∀ u, x.getLsbD u → u % 4 = i
 
-theorem card_pairs_le (x y : BitVec 64) (i : ℕ) (hi : i < 4) (hx : InClass x i) (q : ℕ)
+private theorem card_pairs_le (x y : BitVec 64) (i : ℕ) (hi : i < 4) (hx : InClass x i) (q : ℕ)
     (hq : q < 60) : (pairs x y q).card ≤ 15 := by
   calc (pairs x y q).card ≤ ((range 60).filter fun u ↦ u % 4 = i).card := by
         apply card_le_card_of_injOn Prod.fst
@@ -170,7 +170,7 @@ theorem card_pairs_le (x y : BitVec 64) (i : ℕ) (hi : i < 4) (hx : InClass x i
           · omega
     _ = 15 := by interval_cases i <;> decide
 
-theorem getLsbD_mul_class (x y : BitVec 64) (i j : ℕ) (hi : i < 4)
+private theorem getLsbD_mul_class (x y : BitVec 64) (i j : ℕ) (hi : i < 4)
     (hx : InClass x i) (hy : InClass y j) (p : ℕ) (hp : p < 64) (hpij : p % 4 = (i + j) % 4) :
     (x * y).getLsbD p = decide ((pairs x y p).card % 2 = 1) := by
   rw [← BitVec.testBit_toNat, BitVec.toNat_mul, Nat.testBit_mod_two_pow, decide_eq_true hp,
@@ -193,13 +193,14 @@ theorem getLsbD_mul_class (x y : BitVec 64) (i j : ℕ) (hi : i < 4)
 
 /-! ## The four classes together -/
 
-theorem inClass_and (a : BitVec 64) {i : ℕ} (hi : i < 4) : InClass (a &&& classMask i) i := by
+private theorem inClass_and (a : BitVec 64) {i : ℕ} (hi : i < 4) :
+    InClass (a &&& classMask i) i := by
   intro u hu
   simp only [BitVec.getLsbD_and, getLsbD_classMask hi, Bool.and_eq_true, decide_eq_true_eq] at hu
   exact hu.2.2
 
 /-- The pairs at `q`, by the class of their first position. -/
-theorem card_pairs_split (a b : BitVec 64) (q : ℕ) :
+private theorem card_pairs_split (a b : BitVec 64) (q : ℕ) :
     (pairs a b q).card = ∑ i ∈ range 4,
       (pairs (a &&& classMask i) (b &&& classMask ((q + 4 - i) % 4)) q).card := by
   rw [card_eq_sum_card_fiberwise (f := fun uv : ℕ × ℕ ↦ uv.1 % 4) (t := range 4)]
@@ -220,7 +221,7 @@ theorem card_pairs_split (a b : BitVec 64) (q : ℕ) :
   · intro uv _
     simpa using Nat.mod_lt uv.1 (by norm_num : 0 < 4)
 
-theorem xor_parity (a b c d : ℕ) :
+private theorem xor_parity (a b c d : ℕ) :
     (decide (a % 2 = 1) != (decide (b % 2 = 1) != (decide (c % 2 = 1) != decide (d % 2 = 1)))) =
       decide ((a + b + c + d) % 2 = 1) := by
   rcases Nat.mod_two_eq_zero_or_one a with ha | ha <;>
@@ -249,9 +250,10 @@ theorem getLsbD_clmulLow (a b : BitVec 64) (p : ℕ) (hp : p < 64) :
       show (p + 4 - 2) % 4 = (p % 4 + 4 - 2) % 4 by omega,
       show (p + 4 - 3) % 4 = (p % 4 + 4 - 3) % 4 by omega]
     norm_num
-    rw [key 0 _ (by norm_num) (by norm_num) (by omega), key 1 _ (by norm_num) (by norm_num) (by omega),
-      key 2 _ (by norm_num) (by norm_num) (by omega), key 3 _ (by norm_num) (by norm_num) (by omega),
-      xor_parity]
+    rw [key 0 _ (by norm_num) (by norm_num) (by omega),
+      key 1 _ (by norm_num) (by norm_num) (by omega),
+      key 2 _ (by norm_num) (by norm_num) (by omega),
+      key 3 _ (by norm_num) (by norm_num) (by omega), xor_parity]
 
 /-! ## The carry-less product -/
 

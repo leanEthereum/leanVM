@@ -17,10 +17,12 @@ accumulators and early exits) on machine words, each proved equal to its counter
 statement (`Statement/LeanVmVerifier.lean`, `Statement/Field.lean`, `Statement/Keccak.lean`) or,
 for an internal helper, to what its caller's proof needs. The machine-code proofs target these
 mirrors. A module per Rust module: `Field` (`field.rs`, with `Clmul` for `clmul_low`),
-`Multilinear` (`multilinear.rs`, but for `stack_offsets`), `Hash` (`hash.rs`), `Merkle`
-(`merkle.rs`), and `Sponge` and `Transcript` (`transcript.rs`).
+`Multilinear` (`multilinear.rs`), `Hash` (`hash.rs`), `Merkle` (`merkle.rs`), and `Sponge` and
+`Transcript` (`transcript.rs`); `Tests` checks them on the Rust's test vectors.
 
-The build fails if the axiom footprint of the main equalities grows beyond Lean's three.
+The mirrored Rust is `crates/verifier` at commit `1135c5255`; `scripts/model-drift.sh` fails when
+a mirrored file changes. The build fails if the axiom footprint of the main equalities grows
+beyond Lean's three.
 -/
 
 /-- info: 'Rv64mc.Model.eMul_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -35,7 +37,9 @@ The build fails if the axiom footprint of the main equalities grows beyond Lean'
 #guard_msgs in
 #print axioms Rv64mc.Model.scaledMul_eq
 
-/-- info: 'Rv64mc.Model.eqKernelRust_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/--
+info: 'Rv64mc.Model.eqKernelRust_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
 #guard_msgs in
 #print axioms Rv64mc.Model.eqKernelRust_eq
 
@@ -68,3 +72,9 @@ info: 'Rv64mc.Model.runProof_of_sim' depends on axioms: [propext, Classical.choi
 -/
 #guard_msgs in
 #print axioms Rv64mc.Model.runProof_of_sim
+
+/--
+info: 'Rv64mc.Model.stackOffsetsRust_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms Rv64mc.Model.stackOffsetsRust_eq
