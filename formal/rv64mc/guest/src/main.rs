@@ -1,8 +1,10 @@
 //! The verifier as a bare-metal RV64IM program.
 //!
 //! The loader puts the input, a sequence of little-endian 64-bit words, at `INPUT` and its length in words in `a0`,
-//! and jumps to `_start`. The program halts (`ECALL` with `t0 = 0`) with `a0` = 1 if the proof verifies, 0 if the
-//! verifier rejects it, and 2 if the input is malformed or memory runs out; a panic traps (`panic = "immediate-abort"`).
+//! and jumps to `_start`. The program halts (`ECALL` with `t0 = 0`, SP1's and machine-checked's `HALT`) with `a0` = 0
+//! if the proof verifies, 1 if the verifier rejects it, and 2 if the input is malformed, memory runs out or the code
+//! panics (`panic = "abort"`: the panic handler halts with 2). Every halting `ECALL` is followed by `j .`, so no code
+//! path falls through or reaches an `unimp` after it.
 //! The input, in words:
 //!
 //! ```text
@@ -25,8 +27,8 @@ const INPUT: usize = 0x1000_0000;
 const HEAP_START: usize = 0x2000_0000;
 const HEAP_END: usize = 0x7800_0000;
 
-const ACCEPT: u64 = 1;
-const REJECT: u64 = 0;
+const ACCEPT: u64 = 0;
+const REJECT: u64 = 1;
 const ABORT: u64 = 2;
 
 global_asm!(
@@ -41,10 +43,17 @@ global_asm!(
     "call main",
     "li t0, 0",
     "ecall",
+    "1: j 1b",
 );
 
+/// The `ECALL` is an ordinary returning instruction to the compiler, so no `unimp` follows it; the loop after it is
+/// `j .`, never reached on a machine that halts there. Not inlined, so the image has one halting `ECALL` besides
+/// `_start`'s, and one function whose contract says that it never returns and never accepts.
+#[inline(never)]
 fn halt(verdict: u64) -> ! {
-    unsafe { asm!("ecall", in("t0") 0, in("a0") verdict, options(noreturn)) }
+    unsafe { asm!("ecall", in("t0") 0, in("a0") verdict, options(nomem, nostack)) }
+    #[allow(clippy::empty_loop)]
+    loop {}
 }
 
 /// Never frees: the program runs once.

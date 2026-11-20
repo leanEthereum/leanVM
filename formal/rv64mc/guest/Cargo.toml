@@ -1,5 +1,3 @@
-cargo-features = ["panic-immediate-abort"]
-
 # The RV64IM image of the verifier: `crates/verifier` behind an entry that reads its inputs from memory and halts with
 # the verdict. Its own workspace: it builds for bare-metal RV64IM only.
 [workspace]
@@ -19,6 +17,7 @@ opt-level = 2
 # Whole-program, so that `dealloc`, a no-op here, is seen to be one and the loops that only drop disappear.
 lto = "fat"
 codegen-units = 1
-# A panic traps where it happens: no formatting code in the image, and a trap never accepts.
-panic = "immediate-abort"
+# A panic calls the panic handler, which halts with 2. With "immediate-abort" every panic site is an `unimp`, which
+# machine-checked's proved lift cannot take.
+panic = "abort"
 debug = false
