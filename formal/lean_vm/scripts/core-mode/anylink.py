@@ -128,6 +128,7 @@ def main(argv):
         if old != text:
             stale.append(mod)
             if not check:
+                os.makedirs(os.path.dirname(p), exist_ok=True)
                 with open(p, 'w', encoding='utf-8') as f: f.write(text)
     keep = {path(m) for m in files}
     extra = [p for p in glob.glob(os.path.join(OUT, 'AnyCallers*.lean')) if p not in keep]
