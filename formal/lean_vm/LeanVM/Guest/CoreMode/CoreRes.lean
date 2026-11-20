@@ -36,8 +36,6 @@ function's own code whose soundness at its honest instances is proved once, in `
 * `exp`: the same, `n ≥ 2^28`, `x` a parameter an entry run bounds (so `g^e`, `e < 2^62`, `ExpW`) and
   `q = b·x` with `b` and `q` dereferenced on every returning path: `e` is the difference of two
   addresses, below `2^28` (the emitter's `e(x) < 2^62 - 1` for a run's root, `opening_queries__*`);
-* `cs`: `column_selector__L{κ}`'s read of its lowest digit's entry lies in the strided table its
-  callers write (`csSub κ`), from the offset its callers hand it (the old route's F3 on names);
 * `addr`: the same, `x = g^e` with `e` at most a bound `expM` reads off the top-level atoms: products of
   addresses dereferenced, bits' powers and constant powers of `g`;
 * `rcv`: `e(x) < e(p·g)` (`.lt (.val x) (.mono ⟨[(p, 1)], 1⟩)`), the value `x` range checked against the value
@@ -75,14 +73,6 @@ namespace LeanVM.Guest.CoreMode
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
-
-/-- **`column_selector__L{κ}`'s lowest digit in its strided table** (F3 on names): the cell
-`[sel_eq]·[digit₀]·g^off` one of the run `⟨[sel_eq]·g^off, 2^(4-w), 0, 2^w⟩`, `w` the digit's width,
-`sel_eq` parameter `1` and the digit value `3`. -/
-def csSub (κ : ℕ) : CRes :=
-  .sub ⟨[(1, 1), (3, 1)], 64 * (κ / 4) + 16 * (B1.Tables.csW κ 0 - 1)⟩
-    ⟨⟨[(1, 1)], 64 * (κ / 4) + 16 * (B1.Tables.csW κ 0 - 1)⟩, 2 ^ (4 - B1.Tables.csW κ 0), .num 0,
-      .num (2 ^ B1.Tables.csW κ 0)⟩
 
 /-- **`x` the quotient of two addresses**: atoms `q = b·x` (or `x·b`) and `DEREF`s through `b` and
 `q` at offset `0`. -/
@@ -219,8 +209,7 @@ noncomputable def negFam (fn : Fn) (cs : List CCond) : CRes → Bool
 parameters: an exponent bound of a value range checked (`rc`) or a selector (`sel`, also of its word times a
 constant power of `g`) on every
 returning path, of a parameter an entry run bounds and the quotient of two addresses the path
-dereferences (`exp`, a bound `≥ 2^28`), `column_selector`'s lowest digit (`cs`), or such a residual
-under branch conditions. -/
+dereferences (`exp`, a bound `≥ 2^28`), or such a residual under branch conditions. -/
 noncomputable def resFam (fn : Fn) (xc : List ℕ) : CRes → Bool
   | .lt (.val x) (.num n) => decide (n < capE) &&
       ((match Res.rcBound (Res.topAtoms fn.body) (V.n x) with
@@ -254,8 +243,6 @@ noncomputable def resFam (fn : Fn) (xc : List ℕ) : CRes → Bool
     | [(x, 1)] => decide (j < c.off) &&
         (Res.topSels fn.body).any fun p ↦ decide (p.1 = V.n x) && decide (p.2 + c.off < capE)
     | _ => false
-  | .sub c q => (List.range 31).any fun κ ↦ fn.name == B1.Tables.lName "column_selector" κ &&
-      decide (CRes.sub c q = csSub κ)
   | .subR q r => subRC q r || subRCm q r
   | .under cs r => resFam fn xc r || negFam fn cs r
   | _ => false
@@ -334,10 +321,8 @@ theorem CRes.holds_congr {σ σ' : Val} : ∀ {r : CRes}, (∀ k ∈ r.vals, σ'
 
 /-! ## The ghost family -/
 
-/-- `k` for `child_claim_list_mono_last__L{k}`, `1 ≤ k < 17`. -/
-def mlK (fn : Fn) : Option ℕ :=
-  ((List.range 17).find? fun k ↦ B1.Digest.mlNames.getD k "" == fn.name).bind fun k ↦ bif Nat.ble 1 k then some k
-    else none
+/-- `k` for `child_claim_list_mono_last__L{k}` (`FnReg.mlLoops`). -/
+def mlK (fn : Fn) : Option ℕ := FnReg.mlLoops.lookup fn.name
 
 /-- **`child_claim_list_mono_last__L{k}`'s read of claim `jj`'s entry in its caller's table** (`ml`): the cell
 `[ent]·Π_{i ≤ jj}[gap_i]^4·g^(4jj+d)` (`ent` the value `5`, gap `i` the value `6 + 10i`) a cell of the run
@@ -373,10 +358,8 @@ def stGl (Cf : CFun) : Bool :=
 
 /-! ## The gap walk's frame loops -/
 
-/-- **`child_claim_list_mono`'s frame loops** (`cm`): their claims a frame, `136` and `17`. -/
-def cmK (fn : Fn) : Option ℕ :=
-  bif fn.name == name% «child_claim_list_mono_loop0» then some 136 else
-  bif fn.name == name% «child_claim_list_mono_loop1» then some 17 else none
+/-- **`child_claim_list_mono`'s frame loops** (`cm`): their claims a frame (`FnReg.cmLoops`). -/
+def cmK (fn : Fn) : Option ℕ := FnReg.cmLoops.lookup fn.name
 
 /-- **A frame loop's read of claim `jj`'s entry in its caller's table** (`cm`): the cell
 `[ent]·Π_{i ≤ jj}[gap_i]^4·g^(4jj+d)` (`ent` the value `12`, gap `i` the value `13 + 10i`) a cell of the run

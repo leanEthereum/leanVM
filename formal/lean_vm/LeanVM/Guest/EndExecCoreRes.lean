@@ -25,10 +25,6 @@ path's families hold at the valuation: a range checked value's exponent below th
 (`rcBound_sound`, its atoms on every returning path, `topAtoms_on_path`), a top-level selector's below
 its arms (`topSels_sound`).
 
-`cs_holds` (`cs`): at an honest instance of `column_selector__L{κ}`, its callers hand it an offset
-`g^o`, `2^κ ∣ o`, and the nibble shares (`csQ_all`), so its lowest digit is `g^(2^(4-w)·q)`, `q < 2^w`
-(`cs_digit`), the read `[sel_eq]·[digit₀]·g^off` the `q`-th cell of the strided table.
-
 `exp_lt` (`exp`): a parameter `g^e`, `e < 2^62` (`ExpW`), the quotient of two addresses the path
 dereferences, has `e < 2^28`.
 
@@ -42,7 +38,7 @@ whose entry runs' exponent cells are powers, every residual of a family holds at
 namespace LeanVM.Guest.EndExec
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
-open LeanVM.Guest.CoreMode (CFun CRes CIdx ResF LtF rep_of capE resFam idxC baseC vw csSub)
+open LeanVM.Guest.CoreMode (CFun CRes CIdx ResF LtF rep_of capE resFam idxC baseC vw)
 
 public section
 
@@ -362,50 +358,6 @@ theorem resSelM_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : F
         exact fin e (by omega) (by rw [hσ, Value.gen_pow_eq_ofK]) hn
       · cases h
   · cases h
-
-/-- **`column_selector`'s lowest digit at an honest instance** (`cs`): the read lies in its strided
-table. -/
-theorem cs_holds {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
-    {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
-    (hf : coreProgram.find? f = some fn) {κ : ℕ} (hκ : κ < 31) (hname : fn.name = B1.Tables.lName "column_selector" κ) :
-    (csSub κ).Holds σ := by
-  have hκ28 : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
-  have hfn : f = B1.Tables.lName "column_selector" κ := by rw [← find_name' hf, hname]
-  obtain ⟨fn', hfc, hps, hbody⟩ := B1.Tables.csFound hκ
-  rw [← hfn] at hfc
-  obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hfc)
-  -- the caller's facts
-  have hH := csQ_all hr I hI f σ bufs kids ht κ hκ hfn _ hf
-  rw [hps] at hH
-  obtain ⟨o, ho, hal, h0, hG⟩ := hH
-  -- the body at the instance's valuation
-  obtain ⟨args, rets, hv⟩ := inst_valid' hr hI ht
-  have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-    unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
-  obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv hf
-  rw [hbody, holdsList_append, holdsList_noRet _ (B1.Tables.csPre_noRet κ)] at hb
-  obtain ⟨u, hu, hd, hdv⟩ := cs_digit hκ (by omega) r.img hb.1 hG ho hal h0
-  rw [csW_sub] at hdv
-  -- the run
-  set w := B1.Tables.csW κ 0 with hw'
-  have hw4 := B1.Tables.csW_bounds κ 0
-  obtain ⟨q, rfl⟩ := hdv
-  have hq : q < 2 ^ w := by
-    have h16 : 2 ^ (4 - w) * 2 ^ w = 16 := by rw [← pow_add, show 4 - w + w = 4 by omega]; rfl
-    by_contra hc
-    have := Nat.mul_le_mul_left (2 ^ (4 - w)) (not_lt.mp hc)
-    omega
-  have hcap : 2 ^ w < capE := lt_of_le_of_lt (Nat.pow_le_pow_right (by norm_num) hw4.2) (by decide)
-  have hcap0 : 0 < capE := by unfold capE; omega
-  rw [csSub]
-  show CoreMode.RunSet (vw σ) _ _ _ _ _
-  refine ⟨0, 2 ^ w, q, CoreMode.rep_const hcap0, CoreMode.rep_const hcap, Nat.zero_le _, hq, ?_⟩
-  have key : ∀ off : ℕ, CoreMode.CCell.valW (vw σ) ⟨[(1, 1), (3, 1)], off⟩ =
-      CoreMode.CCell.valW (vw σ) ⟨[(1, 1)], off⟩ * ofK (addressOfIndex (2 ^ (4 - w) * q)) := fun off ↦ by
-    simp only [CoreMode.CCell.valW, CoreMode.prodW, vw, hd, Value.gen_pow_eq_ofK, pow_one, mul_one]
-    ring
-  unfold CoreMode.CCell.addrW
-  rw [key]
 
 /-- **A run of constant bounds inside one of the same bases** (`subRC`) at any valuation. -/
 theorem subRC_holds {q r : CoreMode.CRun} (h : CoreMode.subRC q r = true) (σ : Val) : (CRes.subR q r).Holds σ := by
@@ -756,11 +708,6 @@ theorem resFam_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     obtain ⟨args, rets, fn', hf', -, es, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
     obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
     exact resLt_sound (logMemorySize_le_28 (e := r.exec) hr.size) r.img hw hh hx hpar h
-  | .sub c q, h => by
-    simp only [resFam, List.any_eq_true, List.mem_range, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
-    obtain ⟨κ, hκ, hname, heq⟩ := h
-    rw [heq]
-    exact cs_holds hr hI ht hf hκ hname
   | .lt (.val x) (.mono c), h => by
     obtain ⟨args, rets, fn', hf', -, es, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
     obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
@@ -790,7 +737,7 @@ theorem resFam_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
     exact resLtV_sound (logMemorySize_le_28 (e := r.exec) hr.size) r.img hw hh h
   | .lt (.num _) (.num _), h | .lt (.num _) (.val _), h | .lt (.mono _) (.val _), h
-  | .lt (.mono _) (.mono _), h | .nz _, h | .subP _ _, h => by simp [resFam] at h
+  | .lt (.mono _) (.mono _), h | .nz _, h | .sub _ _, h | .subP _ _, h => by simp [resFam] at h
 
 /-! ## The instance's exponent and dimension facts (`expQ`, `dim`) -/
 
