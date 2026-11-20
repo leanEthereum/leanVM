@@ -9,9 +9,11 @@
 
   ## Main results
 
-  * `step_set`, `step_ld`, `step_load`, `step_sd`, `step_store`: the operations
+  * `upd_same`, `upd_ne`, `eval_*`, `bin_*`: a read and an expression's value, by name
+  * `step_set`, `step_ld`, `step_loadw`, `step_sd`, `step_storew`: the operations
   * `step_cmp`: a branch on a comparison, its outcomes as propositions
-  * `absorb`: a register file that a fact gives a register of, as that register written
+  * `step_label`, `step_goto`, `step_call`, `step_tail`, `step_ret`: the other instructions
+  * `regs_eq`: a register file as an equal one (an `rf` of its values)
   * `callee_indirect`, `callee_direct`: a call reaches the callee a link fact names
 -/
 
@@ -24,6 +26,22 @@ open RiscvZkvm.Rv64 Lprog Lprog.RiscV
 variable {p : Lprog rvIsa.Op rvIsa.Reg} {E : Type} {c : Context rvIsa E} {G : State rvIsa → Prop} {n : Nat}
   {Q : State rvIsa → Prop} {rest : List Frame} {regs : Reg → Word} {m : MachineState}
   {fd : Lfundef rvIsa.Op rvIsa.Reg} {fn pc : Nat} {rv top : Word}
+
+/-! ## Finding the instruction
+
+The body's suffix from each program counter, carried from step to step, so that the kernel never walks the body
+from its start to find an instruction. -/
+
+theorem drop_get {α : Type} {l rest : List α} {n : Nat} {a : α} (h : l.drop n = a :: rest) : l[n]? = some a := by
+  rw [← List.head?_drop, h]; rfl
+
+theorem drop_next {α : Type} {l rest : List α} {n : Nat} {a : α} (h : l.drop n = a :: rest) :
+    l.drop (n + 1) = rest := by
+  rw [← List.drop_drop, h]; rfl
+
+theorem drop_at {α : Type} {l full rest : List α} (h : l = full) (n : Nat) (h' : full.drop n = rest) :
+    l.drop n = rest := by
+  subst h; exact h'
 
 /-! ## Reading registers and evaluating expressions
 
@@ -248,13 +266,6 @@ theorem step_ret (hf : p[fn]? = some fd) (hi : fd.body[pc]? = some .Lret) (hra :
 theorem regs_eq {st : List Frame} {R R' : Reg → Word} (e : R = R')
     (k : rvIsa.SafeN p c G n Q ⟨st, R', m⟩) : rvIsa.SafeN p c G n Q ⟨st, R, m⟩ := by
   subst e; exact k
-
-/-- A register file that reads `v` at `r` is the one with `r` written `v`. -/
-theorem absorb {st : List Frame} {R : Reg → Word} {r : Reg} {v : Word} (h : R r = v)
-    (k : rvIsa.SafeN p c G n Q ⟨st, updReg R r v, m⟩) : rvIsa.SafeN p c G n Q ⟨st, R, m⟩ := by
-  have e : updReg R r v = R := by
-    funext r'; simp only [updReg]; split <;> simp_all
-  rwa [e] at k
 
 /-- A call through `e` reaches the function at `idx` if `e` reads its entry. -/
 theorem callee_indirect {e : Lprog.Expr Reg} {idx : Nat} {entry : Word} (ha : (p[idx]?).map (·.addr) = some entry)

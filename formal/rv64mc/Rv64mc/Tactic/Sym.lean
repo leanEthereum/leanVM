@@ -5,24 +5,33 @@
   any template `hp : p[fn]? = some fd` whose body is a literal.
 
   Unlike `lsym` (machine-checked's `Lprog/Tactic.lean`), no `simp` runs over the goal or its hypotheses. The body
-  is read once; each instruction is one rule of `Rv64mc.Tactic.Steps` applied by name, with the next state given:
+  is read once; each instruction is one rule of `Rv64mc.Tactic.Steps` applied by name, with the next state given,
+  and every equation in its proof is an instance of a lemma or a closed fact the kernel decides by evaluation, never
+  a reduction the kernel has to find (one through a value can unfold it without end):
 
-  * a register file is a chain of `updReg` over a base (the entry's, or the one a callee returns), so that
-    reading a register is a reduction the kernel checks, not a rewrite. What a fact says of a base register
-    (`regs .x2 = top`, a callee's `r' .x10 = …`) is written into the chain (`absorb`);
-  * a value is computed from its expression with addresses kept as a base plus a literal offset (`t + c`), the
-    only arithmetic with a proof (`add_assoc`, `add_zero`); other literals are folded by the kernel;
+  * a register file is an `rf` of its 32 values (`Rv64mc.Tactic.RegFile`), read and written by `rf_get_<r>` and
+    `rf_set_<r>`. What a fact says of a register file the executor did not make (the entry's, or the one a callee
+    returns: `regs .x2 = top`, `r' .x10 = …`) is written into its `rf` (`absorbFacts`);
+  * a value is computed from its expression (`eval_*`, `bin_*`), addresses kept as a base plus a literal offset
+    (`t + c`, by `add_assoc` and `add_zero`) and operations on literals folded by `decide`;
   * a load is read through the memory: a store at the same address gives its value, one at another offset of the
     same base is passed (`Addr.add_ne_add`, the offsets compared by the kernel), and a callee's memory is passed
     at an address its frame keeps (a hypothesis `∀ a, lo ≤ a → m'.getMem a = m.getMem a`), where the base's bounds
     in the context and the offsets decide `lo ≤ a` (`Addr.add_le_add`);
-  * a call through a contract (`using`) resolves its target by the link facts given (`with`), closes the
-    callee's precondition where it can (`closeSide`), and goes on after the return with the callee's
-    postcondition split into hypotheses;
+  * a call or tail call through a contract (`using`) resolves its target by the link facts given (`with`), closes
+    the callee's precondition where it can (`closeSide`), and goes on after the return with the callee's
+    postcondition split into hypotheses `hret<k>_<j>`;
   * a branch on a comparison gives two goals, each with the comparison's outcome as a proposition `hc`.
 
-  It stops at a program counter in `stop`, at one its path has stepped from (a loop's head), at a call without a
-  contract, and where the function returns; `rv_auto` (`Rv64mc.Tactic.Auto`) closes what it can of the rest.
+  It stops at a program counter in `stop`, at the target of a backward jump (a loop's head, for a loop lemma), at a
+  call without a contract, and where the function returns, which `finish` closes by the contract's continuation,
+  leaving the postcondition to `closeSide`.
+
+  ## Main results
+
+  * `rv_sym hp stop [pcs] with [facts] using [contracts]`: step a goal `SafeN … ⟨⟨fn, pc, …⟩ :: …⟩`
+  * `rv_auto hp …`: a contract `rvIsa.Contract p c fn Pre Post`, from the entry
+  * `rv_intro h`, `rv_close`: a loop invariant's facts into the register file; the side goals' closer
 -/
 
 import Lean
@@ -105,19 +114,6 @@ def orRefl (p : Option Expr) (v : Expr) : MetaM Expr :=
   | none => mkEqRefl v
 
 /-! ## Registers -/
-
-/-- The value of register `r` in a chain of `updReg` writes: the last write's value, or the base applied. -/
-partial def readReg (R r : Expr) : Option Expr :=
-  match regName? r with
-  | none => none
-  | some rn =>
-    let rec go (R : Expr) : Expr :=
-      let R := R.consumeMData
-      if R.isAppOfArity ``Lprog.updReg 5 then
-        let args := R.getAppArgs
-        if regName? (args[3]!) == some rn then (args[4]!) else go (args[2]!)
-      else mkApp R r
-    some (go R)
 
 /-- The value of register `r` in the register file `R`, and a proof of `R r = v` by `upd_same` and `upd_ne`. -/
 partial def readP (R r : Expr) : MetaM (Expr × Expr) := do
@@ -259,16 +255,6 @@ def binV (op : Expr) (a b : Expr) : MetaM (Expr × Option Expr) := do
       return (← mkAppM f #[a, k], some (← mkEqTrans p0 p))
     | none => return (← mkAppM f #[a, ← mkAppM ``BitVec.toNat #[b]], some p0)
   | _ => return (mkApp3 (mkConst ``BinOp.eval) op a b, none)
-
-/-- `congrArg`s for a function of two arguments, either proof absent where the argument is unchanged. -/
-def congr2 (f : Expr) (a a' b b' : Expr) (pa pb : Option Expr) : MetaM (Option Expr) := do
-  match pa, pb with
-  | none, none => return none
-  | _, _ =>
-    let pa ← orRefl pa a
-    let pb ← orRefl pb b
-    let _ := a'; let _ := b'
-    return some (← mkCongr (← mkCongrArg f pa) pb)
 
 /-- The value of an expression over a register file, and a proof of `e.eval R = v`, every step by name. -/
 partial def evalE (R e : Expr) : MetaM (Expr × Expr) := do
@@ -539,7 +525,8 @@ def addFacts (g : MVarId) (base : Name) (facts : Array (Expr × Expr)) : MetaM (
   let (fvs, g) ← g.assertHypotheses hs
   return (g, fvs)
 
-/-- Write the facts `R r = v` about the goal's base register file into its chain: `absorb`. -/
+/-- The goal's register file, if the executor did not make it, as the `rf` of its values with the facts `R r = v`
+    written into their places (`rf_eta`, `regs_eq`). -/
 def absorbFacts (g : MVarId) (facts : Array Expr) : MetaM MVarId := g.withContext do
   let t := (← instantiateMVars (← g.getType)).consumeMData
   unless t.isAppOfArity ``Lprog.Isa.SafeN 8 do return g
@@ -691,6 +678,9 @@ structure Cfg where
   hp : Expr
   fd : Expr
   body : Array Expr
+  /-- The body's suffixes as literal lists, each the tail of the one before, and `fd.body = suffixes[0]`. -/
+  suffixes : Array Expr
+  hbody : Expr
   specs : Array (Expr × Expr)
   facts : Array (Expr × Expr)
   stops : List Nat
@@ -705,6 +695,12 @@ partial def bodyOf (fd : Expr) : MetaM (Array Expr) := do
     if l.isAppOfArity ``List.cons 3 then go l.appArg! (acc.push l.appFn!.appArg!)
     else return acc
   go b #[]
+
+/-- `fd.body.drop pc = suffixes[pc]`, from the body's literal: the kernel walks the literal `pc` steps, once. -/
+def dropAt (cfg : Cfg) (pc : Nat) : MetaM Expr := do
+  appN ``Rv64mc.Tactic.drop_at [(`α, ← inferType (cfg.body[0]!)), (`l, ← mkAppM ``Lprog.Lfundef.body #[cfg.fd]),
+    (`full, cfg.suffixes[0]!), (`rest, cfg.suffixes[pc]!), (`h, cfg.hbody), (`n, mkNatLit pc),
+    (`h', ← mkEqRefl (cfg.suffixes[pc]!))]
 
 /-- The index the label `l` is at. -/
 def labelIdx? (body : Array Expr) (l : Nat) : MetaM (Option Nat) := do
@@ -815,12 +811,12 @@ def finish (g : MVarId) : MetaM (Option MVarId) := g.withContext do
 
 /-- One goal stepped as far as the rules go: the goals left. -/
 partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
-  let mut todo : List (MVarId × List Nat) := [(g0, [])]
+  let mut todo : List (MVarId × List Nat × Option Expr) := [(g0, [], none)]
   let mut left : Array MVarId := #[]
   let mut calls := 0
   let mut steps := 0
   while !todo.isEmpty do
-    let (g, seen) := todo.head!
+    let (g, seen, hd?) := todo.head!
     todo := todo.tail!
     let at? ← g.withContext do parseAt (← g.getType)
     let some a := at?
@@ -834,7 +830,14 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
     let some ins := cfg.body[a.pc]? | left := left.push g; continue
     let ins := ins.consumeMData
     let common := a.common cfg.fd
-    let hi ← mkEqRefl (← mkAppM ``Option.some #[ins])
+    let α ← inferType ins
+    let hd ← match hd? with
+      | some hd => pure hd
+      | none => dropAt cfg a.pc
+    let l ← mkAppM ``Lprog.Lfundef.body #[cfg.fd]
+    let common3 := [(`α, α), (`l, l), (`rest, cfg.suffixes[a.pc + 1]!), (`n, mkNatLit a.pc), (`a, ins), (`h, hd)]
+    let hi ← appN ``Rv64mc.Tactic.drop_get common3
+    let hdNext ← appN ``Rv64mc.Tactic.drop_next common3
     let base := common ++ [(`hf, cfg.hp), (`hi, hi)]
     let k := calls + 1
     if ins.isAppOf ``Lprog.LinstrR.Lcall || ins.isAppOf ``Lprog.LinstrR.Ltail then calls := k
@@ -1016,7 +1019,11 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
     | some gs =>
       -- side goals (not a `SafeN` at a frame) go to `left` through `run`'s check, after the path's own
       steps := steps + 1
-      todo := gs.map (·, seen) ++ todo
+      -- the next instruction's suffix where the step falls through, found again after a jump
+      let next ← gs.mapM fun g' => do
+        let pc' ← g'.withContext do return (← parseAt (← g'.getType)).map (·.pc)
+        return (g', seen, if pc' == some (a.pc + 1) then some hdNext else none)
+      todo := next ++ todo
   trace[rv_sym] "{steps} instructions stepped, {left.size} goals left"
   return left.toList
 
@@ -1043,6 +1050,13 @@ def mkCfg (hp : Expr) (stops : List Nat) (facts specs : Array Expr) : MetaM Cfg 
     throwError "rv_sym: {hp} is not `p[fn]? = some fd`"
   let fd := hpT.appArg!.appArg!
   let body ← bodyOf fd
+  if body.isEmpty then throwError "rv_sym: the body of {fd} is empty"
+  let α ← inferType (body[0]!)
+  let mut suffixes := #[mkApp (mkConst ``List.nil [0]) α]
+  for i in body.reverse do
+    suffixes := suffixes.push (mkApp3 (mkConst ``List.cons [0]) α i suffixes.back!)
+  suffixes := suffixes.reverse
+  let hbody ← mkExpectedTypeHint (← mkEqRefl (suffixes[0]!)) (← mkEq (← mkAppM ``Lprog.Lfundef.body #[fd]) (suffixes[0]!))
   let facts ← facts.foldlM (init := #[]) fun acc h => return acc ++ (← expandFact h)
   let specs ← specs.mapM fun h => return (h, ← instantiateMVars (← inferType h))
   let mut heads := []
@@ -1054,7 +1068,7 @@ def mkCfg (hp : Expr) (stops : List Nat) (facts specs : Array Expr) : MetaM Cfg 
       if let some l ← evalNat l then
         if let some j ← labelIdx? body l then
           if j ≤ k then heads := j :: heads
-  return { hp, fd, body, facts, specs, stops, heads }
+  return { hp, fd, body, suffixes, hbody, facts, specs, stops, heads }
 
 syntax rvSymArgs := (" stop " "[" num,* "]")? (" with " "[" term,* "]")? (" using " "[" term,* "]")?
 
@@ -1123,5 +1137,46 @@ syntax (name := rvClose) "rv_close" : tactic
     if ← g.isAssigned then continue
     left := left ++ (← closeSide g)
   setGoals left.toList
+
+/-- **`rv_sweep hp …`**, a measure of coverage and cost: `rv_auto`, and besides it the body stepped from each loop
+    head with nothing known of the state (`∀ … regs m, SafeN … ⟨⟨fn, head, …⟩ :: …, regs, m⟩`), each a hypothesis of
+    the goal whose proof the kernel checks with the rest. Every goal any run leaves is the tactic's. -/
+syntax (name := rvSweep) "rv_sweep " term rvSymArgs : tactic
+
+@[tactic rvSweep] def evalRvSweep : Tactic := fun stx => do
+  let cfg ← elabArgs stx[1] stx[2]
+  let g ← getMainGoal
+  let gt := (← instantiateMVars (← g.getType)).consumeMData
+  unless gt.isAppOfArity ``Lprog.Isa.Contract 7 do throwError "rv_sweep: the goal is not a contract"
+  let ga := gt.getAppArgs
+  let mut g := g
+  let mut left : List MVarId := []
+  for h in cfg.heads.eraseDups do
+    let auxT ← g.withContext do
+      let stTy := mkApp (mkConst ``Lprog.State) (ga[0]!)
+      let pTy ← mkArrow stTy (mkSort 0)
+      let restTy ← mkAppM ``List #[mkConst ``Lprog.Frame]
+      let regsTy ← mkArrow (mkConst ``RiscvZkvm.Rv64.Reg) word
+      withLocalDeclD `G pTy fun G =>
+      withLocalDeclD `n (mkConst ``Nat) fun n =>
+      withLocalDeclD `Q pTy fun Q =>
+      withLocalDeclD `ret word fun ret =>
+      withLocalDeclD `top word fun top =>
+      withLocalDeclD `rest restTy fun rest =>
+      withLocalDeclD `regs regsTy fun regs =>
+      withLocalDeclD `m (mkConst ``MachineState) fun m => do
+        let fr ← mkAppM ``Lprog.Frame.mk #[ga[4]!, mkNatLit h, ret, top]
+        let st ← mkAppOptM ``Lprog.State.mk #[ga[0]!, ← mkAppM ``List.cons #[fr, rest], regs, m]
+        let body := mkAppN (mkConst ``Lprog.Isa.SafeN) #[ga[0]!, ga[1]!, ga[2]!, ga[3]!, G, n, Q, st]
+        mkForallFVars #[G, n, Q, ret, top, rest, regs, m] body
+    let aux ← g.withContext do mkFreshExprSyntheticOpaqueMVar auxT
+    let (_, ga') ← aux.mvarId!.introN 8
+    left := left ++ (← run cfg ga')
+    let g' ← g.assert (Name.mkSimple s!"head{h}") auxT aux
+    let (_, g'') ← g'.intro1
+    g := g''
+  let g0 ← openContract g
+  left := left ++ (← run cfg g0)
+  replaceMainGoal left
 
 end Rv64mc.Tactic.Sym
