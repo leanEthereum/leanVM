@@ -44,6 +44,12 @@ On the image whose sha256 is `8cb4e7b8…` (`image.sha256`), with the fixtures o
 
 The runner steps about 140,000 instructions a second; the honest runs take 15 to 25 CPU-minutes each.
 
+## The Model mirror
+
+`lake exe rv64mc-model WORDS` (`RunModel.lean`) decodes the input with the statement's `decodeInput` and prints `mainVerdictRust` (`Rv64mc/Model/Walk.lean`, the Lean mirror of `main`'s verdict, `ACCEPT` as `true`) next to the statement's `verify`. `mainVerdictRust_sound` proves that the first implies the second; running both on real inputs shows that the mirror is not vacuous, that it accepts honest proofs as the guest does.
+
+On the twelve inputs above (four fixtures, each honest, flipped and truncated): every honest input decoded with `mainVerdictRust: true` and `verify: true`, every flipped input decoded with `mainVerdictRust: false` and `verify: false`, and every truncated input gave `decodeInput: none`.
+
 ## What it does not show
 
 It shows that the hypotheses of `Sound` are met by real runs and that the statement's `decodeInput` and `verify` agree with the guest on them; it does not show that they are met by every accepted proof (that would be completeness, not stated). The state it builds is one loaded state; `Sound` quantifies over all of them, which only makes it stronger.

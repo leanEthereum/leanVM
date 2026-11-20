@@ -37,3 +37,8 @@ globs = ["Rv64mc.+"]
 [[lean_exe]]
 name = "rv64mc-run"
 root = "RunImage"
+
+# The Model mirror of `main` beside the statement's `verify` on an input (`notes/non-vacuity.md`).
+[[lean_exe]]
+name = "rv64mc-model"
+root = "RunModel"
