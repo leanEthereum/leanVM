@@ -13,12 +13,11 @@ public import LeanVM.Guest.CoreMode.CoreLoopC
 
 `LoopOkC`'s passes over a body (`loopBB`, `callsBL`, `topOk`, `noPtrL`, `calleePtrOk`, `noFA`, the
 conditional calls' conditions, the `match`es' lengths) and over its code (`tgtOk`, `jtdOk`) are each one
-kernel evaluation; for `main_loop2` (189k statements, 114k instructions) each takes past the memory a
-module may take. Every one of them is additive over a split of the body or of the code, so it is
-checked over consecutive slices, each its own declaration: `LWins` (the body's statements before its
-tail call, one predicate `winL` per slice with the `match`es' lengths it has), `CWins` (the code, from
-each slice's offset), and the two last statements apart (`tailL`). `loopFields_of_wins` gives the
-fields.
+kernel evaluation; for `main_loop2` each takes past the memory a module may take. Every one of them is
+additive over a split of the body or of the code, so it is checked over consecutive slices, each its own
+declaration: `LWins` (the body's statements before its tail call, one predicate `winL` per slice with
+the `match`es' lengths it has), `CWins` (the code, from each slice's offset), and the two last
+statements apart (`tailL`). `loopFields_of_wins` gives the fields.
 -/
 
 namespace LeanVM.Guest.CoreMode

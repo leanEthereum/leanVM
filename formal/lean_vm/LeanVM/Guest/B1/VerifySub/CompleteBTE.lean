@@ -310,7 +310,7 @@ theorem verify_sub_completeBTGE {bytecode : List K} (hbl : bytecode.length = 2 ^
     hkr hkm fun fp outs hlen ho rd hlow hB hL hLo =>
       let ⟨σ, e, h⟩ := hσ fp outs hlen ho rd hlow hB hL hLo
       ⟨σ, ⟨⟨_, outs, e, hB⟩, vs_allocs_events h.2.1 h.2.2.2.1⟩, h⟩
-  refine CompleteAtDTBR.monoVB h (by simp only [vsSizes, List.sum_cons, List.sum_nil, vsBoundAt, ChildSegs.μs]; omega)
+  refine CompleteAtDTBR.monoVB h (by simp only [vsSizes, List.sum_cons, List.sum_nil, vsBoundAt, vsOwnBufs, ChildSegs.μs]; omega)
     fun rd t rets hv hbo ⟨hF0, hn⟩ ↦ ?_
   have hE : t.Every (ExactAt coreProgram rd) := flatShape_every find_vs vs_pinned hF0 hv
     (namedP_every _ _ _ (vsPsRE_every W Pcp Pvt Pos rd))
