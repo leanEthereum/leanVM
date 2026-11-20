@@ -2,7 +2,8 @@
   Rv64mc.Model.Extra.Layout
 
   `Model.Layout`'s values in the forms the compiled code computes them: `qkeccak_slot` as the three ranges of
-  global columns the code compares against (`qkeccakSlotRust_closed`), and `is_output_lane` as one range.
+  global columns the code compares against (`qkeccakSlotRust_closed`), `is_output_lane` as one range, and `gpow`'s
+  limbs (`limbs_gpowRust`).
 -/
 
 import Rv64mc.Model.Layout
@@ -51,5 +52,9 @@ theorem isOutputLaneRust_closed (c : ℕ) : isOutputLaneRust c = decide (106 ≤
   unfold isOutputLaneRust
   rw [show globalColumnBasesRust.getD opKeccakRust 0 = 66 by decide +kernel]
   rfl
+
+/-- `gpow`'s limbs are `E::pow`'s on `GEN`'s. -/
+theorem limbs_gpowRust (index : BitVec 64) : limbs (gpowRust index) = ePow eGen index := by
+  rw [gpowRust, limbs_gen, ofLimbsW, limbs_ofLimbs, BF64.toBitVec_ofBitVec, BF64.toBitVec_ofBitVec]
 
 end Rv64mc.Model

@@ -3,7 +3,7 @@
 
   `layout.rs`'s contracts at the image (`liftProg Gen.fns`): each `ok` at its function's index
   (`Rv64mc/Gen/index.tsv`), with the generated link, from the contracts not proved here (`panic_bounds_check`,
-  which does not return) and the constant tables the code reads (`NConstraintsData`, `CountColumnsData`, facts of
+  which does not return, and `E::pow`) and the constant tables the code reads (`NConstraintsData`, `CountColumnsData`, facts of
   the image's static data, discharged where the environment is the image's).
 -/
 
@@ -12,12 +12,14 @@ import Rv64mc.Proof.Layout.QkeccakSlot
 import Rv64mc.Proof.Layout.KeccakShape
 import Rv64mc.Proof.Layout.Table
 import Rv64mc.Proof.Layout.Committed
+import Rv64mc.Proof.Layout.Gpow
 import Rv64mc.Gen.Link.Verifier.Layout.IsOutputLane
 import Rv64mc.Gen.Link.Verifier.Layout.QkeccakSlot
 import Rv64mc.Gen.Link.Verifier.Layout.KeccakShape
 import Rv64mc.Gen.Link.Verifier.Layout.Table.NConstraints
 import Rv64mc.Gen.Link.Verifier.Layout.Table.CountColumns
 import Rv64mc.Gen.Link.Verifier.Layout.Layout.Committed
+import Rv64mc.Gen.Link.Verifier.Layout.Gpow
 
 namespace Rv64mc.Table.Layout
 
@@ -49,6 +51,10 @@ theorem countColumns (hpanic : Spec.Runtime.NoReturn env (liftProg fns) 16 0)
 
 theorem committed : Spec.Layout.Committed.spec env (liftProg fns) 57 :=
   Proof.Layout.Committed.ok env _ 57 _ Verifier.Layout.Layout.Committed.tmpl_eq
+
+theorem gpow {need : Nat} (hpow : Spec.Field.EPow.spec env (liftProg fns) 170 need) :
+    Spec.Layout.Gpow.spec env (liftProg fns) 157 need :=
+  Proof.Layout.Gpow.ok env _ 157 need _ Verifier.Layout.Gpow.tmpl_eq Verifier.Layout.Gpow.wf hpow
 
 end Rv64mc.Table.Layout
 
