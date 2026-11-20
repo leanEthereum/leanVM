@@ -68,10 +68,10 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : 
 
 /-- **`main`'s callees within their bounds `b`, by trees of `p`'s predicates of the memory.** -/
 structure MainGoalsTBR (SB SK : String → ℕ) (p : MainPredsR) (b : MainBs) : Prop where
-  clx : CompleteAtDTBR fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
+  clx : CompleteAtDTBR fs cert 23 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).xd)) p.Px b.Bx
-  cls : CompleteAtDTBR fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
+  cls : CompleteAtDTBR fs cert 23 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).sd)) p.Ps b.Bs
   l1 : (hm fs fp seed s w).nxd ≠ 0 →

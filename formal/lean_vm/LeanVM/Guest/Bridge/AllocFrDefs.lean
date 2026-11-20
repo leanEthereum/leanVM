@@ -11,7 +11,7 @@ public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.PairDefs
 public import LeanVM.Guest.B2C.Defs
 public import LeanVM.Guest.Memory.Static
-public import LeanVM.Guest.Res.LoopDefs
+public import LeanVM.Guest.CoreMode.Fam.LoopDefs
 
 /-!
 # The frame hints' sizes

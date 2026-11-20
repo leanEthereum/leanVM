@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Frame
+public import LeanVM.Guest.CoreMode.FrameLit
 public import LeanVM.Guest.CoreMode.GlueP.«verify_merkle_cap__L8»
 public import LeanVM.Guest.CoreMode.Env
 public import LeanVM.Guest.CoreMode.GlueA.«P6»
@@ -25,17 +26,7 @@ open LeanVM.Guest.Exec
 
 @[expose] public section
 
-noncomputable def Fn.«verify_merkle_cap__L8».envC : Mode.Env := CoreMode.envOf []
-noncomputable def Fn.«verify_merkle_cap__L8».funC : Mode.Fun := ⟨Fn.«verify_merkle_cap__L8».entry,
-    2810, Fn.«verify_merkle_cap__L8».csig, .nil, .nil, .nil, false, .nil⟩
-noncomputable def Fn.«verify_merkle_cap__L8».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«verify_merkle_cap__L8».entry,
-    2810, Fn.«verify_merkle_cap__L8».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
-    Fn.«verify_merkle_cap__L8».pairO, Fn.«verify_merkle_cap__L8».pairS, .nil⟩
-
-theorem Fn.«verify_merkle_cap__L8».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true :=
-    by
-  decide +kernel
+frame_fn% «verify_merkle_cap__L8» 2810 []
 end
 
 end LeanVM.Guest

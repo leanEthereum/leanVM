@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.AllocFrDefs
+public import LeanVM.Guest.Bridge.ChkLit
 public import LeanVM.Guest.Bridge.Align.«verify_merkle_cap__L8»
 public import LeanVM.Guest.CoreMode.GlueA.«P6»
 public import LeanVM.Guest.Pack.«P6».Core
@@ -20,10 +21,7 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«verify_merkle_cap__L8».allocShapeOk : Bridge.allocShape core.body = true := by decide +kernel
-theorem Fn.«verify_merkle_cap__L8».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Fn.«verify_merkle_cap__L8».advice = true := by decide +kernel
-theorem Fn.«verify_merkle_cap__L8».frOk : Bridge.frChk alignCtx fs [] core.params core.body Fn.«verify_merkle_cap__L8».advice = true := by decide +kernel
-theorem Fn.«verify_merkle_cap__L8».allocOk : Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Fn.«verify_merkle_cap__L8».advice = true := by decide +kernel
+alloc_chk% «verify_merkle_cap__L8» []
 
 end
 

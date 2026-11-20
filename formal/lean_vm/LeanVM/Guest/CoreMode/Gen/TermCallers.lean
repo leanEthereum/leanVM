@@ -12,7 +12,7 @@ public import LeanVM.Guest.CoreMode.Gen.TermCallers1
 public import LeanVM.Guest.CoreMode.Gen.TermCallers2
 public import LeanVM.Guest.CoreMode.Gen.TermCallers3
 public import LeanVM.Guest.CoreMode.Gen.TermCallers4
-public import LeanVM.Guest.Res.LinkDefs
+public import LeanVM.Guest.CoreMode.Fam.LinkDefs
 
 namespace LeanVM.Guest.Res
 

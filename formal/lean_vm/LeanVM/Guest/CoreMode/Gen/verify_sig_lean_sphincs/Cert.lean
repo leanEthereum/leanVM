@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.CertLit
 public import LeanVM.Guest.CoreMode.Gen.HcTab
 public import LeanVM.Guest.CoreMode.Gen.«verify_sig_lean_sphincs».Route
 public import LeanVM.Guest.CoreMode.GlueC.«verify_sig_lean_sphincs»
@@ -17,7 +18,7 @@ set_option Elab.async false
 set_option linter.style.nameCheck false
 
 /-! Each function's certificate (`modeCert`: its `envC`, `funC` and code), its callees' signatures
-(`modeSigs`), and the certificate with its facts (`ce`). -/
+(`modeSigs`), and the certificate with its facts (`ce`): `core_cert%`, `CoreMode/CertLit.lean`. -/
 
 namespace LeanVM.Guest.Fn
 
@@ -25,18 +26,7 @@ open LeanVM.Guest LeanVM.Guest.EndExec
 
 @[expose] public section
 
-noncomputable def «verify_sig_lean_sphincs».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-kernel_rfl «verify_sig_lean_sphincs».modeSigs : «verify_sig_lean_sphincs».modeCert.E.sigs = CoreMode.sigTrie
-  [«sp_wots».csig]
-
-@[expose] public section
-
-noncomputable def «verify_sig_lean_sphincs».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«verify_sig_lean_sphincs».coreFns_ok _ (list_mem% 0), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+core_cert% «verify_sig_lean_sphincs» «verify_sig_lean_sphincs» 0 [«sp_wots»]
 
 end
 

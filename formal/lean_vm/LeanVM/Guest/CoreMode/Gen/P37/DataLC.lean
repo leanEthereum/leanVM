@@ -48,8 +48,7 @@ def csigs : List (String × CoreMode.HSig) :=
         ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 4)⟩],
       postPR := [(⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 4)⟩, [0, 1, 2, 3, 4, 5])] })]
 def hcFlag : Bool := false
-def hcCallees : List (String × ℕ × ℕ) :=
-  []
+def hcCallees : List (String × ℕ × ℕ) := []
 
 end
 end LeanVM.Guest.Fn.«level_positions__L28_L26_L2_loop0»
@@ -92,8 +91,7 @@ def csigs : List (String × CoreMode.HSig) :=
         ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 5)⟩],
       postPR := [(⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 5)⟩, [0, 1, 2, 3, 4])] })]
 def hcFlag : Bool := false
-def hcCallees : List (String × ℕ × ℕ) :=
-  []
+def hcCallees : List (String × ℕ × ℕ) := []
 
 end
 end LeanVM.Guest.Fn.«level_positions__L8_L22_L4_loop0»

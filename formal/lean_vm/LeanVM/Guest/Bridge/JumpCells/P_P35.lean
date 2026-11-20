@@ -21,6 +21,7 @@ namespace LeanVM.Guest
 public section
 
 theorem Fn.«assert_small_g_power».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«assert_small_g_power».idx == 1) = true := by decide +kernel
+theorem Fn.«claim_list_tail».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«claim_list_tail».idx == 1) = true := by decide +kernel
 theorem Fn.«rs_eq_rows__L6».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«rs_eq_rows__L6».idx == 1) = true := by decide +kernel
 theorem Fn.«index_mle__L14».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«index_mle__L14».idx == 1) = true := by decide +kernel
 theorem Fn.«column_selector__L24».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«column_selector__L24».idx == 1) = true := by decide +kernel

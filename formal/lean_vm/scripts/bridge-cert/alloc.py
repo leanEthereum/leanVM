@@ -558,11 +558,15 @@ def run(check):
             return (shape(k) if not win else []) + pre + [
                 (k, 'allocOk', f'Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Fn.«{k}».advice = true',
                  prf)]
-        body = data.fn_thms([t for j, k in jks for t in thm(j, k)])
+        def thm1(j, k):
+            # the common case in one command (`Bridge/ChkLit.lean`)
+            if win or j in failed or prf != 'decide +kernel': return thm(j, k)
+            return ['alloc_chk%% «%s» [%s]\n' % (k, ', '.join('«%s»' % lk[c][0] for c in frd[j][0]))]
+        body = data.fn_thms([t for j, k in jks for t in thm1(j, k)])
         files[os.path.join(OUT, mod.split('AllocChk.')[1].strip('«»') + '.lean')] = (
             HEAD.format(mod=mod, what="The kernel's checks that compiled functions' allocation hints pass the check.")
             + 'public import LeanVM.Guest.Bridge.AllocDefs\n'
-            + ('' if win else 'public import LeanVM.Guest.Bridge.AllocFrDefs\n')
+            + ('' if win else 'public import LeanVM.Guest.Bridge.AllocFrDefs\npublic import LeanVM.Guest.Bridge.ChkLit\n')
             + f'public import {cm}\n'
             + ''.join(f'public import {m}\n' for m in imps)
             + '\n' + body.rstrip('\n') + '\n')

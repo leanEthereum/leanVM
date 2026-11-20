@@ -22,7 +22,7 @@ set_option linter.all false
 
 @[expose] public section
 
-abbrev coreCount : Nat := 1547
+abbrev coreCount : Nat := 1548
 
 namespace N
 abbrev «main» : String := "main"
@@ -49,6 +49,7 @@ abbrev «verify_sig_lean_sphincs» : String := "verify_sig_lean_sphincs"
 abbrev «statement_digest» : String := "statement_digest"
 abbrev «list_split» : String := "list_split"
 abbrev «claim_list_digest» : String := "claim_list_digest"
+abbrev «claim_list_tail» : String := "claim_list_tail"
 abbrev «child_claim_list_digest» : String := "child_claim_list_digest"
 abbrev «child_claim_list_any» : String := "child_claim_list_any"
 abbrev «child_claim_list_mono» : String := "child_claim_list_mono"

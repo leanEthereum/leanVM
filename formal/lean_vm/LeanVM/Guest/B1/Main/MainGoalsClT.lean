@@ -41,13 +41,13 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : 
 
 /-- `MainGoalClX` by a tree of honest shape. -/
 def MainGoalClXT : Prop :=
-  CompleteAtDT fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
+  CompleteAtDT fs cert 23 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).xd)) (clHonest (hm fs fp seed s w).nlx)
 
 /-- `MainGoalClS` by a tree of honest shape. -/
 def MainGoalClST : Prop :=
-  CompleteAtDT fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
+  CompleteAtDT fs cert 23 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).sd)) (clHonest (hm fs fp seed s w).nls)
 
@@ -61,10 +61,9 @@ theorem MainGoalClST.goal (h : MainGoalClST fs cert fp seed s w) : MainGoalClS f
 
 /-- **`claim_list_digest` on the leanXMSS table's declared claims, by a tree of honest shape.** -/
 theorem mainGoalClXT (hL : GuestLimits s w) : MainGoalClXT fs cert fp seed s w := by
-  have hn : s.claims.xmss.length < claimBig * bigFramesCap := by
+  have hn : s.claims.xmss.length < 2 ^ 23 := by
     have := hL.planSlotsBelow2Pow23
     simp only [Coverage.planSlots] at this
-    simp only [claimBig, bigFramesCap]
     omega
   have e : (hOwn seed s w).getD 0 [] =
       s.claims.xmss.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) ++
@@ -88,10 +87,9 @@ theorem mainGoalClXT (hL : GuestLimits s w) : MainGoalClXT fs cert fp seed s w :
 
 /-- **`claim_list_digest` on the leanSPHINCS table's declared claims, by a tree of honest shape.** -/
 theorem mainGoalClST (hL : GuestLimits s w) : MainGoalClST fs cert fp seed s w := by
-  have hn : s.claims.sphincs.length < claimBig * bigFramesCap := by
+  have hn : s.claims.sphincs.length < 2 ^ 23 := by
     have := hL.planSlotsBelow2Pow23
     simp only [Coverage.planSlots] at this
-    simp only [claimBig, bigFramesCap]
     omega
   have e : (hOwn seed s w).getD 1 [] =
       s.claims.sphincs.flatMap (fun c => claimCells c.1.publicSeed c.1.root c.2) ++

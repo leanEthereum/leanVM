@@ -26,11 +26,9 @@ def hcert : CoreMode.HCert where
   calls := [(List.flatten [CoreMode.runR 0 4])]
   rets := [[]]
 
-def csigs : List (String × CoreMode.HSig) :=
-  []
+def csigs : List (String × CoreMode.HSig) := []
 def hcFlag : Bool := false
-def hcCallees : List (String × ℕ × ℕ) :=
-  []
+def hcCallees : List (String × ℕ × ℕ) := []
 
 end
 end LeanVM.Guest.Fn.«main_loop2»

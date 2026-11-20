@@ -8,7 +8,9 @@
 module
 
 public import LeanVM.Guest.CoreMode.TrieOf
+public import LeanVM.Guest.CoreMode.FrameSlice
 public import LeanVM.Guest.CoreMode.Frame
+public import LeanVM.Guest.CoreMode.FrameLit
 public import LeanVM.Guest.CoreMode.GlueP.«P43»
 public import LeanVM.Guest.CoreMode.Env
 public import LeanVM.Guest.CoreMode.GlueA.«main_loop2»

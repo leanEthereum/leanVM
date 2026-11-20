@@ -201,6 +201,45 @@ theorem clLast_pops {k : ℕ} (hk : k < 17) {t : Tree} {sp : E} {e : ℕ} {rets 
     congr 3
     ring
 
+/-! ## `claim_list_tail` -/
+
+theorem tail_noWit : Stmt.noWitList (Fn.body fn% «claim_list_tail») = true := by decide +kernel
+
+/-- **`claim_list_tail`** called on `[sp, g^e, g^r]`, `r < 17`, pops claims `0 ..< r` of the table at `g^e`: its
+dispatch's `claim_list_last__L{r}`'s. -/
+theorem tail_pops {r : ℕ} (hr : r < 17) {t : Tree} {sp : E} {e : ℕ} {rets : List E}
+    (hn : t.name = "claim_list_tail") (hv : t.Valid coreProgram rd [sp, gen ^ e, gen ^ r] rets) :
+    t.pops coreProgram rd = (List.range' 0 r).map (claimPop rd e) := by
+  cases t with
+  | phantom _ _ => exact hv.elim
+  | node f σ bufs ks =>
+    obtain rfl : f = "claim_list_tail" := hn
+    rw [valid_pops_noWit find_claim_list_tail tail_noWit hv]
+    obtain ⟨fn', hf', hp, es, vs, hw, -, -, hk⟩ := hv
+    rw [find_claim_list_tail] at hf'
+    obtain rfl := Option.some.inj hf'
+    rw [claim_list_tail_params] at hp
+    simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
+    obtain ⟨-, h1, h2⟩ := hp
+    have hw2 := walk_dispatch σ [] [.atom (.copy (.n 5) (.n 3)), .atom (.copy (.n 6) (.n 4))] rfl rfl (.n 2)
+      clNames [.n 0, .n 1] [.n 3, .n 4] [.n 5, .n 6] (i := r) (by simp [clNames]; omega) (by simp [clNames])
+      (by rw [h2, gen_pow_eq_ofK])
+    rw [claim_list_tail_shape] at hw
+    rw [show [Stmt.dispatch (.n 2) clNames [.n 0, .n 1] [.n 3, .n 4], .atom (.copy (.n 5) (.n 3)),
+        .atom (.copy (.n 6) (.n 4)), .ret [.n 5, .n 6]] = [] ++ Stmt.dispatch (.n 2) clNames [.n 0, .n 1]
+          [.n 3, .n 4] :: ([.atom (.copy (.n 5) (.n 3)), .atom (.copy (.n 6) (.n 4))] ++ [.ret [.n 5, .n 6]])
+        from rfl, hw2] at hw
+    obtain ⟨rfl, -⟩ := Out.ret.inj hw
+    obtain ⟨k, rfl⟩ : ∃ k, ks = [k] := by
+      match ks, hk with
+      | [k], _ => exact ⟨k, rfl⟩
+    obtain ⟨hnk, hvk, -⟩ := hk
+    simp only [ite_true] at hvk
+    have hvk' : k.Valid coreProgram rd [σ (.n 0), σ (.n 1)] [σ (.n 3), σ (.n 4)] := hvk
+    rw [h1] at hvk'
+    rw [Tree.popsKids, Tree.popsKids, List.flatten_cons, List.flatten_nil, List.append_nil]
+    exact clLast_pops hr (by rw [hnk]; exact clNames_get hr) hvk'
+
 /-! ## `claim_list_digest` -/
 
 theorem cl_noWit : Stmt.noWitList (Fn.body fn% «claim_list_digest») = true := by decide +kernel
@@ -283,9 +322,9 @@ theorem cl_valid_pops {n eP : ℕ} (hn : n < claimBig * bigFramesCap) {t : Tree}
         exact hv3.1
     have p4 : k4.pops coreProgram rd = (List.range' (136 * a + 17 * b) r).map (claimPop rd eP) := by
       rw [← Nat.add_zero (136 * a + 17 * b), ← map_claimPop_shift]
-      have hv4' : k4.Valid coreProgram rd [σ (.n 65), σ (.n 73)] [σ (.n 74), σ (.n 75)] := hv4
-      rw [h73] at hv4'
-      exact clLast_pops hr17 (by rw [hn4']; exact clNames_get hr17) hv4'
+      have hv4' : k4.Valid coreProgram rd [σ (.n 65), σ (.n 73), σ (.n 14)] [σ (.n 74), σ (.n 75)] := hv4
+      rw [h73, h14] at hv4'
+      exact tail_pops hr17 hn4' hv4'
     rw [Tree.popsKids, Tree.popsKids, Tree.popsKids, Tree.popsKids, Tree.popsKids, p1, p2, p3, p4,
       ite_eq_right (by omega)]
     simp only [List.flatten_cons, List.flatten_nil, List.append_nil]

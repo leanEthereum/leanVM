@@ -9,10 +9,11 @@ module
 
 public import LeanVM.Guest.EndExecHonest
 public import LeanVM.Guest.ProverGuest
-public import LeanVM.Guest.EndExecR
+public import LeanVM.Guest.CoreMode.Fam.Res
 public import LeanVM.Guest.EndExecCore
 public import LeanVM.Guest.CoreMode.Gen.Certs
-public import LeanVM.Guest.Res.Off
+public import LeanVM.Guest.CoreMode.Gen.AnyLinkOk
+public import LeanVM.Guest.CoreMode.Gen.MonoWalkOk
 public import LeanVM.Guest.EndExecYDeployed
 public import LeanVM.Guest.EndExecYWitCells
 public import LeanVM.Guest.EndExecYShape
@@ -24,17 +25,15 @@ public import LeanVM.Guest.EndExecAExtra
 public import LeanVM.Guest.EndExecCAlign
 public import LeanVM.Guest.Budget.MainExact
 public import LeanVM.Guest.EndExecW
-public import LeanVM.Guest.EndExecRCld
-public import LeanVM.Guest.EndExecRCp
 
 @[expose] public section
 
 /-!
 # The end theorem
 
-The certificates (`allCerts`) are the core route's (`CoreMode.coreCerts`, `main`'s among them) and the
-mode walk's of the functions off it (`Mode.offCerts`), closed by `assemble` from what each part
-gives (`CoreMode.coreFacts`, `offFacts`), the program `Mode.guestE0`; the alignment
+The certificates (`allCerts`) are the core route's (`CoreMode.coreCerts`, every function's, `main`'s
+among them), closed by `assemble` from what the core route gives (`CoreMode.coreFacts`, with
+`OffFacts.nil`: no function off it), the program `Mode.guestE0`; the alignment
 the deployed one (`Bridge.alignA`), and the hint tracks' invariant `YFin`: the witness streams'
 cursor (`YCur`) and the bump pointer (`YAlloc`), each kept by a step given the other's premises
 (`KeepY.and`, `InitY.and`: `XOf` is monotone in its hint invariant).
@@ -89,34 +88,28 @@ abbrev YFin (r : Ref) (s : St) : Prop := YCur alignA r s ∧ YAlloc alignA r s
 /-! ## The open facts (none left) -/
 
 /-- **The facts the executor's completeness on the guest still rests on.** -/
-structure OpenGaps : Prop where
-  /-- Mode track: the functions' frame interfaces (`Mode.FnSpec`) the kernel does not check
-  (`Mode.ModeHyps`, one per function whose walk or hints are held, now none). -/
-  modeHyps : Mode.ModeHyps
+structure OpenGaps : Prop
 
-/-- **No open fact is left**: the kernel checks every walk, which gives every function's frame
-interface, so `Mode.ModeHyps` has no field. -/
-theorem openGaps : OpenGaps := ⟨⟨⟩⟩
+/-- **No open fact is left**: the kernel checks every function's core route, which gives its frame
+interface, so `OpenGaps` has no field. -/
+theorem openGaps : OpenGaps := ⟨⟩
 
 /-! ## The assembly -/
 
-/-- **The end theorem's certificates**: the core route's, then those of the functions off it. -/
-noncomputable abbrev allCerts : List Mode.Cert := CoreMode.coreCerts ++ Mode.offCerts
+/-- **The end theorem's certificates**: the core route's, every function's. -/
+noncomputable abbrev allCerts : List Mode.Cert := CoreMode.coreCerts
 
-/-- **The certificates closed**, with their residuals and termination facts, given the frame interfaces
-the kernel does not check. -/
-theorem assembled (h : Mode.ModeHyps) :
+/-- **The certificates closed**, with their residuals and termination facts. -/
+theorem assembled :
     ModeCerts allCerts Fn.«main».modeCert Mode.guestE0 ∧ (∀ K ∈ allCerts, K.F.entry ≠ 0) ∧
-      ResTop allCerts alignA ∧ TermNode allCerts :=
-  assemble CoreMode.coreFacts (offFacts h fun K hK ↦ by
-    simp only [Res.resExc, List.mem_cons, List.not_mem_nil, or_false] at hK
-    rcases hK with rfl
-    exact resCld_alignA)
+      ResTop allCerts alignA ∧ TermNode allCerts := by
+  simpa only [List.append_nil] using
+    assemble (A := alignA) CoreMode.coreFacts (OffFacts.nil CoreMode.coreCerts_nodup)
 
 /-- **`ExecGaps` from the open facts**, every proved part wired in. -/
-theorem execGaps_of (O : OpenGaps) :
+theorem execGaps_of (_O : OpenGaps) :
     ExecGaps allCerts Fn.«main».modeCert Mode.guestE0 (XOf YFin) (fun _ ↦ ProAt) :=
-  have h := assembled O.modeHyps
+  have h := assembled
   ExecGaps.ofR (A := alignA) h.1 CoreMode.mainOk_core Budget.mainExactHyp
     (hintAlloc_alignA sizesAt_guest allocReady_guest fun _ _ h ↦ h.2)
     (hintWitness_alignA (witCells_alignA witPtrRes_guest) pushShape fun _ _ h ↦ h.1)

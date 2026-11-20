@@ -633,7 +633,7 @@ def own_sig(G, np, nr, gl=None):
 
     def idx_n(b):
         # `CoreMode.idxN`, its value's exponent bounded by a residual (`idxOkN`): an exponent fact, a range check, a
-        # selector
+        # selector, a dereferenced address
         if b[0] == 'num' and b[1] < 2 ** 62:
             return ('num', b[1])
         if b[0] == 'ex' and b[2] == 0:
@@ -648,6 +648,9 @@ def own_sig(G, np, nr, gl=None):
                     m = callcres.rc_bound(callcres.top_atoms(body0), v)
                 if m is None:
                     m = dict(top_sels(body0)).get(v)
+                if m is None and k_own is not None:
+                    # a dereferenced address's, a product of such (`addr`, `CoreMode.expM`)
+                    m = callcres.addr_bound(k_own, v)
                 if m is not None and m <= 2 ** 62:
                     h.expRes.add((v, m))
                     return ('val', v)
@@ -1059,6 +1062,16 @@ def lcsig(h):
     return t
 
 
+def lcsig_aux(h, pre):
+    """A callee's heap signature as Lean with its auxiliary declarations, their names prefixed by `pre`."""
+    import re
+    EM = _em()
+    ax = EM.Aux()
+    t = EM.lsig(h, ax)
+    rn = lambda x: re.sub(r'\bsig_(\w+)', pre + r'sig_\1', x)
+    return rn(t), [rn(d) for d in ax.defs]
+
+
 def hcsig_ref(k):
     """A function's own heap signature where its callers name it (`Gen/<pack>/Sig.lean`): a heap-contract
     function's, or one its callers' signatures equal (`sig_shared`)."""
@@ -1166,7 +1179,9 @@ def ldata(k, r, shared=frozenset(), sigs=None, refs={}):
     auxt = ''.join(f'{d}\n' for d in aux)
     hcf = {f for f, _, _ in r.get('hcs', [])}
 
-    def entry(f, h):
+    cdefs = []
+
+    def entry(i, f, h):
         c = I.callee(f)
         if f in hcf:
             used.add(c)
@@ -1176,17 +1191,20 @@ def ldata(k, r, shared=frozenset(), sigs=None, refs={}):
             used.add(c)
             return refs[(c, t)]
         if '\x00' in t:
-            raise No('callee signature too long')
+            # a long copy no other caller names: its lists as auxiliary declarations of their own (`cs<i>_sig_*`)
+            t, ds = lcsig_aux(h, f'cs{i}_')
+            cdefs.extend(ds)
         return t
-    cs = ',\n    '.join(f'("{f}", {entry(f, h)})' for f, h in sorted(r['cs'].items()))
+    cs = ',\n    '.join(f'("{f}", {entry(i, f, h)})' for i, (f, h) in enumerate(sorted(r['cs'].items())))
+    auxt += ''.join(f'{d}\n' for d in cdefs)
     if sigs is not None:
         sigs |= used
     return (f'{auxt}def hcert : CoreMode.HCert where\n{body}\n'
-            f'def csigs : List (String × CoreMode.HSig) :=\n  [{cs}]\n' + (
+            f'def csigs : List (String × CoreMode.HSig) :={" " if len(cs) < 60 and "\n" not in cs else "\n  "}[{cs}]\n' + (
                 'def dsp : List (ℕ × List String) :=\n  [%s]\n' % (', '.join(
                     '(%d, [%s])' % (q, ', '.join('"%s"' % f for f in fs)) for q, fs in r['dsp'])) if r.get('dsp') else '') +
             f'def hcFlag : Bool := {"true" if r.get("hc") else "false"}\n'
-            f'def hcCallees : List (String × ℕ × ℕ) :=\n  [{", ".join(f'("{f}", {a}, {b})' for f, a, b in r.get("hcs", []))}]\n')
+            f'def hcCallees : List (String × ℕ × ℕ) := [{", ".join(f'("{f}", {a}, {b})' for f, a, b in r.get("hcs", []))}]\n')
 
 
 GENW = os.path.join(GUEST, 'CoreMode', 'GenW')

@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.EndExecPro
-public import LeanVM.Guest.EndExecRefOk
+public import LeanVM.Guest.CoreMode.Fam.RefOk
 public import LeanVM.Guest.CoreMode.Sig.«P8»
 
 /-!

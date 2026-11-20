@@ -1,6 +1,5 @@
-"""Run the frame walk (`frame.py`) on every guest function and report: functions passing, failures
-by cause, oracle loads, residual divisors. `MODE_CERT_CACHE` names `mode-cert/gen.py`'s cache of today's walk
-(for the oracle); `FRAME_CACHE` caches the oracle run."""
+"""The frame walk's (`frame.py`) inputs for a function (`inputs`), its residual divisors from its own walk (`own_nz`),
+and a run of it (`run`), for `frame_gen.py`."""
 import os, sys, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -9,7 +8,7 @@ import frame_data as FD  # noqa: E402
 
 
 def inputs(D, n, nzr=None):
-    """The walk's inputs; its residual divisors `nzr` if given, else the mode walk's (`D['R']`)."""
+    """The walk's inputs; its residual divisors `nzr` if given, else none (`D['R']`)."""
     f = D['fns'][n]
     fx = D['facts'][n]
     F = FR.Facts(fx['env'], fx['fpOne'], fx['arms'], fx['scaled'], D['pows'])
@@ -55,25 +54,3 @@ def run(D, n, O=None, need=None):
                 D['halt'], need=need)
     w.run(f['ops'])
     return w
-
-
-def main():
-    D = FD.load(os.environ['MODE_CERT_CACHE'], os.environ.get('FRAME_CACHE'))
-    ok = 0; fails = collections.Counter(); ex = {}
-    loads = 0; olen = 0; nzn = 0; needs = collections.Counter()
-    for n in sorted(D['fns']):
-        try:
-            w = run(D, n)
-            ok += 1; loads += sum(w.loads.values()); olen += len(D['O'].get(n, []))
-            nzn += sum(len(v) for v in inputs(D, n)[5].values())
-        except FR.Fail as e:
-            k = e.args[0][0]
-            fails[k] += 1; ex.setdefault(k, []).append((n, e.args[0][:4]))
-    print('pass', ok, 'of', len(D['fns']), 'oracle offsets', olen, 'oracle loads used', loads, 'nz residuals', nzn)
-    print('fails', fails.most_common())
-    for k, xs in ex.items():
-        print(k, len(xs), [(n, str(e)[:120]) for n, e in xs[:6]])
-
-
-if __name__ == '__main__':
-    main()

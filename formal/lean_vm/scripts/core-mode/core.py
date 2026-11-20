@@ -296,6 +296,8 @@ def cfun_lc(k, j, frame):
 # a long loop helper's passes over its body and code in windows (`CoreMode/LoopWin.lean`, `RouteWin.lean`): nested
 # statements per body window, instructions per code window
 WIN_STMTS, WIN_CODE = 12000, 8192
+# a long loop helper whose code windows at `WIN_CODE` take past 6.5 GB a module: its own size
+WIN_CODES = {'main_loop2': 6144}
 # set by `main`: the long loop helpers' modules, each function's mode pack, the module of function `j`'s code
 LONG, PACK_OF = {}, {}
 codes_mod = None
@@ -329,15 +331,15 @@ def body_cuts(body, end):
     return cuts
 
 
-def code_cuts(code):
-    """Cuts of the code every `WIN_CODE` instructions, none right after a `DEREF` (a table read's jump is next)."""
-    cuts, b = [], WIN_CODE
+def code_cuts(code, win=WIN_CODE):
+    """Cuts of the code every `win` instructions, none right after a `DEREF` (a table read's jump is next)."""
+    cuts, b = [], win
     while b < len(code):
         while b < len(code) and code[b - 1][0] == '.deref':
             b += 1
         if b < len(code):
             cuts.append(b)
-        b += WIN_CODE
+        b += win
     return cuts
 
 
@@ -369,7 +371,7 @@ def long_loop(k, j, hp, frame_mod, gl):
     lb = [0] + cs + [n - 2]
     ml_w = [mlens(body[lb[i]:lb[i + 1]]) for i in range(len(lb) - 1)]
     ml = [m for w in ml_w for m in w]
-    ccs = code_cuts(code) + [len(code)]
+    ccs = code_cuts(code, WIN_CODES.get(k, WIN_CODE)) + [len(code)]
     cb = [0] + ccs
     base = f'LeanVM.Guest.CoreMode.Gen.«{hp}»'
     files = {}
@@ -500,12 +502,12 @@ def hctab_file(packs):
 def main():
     R = route.route_sub()
     po = heap.pack_of()
-    # by the pack of its code, by key (the pack's `coreFns`, which `scripts/mode-cert/gen.py` lists in the same order);
+    # by the pack of its code, by key (the pack's `coreFns`);
     # a function's heap data and pairing are in its heap pack's `Gen/<pack>/` (`heap.pack_of`)
     packs = {}
     for k in sorted(R):
         packs.setdefault(R[k]['bpack'], []).append(k)
-    frames = index(r'^(?:namespace LeanVM\.Guest\.Fn\.|noncomputable def Fn\.)«([^»]+)»(?:$|\.frameFun\b)', glob.glob(os.path.join(GUEST, 'CoreMode', 'Pack', '*', 'Frame*.lean')))
+    frames = index(r'^(?:namespace LeanVM\.Guest\.Fn\.|noncomputable def Fn\.|frame_fn% )«([^»]+)»(?:$|\.frameFun\b| )', glob.glob(os.path.join(GUEST, 'CoreMode', 'Pack', '*', 'Frame*.lean')))
     # a long function's frame walk: its windows chained (`FrameL<k>`), not one of its windows (`FrameD<k>W<m>`)
     frames.update(index(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', glob.glob(os.path.join(GUEST, 'CoreMode', 'Pack', '*', 'FrameL*.lean'))))
     codes = index(r'^kernel_rfl code(\d+) :', glob.glob(os.path.join(GUEST, 'Checked', 'Link*.lean')))

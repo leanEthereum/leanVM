@@ -24,19 +24,19 @@ theorem memRange_18 : RangeOk (memF Data.takesT) 18 1 := by
   unfold RangeOk; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem memRange_20 : RangeOk (memF Data.takesT) 20 18 := by
+theorem memRange_20 : RangeOk (memF Data.takesT) 20 19 := by
   unfold RangeOk; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem memRange_39 : RangeOk (memF Data.takesT) 39 150 := by
+theorem memRange_40 : RangeOk (memF Data.takesT) 40 150 := by
   unfold RangeOk; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem memRange_189 : RangeOk (memF Data.takesT) 189 150 := by
+theorem memRange_190 : RangeOk (memF Data.takesT) 190 150 := by
   unfold RangeOk; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem memRange_339 : RangeOk (memF Data.takesT) 339 45 := by
+theorem memRange_340 : RangeOk (memF Data.takesT) 340 45 := by
   unfold RangeOk; decide +kernel
 
 end

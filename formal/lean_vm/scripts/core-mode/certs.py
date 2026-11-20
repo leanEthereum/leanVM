@@ -11,10 +11,12 @@
 * `CoreMode/Gen/Certs/Sig<k>.lean`: each certificate's callee signatures among `coreCerts` or `offSigs`;
 * `CoreMode/Gen/Certs.lean`: `coreFacts : CoreFacts …` and `main`'s start (`mainOk_core`).
 
-The functions off the route are the mode walk's (`scripts/mode-cert/gen.py`, `Mode.offCerts`), which
-`Res/Off.lean` gives as `OffFacts`. `--check` writes nothing and fails when a file differs.
+Every function is on the route: `offSigs` is empty, and the end theorem takes `OffFacts.nil`.
+`--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/core-mode/certs.py [--check]"""
 import sys, os, re, glob
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import framelit as FL  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
@@ -96,6 +98,9 @@ def load():
             callees[name(m)] = re.findall(r'Fn\.«([^»]+)»\.csig', m.group(2))
         for m in re.finditer(r'def (?:Fn\.«([^»]+)»\.)?funC : Mode\.Fun\s*:=(.*?)⟩\n', t, re.S):
             if re.search(r'csig,\s+\.nil,\s+\.nil,\s+\.nil,\s+(false|true),\s+\.nil$', m.group(2)): nores.add(name(m))
+        for k, d in FL.parse(t).items():
+            callees[k] = d['callees']
+            if 'fnz' not in d: nores.add(k)
     return packs, entry, idx, callees, nores, glue
 
 
@@ -115,23 +120,14 @@ def render():
         mod = 'LeanVM.Guest.CoreMode.Gen.«%s».Cert' % p
         t = [header(mod, 'The core route\'s certificates of the pack\'s functions and their facts.')]
         t.append(imports({'LeanVM.Guest.CoreMode.Gen.«%s».Route' % p, 'LeanVM.Guest.CoreMode.Gen.HcTab',
-                          'LeanVM.Guest.CoreMode.Nzs'} | {'LeanVM.Guest.CoreMode.GlueC.«%s»' % glue[k] for k in ks}))
+                          'LeanVM.Guest.CoreMode.Nzs', 'LeanVM.Guest.CoreMode.CertLit'} | {'LeanVM.Guest.CoreMode.GlueC.«%s»' % glue[k] for k in ks}))
         t.append('meta import LeanVM.Guest.KernelLit\n\nset_option Elab.async false\nset_option linter.style.nameCheck false\n\n'
                  '/-! Each function\'s certificate (`modeCert`: its `envC`, `funC` and code), its callees\' signatures\n'
-                 '(`modeSigs`), and the certificate with its facts (`ce`). -/\n\n'
+                 '(`modeSigs`), and the certificate with its facts (`ce`): `core_cert%`, `CoreMode/CertLit.lean`. -/\n\n'
                  'namespace LeanVM.Guest.Fn\n\nopen LeanVM.Guest LeanVM.Guest.EndExec\n\n@[expose] public section\n\n')
-        for k in ks:
-            t.append('noncomputable def «%s».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩\n' % k)
-        t.append('\nend\n\n')
-        for k in ks:
-            t.append('kernel_rfl «%s».modeSigs : «%s».modeCert.E.sigs = CoreMode.sigTrie\n  %s\n' % (
-                k, k, lst(['«%s».csig' % m for m in sigs[k]]) if sigs[k] else '[]'))
-        t.append('\n@[expose] public section\n\n')
         for i, k in enumerate(ks):
-            nz = 'nzOnly_nil rfl' if k in nores else 'nzOnly_of (j := idx) (by decide +kernel)'
-            t.append('noncomputable def «%s».ce : %s :=\n  ⟨modeCert, cfun, ModePack.«%s».coreFns_ok _ (list_mem%% %d), ⟨by decide +kernel, rfl, rfl⟩, rfl, '
-                     'fnSpecC, by decide +kernel,\n    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), %s⟩\n' % (
-                         k, CE, p, i, nz))
+            t.append('core_cert%% «%s» «%s» %d %s[%s]\n' % (
+                k, p, i, '' if k in nores else 'nz ', ', '.join('«%s»' % m for m in sigs[k])))
         t.append('\nend\n\nend LeanVM.Guest.Fn\n\nnamespace LeanVM.Guest.CorePack.«%s»\n\n@[expose] public section\n\n'
                  '/-- The pack\'s certificates with their facts. -/\nnoncomputable def ces : List (%s) :=\n  %s\n\n'
                  'end\n\nend LeanVM.Guest.CorePack.«%s»\n' % (p, CE, wrap(['Fn.«%s».ce' % k for k in ks]), p))
@@ -154,8 +150,7 @@ def render():
              'namespace LeanVM.Guest.Fn\n\npublic section\n\n')
     for j, p in enumerate(pk):
         for i, f in enumerate(packs[p]):
-            t.append('theorem «%s».modeCert_in : «%s».modeCert ∈ CoreMode.coreCerts :=\n'
-                     '  EndExec.CertE.mem (ls := CoreMode.corePacks) «%s».ce (list_mem%% %d) (list_mem%% %d)\n' % (f, f, f, j, i))
+            t.append('cert_in%% «%s» %d %d\n' % (f, j, i))
     t.append('\nend\n\nend LeanVM.Guest.Fn\n')
     files[os.path.join(OUT, 'Certs', 'List.lean')] = ''.join(t)
     # the callee signatures
@@ -169,9 +164,8 @@ def render():
         for p in ps:
             sp = []
             for k in packs[p]:
-                one = ['.inl ⟨_, %s.modeCert_in, rfl, rfl, rfl⟩' % fq(m) if m in routed else '.inr (list_mem%% %d)' % off.index(m)
-                       for m in sigs[k]]
-                sp.append('sigsOr_of_list %s.modeSigs fa%%[%s]' % (fq(k), ',\n      '.join(one)))
+                one = ['sig_in%% «%s»' % m if m in routed else '.inr (list_mem%% %d)' % off.index(m) for m in sigs[k]]
+                sp.append('sigsOr_of_list %s.modeSigs fa%%%s' % (fq(k), wrap(one, 6, 118)))
             t.append('\nnamespace LeanVM.Guest.CorePack.«%s»\n\nopen LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.EndExec\n\n'
                      'public section\n\ntheorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e.K := fa%%[\n  %s]\n\n'
                      'end\n\nend LeanVM.Guest.CorePack.«%s»\n' % (p, ',\n  '.join(sp), p))

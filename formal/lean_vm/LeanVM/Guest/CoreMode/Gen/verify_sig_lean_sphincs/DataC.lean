@@ -34,11 +34,9 @@ def hcert : CoreMode.HCert where
   calls := [[], [], []]
   rets := [(List.flatten [CoreMode.evR 0 4, [.run 0 []]])]
 
-def csigs : List (String × CoreMode.HSig) :=
-  [("sp_wots", {})]
+def csigs : List (String × CoreMode.HSig) := [("sp_wots", {})]
 def hcFlag : Bool := false
-def hcCallees : List (String × ℕ × ℕ) :=
-  []
+def hcCallees : List (String × ℕ × ℕ) := []
 
 end
 end LeanVM.Guest.Fn.«verify_sig_lean_sphincs»

@@ -14,7 +14,7 @@ public import LeanVM.Guest.CoreMode.Gen.«sp_wots».«sp_wots».W2
 public import LeanVM.Guest.CoreMode.Gen.«sp_wots».«sp_wots».W3
 public import LeanVM.Guest.CoreMode.Gen.«sp_wots».«sp_wots».W4
 public import LeanVM.Guest.CoreMode.Gen.«sp_wots».«sp_wots».W5
-public import LeanVM.Guest.CoreMode.PairRun
+public import LeanVM.Guest.CoreMode.PairSlice
 
 namespace LeanVM.Guest.Fn.«sp_wots»
 
@@ -23,12 +23,12 @@ open LeanVM.Guest
 public section
 
 /-- `sp_wots`: the pairing's last state is at the end. -/
-theorem pairEndOk : Bridge.chainEnd Fn.«sp_wots».code.code pairK6 = true := by
+theorem pairEndOk : CoreMode.chainEndS Fn.«sp_wots».code.chunks (12, 0) pairK6 = true := by
   decide +kernel
 
 /-- `sp_wots`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
 theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«sp_wots».core.body Fn.«sp_wots».code.code Fn.«sp_wots».advice = true :=
-  CoreMode.pairOk_of_chain alignPreOk (ks := [pairK1, pairK2, pairK3, pairK4, pairK5, pairK6])
+  CoreMode.pairOk_of_chainS alignPreOk (ks := [((2, 0), pairK1), ((4, 0), pairK2), ((6, 0), pairK3), ((8, 0), pairK4), ((10, 0), pairK5), ((12, 0), pairK6)])
     (And.intro pairWin0 (And.intro pairWin1 (And.intro pairWin2 (And.intro pairWin3 (And.intro pairWin4 (And.intro pairWin5 pairEndOk))))))
 
 end

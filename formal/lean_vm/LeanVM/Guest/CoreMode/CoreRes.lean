@@ -8,15 +8,15 @@
 module
 
 public import LeanVM.Guest.CoreMode.Core
-public import LeanVM.Guest.Res.FamDefs
+public import LeanVM.Guest.CoreMode.Fam.FamDefs
 public import LeanVM.Guest.B1.Selectors.ColumnSelector
 public import LeanVM.Guest.CoreMode.Gen.AnyLink
 public import LeanVM.Guest.B1.Digest.MonoDefs
 public import LeanVM.Guest.CoreMode.CoreGhost
 public import LeanVM.Guest.CoreMode.LoopLink
-public import LeanVM.Guest.Res.SelDefs
-public import LeanVM.Guest.Res.TermDefs
-public import LeanVM.Guest.Res.ExpDefs
+public import LeanVM.Guest.CoreMode.Fam.SelDefs
+public import LeanVM.Guest.CoreMode.Fam.TermDefs
+public import LeanVM.Guest.CoreMode.Fam.ExpDefs
 import LeanVM.Guest.Data.Source
 
 /-!
@@ -49,7 +49,10 @@ function's own code whose soundness at its honest instances is proved once, in `
   and `r` times constants, of `q^S·g^c` below `n` under an arm `j > c` of the selector `r`, and the loop's strided
   runs below `e(q)` inside `[0, e(n))`.
 * `neg` (`negFam`): under a condition `k ≠ 0`, `e(x·v·g^off) < n`, `v` the constant `g⁻¹` of the arm `k ≠ 0` takes,
-  `k = y + g^off`, `y = x·g^off` (so `x ≠ 1`), `x` and `y` range checked, `y` below `g^(n + 1)`.
+  `k = y + g^off`, `y = x·g^off` (so `x ≠ 1`), `x` and `y` range checked, `y` below `g^(n + 1)`; and
+  `e(Π xᵢ^aᵢ·g^off) < n` from the arm `k ≠ 0` takes (`nzAtoms`, `armM`): each `xᵢ = g^eᵢ`, `eᵢ ≤ Mᵢ`, `xᵢ` range
+  checked there against a constant `g^Mᵢ` (`Res.rcBound`) or `Mᵢ` a bound `expM` reads off that arm's atoms (a `DEREF`
+  through `xᵢ`, `assert_gpow`), `Σ aᵢ·Mᵢ + off < n`.
 
 These name no ghost value (`CRes.vals`, below `GB`), so they hold at an honest valuation whatever its
 ghost words (`CRes.holds_congr`). One family names a ghost:
@@ -184,12 +187,28 @@ noncomputable def negPair (fn : Fn) (k x v off n : ℕ) : Bool :=
         | _ => false)
     | _ => false
 
-/-- **The `neg` family**, under a branch condition `k ≠ 0`: `e(x·v·g^off) < n` (`negPair`, either base first). -/
+/-- **An exponent bound of `x` in the arm `k ≠ 0` takes** (`nzAtoms`): `x = g^e`, `e ≤ M`, `x` range checked there
+against a constant `g^M` (`Res.rcBound`), or `M` the bound `expM` reads off the arm's atoms. -/
+noncomputable def armM (fn : Fn) (k x : ℕ) : Option ℕ :=
+  match Res.rcBound (nzAtoms (V.n k) fn.body) (V.n x) with
+  | some N => some (N - 1)
+  | none => expM (nzAtoms (V.n k) fn.body) expFuel (V.n x)
+
+/-- **An exponent bound of a product `Π xᵢ^aᵢ`** in the arm `k ≠ 0` takes: `Σ aᵢ·Mᵢ` (`armM`). -/
+noncomputable def armProd (fn : Fn) (k : ℕ) : List (ℕ × ℕ) → Option ℕ
+  | [] => some 0
+  | (x, a) :: bs => (armM fn k x).bind fun M ↦ (armProd fn k bs).map (a * M + ·)
+
+/-- **The `neg` family**, under a branch condition `k ≠ 0`: `e(x·v·g^off) < n` (`negPair`, either base first), and
+`e(x) < n`, `e(Π xᵢ^aᵢ·g^off) < n` from the arm `k ≠ 0` takes (`armM`, `armProd`). -/
 noncomputable def negFam (fn : Fn) (cs : List CCond) : CRes → Bool
   | .lt (.mono c) (.num n) => decide (n < capE) && cs.any fun
-      | .nonzero k => match c.bases with
+      | .nonzero k => (match c.bases with
         | [(a, 1), (b, 1)] => negPair fn k a b c.off n || negPair fn k b a c.off n
-        | _ => false
+        | _ => false) || (armProd fn k c.bases).any (· + c.off < n)
+      | _ => false
+  | .lt (.val x) (.num n) => decide (n < capE) && cs.any fun
+      | .nonzero k => (armM fn k x).any (· < n)
       | _ => false
   | _ => false
 

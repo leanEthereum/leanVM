@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Bridge.AlignDefs
+public import LeanVM.Guest.Bridge.ChkLit
 public import LeanVM.Guest.CoreMode.GlueA.«P6»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P6».Core
@@ -32,8 +33,7 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«verify_merkle_cap__L8».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«verify_merkle_cap__L8».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«verify_merkle_cap__L8».advice = true := by decide +kernel
+align_chk% «verify_merkle_cap__L8»
 
 end
 

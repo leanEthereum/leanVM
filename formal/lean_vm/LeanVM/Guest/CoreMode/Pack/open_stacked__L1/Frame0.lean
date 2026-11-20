@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Frame
+public import LeanVM.Guest.CoreMode.FrameLit
 public import LeanVM.Guest.CoreMode.GlueP.«open_stacked__L1»
 public import LeanVM.Guest.CoreMode.Env
 public import LeanVM.Guest.CoreMode.GlueA.«P34»
@@ -103,105 +104,54 @@ def Fn.«open_stacked__L1».frameCallee9 : List ℕ := [Fn.«level_residual__L55
 def Fn.«open_stacked__L1».frameCallee10 : List ℕ := [Fn.«level_residual__L32_L7_L4_L2».entry,
     Fn.«level_residual__L28_L7_L4_L2».entry, Fn.«level_residual__L25_L7_L4_L2».entry,
     Fn.«level_residual__L23_L7_L4_L2».entry]
-noncomputable def Fn.«open_stacked__L1».envC : Mode.Env := CoreMode.envOf
-    [Fn.«fold_final_msg__L3».csig, Fn.«grind_check__L15».csig, Fn.«grind_check__L17».csig,
-    Fn.«level_positions__L10_L19_L7».csig, Fn.«level_positions__L11_L18_L6».csig,
-    Fn.«level_positions__L16_L17_L5».csig, Fn.«level_positions__L28_L16_L4».csig,
-    Fn.«level_positions__L3_L13_L7».csig, Fn.«level_positions__L3_L14_L2».csig,
-    Fn.«level_positions__L3_L15_L3».csig, Fn.«level_positions__L3_L16_L4».csig,
-    Fn.«level_positions__L4_L14_L2».csig, Fn.«level_positions__L4_L15_L3».csig,
-    Fn.«level_positions__L4_L16_L4».csig, Fn.«level_positions__L4_L17_L5».csig,
-    Fn.«level_positions__L5_L18_L6».csig, Fn.«level_positions__L6_L16_L4».csig,
-    Fn.«level_positions__L6_L17_L5».csig, Fn.«level_positions__L7_L15_L3».csig,
-    Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».csig,
-    Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».csig,
-    Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».csig,
-    Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».csig,
-    Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».csig,
-    Fn.«level_residual__L109_L15_L6_L3».csig, Fn.«level_residual__L218_L15_L6_L3».csig,
-    Fn.«level_residual__L23_L7_L4_L2».csig, Fn.«level_residual__L25_L7_L4_L2».csig,
-    Fn.«level_residual__L28_L7_L4_L2».csig, Fn.«level_residual__L32_L11_L4_L2».csig,
-    Fn.«level_residual__L32_L7_L4_L2».csig, Fn.«level_residual__L37_L11_L4_L2».csig,
-    Fn.«level_residual__L44_L11_L4_L2».csig, Fn.«level_residual__L55_L11_L4_L2».csig,
-    Fn.«level_residual__L55_L15_L6_L3».csig, Fn.«level_residual__L73_L15_L6_L3».csig,
-    Fn.«opening_message__L12_L1».csig, Fn.«opening_message__L6_L1».csig,
-    Fn.«opening_message__L8_L1».csig, Fn.«opening_round».csig, Fn.«opening_tail_round».csig,
-    Fn.«squeeze_point_from__L11».csig, Fn.«squeeze_point_from__L15».csig,
-    Fn.«squeeze_point_from__L7».csig]
-noncomputable def Fn.«open_stacked__L1».funC : Mode.Fun := ⟨Fn.«open_stacked__L1».entry, 1508,
-    Fn.«open_stacked__L1».csig, .nil, .nil, .nil, false, .nil⟩
-noncomputable def Fn.«open_stacked__L1».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«open_stacked__L1».entry, 1508,
-    Fn.«open_stacked__L1».csig, (CoreMode.sigTrie [Fn.«fold_final_msg__L3».csig,
-    Fn.«grind_check__L15».csig, Fn.«grind_check__L17».csig, Fn.«level_positions__L10_L19_L7».csig,
-    Fn.«level_positions__L11_L18_L6».csig, Fn.«level_positions__L16_L17_L5».csig,
-    Fn.«level_positions__L28_L16_L4».csig, Fn.«level_positions__L3_L13_L7».csig,
-    Fn.«level_positions__L3_L14_L2».csig, Fn.«level_positions__L3_L15_L3».csig,
-    Fn.«level_positions__L3_L16_L4».csig, Fn.«level_positions__L4_L14_L2».csig,
-    Fn.«level_positions__L4_L15_L3».csig, Fn.«level_positions__L4_L16_L4».csig,
-    Fn.«level_positions__L4_L17_L5».csig, Fn.«level_positions__L5_L18_L6».csig,
-    Fn.«level_positions__L6_L16_L4».csig, Fn.«level_positions__L6_L17_L5».csig,
-    Fn.«level_positions__L7_L15_L3».csig,
-    Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».csig,
-    Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».csig,
-    Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».csig,
-    Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».csig,
-    Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».csig,
-    Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».csig,
-    Fn.«level_residual__L109_L15_L6_L3».csig, Fn.«level_residual__L218_L15_L6_L3».csig,
-    Fn.«level_residual__L23_L7_L4_L2».csig, Fn.«level_residual__L25_L7_L4_L2».csig,
-    Fn.«level_residual__L28_L7_L4_L2».csig, Fn.«level_residual__L32_L11_L4_L2».csig,
-    Fn.«level_residual__L32_L7_L4_L2».csig, Fn.«level_residual__L37_L11_L4_L2».csig,
-    Fn.«level_residual__L44_L11_L4_L2».csig, Fn.«level_residual__L55_L11_L4_L2».csig,
-    Fn.«level_residual__L55_L15_L6_L3».csig, Fn.«level_residual__L73_L15_L6_L3».csig,
-    Fn.«opening_message__L12_L1».csig, Fn.«opening_message__L6_L1».csig,
-    Fn.«opening_message__L8_L1».csig, Fn.«opening_round».csig, Fn.«opening_tail_round».csig,
-    Fn.«squeeze_point_from__L11».csig, Fn.«squeeze_point_from__L15».csig,
-    Fn.«squeeze_point_from__L7».csig]), 524287, advice.2.2, .nil, (.node none (.node none (.node
-    none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
-    (some 2) .nil .nil))) .nil)) (.node none .nil (.node none .nil (.node none (.node none (.node
-    none .nil (.node none (.node (some 9) .nil .nil) .nil)) .nil) .nil))))) (.node none (.node none
-    .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some 7)
-    .nil .nil))) .nil)) .nil)) (.node none (.node none .nil (.node none (.node none (.node none
-    (.node (some 1) .nil .nil) .nil) .nil) .nil)) (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none (.node (some 5) .nil .nil) .nil))) .nil))))) (.node none (.node
-    none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil
-    (.node none (.node (some 8) .nil .nil) .nil)) .nil) (.node (some 0) .nil .nil))) .nil)) .nil)
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    none .nil (.node (some 6) .nil .nil)) .nil)))) (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node (some 3) .nil .nil)))))) (.node none (.node none .nil (.node none
-    .nil (.node none (.node none .nil (.node none (.node (some 4) .nil .nil) .nil)) .nil))) (.node
-    none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node (some 10) .nil
-    .nil) .nil)) .nil)) .nil) .nil))))), .nil, (.node (some frameCallee0) (.node (some frameCallee1)
-    (.node (some frameCallee3) (.node (some frameCallee7) .nil .nil) .nil) (.node (some
-    frameCallee5) (.node (some frameCallee9) .nil .nil) .nil)) (.node (some frameCallee2) (.node
-    (some frameCallee4) (.node (some frameCallee8) .nil .nil) .nil) (.node (some frameCallee6)
-    (.node (some frameCallee10) .nil .nil) .nil))), Fn.«open_stacked__L1».pairO,
-    Fn.«open_stacked__L1».pairS, .nil⟩
-
-theorem Fn.«open_stacked__L1».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
-  decide +kernel
+frame_fn% «open_stacked__L1» 1508 [«fold_final_msg__L3», «grind_check__L15», «grind_check__L17»,
+    «level_positions__L10_L19_L7», «level_positions__L11_L18_L6», «level_positions__L16_L17_L5»,
+    «level_positions__L28_L16_L4», «level_positions__L3_L13_L7», «level_positions__L3_L14_L2»,
+    «level_positions__L3_L15_L3», «level_positions__L3_L16_L4», «level_positions__L4_L14_L2»,
+    «level_positions__L4_L15_L3», «level_positions__L4_L16_L4», «level_positions__L4_L17_L5»,
+    «level_positions__L5_L18_L6», «level_positions__L6_L16_L4», «level_positions__L6_L17_L5»,
+    «level_positions__L7_L15_L3», «level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0»,
+    «level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1»,
+    «level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1»,
+    «level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0»,
+    «level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1»,
+    «level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0»,
+    «level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1»,
+    «level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0»,
+    «level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0»,
+    «level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0»,
+    «level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0»,
+    «level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0»,
+    «level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0»,
+    «level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0»,
+    «level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0»,
+    «level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0», «level_residual__L109_L15_L6_L3»,
+    «level_residual__L218_L15_L6_L3», «level_residual__L23_L7_L4_L2»,
+    «level_residual__L25_L7_L4_L2», «level_residual__L28_L7_L4_L2», «level_residual__L32_L11_L4_L2»,
+    «level_residual__L32_L7_L4_L2», «level_residual__L37_L11_L4_L2»,
+    «level_residual__L44_L11_L4_L2», «level_residual__L55_L11_L4_L2»,
+    «level_residual__L55_L15_L6_L3», «level_residual__L73_L15_L6_L3», «opening_message__L12_L1»,
+    «opening_message__L6_L1», «opening_message__L8_L1», «opening_round», «opening_tail_round»,
+    «squeeze_point_from__L11», «squeeze_point_from__L15», «squeeze_point_from__L7»] tidx (.node none
+    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node
+    none .nil (.node (some 2) .nil .nil))) .nil)) (.node none .nil (.node none .nil (.node none
+    (.node none (.node none .nil (.node none (.node (some 9) .nil .nil) .nil)) .nil) .nil)))))
+    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node
+    none .nil (.node (some 7) .nil .nil))) .nil)) .nil)) (.node none (.node none .nil (.node none
+    (.node none (.node none (.node (some 1) .nil .nil) .nil) .nil) .nil)) (.node none .nil (.node
+    none (.node none .nil (.node none .nil (.node none (.node (some 5) .nil .nil) .nil))) .nil)))))
+    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node none (.node (some 8) .nil .nil) .nil)) .nil) (.node (some 0) .nil
+    .nil))) .nil)) .nil) (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node (some 6) .nil .nil)) .nil)))) (.node none .nil (.node none
+    .nil (.node none .nil (.node none .nil (.node (some 3) .nil .nil)))))) (.node none (.node none
+    .nil (.node none .nil (.node none (.node none .nil (.node none (.node (some 4) .nil .nil) .nil))
+    .nil))) (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node
+    (some 10) .nil .nil) .nil)) .nil)) .nil) .nil))))) calls (.node (some frameCallee0) (.node (some
+    frameCallee1) (.node (some frameCallee3) (.node (some frameCallee7) .nil .nil) .nil) (.node
+    (some frameCallee5) (.node (some frameCallee9) .nil .nil) .nil)) (.node (some frameCallee2)
+    (.node (some frameCallee4) (.node (some frameCallee8) .nil .nil) .nil) (.node (some
+    frameCallee6) (.node (some frameCallee10) .nil .nil) .nil)))
 end
 
 end LeanVM.Guest

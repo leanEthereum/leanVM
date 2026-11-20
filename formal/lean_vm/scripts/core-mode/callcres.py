@@ -338,11 +338,37 @@ def neg_pair(body, k, x, v, off, n):
     return False
 
 
+def arm_m(k, c, x):
+    """`CoreMode.armM`: `x`'s exponent bound in the arm `c ≠ 0` takes: a range check's `N - 1`, else `exp_m`."""
+    at = nz_atoms(c, I.CORE[k][1])
+    N = rc_bound(at, x)
+    return N - 1 if N is not None else exp_m(at, EXP_FUEL, x)
+
+
+def arm_prod(k, c, bs):
+    """`CoreMode.armProd`: `Σ a·armM` over the bases `(x, a)`."""
+    t = 0
+    for x, a in bs:
+        M = arm_m(k, c, x)
+        if M is None:
+            return None
+        t += a * M
+    return t
+
+
 def neg_fam(k, conds, r):
-    """`CoreMode.negFam`: under a condition `c ≠ 0`, `e(x·v·g^off) < n`, either base first (`neg_pair`)."""
-    if r[0] != 'lt' or r[1][0] != 'mono' or r[2][0] != 'num' or not r[2][1] < CAPE:
+    """`CoreMode.negFam`: under a condition `c ≠ 0`, `e(x·v·g^off) < n`, either base first (`neg_pair`); `e(x) < n` and
+    `e(Π x^a·g^off) < n` from the arm `c ≠ 0` takes (`arm_m`, `arm_prod`)."""
+    if r[0] != 'lt' or r[2][0] != 'num' or not r[2][1] < CAPE:
         return False
-    (bs, off), n = r[1][1], r[2][1]
+    n = r[2][1]
+    if r[1][0] == 'val':
+        return any(c[0] == 'nonzero' and (lambda M: M is not None and M < n)(arm_m(k, c[1], r[1][1])) for c in conds)
+    if r[1][0] != 'mono':
+        return False
+    (bs, off) = r[1][1]
+    if any(c[0] == 'nonzero' and (lambda M: M is not None and M + off < n)(arm_prod(k, c[1], bs)) for c in conds):
+        return True
     if len(bs) != 2 or bs[0][1] != 1 or bs[1][1] != 1:
         return False
     body = I.CORE[k][1]

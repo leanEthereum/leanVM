@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Fam.MonoChain
 public import LeanVM.Guest.B1.Digest.ChildMono
-public import LeanVM.Guest.EndExecRT
+public import LeanVM.Guest.CoreMode.Fam.ResT
 
 /-!
 # `child_claim_list_mono` at its own valuation

@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.Bridge.AlignCtx.«main_loop2».Ctx
 public import LeanVM.Guest.CoreMode.Gen.«main_loop2».DataLC
 public import LeanVM.Guest.CoreMode.GlueA.«main_loop2»
-public import LeanVM.Guest.CoreMode.PairDefs
+public import LeanVM.Guest.CoreMode.PairSlice
 
 namespace LeanVM.Guest.Fn.«main_loop2»
 

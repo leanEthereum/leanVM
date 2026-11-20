@@ -8,8 +8,8 @@
 
 module
 
-public import LeanVM.Guest.EndExecRF
-public import LeanVM.Guest.EndExecRCs
+public import LeanVM.Guest.CoreMode.Fam.ResF
+public import LeanVM.Guest.CoreMode.Fam.ResCs
 public import LeanVM.Guest.CoreMode.Fam.CsQ
 public import LeanVM.Guest.CoreMode.CoreRes
 public import LeanVM.Guest.CoreMode.HeapCSound
@@ -17,11 +17,11 @@ public import LeanVM.Guest.CoreMode.Fam.ExpQv
 public import LeanVM.Guest.EndExecCoreSplit
 public import LeanVM.Guest.EndExecCoreVt
 public import LeanVM.Guest.EndExecCoreVk
-public import LeanVM.Guest.EndExecRExp
-public import LeanVM.Guest.EndExecRVs
-public import LeanVM.Guest.EndExecRCp
+public import LeanVM.Guest.CoreMode.Fam.ResExp
+public import LeanVM.Guest.CoreMode.Fam.ResVs
+public import LeanVM.Guest.CoreMode.Fam.ResCp
 public import LeanVM.Guest.EndExecCoreDa
-public import LeanVM.Guest.EndExecRGkrQ
+public import LeanVM.Guest.CoreMode.Fam.ResGkrQ
 
 /-!
 # The residual families, sound
@@ -649,7 +649,50 @@ theorem negPair_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : F
     | _ => simp at hadd
   | _ => simp at hv
 
-/-- **The `neg` family holds** where its branch condition does (`CoreMode.negFam`). -/
+/-- **An arm's exponent bound holds** (`CoreMode.armM`) where its condition is nonzero, along a returning path whose
+events hold on a memory of at most `2^28` words (`nzAtoms_on_path`, `rcBound_sound`, `expM_sound`). -/
+theorem armM_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn} {σ : Val} {es : List Ev}
+    {vs : List V} (hw : walk σ fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds Lm.read σ) {k x M : ℕ}
+    (hk : σ (V.n k) ≠ 0) (h : CoreMode.armM fn k x = some M) : ∃ e ≤ M, σ (V.n x) = ofK (addressOfIndex e) := by
+  have hall : ∀ a ∈ CoreMode.nzAtoms (V.n k) fn.body, a.Holds Lm.read σ :=
+    fun a ha ↦ hh _ (nzAtoms_on_path hk hw ha)
+  unfold CoreMode.armM at h
+  split at h
+  · rename_i N hN
+    cases h
+    obtain ⟨e, he, hσ⟩ := rcBound_sound (by omega) Lm hall hN
+    exact ⟨e, by omega, by rw [hσ, Value.gen_pow_eq_ofK]⟩
+  · exact expM_sound hμ Lm hall _ _ h
+
+/-- **An arm's bound of a product holds** (`CoreMode.armProd`): `Π xᵢ^aᵢ = g^e`, `e ≤ Σ aᵢ·Mᵢ`. -/
+theorem armProd_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn} {σ : Val} {es : List Ev}
+    {vs : List V} (hw : walk σ fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds Lm.read σ) {k : ℕ}
+    (hk : σ (V.n k) ≠ 0) : ∀ {bs : List (ℕ × ℕ)} {M : ℕ}, CoreMode.armProd fn k bs = some M →
+      ∃ e ≤ M, CoreMode.prodW (vw σ) bs = ofK (addressOfIndex e)
+  | [], M, h => by
+    simp only [CoreMode.armProd, Option.some.injEq] at h
+    subst h
+    exact ⟨0, le_rfl, by simp [CoreMode.prodW, addressOfIndex]⟩
+  | (x, a) :: bs, M, h => by
+    simp only [CoreMode.armProd] at h
+    cases hx : CoreMode.armM fn k x with
+    | none => simp [hx] at h
+    | some Mx =>
+      cases hb : CoreMode.armProd fn k bs with
+      | none => simp [hx, hb] at h
+      | some Mb =>
+        simp only [hx, hb, Option.bind_some, Option.map_some, Option.some.injEq] at h
+        subst h
+        obtain ⟨e1, he1, h1⟩ := armM_sound hμ Lm hw hh hk hx
+        obtain ⟨e2, he2, h2⟩ := armProd_sound hμ Lm hw hh hk hb
+        refine ⟨a * e1 + e2, Nat.add_le_add (Nat.mul_le_mul_left a he1) he2, ?_⟩
+        have hpw : ∀ (y : K) (n : ℕ), ofK y ^ n = ofK (y ^ n) := fun y n ↦ (map_pow (algebraMap K E) y n).symm
+        simp only [CoreMode.prodW, vw]
+        rw [h1, h2, hpw, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_mul, ← pow_add,
+          mul_comm e1 a]
+
+/-- **The `neg` family holds** where its branch condition does (`CoreMode.negFam`): `negPair`'s, and the bounds the arm
+the condition takes gives (`armM_sound`, `armProd_sound`). -/
 theorem negFam_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn} {σ : Val} {es : List Ev}
     {vs : List V} (hw : walk σ fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds Lm.read σ) {cs : List CoreMode.CCond}
     (hcs : ∀ c ∈ cs, c.Holds σ) : ∀ {r : CRes}, CoreMode.negFam fn cs r = true → r.Holds σ
@@ -661,7 +704,19 @@ theorem negFam_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn
       have hk : σ (V.n k) ≠ 0 := hcs _ hcd
       obtain ⟨cb, off⟩ := c
       simp only at hc
-      split at hc
+      rcases Bool.or_eq_true_iff.mp hc with hc1 | hc2
+      swap
+      · cases hM : CoreMode.armProd fn k cb with
+        | none => simp [hM] at hc2
+        | some M =>
+          simp only [hM, Option.any_some, decide_eq_true_eq] at hc2
+          obtain ⟨e, he, hp⟩ := armProd_sound hμ Lm hw hh hk hM
+          refine ⟨e + off, n, ?_, CoreMode.rep_const hn, by omega⟩
+          simp only [idxC, CoreMode.CCell.valW]
+          rw [hp, ← ofK_mul, addressOfIndex, addressOfIndex, ← pow_add]
+          exact rep_of (by omega)
+      clear hc
+      split at hc1
       · rename_i a b
         have hv : ∀ x v, CoreMode.negPair fn k x v off n = true →
             σ (V.n a) * σ (V.n b) * ofK (addressOfIndex off) = σ (V.n x) * σ (V.n v) * ofK (addressOfIndex off) →
@@ -674,13 +729,27 @@ theorem negFam_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn
           simp only [idxC]
           rw [e1, he, hy]
           exact rep_of (by omega)
-        rcases Bool.or_eq_true_iff.mp hc with hp | hp
+        rcases Bool.or_eq_true_iff.mp hc1 with hp | hp
         · exact hv a b hp rfl
         · exact hv b a hp (by ring)
-      · cases hc
+      · cases hc1
     | _ => simp at hc
-  | .lt (.val _) _, h | .lt (.num _) _, h | .lt (.mono _) (.val _), h | .lt (.mono _) (.mono _), h
-  | .nz _, h | .sub _ _, h | .subR _ _, h | .subP _ _, h | .under _ _, h => by simp [CoreMode.negFam] at h
+  | .lt (.val x) (.num n), h => by
+    simp only [CoreMode.negFam, Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true] at h
+    obtain ⟨hn, cd, hcd, hc⟩ := h
+    cases cd with
+    | nonzero k =>
+      have hk : σ (V.n k) ≠ 0 := hcs _ hcd
+      cases hM : CoreMode.armM fn k x with
+      | none => simp [hM] at hc
+      | some M =>
+        simp only [hM, Option.any_some, decide_eq_true_eq] at hc
+        obtain ⟨e, he, hσ⟩ := armM_sound hμ Lm hw hh hk hM
+        exact ltF_of_pow (e := e) hn (by omega) hσ
+    | _ => simp at hc
+  | .lt (.val _) (.val _), h | .lt (.val _) (.mono _), h | .lt (.num _) _, h | .lt (.mono _) (.val _), h
+  | .lt (.mono _) (.mono _), h | .nz _, h | .sub _ _, h | .subR _ _, h | .subP _ _, h | .under _ _, h => by
+    simp [CoreMode.negFam] at h
 
 /-- **A residual of a family holds** at an honest instance's valuation, in a frame `fp` holding its
 parameters whose entry runs' exponent cells are powers of `g` (`ExpW`). -/

@@ -96,7 +96,7 @@ def render():
     for k in range(0, len(plain), PERMOD):
         mod = 'LeanVM.Guest.CoreMode.Gen.LoopCheck%d' % (k // PERMOD)
         t = [header(mod, 'Kernel checks of `Res.termChk` on ranges of the guest\'s functions.')]
-        t.append('public import LeanVM.Guest.Res.LoopDefs\n\nnamespace LeanVM.Guest.Res\n\n'
+        t.append('public import LeanVM.Guest.CoreMode.Fam.LoopDefs\n\nnamespace LeanVM.Guest.Res\n\n'
                  'open LeanVM.Guest.Core LeanVM.Guest.Memory\n\n@[expose] public section\n\n')
         for r in plain[k:k + PERMOD]: t.append(rangeThm(r[1], r[2]))
         t.append('end\n\nend LeanVM.Guest.Res\n')
@@ -106,7 +106,7 @@ def render():
         for m in range(0, len(rs), 8):
             mod = 'LeanVM.Guest.CoreMode.Gen.LoopCheckBig%d_%d' % (j, m // 8)
             t = [header(mod, 'Kernel checks of `Res.entL` on ranges of function %d\'s statements.' % j)]
-            t.append('public import LeanVM.Guest.Res.LoopDefs\npublic import LeanVM.Guest.Memory.GuestMem.Data\n\n'
+            t.append('public import LeanVM.Guest.CoreMode.Fam.LoopDefs\npublic import LeanVM.Guest.Memory.GuestMem.Data\n\n'
                      'namespace LeanVM.Guest.Res\n\nopen LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory\n\n'
                      '@[expose] public section\n\n')
             for a, n in rs[m:m + 8]:

@@ -7,7 +7,7 @@ import vscount
 
 DL = vscount.MV_DL
 DA_ROWS = vscount.DA_ROWS
-CL = ['claim_list_last__L%d' % k for k in range(17)]
+CL = ['claim_list_tail']
 CCL = ['child_claim_list_last__L%d' % k for k in range(17)]
 KS = 13  # `KECCAK_STATE`: a claim list's chain record
 FIELDS = ['base', 'declared', 'coverage', 'rawXmss', 'rawSphincs', 'rawDa', 'rawDaRows', 'rawDaPad', 'children',
@@ -152,17 +152,14 @@ def write(g, certs, ops):
 /-- The words of the tree over the blob roots, per row of the padded matrix. -/
 theorem dlK_eq : dlK wSB = %d := by decide +kernel
 ''' % v['dlK'])
-    mod('DeployedA2', 'The claim lists\' last digests\' words over the name lists of `B1.Main.clC`, `B1.Main.ccC`.',
+    mod('DeployedA2', 'The children\'s claim lists\' last digests\' words over the name lists of `B1.Main.ccC`.',
         imp0, '''
-/-- The claim lists' last digests' words. -/
-theorem cl_sum : nameSum wSB B1.Digest.clNames 17 = %d := by decide +kernel
-
 /-- The children's claim lists' last digests' frames. -/
 theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by decide +kernel
 
 /-- The gap walk's last digests' frames. -/
 theorem ccm_sum : nameSum (fun g => B2C.fs g) B1.Digest.mlNames 17 = %d := by decide +kernel
-''' % (v['cl'], v['ccl'], v['ccm']))
+''' % (v['ccl'], v['ccm']))
     def thm(name, lhs, val, unf, rws, fs=(), sb=(), sk=()):
         r = idx_rw(g, fs, sb, sk)
         steps = ', '.join(rws) + (',\n    ' if rws and r else '') + r
@@ -181,8 +178,8 @@ theorem ccm_sum : nameSum (fun g => B2C.fs g) B1.Digest.mlNames 17 = %d := by de
         + '\n/-- **`da_verify`\'s words per row.** -/\n' + dvs
         + '\n/-- **`da_verify`\'s words per padded row.** -/\n' + dvp)
     body = '\n'.join([
-        thm('clC_eq', 'clC B2C.fs wSB', v['clC'], 'clC', ['cl_sum'], fs=['claim_list_digest', L('claim_list_digest_loop0'), L('claim_list_digest_loop1')],
-            sb=['list_split']),
+        thm('clC_eq', 'clC B2C.fs wSB', v['clC'], 'clC', [], fs=['claim_list_digest', L('claim_list_digest_loop0'), L('claim_list_digest_loop1')],
+            sb=['list_split', 'claim_list_tail']),
         thm('ccC_eq', 'ccC B2C.fs wSB', v['ccC'], 'ccC', ['ccl_sum', 'ccm_sum'],
             fs=['child_claim_list_digest', 'child_claim_list_any', 'child_claim_list_mono', L('child_claim_list_any_loop0'),
                 L('child_claim_list_mono_loop0'), L('child_claim_list_any_loop1'), L('child_claim_list_mono_loop1')],

@@ -56,8 +56,7 @@ def csigs : List (String × CoreMode.HSig) :=
         ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 7)⟩],
       postPR := [(⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 7)⟩, [0, 1, 2, 3])] })]
 def hcFlag : Bool := false
-def hcCallees : List (String × ℕ × ℕ) :=
-  []
+def hcCallees : List (String × ℕ × ℕ) := []
 
 end
 end LeanVM.Guest.Fn.«level_positions__L8_L17_L5_loop0»

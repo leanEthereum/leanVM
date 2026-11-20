@@ -5,7 +5,7 @@ of `verify_sub`, `child_claim_list_digest` and `main_loop4`, as tables checked a
 count certificates (`Count/StaticV.lean`) by `decide +kernel`, one module per opcode; and
 `verify_tables`' and the terminal's bounds (`kcVtW`, `kcTermW`, from the `W` certificates)."""
 import os, re
-from core import L
+from core import L, Lopt
 
 # The guest's constants, as `guest-export` writes them to `Data/Source.lean` (`guest_const%`).
 _SRC = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'LeanVM', 'Guest', 'Data',
@@ -65,7 +65,7 @@ def vt_term(g):
         for st in g.fns[g.by['verify_tables']]['body']:
             if st[0] == 'call': t += wss if st[1] == 'shared_selector_tables' else stat(k, st[1])
             elif st[0] == 'callIf':
-                assert st[2] in (L('verify_tables_loop0'), L('verify_tables_loop1')); t += 32 * loop(k, st[2])
+                assert st[2] in (L('verify_tables_loop0'), Lopt('verify_tables_loop1')); t += 32 * loop(k, st[2])
             elif st[0] == 'dispatch': t += max(stat(k, f) for f in st[2])
             else: assert st[0] in ('atom', 'ret') or (st[0] == 'ite' and not blk_callees([st])), st[0]
         vtW.append(t)
@@ -224,13 +224,13 @@ noncomputable def vsTabOk (op : Opcode) : Bool :=
 
 # `main`'s `da_verify` and `claim_list_digest`, counted by their trees' shapes (`Budget/MvCount.lean`)
 # from the `V` certificates: `da_verify`'s statically bounded callees (the weights among them), its
-# blob loop and the padding loop, the tree over the blob roots, the claim lists' last digests by
-# the last group's size, their loops (`CL_LP`); `da_verify` and `da_pad` by their frames.
+# blob loop and the padding loop, the tree over the blob roots, the claim lists' last digests
+# (`claim_list_tail`, statically bounded), their loops (`CL_LP`); `da_verify` and `da_pad` by their frames.
 MV_ST = ['da_padding', 'da_vector', 'da_weights']
 MV_LP = [L('da_verify_loop0'), L('da_pad_loop0')]
 DA_ROWS = guest_const('DA_MAX_ROWS')  # the matrix's rows, padding included
 MV_DL = 'da_levels__L%d_L%d' % (DA_ROWS, guest_const('DA_LOG_MAX_ROWS'))  # the tree over the blob roots
-MV_CL = ['claim_list_last__L%d' % k for k in range(17)]
+MV_CL = 'claim_list_tail'
 MV_OM = ['da_verify', 'da_pad', 'claim_list_digest']
 
 
@@ -248,7 +248,7 @@ def main_tables(g):
     T = {}
     for k in range(6):
         T[k] = dict(st=[stat(k, n) for n in MV_ST], lp=[loop(k, n) for n in MV_LP], dl=stat(k, MV_DL),
-                    cl=[stat(k, n) for n in MV_CL], clp=[loop(k, n) for n in CL_LP], ls=stat(k, 'list_split'),
+                    cl=stat(k, MV_CL), clp=[loop(k, n) for n in CL_LP], ls=stat(k, 'list_split'),
                     om=[om[k][n] for n in MV_OM])
     def dvW(k, r):
         t = T[k]
@@ -267,12 +267,12 @@ def main_tables(g):
     def clW(k, n):
         t = T[k]
         return t['om'][2] + (0 if n == 0 else t['ls'] + n // BIG * t['clp'][0] + n % BIG // GROUP * t['clp'][1]
-                             + t['cl'][n % GROUP])
+                             + t['cl'])
     def cl_aff(k):
         """`clW` within `A + S · n`: the loop per `17` claims at most `7` times and the last digest in
         the constant, the loop per `136` claims by the claims."""
         t = T[k]
-        return t['om'][2] + t['ls'] + (GROUPS - 1) * t['clp'][1] + max(t['cl']), -(-t['clp'][0] // BIG)
+        return t['om'][2] + t['ls'] + (GROUPS - 1) * t['clp'][1] + t['cl'], -(-t['clp'][0] // BIG)
     return T, dvW, clW, dv_aff, cl_aff
 
 
@@ -301,7 +301,7 @@ def write_main(g, OPS):
     o.append('/-- `da_verify`\'s blob loop and the padding loop. -/\ndef dvLpNames : List String := %s\n' % names(MV_LP))
     o.append('/-- Their core indices. -/\ndef dvLpJ : List ℕ := %s\n' % lst(g.by[n] for n in MV_LP))
     o.append('/-- The core index of the tree over the blob roots, `B1.Da.dlTop`. -/\ndef dlJ : ℕ := %d\n' % g.by[MV_DL])
-    o.append('/-- The core indices of `claim_list_last__L{k}`, `k < 17`. -/\ndef clJ : List ℕ := %s\n' % lst(g.by[n] for n in MV_CL))
+    o.append('/-- The core index of `claim_list_tail`. -/\ndef clTJ : ℕ := %d\n' % g.by[MV_CL])
     o.append('/-- `claim_list_digest`\'s loops, per `136` and per `17` claims. -/\ndef clLpNames : List String := %s\n' % names(CL_LP))
     o.append('/-- Their core indices. -/\ndef clLpJ : List ℕ := %s\n' % lst(g.by[n] for n in CL_LP))
     o.append('/-- The functions whose frames the counts weigh. -/\ndef mvOmNames : List String := %s\n' % names(MV_OM))
@@ -309,7 +309,7 @@ def write_main(g, OPS):
     o.append(opdefl('kcDvStT', 'The instructions of `dvStNames`.', lambda k: T[k]['st']))
     o.append(opdefl('kcDvLpT', 'The instructions of `dvLpNames` per iteration.', lambda k: T[k]['lp']))
     o.append(opdef('kcDl', 'The instructions of the tree over the blob roots.', lambda k: T[k]['dl']))
-    o.append(opdefl('kcClT', '`claim_list_last__L{k}`\'s instructions, by `k`.', lambda k: T[k]['cl']))
+    o.append(opdef('kcClT', '`claim_list_tail`\'s instructions.', lambda k: T[k]['cl']))
     o.append(opdefl('kcClLpT', 'The instructions of `clLpNames` per iteration.', lambda k: T[k]['clp']))
     o.append(opdefl('mvOmT', 'The frame weights of `mvOmNames`.', lambda k: T[k]['om']))
     o.append(opdef('kcDvA', '`da_verify`\'s instructions on `r` rows padded to `DA_MAX_ROWS` within '
@@ -326,8 +326,7 @@ noncomputable def mvTabOk (op : Opcode) : Bool :=
   (List.range 2).all (fun i => kvOkK op (dvLpJ.getD i 0) (dvLpNames.getD i "") &&
     kvSKJ op (dvLpJ.getD i 0) == (kcDvLpT op).getD i 0) &&
   (kvOkB op dlJ B1.Da.dlTop && kvSBJ op dlJ == kcDl op) &&
-  (List.range 17).all (fun k => kvOkB op (clJ.getD k 0) (B1.Digest.clNames.getD k "") &&
-    kvSBJ op (clJ.getD k 0) == (kcClT op).getD k 0) &&
+  (kvOkB op clTJ "claim_list_tail" && kvSBJ op clTJ == kcClT op) &&
   (List.range 2).all (fun i => kvOkK op (clLpJ.getD i 0) (clLpNames.getD i "") &&
     kvSKJ op (clLpJ.getD i 0) == (kcClLpT op).getD i 0) &&
   (List.range 3).all (fun i => decide ((coreProgram[mvOmJ.getD i 0]?).map Fn.name = some (mvOmNames.getD i "")) &&

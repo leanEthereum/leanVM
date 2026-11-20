@@ -75,11 +75,9 @@ def hcert : CoreMode.HCert where
   rets := [(List.flatten [CoreMode.evR 98 13])]
   gargs := [("__loop1_child_claim_list_any", [448, 1, 2, 3, 4, 5, 6], [⟨[(1048576, 1)], 0⟩])]
 
-def csigs : List (String × CoreMode.HSig) :=
-  []
+def csigs : List (String × CoreMode.HSig) := []
 def hcFlag : Bool := false
-def hcCallees : List (String × ℕ × ℕ) :=
-  []
+def hcCallees : List (String × ℕ × ℕ) := []
 
 end
 end LeanVM.Guest.Fn.«child_claim_list_any_loop1»
@@ -123,8 +121,7 @@ def csigs : List (String × CoreMode.HSig) :=
       postR := [⟨⟨[(3, 1)], 0⟩, 1, (.num 0), (.num 64)⟩, ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 6)⟩],
       postPR := [(⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 6)⟩, [0, 1, 2, 3, 4])] })]
 def hcFlag : Bool := false
-def hcCallees : List (String × ℕ × ℕ) :=
-  []
+def hcCallees : List (String × ℕ × ℕ) := []
 
 end
 end LeanVM.Guest.Fn.«level_positions__L7_L21_L3_loop0»

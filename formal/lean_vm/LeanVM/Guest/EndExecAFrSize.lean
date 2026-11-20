@@ -8,8 +8,8 @@
 module
 
 public import LeanVM.Guest.EndExecAFrame
-public import LeanVM.Guest.EndExecRT
-public import LeanVM.Guest.Res.Down
+public import LeanVM.Guest.CoreMode.Fam.ResT
+public import LeanVM.Guest.CoreMode.Fam.Down
 public import LeanVM.Guest.Bridge.AllocFrDefs
 public import LeanVM.Guest.Bridge.AllocChk.All
 

@@ -18,7 +18,8 @@ open LeanVM.Guest
 public section
 
 /-- `exponent_tables`: the pairing from offset 4096 to 4490. -/
-theorem pairWin1 : CoreMode.winOkH alignCtx hcert pairO pairS Fn.«exponent_tables».core.body Fn.«exponent_tables».code.code Fn.«exponent_tables».advice pairK1 pairK2 = true := by
+theorem pairWin1 : CoreMode.winOkHS alignCtx hcert pairO pairS Fn.«exponent_tables».core.body Fn.«exponent_tables».code.chunks Fn.«exponent_tables».advice (2, 0) (3, 0) pairK1
+    pairK2 = true := by
   decide +kernel
 
 end

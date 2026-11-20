@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.FrameWin
+public import LeanVM.Guest.CoreMode.FrameSlice
 public import LeanVM.Guest.CoreMode.Pack.«sp_wots».FrameD0W0
 public import LeanVM.Guest.CoreMode.Pack.«sp_wots».FrameD0W1
 public import LeanVM.Guest.CoreMode.Pack.«sp_wots».FrameD0W2
@@ -36,7 +36,8 @@ theorem frameAcc : CoreMode.FrameAcc frameFun code.chunks.flatten := by
   rw [frameLen]
   show ∀ p ∈ [(0, 7000), (7000, 14000), (14000, 21000), (21000, 23713)], CoreMode.frameWin frameFun
     code.chunks.flatten p.1 p.2 = true
-  exact List.forall_mem_cons.2 ⟨frameWin0, List.forall_mem_cons.2 ⟨frameWin1, List.forall_mem_cons.2
-    ⟨frameWin2, List.forall_mem_cons.2 ⟨frameWin3, List.forall_mem_nil _⟩⟩⟩⟩
+  exact CoreMode.chainFS_wins [((3, 856), 7000), ((6, 1712), 14000), ((10, 520), 21000), ((12, 0),
+    23713)] (0, 0) 0
+    ⟨frameWin0, ⟨frameWin1, ⟨frameWin2, ⟨frameWin3, trivial⟩⟩⟩⟩ (CoreMode.restL_zero _)
 end
 end LeanVM.Guest.Fn.«sp_wots»

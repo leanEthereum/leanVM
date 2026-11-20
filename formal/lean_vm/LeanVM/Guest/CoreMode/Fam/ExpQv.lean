@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.EndExecRVt
+public import LeanVM.Guest.CoreMode.Fam.ResVt
 
 /-!
 # `verify_tables`' precondition

@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.EndExecCoreRes
-public import LeanVM.Guest.EndExecRA
+public import LeanVM.Guest.CoreMode.Fam.ResA
 public import LeanVM.Guest.CoreMode.CoreSound
 
 /-!

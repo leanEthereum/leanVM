@@ -121,11 +121,6 @@ theorem dvStatic : B1.Da.DvStaticB B2C.fs wSB wSK where
   exp := exp_le
   ws := ws_le
 
-/-- `claim_list_last__L{k}`, `k < 17`, checked. -/
-theorem clNames_ok :
-    (List.range 17).all (fun k => wOkB (wIdx B1.Digest.clNames[k]!) B1.Digest.clNames[k]!) = true := by
-  decide +kernel
-
 /-- **The words of the static callees of `main`'s non-static callees**, at `B2C.fs`. -/
 theorem mainStatics : B1.Main.MainStatics B2C.fs wSB wSK where
   main := mainStaticsMain
@@ -133,7 +128,7 @@ theorem mainStatics : B1.Main.MainStatics B2C.fs wSB wSK where
   ls := wSB_totalLe (j := wIdx "list_split") (by decide +kernel)
   l15 := iterK_totalLeOn (j := idx% claim_list_digest_loop0) (by decide +kernel)
   l16 := iterK_totalLeOn (j := idx% claim_list_digest_loop1) (by decide +kernel)
-  cl := fun _ hk => wSB_totalLe (all_range_get clNames_ok hk)
+  cl := wSB_totalLe (j := wIdx "claim_list_tail") (by decide +kernel)
   l25 := iterK_totalLeOn (j := idx% aggregate_claims_loop0) (by decide +kernel)
   l26 := iterK_totalLeOn (j := idx% aggregate_claims_loop1) (by decide +kernel)
   l27 := iterK_totalLeOn (j := idx% aggregate_claims_loop2) (by decide +kernel)

@@ -11,34 +11,34 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-abbrev Fn.«claim_list_last__L8».entry : Nat := 236138
-abbrev Fn.«column_selector__L15».entry : Nat := 211043
-abbrev Fn.«da_verify_loop0».entry : Nat := 247902
-abbrev Fn.«decode_query_windows__L20_L8».entry : Nat := 326693
-abbrev Fn.«eq_prefix_run__L34».entry : Nat := 181609
-abbrev Fn.«grind_check__L27».entry : Nat := 254513
-abbrev Fn.«index_mle__L25».entry : Nat := 203206
-abbrev Fn.«level_positions__L4_L25_L7_loop0».entry : Nat := 394228
-abbrev Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».entry : Nat := 266748
-abbrev Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».entry : Nat := 259736
-abbrev Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».entry : Nat := 261642
-abbrev Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».entry : Nat := 261275
-abbrev Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».entry : Nat := 258872
-abbrev Fn.«level_residual__L18_L10_L4_L2_loop0».entry : Nat := 377248
-abbrev Fn.«level_residual__L19_L12_L4_L2».entry : Nat := 274518
-abbrev Fn.«level_residual__L218_L16_L6_L3_loop1».entry : Nat := 299481
-abbrev Fn.«level_residual__L218_L18_L6_L3».entry : Nat := 263508
-abbrev Fn.«level_residual__L21_L10_L4_L2_loop0».entry : Nat := 376110
-abbrev Fn.«level_residual__L23_L13_L4_L2_loop1».entry : Nat := 363220
-abbrev Fn.«level_residual__L28_L14_L4_L2_loop1».entry : Nat := 374527
-abbrev Fn.«level_residual__L44_L18_L4_L2».entry : Nat := 270523
-abbrev Fn.«level_residual__L55_L12_L4_L2».entry : Nat := 260062
-abbrev Fn.«level_residual__L55_L15_L4_L2_loop0».entry : Nat := 334813
-abbrev Fn.«level_residual__L55_L16_L6_L3_loop0».entry : Nat := 301341
-abbrev Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».entry : Nat := 415619
-abbrev Fn.«padding_weight__L22».entry : Nat := 192138
-abbrev Fn.«plus_one_run__L3».entry : Nat := 194208
-abbrev Fn.«walk_path__L18_L3».entry : Nat := 423644
+abbrev Fn.«claim_list_last__L8».entry : Nat := 236158
+abbrev Fn.«column_selector__L15».entry : Nat := 211063
+abbrev Fn.«da_verify_loop0».entry : Nat := 247922
+abbrev Fn.«decode_query_windows__L20_L8».entry : Nat := 326713
+abbrev Fn.«eq_prefix_run__L34».entry : Nat := 181629
+abbrev Fn.«grind_check__L27».entry : Nat := 254533
+abbrev Fn.«index_mle__L25».entry : Nat := 203226
+abbrev Fn.«level_positions__L4_L25_L7_loop0».entry : Nat := 394248
+abbrev Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».entry : Nat := 266768
+abbrev Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».entry : Nat := 259756
+abbrev Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».entry : Nat := 261662
+abbrev Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».entry : Nat := 261295
+abbrev Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».entry : Nat := 258892
+abbrev Fn.«level_residual__L18_L10_L4_L2_loop0».entry : Nat := 377268
+abbrev Fn.«level_residual__L19_L12_L4_L2».entry : Nat := 274538
+abbrev Fn.«level_residual__L218_L16_L6_L3_loop1».entry : Nat := 299501
+abbrev Fn.«level_residual__L218_L18_L6_L3».entry : Nat := 263528
+abbrev Fn.«level_residual__L21_L10_L4_L2_loop0».entry : Nat := 376130
+abbrev Fn.«level_residual__L23_L13_L4_L2_loop1».entry : Nat := 363240
+abbrev Fn.«level_residual__L28_L14_L4_L2_loop1».entry : Nat := 374547
+abbrev Fn.«level_residual__L44_L18_L4_L2».entry : Nat := 270543
+abbrev Fn.«level_residual__L55_L12_L4_L2».entry : Nat := 260082
+abbrev Fn.«level_residual__L55_L15_L4_L2_loop0».entry : Nat := 334833
+abbrev Fn.«level_residual__L55_L16_L6_L3_loop0».entry : Nat := 301361
+abbrev Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».entry : Nat := 415639
+abbrev Fn.«padding_weight__L22».entry : Nat := 192158
+abbrev Fn.«plus_one_run__L3».entry : Nat := 194228
+abbrev Fn.«walk_path__L18_L3».entry : Nat := 423664
 
 end
 

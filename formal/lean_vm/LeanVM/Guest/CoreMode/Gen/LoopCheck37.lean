@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Res.LoopDefs
+public import LeanVM.Guest.CoreMode.Fam.LoopDefs
 
 namespace LeanVM.Guest.Res
 
@@ -16,7 +16,7 @@ open LeanVM.Guest.Core LeanVM.Guest.Memory
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem termRange_1502 : RangeOk (fun _ fn => termChk fn) 1502 14 := by
+theorem termRange_1503 : RangeOk (fun _ fn => termChk fn) 1503 14 := by
   unfold RangeOk; decide +kernel
 
 end

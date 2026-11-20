@@ -73,7 +73,8 @@ def functions():
                     cache[n] = parse(ds[n])
                 return cache[n]
             cm = re.search(r'def code : CompiledFunction :=\s*⟨"([^"]*)", (\d+), (\d+), \[([^\]]*)\]⟩', blk)
-            code = [head(x) for c in cm.group(4).split(',') if c.strip() for x in as_list(env(c.strip()), env)]
+            chunks = [as_list(env(c.strip()), env) for c in cm.group(4).split(',') if c.strip()]
+            code = [head(x) for ch in chunks for x in ch]
             stat, sites, arms, chains = {}, [], [], []
             pl = re.search(r'noncomputable def plumb : B2C\.Plumb where\n(.*?)\n(?:/--|\Z)', blk, re.S)
             if pl:
@@ -105,7 +106,8 @@ def functions():
             by_q = {}
             for si in sites:
                 by_q[si[2]] = si
-            out[key] = dict(name=cm.group(1), entry=int(cm.group(2)), code=code, stat=stat, sites=by_q, arms=by_od)
+            out[key] = dict(name=cm.group(1), entry=int(cm.group(2)), code=code, stat=stat, sites=by_q, arms=by_od,
+                            clens=[len(ch) for ch in chunks])
     return out
 
 
@@ -424,13 +426,15 @@ def render(pack, fns):
     thms = []
     for f, (cells, _) in zip(fns, ctxs):
         k = f['key']
+        if cells == '[]':
+            thms.append(f'align_chk% «{k}»\n'); continue
         thms += [(k, 'alignCellsOk', f'Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) {cells} = true',
                   'decide +kernel'),
                  (k, 'alignOk', f'Bridge.alignOk alignCtx core.body code.code Fn.«{k}».advice = true',
                   'decide +kernel')]
     return (HEAD.format(mod=f'LeanVM.Guest.Bridge.Align.«{pack}»',
                         what=f"The kernel's checks that compiled functions of pack {pack[1:]} align with their bodies.")
-            + imports([m for f in fns for m in bases(f, pack)] + [glue_a(f['key']) for f in fns])
+            + imports([m for f in fns for m in bases(f, pack)] + [glue_a(f['key']) for f in fns] + ['LeanVM.Guest.Bridge.ChkLit'])
             + 'set_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\n@[expose] public section\n\n'
             + ''.join(c for _, c in ctxs) + '\nend\n\nend LeanVM.Guest\n\n' + data.fn_thms(thms))
 

@@ -5,10 +5,9 @@ oracle) with the kernel's check of its walk (`frameOk … = true := by decide +k
 function in windows (`frameWin`), each its own module `FrameW{k}.lean`, from the cut states
 `frame.py` computes. For a function on the core route, beside its walk, its frame interface's data
 (`envC`, its callees' signatures by key, `CoreMode.envOf`; `funC`, its entry, length, signature
-(`sigc.py`) and nonzero residuals). A function on the core route takes its oracle and stores from its pairing and its
-residual divisors from its own walk (`frame_run.own_nz`); one off the route, from the mode walk's inference
-(`frame_data.py`, `MODE_CERT_CACHE`, read only then). The frame signatures are the frame layout's (`compiled.fsig`).
-Usage: [MODE_CERT_CACHE=FILE] python3 -I scripts/core-mode/frame_gen.py [--only PACK...] [--fns NAME...]"""
+(`sigc.py`) and nonzero residuals). A function takes its oracle and stores from its pairing and its residual divisors
+from its own walk (`frame_run.own_nz`). The frame signatures are the frame layout's (`compiled.fsig`).
+Usage: python3 -I scripts/core-mode/frame_gen.py [--only PACK...] [--fns NAME...]"""
 import os, re, sys, collections, glob
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -122,7 +121,7 @@ def fstLit(A):
 ROUTE = {}
 
 
-# a function whose windows at `WIN` instructions take past the 7.5 GB a module may take: its own size (`main_loop2`,
+# a function whose windows at `WIN` instructions take past 6.5 GB a module: its own size (`main_loop2`,
 # `__loop2_main` to the compiler: its walk reads its packed alignment context)
 WINS = {'__loop2_main': 4000}
 
@@ -194,12 +193,31 @@ def fnData(D, n, cuts):
         O, S = '%s.pairO' % MG.fnq(n), '%s.pairS' % MG.fnq(n)
     else:
         O, S = MG.bigTrie('frameO', 'Unit', {i: () for i in D['O'].get(n, [])}, lambda _: '()', defs), '.nil'
+    nzT, tidxT = MG.trie(nzr, lambda os: lst(os)), MG.trie(tidx, str)
+    armsT = MG.trie({k: names[('frameArm', k)] for k in tarms}, lambda x: x)
+    callsT = MG.trie({k: names[('frameCallee', k)] for k in tcalls}, lambda x: x)
+    if rt and D['halt'] == 524287 and cutT == '.nil':
+        # one `frame_fn%` (`CoreMode/FrameLit.lean`): the clauses that are not the defaults
+        f = D['fns'][n]
+        q = lambda m: MG.fnq(m)[3:]
+        callees = sorted({q(m) for m in MG.calleesOf(n)})
+        fsigs = sorted({q(m) for m in sigs.values()})
+        fnz = {i: [('nz', o) for o in os_] for i, os_ in nzr.items() if os_}
+        cl = []
+        if fsigs != callees: cl.append('sigs [%s]' % ', '.join(fsigs))
+        if fx['env']: cl.append('env %s' % lst(sorted(fx['env'].items()), lambda p: '(%d, %s)' % (p[0], sym(p[1]))))
+        if fx['fpOne']: cl.append('fpOne')
+        if fx['scaled']: cl.append('scaled %s' % lst(fx['scaled']))
+        for kw, t in (('nzr', nzT), ('tidx', tidxT), ('arms', armsT), ('calls', callsT)):
+            if t != '.nil': cl.append('%s %s' % (kw, t))
+        if fnz: cl.append('fnz %s' % MG.trie(fnz, lambda l: MG.lst(l, MG.res)))
+        if n == 'main': cl.append('main')
+        assert ln == f['count']
+        return ('frame_fn%% %s %d [%s]%s\n' % (q(n), ln, ', '.join(callees), ''.join(' ' + c for c in cl))), defs, packs
     if rt:
         defs += envDefs(D, n, nzr)
     lit = ('⟨%s, %s.entry, %d, %s.csig, %s, %d, %s, %s, %s, %s, %s, %s, %s, %s⟩' % (
-        facts, MG.fnq(n), ln, MG.fnq(n), sigTrie(sigs.values()), D['halt'], hints,
-        MG.trie(nzr, lambda os: lst(os)), MG.trie(tidx, str), MG.trie({k: names[('frameArm', k)] for k in tarms}, lambda x: x),
-        MG.trie({k: names[('frameCallee', k)] for k in tcalls}, lambda x: x), O, S, cutT))
+        facts, MG.fnq(n), ln, MG.fnq(n), sigTrie(sigs.values()), D['halt'], hints, nzT, tidxT, armsT, callsT, O, S, cutT))
     return lit, defs, packs
 
 
@@ -226,7 +244,7 @@ def envDefs(D, n, nzr):
 
 
 def imports(pack, packs, gens=(), glue=(), env=False):
-    out = ['public import LeanVM.Guest.CoreMode.Frame', 'public import LeanVM.Guest.CoreMode.GlueP.«%s»' % pack,
+    out = ['public import LeanVM.Guest.CoreMode.Frame', 'public import LeanVM.Guest.CoreMode.FrameLit', 'public import LeanVM.Guest.CoreMode.GlueP.«%s»' % pack,
            'public import LeanVM.Guest.CoreMode.%s' % ('Env' if env else 'SigTrie'),
            *['public import LeanVM.Guest.CoreMode.GlueA.«%s»' % q for q in sorted(set(glue) or {pack})],
            'public import LeanVM.Guest.Pack.«%s».Bundle' % pack]
@@ -274,6 +292,30 @@ def fpowsDef(k):
             'theorem Fn.«%s».fpows_ok : fpows.OkW :=\n  PowTree.okW_of_okWB (by decide +kernel)\n' % (k, FPOWS.get(k, '.leaf'), k))
 
 
+def chunk_lens(k):
+    """The lengths of function `k`'s code chunks (`CompiledFunction.chunks`)."""
+    for path in glob.glob(os.path.join(FD.ROOT, 'Pack', '*', 'Bundle.lean')):
+        t = open(path, encoding='utf-8').read()
+        for head in ('\nnamespace LeanVM.Guest.Fn.«%s»\n' % k, '\nnamespace LeanVM.Guest.Fn.%s\n' % k):
+            i = t.find(head)
+            if i < 0: continue
+            blk = t[i:t.find('\nend LeanVM.Guest.Fn.', i)]
+            cm = re.search(r'def code : CompiledFunction :=\s*⟨"[^"]*", \d+, \d+, \[([^\]]*)\]⟩', blk)
+            ds = {m.group(1): m.group(2) for m in re.finditer(r'^def (c\d+) : List OffsetInstruction := \[\n(.*?)\]$', blk, re.S | re.M)}
+            # one instruction a line
+            return [ds[c.strip()].count('\n') + 1 for c in cm.group(1).split(',') if c.strip()]
+    raise SystemExit('frame_gen: no code of %s' % k)
+
+
+def cut_of(clens, i):
+    """Offset `i` of the code as a cut `(p, r)` of its chunks (`Bridge.PCut`); the code's end is `(len, 0)`."""
+    p = 0
+    while p < len(clens) and i >= clens[p]:
+        i -= clens[p]; p += 1
+    assert p < len(clens) or i == 0
+    return '(%d, %d)' % (p, i)
+
+
 def funDef(D, n, lit, defs):
     return ''.join(defs) + 'noncomputable def frameFun : CoreMode.FFun :=\n  %s\n\n' % lit
 
@@ -292,12 +334,11 @@ def main(argv):
         if f['ns'] != n and f['ns'] in ROUTE:
             ROUTE[n] = ROUTE[f['ns']]
             gen_pack[n] = gen_pack[f['ns']]
-    # the mode walk's inference, only for the functions off the core route
     off = [n for p, names in MG.packs().items() if not only or p in only for n in names
            if n not in ROUTE and (not fns_only or n in fns_only)]
-    if off and not os.environ.get('MODE_CERT_CACHE'):
-        raise SystemExit('frame_gen: %d functions off the core route need MODE_CERT_CACHE' % len(off))
-    D = FD.load(os.environ['MODE_CERT_CACHE'] if off else None, os.environ.get('FRAME_CACHE'), only=off)
+    if off:
+        raise SystemExit('frame_gen: off the core route: %s' % ', '.join(sorted(off)))
+    D = FD.load()
     files = {}
     stats = collections.Counter()
     def one_pack(item):
@@ -322,8 +363,11 @@ def main(argv):
                 if n in ROUTE: env = True
                 ns_ = D['fns'][n]['ns']
                 if n in ROUTE: gens.add((gen_pack[n], ns_))
-                body.append(qual(ns_, funDef(D, n, lit, defs)) + 'theorem Fn.«%s».frameOk : CoreMode.frameOk frameFun '
-                            'code.chunks.flatten = true := by\n  decide +kernel\n' % ns_)
+                if lit.startswith('frame_fn% '):
+                    body.append(qual(ns_, ''.join(defs)) + lit)
+                else:
+                    body.append(qual(ns_, funDef(D, n, lit, defs)) + 'theorem Fn.«%s».frameOk : CoreMode.frameOk frameFun '
+                                'code.chunks.flatten = true := by\n  decide +kernel\n' % ns_)
                 stats['fns'] += 1
             mod = 'LeanVM.Guest.CoreMode.Pack.«%s».Frame%d' % (p, k)
             files[os.path.join(OUT, p, 'Frame%d.lean' % k)] = (
@@ -337,26 +381,32 @@ def main(argv):
             mod = 'LeanVM.Guest.CoreMode.Pack.«%s».FrameD%d' % (p, k)
             files[os.path.join(OUT, p, 'FrameD%d.lean' % k)] = (
                 header(mod, 'The frame walk\'s data of `%s`, checked in windows.' % n) +
-                'public import LeanVM.Guest.CoreMode.TrieOf\n' +
+                'public import LeanVM.Guest.CoreMode.TrieOf\npublic import LeanVM.Guest.CoreMode.FrameSlice\n' +
                 imports(p, packs, [(gen_pack[n], ns_)] if n in ROUTE else [], {gen_pack.get(ns_, p)}, n in ROUTE) +
                 ns(ns_, funDef(D, n, lit, defs)))
             bounds = [0] + cuts + [D['fns'][n]['count']]
+            # the windows over slices of the code's chunks (`CoreMode/FrameSlice.lean`): none walks the code before it
+            clens = chunk_lens(ns_)
+            assert sum(clens) == bounds[-1]
             for m in range(len(bounds) - 1):
                 a, b = bounds[m], bounds[m + 1]
                 wm = 'LeanVM.Guest.CoreMode.Pack.«%s».FrameD%dW%d' % (p, k, m)
                 files[os.path.join(OUT, p, 'FrameD%dW%d.lean' % (k, m))] = (
                     header(wm, 'A window of `%s`\'s frame walk.' % n) +
                     'public import LeanVM.Guest.CoreMode.Pack.«%s».FrameD%d\n\nset_option Elab.async false\n' % (p, k) +
-                    ns(ns_, '/-- `%s`: its frame walk accepts offsets %d to %d. -/\ntheorem frameWin%d : CoreMode.frameWin '
-                       'frameFun code.chunks.flatten %d %d = true := by\n  decide +kernel\n' % (n, a, b, m, a, b)))
+                    ns(ns_, '/-- `%s`: its frame walk accepts offsets %d to %d. -/\ntheorem frameWin%d : CoreMode.frameWinS '
+                       'frameFun code.chunks %s %s %d %d = true := by\n  decide +kernel\n' % (
+                           n, a, b, m, cut_of(clens, a), cut_of(clens, b), a, b)))
             pairs = list(zip(bounds[:-1], bounds[1:]))
             wl = 'LeanVM.Guest.CoreMode.Pack.«%s».FrameL%d' % (p, k)
-            chain = 'List.forall_mem_nil _'
+            chain = 'trivial'
             for m in reversed(range(len(pairs))):
-                chain = 'List.forall_mem_cons.2 ⟨frameWin%d, %s⟩' % (m, chain)
+                chain = '⟨frameWin%d, %s⟩' % (m, chain)
+            chain = 'CoreMode.chainFS_wins %s (0, 0) 0\n    %s (CoreMode.restL_zero _)' % (
+                lst(bounds[1:], lambda x: '(%s, %d)' % (cut_of(clens, x), x)), chain)
             files[os.path.join(OUT, p, 'FrameL%d.lean' % k)] = (
                 header(wl, 'The windows of `%s`\'s frame walk, chained.' % n) +
-                'public import LeanVM.Guest.CoreMode.FrameWin\n' +
+                'public import LeanVM.Guest.CoreMode.FrameSlice\n' +
                 ''.join('public import LeanVM.Guest.CoreMode.Pack.«%s».FrameD%dW%d\n' % (p, k, m) for m in range(len(pairs))) +
                 '\nset_option Elab.async false\n' +
                 ns(ns_, '/-- `%s`: its hints by pc increase. -/\ntheorem frameHints : Mode.pcsIncr frameFun.hints = true := by\n'
@@ -386,6 +436,10 @@ def main(argv):
             '@[expose] public section\n\n' +
             ''.join(fpowsDef(D['fns'][n]['ns']) for n in sorted(names, key=lambda n: D['fns'][n]['ns'])) +
             '\nend\n\nend LeanVM.Guest\n')
+    if not only and not fns_only:
+        # a window or module no longer written (fewer windows, a function moved)
+        for path in glob.glob(os.path.join(OUT, '*', 'Frame*.lean')):
+            if path not in files: os.remove(path)
     lines = 0
     for path, text in sorted(files.items()):
         text = wrap(text)

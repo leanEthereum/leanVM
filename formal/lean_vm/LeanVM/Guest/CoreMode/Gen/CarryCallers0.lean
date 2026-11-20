@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Res.CarryDefs
+public import LeanVM.Guest.CoreMode.Fam.CarryDefs
 
 namespace LeanVM.Guest.Res
 

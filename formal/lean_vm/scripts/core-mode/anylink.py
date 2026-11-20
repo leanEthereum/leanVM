@@ -77,7 +77,7 @@ def render():
     assert sum(m for _, m in ranges) == n
     mod = 'LeanVM.Guest.CoreMode.Gen.AnyLink'
     t = [header(mod, 'The callees reading `child_claim_list_any`\'s entries table.')]
-    t.append('public import LeanVM.Guest.Res.LinkDefs\n\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest LeanVM.Guest.Core\n\n'
+    t.append('public import LeanVM.Guest.CoreMode.Fam.LinkDefs\n\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest LeanVM.Guest.Core\n\n'
              '@[expose] public section\n\n/-- **The callees reading `child_claim_list_any`\'s entries table.** -/\n'
              'noncomputable def anyLink : Link := ⟨[\n  %s],\n  fn_idx%% «%s», name%% «%s», .n %d, .n %d, .n %d, .n %d⟩\n\n'
              'end\n\nend LeanVM.Guest.Res\n' % (',\n  '.join('(name%% «%s», %d, %d)' % F for F in fams),
@@ -94,7 +94,7 @@ def render():
     mod = 'LeanVM.Guest.CoreMode.Gen.AnyLinkOk'
     t = [header(mod, '`anyLink`\'s checks.')]
     t.append(''.join('public import %s\n' % m for m in mods))
-    t.append('public import LeanVM.Guest.EndExecRA\n\n'
+    t.append('public import LeanVM.Guest.CoreMode.Fam.ResA\n\n'
              'namespace LeanVM.Guest.EndExec\n\nopen LeanVM.Guest LeanVM.Guest.Res LeanVM.Guest.Memory\n\n'
              'public section\n\n')
     app = 'anyCallers_0'

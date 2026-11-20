@@ -22,9 +22,9 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«main_loop2».code_mem : code ∈ Data.functions := Checked.code39 ▸ End.fnOf_mem (by decide)
+theorem Fn.«main_loop2».code_mem : code ∈ Data.functions := Checked.code40 ▸ End.fnOf_mem (by decide)
 theorem Fn.«main_loop2».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("__loop2_main", Fn.«main_loop2».entry)], advice) :=
-  ⟨Checked.code39, Checked.core39, Checked.cert39, Bridge.ProgAl.plumbEq39, Bridge.ProgAl.tab39⟩
+  ⟨Checked.code40, Checked.core40, Checked.cert40, Bridge.ProgAl.plumbEq40, Bridge.ProgAl.tab40⟩
 
 end
 

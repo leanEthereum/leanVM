@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Frame
+public import LeanVM.Guest.CoreMode.FrameLit
 public import LeanVM.Guest.CoreMode.GlueP.«P51»
 public import LeanVM.Guest.CoreMode.Env
 public import LeanVM.Guest.CoreMode.GlueA.«P51»
@@ -51,287 +52,39 @@ open LeanVM.Guest.Exec
 
 @[expose] public section
 
-noncomputable def Fn.«certify_placement».envC : Mode.Env := CoreMode.envOf []
-noncomputable def Fn.«certify_placement».funC : Mode.Fun := ⟨Fn.«certify_placement».entry, 469,
-    Fn.«certify_placement».csig, .nil, (.node none .nil (.node none (.node none (.node none .nil
-    (.node none .nil (.node none (.node none (.node (some [(.nz 141)]) .nil .nil) .nil) .nil)))
-    .nil) .nil)), .nil, false, .nil⟩
-noncomputable def Fn.«certify_placement».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«certify_placement».entry, 469,
-    Fn.«certify_placement».csig, .nil, 524287, advice.2.2, (.node none .nil (.node none (.node none
-    (.node none .nil (.node none .nil (.node none (.node none (.node (some [141]) .nil .nil) .nil)
-    .nil))) .nil) .nil)), .nil, .nil, .nil, Fn.«certify_placement».pairO,
-    Fn.«certify_placement».pairS, .nil⟩
-
-theorem Fn.«certify_placement».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
-  decide +kernel
-noncomputable def Fn.«block_selector__L30».envC : Mode.Env := CoreMode.envOf []
-noncomputable def Fn.«block_selector__L30».funC : Mode.Fun := ⟨Fn.«block_selector__L30».entry, 302,
-    Fn.«block_selector__L30».csig, .nil, .nil, .nil, false, .nil⟩
-noncomputable def Fn.«block_selector__L30».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«block_selector__L30».entry, 302,
-    Fn.«block_selector__L30».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
-    Fn.«block_selector__L30».pairO, Fn.«block_selector__L30».pairS, .nil⟩
-
-theorem Fn.«block_selector__L30».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true :=
-    by
-  decide +kernel
-noncomputable def Fn.«block_selector_tab__L5».envC : Mode.Env := CoreMode.envOf []
-noncomputable def Fn.«block_selector_tab__L5».funC : Mode.Fun := ⟨Fn.«block_selector_tab__L5».entry,
-    24, Fn.«block_selector_tab__L5».csig, .nil, .nil, .nil, false, .nil⟩
-noncomputable def Fn.«block_selector_tab__L5».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«block_selector_tab__L5».entry,
-    24, Fn.«block_selector_tab__L5».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
-    Fn.«block_selector_tab__L5».pairO, Fn.«block_selector_tab__L5».pairS, .nil⟩
-
-theorem Fn.«block_selector_tab__L5».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true
-    := by
-  decide +kernel
-noncomputable def Fn.«block_selector_tab__L23».envC : Mode.Env := CoreMode.envOf []
-noncomputable def Fn.«block_selector_tab__L23».funC : Mode.Fun :=
-    ⟨Fn.«block_selector_tab__L23».entry, 64, Fn.«block_selector_tab__L23».csig, .nil, .nil, .nil,
-    false, .nil⟩
-noncomputable def Fn.«block_selector_tab__L23».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«block_selector_tab__L23».entry,
-    64, Fn.«block_selector_tab__L23».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
-    Fn.«block_selector_tab__L23».pairO, Fn.«block_selector_tab__L23».pairS, .nil⟩
-
-theorem Fn.«block_selector_tab__L23».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true
-    := by
-  decide +kernel
-noncomputable def Fn.«claim_list_last__L11».envC : Mode.Env := CoreMode.envOf []
-noncomputable def Fn.«claim_list_last__L11».funC : Mode.Fun := ⟨Fn.«claim_list_last__L11».entry,
-    121, Fn.«claim_list_last__L11».csig, .nil, .nil, .nil, false, .nil⟩
-noncomputable def Fn.«claim_list_last__L11».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«claim_list_last__L11».entry, 121,
-    Fn.«claim_list_last__L11».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
-    Fn.«claim_list_last__L11».pairO, Fn.«claim_list_last__L11».pairS, .nil⟩
-
-theorem Fn.«claim_list_last__L11».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true :=
-    by
-  decide +kernel
-noncomputable def Fn.«child_claim_list_last__L14».envC : Mode.Env := CoreMode.envOf []
-noncomputable def Fn.«child_claim_list_last__L14».funC : Mode.Fun :=
-    ⟨Fn.«child_claim_list_last__L14».entry, 274, Fn.«child_claim_list_last__L14».csig, .nil, .nil,
-    .nil, false, .nil⟩
-noncomputable def Fn.«child_claim_list_last__L14».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
-    Fn.«child_claim_list_last__L14».entry, 274, Fn.«child_claim_list_last__L14».csig, .nil, 524287,
-    advice.2.2, .nil, .nil, .nil, .nil, Fn.«child_claim_list_last__L14».pairO,
-    Fn.«child_claim_list_last__L14».pairS, .nil⟩
-
-theorem Fn.«child_claim_list_last__L14».frameOk : CoreMode.frameOk frameFun code.chunks.flatten =
-    true := by
-  decide +kernel
-noncomputable def Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».envC : Mode.Env :=
-    CoreMode.envOf [Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L4_L10_L20_L5_L1».csig,
-    Fn.«verify_merkle_cap__L3».csig]
-noncomputable def Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».funC : Mode.Fun :=
-    ⟨Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».entry, 36,
-    Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».csig, .nil, .nil, .nil, false, .nil⟩
-noncomputable def Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
-    Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».entry, 36,
-    Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».csig, (CoreMode.sigTrie
-    [Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L4_L10_L20_L5_L1».csig,
-    Fn.«verify_merkle_cap__L3».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
-    Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».pairO,
-    Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».pairS, .nil⟩
-
-theorem Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».frameOk : CoreMode.frameOk frameFun
-    code.chunks.flatten = true := by
-  decide +kernel
-noncomputable def Fn.«squeeze_point_from__L17».envC : Mode.Env := CoreMode.envOf []
-noncomputable def Fn.«squeeze_point_from__L17».funC : Mode.Fun :=
-    ⟨Fn.«squeeze_point_from__L17».entry, 71, Fn.«squeeze_point_from__L17».csig, .nil, .nil, .nil,
-    false, .nil⟩
-noncomputable def Fn.«squeeze_point_from__L17».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«squeeze_point_from__L17».entry,
-    71, Fn.«squeeze_point_from__L17».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
-    Fn.«squeeze_point_from__L17».pairO, Fn.«squeeze_point_from__L17».pairS, .nil⟩
-
-theorem Fn.«squeeze_point_from__L17».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true
-    := by
-  decide +kernel
-noncomputable def Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».envC : Mode.Env :=
-    CoreMode.envOf [Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1».csig,
-    Fn.«verify_merkle_cap__L5».csig]
-noncomputable def Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».funC : Mode.Fun :=
-    ⟨Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».entry, 35,
-    Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».csig, .nil, .nil, .nil, false, .nil⟩
-noncomputable def Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
-    Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».entry, 35,
-    Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».csig, (CoreMode.sigTrie
-    [Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1».csig,
-    Fn.«verify_merkle_cap__L5».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
-    Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».pairO,
-    Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».pairS, .nil⟩
-
-theorem Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».frameOk : CoreMode.frameOk frameFun
-    code.chunks.flatten = true := by
-  decide +kernel
-noncomputable def Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».envC : Mode.Env :=
-    CoreMode.envOf [Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0».csig,
-    Fn.«verify_merkle_cap__L7».csig]
-noncomputable def Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».funC : Mode.Fun :=
-    ⟨Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».entry, 35,
-    Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».csig, .nil, .nil, .nil, false, .nil⟩
-noncomputable def Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
-    Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».entry, 35,
-    Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».csig, (CoreMode.sigTrie
-    [Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0».csig,
-    Fn.«verify_merkle_cap__L7».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
-    Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».pairO,
-    Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».pairS, .nil⟩
-
-theorem Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».frameOk : CoreMode.frameOk frameFun
-    code.chunks.flatten = true := by
-  decide +kernel
-noncomputable def Fn.«level_residual__L17_L7_L4_L2».envC : Mode.Env := CoreMode.envOf
-    [Fn.«level_residual__L17_L7_L4_L2_loop0».csig, Fn.«level_residual__L17_L7_L4_L2_loop1».csig]
-noncomputable def Fn.«level_residual__L17_L7_L4_L2».funC : Mode.Fun :=
-    ⟨Fn.«level_residual__L17_L7_L4_L2».entry, 45, Fn.«level_residual__L17_L7_L4_L2».csig, .nil,
-    .nil, .nil, false, .nil⟩
-noncomputable def Fn.«level_residual__L17_L7_L4_L2».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
-    Fn.«level_residual__L17_L7_L4_L2».entry, 45, Fn.«level_residual__L17_L7_L4_L2».csig,
-    (CoreMode.sigTrie [Fn.«level_residual__L17_L7_L4_L2_loop0».csig,
-    Fn.«level_residual__L17_L7_L4_L2_loop1».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
-    Fn.«level_residual__L17_L7_L4_L2».pairO, Fn.«level_residual__L17_L7_L4_L2».pairS, .nil⟩
-
-theorem Fn.«level_residual__L17_L7_L4_L2».frameOk : CoreMode.frameOk frameFun code.chunks.flatten =
-    true := by
-  decide +kernel
-noncomputable def Fn.«level_positions__L7_L14_L2_loop0».envC : Mode.Env := CoreMode.envOf
-    [Fn.«decode_query_windows__L14_L2».csig, Fn.«level_positions__L7_L14_L2_loop0».csig]
-noncomputable def Fn.«level_positions__L7_L14_L2_loop0».funC : Mode.Fun :=
-    ⟨Fn.«level_positions__L7_L14_L2_loop0».entry, 50, Fn.«level_positions__L7_L14_L2_loop0».csig,
-    .nil, .nil, .nil, false, .nil⟩
-noncomputable def Fn.«level_positions__L7_L14_L2_loop0».frameFun : CoreMode.FFun :=
-  ⟨{ env := [(8, (.fpg 0))], fpOne := false, pows := fpows, scaled := [8] },
-    Fn.«level_positions__L7_L14_L2_loop0».entry, 50, Fn.«level_positions__L7_L14_L2_loop0».csig,
-    (CoreMode.sigTrie [Fn.«decode_query_windows__L14_L2».csig,
-    Fn.«level_positions__L7_L14_L2_loop0».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
-    Fn.«level_positions__L7_L14_L2_loop0».pairO, Fn.«level_positions__L7_L14_L2_loop0».pairS, .nil⟩
-
-theorem Fn.«level_positions__L7_L14_L2_loop0».frameOk : CoreMode.frameOk frameFun
-    code.chunks.flatten = true := by
-  decide +kernel
-noncomputable def Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».envC : Mode.Env :=
-    CoreMode.envOf [Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0».csig]
-noncomputable def Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».funC : Mode.Fun :=
-    ⟨Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».entry, 25,
-    Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».csig, .nil, .nil, .nil, false, .nil⟩
-noncomputable def Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».frameFun : CoreMode.FFun
-    :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
-    Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».entry, 25,
-    Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».csig, (CoreMode.sigTrie
-    [Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0».csig]), 524287, advice.2.2,
-    .nil, .nil, .nil, .nil, Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».pairO,
-    Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».pairS, .nil⟩
-
-theorem Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».frameOk : CoreMode.frameOk frameFun
-    code.chunks.flatten = true := by
-  decide +kernel
-noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1».envC : Mode.Env :=
-    CoreMode.envOf [Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1_loop0».csig]
-noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1».funC : Mode.Fun :=
-    ⟨Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1».entry, 23,
-    Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1».csig, .nil, .nil, .nil, false, .nil⟩
-noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1».frameFun : CoreMode.FFun
-    :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
-    Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1».entry, 23,
-    Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1».csig, (CoreMode.sigTrie
-    [Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1_loop0».csig]), 524287, advice.2.2,
-    .nil, .nil, .nil, .nil, Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1».pairO,
-    Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1».pairS, .nil⟩
-
-theorem Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1».frameOk : CoreMode.frameOk frameFun
-    code.chunks.flatten = true := by
-  decide +kernel
-noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».envC : Mode.Env :=
-    CoreMode.envOf [Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1_loop0».csig]
-noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».funC : Mode.Fun :=
-    ⟨Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».entry, 23,
-    Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».csig, .nil, .nil, .nil, false, .nil⟩
-noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».frameFun : CoreMode.FFun
-    :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
-    Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».entry, 23,
-    Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».csig, (CoreMode.sigTrie
-    [Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1_loop0».csig]), 524287, advice.2.2,
-    .nil, .nil, .nil, .nil, Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».pairO,
-    Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».pairS, .nil⟩
-
-theorem Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».frameOk : CoreMode.frameOk frameFun
-    code.chunks.flatten = true := by
-  decide +kernel
-noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».envC : Mode.Env :=
-    CoreMode.envOf [Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0_loop0».csig]
-noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».funC : Mode.Fun :=
-    ⟨Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».entry, 25,
-    Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».csig, .nil, .nil, .nil, false, .nil⟩
-noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».frameFun : CoreMode.FFun
-    :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
-    Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».entry, 25,
-    Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».csig, (CoreMode.sigTrie
-    [Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0_loop0».csig]), 524287, advice.2.2,
-    .nil, .nil, .nil, .nil, Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».pairO,
-    Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».pairS, .nil⟩
-
-theorem Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».frameOk : CoreMode.frameOk frameFun
-    code.chunks.flatten = true := by
-  decide +kernel
-noncomputable def Fn.«decode_query_windows__L26_L2».envC : Mode.Env := CoreMode.envOf []
-noncomputable def Fn.«decode_query_windows__L26_L2».funC : Mode.Fun :=
-    ⟨Fn.«decode_query_windows__L26_L2».entry, 231, Fn.«decode_query_windows__L26_L2».csig, .nil,
-    .nil, .nil, false, .nil⟩
-noncomputable def Fn.«decode_query_windows__L26_L2».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
-    Fn.«decode_query_windows__L26_L2».entry, 231, Fn.«decode_query_windows__L26_L2».csig, .nil,
-    524287, advice.2.2, .nil, .nil, .nil, .nil, Fn.«decode_query_windows__L26_L2».pairO,
-    Fn.«decode_query_windows__L26_L2».pairS, .nil⟩
-
-theorem Fn.«decode_query_windows__L26_L2».frameOk : CoreMode.frameOk frameFun code.chunks.flatten =
-    true := by
-  decide +kernel
-noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0».envC : Mode.Env :=
-    CoreMode.envOf [Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0_loop0».csig]
-noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0».funC : Mode.Fun :=
-    ⟨Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0».entry, 25,
-    Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0».csig, .nil, .nil, .nil, false, .nil⟩
-noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0».frameFun : CoreMode.FFun
-    :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] },
-    Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0».entry, 25,
-    Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0».csig, (CoreMode.sigTrie
-    [Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0_loop0».csig]), 524287, advice.2.2,
-    .nil, .nil, .nil, .nil, Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0».pairO,
-    Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0».pairS, .nil⟩
-
-theorem Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0».frameOk : CoreMode.frameOk frameFun
-    code.chunks.flatten = true := by
-  decide +kernel
-noncomputable def Fn.«level_residual__L37_L20_L4_L2_loop0».envC : Mode.Env := CoreMode.envOf
-    [Fn.«level_residual__L37_L20_L4_L2_loop0».csig]
-noncomputable def Fn.«level_residual__L37_L20_L4_L2_loop0».funC : Mode.Fun :=
-    ⟨Fn.«level_residual__L37_L20_L4_L2_loop0».entry, 808,
-    Fn.«level_residual__L37_L20_L4_L2_loop0».csig, .nil, .nil, .nil, false, .nil⟩
-noncomputable def Fn.«level_residual__L37_L20_L4_L2_loop0».frameFun : CoreMode.FFun :=
-  ⟨{ env := [(9, (.fpg 0))], fpOne := false, pows := fpows, scaled := [9] },
-    Fn.«level_residual__L37_L20_L4_L2_loop0».entry, 808,
-    Fn.«level_residual__L37_L20_L4_L2_loop0».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil,
-    Fn.«level_residual__L37_L20_L4_L2_loop0».pairO, Fn.«level_residual__L37_L20_L4_L2_loop0».pairS,
-    .nil⟩
-
-theorem Fn.«level_residual__L37_L20_L4_L2_loop0».frameOk : CoreMode.frameOk frameFun
-    code.chunks.flatten = true := by
-  decide +kernel
+frame_fn% «certify_placement» 469 [] nzr (.node none .nil (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node none (.node (some [141]) .nil .nil) .nil) .nil))) .nil)
+    .nil)) fnz (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node
+    none (.node none (.node (some [(.nz 141)]) .nil .nil) .nil) .nil))) .nil) .nil))
+frame_fn% «block_selector__L30» 302 []
+frame_fn% «block_selector_tab__L5» 24 []
+frame_fn% «block_selector_tab__L23» 64 []
+frame_fn% «claim_list_last__L11» 121 []
+frame_fn% «child_claim_list_last__L14» 274 []
+frame_fn% «level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1» 36
+    [«opening_queries__L0_L0_L4_L16_L15_L3_L4_L10_L20_L5_L1», «verify_merkle_cap__L3»]
+frame_fn% «squeeze_point_from__L17» 71 []
+frame_fn% «level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1» 35
+    [«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1», «verify_merkle_cap__L5»]
+frame_fn% «level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0» 35
+    [«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0», «verify_merkle_cap__L7»]
+frame_fn% «level_residual__L17_L7_L4_L2» 45 [«level_residual__L17_L7_L4_L2_loop0»,
+    «level_residual__L17_L7_L4_L2_loop1»]
+frame_fn% «level_positions__L7_L14_L2_loop0» 50 [«decode_query_windows__L14_L2»,
+    «level_positions__L7_L14_L2_loop0»] env [(8, (.fpg 0))] scaled [8]
+frame_fn% «opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0» 25
+    [«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0»]
+frame_fn% «opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1» 23
+    [«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1_loop0»]
+frame_fn% «opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1» 23
+    [«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1_loop0»]
+frame_fn% «opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0» 25
+    [«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0_loop0»]
+frame_fn% «decode_query_windows__L26_L2» 231 []
+frame_fn% «opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0» 25
+    [«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0_loop0»]
+frame_fn% «level_residual__L37_L20_L4_L2_loop0» 808 [«level_residual__L37_L20_L4_L2_loop0»] sigs []
+    env [(9, (.fpg 0))] scaled [9]
 end
 
 end LeanVM.Guest

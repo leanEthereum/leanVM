@@ -7,9 +7,9 @@
 
 module
 
-public import LeanVM.Guest.EndExecRStB
-public import LeanVM.Guest.EndExecRGkrL
-public import LeanVM.Guest.EndExecRVtB
+public import LeanVM.Guest.CoreMode.Fam.ResStB
+public import LeanVM.Guest.CoreMode.Fam.ResGkrL
+public import LeanVM.Guest.CoreMode.Fam.ResVtB
 public import LeanVM.Guest.EndExecCoreMono
 
 /-!

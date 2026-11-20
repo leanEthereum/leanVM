@@ -370,7 +370,11 @@ def fn_thms(thms, ns='LeanVM.Guest'):
     """Per-function theorems in one section of namespace `ns`: each `(k, name, stmt, prf)` declared as
     `Fn.«k».name`, so its statement and proof see function `k`'s namespace; `prf` a tactic script (lines joined)."""
     out = []
-    for k, name, stmt, prf in thms:
+    for t in thms:
+        if isinstance(t, str):
+            # a command of its own (`Bridge/ChkLit.lean`'s `alloc_chk%`, `align_chk%`)
+            out.append(t); continue
+        k, name, stmt, prf = t
         tac = '; '.join(x.strip() for x in prf.strip().split('\n'))
         out.append(f'theorem Fn.«{k}».{name} : {stmt} := by {tac}\n')
     return (f'set_option linter.style.nameCheck false\n\nnamespace {ns}\n\npublic section\n\n' + ''.join(out) +

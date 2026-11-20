@@ -15,7 +15,7 @@ namespace LeanVM.Guest.Fn.«main_loop2»
 open LeanVM.Guest LeanVM.Guest.Exec
 @[expose] public section
 /-- `__loop2_main`: its frame walk accepts offsets 0 to 4000. -/
-theorem frameWin0 : CoreMode.frameWin frameFun code.chunks.flatten 0 4000 = true := by
+theorem frameWin0 : CoreMode.frameWinS frameFun code.chunks (0, 0) (1, 1952) 0 4000 = true := by
   decide +kernel
 end
 end LeanVM.Guest.Fn.«main_loop2»

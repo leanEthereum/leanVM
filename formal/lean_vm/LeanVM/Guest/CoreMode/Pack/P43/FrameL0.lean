@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.FrameWin
+public import LeanVM.Guest.CoreMode.FrameSlice
 public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W0
 public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W1
 public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W2
@@ -66,18 +66,17 @@ theorem frameAcc : CoreMode.FrameAcc frameFun code.chunks.flatten := by
     72000), (72000, 76000), (76000, 80000), (80000, 84000), (84000, 88000), (88000, 92000), (92000,
     96000), (96000, 100000), (100000, 104000), (104000, 108000), (108000, 112000), (112000,
     114219)], CoreMode.frameWin frameFun code.chunks.flatten p.1 p.2 = true
-  exact List.forall_mem_cons.2 ⟨frameWin0, List.forall_mem_cons.2 ⟨frameWin1, List.forall_mem_cons.2
-    ⟨frameWin2, List.forall_mem_cons.2 ⟨frameWin3, List.forall_mem_cons.2 ⟨frameWin4,
-    List.forall_mem_cons.2 ⟨frameWin5, List.forall_mem_cons.2 ⟨frameWin6, List.forall_mem_cons.2
-    ⟨frameWin7, List.forall_mem_cons.2 ⟨frameWin8, List.forall_mem_cons.2 ⟨frameWin9,
-    List.forall_mem_cons.2 ⟨frameWin10, List.forall_mem_cons.2 ⟨frameWin11, List.forall_mem_cons.2
-    ⟨frameWin12, List.forall_mem_cons.2 ⟨frameWin13, List.forall_mem_cons.2 ⟨frameWin14,
-    List.forall_mem_cons.2 ⟨frameWin15, List.forall_mem_cons.2 ⟨frameWin16, List.forall_mem_cons.2
-    ⟨frameWin17, List.forall_mem_cons.2 ⟨frameWin18, List.forall_mem_cons.2 ⟨frameWin19,
-    List.forall_mem_cons.2 ⟨frameWin20, List.forall_mem_cons.2 ⟨frameWin21, List.forall_mem_cons.2
-    ⟨frameWin22, List.forall_mem_cons.2 ⟨frameWin23, List.forall_mem_cons.2 ⟨frameWin24,
-    List.forall_mem_cons.2 ⟨frameWin25, List.forall_mem_cons.2 ⟨frameWin26, List.forall_mem_cons.2
-    ⟨frameWin27, List.forall_mem_cons.2 ⟨frameWin28, List.forall_mem_nil
-    _⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
+  exact CoreMode.chainFS_wins [((1, 1952), 4000), ((3, 1856), 8000), ((5, 1760), 12000), ((7, 1664),
+    16000), ((9, 1568), 20000), ((11, 1472), 24000), ((13, 1376), 28000), ((15, 1280), 32000), ((17,
+    1184), 36000), ((19, 1088), 40000), ((21, 992), 44000), ((23, 896), 48000), ((25, 800), 52000),
+    ((27, 704), 56000), ((29, 608), 60000), ((31, 512), 64000), ((33, 416), 68000), ((35, 320),
+    72000), ((37, 224), 76000), ((39, 128), 80000), ((41, 32), 84000), ((42, 1984), 88000), ((44,
+    1888), 92000), ((46, 1792), 96000), ((48, 1696), 100000), ((50, 1600), 104000), ((52, 1504),
+    108000), ((54, 1408), 112000), ((56, 0), 114219)] (0, 0) 0
+    ⟨frameWin0, ⟨frameWin1, ⟨frameWin2, ⟨frameWin3, ⟨frameWin4, ⟨frameWin5, ⟨frameWin6, ⟨frameWin7,
+    ⟨frameWin8, ⟨frameWin9, ⟨frameWin10, ⟨frameWin11, ⟨frameWin12, ⟨frameWin13, ⟨frameWin14,
+    ⟨frameWin15, ⟨frameWin16, ⟨frameWin17, ⟨frameWin18, ⟨frameWin19, ⟨frameWin20, ⟨frameWin21,
+    ⟨frameWin22, ⟨frameWin23, ⟨frameWin24, ⟨frameWin25, ⟨frameWin26, ⟨frameWin27, ⟨frameWin28,
+    trivial⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩ (CoreMode.restL_zero _)
 end
 end LeanVM.Guest.Fn.«main_loop2»

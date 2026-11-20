@@ -37,6 +37,11 @@ def «child_claim_list_last__L7».sig : CoreMode.HSig :=
         ⟨⟨[(1, 1)], 2⟩, 4, (.num 0), (.mono ⟨[(4, 1)], 1⟩)⟩,
         ⟨⟨[(1, 1)], 3⟩, 4, (.num 0), (.mono ⟨[(4, 1)], 1⟩)⟩],
       postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 13)⟩] }
+def «claim_list_tail».sig : CoreMode.HSig := 
+    { preR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 13)⟩],
+      postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 13)⟩, ⟨⟨[(1, 1)], 0⟩, 4, (.num 0), (.val 2)⟩,
+        ⟨⟨[(1, 1)], 1⟩, 4, (.num 0), (.val 2)⟩, ⟨⟨[(1, 1)], 2⟩, 4, (.num 0), (.val 2)⟩,
+        ⟨⟨[(1, 1)], 3⟩, 4, (.num 0), (.val 2)⟩] }
 def «column_selector__L24».sig : CoreMode.HSig := 
     { preR := [⟨⟨[(1, 1)], 432⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(1, 1)], 496⟩, 1, (.num 0), (.num 16)⟩,
         ⟨⟨[(2, 1)], 96⟩, 1, (.num 0), (.num 16)⟩, ⟨⟨[(2, 1)], 112⟩, 1, (.num 0), (.num 16)⟩],

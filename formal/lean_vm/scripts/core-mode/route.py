@@ -13,6 +13,7 @@ import os, re, sys, glob, json, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import heap  # noqa: E402
+import framelit as FL  # noqa: E402
 from compiled import tokens, parse, split_top  # noqa: E402,F401
 
 GUEST = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
@@ -23,8 +24,8 @@ SIGS = None
 
 
 def sigs():
-    """Each function's `Mode.Sig`, by namespace name, fields parsed: what `sigc.py` writes (a routed function's
-    signature as written, the others' the mode walk's inference's, `MODE_CERT_CACHE`), whether or not it has run."""
+    """Each function's `Mode.Sig`, by namespace name, fields parsed: what `sigc.py` writes (each function's
+    contract as written, or `sigseed.py`'s), whether or not it has run."""
     global SIGS
     if SIGS is not None:
         return SIGS
@@ -180,6 +181,10 @@ def frame_nzr():
         for n, m in lits:
             if m and split_top(m.group(m.lastindex))[7] != '.nil': out.add(n)
             if m and split_top(m.group(m.lastindex))[4] != '.nil': calls.add(n)
+        # one `frame_fn%` a function (`framelit.py`)
+        for n, d in FL.parse(t).items():
+            if 'nzr' in d: out.add(n)
+            if d.get('sigs', d['callees']): calls.add(n)
     return out, calls
 
 
@@ -253,7 +258,7 @@ def route(verbose=False):
             continue
         why['unwritten promise'] += 1
     if verbose:
-        print('route', len(out), 'of', len(P), dict(why))
+        print('route', len(out), 'of', len(P), dict(why), 'by check', dict(collections.Counter(r['kind'] for r in out.values())))
     return out
 
 

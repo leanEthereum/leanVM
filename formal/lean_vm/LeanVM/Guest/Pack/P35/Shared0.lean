@@ -42,6 +42,33 @@ theorem shareOk : ShareOkD Fn.«assert_small_g_power».core (cert.withPows Data.
 end
 end LeanVM.Guest.Fn.«assert_small_g_power»
 
+namespace LeanVM.Guest.Fn.«claim_list_tail»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `claim_list_tail`, once. -/
+theorem st : shareStaticD Fn.«claim_list_tail».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `claim_list_tail`, window 0. -/
+theorem sw0 : shareWinD Fn.«claim_list_tail».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `claim_list_tail`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«claim_list_tail».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«claim_list_tail»
+
 namespace LeanVM.Guest.Fn.«rs_eq_rows__L6»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -68,36 +95,6 @@ set_option maxRecDepth 100000 in
 theorem sw2 : shareWinD Fn.«rs_eq_rows__L6».core (cert.withPows Data.powTree) plumb fs snaps 2 = true := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
-/-- `rs_eq_rows__L6`, window 3. -/
-theorem sw3 : shareWinD Fn.«rs_eq_rows__L6».core (cert.withPows Data.powTree) plumb fs snaps 3 = true := by
-  decide +kernel
-
-/-- `rs_eq_rows__L6`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«rs_eq_rows__L6».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 3 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-  · exact sw1
-  · exact sw2
-  · exact sw3
-⟩
-
 end
 end LeanVM.Guest.Fn.«rs_eq_rows__L6»
-
-namespace LeanVM.Guest.Fn.«index_mle__L14»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `index_mle__L14`, once. -/
-theorem st : shareStaticD Fn.«index_mle__L14».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«index_mle__L14»
 

@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.CertLit
 public import LeanVM.Guest.CoreMode.Gen.HcTab
 public import LeanVM.Guest.CoreMode.Gen.«open_stacked__L5».Route
 public import LeanVM.Guest.CoreMode.GlueC.«P22»
@@ -17,7 +18,7 @@ set_option Elab.async false
 set_option linter.style.nameCheck false
 
 /-! Each function's certificate (`modeCert`: its `envC`, `funC` and code), its callees' signatures
-(`modeSigs`), and the certificate with its facts (`ce`). -/
+(`modeSigs`), and the certificate with its facts (`ce`): `core_cert%`, `CoreMode/CertLit.lean`. -/
 
 namespace LeanVM.Guest.Fn
 
@@ -25,84 +26,7 @@ open LeanVM.Guest LeanVM.Guest.EndExec
 
 @[expose] public section
 
-noncomputable def «open_stacked__L5».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-kernel_rfl «open_stacked__L5».modeSigs : «open_stacked__L5».modeCert.E.sigs = CoreMode.sigTrie
-  [«fold_final_msg__L3».csig,
-    «grind_check__L15».csig,
-    «grind_check__L17».csig,
-    «level_positions__L10_L19_L7».csig,
-    «level_positions__L11_L23_L5».csig,
-    «level_positions__L15_L22_L4».csig,
-    «level_positions__L19_L21_L3».csig,
-    «level_positions__L37_L20_L8».csig,
-    «level_positions__L3_L16_L4».csig,
-    «level_positions__L3_L17_L5».csig,
-    «level_positions__L3_L18_L6».csig,
-    «level_positions__L3_L19_L7».csig,
-    «level_positions__L3_L20_L2».csig,
-    «level_positions__L4_L17_L5».csig,
-    «level_positions__L4_L19_L7».csig,
-    «level_positions__L4_L21_L3».csig,
-    «level_positions__L5_L18_L6».csig,
-    «level_positions__L5_L19_L7».csig,
-    «level_positions__L5_L20_L2».csig,
-    «level_positions__L7_L21_L3».csig,
-    «level_positions__L7_L22_L4».csig,
-    «level_positions__L8_L20_L2».csig,
-    «level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0».csig,
-    «level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».csig,
-    «level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1».csig,
-    «level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».csig,
-    «level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0».csig,
-    «level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».csig,
-    «level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0».csig,
-    «level_queries__L218_L1_L6_L32_L20_L8_L0_L0_L0_L0».csig,
-    «level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0».csig,
-    «level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».csig,
-    «level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».csig,
-    «level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0».csig,
-    «level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0».csig,
-    «level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».csig,
-    «level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0».csig,
-    «level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0».csig,
-    «level_queries__L44_L0_L4_L16_L20_L2_L0_L0_L0_L0».csig,
-    «level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0».csig,
-    «level_queries__L55_L1_L6_L32_L23_L5_L0_L0_L0_L0».csig,
-    «level_queries__L73_L1_L6_L32_L22_L4_L0_L0_L0_L0».csig,
-    «level_residual__L109_L19_L6_L3».csig,
-    «level_residual__L18_L7_L4_L2».csig,
-    «level_residual__L19_L7_L4_L2».csig,
-    «level_residual__L218_L19_L6_L3».csig,
-    «level_residual__L21_L7_L4_L2».csig,
-    «level_residual__L23_L11_L4_L2».csig,
-    «level_residual__L23_L7_L4_L2».csig,
-    «level_residual__L25_L11_L4_L2».csig,
-    «level_residual__L28_L11_L4_L2».csig,
-    «level_residual__L32_L11_L4_L2».csig,
-    «level_residual__L32_L15_L4_L2».csig,
-    «level_residual__L37_L15_L4_L2».csig,
-    «level_residual__L44_L15_L4_L2».csig,
-    «level_residual__L55_L15_L4_L2».csig,
-    «level_residual__L55_L19_L6_L3».csig,
-    «level_residual__L73_L19_L6_L3».csig,
-    «opening_message__L12_L1».csig,
-    «opening_message__L6_L1».csig,
-    «opening_message__L8_L1».csig,
-    «opening_round».csig,
-    «opening_tail_round».csig,
-    «squeeze_point_from__L11».csig,
-    «squeeze_point_from__L15».csig,
-    «squeeze_point_from__L19».csig,
-    «squeeze_point_from__L7».csig]
-
-@[expose] public section
-
-noncomputable def «open_stacked__L5».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«open_stacked__L5».coreFns_ok _ (list_mem% 0), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+core_cert% «open_stacked__L5» «open_stacked__L5» 0 [«fold_final_msg__L3», «grind_check__L15», «grind_check__L17», «level_positions__L10_L19_L7», «level_positions__L11_L23_L5», «level_positions__L15_L22_L4», «level_positions__L19_L21_L3», «level_positions__L37_L20_L8», «level_positions__L3_L16_L4», «level_positions__L3_L17_L5», «level_positions__L3_L18_L6», «level_positions__L3_L19_L7», «level_positions__L3_L20_L2», «level_positions__L4_L17_L5», «level_positions__L4_L19_L7», «level_positions__L4_L21_L3», «level_positions__L5_L18_L6», «level_positions__L5_L19_L7», «level_positions__L5_L20_L2», «level_positions__L7_L21_L3», «level_positions__L7_L22_L4», «level_positions__L8_L20_L2», «level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0», «level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1», «level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1», «level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1», «level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0», «level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1», «level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0», «level_queries__L218_L1_L6_L32_L20_L8_L0_L0_L0_L0», «level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0», «level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0», «level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0», «level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0», «level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0», «level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0», «level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0», «level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0», «level_queries__L44_L0_L4_L16_L20_L2_L0_L0_L0_L0», «level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0», «level_queries__L55_L1_L6_L32_L23_L5_L0_L0_L0_L0», «level_queries__L73_L1_L6_L32_L22_L4_L0_L0_L0_L0», «level_residual__L109_L19_L6_L3», «level_residual__L18_L7_L4_L2», «level_residual__L19_L7_L4_L2», «level_residual__L218_L19_L6_L3», «level_residual__L21_L7_L4_L2», «level_residual__L23_L11_L4_L2», «level_residual__L23_L7_L4_L2», «level_residual__L25_L11_L4_L2», «level_residual__L28_L11_L4_L2», «level_residual__L32_L11_L4_L2», «level_residual__L32_L15_L4_L2», «level_residual__L37_L15_L4_L2», «level_residual__L44_L15_L4_L2», «level_residual__L55_L15_L4_L2», «level_residual__L55_L19_L6_L3», «level_residual__L73_L19_L6_L3», «opening_message__L12_L1», «opening_message__L6_L1», «opening_message__L8_L1», «opening_round», «opening_tail_round», «squeeze_point_from__L11», «squeeze_point_from__L15», «squeeze_point_from__L19», «squeeze_point_from__L7»]
 
 end
 
