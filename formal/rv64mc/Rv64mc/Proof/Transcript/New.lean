@@ -102,6 +102,23 @@ theorem ok_at (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
   · omega
   · omega
   · omega
+  -- the digests safe from `Sponge::new`
+  iterate 2
+    · first
+        | (rcases hpre_15 with hl | hl
+           · left
+             unfold Env.Live Env.next at hl ⊢
+             simp (disch := exact Nat.lt_of_lt_of_le (by have := env.layout; omega) (hlo _ rfl)) only
+               [getMem_setMem_gt]
+             exact hl
+           · right; exact Nat.le_trans (Tactic.slot_le hS rfl) hl)
+        | (rcases hpre_16 with hl | hl
+           · left
+             unfold Env.Live Env.next at hl ⊢
+             simp (disch := exact Nat.lt_of_lt_of_le (by have := env.layout; omega) (hlo _ rfl)) only
+               [getMem_setMem_gt]
+             exact hl
+           · right; exact Nat.le_trans (Tactic.slot_le hS rfl) hl)
   all_goals
     have hx := hret1_16.aligned
     simp only [Layouts.Sponge.byteAlign] at hx
