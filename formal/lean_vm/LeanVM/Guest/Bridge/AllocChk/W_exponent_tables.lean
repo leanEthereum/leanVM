@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.AllocFrDefs
+public import LeanVM.Guest.Bridge.ChkLit
 public import LeanVM.Guest.Bridge.AlignCtx.«exponent_tables».Ok
 public import LeanVM.Guest.CoreMode.GlueA.«P42»
 public import LeanVM.Guest.Pack.«P42».Bundle
@@ -20,10 +21,7 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«exponent_tables».allocShapeOk : Bridge.allocShape core.body = true := by decide +kernel
-theorem Fn.«exponent_tables».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Fn.«exponent_tables».advice = true := by decide +kernel
-theorem Fn.«exponent_tables».frOk : Bridge.frChk alignCtx fs [] core.params core.body Fn.«exponent_tables».advice = true := by decide +kernel
-theorem Fn.«exponent_tables».allocOk : Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Fn.«exponent_tables».advice = true := by decide +kernel
+alloc_chk% «exponent_tables» []
 
 end
 

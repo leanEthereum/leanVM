@@ -101,8 +101,7 @@ def csigs : List (String × CoreMode.HSig) :=
         (⟨⟨[(4, 1)], 5⟩, 6, (.val 0), (.val 1)⟩, [0, 1, 2, 3, 4])] }),
     ("decode_query_windows__L21_L3", CoreMode.HcSig.«decode_query_windows__L21_L3».csig)]
 def hcFlag : Bool := false
-def hcCallees : List (String × ℕ × ℕ) :=
-  []
+def hcCallees : List (String × ℕ × ℕ) := []
 
 end
 end LeanVM.Guest.Fn.«level_positions__L7_L21_L3»
@@ -148,8 +147,7 @@ def csigs : List (String × CoreMode.HSig) :=
   [("opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0", CoreMode.HcSig.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0».sig),
     ("verify_merkle_cap__L4", CoreMode.HcSig.«verify_merkle_cap__L4».sig)]
 def hcFlag : Bool := false
-def hcCallees : List (String × ℕ × ℕ) :=
-  [("verify_merkle_cap__L4", 2, 2)]
+def hcCallees : List (String × ℕ × ℕ) := [("verify_merkle_cap__L4", 2, 2)]
 
 end
 end LeanVM.Guest.Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0»
@@ -198,8 +196,7 @@ def csigs : List (String × CoreMode.HSig) :=
   [("opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0", CoreMode.HcSig.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».sig),
     ("verify_merkle_cap__L7", CoreMode.HcSig.«verify_merkle_cap__L7».sig)]
 def hcFlag : Bool := false
-def hcCallees : List (String × ℕ × ℕ) :=
-  [("verify_merkle_cap__L7", 2, 2)]
+def hcCallees : List (String × ℕ × ℕ) := [("verify_merkle_cap__L7", 2, 2)]
 
 end
 end LeanVM.Guest.Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0»
@@ -258,8 +255,7 @@ def csigs : List (String × CoreMode.HSig) :=
       preR := [⟨⟨[(3, 1)], 0⟩, 1, (.val 0), (.val 1)⟩],
       postR := [⟨⟨[(2, 1)], 2⟩, 2, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 3⟩, 2, (.val 0), (.val 1)⟩] })]
 def hcFlag : Bool := false
-def hcCallees : List (String × ℕ × ℕ) :=
-  []
+def hcCallees : List (String × ℕ × ℕ) := []
 
 end
 end LeanVM.Guest.Fn.«level_residual__L55_L17_L6_L3»
@@ -1469,8 +1465,7 @@ def csigs : List (String × CoreMode.HSig) :=
 def dsp : List (ℕ × List String) :=
   [(173, ["level_positions__L44_L23_L5", "level_positions__L22_L24_L6", "level_positions__L15_L25_L7", "level_positions__L14_L26_L2"]), (227, ["level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0", "level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0", "level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0", "level_queries__L55_L1_L6_L32_L26_L2_L0_L0_L0_L0"]), (347, ["level_positions__L11_L22_L4", "level_positions__L9_L23_L5", "level_positions__L8_L24_L6", "level_positions__L7_L25_L7"]), (397, ["level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0", "level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0", "level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0", "level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0"]), (516, ["level_positions__L6_L21_L3", "level_positions__L6_L22_L4", "level_positions__L5_L23_L5", "level_positions__L5_L24_L6"]), (566, ["level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0", "level_queries__L28_L0_L4_L16_L22_L4_L0_L0_L0_L0", "level_queries__L25_L0_L4_L16_L23_L5_L0_L0_L0_L0", "level_queries__L23_L0_L4_L16_L24_L6_L0_L0_L0_L0"]), (685, ["level_positions__L4_L20_L2", "level_positions__L4_L21_L3", "level_positions__L4_L22_L4", "level_positions__L4_L23_L5"]), (735, ["level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0", "level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0", "level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0", "level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0"]), (854, ["level_positions__L3_L19_L7", "level_positions__L3_L20_L2", "level_positions__L3_L21_L3", "level_positions__L3_L22_L4"]), (904, ["level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0", "level_queries__L17_L0_L4_L16_L20_L2_L0_L0_L0_L0", "level_queries__L16_L0_L4_L16_L21_L3_L0_L0_L0_L0", "level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0"]), (977, ["level_positions__L3_L18_L6", "level_positions__L3_L19_L7", "level_positions__L3_L20_L2", "level_positions__L3_L21_L3"]), (1002, ["level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1", "level_queries__L15_L0_L4_L16_L19_L7_L2_L8_L3_L1", "level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1", "level_queries__L14_L0_L4_L16_L21_L3_L2_L8_L3_L1"]), (1377, ["level_residual__L218_L22_L6_L3", "level_residual__L109_L22_L6_L3", "level_residual__L73_L22_L6_L3", "level_residual__L55_L22_L6_L3"]), (1388, ["level_residual__L55_L18_L4_L2", "level_residual__L44_L18_L4_L2", "level_residual__L37_L18_L4_L2", "level_residual__L32_L18_L4_L2"]), (1399, ["level_residual__L32_L14_L4_L2", "level_residual__L28_L14_L4_L2", "level_residual__L25_L14_L4_L2", "level_residual__L23_L14_L4_L2"]), (1410, ["level_residual__L23_L10_L4_L2", "level_residual__L21_L10_L4_L2", "level_residual__L19_L10_L4_L2", "level_residual__L18_L10_L4_L2"]), (1421, ["level_residual__L18_L6_L4_L2", "level_residual__L17_L6_L4_L2", "level_residual__L16_L6_L4_L2", "level_residual__L15_L6_L4_L2"])]
 def hcFlag : Bool := false
-def hcCallees : List (String × ℕ × ℕ) :=
-  []
+def hcCallees : List (String × ℕ × ℕ) := []
 
 end
 end LeanVM.Guest.Fn.«open_stacked__L8»

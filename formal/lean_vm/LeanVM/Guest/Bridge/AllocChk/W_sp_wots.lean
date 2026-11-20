@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.AllocFrDefs
+public import LeanVM.Guest.Bridge.ChkLit
 public import LeanVM.Guest.Bridge.AlignCtx.«sp_wots».Ok
 public import LeanVM.Guest.CoreMode.GlueA.«sp_wots»
 public import LeanVM.Guest.Pack.«sp_wots».Bundle
@@ -20,10 +21,7 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«sp_wots».allocShapeOk : Bridge.allocShape core.body = true := by decide +kernel
-theorem Fn.«sp_wots».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Fn.«sp_wots».advice = true := by decide +kernel
-theorem Fn.«sp_wots».frOk : Bridge.frChk alignCtx fs [] core.params core.body Fn.«sp_wots».advice = true := by decide +kernel
-theorem Fn.«sp_wots».allocOk : Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Fn.«sp_wots».advice = true := by decide +kernel
+alloc_chk% «sp_wots» []
 
 end
 

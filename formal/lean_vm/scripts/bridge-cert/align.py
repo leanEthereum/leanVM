@@ -424,13 +424,15 @@ def render(pack, fns):
     thms = []
     for f, (cells, _) in zip(fns, ctxs):
         k = f['key']
+        if cells == '[]':
+            thms.append(f'align_chk% «{k}»\n'); continue
         thms += [(k, 'alignCellsOk', f'Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) {cells} = true',
                   'decide +kernel'),
                  (k, 'alignOk', f'Bridge.alignOk alignCtx core.body code.code Fn.«{k}».advice = true',
                   'decide +kernel')]
     return (HEAD.format(mod=f'LeanVM.Guest.Bridge.Align.«{pack}»',
                         what=f"The kernel's checks that compiled functions of pack {pack[1:]} align with their bodies.")
-            + imports([m for f in fns for m in bases(f, pack)] + [glue_a(f['key']) for f in fns])
+            + imports([m for f in fns for m in bases(f, pack)] + [glue_a(f['key']) for f in fns] + ['LeanVM.Guest.Bridge.ChkLit'])
             + 'set_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\n@[expose] public section\n\n'
             + ''.join(c for _, c in ctxs) + '\nend\n\nend LeanVM.Guest\n\n' + data.fn_thms(thms))
 

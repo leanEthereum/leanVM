@@ -37,6 +37,15 @@ public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W25
 public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W26
 public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W27
 public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W28
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W29
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W30
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W31
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W32
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W33
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W34
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W35
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W36
+public import LeanVM.Guest.CoreMode.Pack.«P43».FrameD0W37
 
 set_option Elab.async false
 
@@ -55,17 +64,20 @@ theorem frameLen : code.chunks.flatten.length = 114219 := by
 theorem frameAcc : CoreMode.FrameAcc frameFun code.chunks.flatten := by
   have hl : frameFun.len = code.chunks.flatten.length := by rw [frameLen]; rfl
   have hc0 : frameFun.cuts.get 0 = none := rfl
-  refine CoreMode.frameAcc_of_wins frameHints hl [4000, 8000, 12000, 16000, 20000, 24000, 28000,
-    32000, 36000, 40000, 44000, 48000, 52000, 56000, 60000, 64000, 68000, 72000, 76000, 80000,
-    84000, 88000, 92000, 96000, 100000, 104000, 108000, 112000] 0 _ (by rw [frameLen]; decide) rfl
+  refine CoreMode.frameAcc_of_wins frameHints hl [3000, 6000, 9000, 12000, 15000, 18000, 21000,
+    24000, 27000, 30000, 33000, 36000, 39000, 42000, 45000, 48000, 51000, 54000, 57000, 60000,
+    63000, 66000, 69000, 72000, 75000, 78000, 81000, 84000, 87000, 90000, 93000, 96000, 99000,
+    102000, 105000, 108000, 111000] 0 _ (by rw [frameLen]; decide) rfl
     ⟨_, by simp [CoreMode.winStart, hc0], fun _ _ ↦ rfl⟩ ?_
   rw [frameLen]
-  show ∀ p ∈ [(0, 4000), (4000, 8000), (8000, 12000), (12000, 16000), (16000, 20000), (20000,
-    24000), (24000, 28000), (28000, 32000), (32000, 36000), (36000, 40000), (40000, 44000), (44000,
-    48000), (48000, 52000), (52000, 56000), (56000, 60000), (60000, 64000), (64000, 68000), (68000,
-    72000), (72000, 76000), (76000, 80000), (80000, 84000), (84000, 88000), (88000, 92000), (92000,
-    96000), (96000, 100000), (100000, 104000), (104000, 108000), (108000, 112000), (112000,
-    114219)], CoreMode.frameWin frameFun code.chunks.flatten p.1 p.2 = true
+  show ∀ p ∈ [(0, 3000), (3000, 6000), (6000, 9000), (9000, 12000), (12000, 15000), (15000, 18000),
+    (18000, 21000), (21000, 24000), (24000, 27000), (27000, 30000), (30000, 33000), (33000, 36000),
+    (36000, 39000), (39000, 42000), (42000, 45000), (45000, 48000), (48000, 51000), (51000, 54000),
+    (54000, 57000), (57000, 60000), (60000, 63000), (63000, 66000), (66000, 69000), (69000, 72000),
+    (72000, 75000), (75000, 78000), (78000, 81000), (81000, 84000), (84000, 87000), (87000, 90000),
+    (90000, 93000), (93000, 96000), (96000, 99000), (99000, 102000), (102000, 105000), (105000,
+    108000), (108000, 111000), (111000, 114219)], CoreMode.frameWin frameFun code.chunks.flatten p.1
+    p.2 = true
   exact List.forall_mem_cons.2 ⟨frameWin0, List.forall_mem_cons.2 ⟨frameWin1, List.forall_mem_cons.2
     ⟨frameWin2, List.forall_mem_cons.2 ⟨frameWin3, List.forall_mem_cons.2 ⟨frameWin4,
     List.forall_mem_cons.2 ⟨frameWin5, List.forall_mem_cons.2 ⟨frameWin6, List.forall_mem_cons.2
@@ -77,7 +89,10 @@ theorem frameAcc : CoreMode.FrameAcc frameFun code.chunks.flatten := by
     List.forall_mem_cons.2 ⟨frameWin20, List.forall_mem_cons.2 ⟨frameWin21, List.forall_mem_cons.2
     ⟨frameWin22, List.forall_mem_cons.2 ⟨frameWin23, List.forall_mem_cons.2 ⟨frameWin24,
     List.forall_mem_cons.2 ⟨frameWin25, List.forall_mem_cons.2 ⟨frameWin26, List.forall_mem_cons.2
-    ⟨frameWin27, List.forall_mem_cons.2 ⟨frameWin28, List.forall_mem_nil
-    _⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
+    ⟨frameWin27, List.forall_mem_cons.2 ⟨frameWin28, List.forall_mem_cons.2 ⟨frameWin29,
+    List.forall_mem_cons.2 ⟨frameWin30, List.forall_mem_cons.2 ⟨frameWin31, List.forall_mem_cons.2
+    ⟨frameWin32, List.forall_mem_cons.2 ⟨frameWin33, List.forall_mem_cons.2 ⟨frameWin34,
+    List.forall_mem_cons.2 ⟨frameWin35, List.forall_mem_cons.2 ⟨frameWin36, List.forall_mem_cons.2
+    ⟨frameWin37, List.forall_mem_nil _⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
 end
 end LeanVM.Guest.Fn.«main_loop2»

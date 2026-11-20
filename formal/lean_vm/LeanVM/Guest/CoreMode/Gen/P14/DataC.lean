@@ -26,11 +26,9 @@ def hcert : CoreMode.HCert where
   rets := [(List.flatten [CoreMode.runR 0 8])]
   eqs := [44]
 
-def csigs : List (String × CoreMode.HSig) :=
-  []
+def csigs : List (String × CoreMode.HSig) := []
 def hcFlag : Bool := false
-def hcCallees : List (String × ℕ × ℕ) :=
-  []
+def hcCallees : List (String × ℕ × ℕ) := []
 
 end
 end LeanVM.Guest.Fn.«column_selector__L16»
@@ -82,11 +80,9 @@ def hcert : CoreMode.HCert where
     (224, 8), (224, 9), (224, 10), (224, 11), (261, 0), (261, 1), (261, 2), (261, 3), (261, 4), (261, 5),
     (261, 6), (261, 7), (298, 0), (298, 1), (298, 2), (298, 3)]
 
-def csigs : List (String × CoreMode.HSig) :=
-  []
+def csigs : List (String × CoreMode.HSig) := []
 def hcFlag : Bool := false
-def hcCallees : List (String × ℕ × ℕ) :=
-  []
+def hcCallees : List (String × ℕ × ℕ) := []
 
 end
 end LeanVM.Guest.Fn.«decode_query_windows__L17_L5»
@@ -726,8 +722,7 @@ def csigs : List (String × CoreMode.HSig) :=
 def dsp : List (ℕ × List String) :=
   [(13, ["eq_prefix_run__L0", "eq_prefix_run__L1", "eq_prefix_run__L2", "eq_prefix_run__L3", "eq_prefix_run__L4", "eq_prefix_run__L5", "eq_prefix_run__L6", "eq_prefix_run__L7", "eq_prefix_run__L8", "eq_prefix_run__L9", "eq_prefix_run__L10", "eq_prefix_run__L11", "eq_prefix_run__L12", "eq_prefix_run__L13", "eq_prefix_run__L14", "eq_prefix_run__L15", "eq_prefix_run__L16", "eq_prefix_run__L17", "eq_prefix_run__L18", "eq_prefix_run__L19", "eq_prefix_run__L20", "eq_prefix_run__L21", "eq_prefix_run__L22", "eq_prefix_run__L23", "eq_prefix_run__L24", "eq_prefix_run__L25", "eq_prefix_run__L26", "eq_prefix_run__L27", "eq_prefix_run__L28", "eq_prefix_run__L29", "eq_prefix_run__L30", "eq_prefix_run__L31", "eq_prefix_run__L32", "eq_prefix_run__L33", "eq_prefix_run__L34", "eq_prefix_run__L35", "eq_prefix_run__L36", "eq_prefix_run__L37", "eq_prefix_run__L38", "eq_prefix_run__L39", "eq_prefix_run__L40"])]
 def hcFlag : Bool := false
-def hcCallees : List (String × ℕ × ℕ) :=
-  []
+def hcCallees : List (String × ℕ × ℕ) := []
 
 end
 end LeanVM.Guest.Fn.«eq_prefix_chain»
@@ -742,11 +737,9 @@ def hcert : CoreMode.HCert where
     .lt (.val 3) (.num 2048), .lt (.val 2) (.num 2048)]
   rets := [[.run 1 [], .run 1 []]]
 
-def csigs : List (String × CoreMode.HSig) :=
-  []
+def csigs : List (String × CoreMode.HSig) := []
 def hcFlag : Bool := false
-def hcCallees : List (String × ℕ × ℕ) :=
-  []
+def hcCallees : List (String × ℕ × ℕ) := []
 
 end
 end LeanVM.Guest.Fn.«grind_check__L2»
@@ -760,11 +753,9 @@ def hcert : CoreMode.HCert where
   res := [.lt (.val 5) (.num 128), .lt (.val 4) (.num 2048), .lt (.val 3) (.num 2048), .lt (.val 2) (.num 2048)]
   rets := [[.run 1 [], .run 1 []]]
 
-def csigs : List (String × CoreMode.HSig) :=
-  []
+def csigs : List (String × CoreMode.HSig) := []
 def hcFlag : Bool := false
-def hcCallees : List (String × ℕ × ℕ) :=
-  []
+def hcCallees : List (String × ℕ × ℕ) := []
 
 end
 end LeanVM.Guest.Fn.«grind_check__L24»
@@ -809,8 +800,7 @@ def csigs : List (String × CoreMode.HSig) :=
         (⟨⟨[(4, 1)], 8⟩, 9, (.val 0), (.val 1)⟩, [0, 1, 2, 3, 4, 5, 6, 7, 8])] }),
     ("decode_query_windows__L14_L2", CoreMode.HcSig.«decode_query_windows__L14_L2».sig)]
 def hcFlag : Bool := false
-def hcCallees : List (String × ℕ × ℕ) :=
-  []
+def hcCallees : List (String × ℕ × ℕ) := []
 
 end
 end LeanVM.Guest.Fn.«level_positions__L7_L14_L2»
@@ -869,8 +859,7 @@ def csigs : List (String × CoreMode.HSig) :=
       preR := [⟨⟨[(3, 1)], 0⟩, 1, (.val 0), (.val 1)⟩],
       postR := [⟨⟨[(2, 1)], 2⟩, 2, (.val 0), (.val 1)⟩, ⟨⟨[(2, 1)], 3⟩, 2, (.val 0), (.val 1)⟩] })]
 def hcFlag : Bool := false
-def hcCallees : List (String × ℕ × ℕ) :=
-  []
+def hcCallees : List (String × ℕ × ℕ) := []
 
 end
 end LeanVM.Guest.Fn.«level_residual__L37_L20_L4_L2»

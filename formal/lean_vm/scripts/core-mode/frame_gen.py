@@ -89,9 +89,9 @@ def fstLit(A):
 ROUTE = {}
 
 
-# a function whose windows at `WIN` instructions take past the 7.5 GB a module may take: its own size (`main_loop2`,
+# a function whose windows at `WIN` instructions take past 6.5 GB a module: its own size (`main_loop2`,
 # `__loop2_main` to the compiler: its walk reads its packed alignment context)
-WINS = {'__loop2_main': 4000}
+WINS = {'__loop2_main': 3000}
 
 
 def cutsFor(D, n):
@@ -156,12 +156,31 @@ def fnData(D, n, cuts):
         O, S = '%s.pairO' % MG.fnq(n), '%s.pairS' % MG.fnq(n)
     else:
         O, S = MG.bigTrie('frameO', 'Unit', {i: () for i in D['O'].get(n, [])}, lambda _: '()', defs), '.nil'
+    nzT, tidxT = MG.trie(nzr, lambda os: lst(os)), MG.trie(tidx, str)
+    armsT = MG.trie({k: names[('frameArm', k)] for k in tarms}, lambda x: x)
+    callsT = MG.trie({k: names[('frameCallee', k)] for k in tcalls}, lambda x: x)
+    if rt and D['halt'] == 524287 and cutT == '.nil':
+        # one `frame_fn%` (`CoreMode/FrameLit.lean`): the clauses that are not the defaults
+        f = D['fns'][n]
+        q = lambda m: MG.fnq(m)[3:]
+        callees = sorted({q(m) for m in MG.calleesOf(n)})
+        fsigs = sorted({q(m) for m in sigs.values()})
+        fnz = {i: [('nz', o) for o in os_] for i, os_ in nzr.items() if os_}
+        cl = []
+        if fsigs != callees: cl.append('sigs [%s]' % ', '.join(fsigs))
+        if fx['env']: cl.append('env %s' % lst(sorted(fx['env'].items()), lambda p: '(%d, %s)' % (p[0], sym(p[1]))))
+        if fx['fpOne']: cl.append('fpOne')
+        if fx['scaled']: cl.append('scaled %s' % lst(fx['scaled']))
+        for kw, t in (('nzr', nzT), ('tidx', tidxT), ('arms', armsT), ('calls', callsT)):
+            if t != '.nil': cl.append('%s %s' % (kw, t))
+        if fnz: cl.append('fnz %s' % MG.trie(fnz, lambda l: MG.lst(l, MG.res)))
+        if n == 'main': cl.append('main')
+        assert ln == f['count']
+        return ('frame_fn%% %s %d [%s]%s\n' % (q(n), ln, ', '.join(callees), ''.join(' ' + c for c in cl))), defs, packs
     if rt:
         defs += envDefs(D, n, nzr)
     lit = ('⟨%s, %s.entry, %d, %s.csig, %s, %d, %s, %s, %s, %s, %s, %s, %s, %s⟩' % (
-        facts, MG.fnq(n), ln, MG.fnq(n), sigTrie(sigs.values()), D['halt'], hints,
-        MG.trie(nzr, lambda os: lst(os)), MG.trie(tidx, str), MG.trie({k: names[('frameArm', k)] for k in tarms}, lambda x: x),
-        MG.trie({k: names[('frameCallee', k)] for k in tcalls}, lambda x: x), O, S, cutT))
+        facts, MG.fnq(n), ln, MG.fnq(n), sigTrie(sigs.values()), D['halt'], hints, nzT, tidxT, armsT, callsT, O, S, cutT))
     return lit, defs, packs
 
 
@@ -188,7 +207,7 @@ def envDefs(D, n, nzr):
 
 
 def imports(pack, packs, gens=(), glue=(), env=False):
-    out = ['public import LeanVM.Guest.CoreMode.Frame', 'public import LeanVM.Guest.CoreMode.GlueP.«%s»' % pack,
+    out = ['public import LeanVM.Guest.CoreMode.Frame', 'public import LeanVM.Guest.CoreMode.FrameLit', 'public import LeanVM.Guest.CoreMode.GlueP.«%s»' % pack,
            'public import LeanVM.Guest.CoreMode.%s' % ('Env' if env else 'SigTrie'),
            *['public import LeanVM.Guest.CoreMode.GlueA.«%s»' % q for q in sorted(set(glue) or {pack})],
            'public import LeanVM.Guest.Pack.«%s».Bundle' % pack]
@@ -284,8 +303,11 @@ def main(argv):
                 if n in ROUTE: env = True
                 ns_ = D['fns'][n]['ns']
                 if n in ROUTE: gens.add((gen_pack[n], ns_))
-                body.append(qual(ns_, funDef(D, n, lit, defs)) + 'theorem Fn.«%s».frameOk : CoreMode.frameOk frameFun '
-                            'code.chunks.flatten = true := by\n  decide +kernel\n' % ns_)
+                if lit.startswith('frame_fn% '):
+                    body.append(qual(ns_, ''.join(defs)) + lit)
+                else:
+                    body.append(qual(ns_, funDef(D, n, lit, defs)) + 'theorem Fn.«%s».frameOk : CoreMode.frameOk frameFun '
+                                'code.chunks.flatten = true := by\n  decide +kernel\n' % ns_)
                 stats['fns'] += 1
             mod = 'LeanVM.Guest.CoreMode.Pack.«%s».Frame%d' % (p, k)
             files[os.path.join(OUT, p, 'Frame%d.lean' % k)] = (

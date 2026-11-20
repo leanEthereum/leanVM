@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Frame
+public import LeanVM.Guest.CoreMode.FrameLit
 public import LeanVM.Guest.CoreMode.GlueP.«verify_sig_lean_sphincs»
 public import LeanVM.Guest.CoreMode.Env
 public import LeanVM.Guest.CoreMode.GlueA.«verify_sig_lean_sphincs»
@@ -26,19 +27,7 @@ open LeanVM.Guest.Exec
 
 @[expose] public section
 
-noncomputable def Fn.«verify_sig_lean_sphincs».envC : Mode.Env := CoreMode.envOf [Fn.«sp_wots».csig]
-noncomputable def Fn.«verify_sig_lean_sphincs».funC : Mode.Fun :=
-    ⟨Fn.«verify_sig_lean_sphincs».entry, 3887, Fn.«verify_sig_lean_sphincs».csig, .nil, .nil, .nil,
-    false, .nil⟩
-noncomputable def Fn.«verify_sig_lean_sphincs».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«verify_sig_lean_sphincs».entry,
-    3887, Fn.«verify_sig_lean_sphincs».csig, (CoreMode.sigTrie [Fn.«sp_wots».csig]), 524287,
-    advice.2.2, .nil, .nil, .nil, .nil, Fn.«verify_sig_lean_sphincs».pairO,
-    Fn.«verify_sig_lean_sphincs».pairS, .nil⟩
-
-theorem Fn.«verify_sig_lean_sphincs».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true
-    := by
-  decide +kernel
+frame_fn% «verify_sig_lean_sphincs» 3887 [«sp_wots»]
 end
 
 end LeanVM.Guest

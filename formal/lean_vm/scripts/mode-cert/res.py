@@ -101,7 +101,9 @@ def defsOf(blk):
 def core_funs(root, parse, toks):
     """The core route's functions' `Mode.Fun` (`funC`, in their frame walks' modules `CoreMode/Pack/*/Frame*.lean`):
     `{name: (module, literal parsed)}`."""
-    import re
+    import re, sys
+    sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'core-mode'))
+    import framelit as FL
     out = {}
     pat = re.compile(r'^noncomputable def (?:Fn\.«([^»]+)»\.)?funC\s*:\s*Mode\.Fun\s*:=[ ]?(.*(?:\n    .*)*)$', re.M)
     for path in sorted(glob.glob(os.path.join(root, 'CoreMode', 'Pack', '*', 'Frame*.lean'))):
@@ -110,6 +112,9 @@ def core_funs(root, parse, toks):
         for m in pat.finditer(t):
             n = m.group(1) or re.findall(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', t[:m.start()], re.M)[-1]
             out[n] = (mod, parse(toks(m.group(2)))[0])
+        # one `frame_fn%` a function (`scripts/core-mode/framelit.py`)
+        for n, d in FL.parse(t).items():
+            out[n] = (mod, parse(toks(FL.funC(d)))[0])
     return out
 
 

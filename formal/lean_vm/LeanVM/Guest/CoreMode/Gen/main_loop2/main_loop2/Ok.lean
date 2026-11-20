@@ -60,8 +60,27 @@ public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W52
 public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W53
 public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W54
 public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W55
+public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W56
+public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W57
+public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W58
+public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W59
 public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W6
+public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W60
+public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W61
+public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W62
+public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W63
+public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W64
+public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W65
+public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W66
+public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W67
+public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W68
+public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W69
 public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W7
+public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W70
+public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W71
+public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W72
+public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W73
+public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W74
 public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W8
 public import LeanVM.Guest.CoreMode.Gen.«main_loop2».«main_loop2».W9
 public import LeanVM.Guest.CoreMode.PairRun
@@ -73,13 +92,13 @@ open LeanVM.Guest
 public section
 
 /-- `main_loop2`: the pairing's last state is at the end. -/
-theorem pairEndOk : Bridge.chainEnd Fn.«main_loop2».code.code pairK56 = true := by
+theorem pairEndOk : Bridge.chainEnd Fn.«main_loop2».code.code pairK75 = true := by
   decide +kernel
 
 /-- `main_loop2`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads (its context alignCtxP). -/
 theorem pair_okP : CoreMode.pairOk alignCtxP hcert pairO pairS Fn.«main_loop2».core.body Fn.«main_loop2».code.code Fn.«main_loop2».advice = true :=
-  CoreMode.pairOk_of_chain alignPreOk (ks := [pairK1, pairK2, pairK3, pairK4, pairK5, pairK6, pairK7, pairK8, pairK9, pairK10, pairK11, pairK12, pairK13, pairK14, pairK15, pairK16, pairK17, pairK18, pairK19, pairK20, pairK21, pairK22, pairK23, pairK24, pairK25, pairK26, pairK27, pairK28, pairK29, pairK30, pairK31, pairK32, pairK33, pairK34, pairK35, pairK36, pairK37, pairK38, pairK39, pairK40, pairK41, pairK42, pairK43, pairK44, pairK45, pairK46, pairK47, pairK48, pairK49, pairK50, pairK51, pairK52, pairK53, pairK54, pairK55, pairK56])
-    (And.intro pairWin0 (And.intro pairWin1 (And.intro pairWin2 (And.intro pairWin3 (And.intro pairWin4 (And.intro pairWin5 (And.intro pairWin6 (And.intro pairWin7 (And.intro pairWin8 (And.intro pairWin9 (And.intro pairWin10 (And.intro pairWin11 (And.intro pairWin12 (And.intro pairWin13 (And.intro pairWin14 (And.intro pairWin15 (And.intro pairWin16 (And.intro pairWin17 (And.intro pairWin18 (And.intro pairWin19 (And.intro pairWin20 (And.intro pairWin21 (And.intro pairWin22 (And.intro pairWin23 (And.intro pairWin24 (And.intro pairWin25 (And.intro pairWin26 (And.intro pairWin27 (And.intro pairWin28 (And.intro pairWin29 (And.intro pairWin30 (And.intro pairWin31 (And.intro pairWin32 (And.intro pairWin33 (And.intro pairWin34 (And.intro pairWin35 (And.intro pairWin36 (And.intro pairWin37 (And.intro pairWin38 (And.intro pairWin39 (And.intro pairWin40 (And.intro pairWin41 (And.intro pairWin42 (And.intro pairWin43 (And.intro pairWin44 (And.intro pairWin45 (And.intro pairWin46 (And.intro pairWin47 (And.intro pairWin48 (And.intro pairWin49 (And.intro pairWin50 (And.intro pairWin51 (And.intro pairWin52 (And.intro pairWin53 (And.intro pairWin54 (And.intro pairWin55 pairEndOk))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+  CoreMode.pairOk_of_chain alignPreOk (ks := [pairK1, pairK2, pairK3, pairK4, pairK5, pairK6, pairK7, pairK8, pairK9, pairK10, pairK11, pairK12, pairK13, pairK14, pairK15, pairK16, pairK17, pairK18, pairK19, pairK20, pairK21, pairK22, pairK23, pairK24, pairK25, pairK26, pairK27, pairK28, pairK29, pairK30, pairK31, pairK32, pairK33, pairK34, pairK35, pairK36, pairK37, pairK38, pairK39, pairK40, pairK41, pairK42, pairK43, pairK44, pairK45, pairK46, pairK47, pairK48, pairK49, pairK50, pairK51, pairK52, pairK53, pairK54, pairK55, pairK56, pairK57, pairK58, pairK59, pairK60, pairK61, pairK62, pairK63, pairK64, pairK65, pairK66, pairK67, pairK68, pairK69, pairK70, pairK71, pairK72, pairK73, pairK74, pairK75])
+    (And.intro pairWin0 (And.intro pairWin1 (And.intro pairWin2 (And.intro pairWin3 (And.intro pairWin4 (And.intro pairWin5 (And.intro pairWin6 (And.intro pairWin7 (And.intro pairWin8 (And.intro pairWin9 (And.intro pairWin10 (And.intro pairWin11 (And.intro pairWin12 (And.intro pairWin13 (And.intro pairWin14 (And.intro pairWin15 (And.intro pairWin16 (And.intro pairWin17 (And.intro pairWin18 (And.intro pairWin19 (And.intro pairWin20 (And.intro pairWin21 (And.intro pairWin22 (And.intro pairWin23 (And.intro pairWin24 (And.intro pairWin25 (And.intro pairWin26 (And.intro pairWin27 (And.intro pairWin28 (And.intro pairWin29 (And.intro pairWin30 (And.intro pairWin31 (And.intro pairWin32 (And.intro pairWin33 (And.intro pairWin34 (And.intro pairWin35 (And.intro pairWin36 (And.intro pairWin37 (And.intro pairWin38 (And.intro pairWin39 (And.intro pairWin40 (And.intro pairWin41 (And.intro pairWin42 (And.intro pairWin43 (And.intro pairWin44 (And.intro pairWin45 (And.intro pairWin46 (And.intro pairWin47 (And.intro pairWin48 (And.intro pairWin49 (And.intro pairWin50 (And.intro pairWin51 (And.intro pairWin52 (And.intro pairWin53 (And.intro pairWin54 (And.intro pairWin55 (And.intro pairWin56 (And.intro pairWin57 (And.intro pairWin58 (And.intro pairWin59 (And.intro pairWin60 (And.intro pairWin61 (And.intro pairWin62 (And.intro pairWin63 (And.intro pairWin64 (And.intro pairWin65 (And.intro pairWin66 (And.intro pairWin67 (And.intro pairWin68 (And.intro pairWin69 (And.intro pairWin70 (And.intro pairWin71 (And.intro pairWin72 (And.intro pairWin73 (And.intro pairWin74 pairEndOk)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
 
 /-- `main_loop2`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
 theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«main_loop2».core.body Fn.«main_loop2».code.code Fn.«main_loop2».advice = true :=

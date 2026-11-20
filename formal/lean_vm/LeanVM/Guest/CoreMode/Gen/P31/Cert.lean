@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.CertLit
 public import LeanVM.Guest.CoreMode.Gen.HcTab
 public import LeanVM.Guest.CoreMode.Gen.«P31».Route
 public import LeanVM.Guest.CoreMode.GlueC.«P31»
@@ -17,7 +18,7 @@ set_option Elab.async false
 set_option linter.style.nameCheck false
 
 /-! Each function's certificate (`modeCert`: its `envC`, `funC` and code), its callees' signatures
-(`modeSigs`), and the certificate with its facts (`ce`). -/
+(`modeSigs`), and the certificate with its facts (`ce`): `core_cert%`, `CoreMode/CertLit.lean`. -/
 
 namespace LeanVM.Guest.Fn
 
@@ -25,160 +26,28 @@ open LeanVM.Guest LeanVM.Guest.EndExec
 
 @[expose] public section
 
-noncomputable def «column_selector__L0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «index_mle__L3».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «level_positions__L14_L16_L4_loop0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «level_positions__L16_L17_L5_loop0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «level_positions__L19_L27_L3_loop0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «level_positions__L32_L18_L6_loop0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «level_positions__L8_L17_L5».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «level_positions__L8_L26_L2_loop0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «level_queries__L24_L0_L4_L16_L13_L7_L2_L8_L3_L1».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «level_residual__L18_L8_L4_L2_loop1».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «level_residual__L21_L8_L4_L2_loop1».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «level_residual__L32_L18_L4_L2_loop0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «level_residual__L37_L11_L4_L2_loop0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «level_residual__L55_L19_L6_L3».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «level_residual__L73_L24_L6_L3».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0_loop0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-noncomputable def «opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1_loop0».modeCert : Mode.Cert := ⟨envC, funC, code.chunks.flatten⟩
-
-end
-
-kernel_rfl «column_selector__L0».modeSigs : «column_selector__L0».modeCert.E.sigs = CoreMode.sigTrie
-  []
-kernel_rfl «index_mle__L3».modeSigs : «index_mle__L3».modeCert.E.sigs = CoreMode.sigTrie
-  []
-kernel_rfl «level_positions__L14_L16_L4_loop0».modeSigs : «level_positions__L14_L16_L4_loop0».modeCert.E.sigs = CoreMode.sigTrie
-  [«decode_query_windows__L16_L4».csig,
-    «level_positions__L14_L16_L4_loop0».csig]
-kernel_rfl «level_positions__L16_L17_L5_loop0».modeSigs : «level_positions__L16_L17_L5_loop0».modeCert.E.sigs = CoreMode.sigTrie
-  [«decode_query_windows__L17_L5».csig,
-    «level_positions__L16_L17_L5_loop0».csig]
-kernel_rfl «level_positions__L19_L27_L3_loop0».modeSigs : «level_positions__L19_L27_L3_loop0».modeCert.E.sigs = CoreMode.sigTrie
-  [«decode_query_windows__L27_L3».csig,
-    «level_positions__L19_L27_L3_loop0».csig]
-kernel_rfl «level_positions__L32_L18_L6_loop0».modeSigs : «level_positions__L32_L18_L6_loop0».modeCert.E.sigs = CoreMode.sigTrie
-  [«decode_query_windows__L18_L6».csig,
-    «level_positions__L32_L18_L6_loop0».csig]
-kernel_rfl «level_positions__L8_L17_L5».modeSigs : «level_positions__L8_L17_L5».modeCert.E.sigs = CoreMode.sigTrie
-  [«decode_query_windows__L17_L5».csig,
-    «level_positions__L8_L17_L5_loop0».csig]
-kernel_rfl «level_positions__L8_L26_L2_loop0».modeSigs : «level_positions__L8_L26_L2_loop0».modeCert.E.sigs = CoreMode.sigTrie
-  [«decode_query_windows__L26_L2».csig,
-    «level_positions__L8_L26_L2_loop0».csig]
-kernel_rfl «level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeSigs : «level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeCert.E.sigs = CoreMode.sigTrie
-  [«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0».csig,
-    «verify_merkle_cap__L6».csig]
-kernel_rfl «level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».modeSigs : «level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».modeCert.E.sigs = CoreMode.sigTrie
-  [«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1».csig,
-    «verify_merkle_cap__L2».csig]
-kernel_rfl «level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeSigs : «level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert.E.sigs = CoreMode.sigTrie
-  [«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0».csig,
-    «verify_merkle_cap__L2».csig]
-kernel_rfl «level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeSigs : «level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert.E.sigs = CoreMode.sigTrie
-  [«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».csig,
-    «verify_merkle_cap__L4».csig]
-kernel_rfl «level_queries__L24_L0_L4_L16_L13_L7_L2_L8_L3_L1».modeSigs : «level_queries__L24_L0_L4_L16_L13_L7_L2_L8_L3_L1».modeCert.E.sigs = CoreMode.sigTrie
-  [«opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1».csig,
-    «verify_merkle_cap__L7».csig]
-kernel_rfl «level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeSigs : «level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert.E.sigs = CoreMode.sigTrie
-  [«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0».csig,
-    «verify_merkle_cap__L7».csig]
-kernel_rfl «level_residual__L18_L8_L4_L2_loop1».modeSigs : «level_residual__L18_L8_L4_L2_loop1».modeCert.E.sigs = CoreMode.sigTrie
-  [«level_residual__L18_L8_L4_L2_loop1».csig]
-kernel_rfl «level_residual__L21_L8_L4_L2_loop1».modeSigs : «level_residual__L21_L8_L4_L2_loop1».modeCert.E.sigs = CoreMode.sigTrie
-  [«level_residual__L21_L8_L4_L2_loop1».csig]
-kernel_rfl «level_residual__L32_L18_L4_L2_loop0».modeSigs : «level_residual__L32_L18_L4_L2_loop0».modeCert.E.sigs = CoreMode.sigTrie
-  [«level_residual__L32_L18_L4_L2_loop0».csig]
-kernel_rfl «level_residual__L37_L11_L4_L2_loop0».modeSigs : «level_residual__L37_L11_L4_L2_loop0».modeCert.E.sigs = CoreMode.sigTrie
-  [«level_residual__L37_L11_L4_L2_loop0».csig]
-kernel_rfl «level_residual__L55_L19_L6_L3».modeSigs : «level_residual__L55_L19_L6_L3».modeCert.E.sigs = CoreMode.sigTrie
-  [«level_residual__L55_L19_L6_L3_loop0».csig,
-    «level_residual__L55_L19_L6_L3_loop1».csig]
-kernel_rfl «level_residual__L73_L24_L6_L3».modeSigs : «level_residual__L73_L24_L6_L3».modeCert.E.sigs = CoreMode.sigTrie
-  [«level_residual__L73_L24_L6_L3_loop0».csig,
-    «level_residual__L73_L24_L6_L3_loop1».csig]
-kernel_rfl «opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0_loop0».modeSigs : «opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0_loop0».modeCert.E.sigs = CoreMode.sigTrie
-  [«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0_loop0».csig,
-    «walk_path__L12_L2».csig]
-kernel_rfl «opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1_loop0».modeSigs : «opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1_loop0».modeCert.E.sigs = CoreMode.sigTrie
-  [«opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1_loop0».csig,
-    «walk_path__L18_L2».csig]
-
-@[expose] public section
-
-noncomputable def «column_selector__L0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 0), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «index_mle__L3».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 1), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «level_positions__L14_L16_L4_loop0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 2), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «level_positions__L16_L17_L5_loop0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 3), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «level_positions__L19_L27_L3_loop0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 4), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «level_positions__L32_L18_L6_loop0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 5), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «level_positions__L8_L17_L5».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 6), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «level_positions__L8_L26_L2_loop0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 7), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 8), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 9), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 10), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 11), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «level_queries__L24_L0_L4_L16_L13_L7_L2_L8_L3_L1».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 12), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 13), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «level_residual__L18_L8_L4_L2_loop1».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 14), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «level_residual__L21_L8_L4_L2_loop1».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 15), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «level_residual__L32_L18_L4_L2_loop0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 16), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «level_residual__L37_L11_L4_L2_loop0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 17), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «level_residual__L55_L19_L6_L3».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 18), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «level_residual__L73_L24_L6_L3».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 19), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0_loop0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 20), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
-noncomputable def «opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1_loop0».ce : EndExec.CertE CoreMode.hcTab CoreMode.coreNzs :=
-  ⟨modeCert, cfun, ModePack.«P31».coreFns_ok _ (list_mem% 21), ⟨by decide +kernel, rfl, rfl⟩, rfl, fnSpecC, by decide +kernel,
-    Mode.fnLink_of code_mem rfl rfl rfl, termOk_of (j := idx) (by decide +kernel), nzOnly_nil rfl⟩
+core_cert% «column_selector__L0» «P31» 0 []
+core_cert% «index_mle__L3» «P31» 1 []
+core_cert% «level_positions__L14_L16_L4_loop0» «P31» 2 [«decode_query_windows__L16_L4», «level_positions__L14_L16_L4_loop0»]
+core_cert% «level_positions__L16_L17_L5_loop0» «P31» 3 [«decode_query_windows__L17_L5», «level_positions__L16_L17_L5_loop0»]
+core_cert% «level_positions__L19_L27_L3_loop0» «P31» 4 [«decode_query_windows__L27_L3», «level_positions__L19_L27_L3_loop0»]
+core_cert% «level_positions__L32_L18_L6_loop0» «P31» 5 [«decode_query_windows__L18_L6», «level_positions__L32_L18_L6_loop0»]
+core_cert% «level_positions__L8_L17_L5» «P31» 6 [«decode_query_windows__L17_L5», «level_positions__L8_L17_L5_loop0»]
+core_cert% «level_positions__L8_L26_L2_loop0» «P31» 7 [«decode_query_windows__L26_L2», «level_positions__L8_L26_L2_loop0»]
+core_cert% «level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0» «P31» 8 [«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0», «verify_merkle_cap__L6»]
+core_cert% «level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1» «P31» 9 [«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1», «verify_merkle_cap__L2»]
+core_cert% «level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0» «P31» 10 [«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0», «verify_merkle_cap__L2»]
+core_cert% «level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0» «P31» 11 [«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0», «verify_merkle_cap__L4»]
+core_cert% «level_queries__L24_L0_L4_L16_L13_L7_L2_L8_L3_L1» «P31» 12 [«opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1», «verify_merkle_cap__L7»]
+core_cert% «level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0» «P31» 13 [«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0», «verify_merkle_cap__L7»]
+core_cert% «level_residual__L18_L8_L4_L2_loop1» «P31» 14 [«level_residual__L18_L8_L4_L2_loop1»]
+core_cert% «level_residual__L21_L8_L4_L2_loop1» «P31» 15 [«level_residual__L21_L8_L4_L2_loop1»]
+core_cert% «level_residual__L32_L18_L4_L2_loop0» «P31» 16 [«level_residual__L32_L18_L4_L2_loop0»]
+core_cert% «level_residual__L37_L11_L4_L2_loop0» «P31» 17 [«level_residual__L37_L11_L4_L2_loop0»]
+core_cert% «level_residual__L55_L19_L6_L3» «P31» 18 [«level_residual__L55_L19_L6_L3_loop0», «level_residual__L55_L19_L6_L3_loop1»]
+core_cert% «level_residual__L73_L24_L6_L3» «P31» 19 [«level_residual__L73_L24_L6_L3_loop0», «level_residual__L73_L24_L6_L3_loop1»]
+core_cert% «opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0_loop0» «P31» 20 [«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0_loop0», «walk_path__L12_L2»]
+core_cert% «opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1_loop0» «P31» 21 [«opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1_loop0», «walk_path__L18_L2»]
 
 end
 

@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Bridge.AlignDefs
+public import LeanVM.Guest.Bridge.ChkLit
 public import LeanVM.Guest.CoreMode.GlueA.«P13»
 public import LeanVM.Guest.CoreMode.GlueE.«P0»
 public import LeanVM.Guest.CoreMode.GlueE.«P10»
@@ -78,8 +79,7 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«open_stacked__L8».alignCellsOk : Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) [] = true := by decide +kernel
-theorem Fn.«open_stacked__L8».alignOk : Bridge.alignOk alignCtx core.body code.code Fn.«open_stacked__L8».advice = true := by decide +kernel
+align_chk% «open_stacked__L8»
 
 end
 

@@ -1181,11 +1181,11 @@ def ldata(k, r, shared=frozenset(), sigs=None, refs={}):
     if sigs is not None:
         sigs |= used
     return (f'{auxt}def hcert : CoreMode.HCert where\n{body}\n'
-            f'def csigs : List (String × CoreMode.HSig) :=\n  [{cs}]\n' + (
+            f'def csigs : List (String × CoreMode.HSig) :={" " if len(cs) < 60 and "\n" not in cs else "\n  "}[{cs}]\n' + (
                 'def dsp : List (ℕ × List String) :=\n  [%s]\n' % (', '.join(
                     '(%d, [%s])' % (q, ', '.join('"%s"' % f for f in fs)) for q, fs in r['dsp'])) if r.get('dsp') else '') +
             f'def hcFlag : Bool := {"true" if r.get("hc") else "false"}\n'
-            f'def hcCallees : List (String × ℕ × ℕ) :=\n  [{", ".join(f'("{f}", {a}, {b})' for f, a, b in r.get("hcs", []))}]\n')
+            f'def hcCallees : List (String × ℕ × ℕ) := [{", ".join(f'("{f}", {a}, {b})' for f, a, b in r.get("hcs", []))}]\n')
 
 
 GENW = os.path.join(GUEST, 'CoreMode', 'GenW')
