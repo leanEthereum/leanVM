@@ -90,3 +90,7 @@ dump ResultTableEvaluations bus Result<Vec<(Vec<E>, Vec<E>)>, VerifierError>
 
 # the guest's input reader
 dump Input main Input<'static>
+
+# what `walk` and `verify_execution` return
+dump Summary lib Summary
+dump ResultSummary lib Result<Summary, VerifierError>
