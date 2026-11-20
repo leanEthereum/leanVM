@@ -155,23 +155,16 @@ pub(crate) fn mul_x_block<T: Coef>(block: &[T], first: usize, outside: impl Fn(u
     }
 }
 
-/// `h[c + 2^t - 1]`, `t` the trailing zeros of the even `c`, or zero past `h`.
-#[inline(always)]
-fn far<T: Coef>(h: &[T], c: usize) -> T {
-    h.get(c + (1 << c.trailing_zeros()) - 1).copied().unwrap_or(T::ZERO)
-}
-
-/// `(X h)[c]` for one column, reading zero past `h`.
+/// `(X h)[c]` for one column, `h(c)` giving the coefficients of `h`.
 #[inline]
-pub(crate) fn x_at<T: Coef>(h: &[T], c: usize) -> T {
+pub(crate) fn x_at<T: Coef>(h: impl Fn(usize) -> T, c: usize) -> T {
     if c == 0 {
         return T::ZERO;
     }
-    let prev = h.get(c - 1).copied().unwrap_or(T::ZERO);
     if c & 1 == 1 {
-        prev + h.get(c).copied().unwrap_or(T::ZERO)
+        h(c - 1) + h(c)
     } else {
-        (prev + far(h, c)).scale(coeff(c))
+        (h(c - 1) + h(c + (1 << c.trailing_zeros()) - 1)).scale(coeff(c))
     }
 }
 

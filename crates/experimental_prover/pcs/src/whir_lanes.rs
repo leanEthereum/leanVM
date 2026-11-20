@@ -7,8 +7,9 @@
 //!
 //! A fold folds `A` and the projections only. Its lanes are written by the next round's table: one pass folds the
 //! round's pairs `(F, G)` into `P = G + alpha F + beta X F`, writes them out as the next round's pairs, and projects
-//! `X` times each pair's first. Round 1's pairs are the stack's lanes, read in place. The last fold's one lane is
-//! written out at the end, and the weight is lifted for it.
+//! `X` times each pair's first. Round 1's pairs are the stack's lanes, read in place. Round 2's pairs, round 1's
+//! folded lanes, are not written out: round 3's pass folds them again from the stack, which it reads in their place.
+//! The last fold's one lane is written out at the end, and the weight is lifted for it.
 //!
 //! The stack's absent lanes are zero, so they take no projection, but `A` keeps a row for every lane: a claim's weight
 //! may reach past the committed lanes. A lane without a partner folds against zero, its row of `A` against its
@@ -59,6 +60,9 @@ fn outside<T: Copy + Default>(lane: &[T]) -> impl Fn(usize) -> T + '_ {
 enum Pairs {
     /// Round 1's: the committed lanes two by two.
     Stack,
+    /// Round 2's: round 1's folded lanes, folded from the stack where read, at round 1's challenges and the `cx` of
+    /// [`Folded`] for them.
+    Unstored { ch: FoldChallenges, cx: Box<[F128; 64]> },
     /// A later round's, `len` coefficients each, a missing `G` zero.
     Stored { f: Vec<F128>, g: Vec<F128>, len: usize },
 }
@@ -74,10 +78,11 @@ struct Folded<'a> {
     cx: [F128; 64],
 }
 
-impl Folded<'_> {
+impl<'a> Folded<'a> {
     fn count(&self) -> usize {
         match self.pairs {
             Pairs::Stack => self.n_stack.div_ceil(2),
+            Pairs::Unstored { .. } => self.n_stack.div_ceil(2).div_ceil(2),
             Pairs::Stored { f, len, .. } => f.len() / len,
         }
     }
@@ -85,7 +90,18 @@ impl Folded<'_> {
     fn len(&self) -> usize {
         1 + match self.pairs {
             Pairs::Stack => self.lane_block,
+            Pairs::Unstored { .. } => self.lane_block + 1,
             Pairs::Stored { len, .. } => *len,
+        }
+    }
+
+    /// Round 1's folded lanes: the pairs of [`Pairs::Unstored`].
+    fn round_1(&self, ch: FoldChallenges, cx: [F128; 64]) -> Folded<'a> {
+        Folded {
+            pairs: &Pairs::Stack,
+            ch,
+            cx,
+            ..*self
         }
     }
 
@@ -99,20 +115,26 @@ impl Folded<'_> {
         match self.pairs {
             Pairs::Stack => self.stack_lane(2 * i).map_or(F128::ZERO, |f| {
                 let g = self.stack_lane(2 * i + 1).map_or(F64::ZERO, |g| outside(g)(c));
-                F128::from(g) + alpha.mul_base(outside(f)(c)) + beta.mul_base(x_at(f, c))
+                F128::from(g) + alpha.mul_base(outside(f)(c)) + beta.mul_base(x_at(outside(f), c))
             }),
+            Pairs::Unstored { ch, cx } => {
+                let pairs = self.round_1(*ch, **cx);
+                let f = |c: usize| pairs.at(2 * i, c);
+                pairs.at(2 * i + 1, c) + alpha * f(c) + beta * x_at(f, c)
+            }
             Pairs::Stored { f, g, len } => match (f.get(i * len..(i + 1) * len), g.get(i * len..(i + 1) * len)) {
-                (Some(f), Some(g)) => outside(g)(c) + alpha * outside(f)(c) + beta * x_at(f, c),
+                (Some(f), Some(g)) => outside(g)(c) + alpha * outside(f)(c) + beta * x_at(outside(f), c),
                 _ => F128::ZERO,
             },
         }
     }
 
     /// `P_i` over the `out.len()` coefficients from `first`, a power of two that divides `first`, inside the low part.
+    /// Round 2's pairs fold their first lane's coefficients into `scratch`.
     ///
     /// `X` multiplies column `c` by `A_t` after summing two coefficients, so a multiple of `X` enters as the sums, the
     /// `A_t` folded into its challenge.
-    fn block(&self, i: usize, first: usize, out: &mut [F128]) {
+    fn block(&self, i: usize, first: usize, out: &mut [F128], scratch: &mut Vec<F128>) {
         let n = out.len();
         let alpha = self.ch.alpha;
         let out = out.as_chunks_mut::<8>().0;
@@ -131,6 +153,25 @@ impl Folded<'_> {
                     if let Some(g) = g {
                         o.iter_mut().zip(g[q]).for_each(|(o, g)| *o += F128::from(g));
                     }
+                }
+            }
+            Pairs::Unstored { ch, cx: cx_1 } => {
+                let pairs = self.round_1(*ch, **cx_1);
+                // `G` into `out`, then `alpha F + beta X F` added to it.
+                let g = out.as_flattened_mut();
+                if 2 * i + 1 < pairs.count() {
+                    pairs.block(2 * i + 1, first, g, scratch);
+                } else {
+                    g.fill(F128::ZERO);
+                }
+                scratch.resize(n, F128::ZERO);
+                pairs.block(2 * i, first, &mut scratch[..n], &mut Vec::new());
+                let (fb, alpha) = (&scratch[..n], F128x8::splat(alpha));
+                for (q, (o, f)) in out.iter_mut().zip(fb.as_chunks::<8>().0).enumerate() {
+                    let (sf, t0) = sums8(fb, q, first, |c| pairs.at(2 * i, c));
+                    let sum =
+                        alpha.mul_unreduced(F128x8::from_array(f)) ^ cx(t0).mul_unreduced(F128x8::from_array(&sf));
+                    *o = (F128x8::from_array(o) + sum.reduce_lanes()).to_array();
                 }
             }
             Pairs::Stored { f, g, len } => {
@@ -155,7 +196,8 @@ struct Pending {
 }
 
 pub(crate) struct LaneRounds {
-    /// The committed lanes, read until round 2's table (or `finish` after one round), then freed unless `keep_stack`.
+    /// The committed lanes, read until round 3's table (or `finish` after one or two rounds), then freed unless
+    /// `keep_stack`.
     stack: Vec<F64>,
     keep_stack: bool,
     lane_block: usize,
@@ -252,8 +294,8 @@ impl LaneRounds {
         rows.chunks_exact(nt).skip(1).step_by(4).flatten().copied().collect()
     }
 
-    /// A later round's pairs, the last fold's lanes, written out, `X F`'s projection per pair onto the terms `needs`
-    /// marks for it, and each lane's onto the terms `fresh` marks for it, as `(index into p, value)`.
+    /// A later round's pairs, the last fold's lanes, written out but for round 2's, `X F`'s projection per pair onto
+    /// the terms `needs` marks for it, and each lane's onto the terms `fresh` marks for it, as `(index into p, value)`.
     fn write_pairs(&self, folded: &Folded, needs: &[bool], fresh: &[bool]) -> (Pairs, Vec<F128>, Vec<(usize, F128)>) {
         let (nt, lb, terms) = (self.n_terms, self.lane_block, &self.terms);
         let (count, len) = (folded.count(), folded.len());
@@ -261,13 +303,10 @@ impl LaneRounds {
         let (low, block) = (terms.low_vars(), 1usize << terms.low_vars());
         // The stack lanes under a pair's `F`, and the words of `X F` a repeat of theirs leaves free.
         let (group, head) = (1usize << (self.round - 1), self.round);
+        let store = !matches!(folded.pairs, Pairs::Stack);
+        let size = if store { n_pairs * len } else { 0 };
         // SAFETY: the pass writes every low coefficient and the loop after it every high one, before any is read.
-        let (mut f, mut g) = unsafe {
-            (
-                primitives::uninit_vec(n_pairs * len),
-                primitives::uninit_vec(n_pairs * len),
-            )
-        };
+        let (mut f, mut g) = unsafe { (primitives::uninit_vec(size), primitives::uninit_vec(size)) };
         let (fp, gp) = (parallel::SendPtr(f.as_mut_ptr()), parallel::SendPtr(g.as_mut_ptr()));
         let live = |m: usize, slot: usize| match slot {
             0 | 1 => &needs[m * nt..][..nt],
@@ -277,6 +316,7 @@ impl LaneRounds {
             terms.project_rows(n_pairs, SLOTS, live, |m, blocks, feed| {
                 let stream = Stream::new();
                 let [mut pa, mut pb, mut xf] = [0; 3].map(|_| vec![F128::ZERO; block]);
+                let mut scratch = Vec::new();
                 // The limbs of `X F` and of the pair's lanes, each where it projects some term.
                 let mut limbs = [0, 2, 4].map(|slot| {
                     live(m, slot)
@@ -297,16 +337,18 @@ impl LaneRounds {
                     let sweep = start..(start + SWEEP).min(blocks.end);
                     for (k, b) in sweep.clone().enumerate() {
                         let first = b << low;
-                        folded.block(2 * m, first, &mut pa);
+                        folded.block(2 * m, first, &mut pa, &mut scratch);
                         if 2 * m + 1 < count {
-                            folded.block(2 * m + 1, first, &mut pb);
+                            folded.block(2 * m + 1, first, &mut pb, &mut scratch);
                         } else {
                             pb.fill(F128::ZERO);
                         }
-                        // SAFETY: each task owns its blocks of its pair.
-                        unsafe {
-                            stream.copy(fp.slice(m * len + first, block), &pa);
-                            stream.copy(gp.slice(m * len + first, block), &pb);
+                        if store {
+                            // SAFETY: each task owns its blocks of its pair.
+                            unsafe {
+                                stream.copy(fp.slice(m * len + first, block), &pa);
+                                stream.copy(gp.slice(m * len + first, block), &pb);
+                            }
                         }
                         let outside = |c: usize| match last {
                             Some((before, _)) if c + 1 == first => before,
@@ -337,10 +379,12 @@ impl LaneRounds {
                 }
             })
         });
-        for m in 0..n_pairs {
-            for c in lb..len {
-                f[m * len + c] = folded.at(2 * m, c);
-                g[m * len + c] = folded.at(2 * m + 1, c);
+        if store {
+            for m in 0..n_pairs {
+                for c in lb..len {
+                    f[m * len + c] = folded.at(2 * m, c);
+                    g[m * len + c] = folded.at(2 * m + 1, c);
+                }
             }
         }
         // A projection from its limbs' in slots `slot` and `slot + 1` of pair `m`.
@@ -355,7 +399,15 @@ impl LaneRounds {
                 (i, join(l / 2, 2 + 2 * (l % 2), t))
             })
             .collect();
-        (Pairs::Stored { f, g, len }, pxf, own)
+        let pairs = if store {
+            Pairs::Stored { f, g, len }
+        } else {
+            Pairs::Unstored {
+                ch: folded.ch,
+                cx: Box::new(folded.cx),
+            }
+        };
+        (pairs, pxf, own)
     }
 
     /// The round's table.
@@ -390,8 +442,8 @@ impl LaneRounds {
                 for (i, value) in own {
                     self.p[i] = value;
                 }
-                // Round 2 read the stack's pairs last.
-                if matches!(pairs, Pairs::Stack) && !self.keep_stack {
+                // Round 3 read the stack last.
+                if matches!(pairs, Pairs::Unstored { .. }) && !self.keep_stack {
                     self.stack = Vec::new();
                 }
                 (written, pxf)
@@ -460,7 +512,7 @@ impl LaneRounds {
                 primitives::filled_vec(len, |out: &mut [F128]| {
                     let (low, high) = out.split_at_mut(lb);
                     parallel::chunks_mut(low, cols, |t, out| {
-                        folded.block(0, t * cols, out);
+                        folded.block(0, t * cols, out, &mut Vec::new());
                     });
                     for (c, o) in (lb..).zip(high) {
                         *o = folded.at(0, c);

@@ -237,12 +237,11 @@ mod tests {
     /// dense weight, and leave the same lane and weight, across claims inside
     /// one lane and spanning lanes, strides above the lane bit, shared and distinct points, one over the whole stack
     /// past its lanes, and a q_keccak ring both spanning lanes and selected by lane bits, over a stack with runs of
-    /// equal blocks.
+    /// equal blocks. Six rounds, and one and two, whose last lane is folded from the stack.
     #[test]
     fn projected_lane_rounds_match_the_dense_rounds() {
-        const LANE_ROUNDS: usize = 6;
         let mut rng = Rng::new(0xBA515);
-        for (lane_vars, lanes_count, qkeccak_vars) in [
+        let cases = [
             (6usize, 1usize, 6usize),
             (6, 3, 7),
             (8, 13, 10),
@@ -254,7 +253,11 @@ mod tests {
             (14, 3, 15),
             // Sixty-four blocks a lane: runs of equal blocks cross the projection's sweeps and the lane fold's tasks.
             (16, 3, 17),
-        ] {
+        ];
+        let short = [((6, 2, 7), 1), ((8, 3, 9), 2), ((12, 4, 13), 2)];
+        for ((lane_vars, lanes_count, qkeccak_vars), lane_rounds) in
+            cases.map(|case| (case, 6)).into_iter().chain(short)
+        {
             let lane_block = 1usize << lane_vars;
             let mut stack: Vec<F64> = (0..lanes_count * lane_block).map(|_| F64(rng.next_u64())).collect();
             // Runs of equal blocks across lane boundaries and the lane fold's tasks, changing in some lanes only.
@@ -310,7 +313,7 @@ mod tests {
                 }
                 shapes.retain(|&(offset, vars, _)| offset + (1 << vars) <= stack.len());
                 // The whole stack, past the committed lanes.
-                shapes.push((0, lane_vars + LANE_ROUNDS, None));
+                shapes.push((0, lane_vars + lane_rounds, None));
                 let claims: Vec<_> = shapes
                     .into_iter()
                     .map(|(offset, vars, point)| StackClaim::Point {
@@ -322,7 +325,7 @@ mod tests {
                 let lambdas = rng.ext_vec(claims.len());
 
                 // Oracle: the dense weight written out naively, one eq entry at a time.
-                let mut dense = vec![F128::ZERO; lane_block << LANE_ROUNDS];
+                let mut dense = vec![F128::ZERO; lane_block << lane_rounds];
                 ring_switch::combine_deferred_chunk(&rs_outputs, &mut dense[offset..offset + qkeccak_len]);
                 for (claim, &lambda) in claims.iter().zip(&lambdas) {
                     let StackClaim::Point { offset, low_point, .. } = claim;
@@ -337,7 +340,7 @@ mod tests {
                 let rings: Vec<_> = rs_outputs.iter().map(|output| output.weight.clone()).collect();
                 let projected = basis::initial_basis(
                     &stack,
-                    lane_vars + LANE_ROUNDS,
+                    lane_vars + lane_rounds,
                     lane_vars,
                     &claims,
                     &lambdas,
@@ -349,7 +352,7 @@ mod tests {
                     format!("lane_vars={lane_vars}, lanes={lanes_count}, qkeccak_vars={qkeccak_vars}, offset={offset}");
                 // The reference: the stack and the weight coefficient by coefficient, lanes interleaved, the stack's
                 // absent ones zero.
-                let stride = 1usize << LANE_ROUNDS;
+                let stride = 1usize << lane_rounds;
                 let transpose = |v: &dyn Fn(usize) -> F128| -> Vec<F128> {
                     (0..lane_block * stride)
                         .map(|i| v(i % stride * lane_block + i / stride))
@@ -360,7 +363,7 @@ mod tests {
                     w: transpose(&|i| dense[i]),
                     stride,
                 };
-                for round in 0..LANE_ROUNDS {
+                for round in 0..lane_rounds {
                     let ch = FoldChallenges {
                         alpha: rng.ext(),
                         beta: rng.ext(),
