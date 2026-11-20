@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Protocol.Verifier.Claims
-public import LeanVM.Protocol.Compile.SpecRules.Basic
+import LeanVM.Protocol.Compile.SpecRules.Basic
 
 /-!
 # The returns of the leanVM verifier

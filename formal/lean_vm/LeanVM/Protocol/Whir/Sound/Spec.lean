@@ -10,8 +10,10 @@
 module
 
 public import LeanVM.Protocol.Whir.Sound.Start
-public import LeanVM.Protocol.Verifier.WhirTarget
+import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Phases
+public import LeanVM.Protocol.Whir.Sound.LevelFinal
+import LeanVM.Protocol.ToArkLib.Whir.Counting
 
 /-!
 # The specification of the WHIR opening

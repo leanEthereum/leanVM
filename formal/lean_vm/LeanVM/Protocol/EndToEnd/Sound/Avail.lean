@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Protocol.EndToEnd.Sound.CutXrun
 public import LeanVM.Protocol.Compile.Rom.Chain
+public import LeanVM.Protocol.Verifier.Cost
 
 /-!
 # What the extractor can read

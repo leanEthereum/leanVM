@@ -9,13 +9,16 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Front.TableFidLeanIsaRows
-public import LeanVM.Protocol.EndToEnd.Front.TablePhase
+import LeanVM.Protocol.EndToEnd.Front.TablePhase
 public import LeanVM.Protocol.EndToEnd.Front.BusStack
 public import LeanVM.Protocol.EndToEnd.Front.LayoutInstance
 public import LeanVM.Protocol.EndToEnd.Complete.BusLayout
-public import LeanVM.Protocol.EndToEnd.Front.BusPadding
-public import LeanVM.Protocol.EndToEnd.Front.EqKernel
+import LeanVM.Protocol.EndToEnd.Front.BusPadding
+import LeanVM.Protocol.EndToEnd.Front.EqKernel
 public import LeanVM.Protocol.EndToEnd.Front.InstanceWith
+public import LeanVM.Protocol.TableSumcheck
+public import LeanVM.Protocol.EndToEnd.Front.BusPhase
+public import LeanVM.Protocol.EndToEnd.Complete.BusTables
 
 /-!
 # The bus phase's forms and totals are the protocol's

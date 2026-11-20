@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Protocol.Keccak.Linear
-public import LeanVM.Parameters.Field
+import LeanVM.Parameters.Field
 
 /-!
 # Words and their bits

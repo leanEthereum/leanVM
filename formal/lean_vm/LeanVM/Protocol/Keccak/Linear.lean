@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Protocol.Keccak.Bits
-public import LeanVM.Parameters.Field
+import LeanVM.Parameters.Field
 public import Mathlib.Algebra.CharP.Two
 import Mathlib.Data.List.GetD
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic

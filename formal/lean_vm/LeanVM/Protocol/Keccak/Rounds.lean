@@ -8,9 +8,11 @@
 
 module
 
-public import LeanVM.Protocol.Keccak.Multilinear
+import LeanVM.Protocol.Keccak.Multilinear
 public import LeanVM.Protocol.EndToEnd.Front.FlockMech
 public import LeanVM.Protocol.Verifier.KeccakPack
+public import LeanVM.Protocol.EndToEnd.Complete.Sumcheck
+import LeanVM.Protocol.Keccak.Linear
 
 /-!
 # Sumcheck rounds as specifications

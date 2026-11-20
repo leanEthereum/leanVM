@@ -9,8 +9,8 @@
 module
 
 public import LeanVM.Protocol.Whir.Complete.Script
-public import LeanVM.Protocol.Whir.Complete.Tables
-public import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.Whir.Complete.Tables
+import LeanVM.Protocol.Verifier
 public import Mathlib.Algebra.Polynomial.Degree.Operations
 public import Mathlib.Algebra.Polynomial.Eval.Defs
 import Mathlib.Algebra.Polynomial.BigOperators

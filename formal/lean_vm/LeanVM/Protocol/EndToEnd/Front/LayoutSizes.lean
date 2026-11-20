@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Protocol.Compile.SpecRules.Basic
 public import LeanVM.Protocol.EndToEnd.Front.LayoutInstance
-public import LeanVM.Protocol.Verifier.Phases
+import LeanVM.Protocol.Verifier.Phases
 
 /-!
 # The announced sizes

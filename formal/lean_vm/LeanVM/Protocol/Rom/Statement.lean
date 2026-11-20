@@ -10,11 +10,11 @@ module
 
 public import Statement.LeanVm
 public import LeanVM.Protocol.Errors
-public import LeanVM.Facts.Verifier
-public import LeanVM.Protocol.Extraction.Defs
-public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+import LeanVM.Facts.Verifier
+import LeanVM.Protocol.Extraction.Defs
+import Statement.Fast.Keccak
+import Statement.Fast.QuadExt
+import Statement.Fast.FieldWords
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
 public import VCVio.OracleComp.QueryTracking.QueryBound.Basic
 public import VCVio.EvalDist.ProbabilityNotation

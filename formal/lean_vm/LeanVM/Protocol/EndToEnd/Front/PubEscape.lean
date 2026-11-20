@@ -8,8 +8,9 @@
 
 module
 
-public import LeanVM.Protocol.Compile.Prog
+import LeanVM.Protocol.Compile.Prog
 public import VCVio.OracleComp.Constructions.SampleableType.Measure
+public import LeanVM.Protocol.Field
 
 /-!
 # Escape averages of front phases

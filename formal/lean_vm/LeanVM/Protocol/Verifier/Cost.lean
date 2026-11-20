@@ -8,10 +8,10 @@
 
 module
 
-public import LeanVM.Protocol.Verifier.WhirTarget
+import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Compile.Cost
-public import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.Verifier
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Protocol.Verifier.KeccakPack
 

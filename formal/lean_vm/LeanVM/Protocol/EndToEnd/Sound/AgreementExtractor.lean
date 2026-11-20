@@ -10,10 +10,13 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Sound.AvailProb
-public import LeanVM.Protocol.Extraction.Halting
-public import LeanVM.Protocol.Extraction.Extract
-public import LeanVM.Protocol.Whir.Params.DescentCheck
+import LeanVM.Protocol.Extraction.Halting
+import LeanVM.Protocol.Extraction.Extract
+import LeanVM.Protocol.Whir.Params.DescentCheck
 public import LeanVM.Protocol.Whir.Params.Iface
+public import LeanVM.Protocol.Extraction.Merkle
+public import LeanVM.Protocol.EndToEnd.Sound.Theorem
+import LeanVM.Protocol.EndToEnd.Sound.Runs
 
 /-!
 # The agreement-set extractor

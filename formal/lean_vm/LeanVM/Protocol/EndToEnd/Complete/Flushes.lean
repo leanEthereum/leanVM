@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Protocol.LeanIsa
-public import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.Verifier
 
 /-!
 # The verifier tables are the instance's

@@ -10,6 +10,7 @@ module
 public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerCore
 public import Mathlib.FieldTheory.IsAlgClosed.AlgebraicClosure
 public import Mathlib.LinearAlgebra.Dimension.Free
+public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerDefs
 
 /-!
 # Packing lanes

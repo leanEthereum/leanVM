@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Protocol.Compile.Rom.Prover
-public import LeanVM.Protocol.Compile.Rom.Step
+import LeanVM.Protocol.Compile.Rom.Step
 public import LeanVM.Protocol.Compile.Rom.Final
 public import Mathlib.Analysis.Complex.Exponential
 public import Mathlib.Analysis.Complex.ExponentialBounds

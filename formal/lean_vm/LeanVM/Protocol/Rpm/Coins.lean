@@ -8,10 +8,26 @@
 
 module
 
-public import LeanVM.Protocol.LeanVMSound
+import LeanVM.Protocol.LeanVMSound
 public import Statement.LeanVm
-public import Common.Prob
+import Common.Prob
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.Rom.Statement
+public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
+public import ArkLib.Data.CodingTheory.ReedSolomon
+public import ArkLib.Data.Polynomial.FrobeniusContraction
+public import ArkLib.Data.Polynomial.ResultantDegree
+public import ArkLib.Data.Polynomial.UniversalHenselNumerator
+public import ArkLib.Interaction.Oracle.Security.KnowledgeComposition
+public import ArkLib.ToMathlib.RingTheory.Nullstellensatz.AgreementIncidence
+public import Clean.Air.FlatEnsemble
+public import CompPoly.Multilinear.Basic
+public import CompPoly.Multivariate.Eval
+public import CompPoly.Univariate.Lagrange
+public import Mathlib.Algebra.MvPolynomial.NoZeroDivisors
+public import Mathlib.Tactic
+public import VCVio.OracleComp.Constructions.SampleableType
+public import VCVio.ProgramLogic.Relational.SimulateQ.UntilBad
 
 @[expose] public section
 

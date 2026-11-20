@@ -6,8 +6,18 @@
 
 module
 
-public import LeanVM.Protocol.Extraction.Halting
-public import LeanVM.Protocol.Extraction.Extract
+import LeanVM.Protocol.Extraction.Halting
+import LeanVM.Protocol.Extraction.Extract
+public import LeanVM.Protocol.Extraction.Merkle
+public import LeanVM.Protocol.Compile.Rom.Log
+public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
+public import ArkLib.Data.CodingTheory.ReedSolomon
+public import ArkLib.Interaction.Oracle.Security.KnowledgeComposition
+public import Clean.Air.FlatEnsemble
+public import CompPoly.Multivariate.Eval
+public import CompPoly.Univariate.Lagrange
+public import Mathlib.Tactic
+import LeanVM.Protocol.EndToEnd.Complete.Public
 
 /-!
 # The hash inputs of a log

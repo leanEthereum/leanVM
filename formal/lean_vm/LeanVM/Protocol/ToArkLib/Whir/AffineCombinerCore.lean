@@ -8,10 +8,11 @@
 
 module
 
-public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerDefs
+import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerDefs
 public import Mathlib.FieldTheory.RatFunc.Basic
 public import Mathlib.FieldTheory.Finiteness
 public import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
+public import LeanVM.Protocol.ToArkLib.Whir.JohnsonCount
 
 /-!
 # Affine combiners on one word: the persistent pairs

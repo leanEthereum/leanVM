@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Candidates
-public import LeanVM.Protocol.ToArkLib.Whir.Interleaved
+import LeanVM.Protocol.ToArkLib.Whir.Interleaved
 
 /-!
 # The level-0 list and the candidates

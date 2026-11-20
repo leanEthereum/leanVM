@@ -10,7 +10,8 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Complete.Sumcheck
-public import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.Verifier
+public import LeanVM.Protocol.Whir.Complete.Tables
 
 /-!
 # Multilinear facts for the table sumcheck

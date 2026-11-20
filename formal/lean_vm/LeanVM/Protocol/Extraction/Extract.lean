@@ -8,9 +8,9 @@
 module
 
 public import LeanVM.Protocol.Extraction.Merkle
-public import LeanVM.Protocol.Extraction.Run
-public import Statement.LeanVm
-public import LeanVM.Protocol.WithHash
+import LeanVM.Protocol.Extraction.Run
+import Statement.LeanVm
+import LeanVM.Protocol.WithHash
 
 /-!
 # The keys of the extractor's evaluations

@@ -11,7 +11,8 @@ module
 public import LeanVM.Protocol.EndToEnd.Complete.BusLayout
 public import LeanVM.Protocol.EndToEnd.Complete.BusShare
 public import LeanVM.Protocol.EndToEnd.Complete.Gkr
-public import LeanVM.Protocol.EndToEnd.Front.BusPadding
+import LeanVM.Protocol.EndToEnd.Front.BusPadding
+public import LeanVM.Protocol.EndToEnd.Complete.BusTables
 
 /-!
 # The bus phase

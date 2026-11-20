@@ -2,8 +2,13 @@ module
 
 public import LeanVM.Protocol.WithHashBridge
 public import LeanVM.Protocol.Compile.Rom.Bridge
-public import LeanVM.Prover.Refine
-public import Common.PiOnly
+import LeanVM.Prover.Refine
+import Common.PiOnly
+public import CompPoly.Fields.Binary.AdditiveNTT.NovelPolynomialBasis
+public import Mathlib.Algebra.Algebra.ZMod
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.LinearAlgebra.Lagrange
+public import VCVio.ProgramLogic.Relational.SimulateQ.UntilBad
 
 @[expose] public section
 

@@ -10,7 +10,8 @@ module
 
 public import LeanVM.Protocol.EndToEnd.Front.BusShare
 public import LeanVM.Protocol.EndToEnd.Complete.BusLayout
-public import LeanVM.Protocol.BusSecurity
+import LeanVM.Protocol.BusSecurity
+public import LeanVM.Protocol.EndToEnd.Front.BusGkr
 
 /-!
 # The bus phase on doom

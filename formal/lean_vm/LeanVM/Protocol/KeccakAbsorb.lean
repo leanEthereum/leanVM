@@ -7,7 +7,9 @@
 
 module
 
-public import Statement.Fast.Keccak
+import Statement.Fast.Keccak
+public import Statement.Keccak
+public import Mathlib.Tactic.IntervalCases
 
 /-!
 # Keccak-256 without the monad

@@ -9,8 +9,8 @@ module
 
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Verifier.Deferred
-public import LeanVM.Protocol.WithHash
-public import LeanVM.Protocol.WithHashBridge
+import LeanVM.Protocol.WithHash
+import LeanVM.Protocol.WithHashBridge
 
 /-!
 # The shapes of the accepted claims

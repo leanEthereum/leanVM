@@ -8,8 +8,10 @@
 
 module
 
-public import LeanVM.Protocol.ToCompPoly.PowerBatching
+import LeanVM.Protocol.ToCompPoly.PowerBatching
 public import Mathlib.Data.Fintype.Pi
+public import CompPoly.Multilinear.Basic
+public import Mathlib.Algebra.Polynomial.Roots
 
 /-!
 # Counting lemmas for WHIR

@@ -11,6 +11,7 @@ module
 
 public import LeanVM.Protocol.Compile.Rom.Ideal
 public import LeanVM.Protocol.Compile.Rom.Complete
+import LeanVM.Protocol.Compile.Rom.Step
 
 /-!
 # Completeness, union only over the transcript's answers

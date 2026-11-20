@@ -11,6 +11,8 @@ module
 public import LeanVM.Protocol.Whir.Sound.Generic
 public import LeanVM.Protocol.Whir.Sound.Code
 public import LeanVM.Protocol.Whir.Sound.Group
+public import LeanVM.Protocol.Whir.Sound.State
+public import LeanVM.Protocol.Whir.Sound.FoldRound
 
 /-!
 # The fold rounds

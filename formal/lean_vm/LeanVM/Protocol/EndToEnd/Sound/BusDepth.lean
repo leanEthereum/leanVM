@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Complete.BusLayout
-public import LeanVM.Protocol.EndToEnd.Front.LayoutStack
+import LeanVM.Protocol.EndToEnd.Front.LayoutStack
 
 /-!
 # The bus depth and the table sumcheck's sizes of the leanISA instance

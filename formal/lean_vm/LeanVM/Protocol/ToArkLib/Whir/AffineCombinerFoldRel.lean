@@ -8,7 +8,13 @@
 module
 
 public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerFold
-public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerLemma43
+import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerLemma43
+public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerParams
+public import ArkLib.Data.Polynomial.FrobeniusContraction
+public import ArkLib.Data.Polynomial.ResultantDegree
+public import ArkLib.Data.Polynomial.UniversalHenselNumerator
+public import ArkLib.ToMathlib.RingTheory.Nullstellensatz.AgreementIncidence
+public import Mathlib.Algebra.MvPolynomial.NoZeroDivisors
 
 /-!
 # An affine fold round, relativised

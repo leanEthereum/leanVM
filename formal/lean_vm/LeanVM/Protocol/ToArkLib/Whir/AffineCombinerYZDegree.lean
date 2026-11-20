@@ -7,8 +7,10 @@
 
 module
 
-public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerTrivariate
+import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerTrivariate
 public import Mathlib.Algebra.MvPolynomial.NoZeroDivisors
+public import Mathlib.Algebra.MvPolynomial.PDeriv
+public import Mathlib.Tactic
 
 /-!
 # The `(Y, Z)`-degree

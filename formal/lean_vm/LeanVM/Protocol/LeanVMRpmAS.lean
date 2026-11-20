@@ -8,9 +8,14 @@
 
 module
 
-public import LeanVM.Protocol.LeanVMRpm
+import LeanVM.Protocol.LeanVMRpm
 public import LeanVM.Protocol.LeanVMSoundAS
 public import LeanVM.Protocol.Rpm.ExtractF
+import LeanVM.Protocol.Rpm.RpmRelabel
+import LeanVM.Protocol.Rpm.RomRelabel
+import LeanVM.Protocol.Extraction.Extract
+public import CompPoly.Fields.Binary.AdditiveNTT.NovelPolynomialBasis
+public import Mathlib.Analysis.Complex.ExponentialBounds
 
 @[expose] public section
 

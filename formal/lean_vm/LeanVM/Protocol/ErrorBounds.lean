@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Protocol.Errors
-public import Common.Linear
+import Common.Linear
 
 /-!
 # The errors in bits

@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Sound.Skeleton
+public import LeanVM.Protocol.EndToEnd.Sound.CutXrun
 
 /-!
 # The leaves' skeletons

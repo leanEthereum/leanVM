@@ -7,7 +7,11 @@
 
 module
 
-public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerReducedFactor
+import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerReducedFactor
+public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerYZDegree
+public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerTrivariate
+public import ArkLib.Data.Polynomial.FrobeniusContraction
+public import ArkLib.Data.Polynomial.ResultantDegree
 
 /-!
 # The excluded pairs of one factor

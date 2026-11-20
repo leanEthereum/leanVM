@@ -1,13 +1,15 @@
 module
 
-public import Statement.LeanVm
-public import LeanVM.Protocol.Compile.RunPure
+import Statement.LeanVm
+import LeanVM.Protocol.Compile.RunPure
 public import CompPoly.Univariate.Basic
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 public import Mathlib.Algebra.CharP.Lemmas
 public import Mathlib.Algebra.CharP.Two
 public import Mathlib.Algebra.Polynomial.BigOperators
 public import Mathlib.FieldTheory.Finite.Basic
+public import Statement.RandomPermutation
+public import Statement.Prover.Witness
 
 /-!
 # The knowledge extractor's pieces

@@ -8,7 +8,8 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Front.LayoutArith
+import LeanVM.Protocol.EndToEnd.Front.LayoutArith
+public import LeanVM.Protocol.EndToEnd.Claims
 
 /-!
 # `stack_offsets` and `stack_point`

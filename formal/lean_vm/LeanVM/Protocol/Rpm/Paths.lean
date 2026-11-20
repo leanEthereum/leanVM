@@ -8,8 +8,9 @@
 module
 
 public import Common.Lanes
-public import Statement.LeanVm
+import Statement.LeanVm
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.Extraction.Extractor
 
 @[expose] public section
 
