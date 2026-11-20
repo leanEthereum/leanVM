@@ -6,7 +6,13 @@
   * `ElemsAt size P`: consecutive elements of `size` bytes, element `k` at `a + size k` read by `P`;
   * `OptPlacementAt`: an `Option<Placement>` (its tag, then the placement's `variables` and `index`);
   * `ResultPlacementAt`: the `Result<Placement, VerifierError>` a function returns through `sret`, `Err` being
-    `CommittedSize`.
+    `CommittedSize`;
+  * `FormIn`: a `Form` (`Vec<(Vec<usize>, E)>`) whose buffers all lie in `[lo, hi)` (`Region`), so that it is kept
+    by whatever keeps that region and its header (`FormIn.keep`). The bump allocator never frees, so what one call
+    allocates is such a region (`[NEXT before, NEXT after)`), apart from everything older.
+
+  `Gen/Layouts.lean` does not print the tuple `(Vec<usize>, E)`; its layout, read off `Form::term`'s code, is
+  `termSize` and `termCoeff` here.
 -/
 
 import Rv64mc.Core.Repr
@@ -14,7 +20,7 @@ import Rv64mc.Model.Layout
 
 namespace Rv64mc.Spec.Layout
 
-open RiscvZkvm.Rv64
+open RiscvZkvm.Rv64 LeanVM.Parameters LeanVM.Protocol.Verifier
 
 /-- **The elements `xs` from `a`**, each of `size` bytes, element `k` at `a + size k` read by `P`. -/
 def ElemsAt {α : Type} (size : Nat) (P : MachineState → Word → α → Prop) (m : MachineState) (a : Word)
@@ -43,5 +49,33 @@ def ResultPlacementAt (m : MachineState) (a : Word) : Option Model.PlacementRust
         BitVec.ofNat 64 Layouts.ResultPlacement.Err.tag ∧
       m.getMem (a + BitVec.ofNat 64 Layouts.ResultPlacement.Err.f0) =
         BitVec.ofNat 64 Layouts.VerifierError.CommittedSize.tag
+
+/-! ## `Form` -/
+
+/-- `(Vec<usize>, E)`: 40 bytes, the monomial's `Vec` at 0 and the coefficient at 24 (`Form::term`). -/
+abbrev termSize : Nat := 40
+abbrev termCoeff : Nat := 24
+
+/-- `[q, q + n)` lies in `[lo, hi)`. -/
+def Region (lo hi q : Word) (n : Nat) : Prop := lo.toNat ≤ q.toNat ∧ q.toNat + n ≤ hi.toNat
+
+/-- `[a, a + n)` lies outside `[lo, hi)`. -/
+def Apart (lo hi a : Word) (n : Nat) : Prop := a.toNat + n ≤ lo.toNat ∨ hi.toNat ≤ a.toNat
+
+/-- The `usize`s `ns` from `a`. -/
+def UsizesAt (m : MachineState) (a : Word) (ns : List Nat) : Prop := WordsAt m a (ns.map (BitVec.ofNat 64))
+
+/-- A buffer of `cap` elements of `size` bytes at `q`, in `[lo, hi)` unless it holds none. -/
+def BufIn (lo hi q : Word) (cap size : Nat) : Prop := cap = 0 ∨ Region lo hi q (size * cap)
+
+/-- **The term `t` at `a`**: its monomial's `Vec` and its coefficient's limbs, the monomial's buffer in
+    `[lo, hi)`. -/
+def TermIn (lo hi : Word) (m : MachineState) (a : Word) (t : List Nat × E) : Prop :=
+  ∃ q cap, VecAt UsizesAt m a q cap t.1 ∧ BufIn lo hi q cap 8 ∧
+    EAt m (a + BitVec.ofNat 64 termCoeff) (Model.limbs t.2)
+
+/-- **The `Form` `f` at `a`**: its terms in order, every buffer in `[lo, hi)`. -/
+def FormIn (lo hi : Word) (m : MachineState) (a : Word) (f : Form) : Prop :=
+  ∃ q cap, VecAt (ElemsAt termSize (TermIn lo hi)) m a q cap f.terms ∧ BufIn lo hi q cap termSize
 
 end Rv64mc.Spec.Layout

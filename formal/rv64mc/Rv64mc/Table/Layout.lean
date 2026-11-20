@@ -2,8 +2,8 @@
   Rv64mc.Table.Layout
 
   `layout.rs`'s contracts at the image (`liftProg Gen.fns`): each `ok` at its function's index
-  (`Rv64mc/Gen/index.tsv`), with the generated link, from the contracts not proved here (`panic_bounds_check`,
-  which does not return, and `E::pow`) and the constant tables the code reads (`NConstraintsData`, `CountColumnsData`, facts of
+  (`Rv64mc/Gen/index.tsv`), with the generated link, from the contracts not proved here (`alloc`, the panics,
+  which do not return, and `E::pow`) and the constant tables the code reads (`NConstraintsData`, `CountColumnsData`, facts of
   the image's static data, discharged where the environment is the image's).
 -/
 
@@ -13,6 +13,7 @@ import Rv64mc.Proof.Layout.KeccakShape
 import Rv64mc.Proof.Layout.Table
 import Rv64mc.Proof.Layout.Committed
 import Rv64mc.Proof.Layout.Gpow
+import Rv64mc.Proof.Layout.Term
 import Rv64mc.Gen.Link.Verifier.Layout.IsOutputLane
 import Rv64mc.Gen.Link.Verifier.Layout.QkeccakSlot
 import Rv64mc.Gen.Link.Verifier.Layout.KeccakShape
@@ -20,6 +21,7 @@ import Rv64mc.Gen.Link.Verifier.Layout.Table.NConstraints
 import Rv64mc.Gen.Link.Verifier.Layout.Table.CountColumns
 import Rv64mc.Gen.Link.Verifier.Layout.Layout.Committed
 import Rv64mc.Gen.Link.Verifier.Layout.Gpow
+import Rv64mc.Gen.Link.Verifier.Layout.Form.Term
 
 namespace Rv64mc.Table.Layout
 
@@ -56,8 +58,16 @@ theorem gpow {need : Nat} (hpow : Spec.Field.EPow.spec env (liftProg fns) 170 ne
     Spec.Layout.Gpow.spec env (liftProg fns) 157 need :=
   Proof.Layout.Gpow.ok env _ 157 need _ Verifier.Layout.Gpow.tmpl_eq Verifier.Layout.Gpow.wf hpow
 
+theorem term (halloc : Spec.Runtime.AllocSpec env (liftProg fns) 6 0)
+    (hpanic : Spec.Runtime.NoReturn env (liftProg fns) 17 0) : Spec.Layout.Term.spec env (liftProg fns) 167 :=
+  Proof.Layout.Term.ok env _ 167 _ Verifier.Layout.Form.Term.tmpl_eq Verifier.Layout.Form.Term.wf halloc hpanic
+
 end Rv64mc.Table.Layout
 
 /-- info: 'Rv64mc.Table.Layout.countColumns' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.Layout.countColumns
+
+/-- info: 'Rv64mc.Table.Layout.term' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.Layout.term
