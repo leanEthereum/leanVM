@@ -501,9 +501,6 @@ pub fn execute(
         .is_ok()
         .then(|| vec![0u64; program.prog.len()]);
 
-    // `DBG_JUMP_DUMP=path`: every taken jump `(pc, fp, target pc, target fp)` and the final memory, written to
-    // `path.<cycles>` (`formal/lean_vm/scripts/core-mode/validate.py` reads them).
-    let mut jumps: Option<Vec<u32>> = std::env::var_os("DBG_JUMP_DUMP").map(|_| Vec::new());
     let mut bytecode_count: Vec<u32> = vec![0; program.prog.len()];
     let (mut xor, mut mul, mut set, mut deref, mut jump, mut keccak) =
         (Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new());
@@ -657,12 +654,8 @@ pub fn execute(
                     pc += 1;
                 } else {
                     let not_a_g_power = |what, value| fail(Fault::NotAGPower { what, value });
-                    let (pc0, fp0) = (pc, fp);
                     pc = (g.log_below(d, program.prog.len())).ok_or_else(|| not_a_g_power("JUMP target", d))?;
                     fp = g.log(f).ok_or_else(|| not_a_g_power("JUMP fp", f))?;
-                    if let Some(j) = jumps.as_mut() {
-                        j.extend([pc0, fp0, pc, fp]);
-                    }
                 }
             }
             Op::Keccak { .. } => {
@@ -702,23 +695,6 @@ pub fn execute(
 
     if let Some(p) = &prof {
         report_profile(program, p, steps);
-    }
-    if let (Some(j), Some(path)) = (&jumps, std::env::var_os("DBG_JUMP_DUMP")) {
-        let path = format!("{}.{steps}", path.to_string_lossy());
-        std::fs::write(
-            format!("{path}.jumps"),
-            j.iter().flat_map(|x| x.to_le_bytes()).collect::<Vec<u8>>(),
-        )
-        .expect("write DBG_JUMP_DUMP");
-        let n = m.used as u32;
-        let mem: Vec<u8> = (0..n)
-            .map(|i| m.get(i))
-            .flat_map(|w| [w.c0, w.c1])
-            .flat_map(u64::to_le_bytes)
-            .collect();
-        std::fs::write(format!("{path}.mem"), mem).expect("write DBG_JUMP_DUMP");
-        let written: Vec<u8> = (0..n).map(|i| m.written(i) as u8).collect();
-        std::fs::write(format!("{path}.written"), written).expect("write DBG_JUMP_DUMP");
     }
     let counts = bytecode_count.iter().copied().max().unwrap_or(0).max(m.counts) as usize + 1;
     let trace = Trace {
