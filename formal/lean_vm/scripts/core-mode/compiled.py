@@ -117,8 +117,10 @@ def derive(P):
     for f in fns.values():
         c = f['ops']
         f['tabs'] = {i: region[c[i - 1][1][1]] for i in range(1, len(c)) if table_jump(c, i)}
+        # a call: an entry pc set in a cell one of the function's `JUMP`s targets (not a table's constant equal to one)
+        targets = {a[1] for op, a in c if op == 'jump'}
         for op, a in c:
-            if op == 'set' and a[2] == 0 and POWS.get(a[1]) in byentry:
+            if op == 'set' and a[2] == 0 and POWS.get(a[1]) in byentry and a[0] in targets:
                 calls[f['name']].add(byentry[POWS[a[1]]]['name'])
         for i, r in f['tabs'].items():
             for j in range(r):
