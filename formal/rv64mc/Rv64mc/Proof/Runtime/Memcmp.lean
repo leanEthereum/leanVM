@@ -86,7 +86,8 @@ theorem loop (hp : p[i]? = some (tmpl L)) {G : State rvIsa → Prop} {n : Nat} {
       refine ⟨by simp (disch := decide) only [AbiRegs.updReg_iff]; exact hR, Env.Frame.refl hnx, hst, ?_⟩
       dsimp only
       show _ + -_ = V
-      rw [← hV, bytesFrom_succ m a (k + 1), bytesFrom_succ m b (k + 1), memcmpVal_ne fun h => hc (congrArg (BitVec.setWidth 64) h)]
+      rw [← hV, bytesFrom_succ m a (k + 1), bytesFrom_succ m b (k + 1),
+        memcmpVal_ne fun h => hc (congrArg (BitVec.setWidth 64) h)]
     -- equal: the next byte
     · refine ih (a + 1#64) (b + 1#64) _ ?_ (by simpa [updReg_apply] using hra) (by simp [updReg_apply])
         (by simp [updReg_apply]) (by simp only [updReg_apply]; exact pred_ofNat k) (by omega) ?_

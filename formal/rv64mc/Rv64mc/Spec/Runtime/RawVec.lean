@@ -52,6 +52,42 @@ def GrowAmortizedSpec (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop
   Holds env p i need (fun regs m => GrowPre env (regs .x13).toNat (regs .x14).toNat regs m) (GrowAmortizedPost env)
     GrowOut
 
+/-! ## `finish_grow(out, cap, ptr, new_cap, align, size)` -/
+
+/-- Where `finish_grow`'s result at `out` keeps its tag and its block's pointer
+    (`Result<NonNull<[u8]>, TryReserveError>`, `Layouts.ResultBlockTryReserve`). -/
+def fgTagAt (out : Word) : Word := out + BitVec.ofNat 64 Layouts.ResultBlockTryReserve.tagOffset
+def fgPtrAt (out : Word) : Word :=
+  out + BitVec.ofNat 64 (Layouts.ResultBlockTryReserve.Ok.f0 + Layouts.SliceE.ptr)
+
+/-- `finish_grow`'s precondition: the result slot is the caller's, the alignment a `Layout`'s, the new capacity
+    nonzero and not below the old, the old block allocated (or empty) and within `isize`. -/
+def FinishGrowPre (env : Env) (regs : Reg → Word) (m : MachineState) : Prop :=
+  env.Owned m (regs .x2) (regs .x10) Layouts.ResultBlockTryReserve.byteSize ∧
+    0 < (regs .x14).toNat ∧ (regs .x14).toNat < 2 ^ 63 ∧ (regs .x11).toNat ≤ (regs .x13).toNat ∧
+    0 < (regs .x13).toNat * (regs .x15).toNat ∧
+    ((regs .x11).toNat = 0 ∨ env.Live m (regs .x12) ((regs .x11).toNat * (regs .x15).toNat)) ∧
+    (regs .x11).toNat * (regs .x15).toNat < 2 ^ 63
+
+/-- `finish_grow`'s postcondition: on `Ok`, a fresh block of `new_cap * size` bytes holding the old block's
+    `cap * size` bytes first; on `Err`, a payload word below `2^63` (an alignment, or zero for an overflow). -/
+def FinishGrowPost (env : Env) (regs : Reg → Word) (m : MachineState) (_r' : Reg → Word) (m' : MachineState) :
+    Prop :=
+  (m'.getMem (fgTagAt (regs .x10)) = BitVec.ofNat 64 Layouts.ResultBlockTryReserve.Ok.tag →
+    env.Fresh m m' (m'.getMem (fgPtrAt (regs .x10))) ((regs .x13).toNat * (regs .x15).toNat) ∧
+    ∀ k, k < (regs .x11).toNat * (regs .x15).toNat →
+      m'.getByte (m'.getMem (fgPtrAt (regs .x10)) + BitVec.ofNat 64 k) = m.getByte (regs .x12 + BitVec.ofNat 64 k)) ∧
+  (m'.getMem (fgTagAt (regs .x10)) ≠ BitVec.ofNat 64 Layouts.ResultBlockTryReserve.Ok.tag →
+    (m'.getMem (fgPtrAt (regs .x10))).toNat < 2 ^ 63)
+
+/-- What `finish_grow` writes: its result. -/
+def FinishGrowOut (regs : Reg → Word) (_m : MachineState) : Word → Prop :=
+  InRange (regs .x10) Layouts.ResultBlockTryReserve.byteSize
+
+/-- **The contract of `finish_grow`.** -/
+def FinishGrowSpec (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=
+  Holds env p i need (FinishGrowPre env) (FinishGrowPost env) FinishGrowOut
+
 /-! ## `grow_one(self)` for elements of `size` bytes aligned to `align` -/
 
 /-- `grow_one`'s postcondition: the buffer grew by at least one element. -/

@@ -41,9 +41,11 @@ cargo_in "$(flags -Z print-type-sizes)" build --release >"$tmp/pts.txt" 2>"$tmp/
   { tail -20 "$tmp/build.log"; exit 1; }
 # Each check fails by design: every dumped layout is an error.
 python3 -I "$here/scripts/type-layouts.py" probe "$here/layouts.txt" "$b/verifier-nostd/src" "$b/src/main.rs" lib
-cargo_in "$(flags)" check --release -p verifier 2>"$tmp/dump.txt" && { echo "the probes printed nothing" >&2; exit 1; }
+cargo_in "$(flags)" check --release -p verifier 2>"$tmp/dump.txt" &&
+  { echo "the probes printed nothing" >&2; exit 1; }
 fresh
 python3 -I "$here/scripts/type-layouts.py" probe "$here/layouts.txt" "$b/verifier-nostd/src" "$b/src/main.rs" main
-cargo_in "$(flags)" check --release --bin verifier-rv64 2>>"$tmp/dump.txt" && { echo "the probes printed nothing" >&2; exit 1; }
+cargo_in "$(flags)" check --release --bin verifier-rv64 2>>"$tmp/dump.txt" &&
+  { echo "the probes printed nothing" >&2; exit 1; }
 python3 -I "$here/scripts/type-layouts.py" gen "$here/layouts.txt" "$b/verifier-nostd/src" "$b/src/main.rs" \
   "$tmp/pts.txt" "$tmp/dump.txt" "$here/Rv64mc/Gen/Layouts.lean" $check

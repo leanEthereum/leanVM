@@ -24,6 +24,7 @@ path Vec.ptr Vec.buf RawVec.inner RawVecInner.ptr
 pts AllocLayout core::alloc::Layout
 dump TryReserveError lib alloc::collections::TryReserveError
 dump ResultUnitTryReserve lib Result<(), alloc::collections::TryReserveError>
+dump ResultBlockTryReserve lib Result<core::ptr::NonNull<[u8]>, alloc::collections::TryReserveError>
 
 # the field and the hash
 dump K field K
@@ -73,6 +74,17 @@ dump ResultWhirConfig whir Result<WhirConfig, VerifierError>
 dump ResultVecU64 whir Result<Vec<u64>, VerifierError>
 dump ResultERingWeight ring_switch Result<(E, RingWeight), VerifierError>
 dump ResultVecEE lib Result<(Vec<E>, E), VerifierError>
+
+# the bytecode and the bus: the structures, the sort's pairs, and the results returned through memory
+dump Bytecode bytecode Bytecode
+dump U64U16 lib (u64, u16)
+dump ResultBytecode bytecode Result<Bytecode, VerifierError>
+dump OptionStackClaim lib Option<(StackWeight, E)>
+dump BusLayout bus BusLayout
+dump BusResult bus BusResult
+dump ResultBusResult bus Result<BusResult, VerifierError>
+dump ResultGkr bus Result<(E, Vec<E>, Vec<E>), VerifierError>
+dump ResultTableEvaluations bus Result<Vec<(Vec<E>, Vec<E>)>, VerifierError>
 
 # the guest's input reader
 dump Input main Input<'static>

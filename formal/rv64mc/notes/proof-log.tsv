@@ -20,12 +20,12 @@ Memset	2	0	4	shared	tail_ok instance; compiler_builtins memset not proved
 VerifierRv64.Bump.AsGlobalAlloc.Alloc	18	0	72	15.3	Proof/Runtime/Alloc.lean; round-up lemma by bv_decide and omega; two runs hit 12 to 13 GB and were killed: simpa and omega on small goals inside the lsym context; fixed by stating them as separate lemmas and closing register reads by show/defeq
 Memcmp	12	1	87	13.0	Proof/Runtime/Memcmp.lean; loop lemma by induction on bytes left, stop at the loop head; a helper proved by bare simp on a 64-bit literal sum ran to 14 GB (killed), rewritten with toNat lemmas and omega
 VerifierRv64.Input.Word	12	0	42	10.6	Proof/Runtime/InputWord.lean; two stores into the caller's reader through Frame.setMem_out
-Alloc.RawVec.RawVecInner.GrowAmortized	41	0	0	-	not proved; GrowAmortizedSpec stated (Spec/Runtime/RawVec.lean), used as hypothesis by grow_one
+Alloc.RawVec.RawVecInner.GrowAmortized	41	0	239	48.3	Proof/Runtime/GrowAmortized.lean from FinishGrowSpec (stated, not proved); cut at the merged capacity choice (stop [42]), the call segment a lemma over an abstract register file, 8 paths into it closed by one tactic block; lsym stopped at one Lret (ra read through stores it could not order) and that return was taken by SafeN.ret by hand; a `show` over a memory read made the kernel hit deep recursion (elaboration fine), replaced by simp only over the register file; most lines are frame plumbing (saved slots, header slots apart from the fresh block, NEXT and static untouched)
 Alloc.RawVec.*.GrowOne (13 instances)	15 each	0	147 + 5 each	17.2 + 6.2	Proof/Runtime/GrowOne.lean, one proof over the body with T's align and size as parameters; GrowOnes.lean, 13 instances by rfl at their templates (4.3 s for all 13); a 13 GB run (killed): simp on a setMem read and a defeq on literal stack arithmetic, fixed by getMem_setMem_eq and rfl
 CompilerBuiltins.Mem.Memcpy	127	10	0	-	not proved (spec MemcpySpec only)
 CompilerBuiltins.Mem.Memmove	268	20	0	-	not proved (spec MemmoveSpec only)
 CompilerBuiltins.Mem.Memset	38	3	0	-	not proved (spec MemsetSpec only)
-Alloc.RawVec.RawVecInner.FinishGrow	68	0	0	-	not proved
+Alloc.RawVec.RawVecInner.FinishGrow	68	0	0	-	not proved (FinishGrowSpec stated: fresh block of new_cap * size bytes holding the old bytes first; Err payload below 2^63)
 Alloc.RawVec.RawVecInner.TryAllocateIn*	57, 48	1	0	-	not proved
 (infrastructure) Core/Repr.lean	-	-	195	12.6	footprints, watermark, Owned, value predicates with keep lemmas, byte lemmas, AbiRegs.updReg_iff, Holds.pre_call
 (infrastructure) scripts/type-layouts.sh	-	-	-	132	one run: guest build with -Zprint-type-sizes and two cargo checks with rustc_dump_layout probes (119 user + 13 sys, 138 s wall); --check reproduces byte for byte
