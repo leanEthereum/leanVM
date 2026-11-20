@@ -81,6 +81,35 @@ theorem claimLast_sound {k : ℕ} (hk : k < 17) {rd : Reader} {args rets : List 
     rfl
   · exact absurd hok (by simp)
 
+/-! ## `claim_list_tail` -/
+
+theorem find_claim_list_tail : coreProgram.find? "claim_list_tail" = some fn% «claim_list_tail» :=
+  coreProgram_find?_at (j := idx% «claim_list_tail») rfl
+
+set_option maxRecDepth 100000 in
+theorem claim_list_tail_shape : Fn.body fn% «claim_list_tail» =
+    [.dispatch (.n 2) clNames [.n 0, .n 1] [.n 3, .n 4], .atom (.copy (.n 5) (.n 3)),
+      .atom (.copy (.n 6) (.n 4)), .ret [.n 5, .n 6]] :=
+  stmtsEqb_sound (by decide +kernel)
+
+theorem claim_list_tail_params : Fn.params fn% «claim_list_tail» = [.n 0, .n 1, .n 2] := by
+  decide +kernel
+
+/-- **`claim_list_tail` on `rest = g^j`, `j < 17`, is `claim_list_last__L{j}`.** -/
+theorem tail_sound {rd : Reader} {args rets : List E} (h : coreProgram.Rel rd "claim_list_tail" args rets) :
+    ∃ sp blk j, args = [sp, blk, ofK (addressOfIndex j)] ∧ j < 17 ∧
+      coreProgram.Rel rd (clNames.getD j "") [sp, blk] rets := by
+  obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_claim_list_tail args rets).mp h
+  rw [claim_list_tail_shape] at hb
+  rw [claim_list_tail_params] at hp
+  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
+  obtain ⟨⟨j, hj, hx, hc⟩, h5, h6, hr⟩ := hb
+  have hj17 : j < 17 := hj
+  refine ⟨σ (.n 0), σ (.n 1), j, by rw [← hp, ← hx]; rfl, hj17, ?_⟩
+  rw [show clNames.getD j "" = clNames[j] by
+    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj]; rfl, ← hr, h5, h6]
+  exact hc
+
 /-! ## The frame loops: `m` claims a frame -/
 
 /-- **One frame of `m` claims, `nb` blocks**: from the state at `chain · x^13` after whole blocks
@@ -242,19 +271,19 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- The branch of an empty list. -/
 noncomputable def cl23Zero : List Stmt := match Fn.body fn% «claim_list_digest» with
-  | [_, _, .ite _ z _, _, _, _] => z
+  | [_, _, .ite _ z _, _, _, _, _] => z
   | _ => []
 
 /-- The branch of a nonempty list. -/
 noncomputable def cl23Else : List Stmt := match Fn.body fn% «claim_list_digest» with
-  | [_, _, .ite _ _ n, _, _, _] => n
+  | [_, _, .ite _ _ n, _, _, _, _] => n
   | _ => []
 
 set_option maxRecDepth 100000 in
 theorem claim_list_digest_shape : Fn.body fn% «claim_list_digest» =
     [.atom (.const (.n 2) (word 1 0)), .atom (.add (.n 3) (.n 1) (.n 2)),
-     .ite (.n 3) cl23Zero cl23Else, .atom (.copy (.n 76) (.n 10)), .atom (.copy (.n 77) (.n 11)),
-     .ret [.n 76, .n 77]] :=
+     .ite (.n 3) cl23Zero cl23Else, .atom (.touch (.n 94) (.n 1)), .atom (.copy (.n 95) (.n 10)),
+     .atom (.copy (.n 96) (.n 11)), .ret [.n 95, .n 96]] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-- The empty list's chain: the empty message from the zero state. -/
@@ -267,7 +296,7 @@ noncomputable def czOk : Bool :=
 
 /-- The nonempty list's branch: `list_split`, the zero state at `chain = .n 23`, the big frames'
 loop, `mid = chain · bigs^13`, `mid_entries = entries · bigs^544`, the groups' loop,
-`last = mid · groups^13`, `blk = mid_entries · groups^68`, the dispatch on the rest. -/
+`last = mid · groups^13`, `blk = mid_entries · groups^68`, `claim_list_tail` on the rest. -/
 noncomputable def ceOk : Bool :=
   cl23Else.all Stmt.flat &&
   cl23Else.any (stmtEqb · (.call "list_split" [.n 1] [.n 12, .n 13, .n 14])) &&
@@ -275,7 +304,7 @@ noncomputable def ceOk : Bool :=
       .n 0])) &&
   cl23Else.any (stmtEqb · (.callIf (.n 58) name% «claim_list_digest_loop1» [.n 59, .n 13, .n 45,
       .n 56])) &&
-  cl23Else.any (stmtEqb · (.dispatch (.n 14) clNames [.n 65, .n 73] [.n 74, .n 75])) &&
+  cl23Else.any (stmtEqb · (.call "claim_list_tail" [.n 65, .n 73, .n 14] [.n 74, .n 75])) &&
   (atomsIn cl23Else).any (isConstAt (.n 39) 1 0) &&
   (atomsIn cl23Else).any (isAddAt (.n 38) (.n 37) (.n 12)) &&
   (atomsIn cl23Else).any (isConstAt (.n 37) 1 0) &&
@@ -317,7 +346,7 @@ theorem claim_list_digest_sound : claim_list_digest_sound_Spec := by
   · -- the empty list
     have hn1 : σ (.n 1) = 1 := by
       rw [a3, c2, word_one] at h3; exact e_add_eq_zero_iff.mp h3
-    obtain ⟨hall, h65, h66, hr⟩ := holdsList_flat _ hzf _ _ (hz h3)
+    obtain ⟨hall, -, h65, h66, hr⟩ := holdsList_flat _ hzf _ _ (hz h3)
     have hat := atoms_of_flat hall
     have hd := chain_final hzc rfl hat (pre := []) (n := 0) rfl
       (fun c => (cellsOfState_zero false c).symm)
@@ -326,7 +355,7 @@ theorem claim_list_digest_sound : claim_list_digest_sound_Spec := by
     refine ⟨0, by norm_num, by rw [hn1, pow_zero], [], rfl, readsAt_nil _ _, ?_⟩
     rw [← hr, h65, h66, digestCells, ← hd]
   · -- a nonempty list
-    obtain ⟨hall, h65, h66, hr⟩ := holdsList_flat _ (List.all_eq_true.mpr hef) _ _ (hnz h3)
+    obtain ⟨hall, -, h65, h66, hr⟩ := holdsList_flat _ (List.all_eq_true.mpr hef) _ _ (hnz h3)
     have hat := atoms_of_flat hall
     obtain ⟨a, ha, b, hb, c, hc, hn, habc⟩ :=
       list_split_sound rd hm _ _ (call_of_flat hall hls)
@@ -364,18 +393,19 @@ theorem claim_list_digest_sound : claim_list_digest_sound_Spec := by
     obtain ⟨cb, hlb, hrb, hSb⟩ := groups_sound (by norm_num) hpa
       (by rw [h56]; exact hSa) hgrp b le_rfl
     -- the rest
-    obtain ⟨j, hj, hsel, hcall⟩ := dispatch_of_flat hall hdis
-    have hj17 : j < 17 := hj
+    obtain ⟨sp0, blk0, j, hta, hj17, hcall⟩ := tail_sound (call_of_flat hall hdis)
+    simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hta
+    obtain ⟨hsp0, hblk0, hsel⟩ := hta
     have hjc : j = c := by
       rw [h25, gen_pow_eq_ofK] at hsel
       exact (gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega)
         (ofK_injective hsel)).symm
     subst hjc
-    rw [show clNames[j] = clNames.getD j "" by
-      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj]; rfl] at hcall
     obtain ⟨sp, blk, hargs, hlast⟩ := claimLast_sound hj17 hcall
-    simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hargs
+    simp only [List.cons.injEq, and_true] at hargs
     obtain ⟨hsp, hblk⟩ := hargs
+    rw [← hsp0] at hsp
+    rw [← hblk0] at hblk
     have h76 : σ (.n 65) = σ (.n 45) * gen ^ (13 * b) := by
       rw [mono2Is_sound hm76 hat, h56, h23, h24]; simp only [gen_pow_pow]
     have h84 : σ (.n 73) = σ (.n 56) * gen ^ (68 * b) := by

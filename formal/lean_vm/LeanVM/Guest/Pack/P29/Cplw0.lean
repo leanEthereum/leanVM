@@ -13,27 +13,12 @@ public import Mathlib.Tactic.IntervalCases
 public import LeanVM.Guest.Pack.«P29».Core
 public import LeanVM.Guest.Pack.«P29».Bundle
 public import LeanVM.Guest.Pack.«P42».Sig
+public import LeanVM.Guest.Pack.«P35».Sig
 public import LeanVM.Guest.Pack.«P4».Sig
 public import LeanVM.Guest.Pack.«P23».Sig
-public import LeanVM.Guest.Pack.«P35».Sig
-public import LeanVM.Guest.Pack.«P16».Sig
-public import LeanVM.Guest.Pack.«P9».Sig
-public import LeanVM.Guest.Pack.«P54».Sig
-public import LeanVM.Guest.Pack.«P47».Sig
-public import LeanVM.Guest.Pack.«P28».Sig
-public import LeanVM.Guest.Pack.«P21».Sig
-public import LeanVM.Guest.Pack.«P2».Sig
-public import LeanVM.Guest.Pack.«P59».Sig
-public import LeanVM.Guest.Pack.«P40».Sig
-public import LeanVM.Guest.Pack.«P32».Sig
-public import LeanVM.Guest.Pack.«P51».Sig
-public import LeanVM.Guest.Pack.«P6».Sig
-public import LeanVM.Guest.Pack.«P25».Sig
-public import LeanVM.Guest.Pack.«P44».Sig
-public import LeanVM.Guest.Pack.«P63».Sig
-public import LeanVM.Guest.Pack.«P18».Sig
 public import LeanVM.Guest.Pack.«P33».Sig
 public import LeanVM.Guest.Pack.«P27».Sig
+public import LeanVM.Guest.Pack.«P16».Sig
 public import LeanVM.Guest.Pack.«P29».Sig
 public import LeanVM.Guest.Pack.«P45».Sig
 
@@ -46,11 +31,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `claim_list_digest`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«list_split».idx, Fn.«list_split».sig), (Fn.«claim_list_digest_loop0».idx, Fn.«claim_list_digest_loop0».sig), (Fn.«claim_list_digest_loop1».idx, Fn.«claim_list_digest_loop1».sig), (Fn.«claim_list_last__L0».idx, Fn.«claim_list_last__L0».sig), (Fn.«claim_list_last__L1».idx, Fn.«claim_list_last__L1».sig), (Fn.«claim_list_last__L2».idx, Fn.«claim_list_last__L2».sig), (Fn.«claim_list_last__L3».idx, Fn.«claim_list_last__L3».sig), (Fn.«claim_list_last__L4».idx, Fn.«claim_list_last__L4».sig), (Fn.«claim_list_last__L5».idx, Fn.«claim_list_last__L5».sig), (Fn.«claim_list_last__L6».idx, Fn.«claim_list_last__L6».sig), (Fn.«claim_list_last__L7».idx, Fn.«claim_list_last__L7».sig), (Fn.«claim_list_last__L8».idx, Fn.«claim_list_last__L8».sig), (Fn.«claim_list_last__L9».idx, Fn.«claim_list_last__L9».sig), (Fn.«claim_list_last__L10».idx, Fn.«claim_list_last__L10».sig), (Fn.«claim_list_last__L11».idx, Fn.«claim_list_last__L11».sig), (Fn.«claim_list_last__L12».idx, Fn.«claim_list_last__L12».sig)] ++ [(Fn.«claim_list_last__L13».idx, Fn.«claim_list_last__L13».sig), (Fn.«claim_list_last__L14».idx, Fn.«claim_list_last__L14».sig), (Fn.«claim_list_last__L15».idx, Fn.«claim_list_last__L15».sig), (Fn.«claim_list_last__L16».idx, Fn.«claim_list_last__L16».sig)]) Data.jtTrie globSem) code Fn.«claim_list_digest».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«list_split».idx, Fn.«list_split».sig), (Fn.«claim_list_tail».idx, Fn.«claim_list_tail».sig), (Fn.«claim_list_digest_loop0».idx, Fn.«claim_list_digest_loop0».sig), (Fn.«claim_list_digest_loop1».idx, Fn.«claim_list_digest_loop1».sig)]) Data.jtTrie globSem) code Fn.«claim_list_digest».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `claim_list_digest`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«list_split».idx, Fn.«list_split».sig), (Fn.«claim_list_digest_loop0».idx, Fn.«claim_list_digest_loop0».sig), (Fn.«claim_list_digest_loop1».idx, Fn.«claim_list_digest_loop1».sig), (Fn.«claim_list_last__L0».idx, Fn.«claim_list_last__L0».sig), (Fn.«claim_list_last__L1».idx, Fn.«claim_list_last__L1».sig), (Fn.«claim_list_last__L2».idx, Fn.«claim_list_last__L2».sig), (Fn.«claim_list_last__L3».idx, Fn.«claim_list_last__L3».sig), (Fn.«claim_list_last__L4».idx, Fn.«claim_list_last__L4».sig), (Fn.«claim_list_last__L5».idx, Fn.«claim_list_last__L5».sig), (Fn.«claim_list_last__L6».idx, Fn.«claim_list_last__L6».sig), (Fn.«claim_list_last__L7».idx, Fn.«claim_list_last__L7».sig), (Fn.«claim_list_last__L8».idx, Fn.«claim_list_last__L8».sig), (Fn.«claim_list_last__L9».idx, Fn.«claim_list_last__L9».sig), (Fn.«claim_list_last__L10».idx, Fn.«claim_list_last__L10».sig), (Fn.«claim_list_last__L11».idx, Fn.«claim_list_last__L11».sig), (Fn.«claim_list_last__L12».idx, Fn.«claim_list_last__L12».sig)] ++ [(Fn.«claim_list_last__L13».idx, Fn.«claim_list_last__L13».sig), (Fn.«claim_list_last__L14».idx, Fn.«claim_list_last__L14».sig), (Fn.«claim_list_last__L15».idx, Fn.«claim_list_last__L15».sig), (Fn.«claim_list_last__L16».idx, Fn.«claim_list_last__L16».sig)]) Data.jtTrie globSem) code Fn.«claim_list_digest».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«list_split».idx, Fn.«list_split».sig), (Fn.«claim_list_tail».idx, Fn.«claim_list_tail».sig), (Fn.«claim_list_digest_loop0».idx, Fn.«claim_list_digest_loop0».sig), (Fn.«claim_list_digest_loop1».idx, Fn.«claim_list_digest_loop1».sig)]) Data.jtTrie globSem) code Fn.«claim_list_digest».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

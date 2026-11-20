@@ -32,22 +32,23 @@ core_cert% «block_selector_tab__L10» «P29» 2 []
 core_cert% «bus_grind_check__L11» «P29» 3 [«grind_check__L28»]
 core_cert% «bus_grind_check__L4» «P29» 4 [«grind_check__L21»]
 core_cert% «child_claim_list_mono_last__L12» «P29» 5 []
-core_cert% «da_expand__L13_L7» «P29» 6 []
-core_cert% «da_expand__L6_L7» «P29» 7 []
-core_cert% «eq_prefix_run__L25» «P29» 8 []
-core_cert% «index_mle__L9» «P29» 9 []
-core_cert% «level_positions__L3_L12_L6_loop0» «P29» 10 [«decode_query_windows__L12_L6», «level_positions__L3_L12_L6_loop0»]
-core_cert% «level_positions__L3_L15_L3_loop0» «P29» 11 [«decode_query_windows__L15_L3», «level_positions__L3_L15_L3_loop0»]
-core_cert% «level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1» «P29» 12 [«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1», «verify_merkle_cap__L5»]
-core_cert% «level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0» «P29» 13 [«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0», «verify_merkle_cap__L4»]
-core_cert% «level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0» «P29» 14 [«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0», «verify_merkle_cap__L3»]
-core_cert% «level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0» «P29» 15 [«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0», «verify_merkle_cap__L2»]
-core_cert% «level_residual__L55_L19_L6_L3_loop1» «P29» 16 [«level_residual__L55_L19_L6_L3_loop1»]
-core_cert% «level_residual__L73_L24_L6_L3_loop1» «P29» 17 [«level_residual__L73_L24_L6_L3_loop1»]
-core_cert% «main_loop4» «P29» 18 [«child_claim_list_digest», «main_loop4», «statement_digest», «verify_sub»]
-core_cert% «opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1» «P29» 19 [«opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1_loop0»]
-core_cert% «opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0» «P29» 20 [«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0», «walk_path__L24_L2»]
-core_cert% «walk_path__L6_L6» «P29» 21 []
+core_cert% «claim_list_digest» «P29» 6 [«claim_list_digest_loop0», «claim_list_digest_loop1», «claim_list_tail», «list_split»]
+core_cert% «da_expand__L13_L7» «P29» 7 []
+core_cert% «da_expand__L6_L7» «P29» 8 []
+core_cert% «eq_prefix_run__L25» «P29» 9 []
+core_cert% «index_mle__L9» «P29» 10 []
+core_cert% «level_positions__L3_L12_L6_loop0» «P29» 11 [«decode_query_windows__L12_L6», «level_positions__L3_L12_L6_loop0»]
+core_cert% «level_positions__L3_L15_L3_loop0» «P29» 12 [«decode_query_windows__L15_L3», «level_positions__L3_L15_L3_loop0»]
+core_cert% «level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1» «P29» 13 [«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1», «verify_merkle_cap__L5»]
+core_cert% «level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0» «P29» 14 [«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0», «verify_merkle_cap__L4»]
+core_cert% «level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0» «P29» 15 [«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0», «verify_merkle_cap__L3»]
+core_cert% «level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0» «P29» 16 [«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0», «verify_merkle_cap__L2»]
+core_cert% «level_residual__L55_L19_L6_L3_loop1» «P29» 17 [«level_residual__L55_L19_L6_L3_loop1»]
+core_cert% «level_residual__L73_L24_L6_L3_loop1» «P29» 18 [«level_residual__L73_L24_L6_L3_loop1»]
+core_cert% «main_loop4» «P29» 19 [«child_claim_list_digest», «main_loop4», «statement_digest», «verify_sub»]
+core_cert% «opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1» «P29» 20 [«opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1_loop0»]
+core_cert% «opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0» «P29» 21 [«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0», «walk_path__L24_L2»]
+core_cert% «walk_path__L6_L6» «P29» 22 []
 
 end
 
@@ -61,8 +62,8 @@ namespace LeanVM.Guest.CorePack.«P29»
 noncomputable def ces : List (EndExec.CertE CoreMode.hcTab CoreMode.coreNzs) :=
   [Fn.«block_selector__L21».ce, Fn.«block_selector__L7».ce, Fn.«block_selector_tab__L10».ce,
    Fn.«bus_grind_check__L11».ce, Fn.«bus_grind_check__L4».ce, Fn.«child_claim_list_mono_last__L12».ce,
-   Fn.«da_expand__L13_L7».ce, Fn.«da_expand__L6_L7».ce, Fn.«eq_prefix_run__L25».ce,
-   Fn.«index_mle__L9».ce, Fn.«level_positions__L3_L12_L6_loop0».ce,
+   Fn.«claim_list_digest».ce, Fn.«da_expand__L13_L7».ce, Fn.«da_expand__L6_L7».ce,
+   Fn.«eq_prefix_run__L25».ce, Fn.«index_mle__L9».ce, Fn.«level_positions__L3_L12_L6_loop0».ce,
    Fn.«level_positions__L3_L15_L3_loop0».ce, Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».ce,
    Fn.«level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0».ce,
    Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».ce,

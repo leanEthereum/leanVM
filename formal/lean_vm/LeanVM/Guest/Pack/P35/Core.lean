@@ -299,6 +299,32 @@ noncomputable def core : Core.Fn where
 end
 end LeanVM.Guest.Fn.«claim_list_last__L0»
 
+namespace LeanVM.Guest.Fn.«claim_list_tail»
+
+open LeanVM.Guest
+
+@[expose] public section
+
+namespace core
+
+/-- `claim_list_tail`: the body. -/
+noncomputable def body : List Core.Stmt := [
+  .dispatch (.n 2) ["claim_list_last__L0", "claim_list_last__L1", "claim_list_last__L2", "claim_list_last__L3", "claim_list_last__L4", "claim_list_last__L5", "claim_list_last__L6", "claim_list_last__L7", "claim_list_last__L8", "claim_list_last__L9", "claim_list_last__L10", "claim_list_last__L11", "claim_list_last__L12", "claim_list_last__L13", "claim_list_last__L14", "claim_list_last__L15", "claim_list_last__L16"] [.n 0, .n 1] [.n 3, .n 4],
+  .atom (.copy (.n 5) (.n 3)),
+  .atom (.copy (.n 6) (.n 4)),
+  .ret [.n 5, .n 6]]
+
+end core
+
+/-- `claim_list_tail`. -/
+noncomputable def core : Core.Fn where
+  name := "claim_list_tail"
+  params := [.n 0, .n 1, .n 2]
+  body := core.body
+
+end
+end LeanVM.Guest.Fn.«claim_list_tail»
+
 namespace LeanVM.Guest.Fn.«column_selector__L24»
 
 open LeanVM.Guest

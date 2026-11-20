@@ -269,7 +269,7 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
   sigsOr_of_list Fn.«level_residual__L109_L18_L6_L3».modeSigs fa%[sig_in% «level_residual__L109_L18_L6_L3_loop0», sig_in% «level_residual__L109_L18_L6_L3_loop1»],
   sigsOr_of_list Fn.«level_residual__L37_L13_L4_L2».modeSigs fa%[sig_in% «level_residual__L37_L13_L4_L2_loop0», sig_in% «level_residual__L37_L13_L4_L2_loop1»],
   sigsOr_of_list Fn.«level_residual__L73_L16_L6_L3_loop1».modeSigs fa%[sig_in% «level_residual__L73_L16_L6_L3_loop1»],
-  sigsOr_of_list Fn.«main».modeSigs fa%[sig_in% «aggregate_claims», .inr (list_mem% 0), sig_in% «da_verify», sig_in% «exponent_tables»,
+  sigsOr_of_list Fn.«main».modeSigs fa%[sig_in% «aggregate_claims», sig_in% «claim_list_digest», sig_in% «da_verify», sig_in% «exponent_tables»,
        sig_in% «main_loop0», sig_in% «main_loop1», sig_in% «main_loop2», sig_in% «main_loop3», sig_in% «main_loop4»,
        sig_in% «statement_digest»],
   sigsOr_of_list Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1_loop0».modeSigs fa%[sig_in% «opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1_loop0», sig_in% «walk_path__L12_L3»],

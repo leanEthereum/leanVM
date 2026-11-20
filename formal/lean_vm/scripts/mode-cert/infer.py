@@ -960,7 +960,40 @@ def streams():
 STREAMS, STREAM_CAP = streams()
 
 
+def _tup(x):
+    return tuple(_tup(y) for y in x) if isinstance(x, (list, tuple)) else x
+
+
+def contracts():
+    """The core route's functions' signatures as written (`CoreMode/Sig/<pack>.lean`, `scripts/core-mode/sigc.py`), by
+    compiled name: their contracts, not inferred; their callers off the route are inferred against them."""
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'core-mode'))
+    import sigc, compiled
+    on, old = sigc.routed(), sigc.written()
+    fsig = compiled.code()['fsig']
+    out = {}
+    for n, f in fns.items():
+        k = f['ns']
+        if k not in on or k not in old or not sigc.layout_ok(old[k], fsig[f['entry']]):
+            continue
+        v = [compiled.parse(t) for t in compiled.split_top(old[k])]
+        slf = None if v[1] == ('id', 'none') else v[1][1]
+        L = lambda x: [_tup(y) for y in x]
+        out[n] = Sig(f['entry'], list(v[0]), slf, L(v[2]), L(v[3]), L(v[4]), list(v[5]), L(v[6]), L(v[7]), L(v[8]),
+                     L(v[9]), L(v[10]), L(v[11]), L(v[12]), L(v[13]), L(v[14]))
+    return out
+
+
+CONTRACTS = contracts()
+
+
 def infer(n):
+    if n in CONTRACTS:
+        G = CONTRACTS[n]
+        E.sigs[G.pc] = G
+        DONE.add(n)
+        LAST[n] = (G, {})
+        return LAST[n]
     DONE.add(n)
     LAST.pop(n, None)
     mark = {g: dict(v) for g, v in NARROW.items()}

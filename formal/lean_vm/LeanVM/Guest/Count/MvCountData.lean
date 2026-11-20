@@ -23,31 +23,31 @@ set_option maxRecDepth 100000
 def dvStNames : List String := ["da_padding", "da_vector", "da_weights"]
 
 /-- Their core indices. -/
-def dvStJ : List ℕ := [30, 33, 28]
+def dvStJ : List ℕ := [31, 34, 29]
 
 /-- `da_verify`'s blob loop and the padding loop. -/
 def dvLpNames : List String := ["__loop0_da_verify", "__loop0_da_pad"]
 
 /-- Their core indices. -/
-def dvLpJ : List ℕ := [406, 409]
+def dvLpJ : List ℕ := [407, 410]
 
 /-- The core index of the tree over the blob roots, `B1.Da.dlTop`. -/
-def dlJ : ℕ := 407
+def dlJ : ℕ := 408
 
-/-- The core indices of `claim_list_last__L{k}`, `k < 17`. -/
-def clJ : List ℕ := [351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367]
+/-- The core index of `claim_list_tail`. -/
+def clTJ : ℕ := 24
 
 /-- `claim_list_digest`'s loops, per `136` and per `17` claims. -/
 def clLpNames : List String := ["__loop0_claim_list_digest", "__loop1_claim_list_digest"]
 
 /-- Their core indices. -/
-def clLpJ : List ℕ := [349, 350]
+def clLpJ : List ℕ := [350, 351]
 
 /-- The functions whose frames the counts weigh. -/
 def mvOmNames : List String := ["da_verify", "da_pad", "claim_list_digest"]
 
 /-- Their core indices. -/
-def mvOmJ : List ℕ := [27, 29, 23]
+def mvOmJ : List ℕ := [28, 30, 23]
 
 /-- The instructions of `dvStNames`. -/
 def kcDvStT : Opcode → List ℕ
@@ -76,14 +76,14 @@ def kcDl : Opcode → ℕ
   | .jump => 68
   | .keccak => 31
 
-/-- `claim_list_last__L{k}`'s instructions, by `k`. -/
-def kcClT : Opcode → List ℕ
-  | .xor => [2, 6, 9, 15, 18, 23, 27, 32, 36, 40, 44, 49, 53, 57, 61, 66, 70]
-  | .mulNative => [2, 5, 2, 5, 2, 2, 2, 2, 2, 2, 3, 2, 3, 2, 4, 2, 4]
-  | .setConstant => [6, 6, 2, 6, 2, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6]
-  | .deref => [13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 57, 61, 65, 69, 73, 77]
-  | .jump => [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-  | .keccak => [1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8]
+/-- `claim_list_tail`'s instructions. -/
+def kcClT : Opcode → ℕ
+  | .xor => 70
+  | .mulNative => 7
+  | .setConstant => 8
+  | .deref => 84
+  | .jump => 3
+  | .keccak => 8
 
 /-- The instructions of `clLpNames` per iteration. -/
 def kcClLpT : Opcode → List ℕ
@@ -97,9 +97,9 @@ def kcClLpT : Opcode → List ℕ
 /-- The frame weights of `mvOmNames`. -/
 def mvOmT : Opcode → List ℕ
   | .xor => [1, 1, 3]
-  | .mulNative => [4, 0, 40]
+  | .mulNative => [4, 0, 43]
   | .setConstant => [14, 2, 9]
-  | .deref => [36, 7, 42]
+  | .deref => [36, 7, 46]
   | .jump => [7, 2, 6]
   | .keccak => [1, 0, 1]
 
@@ -133,10 +133,10 @@ def kcDvP : Opcode → ℕ
 /-- `claim_list_digest`'s instructions on `n` claims within `kcClA + kcClS · n`: the constant. -/
 def kcClA : Opcode → ℕ
   | .xor => 584
-  | .mulNative => 220
-  | .setConstant => 46
-  | .deref => 782
-  | .jump => 22
+  | .mulNative => 225
+  | .setConstant => 48
+  | .deref => 793
+  | .jump => 24
   | .keccak => 65
 
 /-- `claim_list_digest`'s instructions: per claim. -/
@@ -155,8 +155,7 @@ noncomputable def mvTabOk (op : Opcode) : Bool :=
   (List.range 2).all (fun i => kvOkK op (dvLpJ.getD i 0) (dvLpNames.getD i "") &&
     kvSKJ op (dvLpJ.getD i 0) == (kcDvLpT op).getD i 0) &&
   (kvOkB op dlJ B1.Da.dlTop && kvSBJ op dlJ == kcDl op) &&
-  (List.range 17).all (fun k => kvOkB op (clJ.getD k 0) (B1.Digest.clNames.getD k "") &&
-    kvSBJ op (clJ.getD k 0) == (kcClT op).getD k 0) &&
+  (kvOkB op clTJ "claim_list_tail" && kvSBJ op clTJ == kcClT op) &&
   (List.range 2).all (fun i => kvOkK op (clLpJ.getD i 0) (clLpNames.getD i "") &&
     kvSKJ op (clLpJ.getD i 0) == (kcClLpT op).getD i 0) &&
   (List.range 3).all (fun i => decide ((coreProgram[mvOmJ.getD i 0]?).map Fn.name = some (mvOmNames.getD i "")) &&

@@ -772,7 +772,10 @@ def assemblyFiles(packList, walkH, hintsH, R):
     held = sorted(walkH | hintsH)
     out = [header('LeanVM.Guest.Mode.Certs', "The certificates closed (`ModeCerts`), from the frame interfaces the kernel does not check.")]
     rp = []
-    out.append(importLines({'LeanVM.Guest.Mode.CertAssemble'} | {'LeanVM.Guest.Mode.Certs.Sig%d' % c for c in range(len(chunks))}))
+    # no chunk (every function on the core route): the chunks' own imports
+    out.append(importLines({'LeanVM.Guest.Mode.CertAssemble'} | ({'LeanVM.Guest.Mode.Certs.Sig%d' % c for c in range(len(chunks))} or
+                                                                 {'LeanVM.Guest.Mode.Certs.List', 'LeanVM.Guest.Mode.CertNz',
+                                                                  'LeanVM.Guest.SoundFacts', 'LeanVM.Guest.CoreMode.Assemble'})))
     out.append('\nset_option Elab.async false\n')
     out.append('\nnamespace LeanVM.Guest.Mode\n\nopen LeanVM.Guest\n\npublic section\n\n')
     out.append('/-- **The frame interfaces the kernel does not check**, one per function (`FnSpec K`, for its\n    frame predicate `guestQ`): a function whose walk fails or is too costly to check, or whose\n    hints are too costly to check in one piece. -/\nstructure ModeHyps : Prop where\n')
@@ -793,8 +796,8 @@ def assemblyFiles(packList, walkH, hintsH, R):
             g, 'h' if ' h.' in body else '_h', g, body))
     def two(f):
         return 'fa_flatten (fa_flatten (%s))' % chain(['(%s)' % chain([f % p for p in ps]) for ps in G])
-    out.append('theorem offCerts_spec (h : ModeHyps) : ∀ K ∈ offCerts, FnSpec CoreMode.hcTab CoreMode.coreTable K :=\n  fa_flatten (fa_flatten (%s))\n\n' % chain(
-        ['offGroup_spec%d h' % g for g in range(len(G))]))
+    out.append('theorem offCerts_spec (%s : ModeHyps) : ∀ K ∈ offCerts, FnSpec CoreMode.hcTab CoreMode.coreTable K :=\n  fa_flatten (fa_flatten (%s))\n\n' % ('h' if G else '_h', chain(
+        ['offGroup_spec%d h' % g for g in range(len(G))])))
     out.append('theorem offCerts_sigs : ∀ K ∈ offCerts, SigsIn (CoreMode.coreCerts ++ offCerts) K :=\n  %s\n\n' % two('ModePack.«%s».certs_sigs'))
     offs = sorted({m for n in I.fns if onRoute(n) for m in calleesOf(n) if not onRoute(m)}, key=lambda m: I.fns[m]['entry'])
     out.append('/-- The core route\'s callees off it, these certificates\'. -/\ntheorem offSigs_in : ∀ p ∈ CoreMode.offSigs, SigIn offCerts p :=\n  %s\n\n' % chain(
@@ -841,7 +844,8 @@ def main(argv):
                 I.E.sigs[f['entry']] = s; sigs[n] = s
         # a callee inferred again for a caller (`infer.narrow`): its last inference
         for n, (s, r) in I.LAST.items(): sigs[n], R[n] = s, r
-        cost = {n: kprofile(n, sigs[n], R.get(n, {})) for n in I.fns if n not in fails}
+        # the core route's contracts are not walked (`infer.CONTRACTS`)
+        cost = {n: kprofile(n, sigs[n], R.get(n, {})) for n in I.fns if n not in fails and n not in I.CONTRACTS}
         if cache:
             import pickle
             pickle.dump((sigs, fails, R, I.E.sigs, cost), open(cache, 'wb'))

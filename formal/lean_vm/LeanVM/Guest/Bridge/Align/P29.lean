@@ -13,34 +13,22 @@ public import LeanVM.Guest.CoreMode.GlueA.«P29»
 public import LeanVM.Guest.CoreMode.GlueE.«P11»
 public import LeanVM.Guest.CoreMode.GlueE.«P13»
 public import LeanVM.Guest.CoreMode.GlueE.«P16»
-public import LeanVM.Guest.CoreMode.GlueE.«P18»
 public import LeanVM.Guest.CoreMode.GlueE.«P21»
 public import LeanVM.Guest.CoreMode.GlueE.«P23»
-public import LeanVM.Guest.CoreMode.GlueE.«P25»
 public import LeanVM.Guest.CoreMode.GlueE.«P26»
 public import LeanVM.Guest.CoreMode.GlueE.«P27»
-public import LeanVM.Guest.CoreMode.GlueE.«P28»
 public import LeanVM.Guest.CoreMode.GlueE.«P29»
 public import LeanVM.Guest.CoreMode.GlueE.«P2»
-public import LeanVM.Guest.CoreMode.GlueE.«P32»
 public import LeanVM.Guest.CoreMode.GlueE.«P33»
 public import LeanVM.Guest.CoreMode.GlueE.«P35»
-public import LeanVM.Guest.CoreMode.GlueE.«P40»
 public import LeanVM.Guest.CoreMode.GlueE.«P42»
-public import LeanVM.Guest.CoreMode.GlueE.«P44»
 public import LeanVM.Guest.CoreMode.GlueE.«P45»
-public import LeanVM.Guest.CoreMode.GlueE.«P47»
 public import LeanVM.Guest.CoreMode.GlueE.«P4»
-public import LeanVM.Guest.CoreMode.GlueE.«P51»
-public import LeanVM.Guest.CoreMode.GlueE.«P54»
 public import LeanVM.Guest.CoreMode.GlueE.«P56»
 public import LeanVM.Guest.CoreMode.GlueE.«P58»
-public import LeanVM.Guest.CoreMode.GlueE.«P59»
 public import LeanVM.Guest.CoreMode.GlueE.«P61»
-public import LeanVM.Guest.CoreMode.GlueE.«P63»
 public import LeanVM.Guest.CoreMode.GlueE.«P6»
 public import LeanVM.Guest.CoreMode.GlueE.«P8»
-public import LeanVM.Guest.CoreMode.GlueE.«P9»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P29».Bundle
 public import LeanVM.Guest.Pack.«P29».Core
@@ -58,7 +46,7 @@ noncomputable def Fn.«block_selector_tab__L10».alignCtx : Bridge.AlignCtx := B
 noncomputable def Fn.«bus_grind_check__L11».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("grind_check__L28", Fn.«grind_check__L28».entry)] 524287 code.instructionCount
 noncomputable def Fn.«bus_grind_check__L4».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("grind_check__L21", Fn.«grind_check__L21».entry)] 524287 code.instructionCount
 noncomputable def Fn.«child_claim_list_mono_last__L12».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
-noncomputable def Fn.«claim_list_digest».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_claim_list_digest", Fn.«claim_list_digest_loop0».entry), ("__loop1_claim_list_digest", Fn.«claim_list_digest_loop1».entry), ("claim_list_last__L0", Fn.«claim_list_last__L0».entry), ("claim_list_last__L1", Fn.«claim_list_last__L1».entry), ("claim_list_last__L10", Fn.«claim_list_last__L10».entry), ("claim_list_last__L11", Fn.«claim_list_last__L11».entry), ("claim_list_last__L12", Fn.«claim_list_last__L12».entry), ("claim_list_last__L13", Fn.«claim_list_last__L13».entry), ("claim_list_last__L14", Fn.«claim_list_last__L14».entry), ("claim_list_last__L15", Fn.«claim_list_last__L15».entry), ("claim_list_last__L16", Fn.«claim_list_last__L16».entry), ("claim_list_last__L2", Fn.«claim_list_last__L2».entry), ("claim_list_last__L3", Fn.«claim_list_last__L3».entry), ("claim_list_last__L4", Fn.«claim_list_last__L4».entry), ("claim_list_last__L5", Fn.«claim_list_last__L5».entry), ("claim_list_last__L6", Fn.«claim_list_last__L6».entry), ("claim_list_last__L7", Fn.«claim_list_last__L7».entry), ("claim_list_last__L8", Fn.«claim_list_last__L8».entry), ("claim_list_last__L9", Fn.«claim_list_last__L9».entry), ("list_split", Fn.«list_split».entry)] 524287 code.instructionCount
+noncomputable def Fn.«claim_list_digest».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_claim_list_digest", Fn.«claim_list_digest_loop0».entry), ("__loop1_claim_list_digest", Fn.«claim_list_digest_loop1».entry), ("claim_list_tail", Fn.«claim_list_tail».entry), ("list_split", Fn.«list_split».entry)] 524287 code.instructionCount
 noncomputable def Fn.«da_expand__L13_L7».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«da_expand__L6_L7».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«eq_prefix_run__L25».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount

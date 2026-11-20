@@ -18,8 +18,8 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-abbrev Fn.«main_loop2».advice := Data.adviceFn39
-abbrev Fn.«main_loop2».idx : ℕ := 39
+abbrev Fn.«main_loop2».advice := Data.adviceFn40
+abbrev Fn.«main_loop2».idx : ℕ := 40
 abbrev Fn.«main_loop2».jt0 : ℕ := 2116
 
 end

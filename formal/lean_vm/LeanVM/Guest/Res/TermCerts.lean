@@ -7,7 +7,8 @@
 
 module
 
-public import LeanVM.Guest.Res.TermCerts0
+public import LeanVM.Guest.EndExecRT
+public import LeanVM.Guest.Mode.Certs.List
 
 set_option Elab.async false
 
@@ -19,9 +20,7 @@ public section
 
 /-- **Every certificate's termination facts are its loop shape's.** -/
 theorem offCerts_term : ∀ K ∈ offCerts, TermOk K :=
-  fa_flatten (fa_flatten (Mode.fa_cons ((Mode.fa_cons (ModePack.«P29».certs_term)
-    (Mode.fa_nil)))
-    (Mode.fa_nil)))
+  fa_flatten (fa_flatten (Mode.fa_nil))
 
 /-- **The termination facts of the entered honest instances**, for the mode walk's certificates. -/
 theorem termNode_guest : TermNode offCerts := termNode_of offCerts_term

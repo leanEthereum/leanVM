@@ -18,8 +18,8 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-abbrev Fn.«walk_path__L24_L2».advice := Data.adviceFn1524
-abbrev Fn.«walk_path__L24_L2».idx : ℕ := 1524
+abbrev Fn.«walk_path__L24_L2».advice := Data.adviceFn1525
+abbrev Fn.«walk_path__L24_L2».idx : ℕ := 1525
 abbrev Fn.«walk_path__L24_L2».jt0 : ℕ := 13200
 
 end

@@ -12,6 +12,23 @@ public import LeanVM.Guest.Data.Pows
 public import Mathlib.Tactic.IntervalCases
 public import LeanVM.Guest.Pack.«P35».Core
 public import LeanVM.Guest.Pack.«P35».Bundle
+public import LeanVM.Guest.Pack.«P35».Sig
+public import LeanVM.Guest.Pack.«P16».Sig
+public import LeanVM.Guest.Pack.«P9».Sig
+public import LeanVM.Guest.Pack.«P54».Sig
+public import LeanVM.Guest.Pack.«P47».Sig
+public import LeanVM.Guest.Pack.«P28».Sig
+public import LeanVM.Guest.Pack.«P21».Sig
+public import LeanVM.Guest.Pack.«P2».Sig
+public import LeanVM.Guest.Pack.«P59».Sig
+public import LeanVM.Guest.Pack.«P40».Sig
+public import LeanVM.Guest.Pack.«P32».Sig
+public import LeanVM.Guest.Pack.«P51».Sig
+public import LeanVM.Guest.Pack.«P6».Sig
+public import LeanVM.Guest.Pack.«P25».Sig
+public import LeanVM.Guest.Pack.«P44».Sig
+public import LeanVM.Guest.Pack.«P63».Sig
+public import LeanVM.Guest.Pack.«P18».Sig
 
 set_option Elab.async false
 
@@ -38,6 +55,30 @@ theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«assert_sma
 
 end
 end LeanVM.Guest.Fn.«assert_small_g_power»
+
+namespace LeanVM.Guest.Fn.«claim_list_tail»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+/-- `claim_list_tail`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«claim_list_last__L0».idx, Fn.«claim_list_last__L0».sig), (Fn.«claim_list_last__L1».idx, Fn.«claim_list_last__L1».sig), (Fn.«claim_list_last__L2».idx, Fn.«claim_list_last__L2».sig), (Fn.«claim_list_last__L3».idx, Fn.«claim_list_last__L3».sig), (Fn.«claim_list_last__L4».idx, Fn.«claim_list_last__L4».sig), (Fn.«claim_list_last__L5».idx, Fn.«claim_list_last__L5».sig), (Fn.«claim_list_last__L6».idx, Fn.«claim_list_last__L6».sig), (Fn.«claim_list_last__L7».idx, Fn.«claim_list_last__L7».sig), (Fn.«claim_list_last__L8».idx, Fn.«claim_list_last__L8».sig), (Fn.«claim_list_last__L9».idx, Fn.«claim_list_last__L9».sig), (Fn.«claim_list_last__L10».idx, Fn.«claim_list_last__L10».sig), (Fn.«claim_list_last__L11».idx, Fn.«claim_list_last__L11».sig), (Fn.«claim_list_last__L12».idx, Fn.«claim_list_last__L12».sig), (Fn.«claim_list_last__L13».idx, Fn.«claim_list_last__L13».sig), (Fn.«claim_list_last__L14».idx, Fn.«claim_list_last__L14».sig), (Fn.«claim_list_last__L15».idx, Fn.«claim_list_last__L15».sig)] ++ [(Fn.«claim_list_last__L16».idx, Fn.«claim_list_last__L16».sig)]) Data.jtTrie globSem) code Fn.«claim_list_tail».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+  decide +kernel
+
+/-- `claim_list_tail`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«claim_list_last__L0».idx, Fn.«claim_list_last__L0».sig), (Fn.«claim_list_last__L1».idx, Fn.«claim_list_last__L1».sig), (Fn.«claim_list_last__L2».idx, Fn.«claim_list_last__L2».sig), (Fn.«claim_list_last__L3».idx, Fn.«claim_list_last__L3».sig), (Fn.«claim_list_last__L4».idx, Fn.«claim_list_last__L4».sig), (Fn.«claim_list_last__L5».idx, Fn.«claim_list_last__L5».sig), (Fn.«claim_list_last__L6».idx, Fn.«claim_list_last__L6».sig), (Fn.«claim_list_last__L7».idx, Fn.«claim_list_last__L7».sig), (Fn.«claim_list_last__L8».idx, Fn.«claim_list_last__L8».sig), (Fn.«claim_list_last__L9».idx, Fn.«claim_list_last__L9».sig), (Fn.«claim_list_last__L10».idx, Fn.«claim_list_last__L10».sig), (Fn.«claim_list_last__L11».idx, Fn.«claim_list_last__L11».sig), (Fn.«claim_list_last__L12».idx, Fn.«claim_list_last__L12».sig), (Fn.«claim_list_last__L13».idx, Fn.«claim_list_last__L13».sig), (Fn.«claim_list_last__L14».idx, Fn.«claim_list_last__L14».sig), (Fn.«claim_list_last__L15».idx, Fn.«claim_list_last__L15».sig)] ++ [(Fn.«claim_list_last__L16».idx, Fn.«claim_list_last__L16».sig)]) Data.jtTrie globSem) code Fn.«claim_list_tail».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+  intro i hi k hk
+  have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nPartsD parts 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw0_0
+
+end
+end LeanVM.Guest.Fn.«claim_list_tail»
 
 namespace LeanVM.Guest.Fn.«rs_eq_rows__L6»
 
@@ -166,28 +207,4 @@ theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«claim_list
 
 end
 end LeanVM.Guest.Fn.«claim_list_last__L0»
-
-namespace LeanVM.Guest.Fn.«child_claim_list_last__L7»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-/-- `child_claim_list_last__L7`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«child_claim_list_last__L7».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
-  decide +kernel
-
-/-- `child_claim_list_last__L7`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«child_claim_list_last__L7».core (cert.withPows Data.powTree) plumb fs parts arms false := by
-  intro i hi k hk
-  have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nPartsD parts 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw0_0
-
-end
-end LeanVM.Guest.Fn.«child_claim_list_last__L7»
 

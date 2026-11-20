@@ -47,7 +47,9 @@ def render():
         files[mod] = ''.join(t); mods.append(mod)
     mod = 'LeanVM.Guest.Res.SubCerts'
     t = [header(mod, '`ResTop offCerts` from the listed certificates\' residuals and the listed parameters\' nonzero values.')]
-    t.append(''.join('public import %s\n' % m for m in mods))
+    # no group (every function on the core route): the groups' imports
+    t.append(''.join('public import %s\n' % m for m in mods) or
+             'public import LeanVM.Guest.Res.SubDefs\npublic import LeanVM.Guest.Mode.Certs.List\n')
     t.append('public import LeanVM.Guest.Res.MonoOk\npublic import LeanVM.Guest.EndExecRSub\npublic import LeanVM.Guest.EndExecRCp\npublic import LeanVM.Guest.EndExecW\n')
     t.append('\nset_option Elab.async false\n\nnamespace LeanVM.Guest.EndExec\n\nopen LeanVM.Guest LeanVM.Guest.Mode '
              'LeanVM.Guest.Res\n\npublic section\n\n/-- **Every certificate\'s `sub` residuals are in the families.** -/\n'

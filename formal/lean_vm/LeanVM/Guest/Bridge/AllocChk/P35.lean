@@ -13,17 +13,31 @@ public import LeanVM.Guest.Bridge.ChkLit
 public import LeanVM.Guest.Bridge.Align.«P35»
 public import LeanVM.Guest.CoreMode.GlueA.«P11»
 public import LeanVM.Guest.CoreMode.GlueA.«P14»
+public import LeanVM.Guest.CoreMode.GlueA.«P16»
+public import LeanVM.Guest.CoreMode.GlueA.«P18»
+public import LeanVM.Guest.CoreMode.GlueA.«P21»
 public import LeanVM.Guest.CoreMode.GlueA.«P23»
 public import LeanVM.Guest.CoreMode.GlueA.«P24»
 public import LeanVM.Guest.CoreMode.GlueA.«P25»
 public import LeanVM.Guest.CoreMode.GlueA.«P26»
+public import LeanVM.Guest.CoreMode.GlueA.«P28»
+public import LeanVM.Guest.CoreMode.GlueA.«P2»
+public import LeanVM.Guest.CoreMode.GlueA.«P32»
 public import LeanVM.Guest.CoreMode.GlueA.«P33»
 public import LeanVM.Guest.CoreMode.GlueA.«P35»
 public import LeanVM.Guest.CoreMode.GlueA.«P3»
+public import LeanVM.Guest.CoreMode.GlueA.«P40»
+public import LeanVM.Guest.CoreMode.GlueA.«P44»
+public import LeanVM.Guest.CoreMode.GlueA.«P47»
 public import LeanVM.Guest.CoreMode.GlueA.«P51»
+public import LeanVM.Guest.CoreMode.GlueA.«P54»
 public import LeanVM.Guest.CoreMode.GlueA.«P55»
+public import LeanVM.Guest.CoreMode.GlueA.«P59»
 public import LeanVM.Guest.CoreMode.GlueA.«P61»
 public import LeanVM.Guest.CoreMode.GlueA.«P62»
+public import LeanVM.Guest.CoreMode.GlueA.«P63»
+public import LeanVM.Guest.CoreMode.GlueA.«P6»
+public import LeanVM.Guest.CoreMode.GlueA.«P9»
 public import LeanVM.Guest.Pack.«P35».Bundle
 public import LeanVM.Guest.Pack.«P35».Core
 
@@ -34,6 +48,7 @@ namespace LeanVM.Guest
 public section
 
 alloc_chk% «assert_small_g_power» []
+alloc_chk% «claim_list_tail» [«claim_list_last__L0», «claim_list_last__L1», «claim_list_last__L2», «claim_list_last__L3», «claim_list_last__L4», «claim_list_last__L5», «claim_list_last__L6», «claim_list_last__L7», «claim_list_last__L8», «claim_list_last__L9», «claim_list_last__L10», «claim_list_last__L11», «claim_list_last__L12», «claim_list_last__L13», «claim_list_last__L14», «claim_list_last__L15», «claim_list_last__L16»]
 alloc_chk% «rs_eq_rows__L6» []
 alloc_chk% «index_mle__L14» []
 alloc_chk% «column_selector__L24» []

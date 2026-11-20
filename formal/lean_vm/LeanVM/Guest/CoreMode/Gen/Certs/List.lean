@@ -126,7 +126,7 @@ noncomputable def coreTable : List CoreMode.CFun := corePacks.flatten.map (·.cf
 
 /-- **The routed functions' callees off the route**, by entry and signature. -/
 noncomputable def offSigs : List (ℕ × Mode.Sig) :=
-  [(Fn.«claim_list_digest».entry, Fn.«claim_list_digest».csig)]
+  []
 
 end
 
@@ -667,22 +667,23 @@ cert_in% «block_selector_tab__L10» 22 2
 cert_in% «bus_grind_check__L11» 22 3
 cert_in% «bus_grind_check__L4» 22 4
 cert_in% «child_claim_list_mono_last__L12» 22 5
-cert_in% «da_expand__L13_L7» 22 6
-cert_in% «da_expand__L6_L7» 22 7
-cert_in% «eq_prefix_run__L25» 22 8
-cert_in% «index_mle__L9» 22 9
-cert_in% «level_positions__L3_L12_L6_loop0» 22 10
-cert_in% «level_positions__L3_L15_L3_loop0» 22 11
-cert_in% «level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1» 22 12
-cert_in% «level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0» 22 13
-cert_in% «level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0» 22 14
-cert_in% «level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0» 22 15
-cert_in% «level_residual__L55_L19_L6_L3_loop1» 22 16
-cert_in% «level_residual__L73_L24_L6_L3_loop1» 22 17
-cert_in% «main_loop4» 22 18
-cert_in% «opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1» 22 19
-cert_in% «opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0» 22 20
-cert_in% «walk_path__L6_L6» 22 21
+cert_in% «claim_list_digest» 22 6
+cert_in% «da_expand__L13_L7» 22 7
+cert_in% «da_expand__L6_L7» 22 8
+cert_in% «eq_prefix_run__L25» 22 9
+cert_in% «index_mle__L9» 22 10
+cert_in% «level_positions__L3_L12_L6_loop0» 22 11
+cert_in% «level_positions__L3_L15_L3_loop0» 22 12
+cert_in% «level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1» 22 13
+cert_in% «level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0» 22 14
+cert_in% «level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0» 22 15
+cert_in% «level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0» 22 16
+cert_in% «level_residual__L55_L19_L6_L3_loop1» 22 17
+cert_in% «level_residual__L73_L24_L6_L3_loop1» 22 18
+cert_in% «main_loop4» 22 19
+cert_in% «opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1» 22 20
+cert_in% «opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0» 22 21
+cert_in% «walk_path__L6_L6» 22 22
 cert_in% «da_levels__L32_L5_loop3» 23 0
 cert_in% «decode_query_windows__L23_L5» 23 1
 cert_in% «eq_prefix_run__L16» 23 2
@@ -825,29 +826,30 @@ cert_in% «plus_one_run__L17» 28 28
 cert_in% «assert_small_g_power» 29 0
 cert_in% «child_claim_list_last__L7» 29 1
 cert_in% «claim_list_last__L0» 29 2
-cert_in% «column_selector__L24» 29 3
-cert_in% «da_column_offsets_loop4» 29 4
-cert_in% «index_mle__L14» 29 5
-cert_in% «level_positions__L15_L24_L6_loop0» 29 6
-cert_in% «level_positions__L22_L23_L5_loop0» 29 7
-cert_in% «level_positions__L5_L25_L7» 29 8
-cert_in% «level_positions__L8_L19_L7» 29 9
-cert_in% «level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0» 29 10
-cert_in% «level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0» 29 11
-cert_in% «level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0» 29 12
-cert_in% «level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0» 29 13
-cert_in% «level_residual__L109_L16_L6_L3_loop0» 29 14
-cert_in% «level_residual__L16_L8_L4_L2» 29 15
-cert_in% «level_residual__L18_L11_L4_L2_loop1» 29 16
-cert_in% «level_residual__L21_L11_L4_L2_loop1» 29 17
-cert_in% «level_residual__L25_L14_L4_L2_loop0» 29 18
-cert_in% «level_residual__L44_L17_L4_L2_loop0» 29 19
-cert_in% «level_residual__L55_L14_L4_L2_loop1» 29 20
-cert_in% «level_residual__L55_L15_L6_L3» 29 21
-cert_in% «level_residual__L55_L23_L6_L3_loop0» 29 22
-cert_in% «opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1_loop0» 29 23
-cert_in% «rs_eq_rows__L6» 29 24
-cert_in% «squeeze_point_from__L22» 29 25
+cert_in% «claim_list_tail» 29 3
+cert_in% «column_selector__L24» 29 4
+cert_in% «da_column_offsets_loop4» 29 5
+cert_in% «index_mle__L14» 29 6
+cert_in% «level_positions__L15_L24_L6_loop0» 29 7
+cert_in% «level_positions__L22_L23_L5_loop0» 29 8
+cert_in% «level_positions__L5_L25_L7» 29 9
+cert_in% «level_positions__L8_L19_L7» 29 10
+cert_in% «level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0» 29 11
+cert_in% «level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0» 29 12
+cert_in% «level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0» 29 13
+cert_in% «level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0» 29 14
+cert_in% «level_residual__L109_L16_L6_L3_loop0» 29 15
+cert_in% «level_residual__L16_L8_L4_L2» 29 16
+cert_in% «level_residual__L18_L11_L4_L2_loop1» 29 17
+cert_in% «level_residual__L21_L11_L4_L2_loop1» 29 18
+cert_in% «level_residual__L25_L14_L4_L2_loop0» 29 19
+cert_in% «level_residual__L44_L17_L4_L2_loop0» 29 20
+cert_in% «level_residual__L55_L14_L4_L2_loop1» 29 21
+cert_in% «level_residual__L55_L15_L6_L3» 29 22
+cert_in% «level_residual__L55_L23_L6_L3_loop0» 29 23
+cert_in% «opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1_loop0» 29 24
+cert_in% «rs_eq_rows__L6» 29 25
+cert_in% «squeeze_point_from__L22» 29 26
 cert_in% «block_selector__L22» 30 0
 cert_in% «block_selector__L4» 30 1
 cert_in% «block_selector_tab__L13» 30 2

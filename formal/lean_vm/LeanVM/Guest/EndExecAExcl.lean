@@ -46,7 +46,8 @@ def callsSure : List Stmt → Bool
   | _ => false
 
 /-- What follows `claim_list_digest`'s branch. -/
-abbrev cldTail : List Stmt := [.atom (.copy (.n 76) (.n 10)), .atom (.copy (.n 77) (.n 11)), .ret [.n 76, .n 77]]
+abbrev cldTail : List Stmt := [.atom (.touch (.n 94) (.n 1)), .atom (.copy (.n 95) (.n 10)), .atom (.copy (.n 96) (.n 11)),
+  .ret [.n 95, .n 96]]
 
 end
 

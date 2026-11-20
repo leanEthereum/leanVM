@@ -14,12 +14,11 @@ public import LeanVM.Guest.CoreMode.Pack.«P46».Frame0
 public import LeanVM.Guest.CoreMode.Pack.«P51».Frame0
 public import LeanVM.Guest.CoreMode.Pack.«P57».Frame0
 public import LeanVM.Guest.CoreMode.Pack.«verify_tables».Frame0
-public import LeanVM.Guest.Pack.«P29».ModeD0
 
 /-!
 # The residuals' families, checked on the guest's data
 
-`nzMul_guest`: each nonzero residual of a kernel-checked function sits at a `MUL` as its divisor (`nz_mul`, `resRef_obl`: its product cell nonzero on the reference). `ltWin_guest`: each order residual of a `walk_path` specialization `walk_path__L{p}_L{c}` bounds a window of its `wins` argument (frame cell `4`): the exponent of the word `k < (p + 5) / 6` cells past it below `64` (`obl_win`, `rwins_of_winsAt`). `ltFr_guest`: each order residual of the listed functions bounds a frame cell's exponent. `famOk_guest`: every residual of the listed functions has an obligation of its own (`Obl`, `oblFam`). The functions with a residual outside the families: `claim_list_digest`.
+`nzMul_guest`: each nonzero residual of a kernel-checked function sits at a `MUL` as its divisor (`nz_mul`, `resRef_obl`: its product cell nonzero on the reference). `ltWin_guest`: each order residual of a `walk_path` specialization `walk_path__L{p}_L{c}` bounds a window of its `wins` argument (frame cell `4`): the exponent of the word `k < (p + 5) / 6` cells past it below `64` (`obl_win`, `rwins_of_winsAt`). `ltFr_guest`: each order residual of the listed functions bounds a frame cell's exponent. `famOk_guest`: every residual of the listed functions has an obligation of its own (`Obl`, `oblFam`). The functions with a residual outside the families: none.
 -/
 
 namespace LeanVM.Guest.Mode

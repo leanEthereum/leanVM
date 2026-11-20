@@ -241,6 +241,8 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
   sigsOr_of_list Fn.«bus_grind_check__L11».modeSigs fa%[sig_in% «grind_check__L28»],
   sigsOr_of_list Fn.«bus_grind_check__L4».modeSigs fa%[sig_in% «grind_check__L21»],
   sigsOr_of_list Fn.«child_claim_list_mono_last__L12».modeSigs fa%[],
+  sigsOr_of_list Fn.«claim_list_digest».modeSigs fa%[sig_in% «claim_list_digest_loop0», sig_in% «claim_list_digest_loop1», sig_in% «claim_list_tail»,
+       sig_in% «list_split»],
   sigsOr_of_list Fn.«da_expand__L13_L7».modeSigs fa%[],
   sigsOr_of_list Fn.«da_expand__L6_L7».modeSigs fa%[],
   sigsOr_of_list Fn.«eq_prefix_run__L25».modeSigs fa%[],

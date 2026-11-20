@@ -71,7 +71,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : 
 theorem mainGoalClXR (hL : GuestLimits s w) {SB SK : String → ℕ} {Bv : ℕ → ℕ} {Pvs : ℕ → Tree → Prop}
     {q : MainPops} (hS : MainStatics fs SB SK)
     (hq : ∀ rd, q.px rd = Hints.listPushes "claims" (s.claims.xmss.map fun c ↦ claimCells c.1.root c.1.parameter c.2)) :
-    CompleteAtDTBR fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
+    CompleteAtDTBR fs cert 23 "claim_list_digest" (hLmain fs fp seed s w)
       [(hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx]
       (Returns (B1.Digest.digestCells (hm fs fp seed s w).xd)) (mainPredsHP fs SB SK Bv Pvs s w q).Px
       (mainBsH fs SB SK Bv s w).Bx := by
@@ -93,7 +93,7 @@ theorem mainGoalClSR (hL : GuestLimits s w) {SB SK : String → ℕ} {Bv : ℕ �
     {q : MainPops} (hS : MainStatics fs SB SK)
     (hq : ∀ rd, q.ps rd = Hints.listPushes "claims"
       (s.claims.sphincs.map fun c ↦ claimCells c.1.publicSeed c.1.root c.2)) :
-    CompleteAtDTBR fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
+    CompleteAtDTBR fs cert 23 "claim_list_digest" (hLmain fs fp seed s w)
       [(hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls]
       (Returns (B1.Digest.digestCells (hm fs fp seed s w).sd)) (mainPredsHP fs SB SK Bv Pvs s w q).Ps
       (mainBsH fs SB SK Bv s w).Bs := by

@@ -24,33 +24,33 @@ namespace LeanVM.Cost.Decoder
 
 set_option maxRecDepth 100000 in
 /-- **The rows' sizes**, summed. -/
-theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 517172 := by
-  have hl : guestLocsList.length = 1548 := by decide +kernel
-  have hn : guestLocsRow39.length = 41 := by decide +kernel
+theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 517199 := by
+  have hl : guestLocsList.length = 1549 := by decide +kernel
+  have hn : guestLocsRow40.length = 41 := by decide +kernel
   rw [sum_rowSize_eq_rowsSize, hl]
-  have s0 := rowsSize_split 0 39 1509 39 1548 rfl rfl
-  have c0 := rowsSize_0_39
-  have s1 := rowsSize_split 39 1 1508 40 1509 rfl rfl
-  have s2 := rowsSize_split 40 348 1160 388 1508 rfl rfl
-  have c2 := rowsSize_40_348
-  have s3 := rowsSize_split 388 722 438 1110 1160 rfl rfl
-  have c3 := rowsSize_388_722
-  have s4 := rowsSize_split 1110 195 243 1305 438 rfl rfl
-  have c4 := rowsSize_1110_195
-  have s5 := rowsSize_split 1305 162 81 1467 243 rfl rfl
-  have c5 := rowsSize_1305_162
-  have s6 := rowsSize_split 1467 81 0 1548 81 rfl rfl
-  have c6 := rowsSize_1467_81
-  have e := rowsSize_zero 1548
-  have g : guestLocsList.getD 39 [] = guestLocsRow39.flatten := rfl
-  have r := rowsSize_one (a := 39) (by omega)
+  have s0 := rowsSize_split 0 40 1509 40 1549 rfl rfl
+  have c0 := rowsSize_0_40
+  have s1 := rowsSize_split 40 1 1508 41 1509 rfl rfl
+  have s2 := rowsSize_split 41 348 1160 389 1508 rfl rfl
+  have c2 := rowsSize_41_348
+  have s3 := rowsSize_split 389 722 438 1111 1160 rfl rfl
+  have c3 := rowsSize_389_722
+  have s4 := rowsSize_split 1111 195 243 1306 438 rfl rfl
+  have c4 := rowsSize_1111_195
+  have s5 := rowsSize_split 1306 162 81 1468 243 rfl rfl
+  have c5 := rowsSize_1306_162
+  have s6 := rowsSize_split 1468 81 0 1549 81 rfl rfl
+  have c6 := rowsSize_1468_81
+  have e := rowsSize_zero 1549
+  have g : guestLocsList.getD 40 [] = guestLocsRow40.flatten := rfl
+  have r := rowsSize_one (a := 40) (by omega)
   rw [g] at r
   rw [rowSize_flatten, hn] at r
-  have t0 := namesSize_split guestLocsRow39 0 23 18 23 41 rfl rfl
+  have t0 := namesSize_split guestLocsRow40 0 23 18 23 41 rfl rfl
   have d0 := namesSize_0_23
-  have t1 := namesSize_split guestLocsRow39 23 18 0 41 18 rfl rfl
+  have t1 := namesSize_split guestLocsRow40 23 18 0 41 18 rfl rfl
   have d1 := namesSize_23_18
-  have f := namesSize_zero guestLocsRow39 41
+  have f := namesSize_zero guestLocsRow40 41
   omega
 
 end

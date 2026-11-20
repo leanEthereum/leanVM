@@ -7,8 +7,11 @@
 
 module
 
+public import LeanVM.Guest.CoreMode.Assemble
 public import LeanVM.Guest.Mode.CertAssemble
-public import LeanVM.Guest.Mode.Certs.Sig0
+public import LeanVM.Guest.Mode.CertNz
+public import LeanVM.Guest.Mode.Certs.List
+public import LeanVM.Guest.SoundFacts
 
 set_option Elab.async false
 
@@ -23,29 +26,19 @@ public section
     hints are too costly to check in one piece. -/
 structure ModeHyps : Prop where
 
-theorem offGroup_spec0 (_h : ModeHyps) : ∀ l ∈ offGroups[0]!, ∀ K ∈ l, FnSpec CoreMode.hcTab
-    CoreMode.coreTable K :=
-  Mode.fa_cons (ModePack.«P29».certs_spec (fun _ h ↦ absurd h List.not_mem_nil))
-    (Mode.fa_nil)
-
-theorem offCerts_spec (h : ModeHyps) : ∀ K ∈ offCerts, FnSpec CoreMode.hcTab CoreMode.coreTable K :=
-  fa_flatten (fa_flatten (Mode.fa_cons (offGroup_spec0 h)
-    (Mode.fa_nil)))
+theorem offCerts_spec (_h : ModeHyps) : ∀ K ∈ offCerts, FnSpec CoreMode.hcTab CoreMode.coreTable K
+    :=
+  fa_flatten (fa_flatten (Mode.fa_nil))
 
 theorem offCerts_sigs : ∀ K ∈ offCerts, SigsIn (CoreMode.coreCerts ++ offCerts) K :=
-  fa_flatten (fa_flatten (Mode.fa_cons ((Mode.fa_cons (ModePack.«P29».certs_sigs)
-    (Mode.fa_nil)))
-    (Mode.fa_nil)))
+  fa_flatten (fa_flatten (Mode.fa_nil))
 
 /-- The core route's callees off it, these certificates'. -/
 theorem offSigs_in : ∀ p ∈ CoreMode.offSigs, SigIn offCerts p :=
-  Mode.fa_cons (⟨_, Fn.«claim_list_digest».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)
+  Mode.fa_nil
 
 theorem offCerts_fn : ∀ K ∈ offCerts, FnLink K :=
-  fa_flatten (fa_flatten (Mode.fa_cons ((Mode.fa_cons (ModePack.«P29».certs_fn)
-    (Mode.fa_nil)))
-    (Mode.fa_nil)))
+  fa_flatten (fa_flatten (Mode.fa_nil))
 
 end
 

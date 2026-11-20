@@ -61,7 +61,9 @@ def render():
         files[mod] = ''.join(t); mods.append(mod)
     mod = 'LeanVM.Guest.Res.TermCerts'
     t = [header(mod, '`TermNode offCerts`: the termination facts of the entered instances.')]
-    t.append(''.join('public import %s\n' % m for m in mods))
+    # no group (every function on the core route): the groups' imports
+    t.append(''.join('public import %s\n' % m for m in mods) or
+             'public import LeanVM.Guest.EndExecRT\npublic import LeanVM.Guest.Mode.Certs.List\n')
     t.append('\nset_option Elab.async false\n\nnamespace LeanVM.Guest.EndExec\n\nopen LeanVM.Guest LeanVM.Guest.Mode\n\n'
              'public section\n\n/-- **Every certificate\'s termination facts are its loop shape\'s.** -/\n'
              'theorem offCerts_term : ∀ K ∈ offCerts, TermOk K :=\n  fa_flatten (fa_flatten (%s))\n\n' % chain(

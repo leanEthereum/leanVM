@@ -37,14 +37,14 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : 
 
 /-- `MainGoalClXT` within `clB` of the declared leanXMSS list's length. -/
 def MainGoalClXTB (SB SK : String → ℕ) : Prop :=
-  CompleteAtDTB fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
+  CompleteAtDTB fs cert 23 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).xd)) (clHonest (hm fs fp seed s w).nlx)
     (clB fs SB SK (hm fs fp seed s w).nlx)
 
 /-- `MainGoalClST` within `clB` of the declared leanSPHINCS list's length. -/
 def MainGoalClSTB (SB SK : String → ℕ) : Prop :=
-  CompleteAtDTB fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
+  CompleteAtDTB fs cert 23 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).sd)) (clHonest (hm fs fp seed s w).nls)
     (clB fs SB SK (hm fs fp seed s w).nls)
@@ -69,12 +69,11 @@ theorem mainGoalClXTB (hL : GuestLimits s w) {SB SK : String → ℕ}
     (hL16 : TotalLeOn coreProgram fs name% «claim_list_digest_loop1» LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop1» + fs
           name% «claim_list_digest_loop1»))
-    (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :
+    (hCL : TotalLe coreProgram fs "claim_list_tail" (fun _ => SB "claim_list_tail")) :
     MainGoalClXTB fs cert fp seed s w SB SK := by
-  have hn : s.claims.xmss.length < claimBig * bigFramesCap := by
+  have hn : s.claims.xmss.length < 2 ^ 23 := by
     have := hL.planSlotsBelow2Pow23
     simp only [Coverage.planSlots] at this
-    simp only [claimBig, bigFramesCap]
     omega
   have e : (hOwn seed s w).getD 0 [] =
       s.claims.xmss.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) ++
@@ -107,12 +106,11 @@ theorem mainGoalClSTB (hL : GuestLimits s w) {SB SK : String → ℕ}
     (hL16 : TotalLeOn coreProgram fs name% «claim_list_digest_loop1» LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop1» + fs
           name% «claim_list_digest_loop1»))
-    (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :
+    (hCL : TotalLe coreProgram fs "claim_list_tail" (fun _ => SB "claim_list_tail")) :
     MainGoalClSTB fs cert fp seed s w SB SK := by
-  have hn : s.claims.sphincs.length < claimBig * bigFramesCap := by
+  have hn : s.claims.sphincs.length < 2 ^ 23 := by
     have := hL.planSlotsBelow2Pow23
     simp only [Coverage.planSlots] at this
-    simp only [claimBig, bigFramesCap]
     omega
   have e : (hOwn seed s w).getD 1 [] =
       s.claims.sphincs.flatMap (fun c => claimCells c.1.publicSeed c.1.root c.2) ++
