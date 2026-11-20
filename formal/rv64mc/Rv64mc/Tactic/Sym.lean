@@ -1691,7 +1691,13 @@ partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
     let ga ← newGoal g a
     let gb ← newGoal g b
     g.assign (mkApp4 (mkConst ``And.intro) a b ga gb)
-    return (← closeSide ga.mvarId!) ++ (← closeSide gb.mvarId!)
+    -- each conjunct on its own: one out of recursion depth or heartbeats is left, the others closed
+    let part (h : Expr) : MetaM (List MVarId) := do
+      let saved ← saveState
+      tryCatchRuntimeEx (closeSide h.mvarId!) fun _ => do
+        saved.restore
+        return [h.mvarId!]
+    return (← part ga) ++ (← part gb)
   if let some pf ← holdsGoal ty then
     g.assign pf
     return []
@@ -1811,7 +1817,10 @@ partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
         let dt := (← instantiateMVars d.type).consumeMData
         if dt.getAppFn.constName? == some c then
           let saved ← saveState
-          let same ← try withTransparency .default (isDefEq dt ty) catch _ => pure false
+          let same ← tryCatchRuntimeEx
+            (withCurrHeartbeats <| withTheReader Core.Context (fun c => { c with maxHeartbeats := 20000 * 1000 }) <|
+              withTransparency .default (isDefEq dt ty))
+            fun _ => pure false
           if same then
             g.assign d.toExpr
             return []
@@ -2367,6 +2376,12 @@ syntax (name := rvAuto) "rv_auto " term rvSymArgs : tactic
   let g ← openContract (← getMainGoal)
   replaceMainGoal [g]
   let cfg ← elabArgs stx[1] stx[2]
+  -- with `rv_sym.heap`, the facts given that are not equations (a region's `WordsAt`, `Live`, `InRange`) are
+  -- hypotheses `hwith_k` the closers read
+  let g ← if ← heapOn then g.withContext do
+      let fs := cfg.facts.filter fun (_, ty) => !ty.consumeMData.isAppOf ``Eq
+      if fs.isEmpty then pure g else pure (← addFacts g `hwith fs).1
+    else pure g
   let left ← run cfg g
   replaceMainGoal left
 
