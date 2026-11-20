@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Memory.Size
 public import LeanVM.Guest.Value.Bits
 public import LeanVM.Guest.CoreData
+import LeanVM.Guest.Value.FieldBits
 
 namespace LeanVM.Guest.Budget
 

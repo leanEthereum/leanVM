@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Bits.SmallGPower
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `log2_ceil_in_the_exponent` (lean_ethereum.py)

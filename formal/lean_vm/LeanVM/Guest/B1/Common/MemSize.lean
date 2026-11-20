@@ -6,7 +6,8 @@
 
 module
 
-public import LeanVM.Guest.B1.Common.Basic
+public import LeanVM.Guest.ExpTables
+import LeanVM.Guest.B1.Common.Basic
 
 /-!
 # The memory's size

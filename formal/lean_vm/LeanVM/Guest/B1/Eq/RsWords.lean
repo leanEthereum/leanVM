@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Tables.FlatAt
 public import LeanVM.Guest.Budget.Kids
 public import LeanVM.Guest.Memory.LoopPre
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `rs_eq_run` within its words

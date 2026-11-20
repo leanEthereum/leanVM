@@ -6,10 +6,12 @@
 
 module
 
-public import LeanVM.Guest.Value.KeccakConst
-public import LeanVM.Guest.Value.KeccakDuplex
+import LeanVM.Guest.Value.KeccakConst
+import LeanVM.Guest.Value.KeccakDuplex
 public import LeanVM.Guest.Value.KeccakSponge
-public import LeanVM.Guest.Batch.Def
+public import LeanVM.Guest.Value.Tower
+public import LeanVM.Guest.Value.FieldBits
+import LeanVM.Guest.Batch.Def
 
 /-!
 # The Keccak library

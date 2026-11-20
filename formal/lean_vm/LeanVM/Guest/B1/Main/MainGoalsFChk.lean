@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.B1.Digest.LoopComplete
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `main`'s first loops, checked

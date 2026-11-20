@@ -12,6 +12,8 @@ public import LeanVM.Guest.B1.Digest.ClaimListBig1
 public import LeanVM.Guest.B1.Digest.ClaimListBig2
 public import LeanVM.Guest.B1.Digest.ClaimListBig3
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `claim_list_digest`

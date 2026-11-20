@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Fwd.Eval
+import LeanVM.Guest.Value.KeccakLayout
 
 /-!
 # Holding an evaluated body

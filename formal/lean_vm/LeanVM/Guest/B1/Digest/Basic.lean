@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Digest.Interface
+public import LeanVM.Guest.Value.KeccakSponge
 
 /-!
 # Digests: shared lemmas

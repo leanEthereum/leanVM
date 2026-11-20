@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Main.Basic
 public import LeanVM.Guest.B1.Digest.Loops
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `main`'s loops

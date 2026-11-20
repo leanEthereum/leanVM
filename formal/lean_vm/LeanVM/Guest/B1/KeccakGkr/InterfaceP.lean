@@ -9,8 +9,9 @@
 module
 
 public import LeanVM.Guest.B1.Sumcheck.MeaningP
-public import LeanVM.Guest.B1.Tables.Base
-public import LeanVM.Guest.GuestConst
+public import LeanVM.Facts.Verifier
+import LeanVM.Guest.B1.Tables.Base
+import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Source
 

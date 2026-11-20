@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Terminal.Template
+public import Statement.LeanDa
 
 /-!
 # The claims' blocks

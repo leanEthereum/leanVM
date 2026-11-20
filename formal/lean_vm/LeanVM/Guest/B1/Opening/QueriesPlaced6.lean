@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesPlaced5
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # The loop, placed

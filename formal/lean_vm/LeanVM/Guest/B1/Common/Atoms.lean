@@ -6,7 +6,8 @@
 
 module
 
-public import LeanVM.Guest.B1.Common.Basic
+public import LeanVM.Guest.Core
+import LeanVM.Guest.B1.Common.Basic
 
 /-!
 # Blocks of atoms

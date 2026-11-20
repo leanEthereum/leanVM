@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Bits.Log2
 public import LeanVM.Guest.B1.Bits.Tables
 public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.Memory.Uniform
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `assert_small_g_power` and `log2_ceil_in_the_exponent`, placed

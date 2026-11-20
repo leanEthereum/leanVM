@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Gkr.Rounds
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # Round records, completely

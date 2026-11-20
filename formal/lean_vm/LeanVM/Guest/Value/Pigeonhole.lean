@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Guest.Value.Bits
+import LeanVM.Guest.Value.Bits
 public import Mathlib.Data.Fintype.Card
 public import Mathlib.Data.List.Sort
 

@@ -15,6 +15,7 @@ public import LeanVM.Guest.B1.Digest.Mono2
 public import LeanVM.Guest.B1.Digest.Mono3
 public import LeanVM.Guest.B1.Digest.MonoLasts
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `child_claim_list_mono`

@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Terminal.Interface
 public import LeanVM.Guest.B1.Terminal.Support
 public import LeanVM.Guest.B1.Ring.Interface
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.B1.Eq.Meaning
 
 /-!
 # `check_opening_terminal`, assembled

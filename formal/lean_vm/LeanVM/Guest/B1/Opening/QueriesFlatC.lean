@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesFlat
+public import LeanVM.Guest.B1.Common.Basic
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # Flat blocks with calls

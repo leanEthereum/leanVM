@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Main.Body
 public import LeanVM.Guest.B1.Main.LoopsC
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.B1.Bits.Meaning
 
 /-!
 # `main`'s facts

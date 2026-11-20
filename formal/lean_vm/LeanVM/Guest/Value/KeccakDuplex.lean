@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.Value.KeccakLayout
+import LeanVM.Guest.Value.Tower
+import LeanVM.Guest.Value.KeccakEval
 
 /-!
 # The duplex sponge in cells
