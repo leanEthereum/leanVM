@@ -60,6 +60,9 @@ dump ResultUnit lib Result<(), VerifierError>
 dump ResultE lib Result<E, VerifierError>
 dump ResultVecE lib Result<Vec<E>, VerifierError>
 dump ResultUsize lib Result<usize, VerifierError>
+dump ResultKeccakClaim keccak Result<Claim, VerifierError>
+dump ResultKeccakOpenings keccak Result<KeccakOpenings, VerifierError>
+dump ResultLayerOut keccak Result<(Vec<E>, [E; 64], E), VerifierError>
 dump ResultPlacement multilinear Result<Placement, VerifierError>
 dump StackWeight lib StackWeight
 
