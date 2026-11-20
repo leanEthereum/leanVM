@@ -33,7 +33,18 @@ The expected lines are what the guest's verdicts mean (`guest/src/main.rs`). A C
 
 ## Results
 
-On the image whose sha256 is `8cb4e7b8…` (`image.sha256`), with the fixtures of `formal/lean_vm/scripts/export-verifier-fixtures-rust.sh` on this tree. On every one `AllDecode` and every clause of `Loaded` held; honest inputs decoded, the statement's `verify` accepted them and the run halted with `a0 = 0`; the flipped inputs decoded, `verify` rejected them and the run halted with `a0 = 1`; the truncated ones did not decode and the run halted with `a0 = 2`. Steps of the statement's machine:
+On the image whose sha256 is `d58fd6eb…` (`image.sha256`; `scripts/regen.sh --check` clean), with the fixtures of `formal/lean_vm/scripts/export-verifier-fixtures-rust.sh` on this tree, one run at a time. On every input `AllDecode` and every clause of `Loaded` held; honest inputs decoded, the statement's `verify` accepted them and the run halted with `a0 = 0`; the flipped inputs decoded, `verify` rejected them and the run halted with `a0 = 1`; the truncated ones did not decode and the run halted with `a0 = 2`. Steps of the statement's machine:
+
+| fixture | input words | honest (a0 = 0) | flipped (a0 = 1) | truncated (a0 = 2) |
+| --- | --- | --- | --- | --- |
+| fibonacci-rate4 | 16,664 | 126,817,439 | 2,484,323 | 1,665,837 |
+| conditionals-rate2 | 24,906 | 154,380,282 | 3,892,789 | 3,074,301 |
+| chain1000-rate3 | 24,044 | 159,338,774 | 3,954,825 | 3,134,981 |
+| chain4-rate1 | 38,700 | 204,682,318 | 4,217,916 | 3,399,405 |
+
+The runner steps about 150,000 instructions a second; the honest runs take 13 to 23 CPU-minutes each.
+
+History: on the earlier image `8cb4e7b8…` (before `Bump::alloc` aligned block starts to 8), with the same verdicts:
 
 | fixture | input words | honest (a0 = 0) | flipped (a0 = 1) | truncated (a0 = 2) |
 | --- | --- | --- | --- | --- |
@@ -42,13 +53,11 @@ On the image whose sha256 is `8cb4e7b8…` (`image.sha256`), with the fixtures o
 | chain1000-rate3 | 24,044 | 159,582,002 | 4,071,083 | 3,137,094 |
 | chain4-rate1 | 38,700 | 204,975,556 | 4,334,868 | 3,402,212 |
 
-The runner steps about 140,000 instructions a second; the honest runs take 15 to 25 CPU-minutes each.
-
 ## The Model mirror
 
 `lake exe rv64mc-model WORDS` (`RunModel.lean`) decodes the input with the statement's `decodeInput` and prints `mainVerdictRust` (`Rv64mc/Model/Walk.lean`, the Lean mirror of `main`'s verdict, `ACCEPT` as `true`) next to the statement's `verify`. `mainVerdictRust_sound` proves that the first implies the second; running both on real inputs shows that the mirror is not vacuous, that it accepts honest proofs as the guest does.
 
-On the twelve inputs above (four fixtures, each honest, flipped and truncated): every honest input decoded with `mainVerdictRust: true` and `verify: true`, every flipped input decoded with `mainVerdictRust: false` and `verify: false`, and every truncated input gave `decodeInput: none`.
+On the twelve inputs above (four fixtures, each honest, flipped and truncated), on image `d58fd6eb…`: every honest input decoded with `mainVerdictRust: true` and `verify: true`, every flipped input decoded with `mainVerdictRust: false` and `verify: false`, and every truncated input gave `decodeInput: none`.
 
 ## What it does not show
 
