@@ -52,38 +52,28 @@ theorem finRes_eq (hHS : HonStatic h.c) (hF : FinStatic h.c h.G h.T h.recs)
   have lf := hF.lv l hl
   have hR := hrun l hl
   have hr : h.recs.getD l default = (h.L l).osRec h.logN := h.recs_getD hL hy hl
-  have hn6 := hF.n6
   -- the basis row
   have hD : ∀ t < (h.c.levels.getD l default).logCols, finD h.c h.G h.T h.recs l t =
-      (osOwnA h.own (osIxBdA h.c)).getD (l * ligColsCap + t) 0 := fun t ht ↦ by
-    have ht' : t < (finLv h.c l).prefixLen + h.c.yrLog := by rw [lf.pre]; exact ht
-    obtain ⟨hbl, eb⟩ := finBdC_get (G := h.G) (T := h.T) (recs := h.recs) hl (by omega) ht'
-      (by rw [lf.pre]; exact hF.cols l hl)
+      (osOwnA h.own (osIxBdA h.c)).getD ((h.c.levels.getD l default).colsOff + t) 0 := fun t ht ↦ by
+    obtain ⟨hbl, eb⟩ := finBdC_get hF hl ht
     have hsz := hHS.fin (k := 3) (by omega)
-    have hcl : (h.c.levels.getD l default).logCols ≤ ligColsCap := hF.cols l hl
-    have hlt : l * ligColsCap + t < h.c.levels.length * ligColsCap := by
-      have : (l + 1) * ligColsCap ≤ h.c.levels.length * ligColsCap := Nat.mul_le_mul_right _ (by omega)
-      rw [Nat.add_mul, Nat.one_mul] at this
-      omega
+    have hlt : (h.c.levels.getD l default).colsOff + t < h.c.colsTotal := by
+      have := finLv_colsOff_le hF l h.c.yrLevel hl le_rfl
+      rw [hF.ctot]; exact lt_of_lt_of_le (by simpa using ht) this
     rw [show osIxBdA h.c = 12 + h.c.yrLevel + 3 by unfold osIxBdA; omega,
       h.own_word (hHS.finLt (k := 3) (by omega)) (by rw [hsz]; exact hlt), h.ownW_fin (by omega)]
     exact eb.symm
   -- the high part
   have hH : hsvOf (finLv h.c l) (h.recs.getD l default) =
-      (List.range (h.c.levels.getD l default).folds).map fun i ↦ (osOwnA h.own osIxHsA).getD (l * hsStride + i) 0 := by
+      (List.range (h.c.levels.getD l default).folds).map fun i ↦
+        (osOwnA h.own osIxHsA).getD ((h.c.levels.getD l default).foldsOff + i) 0 := by
     refine List.map_congr_left fun i hi ↦ ?_
     have hi' := List.mem_range.mp hi
-    have hj8 : i < hsStride := lt_of_lt_of_le hi' (hHS.mid hl).2
-    have hlt : l * hsStride + i < h.c.levels.length * hsStride := by
-      have : (l + 1) * hsStride ≤ h.c.levels.length * hsStride := Nat.mul_le_mul_right _ (by omega)
-      rw [Nat.add_mul, Nat.one_mul] at this
-      omega
+    have htop := (chain_disj hHS.hsChain).2 l hl
     have h6 := hHS.head (j := 6) (by omega)
-    rw [h.own_word (hHS.headLt (j := 6) (by omega)) (by rw [h6]; simpa [headSizes] using hlt),
-      ownW_hs, hsC, getD_mapRange _ hlt]
-    have e1 : (l * hsStride + i) / hsStride = l := by unfold hsStride at *; omega
-    have e2 : (l * hsStride + i) % hsStride = i := by unfold hsStride at *; omega
-    simp only [e1, e2, hl, hi', and_self, ↓reduceIte, hr, LvAt.osRec_high]
+    rw [h.own_word (hHS.headLt (j := 6) (by omega)) (by rw [h6]; simp only [headSizes, List.getD_cons_succ,
+        List.getD_cons_zero]; omega),
+      ownW_hs, h.hs_seg hHS hl hi', hr, LvAt.osRec_high]
   -- the positions
   have hP : (List.range (h.c.levels.getD l default).queries).map (fun k ↦ eOfNat ((h.recs.getD l default).qs.getD k 0)) =
       (List.range (h.c.levels.getD l default).queries).map fun k ↦ (osOwnA h.own osIxQposA).getD ((h.c.levels.getD l default).posOff + k) 0 := by
@@ -93,18 +83,20 @@ theorem finRes_eq (hHS : HonStatic h.c) (hF : FinStatic h.c h.G h.T h.recs)
     obtain ⟨-, htop⟩ := chain_disj hHS.pos
     have := htop l (by omega)
     have h9 := hHS.head (j := 9) (by omega)
-    rw [h.own_word (hHS.headLt (j := 9) (by omega)) (by rw [h9]; show _ < h.c.levels.length * ligPosCap; omega),
+    rw [h.own_word (hHS.headLt (j := 9) (by omega)) (by rw [h9]; show _ < h.c.posTotal; omega),
       ownW_qpos, h.qpos_seg hHS (by omega) hQ, hr, hR.qs k hk']
   -- the chains
   have eP : resP (finLv h.c l) (finD h.c h.G h.T h.recs l) =
-      lrP (h.c.levels.getD l default).logCols (fun s ↦ (osOwnA h.own (osIxBdA h.c)).getD (l * ligColsCap + s) 0) := by
+      lrP (h.c.levels.getD l default).logCols
+        (fun s ↦ (osOwnA h.own (osIxBdA h.c)).getD ((h.c.levels.getD l default).colsOff + s) 0) := by
     funext x
     unfold resP lrP
     rw [show (finLv h.c l).vanish = lrVo (finLv h.c l).logCols from lf.van]
     exact residualProd_congr' _ x _ fun t ht ↦ hD t ht
   have eH : resH (finLv h.c l) (hsvOf (finLv h.c l) (h.recs.getD l default)) =
       lrH (h.c.levels.getD l default).logCols (h.c.levels.getD l default).folds (h.c.levels.getD l default).highBits
-        ((List.range (h.c.levels.getD l default).folds).map fun i ↦ (osOwnA h.own osIxHsA).getD (l * hsStride + i) 0) := by
+        ((List.range (h.c.levels.getD l default).folds).map fun i ↦
+          (osOwnA h.own osIxHsA).getD ((h.c.levels.getD l default).foldsOff + i) 0) := by
     funext x
     unfold resH lrH
     rw [show (finLv h.c l).vanish = lrVo (finLv h.c l).logCols from lf.van, hH]

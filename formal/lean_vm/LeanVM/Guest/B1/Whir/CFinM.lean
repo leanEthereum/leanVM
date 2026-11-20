@@ -59,12 +59,12 @@ theorem fin0_complete {f : String} {k tch : ℕ} {σ : Val} {Y PT PT1 : E} (htch
     exact hC C rd hH
 
 /-- **`basis_d`, `level_scale`, `level_after` allocated**, at `BD`, `LS`, `LA`. -/
-theorem finHeaps_complete {n p : ℕ} {σ : Val} {BD LS LA : E} (hn6 : n ≤ 6) :
-    BlkA H σ p (p + 6) (osHeap (n * ligColsCap) p ++ osHeap n (p + 2) ++ osHeap n (p + 4))
+theorem finHeaps_complete {n s p : ℕ} {σ : Val} {BD LS LA : E} (hn6 : n ≤ 6) (hs : s < 2 ^ 64 - 1) :
+    BlkA H σ p (p + 6) (osHeap s p ++ osHeap n (p + 2) ++ osHeap n (p + 4))
       (fun σ' ↦ σ' (.n (p + 1)) = BD ∧ σ' (.n (p + 3)) = LS ∧ σ' (.n (p + 5)) = LA ∧
-        AllocsAt σ' (osHeap (n * ligColsCap) p ++ osHeap n (p + 2) ++ osHeap n (p + 4)) =
-          [(BD, n * ligColsCap), (LS, n), (LA, n)]) := by
-  have hS : Ssa p (osHeap (n * ligColsCap) p ++ osHeap n (p + 2) ++ osHeap n (p + 4)) (p + 6) :=
+        AllocsAt σ' (osHeap s p ++ osHeap n (p + 2) ++ osHeap n (p + 4)) =
+          [(BD, s), (LS, n), (LA, n)]) := by
+  have hS : Ssa p (osHeap s p ++ osHeap n (p + 2) ++ osHeap n (p + 4)) (p + 6) :=
     .cons (.const le_rfl) (.cons (.allocDyn (by omega) (by omega)) (.cons (.const (by omega))
       (.cons (.allocDyn (by omega) (by omega)) (.cons (.const (by omega))
         (.cons (.allocDyn (by omega) (by omega)) .nil)))))
@@ -79,7 +79,7 @@ theorem finHeaps_complete {n p : ℕ} {σ : Val} {BD LS LA : E} (hn6 : n ≤ 6) 
   have e5 := hr (p + 5) (by omega) (by omega)
   simp +arith [evalV, stepV, stepW, osHeap] at e0 e1 e2 e3 e4 e5
   refine ⟨e1, e3, e5, ?_⟩
-  rw [allocsAt_append, allocsAt_append, allocsAt_heap σ' _ _ (by show n * 24 < _; omega) e0,
+  rw [allocsAt_append, allocsAt_append, allocsAt_heap σ' _ _ hs e0,
     allocsAt_heap σ' _ _ (by omega) e2, allocsAt_heap σ' _ _ (by omega) e4, e1, e3, e5]
   rfl
 
@@ -220,8 +220,8 @@ theorem oodLoads_pinned {c : OsCfg} {tch k : ℕ} {σ : Val} {G T : List E} {rec
         have hR := (hm C rd hH).stored (ol - 1) hi
         have := readsAt_getD' hR.z0 (by rw [hR.z0len]; exact ht)
         rw [loadHolds_mul_gen_pow] at this
-        convert this using 2
-        rw [show ol - 1 + 1 = ol by omega]
+        rw [hlv, hL.nextC, Nat.add_sub_cancel]
+        exact this
       · simp only [oodCoords, List.mem_map, List.mem_range] at hx
         obtain ⟨t, ht, rfl⟩ := hx
         have hcl : (finLv c (ol - 1)).logCols - c.yrLog + c.yrLog = (finLv c (ol - 1)).logCols := by
@@ -275,8 +275,8 @@ def FinCallV (c : OsCfg) (st : OsSt) (tch : ℕ) (σ σ' : Val) (G T : List E) (
     (BD : E) : Prop :=
   σ' (.n (finBdV c st tch)) = BD ∧
     ∀ l < c.yrLevel, ((finResCalls c st tch).getD l ([], [])).1.map σ' =
-      [σ (.n osQpos) * gen ^ (finLv c l).posOff, BD * gen ^ (l * ligColsCap),
-        σ (.n osHs) * gen ^ (l * hsStride), li l] ∧
+      [σ (.n osQpos) * gen ^ (finLv c l).posOff, BD * gen ^ (finLv c l).colsOff,
+        σ (.n osHs) * gen ^ (finLv c l).foldsOff, li l] ∧
       ((finResCalls c st tch).getD l ([], [])).2.map σ' =
         [(finRes c G T recs li l).1, (finRes c G T recs li l).2]
 
@@ -336,7 +336,8 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
         · rw [e2, ← finPt1C_getD hS (by omega)]
           exact readsAt_getD' hM.pt1 (by rw [finPt1C_length c hS]; omega)
   have s2 := BlkA.seq (H := H) (show k0 ≤ P2 by omega) (show P2 ≤ P2 + 6 by omega) s1 fun σ2 _ _ ↦
-    finHeaps_complete (H := H) (n := n) (p := P2) (σ := σ2) (BD := BD) (LS := LS) (LA := LA) hn6
+    finHeaps_complete (H := H) (n := n) (s := c.colsTotal) (p := P2) (σ := σ2) (BD := BD) (LS := LS)
+      (LA := LA) hn6 hS.ctotB
   have hpos : ∀ lv : OsLv, 1 ≤ lv.prefixLen + c.yrLog := fun _ ↦ by have := hS.ylog; omega
   have hyl : y < n := by omega
   have s3 := BlkA.seq (H := H) (show k0 ≤ P2 + 6 by omega) w2 s2 fun σ3 ha3 hO3 ↦
@@ -358,15 +359,13 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
         · rw [ha3 osBetas (by show 20 < k0; omega)]; exact hR.beta
         · have := finX_src hS hM.fch hM.tchs hi' (hS.recF i hi') t ht
           rwa [ha3 _ (coordSrc_lt (by show 16 < k0; omega) htch)]
-        · obtain ⟨-, eb⟩ := finBdC_get (G := G) (T := T) (recs := recs) hi' (by omega) ht
-            (by have := hS.cols i hi'; have := hL.pre; omega)
+        · have ht' : t < (finLv c i).logCols := by have := hL.pre; omega
+          obtain ⟨hbl, eb⟩ := finBdC_get (G := G) (T := T) (recs := recs) hS hi' ht'
           rw [e1]
-          have := readsAt_getD' hM.bd (j := i * ligColsCap + t) (by
-            rw [(finBdC_get (G := G) (T := T) (recs := recs) hi' (by omega) ht
-              (by have := hS.cols i hi'; have := hL.pre; omega)).1]
-            have : (i + 1) * ligColsCap ≤ n * ligColsCap := Nat.mul_le_mul_right _ (by omega)
-            rw [Nat.add_mul, Nat.one_mul] at this
-            have := hS.cols i hi'; have := hL.pre; unfold ligColsCap at *; omega)
+          have := readsAt_getD' hM.bd (j := (finLv c i).colsOff + t) (by
+            rw [hbl]
+            have := finLv_colsOff_le hS i c.yrLevel hi' le_rfl
+            rw [hS.ctot]; omega)
           rw [eb] at this
           exact this
         · obtain ⟨hl, eb⟩ := finLsC_get (G := G) (T := T) (recs := recs) hi' (by omega)
@@ -393,8 +392,8 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
   have s5 := BlkA.seq (H := H) (show k0 ≤ B + 3 by omega) w3 s4
     (B := rs.1) (OutB := fun σ' ↦ AllocsAt σ' rs.1 = [] ∧ ∀ i < mid.length,
       ((osResCallsL c (B + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 mid st.mats (B + 3)).getD i ([], [])).1.map σ' =
-        [σ (.n osQpos) * gen ^ (mid.getD i default).posOff, BD * gen ^ ((0 + i) * ligColsCap),
-          σ (.n osHs) * gen ^ ((0 + i) * hsStride), li (0 + i)] ∧
+        [σ (.n osQpos) * gen ^ (mid.getD i default).posOff, BD * gen ^ (mid.getD i default).colsOff,
+          σ (.n osHs) * gen ^ (mid.getD i default).foldsOff, li (0 + i)] ∧
       ((osResCallsL c (B + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 mid st.mats (B + 3)).getD i ([], [])).2.map σ' =
         [(finRes c G T recs li (0 + i)).1, (finRes c G T recs li (0 + i)).2]) fun σ5 ha5 hO5 ↦
     BlkA.of_ne (H := H) fun ⟨C0, rd0, hH0⟩ ↦ by
@@ -412,9 +411,7 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
       (fun i hi ↦ by
         have hi' : i < y := by rw [← hmidl]; exact hi
         rw [Nat.zero_add, take_getD hi']
-        have := hS.n6
-        exact ⟨(hS.lv i hi').posOff, by unfold u128Bound ligColsCap; omega,
-          by unfold u128Bound hsStride; omega⟩)
+        exact ⟨(hS.lv i hi').posOff, (hS.lv i hi').colsB, (hS.lv i hi').hsB⟩)
       (fun i hi C rd hH ↦ by
         have hi' : i < y := by rw [← hmidl]; exact hi
         obtain ⟨ri, hri, hx, hlen, hlv⟩ := (hm C rd hH).rate i hi'
@@ -485,7 +482,7 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
         · have := readsAt_getD' hM.ich (j := 2 * y) (by rw [hl]; omega); rwa [g0] at this
   have e : (osFinishA c st tch).1 = [.call ("fold_final_msg__L" ++ natStr c.yrLog) [.n osFmsg, .n tch] [.n k0],
       .atom (.hint (.alloc (.n (k0 + 1)) pointCap)), .atom (.hint (.alloc (.n (k0 + 1 + 1)) pointCap))] ++
-      pts.1 ++ (osHeap (n * ligColsCap) P2 ++ osHeap n (P2 + 2) ++ osHeap n (P2 + 4)) ++ bs.1 ++
+      pts.1 ++ (osHeap c.colsTotal P2 ++ osHeap n (P2 + 2) ++ osHeap n (P2 + 4)) ++ bs.1 ++
       (osHeap (2 * n) B ++ [osCst (B + 2) (word 0 0), osLd (B + 2) (B + 1) 0, osLd st.claim (B + 1) 1]) ++
       rs.1 ++ od.1 ++ [osLd K (B + 1) (2 * y + 1), osCp (K + 1) (k0 + 1), osCp (K + 2) (k0 + 1 + 1),
         osLd (K + 3) (B + 1) (2 * y), osAdd (K + 4) (K + 3) (od.2.1.getD 0), osCp (K + 5) k0] := by
@@ -543,8 +540,8 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
           have := hR.z0 t (by rw [hR.z0len]; exact ht)
           rw [loadHolds_mul_gen_pow] at this
           simp only [List.getD_eq_getElem _ _ (show t < (r i).z0.length by rw [hR.z0len]; exact ht)]
-          convert this using 2
-          ring
+          rw [hL.nextC, Nat.add_sub_cancel]
+          exact this
         · intro t ht
           rw [hcl] at ht
           have hx := finX_src hS hM.fch hM.tchs hi (hS.recF i hi) t (by rw [hL.pre]; exact ht)

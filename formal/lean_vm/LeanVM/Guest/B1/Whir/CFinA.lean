@@ -68,11 +68,12 @@ def finPt1C (c : OsCfg) (G T : List E) : List E :=
   (rotPt G T (c.levels.headD default).folds).map (1 + ·) ++
     List.replicate (pointCap - (c.nFolds + c.yrLog)) 1
 
-/-- `basis_d`: each non-final level's row of `d`s. -/
+/-- `basis_d`: each non-final level's row of `d`s at its offset, the earlier levels' columns. -/
 def finBdC (c : OsCfg) (G T : List E) (recs : List OsRec) : List E :=
-  (List.range (c.levels.length * ligColsCap)).map fun e ↦
-    if e / ligColsCap < c.yrLevel ∧ e % ligColsCap < (finLv c (e / ligColsCap)).prefixLen + c.yrLog
-    then finD c G T recs (e / ligColsCap) (e % ligColsCap) else 0
+  (List.range c.colsTotal).map fun e ↦
+    ∑ i ∈ Finset.range c.yrLevel,
+      if (finLv c i).colsOff ≤ e ∧ e < (finLv c i).colsOff + (finLv c i).logCols
+      then finD c G T recs i (e - (finLv c i).colsOff) else 0
 
 /-- `level_scale`: `β` times the coefficients. -/
 def finLsC (c : OsCfg) (G T : List E) (recs : List OsRec) : List E :=
@@ -115,7 +116,8 @@ structure FinStatic (c : OsCfg) (G T : List E) (recs : List OsRec) : Prop where
   Gnz : ∀ x ∈ G, x ≠ 0
   Tnz : ∀ x ∈ T, x ≠ 0
   recF : ∀ i < c.yrLevel, (recs.getD i default).F = (finLv c i).foldsOff + (finLv c i).folds
-  cols : ∀ i < c.yrLevel, (finLv c i).logCols ≤ ligColsCap
+  ctot : c.colsTotal = (finLv c c.yrLevel).colsOff
+  ctotB : c.colsTotal < 2 ^ 64 - 1
 
 /-- **What memory holds and the callees do for the finish**, at the valuation `σ` it starts
 from. -/
@@ -134,12 +136,12 @@ structure FinMem (C : CallRel) (rd : Reader) (σ : Val) (c : OsCfg) (tch : ℕ) 
   ffm : C ("fold_final_msg__L" ++ natStr c.yrLog) [σ (.n osFmsg), σ (.n tch)] [Y]
   rate : ∀ i < c.yrLevel, LvRate σ c i (finLv c i)
   res : ∀ i < c.yrLevel, C (osResidualName (finLv c i))
-    [σ (.n osQpos) * gen ^ (finLv c i).posOff, BD * gen ^ (i * ligColsCap),
-      σ (.n osHs) * gen ^ (i * hsStride), li i] [(finRes c G T recs li i).1, (finRes c G T recs li i).2]
+    [σ (.n osQpos) * gen ^ (finLv c i).posOff, BD * gen ^ (finLv c i).colsOff,
+      σ (.n osHs) * gen ^ (finLv c i).foldsOff, li i] [(finRes c G T recs li i).1, (finRes c G T recs li i).2]
 
 /-- The finish's buffers and their sizes, in allocation order. -/
 def finAllocs (c : OsCfg) (PT PT1 BD LS LA ICH : E) : List (E × ℕ) :=
-  [(PT, pointCap), (PT1, pointCap), (BD, c.levels.length * ligColsCap), (LS, c.levels.length),
+  [(PT, pointCap), (PT1, pointCap), (BD, c.colsTotal), (LS, c.levels.length),
     (LA, c.levels.length), (ICH, 2 * c.levels.length)]
 
 /-- The finish's last value plus one. -/
@@ -250,22 +252,40 @@ theorem finX_ne {c : OsCfg} {G T : List E} {recs : List OsRec} (hS : FinStatic c
   · rw [List.getElem_append_left h]; exact hS.Gnz _ (List.getElem_mem _)
   · rw [List.getElem_append_right (by omega)]; exact hS.Tnz _ (List.getElem_mem _)
 
-theorem finBdC_get {c : OsCfg} {G T : List E} {recs : List OsRec} {i t : ℕ} (hi : i < c.yrLevel)
-    (hy : c.yrLevel < c.levels.length) (ht : t < (finLv c i).prefixLen + c.yrLog)
-    (h22 : (finLv c i).prefixLen + c.yrLog ≤ ligColsCap) :
-    (finBdC c G T recs).length = c.levels.length * ligColsCap ∧
-      (finBdC c G T recs).getD (i * ligColsCap + t) 0 = finD c G T recs i t := by
-  have hlt : i * ligColsCap + t < c.levels.length * ligColsCap := by
-    have : (i + 1) * ligColsCap ≤ c.levels.length * ligColsCap := Nat.mul_le_mul_right _ (by omega)
-    rw [Nat.add_mul, Nat.one_mul] at this; omega
-  have hd : (i * ligColsCap + t) / ligColsCap = i := by
-    rw [Nat.add_comm, Nat.add_mul_div_right _ _ (by decide), Nat.div_eq_of_lt (by omega), Nat.zero_add]
-  have hm : (i * ligColsCap + t) % ligColsCap = t := by
-    rw [Nat.add_comm, Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt (by omega)]
+/-- The levels' rows of `basis_d` follow one another. -/
+theorem finLv_colsOff_le {c : OsCfg} {G T : List E} {recs : List OsRec} (hS : FinStatic c G T recs)
+    (j : ℕ) : ∀ i, j < i → i ≤ c.yrLevel →
+      (finLv c j).colsOff + (finLv c j).logCols ≤ (finLv c i).colsOff := by
+  intro i
+  induction i with
+  | zero => intro h; omega
+  | succ i ih =>
+    intro h hi
+    have hn := (hS.lv i (by omega)).nextC
+    by_cases h' : j < i
+    · have := ih h' (by omega); omega
+    · have : j = i := by omega
+      subst this; omega
+
+theorem finBdC_get {c : OsCfg} {G T : List E} {recs : List OsRec} (hS : FinStatic c G T recs) {i t : ℕ}
+    (hi : i < c.yrLevel) (ht : t < (finLv c i).logCols) :
+    (finBdC c G T recs).length = c.colsTotal ∧
+      (finBdC c G T recs).getD ((finLv c i).colsOff + t) 0 = finD c G T recs i t := by
+  have hlt : (finLv c i).colsOff + t < c.colsTotal := by
+    have := finLv_colsOff_le hS i c.yrLevel hi le_rfl; rw [hS.ctot]; omega
   refine ⟨by simp [finBdC], ?_⟩
   rw [List.getD_eq_getElem _ _ (by simp [finBdC]; exact hlt)]
-  simp only [finBdC, List.getElem_map, List.getElem_range, hd, hm]
-  simp only [show i < c.yrLevel ∧ t < (finLv c i).prefixLen + c.yrLog from ⟨hi, ht⟩, and_self, ↓reduceIte]
+  simp only [finBdC, List.getElem_map, List.getElem_range]
+  rw [Finset.sum_eq_single i]
+  · rw [ite_eq_left ⟨by omega, by omega⟩, Nat.add_sub_cancel_left]
+  · intro j hj hji
+    rw [Finset.mem_range] at hj
+    refine ite_eq_right ?_
+    intro ⟨h1, h2⟩
+    rcases Nat.lt_or_gt_of_ne hji with h | h
+    · have := finLv_colsOff_le hS j i h hi.le; omega
+    · have := finLv_colsOff_le hS i j h hj.le; omega
+  · intro h; exact absurd (Finset.mem_range.mpr hi) h
 
 theorem finLsC_get {c : OsCfg} {G T : List E} {recs : List OsRec} {i : ℕ} (hi : i < c.yrLevel)
     (hy : c.yrLevel < c.levels.length) :

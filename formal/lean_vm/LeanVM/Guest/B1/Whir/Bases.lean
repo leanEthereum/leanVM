@@ -153,10 +153,10 @@ def coordSrc (tch : ℕ) (lv : OsLv) (t : ℕ) : ℕ × ℕ :=
 /-- A level's vanishing inverse at coordinate `t`. -/
 abbrev invW (lv : OsLv) (t : ℕ) : E := word (vanishInv (lv.vanish + t)) 0
 
-theorem osBasisCoords_getD {c : OsCfg} {tch lvl t : ℕ} {lv : OsLv}
+theorem osBasisCoords_getD {c : OsCfg} {tch t : ℕ} {lv : OsLv}
     (ht : t < lv.prefixLen + c.yrLog) :
-    (osBasisCoords c tch lvl lv).getD t coordD =
-      (lvl * ligColsCap + t, coordSrc tch lv t, vanishInv (lv.vanish + t)) := by
+    (osBasisCoords c tch lv).getD t coordD =
+      (lv.colsOff + t, coordSrc tch lv t, vanishInv (lv.vanish + t)) := by
   simp [osBasisCoords, coordSrc, List.getD_eq_getElem?_getD, ht]
 
 /-- What a level's basis row reads: its scalar `β` and its coordinates `X`. -/
@@ -170,7 +170,7 @@ of the coordinates in `level_after`. -/
 def BasisOut (rd : Reader) (σ : Val) (c : OsCfg) (bd ls la L : ℕ) (lv : OsLv) (β : E)
     (X : ℕ → E) : Prop :=
   (∀ t < lv.prefixLen + c.yrLog, X t * invW lv t ≠ 0 ∧
-    LoadHolds rd (σ (.n bd)) (L * ligColsCap + t) ((1 + X t) / (X t * invW lv t))) ∧
+    LoadHolds rd (σ (.n bd)) (lv.colsOff + t) ((1 + X t) / (X t * invW lv t))) ∧
   LoadHolds rd (σ (.n ls)) L (β * ∏ t ∈ Finset.range (lv.prefixLen + c.yrLog), (X t * invW lv t)) ∧
   LoadHolds rd (σ (.n la)) L (∏ t ∈ Finset.range (lv.prefixLen + c.yrLog), X t)
 
@@ -192,14 +192,14 @@ theorem osBases_sound {c : OsCfg} {tch bd ls la : ℕ} (β : ℕ → E) (X : ℕ
     · obtain ⟨hb, hx⟩ := hin 0 (by simp)
       simp only [Nat.add_zero, List.getElem_cons_zero] at hb hx ⊢
       have eb := loadHolds_unique lb hb
-      have hlen : (osBasisCoords c tch lvl lv).length = lv.prefixLen + c.yrLog := by
+      have hlen : (osBasisCoords c tch lv).length = lv.prefixLen + c.yrLog := by
         simp [osBasisCoords]
-      obtain ⟨hr, hs, ha⟩ := osBasisRow_val (bd := bd) (osBasisCoords c tch lvl lv) k none (k + 1)
+      obtain ⟨hr, hs, ha⟩ := osBasisRow_val (bd := bd) (osBasisCoords c tch lv) k none (k + 1)
         (X lvl) (fun t ht ↦ by
           rw [hlen] at ht
           rw [osBasisCoords_getD ht]
           exact hx t ht) hrow
-      have hne : osBasisCoords c tch lvl lv ≠ [] := by
+      have hne : osBasisCoords c tch lv ≠ [] := by
         intro h0; have := hpos lv; rw [← hlen, h0] at this; simp at this
       refine ⟨fun t ht ↦ ?_, ?_, ?_⟩
       · have := hr t (by rw [hlen]; exact ht)

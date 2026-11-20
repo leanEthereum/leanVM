@@ -123,7 +123,7 @@ def BodyStatic (c : OsCfg) : Prop :=
   (∀ l < y, sz.getD (11 + l) 0 = 2 + (c.levels.getD l default).folds) ∧
   sz.getD (11 + y) 0 = c.yrLen + (c.levels.getD y default).folds ∧
   sz.getD (12 + y) 0 = yrLogCap ∧ sz.getD (13 + y) 0 = pointCap ∧
-  sz.getD (14 + y) 0 = pointCap ∧ sz.getD (15 + y) 0 = n * ligColsCap ∧
+  sz.getD (14 + y) 0 = pointCap ∧ sz.getD (15 + y) 0 = c.colsTotal ∧
   sz.getD (16 + y) 0 = n ∧ sz.getD (17 + y) 0 = n ∧ sz.getD (18 + y) 0 = 2 * n ∧
   (∀ j < sz.length, sz.getD j 0 < 2 ^ 64 - 1)
 

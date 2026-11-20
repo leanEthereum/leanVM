@@ -68,7 +68,7 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   have hnf := hF.nf
   obtain ⟨hshape, hloop⟩ := oqEntry_shape hent
   -- the blocks
-  have hpre : osPreQ c lvl lv st = (osHsMid lvl lv (osLam (osPositions c lvl lv
+  have hpre : osPreQ c lvl lv st = (osHsMid lv (osLam (osPositions c lvl lv
       (osCommit c lvl lv (osRounds c.plan lv.foldsOff lv.folds st).2).2).2).2).2 := by
     simp only [osPreQ, hnf, ↓reduceIte]
   have hlev : osLevel c lvl lv st =
@@ -77,7 +77,7 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
       let gr : List Stmt := [.call ("grind_check__L" ++ natStr queryGrind) [.n m.2.pow0, .n osTabs] []]
       let sq := osPositions c lvl lv m.2
       let la := osLam sq.2
-      let h := osHsMid lvl lv la.2
+      let h := osHsMid lv la.2
       let q := osQueries c lvl lv h.2
       let g := osGlue lvl q.2
       (f.1 ++ m.1 ++ gr ++ sq.1 ++ la.1 ++ h.1 ++ q.1 ++ g.1, g.2) := by
@@ -89,7 +89,7 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   set m := osCommit c lvl lv f.2 with hm
   set sq := osPositions c lvl lv m.2 with hsq
   set la := osLam sq.2 with hla
-  set h := osHsMid lvl lv la.2 with hh
+  set h := osHsMid lv la.2 with hh
   set q := osQueries c lvl lv h.2 with hq
   set g := osGlue lvl q.2 with hg
   simp only [allOk_append] at hok

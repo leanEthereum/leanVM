@@ -37,10 +37,10 @@ structure ResIn (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (bd lvl : ℕ
   call : ∀ a r, C (osResidualName lv) a r →
     MeaningLevelResidual lv.queries lv.logCols lv.folds lv.highBits rd a r
   van : lv.vanish = lv.logCols * (lv.logCols + 1) / 2
-  read : ResRead rd lvl lv (σ (.n bd)) (σ (.n osHs)) D hsv
+  read : ResRead rd lv (σ (.n bd)) (σ (.n osHs)) D hsv
   posOff : lv.posOff < u128Bound
-  rowOff : lvl * ligColsCap < u128Bound
-  hsOff : lvl * hsStride < u128Bound
+  rowOff : lv.colsOff < u128Bound
+  hsOff : lv.foldsOff < u128Bound
   pos : ∀ k < lv.queries, LoadHolds rd (σ (.n osQpos)) (lv.posOff + k) (Pos k)
   mus : LoadHolds rd (σ (.n osMus)) lvl mu
 

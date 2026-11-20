@@ -13,9 +13,9 @@ public import LeanVM.Guest.B1.Place.OsBos
 # The honest buffers' configuration facts
 
 `HonStatic c`: the levels' segments of `query_positions` in order within its buffer, the
-out-of-domain rows and the high parts within their strides, the fold rounds' offsets, and the
-buffers' sizes (`osSizesL`) at the indices the reads use. `Whir/CHonStatic{0..3}.lean` decide it for the 28 candidates.
-`chain_disj`: segments in order are disjoint.
+non-final levels' rows of `ood_z` in order within it, the fold rounds' offsets, and the buffers'
+sizes (`osSizesL`) at the indices the reads use. `Whir/CHonStatic{0..3}.lean` decide it for the 28 candidates.
+`chain_disj` (`Place/OsBos`): segments in order are disjoint.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -33,9 +33,10 @@ def HonStatic (c : OsCfg) : Prop :=
   let lv := fun l ↦ c.levels.getD l default
   2 ≤ n ∧ c.yrLevel + 1 = n ∧ c.yrLog ≤ yrLogCap ∧
   (∀ l < n, (lv l).posOff + (lv l).squeezes * sqPer (lv l) ≤
-    (if l + 1 < n then (lv (l + 1)).posOff else n * ligPosCap)) ∧
+    (if l + 1 < n then (lv (l + 1)).posOff else c.posTotal)) ∧
   (∀ l < n, 1 ≤ sqPer (lv l)) ∧
-  (∀ l < c.yrLevel, (lv l).logCols ≤ ligColsCap ∧ (lv l).folds ≤ hsStride) ∧
+  (∀ l < c.yrLevel, (lv l).colsOff + (lv l).logCols ≤
+    (if l + 1 < c.yrLevel then (lv (l + 1)).colsOff else c.colsTotal)) ∧
   (lv 0).foldsOff = 0 ∧ (∀ l < c.yrLevel, (lv (l + 1)).foldsOff = (lv l).foldsOff + (lv l).folds) ∧
   (lv c.yrLevel).foldsOff + (lv c.yrLevel).folds = c.nFolds ∧
   (osSizesL c).length = 19 + c.yrLevel ∧
@@ -43,36 +44,10 @@ def HonStatic (c : OsCfg) : Prop :=
   (∀ l < c.yrLevel, (osSizesL c).getD (11 + l) 0 = 2 + (lv l).folds) ∧
   (osSizesL c).getD (11 + c.yrLevel) 0 = c.yrLen + (lv c.yrLevel).folds ∧
   (∀ k < 7, (osSizesL c).getD (12 + c.yrLevel + k) 0 =
-    [yrLogCap, pointCap, pointCap, n * ligColsCap, n, n, 2 * n].getD k 0)
+    [yrLogCap, pointCap, pointCap, c.colsTotal, n, n, 2 * n].getD k 0)
 
 instance (c : OsCfg) : Decidable (HonStatic c) := by
   unfold HonStatic; dsimp only; infer_instance
-
-/-- **Segments in order are disjoint.** -/
-theorem chain_disj {n top : ℕ} {a w : ℕ → ℕ}
-    (h : ∀ l < n, a l + w l ≤ (if l + 1 < n then a (l + 1) else top)) :
-    (∀ l l', l < n → l' < n → l < l' → a l + w l ≤ a l') ∧ ∀ l < n, a l + w l ≤ top := by
-  have step : ∀ l, l + 1 < n → a l + w l ≤ a (l + 1) := fun l hl ↦ by
-    have := h l (by omega); simpa only [hl, ↓reduceIte] using this
-  have up : ∀ d l, l + d < n → a l + w l ≤ a (l + d) + w (l + d) := by
-    intro d
-    induction d with
-    | zero => intro l _; exact le_rfl
-    | succ d ih =>
-      intro l hl
-      have h1 := ih l (by omega)
-      have h2 := step (l + d) (by omega)
-      rw [show l + (d + 1) = l + d + 1 by omega]
-      omega
-  refine ⟨fun l l' _ hl' hll ↦ ?_, fun l hl ↦ ?_⟩
-  · have h1 := up (l' - 1 - l) l (by omega)
-    have h2 := step (l + (l' - 1 - l)) (by omega)
-    rw [show l + (l' - 1 - l) + 1 = l' by omega] at h2
-    omega
-  · have h1 := up (n - 1 - l) l (by omega)
-    have h2 := h (l + (n - 1 - l)) (by omega)
-    simp only [show ¬ (l + (n - 1 - l) + 1 < n) by omega, ↓reduceIte] at h2
-    omega
 
 end
 end LeanVM.Guest.B1.Whir

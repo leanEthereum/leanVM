@@ -84,30 +84,32 @@ theorem mid_roots (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) {l : ℕ} (h
     show (2 * l + 1) / 2 = l by omega, ↓reduceIte, one_ne_zero] at r0 r1
   exact ⟨r0, r1⟩
 
+theorem hs_seg (hS : HonStatic h.c) {l j : ℕ} (hl : l < h.c.yrLevel)
+    (hj : j < ((h.c.levels.getD l default)).folds) :
+    h.hsC.getD ((h.c.levels.getD l default).foldsOff + j) 0 = (h.L l).nw.high.getD j 0 *
+      word (hsScale ((h.c.levels.getD l default)).vanish ((h.c.levels.getD l default)).highBits j
+        (vanishInv (((h.c.levels.getD l default)).vanish + ((h.c.levels.getD l default)).logCols))) 0 := by
+  obtain ⟨hd, htop⟩ := chain_disj hS.hsChain
+  have := htop l hl
+  rw [hsC, getD_mapRange _ (by omega)]
+  exact segAt_at hd hl hj
+
 theorem mid_hs (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) {l : ℕ} (hl : l < h.c.yrLevel) {j : ℕ}
     (hj : j < ((h.c.levels.getD l default)).folds) :
     LoadHolds rd (osPtrA h.c b (11 + l)) (2 + j) ((h.L l).nw.high.getD j 0) ∧
-      LoadHolds rd (osPtrA h.c b 6) (l * hsStride + j) ((h.L l).nw.high.getD j 0 *
+      LoadHolds rd (osPtrA h.c b 6) ((h.c.levels.getD l default).foldsOff + j) ((h.L l).nw.high.getD j 0 *
         word (hsScale ((h.c.levels.getD l default)).vanish ((h.c.levels.getD l default)).highBits j
           (vanishInv (((h.c.levels.getD l default)).vanish + ((h.c.levels.getD l default)).logCols))) 0) := by
-  have hyr := hS.yr
-  have hl' : l < h.c.levels.length := by omega
-  have hj8 : j < 8 := lt_of_lt_of_le hj (hS.mid hl).2
   have hsz := hS.sent hl
-  have hny : l ≠ h.c.yrLevel := by omega
   have hw := h.ownW_sent hl
   have s := h.load hm (hS.sentLt (le_of_lt hl)) (by unfold osIxQbpA; omega) (e := 2 + j) (by rw [hsz]; omega)
   rw [hw, sentC, getD_cons2] at s
   have h8 := hS.head (j := 6) (by omega)
-  have hlt : l * 8 + j < h.c.levels.length * 8 := by
-    have : (l + 1) * 8 ≤ h.c.levels.length * 8 := Nat.mul_le_mul_right _ (by omega)
-    omega
-  have t := h.load hm (hS.headLt (j := 6) (by omega)) (by unfold osIxQbpA; omega) (e := l * 8 + j)
-    (by rw [h8]; simp only [headSizes, List.getD_cons_succ, List.getD_cons_zero, hsStride]; exact hlt)
-  have e1 : (l * 8 + j) / 8 = l := by omega
-  have e2 : (l * 8 + j) % 8 = j := by omega
-  rw [ownW_hs, hsC, getD_mapRange _ (by simpa only [hsStride] using hlt)] at t
-  simp only [hsStride, e1, e2, hl, hj, and_self, ↓reduceIte] at t
+  have htop := (chain_disj hS.hsChain).2 l hl
+  have t := h.load hm (hS.headLt (j := 6) (by omega)) (by unfold osIxQbpA; omega)
+    (e := (h.c.levels.getD l default).foldsOff + j)
+    (by rw [h8]; simp only [headSizes, List.getD_cons_succ, List.getD_cons_zero]; omega)
+  rw [ownW_hs, h.hs_seg hS hl hj] at t
   exact ⟨s, t⟩
 
 theorem mid_glue (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) {l : ℕ} (hl : l < h.c.yrLevel) :
@@ -202,7 +204,7 @@ theorem posW_at (hS : HonStatic h.c) {l j i : ℕ} (hl : l < h.c.levels.length)
   have htl := htop l hl
   have h9 := hS.head (j := 9) (by omega)
   show (h.own.getD 9 []).getD _ 0 = _
-  rw [h.own_getD (hS.headLt (j := 9) (by omega)), ownAt, fitTo_getD (by rw [h9]; show _ < h.c.levels.length * ligPosCap; omega),
+  rw [h.own_getD (hS.headLt (j := 9) (by omega)), ownAt, fitTo_getD (by rw [h9]; show _ < h.c.posTotal; omega),
     ownW_qpos, Nat.add_assoc, h.qpos_seg hS hl hk]
   have hP : 0 < sqPer (h.c.levels.getD l default) := by omega
   rw [Nat.add_comm (j * _) i, Nat.add_mul_div_right _ _ hP, Nat.div_eq_of_lt hi, Nat.zero_add,

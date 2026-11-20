@@ -96,6 +96,9 @@ structure LvFin (c : OsCfg) (lv lv' : OsLv) : Prop where
   hsm : ∀ c' < lv.folds,
     K.ofBits (hsScale lv.vanish lv.highBits c' (vanishInv (lv.vanish + lv.logCols))) =
       ((subspaceRoots lv.logCols).getD lv.logCols 0)⁻¹ * hsNorm lv.logCols lv.highBits c'
+  colsB : lv.colsOff < u128Bound
+  hsB : lv.foldsOff < u128Bound
+  nextC : lv'.colsOff = lv.colsOff + lv.logCols
 
 /-- The terminal point from a level's folds on: `(G ++ T).drop F`. -/
 abbrev ptFrom (G T : List E) (F : ℕ) : List E := (G ++ T).drop F

@@ -61,11 +61,11 @@ theorem osHsCoefs_val (src dst : ℕ) (sc : ℕ → ℕ) (si di : ℕ) :
 
 /-- **A non-final level's high part, normalized**: coefficient `c` of the high part
 read from `sent` past the root, stored in `level_hs` times its normalizer. -/
-theorem osHsMid_sound {lvl : ℕ} {lv : OsLv} {st : OsSt} (hok : AllOk C rd σ (osHsMid lvl lv st).1) :
+theorem osHsMid_sound {lv : OsLv} {st : OsSt} (hok : AllOk C rd σ (osHsMid lv st).1) :
     (∀ c < lv.folds, ∃ v, LoadHolds rd (σ (.n st.sent)) (2 + c) v ∧
-      LoadHolds rd (σ (.n osHs)) (lvl * hsStride + c)
+      LoadHolds rd (σ (.n osHs)) (lv.foldsOff + c)
         (v * word (hsScale lv.vanish lv.highBits c (vanishInv (lv.vanish + lv.logCols))) 0)) ∧
-      (osHsMid lvl lv st).2 = { st with k := (osHsMid lvl lv st).2.k } :=
+      (osHsMid lv st).2 = { st with k := (osHsMid lv st).2.k } :=
   ⟨fun c hc ↦ osHsCoefs_val _ _ _ _ _ _ _ _ hok c (Nat.zero_le _) (by omega), rfl⟩
 
 /-- **The final lane, normalized**: coefficient `c` read from `final_msg`, stored in
@@ -110,14 +110,14 @@ theorem osGlue_sound {lvl : ℕ} {st : OsSt} (hok : AllOk C rd σ (osGlue lvl st
 def osQArgs (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) : List E :=
   [if lvl = c.yrLevel then 0 else σ (.n st.lam), if lvl = c.yrLevel then 0 else σ (.n st.lamInv),
     σ (.n osCoefs) * gen ^ (2 * lv.foldsOff),
-    if lvl = c.yrLevel then σ (.n st.hs) else σ (.n osHs) * gen ^ (lvl * hsStride),
+    if lvl = c.yrLevel then σ (.n st.hs) else σ (.n osHs) * gen ^ lv.foldsOff,
     σ (.n osQpos) * gen ^ lv.posOff, σ (.n osQbp) * gen ^ lv.posOff]
 
 /-- **The level's queries**: the dispatch on the rate into `level_queries` on its arguments,
 the root it returns that in `level_roots`. -/
 theorem osQueries_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (hr : LvRate σ c lvl lv)
     (hm : MatsOk σ st.mats) (hf : 2 * lv.foldsOff < u128Bound)
-    (hh : lvl * hsStride < u128Bound) (hp : lv.posOff < u128Bound)
+    (hh : lv.foldsOff < u128Bound) (hp : lv.posOff < u128Bound)
     (hok : AllOk C rd σ (osQueries c lvl lv st).1) :
     (osQCallOf c lvl lv st).1.map σ = osQArgs σ c lvl lv st ∧
       C (osQueriesName c lvl lv) (osQArgs σ c lvl lv st) ((osQCallOf c lvl lv st).2.map σ) ∧

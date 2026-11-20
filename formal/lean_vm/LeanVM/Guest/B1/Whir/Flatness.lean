@@ -85,7 +85,7 @@ theorem osHsCoefs_flat (src dst : ℕ) (sc : ℕ → ℕ) (si di : ℕ) :
     refine flat_append ?_ (osHsCoefs_flat src dst sc si di n (i + 1) _)
     unfold osHsCoef; split_ifs <;> rfl
 
-theorem osHsMid_flat (lvl : ℕ) (lv : OsLv) (s : OsSt) : Flat (osHsMid lvl lv s).1 :=
+theorem osHsMid_flat (lv : OsLv) (s : OsSt) : Flat (osHsMid lv s).1 :=
   osHsCoefs_flat _ _ _ _ _ _ _ _
 
 theorem osHsFinal_flat (c : OsCfg) (lv : OsLv) (s : OsSt) : Flat (osHsFinal c lv s).1 :=
@@ -115,7 +115,7 @@ theorem osLevel_flat (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : Flat (osLe
     · exact osLam_flat _
   · split_ifs
     · exact osHsFinal_flat _ _ _
-    · exact osHsMid_flat _ _ _
+    · exact osHsMid_flat _ _
   · split_ifs
     · rfl
     · exact osGlue_flat _ _
