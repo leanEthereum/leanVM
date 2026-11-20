@@ -13,6 +13,7 @@ public import LeanVM.Guest.Mode.Step
 public meta import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.CoreMode.Fam.ParamRef
 public import LeanVM.Guest.CoreMode.Fam.EfDefs
+public import LeanVM.Guest.CoreMode.Gen.FnData
 import LeanVM.Guest.Data.Source
 
 /-!
@@ -166,25 +167,9 @@ noncomputable def splitB (j : ℕ) (x : Mode.Res) : Bool :=
 /-- Cell `o` is inside function `j`'s frame. -/
 noncomputable def inFr (j o : ℕ) : Bool := decide (2 ≤ o) && decide (o < fsN j)
 
-/-- **Exponent facts at listed parameters**: function, parameter, offset (`none`: its word; `some k`:
-the word read at `[parameter]·g^k`), bound; `check_opening_terminal`'s `tau_keccak_g` and
-`kappa_base`'s words, which `verify_sub` hands it (`Res.TermFront`); `verify_tables`' `g_bus_mu` and
-`dims_g`'s first word, which its precondition bounds (`EndExec.VtPQ`), and its other six, the tables' log-heights
-below `31`, which its body bounds (`B1.Tables.vt_pads`); each `gkr_layer__L{p}_L{o}`'s `x_m` and `gkr_layers__L{o}`'s
-`n_four` and `rem_g`, below `4` (`EndExec.GlQ`, `EndExec.GlsQ`). -/
-def expFacts : List (String × ℕ × Option ℕ × ℕ) :=
-  [(name% «check_opening_terminal», param% check_opening_terminal "tau_keccak_g", none, 31),
-    (name% «check_opening_terminal», param% check_opening_terminal "kappa_base", some 0, 1)] ++
-  ((List.range 7).map fun k ↦
-    (name% «check_opening_terminal», param% check_opening_terminal "kappa_base", some (k + 1), 31)) ++
-  [(name% «verify_tables», 9, none, 33), (name% «verify_tables», 10, some 0, 33)] ++
-  ((List.range 6).map fun k ↦ (name% «verify_tables», 10, some (k + 1), 31)) ++
-  [(name% «gkr_layer__L0_L0», 3, none, 4), (name% «gkr_layer__L0_L1», 3, none, 4),
-    (name% «gkr_layer__L1_L0», 3, none, 4), (name% «gkr_layer__L1_L1», 3, none, 4),
-    (name% «gkr_layer__L2_L0», 3, none, 4), (name% «gkr_layer__L2_L1», 3, none, 4),
-    (name% «gkr_layer__L3_L0», 3, none, 4), (name% «gkr_layer__L3_L1», 3, none, 4)] ++
-  [(name% «gkr_layers__L0», 3, none, 4), (name% «gkr_layers__L0», 4, none, 4),
-    (name% «gkr_layers__L1», 3, none, 4), (name% «gkr_layers__L1», 4, none, 4)]
+/-- **Exponent facts at listed parameters**: function, parameter, offset (`none`: its word; `some k`: the word read at
+`[parameter]·g^k`), bound; each function's own (`FnReg.expFacts`, `CoreMode/Fn/<f>/Data.lean`). -/
+abbrev expFacts : List (String × ℕ × Option ℕ × ℕ) := CoreMode.FnReg.expFacts
 
 /-- Parameter `p`'s fact at offset `o` names base `B` of function `j`. -/
 noncomputable def baseAt (j : ℕ) (p : V) : Option ℕ → Mode.Base → Bool

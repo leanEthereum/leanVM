@@ -296,8 +296,9 @@ def cfun_lc(k, j, frame):
 # a long loop helper's passes over its body and code in windows (`CoreMode/LoopWin.lean`, `RouteWin.lean`): nested
 # statements per body window, instructions per code window
 WIN_STMTS, WIN_CODE = 12000, 8192
-# a long loop helper whose code windows at `WIN_CODE` take past 6.5 GB a module: its own size
-WIN_CODES = {'main_loop2': 6144}
+# a long loop helper whose code windows at `WIN_CODE` take past 6.5 GB a module: its own size (its rule file's)
+import fnrules  # noqa: E402
+WIN_CODES = fnrules.table('CORE_WIN') or {}
 # set by `main`: the long loop helpers' modules, each function's mode pack, the module of function `j`'s code
 LONG, PACK_OF = {}, {}
 codes_mod = None

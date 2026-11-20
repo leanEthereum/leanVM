@@ -44,7 +44,8 @@ import heapc as C
 import emitc as E
 
 GUEST = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
-FNS = ['main_loop2']
+import fnrules  # noqa: E402
+FNS = sorted(fnrules.table('HEAP_WIN') or ())
 # atoms per window: the kernel's memory grows with the atoms a window's pass and ghost check go through; the default
 # keeps a window of `main_loop2` within the 7.5 GB a module may take (measured: `m2-heap.md`)
 ATOMS = 15000

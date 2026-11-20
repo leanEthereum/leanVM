@@ -37,10 +37,11 @@ NAME = {k: nm for nm, k in I.STABLE.items()}
 # naturals there) and range checks as free facts (there every fact is a residual)
 OFF = {'wrap', 'lts'}
 PTSMAX = 4096
-# functions checked in windows whatever their size (`heapwin.py`, `GenCW/<fn>/`); every other passing function whose
+# functions checked in windows whatever their size (their rule files' `KERNEL_WIN`) (`heapwin.py`, `GenCW/<fn>/`); every other passing function whose
 # check `heapwin.fn_cost` puts over `heapwin.BUDGET` (past the default heartbeats, or the memory a module may take, in
 # one `decide`) is windowed too
-KERNEL_WIN = {'main_loop2'}
+import fnrules  # noqa: E402
+KERNEL_WIN = fnrules.table('KERNEL_WIN') or set()
 # a pointer fact at a word whose cells one run in scope holds: that run's witness after `pts` (`ptsWR`), not a point
 # witness per offset; the core route's certificates (`callc.py`) only
 WORD_RUN = False

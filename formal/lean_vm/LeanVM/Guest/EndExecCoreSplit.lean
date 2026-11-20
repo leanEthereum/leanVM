@@ -1,24 +1,22 @@
 /-
   LeanVM.Guest.EndExecCoreSplit
 
-  The `split` family (`CoreMode.splitFam`) sound: `rs_eq_run`'s and `shared_selector_tables`'
-  `g`-powers split from their hinted bits on every returning path, and the residuals a split gives.
+  The `split` family (`CoreMode.splitRes`) sound: a function's `g`-power split from its hinted bits on every
+  returning path (`SplitW`, each function's own: `CoreMode/Fn/<f>/Sound.lean`), and the residuals a split gives.
 -/
 
 module
 
 public import LeanVM.Guest.CoreMode.CoreRes
 public import LeanVM.Guest.CoreMode.HeapCSound
-public import LeanVM.Guest.B1.Exact.RsEqRun
-public import LeanVM.Guest.B1.Exact.SharedTables
 
 /-!
 # Split `g`-powers
 
-`rs_eq_run` hints the six bits of its `count = g^c` and asserts `count = q^8·r`, `q` and `r` the products of the high
-and the low three bits' factors; booleanity pins each bit, so `q = g^a`, `r = g^b`, `a, b < 8` and `c = 8a + b`
-(`splitW_rs`). `shared_selector_tables` likewise, `len = q^4·r`, four high bits and two low ones (`splitW_sst`). The
-monomials the heap certificate names `q` and `r` by are the products of the factors' values (`SplitC.q`, `SplitC.r`).
+A function hints the bits of its `n = g^c` and asserts `n = q^S·r`, `q` and `r` the products of the high and the low
+bits' factors; booleanity pins each bit, so `q = g^a`, `r = g^b`, `a < A`, `b < S` and `c = S·a + b` (`SplitW`, each
+function's own: `rs_eq_run`'s, `shared_selector_tables`'). The monomials the heap certificate names `q` and `r` by are
+the products of the factors' values (`SplitC.q`, `SplitC.r`).
 
 `splitRes_sound`: at such a valuation, a split's residuals hold: exponent bounds from `a < A`, `b < S`; under the arm
 `j` of the selector `r`, `b = j`, so `q^S·g^c` is below `n = g^(S·a + b)` for `c < j`; the loop's strided runs
@@ -28,8 +26,7 @@ monomials the heap certificate names `q` and `r` by are the products of the fact
 namespace LeanVM.Guest.EndExec
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
-open LeanVM.Guest.CoreMode (CRes CCond CCell CRun CIdx LtF rep_of capE idxC vw prodW SplitC splitsC powB splitRes
-  splitFam)
+open LeanVM.Guest.CoreMode (CRes CCond CCell CRun CIdx LtF rep_of capE idxC vw prodW SplitC powB splitRes)
 open LeanVM.Protocol.Verifier (gen)
 
 public section
@@ -46,7 +43,7 @@ structure SplitV (sp : SplitC) (σ : Val) (a b : ℕ) : Prop where
   hn : σ (V.n sp.n) = gen ^ (sp.S * a + b)
 
 /-- **A function's split**: on every returning path whose events hold, the split at its valuation. -/
-def SplitW (fn : Fn) (sp : SplitC) : Prop :=
+@[expose] def SplitW (fn : Fn) (sp : SplitC) : Prop :=
   ∀ (rd : Reader) (σ : Val) (es : List Ev) (vs : List V), walk σ fn.body = .ret es vs →
     (∀ ev ∈ es, ev.Holds rd σ) → ∃ a b, SplitV sp σ a b
 
@@ -54,99 +51,6 @@ def SplitW (fn : Fn) (sp : SplitC) : Prop :=
 theorem split_bits_gpow {n : ℕ} {b : ℕ → E} (hb : ∀ j < n, b j * b j = b j) :
     ∃ e < 2 ^ n, ∏ j ∈ Finset.range n, (1 + b j * (gen ^ 2 ^ j + 1)) = gen ^ e :=
   ⟨_, Value.bitsVal_lt _ _, Value.prod_gen_pow_of_bool hb⟩
-
-/-- **`rs_eq_run`'s split**: `[3] = q^8·[23]`, `q = [27]·[31]·[36]` (its value `37`), `[23] = [13]·[17]·[22]`. -/
-theorem splitW_rs : SplitW (fn% «rs_eq_run») ⟨[(27, 1), (31, 1), (36, 1)], [(13, 1), (17, 1), (22, 1)], 23, 3, 8, 8⟩ := by
-  intro rd σ es vs hw hev
-  obtain ⟨w3, w5, w17⟩ := B1.rs_consts
-  have h : Stmt.HoldsList (fun _ _ _ => True) rd σ (fn% «rs_eq_run»).body False (fun _ => True) :=
-    holdsList_of_walk _ (by rw [hw]; exact ⟨fun e he => ⟨hev e he, fun _ _ _ _ => trivial⟩, trivial⟩)
-  rw [B1.rs_eq_run_body, B1.rsBody] at h
-  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and] at h
-  obtain ⟨b0, h10, h11, h12, h13, b1, h14, h15, h16, h17, h18, b2, h19, h20, h21, h22, h23,
-    b3, h24, h25, h26, h27, b4, h28, h29, h30, h31, h32, b5, h33, h34, h35, h36, h37, h38, h39,
-    h40, h41, ha, -⟩ := h
-  have hlo : ∀ j < 3, σ (.n (4 + j)) * σ (.n (4 + j)) = σ (.n (4 + j)) := by
-    intro j hj; interval_cases j
-    exacts [b0.symm, b1.symm, b2.symm]
-  have hhi : ∀ j < 3, σ (.n (7 + j)) * σ (.n (7 + j)) = σ (.n (7 + j)) := by
-    intro j hj; interval_cases j
-    exacts [b3.symm, b4.symm, b5.symm]
-  have rg : σ (.n 23) = ∏ j ∈ Finset.range 3, (1 + σ (.n (4 + j)) * (gen ^ 2 ^ j + 1)) := by
-    simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul]
-    rw [h23, h18, h13, h17, h22, h12, h16, h21, h10, h14, h19, h11, h15, h20, w3, w5, w17, B1.word_one]
-  have qg : σ (.n 37) = ∏ j ∈ Finset.range 3, (1 + σ (.n (7 + j)) * (gen ^ 2 ^ j + 1)) := by
-    simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul]
-    rw [h37, h32, h27, h31, h36, h26, h30, h35, h24, h28, h33, h25, h29, h34, w3, w5, w17, B1.word_one]
-  obtain ⟨bb, hbb, hb⟩ := split_bits_gpow (b := fun j ↦ σ (.n (4 + j))) hlo
-  obtain ⟨aa, haa, hab⟩ := split_bits_gpow (b := fun j ↦ σ (.n (7 + j))) hhi
-  replace rg := rg.trans hb
-  replace qg := qg.trans hab
-  have h3 : σ (.n 3) = gen ^ (8 * aa + bb) := by
-    rw [← Value.e_add_eq_zero_iff.mp ha, h41, h40, h39, h38, qg, rg, pow_add, pow_mul']
-    ring
-  have haa' : aa < 8 := by simpa using haa
-  have hbb' : bb < 8 := by simpa using hbb
-  refine ⟨aa, bb, ⟨haa', hbb', show 8 * aa + bb < capE by unfold capE; omega, ?_, ?_, rg, h3⟩⟩
-  · simp only [CoreMode.prodW, vw, pow_one, mul_one]
-    rw [← qg, h37, h32, mul_assoc]
-  · simp only [CoreMode.prodW, vw, pow_one, mul_one]
-    rw [← rg, h23, h18, mul_assoc]
-
-/-- **`shared_selector_tables`' split**: `[5] = q^4·[20]`, `q = [24]·[28]·[33]·[38]` (its value `39`),
-`[20] = [15]·[19]`. -/
-theorem splitW_sst : SplitW (fn% «shared_selector_tables»)
-    ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], [(15, 1), (19, 1)], 20, 5, 4, 16⟩ := by
-  intro rd σ es vs hw hev
-  have h : Stmt.HoldsList (fun _ _ _ => True) rd σ (fn% «shared_selector_tables»).body False (fun _ => True) :=
-    holdsList_of_walk _ (by rw [hw]; exact ⟨fun e he => ⟨hev e he, fun _ _ _ _ => trivial⟩, trivial⟩)
-  have hbody : (fn% «shared_selector_tables»).body = Fn.«shared_selector_tables».core.body := rfl
-  rw [hbody] at h
-  have w3 := B1.word_gpow_one 0 (by norm_num) 3 (by decide)
-  have w5 := B1.word_gpow_one 1 (by norm_num) 5 (by decide)
-  have w17 := B1.word_gpow_one 2 (by norm_num) 17 (by decide)
-  have w257 := B1.word_gpow_one 3 (by norm_num) 257 (by decide)
-  simp only [Fn.«shared_selector_tables».core.body, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and] at h
-  obtain ⟨m6, m7, m8, m9, m10, m11, c12, c13, h14, h15, c16, c17, h18, h19, h20, c21, c22, h23, h24, c25, c26, h27,
-    h28, h29, c30, c31, h32, h33, h34, c35, c36, h37, h38, h39, h40, h41, h42, ha, -⟩ := h
-  have hlo : ∀ j < 2, σ (.n (6 + j)) * σ (.n (6 + j)) = σ (.n (6 + j)) := by
-    intro j hj; interval_cases j
-    exacts [m6.symm, m7.symm]
-  have hhi : ∀ j < 4, σ (.n (8 + j)) * σ (.n (8 + j)) = σ (.n (8 + j)) := by
-    intro j hj; interval_cases j
-    exacts [m8.symm, m9.symm, m10.symm, m11.symm]
-  have rg : σ (.n 20) = ∏ j ∈ Finset.range 2, (1 + σ (.n (6 + j)) * (gen ^ 2 ^ j + 1)) := by
-    simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul]
-    rw [h20, h15, h19, c12, h14, c13, c16, h18, c17, w3, w5, B1.word_one]
-  have qg : σ (.n 39) = ∏ j ∈ Finset.range 4, (1 + σ (.n (8 + j)) * (gen ^ 2 ^ j + 1)) := by
-    simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul]
-    rw [h39, h34, h29, h24, h28, h33, h38, c21, h23, c22, c25, h27, c26, c30, h32, c31, c35, h37, c36, w3, w5, w17,
-      w257, B1.word_one]
-  obtain ⟨bb, hbb, hb⟩ := split_bits_gpow (b := fun j ↦ σ (.n (6 + j))) hlo
-  obtain ⟨aa, haa, hab⟩ := split_bits_gpow (b := fun j ↦ σ (.n (8 + j))) hhi
-  replace rg := rg.trans hb
-  replace qg := qg.trans hab
-  have h5 : σ (.n 5) = gen ^ (4 * aa + bb) := by
-    rw [← Value.e_add_eq_zero_iff.mp ha, h42, h41, h40, qg, rg, pow_add, pow_mul']
-    ring
-  have haa' : aa < 16 := by simpa using haa
-  have hbb' : bb < 4 := by simpa using hbb
-  refine ⟨aa, bb, ⟨haa', hbb', show 4 * aa + bb < capE by unfold capE; omega, ?_, ?_, rg, h5⟩⟩
-  · simp only [CoreMode.prodW, vw, pow_one, mul_one]
-    rw [← qg, h39, h34, h29, mul_assoc, mul_assoc]
-  · simp only [CoreMode.prodW, vw, pow_one, mul_one]
-    rw [← rg, h20]
-
-/-- **The splits hold** at their functions. -/
-theorem splitsC_ok : ∀ p ∈ splitsC, ∀ fn, coreProgram.find? p.1 = some fn → SplitW fn p.2 := by
-  simp only [splitsC, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq]
-  refine ⟨fun fn hf ↦ ?_, fun fn hf ↦ ?_⟩
-  · rw [B1.find_rs_eq_run] at hf
-    obtain rfl := Option.some.inj hf
-    exact splitW_rs
-  · rw [B1.find_sst] at hf
-    obtain rfl := Option.some.inj hf
-    exact splitW_sst
 
 /-! ## The residuals a split gives -/
 
@@ -229,16 +133,6 @@ theorem splitRes_sound {sp : SplitC} {σ : Val} {a b : ℕ} (hs : SplitV sp σ a
     exact splitRes_sound hs r (cs ++ cs') (fun c hc ↦ (List.mem_append.mp hc).elim (hcs c) (hcs' c)) h
   | .lt (.val _) _, _, _, h | .lt (.num _) _, _, _, h | .lt (.mono _) (.mono _), _, _, h | .nz _, _, _, h
   | .sub _ _, _, _, h | .subP _ _, _, _, h => by simp [splitRes] at h
-
-/-- **The `split` family holds** along a returning path of a function whose events hold. -/
-theorem splitFam_sound {fn : Fn} (hf : coreProgram.find? fn.name = some fn) {rd : Reader} {σ : Val} {es : List Ev}
-    {vs : List V} (hw : walk σ fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ) {x : CRes}
-    (h : splitFam fn x = true) : x.Holds σ := by
-  obtain ⟨p, hp, hpx⟩ := List.any_eq_true.mp h
-  simp only [Bool.and_eq_true, beq_iff_eq] at hpx
-  obtain ⟨hn, hx⟩ := hpx
-  obtain ⟨a, b, hs⟩ := splitsC_ok p hp fn (hn ▸ hf) rd σ es vs hw hh
-  exact splitRes_sound hs x [] (by simp) hx
 
 end
 

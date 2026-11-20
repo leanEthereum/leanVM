@@ -17,6 +17,7 @@ public import LeanVM.Guest.CoreMode.Gen.Certs.Sig6
 public import LeanVM.Guest.CoreMode.Gen.Certs.Sig7
 public import LeanVM.Guest.CoreMode.Gen.Certs.Sig8
 public import LeanVM.Guest.CoreMode.Gen.Certs.Sig9
+public import LeanVM.Guest.CoreMode.NzsOk
 
 set_option Elab.async false
 

@@ -25,7 +25,7 @@ SIGS = None
 
 def sigs():
     """Each function's `Mode.Sig`, by namespace name, fields parsed: what `sigc.py` writes (each function's
-    contract as written, or `sigseed.py`'s), whether or not it has run."""
+    contract, its rule file's or as written), whether or not it has run."""
     global SIGS
     if SIGS is not None:
         return SIGS

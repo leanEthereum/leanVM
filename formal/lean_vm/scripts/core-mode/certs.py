@@ -172,7 +172,8 @@ def render():
         files[os.path.join(OUT, 'Certs', 'Sig%d.lean' % c)] = ''.join(t)
     mod = 'LeanVM.Guest.CoreMode.Gen.Certs'
     t = [header(mod, 'What the core route\'s data gives of the end theorem\'s assembly (`EndExec.CoreFacts`).')]
-    t.append(imports({'LeanVM.Guest.CoreMode.Gen.Certs.Sig%d' % c for c in range(len(chunks))}))
+    t.append(imports({'LeanVM.Guest.CoreMode.Gen.Certs.Sig%d' % c for c in range(len(chunks))} |
+                     {'LeanVM.Guest.CoreMode.NzsOk'}))
     t.append('\nset_option Elab.async false\n\nnamespace LeanVM.Guest.CoreMode\n\nopen LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.EndExec\n\n'
              'public section\n\n')
     t.append('theorem coreCerts_sigs : ∀ K ∈ coreCerts, SigsOr coreCerts offSigs K :=\n  CertE.fa (ls := corePacks) fa%%%s\n\n' % (

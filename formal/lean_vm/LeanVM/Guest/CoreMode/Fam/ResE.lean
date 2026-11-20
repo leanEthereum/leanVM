@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.CoreMode.Fam.ResF
 public import LeanVM.Guest.CoreMode.Fam.TermDefs
 public import LeanVM.Guest.B1.Terminal.HoldsOf
+public import LeanVM.Guest.CoreMode.Fn.check_opening_terminal.Data
 
 /-!
 # `check_opening_terminal`'s facts and families
@@ -18,10 +19,10 @@ public import LeanVM.Guest.B1.Terminal.HoldsOf
 `ExpQ r J`, `DimQ r J`: at an instance `J` of a function listed in `Res.expFacts`
 (`Res.dimFacts`), each listed parameter holds its fact (`ExpH`, `DimH`) on the reference memory.
 `TermQ r J`: at an instance of `check_opening_terminal`, `Res.TermFront` of its arguments.
-`expQ_of_termQ`, `dimQ_of_termQ`: the facts from `TermFront`: `kappa_base`'s words are `g`-powers of
-`[0, log_mem, τ_0, …, τ_5]`, `tau_keccak_g = g^τ_5`; a pooled claim's low point, of length its
-source's exponent plus its adjustment (`claimLowDim`), is a prefix of the bus point (`g_bus_mu`) or
-of the tables' point (`g_zc_n`), at most `40` long.
+`expH_of_front`, `dimH_of_front`: its own facts (`Own.check_opening_terminal.expFacts`, `dimFacts`) from `TermFront`:
+`kappa_base`'s words are `g`-powers of `[0, log_mem, τ_0, …, τ_5]`, `tau_keccak_g = g^τ_5`, `gmv = g^sl`, `sl ≤ 30`;
+a pooled claim's low point, of length its source's exponent plus its adjustment (`claimLowDim`), is a prefix of the
+bus point (`g_bus_mu`) or of the tables' point (`g_zc_n`), at most `40` long.
 
 `ltExp_top` (F7, F8): at an honest frame with `ExpQ`, the base of an order residual is `g^e`, `e`
 below its fact's bound. `dim_top` (F9): with `DimQ`, the low base is `g^(e + c)` (`lowOk_top`), so
@@ -54,12 +55,6 @@ def ExpQ (r : Ref) (J : Inst) : Prop :=
   ∀ f σ bufs kids, J.t = .node f σ bufs kids → ∀ fn, coreProgram.find? f = some fn → ∀ c ∈ expFacts,
     c.1 = f → ∀ v, fn.params[c.2.1]? = some v → ExpH r.img.read c.2.2.1 c.2.2.2 (σ v)
 
-/-- **The exponent facts of the functions but `check_opening_terminal`** at an instance. -/
-def ExpQv (r : Ref) (J : Inst) : Prop :=
-  ∀ f σ bufs kids, J.t = .node f σ bufs kids → ∀ fn, coreProgram.find? f = some fn → ∀ c ∈ expFacts,
-    c.1 = f → c.1 ≠ name% «check_opening_terminal» → ∀ v, fn.params[c.2.1]? = some v →
-      ExpH r.img.read c.2.2.1 c.2.2.2 (σ v)
-
 /-- **The dimension facts at an instance.** -/
 def DimQ (r : Ref) (J : Inst) : Prop :=
   ∀ f σ bufs kids, J.t = .node f σ bufs kids → ∀ fn, coreProgram.find? f = some fn → ∀ c ∈ dimFacts,
@@ -83,26 +78,22 @@ theorem term_fn {fn : Fn} (hf : coreProgram.find? name% «check_opening_terminal
   obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
   exact hp
 
-theorem expFacts_cot {c : String × ℕ × Option ℕ × ℕ} (hc : c ∈ expFacts)
-    (hn : c.1 = name% «check_opening_terminal») :
+theorem expFacts_cot {c : String × ℕ × Option ℕ × ℕ} (hc : c ∈ CoreMode.Own.check_opening_terminal.expFacts) :
     c.1 = name% «check_opening_terminal» ∧ ((c.2.1 = 7 ∧ c.2.2.1 = none ∧ c.2.2.2 = 31) ∨
-      ∃ k < 8, c.2.1 = 8 ∧ c.2.2.1 = some k ∧ c.2.2.2 = if k = 0 then 1 else 31) := by
-  simp only [expFacts, List.mem_append, List.mem_cons, List.mem_map, List.mem_range,
-    List.not_mem_nil, or_false] at hc
-  rcases hc with (((((rfl | rfl) | ⟨k, hk, rfl⟩) | rfl | rfl) | ⟨k, -, rfl⟩) | hg) | hg
+      (∃ k < 8, c.2.1 = 8 ∧ c.2.2.1 = some k ∧ c.2.2.2 = if k = 0 then 1 else 31) ∨
+      (c.2.1 = 19 ∧ c.2.2.1 = none ∧ c.2.2.2 = 31)) := by
+  simp only [CoreMode.Own.check_opening_terminal.expFacts, List.mem_append, List.mem_cons, List.mem_map,
+    List.mem_range, List.not_mem_nil, or_false] at hc
+  rcases hc with ((rfl | rfl) | ⟨k, hk, rfl⟩) | rfl
   · exact ⟨rfl, Or.inl ⟨rfl, rfl, rfl⟩⟩
-  · exact ⟨rfl, Or.inr ⟨0, by omega, rfl, rfl, rfl⟩⟩
-  · exact ⟨rfl, Or.inr ⟨k + 1, by omega, rfl, rfl, by simp⟩⟩
-  · exact absurd hn (by decide)
-  · exact absurd hn (by decide)
-  · exact absurd hn (by simp)
-  · rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> exact absurd hn (by decide)
-  · rcases hg with rfl | rfl | rfl | rfl <;> exact absurd hn (by decide)
+  · exact ⟨rfl, Or.inr (Or.inl ⟨0, by omega, rfl, rfl, rfl⟩)⟩
+  · exact ⟨rfl, Or.inr (Or.inl ⟨k + 1, by omega, rfl, rfl, by simp⟩)⟩
+  · exact ⟨rfl, Or.inr (Or.inr ⟨rfl, rfl, rfl⟩)⟩
 
-theorem dimFacts_cot {c : String × ℕ × ℕ × List (ℕ × ℕ)} (hc : c ∈ dimFacts) :
+theorem dimFacts_cot {c : String × ℕ × ℕ × List (ℕ × ℕ)} (hc : c ∈ CoreMode.Own.check_opening_terminal.dimFacts) :
     c.1 = name% «check_opening_terminal» ∧ c.2.1 = 8 ∧
       ((c.2.2.1 = 4 ∧ c.2.2.2 = busPairs) ∨ (c.2.2.1 = 5 ∧ c.2.2.2 = tabPairs)) := by
-  simp only [dimFacts, List.mem_cons, List.not_mem_nil, or_false] at hc
+  simp only [CoreMode.Own.check_opening_terminal.dimFacts, List.mem_cons, List.not_mem_nil, or_false] at hc
   rcases hc with rfl | rfl
   · exact ⟨rfl, rfl, Or.inl ⟨rfl, rfl⟩⟩
   · exact ⟨rfl, rfl, Or.inr ⟨rfl, rfl⟩⟩
@@ -127,11 +118,11 @@ theorem kb_load {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) {kb : E}
 
 /-- **The exponent facts from `TermFront`.** -/
 theorem expH_of_front (hT : TermFront rd (B1.VerifySub.termParams.map σ)) {c : String × ℕ × Option ℕ × ℕ}
-    (hc : c ∈ expFacts) (hn : c.1 = name% «check_opening_terminal») {v : V}
+    (hc : c ∈ CoreMode.Own.check_opening_terminal.expFacts) {v : V}
     (hv : B1.VerifySub.termParams[c.2.1]? = some v) : ExpH rd c.2.2.1 c.2.2.2 (σ v) := by
   simp only [B1.VerifySub.termParams, List.map_cons, List.map_nil, TermFront] at hT
-  obtain ⟨lm, hs, layout, bus, claims, hl, h31, hm30, -, -, -, hkb, -, htau, -⟩ := hT
-  obtain ⟨-, ⟨hp, ho, hb⟩ | ⟨k, hk, hp, ho, hb⟩⟩ := expFacts_cot hc hn
+  obtain ⟨lm, hs, layout, bus, claims, hl, h31, hm30, -, -, -, hkb, -, htau, -, -, -, -, -, sl, hsl, hgm⟩ := hT
+  obtain ⟨-, ⟨hp, ho, hb⟩ | ⟨k, hk, hp, ho, hb⟩ | ⟨hp, ho, hb⟩⟩ := expFacts_cot hc
   · rw [hp] at hv
     obtain rfl : v = .n 7 := by simpa [B1.VerifySub.termParams] using hv.symm
     rw [ho, hb]
@@ -148,6 +139,10 @@ theorem expH_of_front (hT : TermFront rd (B1.VerifySub.termParams.map σ)) {c : 
       · simp; omega
     · rw [show (if k = 0 then 1 else 31) = 31 by simp only [show ¬ k = 0 by omega, ↓reduceIte], List.getD_eq_getElem _ _ (by simp [hl]; omega), List.getElem_append_right (by simp; omega)]
       exact h31 _ (List.getElem_mem _)
+  · rw [hp] at hv
+    obtain rfl : v = .n 19 := by simpa [B1.VerifySub.termParams] using hv.symm
+    rw [ho, hb]
+    exact ⟨sl, by omega, hgm⟩
 
 /-- A pooled claim's pair: its low point's length, a prefix of the bus point or the tables' point. -/
 theorem pair_dim {lm : ℕ} {hs : List ℕ} {layout : Layout} {bus : BusResult} {claims : List ColumnClaim}
@@ -168,7 +163,7 @@ theorem pair_dim {lm : ℕ} {hs : List ℕ} {layout : Layout} {bus : BusResult} 
 
 /-- **The dimension facts from `TermFront`.** -/
 theorem dimH_of_front (hT : TermFront rd (B1.VerifySub.termParams.map σ)) {c : String × ℕ × ℕ × List (ℕ × ℕ)}
-    (hc : c ∈ dimFacts) {vk vb : V} (hvk : B1.VerifySub.termParams[c.2.1]? = some vk)
+    (hc : c ∈ CoreMode.Own.check_opening_terminal.dimFacts) {vk vb : V} (hvk : B1.VerifySub.termParams[c.2.1]? = some vk)
     (hvb : B1.VerifySub.termParams[c.2.2.1]? = some vb) : DimH rd (σ vk) (σ vb) c.2.2.2 := by
   simp only [B1.VerifySub.termParams, List.map_cons, List.map_nil, TermFront] at hT
   obtain ⟨lm, hs, layout, bus, claims, hl, -, -, hlm, hhs, hb40, hkb, -, -, -, -, -, -, hctx, -⟩ := hT
@@ -211,31 +206,6 @@ theorem dimH_of_front (hT : TermFront rd (B1.VerifySub.termParams.map σ)) {c : 
 end
 
 variable {r : Ref}
-
-/-- **The exponent facts at an instance with `TermQ`**, given those of the other functions. -/
-theorem expQ_of_termQ {J : Inst} (h : TermQ r J) (hvt : ExpQv r J) : ExpQ r J := by
-  intro f σ bufs kids hJ fn hf c hc hcf v hv
-  by_cases hn : c.1 = name% «check_opening_terminal»
-  swap
-  · exact hvt f σ bufs kids hJ fn hf c hc hcf hn v hv
-  obtain ⟨hc1, -⟩ := expFacts_cot hc hn
-  rw [hc1] at hcf
-  subst hcf
-  have hp := term_fn hf
-  have hT := h _ σ bufs kids hJ rfl fn hf
-  rw [hp] at hT hv
-  exact expH_of_front hT hc hn hv
-
-/-- **The dimension facts at an instance with `TermQ`.** -/
-theorem dimQ_of_termQ {J : Inst} (h : TermQ r J) : DimQ r J := by
-  intro f σ bufs kids hJ fn hf c hc hcf vk vb hvk hvb
-  obtain ⟨hc1, -⟩ := dimFacts_cot hc
-  rw [hc1] at hcf
-  subst hcf
-  have hp := term_fn hf
-  have hT := h _ σ bufs kids hJ rfl fn hf
-  rw [hp] at hT hvk hvb
-  exact dimH_of_front hT hc hvk hvb
 
 /-! ## At the honest frames -/
 

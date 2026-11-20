@@ -1675,8 +1675,9 @@ def reach(Q, S, runs, pts, mul=mmul, pw=mpow, sh=shift):
 
 
 # Loops whose run preconditions may be over the counter: a table the loop fills itself, row by row, each iteration
-# reading the row the previous one wrote (`verify_bus_gkr`'s point triangle). The tail meets the next row.
-CTR_PRE = {'verify_bus_gkr_loop0'}
+# reading the row the previous one wrote (their rule files' `CTR_PRE`). The tail meets the next row.
+import fnrules  # noqa: E402
+CTR_PRE = fnrules.table('CTR_PRE') or set()
 CTR_CALLERS = {f for k in CTR_PRE for f in CALLERS[k] if f not in CTR_PRE}
 
 

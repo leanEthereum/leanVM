@@ -417,10 +417,7 @@ theorem layQ_step (hr : r.Ok) :
   obtain rfl : fn = fn' := Option.some.inj (hfn.symm.trans hfn')
   -- the caller is `verify_keccak`
   have hmem : (layerName first, "verify_keccak") ∈ Res.termCallers := by
-    refine List.mem_cons_of_mem _ (List.mem_append_right _ ?_)
-    interval_cases first
-    · exact List.mem_cons_of_mem _ List.mem_cons_self
-    · exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self)
+    interval_cases first <;> decide
   have hcal := List.all_eq_true.mp (Res.calls_sites (Res.termCallers_all fnI (List.mem_of_find?_eq_some hfI))
     hw c hc) _ hmem
   have hnI := Da.fn_name_of_find hfI

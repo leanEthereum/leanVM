@@ -21,8 +21,9 @@ import align as AL
 import heap
 
 WIN = AL.WIN
-# a function whose pairing windows at `WIN` instructions take past 6.5 GB a module: its own size
-WINS = {'main_loop2': 2048}
+# a function whose pairing windows at `WIN` instructions take past 6.5 GB a module: its own size (its rule file's)
+import fnrules  # noqa: E402
+WINS = fnrules.table('PAIR_WIN') or {}
 
 
 def stmt(e, env):
