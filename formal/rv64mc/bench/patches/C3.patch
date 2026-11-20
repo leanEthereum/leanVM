@@ -1,0 +1,17 @@
+--- a/crates/verifier/src/field.rs
++++ b/crates/verifier/src/field.rs
+@@ -1,6 +1,14 @@
+ //! Field arithmetic: `K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` and `E = K[y]/(y^2 + x y + 1)`, on plain integers.
+ 
+ use std::ops::{Add, AddAssign, Mul, MulAssign};
++
++/// Never called: kept in the image by the static below, so that only the code after it moves (iteration benchmark C3).
++fn relocation_probe(a: u64) -> u64 {
++    a.rotate_left(7) ^ 0x5a
++}
++
++#[used]
++static RELOCATION_PROBE: fn(u64) -> u64 = relocation_probe;
+ 
+ /// The low 64 bits of a 64x64 carry-less product, by integer multiplication: with both operands split into the four
+ /// classes of their bit positions mod 4, a coefficient below bit 60 sums at most 15 bits, so its carries stay below
