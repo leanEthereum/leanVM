@@ -47,6 +47,8 @@ theorem align_off {t c : BitVec 64} {k : Nat} (ht : t.toNat % 16 = 0) (hc : c.to
   have := t.isLt
   omega
 
+theorem ne_add0 {l b : Word} (h : l ≠ b + BitVec.ofNat 64 (8 * 0)) : l ≠ b := by simpa using h
+
 /-- An address off the stack is no slot of it. -/
 theorem ne_of_off_stack {S : Nat} {t x y : Word} (hoff : x.toNat < S ∨ t.toNat ≤ x.toNat) (hlo : S ≤ y.toNat)
     (hhi : y.toNat < t.toNat) : x ≠ y := fun e => by subst e; omega

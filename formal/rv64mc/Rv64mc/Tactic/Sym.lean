@@ -73,6 +73,10 @@ register_option rv_sym.heap : Bool := {
     folded, literal forms in the facts given. Off, `rv_sym` leaves the goals it left before them. -/
 def heapOn : MetaM Bool := return rv_sym.heap.get (← getOptions)
 
+/-- The facts about numbers `omega` proved in this run of the tactic, by proposition: one reused where the local
+    hypotheses it names are all in scope. -/
+initialize arithCache : IO.Ref (Std.HashMap Expr Expr) ← IO.mkRef {}
+
 register_option rv_sym.bind : Nat := {
   defValue := 0
   descr := "rv_sym: a callee's result deeper than this stays its own variable (0: every result is written in)"
@@ -626,10 +630,16 @@ partial def arithProve (goal : Expr) (nested : Bool := false) : MetaM (Option Ex
   unless ← heapOn do return none
   -- gathering the facts unfolds definitions and evaluates closed numbers: out of recursion depth or heartbeats there,
   -- no proof, as `omega` failing
+  let goal ← instantiateMVars goal
+  if let some p := (← arithCache.get).get? goal then
+    let lctx ← getLCtx
+    if (collectFVars {} p).fvarIds.all lctx.contains then return some p
   let saved ← saveState
-  tryCatchRuntimeEx (arithProveCore goal nested) fun _ => do
+  let r ← tryCatchRuntimeEx (arithProveCore goal nested) fun _ => do
     saved.restore
     return none
+  if let some p := r then arithCache.modify (·.insert goal p)
+  return r
 
 partial def arithProveCore (goal : Expr) (nested : Bool) : MetaM (Option Expr) := do
   let goal := (← instantiateMVars goal).consumeMData
@@ -780,6 +790,88 @@ def normNext (pf ty : Expr) : MetaM (Expr × Expr) := do
 
 
 
+/-- `InRange a n (a + j)` for a literal `j < n`, from a hypothesis `a.toNat + n < 2^64` (`inRange_add`), no `omega`. -/
+def inRangeFast (ty : Expr) : MetaM (Option Expr) := do
+  let ty := (← instantiateMVars ty).consumeMData
+  unless ty.isAppOfArity ``Rv64mc.InRange 3 do return none
+  let a := ty.getArg! 0
+  let n := ty.getArg! 1
+  let (bb, j) ← affine (ty.getArg! 2)
+  unless bb == some a && j != 0 && j < 2 ^ 32 do return none
+  let some nv ← natVal? n | return none
+  unless j < nv do return none
+  let some hw ← hypOf (← mkAppM ``LT.lt #[← mkAppM ``HAdd.hAdd #[← mkAppM ``BitVec.toNat #[a], n],
+    ← mkAppM ``HPow.hPow #[mkNatLit 2, mkNatLit 64]]) | return none
+  let hj ← mkDecideProof (← mkAppM ``LT.lt #[mkNatLit j, n])
+  let some p ← observing? (mkAppM ``Rv64mc.inRange_add #[hj, hw]) | return none
+  return some (← mkExpectedTypeHint p ty)
+
+/-- `a ≠ b` from a hypothesis `∀ xs, P₁ → … → l ≠ r` whose conclusion matches (either way round), its premises by
+    `omega`: a precondition's apartness of two regions (`∀ b, InRange q n b → ∀ k < 25, alignToDword b ≠ s + 8 k`). An
+    offset `s + 8 k` of the hypothesis matches a literal offset of the goal. -/
+def neByHyp (a b : Expr) : MetaM (Option Expr) := do
+  unless ← heapOn do return none
+  for d in ← getLCtx do
+    if d.isImplementationDetail then continue
+    let ty := (← instantiateMVars d.type).consumeMData
+    unless ty.isForall do continue
+    let saved ← saveState
+    let r ← tryCatchRuntimeEx (try
+        let (xs, _, concl) ← forallMetaTelescope ty
+        let concl := concl.consumeMData
+        unless concl.isAppOfArity ``Ne 3 do throwError "no"
+        let l := concl.appFn!.appArg!
+        let rr := concl.appArg!
+        -- an offset `s + BitVec.ofNat 64 (8 * ?k)` against a literal offset: `?k` from the literal
+        let offK (pat t : Expr) : MetaM Unit := do
+          unless pat.isAppOfArity ``HAdd.hAdd 6 do return
+          let off := pat.appArg!
+          unless off.isAppOfArity ``BitVec.ofNat 2 do return
+          let n := off.appArg!
+          unless n.isAppOfArity ``HMul.hMul 6 && (← natVal? n.appFn!.appArg!) == some 8 do return
+          let km := n.appArg!
+          unless km.isMVar do return
+          let (_, c) ← affine t
+          if c % 8 == 0 then km.mvarId!.assign (mkNatLit (c / 8))
+        let mut sym := false
+        let mut ok := false
+        let mut zero := false
+        for (x, y, sw) in [(a, b, false), (b, a, true)] do
+          let s1 ← saveState
+          offK rr y
+          if (← withReducible (isDefEq l x)) && (← withReducible (isDefEq rr y)) then
+            ok := true; sym := sw; break
+          s1.restore
+          -- `y` without an offset against `s + 8 k`: `k` zero
+          if rr.isAppOfArity ``HAdd.hAdd 6 && (← affine y).2 == 0 then
+            let y0 ← mkAdd y (mkApp2 (mkConst ``BitVec.ofNat) (mkRawNatLit 64)
+              (← mkAppM ``HMul.hMul #[mkNatLit 8, mkNatLit 0]))
+            if (← withReducible (isDefEq l x)) && (← withReducible (isDefEq rr y0)) then
+              ok := true; sym := sw; zero := true; break
+            s1.restore
+        unless ok do throwError "no"
+        for x in xs do
+          if ← x.mvarId!.isAssigned then continue
+          let xt ← instantiateMVars (← inferType x)
+          unless ← isProp xt do throwError "no"
+          let some p ← (do
+              if !xt.hasFVar && !xt.hasMVar then
+                if let some true ← observing? (do
+                    return (← withTransparency .default (whnf (← mkDecide xt))).isConstOf ``Bool.true) then
+                  return some (← mkDecideProof xt)
+              if let some p ← inRangeFast xt then return some p
+              arithProve xt) | throwError "no"
+          x.mvarId!.assign p
+        let pf ← instantiateMVars (mkAppN d.toExpr xs)
+        if pf.hasExprMVar then throwError "no"
+        let pf ← if zero then mkAppM ``Rv64mc.Tactic.ne_add0 #[pf] else pure pf
+        if sym then pure (some (← mkAppM ``Ne.symm #[pf])) else pure (some pf)
+      catch _ => pure none) fun _ => pure none
+    match r with
+    | some pf => return some pf
+    | none => saved.restore
+  return none
+
 /-- A proof of `a ≠ b` from the offsets of one base, or a hypothesis. -/
 def neProof (a b : Expr) : MetaM (Option Expr) := do
   let (ba, ca) ← affine a
@@ -812,6 +904,7 @@ def neProof (a b : Expr) : MetaM (Option Expr) := do
       let y := ty.appArg!
       if x == a && y == b then return some d.toExpr
       if x == b && y == a then return some (← mkAppM ``Ne.symm #[d.toExpr])
+  if let some p ← neByHyp a b then return some p
   arithProve (← mkAppM ``Ne #[a, b])
 
 /-- A proof of `lo ≤ a` for offsets of one bounded base. -/
@@ -929,6 +1022,77 @@ def keepAt (M x : Expr) : MetaM (Option (Expr × Expr)) := do
     return some (mkAppN d.toExpr (#[x] ++ pfs), rhs.appFn!.appArg!)
   return none
 
+/-- `y ≠ alignToDword x` for a slot `y` of the function's stack and `x = a + j` in a region off it: a hypothesis
+    `a + n ≤ NEXT ∨ t ≤ a` (an `Owned`'s first part, or an `Owned` itself) with `t` the stack top, `a + n < 2^64`,
+    `j < n`, the stack top 16-aligned (`ne_slot_of_region`), no `omega`. -/
+def regionNeSlot (y x hlo hhi : Expr) (dword : Bool := false) : MetaM (Option Expr) := do
+  let (bx, j) ← affine x
+  let some a := bx | return none
+  unless j != 0 && j < 2 ^ 32 do return none
+  let some (_, _, top, _) ← rawStack | return none
+  if a == top then return none
+  let num (e : Expr) : MetaM Expr := mkAppM ``BitVec.toNat #[e]
+  let some h16 ← hypOf (← mkEq (← mkAppM ``HMod.hMod #[← num top, mkNatLit 16]) (mkNatLit 0)) | return none
+  let _ := h16
+  for d in ← getLCtx do
+    if d.isImplementationDetail then continue
+    let mut ty := (← instantiateMVars d.type).consumeMData
+    -- `a + n ≤ (env.next m).toNat ∨ t.toNat ≤ a.toNat`, or `env.Owned m t a n`
+    let mut ho := d.toExpr
+    let mut hw? : Option Expr := none
+    if ty.isAppOfArity ``Rv64mc.Env.Owned 5 then
+      if let some ty' ← unfoldDefinition? ty then
+        let ty' := ty'.headBeta
+        if ty'.isAppOfArity ``And 2 then
+          ho := mkApp3 (mkConst ``And.left) ty'.appFn!.appArg! ty'.appArg! d.toExpr
+          hw? := some (mkApp3 (mkConst ``And.right) ty'.appFn!.appArg! ty'.appArg! d.toExpr)
+          ty := ty'.appFn!.appArg!
+    unless ty.isAppOfArity ``Or 2 do continue
+    let l := ty.appFn!.appArg!
+    let r := ty.appArg!
+    unless l.isAppOfArity ``LE.le 4 && r.isAppOfArity ``LE.le 4 do continue
+    let la := l.appFn!.appArg!
+    unless la.isAppOfArity ``HAdd.hAdd 6 do continue
+    let la1 := la.appFn!.appArg!
+    unless la1.isAppOfArity ``BitVec.toNat 2 && la1.appArg! == a && r.appArg!.isAppOfArity ``BitVec.toNat 2 &&
+      r.appArg!.appArg! == a do continue
+    let n := la.appArg!
+    let nx := l.appArg!
+    unless nx.isAppOfArity ``BitVec.toNat 2 && nx.appArg!.isAppOfArity ``Rv64mc.Env.next 2 do continue
+    let env := nx.appArg!.appFn!.appArg!
+    let t := r.appFn!.appArg!.appArg!
+    let some hnx ← hypOf (← mkAppM ``LE.le #[nx, ← num (← mkAppM ``Rv64mc.Env.heapEnd #[env])]) | continue
+    let ht ← if t == top then mkEqRefl (← num top) else do
+      let some h ← hypOf (← mkEq t top) | continue
+      mkAppM ``Rv64mc.Tactic.toNat_congr #[h]
+    let some hw ← (match hw? with
+      | some h => pure (some h)
+      | none => do hypOf (← mkAppM ``LT.lt #[← mkAppM ``HAdd.hAdd #[← num a, n],
+          ← mkAppM ``HPow.hPow #[mkNatLit 2, mkNatLit 64]])) | continue
+    let jn ← mkAppM ``LT.lt #[mkNatLit j, n]
+    let ok ← observing? do
+      let r ← withTransparency .default (whnf (← mkDecide jn))
+      return r.isConstOf ``Bool.true
+    unless ok == some true do continue
+    let hj ← mkDecideProof jn
+    if dword then
+      let some p ← observing? (mkAppM ``Rv64mc.ne_slot_of_region' #[ho, hnx, ht, hj, hw, hlo, hhi]) | continue
+      return some (← mkExpectedTypeHint p (← mkAppM ``Ne #[y, x]))
+    let some p ← observing? (mkAppM ``Rv64mc.ne_slot_of_region #[ho, hnx, ht, h16, hj, hw, hlo, hhi]) | continue
+    return some (← mkExpectedTypeHint p (← mkAppM ``Ne #[y, ← mkAppM ``alignToDword #[x]]))
+  return none
+
+/-- A slot `y` of the function's stack: `S ≤ y.toNat` and `y.toNat < top.toNat`, from the stack bound, or once by
+    `omega` (cached) where `need` is a parameter. -/
+def slotBounds (y : Expr) : MetaM (Option (Expr × Expr)) := do
+  if let some (hlo, hhi, _) ← slotFacts y then return some (hlo, hhi)
+  let some (_, S, top, _) ← rawStack | return none
+  unless (← affine y).1 == some top do return none
+  let num (e : Expr) : MetaM Expr := mkAppM ``BitVec.toNat #[e]
+  let some hlo ← arithProve (← mkAppM ``LE.le #[S, ← num y]) | return none
+  let some hhi ← arithProve (← mkAppM ``LT.lt #[← num y, ← num top]) | return none
+  return some (hlo, hhi)
+
 /-- The doubleword `M` holds at `x`, read through its stores and its callees' frames, and a proof of
     `M.getMem x = v` where it is not `M.getMem x` itself. -/
 partial def readMem (M x : Expr) (off : Option (Option Expr) := none) : MetaM (Expr × Option Expr) := do
@@ -941,6 +1105,18 @@ partial def readMem (M x : Expr) (off : Option (Option Expr) := none) : MetaM (E
     let (by_, cy) ← affine y
     if x == y || (bx == by_ && cx == cy) then
       return (w, some (← mkAppOptM ``MachineState.getMem_setMem_eq #[N, y, w]))
+    -- a slot against a doubleword of a region off the stack (`ne_slot_of_region'`), either way round
+    if ← heapOn then
+      if let some (hlo, hhi) ← slotBounds y then
+        if let some hne ← regionNeSlot y x hlo hhi (dword := true) then
+          let p1 ← mkAppOptM ``MachineState.getMem_setMem_ne #[N, y, x, w, ← mkAppM ``Ne.symm #[hne]]
+          let (v, p2) ← readMem N x off
+          return (v, some (← transOpt p1 p2))
+      else if let some (hlo, hhi) ← slotBounds x then
+        if let some hne ← regionNeSlot x y hlo hhi (dword := true) then
+          let p1 ← mkAppOptM ``MachineState.getMem_setMem_ne #[N, y, x, w, hne]
+          let (v, p2) ← readMem N x off
+          return (v, some (← transOpt p1 p2))
     -- a store into the stack, `x` off it: shown once for the whole run of stores (`ne_of_off_stack`)
     if ← heapOn then
       if let some (hlo, hhi, _) ← slotFacts y then
@@ -986,6 +1162,42 @@ partial def readMem (M x : Expr) (off : Option (Option Expr) := none) : MetaM (E
     let (v, p2) ← readMem N x
     return (v, some (← transOpt p1 p2))
   return (← mkAppM ``MachineState.getMem #[M, x], none)
+
+/-- The byte `M` holds at `x`, read through doubleword stores apart from its doubleword, byte stores to other bytes
+    and callees' frames that keep its doubleword, and a proof of `M.getByte x = v` where it is not `M.getByte x`. -/
+partial def readByte (M x : Expr) : MetaM (Expr × Option Expr) := do
+  let M := M.consumeMData
+  if M.isAppOfArity ``MachineState.setMem 3 then
+    let N := M.appFn!.appFn!.appArg!
+    let y := M.appFn!.appArg!
+    let w := M.appArg!
+    let ax ← mkAppM ``alignToDword #[x]
+    let fast ← match ← slotBounds y with
+      | some (hlo, hhi) => regionNeSlot y x hlo hhi
+      | none => pure none
+    if let some hne ← (match fast with | some p => pure (some p) | none => neProof y ax) then
+      let p1 ← mkAppOptM ``Rv64mc.getByte_setMem_ne #[N, x, y, w, hne]
+      let (v, p2) ← readByte N x
+      return (v, some (← transOpt p1 p2))
+    return (← mkAppM ``MachineState.getByte #[M, x], none)
+  if M.isAppOfArity ``MachineState.setByte 3 then
+    let N := M.appFn!.appFn!.appArg!
+    let y := M.appFn!.appArg!
+    let c := M.appArg!
+    let (bx, cx) ← affine x
+    let (by_, cy) ← affine y
+    if x == y || (bx == by_ && cx == cy) then
+      return (c, some (← mkAppOptM ``Rv64mc.getByte_setByte_eq #[N, y, c]))
+    if let some hne ← neProof x y then
+      let p1 ← mkAppOptM ``Rv64mc.getByte_setByte_ne #[N, y, x, c, hne]
+      let (v, p2) ← readByte N x
+      return (v, some (← transOpt p1 p2))
+    return (← mkAppM ``MachineState.getByte #[M, x], none)
+  if let some (p1, N) ← keepAt M (← mkAppM ``alignToDword #[x]) then
+    let p1 ← mkAppOptM ``Rv64mc.getByte_congr #[N, M, x, p1]
+    let (v, p2) ← readByte N x
+    return (v, some (← transOpt p1 p2))
+  return (← mkAppM ``MachineState.getByte #[M, x], none)
 
 /-! ## Goals -/
 
@@ -2115,6 +2327,29 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
             g.assign (← appN ``Rv64mc.Tactic.step_loadw (base ++ [(`rd, (oargs[1]!)), (`w, w), (`s, s),
               (`a, (oargs[4]!)), (`x, x), (`v, val), (`R', R'), (`ha, ha), (`hv, hv), (`hR, hR), (`h, h)]))
             pure (some [h.mvarId!])
+          else if let some (bv, pb) ← (do
+              unless (← heapOn) && w.isConstOf ``Lprog.Width.b1 do return none
+              let (bv, pb?) ← readByte a.M x
+              let some pb := pb? | return none
+              return some (bv, pb)) then
+            -- a byte read through the stores (`readByte`)
+            let ext (t : Expr) : Expr := mkApp3 (mkConst ``BitVec.zeroExtend) (mkRawNatLit 8) (mkRawNatLit 64) t
+            let lv := ext bv
+            let lvM := mkApp3 (mkConst ``Rv64mc.Tactic.loadVal) w a.M x
+            let p1 ← mkExpectedTypeHint (← mkCongrArg (← lam (mkApp (mkConst ``BitVec) (mkRawNatLit 8)) (pure ∘ ext)) pb)
+              (← mkEq lvM lv)
+            let f ← lam word fun t => do
+              mkAppM ``ite #[← mkEq s (mkConst ``Bool.true), mkApp2 (mkConst ``UnOp.eval) (mkApp (mkConst ``UnOp.sext) w) t, t]
+            let val := if s.isConstOf ``Bool.true then mkApp2 (mkConst ``UnOp.eval) (mkApp (mkConst ``UnOp.sext) w) lv
+              else lv
+            let ite ← mkAppM ``ite #[← mkEq s (mkConst ``Bool.true), mkApp2 (mkConst ``UnOp.eval)
+              (mkApp (mkConst ``UnOp.sext) w) lvM, lvM]
+            let hv ← mkExpectedTypeHint (← mkCongrArg f p1) (← mkEq ite val)
+            let (R', hR) ← writeReg a.R (oargs[1]!) val
+            let h ← newGoal g (a.goal (a.pc + 1) R' a.M)
+            g.assign (← appN ``Rv64mc.Tactic.step_loadw (base ++ [(`rd, (oargs[1]!)), (`w, w), (`s, s),
+              (`a, (oargs[4]!)), (`x, x), (`v, val), (`R', R'), (`ha, ha), (`hv, hv), (`hR, hR), (`h, h)]))
+            pure (some [h.mvarId!])
           else
             let lv ← whnfCore (← unfoldDefinition (mkApp3 (mkConst ``Rv64mc.Tactic.loadVal) w a.M x))
             let val := if s.isConstOf ``Bool.true then mkApp2 (mkConst ``UnOp.eval) (mkApp (mkConst ``UnOp.sext) w) lv
@@ -2347,6 +2582,7 @@ def elabArgs (hp : Syntax) (args : Syntax) : TacticM Cfg := withMainContext do
 syntax (name := rvSym) "rv_sym " term rvSymArgs : tactic
 
 @[tactic rvSym] def evalRvSym : Tactic := fun stx => do
+  arithCache.set {}
   let cfg ← elabArgs stx[1] stx[2]
   let g ← getMainGoal
   let left ← run cfg g
@@ -2372,6 +2608,7 @@ def openContract (g : MVarId) : MetaM MVarId := do
 syntax (name := rvAuto) "rv_auto " term rvSymArgs : tactic
 
 @[tactic rvAuto] def evalRvAuto : Tactic := fun stx => do
+  arithCache.set {}
   let g ← openContract (← getMainGoal)
   replaceMainGoal [g]
   let cfg ← elabArgs stx[1] stx[2]

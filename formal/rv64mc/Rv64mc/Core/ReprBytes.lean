@@ -72,6 +72,34 @@ theorem toNat_alignToDword' (a : Word) : (alignToDword a).toNat = a.toNat - a.to
 
 variable {env : Env}
 
+/-- **A byte of a region below `NEXT` or at or above the stack top is in no slot's doubleword**: the region from an
+    `Owned`-like fact, the stack top 16-aligned (`Holds.pre`), so a byte at or above it has its doubleword there. -/
+theorem ne_slot_of_region {m : MachineState} {t top a y : Word} {n j : Nat}
+    (ho : a.toNat + n ≤ (env.next m).toNat ∨ t.toNat ≤ a.toNat) (hnx : (env.next m).toNat ≤ env.heapEnd.toNat)
+    (ht : t.toNat = top.toNat) (h16 : top.toNat % 16 = 0) (hj : j < n) (hw : a.toNat + n < 2 ^ 64)
+    (hlo : env.stackLimit.toNat ≤ y.toNat) (hhi : y.toNat < top.toNat) : y ≠ alignToDword (a + BitVec.ofNat 64 j) :=
+  fun e => by
+    have := env.layout
+    have h := congrArg BitVec.toNat e
+    rw [toNat_alignToDword, toNat_add_lt (by omega)] at h
+    omega
+
+/-- The same for a doubleword of the region at `a + j`, `j < n`. -/
+theorem ne_slot_of_region' {m : MachineState} {t top a y : Word} {n j : Nat}
+    (ho : a.toNat + n ≤ (env.next m).toNat ∨ t.toNat ≤ a.toNat) (hnx : (env.next m).toNat ≤ env.heapEnd.toNat)
+    (ht : t.toNat = top.toNat) (hj : j < n) (hw : a.toNat + n < 2 ^ 64)
+    (hlo : env.stackLimit.toNat ≤ y.toNat) (hhi : y.toNat < top.toNat) : y ≠ a + BitVec.ofNat 64 j :=
+  fun e => by
+    have := env.layout
+    have h := congrArg BitVec.toNat e
+    rw [toNat_add_lt (by omega)] at h
+    omega
+
+/-- Byte `j` of `[a, a + n)` is in it. -/
+theorem inRange_add {a : Word} {n j : Nat} (hj : j < n) (hw : a.toNat + n < 2 ^ 64) :
+    InRange a n (a + BitVec.ofNat 64 j) := by
+  unfold InRange; rw [toNat_add_lt (by omega)]; omega
+
 theorem next_setByte {N : MachineState} {a : Word} {c : BitVec 8} (h : alignToDword a ≠ env.nextAddr) :
     env.next (N.setByte a c) = env.next N := by
   rw [setByte_def]; exact Tactic.next_setMem h
