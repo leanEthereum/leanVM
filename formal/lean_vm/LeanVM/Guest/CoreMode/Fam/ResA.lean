@@ -22,11 +22,6 @@ caller gets the caller's frame (its header `H`, the call site's return pc and th
 whose cells hold the caller's parameters (`FrameHolds.val`), which it passes or which give the
 bound (`uL = w · g`, atoms on every path); a loop's tail call keeps its header and its parameters but
 the counter (`loop_path`).
-
-`anyRes_top`: a read residual (`anyResB`) at an honest frame holds: the range check bounds the
-index `x = g^e` by `pL = g^(e + e')`, so `e` lies below the caller's bound `g^(e + e' + 1)`, and
-`[pE]·[x]^4` is the caller's table base times `g^(4e)` (`anyRead_rsub`). `resOpen_any`: the `sub`
-residuals open less these.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -43,40 +38,6 @@ open LeanVM.Prover.Exec
 
 theorem ofK_gpow (n : ℕ) : ofK (Parameters.g ^ n) = gen ^ n := by
   rw [Value.gen_pow_eq_ofK]
-
-/-- **A read inside the caller's table**: header cell `1` names frame `a`, whose cells `2` and `5`
-hold the table base `vE` and `g^(e + e' + 1)`; the read is from `vE · (g^e)^4`. -/
-theorem anyRead_rsub {M : ℕ → E} {fp a cE cO e e' : ℕ} {vE : E} (hT : M (fp + 1) = ofK (Parameters.g ^ a))
-    (ha : a + 5 < maxCells) (hE : M (a + 2) = vE) (hL : M (a + 5) = gen ^ (e + e') * word 2 0)
-    (hcE : M (fp + cE) = vE) (hcO : M (fp + cO) = gen ^ e) (he : e + e' < 2 ^ 33) :
-    RSub M fp (Res.anyRead cE cO) Res.anyTab := by
-  have hl : (M (fp + 1)).limb 0 = Parameters.g ^ a := by rw [hT]; simp
-  refine ⟨0, 4, rfl, rfl, fun vq hvq j _ hj ↦ ?_⟩
-  dsimp only [Res.anyRead] at hvq ⊢
-  obtain ⟨w, ⟨u1, w1, hu1, ⟨u2, w2, hu2, hw2, rfl⟩, rfl⟩, rfl⟩ := hvq
-  change M (fp + cE) = u1 at hu1
-  change M (fp + cO) = u2 at hu2
-  change w2 = 1 at hw2
-  subst hw2
-  refine ⟨_, List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩, fun vb ylo yhi hvb hlo hhi ↦ ?_⟩
-  obtain ⟨w, ⟨u, w', ⟨x, hxn, hxM⟩, hw', rfl⟩, rfl⟩ := hvb
-  change w' = 1 at hw'
-  subst hw'
-  change ylo = 0 at hlo
-  subst hlo
-  obtain ⟨v, e5, ⟨x5, hx5n, hx5M⟩, hve, he5, hy⟩ := hhi
-  obtain rfl : x = a + 2 := names_uniq hxn (names_shift hl (by omega))
-  obtain rfl : x5 = a + 5 := names_uniq hx5n (names_shift hl (by omega))
-  have hv : v = gen ^ (e + e' + 1) := by
-    rw [← hx5M, hL, B1.word_gen, pow_succ]
-  rw [hve, ofK_gpow] at hv
-  have he5' : e5 = e + e' + 1 := by
-    rw [Value.gen_pow_eq_ofK, Value.gen_pow_eq_ofK] at hv
-    exact gpow_inj (by omega) (by omega) (ofK_injective hv)
-  refine ⟨e, Nat.zero_le _, by omega, ?_⟩
-  dsimp only
-  rw [← hu1, ← hu2, ← hxM, hcE, hcO, hE, ofK_gpow, ofK_gpow, ofK_gpow, ofK_gpow, pow_add, pow_mul]
-  ring
 
 /-! ## Down the honest tree -/
 
@@ -276,59 +237,7 @@ section
 
 variable {A : String → FnAl} {r : Ref} {K : Mode.Cert} {i : ℕ} {e : Bridge.Ent} {j : ℕ}
 
-/-- **A read residual at an honest frame.** -/
-theorem anyRes_top (t : TopAt A r K i e j) (hr : r.Ok) {L : Res.Link} (hL : LinkOk L) {x : Mode.Res}
-    (hx : Res.anyResB L j x = true) : RRes (refMem r.img) e.I.fp x := by
-  match x, hx with
-  | .sub a bs, hx =>
-    simp only [Res.anyResB, Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true, beq_iff_eq] at hx
-    obtain ⟨rfl, F, hF, hn, hx⟩ := hx
-    split at hx
-    · rename_i pE pL cE cO hpE hpL hbs
-      simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq, Nat.ble_eq, Nat.blt_eq] at hx
-      obtain ⟨⟨⟨⟨⟨⟨rfl, hcE⟩, h2E⟩, hltE⟩, h2O⟩, hltO⟩, hrc⟩ := hx
-      obtain ⟨f, bufs, kids, hIt⟩ := t.node
-      have hj := t.idx
-      rw [hIt] at hj
-      obtain ⟨i', rfl, hi', hname, hfind, hc, -⟩ := fn_of_idx hj
-      rw [hc] at hn hpE hpL hrc
-      obtain ⟨a0, ha0, h5, hm2, hm5⟩ := linkQ_all hL hr e.I t.inst f e.σ bufs kids hIt F hF
-        (hn.symm.trans hname) _ hfind pE pL hpE hpL
-      obtain ⟨vs, hw, hF0, hev⟩ := t.events hr
-      rw [← hc] at hrc
-      obtain ⟨at0, hat0, hmem⟩ := Res.scanAt_sound hrc hw
-      cases at0 with
-      | rangeCheck x y t1 t2 k =>
-        simp only [Res.rcAt, Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at hat0
-        obtain ⟨rfl, hcx⟩ := hat0
-        obtain ⟨e1, e2, he1, he2, hx1, hk⟩ := B1.Digest.rc_sound (ref_memOk hr) (hev _ hmem)
-        have hfb := t.fb
-        have hT : refMem r.img (e.I.fp + 1) = ofK (Parameters.g ^ a0) := by
-          have := (ref_read hr (by omega) hF0.hdr1).2
-          rw [this, ha0]
-        have hcE' : refMem r.img (e.I.fp + cE) = e.σ pE := by
-          rw [← hcE]
-          refine t.cell hr hF0 (List.mem_append_left _ (List.mem_append_left _ ?_)) (by omega) (by omega)
-          rw [hc]; exact List.mem_of_getElem? hpE
-        have hcO' : refMem r.img (e.I.fp + cO) = gen ^ e1 := by
-          rw [← hcx, t.cell hr hF0 (namedOf_atom hmem (by simp [atomUses])) (by omega) (by omega), hx1]
-        exact anyRead_rsub hT h5 hm2 (by rw [hm5, hk]) hcE' hcO' (by omega)
-      | _ => simp [Res.rcAt] at hat0
-    · cases hx
-  | .lt _ _, hx => simp [Res.anyResB] at hx
-  | .nz _, hx => simp [Res.anyResB] at hx
-  | .name _, hx => simp [Res.anyResB] at hx
-
 end
-
-/-- **The `sub` residuals open, less the linked reads.** -/
-theorem resOpen_any {Ks : List Mode.Cert} {A : String → FnAl} {L : Res.Link} (hL : LinkOk L)
-    {p : ℕ → Mode.Res → Prop} (h : ResOpen Ks A fun j x ↦ p j x ∧ Res.anyResB L j x = false) :
-    ResOpen Ks A p := by
-  intro r hr K hK i hi e j t x hx hp hin
-  cases hb : Res.anyResB L j x
-  · exact h r hr K hK i hi e j t x hx ⟨hp, hb⟩ hin
-  · exact anyRes_top t hr hL hb
 
 end
 

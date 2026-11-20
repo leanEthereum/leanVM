@@ -298,12 +298,6 @@ theorem cov_inK {W : K → Prop} {c : V} : Cov H σ W [Ev.inK c] := by
   | nil => simp at he
   | cons _ p => simp at he
 
-theorem wl_atom {a : Atom} {x : K} (h : WL σ [Ev.atom a] x) : Writes σ a x := by
-  obtain ⟨b, hb, hx⟩ := h
-  rw [List.mem_singleton] at hb
-  cases hb
-  exact hx
-
 theorem wl_append {es1 es2 : List Ev} {x : K} (h : WL σ es2 x) : WL σ (es1 ++ es2) x :=
   let ⟨b, hb, hx⟩ := h
   ⟨b, List.mem_append_right _ hb, hx⟩
@@ -708,22 +702,6 @@ theorem paramsN_eq : ∀ (vs : List V) (i : ℕ), paramsN vs i = true → vs = (
       rw [hv] at h1
       rw [List.length_cons, List.range'_succ, List.map_cons, vnum_eq hv, Nat.eq_of_beq_eq_true h1,
         ← paramsN_eq vs (i + 1) h2]
-
-/-- **What a caller translates**: a function passing `heapOk` has the parameters `V.n i` and its
-preconditions are over them. -/
-theorem heapOk_sig {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert}
-    (hok : heapOk pows sigOf f H = true) :
-    f.params = (List.range f.params.length).map V.n ∧
-      (∀ c ∈ H.sig.pre, ∀ b ∈ c.bases, b.1 < f.params.length) ∧
-      H.sig.post = [] ∧ H.sig.preR = [] ∧ H.sig.postR = [] ∧ H.sig.term = [] := by
-  unfold heapOk at hok
-  simp only [Bool.and_eq_true] at hok
-  obtain ⟨⟨⟨hpar, hpre⟩, hsig⟩, -⟩ := hok
-  refine ⟨by rw [List.range_eq_range']; exact paramsN_eq _ 0 hpar, fun c hc b hb ↦ ?_, ?_⟩
-  · simp only [preOver, List.all_eq_true] at hpre
-    exact Nat.blt_eq.mp (hpre c hc b hb)
-  · simp only [HSig.pointsOnly, Bool.and_eq_true, List.isEmpty_iff] at hsig
-    exact ⟨hsig.1.1.1, hsig.1.1.2, hsig.1.2, hsig.2⟩
 
 end
 

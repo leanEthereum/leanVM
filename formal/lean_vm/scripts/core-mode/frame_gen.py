@@ -199,7 +199,7 @@ def fnData(D, n, cuts):
     nzT, tidxT = MG.trie(nzr, lambda os: lst(os)), MG.trie(tidx, str)
     armsT = MG.trie({k: names[('frameArm', k)] for k in tarms}, lambda x: x)
     callsT = MG.trie({k: names[('frameCallee', k)] for k in tcalls}, lambda x: x)
-    if rt and D['halt'] == 524287 and cutT == '.nil':
+    if rt and cutT == '.nil':
         # one `frame_fn%` (`CoreMode/FrameLit.lean`): the clauses that are not the defaults
         f = D['fns'][n]
         q = lambda m: MG.fnq(m)[3:]

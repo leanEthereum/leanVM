@@ -45,9 +45,6 @@ theorem foldlT_eq : ∀ (t : Exec.Trie Unit) (l : List ℕ),
     show (t.set () Exec.envDepth o).seq (foldlT · l) = _
     rw [Exec.Trie.seq_eq, foldlT_eq _ l, List.foldl_cons]
 
-theorem listSeq_id {α β : Type} (l : List α) (k : List α → β) : Exec.listSeq l k = k l :=
-  Exec.listSeq_eq l k
-
 theorem Abs.interS_eq (A B : Abs) : A.interS B = A.inter B := by
   unfold Abs.interS
   generalize A.inter B = C
@@ -723,12 +720,6 @@ theorem MonoVal.unshift {s : St} {m : Mono} {o : ℕ} {v : E} (h : MonoVal s (m.
     ∃ u, MonoVal s m u ∧ v = u * ofK (g ^ o) := by
   obtain ⟨w, hw, rfl⟩ := h
   exact ⟨_, ⟨w, hw, rfl⟩, by simp only [Mono.shift, pow_add, ofK_mul]; ring⟩
-
-theorem minO_le {acc : Option ℕ} {b c x : ℕ} (h : minO acc b = some c) (hb : x ≤ b)
-    (hacc : ∀ a, acc = some a → x ≤ a) : x ≤ c := by
-  cases acc with
-  | none => cases h; exact hb
-  | some a => cases h; exact le_min (hacc a rfl) hb
 
 /-- **A bound the walk knows**: the exponent has a value, at most it. -/
 theorem Abs.bound_sound {s : St} {A : Abs} (hA : Holds s A) {hi : Idx} {b : ℕ} (h : A.bound hi = some b) :

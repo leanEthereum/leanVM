@@ -7,9 +7,8 @@ public import LeanVM.Prover.ExecuteMem
 # The executor's hints are the advice's
 
 The executor tabulates the advice's hints by pc (`Ctx.of`): at a pc of the program, its hints are the
-advice's there (`ctx_hints`), the advice's pcs increasing. With `HintsOk` (`Pack/*/ModeH`), at each
-offset of a function, the mode walk's hints are the executor's at its pc (`ctx_hintsOk`), for the
-guest's advice (`Data.adviceHints`, the parse of `Data.adviceText`).
+advice's there (`ctx_hints`), the advice's pcs increasing (`adviceHints_incr`), for the guest's advice
+(`Data.adviceHints`, the parse of `Data.adviceText`).
 -/
 
 namespace LeanVM.Guest.Mode
@@ -51,14 +50,6 @@ theorem ctx_hints {prog : LeanIsaProgram} {adv : Advice} {C : Ctx} (h : Ctx.of p
     (by rw [Array.getElem?_replicate, ite_eq_left_of_eq_true _ _ (eq_true hpc)])
 
 theorem adviceHints_incr : pcsIncr Data.adviceHints = true := by decide +kernel
-
-/-- **The mode walk reads the executor's hints**: at each offset of a function whose hints are the
-guest's advice's, those at its pc, the executor run on that advice. -/
-theorem ctx_hintsOk {prog : LeanIsaProgram} {adv : Advice} {C : Ctx} (h : Ctx.of prog adv = .ok C)
-    (ha : adv.hints = Data.adviceHints) {F : Fun} (hF : HintsOk F Data.adviceHints) {i : ℕ}
-    (hi : i < F.len) (hpc : F.entry + i < 2 ^ prog.logSize) :
-    (F.hints.get i).getD [] = (C.hints[F.entry + i]?).getD [] := by
-  rw [hF i hi, ctx_hints h (ha ▸ adviceHints_incr) hpc, ha]
 
 end
 

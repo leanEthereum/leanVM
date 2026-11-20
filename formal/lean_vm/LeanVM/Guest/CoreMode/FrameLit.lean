@@ -62,7 +62,7 @@ macro_rules
         ⟨$(fnDot k `entry), $n, $(fnDot k `csig), .nil, $(fz.getD nil), .nil, $mainT, .nil⟩
       noncomputable def $(fnDot k `frameFun) : CoreMode.FFun :=
         ⟨{ env := $e, fpOne := $fpT, pows := fpows, scaled := $sc }, $(fnDot k `entry), $n, $(fnDot k `csig),
-          $sigsT, 524287, advice.2.2, $(nz.getD nil), $(ti.getD nil), $(ar.getD nil), $(ca.getD nil),
+          $sigsT, CoreMode.haltPc, advice.2.2, $(nz.getD nil), $(ti.getD nil), $(ar.getD nil), $(ca.getD nil),
           $(fnDot k `pairO), $(fnDot k `pairS), .nil⟩
       theorem $(fnDot k `frameOk) : CoreMode.frameOk frameFun code.chunks.flatten = true := by
         decide +kernel)

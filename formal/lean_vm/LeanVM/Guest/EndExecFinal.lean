@@ -1,8 +1,7 @@
 /-
   LeanVM.Guest.EndExecFinal
 
-  The executor's completeness on the guest and the composed prover's proof accepted: every proved
-  part wired into `ExecGaps`. No open fact is left (`openGaps`).
+  The executor's completeness on the guest: every proved part wired into `ExecGaps`.
 -/
 
 module
@@ -32,13 +31,12 @@ public import LeanVM.Guest.EndExecW
 # The end theorem
 
 The certificates (`allCerts`) are the core route's (`CoreMode.coreCerts`, every function's, `main`'s
-among them), closed by `assemble` from what the core route gives (`CoreMode.coreFacts`, with
-`OffFacts.nil`: no function off it), the program `Mode.guestE0`; the alignment
+among them), closed by `assemble` from what the core route gives (`CoreMode.coreFacts`), the program `Mode.guestE0`; the alignment
 the deployed one (`Bridge.alignA`), and the hint tracks' invariant `YFin`: the witness streams'
 cursor (`YCur`) and the bump pointer (`YAlloc`), each kept by a step given the other's premises
 (`KeepY.and`, `InitY.and`: `XOf` is monotone in its hint invariant).
 
-`execGaps_of : OpenGaps → ExecGaps …` is `ExecGaps.ofR` with every proved part: the certificates
+`execGaps : ExecGaps …` is `ExecGaps.ofR` with every proved part: the certificates
 (`assembled`, `CoreMode.mainOk_core`), `main`'s exactness
 (`Budget.mainExactHyp`), the alignment and its jumps (`Bridge.progAl`, `Bridge.alignA_main`,
 `alLayout_alignA`, `jumpCells_at`), the `DEREF` pointers (`derefPow_all`), the computed hints
@@ -46,8 +44,7 @@ cursor (`YCur`) and the bump pointer (`YAlloc`), each kept by a step given the o
 `witCells_alignA`, `pushShape`), the allocation hints (`hintAlloc_alignA`, on `allocGaps_guest`), the cells the hints use
 (`hintsUsed_alignA`), the tracks kept
 (`keepY_alignA`, `keepY_allocA_guest`) and started (`initY_cur`, `initY_alloc`), the residuals
-and the termination facts (`assembled`: the core route's, and `resTop_guestF`, `termNode_guest` off it). `guest_prover_complete_of` is
-`guest_prover_complete` from `OpenGaps`, which `openGaps` proves: the kernel checks every walk.
+and the termination facts (`assembled`), and each frame an honest instance (`coreHonAll_X`).
 `guestExecution_complete_holds` is `Statement/`'s `GuestExecutionComplete`, the statement's
 witness generation (`Prover.guestExecution`) being `guestRun guestAdvice` (`prover_guestExecution_eq`).
 -/
@@ -85,15 +82,6 @@ theorem InitY.and {Y₁ Y₂ : Ref → St → Prop} (h₁ : InitY Y₁) (h₂ : 
 bump pointer. -/
 abbrev YFin (r : Ref) (s : St) : Prop := YCur alignA r s ∧ YAlloc alignA r s
 
-/-! ## The open facts (none left) -/
-
-/-- **The facts the executor's completeness on the guest still rests on.** -/
-structure OpenGaps : Prop
-
-/-- **No open fact is left**: the kernel checks every function's core route, which gives its frame
-interface, so `OpenGaps` has no field. -/
-theorem openGaps : OpenGaps := ⟨⟩
-
 /-! ## The assembly -/
 
 /-- **The end theorem's certificates**: the core route's, every function's. -/
@@ -102,12 +90,11 @@ noncomputable abbrev allCerts : List Mode.Cert := CoreMode.coreCerts
 /-- **The certificates closed**, with their residuals and termination facts. -/
 theorem assembled :
     ModeCerts allCerts Fn.«main».modeCert Mode.guestE0 ∧ (∀ K ∈ allCerts, K.F.entry ≠ 0) ∧
-      ResTop allCerts alignA ∧ TermNode allCerts := by
-  simpa only [List.append_nil] using
-    assemble (A := alignA) CoreMode.coreFacts (OffFacts.nil CoreMode.coreCerts_nodup)
+      ResTop allCerts alignA ∧ TermNode allCerts :=
+  assemble (A := alignA) CoreMode.coreFacts
 
-/-- **`ExecGaps` from the open facts**, every proved part wired in. -/
-theorem execGaps_of (_O : OpenGaps) :
+/-- **`ExecGaps`**, every proved part wired in. -/
+theorem execGaps :
     ExecGaps allCerts Fn.«main».modeCert Mode.guestE0 (XOf YFin) (fun _ ↦ ProAt) :=
   have h := assembled
   ExecGaps.ofR (A := alignA) h.1 CoreMode.mainOk_core Budget.mainExactHyp
@@ -122,30 +109,9 @@ theorem execGaps_of (_O : OpenGaps) :
     (coreHonAll_X h.1 h.2.1 Bridge.progAl Bridge.alignA_main
       jumpCells_at alLayout_alignA (fun _ _ h ↦ by rw [Bridge.alignA_of h]; rfl) anyLink_ok mono_ok)
 
-/-- **The executor runs the guest program to completion on the guest's advice**, given the open
-facts. -/
-theorem guestExecution_complete_of (O : OpenGaps) : AdviceComplete guestAdvice :=
-  guestExecution_complete_on_honest_children (execGaps_of O)
-
-open OracleComp OracleSpec in
-/-- **The composed prover's proof is accepted**, given the open facts: `guest_prover_complete`. -/
-theorem guest_prover_complete_of (O : OpenGaps) (statement : NodeStatement) (witness : NodeWitness)
-    (hrel : NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness)
-    (hlim : DeployedLimits statement witness) (hon : ∀ child ∈ witness.children, HonestChild child) :
-    ∃ t, guestRun guestAdvice statement witness = .ok t ∧ ∀ ρ, 1 ≤ ρ ∧ ρ ≤ 4 →
-      Pr{let v ← completenessExperiment leanVmHonestProver guestProgram
-          (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) t ρ (2 ^ 35)}[
-          v = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 256 ∧
-      Pr{let accepted ← Common.runWithRandomPermutation (do
-          match ← LeanVM.leanVmHonestProver Common.queryPermutation guestProgram
-              (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) t ρ
-              (2 ^ 35) with
-          | none => pure false
-          | some proof =>
-            verifierRefusingZero Common.queryPermutation guestProgram
-              (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) proof)}[
-          accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 100 :=
-  guest_prover_complete (execGaps_of O) statement witness hrel hlim hon
+/-- **The executor runs the guest program to completion on the guest's advice.** -/
+theorem guestAdvice_complete : AdviceComplete guestAdvice :=
+  guestExecution_complete_on_honest_children execGaps
 
 /-! ## The statement's witness generation -/
 
@@ -168,7 +134,7 @@ theorem prover_guestExecution_eq (s : NodeStatement) (w : NodeWitness) :
 `GuestExecutionComplete`, the field `guestExecutionComplete` of `Statement.Theorems`. -/
 theorem guestExecution_complete_holds : Completeness.GuestExecutionComplete :=
   fun s w hrel hlim hon ↦
-    let ⟨t, he, hv, hsz⟩ := guestExecution_complete_of openGaps s w hrel hlim hon
+    let ⟨t, he, hv, hsz⟩ := guestAdvice_complete s w hrel hlim hon
     ⟨t, (prover_guestExecution_eq s w).trans he, hv, hsz⟩
 
 open OracleComp OracleSpec in

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.CoreMode.Fam.ResCs
 
-  `column_selector`'s lowest digit (F3), sound at the honest frames given its offset's alignment
+  `column_selector`'s lowest digit, sound at the honest frames given its offset's alignment
   and the nibble shares at `sel_g` (`CsQ`).
 -/
 
@@ -19,9 +19,7 @@ them.
 
 `cs_digit`: on such arguments, the digits' range checks and `rebuilt = offset` make the offset's
 exponent `16^(κ/4)` times the digits' number (`csDig`), so the lowest digit `g^u`, `u < 16`, is a
-multiple of `2^(4 - w)` (`B1.Tables.cs_dvd`), `w` its width. `cs_top` (F3): at an honest frame
-with `CsQ`, the digit's cell holds it, so the read at `[s]·g^u·g^off` is the strided table's entry
-`u / 2^(4 - w) < 2^w`.
+multiple of `2^(4 - w)` (`B1.Tables.cs_dvd`), `w` its width (`csW_sub`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -106,113 +104,12 @@ theorem cs_digit {κ : ℕ} (hκ : κ < 31) {μ : ℕ} (hμ : μ ≤ 32) (Lm : M
   refine ⟨u 0 (by omega), hu 0 _, by simpa using hd 0 (by omega), ?_⟩
   simpa [u', show 0 < N by omega] using hdv
 
-/-- The atoms of a block of atoms are top-level atoms of it and anything after it. -/
-theorem mem_topAtoms_atoms : ∀ {l : List Stmt} (rest : List Stmt), (∀ s ∈ l, ∃ a, s = .atom a) →
-    ∀ {a : Atom}, Stmt.atom a ∈ l → a ∈ topAtoms (l ++ rest)
-  | [], _, _, _, h => by simp at h
-  | s :: l, rest, hl, a, h => by
-    obtain ⟨b, rfl⟩ := hl s List.mem_cons_self
-    simp only [List.cons_append, topAtoms, List.mem_cons, Stmt.atom.injEq] at h ⊢
-    rcases h with rfl | h
-    · exact Or.inl rfl
-    · exact Or.inr (mem_topAtoms_atoms rest (fun s hs ↦ hl s (List.mem_cons_of_mem _ hs)) h)
-
-theorem csNibT_atoms (κ k : ℕ) : ∀ s ∈ csNibT κ k, ∃ a, s = .atom a := by
-  intro s hs
-  unfold csNibT at hs
-  split at hs
-  · simp only [List.cons_append, List.nil_append, List.mem_cons, List.not_mem_nil, or_false] at hs
-    rcases hs with h | h | h | h | h | h <;> exact ⟨_, h⟩
-  · simp only [List.cons_append, List.nil_append, List.mem_cons, List.not_mem_nil, or_false] at hs
-    rcases hs with h | h | h | h | h | h | h | h <;> exact ⟨_, h⟩
-
-theorem csPre_atoms {κ : ℕ} (h32 : κ ≠ 32) : ∀ s ∈ csPre κ, ∃ a, s = .atom a := by
-  intro s hs
-  simp only [csPre, h32, ↓reduceIte, List.mem_cons, List.mem_append, List.mem_flatten, List.mem_map,
-    List.mem_range, List.not_mem_nil, or_false] at hs
-  rcases hs with rfl | (⟨_, ⟨k, -, rfl⟩, hs⟩ | rfl | rfl)
-  · exact ⟨_, rfl⟩
-  · exact csNibT_atoms κ k s hs
-  · exact ⟨_, rfl⟩
-  · exact ⟨_, rfl⟩
-
 theorem csW_sub {κ : ℕ} : 3 - (csW κ 0 - 1) = 4 - csW κ 0 := by
   have := csW_bounds κ 0; omega
 
 section
 
 variable {A : String → FnAl} {r : Ref} {K : Mode.Cert} {i : ℕ} {e : Bridge.Ent} {j : ℕ}
-
-/-- **F3 at an honest frame**: the lowest digit's read lies in its strided table. -/
-theorem cs_top (t : TopAt A r K i e j) (hr : r.Ok) (hC : CsQ r e.I) {x : Mode.Res} (hx : csB j x = true) :
-    RRes (refMem r.img) e.I.fp x := by
-  have hκ28 : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
-  match x, hx with
-  | .sub a [b], hx =>
-    simp only [csB, Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at hx
-    obtain ⟨⟨⟨hκ, hname⟩, hdin⟩, hxe⟩ := hx
-    set κ := csKappa a.q.k with hκdef
-    obtain ⟨f, bufs, kids, hJ, hf, hfn⟩ := t.found
-    rw [hfn] at hname
-    obtain ⟨fn, hfc, hps, hbody⟩ := csFound hκ
-    rw [← hname] at hfc
-    obtain rfl : coreOf j = fn := Option.some.inj (hf.symm.trans hfc)
-    -- the caller's facts
-    have hH := hC f e.σ bufs kids hJ κ hκ hname _ hf
-    rw [hps] at hH
-    obtain ⟨o, ho, hal, h0, hG⟩ := hH
-    -- the body at the instance's valuation
-    obtain ⟨args, rets, hv⟩ := inst_valid' hr t.inst hJ
-    have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-      unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
-    obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv hf
-    rw [hbody, holdsList_append, holdsList_noRet _ (csPre_noRet κ)] at hb
-    obtain ⟨u, hu, hd, hdv⟩ := cs_digit hκ (by omega) r.img hb.1 hG ho hal h0
-    rw [csW_sub] at hdv
-    -- the digit's cell
-    obtain ⟨vs, hw, hF, -⟩ := t.events hr
-    have hon : Ev.atom (.rangeCheck (.n 3) (.n (csC κ 0 + 1)) (.n (csC κ 0 + 2)) (.n (csC κ 0 + 3))
-        (.n (csC κ 0))) ∈ e.pre ++ e.es := by
-      refine topAtoms_on_path hw ?_
-      rw [hbody]
-      refine mem_topAtoms_atoms _ (csPre_atoms (by omega)) ?_
-      simp only [csPre, show κ ≠ 32 by omega, ↓reduceIte, List.mem_cons, List.mem_append, List.mem_flatten,
-        List.mem_map, List.mem_range]
-      refine Or.inr (Or.inl ⟨csNibT κ 0, ⟨0, by simp only [csN]; omega, rfl⟩, ?_⟩)
-      simp [csNibT]
-    simp only [inFr, Bool.and_eq_true, decide_eq_true_eq] at hdin
-    have hdc := t.cell hr hF (namedOf_atom hon (by simp [atomUses])) hdin.1 hdin.2
-    rw [hd] at hdc
-    -- the run
-    rw [hxe]
-    set w := csW κ 0 with hw'
-    have hw4 := csW_bounds κ 0
-    obtain ⟨q, rfl⟩ := hdv
-    have hS : 0 < 2 ^ (4 - w) := Nat.two_pow_pos _
-    have hq : q < 2 ^ w := by
-      have h16 : 2 ^ (4 - w) * 2 ^ w = 16 := by rw [← pow_add, show 4 - w + w = 4 by omega]; rfl
-      by_contra hc
-      have := Nat.mul_le_mul_left (2 ^ (4 - w)) (not_lt.mp hc)
-      omega
-    refine ⟨0, 1, rfl, rfl, fun vq hvq jj _ hjj ↦ ⟨_, List.mem_singleton_self _, fun vb ylo yhi hvb hlo hhi ↦ ?_⟩⟩
-    obtain rfl : jj = 0 := by omega
-    change ylo = 0 at hlo
-    change yhi = 2 ^ w at hhi
-    refine ⟨q, by omega, by omega, ?_⟩
-    obtain ⟨wq, hwq, rfl⟩ := hvq
-    obtain ⟨wb, hwb, rfl⟩ := hvb
-    obtain ⟨ud, wl, hud, hwl, rfl⟩ := rbs_insert_inv hwq
-    rw [rbs_uniq hwl hwb]
-    change refMem r.img (e.I.fp + cellJ j (.n 3)) = ud at hud
-    rw [← hud, hdc]
-    simp only [pow_zero, one_mul, mul_zero, zero_add, pow_one, ofK_gpow]
-    rw [pow_add]
-    ring
-  | .sub _ [], hx => simp [csB] at hx
-  | .sub _ (_ :: _ :: _), hx => simp [csB] at hx
-  | .lt _ _, hx => simp [csB] at hx
-  | .nz _, hx => simp [csB] at hx
-  | .name _, hx => simp [csB] at hx
 
 end
 

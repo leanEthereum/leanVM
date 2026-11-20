@@ -220,30 +220,6 @@ theorem pair_jump (hok : pairOk X H O S body code d = true) {pos : List Stmt}
 
 variable {σ : Val}
 
-/-- **The normalization's skipped atoms write nothing**: from a position to its normalized one, the
-path's events are atoms adding nothing to `Written`. -/
-theorem succ_norm {z0 c : Zip} (hn : (PairCtx.ofH X H O S).nL z0 = some c) {es : List Ev} {vs : List V}
-    (hp : walk σ z0.pos = .ret es vs) :
-    ∃ evs es', es = evs ++ es' ∧ walk σ c.pos = .ret es' vs ∧
-      ∀ pre x, Written H σ (pre ++ evs) x → Written H σ pre x := by
-  obtain ⟨as, has, hpos, -⟩ := normG_pos _ _ hn
-  rw [hpos] at hp
-  obtain ⟨es', hes', rfl⟩ := walk_atoms_ret hp
-  refine ⟨as.map Ev.atom, es', rfl, hes', fun pre x hx ↦ ?_⟩
-  rcases written_append hx with h | ⟨a, ha, hw⟩
-  · exact h
-  · obtain ⟨b, hb, he⟩ := List.mem_map.mp ha
-    cases he
-    exact absurd hw (no_writes_of_stopL (has a hb))
-
-/-- An event that is no atom adds nothing to `Written`. -/
-theorem written_noAtom {e : Ev} (he : ∀ a, e ≠ .atom a) {pre : List Ev} {x : K}
-    (h : Written H σ (pre ++ [e]) x) : Written H σ pre x := by
-  rcases written_append h with h | ⟨a, ha, -⟩
-  · exact h
-  · rw [List.mem_singleton] at ha
-    exact absurd ha.symm (he a)
-
 /-- **A branch's side, by positions**: the path from the head `ite` is its condition, then the side
 its valuation picks entered. -/
 theorem side_ite {c : V} {zb nb ss : List Stmt} (hz : zs.cur = .ite c zb nb :: ss) {es : List Ev} {vs : List V}

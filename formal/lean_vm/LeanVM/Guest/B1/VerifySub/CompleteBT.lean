@@ -275,7 +275,7 @@ theorem verify_sub_completeBTG {bytecode : List K} (hbl : bytecode.length = 2 ^ 
     hkr hkm fun fp outs hlen ho rd hlow hB hL hLo =>
       let ⟨σ, e, h⟩ := hσ fp outs hlen ho rd hlow hB hL hLo
       ⟨σ, ⟨_, outs, e, hB⟩, h⟩
-  refine CompleteAtDTBR.monoV h (by simp only [vsSizes, List.sum_cons, List.sum_nil, vsBoundAt, ChildSegs.μs]; omega)
+  refine CompleteAtDTBR.monoV h (by simp only [vsSizes, List.sum_cons, List.sum_nil, vsBoundAt, vsOwnBufs, ChildSegs.μs]; omega)
     fun rd t rets hv ⟨hF, hn⟩ ↦ ⟨⟨S.d - 20, by omega,
       flatShape_mono hF (namedP_mono _ _ _ _ (vsPsR_imp W _ _ _ rd))⟩, ?_⟩
   obtain ⟨σ, bufs, ks, rfl, hQn⟩ := hn

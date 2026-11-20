@@ -7,7 +7,9 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResEf
+public import LeanVM.Guest.Mode.ResFam
+public import LeanVM.Guest.CoreMode.Fam.EfDefs
+public import LeanVM.Guest.Value.Bits
 public import LeanVM.Guest.CoreMode.Fam.ResSt
 public import LeanVM.Guest.CoreMode.Fam.ResVkSt
 public import LeanVM.Guest.CoreMode.Fam.ResStB
@@ -16,16 +18,11 @@ public import LeanVM.Guest.B1.KeccakGkr.VkHolds
 public import LeanVM.Guest.B1.Bits.Grind
 
 /-!
-# `verify_sub`'s exponent facts
+# `verify_sub`'s frame cells and values
 
-`top_ret`: at an honest frame, a call on the path, its callee's frame pointer in the site's cell
-`q`: the word at `[q]·g^(2 + |args| + k)` is the caller's value of the call's `k`-th return.
-`vs_factsOk`: at an honest frame of `verify_sub`, its front (`B1.VerifySub.vs_front`) gives the
-tables' log-heights in `dims` (`hdims`, each below `31`, the keccak table's between `9` and `24`), the
-stack's log (`h276`, `h278`), the bus depth (`h253`), the table sumcheck's depth `|chis|` (`TCtx`),
-at least the keccak table's (its first output lane's claim, as `verify_sub_sound_of`), and the cursors
-past the bus's GKR walk, the tables' segment and `verify_keccak`'s run (`verify_keccak_holds`), their
-reads bounded (`runsTo_reads`), the sum below the stream's `8192` words with room for `207` more.
+`vs_cells`: the frame cells of `verify_sub`'s values `25`, `278` and `71`, inside its frame.
+`vs_valsI`: at an honest instance of `verify_sub`, its front (`B1.VerifySub.vs_front`) gives the
+tables' log-heights, the stack's log, the bus depth and the cursors its reads take.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -42,88 +39,14 @@ public section
 
 /-! ## The body's facts -/
 
-theorem vs_idx : idxOf name% «verify_sub» = some (fn_idx% «verify_sub») := by decide +kernel
-
-/-- The calls whose returns the facts read, before `verify_keccak`'s return. -/
-def vsRetCalls : List (String × List V × List V) :=
-  [("log2_ceil_in_the_exponent__L0_L34", [.n 252, .n 4], [.n 253]),
-   ("log2_ceil_in_the_exponent__L16_L34", [.n 274, .n 4], [.n 276]),
-   ("verify_bus_gkr", [538, 539, 540, 541, 542, 319, 253, 254, 544, 25].map .n, (List.range 7).map fun k ↦ .n (545 + k)),
-   ("verify_tables", vtArgsV, vtRetsV),
-   ("verify_keccak", vkArgsV, (List.range 7).map fun k ↦ .n (573 + k))]
-
-/-- The calls' sites. -/
-def vsRetSites : List ℕ := [168, 199, 485, 499, 512]
-
-/-- `verify_sub`'s statements up to `verify_keccak`'s call. -/
-noncomputable def vsPre : List Stmt := (fn% «verify_sub»).body.take 325
-
-theorem vsPre_noRet : Memory.Stmt.noRetListS vsPre = true := by decide +kernel
-
-theorem vsRetCalls_any : vsRetCalls.all (fun c ↦ vsPre.any (stmtEqb · (Stmt.call c.1 c.2.1 c.2.2))) = true := by
-  decide +kernel
-
-theorem vsRetCalls_mem {s : ℕ} (hs : s < 5) :
-    Stmt.call (vsRetCalls.getD s ("", [], [])).1 (vsRetCalls.getD s ("", [], [])).2.1
-      (vsRetCalls.getD s ("", [], [])).2.2 ∈ vsPre := by
-  have hm : vsRetCalls.getD s ("", [], []) ∈ vsRetCalls := by
-    rw [List.getD_eq_getElem _ _ (by simp [vsRetCalls]; omega)]
-    exact List.getElem_mem _
-  have h := List.all_eq_true.mp vsRetCalls_any _ hm
-  obtain ⟨x, hx, he⟩ := List.any_eq_true.mp h
-  rw [← stmtEqb_sound he]
-  exact hx
-
-theorem vsRetSites_eq : (List.range 5).all (fun s ↦ ((B2C.siteOf (fn_idx% «verify_sub»)
-    ⟨(vsRetCalls.getD s ("", [], [])).1, (vsRetCalls.getD s ("", [], [])).2.1,
-      (vsRetCalls.getD s ("", [], [])).2.2, true⟩).map (·.q)) == some (vsRetSites.getD s 0) &&
-      decide (2 ≤ vsRetSites.getD s 0) && decide (vsRetSites.getD s 0 < fsN (fn_idx% «verify_sub»))) = true := by
-  decide +kernel
-
 /-- The cells of the stream, the stack's log less `20` and the dims table, each named by an atom. -/
 theorem vs_cells : cellJ (fn_idx% «verify_sub») (.n 25) = 27 ∧ cellJ (fn_idx% «verify_sub») (.n 278) = 202 ∧
     cellJ (fn_idx% «verify_sub») (.n 71) = 75 ∧ 202 < fsN (fn_idx% «verify_sub») := by
   decide +kernel
 
-theorem vs_atoms : (topAtoms (fn% «verify_sub»).body).contains (.load (.n 27) (.n 25) 0) = true ∧
-    (topAtoms (fn% «verify_sub»).body).contains (.load (.n 72) (.n 71) 0) = true ∧
-    (topAtoms (fn% «verify_sub»).body).contains (.mul (.n 278) (.n 276) (.n 277)) = true := by
-  decide +kernel
-
 section
 
 variable {A : String → FnAl} {r : Ref} {K : Mode.Cert} {i : ℕ} {e : Bridge.Ent} {j : ℕ}
-
-/-- **A callee's return through its site's cell**: the word at `[q]·g^(2 + |args| + k)` is the
-caller's value of the call's `k`-th return. -/
-theorem top_ret (t : TopAt A r K i e j) (hr : r.Ok) {f : String} {as bs : List V}
-    (hev : Ev.call f as bs ∈ e.pre ++ e.es) {q : ℕ}
-    (hq : (B2C.siteOf j ⟨f, as, bs, true⟩).map (·.q) = some q) (h2 : 2 ≤ q) (hqf : q < fsN j)
-    {k : ℕ} (hk : k < bs.length) {v : E}
-    (hv : RBase (refMem r.img) e.I.fp (.hp q (2 + as.length + k)) v) : v = e.σ (bs.getD k (.n 0)) := by
-  obtain ⟨fn, bufs, kids, hJ, hfj, -⟩ := t.found
-  obtain ⟨vs, hw, hF, -⟩ := t.events hr
-  set c : Call := ⟨f, as, bs, true⟩ with hcdef
-  have hcm : c ∈ calls (e.pre ++ e.es) := List.mem_filterMap.mpr ⟨_, hev, rfl⟩
-  obtain ⟨ii, hii⟩ := List.mem_iff_getElem?.mp hcm
-  obtain ⟨kfp, hkfp⟩ : ∃ kfp, e.I.kidFps[ii]? = some kfp := by
-    have hl := hF.len
-    have : ii < (calls (e.pre ++ e.es)).length := (List.getElem?_eq_some_iff.mp hii).1
-    exact ⟨e.I.kidFps[ii], List.getElem?_eq_getElem (by omega)⟩
-  obtain ⟨st, hst, hstq⟩ := Option.map_eq_some_iff.mp hq
-  have hrdq := (hF.site ii c kfp st hii hkfp hst).1 (by rw [hstq]; exact h2) (by rw [hstq]; exact hqf)
-  rw [hstq] at hrdq
-  obtain ⟨-, hmq⟩ := ref_read hr (by have := t.fb; omega) hrdq
-  have hret := kid_rets hr t.inst hJ hfj hw hii hkfp rfl k hk
-  obtain ⟨x, hxn, hxM⟩ := hv
-  have hxa : Parameters.addressOfIndex (kfp + (2 + as.length + k)) = Parameters.addressOfIndex x := by
-    have hy := hxn.1
-    simp only [hmq, Mode.limb_mul_ofK, limb_ofK, Fin.isValue, Fin.val_zero, ↓reduceIte, addressOfIndex] at hy
-    rw [← pow_add] at hy
-    simpa [addressOfIndex] using hy
-  rw [hxa] at hret
-  obtain ⟨-, hmx⟩ := ref_read hr (by have := hxn.2; unfold maxCells at this; omega) hret
-  rw [← hxM, hmx]
 
 /-- **`verify_sub`'s values at an honest instance**: the tables' log-heights `hs` in `dims`, the stack's log `sl`, the
 bus depth `d`, the table sumcheck's depth `n`, the cursors past the bus's GKR walk, the tables' segment and
@@ -216,123 +139,6 @@ theorem vs_valsI (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.
     simp only [mul_assoc, ← pow_add]
   · rw [e595, F.h578, F.h567, F.h320, F.h312]
     simp only [mul_assoc, ← pow_add]
-
-/-- **`verify_sub`'s values at an honest frame** (`vs_valsI`). -/
-theorem vs_vals (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name = name% «verify_sub») :
-    j = fn_idx% «verify_sub» ∧ ∃ (hs : List ℕ) (lm sl d n gG gT gK : ℕ),
-      hs.length = 6 ∧ (∀ h ∈ hs, h < 31) ∧ 9 ≤ hs.getD 5 0 ∧ hs.getD 5 0 ≤ 24 ∧
-      ReadsAt r.img.read (e.σ (.n 71)) (gen ^ lm :: hs.map (gen ^ ·)) ∧
-      20 ≤ sl ∧ sl ≤ 30 ∧ e.σ (.n 278) = gen ^ (sl - 20) ∧ e.σ (.n 276) = gen ^ sl ∧
-      20 ≤ d ∧ d < 34 ∧ e.σ (.n 253) = gen ^ d ∧
-      hs.getD 5 0 ≤ n ∧ n ≤ d ∧ e.σ (.n 562) = gen ^ n ∧
-      e.σ (.n 550) = e.σ (.n 25) * gen ^ gG ∧ e.σ (.n 561) = e.σ (.n 25) * gen ^ gT ∧
-      e.σ (.n 578) = e.σ (.n 25) * gen ^ gK ∧ gG ≤ gT ∧ gT ≤ gK ∧ gK + 207 ≤ 8192 := by
-  obtain ⟨f, bufs, kids, hJ, hfj, hfn⟩ := t.found
-  rw [hname] at hfn
-  subst hfn
-  have hj : j = fn_idx% «verify_sub» := by
-    have := t.idx
-    rw [hJ] at this
-    exact Option.some.inj (this.symm.trans vs_idx)
-  exact ⟨hj, vs_valsI hr t.inst hJ⟩
-
-/-- A word `gen^x` as a listed power. -/
-theorem epow_of {M : ℕ → E} {fp : ℕ} {B : Base} {lo hi x : ℕ} {u : E} (hu : ∀ v, RBase M fp B v → v = u)
-    (hx : u = gen ^ x) (hl : lo ≤ x) (hh : x ≤ hi) (h62 : hi < 2 ^ 62) : EPowOk M fp (B, lo, hi) :=
-  fun v hv ↦ ⟨x, by rw [hu v hv, hx, efOfKg], hl, hh, by omega⟩
-
-/-- **`verify_sub`'s exponent facts hold at its honest frames.** -/
-theorem vs_factsOk (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name = name% «verify_sub») :
-    EFactsOk (refMem r.img) e.I.fp vsFacts := by
-  obtain ⟨rfl, hs, lm, sl, d, n, gG, gT, gK, hsL, hs31, hτ9, hτ24, hdims, hsl20, hsl30, e278, e276, hd20, hd34,
-    e253, hτn, hnd, e579, e567, e578, e595, hGT, hTK, hroom⟩ := vs_vals t hr hname
-  have hcj : coreOf (fn_idx% «verify_sub») = fn% «verify_sub» := by
-    obtain ⟨f, bufs, kids, hJ, hfj, hfn⟩ := t.found
-    rw [hname] at hfn
-    subst hfn
-    exact Option.some.inj (hfj.symm.trans VerifySub.find_vs)
-  obtain ⟨vs, hw, hF, -⟩ := t.events hr
-  have hfb := t.fb
-  -- the frame's cells
-  obtain ⟨c25, c278, c71, c224⟩ := vs_cells
-  obtain ⟨a25, a71, a278⟩ := vs_atoms
-  rw [← hcj] at a25 a71 a278
-  have m25 := t.cell hr hF (x := .n 25)
-    (namedOf_atom (topAtoms_on_path hw (List.contains_iff_mem.mp a25)) (by simp [atomUses]))
-    (by rw [c25]; omega) (by rw [c25]; omega)
-  have m71 := t.cell hr hF (x := .n 71)
-    (namedOf_atom (topAtoms_on_path hw (List.contains_iff_mem.mp a71)) (by simp [atomUses]))
-    (by rw [c71]; omega) (by rw [c71]; omega)
-  have m278 := t.cell hr hF (x := .n 278)
-    (namedOf_atom (topAtoms_on_path hw (List.contains_iff_mem.mp a278)) (by simp [atomUses]))
-    (by rw [c278]; omega) (by rw [c278]; omega)
-  rw [c25] at m25
-  rw [c71] at m71
-  rw [c278] at m278
-  have r27 : ∀ v, RBase (refMem r.img) e.I.fp (.fr 27) v → v = e.σ (.n 25) := fun v hv ↦ by
-    change refMem r.img (e.I.fp + 27) = v at hv
-    rw [← hv, m25]
-  have r202 : ∀ v, RBase (refMem r.img) e.I.fp (.fr 202) v → v = e.σ (.n 278) := fun v hv ↦ by
-    change refMem r.img (e.I.fp + 202) = v at hv
-    rw [← hv, m278]
-  -- the tables' log-heights
-  have hD : ∀ t' < 6, ∀ v, RBase (refMem r.img) e.I.fp (.hp 75 (t' + 1)) v → v = gen ^ hs.getD t' 0 := by
-    intro t' ht v hv
-    have hld := hdims (t' + 1) (by simp [hsL]; omega)
-    rw [rbase_uniq hv (rbase_hp_load hr m71 hld)]
-    simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (show t' < hs.length by omega)]
-  have hs31' : ∀ t' < 6, hs.getD t' 0 < 31 := fun t' ht ↦
-    hs31 _ (by rw [List.getD_eq_getElem _ _ (by omega)]; exact List.getElem_mem _)
-  -- the calls' returns
-  have hw' := hw
-  rw [hcj, show (fn% «verify_sub»).body = vsPre ++ (fn% «verify_sub»).body.drop 325 from
-    (List.take_append_drop _ _).symm] at hw'
-  have hret : ∀ s < 5, ∀ k < (vsRetCalls.getD s ("", [], [])).2.2.length, ∀ v,
-      RBase (refMem r.img) e.I.fp (.hp (vsRetSites.getD s 0) (2 + (vsRetCalls.getD s ("", [], [])).2.1.length + k)) v →
-        v = e.σ ((vsRetCalls.getD s ("", [], [])).2.2.getD k (.n 0)) := by
-    intro s hs k hk v hv
-    have hev := call_of_pre hw' vsPre_noRet (vsRetCalls_mem hs)
-    have hsite := List.all_eq_true.mp vsRetSites_eq s (List.mem_range.mpr hs)
-    simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hsite
-    exact top_ret t hr hev hsite.1.1 hsite.1.2 hsite.2 hk hv
-  have r185 : ∀ v, RBase (refMem r.img) e.I.fp (.hp 168 4) v → v = e.σ (.n 253) := hret 0 (by decide) 0 (by decide)
-  have r221 : ∀ v, RBase (refMem r.img) e.I.fp (.hp 199 4) v → v = e.σ (.n 276) := hret 1 (by decide) 0 (by decide)
-  have r577 : ∀ v, RBase (refMem r.img) e.I.fp (.hp 485 17) v → v = e.σ (.n 550) := hret 2 (by decide) 5 (by decide)
-  have r591 : ∀ v, RBase (refMem r.img) e.I.fp (.hp 499 28) v → v = e.σ (.n 561) := hret 3 (by decide) 5 (by decide)
-  have r591' : ∀ v, RBase (refMem r.img) e.I.fp (.hp 499 29) v → v = e.σ (.n 562) := hret 3 (by decide) 6 (by decide)
-  have r604 : ∀ v, RBase (refMem r.img) e.I.fp (.hp 512 20) v → v = e.σ (.n 578) := hret 4 (by decide) 5 (by decide)
-  have hcur : ∀ {B : Base} {u : E} {p m : ℕ}, (∀ v, RBase (refMem r.img) e.I.fp B v → v = u) →
-      u = e.σ (.n 25) * gen ^ p → p + m ≤ 8192 → ECurOk (refMem r.img) e.I.fp (B, .fr 27, m) :=
-    fun hu hp hm v s hv hs' ↦ ⟨_, by rw [hu v hv, hp, r27 s hs', efOfKg], hm⟩
-  refine ⟨fun p hp ↦ ?_, fun l hl ↦ ?_, fun c hc ↦ ?_⟩
-  · simp only [vsFacts, List.mem_append, List.mem_map, List.mem_range, List.mem_cons, List.not_mem_nil,
-      or_false] at hp
-    rcases hp with ⟨t', ht', rfl⟩ | rfl | rfl | rfl | rfl | rfl | rfl
-    · exact epow_of (hD t' (by omega)) rfl (Nat.zero_le _) (by have := hs31' t' (by omega); omega) (by norm_num)
-    · exact epow_of (hD 5 (by omega)) rfl hτ9 hτ24 (by norm_num)
-    · exact epow_of r202 e278 (Nat.zero_le _) (by omega) (by norm_num)
-    · exact epow_of r185 e253 hd20 (by omega) (by norm_num)
-    · exact epow_of r591' e579 (by omega) (by omega) (by norm_num)
-    · exact epow_of r221 e276 hsl20 hsl30 (by norm_num)
-  · simp only [vsFacts, List.mem_cons, List.not_mem_nil, or_false] at hl
-    rcases hl with rfl | rfl
-    · intro vx hvx
-      refine ⟨hs.getD 5 0, by rw [hD 5 (by omega) vx hvx, efOfKg], by omega, fun vy hvy ↦
-        ⟨n, by rw [r591' vy hvy, e579, efOfKg], by omega, by simp only; omega⟩⟩
-    · intro vx hvx
-      refine ⟨sl, by rw [r221 vx hvx, e276, efOfKg], by omega, fun vy hvy ↦
-        ⟨sl - 20, by rw [r202 vy hvy, e278, efOfKg], by omega, by simp only; omega⟩⟩
-  · simp only [vsFacts, List.mem_cons, List.not_mem_nil, or_false] at hc
-    rcases hc with rfl | rfl | rfl
-    · exact hcur r577 e567 (by omega)
-    · exact hcur r591 e578 (by omega)
-    · exact hcur r604 e595 (by omega)
-
-/-- **`verify_sub`'s residuals in its exponent facts' families hold at its honest frames.** -/
-theorem vs_top (t : TopAt A r K i e j) (hr : r.Ok) {x : Mode.Res} (hx : vsB j x = true)
-    (hin : RIn (refMem r.img) e.I.fp x) : RRes (refMem r.img) e.I.fp x := by
-  simp only [vsB, Bool.and_eq_true, beq_iff_eq] at hx
-  exact efFam_sound (vs_factsOk t hr hx.1) hx.2 hin
 
 end
 

@@ -3,12 +3,11 @@ module
 public import LeanVM.Guest.Mode.SoundHint
 
 /-!
-# Joins, hint lists and residuals
+# Joins and residuals
 
-`Holds.inter`: what two states both know holds where either holds. `stepHints_sound`: a pc's
-hints, in order. `addRes_sound`: the residuals the walk assumes, given that they hold (`ResHolds`:
-a value fact about the cells, which the reference's agreement with the memory gives from a fact
-about the reference; `Res.sub`, a run inside known runs, `RW.of_sub`).
+`Holds.inter`: what two states both know holds where either holds; `Holds.cap`, `Holds.meetAll`: so do
+paths met. `ResHolds`: a residual, a value fact about the cells, which the reference's agreement with
+the memory gives from a fact about the reference; `Holds.sub`, `Holds.name`: a residual learned.
 -/
 
 namespace LeanVM.Guest.Mode
@@ -88,32 +87,6 @@ theorem mem_tail_eq {α : Type} {eq : α → α → Bool} (heq : ∀ x y, eq x y
     {x : α} (h : x ∈ a.drop (a.length - tailLen eq a b)) : x ∈ b := by
   obtain ⟨y, hy, he⟩ := mem_tail h
   rwa [heq _ _ he]
-
-theorem mem_heads {α : Type} {eq : α → α → Bool} {a b : List α} {x : α} (h : x ∈ heads eq a b) : x ∈ a :=
-  List.mem_of_mem_take h
-
-theorem tailAll_le {α : Type} {eq : α → α → Bool} {L : List α} :
-    ∀ {Ls : List (List α)} {t : ℕ}, (Ls.foldl (fun t l ↦ min t (tailLen eq L l)) t ≤ t) ∧
-      ∀ l ∈ Ls, Ls.foldl (fun t l ↦ min t (tailLen eq L l)) t ≤ tailLen eq L l
-  | [], _ => ⟨le_refl _, fun _ h ↦ nomatch h⟩
-  | l :: Ls, t => by
-    obtain ⟨h1, h2⟩ := tailAll_le (eq := eq) (L := L) (Ls := Ls) (t := min t (tailLen eq L l))
-    refine ⟨h1.trans (min_le_left _ _), fun l' hl' ↦ ?_⟩
-    rcases List.mem_cons.mp hl' with rfl | hl'
-    · exact h1.trans (min_le_right _ _)
-    · exact h2 l' hl'
-
-/-- An element of the tail `L` shares with every list of `Ls` is one of each. -/
-theorem mem_tailAll {α : Type} {eq : α → α → Bool} (heq : ∀ x y, eq x y = true → x = y) {L : List α}
-    {Ls : List (List α)} {l : List α} (hl : l ∈ Ls) {x : α}
-    (h : x ∈ L.drop (L.length - tailAll eq L Ls)) : x ∈ l := by
-  have ht : tailAll eq L Ls ≤ tailLen eq L l := tailAll_le.2 l hl
-  refine mem_tail_eq heq (a := L) ?_
-  have e : L.drop (L.length - tailAll eq L Ls) =
-      (L.drop (L.length - tailLen eq L l)).drop ((L.length - tailAll eq L Ls) - (L.length - tailLen eq L l)) := by
-    rw [List.drop_drop]; congr 1; omega
-  rw [e] at h
-  exact List.mem_of_mem_drop h
 
 theorem mem_interL_right {α : Type} {eq : α → α → Bool} (heq : ∀ x y, eq x y = true → x = y)
     {a b : List α} {x : α} (h : x ∈ interL eq a b) : x ∈ b := by
@@ -423,26 +396,6 @@ theorem Holds.learn0 {s : St} {A : Abs} (hA : Holds s A) {c : ℕ}
       exact (hA.pinEq hxv hyv).pinEq hyv hxv
   · exact hA
 
-/-- The hints at a pc, in order: each reads written cells, and the state after them holds the
-walk's set. -/
-theorem stepHints_sound {C : Ctx} :
-    ∀ {s : St} {A A' : Abs} {hs : List Hint}, s.Good → s.fp < maxCells → s.mem.used ≤ maxCells →
-      Holds s A → stepHints A hs = some A' →
-      ∀ {s'}, hs.foldlM (runHint C) s = .ok s' → (∀ s1, St.Follows s s1 → s1.mem.used ≤ maxCells) →
-        Holds s' A'
-  | s, A, A', [], _, _, _, hH, h, s', e, _ => by
-    cases h; cases e; exact hH
-  | s, A, A', x :: xs, hgood, hfp, hu, hH, h, s', e, hU => by
-    simp only [stepHints, Option.bind_eq_some_iff] at h
-    obtain ⟨B, hB, h⟩ := h
-    rw [List.foldlM_cons, bind_ok] at e
-    obtain ⟨s1, e1, e⟩ := e
-    have f1 := runHint_follows hgood e1
-    have hu1 := hU s1 f1
-    have hH1 := (stepHint_sound hgood hfp hu hH hB).2 e1 hu1
-    exact stepHints_sound f1.good (by rw [f1.fp]; exact hfp) hu1 hH1 h e
-      fun s2 f2 ↦ hU s2 (f1.trans f2)
-
 /-- Every cell of run `a` is a cell of one of the runs `bs`, whatever their words: `a`'s exponents
 have values, and each cell's index in `a` has one in some run of `bs`. -/
 def SubF (s : St) (a : Rng) (bs : List Rng) : Prop :=
@@ -456,24 +409,6 @@ def ResHolds (s : St) : Res → Prop
   | .nz o => NzAt s o
   | .sub a bs => SubF s a bs
   | .name _ => True
-
-/-- A run inside written runs is written. -/
-theorem RW.of_sub {s : St} {a : Rng} {bs : List Rng} (h : SubF s a bs) (hb : ∀ b ∈ bs, RW s b)
-    {vq : E} (hq : MonoVal s a.q vq) : RW s a := by
-  obtain ⟨xlo, xhi, hlo, hhi, hall⟩ := h
-  refine ⟨vq, xlo, xhi, hq, hlo, hhi, fun j h1 h2 ↦ ?_⟩
-  obtain ⟨b, hbm, hb'⟩ := hall vq hq j h1 h2
-  obtain ⟨vb, ylo, yhi, h3, h4, h5, h6⟩ := hb b hbm
-  obtain ⟨j', h7, h8, h9⟩ := hb' vb ylo yhi h3 h4 h5
-  rw [h9]; exact h6 j' h7 h8
-
-theorem Holds.addR {s : St} {A : Abs} (h : Holds s A) {r : Rng} (hr : RW s r) :
-    Holds s { A with r := r :: A.r } :=
-  { h with
-    r := fun r' hm ↦ by
-      rcases List.mem_cons.mp hm with rfl | hm
-      · exact hr
-      · exact h.r r' hm }
 
 theorem Abs.hasIdx_sound {s : St} {A : Abs} (hA : Holds s A) {i : Idx} (h : A.hasIdx i = true) :
     ∃ x, IdxVal s i x := by
@@ -504,151 +439,6 @@ theorem Abs.hasIdx_sound {s : St} {A : Abs} (hA : Holds s A) {i : Idx} (h : A.ha
     · exact key p hh xp hp
     · exact key q hh xq hq
 
-theorem BsVal.exists_fr {s : St} {A : Abs} (hA : Holds s A) :
-    ∀ {bs : List (Base × ℕ)}, (bs.all fun p ↦ match p.1 with
-      | .fr o => A.hasW o
-      | .hp _ _ => false) = true → ∃ w, BsVal s bs w
-  | [], _ => ⟨1, rfl⟩
-  | (b, e) :: bs, h => by
-    simp only [List.all_cons, Bool.and_eq_true] at h
-    obtain ⟨w, hw⟩ := BsVal.exists_fr hA h.2
-    cases b with
-    | fr o =>
-      obtain ⟨u, hu⟩ := Mem.get_of_written (hA.written h.1)
-      exact ⟨u ^ e * w, u, w, hu, hw, rfl⟩
-    | hp => simp at h
-
-/-- A product `known` knows has a word. -/
-theorem Abs.known_val {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells)
-    {m : Mono} (h : A.known m = true) : ∃ v, MonoVal s m v := by
-  have key : ∀ (bs : List (Base × ℕ)), (bs.all fun p ↦ A.knownB p.1) = true → ∃ w, BsVal s bs w := by
-    intro bs
-    induction bs with
-    | nil => intro _; exact ⟨1, rfl⟩
-    | cons p bs ih =>
-      intro h
-      simp only [List.all_cons, Bool.and_eq_true] at h
-      obtain ⟨w, hw⟩ := ih h.2
-      obtain ⟨b, e⟩ := p
-      cases b with
-      | fr o =>
-        obtain ⟨u, hu⟩ := Mem.get_of_written (hA.written (h.1 : A.hasW o = true))
-        exact ⟨u ^ e * w, u, w, hu, hw, rfl⟩
-      | hp q d =>
-        have h1 : (A.hasW q && A.covered ⟨0, d, [(.fr q, 1)]⟩) = true := h.1
-        simp only [Bool.and_eq_true] at h1
-        obtain ⟨pq, hpq⟩ := Mem.get_of_written (hA.written h1.1)
-        have hmq : MonoVal s ⟨0, d, [(.fr q, 1)]⟩ (pq * ofK (g ^ d)) :=
-          ⟨pq, ⟨pq, 1, hpq, rfl, by rw [pow_one, mul_one]⟩, by simp only [pow_zero, one_mul]; ring⟩
-        obtain ⟨x, hx, hwx⟩ := Abs.covered_ex hA hwf hu h1.2 hmq
-        obtain ⟨u, hu'⟩ := Mem.get_of_written hwx
-        exact ⟨u ^ e * w, u, w, ⟨pq, x, hpq, hx, hu'⟩, hw, rfl⟩
-  obtain ⟨w, hw⟩ := key m.bs h
-  exact ⟨_, w, hw, rfl⟩
-
-/-- **A run the walk knows written is.** -/
-theorem reachStep_lt {q : Mono} {o o' : ℕ} : ∀ {l : List Rng} {m : ℕ}, o' < l.foldl (reachStep q o) m →
-    o' < m ∨ ∃ r ∈ l, ∃ a b, r.lo = .num a ∧ r.hi = .num b ∧ r.S = 1 ∧ r.q.fp = q.fp ∧ r.q.bs = q.bs ∧
-      r.q.k + r.d + a ≤ o ∧ o' < r.q.k + r.d + b
-  | [], _, h => Or.inl h
-  | r :: l, m, h => by
-    rw [List.foldl_cons] at h
-    rcases reachStep_lt (l := l) h with h | ⟨r', hr', hx⟩
-    · unfold reachStep at h
-      split at h
-      · rename_i a b ha hb
-        split_ifs at h with hc
-        · simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hc
-          rcases lt_max_iff.mp h with h | h
-          · exact Or.inl h
-          · exact Or.inr ⟨r, List.mem_cons_self .., a, b, ha, hb, hc.1.1.1.1, hc.1.1.1.2, bsBeq_eq hc.1.1.2,
-              hc.1.2, h⟩
-        · exact Or.inl h
-      · exact Or.inl h
-    · exact Or.inr ⟨r', List.mem_cons_of_mem _ hr', hx⟩
-
-/-- A cell from `o` to below `reach` is in a known run, so written. -/
-theorem Abs.reach_cell {s : St} {A : Abs} (hA : Holds s A) {q : Mono} {o o' : ℕ} (h1 : o ≤ o')
-    (h2 : o' < A.reach q o) {v : E} (hv : MonoVal s ⟨q.fp, o', q.bs⟩ v) :
-    ∃ x, Names v x ∧ s.mem.written x = true := by
-  unfold Abs.reach at h2
-  rcases reachStep_lt h2 with h | ⟨r, hm, a, b, ha, hb, hS, hfp, hbs, hlo, hhi⟩
-  · omega
-  · have hm' : r ∈ A.r := (List.mem_filter.mp (mem_buckets hm)).1
-    obtain ⟨vq, xlo, xhi, hq, hxlo, hxhi, h4⟩ := hA.r r hm'
-    rw [ha] at hxlo
-    rw [hb] at hxhi
-    simp only [IdxVal] at hxlo hxhi
-    subst hxlo hxhi
-    obtain ⟨x, hx, hw⟩ := h4 (o' - r.q.k - r.d) (by omega) (by omega)
-    have e : r.q.shift (r.S * (o' - r.q.k - r.d) + r.d) = ⟨q.fp, o', q.bs⟩ := by
-      rw [hS]
-      simp only [Mono.shift, Mono.mk.injEq]
-      exact ⟨hfp, by omega, hbs⟩
-    rw [← e] at hv
-    rw [hv.unique (hq.shift _)]
-    exact ⟨x, hx, hw⟩
-
-/-- **`coverC`**: each cell from `o` to below `e` is written. -/
-theorem Abs.coverC_sound {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells)
-    {q : Mono} : ∀ {f o e : ℕ}, A.coverC q f o e = true → ∀ o' : ℕ, o ≤ o' → o' < e →
-      ∀ v : E, MonoVal s ⟨q.fp, o', q.bs⟩ v → ∃ x, Names v x ∧ s.mem.written x = true
-  | 0, _, _, h => by simp [Abs.coverC] at h
-  | f + 1, o, e, h => by
-    intro o' h1 h2 v hv
-    simp only [Abs.coverC] at h
-    split_ifs at h with he hr
-    · omega
-    · by_cases ho : o' < A.reach q o
-      · exact Abs.reach_cell hA h1 ho hv
-      · exact Abs.coverC_sound hA hwf hu h o' (by omega) h2 v hv
-    · simp only [Bool.and_eq_true] at h
-      rcases Nat.eq_or_lt_of_le h1 with rfl | h1
-      · exact Abs.covered_ex hA hwf hu h.1 hv
-      · exact Abs.coverC_sound hA hwf hu h.2 o' (by omega) h2 v hv
-
-theorem Abs.coveredR_sound {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF)
-    (hu : s.mem.used ≤ maxCells) {r : Rng} (h : A.coveredR r = true) : RW s r := by
-  unfold Abs.coveredR at h
-  rcases Bool.or_eq_true_iff.mp h with h | h
-  rcases Bool.or_eq_true_iff.mp h with h | h
-  · obtain ⟨r', hm, hh⟩ := List.any_eq_true.mp (any_of_anyB h)
-    rw [← Rng.beq_eq hh]; exact hA.r r' hm
-  · obtain ⟨r', hm, hh⟩ := List.any_eq_true.mp (any_of_anyB h)
-    simp only [Bool.and_eq_true, beq_iff_eq] at hh
-    obtain ⟨⟨⟨⟨⟨⟨hq, hS⟩, hd⟩, hlo⟩, hhi⟩, hklo⟩, hkhi⟩ := hh
-    obtain ⟨vq, xlo', xhi', h1, h2, h3, h4⟩ := hA.r r' hm
-    obtain ⟨xlo, hxlo⟩ := Abs.hasIdx_sound hA hklo
-    obtain ⟨xhi, hxhi⟩ := Abs.hasIdx_sound hA hkhi
-    obtain ⟨y, hy, hyle⟩ := Abs.le_sound hA hlo hxlo
-    have hy' := hy.unique h2
-    obtain ⟨z, hz, hzle⟩ := Abs.le_sound hA hhi h3
-    have hz' := hz.unique hxhi
-    rw [Mono.beq_eq hq] at h1
-    exact ⟨vq, xlo, xhi, h1, hxlo, hxhi, fun j hj1 hj2 ↦ by
-      rw [← hS, ← hd]; exact h4 j (by omega) (by omega)⟩
-  · split at h
-    · rename_i a b hlo hb
-      simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-      obtain ⟨⟨-, hq⟩, hall⟩ := h
-      obtain ⟨vq, hvq⟩ := Abs.known_val hA hwf hu hq
-      obtain ⟨xhi, hxhi, hle⟩ := Abs.bound_sound hA hb
-      refine ⟨vq, a, xhi, hvq, by rw [hlo]; rfl, hxhi, fun j hj1 hj2 ↦ ?_⟩
-      rcases Bool.or_eq_true_iff.mp hall with hc | hall
-      · simp only [Bool.and_eq_true, beq_iff_eq] at hc
-        obtain ⟨hS, hc⟩ := hc
-        have hv := hvq.shift (r.S * j + r.d)
-        have e : r.q.shift (r.S * j + r.d) = ⟨r.q.fp, r.q.k + a + r.d + (j - a), r.q.bs⟩ := by
-          rw [hS]
-          simp only [Mono.shift, Mono.mk.injEq, true_and, and_true]
-          omega
-        rw [e] at hv
-        exact Abs.coverC_sound hA hwf hu hc _ (by omega) (by omega) _ hv
-      have hc := List.all_eq_true.mp hall (j - a) (List.mem_range.mpr (by omega))
-      have := Abs.covered_ex hA hwf hu hc (hvq.shift _)
-      rwa [show r.S * (a + (j - a)) + r.d = r.S * j + r.d by congr 2; omega] at this
-    · simp at h
-
 /-- A frame cell named by its own word. -/
 theorem Holds.name {s : St} {A : Abs} (h : Holds s A) {o : ℕ} (hw : A.hasW o = true) :
     Holds s { A with v := A.v.set (.m (.root o)) Exec.envDepth o } :=
@@ -659,54 +449,6 @@ theorem Holds.name {s : St} {A : Abs} (h : Holds s A) {o : ℕ} (hw : A.hasW o =
         · obtain ⟨u, hu⟩ := Mem.get_of_written (h.written hw)
           exact ⟨u, hu, MonoVal.root hu⟩
         · exact h.v o' x' ho }
-
-/-- **The residuals**, holding, keep the walk's set. -/
-theorem addRes_sound {s : St} (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells) :
-    ∀ {A A' : Abs} {rs : List Res}, Holds s A → (∀ r ∈ rs, ResHolds s r) → addRes A rs = some A' →
-      Holds s A'
-  | _, _, [], hH, _, h => by cases h; exact hH
-  | A, A', .lt a b :: rs, hH, hr, h => by
-    simp only [addRes] at h
-    split_ifs at h
-    exact addRes_sound hwf hu (hH.addLt (hr _ (List.mem_cons_self ..)))
-      (fun r hm ↦ hr r (List.mem_cons_of_mem _ hm)) h
-  | A, A', .nz o :: rs, hH, hr, h => by
-    simp only [addRes] at h
-    split_ifs at h
-    exact addRes_sound hwf hu (hH.addNz (hr _ (List.mem_cons_self ..)))
-      (fun r hm ↦ hr r (List.mem_cons_of_mem _ hm)) h
-  | A, A', .sub a bs :: rs, hH, hr, h => by
-    simp only [addRes] at h
-    split_ifs at h with hc
-    simp only [Bool.and_eq_true, List.all_eq_true] at hc
-    obtain ⟨vq, hvq⟩ := Abs.known_val hH hwf hu hc.1.1.1
-    exact addRes_sound hwf hu (hH.addR (RW.of_sub (hr _ (List.mem_cons_self ..))
-      (fun b hb ↦ Abs.coveredR_sound hH hwf hu (hc.2 b hb)) hvq))
-      (fun r hm ↦ hr r (List.mem_cons_of_mem _ hm)) h
-  | A, A', .name o :: rs, hH, hr, h => by
-    simp only [addRes] at h
-    split_ifs at h with ho
-    exact addRes_sound hwf hu (hH.name ho) (fun r hm ↦ hr r (List.mem_cons_of_mem _ hm)) h
-
-/-- **One instruction the walk accepts**: its reads are written (`Reads`), and, unless it is a
-`JUMP`, the walk's next set holds after it. -/
-theorem stepOp_sound {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {ins : OffsetInstruction}
-    (hs : s.Good) (hfp : s.fp < maxCells) (hpc : s.pc < C.ops.size) (hu : s.mem.used ≤ maxCells)
-    (hE : EnvOk s En) (hH : Holds s A) (h : stepOp En s.pc A ins = some A') :
-    Reads s (opOfOff ins) ∧
-      ((∀ c d f, ins ≠ .jump c d f) → runOp C s (opOfOff ins) = .ok s' → Holds s' A') := by
-  cases ins with
-  | deref a o c mode =>
-    obtain ⟨h1, h2⟩ := stepOp_sound_deref hs hfp hpc hu hE hH h
-    exact ⟨h1, fun _ e ↦ h2 e⟩
-  | jump c d f =>
-    simp only [stepOp, Bool.and_eq_true] at h
-    split_ifs at h with hc
-    exact ⟨⟨hH.written hc.1.1, hH.written hc.1.2, hH.written hc.2⟩, fun hj ↦ absurd rfl (hj c d f)⟩
-  | xor | mul | set | keccak =>
-    obtain ⟨h1, h2⟩ := stepOp_sound_nj (s' := s') hs hfp hpc hE hH h (fun _ _ _ _ ↦ nofun)
-      (fun _ _ _ ↦ nofun)
-    exact ⟨h1, fun _ ↦ h2⟩
 
 end
 

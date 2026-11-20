@@ -93,8 +93,10 @@ def glue_g():
     return {os.path.join(ROOT, 'CoreMode', 'GlueG.lean'): (
         header('LeanVM.Guest.CoreMode.GlueG', 'The program\'s constants the core route\'s certificates name.') +
         'namespace LeanVM.Guest.CoreMode\n\n@[expose] public section\n\n'
-        '/-- The jump table\'s end (its cells `430` to `jtHi`). -/\nabbrev jtHi : Nat := %d\n\n'
-        'end\n\nend LeanVM.Guest.CoreMode\n' % C.code()['jt_hi'])}
+        '/-- The jump table\'s first cell, `main`\'s frame size. -/\nabbrev jtLo : Nat := %d\n\n'
+        '/-- The jump table\'s end. -/\nabbrev jtHi : Nat := %d\n\n'
+        '/-- The halting pc, the program\'s last. -/\nabbrev haltPc : Nat := %d\n\n'
+        'end\n\nend LeanVM.Guest.CoreMode\n' % (C.code()['jt_lo'], C.code()['jt_hi'], C.code()['halt']))}
 
 
 def main(argv):

@@ -167,8 +167,7 @@ theorem cmK_stK {fn : Fn} {m : ℕ} (h : CoreMode.cmK fn = some m) : CoreMode.st
   rcases cmK_name h with h | h <;> rw [h] <;> decide +kernel
 
 /-- **A frame loop's reads at an honest instance**: the record at offset `O`, the next at `O'`, at most `L`
-(`MonoQ`); claim `jj`'s entry `ent · Π_{i ≤ jj} gap_i^4 · g^(4jj)` lies `4o` words into the caller's table, `o < L`
-(`EndExecRMR.loopRead` on the valuation). -/
+(`MonoQ`); claim `jj`'s entry `ent · Π_{i ≤ jj} gap_i^4 · g^(4jj)` lies `4o` words into the caller's table, `o < L`. -/
 theorem cmRead {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
     (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) {f : String} {σ : Val} {bufs : List ℕ}
     {kids : List Tree} (ht : I.t = .node f σ bufs kids) {jf m p0 st0 cw ew : ℕ}

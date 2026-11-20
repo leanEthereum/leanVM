@@ -20,7 +20,7 @@ call (the header copied, the iteration returning what the next one does, `Back`)
 callee's contract's precondition, the caller resumable once the callee guarantees its contract,
 `Resume`).
 
-The mode walk is the first instance (`Mode/InvWalk.lean`, `frameSpec_walk`, `Q = AtOff`).
+The core route is its instance (`CoreMode/CoreSound.lean`, `frameSpec_core`, `Q = CoreAt`).
 -/
 
 namespace LeanVM.Guest.Mode

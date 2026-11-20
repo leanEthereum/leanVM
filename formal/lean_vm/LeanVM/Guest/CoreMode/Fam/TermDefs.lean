@@ -2,7 +2,7 @@
   LeanVM.Guest.CoreMode.Fam.TermDefs
 
   `check_opening_terminal`'s residual families: what `verify_sub` hands it (`TermFront`), and the
-  checks of its claims' low dimensions (F9) and `column_selector`'s lowest digit (F3).
+  checks of its claims' low dimensions and `column_selector`'s lowest digit.
 -/
 
 module
@@ -26,13 +26,13 @@ selector's nibble shares; `verify_tables`' context (`TCtx`) on `[zeta, chi, rm, 
 
 `dimFacts`: function, base parameter, bound parameter, pairs `(k, c)`: the word at `[base]·g^k` is
 `g^e`, the bound's `g^m`, `e + c ≤ m` (`FnReg.dimFacts`; at `check_opening_terminal`, the pooled claims' `kappa_base`
-sources and adjustments, its own data). `dimB j w` (F9): the point `[T]·B·g^d` inside `[T]·g^i`, `i` below `[M]`'s exponent
+sources and adjustments, its own data). `dimB j w`: the point `[T]·B·g^d` inside `[T]·g^i`, `i` below `[M]`'s exponent
 plus `t ≥ 1`, `B` the word at `[K]·g^k` (or a product of it and a constant `g^c` the code writes),
 `(k, c + d)` a pair of such a fact on `K`, `M`.
 
-`csRes κ s d` (F3): `column_selector__L{κ}`'s read of its lowest digit `[d]`'s eq weight at
+`csRes κ s d`: `column_selector__L{κ}`'s read of its lowest digit `[d]`'s eq weight at
 `[s]·[d]·g^(64(κ/4) + 16(w - 1))`, inside the strided level-`w` table, `w` the digit's width; `csB j`
-names it at function `j`. `termFamB`: either.
+names it at function `j`.
 -/
 
 namespace LeanVM.Guest.Res
@@ -86,7 +86,7 @@ noncomputable def lowOk (j : ℕ) (w : Wit) (pk : V) (B : Mode.Base) (ok : ℕ �
           | _ => false
       | _ => false
 
-/-- **A claim's low point inside its chain** (F9): `[T]·B·g^d` inside `[T]·g^i`, `i` below `[o] + t`,
+/-- **A claim's low point inside its chain**: `[T]·B·g^d` inside `[T]·g^i`, `i` below `[o] + t`,
 `B` the word at `[K]·g^k` times `g^c` (`lowOk`), `(k, c + d)` a pair of a dimension fact on the
 parameters `K` and the one of cell `o`. -/
 noncomputable def dimB (j : ℕ) (w : Wit) : Mode.Res → Bool
@@ -125,16 +125,13 @@ def csRes (κ s d : ℕ) : Mode.Res :=
 /-- The `κ` whose `csRes` reads at offset `k`. -/
 def csKappa (k : ℕ) : ℕ := 4 * (k / 64) + 3 - k % 64 / 16
 
-/-- **The lowest digit's read at function `j`** (F3): `j` is `column_selector__L{κ}`, its `sel_eq` and
+/-- **The lowest digit's read at function `j`**: `j` is `column_selector__L{κ}`, its `sel_eq` and
 digit cells `s`, `d`, the digit's inside the frame. -/
 noncomputable def csB (j : ℕ) : Mode.Res → Bool
   | .sub a [b] =>
     decide (csKappa a.q.k < 31) && (coreOf j).name == Tables.lName "column_selector" (csKappa a.q.k) &&
       inFr j (cellJ j (.n 3)) && decide (Mode.Res.sub a [b] = csRes (csKappa a.q.k) (cellJ j (.n 1)) (cellJ j (.n 3)))
   | _ => false
-
-/-- **`check_opening_terminal`'s `sub` families**: F9 (`dimB`) and F3 (`csB`). -/
-noncomputable def termFamB (j : ℕ) (w : Wit) (x : Mode.Res) : Bool := dimB j w x || csB j x
 
 end
 

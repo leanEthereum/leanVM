@@ -12,7 +12,7 @@ public import LeanVM.Guest.Pops
 /-!
 # The hint bridge on the prefix class
 
-* **Order.** `prefix_path`: on a function passing `prefixOk`, every path starts with the body's leading atoms, and the rest of it has no witness hint; `prefix_splice`: so the instance's pops are its leading flow hints' entries, in order, then its callees' (`splice` of the rest). `prefix_pairs`: the function's ISA flow hints, in offset order, are at offsets up to its first jump, and the `k`-th compiles the `k`-th leading flow hint. A frame's run passes offsets `0, 1, …` up to the first jump in order (every instruction before it falls through: `step_at`'s fall-through), so the `k`-th flow hint it runs is the `k`-th of the path, and the `k`-th witness hint pops the `k`-th witness entry of the instance.
+* **Order.** `prefix_path`: on a function passing `prefixOk`, every path starts with the body's leading atoms, and the rest of it has no witness hint; `prefix_splice`: so the instance's pops are its leading flow hints' entries, in order, then its callees' (`splice` of the rest). `prefix_pairs`: the function's ISA flow hints, in offset order, are at offsets up to its first jump, and the `k`-th compiles the `k`-th leading flow hint. A frame's run passes offsets `0, 1, …` up to the first jump in order (every instruction before it falls through), so the `k`-th flow hint it runs is the `k`-th of the path, and the `k`-th witness hint pops the `k`-th witness entry of the instance.
 
 What each paired hint then needs is `Bridge/Cells.lean`.
 -/

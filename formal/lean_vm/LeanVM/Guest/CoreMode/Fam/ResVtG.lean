@@ -25,8 +25,7 @@ distinct, and as many as the side's groups: every group is some rank's. `vt_grou
 the keys `KN` from the groups' rank keys (`vt_grps`, the exponent tables), `kappa_base` from the
 dims and the tables' heights (`vt_kb`, `vt_pads`); rank `1`'s keys, the divisors `133` and `430`,
 are nonzero. `vt_groups_at`: at every honest instance, from its body (`vt_holds`) and precondition
-(`vtPQ_all`). `nzVal_vt133`, `nzVal_vt430`: the divisors' `NzVal`. `vtGrp_top`: the bases
-`[57]·g^[G0, G0 + m)` lie among those read through the ranks' groups.
+(`vtPQ_all`). `nzVal_vt133`, `nzVal_vt430`: the divisors' `NzVal`.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -262,94 +261,9 @@ theorem nzVal_vt430 : NzVal "verify_tables" (.n 430) := fun _ hr _ hI _ _ _ hIt 
 
 /-! ## The families at the honest frames -/
 
-/-- The loads the family reads: the ranks' groups from `group_order`. -/
-def vtLoadW : Wit :=
-  ⟨((List.range 9).map fun r ↦ Atom.load (.n (vtRv 112 r)) (.n 37) r) ++
-    ((List.range 6).map fun r ↦ Atom.load (.n (vtRv 409 r)) (.n 37) (18 + r)), []⟩
-
-theorem vtLoadW_ok : witOk (fn_idx% «verify_tables») vtLoadW = true := by decide +kernel
-
-/-- The loads' cells and the bases they hold. -/
-theorem vtLoad_cells :
-    (∀ r < 9, inFr (fn_idx% «verify_tables») (cellJ (fn_idx% «verify_tables») (.n (vtRv 112 r))) = true ∧
-      holdsBase (fn_idx% «verify_tables») vtLoadW (cellJ (fn_idx% «verify_tables») (.n (vtRv 112 r)))
-        (.hp 58 r) = true) ∧
-    (∀ r < 6, inFr (fn_idx% «verify_tables») (cellJ (fn_idx% «verify_tables») (.n (vtRv 409 r))) = true ∧
-      holdsBase (fn_idx% «verify_tables») vtLoadW (cellJ (fn_idx% «verify_tables») (.n (vtRv 409 r)))
-        (.hp 58 (18 + r)) = true) := by
-  decide +kernel
-
 section
 
 variable {A : String → FnAl} {K : Mode.Cert} {i : ℕ} {e : Bridge.Ent} {j : ℕ}
-
-/-- The frame at `verify_tables`' index, its instance's node. -/
-theorem vt_top_idx (t : TopAt A r K i e j) (hname : (coreOf j).name = name% «verify_tables») :
-    j = fn_idx% «verify_tables» ∧ ∃ bufs kids, e.I.t = .node "verify_tables" e.σ bufs kids := by
-  obtain ⟨f, bufs, kids, hJ, hfj, hfn⟩ := t.found
-  rw [hname] at hfn
-  subst hfn
-  refine ⟨?_, bufs, kids, hJ⟩
-  have := t.idx
-  rw [hJ] at this
-  exact Option.some.inj (this.symm.trans vt_idx)
-
-/-- A base a load of `vtLoadW` holds: its words are the loaded value's. -/
-theorem vtLoad_base (t : TopAt A r K i e j) (hr : r.Ok) (hj : j = fn_idx% «verify_tables») {v : V} {B : Base}
-    (hin : inFr j (cellJ j v) = true) (hB : holdsBase j vtLoadW (cellJ j v) B = true)
-    (hv : ∃ a ∈ vtLoadW.as, v ∈ atomUses a) {u : E} (hu : RBase (refMem r.img) e.I.fp B u) : u = e.σ v := by
-  subst hj
-  obtain ⟨a, ha, hva⟩ := hv
-  have hin' := hin
-  simp only [inFr, Bool.and_eq_true, decide_eq_true_eq] at hin'
-  have h1 := holdsBase_top t hr vtLoadW_ok hin'.1 hin'.2 hB
-  rw [rbase_uniq hu h1, wit_cell t hr vtLoadW_ok ha hva hin]
-
-/-- **A side's bases in group order**: each base `[57]·g^x`, `x ∈ [G0, G0 + m)`, is read through some
-rank's group. -/
-theorem vtGrp_rsub {G0 m : ℕ}
-    (hsurj : ∀ x, G0 ≤ x → x < G0 + m → ∃ k < m, ∀ u, RBase (refMem r.img) e.I.fp (.hp 58 (G0 + k)) u →
-      u = gen ^ x) :
-    RRes (refMem r.img) e.I.fp (vtGrpRes G0 m) := by
-  refine ⟨G0, G0 + m, rfl, rfl, fun vq hvq x hx1 hx2 ↦ ?_⟩
-  obtain ⟨k, hk, hu⟩ := hsurj x hx1 hx2
-  refine ⟨_, List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩, fun vb ylo yhi hvb hylo hyhi ↦ ?_⟩
-  change ylo = 0 at hylo
-  change yhi = 1 at hyhi
-  subst hylo hyhi
-  refine ⟨0, le_rfl, by norm_num, ?_⟩
-  obtain ⟨w, ⟨u1, w1, hu1, hw1, rfl⟩, rfl⟩ := hvq
-  obtain ⟨w', ⟨u1', w1', hu1', ⟨u2, w2, hu2, hw2, rfl⟩, rfl⟩, rfl⟩ := hvb
-  change w1 = 1 at hw1
-  change w2 = 1 at hw2
-  rw [rbase_uniq hu1' hu1, hu u2 hu2, hw1, hw2]
-  simp only [pow_zero, pow_one, mul_one, one_mul, mul_zero, zero_add, ofK_gpow, Value.ofK_one]
-  ring
-
-/-- **`verify_tables`' groups' bases at an honest frame.** -/
-theorem vtGrp_top (t : TopAt A r K i e j) (hr : r.Ok) {x : Mode.Res} (hx : vtGrpB j x = true) :
-    RRes (refMem r.img) e.I.fp x := by
-  simp only [vtGrpB, Bool.and_eq_true, beq_iff_eq, Bool.or_eq_true, decide_eq_true_eq] at hx
-  obtain ⟨hname, hx⟩ := hx
-  obtain ⟨hj, bufs, kids, hJt⟩ := vt_top_idx t hname
-  obtain ⟨hP, hC, -, -, -, -⟩ := vt_groups_at hr t.inst hJt
-  obtain ⟨cP, cC⟩ := vtLoad_cells
-  rcases hx with rfl | rfl
-  · refine vtGrp_rsub fun x _ hx ↦ ?_
-    obtain ⟨k, hk, hσ⟩ := hP x (by omega)
-    refine ⟨k, hk, fun u hu ↦ ?_⟩
-    rw [← hσ]
-    simp only [Nat.zero_add] at hu
-    exact vtLoad_base t hr hj (by rw [hj]; exact (cP k hk).1) (by rw [hj]; exact (cP k hk).2)
-      ⟨_, List.mem_append_left _ (List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩),
-        by simp [atomUses]⟩ hu
-  · refine vtGrp_rsub fun x hx1 hx2 ↦ ?_
-    obtain ⟨k, hk, hσ⟩ := hC (x - 18) (by omega)
-    refine ⟨k, hk, fun u hu ↦ ?_⟩
-    rw [show x = 18 + (x - 18) by omega, ← hσ]
-    exact vtLoad_base t hr hj (by rw [hj]; exact (cC k hk).1) (by rw [hj]; exact (cC k hk).2)
-      ⟨_, List.mem_append_right _ (List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩),
-        by simp [atomUses]⟩ hu
 
 end
 

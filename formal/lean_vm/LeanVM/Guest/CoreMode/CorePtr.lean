@@ -138,21 +138,6 @@ theorem rep_idxVal {s : St} {ws : List E} {i : Mode.Idx} {ci : CIdx} (hi : idxX 
       rw [hw, addressOfIndex, addressOfIndex, ← ofK_mul', ← pow_add, Nat.sub_add_cancel hx]
     exact ⟨_, x - c, hget, hw', by omega, by omega⟩
 
-/-- A constant bound's heap index has its exponent. -/
-theorem rngX_rep_lo {r : Mode.Rng} {q : CRun} (h : rngX r = some q) (hb : idxB r.lo = []) (w : ℕ → E) :
-    IdxEx w q.lo := by
-  obtain ⟨lo, hi, c, hlo, -, -, rfl⟩ := rngX_spec h
-  rcases idxX_spec hlo with ⟨n, hn', hn, rfl⟩ | ⟨o, c', ho, -, -⟩
-  · exact idxEx_num w hn
-  · rw [ho] at hb; simp [idxB] at hb
-
-theorem rngX_rep_hi {r : Mode.Rng} {q : CRun} (h : rngX r = some q) (hb : idxB r.hi = []) (w : ℕ → E) :
-    IdxEx w q.hi := by
-  obtain ⟨lo, hi, c, -, hhi, -, rfl⟩ := rngX_spec h
-  rcases idxX_spec hhi with ⟨n, hn', hn, rfl⟩ | ⟨o, c', ho, -, -⟩
-  · exact idxEx_num w hn
-  · rw [ho] at hb; simp [idxB] at hb
-
 /-! ## Runs -/
 
 theorem runSet_iff {w : ℕ → E} {q : CRun} {x : K} :

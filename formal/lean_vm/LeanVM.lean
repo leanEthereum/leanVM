@@ -111,9 +111,9 @@ ExecGaps Ks Km E0 X Pro → AdviceComplete guestAdvice` (`LeanVM/Guest/EndExecHo
 executor `LeanVM.Prover.Exec.execute` runs the guest program to completion on the proofs' advice
 (`LeanVM.Guest.guestAdvice`, its streams `LeanVM.Guest.Hints.honestStreams`), within `2^30` committed
 cells, on every node `GuestCompleteOnHonestChildren` admits, given `ExecGaps`
-(`LeanVM/Guest/EndExec.lean`), which `execGaps_of openGaps` discharges (`LeanVM/Guest/EndExecFinal.lean`:
-the mode walks, kernel-checked, the reference run and its alignment, the hint tracks, the residuals and
-the termination facts). `Statement/Prover/Guest.lean`'s advice is that advice
+(`LeanVM/Guest/EndExec.lean`), which `execGaps` proves (`LeanVM/Guest/EndExecFinal.lean`: the core
+route's certificates, kernel-checked, the reference run and its alignment, the hint tracks, the residuals
+and the termination facts). `Statement/Prover/Guest.lean`'s advice is that advice
 (`LeanVM.Guest.ProverGuest.honestPushes_eq`, `EndExec.prover_guestAdvice_eq`), which gives
 `guestExecution_complete_holds`.
 

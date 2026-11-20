@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.CoreMode.Assemble
 
-  The certificates closed from the core route's (`CoreFacts`) and the functions' off it
-  (`OffFacts`), their residuals and termination facts with them.
+  The certificates closed from the core route's (`CoreFacts`), their residuals and termination facts
+  with them.
 -/
 
 module
@@ -13,18 +13,14 @@ public import LeanVM.Guest.CoreMode.ListLit
 public import LeanVM.Guest.CoreMode.SigTrie
 
 /-!
-# The certificates, the core route's and the rest
+# The core route's certificates closed
 
-The end theorem's certificates are the core route's `Kc` (each function on the route, its frame
-interface the core route's `FnSpecC`) followed by the certificates `Ko` of the functions still off
-it. `CoreFacts` is what the core route's data gives of `Kc`: each one's static facts, frame
-interface, code, termination facts and residuals (`NzOnly`: none but listed parameters' nonzero
-values), its callees' signatures among `Kc` or among `offSigs`, the callees off the route, by
-entry; no entry twice; `main` among them. `OffFacts` is what the functions off the route give of
-`Ko`: the same facts and that each of `offSigs` is a certificate's of `Ko`. `assemble` closes
-`Kc ++ Ko` (`ModeCerts`) with the residuals (`ResTop`) and termination facts (`TermNode`) the
-end theorem's assembly takes. With no function off the route, `OffFacts.nil` gives the second part
-from the first alone.
+The end theorem's certificates are the core route's `Kc` (every function, its frame interface the
+core route's `FnSpecC`). `CoreFacts` is what the core route's data gives of `Kc`: each one's static
+facts, frame interface, code, termination facts and residuals (`NzOnly`: none but listed parameters'
+nonzero values), its callees' signatures among `Kc`, no entry twice, `main` among them. `assemble`
+closes `Kc` (`ModeCerts`) with the residuals (`ResTop`) and termination facts (`TermNode`) the end
+theorem's assembly takes.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -84,25 +80,6 @@ theorem resTop_nzOnly {Ks : List Mode.Cert} {nzs : List (String × V)} {A : Stri
     | lt a b => simp [nzOnlyB] at hf
     | sub a bs => simp [nzOnlyB] at hf
 
-/-! ## The two parts -/
-
-theorem fa_append {α : Type} {P : α → Prop} {l₁ l₂ : List α} (h₁ : ∀ x ∈ l₁, P x) (h₂ : ∀ x ∈ l₂, P x) :
-    ∀ x ∈ l₁ ++ l₂, P x := fun x hx ↦ (List.mem_append.1 hx).elim (h₁ x) (h₂ x)
-
-theorem SigIn.left {Ks Ko : List Mode.Cert} {p : ℕ × Sig} (h : SigIn Ks p) : SigIn (Ks ++ Ko) p :=
-  let ⟨K, hK, h⟩ := h; ⟨K, List.mem_append_left _ hK, h⟩
-
-theorem SigIn.right {Ks Ko : List Mode.Cert} {p : ℕ × Sig} (h : SigIn Ko p) : SigIn (Ks ++ Ko) p :=
-  let ⟨K, hK, h⟩ := h; ⟨K, List.mem_append_right _ hK, h⟩
-
-/-- A callee signature of `K` is a certificate's of `Kc` or among `offSigs`. -/
-def SigsOr (Kc : List Mode.Cert) (offSigs : List (ℕ × Sig)) (K : Mode.Cert) : Prop :=
-  ∀ p ∈ K.E.sigs.entries, SigIn Kc p ∨ p ∈ offSigs
-
-theorem sigsOr_of {Kc : List Mode.Cert} {offSigs : List (ℕ × Sig)} {K : Mode.Cert} {l : List (ℕ × Sig)}
-    (h : K.E.sigs.entries = l) (h' : ∀ p ∈ l, SigIn Kc p ∨ p ∈ offSigs) : SigsOr Kc offSigs K := by
-  unfold SigsOr; rw [h]; exact h'
-
 /-- An entry of a trie is its value at that key. -/
 theorem trie_get_of_mem_entries {α : Type} :
     ∀ {t : Exec.Trie α} {n : ℕ} {a : α}, (n, a) ∈ t.entries → t.get n = some a
@@ -147,10 +124,9 @@ theorem sigTrie_entries {l : List Sig} {p : ℕ × Sig} (h : p ∈ (CoreMode.sig
   · exact h'
   · simp at h'
 
-/-- `sigsOr_of` from the environment's list of callee signatures (`CoreMode.envOf l`), in any order. -/
-theorem sigsOr_of_list {Kc : List Mode.Cert} {offSigs : List (ℕ × Sig)} {K : Mode.Cert} {l : List Sig}
-    (h : K.E.sigs = CoreMode.sigTrie l) (h' : ∀ G ∈ l, SigIn Kc (G.pc, G) ∨ (G.pc, G) ∈ offSigs) :
-    SigsOr Kc offSigs K := by
+/-- `SigsIn` from the environment's list of callee signatures (`CoreMode.envOf l`), in any order. -/
+theorem sigsIn_of_list {Kc : List Mode.Cert} {K : Mode.Cert} {l : List Sig}
+    (h : K.E.sigs = CoreMode.sigTrie l) (h' : ∀ G ∈ l, SigIn Kc (G.pc, G)) : SigsIn Kc K := by
   intro p hp
   rw [h] at hp
   obtain ⟨hm, he⟩ := sigTrie_entries hp
@@ -160,14 +136,14 @@ theorem sigsOr_of_list {Kc : List Mode.Cert} {offSigs : List (ℕ × Sig)} {K : 
   exact h' G hm
 
 /-- **What the core route's data gives of its certificates `Kc`**, at its core data `T`, the
-residuals' listed parameters `nzs`, the callees off the route `offSigs` and `main`'s `Km`. -/
+residuals' listed parameters `nzs` and `main`'s `Km`. -/
 structure CoreFacts (tab : List CoreMode.HcEnt) (Kc : List Mode.Cert) (T : List CoreMode.CFun) (nzs : List (String × V))
-    (offSigs : List (ℕ × Sig)) (Km : Mode.Cert) : Prop where
+    (Km : Mode.Cert) : Prop where
   table : ∀ Cf ∈ T, CoreMode.CfOk Cf
   st : ∀ K ∈ Kc, CertSt K
   spec : ∀ K ∈ Kc, FnSpec tab T K
   fn : ∀ K ∈ Kc, FnLink K
-  sigs : ∀ K ∈ Kc, SigsOr Kc offSigs K
+  sigs : ∀ K ∈ Kc, SigsIn Kc K
   term : ∀ K ∈ Kc, TermOk K
   res : ∀ K ∈ Kc, NzOnly nzs K
   nzs : ∀ p ∈ nzs, NzVal p.1 p.2
@@ -178,52 +154,12 @@ structure CoreFacts (tab : List CoreMode.HcEnt) (Kc : List Mode.Cert) (T : List 
   mainT : Km.F.sig.term = []
   mainC : CoreMode.hcNone tab Km.F.entry = true
 
-/-- **What the functions off the core route give of their certificates `Ko`**, beside the core
-route's `Kc`, at the residuals' alignment `A`: the same facts, and each callee off the route a
-certificate's of `Ko`. -/
-structure OffFacts (tab : List CoreMode.HcEnt) (Kc Ko : List Mode.Cert) (T : List CoreMode.CFun) (offSigs : List (ℕ × Sig))
-    (A : String → FnAl) : Prop where
-  st : ∀ K ∈ Ko, CertSt K
-  spec : ∀ K ∈ Ko, FnSpec tab T K
-  fn : ∀ K ∈ Ko, FnLink K
-  sigs : ∀ K ∈ Ko, SigsIn (Kc ++ Ko) K
-  off : ∀ p ∈ offSigs, SigIn Ko p
-  nodup : nodupB ((Kc ++ Ko).map (·.F.entry)) 0 = true
-  res : ResTop Ko A
-  term : TermNode Ko
-
-/-- **No function off the route**: the second part from the first. -/
-theorem OffFacts.nil {tab : List CoreMode.HcEnt} {Kc : List Mode.Cert} {T : List CoreMode.CFun} {A : String → FnAl}
-    (h : nodupB (Kc.map (·.F.entry)) 0 = true) : OffFacts tab Kc [] T [] A where
-  st _ h := absurd h List.not_mem_nil
-  spec _ h := absurd h List.not_mem_nil
-  fn _ h := absurd h List.not_mem_nil
-  sigs _ h := absurd h List.not_mem_nil
-  off _ h := absurd h List.not_mem_nil
-  nodup := by rw [List.append_nil]; exact h
-  res _ _ _ h := absurd h List.not_mem_nil
-  term _ _ _ h := absurd h List.not_mem_nil
-
-/-- **The certificates closed**, the core route's and those off it, with their residuals and
-termination facts and no entry `__jump_tables`'s. -/
-theorem assemble {tab : List CoreMode.HcEnt} {Kc Ko : List Mode.Cert} {T : List CoreMode.CFun} {nzs : List (String × V)}
-    {offSigs : List (ℕ × Sig)} {Km : Mode.Cert} {A : String → FnAl} (hc : CoreFacts tab Kc T nzs offSigs Km)
-    (ho : OffFacts tab Kc Ko T offSigs A) :
-    ModeCerts (Kc ++ Ko) Km guestE0 ∧ (∀ K ∈ Kc ++ Ko, K.F.entry ≠ 0) ∧ ResTop (Kc ++ Ko) A ∧
-      TermNode (Kc ++ Ko) := by
-  have hst := fa_append hc.st ho.st
-  refine ⟨modeCerts_of hc.table hst (fa_append hc.spec ho.spec) (fa_append hc.fn ho.fn)
-      (fa_append (fun K hK p hp ↦ (hc.sigs K hK p hp).elim SigIn.left fun h ↦ SigIn.right (ho.off p h)) ho.sigs)
-      ho.nodup (List.mem_append_left _ hc.main) hc.mainF hc.mainR hc.mainT hc.mainC,
-    entry_ne_zero hst, ?_, ?_⟩
-  · intro r hr K hK
-    rcases List.mem_append.1 hK with hK | hK
-    · exact resTop_nzOnly (A := A) hc.res hc.nzs r hr K hK
-    · exact ho.res r hr K hK
-  · intro r hr K hK
-    rcases List.mem_append.1 hK with hK | hK
-    · exact termNode_of hc.term r hr K hK
-    · exact ho.term r hr K hK
+/-- **The certificates closed**, with their residuals and termination facts and no entry `__jump_tables`'s. -/
+theorem assemble {tab : List CoreMode.HcEnt} {Kc : List Mode.Cert} {T : List CoreMode.CFun} {nzs : List (String × V)}
+    {Km : Mode.Cert} {A : String → FnAl} (hc : CoreFacts tab Kc T nzs Km) :
+    ModeCerts Kc Km guestE0 ∧ (∀ K ∈ Kc, K.F.entry ≠ 0) ∧ ResTop Kc A ∧ TermNode Kc :=
+  ⟨modeCerts_of hc.table hc.st hc.spec hc.fn hc.sigs hc.nodup hc.main hc.mainF hc.mainR hc.mainT hc.mainC,
+    entry_ne_zero hc.st, resTop_nzOnly hc.res hc.nzs, termNode_of hc.term⟩
 
 
 /-! ## The core route's certificates with their facts -/
@@ -258,13 +194,13 @@ theorem CertE.mem {tab : List CoreMode.HcEnt} {nzs : List (String × V)} {ls : L
 
 /-- **What the core route's data gives of its certificates** `ls`, list by list: their facts, with
 their callees' signatures, no entry twice and `main` among them. -/
-theorem CoreFacts.of {tab : List CoreMode.HcEnt} {nzs : List (String × V)} {offSigs : List (ℕ × Sig)} {Km : Mode.Cert}
+theorem CoreFacts.of {tab : List CoreMode.HcEnt} {nzs : List (String × V)} {Km : Mode.Cert}
     (ls : List (List (CertE tab nzs)))
-    (sigs : ∀ K ∈ ls.flatten.map (·.K), SigsOr (ls.flatten.map (·.K)) offSigs K)
+    (sigs : ∀ K ∈ ls.flatten.map (·.K), SigsIn (ls.flatten.map (·.K)) K)
     (nzs_ok : ∀ p ∈ nzs, NzVal p.1 p.2) (nodup : nodupB ((ls.flatten.map (·.K)).map (·.F.entry)) 0 = true)
     (main : Km ∈ ls.flatten.map (·.K)) (mainF : Km.F.main = true) (mainR : Km.code.all (fun i ↦ !isRet i) = true)
     (mainT : Km.F.sig.term = []) (mainC : CoreMode.hcNone tab Km.F.entry = true) :
-    CoreFacts tab (ls.flatten.map (·.K)) (ls.flatten.map (·.cf)) nzs offSigs Km := by
+    CoreFacts tab (ls.flatten.map (·.K)) (ls.flatten.map (·.cf)) nzs Km := by
   have fa {P : Mode.Cert → Prop} (h : ∀ e : CertE tab nzs, P e.K) : ∀ K ∈ ls.flatten.map (·.K), P K := by
     intro K hK
     obtain ⟨e, -, rfl⟩ := List.mem_map.1 hK

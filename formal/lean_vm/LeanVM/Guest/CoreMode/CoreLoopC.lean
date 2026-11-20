@@ -505,14 +505,6 @@ theorem loopCodeC_jump {Cf : CFun} {code pre : List OffsetInstruction} {oc od of
 
 /-! ## The body and its path -/
 
-theorem loopStmtC_of {pre : List Stmt} (hpre : ∀ s ∈ pre, isAC s = true) {c : V} {f : String} {args : List V} :
-    ∀ s ∈ stmtsOf (pre ++ [.callIf c f args, .ret []]), loopStmtC s = true := fun s hs ↦ by
-  rcases stmts_loopC hpre hs with hs | rfl | rfl
-  · have := hpre s hs
-    cases s <;> simp_all [isAC, loopStmtC]
-  · rfl
-  · rfl
-
 theorem loopStmtB_of {nm : String} {pre : List Stmt} (hpre : ∀ s ∈ stmtsOf pre, isBS nm s = true) {c : V} {f : String}
     {args : List V} : ∀ s ∈ stmtsOf (pre ++ [.callIf c f args, .ret []]), loopStmtC s = true := fun s hs ↦ by
   rcases stmts_loopB hs with hs | rfl | rfl
@@ -520,49 +512,6 @@ theorem loopStmtB_of {nm : String} {pre : List Stmt} (hpre : ∀ s ∈ stmtsOf p
     cases s <;> simp_all [isBS, loopStmtC]
   · rfl
   · rfl
-
-theorem calls_acEv : ∀ (pre : List Stmt), (∀ s ∈ pre, isAC s = true) →
-    ∀ c ∈ calls (pre.map acEv), c.taken = true ∧ ∃ args rets, Stmt.call c.f args rets ∈ pre
-  | [], _, c, hc => by simp [calls] at hc
-  | s :: pre, h, c, hc => by
-    have hs := h s List.mem_cons_self
-    have ih := calls_acEv pre fun s hs ↦ h s (List.mem_cons_of_mem _ hs)
-    cases s with
-    | atom a =>
-      simp only [List.map_cons, calls, List.filterMap_cons, acEv, Ev.call?] at hc
-      obtain ⟨h1, args, rets, h2⟩ := ih c hc
-      exact ⟨h1, args, rets, List.mem_cons_of_mem _ h2⟩
-    | call f args rets =>
-      simp only [List.map_cons, calls, List.filterMap_cons, acEv, Ev.call?, List.mem_cons] at hc
-      rcases hc with rfl | hc
-      · exact ⟨rfl, args, rets, List.mem_cons_self⟩
-      · obtain ⟨h1, args', rets', h2⟩ := ih c hc
-        exact ⟨h1, args', rets', List.mem_cons_of_mem _ h2⟩
-    | _ => simp [isAC] at hs
-
-/-- What made a call event of a loop helper's path with calls: a `call` statement before its tail, or its
-tail call. -/
-theorem acEv_call {pre : List Stmt} (hpre : ∀ s ∈ pre, isAC s = true) {f : String} {a r : List V}
-    (he : Ev.call f a r ∈ pre.map acEv) : Stmt.call f a r ∈ pre := by
-  obtain ⟨s, hs, hse⟩ := List.mem_map.mp he
-  have := hpre s hs
-  cases s with
-  | atom a' => simp [acEv] at hse
-  | call f' a' r' =>
-    simp only [acEv, Ev.call.injEq] at hse
-    obtain ⟨rfl, rfl, rfl⟩ := hse
-    exact hs
-  | _ => simp [isAC] at this
-
-theorem stmts_of_mem {pre : List Stmt} (hpre : ∀ s ∈ pre, isAC s = true) {ss : List Stmt} {s : Stmt}
-    (h : s ∈ pre) : s ∈ stmtsOf (pre ++ ss) := by
-  induction pre with
-  | nil => cases h
-  | cons a pre ih =>
-    simp only [List.cons_append, stmtsOf, List.mem_cons, List.mem_append]
-    rcases List.mem_cons.mp h with rfl | h
-    · exact Or.inl rfl
-    · exact Or.inr (Or.inr (ih (fun s hs ↦ hpre s (List.mem_cons_of_mem _ hs)) h))
 
 /-! ## The heap facts -/
 
@@ -1356,35 +1305,6 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
           exact absurd hwe (no_writes_of_stopL (hcs2 a ha))
 
 /-! ## The frame interface -/
-
-/-- **A `JUMP` on a constant `0` falls through**: `core_jfall`'s zero case. -/
-theorem zero_jfall {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {code : List OffsetInstruction}
-    (hpair : pairOk Cf.X Cf.H Cf.frame.O Cf.frame.S Cf.fn.body code Cf.d = true)
-    {C : Ctx} {s s1 : St} {i oc od of : ℕ} (hins : code[i]? = some (.jump oc od of)) (hz : Cf.X.zeroAt oc = true)
-    (e1 : ((Cf.d.2.2.lookup (Cf.X.entry + i)).getD []).foldlM (Prover.Exec.runHint C) s = .ok s1)
-    (hs : Fine (refMem img) s) (hm : Moves (refMem img) s s1)
-    {σ : Val} (hσ : HonF img Cf s.fp σ) {pos : List Stmt} {pre es : List Ev} {vs : List V}
-    (hat : pairAt Cf.P Cf.fn.body code Cf.d i = some pos) (hb : walk σ Cf.fn.body = .ret (pre ++ es) vs)
-    (hwp : walk σ pos = .ret es vs) {rd : Reader} (hrw : ReadsAt Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre es)
-    (hW : ∀ y, WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre y → WrK s.mem y) :
-    ∃ pos', pairAt Cf.P Cf.fn.body code Cf.d (i + 1) = some pos' ∧ ∃ evs es', es = evs ++ es' ∧
-      walk σ pos' = .ret es' vs ∧ ∀ y, WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ evs) y → WrK s1.mem y := by
-  obtain ⟨as, bs, z, zs, tabs, r, hpos, hzpos, hq, hbs, hpairs, -, hzsok, hr, h1, -, -⟩ := pair_jump hpair hat hins
-  rw [hpos, hzpos, ← List.append_assoc, ← List.map_append] at hwp
-  obtain ⟨es1, hes1, rfl⟩ := walk_atoms_ret hwp
-  have hev := jump_events hκ e1 hs hm hq hbs hpairs (fun a ha p hp ↦ hσ.ptr _ _ hb a p
-    (List.mem_append_right _ (List.mem_append_left _ (by simp [ha]))) hp)
-    (rest := es1) (by simpa [List.append_assoc] using hrw) hW
-  have hr0 := jumpH_zero hr hz
-  subst hr0
-  refine ⟨z.pos, h1 z rfl, as.map Ev.atom, bs.map Ev.atom ++ es1, by simp, ?_,
-    fun y hy ↦ hev y (by rw [List.map_append, ← List.append_assoc]; exact writtenC_prefix hy)⟩
-  rw [hzpos, walk_atoms, hes1]
-  rfl
-
-theorem calls_tailC (pre : List Stmt) (c : V) (f : String) (args : List V) :
-    calls (pre.map acEv ++ [Ev.inK c, Ev.call f args []]) = calls (pre.map acEv) ++ [⟨f, args, [], true⟩] := by
-  simp [calls, List.filterMap_append, List.filterMap_cons, Ev.call?]
 
 /-- **A loop helper with calls on the core route meets the frame interface**, for `CoreAt`. -/
 theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : Prover.Exec.Advice} {C : Ctx}

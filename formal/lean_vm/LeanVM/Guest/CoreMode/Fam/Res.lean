@@ -9,7 +9,8 @@
 module
 
 public import LeanVM.Guest.EndExecX
-public import LeanVM.Guest.Mode.ResInst
+public import LeanVM.Guest.Mode.ResFam
+public import LeanVM.Guest.B2C.CplSpec
 public import LeanVM.Guest.Bridge.FrameMap
 
 /-!
@@ -26,10 +27,6 @@ gives `ExecGaps.res` for `X = XOf Y`, as `termRef_of` gives `term`: `trackAt_X` 
 tracks at a track state of its own pc and frame, whose top frame `RefOk.frames` makes an honest
 instance; the functions lying one after another (`consecutive_entry`), it is `K`'s function; and the
 reference's step gives the instruction (`ref_xor`, `ref_mul`).
-
-By family (`resTop_of`): a name is no fact; a nonzero divisor holds where its `MUL`'s product does
-(`nz_top`, every nonzero residual a divisor, `nzMul`), which a fixed nonzero constant of the frame
-is (`num_top`, `nzStat`); any other residual from its obligation (`Obl`, `obl_rres`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -136,51 +133,8 @@ section
 
 variable {A : String → FnAl} {r : Ref} {K : Mode.Cert} {i : ℕ} {e : Ent} {j : ℕ}
 
-/-- **A nonzero divisor from its product** at an honest frame: every nonzero residual of `K` a
-`MUL`'s divisor, the product cell nonzero on the reference. -/
-theorem nz_top (t : TopAt A r K i e j) (hm : nzMul K.F K.code = true) (hi : i < K.code.length) {o : ℕ}
-    (hr : Res.nz o ∈ (K.F.res.get i).getD []) (hnum : refMem r.img (e.I.fp + numAt K.code i) ≠ 0) :
-    RRes (refMem r.img) e.I.fp (.nz o) := by
-  have h1 := List.all_eq_true.mp (List.all_eq_true.mp hm i (List.mem_range.mpr hi)) _ hr
-  have hop := t.op _ (List.getElem?_eq_getElem hi)
-  rw [List.getElem?_eq_getElem hi] at h1
-  unfold numAt at hnum
-  rw [List.getElem?_eq_getElem hi] at hnum
-  generalize K.code[i] = ins at h1 hop hnum
-  cases ins with
-  | mul a b c =>
-    simp only [nzAt, beq_iff_eq] at h1
-    subst h1
-    simp only [ROp] at hop
-    rw [hop] at hnum
-    exact right_ne_zero_of_mul hnum
-  | _ => simp [nzAt] at h1
-
-/-- **A product from the frame's constants**: the product cell of each nonzero residual a fixed
-nonzero constant of the frame (`nzStat`, at the frame's function). -/
-theorem num_top (t : TopAt A r K i e j) (hr0 : r.Ok) (hs : nzStat (plumbOf j).stat (fsN j) K.F K.code = true)
-    (hi : i < K.code.length) {o : ℕ} (hr : Res.nz o ∈ (K.F.res.get i).getD []) :
-    refMem r.img (e.I.fp + numAt K.code i) ≠ 0 :=
-  let ⟨_, _, hF⟩ := t.path
-  num_stat (logMemorySize_le_28 (e := r.exec) hr0.size) hF t.fb hs hi hr
-
 /-- A name is no fact. -/
 theorem rres_name {M : ℕ → E} {fp o : ℕ} : RRes M fp (.name o) := trivial
-
-/-- **The residuals at the honest frames by family**: the nonzero ones given, the others from their
-obligations, names free. -/
-theorem resTop_of {Ks : List Mode.Cert}
-    (hnz : ∀ r : Ref, r.Ok → ∀ K ∈ Ks, ∀ i < K.code.length, ∀ e j, TopAt A r K i e j → ∀ o,
-      Res.nz o ∈ (K.F.res.get i).getD [] → RRes (refMem r.img) e.I.fp (.nz o))
-    (hobl : ∀ r : Ref, r.Ok → ∀ K ∈ Ks, ∀ i < K.code.length, ∀ e j, TopAt A r K i e j →
-      ∀ x ∈ (K.F.res.get i).getD [], (∀ o, x ≠ .nz o) → (∀ o, x ≠ .name o) → Obl (refMem r.img) e.I.fp x) :
-    ResTop Ks A := by
-  intro r hr K hK i hi e j t x hx hin
-  cases x with
-  | nz o => exact hnz r hr K hK i hi e j t o hx
-  | name o => exact rres_name
-  | lt a b => exact obl_rres hin (hobl r hr K hK i hi e j t _ hx (fun _ h ↦ by cases h) (fun _ h ↦ by cases h))
-  | sub a bs => exact obl_rres hin (hobl r hr K hK i hi e j t _ hx (fun _ h ↦ by cases h) (fun _ h ↦ by cases h))
 
 end
 

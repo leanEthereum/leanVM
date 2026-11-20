@@ -8,9 +8,8 @@ public import LeanVM.Guest.CoreMode.Core
 Which functions take their own heap signature as their contract (`CFun.hc`) is a table (`HcEnt`, one per such
 function: its entry, heap signature, entry and return frame cells, parameter and returned word counts), generated as
 `hcTab` (`Gen/HcTab.lean`). The contracts at every entry are the table's (`ctOf`), and two decidable checks tie the
-table to each function's view: a function on the core route names, at its own entry and at each callee entry of its
-environment, the contract the table holds there (`ctB`, giving `CtOk`); a function on the walk is at no table entry
-and calls none (`walkB`, giving `ModeCts`). `Trie.entries` lists a trie's entries, so that the signatures an
+table to each function's view: a function names, at its own entry and at each callee entry of its environment, the
+contract the table holds there (`ctB`, giving `CtOk`). `Trie.entries` lists a trie's entries, so that the signatures an
 environment holds are a list (`mem_entries`).
 -/
 
@@ -96,10 +95,6 @@ noncomputable def ctB (tab : List HcEnt) (K : Mode.Cert) (Cf : CFun) : Bool :=
     | some (f, q) => decide (hcFind tab p.1 = some ⟨p.1, Cf.sigOf f, p.2.entry, p.2.ret, q.1, q.2⟩)
     | none => hcNone tab p.1
 
-/-- **A function on the walk is at no table entry and calls none.** -/
-def walkB (tab : List HcEnt) (K : Mode.Cert) : Bool :=
-  hcNone tab K.F.entry && tab.all fun e ↦ (K.E.sigs.get e.entry).isNone
-
 theorem hcFind_none {tab : List HcEnt} {t : ℕ} (h : hcNone tab t = true) : hcFind tab t = none := by
   unfold hcFind
   rw [List.find?_eq_none]
@@ -168,13 +163,6 @@ theorem ctOk_of_ctB {img : MemoryImage κ} {tab : List HcEnt} {K : Mode.Cert} {C
       rw [ctOf_none (hcFind_get h2 hG)]
       have hn : Cf.hcs = [] := List.isEmpty_iff.mp hs
       cases getF Cf.X.ents t <;> simp [hcAt, hn]
-
-/-- **A function on the walk has mode contracts** at its entry and every callee entry. -/
-theorem modeCts_of_walkB {img : MemoryImage κ} {tab : List HcEnt} {K : Mode.Cert} (h : walkB tab K = true) :
-    Mode.ModeCts (ctOf img tab) K := by
-  unfold walkB at h
-  rw [Bool.and_eq_true] at h
-  exact ⟨ctOf_none (hcFind_none h.1), fun t G hG ↦ ctOf_none (hcFind_get h.2 hG)⟩
 
 end
 

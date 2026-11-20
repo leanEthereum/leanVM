@@ -27,8 +27,8 @@ sixteen callees' bounds, in call order (`fn% «verify_sub»`): two `g_power_of_w
 `bus_grind_check` dispatch, `verify_bus_gkr`, `verify_tables`, `verify_keccak`, `grind_check__L13`,
 `ring_switch_target`, the `open_stacked` dispatch and the terminal; the maxima over the honest
 children's depths (`vbgMax`, `vtMax`, `osMax`) or a dispatch's arms (`armMax`, `busGrindMax`: an
-arm's frame and its `grind_check`'s) where a callee's bound depends on them. `vsBound W Bvk = fs "verify_sub" + 8710 + (vsBs W Bvk).sum`: the frame,
-the own buffers (`8679 + d` words, `d ≤ 31`) and the callees. `vsNames μ r d`, `vsTs`: the
+arm's frame and its `grind_check`'s) where a callee's bound depends on them. `vsBound W Bvk = fs "verify_sub" + vsOwnBufs + (vsBs W Bvk).sum`: the frame,
+the own buffers (`vsOwnBufs`) and the callees. `vsNames μ r d`, `vsTs`: the
 callees' names (the squeeze's arm at the stack log `μ`, the bus grind's at the depth `d`,
 `open_stacked`'s candidate) and trees, within their bounds, `verify_tables`' and the terminal's
 within their weights (`vsPs`).
@@ -75,6 +75,12 @@ structure VsWordsOs (fs : String → ℕ) extends VsWords fs where
   (`open_stacked_completeAtB_Spec`). -/
   hfs : ∀ f, fs f < 2 ^ 32
 
+/-- `verify_sub`'s own buffers: `8679 + d` words, the bus depth `d ≤ 31`. -/
+abbrev vsOwnBufs : ℕ := 8710
+
+/-- The buffers `verify_sub` hands `ring_switch_target`, beside its frame. -/
+abbrev rstBufs : ℕ := 72
+
 /-- **The callees' bounds**, in call order, `open_stacked`'s `os`. -/
 noncomputable def vsBsWith {fs : String → ℕ} (W : VsWordsOs fs) (Bvk os : ℕ) : List ℕ :=
   [W.Bg, W.Bg, fs "log2_ceil_in_the_exponent__L0_L34" + 2 * fs "assert_small_g_power",
@@ -82,7 +88,7 @@ noncomputable def vsBsWith {fs : String → ℕ} (W : VsWordsOs fs) (Bvk os : �
     fs "log2_ceil_in_the_exponent__L16_L34" + 2 * fs "assert_small_g_power",
     W.Kst "grind_check__L15", armMax W.Kst squeezeNames, W.Kst "opening_message__L1_L1",
     busGrindMax fs, vbgMax fs W.KL W.K8, vtMax fs W.Kf W.Ksh W.K10, Bvk,
-    W.Kst "grind_check__L13", fs "ring_switch_target" + 72 + W.B14, os,
+    W.Kst "grind_check__L13", fs "ring_switch_target" + rstBufs + W.B14, os,
     termBound fs W.Beqc W.K15 W.Bcs W.Brs]
 
 /-- **The callees' bounds at one stack log**: `open_stacked`'s at the arm of `μ`, whatever the
@@ -97,11 +103,11 @@ noncomputable def vsBs {fs : String → ℕ} (W : VsWordsOs fs) (Bvk : ℕ) : Li
 /-- **`verify_sub`'s bound**: its frame, its own buffers (`8679 + d`, the bus depth `d ≤ 31`),
 its callees. -/
 noncomputable def vsBound {fs : String → ℕ} (W : VsWordsOs fs) (Bvk : ℕ) : ℕ :=
-  fs "verify_sub" + 8710 + (vsBs W Bvk).sum
+  fs "verify_sub" + vsOwnBufs + (vsBs W Bvk).sum
 
 /-- **`verify_sub`'s bound at one stack log.** -/
 noncomputable def vsBoundAt {fs : String → ℕ} (W : VsWordsOs fs) (Bvk μ r : ℕ) : ℕ :=
-  fs "verify_sub" + 8710 + (vsBsAt W Bvk μ r).sum
+  fs "verify_sub" + vsOwnBufs + (vsBsAt W Bvk μ r).sum
 
 /-! ## The callees' trees -/
 

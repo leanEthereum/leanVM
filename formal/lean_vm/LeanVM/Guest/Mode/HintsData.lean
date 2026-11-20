@@ -6,7 +6,8 @@ public import Statement.Data.AdviceHints
 /-!
 # The guest's advice, by function
 
-The guest's advice by function, in order: what the mode walk's certificates' hints are checked against (`Pack/*/ModeH`, `hintsOk_of_fn`).
+The guest's advice by function, in order (`adviceFns_ok`), and its hints the parse of its text
+(`adviceHints_eq`).
 -/
 
 namespace LeanVM.Guest.Mode

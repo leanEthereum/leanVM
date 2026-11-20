@@ -62,8 +62,8 @@ theorem busGrindMax_eq : B1.VerifySub.busGrindMax B2C.fs = busGrindMaxV := by
 /-- **`verify_sub`'s words per child but `open_stacked`'s**: its frame and buffers, and its
 callees' bounds in call order (`B1.VerifySub.vsBsWith`). -/
 kernel_lit vsFixed : ℕ :=
-  fsVs + 8710 + (vsBg + vsBg + (fsL0 + 2 * fsAsg) + (fsCp + B1.Tables.cpSizes.sum) + (fsL16 + 2 * fsAsg) +
-    wGc15 + wSq + wOm + busGrindMaxV + vbgMaxV + vtMaxV + vkBoundV + wGc13 + (fsRst + 72 + vsWords.B14) +
+  fsVs + B1.VerifySub.vsOwnBufs + (vsBg + vsBg + (fsL0 + 2 * fsAsg) + (fsCp + B1.Tables.cpSizes.sum) + (fsL16 + 2 * fsAsg) +
+    wGc15 + wSq + wOm + busGrindMaxV + vbgMaxV + vtMaxV + vkBoundV + wGc13 + (fsRst + B1.VerifySub.rstBufs + vsWords.B14) +
     termBoundV)
 
 set_option maxRecDepth 100000 in

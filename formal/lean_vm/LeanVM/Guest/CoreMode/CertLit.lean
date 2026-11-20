@@ -22,7 +22,7 @@ public import LeanVM.Guest.CoreMode.ListLit
   `i`-th of pack `p`'s.
 
 `cert_in% «k» j i` is `theorem «k».modeCert_in`: the certificate is the `i`-th of the `j`-th pack's
-among `CoreMode.coreCerts`. `sig_in% «k»` is `.inl ⟨_, Fn.«k».modeCert_in, rfl, rfl, rfl⟩`: a
+among `CoreMode.coreCerts`. `sig_in% «k»` is `⟨_, Fn.«k».modeCert_in, rfl, rfl, rfl⟩`: a
 callee's signature is a certificate's among them. Unhygienic: each expands to the text the generator
 wrote before, its names resolved where it is written, so its elaboration is the same.
 -/
@@ -57,6 +57,6 @@ macro "cert_in% " k:ident j:num i:num : command =>
 set_option hygiene false in
 /-- `sig_in% «k»`: `k`'s signature is a certificate's among the core route's. -/
 macro "sig_in% " k:ident : term =>
-  `(.inl ⟨_, $(Lean.mkIdent (`Fn ++ k.getId ++ `modeCert_in)), rfl, rfl, rfl⟩)
+  `(⟨_, $(Lean.mkIdent (`Fn ++ k.getId ++ `modeCert_in)), rfl, rfl, rfl⟩)
 
 end
