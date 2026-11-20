@@ -5,12 +5,12 @@
 
   * words of the image's constant tables (`DataWords`, read from `Env.data`, so in place wherever `env.Static`
     holds, at every call's entry and return);
-  * a `Result<E, VerifierError>` returned through the caller's slot (`sret`, in `a0`): `ResultEAt`, `Ok` with the
-    value's limbs where the mirror returns, `Err` where it fails, and the slot as what the call writes (`SretOut`).
+  * a `Result<E, VerifierError>` returned through the caller's slot (`sret`, in `a0`): `ResultEAt` (the transcript
+    family's), `Ok` with the value's limbs where the mirror returns, `Err` where it fails, and the slot as what the
+    call writes (`SretOut`).
 -/
 
-import Rv64mc.Core.Repr
-import Rv64mc.Model.Field
+import Rv64mc.Spec.Transcript.Repr
 
 namespace Rv64mc.Spec.Whir
 
@@ -25,12 +25,8 @@ theorem DataWords.getMem {env : Env} {a : Word} {ws : List Word} (h : DataWords 
     (hs : env.Static m) {k : Nat} (hk : k < ws.length) : m.getMem (a + BitVec.ofNat 64 (8 * k)) = ws[k] :=
   env.static_data m hs _ (h k hk)
 
-/-- **The `Result<E, VerifierError>` at `a`**: `Ok` with `v`'s limbs where the mirror returns `some v`, `Err`
-    where it fails. -/
-def ResultEAt (m : MachineState) (a : Word) : Option E → Prop
-  | some v => m.getMem (a + BitVec.ofNat 64 Layouts.ResultE.tagOffset) = BitVec.ofNat 64 Layouts.ResultE.Ok.tag ∧
-      EAt m (a + BitVec.ofNat 64 Layouts.ResultE.Ok.f0) (Model.limbs v)
-  | none => m.getMem (a + BitVec.ofNat 64 Layouts.ResultE.tagOffset) = BitVec.ofNat 64 Layouts.ResultE.Err.tag
+-- `Result<E, VerifierError>` through `sret` is the transcript family's `ResultEAt`.
+export Rv64mc.Spec.Transcript (ResultEAt)
 
 /-- A function returning through `sret` (in `a0`) writes the `n` bytes of its slot. -/
 def SretOut (n : Nat) (regs : Reg → Word) (_m : MachineState) (b : Word) : Prop := InRange (regs .x10) n b
