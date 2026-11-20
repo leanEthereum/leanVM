@@ -1,5 +1,8 @@
-import LeanVM.Cost.Decoder.EntryTable
-import LeanVMTests.Runs
+module
+
+public import LeanVM.Cost.Decoder.EntryTable
+public import LeanVMTests.Runs
+meta import LeanVM.Cost.Decoder.EntryTable
 
 /-!
 # Tests: the guest decoder's compiled chain on small inputs
@@ -14,6 +17,8 @@ namespace LeanVMTests.Cost.DecoderChain
 
 open LeanVM.Cost LeanVM.Cost.Decoder LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.B1
 open LeanVM.Guest.B1.Main LeanVM.Protocol.Verifier
+
+@[expose] public section
 
 /-- A compiled function's value on `vs`, in the program of the bodies `deps`. -/
 def runOn (deps : List (ℕ × Term)) (i : ℕ) (vs : List MachineValue) : Option MachineValue :=
@@ -213,4 +218,5 @@ test_runs runs := [
         Main.digestOfCells (gen ^ 1) (gen ^ 2)⟩,
         deferOfCells ((List.range 24).map fun i ↦ (gen ^ (i + 1) : E))⟩ : LeanVM.Node.NodeStatement)))]
 
+end
 end LeanVMTests.Cost.DecoderChain
