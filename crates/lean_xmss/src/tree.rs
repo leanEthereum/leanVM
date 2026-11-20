@@ -3,8 +3,8 @@
 
 use crate::*;
 
-/// The level a [`LayerTree`] stores: `2^10` nodes.
-pub(crate) const CACHED_LEVEL: usize = LAYER_HEIGHT - 10;
+/// The level a [`LayerTree`] stores: `2^8` nodes.
+pub(crate) const CACHED_LEVEL: usize = LAYER_HEIGHT - 8;
 pub(crate) const CACHED_NODES: usize = 1 << (LAYER_HEIGHT - CACHED_LEVEL);
 
 /// The Merkle parent at `level` and index `j` of `layer`.
