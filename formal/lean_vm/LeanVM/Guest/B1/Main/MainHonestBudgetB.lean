@@ -50,7 +50,7 @@ structure MainStatics (fs : String → ℕ) (SB SK : String → ℕ) : Prop wher
   l16 : TotalLeOn coreProgram fs name% «claim_list_digest_loop1» LoopPre
     (fun a => logG (a.getD 1 0) * iterK fs SK name% «claim_list_digest_loop1» + fs
         name% «claim_list_digest_loop1»)
-  cl : ∀ j < 17, TotalLe coreProgram fs B1.Digest.clNames[j]! (fun _ => SB B1.Digest.clNames[j]!)
+  cl : TotalLe coreProgram fs "claim_list_tail" (fun _ => SB "claim_list_tail")
   l25 : TotalLeOn coreProgram fs name% «aggregate_claims_loop0» LoopPre
     (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop0» + fs
         name% «aggregate_claims_loop0»)

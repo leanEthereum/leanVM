@@ -362,7 +362,7 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
       .inl ⟨_, Fn.«level_residual__L37_L13_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩],
   sigsOr_of_list Fn.«level_residual__L73_L16_L6_L3_loop1».modeSigs fa%[.inl ⟨_, Fn.«level_residual__L73_L16_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩],
   sigsOr_of_list Fn.«main».modeSigs fa%[.inl ⟨_, Fn.«aggregate_claims».modeCert_in, rfl, rfl, rfl⟩,
-      .inr (list_mem% 0),
+      .inl ⟨_, Fn.«claim_list_digest».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«da_verify».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«exponent_tables».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«main_loop0».modeCert_in, rfl, rfl, rfl⟩,

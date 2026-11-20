@@ -75,10 +75,9 @@ noncomputable def mulTileB (j : ℕ) (w : Wit) : Mode.Res → Bool
     | _, _, _ => false
   | _ => false
 
-/-- **The frames' tiles**: function, the bound's base, the parts. `claim_list_digest`'s list
-`n_g = bigs^136·groups^17·rest`, the three `list_split` returns read through its frame (cell `23`). -/
-noncomputable def tiles : List (ℕ × Mode.Base × List (Mode.Base × ℕ)) :=
-  [(fn_idx% «claim_list_digest», .fr 3, [(.hp 23 3, 136), (.hp 23 4, 17), (.hp 23 5, 1)])]
+/-- **The frames' tiles**: function, the bound's base, the parts. None: `claim_list_digest`, whose list
+`n_g = bigs^136·groups^17·rest` they tiled, is on the core route. -/
+noncomputable def tiles : List (ℕ × Mode.Base × List (Mode.Base × ℕ)) := []
 
 /-- A tile of function `j`'s (`tiles`). -/
 noncomputable def tileListB (j : ℕ) (x : Mode.Res) : Bool :=

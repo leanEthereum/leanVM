@@ -263,7 +263,7 @@ theorem decoderPrice_le_at (M : ℕ) (hM : M ≤ 2 ^ 34) (input : PublicInput)
     (fun p q ↦ cursorLength_cost compiledGuestWitnessDecoder includes_budget_cursorLength discreteLogTables 122420 hLg
       discreteLogWith_lt p q)
     hc 8192 (by norm_num) (fun c hck ↦ valid_cursor hv c hck)
-  have hT := decTop_cost compiledGuestWitnessDecoder hP LeanVM.Guest.guestProgram hκ (Decoder.memoryVector t.memory) 17694 15305468 _ _
+  have hT := decTop_cost compiledGuestWitnessDecoder hP LeanVM.Guest.guestProgram hκ (Decoder.memoryVector t.memory) 17715 15305468 _ _
     (preTable_cost compiledGuestWitnessDecoder includes_budget_preTable).le (pcTableT_cost compiledGuestWitnessDecoder includes_budget_pcTableT)
     hE hW hc
   have hk := (topConst_eq_at M (guestDecoderFramePrice e)).le

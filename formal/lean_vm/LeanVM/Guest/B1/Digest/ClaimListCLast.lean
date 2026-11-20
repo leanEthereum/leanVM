@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Digest.ClaimListCChk
 public import LeanVM.Guest.B1.Digest.ChainFilter
 public import LeanVM.Guest.B1.Digest.PairComplete
+public import LeanVM.Guest.B1.Fwd.PureIn
 
 /-!
 # The last claims and a group of claims, completely
@@ -292,6 +293,28 @@ theorem grp_block {j : ℕ} {f : String} {m c0 st0 ep nb : ℕ}
     cases s <;> simp only [isAtomS, Bool.false_eq_true] at this
     rename_i a
     exact ⟨hat a (by have := cl_mem_atoms hs; rwa [heqA'] at this), trivial⟩
+
+/-! ## `claim_list_tail` -/
+
+/-- **`claim_list_tail` on `rest = g^k`** returns what `claim_list_last__L{k}` does. -/
+theorem tail_rel_of {k : ℕ} (hk : k < 17) {sp blk d0 d1 : E}
+    (h : coreProgram.Rel rd (clNames.getD k "") [sp, blk] [d0, d1]) :
+    coreProgram.Rel rd "claim_list_tail" [sp, blk, gen ^ k] [d0, d1] := by
+  let σ : Val := fun v => if v = .n 0 then sp else if v = .n 1 then blk else if v = .n 2 then gen ^ k
+    else if v = .n 3 ∨ v = .n 5 then d0 else if v = .n 4 ∨ v = .n 6 then d1 else 0
+  refine (rel_iff_sem find_claim_list_tail _ _).mpr ⟨σ, ?_, ?_⟩
+  · rw [claim_list_tail_params]; simp [σ]
+  · rw [claim_list_tail_shape]
+    simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
+    refine ⟨⟨k, hk, by simp [σ, gen_pow_eq_ofK], ?_⟩, by simp [σ], by simp [σ], by simp [σ]⟩
+    rw [show clNames[k] = clNames.getD k "" by
+      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk]; rfl]
+    simpa [σ] using h
+
+set_option maxRecDepth 100000 in
+/-- `claim_list_tail` and the last groups place nothing and call among themselves. -/
+theorem tail_pure : coreProgram.PureIn ("claim_list_tail" :: clNames) :=
+  Tables.pureIn_of_pureInB (by decide +kernel)
 
 end
 end LeanVM.Guest.B1.Digest

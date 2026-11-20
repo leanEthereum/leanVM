@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.CoreMode.Gen.Certs.List
-public import LeanVM.Guest.Pack.«P29».ModeCert
 
 set_option Elab.async false
 
@@ -20,7 +19,7 @@ open LeanVM.Guest
 
 /-- The certificates by pack, packs in groups. -/
 noncomputable def offGroups : List (List (List Cert)) :=
-  [[ModePack.«P29».certs]]
+  []
 
 /-- The certificates by pack. -/
 noncomputable def offPacks : List (List Cert) := offGroups.flatten
@@ -32,30 +31,14 @@ end
 
 public section
 
-theorem offPacks_mem0 : ModePack.«P29».certs ∈ offPacks :=
-  mem_flatten_of (List.mem_cons_self) (List.mem_cons_self)
-
 /-- No entry repeats, the core route's certificates' among them. -/
 theorem offCerts_nodup : nodupB ((CoreMode.coreCerts ++ offCerts).map (·.F.entry)) 0 = true := by
   decide +kernel
 
 /-- The certificates' static facts. -/
 theorem offCerts_st : ∀ K ∈ offCerts, CertSt K :=
-  fa_flatten (fa_flatten (Mode.fa_cons ((Mode.fa_cons (ModePack.«P29».certs_st)
-    (Mode.fa_nil)))
-    (Mode.fa_nil)))
+  fa_flatten (fa_flatten (Mode.fa_nil))
 
 end
 
 end LeanVM.Guest.Mode
-
-namespace LeanVM.Guest.Fn.«claim_list_digest»
-
-public section
-
-theorem modeCert_in : modeCert ∈ Mode.offCerts :=
-  Mode.mem_flatten_of Mode.offPacks_mem0 ModePack.«P29».mem0
-
-end
-
-end LeanVM.Guest.Fn.«claim_list_digest»

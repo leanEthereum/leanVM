@@ -108,10 +108,7 @@ the kernel does not check. -/
 theorem assembled (h : Mode.ModeHyps) :
     ModeCerts allCerts Fn.«main».modeCert Mode.guestE0 ∧ (∀ K ∈ allCerts, K.F.entry ≠ 0) ∧
       ResTop allCerts alignA ∧ TermNode allCerts :=
-  assemble CoreMode.coreFacts (offFacts h fun K hK ↦ by
-    simp only [Res.resExc, List.mem_cons, List.not_mem_nil, or_false] at hK
-    rcases hK with rfl
-    exact resCld_alignA)
+  assemble CoreMode.coreFacts (offFacts h fun K hK ↦ by simp [Res.resExc] at hK)
 
 /-- **`ExecGaps` from the open facts**, every proved part wired in. -/
 theorem execGaps_of (O : OpenGaps) :

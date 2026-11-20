@@ -4318,10 +4318,24 @@ def claim_list_digest(entries_ptr, n_g):
                 hint_witness(blk[4 * j:4 * j + 4], "claims")
             keccak_cells(blk[0:4 * CLAIM_GROUP], nxt[0:KECCAK_STATE], state=st[0:KECCAK_STATE], final=0)
         last = mid * groups ** KECCAK_STATE
-        d0, d1 = match(log(rest), range(0, CLAIM_GROUP), lambda k: claim_list_last(last, mid_entries * groups ** (4 * CLAIM_GROUP), k))
+        d0, d1 = claim_list_tail(last, mid_entries * groups ** (4 * CLAIM_GROUP), rest)
+        # list_split's split checked again here, where the claims' cells are written: bigs, groups and
+        # rest g-powers below the memory size, and its identity, so those cells tile [0, n).
+        assert_gpow(bigs)
+        assert_gpow(groups)
+        assert_gpow(rest)
+        assert bigs ** CLAIM_BIG * groups ** CLAIM_GROUP * rest == n_g
         digest[0] = d0
         digest[1] = d1
+    # n_g a g-power below the memory size: the bound of the claims' cells written above.
+    assert_gpow(n_g)
     return digest[0], digest[1]
+
+
+def claim_list_tail(state, blk, rest):
+    # The last block's hash: the dispatch on the rest, at the top of a body.
+    d0, d1 = match(log(rest), range(0, CLAIM_GROUP), lambda k: claim_list_last(state, blk, k))
+    return d0, d1
 
 
 def claim_list_last(state, blk, k: Const):

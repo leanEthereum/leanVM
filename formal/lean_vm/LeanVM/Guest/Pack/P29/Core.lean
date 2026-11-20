@@ -808,13 +808,33 @@ noncomputable def body : List Core.Stmt := [
     .atom (.mul (.n 71) (.n 70) (.n 70)) ::
     .atom (.mul (.n 72) (.n 71) (.n 71)) ::
     .atom (.mul (.n 73) (.n 56) (.n 72)) ::
-    .dispatch (.n 14) ["claim_list_last__L0", "claim_list_last__L1", "claim_list_last__L2", "claim_list_last__L3", "claim_list_last__L4", "claim_list_last__L5", "claim_list_last__L6", "claim_list_last__L7", "claim_list_last__L8", "claim_list_last__L9", "claim_list_last__L10", "claim_list_last__L11", "claim_list_last__L12", "claim_list_last__L13", "claim_list_last__L14", "claim_list_last__L15", "claim_list_last__L16"] [.n 65, .n 73] [.n 74, .n 75] ::
+    .call "claim_list_tail" [.n 65, .n 73, .n 14] [.n 74, .n 75] ::
+    .atom (.touch (.n 76) (.n 12)) ::
+    .atom (.touch (.n 77) (.n 13)) ::
+    .atom (.touch (.n 78) (.n 14)) ::
+    .atom (.mul (.n 79) (.n 12) (.n 12)) ::
+    .atom (.mul (.n 80) (.n 79) (.n 79)) ::
+    .atom (.mul (.n 81) (.n 80) (.n 80)) ::
+    .atom (.mul (.n 82) (.n 81) (.n 81)) ::
+    .atom (.mul (.n 83) (.n 82) (.n 12)) ::
+    .atom (.mul (.n 84) (.n 83) (.n 83)) ::
+    .atom (.mul (.n 85) (.n 84) (.n 84)) ::
+    .atom (.mul (.n 86) (.n 85) (.n 85)) ::
+    .atom (.mul (.n 87) (.n 13) (.n 13)) ::
+    .atom (.mul (.n 88) (.n 87) (.n 87)) ::
+    .atom (.mul (.n 89) (.n 88) (.n 88)) ::
+    .atom (.mul (.n 90) (.n 89) (.n 89)) ::
+    .atom (.mul (.n 91) (.n 90) (.n 13)) ::
+    .atom (.mul (.n 92) (.n 86) (.n 91)) ::
+    .atom (.mul (.n 93) (.n 92) (.n 14)) ::
+    .atom (.assertEq (.n 93) (.n 1)) ::
     .atom (.copy (.n 10) (.n 74)) ::
     .atom (.copy (.n 11) (.n 75)) ::
     []),
-  .atom (.copy (.n 76) (.n 10)),
-  .atom (.copy (.n 77) (.n 11)),
-  .ret [.n 76, .n 77]]
+  .atom (.touch (.n 94) (.n 1)),
+  .atom (.copy (.n 95) (.n 10)),
+  .atom (.copy (.n 96) (.n 11)),
+  .ret [.n 95, .n 96]]
 
 end core
 

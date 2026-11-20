@@ -3683,6 +3683,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
             List.all_eq_true] at hfit
           obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hGself, hGpreP⟩, -⟩, -⟩, hhpostP⟩, hhpostPR⟩, ⟨hhretM, hhpostQ⟩⟩, hGpre⟩, hGpb⟩, hGpreR⟩,
             hhpost⟩, hhpostR⟩, hhgh⟩, hpa⟩ := hfit
+          replace hhpostR := allAnyPos_all hhpostR
           refine k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (.call fun hTE ↦ ⟨G, o, hsigK, by omega, ?_, ?_,
             hentry.w, ?_, ?_⟩)
           · obtain ⟨u, hu⟩ := Mem.get_of_written (hentry.w 0 hG0)

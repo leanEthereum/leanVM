@@ -125,8 +125,7 @@ theorem div136_mul_le (n K : ℕ) : n / 136 * K ≤ n * ((K + 135) / 136) := by
 /-- A claim list's digest's constant words. -/
 def clC : ℕ :=
   fs "claim_list_digest" + 13 + SB "list_split" + fs name% «claim_list_digest_loop0» + fs
-      name% «claim_list_digest_loop1» +
-    nameSum SB B1.Digest.clNames 17
+      name% «claim_list_digest_loop1» + SB "claim_list_tail"
 
 /-- A claim list's digest's words per claim: `13` and a `claim_list_digest_loop0` iteration per
 `136` claims (`CLAIM_BIG`), `13` and a `claim_list_digest_loop1` iteration per `17` claims
@@ -141,8 +140,7 @@ theorem clB_le (n : ℕ) : B1.Digest.clB fs SB SK n ≤ clC fs SB + n * clS fs S
   generalize iterK fs SK name% «claim_list_digest_loop1» = k16
   split
   · omega
-  · have h1 := le_nameSum (g := SB) (names := B1.Digest.clNames) (j := n % 17) (Nat.mod_lt _ (by omega))
-    have h2 := div136_mul_le n k15
+  · have h2 := div136_mul_le n k15
     have h3 : (if n / 136 ≠ 0 then n / 136 * k15 + fs name% «claim_list_digest_loop0» else fs
         name% «claim_list_digest_loop0») ≤
         n * ((k15 + 135) / 136) + fs name% «claim_list_digest_loop0» := by

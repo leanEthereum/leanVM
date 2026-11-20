@@ -884,6 +884,38 @@ def hpRunIn (G : Mode.Sig) (n : ℕ) (p : CCell × List ℕ) : Bool :=
         p.2.all fun o ↦ (List.range (hi - lo)).any fun t ↦ Nat.beq o (r.q.k + r.d + r.S * (lo + t))
     | none => false
 
+/-- **Each of `hs` satisfies `p` with some element of `gs`**, the element at its own position tried first: linear in
+the lists' lengths when they correspond position by position (a callee's heap guarantees, translated in order from its
+mode signature's). -/
+def allAnyPos {α β : Type} (p : α → β → Bool) (gs : List α) (hs : List β) : Bool :=
+  go 0 hs
+where
+  /-- From position `i`. -/
+  go (i : ℕ) : List β → Bool
+    | [] => true
+    | q :: qs => ((gs[i]?).any (p · q) || gs.any (p · q)) && go (i + 1) qs
+
+theorem allAnyPos_all {α β : Type} {p : α → β → Bool} {gs : List α} {hs : List β} (h : allAnyPos p gs hs = true) :
+    ∀ q ∈ hs, gs.any (p · q) = true := by
+  suffices ∀ (i : ℕ) (hs : List β), allAnyPos.go p gs i hs = true → ∀ q ∈ hs, gs.any (p · q) = true from
+    this 0 hs h
+  intro i hs
+  induction hs generalizing i with
+  | nil => simp
+  | cons q qs ih =>
+    intro h x hx
+    simp only [allAnyPos.go, Bool.and_eq_true, Bool.or_eq_true] at h
+    obtain ⟨h1, h2⟩ := h
+    rcases List.mem_cons.mp hx with rfl | hx
+    · rcases h1 with h1 | h1
+      · cases hg : gs[i]? with
+        | none => simp [hg] at h1
+        | some r =>
+          simp only [hg, Option.any_some] at h1
+          exact List.any_eq_true.mpr ⟨r, List.mem_of_getElem? hg, h1⟩
+      · exact h1
+    · exact ih (i + 1) h2 x hx
+
 /-- **A callee's mode signature `G` holds of its heap signature `h`** at a call of `na` arguments
 and `nr` returned words: its self frame pointer cell (a loop's) small, its header cells entry cells;
 each of its preconditions over the arguments' entry cells one of `h`'s (a run `h`'s run or its
@@ -916,9 +948,10 @@ def fitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
         h.preR.any (rngLIs (glOfs na (hpBs G)) (gpOfs na (hpBs G)) r ·))) &&
     h.post.all (fun c ↦ G.post.any (fun m ↦ monoS G (na + nr) false m && monoIs m c) ||
       G.postR.any fun r ↦ monoS G (na + nr) false r.q && ptIn c r) &&
-    (h.postR.all fun q ↦ (G.postR ++ G.postL).any fun r ↦ (monoS G (na + nr) false r.q && rngIs r q) ||
+    allAnyPos (fun r q ↦ (monoS G (na + nr) false r.q && rngIs r q) ||
       (monoS G (na + nr) false (rngM r) && rngXIs r q) ||
-      (monoS G (na + nr) false (rngM r) && rngXExt G (na + nr) G.post r q)) && Nat.beq h.ghosts (hpBs G).length
+      (monoS G (na + nr) false (rngM r) && rngXExt G (na + nr) G.post r q)) (G.postR ++ G.postL) h.postR &&
+    Nat.beq h.ghosts (hpBs G).length
 
 /-- The first top-level `const`, `copy` or `mul` defining value `n`, before any `ret`. -/
 def defOf : List Stmt → ℕ → Option Atom

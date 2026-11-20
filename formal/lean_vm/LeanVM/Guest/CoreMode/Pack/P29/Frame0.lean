@@ -34,37 +34,26 @@ public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P13»
 public import LeanVM.Guest.CoreMode.Sig.«P16»
-public import LeanVM.Guest.CoreMode.Sig.«P18»
 public import LeanVM.Guest.CoreMode.Sig.«P2»
 public import LeanVM.Guest.CoreMode.Sig.«P21»
 public import LeanVM.Guest.CoreMode.Sig.«P23»
-public import LeanVM.Guest.CoreMode.Sig.«P25»
 public import LeanVM.Guest.CoreMode.Sig.«P26»
 public import LeanVM.Guest.CoreMode.Sig.«P27»
-public import LeanVM.Guest.CoreMode.Sig.«P28»
 public import LeanVM.Guest.CoreMode.Sig.«P29»
-public import LeanVM.Guest.CoreMode.Sig.«P32»
 public import LeanVM.Guest.CoreMode.Sig.«P33»
 public import LeanVM.Guest.CoreMode.Sig.«P35»
 public import LeanVM.Guest.CoreMode.Sig.«P4»
-public import LeanVM.Guest.CoreMode.Sig.«P40»
 public import LeanVM.Guest.CoreMode.Sig.«P42»
-public import LeanVM.Guest.CoreMode.Sig.«P44»
 public import LeanVM.Guest.CoreMode.Sig.«P45»
-public import LeanVM.Guest.CoreMode.Sig.«P47»
-public import LeanVM.Guest.CoreMode.Sig.«P51»
-public import LeanVM.Guest.CoreMode.Sig.«P54»
 public import LeanVM.Guest.CoreMode.Sig.«P56»
 public import LeanVM.Guest.CoreMode.Sig.«P58»
-public import LeanVM.Guest.CoreMode.Sig.«P59»
 public import LeanVM.Guest.CoreMode.Sig.«P6»
 public import LeanVM.Guest.CoreMode.Sig.«P61»
-public import LeanVM.Guest.CoreMode.Sig.«P63»
 public import LeanVM.Guest.CoreMode.Sig.«P8»
-public import LeanVM.Guest.CoreMode.Sig.«P9»
 
 set_option Elab.async false
 
@@ -76,31 +65,17 @@ open LeanVM.Guest.Exec
 
 @[expose] public section
 
-def Fn.«claim_list_digest».frameCallee0 : List ℕ := [Fn.«claim_list_last__L0».entry,
-    Fn.«claim_list_last__L1».entry, Fn.«claim_list_last__L2».entry, Fn.«claim_list_last__L3».entry,
-    Fn.«claim_list_last__L4».entry, Fn.«claim_list_last__L5».entry, Fn.«claim_list_last__L6».entry,
-    Fn.«claim_list_last__L7».entry, Fn.«claim_list_last__L8».entry, Fn.«claim_list_last__L9».entry,
-    Fn.«claim_list_last__L10».entry, Fn.«claim_list_last__L11».entry,
-    Fn.«claim_list_last__L12».entry, Fn.«claim_list_last__L13».entry,
-    Fn.«claim_list_last__L14».entry, Fn.«claim_list_last__L15».entry,
-    Fn.«claim_list_last__L16».entry]
+noncomputable def Fn.«claim_list_digest».envC : Mode.Env := CoreMode.envOf
+    [Fn.«claim_list_digest_loop0».csig, Fn.«claim_list_digest_loop1».csig,
+    Fn.«claim_list_tail».csig, Fn.«list_split».csig]
+noncomputable def Fn.«claim_list_digest».funC : Mode.Fun := ⟨Fn.«claim_list_digest».entry, 115,
+    Fn.«claim_list_digest».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«claim_list_digest».frameFun : CoreMode.FFun :=
-  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«claim_list_digest».entry, 108,
+  ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«claim_list_digest».entry, 115,
     Fn.«claim_list_digest».csig, (CoreMode.sigTrie [Fn.«claim_list_digest_loop0».csig,
-    Fn.«claim_list_digest_loop1».csig, Fn.«claim_list_last__L0».csig,
-    Fn.«claim_list_last__L10».csig, Fn.«claim_list_last__L11».csig, Fn.«claim_list_last__L12».csig,
-    Fn.«claim_list_last__L13».csig, Fn.«claim_list_last__L14».csig, Fn.«claim_list_last__L15».csig,
-    Fn.«claim_list_last__L16».csig, Fn.«claim_list_last__L1».csig, Fn.«claim_list_last__L2».csig,
-    Fn.«claim_list_last__L3».csig, Fn.«claim_list_last__L4».csig, Fn.«claim_list_last__L5».csig,
-    Fn.«claim_list_last__L6».csig, Fn.«claim_list_last__L7».csig, Fn.«claim_list_last__L8».csig,
-    Fn.«claim_list_last__L9».csig, Fn.«list_split».csig]), 524287, advice.2.2, .nil, (.node none
-    .nil (.node none (.node none .nil (.node none (.node none (.node none .nil (.node (some 0) .nil
-    .nil)) .nil) .nil)) .nil)), .nil, (.node (some frameCallee0) .nil .nil), (.node none (.node none
-    (.node none .nil (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)
-    .nil)) (.node none .nil (.node none (.node (some ()) (.node none .nil (.node (some ()) .nil
-    .nil)) .nil) .nil))) (.node none (.node none .nil (.node none (.node (some ()) .nil .nil) .nil))
-    (.node none .nil (.node none (.node (some ()) (.node none .nil (.node (some ()) .nil .nil))
-    .nil) .nil)))), .nil, .nil⟩
+    Fn.«claim_list_digest_loop1».csig, Fn.«claim_list_tail».csig, Fn.«list_split».csig]), 524287,
+    advice.2.2, .nil, .nil, .nil, .nil, Fn.«claim_list_digest».pairO, Fn.«claim_list_digest».pairS,
+    .nil⟩
 
 theorem Fn.«claim_list_digest».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel

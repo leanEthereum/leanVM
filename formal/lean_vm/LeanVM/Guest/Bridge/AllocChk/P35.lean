@@ -12,17 +12,31 @@ public import LeanVM.Guest.Bridge.AllocFrDefs
 public import LeanVM.Guest.Bridge.Align.«P35»
 public import LeanVM.Guest.CoreMode.GlueA.«P11»
 public import LeanVM.Guest.CoreMode.GlueA.«P14»
+public import LeanVM.Guest.CoreMode.GlueA.«P16»
+public import LeanVM.Guest.CoreMode.GlueA.«P18»
+public import LeanVM.Guest.CoreMode.GlueA.«P21»
 public import LeanVM.Guest.CoreMode.GlueA.«P23»
 public import LeanVM.Guest.CoreMode.GlueA.«P24»
 public import LeanVM.Guest.CoreMode.GlueA.«P25»
 public import LeanVM.Guest.CoreMode.GlueA.«P26»
+public import LeanVM.Guest.CoreMode.GlueA.«P28»
+public import LeanVM.Guest.CoreMode.GlueA.«P2»
+public import LeanVM.Guest.CoreMode.GlueA.«P32»
 public import LeanVM.Guest.CoreMode.GlueA.«P33»
 public import LeanVM.Guest.CoreMode.GlueA.«P35»
 public import LeanVM.Guest.CoreMode.GlueA.«P3»
+public import LeanVM.Guest.CoreMode.GlueA.«P40»
+public import LeanVM.Guest.CoreMode.GlueA.«P44»
+public import LeanVM.Guest.CoreMode.GlueA.«P47»
 public import LeanVM.Guest.CoreMode.GlueA.«P51»
+public import LeanVM.Guest.CoreMode.GlueA.«P54»
 public import LeanVM.Guest.CoreMode.GlueA.«P55»
+public import LeanVM.Guest.CoreMode.GlueA.«P59»
 public import LeanVM.Guest.CoreMode.GlueA.«P61»
 public import LeanVM.Guest.CoreMode.GlueA.«P62»
+public import LeanVM.Guest.CoreMode.GlueA.«P63»
+public import LeanVM.Guest.CoreMode.GlueA.«P6»
+public import LeanVM.Guest.CoreMode.GlueA.«P9»
 public import LeanVM.Guest.Pack.«P35».Bundle
 public import LeanVM.Guest.Pack.«P35».Core
 
@@ -36,6 +50,10 @@ theorem Fn.«assert_small_g_power».allocShapeOk : Bridge.allocShape core.body =
 theorem Fn.«assert_small_g_power».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Fn.«assert_small_g_power».advice = true := by decide +kernel
 theorem Fn.«assert_small_g_power».frOk : Bridge.frChk alignCtx fs [] core.params core.body Fn.«assert_small_g_power».advice = true := by decide +kernel
 theorem Fn.«assert_small_g_power».allocOk : Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Fn.«assert_small_g_power».advice = true := by decide +kernel
+theorem Fn.«claim_list_tail».allocShapeOk : Bridge.allocShape core.body = true := by decide +kernel
+theorem Fn.«claim_list_tail».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Fn.«claim_list_tail».advice = true := by decide +kernel
+theorem Fn.«claim_list_tail».frOk : Bridge.frChk alignCtx fs [Fn.«claim_list_last__L0».idx, Fn.«claim_list_last__L1».idx, Fn.«claim_list_last__L2».idx, Fn.«claim_list_last__L3».idx, Fn.«claim_list_last__L4».idx, Fn.«claim_list_last__L5».idx, Fn.«claim_list_last__L6».idx, Fn.«claim_list_last__L7».idx, Fn.«claim_list_last__L8».idx, Fn.«claim_list_last__L9».idx, Fn.«claim_list_last__L10».idx, Fn.«claim_list_last__L11».idx, Fn.«claim_list_last__L12».idx, Fn.«claim_list_last__L13».idx, Fn.«claim_list_last__L14».idx, Fn.«claim_list_last__L15».idx, Fn.«claim_list_last__L16».idx] core.params core.body Fn.«claim_list_tail».advice = true := by decide +kernel
+theorem Fn.«claim_list_tail».allocOk : Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Fn.«claim_list_tail».advice = true := by decide +kernel
 theorem Fn.«rs_eq_rows__L6».allocShapeOk : Bridge.allocShape core.body = true := by decide +kernel
 theorem Fn.«rs_eq_rows__L6».curBodyOk : Bridge.curBody alignCtx plumb core.body code.code Fn.«rs_eq_rows__L6».advice = true := by decide +kernel
 theorem Fn.«rs_eq_rows__L6».frOk : Bridge.frChk alignCtx fs [] core.params core.body Fn.«rs_eq_rows__L6».advice = true := by decide +kernel

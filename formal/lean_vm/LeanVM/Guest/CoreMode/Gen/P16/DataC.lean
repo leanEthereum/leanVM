@@ -45,7 +45,7 @@ def hcert : CoreMode.HCert where
 def csigs : List (String × CoreMode.HSig) :=
   [("child_claim_list_any", CoreMode.HcSig.«child_claim_list_any».sig),
     ("child_claim_list_mono", CoreMode.HcSig.«child_claim_list_mono».sig),
-    ("list_split", {})]
+    ("list_split", CoreMode.HcSig.«list_split».csig)]
 def hcFlag : Bool := false
 def hcCallees : List (String × ℕ × ℕ) :=
   []

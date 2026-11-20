@@ -12,35 +12,23 @@ public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P29».Core
 public import LeanVM.Guest.Pack.«P29».Bundle
 public import LeanVM.Guest.Pack.«P42».Sig
+public import LeanVM.Guest.Pack.«P35».Sig
 public import LeanVM.Guest.Pack.«P4».Sig
 public import LeanVM.Guest.Pack.«P23».Sig
-public import LeanVM.Guest.Pack.«P35».Sig
-public import LeanVM.Guest.Pack.«P16».Sig
-public import LeanVM.Guest.Pack.«P9».Sig
-public import LeanVM.Guest.Pack.«P54».Sig
-public import LeanVM.Guest.Pack.«P47».Sig
-public import LeanVM.Guest.Pack.«P28».Sig
-public import LeanVM.Guest.Pack.«P21».Sig
-public import LeanVM.Guest.Pack.«P2».Sig
-public import LeanVM.Guest.Pack.«P59».Sig
-public import LeanVM.Guest.Pack.«P40».Sig
-public import LeanVM.Guest.Pack.«P32».Sig
-public import LeanVM.Guest.Pack.«P51».Sig
-public import LeanVM.Guest.Pack.«P6».Sig
-public import LeanVM.Guest.Pack.«P25».Sig
-public import LeanVM.Guest.Pack.«P44».Sig
-public import LeanVM.Guest.Pack.«P63».Sig
-public import LeanVM.Guest.Pack.«P18».Sig
 public import LeanVM.Guest.Pack.«P33».Sig
 public import LeanVM.Guest.Pack.«P27».Sig
+public import LeanVM.Guest.Pack.«P16».Sig
 public import LeanVM.Guest.Pack.«P29».Sig
 public import LeanVM.Guest.Pack.«P45».Sig
+public import LeanVM.Guest.Pack.«P2».Sig
 public import LeanVM.Guest.Pack.«P56».Sig
 public import LeanVM.Guest.Pack.«P58».Sig
 public import LeanVM.Guest.Pack.«P11».Sig
+public import LeanVM.Guest.Pack.«P21».Sig
 public import LeanVM.Guest.Pack.«P61».Sig
 public import LeanVM.Guest.Pack.«P8».Sig
 public import LeanVM.Guest.Pack.«P26».Sig
+public import LeanVM.Guest.Pack.«P6».Sig
 public import LeanVM.Guest.Pack.«P13».Sig
 
 set_option Elab.async false
@@ -52,7 +40,7 @@ open LeanVM.Guest LeanVM.Guest.Check
 @[expose] public section
 
 /-- `claim_list_digest`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(Fn.«list_split».idx, Fn.«list_split».sig), (Fn.«claim_list_digest_loop0».idx, Fn.«claim_list_digest_loop0».sig), (Fn.«claim_list_digest_loop1».idx, Fn.«claim_list_digest_loop1».sig), (Fn.«claim_list_last__L0».idx, Fn.«claim_list_last__L0».sig), (Fn.«claim_list_last__L1».idx, Fn.«claim_list_last__L1».sig), (Fn.«claim_list_last__L2».idx, Fn.«claim_list_last__L2».sig), (Fn.«claim_list_last__L3».idx, Fn.«claim_list_last__L3».sig), (Fn.«claim_list_last__L4».idx, Fn.«claim_list_last__L4».sig), (Fn.«claim_list_last__L5».idx, Fn.«claim_list_last__L5».sig), (Fn.«claim_list_last__L6».idx, Fn.«claim_list_last__L6».sig), (Fn.«claim_list_last__L7».idx, Fn.«claim_list_last__L7».sig), (Fn.«claim_list_last__L8».idx, Fn.«claim_list_last__L8».sig), (Fn.«claim_list_last__L9».idx, Fn.«claim_list_last__L9».sig), (Fn.«claim_list_last__L10».idx, Fn.«claim_list_last__L10».sig), (Fn.«claim_list_last__L11».idx, Fn.«claim_list_last__L11».sig), (Fn.«claim_list_last__L12».idx, Fn.«claim_list_last__L12».sig)] ++ [(Fn.«claim_list_last__L13».idx, Fn.«claim_list_last__L13».sig), (Fn.«claim_list_last__L14».idx, Fn.«claim_list_last__L14».sig), (Fn.«claim_list_last__L15».idx, Fn.«claim_list_last__L15».sig), (Fn.«claim_list_last__L16».idx, Fn.«claim_list_last__L16».sig)]) Data.jtTrie globSem) code
+theorem w0 : checkWinCF (Glob.ofSigs ([(Fn.«list_split».idx, Fn.«list_split».sig), (Fn.«claim_list_tail».idx, Fn.«claim_list_tail».sig), (Fn.«claim_list_digest_loop0».idx, Fn.«claim_list_digest_loop0».sig), (Fn.«claim_list_digest_loop1».idx, Fn.«claim_list_digest_loop1».sig)]) Data.jtTrie globSem) code
     Fn.«claim_list_digest».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 

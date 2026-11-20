@@ -11,22 +11,22 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-abbrev Fn.«block_selector__L18».entry : Nat := 197543
-abbrev Fn.«da_levels__L32_L5_loop1».entry : Nat := 274707
-abbrev Fn.«eq_prefix_run__L14».entry : Nat := 179179
+abbrev Fn.«block_selector__L18».entry : Nat := 197563
+abbrev Fn.«da_levels__L32_L5_loop1».entry : Nat := 274727
+abbrev Fn.«eq_prefix_run__L14».entry : Nat := 179199
 abbrev Fn.«g_power_of_word».entry : Nat := 19245
-abbrev Fn.«level_positions__L10_L21_L3».entry : Nat := 260576
-abbrev Fn.«level_positions__L15_L25_L7_loop0».entry : Nat := 365022
-abbrev Fn.«level_positions__L4_L22_L4_loop0».entry : Nat := 353670
-abbrev Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».entry : Nat := 259211
-abbrev Fn.«level_queries__L55_L1_L6_L32_L26_L2_L0_L0_L0_L0».entry : Nat := 269389
-abbrev Fn.«level_residual__L109_L15_L6_L3_loop1».entry : Nat := 291702
-abbrev Fn.«level_residual__L16_L6_L4_L2».entry : Nat := 270948
-abbrev Fn.«level_residual__L32_L7_L4_L2_loop0».entry : Nat := 295805
-abbrev Fn.«level_residual__L32_L8_L4_L2».entry : Nat := 260221
-abbrev Fn.«level_residual__L55_L20_L6_L3_loop1».entry : Nat := 346004
-abbrev Fn.«opening_message__L8_L1».entry : Nat := 254665
-abbrev Fn.«plus_one_run__L12».entry : Nat := 194424
+abbrev Fn.«level_positions__L10_L21_L3».entry : Nat := 260596
+abbrev Fn.«level_positions__L15_L25_L7_loop0».entry : Nat := 365042
+abbrev Fn.«level_positions__L4_L22_L4_loop0».entry : Nat := 353690
+abbrev Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».entry : Nat := 259231
+abbrev Fn.«level_queries__L55_L1_L6_L32_L26_L2_L0_L0_L0_L0».entry : Nat := 269409
+abbrev Fn.«level_residual__L109_L15_L6_L3_loop1».entry : Nat := 291722
+abbrev Fn.«level_residual__L16_L6_L4_L2».entry : Nat := 270968
+abbrev Fn.«level_residual__L32_L7_L4_L2_loop0».entry : Nat := 295825
+abbrev Fn.«level_residual__L32_L8_L4_L2».entry : Nat := 260241
+abbrev Fn.«level_residual__L55_L20_L6_L3_loop1».entry : Nat := 346024
+abbrev Fn.«opening_message__L8_L1».entry : Nat := 254685
+abbrev Fn.«plus_one_run__L12».entry : Nat := 194444
 
 end
 

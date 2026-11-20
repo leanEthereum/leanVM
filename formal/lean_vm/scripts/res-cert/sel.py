@@ -18,9 +18,8 @@ import res as R
 import data
 
 OUT = term.OUT
-# the certificates whose residuals the families leave: `claim_list_digest`'s dispatch sits in a branch,
-# and `verify_bus_gkr_loop0`'s callee reads (`EndExecRGkrC`)
-EXC = ['claim_list_digest', 'verify_bus_gkr_loop0']
+# the certificates whose residuals the families leave: none (`claim_list_digest`, the last, is on the core route)
+EXC = []
 
 
 def residuals():
@@ -109,7 +108,9 @@ def render():
         files[mod] = ''.join(t); mods.append(mod)
     mod = 'LeanVM.Guest.Res.ResCerts'
     t = [header(mod, '`ResTop offCerts alignA` from the families\' and the listed certificates\' residuals.')]
-    t.append(''.join('public import %s\n' % m for m in mods))
+    # no group (every function on the core route): the groups' imports
+    t.append(''.join('public import %s\n' % m for m in mods) or
+             'public import LeanVM.Guest.Res.ResGiven\npublic import LeanVM.Guest.Mode.Certs.List\n')
     t.append('public import LeanVM.Guest.EndExecRSplit\n')
     t.append('\nset_option Elab.async false\n\nnamespace LeanVM.Guest.EndExec\n\nopen LeanVM.Guest LeanVM.Guest.Mode '
              'LeanVM.Guest.Res\n\npublic section\n\n/-- **Every certificate\'s residuals are in the families.** -/\n'
