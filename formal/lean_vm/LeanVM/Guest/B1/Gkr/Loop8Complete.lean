@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Gkr.Loop8
 public import LeanVM.Guest.B1.Common.Loops
 public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.CoreData
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_bus_gkr_loop0»
 
 /-!
 # `verify_bus_gkr_loop0`, completely
@@ -30,8 +32,8 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Guest.B1
 /-- `verify_bus_gkr_loop0`'s atoms. -/
 def l8A : List Stmt := l8Body.take 9
 
-theorem l8Body_eq : l8Body = l8A ++ [.callIf (.n 9) name% «verify_bus_gkr_loop0» [.n 11, .n 1,
-    .n 2, .n 3], .ret []] :=
+theorem l8Body_eq : l8Body = l8A ++ [.callIf (.n (val% «verify_bus_gkr_loop0» "s2#2")) name% «verify_bus_gkr_loop0» [.n (val% «verify_bus_gkr_loop0» "s2#4"), .n (val% «verify_bus_gkr_loop0» "bound"),
+    .n (val% «verify_bus_gkr_loop0» "zeta"), .n (val% «verify_bus_gkr_loop0» "final_point_row")], .ret []] :=
   rfl
 
 theorem l8A_atoms : AllAtoms l8A := by

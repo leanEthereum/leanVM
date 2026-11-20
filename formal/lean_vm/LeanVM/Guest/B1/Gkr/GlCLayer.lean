@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Gkr.GlCLayerK
 public import LeanVM.Guest.B1.Gkr.GlCSt
 public import LeanVM.Guest.B1.Gkr.RecsC
 public import LeanVM.Guest.B1.Gkr.SpecInv
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
 
 /-!
 # A radix-four layer, completely
@@ -86,7 +88,7 @@ theorem glc_chw {τ : Val} {ch0 ch1 ch2 : List E} (h0 : ch0.length = 4) (h1 : ch
     rw [hv _ (by norm_num), hv _ (by norm_num), hv _ (by norm_num), hv _ (by norm_num)] <;> rfl
 
 theorem glRounds_head (p : ℕ) : glHeadRounds p =
-    glRounds 58 (2 * p) (.n 21) (.n 52) (.n 52) 42 (.n 57) (glCap 35) := rfl
+    glRounds 58 (2 * p) (.n (valf% «gkr_layer» "s4#0")) (.n (valf% «gkr_layer» "point_row")) (.n (valf% «gkr_layer» "point_row")) 42 (.n (valf% «gkr_layer» "claim@2")) (glCap 35) := rfl
 
 theorem glBodyA_noRet (p o : ℕ) (nm : String) :
     Stmt.noRetList glPre = true ∧ Stmt.noRetList (glHeadRounds p) = true ∧

@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Gkr.GlCInVbg
 public import LeanVM.Guest.B1.Gkr.GlCInZeta
 public import LeanVM.Guest.B1.Tables.FlatLiftOut
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_bus_gkr»
 
 /-!
 # `verify_bus_gkr`, placed (TRIAGE G #43)
@@ -63,9 +65,9 @@ def vbgKindB (s : Stmt) : Bool :=
 
 theorem vbg_kinds : vbgPre.all vbgKindB = true := by decide +kernel
 
-theorem vbg_allocs : vbgPre.filterMap Main.Stmt.allocSz = [(.n 16, .inr (.n 15)),
-    (.n 17, .inl 6034), (.n 18, .inl 1640), (.n 63, .inl 33), (.n 65, .inl 33), (.n 66, .inl 33),
-    (.n 423, .inl 3)] := by
+theorem vbg_allocs : vbgPre.filterMap Main.Stmt.allocSz = [(.n (val% «verify_bus_gkr» "layers"), .inr (.n (val% «verify_bus_gkr» "layers~5"))),
+    (.n (val% «verify_bus_gkr» "rounds"), .inl 6034), (.n (val% «verify_bus_gkr» "gkr_pts"), .inl 1640), (.n (val% «verify_bus_gkr» "depth_odd"), .inl 33), (.n (val% «verify_bus_gkr» "four_bounds"), .inl 33), (.n (val% «verify_bus_gkr» "four_rem"), .inl 33),
+    (.n (val% «verify_bus_gkr» "leaves"), .inl 3)] := by
   decide +kernel
 
 theorem vsh_atomsDeep {C C' : CallRel} {rd : Reader} {σ : Val} :

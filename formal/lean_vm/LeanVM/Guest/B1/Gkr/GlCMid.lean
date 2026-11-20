@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Gkr.GlCHead
 public import LeanVM.Guest.B1.Gkr.GlCLoop
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
 
 /-!
 # A radix-four layer's middle, completely
@@ -54,13 +56,13 @@ theorem glc_cap_load {rd : Reader} {rec : E} {cap : List E} (h : TbCapAt rd rec 
 
 /-- **The head record stored.** -/
 theorem glc_hstore {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glHeadStore p, GoodS rd S w σ s)
-    {head cur : E} (e21 : σ (.n 21) = cur) (e54 : σ (.n 53) = head) {cap : List E} {claim : E}
+    {head cur : E} (e21 : σ (.n (valf% «gkr_layer» "s4#0")) = cur) (e54 : σ (.n (valf% «gkr_layer» "head")) = head) {cap : List E} {claim : E}
     (hcap : (glCap (if p = 0 then 35 else 39 + 78 * p)).map σ = cap)
     (hcl : σ (.n (if p = 0 then 57 else 57 + 78 * p)) = claim)
     (hR1 : TbCapAt rd head 0 gkCap cap) (hR2 : LoadHolds rd head (5 * gkCap) (cur * gen ^ (8 * p)))
     (hR3 : LoadHolds rd head (6 * gkCap) claim) :
     Stmt.HoldsList C rd σ (glHeadStore p) True kret := by
-  have hc : ∀ k < 5, LoadHolds rd (σ (.n 53)) (862 * k)
+  have hc : ∀ k < 5, LoadHolds rd (σ (.n (valf% «gkr_layer» "head"))) (862 * k)
       (σ (.n ((if p = 0 then 35 else 39 + 78 * p) + k))) := by
     intro k hk
     have := glc_cap_load hR1 hk
@@ -81,7 +83,7 @@ theorem glc_hstore {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glHeadStore p, GoodS r
     have g : ∀ a, Stmt.atom a ∈ glHeadStore p → Good rd S w σ a := fun a ha ↦ hG _ ha
     have c59 : σ (.n (58 + 78 * p)) = word (2 ^ (8 * p)) 0 :=
       g (.const (.n (58 + 78 * p)) (word (2 ^ (8 * p)) 0)) (by simp [glHeadStore, hp0, glHeadStoreP])
-    have m60 := good_mul (g (.mul (.n (59 + 78 * p)) (.n 21) (.n (58 + 78 * p)))
+    have m60 := good_mul (g (.mul (.n (59 + 78 * p)) (.n (valf% «gkr_layer» "s4#0")) (.n (58 + 78 * p)))
       (by simp [glHeadStore, hp0, glHeadStoreP])) (by omega) (by omega)
     simp only [glHeadStore, hp0, ↓reduceIte, glHeadStoreP, List.range_succ, List.range_zero,
       List.map_cons, List.map_nil, List.nil_append, List.cons_append, Stmt.HoldsList, Stmt.Holds,
@@ -93,10 +95,10 @@ theorem glc_hstore {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glHeadStore p, GoodS r
 
 /-- **The loop's call** on the head, `qrow = row·g^(2p)` and `qrow·g^42`, entered iff `m ≠ 0`. -/
 theorem glc_lcall {p : ℕ} (hp : p < 4) {nm : String}
-    (hG : ∀ s ∈ glLoopCall p nm, GoodS rd S w σ s) {m : ℕ} (e3 : σ (.n 3) = gen ^ m)
-    {row : E} (e53 : σ (.n 52) = row)
-    (hloop : 0 < m → coreProgram.Rel rd nm [1, gen ^ m, σ (.n 53), row * gen ^ (2 * p),
-      row * gen ^ (2 * p) * gen ^ 42, σ (.n 7)] []) :
+    (hG : ∀ s ∈ glLoopCall p nm, GoodS rd S w σ s) {m : ℕ} (e3 : σ (.n (valf% «gkr_layer» "x_m")) = gen ^ m)
+    {row : E} (e53 : σ (.n (valf% «gkr_layer» "point_row")) = row)
+    (hloop : 0 < m → coreProgram.Rel rd nm [1, gen ^ m, σ (.n (valf% «gkr_layer» "head")), row * gen ^ (2 * p),
+      row * gen ^ (2 * p) * gen ^ 42, σ (.n (valf% «gkr_layer» "tabs"))] []) :
     Stmt.HoldsList (coreProgram.Rel rd) rd σ (glLoopCall p nm) True kret := by
   have g : ∀ a, Stmt.atom a ∈ glLoopCall p nm → Good rd S w σ a := fun a ha ↦ hG _ ha
   have hK : IsInK (1 + gen ^ m) := tb_isInK_add (by simpa using tb_gen_pow_isInK 0) (tb_gen_pow_isInK _)
@@ -107,12 +109,12 @@ theorem glc_lcall {p : ℕ} (hp : p < 4) {nm : String}
   rcases Nat.eq_zero_or_pos p with h0 | h0
   · subst h0
     have c59 : σ (.n 58) = word 1 0 := g (.const (.n 58) (word 1 0)) (by simp [glLoopCall, glLoopCall0])
-    have a60 : σ (.n 59) = σ (.n 58) + σ (.n 3) := g (.add (.n 59) (.n 58) (.n 3))
+    have a60 : σ (.n 59) = σ (.n 58) + σ (.n (valf% «gkr_layer» "x_m")) := g (.add (.n 59) (.n 58) (.n (valf% «gkr_layer» "x_m")))
       (by simp [glLoopCall, glLoopCall0])
     have c61 : σ (.n 60) = word 1 0 := g (.const (.n 60) (word 1 0)) (by simp [glLoopCall, glLoopCall0])
     have c62 : σ (.n 61) = word (2 ^ 42) 0 := g (.const (.n 61) (word (2 ^ 42) 0))
       (by simp [glLoopCall, glLoopCall0])
-    have m63 := good_mul (g (.mul (.n 62) (.n 52) (.n 61)) (by simp [glLoopCall, glLoopCall0]))
+    have m63 := good_mul (g (.mul (.n 62) (.n (valf% «gkr_layer» "point_row")) (.n 61)) (by simp [glLoopCall, glLoopCall0]))
       (by omega) (by omega)
     have e60 : σ (.n 59) = 1 + gen ^ m := by rw [a60, c59, tb_word_one, e3]
     simp only [glLoopCall, ↓reduceIte, glLoopCall0, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
@@ -127,17 +129,17 @@ theorem glc_lcall {p : ℕ} (hp : p < 4) {nm : String}
       simpa [glLoopCall, hp0] using ha
     have c1 : σ (.n (60 + 78 * p)) = word 1 0 :=
       g (.const (.n (60 + 78 * p)) (word 1 0)) (mem _ (by simp [glLoopCallP]))
-    have a2 : σ (.n (61 + 78 * p)) = σ (.n (60 + 78 * p)) + σ (.n 3) :=
-      g (.add (.n (61 + 78 * p)) (.n (60 + 78 * p)) (.n 3)) (mem _ (by simp [glLoopCallP]))
+    have a2 : σ (.n (61 + 78 * p)) = σ (.n (60 + 78 * p)) + σ (.n (valf% «gkr_layer» "x_m")) :=
+      g (.add (.n (61 + 78 * p)) (.n (60 + 78 * p)) (.n (valf% «gkr_layer» "x_m"))) (mem _ (by simp [glLoopCallP]))
     have c3 : σ (.n (62 + 78 * p)) = word 1 0 :=
       g (.const (.n (62 + 78 * p)) (word 1 0)) (mem _ (by simp [glLoopCallP]))
     have c4 : σ (.n (63 + 78 * p)) = word (2 ^ (2 * p)) 0 :=
       g (.const (.n (63 + 78 * p)) (word (2 ^ (2 * p)) 0)) (mem _ (by simp [glLoopCallP]))
-    have m5 := good_mul (g (.mul (.n (64 + 78 * p)) (.n 52) (.n (63 + 78 * p)))
+    have m5 := good_mul (g (.mul (.n (64 + 78 * p)) (.n (valf% «gkr_layer» "point_row")) (.n (63 + 78 * p)))
       (mem _ (by simp [glLoopCallP]))) (by omega) (by omega)
     have c6 : σ (.n (65 + 78 * p)) = word (2 ^ (42 + 2 * p)) 0 :=
       g (.const (.n (65 + 78 * p)) (word (2 ^ (42 + 2 * p)) 0)) (mem _ (by simp [glLoopCallP]))
-    have m7 := good_mul (g (.mul (.n (66 + 78 * p)) (.n 52) (.n (65 + 78 * p)))
+    have m7 := good_mul (g (.mul (.n (66 + 78 * p)) (.n (valf% «gkr_layer» "point_row")) (.n (65 + 78 * p)))
       (mem _ (by simp [glLoopCallP]))) (by omega) (by omega)
     have e2 : σ (.n (61 + 78 * p)) = 1 + gen ^ m := by rw [a2, c1, tb_word_one, e3]
     simp only [glLoopCall, hp0, ↓reduceIte, glLoopCallP, Stmt.HoldsList, Stmt.Holds, Atom.Holds,

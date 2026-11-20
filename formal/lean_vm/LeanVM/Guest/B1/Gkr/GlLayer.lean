@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B1.Gkr.GlLoop
 public import LeanVM.Guest.B1.Gkr.GlTail
 public import LeanVM.Guest.B1.Gkr.GlHead
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
 
 /-!
 # A radix-four layer, soundly
@@ -113,9 +115,9 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
     gl_pre hPre hxj hsg (by omega) hslot
   have RH := glRounds_sound (rd := rd) (2 * p) hHR rfl
   obtain ⟨hsc, hscur, hscl⟩ := gl_headStore hp hHS
-  have R0 := gkrRoundsOut_zero (pt := σ (.n 52) * gen ^ (2 * p)) hsc hscur hscl
+  have R0 := gkrRoundsOut_zero (pt := σ (.n (valf% «gkr_layer» "point_row")) * gen ^ (2 * p)) hsc hscur hscl
   -- the loop
-  have RL := gl_loop hp ho (head := σ (.n 53)) (tabs := σ (.n 7)) hxm (by omega) rfl
+  have RL := gl_loop hp ho (head := σ (.n (valf% «gkr_layer» "head"))) (tabs := σ (.n (valf% «gkr_layer» "tabs"))) hxm (by omega) rfl
     (fun hne => hC _ _ _ (gl_loopCall hp hLC hne)) R0
   obtain ⟨cap1, cap2, cur1, cl1, cl2, hc1, hcur1, hcl1, RLr, hc2, hcur2, hcl2⟩ := glRun_of_out RL
   obtain rfl := tbCapAt_unique hc1 hsc
@@ -128,8 +130,8 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
   obtain rfl := tbCapAt_unique htc hc2
   have ecur := tb_loadHolds_unique htcur hcur2
   have ecl := tb_loadHolds_unique htcl hcl2
-  have hcu : σ (.n (76 + D)) = σ (.n 21) * gen ^ (4 * (2 * p + 8 * m)) := by rw [ecur]; ring
-  have hpt : σ (.n (67 + D)) = σ (.n 52) * gen ^ (2 * p + 8 * m) := by
+  have hcu : σ (.n (76 + D)) = σ (.n (valf% «gkr_layer» "s4#0")) * gen ^ (4 * (2 * p + 8 * m)) := by rw [ecur]; ring
+  have hpt : σ (.n (67 + D)) = σ (.n (valf% «gkr_layer» "point_row")) * gen ^ (2 * p + 8 * m) := by
     rw [etp, hxm, ← pow_mul]; ring
   have RT := glRounds_sound (rd := rd) (2 - o) hTR (by rw [pow_zero, mul_one, entp])
   rw [hcu, hpt] at RT
@@ -174,7 +176,7 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
       (st.point.map some)) s.squeeze.2 cs.flatten (run.1, τ (.n 155))
       ⟨(glCap 137).map τ, []⟩ :=
     hsc.of_eq rfl rfl (by rw [hclR]; rfl) (by rw [hcapR]; exact tb_gkrRun_eta _ _ _ _ rfl)
-  have t40 : τ (.n 27) = s.squeeze.1 := by rw [tz 27 (by omega)]; exact e40
+  have t40 : τ (.n (valf% «gkr_layer» "nxt[0]@1")) = s.squeeze.1 := by rw [tz 27 (by omega)]; exact e40
   have hcheck : τ (.n 155) = polyEval [prodE (glCh τ 0), prodE (glCh τ 1), prodE (glCh τ 2)]
       s.squeeze.1 := by rw [← t40]; exact tcheck
   have hstep := gkrStep_run (step := 2) le_rfl false hsc' (chWords_length τ 156 0)
@@ -189,12 +191,12 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
       dsObserve).absorbAll (glCh τ 1) dsObserve).absorbAll (glCh τ 2) dsObserve) = glSponge τ
       from rfl, tsq1, tsq2] at hh
     exact hh
-  have t15 : τ (.n 15) = σ (.n 0) * gen ^ (10 * L) := by rw [tz 15 (by omega)]; exact e15
-  have t53 : τ (.n 52) = σ (.n 2) * gen ^ (40 * (j + 1)) := by rw [tz 52 (by omega)]; exact e53
-  have ld : ∀ k w, LoadHolds rd (τ (.n 15)) k w → LoadHolds rd (σ (.n 0)) (10 * L + k) w :=
+  have t15 : τ (.n (valf% «gkr_layer» "layer")) = σ (.n (valf% «gkr_layer» "layers")) * gen ^ (10 * L) := by rw [tz 15 (by omega)]; exact e15
+  have t53 : τ (.n (valf% «gkr_layer» "point_row")) = σ (.n (valf% «gkr_layer» "gkr_pts")) * gen ^ (40 * (j + 1)) := by rw [tz 52 (by omega)]; exact e53
+  have ld : ∀ k w, LoadHolds rd (τ (.n (valf% «gkr_layer» "layer"))) k w → LoadHolds rd (σ (.n (valf% «gkr_layer» "layers"))) (10 * L + k) w :=
     fun k w hw => by rw [t15, tb_loadHolds_mul_gen_pow] at hw; exact hw
-  have hcurT : τ (.n 76) = σ (.n 21) * gen ^ (4 * (2 * p + 8 * m)) := by rw [t77, hcu]
-  refine ⟨_, _, _, τ (.n 43) * τ (.n 3) * gen, hstep', ?_, ?_⟩
+  have hcurT : τ (.n 76) = σ (.n (valf% «gkr_layer» "s4#0")) * gen ^ (4 * (2 * p + 8 * m)) := by rw [t77, hcu]
+  refine ⟨_, _, _, τ (.n (valf% «gkr_layer» "round_pos")) * τ (.n (valf% «gkr_layer» "x_m")) * gen, hstep', ?_, ?_⟩
   · rw [tbReadsAt_append, flatten_length_four h4, hlen]
     refine ⟨hrd, ?_⟩
     rw [hcurT, mul_assoc, ← pow_add, e21] at treads
@@ -231,8 +233,8 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
       interval_cases k
       · exact tpt0
       · exact tpt1
-    · rw [show σ (.n 2) * gen ^ (40 * (j + 2)) * gen ^ [τ (.n 246), τ (.n 259)].length =
-        σ (.n 2) * gen ^ (40 * (j + 1)) * gen ^ 42 by
+    · rw [show σ (.n (valf% «gkr_layer» "gkr_pts")) * gen ^ (40 * (j + 2)) * gen ^ [τ (.n 246), τ (.n 259)].length =
+        σ (.n (valf% «gkr_layer» "gkr_pts")) * gen ^ (40 * (j + 1)) * gen ^ 42 by
           simp only [List.length_cons, List.length_nil]; rw [mul_assoc, mul_assoc, ← pow_add,
             ← pow_add]; ring_nf]
       exact hre

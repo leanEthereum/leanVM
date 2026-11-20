@@ -11,6 +11,9 @@ public import LeanVM.Guest.B1.Gkr.Gls
 public import LeanVM.Guest.B1.Tables.Kids.Walk
 public import LeanVM.Guest.B1.Tables.Kids.Loop9
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«gkr_layers__L»
+import LeanVM.Guest.Data.ValNames.«gkr_layers__L_loop0»
 
 /-!
 # The radix-four layers' dispatch, loading from a region
@@ -156,12 +159,12 @@ theorem glcLsL_facts : ∀ o < 2, tbStmtsEqb (glcLsLBody o) (glcLsLPre o ++ [.re
     (glcLsLPre o).all noLoadIte = true ∧ (glcLsLPre o).filterMap Stmt.loadS = [] := by
   decide +kernel
 
-theorem glcLsLPre_eq (o : ℕ) : glcLsLPre o = [.atom (.mul (.n 9) (.n 0) (.n 0)),
-    .atom (.mul (.n 10) (.n 9) (.n 9))] ++ glcChain o [.n 2, .n 3, .n 4, .n 0] 10 11 4 ++
-    [.atom (.const (.n 17) (word 2 0)), .atom (.mul (.n 18) (.n 0) (.n 17)),
-      .atom (.add (.n 19) (.n 18) (.n 1)), .atom (.const (.n 20) (word 2 0)),
-      .atom (.mul (.n 21) (.n 0) (.n 20)),
-      .callIf (.n 19) (glcLsLN o) [.n 21, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8]] := by
+theorem glcLsLPre_eq (o : ℕ) : glcLsLPre o = [.atom (.mul (.n (valf% «gkr_layers» «_loop0» "x4~0")) (.n (valf% «gkr_layers» «_loop0» "x_m")) (.n (valf% «gkr_layers» «_loop0» "x_m"))),
+    .atom (.mul (.n (valf% «gkr_layers» «_loop0» "x4")) (.n (valf% «gkr_layers» «_loop0» "x4~0")) (.n (valf% «gkr_layers» «_loop0» "x4~0")))] ++ glcChain o [.n (valf% «gkr_layers» «_loop0» "layers"), .n (valf% «gkr_layers» «_loop0» "rounds"), .n (valf% «gkr_layers» «_loop0» "gkr_pts"), .n (valf% «gkr_layers» «_loop0» "x_m")] 10 11 4 ++
+    [.atom (.const (.n (valf% «gkr_layers» «_loop0» "s6#0")) (word 2 0)), .atom (.mul (.n (valf% «gkr_layers» «_loop0» "s6#1")) (.n (valf% «gkr_layers» «_loop0» "x_m")) (.n (valf% «gkr_layers» «_loop0» "s6#0"))),
+      .atom (.add (.n (valf% «gkr_layers» «_loop0» "s6#2")) (.n (valf% «gkr_layers» «_loop0» "s6#1")) (.n (valf% «gkr_layers» «_loop0» "bound"))), .atom (.const (.n (valf% «gkr_layers» «_loop0» "s6#3")) (word 2 0)),
+      .atom (.mul (.n (valf% «gkr_layers» «_loop0» "s6#4")) (.n (valf% «gkr_layers» «_loop0» "x_m")) (.n (valf% «gkr_layers» «_loop0» "s6#3"))),
+      .callIf (.n (valf% «gkr_layers» «_loop0» "s6#2")) (glcLsLN o) [.n (valf% «gkr_layers» «_loop0» "s6#4"), .n (valf% «gkr_layers» «_loop0» "bound"), .n (valf% «gkr_layers» «_loop0» "layers"), .n (valf% «gkr_layers» «_loop0» "rounds"), .n (valf% «gkr_layers» «_loop0» "gkr_pts"), .n (valf% «gkr_layers» «_loop0» "start_g"), .n (valf% «gkr_layers» «_loop0» "g_bus_mu"), .n (valf% «gkr_layers» «_loop0» "tabs"), .n (valf% «gkr_layers» «_loop0» "stream")]] := by
   rw [glcLsLPre, glcLsLBody, List.append_assoc, List.append_assoc, List.dropLast_append_of_ne_nil
     (by simp), List.dropLast_append_of_ne_nil (by simp)]
   rfl
@@ -193,8 +196,8 @@ theorem glsl_relIn {o n : ℕ} (ho : o < 2) {rd : Reader} {R : ℕ → Prop}
       List.nil_append, List.cons_append, List.cons.injEq, and_true] at hpar
     obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8⟩ := hpar
     rw [hb, glcLsLBody, holdsList_append, holdsList_append,
-      holdsList_noRet _ (by rfl : Stmt.noRetList [.atom (.mul (.n 9) (.n 0) (.n 0)),
-        .atom (.mul (.n 10) (.n 9) (.n 9))] = true),
+      holdsList_noRet _ (by rfl : Stmt.noRetList [.atom (.mul (.n (valf% «gkr_layers» «_loop0» "x4~0")) (.n (valf% «gkr_layers» «_loop0» "x_m")) (.n (valf% «gkr_layers» «_loop0» "x_m"))),
+        .atom (.mul (.n (valf% «gkr_layers» «_loop0» "x4")) (.n (valf% «gkr_layers» «_loop0» "x4~0")) (.n (valf% «gkr_layers» «_loop0» "x4~0")))] = true),
       holdsList_noRet _ (glcChain_noRet ..)] at hhl
     obtain ⟨hpre, hch, hpost⟩ := hhl
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hpre
@@ -203,7 +206,7 @@ theorem glsl_relIn {o n : ℕ} (ho : o < 2) {rd : Reader} {R : ℕ → Prop}
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hpost
     obtain ⟨c17, m18, a19, c20, m21, -, hnext, -⟩ := hpost
     rw [tb_word_gen] at c17 c20
-    have e10 : σ (.n 10) = gen ^ m * gen ^ m * (gen ^ m * gen ^ m) := by rw [m10, m9, h0]
+    have e10 : σ (.n (valf% «gkr_layers» «_loop0» "x4")) = gen ^ m * gen ^ m * (gen ^ m * gen ^ m) := by rw [m10, m9, h0]
     refine ⟨fun s hs ↦ dispOk_of_noDisp (List.all_eq_true.mp hnd s hs), loads_none hld,
       fun c hc ht ↦ ?_⟩
     rw [filterMap_callSF hnd, glcLsLPre_eq, List.filterMap_append, List.filterMap_append,
@@ -226,8 +229,8 @@ theorem glsl_relIn {o n : ℕ} (ho : o < 2) {rd : Reader} {R : ℕ → Prop}
         h2, h3, h4, h5, h6, h7, h8, hx p hp4, e10, e1]
       exact hl
     · simp only [Main.mkCall, decide_eq_true_eq] at ht ⊢
-      have e21 : σ (.n 21) = gen ^ (m + 1) := by rw [m21, c20, h0, pow_succ]
-      have e19 : σ (.n 19) = gen ^ (m + 1) + gen ^ n := by rw [a19, m18, c17, h0, h1, pow_succ]
+      have e21 : σ (.n (valf% «gkr_layers» «_loop0» "s6#4")) = gen ^ (m + 1) := by rw [m21, c20, h0, pow_succ]
+      have e19 : σ (.n (valf% «gkr_layers» «_loop0» "s6#2")) = gen ^ (m + 1) + gen ^ n := by rw [a19, m18, c17, h0, h1, pow_succ]
       have hm1 : m + 1 < n := by
         rcases Nat.lt_or_ge (m + 1) n with h' | h'
         · exact h'
@@ -250,7 +253,7 @@ def glcLsPre (o : ℕ) : List Stmt :=
       [.n 0, .n 1, .n 2, .n 3, .n 13, .n 5, .n 6, .n 7, .n 8] [.n 14],
     .atom (.const (.n 15) (word 0 0))]
 
-theorem glcLsBody_eq (o : ℕ) : glcLsBody o = glcLsPre o ++ [.ret [.n 15]] := rfl
+theorem glcLsBody_eq (o : ℕ) : glcLsBody o = glcLsPre o ++ [.ret [.n (valf% «gkr_layers» "s3#0")]] := rfl
 
 theorem glcLs_flat (o : ℕ) : (glcLsPre o).all Stmt.flat = true := rfl
 
@@ -289,8 +292,8 @@ theorem gls_relIn {o n r : ℕ} (ho : o < 2) (hr : r < 4) {rd : Reader} {R : ℕ
     rw [h4, ← gen_pow_eq_ofK] at hx
     exact (gen_pow_inj (by omega) (by omega) hx).symm
   subst hjr
-  have e4 : σ (.n 4) = ofK (addressOfIndex jj) := by rw [h4, gen_pow_eq_ofK]
-  have e13 : σ (.n 13) = gen ^ (4 * n) := by rw [m13, m12, h3, glc_pow4]
+  have e4 : σ (.n (valf% «gkr_layers» "rem_g")) = ofK (addressOfIndex jj) := by rw [h4, gen_pow_eq_ofK]
+  have e13 : σ (.n (valf% «gkr_layers» "m4")) = gen ^ (4 * n) := by rw [m13, m12, h3, glc_pow4]
   refine ⟨fun s hs ↦ ?_, loads_none (glcLs_loadS o), fun c hc ht ↦ ?_⟩
   · simp only [glcLsPre, List.mem_cons, List.not_mem_nil, or_false] at hs
     rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
@@ -310,7 +313,7 @@ theorem gls_relIn {o n r : ℕ} (ho : o < 2) (hr : r < 4) {rd : Reader} {R : ℕ
       exact glsl_relIn ho (fun j hj ↦ hL j (by omega)) d 0 hn0 hd
     · -- the last layers
       have hf' : [glcLastN 0 o, glcLastN 1 o, glcLastN 2 o, glcLastN 3 o].getD
-          (logG (σ (.n 4))) "" = glcLastN jj o := by
+          (logG (σ (.n (valf% «gkr_layers» "rem_g")))) "" = glcLastN jj o := by
         rw [e4, logG_spec (by omega)]
         interval_cases jj <;> rfl
       have e : [glcLastN 0 o, glcLastN 1 o, glcLastN 2 o, glcLastN 3 o][jj] = glcLastN jj o := by

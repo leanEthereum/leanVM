@@ -4,3 +4,24 @@ LeanVM/Guest/B1/Bits/SmallGPower.lean assert_small_g_power
 LeanVM/Guest/B1/Ring/WeightComplete.lean ring_switch_weight
 LeanVM/Guest/B1/Eq/RsRows.lean@rs_eq_rows_L0_body rs_eq_rows__L0
 LeanVM/Guest/B1/Eq/PlusOne.lean plus_one_run__L
+# B1/Gkr: the layer's templates GlT.glBody assembles before its renamed tail (checked by glIs_layers), the loop's (glIs_loops), verify_bus_gkr_loop0's body (l8Check), the layers' and last layers' bodies (GlCLayers)
+tie glPre gkr_layer__L
+tie glHeadRounds gkr_layer__L
+tie glHeadStore0 gkr_layer__L
+tie glHeadStoreP gkr_layer__L
+tie glHeadStore gkr_layer__L
+tie glLoopCall0 gkr_layer__L
+tie glLoopCallP gkr_layer__L
+tie glLoopCall gkr_layer__L
+tie glTailSetup0 gkr_layer__L
+tie glTailSetupP gkr_layer__L
+tie glTailSetup gkr_layer__L
+tie glTailRounds gkr_layer__L
+tie glPad gkr_layer__L
+tie glLoopPre gkr_layer__L_loop0
+tie glLoopRounds gkr_layer__L_loop0
+tie glLoopPost gkr_layer__L_loop0
+tie l8Body verify_bus_gkr_loop0
+tie glcLsBody gkr_layers__L
+tie glcLsLBody gkr_layers__L_loop0
+tie glcLastBody gkr_last_layers__L

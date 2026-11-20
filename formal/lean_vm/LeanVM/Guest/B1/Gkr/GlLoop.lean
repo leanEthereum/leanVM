@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Gkr.GlRounds
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
 
 /-!
 # The layer's loop, soundly
@@ -56,8 +58,8 @@ theorem gl_loop_step {p o : ℕ} (hp : p < 4) (ho : o < 2) {N head qrow nqrow ta
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hptr hrec hcap
   obtain ⟨m6, m7, m8, m9, m10, m11⟩ := hptr
   obtain ⟨l17, l18⟩ := hrec
-  have e9 : σ (.n 9) = σ (.n 0) ^ 8 := by rw [m9, m8, m7]; ring
-  have hnpt : σ (.n 11) * gen ^ 0 = σ (.n 10) * gen ^ 42 := by
+  have e9 : σ (.n (valf% «gkr_layer» «_loop0» "y8")) = σ (.n (valf% «gkr_layer» «_loop0» "y")) ^ 8 := by rw [m9, m8, m7]; ring
+  have hnpt : σ (.n (valf% «gkr_layer» «_loop0» "npt")) * gen ^ 0 = σ (.n (valf% «gkr_layer» «_loop0» "pt")) * gen ^ 42 := by
     rw [m11, m10, hq, pow_zero, mul_one]; ring
   have R := glRounds_sound (rd := rd) 8 hrounds hnpt
   simp only [glCapAfter, glClaimAfter, OfNat.ofNat_ne_zero, ↓reduceIte, Nat.reduceMul,
@@ -69,10 +71,10 @@ theorem gl_loop_step {p o : ℕ} (hp : p < 4) (ho : o < 2) {N head qrow nqrow ta
   rw [tb_word_two_pow (by norm_num)] at c339
   rw [tb_word_gen] at c341 c344
   refine ⟨?_, fun hne => ?_⟩
-  · rw [← m6, show σ (.n 3) * σ (.n 0) ^ 8 = σ (.n 10) by rw [m10, e9]]
+  · rw [← m6, show σ (.n (valf% «gkr_layer» «_loop0» "qrow")) * σ (.n (valf% «gkr_layer» «_loop0» "y")) ^ 8 = σ (.n (valf% «gkr_layer» «_loop0» "pt")) by rw [m10, e9]]
     refine glOut_of_run (tbCapAt_glCap (off := 0) (fun k hk => by simpa using hcap k hk))
       (by exact l17) (by exact l18) R (tbCapAt_glCap (fun k hk => hcap' k hk)) ?_ (by exact l338)
-    rw [show σ (.n 17) * gen ^ (4 * 8) = σ (.n 332) by rw [m340, c339]]
+    rw [show σ (.n (valf% «gkr_layer» «_loop0» "cur")) * gen ^ (4 * 8) = σ (.n (valf% «gkr_layer» «_loop0» "s12#1")) by rw [m340, c339]]
     exact l340
   · have := hnext (by rw [a343, m342, c341]; exact hne)
     rw [m345, c344] at this
