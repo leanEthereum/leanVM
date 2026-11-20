@@ -22,6 +22,7 @@ sphincs_key.public_key().verify(&message, &signature)?;
 - Public keys, messages and secret keys (a seed) are 32 bytes.
 - leanXMSS is stateful: a key has `2^32` leaf indices and must never sign two messages at the same one. Persist a high-water leaf index next to the key and advance it before publishing a signature.
 - leanSPHINCS is stateless; a key signs at most `2^30` messages.
+- `xmss::SecretKey::cache_to_bytes()` returns the key's trees, which are not secret; `xmss::SecretKey::from_cache_bytes(seed, &public_key, &cache)` loads the key from them instead of rebuilding them, checking them against the public key.
 
 ## Aggregate
 

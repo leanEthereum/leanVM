@@ -67,6 +67,7 @@ func main() {
 
 - leanXMSS keys are stateful: store your own leaf index next to `XmssSecretKey.Bytes()` and never sign two different messages at the same index.
 - leanSPHINCS keys are stateless and deterministic, and sign at most 2^30 messages.
+- `CacheBytes()` returns an `XmssSecretKey`'s trees, which are not secret; `XmssSecretKeyFromCacheBytes(seed, publicKey, cache)` loads the key from them instead of rebuilding them, checking them against the public key.
 
 ## Aggregate
 

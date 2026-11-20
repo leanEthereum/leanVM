@@ -109,6 +109,23 @@ func XmssSecretKeyFromBytes(bytes []byte) (*XmssSecretKey, error) {
 	return &XmssSecretKey{handle: handle}, nil
 }
 
+// XmssSecretKeyFromCacheBytes loads a leanXMSS key from its seed, its public key and the bytes
+// returned by CacheBytes, building no tree. The cache is checked against the public key.
+func XmssSecretKeyFromCacheBytes(seed, publicKey [32]byte, cache []byte) (*XmssSecretKey, error) {
+	var handle *C.lpq_xmss_secret_key
+	if err := call(func() C.int32_t {
+		return C.lpq_xmss_secret_key_from_cache_bytes(
+			arrayPointer(&seed), C.size_t(len(seed)),
+			arrayPointer(&publicKey), C.size_t(len(publicKey)),
+			bytesPointer(cache), C.size_t(len(cache)),
+			&handle,
+		)
+	}); err != nil {
+		return nil, err
+	}
+	return &XmssSecretKey{handle: handle}, nil
+}
+
 // Bytes returns the key's secret encoding (its 32-byte seed).
 func (key *XmssSecretKey) Bytes() ([]byte, error) {
 	key.mu.Lock()
@@ -118,6 +135,18 @@ func (key *XmssSecretKey) Bytes() ([]byte, error) {
 	}
 	return bufferResult(func(output *C.lpq_buffer) C.int32_t {
 		return C.lpq_xmss_secret_key_to_bytes(key.handle, output)
+	})
+}
+
+// CacheBytes returns the trees the key holds, without any secret.
+func (key *XmssSecretKey) CacheBytes() ([]byte, error) {
+	key.mu.Lock()
+	defer key.mu.Unlock()
+	if key.handle == nil {
+		return nil, errClosed("leanXMSS secret key")
+	}
+	return bufferResult(func(output *C.lpq_buffer) C.int32_t {
+		return C.lpq_xmss_secret_key_cache_to_bytes(key.handle, output)
 	})
 }
 

@@ -48,6 +48,29 @@ def test_secret_keys_round_trip_through_bytes():
         lpq.SphincsSecretKey.from_bytes(b"\x04" * 33)
 
 
+def test_xmss_key_loads_from_its_tree_cache():
+    seed = b"\x07" * 32
+    key = lpq.XmssSecretKey.from_seed(seed)
+    key.prepare(3)
+    cache = key.cache_to_bytes()
+
+    loaded = lpq.XmssSecretKey.from_cache_bytes(seed, key.public_key, cache)
+    assert loaded.public_key == key.public_key
+    assert loaded.cache_to_bytes() == cache
+    signature = loaded.sign(MESSAGE, 3)
+    assert signature == key.sign(MESSAGE, 3)
+    lpq.xmss_verify(key.public_key, MESSAGE, signature)
+
+    # A truncated cache, a tampered one, or another key's is refused.
+    tampered = bytes([cache[0] ^ 1]) + cache[1:]
+    other = lpq.XmssSecretKey.from_seed(b"\x08" * 32).public_key
+    for public_key, data in [(key.public_key, cache[1:]), (key.public_key, tampered), (other, cache)]:
+        with pytest.raises(ValueError, match="not this leanXMSS key's tree cache"):
+            lpq.XmssSecretKey.from_cache_bytes(seed, public_key, data)
+    with pytest.raises(ValueError, match="seed must be exactly 32 bytes"):
+        lpq.XmssSecretKey.from_cache_bytes(seed[1:], key.public_key, cache)
+
+
 UNIX = sys.platform != "win32"
 needs_sidecar = pytest.mark.skipif(not UNIX, reason="the sidecar needs Unix sockets")
 

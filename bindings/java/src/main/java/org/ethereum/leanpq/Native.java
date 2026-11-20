@@ -54,6 +54,8 @@ final class Native {
     private static final MethodHandle XMSS_GENERATE = downcall("lpq_xmss_secret_key_generate", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
     private static final MethodHandle XMSS_FROM_BYTES = downcall("lpq_xmss_secret_key_from_bytes", BYTES_TO_HANDLE);
     private static final MethodHandle XMSS_TO_BYTES = downcall("lpq_xmss_secret_key_to_bytes", HANDLE_TO_BUFFER);
+    private static final MethodHandle XMSS_CACHE_TO_BYTES = downcall("lpq_xmss_secret_key_cache_to_bytes", HANDLE_TO_BUFFER);
+    private static final MethodHandle XMSS_FROM_CACHE_BYTES = downcall("lpq_xmss_secret_key_from_cache_bytes", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
     private static final MethodHandle XMSS_PUBLIC_KEY = downcall("lpq_xmss_secret_key_public_key", HANDLE_TO_BUFFER);
     private static final MethodHandle XMSS_PREPARE = downcall("lpq_xmss_secret_key_prepare", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
     private static final MethodHandle XMSS_SIGN = downcall("lpq_xmss_secret_key_sign", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS, SIZE, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
@@ -105,6 +107,19 @@ final class Native {
 
     static byte[] xmssToBytes(MemorySegment key) {
         return buffer(XMSS_TO_BYTES, key);
+    }
+
+    static byte[] xmssCacheToBytes(MemorySegment key) {
+        return buffer(XMSS_CACHE_TO_BYTES, key);
+    }
+
+    static MemorySegment xmssFromCacheBytes(byte[] seed, byte[] publicKey, byte[] cache) {
+        try (Arena arena = Arena.ofConfined()) {
+            return handle(XMSS_FROM_CACHE_BYTES,
+                copy(arena, seed), (long) seed.length,
+                copy(arena, publicKey), (long) publicKey.length,
+                copy(arena, cache), (long) cache.length);
+        }
     }
 
     static byte[] xmssPublicKey(MemorySegment key) {

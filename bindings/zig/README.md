@@ -45,6 +45,7 @@ pub fn main() !void {
 
 - leanXMSS keys are stateful: store your own leaf index next to `XmssSecretKey.toBytes()` and never sign two different messages at the same index.
 - leanSPHINCS keys are stateless and deterministic, and sign at most `2^30` messages.
+- `XmssSecretKey.cacheToBytes(allocator)` returns the key's trees, which are not secret; `XmssSecretKey.fromCacheBytes(seed, public_key, cache)` loads the key from them instead of rebuilding them, checking them against the public key.
 - Call `deinit` exactly once on every `XmssSecretKey`, `SphincsSecretKey`, `Sidecar` and `Aggregate`. Returned slices belong to the allocator you pass.
 - A bad signature returns `error.InvalidSignature`; for other errors, `lastError` returns the message.
 

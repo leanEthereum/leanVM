@@ -66,6 +66,7 @@ main()
 
 - leanXMSS keys are stateful: store your own leaf index next to `XmssSecretKey.toBytes()` and never sign two different messages at the same index.
 - leanSPHINCS keys are stateless and deterministic, and sign at most `2^30` messages.
+- `XmssSecretKey.cacheToBytes()` returns the key's trees, which are not secret; `XmssSecretKey.fromCacheBytes(seed, publicKey, cache)` loads the key from them instead of rebuilding them, checking them against the public key.
 - Fallible calls return `Result[T, string]` from [`results`](https://github.com/arnetheduck/nim-results); verification returns `bool`. Modules are `{.push raises: [], gcsafe.}` and build under `--mm:refc` and `--mm:orc`.
 - Every later call on a closed value returns an error. Do not `close` a value while another thread uses it.
 
