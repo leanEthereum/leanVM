@@ -39,10 +39,30 @@ For each statement:
 
 So no `simp` call and no recursion the elaborator bounds (`maxRecDepth`) grows with the body: each
 statement costs one small `simp` and lemma applications. The metaprogram itself recurses a level
-per statement, and abstracting each existential over the rest of the condition and its proof
-costs time in the size of that rest. A sequence of branches duplicates what follows them, once
-per branch, as the condition itself does. The kernel checks the whole proof; the tactic does not
-type-check it itself, so `lake-build.py --dev` keeps the kernel on in every module that uses it.
+per statement. A sequence of branches duplicates what follows them, once per branch, as the
+condition itself does.
+
+The body is computed in chunks of `vc.chunkSize` statements on each path. Where a chunk ends, the
+rest of its block is a cut: each word of the table that is neither closed nor a variable is
+generalized to a variable, and the rest's condition is computed over these as a chunk of its own.
+Its proof is an auxiliary theorem over the chunk's variables `xs`, its condition an auxiliary
+definition `R` of them, whose body applies its own cuts' definitions, and a second auxiliary theorem
+states `lhs ↔ R xs`. In the enclosing chunk, metavariables applied to the words stand for `R` and
+that theorem: the chunk's proof is abstracted over them and applied to the declarations, and its
+condition has the reduced conditions substituted.
+The kernel checks each chunk and each cut's definition once. When the cut generalizes, a chunk's
+terms hold no word built before it, so neither the metaprogram nor the kernel visits the body before
+a chunk while computing or checking it, and a deep word (a chain of permutations) is compared only
+where the condition meets the composed proof. The words are tracked as terms of the body as well
+(`Vals.terms`), so each statement is rewritten as without chunks and the condition is the same;
+where generalizing would tell apart two terms that are one word of the body, `vc` computes again
+without generalizing (`trace.vc` says so).
+
+The auxiliary declarations bind a cut's variables, the goal's let-variables with their values, so a
+let-variable may stand anywhere in the goal (the function, a statement, an argument, `rets`, a
+word's type) and a rule may rely on its value. They are added with the kernel check done at once,
+so that a failure fails the tactic and leaves the goal. The tactic does not type-check its proof
+itself, so `lake-build.py --dev` keeps the kernel on in every module that uses it.
 -/
 
 public meta section
@@ -60,8 +80,24 @@ structure Key where
   idx : Nat
   deriving BEq, Hashable
 
-/-- The words of the values defined so far. -/
-abbrev Vals := Std.HashMap Key Expr
+/-- The words of the values defined so far; the variables standing for words since a cut, with
+their words in the body; and the words that are not variables, as terms of the body. -/
+structure Vals where
+  words : Std.HashMap Key Expr := {}
+  body : Std.HashMap FVarId Expr := {}
+  terms : Std.HashSet Expr := {}
+
+/-- `e` as a term of the body: each variable standing for a word replaced by the word. -/
+def Vals.inBody (vals : Vals) (e : Expr) : Expr :=
+  if vals.body.isEmpty then e else
+    e.replace fun t => if !t.hasFVar then some t else if let .fvar f := t then vals.body[f]?
+      else none
+
+/-- `vals` with the word `w` of value `k`, and `w` as a term of the body if it is not a variable. -/
+def Vals.insert (vals : Vals) (k : Key) (w : Expr) : Vals :=
+  let b := vals.inBody w
+  { vals with words := vals.words.insert k w,
+              terms := if b.isFVar then vals.terms else vals.terms.insert b }
 
 /-- A numeral a term reduces to. -/
 def natOf (e : Expr) : MetaM Nat := do
@@ -106,16 +142,41 @@ def reduceRel (e : Expr) : MetaM Expr := do
 
 /-! ## The computation -/
 
+/-- Thrown where the variables of a cut tell apart two terms that are one word of the body. -/
+initialize vcSplitId : InternalExceptionId ← registerInternalExceptionId `vc.split
+
+initialize registerTraceClass `vc
+
+register_option vc.chunkSize : Nat := {
+  defValue := 32
+  descr := "the statements `vc` computes on a path in a chunk before it cuts the rest (at least 1)"
+}
+
+/-- A cut: the metavariables standing in its chunk for the rest's condition `R` and for its proof
+`hR`; their values in the proof, auxiliary declarations; and `R`'s value in the condition, its
+definition reduced. -/
+structure Cut where
+  R : Expr
+  hR : Expr
+  Rval : Expr
+  hRval : Expr
+  Pval : Expr
+
 /-- What every statement's condition shares: the call relation, the reader, the return
-condition, and the rewriting of each statement's condition. -/
+condition, and the rewriting of each statement's condition; the chunk size, whether cuts
+generalize words, and the statements the current chunk has computed on the current path. -/
 structure Ctx where
   C : Expr
   rd : Expr
   kret : Expr
   simpCtx : Simp.Context
   simprocs : Simp.SimprocsArray
+  chunkSize : Nat
+  generalize : Bool
+  depth : Nat := 0
 
-abbrev M := ReaderT Ctx MetaM
+/-- The computation: its state is the current chunk's cuts. -/
+abbrev M := ReaderT Ctx (StateRefT (Array Cut) MetaM)
 
 def Ctx.wp (ctx : Ctx) (s ρ Q : Expr) : Expr :=
   mkApp6 (mkConst ``Stmt.wp) ctx.C ctx.rd ctx.kret s ρ Q
@@ -141,7 +202,7 @@ partial def unfoldReads (blocks : Array Expr) (ℓs : Array Expr) (vals : Vals) 
   match e.getAppFnArgs with
   | (``getv, #[ρ, v, Q]) =>
     let key ← keyOf v
-    match vals[key]? with
+    match vals.words[key]? with
     | some w => go vals (Q.beta #[ρ, w])
     | none =>
       withLocalDeclD (← binderName v) eTy fun y => do
@@ -306,15 +367,22 @@ partial def assemble (ρ₀ ρ : Expr) (fvars values leaves : Array Expr) (rests
         return (.forallE n pd pb bi, mkAppN (mkConst ``imp_congr) #[inst d, inst b, pd, pb, hd, hb])
     | _ => throwError "vc: a block or the rest of the body under{indentExpr e}"
 
-/-- The table's words in `e` that are not variables, outermost first. -/
-partial def wordsIn (table : Std.HashSet Expr) (e : Expr)
-    (acc : Array Expr × Std.HashSet Expr := (#[], {})) : Array Expr × Std.HashSet Expr :=
-  if table.contains e then if acc.2.contains e then acc else (acc.1.push e, acc.2.insert e)
+/-- The terms of `e` that are words of the table and not variables in the body, outermost first;
+`none` if two of them are one term of the body. -/
+partial def wordsIn (vals : Vals) (e : Expr)
+    (acc : Array Expr × Std.HashMap Expr Expr := (#[], {})) :
+    Option (Array Expr × Std.HashMap Expr Expr) :=
+  let w := vals.inBody e
+  if vals.terms.contains w then
+    match acc.2[w]? with
+    | some e' => if e' == e then some acc else none
+    | none => some (acc.1.push e, acc.2.insert w e)
   else match e with
-    | .app f a => wordsIn table a (wordsIn table f acc)
-    | .lam _ d b _ | .forallE _ d b _ => wordsIn table b (wordsIn table d acc)
-    | .mdata _ b => wordsIn table b acc
-    | _ => acc
+    | .app f a => wordsIn vals f acc >>= (wordsIn vals a ·)
+    | .lam _ d b _ | .forallE _ d b _ => wordsIn vals d acc >>= (wordsIn vals b ·)
+    | .letE _ t v b _ => wordsIn vals t acc >>= (wordsIn vals v ·) >>= (wordsIn vals b ·)
+    | .mdata _ b | .proj _ _ b => wordsIn vals b acc
+    | _ => some acc
 
 /-- The condition of `rhs`, a term in the free environment `ρ₀` and continuation `k₀` whose blocks
 are `blocks`: its reads unfolded by `vals`, rewritten, and every block and the continuation
@@ -326,9 +394,7 @@ def condOf (ρ₀ k₀ : Expr) (ρ : Expr) (cont : Rest) (blocks : Array Expr)
   withLocalDecls (blocks.map fun _ => (`ℓ, .default, fun _ => pure contTy)) fun ℓs => do
     let raw ← unfoldReads blocks ℓs vals rhs
     -- the table's words held abstract, so that nothing below visits them
-    let table : Std.HashSet Expr := vals.fold (init := {}) fun s _ w =>
-      if w.isFVar then s else s.insert w
-    let ws := (wordsIn table raw).1
+    let some (ws, _) := wordsIn vals raw | throw (.internal vcSplitId)
     withLocalDecls (ws.map fun _ => (`w, .default, fun _ => pure eTy)) fun wfs => do
       let m : Std.HashMap Expr Expr := (ws.zip wfs).foldl (init := {}) fun m (w, f) => m.insert w f
       let rawG := raw.replace m.get?
@@ -346,6 +412,43 @@ def condOf (ρ₀ k₀ : Expr) (ρ : Expr) (cont : Rest) (blocks : Array Expr)
       let h₂ := (← r.getProof).replaceFVars fvars values
       let h := mkApp6 (mkConst ``Eq.trans [Level.one]) propTy rhsI rawI sgI h₁ h₂
       return (P, eqIff rhsI sgI P h hP)
+
+/-- A condition computed as a chunk: `P`, its cuts' conditions substituted; `raw`, their
+definitions applied instead; its proof `H : ty`, `ty = ∀ R₁ hR₁ …, lhs ↔ P'` with `P'` the
+condition in its cuts' metavariables; and their values in the proof. -/
+structure Chunk where
+  P : Expr
+  raw : Expr
+  H : Expr
+  ty : Expr
+  vals : Array Expr
+
+/-- `x`, a condition of `lhs`, computed as a chunk. -/
+def chunk (lhs : Expr) (x : M (Expr × Expr)) : M Chunk := do
+  let outer ← modifyGet (·, #[])
+  let (P, h) ← withReader ({ · with depth := 0 }) x
+  let cs ← modifyGet (·, outer)
+  let vs := cs.flatMap fun c => #[c.R, c.hR]
+  let H ← mkLambdaFVars vs h
+  let P ← instantiateMVars P
+  let ty ← mkForallFVars vs (mkApp2 (mkConst ``Iff) lhs P)
+  let vals := cs.flatMap fun c => #[c.Rval, c.hRval]
+  let raw := (← instantiateForall ty vals).appArg!
+  for c in cs do c.R.mvarId!.assign c.Pval
+  return ⟨← instantiateMVars P, raw, H, ty, vals⟩
+
+/-- The variables of `es`, of their types and of let-variables' values, in the order of the
+context. -/
+def varsOf (es : Array Expr) : MetaM (Array Expr) := do
+  let mut s : CollectFVars.State := {}
+  for e in es do s := collectFVars s (← instantiateMVars e)
+  let mut i := 0
+  while h : i < s.fvarIds.size do
+    let d ← s.fvarIds[i].getDecl
+    s := collectFVars s (← instantiateMVars d.type)
+    if let some v := d.value? then s := collectFVars s (← instantiateMVars v)
+    i := i + 1
+  return (← sortFVarIds s.fvarIds).map mkFVar
 
 mutual
 /-- The rest `ss` then `Q`: `fun ρ => Stmt.wpList C rd kret ss ρ Q.value`, computed by `vcBlock`. -/
@@ -385,12 +488,52 @@ partial def vcBlock (ss : Expr) (vals : Vals) (ρ : Expr) (Q : Rest) : M (Expr �
     let (P, hP) ← Q.run vals ρ
     return (P, eqIff lhs (Q.value.beta #[ρ]) P (mkAppN (mkConst ``wpList_nil) base) hP)
   unless ss'.isAppOfArity ``List.cons 3 do throwError "vc: not a block{indentExpr ss'}"
+  if ctx.depth ≥ ctx.chunkSize then return ← cut ss vals ρ Q
   let s := ss'.appFn!.appArg!
   let rest := ss'.appArg!
   let K := blockRest ctx rest Q
-  let (P, hP) ← vcStmt s vals ρ K
+  let (P, hP) ← withReader ({ · with depth := ctx.depth + 1 }) (vcStmt s vals ρ K)
   return (P, eqIff lhs (ctx.wp s ρ K.value) P
     (mkAppN (mkConst ``wpList_cons) (base ++ #[s, rest])) hP)
+
+/-- The cut of block `ss` at `vals` and `ρ`, `Q` what follows it: each word of the table that is
+neither closed nor a variable generalized to a variable `y` (if `ctx.generalize`), the block's
+condition computed as a chunk, proved by an auxiliary theorem over the chunk's variables `xs` and
+defined by an auxiliary definition of them; in the current chunk, `R as` and
+`hR as : lhs ↔ R as`, `as` the words of `xs`. -/
+partial def cut (ss : Expr) (vals : Vals) (ρ : Expr) (Q : Rest) : M (Expr × Expr) := do
+  let ctx ← read
+  let ws := if !ctx.generalize then #[] else Prod.fst <|
+    vals.words.fold (init := (#[], ({} : Std.HashSet Expr))) fun acc _ w =>
+      if !w.hasFVar || w.isFVar || acc.2.contains w then acc else (acc.1.push w, acc.2.insert w)
+  withLocalDecls (ws.map fun _ => (`y, .default, fun _ => pure eTy)) fun ys => do
+    let (ofWord, body) := (ws.zip ys).foldl (init := (({} : Std.HashMap Expr Expr), vals.body))
+      fun (m, b) (w, y) => (m.insert w y, b.insert y.fvarId! (vals.inBody w))
+    let toY (e : Expr) := e.replace fun t => if !t.hasFVar then some t else ofWord[t]?
+    let vals' := { vals with words := vals.words.map fun _ w => toY w, body }
+    let ρ' := toY ρ
+    let lhs := ctx.wpList ss ρ' Q.value
+    let { P, raw, H, ty, vals := vs } ← chunk lhs (vcBlock ss vals' ρ' Q)
+    -- the declarations are closed over `xs`, let-variables bound with their values; `zs` the others
+    let xs ← varsOf #[ty, H]
+    let zs ← xs.filterM fun x => return !(← x.fvarId!.isLetVar)
+    let Rty ← mkForallFVars xs propTy
+    let iffR (R : Expr) := mkApp2 (mkConst ``Iff) lhs (mkAppN R zs)
+    -- checked by the kernel at once, so that a failure fails the tactic and leaves the goal
+    let (Rval, hRval) ← try withOptions (Elab.async.set · false) do
+        -- the proof over `R`, so that identical chunks (a rest after branches) share one theorem
+        let thm ← mkAuxTheorem (← mkForallFVars xs ty) (← mkLambdaFVars xs H) (zetaDelta := true)
+          (kind? := `_vc)
+        let Rval ← mkAuxDefinition (← mkAuxDeclName `_vc_cond) Rty (← mkLambdaFVars xs raw)
+          (zetaDelta := true) (compile := false)
+        return (Rval, ← mkAuxTheorem (← mkForallFVars xs (iffR Rval))
+          (← mkLambdaFVars xs (mkAppN thm (zs ++ vs))) (zetaDelta := true) (kind? := `_vc))
+      catch e => throwError "vc: the kernel rejects a cut{indentD e.toMessageData}"
+    let R ← mkFreshExprMVarAt {} {} Rty .syntheticOpaque
+    let hR ← mkFreshExprMVarAt {} {} (← mkForallFVars xs (iffR R)) .syntheticOpaque
+    modify (·.push ⟨R, hR, Rval, hRval, ← mkLambdaFVars zs P⟩)
+    let as := zs.map (·.replaceFVars ys ws)
+    return (mkAppN R as, mkAppN hR as)
 end
 
 /-- The condition of `Fn.Sem C rd f args rets`, `h₀ : ty` its `Fn.sem_iff_wp`: `P` and a proof of
@@ -435,8 +578,20 @@ syntax (name := vcTac) "vc"
   let h₀ := mkAppN (mkConst ``Fn.sem_iff_wp) a
   let ty ← inferType h₀
   let some wl := ty.find? (·.isAppOfArity ``Stmt.wpList 6) | throwError "vc: `Fn.sem_iff_wp`"
-  let (P, h) ← (vcSem a[2]! h₀ ty).run
-    { C := a[0]!, rd := a[1]!, kret := wl.getAppArgs[2]!, simpCtx := ctx, simprocs }
+  let chunkSize := max 1 (vc.chunkSize.get (← getOptions))
+  let run (generalize : Bool) : MetaM _ :=
+    (chunk sem (vcSem a[2]! h₀ ty)).run
+      { C := a[0]!, rd := a[1]!, kret := wl.getAppArgs[2]!, simpCtx := ctx, simprocs, chunkSize,
+        generalize } |>.run' #[]
+  let s ← Meta.saveState
+  -- cuts generalize their words unless that tells apart two terms of the body
+  let { P, H, vals := vs, .. } ← try run true catch e => do
+    let .internal id _ := e | throw e
+    unless id == vcSplitId do throw e
+    s.restore
+    trace[vc] "cuts tell apart two terms of one word: computing without generalizing"
+    run false
+  let h := mkAppN H vs
   let motive ← kabstract target sem
   let eq := mkApp6 (mkConst ``congrArg [Level.one, Level.one]) propTy propTy
     sem P (.lam `X propTy motive .default) (mkApp3 (mkConst ``propext) sem P h)
