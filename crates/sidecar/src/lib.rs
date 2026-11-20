@@ -50,7 +50,8 @@ impl Rejection {
 /// Why a [`Client`] call failed.
 #[derive(Debug)]
 pub enum SidecarError {
-    /// The socket failed, or the sidecar closed it: it stopped, or crashed. Connect again.
+    /// The socket failed, or the sidecar closed it: it stopped, crashed, or already serves its 16 connections. Connect
+    /// again.
     Io(std::io::Error),
     /// The peer is not a leanVM sidecar, speaks another protocol version, or proves for another verifier.
     Incompatible(String),

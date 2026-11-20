@@ -33,7 +33,13 @@ impl Client {
         let mut stream = UnixStream::connect(socket)?;
         let body = match wire::read_frame(&mut stream, ROOM)? {
             Incoming::Body(body) => body,
-            Incoming::End => return Err(SidecarError::Protocol("closed before its hello".into())),
+            Incoming::End => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::ConnectionRefused,
+                    "closed before its hello: the sidecar serves at most 16 connections at once",
+                )
+                .into());
+            }
             // Not a hello, as `hello_version` then says.
             Incoming::TooLarge(_) => Vec::new(),
         };

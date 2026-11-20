@@ -1,6 +1,6 @@
 //! The sidecar binary end to end, through the Rust client: a leaf with every kind of input, a narrowed node over
 //! it from a second connection, verifying, refusals that leave the connection usable, an unknown operation sent as
-//! another language's client would, and the socket's life across a second sidecar and a restart.
+//! another language's client would, the connection cap, and the socket's life across a second sidecar and a restart.
 
 use aggregation::signers_cache;
 use lean_vm::{AggregateClaims, OutputClaims, lean_da};
@@ -122,6 +122,23 @@ fn sidecar_end_to_end() {
         raw.write_all(&[&1u64.to_le_bytes()[..], &[7]].concat()).unwrap();
         assert_eq!(read_frame(&mut raw)[0], Rejection::Malformed as u8);
     }
+
+    // Three connections are open: a 17th fails at once, and one more connects once another closes.
+    let mut open: Vec<_> = (3..16).map(|_| Client::connect(socket).unwrap()).collect();
+    match Client::connect(socket) {
+        Err(SidecarError::Io(e)) => assert_eq!(e.kind(), std::io::ErrorKind::ConnectionRefused),
+        other => panic!("a 17th connection: {other:?}"),
+    }
+    open.pop();
+    let closed = Instant::now();
+    while Client::connect(socket).is_err() {
+        assert!(
+            closed.elapsed() < Duration::from_secs(10),
+            "a freed connection never reopened"
+        );
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    drop(open);
 
     // A second sidecar leaves a live one's socket alone; a restart replaces the stale socket a killed one leaves.
     let refused = command(socket).output().unwrap();

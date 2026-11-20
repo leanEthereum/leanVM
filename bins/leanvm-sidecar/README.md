@@ -22,7 +22,7 @@ Built so, it runs the experimental prover; without `--features experimental_prov
 - It warms up (two discarded proofs) before listening, so the socket appears once it is ready. It logs to standard error.
 - One sidecar per socket: it locks `<socket>.lock`, and replaces a stale socket left by one that stopped.
 - The socket takes the process's umask, and connecting needs write permission on it: let only trusted clients connect, since any of them can keep it proving. Put it in a directory only the sidecar's user can write (not `/tmp`).
-- It serves 16 connections at once; more wait to be accepted.
+- It serves 16 connections at once, and closes another before its hello, so that its client fails rather than wait.
 - Requests are proven one at a time, in the order they arrive. Closing the connection drops a request whose proof has not started.
 - Stop it with a signal; requests in flight are lost.
 
@@ -45,7 +45,7 @@ From Go, `clients/go` (package `leanvmsidecar`) offers the same, `Dial`, then `A
 
 Integers are little-endian. A **frame** and a **bytes** field are a `u64` length, then that many bytes; a **count** is a `u64`.
 
-On connecting, the client reads a hello frame, then sends request frames, reading each one's response before sending the next. A connection whose writing half is shut down counts as closed.
+On connecting, the client reads a hello frame (a sidecar already serving 16 connections closes the connection instead), then sends request frames, reading each one's response before sending the next. A connection whose writing half is shut down counts as closed.
 
 ### Hello
 

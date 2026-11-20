@@ -42,7 +42,9 @@ func Dial(socket string) (*Client, error) {
 		return nil, err
 	}
 	hello, err := readFrame(conn)
-	if err == nil && (len(hello) < 20 || string(hello[:12]) != "leanvmsc\x01\x00\x00\x00" ||
+	if errors.Is(err, io.EOF) {
+		err = errors.New("leanvm-sidecar: closed before its hello: the sidecar serves at most 16 connections at once")
+	} else if err == nil && (len(hello) < 20 || string(hello[:12]) != "leanvmsc\x01\x00\x00\x00" ||
 		!bytes.HasPrefix(hello[20:], appendField(nil, []byte("leanvm-v1")))) {
 		err = errors.New("leanvm-sidecar: not a sidecar of protocol version 1 for verifier leanvm-v1")
 	}

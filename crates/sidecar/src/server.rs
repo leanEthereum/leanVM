@@ -19,7 +19,7 @@ use std::os::unix::fs::{FileTypeExt, OpenOptionsExt};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::Path;
 use std::sync::mpsc::{self, Receiver, Sender};
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
@@ -27,8 +27,8 @@ use std::time::Duration;
 /// signatures, while bounding the memory a connection holds.
 const MAX_REQUEST: u64 = 64 << 20;
 
-/// The most connections served at once; more wait to be accepted. With [`MAX_REQUEST`], it bounds the memory
-/// requests hold, queued ones included: each connection has at most one.
+/// The most connections served at once; another is closed before its hello, so its client fails rather than wait.
+/// With [`MAX_REQUEST`], it bounds the memory requests hold, queued ones included: each connection has at most one.
 const MAX_CONNECTIONS: usize = 16;
 
 /// A request, its client's connection, and where its outcome goes.
@@ -203,11 +203,14 @@ fn aggregate<P: Prover>(request: Request) -> Outcome {
 }
 
 fn accept(listener: &UnixListener, jobs: &Sender<Job>, hello: Arc<[u8]>) {
-    let open = Arc::new((Mutex::new(0), Condvar::new()));
+    let open = Arc::new(Mutex::new(0));
     loop {
-        let slot = Slot::take(&open);
         match listener.accept() {
             Ok((stream, _)) => {
+                let Some(slot) = Slot::take(&open) else {
+                    eprintln!("a connection refused: {MAX_CONNECTIONS} open");
+                    continue;
+                };
                 let (jobs, hello) = (jobs.clone(), hello.clone());
                 let spawned = thread::Builder::new().name("connection".into()).spawn(move || {
                     let _slot = slot;
@@ -227,25 +230,22 @@ fn accept(listener: &UnixListener, jobs: &Sender<Job>, hello: Arc<[u8]>) {
 }
 
 /// One of the [`MAX_CONNECTIONS`], freed when dropped, even by a connection's thread that panics.
-struct Slot(Arc<(Mutex<usize>, Condvar)>);
+struct Slot(Arc<Mutex<usize>>);
 
 impl Slot {
-    /// Waits for a free slot and takes it.
-    fn take(open: &Arc<(Mutex<usize>, Condvar)>) -> Self {
-        let (count, freed) = &**open;
-        let mut count = freed
-            .wait_while(count.lock().unwrap(), |n| *n == MAX_CONNECTIONS)
-            .unwrap();
-        *count += 1;
-        Self(open.clone())
+    /// Takes a free slot, if any.
+    fn take(open: &Arc<Mutex<usize>>) -> Option<Self> {
+        let mut count = open.lock().unwrap();
+        (*count < MAX_CONNECTIONS).then(|| {
+            *count += 1;
+            Self(open.clone())
+        })
     }
 }
 
 impl Drop for Slot {
     fn drop(&mut self) {
-        let (count, freed) = &*self.0;
-        *count.lock().unwrap() -= 1;
-        freed.notify_one();
+        *self.0.lock().unwrap() -= 1;
     }
 }
 
@@ -521,18 +521,6 @@ mod tests {
             decode_request(&body(frame)),
             Err((Rejection::InvalidInput, _))
         ));
-    }
-
-    #[test]
-    fn connections_beyond_the_cap_wait() {
-        let open = Arc::new((Mutex::new(0), Condvar::new()));
-        let mut slots: Vec<_> = (0..MAX_CONNECTIONS).map(|_| Slot::take(&open)).collect();
-        let (taken, waiter) = mpsc::channel();
-        let open2 = open.clone();
-        thread::spawn(move || taken.send(Slot::take(&open2)).unwrap());
-        assert!(waiter.recv_timeout(Duration::from_millis(100)).is_err());
-        slots.pop();
-        waiter.recv().unwrap();
     }
 
     #[test]
