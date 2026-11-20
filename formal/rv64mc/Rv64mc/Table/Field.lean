@@ -19,6 +19,8 @@ import Rv64mc.Proof.Field.BaseMul
 import Rv64mc.Proof.Field.ESquare
 import Rv64mc.Proof.Field.EPow
 import Rv64mc.Proof.Field.ESumCopied
+import Rv64mc.Proof.Field.KInv
+import Rv64mc.Proof.Field.ScaledMul
 import Rv64mc.Gen.Needs
 import Rv64mc.Gen.Link.Verifier.Field.Reduce
 import Rv64mc.Gen.Link.Verifier.Field.ClmulLow
@@ -30,6 +32,8 @@ import Rv64mc.Gen.Link.Verifier.Field.BaseMul
 import Rv64mc.Gen.Link.Verifier.Field.E.Square
 import Rv64mc.Gen.Link.Verifier.Field.E.Pow
 import Rv64mc.Gen.Link.Verifier.Field.E.SumCopiedIterE
+import Rv64mc.Gen.Link.Verifier.Field.K.Inv
+import Rv64mc.Gen.Link.Verifier.Field.Scaled.Mul
 
 namespace Rv64mc.Table.Field
 
@@ -84,6 +88,16 @@ theorem ePow
 
 theorem eSumCopied : Spec.Field.ESumCopied.spec env (liftProg fns) 35 Needs.Verifier.Field.E.SumCopiedIterE :=
   Proof.Field.ESumCopied.ok env _ 35 _ Verifier.Field.E.SumCopiedIterE.tmpl_eq _
+
+theorem kInv
+    (hd : DataRef.Words env Verifier.Field.ClmulLow.link.d_c8_d07a1b83 Verifier.Field.ClmulLow.d_c8_d07a1b83_words) :
+    Spec.Field.KInv.spec env (liftProg fns) 127 Needs.Verifier.Field.K.Inv :=
+  Proof.Field.KInv.ok env _ 127 _ Verifier.Field.K.Inv.tmpl_eq Verifier.Field.K.Inv.wf (by decide) (by decide)
+    (by decide) (spread env) (reduce env) (baseMul env hd)
+
+theorem scaledMul (hpanic : Spec.Runtime.NoReturn env (liftProg fns) 16 Needs.Core.Panicking.PanicBoundsCheck) :
+    Spec.Field.Scaled.mulSpec env (liftProg fns) 95 Needs.Verifier.Field.Scaled.Mul :=
+  Proof.Field.ScaledMul.ok env _ 95 _ Verifier.Field.Scaled.Mul.tmpl_eq Verifier.Field.Scaled.Mul.wf (by decide) hpanic
 
 end Rv64mc.Table.Field
 
