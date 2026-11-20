@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Writes a `no_std` + `alloc` copy of crates/verifier to $1 (default: formal/rv64mc/guest/verifier-nostd), for the RV64IM
-# guest. The rewrite is mechanical: `std::` becomes `core::` (`alloc::` for collections), and every module imports the
-# alloc items the std prelude gave it. crates/verifier itself is not touched.
+# guest. The rewrite is mechanical: `std::` becomes `core::` (`alloc::` for collections), every module imports the
+# alloc items the std prelude gave it, and every function is `#[inline(always)]` or `#[inline(never)]` as
+# ../boundaries.txt says (inline-attrs.py). crates/verifier itself is not touched.
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../../.." && pwd)
@@ -28,4 +29,5 @@ for f in "$out"/src/*.rs; do
     mv "$f.tmp" "$f"
   fi
 done
+python3 -I "$here/inline-attrs.py" "$here/../boundaries.txt" "$out/src"
 echo "$out"
