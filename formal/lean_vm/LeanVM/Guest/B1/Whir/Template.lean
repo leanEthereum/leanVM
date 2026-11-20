@@ -16,6 +16,8 @@ public import LeanVM.Guest.Renumber
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Source
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«level_positions__L_loop0»
 
 /-!
 # The template of `open_stacked` (TRIAGE G #42)
@@ -770,7 +772,7 @@ def sqLoopBody (lv : OsLv) (name : String) : List Stmt :=
     ((List.range 5).map fun i ↦ osLd (28 + i) 9 (5 + i)) ++
     pw.1 ++ p1.1 ++ [osMul p1.2.2 p1.2.1 pw.2] ++ p2.1 ++ [osMul p2.2.2 p2.2.1 pw.2] ++
     [.call ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
-      [.n 20, .n p1.2.2, .n p2.2.2, .n 5] []] ++
+      [.n (valf% «level_positions» «_loop0» "nxt[0]"), .n p1.2.2, .n p2.2.2, .n (valf% «level_positions» «_loop0» "tabs")] []] ++
     osLoopTail name 6 e
 
 /-- The residual loop's body, at `xr, N, qpos, basis_d, level_hs, chain, μ` (values

@@ -9,6 +9,9 @@
 module
 
 public import LeanVM.Guest.B1.Whir.Template
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«level_positions__L»
+import LeanVM.Guest.Data.ValNames.«level_queries__L»
 
 /-!
 # The templates of `open_stacked`'s helpers
@@ -46,7 +49,7 @@ and returned. -/
 def lpBody (sq d cd : ℕ) (loop : String) : List Stmt :=
   osHeap ((sq + 1) * 5) 9 ++
     ((List.range 5).map fun i ↦ osLd (1 + i) 10 (5 + i)) ++
-    [.call (dqwName d cd) [.n 0, .n 6, .n 7, .n 8] []] ++
+    [.call (dqwName d cd) [.n (valf% «level_positions» "word0"), .n (valf% «level_positions» "positions"), .n (valf% «level_positions» "win_ptrs"), .n (valf% «level_positions» "tabs")] []] ++
     osLoopCall loop 1 sq [10, 6, 7, 8] 11 ++
     [osCst 16 (gw (sq * 5)), osMul 17 10 16] ++
     ((List.range 5).map fun i ↦ osLd (18 + i) 17 i) ++
@@ -81,15 +84,15 @@ def lqBody (q base folds leaf d cd mu nhs hbits fin : ℕ) : List Stmt :=
   let pw := osPowSteps 0 (osPowDigits q) 0 17
   let k := 17 + osPowLen q
   osHeap (4 * 2 ^ cd) 6 ++
-    [.atom (.hint (.witness "merkle_caps" (.heap (.n 7) 0 (4 * 2 ^ cd))))] ++
+    [.atom (.hint (.witness "merkle_caps" (.heap (.n (valf% «level_queries» "cap")) 0 (4 * 2 ^ cd))))] ++
     osHeap (2 ^ cd) 8 ++
-    [.atom (.hint (.witness "merkle_cap_active" (.heap (.n 9) 0 (2 ^ cd)))),
-      .call ("verify_merkle_cap__L" ++ natStr cd) [.n 7, .n 9] [.n 10, .n 11],
+    [.atom (.hint (.witness "merkle_cap_active" (.heap (.n (valf% «level_queries» "flags")) 0 (2 ^ cd)))),
+      .call ("verify_merkle_cap__L" ++ natStr cd) [.n (valf% «level_queries» "cap"), .n (valf% «level_queries» "flags")] [.n (valf% «level_queries» "root_0"), .n (valf% «level_queries» "root_1")],
       osCst 12 (gw iters),
-      .call (oqName q base folds leaf d cd mu nhs hbits fin) [.n 7, .n 9, .n 1, .n 2, .n 3, .n 4, .n 5, .n 12]
-        [.n 13],
+      .call (oqName q base folds leaf d cd mu nhs hbits fin) [.n (valf% «level_queries» "cap"), .n (valf% «level_queries» "flags"), .n (valf% «level_queries» "lam_inv"), .n (valf% «level_queries» "coefs"), .n (valf% «level_queries» "hs"), .n (valf% «level_queries» "positions"), .n (valf% «level_queries» "win_ptrs"), .n (valf% «level_queries» "batched~1")]
+        [.n (valf% «level_queries» "batched")],
       osCp 14 10, osCp 15 11, osCp 16 13] ++
-    pw.1 ++ [osCp k pw.2, .ret [.n 14, .n 15, .n 16, .n k]]
+    pw.1 ++ [osCp k pw.2, .ret [.n (valf% «level_queries» "s7#0"), .n (valf% «level_queries» "s7#0[1]"), .n (valf% «level_queries» "s7#0[2]"), .n k]]
 
 /-- `level_residual` at `q` queries over `cols` message columns, a high part of `nhs` coefficients
 and `hbits` index bits, at `positions, row_d, hs, mu` (values `0 .. 3`): the chains (`HeapBuf(g^(2

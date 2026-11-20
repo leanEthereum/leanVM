@@ -292,3 +292,21 @@ LeanVM/Guest/B1/Terminal/TermEval.lean check_opening_terminal
 LeanVM/Guest/B1/Terminal/TermFacts.lean check_opening_terminal
 LeanVM/Guest/B1/Terminal/PiChain.lean check_opening_terminal_loop0
 LeanVM/Guest/B1/Terminal/EqPrefixIn.lean eq_prefix_run__L
+# Whir: the level functions' templates over their families
+LeanVM/Guest/B1/Whir/HelperT.lean@lpBody level_positions__L
+LeanVM/Guest/B1/Whir/HelperT.lean@lqBody level_queries__L
+LeanVM/Guest/B1/Whir/HelperT.lean@lrBody level_residual__L
+LeanVM/Guest/B1/Whir/LpSound.lean level_positions__L
+LeanVM/Guest/B1/Whir/LqSound.lean level_queries__L
+LeanVM/Guest/B1/Whir/LrSound.lean@lr_sound level_residual__L
+LeanVM/Guest/B1/Whir/LrSound.lean@lrBody_eq0 level_residual__L
+LeanVM/Guest/B1/Whir/LrSound.lean@lrBody_ne0 level_residual__L
+LeanVM/Guest/B1/Whir/LrSound.lean@lrLoop1_step level_residual__L_loop0
+LeanVM/Guest/B1/Whir/LrSound.lean@lrLoop2_step level_residual__L_loop1
+LeanVM/Guest/B1/Whir/Template.lean@sqLoopBody level_positions__L_loop0
+LeanVM/Guest/B1/Whir/SqLoop.lean@sqLoopA level_positions__L_loop0
+LeanVM/Guest/B1/Whir/SqLoop.lean@sqLoop_step level_positions__L_loop0
+LeanVM/Guest/B1/Whir/CSqLoop.lean level_positions__L_loop0
+LeanVM/Guest/B1/Whir/CHead.lean@osHead_complete open_stacked__L
+LeanVM/Guest/B1/Whir/Open.lean@osHead_roots open_stacked__L
+LeanVM/Guest/B1/Whir/Open.lean@open_generic open_stacked__L
