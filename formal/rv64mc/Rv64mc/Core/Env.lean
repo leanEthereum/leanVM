@@ -3,9 +3,10 @@
 
   What every function's contract may assume of the program around it, fixed at link time and abstract in every
   function's proof (`Env`): an invariant of the static data no function writes (`Static`, which reads only the
-  memory in `[staticLo, staticHi)`), the bump allocator's pointer `NEXT` (its address `nextAddr`, the heap's end
-  `heapEnd`), and the lowest address the stack reaches (`stackLimit`), in the guest's order: the heap, the static
-  data, `NEXT`, the stack (`guest/link.x`, `guest/src/main.rs`).
+  memory in `[staticLo, staticHi)`) and the words it fixes (`data`, the image's constant tables), the bump
+  allocator's pointer `NEXT` (its address `nextAddr`, the heap's end `heapEnd`), and the lowest address the stack
+  reaches (`stackLimit`), in the guest's order: the heap, the static data, `NEXT`, the stack (`guest/link.x`,
+  `guest/src/main.rs`).
 
   A call may write its own stack (`[stackLimit, top)`), what it allocates (`[NEXT before, NEXT after)`), `NEXT`, and
   the addresses its contract names (`Out`); `Env.Frame` says it keeps every other word, and that `NEXT` only grows,
@@ -39,6 +40,10 @@ structure Env where
   static_frame : ∀ m m' : MachineState,
     (∀ a : Word, staticLo.toNat ≤ a.toNat → a.toNat < staticHi.toNat → m'.getMem a = m.getMem a) →
       Static m → Static m'
+  /-- Words of the static data a contract may read, address and value: the constant tables of the image. -/
+  data : List (Word × Word)
+  /-- Where `Static` holds, each word of `data` is in place. -/
+  static_data : ∀ m : MachineState, Static m → ∀ q ∈ data, m.getMem q.1 = q.2
   /-- The address of the bump allocator's pointer `NEXT`. -/
   nextAddr : Word
   /-- The end of the heap: `NEXT` never passes it. -/

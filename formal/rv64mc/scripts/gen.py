@@ -15,6 +15,12 @@ from the Lake package's directory (default `out/gen.elf`). Under DIR (default `R
   no address or index, so it changes only when the function's own code or its callees' names do.
 - `Link/<M>.lean`, per function: the image's `link : Link`, `tmpl_eq : (liftProg fns)[i]? = some (tmpl link)` and
   `wf : Link.WF (liftProg fns) link`, both checked by the kernel.
+- `Needs.lean`: per function, the stack it needs (`Needs.<M> : Nat`): its frame (the sum of its `addi sp, sp, -N`) plus
+  the most any callee needs, and at least what a tail callee needs; it fails on recursion. Proofs never import it:
+  a contract takes its `need` as a parameter, and the link step checks `need >= frame + callee's need` by `decide`.
+- per data reference whose object holds no address, `<field>_words`, the doublewords from the referenced address to
+  the object's end, in the template (they are part of its content key); a proof that reads the table takes
+  `DataRef.Words env L.<field> <field>_words` as a hypothesis, which the link step proves from `env.data`.
 - `Words.lean` (machine-checked's, in this namespace), `Index.lean` (module, symbol, index, address and size of each
   function, checked against `words`), `Image.lean` (the end statement's `Rv64mc.image`, read from the ELF by
   `Rv64mc/ImageOfElf.lean` when built), the umbrellas `Tmpl.lean`, `Link.lean` and `../Gen.lean`, `hashes.tsv` (a hash
@@ -503,6 +509,12 @@ def tmpl_module(img, i, tchunks, callees, sites, data, depth):
     lines += [f"  {s} : Site" for s, _, _ in sites]
     lines += [f"  {d} : DataRef" for d, _ in data]
     lines.append("")
+    for d, (_, _, target) in data:
+        ws = data_words(img, target)
+        if ws is not None:
+            lines.append(f"/-- The doublewords at `{d}`, to the end of its object. -/")
+            lines.append(f"def {d}_words : List Word := [{', '.join(w64(w) for w in ws)}]")
+            lines.append("")
     for j, c in enumerate(tchunks):
         var = "L" if any("L." in x for x in c) else "_L"
         lines.append(f"def c{j} ({var} : Link) : Lcmd (Op Reg) Reg := [")
@@ -660,18 +672,96 @@ def umbrella(name, mods, doc):
     return f"/-\n  {name}\n\n  Written by `scripts/gen.py`; do not edit. {doc}\n-/\n\n" + "".join(f"import {m}\n" for m in mods)
 
 
+SP_SUB = re.compile(r"Op\.set \(Reg\.x2\) \(Expr\.bin \(BinOp\.add\) \(Expr\.reg \(Reg\.x2\)\) \(Expr\.imm 0x([0-9a-f]{16})#64\)\)")
+CALL_TO = re.compile(r"LinstrR\.L(call|tail) .*\[L\.(\S+)\.idx\]")
+
+
+def frame_and_calls(img, i, tchunks, callees):
+    """The frame of function `i` (the bytes its `addi sp, sp, -N` take) and the indices it calls and tail-calls."""
+    by_field = {f: j for j, f in callees}
+    frame, calls, tails = 0, set(), set()
+    for x in (y for c in tchunks for y in c):
+        for m in SP_SUB.finditer(x):
+            v = int(m.group(1), 16)
+            if v >= 1 << 63:
+                frame += (1 << 64) - v
+        if x.startswith("LinstrR.Lcall") or x.startswith("LinstrR.Ltail"):
+            m = CALL_TO.search(x)
+            if not m or m.group(2) not in by_field:
+                fail(f"{img.key[i]}: a call whose callee is not a field (recursion?): {x}")
+            (calls if m.group(1) == "call" else tails).add(by_field[m.group(2)])
+    return frame, calls, tails
+
+
+def needs_module(img, info):
+    """`Needs.<M>` for every function, over the call graph, which must have no cycle."""
+    need, state = {}, {}
+
+    def go(i):
+        if state.get(i) == 1:
+            fail(f"recursion through {img.key[i]}: no stack bound")
+        if i in need:
+            return need[i]
+        state[i] = 1
+        frame, calls, tails = info[i]
+        n = max([frame + max([go(j) for j in calls], default=0)] + [go(j) for j in tails])
+        state[i] = 2
+        need[i] = n
+        return n
+
+    lines = [
+        "/-",
+        f"  {NS}.Needs",
+        "",
+        "  Written by `scripts/gen.py`; do not edit. The stack each function needs: its frame plus the most any callee",
+        "  needs (and at least a tail callee's need). Imported by the link step only, never by a proof.",
+        "-/",
+        "",
+        f"namespace {NS}.Needs",
+        "",
+    ]
+    for i in range(len(info)):
+        frame = info[i][0]
+        lines.append(f"/-- `{comment_safe(img.key[i])}`: frame {frame}. -/")
+        lines.append(f"def {'.'.join(img.mod[i])} : Nat := {go(i)}")
+        lines.append("")
+    lines += [f"end {NS}.Needs", ""]
+    return "\n".join(lines)
+
+
+def data_words(img, addr):
+    """The doublewords from `addr` to the end of its object, or None if the object holds an address."""
+    obj = [s for s in img.sized if s["value"] <= addr < s["value"] + s["size"]]
+    if obj:
+        start, n = obj[0]["value"], obj[0]["size"]
+    else:
+        idx, sec = img.elf.section_at(addr)
+        if sec is None:
+            return None
+        start = addr
+        later = [a for a in img.labels[idx] if a > addr]
+        n = min(later + [sec["addr"] + sec["size"]]) - addr
+    if any(start <= o < start + n for o in img.data_relocs):
+        return None
+    k = (start + n - addr) // 8
+    if k == 0 or k > 512:
+        return None
+    return [struct.unpack("<Q", img.elf.read(addr + 8 * t, 8))[0] for t in range(k)]
+
+
 def generate(args):
     elf = Elf(open(args.elf, "rb").read())
     mcdir = args.mc
     words = mc_words(os.path.join(mcdir, "Words.lean"))
     img = Image(elf, words)
     files = {}
-    hashes, index_rows, sizes = [], [], []
+    hashes, index_rows, sizes, info = [], [], [], []
     for i in range(len(words)):
         chunks, mcname, addr, depth = mc_function(os.path.join(mcdir, f"F{i}.lean"), i)
         if addr != words[i][1]:
             fail(f"F{i}: address {addr:#x}, Words {words[i][1]:#x}")
         tchunks, callees, sites, data = templatize(img, i, chunks)
+        info.append(frame_and_calls(img, i, tchunks, callees))
         rel = "/".join(img.mod[i]) + ".lean"
         t = tmpl_module(img, i, tchunks, callees, sites, data, depth)
         files["Tmpl/" + rel] = t
@@ -681,6 +771,7 @@ def generate(args):
         index_rows.append(f"{'.'.join(img.mod[i])}\t{i}\t{words[i][1]:#x}\t{sizes[i]}\t{words[i][0]}\t{img.key[i]}")
     files["Words.lean"] = words_module(open(os.path.join(mcdir, "Words.lean")).read(), args.lean_elf)
     files["Index.lean"] = index_module(img, sizes)
+    files["Needs.lean"] = needs_module(img, info)
     files["Image.lean"] = image_module(sha(open(args.elf, "rb").read()), args.lean_elf)
     tm = sorted(f"{NS}.Tmpl." + ".".join(m) for m in img.mod)
     lm = sorted(f"{NS}.Link." + ".".join(m) for m in img.mod)

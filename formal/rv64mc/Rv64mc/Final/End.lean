@@ -61,11 +61,15 @@ theorem staticData_frame (m m' : MachineState)
   · rw [h p.1 h1 h2, hs p hp hne]
 
 /-- **The image's environment**: the static data in `[heapEnd, NEXT)`, `NEXT`, the stack above it. -/
-def env : Env where
+noncomputable def env : Env where
   Static := StaticData
   staticLo := heapEnd
   staticHi := nextAddr
   static_frame := staticData_frame
+  data := image.data.filter fun p => p.1 != nextAddr
+  static_data := fun _ hs q hq => by
+    simp only [List.mem_filter, bne_iff_ne, ne_eq] at hq
+    exact hs q hq.1 hq.2
   nextAddr := nextAddr
   heapEnd := heapEnd
   stackLimit := stackLimit

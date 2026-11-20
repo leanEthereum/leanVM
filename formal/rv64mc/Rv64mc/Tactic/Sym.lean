@@ -25,7 +25,10 @@
   * under `Holds` (`Core/Holds.lean`), a goal or contract is unfolded to the contract it is, and `closeSide` closes
     the frame (`Env.Frame`, built store by store and call by call: `Tactic/Frame.lean`), `env.Static`, `NEXT`'s
     bound and a callee's stack room from the function's own stack bound; a callee's frame without `out` becomes a
-    frame hypothesis (`keep<k>_1`) that loads read through.
+    frame hypothesis (`keep<k>_1`) that loads read through. A `need` that is a parameter is bounded by the
+    hypotheses `k + need' ≤ need` (`stackLit`, `room_hyp`);
+  * a load at `d.hi + d.lo + 8 k` reads word `k` of a constant table where a hypothesis `DataRef.Words env d ws`
+    gives it (`dataRead`, `Core/ReprLemmas.lean`).
 
   It stops at a program counter in `stop`, at the target of a backward jump (a loop's head, for a loop lemma), at a
   call without a contract, and where the function returns, which `finish` closes by the contract's continuation,
@@ -42,6 +45,7 @@ import Lean
 import Rv64mc.Tactic.Steps
 import Rv64mc.Tactic.Addr
 import Rv64mc.Tactic.Frame
+import Rv64mc.Core.ReprLemmas
 
 namespace Rv64mc.Tactic.Sym
 
@@ -293,6 +297,35 @@ def natVal? (e : Expr) : MetaM (Option Nat) := do
   if let some n ← evalNat e then return some n
   evalNat (← whnf e)
 
+/-- A hypothesis `k + X ≤ need` or `k ≤ need`, `k` a numeral, for a `need` that is a parameter: the largest `k`, its
+    proof, and `X` if any. -/
+def needHyps (need : Expr) : MetaM (Array (Nat × Expr × Option Expr)) := do
+  let mut out := #[]
+  for d in ← getLCtx do
+    if d.isImplementationDetail then continue
+    let ty := (← instantiateMVars d.type).consumeMData
+    unless ty.isAppOfArity ``LE.le 4 && ty.appArg! == need do continue
+    let a := ty.appFn!.appArg!
+    if a.isAppOfArity ``HAdd.hAdd 6 then
+      if let some k ← natVal? a.appFn!.appArg! then out := out.push (k, d.toExpr, some a.appArg!)
+    else if let some k ← natVal? a then out := out.push (k, d.toExpr, none)
+  return out
+
+/-- `S + k ≤ t.toNat` with `k` a numeral, from the stack bound `h : S + need ≤ t.toNat`: `need`'s value if it has
+    one, else the most a hypothesis on `need` gives. -/
+def stackLit (h S t need : Expr) : MetaM (Option (Expr × Nat)) := do
+  let goal (v : Nat) : MetaM Expr := do
+    mkAppM ``LE.le #[← mkAppM ``HAdd.hAdd #[S, mkNatLit v], ← mkAppM ``BitVec.toNat #[t]]
+  if let some v ← natVal? need then return some (← mkExpectedTypeHint h (← goal v), v)
+  let mut best : Option (Expr × Nat) := none
+  for (k, hn, x?) in ← needHyps need do
+    if best.any (k ≤ ·.2) then continue
+    let p ← match x? with
+      | some _ => mkAppM ``Rv64mc.Tactic.stack_lit #[h, hn]
+      | none => mkAppM ``Rv64mc.Tactic.stack_lit0 #[h, hn]
+    best := some (← mkExpectedTypeHint p (← goal k), k)
+  return best
+
 /-- The bounds `L ≤ t.toNat` and `t.toNat ≤ H` the context gives a base `t`, `L` and `H` numerals: from `L ≤ t` and
     `t ≤ H` on words, or from a stack bound `S + need ≤ t.toNat` (`Holds.pre`), the upper one `2^64 - 1` if no
     hypothesis gives one. -/
@@ -316,9 +349,9 @@ def bounds (t : Expr) : MetaM (Option (Expr × Nat × Expr × Nat)) := do
             hi := some (← mkExpectedTypeHint d.toExpr (← mkAppM ``LE.le #[← mkAppM ``BitVec.toNat #[t], mkNatLit v]), v)
       -- `S + need ≤ t.toNat`
       if b.isAppOfArity ``BitVec.toNat 2 && b.appArg! == t && a.isAppOfArity ``HAdd.hAdd 6 then
-        if let some v ← natVal? a.appArg! then
+        if let some (hk, v) ← stackLit d.toExpr a.appFn!.appArg! t a.appArg! then
           if lo.all (·.2 < v) then
-            let p ← mkAppM ``Rv64mc.Tactic.lo_of_room #[d.toExpr]
+            let p ← mkAppM ``Rv64mc.Tactic.lo_of_room #[hk]
             lo := some (← mkExpectedTypeHint p (← mkAppM ``LE.le #[mkNatLit v, b]), v)
   let hi' ← match hi with
     | some x => pure x
@@ -326,20 +359,6 @@ def bounds (t : Expr) : MetaM (Option (Expr × Nat × Expr × Nat)) := do
   match lo with
   | some (hl, l) => return some (hl, l, hi'.1, hi'.2)
   | none => return none
-
-/-- The stack bound `env.stackLimit.toNat + need ≤ t.toNat` of a stack top `t`, its `need`'s value. -/
-def stackBound (t : Expr) : MetaM (Option (Expr × Expr × Nat)) := do
-  for d in ← getLCtx do
-    if d.isImplementationDetail then continue
-    let ty := (← instantiateMVars d.type).consumeMData
-    if ty.isAppOfArity ``LE.le 4 then
-      let a := ty.appFn!.appArg!
-      let b := ty.appArg!
-      if b.isAppOfArity ``BitVec.toNat 2 && b.appArg! == t && a.isAppOfArity ``HAdd.hAdd 6 then
-        let s := a.appFn!.appArg!
-        if s.isAppOfArity ``BitVec.toNat 2 && s.appArg!.isAppOf ``Rv64mc.Env.stackLimit then
-          if let some v ← natVal? a.appArg! then return some (d.toExpr, a.appArg!, v)
-  return none
 
 /-- A hypothesis `t ≤ x`, or `t = x` read as one. -/
 def leHyp (t x : Expr) : MetaM (Option Expr) := do
@@ -621,7 +640,7 @@ def isF (out : Expr) : MetaM Bool := do
 
 /-- The function's own stack bound, `env.stackLimit.toNat + need ≤ top.toNat` (`Holds.pre`): its proof, `S`,
     `top`, `need` and `need`'s value. -/
-def ownStack : MetaM (Option (Expr × Expr × Expr × Expr × Nat)) := do
+def rawStack : MetaM (Option (Expr × Expr × Expr × Expr)) := do
   for d in ← getLCtx do
     if d.isImplementationDetail then continue
     let ty := (← instantiateMVars d.type).consumeMData
@@ -631,8 +650,15 @@ def ownStack : MetaM (Option (Expr × Expr × Expr × Expr × Nat)) := do
       if b.isAppOfArity ``BitVec.toNat 2 && a.isAppOfArity ``HAdd.hAdd 6 then
         let S := a.appFn!.appArg!
         if S.isAppOfArity ``BitVec.toNat 2 && S.appArg!.isAppOf ``Rv64mc.Env.stackLimit then
-          if let some v ← natVal? a.appArg! then return some (d.toExpr, S, b.appArg!, a.appArg!, v)
+          return some (d.toExpr, S, b.appArg!, a.appArg!)
   return none
+
+/-- The function's own stack bound as `S + k ≤ top.toNat`, `k` a numeral (`stackLit`): its proof, `S`, `top`, `k` and
+    its value. -/
+def ownStack : MetaM (Option (Expr × Expr × Expr × Expr × Nat)) := do
+  let some (h, S, t, need) ← rawStack | return none
+  let some (hk, k) ← stackLit h S t need | return none
+  return some (hk, S, t, mkNatLit k, k)
 
 /-- A hypothesis whose type is `t`, up to reducible unfolding. -/
 def hypOf (t : Expr) : MetaM (Option Expr) := do
@@ -697,6 +723,26 @@ def entryMem (env : Expr) : MetaM (Option (Expr × Expr)) := do
       if (← hypOf hnxT).isSome then return some (m0, d.toExpr)
   return none
 
+/-- A callee's room `S + need' ≤ (top + c).toNat` for a `need'` that is a parameter: from the stack bound
+    `S + need ≤ top.toNat` and a hypothesis `k + need' ≤ need` with `-c ≤ k` (`room_hyp`), or `need' ≤ need` and `c = 0`. -/
+def roomParam (a b : Expr) : MetaM (Option Expr) := do
+  let some (h, S, top, need) ← rawStack | return none
+  unless a.appFn!.appArg! == S do return none
+  let need' := a.appArg!
+  let (bx, cx) ← affine b.appArg!
+  unless bx == some top do return none
+  for (k, hn, x?) in ← needHyps need do
+    match x? with
+    | some x =>
+      if x == need' && toInt64 cx ≤ 0 && -toInt64 cx ≤ k then
+        if cx == 0 then
+          return some (← mkAppM ``Rv64mc.Tactic.room_hyp0 #[h, ← mkAppM ``Nat.le_trans
+            #[← mkAppM ``Nat.le_add_left #[need', mkNatLit k], hn]])
+        return some (← appN ``Rv64mc.Tactic.room_hyp [(`S, S), (`need, need), (`need', need'), (`k, (← inferType hn).appFn!.appArg!.appFn!.appArg!),
+          (`t, top), (`c, mkLit cx), (`h, h), (`hn, hn), (`hc, ← mkEqRefl (mkConst ``Bool.true))])
+    | none => pure ()
+  return none
+
 /-- A goal of `Holds`'s: the frame of the function's memory, the static data or `NEXT`'s bound in a memory it made,
     a callee's stack room. -/
 def holdsGoal (ty : Expr) : MetaM (Option Expr) := do
@@ -723,7 +769,7 @@ def holdsGoal (ty : Expr) : MetaM (Option Expr) := do
       return some (← mkAppM ``Rv64mc.Tactic.frame_next #[h])
     -- `env.stackLimit.toNat + need' ≤ (top + c).toNat`: a callee's room
     if b.isAppOfArity ``BitVec.toNat 2 && a.isAppOfArity ``HAdd.hAdd 6 then
-      let some need' ← natVal? a.appArg! | return none
+      let some need' ← natVal? a.appArg! | return ← roomParam a b
       let some (h, S, top, need, nv) ← ownStack | return none
       unless a.appFn!.appArg! == S do return none
       let (bx, cx) ← affine b.appArg!
@@ -736,6 +782,43 @@ def holdsGoal (ty : Expr) : MetaM (Option Expr) := do
       unless toInt64 cx ≤ 0 && (need' : Int) - toInt64 cx ≤ nv do return none
       return some (← appN ``Rv64mc.Tactic.room [(`S, S), (`need, need), (`need', a.appArg!), (`t, top),
         (`c, mkLit cx), (`h, h), (`hc, tru)])
+  return none
+
+/-- The elements of a literal list (through definitions), if it is one. -/
+partial def listElems (l : Expr) : MetaM (Option (Array Expr)) := do
+  let l ← whnf l
+  if l.isAppOfArity ``List.nil 1 then return some #[]
+  if l.isAppOfArity ``List.cons 3 then
+    let some rest ← listElems l.appArg! | return none
+    return some (#[l.appFn!.appArg!] ++ rest)
+  return none
+
+/-- A load from a constant table: `x` is `d.hi + d.lo + 8 k` for a data reference `d` whose words a hypothesis
+    `DataRef.Words env d ws` gives, in a memory where `env.Static` holds (`holdsGoal`). -/
+def dataRead (M x : Expr) : MetaM (Option (Expr × Expr)) := do
+  let (bx, cx) ← affine x
+  let some b := bx | return none
+  unless b.isAppOfArity ``HAdd.hAdd 6 do return none
+  let hi := b.appFn!.appArg!
+  let lo := b.appArg!
+  unless hi.isAppOfArity ``Rv64mc.DataRef.hi 1 && lo.isAppOfArity ``Rv64mc.DataRef.lo 1 && hi.appArg! == lo.appArg! do
+    return none
+  unless cx % 8 == 0 do return none
+  let k := cx / 8
+  for d in ← getLCtx do
+    if d.isImplementationDetail then continue
+    let ty := (← instantiateMVars d.type).consumeMData
+    unless ty.isAppOfArity ``Rv64mc.DataRef.Words 3 && ty.getAppArgs[1]! == hi.appArg! do continue
+    let env := ty.getAppArgs[0]!
+    let ws := ty.getAppArgs[2]!
+    let some elems ← listElems ws | continue
+    unless k < elems.size do continue
+    let some hs ← holdsGoal (← mkAppM ``Rv64mc.Env.Static #[env, M]) | continue
+    let hk ← mkDecideProof (← mkAppM ``LT.lt #[mkNatLit k, ← mkAppM ``List.length #[ws]])
+    let p ← if k == 0 then mkAppM ``Rv64mc.DataRef.Words.get0 #[d.toExpr, hs, hk]
+      else mkAppM ``Rv64mc.DataRef.Words.get #[d.toExpr, hs, mkNatLit k, hk]
+    let v := elems[k]!
+    return some (v, ← mkExpectedTypeHint p (← mkEq (← mkAppM ``MachineState.getMem #[M, x]) v))
   return none
 
 /-! ## Side goals -/
@@ -1075,7 +1158,9 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
           let s := (oargs[3]!).consumeMData
           let (x, ha) ← evalE a.R (oargs[4]!)
           if w.isConstOf ``Lprog.Width.b8 && s.isConstOf ``Bool.false then
-            let (v, pv) ← readMem a.M x
+            let (v, pv) ← match ← dataRead a.M x with
+              | some (v, p) => pure (v, some p)
+              | none => readMem a.M x
             let hv ← orRefl pv v
             let (R', hR) ← writeReg a.R (oargs[1]!) v
             let h ← newGoal g (a.goal (a.pc + 1) R' a.M)

@@ -11,12 +11,10 @@ namespace Rv64mc.Spec.Field.Reduce
 
 open RiscvZkvm.Rv64 Lprog Lprog.RiscV
 
-def need : Nat := 0
-
 def Post (regs : Reg → Word) (_m : MachineState) (r' : Reg → Word) (_m' : MachineState) : Prop :=
   r' .x10 = Model.reduce (regs .x11 ++ regs .x10)
 
-/-- **The contract of `reduce`**, function `i` of `p`. -/
-def spec (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) : Prop := Holds env p i need (fun _ _ => True) Post
+/-- **The contract of `reduce`**, function `i` of `p` with `need` bytes of stack (it has no frame). -/
+def spec (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop := Holds env p i need (fun _ _ => True) Post
 
 end Rv64mc.Spec.Field.Reduce

@@ -29,3 +29,5 @@ Alloc.RawVec.RawVecInner.FinishGrow	68	0	0	-	not proved
 Alloc.RawVec.RawVecInner.TryAllocateIn*	57, 48	1	0	-	not proved
 (infrastructure) Core/Repr.lean	-	-	195	12.6	footprints, watermark, Owned, value predicates with keep lemmas, byte lemmas, AbiRegs.updReg_iff, Holds.pre_call
 (infrastructure) scripts/type-layouts.sh	-	-	-	132	one run: guest build with -Zprint-type-sizes and two cargo checks with rustc_dump_layout probes (119 user + 13 sys, 138 s wall); --check reproduces byte for byte
+Proof.Field.ClmulLow	72	0	2	0.6	the class mask 0x8888... from DataRef.Words (read by rv_auto); masks by decide +kernel, ac_rfl
+Proof.Field.Clmul	156	0	9	1.5	three lowered reverse_bits matched to reverse_net (Proof/Field/Reverse.lean, 44 CPU-s once, bit by bit); u128 halves by lo128_join, hi128_join

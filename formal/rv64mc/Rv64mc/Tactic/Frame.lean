@@ -56,6 +56,27 @@ theorem room0 {S need need' : Nat} {t : BitVec 64} (h : S + need ≤ t.toNat) (h
     S + need' ≤ t.toNat := by
   simp only [decide_eq_true_eq] at hc; omega
 
+/-- A non-positive offset `c` of at most `k` bytes. -/
+def offK (k : Nat) (c : BitVec 64) : Bool := decide (c.toInt ≤ 0 ∧ -c.toInt ≤ k)
+
+/-- The stack bound with a `need` that is a parameter, as a numeral: from `k + need' ≤ need`. -/
+theorem stack_lit {S need need' k : Nat} {t : BitVec 64} (h : S + need ≤ t.toNat) (hn : k + need' ≤ need) :
+    S + k ≤ t.toNat := by omega
+
+/-- The same from `k ≤ need`. -/
+theorem stack_lit0 {S need k : Nat} {t : BitVec 64} (h : S + need ≤ t.toNat) (hn : k ≤ need) : S + k ≤ t.toNat := by
+  omega
+
+/-- **A callee's room** from a `need` that is a parameter: `k + need' ≤ need`, the callee's stack top at most `k`
+    bytes below. -/
+theorem room_hyp {S need need' k : Nat} {t c : BitVec 64} (h : S + need ≤ t.toNat) (hn : k + need' ≤ need)
+    (hc : offK k c = true) : S + need' ≤ (t + c).toNat := by
+  simp only [offK, decide_eq_true_eq] at hc
+  have := toNat_add_neg (t := t) (c := c) (by omega) (by omega); omega
+
+theorem room_hyp0 {S need need' : Nat} {t : BitVec 64} (h : S + need ≤ t.toNat) (hn : need' ≤ need) :
+    S + need' ≤ t.toNat := by omega
+
 /-- A bound `k ≤ t.toNat` from the stack's. -/
 theorem lo_of_room {S need : Nat} {t : BitVec 64} (h : S + need ≤ t.toNat) : need ≤ t.toNat := by omega
 

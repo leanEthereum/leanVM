@@ -9,7 +9,7 @@
 
 import Rv64mc.Spec.Multilinear.EqEval
 import Rv64mc.Spec.Runtime.Panic
-import Rv64mc.Proof.Field.Slice
+import Rv64mc.Core.ReprLemmas
 import Rv64mc.Gen.Tmpl.Verifier.Multilinear.EqEval
 import Rv64mc.Tactic.Sym
 
@@ -105,7 +105,8 @@ theorem body_val {env : Env} {top : Word} {m M : MachineState} {xs ys : List E} 
 
 /-- **The loop**, from its head with `k + 1` elements to go. -/
 theorem loop (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (xs ys : List E)
-    (hp : p[i]? = some (tmpl L)) (hL : L.WF p) (hmul : Spec.Field.EMul.spec env p L.mul.idx)
+    (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {need needM : Nat} (hnM : 48 + needM ≤ need)
+    (hmul : Spec.Field.EMul.spec env p L.mul.idx needM)
     {G : State rvIsa → Prop} {n : Nat} {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame}
     {regs : Reg → Word} {m : MachineState}
     (hk : ∀ r' m', Holds.post env (Post xs ys) (fun _ _ _ => False) ret top regs m r' m' →
@@ -145,8 +146,9 @@ theorem loop (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (xs ys : 
 
 /-- **`eq_eval` keeps its contract.** -/
 theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p)
-    (hmul : Spec.Field.EMul.spec env p L.mul.idx)
-    (hfail : Spec.Runtime.NoReturn env p L.assertFailedUsizeUsize.idx 0) : spec env p i := by
+    {need needM needF : Nat} (hnM : 48 + needM ≤ need) (hnF : 48 + needF ≤ need)
+    (hmul : Spec.Field.EMul.spec env p L.mul.idx needM)
+    (hfail : Spec.Runtime.NoReturn env p L.assertFailedUsizeUsize.idx needF) : spec env p i need := by
   intro xs ys
   rv_auto hp with [hL] using [hmul, hfail]
   all_goals have hlx := live_bound hpre_10 hpre_5
@@ -159,7 +161,7 @@ theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]?
     have h0 : xs.length = 0 := by simpa using (len_zero (by simp; omega)).1 hc
     simp [acc, h0, Model.limbs_one, Model.eOne]
   have h0 : xs.length ≠ 0 := fun h => hc ((len_zero (by simp; omega)).2 (by simpa using h))
-  refine loop env p i L xs ys hp hL hmul hk hpre_3 hpre_4 hpre_5 hpre_7 hpre_9 hpre_10 hpre_11 hlen
+  refine loop env p i L xs ys hp hL hnM hmul hk hpre_3 hpre_4 hpre_5 hpre_7 hpre_9 hpre_10 hpre_11 hlen
     (xs.length - 1) 0 _ _ (by omega) ?_
   rv_close
   all_goals first

@@ -16,7 +16,9 @@ open RiscvZkvm.Rv64 Lprog Lprog.RiscV Rv64mc.Spec.Field
 open Rv64mc.Gen.Verifier.Field.E.AsMul.Mul (Link tmpl)
 
 theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p)
-    (hcl : Clmul.spec env p L.clmul.idx) (hrd : Reduce.spec env p L.reduce.idx) : EMul.spec env p i := by
+    {need needC needR : Nat} (hnC : 80 + needC ≤ need) (hnR : 80 + needR ≤ need)
+    (hcl : Clmul.spec env p L.clmul.idx needC) (hrd : Reduce.spec env p L.reduce.idx needR) :
+    EMul.spec env p i need := by
   rv_auto hp with [hL] using [hcl, hrd]
   all_goals simp only [Model.eMul, ← hi128_xor, ← lo128_xor, ← hi128_shl1, ← lo128_shl1]
   all_goals simp only [BitVec.xor_assoc, BitVec.xor_comm, xor_left_comm, append_hi_lo]

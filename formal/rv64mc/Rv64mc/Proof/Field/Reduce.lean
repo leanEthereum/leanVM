@@ -14,7 +14,7 @@ namespace Rv64mc.Proof.Field.Reduce
 open RiscvZkvm.Rv64 Lprog Lprog.RiscV Rv64mc.Spec.Field
 
 theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Gen.Verifier.Field.Reduce.Link)
-    (hp : p[i]? = some (Gen.Verifier.Field.Reduce.tmpl L)) : Reduce.spec env p i := by
+    (hp : p[i]? = some (Gen.Verifier.Field.Reduce.tmpl L)) (need : Nat) : Reduce.spec env p i need := by
   rv_auto hp
   simp only [Model.reduce, setWidth_append, setWidth_shift_append, BitVec.xor_assoc, BitVec.xor_comm,
     xor_left_comm]

@@ -12,14 +12,12 @@ namespace Rv64mc.Spec.Field.EMul
 
 open RiscvZkvm.Rv64 Lprog Lprog.RiscV
 
-/-- The stack it needs: its frame (80 bytes) and its deepest callee's (`clmul`). -/
-def need : Nat := 80 + Clmul.need
-
 def Post (regs : Reg → Word) (_m : MachineState) (r' : Reg → Word) (_m' : MachineState) : Prop :=
   r' .x10 = (Model.eMul (regs .x10, regs .x11) (regs .x12, regs .x13)).1 ∧
     r' .x11 = (Model.eMul (regs .x10, regs .x11) (regs .x12, regs .x13)).2
 
-/-- **The contract of `E::mul`**, function `i` of `p`. -/
-def spec (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) : Prop := Holds env p i need (fun _ _ => True) Post
+/-- **The contract of `E::mul`**, function `i` of `p` with `need` bytes of stack (its frame is 80 bytes; it calls
+    `clmul` and `reduce`). -/
+def spec (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop := Holds env p i need (fun _ _ => True) Post
 
 end Rv64mc.Spec.Field.EMul

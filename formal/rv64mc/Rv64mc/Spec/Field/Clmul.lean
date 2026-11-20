@@ -11,13 +11,11 @@ namespace Rv64mc.Spec.Field.Clmul
 
 open RiscvZkvm.Rv64 Lprog Lprog.RiscV
 
-/-- The stack it needs: its frame (80 bytes) and `clmul_low`'s (48). -/
-def need : Nat := 128
-
 def Post (regs : Reg → Word) (_m : MachineState) (r' : Reg → Word) (_m' : MachineState) : Prop :=
   r' .x10 = lo128 (Model.clmul (regs .x10) (regs .x11)) ∧ r' .x11 = hi128 (Model.clmul (regs .x10) (regs .x11))
 
-/-- **The contract of `clmul`**, function `i` of `p`. -/
-def spec (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) : Prop := Holds env p i need (fun _ _ => True) Post
+/-- **The contract of `clmul`**, function `i` of `p` with `need` bytes of stack (its frame is 80 bytes; it calls
+    `clmul_low`). -/
+def spec (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop := Holds env p i need (fun _ _ => True) Post
 
 end Rv64mc.Spec.Field.Clmul

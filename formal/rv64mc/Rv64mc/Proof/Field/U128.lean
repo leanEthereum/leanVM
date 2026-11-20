@@ -49,4 +49,23 @@ theorem setWidth_shift_append (h l : BitVec 64) : ((h ++ l) >>> 64).setWidth 64 
 theorem xor_left_comm {w : Nat} (x y z : BitVec w) : x ^^^ (y ^^^ z) = y ^^^ (x ^^^ z) := by
   rw [← BitVec.xor_assoc, BitVec.xor_comm x y, BitVec.xor_assoc]
 
+/-- `xor_left_comm` for `|||` (named apart from `_root_.or_left_comm`). -/
+theorem bor_left_comm {w : Nat} (x y z : BitVec w) : x ||| (y ||| z) = y ||| (x ||| z) := by
+  rw [← BitVec.or_assoc, BitVec.or_comm x y, BitVec.or_assoc]
+
+/-- The low word of `(h as u128) << 64 | l as u128`, as `Model.clmul` builds it. -/
+theorem lo128_join (h l : BitVec 64) : lo128 (h.setWidth 128 <<< 64 ||| l.setWidth 128) = l := by
+  unfold lo128; ext i hi; simp
+
+/-- The high word of `(h as u128) << 64 | l as u128`. -/
+theorem hi128_join (h l : BitVec 64) : hi128 (h.setWidth 128 <<< 64 ||| l.setWidth 128) = h := by
+  unfold hi128; ext i hi
+  simp [show 64 + i < 128 by omega, show i < 128 by omega, BitVec.getLsbD_eq_getElem hi]
+
+/-- A word is the bit reversal of another when its bits are the other's read from the top: for a reversal the code
+    computes by shifts and masks, checked bit by bit. -/
+theorem eq_reverse {x y : BitVec 64} (h : ∀ i, i < 64 → x.getLsbD i = y.getLsbD (63 - i)) : x = y.reverse := by
+  apply BitVec.eq_of_getLsbD_eq; intro i hi
+  rw [BitVec.getLsbD_reverse, h i hi, BitVec.getMsbD_eq_getLsbD]; simp [hi]
+
 end Rv64mc.Spec.Field
