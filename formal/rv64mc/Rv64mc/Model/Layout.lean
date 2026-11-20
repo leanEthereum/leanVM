@@ -130,7 +130,7 @@ theorem evaluate_eq_sum (f : Form) (column : ℕ → E) :
   rw [Form.evaluate, sumE_eq_sum]
   rfl
 
-theorem sum_map_set {α : Type} (g : α → E) (l : List α) (i : ℕ) (a : α) (hi : i < l.length) :
+private theorem sum_map_set {α : Type} (g : α → E) (l : List α) (i : ℕ) (a : α) (hi : i < l.length) :
     ((l.set i a).map g).sum = (l.map g).sum - g l[i] + g a := by
   have hi' : i < (l.map g).length := by simpa using hi
   have h2 : (l.map g).sum = ((l.map g).take i).sum + g l[i] + ((l.map g).drop (i + 1)).sum := by
@@ -709,6 +709,8 @@ structure TableRust where
   /-- `flushes`. -/
   flushes : Flushes
 
+instance : Inhabited TableRust := ⟨⟨0, [], {}⟩⟩
+
 /-- `Table::n_constraints`: `N_CONSTRAINTS[opcode]`. -/
 def TableRust.nConstraints (t : TableRust) : ℕ := nConstraintsRust.getD t.opcode 0
 
@@ -788,9 +790,6 @@ theorem evaluate_sum_fun (l : List Form) :
   funext column
   rw [Form.sum, evaluate_foldl_add, evaluate_empty, zero_add]
 
-end TablesEq
-
-section TablesEq
 
 theorem den_foldl {α : Type} (l : List α) (g g' : Flushes → α → Flushes)
     (h : ∀ x ∈ l, ∀ f f', flushesDen f = flushesDen f' →
@@ -982,7 +981,7 @@ theorem den_flushesKeccak : flushesDen flushesKeccakRust = flushesDen flushesKec
         | exact den_memory hf (hOut 0 (by norm_num)) _ (hv _ _ _)
         | exact den_memoryIf hf _ (hOut x (by omega)) _ (hv _ _ _)
 
-theorem length_foldl_setE (o : ℕ) (v : ℕ → E) :
+private theorem length_foldl_setE (o : ℕ) (v : ℕ → E) :
     ∀ (n : ℕ) (P : List E),
       ((List.range n).foldl (fun p j ↦ p.set (o + j) (v j)) P).length = P.length
   | 0, _ => rfl
@@ -990,7 +989,7 @@ theorem length_foldl_setE (o : ℕ) (v : ℕ → E) :
     rw [List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil, List.length_set,
       length_foldl_setE o v n P]
 
-theorem getElem?_foldl_setE (o : ℕ) (v : ℕ → E) (P : List E) (i : ℕ) :
+private theorem getElem?_foldl_setE (o : ℕ) (v : ℕ → E) (P : List E) (i : ℕ) :
     ∀ n, ((List.range n).foldl (fun p j ↦ p.set (o + j) (v j)) P)[i]? =
       if o ≤ i ∧ i < o + n ∧ i < P.length then some (v (i - o)) else P[i]?
   | 0 => by simp; omega
@@ -1380,13 +1379,13 @@ theorem isOutputLaneRust_eq (c : ℕ) : isOutputLaneRust c = decide (c ∈ kecca
   rw [isOutputLaneRust, hb, decide_eq_decide, mem_keccakOutputColumns]
   simp [keccakOutRust, keccakInRust, KeccakCol.len, stateLanesRust]
 
-theorem foldl_append_eq_flatMap {α β : Type} (f : α → List β) :
+private theorem foldl_append_eq_flatMap {α β : Type} (f : α → List β) :
     ∀ (l : List α) (init : List β), l.foldl (fun acc x ↦ acc ++ f x) init = init ++ l.flatMap f
   | [], _ => by simp
   | x :: l, init => by
     rw [List.foldl_cons, foldl_append_eq_flatMap f l, List.flatMap_cons, List.append_assoc]
 
-theorem flatMap_forall₂ {α α' β : Type} {R : α → α' → Prop} {f : α → List β} {g : α' → List β}
+private theorem flatMap_forall₂ {α α' β : Type} {R : α → α' → Prop} {f : α → List β} {g : α' → List β}
     (h : ∀ a b, R a b → f a = g b) :
     ∀ {l : List α} {l' : List α'}, List.Forall₂ R l l' → l.flatMap f = l'.flatMap g
   | _, _, .nil => rfl
@@ -1467,7 +1466,7 @@ theorem busBlocksRust_den (heights : List ℕ) (tableRows : List (BitVec 64)) :
     intro l _
     simp [Forms.den]
 
-theorem foldl_set_zip_getD {α : Type} (d : α) :
+private theorem foldl_set_zip_getD {α : Type} (d : α) :
     ∀ (l : List ℕ) (v o : List α), l.Nodup → v.length = l.length → (∀ c ∈ l, c < o.length) →
       ∀ c, ((l.zip v).foldl (fun o cv ↦ o.set cv.1 cv.2) o).getD c d =
         if c ∈ l then v.getD (l.idxOf c) d else o.getD c d
@@ -1488,7 +1487,7 @@ theorem foldl_set_zip_getD {α : Type} (d : α) :
       · have hca' : c ≠ a := Ne.symm hca
         simp [hc, hca, hca', List.getD_eq_getElem?_getD]
 
-private theorem sum_pow_le (l : List ℕ) (b : ℕ) (h : ∀ k ∈ l, k ≤ b) :
+theorem sum_pow_le (l : List ℕ) (b : ℕ) (h : ∀ k ∈ l, k ≤ b) :
     (l.map (2 ^ ·)).sum ≤ l.length * 2 ^ b := by
   induction l with
   | nil => simp

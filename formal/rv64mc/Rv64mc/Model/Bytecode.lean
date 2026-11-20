@@ -192,16 +192,6 @@ private theorem belowK_all (l : List α) (keys : ℕ) (h : ∀ x ∈ l, key x < 
   intro x hx
   simpa using h x hx
 
-private theorem getD_setN (l : List ℕ) (i j a : ℕ) :
-    (l.set i a).getD j 0 = if i = j ∧ i < l.length then a else l.getD j 0 := by
-  simp only [List.getD_eq_getElem?_getD, List.getElem?_set]
-  by_cases h : i = j
-  · subst h
-    by_cases hl : i < l.length
-    · simp [hl]
-    · simp [hl]
-  · simp [h]
-
 private theorem counts_spec (keys : ℕ) : ∀ (P : List α) (init : List ℕ),
     (∀ x ∈ P, key x < keys) → init.length = keys + 1 →
     (P.foldl (fun st item ↦ st.set (key item + 1) (st.getD (key item + 1) 0 + 1)) init).length =
@@ -214,7 +204,7 @@ private theorem counts_spec (keys : ℕ) : ∀ (P : List α) (init : List ℕ),
     obtain ⟨h1, h2⟩ := counts_spec keys P (init.set (key x + 1) (init.getD (key x + 1) 0 + 1))
       (fun y hy ↦ hP y (by simp [hy])) (by rw [List.length_set, hl])
     refine ⟨h1, fun k ↦ ?_⟩
-    rw [List.foldl_cons, h2, getD_setN]
+    rw [List.foldl_cons, h2, getD_set]
     simp only [cntK, List.countP_cons]
     by_cases hk : key x + 1 = k
     · subst hk
@@ -242,14 +232,14 @@ private theorem starts_spec (items : List α) (keys : ℕ) (counts : List ℕ)
     obtain ⟨h1, h2, h3⟩ := starts_spec items keys counts hc h0 hk m (by omega)
     rw [List.range'_concat, List.foldl_append, List.foldl_cons, List.foldl_nil, Nat.one_mul]
     refine ⟨by rw [List.length_set, h1], fun k hk' ↦ ?_, fun k hk' ↦ ?_⟩
-    · rw [getD_setN, h1]
+    · rw [getD_set, h1]
       by_cases hk2 : 1 + m = k
       · subst hk2
         rw [ite_eq_left ⟨rfl, by omega⟩, h3 _ (by omega), hk _ (by omega),
           show 1 + m - 1 = m by omega, h2 m le_rfl, show 1 + m = m + 1 by omega, belowK_succ]
         omega
       · rw [ite_eq_right (by omega), h2 k (by omega)]
-    · rw [getD_setN, ite_eq_right (by omega), h3 k (by omega)]
+    · rw [getD_set, ite_eq_right (by omega), h3 k (by omega)]
 
 private theorem cntK_take_le (items : List α) {i j : ℕ} (h : i ≤ j) (k : ℕ) :
     cntK key (items.take i) k ≤ cntK key (items.take j) k :=
@@ -326,16 +316,6 @@ private theorem posK_injective (items : List α) {i i' : ℕ} (hi : i < items.le
       · exact absurd h (posK_le_of_lt key items hi hk).ne
       · exact absurd h (posK_le_of_lt key items hi' hk).ne'
 
-private theorem getD_setA (l : List α) (i j : ℕ) (a : α) :
-    (l.set i a).getD j default = if i = j ∧ i < l.length then a else l.getD j default := by
-  simp only [List.getD_eq_getElem?_getD, List.getElem?_set]
-  by_cases h : i = j
-  · subst h
-    by_cases hl : i < l.length
-    · simp [hl]
-    · simp [hl]
-  · simp [h]
-
 private theorem place_spec (items : List α) (keys : ℕ) (h : ∀ x ∈ items, key x < keys)
     (starts : List ℕ) (hs : starts.length = keys + 1)
     (hst : ∀ k ≤ keys, starts.getD k 0 = belowK key items k) :
@@ -374,13 +354,13 @@ private theorem place_spec (items : List α) (keys : ℕ) (h : ∀ x ∈ items, 
     · have hc : cntK key (items.take j ++ [items.getD j default]) k =
           cntK key (items.take j) k + if key (items.getD j default) = k then 1 else 0 := by
         simp [cntK, List.countP_append]
-      rw [getD_setN, h2, hc]
+      rw [getD_set, h2, hc]
       by_cases hkk : key (items.getD j default) = k
       · subst hkk
         rw [ite_eq_left ⟨rfl, by omega⟩, h3 _ hk, ite_eq_left rfl]
         omega
       · rw [ite_eq_right (fun e ↦ hkk e.1), h3 k hk, ite_eq_right hkk, add_zero]
-    · rw [getD_setA, hpos, h1]
+    · rw [getD_set, hpos, h1]
       by_cases hij : i = j
       · subst hij
         rw [ite_eq_left ⟨rfl, posK_lt key items keys h hjl⟩]
@@ -576,7 +556,7 @@ theorem eqKernel_split (point : List E) (m j : ℕ) (hm : m ≤ point.length) :
     List.length_take, min_eq_left hm]
 
 /-- A sum over `A · B` indices, block by block. -/
-theorem sum_range_blocks (f : ℕ → E) (B : ℕ) : ∀ A : ℕ,
+private theorem sum_range_blocks (f : ℕ → E) (B : ℕ) : ∀ A : ℕ,
     ∑ j ∈ Finset.range (A * B), f j = ∑ b ∈ Finset.range A, ∑ i ∈ Finset.range B, f (b * B + i)
   | 0 => by simp
   | A + 1 => by
@@ -593,8 +573,6 @@ section NewOk
 def wordE (w : BitVec 64) : E := ofK (BF64.ofBitVec w)
 
 theorem wordE_zero : wordE 0#64 = 0 := rfl
-
-theorem wordE_toBitVec (k : K) : wordE k.toBitVec = ofK k := rfl
 
 /-- The (word, position) pairs of a block's members. -/
 def pairsOf (ms : List (BitVec 64 × List (BitVec 16))) : List (BitVec 64 × BitVec 16) :=
@@ -737,7 +715,7 @@ theorem blockValueRust_blockMembers (lw : List E) (c : List (BitVec 64))
     wordPairs_sum lw c 0 (by omega)]
   simp
 
-theorem chunksW_eq {α : Type} (S : ℕ) (hS : 0 < S) : ∀ (A : ℕ) (l : List α), l.length = A * S →
+private theorem chunksW_eq {α : Type} (S : ℕ) (hS : 0 < S) : ∀ (A : ℕ) (l : List α), l.length = A * S →
     chunksW S l = (List.range A).map fun b ↦ (l.drop (b * S)).take S
   | 0, l, h => by
     rw [chunksW, dite_eq_left (Or.inl (List.length_eq_zero_iff.mp (by simpa using h)))]

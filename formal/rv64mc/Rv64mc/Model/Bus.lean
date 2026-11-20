@@ -67,7 +67,7 @@ def verifyGkrRust (depth : ℕ) : TM (E × List E × List E) := do
   let (values, point) ← gkrLoopRust depth [shared, shared, count] []
   Pure.pure (count, point, values)
 
-theorem mapM_some_eq {α β : Type} {f : α → Option β} {g : α → β}
+private theorem mapM_some_eq {α β : Type} {f : α → Option β} {g : α → β}
     (hf : ∀ a b, f a = some b → b = g a) :
     ∀ (l : List α) (r : List β), l.mapM f = some r → r = l.map g
   | [], r, h => by simp only [List.mapM_nil] at h; cases h; rfl
@@ -83,13 +83,6 @@ theorem mapM_some_eq {α β : Type} {f : α → Option β} {g : α → β}
         cases (Option.some.inj h : b :: r' = r)
         rw [hf a b ha, mapM_some_eq hf l r' hl]
         rfl
-
-/-- A pure `Option` step whose value is the statement's. -/
-theorem SimR.ofOption_some_bind {α γ δ : Type} {o : Option α} {k : α → TM γ}
-    {Q : α → VerifierProgram δ}
-    {r : γ → δ → Prop} {v : α} (hv : ∀ a, o = some a → a = v) (h : SimR (k v) (Q v) r) :
-    SimR (TM.ofOption o >>= k) (Q v) r :=
-  SimR.ofOption_bind fun a ha ↦ by rw [hv a ha]; exact h
 
 theorem SimR.gkrStep (layer : ℕ) (values point : List E) :
     SimR (gkrStepRust layer values point)
@@ -249,8 +242,6 @@ structure BusResultRust.Rel (r : BusResultRust) (R : BusResult) : Prop where
   totals : r.totals = R.totals
   formsLength : R.forms.length = tables.length
 
-instance : Inhabited TableRust := ⟨⟨0, [], {}⟩⟩
-
 /-- The three framework fingerprints of a side (`framework`). -/
 def frameworkRust (weights memory : List E) (memoryIndex bytecodeIndex bytecodeShare : E)
     (pc memoryCount bytecodeCount : E) : Option (List E) := do
@@ -340,7 +331,7 @@ def verifyBusBalanceRust (layout : LayoutRust) (bc : BytecodeRust) : TM BusResul
 
 section BusPure
 
-theorem map_modify {α β : Type} (g : α → β) (f : α → α) (f' : β → β)
+private theorem map_modify {α β : Type} (g : α → β) (f : α → α) (f' : β → β)
     (h : ∀ a, g (f a) = f' (g a)) :
     ∀ (l : List α) (i : ℕ), (l.modify i f).map g = (l.map g).modify i f'
   | [], i => by simp
@@ -477,34 +468,6 @@ end BusSide
 
 section BusBalance
 
-/-- A step the Rust fails at simulates anything. -/
-theorem SimR.fail_bind {α γ δ : Type} {k : α → TM γ} {Q : VerifierProgram δ} {r : γ → δ → Prop} :
-    SimR (TM.fail >>= k) Q r := fun _ _ _ _ hm ↦ by cases hm
-
-theorem pure_bind' {α β : Type} (a : α) (f : α → VerifierProgram β) :
-    ((Pure.pure a : VerifierProgram α) >>= f) = f a := rfl
-
-/-- What `require` returns: its condition held. -/
-theorem Returns.require (c : Prop) [Decidable c] : Returns (TM.require c) fun _ ↦ c := by
-  intro t a t' h
-  simp only [TM.require, StateT.run] at h
-  split_ifs at h with hc
-  exact hc
-
-theorem ret_bind' {α β : Type} (a : α) (f : α → VerifierProgram β) :
-    (VerifierProgram.ret a >>= f) = f a := rfl
-
-private theorem sum_pow_le' (l : List ℕ) (b : ℕ) (h : ∀ k ∈ l, k ≤ b) :
-    (l.map (2 ^ ·)).sum ≤ l.length * 2 ^ b := by
-  induction l with
-  | nil => simp
-  | cons a l ih =>
-    simp only [List.map_cons, List.sum_cons, List.length_cons]
-    have h1 := Nat.pow_le_pow_right (show 0 < 2 by norm_num) (h a (by simp))
-    have h2 := ih (fun k hk ↦ h k (by simp [hk]))
-    rw [Nat.succ_mul]
-    omega
-
 theorem busLayoutRust_framework_length (f : List ℕ) (bs : List BusBlock) :
     (busLayoutRust f bs).framework.length = f.length := by
   simp [busLayoutRust, stackOffsetsRust_length]
@@ -540,7 +503,7 @@ theorem busLayoutRust_side (f : List ℕ) (hf : ∀ x ∈ f, x ≤ 30) (hf3 : f.
     rw [List.length_append, List.length_map, ← List.length_map (f := busBlockDen), ← h,
       List.length_map]
     omega
-  have := sum_pow_le' _ 30 hall
+  have := sum_pow_le _ 30 hall
   have : (f ++ bs'.map (·.logRows)).length * 2 ^ 30 ≤ 1027 * 2 ^ 30 :=
     Nat.mul_le_mul_right _ hlen
   have : 1027 * 2 ^ 30 < 2 ^ 64 := by norm_num

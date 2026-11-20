@@ -346,21 +346,23 @@ theorem Sim.tablePhase (l : LayoutRust) (L : Layout) (hl : l.Rel L) (hb : Layout
 theorem ofK_toBitVec (k : K) : eNew k.toBitVec = ofK k := by
   simp [eNew]
 
+theorem placement_of_committed {l : LayoutRust} {L : Layout} (hl : l.Rel L) {c : ℕ}
+    {p : PlacementRust} (h : l.committed c = some p) : L.placement c = p.toSpec := by
+  rw [Layout.placement, ← hl.placements]
+  unfold LayoutRust.committed at h
+  rw [List.getD_eq_getElem?_getD] at h ⊢
+  rw [List.getElem?_map]
+  cases hc : l.placements[c]? with
+  | none => rw [hc] at h; cases h
+  | some o => rw [hc] at h; simp at h; subst h; rfl
+
 theorem Sim.publicInput (l : LayoutRust) (L : Layout) (hl : l.Rel L) (d : Digest) :
     Sim (publicInputRust l (digestBits d)) (publicInputPhase L d) := by
   unfold publicInputRust publicInputPhase
   refine Sim.bind Sim.sample fun c ↦ ?_
   rw [digestBits, digestHalvesRust_eq]
   refine SimR.ofOption_bind fun p hp ↦ ?_
-  have hpl : L.placement memory0 = p.toSpec := by
-    rw [Layout.placement, ← hl.placements, show memory0 = 0 from rfl]
-    unfold LayoutRust.committed at hp
-    rw [List.getD_eq_getElem?_getD] at hp ⊢
-    rw [List.getElem?_map]
-    cases h : l.placements[0]? with
-    | none => rw [h] at hp; cases hp
-    | some o => rw [h] at hp; simp at hp; subst hp; rfl
-  rw [hpl]
+  rw [show L.placement memory0 = p.toSpec from placement_of_committed hl hp]
   by_cases hn : 0 < p.variableCount
   · rw [ite_eq_left hn]
     simp only [TM.ofOption, pure_bind]
@@ -454,13 +456,6 @@ theorem SimRoots.bind_pure {α β γ : Type} {pre : Roots → Prop} {m : TM α} 
     obtain ⟨-, rfl⟩ := hm
     obtain ⟨hi', b, hb, -⟩ := h t a' t₁ hi hp hmt
     exact ⟨hi', b, hb, trivial⟩
-
-theorem SimRoots.streamPosition_left {γ δ : Type} {pre : Roots → Prop} {k : ℕ → TM γ}
-    {Q : VerifierProgram δ} {r : γ → δ → Prop} (hk : ∀ n, SimRoots pre (k n) Q r) :
-    SimRoots pre (TM.streamPosition >>= k) Q r := by
-  intro t a t' hi hp h
-  rw [StateT.run_bind] at h
-  exact hk t.streamOffset t a t' hi hp h
 
 /-- The ladder of every stack and rate the walk opens has a first level. -/
 def ladderCons (μ r : ℕ) : Bool :=
@@ -614,22 +609,7 @@ theorem NoCommit.keccakPhase (layout : Layout) (evaluations : List (List E × Li
   split
   exact NoCommit.verifyKeccak _ _ _
 
-/-- **The Keccak reduction's mirror keeps the roots**: its program reads no commitment. -/
-theorem RootsKept.verifyKeccak (logSteps : ℕ) (inst output : List E) :
-    RootsKept (verifyKeccakRust ⟨logSteps, 12⟩ inst output) :=
-  RootsKept.ofSimR (SimR.verifyKeccak logSteps inst output) (NoCommit.verifyKeccak _ _ _)
-
 end NoCommitSteps
-
-theorem placement_of_committed {l : LayoutRust} {L : Layout} (hl : l.Rel L) {c : ℕ}
-    {p : PlacementRust} (h : l.committed c = some p) : L.placement c = p.toSpec := by
-  rw [Layout.placement, ← hl.placements]
-  unfold LayoutRust.committed at h
-  rw [List.getD_eq_getElem?_getD] at h ⊢
-  rw [List.getElem?_map]
-  cases hc : l.placements[c]? with
-  | none => rw [hc] at h; cases h
-  | some o => rw [hc] at h; simp at h; subst h; rfl
 
 /-- **`walk`'s body runs `verifyExecution`**, the deployed verifier's (`computedBytecodeValue`),
 from a transcript that has read no root, on a prepared bytecode of the statement's words. -/
@@ -703,42 +683,14 @@ theorem walkRust_sound (words : List K) (bc : BytecodeRust)
     rw [TState.new, hbc.iv]
   unfold verifyExecutionRust at h
   rw [ht0] at h
-  obtain ⟨⟨s', t'⟩, hrun, -⟩ := Option.map_eq_some_iff.mp h
-  unfold walkRust at hrun
-  rw [StateT.run_bind] at hrun
-  cases hb : (walkBodyRust bc (digestBits publicInput)).run
-      (TState.new proof (fiatShamirIv words) publicInput true) with
-  | none => rw [hb] at hrun; cases hrun
-  | some p =>
-    obtain ⟨s1, t1⟩ := p
-    rw [hb] at hrun
-    simp only [Option.bind_eq_bind, Option.bind_some, StateT.run_bind] at hrun
-    cases hf : TM.finish.run t1 with
-    | none => rw [hf] at hrun; cases hrun
-    | some q =>
-      obtain ⟨⟨⟩, t2⟩ := q
-      have hfin := finish_some hf
-      obtain ⟨-, b, hrk, -⟩ := SimRoots.walkBody words bc hbc hlen publicInput _ _ _
-        (TState.inv_new proof _ publicInput hl) rfl hb
-      rw [TState.toSpec_new] at hrk
-      unfold verifyWith runProof spongeSeedWith
-      simp only [bind, pure]
-      have hprog : runK (leanVmVerifierProgram words publicInput)
-          ⟨⟨keccakF1600 (seedInput (fiatShamirIv words) publicInput), [], none⟩, proof.stream,
-            proof.openings, []⟩ = some (true, t1.toSpec) := by
-        unfold leanVmVerifierProgram
-        rw [runK_bind, hrk]
-        rfl
-      show (match runK (leanVmVerifierProgram words publicInput)
-          ⟨⟨keccakF1600 (seedInput (fiatShamirIv words) publicInput), [], none⟩, proof.stream,
-            proof.openings, []⟩ with
-        | some (true, s) => s.stream.isEmpty && s.openings.isEmpty
-        | _ => false) = true
-      rw [hprog]
-      exact hfin
+  obtain ⟨⟨_, _⟩, hrun, -⟩ := Option.map_eq_some_iff.mp h
+  exact runProof_of_simRoots (SimRoots.walkBody words bc hbc hlen publicInput) proof _ publicInput
+    hl hrun
 
-/-- `main`'s verdict on its decoded input (`formal/rv64mc/guest/src/main.rs`): `REJECT` where
-`Bytecode::new` fails, else `ACCEPT` exactly where `verify_execution` returns `Ok`. -/
+/-- `main`'s verdict on its decoded input (`formal/rv64mc/guest/src/main.rs`): the bytecode's
+words, the public input and the proof as `main` reads them. `REJECT` (`false`) where
+`Bytecode::new` fails, else `ACCEPT` exactly where `verify_execution` returns `Ok`. `ABORT` on
+malformed input is not here: it is the decoding's (`decodeInput`) and the machine code's. -/
 def mainVerdictRust (words : List (BitVec 64)) (publicInput : List (BitVec 8)) (proof : Proof) :
     Bool :=
   match newRust words with

@@ -314,6 +314,20 @@ theorem SimR.require_left {γ δ : Type} {c : Prop} [Decidable c] {k : Unit → 
   · rw [ite_eq_right hc] at h
     cases h
 
+/-- A step the Rust fails at simulates anything. -/
+theorem SimR.fail_bind {α γ δ : Type} {k : α → TM γ} {Q : VerifierProgram δ} {r : γ → δ → Prop} :
+    SimR (TM.fail >>= k) Q r := fun _ _ _ _ hm ↦ by cases hm
+
+theorem pure_bind' {α β : Type} (a : α) (f : α → VerifierProgram β) :
+    ((Pure.pure a : VerifierProgram α) >>= f) = f a := rfl
+
+/-- What `require` returns: its condition held. -/
+theorem Returns.require (c : Prop) [Decidable c] : Returns (TM.require c) fun _ ↦ c := by
+  intro t a t' h
+  simp only [TM.require, StateT.run] at h
+  split_ifs at h with hc
+  exact hc
+
 /-- A read of the stream's position, which the statement does not make. -/
 theorem SimR.streamPosition_left {γ δ : Type} {k : ℕ → TM γ} {Q : VerifierProgram δ}
     {r : γ → δ → Prop} (hk : ∀ n, SimR (k n) Q r) : SimR (TM.streamPosition >>= k) Q r := by
@@ -1212,6 +1226,43 @@ theorem runProof_of_sim {m : TM Bool} {P : VerifierProgram Bool} (hs : Sim m P) 
         proof.stream, proof.openings, []⟩ : Option (Bool × VerifierProgramState)) =
         some (true, t₁.toSpec) from hr]
       exact hfin
+
+/-- **A mirror that simulates a program from no root accepts what the program followed by
+`return true` accepts**: a transcript started by `Transcript::new` on which the mirror returns and
+then finishes. -/
+theorem runProof_of_simRoots {α β : Type} {m : TM α} {P : VerifierProgram β} {r : α → β → Prop}
+    (hs : SimRoots (fun roots ↦ roots = []) m P r) (proof : Proof) (iv publicInput : Digest)
+    (hl : ∀ phase ∈ proof.openings, ∀ o ∈ phase, o.leafIndex < 2 ^ 64) {a : α} {t' : TState}
+    (h : (do let a ← m; TM.finish; Pure.pure a : TM α).run
+      (TState.new proof iv publicInput true) = some (a, t')) :
+    (runProof (m := Id) keccakF1600 (P >>= fun _ ↦ VerifierProgram.ret true)
+      (keccakF1600 (seedInput iv publicInput)) proof : Bool) = true := by
+  rw [StateT.run_bind] at h
+  cases hm : m.run (TState.new proof iv publicInput true) with
+  | none => rw [hm] at h; cases h
+  | some p =>
+    obtain ⟨b, t₁⟩ := p
+    rw [hm] at h
+    simp only [Option.bind_eq_bind, Option.bind_some, StateT.run_bind] at h
+    cases hf : TM.finish.run t₁ with
+    | none => rw [hf] at h; cases h
+    | some q =>
+      obtain ⟨⟨⟩, t₂⟩ := q
+      obtain ⟨-, b', hr, -⟩ := hs _ _ _ (TState.inv_new proof iv publicInput hl) rfl hm
+      rw [TState.toSpec_new] at hr
+      unfold runProof
+      simp only [bind, pure]
+      have hprog : runK (P >>= fun _ ↦ VerifierProgram.ret true)
+          ⟨⟨keccakF1600 (seedInput iv publicInput), [], none⟩, proof.stream, proof.openings, []⟩ =
+          some (true, t₁.toSpec) := by
+        rw [runK_bind, hr]
+        rfl
+      show (match runK (P >>= fun _ ↦ VerifierProgram.ret true)
+          ⟨⟨keccakF1600 (seedInput iv publicInput), [], none⟩, proof.stream, proof.openings, []⟩ with
+        | some (true, s) => s.stream.isEmpty && s.openings.isEmpty
+        | _ => false) = true
+      rw [hprog]
+      exact finish_some hf
 
 /-! ## The methods succeed when the Rust's checks pass
 
