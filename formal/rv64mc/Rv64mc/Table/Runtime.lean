@@ -18,6 +18,16 @@ import Rv64mc.Proof.Runtime.MemWrappers
 import Rv64mc.Proof.Runtime.GrowAmortized
 import Rv64mc.Proof.Runtime.GrowOnes
 import Rv64mc.Gen.Needs
+import Rv64mc.Proof.Runtime.FinishGrow
+import Rv64mc.Proof.Runtime.DoReserve
+import Rv64mc.Proof.Runtime.BoxNewUninit
+import Rv64mc.Proof.Runtime.Drop
+import Rv64mc.Gen.Link.Alloc.RawVec.RawVecInner.FinishGrow
+import Rv64mc.Gen.Link.Alloc.RawVec.RawVecInnerAny.Reserve.DoReserveAndHandleGlobal
+import Rv64mc.Gen.Link.Alloc.Boxed.BoxNewUninit
+import Rv64mc.Gen.Link.Core.Ptr.DropGlueVecForm
+import Rv64mc.Gen.Link.Core.Ptr.DropGlueVecTStackWeightEE
+import Rv64mc.Gen.Link.Core.Ptr.DropGlueLayout
 import Rv64mc.Gen.Link.VerifierRv64.Halt
 import Rv64mc.Gen.Link.Rustc.RustBeginUnwind
 import Rv64mc.Gen.Link.Core.Panicking.PanicFmt
@@ -253,5 +263,40 @@ theorem growOne_vecForm
   Proof.Runtime.GrowOnes.vecForm_ok Alloc.RawVec.RawVecVecForm.GrowOne.link
       Alloc.RawVec.RawVecVecForm.GrowOne.tmpl_eq Alloc.RawVec.RawVecVecForm.GrowOne.wf (growAmortized env hfg)
     ((handleError env).mono_need (by decide))
+
+theorem finishGrow
+    (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
+    (hend : env.heapEnd = 0x78000000#64)
+    (hm : MemcpySpec env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+    FinishGrowSpec env (liftProg fns) Idx.Alloc.RawVec.RawVecInner.FinishGrow Needs.Alloc.RawVec.RawVecInner.FinishGrow :=
+  Proof.Runtime.FinishGrow.ok env _ _ Alloc.RawVec.RawVecInner.FinishGrow.link Alloc.RawVec.RawVecInner.FinishGrow.tmpl_eq Alloc.RawVec.RawVecInner.FinishGrow.wf (by decide) (by decide)
+    (alloc env hnext hend) (memcpy env hm)
+
+theorem doReserve
+    (hfg : FinishGrowSpec env (liftProg fns) Idx.Alloc.RawVec.RawVecInner.FinishGrow Needs.Alloc.RawVec.RawVecInner.FinishGrow) :
+    DoReserveSpec env (liftProg fns) Idx.Alloc.RawVec.RawVecInnerAny.Reserve.DoReserveAndHandleGlobal Needs.Alloc.RawVec.RawVecInnerAny.Reserve.DoReserveAndHandleGlobal :=
+  Proof.Runtime.DoReserve.ok env _ _ Alloc.RawVec.RawVecInnerAny.Reserve.DoReserveAndHandleGlobal.link Alloc.RawVec.RawVecInnerAny.Reserve.DoReserveAndHandleGlobal.tmpl_eq Alloc.RawVec.RawVecInnerAny.Reserve.DoReserveAndHandleGlobal.wf (by decide) (growAmortized env hfg)
+    ((handleError env).mono_need (by decide))
+
+theorem boxNewUninit
+    (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
+    (hend : env.heapEnd = 0x78000000#64) :
+    BoxNewUninitSpec env 80 (liftProg fns) Idx.Alloc.Boxed.BoxNewUninit Needs.Alloc.Boxed.BoxNewUninit :=
+  Proof.Runtime.BoxNewUninit.ok env _ _ Alloc.Boxed.BoxNewUninit.link Alloc.Boxed.BoxNewUninit.tmpl_eq Alloc.Boxed.BoxNewUninit.wf (by decide) (alloc env hnext hend)
+    (panicNounwindFmt env)
+
+theorem dropVecForm : DropSpec env (liftProg fns) Idx.Core.Ptr.DropGlueVecForm Needs.Core.Ptr.DropGlueVecForm :=
+  Proof.Runtime.Drop.vecForm_ok env _ _ _ Core.Ptr.DropGlueVecForm.tmpl_eq
+
+theorem dropVecStackClaim :
+    DropSpec env (liftProg fns) Idx.Core.Ptr.DropGlueVecTStackWeightEE Needs.Core.Ptr.DropGlueVecTStackWeightEE :=
+  Proof.Runtime.Drop.vecStackClaim_ok env _ _ _ Core.Ptr.DropGlueVecTStackWeightEE.tmpl_eq
+
+theorem dropLayout
+    (ht : DropSpec env (liftProg fns) Idx.Core.Ptr.DropGlueVecTable Needs.Core.Ptr.DropGlueVecTable)
+    (hb : DropSpec env (liftProg fns) Idx.Core.Ptr.DropGlueVecBusBlock Needs.Core.Ptr.DropGlueVecBusBlock) :
+    DropSpec env (liftProg fns) Idx.Core.Ptr.DropGlueLayout Needs.Core.Ptr.DropGlueLayout :=
+  Proof.Runtime.Drop.layout_ok env _ _ _ Core.Ptr.DropGlueLayout.tmpl_eq Core.Ptr.DropGlueLayout.wf
+    (needC := 64) (by decide) ht (hb.mono_need (by decide))
 
 end Rv64mc.Table.Runtime
