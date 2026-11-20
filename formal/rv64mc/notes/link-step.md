@@ -2,6 +2,12 @@
 
 `scripts/regen.sh` builds the guest (or takes `--elf`), lifts it with machine-checked's `decompile --to lean --proved` and runs `scripts/gen.py`, which writes `Rv64mc/Gen/` (gitignored): per function a template `Tmpl/<M>.lean` and a link module `Link/<M>.lean`, plus `Words.lean`, `Index.lean`, `hashes.tsv`, `index.tsv`. `gen.py --diff OLD NEW` lists the templates that changed. A proof imports a template and `Rv64mc.Link.Basic` only (as `Probe/EMul.lean` does), so it is rebuilt only when that function's own code changes.
 
+## The canonical image
+
+`regen.sh` builds the guest in a fresh directory under `out/` (a copy of `guest/`'s sources and `.cargo/config.toml`, the `no_std` copy of `$VERIFIER_SRC`, an empty target dir), removed afterwards, with `CARGO_ENCODED_RUSTFLAGS` set to the guest config's own `rustflags`: Cargo merges `target.<cfg>.rustflags` from every `config.toml` above the build directory, and the repository's adds `-C target-cpu=native`, which changes the code (the old `out/canon.elf`, built in `guest/` with it, differs from the clean build in 128 of 230 templates). The ELF is then a function of the sources and the guest's config: two builds in different directories agree byte for byte. `regen.sh` writes its sha256 to `image.sha256` (committed) and the ELF to `out/canon.elf`; `regen.sh --check` rebuilds and fails if the sha256 or any generated file differs. A plain `cargo build` in `guest/` (and `scripts/build-variant.sh`) still picks up `target-cpu=native` and is not the canonical image.
+
+Canonical image of 2026-11-20 (crates/verifier at 1135c5255): sha256 `8cb4e7b80e7ad696f4cac1f39e33e0cb3907420f0c8cc48805fe6692bdae842d`.
+
 ## Design
 
 - Module name: the v0-demangled symbol without crate disambiguators (`scripts/v0demangle.py`), in CamelCase components, `<T as Trait>::m` as `T/AsTrait/M`, generic arguments folded into the last component and hashed past 40 characters; on a collision the instantiating crate, then a hash of the symbol, is appended. `index.tsv` maps module, index, address, size, symbol and key.
@@ -19,6 +25,7 @@
 | 230 `Tmpl` modules, cold | 816 | 99 s |
 | `Words` + `Index` + 230 `Link` modules, cold (229 built; one field-name bug, fixed since) | 1,058 | 209 s |
 | a clean rebuild of the same sources (`c0`, 128 templates changed) + `Probe/EMul` | 1,511 | 183 s |
+| the same, switching to the clean canonical image (`Probe/EMul` unchanged, still proved) | 1,900 | 248 s |
 | C1 (`eq_eval`: `ONE + x + y` to `ONE + x * y`) | 971 | 160 s |
 | C2 (`MerklePath::root` with a rotating index and a tuple-chosen order) | 995 | 158 s |
 
@@ -28,8 +35,9 @@ Iteration, both from `c0` (a clean build of the canonical sources): C1 changes 1
 
 ## Limits found
 
-- `out/canon.elf` is not what a clean build of its sources gives: two clean builds in different directories, and an incremental rebuild, agree byte for byte with each other but differ from it in 128 of 230 templates (register allocation, for instance in `<E as Mul>::mul`). The canonical image should come from a clean target.
+- The first `out/canon.elf` was built under the repository's `-C target-cpu=native` (an unrecognized CPU for RV64, yet different code: register allocation, for instance in `<E as Mul>::mul`); fixed as above.
 - A data reference is keyed by its bytes, so a changed constant table changes the templates of its users, as it should. The image holds no panic locations (no file names or lines in `.rodata`); if a build brought them back, moving lines would change the templates of the functions below.
 - The floor is the whole link step: `Words` is one module, and each `Link` module's kernel check evaluates `liftProg fns`, which depends on every function's entry through `entryOf`.
+- A relocatable lift theorem in machine-checked (`liftFn` parametric in the function's base and a table of callee entries) would let the link step check only each function's own words and one entry table, instead of re-evaluating `liftProg` over the whole program per function.
 - A callee field named like a Lean token (`stack`, `next`, `at`) needs `«»`; `gen.py` escapes callee fields in the link module's values and a fixed list in templates.
 - `Probe/EMul.lean` imports a generated module: run `regen.sh` before building it.
