@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.Exact.Ok
 public import LeanVM.Guest.B1.Bits.GPower
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«g_power_of_word»
 
 /-!
 # `g_power_of_word`, exact
@@ -25,7 +27,7 @@ open LeanVM.Protocol.Verifier (eOfNat)
 @[expose] public section
 
 /-- `g_power_of_word`'s computed hint: the six bits of its word. -/
-def gpwHint : Atom := .hint (.bits (.n 0) 0 6 (.stack [.n 1, .n 2, .n 3, .n 4, .n 5, .n 6]))
+def gpwHint : Atom := .hint (.bits (.n (val% «g_power_of_word» "value")) 0 6 (.stack [.n (val% «g_power_of_word» "bits[0]"), .n (val% «g_power_of_word» "bits[1]"), .n (val% «g_power_of_word» "bits[2]"), .n (val% «g_power_of_word» "bits[3]"), .n (val% «g_power_of_word» "bits[4]"), .n (val% «g_power_of_word» "bits[5]")]))
 
 theorem gpw_sites : Stmt.blockNextOk (fun a => isComputed a && !decide (a ∈ [gpwHint])) pinsInverse
     (fn% «g_power_of_word»).body = true := by
@@ -46,7 +48,7 @@ theorem gpw_pathExact : PathExactFn fn% «g_power_of_word» := by
     intro j hj
     interval_cases j
     exacts [b0.symm, b1.symm, b2.symm, b3.symm, b4.symm, b5.symm]
-  have hword : ∑ j ∈ Finset.range 6, σ (.n (1 + j)) * coordBasis (0 + j) = σ (.n 0) := by
+  have hword : ∑ j ∈ Finset.range 6, σ (.n (1 + j)) * coordBasis (0 + j) = σ (.n (val% «g_power_of_word» "value")) := by
     rw [← (e_add_eq_zero_iff.mp ha)]
     simp only [Finset.sum_range_succ, Finset.sum_range_zero, zero_add]
     rw [e45, e44, e43, e37, e36, e35, e29, e28, e27, e21, e20, e19, e13, e12, e11]

@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.Exact.Ok
 public import LeanVM.Guest.B1.Tables.Padding
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«padding_weight__L»
 
 /-!
 # `padding_weight`, exact
@@ -28,7 +30,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- `padding_weight__L{τ}`'s computed hint: the bits of its word. -/
 def pwHintA (τ : ℕ) : Atom :=
-  if τ = 0 then .hint (.bits (.n 0) 0 1 (.stack [.n 2]))
+  if τ = 0 then .hint (.bits (.n (valf% «padding_weight» "rows")) 0 1 (.stack [.n 2]))
   else .hint (.bits (.n 3) 0 (τ + 1) (.stack ((List.range (τ + 1)).map fun k => .n (4 + k))))
 
 theorem pw_sites_all : (List.range 31).all (fun τ => Stmt.blockNextOk
@@ -41,8 +43,8 @@ theorem pw_callees_all : (List.range 31).all (fun τ => Stmt.blockCallees (pwBod
 /-- The template's conditions, at a valuation. -/
 theorem pw_holds_iff {C : CallRel} {rd : Reader} {σ : Val} (τ : ℕ) (rets : List E) :
     Stmt.HoldsList C rd σ (pwBody τ) False (fun rs => rs = rets) ↔
-      σ (.n 2) = word (2 ^ τ - 1) 0 ∧ σ (.n 3) = σ (.n 0) + σ (.n 2) ∧
-      σ (.n 4) = σ (.n 4) * σ (.n 4) ∧ LoadHolds rd (σ (.n 1)) 0 (σ (.n (τ + 5))) ∧
+      σ (.n 2) = word (2 ^ τ - 1) 0 ∧ σ (.n 3) = σ (.n (valf% «padding_weight» "rows")) + σ (.n 2) ∧
+      σ (.n 4) = σ (.n 4) * σ (.n 4) ∧ LoadHolds rd (σ (.n (valf% «padding_weight» "zeta"))) 0 (σ (.n (τ + 5))) ∧
       σ (.n (τ + 6)) = σ (.n 4) * σ (.n (τ + 5)) ∧ σ (.n (τ + 7)) = σ (.n 4) + σ (.n (τ + 5)) ∧
       σ (.n (τ + 8)) = σ (.n (τ + 6)) + σ (.n (τ + 7)) ∧
       (∀ i < τ - 1, PwStepOk rd σ τ (i + 1)) ∧

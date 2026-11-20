@@ -48,31 +48,18 @@ theorem list_split_complete' (rd : Reader) (hm : Sig.MemOK rd (2 ^ 20)) (args re
     (h : MeaningListSplitC args rets) : coreProgram.Rel rd "list_split" args rets := by
   match args, h with
   | [ng], h =>
-    obtain ⟨a, ha, b, hb, c, hc, hng, hrets⟩ := h
+    obtain ⟨a, ha, b, hb, c, hc, hng, rfl⟩ := h
     simp only [bigFramesCap, bigGroups, claimGroup, claimBig] at ha hb hc hng
     have hm16 : Sig.MemOK rd (2 ^ 16) := fun i hi => hm i (lt_of_lt_of_le hi (by norm_num))
     obtain ⟨t1, t2, h1, e1, h2⟩ := rc_holds' hm16 (k := c) (K := 16) (by omega) (by norm_num)
-    obtain ⟨t5, t6, h5, e3, h6⟩ := rc_holds' hm16 (k := b) (K := 7) (by omega) (by norm_num)
-    obtain ⟨t3, h3⟩ : ∃ w, LoadHolds rd (gen ^ a) 0 w := by
+    obtain ⟨t3, t4, h3, e2, h4⟩ := rc_holds' hm16 (k := b) (K := 7) (by omega) (by norm_num)
+    obtain ⟨t5, h5⟩ : ∃ w, LoadHolds rd (gen ^ a) 0 w := by
       rw [gen_pow_eq_ofK]; exact Sig.load_gpow hm (show a < 2 ^ 20 by omega)
-    refine (rel_iff_sem find_list_split _ _).mpr ⟨Val.ofArgs [ng, gen ^ a, gen ^ b, gen ^ c,
-      word 65536 0, gen ^ (16 - c), t1, t2, word 128 0, gen ^ (7 - b), t5, t6,
-      t3, gen ^ (2 * a), gen ^ (4 * a),
-      gen ^ (8 * a), gen ^ (16 * a), gen ^ (17 * a), gen ^ (34 * a), gen ^ (68 * a),
-      gen ^ (136 * a), gen ^ (2 * b), gen ^ (4 * b), gen ^ (8 * b), gen ^ (16 * b),
-      gen ^ (17 * b), gen ^ (136 * a + 17 * b), gen ^ (136 * a + 17 * b + c), gen ^ a, gen ^ b,
-      gen ^ c], rfl, ?_⟩
-    rw [list_split_body]
-    simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, ofArgs_n]
-    simp only [List.getD_cons_succ, List.getD_cons_zero]
-    refine ⟨trivial, trivial, ⟨h1, by rw [word_g16, e1], h2⟩, trivial, ⟨h5, by rw [word_g7, e3], h6⟩,
-      h3, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-      ?_, ?_, ?_, trivial, trivial, trivial, ?_⟩
-    all_goals first
-      | exact hrets.symm
-      | (rw [hng]; exact e_add_eq_zero_iff.mpr rfl)
-      | (rw [← pow_add]; congr 1; ring)
-      | (rw [← pow_add])
+    refine (list_split_iff rd _ _).mpr ⟨ng, rfl, _, _, t1, h1, e1, t2, h2, _, _, t3, h3, e2, t4, h4,
+      _, t5, h5, e_add_eq_zero_iff.mpr ?_, rfl⟩
+    rw [hng, ← pow_mul, ← pow_mul, ← pow_add, ← pow_add]
+    congr 1
+    ring
   | [], h => exact h.elim
   | _ :: _ :: _, h => exact h.elim
 

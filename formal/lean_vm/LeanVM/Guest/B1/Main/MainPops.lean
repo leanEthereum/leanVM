@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Main.MainAt
 public import LeanVM.Guest.B1.Sig.PopsKit
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # `main`'s own entries
@@ -85,7 +87,7 @@ theorem splice_inK_mid (c : V) : ∀ (xs ys : List Ev) (ks : List (List Pop)),
 
 /-- `main`'s straight blocks on its path under `σ`. -/
 noncomputable def mPath (σ : Val) : List Stmt :=
-  mPre ++ (if σ (.n 368) = 0 then mDa else mDaZ) ++ mMid ++ (if σ (.n 418) = 0 then mLeaf else mAgg) ++ mPost
+  mPre ++ (if σ (.n (val% «main» "s43#1")) = 0 then mDa else mDaZ) ++ mMid ++ (if σ (.n (val% «main» "s56#1")) = 0 then mLeaf else mAgg) ++ mPost
 
 theorem splice_blocks (f : Stmt → List Ev) (c c' : V) (A B C D F : List Stmt) (ks : List (List Pop)) :
     splice rd σ (A.flatMap f ++ (.inK c :: B.flatMap f ++ (C.flatMap f ++ (.inK c' :: D.flatMap f ++
@@ -106,10 +108,10 @@ theorem splice_mEvs (ks : List (List Pop)) :
 
 /-- **`main`'s blocks' skeletons.** -/
 theorem mBlocks_popS : mPre.filterMap Stmt.popS = [some ("meta", .stack ((List.range 8).map V.n)),
-      some ("fs_seed", .stack [.n 26, .n 27]), none, none, none, none, none, none, none] ∧
+      some ("fs_seed", .stack [.n (val% «main» "fs_seed[0]"), .n (val% «main» "fs_seed[1]")]), none, none, none, none, none, none, none] ∧
     mDa.filterMap Stmt.popS = [none] ∧ mDaZ.filterMap Stmt.popS = [] ∧
-    mMid.filterMap Stmt.popS = [none, some ("da_pick", .stack [.n 405])] ∧
-    mLeaf.filterMap Stmt.popS = [some ("leaf_defer", .stack [.n 419])] ∧
+    mMid.filterMap Stmt.popS = [none, some ("da_pick", .stack [.n (val% «main» "da_pick")])] ∧
+    mLeaf.filterMap Stmt.popS = [some ("leaf_defer", .stack [.n (val% «main» "leaf_value")])] ∧
     mAgg.filterMap Stmt.popS = [none] ∧ mPost.filterMap Stmt.popS = [none] := by
   decide +kernel
 
@@ -126,24 +128,24 @@ def mainKidPops (m : MainIn) (pe px ps p0 p1 p2 p3 pd p5 pa pst : List Pop) : Li
 
 theorem mPath_popS {m : MainIn} (hnd : m.nd ≤ 1) (hnc : m.nc ≤ 16) (hv : MVals rd σ m) :
     (mPath σ).filterMap Stmt.popS = [some ("meta", .stack ((List.range 8).map V.n)),
-      some ("fs_seed", .stack [.n 26, .n 27]), none, none, none, none, none, none, none] ++
-      (if m.nd = 1 then [none] else []) ++ [none, some ("da_pick", .stack [.n 405])] ++
-      (if m.nc = 0 then [some ("leaf_defer", .stack [.n 419])] else [none]) ++ [none] := by
-  have h368 : σ (.n 368) = 0 ↔ m.nd = 1 := by
+      some ("fs_seed", .stack [.n (val% «main» "fs_seed[0]"), .n (val% «main» "fs_seed[1]")]), none, none, none, none, none, none, none] ++
+      (if m.nd = 1 then [none] else []) ++ [none, some ("da_pick", .stack [.n (val% «main» "da_pick")])] ++
+      (if m.nc = 0 then [some ("leaf_defer", .stack [.n (val% «main» "leaf_value")])] else [none]) ++ [none] := by
+  have h368 : σ (.n (val% «main» "s43#1")) = 0 ↔ m.nd = 1 := by
     rw [hv.v389, e_add_eq_zero_iff]
     constructor
     · intro h
       exact Digest.gen_pow_inj' (a := m.nd) (b := 1) (by omega) (by norm_num) (by rw [h, pow_one])
     · intro h; rw [h, pow_one]
-  have h418 : σ (.n 418) = 0 ↔ m.nc = 0 := by
+  have h418 : σ (.n (val% «main» "s56#1")) = 0 ↔ m.nc = 0 := by
     rw [hv.v451, add_comm, e_add_eq_zero_iff, eq_comm, gen_pow_eq_one_iff (by omega)]
   obtain ⟨b1, b2, b2', b3, b4, b5, b6⟩ := mBlocks_popS
-  have e1 : (if σ (.n 368) = 0 then mDa else mDaZ).filterMap Stmt.popS = if m.nd = 1 then [none] else [] := by
+  have e1 : (if σ (.n (val% «main» "s43#1")) = 0 then mDa else mDaZ).filterMap Stmt.popS = if m.nd = 1 then [none] else [] := by
     by_cases h : m.nd = 1
     · rw [ite_pos' (h368.mpr h), ite_pos' h, b2]
     · rw [ite_neg' (fun h' => h (h368.mp h')), ite_neg' h, b2']
-  have e2 : (if σ (.n 418) = 0 then mLeaf else mAgg).filterMap Stmt.popS =
-      if m.nc = 0 then [some ("leaf_defer", .stack [.n 419])] else [none] := by
+  have e2 : (if σ (.n (val% «main» "s56#1")) = 0 then mLeaf else mAgg).filterMap Stmt.popS =
+      if m.nc = 0 then [some ("leaf_defer", .stack [.n (val% «main» "leaf_value")])] else [none] := by
     by_cases h : m.nc = 0
     · rw [ite_pos' (h418.mpr h), ite_pos' h, b4]
     · rw [ite_neg' (fun h' => h (h418.mp h')), ite_neg' h, b5]
@@ -157,20 +159,20 @@ theorem main_spliceS {m : MainIn} (hnd : m.nd ≤ 1) (hnc : m.nc ≤ 16) (hv : M
       mainOwnPops m pe px ps p0 p1 p2 p3 pd p5 pa pst := by
   have hO : ∀ {j : ℕ}, j ∈ mOrcIdx → σ (.n j) = mOrc m j := fun hj => hv.orc _ hj
   have w1 : Dest.words rd σ (.stack ((List.range 8).map V.n)) = m.cnt.map (gen ^ ·) := by
-    show [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6), σ (.n 7)] = _
+    show [σ (.n (val% «main» "meta[0]")), σ (.n (val% «main» "meta[1]")), σ (.n (val% «main» "meta[2]")), σ (.n (val% «main» "meta[3]")), σ (.n (val% «main» "meta[4]")), σ (.n (val% «main» "meta[5]")), σ (.n (val% «main» "meta[6]")), σ (.n (val% «main» "meta[7]"))] = _
     rw [hO (by decide), hO (by decide), hO (by decide), hO (by decide), hO (by decide), hO (by decide),
       hO (by decide), hO (by decide)]
     rfl
-  have w2 : Dest.words rd σ (.stack [.n 26, .n 27]) = [(digestHalves m.seed).1, (digestHalves m.seed).2] := by
-    show [σ (.n 26), σ (.n 27)] = _
+  have w2 : Dest.words rd σ (.stack [.n (val% «main» "fs_seed[0]"), .n (val% «main» "fs_seed[1]")]) = [(digestHalves m.seed).1, (digestHalves m.seed).2] := by
+    show [σ (.n (val% «main» "fs_seed[0]")), σ (.n (val% «main» "fs_seed[1]"))] = _
     rw [hO (by decide), hO (by decide)]
     rfl
-  have w3 : Dest.words rd σ (.stack [.n 405]) = [gen ^ m.pick] := by
-    show [σ (.n 405)] = _
+  have w3 : Dest.words rd σ (.stack [.n (val% «main» "da_pick")]) = [gen ^ m.pick] := by
+    show [σ (.n (val% «main» "da_pick"))] = _
     rw [hO (by decide)]
     rfl
-  have w4 : Dest.words rd σ (.stack [.n 419]) = [m.leaf] := by
-    show [σ (.n 419)] = _
+  have w4 : Dest.words rd σ (.stack [.n (val% «main» "leaf_value")]) = [m.leaf] := by
+    show [σ (.n (val% «main» "leaf_value"))] = _
     rw [hO (by decide)]
     rfl
   rw [mPath_popS hnd hnc hv, mainKidPops, mainOwnPops]

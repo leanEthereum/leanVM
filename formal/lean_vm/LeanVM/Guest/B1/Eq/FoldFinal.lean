@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Eq.Meaning
 public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«fold_final_msg__L»
 
 /-!
 # `fold_final_msg` (TRIAGE #24)
@@ -34,15 +36,15 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-- The weights of coordinate `j`: `1 + p_j` at `4 + 4j`, `p_j` at `5 + 4j`. -/
 def ffW (j : ℕ) : List Stmt :=
-  [.atom (.const (.n (2 + 4 * j)) (word 1 0)), .atom (.load (.n (3 + 4 * j)) (.n 1) j),
+  [.atom (.const (.n (2 + 4 * j)) (word 1 0)), .atom (.load (.n (3 + 4 * j)) (.n (valf% «fold_final_msg» "point")) j),
     .atom (.add (.n (4 + 4 * j)) (.n (2 + 4 * j)) (.n (3 + 4 * j))),
-    .atom (.load (.n (5 + 4 * j)) (.n 1) j)]
+    .atom (.load (.n (5 + 4 * j)) (.n (valf% «fold_final_msg» "point")) j)]
 
 /-- Pair `t` of the first level, its words read at `msg`, from the value `S`. -/
 def ff0 (S t : ℕ) : List Stmt :=
-  [.atom (.load (.n (S + 5 * t)) (.n 0) (2 * t)), .atom (.mul (.n (S + 5 * t + 1)) (.n 4) (.n (S + 5 * t))),
-    .atom (.load (.n (S + 5 * t + 2)) (.n 0) (2 * t + 1)),
-    .atom (.mul (.n (S + 5 * t + 3)) (.n 5) (.n (S + 5 * t + 2))),
+  [.atom (.load (.n (S + 5 * t)) (.n (valf% «fold_final_msg» "msg")) (2 * t)), .atom (.mul (.n (S + 5 * t + 1)) (.n (valf% «fold_final_msg» "weights[0]")) (.n (S + 5 * t))),
+    .atom (.load (.n (S + 5 * t + 2)) (.n (valf% «fold_final_msg» "msg")) (2 * t + 1)),
+    .atom (.mul (.n (S + 5 * t + 3)) (.n (valf% «fold_final_msg» "weights[1]")) (.n (S + 5 * t + 2))),
     .atom (.add (.n (S + 5 * t + 4)) (.n (S + 5 * t + 1)) (.n (S + 5 * t + 3)))]
 
 /-- A later level: the pairs of `cur` folded with the weights `w0`, `w1`, from the value `s`. -/
@@ -163,16 +165,16 @@ theorem ffLevels_value (p : ℕ → E) :
 
 /-- What weight `j` asks. -/
 def FfWOk (rd : Reader) (σ : Val) (j : ℕ) : Prop :=
-  σ (.n (2 + 4 * j)) = 1 ∧ LoadHolds rd (σ (.n 1)) j (σ (.n (3 + 4 * j))) ∧
+  σ (.n (2 + 4 * j)) = 1 ∧ LoadHolds rd (σ (.n (valf% «fold_final_msg» "point"))) j (σ (.n (3 + 4 * j))) ∧
     σ (.n (4 + 4 * j)) = σ (.n (2 + 4 * j)) + σ (.n (3 + 4 * j)) ∧
-    LoadHolds rd (σ (.n 1)) j (σ (.n (5 + 4 * j)))
+    LoadHolds rd (σ (.n (valf% «fold_final_msg» "point"))) j (σ (.n (5 + 4 * j)))
 
 /-- What pair `t` of the first level asks. -/
 def Ff0Ok (rd : Reader) (σ : Val) (S t : ℕ) : Prop :=
-  LoadHolds rd (σ (.n 0)) (2 * t) (σ (.n (S + 5 * t))) ∧
-    σ (.n (S + 5 * t + 1)) = σ (.n 4) * σ (.n (S + 5 * t)) ∧
-    LoadHolds rd (σ (.n 0)) (2 * t + 1) (σ (.n (S + 5 * t + 2))) ∧
-    σ (.n (S + 5 * t + 3)) = σ (.n 5) * σ (.n (S + 5 * t + 2)) ∧
+  LoadHolds rd (σ (.n (valf% «fold_final_msg» "msg"))) (2 * t) (σ (.n (S + 5 * t))) ∧
+    σ (.n (S + 5 * t + 1)) = σ (.n (valf% «fold_final_msg» "weights[0]")) * σ (.n (S + 5 * t)) ∧
+    LoadHolds rd (σ (.n (valf% «fold_final_msg» "msg"))) (2 * t + 1) (σ (.n (S + 5 * t + 2))) ∧
+    σ (.n (S + 5 * t + 3)) = σ (.n (valf% «fold_final_msg» "weights[1]")) * σ (.n (S + 5 * t + 2)) ∧
     σ (.n (S + 5 * t + 4)) = σ (.n (S + 5 * t + 1)) + σ (.n (S + 5 * t + 3))
 
 theorem ffBody_holds (L fin : ℕ) (rets : List E) :
@@ -217,7 +219,7 @@ theorem multilinearEval_cons (m : List E) (r : E) (rs : List E) :
     multilinearEval m (r :: rs) = (rs.foldl (fun l r => foldPairs r l) (foldPairs r m)).headD 0 := rfl
 
 theorem fold_final_msg_sound_aux {name : String} {f : Fn} (L fin : ℕ)
-    (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1])
+    (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n (valf% «fold_final_msg» "msg"), .n (valf% «fold_final_msg» "point")])
     (hbody : f.body = ffBody L fin)
     (hfin : (ffLevels L 1 (6 + 4 * L + 5 * 2 ^ L) (ffOut0 (6 + 4 * L) (2 ^ L))).2 = [.n fin])
     (rd : Reader) (args rets : List E) (h : coreProgram.Rel rd name args rets) :
@@ -363,7 +365,7 @@ theorem list_eq_range_map (l : List E) : l = (List.range l.length).map fun i => 
   simp [List.getD_eq_getElem?_getD, h1]
 
 theorem fold_final_msg_complete_aux {name : String} {f : Fn} (L fin : ℕ)
-    (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1])
+    (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n (valf% «fold_final_msg» "msg"), .n (valf% «fold_final_msg» "point")])
     (hbody : f.body = ffBody L fin)
     (hfin : (ffLevels L 1 (6 + 4 * L + 5 * 2 ^ L) (ffOut0 (6 + 4 * L) (2 ^ L))).2 = [.n fin])
     (hend : ffEnd L (6 + 4 * L + 5 * 2 ^ L) (2 ^ L) ≤ fin + 1)
@@ -440,13 +442,13 @@ theorem fold_final_msg_complete_aux {name : String} {f : Fn} (L fin : ℕ)
     simp only [Nat.add_zero, List.getD_cons_zero, List.getD_cons_succ,
       show 2 + 4 * j + 1 = 3 + 4 * j by omega, show 2 + 4 * j + 2 = 4 + 4 * j by omega,
       show 2 + 4 * j + 3 = 5 + 4 * j by omega] at a b c d
-    have t1 : τ (.n 1) = point := rfl
+    have t1 : τ (.n (valf% «fold_final_msg» "point")) = point := rfl
     exact ⟨a, by rw [t1, b]; exact hrp' j hj, by rw [c, a, b], by rw [t1, d]; exact hrp' j hj⟩
   · have a := t0 t 0 ht (by omega); have b := t0 t 1 ht (by omega)
     have c := t0 t 2 ht (by omega); have d := t0 t 3 ht (by omega)
     have e := t0 t 4 ht (by omega)
     simp only [Nat.add_zero, List.getD_cons_zero, List.getD_cons_succ] at a b c d e
-    have t0' : τ (.n 0) = msg := rfl
+    have t0' : τ (.n (valf% «fold_final_msg» "msg")) = msg := rfl
     obtain ⟨w4, w5⟩ := hw 0 (by omega)
     simp only [Nat.mul_zero, Nat.add_zero] at w4 w5
     refine ⟨by rw [t0', a]; exact hrm' (2 * t) (by rw [pow_succ]; omega), by rw [b, w4, a],
@@ -460,7 +462,7 @@ theorem fold_final_msg_complete_aux {name : String} {f : Fn} (L fin : ℕ)
     rw [Nat.succ_eq_add_one, Nat.add_comm]
 
 theorem fold_final_msg_iff {name : String} {f : Fn} (L fin : ℕ)
-    (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1])
+    (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n (valf% «fold_final_msg» "msg"), .n (valf% «fold_final_msg» "point")])
     (hbody : f.body = ffBody L fin)
     (hfin : (ffLevels L 1 (6 + 4 * L + 5 * 2 ^ L) (ffOut0 (6 + 4 * L) (2 ^ L))).2 = [.n fin])
     (hend : ffEnd L (6 + 4 * L + 5 * 2 ^ L) (2 ^ L) ≤ fin + 1) (rd : Reader) (args rets : List E) :

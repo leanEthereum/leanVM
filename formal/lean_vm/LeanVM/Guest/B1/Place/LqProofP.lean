@@ -14,6 +14,8 @@ public import LeanVM.Guest.B1.Merkle.CapLinksAll
 public import LeanVM.Guest.B1.Opening.QueriesPlacedDPAll
 public import LeanVM.Guest.B1.Place.LqBound
 public import LeanVM.Guest.B1.Opening.CapPlacedE
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«level_queries__L»
 
 /-!
 # `level_queries`, placed with its pops
@@ -118,17 +120,17 @@ theorem lq_splice {rd : Reader} {σ : Val} {q base folds leaf d cd mu nhs hbits 
     (hw : walk σ fn.body = .ret es vs) (kc ko : List Pop) :
     splice rd σ es [kc, ko] = capPops rd σ cd ++ kc ++ ko := by
   have h : SplicePops rd σ (((((((osHeap (4 * 2 ^ cd) 6 ++
-      [.atom (.hint (.witness "merkle_caps" (.heap (.n 7) 0 (4 * 2 ^ cd))))]) ++
-      osHeap (2 ^ cd) 8) ++ [.atom (.hint (.witness "merkle_cap_active" (.heap (.n 9) 0 (2 ^ cd))))]) ++
-      [.call ("verify_merkle_cap__L" ++ natStr cd) [.n 7, .n 9] [.n 10, .n 11]]) ++
+      [.atom (.hint (.witness "merkle_caps" (.heap (.n (valf% «level_queries» "cap")) 0 (4 * 2 ^ cd))))]) ++
+      osHeap (2 ^ cd) 8) ++ [.atom (.hint (.witness "merkle_cap_active" (.heap (.n (valf% «level_queries» "flags")) 0 (2 ^ cd))))]) ++
+      [.call ("verify_merkle_cap__L" ++ natStr cd) [.n (valf% «level_queries» "cap"), .n (valf% «level_queries» "flags")] [.n (valf% «level_queries» "root_0"), .n (valf% «level_queries» "root_1")]]) ++
       [osCst 12 (gw (if base = 1 then q / 2 else q))]) ++
-      [.call (oqName q base folds leaf d cd mu nhs hbits fin) [.n 7, .n 9, .n 1, .n 2, .n 3, .n 4, .n 5, .n 12]
-        [.n 13]]) ++
+      [.call (oqName q base folds leaf d cd mu nhs hbits fin) [.n (valf% «level_queries» "cap"), .n (valf% «level_queries» "flags"), .n (valf% «level_queries» "lam_inv"), .n (valf% «level_queries» "coefs"), .n (valf% «level_queries» "hs"), .n (valf% «level_queries» "positions"), .n (valf% «level_queries» "win_ptrs"), .n (valf% «level_queries» "batched~1")]
+        [.n (valf% «level_queries» "batched")]]) ++
       ([osCp 14 10, osCp 15 11, osCp 16 13] ++ (osPowSteps 0 (osPowDigits q) 0 17).1 ++
         [osCp (17 + osPowLen q) (osPowSteps 0 (osPowDigits q) 0 17).2]))
       ([] ++ [] ++ [] ++ [] ++ [kc] ++ [] ++ [ko] ++ [])
-      ([] ++ [("merkle_caps", Dest.words rd σ (.heap (.n 7) 0 (4 * 2 ^ cd)))] ++ [] ++
-        [("merkle_cap_active", Dest.words rd σ (.heap (.n 9) 0 (2 ^ cd)))] ++ kc ++ [] ++ ko ++ []) :=
+      ([] ++ [("merkle_caps", Dest.words rd σ (.heap (.n (valf% «level_queries» "cap")) 0 (4 * 2 ^ cd)))] ++ [] ++
+        [("merkle_cap_active", Dest.words rd σ (.heap (.n (valf% «level_queries» "flags")) 0 (2 ^ cd)))] ++ kc ++ [] ++ ko ++ []) :=
     (((((((SplicePops.of_fallPops (fallPops_noWit σ rfl)).append (SplicePops.of_fallPops (FallPops.atom _))).append
       (SplicePops.of_fallPops (fallPops_noWit σ rfl))).append (SplicePops.of_fallPops (FallPops.atom _))).append
       (SplicePops.call _ _ _ kc)).append (SplicePops.of_fallPops (fallPops_noWit σ rfl))).append
@@ -136,8 +138,8 @@ theorem lq_splice {rd : Reader} {σ : Val} {q base folds leaf d cd mu nhs hbits 
         rw [noWit_append, noWit_append, osPowSteps_noWit]; rfl)))
   have h' := SplicePops.congr_pops (SplicePops.congr_ks h (ks' := [kc, ko]) (by simp))
     (q := capPops rd σ cd ++ kc ++ ko) (by simp [capPops])
-  rw [splice_of_body (ys := [.ret [.n 14, .n 15, .n 16, .n (17 + osPowLen q)]]) (es' := [])
-    (vs' := [.n 14, .n 15, .n 16, .n (17 + osPowLen q)])
+  rw [splice_of_body (ys := [.ret [.n (valf% «level_queries» "s7#0"), .n (valf% «level_queries» "s7#0[1]"), .n (valf% «level_queries» "s7#0[2]"), .n (17 + osPowLen q)]]) (es' := [])
+    (vs' := [.n (valf% «level_queries» "s7#0"), .n (valf% «level_queries» "s7#0[1]"), .n (valf% «level_queries» "s7#0[2]"), .n (17 + osPowLen q)])
     (by rw [hb, lqBody]; simp [List.append_assoc]) h' (by simp [walk, walk1, Out.seq]) rfl hw]
   exact List.append_nil _
 
@@ -287,7 +289,7 @@ theorem lq_placedEP (fs : String → ℕ) (cert : String → V → ℕ) {κ : �
   have hv : ∀ i, σ (.n i) = vals.getD i 0 := fun i ↦ by simp [hσ]
   have hAl : A.length = 17 := rfl
   have hpl : PV.length = L := by rw [hPV, lqPowVals_length, hL, osPowLen]
-  have hvA : ∀ i < 17, σ (.n i) = A.getD i 0 := fun i hi ↦ by
+  have hvA : ∀ i < (valf% «level_queries» "s7#1"), σ (.n i) = A.getD i 0 := fun i hi ↦ by
     rw [hv, hvals, List.getD_append _ _ _ _ (by rw [hAl]; exact hi)]
   have hv17 : ∀ j < L, σ (.n (17 + j)) = PV.getD j 0 := by
     intro j hj
@@ -298,7 +300,7 @@ theorem lq_placedEP (fs : String → ℕ) (cert : String → V → ℕ) {κ : �
       show 17 + L - 17 = L by omega, List.getD_append_right _ _ _ _ (by rw [hpl]), hpl,
       Nat.sub_self]
     rfl
-  have hv0 : σ (.n 0) = lam := hvA 0 (by omega)
+  have hv0 : σ (.n (valf% «level_queries» "lam")) = lam := hvA 0 (by omega)
   have hpow : ∀ rd : Reader, AllOk (fun _ _ _ ↦ True) rd σ (osPowSteps 0 (osPowDigits q) 0 17).1 ∧
       σ (.n (osPowSteps 0 (osPowDigits q) 0 17).2) = lam ^ q := fun rd ↦ by
     have h := lq_powSteps_complete (C := fun _ _ _ ↦ True) (rd := rd) (σ := σ) 0
@@ -314,21 +316,21 @@ theorem lq_placedEP (fs : String → ℕ) (cert : String → V → ℕ) {κ : �
   -- the walk
   have hst' := lqPreB_straight q base folds leaf d cd mu nhs hbits fin
   have hwalk : walk σ fn.body = .ret ((lqPreB q base folds leaf d cd mu nhs hbits fin).flatMap
-      (Main.slEvs σ)) [.n 14, .n 15, .n 16, .n (17 + osPowLen q)] := by
+      (Main.slEvs σ)) [.n (valf% «level_queries» "s7#0"), .n (valf% «level_queries» "s7#0[1]"), .n (valf% «level_queries» "s7#0[2]"), .n (17 + osPowLen q)] := by
     rw [hb, lqBody_pre]; exact Main.walk_straight σ _ _ hst'
   set es := (lqPreB q base folds leaf d cd mu nhs hbits fin).flatMap (Main.slEvs σ) with hes_def
   obtain ⟨i1, i2, i3, i4⟩ := Main.straight_parts σ _ hst'
-  have h6 : σ (.n 6) = gw (4 * 2 ^ cd) := hvA 6 (by omega)
-  have h7 : σ (.n 7) = CAP := hvA 7 (by omega)
-  have h8 : σ (.n 8) = gw (2 ^ cd) := hvA 8 (by omega)
-  have h9 : σ (.n 9) = FL := hvA 9 (by omega)
+  have h6 : σ (.n (valf% «level_queries» "cap~0")) = gw (4 * 2 ^ cd) := hvA 6 (by omega)
+  have h7 : σ (.n (valf% «level_queries» "cap")) = CAP := hvA 7 (by omega)
+  have h8 : σ (.n (valf% «level_queries» "flags~0")) = gw (2 ^ cd) := hvA 8 (by omega)
+  have h9 : σ (.n (valf% «level_queries» "flags")) = FL := hvA 9 (by omega)
   have hal : allocs σ es = [4 * 2 ^ cd, 2 ^ cd] := by
     rw [i2, lqPreB_allocs]
     simp only [List.map_cons, List.map_nil, Sum.elim_inr, h6, h8]
     rw [lp_logG_gw (by omega), lp_logG_gw (by omega)]
   have hcalls : calls es =
-      [⟨vmcN, [.n 7, .n 9], [.n 10, .n 11], true⟩,
-        ⟨oqn, [.n 7, .n 9, .n 1, .n 2, .n 3, .n 4, .n 5, .n 12], [.n 13], true⟩] := by
+      [⟨vmcN, [.n (valf% «level_queries» "cap"), .n (valf% «level_queries» "flags")], [.n (valf% «level_queries» "root_0"), .n (valf% «level_queries» "root_1")], true⟩,
+        ⟨oqn, [.n (valf% «level_queries» "cap"), .n (valf% «level_queries» "flags"), .n (valf% «level_queries» "lam_inv"), .n (valf% «level_queries» "coefs"), .n (valf% «level_queries» "hs"), .n (valf% «level_queries» "positions"), .n (valf% «level_queries» "win_ptrs"), .n (valf% «level_queries» "batched~1")], [.n (valf% «level_queries» "batched")], true⟩] := by
     rw [i4, lqPreB_calls]
     rfl
   refine ⟨fs name + (4 * 2 ^ cd + 2 ^ cd) + NK, capsL ++ LK, [r0, r1, sum, lam ^ q], [],
@@ -388,17 +390,17 @@ theorem lq_placedEP (fs : String → ℕ) (cert : String → V → ℕ) {κ : �
       (allocs σ es) es i) (fun _ ↦ False) (by
       rw [hcalls]
       refine ⟨rfl, rfl, fun _ ↦ ⟨?_, ?_⟩, rfl, rfl, fun _ ↦ ⟨?_, ?_⟩, trivial⟩
-      · show [σ (.n 7), σ (.n 9)] = [CAP, FL]
+      · show [σ (.n (valf% «level_queries» "cap")), σ (.n (valf% «level_queries» "flags"))] = [CAP, FL]
         rw [h7, h9]
-      · show [σ (.n 10), σ (.n 11)] = o1.1
+      · show [σ (.n (valf% «level_queries» "root_0")), σ (.n (valf% «level_queries» "root_1"))] = o1.1
         rw [e11, hvA 10 (by omega), hvA 11 (by omega)]
         rfl
-      · show [σ (.n 7), σ (.n 9), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 12)] =
+      · show [σ (.n (valf% «level_queries» "cap")), σ (.n (valf% «level_queries» "flags")), σ (.n (valf% «level_queries» "lam_inv")), σ (.n (valf% «level_queries» "coefs")), σ (.n (valf% «level_queries» "hs")), σ (.n (valf% «level_queries» "positions")), σ (.n (valf% «level_queries» "win_ptrs")), σ (.n (valf% «level_queries» "batched~1"))] =
           [CAP, FL, lamInv, cP, hP, pP, qP, gen ^ N]
         rw [h7, h9, hvA 1 (by omega), hvA 2 (by omega), hvA 3 (by omega), hvA 4 (by omega),
           hvA 5 (by omega), hvA 12 (by omega), ← hgi]
         rfl
-      · show [σ (.n 13)] = o2.1
+      · show [σ (.n (valf% «level_queries» "batched"))] = o2.1
         rw [e21, hvA 13 (by omega)]
         rfl) hlow hLK (by
       simp only [Kid.lins, List.flatMap_cons, List.flatMap_nil, List.append_nil]

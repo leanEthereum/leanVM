@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Whir.CBlk
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«open_stacked__L»
 
 /-!
 # The head, honestly
@@ -58,9 +60,9 @@ theorem osHead_sf (c : OsCfg) : (osHead c).2.Sf := by
 /-- **The head, honestly**: the fixed buffers at the pointers `P i`, the root's two cells (the
 arguments `7`, `8`) stored in `level_roots` (`P 1`). -/
 theorem osHead_complete (c : OsCfg) (σ : Val) (P : ℕ → E)
-    (hr : ∀ C rd, H C rd → LoadHolds rd (P 1) 0 (σ (.n 7)) ∧ LoadHolds rd (P 1) 1 (σ (.n 8))) :
+    (hr : ∀ C rd, H C rd → LoadHolds rd (P 1) 0 (σ (.n (valf% «open_stacked» "commit_root_0"))) ∧ LoadHolds rd (P 1) 1 (σ (.n (valf% «open_stacked» "commit_root_1")))) :
     BlkA H σ 11 33 (osHead c).1 (fun σ' ↦ (osHead c).2.Ok σ' ∧
-      (∀ j < 22, σ' (.n (11 + j)) = (headVals c P).getD j 0) ∧ AgreeBelow 11 σ σ') := by
+      (∀ j < 22, σ' (.n (11 + j)) = (headVals c P).getD j 0) ∧ AgreeBelow (valf% «open_stacked» "final_msg~0") σ σ') := by
   refine ⟨lstF 11 (headVals c P), fun C rd hH σ' ha hv ↦ ?_⟩
   have v : ∀ j < 22, σ' (.n (11 + j)) = (headVals c P).getD j 0 := fun j hj ↦
     lstF_at hv (by simp [headVals_length]) j (by simp [headVals_length]; omega)

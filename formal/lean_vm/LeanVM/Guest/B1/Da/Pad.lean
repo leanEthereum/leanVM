@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.Da.VerifyChk
 public import LeanVM.Guest.B1.Da.Help
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_pad_loop0»
 
 /-!
 # The padding blobs
@@ -40,13 +42,13 @@ theorem padL_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «da_pad_l
     loop_stepF (find_of_idx dv_loops_idx.2) hshape h
   refine ⟨fun N roots nb hN ↦ ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD idx% «da_pad_loop0» default).params = [V.n 0, V.n 1, V.n 2,
-      V.n 3] := by
+  have hpar : (coreProgram.getD idx% «da_pad_loop0» default).params = [V.n (val% «da_pad_loop0» "xd"), V.n (val% «da_pad_loop0» "bound"), V.n (val% «da_pad_loop0» "roots"),
+      V.n (val% «da_pad_loop0» "n_blob_g")] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
   obtain ⟨-, h2, h3⟩ := hps
-  have p7 : σ (.n 7) = roots * nb ^ 2 * x ^ 2 := by
+  have p7 : σ (.n (val% «da_pad_loop0» "pad")) = roots * nb ^ 2 * x ^ 2 := by
     rw [isMul_sound hm7 hat, isMul_sound hm5 hat, isMul_sound hm6 hat, isMul_sound hm4 hat, h2, h3,
       hx, sq, sq]
   have c8 := hasAtom_sound hc8 hat

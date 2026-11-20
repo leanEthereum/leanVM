@@ -18,6 +18,8 @@ public import LeanVM.Guest.Memory.LoopPre
 public import LeanVM.Guest.B1.Da.Offsets
 public import LeanVM.Guest.B1.Main.IterK
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_padding»
 
 /-!
 # Bounded helpers
@@ -104,7 +106,7 @@ theorem padding_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
   obtain ⟨σ, hp, hh⟩ := (rel_iff_sem find_da_padding _ _).mp hrel
   rw [pad_split, holdsList_atoms_ret] at hh
   obtain ⟨hat, hr⟩ := hh
-  have hpar : (fn% «da_padding»).params = [.n 0] := rfl
+  have hpar : (fn% «da_padding»).params = [.n (val% «da_padding» "n_blob_g")] := rfl
   rw [hpar] at hp
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
   refine relAtIn_atoms find_da_padding pad_split pad_loop (by decide) (by rw [hpar]; simp [hp])

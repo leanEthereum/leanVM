@@ -12,6 +12,9 @@ public import LeanVM.Guest.B1.Tables.FlatAtT
 public import LeanVM.Guest.B1.Digest.Steps
 public import LeanVM.Guest.Budget.Kids
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_pad»
+import LeanVM.Guest.Data.ValNames.«da_verify»
 
 /-!
 # `da_verify`'s honest shape
@@ -36,12 +39,12 @@ theorem one_add_gen_ne_iff {m : ℕ} (hm : m < ordG) : (1 + gen ^ m ≠ 0) ↔ m
 
 /-- `da_verify`'s calls. -/
 def dvCallsS : List (Option V × String × List V × List V) :=
-  [(none, "da_padding", [.n 1], [.n 2]),
-    (none, "da_vector", [.n 3], [.n 4, .n 5, .n 6, .n 7]),
-    (none, "da_weights", [.n 5, .n 6, .n 4, .n 7], [.n 8]),
-    (some (.n 12), name% «da_verify_loop0», [.n 13, .n 1, .n 8, .n 10], []),
-    (none, "da_pad", [.n 10, .n 1, .n 2], []),
-    (none, dlTop, [.n 10], [.n 14, .n 15])]
+  [(none, "da_padding", [.n (val% «da_verify» "n_blob_g")], [.n (val% «da_verify» "gap_g")]),
+    (none, "da_vector", [.n (val% «da_verify» "z")], [.n (val% «da_verify» "zs"), .n (val% «da_verify» "top_leaves"), .n (val% «da_verify» "cell_factors"), .n (val% «da_verify» "offsets")]),
+    (none, "da_weights", [.n (val% «da_verify» "top_leaves"), .n (val% «da_verify» "cell_factors"), .n (val% «da_verify» "zs"), .n (val% «da_verify» "offsets")], [.n (val% «da_verify» "weights")]),
+    (some (.n (val% «da_verify» "s6#1")), name% «da_verify_loop0», [.n (val% «da_verify» "s6#2"), .n (val% «da_verify» "n_blob_g"), .n (val% «da_verify» "weights"), .n (val% «da_verify» "roots")], []),
+    (none, "da_pad", [.n (val% «da_verify» "roots"), .n (val% «da_verify» "n_blob_g"), .n (val% «da_verify» "gap_g")], []),
+    (none, dlTop, [.n (val% «da_verify» "roots")], [.n (val% «da_verify» "r0"), .n (val% «da_verify» "r1")])]
 
 theorem dv_callsSF (σ : Val) : dvP.filterMap (Stmt.callSF σ) = dvCallsS := rfl
 
@@ -49,7 +52,7 @@ theorem dv_flatCalls (σ : Val) : flatCalls dvP σ = dvCallsS.map (Main.mkCall �
   rw [flatCalls, dv_callsSF]
 
 /-- `da_pad`'s honest valuation at the gap `g^d`: the guard and the loop's start. -/
-def padQ (d : ℕ) (σ : Val) : Prop := σ (.n 2) = gen ^ d ∧ σ (.n 4) = 1 + gen ^ d ∧ σ (.n 5) = 1
+def padQ (d : ℕ) (σ : Val) : Prop := σ (.n (val% «da_pad» "gap_g")) = gen ^ d ∧ σ (.n (val% «da_pad» "s0#1")) = 1 + gen ^ d ∧ σ (.n (val% «da_pad» "s0#2")) = 1
 
 /-- **`da_pad`'s honest shape** at the gap `g^d`. -/
 def padNH (d : ℕ) : Tree → Prop :=
@@ -57,7 +60,7 @@ def padNH (d : ℕ) : Tree → Prop :=
 
 /-- **`da_verify`'s honest valuation**: its counts, the blob loop's guard and start. -/
 def dvQ (r L : ℕ) (σ : Val) : Prop :=
-  σ (.n 1) = gen ^ r ∧ σ (.n 2) = gen ^ (2 ^ L - r) ∧ σ (.n 12) = 1 + gen ^ r ∧ σ (.n 13) = 1
+  σ (.n (val% «da_verify» "n_blob_g")) = gen ^ r ∧ σ (.n (val% «da_verify» "gap_g")) = gen ^ (2 ^ L - r) ∧ σ (.n (val% «da_verify» "s6#1")) = 1 + gen ^ r ∧ σ (.n (val% «da_verify» "s6#2")) = 1
 
 /-- The predicates on `da_verify`'s callees' trees. -/
 def dvTs (r L : ℕ) : List (Tree → Prop) :=

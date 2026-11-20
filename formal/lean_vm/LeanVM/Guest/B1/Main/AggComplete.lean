@@ -13,6 +13,8 @@ public import LeanVM.Guest.B1.Main.AggL25Complete
 public import LeanVM.Guest.B1.Main.AggL26Complete
 public import LeanVM.Guest.B1.Sumcheck.Batch
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«aggregate_claims»
 
 /-!
 # `aggregate_claims`, completely
@@ -202,36 +204,36 @@ noncomputable def aggσ (rd : Reader) (m : ℕ) (cpi cfresh ccarried dst tabs : 
 structure AggVals (rd : Reader) (σ : Val) (m : ℕ) (cpi cfresh ccarried dst tabs : E) (P : AggPtrs)
     (cs : List ChildClaims) (h : BatchingHints) : Prop where
   atoms : ∀ a ∈ atomsIn aggP, a.Holds rd σ
-  e0 : σ (.n 0) = gen ^ m
-  e1 : σ (.n 1) = cpi
-  e2 : σ (.n 2) = cfresh
-  e3 : σ (.n 3) = ccarried
-  e4 : σ (.n 4) = dst
-  e5 : σ (.n 5) = tabs
-  v6 : σ (.n 6) = P.msgs
-  v7 : σ (.n 7) = h.finalBytecodeValue
-  v8 : σ (.n 8) = P.lf
-  v9 : σ (.n 9) = P.lc
-  v33 : σ (.n 30) = P.absorb
-  v81 : σ (.n 78) = lamA cs h
-  v94 : σ (.n 91) = lamA cs h * lamA cs h
-  v98 : σ (.n 95) = P.chain
-  v107 : σ (.n 104) = P.pt
-  v116 : σ (.n 113) = P.pt1
-  v188 : σ (.n 185) = P.w
-  p42 : σ (.n 39) = P.absorb * (gen ^ m) ^ 13
-  p105 : σ (.n 102) = P.chain * (gen ^ m) ^ 2
-  p193 : σ (.n 190) = P.w * gen ^ m
-  g35 : σ (.n 32) = 1 + gen ^ m
-  g36 : σ (.n 33) = 1
-  g102 : σ (.n 99) = 1 + gen ^ m
-  g103 : σ (.n 100) = 1
-  g191 : σ (.n 188) = 1 + gen ^ m
-  g192 : σ (.n 189) = 1
-  grArgs : [σ (.n 79), σ (.n 5)] = [cellsOfState (aggN cs h.lambdaGrindNonce) false 1, tabs]
-  bsArgs : [σ (.n 86), σ (.n 87), σ (.n 88), σ (.n 89), σ (.n 90), σ (.n 106), σ (.n 103),
-    σ (.n 104), σ (.n 5)] = capOf (aggN cs h.lambdaGrindNonce) ++ [P.msgs * gen, claimAt cs h m, P.pt, tabs]
-  bsRets : [σ (.n 107), σ (.n 108), σ (.n 109), σ (.n 110), σ (.n 111), σ (.n 112)] =
+  e0 : σ (.n (val% «aggregate_claims» "n_children_g")) = gen ^ m
+  e1 : σ (.n (val% «aggregate_claims» "child_pi")) = cpi
+  e2 : σ (.n (val% «aggregate_claims» "child_fresh")) = cfresh
+  e3 : σ (.n (val% «aggregate_claims» "child_carried")) = ccarried
+  e4 : σ (.n (val% «aggregate_claims» "defer_stmt")) = dst
+  e5 : σ (.n (val% «aggregate_claims» "tabs")) = tabs
+  v6 : σ (.n (val% «aggregate_claims» "bc_msgs")) = P.msgs
+  v7 : σ (.n (val% «aggregate_claims» "bytecode_star")) = h.finalBytecodeValue
+  v8 : σ (.n (val% «aggregate_claims» "fresh_row")) = P.lf
+  v9 : σ (.n (val% «aggregate_claims» "carried_row")) = P.lc
+  v33 : σ (.n (val% «aggregate_claims» "absorb")) = P.absorb
+  v81 : σ (.n (val% «aggregate_claims» "fs_perm.nxt[0]")) = lamA cs h
+  v94 : σ (.n (val% «aggregate_claims» "lam_sq")) = lamA cs h * lamA cs h
+  v98 : σ (.n (val% «aggregate_claims» "bc_chain")) = P.chain
+  v107 : σ (.n (val% «aggregate_claims» "bc_point")) = P.pt
+  v116 : σ (.n (val% «aggregate_claims» "bc_point1")) = P.pt1
+  v188 : σ (.n (val% «aggregate_claims» "bc_wsum")) = P.w
+  p42 : σ (.n (val% «aggregate_claims» "absorbed")) = P.absorb * (gen ^ m) ^ 13
+  p105 : σ (.n (val% «aggregate_claims» "bc_end")) = P.chain * (gen ^ m) ^ 2
+  p193 : σ (.n (val% «aggregate_claims» "s32#0")) = P.w * gen ^ m
+  g35 : σ (.n (val% «aggregate_claims» "s12#1")) = 1 + gen ^ m
+  g36 : σ (.n (val% «aggregate_claims» "s12#2")) = 1
+  g102 : σ (.n (val% «aggregate_claims» "s22#1")) = 1 + gen ^ m
+  g103 : σ (.n (val% «aggregate_claims» "s22#2")) = 1
+  g191 : σ (.n (val% «aggregate_claims» "s31#1")) = 1 + gen ^ m
+  g192 : σ (.n (val% «aggregate_claims» "s31#2")) = 1
+  grArgs : [σ (.n (val% «aggregate_claims» "fs_perm.nxt[1]")), σ (.n (val% «aggregate_claims» "tabs"))] = [cellsOfState (aggN cs h.lambdaGrindNonce) false 1, tabs]
+  bsArgs : [σ (.n (val% «aggregate_claims» "fs_perm.nxt[8]")), σ (.n (val% «aggregate_claims» "fs_perm.nxt[9]")), σ (.n (val% «aggregate_claims» "fs_perm.nxt[10]")), σ (.n (val% «aggregate_claims» "fs_perm.nxt[11]")), σ (.n (val% «aggregate_claims» "fs_perm.nxt[12]")), σ (.n (val% «aggregate_claims» "fs0~7")), σ (.n (val% «aggregate_claims» "bc_running@1")),
+    σ (.n (val% «aggregate_claims» "bc_point")), σ (.n (val% «aggregate_claims» "tabs"))] = capOf (aggN cs h.lambdaGrindNonce) ++ [P.msgs * gen, claimAt cs h m, P.pt, tabs]
+  bsRets : [σ (.n (val% «aggregate_claims» "fs0")), σ (.n (val% «aggregate_claims» "fs1")), σ (.n (val% «aggregate_claims» "fs2")), σ (.n (val% «aggregate_claims» "fs3")), σ (.n (val% «aggregate_claims» "fs4")), σ (.n (val% «aggregate_claims» "bc_running@2"))] =
     (aggRun cs h).2.cap ++ [(aggRun cs h).1.2]
 
 set_option maxRecDepth 20000 in
@@ -283,45 +285,45 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
     hgs (.atom a) (hmemP _ (atom_mem_of_atomsIn ha))
   have par : ∀ i (hi : i < 6), σ (.n i) = args.getD i 0 := fun i hi => by
     rw [hσ']; exact ev_params rd _ (l := args) hchk (by simp [args]; omega)
-  have e0 : σ (.n 0) = gen ^ cs.length := par 0 (by omega)
-  have e1 : σ (.n 1) = cpi := par 1 (by omega)
-  have e2 : σ (.n 2) = cfresh := par 2 (by omega)
-  have e3 : σ (.n 3) = ccarried := par 3 (by omega)
-  have e4 : σ (.n 4) = dst := par 4 (by omega)
-  have e5 : σ (.n 5) = tabs := par 5 (by omega)
+  have e0 : σ (.n (val% «aggregate_claims» "n_children_g")) = gen ^ cs.length := par 0 (by omega)
+  have e1 : σ (.n (val% «aggregate_claims» "child_pi")) = cpi := par 1 (by omega)
+  have e2 : σ (.n (val% «aggregate_claims» "child_fresh")) = cfresh := par 2 (by omega)
+  have e3 : σ (.n (val% «aggregate_claims» "child_carried")) = ccarried := par 3 (by omega)
+  have e4 : σ (.n (val% «aggregate_claims» "defer_stmt")) = dst := par 4 (by omega)
+  have e5 : σ (.n (val% «aggregate_claims» "tabs")) = tabs := par 5 (by omega)
   -- the hints and the sumcheck's returns
   have hint : ∀ a ∈ aggHintsA, Good rd aggStores w σ a := fun a ha => hg a (hhints a ha)
   simp only [aggHintsA, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq,
     Good] at hint
   obtain ⟨h6, h7, h8, h9, h33, h98, h107, h116, h188⟩ := hint
-  have v6 : σ (.n 6) = P.msgs := by rw [h6]; rfl
-  have v7 : σ (.n 7) = h.finalBytecodeValue := by rw [h7]; rfl
-  have v8 : σ (.n 8) = P.lf := by rw [h8]; rfl
-  have v9 : σ (.n 9) = P.lc := by rw [h9]; rfl
-  have v33 : σ (.n 30) = P.absorb := by rw [h33]; rfl
-  have v98 : σ (.n 95) = P.chain := by rw [h98]; rfl
-  have v107 : σ (.n 104) = P.pt := by rw [h107]; rfl
-  have v116 : σ (.n 113) = P.pt1 := by rw [h116]; rfl
-  have v188 : σ (.n 185) = P.w := by rw [h188]; rfl
+  have v6 : σ (.n (val% «aggregate_claims» "bc_msgs")) = P.msgs := by rw [h6]; rfl
+  have v7 : σ (.n (val% «aggregate_claims» "bytecode_star")) = h.finalBytecodeValue := by rw [h7]; rfl
+  have v8 : σ (.n (val% «aggregate_claims» "fresh_row")) = P.lf := by rw [h8]; rfl
+  have v9 : σ (.n (val% «aggregate_claims» "carried_row")) = P.lc := by rw [h9]; rfl
+  have v33 : σ (.n (val% «aggregate_claims» "absorb")) = P.absorb := by rw [h33]; rfl
+  have v98 : σ (.n (val% «aggregate_claims» "bc_chain")) = P.chain := by rw [h98]; rfl
+  have v107 : σ (.n (val% «aggregate_claims» "bc_point")) = P.pt := by rw [h107]; rfl
+  have v116 : σ (.n (val% «aggregate_claims» "bc_point1")) = P.pt1 := by rw [h116]; rfl
+  have v188 : σ (.n (val% «aggregate_claims» "bc_wsum")) = P.w := by rw [h188]; rfl
   have hret : GoodS rd aggStores w σ (.call "batch_sumcheck__L23"
-      [.n 86, .n 87, .n 88, .n 89, .n 90, .n 106, .n 103, .n 104, .n 5]
-      [.n 107, .n 108, .n 109, .n 110, .n 111, .n 112]) := by
+      [.n (val% «aggregate_claims» "fs_perm.nxt[8]"), .n (val% «aggregate_claims» "fs_perm.nxt[9]"), .n (val% «aggregate_claims» "fs_perm.nxt[10]"), .n (val% «aggregate_claims» "fs_perm.nxt[11]"), .n (val% «aggregate_claims» "fs_perm.nxt[12]"), .n (val% «aggregate_claims» "fs0~7"), .n (val% «aggregate_claims» "bc_running@1"), .n (val% «aggregate_claims» "bc_point"), .n (val% «aggregate_claims» "tabs")]
+      [.n (val% «aggregate_claims» "fs0"), .n (val% «aggregate_claims» "fs1"), .n (val% «aggregate_claims» "fs2"), .n (val% «aggregate_claims» "fs3"), .n (val% «aggregate_claims» "fs4"), .n (val% «aggregate_claims» "bc_running@2")]) := by
     obtain ⟨s, hs, he⟩ := List.any_eq_true.mp (hcallsIn (.call "batch_sumcheck__L23"
-      [.n 86, .n 87, .n 88, .n 89, .n 90, .n 106, .n 103, .n 104, .n 5]
-      [.n 107, .n 108, .n 109, .n 110, .n 111, .n 112])
+      [.n (val% «aggregate_claims» "fs_perm.nxt[8]"), .n (val% «aggregate_claims» "fs_perm.nxt[9]"), .n (val% «aggregate_claims» "fs_perm.nxt[10]"), .n (val% «aggregate_claims» "fs_perm.nxt[11]"), .n (val% «aggregate_claims» "fs_perm.nxt[12]"), .n (val% «aggregate_claims» "fs0~7"), .n (val% «aggregate_claims» "bc_running@1"), .n (val% «aggregate_claims» "bc_point"), .n (val% «aggregate_claims» "tabs")]
+      [.n (val% «aggregate_claims» "fs0"), .n (val% «aggregate_claims» "fs1"), .n (val% «aggregate_claims» "fs2"), .n (val% «aggregate_claims» "fs3"), .n (val% «aggregate_claims» "fs4"), .n (val% «aggregate_claims» "bc_running@2")])
       (by simp [aggCalls]))
     rw [← stmtEqb_sound he]
     exact hgs s (hmemP s hs)
   simp only [GoodS, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at hret
   obtain ⟨r110, r111, r112, r113, r114, r115⟩ := hret
-  have v115 : σ (.n 112) = (aggRun cs h).1.2 := by rw [r115]; rfl
+  have v115 : σ (.n (val% «aggregate_claims» "bc_running@2")) = (aggRun cs h).1.2 := by rw [r115]; rfl
   -- the products
   have hP : ∀ a ∈ (atomsIn aggP).filter pureB, a.Holds rd σ := pure_holds hg
-  have p42 : σ (.n 39) = P.absorb * (gen ^ cs.length) ^ 13 := by
+  have p42 : σ (.n (val% «aggregate_claims» "absorbed")) = P.absorb * (gen ^ cs.length) ^ 13 := by
     rw [monoIs_sound hm42 hP, v33, e0]
-  have p105 : σ (.n 102) = P.chain * (gen ^ cs.length) ^ 2 := by
+  have p105 : σ (.n (val% «aggregate_claims» "bc_end")) = P.chain * (gen ^ cs.length) ^ 2 := by
     rw [monoIs_sound hm105 hP, v98, e0]
-  have p193 : σ (.n 190) = P.w * gen ^ cs.length := by rw [isMul_sound hm193 hP, v188, e0]
+  have p193 : σ (.n (val% «aggregate_claims» "s32#0")) = P.w * gen ^ cs.length := by rw [isMul_sound hm193 hP, v188, e0]
   -- the loads
   have hg' : ∀ a ∈ aggA, Good rd aggStores w σ a := fun a ha => hg a (mem_aggA.mp ha).1
   have hnS : ∀ a ∈ aggA, a ∉ aggStores := fun a ha => (mem_aggA.mp ha).2
@@ -330,44 +332,44 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
   rw [absSt_last rfl] at hlast
   have hchm := hmem.chain cs.length le_rfl
   have L43 : ∀ k (hk : k < 13), σ (.n (40 + k)) = (rowW (aggAbs cs)).getD k 0 ∧
-      (Atom.load (.n (40 + k)) (.n 39) k).Holds rd σ := fun k hk => by
-    have hm : Atom.load (.n (40 + k)) (.n 39) k ∈ aggA := hll _ (List.mem_append_left _
+      (Atom.load (.n (40 + k)) (.n (val% «aggregate_claims» "absorbed")) k).Holds rd σ := fun k hk => by
+    have hm : Atom.load (.n (40 + k)) (.n (val% «aggregate_claims» "absorbed")) k ∈ aggA := hll _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
         (List.mem_append_left _ (List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩))))))
     refine load_of_good (hnS _ hm) (hg' _ hm) ?_
     rw [p42, List.getD_eq_getElem _ _ (by rw [rowW_length hokA]; exact hk)]
     exact hlast k (by rw [rowW_length hokA]; exact hk)
-  have L73 : σ (.n 70) = h.lambdaGrindNonce ∧ (Atom.load (.n 70) (.n 6) 0).Holds rd σ := by
-    have hm : Atom.load (.n 70) (.n 6) 0 ∈ aggA := hll _ (List.mem_append_left _
+  have L73 : σ (.n (val% «aggregate_claims» "s16.e.s1#0")) = h.lambdaGrindNonce ∧ (Atom.load (.n (val% «aggregate_claims» "s16.e.s1#0")) (.n (val% «aggregate_claims» "bc_msgs")) 0).Holds rd σ := by
+    have hm : Atom.load (.n (val% «aggregate_claims» "s16.e.s1#0")) (.n (val% «aggregate_claims» "bc_msgs")) 0 ∈ aggA := hll _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
         (List.mem_append_right _ (List.mem_singleton_self _))))))
     refine load_of_good (hnS _ hm) (hg' _ hm) ?_
     rw [v6]
     exact hmem.msgs 0 (by simp)
-  have L106 : σ (.n 103) = claimAt cs h cs.length ∧ (Atom.load (.n 103) (.n 102) 1).Holds rd σ := by
-    have hm : Atom.load (.n 103) (.n 102) 1 ∈ aggA := hll _ (List.mem_append_left _
+  have L106 : σ (.n (val% «aggregate_claims» "bc_running@1")) = claimAt cs h cs.length ∧ (Atom.load (.n (val% «aggregate_claims» "bc_running@1")) (.n (val% «aggregate_claims» "bc_end")) 1).Holds rd σ := by
+    have hm : Atom.load (.n (val% «aggregate_claims» "bc_running@1")) (.n (val% «aggregate_claims» "bc_end")) 1 ∈ aggA := hll _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _
         (List.mem_singleton_self _)))))
     refine load_of_good (hnS _ hm) (hg' _ hm) ?_
     rw [p105]
     exact hchm 1 (by simp)
   have L118 : ∀ k (hk : k < 23), σ (.n (115 + 3 * k)) = (aggRun cs h).1.1.getD k 0 ∧
-      (Atom.load (.n (115 + 3 * k)) (.n 104) k).Holds rd σ := fun k hk => by
-    have hm : Atom.load (.n (115 + 3 * k)) (.n 104) k ∈ aggA := hll _ (List.mem_append_left _
+      (Atom.load (.n (115 + 3 * k)) (.n (val% «aggregate_claims» "bc_point")) k).Holds rd σ := fun k hk => by
+    have hm : Atom.load (.n (115 + 3 * k)) (.n (val% «aggregate_claims» "bc_point")) k ∈ aggA := hll _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_right _
         (List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩))))
     refine load_of_good (hnS _ hm) (hg' _ hm) ?_
     rw [v107, List.getD_eq_getElem _ _ (by rw [hptl]; exact hk)]
     exact hmem.pt k (by rw [hptl]; exact hk)
-  have L194 : σ (.n 191) = weightAt cs h cs.length ∧ (Atom.load (.n 191) (.n 190) 0).Holds rd σ := by
-    have hm : Atom.load (.n 191) (.n 190) 0 ∈ aggA := hll _ (List.mem_append_left _
+  have L194 : σ (.n (val% «aggregate_claims» "s32#1")) = weightAt cs h cs.length ∧ (Atom.load (.n (val% «aggregate_claims» "s32#1")) (.n (val% «aggregate_claims» "s32#0")) 0).Holds rd σ := by
+    have hm : Atom.load (.n (val% «aggregate_claims» "s32#1")) (.n (val% «aggregate_claims» "s32#0")) 0 ∈ aggA := hll _ (List.mem_append_left _
       (List.mem_append_right _ (List.mem_singleton_self _)))
     refine load_of_good (hnS _ hm) (hg' _ hm) ?_
     rw [p193]
     exact hmem.w cs.length le_rfl
   have L196 : ∀ k (hk : k < 23), σ (.n (193 + k)) = (aggRun cs h).1.1.getD k 0 ∧
-      (Atom.load (.n (193 + k)) (.n 104) k).Holds rd σ := fun k hk => by
-    have hm : Atom.load (.n (193 + k)) (.n 104) k ∈ aggA := hll _ (List.mem_append_right _
+      (Atom.load (.n (193 + k)) (.n (val% «aggregate_claims» "bc_point")) k).Holds rd σ := fun k hk => by
+    have hm : Atom.load (.n (193 + k)) (.n (val% «aggregate_claims» "bc_point")) k ∈ aggA := hll _ (List.mem_append_right _
       (List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩))
     refine load_of_good (hnS _ hm) (hg' _ hm) ?_
     rw [v107, List.getD_eq_getElem _ _ (by rw [hptl]; exact hk)]
@@ -386,21 +388,21 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
       · exact (L118 k hk).2
       · exact L194.2
       · exact (L196 k hk).2
-    · show σ (.n 112) + σ (.n 192) = 0
+    · show σ (.n (val% «aggregate_claims» "bc_running@2")) + σ (.n (val% «aggregate_claims» "s32#2")) = 0
       rw [isMul_sound hm195 hP, v115, v7, L194.1, weightAt_last rfl]
       exact e_add_eq_zero_iff.mpr hfin
   -- the stores
   have hst0 := absSt_ok cs.length cs 0
   have hrow0 := hmem.absorb 0 (Nat.zero_le _)
   rw [pow_zero, one_pow, mul_one] at hrow0
-  have r0 : ∀ k < 13, LoadHolds rd (σ (.n 30)) k ((rowW (absSt cs.length cs 0)).getD k 0) :=
+  have r0 : ∀ k < 13, LoadHolds rd (σ (.n (val% «aggregate_claims» "absorb"))) k ((rowW (absSt cs.length cs 0)).getD k 0) :=
     fun k hk => by
       rw [v33, List.getD_eq_getElem _ _ (by rw [rowW_length hst0]; exact hk)]
       exact hrow0 k (by rw [rowW_length hst0]; exact hk)
   have hpack : ∀ j < 4, ∀ (x : V), packIn (atomsIn aggP) x (15 + 2 * j) = true →
       σ x = [gen ^ cs.length, 0, 0, 0].getD j 0 →
-      LoadHolds rd (σ (.n 30)) (5 + 2 * j) (σ (.n (15 + 2 * j))) ∧
-        LoadHolds rd (σ (.n 30)) (6 + 2 * j) (σ (.n (16 + 2 * j))) := by
+      LoadHolds rd (σ (.n (val% «aggregate_claims» "absorb"))) (5 + 2 * j) (σ (.n (15 + 2 * j))) ∧
+        LoadHolds rd (σ (.n (val% «aggregate_claims» "absorb"))) (6 + 2 * j) (σ (.n (16 + 2 * j))) := by
     intro j hj x hpb hx
     have hpc := pack_cells hpb hg
     have hr := Keccak.rateCell_scalar (absSt cs.length cs 0).pend j (by rw [absSt_zero]; simp; omega)
@@ -416,8 +418,8 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
     rw [rowW_getD_rate hst0 (by omega), hr.2, show 5 + (2 * j + 1) = 6 + 2 * j by omega,
       show 15 + 2 * j + 1 = 16 + 2 * j by omega] at b'
     exact ⟨a, b'⟩
-  have hpackZ : ∀ j < 3, LoadHolds rd (σ (.n 30)) (5 + 2 * (j + 1)) (σ (.n (15 + 2 * (j + 1)))) ∧
-      LoadHolds rd (σ (.n 30)) (6 + 2 * (j + 1)) (σ (.n (16 + 2 * (j + 1)))) := by
+  have hpackZ : ∀ j < 3, LoadHolds rd (σ (.n (val% «aggregate_claims» "absorb"))) (5 + 2 * (j + 1)) (σ (.n (15 + 2 * (j + 1)))) ∧
+      LoadHolds rd (σ (.n (val% «aggregate_claims» "absorb"))) (6 + 2 * (j + 1)) (σ (.n (16 + 2 * (j + 1)))) := by
     intro j hj
     obtain ⟨hc, hp⟩ := hz3 j hj
     refine hpack (j + 1) (by omega) (.n (17 + 2 * j))
@@ -434,37 +436,37 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
       List.mem_cons, List.not_mem_nil, or_false] at haS
     rcases haS with ((((((⟨i, hi, rfl⟩ | ⟨j, hj, rfl | rfl⟩) | (rfl | rfl)) | ⟨k, hk, rfl⟩) | rfl) |
       ⟨k, hk, rfl⟩) | rfl)
-    · show LoadHolds rd (σ (.n 30)) i (σ (.n (10 + i)))
+    · show LoadHolds rd (σ (.n (val% «aggregate_claims» "absorb"))) i (σ (.n (10 + i)))
       have e := r0 i (by omega)
       rw [rowW_getD_cap hst0 hi, absSt_zero, ← seed_cells i hi, ← const_good (hseed i hi).1 hg] at e
       exact e
     · rcases (show j = 0 ∨ 0 < j by omega) with rfl | hj0
-      · exact (hpack 0 (by omega) (.n 0) hp0 (by rw [e0]; rfl)).1
+      · exact (hpack 0 (by omega) (.n (val% «aggregate_claims» "n_children_g")) hp0 (by rw [e0]; rfl)).1
       · obtain ⟨j', rfl⟩ : ∃ j', j = j' + 1 := ⟨j - 1, by omega⟩
         exact (hpackZ j' (by omega)).1
     · rcases (show j = 0 ∨ 0 < j by omega) with rfl | hj0
-      · exact (hpack 0 (by omega) (.n 0) hp0 (by rw [e0]; rfl)).2
+      · exact (hpack 0 (by omega) (.n (val% «aggregate_claims» "n_children_g")) hp0 (by rw [e0]; rfl)).2
       · obtain ⟨j', rfl⟩ : ∃ j', j = j' + 1 := ⟨j - 1, by omega⟩
         exact (hpackZ j' (by omega)).2
-    · show LoadHolds rd (σ (.n 95)) 0 (σ (.n 96))
+    · show LoadHolds rd (σ (.n (val% «aggregate_claims» "bc_chain"))) 0 (σ (.n (val% «aggregate_claims» "s20#0")))
       have e := hch0 0 (by simp)
       rw [v98, const_good hc99 hg, word_one]
       simpa using e
-    · show LoadHolds rd (σ (.n 95)) 1 (σ (.n 97))
+    · show LoadHolds rd (σ (.n (val% «aggregate_claims» "bc_chain"))) 1 (σ (.n (val% «aggregate_claims» "s21#0")))
       have e := hch0 1 (by simp)
       rw [v98, const_good hc100 hg, word_zero]
       simpa [claimAt_zero] using e
-    · show LoadHolds rd (σ (.n 113)) k (σ (.n (116 + 3 * k)))
+    · show LoadHolds rd (σ (.n (val% «aggregate_claims» "bc_point1"))) k (σ (.n (116 + 3 * k)))
       have e := hmem.pt1 k (by rw [List.length_map, hptl]; exact hk)
       rw [List.getElem_map, ← List.getD_eq_getElem _ 0] at e
       rw [v116, add_sound (hadd k hk) hP, const_good (hpt1 k hk).1.1.1 hg, word_one, (L118 k hk).1]
       exact e
-    · show LoadHolds rd (σ (.n 185)) 0 (σ (.n 186))
+    · show LoadHolds rd (σ (.n (val% «aggregate_claims» "bc_wsum"))) 0 (σ (.n (val% «aggregate_claims» "s30#0")))
       have e := hmem.w 0 (Nat.zero_le _)
       rw [pow_zero, mul_one, weightAt_zero] at e
       rw [v188, const_good hc189 hg, word_zero]
       exact e
-    · show LoadHolds rd (σ (.n 4)) k (σ (.n (193 + k)))
+    · show LoadHolds rd (σ (.n (val% «aggregate_claims» "defer_stmt"))) k (σ (.n (193 + k)))
       have e := hdst k (by rw [hdl]; omega)
       rw [← List.getD_eq_getElem _ 0] at e
       rw [e4, (L196 k hk).1]
@@ -472,7 +474,7 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
         rw [aggOut, DeferredBytecodeClaim.cells, List.getD_append _ _ _ _ (by rw [hptl]; exact hk)]
       rw [this] at e
       exact e
-    · show LoadHolds rd (σ (.n 4)) 23 (σ (.n 7))
+    · show LoadHolds rd (σ (.n (val% «aggregate_claims» "defer_stmt"))) 23 (σ (.n (val% «aggregate_claims» "bytecode_star")))
       have e := hdst 23 (by rw [hdl]; omega)
       rw [← List.getD_eq_getElem _ 0] at e
       rw [e4, v7]
@@ -504,7 +506,7 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
   obtain ⟨h74, h75⟩ := hpk
   have hpendm : (aggAbs cs).pend.length = 4 := by
     rw [← absSt_last rfl]; exact absSt_pend (m := cs.length) hcw cs.length le_rfl
-  have hnin : aggNi.map σ = [σ (.n 70), word 0 dsPowNonce, 0, 0, 0, 0, 0, 0] ++
+  have hnin : aggNi.map σ = [σ (.n (val% «aggregate_claims» "s16.e.s1#0")), word 0 dsPowNonce, 0, 0, 0, 0, 0, 0] ++
       capOf (aggAbs cs).perm := by
     simp only [aggNi, permIns, List.take, List.cons_append, List.nil_append, List.map_cons,
       List.map_nil, h74, h75, h77, h78, h79, h80, capOf, o 8 (by omega), o 9 (by omega),
@@ -518,10 +520,10 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
       have := hnout c hc
       rwa [show aggNo.getD c default = .n (78 + c) by
         simp [aggNo, List.getD_eq_getElem?_getD, hc]] at this
-  have v81 : σ (.n 78) = lamA cs h := by
+  have v81 : σ (.n (val% «aggregate_claims» "fs_perm.nxt[0]")) = lamA cs h := by
     rw [q 0 (by omega), lamA, Keccak.challengeOf_cells]
     rfl
-  have q1 : σ (.n 79) = cellsOfState (aggN cs h.lambdaGrindNonce) false 1 := q 1 (by omega)
+  have q1 : σ (.n (val% «aggregate_claims» "fs_perm.nxt[1]")) = cellsOfState (aggN cs h.lambdaGrindNonce) false 1 := q 1 (by omega)
   refine ⟨hat, e0, e1, e2, e3, e4, e5, v6, v7, v8, v9, v33, v81,
     by rw [isMul_sound hm94 hP, v81], v98, v107, v116, v188, p42, p105, p193,
     by rw [g35, e0], g36, by rw [g102, e0], g103, by rw [g191, e0], g192, by rw [q1, e5], ?_, ?_⟩

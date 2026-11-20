@@ -10,6 +10,8 @@ module
 
 public import LeanVM.Guest.B1.Da.CellLAt
 public import LeanVM.Guest.B1.Da.PadAt
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_verify_blob»
 
 /-!
 # A blob, placed
@@ -36,26 +38,26 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL iterK)
 /-- `da_verify_blob`'s body before its `ret`. -/
 def blobPre : List Stmt := blobBody.dropLast
 
-theorem blob_body : (fn% «da_verify_blob»).body = blobPre ++ [.ret [.n 8, .n 9]] := by
+theorem blob_body : (fn% «da_verify_blob»).body = blobPre ++ [.ret [.n (val% «da_verify_blob» "s5#0"), .n (val% «da_verify_blob» "s5#0[1]")]] := by
   have hok := blob_ok
   unfold blobOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
   rw [stmtsEqb_sound hok.2]
   rfl
 
-theorem blob_params : (fn% «da_verify_blob»).params = [.n 0] := by
+theorem blob_params : (fn% «da_verify_blob»).params = [.n (val% «da_verify_blob» "weights")] := by
   have hok := blob_ok
   unfold blobOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
   exact hok.1
 
-theorem blob_allocs : blobPre.filterMap Main.Stmt.allocSz = [(.n 1, .inl 641)] := rfl
+theorem blob_allocs : blobPre.filterMap Main.Stmt.allocSz = [(.n (val% «da_verify_blob» "base"), .inl 641)] := rfl
 
-theorem blob_loads : blobPre.filterMap B1.Stmt.loadS = [(.n 1, 512), (.n 1, 640)] := rfl
+theorem blob_loads : blobPre.filterMap B1.Stmt.loadS = [(.n (val% «da_verify_blob» "base"), 512), (.n (val% «da_verify_blob» "base"), 640)] := rfl
 
 theorem blob_flatCalls (σ : Val) : flatCalls blobPre σ =
-    [Main.mkCall σ (none, name% «da_verify_blob_loop0», [.n 3, .n 0, .n 1], []),
-      Main.mkCall σ (none, "da_levels__L128_L7", [.n 1], [.n 6, .n 7])] := rfl
+    [Main.mkCall σ (none, name% «da_verify_blob_loop0», [.n (val% «da_verify_blob» "s2#0"), .n (val% «da_verify_blob» "weights"), .n (val% «da_verify_blob» "base")], []),
+      Main.mkCall σ (none, "da_levels__L128_L7", [.n (val% «da_verify_blob» "base")], [.n (val% «da_verify_blob» "b0"), .n (val% «da_verify_blob» "b1")])] := rfl
 
 /-- `da_verify_blob`'s callees, its region at `bb`. -/
 noncomputable def blobKids (r : ℕ) (syms : ℕ → ℕ → List E) (z : E) (i bw : ℕ) (Lin : Layout) (bb : ℕ) :

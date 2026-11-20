@@ -10,6 +10,9 @@ public import LeanVM.Guest.B1.Digest.ClaimListCChk
 public import LeanVM.Guest.B1.Digest.ChainFilter
 public import LeanVM.Guest.B1.Digest.PairComplete
 public import LeanVM.Guest.B1.Fwd.PureIn
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«claim_list_last__L»
+import LeanVM.Guest.Data.ValNames.«claim_list_tail»
 
 /-!
 # The last claims and a group of claims, completely
@@ -101,8 +104,8 @@ theorem claimLast_complete {k : ℕ} (hk : k < 17) {sp blk : E} {n : ℕ} {pre :
     have hbody := splitBody_eq hsb
     have hg : ∀ a ∈ atoms, Good rd [] (fun _ => 0) σ a := fun a ha =>
       hgs (.atom a) (by rw [hbody]; exact List.mem_append_left _ (List.mem_map_of_mem ha))
-    have e0 : σ (.n 0) = sp := by rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args])
-    have e1 : σ (.n 1) = blk := by rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args])
+    have e0 : σ (.n (valf% «claim_list_last» "state")) = sp := by rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args])
+    have e1 : σ (.n (valf% «claim_list_last» "blk")) = blk := by rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args])
     have vst : ∀ c : Fin 13, σ ((clSt k).getD c default) =
         cellsOfState (absorbChunks n zeroState pre) false c := by
       intro c
@@ -300,8 +303,8 @@ theorem grp_block {j : ℕ} {f : String} {m c0 st0 ep nb : ℕ}
 theorem tail_rel_of {k : ℕ} (hk : k < 17) {sp blk d0 d1 : E}
     (h : coreProgram.Rel rd (clNames.getD k "") [sp, blk] [d0, d1]) :
     coreProgram.Rel rd "claim_list_tail" [sp, blk, gen ^ k] [d0, d1] := by
-  let σ : Val := fun v => if v = .n 0 then sp else if v = .n 1 then blk else if v = .n 2 then gen ^ k
-    else if v = .n 3 ∨ v = .n 5 then d0 else if v = .n 4 ∨ v = .n 6 then d1 else 0
+  let σ : Val := fun v => if v = .n (val% «claim_list_tail» "state") then sp else if v = .n (val% «claim_list_tail» "blk") then blk else if v = .n (val% «claim_list_tail» "rest") then gen ^ k
+    else if v = .n (val% «claim_list_tail» "d0") ∨ v = .n (val% «claim_list_tail» "s1#0") then d0 else if v = .n (val% «claim_list_tail» "d1") ∨ v = .n (val% «claim_list_tail» "s1#0[1]") then d1 else 0
   refine (rel_iff_sem find_claim_list_tail _ _).mpr ⟨σ, ?_, ?_⟩
   · rw [claim_list_tail_params]; simp [σ]
   · rw [claim_list_tail_shape]

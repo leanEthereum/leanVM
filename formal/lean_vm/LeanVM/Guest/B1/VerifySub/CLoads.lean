@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.CSig
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # The loads' regions
@@ -79,12 +81,12 @@ theorem vs_loads {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
   have hSl0 := vs_streamW_length c.proof.stream
   have hSl0' : 8192 ≤ (vsStreamW c.proof.stream).length := hSl0
   -- the pointers
-  have h64 : σ (.n 64) = gen ^ S.rate := by
+  have h64 : σ (.n (val% «verify_sub» "rate_sel~0")) = gen ^ S.rate := by
     rw [pr (j := 0) (k := 0) (a := 64) (by norm_num) (by decide) rfl (by decide), O.o0]; rfl
-  have h72 : σ (.n 72) = gen ^ S.logMem := by
+  have h72 : σ (.n (val% «verify_sub» "g_log_mem")) = gen ^ S.logMem := by
     rw [pr (j := 1) (k := 0) (a := 72) (by norm_num) (by decide) rfl (by decide), O.o1]; rfl
-  have hp4 : σ (.n 4) = ptr sqE := vsC_param hl (by norm_num)
-  have hp5 : σ (.n 5) = ptr outE := vsC_param hl (by norm_num)
+  have hp4 : σ (.n (val% «verify_sub» "g_squares")) = ptr sqE := vsC_param hl (by norm_num)
+  have hp5 : σ (.n (val% «verify_sub» "defer_out")) = ptr outE := vsC_param hl (by norm_num)
   obtain ⟨-, -, -, -, -, -, -, -, h84, h85, h86⟩ :=
     vs_sizesV (rd := rd) (w := w) (args := vsArgs seed c sqE outE) hl S.hr1 S.hlm1
       (by rw [← h64, hσ, vs_w hl (by decide)]) (by rw [← h72, hσ, vs_w hl (by decide)])
@@ -100,10 +102,10 @@ theorem vs_loads {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
     · rw [show 84 + (t + 2) = 86 + t by omega, h86 t (by omega),
         vs_rdAt_of_load (vs_rdg hdims (k := 1 + t) (by simp [vsDimsW, S.hs_length]; omega))]
       simp only [vsDimsW, List.getD_cons_succ, show 1 + t = t + 1 by omega]
-  have h595 : σ (.n 578) = ptr (S.cK bs + S.xsK.length) := by
+  have h595 : σ (.n (val% «verify_sub» "cursor@4")) = ptr (S.cK bs + S.xsK.length) := by
     rw [pr (j := 11) (k := 5) (a := 578) (by norm_num) (by decide) rfl (by decide), O.o11, vs_ptr_add]
     simp only [capOf, List.cons_append, List.nil_append, List.getD_cons_succ, List.getD_cons_zero]
-  have h582 : σ (.n 565) = ptr (S.cT bs + (13 + (3 * S.nT + 1))) := by
+  have h582 : σ (.n (val% «verify_sub» "col_eval_words")) = ptr (S.cT bs + (13 + (3 * S.nT + 1))) := by
     rw [pr (j := 10) (k := 9) (a := 565) (by norm_num) (by decide) rfl (by decide), O.o10, vs_ptr_add]
     simp only [Tables.VtHonest.retsH, Fs.squeeze, capOf, List.cons_append, List.nil_append,
       List.getD_cons_succ, List.getD_cons_zero]

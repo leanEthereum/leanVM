@@ -11,6 +11,9 @@ public import LeanVM.Guest.B1.Main.MainGoalsHKid
 public import LeanVM.Guest.B1.Main.RawAtSP
 public import LeanVM.Guest.B1.Common.MutePops
 public import LeanVM.Guest.B1.Main.MainGoalsG
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop0»
+import LeanVM.Guest.Data.ValNames.«main_loop1»
 
 /-!
 # The duplicate claims' loops, their pops
@@ -50,8 +53,8 @@ theorem mfL2_body : (coreProgram.getD idx% «main_loop1» default).body = mfPre 
     core_eq% «main_loop1» body]
   rfl
 
-theorem mfL1_params : (coreProgram.getD idx% «main_loop0» default).params = [.n 0, .n 1, .n 2, .n 3] := rfl
-theorem mfL2_params : (coreProgram.getD idx% «main_loop1» default).params = [.n 0, .n 1, .n 2, .n 3] := rfl
+theorem mfL1_params : (coreProgram.getD idx% «main_loop0» default).params = [.n (val% «main_loop0» "xd"), .n (val% «main_loop0» "bound"), .n (val% «main_loop0» "lx_table"), .n (val% «main_loop0» "n_lx_g")] := rfl
+theorem mfL2_params : (coreProgram.getD idx% «main_loop1» default).params = [.n (val% «main_loop1» "xd"), .n (val% «main_loop1» "bound"), .n (val% «main_loop1» "lean_sphincs_table"), .n (val% «main_loop1» "n_lean_sphincs_g")] := rfl
 
 /-- **Iteration `j`'s entry**: the four words at `a · (b·g^j)^4`. -/
 def mfPop (rd : Reader) (a b : E) (j : ℕ) : Pop :=

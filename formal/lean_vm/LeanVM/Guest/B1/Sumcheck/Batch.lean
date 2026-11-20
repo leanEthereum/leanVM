@@ -10,6 +10,9 @@ public import LeanVM.Guest.B1.Sumcheck.Meaning
 public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
 public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«batch_sumcheck__L»
+import LeanVM.Guest.Data.ValNames.«batch_sumcheck__L23»
 
 /-!
 # `batch_sumcheck` (TRIAGE #32)
@@ -38,7 +41,7 @@ def bsRun13 (b : ℕ) : List V := (List.range 13).map fun i ↦ .n (b + i)
 /-- The fold of round `r` whose permutation writes from `o` (its challenge the cell `o`), its
 claim `c`, its words at `b`, `b + 3`. -/
 def bsFold (o c b : ℕ) (r : ℕ) : List Stmt :=
-  [.atom (.load (.n o) (.n 7) r),
+  [.atom (.load (.n o) (.n (val% «batch_sumcheck__L23» "point")) r),
     .atom (.add (.n (o + 13)) (.n c) (.n b)), .atom (.add (.n (o + 14)) (.n (o + 13)) (.n b)),
     .atom (.add (.n (o + 15)) (.n (o + 14)) (.n (b + 3))),
     .atom (.mul (.n (o + 16)) (.n (b + 3)) (.n o)),
@@ -48,23 +51,23 @@ def bsFold (o c b : ℕ) (r : ℕ) : List Stmt :=
 
 /-- Round `0`. -/
 def bsRound0 : List Stmt :=
-  fsNextT (.n 5) 0 14 ++ fsNextT (.n 5) 1 17 ++ padRunT 20 ++
-  [keccakA [.n 15, .n 16, .n 18, .n 19, .n 21, .n 22, .n 23, .n 24, .n 9, .n 10, .n 11, .n 12, .n 13]
+  fsNextT (.n (val% «batch_sumcheck__L23» "msgs")) 0 14 ++ fsNextT (.n (val% «batch_sumcheck__L23» "msgs")) 1 17 ++ padRunT 20 ++
+  [keccakA [.n (val% «batch_sumcheck__L23» "rate[0]@1"), .n (val% «batch_sumcheck__L23» "rate[1]@1"), .n (val% «batch_sumcheck__L23» "rate[2]@1"), .n (val% «batch_sumcheck__L23» "rate[3]@1"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]"), .n (val% «batch_sumcheck__L23» "sp[0]"), .n (val% «batch_sumcheck__L23» "sp[1]"), .n (val% «batch_sumcheck__L23» "sp[2]"), .n (val% «batch_sumcheck__L23» "sp[3]"), .n (val% «batch_sumcheck__L23» "sp[4]")]
       (bsRun13 25)] ++
   bsFold 25 6 14 0
 
 /-- Round `j + 1`. -/
 def bsRound (j : ℕ) : List Stmt :=
-  fsNextT (.n 5) (2 * j + 2) (45 + 26 * j) ++ fsNextT (.n 5) (2 * j + 3) (48 + 26 * j) ++
-  [keccakA [.n (46 + 26 * j), .n (47 + 26 * j), .n (49 + 26 * j), .n (50 + 26 * j), .n 21, .n 22,
-      .n 23, .n 24, .n (33 + 26 * j), .n (34 + 26 * j), .n (35 + 26 * j), .n (36 + 26 * j),
+  fsNextT (.n (val% «batch_sumcheck__L23» "msgs")) (2 * j + 2) (45 + 26 * j) ++ fsNextT (.n (val% «batch_sumcheck__L23» "msgs")) (2 * j + 3) (48 + 26 * j) ++
+  [keccakA [.n (46 + 26 * j), .n (47 + 26 * j), .n (49 + 26 * j), .n (50 + 26 * j), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"),
+      .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]"), .n (33 + 26 * j), .n (34 + 26 * j), .n (35 + 26 * j), .n (36 + 26 * j),
       .n (37 + 26 * j)] (bsRun13 (51 + 26 * j))] ++
   bsFold (51 + 26 * j) (44 + 26 * j) (45 + 26 * j) (j + 1)
 
 /-- The expansion of `batch_sumcheck` at `n ≥ 1` rounds. -/
 def bsBody (n : ℕ) : List Stmt :=
-  [.atom (.copy (.n 9) (.n 0)), .atom (.copy (.n 10) (.n 1)), .atom (.copy (.n 11) (.n 2)),
-    .atom (.copy (.n 12) (.n 3)), .atom (.copy (.n 13) (.n 4))] ++
+  [.atom (.copy (.n (val% «batch_sumcheck__L23» "sp[0]")) (.n (val% «batch_sumcheck__L23» "fs0"))), .atom (.copy (.n (val% «batch_sumcheck__L23» "sp[1]")) (.n (val% «batch_sumcheck__L23» "fs1"))), .atom (.copy (.n (val% «batch_sumcheck__L23» "sp[2]")) (.n (val% «batch_sumcheck__L23» "fs2"))),
+    .atom (.copy (.n (val% «batch_sumcheck__L23» "sp[3]")) (.n (val% «batch_sumcheck__L23» "fs3"))), .atom (.copy (.n (val% «batch_sumcheck__L23» "sp[4]")) (.n (val% «batch_sumcheck__L23» "fs4")))] ++
   bsRound0 ++ ((List.range (n - 1)).map bsRound).flatten ++
   [.atom (.copy (.n (19 + 26 * n)) (.n (25 + 26 * (n - 1) + 8))),
     .atom (.copy (.n (20 + 26 * n)) (.n (25 + 26 * (n - 1) + 9))),
@@ -164,7 +167,7 @@ theorem bsP_eq (g : ℕ → E × E) (claim : E) (cap : List E) (j : ℕ) :
 
 /-- What a round's fold asks. -/
 def BsFoldOk (rd : Reader) (σ : Val) (o c b r : ℕ) : Prop :=
-  LoadHolds rd (σ (.n 7)) r (σ (.n o)) ∧ σ (.n (o + 13)) = σ (.n c) + σ (.n b) ∧
+  LoadHolds rd (σ (.n (valf% «batch_sumcheck» "point"))) r (σ (.n o)) ∧ σ (.n (o + 13)) = σ (.n c) + σ (.n b) ∧
     σ (.n (o + 14)) = σ (.n (o + 13)) + σ (.n b) ∧
     σ (.n (o + 15)) = σ (.n (o + 14)) + σ (.n (b + 3)) ∧
     σ (.n (o + 16)) = σ (.n (b + 3)) * σ (.n o) ∧
@@ -186,12 +189,12 @@ theorem bsFold_value {o c b r : ℕ} (h : BsFoldOk rd σ o c b r) :
 /-- What round `j + 1` asks. -/
 theorem holds_bsRound (j : ℕ) (kret : List E → Prop) :
     Stmt.HoldsList C rd σ (bsRound j) True kret ↔
-      (LoadHolds rd (σ (.n 5)) (2 * j + 2) (σ (.n (45 + 26 * j))) ∧
+      (LoadHolds rd (σ (.n (val% «batch_sumcheck__L23» "msgs"))) (2 * j + 2) (σ (.n (45 + 26 * j))) ∧
         FsPackOk σ (.n (45 + 26 * j)) (45 + 26 * j + 1) dsObserve) ∧
-      (LoadHolds rd (σ (.n 5)) (2 * j + 3) (σ (.n (48 + 26 * j))) ∧
+      (LoadHolds rd (σ (.n (val% «batch_sumcheck__L23» "msgs"))) (2 * j + 3) (σ (.n (48 + 26 * j))) ∧
         FsPackOk σ (.n (48 + 26 * j)) (48 + 26 * j + 1) dsObserve) ∧
-      (Atom.keccak [.n (46 + 26 * j), .n (47 + 26 * j), .n (49 + 26 * j), .n (50 + 26 * j), .n 21,
-        .n 22, .n 23, .n 24, .n (33 + 26 * j), .n (34 + 26 * j), .n (35 + 26 * j),
+      (Atom.keccak [.n (46 + 26 * j), .n (47 + 26 * j), .n (49 + 26 * j), .n (50 + 26 * j), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"),
+        .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]"), .n (33 + 26 * j), .n (34 + 26 * j), .n (35 + 26 * j),
         .n (36 + 26 * j), .n (37 + 26 * j)] (bsRun13 (51 + 26 * j)) false false).Holds rd σ ∧
       BsFoldOk rd σ (51 + 26 * j) (44 + 26 * j) (45 + 26 * j) (j + 1) := by
   simp only [bsRound, keccakA, holdsList_append, holds_fsNextT, holds_bsFold,
@@ -224,7 +227,7 @@ theorem flatMap_pairs (g : ℕ → E × E) :
         one_ne_zero, ↓reduceIte]
 
 /-- The nine parameters. -/
-abbrev bsParams : List V := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8]
+abbrev bsParams : List V := [.n (valf% «batch_sumcheck» "fs0"), .n (valf% «batch_sumcheck» "fs1"), .n (valf% «batch_sumcheck» "fs2"), .n (valf% «batch_sumcheck» "fs3"), .n (valf% «batch_sumcheck» "fs4"), .n (valf% «batch_sumcheck» "msgs"), .n (valf% «batch_sumcheck» "running@1"), .n (valf% «batch_sumcheck» "point"), .n (valf% «batch_sumcheck» "tabs")]
 
 /-- Where round `j`'s words sit. -/
 def bsG : ℕ → ℕ
@@ -252,19 +255,19 @@ theorem bs_sound {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
     hf0, hrounds, c0, c1, c2, c3, c4, c5, hret⟩ := h
   subst hp
   have idx : ∀ a b, a = b → σ (.n a) = σ (.n b) := fun a b h ↦ by rw [h]
-  have h9 : σ (.n 9) = σ (.n 0) := h9
-  have h10 : σ (.n 10) = σ (.n 1) := h10
-  have h11 : σ (.n 11) = σ (.n 2) := h11
-  have h12 : σ (.n 12) = σ (.n 3) := h12
-  have h13 : σ (.n 13) = σ (.n 4) := h13
-  have z21 : σ (.n 21) = 0 := z21
-  have z22 : σ (.n 22) = 0 := z22
-  have z23 : σ (.n 23) = 0 := z23
-  have z24 : σ (.n 24) = 0 := z24
+  have h9 : σ (.n (val% «batch_sumcheck__L23» "sp[0]")) = σ (.n (val% «batch_sumcheck__L23» "fs0")) := h9
+  have h10 : σ (.n (val% «batch_sumcheck__L23» "sp[1]")) = σ (.n (val% «batch_sumcheck__L23» "fs1")) := h10
+  have h11 : σ (.n (val% «batch_sumcheck__L23» "sp[2]")) = σ (.n (val% «batch_sumcheck__L23» "fs2")) := h11
+  have h12 : σ (.n (val% «batch_sumcheck__L23» "sp[3]")) = σ (.n (val% «batch_sumcheck__L23» "fs3")) := h12
+  have h13 : σ (.n (val% «batch_sumcheck__L23» "sp[4]")) = σ (.n (val% «batch_sumcheck__L23» "fs4")) := h13
+  have z21 : σ (.n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]")) = 0 := z21
+  have z22 : σ (.n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]")) = 0 := z22
+  have z23 : σ (.n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]")) = 0 := z23
+  have z24 : σ (.n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")) = 0 := z24
   set g : ℕ → E × E := fun j ↦ (σ (.n (bsG j)), σ (.n (bsG j + 3))) with hg
-  set cap0 := [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] with hcap0
-  set St := bsSt g (σ (.n 6)) ⟨cap0, []⟩ with hSt
-  set P := bsP g (σ (.n 6)) ⟨cap0, []⟩ with hP
+  set cap0 := [σ (.n (val% «batch_sumcheck__L23» "fs0")), σ (.n (val% «batch_sumcheck__L23» "fs1")), σ (.n (val% «batch_sumcheck__L23» "fs2")), σ (.n (val% «batch_sumcheck__L23» "fs3")), σ (.n (val% «batch_sumcheck__L23» "fs4"))] with hcap0
+  set St := bsSt g (σ (.n (val% «batch_sumcheck__L23» "running@1"))) ⟨cap0, []⟩ with hSt
+  set P := bsP g (σ (.n (val% «batch_sumcheck__L23» "running@1"))) ⟨cap0, []⟩ with hP
   -- round j's facts
   have hR : ∀ j, j < n → (∀ c : Fin 13, σ (.n (25 + 26 * j + c.val)) = cellsOfState (P j) false c) →
       σ (.n (25 + 26 * j)) = challengeOf (P j) ∧
@@ -288,10 +291,10 @@ theorem bs_sound {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
       have hout := keccak_bsRun13 hK0
       rw [show 25 + 26 * 0 + c.val = 25 + c.val by ring, hout c]
       refine congrArg (fun S ↦ cellsOfState S false c) ?_
-      have e15 : σ (.n 15) = σ (.n 14) := p0.1
-      have e16 : σ (.n 16) = word 0 dsObserve := p0.2
-      have e18 : σ (.n 18) = σ (.n 17) := p1.1
-      have e19 : σ (.n 19) = word 0 dsObserve := p1.2
+      have e15 : σ (.n (val% «batch_sumcheck__L23» "rate[0]@1")) = σ (.n (val% «batch_sumcheck__L23» "x@1")) := p0.1
+      have e16 : σ (.n (val% «batch_sumcheck__L23» "rate[1]@1")) = word 0 dsObserve := p0.2
+      have e18 : σ (.n (val% «batch_sumcheck__L23» "rate[2]@1")) = σ (.n (val% «batch_sumcheck__L23» "x@2")) := p1.1
+      have e19 : σ (.n (val% «batch_sumcheck__L23» "rate[3]@1")) = word 0 dsObserve := p1.2
       rw [hP, bsP_eq, bs_pend]
       simp only [List.map_cons, List.map_nil, hg, bsG, e15, e16, e18, e19, z21, z22, z23, z24,
         h9, h10, h11, h12, h13]
@@ -539,8 +542,8 @@ theorem bs_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
   let σ : Val := fun v ↦ bsVals as g cl P n v.idx
   have ev : ∀ k, σ (.n k) = bsVals as g cl P n k := fun _ ↦ rfl
   have idx : ∀ a b, a = b → σ (.n a) = σ (.n b) := fun a b h ↦ by rw [h]
-  have e5 : σ (.n 5) = msgs := by simp [ev, bsVals, as]
-  have e7 : σ (.n 7) = point := by simp [ev, bsVals, as]
+  have e5 : σ (.n (val% «batch_sumcheck__L23» "msgs")) = msgs := by simp [ev, bsVals, as]
+  have e7 : σ (.n (val% «batch_sumcheck__L23» "point")) = point := by simp [ev, bsVals, as]
   have vw : ∀ j u, j < n → u < 6 → σ (.n (bsG j + u)) = (bsWordVals (g j)).getD u 0 :=
     fun j u hj hu ↦ bsVals_wordsAt as g cl P hj hu
   have vc : ∀ j, j < n → ∀ c : Fin 13, σ (.n (25 + 26 * j + c.val)) = cellsOfState (P j) false c :=
@@ -550,9 +553,9 @@ theorem bs_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
     fun j u hj hu ↦ bsVals_foldAt as g cl P hj hu
   -- what one round asks, on its words at `bsG j`
   have roundOk : ∀ j, j < n →
-      (LoadHolds rd (σ (.n 5)) (2 * j) (σ (.n (bsG j))) ∧
+      (LoadHolds rd (σ (.n (val% «batch_sumcheck__L23» "msgs"))) (2 * j) (σ (.n (bsG j))) ∧
         FsPackOk σ (.n (bsG j)) (bsG j + 1) dsObserve) ∧
-      (LoadHolds rd (σ (.n 5)) (2 * j + 1) (σ (.n (bsG j + 3))) ∧
+      (LoadHolds rd (σ (.n (val% «batch_sumcheck__L23» "msgs"))) (2 * j + 1) (σ (.n (bsG j + 3))) ∧
         FsPackOk σ (.n (bsG j + 3)) (bsG j + 3 + 1) dsObserve) ∧
       BsFoldOk rd σ (25 + 26 * j) (bsC j) (bsG j) j := by
     intro j hj

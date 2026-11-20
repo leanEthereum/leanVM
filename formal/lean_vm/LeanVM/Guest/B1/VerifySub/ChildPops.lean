@@ -11,6 +11,10 @@ public import LeanVM.Guest.B1.VerifySub.C.Own
 public import LeanVM.Guest.B1.VerifySub.GroupOrderCol
 -- Private: `guest_const%` inserts literals.
 import LeanVM.Guest.Data.Source
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«certify_placement»
+import LeanVM.Guest.Data.ValNames.«verify_sub»
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # A child's pops against its hints
@@ -97,8 +101,8 @@ theorem heap_words {p : V} {b off len : ℕ} {ws : List E} (hp : σ p = ofK (add
   rfl
 
 /-- **`verify_sub`'s own entries on the honest buffers**: the stream padded, the heights. -/
-theorem vsPops_honest {b1 b3 lm : ℕ} {stream : List E} {hs : List ℕ} (h1 : σ (.n 25) = ofK (addressOfIndex b1))
-    (h3 : σ (.n 71) = ofK (addressOfIndex b3)) (hm1 : ReadsAt rd (ofK (addressOfIndex b1)) (vsStreamW stream))
+theorem vsPops_honest {b1 b3 lm : ℕ} {stream : List E} {hs : List ℕ} (h1 : σ (.n (val% «verify_sub» "stream")) = ofK (addressOfIndex b1))
+    (h3 : σ (.n (val% «verify_sub» "dims_g")) = ofK (addressOfIndex b3)) (hm1 : ReadsAt rd (ofK (addressOfIndex b1)) (vsStreamW stream))
     (hm3 : ReadsAt rd (ofK (addressOfIndex b3)) (vsDimsW lm hs)) (hst : stream.length ≤ Coverage.childStreamCap)
     (hl : hs.length = 6) :
     vsPops rd σ = [("stream", vsStreamW stream), ("table_logs", hs.map Hints.count)] := by
@@ -111,13 +115,13 @@ theorem vsPops_honest {b1 b3 lm : ℕ} {stream : List E} {hs : List ℕ} (h1 : �
   simp [vsDimsW, hl]
 
 /-- **`certify_placement`'s entry on its group order's buffer.** -/
-theorem cpPop_honest {b : ℕ} {ws : List E} (h : σ (.n 136) = ofK (addressOfIndex b))
+theorem cpPop_honest {b : ℕ} {ws : List E} (h : σ (.n (val% «certify_placement» "group_order")) = ofK (addressOfIndex b))
     (hm : ReadsAt rd (ofK (addressOfIndex b)) ws) (hl : ws.length = 9) : cpPop rd σ = ("col_group_order", ws) := by
   rw [cpPop, heap_words h hm (by omega), List.drop_zero, List.take_of_length_le (by omega)]
 
 /-- **`verify_tables`' entries on its block group order's buffer and its round count `g^n`.** -/
-theorem vtPops_honest {b n : ℕ} {ws : List E} (h : σ (.n 37) = ofK (addressOfIndex b))
-    (hm : ReadsAt rd (ofK (addressOfIndex b)) ws) (hl : ws.length = 24) (hz : σ (.n 2544) = gen ^ n)
+theorem vtPops_honest {b n : ℕ} {ws : List E} (h : σ (.n (val% «verify_tables» "group_order")) = ofK (addressOfIndex b))
+    (hm : ReadsAt rd (ofK (addressOfIndex b)) ws) (hl : ws.length = 24) (hz : σ (.n (val% «verify_tables» "g_zc_n")) = gen ^ n)
     (hn : n < 2 ^ 64) : vtPops rd σ = [("block_group_order", ws), ("zc_tau_max", [Hints.count n])] := by
   rw [vtPops, heap_words h hm (by omega), List.drop_zero, List.take_of_length_le (by omega), hz,
     count_eq_gen hn]
@@ -130,12 +134,12 @@ order and the round count, and its `open_stacked` callee the Merkle entries. -/
 theorem vs_child_pops {bytecode : List K} {seed : Digest} {c : Child} {layout : Layout} {r : ℕ}
     (hann : announcedLayoutAndRate bytecode c.proof.stream = some (layout, r)) {bufs : List ℕ} {kids : List Memory.Tree}
     {args rets : List E} (hv : (Memory.Tree.node "verify_sub" σ bufs kids).Valid coreProgram rd args rets)
-    {b1 b3 lm : ℕ} (h1 : σ (.n 25) = ofK (addressOfIndex b1)) (h3 : σ (.n 71) = ofK (addressOfIndex b3))
+    {b1 b3 lm : ℕ} (h1 : σ (.n (val% «verify_sub» "stream")) = ofK (addressOfIndex b1)) (h3 : σ (.n (val% «verify_sub» "dims_g")) = ofK (addressOfIndex b3))
     (hm1 : ReadsAt rd (ofK (addressOfIndex b1)) (vsStreamW c.proof.stream))
     (hm3 : ReadsAt rd (ofK (addressOfIndex b3)) (vsDimsW lm layout.tableLogHeights))
     (hst : c.proof.stream.length ≤ Coverage.childStreamCap) (hl : layout.tableLogHeights.length = 6) :
-    ∃ (tcp tvt tos : Memory.Tree) (i : ℕ), ∃ hi : i < vsOpen.length, σ (.n 278) = ofK (addressOfIndex i) ∧
-      tcp.name = "certify_placement" ∧ tcp.Valid coreProgram rd [σ (.n 83), σ (.n 4)] [σ (.n 274), σ (.n 275)] ∧
+    ∃ (tcp tvt tos : Memory.Tree) (i : ℕ), ∃ hi : i < vsOpen.length, σ (.n (val% «verify_sub» "size_sel")) = ofK (addressOfIndex i) ∧
+      tcp.name = "certify_placement" ∧ tcp.Valid coreProgram rd [σ (.n (val% «verify_sub» "kappa_base")), σ (.n (val% «verify_sub» "g_squares"))] [σ (.n (val% «verify_sub» "g_total")), σ (.n (val% «verify_sub» "col_offsets"))] ∧
       tvt.name = "verify_tables" ∧
       tvt.Valid coreProgram rd
         (([545, 546, 547, 548, 549, 550, 0, 1, 254, 253, 71, 26, 4, 334, 530, 6, 552, 551, 555, 553, 25].map V.n).map σ)

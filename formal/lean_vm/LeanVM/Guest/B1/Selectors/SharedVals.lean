@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Selectors.SharedTables
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«shared_selector_tables»
 
 /-!
 # `shared_selector_tables`' loop end
@@ -29,106 +31,106 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- The body's atoms before its loop. -/
 def ssA : List Stmt := [
-    .atom (.hint (.bitsExp (.n 5) 6 (.stack [.n 6, .n 7, .n 8, .n 9, .n 10, .n 11]))),
-    .atom (.mul (.n 6) (.n 6) (.n 6)),
-    .atom (.mul (.n 7) (.n 7) (.n 7)),
-    .atom (.mul (.n 8) (.n 8) (.n 8)),
-    .atom (.mul (.n 9) (.n 9) (.n 9)),
-    .atom (.mul (.n 10) (.n 10) (.n 10)),
-    .atom (.mul (.n 11) (.n 11) (.n 11)),
-    .atom (.const (.n 12) (word 1 0)),
-    .atom (.const (.n 13) (word (imFactor 0) 0)),
-    .atom (.mul (.n 14) (.n 6) (.n 13)),
-    .atom (.add (.n 15) (.n 12) (.n 14)),
-    .atom (.const (.n 16) (word 1 0)),
-    .atom (.const (.n 17) (word (imFactor 1) 0)),
-    .atom (.mul (.n 18) (.n 7) (.n 17)),
-    .atom (.add (.n 19) (.n 16) (.n 18)),
-    .atom (.mul (.n 20) (.n 15) (.n 19)),
-    .atom (.const (.n 21) (word 1 0)),
-    .atom (.const (.n 22) (word (imFactor 0) 0)),
-    .atom (.mul (.n 23) (.n 8) (.n 22)),
-    .atom (.add (.n 24) (.n 21) (.n 23)),
-    .atom (.const (.n 25) (word 1 0)),
-    .atom (.const (.n 26) (word (imFactor 1) 0)),
-    .atom (.mul (.n 27) (.n 9) (.n 26)),
-    .atom (.add (.n 28) (.n 25) (.n 27)),
-    .atom (.mul (.n 29) (.n 24) (.n 28)),
-    .atom (.const (.n 30) (word 1 0)),
-    .atom (.const (.n 31) (word (imFactor 2) 0)),
-    .atom (.mul (.n 32) (.n 10) (.n 31)),
-    .atom (.add (.n 33) (.n 30) (.n 32)),
-    .atom (.mul (.n 34) (.n 29) (.n 33)),
-    .atom (.const (.n 35) (word 1 0)),
-    .atom (.const (.n 36) (word (imFactor 3) 0)),
-    .atom (.mul (.n 37) (.n 11) (.n 36)),
-    .atom (.add (.n 38) (.n 35) (.n 37)),
-    .atom (.mul (.n 39) (.n 34) (.n 38)),
-    .atom (.mul (.n 40) (.n 39) (.n 39)),
-    .atom (.mul (.n 41) (.n 40) (.n 40)),
-    .atom (.mul (.n 42) (.n 41) (.n 20)),
-    .atom (.assertEq (.n 42) (.n 5)),
-    .atom (.const (.n 43) (word 1 0)),
-    .atom (.add (.n 44) (.n 43) (.n 39)),
-    .atom (.const (.n 45) (word 1 0))]
+    .atom (.hint (.bitsExp (.n (val% «shared_selector_tables» "len_g")) 6 (.stack [.n (val% «shared_selector_tables» "nb[0]"), .n (val% «shared_selector_tables» "nb[1]"), .n (val% «shared_selector_tables» "nb[2]"), .n (val% «shared_selector_tables» "nb[3]"), .n (val% «shared_selector_tables» "nb[4]"), .n (val% «shared_selector_tables» "nb[5]")]))),
+    .atom (.mul (.n (val% «shared_selector_tables» "nb[0]")) (.n (val% «shared_selector_tables» "nb[0]")) (.n (val% «shared_selector_tables» "nb[0]"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "nb[1]")) (.n (val% «shared_selector_tables» "nb[1]")) (.n (val% «shared_selector_tables» "nb[1]"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "nb[2]")) (.n (val% «shared_selector_tables» "nb[2]")) (.n (val% «shared_selector_tables» "nb[2]"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "nb[3]")) (.n (val% «shared_selector_tables» "nb[3]")) (.n (val% «shared_selector_tables» "nb[3]"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "nb[4]")) (.n (val% «shared_selector_tables» "nb[4]")) (.n (val% «shared_selector_tables» "nb[4]"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "nb[5]")) (.n (val% «shared_selector_tables» "nb[5]")) (.n (val% «shared_selector_tables» "nb[5]"))),
+    .atom (.const (.n (val% «shared_selector_tables» "r_g~0")) (word 1 0)),
+    .atom (.const (.n (val% «shared_selector_tables» "r_g~1")) (word (imFactor 0) 0)),
+    .atom (.mul (.n (val% «shared_selector_tables» "r_g~2")) (.n (val% «shared_selector_tables» "nb[0]")) (.n (val% «shared_selector_tables» "r_g~1"))),
+    .atom (.add (.n (val% «shared_selector_tables» "r_g~3")) (.n (val% «shared_selector_tables» "r_g~0")) (.n (val% «shared_selector_tables» "r_g~2"))),
+    .atom (.const (.n (val% «shared_selector_tables» "r_g~4")) (word 1 0)),
+    .atom (.const (.n (val% «shared_selector_tables» "r_g~5")) (word (imFactor 1) 0)),
+    .atom (.mul (.n (val% «shared_selector_tables» "r_g~6")) (.n (val% «shared_selector_tables» "nb[1]")) (.n (val% «shared_selector_tables» "r_g~5"))),
+    .atom (.add (.n (val% «shared_selector_tables» "r_g~7")) (.n (val% «shared_selector_tables» "r_g~4")) (.n (val% «shared_selector_tables» "r_g~6"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "r_g")) (.n (val% «shared_selector_tables» "r_g~3")) (.n (val% «shared_selector_tables» "r_g~7"))),
+    .atom (.const (.n (val% «shared_selector_tables» "q_g@1~0")) (word 1 0)),
+    .atom (.const (.n (val% «shared_selector_tables» "q_g@1~1")) (word (imFactor 0) 0)),
+    .atom (.mul (.n (val% «shared_selector_tables» "q_g@1~2")) (.n (val% «shared_selector_tables» "nb[2]")) (.n (val% «shared_selector_tables» "q_g@1~1"))),
+    .atom (.add (.n (val% «shared_selector_tables» "q_g@1")) (.n (val% «shared_selector_tables» "q_g@1~0")) (.n (val% «shared_selector_tables» "q_g@1~2"))),
+    .atom (.const (.n (val% «shared_selector_tables» "q_g@2~0")) (word 1 0)),
+    .atom (.const (.n (val% «shared_selector_tables» "q_g@2~1")) (word (imFactor 1) 0)),
+    .atom (.mul (.n (val% «shared_selector_tables» "q_g@2~2")) (.n (val% «shared_selector_tables» "nb[3]")) (.n (val% «shared_selector_tables» "q_g@2~1"))),
+    .atom (.add (.n (val% «shared_selector_tables» "q_g@2~3")) (.n (val% «shared_selector_tables» "q_g@2~0")) (.n (val% «shared_selector_tables» "q_g@2~2"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "q_g@2")) (.n (val% «shared_selector_tables» "q_g@1")) (.n (val% «shared_selector_tables» "q_g@2~3"))),
+    .atom (.const (.n (val% «shared_selector_tables» "q_g@3~0")) (word 1 0)),
+    .atom (.const (.n (val% «shared_selector_tables» "q_g@3~1")) (word (imFactor 2) 0)),
+    .atom (.mul (.n (val% «shared_selector_tables» "q_g@3~2")) (.n (val% «shared_selector_tables» "nb[4]")) (.n (val% «shared_selector_tables» "q_g@3~1"))),
+    .atom (.add (.n (val% «shared_selector_tables» "q_g@3~3")) (.n (val% «shared_selector_tables» "q_g@3~0")) (.n (val% «shared_selector_tables» "q_g@3~2"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "q_g@3")) (.n (val% «shared_selector_tables» "q_g@2")) (.n (val% «shared_selector_tables» "q_g@3~3"))),
+    .atom (.const (.n (val% «shared_selector_tables» "q_g@4~0")) (word 1 0)),
+    .atom (.const (.n (val% «shared_selector_tables» "q_g@4~1")) (word (imFactor 3) 0)),
+    .atom (.mul (.n (val% «shared_selector_tables» "q_g@4~2")) (.n (val% «shared_selector_tables» "nb[5]")) (.n (val% «shared_selector_tables» "q_g@4~1"))),
+    .atom (.add (.n (val% «shared_selector_tables» "q_g@4~3")) (.n (val% «shared_selector_tables» "q_g@4~0")) (.n (val% «shared_selector_tables» "q_g@4~2"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "q_g@4")) (.n (val% «shared_selector_tables» "q_g@3")) (.n (val% «shared_selector_tables» "q_g@4~3"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "q4~0")) (.n (val% «shared_selector_tables» "q_g@4")) (.n (val% «shared_selector_tables» "q_g@4"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "q4")) (.n (val% «shared_selector_tables» "q4~0")) (.n (val% «shared_selector_tables» "q4~0"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "s7#0")) (.n (val% «shared_selector_tables» "q4")) (.n (val% «shared_selector_tables» "r_g"))),
+    .atom (.assertEq (.n (val% «shared_selector_tables» "s7#0")) (.n (val% «shared_selector_tables» "len_g"))),
+    .atom (.const (.n (val% «shared_selector_tables» "s8#0")) (word 1 0)),
+    .atom (.add (.n (val% «shared_selector_tables» "s8#1")) (.n (val% «shared_selector_tables» "s8#0")) (.n (val% «shared_selector_tables» "q_g@4"))),
+    .atom (.const (.n (val% «shared_selector_tables» "s8#2")) (word 1 0))]
 
 /-- The body's straight statements, before its dispatch. -/
 def ssS : List Stmt := [
-    .atom (.hint (.bitsExp (.n 5) 6 (.stack [.n 6, .n 7, .n 8, .n 9, .n 10, .n 11]))),
-    .atom (.mul (.n 6) (.n 6) (.n 6)),
-    .atom (.mul (.n 7) (.n 7) (.n 7)),
-    .atom (.mul (.n 8) (.n 8) (.n 8)),
-    .atom (.mul (.n 9) (.n 9) (.n 9)),
-    .atom (.mul (.n 10) (.n 10) (.n 10)),
-    .atom (.mul (.n 11) (.n 11) (.n 11)),
-    .atom (.const (.n 12) (word 1 0)),
-    .atom (.const (.n 13) (word (imFactor 0) 0)),
-    .atom (.mul (.n 14) (.n 6) (.n 13)),
-    .atom (.add (.n 15) (.n 12) (.n 14)),
-    .atom (.const (.n 16) (word 1 0)),
-    .atom (.const (.n 17) (word (imFactor 1) 0)),
-    .atom (.mul (.n 18) (.n 7) (.n 17)),
-    .atom (.add (.n 19) (.n 16) (.n 18)),
-    .atom (.mul (.n 20) (.n 15) (.n 19)),
-    .atom (.const (.n 21) (word 1 0)),
-    .atom (.const (.n 22) (word (imFactor 0) 0)),
-    .atom (.mul (.n 23) (.n 8) (.n 22)),
-    .atom (.add (.n 24) (.n 21) (.n 23)),
-    .atom (.const (.n 25) (word 1 0)),
-    .atom (.const (.n 26) (word (imFactor 1) 0)),
-    .atom (.mul (.n 27) (.n 9) (.n 26)),
-    .atom (.add (.n 28) (.n 25) (.n 27)),
-    .atom (.mul (.n 29) (.n 24) (.n 28)),
-    .atom (.const (.n 30) (word 1 0)),
-    .atom (.const (.n 31) (word (imFactor 2) 0)),
-    .atom (.mul (.n 32) (.n 10) (.n 31)),
-    .atom (.add (.n 33) (.n 30) (.n 32)),
-    .atom (.mul (.n 34) (.n 29) (.n 33)),
-    .atom (.const (.n 35) (word 1 0)),
-    .atom (.const (.n 36) (word (imFactor 3) 0)),
-    .atom (.mul (.n 37) (.n 11) (.n 36)),
-    .atom (.add (.n 38) (.n 35) (.n 37)),
-    .atom (.mul (.n 39) (.n 34) (.n 38)),
-    .atom (.mul (.n 40) (.n 39) (.n 39)),
-    .atom (.mul (.n 41) (.n 40) (.n 40)),
-    .atom (.mul (.n 42) (.n 41) (.n 20)),
-    .atom (.assertEq (.n 42) (.n 5)),
-    .atom (.const (.n 43) (word 1 0)),
-    .atom (.add (.n 44) (.n 43) (.n 39)),
-    .atom (.const (.n 45) (word 1 0)),
-    .callIf (.n 44) name% «shared_selector_tables_loop0» [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1,
-        .n 4],
-    .atom (.mul (.n 46) (.n 41) (.n 41)),
-    .atom (.mul (.n 47) (.n 46) (.n 46)),
-    .atom (.mul (.n 48) (.n 0) (.n 47)),
-    .atom (.mul (.n 49) (.n 48) (.n 47)),
-    .atom (.mul (.n 50) (.n 1) (.n 47)),
-    .atom (.mul (.n 51) (.n 2) (.n 41)),
-    .atom (.mul (.n 52) (.n 3) (.n 41)),
-    .atom (.mul (.n 53) (.n 4) (.n 41))]
+    .atom (.hint (.bitsExp (.n (val% «shared_selector_tables» "len_g")) 6 (.stack [.n (val% «shared_selector_tables» "nb[0]"), .n (val% «shared_selector_tables» "nb[1]"), .n (val% «shared_selector_tables» "nb[2]"), .n (val% «shared_selector_tables» "nb[3]"), .n (val% «shared_selector_tables» "nb[4]"), .n (val% «shared_selector_tables» "nb[5]")]))),
+    .atom (.mul (.n (val% «shared_selector_tables» "nb[0]")) (.n (val% «shared_selector_tables» "nb[0]")) (.n (val% «shared_selector_tables» "nb[0]"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "nb[1]")) (.n (val% «shared_selector_tables» "nb[1]")) (.n (val% «shared_selector_tables» "nb[1]"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "nb[2]")) (.n (val% «shared_selector_tables» "nb[2]")) (.n (val% «shared_selector_tables» "nb[2]"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "nb[3]")) (.n (val% «shared_selector_tables» "nb[3]")) (.n (val% «shared_selector_tables» "nb[3]"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "nb[4]")) (.n (val% «shared_selector_tables» "nb[4]")) (.n (val% «shared_selector_tables» "nb[4]"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "nb[5]")) (.n (val% «shared_selector_tables» "nb[5]")) (.n (val% «shared_selector_tables» "nb[5]"))),
+    .atom (.const (.n (val% «shared_selector_tables» "r_g~0")) (word 1 0)),
+    .atom (.const (.n (val% «shared_selector_tables» "r_g~1")) (word (imFactor 0) 0)),
+    .atom (.mul (.n (val% «shared_selector_tables» "r_g~2")) (.n (val% «shared_selector_tables» "nb[0]")) (.n (val% «shared_selector_tables» "r_g~1"))),
+    .atom (.add (.n (val% «shared_selector_tables» "r_g~3")) (.n (val% «shared_selector_tables» "r_g~0")) (.n (val% «shared_selector_tables» "r_g~2"))),
+    .atom (.const (.n (val% «shared_selector_tables» "r_g~4")) (word 1 0)),
+    .atom (.const (.n (val% «shared_selector_tables» "r_g~5")) (word (imFactor 1) 0)),
+    .atom (.mul (.n (val% «shared_selector_tables» "r_g~6")) (.n (val% «shared_selector_tables» "nb[1]")) (.n (val% «shared_selector_tables» "r_g~5"))),
+    .atom (.add (.n (val% «shared_selector_tables» "r_g~7")) (.n (val% «shared_selector_tables» "r_g~4")) (.n (val% «shared_selector_tables» "r_g~6"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "r_g")) (.n (val% «shared_selector_tables» "r_g~3")) (.n (val% «shared_selector_tables» "r_g~7"))),
+    .atom (.const (.n (val% «shared_selector_tables» "q_g@1~0")) (word 1 0)),
+    .atom (.const (.n (val% «shared_selector_tables» "q_g@1~1")) (word (imFactor 0) 0)),
+    .atom (.mul (.n (val% «shared_selector_tables» "q_g@1~2")) (.n (val% «shared_selector_tables» "nb[2]")) (.n (val% «shared_selector_tables» "q_g@1~1"))),
+    .atom (.add (.n (val% «shared_selector_tables» "q_g@1")) (.n (val% «shared_selector_tables» "q_g@1~0")) (.n (val% «shared_selector_tables» "q_g@1~2"))),
+    .atom (.const (.n (val% «shared_selector_tables» "q_g@2~0")) (word 1 0)),
+    .atom (.const (.n (val% «shared_selector_tables» "q_g@2~1")) (word (imFactor 1) 0)),
+    .atom (.mul (.n (val% «shared_selector_tables» "q_g@2~2")) (.n (val% «shared_selector_tables» "nb[3]")) (.n (val% «shared_selector_tables» "q_g@2~1"))),
+    .atom (.add (.n (val% «shared_selector_tables» "q_g@2~3")) (.n (val% «shared_selector_tables» "q_g@2~0")) (.n (val% «shared_selector_tables» "q_g@2~2"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "q_g@2")) (.n (val% «shared_selector_tables» "q_g@1")) (.n (val% «shared_selector_tables» "q_g@2~3"))),
+    .atom (.const (.n (val% «shared_selector_tables» "q_g@3~0")) (word 1 0)),
+    .atom (.const (.n (val% «shared_selector_tables» "q_g@3~1")) (word (imFactor 2) 0)),
+    .atom (.mul (.n (val% «shared_selector_tables» "q_g@3~2")) (.n (val% «shared_selector_tables» "nb[4]")) (.n (val% «shared_selector_tables» "q_g@3~1"))),
+    .atom (.add (.n (val% «shared_selector_tables» "q_g@3~3")) (.n (val% «shared_selector_tables» "q_g@3~0")) (.n (val% «shared_selector_tables» "q_g@3~2"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "q_g@3")) (.n (val% «shared_selector_tables» "q_g@2")) (.n (val% «shared_selector_tables» "q_g@3~3"))),
+    .atom (.const (.n (val% «shared_selector_tables» "q_g@4~0")) (word 1 0)),
+    .atom (.const (.n (val% «shared_selector_tables» "q_g@4~1")) (word (imFactor 3) 0)),
+    .atom (.mul (.n (val% «shared_selector_tables» "q_g@4~2")) (.n (val% «shared_selector_tables» "nb[5]")) (.n (val% «shared_selector_tables» "q_g@4~1"))),
+    .atom (.add (.n (val% «shared_selector_tables» "q_g@4~3")) (.n (val% «shared_selector_tables» "q_g@4~0")) (.n (val% «shared_selector_tables» "q_g@4~2"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "q_g@4")) (.n (val% «shared_selector_tables» "q_g@3")) (.n (val% «shared_selector_tables» "q_g@4~3"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "q4~0")) (.n (val% «shared_selector_tables» "q_g@4")) (.n (val% «shared_selector_tables» "q_g@4"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "q4")) (.n (val% «shared_selector_tables» "q4~0")) (.n (val% «shared_selector_tables» "q4~0"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "s7#0")) (.n (val% «shared_selector_tables» "q4")) (.n (val% «shared_selector_tables» "r_g"))),
+    .atom (.assertEq (.n (val% «shared_selector_tables» "s7#0")) (.n (val% «shared_selector_tables» "len_g"))),
+    .atom (.const (.n (val% «shared_selector_tables» "s8#0")) (word 1 0)),
+    .atom (.add (.n (val% «shared_selector_tables» "s8#1")) (.n (val% «shared_selector_tables» "s8#0")) (.n (val% «shared_selector_tables» "q_g@4"))),
+    .atom (.const (.n (val% «shared_selector_tables» "s8#2")) (word 1 0)),
+    .callIf (.n (val% «shared_selector_tables» "s8#1")) name% «shared_selector_tables_loop0» [.n (val% «shared_selector_tables» "s8#2"), .n (val% «shared_selector_tables» "q_g@4"), .n (val% «shared_selector_tables» "eq_tab"), .n (val% «shared_selector_tables» "zeta_hi"), .n (val% «shared_selector_tables» "zeta1_hi"), .n (val% «shared_selector_tables» "g_tab"),
+        .n (val% «shared_selector_tables» "gsq_hi")],
+    .atom (.mul (.n (val% «shared_selector_tables» "q16~0")) (.n (val% «shared_selector_tables» "q4")) (.n (val% «shared_selector_tables» "q4"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "q16")) (.n (val% «shared_selector_tables» "q16~0")) (.n (val% «shared_selector_tables» "q16~0"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "done~1")) (.n (val% «shared_selector_tables» "eq_tab")) (.n (val% «shared_selector_tables» "q16"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "done~2")) (.n (val% «shared_selector_tables» "done~1")) (.n (val% «shared_selector_tables» "q16"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "done~3")) (.n (val% «shared_selector_tables» "g_tab")) (.n (val% «shared_selector_tables» "q16"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "done~4")) (.n (val% «shared_selector_tables» "zeta_hi")) (.n (val% «shared_selector_tables» "q4"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "done~5")) (.n (val% «shared_selector_tables» "zeta1_hi")) (.n (val% «shared_selector_tables» "q4"))),
+    .atom (.mul (.n (val% «shared_selector_tables» "done~6")) (.n (val% «shared_selector_tables» "gsq_hi")) (.n (val% «shared_selector_tables» "q4")))]
 
 /-- The body's dispatch. -/
-def ssDispV : Stmt := .dispatch (.n 20) ["sel_partial_nibble__L0", "sel_partial_nibble__L1", "sel_partial_nibble__L2", "sel_partial_nibble__L3"] [.n 49, .n 50, .n 51, .n 52, .n 53] [.n 54]
+def ssDispV : Stmt := .dispatch (.n (val% «shared_selector_tables» "r_g")) ["sel_partial_nibble__L0", "sel_partial_nibble__L1", "sel_partial_nibble__L2", "sel_partial_nibble__L3"] [.n (val% «shared_selector_tables» "done~2"), .n (val% «shared_selector_tables» "done~3"), .n (val% «shared_selector_tables» "done~4"), .n (val% «shared_selector_tables» "done~5"), .n (val% «shared_selector_tables» "done~6")] [.n (val% «shared_selector_tables» "done")]
 
 theorem ssPre_eq_disp : ssPre = ssS ++ [ssDispV] := rfl
 
@@ -137,9 +139,9 @@ theorem ssA_eq_take : ssS.take 42 = ssA := rfl
 /-- **The loop end and the selector are the length's.** -/
 theorem ss_body_vals {C : CallRel} {rd : Reader} {σ : Val} {next : Prop}
     {kret : List E → Prop} (h : Stmt.HoldsList C rd σ ssA next kret) {n : ℕ} (hn : n < 64)
-    (h5 : σ (.n 5) = gen ^ n) :
-    σ (.n 39) = gen ^ (n / 4) ∧ σ (.n 20) = gen ^ (n % 4) ∧
-      σ (.n 44) = 1 + gen ^ (n / 4) ∧ σ (.n 45) = 1 := by
+    (h5 : σ (.n (val% «shared_selector_tables» "len_g")) = gen ^ n) :
+    σ (.n (val% «shared_selector_tables» "q_g@4")) = gen ^ (n / 4) ∧ σ (.n (val% «shared_selector_tables» "r_g")) = gen ^ (n % 4) ∧
+      σ (.n (val% «shared_selector_tables» "s8#1")) = 1 + gen ^ (n / 4) ∧ σ (.n (val% «shared_selector_tables» "s8#2")) = 1 := by
   simp only [ssA, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and] at h
   obtain ⟨p6, p7, p8, p9, p10, p11, c12, c13, m14, a15, c16, c17, m18, a19, m20, c21, c22, m23,
     a24, c25, c26, m27, a28, m29, c30, c31, m32, a33, m34, c35, c36, m37, a38, m39, m40, m41, m42,
@@ -158,18 +160,18 @@ theorem ss_body_vals {C : CallRel} {rd : Reader} {σ : Val} {next : Prop}
   let q := bitsVal (fun k ↦ f (k + 2)) 4
   have hr4 : r < 4 := bitsVal_lt f 2
   have hq16 : q < 16 := bitsVal_lt _ 4
-  have hrg : σ (.n 20) = gen ^ r := by
+  have hrg : σ (.n (val% «shared_selector_tables» "r_g")) = gen ^ r := by
     have := ss_prod (b := fun j ↦ σ (.n (6 + j))) (n := 2) (by norm_num)
       (fun j hj => pin j (by omega))
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul, Nat.reduceAdd] at this
     rw [m20, a15, a19, c12, c16, m14, m18, c13, c17, tb_word_one, this]
-  have hqg : σ (.n 39) = gen ^ q := by
+  have hqg : σ (.n (val% «shared_selector_tables» "q_g@4")) = gen ^ q := by
     have := ss_prod (b := fun j ↦ σ (.n (6 + (j + 2)))) (n := 4) le_rfl
       (fun j hj => pin (j + 2) (by omega))
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul, Nat.reduceAdd] at this
     rw [m39, m34, m29, a24, a28, a33, a38, c21, c25, c30, c35, m23, m27, m32, m37, c22, c26, c31,
       c36, tb_word_one, this]
-  have hq4 : σ (.n 41) = gen ^ (4 * q) := by rw [m41, m40, hqg]; ring
+  have hq4 : σ (.n (val% «shared_selector_tables» "q4")) = gen ^ (4 * q) := by rw [m41, m40, hqg]; ring
   have hn' : 4 * q + r = n := by
     have e : gen ^ (4 * q + r) = gen ^ n := by
       rw [← h5, ← e_add_eq_zero_iff.mp e42, m42, hq4, hrg, ← pow_add]

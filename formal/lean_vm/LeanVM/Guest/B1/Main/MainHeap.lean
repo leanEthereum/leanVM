@@ -11,6 +11,9 @@ public import LeanVM.Guest.B1.Main.MainPopsKids
 public import LeanVM.Guest.B1.Main.L5Pops
 public import LeanVM.Guest.B1.Main.MainHonestBudget
 public import LeanVM.Guest.B1.Main.MainNoAdv
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
+import LeanVM.Guest.Data.ValNames.«main_loop4»
 
 /-!
 # The advised sizes of `main`'s tree
@@ -131,14 +134,14 @@ theorem l5From_heap {ex es : ℕ → ℕ} {Pxs Pss Pvs : ℕ → Tree → Prop} 
   have hrest : ((List.range 16).map V.n).tail.map σ = rest := by
     have := congrArg List.tail hpar
     rwa [← List.map_tail] at this
-  have h0 : σ (.n 0) = gen ^ c := pr 0 (by omega)
-  have h1 : σ (.n 1) = gen ^ nk := (pr 1 (by omega)).trans hnk
+  have h0 : σ (.n (val% «main_loop4» "xc")) = gen ^ c := pr 0 (by omega)
+  have h1 : σ (.n (val% «main_loop4» "bound")) = gen ^ nk := (pr 1 (by omega)).trans hnk
   rw [l5_body, holdsList_append] at hb
   obtain ⟨hflat, -, -, hg55, hg52, ha53⟩ := l5_chk
   obtain ⟨hall, -⟩ := holdsList_flat _ hflat _ _ hb
   have hat := atoms_of_flat hall
-  have h55 : σ (.n 55) = gen ^ (c + 1) := by rw [genMul_sound hg55 hat, h0, pow_succ]
-  have h53 : σ (.n 53) = gen ^ (c + 1) + gen ^ nk := by
+  have h55 : σ (.n (val% «main_loop4» "s21#4")) = gen ^ (c + 1) := by rw [genMul_sound hg55 hat, h0, pow_succ]
+  have h53 : σ (.n (val% «main_loop4» "s21#2")) = gen ^ (c + 1) + gen ^ nk := by
     rw [add_sound ha53 hat, genMul_sound hg52 hat, h0, h1, pow_succ]
   obtain ⟨kx, ks', kst, kv, kt, rfl⟩ : ∃ kx ks' kst kv kt, ks = [kx, ks', kst, kv, kt] := by
     have := kidsValid_len hkv
@@ -152,16 +155,16 @@ theorem l5From_heap {ex es : ℕ → ℕ} {Pxs Pss Pvs : ℕ → Tree → Prop} 
   have e3 := heapPops_kid_noAdv (c := ⟨"statement_digest", _, _, true⟩) hn3 statement_digest_noAdv hv3
   have e4 := hpv c kv (hTv rfl)
   have e5 : kt.heapPops heapSlots = (List.range' (c + 1) m).flatMap vsH := by
-    by_cases h0' : σ (.n 53) = 0
+    by_cases h0' : σ (.n (val% «main_loop4» "s21#2")) = 0
     · have hcm' : c + 1 = nk := by
         rw [h53] at h0'
         exact Digest.gen_pow_inj' (by omega) hnk34 (e_add_eq_zero_iff.mp h0')
       rw [show m = 0 by omega, List.range'_zero, List.flatMap_nil]
-      have : (decide (σ (.n 53) ≠ 0)) = false := by simpa using h0'
+      have : (decide (σ (.n (val% «main_loop4» "s21#2")) ≠ 0)) = false := by simpa using h0'
       simp only [this, Bool.false_eq_true, ↓reduceIte] at hvt
       obtain ⟨⟨g, σ', rfl⟩, -⟩ := hvt
       rw [Tree.heapPops]
-    · have ht : (decide (σ (.n 53) ≠ 0)) = true := by simpa using h0'
+    · have ht : (decide (σ (.n (val% «main_loop4» "s21#2")) ≠ 0)) = true := by simpa using h0'
       simp only [ht, ↓reduceIte] at hvt
       rw [l5_tail_args, h55, hrest] at hvt
       exact ih (c + 1) kt [] (by omega) hvt (hTt ht)
@@ -178,10 +181,10 @@ def mainKidHeaps (m : MainIn) (Hx Hs Hd H5 : List (List E)) : List (List (List E
     (if m.nc = 0 then [] else [[]]) ++ [[]]
 
 theorem mCall5_args (σ : Val) :
-    ([V.n 402, .n 6, .n 398, .n 31, .n 45, .n 22, .n 34, .n 46, .n 23, .n 395, .n 364, .n 26, .n 27, .n 383, .n 28,
-      .n 389] : List V).map σ =
-      σ (.n 402) :: ([V.n 6, .n 398, .n 31, .n 45, .n 22, .n 34, .n 46, .n 23, .n 395, .n 364, .n 26, .n 27, .n 383,
-        .n 28, .n 389] : List V).map σ := rfl
+    ([V.n (val% «main» "s49#2"), .n (val% «main» "meta[6]"), .n (val% «main» "written"), .n (val% «main» "lx_table"), .n (val% «main» "cover"), .n (val% «main» "lx_slots_g"), .n (val% «main» "lean_sphincs_table"), .n (val% «main» "sp_cover"), .n (val% «main» "lean_sphincs_slots_g"), .n (val% «main» "child_carried"), .n (val% «main» "da_digests"), .n (val% «main» "fs_seed[0]"), .n (val% «main» "fs_seed[1]"), .n (val% «main» "child_pi"), .n (val% «main» "g_squares"),
+      .n (val% «main» "child_fresh")] : List V).map σ =
+      σ (.n (val% «main» "s49#2")) :: ([V.n (val% «main» "meta[6]"), .n (val% «main» "written"), .n (val% «main» "lx_table"), .n (val% «main» "cover"), .n (val% «main» "lx_slots_g"), .n (val% «main» "lean_sphincs_table"), .n (val% «main» "sp_cover"), .n (val% «main» "lean_sphincs_slots_g"), .n (val% «main» "child_carried"), .n (val% «main» "da_digests"), .n (val% «main» "fs_seed[0]"), .n (val% «main» "fs_seed[1]"), .n (val% «main» "child_pi"),
+        .n (val% «main» "g_squares"), .n (val% «main» "child_fresh")] : List V).map σ := rfl
 
 /-- **`main`'s calls pop their advised sizes**, at a valuation with `main`'s honest values. -/
 theorem main_heapsOf {m : MainIn} (hb : MainBounds (2 ^ 23) m) (hv : MVals rd σ m) (p : MainPreds)
@@ -207,10 +210,10 @@ theorem main_heapsOf {m : MainIn} (hb : MainBounds (2 ^ 23) m) (hv : MVals rd σ
         have := e5 ▸ ht
         simpa using this
       rw [ite_eq_right hnc]
-      have e0 : σ (.n 402) = gen ^ 0 := by rw [hv.g435, pow_zero]
+      have e0 : σ (.n (val% «main» "s49#2")) = gen ^ 0 := by rw [hv.g435, pow_zero]
       rw [mCall5_args, e0] at htv
-      refine h5 t (([V.n 6, .n 398, .n 31, .n 45, .n 22, .n 34, .n 46, .n 23, .n 395, .n 364, .n 26, .n 27, .n 383,
-        .n 28, .n 389] : List V).map σ) [] ?_ htv hT
+      refine h5 t (([V.n (val% «main» "meta[6]"), .n (val% «main» "written"), .n (val% «main» "lx_table"), .n (val% «main» "cover"), .n (val% «main» "lx_slots_g"), .n (val% «main» "lean_sphincs_table"), .n (val% «main» "sp_cover"), .n (val% «main» "lean_sphincs_slots_g"), .n (val% «main» "child_carried"), .n (val% «main» "da_digests"), .n (val% «main» "fs_seed[0]"), .n (val% «main» "fs_seed[1]"), .n (val% «main» "child_pi"),
+        .n (val% «main» "g_squares"), .n (val% «main» "child_fresh")] : List V).map σ) [] ?_ htv hT
       have h6 := hv.orc 6 (by simp)
       simp only [List.map_cons, List.getD_cons_zero]
       rw [h6]

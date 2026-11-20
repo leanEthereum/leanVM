@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.Bits.BusGrind
 public import LeanVM.Guest.B1.Bits.GrindPlaced
 public import LeanVM.Guest.B1.Tables.FlatAtT
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«bus_grind_check__L»
 
 /-!
 # `bus_grind_check`, placed
@@ -62,8 +64,8 @@ theorem bus_grind_check_completeB_of {d : ℕ} (hd : d ∈ busGrindDeployed) {κ
       exact ⟨rfl, w', tabs', by rw [he.1, he.2], ht, hpow⟩
   let kid : Kid := ⟨grindCheckName (busGrindBits d), true, [w, tabs], Lin, Returns []⟩
   have h := completeAt_flatDTB (fs := fs) (cert := cert) hf hl κ Lin [w, tabs] [0]
-    (pre := [.call (grindCheckName (busGrindBits d)) [.n 0, .n 1] [],
-      .atom (.const (.n 2) (word 0 0))]) (vs := [.n 2]) (by rw [hbody]; rfl) rfl rfl [] (fun _ => [])
+    (pre := [.call (grindCheckName (busGrindBits d)) [.n (valf% «bus_grind_check» "word"), .n (valf% «bus_grind_check» "tabs")] [],
+      .atom (.const (.n (valf% «bus_grind_check» "s1#0")) (word 0 0))]) (vs := [.n (valf% «bus_grind_check» "s1#0")]) (by rw [hbody]; rfl) rfl rfl [] (fun _ => [])
     (fun _ => List.Forall₂.nil) (fun _ => [kid]) (fun _ => True) [fun _ => True] [Bg] Bg
     (fun _ => ⟨fun _ => (hg [w, tabs] [] Lin hgp).toDTB, trivial⟩)
     (fun _ => by simp [kidsBoundL, kid]) (fun _ => le_rfl)

@@ -10,6 +10,8 @@ public import LeanVM.Guest.B1.Main.RawAt
 public import LeanVM.Guest.B1.Main.CompleteP
 public import LeanVM.Guest.B1.Sig.SphincsSigPops
 public import LeanVM.Guest.B1.Main.CompleteE
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop3»
 
 /-!
 # `main_loop3`, placed with its pops
@@ -80,13 +82,13 @@ def l4A : List Stmt := l4Pre.take 10
 def l4B : List Stmt := (l4Pre.drop 11).take 5
 
 /-- `main_loop3`'s self-call. -/
-def l4Call : Stmt := .callIf (.n 20) name% «main_loop3» [.n 22, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]
+def l4Call : Stmt := .callIf (.n (val% «main_loop3» "s5#2")) name% «main_loop3» [.n (val% «main_loop3» "s5#4"), .n (val% «main_loop3» "bound"), .n (val% «main_loop3» "lean_sphincs_slots_g"), .n (val% «main_loop3» "sp_cover"), .n (val% «main_loop3» "n_raw_x_g"), .n (val% «main_loop3» "lean_sphincs_table"), .n (val% «main_loop3» "byte_bits")]
 
-theorem l4Pre_split : l4Pre = l4A ++ [.call "verify_sig_lean_sphincs" [.n 17, .n 6] []] ++ l4B ++ [l4Call] := rfl
+theorem l4Pre_split : l4Pre = l4A ++ [.call "verify_sig_lean_sphincs" [.n (val% «main_loop3» "s3#2"), .n (val% «main_loop3» "byte_bits")] []] ++ l4B ++ [l4Call] := rfl
 
 theorem l4A_atoms : Sig.atomsOnly l4A = true := rfl
 theorem l4B_atoms : Sig.atomsOnly l4B = true := rfl
-theorem l4A_pops (rd : Reader) (σ : Val) : Sig.atomsPops rd σ l4A = [("sp_raw_index", [σ (.n 7)])] := rfl
+theorem l4A_pops (rd : Reader) (σ : Val) : Sig.atomsPops rd σ l4A = [("sp_raw_index", [σ (.n (val% «main_loop3» "off_hint"))])] := rfl
 theorem l4B_pops (rd : Reader) (σ : Val) : Sig.atomsPops rd σ l4B = [] := rfl
 
 theorem splicePops_callIf {rd : Reader} {σ : Val} (c : V) (f : String) (args : List V) (k : List Pop) :
@@ -120,15 +122,15 @@ theorem rawS_stepPQ (fs : String → ℕ) (cert : String → V → ℕ) {nV : �
   obtain ⟨hpd, hpa, hpad, hpc⟩ := Main.straight_parts σ _ l4Pre_straight
   set es := l4Pre.flatMap (Main.slEvs σ) with hes
   have hal : allocs σ es = [] := by rw [hpa]; rfl
-  have htk : decide (σ (.n 20) ≠ 0) = decide (j + 1 < nrs) := by
+  have htk : decide (σ (.n (val% «main_loop3» "s5#2")) ≠ 0) = decide (j + 1 < nrs) := by
     show decide (gen ^ j * word 2 0 + gen ^ nrs ≠ 0) = _
     rw [guard_taken hnrs (by omega)]
     exact decide_eq_decide.mpr (by omega)
-  have hcalls : calls es = [⟨"verify_sig_lean_sphincs", [.n 17, .n 6], [], true⟩] ++
-      [⟨name% «main_loop3», [.n 22, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6], [], decide (j + 1 < nrs)⟩] := by
+  have hcalls : calls es = [⟨"verify_sig_lean_sphincs", [.n (val% «main_loop3» "s3#2"), .n (val% «main_loop3» "byte_bits")], [], true⟩] ++
+      [⟨name% «main_loop3», [.n (val% «main_loop3» "s5#4"), .n (val% «main_loop3» "bound"), .n (val% «main_loop3» "lean_sphincs_slots_g"), .n (val% «main_loop3» "sp_cover"), .n (val% «main_loop3» "n_raw_x_g"), .n (val% «main_loop3» "lean_sphincs_table"), .n (val% «main_loop3» "byte_bits")], [], decide (j + 1 < nrs)⟩] := by
     rw [hpc, show l4Pre.filterMap Main.Stmt.callS =
-      [(none, "verify_sig_lean_sphincs", [.n 17, .n 6], []),
-      (some (.n 20), name% «main_loop3», [.n 22, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6], [])] from rfl]
+      [(none, "verify_sig_lean_sphincs", [.n (val% «main_loop3» "s3#2"), .n (val% «main_loop3» "byte_bits")], []),
+      (some (.n (val% «main_loop3» "s5#2")), name% «main_loop3», [.n (val% «main_loop3» "s5#4"), .n (val% «main_loop3» "bound"), .n (val% «main_loop3» "lean_sphincs_slots_g"), .n (val% «main_loop3» "sp_cover"), .n (val% «main_loop3» "n_raw_x_g"), .n (val% «main_loop3» "lean_sphincs_table"), .n (val% «main_loop3» "byte_bits")], [])] from rfl]
     simp only [List.map_cons, List.map_nil, Main.mkCall, htk, List.cons_append, List.nil_append]
   have hev : ∀ e ∈ es, e.Holds rd σ := by
     refine slEvs_holds fun st hst => ?_
@@ -161,7 +163,7 @@ theorem rawS_stepPQ (fs : String → ℕ) (cert : String → V → ℕ) {nV : �
     (fun i hi => hl i (by omega)) (D.bytes rd hl hL) (D.claim rd hl hL j hj) (D.verify j hj)
     (fun k hk => ⟨tb + 4 * s + k, limb0_gen_pow_mul _ _, D.regClaim j hj k hk⟩)
     (fun v hv => ⟨bb + v, limb0_gen_pow_mul _ _, D.regBytes v hv⟩) (c + 0)
-  have hva : ([.n 17, .n 6] : List V).map σ = [gen ^ (tb + 4 * s), gen ^ bb] := by
+  have hva : ([.n (val% «main_loop3» "s3#2"), .n (val% «main_loop3» "byte_bits")] : List V).map σ = [gen ^ (tb + 4 * s), gen ^ bb] := by
     show [gen ^ tb * (gen ^ s * gen ^ s * (gen ^ s * gen ^ s)), gen ^ bb] = _
     rw [gen4, ← pow_add]
   have h := relAtInPE_of_walk_loop (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd) (Q := Q rd)
@@ -176,7 +178,7 @@ theorem rawS_stepPQ (fs : String → ℕ) (cert : String → V → ℕ) {nV : �
     (fun i hi => Or.inl hi) ?_ (fun i hi => by simp [RegionL] at hi) hps (hq σ _ _ hw hev)
   · simp only [hal, List.sum_nil, Nat.zero_add] at h; exact h
   · rw [hal, List.sum_nil, Nat.add_zero]
-    have hta : ([.n 22, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] : List V).map σ =
+    have hta : ([.n (val% «main_loop3» "s5#4"), .n (val% «main_loop3» "bound"), .n (val% «main_loop3» "lean_sphincs_slots_g"), .n (val% «main_loop3» "sp_cover"), .n (val% «main_loop3» "n_raw_x_g"), .n (val% «main_loop3» "lean_sphincs_table"), .n (val% «main_loop3» "byte_bits")] : List V).map σ =
         [gen ^ (j + 1), gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] := by
       show [gen ^ j * word 2 0, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] = _
       rw [word_gen, gen_pow_mul_gen]
@@ -189,7 +191,7 @@ theorem rawS_stepPQ (fs : String → ℕ) (cert : String → V → ℕ) {nV : �
       exact htail
   · intro A hA
     rw [B1.loadAddrs_straight σ _ l4Pre_straight,
-      show l4Pre.filterMap B1.Stmt.loadS = [(.n 14, 0)] from rfl] at hA
+      show l4Pre.filterMap B1.Stmt.loadS = [(.n (val% «main_loop3» "s2#1"), 0)] from rfl] at hA
     simp only [List.map_cons, List.map_nil, List.mem_singleton] at hA
     subst hA
     refine ⟨cv + (X + s), ?_, Or.inr (Or.inl (D.regCover j hj))⟩

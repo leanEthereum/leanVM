@@ -20,6 +20,8 @@ public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Source
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_pad»
 
 /-!
 # The roots' tree, placed
@@ -132,7 +134,7 @@ theorem pad_body : (fn% «da_pad»).body = padPre ++ [.ret []] := by
   rw [stmtsEqb_sound hok.2]
   rfl
 
-theorem pad_params : (fn% «da_pad»).params = [.n 0, .n 1, .n 2] := by
+theorem pad_params : (fn% «da_pad»).params = [.n (val% «da_pad» "roots"), .n (val% «da_pad» "n_blob_g"), .n (val% «da_pad» "gap_g")] := by
   have hok := dpad_ok
   unfold dpadOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok

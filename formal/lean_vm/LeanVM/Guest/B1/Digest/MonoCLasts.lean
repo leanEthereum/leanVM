@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Digest.MonoCLast
 public import LeanVM.Guest.B1.Digest.ChildListAt0
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_last__L»
 
 /-!
 # The walk's last claims, completely
@@ -93,7 +95,7 @@ theorem rc_holds {S : List Atom} {w : ℕ → E} {σ : Val} {x y t1 t2 kk : V} {
   · rw [h2, hyv, rdAt_of_load ht2]; exact ht2
 
 theorem endOf_mem {atoms : List Atom} {ce t : V} (h : endOf atoms ce = some t) :
-    Atom.mul ce t (.n 1) ∈ atoms := by
+    Atom.mul ce t (.n (valf% «child_claim_list_mono_last» "region")) ∈ atoms := by
   obtain ⟨a, ha, hs⟩ := List.exists_of_findSome?_eq_some h
   cases a <;> simp only [reduceCtorEq] at hs
   split at hs
@@ -106,8 +108,8 @@ theorem endOf_mem {atoms : List Atom} {ce t : V} (h : endOf atoms ce = some t) :
 
 /-- The quotient `t` of the walk's end by the region. -/
 theorem endOf_val {S : List Atom} {w : ℕ → E} {σ : Val} {atoms : List Atom} {ce t : V}
-    (h : endOf atoms ce = some t) (hg : ∀ a ∈ atoms, Good rd S w σ a) (h1 : σ (.n 1) ≠ 0) :
-    σ t = σ ce * (σ (.n 1))⁻¹ := by
+    (h : endOf atoms ce = some t) (hg : ∀ a ∈ atoms, Good rd S w σ a) (h1 : σ (.n (valf% «child_claim_list_mono_last» "region")) ≠ 0) :
+    σ t = σ ce * (σ (.n (valf% «child_claim_list_mono_last» "region")))⁻¹ := by
   have := hg _ (endOf_mem h)
   simp only [Good] at this
   split at this
@@ -115,7 +117,7 @@ theorem endOf_val {S : List Atom} {w : ℕ → E} {σ : Val} {atoms : List Atom}
   · exact this
 
 theorem mlcSide_load {k : ℕ} {t : Option V} {d p : V} {off : ℕ}
-    (h : mlcSide k t (.load d p off) = true) : p = .n 0 ∧ off < 15 := by
+    (h : mlcSide k t (.load d p off) = true) : p = .n (valf% «child_claim_list_mono_last» "rec") ∧ off < 15 := by
   simpa [mlcSide] using h
 
 set_option maxRecDepth 20000 in
@@ -172,10 +174,10 @@ theorem mlc_core {k : ℕ} (hk : k < 17) {rec region mark limit entries : E} {rP
       hgs (.atom a) (by rw [hbody]; exact List.mem_append_left _ (List.mem_map_of_mem ha))
     have par : ∀ i (hi : i < 4), σ (.n i) = args.getD i 0 := fun i hi => by
       rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args]; omega)
-    have e0 : σ (.n 0) = rec := par 0 (by omega)
-    have e1 : σ (.n 1) = region := par 1 (by omega)
-    have e2 : σ (.n 2) = mark := par 2 (by omega)
-    have e3 : σ (.n 3) = limit := par 3 (by omega)
+    have e0 : σ (.n (valf% «child_claim_list_mono_last» "rec")) = rec := par 0 (by omega)
+    have e1 : σ (.n (valf% «child_claim_list_mono_last» "region")) = region := par 1 (by omega)
+    have e2 : σ (.n (valf% «child_claim_list_mono_last» "mark")) = mark := par 2 (by omega)
+    have e3 : σ (.n (valf% «child_claim_list_mono_last» "limit_g")) = limit := par 3 (by omega)
     have hF := pure_holds hg
     have hpv : ∀ {p : V}, p.idx = 0 → σ p = rec := fun hp => by rw [hidx, hp, e0]
     have hS4 : ∀ a ∈ S, mStoresOk 6 0 a = true := hSt

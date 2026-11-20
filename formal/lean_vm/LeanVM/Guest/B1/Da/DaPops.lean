@@ -14,6 +14,8 @@ public import LeanVM.Guest.B1.Da.DvAt
 public import LeanVM.Guest.B1.Da.CellPops
 public import LeanVM.Guest.B1.Da.Witness
 public import LeanVM.Guest.Hints
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_verify»
 
 /-!
 # LeanDA's pops
@@ -105,8 +107,8 @@ theorem blobL_pops {rd : Reader} {r : ℕ} {Tb : ℕ → Memory.Tree → Prop} {
 
 /-- `da_verify`'s first statements: its blob count's hint, the padding rows' count, its challenge's hint. -/
 def dvHead : List Stmt :=
-  [.atom (.hint (.witness "da_n_blobs" (.stack [.n 1]))), .call "da_padding" [.n 1] [.n 2],
-    .atom (.hint (.witness "da_challenge" (.stack [.n 3])))]
+  [.atom (.hint (.witness "da_n_blobs" (.stack [.n (val% «da_verify» "n_blob_g")]))), .call "da_padding" [.n (val% «da_verify» "n_blob_g")] [.n (val% «da_verify» "gap_g")],
+    .atom (.hint (.witness "da_challenge" (.stack [.n (val% «da_verify» "z")])))]
 
 /-- `da_verify` starts with `dvHead`, then pops nothing itself. -/
 noncomputable def dvShapeOk : Bool :=
@@ -115,11 +117,11 @@ noncomputable def dvShapeOk : Bool :=
 theorem dv_shape_ok : dvShapeOk = true := by decide +kernel
 
 theorem dvHead_pops (rd : Reader) (σ : Val) (k : List Pop) :
-    SplicePops rd σ dvHead [k] (("da_n_blobs", [σ (.n 1)]) :: (k ++ [("da_challenge", [σ (.n 3)])])) := by
+    SplicePops rd σ dvHead [k] (("da_n_blobs", [σ (.n (val% «da_verify» "n_blob_g"))]) :: (k ++ [("da_challenge", [σ (.n (val% «da_verify» "z"))])])) := by
   have h := (SplicePops.of_fallPops (rd := rd) (σ := σ)
-    (FallPops.atom (.hint (.witness "da_n_blobs" (.stack [.n 1]))))).append
-    ((SplicePops.call (rd := rd) (σ := σ) "da_padding" [.n 1] [.n 2] k).append
-      (SplicePops.of_fallPops (FallPops.atom (.hint (.witness "da_challenge" (.stack [.n 3]))))))
+    (FallPops.atom (.hint (.witness "da_n_blobs" (.stack [.n (val% «da_verify» "n_blob_g")]))))).append
+    ((SplicePops.call (rd := rd) (σ := σ) "da_padding" [.n (val% «da_verify» "n_blob_g")] [.n (val% «da_verify» "gap_g")] k).append
+      (SplicePops.of_fallPops (FallPops.atom (.hint (.witness "da_challenge" (.stack [.n (val% «da_verify» "z")]))))))
   simpa [dvHead, Atom.pops, Hint.pops, Dest.words] using h
 
 /-- **`da_verify` of honest shape pops its blob count and its challenge, then its blob loop's entries.** -/
@@ -140,7 +142,7 @@ theorem dv_pops {rd : Reader} {r L : ℕ} {z : E} {Tb : Memory.Tree → Prop} (h
   obtain ⟨n0, v0, n1, v1, n2, v2, -, v3, n4, v4, n5, v5, -⟩ := hkv
   obtain ⟨-, -, -, t3, -⟩ := hT
   have hne : (1 : E) + gen ^ r ≠ 0 := one_add_gen_pow_ne_zero (by omega) (by unfold ordG; omega)
-  have htk : (Main.mkCall σ (some (.n 12), name% «da_verify_loop0», [.n 13, .n 1, .n 8, .n 10], [])).taken = true := by
+  have htk : (Main.mkCall σ (some (.n (val% «da_verify» "s6#1")), name% «da_verify_loop0», [.n (val% «da_verify» "s6#2"), .n (val% «da_verify» "n_blob_g"), .n (val% «da_verify» "weights"), .n (val% «da_verify» "roots")], [])).taken = true := by
     simp [Main.mkCall, s12, hne]
   have e0 := kid_pops_mute v0 n0 (by rw [mkCall_f]; exact noWitS_of_callee (j := idx% «da_verify») (by decide +kernel))
   have e1 := kid_pops_mute v1 n1 (by rw [mkCall_f]; exact noWitS_of_callee (j := idx% «da_verify») (by decide +kernel))

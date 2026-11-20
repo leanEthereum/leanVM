@@ -12,6 +12,12 @@ public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Source
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_pad»
+import LeanVM.Guest.Data.ValNames.«da_pad_loop0»
+import LeanVM.Guest.Data.ValNames.«da_verify»
+import LeanVM.Guest.Data.ValNames.«da_verify_loop0»
+import LeanVM.Guest.Data.ValNames.«da_weights»
 
 /-!
 # `da_verify`, checked
@@ -51,28 +57,28 @@ def dlTop : String := daLevelsName (guest_const% DA_LOG_MAX_ROWS)
 def bOk (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
   loopShapeF fn name% «da_verify_loop0» && decide (fn.params.length = 4) &&
-  hasCall (loopPre fn) "da_verify_blob" [.n 2] [.n 4, .n 5] &&
-  isMul A (.n 6) (.n 0) (.n 0) && isMul A (.n 7) (.n 3) (.n 6) &&
-  A.any (isLoadAt (.n 4) (.n 7) 0) && A.any (isLoadAt (.n 5) (.n 7) 1)
+  hasCall (loopPre fn) "da_verify_blob" [.n (val% «da_verify_loop0» "weights")] [.n (val% «da_verify_loop0» "b0"), .n (val% «da_verify_loop0» "b1")] &&
+  isMul A (.n (val% «da_verify_loop0» "slot~0")) (.n (val% «da_verify_loop0» "xi")) (.n (val% «da_verify_loop0» "xi")) && isMul A (.n (val% «da_verify_loop0» "slot")) (.n (val% «da_verify_loop0» "roots")) (.n (val% «da_verify_loop0» "slot~0")) &&
+  A.any (isLoadAt (.n (val% «da_verify_loop0» "b0")) (.n (val% «da_verify_loop0» "slot")) 0) && A.any (isLoadAt (.n (val% «da_verify_loop0» "b1")) (.n (val% «da_verify_loop0» "slot")) 1)
 
 /-- `da_pad_loop0`: the padding blob root's cells at `roots·n_blob²·x²`. -/
 def padLOk (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
   loopShapeF fn name% «da_pad_loop0» && decide (fn.params.length = 4) &&
-  isMul A (.n 4) (.n 3) (.n 3) && isMul A (.n 5) (.n 2) (.n 4) && isMul A (.n 6) (.n 0) (.n 0) &&
-  isMul A (.n 7) (.n 5) (.n 6) &&
-  hasAtom A (.const (.n 8) (word 8002054802297438051 4108169256045952147)) &&
-  A.any (isLoadAt (.n 8) (.n 7) 0) &&
-  hasAtom A (.const (.n 9) (word 12830724869163462953 1721925254677230945)) &&
-  A.any (isLoadAt (.n 9) (.n 7) 1)
+  isMul A (.n (val% «da_pad_loop0» "pad~0")) (.n (val% «da_pad_loop0» "n_blob_g")) (.n (val% «da_pad_loop0» "n_blob_g")) && isMul A (.n (val% «da_pad_loop0» "pad~1")) (.n (val% «da_pad_loop0» "roots")) (.n (val% «da_pad_loop0» "pad~0")) && isMul A (.n (val% «da_pad_loop0» "pad~2")) (.n (val% «da_pad_loop0» "xd")) (.n (val% «da_pad_loop0» "xd")) &&
+  isMul A (.n (val% «da_pad_loop0» "pad")) (.n (val% «da_pad_loop0» "pad~1")) (.n (val% «da_pad_loop0» "pad~2")) &&
+  hasAtom A (.const (.n (val% «da_pad_loop0» "s1#0")) (word 8002054802297438051 4108169256045952147)) &&
+  A.any (isLoadAt (.n (val% «da_pad_loop0» "s1#0")) (.n (val% «da_pad_loop0» "pad")) 0) &&
+  hasAtom A (.const (.n (val% «da_pad_loop0» "s2#0")) (word 12830724869163462953 1721925254677230945)) &&
+  A.any (isLoadAt (.n (val% «da_pad_loop0» "s2#0")) (.n (val% «da_pad_loop0» "pad")) 1)
 
 /-- `da_pad(roots, n_blob, gap)`'s body: the padding loop from `1` while `gap ≠ 1`. -/
 def dpadBody : List Stmt :=
-  [.atom (.const (.n 3) (word 1 0)), .atom (.add (.n 4) (.n 3) (.n 2)), .atom (.const (.n 5) (word 1 0)),
-    .callIf (.n 4) name% «da_pad_loop0» [.n 5, .n 2, .n 0, .n 1], .ret []]
+  [.atom (.const (.n (val% «da_pad» "s0#0")) (word 1 0)), .atom (.add (.n (val% «da_pad» "s0#1")) (.n (val% «da_pad» "s0#0")) (.n (val% «da_pad» "gap_g"))), .atom (.const (.n (val% «da_pad» "s0#2")) (word 1 0)),
+    .callIf (.n (val% «da_pad» "s0#1")) name% «da_pad_loop0» [.n (val% «da_pad» "s0#2"), .n (val% «da_pad» "gap_g"), .n (val% «da_pad» "roots"), .n (val% «da_pad» "n_blob_g")], .ret []]
 
 /-- `da_pad`, checked. -/
-def dpadOk (fn : Fn) : Bool := decide (fn.params = [.n 0, .n 1, .n 2]) && stmtsEqb fn.body dpadBody
+def dpadOk (fn : Fn) : Bool := decide (fn.params = [.n (val% «da_pad» "roots"), .n (val% «da_pad» "n_blob_g"), .n (val% «da_pad» "gap_g")]) && stmtsEqb fn.body dpadBody
 
 /-- `keccak([a, b], [c, d])`, its digest's two cells `o0`, `o1`. -/
 def pairHashVOk (atoms : List Atom) (a b c d o0 o1 : V) : Bool :=
@@ -95,10 +101,10 @@ theorem pairHashV_sound {rd : Reader} {σ : Val} {atoms : List Atom} {a b c d o0
 /-! ## The weights -/
 
 /-- The offsets' pointer `da_weights` passes to column `h`'s expansion: `offsets·g^(7h)`. -/
-def wsOff (h : ℕ) : V := if h = 0 then .n 3 else .n (4 * h + 5)
+def wsOff (h : ℕ) : V := if h = 0 then .n (val% «da_weights» "offsets") else .n (4 * h + 5)
 
 /-- Column `h`'s leaf of the tree above, as `da_weights` loads it. -/
-def wsLeaf (h : ℕ) : V := if h = 0 then .n 5 else .n (4 * h + 3)
+def wsLeaf (h : ℕ) : V := if h = 0 then .n (val% «da_weights» "s1.u0.s0#1") else .n (4 * h + 3)
 
 /-- `da_weights`' block (its body but the final `ret`). -/
 noncomputable def wsP : List Stmt := (Fn.body fn% «da_weights»).dropLast
@@ -109,12 +115,12 @@ then per column `h < 128` the leaf `top_leaves[h]` (`wsLeaf h`), the offsets' po
 noncomputable def wsOk : Bool :=
   let P := wsP
   let A := atomsIn P
-  decide ((fn% «da_weights»).params = [.n 0, .n 1, .n 2, .n 3]) &&
-  stmtsEqb (Fn.body fn% «da_weights») (P ++ [.ret [.n 515]]) && P.all Stmt.flat &&
-  A.any (isCopyAt (.n 515) (.n 4)) &&
+  decide ((fn% «da_weights»).params = [.n (val% «da_weights» "top_leaves"), .n (val% «da_weights» "cell_factors"), .n (val% «da_weights» "zs"), .n (val% «da_weights» "offsets")]) &&
+  stmtsEqb (Fn.body fn% «da_weights») (P ++ [.ret [.n (val% «da_weights» "s2#0")]]) && P.all Stmt.flat &&
+  A.any (isCopyAt (.n (val% «da_weights» "s2#0")) (.n (val% «da_weights» "weights"))) &&
   (List.range 128).all fun h =>
-    hasCall P "da_expand__L6_L7" [wsLeaf h, .n 1, .n 2, wsOff h] [.n (4 * h + 6)] &&
-    A.any (isLoadAt (wsLeaf h) (.n 0) h) && A.any (isLoadAt (.n (4 * h + 6)) (.n 4) h) &&
+    hasCall P "da_expand__L6_L7" [wsLeaf h, .n (val% «da_weights» "cell_factors"), .n (val% «da_weights» "zs"), wsOff h] [.n (4 * h + 6)] &&
+    A.any (isLoadAt (wsLeaf h) (.n (val% «da_weights» "top_leaves")) h) && A.any (isLoadAt (.n (4 * h + 6)) (.n (val% «da_weights» "weights")) h) &&
     (h == 0 || (A.any (isConstAt (.n (4 * h + 4)) 128 0) && isMul A (wsOff h) (wsOff (h - 1)) (.n (4 * h + 4))))
 
 /-! ## The body -/
@@ -126,19 +132,19 @@ noncomputable def dvP : List Stmt := (Fn.body fn% «da_verify»).dropLast
 noncomputable def dvOk : Bool :=
   let P := dvP
   let A := atomsIn P
-  decide ((fn% «da_verify»).params = [.n 0]) &&
-  stmtsEqb (Fn.body fn% «da_verify») (P ++ [.ret [.n 26, .n 27, .n 28]]) &&
+  decide ((fn% «da_verify»).params = [.n (val% «da_verify» "byte_bits")]) &&
+  stmtsEqb (Fn.body fn% «da_verify») (P ++ [.ret [.n (val% «da_verify» "s11#0"), .n (val% «da_verify» "s11#0[1]"), .n (val% «da_verify» "s11#0[2]")]]) &&
   P.all Stmt.flat &&
-  hasCall P "da_padding" [.n 1] [.n 2] &&
-  hasCall P "da_vector" [.n 3] [.n 4, .n 5, .n 6, .n 7] &&
-  hasCall P "da_weights" [.n 5, .n 6, .n 4, .n 7] [.n 8] &&
-  guardOk P (.n 12) name% «da_verify_loop0» (.n 13) (.n 1) [.n 8, .n 10] &&
-  hasCall P "da_pad" [.n 10, .n 1, .n 2] [] &&
-  hasCall P dlTop [.n 10] [.n 14, .n 15] &&
-  isMul A (.n 16) (.n 0) (.n 1) && A.any (isLoadAt (.n 17) (.n 16) 0) &&
-  A.any (isConstAt (.n 19) 0 0) && pairHashVOk A (.n 14) (.n 15) (.n 17) (.n 19) (.n 24) (.n 25) &&
-  A.any (isCopyAt (.n 26) (.n 24)) && A.any (isCopyAt (.n 27) (.n 25)) &&
-  A.any (isCopyAt (.n 28) (.n 3))
+  hasCall P "da_padding" [.n (val% «da_verify» "n_blob_g")] [.n (val% «da_verify» "gap_g")] &&
+  hasCall P "da_vector" [.n (val% «da_verify» "z")] [.n (val% «da_verify» "zs"), .n (val% «da_verify» "top_leaves"), .n (val% «da_verify» "cell_factors"), .n (val% «da_verify» "offsets")] &&
+  hasCall P "da_weights" [.n (val% «da_verify» "top_leaves"), .n (val% «da_verify» "cell_factors"), .n (val% «da_verify» "zs"), .n (val% «da_verify» "offsets")] [.n (val% «da_verify» "weights")] &&
+  guardOk P (.n (val% «da_verify» "s6#1")) name% «da_verify_loop0» (.n (val% «da_verify» "s6#2")) (.n (val% «da_verify» "n_blob_g")) [.n (val% «da_verify» "weights"), .n (val% «da_verify» "roots")] &&
+  hasCall P "da_pad" [.n (val% «da_verify» "roots"), .n (val% «da_verify» "n_blob_g"), .n (val% «da_verify» "gap_g")] [] &&
+  hasCall P dlTop [.n (val% «da_verify» "roots")] [.n (val% «da_verify» "r0"), .n (val% «da_verify» "r1")] &&
+  isMul A (.n (val% «da_verify» "s10#0")) (.n (val% «da_verify» "byte_bits")) (.n (val% «da_verify» "n_blob_g")) && A.any (isLoadAt (.n (val% «da_verify» "s10#1")) (.n (val% «da_verify» "s10#0")) 0) &&
+  A.any (isConstAt (.n (val% «da_verify» "s10#2[1]")) 0 0) && pairHashVOk A (.n (val% «da_verify» "r0")) (.n (val% «da_verify» "r1")) (.n (val% «da_verify» "s10#1")) (.n (val% «da_verify» "s10#2[1]")) (.n (val% «da_verify» "commitment[0]")) (.n (val% «da_verify» "commitment[1]")) &&
+  A.any (isCopyAt (.n (val% «da_verify» "s11#0")) (.n (val% «da_verify» "commitment[0]"))) && A.any (isCopyAt (.n (val% «da_verify» "s11#0[1]")) (.n (val% «da_verify» "commitment[1]"))) &&
+  A.any (isCopyAt (.n (val% «da_verify» "s11#0[2]")) (.n (val% «da_verify» "z")))
 
 end
 end LeanVM.Guest.B1.Da

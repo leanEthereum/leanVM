@@ -7,6 +7,9 @@
 module
 
 public import LeanVM.Guest.B1.Opening.WalkPops
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«opening_queries__L»
+import LeanVM.Guest.Data.ValNames.«opening_queries__L_loop0»
 
 /-!
 # `opening_queries`' pops
@@ -101,20 +104,20 @@ theorem oqGuardA_noWit (g : ℕ) : noWit (oqGuardA g) = true := rfl
 theorem oqLoop1A_splicePops (s : Oq) (odd : ℕ) (walk : String) (k1 k2 : List Pop) :
     SplicePops rd σ (oqLoop1A s odd walk) [k1, k2] (rowPop σ 16 s.I :: k1 ++ rowPop σ (oqE1 s + 2) s.I :: k2) := by
   have htail : noWit ((if s.final = 1 then [] else
-      [.atom (.mul (.n (oqC1 s)) (.n 8) (.n 0)), .atom (.load (.n (oqC1 s + 1)) (.n (oqC1 s)) 0),
+      [.atom (.mul (.n (oqC1 s)) (.n (valf% «opening_queries» «_loop0» "chain")) (.n (valf% «opening_queries» «_loop0» "xi"))), .atom (.load (.n (oqC1 s + 1)) (.n (oqC1 s)) 0),
         .atom (.add (.n (oqC1 s + 2)) (.n (oqC1 s + 1)) (.n (oqRes s 16 true))),
-        .atom (.mul (.n (oqC1 s + 3)) (.n (oqC1 s + 2)) (.n 9)),
+        .atom (.mul (.n (oqC1 s + 3)) (.n (oqC1 s + 2)) (.n (valf% «opening_queries» «_loop0» "lam_inv"))),
         .atom (.add (.n (oqC1 s + 4)) (.n (oqC1 s + 3)) (.n (oqRes s (oqE1 s + 2) false))),
-        .atom (.mul (.n (oqC1 s + 5)) (.n (oqC1 s + 4)) (.n 9)), .atom (.mul (.n (oqC1 s + 6)) (.n 8) (.n 0)),
+        .atom (.mul (.n (oqC1 s + 5)) (.n (oqC1 s + 4)) (.n (valf% «opening_queries» «_loop0» "lam_inv"))), .atom (.mul (.n (oqC1 s + 6)) (.n (valf% «opening_queries» «_loop0» "chain")) (.n (valf% «opening_queries» «_loop0» "xi"))),
         .atom (.load (.n (oqC1 s + 5)) (.n (oqC1 s + 6)) 1)]) ++ oqGuardA (oqG1 s)) = true := by
     rw [noWit_append]; split <;> rfl
-  have h := ((((splicePops_noWit (rd := rd) (σ := σ) (ss := [.atom (.mul (.n 10) (.n 2) (.n 0)),
-      .atom (.mul (.n 11) (.n 10) (.n 0)), .atom (.mul (.n 12) (.n 3) (.n 0)), .atom (.mul (.n 13) (.n 12) (.n 0)),
+  have h := ((((splicePops_noWit (rd := rd) (σ := σ) (ss := [.atom (.mul (.n 10) (.n (valf% «opening_queries» «_loop0» "positions")) (.n (valf% «opening_queries» «_loop0» "xi"))),
+      .atom (.mul (.n 11) (.n 10) (.n (valf% «opening_queries» «_loop0» "xi"))), .atom (.mul (.n 12) (.n (valf% «opening_queries» «_loop0» "query_win_ptrs")) (.n (valf% «opening_queries» «_loop0» "xi"))), .atom (.mul (.n 13) (.n 12) (.n (valf% «opening_queries» «_loop0» "xi"))),
       .atom (.load (.n 14) (.n 11) odd), .atom (.load (.n 15) (.n 13) odd)]) rfl).append
-    (oqQuery_splicePops s (.n 14) (.n 15) (.n 4) (.n 5) (.n 6) (.n 7) 16 true 0 walk k1)).append
+    (oqQuery_splicePops s (.n 14) (.n 15) (.n (valf% «opening_queries» «_loop0» "cap")) (.n (valf% «opening_queries» «_loop0» "flags")) (.n (valf% «opening_queries» «_loop0» "coefs")) (.n (valf% «opening_queries» «_loop0» "hs")) 16 true 0 walk k1)).append
     (splicePops_noWit (ss := [.atom (.load (.n (oqE1 s)) (.n 11) (odd + 1)),
       .atom (.load (.n (oqE1 s + 1)) (.n 13) (odd + 1))]) rfl)).append
-    (oqQuery_splicePops s (.n (oqE1 s)) (.n (oqE1 s + 1)) (.n 4) (.n 5) (.n 6) (.n 7) (oqE1 s + 2) false
+    (oqQuery_splicePops s (.n (oqE1 s)) (.n (oqE1 s + 1)) (.n (valf% «opening_queries» «_loop0» "cap")) (.n (valf% «opening_queries» «_loop0» "flags")) (.n (valf% «opening_queries» «_loop0» "coefs")) (.n (valf% «opening_queries» «_loop0» "hs")) (oqE1 s + 2) false
       (oqK1 s 16) walk k2)).append (splicePops_noWit htail)
   have h' := SplicePops.congr_pops (SplicePops.congr_ks h (ks' := [k1, k2]) (by simp))
     (q := rowPop σ 16 s.I :: k1 ++ rowPop σ (oqE1 s + 2) s.I :: k2) (by simp)
@@ -124,14 +127,14 @@ theorem oqLoop1A_splicePops (s : Oq) (odd : ℕ) (walk : String) (k1 k2 : List P
 theorem oqLoop0A_splicePops (s : Oq) (walk : String) (k : List Pop) :
     SplicePops rd σ (oqLoop0A s walk) [k] (rowPop σ 14 s.I :: k) := by
   have htail : noWit ((if s.final = 1 then [] else
-      [.atom (.mul (.n (oqC0 s)) (.n 8) (.n 0)), .atom (.load (.n (oqC0 s + 1)) (.n (oqC0 s)) 0),
+      [.atom (.mul (.n (oqC0 s)) (.n (valf% «opening_queries» «_loop0» "chain")) (.n (valf% «opening_queries» «_loop0» "xi"))), .atom (.load (.n (oqC0 s + 1)) (.n (oqC0 s)) 0),
         .atom (.add (.n (oqC0 s + 2)) (.n (oqC0 s + 1)) (.n (oqRes s 14 true))),
-        .atom (.mul (.n (oqC0 s + 3)) (.n (oqC0 s + 2)) (.n 9)), .atom (.mul (.n (oqC0 s + 4)) (.n 8) (.n 0)),
+        .atom (.mul (.n (oqC0 s + 3)) (.n (oqC0 s + 2)) (.n (valf% «opening_queries» «_loop0» "lam_inv"))), .atom (.mul (.n (oqC0 s + 4)) (.n (valf% «opening_queries» «_loop0» "chain")) (.n (valf% «opening_queries» «_loop0» "xi"))),
         .atom (.load (.n (oqC0 s + 3)) (.n (oqC0 s + 4)) 1)]) ++ oqGuardA (oqG0 s)) = true := by
     rw [noWit_append]; split <;> rfl
-  have h := ((splicePops_noWit (rd := rd) (σ := σ) (ss := [.atom (.mul (.n 10) (.n 2) (.n 0)),
-      .atom (.load (.n 11) (.n 10) 0), .atom (.mul (.n 12) (.n 3) (.n 0)), .atom (.load (.n 13) (.n 12) 0)]) rfl).append
-    (oqQuery_splicePops s (.n 11) (.n 13) (.n 4) (.n 5) (.n 6) (.n 7) 14 true 0 walk k)).append
+  have h := ((splicePops_noWit (rd := rd) (σ := σ) (ss := [.atom (.mul (.n 10) (.n (valf% «opening_queries» «_loop0» "positions")) (.n (valf% «opening_queries» «_loop0» "xi"))),
+      .atom (.load (.n 11) (.n 10) 0), .atom (.mul (.n 12) (.n (valf% «opening_queries» «_loop0» "query_win_ptrs")) (.n (valf% «opening_queries» «_loop0» "xi"))), .atom (.load (.n 13) (.n 12) 0)]) rfl).append
+    (oqQuery_splicePops s (.n 11) (.n 13) (.n (valf% «opening_queries» «_loop0» "cap")) (.n (valf% «opening_queries» «_loop0» "flags")) (.n (valf% «opening_queries» «_loop0» "coefs")) (.n (valf% «opening_queries» «_loop0» "hs")) 14 true 0 walk k)).append
     (splicePops_noWit htail)
   have h' := SplicePops.congr_pops (SplicePops.congr_ks h (ks' := [k]) (by simp)) (q := rowPop σ 14 s.I :: k)
     (by simp)
@@ -145,7 +148,7 @@ theorem oqLoop1_pops {P : Core.Program} {name : String} {fn : Fn} (hf : P.find? 
     (Memory.Tree.node name τ bufs kids).pops P rd =
       rowPop τ 16 s.I :: k1 ++ rowPop τ (oqE1 s + 2) s.I :: k2 ++ kn := by
   have hx : SplicePops rd τ (oqLoop1A s odd wlk ++ [.callIf (.n (oqG1 s + 2)) name
-      [.n (oqG1 s + 4), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]]) (Tree.popsKids P rd kids)
+      [.n (oqG1 s + 4), .n (valf% «opening_queries» «_loop0» "bound"), .n (valf% «opening_queries» «_loop0» "positions"), .n (valf% «opening_queries» «_loop0» "query_win_ptrs"), .n (valf% «opening_queries» «_loop0» "cap"), .n (valf% «opening_queries» «_loop0» "flags"), .n (valf% «opening_queries» «_loop0» "coefs"), .n (valf% «opening_queries» «_loop0» "hs"), .n (valf% «opening_queries» «_loop0» "chain"), .n (valf% «opening_queries» «_loop0» "lam_inv")]]) (Tree.popsKids P rd kids)
       (rowPop τ 16 s.I :: k1 ++ rowPop τ (oqE1 s + 2) s.I :: k2 ++ kn) := by
     rw [hk]; exact (oqLoop1A_splicePops s odd wlk k1 k2).append (SplicePops.callIf _ _ _ kn)
   obtain ⟨es, -, he⟩ := Tree.pops_of_splice (bufs := bufs) hf
@@ -159,7 +162,7 @@ theorem oqLoop0_pops {P : Core.Program} {name : String} {fn : Fn} (hf : P.find? 
     {kids : List Tree} {k kn : List Pop} (hk : Tree.popsKids P rd kids = [k, kn]) :
     (Memory.Tree.node name τ bufs kids).pops P rd = rowPop τ 14 s.I :: k ++ kn := by
   have hx : SplicePops rd τ (oqLoop0A s wlk ++ [.callIf (.n (oqG0 s + 2)) name
-      [.n (oqG0 s + 4), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]]) (Tree.popsKids P rd kids)
+      [.n (oqG0 s + 4), .n (valf% «opening_queries» «_loop0» "bound"), .n (valf% «opening_queries» «_loop0» "positions"), .n (valf% «opening_queries» «_loop0» "query_win_ptrs"), .n (valf% «opening_queries» «_loop0» "cap"), .n (valf% «opening_queries» «_loop0» "flags"), .n (valf% «opening_queries» «_loop0» "coefs"), .n (valf% «opening_queries» «_loop0» "hs"), .n (valf% «opening_queries» «_loop0» "chain"), .n (valf% «opening_queries» «_loop0» "lam_inv")]]) (Tree.popsKids P rd kids)
       (rowPop τ 14 s.I :: k ++ kn) := by
     rw [hk]; exact (oqLoop0A_splicePops s wlk k).append (SplicePops.callIf _ _ _ kn)
   obtain ⟨es, -, he⟩ := Tree.pops_of_splice (bufs := bufs) hf
@@ -172,20 +175,20 @@ theorem oqLoop0_pops {P : Core.Program} {name : String} {fn : Fn} (hf : P.find? 
 theorem oqMainA_splicePops (s : Oq) (odd : ℕ) (walk : String) (ks : List (List Pop)) (p : List Pop)
     (h : if odd = 1 then ∃ k, ks = [k] ∧ p = rowPop σ 13 s.I :: k else ks = [] ∧ p = []) :
     SplicePops rd σ (oqMainA s odd walk) ks p := by
-  have hhead : noWit [.atom (.const (.n 8) (word 2 0)), .atom (.mul (.n 9) (.n 7) (.n 8)),
-      .atom (.hint (.allocDyn (.n 10) (.n 9)))] = true := rfl
+  have hhead : noWit [.atom (.const (.n (valf% «opening_queries» "chain~0")) (word 2 0)), .atom (.mul (.n (valf% «opening_queries» "chain~1")) (.n (valf% «opening_queries» "n_iters_g")) (.n (valf% «opening_queries» "chain~0"))),
+      .atom (.hint (.allocDyn (.n (valf% «opening_queries» "chain")) (.n (valf% «opening_queries» "chain~1"))))] = true := rfl
   have htail : noWit [.atom (.const (.n (oqMK s odd)) (word 1 0)), .atom (.add (.n (oqMK s odd + 1))
-      (.n (oqMK s odd)) (.n 7)), .atom (.const (.n (oqMK s odd + 2)) (word 1 0))] = true := rfl
+      (.n (oqMK s odd)) (.n (valf% «opening_queries» "n_iters_g"))), .atom (.const (.n (oqMK s odd + 2)) (word 1 0))] = true := rfl
   have hmid : SplicePops rd σ (if odd = 1 then
-      [.atom (.load (.n 11) (.n 5) 0), .atom (.load (.n 12) (.n 6) 0)] ++
-        oqQueryT s (.n 11) (.n 12) (.n 0) (.n 1) (.n 3) (.n 4) 13 true 0 walk ++
-        [.atom (.mul (.n (oqMK s odd - 1)) (.n (oqRes s 13 true)) (.n 2)),
-          .atom (.load (.n (oqMK s odd - 1)) (.n 10) 0)]
-      else [.atom (.const (.n 11) (word 0 0)), .atom (.load (.n 11) (.n 10) 0)]) ks p := by
+      [.atom (.load (.n 11) (.n (valf% «opening_queries» "positions")) 0), .atom (.load (.n 12) (.n (valf% «opening_queries» "query_win_ptrs")) 0)] ++
+        oqQueryT s (.n 11) (.n 12) (.n (valf% «opening_queries» "cap")) (.n (valf% «opening_queries» "flags")) (.n (valf% «opening_queries» "coefs")) (.n (valf% «opening_queries» "hs")) 13 true 0 walk ++
+        [.atom (.mul (.n (oqMK s odd - 1)) (.n (oqRes s 13 true)) (.n (valf% «opening_queries» "lam_inv"))),
+          .atom (.load (.n (oqMK s odd - 1)) (.n (valf% «opening_queries» "chain")) 0)]
+      else [.atom (.const (.n 11) (word 0 0)), .atom (.load (.n 11) (.n (valf% «opening_queries» "chain")) 0)]) ks p := by
     split_ifs at h ⊢
     · obtain ⟨k, rfl, rfl⟩ := h
       exact SplicePops.congr_pops (SplicePops.congr_ks (((splicePops_noWit rfl).append
-        (oqQuery_splicePops s (.n 11) (.n 12) (.n 0) (.n 1) (.n 3) (.n 4) 13 true 0 walk k)).append
+        (oqQuery_splicePops s (.n 11) (.n 12) (.n (valf% «opening_queries» "cap")) (.n (valf% «opening_queries» "flags")) (.n (valf% «opening_queries» "coefs")) (.n (valf% «opening_queries» "hs")) 13 true 0 walk k)).append
         (splicePops_noWit rfl)) (by simp)) (by simp)
     · obtain ⟨rfl, rfl⟩ := h
       exact splicePops_noWit rfl
@@ -201,17 +204,17 @@ theorem oqMain_pops {P : Core.Program} {name : String} {fn : Fn} (hf : P.find? n
     (hk : Tree.popsKids P rd kids = ks ++ [kl]) :
     (Memory.Tree.node name τ bufs kids).pops P rd = p ++ kl := by
   have hx : SplicePops rd τ (oqMainA s odd wlk ++ [.callIf (.n (oqMK s odd + 1)) loop
-      [.n (oqMK s odd + 2), .n 7, .n 5, .n 6, .n 0, .n 1, .n 3, .n 4, .n 10, .n 2]]) (Tree.popsKids P rd kids)
+      [.n (oqMK s odd + 2), .n (valf% «opening_queries» "n_iters_g"), .n (valf% «opening_queries» "positions"), .n (valf% «opening_queries» "query_win_ptrs"), .n (valf% «opening_queries» "cap"), .n (valf% «opening_queries» "flags"), .n (valf% «opening_queries» "coefs"), .n (valf% «opening_queries» "hs"), .n (valf% «opening_queries» "chain"), .n (valf% «opening_queries» "lam_inv")]]) (Tree.popsKids P rd kids)
       (p ++ kl) := by
     rw [hk]; exact (oqMainA_splicePops s odd wlk ks p hodd).append (SplicePops.callIf _ _ _ kl)
   have hy : ∃ es vs, walk τ (if s.final = 1 then [.atom (.const (.n (oqMK s odd + 3)) (word 0 0)),
-      .ret [.n (oqMK s odd + 3)]] else [.atom (.mul (.n (oqMK s odd + 3)) (.n 10) (.n 7)),
+      .ret [.n (oqMK s odd + 3)]] else [.atom (.mul (.n (oqMK s odd + 3)) (.n (valf% «opening_queries» "chain")) (.n (valf% «opening_queries» "n_iters_g"))),
       .atom (.load (.n (oqMK s odd + 4)) (.n (oqMK s odd + 3)) 0), .atom (.copy (.n (oqMK s odd + 5))
       (.n (oqMK s odd + 4))), .ret [.n (oqMK s odd + 5)]]) = .ret es vs ∧ calls es = [] ∧ evPops rd τ es = [] := by
     split
     · exact ⟨[.atom (.const (.n (oqMK s odd + 3)) (word 0 0))], [.n (oqMK s odd + 3)],
         by simp [walk, walk1, Out.seq, Out.pre], rfl, rfl⟩
-    · exact ⟨[.atom (.mul (.n (oqMK s odd + 3)) (.n 10) (.n 7)),
+    · exact ⟨[.atom (.mul (.n (oqMK s odd + 3)) (.n (valf% «opening_queries» "chain")) (.n (valf% «opening_queries» "n_iters_g"))),
         .atom (.load (.n (oqMK s odd + 4)) (.n (oqMK s odd + 3)) 0),
         .atom (.copy (.n (oqMK s odd + 5)) (.n (oqMK s odd + 4)))], [.n (oqMK s odd + 5)],
         by simp [walk, walk1, Out.seq, Out.pre], rfl, rfl⟩

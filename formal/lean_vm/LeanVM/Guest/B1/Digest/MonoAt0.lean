@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Digest.MonoCLasts
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_mono»
 
 /-!
 # The gap walk, the parts
@@ -33,13 +35,13 @@ open LeanVM.Guest.Memory LeanVM.Guest.B1.Fwd
 /-! ## The path -/
 
 /-- The dispatch on the rest. -/
-def monoDispS : Stmt := .dispatch (.n 6) mlNames [.n 49, .n 1, .n 2, .n 3] [.n 50, .n 51]
+def monoDispS : Stmt := .dispatch (.n (val% «child_claim_list_mono» "rest")) mlNames [.n (val% «child_claim_list_mono» "last"), .n (val% «child_claim_list_mono» "region"), .n (val% «child_claim_list_mono» "base"), .n (val% «child_claim_list_mono» "limit_g")] [.n (val% «child_claim_list_mono» "d0"), .n (val% «child_claim_list_mono» "d1")]
 
 /-- `child_claim_list_mono_loop0`'s call: the big frames. -/
-def mono31S : Stmt := .callIf (.n 31) name% «child_claim_list_mono_loop0» [.n 32, .n 4, .n 16, .n 2]
+def mono31S : Stmt := .callIf (.n (val% «child_claim_list_mono» "s4#1")) name% «child_claim_list_mono_loop0» [.n (val% «child_claim_list_mono» "s4#2"), .n (val% «child_claim_list_mono» "bigs"), .n (val% «child_claim_list_mono» "chain"), .n (val% «child_claim_list_mono» "base")]
 
 /-- `child_claim_list_mono_loop1`'s call: the groups. -/
-def mono41S : Stmt := .callIf (.n 41) name% «child_claim_list_mono_loop1» [.n 42, .n 5, .n 39, .n 2]
+def mono41S : Stmt := .callIf (.n (val% «child_claim_list_mono» "s6#1")) name% «child_claim_list_mono_loop1» [.n (val% «child_claim_list_mono» "s6#2"), .n (val% «child_claim_list_mono» "groups"), .n (val% «child_claim_list_mono» "mid"), .n (val% «child_claim_list_mono» "base")]
 
 /-- The body before its dispatch. -/
 noncomputable def monoP1 : List Stmt := monoFlat.take 60
@@ -52,8 +54,8 @@ theorem monoFlat_split : monoFlat = monoP1 ++ monoDispS :: monoPost :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem monoPost_eq : monoPost = [.atom (.touch (.n 52) (.n 4)), .atom (.touch (.n 53) (.n 5)),
-    .atom (.copy (.n 54) (.n 50)), .atom (.copy (.n 55) (.n 51))] :=
+theorem monoPost_eq : monoPost = [.atom (.touch (.n (val% «child_claim_list_mono» "s9#0")) (.n (val% «child_claim_list_mono» "bigs"))), .atom (.touch (.n (val% «child_claim_list_mono» "s10#0")) (.n (val% «child_claim_list_mono» "groups"))),
+    .atom (.copy (.n (val% «child_claim_list_mono» "s11#0")) (.n (val% «child_claim_list_mono» "d0"))), .atom (.copy (.n (val% «child_claim_list_mono» "s11#0[1]")) (.n (val% «child_claim_list_mono» "d1")))] :=
   stmtsEqb_sound (by decide +kernel)
 
 theorem monoPost_straight : monoPost.all Main.Stmt.straight = true := by rw [monoPost_eq]; rfl
@@ -62,7 +64,7 @@ set_option maxRecDepth 100000 in
 theorem monoP1_straight : monoP1.all Main.Stmt.straight = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem monoP1_allocs : monoP1.filterMap Main.Stmt.allocSz = [(.n 16, .inr (.n 15))] := by
+theorem monoP1_allocs : monoP1.filterMap Main.Stmt.allocSz = [(.n (val% «child_claim_list_mono» "chain"), .inr (.n (val% «child_claim_list_mono» "chain~8")))] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -70,13 +72,13 @@ theorem monoP1_addrs : monoP1.filterMap Main.Stmt.addrS = [] := by decide +kerne
 
 set_option maxRecDepth 100000 in
 theorem monoP1_calls : monoP1.filterMap Main.Stmt.callS =
-    [(some (.n 31), name% «child_claim_list_mono_loop0», [.n 32, .n 4, .n 16, .n 2], []),
-      (some (.n 41), name% «child_claim_list_mono_loop1», [.n 42, .n 5, .n 39, .n 2], [])] := by
+    [(some (.n (val% «child_claim_list_mono» "s4#1")), name% «child_claim_list_mono_loop0», [.n (val% «child_claim_list_mono» "s4#2"), .n (val% «child_claim_list_mono» "bigs"), .n (val% «child_claim_list_mono» "chain"), .n (val% «child_claim_list_mono» "base")], []),
+      (some (.n (val% «child_claim_list_mono» "s6#1")), name% «child_claim_list_mono_loop1», [.n (val% «child_claim_list_mono» "s6#2"), .n (val% «child_claim_list_mono» "groups"), .n (val% «child_claim_list_mono» "mid"), .n (val% «child_claim_list_mono» "base")], [])] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem monoP1_loads : monoP1.filterMap B1.Stmt.loadS =
-    (List.range 15).map fun c => (.n 16, c) := by
+    (List.range 15).map fun c => (.n (val% «child_claim_list_mono» "chain"), c) := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -88,10 +90,10 @@ theorem mono_loop : coreProgram.loop "child_claim_list_mono" = false := by
   rw [Program.loop_of_find? find_child_claim_list_mono]; decide +kernel
 
 theorem mono_param (σ : Val) : (Fn.params fn% «child_claim_list_mono»).map σ =
-    [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6)] := rfl
+    [σ (.n (val% «child_claim_list_mono» "entries_ptr")), σ (.n (val% «child_claim_list_mono» "region")), σ (.n (val% «child_claim_list_mono» "base")), σ (.n (val% «child_claim_list_mono» "limit_g")), σ (.n (val% «child_claim_list_mono» "bigs")), σ (.n (val% «child_claim_list_mono» "groups")), σ (.n (val% «child_claim_list_mono» "rest"))] := rfl
 
 theorem mono_body : Fn.body fn% «child_claim_list_mono» =
-    monoP1 ++ monoDispS :: (monoPost ++ [.ret [.n 54, .n 55]]) := by
+    monoP1 ++ monoDispS :: (monoPost ++ [.ret [.n (val% «child_claim_list_mono» "s11#0"), .n (val% «child_claim_list_mono» "s11#0[1]")]]) := by
   rw [child_claim_list_mono_shape, monoFlat_split]; simp
 
 theorem mlNames_get {r : ℕ} (hr : r < 17) : mlNames[r]! = mlNames.getD r "" := by
@@ -106,14 +108,14 @@ the buffer's size `(g^a g^b g)^15`. -/
 noncomputable def monoCOk : Bool :=
   let SE := storesOf 7 monoFlat
   (chk 7 monoFlat).isSome &&
-  SE.all (fun a => (List.range 13).any (fun c => atomEqb a (.load (.n (17 + c)) (.n 16) c)) ||
-    atomEqb a (.load (.n 1) (.n 16) 13) || atomEqb a (.load (.n 0) (.n 16) 14)) &&
+  SE.all (fun a => (List.range 13).any (fun c => atomEqb a (.load (.n (17 + c)) (.n (val% «child_claim_list_mono» "chain")) c)) ||
+    atomEqb a (.load (.n (val% «child_claim_list_mono» "region")) (.n (val% «child_claim_list_mono» "chain")) 13) || atomEqb a (.load (.n (val% «child_claim_list_mono» "entries_ptr")) (.n (val% «child_claim_list_mono» "chain")) 14)) &&
   (atomsIn monoFlat).all (fun a => !needsSide a || decide (a ∈ SE) ||
-    atomEqb a (.touch (.n 52) (.n 4)) || atomEqb a (.touch (.n 53) (.n 5))) &&
-  (atomsIn monoFlat).any (isConstAt (.n 8) 2 0) &&
-  (monoOf (atomsIn monoFlat) 40 (.n 15)).isPerm
-    (List.replicate 15 (.n 4) ++ List.replicate 15 (.n 5) ++ List.replicate 15 (.n 8)) &&
-  (atomsIn monoFlat).any (fun a => atomEqb a (.hint (.allocDyn (.n 16) (.n 15))))
+    atomEqb a (.touch (.n (val% «child_claim_list_mono» "s9#0")) (.n (val% «child_claim_list_mono» "bigs"))) || atomEqb a (.touch (.n (val% «child_claim_list_mono» "s10#0")) (.n (val% «child_claim_list_mono» "groups")))) &&
+  (atomsIn monoFlat).any (isConstAt (.n (val% «child_claim_list_mono» "chain~1")) 2 0) &&
+  (monoOf (atomsIn monoFlat) 40 (.n (val% «child_claim_list_mono» "chain~8"))).isPerm
+    (List.replicate 15 (.n (val% «child_claim_list_mono» "bigs")) ++ List.replicate 15 (.n (val% «child_claim_list_mono» "groups")) ++ List.replicate 15 (.n (val% «child_claim_list_mono» "chain~1"))) &&
+  (atomsIn monoFlat).any (fun a => atomEqb a (.hint (.allocDyn (.n (val% «child_claim_list_mono» "chain")) (.n (val% «child_claim_list_mono» "chain~8")))))
 
 set_option maxRecDepth 100000 in
 theorem monoc_ok : monoCOk = true := by decide +kernel
@@ -131,19 +133,19 @@ noncomputable def monoσ (rd : Reader) (args : List E) (chain : E) (D : Digest) 
 structure MonoVals (rd : Reader) (σ : Val) (args : List E) (a b : ℕ) (chain : E) (D : Digest) :
     Prop where
   atoms : ∀ x ∈ atomsIn monoFlat, x.Holds rd σ
-  par : [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6)] = args
-  v15 : σ (.n 15) = gen ^ (15 * (a + b + 1))
-  v16 : σ (.n 16) = chain
-  v31 : σ (.n 31) = 1 + gen ^ a
-  v32 : σ (.n 32) = 1
-  v39 : σ (.n 39) = chain * gen ^ (15 * a)
-  v41 : σ (.n 41) = 1 + gen ^ b
-  v42 : σ (.n 42) = 1
-  v49 : σ (.n 49) = chain * gen ^ (15 * (a + b))
-  v50 : σ (.n 50) = (digestHalves D).1
-  v51 : σ (.n 51) = (digestHalves D).2
-  v54 : σ (.n 54) = (digestHalves D).1
-  v55 : σ (.n 55) = (digestHalves D).2
+  par : [σ (.n (val% «child_claim_list_mono» "entries_ptr")), σ (.n (val% «child_claim_list_mono» "region")), σ (.n (val% «child_claim_list_mono» "base")), σ (.n (val% «child_claim_list_mono» "limit_g")), σ (.n (val% «child_claim_list_mono» "bigs")), σ (.n (val% «child_claim_list_mono» "groups")), σ (.n (val% «child_claim_list_mono» "rest"))] = args
+  v15 : σ (.n (val% «child_claim_list_mono» "chain~8")) = gen ^ (15 * (a + b + 1))
+  v16 : σ (.n (val% «child_claim_list_mono» "chain")) = chain
+  v31 : σ (.n (val% «child_claim_list_mono» "s4#1")) = 1 + gen ^ a
+  v32 : σ (.n (val% «child_claim_list_mono» "s4#2")) = 1
+  v39 : σ (.n (val% «child_claim_list_mono» "mid")) = chain * gen ^ (15 * a)
+  v41 : σ (.n (val% «child_claim_list_mono» "s6#1")) = 1 + gen ^ b
+  v42 : σ (.n (val% «child_claim_list_mono» "s6#2")) = 1
+  v49 : σ (.n (val% «child_claim_list_mono» "last")) = chain * gen ^ (15 * (a + b))
+  v50 : σ (.n (val% «child_claim_list_mono» "d0")) = (digestHalves D).1
+  v51 : σ (.n (val% «child_claim_list_mono» "d1")) = (digestHalves D).2
+  v54 : σ (.n (val% «child_claim_list_mono» "s11#0")) = (digestHalves D).1
+  v55 : σ (.n (val% «child_claim_list_mono» "s11#0[1]")) = (digestHalves D).2
 
 variable {rd : Reader}
 
@@ -173,14 +175,14 @@ theorem monoBody_core {entries region base limit chain : E} {a b c : ℕ} (D : D
   have hg : ∀ x ∈ atomsIn monoFlat, Good rd SE w σ x := fun x hx => hgs _ (cl_atom_mem hx)
   have par : ∀ i (hi : i < 7), σ (.n i) = args.getD i 0 := fun i hi => by
     rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args]; omega)
-  have e0 : σ (.n 0) = entries := par 0 (by omega)
-  have e1 : σ (.n 1) = region := par 1 (by omega)
-  have e4 : σ (.n 4) = gen ^ a := par 4 (by omega)
-  have e5 : σ (.n 5) = gen ^ b := par 5 (by omega)
-  have v16 : σ (.n 16) = chain := by
+  have e0 : σ (.n (val% «child_claim_list_mono» "entries_ptr")) = entries := par 0 (by omega)
+  have e1 : σ (.n (val% «child_claim_list_mono» "region")) = region := par 1 (by omega)
+  have e4 : σ (.n (val% «child_claim_list_mono» "bigs")) = gen ^ a := par 4 (by omega)
+  have e5 : σ (.n (val% «child_claim_list_mono» "groups")) = gen ^ b := par 5 (by omega)
+  have v16 : σ (.n (val% «child_claim_list_mono» "chain")) = chain := by
     obtain ⟨x, hx, he⟩ := List.any_eq_true.mp hal16
     rw [atomEqb_sound he] at hx
-    have : σ (.n 16) = w 16 := hg _ hx
+    have : σ (.n (val% «child_claim_list_mono» "chain")) = w 16 := hg _ hx
     rw [this, hw]; simp [monow]
   have hF := pure_holds hg
   have v17 : ∀ c < 13, σ (.n (17 + c)) = 0 := by
@@ -204,12 +206,12 @@ theorem monoBody_core {entries region base limit chain : E} {a b c : ℕ} (D : D
       · right; rw [atomEqb_sound h]
         obtain ⟨t, ht⟩ := Sig.load_gpow hlow ha
         rw [← gen_pow_eq_ofK] at ht
-        show IsInK (σ (.n 4)) ∧ (rd ((σ (.n 4)).limb 0 * addressOfIndex 0)).isSome
+        show IsInK (σ (.n (val% «child_claim_list_mono» "bigs"))) ∧ (rd ((σ (.n (val% «child_claim_list_mono» "bigs"))).limb 0 * addressOfIndex 0)).isSome
         rw [e4]; exact ⟨ht.1, by rw [ht.2]; rfl⟩
       · right; rw [atomEqb_sound h]
         obtain ⟨t, ht⟩ := Sig.load_gpow hlow hb20
         rw [← gen_pow_eq_ofK] at ht
-        show IsInK (σ (.n 5)) ∧ (rd ((σ (.n 5)).limb 0 * addressOfIndex 0)).isSome
+        show IsInK (σ (.n (val% «child_claim_list_mono» "groups"))) ∧ (rd ((σ (.n (val% «child_claim_list_mono» "groups"))).limb 0 * addressOfIndex 0)).isSome
         rw [e5]; exact ⟨ht.1, by rw [ht.2]; rfl⟩
     · have := List.all_eq_true.mp hst x hxS
       simp only [Bool.or_eq_true] at this
@@ -217,28 +219,28 @@ theorem monoBody_core {entries region base limit chain : E} {a b c : ℕ} (D : D
       · obtain ⟨c, hc', he⟩ := List.any_eq_true.mp h
         rw [atomEqb_sound he]
         have hc13 := List.mem_range.mp hc'
-        show LoadHolds rd (σ (.n 16)) c (σ (.n (17 + c)))
+        show LoadHolds rd (σ (.n (val% «child_claim_list_mono» "chain"))) c (σ (.n (17 + c)))
         rw [v16, v17 c hc13]
         have := hz0 ⟨c, hc13⟩
         rwa [Nat.zero_add, absorbChunks, cellsOfState_zero] at this
       · rw [atomEqb_sound h]
-        show LoadHolds rd (σ (.n 16)) 13 (σ (.n 1))
+        show LoadHolds rd (σ (.n (val% «child_claim_list_mono» "chain"))) 13 (σ (.n (val% «child_claim_list_mono» "region")))
         rw [v16, e1]
         simpa using h13
       · rw [atomEqb_sound h]
-        show LoadHolds rd (σ (.n 16)) 14 (σ (.n 0))
+        show LoadHolds rd (σ (.n (val% «child_claim_list_mono» "chain"))) 14 (σ (.n (val% «child_claim_list_mono» "entries_ptr")))
         rw [v16, e0]
         simpa using h14
-  have gd : ∀ v ∈ [V.n 50, V.n 51], σ v = w v.idx := by
+  have gd : ∀ v ∈ [V.n (val% «child_claim_list_mono» "d0"), V.n (val% «child_claim_list_mono» "d1")], σ v = w v.idx := by
     obtain ⟨s, hs, he⟩ := List.any_eq_true.mp hdis
     rw [stmtEqb_sound he] at hs
     exact hgs _ hs
-  have v50 : σ (.n 50) = (digestHalves D).1 := by
+  have v50 : σ (.n (val% «child_claim_list_mono» "d0")) = (digestHalves D).1 := by
     rw [gd _ (by simp), hw]; simp [monow]
-  have v51 : σ (.n 51) = (digestHalves D).2 := by
+  have v51 : σ (.n (val% «child_claim_list_mono» "d1")) = (digestHalves D).2 := by
     rw [gd _ (by simp), hw]; simp [monow]
-  have v8 : σ (.n 8) = gen := by rw [const_sound hc8 hat, word_gen]
-  have v15 : σ (.n 15) = gen ^ (15 * (a + b + 1)) := by
+  have v8 : σ (.n (val% «child_claim_list_mono» "chain~1")) = gen := by rw [const_sound hc8 hat, word_gen]
+  have v15 : σ (.n (val% «child_claim_list_mono» "chain~8")) = gen ^ (15 * (a + b + 1)) := by
     rw [mono_sound hat 40, (List.isPerm_iff.mp hm15).map σ |>.prod_eq]
     simp only [List.map_append, List.map_replicate, List.prod_append, List.prod_replicate, e4, e5,
       v8]

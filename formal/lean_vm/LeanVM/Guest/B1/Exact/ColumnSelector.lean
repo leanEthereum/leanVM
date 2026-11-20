@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Terminal.SelComplete
 public import LeanVM.Guest.Exact.Kids
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«column_selector__L»
 
 /-!
 # `column_selector`, exact
@@ -30,7 +32,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 /-- `column_selector__L{κ}`'s computed hint: the digits of its offset's exponent. -/
 def csHintA (κ : ℕ) : Atom :=
-  .hint (.digitsExp (.n 0) 32 (Tables.csN κ) 4 (4 * (κ / 4)) none
+  .hint (.digitsExp (.n (valf% «column_selector» "offset")) 32 (Tables.csN κ) 4 (4 * (κ / 4)) none
     (.stack ((List.range (Tables.csN κ)).map fun k ↦ .n (3 + k))))
 
 theorem cs_sites_all : (List.range 31).all (fun κ => Stmt.blockNextOk

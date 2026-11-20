@@ -15,6 +15,8 @@ public import LeanVM.Guest.Memory.PopsNil
 public import LeanVM.Guest.B1.Main.RelAtInE
 public import LeanVM.Guest.Exact.Free
 public import LeanVM.Guest.Budget.Bounded
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«grind_check__L»
 
 /-!
 # `grind_check`, placed
@@ -86,7 +88,7 @@ theorem forced_load_region {κ : ℕ} {Lin : Main.Layout} {p : E} {off : ℕ} {v
 def gcTailPre (b : ℕ) : List Stmt :=
   [.atom (.const (.n (10 * gcW b + 9)) (word (2 ^ b) 0)),
     .atom (.mul (.n (10 * gcW b + 10)) (.n (10 * gcW b + 8)) (.n (10 * gcW b + 9))),
-    .atom (.add (.n (10 * gcW b + 11)) (.n 0) (.n (10 * gcW b + 10))),
+    .atom (.add (.n (10 * gcW b + 11)) (.n (valf% «grind_check» "word")) (.n (10 * gcW b + 10))),
     .atom (.const (.n (10 * gcW b + 12)) (word 2 1)),
     .atom (.mul (.n (10 * gcW b + 13)) (.n (10 * gcW b + 11)) (.n (10 * gcW b + 12))),
     .atom (.const (.n (10 * gcW b + 14)) (word (2 ^ b) 0)),

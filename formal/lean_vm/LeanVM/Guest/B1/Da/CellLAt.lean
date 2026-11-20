@@ -13,6 +13,8 @@ public import LeanVM.Guest.B1.Da.CellPlaced
 public import LeanVM.Guest.B1.Da.DvHonest
 public import LeanVM.Guest.B1.Da.LoopsComplete
 public import LeanVM.Guest.B1.Da.WeightsAt
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_verify_blob_loop0»
 
 /-!
 # A blob's cell loop, popping its cells' symbols
@@ -49,7 +51,7 @@ theorem gen_pow_add_ne {a b : ℕ} (ha : a < 2 ^ 34) (hb : b < 2 ^ 34) :
     fun h he => h (gen_pow_inj' ha hb (e_add_eq_zero_iff.mp he))⟩
 
 /-- `da_verify_blob_loop0`'s statements before its `ret`. -/
-def cellLP : List Stmt := cellLPre ++ [.callIf (.n 16) name% «da_verify_blob_loop0» [.n 18, .n 1, .n 2]]
+def cellLP : List Stmt := cellLPre ++ [.callIf (.n (val% «da_verify_blob_loop0» "s7#3")) name% «da_verify_blob_loop0» [.n (val% «da_verify_blob_loop0» "s7#5"), .n (val% «da_verify_blob_loop0» "weights"), .n (val% «da_verify_blob_loop0» "base")]]
 
 theorem cellL_body_split : Fn.body (coreProgram.getD idx% «da_verify_blob_loop0» default) = cellLP ++ [.ret []] := by
   rw [dv_loops_body.2.2, cellLBody, cellLP, List.append_assoc]
@@ -62,13 +64,13 @@ theorem cellL_loop : coreProgram.loop name% «da_verify_blob_loop0» = true := b
 
 /-- An iteration's calls: the cell check, then the tail call, taken unless `k + 1 = 128`. -/
 def cellLCalls (k : ℕ) : List Call :=
-  [⟨"da_verify_cell", [.n 4], [.n 5, .n 6, .n 7], true⟩] ++
-    [⟨name% «da_verify_blob_loop0», [.n 18, .n 1, .n 2], [], decide (k + 1 ≠ 128)⟩]
+  [⟨"da_verify_cell", [.n (val% «da_verify_blob_loop0» "d0~4")], [.n (val% «da_verify_blob_loop0» "d0"), .n (val% «da_verify_blob_loop0» "d1"), .n (val% «da_verify_blob_loop0» "s")], true⟩] ++
+    [⟨name% «da_verify_blob_loop0», [.n (val% «da_verify_blob_loop0» "s7#5"), .n (val% «da_verify_blob_loop0» "weights"), .n (val% «da_verify_blob_loop0» "base")], [], decide (k + 1 ≠ 128)⟩]
 
 /-- **An iteration's honest shape**: at the counter `g^k`, its cell check by a tree of `Tc`, its tail call by a tree
 of `Tt`. -/
 def cellLNH (k : ℕ) (Tc Tt : Tree → Prop) : Tree → Prop :=
-  NodeHonest coreProgram name% «da_verify_blob_loop0» (fun σ => σ (.n 0) = gen ^ k) (fun _ => cellLCalls k)
+  NodeHonest coreProgram name% «da_verify_blob_loop0» (fun σ => σ (.n (val% «da_verify_blob_loop0» "xb")) = gen ^ k) (fun _ => cellLCalls k)
     (fun _ => []) [Tc, Tt]
 
 /-- **`t` iterations from `k`**, the cell check of iteration `j` by a tree of `Tc j`. -/
@@ -130,15 +132,15 @@ theorem cellL_stepLF {i k bb bw : ℕ} {q : ℕ → ℕ} {syms : ℕ → ℕ →
   have hw' := Main.walk_straight σ [] cellLP cellLP_straight
   rw [← cellL_body_split] at hw'
   obtain ⟨hpd, hpa, hpad, hpc⟩ := Main.straight_parts σ _ cellLP_straight
-  have h16 : σ (.n 16) = gen ^ (k + 1) + gen ^ 128 := by
+  have h16 : σ (.n (val% «da_verify_blob_loop0» "s7#3")) = gen ^ (k + 1) + gen ^ 128 := by
     show gen ^ k * word 2 0 + word 325 0 = _
     rw [word_gen, gen_pow_mul_gen, word_g128]
-  have htk : decide (σ (.n 16) ≠ 0) = decide (k + 1 ≠ 128) := by
+  have htk : decide (σ (.n (val% «da_verify_blob_loop0» "s7#3")) ≠ 0) = decide (k + 1 ≠ 128) := by
     rw [h16]; exact gen_pow_add_ne (by omega) (by norm_num)
   have hcalls : calls (cellLP.flatMap (Main.slEvs σ)) = cellLCalls k := by
     rw [hpc, show cellLP.filterMap Main.Stmt.callS =
-      [(none, "da_verify_cell", [.n 4], [.n 5, .n 6, .n 7]),
-        (some (.n 16), name% «da_verify_blob_loop0», [.n 18, .n 1, .n 2], [])] from rfl]
+      [(none, "da_verify_cell", [.n (val% «da_verify_blob_loop0» "d0~4")], [.n (val% «da_verify_blob_loop0» "d0"), .n (val% «da_verify_blob_loop0» "d1"), .n (val% «da_verify_blob_loop0» "s")]),
+        (some (.n (val% «da_verify_blob_loop0» "s7#3")), name% «da_verify_blob_loop0», [.n (val% «da_verify_blob_loop0» "s7#5"), .n (val% «da_verify_blob_loop0» "weights"), .n (val% «da_verify_blob_loop0» "base")], [])] from rfl]
     simp only [List.map_cons, List.map_nil, Main.mkCall, htk, cellLCalls, List.cons_append, List.nil_append]
   have hal : allocs σ (cellLP.flatMap (Main.slEvs σ)) = [] := by
     rw [hpa, show cellLP.filterMap Main.Stmt.allocSz = [] from rfl]; rfl
@@ -150,10 +152,10 @@ theorem cellL_stepLF {i k bb bw : ℕ} {q : ℕ → ℕ} {syms : ℕ → ℕ →
       rfl | rfl
     all_goals simp only [SlOk, Atom.Holds, hσ, ofArgs_n, List.getD_cons_succ, List.getD_cons_zero]
     exacts [h0, h2, h3, h4, h5, by rw [word_gen, gen_pow_mul_gen, word_g128]; exact gen_pow_add_isInK _ _]
-  have hargs : [V.n 18, .n 1, .n 2].map σ = [gen ^ (k + 1), gen ^ bw, gen ^ bb] := by
+  have hargs : [V.n (val% «da_verify_blob_loop0» "s7#5"), .n (val% «da_verify_blob_loop0» "weights"), .n (val% «da_verify_blob_loop0» "base")].map σ = [gen ^ (k + 1), gen ^ bw, gen ^ bb] := by
     show [gen ^ k * word 2 0, gen ^ bw, gen ^ bb] = _
     rw [word_gen, gen_pow_mul_gen]
-  have hpar : (coreProgram.getD idx% «da_verify_blob_loop0» default).params = [.n 0, .n 1, .n 2] :=
+  have hpar : (coreProgram.getD idx% «da_verify_blob_loop0» default).params = [.n (val% «da_verify_blob_loop0» "xb"), .n (val% «da_verify_blob_loop0» "weights"), .n (val% «da_verify_blob_loop0» "base")] :=
     dv_loops_shape.2.2
   have hreg' : ∀ {j : ℕ}, j < 641 → RegionL Lin (bb + j) := fun hj =>
     regionL_of_mem hBm (by rw [length_regionCells]; exact hj)
@@ -182,7 +184,7 @@ theorem cellL_stepLF {i k bb bw : ℕ} {q : ℕ → ℕ} {syms : ℕ → ℕ →
     (fun j hj => Or.inl hj)
     (fun A hA => by
       rw [B1.loadAddrs_straight σ _ cellLP_straight,
-        show cellLP.filterMap B1.Stmt.loadS = [(.n 3, 0), (.n 8, 512), (.n 8, 513), (.n 12, 0), (.n 12, 1)]
+        show cellLP.filterMap B1.Stmt.loadS = [(.n (val% «da_verify_blob_loop0» "d0~3"), 0), (.n (val% «da_verify_blob_loop0» "chain"), 512), (.n (val% «da_verify_blob_loop0» "chain"), 513), (.n (val% «da_verify_blob_loop0» "leaf"), 0), (.n (val% «da_verify_blob_loop0» "leaf"), 1)]
           from rfl] at hA
       simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
       rcases hA with rfl | rfl | rfl | rfl | rfl
@@ -202,7 +204,7 @@ theorem cellL_stepLF {i k bb bw : ℕ} {q : ℕ → ℕ} {syms : ℕ → ℕ →
         show (gen ^ bb * (gen ^ k * gen ^ k)).limb 0 * addressOfIndex 1 = _
         rw [← pow_add, ← pow_add, limb0_gen_pow_mul]; ring_nf)
     (fun j hj => by obtain ⟨q, hq, -⟩ := hj; simp at hq)
-  have h' := relAtInCT_nodeHonest (Q := fun σ => σ (.n 0) = gen ^ k)
+  have h' := relAtInCT_nodeHonest (Q := fun σ => σ (.n (val% «da_verify_blob_loop0» "xb")) = gen ^ k)
     (cs := fun _ => cellLCalls k) (bs := fun _ => []) (Ts := [cellNH (syms i k), Tt]) hrel find_c hw' rfl
     (by rw [hcalls]) hal (by simp [cellLCalls])
   rw [hal] at h'

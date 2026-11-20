@@ -11,6 +11,8 @@ public import LeanVM.Guest.Exact.Ok
 public import LeanVM.Guest.B1.Bits.GPowerP
 public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«shared_selector_tables»
 
 /-!
 # `shared_selector_tables`, exact
@@ -29,7 +31,7 @@ open LeanVM.Protocol.Verifier (gen)
 @[expose] public section
 
 /-- `shared_selector_tables`' computed hint: the six bits of its `g`-power's exponent. -/
-def sstHint : Atom := .hint (.bitsExp (.n 5) 6 (.stack [.n 6, .n 7, .n 8, .n 9, .n 10, .n 11]))
+def sstHint : Atom := .hint (.bitsExp (.n (val% «shared_selector_tables» "len_g")) 6 (.stack [.n (val% «shared_selector_tables» "nb[0]"), .n (val% «shared_selector_tables» "nb[1]"), .n (val% «shared_selector_tables» "nb[2]"), .n (val% «shared_selector_tables» "nb[3]"), .n (val% «shared_selector_tables» "nb[4]"), .n (val% «shared_selector_tables» "nb[5]")]))
 
 theorem sst_sites : Stmt.blockNextOk (fun a => isComputed a && !decide (a ∈ [sstHint])) pinsInverse
     (fn% «shared_selector_tables»).body = true := by
@@ -52,21 +54,21 @@ theorem sst_pathExact : PathExactFn fn% «shared_selector_tables» := by
   have hb : ∀ j < 6, σ (.n (6 + j)) * σ (.n (6 + j)) = σ (.n (6 + j)) := by
     intro j hj; interval_cases j
     exacts [m6.symm, m7.symm, m8.symm, m9.symm, m10.symm, m11.symm]
-  have rg : σ (.n 20) = ∏ j ∈ Finset.range 2, (1 + σ (.n (6 + j)) * (gen ^ 2 ^ j + 1)) := by
+  have rg : σ (.n (val% «shared_selector_tables» "r_g")) = ∏ j ∈ Finset.range 2, (1 + σ (.n (6 + j)) * (gen ^ 2 ^ j + 1)) := by
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul]
     rw [h20, h15, h19, c12, h14, c13, c16, h18, c17, w3, w5, word_one]
-  have qg : σ (.n 39) = ∏ j ∈ Finset.range 4, (1 + σ (.n (8 + j)) * (gen ^ 2 ^ j + 1)) := by
+  have qg : σ (.n (val% «shared_selector_tables» "q_g@4")) = ∏ j ∈ Finset.range 4, (1 + σ (.n (8 + j)) * (gen ^ 2 ^ j + 1)) := by
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul]
     rw [h39, h34, h29, h24, h28, h33, h38, c21, h23, c22, c25, h27, c26, c30, h32, c31, c35, h37, c36, w3, w5, w17,
       w257, word_one]
-  have hq4 : σ (.n 41) = ∏ j ∈ Finset.range 4, (1 + σ (.n (6 + (2 + j))) * (gen ^ 2 ^ (2 + j) + 1)) := by
+  have hq4 : σ (.n (val% «shared_selector_tables» "q4")) = ∏ j ∈ Finset.range 4, (1 + σ (.n (6 + (2 + j))) * (gen ^ 2 ^ (2 + j) + 1)) := by
     rw [h41, h40, qg, ← Finset.prod_mul_distrib, ← Finset.prod_mul_distrib]
     refine Finset.prod_congr rfl fun j hj => ?_
     have := bitFactor_pow4 (hb (2 + j) (by have := Finset.mem_range.mp hj; omega)) j
     rw [show 6 + (2 + j) = 8 + j by omega, show j + 2 = 2 + j by omega] at this
     rw [show 6 + (2 + j) = 8 + j by omega, ← this]
     ring
-  have hv : σ (.n 5) = ∏ j ∈ Finset.range 6, (1 + σ (.n (6 + j)) * (gen ^ 2 ^ j + 1)) := by
+  have hv : σ (.n (val% «shared_selector_tables» "len_g")) = ∏ j ∈ Finset.range 6, (1 + σ (.n (6 + j)) * (gen ^ 2 ^ j + 1)) := by
     rw [show Finset.range 6 = Finset.range (2 + 4) from rfl, Finset.prod_range_add, ← e_add_eq_zero_iff.mp ha, h42,
       hq4, rg, mul_comm]
   exact bitsExp_exact_of_prod (fun j => σ (.n (6 + j))) rfl hb hv

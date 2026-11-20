@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.Da.Blob
 public import LeanVM.Guest.B1.Da.VerifyChk
 public import LeanVM.Guest.B1.Main.Facts
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_weights»
 
 /-!
 # `da_weights`, sound
@@ -51,7 +53,7 @@ theorem ws_sound {tl cf zs off wt : E}
   obtain ⟨hallS, hret⟩ := holdsList_flat wsP (List.all_eq_true.mpr hflat) _ _ hb
   simp only [Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at hret
   have hat := atoms_of_flat hallS
-  have hw : σ (.n 4) = wt := by
+  have hw : σ (.n (val% «da_weights» "weights")) = wt := by
     rw [← copy_sound hcp hat]; simpa using hret
   have hoff : ∀ k < 128, σ (wsOff k) = off * (gen ^ k) ^ 7 := by
     intro k hk

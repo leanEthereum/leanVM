@@ -12,6 +12,8 @@ public import LeanVM.Guest.B1.Main.L5Segs
 public import LeanVM.Guest.B1.Main.MainPopsKids
 public import LeanVM.Guest.Budget.FinalP
 public import LeanVM.Guest.B1.Main.MainGoalsDaAgR
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop4»
 
 /-!
 # The children loop with its pops
@@ -78,22 +80,22 @@ theorem l5From_popsS {ex es : ℕ → ℕ} {Pxs Pss Pvs : ℕ → Tree → Prop}
   have hrest : ((List.range 16).map V.n).tail.map σ = rest := by
     have := congrArg List.tail hpar
     rwa [← List.map_tail] at this
-  have h0 : σ (.n 0) = gen ^ c := pr 0 (by omega)
-  have h1 : σ (.n 1) = gen ^ nk := (pr 1 (by omega)).trans hnk
-  have h9 : σ (.n 9) = gen ^ Cr := (pr 9 (by omega)).trans hCr
-  have h10 : σ (.n 10) = gen ^ D := (pr 10 (by omega)).trans hD
+  have h0 : σ (.n (val% «main_loop4» "xc")) = gen ^ c := pr 0 (by omega)
+  have h1 : σ (.n (val% «main_loop4» "bound")) = gen ^ nk := (pr 1 (by omega)).trans hnk
+  have h9 : σ (.n (val% «main_loop4» "child_carried")) = gen ^ Cr := (pr 9 (by omega)).trans hCr
+  have h10 : σ (.n (val% «main_loop4» "da_digests")) = gen ^ D := (pr 10 (by omega)).trans hD
   rw [l5_body, holdsList_append] at hb
   obtain ⟨hflat, hm33, hm35, hg55, hg52, ha53⟩ := l5_chk
   obtain ⟨hall, -⟩ := holdsList_flat _ hflat _ _ hb
   have hat := atoms_of_flat hall
-  have h33 : σ (.n 33) = gen ^ (Cr + 24 * c) := by
+  have h33 : σ (.n (val% «main_loop4» "carried")) = gen ^ (Cr + 24 * c) := by
     rw [monoIs_sound hm33 hat, h9, h0, ← pow_mul, ← pow_add]
     exact congrArg (HPow.hPow gen) (by ring)
-  have h35 : σ (.n 35) = gen ^ (D + 2 * c) := by
+  have h35 : σ (.n (val% «main_loop4» "child_da")) = gen ^ (D + 2 * c) := by
     rw [monoIs_sound hm35 hat, h10, h0, ← pow_mul, ← pow_add]
     exact congrArg (HPow.hPow gen) (by ring)
-  have h55 : σ (.n 55) = gen ^ (c + 1) := by rw [genMul_sound hg55 hat, h0, pow_succ]
-  have h53 : σ (.n 53) = gen ^ (c + 1) + gen ^ nk := by
+  have h55 : σ (.n (val% «main_loop4» "s21#4")) = gen ^ (c + 1) := by rw [genMul_sound hg55 hat, h0, pow_succ]
+  have h53 : σ (.n (val% «main_loop4» "s21#2")) = gen ^ (c + 1) + gen ^ nk := by
     rw [add_sound ha53 hat, genMul_sound hg52 hat, h0, h1, pow_succ]
   obtain ⟨hdl, hdef, hd0, hd1⟩ := hmem c (by omega)
   have hda : ReadsAt rd (gen ^ (D + 2 * c)) [(da c).1, (da c).2] := by
@@ -117,16 +119,16 @@ theorem l5From_popsS {ex es : ℕ → ℕ} {Pxs Pss Pvs : ℕ → Tree → Prop}
     (show kst.Valid coreProgram rd _ _ from hv3) hn3 rd
   have pt : SameStreams (kt.pops coreProgram rd) ((List.range' (c + 1) m).flatMap fun c =>
       l5Seg (ex c) (es c) (px c) (ps c) (defer c) (da c) (pv c)) := by
-    by_cases h0' : σ (.n 53) = 0
+    by_cases h0' : σ (.n (val% «main_loop4» "s21#2")) = 0
     · have hcm' : c + 1 = nk := by
         rw [h53] at h0'
         exact Digest.gen_pow_inj' (by omega) hnk34 (e_add_eq_zero_iff.mp h0')
       rw [show m = 0 by omega, List.range'_zero, List.flatMap_nil]
-      have : (decide (σ (.n 53) ≠ 0)) = false := by simpa using h0'
+      have : (decide (σ (.n (val% «main_loop4» "s21#2")) ≠ 0)) = false := by simpa using h0'
       simp only [this, Bool.false_eq_true, ↓reduceIte] at hvt
       obtain ⟨⟨g, σ', rfl⟩, -⟩ := hvt
       exact SameStreams.refl _
-    · have ht : (decide (σ (.n 53) ≠ 0)) = true := by simpa using h0'
+    · have ht : (decide (σ (.n (val% «main_loop4» "s21#2")) ≠ 0)) = true := by simpa using h0'
       simp only [ht, ↓reduceIte] at hvt
       rw [l5_tail_args, h55, hrest] at hvt
       exact ih (c + 1) kt [] (by omega) hvt (hTt ht)
@@ -139,12 +141,12 @@ theorem l5From_popsS {ex es : ℕ → ℕ} {Pxs Pss Pvs : ℕ → Tree → Prop}
       (.cons pt .nil))))
   simp only [spliceS, List.headD_cons, List.tail_cons]
   rw [List.range'_succ, List.flatMap_cons, l5Seg]
-  have w1 : Dest.words rd σ (.stack [.n 18, .n 19]) = [gen ^ ex c, gen ^ es c] := by
-    show [σ (.n 18), σ (.n 19)] = _
+  have w1 : Dest.words rd σ (.stack [.n (val% «main_loop4» "child_meta[0]"), .n (val% «main_loop4» "child_meta[1]")]) = [gen ^ ex c, gen ^ es c] := by
+    show [σ (.n (val% «main_loop4» "child_meta[0]")), σ (.n (val% «main_loop4» "child_meta[1]"))] = _
     rw [h18, h19]
-  have w2 : Dest.words rd σ (.heap (.n 33) 0 24) = defer c := by
+  have w2 : Dest.words rd σ (.heap (.n (val% «main_loop4» "carried")) 0 24) = defer c := by
     rw [← hdl]; exact l5_words_of_reads σ h33 hdef
-  have w3 : Dest.words rd σ (.heap (.n 35) 0 2) = [(da c).1, (da c).2] :=
+  have w3 : Dest.words rd σ (.heap (.n (val% «main_loop4» "child_da")) 0 2) = [(da c).1, (da c).2] :=
     l5_words_of_reads σ h35 hda
   rw [w1, w2, w3]
   simp only [List.append_assoc, List.cons_append, List.nil_append, List.append_nil]

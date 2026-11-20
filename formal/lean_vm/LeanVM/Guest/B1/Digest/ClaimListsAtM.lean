@@ -11,6 +11,8 @@ module
 
 public import LeanVM.Guest.B1.Digest.ClaimListsAtTB
 public import LeanVM.Guest.B1.Digest.MonoAt
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_digest»
 
 /-!
 # A child's claim list, on either walk
@@ -41,18 +43,18 @@ open LeanVM.Guest.Budget (NodeHonest)
 
 /-- `ccQ n` with the hint `child_mono = h`. -/
 def ccQH (n : ℕ) (h : E) (σ : Val) : Prop :=
-  σ (.n 4) = gen ^ n ∧ (n ≠ 0 → σ (.n 15) = gen ^ (n / 136) ∧ σ (.n 16) = gen ^ (n % 136 / 17) ∧
-    σ (.n 17) = gen ^ (n % 17) ∧ σ (.n 18) = h)
+  σ (.n (val% «child_claim_list_digest» "n_g")) = gen ^ n ∧ (n ≠ 0 → σ (.n (val% «child_claim_list_digest» "bigs")) = gen ^ (n / 136) ∧ σ (.n (val% «child_claim_list_digest» "groups")) = gen ^ (n % 136 / 17) ∧
+    σ (.n (val% «child_claim_list_digest» "rest")) = gen ^ (n % 17) ∧ σ (.n (val% «child_claim_list_digest» "mono")) = h)
 
 /-- The walk's call: `child_claim_list_mono` or `child_claim_list_any`. -/
 def ccWalkCall (mono : Bool) : Call :=
-  if mono then ⟨"child_claim_list_mono", [.n 0, .n 1, .n 2, .n 3, .n 15, .n 16, .n 17],
-      [.n 21, .n 22], true⟩
-  else ⟨"child_claim_list_any", [.n 0, .n 1, .n 2, .n 3, .n 15, .n 16, .n 17], [.n 23, .n 24], true⟩
+  if mono then ⟨"child_claim_list_mono", [.n (val% «child_claim_list_digest» "entries_ptr"), .n (val% «child_claim_list_digest» "region"), .n (val% «child_claim_list_digest» "base"), .n (val% «child_claim_list_digest» "limit_g"), .n (val% «child_claim_list_digest» "bigs"), .n (val% «child_claim_list_digest» "groups"), .n (val% «child_claim_list_digest» "rest")],
+      [.n (val% «child_claim_list_digest» "d0@1"), .n (val% «child_claim_list_digest» "d1@1")], true⟩
+  else ⟨"child_claim_list_any", [.n (val% «child_claim_list_digest» "entries_ptr"), .n (val% «child_claim_list_digest» "region"), .n (val% «child_claim_list_digest» "base"), .n (val% «child_claim_list_digest» "limit_g"), .n (val% «child_claim_list_digest» "bigs"), .n (val% «child_claim_list_digest» "groups"), .n (val% «child_claim_list_digest» "rest")], [.n (val% «child_claim_list_digest» "d0@2"), .n (val% «child_claim_list_digest» "d1@2")], true⟩
 
 /-- `child_claim_list_digest`'s calls on either walk. -/
 def ccCallsM (mono : Bool) (n : ℕ) (_ : Val) : List Call :=
-  if n = 0 then [] else [⟨"list_split", [.n 4], [.n 15, .n 16, .n 17], true⟩, ccWalkCall mono]
+  if n = 0 then [] else [⟨"list_split", [.n (val% «child_claim_list_digest» "n_g")], [.n (val% «child_claim_list_digest» "bigs"), .n (val% «child_claim_list_digest» "groups"), .n (val% «child_claim_list_digest» "rest")], true⟩, ccWalkCall mono]
 
 /-- The walk's tree of honest shape. -/
 def ccTsM (mono : Bool) (n : ℕ) : List (Tree → Prop) :=
@@ -127,23 +129,23 @@ theorem cc_nonemptyM (fs : String → ℕ) (cert : String → V → ℕ) {κ : �
   obtain ⟨hLk, hLin'⟩ := memL_append.mp hm
   set σ := ccEσH eP rg L n base D h with hσ
   have hgn : gen ^ n ≠ 1 := fun h => hn0 ((gen_pow_eq_one_iff (by omega)).mp h)
-  have h6ne : σ (.n 6) ≠ 0 := by
+  have h6ne : σ (.n (val% «child_claim_list_digest» "s1#1")) ≠ 0 := by
     show gen ^ n + word 1 0 ≠ 0
     rw [word_one, Ne, e_add_eq_zero_iff]; exact hgn
-  have h20 : σ (.n 20) = h + word 2 0 := rfl
-  have hb : (if σ (.n 6) = 0 then walk σ cc25Zero else walk σ ccElse) =
-      .fall (ccE4.flatMap (Main.slEvs σ) ++ .inK (.n 20) :: (ccArm mono).flatMap (Main.slEvs σ)) := by
+  have h20 : σ (.n (val% «child_claim_list_digest» "s1.e.s2#1")) = h + word 2 0 := rfl
+  have hb : (if σ (.n (val% «child_claim_list_digest» "s1#1")) = 0 then walk σ cc25Zero else walk σ ccElse) =
+      .fall (ccE4.flatMap (Main.slEvs σ) ++ .inK (.n (val% «child_claim_list_digest» "s1.e.s2#1")) :: (ccArm mono).flatMap (Main.slEvs σ)) := by
     simp only [h6ne, ↓reduceIte]
-    rw [ccElse, walk_pre_ite σ ccMonoArm ccAnyArm rfl rfl (.n 20) ccE4 rfl]
+    rw [ccElse, walk_pre_ite σ ccMonoArm ccAnyArm rfl rfl (.n (val% «child_claim_list_digest» "s1.e.s2#1")) ccE4 rfl]
     cases mono
     · simp only [(ha rfl).1, h20, ↓reduceIte, ccArm, Bool.false_eq_true]
-    · have : σ (.n 20) = 0 := by
+    · have : σ (.n (val% «child_claim_list_digest» "s1.e.s2#1")) = 0 := by
         rw [h20, hm rfl, word_gen]; exact e_add_eq_zero_iff.mpr rfl
       simp only [this, ↓reduceIte, ccArm]
-  have hw := walk_ite σ ccdTail rfl (.n 6) cc25Zero ccElse [.n 25, .n 26] _ hb ccdHead rfl
+  have hw := walk_ite σ ccdTail rfl (.n (val% «child_claim_list_digest» "s1#1")) cc25Zero ccElse [.n (val% «child_claim_list_digest» "s2#0"), .n (val% «child_claim_list_digest» "s2#0[1]")] _ hb ccdHead rfl
   rw [← ccd_body] at hw
-  set es := ccdHead.flatMap (Main.slEvs σ) ++ .inK (.n 6) ::
-    ((ccE4.flatMap (Main.slEvs σ) ++ .inK (.n 20) :: (ccArm mono).flatMap (Main.slEvs σ)) ++
+  set es := ccdHead.flatMap (Main.slEvs σ) ++ .inK (.n (val% «child_claim_list_digest» "s1#1")) ::
+    ((ccE4.flatMap (Main.slEvs σ) ++ .inK (.n (val% «child_claim_list_digest» "s1.e.s2#1")) :: (ccArm mono).flatMap (Main.slEvs σ)) ++
       ccdTail.flatMap (Main.slEvs σ)) with hes
   have hev : ∀ e ∈ es, e.Holds rd σ := by
     intro e he

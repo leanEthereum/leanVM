@@ -10,6 +10,8 @@ public import LeanVM.Guest.B1.Da.Verify
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Source
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_verify»
 
 /-!
 # `da_verify`'s shape words
@@ -27,7 +29,7 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 
 public section
 
-theorem dv_body : (fn% «da_verify»).body = dvP ++ [.ret [.n 26, .n 27, .n 28]] := by
+theorem dv_body : (fn% «da_verify»).body = dvP ++ [.ret [.n (val% «da_verify» "s11#0"), .n (val% «da_verify» "s11#0[1]"), .n (val% «da_verify» "s11#0[2]")]] := by
   have h := dv_ok
   unfold dvOk at h
   simp only [Bool.and_eq_true] at h
@@ -42,8 +44,8 @@ theorem dv_flat : dvP.all Stmt.flat = true := by
 /-- **`da_verify`'s shape words**: `[1] = g^r`, `1 ≤ r ≤ DA_MAX_ROWS`, `[2] = g^(DA_MAX_ROWS - r)`. -/
 theorem dv_front {rd : Reader} {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) (hm : MemOk rd)
     {σ : Val} {rets : List E} (hb : Stmt.HoldsList C rd σ (Fn.body fn% «da_verify») False (· = rets)) :
-    ∃ r, 1 ≤ r ∧ r ≤ guest_const% DA_MAX_ROWS ∧ σ (.n 1) = gen ^ r ∧
-      σ (.n 2) = gen ^ (guest_const% DA_MAX_ROWS - r) := by
+    ∃ r, 1 ≤ r ∧ r ≤ guest_const% DA_MAX_ROWS ∧ σ (.n (val% «da_verify» "n_blob_g")) = gen ^ r ∧
+      σ (.n (val% «da_verify» "gap_g")) = gen ^ (guest_const% DA_MAX_ROWS - r) := by
   have hok := dv_ok
   unfold dvOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok

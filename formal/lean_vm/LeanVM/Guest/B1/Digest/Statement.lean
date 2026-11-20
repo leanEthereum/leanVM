@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Digest.Basic
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«statement_digest»
 
 /-!
 # `statement_digest`
@@ -53,16 +55,16 @@ def sdKeccak (k : ℕ) : Atom :=
 
 /-- The header cells. -/
 def sdHdr : List Atom :=
-  [.copy (.n 9) (.n 0), .copy (.n 10) (.n 1), .copy (.n 11) (.n 2), .copy (.n 12) (.n 3),
-   .copy (.n 13) (.n 4), .copy (.n 14) (.n 5), .copy (.n 15) (.n 6), .copy (.n 16) (.n 7)]
+  [.copy (.n (val% «statement_digest» "cells[0]")) (.n (val% «statement_digest» "seed_0")), .copy (.n (val% «statement_digest» "cells[1]")) (.n (val% «statement_digest» "seed_1")), .copy (.n (val% «statement_digest» "cells[2]")) (.n (val% «statement_digest» "xd_0")), .copy (.n (val% «statement_digest» "cells[3]")) (.n (val% «statement_digest» "xd_1")),
+   .copy (.n (val% «statement_digest» "cells[4]")) (.n (val% «statement_digest» "sd_0")), .copy (.n (val% «statement_digest» "cells[5]")) (.n (val% «statement_digest» "sd_1")), .copy (.n (val% «statement_digest» "cells[6]")) (.n (val% «statement_digest» "da_0")), .copy (.n (val% «statement_digest» "cells[7]")) (.n (val% «statement_digest» "da_1"))]
 
 /-- The deferred cells, read at `defer`. -/
-def sdLoads : List Atom := (List.range 24).map fun i => .load (.n (17 + i)) (.n 8) i
+def sdLoads : List Atom := (List.range 24).map fun i => .load (.n (17 + i)) (.n (val% «statement_digest» "defer")) i
 
 /-- The constants: the padding's `0x01` cell and the zero capacity of the first block. -/
 def sdConsts : List Atom :=
-  [.const (.n 41) (word 1 0), .const (.n 42) (word 0 0), .const (.n 43) (word 0 0),
-   .const (.n 44) (word 0 0), .const (.n 45) (word 0 0)]
+  [.const (.n (val% «statement_digest» "s11#1")) (word 1 0), .const (.n (val% «statement_digest» "s11#1[1]")) (word 0 0), .const (.n (val% «statement_digest» "s11#1[2]")) (word 0 0),
+   .const (.n (val% «statement_digest» "s11#1[3]")) (word 0 0), .const (.n (val% «statement_digest» "s11#1[4]")) (word 0 0)]
 
 /-- Block `k ∈ {1, 2}`: nine message cells XORed into the previous output, then its `KECCAK`. -/
 def sdBlk (k : ℕ) : List Atom :=
@@ -76,20 +78,20 @@ abbrev padWord : E := word 0 9223372036854775808
 `0x80` cell, its `KECCAK`. -/
 def sdBlk3 : List Atom :=
   (List.range 8).map (fun c => .add (.n (103 + c)) (.n (sdOut 2 c)) (.n (sdCell (25 + c)))) ++
-    [.const (.n 111) padWord, .add (.n 112) (.n (sdOut 2 8)) (.n 111), sdKeccak 3]
+    [.const (.n (val% «statement_digest» "s11#21")) padWord, .add (.n (val% «statement_digest» "s11#22")) (.n (sdOut 2 8)) (.n (val% «statement_digest» "s11#21")), sdKeccak 3]
 
 /-- `statement_digest`'s atoms. -/
 def sdAtoms : List Atom :=
   sdHdr ++ sdLoads ++ sdConsts ++ [sdKeccak 0] ++ (List.range 2).flatMap (fun j => sdBlk (j + 1)) ++
-    sdBlk3 ++ [.copy (.n 115) (.n 113), .copy (.n 116) (.n 114)]
+    sdBlk3 ++ [.copy (.n (val% «statement_digest» "s12#0")) (.n (val% «statement_digest» "st[0]")), .copy (.n (val% «statement_digest» "s12#0[1]")) (.n (val% «statement_digest» "st[1]"))]
 
 set_option maxRecDepth 100000 in
-theorem sd_body : Fn.body fn% «statement_digest» = sdAtoms.map Stmt.atom ++ [.ret [.n 115,
-    .n 116]] :=
+theorem sd_body : Fn.body fn% «statement_digest» = sdAtoms.map Stmt.atom ++ [.ret [.n (val% «statement_digest» "s12#0"),
+    .n (val% «statement_digest» "s12#0[1]")]] :=
   stmtsEqb_sound (by decide +kernel)
 
 theorem sd_params : Fn.params fn% «statement_digest» =
-    [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8] := rfl
+    [.n (val% «statement_digest» "seed_0"), .n (val% «statement_digest» "seed_1"), .n (val% «statement_digest» "xd_0"), .n (val% «statement_digest» "xd_1"), .n (val% «statement_digest» "sd_0"), .n (val% «statement_digest» "sd_1"), .n (val% «statement_digest» "da_0"), .n (val% «statement_digest» "da_1"), .n (val% «statement_digest» "defer")] := rfl
 
 /-! ## The cells -/
 
@@ -149,7 +151,7 @@ theorem statement_digest_sound : statement_digest_sound_Spec := by
     implies_true, and_true] at hC
   obtain ⟨c41, c42, c43, c44, c45⟩ := hC
   -- the loads
-  have hload : ∀ i < 24, LoadHolds rd (σ (.n 8)) i (σ (.n (17 + i))) := fun i hi =>
+  have hload : ∀ i < 24, LoadHolds rd (σ (.n (val% «statement_digest» "defer"))) i (σ (.n (17 + i))) := fun i hi =>
     hL _ (List.mem_map.mpr ⟨i, List.mem_range.mpr hi, rfl⟩)
   -- the blocks
   have hadd : ∀ k, 1 ≤ k → k ≤ 2 → ∀ c < 9, σ (.n (59 + 22 * (k - 1) + c)) =
@@ -247,11 +249,11 @@ theorem statement_digest_sound : statement_digest_sound_Spec := by
   -- the deferred cells
   let cells : List E := (List.range 24).map fun q => σ (.n (17 + q))
   have e1 : (List.range 8).map (fun m => σ (.n (sdCell m))) =
-      [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6), σ (.n 7)] := by
+      [σ (.n (val% «statement_digest» "seed_0")), σ (.n (val% «statement_digest» "seed_1")), σ (.n (val% «statement_digest» "xd_0")), σ (.n (val% «statement_digest» "xd_1")), σ (.n (val% «statement_digest» "sd_0")), σ (.n (val% «statement_digest» "sd_1")), σ (.n (val% «statement_digest» "da_0")), σ (.n (val% «statement_digest» "da_1"))] := by
     rw [← h9, ← h10, ← h11, ← h12, ← h13, ← h14, ← h15, ← h16]; rfl
   have hsplit : C32 = (List.range 8).map (fun m => σ (.n (sdCell m))) ++ cells := rfl
   have hbytes : cellsBytes C32 =
-      stmtBytes [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6), σ (.n 7)]
+      stmtBytes [σ (.n (val% «statement_digest» "seed_0")), σ (.n (val% «statement_digest» "seed_1")), σ (.n (val% «statement_digest» "xd_0")), σ (.n (val% «statement_digest» "xd_1")), σ (.n (val% «statement_digest» "sd_0")), σ (.n (val% «statement_digest» "sd_1")), σ (.n (val% «statement_digest» "da_0")), σ (.n (val% «statement_digest» "da_1"))]
         cells := by
     rw [hsplit, e1, cellsBytes_append, stmtBytes]
     rfl

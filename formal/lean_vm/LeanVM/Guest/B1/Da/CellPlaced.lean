@@ -12,6 +12,8 @@ module
 public import LeanVM.Guest.B1.Da.CellPops
 public import LeanVM.Guest.B1.Da.CellAtChk
 public import LeanVM.Guest.B1.Da.AtTB
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_verify_cell»
 
 /-!
 # The cell check, placed
@@ -131,7 +133,7 @@ theorem cell_placedF {Lin : Layout} {b : ℕ} (syms : List E) (ws : List E) (hsl
   have hmem : fn% «da_verify_cell» ∈ coreProgram := List.mem_of_find?_eq_some hf
   have hh1 := hh fun _ _ _ => True
   generalize fn% «da_verify_cell» = F at hf hpar hmem hh1 hb
-  have hw := B1.walk_flat σ [.n 844, .n 845, .n 846] cellPre hflat hdo
+  have hw := B1.walk_flat σ [.n (val% «da_verify_cell» "s6#0"), .n (val% «da_verify_cell» "s6#0[1]"), .n (val% «da_verify_cell» "s6#0[2]")] cellPre hflat hdo
   rw [← hb] at hw
   have hsat := walk_sat (P := coreProgram) _ (coreProgram_wf _ hmem) hh1
   rw [hw] at hsat
