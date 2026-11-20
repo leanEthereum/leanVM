@@ -107,8 +107,8 @@ theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E
           ∀ l < h.c.yrLevel,
             ((osLrCalls h.c).getD l ([], [])).1.map σ' =
               [osPtrA h.c b osIxQposA * gen ^ (osLvA h.c l).posOff,
-                osPtrA h.c b (osIxBdA h.c) * gen ^ (l * ligColsCap),
-                osPtrA h.c b osIxHsA * gen ^ (l * hsStride), (D l).mu] ∧
+                osPtrA h.c b (osIxBdA h.c) * gen ^ (osLvA h.c l).colsOff,
+                osPtrA h.c b osIxHsA * gen ^ (osLvA h.c l).foldsOff, (D l).mu] ∧
             ((osLrCalls h.c).getD l ([], [])).2.map σ' =
               [(osLrRetA h.c own l (D l).mu).1, (osLrRetA h.c own l (D l).mu).2])) :
     ∃ kEnd, BlkA H (Val.ofArgs args) 11 kEnd (osBodyA h.c) (OsOutA h.c b tabs tgt inn res own D) := by

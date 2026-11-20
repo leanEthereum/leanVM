@@ -163,7 +163,7 @@ structure FinFacts (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level : Whir.Level)
   sqo : lv.squeezes < ordG
   sq5 : lv.squeezes * 5 < u128Bound
   r3 : 2 * (lv.foldsOff + lv.folds) < u128Bound
-  hs8 : lvl * hsStride < u128Bound
+  hs8 : lv.foldsOff < u128Bound
   N : lv.queries / (1 + if lvl = 0 then 1 else 0) < ordG
   it : lv.queries / (1 + lvBase lvl) < u128Bound
   pwQ : digitsVal (osPowDigits lv.queries) 1 = lv.queries

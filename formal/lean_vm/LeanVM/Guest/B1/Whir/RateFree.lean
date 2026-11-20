@@ -40,6 +40,7 @@ variable (lv : OsLv)
 @[simp] theorem rf_prefixLen : lv.rf.prefixLen = lv.prefixLen := rfl
 @[simp] theorem rf_resFoldOff : lv.rf.resFoldOff = lv.resFoldOff := rfl
 @[simp] theorem rf_vanish : lv.rf.vanish = lv.vanish := rfl
+@[simp] theorem rf_colsOff : lv.rf.colsOff = lv.colsOff := rfl
 @[simp] theorem rf_rf : lv.rf.rf = lv.rf := rfl
 end OsLv
 
@@ -53,7 +54,7 @@ theorem osFinalMsg_wl (lv : OsLv) (s : OsSt) :
 
 theorem osCommit_wl (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     osCommit (c.withLevels L) lvl lv s = osCommit c lvl lv.rf s := by
-  dsimp only [osCommit, OsCfg.withLevels, OsLv.rf_folds, OsLv.rf_logCols]
+  dsimp only [osCommit, OsCfg.withLevels, OsLv.rf_folds, OsLv.rf_logCols, OsLv.rf_colsOff]
 
 theorem osPositions_wl (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     osPositions (c.withLevels L) lvl lv s = osPositions c lvl lv.rf s := by
@@ -63,8 +64,8 @@ theorem osHsFinal_wl (lv : OsLv) (s : OsSt) :
     osHsFinal (c.withLevels L) lv s = osHsFinal c lv.rf s := by
   dsimp only [osHsFinal, OsCfg.withLevels, OsLv.rf_folds, OsLv.rf_vanish]
 
-theorem osHsMid_rf (lvl : ℕ) (lv : OsLv) (s : OsSt) : osHsMid lvl lv s = osHsMid lvl lv.rf s := by
-  dsimp only [osHsMid, OsLv.rf_folds, OsLv.rf_vanish, OsLv.rf_highBits, OsLv.rf_logCols]
+theorem osHsMid_rf (lv : OsLv) (s : OsSt) : osHsMid lv s = osHsMid lv.rf s := by
+  dsimp only [osHsMid, OsLv.rf_folds, OsLv.rf_foldsOff, OsLv.rf_vanish, OsLv.rf_highBits, OsLv.rf_logCols]
 
 theorem osQueriesName_wl : osQueriesName { c with levels := L } = osQueriesName c := rfl
 
@@ -89,7 +90,7 @@ theorem osBases_wl (tch bd ls la : ℕ) :
       osBases (c.withLevels L) tch bd ls la lvl L' k = osBases c tch bd ls la lvl (L'.map OsLv.rf) k
   | _, [], _ => rfl
   | lvl, lv :: L', k => by
-    have e : osBasisCoords (c.withLevels L) tch lvl lv = osBasisCoords c tch lvl lv.rf := by
+    have e : osBasisCoords (c.withLevels L) tch lv = osBasisCoords c tch lv.rf := by
       rfl
     simp only [List.map_cons, osBases, e, osBases_wl tch bd ls la lvl.succ L']
 
@@ -101,7 +102,8 @@ theorem osResiduals_wl (ich bd ls la : ℕ) :
   | lvl, lv :: L', mats, k => by
     have e : osResidual (c.withLevels L) ich bd ls la lvl lv mats k =
         osResidual c ich bd ls la lvl lv.rf mats k := by
-      dsimp only [osResidual, OsCfg.withLevels, OsLv.rf_posOff, OsCfg.lvAt]
+      dsimp only [osResidual, OsCfg.withLevels, OsLv.rf_posOff, OsLv.rf_colsOff, OsLv.rf_foldsOff,
+        OsCfg.lvAt]
     simp only [List.map_cons, osResiduals, e, osResiduals_wl ich bd ls la lvl.succ L']
 
 theorem osOodWeights_wl (tch : ℕ) :
@@ -112,7 +114,7 @@ theorem osOodWeights_wl (tch : ℕ) :
   | prevCols, ol, lv :: L', acc, k => by
     have e : ∀ k, osOodWeight (c.withLevels L) tch prevCols ol lv k = osOodWeight c tch prevCols ol lv.rf k := by
       intro k
-      dsimp only [osOodWeight, OsCfg.withLevels, OsLv.rf_foldsOff]
+      dsimp only [osOodWeight, OsCfg.withLevels, OsLv.rf_foldsOff, OsLv.rf_colsOff]
     simp only [List.map_cons, osOodWeights, e, OsLv.rf_logCols, osOodWeights_wl tch _ ol.succ L']
 
 theorem osPtBlks_congr {c' : OsCfg} {tch : ℕ} (h : ∀ i, osPtSrc c tch i = osPtSrc c' tch i)

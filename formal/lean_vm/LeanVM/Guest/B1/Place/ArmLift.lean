@@ -152,7 +152,7 @@ theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11
   -- `query_win_ptrs`, the levels' `level_positions` placed at `ps`
   set own' : List ℕ → List (List E) := fun ps ↦
     H.own.set osIxQbpA (qbpA c fun l ↦ winPtrsA fs cert c l (ps.getD l 0)) with hown'
-  have hqb : (osSizesL c).getD osIxQbpA 0 = c.levels.length * ligPosCap := rfl
+  have hqb : (osSizesL c).getD osIxQbpA 0 = c.posTotal := rfl
   have hfit : ∀ ps, List.Forall₂ (fun w s ↦ w.length ≤ s) (own' ps) (osSizesL c) := fun ps ↦
     forall₂_set (H.own_len.imp fun _ _ h ↦ le_of_eq h) (by rw [hqb, qbpA_length])
   have hgetD : ∀ ps j, j ≠ osIxQbpA → (own' ps).getD j [] = H.own.getD j [] := fun ps j hj ↦ by
@@ -258,8 +258,12 @@ theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11
       have hi' : i < c.levels.length := by rw [hps, hksl] at hi; exact hi
       have hrd := hBm _ hqbE
       dsimp only at hrd
-      have := memL_qbp_slice (ws := fun l ↦ winPtrsA fs cert c l (ps.getD l 0)) hrd hi' (by
-        show (winPtrsA fs cert c i (ps.getD i 0)).length ≤ ligPosCap
+      have hchW : ∀ l < c.levels.length, (osLvA c l).posOff + (winPtrsA fs cert c l (ps.getD l 0)).length ≤
+          (if l + 1 < c.levels.length then (osLvA c (l + 1)).posOff else c.posTotal) := fun l hl ↦ by
+        rw [winPtrsA_length]; exact (hLv l hl).2.2.2.1
+      obtain ⟨hdW, -⟩ := chain_disj hchW
+      have := memL_qbp_slice (ws := fun l ↦ winPtrsA fs cert c l (ps.getD l 0)) hrd hdW hi' (by
+        show (osLvA c i).posOff + (winPtrsA fs cert c i (ps.getD i 0)).length ≤ c.posTotal
         rw [winPtrsA_length fs cert]
         exact (hLv i hi').2.2.2.2.1)
       rw [Nat.zero_add, winW_eq, ← List.getD_eq_getElem _ 0 hi]
@@ -271,13 +275,10 @@ theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11
       rw [List.mem_singleton] at hx
       subst hx
       simp only [winPtrsA_length] at h2
-      have hS : (osLvA c l).squeezes * (128 / (osLvA c l).depth) ≤ ligPosCap :=
-        (hLv l hl3).2.2.2.2.1
+      have hS := (hLv l hl3).2.2.2.2.1
       refine Or.inr ⟨_, hqbE, ?_, ?_⟩
       · simp only at h1 ⊢; omega
       · simp only [qbpA_length] at h2 ⊢
-        have : (l + 1) * ligPosCap ≤ c.levels.length * ligPosCap := Nat.mul_le_mul_right _ hl3
-        rw [Nat.add_mul, one_mul] at this
         omega
 
 end

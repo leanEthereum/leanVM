@@ -55,8 +55,8 @@ structure ResMem (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (bd ich ls la 
     (D : ℕ → E) (hsv : List E) (Pos : ℕ → E) (mu i0 i1 s b a : E) : Prop where
   mus : LoadHolds rd (σ (.n osMus)) lvl mu
   pos : ∀ k < lv.queries, LoadHolds rd (σ (.n osQpos)) (lv.posOff + k) (Pos k)
-  row : ∀ t < lv.logCols, LoadHolds rd (σ (.n bd)) (lvl * ligColsCap + t) (D t)
-  hs : ∀ c < lv.folds, LoadHolds rd (σ (.n osHs)) (lvl * hsStride + c) (hsv.getD c 0)
+  row : ∀ t < lv.logCols, LoadHolds rd (σ (.n bd)) (lv.colsOff + t) (D t)
+  hs : ∀ c < lv.folds, LoadHolds rd (σ (.n osHs)) (lv.foldsOff + c) (hsv.getD c 0)
   rc : ReadsAt rd RC (rcC lv D hsv Pos mu)
   li0 : LoadHolds rd (σ (.n ich)) (2 * lvl) i0
   li1 : LoadHolds rd (σ (.n ich)) (2 * lvl + 1) i1

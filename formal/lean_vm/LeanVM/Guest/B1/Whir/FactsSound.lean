@@ -71,11 +71,13 @@ theorem drop_cons_getD {l : List OsLv} {k : ℕ} {lv : OsLv} {rest : List OsLv}
 theorem lvFin_of {c : OsCfg} {logN lvl : ℕ} {lv lv' : OsLv} {level next : Whir.Level}
     (h : MidOk c logN lvl lv level next lv') (hv : vanishOk lv.vanish (lv.logCols + 1) = true)
     (hs : ∀ c' < lv.folds, K.ofBits (hsScale lv.vanish lv.highBits c' (vanishInv (lv.vanish + lv.logCols))) =
-      ((subspaceRoots lv.logCols).getD lv.logCols 0)⁻¹ * hsNorm lv.logCols lv.highBits c') :
+      ((subspaceRoots lv.logCols).getD lv.logCols 0)⁻¹ * hsNorm lv.logCols lv.highBits c')
+    (hnc : lv'.colsOff = lv.colsOff + lv.logCols) :
     LvFin c lv lv' := by
-  obtain ⟨-, -, -, h1, -, -, -, -, -, -, -, -, h2, -, -, -, -, -, -, -, h3, -, -, -, -, -, -, -, -, -,
+  obtain ⟨-, -, -, h1, -, -, -, -, -, -, -, -, h2, -, -, -, -, hc, hh, -, h3, -, -, -, -, -, -, -, -, -,
     -, -, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩ := h
-  exact ⟨h4, h5, h6, h7, h3, h1, h8, h9, h10, h11, h12, h2, h13, vanish_val hv, vanish_inv hv, hs⟩
+  exact ⟨h4, h5, h6, h7, h3, h1, h8, h9, h10, h11, h12, h2, h13, vanish_val hv, vanish_inv hv, hs, hc, hh,
+    hnc⟩
 
 /-- **The levels' facts and callees** from the checked facts and the rows at the rate's
 selector. -/
@@ -159,7 +161,7 @@ theorem finStatic_of {rd : Reader} {C : CallRel} {σ : Val} {m ri μ r : ℕ} {c
     fun a r hc ↦ hcal.ffm _ hffm a r hc⟩
   · obtain ⟨level, next, hm⟩ := midOk_of 0 _ cfg hlv i (by omega)
     rw [Nat.zero_add] at hm
-    exact lvFin_of hm (hsem.van i (by omega)) (hsem.hsm i hi)
+    exact lvFin_of hm (hsem.van i (by omega)) (hsem.hsm i hi) (osCfgR_colsOff_succ (by omega))
   · obtain ⟨level, next, hm⟩ := midOk_of 0 _ cfg hlv i (by omega)
     rw [Nat.zero_add] at hm
     obtain ⟨-, -, -, h1, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,

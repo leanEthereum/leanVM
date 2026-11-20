@@ -19,8 +19,8 @@ challenge `G`, the guest's claims `gclAt`, the closing rounds `tr` and their cha
 `λ⁻¹`, and each buffer's words (`ownAt j`, of buffer `j`'s size, `osSizesL` order: the head's
 eleven, each non-final level's message, the final lane, the finish's seven); `own`.
 
-`fitTo n xs`: `xs` cut or zero-padded to `n` words. `segAt`: a buffer split by levels at offsets,
-`segAt_at` reading a level's word back where the segments are disjoint.
+`fitTo n xs`: `xs` cut or zero-padded to `n` words; the buffers split by levels are `segAt`
+(`Place/OsBos`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -42,33 +42,6 @@ theorem fitTo_eq {n : ℕ} {xs : List E} (h : xs.length = n) : fitTo n xs = xs :
   subst h
   refine List.ext_getElem (by simp [fitTo]) fun j h1 h2 ↦ ?_
   simp [fitTo, List.getElem?_eq_getElem h2]
-
-/-- A buffer split by levels: word `e` is level `l`'s word `e - off l` where `l < n` is the first
-level whose segment `[off l, off l + span l)` holds `e`, else `0`. -/
-def segAt (n : ℕ) (off span : ℕ → ℕ) (val : ℕ → ℕ → E) (e : ℕ) : E :=
-  match (List.range n).find? (fun l ↦ decide (off l ≤ e ∧ e < off l + span l)) with
-  | some l => val l (e - off l)
-  | none => 0
-
-/-- **A level's word of a split buffer**, the segments disjoint. -/
-theorem segAt_at {n : ℕ} {off span : ℕ → ℕ} {val : ℕ → ℕ → E}
-    (hd : ∀ l l', l < n → l' < n → l < l' → off l + span l ≤ off l')
-    {l k : ℕ} (hl : l < n) (hk : k < span l) : segAt n off span val (off l + k) = val l k := by
-  unfold segAt
-  have hs : ((List.range n).find? (fun l' ↦ decide (off l' ≤ off l + k ∧ off l + k < off l' + span l'))).isSome := by
-    rw [List.find?_isSome]
-    exact ⟨l, List.mem_range.mpr hl, by simp; omega⟩
-  obtain ⟨l', hl'⟩ := Option.isSome_iff_exists.mp hs
-  rw [hl']
-  have hm := List.find?_some hl'
-  have hmem := List.mem_range.mp (List.mem_of_find?_eq_some hl')
-  simp only [decide_eq_true_eq] at hm
-  obtain rfl : l' = l := by
-    rcases Nat.lt_trichotomy l' l with h | h | h
-    · have := hd l' l hmem hl h; omega
-    · exact h
-    · have := hd l l' hl hmem h; omega
-  simp
 
 /-- **The honest data**: the configuration, the stack log, the run's levels and each level's cap
 cells and flags. -/
@@ -144,20 +117,16 @@ def betasC : List E := (List.range h.c.levels.length).map fun i ↦
 def musC : List E := (List.range h.c.levels.length).map fun i ↦
   if i < h.c.yrLevel then h.li i else 0
 
-/-- `level_hs`: each non-final level's high part, normalized. -/
-def hsC : List E := (List.range (h.c.levels.length * hsStride)).map fun e ↦
-  if e / hsStride < h.c.yrLevel ∧ e % hsStride < (h.lv (e / hsStride)).folds then
-    (h.L (e / hsStride)).nw.high.getD (e % hsStride) 0 *
-      word (hsScale (h.lv (e / hsStride)).vanish (h.lv (e / hsStride)).highBits (e % hsStride)
-        (vanishInv ((h.lv (e / hsStride)).vanish + (h.lv (e / hsStride)).logCols))) 0
-  else 0
+/-- `level_hs`: each non-final level's high part, normalized, at its folds' offset. -/
+def hsC : List E := (List.range h.c.nFolds).map
+  (segAt h.c.yrLevel (fun l ↦ (h.lv l).foldsOff) (fun l ↦ (h.lv l).folds) fun l j ↦
+    (h.L l).nw.high.getD j 0 *
+      word (hsScale (h.lv l).vanish (h.lv l).highBits j (vanishInv ((h.lv l).vanish + (h.lv l).logCols))) 0)
 
-/-- `ood_z`: row `i + 1` level `i`'s out-of-domain point. -/
-def oodzC : List E := (List.range (h.c.levels.length * ligColsCap)).map fun e ↦
-  let row := e / ligColsCap
-  if 1 ≤ row ∧ row - 1 < h.c.yrLevel then
-    ((h.L (row - 1)).osRec h.logN).z0.getD (e % ligColsCap) 0
-  else 0
+/-- `ood_z`: each non-final level's out-of-domain point at the earlier levels' columns. -/
+def oodzC : List E := (List.range h.c.colsTotal).map
+  (segAt h.c.yrLevel (fun l ↦ (h.lv l).colsOff) (fun l ↦ (h.lv l).logCols) fun l t ↦
+    ((h.L l).osRec h.logN).z0.getD t 0)
 
 /-- `ood_scalars`: `λ` at `i + 1`. -/
 def oodC : List E := (List.range h.c.levels.length).map fun e ↦
@@ -165,7 +134,7 @@ def oodC : List E := (List.range h.c.levels.length).map fun e ↦
 
 /-- `query_positions`: each level's positions from its offset. -/
 def qposC : List E :=
-  (List.range (h.c.levels.length * ligPosCap)).map
+  (List.range h.c.posTotal).map
     (segAt h.c.levels.length (fun l ↦ (h.lv l).posOff) (fun l ↦ (h.lv l).squeezes * (128 / (h.lv l).depth))
       fun l k ↦ eOfNat (qwPosOf (h.lv l).depth ((h.L l).word h.logN (k / (128 / (h.lv l).depth)))
         (k % (128 / (h.lv l).depth))))

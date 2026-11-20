@@ -24,6 +24,8 @@ dispatch's arm, so a static bound of the body covers every rate.
 * `osCallB fs Bk names`: a call statement entered within `Bk f` words or skipped (its frame `fs f`)
   at its costliest callee; `osKidsB`, their total; `osBos fs Bk name c`: the frame `fs name`, the
   buffers, the calls.
+* `Whir.segAt`: a buffer split by levels at offsets, `segAt_at` reading a level's word back where
+  the segments are disjoint; `chain_disj`: segments in order are disjoint.
 -/
 
 namespace LeanVM.Guest.B1
@@ -44,10 +46,9 @@ open LeanVM.Protocol.Verifier hiding Layout
 def osSizesL (c : OsCfg) : List ℕ :=
   let n := c.levels.length
   let lane := c.yrLen + (c.levels.getD c.yrLevel default).folds
-  [lane, 2 * n, c.nFolds, 2 * c.nFolds, n, n, n * hsStride, n * ligColsCap, n, n * ligPosCap,
-    n * ligPosCap] ++
+  [lane, 2 * n, c.nFolds, 2 * c.nFolds, n, n, c.nFolds, c.colsTotal, n, c.posTotal, c.posTotal] ++
   ((c.levels.take c.yrLevel).map fun lv ↦ 2 + lv.folds) ++
-  [lane, yrLogCap, pointCap, pointCap, n * ligColsCap, n, n, 2 * n]
+  [lane, yrLogCap, pointCap, pointCap, c.colsTotal, n, n, 2 * n]
 
 /-- The callees of a call statement: a call's, a conditional call's, a dispatch's arms. -/
 def Stmt.calleesS : Stmt → Option (List String)
@@ -92,6 +93,65 @@ theorem le_foldl_max : ∀ {l : List ℕ} {x : ℕ}, x ∈ l → ∀ a : ℕ, x 
 theorem le_osCallB {fs Bk : String → ℕ} {names : List String} {f : String} (h : f ∈ names) :
     max (fs f) (Bk f) ≤ osCallB fs Bk names :=
   le_foldl_max (List.mem_map.mpr ⟨f, h, rfl⟩ : max (fs f) (Bk f) ∈ names.map fun f ↦ max (fs f) (Bk f)) 0
+
+/-! ## Buffers split by levels -/
+
+namespace Whir
+
+/-- A buffer split by levels: word `e` is level `l`'s word `e - off l` where `l < n` is the first
+level whose segment `[off l, off l + span l)` holds `e`, else `0`. -/
+def segAt (n : ℕ) (off span : ℕ → ℕ) (val : ℕ → ℕ → E) (e : ℕ) : E :=
+  match (List.range n).find? (fun l ↦ decide (off l ≤ e ∧ e < off l + span l)) with
+  | some l => val l (e - off l)
+  | none => 0
+
+/-- **A level's word of a split buffer**, the segments disjoint. -/
+theorem segAt_at {n : ℕ} {off span : ℕ → ℕ} {val : ℕ → ℕ → E}
+    (hd : ∀ l l', l < n → l' < n → l < l' → off l + span l ≤ off l')
+    {l k : ℕ} (hl : l < n) (hk : k < span l) : segAt n off span val (off l + k) = val l k := by
+  unfold segAt
+  have hs : ((List.range n).find? (fun l' ↦ decide (off l' ≤ off l + k ∧ off l + k < off l' + span l'))).isSome := by
+    rw [List.find?_isSome]
+    exact ⟨l, List.mem_range.mpr hl, by simp; omega⟩
+  obtain ⟨l', hl'⟩ := Option.isSome_iff_exists.mp hs
+  rw [hl']
+  have hm := List.find?_some hl'
+  have hmem := List.mem_range.mp (List.mem_of_find?_eq_some hl')
+  simp only [decide_eq_true_eq] at hm
+  obtain rfl : l' = l := by
+    rcases Nat.lt_trichotomy l' l with h | h | h
+    · have := hd l' l hmem hl h; omega
+    · exact h
+    · have := hd l l' hl hmem h; omega
+  simp
+
+/-- **Segments in order are disjoint.** -/
+theorem chain_disj {n top : ℕ} {a w : ℕ → ℕ}
+    (h : ∀ l < n, a l + w l ≤ (if l + 1 < n then a (l + 1) else top)) :
+    (∀ l l', l < n → l' < n → l < l' → a l + w l ≤ a l') ∧ ∀ l < n, a l + w l ≤ top := by
+  have step : ∀ l, l + 1 < n → a l + w l ≤ a (l + 1) := fun l hl ↦ by
+    have := h l (by omega); simpa only [hl, ↓reduceIte] using this
+  have up : ∀ d l, l + d < n → a l + w l ≤ a (l + d) + w (l + d) := by
+    intro d
+    induction d with
+    | zero => intro l _; exact le_rfl
+    | succ d ih =>
+      intro l hl
+      have h1 := ih l (by omega)
+      have h2 := step (l + d) (by omega)
+      rw [show l + (d + 1) = l + d + 1 by omega]
+      omega
+  refine ⟨fun l l' _ hl' hll ↦ ?_, fun l hl ↦ ?_⟩
+  · have h1 := up (l' - 1 - l) l (by omega)
+    have h2 := step (l + (l' - 1 - l)) (by omega)
+    rw [show l + (l' - 1 - l) + 1 = l' by omega] at h2
+    omega
+  · have h1 := up (n - 1 - l) l (by omega)
+    have h2 := h (l + (n - 1 - l)) (by omega)
+    simp only [show ¬ (l + (n - 1 - l) + 1 < n) by omega, ↓reduceIte] at h2
+    omega
+
+end Whir
 
 end
 end LeanVM.Guest.B1

@@ -98,7 +98,7 @@ structure CommitOut (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (st st' : O
   root0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 2) x0
   root1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 3) x1
   oodOk : ((st.F σ).absorbAll (x0 :: x1 :: high) dsObserve).GrindOk levelOodGrind n1
-  ood : ReadsAt rd (σ (.n osOodz) * gen ^ ((lvl + 1) * ligColsCap))
+  ood : ReadsAt rd (σ (.n osOodz) * gen ^ lv.colsOff)
     (oodPt (st.F σ) (x0 :: x1 :: high) n1 lv.logCols).1
   ys : st'.ys = [st'.ys.getD 0 0] ∧ σ (.n (st'.ys.getD 0 0)) = y0
   word0 : σ (.n st'.word0) = cellsOfState (oodQ (st.F σ) (x0 :: x1 :: high) n1 lv.logCols y0 nn)
@@ -122,7 +122,7 @@ theorem osCommit_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
       MeaningSqueezePointFrom lv.logCols rd a r)
     (hfs : st.fs.length = 5) (hm : MatsOk σ st.mats)
     (hpad : PadOk σ st.pad) (hco : st.co < u128Bound)
-    (hoff : (lvl + 1) * ligColsCap < u128Bound)
+    (hoff : lv.colsOff < u128Bound)
     (hok : AllOk C rd σ (osCommit c lvl lv st).1) :
     ∃ x0 x1 high n1 y0 nn,
       CommitOut rd σ lvl lv st (osCommit c lvl lv st).2 x0 x1 high n1 y0 nn := by
@@ -133,11 +133,11 @@ theorem osCommit_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
   set s0 : OsSt := { st with k := st.k + 2 } with hs0
   set r := (osCurS s0).2.2.k with hr
   set s1 : OsSt := { (osCurS s0).2.2 with k := r + 10 } with hs1
-  set q := (osMatS c.plan osOodz ((lvl + 1) * ligColsCap) s1).2.2.k with hq
+  set q := (osMatS c.plan osOodz lv.colsOff s1).2.2.k with hq
   set b := q + 10 with hb
   have hP := osPad_ok hpad hpd
-  set p := (osPad (osMatS c.plan osOodz ((lvl + 1) * ligColsCap) s1).2.2.pad (b + 6)).2.1 with hp
-  set j := (osPad (osMatS c.plan osOodz ((lvl + 1) * ligColsCap) s1).2.2.pad (b + 6)).2.2 with hj
+  set p := (osPad (osMatS c.plan osOodz lv.colsOff s1).2.2.pad (b + 6)).2.1 with hp
+  set j := (osPad (osMatS c.plan osOodz lv.colsOff s1).2.2.pad (b + 6)).2.2 with hj
   obtain ⟨z1, z2, z3, z4⟩ := hP p rfl
   have ecu := osCurS_val (s := s0) hco hcu
   simp only [allOk_cons, allOk_nil, and_true, stmtOk_call, stmtOk_atom, holds_load, osLd,
