@@ -47,8 +47,10 @@ def PendingAt (m : MachineState) (a : Word) (ps : List (E × BitVec 64)) : Prop 
   ∀ k (h : k < ps.length), EAt m (a + BitVec.ofNat 64 (pendingSlot * k)) (Model.limbs ps[k].1) ∧
     m.getMem (a + BitVec.ofNat 64 (pendingSlot * k + pendingTag)) = ps[k].2
 
-/-- **The sponge at `a` is `r`.** A structure, so that `rv_auto` keeps it whole. -/
+/-- **The sponge at `a` is `r`**, at a doubleword boundary (`Layouts.Sponge.byteAlign`). A structure, so that
+    `rv_auto` keeps it whole. -/
 structure SpongeAt (m : MachineState) (a : Word) (r : Model.SpongeRust) : Prop where
+  aligned : a.toNat % Layouts.Sponge.byteAlign = 0
   inv : r.Inv
   state : WordsAt m (a + BitVec.ofNat 64 Layouts.Sponge.state) r.state
   pending : PendingAt m (a + BitVec.ofNat 64 Layouts.Sponge.pending) (r.pending.take r.nPending)
@@ -214,10 +216,10 @@ theorem SpongeAt.keep {a : Word} {r : Model.SpongeRust} (hs : SpongeAt m a r)
     fun k hkn => keeps_get hk ha hkn
   have add : ∀ j k, a + BitVec.ofNat 64 j + BitVec.ofNat 64 k = a + BitVec.ofNat 64 (j + k) := fun j k => by
     rw [BitVec.add_assoc]; congr 1; apply BitVec.eq_of_toNat_eq; simp
-  obtain ⟨hi, hst, hp, hn, hg⟩ := hs
+  obtain ⟨hal, hi, hst, hp, hn, hg⟩ := hs
   simp only [PendingAt, EAt, pendingSlot, pendingTag, Layouts.Sponge.state, Layouts.Sponge.pending,
     Layouts.Sponge.n_pending, Layouts.Sponge.ground, Layouts.E.c0, Layouts.E.c1, Layouts.E.byteSize] at hst hp hn hg
-  refine ⟨hi, ⟨hst.1, fun k hk' => ?_⟩, fun k hk' => ?_, ?_, ?_⟩
+  refine ⟨hal, hi, ⟨hst.1, fun k hk' => ?_⟩, fun k hk' => ?_, ?_, ?_⟩
   · have := hi.1; simp only [Layouts.Sponge.state]; rw [add, get _ (by omega), ← add]; exact hst.2 k hk'
   · have hk4 : k < 4 := by have := hi.2.2; simp at hk'; omega
     obtain ⟨⟨h0, h1⟩, h2⟩ := hp k hk'
