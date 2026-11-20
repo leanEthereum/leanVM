@@ -45,38 +45,6 @@ def facts():
     return out
 
 
-def trie_entries(src):
-    """The entries of a printed `Exec.Trie`: key `0` at the root, `2m+1` at key `m` of the left
-    child, `2m+2` at key `m` of the right one (`Trie.get`)."""
-    toks = re.findall(r'\.node|\.nil|\(some \[[^\]]*\]\)|none|\(|\)', src)
-    pos = [0]
-
-    def rec():
-        depth = 0
-        while toks[pos[0]] == '(':
-            pos[0] += 1; depth += 1
-        t = toks[pos[0]]; pos[0] += 1
-        if t == '.nil':
-            node = None
-        else:
-            assert t == '.node', t
-            v = toks[pos[0]]; pos[0] += 1
-            val = [int(x) for x in re.findall(r'\d+', v)] if v.startswith('(some') else None
-            node = (val, rec(), rec())
-        for _ in range(depth):
-            assert toks[pos[0]] == ')'; pos[0] += 1
-        return node
-    out = {}
-
-    def entries(node, f):
-        if node is None: return
-        val, l, r = node
-        if val is not None: out[f(0)] = val
-        entries(l, lambda m: f(2 * m + 1)); entries(r, lambda m: f(2 * m + 2))
-    entries(rec(), lambda m: m)
-    return out
-
-
 def load():
     """The walks' inputs. Every function is on the core route, whose pairing gives its oracle (`O`) and whose own walk
     its residual divisors (`R`): both empty here."""

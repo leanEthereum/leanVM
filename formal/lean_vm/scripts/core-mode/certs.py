@@ -17,6 +17,8 @@ Usage: python3 -I scripts/core-mode/certs.py [--check]"""
 import sys, os, re, glob
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import framelit as FL  # noqa: E402
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+import genfiles  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
@@ -190,20 +192,9 @@ def render():
 def main(argv):
     check = '--check' in argv
     files, off = render()
-    bad = []
-    stale = glob.glob(os.path.join(OUT, '*', 'Cert.lean')) + glob.glob(os.path.join(OUT, 'Certs', '*.lean'))
-    for p in stale:
-        if p not in files:
-            bad.append(p)
-            if not check: os.remove(p)
-    for p, text in sorted(files.items()):
-        old = open(p, encoding='utf-8').read() if os.path.exists(p) else None
-        if old == text: continue
-        bad.append(p)
-        if not check:
-            os.makedirs(os.path.dirname(p), exist_ok=True)
-            open(p, 'w', encoding='utf-8').write(text)
-    if check and bad: print('stale:', *bad, sep='\n  '); sys.exit(1)
+    have = glob.glob(os.path.join(OUT, '*', 'Cert.lean')) + glob.glob(os.path.join(OUT, 'Certs', '*.lean'))
+    bad = genfiles.sync(files, have, check)
+    genfiles.fail_if_stale(bad, check)
     print('core certificates: %d files, %d callees off the route, %s' % (
         len(files), len(off), 'unchanged' if not bad else ('stale' if check else 'written')))
 

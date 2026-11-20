@@ -43,7 +43,7 @@ CORE, STABLE, POWS = D['core'], D['stable'], dict(D['pows'])
 POWS[1] = 0
 ORD = 2 ** 64 - 1
 
-# The inference's rules beyond `heapOkC`'s format (`m2-format.md`), each switchable to measure what it buys:
+# The inference's rules beyond `heapOkC`'s format (`CoreMode/Defs.lean`), each switchable to measure what it buys:
 FEATURES = {
     'dup': 'a top-level `ite` on `p == k` (`p` a parameter, `k` a constant) followed by atoms and its `ret` takes the '
            'continuation into each branch (`HCert.dups`); a guarantee empty where the zero branch\'s equation holds',
@@ -86,8 +86,16 @@ FEATURES = {
            'earlier, joined with the points before and after it',
     'wrap': 'offsets modulo `g`\'s order (`g^-k` named `g^(ORD - k)` and folded); without it offsets add as naturals, '
             'as `CCell.mul` does',
+    'der': 'a run in scope made up for a read (`ptOkD`), and runs shifted back by a constant at a negative offset',
+    'jt': 'the jump table\'s cells, which every frame\'s entry has written, as a precondition run (`entryAbs`)',
+    'lastres': 'a bound no fact gives stated under the site\'s path, for a residual family to prove',
+    'nohs': 'no read of a run\'s bound shifted by one (`fact` at `hi + 1`)',
+    'rcpts': 'an index a top-level range check bounds among the points it can be (`CoreMode.rcPts`)',
+    'vthi': 'a run up to a bound over bases before one up to a constant',
 }
-F = set(FEATURES)
+# the features the core route turns on per function (`callc.py`, `callcres.py`): off by default
+PER_FN = {'der', 'jt', 'lastres', 'nohs', 'rcpts', 'vthi'}
+F = set(FEATURES) - PER_FN
 WRAP = [True]
 # `arm_blocks` reads the arms' runs too (set by `callc.py` only, so `emitc.py`'s certificates do not move)
 ARMRUN = [False]
@@ -397,8 +405,8 @@ class Pass:
         self.objres = {}                 # residual merging (`objs.py`)
         self.stores = []                 # (cell root, offset, stride, object of the stored word) (`objs.py`)
         self.path = []                   # the branch conditions in scope: ('ite', c, zero?) or ('arm', x, j)
-        self.rpath = collections.defaultdict(list)   # residual -> the paths it was asked under (`validate.py`)
-        self.sites = []                  # (callee, args, ghost instantiation, path), every call met (`validate.py`)
+        self.rpath = collections.defaultdict(list)   # residual -> the paths it was asked under
+        self.sites = []                  # (callee, args, ghost instantiation, path), every call met (`emitc.py`)
         for s in stmts(self.body):
             if s[0] == 'a' and s[1][0] in ('add', 'mul', 'const', 'copy'):
                 self.defs.setdefault(s[1][1], s[1])

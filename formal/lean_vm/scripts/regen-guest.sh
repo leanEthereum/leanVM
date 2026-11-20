@@ -167,8 +167,6 @@ part_bridge_align() {
 }
 
 part_bridge_checks() {
-  step "bridge: the hint bridge's prefix class, a report (scripts/bridge-cert/gen.py)"
-  python3 -I scripts/bridge-cert/gen.py "${check[@]}"
   step "bridge: the jump cells checked (scripts/bridge-cert/jumpcells.py)"
   python3 -I scripts/bridge-cert/jumpcells.py "${check[@]}"
   step "bridge: the computed hints paired (scripts/bridge-cert/pair.py)"
@@ -273,7 +271,9 @@ part_exes() {
 }
 
 if [ ${#check[@]} -eq 0 ]; then
-  todo=(exes)
+  # the core IR's generator built early only when the core IR is written
+  todo=()
+  case " ${selected[*]} " in *" core "*) todo=(exes) ;; esac
   for s in "${selected[@]}"; do eval "todo+=(\"\${parts_${s//-/_}[@]}\")"; done
   pids=() failed=()
   for p in "${todo[@]}"; do

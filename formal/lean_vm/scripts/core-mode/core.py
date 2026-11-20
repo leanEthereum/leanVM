@@ -8,12 +8,13 @@ Usage: python3 -I scripts/core-mode/core.py [--check]  (with `CORE_MODE_CACHE` a
 import os, re, sys, glob, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+sys.path.append(os.path.join(HERE, '..'))
+import genfiles  # noqa: E402
 import route, heap  # noqa: E402
 import callc  # noqa: E402
 
 GUEST = route.GUEST
 GEN = os.path.join(GUEST, 'CoreMode', 'Gen')
-CHECK = '--check' in sys.argv
 HEADER = """/-
   {mod}
 
@@ -499,7 +500,7 @@ def hctab_file(packs):
             'counts. -/\nnoncomputable def hcTab : List HcEnt :=\n  [%s]\n\nend\n\nend LeanVM.Guest.CoreMode\n' % items)
 
 
-def main():
+def main(check=False):
     R = route.route_sub()
     po = heap.pack_of()
     # by the pack of its code, by key (the pack's `coreFns`);
@@ -628,25 +629,14 @@ def main():
             f'\n/-- The pack\'s core data, each the deployed guest\'s. -/\n'
             f'theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=\n  {chain}\n\nend\n\nend LeanVM.Guest.ModePack.«{p}»\n')
     files[os.path.join(GEN, 'HcTab.lean')] = hctab_file(packs)
-    stale = []
-    have = set(glob.glob(os.path.join(GEN, '*', 'Core.lean')) + glob.glob(os.path.join(GEN, '*', 'Route.lean')) +
-               [f for pat in ('Cfun', 'LW*', 'CW*', 'RW*', 'SW*') for f in glob.glob(os.path.join(GEN, '*', pat + '.lean'))])
-    for path in sorted(have - set(files)):
-        if CHECK: stale.append(path)
-        else: os.remove(path)
-    lines = 0
-    for path, text in sorted(files.items()):
-        lines += text.count('\n')
-        old = open(path, encoding='utf-8').read() if os.path.exists(path) else None
-        if old == text: continue
-        if CHECK: stale.append(path)
-        else:
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            open(path, 'w', encoding='utf-8').write(text)
+    have = (glob.glob(os.path.join(GEN, '*', 'Core.lean')) + glob.glob(os.path.join(GEN, '*', 'Route.lean')) +
+            [f for pat in ('Cfun', 'LW*', 'CW*', 'RW*', 'SW*') for f in glob.glob(os.path.join(GEN, '*', pat + '.lean'))])
+    stale = genfiles.sync(files, have, check)
+    lines = sum(text.count('\n') for text in files.values())
     print('core route: %d functions, %d packs, %d files, %d lines' % (len(R), len(packs), len(files), lines) +
-          ((', stale: %d %s' % (len(stale), stale[:3])) if CHECK else ''))
-    if CHECK and stale: sys.exit(1)
+          ((', stale: %d %s' % (len(stale), stale[:3])) if check else ''))
+    genfiles.fail_if_stale(stale, check)
 
 
 if __name__ == '__main__':
-    main()
+    main('--check' in sys.argv)

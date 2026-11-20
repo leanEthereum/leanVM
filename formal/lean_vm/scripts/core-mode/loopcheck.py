@@ -8,6 +8,8 @@ Usage: python3 -I scripts/core-mode/loopcheck.py [--check]"""
 import sys, os, re, glob
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+import genfiles  # noqa: E402
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
 OUT = os.path.join(ROOT, 'CoreMode', 'Gen')
 # a range's core IR, at most this many bytes (the kernel's memory grows with it)
@@ -158,15 +160,8 @@ def render():
 
 def main(argv):
     files = render()
-    bad = []
-    for p in glob.glob(os.path.join(OUT, 'LoopCheck*.lean')):
-        if p not in files: bad.append(p); '--check' in argv or os.remove(p)
-    for p, text in sorted(files.items()):
-        old = open(p).read() if os.path.exists(p) else None
-        if old == text: continue
-        bad.append(p)
-        if '--check' not in argv: open(p, 'w').write(text)
-    if '--check' in argv and bad: print('stale:', *bad, sep='\n  '); sys.exit(1)
+    bad = genfiles.sync(files, glob.glob(os.path.join(OUT, 'LoopCheck*.lean')), '--check' in argv)
+    genfiles.fail_if_stale(bad, '--check' in argv)
     print('LoopCheck: %d files, %s' % (len(files), 'unchanged' if not bad else ('stale' if '--check' in argv else 'written')))
 
 
