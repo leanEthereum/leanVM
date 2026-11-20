@@ -1,13 +1,13 @@
 /-
-  LeanVM.Guest.B1.Merkle.CapAll
+  LeanVM.Guest.B1.Merkle.CapLinksAll
 
-  B1 for the deployed `verify_merkle_cap` specializations at the guest's `coreProgram`:
-  `CapAllP.lean` instantiated.
+  `verify_merkle_cap`'s deployed specializations at the guest's `coreProgram`: `CapLinks.lean`
+  instantiated.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Merkle.CapAllP
+public import LeanVM.Guest.B1.Merkle.CapLinks
 public import LeanVM.Guest.B1.Common.Find
 
 namespace LeanVM.Guest.B1
@@ -83,7 +83,10 @@ instance finds_verify_merkle_cap_L8 :
   ⟨find_verify_merkle_cap_L8⟩
 
 /-- **`verify_merkle_cap`'s core IR is its meaning**, at the deployed cap depths. -/
-theorem verify_merkle_cap_holds : verify_merkle_cap_Spec := verify_merkle_cap_holdsP coreProgram
+theorem verify_merkle_cap_holds : verify_merkle_cap_Spec :=
+  verify_merkle_cap_of_linked coreProgram fun s hs ↦ by
+    simp only [capSpecs, List.mem_cons, List.not_mem_nil, or_false] at hs
+    rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> exact Finds.find
 
 end
 end LeanVM.Guest.B1
