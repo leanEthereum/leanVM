@@ -51,8 +51,8 @@ def psStage (b k : ℕ) : List Stmt :=
 
 /-- The row of slice `r`, its values from `b`: `Ψ` of `rows[r]` at `b + 22`. -/
 def psRowAt (b r : ℕ) : List Stmt :=
-  [.atom (.load (.n b) (.n 15) r), .atom (.mul (.n (b + 1)) (.n 4) (.n b)),
-    .atom (.mul (.n (b + 2)) (.n b) (.n b)), .atom (.mul (.n (b + 3)) (.n 5) (.n (b + 2))),
+  [.atom (.load (.n b) (.n (val% «ring_switch_target_loop0» "rows")) r), .atom (.mul (.n (b + 1)) (.n (val% «ring_switch_target_loop0» "g[0]")) (.n b)),
+    .atom (.mul (.n (b + 2)) (.n b) (.n b)), .atom (.mul (.n (b + 3)) (.n (val% «ring_switch_target_loop0» "g[1]")) (.n (b + 2))),
     .atom (.add (.n (b + 4)) (.n (b + 1)) (.n (b + 3)))] ++
   ((List.range 6).map (psStage b)).flatten
 
@@ -70,7 +70,7 @@ def gVals (σ : Val) : List E := (List.range 8).map fun b ↦ σ (.n (4 + b))
 /-- **One row of `ring_psi`**: the slice it loads, and `Ψ` of it at `b + 22`. -/
 theorem holds_psRowAt {b r : ℕ} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (psRowAt b r) True kret) :
-    LoadHolds rd (σ (.n 15)) r (σ (.n b)) ∧ σ (.n (b + 22)) = ringPsi (σ (.n b)) (gVals σ) := by
+    LoadHolds rd (σ (.n (val% «ring_switch_target_loop0» "rows"))) r (σ (.n b)) ∧ σ (.n (b + 22)) = ringPsi (σ (.n b)) (gVals σ) := by
   rw [psRowAt, holdsList_append] at h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
   obtain ⟨l0, e1, e2, e3, e4, h⟩ := h
@@ -118,8 +118,8 @@ def hzStep (a p r : ℕ) : List Stmt :=
 
 /-- Chain `p` over one chunk, its values from `a`: its row's entry `p` in, entry `8 + p` out. -/
 def hzRowAt (a p : ℕ) : List Stmt :=
-  [.atom (.load (.n a) (.n 203) p)] ++ ((List.range 8).map (hzStep a p)).flatten ++
-    [.atom (.load (.n (a + 24)) (.n 203) (8 + p))]
+  [.atom (.load (.n a) (.n (val% «ring_switch_target_loop0» "row")) p)] ++ ((List.range 8).map (hzStep a p)).flatten ++
+    [.atom (.load (.n (a + 24)) (.n (val% «ring_switch_target_loop0» "row")) (8 + p))]
 
 /-- Chain `p`. -/
 def hzRow (p : ℕ) : List Stmt := hzRowAt (hzBase p) p
@@ -153,8 +153,8 @@ theorem hz_steps {a p : ℕ} (hp : p < 8)
 /-- **One chain over one chunk.** -/
 theorem holds_hzRowAt {a p : ℕ} (hp : p < 8) {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (hzRowAt a p) True kret) :
-    LoadHolds rd (σ (.n 203)) p (σ (.n a)) ∧
-      LoadHolds rd (σ (.n 203)) (8 + p)
+    LoadHolds rd (σ (.n (val% «ring_switch_target_loop0» "row"))) p (σ (.n a)) ∧
+      LoadHolds rd (σ (.n (val% «ring_switch_target_loop0» "row"))) (8 + p)
         ((psVals σ).foldl (hstep (ofK (ringWK.getD p 0))) (σ (.n a))) := by
   rw [hzRowAt, holdsList_append, holdsList_append] at h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h

@@ -275,3 +275,6 @@ LeanVM/Guest/B1/Place/LrProof.lean level_residual__L
 LeanVM/Guest/B1/Placement/Certify.lean certify_placement
 LeanVM/Guest/B1/Placement/CertifyAt.lean certify_placement
 LeanVM/Guest/B1/Placement/CertifyComplete.lean certify_placement
+# Ring
+LeanVM/Guest/B1/Ring/Loop14Complete.lean ring_switch_target_loop0
+LeanVM/Guest/B1/Ring/TargetComplete.lean ring_switch_target
