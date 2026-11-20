@@ -3,11 +3,12 @@ callers are told of it: its entry, the frame cells and heap facts it needs at en
 guarantees at return; and the glue `LeanVM/Guest/CoreMode/GlueE/<pack>.lean`: each function's entry pc
 (`Fn.«k».entry`), the only place the core route's data names it.
 
-Every function keeps its signature: its contract, as written (`CoreMode/Sig/<pack>.lean`), which the core route's
-checks hold to its heap signature (`CoreMode.ownOk`, `fitB`), its frame cells checked against the frame layout
-(`compiled.fsig`). So a function's signature, and its callers' certificates, change only when its contract does. A
-function new to the guest, one whose frame layout changed, or one named by `--fresh` takes its contract from
-`sigseed.py` (by hand); without one there, the script stops and names it.
+Every function keeps its signature: its contract, given by hand in its rule file (`fn/<f>.py`'s `CONTRACTS`, written
+with `sigseed.py`'s literals), or else as written (`CoreMode/Sig/<pack>.lean`), which the core route's checks hold to
+its heap signature (`CoreMode.ownOk`, `fitB`), its frame cells checked against the frame layout (`compiled.fsig`). So a
+function's signature, and its callers' certificates, change only when its contract does. A function new to the guest,
+one whose frame layout changed, or one named by `--fresh` needs one in its rule file; without one there, the script
+stops and names it.
 
 usage (from formal/lean_vm): python3 -I scripts/core-mode/sigc.py [--check] [--fresh NAME,..]"""
 import os, re, sys, glob
@@ -17,7 +18,8 @@ sys.path.append(os.path.join(HERE, '..'))
 import genfiles  # noqa: E402
 sys.setrecursionlimit(100000)
 import compiled as C  # noqa: E402
-from sigseed import SEEDS  # noqa: E402
+import fnrules  # noqa: E402
+SEEDS = fnrules.table('CONTRACTS') or {}
 
 ROOT = C.ROOT
 OUT = os.path.join(ROOT, 'CoreMode', 'Sig')
@@ -54,16 +56,16 @@ def signatures(fresh=()):
     out, kept, need = {}, 0, []
     for n, f in D['fns'].items():
         k = f['ns']
-        if k in old and k not in fresh and layout_ok(old[k], D['fsig'][f['entry']]):
+        if k in SEEDS:
+            # a contract given by hand (its rule file's)
+            out[n] = ' '.join(SEEDS[k].split())
+        elif k in old and k not in fresh and layout_ok(old[k], D['fsig'][f['entry']]):
             out[n] = old[k]
             kept += 1
-        elif k in SEEDS:
-            # a contract given by hand (`sigseed.py`)
-            out[n] = ' '.join(SEEDS[k].split())
         else:
             need.append(k)
     if need:
-        raise SystemExit('sigc: no contract written or in sigseed.py for: ' + ', '.join(sorted(need)))
+        raise SystemExit('sigc: no contract written or in its rule file (fn/<f>.py CONTRACTS) for: ' + ', '.join(sorted(need)))
     return out, kept
 
 

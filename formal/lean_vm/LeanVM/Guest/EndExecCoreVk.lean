@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Fam.ResVk
 public import LeanVM.Guest.CoreMode.CoreRes
+public import LeanVM.Guest.CoreMode.Fn.verify_keccak.Fam
 public import LeanVM.Guest.EndExecCoreVt
 
 /-!

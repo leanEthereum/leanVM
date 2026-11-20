@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Fam.FamDefs
 public import LeanVM.Guest.CoreMode.Fam.ParamRef
+public import LeanVM.Guest.CoreMode.Gen.FnData
 public import LeanVM.Guest.B1.Terminal.InterfaceP
 public import LeanVM.Guest.B1.Selectors.ColumnSelector
 import LeanVM.Guest.Data.Source
@@ -24,9 +25,8 @@ g^τ_5]`, `g_log_mem = g^log_mem`, `tau_keccak_g = g^τ_5`, the heights below `3
 selector's nibble shares; `verify_tables`' context (`TCtx`) on `[zeta, chi, rm, g_bus_mu, g_zc_n]`.
 
 `dimFacts`: function, base parameter, bound parameter, pairs `(k, c)`: the word at `[base]·g^k` is
-`g^e`, the bound's `g^m`, `e + c ≤ m`; at `check_opening_terminal`, the pooled claims' `kappa_base`
-sources and adjustments, the bus's against `g_bus_mu`, the tables' against `g_zc_n` (`busPairs`,
-`tabPairs`). `dimB j w` (F9): the point `[T]·B·g^d` inside `[T]·g^i`, `i` below `[M]`'s exponent
+`g^e`, the bound's `g^m`, `e + c ≤ m` (`FnReg.dimFacts`; at `check_opening_terminal`, the pooled claims' `kappa_base`
+sources and adjustments, its own data). `dimB j w` (F9): the point `[T]·B·g^d` inside `[T]·g^i`, `i` below `[M]`'s exponent
 plus `t ≥ 1`, `B` the word at `[K]·g^k` (or a product of it and a constant `g^c` the code writes),
 `(k, c + d)` a pair of such a fact on `K`, `M`.
 
@@ -62,22 +62,9 @@ def TermFront (rd : Reader) : List E → Prop
 
 /-! ## The claims' low dimensions -/
 
-/-- The pooled claims' `kappa_base` sources and adjustments, bus claims first. -/
-def claimPairs : List (ℕ × ℕ) :=
-  (List.range Tables.nPooled).map fun j ↦ (Tables.claimKappaSrc.getD j 0, Tables.claimKappaAdj j)
-
-/-- The bus claims' pairs: their points prefixes of the bus point. -/
-def busPairs : List (ℕ × ℕ) := claimPairs.take Tables.nBusClaims
-
-/-- The tables' claims' pairs: their points prefixes of the tables' point. -/
-def tabPairs : List (ℕ × ℕ) := claimPairs.drop Tables.nBusClaims
-
-/-- **Dimension facts at listed parameters**: function, base parameter, bound parameter, pairs. -/
-def dimFacts : List (String × ℕ × ℕ × List (ℕ × ℕ)) :=
-  [(name% «check_opening_terminal», param% check_opening_terminal "kappa_base",
-      param% check_opening_terminal "g_bus_mu", busPairs),
-    (name% «check_opening_terminal», param% check_opening_terminal "kappa_base",
-      param% check_opening_terminal "g_zc_n", tabPairs)]
+/-- **Dimension facts at listed parameters**: function, base parameter, bound parameter, pairs; each function's own
+(`FnReg.dimFacts`: `check_opening_terminal`'s, `CoreMode/Fn/check_opening_terminal/Data.lean`). -/
+abbrev dimFacts : List (String × ℕ × ℕ × List (ℕ × ℕ)) := CoreMode.FnReg.dimFacts
 
 /-- The shape `dimB` reads: `[T]·B` and `[T]` up to `[o] + t`, as `(B, o, t)`. -/
 def dimShape (a b : Mode.Rng) : Option (Mode.Base × ℕ × ℕ) :=
@@ -117,62 +104,13 @@ noncomputable def dimB (j : ℕ) (w : Wit) : Mode.Res → Bool
 
 /-! ## The callers -/
 
-/-- **The proof stream's readers and their callers**: `verify_keccak` called by `verify_sub`, the
-two `keccak_layer` specializations by `verify_keccak`, each one's two loops by it, `verify_tables` by
-`verify_sub` and its table sumcheck's two loops by it; `da_pad` by `da_verify`. -/
-def stCallers : List (String × String) :=
-  [(name% «verify_keccak», name% «verify_sub»), (name% «keccak_layer__L0», name% «verify_keccak»),
-    (name% «keccak_layer__L1», name% «verify_keccak»),
-    (name% «keccak_layer__L0_loop0», name% «keccak_layer__L0»),
-    (name% «keccak_layer__L0_loop1», name% «keccak_layer__L0»),
-    (name% «keccak_layer__L1_loop0», name% «keccak_layer__L1»),
-    (name% «keccak_layer__L1_loop1», name% «keccak_layer__L1»), (name% «verify_tables», name% «verify_sub»),
-    (name% «verify_tables_loop0», name% «verify_tables»), (name% «verify_bus_gkr», name% «verify_sub»),
-    (name% «da_pad», name% «da_verify»)]
+/-- **The callees whose facts are carried and their callers** (`Res.callersG`), each callee's own
+(`FnReg.stCallers`). -/
+abbrev termCallers : List (String × String) := CoreMode.FnReg.stCallers
 
-/-- **`verify_bus_gkr`'s layers and their callers** (`Res.callersM`): `gkr_layers__L{o}` called by
-`verify_bus_gkr`, its loop and `gkr_last_layers__L{r}_L{o}` by it, `gkr_layer__L{p}_L{o}` by that loop and by
-`gkr_last_layers__L{r}_L{o}`, `r > p`, its loop by it. -/
-def glCallers : List (String × List String) :=
-  [(name% «gkr_layers__L0», [name% «verify_bus_gkr»]),
-    (name% «gkr_layers__L0_loop0», [name% «gkr_layers__L0»]),
-    (name% «gkr_last_layers__L0_L0», [name% «gkr_layers__L0»]),
-    (name% «gkr_last_layers__L1_L0», [name% «gkr_layers__L0»]),
-    (name% «gkr_last_layers__L2_L0», [name% «gkr_layers__L0»]),
-    (name% «gkr_last_layers__L3_L0», [name% «gkr_layers__L0»]),
-    (name% «gkr_layer__L0_L0», [name% «gkr_layers__L0_loop0», name% «gkr_last_layers__L1_L0»,
-      name% «gkr_last_layers__L2_L0», name% «gkr_last_layers__L3_L0»]),
-    (name% «gkr_layer__L1_L0», [name% «gkr_layers__L0_loop0», name% «gkr_last_layers__L2_L0»,
-      name% «gkr_last_layers__L3_L0»]),
-    (name% «gkr_layer__L2_L0», [name% «gkr_layers__L0_loop0», name% «gkr_last_layers__L3_L0»]),
-    (name% «gkr_layer__L3_L0», [name% «gkr_layers__L0_loop0»]),
-    (name% «gkr_layer__L0_L0_loop0», [name% «gkr_layer__L0_L0»]),
-    (name% «gkr_layer__L1_L0_loop0», [name% «gkr_layer__L1_L0»]),
-    (name% «gkr_layer__L2_L0_loop0», [name% «gkr_layer__L2_L0»]),
-    (name% «gkr_layer__L3_L0_loop0», [name% «gkr_layer__L3_L0»]),
-    (name% «gkr_layers__L1», [name% «verify_bus_gkr»]),
-    (name% «gkr_layers__L1_loop0», [name% «gkr_layers__L1»]),
-    (name% «gkr_last_layers__L0_L1», [name% «gkr_layers__L1»]),
-    (name% «gkr_last_layers__L1_L1», [name% «gkr_layers__L1»]),
-    (name% «gkr_last_layers__L2_L1», [name% «gkr_layers__L1»]),
-    (name% «gkr_last_layers__L3_L1», [name% «gkr_layers__L1»]),
-    (name% «gkr_layer__L0_L1», [name% «gkr_layers__L1_loop0», name% «gkr_last_layers__L1_L1»,
-      name% «gkr_last_layers__L2_L1», name% «gkr_last_layers__L3_L1»]),
-    (name% «gkr_layer__L1_L1», [name% «gkr_layers__L1_loop0», name% «gkr_last_layers__L2_L1»,
-      name% «gkr_last_layers__L3_L1»]),
-    (name% «gkr_layer__L2_L1», [name% «gkr_layers__L1_loop0», name% «gkr_last_layers__L3_L1»]),
-    (name% «gkr_layer__L3_L1», [name% «gkr_layers__L1_loop0»]),
-    (name% «gkr_layer__L0_L1_loop0», [name% «gkr_layer__L0_L1»]),
-    (name% «gkr_layer__L1_L1_loop0», [name% «gkr_layer__L1_L1»]),
-    (name% «gkr_layer__L2_L1_loop0», [name% «gkr_layer__L2_L1»]),
-    (name% «gkr_layer__L3_L1_loop0», [name% «gkr_layer__L3_L1»])]
-
-/-- **The callees whose facts are carried and their callers** (`Res.callersG`): `check_opening_terminal`
-called by `verify_sub`, each `column_selector__L{κ}` by `check_opening_terminal`, and `stCallers`. -/
-def termCallers : List (String × String) :=
-  (name% «check_opening_terminal», name% «verify_sub») ::
-    ((List.range 31).map fun κ ↦ (Tables.lName "column_selector" κ, name% «check_opening_terminal»)) ++
-    stCallers
+/-- **The callees whose facts are carried and their callers** (`Res.callersM`), each callee's own
+(`FnReg.glCallers`). -/
+abbrev glCallers : List (String × List String) := CoreMode.FnReg.glCallers
 
 /-! ## `column_selector`'s lowest digit -/
 

@@ -18,7 +18,8 @@ import resgen
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
 OUT = os.path.join(ROOT, 'CoreMode', 'Gen')
 # the caller: its stable name, its entries and bound parameters
-ORIGIN = 'child_claim_list_any'
+import fnrules  # noqa: E402
+ORIGIN, = fnrules.table('ANY_ORIGIN')
 UE, UL = 0, 3
 RANGES = resgen.RANGES
 

@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.CoreMode.Fam.ResVt
-public import LeanVM.Guest.CoreMode.Fam.ResGkrQ
 
 /-!
 # `verify_tables`' precondition
@@ -110,74 +109,6 @@ theorem vtPQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.
   rw [← ht, hJt] at hn
   simp only [Tree.name] at hn
   exact absurd hn (by decide)
-
-
-/-- **The exponent facts but `check_opening_terminal`'s at every honest instance**: `verify_tables`'
-`g_bus_mu = g^|point|`, `|point| < 33`, `dims_g`'s first word `g^logMem`, `logMem ≤ 32`, and its other six the
-tables' log-heights, below `31` (`B1.Tables.vt_pads`); `gkr_layer__L{p}_L{o}`'s `x_m` (`GlQ`) and
-`gkr_layers__L{o}`'s `n_four` and `rem_g` (`GlsQ`), below `4`. -/
-theorem expQv_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, ExpQv r J := by
-  intro J hJ f σ bufs kids hJt fn hf c hc hcf hn v hv
-  simp only [Res.expFacts, List.mem_append, List.mem_cons, List.mem_map, List.mem_range,
-    List.not_mem_nil, or_false] at hc
-  rcases hc with ((((((rfl | rfl) | ⟨k, -, rfl⟩) | rfl | rfl) | ⟨k, hk, rfl⟩) | hg) | hg)
-  rotate_left 6
-  · -- `gkr_layer__L{p}_L{o}`'s `x_m`
-    obtain ⟨p, hp, o, ho, rfl⟩ : ∃ p < 4, ∃ o < 2, c = (Tables.glName p o, 3, none, 4) := by
-      rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-      exacts [⟨0, by omega, 0, by omega, rfl⟩, ⟨0, by omega, 1, by omega, rfl⟩, ⟨1, by omega, 0, by omega, rfl⟩,
-        ⟨1, by omega, 1, by omega, rfl⟩, ⟨2, by omega, 0, by omega, rfl⟩, ⟨2, by omega, 1, by omega, rfl⟩,
-        ⟨3, by omega, 0, by omega, rfl⟩, ⟨3, by omega, 1, by omega, rfl⟩]
-    dsimp only at hcf hv ⊢
-    subst hcf
-    obtain ⟨fn', hf', hp', -⟩ := Tables.glIs_sound (Tables.glIs_layers p hp o ho)
-    obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
-    rw [hp', glParams_eq] at hv
-    obtain rfl : V.n 3 = v := Option.some.inj hv
-    obtain ⟨m, q, h3, hm, -⟩ := glQ_all hr J hJ p hp o ho σ bufs kids hJt
-    exact ⟨m, hm, h3⟩
-  · -- `gkr_layers__L{o}`'s `n_four` and `rem_g`
-    obtain ⟨o, ho, i, hi, rfl⟩ : ∃ o < 2, ∃ i, (i = 3 ∨ i = 4) ∧ c = (Tables.glcLsN o, i, none, 4) := by
-      rcases hg with rfl | rfl | rfl | rfl
-      exacts [⟨0, by omega, 3, Or.inl rfl, rfl⟩, ⟨0, by omega, 4, Or.inr rfl, rfl⟩,
-        ⟨1, by omega, 3, Or.inl rfl, rfl⟩, ⟨1, by omega, 4, Or.inr rfl, rfl⟩]
-    dsimp only at hcf hv ⊢
-    subst hcf
-    obtain ⟨fn', hf', hp', -⟩ := Tables.glcFnCheck_sound (Tables.glc_layers_check o ho).1
-    obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
-    rw [hp', glcPar9_eq] at hv
-    obtain ⟨n, rr, q, h3, hn4, h4, hrr, -⟩ := glsQ_all hr J hJ o ho σ bufs kids hJt
-    rcases hi with rfl | rfl
-    · obtain rfl : V.n 3 = v := Option.some.inj hv
-      exact ⟨n, hn4, h3⟩
-    · obtain rfl : V.n 4 = v := Option.some.inj hv
-      exact ⟨rr, hrr, h4⟩
-  · exact absurd rfl hn
-  · exact absurd rfl hn
-  · exact absurd rfl hn
-  all_goals
-    subst hcf
-    obtain rfl : fn = fn% «verify_tables» := Option.some.inj (hf.symm.trans VerifySub.find_vt)
-    rw [vt_params] at hv
-    simp only [List.getElem?_map, List.getElem?_range (by decide : (9 : ℕ) < 21),
-      List.getElem?_range (by decide : (10 : ℕ) < 21), Option.map_some, Option.some.injEq] at hv
-    subst hv
-    obtain ⟨pi, lm, w, pt, vals, hP⟩ := vtPQ_all hr J hJ σ bufs kids hJt
-    rw [show (List.range 21).map (fun k ↦ σ (.n k)) = [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4),
-      σ (.n 5), σ (.n 6), σ (.n 7), σ (.n 8), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12), σ (.n 13),
-      σ (.n 14), σ (.n 15), σ (.n 16), σ (.n 17), σ (.n 18), σ (.n 19), σ (.n 20)] from rfl] at hP
-    obtain ⟨-, -, hgmu, hlen, -, hlm, ⟨ds, -, hds⟩, -⟩ := hP
-  · exact ⟨pt.length, hlen, hgmu⟩
-  · exact ⟨lm, show lm < 33 by omega, hds 0 (by simp)⟩
-  · -- `dims_g`'s other words: the tables' log-heights, below `31`, by its body (`vt_pads`)
-    obtain ⟨args, rets, hJv⟩ := inst_valid' hr hJ hJt
-    have hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
-      unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
-    obtain ⟨-, hbJ⟩ := Res.holds_of_valid hfs hJv VerifySub.find_vt
-    obtain ⟨hVt, -⟩ := vt_holds (fun _ _ _ h ↦ Res.KidRel.rel h) VerifySub.find_vt hbJ
-    have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
-    obtain ⟨τ, -, -, h1, h2, -⟩ := Tables.vt_pads (by omega) r.img σ hVt k hk
-    exact ⟨τ, h1, h2⟩
 
 end
 

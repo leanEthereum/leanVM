@@ -15,7 +15,7 @@ public import LeanVM.Guest.Bridge.JumpCells.All
 public import LeanVM.Guest.Bridge.ProgAlKeys
 public import LeanVM.Guest.EndExecLoop
 public import LeanVM.Guest.EndExecChain
-public import LeanVM.Guest.EndExecCoreRes
+public import LeanVM.Guest.EndExecCoreResAll
 public import LeanVM.Guest.EndExecCoreMono
 public import LeanVM.Guest.EndExecCoreSt
 
@@ -546,7 +546,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
           (fun m hm ↦ CoreMode.setG_eq (show (V.n m).idx < CoreMode.GB from hm))
           (fun x hx ↦ by cases x <;> simp [CoreMode.mlSub, cmK_mlK hck] at hx)
           (fun x hx ↦ by cases x <;> simp [CoreMode.stSub, cmK_stK hck] at hx) hsub
-          (fun x hx ↦ by simp [CoreMode.vtExp, List.isEmpty_iff.mp hgw0, CoreMode.vtGw] at hx)
+          (fun x hx ↦ by rw [List.isEmpty_iff.mp hgw0, CoreMode.gwFam_nil] at hx; cases hx)
       · rw [← hfpL]
         exact cmGlF hglv hgh (rd_hdr hF.hdr1 ha) ha5
     | none =>
@@ -561,17 +561,14 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
       obtain ⟨⟨⟨hglv, hgh⟩, hng⟩, hgw0⟩ := hgl1
       have hmk := stK_mlK hsk
       obtain ⟨a, ha, haD, hsub⟩ := st_inst hr hI hIt hfind hsk
-      have hD0 : D ≠ 0 := by
-        rcases stK_cases hsk with ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ |
-          ⟨-, -, -, -, -, rfl, -⟩ <;>
-          decide
+      have hD0 : D ≠ 0 := stK_D hsk
       refine ⟨CoreMode.setG e.σ [refMem r.img (a + D), ofK (Parameters.g ^ a)], CoreMode.honB_setG hB hng,
         fun hxw ↦ ?_, ?_, fun c j hc ↦ by rw [List.isEmpty_iff.mp hgw0] at hc; cases hc⟩
       · exact resOk_instG hr hI hIt hfind hres0 hparF hxw
           (fun m hm ↦ CoreMode.setG_eq (show (V.n m).idx < CoreMode.GB from hm))
           (fun x hx ↦ by cases x <;> simp [CoreMode.mlSub, hmk] at hx) hsub
           (fun x hx ↦ by rw [CoreMode.cmSub_none hck] at hx; cases hx)
-          (fun x hx ↦ by simp [CoreMode.vtExp, List.isEmpty_iff.mp hgw0, CoreMode.vtGw] at hx)
+          (fun x hx ↦ by rw [List.isEmpty_iff.mp hgw0, CoreMode.gwFam_nil] at hx; cases hx)
       · rw [← hfpL]
         exact stGlF hglv hgh hD0 (rd_hdr hF.hdr1 ha) haD
     | none =>
@@ -601,7 +598,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
               (fun x hx ↦ by cases x <;> simp [CoreMode.mlSub, hmk] at hx)
               (fun x hx ↦ by cases x <;> simp [CoreMode.stSub, hsk] at hx)
               (fun x hx ↦ by rw [CoreMode.cmSub_none hck] at hx; cases hx)
-              (fun x hx ↦ vtExp_inst hr hI hIt hfind (fun v hv ↦ CoreMode.setG_eq hv) hng (CoreMode.gwR_setG hgs) hx)
+              (fun x hx ↦ gwFam_inst hr hI hIt hfind (fun v hv ↦ CoreMode.setG_eq hv) hng (CoreMode.gwR_setG hgs) hx)
           · rw [List.isEmpty_iff.mp hgle] at h; cases h
       · -- a loop callee of `anyLink`: its ghost word its caller's frame address
         simp only [CoreMode.alGl, Bool.and_eq_true, Nat.beq_eq] at hal
@@ -618,7 +615,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
             (fun x hx ↦ by cases x <;> simp [CoreMode.mlSub, hmk] at hx)
             (fun x hx ↦ by cases x <;> simp [CoreMode.stSub, hsk] at hx)
             (fun x hx ↦ by rw [CoreMode.cmSub_none hck] at hx; cases hx)
-            (fun x hx ↦ by simp [CoreMode.vtExp, List.isEmpty_iff.mp hgw0, CoreMode.vtGw] at hx)
+            (fun x hx ↦ by rw [List.isEmpty_iff.mp hgw0, CoreMode.gwFam_nil] at hx; cases hx)
         · rw [← hfpL]
           exact hglF
     | some k =>
@@ -634,7 +631,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
           (fun m hm ↦ CoreMode.setG_eq (show (V.n m).idx < CoreMode.GB from hm)) hsub
           (fun x hx ↦ by cases x <;> simp [CoreMode.stSub, hsk] at hx)
           (fun x hx ↦ by rw [CoreMode.cmSub_none hck] at hx; cases hx)
-          (fun x hx ↦ by simp [CoreMode.vtExp, List.isEmpty_iff.mp hgw0, CoreMode.vtGw] at hx)
+          (fun x hx ↦ by rw [List.isEmpty_iff.mp hgw0, CoreMode.gwFam_nil] at hx; cases hx)
       · rw [← hfpL]
         exact mlGlF hglv hgh hpar4 (rd_hdr hF.hdr1 ha) h5 hm5
   refine ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_,

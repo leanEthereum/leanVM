@@ -11,6 +11,8 @@ public import LeanVM.Guest.CoreMode.Fam.ResVtG
 public import LeanVM.Guest.B1.Tables.Vt.ZcCert
 public import LeanVM.Guest.B1.Tables.Vt.SelsAll
 public import LeanVM.Guest.CoreMode.CoreRes
+public import LeanVM.Guest.CoreMode.Fn.verify_tables.Fam
+public import LeanVM.Guest.EndExecCoreFn
 public import LeanVM.Guest.CoreMode.HeapCSound
 
 /-!
@@ -42,11 +44,6 @@ structure VtExps (σ : Core.Val) (μ lm n : ℕ) (τ : ℕ → ℕ) : Prop where
   nμ : n ≤ μ
 
 variable {r : Ref}
-
-theorem find_name' {f : String} {fn : Fn} (h : coreProgram.find? f = some fn) : fn.name = f := by
-  unfold Program.find? at h
-  have := List.find?_some h
-  simpa using this
 
 /-- **`verify_tables`' exponents at an honest instance.** -/
 theorem vt_exps (hr : r.Ok) {J : Inst} (hJ : J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)

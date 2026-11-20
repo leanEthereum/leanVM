@@ -8,33 +8,14 @@ import os, re, sys, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import infer as I  # noqa: E402
+import fnrules as R  # noqa: E402
 from pmap import pmap  # noqa: E402
 sys.modules.setdefault('infer', I)
 
 CAPE = 2 ** 62
 FEATURES = {'ptr', 'pfr', 'idx', 'rules'}
-# `verify_tables`: its arms' growing blocks, its buffers through its hinted order (`perm`), a run up to a bound over
-# values before one up to a constant (`vthi`), the bounds its exponent family proves stated (`lastres`); `verify_keccak`:
-# its layers' runs at their records' words (`postQ`), loads naming stored words (`hv`), runs made up for its reads and
-# its callees' runs (`der`); `verify_bus_gkr`: a loop's runs where it is not entered (`join`), point runs (`ptsrun`),
-# range-checked point indices (`rcpts`)
-VT_FEATS = {'verify_tables': (FEATURES | {'armblock', 'perm', 'vthi', 'lastres'},),
-            'verify_keccak': (FEATURES | {'postQ', 'hv', 'der'},),
-            'verify_bus_gkr': (FEATURES | {'join', 'ptsrun', 'rcpts', 'chain'},),
-            'certify_placement': (FEATURES | {'rcpts', 'perm'},),
-            'da_verify': (FEATURES | {'der'},),
-            'gkr_layers__L0': (FEATURES | {'join', 'armsub'},), 'gkr_layers__L1': (FEATURES | {'join', 'armsub'},)}
-
-
-_SIGS = {}
-
-
-def vs_ok(k, r):
-    """A residual of a family at `verify_sub` (the pool's facts the solver may use there)."""
-    if not _SIGS:
-        import route
-        _SIGS.update(route.sigs())
-    return res_ok(k, [r], _SIGS)
+# each function's own feature sets, tried after the generic ones (its rule file's `FEATURES`)
+VT_FEATS = {k: tuple(FEATURES | s for s in v) for k, v in R.table('FEATURES').items()}
 
 
 def top_atoms(body):
@@ -74,19 +55,6 @@ def rc_bound(atoms, v):
     return None
 
 
-def cs_kappa(k):
-    """`κ` for `column_selector__L{κ}`, `κ < 31` (`B1.Tables.lName`)."""
-    m = re.fullmatch(r'column_selector__L(\d+)', k)
-    return int(m.group(1)) if m and int(m.group(1)) < 31 else None
-
-
-def cs_sub(kap):
-    """`CoreMode.csSub κ`: the lowest digit's read `[sel_eq]·[digit₀]·g^off` in its strided table."""
-    w = 4 * (kap // 4) + 4 - kap
-    off = 64 * (kap // 4) + 16 * (w - 1)
-    return ('sub', (((1, 1), (3, 1)), off), ((((1, 1),), off), 2 ** (4 - w), ('num', 0), ('num', 2 ** w)))
-
-
 def exp_diff(atoms, x):
     """`CoreMode.expDiff`: `q = b·x` (or `x·b`) with `DEREF`s through `b` and `q` at offset `0` among the atoms."""
     lds = {a[2] for a in atoms if a[0] == 'load' and a[3] == 0}
@@ -94,21 +62,12 @@ def exp_diff(atoms, x):
                for a in atoms)
 
 
-# `Res.expFacts` (`Res/SelDefs.lean`): function, parameter, offset (`None`: its word; `k`: the word at
-# `[parameter]·g^k`), bound; `Res.dimFacts` (`Res/TermDefs.lean`): function, base parameter, bound parameter, pairs
-# `(k, c)` (`busPairs`, `tabPairs`: `CLAIM_KAPPA_SRC` with `CLAIM_KAPPA_ADJ`, a subset suffices here)
-EXP_FACTS = [('check_opening_terminal', 7, None, 31), ('check_opening_terminal', 8, 0, 1)] + \
-    [('check_opening_terminal', 8, j + 1, 31) for j in range(7)] + \
-    [('verify_tables', 9, None, 33), ('verify_tables', 10, 0, 33)] + \
-    [('verify_tables', 10, j + 1, 31) for j in range(6)] + \
-    [('gkr_layer__L%d_L%d' % (p, o), 3, None, 4) for p in range(4) for o in range(2)] + \
-    [('gkr_layers__L%d' % o, i, None, 4) for o in range(2) for i in (3, 4)]
-DIM_FACTS = [('check_opening_terminal', 8, 4, {(1, 0), (0, 19)}),
-             ('check_opening_terminal', 8, 5, {(j, 0) for j in range(2, 8)})]
-
-
-# `verify_tables`' value `g_zc_n` (`EndExec.VtQ`)
-VT_ZC = 2544
+# `Res.expFacts`: function, parameter, offset (`None`: its word; `k`: the word at `[parameter]·g^k`), bound;
+# `Res.dimFacts`: function, base parameter, bound parameter, pairs `(k, c)`; `CoreMode.expVals`: function, value,
+# bound: each function's own (its rule file's)
+EXP_FACTS = R.table('EXP_FACTS') or []
+DIM_FACTS = R.table('DIM_FACTS') or []
+EXP_VALS = R.table('EXP_VALS') or []
 
 
 def _consts(atoms):
@@ -194,17 +153,11 @@ def addr_bound(k, x):
 
 
 def expq0(k, x):
-    """`CoreMode.expQ0`: `expq1`, `check_opening_terminal`'s `gmv` (`termGm`), `verify_tables`' `g_zc_n` (`vtZc`)."""
+    """`CoreMode.expQ0`: `expq1`, or a listed value's bound (`CoreMode.expVal`)."""
     b = expq1(k, x)
     if b is not None:
         return b
-    # `check_opening_terminal`'s `gmv = g^sl`, `sl <= 30` (`CoreMode.termGm`)
-    if k == 'check_opening_terminal' and len(I.CORE[k][0]) > 19 and x == I.CORE[k][0][19]:
-        return 31
-    # `verify_tables`' `g_zc_n = g^n`, `n < 34` (`CoreMode.vtZc`)
-    if k == 'verify_tables' and x == VT_ZC:
-        return 34
-    return None
+    return next((b for f, v, b in EXP_VALS if f == k and v == x), None)
 
 
 def expq_bound(k, x):
@@ -213,7 +166,7 @@ def expq_bound(k, x):
     b = expq0(k, x)
     if b is not None:
         return b
-    b = vs_bound(k, x)
+    b = R.first('exp_bound', k, x)
     if b is not None:
         return b
     atoms = top_atoms(I.CORE[k][1])
@@ -454,9 +407,6 @@ def res_fam(k, r, G):
                    any(b[0] == 'mul' and b[1] == a[5] and b[2] == p and inv(b[3]) for b in top) for a in top)
     if r[0] == 'subR':
         return sub_rc(r[1], r[2])
-    if r[0] == 'sub':
-        kap = cs_kappa(k)
-        return (kap is not None and r == cs_sub(kap)) or r == vt_st_sub(k, r[1])
     return False
 
 
@@ -483,50 +433,11 @@ def vals(r):
     return []
 
 
-def ml_sub(k, c):
-    """`CoreMode.mlSub`: `child_claim_list_mono_last__L{k}`'s read of claim `jj`'s entry `c`, the run of its caller's
-    table (its ghost, stride 4, below the exponent of its parameter `3`), or None."""
-    import callc
-    kk = callc.ml_k(k)
-    bs, off = c
-    jj = off // 4
-    if kk is None or jj >= kk or tuple(bs) != ((5, 1),) + tuple((6 + 10 * i, 4) for i in range(jj + 1)):
-        return None
-    return ('sub', c, ((((I.GB, 1),), off % 4), 4, ('num', 0), ('val', 3)))
-
-
-# `CoreMode.cmK`: `child_claim_list_mono`'s frame loops, their claims a frame
-CM_LOOPS = {'child_claim_list_mono_loop0': 136, 'child_claim_list_mono_loop1': 17}
-
-
-def cm_sub(k, c):
-    """`CoreMode.cmSub`: a frame loop's read of claim `jj`'s entry `c`, the run of its caller's table (ghost `0`, stride
-    4, below the exponent of ghost `1`, its caller's `limit`), or None."""
-    m = CM_LOOPS.get(I.callee(k))
-    if m is None:
-        return None
-    bs, off = c
-    jj = off // 4
-    if jj >= m or tuple(bs) != ((12, 1),) + tuple((13 + 10 * i, 4) for i in range(jj + 1)):
-        return None
-    return ('sub', c, ((((I.GB, 1),), off % 4), 4, ('num', 0), ('val', I.GB + 1)))
-
-
-def cm_res(k, r):
-    """`CoreMode.cmSub`: a read (`cm_sub`), or ghost `1`'s exponent `0 < e(limit)`."""
-    if I.callee(k) not in CM_LOOPS:
-        return False
-    return (r[0] == 'sub' and cm_sub(k, r[1]) == r) or r == ('lt', ('num', 0), ('val', I.GB + 1))
-
-
 # `CoreMode.stLoops`: the loops reading the proof stream past a cursor, by stable name: (caller's cell `D` holding
-# the stream, the cursor value `v`, the words `S` read past it an iteration)
-ST_LOOPS = {
-    'keccak_layer__L0_loop0': (17, 20, 16), 'keccak_layer__L1_loop0': (17, 20, 16),
-    'keccak_layer__L0_loop1': (17, 14, 2), 'keccak_layer__L1_loop1': (17, 14, 2),
-    'verify_tables_loop0': (22, 11, 3),
-}
-ST_LOOPS.update({'gkr_layer__L%d_L%d_loop0' % (p, o): (10, 17, 32) for p in range(4) for o in range(2)})
+# the stream, the cursor value `v`, the words `S` read past it an iteration), each its function's own
+ST_LOOPS = R.table('ST_LOOPS') or {}
+# `CoreMode.cmK`: `child_claim_list_mono`'s frame loops, their claims a frame
+CM_LOOPS = R.table('CM_LOOPS') or {}
 
 
 def st_sub(k, c):
@@ -536,71 +447,6 @@ def st_sub(k, c):
     if p is None or tuple(c[0]) != ((p[1], 1),) or not c[1] < p[2]:
         return None
     return ('sub', c, ((((I.GB, 1),), 0), 1, ('num', 0), ('num', 8192)))
-
-
-# `CoreMode.vsPows`, `vsMuls`, `vsLes`, `vsCurs`: `verify_sub`'s exponent family (`EndExec.VsQ`): its values' exponent
-# bounds, the products naming one, the orders `e(x) <= e(y) + c`, the cursors in its stream `[25]·[0, 8192)` with
-# room for `207` words
-VS_POWS = {86: (0, 30), 87: (0, 30), 88: (0, 30), 89: (0, 30), 90: (0, 30), 91: (9, 24), 566: (9, 24),
-           253: (20, 33), 562: (9, 33), 276: (20, 30), 278: (0, 10)}
-VS_MULS = {(276, 277): 278}
-VS_LES = [(91, 562, 0), (566, 562, 0), (276, 278, 20)]
-VS_CURS = [550, 561, 578]
-VS_STREAM, VS_ROOM = 25, 207
-
-
-def vs_iv(i):
-    """`CoreMode.vsIv`: an index's base (or None), offset and exponent bounds."""
-    if i[0] == 'num':
-        return (None, i[1], i[1], i[1])
-    if i[0] == 'val':
-        bs, off = ((i[1], 1),), 0
-    else:
-        bs, off = i[1]
-    if len(bs) == 1 and bs[0][1] == 1:
-        x = bs[0][0]
-    elif len(bs) == 2 and bs[0][1] == 1 and bs[1][1] == 1 and (bs[0][0], bs[1][0]) in VS_MULS:
-        x = VS_MULS[(bs[0][0], bs[1][0])]
-    else:
-        return None
-    if x not in VS_POWS:
-        return None
-    lo, hi = VS_POWS[x]
-    return (x, off, lo + off, hi + off)
-
-
-def vs_exp(k, r):
-    """`CoreMode.vsExp`: a residual of `verify_sub`'s exponent family."""
-    if k != 'verify_sub':
-        return False
-    if r[0] == 'under':
-        return vs_exp(k, r[2])
-    if r[0] == 'lt':
-        a, b = vs_iv(r[1]), vs_iv(r[2])
-        if a is None or b is None or not (a[3] < CAPE and b[3] < CAPE):
-            return False
-        return a[3] < b[2] or (a[0] is not None and b[0] is not None and
-                               any(x == a[0] and y == b[0] and a[1] + c < b[1] for x, y, c in VS_LES))
-    if r[0] == 'sub':
-        c, q = r[1], r[2]
-        return q == ((((VS_STREAM, 1),), 0), 1, ('num', 0), ('num', 8192)) and len(c[0]) == 1 and \
-            c[0][0][0] in VS_CURS and c[0][0][1] == 1 and c[1] < VS_ROOM
-    return False
-
-
-def vs_bound(k, x):
-    """`verify_sub`'s exponent bound of `x` (`vsExp`), plus one."""
-    return VS_POWS[x][1] + 1 if k == 'verify_sub' and x in VS_POWS else None
-
-
-# `CoreMode.cpRanks`: `certify_placement`'s ranks' group values (`B1.Tables.cpRB`)
-CP_RANKS = [138] + [131 + 18 * r for r in range(1, 9)]
-
-
-def cp_perm(k, r):
-    """`CoreMode.cpPerm`: `certify_placement`'s cell `[137]·g^j`, `j < 9`, one of `[137]·[v]` over its ranks' groups."""
-    return k == 'certify_placement' and r[0] == 'subP' and r[1][0] == ((137, 1),) and r[1][1] < 9 and \
-        tuple(r[2]) == tuple((((137, 1), (v, 1)), 0) for v in CP_RANKS)
 
 
 def rc_pts(k, r):
@@ -619,10 +465,7 @@ def rc_pts(k, r):
 
 # `CoreMode.splitsC`: a function's `g`-power `n = q^S·r` split from hinted bits, on every returning path `q` (a
 # monomial) names `g^a`, the selector `rv` and the monomial `r` name `g^b`, `a < A`, `b < S`
-SPLITS = {
-    'rs_eq_run': (((27, 1), (31, 1), (36, 1)), ((13, 1), (17, 1), (22, 1)), 23, 3, 8, 8),
-    'shared_selector_tables': (((24, 1), (28, 1), (33, 1), (38, 1)), ((15, 1), (19, 1)), 20, 5, 4, 16),
-}
+SPLITS = R.table('SPLITS') or {}
 
 
 def pow_b(k, bs):
@@ -656,99 +499,12 @@ def split_fam(k, r):
     return sp is not None and split_res(sp, [], r)
 
 
-# `verify_keccak`'s family (`CoreMode.vkQC`): its layers' returned cursors (step `s`'s, `CoreMode.vkCurs`), the stream
-# parameter, and the values whose exponents its `tau_g = g^τ`, `9 <= τ <= 28`, fixes (`CoreMode.vkE`)
-VK_CURS = [483, 518, 552, 595, 636, 679, 712, 753, 791, 834, 875, 915]
-VK_STREAM = 12
-VK_ORD = 2 ** 64 - 1
-
-
-def vk_e(t):
-    """`CoreMode.vkE`: the exponents at `τ = t` (`18` is `g^-4`, modulo the order `2^64 - 1`)."""
-    y = t - 3
-    b = [(y >> i) & 1 for i in range(5)]
-    return {6: t, 18: VK_ORD - 4, 19: t - 4, 21: t - 3, 35: y // 8, 49: y % 8, 30: b[3], 34: 2 * b[4], 39: b[0],
-            43: 2 * b[1], 48: 4 * b[2]}
-
-
-def vk_ev(E, c):
-    """`CoreMode.vkEv`: a cell over known values' exponent, modulo the order (`None`: an unknown base)."""
-    t = c[1]
-    for x, e in c[0]:
-        if x not in E:
-            return None
-        t += E[x] * e
-    return t % VK_ORD
-
-
-def vk_idx(E, i):
-    if i[0] == 'num':
-        return vk_ev(E, ((), i[1]))
-    if i[0] == 'val':
-        return vk_ev(E, (((i[1], 1),), 0))
-    return vk_ev(E, i[1])
-
-
-def vk_split(E, c):
-    """`CoreMode.vkSplit`: a cell's unknown bases (in order) and its known part's exponent."""
-    u = tuple(b for b in c[0] if b[0] not in E)
-    return u, vk_ev(E, (tuple(b for b in c[0] if b[0] in E), c[1]))
-
-
-def vk_at(t, r):
-    """`CoreMode.vkAt`: the residual decided at `τ = t`."""
-    E = vk_e(t)
-    if r[0] == 'under':
-        return vk_at(t, r[2])
-    if r[0] == 'lt':
-        a, b = vk_idx(E, r[1]), vk_idx(E, r[2])
-        return a is not None and b is not None and a < CAPE and b < CAPE and a < b
-    if r[0] == 'subR':
-        (qb, qS, ql, qh), (rb, rS, rl, rh) = r[1], r[2]
-        uq, kq = vk_split(E, qb)
-        ur, kr = vk_split(E, rb)
-        lq, hq, lr, hr = vk_idx(E, ql), vk_idx(E, qh), vk_idx(E, rl), vk_idx(E, rh)
-        if uq != ur or None in (kq, kr, lq, hq, lr, hr) or not 0 < rS or not hq - lq <= 64:
-            return False
-        if not all(v < CAPE for v in (kq, kr, lq, hq, lr, hr)) or not kq + qS * hq < CAPE:
-            return False
-        for j in range(lq, hq):
-            x = kq + qS * j
-            if x < kr or (x - kr) % rS or not lr <= (x - kr) // rS < hr:
-                return False
-        return True
-    return False
-
-
-def vk_q(k, r):
-    """`CoreMode.vkQC`: a read `c < (11 - s)·96 + 97` words past step `s`'s returned cursor, one of the stream's
-    `[12]·[0, 8192)`; else a residual true at every `τ` (`vk_at`)."""
-    if k != 'verify_keccak':
-        return False
-    rr = r[2] if r[0] == 'under' else r
-    if rr[0] == 'sub':
-        c, q = rr[1], rr[2]
-        return q == ((((VK_STREAM, 1),), 0), 1, ('num', 0), ('num', 8192)) and len(c[0]) == 1 and \
-            c[0][0][1] == 1 and c[0][0][0] in VK_CURS and c[1] < (11 - VK_CURS.index(c[0][0][0])) * 96 + 97
-    return all(vk_at(t, r) for t in range(9, 29))
-
-
-def vk_bound(k, x):
-    """`verify_keccak`'s exponent bound of `x` (`vkQC`), plus one."""
-    if k != 'verify_keccak':
-        return None
-    es = [vk_e(t).get(x) for t in range(9, 29)]
-    return None if None in es or max(es) >= CAPE else max(es) + 1
-
-
 def res_ok(k, res, S):
-    """`CoreMode.resFamG`: a ghost-free residual of a family, or the ghost family's."""
-    import vtexp
-    return all(((res_fam(k, r, S[k]) or split_fam(k, r) or vtexp.vt_perm(k, r) or vs_exp(k, r) or cp_perm(k, r) or
-                 rc_pts(k, r) or lay_q(k, r) or da_gap(k, r) or rc_tab(k, r) or vk_q(k, r) or gl_q(k, r)) and
+    """`CoreMode.resFamG`: a ghost-free residual of a family, generic or the function's own (`fam`), or of a ghost
+    family, the stream-cursor loops' (`st_sub`) or the function's own (`ghost`)."""
+    return all(((res_fam(k, r, S[k]) or split_fam(k, r) or rc_pts(k, r) or rc_tab(k, r) or R.some('fam', k, r)) and
                 all(v < I.GB for v in vals(r))) or
-               (r[0] == 'sub' and (ml_sub(k, r[1]) == r or st_sub(k, r[1]) == r)) or cm_res(k, r) or
-               vtexp.vt_exp(k, r) for r in res)
+               (r[0] == 'sub' and st_sub(k, r[1]) == r) or R.some('ghost', k, r) for r in res)
 
 
 def sel_facts(EM):
@@ -772,95 +528,8 @@ def sel_facts(EM):
     return base, fact
 
 
-# `verify_tables`' last table sumcheck record's cursor and its stream parameter (`CoreMode.vtStC`)
-VT_ST, VT_STREAM = 2647, 20
-
-
-def vt_st_sub(k, c):
-    """`CoreMode.vtStC`: `verify_tables`' read `c` words past its table sumcheck's last cursor, `c < 153`, one of its
-    stream's `[20]·[0, 8192)`."""
-    if k == 'verify_tables' and c[0] == ((VT_ST, 1),) and c[1] < 153:
-        return ('sub', c, ((((VT_STREAM, 1),), 0), 1, ('num', 0), ('num', 8192)))
-    return None
-
-
-# `keccak_layer__L{first}`'s last record's cursor, by name (`CoreMode.layCur`), its stream its parameter `15`
-LAY_CUR = {'keccak_layer__L0': 744, 'keccak_layer__L1': 764}
-
-
-def lay_st_sub(k, c):
-    """`CoreMode.laySt`: `keccak_layer`'s read `c` words past its last record's cursor, `c < 36`, one of its stream's
-    `[15]·[0, 8192)`."""
-    if k in LAY_CUR and c[0] == ((LAY_CUR[k], 1),) and c[1] < 36:
-        return ('sub', c, ((((15, 1),), 0), 1, ('num', 0), ('num', 8192)))
-    return None
-
-
-def lay_q(k, r):
-    """`CoreMode.layQC`: `keccak_layer`'s family (`EndExec.LayQ`): a read past its last record's cursor (`lay_st_sub`),
-    its pack rounds' words `e(p9), e(p10) < 32`, under branch conditions."""
-    if k not in LAY_CUR:
-        return False
-    if r[0] == 'under':
-        return lay_q(k, r[2])
-    if r[0] == 'lt' and r[1][0] == 'val' and r[2][0] == 'num':
-        return r[1][1] in (9, 10) and 32 <= r[2][1] < CAPE
-    return r[0] == 'sub' and lay_st_sub(k, r[1]) == r
-
-
-# `gkr_layer__L{par}_L{odd}`'s cursors (`CoreMode.glQC`, `EndExec.gl_curs`): the value its layer record's cursor is loaded
-# to (`21`), read `8 par` words past (its first `2 par` rounds), and its last record's (the tail), read `4 (2 - odd) + 12`
-# words past (its last rounds and the children)
-GL_TAIL = (76, 160, 238, 316)
-GL_CURS = {'gkr_layer__L%d_L%d' % (p, o): dict(([(21, 8 * p)] if p else []) + [(GL_TAIL[p], 20 - 4 * o)])
-           for p in range(4) for o in range(2)}
-
-
-def gl_st_sub(k, c):
-    """`CoreMode.glQC`: gkr_layer's read `c` words past one of its cursors (`GL_CURS`), one of its stream's
-    `[8]·[0, 8192)`."""
-    cs = GL_CURS.get(I.callee(k))
-    if cs and len(c[0]) == 1 and c[0][0][1] == 1 and c[1] < cs.get(c[0][0][0], 0):
-        return ('sub', c, ((((8, 1),), 0), 1, ('num', 0), ('num', 8192)))
-    return None
-
-
-def gl_q(k, r):
-    """`CoreMode.glQC`: a read past gkr_layer's cursors (`gl_st_sub`), under branch conditions."""
-    if r[0] == 'under':
-        return gl_q(k, r[2])
-    return r[0] == 'sub' and gl_st_sub(k, r[1]) == r
-
-
 # leaf loop helpers whose residuals are of a family: on `loopcc.py`'s route, not `loopc.py`'s (which takes none)
-LEAF_FAM = set()
-
-
-def _guest_const(name):
-    """The guest's constant `name`, as `guest-export` writes it to `Data/Source.lean` (`guest_const%`)."""
-    import re
-    src = open(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest', 'Data', 'Source.lean'), encoding='utf-8').read()
-    return int(re.search(r'def const_%s : Nat := (\d+)' % name, src).group(1))
-
-
-def da_gap_bound(k, x):
-    """`CoreMode.daGap`: `da_pad`'s gap, its parameter `2`, below `g^DA_MAX_ROWS` (`EndExec.DaPadQ`); `da_verify`'s
-    blob count `1`, at most `g^DA_MAX_ROWS`, and gap `2`, below it (`EndExec.daV_inst`)."""
-    if I.callee(k) == 'da_pad' and x == 2:
-        return _guest_const('DA_MAX_ROWS')
-    if I.callee(k) == 'da_verify' and x in (1, 2):
-        return _guest_const('DA_MAX_ROWS') + (1 if x == 1 else 0)
-    return None
-
-
-def da_gap(k, r):
-    """`CoreMode.daGap`: a residual `e(x) < m`, `da_gap_bound(k, x) <= m`."""
-    if r[0] == 'under':
-        return da_gap(k, r[2])
-    if not (r[0] == 'lt' and r[1][0] == 'val' and r[2][0] == 'num'):
-        return False
-    B = da_gap_bound(k, r[1][1])
-    return B is not None and B <= r[2][1] < CAPE
+LEAF_FAM = R.table('LEAF_FAM') or set()
 
 
 def tab_of(k, x):
@@ -934,48 +603,43 @@ def rc_tab(k, r):
     return False
 
 
-def vt_facts(EM):
-    """The solver's exponent facts also from `verify_tables`' exponent family (`vtexp`, `CoreMode.vtExp`): `e(a) <
-    e(b)` stated under the site's path when the family proves it there."""
-    import vtexp
+def fn_facts(EM):
+    """The solver's exponent facts also from the functions' own families (their rule files' `fact`), and the residuals
+    it may state there (`res_filter`)."""
     base = EM.Solver.fact
-    EM.RES_FILTER[0] = lambda k, r: (k != 'verify_tables' or 'lastres' not in I.F or vtexp.vt_exp(k, r) or
-                                     vtexp.vt_perm(k, r) or (r[0] == 'sub' and vt_st_sub(k, r[1]) == r)) and \
-        (k != 'verify_sub' or vs_ok(k, r))
+    hooks = [h(EM, base) for h in R.hooks('fact')]
+    filters = R.hooks('res_filter')
+    EM.RES_FILTER[0] = lambda k, r: all(f(k, r) for f in filters)
 
     def fact(self, st, a, b):
         f = base(self, st, a, b)
-        if f is not None or self.k != 'verify_tables':
+        if f is not None:
             return f
-        g = tuple(dict.fromkeys(self.X.path))
-        r = ('lt', self.idx(st, a), self.idx(st, b))
-        wr = ('under', g, r) if g else r
-        if not vtexp.vt_exp(self.k, wr):
-            return None
-        return [self.use(('vtexp', a, b, g), wr)]
+        for h in hooks:
+            f = h(self, st, a, b)
+            if f is not None:
+                return f
+        return None
     return base, fact
 
 
 def cs_reads(EM):
-    """The solver's read witnesses also from the `cs` family: `column_selector__L{κ}`'s lowest digit's read, a cell of
-    its strided table's run in scope by the residual `csSub κ`; and from the ghost families `ml` (`ml_sub`), `st`
-    (`st_sub`)."""
+    """The solver's read witnesses also from the families of reads: a cell of a run in scope by a residual `sub c R`
+    of the stream-cursor loops' (`st_sub`) or of the function's own (its rule file's `sub`: `column_selector`'s lowest
+    digit, the ghost families, the stream's cursors)."""
     base = EM.Solver.pt
 
     def pt(self, st, c, want=None, depth=0):
         w = base(self, st, c, want, depth)
         if w is not None or want is not None:
             return w
-        kap = cs_kappa(self.k)
-        r = cs_sub(kap) if kap is not None else (ml_sub(self.k, c) or cm_sub(self.k, c) or st_sub(self.k, c) or
-                                                 vt_st_sub(self.k, c) or
-                                                 lay_st_sub(self.k, c) or gl_st_sub(self.k, c))
+        r = R.first('sub', self.k, c) or st_sub(self.k, c)
         if r is None or c != r[1]:
             return None
-        R = EM.C.runF(st.env, r[2])
-        for n, R2 in sorted(st.rs.items()):
-            if R2 == R:
-                return ('run', n, [self.use(('cs', kap) if kap is not None else ('ml', c), r)])
+        R2 = EM.C.runF(st.env, r[2])
+        for n, R3 in sorted(st.rs.items()):
+            if R3 == R2:
+                return ('run', n, [self.use(('rd', r), r)])
         return None
     return base, pt
 
@@ -1005,7 +669,7 @@ def extend(out, why, S, verbose=False):
     base, EM.Solver.pt = cs_reads(EM)
     basef, EM.Solver.fact = sel_facts(EM)
     _, EM.Solver.fact = expq_facts(EM)
-    _, EM.Solver.fact = vt_facts(EM)
+    _, EM.Solver.fact = fn_facts(EM)
     got, lost = {}, collections.Counter()
     def one(k):
         # these features, then the check with calls' own (`ptr`, `pfr`), then the arms' growing blocks

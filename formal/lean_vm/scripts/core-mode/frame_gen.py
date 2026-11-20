@@ -123,15 +123,16 @@ def fstLit(A):
 ROUTE = {}
 
 
-# a function whose windows at `WIN` instructions take past 6.5 GB a module: its own size (`main_loop2`,
-# `__loop2_main` to the compiler: its walk reads its packed alignment context)
-WINS = {'__loop2_main': 4000}
+# a function whose windows at `WIN` instructions take past 6.5 GB a module: its own size (its rule file's
+# `FRAME_WIN`, by stable name)
+import fnrules  # noqa: E402
+WINS = fnrules.table('FRAME_WIN') or {}
 
 
 def cutsFor(D, n):
     """Offsets to cut a long function at, about every `WIN` instructions (`WINS`)."""
     f = D['fns'][n]
-    w = WINS.get(n, WIN)
+    w = WINS.get(f['ns'], WIN)
     return list(range(w, f['count'] - w // 4, w))
 
 

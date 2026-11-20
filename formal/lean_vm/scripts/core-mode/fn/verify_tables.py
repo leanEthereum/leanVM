@@ -1,4 +1,7 @@
-"""`verify_tables`' exponent family (`CoreMode.vtExp`, `EndExec.vtExp_inst`), mirrored.
+"""`verify_tables`' rules: its features, exponent and stream facts, its exponent family (`CoreMode.vtExp`,
+`EndExec.vtExp_inst`), mirrored, and its buffers through its hinted order (`CoreMode.vtPerm`).
+
+Its exponent family:
 
 At an honest instance of `verify_tables` the exponents of its words are linear forms over nine slacks `s` (`a = mu - 19`,
 `b = mu - n`, `c_t = n - tau_t`, `d = mu - lm`), each in a box `[0, ub]` (`EndExec.vt_exps`): `g_bus_mu` (value `9`)
@@ -9,9 +12,73 @@ holds when, after each arm condition `x = g^j` is added as an equation (a multip
 it needs nonnegative are on the whole box: `lt a b` (`F_b - F_a - 1`), `subR q r` (stride 1, `q`'s base `r`'s times a
 product `m`: `r`'s bounds hold `F_m + q.off - r.off + q`'s), under branch conditions (the arms used, the others
 dropped)."""
-import infer as I
+import fnrules
+from fnrules import I
 
-GB = I.GB
+
+# its arms' growing blocks, its buffers through its hinted order (`perm`), a run up to a bound over values before one up
+# to a constant (`vthi`), the bounds its exponent family proves stated (`lastres`)
+FEATURES = {'verify_tables': [{'armblock', 'perm', 'vthi', 'lastres'}]}
+
+# `g_bus_mu`'s exponent below `33`, `dims_g[0]`'s too and `dims_g[1..6]`'s below `31` (`Res.expFacts`, `EndExec.VtPQ`)
+EXP_FACTS = [('verify_tables', fnrules.param('verify_tables', 'g_bus_mu'), None, 33),
+             ('verify_tables', fnrules.param('verify_tables', 'dims_g'), 0, 33)] + \
+    [('verify_tables', fnrules.param('verify_tables', 'dims_g'), j + 1, 31) for j in range(6)]
+
+# its value `g_zc_n = g^n`, `n < 34` (`CoreMode.expVals`, `EndExec.VtQ`)
+VT_ZC = 2544
+EXP_VALS = [('verify_tables', VT_ZC, 34)]
+
+# its rounds loop reads the proof stream past the cursor `11`, its caller's cell `22` the stream, `3` words an iteration
+# (`CoreMode.stLoops`)
+ST_LOOPS = {'verify_tables_loop0': (22, 11, 3)}
+
+# its last table sumcheck record's cursor and its stream parameter (`CoreMode.vtStC`)
+VT_ST, VT_STREAM = 2647, 20
+
+
+def vt_st_sub(k, c):
+    """`CoreMode.vtStC`: a read `c` words past its table sumcheck's last cursor, `c < 153`, one of its stream's
+    `[20]·[0, 8192)`."""
+    if k == 'verify_tables' and c[0] == ((VT_ST, 1),) and c[1] < 153:
+        return ('sub', c, ((((VT_STREAM, 1),), 0), 1, ('num', 0), ('num', 8192)))
+    return None
+
+
+def sub(k, c):
+    return vt_st_sub(k, c)
+
+
+def fam(k, r):
+    """`CoreMode.vtStC`, `CoreMode.vtPerm`."""
+    return (r[0] == 'sub' and vt_st_sub(k, r[1]) == r) or vt_perm(k, r)
+
+
+def ghost(k, r):
+    """`CoreMode.vtExp`."""
+    return vt_exp(k, r)
+
+
+def res_filter(k, r):
+    """With `lastres`, the residuals the solver states are of its families."""
+    return k != 'verify_tables' or 'lastres' not in I.F or vt_exp(k, r) or vt_perm(k, r) or \
+        (r[0] == 'sub' and vt_st_sub(k, r[1]) == r)
+
+
+def fact(EM, base):
+    """The solver's exponent facts also from its exponent family: `e(a) < e(b)` stated under the site's path when the
+    family proves it there."""
+    def f(self, st, a, b):
+        if self.k != 'verify_tables':
+            return None
+        g = tuple(dict.fromkeys(self.X.path))
+        r = ('lt', self.idx(st, a), self.idx(st, b))
+        wr = ('under', g, r) if g else r
+        if not vt_exp(self.k, wr):
+            return None
+        return [self.use(('vtexp', a, b, g), wr)]
+    return f
+
 NS = 9                       # slacks: a, b, c0..c5, d
 UB = (13, 32) + (32,) * 6 + (32,)
 CAPE = 2 ** 62
@@ -39,13 +106,14 @@ def maxv(f):
 
 def base(x):
     """`CoreMode.vtBase`: the words of the slacks."""
+    GB = I.GB
     if x >= GB:
         x = x - GB + 27 if x - GB < 7 else None
         if x is None:
             return None
     if x == 9:
         return lin(19, a=1)
-    if x == 2544:
+    if x == VT_ZC:
         return lin(19, a=1, b=-1)
     if x == 27:
         return lin(19, a=1, d=-1)
@@ -248,3 +316,17 @@ def vt_perm(k, r):
             if lo <= c[1] < hi and all((((B, 1), (v, 1)), 0) in cs for v in vs):
                 return True
     return False
+
+# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
+OWN = [
+    'LeanVM/Guest/B1/Tables/Vt/**',
+    'LeanVM/Guest/B1/Tables/VtC/**',
+    'LeanVM/Guest/B1/Tables/Kids/**',
+    'LeanVM/Guest/B1/Exact/VerifyTables.lean',
+    'LeanVM/Guest/B1/Exact/VtOwn.lean',
+    'LeanVM/Guest/CoreMode/Fam/ResVt*.lean',
+    'LeanVM/Guest/CoreMode/Fam/ExpQv.lean',
+    'LeanVM/Guest/CoreMode/Fam/SubVt.lean',
+    'LeanVM/Guest/EndExecCoreVt.lean',
+    'LeanVM/Guest/CoreMode/Fn/verify_tables/*.lean',
+]
