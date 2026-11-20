@@ -86,13 +86,15 @@ fn ext_row(words: &[K]) -> Vec<E> {
 
 fn sample_queries(transcript: &mut Transcript, block_length: u64, count: usize) -> Result<Vec<u64>, VerifierError> {
     let depth = log2_strict(block_length)?;
-    let per_word = 128 / depth;
     let mut result = Vec::with_capacity(count);
     while result.len() < count {
         let sample = transcript.sample();
         let word = sample.c0 as u128 | (sample.c1 as u128) << 64;
-        for chunk in 0..per_word.min(count - result.len()) {
-            result.push((word >> (chunk * depth)) as u64 & (block_length - 1));
+        // `128 / depth` chunks of `depth` bits, counted without a division.
+        let mut shift = 0;
+        while shift + depth <= 128 && result.len() < count {
+            result.push((word >> shift) as u64 & (block_length - 1));
+            shift += depth;
         }
     }
     Ok(result)
