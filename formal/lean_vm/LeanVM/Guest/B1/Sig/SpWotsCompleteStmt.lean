@@ -9,14 +9,20 @@
 
 module
 
-public import LeanVM.Guest.B1.Sig.SpWotsCompleteR
+public import LeanVM.Guest.Pack.sp_wots.Core
+public import LeanVM.Guest.B1.Sig.SpWotsGroups
 public import LeanVM.Guest.B1.Sig.SphincsSoundWots
+import LeanVM.Guest.B1.Sig.SpWotsLinksAll
 
 /-!
 # `sp_wots`, complete, against the statement
 
+Over cells (`sp_wots_complete_cells`): the reference function's meaning holds of the digits, any
+chain values and, on a memory of `64` words, each group's digit word's range check
+(`spWotsRef_sem`), so the body does (`sp_wots_sem_iff`).
+
 The digest's digits as numbers (`spDigitsOf`, `TargetSum.base2bDigits`) and the chain values as
-cells (`spValsOf`) are what the cells' completeness takes (`sp_wots_complete_cells`); its encoding
+cells (`spValsOf`) are what the cells' completeness takes; its encoding
 `spX` of those digits is the digest's own number (`spX_digest`: both have the same base-4 digits,
 digit `k` being the `base_2b` digit `4 (k / 4) + 3 - k % 4`), and its leaf over cells is the
 statement's (`wotsLeafOf_cells`).
@@ -28,6 +34,45 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open HashSig
 
 @[expose] public section
+
+variable {C : CallRel} {rd : Reader}
+
+/-- Group `p`'s digit word: its `spN p` base-4 digits from digit `3p`. -/
+private def spWord (d : Nat → Nat) (p : Nat) : Nat :=
+  (∑ i ∈ Finset.range 64, d i * 4 ^ i) / 4 ^ (3 * p) % 4 ^ spN p
+
+private theorem spWord_digit {d : Nat → Nat} (hd : ∀ i, d i < 4) {p r : Nat} (hp : p < 22)
+    (hr : r < spN p) :
+    spWord d p / 4 ^ r % 4 = d (3 * p + r) := by
+  obtain ⟨m, hm⟩ : ∃ m, spN p = r + (m + 1) := ⟨spN p - r - 1, by omega⟩
+  rw [spWord, hm, pow_add, Nat.mod_mul_right_div_self, Nat.div_div_eq_div_mul, ← pow_add, pow_succ,
+    Nat.mod_mul_left_mod]
+  exact base4_digit hd 64 _ (by unfold spN at hr; split at hr <;> omega)
+
+/-- **`sp_wots` is complete**: for any `pp`, `a0`, `a1`, digits below `4` of sum `128` and chain
+values, on a memory of at least `64` words, its body holds of some valuation whose arguments are
+`pp`, `a0`, `a1` and the digits' encoding (`spX`), returning the one-time leaf of the values
+(`spLeafCell`). -/
+theorem sp_wots_complete_cells {pp a0 a1 : E} {d : Nat → Nat} (hd : ∀ i, d i < 4)
+    (hsum : ∑ i ∈ Finset.range 64, d i = 128) {vals : Nat → E} (hm : MemOK rd 64) :
+    ∃ σ : Val, σ (.n 0) = pp ∧ σ (.n 1) = a0 ∧ σ (.n 2) = a1 ∧ σ (.n 3) = eOfNat128 (spX d 64) ∧
+      Stmt.HoldsList C rd σ (Fn.«sp_wots».core).body False (fun rs => rs = [spLeafCell pp a0 a1 d
+          vals]) := by
+  have hr : ∀ p < 22, ∃ w < 4 ^ spN p, (∀ r < spN p, d (3 * p + r) = w / 4 ^ r % 4) ∧
+      RangeChecked rd (ofK (addressOfIndex w)) (ofK (addressOfIndex (4 ^ spN p - 1))) := by
+    intro p hp
+    have hn : 4 ^ spN p ≤ 64 := by unfold spN; split <;> norm_num
+    have hw : spWord d p < 4 ^ spN p := Nat.mod_lt _ (by positivity)
+    obtain ⟨t1, h1⟩ := load_gpow hm (show spWord d p < 64 by omega)
+    obtain ⟨t2, h2⟩ := load_gpow hm (show 4 ^ spN p - 1 - spWord d p < 64 by omega)
+    refine ⟨_, hw, fun r hr => (spWord_digit hd hp hr).symm, _, t1, t2, h1, ?_, h2⟩
+    rw [← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add,
+      show spWord d p + (4 ^ spN p - 1 - spWord d p) = 4 ^ spN p - 1 by omega]
+  obtain ⟨σ, hp, hb⟩ := (sp_wots_sem_iff (C := C) _ _).mpr
+    ((spWotsRef_sem _ _).mpr ⟨pp, a0, a1, d, vals, rfl, rfl, fun i _ => hd i, hsum, hr⟩)
+  have hp' : [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3)] = [pp, a0, a1, eOfNat128 (spX d 64)] := hp
+  simp only [List.cons.injEq, and_true] at hp'
+  exact ⟨σ, hp'.1, hp'.2.1, hp'.2.2.1, hp'.2.2.2, hb⟩
 
 /-- **The digest's `base_2b` digits**, as numbers (`0` past the 64 chains). -/
 def spDigitsOf (digest : Digest) (i : Nat) : Nat :=
@@ -94,8 +139,6 @@ theorem spX_digest (digest : Digest) : spX (spDigitsOf digest) 64 = digest.toNat
 
 theorem cellOf128_eq_eOfNat128' (v : BitVec 128) : cellOf128 v = eOfNat128 v.toNat := by
   rw [← cellOf128_eq_eOfNat128 v.isLt, BitVec.ofNat_toNat, BitVec.setWidth_eq]
-
-variable {C : CallRel} {rd : Reader}
 
 /-- **`sp_wots` is complete.** -/
 theorem sp_wots_complete : sp_wots_complete_Spec := by
