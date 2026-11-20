@@ -107,6 +107,11 @@ for m in range(ARMS):
     comb.append('/-- `open_stacked`\'s words at the arm %d. -/\ntheorem osC_%d : osC %d = %d := by\n'
                 '  rw [osC_eq_fast, osCF_%d]\n' % (m, m, m, t, m))
     names.append('osNames_ok_%d' % m)
+comb.append('/-- `open_stacked`\'s words at the arms, in order. -/\ndef osCs : List ℕ := [%s]\n\n'
+            '/-- `open_stacked`\'s words at an arm, from the table. -/\n'
+            'theorem osC_getD {m : ℕ} (hm : m < %d) : osC m = osCs.getD m 0 := by\n'
+            '  interval_cases m\n  exacts [%s]\n' % (', '.join(map(str, total)), ARMS,
+                                                    ', '.join('osC_%d' % m for m in range(ARMS))))
 imports = 'public import LeanVM.Guest.Count.VsBoundBase\n' + ''.join(
     'public import LeanVM.Guest.Count.VsOs%02d\n' % m for m in range(ARMS))
 body = '\n' + '\n'.join(comb) + '''

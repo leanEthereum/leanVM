@@ -361,7 +361,7 @@ theorem vs_weight_le_deployed (op : Opcode) {μ r d : ℕ} (hμ1 : 20 ≤ μ) (h
       (B1.VerifySub.vsTs B2C.fs Count.vsWordsOs B1.VerifySub.vkBound μ r d) t)
     (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :
     t.weight (B2C.ωArm B2C.xmssArmC op) ≤ vsCnt op μ r :=
-  vs_weight_le_vsTs op hμ1 hμ2 hd (vbgMax_eq.trans_le (by norm_num)) (vkBound_eq.trans_le (by norm_num))
+  vs_weight_le_vsTs op hμ1 hμ2 hd (vbgMax_eq.trans_le (by decide)) (vkBound_eq.trans_le (by decide))
     h hv hb
 
 theorem iterSum_le {A B : ℕ → ℕ} (h : ∀ i, A i ≤ B i) : ∀ c m, iterSum A c m ≤ iterSum B c m

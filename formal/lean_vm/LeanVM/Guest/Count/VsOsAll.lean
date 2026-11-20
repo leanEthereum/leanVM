@@ -68,6 +68,14 @@ theorem osC_9 : osC 9 = 256741 := by
 theorem osC_10 : osC 10 = 259716 := by
   rw [osC_eq_fast, osCF_10]
 
+/-- `open_stacked`'s words at the arms, in order. -/
+def osCs : List ℕ := [208731, 208334, 211299, 215348, 225965, 231277, 239864, 245895, 253442, 256741, 259716]
+
+/-- `open_stacked`'s words at an arm, from the table. -/
+theorem osC_getD {m : ℕ} (hm : m < 11) : osC m = osCs.getD m 0 := by
+  interval_cases m
+  exacts [osC_0, osC_1, osC_2, osC_3, osC_4, osC_5, osC_6, osC_7, osC_8, osC_9, osC_10]
+
 /-- Every arm's callees have constant words certificates. -/
 theorem osNames_ok {m : ℕ} (hm : m < B1.osArms) :
     (B1.osCalleeNames (B1.Whir.osCfg m)).all (fun f => wOkB (wIdx f) f) = true := by
