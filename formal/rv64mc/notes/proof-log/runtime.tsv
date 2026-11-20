@@ -4,3 +4,6 @@ Alloc.Boxed.BoxNewUninit	11	0	6	6.6	rv_auto; left 2 goals (size bound by decide,
 Core.Ptr.DropGlueVecForm	1	0	1	6.5 (file)	rv_auto closes it
 Core.Ptr.DropGlueVecTStackWeightEE	1	0	1	(same file)	rv_auto closes it
 Core.Ptr.DropGlueLayout	23	0	1	(same file)	rv_auto closes it, callees' DropSpec by using
+VerifierRv64.Bump.AsGlobalAlloc.Alloc (rv_auto attempt)	18	0	-	killed at 180 s, 18.6 GB	rv_auto hp with [hL] using [halt] on the same template ran out of memory before leaving its goals (the mask-and-round value of NEXT and the store through the data reference); the lsym proof costs 11.3 CPU-s; no rv_auto measurement of memcmp yet (its loop needs the invariant restated in rv_sym forms)
+VerifierRv64.Bump.AsGlobalAlloc.Alloc (after I1)	18	0	75	11.3	lsym; new ABI (size in a0, no alignment argument); rounding lemma by toNat and omega (bv_decide removed)
+Alloc.RawVec.RawVecInner.FinishGrow	68	0	-	-	not proved yet: rv_auto steps all 6 return paths in about 30 s but leaves 83 goals: 58 saved-register restores it cannot read past the three stores into the result slot (a caller object it cannot order against its own stack slots), 6 frames (memcpy writes the new block, which is fresh only relative to NEXT before alloc), 6 statics, the posts, and the mulhu overflow check as a product bound; work parked
