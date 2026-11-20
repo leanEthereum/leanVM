@@ -2,20 +2,17 @@ module
 
 public import LeanVM.Cost.Extractor.Transcript
 public import LeanVM.Protocol.Extraction.Fast.RunVec
-public import LeanVM.Protocol.Extraction.Fast.Extract
 import all LeanVM.Protocol.Extraction.Fast.RunVec
 import all LeanVM.Protocol.Extraction.Fast.AfterRoot
-import all LeanVM.Protocol.Extraction.Fast.Extract
 import all LeanVM.Protocol.Extraction.Extractor
 
 /-!
-# The candidate runner and the fast path, compiled
+# The candidate runner, compiled
 
 `runnerTables prog layout` and `runWithTables tabs prog input layout` (`Fast/RunVec.lean`: the
 address tables, the final registers and the step cap built once, then per stack the boundary check
 `boundaryOfStack`, the memory vector `memoryVec` and the halting loop `haltLoopVec`, Keccak-f
-inside the instructions) and
-`fastStacksFast` (the fast path: each lane's word read as a codeword, `Fast/Extract.lean`).
+inside the instructions), and the inverse novel-basis transform (`novelInv`).
 
 The extractor's compiled modules form one import chain: this module follows the transcript's.
 -/
@@ -42,7 +39,9 @@ theorem placement_index_eq (layout : LayoutLite) (column : ℕ) :
 
 cost_rewrite placement_index_eq
 
-cost_compile fastStacksFastC := fastStacksFast
+-- The inverse novel-basis transform (`novelInv`), which the descent's step up and level 0's
+-- stack run per lane.
+cost_compile novelInvC := novelInv
 
 /-! ### Sharing in Keccak-f and the `KECCAK` instruction
 

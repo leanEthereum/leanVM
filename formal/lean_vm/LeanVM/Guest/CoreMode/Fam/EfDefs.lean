@@ -113,16 +113,16 @@ def efFamB (F : EFacts) (x : Mode.Res) : Bool :=
 
 /-! ## `verify_sub` -/
 
-/-- **`verify_sub`'s exponent facts**: the tables' log-heights `dims[1..6]` (`[[92]·g^t]`), the
-keccak table's (`t = 6`) at least `9` and at most `24`; the stack's log less `20` (`[224]`); the bus
-depth (`log2_ceil`'s return, `[[185]·g^4]`); the table sumcheck's depth (`verify_tables`' return,
-`[[591]·g^29]`), at least the keccak table's; the stack's log (`[[221]·g^4]`); the cursors
+/-- **`verify_sub`'s exponent facts**: the tables' log-heights `dims[1..6]` (`[[75]·g^t]`), the
+keccak table's (`t = 6`) at least `9` and at most `24`; the stack's log less `20` (`[202]`); the bus
+depth (`log2_ceil`'s return, `[[168]·g^4]`); the table sumcheck's depth (`verify_tables`' return,
+`[[499]·g^29]`), at least the keccak table's; the stack's log (`[[199]·g^4]`); the cursors
 `verify_bus_gkr`, `verify_tables` and `verify_keccak` return, in the stream `[27]`. -/
 def vsFacts : EFacts where
-  pows := ((List.range 5).map fun t ↦ (.hp 92 (t + 1), 0, 30)) ++
-    [(.hp 92 6, 9, 24), (.fr 224, 0, 10), (.hp 185 4, 20, 33), (.hp 591 29, 9, 33), (.hp 221 4, 20, 30)]
-  les := [(.hp 92 6, .hp 591 29, 0), (.hp 221 4, .fr 224, 20)]
-  curs := [(.hp 577 17, .fr 27, 14), (.hp 591 28, .fr 27, 49), (.hp 604 20, .fr 27, 207)]
+  pows := ((List.range 5).map fun t ↦ (.hp 75 (t + 1), 0, 30)) ++
+    [(.hp 75 6, 9, 24), (.fr 202, 0, 10), (.hp 168 4, 20, 33), (.hp 499 29, 9, 33), (.hp 199 4, 20, 30)]
+  les := [(.hp 75 6, .hp 499 29, 0), (.hp 199 4, .fr 202, 20)]
+  curs := [(.hp 485 17, .fr 27, 14), (.hp 499 28, .fr 27, 49), (.hp 512 20, .fr 27, 207)]
 
 /-- **A residual of `verify_sub` its exponent facts take.** -/
 noncomputable def vsB (j : ℕ) (x : Mode.Res) : Bool :=

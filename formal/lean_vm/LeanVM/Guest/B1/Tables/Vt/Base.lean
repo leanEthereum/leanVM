@@ -41,11 +41,11 @@ noncomputable def vtChunk : ℕ → List Stmt
   | 11 => (core% «verify_tables» c11)
   | 12 => (core% «verify_tables» c12)
   | 13 => (core% «verify_tables» c13)
-  | _ => (core% «verify_tables» c14).take 156
+  | _ => (core% «verify_tables» c14).take 153
 
 /-- `verify_tables`' returned values. -/
-def vtRets : List V := [.n 5979, .n 5980, .n 5981, .n 5982, .n 5983, .n 5986, .n 5987,
-  .n 5988, .n 5989, .n 5990]
+def vtRets : List V := [.n 5974, .n 5975, .n 5976, .n 5977, .n 5978, .n 5981, .n 5982,
+  .n 5983, .n 5984, .n 5985]
 
 theorem vtChunk_noRet' : ∀ i < 15, Stmt.noRetList (vtChunk i) = true := by decide +kernel
 
@@ -59,7 +59,7 @@ theorem vtChunk_noRet (i : ℕ) : Stmt.noRetList (vtChunk i) = true := by
 
 theorem verify_tables_body :
     (core% «verify_tables» body) = ((List.range 15).map vtChunk).flatten ++ [.ret vtRets] := by
-  have h14 : (core% «verify_tables» c14) = (core% «verify_tables» c14).take 156 ++ [.ret vtRets] :=
+  have h14 : (core% «verify_tables» c14) = (core% «verify_tables» c14).take 153 ++ [.ret vtRets] :=
     tbStmtsEqb_sound (by decide +kernel)
   conv_lhs => rw [core_eq% «verify_tables» body, h14]
   simp only [List.range_succ, List.range_zero, List.map_append, List.map_cons,
@@ -93,7 +93,7 @@ theorem vtPre_noRet : Stmt.noRetList vtPre = true :=
 
 /-- The lengths of `verify_tables`' chunks. -/
 def vtLens : List ℕ :=
-  [576, 286, 159, 167, 211, 209, 160, 189, 587, 569, 568, 530, 592, 600, 156]
+  [576, 286, 159, 167, 211, 209, 160, 189, 587, 569, 568, 528, 592, 600, 153]
 
 theorem vtLens_eq : ((List.range 15).map vtChunk).map List.length = vtLens := by decide +kernel
 

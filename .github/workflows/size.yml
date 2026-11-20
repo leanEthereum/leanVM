@@ -1,0 +1,26 @@
+name: Size
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # The repository stays light: a pull request adds no file over 1 MiB, in any of its commits, and
+  # commits no file a generator writes (`formal/.gitignore`).
+  size:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # What the merge commit adds to its base (`HEAD^1`), every commit of the pull request included.
+      - name: No file over 1 MiB
+        run: |
+          git rev-list --objects HEAD^1..HEAD \
+            | git cat-file --batch-check='%(objecttype) %(objectsize) %(rest)' \
+            | awk '$1 == "blob" && $2 > 1048576 { print $3 ": " $2 " bytes"; bad = 1 } END { exit bad }'
+      - name: No ignored file committed
+        run: |
+          ! git ls-files -ci --exclude-standard | grep .

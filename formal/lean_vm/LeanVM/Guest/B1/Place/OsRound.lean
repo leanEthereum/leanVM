@@ -86,8 +86,8 @@ theorem roundPre_loads (σ : Val) : roundPre.flatMap (loadsEv σ) =
       (.n 9, 1)] := by
   rw [flatMap_loadsEv_noIte σ _ roundPre_noIte, roundPre_loadsS]
 
-theorem roundBody_eq : Whir.roundBody = roundPre ++ [.ret [.n 86, .n 87, .n 88, .n 89, .n 90,
-    .n 93, .n 94]] := Whir.roundBody_split
+theorem roundBody_eq : Whir.roundBody = roundPre ++ [.ret [.n 84, .n 85, .n 86, .n 87, .n 88,
+    .n 91, .n 92]] := Whir.roundBody_split
 
 /-- The cursor's five words, read through the caller's words. -/
 theorem round_words {args : List E} {Lin : Layout} (hreg : RegPtrs roundSpec args (RegionL Lin))

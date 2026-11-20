@@ -198,10 +198,10 @@ noncomputable def constraintMap (dom : ι ↪ F) (f g : ι → L) (d A m D : ℕ
   toFun c q := (ePoly c (pt dom q.1) (f q.1) (g q.1) q.2.1.1 q.2.1.2.1).coeff q.2.1.2.2
   map_add' c c' := by
     funext q
-    simp [ePoly, add_mul, sum_add_distrib, finsetSum_coeff]
+    simp [ePoly, add_mul, sum_add_distrib]
   map_smul' a c := by
     funext q
-    simp [ePoly, mul_assoc, mul_sum, finsetSum_coeff]
+    simp [ePoly, mul_assoc, mul_sum]
 
 omit [Fintype ι] [DecidableEq ι] in
 /-- **Lemma 4.2, the polynomial identity**: a solution of the constraints vanishes along every
@@ -217,7 +217,7 @@ theorem evalSum_eq_zero (dom : ι ↪ F) (f g : ι → L) {d A m D : ℕ} (hm : 
   have hE : ∀ x, ∀ s r, r + s < m → ePoly c (pt dom x) (f x) (g x) s r = 0 := by
     intro x s r hrs
     by_cases hsM : s ≤ bigM d A m D
-    · refine Polynomial.ext fun k ↦ ?_
+    · refine AddMonoidAlgebra.ext <| Finsupp.ext fun k ↦ ?_
       rw [coeff_zero]
       by_cases hk : k ≤ D - s
       · have hq : (⟨s, (r, k)⟩ : Σ _ : ℕ, ℕ × ℕ) ∈ eqSet d A m D := by

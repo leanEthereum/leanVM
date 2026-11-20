@@ -1,6 +1,6 @@
 import LeanVMTests.Cost.Samples.AddRaw
 import LeanVMTests.Cost.Samples.CommittedLeaves
-import LeanVM.Cost.Extractor.Roots
+import LeanVM.Cost.Extractor.Top
 
 /-!
 # Tests: the compiled samples run

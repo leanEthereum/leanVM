@@ -148,8 +148,8 @@ theorem probEvent_costRunH_le {α : Type} (f f₀ : HashInput → HashOutput) (t
           fun bytes heq h => hmarked ⟨bytes, heq, h⟩
         rw [costRunH_query_bind, costRunH_query_bind, hsame]
         simp only [OracleComp.prEvent_bind_eq_tsum, prEvent_map]
-        rw [← ENNReal.tsum_add]
-        refine ENNReal.tsum_le_tsum (fun answer => ?_)
+        rw [← tsum_add]
+        refine tsum_le_tsum (fun answer => ?_)
         rw [← mul_add]
         refine mul_le_mul' le_rfl ?_
         have h := ih answer (hrest answer) (event ∘ fun result : α × List (Entry HashInput) =>
@@ -184,7 +184,7 @@ theorem probEvent_costRunH_le_cap {α : Type} (f : HashInput → HashOutput) (ta
       · rename_i hcost
         rw [costRunH_query_bind, costRunH_query_bind]
         simp only [OracleComp.prEvent_bind_eq_tsum, prEvent_map]
-        refine ENNReal.tsum_le_tsum (fun answer => mul_le_mul' le_rfl ?_)
+        refine tsum_le_tsum (fun answer => mul_le_mul' le_rfl ?_)
         refine le_trans (prEvent_mono_of_support _ _ _ ?_) (ih answer (budget - sourceCost input))
         intro result _ hresult
         refine ⟨hresult.1, ?_⟩
@@ -195,7 +195,7 @@ theorem probEvent_costRunH_le_cap {α : Type} (f : HashInput → HashOutput) (ta
         rw [costRunH_query_bind]
         simp only [OracleComp.prEvent_bind_eq_tsum, prEvent_map]
         refine le_trans (le_of_eq ?_) bot_le
-        refine ENNReal.tsum_eq_zero.2 (fun answer => ?_)
+        refine tsum_eq_zero_iff.2 (fun answer => ?_)
         rw [mul_eq_zero]
         right
         refine prEvent_eq_zero_of_forall_mem_support _ _ fun result _ hresult => ?_

@@ -427,9 +427,9 @@ noncomputable def expQ1 (fn : Fn) (x : V) : Option ℕ :=
 def termGm (fn : Fn) (x : V) : Bool :=
   fn.name == name% «check_opening_terminal» && decide (fn.params[19]? = some x)
 
-/-- **`verify_tables`' word `g_zc_n = g^n`, `n < 34`** (`EndExec.VtQ`): its value `2545`. -/
+/-- **`verify_tables`' word `g_zc_n = g^n`, `n < 34`** (`EndExec.VtQ`): its value `2544`. -/
 def vtZc (fn : Fn) (x : V) : Bool :=
-  fn.name == name% «verify_tables» && decide (x = V.n 2545)
+  fn.name == name% «verify_tables» && decide (x = V.n 2544)
 
 /-- **The exponent fact of a value**: `expQ1`, `check_opening_terminal`'s `gmv` (`termGm`), `verify_tables`'
 `g_zc_n` (`vtZc`). -/
@@ -524,10 +524,10 @@ def splitFam (fn : Fn) (r : CRes) : Bool :=
   splitsC.any fun p ↦ fn.name == p.1 && splitRes p.2 [] r
 
 /-- **`verify_tables`' reads past its table sumcheck's last record's cursor** (`vtSt`, the old route's `Res.vtStB` on
-core names): the cell `c` words past the cursor, the value `2649`, `c < 153`, one of its stream's, parameter `20`'s
+core names): the cell `c` words past the cursor, the value `2647`, `c < 153`, one of its stream's, parameter `20`'s
 `[0, 8192)` (`EndExec.vtStC_inst`). -/
 def vtStC (fn : Fn) : CRes → Bool
-  | .sub c q => fn.name == name% «verify_tables» && decide (c.bases = [(2649, 1)]) && decide (c.off < 153) &&
+  | .sub c q => fn.name == name% «verify_tables» && decide (c.bases = [(2647, 1)]) && decide (c.off < 153) &&
       decide (q = ⟨⟨[(20, 1)], 0⟩, 1, .num 0, .num 8192⟩)
   | _ => false
 
@@ -584,12 +584,12 @@ def VtL.add (f g : VtL) (k : ℤ) : VtL := (f.1 + k * g.1, ladd k f.2 g.2)
 def VtL.minv (f : VtL) : ℤ := f.1 + lmin f.2 vtUB
 def VtL.maxv (f : VtL) : ℤ := f.1 + lmax f.2 vtUB
 
-/-- **The slacks' words** (`vtexp.base`): `g_bus_mu` (`9`) `19 + a`, `g_zc_n` (`2545`) `19 + a - b`, `dims_g[0]` (`27`)
+/-- **The slacks' words** (`vtexp.base`): `g_bus_mu` (`9`) `19 + a`, `g_zc_n` (`2544`) `19 + a - b`, `dims_g[0]` (`27`)
 `19 + a - d`, `dims_g[1 + t]` (`28 + t`) `19 + a - b - c_t`; ghost `GB + j` as `27 + j`, `j < 7`. -/
 def vtBaseN (x : ℕ) : Option VtL :=
   let y := if GB ≤ x ∧ x < GB + 7 then x - GB + 27 else x
   if y = 9 then some (19, [1, 0, 0, 0, 0, 0, 0, 0, 0])
-  else if y = 2545 then some (19, [1, -1, 0, 0, 0, 0, 0, 0, 0])
+  else if y = 2544 then some (19, [1, -1, 0, 0, 0, 0, 0, 0, 0])
   else if y = 27 then some (19, [1, 0, 0, 0, 0, 0, 0, 0, -1])
   else if 28 ≤ y ∧ y < 34 then some (19, (List.range 9).map fun i ↦
     if i = 0 then 1 else if i = 1 then -1 else if i = y - 26 then -1 else 0)
@@ -645,7 +645,7 @@ noncomputable def vtArms (as : List Atom) : List (ℕ × ℕ) → VtL → VtL
     | none => f)
 
 /-- The slacks' words whose forms are nonnegative (`vtexp.NNB`). -/
-def vtNNB : List ℕ := [9, 27, 28, 29, 30, 31, 32, 33, 2545]
+def vtNNB : List ℕ := [9, 27, 28, 29, 30, 31, 32, 33, 2544]
 
 /-- **Nonnegative** once the arms' equations are used: on the box, or less a slacks' word's form on it. -/
 noncomputable def vtNN (as : List Atom) (arms : List (ℕ × ℕ)) (f : VtL) : Bool :=
@@ -704,13 +704,13 @@ def vtAtoms : List Atom :=
     .const (.n 821) (word 524288 0),
     .mul (.n 822) (.n 26) (.n 821),
     .mul (.n 9) (.n 823) (.n 822),
-    .mul (.n 2545) (.n 2547) (.n 28),
-    .mul (.n 2545) (.n 2928) (.n 28),
-    .mul (.n 2545) (.n 3217) (.n 29),
-    .mul (.n 2545) (.n 3390) (.n 30),
-    .mul (.n 2545) (.n 3688) (.n 31),
-    .mul (.n 2545) (.n 4017) (.n 32),
-    .mul (.n 2545) (.n 5941) (.n 33)]
+    .mul (.n 2544) (.n 2546) (.n 28),
+    .mul (.n 2544) (.n 2926) (.n 28),
+    .mul (.n 2544) (.n 3215) (.n 29),
+    .mul (.n 2544) (.n 3388) (.n 30),
+    .mul (.n 2544) (.n 3686) (.n 31),
+    .mul (.n 2544) (.n 4015) (.n 32),
+    .mul (.n 2544) (.n 5939) (.n 33)]
 
 /-- **`verify_tables`' exponent family**, its ghost slots its `dims_g` words. -/
 noncomputable def vtExp (fn : Fn) (gw : List (CCell × ℕ)) (r : CRes) : Bool :=
@@ -746,17 +746,17 @@ def cpPerm (fn : Fn) : CRes → Bool
 (values `86..91`, `583` the keccak table's again), the bus depth `253`, the table sumcheck's depth `579`, the stack's log
 `276` and less `20`, `278`. -/
 def vsPows : List (ℕ × ℕ × ℕ) :=
-  [(86, 0, 30), (87, 0, 30), (88, 0, 30), (89, 0, 30), (90, 0, 30), (91, 9, 24), (583, 9, 24), (253, 20, 33),
-    (579, 9, 33), (276, 20, 30), (278, 0, 10)]
+  [(86, 0, 30), (87, 0, 30), (88, 0, 30), (89, 0, 30), (90, 0, 30), (91, 9, 24), (566, 9, 24), (253, 20, 33),
+    (562, 9, 33), (276, 20, 30), (278, 0, 10)]
 
 /-- `verify_sub`'s products naming one of its values: `278 = 276·277`. -/
 def vsMuls : List ((ℕ × ℕ) × ℕ) := [((276, 277), 278)]
 
 /-- `verify_sub`'s orders `e(x) ≤ e(y) + c`. -/
-def vsLes : List (ℕ × ℕ × ℕ) := [(91, 579, 0), (583, 579, 0), (276, 278, 20)]
+def vsLes : List (ℕ × ℕ × ℕ) := [(91, 562, 0), (566, 562, 0), (276, 278, 20)]
 
 /-- `verify_sub`'s cursors in its stream `[25]·[0, 8192)`, each with room for `207` words. -/
-def vsCurs : List ℕ := [567, 578, 595]
+def vsCurs : List ℕ := [550, 561, 578]
 
 /-- **An index as `verify_sub`'s value times `g^c`**: the value (a product of `vsMuls` naming it) and `c`. -/
 def vsBase : CIdx → Option (ℕ × ℕ)
@@ -795,7 +795,7 @@ def vsExp (fn : Fn) : CRes → Bool
 
 /-- `keccak_layer__L{first}`'s last record's cursor value (`EndExec.layer_cur`, `layOff first + 744`). -/
 def layCur (fn : Fn) : Option ℕ :=
-  bif fn.name == name% «keccak_layer__L0» then some 745 else bif fn.name == name% «keccak_layer__L1» then some 765 else none
+  bif fn.name == name% «keccak_layer__L0» then some 744 else bif fn.name == name% «keccak_layer__L1» then some 764 else none
 
 /-- **`keccak_layer`'s family** (`EndExec.LayQ`): a read `c < 36` words past its last record's cursor, one of its
 stream's, parameter `15`'s `[0, 8192)`; its pack rounds' words `e(9), e(10) < n`, `32 ≤ n`; either under branch
@@ -881,7 +881,7 @@ noncomputable def rcTab (fn : Fn) : CRes → Bool
   | _ => false
 
 /-- `verify_keccak`'s layers' returned cursors, step `s`'s at index `s` (`EndExec.vk_rets`). -/
-def vkCurs : List ℕ := [489, 524, 558, 601, 642, 685, 718, 759, 797, 840, 881, 921]
+def vkCurs : List ℕ := [483, 518, 552, 595, 636, 679, 712, 753, 791, 834, 875, 915]
 
 /-- The order of `g`: exponents are taken modulo it. -/
 def gOrd : ℕ := 2 ^ 64 - 1
@@ -938,13 +938,13 @@ def vkQC (fn : Fn) : CRes → Bool
   | r => fn.name == name% «verify_keccak» && (List.range 20).all fun i ↦ vkAt (9 + i) r
 
 /-- **`gkr_layer__L{p}_L{o}`'s cursors** (`EndExec.gl_curs`): the value its layer record's cursor is loaded to (`21`),
-read `8p` words past (its first `2p` rounds), and its last record's (the tail: `77`, `163`, `243`, `323` by `p`), read
+read `8p` words past (its first `2p` rounds), and its last record's (the tail: `76`, `160`, `238`, `316` by `p`), read
 `4 (2 - o) + 12` words past (its last rounds and the children). -/
 def glCurs : List (String × List (ℕ × ℕ)) :=
-  [(name% «gkr_layer__L0_L0», [(77, 20)]), (name% «gkr_layer__L1_L0», [(21, 8), (163, 20)]),
-    (name% «gkr_layer__L2_L0», [(21, 16), (243, 20)]), (name% «gkr_layer__L3_L0», [(21, 24), (323, 20)]),
-    (name% «gkr_layer__L0_L1», [(77, 16)]), (name% «gkr_layer__L1_L1», [(21, 8), (163, 16)]),
-    (name% «gkr_layer__L2_L1», [(21, 16), (243, 16)]), (name% «gkr_layer__L3_L1», [(21, 24), (323, 16)])]
+  [(name% «gkr_layer__L0_L0», [(76, 20)]), (name% «gkr_layer__L1_L0», [(21, 8), (160, 20)]),
+    (name% «gkr_layer__L2_L0», [(21, 16), (238, 20)]), (name% «gkr_layer__L3_L0», [(21, 24), (316, 20)]),
+    (name% «gkr_layer__L0_L1», [(76, 16)]), (name% «gkr_layer__L1_L1», [(21, 8), (160, 16)]),
+    (name% «gkr_layer__L2_L1», [(21, 16), (238, 16)]), (name% «gkr_layer__L3_L1», [(21, 24), (316, 16)])]
 
 /-- **`gkr_layer`'s family** (`EndExec.GlQ`): a read `c` words past one of its cursors (`glCurs`), below its count, one
 of its stream's, parameter `8`'s `[0, 8192)`, either under branch conditions (`EndExec.glQC_inst`). -/

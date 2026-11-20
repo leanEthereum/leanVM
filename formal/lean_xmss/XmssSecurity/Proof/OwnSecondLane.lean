@@ -43,7 +43,7 @@ theorem expectedSimulatedCost_le_of_isQueryBoundP {α : Type} (p : ι → Prop) 
           ((if p t then n - 1 else n : ℕ) : ℝ≥0∞) := by
         calc _ ≤ ∑' r, Pr{let x ← (implementation t).run s}[x = r] *
               ((if p t then n - 1 else n : ℕ) : ℝ≥0∞) :=
-              ENNReal.tsum_le_tsum fun r => mul_le_mul' le_rfl (ih r.1 _ r.2 (hbound.2 r.1))
+              tsum_le_tsum fun r => mul_le_mul' le_rfl (ih r.1 _ r.2 (hbound.2 r.1))
           _ = (∑' r, Pr{let x ← (implementation t).run s}[x = r]) *
               ((if p t then n - 1 else n : ℕ) : ℝ≥0∞) := ENNReal.tsum_mul_right
           _ ≤ 1 * ((if p t then n - 1 else n : ℕ) : ℝ≥0∞) :=
@@ -142,7 +142,7 @@ theorem expectedSimulatedQueryCount_source_le (P : OracleWorld.Domain → Prop) 
       intro cache trace k
       rw [expectedSimulatedCost_query_bind, simulateQ_source_query_bind, expectedSimulatedQueryCount_bind,
         impl_run, OracleComp.tsum_prEvent_map_mul]
-      refine add_le_add ?_ (ENNReal.tsum_le_tsum fun r => mul_le_mul_right (ih _ _ _ _) _)
+      refine add_le_add ?_ (tsum_le_tsum fun r => mul_le_mul_right (ih _ _ _ _) _)
       cases input with
       | inl world =>
           rw [source_world, expectedSimulatedQueryCount_liftM_world]
@@ -174,7 +174,7 @@ theorem expectedSimulatedCost_overBudget (Q : ℕ) {α : Type}
         simp only at hQ
         omega
       rw [hcost, zero_add]
-      refine ENNReal.tsum_eq_zero.2 fun r => ?_
+      refine tsum_eq_zero_iff.2 fun r => ?_
       by_cases hr : r ∈ support ((impl publicKey secretKey input).run ((cache, trace), k))
       · cases input with
         | inl world =>
@@ -226,7 +226,7 @@ theorem capped_cachedSelection_le (q : Nat) (adversary : Adversary)
     rfl
   rw [hproj, cappedDetailedGameWithSigningTrace, OracleComp.prEvent_bind_eq_tsum, div_eq_mul_inv,
     ← ENNReal.tsum_mul_right]
-  refine ENNReal.tsum_le_tsum fun keyResult => ?_
+  refine tsum_le_tsum fun keyResult => ?_
   by_cases hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅)
   · rw [mul_assoc]
     refine mul_le_mul' le_rfl ?_
@@ -325,9 +325,9 @@ theorem ownDigestTerm_add_structural_le (q : Nat) (adversary : Adversary) (hown 
       (∑' y, Pr{let x ← run}[x = y] *
         expectedSimulatedQueryCount romImpl (StructuralQuery ((publicKey, secretKey), cache0))
           (verifyCont publicKey y.1) y.2) ≤ verifyHashCalls := by
-    rw [← ENNReal.tsum_add]
+    rw [← tsum_add]
     calc _ ≤ ∑' y, Pr{let x ← run}[x = y] * (verifyHashCalls : ℝ≥0∞) := by
-          refine ENNReal.tsum_le_tsum fun y => ?_
+          refine tsum_le_tsum fun y => ?_
           rw [← mul_add, ← expectedSimulatedQueryCount_or_of_disjoint romImpl _ _
             (encodingHashQuery_structuralQuery_disjoint secretKey cache0)]
           refine mul_le_mul' le_rfl (expectedSimulatedQueryCount_le_of_isQueryBoundP romImpl _ _ _ _ ?_)
@@ -372,13 +372,13 @@ theorem hasSecondLaneBound (q : Nat) (adversary : Adversary) (hown : OwnHashBoun
           (ownDigestTerm adversary keyResult + expectedSimulatedQueryCount romImpl
             (StructuralQuery keyResult) (cappedSourceUnloggedDetailedGameAfterKeygen adversary
               keyResult.1.1 keyResult.1.2) keyResult.2)) / ((2 ^ digestBits : Nat) : ENNReal) := by
-      rw [← ENNReal.add_div, expectedPostKeygenStructuralQueries, ← ENNReal.tsum_add]
+      rw [← ENNReal.add_div, expectedPostKeygenStructuralQueries, ← tsum_add]
       simp_rw [mul_add]
     _ ≤ ((q + verifyHashCalls : Nat) : ENNReal) / ((2 ^ digestBits : Nat) : ENNReal) := by
       gcongr
       calc _ ≤ ∑' keyResult, Pr{let x ← (simulateQ romImpl Concrete.scheme.keygen).run ∅}[x = keyResult] *
               ((q + verifyHashCalls : Nat) : ENNReal) :=
-            ENNReal.tsum_le_tsum fun keyResult =>
+            tsum_le_tsum fun keyResult =>
               mul_le_mul' le_rfl (ownDigestTerm_add_structural_le q adversary hown keyResult)
         _ = (∑' keyResult, Pr{let x ← (simulateQ romImpl Concrete.scheme.keygen).run ∅}[x = keyResult]) *
               ((q + verifyHashCalls : Nat) : ENNReal) := ENNReal.tsum_mul_right

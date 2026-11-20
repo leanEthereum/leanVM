@@ -112,8 +112,8 @@ syntax (name := kernelLit) (docComment)? "kernel_lit " ident " : " term " := " t
     liftTermElabM <| addDocString name (mkNullNode #[]) ⟨doc⟩
   let c := mkConst name
   liftCoreM <| addDecl
-    (.thmDecl (mkTheoremValEx (name.appendAfter "_eq") [] (mkApp3 (mkConst ``Eq [u]) ty e c)
-      (mkApp2 (mkConst ``Eq.refl [u]) ty c) []))
+    (.thmDecl ⟨⟨name.appendAfter "_eq", [], mkApp3 (mkConst ``Eq [u]) ty e c⟩,
+      mkApp2 (mkConst ``Eq.refl [u]) ty c, []⟩)
 
 /-- `kernel_rfl x : a = b` adds `theorem x : a = b` by `rfl` (`private kernel_rfl`, a private one),
 checked by the kernel alone: the elaborator's unifier walks a long list one recursive call per
@@ -133,7 +133,7 @@ syntax (name := kernelRfl) (docComment)? ("private ")? "kernel_rfl " ident " : "
     let some (α, a, _) := ty.eq? | throwError "kernel_rfl: not an equality"
     pure (ty, ← Meta.getLevel α, a)
   liftCoreM <| addDecl
-    (.thmDecl (mkTheoremValEx name [] ty (mkApp2 (mkConst ``Eq.refl [u]) (ty.getArg! 0) a) []))
+    (.thmDecl ⟨⟨name, [], ty⟩, mkApp2 (mkConst ``Eq.refl [u]) (ty.getArg! 0) a, []⟩)
   if let some doc := stx[0].getOptional? then
     liftTermElabM <| addDocString name (mkNullNode #[]) ⟨doc⟩
 

@@ -3,8 +3,7 @@
 use super::cells::{cell_bytes, count, pack_16_bytes};
 use super::deferred::DeferredBytecodeClaim;
 use super::guest::fs_seed;
-use super::proof::AggregateClaims;
-use super::{LeanSphincsClaim, LeanXmssClaim};
+use super::{AggregateClaims, LeanSphincsClaim, LeanXmssClaim};
 use fiat_shamir_prover::merkle::hash_to_scalars;
 use primitives::field::F128;
 

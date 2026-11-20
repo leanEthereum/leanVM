@@ -234,27 +234,27 @@ theorem sign_cw_mean {m : Message} {budget : ℕ} {s : State} {R : List Coordina
     constructor
     · calc _ ≤ ∑' o1, Pr{let x ← run}[x = o1] * ((if o1.2.known f.outC = some (truncateHash u0) then 1 else 0) +
             ν * (if o1.2.known f.outC = none then 1 else 0)) := by
-            refine ENNReal.tsum_le_tsum fun o1 => ?_
+            refine tsum_le_tsum fun o1 => ?_
             by_cases ho1 : o1 ∈ support run
             · exact mul_le_mul_right (hpt o1 ho1) _
             · rw [(prEvent_eq_zero_of_not_mem_support _) ho1, zero_mul, zero_mul]
         _ = ∑' o1, Pr{let x ← run}[x = o1] * (if o1.2.known f.outC = some (truncateHash u0) then 1 else 0) +
             ν * ∑' o1, Pr{let x ← run}[x = o1] * (if o1.2.known f.outC = none then 1 else 0) := by
-            simp only [mul_add, ENNReal.tsum_add]
+            simp only [mul_add, tsum_add]
             rw [← ENNReal.tsum_mul_left]
             congr 1
             exact tsum_congr fun o1 => by ring
         _ ≤ ν * ∑' o1, Pr{let x ← run}[x = o1] * (if o1.2.known f.outC ≠ none then 1 else 0) +
             ν * ∑' o1, Pr{let x ← run}[x = o1] * (if o1.2.known f.outC = none then 1 else 0) := add_le_add hvalue le_rfl
         _ = ν * ∑' o1, Pr{let x ← run}[x = o1] := by
-            rw [← mul_add, ← ENNReal.tsum_add]
+            rw [← mul_add, ← tsum_add]
             congr 1
             refine tsum_congr fun o1 => ?_
             by_cases h : o1.2.known f.outC = none <;> simp [h]
         _ = K.cw s f := by rw [hmass, mul_one, hcw]
     · calc _ ≤ ∑' o1, Pr{let x ← run}[x = o1] * ((if o1.2.known f.outC = some (truncateHash u0) then 1 else 0) +
             ν * ((if OpensF f o1.1.2.1 then 1 else 0) * (if o1.2.known f.outC = none then 1 else 0))) := by
-            refine ENNReal.tsum_le_tsum fun o1 => ?_
+            refine tsum_le_tsum fun o1 => ?_
             by_cases ho1 : o1 ∈ support run
             · refine mul_le_mul_right ?_ _
               by_cases hO : OpensF f o1.1.2.1
@@ -266,7 +266,7 @@ theorem sign_cw_mean {m : Message} {budget : ℕ} {s : State} {R : List Coordina
         _ = ∑' o1, Pr{let x ← run}[x = o1] * (if o1.2.known f.outC = some (truncateHash u0) then 1 else 0) +
             ν * ∑' o1, Pr{let x ← run}[x = o1] *
               ((if OpensF f o1.1.2.1 then 1 else 0) * (if o1.2.known f.outC = none then 1 else 0)) := by
-            simp only [mul_add, ENNReal.tsum_add]
+            simp only [mul_add, tsum_add]
             rw [← ENNReal.tsum_mul_left]
             congr 1
             exact tsum_congr fun o1 => by ring
@@ -274,12 +274,12 @@ theorem sign_cw_mean {m : Message} {budget : ℕ} {s : State} {R : List Coordina
               ((if OpensF f o1.1.2.1 then 1 else 0) * (if o1.2.known f.outC ≠ none then 1 else 0)) +
             ν * ∑' o1, Pr{let x ← run}[x = o1] *
               ((if OpensF f o1.1.2.1 then 1 else 0) * (if o1.2.known f.outC = none then 1 else 0)) := by
-            refine add_le_add (le_trans hvalue (mul_le_mul_right (ENNReal.tsum_le_tsum fun o1 => ?_) _)) le_rfl
+            refine add_le_add (le_trans hvalue (mul_le_mul_right (tsum_le_tsum fun o1 => ?_) _)) le_rfl
             by_cases ho1 : o1 ∈ support run
             · exact mul_le_mul_right (hsplit o1 ho1) _
             · rw [(prEvent_eq_zero_of_not_mem_support _) ho1, zero_mul, zero_mul]
         _ = ν * ∑' o1, Pr{let x ← run}[x = o1] * (if OpensF f o1.1.2.1 then 1 else 0) := by
-            rw [← mul_add, ← ENNReal.tsum_add]
+            rw [← mul_add, ← tsum_add]
             congr 1
             refine tsum_congr fun o1 => ?_
             by_cases h : o1.2.known f.outC = none <;> by_cases hO : OpensF f o1.1.2.1 <;> simp [h, hO]
@@ -334,7 +334,7 @@ theorem sign_contact {m : Message} {budget : ℕ} {s : State} {P : List Pair} {M
   by_cases hS : Settled R f
   · unfold gA
     rw [ite_eq_left hS, mul_one]
-    refine le_trans (ENNReal.tsum_le_tsum fun o1 => mul_le_mul_right ?_ _) hmean
+    refine le_trans (tsum_le_tsum fun o1 => mul_le_mul_right ?_ _) hmean
     split_ifs with h1 h2
     · rw [mul_one]
     · exact absurd (settled_append hS _) h2
@@ -354,7 +354,7 @@ theorem sign_contact {m : Message} {budget : ℕ} {s : State} {P : List Pair} {M
   set PN := ∑' o1, Pr{let x ← run}[x = o1] * (if OpensF f o1.1.2.1 then 0 else 1) with hPNdef
   set EZ := ∑' o1, Pr{let x ← run}[x = o1] * Z o1 with hEZ
   have hsum1 : PO + PN = 1 := by
-    rw [hPOdef, hPNdef, ← ENNReal.tsum_add, ← hmass]
+    rw [hPOdef, hPNdef, ← tsum_add, ← hmass]
     refine tsum_congr fun o1 => ?_
     split_ifs <;> simp
   have hpt : ∀ o1 ∈ support run,
@@ -383,7 +383,7 @@ theorem sign_contact {m : Message} {budget : ℕ} {s : State} {P : List Pair} {M
       (1 + Cd) * (K.cw s f * PO) + K.cw s f * (PN * Cd + EZ) := by
     calc _ ≤ ∑' o1, Pr{let x ← run}[x = o1] * ((1 + Cd) * ((if OpensF f o1.1.2.1 then 1 else 0) * K.cw o1.2 f) +
           K.cw s f * ((if OpensF f o1.1.2.1 then 0 else 1) * Cd + Z o1)) := by
-          refine ENNReal.tsum_le_tsum fun o1 => ?_
+          refine tsum_le_tsum fun o1 => ?_
           by_cases ho1 : o1 ∈ support run
           · exact mul_le_mul_right (hpt o1 ho1) _
           · rw [(prEvent_eq_zero_of_not_mem_support _) ho1, zero_mul, zero_mul]
@@ -392,7 +392,7 @@ theorem sign_contact {m : Message} {budget : ℕ} {s : State} {P : List Pair} {M
           K.cw s f * (Pr{let x ← run}[x = o1] * Z o1)) := tsum_congr fun o1 => by ring
       _ = (1 + Cd) * ∑' o1, Pr{let x ← run}[x = o1] * ((if OpensF f o1.1.2.1 then 1 else 0) * K.cw o1.2 f) +
           K.cw s f * (PN * Cd + EZ) := by
-          rw [ENNReal.tsum_add, ENNReal.tsum_add, ENNReal.tsum_mul_left, ENNReal.tsum_mul_left,
+          rw [tsum_add, tsum_add, ENNReal.tsum_mul_left, ENNReal.tsum_mul_left,
             ENNReal.tsum_mul_left, ← hPNdef, ← hEZ]
           ring
       _ ≤ (1 + Cd) * (K.cw s f * PO) + K.cw s f * (PN * Cd + EZ) := by gcongr
@@ -505,14 +505,14 @@ theorem psiF_sign_at (hparse : ∀ p call, model.parse (pblk K.p data p call) = 
         exact add_le_add le_rfl (hlam o1 r)
   suffices hmain : ∑' o1, Pr{let x ← run}[x = o1] * X o1 ≤ psiCoreF K data wbar κ Fail s P Ms L d R budget by
     calc _ ≤ ∑' o1, Pr{let x ← run}[x = o1] * (X o1 + lam Lmax ℓ budget) :=
-          ENNReal.tsum_le_tsum fun o1 => mul_le_mul_right (hsplitX o1) _
+          tsum_le_tsum fun o1 => mul_le_mul_right (hsplitX o1) _
       _ = ∑' o1, Pr{let x ← run}[x = o1] * X o1 + lam Lmax ℓ budget := by
-          simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right, hmass, one_mul]
+          simp only [mul_add, tsum_add, ENNReal.tsum_mul_right, hmass, one_mul]
       _ ≤ _ := by
           unfold psiF
           exact add_le_add hmain le_rfl
   by_cases hL : signatureLimit ≤ L.length
-  · refine le_of_eq_of_le (ENNReal.tsum_eq_zero.2 fun o1 => ?_) zero_le
+  · refine le_of_eq_of_le (tsum_eq_zero_iff.2 fun o1 => ?_) zero_le
     cases hres : o1.1.1 with
     | none => simp only [hX, hres, Option.elim, mul_zero]
     | some r =>
@@ -607,7 +607,7 @@ theorem psiF_sign_at (hparse : ∀ p call, model.parse (pblk K.p data p call) = 
   calc _ ≤ ∑' o1, Pr{let x ← run}[x = o1] *
         ((∑ f, if Ctx.Recd s f then (if o1.1.1.isSome then K.cw o1.2 f * gA (R ++ o1.1.2.1) (Cd + Z o1) f else 0)
           else 0) + coinPD + κ * ν * ∑ j ∈ Finset.range budget, canon j o1) := by
-        refine ENNReal.tsum_le_tsum fun o1 => ?_
+        refine tsum_le_tsum fun o1 => ?_
         by_cases ho1 : o1 ∈ support run
         · exact mul_le_mul_right (hpt o1 ho1) _
         · rw [(prEvent_eq_zero_of_not_mem_support _) ho1, zero_mul, zero_mul]
@@ -615,9 +615,9 @@ theorem psiF_sign_at (hparse : ∀ p call, model.parse (pblk K.p data p call) = 
           (if Ctx.Recd s f then (if o1.1.1.isSome then K.cw o1.2 f * gA (R ++ o1.1.2.1) (Cd + Z o1) f else 0)
             else 0)) + coinPD +
           κ * ν * ∑ j ∈ Finset.range budget, ∑' o1, Pr{let x ← run}[x = o1] * canon j o1 := by
-        simp only [mul_add, ENNReal.tsum_add, Finset.mul_sum]
-        rw [Summable.tsum_finsetSum (fun _ _ => ENNReal.summable),
-          Summable.tsum_finsetSum (fun _ _ => ENNReal.summable), ENNReal.tsum_mul_right, hmass, one_mul]
+        simp only [mul_add, tsum_add, Finset.mul_sum]
+        rw [Summable.tsum_finsetSum (fun _ _ => CompleteLattice.summable),
+          Summable.tsum_finsetSum (fun _ _ => CompleteLattice.summable), ENNReal.tsum_mul_right, hmass, one_mul]
         congr 1
         refine Finset.sum_congr rfl fun j _ => ?_
         rw [← ENNReal.tsum_mul_left]

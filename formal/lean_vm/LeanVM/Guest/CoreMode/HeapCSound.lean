@@ -4068,17 +4068,16 @@ theorem endsRet_walk : ∀ (ss : List Stmt), endsRet ss = true → ∀ es, walk 
     cases s with
     | ret vs => simp [walk1, Out.seq] at hw
     | _ =>
-      all_goals
-        simp only [endsRet] at h
-        cases h1 : walk1 σ _ with
-        | fall es1 =>
-          rw [h1, Out.seq] at hw
-          cases h2 : walk σ ss with
-          | fall es2 => exact endsRet_walk ss h es2 h2
-          | ret => rw [h2] at hw; simp [Out.pre] at hw
-          | stuck => rw [h2] at hw; simp [Out.pre] at hw
-        | ret => rw [h1] at hw; simp [Out.seq] at hw
-        | stuck => rw [h1] at hw; simp [Out.seq] at hw
+      simp only [endsRet] at h
+      cases h1 : walk1 σ _ with
+      | fall es1 =>
+        rw [h1, Out.seq] at hw
+        cases h2 : walk σ ss with
+        | fall es2 => exact endsRet_walk ss h es2 h2
+        | ret => rw [h2] at hw; simp [Out.pre] at hw
+        | stuck => rw [h2] at hw; simp [Out.pre] at hw
+      | ret => rw [h1] at hw; simp [Out.seq] at hw
+      | stuck => rw [h1] at hw; simp [Out.seq] at hw
 
 theorem endsRet_false {ss : List Stmt} {es : List Ev} (h : walk σ ss = .fall es) : endsRet ss = false := by
   cases he : endsRet ss with

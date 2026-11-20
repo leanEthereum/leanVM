@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.BAll
 
-  `verify_tables`' statements `765 ..< 2593` (the bus sides and the bytecode share)
+  `verify_tables`' statements `765 ..< 2592` (the bus sides and the bytecode share)
   hold on the honest valuation.
 -/
 
@@ -24,7 +24,7 @@ ten at the cursor, the three GKR leaf values. `VtBHyp`: what the range needs of 
 oracle and the earlier statements (`vtS_complete` gives the latter), the slot sumcheck's honest
 point at `bc_point` and its last claim accepted.
 
-`vtB_complete`: every statement of `765 ..< 2593` holds; the block selectors, the framework
+`vtB_complete`: every statement of `765 ..< 2592` holds; the block selectors, the framework
 words, the share's words and the three bus totals are the honest ones (`vtAcc0/1/2`, as
 `vt_asm_totals`); every load reads inside the buffers `vtBufsB`.
 -/
@@ -139,13 +139,13 @@ structure VtBHyp (rd : Reader) (wo : ℕ → E) (args : List E) (D : VtBIn) : Pr
       gen ^ (stackOffsets (vtSizesC (vtHt D.rows))).1.getD i 0
   hwI : wo 810 = indexMle (D.point.take D.lm) ∧ wo 838 = indexMle (D.point.take 19)
   /-- The tail rounds' returns: each round's capacity, cursor, claim and challenge. -/
-  hw1 : (List.range 8).map (fun i ↦ wo (1877 + i)) = (vtBcR1 (vtF0 args D.xs) D.w).1 ++
+  hw1 : (List.range 8).map (fun i ↦ wo (1876 + i)) = (vtBcR1 (vtF0 args D.xs) D.w).1 ++
     [args.getD 5 0 * gen ^ 7 * gen ^ 2, (vtBcR1 (vtF0 args D.xs) D.w).2.1,
       (vtBcR1 (vtF0 args D.xs) D.w).2.2]
-  hw2 : (List.range 8).map (fun i ↦ wo (1885 + i)) = (vtBcR2 (vtF0 args D.xs) D.w).1 ++
+  hw2 : (List.range 8).map (fun i ↦ wo (1884 + i)) = (vtBcR2 (vtF0 args D.xs) D.w).1 ++
     [args.getD 5 0 * gen ^ 7 * gen ^ 2 * gen ^ 2, (vtBcR2 (vtF0 args D.xs) D.w).2.1,
       (vtBcR2 (vtF0 args D.xs) D.w).2.2]
-  hw3 : (List.range 8).map (fun i ↦ wo (1893 + i)) = (vtBcR3 (vtF0 args D.xs) D.w).1 ++
+  hw3 : (List.range 8).map (fun i ↦ wo (1892 + i)) = (vtBcR3 (vtF0 args D.xs) D.w).1 ++
     [args.getD 5 0 * gen ^ 7 * gen ^ 2 * gen ^ 2 * gen ^ 2, (vtBcR3 (vtF0 args D.xs) D.w).2.1,
       (vtBcR3 (vtF0 args D.xs) D.w).2.2]
   /-- The slot sumcheck's last claim is accepted (`bytecodeShare`'s check). -/
@@ -154,15 +154,15 @@ structure VtBHyp (rd : Reader) (wo : ℕ → E) (args : List E) (D : VtBIn) : Pr
   /-- The bytecode's size. -/
   hbc : D.bc.length = 2 ^ 23
 
-theorem vtB_loads_check : ((vtPre.drop 765).take 1828).all (fun s ↦ match s with
-    | .atom (.load _ p off) => decide (p = .n 1898) ||
+theorem vtB_loads_check : ((vtPre.drop 765).take 1827).all (fun s ↦ match s with
+    | .atom (.load _ p off) => decide (p = .n 1897) ||
         vtBufsBIdx.any fun q ↦ decide (p = .n q.1) && decide (off < q.2)
     | _ => true) = true := by simp only [vtPre_drop]; decide +kernel
 
-theorem vtB_load1897 : ∀ d off, Stmt.atom (.load d (.n 1898) off) ∈ (vtPre.drop 765).take 1828 →
+theorem vtB_load1897 : ∀ d off, Stmt.atom (.load d (.n 1897) off) ∈ (vtPre.drop 765).take 1827 →
     off = 0 := by
-  have h : ((vtPre.drop 765).take 1828).all (fun s ↦ match s with
-      | .atom (.load _ p off) => !decide (p = .n 1898) || decide (off = 0)
+  have h : ((vtPre.drop 765).take 1827).all (fun s ↦ match s with
+      | .atom (.load _ p off) => !decide (p = .n 1897) || decide (off = 0)
       | _ => true) = true := by simp only [vtPre_drop]; decide +kernel
   intro d off hm
   have := List.all_eq_true.mp h _ hm
@@ -170,8 +170,8 @@ theorem vtB_load1897 : ∀ d off, Stmt.atom (.load d (.n 1898) off) ∈ (vtPre.d
 
 /-- **Every load of the bus sides reads inside `vtBufsB`**, the value's read through the cursor
 after the tail rounds (`g^13` words on) included. -/
-theorem vtB_loadsInBuf (σ : Val) (h1897 : σ (.n 1898) = σ (.n 5) * gen ^ 13) :
-    LoadsInBuf σ (vtBufsB σ) ((vtPre.drop 765).take 1828) := by
+theorem vtB_loadsInBuf (σ : Val) (h1897 : σ (.n 1897) = σ (.n 5) * gen ^ 13) :
+    LoadsInBuf σ (vtBufsB σ) ((vtPre.drop 765).take 1827) := by
   intro d p off hm
   have := List.all_eq_true.mp vtB_loads_check _ hm
   simp only [Bool.or_eq_true, decide_eq_true_eq, List.any_eq_true, Bool.and_eq_true] at this

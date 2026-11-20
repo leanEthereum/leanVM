@@ -17,9 +17,9 @@ public import LeanVM.Guest.AcceptableChild
 `vs_allocs` (by the kernel): `verify_sub`'s fifteen allocations, in order, are `claim_pool`
 (`6`, 159 words), `stream` (`25`, 8192), `table_rows` (`26`, 6), `dims_g` (`71`, 7), `kappa_base`
 (`83`, 8), `zeta` (`254`, `g^d` words: the one dynamic allocation, by the bus depth `253`), `ood_z`
-(`304`, 28), `ood_value` (`310`, 1), `fp_w` (`335`, 16), `chi` (`569`, 34), `bc_point` (`570`, 4),
-`z_vals` (`584`, 78), `slices` (`585`, 64), the ring map's challenges (`847`, 16) and `c_table`
-(`848`, 64). `vsSizes d`: their sizes, the bus depth `d`.
+(`303`, 28), `ood_value` (`309`, 1), `fp_w` (`334`, 16), `chi` (`552`, 34), `bc_point` (`553`, 4),
+`z_vals` (`567`, 78), `slices` (`568`, 64), the ring map's challenges (`814`, 16) and `c_table`
+(`815`, 64). `vsSizes d`: their sizes, the bus depth `d`.
 
 Words fixed by the run alone (`vsStreamW`, `vsDimsW`, `vsKbW`): the stream padded to
 `childStreamCap` (`Hints.childHints`' `"stream"`), the row counts, `dims_g` (`g^logMem`, then the
@@ -34,7 +34,7 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 @[expose] public section
 
 /-- The allocations' values, in order. -/
-def vsAllocVars : List ℕ := [6, 25, 26, 71, 83, 254, 304, 310, 335, 569, 570, 584, 585, 847, 848]
+def vsAllocVars : List ℕ := [6, 25, 26, 71, 83, 254, 303, 309, 334, 552, 553, 567, 568, 814, 815]
 
 /-- **The allocations, by the kernel**: their values and sizes (the dynamic one by `253`). -/
 theorem vs_allocs : vsCPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz =

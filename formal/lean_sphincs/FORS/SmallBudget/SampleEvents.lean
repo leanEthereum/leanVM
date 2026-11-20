@@ -85,7 +85,7 @@ theorem expectedFlagged_le_digestF {α : Type} (comp : OracleComp (SourceCostSpe
     expectedFlagged tg initial model comp budget s ≤
       ∑' out, Pr{let x ← interp tg initial model comp budget s}[x = out] * (digestCount tg out.1.2.2.1 : ℝ≥0∞) := by
   unfold expectedFlagged
-  refine ENNReal.tsum_le_tsum fun out => ?_
+  refine tsum_le_tsum fun out => ?_
   by_cases hout : out ∈ support (interp tg initial model comp budget s)
   · exact mul_le_mul_right (by exact_mod_cast flagged_le_digestF tg initial model comp budget s out hout) _
   · rw [(prEvent_eq_zero_of_not_mem_support _) hout, zero_mul, zero_mul]
@@ -125,7 +125,7 @@ theorem probEvent_le_endValueF (payoff : (Coordinate → Digest) → State → �
     Pr{let x ← completion s.known}[E x] ≤ endValue payoff s := by
   rw [OracleComp.prEvent_eq_tsum_ite]
   unfold endValue
-  refine ENNReal.tsum_le_tsum fun T => ?_
+  refine tsum_le_tsum fun T => ?_
   split_ifs with hT
   · rw [h T hT, mul_one]
   · exact bot_le

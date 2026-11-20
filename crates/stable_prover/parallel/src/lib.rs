@@ -10,24 +10,27 @@ use std::ptr::NonNull;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Condvar, Mutex, Once, OnceLock};
 
-/// Worker count including the dispatcher: `LEANVM_NUM_THREADS` when set, `1` being strictly sequential, else one per
-/// physical core: the logical CPUs the platform reports, halved where Linux says SMT is active (a core's second
-/// hardware thread slows a proof on a many-core machine).
+static NUM_THREADS: OnceLock<usize> = OnceLock::new();
+
+/// Worker count including the dispatcher: [`set_num_threads`]'s, else one per physical core (the logical CPUs, halved
+/// where Linux says SMT is active: a second hardware thread per core slows a proof).
 #[must_use]
 #[inline]
 pub fn num_threads() -> usize {
-    static NUM_THREADS: OnceLock<usize> = OnceLock::new();
     *NUM_THREADS.get_or_init(|| {
-        std::env::var("LEANVM_NUM_THREADS")
-            .ok()
-            .and_then(|v| v.parse::<usize>().ok())
-            .filter(|&n| n > 0)
-            .unwrap_or_else(|| {
-                let logical = std::thread::available_parallelism().map_or(1, |n| n.get());
-                let smt = std::fs::read_to_string("/sys/devices/system/cpu/smt/active").is_ok_and(|s| s.trim() == "1");
-                if smt { (logical / 2).max(1) } else { logical }
-            })
+        let logical = std::thread::available_parallelism().map_or(1, |n| n.get());
+        let smt = std::fs::read_to_string("/sys/devices/system/cpu/smt/active").is_ok_and(|s| s.trim() == "1");
+        if smt { (logical / 2).max(1) } else { logical }
     })
+}
+
+/// Fixes [`num_threads`] before the pool starts; `0` keeps the default. Panics if it is already another.
+pub fn set_num_threads(n: usize) {
+    if n == 0 {
+        return;
+    }
+    let set = *NUM_THREADS.get_or_init(|| n);
+    assert_eq!(set, n, "the thread pool already runs with {set} threads");
 }
 
 /// How finely guided scheduling divides the remaining work.
@@ -502,4 +505,16 @@ where
         },
     )
     .unwrap_or_else(identity)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[should_panic(expected = "already runs")]
+    fn a_fixed_count_refuses_another() {
+        set_num_threads(num_threads());
+        set_num_threads(num_threads() + 1);
+    }
 }

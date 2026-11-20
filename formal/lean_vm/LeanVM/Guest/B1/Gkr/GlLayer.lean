@@ -54,15 +54,15 @@ theorem glTailPre_noRet (off : ℕ) :
   unfold glNext chValT
   rfl
 
-theorem glRho_lo {p o k : ℕ} (h : k < 59) : glRho p o (.n k) = .n k := by
+theorem glRho_lo {p o k : ℕ} (h : k < 58) : glRho p o (.n k) = .n k := by
   simp [glRho, h]
 
-theorem glRho_mid {p o k : ℕ} (h1 : 59 ≤ k) (h2 : k < 119) : glRho p o (.n k) = .n (k + glD p) := by
-  simp [glRho, h2, show ¬ k < 59 by omega]
+theorem glRho_mid {p o k : ℕ} (h1 : 58 ≤ k) (h2 : k < 117) : glRho p o (.n k) = .n (k + glD p) := by
+  simp [glRho, h2, show ¬ k < 58 by omega]
 
-theorem glRho_last {p o k : ℕ} (h1 : 119 ≤ k) (h2 : k < 159) :
-    glRho p o (.n k) = .n (k + glD p - 40 * o) := by
-  simp [glRho, h2, show ¬ k < 59 by omega, show ¬ k < 119 by omega]
+theorem glRho_last {p o k : ℕ} (h1 : 117 ≤ k) (h2 : k < 156) :
+    glRho p o (.n k) = .n (k + glD p - 39 * o) := by
+  simp [glRho, h2, show ¬ k < 58 by omega, show ¬ k < 117 by omega]
 
 section Sem
 
@@ -113,9 +113,9 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
     gl_pre hPre hxj hsg (by omega) hslot
   have RH := glRounds_sound (rd := rd) (2 * p) hHR rfl
   obtain ⟨hsc, hscur, hscl⟩ := gl_headStore hp hHS
-  have R0 := gkrRoundsOut_zero (pt := σ (.n 53) * gen ^ (2 * p)) hsc hscur hscl
+  have R0 := gkrRoundsOut_zero (pt := σ (.n 52) * gen ^ (2 * p)) hsc hscur hscl
   -- the loop
-  have RL := gl_loop hp ho (head := σ (.n 54)) (tabs := σ (.n 7)) hxm (by omega) rfl
+  have RL := gl_loop hp ho (head := σ (.n 53)) (tabs := σ (.n 7)) hxm (by omega) rfl
     (fun hne => hC _ _ _ (gl_loopCall hp hLC hne)) R0
   obtain ⟨cap1, cap2, cur1, cl1, cl2, hc1, hcur1, hcl1, RLr, hc2, hcur2, hcl2⟩ := glRun_of_out RL
   obtain rfl := tbCapAt_unique hc1 hsc
@@ -128,8 +128,8 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
   obtain rfl := tbCapAt_unique htc hc2
   have ecur := tb_loadHolds_unique htcur hcur2
   have ecl := tb_loadHolds_unique htcl hcl2
-  have hcu : σ (.n (77 + D)) = σ (.n 21) * gen ^ (4 * (2 * p + 8 * m)) := by rw [ecur]; ring
-  have hpt : σ (.n (68 + D)) = σ (.n 53) * gen ^ (2 * p + 8 * m) := by
+  have hcu : σ (.n (76 + D)) = σ (.n 21) * gen ^ (4 * (2 * p + 8 * m)) := by rw [ecur]; ring
+  have hpt : σ (.n (67 + D)) = σ (.n 52) * gen ^ (2 * p + 8 * m) := by
     rw [etp, hxm, ← pow_mul]; ring
   have RT := glRounds_sound (rd := rd) (2 - o) hTR (by rw [pow_zero, mul_one, entp])
   rw [hcu, hpt] at RT
@@ -139,27 +139,27 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
   rw [show 2 * p + 8 * m + (2 - o) = L by omega, e21, e53, e58, e35] at R
   -- the tail
   set τ := σ ∘ glRho p o with hτ
-  have tz : ∀ k, k < 59 → τ (.n k) = σ (.n k) := fun k hk => by
+  have tz : ∀ k, k < 58 → τ (.n k) = σ (.n k) := fun k hk => by
     simp only [hτ, Function.comp_apply, glRho_lo hk]
   have T := gl_tail (τ := τ) (by omega) hTail (by rw [tz 23 (by omega)]; exact z23)
     (by rw [tz 24 (by omega)]; exact z24) (by rw [tz 25 (by omega)]; exact z25)
     (by rw [tz 26 (by omega)]; exact z26)
   obtain ⟨treads, tcheck, tsq1, tsq2, tvals, tcap, tcur, tpt0, tpt1, tpos⟩ := T
-  have t77 : τ (.n 77) = σ (.n (77 + D)) := by
-    show σ (glRho p o (.n 77)) = _
+  have t77 : τ (.n 76) = σ (.n (76 + D)) := by
+    show σ (glRho p o (.n 76)) = _
     rw [glRho_mid (by omega) (by omega)]
-  have tcapT : (glCap 139).map τ = (glCapAfter (79 + D) (2 - o) (glCap (72 + D))).map σ := by
+  have tcapT : (glCap 137).map τ = (glCapAfter (78 + D) (2 - o) (glCap (71 + D))).map σ := by
     simp only [glCapAfter, show 2 - o ≠ 0 by omega, ↓reduceIte, glCap, List.map_map]
     apply List.map_congr_left
     intro k hk
     have hk5 : k < 5 := List.mem_range.mp hk
-    simp only [hτ, Function.comp_apply, glRho_last (show 119 ≤ 139 + k by omega)
-      (show 139 + k < 159 by omega)]
+    simp only [hτ, Function.comp_apply, glRho_last (show 117 ≤ 137 + k by omega)
+      (show 137 + k < 156 by omega)]
     congr 2
     omega
-  have t158 : τ (.n 158) = σ (glClaimAfter (79 + D) (2 - o) (.n (78 + D))) := by
+  have t158 : τ (.n 155) = σ (glClaimAfter (78 + D) (2 - o) (.n (77 + D))) := by
     simp only [glClaimAfter, show 2 - o ≠ 0 by omega, ↓reduceIte, hτ, Function.comp_apply,
-      glRho_last (show 119 ≤ 158 by omega) (show 158 < 159 by omega)]
+      glRho_last (show 117 ≤ 155 by omega) (show 155 < 156 by omega)]
     congr 2
     omega
   rw [← tcapT, ← t158] at R
@@ -171,30 +171,30 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
   have hsc := gkr_sumcheck_run cs st.point (polyEval st.values s.squeeze.1) s.squeeze.2
     (hlen.trans helen.symm) h4
   have hsc' : RunsTo (sumcheck (polyEval st.values s.squeeze.1) (2 ^ 2 + 1)
-      (st.point.map some)) s.squeeze.2 cs.flatten (run.1, τ (.n 158))
-      ⟨(glCap 139).map τ, []⟩ :=
+      (st.point.map some)) s.squeeze.2 cs.flatten (run.1, τ (.n 155))
+      ⟨(glCap 137).map τ, []⟩ :=
     hsc.of_eq rfl rfl (by rw [hclR]; rfl) (by rw [hcapR]; exact tb_gkrRun_eta _ _ _ _ rfl)
-  have t40 : τ (.n 40) = s.squeeze.1 := by rw [tz 40 (by omega)]; exact e40
-  have hcheck : τ (.n 158) = polyEval [prodE (glCh τ 0), prodE (glCh τ 1), prodE (glCh τ 2)]
+  have t40 : τ (.n 27) = s.squeeze.1 := by rw [tz 27 (by omega)]; exact e40
+  have hcheck : τ (.n 155) = polyEval [prodE (glCh τ 0), prodE (glCh τ 1), prodE (glCh τ 2)]
       s.squeeze.1 := by rw [← t40]; exact tcheck
-  have hstep := gkrStep_run (step := 2) le_rfl false hsc' (chWords_length τ 159 0)
-    (chWords_length τ 159 1) (chWords_length τ 159 2) hcheck
+  have hstep := gkrStep_run (step := 2) le_rfl false hsc' (chWords_length τ 156 0)
+    (chWords_length τ 156 1) (chWords_length τ 156 2) hcheck
   have hstep' : RunsTo (gkrStep 2 false st) s
       (cs.flatten ++ (glCh τ 0 ++ (glCh τ 1 ++ glCh τ 2)))
       ⟨[glCh τ 0, glCh τ 1, glCh τ 2].map
-          (fun c ↦ multilinearEval c [τ (.n 262), τ (.n 276)]),
-        [τ (.n 262), τ (.n 276)] ++ run.1⟩ ⟨(glCap 271).map τ, []⟩ := by
+          (fun c ↦ multilinearEval c [τ (.n 246), τ (.n 259)]),
+        [τ (.n 246), τ (.n 259)] ++ run.1⟩ ⟨(glCap 267).map τ, []⟩ := by
     have hh := hstep
-    rw [show ((((⟨(glCap 139).map τ, []⟩ : Fs).absorbAll (glCh τ 0)
+    rw [show ((((⟨(glCap 137).map τ, []⟩ : Fs).absorbAll (glCh τ 0)
       dsObserve).absorbAll (glCh τ 1) dsObserve).absorbAll (glCh τ 2) dsObserve) = glSponge τ
       from rfl, tsq1, tsq2] at hh
     exact hh
   have t15 : τ (.n 15) = σ (.n 0) * gen ^ (10 * L) := by rw [tz 15 (by omega)]; exact e15
-  have t53 : τ (.n 53) = σ (.n 2) * gen ^ (40 * (j + 1)) := by rw [tz 53 (by omega)]; exact e53
+  have t53 : τ (.n 52) = σ (.n 2) * gen ^ (40 * (j + 1)) := by rw [tz 52 (by omega)]; exact e53
   have ld : ∀ k w, LoadHolds rd (τ (.n 15)) k w → LoadHolds rd (σ (.n 0)) (10 * L + k) w :=
     fun k w hw => by rw [t15, tb_loadHolds_mul_gen_pow] at hw; exact hw
-  have hcurT : τ (.n 77) = σ (.n 21) * gen ^ (4 * (2 * p + 8 * m)) := by rw [t77, hcu]
-  refine ⟨_, _, _, τ (.n 44) * τ (.n 3) * gen, hstep', ?_, ?_⟩
+  have hcurT : τ (.n 76) = σ (.n 21) * gen ^ (4 * (2 * p + 8 * m)) := by rw [t77, hcu]
+  refine ⟨_, _, _, τ (.n 43) * τ (.n 3) * gen, hstep', ?_, ?_⟩
   · rw [tbReadsAt_append, flatten_length_four h4, hlen]
     refine ⟨hrd, ?_⟩
     rw [hcurT, mul_assoc, ← pow_add, e21] at treads
@@ -203,7 +203,7 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
   refine ⟨by simp [glCap], ?_, rfl, ?_, by simp, ?_, ?_, ?_, ?_⟩
   · intro k hk
     rw [show 10 * (L + 2) + k = 10 * L + (20 + k) by ring]
-    have hg : ((glCap 271).map τ).getD k 0 = τ (.n (271 + k)) := by
+    have hg : ((glCap 267).map τ).getD k 0 = τ (.n (267 + k)) := by
       simp [glCap, List.getD_eq_getElem?_getD, hk]
     rw [hg]
     exact ld _ _ (tcap k hk)
@@ -215,8 +215,8 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
     omega
   · intro t ht
     have hv : ([glCh τ 0, glCh τ 1, glCh τ 2].map fun c ↦
-        multilinearEval c [τ (.n 262), τ (.n 276)]).getD t 0 =
-        multilinearEval (glCh τ t) [τ (.n 262), τ (.n 276)] := by
+        multilinearEval c [τ (.n 246), τ (.n 259)]).getD t 0 =
+        multilinearEval (glCh τ t) [τ (.n 246), τ (.n 259)] := by
       interval_cases t <;> rfl
     rw [hv, show 10 * (L + 2) + 6 + t = 10 * L + (26 + t) by ring]
     exact ld _ _ (tvals t ht)
@@ -231,7 +231,7 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
       interval_cases k
       · exact tpt0
       · exact tpt1
-    · rw [show σ (.n 2) * gen ^ (40 * (j + 2)) * gen ^ [τ (.n 262), τ (.n 276)].length =
+    · rw [show σ (.n 2) * gen ^ (40 * (j + 2)) * gen ^ [τ (.n 246), τ (.n 259)].length =
         σ (.n 2) * gen ^ (40 * (j + 1)) * gen ^ 42 by
           simp only [List.length_cons, List.length_nil]; rw [mul_assoc, mul_assoc, ← pow_add,
             ← pow_add]; ring_nf]

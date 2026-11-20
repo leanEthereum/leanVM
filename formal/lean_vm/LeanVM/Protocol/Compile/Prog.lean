@@ -240,12 +240,13 @@ lost") with
 * `read`, `grind`, `commit`: prover moves keep it (`commit` for well-shaped words);
 * `group`: from a boundary history in `D` at which the program draws a challenge or opens rows,
   the group of challenges escapes `D` with probability at most `ε h`;
-* `final`: the program does not accept from a history in `D`.
+* `final`: where the program accepts from a history in `D`, that history satisfies `G`.
 
-The random-oracle theorem bounds the probability that the compiled verifier accepts a proof whose
-extracted history passes through `D` by the number of queries times the largest `ε`, each
-discounted by the proof of work that precedes its group, plus the hash's collision terms. -/
-structure Cert (P : VerifierProgram Bool) where
+With `G` false (`Cert`), the program does not accept from doom. The random-oracle theorem bounds
+the probability that the compiled verifier accepts a proof whose extracted history passes through
+`D` and fails `G` by the number of queries times the largest `ε`, each discounted by the proof of
+work that precedes its group, plus the hash's collision terms. -/
+structure CertG (P : VerifierProgram Bool) (G : List Ev → Prop) where
   /-- The doom predicate. -/
   D : List Ev → Prop
   /-- The escape bound of the group starting at a history. -/
@@ -262,8 +263,11 @@ structure Cert (P : VerifierProgram Bool) where
   /-- A group of challenges escapes doom with probability at most `ε`. -/
   group : ∀ {h p}, P.Reachable h → Boundary h → P.after h = some p →
     (∃ k, p = .sample k) ∨ (∃ i ps k, p = .query i ps k) → D h → esc D h p ≤ ε h
-  /-- The verifier rejects from doom. -/
-  final : ∀ {h}, P.Reachable h → P.after h = some (.ret true) → ¬ D h
+  /-- Where the verifier accepts from doom, the history satisfies `G`. -/
+  final : ∀ {h}, P.Reachable h → P.after h = some (.ret true) → D h → G h
+
+/-- A **doom certificate** with nothing accepted from doom: the verifier rejects from `D`. -/
+abbrev Cert (P : VerifierProgram Bool) := CertG P fun _ ↦ False
 
 end
 end LeanVM.Protocol.Compile

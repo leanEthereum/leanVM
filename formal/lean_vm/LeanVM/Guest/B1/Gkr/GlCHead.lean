@@ -17,9 +17,9 @@ public import LeanVM.Guest.B1.Gkr.Layer
 `glc_pre`: on `glPre`'s equations (its ten reads not stores), the parameters `layers`, `rounds`,
 `pts`, `x_j = g^j`, `start_g = g^(2 - o)` and the slot of `L = 2j + 2 - o` (`GkSlot`), the prefix
 holds; its values are the slot's pointer `layers·g^(10L)` (`15`), the cursor (`21`), the
-combiner `s.squeeze.1` (`40`) and the capacity after it (`35 ..`), the position (`44`), the
-point row `pts·g^(40(j + 1))` (`53`), the head record `rounds·pos` (`54`), the combined claim
-(`58`) and the zeros (`23 .. 26`).
+combiner `s.squeeze.1` (`27`) and the capacity after it (`35 ..`), the position (`43`), the
+point row `pts·g^(40(j + 1))` (`52`), the head record `rounds·pos` (`53`), the combined claim
+(`57`) and the zeros (`23 .. 26`).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -35,7 +35,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop} {S : Li
 
 /-- The prefix's reads: the slot's capacity and cursor, its values and position. -/
 def glPreKeys : List (ℕ × ℕ × ℕ) :=
-  (List.range 6).map (fun k ↦ (16 + k, 15, k)) ++ (List.range 4).map (fun k ↦ (41 + k, 15, 6 + k))
+  (List.range 6).map (fun k ↦ (16 + k, 15, k)) ++ (List.range 4).map (fun k ↦ (40 + k, 15, 6 + k))
 
 theorem glPre_atoms : ∀ s ∈ glPre, ∃ a, s = .atom a := by
   intro s hs
@@ -54,9 +54,9 @@ theorem glc_pre (hG : ∀ s ∈ glPre, GoodS rd S w σ s)
     (hS : GkSlot rd layers (2 * j + 2 - o) s cur st (pts * gen ^ (40 * (j + 1))) pos) :
     Stmt.HoldsList C rd σ glPre True kret ∧
       σ (.n 15) = layers * gen ^ (10 * (2 * j + 2 - o)) ∧ σ (.n 21) = cur ∧
-      σ (.n 40) = s.squeeze.1 ∧ (glCap 35).map σ = s.squeeze.2.cap ∧ σ (.n 44) = pos ∧
-      σ (.n 53) = pts * gen ^ (40 * (j + 1)) ∧ σ (.n 54) = rounds * pos ∧
-      σ (.n 58) = polyEval st.values s.squeeze.1 ∧
+      σ (.n 27) = s.squeeze.1 ∧ (glCap 35).map σ = s.squeeze.2.cap ∧ σ (.n 43) = pos ∧
+      σ (.n 52) = pts * gen ^ (40 * (j + 1)) ∧ σ (.n 53) = rounds * pos ∧
+      σ (.n 57) = polyEval st.values s.squeeze.1 ∧
       σ (.n 23) = 0 ∧ σ (.n 24) = 0 ∧ σ (.n 25) = 0 ∧ σ (.n 26) = 0 := by
   have g : ∀ a, Stmt.atom a ∈ glPre → Good rd S w σ a := fun a ha ↦ hG _ ha
   obtain ⟨hcl, hcap, hpe, hcur, hvl, hval, -, -, hpos⟩ := hS
@@ -102,9 +102,8 @@ theorem glc_pre (hG : ∀ s ∈ glPre, GoodS rd S w σ s)
     rw [hpe, ← hcapE, ← ly_zero_rate c23 c24 c25 c26]
     simp [List.range_succ]
   rw [hins] at hP hQ
-  have c40 : σ (.n 40) = σ (.n 27) := g (.copy (.n 40) (.n 27)) (by simp [glPre])
-  have e40 : σ (.n 40) = s.squeeze.1 := by
-    rw [c40]; exact challengeT_value (σ := σ) (s0 := .n 27) (b := 27) rfl (hP 0 (by omega))
+  have e40 : σ (.n 27) = s.squeeze.1 := by
+    exact challengeT_value (σ := σ) (s0 := .n 27) (b := 27) rfl (hP 0 (by omega))
   have hcap35 : (glCap 35).map σ = s.squeeze.2.cap := by
     have := hQ
     simp only [lyCap, glCap] at this ⊢
@@ -113,33 +112,33 @@ theorem glc_pre (hG : ∀ s ∈ glPre, GoodS rd S w σ s)
     rw [← this]
   -- the values and the position
   have rv : ∀ k < 4, ∀ v, LoadHolds rd layers (10 * L + (6 + k)) v →
-      σ (.n (41 + k)) = v ∧ LoadHolds rd (σ (.n 15)) (6 + k) (σ (.n (41 + k))) := fun k hk' v hv ↦
-    good_read (g (.load (.n (41 + k)) (.n 15) (6 + k)) (by interval_cases k <;> simp [glPre]))
+      σ (.n (40 + k)) = v ∧ LoadHolds rd (σ (.n 15)) (6 + k) (σ (.n (40 + k))) := fun k hk' v hv ↦
+    good_read (g (.load (.n (40 + k)) (.n 15) (6 + k)) (by interval_cases k <;> simp [glPre]))
       (key _ (by simp [glPreKeys]; omega)) (ld (6 + k) _ hv)
   obtain ⟨e41, l41⟩ := rv 0 (by omega) _ (by rw [← Nat.add_assoc]; exact hval 0 (by omega))
   obtain ⟨e42, l42⟩ := rv 1 (by omega) _ (by rw [← Nat.add_assoc]; exact hval 1 (by omega))
   obtain ⟨e43, l43⟩ := rv 2 (by omega) _ (by rw [← Nat.add_assoc]; exact hval 2 (by omega))
   obtain ⟨e44, l44⟩ := rv 3 (by omega) _ hpos
   -- the point row, the head and the claim
-  have c45 : σ (.n 45) = word 2 0 := g (.const (.n 45) (word 2 0)) (by simp [glPre])
-  have m46 := good_mul (g (.mul (.n 46) (.n 4) (.n 45)) (by simp [glPre])) (by omega) (by omega)
-  have m47 := good_mul (g (.mul (.n 47) (.n 46) (.n 46)) (by simp [glPre])) (by omega) (by omega)
-  have m48 := good_mul (g (.mul (.n 48) (.n 47) (.n 47)) (by simp [glPre])) (by omega) (by omega)
-  have m49 := good_mul (g (.mul (.n 49) (.n 48) (.n 46)) (by simp [glPre])) (by omega) (by omega)
-  have m50 := good_mul (g (.mul (.n 50) (.n 49) (.n 49)) (by simp [glPre])) (by omega) (by omega)
-  have m51 := good_mul (g (.mul (.n 51) (.n 50) (.n 50)) (by simp [glPre])) (by omega) (by omega)
-  have m52 := good_mul (g (.mul (.n 52) (.n 51) (.n 51)) (by simp [glPre])) (by omega) (by omega)
-  have m53 := good_mul (g (.mul (.n 53) (.n 2) (.n 52)) (by simp [glPre])) (by omega) (by omega)
-  have m54 := good_mul (g (.mul (.n 54) (.n 1) (.n 44)) (by simp [glPre])) (by omega) (by omega)
-  have m55 := good_mul (g (.mul (.n 55) (.n 40) (.n 43)) (by simp [glPre])) (by omega) (by omega)
-  have a56 : σ (.n 56) = σ (.n 42) + σ (.n 55) := g (.add (.n 56) (.n 42) (.n 55)) (by simp [glPre])
-  have m57 := good_mul (g (.mul (.n 57) (.n 40) (.n 56)) (by simp [glPre])) (by omega) (by omega)
-  have a58 : σ (.n 58) = σ (.n 41) + σ (.n 57) := g (.add (.n 58) (.n 41) (.n 57)) (by simp [glPre])
-  have e53 : σ (.n 53) = pts * gen ^ (40 * (j + 1)) := by
+  have c45 : σ (.n 44) = word 2 0 := g (.const (.n 44) (word 2 0)) (by simp [glPre])
+  have m46 := good_mul (g (.mul (.n 45) (.n 4) (.n 44)) (by simp [glPre])) (by omega) (by omega)
+  have m47 := good_mul (g (.mul (.n 46) (.n 45) (.n 45)) (by simp [glPre])) (by omega) (by omega)
+  have m48 := good_mul (g (.mul (.n 47) (.n 46) (.n 46)) (by simp [glPre])) (by omega) (by omega)
+  have m49 := good_mul (g (.mul (.n 48) (.n 47) (.n 45)) (by simp [glPre])) (by omega) (by omega)
+  have m50 := good_mul (g (.mul (.n 49) (.n 48) (.n 48)) (by simp [glPre])) (by omega) (by omega)
+  have m51 := good_mul (g (.mul (.n 50) (.n 49) (.n 49)) (by simp [glPre])) (by omega) (by omega)
+  have m52 := good_mul (g (.mul (.n 51) (.n 50) (.n 50)) (by simp [glPre])) (by omega) (by omega)
+  have m53 := good_mul (g (.mul (.n 52) (.n 2) (.n 51)) (by simp [glPre])) (by omega) (by omega)
+  have m54 := good_mul (g (.mul (.n 53) (.n 1) (.n 43)) (by simp [glPre])) (by omega) (by omega)
+  have m55 := good_mul (g (.mul (.n 54) (.n 27) (.n 42)) (by simp [glPre])) (by omega) (by omega)
+  have a56 : σ (.n 55) = σ (.n 41) + σ (.n 54) := g (.add (.n 55) (.n 41) (.n 54)) (by simp [glPre])
+  have m57 := good_mul (g (.mul (.n 56) (.n 27) (.n 55)) (by simp [glPre])) (by omega) (by omega)
+  have a58 : σ (.n 57) = σ (.n 40) + σ (.n 56) := g (.add (.n 57) (.n 40) (.n 56)) (by simp [glPre])
+  have e53 : σ (.n 52) = pts * gen ^ (40 * (j + 1)) := by
     rw [m53, m52, m51, m50, m49, m48, m47, m46, c45, tb_word_gen, e4, e2, ← pow_succ]
     ring
-  have e54 : σ (.n 54) = rounds * pos := by rw [m54, e1, e44]
-  have e58 : σ (.n 58) = polyEval st.values s.squeeze.1 := by
+  have e54 : σ (.n 53) = rounds * pos := by rw [m54, e1, e44]
+  have e58 : σ (.n 57) = polyEval st.values s.squeeze.1 := by
     obtain ⟨v0, v1, v2, hv3⟩ : ∃ v0 v1 v2, st.values = [v0, v1, v2] := by
       match st.values, hvl with
       | [v0, v1, v2], _ => exact ⟨v0, v1, v2, rfl⟩
@@ -153,7 +152,7 @@ theorem glc_pre (hG : ∀ s ∈ glPre, GoodS rd S w σ s)
   exact ⟨m9, m10, m11, m12, m13, m14, m15, (r16 0 (by omega)).2, (r16 1 (by omega)).2,
     (r16 2 (by omega)).2, (r16 3 (by omega)).2, (r16 4 (by omega)).2, l21, c22,
     by rw [c23, tb_word_zero], by rw [c24, tb_word_zero], by rw [c25, tb_word_zero],
-    by rw [c26, tb_word_zero], k27, c40, l41, l42, l43, l44, c45, m46, m47, m48, m49, m50, m51,
+    by rw [c26, tb_word_zero], k27, l41, l42, l43, l44, c45, m46, m47, m48, m49, m50, m51,
     m52, m53, m54, m55, a56, m57, a58⟩
 
 end

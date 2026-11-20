@@ -1,8 +1,8 @@
 //! The coverage table: which slot each raw signature and child claim writes.
 
 use super::error::AggregateError;
-use super::proof::{AggregateClaims, AggregateProof};
-use super::{LeanSphincsClaim, LeanXmssClaim};
+use super::proof::AggregateProof;
+use super::{AggregateClaims, LeanSphincsClaim, LeanXmssClaim};
 use std::collections::BTreeSet;
 
 /// The coverage slot each write in the guest's coverage walk targets, in walk

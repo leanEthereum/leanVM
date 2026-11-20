@@ -15,7 +15,7 @@ namespace LeanVMTests.Cost.DecoderSize
 
 open LeanVM.Cost LeanVM.Cost.Decoder
 
-#guard decTopC.costIdx == 1056
+#guard decTopC.costIdx == 607
 #guard compiledGuestWitnessDecoder.size ==
   guestLanesRowSize + 2 + otherBodiesSize + 2 * (decTopC.costIdx - decTopC.costDeps.length)
 #guard compiledGuestWitnessDecoder.size ≤ LeanVM.Node.guestWitnessDecoderSizeBound

@@ -173,14 +173,12 @@ def packMain (a b : Expr) : Source.Program :=
   withGuest ["pack64x2"] ([st (.let_ "r" (.call "pack64x2" [a, b]))] ++ publish (.var "r") (.lit 0))
 
 /-- info: def main():
-  %s0#1 = 3
-  %s0#2 = 5
-  assert_in_k %s0#1, %s0#2
-  %s0.i3:pack64x2.s1#0 = (0, 1)
-  %s0.i3:pack64x2.s1#1 = %s0.i3:pack64x2.s1#0 * %s0#2
-  %s0#0 = %s0#1 + %s0.i3:pack64x2.s1#1
-  %s2#0 = 1
-  %s0#0 = mem[%s2#0 g^0]
+  %s0.i0:pack64x2.s0#0 = 3
+  %s0.i0:pack64x2.s0#1 = 5
+  assert_in_k %s0.i0:pack64x2.s0#0, %s0.i0:pack64x2.s0#1
+  %s2#0 = (3, 5)
+  %s2#1 = 1
+  %s2#0 = mem[%s2#1 g^0]
   %s3#0 = 0
   %s3#1 = 1
   %s3#2 = 2

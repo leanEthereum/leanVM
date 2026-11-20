@@ -33,7 +33,7 @@ structure VtExps (σ : Core.Val) (μ lm n : ℕ) (τ : ℕ → ℕ) : Prop where
   mu : σ (.n 9) = gen ^ μ
   lmw : σ (.n 27) = gen ^ lm
   tau : ∀ t < 6, σ (.n (28 + t)) = gen ^ τ t
-  zc : σ (.n 2545) = gen ^ n
+  zc : σ (.n 2544) = gen ^ n
   mu19 : 19 ≤ μ
   mu33 : μ < 33
   lmμ : lm ≤ μ
@@ -243,7 +243,7 @@ theorem vtBaseN_sound {σ : Core.Val} {μ lm n : ℕ} {τ : ℕ → ℕ} (hE : V
     · simp only [hx, ↓reduceIte] at hy
       subst hy; exact hag _ hyG
   generalize hY : (if CoreMode.GB ≤ x ∧ x < CoreMode.GB + 7 then x - CoreMode.GB + 27 else x) = y at h hy
-  have hGB : (2545 : ℕ) < CoreMode.GB := by unfold CoreMode.GB; norm_num
+  have hGB : (2544 : ℕ) < CoreMode.GB := by unfold CoreMode.GB; norm_num
   have h0 := hE.taun 0 (by norm_num); have h1 := hE.taun 1 (by norm_num); have h2 := hE.taun 2 (by norm_num)
   have h3 := hE.taun 3 (by norm_num); have h4 := hE.taun 4 (by norm_num); have h5 := hE.taun 5 (by norm_num)
   have := hE.mu19; have := hE.lmμ; have := hE.nμ
@@ -259,7 +259,7 @@ theorem vtBaseN_sound {σ : Core.Val} {μ lm n : ℕ} {τ : ℕ → ℕ} (hE : V
     subst c25
     have e : vtEv (19, [1, -1, 0, 0, 0, 0, 0, 0, 0]) (vtS μ lm n τ) = (n : ℤ) := by
       simp only [vtEv, ldot, vtS]; ring
-    rw [hy 2545 rfl (by omega), hE.zc, e]
+    rw [hy 2544 rfl (by omega), hE.zc, e]
     exact ⟨by positivity, by simp⟩
   · obtain rfl := Option.some.inj h
     subst c27

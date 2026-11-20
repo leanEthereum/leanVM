@@ -126,6 +126,34 @@ def kNode (pad : Nat) (pp a0 adr k0 k1 : V) (y : Nat) : List Stmt × Nat × Nat 
     kecS [pp, a0, adr, k0, k1, .n y, .n (y + 1), .n (y + 2), .n (y + 3), .n (pad + 1), .n (pad + 2),
       .n (pad + 3), .n (pad + 4)] (runV (y + 4) 1) false false], y + 5, y + 4)
 
+/-! ## A layer's `A0` -/
+
+/-- A layer's `A0` is a value set before it (`none`), or a constant `c` the compiler sets afresh
+before each use (`some c`, an inlined call's constant argument): the statements before a use at
+`x`, -/
+def a0Pre (ac : Option E) (x : Nat) : List Stmt :=
+  match ac with
+  | none => []
+  | some c => [cst x c]
+
+/-- the cell the use reads, -/
+def a0Cell (a0 : V) (ac : Option E) (x : Nat) : V :=
+  match ac with
+  | none => a0
+  | some _ => .n x
+
+/-- the values the use takes before it, -/
+def a0W (ac : Option E) : Nat :=
+  match ac with
+  | none => 0
+  | some _ => 1
+
+/-- and the value the use reads. -/
+def a0Val (σ : Val) (a0 : V) (ac : Option E) : E :=
+  match ac with
+  | none => σ a0
+  | some c => c
+
 /-! ## FORS -/
 
 section Fors
@@ -186,32 +214,37 @@ def pathConst (h : Nat) : Nat := 2 * 2 ^ 24 + 2 ^ 88 * h
 and its ancestors' indices `val (off + ·)`, from base `x`: the children hinted and checked, the
 parent hashed at height `z + 1` with its index below the root. The statements, the next base and the
 root. -/
-def sPath (pad : Nat) (pp a0 : V) (bit val : Nat → V) (off : Nat) :
+def sPath (pad : Nat) (pp a0 : V) (ac : Option E) (bit val : Nat → V) (off : Nat) :
     Nat → Nat → V → Nat → List Stmt × Nat × V
   | 0, _, cur, x => ([], x, cur)
   | m + 1, z, cur, x =>
       let pre := [hintW "siblings" [.n x, .n (x + 1)]] ++
         isChildS cur (.n x) (.n (x + 1)) (bit (off + z)) (x + 2)
-      let a : List Stmt × Nat × V :=
-        if m = 0 then ([cst (x + 4) (lit (pathConst (z + 1)))], x + 5, .n (x + 4))
+      let a : List Stmt × Nat × V × V :=
+        if m = 0 then
+          (a0Pre ac (x + 4) ++ [cst (x + 4 + a0W ac) (lit (pathConst (z + 1)))], x + 5 + a0W ac,
+            .n (x + 4 + a0W ac), a0Cell a0 ac (x + 4))
         else
           let be := sBe16 val (off + z + 1) m (x + 4)
           (be.1 ++ [cst be.2.1 (lit (pathConst (z + 1))),
-            addS (.n (be.2.1 + 1)) be.2.2 (.n be.2.1)], be.2.1 + 2, .n (be.2.1 + 1))
-      let k := kNode pad pp a0 a.2.2 (.n x) (.n (x + 1)) a.2.1
-      let rest := sPath pad pp a0 bit val off m (z + 1) (.n k.2.2) k.2.1
+            addS (.n (be.2.1 + 1)) be.2.2 (.n be.2.1)] ++ a0Pre ac (be.2.1 + 2), be.2.1 + 2 + a0W ac,
+            .n (be.2.1 + 1), a0Cell a0 ac (be.2.1 + 2))
+      let k := kNode pad pp a.2.2.2 a.2.2.1 (.n x) (.n (x + 1)) a.2.1
+      let rest := sPath pad pp a0 ac bit val off m (z + 1) (.n k.2.2) k.2.1
       (pre ++ a.1 ++ k.1 ++ rest.1, rest.2.1, rest.2.2)
 
 /-- **A layer** from base `b` (`sp_layer` after its counter `ctr`): `enc_at = key + WOTS_ENC` at
 `b + 1`, the encoding of `signed` (68 bytes), the key's leaf by `sp_wots`, the path of `height`
-levels from leaf bit `off`. The statements, the next base and the root. -/
-def sHtLayer (pad : Nat) (pp a0 key signed ctr : V) (bit val : Nat → V) (off height b : Nat) :
-    List Stmt × Nat × V :=
-  let k := kMsg pad [.cell pp, .cell a0, .cell (.n (b + 1)), .cell signed, .cell ctr] 68 false none
-    (b + 2)
-  let p := sPath pad pp a0 bit val off height 0 (.n k.2.1) (k.2.1 + 1)
-  ([cst b (lit (7 * 2 ^ 24)), addS (.n (b + 1)) key (.n b)] ++ k.1 ++
-    [.call "sp_wots" [pp, a0, key, .n k.2.2] [.n k.2.1]] ++ p.1, p.2.1, p.2.2)
+levels from leaf bit `off`; each use of `A0` after its `a0Pre`. The statements, the next base and
+the root. -/
+def sHtLayer (pad : Nat) (pp a0 : V) (ac : Option E) (key signed ctr : V) (bit val : Nat → V)
+    (off height b : Nat) : List Stmt × Nat × V :=
+  let k := kMsg pad [.cell pp, .cell (a0Cell a0 ac (b + 2)), .cell (.n (b + 1)), .cell signed,
+    .cell ctr] 68 false none (b + 2 + a0W ac)
+  let p := sPath pad pp a0 ac bit val off height 0 (.n (k.2.1 + a0W ac)) (k.2.1 + a0W ac + 1)
+  ([cst b (lit (7 * 2 ^ 24)), addS (.n (b + 1)) key (.n b)] ++ a0Pre ac (b + 2) ++ k.1 ++
+    a0Pre ac k.2.1 ++ [.call "sp_wots" [pp, a0Cell a0 ac k.2.1, key, .n k.2.2] [.n (k.2.1 + a0W ac)]] ++
+    p.1, p.2.1, p.2.2)
 
 end
 end LeanVM.Guest.B1.Sig

@@ -51,11 +51,11 @@ def atomsDeep : Stmt → Bool
 
 /-- The radix-four layers' dispatch. -/
 def vbgCallL : Stmt :=
-  .dispatch (.n 167) [glcLsN 0, glcLsN 1] [.n 16, .n 17, .n 18, .n 400, .n 402, .n 169, .n 6, .n 8,
-    .n 9] [.n 406]
+  .dispatch (.n 166) [glcLsN 0, glcLsN 1] [.n 16, .n 17, .n 18, .n 396, .n 398, .n 168, .n 6, .n 8,
+    .n 9] [.n 402]
 
 /-- `verify_bus_gkr_loop0`'s call. -/
-def vbgCallZ : Stmt := .callIf (.n 425) name% «verify_bus_gkr_loop0» [.n 426, .n 6, .n 7, .n 423]
+def vbgCallZ : Stmt := .callIf (.n 421) name% «verify_bus_gkr_loop0» [.n 422, .n 6, .n 7, .n 419]
 
 /-- Every statement is an atom, an `ite` of atoms, the dispatch or the call. -/
 def vbgKindB (s : Stmt) : Bool :=
@@ -64,8 +64,8 @@ def vbgKindB (s : Stmt) : Bool :=
 theorem vbg_kinds : vbgPre.all vbgKindB = true := by decide +kernel
 
 theorem vbg_allocs : vbgPre.filterMap Main.Stmt.allocSz = [(.n 16, .inr (.n 15)),
-    (.n 17, .inl 6034), (.n 18, .inl 1640), (.n 64, .inl 33), (.n 66, .inl 33), (.n 67, .inl 33),
-    (.n 427, .inl 3)] := by
+    (.n 17, .inl 6034), (.n 18, .inl 1640), (.n 63, .inl 33), (.n 65, .inl 33), (.n 66, .inl 33),
+    (.n 423, .inl 3)] := by
   decide +kernel
 
 theorem vsh_atomsDeep {C C' : CallRel} {rd : Reader} {σ : Val} :
@@ -98,10 +98,10 @@ theorem gk_xs_len {depth : ℕ} (hd2 : 2 ≤ depth) {cap0 xs : List E} {r : E ×
   omega
 
 theorem vbg_load_cls {d p : V} {off : ℕ} (hm : Stmt.atom (.load d p off) ∈ vbgEvL) :
-    p = .n p.idx ∧ ((p.idx = 5 ∧ off < 14) ∨ (p.idx = 174 ∧ off < 10) ∨
-      (p.idx = 18 ∧ off < 42) ∨ (((p.idx = 64 ∨ p.idx = 66) ∨ p.idx = 67) ∧ off < 33) ∨
-      (((p.idx = 166 ∨ p.idx = 399) ∨ p.idx = 401) ∧ off = 0) ∨ (p.idx = 413 ∧ off < 10) ∨
-      (p.idx = 427 ∧ off < 3)) := by
+    p = .n p.idx ∧ ((p.idx = 5 ∧ off < 14) ∨ (p.idx = 173 ∧ off < 10) ∨
+      (p.idx = 18 ∧ off < 42) ∨ (((p.idx = 63 ∨ p.idx = 65) ∨ p.idx = 66) ∧ off < 33) ∨
+      (((p.idx = 165 ∨ p.idx = 395) ∨ p.idx = 397) ∧ off = 0) ∨ (p.idx = 409 ∧ off < 10) ∨
+      (p.idx = 423 ∧ off < 3)) := by
   have hok := List.all_eq_true.mp vbg_loadOk _ hm
   obtain ⟨path, tag, k⟩ := p
   cases path with
@@ -126,11 +126,11 @@ noncomputable def vbgσ (rd : Reader) (depth : ℕ) (cap0 : List E) (tabs stream
 
 /-- The values of the dispatch to `gkr_layers__L{o}` and of `verify_bus_gkr_loop0`'s call. -/
 def VbgVals (σ : Val) (depth eL eR eP : ℕ) (tabs stream : E) : Prop :=
-  σ (.n 167) = gen ^ (depth % 2) ∧ σ (.n 400) = gen ^ ((depth - 1) / 8) ∧
-    σ (.n 402) = gen ^ ((depth - 1) / 2 % 4) ∧ σ (.n 169) = gen ^ (2 - depth % 2) ∧
-    σ (.n 426) = 1 ∧ σ (.n 6) = gen ^ depth ∧ σ (.n 16) = ofK (addressOfIndex eL) ∧
+  σ (.n 166) = gen ^ (depth % 2) ∧ σ (.n 396) = gen ^ ((depth - 1) / 8) ∧
+    σ (.n 398) = gen ^ ((depth - 1) / 2 % 4) ∧ σ (.n 168) = gen ^ (2 - depth % 2) ∧
+    σ (.n 422) = 1 ∧ σ (.n 6) = gen ^ depth ∧ σ (.n 16) = ofK (addressOfIndex eL) ∧
     σ (.n 17) = ofK (addressOfIndex eR) ∧ σ (.n 18) = ofK (addressOfIndex eP) ∧
-    σ (.n 8) = tabs ∧ σ (.n 9) = stream ∧ σ (.n 425) = 1 + gen ^ depth
+    σ (.n 8) = tabs ∧ σ (.n 9) = stream ∧ σ (.n 421) = 1 + gen ^ depth
 
 /-- The buffers of `verify_bus_gkr` in a region, and the cursor's words and the point. -/
 structure VbgR (R : ℕ → Prop) (depth : ℕ) (xs : List E) (ec ez eL eR eP : ℕ) : Prop where
@@ -226,8 +226,8 @@ theorem vbg_run {depth κ : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32) (hκ : 
     rw [hσ, ev_params rd W (by rw [hl]; exact hc') (by rw [hl]; omega), hargs]; simp [hcl]
   have one : ∀ d : ℕ, vbgEvL.any (fun t ↦ tbStmtsEqb [.atom (.const (.n d) (word 1 0))] [t]) =
       true → σ (.n d) = 1 := fun d h ↦ by rw [← tb_word_one]; exact g _ h
-  have c424 := one 424 (by decide +kernel)
-  have c426 := one 426 (by decide +kernel)
+  have c424 := one 420 (by decide +kernel)
+  have c426 := one 422 (by decide +kernel)
   -- the tables at `depth`: `depth_odd`, `four_bounds`, `four_rem`
   have tab : ∀ {e : ℕ} {f : ℕ → ℕ}, TbReadsAt rd (ofK (addressOfIndex e))
       ((List.range 33).map fun k ↦ gen ^ f k) →
@@ -236,18 +236,18 @@ theorem vbg_run {depth κ : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32) (hκ : 
     rw [tb_loadHolds_mul_gen_pow, Nat.add_zero]
     have := h depth (by simp; omega)
     simpa using this
-  have r167 := good_read (g (.load (.n 167) (.n 166) 0) (by decide +kernel)) (by decide +kernel)
+  have r167 := good_read (g (.load (.n 166) (.n 165) 0) (by decide +kernel)) (by decide +kernel)
     (by rw [e166]; exact tab hO)
-  have r400 := good_read (g (.load (.n 400) (.n 399) 0) (by decide +kernel)) (by decide +kernel)
+  have r400 := good_read (g (.load (.n 396) (.n 395) 0) (by decide +kernel)) (by decide +kernel)
     (by rw [e399]; exact tab hB)
-  have r402 := good_read (g (.load (.n 402) (.n 401) 0) (by decide +kernel)) (by decide +kernel)
+  have r402 := good_read (g (.load (.n 398) (.n 397) 0) (by decide +kernel)) (by decide +kernel)
     (by rw [e401]; exact tab hM)
-  have c168 : σ (.n 168) = gen ^ 2 := by
-    rw [← tb_word_four]; exact g (.const (.n 168) (word 4 0)) (by decide +kernel)
-  have e169 : σ (.n 169) = gen ^ (2 - depth % 2) := by
-    have h := g (.mul (.n 168) (.n 169) (.n 167)) (by decide +kernel)
-    have hn : ¬ ((V.n 169).idx < (V.n 168).idx ∧ (V.n 167).idx < (V.n 168).idx) := by
-      show ¬ (169 < 168 ∧ 167 < 168); omega
+  have c168 : σ (.n 167) = gen ^ 2 := by
+    rw [← tb_word_four]; exact g (.const (.n 167) (word 4 0)) (by decide +kernel)
+  have e169 : σ (.n 168) = gen ^ (2 - depth % 2) := by
+    have h := g (.mul (.n 167) (.n 168) (.n 166)) (by decide +kernel)
+    have hn : ¬ ((V.n 168).idx < (V.n 167).idx ∧ (V.n 166).idx < (V.n 167).idx) := by
+      show ¬ (168 < 167 ∧ 166 < 167); omega
     simp only [Good, hn, ↓reduceIte] at h
     rw [h, c168, r167.1]
     have hs : depth % 2 ≤ 2 := by omega
@@ -255,48 +255,48 @@ theorem vbg_run {depth κ : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32) (hκ : 
         rw [← pow_add, Nat.sub_add_cancel hs],
       mul_assoc, mul_inv_cancel₀ (gen_pow_ne_zero _), mul_one]
   -- the root-most slot, the last slot and the last row
-  have m170 := mul 170 169 169 (by decide +kernel) (by omega) (by omega)
-  have m171 := mul 171 170 170 (by decide +kernel) (by omega) (by omega)
-  have m172 := mul 172 171 169 (by decide +kernel) (by omega) (by omega)
-  have m173 := mul 173 172 172 (by decide +kernel) (by omega) (by omega)
-  have m174 := mul 174 16 173 (by decide +kernel) (by omega) (by omega)
-  have e174 : σ (.n 174) = ofK (addressOfIndex eL) * gen ^ (10 * (2 - depth % 2)) := by
+  have m170 := mul 169 168 168 (by decide +kernel) (by omega) (by omega)
+  have m171 := mul 170 169 169 (by decide +kernel) (by omega) (by omega)
+  have m172 := mul 171 170 168 (by decide +kernel) (by omega) (by omega)
+  have m173 := mul 172 171 171 (by decide +kernel) (by omega) (by omega)
+  have m174 := mul 173 16 172 (by decide +kernel) (by omega) (by omega)
+  have e174 : σ (.n 173) = ofK (addressOfIndex eL) * gen ^ (10 * (2 - depth % 2)) := by
     rw [m174, m173, m172, m171, m170, e169, e16, ← pow_add, ← pow_add, ← pow_add, ← pow_add]
     ring_nf
-  have m403 := mul 403 400 400 (by decide +kernel) (by omega) (by omega)
-  have m404 := mul 404 403 403 (by decide +kernel) (by omega) (by omega)
-  have m405 := mul 405 404 402 (by decide +kernel) (by omega) (by omega)
-  have e405 : σ (.n 405) = gen ^ ((depth - 1) / 2) := by
+  have m403 := mul 399 396 396 (by decide +kernel) (by omega) (by omega)
+  have m404 := mul 400 399 399 (by decide +kernel) (by omega) (by omega)
+  have m405 := mul 401 400 398 (by decide +kernel) (by omega) (by omega)
+  have e405 : σ (.n 401) = gen ^ ((depth - 1) / 2) := by
     rw [m405, m404, m403, r400.1, r402.1, ← pow_add, ← pow_add, ← pow_add]
     exact congrArg (gen ^ ·) (by omega)
-  have m407 := mul 407 405 405 (by decide +kernel) (by omega) (by omega)
-  have m408 := mul 408 407 169 (by decide +kernel) (by omega) (by omega)
-  have m409 := mul 409 408 408 (by decide +kernel) (by omega) (by omega)
-  have m410 := mul 410 409 409 (by decide +kernel) (by omega) (by omega)
-  have m411 := mul 411 410 408 (by decide +kernel) (by omega) (by omega)
-  have m412 := mul 412 411 411 (by decide +kernel) (by omega) (by omega)
-  have m413 := mul 413 16 412 (by decide +kernel) (by omega) (by omega)
-  have e408 : σ (.n 408) = gen ^ depth := by
+  have m407 := mul 403 401 401 (by decide +kernel) (by omega) (by omega)
+  have m408 := mul 404 403 168 (by decide +kernel) (by omega) (by omega)
+  have m409 := mul 405 404 404 (by decide +kernel) (by omega) (by omega)
+  have m410 := mul 406 405 405 (by decide +kernel) (by omega) (by omega)
+  have m411 := mul 407 406 404 (by decide +kernel) (by omega) (by omega)
+  have m412 := mul 408 407 407 (by decide +kernel) (by omega) (by omega)
+  have m413 := mul 409 16 408 (by decide +kernel) (by omega) (by omega)
+  have e408 : σ (.n 404) = gen ^ depth := by
     rw [m408, m407, e405, e169, ← pow_add, ← pow_add]
     exact congrArg (gen ^ ·) (by omega)
-  have e413 : σ (.n 413) = ofK (addressOfIndex eL) * gen ^ (10 * depth) := by
+  have e413 : σ (.n 409) = ofK (addressOfIndex eL) * gen ^ (10 * depth) := by
     rw [m413, m412, m411, m410, m409, e408, e16, ← pow_add, ← pow_add, ← pow_add, ← pow_add]
     ring_nf
-  have c415 : σ (.n 415) = gen := by
-    rw [← tb_word_gen]; exact g (.const (.n 415) (word 2 0)) (by decide +kernel)
-  have m416 := mul 416 405 415 (by decide +kernel) (by omega) (by omega)
-  have m417 := mul 417 416 416 (by decide +kernel) (by omega) (by omega)
-  have m418 := mul 418 417 417 (by decide +kernel) (by omega) (by omega)
-  have m419 := mul 419 418 416 (by decide +kernel) (by omega) (by omega)
-  have m420 := mul 420 419 419 (by decide +kernel) (by omega) (by omega)
-  have m421 := mul 421 420 420 (by decide +kernel) (by omega) (by omega)
-  have m422 := mul 422 421 421 (by decide +kernel) (by omega) (by omega)
-  have m423 := mul 423 18 422 (by decide +kernel) (by omega) (by omega)
-  have e423 : σ (.n 423) = ofK (addressOfIndex eP) * gen ^ (40 * ((depth - 1) / 2 + 1)) := by
+  have c415 : σ (.n 411) = gen := by
+    rw [← tb_word_gen]; exact g (.const (.n 411) (word 2 0)) (by decide +kernel)
+  have m416 := mul 412 401 411 (by decide +kernel) (by omega) (by omega)
+  have m417 := mul 413 412 412 (by decide +kernel) (by omega) (by omega)
+  have m418 := mul 414 413 413 (by decide +kernel) (by omega) (by omega)
+  have m419 := mul 415 414 412 (by decide +kernel) (by omega) (by omega)
+  have m420 := mul 416 415 415 (by decide +kernel) (by omega) (by omega)
+  have m421 := mul 417 416 416 (by decide +kernel) (by omega) (by omega)
+  have m422 := mul 418 417 417 (by decide +kernel) (by omega) (by omega)
+  have m423 := mul 419 18 418 (by decide +kernel) (by omega) (by omega)
+  have e423 : σ (.n 419) = ofK (addressOfIndex eP) * gen ^ (40 * ((depth - 1) / 2 + 1)) := by
     rw [m423, m422, m421, m420, m419, m418, m417, m416, c415, e405, e18, ← pow_succ]
     ring
-  have a425 : σ (.n 425) = σ (.n 424) + σ (.n 6) :=
-    g (.add (.n 425) (.n 424) (.n 6)) (by decide +kernel)
+  have a425 : σ (.n 421) = σ (.n 420) + σ (.n 6) :=
+    g (.add (.n 421) (.n 420) (.n 6)) (by decide +kernel)
   refine ⟨fun s hs ↦ ?_, fun d p off hm ↦ ?_, ?_, ?_, hrt, r167.1, r400.1, r402.1, e169, c426,
     e6, e16, e17, e18, e8, e9, by rw [a425, c424, e6]⟩
   · -- the statements

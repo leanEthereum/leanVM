@@ -108,7 +108,7 @@ DIM_FACTS = [('check_opening_terminal', 8, 4, {(1, 0), (0, 19)}),
 
 
 # `verify_tables`' value `g_zc_n` (`EndExec.VtQ`)
-VT_ZC = 2545
+VT_ZC = 2544
 
 
 def _consts(atoms):
@@ -541,11 +541,11 @@ def st_sub(k, c):
 # `CoreMode.vsPows`, `vsMuls`, `vsLes`, `vsCurs`: `verify_sub`'s exponent family (`EndExec.VsQ`): its values' exponent
 # bounds, the products naming one, the orders `e(x) <= e(y) + c`, the cursors in its stream `[25]·[0, 8192)` with
 # room for `207` words
-VS_POWS = {86: (0, 30), 87: (0, 30), 88: (0, 30), 89: (0, 30), 90: (0, 30), 91: (9, 24), 583: (9, 24),
-           253: (20, 33), 579: (9, 33), 276: (20, 30), 278: (0, 10)}
+VS_POWS = {86: (0, 30), 87: (0, 30), 88: (0, 30), 89: (0, 30), 90: (0, 30), 91: (9, 24), 566: (9, 24),
+           253: (20, 33), 562: (9, 33), 276: (20, 30), 278: (0, 10)}
 VS_MULS = {(276, 277): 278}
-VS_LES = [(91, 579, 0), (583, 579, 0), (276, 278, 20)]
-VS_CURS = [567, 578, 595]
+VS_LES = [(91, 562, 0), (566, 562, 0), (276, 278, 20)]
+VS_CURS = [550, 561, 578]
 VS_STREAM, VS_ROOM = 25, 207
 
 
@@ -658,7 +658,7 @@ def split_fam(k, r):
 
 # `verify_keccak`'s family (`CoreMode.vkQC`): its layers' returned cursors (step `s`'s, `CoreMode.vkCurs`), the stream
 # parameter, and the values whose exponents its `tau_g = g^τ`, `9 <= τ <= 28`, fixes (`CoreMode.vkE`)
-VK_CURS = [489, 524, 558, 601, 642, 685, 718, 759, 797, 840, 881, 921]
+VK_CURS = [483, 518, 552, 595, 636, 679, 712, 753, 791, 834, 875, 915]
 VK_STREAM = 12
 VK_ORD = 2 ** 64 - 1
 
@@ -773,7 +773,7 @@ def sel_facts(EM):
 
 
 # `verify_tables`' last table sumcheck record's cursor and its stream parameter (`CoreMode.vtStC`)
-VT_ST, VT_STREAM = 2649, 20
+VT_ST, VT_STREAM = 2647, 20
 
 
 def vt_st_sub(k, c):
@@ -785,7 +785,7 @@ def vt_st_sub(k, c):
 
 
 # `keccak_layer__L{first}`'s last record's cursor, by name (`CoreMode.layCur`), its stream its parameter `15`
-LAY_CUR = {'keccak_layer__L0': 745, 'keccak_layer__L1': 765}
+LAY_CUR = {'keccak_layer__L0': 744, 'keccak_layer__L1': 764}
 
 
 def lay_st_sub(k, c):
@@ -811,7 +811,7 @@ def lay_q(k, r):
 # `gkr_layer__L{par}_L{odd}`'s cursors (`CoreMode.glQC`, `EndExec.gl_curs`): the value its layer record's cursor is loaded
 # to (`21`), read `8 par` words past (its first `2 par` rounds), and its last record's (the tail), read `4 (2 - odd) + 12`
 # words past (its last rounds and the children)
-GL_TAIL = (77, 163, 243, 323)
+GL_TAIL = (76, 160, 238, 316)
 GL_CURS = {'gkr_layer__L%d_L%d' % (p, o): dict(([(21, 8 * p)] if p else []) + [(GL_TAIL[p], 20 - 4 * o)])
            for p in range(4) for o in range(2)}
 

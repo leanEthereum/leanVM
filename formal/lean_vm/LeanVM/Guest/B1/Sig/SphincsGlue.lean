@@ -175,7 +175,8 @@ theorem sMidAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat 
 /-- **The top layer's address**: its tree is `0`. -/
 theorem sTopAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat (byteN T 31))
     (h : AtomsHold rd σ sTopAddrs) :
-    σ (sA0Of 2) = adrsCell0 2 (layerTreeN T 2) ∧ σ (sA1Of 2) = adrsCell1 0 (layerLeafN T 2) 0 0 := by
+    a0Val σ (sA0Of 2) (sAcOf 2) = adrsCell0 2 (layerTreeN T 2) ∧
+      σ (sA1Of 2) = adrsCell1 0 (layerLeafN T 2) 0 0 := by
   obtain ⟨-, -, -, l3⟩ := lvals_four hl
   obtain ⟨b0, b1, b2⟩ := leaves_ltC T
   have tm := treeMid_eq hm
@@ -184,8 +185,7 @@ theorem sTopAddrs_vals {T : Nat} (hl : LValsAt σ T) (hm : σ sTreeMid = eOfNat 
   have c2 : σ (.n 5558) = lit (2 ^ 48) := h.atom (a := .const _ _) (by simp [sTopAddrs, cst])
   have m3 : σ (.n 5559) = σ (sLVal 24) * σ (.n 5558) := h.atom (a := .mul _ _ _) (by simp [sTopAddrs, mulS])
   have a4 : σ (sA1Of 2) = σ (.n 5557) + σ (.n 5559) := h.atom (a := .add _ _ _) (by simp [sTopAddrs, addS])
-  have c5 : σ (sA0Of 2) = lit (2 ^ 25) :=
-    h.atom (a := .const _ _) (by simp [sTopAddrs, cst, sA0Of])
+  have c5 : a0Val σ (sA0Of 2) (sAcOf 2) = lit (2 ^ 25) := rfl
   refine ⟨?_, ?_⟩
   · rw [c5, lit_eq _ (by norm_num), adrsCell0_eq192 (by norm_num) (by simp [layerTreeN])]
     simp [layerTreeN]

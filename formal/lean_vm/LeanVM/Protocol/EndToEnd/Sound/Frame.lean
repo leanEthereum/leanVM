@@ -73,11 +73,6 @@ noncomputable def Spec.frame (S : Spec p Pre Post εmax L T) (J : List Ev → Pr
   post hl ha hD := ⟨S.post hl ha hD.2, hJ _ _ hl hD.1⟩
   bound hl hne hm hD := by simp only [hD.1, ↓reduceIte]; exact S.bound hl hne hm hD.2
 
-/-- The doom of a framed specification. -/
-theorem Spec.frame_D (S : Spec p Pre Post εmax L T) (J : List Ev → Prop)
-    (hJ : ∀ h₀ l, p.Reach h₀ l → J h₀ → J (h₀ ++ l)) (h₀ l : List Ev) :
-    (Spec.frame S J hJ).D h₀ l ↔ J h₀ ∧ S.D h₀ l := Iff.rfl
-
 /-- **A return invariant**: a property of every value `p` returns is added to the
 postcondition. -/
 def Spec.retInv (S : Spec p Pre Post εmax L T) (Q : α → Prop)
@@ -98,6 +93,12 @@ def Spec.retInv (S : Spec p Pre Post εmax L T) (Q : α → Prop)
   retDoom := S.retDoom
   post hl ha hD := ⟨S.post hl ha hD, hQ _ _ ha⟩
   bound := S.bound
+
+/-- The doom of a weakened specification is unchanged. -/
+theorem Spec.mono_D {Pre' : List Ev → Prop} {Post' : α → List Ev → Prop} {εmax' L' T' : ENNReal}
+    (S : Spec p Pre Post εmax L T) (hPre : ∀ h, Pre' h → Pre h)
+    (hPost : ∀ a h, Post a h → Post' a h) (hε : εmax ≤ εmax') (hL : L ≤ L') (hT : T' ≤ T) :
+    (S.mono hPre hPost hε hL hT).D = S.D := rfl
 
 /-- The doom of a specification transported along an equality of programs is unchanged. -/
 theorem Spec.congr_D {p' : VerifierProgram α} (h : p = p') (S : Spec p Pre Post εmax L T) :
@@ -166,6 +167,14 @@ theorem commitSpec_D (Post : Unit → List Ev → Prop) {logN logInvRate : ℕ} 
   rw [commitSpec, Spec.bind_D, Spec.bindD_after hs (List.cons_ne_nil _ _)]
   simp only [List.append_nil]
   rfl
+
+/-- `ret` reaches only itself. -/
+theorem after_ret_eq {α : Type} {a b : α} {l : List Ev}
+    (h : (VerifierProgram.ret a).after l = some (.ret b)) : l = [] ∧ a = b := by
+  rcases l with _ | ⟨e, l⟩
+  · simp only [VerifierProgram.after, Option.some.injEq, VerifierProgram.ret.injEq] at h
+    exact ⟨rfl, h⟩
+  · simp [VerifierProgram.after] at h
 
 end
 end LeanVM.Protocol.EndToEnd.Sound

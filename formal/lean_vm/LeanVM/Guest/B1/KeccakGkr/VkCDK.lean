@@ -23,66 +23,66 @@ open LeanVM.Guest.B1.Fwd
 @[expose] public section
 
 /-- The committed outputs' lane weights. -/
-abbrev vkOutSL : List Stmt := slotLanesT 922 935 936 1 1
+abbrev vkOutSL : List Stmt := slotLanesT 916 929 930 1 1
 
 /-- The committed outputs' dot product. -/
-abbrev vkOutDL : List Stmt := dotLoadsT ((List.range 25).map (slotLaneV 936 1)) (.n 235) 30 1119
+abbrev vkOutDL : List Stmt := dotLoadsT ((List.range 25).map (slotLaneV 930 1)) (.n 229) 30 1113
 
 theorem vkOut_ker :
-    noneIn [.load (.n 932) (.n 930) 0] vkSt = true ∧
+    noneIn [.load (.n 926) (.n 924) 0] vkSt = true ∧
     vkOutSL.all isAtom = true ∧
-    (resid (atomsL vkOutSL)).all (ldR [(.n 922, 0, 6), (.n 935, 0, 1)]) = true ∧
+    (resid (atomsL vkOutSL)).all (ldR [(.n 916, 0, 6), (.n 929, 0, 1)]) = true ∧
     noneIn (resid (atomsL vkOutSL)) vkSt = true ∧
     vkOutDL.all isAtom = true ∧
-    (resid (atomsL vkOutDL)).all (ldR [(.n 235, 30, 55)]) = true ∧
+    (resid (atomsL vkOutDL)).all (ldR [(.n 229, 30, 55)]) = true ∧
     noneIn (resid (atomsL vkOutDL)) vkSt = true := by
   decide +kernel
 
 /-- The inputs' pairs: the low point's weights and the last claim's `μ`. -/
-abbrev vkInPD : List Stmt := pairsDotT (.n 1211) (.n 162) (consecOffs 14 270 16) 1266
+abbrev vkInPD : List Stmt := pairsDotT (.n 1205) (.n 156) (consecOffs 14 270 16) 1260
 
 theorem vkIn_ker :
-    noneIn [.load (.n 1201) (.n 162) 264] vkSt = true ∧
-    noneIn (eqtreeReads (.n 9) (.n 1211) 39 1212 4) vkSt = true ∧
+    noneIn [.load (.n 1195) (.n 156) 264] vkSt = true ∧
+    noneIn (eqtreeReads (.n 9) (.n 1205) 39 1206 4) vkSt = true ∧
     vkInPD.all isAtom = true ∧
-    (resid (atomsL vkInPD)).all (ldR [(.n 1211, 14, 30), (.n 162, 270, 286)]) = true ∧
+    (resid (atomsL vkInPD)).all (ldR [(.n 1205, 14, 30), (.n 156, 270, 286)]) = true ∧
     noneIn (resid (atomsL vkInPD)) vkSt = true := by
   decide +kernel
 
 /-- A residual atom of the slices: a read at the cursor, or the store of a read. -/
 def slRes (a : Atom) : Bool := match a with
-  | .load d p off => (p == .n 1339 && decide (off < 64) && !vkSt.contains a) ||
-      (p == .n 10 && decide (off < 64) && d == .n (slB 1346 off) && vkSt.contains a)
+  | .load d p off => (p == .n 1333 && decide (off < 64) && !vkSt.contains a) ||
+      (p == .n 10 && decide (off < 64) && d == .n (slB 1340 off) && vkSt.contains a)
   | _ => false
 
 theorem vkSlices_ker :
-    (slicesT (.n 1339) 1341 1346).all isAtom = true ∧
-    (resid (atomsL (slicesT (.n 1339) 1341 1346))).all slRes = true := by
+    (slicesT (.n 1333) 1335 1340).all isAtom = true ∧
+    (resid (atomsL (slicesT (.n 1333) 1335 1340))).all slRes = true := by
   decide +kernel
 
 /-- The inputs' lane weights. -/
-abbrev vkFinSL : List Stmt := slotLanesT 1331 1747 1748 0 2
+abbrev vkFinSL : List Stmt := slotLanesT 1325 1741 1742 0 2
 
 /-- The shifts of the slices. -/
-abbrev vkFinFT : List Stmt := foldT (fun j ↦ 1982 + j) 2046 (.n 1981)
+abbrev vkFinFT : List Stmt := foldT (fun j ↦ 1976 + j) 2040 (.n 1975)
 
 /-- `keccak_form`. -/
-abbrev vkFinFA : List Stmt := (formAll (.n 3144) vkSh (slotLaneV 1748 2) 3145).1
+abbrev vkFinFA : List Stmt := (formAll (.n 3138) vkSh (slotLaneV 1742 2) 3139).1
 
 theorem vkFin_ker :
-    noneIn ([.load (.n 1746) (.n 162) 266, .load (.n 1981) (.n 162) 268,
-      .load (.n 3144) (.n 162) 267] ++ (List.range 64).map fun z ↦ .load (.n (1982 + z)) (.n 10) z)
+    noneIn ([.load (.n 1740) (.n 156) 266, .load (.n 1975) (.n 156) 268,
+      .load (.n 3138) (.n 156) 267] ++ (List.range 64).map fun z ↦ .load (.n (1976 + z)) (.n 10) z)
       vkSt = true ∧
     vkFinSL.all isAtom = true ∧
-    (resid (atomsL vkFinSL)).all (ldR [(.n 1331, 0, 6), (.n 1747, 0, 1)]) = true ∧
+    (resid (atomsL vkFinSL)).all (ldR [(.n 1325, 0, 6), (.n 1741, 0, 1)]) = true ∧
     noneIn (resid (atomsL vkFinSL)) vkSt = true ∧
     vkFinFT.all isAtom = true ∧
-    (resid (atomsL vkFinFT)).all (ldR [(.n 1981, 0, 6)]) = true ∧
+    (resid (atomsL vkFinFT)).all (ldR [(.n 1975, 0, 6)]) = true ∧
     noneIn (resid (atomsL vkFinFT)) vkSt = true ∧
     vkFinFA.all isAtom = true ∧
-    (resid (atomsL vkFinFA)).all (ldR [(.n 3144, 0, 25)]) = true ∧
+    (resid (atomsL vkFinFA)).all (ldR [(.n 3138, 0, 25)]) = true ∧
     noneIn (resid (atomsL vkFinFA)) vkSt = true ∧
-    (formAll (.n 3144) vkSh (slotLaneV 1748 2) 3145).2.2 = 3358 := by
+    (formAll (.n 3138) vkSh (slotLaneV 1742 2) 3139).2.2 = 3352 := by
   decide +kernel
 
 end

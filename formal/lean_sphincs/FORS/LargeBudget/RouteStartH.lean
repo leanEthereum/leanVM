@@ -60,7 +60,7 @@ theorem costRunH_le_stopped {α : Type} (model : HiddenRows.Model HashInput Hash
           (liftM ((HiddenRows.SourceSpec HashInput HashOutput Coordinate).query (.inl draw)) >>= _) known)}[(HiddenReveal.StopOr event) x]
         rw [HiddenRows.stopped_private]
         simp only [OracleComp.prEvent_bind_eq_tsum]
-        refine ENNReal.tsum_le_tsum fun value => mul_le_mul' le_rfl ?_
+        refine tsum_le_tsum fun value => mul_le_mul' le_rfl ?_
         rw [stopped_map, probEvent_stopOr_map, prEvent_map]
         exact ih value known hknown _
       · change _ ≤ Pr{let x ← (HiddenRows.stopped model table outside
@@ -432,7 +432,7 @@ theorem stopped_le_interp (hb : 0 < keptHeight topLayer) (adversary : Adversary)
               (sampleData parameterOutput fixed highs remaining steps))))
             (DebtState.start prepared.2 (knownOf (truncateHash parameterOutput) fixed)))}[CorrectGuess table r.2 ∨
             badFor parameterOutput fixed highs remaining prepared.1 table (r.1, r.2.cache)] := by
-        refine ENNReal.tsum_le_tsum fun table => ?_
+        refine tsum_le_tsum fun table => ?_
         by_cases htab : table ∈ support (completion (knownOf (truncateHash parameterOutput) fixed))
         · have hag : Agrees (knownOf (truncateHash parameterOutput) fixed) table := by
             unfold completion at htab

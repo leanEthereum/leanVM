@@ -1,0 +1,11 @@
+[package]
+name = "lean-pq-native"
+version.workspace = true
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+lean-pq = { workspace = true }

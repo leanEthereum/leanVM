@@ -7,7 +7,7 @@ its public input, an execution's memory and `trace.txt`, and the Rust prover's p
      and Keccak-f[1600], the statement's prover compiled) on the case, timing it, and sets the
      time beside the Rust prover's (`rust.txt`);
   2. checks that the Lean-made proof is byte-identical to the Rust prover's, and, with
-     `--expected <dir>`, to the committed proof `<dir>/<case>/` (`stream.bin`,
+     `--expected <dir>`, to the expected proof `<dir>/<case>/` (`stream.bin`,
      `merkle_phases.bin`, and the wire encoding `proof.wire`, which `leanvm-prove` writes as
      `lean_proof.wire` from `Proof.toBytes`)
      (tests/fixtures/verifier: the same twelve cases, export-verifier-fixtures-rust.sh); reported,
@@ -16,12 +16,12 @@ its public input, an execution's memory and `trace.txt`, and the Rust prover's p
      and runs scripts/fuzz-verifier.py on the fixtures: the Lean verifier (`leanvm-verify`) and
      the Rust verifier (`scripts/rust-verifier-cli`) on the honest Lean-made proof and on
      `--mutations` mutations of it, structured and random. With `--identical` and `--expected`,
-     when every Lean-made proof is the committed one byte for byte, this step is skipped: those
+     when every Lean-made proof is the expected one byte for byte, this step is skipped: those
      are the fixtures the verifier differential (fuzz-verifier.py) already fuzzes.
 
 It fails unless every Lean-made proof is accepted by both verifiers and every mutation is
 rejected by both (and the two verifiers agree everywhere), and, with `--identical`, unless every
-Lean-made proof is the Rust prover's (and the committed one) byte for byte. The proofs are made
+Lean-made proof is the Rust prover's (and the expected one) byte for byte. The proofs are made
 `--jobs` at a time.
 
 Usage (the three executables built first, see formal/check-all.sh):
@@ -57,7 +57,7 @@ def main() -> None:
     parser.add_argument("--identical", action="store_true",
                         help="fail unless every Lean-made proof is the Rust prover's byte for byte")
     parser.add_argument("--expected", type=Path,
-                        help="committed proofs to compare with too: <dir>/<case>/{" + ",".join(PARTS) + "}")
+                        help="expected proofs to compare with too: <dir>/<case>/{" + ",".join(PARTS) + "}")
     arguments = parser.parse_args()
     if not arguments.prove_exe.exists():
         sys.exit(f"{arguments.prove_exe} is not built (lake build leanvm-prove)")
@@ -87,14 +87,14 @@ def main() -> None:
                 for f in PARTS if (directory / f).exists())
             expected = "-"
             if arguments.expected is not None:
-                committed = arguments.expected.resolve() / name
+                want = arguments.expected.resolve() / name
                 expected = "yes" if all(
-                    (committed / f).exists()
-                    and (directory / f"lean_{f}").read_bytes() == (committed / f).read_bytes()
+                    (want / f).exists()
+                    and (directory / f"lean_{f}").read_bytes() == (want / f).read_bytes()
                     for f in PARTS) else "no"
             if arguments.identical and (not identical or expected == "no"):
                 print(f"FAIL {name}: the Lean-made proof is not the Rust prover's (identical: "
-                      f"{'yes' if identical else 'no'}, committed: {expected})")
+                      f"{'yes' if identical else 'no'}, expected: {expected})")
                 failed = True
             target = fixtures / name
             target.mkdir()
@@ -105,17 +105,17 @@ def main() -> None:
             rows.append((name, f"{seconds:.1f}", rust, "yes" if identical else "no", expected))
             print(f"{name}: Lean prover {seconds:.1f} s, Rust prover {rust} s, "
                   f"identical to the Rust proof: {'yes' if identical else 'no'}, "
-                  f"to the committed proof: {expected}", flush=True)
+                  f"to the expected proof: {expected}", flush=True)
         if not rows:
             sys.exit("no proof to test")
         accepted = rejected = honest = 0
         bad = []
-        # Lean-made proofs that are all the committed fixtures byte for byte are the very proofs
+        # Lean-made proofs that are all the expected fixtures byte for byte are the very proofs
         # the verifier differential (fuzz-verifier.py on tests/fixtures/verifier) fuzzes: skip.
         fuzzed = not (arguments.identical and arguments.expected is not None and not failed
                       and all(row[4] == "yes" for row in rows))
         if not fuzzed:
-            print("\nevery Lean-made proof is the committed fixture byte for byte: not fuzzed again "
+            print("\nevery Lean-made proof is the expected fixture byte for byte: not fuzzed again "
                   "(fuzz-verifier.py fuzzes the fixtures)")
         else:
             log = fixtures / "fuzz.log"
@@ -141,7 +141,7 @@ def main() -> None:
             print(f"\nLean-made proofs accepted by both verifiers: {accepted} of {honest} "
                   f"({len(rows)} proofs, structured and wire); "
                   f"mutations rejected by both: {rejected}")
-        print("\ncase                    Lean prover s  Rust prover s  identical  committed")
+        print("\ncase                    Lean prover s  Rust prover s  identical   expected")
         for row in rows:
             print(f"{row[0]:23} {row[1]:>13}  {row[2]:>13}  {row[3]:>9}  {row[4]:>9}")
         for b in bad:

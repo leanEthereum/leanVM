@@ -1,10 +1,12 @@
 //! The bit-level kernels of the layer prover, over one block position at a time: the 32 packs of
 //! one bit position of one block.
 //!
-//! Each has a portable form, an AVX-512 one (AVX-512BW, VPCLMULQDQ, GFNI), an AVX2 one
-//! (PCLMULQDQ, and VPCLMULQDQ where it is) and a NEON one (PMULL), which agree bit for bit. The
-//! vector forms are compiled only where their features are. With AVX2 and GFNI a block's
-//! [`skip_row`]s are summed on residues instead (`skip_gfni`).
+//! Each has a portable form and, where it pays, an AVX-512 one (AVX-512BW, VPCLMULQDQ, GFNI), an
+//! AVX2 one (PCLMULQDQ, and VPCLMULQDQ where it is) and a NEON one (PMULL), which agree bit for bit.
+//! The vector forms are compiled only where their features are. With AVX2 and GFNI a block's
+//! [`skip_row`]s are summed on residues instead (`skip_gfni`), and with AVX2 and PCLMULQDQ but no GFNI on a
+//! row's shared cofactors (`skip_clmul`). On x86 with AVX2 the table rows come from byte maps
+//! (`table_maps`), so [`fold_groups`] keeps only its portable and NEON forms.
 
 use primitives::field::gf2_64::mul_wide;
 
@@ -256,6 +258,9 @@ cfg_select! {
     all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni") => {
         pub(crate) use crate::skip_gfni::SkipBlock;
     }
+    all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq") => {
+        pub(crate) use crate::skip_clmul::SkipBlock;
+    }
     _ => {
         /// [`skip_row`] over every row and slice of a block, a position at a time.
         pub(crate) struct SkipBlock<'a> {
@@ -333,7 +338,10 @@ mod x86 {
     use core::arch::x86_64::*;
 
     use super::*;
-    pub use super::{embed_extend_portable as embed_extend, products_clmul as products, skip_row_portable as skip_row};
+    pub use super::{
+        embed_extend_portable as embed_extend, fold_groups_portable as fold_groups, products_clmul as products,
+        skip_row_portable as skip_row,
+    };
 
     /// The matrices sending a pack's low and high byte to each byte of its embedding. An affine
     /// byte map reads output bit `t` off matrix byte `7 - t`.
@@ -396,12 +404,6 @@ mod x86 {
         }
     }
 
-    /// Eight packs, a word each.
-    #[inline(always)]
-    unsafe fn load(p: *const u32) -> __m512i {
-        unsafe { _mm512_cvtepu32_epi64(_mm256_loadu_si256(p.cast())) }
-    }
-
     /// Byte `k` of the embedding of each pack of `v`, in the low byte of the pack's 16 bits.
     #[inline(always)]
     unsafe fn embedding_byte(v: __m512i, k: usize) -> __m512i {
@@ -412,41 +414,6 @@ mod x86 {
                 _mm512_xor_si512(lo, _mm512_srli_epi16(hi, 8)),
                 _mm512_set1_epi16(0x00ff),
             )
-        }
-    }
-
-    /// The four sums are summed across their lanes together: two registers' lanes interleave into
-    /// one, which takes two shuffles where each register alone would leave the vector unit.
-    #[inline(always)]
-    pub fn fold_groups(e: &[u32; PACKS], weights: &[[u64; GROUP]; 2]) -> [[u128; 2]; 2] {
-        unsafe {
-            // `acc[2 * half + k]`, four lanes to sum.
-            let mut acc = [_mm512_setzero_si512(); 4];
-            for g in 0..PACKS / 8 {
-                let ze = load(e.as_ptr().add(8 * g));
-                for k in 0..2 {
-                    let zw = _mm512_loadu_si512(weights[k].as_ptr().add(8 * (g % 2)).cast());
-                    let sum = &mut acc[2 * (g / 2) + k];
-                    *sum = _mm512_xor_si512(*sum, _mm512_clmulepi64_epi128(ze, zw, 0x00));
-                    *sum = _mm512_xor_si512(*sum, _mm512_clmulepi64_epi128(ze, zw, 0x11));
-                }
-            }
-            // Lanes `a0 + a2, a1 + a3, b0 + b2, b1 + b3`.
-            let pair = |a: __m512i, b: __m512i| {
-                _mm512_xor_si512(
-                    _mm512_shuffle_i64x2::<0b01_00_01_00>(a, b),
-                    _mm512_shuffle_i64x2::<0b11_10_11_10>(a, b),
-                )
-            };
-            // Of two pairs, the four sums, in the order of `acc`.
-            let (t, u) = (pair(acc[0], acc[1]), pair(acc[2], acc[3]));
-            let four = _mm512_xor_si512(
-                _mm512_shuffle_i64x2::<0b10_00_10_00>(t, u),
-                _mm512_shuffle_i64x2::<0b11_01_11_01>(t, u),
-            );
-            let mut a = [0u128; 4];
-            _mm512_storeu_si512(a.as_mut_ptr().cast(), four);
-            [[a[0], a[1]], [a[2], a[3]]]
         }
     }
 }
@@ -468,9 +435,11 @@ mod x86 {
 mod avx2 {
     use core::arch::x86_64::*;
 
-    pub use super::products_clmul as products;
     use super::*;
-    use crate::clmul::{V, Vector};
+    pub use super::{
+        embed_extend_portable as embed_extend, fold_groups_portable as fold_groups, products_clmul as products,
+        skip_row_portable as skip_row,
+    };
 
     /// The 32 packs of a block position, embedded, four to a register.
     #[inline(always)]
@@ -523,114 +492,6 @@ mod avx2 {
             unsafe { _mm_storeu_si128(out.as_mut_ptr().add(4 * i).cast(), v) };
         }
         out
-    }
-
-    /// NEON's [`extend_group`] on the four vectors of a group: a vector's low mixed points are
-    /// two shuffles, and its lane sum is returned for the last one, which [`embed_extend`] stores
-    /// with the other group's.
-    #[inline(always)]
-    unsafe fn extend_vectors(v: &[__m128i], out: *mut u32) -> __m128i {
-        unsafe {
-            let (w4, w5) = (_mm_xor_si128(v[0], v[1]), _mm_xor_si128(v[2], v[3]));
-            let w = [
-                v[0],
-                v[1],
-                v[2],
-                v[3],
-                w4,
-                w5,
-                _mm_xor_si128(v[0], v[2]),
-                _mm_xor_si128(v[1], v[3]),
-                _mm_xor_si128(w4, w5),
-            ];
-            for (k, &w) in w[4..].iter().enumerate() {
-                _mm_storeu_si128(out.add(4 * k).cast(), w);
-            }
-            // Lanes `0 + 1, 2 + 3, 0 + 2, 1 + 3`.
-            let low: [__m128i; 9] = std::array::from_fn(|k| {
-                _mm_xor_si128(
-                    _mm_shuffle_epi32::<0b01_00_10_00>(w[k]),
-                    _mm_shuffle_epi32::<0b11_10_11_01>(w[k]),
-                )
-            });
-            for (k, &l) in low.iter().enumerate() {
-                _mm_storeu_si128(out.add(20 + 4 * k).cast(), l);
-            }
-            // Lanes 0 and 1 of a vector's low mixed points add to its lane sum: two vectors at a time.
-            let pair = |a: __m128i, b: __m128i| {
-                let z = _mm_unpacklo_epi32(a, b);
-                _mm_xor_si128(z, _mm_unpackhi_epi64(z, z))
-            };
-            for k in (0..8).step_by(4) {
-                let (p, q) = (pair(low[k], low[k + 1]), pair(low[k + 2], low[k + 3]));
-                _mm_storeu_si128(out.add(56 + k).cast(), _mm_unpacklo_epi64(p, q));
-            }
-            low[8]
-        }
-    }
-
-    #[inline(always)]
-    pub fn embed_extend(words: &[u64; BLOCK_WORDS], out: &mut [u32; SLOTS]) {
-        let e = embed_vectors(words);
-        // SAFETY: each group's outputs lie in `out`.
-        unsafe {
-            let last0 = extend_vectors(&e[..4], out.as_mut_ptr());
-            let last1 = extend_vectors(&e[4..], out.as_mut_ptr().add(64));
-            let z = _mm_unpacklo_epi32(last0, last1);
-            _mm_storel_epi64(
-                out.as_mut_ptr().add(128).cast(),
-                _mm_xor_si128(z, _mm_unpackhi_epi64(z, z)),
-            );
-        }
-    }
-
-    /// `2 * N` slots at a time, their sums over the row kept in registers. A slot's product lies
-    /// in the low word of its lane, which multiplies the weights as it is. The padding slots past
-    /// the last whole register are skipped: nothing reads their sums.
-    #[inline(always)]
-    pub fn skip_row(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u64; 2]; 5]) {
-        let w: [[V; 2]; 5] = std::array::from_fn(|x| std::array::from_fn(|k| V::splat(weights[x][k])));
-        for p in (0..2 * MIXED).step_by(2 * V::N) {
-            // SAFETY: `p + 2 * N` is at most `SLOTS`.
-            let z: [V; 5] = std::array::from_fn(|x| unsafe { V::load_packs(e[x].as_ptr().add(p)) });
-            let mut sums = [[V::zero(); 2]; 2];
-            for x in 0..5 {
-                let (zb, zc) = (z[(x + 1) % 5], z[(x + 2) % 5]);
-                let products = [zb.clmul::<0x00>(zc), zb.clmul::<0x11>(zc)];
-                for (k, sums) in sums.iter_mut().enumerate() {
-                    for (sum, product) in sums.iter_mut().zip(products) {
-                        *sum = sum.xor(product.clmul::<0x00>(w[x][k]));
-                    }
-                }
-            }
-            // Slot `p + h + 2 * l` is lane `l` of `sums[.][h]`, and those lanes lie side by side.
-            for (acc, sums) in acc.0.iter_mut().zip(sums) {
-                for (h, sum) in sums.into_iter().enumerate() {
-                    let (v, l) = lane(p + h);
-                    let slot = acc[v].0[l..].as_mut_ptr().cast::<u64>();
-                    // SAFETY: `N` lanes from `l`, a multiple of `N`.
-                    unsafe { V::store(slot, V::load(slot).xor(sum)) };
-                }
-            }
-        }
-    }
-
-    #[inline(always)]
-    pub fn fold_groups(e: &[u32; PACKS], weights: &[[u64; GROUP]; 2]) -> [[u128; 2]; 2] {
-        std::array::from_fn(|half| {
-            let mut acc = [V::zero(); 2];
-            for q in (0..GROUP).step_by(2 * V::N) {
-                // SAFETY: `2 * N` packs and weights at `q`.
-                unsafe {
-                    let ze = V::load_packs(e.as_ptr().add(GROUP * half + q));
-                    for (acc, weights) in acc.iter_mut().zip(weights) {
-                        let zw = V::load(weights.as_ptr().add(q));
-                        *acc = acc.xor(ze.clmul::<0x00>(zw)).xor(ze.clmul::<0x11>(zw));
-                    }
-                }
-            }
-            acc.map(V::sum)
-        })
     }
 }
 

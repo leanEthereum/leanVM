@@ -198,13 +198,12 @@ theorem armT_pops {W : WotsT} (hW : StepQuiet W) (σ : Val) (slots : Nat → Nat
     (fold : Bool) (prodIn encIn prodOut encOut : V) (k b : Nat) :
     FallPops rd σ (armT W slots first n fold prodIn encIn prodOut encOut k b).1
       ((List.range n).map fun t => startPop (σ (armStart W slots fold k b t))) := by
-  have hw := walksT_pops (rd := rd) hW σ slots first k (if k = 0 then W.size + 1 else W.size) n 0
-    (if fold then b + 1 else b)
+  have hw := walksT_pops (rd := rd) hW σ slots first k (if k = 0 then W.size + 1 else W.size) n 0 b
   simp only [Nat.zero_add] at hw
-  rw [← List.nil_append ((List.range n).map _), ← List.append_nil ([] ++ _)]
+  rw [← List.append_nil ((List.range n).map _)]
   unfold armT armStart
   cases fold <;> by_cases hk : k = 0 <;> simp only [hk, ↓reduceIte, Bool.false_eq_true] at hw ⊢ <;>
-    exact ((fallPops_quiet σ rfl).append hw).append (fallPops_quiet σ rfl)
+    refine hw.append (fallPops_quiet σ ?_) <;> rfl
 
 end
 end LeanVM.Guest.B1.Sig

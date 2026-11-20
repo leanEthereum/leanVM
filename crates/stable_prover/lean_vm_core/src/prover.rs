@@ -8,8 +8,14 @@ use verifier::E;
 pub struct StableProver;
 
 impl isa::Prover for StableProver {
+    const NAME: &'static str = "stable";
+
     fn init() {
         parallel::init();
+    }
+
+    fn set_num_threads(n: usize) {
+        parallel::set_num_threads(n)
     }
 
     fn prove(

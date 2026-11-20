@@ -53,9 +53,9 @@ theorem osLam_sound {st : OsSt} (hfs : st.fs.length = 5)
   set p := (osPad st.pad (st.k + 5)).2.1 with hp
   set j := (osPad st.pad (st.k + 5)).2.2 with hj
   obtain ⟨z1, z2, z3, z4⟩ := hP p rfl
-  simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_copy, holds_const, holds_mul,
-    osCp, osCst, osMul, osKeccak] at hrest
-  obtain ⟨hK, cl, one, hinv⟩ := hrest
+  simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_const, holds_mul,
+    osCst, osMul, osKeccak] at hrest
+  obtain ⟨hK, one, hinv⟩ := hrest
   have hF : st.F σ = ⟨[σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)], []⟩ := by
     simp [OsSt.F, hf]
   have hout := keccakA_fs (s := (⟨[σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)], []⟩ : Fs))
@@ -63,8 +63,8 @@ theorem osLam_sound {st : OsSt} (hfs : st.fs.length = 5)
   rw [← hF] at hout
   have o : ∀ i : Fin 13, σ (.n (j + i.val)) = cellsOfState (st.F σ).perm false i := outCellK hout
   refine ⟨?_, ?_, ?_, rfl, rfl, rfl, ?_, rfl, rfl⟩
-  · show σ (.n (j + 13)) = _
-    rw [cl, Fs.squeeze, Keccak.challengeOf_cells]
+  · show σ (.n j) = _
+    rw [Fs.squeeze, Keccak.challengeOf_cells]
     simpa using o 0
   · rw [Fs.squeeze]
     simp only [OsSt.F, capOf, List.map_cons, List.map_nil]
@@ -75,7 +75,7 @@ theorem osLam_sound {st : OsSt} (hfs : st.fs.length = 5)
     have e12 : σ (.n (j + 12)) = _ := o 12
     rw [e8, e9, e10, e11, e12]
     rfl
-  · show σ (.n (j + 13)) * σ (.n (j + 15)) = 1
+  · show σ (.n j) * σ (.n (j + 14)) = 1
     rw [mul_comm, ← hinv, one]
     exact word_one
   · intro q hq

@@ -117,7 +117,7 @@ theorem cpPop_honest {b : ℕ} {ws : List E} (h : σ (.n 136) = ofK (addressOfIn
 
 /-- **`verify_tables`' entries on its block group order's buffer and its round count `g^n`.** -/
 theorem vtPops_honest {b n : ℕ} {ws : List E} (h : σ (.n 37) = ofK (addressOfIndex b))
-    (hm : ReadsAt rd (ofK (addressOfIndex b)) ws) (hl : ws.length = 24) (hz : σ (.n 2545) = gen ^ n)
+    (hm : ReadsAt rd (ofK (addressOfIndex b)) ws) (hl : ws.length = 24) (hz : σ (.n 2544) = gen ^ n)
     (hn : n < 2 ^ 64) : vtPops rd σ = [("block_group_order", ws), ("zc_tau_max", [Hints.count n])] := by
   rw [vtPops, heap_words h hm (by omega), List.drop_zero, List.take_of_length_le (by omega), hz,
     count_eq_gen hn]
@@ -138,11 +138,11 @@ theorem vs_child_pops {bytecode : List K} {seed : Digest} {c : Child} {layout : 
       tcp.name = "certify_placement" ∧ tcp.Valid coreProgram rd [σ (.n 83), σ (.n 4)] [σ (.n 274), σ (.n 275)] ∧
       tvt.name = "verify_tables" ∧
       tvt.Valid coreProgram rd
-        (([562, 563, 564, 565, 566, 567, 0, 1, 254, 253, 71, 26, 4, 335, 559, 6, 569, 568, 572, 570, 25].map V.n).map σ)
-        (((List.range 10).map fun k => V.n (573 + k)).map σ) ∧
+        (([545, 546, 547, 548, 549, 550, 0, 1, 254, 253, 71, 26, 4, 334, 530, 6, 552, 551, 555, 553, 25].map V.n).map σ)
+        (((List.range 10).map fun k => V.n (556 + k)).map σ) ∧
       tos.name = vsOpen[i] ∧
-      tos.Valid coreProgram rd (([66, 1370, 1371, 1372, 1373, 1374, 1917, 268, 271, 1919, 1921].map V.n).map σ)
-        (((List.range 5).map fun k => V.n (1922 + k)).map σ) ∧ tcp ∈ kids ∧ tvt ∈ kids ∧ tos ∈ kids ∧
+      tos.Valid coreProgram rd (([66, 1337, 1338, 1339, 1340, 1341, 1883, 268, 271, 1885, 1887].map V.n).map σ)
+        (((List.range 5).map fun k => V.n (1888 + k)).map σ) ∧ tcp ∈ kids ∧ tvt ∈ kids ∧ tos ∈ kids ∧
       (tcp.pops coreProgram rd = [("col_group_order", Hints.colGroupOrder layout)] →
         tvt.pops coreProgram rd = [("block_group_order", Hints.blockGroupOrder layout),
           ("zc_tau_max", [Hints.count (layout.tableLogHeights.foldl max 0)])] →

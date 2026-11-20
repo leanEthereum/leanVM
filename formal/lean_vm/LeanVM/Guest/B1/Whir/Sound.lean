@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Whir.Names
 public import LeanVM.Guest.B1.Whir.HsScale
 public import LeanVM.Guest.B1.Bits.Grind
 public import LeanVM.Guest.B1.Bits.QueryWindowsAll
-public import LeanVM.Guest.B1.Merkle.CapAll
+public import LeanVM.Guest.B1.Merkle.CapLinksAll
 public import LeanVM.Guest.B1.Fs.MessageComplete
 public import LeanVM.Guest.B1.Fs.SqueezePoint
 public import LeanVM.Guest.B1.Fs.TailRound

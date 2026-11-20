@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Tables.VtC.FFinal
 
   `Vt/AsmForms.lean`'s forms' values and `Vt/AsmFinal.lean`'s final check on the window `VtF`:
-  `termsPure`'s terminal value over the six tables is the guest's `air_acc` (`σ 5943`).
+  `termsPure`'s terminal value over the six tables is the guest's `air_acc` (`σ 5941`).
 -/
 
 module
@@ -22,7 +22,7 @@ public import LeanVM.Guest.B1.Tables.Vt.AsmFinal
 What the soundness proof read outside the window becomes hypotheses: the push and count blocks'
 selectors (`vt_sels`'s), the pull blocks' copies of the push ones (`VtPullSelsH`, `vtPullSels*`'s),
 the tables' `g^τ` (`kappa_base`'s frame variables `σ (27 + t)`), `zeta1` (`vt_zeta1`'s) and the
-batching challenge's powers (`vt_xi_pow`'s, statements `2633 ..< 2638`).
+batching challenge's powers (`vt_xi_pow`'s, statements `2631 ..< 2636`).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -54,7 +54,7 @@ theorem vt_forms_valF {rd : Reader} {σ : Val} (hF : VtF rd σ) (bc : List K)
     (hW : TbReadsAt rd (σ (.n 13)) weights) {t : ℕ} (ht : t < 6) :
     ((vtAcc2 (layoutOf bc lm rows) weights (σ (.n 14)) point
         [σ (.n 813), σ (.n 817)] (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841))
-        (σ (.n 2442)) (σ (.n 2488)) (σ (.n 2543))).1.getD t []).map
+        (σ (.n 2441)) (σ (.n 2487)) (σ (.n 2542))).1.getD t []).map
         (·.evaluate ((vtEvT σ t).getD · 0)) =
       (vtFV.getD t []).map fun v ↦ σ (.n v) := by
   obtain ⟨q0, q1, q2, q3, q4, q5⟩ := hpull
@@ -64,7 +64,7 @@ theorem vt_forms_valF {rd : Reader} {σ : Val} (hF : VtF rd σ) (bc : List K)
       rwa [← List.getD_eq_getElem _ 0] at this
   obtain ⟨e0, e1, e2⟩ := vt_forms hbc weights (σ (.n 14)) point
     [σ (.n 813), σ (.n 817)] (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841))
-        (σ (.n 2442)) (σ (.n 2488)) (σ (.n 2543)) (fun c ↦ σ (.n c)) hP hC hr ⟨t, ht⟩ ((vtEvT σ t).getD · 0)
+        (σ (.n 2441)) (σ (.n 2487)) (σ (.n 2542)) (fun c ↦ σ (.n c)) hP hC hr ⟨t, ht⟩ ((vtEvT σ t).getD · 0)
   simp only at e0 e1 e2
   rw [vt_three _ ((vt_forms3_shape bc lm hr _ _ _ _ _ _ _ _ _ _).2 t ht) {}]
   simp only [List.map_cons, List.map_nil, e0, e1, e2]
@@ -101,37 +101,37 @@ theorem vt_asm_finalF {rd : Reader} {σ : Val} (hV : VtF rd σ) (bc : List K)
       blockSel (vtSizesC (vtHt rows)) point.length i point)
     (hpull : VtPullSelsH σ)
     (hz1 : TbReadsAt rd (σ (.n 700)) (point.map (1 + ·)))
-    (hxi : σ (.n 2612) = 1 ∧ σ (.n 2613) = σ (.n 2611) ∧ σ (.n 2614) = σ (.n 2611) ^ 2 ∧
-      σ (.n 2615) = σ (.n 2611) ^ 3 ∧ σ (.n 2616) = σ (.n 2611) ^ 4)
+    (hxi : σ (.n 2610) = 1 ∧ σ (.n 2611) = σ (.n 2597) ∧ σ (.n 2612) = σ (.n 2597) ^ 2 ∧
+      σ (.n 2613) = σ (.n 2597) ^ 3 ∧ σ (.n 2614) = σ (.n 2597) ^ 4)
     {weights : List E} (hwl : weights.length = 16)
     (hW : TbReadsAt rd (σ (.n 13)) weights) {n : ℕ}
-    (hgn : σ (.n 2545) = gen ^ n) (hhn : ∀ t < 6, vtHt rows t ≤ n) (hnp : n ≤ point.length)
+    (hgn : σ (.n 2544) = gen ^ n) (hhn : ∀ t < 6, vtHt rows t ≤ n) (hnp : n ≤ point.length)
     {pts : List E} (hpl : pts.length = n)
-    (hcp : ∀ j ≤ n, LoadHolds rd (σ (.n 2631)) j (pts.take j).prod)
-    (hpe : EqPrefix rd (σ (.n 2653)) 1 (σ (.n 16)) (σ (.n 700)) n)
+    (hcp : ∀ j ≤ n, LoadHolds rd (σ (.n 2629)) j (pts.take j).prod)
+    (hpe : EqPrefix rd (σ (.n 2651)) 1 (σ (.n 16)) (σ (.n 700)) n)
     (hchi : ∀ i < n, LoadHolds rd (σ (.n 16)) (n - 1 - i) (pts.getD i 0)) :
-    (termsPure ((powers (σ (.n 2611)) 5).take 2) ((powers (σ (.n 2611)) 5).drop 2) pts.reverse
+    (termsPure ((powers (σ (.n 2597)) 5).take 2) ((powers (σ (.n 2597)) 5).drop 2) pts.reverse
       (List.zip (vtRows (tableHeightsOf rows)
         (vtAcc2 (layoutOf bc lm rows) weights (σ (.n 14)) point
           [σ (.n 813), σ (.n 817)] (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841))
-        (σ (.n 2442)) (σ (.n 2488)) (σ (.n 2543))).1 point pts) (vtEvsT σ)) 0 0 []).1 =
-      σ (.n 5948) := by
+        (σ (.n 2441)) (σ (.n 2487)) (σ (.n 2542))).1 point pts) (vtEvsT σ)) 0 0 []).1 =
+      σ (.n 5946) := by
   set F := (vtAcc2 (layoutOf bc lm rows) weights (σ (.n 14)) point
     [σ (.n 813), σ (.n 817)] (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841))
-        (σ (.n 2442)) (σ (.n 2488)) (σ (.n 2543))).1 with hF
+        (σ (.n 2441)) (σ (.n 2487)) (σ (.n 2542))).1 with hF
   have hFv : ∀ t < 6, (F.getD t []).map (·.evaluate ((vtEvT σ t).getD · 0)) =
       (vtFV.getD t []).map fun v ↦ σ (.n v) := fun t ht ↦
     vt_forms_valF hV bc hbc hr hP hC hpull hwl hW ht
   have hF6 := (vt_forms3_shape bc lm hr weights (σ (.n 14)) point
     [σ (.n 813), σ (.n 817)] (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841))
-        (σ (.n 2442)) (σ (.n 2488)) (σ (.n 2543))).1
+        (σ (.n 2441)) (σ (.n 2487)) (σ (.n 2542))).1
   have hH6 : (tableHeightsOf rows).length = 6 := vt_tableHeightsOf_length hr
   set Wt := tableWeights (tableHeightsOf rows) point pts.reverse with hWt
   have hW6 : Wt.length = 6 := by rw [hWt, length_tableWeights, hH6]
   -- the weights
-  have hwt : ∀ t < 6, ∀ {x cp pe : E}, σ (.n 2545) = x * σ (.n (28 + t)) →
-      LoadHolds rd (σ (.n 2631) * x) 0 cp →
-      LoadHolds rd (σ (.n 2653) * σ (.n (28 + t))) 0 pe → Wt.getD t 0 = cp * pe := by
+  have hwt : ∀ t < 6, ∀ {x cp pe : E}, σ (.n 2544) = x * σ (.n (28 + t)) →
+      LoadHolds rd (σ (.n 2629) * x) 0 cp →
+      LoadHolds rd (σ (.n 2651) * σ (.n (28 + t))) 0 pe → Wt.getD t 0 = cp * pe := by
     intro t ht x cp pe hx hcpL hpeL
     exact vt_weight_guest hpl hnp hcp hpe hchi hz1 hgn (by rw [hH6]; exact ht) (hhn t ht) hx
       (hkbt t ht) hcpL hpeL

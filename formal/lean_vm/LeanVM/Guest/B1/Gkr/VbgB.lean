@@ -34,10 +34,10 @@ variable {fs : String → ℕ}
 /-- `verify_bus_gkr`'s frames: the dispatch to `gkr_layers__L{o}`, then
 `verify_bus_gkr_loop0`'s. -/
 theorem vbg_flatCalls (σ : Val) : flatCalls vbgPre σ =
-    [⟨[glcLsN 0, glcLsN 1].getD (logG (σ (.n 167))) "", [.n 16, .n 17, .n 18, .n 400, .n 402,
-        .n 169, .n 6, .n 8, .n 9], [.n 406], true⟩,
-      ⟨name% «verify_bus_gkr_loop0», [.n 426, .n 6, .n 7, .n 423], [],
-          decide (σ (.n 425) ≠ 0)⟩] := by
+    [⟨[glcLsN 0, glcLsN 1].getD (logG (σ (.n 166))) "", [.n 16, .n 17, .n 18, .n 396, .n 398,
+        .n 168, .n 6, .n 8, .n 9], [.n 402], true⟩,
+      ⟨name% «verify_bus_gkr_loop0», [.n 422, .n 6, .n 7, .n 419], [],
+          decide (σ (.n 421) ≠ 0)⟩] := by
   unfold flatCalls
   rw [vbgPre_eq']
   rfl

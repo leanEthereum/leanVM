@@ -3,6 +3,7 @@
 //! the target has them), or one at a time elsewhere. Every batched function is byte-identical to its one-input form.
 
 use crate::{END_BIT, OUT_LEN, PAD_FIRST, RATE, RATE_LANES, RC, STATE_LANES, hash_from_state, keccak_f};
+use core::ops::Range;
 
 /// One state lane across [`Lane::WIDTH`] states. The permutation is written once over this trait.
 pub(crate) trait Lane: Copy {
@@ -31,10 +32,134 @@ pub(crate) trait Lane: Copy {
     }
 }
 
-/// The 24 rounds of θ, ρ, π, χ and ι. Straight-line, so every rotation is an immediate and every lane a register.
+/// The 24 rounds of θ, ρ, π, χ and ι, on x86. Straight-line, so every rotation is an immediate and every lane a
+/// register.
+///
+/// Each round reads one state and writes the other, a whole output row at a time: its five lanes, rotated by their ρ
+/// from where π takes them, then χ, then the row is stored and folded into the next round's column parities. A row
+/// at a time keeps about sixteen values live, which fits AVX2's sixteen registers, where forming all twenty-five lanes
+/// before χ spills.
+// The rounds go in pairs, one into each state.
+#[cfg(target_arch = "x86_64")]
+const _: () = assert!(RC.len().is_multiple_of(2));
+
+#[cfg(target_arch = "x86_64")]
+#[inline(always)]
+pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
+    let mut c: [S; 5] = core::array::from_fn(|x| S::xor5(a[x], a[x + 5], a[x + 10], a[x + 15], a[x + 20]));
+    let mut e = *a;
+    for &[rc0, rc1] in RC.as_chunks::<2>().0 {
+        round::<S, 5>(a, &mut e, &mut c, rc0);
+        round::<S, 5>(&e, a, &mut c, rc1);
+    }
+}
+
+/// [`permute`] where only the first row of the result is read, as a digest, a grind's lane or a challenge reads it:
+/// lanes `0..5` come out permuted, the others are left stale. The last round computes that row alone.
+#[cfg(target_arch = "x86_64")]
+#[inline(always)]
+pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
+    let mut c: [S; 5] = core::array::from_fn(|x| S::xor5(a[x], a[x + 5], a[x + 10], a[x + 15], a[x + 20]));
+    let mut e = *a;
+    for &[rc0, rc1] in RC[..RC.len() - 2].as_chunks::<2>().0 {
+        round::<S, 5>(a, &mut e, &mut c, rc0);
+        round::<S, 5>(&e, a, &mut c, rc1);
+    }
+    round::<S, 5>(a, &mut e, &mut c, RC[RC.len() - 2]);
+    round::<S, 1>(&e, a, &mut c, RC[RC.len() - 1]);
+}
+
+/// One round from `a` into the first `ROWS` rows of `out`, `c` holding the column parities of `a` on entry and, for a
+/// whole round, of `out` on exit.
+#[cfg(target_arch = "x86_64")]
+#[inline(always)]
+fn round<S: Lane, const ROWS: usize>(a: &[S; STATE_LANES], out: &mut [S; STATE_LANES], c: &mut [S; 5], rc: u64) {
+    let d: [S; 5] = core::array::from_fn(|x| S::theta_d(c[(x + 4) % 5], c[(x + 1) % 5]));
+    let t = |i: usize| a[i].xor(d[i % 5]);
+    // Row `y` of the output takes the lanes π sends there, each rotated by its ρ.
+    let mut row = |y: usize, [b0, b1, b2, b3, b4]: [S; 5]| {
+        let mut r = [
+            S::chi(b0, b1, b2),
+            S::chi(b1, b2, b3),
+            S::chi(b2, b3, b4),
+            S::chi(b3, b4, b0),
+            S::chi(b4, b0, b1),
+        ];
+        if y == 0 {
+            r[0] = r[0].xor(S::splat(rc));
+        }
+        for x in 0..5 {
+            out[5 * y + x] = r[x];
+            c[x] = if y == 0 { r[x] } else { c[x].xor(r[x]) };
+        }
+    };
+    row(
+        0,
+        [
+            t(0),
+            t(6).rotl::<44>(),
+            t(12).rotl::<43>(),
+            t(18).rotl::<21>(),
+            t(24).rotl::<14>(),
+        ],
+    );
+    if ROWS > 1 {
+        row(
+            1,
+            [
+                t(3).rotl::<28>(),
+                t(9).rotl::<20>(),
+                t(10).rotl::<3>(),
+                t(16).rotl::<45>(),
+                t(22).rotl::<61>(),
+            ],
+        );
+    }
+    if ROWS > 2 {
+        row(
+            2,
+            [
+                t(1).rotl::<1>(),
+                t(7).rotl::<6>(),
+                t(13).rotl::<25>(),
+                t(19).rotl::<8>(),
+                t(20).rotl::<18>(),
+            ],
+        );
+    }
+    if ROWS > 3 {
+        row(
+            3,
+            [
+                t(4).rotl::<27>(),
+                t(5).rotl::<36>(),
+                t(11).rotl::<10>(),
+                t(17).rotl::<15>(),
+                t(23).rotl::<56>(),
+            ],
+        );
+    }
+    if ROWS > 4 {
+        row(
+            4,
+            [
+                t(2).rotl::<62>(),
+                t(8).rotl::<55>(),
+                t(14).rotl::<39>(),
+                t(15).rotl::<41>(),
+                t(21).rotl::<2>(),
+            ],
+        );
+    }
+}
+
+/// The 24 rounds of θ, ρ, π, χ and ι, elsewhere. Straight-line, so every rotation is an immediate and every lane a
+/// register.
 ///
 /// ρ and π are written by output row, χ takes the rows in turn, and the next round's column parities accumulate from
-/// the lanes χ writes, which schedules better than forming every lane before χ and every parity after it.
+/// the lanes χ writes, which schedules better than forming every lane before χ and every parity after it. With 32
+/// vector registers (NEON) nothing spills, and the x86 form's second state only adds loads and stores.
+#[cfg(not(target_arch = "x86_64"))]
 #[inline(always)]
 pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
     let mut c: [S; 5] = core::array::from_fn(|x| S::xor5(a[x], a[x + 5], a[x + 10], a[x + 15], a[x + 20]));
@@ -67,6 +192,13 @@ pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
             }
         }
     }
+}
+
+/// The whole [`permute`]: every lane comes out permuted, which covers the first row the callers read.
+#[cfg(not(target_arch = "x86_64"))]
+#[inline(always)]
+pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
+    permute(a);
 }
 
 /// One state: the scalar permutation, and the batched one where no vector backend applies.
@@ -136,6 +268,30 @@ pub fn keccak_f_many(states: &mut [[u64; STATE_LANES]]) {
     rest.iter_mut().for_each(keccak_f);
 }
 
+/// The first of `nonces` that, written into lane `at` of `template`, leaves lane `out` of the permuted state zero under
+/// `mask`, [`LANES`] nonces at a time.
+pub fn first_nonce(template: &[u64; STATE_LANES], at: usize, nonces: Range<u64>, out: usize, mask: u64) -> Option<u64> {
+    assert!(
+        out < 5,
+        "the tested lane is in the first row, all the permutation computes in full"
+    );
+    let template: [Backend; STATE_LANES] = core::array::from_fn(|i| Backend::splat(template[i]));
+    let mut first = nonces.start;
+    while first < nonces.end {
+        let mut st = template;
+        st[at] = Backend::load(&core::array::from_fn::<u64, LANES, _>(|l| first.wrapping_add(l as u64)));
+        permute_first_row(&mut st);
+        let mut words = [0; LANES];
+        st[out].store(&mut words);
+        let n = (nonces.end - first).min(LANES as u64) as usize;
+        if let Some(l) = words[..n].iter().position(|w| w & mask == 0) {
+            return Some(first + l as u64);
+        }
+        first = first.saturating_add(LANES as u64);
+    }
+    None
+}
+
 /// Batched Keccak-256 of `data` split into `len`-byte inputs, writing one 32-byte digest per input to `out`.
 pub fn hash_many(data: &[u8], len: usize, out: &mut [u8]) {
     hash_many_from_state(data, len, &[0; STATE_LANES], out);
@@ -171,7 +327,7 @@ fn hash_group(inputs: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [
     }
     st[words] = st[words].xor(Backend::splat(u64::from(PAD_FIRST) << (8 * part)));
     st[RATE_LANES - 1] = st[RATE_LANES - 1].xor(Backend::splat(END_BIT));
-    permute(&mut st);
+    permute_first_row(&mut st);
     digests(&st, out);
 }
 
@@ -231,7 +387,7 @@ pub fn digest_halves_from(template: &[u64; STATE_LANES], at: usize, values: &[u1
         for (j, shift) in [(0, 0), (1, 64)] {
             st[at + j] = st[at + j].xor(Backend::load(&values.map(|v| (v >> shift) as u64)));
         }
-        permute(&mut st);
+        permute_first_row(&mut st);
         let mut words = [[0u64; LANES]; 2];
         st[0].store(&mut words[0]);
         st[1].store(&mut words[1]);
@@ -291,7 +447,11 @@ mod x86 {
             }
             // SAFETY: the module's cfg enables avx2.
             unsafe {
-                let l = _mm256_sll_epi64(self.0, _mm_cvtsi32_si128(N));
+                let l = if N == 1 {
+                    _mm256_add_epi64(self.0, self.0)
+                } else {
+                    _mm256_sll_epi64(self.0, _mm_cvtsi32_si128(N))
+                };
                 let r = _mm256_srl_epi64(self.0, _mm_cvtsi32_si128(64 - N));
                 Self(_mm256_or_si256(l, r))
             }

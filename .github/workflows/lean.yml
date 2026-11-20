@@ -15,12 +15,27 @@ concurrency:
   group: lean-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
+# Pin the ISA, overriding `target-cpu=native` from the cargo configs, so a cached build (its proc
+# macros included) runs on any runner.
+env:
+  RUSTFLAGS: -C target-cpu=haswell
+
 jobs:
   # The statement: definitions and end statements only (`Statement/`), what every other job proves.
   statement:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: formal/lean_vm/scripts/guest-export
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # The guest's bytecode (`Statement/Data`) is not committed: `guest-export` writes it from this
+      # repository's sources, as `regen-guest.sh`'s first step does, before the checks below read it.
+      - name: Write the guest's bytecode (guest-export)
+        working-directory: formal/lean_vm
+        run: cargo run --release --manifest-path scripts/guest-export/Cargo.toml -- .
       - name: Forbid proof escapes
         run: |
           python3 -I formal/tools/escape-scan.py formal/Statement
@@ -253,9 +268,9 @@ jobs:
 
   # `lean_vm` models the verifier and the prover's proofs of this repository, and imports the statement (`Statement/`), what is left of the two signature
   # schemes' and LeanDA's Scheme modules, and `common`, so a change to any of them re-checks it. It also holds the checks
-  # against the Rust it transcribes (`guest-export --check`, the differentials), so a change to those
-  # (`crates`, `guests`, the Cargo manifests) re-runs it too: otherwise `Statement/Data` and the transcriptions
-  # could go stale with green CI. A skipped job counts as passed for branch protection.
+  # against the Rust it transcribes (the files derived from the guest, written from it, and the differentials), so a
+  # change to those (`crates`, `guests`, the Cargo manifests) re-runs it too: otherwise the proofs and the
+  # transcriptions could go stale with green CI. A skipped job counts as passed for branch protection.
   lean-vm-changes:
     runs-on: ubuntu-latest
     outputs:
@@ -288,9 +303,6 @@ jobs:
         working-directory: formal/lean_vm
     steps:
       - uses: actions/checkout@v4
-      - name: Forbid proof escapes
-        run: |
-          python3 -I ../tools/escape-scan.py .
       # As for sphincs: only `main` saves, without Mathlib's build, which `lake exe cache get` fetches.
       - name: Restore the Lake build
         id: lake-cache
@@ -304,7 +316,8 @@ jobs:
             formal/lean_xmss/.lake/build
             formal/lean_sphincs/.lake/build
             formal/lean_da/.lake/build
-          key: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_vm/**/*.lean', 'formal/common/**/*.lean', 'formal/Statement/**/*.lean', 'formal/lean_xmss/**/*.lean', 'formal/lean_sphincs/**/*.lean', 'formal/lean_da/**/*.lean') }}
+          # The files derived from the guest are not committed, nor written yet: their sources stand in.
+          key: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_vm/**/*.lean', 'formal/common/**/*.lean', 'formal/Statement/**/*.lean', 'formal/lean_xmss/**/*.lean', 'formal/lean_sphincs/**/*.lean', 'formal/lean_da/**/*.lean', 'formal/lean_vm/scripts/**', '!formal/lean_vm/scripts/**/target/**', 'guests/**', 'crates/**', 'Cargo.lock') }}
           restore-keys: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-
       - uses: leanprover/lean-action@v1
         with:
@@ -325,6 +338,31 @@ jobs:
           sudo mkswap "$dir/swapfile.lean"
           sudo swapon "$dir/swapfile.lean"
           free -g
+      - uses: dtolnay/rust-toolchain@stable
+      # The cargo projects the checks below build, each its own workspace and target: their
+      # registry dependencies cached, as in rust.yml; only `main` saves.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            formal/lean_vm/scripts/guest-export
+            formal/lean_vm/scripts/whir-fold-table
+            formal/lean_vm/scripts/rust-verifier-cli
+            formal/lean_vm/scripts/wire-diff
+            . -> target
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # The files derived from the guest are not committed (`formal/.gitignore`): `regen-guest.sh`
+      # writes them from this repository's sources, building the Lean generators it runs.
+      - name: Write every file derived from the guest (regen-guest.sh)
+        run: scripts/regen-guest.sh
+      # The regeneration wrote only ignored files: it changed nothing committed (the generated
+      # regions of hand-written files are current), and `formal/.gitignore` covers every file it wrote.
+      - name: The regeneration changed nothing committed
+        run: |
+          ! git status --porcelain --untracked-files=all | grep .
+      # After the regeneration, so that it reads the generated files too.
+      - name: Forbid proof escapes
+        run: |
+          python3 -I ../tools/escape-scan.py .
       # `lake build` fails on any warning (`warningAsError`) and on an axiom footprint beyond
       # Lean's three (`LeanVM.lean`'s `#guard_msgs`). Lake has no job limit, and its parallel build
       # of the generated kernel-checked families exceeds the runner's memory, so `lake-build.py`
@@ -368,29 +406,11 @@ jobs:
             formal/lean_sphincs/.lake/build
             formal/lean_da/.lake/build
           key: ${{ steps.lake-cache.outputs.cache-primary-key }}
-      - uses: dtolnay/rust-toolchain@stable
-      # The cargo projects the checks below build, each its own workspace and target: their
-      # registry dependencies cached, as in rust.yml; only `main` saves.
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: |
-            formal/lean_vm/scripts/guest-export
-            formal/lean_vm/scripts/whir-fold-table
-            formal/lean_vm/scripts/rust-verifier-cli
-            formal/lean_vm/scripts/wire-diff
-            . -> target
-          save-if: ${{ github.ref == 'refs/heads/main' }}
       # EthLib's test vectors of leanSPHINCS and leanXMSS, as leanVM vendors them, on the
       # statement's schemes compiled: verification only (key generation and signing are checked by
       # hand: `scheme-vectors --xmss-sign`, lean_sphincs' `lake exe signature-kat`).
       - name: The statement's verifiers are the crate's (scheme-vectors)
         run: .lake/build/bin/scheme-vectors
-      # Every file derived from the guest is what its generator writes, byte for byte: the guest's
-      # bytecode, source, manifest, test programs and node vectors (`scripts/guest-export`, from this
-      # repository's sources), the core IR, the certificates, the memory layer's checks, the
-      # templates, the walks, the count families, the call tables and the decoder tables.
-      - name: Every file derived from the guest is current (regen-guest.sh --check)
-        run: scripts/regen-guest.sh --check
       # The fold rounds' table is what `scripts/whir-fold-table` exports from `whir_config.rs`.
       - name: The fold rounds' table is the prover's
         run: |
@@ -413,8 +433,12 @@ jobs:
       - name: The guest prover's proof of a node is accepted (manual runs)
         if: github.event_name == 'workflow_dispatch'
         run: .lake/build/bin/guest-run --rust "$RUNNER_TEMP/guest-exec" --prove "$RUNNER_TEMP"/guest-diff/node.txt
-      # The Lean verifier and the Rust verifier must agree on the committed proofs and on
-      # mutations of them, so a bump to a protocol change fails here until the Lean one follows.
+      # The verifier fixtures (`tests/fixtures/verifier`, not committed): the Rust prover's proofs of
+      # twelve small programs, each verified by the Rust verifier before it is written.
+      - name: Write the verifier fixtures (export-verifier-fixtures-rust.sh)
+        run: scripts/export-verifier-fixtures-rust.sh tests/fixtures/verifier
+      # The Lean verifier and the Rust verifier must agree on the fixtures and on mutations of
+      # them, so a bump to a protocol change fails here until the Lean one follows.
       - name: Rust-vs-Lean differential
         run: |
           cargo build --release --manifest-path scripts/rust-verifier-cli/Cargo.toml
@@ -428,7 +452,7 @@ jobs:
           python3 -I scripts/wire-diff.py tests/fixtures/verifier --jobs 4
       # The statement's honest prover (`LeanVM.Prover.prove`), compiled, on the executions the
       # Rust interpreter runs of the twelve fixed cases: each proof must be the Rust prover's and
-      # the committed fixture's byte for byte, accepted by the Lean and the Rust verifier, and
+      # the fixture's byte for byte, accepted by the Lean and the Rust verifier, and
       # every mutation of it rejected by both. Before it, the statement's executor runs each case to
       # the Rust interpreter's memory and step count.
       - name: The statement's prover against both verifiers (prover-diff)

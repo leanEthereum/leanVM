@@ -18,12 +18,12 @@ The fields are `K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` and `E = K[y]/(y^2 + x*
 
 ## Layout
 
-The root `Cargo.toml` is workspace-only: libraries in `crates/`, the CLI in `bins/`. The prover exists twice, in two trees that share no prover crate:
+The root `Cargo.toml` is workspace-only: libraries in `crates/`, the benchmark CLI in `bench/`, the binaries users run in `bins/`. The prover exists twice, in two trees that share no prover crate:
 
 - `crates/stable_prover/` (packages `stable_*`): the reference prover, written to be read: plain, safe code, as short as the protocol allows, and slower than experimental. Architecture-specific code lives in one SIMD layer, `primitives::field::lanes` (eight field elements at a time, `F128x8`, `F64x8`, `Acc8`, `Wide8`, and the byte maps and transposes over 64 bytes, each with one portable body that defines it and NEON, AVX2+VPCLMULQDQ and AVX-512+VPCLMULQDQ arms and the portable one), and in the shared `keccak256`'s multi-way permutation; the hot loops are written over them and nothing else in stable has `core::arch` or `cfg(target_feature)`. No uninitialized buffers, no non-temporal stores, no cache-tiled pass plans, no per-machine tuning. It keeps the whole level-0 codeword and every Merkle level, so its peak memory at the largest stacks is a multiple of experimental's on x86. An optimization enters it only where leaving it out costs a measurable share of a proof and its simple form stays short.
 - `crates/experimental_prover/` (packages `experimental_*`): the optimized prover, where performance work lands first. The conventions below about NEON, AVX-512, streaming stores and the like are about this tree.
 
-Both prove the same protocol and give the same proof bytes, pinned by `bins/leanvm/tests/identical_proofs.rs`; a protocol change lands in both trees, the three verifiers and `formal/`, while an optimization lands in experimental alone. What is not prover code exists once (table below), the guest (`guests/lean_ethereum.py`) and the aggregation included. It depends on the stable tree only where it needs the protocol's structure or a primitive (`aggregation`, below; `lean_da`, its NTT), importing rather than restating them, and proves only through `isa::Prover`, which each tree implements once beside `cpu::prove` (`lean_vm_core::StableProver`, `lean_vm_core::ExperimentalProver`): proving a program, its thread pool, and the deferred claims' batching kernels (`combine_rows`, `dot_rows`). `formal/`'s Rust helpers that need a prover tree build against stable, but for `whir-fold-table`, which exports the WHIR security search that only experimental's `pcs` keeps (stable reads the verifier's table). Within a tree, crates name each other through Cargo renames (`pcs = { package = "stable_pcs", path = "../pcs" }`), so sources say `pcs::`, and the shared `fiat_shamir_prover` likewise as `fiat_shamir`; an integration test reaches its own crate with `extern crate stable_pcs as pcs;`, and a doctest names it in full. The shared crates, leaves first:
+Both prove the same protocol and give the same proof bytes, pinned by `bench/tests/identical_proofs.rs`; a protocol change lands in both trees, the three verifiers and `formal/`, while an optimization lands in experimental alone. What is not prover code exists once (table below), the guest (`guests/lean_ethereum.py`) and the aggregation included. It depends on the stable tree only where it needs the protocol's structure or a primitive (`aggregation`, below; `lean_da`, its NTT), importing rather than restating them, and proves only through `isa::Prover`, which each tree implements once beside `cpu::prove` (`lean_vm_core::StableProver`, `lean_vm_core::ExperimentalProver`): proving a program, its thread pool, and the deferred claims' batching kernels (`combine_rows`, `dot_rows`). `formal/`'s Rust helpers that need a prover tree build against stable, but for `whir-fold-table`, which exports the WHIR security search that only experimental's `pcs` keeps (stable reads the verifier's table). Within a tree, crates name each other through Cargo renames (`pcs = { package = "stable_pcs", path = "../pcs" }`), so sources say `pcs::`, and the shared `fiat_shamir_prover` likewise as `fiat_shamir`; an integration test reaches its own crate with `extern crate stable_pcs as pcs;`, and a doctest names it in full. The shared crates, leaves first:
 
 | crate             | role                                                                   |
 | ----------------- | ---------------------------------------------------------------------- |
@@ -34,10 +34,13 @@ Both prove the same protocol and give the same proof bytes, pinned by `bins/lean
 | `zkdsl_compiler`  | zkDSL → ISA; its tests run the stable prover                           |
 | `lean_xmss`       | leanXMSS over Keccak-256                                               |
 | `lean_sphincs`    | leanSPHINCS over Keccak-256                                            |
-| `bench`           | benchmark harness (`Plan`, `Timing`, `--tracing`, Bencher output, the jemalloc allocator); never linked by a prover |
+| `allocator`       | the jemalloc global allocator and its configuration (below), for the benchmark CLI, the benches and the sidecar; never linked by a library |
+| `bench_harness`   | benchmark harness (`Plan`, `Timing`, `--tracing`, Bencher output); never linked by a prover |
 | `lean_da`         | additive Reed-Solomon blob encoding (the stable tree's NTT), commitments, membership vectors |
+| `claims`          | `AggregateClaims` and `OutputClaims`, and the claims' byte form: what both the library and the sidecar's client name |
 | `aggregation`     | recursive signature and DA aggregation, generic over the prover: the guest's constants and witness, and the entry points |
-| `lean_vm`         | the public API, not generic: it proves with the stable tree, or with the `experimental_prover` feature the experimental one |
+| `sidecar`         | proving and verifying in another process: the protocol of `bins/leanvm-sidecar` and its Rust client, which builds no prover; with the `server` feature, the server (generic over the prover) |
+| `lean_vm`         | the public API, not generic: it proves and verifies in the process, with the stable tree, or with the `experimental_prover` feature the experimental one; with the `sidecar` feature, it neither proves nor verifies itself, and does both through the sidecar's client |
 
 `aggregation` proves on whichever prover it is given, but derives the guest's constants and a child's witness from the stable tree, the reference: its bus blocks and their coordinates (`lean_vm_core::leaf`, whose term order the guest's arrays follow), the stacking, the grinds, the WHIR shapes and the NTT twiddles; both trees lay a proof out alike.
 
@@ -51,7 +54,9 @@ Each tree holds, in dependency order, leaves first:
 | `keccak_gkr`      | the prover of the VM's `KECCAK` argument                               |
 | `lean_vm_core`    | arithmetization: tables, bus, constraints, `cpu::execute` and `cpu::prove` of an `isa::Program` and its witness streams; `cpu::verify` wraps `verifier`; the tree's `isa::Prover` |
 
-Paths below such as `crates/lean_vm_core` mean the crate in either tree. `crates/lean_vm/src/lib.rs` is the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there, and `crates/lean_vm/tests/api.rs` is its end-to-end use. A re-exported type brings its `pub` methods along, so one the workspace needs but users should not see is `#[doc(hidden)] pub fn __name`, the double underscore marking it internal at every call site. The guest is zkDSL, `guests/lean_ethereum.py`. The CLI is `bins/leanvm`, run with `cargo leanvm --prover stable|experimental <subcommand>` (`aggregate`, `recursion`, `fibonacci`; the prover is required, with no default), the benchmarks generic over the prover.
+Paths below such as `crates/lean_vm_core` mean the crate in either tree. `crates/lean_vm/src/lib.rs` is the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there, and `crates/lean_vm/tests/api.rs` is its end-to-end use. A re-exported type brings its `pub` methods along, so one the workspace needs but users should not see is `#[doc(hidden)] pub fn __name`, the double underscore marking it internal at every call site. The guest is zkDSL, `guests/lean_ethereum.py`. The benchmark CLI is `bench/` (`leanvm-bench`), run with `cargo leanvm-bench --prover stable|experimental <subcommand>` (`aggregate`, `recursion`, `fibonacci`; the prover is required, with no default), the benchmarks generic over the prover. The sidecar is `bins/leanvm-sidecar`, which serves `aggregate` over a Unix socket so that clients in any language get the prover in a process of its own; its `README.md` is the protocol's specification, so a change to the protocol in `crates/sidecar` (`wire.rs` and the server's half in `server.rs`), or to the claims' byte form (`AggregateClaims::to_bytes`), lands there and in its Go client (`clients/go`), which CI tests against the sidecar. It also verifies, for clients that do not verify themselves.
+
+`bindings/` holds the language bindings of `lean_xmss`, `lean_sphincs` and the sidecar's client (`crates/sidecar`, through which they aggregate and verify; they build no prover): a Rust facade (`bindings/rust`, package `lean-pq`), an internal C ABI (`bindings/native`), and Python, Node.js, Java, Go, Zig and Nim packages over them. It is a separate Cargo workspace with its own `Cargo.lock`, excluded from the root one, so `cargo testall`, `clippyall`, `docall` and `fmt --all` never build it; its CI (`bindings-ci.yml`) runs when `bindings/`, `crates/`, the guest, the sidecar or the root build settings change, and runs the aggregation tests against a sidecar built from the same tree, so a change to these crates' public API or the sidecar's protocol must still pass there, and a change to their dependencies must update `bindings/Cargo.lock` (any cargo command run from `bindings/` does). Run cargo from `bindings/` (`cargo test --release -p lean-pq`, whose aggregation tests need a running sidecar: `bindings/README.md` shows `bindings/scripts/start-sidecar.sh` setting it up, `cargo clippy --release -p lean-pq --all-targets -- -D warnings`, `cargo fmt --all`, with rustfmt's default width), where `bindings/.cargo/config.toml` replaces `target-cpu=native` with the portable baseline the released packages need; `bindings/README.md` lists each language's build and test. Commits touching `bindings/` take conventional-commit titles (`feat:`, `fix:`, `chore:`, ...): release-please reads them to version the bindings, tag `bindings-vX.Y.Z` and write `bindings/CHANGELOG.md`.
 
 ## Building and testing
 
@@ -67,11 +72,11 @@ cargo fmt --all                   # max_width = 120
 cargo machete --with-metadata     # unused dependencies, dev ones included
 ```
 
-An x86-only `cfg` arm never compiles on an Apple machine, so type-check the other target before pushing anything `cfg`-gated (needs only `rustup target add x86_64-unknown-linux-gnu`; `bench` and the CLI are left out because jemalloc's build script wants a cross `gcc`):
+An x86-only `cfg` arm never compiles on an Apple machine, so type-check the other target before pushing anything `cfg`-gated (needs only `rustup target add x86_64-unknown-linux-gnu`; `allocator`, the benchmark CLI and the sidecar are left out because jemalloc's build script wants a cross `gcc`):
 
 ```bash
 RUSTFLAGS="-C target-cpu=znver4" \
-  cargo check --release --workspace --exclude leanvm-cli --exclude bench --target x86_64-unknown-linux-gnu
+  cargo check --release --workspace --exclude leanvm-bench --exclude leanvm-sidecar --exclude allocator --target x86_64-unknown-linux-gnu
 ```
 
 `RUSTFLAGS` replaces `.cargo/config.toml`'s `target-cpu=native`; a target-specific `CARGO_TARGET_*_RUSTFLAGS` would be merged with it and hand the Apple CPU to the x86 target.
@@ -80,15 +85,15 @@ To confirm an arm is reached rather than silently skipped, put a `compile_error!
 
 Heavy benches are `benches/` targets, run with `cargo bench -p <package> --bench <name>`: `experimental_keccak_gkr`'s `hash_batch` and `experimental_pcs`'s `throughput` (and their `stable_*` copies), and `keccak256`'s `hash_throughput`. Slow checks are `#[ignore]`d tests, run by name with `-- --ignored --nocapture`: `print_whir_query_counts`, `print_whir_query_table`, `encoding_grinding_bits`. `aggregate_two_to_one` is the fast end-to-end check.
 
-Where a proof's time goes is the `tracing` span tree, and only that: `--tracing` on the CLI, `BENCH_TRACING=1` on the benches, `RUST_LOG` for the level. A new stage worth timing gets an `info_span!` (`stage!` in `lean_vm_core`), never an `Instant` behind an env var.
+Where a proof's time goes is the `tracing` span tree, and only that: `--tracing` on the benchmark CLI, `BENCH_TRACING=1` on the benches, `RUST_LOG` for the level. A new stage worth timing gets an `info_span!` (`stage!` in `lean_vm_core`), never an `Instant` behind an env var.
 
 ## Benchmarking
 
 ```bash
-cargo leanvm --prover experimental aggregate --xmss 900 --log-inv-rate 1 --repeat 3
-cargo leanvm --prover experimental aggregate --sphincs 410 --log-inv-rate 1 --repeat 3
-cargo leanvm --prover experimental recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --repeat 3
-cargo leanvm --prover stable aggregate --xmss 900 --log-inv-rate 1 --repeat 3
+cargo leanvm-bench --prover experimental aggregate --xmss 900 --log-inv-rate 1 --repeat 3
+cargo leanvm-bench --prover experimental aggregate --sphincs 410 --log-inv-rate 1 --repeat 3
+cargo leanvm-bench --prover experimental recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --repeat 3
+cargo leanvm-bench --prover stable aggregate --xmss 900 --log-inv-rate 1 --repeat 3
 ```
 
 `aggregate` takes a count per scheme (both default to zero) and `--blobs`; `recursion` likewise takes `--sphincs-per-leaf` and `--blobs-per-leaf`. Compare schemes and changes by the reported VM cycle counts.
@@ -97,7 +102,7 @@ CI compares every PR with its base, never with a history: `bench.yml` runs both 
 
 ## The allocator
 
-The prover's buffers are plain `Vec`s and the libraries impose no allocator. A proof allocates and frees gigabytes, so the CLI and the benches install jemalloc with `dirty_decay_ms:-1` (`bench::Jemalloc`), which keeps freed pages mapped for the next proof at the cost of resident memory, and on Linux with `thp:always`, which backs its extents with transparent huge pages. Experimental skips a buffer's zero-fill with `primitives::uninit_vec` or `filled_vec` (`T: Plain`, every element written before it is read); stable never reads uninitialized memory, and writes a large buffer's first pass with the pool (`parallel::filled`, or `parallel::map_collect` when every element is computed anyway), since a zero-fill on one thread costs a whole-proof factor on many cores. Both drop large buffers where their last use ends.
+The prover's buffers are plain `Vec`s and the libraries impose no allocator. A proof allocates and frees gigabytes, so the benchmark CLI, the sidecar and the benches install jemalloc with `dirty_decay_ms:-1` (`allocator::Jemalloc`), which keeps freed pages mapped for the next proof at the cost of resident memory, and on Linux with `thp:always`, which backs its extents with transparent huge pages. Experimental skips a buffer's zero-fill with `primitives::uninit_vec` or `filled_vec` (`T: Plain`, every element written before it is read); stable never reads uninitialized memory, and writes a large buffer's first pass with the pool (`parallel::filled`, or `parallel::map_collect` when every element is computed anyway), since a zero-fill on one thread costs a whole-proof factor on many cores. Both drop large buffers where their last use ends.
 
 ## The thread pool (`parallel`)
 
@@ -105,7 +110,7 @@ No rayon. Every parallel site is "N independent items, each writing its own disj
 
 - Nested dispatch panics, because it would deadlock the dispatch lock. Each pool only sees its own nesting, so a task of either pool must not dispatch on either: inside a `P::map_collect` task, the shared crates call no dispatching helper of the stable tree.
 - One experimental site runs beside the pool: `keccak::while_executing` spawns half the pool's count of plain threads while a program executes, beside the pool's dispatches of a signature loop's segments and of their Keccak blocks, and gone when it ends. Stable builds the Keccak witness after execution, in the pool.
-- `LEANVM_NUM_THREADS=1` is strictly sequential. In experimental it sets the performance-worker count, and the default is one worker per logical CPU (on Linux, per physical core the process may use), holding back one performance worker when efficiency workers exist. In stable it sets the worker count, and the default is `available_parallelism()`, halved where Linux reports SMT active.
+- The thread count is set in code, before a pool starts (`isa::Prover::set_num_threads`, which `lean_vm::setup` and the benchmark CLI's and the sidecar's `--threads` call); `1` is strictly sequential. In experimental, workers fill the performance cores before the efficiency cores, and the default is one worker per logical CPU (on Linux, per physical core the process may use), holding back one performance worker when efficiency workers exist. In stable the default is `available_parallelism()`, halved where Linux reports SMT active.
 
 ## Three verifiers, one protocol
 
@@ -134,7 +139,7 @@ In the recursion program, the prover sends the verifier advice, called hints. Hi
 - **A hot NEON helper that is `#[inline(always)]` stays so.** A `#[target_feature]` function cannot be forced inline, and LLVM then leaves field helpers out of line in hot loops. Split a product's halves by hand rather than with `array::map`. A helper that needs `unsafe` is an `unsafe fn` its callers wrap.
 - **On Zen 4, 512-bit cross-lane moves are half-rate**: prefer kernels where both qwords of every 128-bit lane carry a product and nothing crosses lanes.
 - **On Zen 5 the carry-less multiplier is the scarce unit**: reduce modulo `x^64 + x^4 + x^3 + x + 1` with shifts and XORs (`gf2_64::reduce`), and count CLMUL instructions, not products. The exception is the scalar `F64` product (`gf2_64::x86_64::mul`): one CLMUL fold, then a byte lookup of its spill (CLHASH's reduction).
-- **`crates/verifier` is still auto-vectorized**: on AVX-512, LLVM turns table lookups into gathers that lose to scalar loads. Check its x86 disassembly after touching a lookup.
+- **`crates/verifier` is still auto-vectorized**: on AVX-512, LLVM turns table lookups into gathers that lose to scalar loads. Check its x86 disassembly after touching a lookup. Tuned for Zen 4 (`znver4`, which `native` is there), the SLP vectorizer also packs the Keccak permutation's lanes into vectors and spends the gain on shuffles, slower than scalar; no portable rewrite tried avoids it without slowing other targets, and `-C llvm-args=-slp-max-vf=2` measures the verifier without it.
 - **Fiat-Shamir:** `ProverState::add_scalar` and `Transcript::next_scalar` bind into the transcript as a side effect, and the public statement seeds it at construction. Never re-observe data that rode the stream.
 - **Provers and verifiers derive the layout identically** from announced sizes: a change to `placements_of` or the schema lands in both provers and all three verifiers (`crates/verifier`'s `layout.rs` is the native one). `col_kappas` is derived from `col_kappa_sources`; keep it that way.
 - **The opening's lane fold binds the committed witness's top variables** (`whir::commit` documents the layout), so every verifier rotates the terminal point left by `INITIAL_FOLDING_FACTOR` before evaluating the basis, while every other read of the opening's point stays in round order.
@@ -144,6 +149,7 @@ In the recursion program, the prover sends the verifier advice, called hints. Hi
 - **Doc labels are an API**: crates cite `thm:rbr`, `lem:colweight` and sections of `doc/leanvm/main.tex` by label, and `body/NN-*.tex` prefixes match section numbers.
 - **Comments only where necessary**, and concise. **Never put a measurement in a comment, a doc comment, or this file**: it goes stale and nothing rechecks it. Measurements belong in the commit message. A comment may say which way a result went and why, never by how much.
 - **Commit only tests useful against future regressions.** Simpler is better.
+- **Never commit large generated objects.** What a script can write (the guest's Lean data and certificates, proofs, test vectors, binary dumps) is gitignored and written before the build or test that reads it, as `formal/.gitignore` does with `regen-guest.sh` and `export-verifier-fixtures-rust.sh`: every version of a committed file stays in the history for good, and a generated one changes with every guest or protocol change. A test that needs a large input generates it. CI fails a pull request that adds a file over 1 MiB, or commits an ignored one (`.github/workflows/size.yml`).
 - **No em-dashes or en-dashes** in prose anywhere a human reads it. **Never hard-wrap prose** in Markdown or LaTeX: one paragraph is one line.
 - Grinding chooses the smallest valid nonce, including in parallel, but for a challenge the prover cannot use: the Keccak GKR's `s` in `K` (no power basis, a chance of `2^-64` per layer) takes the next valid nonce (`ProverState::grind_sample`), which the verifiers accept like any other. Randomized signature inputs can still make proofs differ between runs.
 
@@ -151,7 +157,6 @@ In the recursion program, the prover sends the verifier advice, called hints. Hi
 
 | var                                                                            | effect                                                |
 | ------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| `LEANVM_NUM_THREADS`                                                           | worker count (experimental: performance workers); `1` = sequential |
 | `BENCH_TRACING`, `BENCH_REPEAT`, `BENCH_COOLDOWN`                              | `--tracing`, `--repeat`, `--cooldown` for the benches |
 | `KECCAK_N_LOG`, `KECCAK_DEPTH`                                                 | keccak_gkr batch size, rounds between committed states |
 | `PCS_LOG_N`, `PCS_LOG_INV_RATE`, `PCS_POINT_CLAIMS`, `PCS_RING_CLAIMS`         | PCS throughput bench: size, rate, claims              |

@@ -332,6 +332,17 @@ def constRider : Unit → (∀ i, NoOracle i) → List (Σ τ : Fin 3, CMlPolyno
 
 /-! ## Completeness -/
 
+/-- **Perfect completeness of the grand-product argument on the typed framework**: its parts'
+halves compose. -/
+theorem gkrComplete {F : Type} [Field F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
+    {X : Type} {ι : Type} {O : ι → Type} (nside μ : ℕ)
+    (leaves : X → (∀ i, O i) → Fin nside → CMlPolynomialEval F μ)
+    (riders : X → (∀ i, O i) → List (Σ τ : Fin (μ + 1), CMlPolynomialEval F τ)) :
+    Typed.Complete (gkr nside μ leaves) (Gkr.relIn nside μ leaves riders)
+      (Gkr.relOut nside μ leaves riders) :=
+  (Gkr.oddComplete nside μ leaves riders (μ % 2) _ (Nat.mod_le μ 2)).append
+    (Gkr.layerStepsComplete nside μ leaves riders (μ / 2) (μ % 2) _)
+
 /-- The completeness half of the whole argument, without riders. -/
 example : Typed.Complete (gkr 3 4 sixteen) (relIn 3 4 sixteen noRiders)
     (relOut 3 4 sixteen noRiders) :=

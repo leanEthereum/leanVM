@@ -59,7 +59,7 @@ theorem ws_sound {tl cf zs off wt : E}
     | zero => simp [wsOff, h3]
     | succ k ih =>
       have hm := (hall (k + 1) hk).2
-      try simp only [Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq] at hm
+      simp only [Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq] at hm
       rcases hm with hm | ⟨hc, hmul⟩
       · exact absurd hm (by omega)
       rw [isMul_sound hmul hat, Nat.add_sub_cancel, ih (by omega), const_sound hc hat,

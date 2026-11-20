@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.KeccakGkr.VkCP
 
 `step_ptrs`: step `s` loads its claim's point's segment coordinate through `stepB s + 1` and, for a
 later claim, its flips through each flip's first value; `fin_ptrs`: the inputs' check loads the last claim's
-point, local point and lanes through `2250`, `2484`, `3647`. Each is a pointer into the claim's
+point, local point and lanes through `2244`, `2478`, `3647`. Each is a pointer into the claim's
 buffers (`CL`).
 -/
 
@@ -33,8 +33,8 @@ variable {D : VkData} {rd : Reader} {B curE chiE olE zvE slE tbE stE : ℕ} {ls 
 
 /-- Word `k` of claim `s`'s record, through the claim records' pointer. -/
 theorem rec_word (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : Val}
-    (h201 : σ (.n 162) = ptr (B + D.o201)) {s : ℕ} (hs : s < 12) {k : ℕ} (hk : k < 22) :
-    LoadHolds rd (σ (.n 162)) (22 * s + k) ((D.CL B ls s).cw.getD k 0) := by
+    (h201 : σ (.n 156) = ptr (B + D.o201)) {s : ℕ} (hs : s < 12) {k : ℕ} (hk : k < 22) :
+    LoadHolds rd (σ (.n 156)) (22 * s + k) ((D.CL B ls s).cw.getD k 0) := by
   have hcw := memL_entry (CL_mem h hm hs) (b := (D.CL B ls s).bclaim) (ws := (D.CL B ls s).cw)
     (by simp [ClaimLay.L])
   have hbc : (D.CL B ls s).bclaim = B + D.o201 + 22 * s := by cases s <;> rfl
@@ -45,7 +45,7 @@ theorem rec_word (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ :
 /-- **Step `s`'s pointers.** -/
 theorem step_ptrs (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : Val}
     (hσd : σ = D.val rd B curE chiE olE zvE slE tbE stE) {s : ℕ} (hs : s < 12)
-    (h17 : σ (.n 19) = gen ^ (D.τ - 4)) (h201 : σ (.n 162) = ptr (B + D.o201)) :
+    (h17 : σ (.n 19) = gen ^ (D.τ - 4)) (h201 : σ (.n 156) = ptr (B + D.o201)) :
     σ (.n (stepB s + 1)) = ptr (D.CL B ls s).bpp * gen ^ (D.τ - 4) ∧
     (s ≠ 0 → ∀ j < (iotaUsed s).length, σ (.n (stepB s + 6 + 2 * j)) = ptr (D.CL B ls s).bfl) := by
   have hg : ∀ st ∈ stepCore s (stepB s), GoodS rd vkSt (D.w B curE) σ st := fun st hst ↦ by
@@ -55,7 +55,7 @@ theorem step_ptrs (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ 
     rw [stepT_split]; exact List.mem_append_left _ hst
   have gA : ∀ a, Stmt.atom a ∈ stepCore s (stepB s) → Good rd vkSt (D.w B curE) σ a :=
     fun a h ↦ hg _ h
-  have mA : ∀ a ∈ [Atom.load (.n (stepB s)) (.n 162) (22 * s + 2),
+  have mA : ∀ a ∈ [Atom.load (.n (stepB s)) (.n 156) (22 * s + 2),
       .mul (.n (stepB s + 1)) (.n (stepB s)) (.n 19)], Stmt.atom a ∈ stepCore s (stepB s) := by
     intro a ha
     refine List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ ?_))
@@ -74,7 +74,7 @@ theorem step_ptrs (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ 
   have hf0 : firstOf s = 0 := by unfold firstOf; split <;> omega
   simp only [hf0, show (0 : ℕ) = 1 ↔ False by decide, ↓reduceIte] at hw
   obtain ⟨-, h5, -, -⟩ := hw
-  have m0 : Stmt.atom (.load (.n (stepB s + 6 + 2 * j)) (.n 162) (22 * s + 5)) ∈
+  have m0 : Stmt.atom (.load (.n (stepB s + 6 + 2 * j)) (.n 156) (22 * s + 5)) ∈
       flipsT s (stepB s + 6) := by
     simp only [flipsT, List.mem_flatten, List.mem_map, List.mem_range]
     exact ⟨_, ⟨j, hj, rfl⟩, by simp [flipT, hs0, flipSz]⟩
@@ -86,10 +86,10 @@ theorem step_ptrs (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ 
 /-- **The inputs' check's pointers.** -/
 theorem fin_ptrs (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : Val}
     (hσd : σ = D.val rd B curE chiE olE zvE slE tbE stE) (h17 : σ (.n 19) = gen ^ (D.τ - 4))
-    (h201 : σ (.n 162) = ptr (B + D.o201)) :
-    σ (.n 1747) = ptr (ls 11) * gen ^ (D.τ - 4) ∧
-      σ (.n 1981) = ptr (ls 11 + (D.layer 11).y + 112) ∧
-      σ (.n 3144) = ptr (ls 11 + (D.layer 11).y + 123) := by
+    (h201 : σ (.n 156) = ptr (B + D.o201)) :
+    σ (.n 1741) = ptr (ls 11) * gen ^ (D.τ - 4) ∧
+      σ (.n 1975) = ptr (ls 11 + (D.layer 11).y + 112) ∧
+      σ (.n 3138) = ptr (ls 11 + (D.layer 11).y + 123) := by
   have hg : ∀ st ∈ vkFinT, GoodS rd vkSt (D.w B curE) σ st := fun st hst ↦ by
     subst hσd
     exact val_good' h (List.mem_append_right _ hst)
@@ -97,15 +97,15 @@ theorem fin_ptrs (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ :
   have k1 := vkFin_ker.1
   have hrec := last_rec h hm
   rw [outWs_last h, ← h201] at hrec
-  have e4977 : σ (.n 1746) = ptr (ls 11) :=
-    load_val (gA (.load (.n 1746) (.n 162) 266) (by simp [vkFinT])) (not_mem_of_noneIn k1 _ (by simp))
+  have e4977 : σ (.n 1740) = ptr (ls 11) :=
+    load_val (gA (.load (.n 1740) (.n 156) 266) (by simp [vkFinT])) (not_mem_of_noneIn k1 _ (by simp))
       (by simpa using hrec 2 (by norm_num))
   have m4978 := mulG (by norm_num) (by norm_num)
-    (gA (.mul (.n 1747) (.n 1746) (.n 19)) (by simp [vkFinT]))
+    (gA (.mul (.n 1741) (.n 1740) (.n 19)) (by simp [vkFinT]))
   refine ⟨by rw [m4978, e4977, h17], ?_, ?_⟩
-  · exact load_val (gA (.load (.n 1981) (.n 162) 268) (by simp [vkFinT]))
+  · exact load_val (gA (.load (.n 1975) (.n 156) 268) (by simp [vkFinT]))
       (not_mem_of_noneIn k1 _ (by simp)) (by simpa using hrec 4 (by norm_num))
-  · exact load_val (gA (.load (.n 3144) (.n 162) 267) (by simp [vkFinT]))
+  · exact load_val (gA (.load (.n 3138) (.n 156) 267) (by simp [vkFinT]))
       (not_mem_of_noneIn k1 _ (by simp)) (by simpa using hrec 3 (by norm_num))
 
 end VkData

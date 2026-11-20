@@ -53,7 +53,7 @@ attribute [local irreducible] instFintypeDigest instFintypeKState
 variable {X : Type} {σ : Seeds X} {P : VerifierProgram Bool}
 
 /-- The certificate's bound at a doomed boundary, discounted by the proof of work before it. -/
-theorem ind_mul_esc_le (C : Cert P) {εmax : ℝ≥0∞}
+theorem ind_mul_esc_le {G : List Ev → Prop} (C : CertG P G) {εmax : ℝ≥0∞}
     (hε : ∀ h, 2⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax) {h : List Ev} {p : VerifierProgram Bool}
     (hr : P.Reachable h) (hb : Boundary h) (ha : P.after h = some p) :
     ind (C.D h) * (2⁻¹ ^ min (grindBits h) 64 * esc C.D h p) ≤ εmax := by
@@ -63,7 +63,7 @@ theorem ind_mul_esc_le (C : Cert P) {εmax : ℝ≥0∞}
   · rw [ind_of_not hD, zero_mul]; exact bot_le
 
 /-- **The new record averages to at most `εmax`.** -/
-theorem term_step_new (C : Cert P) {εmax : ℝ≥0∞}
+theorem term_step_new {G : List Ev → Prop} (C : CertG P G) {εmax : ℝ≥0∞}
     (hε : ∀ h, 2⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax) (ℓ : Log) (t : KeccakState) :
     (∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) *
         term C.D (ℓ ++ [.inr (t, u)]) ((stepF σ P ℓ (decode σ P ℓ) t).1, u)) /
@@ -181,7 +181,7 @@ theorem step_ineqH (D : List Ev → Prop) (ℓ : Log) (x : Bytes) :
 /-- **The step inequality for the permutation.** For every log `ℓ` and permutation input `s` it
 does not answer, the average of the potential after one fresh answer at `s` is at most the
 potential before it plus `εmax` plus the bound on the probability that the answer fails. -/
-theorem step_ineqF (C : Cert P) {εmax : ℝ≥0∞}
+theorem step_ineqF {G : List Ev → Prop} (C : CertG P G) {εmax : ℝ≥0∞}
     (hε : ∀ h, 2⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax) (ℓ : Log) (t : KeccakState)
     (ht : lookF ℓ t = none) :
     (∑ u, pot C.D σ P (ℓ ++ [.inr (t, u)])) / Fintype.card KeccakState ≤

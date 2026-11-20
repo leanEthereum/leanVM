@@ -269,6 +269,10 @@ theorem Concrete.keygen_cache_has_chainInput
     Concrete.keygen_support_rootTree keyResult hmem
   rw [hkey]
   have hcovers := honestKeygenFrom_coversKeyChains parameter (Sum.elim secret topSecret) topBase
+  -- Rewritten first: matching `hroot` against `hcovers` directly, the kernel unfolds `support`.
+  have heq : Concrete.honestKeygenFrom parameter (Sum.elim secret topSecret) topBase =
+      Concrete.honestKeygen parameter secret topSecret (fun key _ => pure (topBase key)) := rfl
+  rw [heq] at hcovers
   exact hcovers.input_cached ∅ (root, keyResult.2) hroot key chain step
 
 theorem Concrete.keygen_cache_chainInput_eq_none_of_ne

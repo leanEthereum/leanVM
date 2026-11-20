@@ -27,13 +27,17 @@ def isL25WordLoad : Atom → Bool
       (decide (p = .n 50) && decide (o < 24)) || (decide (p = .n 57) && decide (o < 24))
   | _ => false
 
+/-- The `fs_pack` base of the next row's word `j < 4`: two loaded words' copies, then two zeros
+bound in place. -/
+def l25Last (j : ℕ) : ℕ := [362, 365, 367, 369].getD j 0
+
 /-- `aggregate_claims_loop0`'s stores: the pointer tables, then the next row's capacity and rate
 cells. -/
 def l25Stores : List Atom :=
   [.load (.n 50) (.n 51) 0, .load (.n 57) (.n 58) 0] ++
     (List.range 5).map (fun i => .load (.n (356 + i)) (.n 13) (13 + i)) ++
     (List.range 4).flatMap fun j =>
-      [.load (.n (362 + 3 * j)) (.n 13) (18 + 2 * j), .load (.n (363 + 3 * j)) (.n 13) (19 + 2 * j)]
+      [.load (.n (l25Last j)) (.n 13) (18 + 2 * j), .load (.n (l25Last j + 1)) (.n 13) (19 + 2 * j)]
 
 /-- `aggregate_claims_loop0`'s atoms but its stores. -/
 noncomputable def l25A : List Atom :=
@@ -69,8 +73,8 @@ noncomputable def l25DOk : Bool :=
   (packsOf A).all (fun p => packIn A p.1 p.2) &&
   l25S.check A && decide (l25S.nb = 13) && rowInOk A (.n 13) (l25S.ins 0) &&
   (List.range 5).all (fun i => decide ((l25S.outs 12).getD (8 + i) default = .n (356 + i))) &&
-  (List.range 4).all (fun j => decide (l25S.wB (48 + j) = 362 + 3 * j) &&
-    decide (l25S.wB (48 + j) + 1 = 363 + 3 * j)) &&
+  (List.range 4).all (fun j => decide (l25S.wB (48 + j) = l25Last j) &&
+    decide (l25S.wB (48 + j) + 1 = l25Last j + 1)) &&
   (List.range 52).all (fun w => srcOk A (l25S.wV w) (l25Src w)) &&
   monoIs P (.n 13) (.n 2) (.n 0) 13 && monoIs P (.n 59) (.n 7) (.n 0) 2 &&
   monoIs P (.n 63) (.n 7) (.n 0) 2 && monoIs P (.n 50) (.n 3) (.n 0) 24 &&

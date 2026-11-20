@@ -4,7 +4,7 @@ use super::error::AggregateError;
 use super::guest::{GUEST_SOURCE, compile_guest, unified_guest};
 use super::hints::{FORGE, Forgery, Hints};
 use super::placeholders::placeholder_map;
-use super::proof::{AggregateClaims, AggregateProof, decode, encode};
+use super::proof::{AggregateProof, decode, encode};
 use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
 use super::*;
 use fiat_shamir_prover::merkle::hash_to_scalars;

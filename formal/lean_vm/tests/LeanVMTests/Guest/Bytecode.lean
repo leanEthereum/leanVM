@@ -27,7 +27,7 @@ abbrev spWots : CompiledFunction := Data.functions[fn_idx% «sp_wots»]'(by deci
 
 theorem spWots_mem : spWots ∈ Data.functions := List.getElem_mem _
 
-example : spWots.name = "sp_wots" ∧ spWots.instructionCount = 23713 ∧ spWots.chunks.length = 12 := by
+example : spWots.name = "sp_wots" ∧ spWots.instructionCount = 23650 ∧ spWots.chunks.length = 12 := by
   decide +kernel
 
 /-- Its first instruction, `SET fp[9] = 1`. -/
@@ -36,25 +36,25 @@ example : guestProgram.fetch (addressOfIndex spWots.entryPc) = some (OffsetInstr
   guest_fetch_of spWots_mem (i := 0) (by decide +kernel) rfl (by decide +kernel)
 
 /-- Its last, the return `JUMP if fp[9] ≠ 0: pc = fp[0], fp = fp[1]`. -/
-example : guestProgram.fetch (addressOfIndex (spWots.entryPc + 23712)) = some (OffsetInstruction.jump 9 0
+example : guestProgram.fetch (addressOfIndex (spWots.entryPc + 23649)) = some (OffsetInstruction.jump 9 0
     1).toLeanIsaInstruction :=
-  guest_fetch_of spWots_mem (i := 23712) (by decide +kernel) rfl (by decide +kernel)
+  guest_fetch_of spWots_mem (i := 23649) (by decide +kernel) rfl (by decide +kernel)
 
-/-- A `KECCAK` writing the odd layout, all thirteen cells, `KECCAK fp[1042..+13] odd =
-keccak_f(fp[1055], fp[1056], fp[1057], fp[1058], tail = fp[1059..+4], b8 = fp[1063],
-cap = fp[1029..+4]) even`. -/
-example : guestProgram.fetch (addressOfIndex (spWots.entryPc + 23699)) =
-    some (OffsetInstruction.keccak 1055 1056 1057 1058 1059 1063 1029 1042 false
+/-- A `KECCAK` writing the odd layout, all thirteen cells, `KECCAK fp[974..+13] odd =
+keccak_f(fp[987], fp[988], fp[989], fp[990], tail = fp[991..+4], b8 = fp[995],
+cap = fp[961..+4]) even`. -/
+example : guestProgram.fetch (addressOfIndex (spWots.entryPc + 23636)) =
+    some (OffsetInstruction.keccak 987 988 989 990 991 995 961 974 false
         true .all).toLeanIsaInstruction :=
-  guest_fetch_of spWots_mem (i := 23699) (by decide +kernel) rfl (by decide +kernel)
+  guest_fetch_of spWots_mem (i := 23636) (by decide +kernel) rfl (by decide +kernel)
 
 /-- The next, reading the odd layout and writing one cell, the 16-byte digest,
-`KECCAK fp[845..+1] even = keccak_f(fp[1064], fp[1065], fp[1066], fp[1067], tail = fp[1068..+4],
-b8 = fp[1073], cap = fp[1051..+4]) odd`. -/
-example : guestProgram.fetch (addressOfIndex (spWots.entryPc + 23710)) =
-    some (OffsetInstruction.keccak 1064 1065 1066 1067 1068 1073 1051 845 true
+`KECCAK fp[844..+1] even = keccak_f(fp[996], fp[997], fp[998], fp[999], tail = fp[1000..+4],
+b8 = fp[1005], cap = fp[983..+4]) odd`. -/
+example : guestProgram.fetch (addressOfIndex (spWots.entryPc + 23647)) =
+    some (OffsetInstruction.keccak 996 997 998 999 1000 1005 983 844 true
         false .one).toLeanIsaInstruction :=
-  guest_fetch_of spWots_mem (i := 23710) (by decide +kernel) rfl (by decide +kernel)
+  guest_fetch_of spWots_mem (i := 23647) (by decide +kernel) rfl (by decide +kernel)
 
 /-- `verify_sig_lean_sphincs`, the function after `sp_wots`. -/
 abbrev sphincs : CompiledFunction := Data.functions[fn_idx% «verify_sig_lean_sphincs»]'(by decide +kernel)
@@ -125,7 +125,7 @@ example : keccakIns 139 140 141 142 143 147 29 =
 
 example : keccakOuts 3296 13 = (List.range 13).map (3296 + ·) := rfl
 
-example : keccakOuts 845 1 = [845] := rfl
+example : keccakOuts 844 1 = [844] := rfl
 
 /-- The instruction's read addresses are the offsets `keccakIns`, its written ones `keccakOuts`. -/
 example (c : Fin 13) :

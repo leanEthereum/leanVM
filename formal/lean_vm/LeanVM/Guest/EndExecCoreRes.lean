@@ -1039,7 +1039,7 @@ theorem resQ_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreP
   exact resQ_sound hT (vtQ_all hr I hI) (expQ_of_termQ hT (expQv_all hr I hI)) (dimQ_of_termQ hT) ht hf hall x h
 
 /-- **`verify_tables`' reads past its table sumcheck** (`vtStC`) at an honest instance: the last record's cursor
-`σ 2649` is `14 + 3n` words past the frame's cursor (`Tables.vt_zc_run`, `vt_cur13`), which `VtQ` puts `p` words into
+`σ 2647` is `14 + 3n` words past the frame's cursor (`Tables.vt_zc_run`, `vt_cur13`), which `VtQ` puts `p` words into
 the stream with room for `1009`. -/
 theorem vtStC_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
@@ -1058,7 +1058,7 @@ theorem vtStC_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts core
     obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv hf
     obtain ⟨hH, -⟩ := vt_holds (fun _ _ _ h ↦ Res.KidRel.rel h) hf hb
     obtain ⟨-, xs, pts, cl, -, -, -, -, e2649, -⟩ := B1.Tables.vt_zc_run hH hn34 hgn
-    have hcur : σ (.n 2649) = σ (.n 20) * Protocol.Verifier.gen ^ (p + 14 + 3 * n) := by
+    have hcur : σ (.n 2647) = σ (.n 20) * Protocol.Verifier.gen ^ (p + 14 + 3 * n) := by
       rw [e2649, vt_cur13 hH, e5]; ring
     have hcap : (8192 : ℕ) < CoreMode.capE := by rw [CoreMode.capE_eq]; norm_num
     refine ⟨0, 8192, p + 14 + 3 * n + c.off, CoreMode.rep_const (by rw [CoreMode.capE_eq]; norm_num),
@@ -1157,9 +1157,9 @@ def vsE (hs : List ℕ) (d n sl : ℕ) : ℕ → ℕ
   | 89 => hs.getD 3 0
   | 90 => hs.getD 4 0
   | 91 => hs.getD 5 0
-  | 583 => hs.getD 5 0
+  | 566 => hs.getD 5 0
   | 253 => d
-  | 579 => n
+  | 562 => n
   | 276 => sl
   | _ => sl - 20
 
@@ -1184,10 +1184,10 @@ theorem vs_exps {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePro
     have := loadHolds_det hx hy
     rw [this]
     simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (show t < hs.length by omega)]
-  have hm : ([(86, 0), (87, 1), (88, 2), (89, 3), (90, 4), (91, 5), (583, 5)] : List (ℕ × ℕ)).all
+  have hm : ([(86, 0), (87, 1), (88, 2), (89, 3), (90, 4), (91, 5), (566, 5)] : List (ℕ × ℕ)).all
       (fun p ↦ (Res.topAtoms (fn% «verify_sub»).body).contains (Atom.load (.n p.1) (.n 71) (p.2 + 1))) = true := by
     decide +kernel
-  have hm' : ∀ v t, (v, t) ∈ ([(86, 0), (87, 1), (88, 2), (89, 3), (90, 4), (91, 5), (583, 5)] : List (ℕ × ℕ)) →
+  have hm' : ∀ v t, (v, t) ∈ ([(86, 0), (87, 1), (88, 2), (89, 3), (90, 4), (91, 5), (566, 5)] : List (ℕ × ℕ)) →
       t < 6 → σ (.n v) = Protocol.Verifier.gen ^ hs.getD t 0 := fun v t hvt ht6 ↦
     hld v t (List.contains_iff_mem.mp (List.all_eq_true.mp hm (v, t) hvt)) ht6
   have h31 : ∀ t < 6, hs.getD t 0 < 31 := fun t ht ↦
@@ -1207,7 +1207,7 @@ theorem vs_exps {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePro
     · exact ⟨Nat.zero_le _, by have := h31 4 (by omega); show hs.getD 4 0 ≤ 30; omega,
         hm' 90 4 (by simp) (by omega)⟩
     · exact ⟨show 9 ≤ hs.getD 5 0 by omega, show hs.getD 5 0 ≤ 24 by omega, hm' 91 5 (by simp) (by omega)⟩
-    · exact ⟨show 9 ≤ hs.getD 5 0 by omega, show hs.getD 5 0 ≤ 24 by omega, hm' 583 5 (by simp) (by omega)⟩
+    · exact ⟨show 9 ≤ hs.getD 5 0 by omega, show hs.getD 5 0 ≤ 24 by omega, hm' 566 5 (by simp) (by omega)⟩
     · exact ⟨show 20 ≤ d by omega, show d ≤ 33 by omega, e253⟩
     · exact ⟨show 9 ≤ n by omega, show n ≤ 33 by omega, e579⟩
     · exact ⟨show 20 ≤ sl by omega, show sl ≤ 30 by omega, e276⟩
@@ -1349,7 +1349,7 @@ theorem layCur_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     ∃ p y, σ (.n 9) = Protocol.Verifier.gen ^ (y / B1.VerifySub.krStep) ∧
       σ (.n 10) = Protocol.Verifier.gen ^ (y % B1.VerifySub.krStep) ∧ y < 32 ∧
       σ (.n v) = σ (.n 15) * Protocol.Verifier.gen ^ (p + 48 + 2 * y) ∧ p + 84 + 2 * y ≤ 8192 := by
-  have hn : ∃ first < 2, fn.name = B1.VerifySub.layerName first ∧ v = B1.VerifySub.layOff first + 744 := by
+  have hn : ∃ first < 2, fn.name = B1.VerifySub.layerName first ∧ v = B1.VerifySub.layOff first + 743 := by
     simp only [CoreMode.layCur, Bool.cond_eq_ite, beq_iff_eq] at hv
     split_ifs at hv with h0 h1
     · exact ⟨0, by decide, h0, (Option.some.inj hv).symm⟩
@@ -1625,7 +1625,7 @@ theorem glQC_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreP
     simp only [Option.any_some] at hcs
     -- the layer
     obtain ⟨p, hp, o, ho, hn, rfl⟩ : ∃ p < 4, ∃ o < 2, fn.name = B1.Tables.glName p o ∧
-        cs = (if p = 0 then [] else [(21, 8 * p)]) ++ [(77 + B1.Tables.glD p, 20 - 4 * o)] := by
+        cs = (if p = 0 then [] else [(21, 8 * p)]) ++ [(76 + B1.Tables.glD p, 20 - 4 * o)] := by
       have hm := CoreMode.lookup_memL hl
       simp only [CoreMode.glCurs, List.mem_cons, Prod.mk.injEq, List.not_mem_nil, or_false] at hm
       rcases hm with ⟨h1, rfl⟩ | ⟨h1, rfl⟩ | ⟨h1, rfl⟩ | ⟨h1, rfl⟩ | ⟨h1, rfl⟩ | ⟨h1, rfl⟩ | ⟨h1, rfl⟩ | ⟨h1, rfl⟩
@@ -1670,7 +1670,7 @@ theorem glQC_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreP
           have hco' : co < 8 * p := hco
           exact key 21 0 (by rw [e21, pow_zero, mul_one]) (by omega) rfl
       · have hco' : co < 20 - 4 * o := hco
-        exact key (77 + B1.Tables.glD p) (8 * p + 32 * m) e77 (by omega) rfl
+        exact key (76 + B1.Tables.glD p) (8 * p + 32 * m) e77 (by omega) rfl
     · cases hcs
   | .lt _ _, h | .nz _, h | .subR _ _, h | .subP _ _, h => by simp [CoreMode.glQC] at h
 

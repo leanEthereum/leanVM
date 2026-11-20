@@ -36,7 +36,7 @@ variable {D : VkData} {cert : String → V → ℕ}
 every node.** -/
 theorem kids_completeBE_fs (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE zvE slE tbE stE : ℕ) :
     KidsGBT LeanVM.Guest.B2C.fs cert κ exT (D.kids LeanVM.Guest.B2C.fs B curE chiE olE zvE slE tbE stE)
-      (D.kidsB LeanVM.Guest.B2C.fs 17 374 77 250 178) := by
+      (D.kidsB LeanVM.Guest.B2C.fs 17 374 77 201 145) := by
   have hG := kidsGB_zip (kids_completeB_fs (cert := cert) h hκ B curE chiE olE zvE slE tbE stE)
   have hτ1 := h.1
   have hτ2 := h.2.1
@@ -91,9 +91,9 @@ theorem verify_keccak_completeAtBE_fs {κ : ℕ} (hκ : 11 ≤ κ) :
     (fun fp fps ↦ own_fit h _ _)
     (fun fp ↦ D.kids LeanVM.Guest.B2C.fs (fp + LeanVM.Guest.B2C.fs "verify_keccak") curE chiE olE
       zvE slE tbE stE)
-    (D.kidsB LeanVM.Guest.B2C.fs 17 374 77 250 178) 52659
+    (D.kidsB LeanVM.Guest.B2C.fs 17 374 77 201 145) 52659
     (fun fp ↦ kids_completeBE_fs h hκ _ curE chiE olE zvE slE tbE stE)
-    (fun fp ↦ (kids_boundB _ curE chiE olE zvE slE tbE stE 17 374 77 250 178).trans (kidsB_fs_le h).2)
+    (fun fp ↦ (kids_boundB _ curE chiE olE zvE slE tbE stE 17 374 77 201 145).trans (kidsB_fs_le h).2)
     (fun fp fps outs hlen _ hout rd _ hB hLin hto ↦
       vk_obl h curE chiE olE zvE slE tbE stE fp fps outs hlen hout rd hB hLin hto)).mono ?_ fun _ _ h ↦ h
   show _ ≤ LeanVM.Guest.B2C.fs "verify_keccak" + 440 + 52659

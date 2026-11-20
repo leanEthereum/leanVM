@@ -13,6 +13,7 @@ verifier.workspace = true
 keccak256.workspace = true
 fiat_shamir_prover.workspace = true
 zkdsl_compiler.workspace = true
+claims.workspace = true
 lean_xmss.workspace = true
 lean_sphincs.workspace = true
 lean_da.workspace = true

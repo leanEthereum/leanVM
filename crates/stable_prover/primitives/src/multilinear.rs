@@ -151,6 +151,7 @@ mod tests {
             let point: Vec<_> = (0..n).map(|i| F128::new(17 + i, 231 + 3 * i)).collect();
             assert_eq!(mle_eval(&table, &point), folded(&table, &point));
             assert_eq!(mle_eval_par(&table, &point), folded(&table, &point));
+            assert_eq!(mle_eval_par(&[], &point), F128::ZERO);
             let point: Vec<_> = (0..n).map(|i| F128::from(F64(i % 2))).collect();
             assert_eq!(mle_eval(&table, &point), folded(&table, &point));
             assert_eq!(mle_eval_par(&table, &point), folded(&table, &point));

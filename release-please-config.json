@@ -1,0 +1,57 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "include-component-in-tag": true,
+  "tag-separator": "-",
+  "bump-minor-pre-major": true,
+  "packages": {
+    "bindings": {
+      "release-type": "simple",
+      "package-name": "bindings",
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {
+          "type": "toml",
+          "path": "Cargo.toml",
+          "jsonpath": "$.workspace.package.version"
+        },
+        {
+          "type": "generic",
+          "path": "README.md"
+        },
+        {
+          "type": "generic",
+          "path": "python/README.md"
+        },
+        {
+          "type": "generic",
+          "path": "node/README.md"
+        },
+        {
+          "type": "generic",
+          "path": "java/README.md"
+        },
+        {
+          "type": "generic",
+          "path": "go/README.md"
+        },
+        {
+          "type": "generic",
+          "path": "zig/README.md"
+        },
+        {
+          "type": "generic",
+          "path": "nim/README.md"
+        },
+        {
+          "type": "generic",
+          "path": "nim/lean_pq.nimble"
+        },
+        {
+          "type": "generic",
+          "path": "nim/lean_pq/abi.nim"
+        }
+      ],
+      "component": "bindings"
+    }
+  }
+}

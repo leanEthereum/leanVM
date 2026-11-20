@@ -44,8 +44,8 @@ def stStep (rem : Bool) : ℕ := if rem then 2 else 16
 
 /-- The loop's arguments at the layer's call, the layer's values from `o`. -/
 def stArgs (o : ℕ) (rem : Bool) : List V :=
-  if rem then [.n (o + 737), .n 10, .n (o + 726), .n (o + 730), .n 14, .n (o + 734)]
-  else [.n (o + 725), .n 9, .n (o + 720), .n (o + 718), .n (o + 719), .n 14]
+  if rem then [.n (o + 736), .n 10, .n (o + 725), .n (o + 729), .n 14, .n (o + 733)]
+  else [.n (o + 724), .n 9, .n (o + 719), .n (o + 717), .n (o + 718), .n 14]
 
 /-- The layer's index. -/
 def layIdx (first : ℕ) : ℕ := if first = 1 then fn_idx% «keccak_layer__L1» else fn_idx% «keccak_layer__L0»
@@ -196,19 +196,19 @@ theorem packSetupT_noRet {first : ℕ} (hf : first < 2) : Stmt.noRetList (packSe
 eight-round loop's call, the remainder loop's record, the counters' `1`. -/
 theorem layer_setup {first : ℕ} (hf : first < 2) {C : CallRel} {σ : Val} {kret : List E → Prop}
     {body : List Stmt} (hbd : body = layerT first) (h : Stmt.HoldsList C rd σ body False kret) :
-    LoadHolds rd (σ (.n (layOff first + 720))) 80 (σ (.n 7) * gen ^ 48) ∧
-      (1 + σ (.n 9) ≠ 0 → C (packLoopName first) [1, σ (.n 9), σ (.n (layOff first + 720)),
-        σ (.n (layOff first + 718)), σ (.n (layOff first + 719)), σ (.n 14)] []) ∧
-      σ (.n (layOff first + 726)) = σ (.n (layOff first + 720)) * σ (.n 9) ∧
-      σ (.n (layOff first + 725)) = 1 ∧ σ (.n (layOff first + 737)) = 1 := by
+    LoadHolds rd (σ (.n (layOff first + 719))) 80 (σ (.n 7) * gen ^ 48) ∧
+      (1 + σ (.n 9) ≠ 0 → C (packLoopName first) [1, σ (.n 9), σ (.n (layOff first + 719)),
+        σ (.n (layOff first + 717)), σ (.n (layOff first + 718)), σ (.n 14)] []) ∧
+      σ (.n (layOff first + 725)) = σ (.n (layOff first + 719)) * σ (.n 9) ∧
+      σ (.n (layOff first + 724)) = 1 ∧ σ (.n (layOff first + 736)) = 1 := by
   subst hbd
   rw [layerT_split, holdsList_append, holdsList_noRet _ (layA_noRet hf)] at h
   replace h := h.2
   rw [holdsList_append] at h
   obtain ⟨ha, -⟩ := holdsList_mem (packSetupT_noRet hf) h
   obtain ⟨-, hrec0, -, hloopC, e727, -, -, -⟩ := packSetupT_holds h
-  have e726 := ha (.const (.n (layOff first + 725)) (word 1 0)) (by simp [packSetupT])
-  have e738 := ha (.const (.n (layOff first + 737)) (word 1 0)) (by simp [packSetupT])
+  have e726 := ha (.const (.n (layOff first + 724)) (word 1 0)) (by simp [packSetupT])
+  have e738 := ha (.const (.n (layOff first + 736)) (word 1 0)) (by simp [packSetupT])
   simp only [Atom.Holds] at e726 e738
   exact ⟨hrec0.2.1, hloopC, e727, by rw [e726, word_one], by rw [e738, word_one]⟩
 

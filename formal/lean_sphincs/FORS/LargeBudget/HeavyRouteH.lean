@@ -79,13 +79,13 @@ theorem rest_boundH (hcompat : Compatible tg model) (htrunc : UniformTruncation 
   set E := ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
     weight tg initial out.2 with hEdef
   have hE : E ≤ 1 :=
-    le_trans (ENNReal.tsum_le_tsum fun out => mul_le_of_le_one_right' (weight_le_one tg initial out.2))
+    le_trans (tsum_le_tsum fun out => mul_le_of_le_one_right' (weight_le_one tg initial out.2))
       (OracleComp.tsum_prEvent_le_one _)
   have hcompl : ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
       (1 - weight tg initial out.2) = 1 - E := by
     have hsum : ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
         (1 - weight tg initial out.2) + E = 1 := by
-      rw [hEdef, ← ENNReal.tsum_add]
+      rw [hEdef, ← tsum_add]
       calc _ = ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] :=
             tsum_congr fun out => by
               rw [← mul_add, tsub_add_cancel_of_le (weight_le_one tg initial out.2), mul_one]
@@ -96,10 +96,10 @@ theorem rest_boundH (hcompat : Compatible tg model) (htrunc : UniformTruncation 
   rw [OracleComp.prEvent_bind_eq_tsum]
   calc _ ≤ ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
         ((1 - weight tg initial out.2) + weight tg initial out.2 * finalValue parameter data tg initial [] out) :=
-        ENNReal.tsum_le_tsum fun out => mul_le_mul_right (hit_or_cover_le parameter data tg initial out) _
+        tsum_le_tsum fun out => mul_le_mul_right (hit_or_cover_le parameter data tg initial out) _
     _ = (1 - E) + ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
           (weight tg initial out.2 * finalValue parameter data tg initial [] out) := by
-        rw [← hcompl, ← ENNReal.tsum_add]
+        rw [← hcompl, ← tsum_add]
         exact tsum_congr fun out => mul_add _ _ _
     _ ≤ (1 - (budget 0 total + b0 * W)) +
           (potH parameter data total wbar b0 Fail tg initial Lmax start [] [] [] 0 total + b0 * W) :=

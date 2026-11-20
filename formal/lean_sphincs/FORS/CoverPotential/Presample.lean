@@ -298,13 +298,13 @@ theorem interp_presample_le (x : D) (hk : tg.kind x = .none) {α : Type}
     rw [← OracleComp.tsum_prEvent_bind_mul]
     exact tsum_congr fun out => congrArg (· * _) ((presample_interp tg initial model x hk computation budget state).prEvent_eq _)
   rw [heq, OracleComp.tsum_prEvent_bind_mul]
-  refine ENNReal.tsum_le_tsum fun out => ?_
+  refine tsum_le_tsum fun out => ?_
   by_cases hout : out ∈ support (interp tg initial model computation budget state)
   · refine mul_le_mul_right ?_ _
     rw [OracleComp.tsum_prEvent_map_mul]
     calc F out = ∑' s, Pr{let y ← presample x out.2}[y = s] * F out := by
           rw [ENNReal.tsum_mul_right, presample_mass, one_mul]
-      _ ≤ _ := ENNReal.tsum_le_tsum fun s => by
+      _ ≤ _ := tsum_le_tsum fun s => by
           by_cases hs : s ∈ support (presample x out.2)
           · exact mul_le_mul_right (hF out s hs) _
           · rw [(prEvent_eq_zero_of_not_mem_support _) hs, zero_mul, zero_mul]

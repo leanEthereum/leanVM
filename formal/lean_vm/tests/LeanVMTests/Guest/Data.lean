@@ -49,7 +49,7 @@ def opcodeCounts : List Nat :=
 #guard guest.constArrays.length = Manifest.constArrayCount
 #guard guest.funcs.any (·.name == "main")
 
-/- The compiler's fifteen test programs. -/
-#guard Programs.all.length = 15
+/- The compiler's sixteen test programs. -/
+#guard Programs.all.length = 16
 
 end LeanVMTests.Guest.Data

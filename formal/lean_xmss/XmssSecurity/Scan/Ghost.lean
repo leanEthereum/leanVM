@@ -160,7 +160,7 @@ theorem expectedSimulatedCost_overBudget_eq_zero (Q : ℕ)
             | inl _ => exact hadv
             | inr _ => simp at hfirst; omega
           rw [hcost, zero_add]
-          refine ENNReal.tsum_eq_zero.2 fun r => ?_
+          refine tsum_eq_zero_iff.2 fun r => ?_
           by_cases hr : r ∈ support ((impl publicKey secretKey (.inl world)).run ((cache, trace), k))
           · obtain ⟨r0, hr0, rfl⟩ := mem_support_world publicKey secretKey hr
             have hnext := (hashQueryBound_query_bind world _ cache (Q - k) hb r0 hr0).2
@@ -176,7 +176,7 @@ theorem expectedSimulatedCost_overBudget_eq_zero (Q : ℕ)
           have hcost : overBudget Q (.inr request) ((cache, trace), k) = 0 := by
             unfold overBudget; rw [ite_eq_right]; rintro ⟨hadv, _⟩; exact hadv
           rw [hcost, zero_add]
-          refine ENNReal.tsum_eq_zero.2 fun r => ?_
+          refine tsum_eq_zero_iff.2 fun r => ?_
           by_cases hr : r ∈ support ((impl publicKey secretKey (.inr request)).run ((cache, trace), k))
           · obtain ⟨r0, hr0, rfl⟩ := mem_support_sign publicKey secretKey hr
             rw [ih r0.1 r0.2 _ k (hashQueryBound_bind_right _ _ cache _ hbound r0 hr0) hk, mul_zero]
@@ -205,7 +205,7 @@ theorem expectedSimulatedCost_advEncoding_le (parameter : PublicParameter)
       intro cache trace k
       rw [expectedSimulatedCost_query_bind, simulateQ_source_query_bind, expectedSimulatedQueryCount_bind,
         impl_run, OracleComp.tsum_prEvent_map_mul]
-      refine add_le_add ?_ (ENNReal.tsum_le_tsum fun r => mul_le_mul_right (ih _ _ _ _) _)
+      refine add_le_add ?_ (tsum_le_tsum fun r => mul_le_mul_right (ih _ _ _ _) _)
       cases input with
       | inl world =>
           rw [source_world]

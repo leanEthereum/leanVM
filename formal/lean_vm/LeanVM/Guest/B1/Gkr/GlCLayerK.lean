@@ -33,17 +33,17 @@ def glcL (p o : ℕ) : List Stmt := glBody p o (glLoopName p o)
 
 /-- A run of `n` rounds' reads from `B`: the four words at `cur` and the eq factor at `pt`. -/
 def glcRoundKeys (B cur pt n : ℕ) : List (ℕ × ℕ × ℕ) :=
-  (List.range n).flatMap fun q ↦ [(B + 40 * q, cur, 4 * q), (B + 40 * q + 3, cur, 4 * q + 1),
-    (B + 40 * q + 6, cur, 4 * q + 2), (B + 40 * q + 9, cur, 4 * q + 3), (B + 40 * q + 26, pt, q)]
+  (List.range n).flatMap fun q ↦ [(B + 39 * q, cur, 4 * q), (B + 39 * q + 3, cur, 4 * q + 1),
+    (B + 39 * q + 6, cur, 4 * q + 2), (B + 39 * q + 9, cur, 4 * q + 3), (B + 39 * q + 25, pt, q)]
 
 /-- The children's reads, renamed. -/
 def glcKidKeys (p o : ℕ) : List (ℕ × ℕ × ℕ) :=
-  (List.range 12).map fun i ↦ (chB 159 i + glD p - 39 * o, 77 + glD p, 4 * (2 - o) + i)
+  (List.range 12).map fun i ↦ (chB 156 i + glD p - 38 * o, 76 + glD p, 4 * (2 - o) + i)
 
 /-- Every read of the body. -/
 def glcFresh (p o : ℕ) : List (ℕ × ℕ × ℕ) :=
-  glPreKeys ++ glcRoundKeys 59 21 53 (2 * p) ++ glTailKeys p ++
-    glcRoundKeys (79 + glD p) (77 + glD p) (68 + glD p) (2 - o) ++ glcKidKeys p o
+  glPreKeys ++ glcRoundKeys 58 21 52 (2 * p) ++ glTailKeys p ++
+    glcRoundKeys (78 + glD p) (76 + glD p) (67 + glD p) (2 - o) ++ glcKidKeys p o
 
 set_option maxRecDepth 100000 in
 theorem glc_layer_check : ∀ p < 4, ∀ o < 2, (chk 9 (glcL p o)).isSome = true ∧
@@ -60,7 +60,7 @@ theorem glc_fresh {p o : ℕ} (hp : p < 4) (ho : o < 2) :
 def tailOkA : Atom → Bool
   | .const .. | .add .. | .copy .. | .keccak .. | .assertEq .. => true
   | .load d q _ => decide (d = .n d.idx) && decide (q = .n q.idx)
-  | .mul d x y => decide (159 ≤ d.idx) && decide (x.idx < d.idx) && decide (y.idx < d.idx)
+  | .mul d x y => decide (156 ≤ d.idx) && decide (x.idx < d.idx) && decide (y.idx < d.idx)
   | _ => false
 
 def tailOkS : Stmt → Bool
@@ -71,11 +71,11 @@ def tailOkS : Stmt → Bool
 theorem glTail_ok : ∀ o < 2, (glTail o).all tailOkS = true := by decide +kernel
 
 theorem glRho_idx (p o : ℕ) (v : V) : (glRho p o v).idx =
-    if v.idx < 59 then v.idx else if v.idx < 119 then v.idx + glD p
-    else if v.idx < 159 then v.idx + glD p - 40 * o else v.idx + glD p - 39 * o := by
+    if v.idx < 58 then v.idx else if v.idx < 117 then v.idx + glD p
+    else if v.idx < 156 then v.idx + glD p - 39 * o else v.idx + glD p - 38 * o := by
   unfold glRho; split_ifs <;> rfl
 
-theorem glRho_lt {p o : ℕ} (ho : o < 2) {x d : V} (hd : 159 ≤ d.idx) (hx : x.idx < d.idx) :
+theorem glRho_lt {p o : ℕ} (ho : o < 2) {x d : V} (hd : 156 ≤ d.idx) (hx : x.idx < d.idx) :
     (glRho p o x).idx < (glRho p o d).idx := by
   rw [glRho_idx, glRho_idx]; split_ifs <;> omega
 

@@ -247,7 +247,7 @@ theorem decode_eq_some_iff {v : Vector K 13} {i : LeanIsaInstruction} : decode v
       case keccak =>
         rcases h9 : flag? v[9] with _ | inOdd <;> rcases h10 : flag? v[10] with _ | outOdd <;>
           rcases h11 : outCells? v[11] v[12] with _ | outCells <;>
-          rw [h9, h10, h11] at h <;> try cases h
+          rw [h9, h10, h11] at h <;> cases h
         rw [flag?_eq_some_iff] at h9 h10
         rw [outCells?_eq_some_iff, Prod.mk.injEq] at h11
         refine Vector.ext fun j hj ↦ ?_

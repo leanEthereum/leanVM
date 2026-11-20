@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Opening.WalkPops
-public import LeanVM.Guest.B1.Merkle.Cap
+public import LeanVM.Guest.B1.Merkle.CapBody
 public import LeanVM.Guest.B1.Whir.HelperT
 
 /-!

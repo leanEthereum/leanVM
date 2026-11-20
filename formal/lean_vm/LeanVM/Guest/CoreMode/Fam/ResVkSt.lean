@@ -125,7 +125,7 @@ theorem vkSt_top (t : TopAt A r K i e j) (hr : r.Ok) {x : Mode.Res} (hx : vkStB 
     have hsite := List.all_eq_true.mp vk_sites s (List.mem_range.mpr hs)
     simp only [beq_iff_eq] at hsite
     obtain ⟨st, hst, hstq⟩ := Option.map_eq_some_iff.mp hsite
-    have hq8 : vkSiteQ s ≤ 738 := by
+    have hq8 : vkSiteQ s ≤ 711 := by
       interval_cases s <;> decide
     have hrdq := (hF.site ii c kfp st hii hkfp hst).1 (by rw [hstq]; interval_cases s <;> decide)
       (by rw [hstq]; omega)

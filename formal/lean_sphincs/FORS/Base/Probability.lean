@@ -52,7 +52,7 @@ theorem toMeasure_eq_sum_dirac {α : Type*} [MeasurableSpace α] (p : PMF α) :
   ext s hs
   rw [p.toMeasure_apply hs, Measure.sum_apply _ hs]
   refine tsum_congr fun a => ?_
-  rw [Measure.smul_apply, Measure.dirac_apply' a hs, smul_eq_mul]
+  rw [smul_apply, Measure.dirac_apply' a hs, smul_eq_mul]
   by_cases ha : a ∈ s <;> simp [ha]
 
 theorem lintegral_toMeasure {α : Type*} [MeasurableSpace α] (p : PMF α) {f : α → ENNReal}

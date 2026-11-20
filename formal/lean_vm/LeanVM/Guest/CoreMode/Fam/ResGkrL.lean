@@ -52,8 +52,8 @@ theorem gll_next {p o : ℕ} (hp : p < 4) (ho : o < 2) {rd : Reader} {σ : Core.
     (hh : ∀ e ∈ es, e.Holds rd σ) {cur : E} (h0 : LoadHolds rd (σ (.n 2) * σ (.n 0)) 4310 cur) :
     σ (.n 17) = cur ∧ LoadHolds rd (σ (.n 2) * (σ (.n 0) * gen)) 4310 (cur * gen ^ 32) := by
   rw [hb] at hw
-  have hA : ∀ a ∈ [Atom.mul (.n 6) (.n 2) (.n 0), .load (.n 17) (.n 6) 4310, .const (.n 339) (word (2 ^ 32) 0),
-      .mul (.n 340) (.n 17) (.n 339), .load (.n 340) (.n 6) 4311], a.Holds rd σ := fun a ha ↦
+  have hA : ∀ a ∈ [Atom.mul (.n 6) (.n 2) (.n 0), .load (.n 17) (.n 6) 4310, .const (.n 331) (word (2 ^ 32) 0),
+      .mul (.n 332) (.n 17) (.n 331), .load (.n 332) (.n 6) 4311], a.Holds rd σ := fun a ha ↦
     hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp (List.all_eq_true.mp (gll_atoms p hp o ho) a ha)))
   simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at hA
   obtain ⟨m6, l17, c339, m340, l340⟩ := hA

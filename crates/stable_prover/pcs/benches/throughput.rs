@@ -1,6 +1,6 @@
 //! PCS throughput: commits a random witness of `2^PCS_LOG_N` `K` words at inverse rate `2^PCS_LOG_INV_RATE`, with its
 //! OOD sample, opens it, times each phase, and reports GiB/s over the committed data. The passes follow
-//! [`bench::Plan::from_env`] (`BENCH_REPEAT`, `BENCH_COOLDOWN`).
+//! [`bench_harness::Plan::from_env`] (`BENCH_REPEAT`, `BENCH_COOLDOWN`).
 //!
 //! ```text
 //! PCS_LOG_N          number of variables = log2(witness length)   [default 22]
@@ -18,17 +18,17 @@ extern crate stable_pcs as pcs;
 use std::hint::black_box;
 use std::time::Instant;
 
-use bench::{Plan, Timing, env_usize};
+use bench_harness::{Plan, Timing, env_usize};
 use isa::pretty_integer;
 use pcs::{RingSwitchOpen, StackClaim, commit, open};
 use primitives::{field::F64, test_rng::Rng};
 use verifier::MIN_LOG_INV_RATE;
 
 #[global_allocator]
-static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
+static ALLOCATOR: allocator::Jemalloc = allocator::Jemalloc;
 
 fn main() {
-    bench::init_tracing_from_env();
+    bench_harness::init_tracing_from_env();
 
     let log_n = env_usize("PCS_LOG_N", 22);
     let log_inv_rate = env_usize("PCS_LOG_INV_RATE", MIN_LOG_INV_RATE);
@@ -60,7 +60,7 @@ fn main() {
 
     let (mut commit_t, mut open_t) = (Timing::default(), Timing::default());
     plan.warm_then_measure(|last| {
-        let _quiet = (!last).then(bench::suppress_tracing);
+        let _quiet = (!last).then(bench_harness::suppress_tracing);
 
         let mut ps = primitives::transcript::ProverState::from_label(b"pcs-throughput");
         let t = Instant::now();

@@ -16,7 +16,7 @@
 # The `changes` step (`scripts/guest-changes`) lists the functions whose bodies changed, were added or
 # were removed since the last export, with the hand-written modules that read them: the proofs to
 # adapt. Not regenerated here: the verifier fixtures (`scripts/export-verifier-fixtures-rust.sh`,
-# after a protocol change) and the fold rounds' table (`scripts/whir-fold-table`, after a change to
+# before the differential tests) and the fold rounds' table (`scripts/whir-fold-table`, after a change to
 # WHIR's folding).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -78,10 +78,14 @@ parts_decoder=(decoder) targets_decoder=(LeanVM.Guest.Glob LeanVM.Cost.Decoder.G
 part_export() {
   step "export: bytecode, source, programs (guest-export, from leanVM's sources)"
   # The core IR before the change, for the `changes` step.
+  # None on a fresh checkout, where the generated files are not there yet.
   if [ ${#check[@]} -eq 0 ]; then
-    rm -rf .lake/guest-before && mkdir -p .lake/guest-before/Data && cp LeanVM/Guest/Data/Core*.lean .lake/guest-before/Data/
-    if [ -d LeanVM/Guest/Fn ]; then cp -R LeanVM/Guest/Fn .lake/guest-before/Fn; fi
-    if [ -d LeanVM/Guest/Pack ]; then cp -R LeanVM/Guest/Pack .lake/guest-before/Pack; fi
+    rm -rf .lake/guest-before
+    if compgen -G "LeanVM/Guest/Data/Core*.lean" > /dev/null; then
+      mkdir -p .lake/guest-before/Data && cp LeanVM/Guest/Data/Core*.lean .lake/guest-before/Data/
+      if [ -d LeanVM/Guest/Fn ]; then cp -R LeanVM/Guest/Fn .lake/guest-before/Fn; fi
+      if [ -d LeanVM/Guest/Pack ]; then cp -R LeanVM/Guest/Pack .lake/guest-before/Pack; fi
+    fi
   fi
   cargo build --release --manifest-path scripts/guest-export/Cargo.toml
   capped scripts/guest-export/target/release/guest-export . "${check[@]}"
@@ -250,14 +254,16 @@ done
 # steps not selected counting as done), so independent parts run at once; the Lean generators' builds
 # first (`exes`), together. A part's output is printed when it ends; a part whose inputs failed does not run.
 after_exes=(export) after_core_ir=(exes) after_core_names=(core_ir) after_core_vsat=(core_ir) after_changes=(core_ir)
-after_vt=(core_ir) after_cert=(core_names core_vsat changes vt) after_memory=(exes)
+after_vt=(core_ir) after_cert=(core_names core_vsat changes vt) after_memory=(core_ir)
 after_bridge_align=(cert) after_bridge_checks=(bridge_align) after_core_mode=(bridge_align)
 after_res=(core_mode bridge_checks) after_whir_data=(cert) after_whir_mat_plan=(whir_data)
 after_walk_known=(whir_mat_plan) after_whir_queries=(walk_known) after_count_gen=(whir_queries memory cert)
 after_count_vsos=(count_gen) after_count_loops=(count_vsos core_mode) after_tables=(count_vsos) after_decoder=(cert)
 part_exes() {
-  step "exes: the Lean generators (guest-core, guest-cert, guest-memory)"
-  lakebuild guest-core guest-cert guest-memory
+  step "exes: the core IR's generator (guest-core)"
+  # guest-core alone: guest-cert and guest-memory import the data its run writes (`Data/NameStrings`), each built
+  # in its own step
+  lakebuild guest-core
 }
 
 if [ ${#check[@]} -eq 0 ]; then
@@ -272,7 +278,12 @@ if [ ${#check[@]} -eq 0 ]; then
         until [ -e "$tmp/$d.ok" ] || [ -e "$tmp/$d.failed" ]; do sleep 1; done
         [ -e "$tmp/$d.ok" ] || { touch "$tmp/$p.failed"; exit 1; }
       done
-      if ("part_$p") > "$tmp/$p.out" 2>&1; then touch "$tmp/$p.ok"; else touch "$tmp/$p.failed"; exit 1; fi
+      # not in an `if`'s condition, where `set -e` would not stop the part at its first failing command
+      set +e
+      (set -e; "part_$p") > "$tmp/$p.out" 2>&1
+      rc=$?
+      set -e
+      if [ "$rc" -eq 0 ]; then touch "$tmp/$p.ok"; else touch "$tmp/$p.failed"; exit 1; fi
     ) & pids+=($!)
   done
   for i in "${!todo[@]}"; do

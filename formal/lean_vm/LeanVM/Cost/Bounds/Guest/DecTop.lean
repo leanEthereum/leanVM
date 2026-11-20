@@ -66,12 +66,12 @@ theorem babyTable_cost (hP : Includes P Decoder.babyTableC.costDeps) (b : K) (s 
       74 * (s * Nat.clog 2 s) + 120 * s + 16 := by
   rw [Decoder.babyTableC.costEq P hP, List.length_mergeSort, length_powPairsBy]
   have h1 := powPairsBy_cost P (by includes) b s 0 1 (by omega)
-  have h2 := mergeSortList_cost P (by includes) _ (.closure powTable.c237.lam0.costIdx [])
-    (fun a b ↦ RunsApp.of_spec (powTable.c237.lam0.costSpec P (by includes) a b)) 7
+  have h2 := mergeSortList_cost P (by includes) _ (.closure powTable.c110.lam0.costIdx [])
+    (fun a b ↦ RunsApp.of_spec (powTable.c110.lam0.costSpec P (by includes) a b)) 7
     (fun e ↦ e.1 < 2 ^ 64)
     (fun a b ha hb ↦ by
       simp only [appCost_fn, List.nil_append, List.length_nil]
-      rw [powTable.c237.lam0.costEq P (by includes), limbs_of_lt ha, limbs_of_lt hb]
+      rw [powTable.c110.lam0.costEq P (by includes), limbs_of_lt ha, limbs_of_lt hb]
       omega)
     (powPairsBy b s 0 1) (by rw [length_powPairsBy]; omega)
     (fun e he ↦ (mem_powPairsBy_lt b s 0 1 e he).1)
@@ -357,7 +357,7 @@ theorem frameWit_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitNC.
     {Kc N X : ℕ} (hc : CountsWithin D σ Kc N X) (L : ℕ) (hL32 : L ≤ 2 ^ 32)
     (hLk : ∀ c < Decoder.nKidsD D σ,
       Decoder.cursorLength D (Decoder.frameAtA table rd (fn_idx% verify_sub) (Decoder.subArgsK rd σ c) [] (.n 25))
-        (Decoder.frameAtA table rd (fn_idx% verify_sub) (Decoder.subArgsK rd σ c) [] (.n 1919)) ≤ L) :
+        (Decoder.frameAtA table rd (fn_idx% verify_sub) (Decoder.subArgsK rd σ c) [] (.n 1885)) ≤ L) :
     machineCost P Decoder.decWitNC.costIdx [encodeValue D, encodeValue Tb, σV, rdV,
       .closure Decoder.decTopFramesC.lam0.costIdx [rdV, encodeValue table],
       .closure Decoder.decTopFramesC.lam1.costIdx [encodeValue Tb, rdV, encodeValue table],

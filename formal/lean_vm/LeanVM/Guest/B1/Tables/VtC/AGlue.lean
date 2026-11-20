@@ -91,13 +91,13 @@ theorem vt_pull_good (hl : args.length = 21) : VtPullSelsH (vtσ rd w args) := b
 
 /-- **`ξ`'s powers**, honestly. -/
 theorem vt_xi_good (hl : args.length = 21) :
-    vtσ rd w args (.n 2612) = 1 ∧ vtσ rd w args (.n 2613) = vtσ rd w args (.n 2611) ∧
-      vtσ rd w args (.n 2614) = vtσ rd w args (.n 2611) ^ 2 ∧
-      vtσ rd w args (.n 2615) = vtσ rd w args (.n 2611) ^ 3 ∧
-      vtσ rd w args (.n 2616) = vtσ rd w args (.n 2611) ^ 4 := by
-  have g := vt_goodL (rd := rd) (w := w) hl 2633 [.atom (.const (.n 2612) (word 1 0)),
-    .atom (.mul (.n 2613) (.n 2612) (.n 2611)), .atom (.mul (.n 2614) (.n 2613) (.n 2611)),
-    .atom (.mul (.n 2615) (.n 2614) (.n 2611)), .atom (.mul (.n 2616) (.n 2615) (.n 2611))]
+    vtσ rd w args (.n 2610) = 1 ∧ vtσ rd w args (.n 2611) = vtσ rd w args (.n 2597) ∧
+      vtσ rd w args (.n 2612) = vtσ rd w args (.n 2597) ^ 2 ∧
+      vtσ rd w args (.n 2613) = vtσ rd w args (.n 2597) ^ 3 ∧
+      vtσ rd w args (.n 2614) = vtσ rd w args (.n 2597) ^ 4 := by
+  have g := vt_goodL (rd := rd) (w := w) hl 2631 [.atom (.const (.n 2610) (word 1 0)),
+    .atom (.mul (.n 2611) (.n 2610) (.n 2597)), .atom (.mul (.n 2612) (.n 2611) (.n 2597)),
+    .atom (.mul (.n 2613) (.n 2612) (.n 2597)), .atom (.mul (.n 2614) (.n 2613) (.n 2597))]
     (by rw [vtPre_drop]; decide +kernel)
   generalize vtσ rd w args = σ at g ⊢
   simp only [GoodL, GoodS, fixNe, Good, Nat.reduceLT, and_self, ↓reduceIte, and_true] at g
@@ -112,14 +112,14 @@ theorem vt_xi_good (hl : args.length = 21) :
 /-- **The GKR leaf values** are read from `gkr_leaves` (`args 17`). -/
 theorem vt_leaves_good (hl : args.length = 21) {leaves : List E} (hll : leaves.length = 3)
     (h : TbReadsAt rd (args.getD 17 0) leaves) :
-    vtσ rd w args (.n 2442) = leaves.getD 0 0 ∧ vtσ rd w args (.n 2488) = leaves.getD 1 0 ∧
-      vtσ rd w args (.n 2543) = leaves.getD 2 0 := by
+    vtσ rd w args (.n 2441) = leaves.getD 0 0 ∧ vtσ rd w args (.n 2487) = leaves.getD 1 0 ∧
+      vtσ rd w args (.n 2542) = leaves.getD 2 0 := by
   have hp : vtσ rd w args (.n 17) = args.getD 17 0 := vt_param hl (by norm_num)
-  have rd0 := vt_read (rd := rd) (w := w) hl 2488 (d := .n 2442) (p := .n 17) (off := 0)
+  have rd0 := vt_read (rd := rd) (w := w) hl 2487 (d := .n 2441) (p := .n 17) (off := 0)
     (by rw [vtPre_drop]; decide +kernel) (by decide)
-  have rd1 := vt_read (rd := rd) (w := w) hl 2534 (d := .n 2488) (p := .n 17) (off := 1)
+  have rd1 := vt_read (rd := rd) (w := w) hl 2533 (d := .n 2487) (p := .n 17) (off := 1)
     (by rw [vtPre_drop]; decide +kernel) (by decide)
-  have rd2 := vt_read (rd := rd) (w := w) hl 2589 (d := .n 2543) (p := .n 17) (off := 2)
+  have rd2 := vt_read (rd := rd) (w := w) hl 2588 (d := .n 2542) (p := .n 17) (off := 2)
     (by rw [vtPre_drop]; decide +kernel) (by decide)
   rw [hp] at rd0 rd1 rd2
   have l0 := h 0 (by omega)
@@ -130,10 +130,10 @@ theorem vt_leaves_good (hl : args.length = 21) {leaves : List E} (hll : leaves.l
   · rw [rd1, rdAt, l1.2, Option.getD_some, List.getD_eq_getElem _ _ (by omega)]
   · rw [rd2, rdAt, l2.2, Option.getD_some, List.getD_eq_getElem _ _ (by omega)]
 
-theorem vtPermCap_38 : vtPermCap 38 = [.n 4683, .n 4684, .n 4685, .n 4686, .n 4687] := by
+theorem vtPermCap_38 : vtPermCap 38 = [.n 4681, .n 4682, .n 4683, .n 4684, .n 4685] := by
   decide +kernel
 
-theorem vtEvB_152 : vtEvB 152 = 4688 := by decide +kernel
+theorem vtEvB_152 : vtEvB 152 = 4686 := by decide +kernel
 
 /-- **The sponge after the evaluations**, from the evaluations' sponge facts: the last
 permutation's capacity and the last evaluation waiting, its rate cells `σ4688`, `σ4689`. -/
@@ -145,11 +145,11 @@ theorem vt_evalFs_good (hl : args.length = 21)
       vtCapV (vtσ rd w args) (j + 1) = capOf (Fs.perm ⟨vtCapV (vtσ rd w args) j,
         (((vtEvs (vtσ rd w args)).drop (4 * j)).take 4).map (·, dsObserve)⟩)) :
     rateOf (vtEvalFs (vtσ rd w args)).pend =
-        [vtσ rd w args (.n 4689), vtσ rd w args (.n 4690), 0, 0, 0, 0, 0, 0] ∧
-      (vtEvalFs (vtσ rd w args)).cap = [vtσ rd w args (.n 4683), vtσ rd w args (.n 4684),
-        vtσ rd w args (.n 4685), vtσ rd w args (.n 4686), vtσ rd w args (.n 4687)] := by
-  have g := vt_goodL (rd := rd) (w := w) hl 4264 [.atom (.copy (.n 4689) (.n 4688)),
-    .atom (.const (.n 4690) (word 0 1))] (by rw [vtPre_drop]; decide +kernel)
+        [vtσ rd w args (.n 4687), vtσ rd w args (.n 4688), 0, 0, 0, 0, 0, 0] ∧
+      (vtEvalFs (vtσ rd w args)).cap = [vtσ rd w args (.n 4681), vtσ rd w args (.n 4682),
+        vtσ rd w args (.n 4683), vtσ rd w args (.n 4684), vtσ rd w args (.n 4685)] := by
+  have g := vt_goodL (rd := rd) (w := w) hl 4262 [.atom (.copy (.n 4687) (.n 4686)),
+    .atom (.const (.n 4688) (word 0 1))] (by rw [vtPre_drop]; decide +kernel)
   generalize vtσ rd w args = σ at g hF ⊢
   simp only [GoodL, GoodS, fixNe, Good, and_true] at g
   obtain ⟨g0, g1⟩ := g

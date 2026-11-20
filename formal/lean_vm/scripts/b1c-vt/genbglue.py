@@ -1,5 +1,5 @@
 # usage: python3 -I genbglue.py > ../../LeanVM/Guest/B1/Tables/VtC/BGlueGen.lean
-# verify_tables' bus sides outside the selectors (statements 765 ..< 2593 of the guest): one
+# verify_tables' bus sides outside the selectors (statements 765 ..< 2592 of the guest): one
 # lemma per slice, the statements beyond evaluation by kind (reads of the cursor, fp_w, claim_pool,
 # block_index_mle, bc_point and gkr_leaves; the KECCAKs), the others (stores, dispatches, calls, the
 # bytecode share's value and its closing check) taken as hypotheses.
@@ -9,8 +9,8 @@ import vtflat
 top, flat, ctr, cend = vtflat.load()
 tctr = {}
 for (k, s), c in zip(flat, ctr): tctr.setdefault(k, c)
-SLICES = [(765, 766), (778, 781), (794, 811), (824, 842), (1332, 1479), (1912, 1926), (1926, 2021),
-          (2021, 2593)]
+SLICES = [(765, 766), (778, 781), (794, 811), (824, 842), (1332, 1479), (1912, 1926), (1926, 2020),
+          (2020, 2592)]
 READ = {13: ('hw', 16), 15: ('hpool', 4), 778: ('hidx', 3), 5: ('hcur', 7), 19: ('hpt', 4),
         17: ('hleaves', 3)}
 HYP = {'hw': ('W', 13, 16), 'hpool': ('P', 15, 4), 'hidx': ('Q', 778, 3), 'hcur': ('C', 5, 7),

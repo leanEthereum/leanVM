@@ -174,14 +174,13 @@ impl<F: Scalar> FiatShamirState<F> {
         // The smallest passing nonce of batch `b`, the nonces `b * BATCH..(b + 1) * BATCH`.
         const BATCH: u64 = 64;
         let batch = |b: u64| {
-            let mut states = [base; BATCH as usize];
-            for (nonce, state) in (b * BATCH..).zip(&mut states) {
-                state[lane] = nonce;
-            }
-            keccak256::keccak_f_many(&mut states);
-            let pass =
-                |&(nonce, state): &(u64, &[u64; STATE_LANES])| nonce >= from && state[2] & ((1 << bits) - 1) == 0;
-            (b * BATCH..).zip(&states).find(pass).map(|(nonce, _)| nonce)
+            keccak256::first_nonce(
+                &base,
+                lane,
+                (b * BATCH).max(from)..(b * BATCH).saturating_add(BATCH),
+                2,
+                (1 << bits) - 1,
+            )
         };
         // A short search, a few batches, is not worth a dispatch to the pool.
         let nonce = if bits < 10 {
@@ -276,11 +275,20 @@ mod tests {
     fn pow_predicate() {
         let mut sp = State::new(Digest(keccak256::hash(b"t")).words(), pi(1));
         sp.observe(f(7));
-        for bits in [2, 8, 13, 17] {
+        for bits in [2, 8, 10, 13, 17] {
             let mut clone = sp.clone();
             let good = clone.grind::<Sequential>(bits).unwrap();
             let expected = (0..=good).find(|&n| pow_bits_ok(&sp, n, bits)).unwrap();
             assert_eq!(good, expected, "smallest nonce at {bits} bits");
+            // From inside a batch, as `grind_sample` resumes: the smallest passing nonce at least `from`.
+            for from in [good + 1, 63] {
+                let next = (from..).find(|&n| pow_bits_ok(&sp, n, bits)).unwrap();
+                assert_eq!(
+                    sp.clone().grind_from::<Sequential>(bits, from),
+                    Some(next),
+                    "from {from} at {bits} bits"
+                );
+            }
             // The grind's own permutation draws the next challenge, and the one after is fresh.
             let mut expected_state = sp.clone();
             expected_state.absorb(E::new(good, 0), DS_POW_NONCE);

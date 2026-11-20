@@ -98,7 +98,7 @@ theorem spPost_bounds (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V)
       groupStart fold (spL fold B) + chainStride spW * n :=
     Nat.add_le_add_left (Nat.mul_le_mul_left _ ht) _
   have he := spEnc_lt_end first n fold B prodIn encIn
-  have hgs : spL fold B + 6 ≤ groupStart fold (spL fold B) := by rw [groupStart_eq]; split <;> omega
+  have hgs : spL fold B + 6 ≤ groupStart fold (spL fold B) := by rw [groupStart_eq]
   unfold spEnc spProd at he
   exact ⟨by unfold spSlot; omega, by unfold spSlot; omega⟩
 

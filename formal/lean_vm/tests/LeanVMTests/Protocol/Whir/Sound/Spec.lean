@@ -107,9 +107,10 @@ noncomputable example {μ R : ℕ} {codes : ℕ → LevelCode} {εmax : ENNReal}
     (hμ : LeanVM.Protocol.EndToEnd.laneBits ≤ μ)
     (hκ₀ : (codes 0).κ = μ - LeanVM.Protocol.EndToEnd.laneBits) (hR₀ : (codes 0).R = R)
     (hthr : (codes 0).deg < (codes 0).thr 0) (hw : IsMultiaffine μ w)
-    (B : ∀ j, RoundBounds (codes j) εmax) (hA : LadderOK codes εmax 0 (level :: rest)) :
-    Spec (verifyWhir μ R t w) (fun h ↦ WhirPre μ R (codes 0) w t (commits h)) (fun _ _ ↦ False)
-      εmax 0 0 :=
-  whirSpec hc hℓ hμ hκ₀ hR₀ hthr hw B hA 0
+    (B : ∀ j, RoundBounds (codes j) εmax) (hA : LadderOK codes εmax 0 (level :: rest))
+    (Bad : LeanVM.Protocol.Column μ → Prop) :
+    Spec (verifyWhirG μ R t w) (fun h ↦ WhirPre μ R (codes 0) w t Bad (commits h))
+      (fun tr h ↦ traceGood codes 0 (lvl0Pred μ Bad) tr (commits h)) εmax 0 0 :=
+  whirSpec hc hℓ hμ hκ₀ hR₀ hthr hw B hA Bad
 
 end LeanVMTests.Protocol.Whir.Sound

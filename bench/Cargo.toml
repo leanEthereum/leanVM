@@ -1,0 +1,30 @@
+[package]
+name = "leanvm-bench"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[[bin]]
+name = "leanvm-bench"
+path = "src/main.rs"
+# A binary, nothing to document.
+doc = false
+
+[lints]
+workspace = true
+
+[dependencies]
+isa.workspace = true
+verifier.workspace = true
+aggregation = { workspace = true, features = ["signers-cache"] }
+lean_da.workspace = true
+zkdsl_compiler.workspace = true
+lean_xmss.workspace = true
+lean_sphincs.workspace = true
+stable_lean_vm_core = { path = "../crates/stable_prover/lean_vm_core" }
+experimental_lean_vm_core = { path = "../crates/experimental_prover/lean_vm_core" }
+allocator.workspace = true
+bench_harness.workspace = true
+rand.workspace = true
+tracing.workspace = true
+clap = { version = "4", features = ["derive"] }

@@ -132,7 +132,8 @@ theorem oqMain_at {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) {odd : ℕ} (hodd 
       (flags := .n 1) (coefs := .n 3) (hsp := .n 4) (walk := walk) (C := anyCall) hs hfin
       (by rw [eP 3 (by omega), eP 4 (by omega), e12]; exact hok) eQ e11 hp.1 hp.2
       (eP 0 (by omega)) (eP 1 (by omega)) trivial
-    change σ (.n (oqRes s 13 true)) = oqResV s rounds w at hres
+    replace hres : s.final ≠ 1 → σ (.n (oqRes s 13 true)) = oqResV s rounds w := fun hf ↦ by
+      simp only [oqResV, hf, ↓reduceIte]; exact hres hf
     have t0 : σ (.n k) = word 1 0 := by simpa [htl, oqMainTl] using eT 0
     have t1 : σ (.n (k + 1)) = word 1 0 + nG := by simpa [htl, oqMainTl] using eT 1
     have t2 : σ (.n (k + 2)) = word 1 0 := by simpa [htl, oqMainTl] using eT 2
@@ -155,7 +156,12 @@ theorem oqMain_at {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) {odd : ℕ} (hodd 
     · simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
       rcases ha with rfl | rfl
       · show σ (.n (k - 1)) = σ (.n (oqRes s 13 true)) * σ (.n 2)
-        rw [eD, hres, eP 2 (by omega)]; rfl
+        by_cases hf : s.final = 1
+        · have e : oqRes s 13 true = k - 1 := by
+            rw [hk']; unfold oqMK oqEnd; simp [hf]
+          rw [e, eD, eP 2 (by omega)]
+          simp [oqResV, hf]
+        · rw [eD, hres hf, eP 2 (by omega)]; rfl
       · show LoadHolds rd (σ (.n 10)) 0 (σ (.n (k - 1)))
         rw [eD, e10]; exact hc0
     · simp only [List.mem_cons, List.not_mem_nil, or_false] at ha

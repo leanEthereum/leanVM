@@ -35,20 +35,20 @@ theorem one_add_gen_pow_inK (k : ℕ) : IsInK (1 + gen ^ k) :=
 /-- **The committed outputs' opening, completely.** -/
 theorem vkOut_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkOutT, GoodS rd vkSt w σ st)
     {τ : ℕ} (h17 : σ (.n 19) = gen ^ (τ - 4)) {wd : E}
-    (hword : LoadHolds rd (σ (.n 930)) 0 wd) {slotO : List E}
+    (hword : LoadHolds rd (σ (.n 924)) 0 wd) {slotO : List E}
     (hslot : ReadsAt rd (σ (.n 9) * σ (.n 6)) slotO) (hslotL : slotO.length = 6) {r0 : E}
     (hr0 : LoadHolds rd (σ (.n 62) * σ (.n 19)) 0 r0) {L : ℕ → E}
-    (hL : ∀ lane < 25, LoadHolds rd (σ (.n 235)) (30 + lane) (L lane))
+    (hL : ∀ lane < 25, LoadHolds rd (σ (.n 229)) (30 + lane) (L lane))
     (hchk : (∑ lane ∈ range 25, (∑ m ∈ range 1, eqAt [r0] m * eqAt slotO (25 * (1 + m) + lane)) *
-      L lane) * wd = σ (.n 931)) :
-    σ (.n 922) = σ (.n 9) * σ (.n 6) ∧ (∀ j < 7, σ (.n (925 + j)) = w (925 + j)) ∧
-      σ (.n 932) = wd ∧ (σ (.n 933), σ (.n 934)) = Keccak.scalarCells wd dsObserve ∧
-      σ (.n 935) = σ (.n 62) * σ (.n 19) ∧
-      σ (.n 1195) = 1 + σ (.n 19) ∧ σ (.n 1196) = 1 ∧ σ (.n 1198) = σ (.n 9) * gen ^ 4 ∧
+      L lane) * wd = σ (.n 925)) :
+    σ (.n 916) = σ (.n 9) * σ (.n 6) ∧ (∀ j < 7, σ (.n (919 + j)) = w (919 + j)) ∧
+      σ (.n 926) = wd ∧ (σ (.n 927), σ (.n 928)) = Keccak.scalarCells wd dsObserve ∧
+      σ (.n 929) = σ (.n 62) * σ (.n 19) ∧
+      σ (.n 1189) = 1 + σ (.n 19) ∧ σ (.n 1190) = 1 ∧ σ (.n 1192) = σ (.n 9) * gen ^ 4 ∧
       ∀ {next : Prop} {kret : List E → Prop}, next →
         Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkOutT next kret := by
   obtain ⟨k1, k2, k4, k5, k6, k8, k9⟩ := vkOut_ker
-  have mFN : ∀ st ∈ fsNextT (.n 930) 0 932, st ∈ vkOutT := fun st h ↦ by
+  have mFN : ∀ st ∈ fsNextT (.n 924) 0 926, st ∈ vkOutT := fun st h ↦ by
     rw [vkOutT]; exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_right _ h))))
   have mSL : ∀ st ∈ vkOutSL, st ∈ vkOutT := fun st h ↦ by
@@ -57,25 +57,25 @@ theorem vkOut_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkOu
     rw [vkOutT]; exact List.mem_append_left _ (List.mem_append_right _ h)
   have gA : ∀ a, Stmt.atom a ∈ vkOutT → Good rd vkSt w σ a := fun a h ↦ hg _ h
   -- the atoms
-  have m3691 := mulG (by norm_num) (by norm_num) (gA (.mul (.n 922) (.n 9) (.n 6)) (by simp [vkOutT]))
-  have c3692 : σ (.n 923) = word 0 0 := gA (.const (.n 923) (word 0 0)) (by simp [vkOutT])
-  have c3693 : σ (.n 924) = word 0 0 := gA (.const (.n 924) (word 0 0)) (by simp [vkOutT])
-  have gcall := hg (.call "keccak_plain_rounds__L6_L0" [.n 916, .n 917, .n 918, .n 919, .n 920,
-    .n 923, .n 924, .n 921, .n 159, .n 922, .n 11] ((List.range 7).map fun j ↦ .n (925 + j)))
+  have m3691 := mulG (by norm_num) (by norm_num) (gA (.mul (.n 916) (.n 9) (.n 6)) (by simp [vkOutT]))
+  have c3692 : σ (.n 917) = word 0 0 := gA (.const (.n 917) (word 0 0)) (by simp [vkOutT])
+  have c3693 : σ (.n 918) = word 0 0 := gA (.const (.n 918) (word 0 0)) (by simp [vkOutT])
+  have gcall := hg (.call "keccak_plain_rounds__L6_L0" [.n 910, .n 911, .n 912, .n 913, .n 914,
+    .n 917, .n 918, .n 915, .n 153, .n 916, .n 11] ((List.range 7).map fun j ↦ .n (919 + j)))
     (by simp [vkOutT])
-  have e3694 : ∀ j < 7, σ (.n (925 + j)) = w (925 + j) := fun j hj ↦
+  have e3694 : ∀ j < 7, σ (.n (919 + j)) = w (919 + j) := fun j hj ↦
     gcall _ (List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩)
   have m3711 := mulG (by norm_num) (by norm_num)
-    (gA (.mul (.n 935) (.n 62) (.n 19)) (by simp [vkOutT]))
+    (gA (.mul (.n 929) (.n 62) (.n 19)) (by simp [vkOutT]))
   have m3969 := mulG (by norm_num) (by norm_num)
-    (gA (.mul (.n 1193) (.n 1192) (.n 932)) (by simp [vkOutT]))
-  have c3970 : σ (.n 1194) = word 1 0 := gA (.const (.n 1194) (word 1 0)) (by simp [vkOutT])
-  have a3971 : σ (.n 1195) = σ (.n 1194) + σ (.n 19) :=
-    gA (.add (.n 1195) (.n 1194) (.n 19)) (by simp [vkOutT])
-  have c3972 : σ (.n 1196) = word 1 0 := gA (.const (.n 1196) (word 1 0)) (by simp [vkOutT])
-  have c3973 : σ (.n 1197) = word 16 0 := gA (.const (.n 1197) (word 16 0)) (by simp [vkOutT])
+    (gA (.mul (.n 1187) (.n 1186) (.n 926)) (by simp [vkOutT]))
+  have c3970 : σ (.n 1188) = word 1 0 := gA (.const (.n 1188) (word 1 0)) (by simp [vkOutT])
+  have a3971 : σ (.n 1189) = σ (.n 1188) + σ (.n 19) :=
+    gA (.add (.n 1189) (.n 1188) (.n 19)) (by simp [vkOutT])
+  have c3972 : σ (.n 1190) = word 1 0 := gA (.const (.n 1190) (word 1 0)) (by simp [vkOutT])
+  have c3973 : σ (.n 1191) = word 16 0 := gA (.const (.n 1191) (word 16 0)) (by simp [vkOutT])
   have m3974 := mulG (by norm_num) (by norm_num)
-    (gA (.mul (.n 1198) (.n 9) (.n 1197)) (by simp [vkOutT]))
+    (gA (.mul (.n 1192) (.n 9) (.n 1191)) (by simp [vkOutT]))
   -- the word
   obtain ⟨ew, cells, FN⟩ := fsNext_complete (C := fun _ _ _ ↦ True)
     (fun st h ↦ hg st (mFN st h)) (not_mem_of_noneIn k1 _ (by simp)) hword
@@ -107,17 +107,17 @@ theorem vkOut_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkOu
       have := hL (off - 30) (by omega)
       rw [show 30 + (off - 30) = off by omega] at this
       exact ⟨_, this⟩) hn
-  obtain ⟨hdot, -⟩ := dotLoadsT_holds (xs := (List.range 25).map (slotLaneV 936 1)) (P := L)
+  obtain ⟨hdot, -⟩ := dotLoadsT_holds (xs := (List.range 25).map (slotLaneV 930 1)) (P := L)
     (fun k hk v hv ↦ loadHolds_unique hv (hL k (by simpa using hk))) (by simp)
     (DL (next := True) (kret := fun _ ↦ True) trivial)
   simp only [List.length_map, List.length_range] at hdot
-  have e3968 : σ (.n 1192) = ∑ lane ∈ range 25,
+  have e3968 : σ (.n 1186) = ∑ lane ∈ range 25,
       (∑ m ∈ range 1, eqAt [r0] m * eqAt slotO (25 * (1 + m) + lane)) * L lane := by
-    rw [show (1192 : ℕ) = dotLoadsV 1119 25 from rfl, hdot]
+    rw [show (1186 : ℕ) = dotLoadsV 1113 25 from rfl, hdot]
     refine Finset.sum_congr rfl fun lane hl ↦ ?_
     rw [List.getD_eq_getElem _ _ (by simpa using hl), List.getElem_map, List.getElem_range,
       hlanes lane (Finset.mem_range.1 hl), hrs', hr']
-  have e3969 : σ (.n 1193) = σ (.n 931) := by rw [m3969, e3968, ew, hchk]
+  have e3969 : σ (.n 1187) = σ (.n 925) := by rw [m3969, e3968, ew, hchk]
   refine ⟨m3691, e3694, ew, cells, m3711,
     by rw [a3971, c3970, word_one], by rw [c3972, word_one], by rw [m3974, c3973, word_16],
     fun {next kret} hn ↦ ?_⟩

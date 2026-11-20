@@ -14,8 +14,8 @@ public import LeanVM.Guest.CoreMode.Fam.SubDefs
 /-!
 # The reads past the table sumcheck
 
-`vtSt_read`: at an honest frame of `verify_tables`, cell `2908` holds the last round record's cursor
-`σ 2649`, `14 + 3n` words past the frame's cursor (`Tables.vt_zc_run`, `vt_cur13`), which `VtQ` puts
+`vtSt_read`: at an honest frame of `verify_tables`, cell `2880` holds the last round record's cursor
+`σ 2647`, `14 + 3n` words past the frame's cursor (`Tables.vt_zc_run`, `vt_cur13`), which `VtQ` puts
 `p` words into the stream with room for `1009`: the `153` evaluations read past it lie inside.
 -/
 
@@ -36,11 +36,11 @@ theorem vt_idx : idxOf name% «verify_tables» = some (fn_idx% «verify_tables»
 
 /-- The last record's cursor's load, on every path. -/
 theorem vtSt_atom :
-    (topAtoms (coreOf (fn_idx% «verify_tables»)).body).contains (.load (.n 2649) (.n 2643) 5) = true := by
+    (topAtoms (coreOf (fn_idx% «verify_tables»)).body).contains (.load (.n 2647) (.n 2641) 5) = true := by
   decide +kernel
 
 /-- The cursor's cell and the stream's. -/
-theorem vtSt_cells : cellJ (fn_idx% «verify_tables») (.n 2649) = 2908 ∧ 2908 < fsN (fn_idx% «verify_tables») ∧
+theorem vtSt_cells : cellJ (fn_idx% «verify_tables») (.n 2647) = 2880 ∧ 2880 < fsN (fn_idx% «verify_tables») ∧
     cellJ (fn_idx% «verify_tables») (.n 20) = 22 ∧ Res.inFr (fn_idx% «verify_tables») 22 = true := by
   decide +kernel
 
@@ -50,7 +50,7 @@ variable {A : String → FnAl} {r : Ref} {K : Mode.Cert} {i : ℕ} {e : Bridge.E
 
 /-- **The reads past the table sumcheck's last cursor** lie in `verify_tables`' stream. -/
 theorem vtSt_read (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name = name% «verify_tables»)
-    {c : ℕ} (hc : c < 153) : RRes (refMem r.img) e.I.fp (stRes 2908 (.fr 22) c) := by
+    {c : ℕ} (hc : c < 153) : RRes (refMem r.img) e.I.fp (stRes 2880 (.fr 22) c) := by
   obtain ⟨f, bufs, kids, hJ, hfj, hfn⟩ := t.found
   rw [hname] at hfn
   subst hfn
@@ -69,7 +69,7 @@ theorem vtSt_read (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name =
   have hl := topAtoms_on_path hw (List.contains_iff_mem.mp vtSt_atom)
   obtain ⟨hc2908, hlt, hc20, hf22⟩ := vtSt_cells
   have hfb := t.fb
-  have hm := t.cell hr hF (x := .n 2649) (namedOf_atom hl (by simp [atomUses])) (by rw [hc2908]; omega)
+  have hm := t.cell hr hF (x := .n 2647) (namedOf_atom hl (by simp [atomUses])) (by rw [hc2908]; omega)
     (by rw [hc2908]; omega)
   rw [hc2908] at hm
   have hs := t.param hr (p := .n 20) (by rw [hcj, vt_params]; decide) (by rw [hc20]; exact hf22)

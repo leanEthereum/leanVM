@@ -39,7 +39,7 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 @[expose] public section
 
 /-- `gkr_layers__L{o}`'s call arguments in `verify_bus_gkr`. -/
-def vbgLsArgs : List V := [16, 17, 18, 400, 402, 169, 6, 8, 9].map .n
+def vbgLsArgs : List V := [16, 17, 18, 396, 398, 168, 6, 8, 9].map .n
 
 /-- `gkr_layers__L{o}`'s loop's arguments to `gkr_layer__L{p}_L{o}`. -/
 def glLsLArgs (p : ℕ) : List V := [.n 2, .n 3, .n 4, .n 0, .n (glcXj 10 11 p), .n 5, .n 6, .n 7, .n 8]
@@ -56,12 +56,12 @@ noncomputable def loopB (f : String) : Bool :=
     fn.loop && Res.endOfFn fn == some none && !(Stmt.blockCallees (loopBody fn)).contains f
 
 /-- The loop's counter's argument in the layer: the constant `1`. -/
-def glA0 (p : ℕ) : ℕ := if p = 0 then 61 else 63 + 80 * p
+def glA0 (p : ℕ) : ℕ := if p = 0 then 60 else 62 + 78 * p
 
 /-- The loop's call arguments in the layer. -/
 def glLoopArgs (p : ℕ) : List V :=
-  if p = 0 then [.n 61, .n 3, .n 54, .n 53, .n 63, .n 7]
-  else [.n (63 + 80 * p), .n 3, .n 54, .n (65 + 80 * p), .n (67 + 80 * p), .n 7]
+  if p = 0 then [.n 60, .n 3, .n 53, .n 52, .n 62, .n 7]
+  else [.n (62 + 78 * p), .n 3, .n 53, .n (64 + 78 * p), .n (66 + 78 * p), .n 7]
 
 /-- `gkr_layer__L{p}_L{o}`'s index. -/
 def glIdx : ℕ → ℕ → ℕ
@@ -78,10 +78,10 @@ end
 
 public section
 
-theorem glLoopArgs_eq (p : ℕ) : ∃ rest, glLoopArgs p = .n (glA0 p) :: .n 3 :: .n 54 :: rest := by
+theorem glLoopArgs_eq (p : ℕ) : ∃ rest, glLoopArgs p = .n (glA0 p) :: .n 3 :: .n 53 :: rest := by
   by_cases h : p = 0
-  · exact ⟨[.n 53, .n 63, .n 7], by simp [glLoopArgs, glA0, h]⟩
-  · exact ⟨[.n (65 + 80 * p), .n (67 + 80 * p), .n 7], by simp [glLoopArgs, glA0, h]⟩
+  · exact ⟨[.n 52, .n 62, .n 7], by simp [glLoopArgs, glA0, h]⟩
+  · exact ⟨[.n (64 + 78 * p), .n (66 + 78 * p), .n 7], by simp [glLoopArgs, glA0, h]⟩
 
 theorem glLoopParams_eq : glLoopParams = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] := rfl
 
@@ -99,8 +99,8 @@ theorem gl_loop_sites : ∀ p < 4, ∀ o < 2,
 
 /-- The loop's atoms the cursor moves through. -/
 theorem gll_atoms : ∀ p < 4, ∀ o < 2,
-    [Atom.mul (.n 6) (.n 2) (.n 0), .load (.n 17) (.n 6) 4310, .const (.n 339) (word (2 ^ 32) 0),
-      .mul (.n 340) (.n 17) (.n 339), .load (.n 340) (.n 6) 4311].all
+    [Atom.mul (.n 6) (.n 2) (.n 0), .load (.n 17) (.n 6) 4310, .const (.n 331) (word (2 ^ 32) 0),
+      .mul (.n 332) (.n 17) (.n 331), .load (.n 332) (.n 6) 4311].all
       (topAtoms (glLoopBody (glLoopName p o))).contains = true := by
   decide +kernel
 
@@ -122,19 +122,19 @@ theorem vbg_ls_sites : Res.sitesB (fun f args _ ↦ !([glcLsN 0, glcLsN 1].conta
   decide +kernel
 
 /-- `verify_bus_gkr`'s body around its dispatch on the depth's parity. -/
-theorem vbg_split : (fn% «verify_bus_gkr»).body = (fn% «verify_bus_gkr»).body.take 260 ++
-    .dispatch (.n 167) [glcLsN 0, glcLsN 1] vbgLsArgs [.n 406] :: (fn% «verify_bus_gkr»).body.drop 261 := by
-  have h : tbStmtsEqb ((fn% «verify_bus_gkr»).body.drop 260)
-      (.dispatch (.n 167) [glcLsN 0, glcLsN 1] vbgLsArgs [.n 406] :: (fn% «verify_bus_gkr»).body.drop 261) =
+theorem vbg_split : (fn% «verify_bus_gkr»).body = (fn% «verify_bus_gkr»).body.take 259 ++
+    .dispatch (.n 166) [glcLsN 0, glcLsN 1] vbgLsArgs [.n 402] :: (fn% «verify_bus_gkr»).body.drop 260 := by
+  have h : tbStmtsEqb ((fn% «verify_bus_gkr»).body.drop 259)
+      (.dispatch (.n 166) [glcLsN 0, glcLsN 1] vbgLsArgs [.n 402] :: (fn% «verify_bus_gkr»).body.drop 260) =
         true := by
     decide +kernel
-  conv_lhs => rw [← List.take_append_drop 260 (fn% «verify_bus_gkr»).body]
+  conv_lhs => rw [← List.take_append_drop 259 (fn% «verify_bus_gkr»).body]
   rw [tbStmtsEqb_sound h]
 
 /-- Around the dispatch, `verify_bus_gkr` calls no `gkr_layers__L{o}`. -/
 theorem vbg_split_sites :
-    Res.sitesB (fun f _ _ ↦ !([glcLsN 0, glcLsN 1].contains f)) ((fn% «verify_bus_gkr»).body.take 260) = true ∧
-      Res.sitesB (fun f _ _ ↦ !([glcLsN 0, glcLsN 1].contains f)) ((fn% «verify_bus_gkr»).body.drop 261) =
+    Res.sitesB (fun f _ _ ↦ !([glcLsN 0, glcLsN 1].contains f)) ((fn% «verify_bus_gkr»).body.take 259) = true ∧
+      Res.sitesB (fun f _ _ ↦ !([glcLsN 0, glcLsN 1].contains f)) ((fn% «verify_bus_gkr»).body.drop 260) =
         true := by
   decide +kernel
 
@@ -378,8 +378,8 @@ end Calls
 slot, of `L = 2 - d % 2`, holding the cursor `14` or `8` words past the frame's. -/
 theorem vbg_ls {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {C : CallRel} {σ : Val} {kret : List E → Prop}
     (h : Stmt.HoldsList C Lm.read σ vbgPre True kret) :
-    ∃ d < 33, σ (.n 167) = gen ^ (d % 2) ∧ σ (.n 400) = gen ^ ((d - 1) / 8) ∧
-      σ (.n 402) = gen ^ (((d - 1) / 2) % 4) ∧ σ (.n 169) = gen ^ (2 - d % 2) ∧
+    ∃ d < 33, σ (.n 166) = gen ^ (d % 2) ∧ σ (.n 396) = gen ^ ((d - 1) / 8) ∧
+      σ (.n 398) = gen ^ (((d - 1) / 2) % 4) ∧ σ (.n 168) = gen ^ (2 - d % 2) ∧
       LoadHolds Lm.read (σ (.n 16)) (10 * (2 - d % 2) + 5) (σ (.n 5) * gen ^ (if d % 2 = 0 then 14 else 8)) := by
   have hnr := vbgPre_noRet
   have a := fun n a heq => tb_holds_atom (C := C) (rd := Lm.read) (σ := σ) (kret := kret) hnr h n a heq
@@ -390,29 +390,29 @@ theorem vbg_ls {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {C : CallRel} 
     (by rw [c19, show (4294967296 : ℕ) = 2 ^ 32 by norm_num, tb_word_two_pow (by norm_num),
       gen_pow_eq_ofK]) rc.1 rc.2.1 rc.2.2
   -- the tables
-  have htab : σ (.n 167) = gen ^ (d % 2) ∧ σ (.n 400) = gen ^ ((d - 1) / 8) ∧
-      σ (.n 402) = gen ^ (((d - 1) / 2) % 4) ∧ σ (.n 169) = gen ^ (2 - d % 2) := by
+  have htab : σ (.n 166) = gen ^ (d % 2) ∧ σ (.n 396) = gen ^ ((d - 1) / 8) ∧
+      σ (.n 398) = gen ^ (((d - 1) / 2) % 4) ∧ σ (.n 168) = gen ^ (2 - d % 2) := by
     rcases Nat.eq_zero_or_pos d with rfl | hd0
-    · have c65 := a 41 (.const (.n 65) (word 1 0)) (by decide +kernel)
-      have l65 := a 42 (.load (.n 65) (.n 64) 0) (by decide +kernel)
-      have c68 := a 45 (.const (.n 68) (word 1 0)) (by decide +kernel)
-      have l68 := a 46 (.load (.n 68) (.n 66) 0) (by decide +kernel)
-      have c69 := a 47 (.const (.n 69) (word 1 0)) (by decide +kernel)
-      have l69 := a 48 (.load (.n 69) (.n 67) 0) (by decide +kernel)
-      have m166 := a 241 (.mul (.n 166) (.n 64) (.n 6)) (by decide +kernel)
-      have l167 := a 242 (.load (.n 167) (.n 166) 0) (by decide +kernel)
-      have c168 := a 243 (.const (.n 168) (word 4 0)) (by decide +kernel)
-      have m168 := a 244 (.mul (.n 168) (.n 169) (.n 167)) (by decide +kernel)
-      have m399 := a 253 (.mul (.n 399) (.n 66) (.n 6)) (by decide +kernel)
-      have l400 := a 254 (.load (.n 400) (.n 399) 0) (by decide +kernel)
-      have m401 := a 255 (.mul (.n 401) (.n 67) (.n 6)) (by decide +kernel)
-      have l402 := a 256 (.load (.n 402) (.n 401) 0) (by decide +kernel)
+    · have c65 := a 40 (.const (.n 64) (word 1 0)) (by decide +kernel)
+      have l65 := a 41 (.load (.n 64) (.n 63) 0) (by decide +kernel)
+      have c68 := a 44 (.const (.n 67) (word 1 0)) (by decide +kernel)
+      have l68 := a 45 (.load (.n 67) (.n 65) 0) (by decide +kernel)
+      have c69 := a 46 (.const (.n 68) (word 1 0)) (by decide +kernel)
+      have l69 := a 47 (.load (.n 68) (.n 66) 0) (by decide +kernel)
+      have m166 := a 240 (.mul (.n 165) (.n 63) (.n 6)) (by decide +kernel)
+      have l167 := a 241 (.load (.n 166) (.n 165) 0) (by decide +kernel)
+      have c168 := a 242 (.const (.n 167) (word 4 0)) (by decide +kernel)
+      have m168 := a 243 (.mul (.n 167) (.n 168) (.n 166)) (by decide +kernel)
+      have m399 := a 252 (.mul (.n 395) (.n 65) (.n 6)) (by decide +kernel)
+      have l400 := a 253 (.load (.n 396) (.n 395) 0) (by decide +kernel)
+      have m401 := a 254 (.mul (.n 397) (.n 66) (.n 6)) (by decide +kernel)
+      have l402 := a 255 (.load (.n 398) (.n 397) 0) (by decide +kernel)
       simp only [Atom.Holds] at c65 l65 c68 l68 c69 l69 m166 l167 c168 m168 m399 l400 m401 l402
       rw [tb_word_one] at c65 c68 c69
       rw [m166, hg, pow_zero, mul_one] at l167
       rw [m399, hg, pow_zero, mul_one] at l400
       rw [m401, hg, pow_zero, mul_one] at l402
-      have e167 : σ (.n 167) = 1 := (tb_loadHolds_unique l167 l65).trans c65
+      have e167 : σ (.n 166) = 1 := (tb_loadHolds_unique l167 l65).trans c65
       rw [show (4 : ℕ) = 2 ^ 2 by norm_num, tb_word_two_pow (by norm_num)] at c168
       rw [c168, e167, mul_one] at m168
       refine ⟨by rw [e167]; simp, by rw [(tb_loadHolds_unique l400 l68).trans c68]; simp,
@@ -421,42 +421,42 @@ theorem vbg_ls {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {C : CallRel} 
       exact ⟨e167, e400, e402, e169⟩
   obtain ⟨e167, e400, e402, e169⟩ := htab
   -- the root slot
-  have m170 := a 245 (.mul (.n 170) (.n 169) (.n 169)) (by decide +kernel)
-  have m171 := a 246 (.mul (.n 171) (.n 170) (.n 170)) (by decide +kernel)
-  have m172 := a 247 (.mul (.n 172) (.n 171) (.n 169)) (by decide +kernel)
-  have m173 := a 248 (.mul (.n 173) (.n 172) (.n 172)) (by decide +kernel)
-  have m174 := a 249 (.mul (.n 174) (.n 16) (.n 173)) (by decide +kernel)
-  have c175 := a 250 (.const (.n 175) (word 1 0)) (by decide +kernel)
-  have a176 := a 251 (.add (.n 176) (.n 167) (.n 175)) (by decide +kernel)
+  have m170 := a 244 (.mul (.n 169) (.n 168) (.n 168)) (by decide +kernel)
+  have m171 := a 245 (.mul (.n 170) (.n 169) (.n 169)) (by decide +kernel)
+  have m172 := a 246 (.mul (.n 171) (.n 170) (.n 168)) (by decide +kernel)
+  have m173 := a 247 (.mul (.n 172) (.n 171) (.n 171)) (by decide +kernel)
+  have m174 := a 248 (.mul (.n 173) (.n 16) (.n 172)) (by decide +kernel)
+  have c175 := a 249 (.const (.n 174) (word 1 0)) (by decide +kernel)
+  have a176 := a 250 (.add (.n 175) (.n 166) (.n 174)) (by decide +kernel)
   simp only [Atom.Holds] at m170 m171 m172 m173 m174 c175 a176
   rw [tb_word_one] at c175
-  have e174 : σ (.n 174) = σ (.n 16) * gen ^ (10 * (2 - d % 2)) := by
+  have e174 : σ (.n 173) = σ (.n 16) * gen ^ (10 * (2 - d % 2)) := by
     rw [m174, m173, m172, m171, m170, e169, ← pow_add, ← pow_add, ← pow_add, ← pow_add]
     ring_nf
-  have hi := tb_holds_slice hnr h 252 [.ite (.n 176) (core% «verify_bus_gkr» s252_t)
-    (core% «verify_bus_gkr» s252_e)] (by decide +kernel)
+  have hi := tb_holds_slice hnr h 251 [.ite (.n 175) (core% «verify_bus_gkr» s251_t)
+    (core% «verify_bus_gkr» s251_e)] (by decide +kernel)
   simp only [Stmt.HoldsList] at hi
   rw [tb_holds_ite_noRet _ _ _ vbgArm_noRet_t vbgArm_noRet_e] at hi
   obtain ⟨⟨-, hfour, htwo⟩, -⟩ := hi
   rw [rtFour_eq, Stmt.holdsList_rename] at hfour
   rw [rtTwo_eq, Stmt.holdsList_rename] at htwo
-  have h140 : (σ ∘ rtSh) (.n 140) = σ (.n 174) := by rw [Function.comp_apply, rtSh_hi (by omega)]
+  have h140 : (σ ∘ rtSh) (.n 139) = σ (.n 173) := by rw [Function.comp_apply, rtSh_hi (by omega)]
   have h5 : (σ ∘ rtSh) (.n 5) = σ (.n 5) := by rw [Function.comp_apply, rtSh_lo (by omega)]
   refine ⟨d, hd, e167, e400, e402, e169, ?_⟩
   rw [← tb_loadHolds_mul_gen_pow, ← e174]
   rcases Nat.mod_two_eq_zero_or_one d with h2 | h2
-  · have h0 : σ (.n 176) = 0 := by rw [a176, c175, e167, h2, pow_zero, e_add_self]
+  · have h0 : σ (.n 175) = 0 := by rw [a176, c175, e167, h2, pow_zero, e_add_self]
     have hf := hfour h0
     have b := fun n a heq => tb_holds_atom (C := C) (rd := Lm.read) (σ := σ ∘ rtSh) (kret := kret) rtFour_noRet
       hf n a heq
-    have c261 := b 78 (.const (.n 261) (word 16384 0)) (by decide +kernel)
-    have m262 := b 79 (.mul (.n 262) (.n 5) (.n 261)) (by decide +kernel)
-    have l262 := b 80 (.load (.n 262) (.n 140) 5) (by decide +kernel)
+    have c261 := b 76 (.const (.n 258) (word 16384 0)) (by decide +kernel)
+    have m262 := b 77 (.mul (.n 259) (.n 5) (.n 258)) (by decide +kernel)
+    have l262 := b 78 (.load (.n 259) (.n 139) 5) (by decide +kernel)
     simp only [Atom.Holds] at c261 m262 l262
     rw [show (16384 : ℕ) = 2 ^ 14 by norm_num, tb_word_two_pow (by norm_num)] at c261
     rw [m262, c261, h140, h5] at l262
     simpa [h2] using l262
-  · have hne : σ (.n 176) ≠ 0 := by
+  · have hne : σ (.n 175) ≠ 0 := by
       rw [a176, c175, e167, h2, pow_one]
       intro h0
       have := gen_pow_inj (a := 1) (b := 0) (by omega) (by omega)
@@ -465,9 +465,9 @@ theorem vbg_ls {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {C : CallRel} 
     have hf := htwo hne
     have b := fun n a heq => tb_holds_atom (C := C) (rd := Lm.read) (σ := σ ∘ rtSh) (kret := kret) rtTwo_noRet
       hf n a heq
-    have c353 := b 46 (.const (.n 353) (word 256 0)) (by decide +kernel)
-    have m354 := b 47 (.mul (.n 354) (.n 5) (.n 353)) (by decide +kernel)
-    have l354 := b 48 (.load (.n 354) (.n 140) 5) (by decide +kernel)
+    have c353 := b 45 (.const (.n 349) (word 256 0)) (by decide +kernel)
+    have m354 := b 46 (.mul (.n 350) (.n 5) (.n 349)) (by decide +kernel)
+    have l354 := b 47 (.load (.n 350) (.n 139) 5) (by decide +kernel)
     simp only [Atom.Holds] at c353 m354 l354
     rw [show (256 : ℕ) = 2 ^ 8 by norm_num, tb_word_two_pow (by norm_num)] at c353
     rw [m354, c353, h140, h5] at l354

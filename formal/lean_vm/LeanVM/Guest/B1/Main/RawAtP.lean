@@ -43,7 +43,7 @@ def l2PostA : List Stmt := Sig.l2Post.take 5
 
 /-- `main_loop2`'s self-call. -/
 def l2Call : Stmt :=
-  .callIf (.n 120766) name% «main_loop2» (.n 120768 :: (List.range 55).map fun j => V.n (j + 1))
+  .callIf (.n 119744) name% «main_loop2» (.n 119746 :: (List.range 55).map fun j => V.n (j + 1))
 
 theorem l2_body_split : (fn% «main_loop2»).body = (Sig.l2Pre ++ Sig.xSeg ++ l2PostA) ++ [l2Call, .ret []] := by
   rw [Sig.loop2_split, List.append_assoc, List.append_assoc]
@@ -119,12 +119,12 @@ theorem rawX_stepP (fs : String → ℕ) (cert : String → V → ℕ) {nrx X cv
     exact ((Sig.fallPops_atoms σ' l2Pre_atoms).append (hpops σ' fun _ _ => rfl).1).append
       (Sig.fallPops_atoms σ' l2PostA_atoms)
   obtain ⟨es1, hw1, hc1, hp1⟩ := hF
-  set ct : Ev := if σ' (.n 120766) = 0 then .skip name% «main_loop2» (.n 120768 :: (List.range 55).map fun j => V.n (j + 1))
-    else .call name% «main_loop2» (.n 120768 :: (List.range 55).map fun j => V.n (j + 1)) [] with hct
-  have hw : walk σ' (fn% «main_loop2»).body = .ret (es1 ++ [.inK (.n 120766), ct]) [] := by
+  set ct : Ev := if σ' (.n 119744) = 0 then .skip name% «main_loop2» (.n 119746 :: (List.range 55).map fun j => V.n (j + 1))
+    else .call name% «main_loop2» (.n 119746 :: (List.range 55).map fun j => V.n (j + 1)) [] with hct
+  have hw : walk σ' (fn% «main_loop2»).body = .ret (es1 ++ [.inK (.n 119744), ct]) [] := by
     rw [l2_body_split, walk_append_fall' _ hw1]
     simp [walk, walk1, Out.seq, Out.pre, l2Call, hct]
-  set es := es1 ++ [.inK (.n 120766), ct] with hes
+  set es := es1 ++ [.inK (.n 119744), ct] with hes
   have hsat := walk_sat (P := coreProgram) (fn% «main_loop2»).body
     (coreProgram_wf _ (List.mem_of_find?_eq_some find_loop2)) hbody
   rw [hw] at hsat
@@ -132,18 +132,18 @@ theorem rawX_stepP (fs : String → ℕ) (cert : String → V → ℕ) {nrx X cv
   rw [hw] at hpure
   have hal : allocs σ' es = [] := allocs_pure hpure
   -- the guard
-  have e66 : σ' (.n 120766) = gen ^ i * word 2 0 + gen ^ nrx := by rw [hext.apply (by omega)]; rfl
-  have htk : decide (σ' (.n 120766) ≠ 0) = decide (i + 1 < nrx) := by
+  have e66 : σ' (.n 119744) = gen ^ i * word 2 0 + gen ^ nrx := by rw [hext.apply (by omega)]; rfl
+  have htk : decide (σ' (.n 119744) ≠ 0) = decide (i + 1 < nrx) := by
     rw [e66, guard_taken hnrx (by omega)]
     exact decide_eq_decide.mpr (by omega)
-  have hcalls : calls es = [] ++ [⟨name% «main_loop2», .n 120768 :: (List.range 55).map fun j => V.n (j + 1), [],
+  have hcalls : calls es = [] ++ [⟨name% «main_loop2», .n 119746 :: (List.range 55).map fun j => V.n (j + 1), [],
       decide (i + 1 < nrx)⟩] := by
     rw [hes, calls_append', hc1, ← htk, hct]
-    by_cases h0 : σ' (.n 120766) = 0
+    by_cases h0 : σ' (.n 119744) = 0
     · rw [ite_eq_left h0, decide_eq_false (not_not.mpr h0)]; rfl
     · rw [ite_eq_right h0, decide_eq_true h0]; rfl
-  have hargs : (V.n 120768 :: (List.range 55).map fun j => V.n (j + 1)).map σ' = l2ArgsAt (i + 1) nrx X cv tb := by
-    have e68 : σ' (.n 120768) = gen ^ (i + 1) := by
+  have hargs : (V.n 119746 :: (List.range 55).map fun j => V.n (j + 1)).map σ' = l2ArgsAt (i + 1) nrx X cv tb := by
+    have e68 : σ' (.n 119746) = gen ^ (i + 1) := by
       rw [hext.apply (by omega)]
       show gen ^ i * word 2 0 = _
       rw [word_gen, gen_pow_mul_gen]
@@ -153,7 +153,7 @@ theorem rawX_stepP (fs : String → ℕ) (cert : String → V → ℕ) {nrx X cv
   have hps : splice rd σ' es ([] ++ [pt]) = l2Pops D i ++ pt := by
     have e56 : σ' (.n 56) = gen ^ D.slot i := by rw [hext.apply (by omega)]; rfl
     rw [hes, splice_append_of_calls_nil _ _ hc1, hp1, l2Pre_pops, e56, List.append_nil]
-    have : splice rd σ' [.inK (.n 120766), ct] [pt] = pt := by
+    have : splice rd σ' [.inK (.n 119744), ct] [pt] = pt := by
       rw [hct]; split <;> simp [splice]
     rw [List.nil_append, this]
     rfl

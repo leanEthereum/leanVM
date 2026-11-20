@@ -40,30 +40,30 @@ open LeanVM.Protocol.KeccakGkr
 
 /-- The oracle: the bases of the layer's buffers from `b`. -/
 noncomputable def layerW (D : LayerData) (first b : ℕ) (i : ℕ) : E :=
-  if i = layOff first + 719 then ptr b else if i = layOff first + 720 then ptr (b + D.y)
-  else if i = layOff first + 746 then ptr (b + D.y + 112)
-  else if i = tW first + 26 then ptr (b + D.y + 123)
+  if i = layOff first + 718 then ptr b else if i = layOff first + 719 then ptr (b + D.y)
+  else if i = layOff first + 745 then ptr (b + D.y + 112)
+  else if i = tW first + 25 then ptr (b + D.y + 123)
   else if i = topV (tW first) + 3 then ptr (b + D.y + 148) else 0
 
 theorem weightEnd_big {first : ℕ} (hf : first < 2) :
-    layOff first ≤ 21 ∧ 1100 < tW first ∧ tW first + 26 < topV (tW first) := by
+    layOff first ≤ 21 ∧ 1100 < tW first ∧ tW first + 25 < topV (tW first) := by
   interval_cases first <;> exact ⟨by decide, by decide +kernel, by decide +kernel⟩
 
 theorem layerW_vals {first : ℕ} (hf : first < 2) (D : LayerData) (b : ℕ) :
-    layerW D first b (layOff first + 719) = ptr b ∧
-      layerW D first b (layOff first + 720) = ptr (b + D.y) ∧
-      layerW D first b (layOff first + 746) = ptr (b + D.y + 112) ∧
-      layerW D first b (tW first + 26) = ptr (b + D.y + 123) ∧
+    layerW D first b (layOff first + 718) = ptr b ∧
+      layerW D first b (layOff first + 719) = ptr (b + D.y) ∧
+      layerW D first b (layOff first + 745) = ptr (b + D.y + 112) ∧
+      layerW D first b (tW first + 25) = ptr (b + D.y + 123) ∧
       layerW D first b (topV (tW first) + 3) = ptr (b + D.y + 148) := by
   obtain ⟨hO, hW, hT⟩ := weightEnd_big hf
   refine ⟨by simp [layerW], by simp [layerW], by simp [layerW], ?_, ?_⟩
-  · simp only [layerW, show ¬ (tW first + 26 = layOff first + 719) by omega,
-      show ¬ (tW first + 26 = layOff first + 720) by omega,
-      show ¬ (tW first + 26 = layOff first + 746) by omega, ↓reduceIte]
-  · simp only [layerW, show ¬ (topV (tW first) + 3 = layOff first + 719) by omega,
-      show ¬ (topV (tW first) + 3 = layOff first + 720) by omega,
-      show ¬ (topV (tW first) + 3 = layOff first + 746) by omega,
-      show ¬ (topV (tW first) + 3 = tW first + 26) by omega, ↓reduceIte]
+  · simp only [layerW, show ¬ (tW first + 25 = layOff first + 718) by omega,
+      show ¬ (tW first + 25 = layOff first + 719) by omega,
+      show ¬ (tW first + 25 = layOff first + 745) by omega, ↓reduceIte]
+  · simp only [layerW, show ¬ (topV (tW first) + 3 = layOff first + 718) by omega,
+      show ¬ (topV (tW first) + 3 = layOff first + 719) by omega,
+      show ¬ (topV (tW first) + 3 = layOff first + 745) by omega,
+      show ¬ (topV (tW first) + 3 = tW first + 25) by omega, ↓reduceIte]
 
 /-- The word `grind_check` reads: the nonce's permutation's output `1`. -/
 noncomputable def LayerData.gw (D : LayerData) (first : ℕ) : E :=
@@ -204,8 +204,8 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
     fun {bb ws} hq ↦ mem (bb, ws) (List.mem_append_left _ hq)
   have hcw : ReadsAt rd (ptr CL.bclaim) CL.cw := mL (by simp [layerLin, ClaimLay.L])
   have hxs : ReadsAt rd (ptr bcur) D.xs := mL (by simp [layerLin])
-  have hout' : ReadsAt rd (ptr bout) (D.outW first (layerW D first b (layOff first + 719))
-      (layerW D first b (tW first + 26)) (layerW D first b (layOff first + 746))
+  have hout' : ReadsAt rd (ptr bout) (D.outW first (layerW D first b (layOff first + 718))
+      (layerW D first b (tW first + 25)) (layerW D first b (layOff first + 745))
       (layerW D first b (topV (tW first) + 3))) := by
     rw [w719, w27, w748, wfl]; exact mL (by simp [layerLin])
   have hbody' := layer_body_complete hf D (rd := rd) (w := layerW D first b) (p0 := p0)
@@ -279,7 +279,7 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
     obtain ⟨e725', e726, e727, e731, e735, e737', e738⟩ := packSetup_vals (layOff_ok hf) gP
     rw [a9] at e725' e731 e735
     rw [a10] at e737'
-    have epp : σ (.n (layOff first + 718)) = ptr CL.bpp := by rw [e718, h2]
+    have epp : σ (.n (layOff first + 717)) = ptr CL.bpp := by rw [e718, h2]
     simp only [layerCalls, layerKids, List.map_cons, List.map_nil] at hout ⊢
     match outs, hout with
     | [o0, o1, o2], ⟨ho0, ho1, ho2, _⟩ =>

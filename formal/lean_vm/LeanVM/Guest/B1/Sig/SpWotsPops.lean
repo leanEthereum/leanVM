@@ -136,7 +136,7 @@ theorem sp_wots_complete_cells_pops {pp a0 a1 : E} {d : Nat → Nat} (hd : ∀ i
       ∃ es vs, walk σ (Fn.«sp_wots».core).body = .ret es vs ∧ calls es = [] ∧ evPops rd σ es = spPopsT d vals := by
   obtain ⟨σ', h0, h1, h2, h3, hgp, hh⟩ :=
     sp_wots_completeT_vals (C := C) (pp := pp) (a0 := a0) (a1 := a1) (vals := vals) hd hsum hm
-  have e : ∀ j ≤ 29, (σ' ∘ spUn) (.n j) = σ' (.n j) := fun j hj => by
+  have e : ∀ j ≤ 28, (σ' ∘ spUn) (.n j) = σ' (.n j) := fun j hj => by
     simp [spUn, spRi_small hj, V.n]
   refine ⟨σ' ∘ spUn, by rw [e 0 (by norm_num), h0], by rw [e 1 (by norm_num), h1],
     by rw [e 2 (by norm_num), h2], by rw [e 3 (by norm_num), h3], ?_, ?_⟩

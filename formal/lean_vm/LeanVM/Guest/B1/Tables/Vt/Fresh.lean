@@ -62,12 +62,12 @@ theorem vt_keccak {rd : Reader} {σ : Val} {ins : List V} {b : ℕ}
   rfl
 
 set_option maxRecDepth 10000 in
-/-- **The bus's first stream words** and the bytecode sumcheck's first challenge (at `1868`),
+/-- **The bus's first stream words** and the bytecode sumcheck's first challenge (at `1855`),
 the sponge's capacity after it (`1863 .. 1867`), and the copies of the share and the first round's
 coefficients the round reads. -/
 theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
     TbReadsAt rd (σ (.n 5)) (vtFreshWords σ) ∧
-      σ (.n 1868) = (vtFreshFs σ).squeeze.1 ∧
+      σ (.n 1855) = (vtFreshFs σ).squeeze.1 ∧
       ((List.range 5).map fun k ↦ σ (.n (1863 + k))) = (vtFreshFs σ).squeeze.2.cap ∧
       σ (.n 1844) = σ (.n 1841) ∧ σ (.n 1848) = σ (.n 1845) ∧ σ (.n 1852) = σ (.n 1849) := by
   obtain ⟨_, f0⟩ := h.sliceAt 799 (fsNextT (.n 5) 0 813) (by decide +kernel)
@@ -97,8 +97,6 @@ theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
   have k2 := h.atomAt 1929 (.keccak [.n 1842, .n 1843, .n 1846, .n 1847, .n 1850, .n 1851,
     .n 1853, .n 1854, .n 1836, .n 1837, .n 1838, .n 1839, .n 1840] (vtOuts 1855) false false)
     (by decide +kernel)
-  obtain ⟨_, hch⟩ := h.sliceAt 1930 (challengeT (.n 1855) 1868) (by decide +kernel)
-  rw [holds_challengeT] at hch
   have d43 := h.atomAt 1918 (.copy (.n 1844) (.n 1841)) (by decide +kernel)
   have d47 := h.atomAt 1922 (.copy (.n 1848) (.n 1845)) (by decide +kernel)
   have d51 := h.atomAt 1926 (.copy (.n 1852) (.n 1849)) (by decide +kernel)
@@ -163,7 +161,7 @@ theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
     · exact l6
   · rw [hS7]
     simp only [Fs.squeeze, Fs.perm]
-    exact challengeT_value hch.1 (hP2 0 (by omega))
+    exact challengeT_value (s0 := .n 1855) (b := 1855) rfl (hP2 0 (by omega))
   · rw [hS7]
     simp only [Fs.squeeze, Fs.perm]
     have e : ∀ k, 1855 + 8 + k = 1863 + k := fun k => by omega

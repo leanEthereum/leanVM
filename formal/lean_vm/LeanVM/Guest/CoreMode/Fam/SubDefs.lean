@@ -42,9 +42,9 @@ open LeanVM.Guest.B2C (cellJ)
 /-- **The proof stream's readers**: function, its cursor's cell, the stream's base (the layer's
 parameter, the loops' through their header), the words read past the cursor. -/
 def stSites : List (String × ℕ × Mode.Base × ℕ) :=
-  [(name% «keccak_layer__L0», 765, .fr 17, 36), (name% «keccak_layer__L1», 792, .fr 17, 36),
-    (name% «keccak_layer__L0_loop0», 21, .hp 1 17, 16), (name% «keccak_layer__L1_loop0», 21, .hp 1 17, 16),
-    (name% «keccak_layer__L0_loop1», 18, .hp 1 17, 2), (name% «keccak_layer__L1_loop1», 18, .hp 1 17, 2)]
+  [(name% «keccak_layer__L0», 747, .fr 17, 36), (name% «keccak_layer__L1», 773, .fr 17, 36),
+    (name% «keccak_layer__L0_loop0», 20, .hp 1 17, 16), (name% «keccak_layer__L1_loop0», 20, .hp 1 17, 16),
+    (name% «keccak_layer__L0_loop1», 17, .hp 1 17, 2), (name% «keccak_layer__L1_loop1», 17, .hp 1 17, 2)]
 
 /-- The read `c` words past the cursor in cell `o`, inside the stream `st·[0, 8192)`. -/
 def stRes (o : ℕ) (st : Mode.Base) (c : ℕ) : Mode.Res :=
@@ -71,20 +71,20 @@ noncomputable def vtB (j : ℕ) : Mode.Res → Bool
           decide (Mode.Res.sub a bs = stResB (.hp 19 3) (.hp 1 22) a.q.k)))
   | _ => false
 
-/-- **`verify_tables`' reads past its table sumcheck's last record's cursor** (cell `2908`) inside its
+/-- **`verify_tables`' reads past its table sumcheck's last record's cursor** (cell `2880`) inside its
 stream (`[22]`), below `153` words. -/
 noncomputable def vtStB (j : ℕ) : Mode.Res → Bool
   | .sub a bs => (coreOf j).name == name% «verify_tables» && decide (a.q.k < 153) &&
-      decide (Mode.Res.sub a bs = stRes 2908 (.fr 22) a.q.k)
+      decide (Mode.Res.sub a bs = stRes 2880 (.fr 22) a.q.k)
   | _ => false
 
 /-! ## `verify_tables`' groups -/
 
-/-- A side's groups' bases `[58]·g^[G0, G0 + m)`, each read through a rank's group
-`[58]·[[59]·g^(G0 + k)]`. -/
+/-- A side's groups' bases `[57]·g^[G0, G0 + m)`, each read through a rank's group
+`[57]·[[58]·g^(G0 + k)]`. -/
 def vtGrpRes (G0 m : ℕ) : Mode.Res :=
-  .sub ⟨⟨0, 0, [(.fr 58, 1)]⟩, .num G0, .num (G0 + m), 1, 0⟩
-    ((List.range m).map fun k ↦ ⟨⟨0, 0, [(.fr 58, 1), (.hp 59 (G0 + k), 1)]⟩, .num 0, .num 1, 1, 0⟩)
+  .sub ⟨⟨0, 0, [(.fr 57, 1)]⟩, .num G0, .num (G0 + m), 1, 0⟩
+    ((List.range m).map fun k ↦ ⟨⟨0, 0, [(.fr 57, 1), (.hp 58 (G0 + k), 1)]⟩, .num 0, .num 1, 1, 0⟩)
 
 /-- **`verify_tables`' groups' bases, read in group order**, at function `j`: the ranks of a side
 name each of its groups, the push side's `9` and the count side's `6`. -/
@@ -154,8 +154,8 @@ noncomputable def liftBackB (j : ℕ) (x : Mode.Res) : Bool :=
 (step `s`'s call), the words read there: the next layer's, or after the last, the outputs' and the
 inputs'. -/
 def vkStSites : List (ℕ × ℕ) :=
-  [(406, 48), (435, 48), (463, 48), (494, 48), (525, 48), (556, 48), (583, 48), (614, 48), (644, 48),
-    (677, 48), (708, 48), (738, 97)]
+  [(379, 48), (408, 48), (436, 48), (467, 48), (498, 48), (529, 48), (556, 48), (587, 48), (617, 48),
+    (650, 48), (681, 48), (711, 97)]
 
 /-- **A read past a layer's returned cursor** (`[[q]·g^23]`) inside the stream (`[14]`), at
 `verify_keccak`. -/

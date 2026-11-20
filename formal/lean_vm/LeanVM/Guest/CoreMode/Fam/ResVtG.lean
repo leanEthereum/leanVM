@@ -26,7 +26,7 @@ the keys `KN` from the groups' rank keys (`vt_grps`, the exponent tables), `kapp
 dims and the tables' heights (`vt_kb`, `vt_pads`); rank `1`'s keys, the divisors `133` and `430`,
 are nonzero. `vt_groups_at`: at every honest instance, from its body (`vt_holds`) and precondition
 (`vtPQ_all`). `nzVal_vt133`, `nzVal_vt430`: the divisors' `NzVal`. `vtGrp_top`: the bases
-`[58]·g^[G0, G0 + m)` lie among those read through the ranks' groups.
+`[57]·g^[G0, G0 + m)` lie among those read through the ranks' groups.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -273,10 +273,10 @@ theorem vtLoadW_ok : witOk (fn_idx% «verify_tables») vtLoadW = true := by deci
 theorem vtLoad_cells :
     (∀ r < 9, inFr (fn_idx% «verify_tables») (cellJ (fn_idx% «verify_tables») (.n (vtRv 112 r))) = true ∧
       holdsBase (fn_idx% «verify_tables») vtLoadW (cellJ (fn_idx% «verify_tables») (.n (vtRv 112 r)))
-        (.hp 59 r) = true) ∧
+        (.hp 58 r) = true) ∧
     (∀ r < 6, inFr (fn_idx% «verify_tables») (cellJ (fn_idx% «verify_tables») (.n (vtRv 409 r))) = true ∧
       holdsBase (fn_idx% «verify_tables») vtLoadW (cellJ (fn_idx% «verify_tables») (.n (vtRv 409 r)))
-        (.hp 59 (18 + r)) = true) := by
+        (.hp 58 (18 + r)) = true) := by
   decide +kernel
 
 section
@@ -305,10 +305,10 @@ theorem vtLoad_base (t : TopAt A r K i e j) (hr : r.Ok) (hj : j = fn_idx% «veri
   have h1 := holdsBase_top t hr vtLoadW_ok hin'.1 hin'.2 hB
   rw [rbase_uniq hu h1, wit_cell t hr vtLoadW_ok ha hva hin]
 
-/-- **A side's bases in group order**: each base `[58]·g^x`, `x ∈ [G0, G0 + m)`, is read through some
+/-- **A side's bases in group order**: each base `[57]·g^x`, `x ∈ [G0, G0 + m)`, is read through some
 rank's group. -/
 theorem vtGrp_rsub {G0 m : ℕ}
-    (hsurj : ∀ x, G0 ≤ x → x < G0 + m → ∃ k < m, ∀ u, RBase (refMem r.img) e.I.fp (.hp 59 (G0 + k)) u →
+    (hsurj : ∀ x, G0 ≤ x → x < G0 + m → ∃ k < m, ∀ u, RBase (refMem r.img) e.I.fp (.hp 58 (G0 + k)) u →
       u = gen ^ x) :
     RRes (refMem r.img) e.I.fp (vtGrpRes G0 m) := by
   refine ⟨G0, G0 + m, rfl, rfl, fun vq hvq x hx1 hx2 ↦ ?_⟩

@@ -75,7 +75,8 @@ and count sides fit in `2 ^ μ_bus`, the push side's depth, which the deployed p
 its layouts (`crates/lean_vm_core/src/leaf.rs`; the verifier's own call,
 `leaf.rs` at `a386121f`, is removed at `127510d1`).
 
-Perfect completeness (`busComplete`), from `Seam.commitHonest` to `Seam.bus`: on a stack
+Perfect completeness of the parts (`Bus.challengeComplete`, `Bus.rootsComplete`,
+`Bus.valuesComplete`), from `Seam.commitHonest` to `Seam.bus`: on a stack
 satisfying `M3Holds` with honest padding rows (their leaves `1`), the products of the push and
 pull sides agree at every `(α, β)` (balance is a permutation), the count root is nonzero (counts
 are nonzero), every rider is zero (constraints vanish, lines and Keccak predicate hold), and at
@@ -1321,13 +1322,6 @@ def busPhase (I : M3Instance) (h : Bus.Conditions I) :
     Typed.Def (TheOracle I) I.Stmt Unit (I.Stmt × BusOut I) Unit (busSlot I) :=
   (((Bus.challengeStep I).append (Bus.rootsStep I)).append
     (gkr 3 I.μBus (Bus.leaves I))).append (Bus.valuesStep I h)
-
-/-- **Perfect completeness of the bus phase on the typed framework**, from a stack whose padding
-rows are honest. -/
-theorem busComplete (I : M3Instance) (h : Bus.Conditions I) :
-    Typed.Complete (busPhase I h) (Seam.commitHonest I) (Seam.bus I) :=
-  (((Bus.challengeComplete h).append (Bus.rootsComplete h)).append
-    (gkrComplete 3 I.μBus (Bus.leaves I) (Bus.riders I))).append (Bus.valuesComplete h)
 
 end
 end LeanVM.Protocol

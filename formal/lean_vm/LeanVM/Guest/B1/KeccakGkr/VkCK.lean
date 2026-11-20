@@ -31,7 +31,7 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 /-- Where step `s` ends. -/
 def stepE (s : ℕ) : ℕ :=
-  [490, 525, 559, 602, 643, 686, 719, 760, 798, 841, 882, 922].getD s 0
+  [484, 519, 553, 596, 637, 680, 713, 754, 792, 835, 876, 916].getD s 0
 
 theorem stepE_eq : ∀ s < 12, stepT0 s (stepB s) + stepTailSz s = stepE s := by decide +kernel
 
@@ -43,15 +43,15 @@ variable (D : VkData)
 def w (B curE : ℕ) (i : ℕ) : E :=
   if 22 ≤ i ∧ i < 27 then Value.bitE ((D.τ - 3).testBit (i - 22))
   else if i = 62 then ptr B
-  else if i = 88 then ptr (B + (D.τ - 3))
-  else if i = 162 then ptr (B + D.o201)
-  else if i = 164 then ptr (B + D.τ + 288)
-  else if i = 235 then ptr (B + D.o274)
-  else if i = 343 then ptr (B + D.τ + 380)
-  else if i = 1211 then ptr (B + D.τ + 382)
-  else if 925 ≤ i ∧ i < 932 then (D.oRets curE).getD (i - 925) 0
-  else if 1204 ≤ i ∧ i < 1211 then (D.iRets curE).getD (i - 1204) 0
-  else if 1334 ≤ i ∧ i < 1341 then (D.sRets curE).getD (i - 1334) 0
+  else if i = 87 then ptr (B + (D.τ - 3))
+  else if i = 156 then ptr (B + D.o201)
+  else if i = 158 then ptr (B + D.τ + 288)
+  else if i = 229 then ptr (B + D.o274)
+  else if i = 337 then ptr (B + D.τ + 380)
+  else if i = 1205 then ptr (B + D.τ + 382)
+  else if 919 ≤ i ∧ i < 926 then (D.oRets curE).getD (i - 919) 0
+  else if 1198 ≤ i ∧ i < 1205 then (D.iRets curE).getD (i - 1198) 0
+  else if 1328 ≤ i ∧ i < 1335 then (D.sRets curE).getD (i - 1328) 0
   else match (List.range 12).find? (fun s ↦ stepE s - 6 ≤ i && i < stepE s) with
     | some s => ((D.layer s).rets (firstOf s) (ptr (curE + D.lcur s))).getD (i - (stepE s - 6)) 0
     | none => 0
@@ -63,13 +63,13 @@ theorem w_bits {j : ℕ} (hj : j < 5) : D.w B curE (22 + j) = Value.bitE ((D.τ 
     Nat.add_sub_cancel_left]
 
 
-theorem w_o {j : ℕ} (hj : j < 7) : D.w B curE (925 + j) = (D.oRets curE).getD j 0 := by
+theorem w_o {j : ℕ} (hj : j < 7) : D.w B curE (919 + j) = (D.oRets curE).getD j 0 := by
   interval_cases j <;> rfl
 
-theorem w_i {j : ℕ} (hj : j < 7) : D.w B curE (1204 + j) = (D.iRets curE).getD j 0 := by
+theorem w_i {j : ℕ} (hj : j < 7) : D.w B curE (1198 + j) = (D.iRets curE).getD j 0 := by
   interval_cases j <;> rfl
 
-theorem w_s {j : ℕ} (hj : j < 7) : D.w B curE (1334 + j) = (D.sRets curE).getD j 0 := by
+theorem w_s {j : ℕ} (hj : j < 7) : D.w B curE (1328 + j) = (D.sRets curE).getD j 0 := by
   interval_cases j <;> rfl
 
 theorem w_layer {s : ℕ} (hs : s < 12) {j : ℕ} (hj : j < 6) :

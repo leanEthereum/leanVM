@@ -244,7 +244,7 @@ theorem trials_sum_le (gf : Lifetime.KeptDigestView → ℝ≥0∞) (bound : ℝ
         (if Landed parameter (blockIndex (u firstCall)) then gf (viewOf u) else 0)) +
       bound * ∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
         (if Landed parameter (blockIndex (u firstCall)) then 0 else 1) := by
-    rw [← ENNReal.tsum_mul_left, ← ENNReal.tsum_add]
+    rw [← ENNReal.tsum_mul_left, ← tsum_add]
     refine tsum_congr fun u => ?_
     split_ifs
     · simp
@@ -295,7 +295,7 @@ theorem trial_boundSW
           (weight tg initial out.2 * V out.1.1 out.2) ≤
         weight tg initial s' * pairWeight parameter data message reference gf gp ρ u := by
     intro s' u b hrel' hs'
-    refine le_trans (ENNReal.tsum_le_tsum fun out => ?_)
+    refine le_trans (tsum_le_tsum fun out => ?_)
       (finish_boundAllW tg initial model parameter data message ρ s' u hs' _ b)
     by_cases hout : out ∈ support (interp tg initial model (finishCostSource parameter data message ρ) b s')
     · exact mul_le_mul_right (mul_le_mul_right (hVfin s' u b hrel' hs' out hout) _) _

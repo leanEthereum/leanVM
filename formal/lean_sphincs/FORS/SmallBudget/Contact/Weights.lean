@@ -285,7 +285,7 @@ theorem wsum_ordinary {s : St} (hinv : K.Inv s) (hgc : ForsPotential.GuessCached
               by_cases hF : ∃ f0 : FIn, x = f0.input K.p
               · obtain ⟨f0, hxf⟩ := hF
                 simp only [K.wsum_store_new g _ hc' hi hxf, hrec0, mul_add]
-                rw [ENNReal.tsum_add, ENNReal.tsum_mul_right, Ctx.mean_new g (s.record g0) f0]
+                rw [tsum_add, ENNReal.tsum_mul_right, Ctx.mean_new g (s.record g0) f0]
                 have hIs : IsFleafIn K.p x := ⟨f0, hxf⟩
                 rw [ite_eq_left hIs, mul_one]
                 refine add_le_add (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)) ?_

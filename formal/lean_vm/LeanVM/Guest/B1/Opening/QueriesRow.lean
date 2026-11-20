@@ -85,7 +85,7 @@ theorem oqNovel_atoms (s : Oq) (hs : V) (v : ℕ) : AllAtoms (oqNovel s hs v).1 
 
 theorem oqFinT_atoms (s : Oq) (x hs : V) (v : ℕ) : AllAtoms (oqFinT s x hs v) :=
   allAtoms_append (allAtoms_append (oqWsT_atoms _ _ _) (oqNovel_atoms _ _ _))
-    (allAtoms_cons (allAtoms_cons allAtoms_nil))
+    (allAtoms_cons allAtoms_nil)
 
 /-! ## The row and the packs -/
 

@@ -80,8 +80,8 @@ theorem vk_atoms_top :
 /-- `verify_keccak`'s cells: `tau_g`, the cursor, the stream, `pack_g`, `y_g`, `step_g`, `rem_g`. -/
 theorem vk_cellsJ :
     let c := cellJ (fn_idx% «verify_keccak»)
-    c (.n 6) = 8 ∧ c (.n 5) = 7 ∧ c (.n 12) = 14 ∧ c (.n 19) = 38 ∧ c (.n 21) = 45 ∧ c (.n 35) = 52 ∧
-      c (.n 49) = 61 ∧ 738 < fsN (fn_idx% «verify_keccak») := by
+    c (.n 6) = 8 ∧ c (.n 5) = 7 ∧ c (.n 12) = 14 ∧ c (.n 19) = 37 ∧ c (.n 21) = 44 ∧ c (.n 35) = 51 ∧
+      c (.n 49) = 60 ∧ 738 < fsN (fn_idx% «verify_keccak») := by
   decide +kernel
 
 variable {A : String → FnAl} {r : Ref} {K : Mode.Cert} {i : ℕ} {e : Bridge.Ent} {j : ℕ}
@@ -118,8 +118,8 @@ theorem vk_vals (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name = n
 /-- **`verify_keccak`'s frame cells** hold their values. -/
 theorem vk_cells (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name = name% «verify_keccak») :
     let M := refMem r.img
-    M (e.I.fp + 8) = e.σ (.n 6) ∧ M (e.I.fp + 14) = e.σ (.n 12) ∧ M (e.I.fp + 38) = e.σ (.n 19) ∧
-      M (e.I.fp + 45) = e.σ (.n 21) ∧ M (e.I.fp + 52) = e.σ (.n 35) ∧ M (e.I.fp + 61) = e.σ (.n 49) := by
+    M (e.I.fp + 8) = e.σ (.n 6) ∧ M (e.I.fp + 14) = e.σ (.n 12) ∧ M (e.I.fp + 37) = e.σ (.n 19) ∧
+      M (e.I.fp + 44) = e.σ (.n 21) ∧ M (e.I.fp + 51) = e.σ (.n 35) ∧ M (e.I.fp + 60) = e.σ (.n 49) := by
   obtain ⟨f, bufs, kids, hJ, hfj, hfn⟩ := t.found
   rw [hname] at hfn
   subst hfn

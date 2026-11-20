@@ -49,9 +49,9 @@ theorem vtWFinalPc_eq : vtWFinalPc = Verifier.gpow (2 ^ 19 - 1) := by
   rw [vtWFinalPc, vt_word_ofK, Verifier.gpow, gen_pow_eq_ofK,
     show K.ofBits 12261764870545049476 = Parameters.addressOfIndex (2 ^ 19 - 1) by decide +kernel]
 
-theorem vt_beta1 {rd : Reader} {σ : Val} (h : VtH rd σ) : σ (.n 1976) = σ (.n 14) + 1 := by
-  have a1 := h.atomAt 2021 (.const (.n 1975) (word 1 0)) (by decide +kernel)
-  have a2 := h.atomAt 2022 (.add (.n 1976) (.n 14) (.n 1975)) (by decide +kernel)
+theorem vt_beta1 {rd : Reader} {σ : Val} (h : VtH rd σ) : σ (.n 1975) = σ (.n 14) + 1 := by
+  have a1 := h.atomAt 2020 (.const (.n 1974) (word 1 0)) (by decide +kernel)
+  have a2 := h.atomAt 2021 (.add (.n 1975) (.n 14) (.n 1974)) (by decide +kernel)
   simp only [Atom.Holds] at a1 a2
   rw [a2, a1, tb_word_one]
 
@@ -93,14 +93,14 @@ theorem vt_asm_totals {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.le
     {weights : List E} (hwl : weights.length = 16)
     (hW : TbReadsAt Lm.read (σ (.n 13)) weights)
     (hpw : ∀ t < 6, σ (.n (vtPadV t)) = paddingWeight (point.take (vtHt rows t)) (vtRw rows t)) :
-    σ (.n 2443) = (vtAcc0 (layoutOf bc lm rows) weights (σ (.n 14)) point
-      [σ (.n 813), σ (.n 817)] (σ (.n 1841)) (σ (.n 2442))).2 ∧
-    σ (.n 2489) = (vtAcc1 (layoutOf bc lm rows) weights (σ (.n 14)) point
+    σ (.n 2442) = (vtAcc0 (layoutOf bc lm rows) weights (σ (.n 14)) point
+      [σ (.n 813), σ (.n 817)] (σ (.n 1841)) (σ (.n 2441))).2 ∧
+    σ (.n 2488) = (vtAcc1 (layoutOf bc lm rows) weights (σ (.n 14)) point
       [σ (.n 813), σ (.n 817)] (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841))
-      (σ (.n 2442)) (σ (.n 2488))).2 ∧
-    σ (.n 2544) = (vtAcc2 (layoutOf bc lm rows) weights (σ (.n 14)) point
+      (σ (.n 2441)) (σ (.n 2487))).2 ∧
+    σ (.n 2543) = (vtAcc2 (layoutOf bc lm rows) weights (σ (.n 14)) point
       [σ (.n 813), σ (.n 817)] (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841))
-      (σ (.n 2442)) (σ (.n 2488)) (σ (.n 2543))).2 := by
+      (σ (.n 2441)) (σ (.n 2487)) (σ (.n 2542))).2 := by
   obtain ⟨l1, l2, s0, s1, s2, c0, c1, c2, hS, hsum, hSC, hsumC⟩ :=
     vt_sels hμ Lm h hz hmu hml hE hlm hτ hkb
   have k1 : σ (.n 27) = gen ^ lm := by simpa using hkb 1 (by norm_num)
@@ -118,15 +118,15 @@ theorem vt_asm_totals {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.le
   have hpw' : ∀ t < 6, paddingWeight (point.take (vtHt rows t)) (vtRw rows t) =
       σ (.n (vtPadV t)) := fun t ht ↦ (hpw t ht).symm
   have e0 := vt_total0 hbc weights (σ (.n 14)) point [σ (.n 813), σ (.n 817)]
-    (σ (.n 1841)) (σ (.n 2442)) _ _ _ (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t)))
+    (σ (.n 1841)) (σ (.n 2441)) _ _ _ (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t)))
     s0.symm s1.symm s2.symm (fun i hi ↦ hS i hi) hpw' hr
   have e1 := vt_total1 hbc weights (σ (.n 14)) point [σ (.n 813), σ (.n 817)]
-    (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841)) (σ (.n 2442)) (σ (.n 2488)) _ _ _
+    (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841)) (σ (.n 2441)) (σ (.n 2487)) _ _ _
     (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t))) s0.symm s1.symm s2.symm (fun i hi ↦ hS i hi)
     hpw' hr
   have e2 := vt_total2 (bc := bc) (lm := lm) weights (σ (.n 14)) point
     [σ (.n 813), σ (.n 817)] (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841))
-    (σ (.n 2442)) (σ (.n 2488)) (σ (.n 2543)) (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t))) W
+    (σ (.n 2441)) (σ (.n 2487)) (σ (.n 2542)) (fun c ↦ σ (.n c)) (fun t ↦ σ (.n (vtPadV t))) W
     (fun i hi ↦ hSC i hi) hpw' hr
   have hpad := vt_push_pad h hw
   rw [vt_beta1 h] at hpad

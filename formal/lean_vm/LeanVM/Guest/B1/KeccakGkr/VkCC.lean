@@ -33,7 +33,7 @@ theorem mem_stepCoreF {s b : ℕ} {st : Stmt} (h : st ∈ flipsT s (b + 6)) : st
 theorem stepCore_of_flips {s b : ℕ} (hs : s < 12) (hb : 19 ≤ b) (hσ : ∀ v, σ v = σ (.n v.idx))
     (hg : ∀ st ∈ stepCore s b, GoodS rd vkSt w σ st) (hk : stepKer s b)
     {τ : ℕ} (hτ1 : 9 ≤ τ) (h17 : σ (.n 19) = gen ^ (τ - 4)) {c : KeccakClaim} {pp : E}
-    (hpp : LoadHolds rd (σ (.n 162)) (22 * s + 2) pp) (hpt : ReadsAt rd pp c.point)
+    (hpp : LoadHolds rd (σ (.n 156)) (22 * s + 2) pp) (hpt : ReadsAt rd pp c.point)
     (hptL : c.point.length = τ - 3)
     (hF : ∀ i ∈ iotaUsed s, σ (.n (flipOf s (b + 6) i)) = c.weights.getD (2 ^ i - 1) 0)
     (HF : ∀ {next : Prop} {kret : List E → Prop}, next →
@@ -42,7 +42,7 @@ theorem stepCore_of_flips {s b : ℕ} (hs : s < 12) (hb : 19 ≤ b) (hσ : ∀ v
       ∀ {next : Prop} {kret : List E → Prop}, next → Stmt.HoldsList C rd σ (stepCore s b) next kret := by
   obtain ⟨k1, -, -, -, k7, k9⟩ := hk
   have gA : ∀ a, Stmt.atom a ∈ stepCore s b → Good rd vkSt w σ a := fun a h ↦ hg _ h
-  have mA : ∀ st ∈ [Stmt.atom (.load (.n b) (.n 162) (22 * s + 2)),
+  have mA : ∀ st ∈ [Stmt.atom (.load (.n b) (.n 156) (22 * s + 2)),
       .atom (.mul (.n (b + 1)) (.n b) (.n 19))] ++ eqfLevel0T (.n (b + 1)) 0 (b + 2),
       st ∈ stepCore s b := fun st h ↦
     List.mem_append_left _ (List.mem_append_left _ h)
@@ -63,7 +63,7 @@ theorem stepCore_of_flips {s b : ℕ} (hs : s < 12) (hb : 19 ≤ b) (hσ : ∀ v
   have p5 : σ (.n (b + 5)) = σ (.n (b + 2)) :=
     gA (.copy (.n (b + 5)) (.n (b + 2))) (mA _ (by simp [eqfLevel0T]))
   have HA : ∀ {next : Prop} {kret : List E → Prop}, next → Stmt.HoldsList C rd σ
-      ([Stmt.atom (.load (.n b) (.n 162) (22 * s + 2)), .atom (.mul (.n (b + 1)) (.n b) (.n 19))] ++
+      ([Stmt.atom (.load (.n b) (.n 156) (22 * s + 2)), .atom (.mul (.n (b + 1)) (.n b) (.n 19))] ++
         eqfLevel0T (.n (b + 1)) 0 (b + 2)) next kret := by
     intro next kret hn
     simp only [eqfLevel0T, List.cons_append, List.nil_append, Stmt.HoldsList, Stmt.Holds,
@@ -91,7 +91,7 @@ theorem load_mem_resid {B : List Stmt} {d p : V} {off : ℕ} (h : Stmt.atom (.lo
 /-- **The first claim's flips, completely.** -/
 theorem flips0_complete {b : ℕ} (hσ : ∀ v, σ v = σ (.n v.idx))
     (hg : ∀ st ∈ stepCore 0 b, GoodS rd vkSt w σ st) (hk : stepKer 0 b) {L0 : E}
-    (hL0 : LoadHolds rd (σ (.n 235)) 30 L0) {c : KeccakClaim}
+    (hL0 : LoadHolds rd (σ (.n 229)) 30 L0) {c : KeccakClaim}
     (hw0 : ∀ z < 64, c.weights.getD z 0 = L0 * gen ^ z) :
     (∀ i ∈ iotaUsed 0, σ (.n (flipOf 0 (b + 6) i)) = c.weights.getD (2 ^ i - 1) 0) ∧
       ∀ {next : Prop} {kret : List E → Prop}, next →
@@ -117,7 +117,7 @@ theorem flips0_complete {b : ℕ} (hσ : ∀ v, σ v = σ (.n v.idx))
 /-- **A later claim's flips, completely**: read from the claim's record (`KC_FLIPS`). -/
 theorem flipsL_complete {s b : ℕ} (hs1 : 1 ≤ s) (hσ : ∀ v, σ v = σ (.n v.idx))
     (hg : ∀ st ∈ stepCore s b, GoodS rd vkSt w σ st) (hk : stepKer s b) {fl : E}
-    {c : KeccakClaim} (hfl : LoadHolds rd (σ (.n 162)) (22 * s + 5) fl)
+    {c : KeccakClaim} (hfl : LoadHolds rd (σ (.n 156)) (22 * s + 5) fl)
     (hws : ReadsAt rd fl (flipsOf c.weights)) :
     (∀ i ∈ iotaUsed s, σ (.n (flipOf s (b + 6) i)) = c.weights.getD (2 ^ i - 1) 0) ∧
       ∀ {next : Prop} {kret : List E → Prop}, next →
@@ -127,7 +127,7 @@ theorem flipsL_complete {s b : ℕ} (hs1 : 1 ≤ s) (hσ : ∀ v, σ v = σ (.n 
   -- the pointer each flip loads
   have hptr : ∀ j < (iotaUsed s).length, σ (.n (b + 6 + 2 * j)) = fl := by
     intro j hj
-    have m0 : Stmt.atom (.load (.n (b + 6 + 2 * j)) (.n 162) (22 * s + 5)) ∈ flipsT s (b + 6) := by
+    have m0 : Stmt.atom (.load (.n (b + 6 + 2 * j)) (.n 156) (22 * s + 5)) ∈ flipsT s (b + 6) := by
       simp only [flipsT, List.mem_flatten, List.mem_map, List.mem_range]
       exact ⟨_, ⟨j, hj, rfl⟩, by simp [flipT, hs0, flipSz]⟩
     exact load_val (w := w) (hg _ (mem_stepCoreF m0)) (not_mem_of_noneIn k6 _ (load_mem_resid m0))
@@ -148,11 +148,11 @@ theorem flipsL_complete {s b : ℕ} (hs1 : 1 ≤ s) (hσ : ∀ v, σ v = σ (.n 
   exact ⟨hfl', HF⟩
 
 /-- **The first step's call, completely.** -/
-theorem tail0_complete {T : ℕ} (hT : 163 ≤ T) {cap : List ℕ} {cur cb pn io : ℕ}
+theorem tail0_complete {T : ℕ} (hT : 157 ≤ T) {cap : List ℕ} {cur cb pn io : ℕ}
     (hg : ∀ st ∈ stepTailT 0 T cap cur cb pn io, GoodS rd vkSt w σ st) {τ : ℕ}
     (h17 : σ (.n 19) = gen ^ (τ - 4)) (hτ : 4 ≤ τ) :
     σ (.n (T + 1)) = σ (.n 5) * gen ∧ σ (.n (T + 3)) = gen ^ (τ - 3) ∧
-      σ (.n (T + 5)) = σ (.n 162) * gen ^ (22 * 1) ∧
+      σ (.n (T + 5)) = σ (.n 156) * gen ^ (22 * 1) ∧
       ∀ {next : Prop} {kret : List E → Prop}, next →
         Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (stepTailT 0 T cap cur cb pn io) next kret := by
   have gA : ∀ a, Stmt.atom a ∈ stepTailT 0 T cap cur cb pn io → Good rd vkSt w σ a :=
@@ -165,11 +165,11 @@ theorem tail0_complete {T : ℕ} (hT : 163 ≤ T) {cap : List ℕ} {cur cb pn io
   have c4 : σ (.n (T + 4)) = word 4194304 0 :=
     gA (.const (.n (T + 4)) (word 4194304 0)) (by simp [stepTailT])
   have m5 := mulG (by omega) (by omega)
-    (gA (.mul (.n (T + 5)) (.n 162) (.n (T + 4))) (by simp [stepTailT]))
+    (gA (.mul (.n (T + 5)) (.n 156) (.n (T + 4))) (by simp [stepTailT]))
   have e1 : σ (.n (T + 1)) = σ (.n 5) * gen := by rw [m1, c0, word_gen]
   have e3 : σ (.n (T + 3)) = gen ^ (τ - 3) := by
     rw [m3, h17, c2, word_gen, ← pow_succ]; congr 1; omega
-  have e5 : σ (.n (T + 5)) = σ (.n 162) * gen ^ (22 * 1) := by rw [m5, c4, word_g22]
+  have e5 : σ (.n (T + 5)) = σ (.n 156) * gen ^ (22 * 1) := by rw [m5, c4, word_g22]
   refine ⟨e1, e3, e5, fun {next kret} hn ↦ ?_⟩
   simp only [stepTailT, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds]
   exact ⟨c0, m1, c2, m3, c4, m5, trivial, hn⟩

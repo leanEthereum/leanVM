@@ -144,7 +144,7 @@ theorem round_relIn (hκ : 11 ≤ κ) {args rets : List E} {Lin : Layout}
   set σ : Val := fun v ↦ Whir.rdVals args xs v.idx with hσ
   have hst : roundPre.all Main.Stmt.straight = true := by decide
   have hbody := Whir.opening_round_body.trans roundBody_eq
-  have hw := Main.walk_straight σ [.n 86, .n 87, .n 88, .n 89, .n 90, .n 93, .n 94] roundPre hst
+  have hw := Main.walk_straight σ [.n 84, .n 85, .n 86, .n 87, .n 88, .n 91, .n 92] roundPre hst
   rw [← hbody] at hw
   rw [← Whir.opening_round_body] at hh
   have hsat := walk_sat (P := coreProgram) _

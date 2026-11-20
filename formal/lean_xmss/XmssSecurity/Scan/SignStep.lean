@@ -58,7 +58,7 @@ theorem sign_select_le (leafIndex : LeafIndex) (message : Message) (cache : Quer
   refine le_trans ?_ (Scan.selection_uniform_eq secretKey leafIndex message cache ρ hstatus).le |>.trans
     (le_of_eq ?_)
   · rw [OracleComp.prEvent_bind_eq_tsum, OracleComp.prEvent_bind_eq_tsum]
-    refine ENNReal.tsum_le_tsum fun base => mul_le_mul' le_rfl ?_
+    refine tsum_le_tsum fun base => mul_le_mul' le_rfl ?_
     rw [simulateQ_bind, StateT.run_bind]
     simp only [simulateQ_pure, StateT.run_pure]
     rw [bind_pure_comp, prEvent_map]

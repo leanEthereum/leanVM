@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.FData
 
-  The statements of the window `2685 ..< 5524` that evaluation alone does not settle, by kind:
+  The statements of the window `2683 ..< 5522` that evaluation alone does not settle, by kind:
   each evaluation's read and limb check, the permutations, and each table's weight division and
   two weight reads; the kernel checks that they and the reads of `fp_w` cover the window.
   The data `vtAirD` and `vtFTags` are `VtC/FDataD.lean`'s (`scripts/b1c-vt/genfdata.py`).
@@ -39,10 +39,10 @@ def vtAirX (t : ℕ) : ℕ := (vtAirD.getD t (0, 0)).2
 
 /-- Table `t`'s weight block. -/
 def vtAirT (t : ℕ) : List Stmt :=
-  [.atom (.mul (.n 2545) (.n (vtAirX t)) (.n (vtTauV t))),
-    .atom (.mul (.n (vtAirX t + 1)) (.n 2631) (.n (vtAirX t))),
+  [.atom (.mul (.n 2544) (.n (vtAirX t)) (.n (vtTauV t))),
+    .atom (.mul (.n (vtAirX t + 1)) (.n 2629) (.n (vtAirX t))),
     .atom (.load (.n (vtAirX t + 2)) (.n (vtAirX t + 1)) 0),
-    .atom (.mul (.n (vtAirX t + 3)) (.n 2653) (.n (vtTauV t))),
+    .atom (.mul (.n (vtAirX t + 3)) (.n 2651) (.n (vtTauV t))),
     .atom (.load (.n (vtAirX t + 4)) (.n (vtAirX t + 3)) 0)]
 
 theorem vtAirT_check : ∀ t < 6,
@@ -51,7 +51,7 @@ theorem vtAirT_check : ∀ t < 6,
 
 /-- Evaluation `k`'s statements evaluation alone does not settle. -/
 def vtEvRest (k : ℕ) : List Stmt :=
-  [.atom (.load (.n (vtEvB k)) (.n 2649) k)]
+  [.atom (.load (.n (vtEvB k)) (.n 2647) k)]
 
 /-- A read of `fp_w`. -/
 def rdFpw : Stmt → Bool
@@ -84,11 +84,11 @@ theorem not_mem_vtSL {p : ℕ} (h : noStoreB p = true) (d : V) (off : ℕ) :
   have := List.all_eq_true.mp h _ hm
   simp at this
 
-theorem vtF_noStore : noStoreB 13 = true ∧ noStoreB 2649 = true ∧
+theorem vtF_noStore : noStoreB 13 = true ∧ noStoreB 2647 = true ∧
     ∀ t < 6, noStoreB (vtAirX t + 1) = true ∧ noStoreB (vtAirX t + 3) = true := by
   decide +kernel
 
-theorem vtF_loadsBelow : loadsBelow [(13, 16), (2649, 153)] = true := by decide +kernel
+theorem vtF_loadsBelow : loadsBelow [(13, 16), (2647, 153)] = true := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Tables

@@ -253,7 +253,7 @@ theorem range_msgPoly {κ : ℕ} (hκ : κ ≤ 64) :
     | zero =>
       intro _ p hp
       rw [mem_degreeLT, degree_lt_iff_coeff_zero] at hp
-      have hp0 : p = 0 := Polynomial.ext fun m ↦ by simpa using hp m (Nat.zero_le m)
+      have hp0 : p = 0 := AddMonoidAlgebra.ext <| Finsupp.ext fun m ↦ by simpa using hp m (Nat.zero_le m)
       rw [hp0]
       exact Submodule.zero_mem _
     | succ n ih =>
@@ -272,7 +272,7 @@ theorem range_msgPoly {κ : ℕ} (hκ : κ ≤ 64) :
       have hp' : p - c • q ∈ degreeLT E n := by
         rw [mem_degreeLT, degree_lt_iff_coeff_zero]
         intro m hm
-        rw [coeff_sub, coeff_smul, smul_eq_mul]
+        rw [coeff_sub, AddMonoidAlgebra.coeff_smul_apply, smul_eq_mul]
         rcases eq_or_lt_of_le hm with hm | hm
         · subst hm
           rw [← hqdeg, coeff_natDegree, hqdeg, div_mul_cancel₀ _ hlc, sub_self]

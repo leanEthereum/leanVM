@@ -33,9 +33,11 @@ open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 /-! ## The program -/
 
-/-- The rest of a level with a next one, after its fold rounds. -/
-def midTail (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ) (level next : Whir.Level)
-    (rest : List Whir.Level) (s : WhirState) (rounds : List FoldRound) : VerifierProgram Unit :=
+/-- The rest of a level with a next one, after its fold rounds, its continuation `k` given the
+high part and the next level's state. -/
+def midTailC {α : Type} (logN : ℕ) (index : ℕ) (level next : Whir.Level)
+    (k : List E → WhirState → VerifierProgram α) (s : WhirState) (rounds : List FoldRound) :
+    VerifierProgram α :=
   readCommitment (logN - s.alphas.length - next.fold + next.logInvRate) (2 * 2 ^ next.fold) >>=
     fun _ ↦ readScalars level.fold >>= fun high ↦
   grindProofOfWork Whir.oodGrindingBits >>= fun _ ↦
@@ -45,9 +47,14 @@ def midTail (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ) (level next
   sampleQueries (logN - s.alphas.length + level.logInvRate) level.queries >>= fun qs ↦
   sampleChallenge >>= fun lam ↦
   queryOpenings index qs >>= fun words ↦
-  whirLevels logN laneFolds eb (index + 1) (next :: rest)
-    (glueLevel s lam (logN - s.alphas.length) z y qs (powers lam qs.length)
-      (batchedOf index (logN - s.alphas.length) rounds high qs (powers lam qs.length) words))
+  k high (glueLevel s lam (logN - s.alphas.length) z y qs (powers lam qs.length)
+    (batchedOf index (logN - s.alphas.length) rounds high qs (powers lam qs.length) words))
+
+/-- The rest of a level with a next one, after its fold rounds. -/
+def midTail (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ) (level next : Whir.Level)
+    (rest : List Whir.Level) (s : WhirState) (rounds : List FoldRound) : VerifierProgram Unit :=
+  midTailC logN index level next (fun _ s' ↦ whirLevels logN laneFolds eb (index + 1) (next :: rest) s')
+    s rounds
 
 theorem whirLevels_mid (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ)
     (level next : Whir.Level) (rest : List Whir.Level) (s : WhirState) :
@@ -59,9 +66,9 @@ theorem whirLevels_mid (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ)
 
 /-- **The doom at the start of level `i`**: the invariant with no round, and commitment `i` is the
 last, of the level's shape. -/
-def LevelPre (μ ℓ₀ : ℕ) (w : List E → E) (i : ℕ) (P : LevelCode) (pre : ℕ) (s : WhirState)
-    (cs : List (ℕ × ℕ × Word)) : Prop :=
-  RoundInv μ ℓ₀ w i P pre s [] cs ∧ ShapeOK i P cs ∧ cs.length = i + 1
+def LevelPre (μ ℓ₀ : ℕ) (w : List E → E) (i : ℕ) (P : LevelCode) (pre : ℕ)
+    (B : List (ℕ × ℕ × Word) → TPred) (s : WhirState) (cs : List (ℕ × ℕ × Word)) : Prop :=
+  RoundInv μ ℓ₀ w i P pre B s [] cs ∧ ShapeOK i P cs ∧ cs.length = i + 1
 
 /-- The out-of-domain point's escape: `C(L', 2) κ |E|^(κ−1) / |E|^κ`, i.e. `C(L', 2) κ / |E|`. -/
 noncomputable def eOod (P P' : LevelCode) : ENNReal :=
@@ -95,14 +102,16 @@ structure MidOK (P P' : LevelCode) (t : ℕ) (εmax : ENNReal) : Prop where
 section Steps
 
 variable {μ ℓ₀ : ℕ} {w : List E → E} {i : ℕ} {P P' : LevelCode} {pre : ℕ}
+  {B : List (ℕ × ℕ × Word) → TPred}
 
 /-- The commitment appends the next level's word, of its shape. -/
 theorem mid_commit {logN : ℕ} {next : Whir.Level} (hκ : P.κ = P'.ℓ + P'.κ)
     (hnext : next.fold = P'.ℓ ∧ next.logInvRate = P'.R) (s : WhirState)
     (rounds : List FoldRound) (cs : List (ℕ × ℕ × Word))
-    (hI : RoundInv μ ℓ₀ w i P pre s rounds cs) (hS : ShapeOK i P cs) (hlen : cs.length = i + 1)
+    (hI : RoundInv μ ℓ₀ w i P pre B s rounds cs) (hB : PredStable i B) (hS : ShapeOK i P cs)
+    (hlen : cs.length = i + 1)
     (hmu : logN - s.alphas.length = P.κ) (W : Word) (hW : WellShaped (2 * 2 ^ next.fold) W) :
-    RoundInv μ ℓ₀ w i P pre s rounds
+    RoundInv μ ℓ₀ w i P pre B s rounds
         (cs ++ [(logN - s.alphas.length - next.fold + next.logInvRate, 2 * 2 ^ next.fold, W)]) ∧
       ShapeOK i P
         (cs ++ [(logN - s.alphas.length - next.fold + next.logInvRate, 2 * 2 ^ next.fold, W)]) ∧
@@ -113,7 +122,7 @@ theorem mid_commit {logN : ℕ} {next : Whir.Level} (hκ : P.κ = P'.ℓ + P'.κ
   have hi : i < cs.length := by omega
   refine ⟨?_, ?_, ?_, by simp [hlen]⟩
   · obtain ⟨h1, h2, h3, h4, h5⟩ := hI
-    exact ⟨h1, h2, h3, h4, by rw [laneO_append _ _ hi]; exact h5⟩
+    exact ⟨h1, h2, h3, h4, by rw [laneO_append _ _ hi, roundPred_append hB rounds cs _ hi]; exact h5⟩
   · obtain ⟨W₀, hW₀, hl⟩ := hS
     exact ⟨W₀, by rw [List.getElem?_append_left hi]; exact hW₀, hl⟩
   · refine ⟨W, ?_, fun v ↦ ?_⟩
@@ -129,37 +138,39 @@ end Steps
 section Interface
 
 variable (μ ℓ₀ : ℕ) (w : List E → E) (i : ℕ) (P P' : LevelCode) (pre : ℕ)
+  (B : List (ℕ × ℕ × Word) → TPred)
 
 /-- After the next commitment. -/
 def MidI1 (s : WhirState) (rounds : List FoldRound) (cs : List (ℕ × ℕ × Word)) : Prop :=
-  RoundInv μ ℓ₀ w i P pre s rounds cs ∧ ShapeOK i P cs ∧ ShapeOK (i + 1) P' cs ∧
+  RoundInv μ ℓ₀ w i P pre B s rounds cs ∧ ShapeOK i P cs ∧ ShapeOK (i + 1) P' cs ∧
     cs.length = i + 2 ∧ rounds.length = P.ℓ
 
 /-- After the out-of-domain point. -/
 def MidI2 (s : WhirState) (rounds : List FoldRound) (high : List E) (z : List E)
     (cs : List (ℕ × ℕ × Word)) : Prop :=
-  MidI1 μ ℓ₀ w i P P' pre s rounds cs ∧ high.length = P.ℓ ∧ z.length = P.κ ∧
+  MidI1 μ ℓ₀ w i P P' pre B s rounds cs ∧ high.length = P.ℓ ∧ z.length = P.κ ∧
     OodSep P' (rowsOf P'.ℓ (laneO (i + 1) cs P'.n)) z
 
 /-- After the query positions. -/
 def MidI3 (hκ : P.κ = P'.ℓ + P'.κ) (s : WhirState) (rounds : List FoldRound) (high : List E)
     (z : List E) (y : E) (qs : List ℕ) (cs : List (ℕ × ℕ × Word)) : Prop :=
-  MidI2 μ ℓ₀ w i P P' pre s rounds high z cs ∧ (∀ q ∈ qs, q < P.n) ∧
+  MidI2 μ ℓ₀ w i P P' pre B s rounds high z cs ∧ (∀ q ∈ qs, q < P.n) ∧
     QDoom P P' hκ (rowsOf P'.ℓ (laneO (i + 1) cs P'.n)) (runW w ℓ₀ s) s.claim z y
-      (cOf P i cs rounds high) qs
+      (cOf P i cs rounds high) (nextBn i P P' hκ B rounds high cs) qs
 
 end Interface
 
 section Escapes
 
 variable {μ ℓ₀ : ℕ} {w : List E → E} {i : ℕ} {P P' : LevelCode} {pre : ℕ}
+  {B : List (ℕ × ℕ × Word) → TPred}
 
 open Classical in
 /-- **The out-of-domain point's escape** is at most `eOod`. -/
 theorem escRet_mid_ood_le (hκ : P.κ = P'.ℓ + P'.κ) (gap : P'.n * P'.deg < P'.thr 0 * P'.thr 0)
     (s : WhirState) (rounds : List FoldRound) (high : List E) (h₀ : List Ev) (hhigh : high.length = P.ℓ)
-    (hI : MidI1 μ ℓ₀ w i P P' pre s rounds (commits h₀)) :
-    escRet (fun z h ↦ MidI2 μ ℓ₀ w i P P' pre s rounds high z (commits h)) h₀ []
+    (hI : MidI1 μ ℓ₀ w i P P' pre B s rounds (commits h₀)) :
+    escRet (fun z h ↦ MidI2 μ ℓ₀ w i P P' pre B s rounds high z (commits h)) h₀ []
       (sampleChallenges P.κ) ≤ eOod P P' := by
   set Q' := rowsOf P'.ℓ (laneO (i + 1) (commits h₀) P'.n)
   refine (escRet_oodPoint_le _ P.κ h₀ (univ.filter fun f : Fin P.κ → E ↦
@@ -177,15 +188,16 @@ open Classical in
 theorem escRet_mid_queries_le (hκ : P.κ = P'.ℓ + P'.κ) (hA : 1 ≤ P.A) (hℓ : 1 ≤ P.ℓ)
     (hℓκ : P.ℓ ≤ 2 ^ P.κ) (s : WhirState) (rounds : List FoldRound) (high : List E)
     (z : List E) (y : E) (t : ℕ) (h₀ : List Ev)
-    (hI : MidI2 μ ℓ₀ w i P P' pre s rounds high z (commits h₀)) :
-    escRet (fun qs h ↦ MidI3 μ ℓ₀ w i P P' pre hκ s rounds high z y qs (commits h) ∧
+    (hI : MidI2 μ ℓ₀ w i P P' pre B s rounds high z (commits h₀)) :
+    escRet (fun qs h ↦ MidI3 μ ℓ₀ w i P P' pre B hκ s rounds high z y qs (commits h) ∧
       qs.length = t) h₀ [] (sampleQueries (P.κ + P.R) t) ≤ eQuery P t := by
   obtain ⟨⟨hR, hS, hS', hlen, hr⟩, hhigh, hz, hsep⟩ := hI
   set C : Fin P.n → E := fun v ↦ foldsA P.dom rounds (laneO i (commits h₀) P.n) 0 v
   have hviol : TViol P.κ P.dom (fun _ : Fin 0 → Bool ↦ C) (runW w ℓ₀ s) s.claim (P.thr P.ℓ)
-      P.deg := by
+      P.deg (roundPred i P B rounds (commits h₀) 0) := by
     have h5 := hR.2.2.2.2
-    rw [tviol_rowsOf_congr (show P.ℓ - rounds.length = 0 by omega), hr] at h5
+    rw [tviol_rowsOf_congr (B := roundPred i P B rounds (commits h₀))
+      (show P.ℓ - rounds.length = 0 by omega), hr] at h5
     have hrow : rowsOf 0 (foldsA P.dom rounds (laneO i (commits h₀) P.n)) =
         fun _ : Fin 0 → Bool ↦ C := by
       funext u v
@@ -198,9 +210,11 @@ theorem escRet_mid_queries_le (hκ : P.κ = P'.ℓ + P'.κ) (hA : 1 ≤ P.A) (h�
     exact this
   obtain ⟨S, hScard, hSq⟩ := exists_agreeSet P P' hκ hA (rowsOf P'.ℓ (laneO (i + 1) (commits h₀) P'.n))
     C (runW w ℓ₀ s) s.claim z y
-    (polyOf high) hH (cOf P i (commits h₀) rounds high) (fun q h ↦ by simp [cOf, h, C]) hviol hsep
+    (polyOf high) hH (cOf P i (commits h₀) rounds high) (fun q h ↦ by simp [cOf, h, C])
+    (Bfin := roundPred i P B rounds (commits h₀) 0) (Bn := nextBn i P P' hκ B rounds high (commits h₀))
+    (fun _ h ↦ h) hviol hsep
   have hdepth : 1 ≤ P.κ + P.R := by have := P.hR; omega
-  refine (escRet_queries_le (fun qs cs ↦ MidI3 μ ℓ₀ w i P P' pre hκ s rounds high z y qs cs ∧
+  refine (escRet_queries_le (fun qs cs ↦ MidI3 μ ℓ₀ w i P P' pre B hκ s rounds high z y qs cs ∧
       qs.length = t) (P.κ + P.R) t hdepth (by have := P.h64; omega) h₀
     (fun j ↦ ∃ h : j < P.n, (⟨j, h⟩ : Fin P.n) ∈ S) fun qs hqs hl hQ q hq ↦ ?_).trans ?_
   · refine ⟨hqs q hq, hSq qs (fun hD ↦ hQ ⟨⟨⟨⟨hR, hS, hS', hlen, hr⟩, hhigh, hz, hsep⟩,
@@ -221,6 +235,7 @@ end Escapes
 section Lambda
 
 variable {μ ℓ₀ : ℕ} {w : List E → E} {i : ℕ} {P P' : LevelCode} {pre : ℕ}
+  {B : List (ℕ × ℕ × Word) → TPred}
 
 open Classical in
 /-- **The batching challenge's escape**: at most `(t + 1) L'` values of `λ` leave the next
@@ -228,21 +243,21 @@ level's doom, the rows being the words' at the positions. -/
 theorem card_mid_lambda_le (hκ : P.κ = P'.ℓ + P'.κ) (hℓκ : P.ℓ ≤ 2 ^ P.κ)
     (gap : P'.n * P'.deg < P'.thr 0 * P'.thr 0) (s : WhirState) (rounds : List FoldRound)
     (high : List E) (z : List E) (y : E) (qs : List ℕ)
-    (cs : List (ℕ × ℕ × Word)) (hI : MidI3 μ ℓ₀ w i P P' pre hκ s rounds high z y qs cs) :
+    (cs : List (ℕ × ℕ × Word)) (hI : MidI3 μ ℓ₀ w i P P' pre B hκ s rounds high z y qs cs) :
     (univ.filter fun lam ↦ ¬ LevelPre μ ℓ₀ w (i + 1) P' (pre + P.ℓ)
-      (glueLevel s lam P.κ z y qs (powers lam qs.length)
+      (nextPred i P P' hκ B rounds high) (glueLevel s lam P.κ z y qs (powers lam qs.length)
         (batchedOf i P.κ rounds high qs (powers lam qs.length) (qs.map (wordOf cs i)))) cs).card ≤
       (qs.length + 1) * P'.listMax := by
   obtain ⟨⟨⟨hR, hS, hS', hlen, hr⟩, hhigh, hz, hsep⟩, hqs, hQ⟩ := hI
   have hb := fun lam ↦ batchedOf_eq P i cs hS rounds hr high
     (by rw [hhigh]; exact hℓκ.trans (Nat.pow_le_pow_right (by norm_num) (by omega))) qs hqs lam
   refine (card_le_card fun lam hlam ↦ ?_).trans ((card_lambda_bad_le P P' hκ _ (runW w ℓ₀ s)
-    s.claim z y (cOf P i cs rounds high) qs
+    s.claim z y (cOf P i cs rounds high) (nextBn i P P' hκ B rounds high cs) qs
     hqs hQ).trans (by rw [mul_comm]; exact Nat.mul_le_mul_left _ (card_tlist_le_jl _ _ _ _ gap)))
   simp only [mem_filter, mem_univ, true_and] at hlam ⊢
   by_contra hno
   refine hlam ⟨?_, hS', hlen⟩
-  exact nextInv_of hκ s rounds cs hR hr z hz y qs (cOf P i cs rounds high) lam _
+  exact nextInv_of hκ s rounds cs hR hr z hz y qs (cOf P i cs rounds high) lam _ high
     (hb lam) hno
 
 end Lambda
@@ -252,55 +267,58 @@ end Lambda
 section Spec
 
 variable (μ ℓ₀ : ℕ) (w : List E → E) (i : ℕ) (P P' : LevelCode) (pre : ℕ)
+  (B : List (ℕ × ℕ × Word) → TPred)
 
 open Classical in
 /-- **The rest of a level with a next one**: from the invariant after all its rounds, the
 groups escape within `εmax` after their grinds and the next level starts in its doom. -/
-noncomputable def midTailSpec {εmax T : ENNReal} (logN laneFolds : ℕ) (eb : List E → E)
-    (level next : Whir.Level) (rest : List Whir.Level) (hlogN : logN = μ)
+noncomputable def midTailSpec {α : Type} {Post : α → List Ev → Prop} {εmax T : ENNReal}
+    (logN : ℕ) (level next : Whir.Level) (hlogN : logN = μ)
     (hlev : level.fold = P.ℓ ∧ level.logInvRate = P.R)
     (hnext : next.fold = P'.ℓ ∧ next.logInvRate = P'.R) (M : MidOK P P' level.queries εmax)
-    (cont : ∀ s', Spec (whirLevels logN laneFolds eb (i + 1) (next :: rest) s')
-      (fun h ↦ LevelPre μ ℓ₀ w (i + 1) P' (pre + P.ℓ) s' (commits h)) (fun _ _ ↦ False) εmax 0 T)
-    (s : WhirState) (rounds : List FoldRound) :
-    Spec (midTail logN laneFolds eb i level next rest s rounds)
-      (fun h ↦ (RoundInv μ ℓ₀ w i P pre s rounds (commits h) ∧
+    (hB : PredStable i B) (s : WhirState) (rounds : List FoldRound)
+    (k : List E → WhirState → VerifierProgram α)
+    (cont : ∀ (high : List E) s', Spec (k high s')
+      (fun h ↦ LevelPre μ ℓ₀ w (i + 1) P' (pre + P.ℓ) (nextPred i P P' M.hκ B rounds high) s'
+        (commits h)) Post εmax 0 T) :
+    Spec (midTailC logN i level next k s rounds)
+      (fun h ↦ (RoundInv μ ℓ₀ w i P pre B s rounds (commits h) ∧
         (ShapeOK i P (commits h) ∧ (commits h).length = i + 1)) ∧ rounds.length = P.ℓ)
-      (fun _ _ ↦ False) εmax 0 T :=
+      Post εmax 0 T :=
   if hmu : logN - s.alphas.length = P.κ ∧ rounds.length = P.ℓ then
   (commitInv (T := 0)
-      (fun cs ↦ (RoundInv μ ℓ₀ w i P pre s rounds cs ∧ (ShapeOK i P cs ∧ cs.length = i + 1)) ∧
+      (fun cs ↦ (RoundInv μ ℓ₀ w i P pre B s rounds cs ∧ (ShapeOK i P cs ∧ cs.length = i + 1)) ∧
         rounds.length = P.ℓ)
-      (MidI1 μ ℓ₀ w i P P' pre s rounds) _ _ (fun cs W hI hW ↦ by
-        obtain ⟨h1, h2, h3, h4⟩ := mid_commit (logN := logN) M.hκ hnext s rounds cs hI.1.1
+      (MidI1 μ ℓ₀ w i P P' pre B s rounds) _ _ (fun cs W hI hW ↦ by
+        obtain ⟨h1, h2, h3, h4⟩ := mid_commit (logN := logN) M.hκ hnext s rounds cs hI.1.1 hB
           hI.1.2.1 hI.1.2.2 hmu.1 W hW
         exact ⟨h1, h2, h3, h4, hI.2⟩) zero_le).bind' fun _ ↦
-  (readNInv (MidI1 μ ℓ₀ w i P P' pre s rounds) (T := 0) zero_le level.fold).bind' fun high ↦
-  (grindInv (fun cs ↦ high.length = level.fold ∧ MidI1 μ ℓ₀ w i P P' pre s rounds cs)
+  (readNInv (MidI1 μ ℓ₀ w i P P' pre B s rounds) (T := 0) zero_le level.fold).bind' fun high ↦
+  (grindInv (fun cs ↦ high.length = level.fold ∧ MidI1 μ ℓ₀ w i P P' pre B s rounds cs)
     (b := Whir.oodGrindingBits) (by decide) (T := eOod P P' + 0)
     (by simpa using M.eO)).bind' fun _ ↦
   (Spec.ofNoMove (Pre := fun h ↦ high.length = level.fold ∧
-      MidI1 μ ℓ₀ w i P P' pre s rounds (commits h))
-    (Post := fun z h ↦ MidI2 μ ℓ₀ w i P P' pre s rounds high z (commits h)) (T := 0)
+      MidI1 μ ℓ₀ w i P P' pre B s rounds (commits h))
+    (Post := fun z h ↦ MidI2 μ ℓ₀ w i P P' pre B s rounds high z (commits h)) (T := 0)
     (noMoves_sampleN _).noMove M.eO1 fun h₀ hp ↦ by
       rw [hmu.1]
       exact escRet_mid_ood_le M.hκ M.gap s rounds high h₀ (hp.1.trans hlev.1) hp.2).bind'
     fun z ↦
-  (readInv (MidI2 μ ℓ₀ w i P P' pre s rounds high z) (T := 0) zero_le).bind' fun y ↦
-  (grindInv (MidI2 μ ℓ₀ w i P P' pre s rounds high z)
+  (readInv (MidI2 μ ℓ₀ w i P P' pre B s rounds high z) (T := 0) zero_le).bind' fun y ↦
+  (grindInv (MidI2 μ ℓ₀ w i P P' pre B s rounds high z)
     (b := Whir.queryGrindingBits) (by decide)
     (T := eQuery P level.queries + (eLam P' level.queries + 0))
     (by simpa using M.eQ)).bind' fun _ ↦
-  (Spec.ofNoMove (Pre := fun h ↦ MidI2 μ ℓ₀ w i P P' pre s rounds high z (commits h))
-    (Post := fun qs h ↦ MidI3 μ ℓ₀ w i P P' pre M.hκ s rounds high z y qs (commits h) ∧
+  (Spec.ofNoMove (Pre := fun h ↦ MidI2 μ ℓ₀ w i P P' pre B s rounds high z (commits h))
+    (Post := fun qs h ↦ MidI3 μ ℓ₀ w i P P' pre B M.hκ s rounds high z y qs (commits h) ∧
       qs.length = level.queries) (T := eLam P' level.queries + 0)
     (noMoves_sampleQueriesAux _ _ _).noMove M.eQ1 fun h₀ hp ↦ by
       rw [hmu.1, hlev.2]
       exact escRet_mid_queries_le M.hκ M.hA M.hℓ M.hℓκ s rounds high z y _ h₀ hp).bind' fun qs ↦
-  (Spec.sampleE (Pre := fun h ↦ MidI3 μ ℓ₀ w i P P' pre M.hκ s rounds high z y qs (commits h) ∧
+  (Spec.sampleE (Pre := fun h ↦ MidI3 μ ℓ₀ w i P P' pre B M.hκ s rounds high z y qs (commits h) ∧
       qs.length = level.queries)
     (Post := fun lam h ↦ (LevelPre μ ℓ₀ w (i + 1) P' (pre + P.ℓ)
-      (glueLevel s lam (logN - s.alphas.length) z y qs (powers lam qs.length)
+      (nextPred i P P' M.hκ B rounds high) (glueLevel s lam (logN - s.alphas.length) z y qs (powers lam qs.length)
         (batchedOf i (logN - s.alphas.length) rounds high qs (powers lam qs.length)
           (qs.map (wordOf (commits h) i)))) (commits h)) ∧
       ShapeOK i P (commits h) ∧ ∀ q ∈ qs, q < P.n) (T := 0) (eLam P' level.queries)
@@ -312,12 +330,12 @@ noncomputable def midTailSpec {εmax T : ENNReal} (logN laneFolds : ℕ) (eb : L
       simp only [mem_filter, mem_univ, true_and, commits_sample, hmu.1, not_and] at hlam ⊢
       exact fun h ↦ hlam h hp.1.1.1.2.1 hp.1.2.1).bind' fun lam ↦
   (Spec.queryP (Pre := fun h ↦ (LevelPre μ ℓ₀ w (i + 1) P' (pre + P.ℓ)
-      (glueLevel s lam (logN - s.alphas.length) z y qs (powers lam qs.length)
+      (nextPred i P P' M.hκ B rounds high) (glueLevel s lam (logN - s.alphas.length) z y qs (powers lam qs.length)
         (batchedOf i (logN - s.alphas.length) rounds high qs (powers lam qs.length)
           (qs.map (wordOf (commits h) i)))) (commits h)) ∧
       ShapeOK i P (commits h) ∧ ∀ q ∈ qs, q < P.n)
     (Post := fun words h ↦ LevelPre μ ℓ₀ w (i + 1) P' (pre + P.ℓ)
-      (glueLevel s lam (logN - s.alphas.length) z y qs (powers lam qs.length)
+      (nextPred i P P' M.hκ B rounds high) (glueLevel s lam (logN - s.alphas.length) z y qs (powers lam qs.length)
         (batchedOf i (logN - s.alphas.length) rounds high qs (powers lam qs.length) words))
         (commits h)) (T := 0) i qs fun h₀ rows hp hans ↦ by
       obtain ⟨hpre, ⟨W, hW, -⟩, hq⟩ := hp
@@ -327,7 +345,7 @@ noncomputable def midTailSpec {εmax T : ENNReal} (logN laneFolds : ℕ) (eb : L
         exact List.map_congr_left fun q hqm ↦ by rw [Nat.mod_eq_of_lt (hq q hqm)]
       rw [hrows]
       simpa [commits_append, commits] using hpre).bind' fun words ↦
-  cont _
+  cont high _
   else Spec.dead.mono (fun h hp ↦ hmu ⟨by
       obtain ⟨⟨⟨hlen, -, hκ, -⟩, -⟩, hr⟩ := hp
       omega, hp.2⟩) (fun _ _ h ↦ h) le_rfl zero_le le_rfl

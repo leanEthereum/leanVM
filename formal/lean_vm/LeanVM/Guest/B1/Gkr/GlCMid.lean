@@ -54,14 +54,14 @@ theorem glc_cap_load {rd : Reader} {rec : E} {cap : List E} (h : TbCapAt rd rec 
 
 /-- **The head record stored.** -/
 theorem glc_hstore {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glHeadStore p, GoodS rd S w σ s)
-    {head cur : E} (e21 : σ (.n 21) = cur) (e54 : σ (.n 54) = head) {cap : List E} {claim : E}
-    (hcap : (glCap (if p = 0 then 35 else 39 + 80 * p)).map σ = cap)
-    (hcl : σ (.n (if p = 0 then 58 else 58 + 80 * p)) = claim)
+    {head cur : E} (e21 : σ (.n 21) = cur) (e54 : σ (.n 53) = head) {cap : List E} {claim : E}
+    (hcap : (glCap (if p = 0 then 35 else 39 + 78 * p)).map σ = cap)
+    (hcl : σ (.n (if p = 0 then 57 else 57 + 78 * p)) = claim)
     (hR1 : TbCapAt rd head 0 gkCap cap) (hR2 : LoadHolds rd head (5 * gkCap) (cur * gen ^ (8 * p)))
     (hR3 : LoadHolds rd head (6 * gkCap) claim) :
     Stmt.HoldsList C rd σ (glHeadStore p) True kret := by
-  have hc : ∀ k < 5, LoadHolds rd (σ (.n 54)) (862 * k)
-      (σ (.n ((if p = 0 then 35 else 39 + 80 * p) + k))) := by
+  have hc : ∀ k < 5, LoadHolds rd (σ (.n 53)) (862 * k)
+      (σ (.n ((if p = 0 then 35 else 39 + 78 * p) + k))) := by
     intro k hk
     have := glc_cap_load hR1 hk
     rw [← hcap] at this
@@ -79,9 +79,9 @@ theorem glc_hstore {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glHeadStore p, GoodS r
     · rw [e54, hcl]; exact hR3
   · have hp0 : p ≠ 0 := by omega
     have g : ∀ a, Stmt.atom a ∈ glHeadStore p → Good rd S w σ a := fun a ha ↦ hG _ ha
-    have c59 : σ (.n (59 + 80 * p)) = word (2 ^ (8 * p)) 0 :=
-      g (.const (.n (59 + 80 * p)) (word (2 ^ (8 * p)) 0)) (by simp [glHeadStore, hp0, glHeadStoreP])
-    have m60 := good_mul (g (.mul (.n (60 + 80 * p)) (.n 21) (.n (59 + 80 * p)))
+    have c59 : σ (.n (58 + 78 * p)) = word (2 ^ (8 * p)) 0 :=
+      g (.const (.n (58 + 78 * p)) (word (2 ^ (8 * p)) 0)) (by simp [glHeadStore, hp0, glHeadStoreP])
+    have m60 := good_mul (g (.mul (.n (59 + 78 * p)) (.n 21) (.n (58 + 78 * p)))
       (by simp [glHeadStore, hp0, glHeadStoreP])) (by omega) (by omega)
     simp only [glHeadStore, hp0, ↓reduceIte, glHeadStoreP, List.range_succ, List.range_zero,
       List.map_cons, List.map_nil, List.nil_append, List.cons_append, Stmt.HoldsList, Stmt.Holds,
@@ -94,8 +94,8 @@ theorem glc_hstore {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glHeadStore p, GoodS r
 /-- **The loop's call** on the head, `qrow = row·g^(2p)` and `qrow·g^42`, entered iff `m ≠ 0`. -/
 theorem glc_lcall {p : ℕ} (hp : p < 4) {nm : String}
     (hG : ∀ s ∈ glLoopCall p nm, GoodS rd S w σ s) {m : ℕ} (e3 : σ (.n 3) = gen ^ m)
-    {row : E} (e53 : σ (.n 53) = row)
-    (hloop : 0 < m → coreProgram.Rel rd nm [1, gen ^ m, σ (.n 54), row * gen ^ (2 * p),
+    {row : E} (e53 : σ (.n 52) = row)
+    (hloop : 0 < m → coreProgram.Rel rd nm [1, gen ^ m, σ (.n 53), row * gen ^ (2 * p),
       row * gen ^ (2 * p) * gen ^ 42, σ (.n 7)] []) :
     Stmt.HoldsList (coreProgram.Rel rd) rd σ (glLoopCall p nm) True kret := by
   have g : ∀ a, Stmt.atom a ∈ glLoopCall p nm → Good rd S w σ a := fun a ha ↦ hG _ ha
@@ -106,15 +106,15 @@ theorem glc_lcall {p : ℕ} (hp : p < 4) {nm : String}
     · exact h0
   rcases Nat.eq_zero_or_pos p with h0 | h0
   · subst h0
-    have c59 : σ (.n 59) = word 1 0 := g (.const (.n 59) (word 1 0)) (by simp [glLoopCall, glLoopCall0])
-    have a60 : σ (.n 60) = σ (.n 59) + σ (.n 3) := g (.add (.n 60) (.n 59) (.n 3))
+    have c59 : σ (.n 58) = word 1 0 := g (.const (.n 58) (word 1 0)) (by simp [glLoopCall, glLoopCall0])
+    have a60 : σ (.n 59) = σ (.n 58) + σ (.n 3) := g (.add (.n 59) (.n 58) (.n 3))
       (by simp [glLoopCall, glLoopCall0])
-    have c61 : σ (.n 61) = word 1 0 := g (.const (.n 61) (word 1 0)) (by simp [glLoopCall, glLoopCall0])
-    have c62 : σ (.n 62) = word (2 ^ 42) 0 := g (.const (.n 62) (word (2 ^ 42) 0))
+    have c61 : σ (.n 60) = word 1 0 := g (.const (.n 60) (word 1 0)) (by simp [glLoopCall, glLoopCall0])
+    have c62 : σ (.n 61) = word (2 ^ 42) 0 := g (.const (.n 61) (word (2 ^ 42) 0))
       (by simp [glLoopCall, glLoopCall0])
-    have m63 := good_mul (g (.mul (.n 63) (.n 53) (.n 62)) (by simp [glLoopCall, glLoopCall0]))
+    have m63 := good_mul (g (.mul (.n 62) (.n 52) (.n 61)) (by simp [glLoopCall, glLoopCall0]))
       (by omega) (by omega)
-    have e60 : σ (.n 60) = 1 + gen ^ m := by rw [a60, c59, tb_word_one, e3]
+    have e60 : σ (.n 59) = 1 + gen ^ m := by rw [a60, c59, tb_word_one, e3]
     simp only [glLoopCall, ↓reduceIte, glLoopCall0, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
       List.map_cons, List.map_nil, and_true]
     refine ⟨c59, a60, c61, c62, m63, by rw [e60]; exact hK, fun hne ↦ ?_⟩
@@ -125,21 +125,21 @@ theorem glc_lcall {p : ℕ} (hp : p < 4) {nm : String}
   · have hp0 : p ≠ 0 := by omega
     have mem : ∀ a, Stmt.atom a ∈ glLoopCallP p nm → Stmt.atom a ∈ glLoopCall p nm := fun a ha ↦ by
       simpa [glLoopCall, hp0] using ha
-    have c1 : σ (.n (61 + 80 * p)) = word 1 0 :=
-      g (.const (.n (61 + 80 * p)) (word 1 0)) (mem _ (by simp [glLoopCallP]))
-    have a2 : σ (.n (62 + 80 * p)) = σ (.n (61 + 80 * p)) + σ (.n 3) :=
-      g (.add (.n (62 + 80 * p)) (.n (61 + 80 * p)) (.n 3)) (mem _ (by simp [glLoopCallP]))
-    have c3 : σ (.n (63 + 80 * p)) = word 1 0 :=
-      g (.const (.n (63 + 80 * p)) (word 1 0)) (mem _ (by simp [glLoopCallP]))
-    have c4 : σ (.n (64 + 80 * p)) = word (2 ^ (2 * p)) 0 :=
-      g (.const (.n (64 + 80 * p)) (word (2 ^ (2 * p)) 0)) (mem _ (by simp [glLoopCallP]))
-    have m5 := good_mul (g (.mul (.n (65 + 80 * p)) (.n 53) (.n (64 + 80 * p)))
+    have c1 : σ (.n (60 + 78 * p)) = word 1 0 :=
+      g (.const (.n (60 + 78 * p)) (word 1 0)) (mem _ (by simp [glLoopCallP]))
+    have a2 : σ (.n (61 + 78 * p)) = σ (.n (60 + 78 * p)) + σ (.n 3) :=
+      g (.add (.n (61 + 78 * p)) (.n (60 + 78 * p)) (.n 3)) (mem _ (by simp [glLoopCallP]))
+    have c3 : σ (.n (62 + 78 * p)) = word 1 0 :=
+      g (.const (.n (62 + 78 * p)) (word 1 0)) (mem _ (by simp [glLoopCallP]))
+    have c4 : σ (.n (63 + 78 * p)) = word (2 ^ (2 * p)) 0 :=
+      g (.const (.n (63 + 78 * p)) (word (2 ^ (2 * p)) 0)) (mem _ (by simp [glLoopCallP]))
+    have m5 := good_mul (g (.mul (.n (64 + 78 * p)) (.n 52) (.n (63 + 78 * p)))
       (mem _ (by simp [glLoopCallP]))) (by omega) (by omega)
-    have c6 : σ (.n (66 + 80 * p)) = word (2 ^ (42 + 2 * p)) 0 :=
-      g (.const (.n (66 + 80 * p)) (word (2 ^ (42 + 2 * p)) 0)) (mem _ (by simp [glLoopCallP]))
-    have m7 := good_mul (g (.mul (.n (67 + 80 * p)) (.n 53) (.n (66 + 80 * p)))
+    have c6 : σ (.n (65 + 78 * p)) = word (2 ^ (42 + 2 * p)) 0 :=
+      g (.const (.n (65 + 78 * p)) (word (2 ^ (42 + 2 * p)) 0)) (mem _ (by simp [glLoopCallP]))
+    have m7 := good_mul (g (.mul (.n (66 + 78 * p)) (.n 52) (.n (65 + 78 * p)))
       (mem _ (by simp [glLoopCallP]))) (by omega) (by omega)
-    have e2 : σ (.n (62 + 80 * p)) = 1 + gen ^ m := by rw [a2, c1, tb_word_one, e3]
+    have e2 : σ (.n (61 + 78 * p)) = 1 + gen ^ m := by rw [a2, c1, tb_word_one, e3]
     simp only [glLoopCall, hp0, ↓reduceIte, glLoopCallP, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
       List.map_cons, List.map_nil, and_true]
     refine ⟨c1, a2, c3, c4, m5, c6, m7, by rw [e2]; exact hK, fun hne ↦ ?_⟩
@@ -150,12 +150,12 @@ theorem glc_lcall {p : ℕ} (hp : p < 4) {nm : String}
     simpa using this
 
 /-- Where the tail reads the last record. -/
-def glW (p : ℕ) : ℕ := if p = 0 then 64 else 68 + 80 * p
+def glW (p : ℕ) : ℕ := if p = 0 then 63 else 67 + 78 * p
 
 /-- The last record's reads. -/
 def glTailKeys (p : ℕ) : List (ℕ × ℕ × ℕ) :=
-  (List.range 5).map (fun k ↦ (72 + glD p + k, glW p, 862 * k)) ++
-    [(77 + glD p, glW p, 4310), (78 + glD p, glW p, 5172)]
+  (List.range 5).map (fun k ↦ (71 + glD p + k, glW p, 862 * k)) ++
+    [(76 + glD p, glW p, 4310), (77 + glD p, glW p, 5172)]
 
 /-- **The last record read.** -/
 theorem glc_tloads {p : ℕ} (hG : ∀ s ∈ glTailLoads p (glW p), GoodS rd S w σ s)
@@ -163,22 +163,22 @@ theorem glc_tloads {p : ℕ} (hG : ∀ s ∈ glTailLoads p (glW p), GoodS rd S w
     {ef : ℕ → E} {claim : E} {s : Fs} {a : ℕ} (ew : σ (.n (glW p)) = rec)
     (hR : GlRecK rd rec cur Cf ef claim s a) :
     Stmt.HoldsList C rd σ (glTailLoads p (glW p)) True kret ∧
-      (glCap (72 + glD p)).map σ = (gkSt Cf ef claim s a).2.cap ∧
-      σ (.n (77 + glD p)) = cur * gen ^ (4 * a) ∧ σ (.n (78 + glD p)) = (gkSt Cf ef claim s a).1 := by
+      (glCap (71 + glD p)).map σ = (gkSt Cf ef claim s a).2.cap ∧
+      σ (.n (76 + glD p)) = cur * gen ^ (4 * a) ∧ σ (.n (77 + glD p)) = (gkSt Cf ef claim s a).1 := by
   obtain ⟨h1, h2, h3⟩ := hR
   rw [gkCap_eq] at h2 h3
   have g : ∀ a, Stmt.atom a ∈ glTailLoads p (glW p) → Good rd S w σ a := fun a ha ↦ hG _ ha
-  have rc : ∀ k < 5, σ (.n (72 + glD p + k)) = (gkSt Cf ef claim s a).2.cap.getD k 0 ∧
-      LoadHolds rd (σ (.n (glW p))) (862 * k) (σ (.n (72 + glD p + k))) := fun k hk' ↦
-    good_read (g (.load (.n (72 + glD p + k)) (.n (glW p)) (862 * k))
+  have rc : ∀ k < 5, σ (.n (71 + glD p + k)) = (gkSt Cf ef claim s a).2.cap.getD k 0 ∧
+      LoadHolds rd (σ (.n (glW p))) (862 * k) (σ (.n (71 + glD p + k))) := fun k hk' ↦
+    good_read (g (.load (.n (71 + glD p + k)) (.n (glW p)) (862 * k))
       (by simp only [glTailLoads, List.mem_append, List.mem_map, List.mem_range]
           exact .inl ⟨k, hk', rfl⟩))
       (hk _ (by simp only [glTailKeys, List.mem_append, List.mem_map, List.mem_range]
                 exact .inl ⟨k, hk', rfl⟩))
       (by rw [ew]; exact glc_cap_load h1 hk')
-  obtain ⟨e77, l77⟩ := good_read (g (.load (.n (77 + glD p)) (.n (glW p)) 4310)
+  obtain ⟨e77, l77⟩ := good_read (g (.load (.n (76 + glD p)) (.n (glW p)) 4310)
     (by simp [glTailLoads])) (hk _ (by simp [glTailKeys])) (by rw [ew]; exact h2)
-  obtain ⟨e78, l78⟩ := good_read (g (.load (.n (78 + glD p)) (.n (glW p)) 5172)
+  obtain ⟨e78, l78⟩ := good_read (g (.load (.n (77 + glD p)) (.n (glW p)) 5172)
     (by simp [glTailLoads])) (hk _ (by simp [glTailKeys])) (by rw [ew]; exact h3)
   have hcl : (gkSt Cf ef claim s a).2.cap.length = 5 := h1.1
   refine ⟨?_, ?_, e77, e78⟩
@@ -194,14 +194,14 @@ theorem glc_tloads {p : ℕ} (hG : ∀ s ∈ glTailLoads p (glW p), GoodS rd S w
 `ntpt = row·g^(2p)·g^42·x_m^8`. -/
 theorem glc_tsetup {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glTailSetup p, GoodS rd S w σ s)
     (hk : ∀ k ∈ glTailKeys p, some k ∉ S.map loadKey) {head row : E} {m : ℕ}
-    (e54 : σ (.n 54) = head) (e3 : σ (.n 3) = gen ^ m) (e53 : σ (.n 53) = row)
+    (e54 : σ (.n 53) = head) (e3 : σ (.n 3) = gen ^ m) (e53 : σ (.n 52) = row)
     {cur : E} {Cf : ℕ → List E} {ef : ℕ → E} {claim : E} {s : Fs} {a : ℕ}
     (hR : GlRecK rd (head * gen ^ m) cur Cf ef claim s a) :
     Stmt.HoldsList C rd σ (glTailSetup p) True kret ∧
-      σ (.n (68 + glD p)) = row * gen ^ (2 * p) * gen ^ (8 * m) ∧
-      σ (.n (71 + glD p)) = row * gen ^ (2 * p) * gen ^ 42 * gen ^ (8 * m) ∧
-      (glCap (72 + glD p)).map σ = (gkSt Cf ef claim s a).2.cap ∧
-      σ (.n (77 + glD p)) = cur * gen ^ (4 * a) ∧ σ (.n (78 + glD p)) = (gkSt Cf ef claim s a).1 := by
+      σ (.n (67 + glD p)) = row * gen ^ (2 * p) * gen ^ (8 * m) ∧
+      σ (.n (70 + glD p)) = row * gen ^ (2 * p) * gen ^ 42 * gen ^ (8 * m) ∧
+      (glCap (71 + glD p)).map σ = (gkSt Cf ef claim s a).2.cap ∧
+      σ (.n (76 + glD p)) = cur * gen ^ (4 * a) ∧ σ (.n (77 + glD p)) = (gkSt Cf ef claim s a).1 := by
   have g : ∀ a, Stmt.atom a ∈ glTailSetup p → Good rd S w σ a := fun a ha ↦ hG _ ha
   have m8 : ∀ x : E, x = gen ^ m → x * x * (x * x) * (x * x * (x * x)) = gen ^ (8 * m) := by
     intro x hx; rw [hx]; ring
@@ -209,23 +209,23 @@ theorem glc_tsetup {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glTailSetup p, GoodS r
   · subst h0
     have mem : ∀ a, Stmt.atom a ∈ glTailSetup0 → Stmt.atom a ∈ glTailSetup 0 := fun a ha ↦ by
       simpa [glTailSetup] using ha
-    have m64 := good_mul (g (.mul (.n 64) (.n 54) (.n 3)) (mem _ (by simp [glTailSetup0])))
+    have m64 := good_mul (g (.mul (.n 63) (.n 53) (.n 3)) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
-    have m65 := good_mul (g (.mul (.n 65) (.n 3) (.n 3)) (mem _ (by simp [glTailSetup0])))
+    have m65 := good_mul (g (.mul (.n 64) (.n 3) (.n 3)) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
-    have m66 := good_mul (g (.mul (.n 66) (.n 65) (.n 65)) (mem _ (by simp [glTailSetup0])))
+    have m66 := good_mul (g (.mul (.n 65) (.n 64) (.n 64)) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
-    have m67 := good_mul (g (.mul (.n 67) (.n 66) (.n 66)) (mem _ (by simp [glTailSetup0])))
+    have m67 := good_mul (g (.mul (.n 66) (.n 65) (.n 65)) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
-    have m68 := good_mul (g (.mul (.n 68) (.n 53) (.n 67)) (mem _ (by simp [glTailSetup0])))
+    have m68 := good_mul (g (.mul (.n 67) (.n 52) (.n 66)) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
-    have c69 : σ (.n 69) = word (2 ^ 42) 0 :=
-      g (.const (.n 69) (word (2 ^ 42) 0)) (mem _ (by simp [glTailSetup0]))
-    have m70 := good_mul (g (.mul (.n 70) (.n 53) (.n 69)) (mem _ (by simp [glTailSetup0])))
+    have c69 : σ (.n 68) = word (2 ^ 42) 0 :=
+      g (.const (.n 68) (word (2 ^ 42) 0)) (mem _ (by simp [glTailSetup0]))
+    have m70 := good_mul (g (.mul (.n 69) (.n 52) (.n 68)) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
-    have m71 := good_mul (g (.mul (.n 71) (.n 70) (.n 67)) (mem _ (by simp [glTailSetup0])))
+    have m71 := good_mul (g (.mul (.n 70) (.n 69) (.n 66)) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
-    have e67 : σ (.n 67) = gen ^ (8 * m) := by rw [m67, m66, m65]; exact m8 _ e3
+    have e67 : σ (.n 66) = gen ^ (8 * m) := by rw [m67, m66, m65]; exact m8 _ e3
     have hT0 : ∀ s ∈ glTailLoads 0 (glW 0), s ∈ glTailSetup 0 := fun s hs ↦ by
       simp only [glTailSetup, ↓reduceIte, glTailSetup0]
       exact List.mem_append_right _ (by simpa [glW] using hs)
@@ -243,28 +243,28 @@ theorem glc_tsetup {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glTailSetup p, GoodS r
   · have hp0 : p ≠ 0 := by omega
     have mem : ∀ a, Stmt.atom a ∈ glTailSetupP p → Stmt.atom a ∈ glTailSetup p := fun a ha ↦ by
       simpa [glTailSetup, hp0] using ha
-    have m1 := good_mul (g (.mul (.n (68 + 80 * p)) (.n 54) (.n 3)) (mem _ (by simp [glTailSetupP])))
+    have m1 := good_mul (g (.mul (.n (67 + 78 * p)) (.n 53) (.n 3)) (mem _ (by simp [glTailSetupP])))
       (by omega) (by omega)
-    have m2 := good_mul (g (.mul (.n (69 + 80 * p)) (.n 3) (.n 3)) (mem _ (by simp [glTailSetupP])))
+    have m2 := good_mul (g (.mul (.n (68 + 78 * p)) (.n 3) (.n 3)) (mem _ (by simp [glTailSetupP])))
       (by omega) (by omega)
-    have m3 := good_mul (g (.mul (.n (70 + 80 * p)) (.n (69 + 80 * p)) (.n (69 + 80 * p)))
+    have m3 := good_mul (g (.mul (.n (69 + 78 * p)) (.n (68 + 78 * p)) (.n (68 + 78 * p)))
       (mem _ (by simp [glTailSetupP]))) (by omega) (by omega)
-    have m4 := good_mul (g (.mul (.n (71 + 80 * p)) (.n (70 + 80 * p)) (.n (70 + 80 * p)))
+    have m4 := good_mul (g (.mul (.n (70 + 78 * p)) (.n (69 + 78 * p)) (.n (69 + 78 * p)))
       (mem _ (by simp [glTailSetupP]))) (by omega) (by omega)
-    have c5 : σ (.n (72 + 80 * p)) = word (2 ^ (2 * p)) 0 :=
-      g (.const (.n (72 + 80 * p)) (word (2 ^ (2 * p)) 0)) (mem _ (by simp [glTailSetupP]))
-    have m6 := good_mul (g (.mul (.n (73 + 80 * p)) (.n 53) (.n (72 + 80 * p)))
+    have c5 : σ (.n (71 + 78 * p)) = word (2 ^ (2 * p)) 0 :=
+      g (.const (.n (71 + 78 * p)) (word (2 ^ (2 * p)) 0)) (mem _ (by simp [glTailSetupP]))
+    have m6 := good_mul (g (.mul (.n (72 + 78 * p)) (.n 52) (.n (71 + 78 * p)))
       (mem _ (by simp [glTailSetupP]))) (by omega) (by omega)
-    have m7 := good_mul (g (.mul (.n (74 + 80 * p)) (.n (73 + 80 * p)) (.n (71 + 80 * p)))
+    have m7 := good_mul (g (.mul (.n (73 + 78 * p)) (.n (72 + 78 * p)) (.n (70 + 78 * p)))
       (mem _ (by simp [glTailSetupP]))) (by omega) (by omega)
-    have c8 : σ (.n (75 + 80 * p)) = word (2 ^ (42 + 2 * p)) 0 :=
-      g (.const (.n (75 + 80 * p)) (word (2 ^ (42 + 2 * p)) 0)) (mem _ (by simp [glTailSetupP]))
-    have m9 := good_mul (g (.mul (.n (76 + 80 * p)) (.n 53) (.n (75 + 80 * p)))
+    have c8 : σ (.n (74 + 78 * p)) = word (2 ^ (42 + 2 * p)) 0 :=
+      g (.const (.n (74 + 78 * p)) (word (2 ^ (42 + 2 * p)) 0)) (mem _ (by simp [glTailSetupP]))
+    have m9 := good_mul (g (.mul (.n (75 + 78 * p)) (.n 52) (.n (74 + 78 * p)))
       (mem _ (by simp [glTailSetupP]))) (by omega) (by omega)
-    have m10 := good_mul (g (.mul (.n (77 + 80 * p)) (.n (76 + 80 * p)) (.n (71 + 80 * p)))
+    have m10 := good_mul (g (.mul (.n (76 + 78 * p)) (.n (75 + 78 * p)) (.n (70 + 78 * p)))
       (mem _ (by simp [glTailSetupP]))) (by omega) (by omega)
-    have e71 : σ (.n (71 + 80 * p)) = gen ^ (8 * m) := by rw [m4, m3, m2]; exact m8 _ e3
-    have hD : glD p = 80 * p + 6 := by simp [glD, hp0]
+    have e71 : σ (.n (70 + 78 * p)) = gen ^ (8 * m) := by rw [m4, m3, m2]; exact m8 _ e3
+    have hD : glD p = 78 * p + 6 := by simp [glD, hp0]
     have hTP : ∀ s ∈ glTailLoads p (glW p), s ∈ glTailSetup p := fun s hs ↦ by
       simp only [glTailSetup, hp0, ↓reduceIte, glTailSetupP]
       exact List.mem_append_right _ (by simpa [glW, hp0] using hs)
@@ -277,20 +277,20 @@ theorem glc_tsetup {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glTailSetup p, GoodS r
       refine ⟨?_, by simpa [glW, hp0] using L1⟩
       simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
       exact ⟨m1, m2, m3, m4, c5, m6, m7, c8, m9, m10⟩
-    · rw [hD, show 68 + (80 * p + 6) = 74 + 80 * p by ring, m7, m6, c5, e71, e53,
+    · rw [hD, show 67 + (78 * p + 6) = 73 + 78 * p by ring, m7, m6, c5, e71, e53,
         tb_word_two_pow (by omega)]
-    · rw [hD, show 71 + (80 * p + 6) = 77 + 80 * p by ring, m10, m9, c8, e71, e53,
+    · rw [hD, show 70 + (78 * p + 6) = 76 + 78 * p by ring, m10, m9, c8, e71, e53,
         tb_word_two_pow (by omega), show 42 + 2 * p = 2 * p + 42 by ring, pow_add]
       ring
 
 /-- **The row's zero cell** at an odd depth, `ntpt[1]`. -/
 theorem glc_pad {p o : ℕ} (hG : ∀ s ∈ glPad p o, GoodS rd S w σ s)
-    (hz : o = 1 → LoadHolds rd (σ (.n (71 + glD p))) 1 0) :
+    (hz : o = 1 → LoadHolds rd (σ (.n (70 + glD p))) 1 0) :
     Stmt.HoldsList C rd σ (glPad p o) True kret := by
   unfold glPad at hG ⊢
   split
   · rename_i h1
-    have c : σ (.n (119 + glD p)) = word 0 0 := hG (.atom (.const (.n (119 + glD p)) (word 0 0)))
+    have c : σ (.n (117 + glD p)) = word 0 0 := hG (.atom (.const (.n (117 + glD p)) (word 0 0)))
       (by simp [h1])
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
     refine ⟨c, ?_⟩

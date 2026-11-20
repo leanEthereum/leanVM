@@ -9,7 +9,8 @@ module
 public import LeanVM.Guest.B1.Place.LqProof
 public import LeanVM.Guest.B1.Place.LqAtOP
 public import LeanVM.Guest.B1.Merkle.CapPops
-public import LeanVM.Guest.B1.Merkle.CapAll
+public import LeanVM.Guest.B1.Merkle.CapBody
+public import LeanVM.Guest.B1.Merkle.CapLinksAll
 public import LeanVM.Guest.B1.Opening.QueriesPlacedDPAll
 public import LeanVM.Guest.B1.Place.LqBound
 public import LeanVM.Guest.B1.Opening.CapPlacedE

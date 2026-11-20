@@ -52,10 +52,10 @@ theorem v_lt_oqNovel (s : Oq) (hs : V) (v : ℕ) : v < (oqNovel s hs v).2.2 := b
   exact lt_of_lt_of_le (by omega) (nvLevelsT_ge _ _ _ _)
 
 theorem v_lt_e : d.v < d.e := by
-  show d.v < oqRes d.s d.b d.emit + 1
-  unfold oqRes
+  show d.v < oqEnd d.s d.b d.emit
+  unfold oqEnd oqRes
   split
-  · exact Nat.lt_succ_of_lt (v_lt_oqNovel _ _ _)
+  · exact v_lt_oqNovel _ _ _
   · exact Nat.lt_succ_self _
 
 /-- The query's index `i` before the fold's value. -/
@@ -308,12 +308,12 @@ theorem oqFin_complete {x hs : V} (hf1 : 1 ≤ d.s.folds) (hfinal : d.s.final = 
   set nv := nvVals d.W (d.s.hsBits - 1) 1 (nvPair (d.W 0) (d.hsv.take d.s.nHs)) with hnv
   have hcl := d.chainVals_length
   have hnl := d.nv0Vals_length
-  have hfinL : d.finVals.length = 1 + 3 * d.s.mu + 4 * (d.s.nHs / 2) + nv.length + 1 := by
+  have hfinL : d.finVals.length = 1 + 3 * d.s.mu + 4 * (d.s.nHs / 2) + nv.length := by
     simp only [finVals, hfinal, ↓reduceIte, List.length_append, hcl, hnl, List.length_cons,
       List.length_nil, hnv]
   have hvf : ∀ o < d.finVals.length, σ (.n (d.v + 1 + o)) = d.finVals.getD o 0 := fun o ho ↦ by
     rw [hv _ (by omega) (by rw [he]; simp only [vals, List.length_append]; omega), d.val_fin hf1]
-  have hfv : d.finVals = [d.x] ++ (d.chainVals ++ (d.nv0Vals ++ (nv ++ [word 0 0]))) := by
+  have hfv : d.finVals = [d.x] ++ (d.chainVals ++ (d.nv0Vals ++ nv)) := by
     simp only [finVals, hfinal, ↓reduceIte, List.append_assoc, hnv]
   -- the pieces' values
   have fx : σ (.n (d.v + 1)) = d.x := by
@@ -338,13 +338,7 @@ theorem oqFin_complete {x hs : V} (hf1 : 1 ≤ d.s.folds) (hfinal : d.s.final = 
     rw [hvf _ (by omega), hfv, List.getD_append_right _ _ _ _ (by simp), List.length_singleton,
       Nat.add_sub_cancel_left, List.getD_append_right _ _ _ _ (by omega), hcl,
       Nat.add_sub_cancel_left, List.getD_append_right _ _ _ _ (by omega), hnl,
-      Nat.add_sub_cancel_left, List.getD_append _ _ _ _ hp]
-  have flast : σ (.n (d.v + 1 + (1 + (3 * d.s.mu + (4 * (d.s.nHs / 2) + nv.length))))) = word 0 0 := by
-    rw [hvf _ (by omega), hfv, List.getD_append_right _ _ _ _ (by simp), List.length_singleton,
-      Nat.add_sub_cancel_left, List.getD_append_right _ _ _ _ (by omega), hcl,
-      Nat.add_sub_cancel_left, List.getD_append_right _ _ _ _ (by omega), hnl,
-      Nat.add_sub_cancel_left, List.getD_append_right _ _ _ _ le_rfl, Nat.sub_self]
-    rfl
+      Nat.add_sub_cancel_left]
   -- the chain's words
   have hws : ∀ i ≤ d.s.mu, σ (.n (oqWs d.v i)) = d.W i := by
     intro i hi
@@ -431,9 +425,9 @@ theorem oqFin_complete {x hs : V} (hf1 : 1 ≤ d.s.folds) (hfinal : d.s.final = 
         · show σ _ = σ _ + σ _
           rw [e, n3, e, n2, e0, n0]
       · exact hnvT.1 a ha
-  · -- the check and the result
+  · -- the check
     simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
-    rcases ha with rfl | rfl
+    rcases ha with rfl
     · show σ _ + σ _ = 0
       have hne := nvLevelsT_ne (ws := oqWs d.v) (d.s.hsBits - 1) 1
         ((List.range (d.s.nHs / 2)).map fun m ↦ d.v + 2 + 3 * d.s.mu + 4 * m + 3)
@@ -451,9 +445,6 @@ theorem oqFin_complete {x hs : V} (hf1 : 1 ≤ d.s.folds) (hfinal : d.s.final = 
         | cons o _ => rfl
       rw [hout, d.hv_of hv (by have := d.b_le_ch; have := d.ch_le_v; omega) le_rfl, d.val_v hf1,
         show d.foldVal = _ from heq, CharTwo.add_self_eq_zero]
-    · show σ _ = _
-      rw [hnext, show d.v + 2 + 3 * d.s.mu + 4 * (d.s.nHs / 2) + nv.length =
-        d.v + 1 + (1 + (3 * d.s.mu + (4 * (d.s.nHs / 2) + nv.length))) by omega, flast]
 
 end QD
 

@@ -130,9 +130,8 @@ structure ArmOK (W : WotsT) (f : Nat → Nat → E → E) (σ : Val) (slots : Na
   enc : σ encOut = (if fold then 0 else σ encIn) + lit (W.enc first n k)
 
 /-- The start of chain `r` in arm `k` from base `b`. -/
-def armStart (W : WotsT) (slots : Nat → Nat → Nat) (fold : Bool) (k b r : Nat) : V :=
-  walkStartV (slots r) (k / 4 ^ r % 4)
-    (walkBase (if k = 0 then W.size + 1 else W.size) k 0 r (if fold then b + 1 else b))
+def armStart (W : WotsT) (slots : Nat → Nat → Nat) (_fold : Bool) (k b r : Nat) : V :=
+  walkStartV (slots r) (k / 4 ^ r % 4) (walkBase (if k = 0 then W.size + 1 else W.size) k 0 r b)
 
 /-- **An arm**: its walks reach their tips from their starts, the product and the encoding are
 folded. -/
@@ -140,65 +139,48 @@ theorem armT_sound {W : WotsT} {f : Nat → Nat → E → E} (hs : StepSound rd 
     {slots : Nat → Nat → Nat} {first n : Nat} {fold : Bool} {prodIn encIn prodOut encOut : V}
     {k b : Nat} (h : AtomsHold rd σ (armT W slots first n fold prodIn encIn prodOut encOut k b).1) :
     ArmOK W f σ slots first n fold prodIn encIn prodOut encOut k (armStart W slots fold k b) := by
-  have hws : AtomsHold rd σ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0
-      (if fold then b + 1 else b)).1 := by
+  have hws : AtomsHold rd σ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 b).1 := by
     refine h.sub fun x hx => ?_
     unfold armT
-    by_cases hk : k = 0 <;> simp [hk] at hx ⊢ <;> simp [hx]
+    cases fold <;> by_cases hk : k = 0 <;> simp [hk] at hx ⊢ <;> simp [hx]
+  have hin : ∀ x, (x ∈ (armT W slots first n fold prodIn encIn prodOut encOut k b).1) →
+      AtomsHold rd σ [x] := fun x hx => h.sub fun y hy => by
+    simp only [List.mem_singleton] at hy; subst hy; exact hx
   refine ⟨fun r hr => ?_, ?_, ?_⟩
   · have := walkT_sound hs (Nat.le_of_lt_succ (Nat.mod_lt _ (by norm_num))) (hws.sub fun x hx =>
       mem_walksT W slots first k _ n 0 _ r hr x (by simpa using hx))
     simpa [armStart] using this
-  · have hp : AtomsHold rd σ [if fold then copyS prodOut (W.power (digitSum k n))
-        else mulS prodOut prodIn (W.power (digitSum k n))] := by
-      refine h.sub fun x hx => ?_
-      unfold armT
-      simp only [List.mem_singleton] at hx
-      subst hx
-      split <;> simp
-    cases fold
-    · have := hp.atom (List.mem_singleton_self _)
+  · cases fold
+    · have hp := hin (mulS prodOut prodIn (W.power (digitSum k n))) (by
+        unfold armT; by_cases hk : k = 0 <;> simp [hk])
+      have := hp.atom (List.mem_singleton_self _)
       simpa [mulS, Atom.Holds] using this
-    · have := hp.atom (List.mem_singleton_self _)
+    · have hp := hin (copyS prodOut (W.power (digitSum k n))) (by unfold armT; simp)
+      have := hp.atom (List.mem_singleton_self _)
       simpa [copyS, Atom.Holds] using this
-  · have hz : fold = true → σ (.n b) = 0 := by
-      intro hf
-      have hc : AtomsHold rd σ [cst b (word 0 0)] := by
-        refine h.sub fun x hx => ?_
-        unfold armT
-        simp only [List.mem_singleton] at hx
-        subst hx
-        by_cases hk : k = 0 <;> simp [hk, hf]
-      have := hc.atom (List.mem_singleton_self _)
-      simpa [cst, Atom.Holds, word_zero] using this
-    have henc0 : σ (if fold then V.n b else encIn) = if fold then 0 else σ encIn := by
-      cases fold
-      · rfl
-      · simpa using hz rfl
-    by_cases hk : k = 0
-    · subst hk
-      have he : AtomsHold rd σ [copyS encOut (if fold then V.n b else encIn)] := by
-        refine h.sub fun x hx => ?_
-        unfold armT
-        simp only [List.mem_singleton] at hx
-        subst hx
-        simp
+  · cases fold
+    · by_cases hk : k = 0
+      · subst hk
+        have he := hin (copyS encOut encIn) (by unfold armT; simp)
+        have e := he.atom (List.mem_singleton_self _)
+        simp only [Atom.Holds] at e
+        have hl : lit (W.enc first n 0) = 0 := by simp [W.enc_zero, lit, word_zero]
+        rw [e, hl, add_zero]
+        rfl
+      · have he1 := hin (cst (walksT W slots first k W.size n 0 b).2 (lit (W.enc first n k))) (by
+          unfold armT; simp [hk])
+        have he2 := hin (addS encOut encIn (.n (walksT W slots first k W.size n 0 b).2)) (by
+          unfold armT; simp [hk])
+        have e1 := he1.atom (List.mem_singleton_self _)
+        have e2 := he2.atom (List.mem_singleton_self _)
+        simp only [Atom.Holds] at e1 e2
+        rw [e2, e1]
+        rfl
+    · have he := hin (.atom (.const encOut (lit (W.enc first n k)))) (by unfold armT; simp)
       have e := he.atom (List.mem_singleton_self _)
       simp only [Atom.Holds] at e
-      have hl : lit (W.enc first n 0) = 0 := by simp [W.enc_zero, lit, word_zero]
-      rw [e, hl, add_zero, henc0]
-    · have he : AtomsHold rd σ
-          [cst (walksT W slots first k W.size n 0 (if fold then b + 1 else b)).2 (lit (W.enc first n k)),
-            addS encOut (if fold then V.n b else encIn)
-              (.n (walksT W slots first k W.size n 0 (if fold then b + 1 else b)).2)] := by
-        refine h.sub fun x hx => ?_
-        unfold armT
-        simp only [hk, ↓reduceIte, List.mem_append, List.mem_cons] at hx ⊢
-        tauto
-      have e1 := he.atom (List.mem_cons_self ..)
-      have e2 := he.atom (List.mem_cons_of_mem _ (List.mem_singleton_self _))
-      simp only [Atom.Holds] at e1 e2
-      rw [e2, e1, henc0]
+      rw [e]
+      simp
 
 /-! ## Groups -/
 

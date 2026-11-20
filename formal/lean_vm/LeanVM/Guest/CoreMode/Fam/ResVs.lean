@@ -48,15 +48,15 @@ theorem vs_idx : idxOf name% «verify_sub» = some (fn_idx% «verify_sub») := b
 def vsRetCalls : List (String × List V × List V) :=
   [("log2_ceil_in_the_exponent__L0_L34", [.n 252, .n 4], [.n 253]),
    ("log2_ceil_in_the_exponent__L16_L34", [.n 274, .n 4], [.n 276]),
-   ("verify_bus_gkr", [554, 555, 556, 557, 558, 320, 253, 254, 561, 25].map .n, (List.range 7).map fun k ↦ .n (562 + k)),
+   ("verify_bus_gkr", [538, 539, 540, 541, 542, 319, 253, 254, 544, 25].map .n, (List.range 7).map fun k ↦ .n (545 + k)),
    ("verify_tables", vtArgsV, vtRetsV),
-   ("verify_keccak", vkArgsV, (List.range 7).map fun k ↦ .n (590 + k))]
+   ("verify_keccak", vkArgsV, (List.range 7).map fun k ↦ .n (573 + k))]
 
 /-- The calls' sites. -/
-def vsRetSites : List ℕ := [185, 221, 577, 591, 604]
+def vsRetSites : List ℕ := [168, 199, 485, 499, 512]
 
 /-- `verify_sub`'s statements up to `verify_keccak`'s call. -/
-noncomputable def vsPre : List Stmt := (fn% «verify_sub»).body.take 342
+noncomputable def vsPre : List Stmt := (fn% «verify_sub»).body.take 325
 
 theorem vsPre_noRet : Memory.Stmt.noRetListS vsPre = true := by decide +kernel
 
@@ -81,8 +81,8 @@ theorem vsRetSites_eq : (List.range 5).all (fun s ↦ ((B2C.siteOf (fn_idx% «ve
   decide +kernel
 
 /-- The cells of the stream, the stack's log less `20` and the dims table, each named by an atom. -/
-theorem vs_cells : cellJ (fn_idx% «verify_sub») (.n 25) = 27 ∧ cellJ (fn_idx% «verify_sub») (.n 278) = 224 ∧
-    cellJ (fn_idx% «verify_sub») (.n 71) = 92 ∧ 224 < fsN (fn_idx% «verify_sub») := by
+theorem vs_cells : cellJ (fn_idx% «verify_sub») (.n 25) = 27 ∧ cellJ (fn_idx% «verify_sub») (.n 278) = 202 ∧
+    cellJ (fn_idx% «verify_sub») (.n 71) = 75 ∧ 202 < fsN (fn_idx% «verify_sub») := by
   decide +kernel
 
 theorem vs_atoms : (topAtoms (fn% «verify_sub»).body).contains (.load (.n 27) (.n 25) 0) = true ∧
@@ -135,9 +135,9 @@ theorem vs_valsI (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.
       ReadsAt r.img.read (σ (.n 71)) (gen ^ lm :: hs.map (gen ^ ·)) ∧
       20 ≤ sl ∧ sl ≤ 30 ∧ σ (.n 278) = gen ^ (sl - 20) ∧ σ (.n 276) = gen ^ sl ∧
       20 ≤ d ∧ d < 34 ∧ σ (.n 253) = gen ^ d ∧
-      hs.getD 5 0 ≤ n ∧ n ≤ d ∧ σ (.n 579) = gen ^ n ∧
-      σ (.n 567) = σ (.n 25) * gen ^ gG ∧ σ (.n 578) = σ (.n 25) * gen ^ gT ∧
-      σ (.n 595) = σ (.n 25) * gen ^ gK ∧ gG ≤ gT ∧ gT ≤ gK ∧ gK + 207 ≤ 8192 := by
+      hs.getD 5 0 ≤ n ∧ n ≤ d ∧ σ (.n 562) = gen ^ n ∧
+      σ (.n 550) = σ (.n 25) * gen ^ gG ∧ σ (.n 561) = σ (.n 25) * gen ^ gT ∧
+      σ (.n 578) = σ (.n 25) * gen ^ gK ∧ gG ≤ gT ∧ gT ≤ gK ∧ gK + 207 ≤ 8192 := by
   have hfj : coreProgram.find? name% «verify_sub» = some (fn% «verify_sub») := VerifySub.find_vs
   obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
   obtain ⟨-, hb⟩ := Res.holds_of_valid hfs_guest hv hfj
@@ -157,9 +157,9 @@ theorem vs_valsI (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.
     intro h hh'
     have := F.hh31 h hh'
     omega
-  have hRT := reads_tablesSeg (claimedBytecodeValue ⟨F.bus.bytecodePoint, σ (.n 580)⟩)
-    (fun w p v ↦ Child.reads_claimedBytecodeValue ⟨F.bus.bytecodePoint, σ (.n 580)⟩ w p v) _ hhl F.pi F.weights
-    (σ (.n 559)) F.r.2.1 F.r.2.2
+  have hRT := reads_tablesSeg (claimedBytecodeValue ⟨F.bus.bytecodePoint, σ (.n 563)⟩)
+    (fun w p v ↦ Child.reads_claimedBytecodeValue ⟨F.bus.bytecodePoint, σ (.n 563)⟩ w p v) _ hhl F.pi F.weights
+    (σ (.n 530)) F.r.2.1 F.r.2.2
   obtain ⟨hlT, sp'', hsp''⟩ := runsTo_reads hRT F.hT hsp'
   generalize (List.replicate (2 ^ 23) 0 : List LeanVM.Parameters.K) = bc at F hhl
   -- the tables' context
@@ -193,8 +193,8 @@ theorem vs_valsI (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.
   obtain ⟨xsK, op, point, slices, word, s', -, hrunK, -, -, -, -, -, -, -, hretK⟩ :=
     hK (by rw [F.h589]; exact VerifySub.winTabs_of hwin) ((Tables.tableHeightsOf F.rowsN).getD 5 0) chis _ hτ9
       (by omega) F.h583 hτc hchi hl25 (by rw [F.h587]; exact hlR)
-  obtain ⟨-, hK2⟩ := List.append_inj' (show [σ (.n 590), σ (.n 591), σ (.n 592), σ (.n 593),
-    σ (.n 594)] ++ [σ (.n 595), σ (.n 596)] = _ from hretK) rfl
+  obtain ⟨-, hK2⟩ := List.append_inj' (show [σ (.n 573), σ (.n 574), σ (.n 575), σ (.n 576),
+    σ (.n 577)] ++ [σ (.n 578), σ (.n 579)] = _ from hretK) rfl
   simp only [List.cons.injEq, and_true] at hK2
   obtain ⟨e595, -⟩ := hK2
   obtain ⟨hlK, -⟩ := runsTo_reads (Child.reads_verifyKeccak _ _ _ (by simp only [List.length_take]; omega)) hrunK hsp''
@@ -224,9 +224,9 @@ theorem vs_vals (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name = n
       ReadsAt r.img.read (e.σ (.n 71)) (gen ^ lm :: hs.map (gen ^ ·)) ∧
       20 ≤ sl ∧ sl ≤ 30 ∧ e.σ (.n 278) = gen ^ (sl - 20) ∧ e.σ (.n 276) = gen ^ sl ∧
       20 ≤ d ∧ d < 34 ∧ e.σ (.n 253) = gen ^ d ∧
-      hs.getD 5 0 ≤ n ∧ n ≤ d ∧ e.σ (.n 579) = gen ^ n ∧
-      e.σ (.n 567) = e.σ (.n 25) * gen ^ gG ∧ e.σ (.n 578) = e.σ (.n 25) * gen ^ gT ∧
-      e.σ (.n 595) = e.σ (.n 25) * gen ^ gK ∧ gG ≤ gT ∧ gT ≤ gK ∧ gK + 207 ≤ 8192 := by
+      hs.getD 5 0 ≤ n ∧ n ≤ d ∧ e.σ (.n 562) = gen ^ n ∧
+      e.σ (.n 550) = e.σ (.n 25) * gen ^ gG ∧ e.σ (.n 561) = e.σ (.n 25) * gen ^ gT ∧
+      e.σ (.n 578) = e.σ (.n 25) * gen ^ gK ∧ gG ≤ gT ∧ gT ≤ gK ∧ gK + 207 ≤ 8192 := by
   obtain ⟨f, bufs, kids, hJ, hfj, hfn⟩ := t.found
   rw [hname] at hfn
   subst hfn
@@ -272,11 +272,11 @@ theorem vs_factsOk (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name 
   have r27 : ∀ v, RBase (refMem r.img) e.I.fp (.fr 27) v → v = e.σ (.n 25) := fun v hv ↦ by
     change refMem r.img (e.I.fp + 27) = v at hv
     rw [← hv, m25]
-  have r224 : ∀ v, RBase (refMem r.img) e.I.fp (.fr 224) v → v = e.σ (.n 278) := fun v hv ↦ by
-    change refMem r.img (e.I.fp + 224) = v at hv
+  have r202 : ∀ v, RBase (refMem r.img) e.I.fp (.fr 202) v → v = e.σ (.n 278) := fun v hv ↦ by
+    change refMem r.img (e.I.fp + 202) = v at hv
     rw [← hv, m278]
   -- the tables' log-heights
-  have hD : ∀ t' < 6, ∀ v, RBase (refMem r.img) e.I.fp (.hp 92 (t' + 1)) v → v = gen ^ hs.getD t' 0 := by
+  have hD : ∀ t' < 6, ∀ v, RBase (refMem r.img) e.I.fp (.hp 75 (t' + 1)) v → v = gen ^ hs.getD t' 0 := by
     intro t' ht v hv
     have hld := hdims (t' + 1) (by simp [hsL]; omega)
     rw [rbase_uniq hv (rbase_hp_load hr m71 hld)]
@@ -285,7 +285,7 @@ theorem vs_factsOk (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name 
     hs31 _ (by rw [List.getD_eq_getElem _ _ (by omega)]; exact List.getElem_mem _)
   -- the calls' returns
   have hw' := hw
-  rw [hcj, show (fn% «verify_sub»).body = vsPre ++ (fn% «verify_sub»).body.drop 342 from
+  rw [hcj, show (fn% «verify_sub»).body = vsPre ++ (fn% «verify_sub»).body.drop 325 from
     (List.take_append_drop _ _).symm] at hw'
   have hret : ∀ s < 5, ∀ k < (vsRetCalls.getD s ("", [], [])).2.2.length, ∀ v,
       RBase (refMem r.img) e.I.fp (.hp (vsRetSites.getD s 0) (2 + (vsRetCalls.getD s ("", [], [])).2.1.length + k)) v →
@@ -295,12 +295,12 @@ theorem vs_factsOk (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name 
     have hsite := List.all_eq_true.mp vsRetSites_eq s (List.mem_range.mpr hs)
     simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hsite
     exact top_ret t hr hev hsite.1.1 hsite.1.2 hsite.2 hk hv
-  have r185 : ∀ v, RBase (refMem r.img) e.I.fp (.hp 185 4) v → v = e.σ (.n 253) := hret 0 (by decide) 0 (by decide)
-  have r221 : ∀ v, RBase (refMem r.img) e.I.fp (.hp 221 4) v → v = e.σ (.n 276) := hret 1 (by decide) 0 (by decide)
-  have r577 : ∀ v, RBase (refMem r.img) e.I.fp (.hp 577 17) v → v = e.σ (.n 567) := hret 2 (by decide) 5 (by decide)
-  have r591 : ∀ v, RBase (refMem r.img) e.I.fp (.hp 591 28) v → v = e.σ (.n 578) := hret 3 (by decide) 5 (by decide)
-  have r591' : ∀ v, RBase (refMem r.img) e.I.fp (.hp 591 29) v → v = e.σ (.n 579) := hret 3 (by decide) 6 (by decide)
-  have r604 : ∀ v, RBase (refMem r.img) e.I.fp (.hp 604 20) v → v = e.σ (.n 595) := hret 4 (by decide) 5 (by decide)
+  have r185 : ∀ v, RBase (refMem r.img) e.I.fp (.hp 168 4) v → v = e.σ (.n 253) := hret 0 (by decide) 0 (by decide)
+  have r221 : ∀ v, RBase (refMem r.img) e.I.fp (.hp 199 4) v → v = e.σ (.n 276) := hret 1 (by decide) 0 (by decide)
+  have r577 : ∀ v, RBase (refMem r.img) e.I.fp (.hp 485 17) v → v = e.σ (.n 550) := hret 2 (by decide) 5 (by decide)
+  have r591 : ∀ v, RBase (refMem r.img) e.I.fp (.hp 499 28) v → v = e.σ (.n 561) := hret 3 (by decide) 5 (by decide)
+  have r591' : ∀ v, RBase (refMem r.img) e.I.fp (.hp 499 29) v → v = e.σ (.n 562) := hret 3 (by decide) 6 (by decide)
+  have r604 : ∀ v, RBase (refMem r.img) e.I.fp (.hp 512 20) v → v = e.σ (.n 578) := hret 4 (by decide) 5 (by decide)
   have hcur : ∀ {B : Base} {u : E} {p m : ℕ}, (∀ v, RBase (refMem r.img) e.I.fp B v → v = u) →
       u = e.σ (.n 25) * gen ^ p → p + m ≤ 8192 → ECurOk (refMem r.img) e.I.fp (B, .fr 27, m) :=
     fun hu hp hm v s hv hs' ↦ ⟨_, by rw [hu v hv, hp, r27 s hs', efOfKg], hm⟩
@@ -310,7 +310,7 @@ theorem vs_factsOk (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name 
     rcases hp with ⟨t', ht', rfl⟩ | rfl | rfl | rfl | rfl | rfl | rfl
     · exact epow_of (hD t' (by omega)) rfl (Nat.zero_le _) (by have := hs31' t' (by omega); omega) (by norm_num)
     · exact epow_of (hD 5 (by omega)) rfl hτ9 hτ24 (by norm_num)
-    · exact epow_of r224 e278 (Nat.zero_le _) (by omega) (by norm_num)
+    · exact epow_of r202 e278 (Nat.zero_le _) (by omega) (by norm_num)
     · exact epow_of r185 e253 hd20 (by omega) (by norm_num)
     · exact epow_of r591' e579 (by omega) (by omega) (by norm_num)
     · exact epow_of r221 e276 hsl20 hsl30 (by norm_num)
@@ -321,7 +321,7 @@ theorem vs_factsOk (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name 
         ⟨n, by rw [r591' vy hvy, e579, efOfKg], by omega, by simp only; omega⟩⟩
     · intro vx hvx
       refine ⟨sl, by rw [r221 vx hvx, e276, efOfKg], by omega, fun vy hvy ↦
-        ⟨sl - 20, by rw [r224 vy hvy, e278, efOfKg], by omega, by simp only; omega⟩⟩
+        ⟨sl - 20, by rw [r202 vy hvy, e278, efOfKg], by omega, by simp only; omega⟩⟩
   · simp only [vsFacts, List.mem_cons, List.not_mem_nil, or_false] at hc
     rcases hc with rfl | rfl | rfl
     · exact hcur r577 e567 (by omega)

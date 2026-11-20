@@ -68,10 +68,10 @@ theorem glRun_append {rd : Reader} {n1 n2 : ℕ} {cur pt claim claim1 claim2 : E
   · rw [hrun, tb_gkrRun_eta cs1 es1 claim cap rfl]
 
 /-- The capacity after `n` rounds from value `B`. -/
-def glCapAfter (B n : ℕ) (cap0 : List V) : List V := if n = 0 then cap0 else glCap (B + 40 * n - 20)
+def glCapAfter (B n : ℕ) (cap0 : List V) : List V := if n = 0 then cap0 else glCap (B + 39 * n - 19)
 
 /-- The claim after `n` rounds from value `B`. -/
-def glClaimAfter (B n : ℕ) (claim0 : V) : V := if n = 0 then claim0 else .n (B + 40 * n - 1)
+def glClaimAfter (B n : ℕ) (claim0 : V) : V := if n = 0 then claim0 else .n (B + 39 * n - 1)
 
 theorem glRound_noRet (B : ℕ) (cur pt npt : V) (noff : ℕ) (claim0 : V) (cap0 : List V) (q : ℕ) :
     Stmt.noRetList (glRound B cur pt npt noff claim0 cap0 q) = true := gkRoundN_noRet ..
@@ -88,7 +88,7 @@ theorem glRounds_noRet (B n : ℕ) (cur pt npt : V) (noff : ℕ) (claim0 : V) (c
 theorem glRounds_succ (B n : ℕ) (cur pt npt : V) (noff : ℕ) (claim0 : V) (cap0 : List V) :
     glRounds B (n + 1) cur pt npt noff claim0 cap0 =
       glRounds B n cur pt npt noff claim0 cap0 ++
-        gkRoundN (B + 40 * n) n cur pt npt noff (glClaimAfter B n claim0) (glCapAfter B n cap0) := by
+        gkRoundN (B + 39 * n) n cur pt npt noff (glClaimAfter B n claim0) (glCapAfter B n cap0) := by
   simp only [glRounds, List.range_succ, List.map_append, List.flatten_append, List.map_cons,
     List.map_nil, List.flatten_cons, List.flatten_nil, List.append_nil, glRound, glClaimAfter,
     glCapAfter]
@@ -112,9 +112,9 @@ theorem glRun_one {B q : ℕ} {cur pt npt : V} {noff : ℕ} {claimV : V} {cap : 
     (h : Stmt.HoldsList C rd σ (gkRoundN B q cur pt npt noff claimV cap) True kret)
     (hnpt : σ npt * gen ^ noff = σ pt * gen ^ 42) :
     GlRun rd 1 (σ cur * gen ^ (4 * q)) (σ pt * gen ^ q) (σ claimV) (cap.map σ)
-      ((glCap (B + 20)).map σ) (σ (.n (B + 39))) := by
+      ((glCap (B + 20)).map σ) (σ (.n (B + 38))) := by
   obtain ⟨xs, hl, hrd, hch, hcap, hst, e, he, hcl⟩ := holds_gkRoundN h
-  have hst' : LoadHolds rd (σ pt * gen ^ q) 42 (σ (.n (B + 25))) := by
+  have hst' : LoadHolds rd (σ pt * gen ^ q) 42 (σ (.n (B + 12))) := by
     rw [tb_loadHolds_mul_gen_pow, Nat.add_comm, ← tb_loadHolds_mul_gen_pow, ← hnpt,
       tb_loadHolds_mul_gen_pow]
     exact hst
@@ -152,12 +152,12 @@ theorem glRounds_sound {B : ℕ} {cur pt npt : V} {noff : ℕ} {claim0 : V} {cap
     rw [glRounds_succ, tb_holdsList_append_noRet (glRounds_noRet ..)] at h
     have ih := glRounds_sound n h.1 hnpt
     have h1 := glRun_one h.2 hnpt
-    have e1 : glCapAfter B (n + 1) cap0 = glCap (B + 40 * n + 20) := by
+    have e1 : glCapAfter B (n + 1) cap0 = glCap (B + 39 * n + 20) := by
       simp only [glCapAfter, Nat.add_one_ne_zero, ↓reduceIte]
-      rw [show B + 40 * (n + 1) - 20 = B + 40 * n + 20 by omega]
-    have e2 : glClaimAfter B (n + 1) claim0 = .n (B + 40 * n + 39) := by
+      rw [show B + 39 * (n + 1) - 19 = B + 39 * n + 20 by omega]
+    have e2 : glClaimAfter B (n + 1) claim0 = .n (B + 39 * n + 38) := by
       simp only [glClaimAfter, Nat.add_one_ne_zero, ↓reduceIte]
-      rw [show B + 40 * (n + 1) - 1 = B + 40 * n + 39 by omega]
+      rw [show B + 39 * (n + 1) - 1 = B + 39 * n + 38 by omega]
     rw [e1, e2]
     exact glRun_append ih h1
 

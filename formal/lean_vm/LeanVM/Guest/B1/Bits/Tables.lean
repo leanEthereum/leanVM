@@ -380,7 +380,7 @@ theorem exponent_tables_holds : exponent_tables_Spec := by
     have hl := (etOff_iff rd q).2 ((expTabAll_iff rd q).1 ht)
     refine ⟨setl (setv (setl (Val.ofArgs []) 0 [q]) 1 2284 fun t ↦ expTabWord (etOff t))
       2285 [q], rfl, fun t ht ↦ ?_, ?_, ?_⟩
-    all_goals (try b1_look)
+    all_goals b1_look
     · exact ⟨by rw [Nat.add_sub_cancel], hl t ht⟩
 
 end

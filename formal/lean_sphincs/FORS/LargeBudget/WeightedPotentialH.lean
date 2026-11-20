@@ -101,7 +101,7 @@ theorem wflag_presample_eq (x : D) (hk : tg.kind x = .none) {α : Type}
                   (∑' s, Pr{let z ← presample x r.2}[z = s] * wpays tg initial state input) +
                     ∑' s, Pr{let z ← presample x r.2}[z = s] *
                       wflag tg initial model (next r.1) (budget - sourceCost input) s := by
-                rw [← ENNReal.tsum_add]
+                rw [← tsum_add]
                 exact tsum_congr fun s => mul_add _ _ _
               rw [hsplit, ENNReal.tsum_mul_right, presample_mass, one_mul,
                 ih r.1 (budget - sourceCost input) r.2]
@@ -270,9 +270,9 @@ theorem goodWH_draw (L : QueryLog SigningSpec) (draw : ℕ)
   calc _ ≤ ∑' v, Pr{let x ← (liftM (unifSpec.query draw) : ProbComp (Fin (draw + 1)))}[x = v] *
         (weight tg initial s * potO parameter data w b0 Fail tg initial Lmax s P Ms L d budget +
           b0 * wflag tg initial model (next v) budget s) :=
-        ENNReal.tsum_le_tsum fun v => mul_le_mul_right (h v budget s P Ms d R hprep hP hM hD hC) _
+        tsum_le_tsum fun v => mul_le_mul_right (h v budget s P Ms d R hprep hP hM hD hC) _
     _ ≤ _ := by
-        simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right]
+        simp only [mul_add, tsum_add, ENNReal.tsum_mul_right]
         refine add_le_add (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)) (le_of_eq ?_)
         simp only [mul_left_comm _ b0, ENNReal.tsum_mul_left]
 
@@ -366,7 +366,7 @@ theorem new_pair_boundW {Cmax : ℕ} (hfair : FairS w Cmax Lmax) (hQ : Qtot ≤ 
   by_cases hcap : 1 ≤ lam Lmax ℓ budget
   · -- more landed pairs than the cap: the cap term pays everything
     calc _ ≤ ∑' v, Pr{let z ← ($ᵗ HashOutput : ProbComp HashOutput)}[z = v] * weight tg initial s :=
-          ENNReal.tsum_le_tsum fun v => mul_le_mul_right
+          tsum_le_tsum fun v => mul_le_mul_right
             ((finalWH_le parameter data tg initial model (next v) (budget - 1) _ R).trans
               (weight_store_untargetedW tg initial s _ v (hkind c)).le) _
       _ ≤ weight tg initial s := by
@@ -443,7 +443,7 @@ theorem goodWH_ordinary (hparse : ∀ p call, model.parse (pblk parameter data p
           wflag tg initial model (next u) (budget - 1) (s.store (pblk parameter data p c) u)) =
         weight tg initial s + ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] *
           wflag tg initial model (next u) (budget - 1) (s.store (pblk parameter data p c) u) := by
-      simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right, OracleComp.tsum_prEvent_eq_one _,
+      simp only [mul_add, tsum_add, ENNReal.tsum_mul_right, OracleComp.tsum_prEvent_eq_one _,
         one_mul]
     rw [hsum]
     exact new_pair_boundW parameter data w b0 Fail Qtot Lmax tg initial model hfair hQ L next h budget hb
@@ -453,7 +453,7 @@ theorem goodWH_ordinary (hparse : ∀ p call, model.parse (pblk parameter data p
     calc _ ≤ ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] *
           (weight tg initial r.2 * potO parameter data w b0 Fail tg initial Lmax s P Ms L d budget +
             b0 * wflag tg initial model (next r.1) (budget - 1) r.2) := by
-          refine ENNReal.tsum_le_tsum fun r => ?_
+          refine tsum_le_tsum fun r => ?_
           by_cases hr : r ∈ support (ordinaryStep model x s.known s)
           · refine mul_le_mul_right ?_ _
             have hext := ordinaryStep_extends model x s r hr
@@ -477,7 +477,7 @@ theorem goodWH_ordinary (hparse : ∀ p call, model.parse (pblk parameter data p
                 (fun q hq => (hP.mem q).1 hq) Ms L d (Nat.sub_le _ _)) _
           · rw [(prEvent_eq_zero_of_not_mem_support _) hr, zero_mul, zero_mul]
       _ ≤ _ := by
-          simp only [mul_add, ENNReal.tsum_add]
+          simp only [mul_add, tsum_add]
           refine add_le_add ?_ ?_
           · calc _ = (∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] * weight tg initial r.2) *
                   potO parameter data w b0 Fail tg initial Lmax s P Ms L d budget := by
@@ -638,7 +638,7 @@ theorem goodWH_signH (hparse : ∀ p call, model.parse (pblk parameter data p ca
   rw [interp_bind, OracleComp.tsum_prEvent_bind_mul]
   calc _ ≤ ∑' o1, Pr{let x ← interp tg initial model (signCostSourceH parameter data m) budget s}[x = o1] *
         (weight tg initial o1.2 * (canonR o1 + lam Lmax ℓ budget) + b0 * cont o1) := by
-        refine ENNReal.tsum_le_tsum fun o1 => ?_
+        refine tsum_le_tsum fun o1 => ?_
         by_cases ho1 : o1 ∈ support (interp tg initial model (signCostSourceH parameter data m) budget s)
         · exact mul_le_mul_right (hpoint o1 ho1) _
         · rw [(prEvent_eq_zero_of_not_mem_support _) ho1, zero_mul, zero_mul]
@@ -648,7 +648,7 @@ theorem goodWH_signH (hparse : ∀ p call, model.parse (pblk parameter data p ca
             (weight tg initial o1.2 * lam Lmax ℓ budget) +
           b0 * ∑' o1, Pr{let x ← interp tg initial model (signCostSourceH parameter data m) budget s}[x = o1] *
             cont o1 := by
-        simp only [mul_add, ENNReal.tsum_add, mul_left_comm _ b0, ENNReal.tsum_mul_left]
+        simp only [mul_add, tsum_add, mul_left_comm _ b0, ENNReal.tsum_mul_left]
     _ ≤ _ := by
         unfold potO
         rw [mul_add]

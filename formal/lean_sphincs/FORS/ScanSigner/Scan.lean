@@ -218,7 +218,7 @@ theorem trial_boundS
       ∑' out, Pr{let x ← interp tg initial model (finishCostSource parameter data message ρ) b s'}[x = out] *
           W out.1.1 out.2 ≤ pairWeight parameter data message reference gf gp ρ u := by
     intro s' u b hrel' hs'
-    refine le_trans (ENNReal.tsum_le_tsum fun out => ?_) (finish_boundAll tg initial model parameter data message ρ
+    refine le_trans (tsum_le_tsum fun out => ?_) (finish_boundAll tg initial model parameter data message ρ
       (hparse ρ) s' u hs' _ b)
     by_cases hout : out ∈ support (interp tg initial model (finishCostSource parameter data message ρ) b s')
     · exact mul_le_mul_right (hWfin s' u b hrel' hs' out hout) _
@@ -366,7 +366,7 @@ theorem scan_boundW
                 (if Landed parameter (blockIndex (u firstCall)) then gf (viewOf u) else 0)) +
               bound * ∑' u, Pr{let z ← ($ᵗ (DigestCall → HashOutput) : ProbComp (DigestCall → HashOutput))}[z = u] *
                 (if Landed parameter (blockIndex (u firstCall)) then 0 else 1) := by
-            rw [← ENNReal.tsum_mul_left, ← ENNReal.tsum_add]
+            rw [← ENNReal.tsum_mul_left, ← tsum_add]
             refine tsum_congr fun u => ?_
             split_ifs
             · simp [-SampleableType.prEvent_uniformSample]
@@ -489,8 +489,10 @@ theorem source_post (hparse : ∀ ρ call, model.parse (pblk parameter data mess
     ∀ out ∈ support (interp tg initial model (signCostSource parameter data message) budget s),
       ∀ r, out.1.1 = some r → SignPost parameter data message Fail s out.2 out.1.2.1 r := by
   intro out hout r hr
-  unfold signCostSource at hout
-  rw [interp_liftProb_bind, support_bind] at hout
+  -- on `signCostSource` itself: rewriting its unfolding makes the kernel unfold the uniform sample
+  have heq : interp tg initial model (signCostSource parameter data message) budget s = _ :=
+    interp_liftProb_bind tg initial model _ _ budget s
+  rw [heq, support_bind] at hout
   obtain ⟨ρ, _, hout⟩ := Set.mem_iUnion₂.1 hout
   exact scan_post tg initial model parameter data message hparse Fail hfail _ budget s ρ hprep out hout r hr
 
@@ -588,8 +590,10 @@ theorem source_pairInv (hparse : ∀ ρ call, model.parse (pblk parameter data m
     ∀ out ∈ support (interp tg initial model (signCostSource parameter data message) budget s),
       ∀ r, out.1.1 = some r → PairInv parameter data message out.2 := by
   intro out hout r hr
-  unfold signCostSource at hout
-  rw [interp_liftProb_bind, support_bind] at hout
+  -- on `signCostSource` itself: rewriting its unfolding makes the kernel unfold the uniform sample
+  have heq : interp tg initial model (signCostSource parameter data message) budget s = _ :=
+    interp_liftProb_bind tg initial model _ _ budget s
+  rw [heq, support_bind] at hout
   obtain ⟨ρ, _, hout⟩ := Set.mem_iUnion₂.1 hout
   exact scan_pairInv tg initial model parameter data message hparse _ budget s ρ hinv out hout r hr
 

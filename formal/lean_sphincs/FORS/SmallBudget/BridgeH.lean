@@ -370,7 +370,7 @@ theorem stopped_le_interpV (hb : 0 < keptHeight topLayer) (adversary : Adversary
               (sampleData parameterOutput fixed highs remaining steps))))
             (DebtState.start prepared.2 known))}[CorrectGuess table r.2 ∨
             badAV parameterOutput fixed highs remaining prepared.1 table (r.1, r.2.cache)] := by
-        refine ENNReal.tsum_le_tsum fun table => ?_
+        refine tsum_le_tsum fun table => ?_
         by_cases htab : table ∈ support (completion known)
         · have hag : Agrees known table := by
             unfold completion at htab
@@ -444,7 +444,7 @@ theorem stopped_le_interp_exposeV (hb : 0 < keptHeight topLayer) (adversary : Ad
 /-- Averaging a pointwise bound over the support. -/
 theorem tsum_mul_mono_support {α : Type} (mx : ProbComp α) (f g : α → ℝ≥0∞) (h : ∀ x ∈ support mx, f x ≤ g x) :
     ∑' x, Pr{let y ← mx}[y = x] * f x ≤ ∑' x, Pr{let y ← mx}[y = x] * g x :=
-  ENNReal.tsum_le_tsum fun x => by
+  tsum_le_tsum fun x => by
     by_cases hx : x ∈ support mx
     · exact mul_le_mul_right (h x hx) _
     · rw [(prEvent_eq_zero_of_not_mem_support _) hx, zero_mul, zero_mul]

@@ -494,8 +494,7 @@ theorem GlobalCausalRevealsCovered.revealResultState
 noncomputable def GlobalReturnedChainValueCovered
     (cache : QueryCache HashSpec) (secretKey : SecretKey)
     (log : QueryLog SigningSpec) : Set GlobalChainValueIndex :=
-  fun index =>
-    index.2 ∈ ReturnedChainValueCovered cache secretKey log index.1
+  {index | index.2 ∈ ReturnedChainValueCovered cache secretKey log index.1}
 
 theorem globalReturnedChainValueCovered_forwardClosed
     (cache : QueryCache HashSpec) (secretKey : SecretKey)

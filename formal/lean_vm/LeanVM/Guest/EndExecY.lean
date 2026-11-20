@@ -110,7 +110,7 @@ theorem count_pairs {X : AlignCtx} (rd : Reader) (σ : Val) (S : String) :
     obtain ⟨hc, rfl, hcp⟩ := hp
     rw [List.flatMap_cons, List.filter_append, List.length_append, count_pairs rd σ S hr, Atom.pops,
       count_pair hcp, List.filter_cons]
-    split <;> (simp_all; try omega)
+    split <;> simp_all; omega
 
 /-- Atoms that are no flow atoms pop nothing. -/
 theorem flatMap_flow (rd : Reader) (σ : Val) : ∀ as : List Atom,

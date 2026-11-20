@@ -78,7 +78,7 @@ def vsPiOfN (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) : Pro
   let m := logGT (σ (.n 278)) 11
   let j := logGT (σ (.n 66)) 4 * 11 + m
   let fr := Vn (openStackedIdx m) (vsOsArgs σ) (vsOsRets σ)
-  ⟨wordsAt rd (σ (.n 25)) (cl (σ (.n 25)) (σ (.n 1919))) ++
+  ⟨wordsAt rd (σ (.n 25)) (cl (σ (.n 25)) (σ (.n 1885))) ++
       readN rd (fr (.n 9)) (osWordsTab.getD j 0),
     (osCallsTab.getD j []).map (levelOsN rd fr Vn)⟩
 
@@ -406,7 +406,7 @@ def whirTabs : WhirTabs := ⟨gLanes, osWordsTab.toArray, osCallsTab.toArray⟩
 call given (`vsPiOfN`). -/
 def vsPiOfAt (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) (j : ℕ)
     (fr : Val) : Proof :=
-  ⟨wordsFrom rd ((σ (.n 25)).limb 0) (cl (σ (.n 25)) (σ (.n 1919))) ++
+  ⟨wordsFrom rd ((σ (.n 25)).limb 0) (cl (σ (.n 25)) (σ (.n 1885))) ++
       wordsFrom rd ((fr (.n 9)).limb 0) (T.words.getD j 0),
     (T.calls.getD j []).map (levelOsA T.lanes rd fr Vn)⟩
 

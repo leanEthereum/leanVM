@@ -19,10 +19,10 @@ radix-four layer `j = 4m + p` (`x_m = g^m`, `x_j = g^j`) at the depth's parity `
 (`glBody p o`, in pieces):
 
 * `glPre`: the slot at `layers·(x_j²·start_g)^10` (`15`), its capacity (`16 .. 20`), cursor (`21`),
-  the combiner's permutation and combiner (`40`), the values (`41 .. 43`), the round position
-  (`44`), the point row `gkr_pts·(x_j·g)^40` (`53`), the head record `rounds·pos` (`54`), the
-  combined claim (`58`);
-* `glHeadRounds p`: `2p` rounds (`glRounds`, from value `59`) at the slot's cursor, their
+  the combiner's permutation and combiner (its first cell `27`), the values (`40 .. 42`), the round
+  position (`43`), the point row `gkr_pts·(x_j·g)^40` (`52`), the head record `rounds·pos` (`53`),
+  the combined claim (`57`);
+* `glHeadRounds p`: `2p` rounds (`glRounds`, from value `58`) at the slot's cursor, their
   challenges at `pt[42 + q]`;
 * `glHeadStore p`: the head record (capacity, cursor, claim);
 * `glLoopCall p nm`: the loop `nm` from `g^0` to `x_m` on the head, the row `qrow = pt·g^(2p)`
@@ -35,7 +35,7 @@ radix-four layer `j = 4m + p` (`x_m = g^m`, `x_j = g^j`) at the depth's parity `
   `glKids` (the twelve children read, two permutations), `glCheck` (their check), `glY` (the two
   new coordinates, stored at `pt[40]`, `pt[41]`), `glNext` (the next slot) and the return.
 
-Past the prefix, a value of `p ≥ 1` sits `glD p = 80p + 6` on from `p = 0`'s. The loop's body is
+Past the prefix, a value of `p ≥ 1` sits `glD p = 78p + 6` on from `p = 0`'s. The loop's body is
 `glLoopBody nm` (the same for the eight): eight rounds from the record `head·y` at `qrow·y^8`,
 their challenges at `nqrow·y^8`, then the record at `head·y·g`.
 -/
@@ -52,12 +52,12 @@ def glCap (b : ℕ) : List V := (List.range 5).map fun k ↦ .n (b + k)
 
 /-! ## Rounds -/
 
-/-- Round `q` of a run from value `B`: at `B + 40q`, on the claim and capacity the previous round
+/-- Round `q` of a run from value `B`: at `B + 39q`, on the claim and capacity the previous round
 left (`claim0`, `cap0` for the first). -/
 def glRound (B : ℕ) (cur pt npt : V) (noff : ℕ) (claim0 : V) (cap0 : List V) (q : ℕ) :
     List Stmt :=
-  gkRoundN (B + 40 * q) q cur pt npt noff (if q = 0 then claim0 else .n (B + 40 * q - 1))
-    (if q = 0 then cap0 else glCap (B + 40 * q - 20))
+  gkRoundN (B + 39 * q) q cur pt npt noff (if q = 0 then claim0 else .n (B + 39 * q - 1))
+    (if q = 0 then cap0 else glCap (B + 39 * q - 19))
 
 /-- `n` rounds from value `B`. -/
 def glRounds (B n : ℕ) (cur pt npt : V) (noff : ℕ) (claim0 : V) (cap0 : List V) : List Stmt :=
@@ -66,7 +66,7 @@ def glRounds (B n : ℕ) (cur pt npt : V) (noff : ℕ) (claim0 : V) (cap0 : List
 /-! ## The layer -/
 
 /-- Values past the prefix: `p ≥ 1` adds the cursor's, `qrow`'s and `tpt`'s products. -/
-def glD (p : ℕ) : ℕ := if p = 0 then 0 else 80 * p + 6
+def glD (p : ℕ) : ℕ := if p = 0 then 0 else 78 * p + 6
 
 /-- The prefix, common to the eight bodies. -/
 def glPre : List Stmt :=
@@ -89,164 +89,162 @@ def glPre : List Stmt :=
     .atom (.const (.n 25) (word 0 0)),
     .atom (.const (.n 26) (word 0 0)),
     .atom (.keccak [.n 23, .n 23, .n 23, .n 23, .n 23, .n 24, .n 25, .n 26, .n 16, .n 17, .n 18, .n 19, .n 20] [.n 27, .n 28, .n 29, .n 30, .n 31, .n 32, .n 33, .n 34, .n 35, .n 36, .n 37, .n 38, .n 39] false false),
-    .atom (.copy (.n 40) (.n 27)),
-    .atom (.load (.n 41) (.n 15) 6),
-    .atom (.load (.n 42) (.n 15) 7),
-    .atom (.load (.n 43) (.n 15) 8),
-    .atom (.load (.n 44) (.n 15) 9),
-    .atom (.const (.n 45) (word 2 0)),
-    .atom (.mul (.n 46) (.n 4) (.n 45)),
+    .atom (.load (.n 40) (.n 15) 6),
+    .atom (.load (.n 41) (.n 15) 7),
+    .atom (.load (.n 42) (.n 15) 8),
+    .atom (.load (.n 43) (.n 15) 9),
+    .atom (.const (.n 44) (word 2 0)),
+    .atom (.mul (.n 45) (.n 4) (.n 44)),
+    .atom (.mul (.n 46) (.n 45) (.n 45)),
     .atom (.mul (.n 47) (.n 46) (.n 46)),
-    .atom (.mul (.n 48) (.n 47) (.n 47)),
-    .atom (.mul (.n 49) (.n 48) (.n 46)),
+    .atom (.mul (.n 48) (.n 47) (.n 45)),
+    .atom (.mul (.n 49) (.n 48) (.n 48)),
     .atom (.mul (.n 50) (.n 49) (.n 49)),
     .atom (.mul (.n 51) (.n 50) (.n 50)),
-    .atom (.mul (.n 52) (.n 51) (.n 51)),
-    .atom (.mul (.n 53) (.n 2) (.n 52)),
-    .atom (.mul (.n 54) (.n 1) (.n 44)),
-    .atom (.mul (.n 55) (.n 40) (.n 43)),
-    .atom (.add (.n 56) (.n 42) (.n 55)),
-    .atom (.mul (.n 57) (.n 40) (.n 56)),
-    .atom (.add (.n 58) (.n 41) (.n 57))]
+    .atom (.mul (.n 52) (.n 2) (.n 51)),
+    .atom (.mul (.n 53) (.n 1) (.n 43)),
+    .atom (.mul (.n 54) (.n 27) (.n 42)),
+    .atom (.add (.n 55) (.n 41) (.n 54)),
+    .atom (.mul (.n 56) (.n 27) (.n 55)),
+    .atom (.add (.n 57) (.n 40) (.n 56))]
 
 /-- The head rounds. -/
 def glHeadRounds (p : ℕ) : List Stmt :=
-  glRounds 59 (2 * p) (.n 21) (.n 53) (.n 53) 42 (.n 58) (glCap 35)
+  glRounds 58 (2 * p) (.n 21) (.n 52) (.n 52) 42 (.n 57) (glCap 35)
 
 /-- The head record's stores, at `p = 0`. -/
 def glHeadStore0 : List Stmt :=
-  (List.range 5).map (fun k ↦ .atom (.load (.n (35 + k)) (.n 54) (862 * k))) ++
-    [.atom (.load (.n 21) (.n 54) 4310), .atom (.load (.n 58) (.n 54) 5172)]
+  (List.range 5).map (fun k ↦ .atom (.load (.n (35 + k)) (.n 53) (862 * k))) ++
+    [.atom (.load (.n 21) (.n 53) 4310), .atom (.load (.n 57) (.n 53) 5172)]
 
 /-- The head record's stores, at `p ≥ 1`: the cursor `8p` words on. -/
 def glHeadStoreP (p : ℕ) : List Stmt :=
-  (List.range 5).map (fun k ↦ .atom (.load (.n (39 + 80 * p + k)) (.n 54) (862 * k))) ++
-    [.atom (.const (.n (59 + 80 * p)) (word (2 ^ (8 * p)) 0)),
-      .atom (.mul (.n (60 + 80 * p)) (.n 21) (.n (59 + 80 * p))),
-      .atom (.load (.n (60 + 80 * p)) (.n 54) 4310), .atom (.load (.n (58 + 80 * p)) (.n 54) 5172)]
+  (List.range 5).map (fun k ↦ .atom (.load (.n (39 + 78 * p + k)) (.n 53) (862 * k))) ++
+    [.atom (.const (.n (58 + 78 * p)) (word (2 ^ (8 * p)) 0)),
+      .atom (.mul (.n (59 + 78 * p)) (.n 21) (.n (58 + 78 * p))),
+      .atom (.load (.n (59 + 78 * p)) (.n 53) 4310), .atom (.load (.n (57 + 78 * p)) (.n 53) 5172)]
 
 def glHeadStore (p : ℕ) : List Stmt := if p = 0 then glHeadStore0 else glHeadStoreP p
 
 /-- The loop's call, at `p = 0`. -/
 def glLoopCall0 (nm : String) : List Stmt :=
-  [.atom (.const (.n 59) (word 1 0)), .atom (.add (.n 60) (.n 59) (.n 3)),
-    .atom (.const (.n 61) (word 1 0)), .atom (.const (.n 62) (word (2 ^ 42) 0)),
-    .atom (.mul (.n 63) (.n 53) (.n 62)),
-    .callIf (.n 60) nm [.n 61, .n 3, .n 54, .n 53, .n 63, .n 7]]
+  [.atom (.const (.n 58) (word 1 0)), .atom (.add (.n 59) (.n 58) (.n 3)),
+    .atom (.const (.n 60) (word 1 0)), .atom (.const (.n 61) (word (2 ^ 42) 0)),
+    .atom (.mul (.n 62) (.n 52) (.n 61)),
+    .callIf (.n 59) nm [.n 60, .n 3, .n 53, .n 52, .n 62, .n 7]]
 
 /-- The loop's call, at `p ≥ 1`. -/
 def glLoopCallP (p : ℕ) (nm : String) : List Stmt :=
-  [.atom (.const (.n (61 + 80 * p)) (word 1 0)),
-    .atom (.add (.n (62 + 80 * p)) (.n (61 + 80 * p)) (.n 3)),
-    .atom (.const (.n (63 + 80 * p)) (word 1 0)),
-    .atom (.const (.n (64 + 80 * p)) (word (2 ^ (2 * p)) 0)),
-    .atom (.mul (.n (65 + 80 * p)) (.n 53) (.n (64 + 80 * p))),
-    .atom (.const (.n (66 + 80 * p)) (word (2 ^ (42 + 2 * p)) 0)),
-    .atom (.mul (.n (67 + 80 * p)) (.n 53) (.n (66 + 80 * p))),
-    .callIf (.n (62 + 80 * p)) nm
-      [.n (63 + 80 * p), .n 3, .n 54, .n (65 + 80 * p), .n (67 + 80 * p), .n 7]]
+  [.atom (.const (.n (60 + 78 * p)) (word 1 0)),
+    .atom (.add (.n (61 + 78 * p)) (.n (60 + 78 * p)) (.n 3)),
+    .atom (.const (.n (62 + 78 * p)) (word 1 0)),
+    .atom (.const (.n (63 + 78 * p)) (word (2 ^ (2 * p)) 0)),
+    .atom (.mul (.n (64 + 78 * p)) (.n 52) (.n (63 + 78 * p))),
+    .atom (.const (.n (65 + 78 * p)) (word (2 ^ (42 + 2 * p)) 0)),
+    .atom (.mul (.n (66 + 78 * p)) (.n 52) (.n (65 + 78 * p))),
+    .callIf (.n (61 + 78 * p)) nm
+      [.n (62 + 78 * p), .n 3, .n 53, .n (64 + 78 * p), .n (66 + 78 * p), .n 7]]
 
 def glLoopCall (p : ℕ) (nm : String) : List Stmt :=
   if p = 0 then glLoopCall0 nm else glLoopCallP p nm
 
-/-- The last record's loads, from `head·x_m` (at `w`) into `72 + glD p ..`. -/
+/-- The last record's loads, from `head·x_m` (at `w`) into `71 + glD p ..`. -/
 def glTailLoads (p w : ℕ) : List Stmt :=
-  (List.range 5).map (fun k ↦ .atom (.load (.n (72 + glD p + k)) (.n w) (862 * k))) ++
-    [.atom (.load (.n (77 + glD p)) (.n w) 4310), .atom (.load (.n (78 + glD p)) (.n w) 5172)]
+  (List.range 5).map (fun k ↦ .atom (.load (.n (71 + glD p + k)) (.n w) (862 * k))) ++
+    [.atom (.load (.n (76 + glD p)) (.n w) 4310), .atom (.load (.n (77 + glD p)) (.n w) 5172)]
 
 /-- The tail's pointers, at `p = 0`. -/
 def glTailSetup0 : List Stmt :=
-  [.atom (.mul (.n 64) (.n 54) (.n 3)), .atom (.mul (.n 65) (.n 3) (.n 3)),
-    .atom (.mul (.n 66) (.n 65) (.n 65)), .atom (.mul (.n 67) (.n 66) (.n 66)),
-    .atom (.mul (.n 68) (.n 53) (.n 67)), .atom (.const (.n 69) (word (2 ^ 42) 0)),
-    .atom (.mul (.n 70) (.n 53) (.n 69)), .atom (.mul (.n 71) (.n 70) (.n 67))] ++
-  glTailLoads 0 64
+  [.atom (.mul (.n 63) (.n 53) (.n 3)), .atom (.mul (.n 64) (.n 3) (.n 3)),
+    .atom (.mul (.n 65) (.n 64) (.n 64)), .atom (.mul (.n 66) (.n 65) (.n 65)),
+    .atom (.mul (.n 67) (.n 52) (.n 66)), .atom (.const (.n 68) (word (2 ^ 42) 0)),
+    .atom (.mul (.n 69) (.n 52) (.n 68)), .atom (.mul (.n 70) (.n 69) (.n 66))] ++
+  glTailLoads 0 63
 
 /-- The tail's pointers, at `p ≥ 1`. -/
 def glTailSetupP (p : ℕ) : List Stmt :=
-  [.atom (.mul (.n (68 + 80 * p)) (.n 54) (.n 3)),
-    .atom (.mul (.n (69 + 80 * p)) (.n 3) (.n 3)),
-    .atom (.mul (.n (70 + 80 * p)) (.n (69 + 80 * p)) (.n (69 + 80 * p))),
-    .atom (.mul (.n (71 + 80 * p)) (.n (70 + 80 * p)) (.n (70 + 80 * p))),
-    .atom (.const (.n (72 + 80 * p)) (word (2 ^ (2 * p)) 0)),
-    .atom (.mul (.n (73 + 80 * p)) (.n 53) (.n (72 + 80 * p))),
-    .atom (.mul (.n (74 + 80 * p)) (.n (73 + 80 * p)) (.n (71 + 80 * p))),
-    .atom (.const (.n (75 + 80 * p)) (word (2 ^ (42 + 2 * p)) 0)),
-    .atom (.mul (.n (76 + 80 * p)) (.n 53) (.n (75 + 80 * p))),
-    .atom (.mul (.n (77 + 80 * p)) (.n (76 + 80 * p)) (.n (71 + 80 * p)))] ++
-  glTailLoads p (68 + 80 * p)
+  [.atom (.mul (.n (67 + 78 * p)) (.n 53) (.n 3)),
+    .atom (.mul (.n (68 + 78 * p)) (.n 3) (.n 3)),
+    .atom (.mul (.n (69 + 78 * p)) (.n (68 + 78 * p)) (.n (68 + 78 * p))),
+    .atom (.mul (.n (70 + 78 * p)) (.n (69 + 78 * p)) (.n (69 + 78 * p))),
+    .atom (.const (.n (71 + 78 * p)) (word (2 ^ (2 * p)) 0)),
+    .atom (.mul (.n (72 + 78 * p)) (.n 52) (.n (71 + 78 * p))),
+    .atom (.mul (.n (73 + 78 * p)) (.n (72 + 78 * p)) (.n (70 + 78 * p))),
+    .atom (.const (.n (74 + 78 * p)) (word (2 ^ (42 + 2 * p)) 0)),
+    .atom (.mul (.n (75 + 78 * p)) (.n 52) (.n (74 + 78 * p))),
+    .atom (.mul (.n (76 + 78 * p)) (.n (75 + 78 * p)) (.n (70 + 78 * p)))] ++
+  glTailLoads p (67 + 78 * p)
 
 def glTailSetup (p : ℕ) : List Stmt := if p = 0 then glTailSetup0 else glTailSetupP p
 
 /-- The last `2 - o` rounds, from the last record's state at `72 + glD p ..`. -/
 def glTailRounds (p o : ℕ) : List Stmt :=
-  glRounds (79 + glD p) (2 - o) (.n (77 + glD p)) (.n (68 + glD p)) (.n (71 + glD p)) 0
-    (.n (78 + glD p)) (glCap (72 + glD p))
+  glRounds (78 + glD p) (2 - o) (.n (76 + glD p)) (.n (67 + glD p)) (.n (70 + glD p)) 0
+    (.n (77 + glD p)) (glCap (71 + glD p))
 
 /-- At an odd depth, the row's zero cell. -/
 def glPad (p o : ℕ) : List Stmt :=
   if o = 1 then
-    [.atom (.const (.n (119 + glD p)) (word 0 0)),
-      .atom (.load (.n (119 + glD p)) (.n (71 + glD p)) 1)]
+    [.atom (.const (.n (117 + glD p)) (word 0 0)),
+      .atom (.load (.n (117 + glD p)) (.n (70 + glD p)) 1)]
   else []
 
-/-- The canonical numbering's values at `p`, `o`: the last record's from `64` on by `glD p`,
-the last round's from `119` less a round at an odd depth, the rest past the pad's zero. -/
+/-- The canonical numbering's values at `p`, `o`: the last record's from `63` on by `glD p`,
+the last round's from `117` less a round at an odd depth, the rest past the pad's zero. -/
 def glRho (p o : ℕ) (v : V) : V :=
-  if v.idx < 59 then v
-  else if v.idx < 119 then .n (v.idx + glD p)
-  else if v.idx < 159 then .n (v.idx + glD p - 40 * o)
-  else .n (v.idx + glD p - 39 * o)
+  if v.idx < 58 then v
+  else if v.idx < 117 then .n (v.idx + glD p)
+  else if v.idx < 156 then .n (v.idx + glD p - 39 * o)
+  else .n (v.idx + glD p - 38 * o)
 
 /-- The children, read `off` words past the tail cursor `77`: four, a permutation, four, a
 permutation, four. -/
 def glKids (off : ℕ) : List Stmt :=
-  ((List.range 4).map (chT (.n 77) off 159)).flatten ++
-    [.atom (.keccak (chRate 159 0 ++ glCap 139) (lyOuts 175) false false)] ++
-    ((List.range 4).map fun i ↦ chT (.n 77) off 159 (4 + i)).flatten ++
-    [.atom (.keccak (chRate 159 1 ++ lyCap 175) (lyOuts 204) false false)] ++
-    ((List.range 4).map fun i ↦ chT (.n 77) off 159 (8 + i)).flatten
+  ((List.range 4).map (chT (.n 76) off 156)).flatten ++
+    [.atom (.keccak (chRate 156 0 ++ glCap 137) (lyOuts 172) false false)] ++
+    ((List.range 4).map fun i ↦ chT (.n 76) off 156 (4 + i)).flatten ++
+    [.atom (.keccak (chRate 156 1 ++ lyCap 172) (lyOuts 201) false false)] ++
+    ((List.range 4).map fun i ↦ chT (.n 76) off 156 (8 + i)).flatten
 
 /-- The children's check against the last claim `158` (`gkr_product_check`). -/
 def glCheck : List Stmt :=
-  [.atom (.mul (.n 233) (.n 220) (.n 224)),
-    .atom (.mul (.n 234) (.n 233) (.n 228)),
-    .atom (.mul (.n 235) (.n 234) (.n 232)),
-    .atom (.const (.n 236) (word 0 0)),
-    .atom (.mul (.n 237) (.n 40) (.n 236)),
-    .atom (.add (.n 238) (.n 235) (.n 237)),
-    .atom (.mul (.n 239) (.n 191) (.n 195)),
-    .atom (.mul (.n 240) (.n 239) (.n 199)),
-    .atom (.mul (.n 241) (.n 240) (.n 203)),
-    .atom (.mul (.n 242) (.n 40) (.n 238)),
-    .atom (.add (.n 243) (.n 241) (.n 242)),
-    .atom (.mul (.n 244) (.n 162) (.n 166)),
-    .atom (.mul (.n 245) (.n 244) (.n 170)),
-    .atom (.mul (.n 246) (.n 245) (.n 174)),
-    .atom (.mul (.n 247) (.n 40) (.n 243)),
-    .atom (.add (.n 248) (.n 246) (.n 247)),
-    .atom (.assertEq (.n 158) (.n 248))]
+  [.atom (.mul (.n 230) (.n 217) (.n 221)),
+    .atom (.mul (.n 231) (.n 230) (.n 225)),
+    .atom (.mul (.n 232) (.n 231) (.n 229)),
+    .atom (.const (.n 233) (word 0 0)),
+    .atom (.mul (.n 234) (.n 27) (.n 233)),
+    .atom (.add (.n 235) (.n 232) (.n 234)),
+    .atom (.mul (.n 236) (.n 188) (.n 192)),
+    .atom (.mul (.n 237) (.n 236) (.n 196)),
+    .atom (.mul (.n 238) (.n 237) (.n 200)),
+    .atom (.mul (.n 239) (.n 27) (.n 235)),
+    .atom (.add (.n 240) (.n 238) (.n 239)),
+    .atom (.mul (.n 241) (.n 159) (.n 163)),
+    .atom (.mul (.n 242) (.n 241) (.n 167)),
+    .atom (.mul (.n 243) (.n 242) (.n 171)),
+    .atom (.mul (.n 244) (.n 27) (.n 240)),
+    .atom (.add (.n 245) (.n 243) (.n 244)),
+    .atom (.assertEq (.n 155) (.n 245))]
 
 /-- The two new coordinates (`y`'s grind of `0` bits, then a squeeze), stored at `pt[40]`,
 `pt[41]`. -/
 def glY : List Stmt :=
-  [.atom (.keccak (chRate 159 2 ++ lyCap 204) (lyOuts 249) false false),
-    .atom (.copy (.n 262) (.n 249)),
-    .atom (.keccak ([.n 23, .n 23, .n 23, .n 23, .n 23, .n 24, .n 25, .n 26] ++ lyCap 249)
-      (lyOuts 263) false false),
-    .atom (.copy (.n 276) (.n 263)), .atom (.load (.n 262) (.n 53) 40),
-    .atom (.load (.n 276) (.n 53) 41)]
+  [.atom (.keccak (chRate 156 2 ++ lyCap 201) (lyOuts 246) false false),
+    .atom (.keccak ([.n 23, .n 23, .n 23, .n 23, .n 23, .n 24, .n 25, .n 26] ++ lyCap 246)
+      (lyOuts 259) false false),
+    .atom (.load (.n 246) (.n 52) 40),
+    .atom (.load (.n 259) (.n 52) 41)]
 
 /-- The next slot, `20` words on: the capacity, the cursor `cw` words on, the three values and
 the position `pos·x_m·g`. -/
 def glNext (cw : ℕ) : List Stmt :=
-  (List.range 5).map (fun k ↦ .atom (.load (.n (271 + k)) (.n 15) (20 + k))) ++
-    [.atom (.const (.n 277) (word (2 ^ cw) 0)), .atom (.mul (.n 278) (.n 77) (.n 277)),
-      .atom (.load (.n 278) (.n 15) 25)] ++
-    chValT 159 262 276 15 0 279 26 ++ chValT 159 262 276 15 1 288 27 ++
-    chValT 159 262 276 15 2 297 28 ++
-    [.atom (.mul (.n 306) (.n 44) (.n 3)), .atom (.const (.n 307) (word 2 0)),
-      .atom (.mul (.n 308) (.n 306) (.n 307)), .atom (.load (.n 308) (.n 15) 29)]
+  (List.range 5).map (fun k ↦ .atom (.load (.n (267 + k)) (.n 15) (20 + k))) ++
+    [.atom (.const (.n 272) (word (2 ^ cw) 0)), .atom (.mul (.n 273) (.n 76) (.n 272)),
+      .atom (.load (.n 273) (.n 15) 25)] ++
+    chValT 156 246 259 15 0 274 26 ++ chValT 156 246 259 15 1 283 27 ++
+    chValT 156 246 259 15 2 292 28 ++
+    [.atom (.mul (.n 301) (.n 43) (.n 3)), .atom (.const (.n 302) (word 2 0)),
+      .atom (.mul (.n 303) (.n 301) (.n 302)), .atom (.load (.n 303) (.n 15) 29)]
 
 /-- The rest of the body, canonically numbered. -/
 def glTail (o : ℕ) : List Stmt :=
@@ -272,13 +270,13 @@ def glLoopRounds : List Stmt := glRounds 19 8 (.n 17) (.n 10) (.n 11) 0 (.n 18) 
 
 /-- The next record, the guard and the next call. -/
 def glLoopPost (nm : String) : List Stmt :=
-  (List.range 5).map (fun k ↦ .atom (.load (.n (319 + k)) (.n 6) (1 + 862 * k))) ++
-  [.atom (.const (.n 339) (word (2 ^ 32) 0)), .atom (.mul (.n 340) (.n 17) (.n 339)),
-    .atom (.load (.n 340) (.n 6) 4311), .atom (.load (.n 338) (.n 6) 5173),
-    .atom (.const (.n 341) (word 2 0)), .atom (.mul (.n 342) (.n 0) (.n 341)),
-    .atom (.add (.n 343) (.n 342) (.n 1)), .atom (.const (.n 344) (word 2 0)),
-    .atom (.mul (.n 345) (.n 0) (.n 344)),
-    .callIf (.n 343) nm [.n 345, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []]
+  (List.range 5).map (fun k ↦ .atom (.load (.n (312 + k)) (.n 6) (1 + 862 * k))) ++
+  [.atom (.const (.n 331) (word (2 ^ 32) 0)), .atom (.mul (.n 332) (.n 17) (.n 331)),
+    .atom (.load (.n 332) (.n 6) 4311), .atom (.load (.n 330) (.n 6) 5173),
+    .atom (.const (.n 333) (word 2 0)), .atom (.mul (.n 334) (.n 0) (.n 333)),
+    .atom (.add (.n 335) (.n 334) (.n 1)), .atom (.const (.n 336) (word 2 0)),
+    .atom (.mul (.n 337) (.n 0) (.n 336)),
+    .callIf (.n 335) nm [.n 337, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []]
 
 /-- **The loop's body**, its own name `nm`. -/
 def glLoopBody (nm : String) : List Stmt := glLoopPre ++ glLoopRounds ++ glLoopPost nm
@@ -327,6 +325,7 @@ def glParams : List V := (List.range 9).map V.n
 
 /-- The loop's parameters `[y, x_m, head, qrow, nqrow, tabs]`. -/
 def glLoopParams : List V := (List.range 6).map V.n
+
 
 theorem glIs_layers : ∀ p < 4, ∀ o < 2,
     glIs (glName p o) glParams (glBody p o (glLoopName p o)) = true := by

@@ -1,23 +1,27 @@
-//! The product polynomial's bit sums by GFNI outer products (x86-64 with AVX2 and GFNI): the
-//! same values as [`crate::prover`]'s digit buckets, `sum over positions j of weights[j] (x)
-//! product(q, j)` for every pack `q` of a block and every coefficient of its product.
+//! The product polynomial's bit sums by GFNI outer products (x86-64 with AVX2 and GFNI): once
+//! [`coefficients`] has turned them back, the same values as [`crate::prover`]'s digit buckets,
+//! `sum over positions j of weights[j] (x) product(q, j)` for every pack `q` of a block and every
+//! coefficient of its product.
+//!
+//! A product of two embeddings has degree below `8 * POINTS`, so it is fixed by its values at
+//! [`POINTS`] points of GF(2^8), the field of GF2P8MULB, with distinct minimal polynomials. A value
+//! is a byte: the embeddings' values are affine byte maps of the witness's bytes ([`EVAL`]), and
+//! a product's are byte products. The sums are taken over the values' bits, which the inverse of
+//! the evaluation map ([`CRT`]) sends back to coefficients once a layer ([`coefficients`]).
 //!
 //! Eight consecutive `z` of one lane are a *lane byte*. For a lane byte's positions `j_0 .. j_7`
 //! and one byte `b` of their weights, GF2P8AFFINEQB with the matrix `M_b` maps a *column byte*
-//! (bit `k` = one coefficient of `product(q, j_k)`) to byte `b` of the sum of the weights of the
-//! positions whose coefficient is set: the lane byte's share of that coefficient's sum. One
-//! instruction does this for 32 (pack, coefficient) column bytes at once.
+//! (bit `k` = one bit of a value of `product(q, j_k)`) to byte `b` of the sum of the weights of
+//! the positions whose bit is set: the lane byte's share of that bit's sum. One instruction does
+//! this for 32 (pack, bit) column bytes at once.
 //!
 //! Per block, two phases:
 //! 1. per *row byte* with a nonzero weight (the same byte of the five lanes of a row, which `chi`
-//!    mixes): the five lane bytes' embeddings, the products of each active lane byte, and their
-//!    bit transposes into column bytes, staged register by register in a per-thread buffer;
+//!    mixes): the five lane bytes' values, the products of each active lane byte, and their byte
+//!    and bit transposes into column bytes, staged register by register in a per-thread buffer;
 //! 2. per staged register, every active lane byte's 16 matrices applied into accumulators held in
 //!    registers (eight at a time on AVX2, all 16 with AVX-512), then one byte transpose back to
 //!    field elements.
-//!
-//! The 8x8 byte transpose without VPERMB ([`transpose_bytes8x8`]) leaves the positions in a fixed
-//! order ([`TRANSPOSED_ORDER`]), which the matrices absorb ([`COLUMN_BIT_POSITION`]).
 //!
 //! The two-phase outer-product scheme follows hashmancer-keccak's GFNI kernels; the code here is
 //! written for this crate's layout (16-instance packs, 128-bit weights).
@@ -25,13 +29,18 @@
 use core::arch::x86_64::*;
 
 use primitives::field::F128;
-use verifier::keccak::BITS;
+use verifier::keccak::{BITS, EMBED_BITS, PRODUCT_BITS};
 
-use crate::kernels::{PACKS, embed, products};
+use crate::kernels::PACKS;
 use crate::prover::PAYLOAD_BITS;
-use crate::witness::words;
+use crate::rmfe::RMFE;
+use crate::table_maps::interleave_planes;
+use crate::witness::{BLOCK_WORDS, words};
 
-/// Staged registers per active lane byte: 32 column bytes each, six coefficient bytes per pack.
+/// Points a product is held at, a byte each.
+const POINTS: usize = 6;
+const _: () = assert!(PRODUCT_BITS <= 8 * POINTS && PAYLOAD_BITS == 8 * POINTS * PACKS);
+/// Staged registers per active lane byte: 32 column bytes each, one per pack and bit of a value.
 const STAGED: usize = PAYLOAD_BITS / 32;
 /// Bytes of a weight.
 const WEIGHT_BYTES: usize = 16;
@@ -41,68 +50,237 @@ type V = __m256i;
 /// The GF2P8AFFINEQB source that turns the instruction into an 8x8 bit transpose of its matrix.
 const BIT_TRANSPOSE: i64 = 0x8040_2010_0804_0201_u64 as i64;
 
-/// The qword order [`transpose_bytes8x8`] leaves: output qword `d` byte `n` is byte `d` of input
-/// `TRANSPOSED_ORDER[n]`.
-const TRANSPOSED_ORDER: [usize; 8] = [0, 1, 4, 5, 2, 3, 6, 7];
 /// The position that bit `i` of a column byte stands for, after the byte and bit transposes.
-const COLUMN_BIT_POSITION: [usize; 8] = {
-    let mut p = [0; 8];
+const COLUMN_BIT_POSITION: [usize; 8] = [7, 6, 5, 4, 3, 2, 1, 0];
+
+/// The byte product: binary polynomials modulo `x^8 + x^4 + x^3 + x + 1`.
+const fn gf_mul(a: u8, b: u8) -> u8 {
+    let (mut a, mut product) = (a, 0);
     let mut i = 0;
     while i < 8 {
-        p[i] = TRANSPOSED_ORDER[7 - i];
+        if b >> i & 1 == 1 {
+            product ^= a;
+        }
+        a = a << 1 ^ if a >> 7 == 1 { 0x1b } else { 0 };
         i += 1;
     }
-    p
+    product
+}
+
+/// `POWERS[i][n]` is point `i` to the power `n`. A point is the least of its eight conjugates, the
+/// roots of its irreducible, so no two share one; an element of a proper subfield has fewer.
+const POWERS: [[u8; 8 * POINTS]; POINTS] = {
+    let mut powers = [[1u8; 8 * POINTS]; POINTS];
+    let (mut i, mut t) = (0, 0u8);
+    while i < POINTS {
+        t += 1;
+        let (mut conjugate, mut least) = (t, true);
+        let mut k = 1;
+        while k < 8 {
+            conjugate = gf_mul(conjugate, conjugate);
+            least &= conjugate > t;
+            k += 1;
+        }
+        if least {
+            let mut n = 1;
+            while n < 8 * POINTS {
+                powers[i][n] = gf_mul(powers[i][n - 1], t);
+                n += 1;
+            }
+            i += 1;
+        }
+    }
+    powers
 };
 
-/// In-lane byte interleave of the lane's two qwords (16-bit element `d` = byte `d` of both).
-const INTERLEAVE: [u8; 32] = {
+/// The value at point `i` of the polynomial with coefficient bits `p`.
+const fn value(p: u32, i: usize) -> u8 {
+    let (mut v, mut n) = (0, 0);
+    while n < EMBED_BITS {
+        if p >> n & 1 == 1 {
+            v ^= POWERS[i][n];
+        }
+        n += 1;
+    }
+    v
+}
+
+/// The matrix of the affine byte map sending bit `i` of a byte to `images[i]`: the map reads
+/// output bit `t` off matrix byte `7 - t`.
+const fn byte_map(images: [u8; 8]) -> u64 {
+    let mut matrix = 0u64;
+    let mut t = 0;
+    while t < 8 {
+        let mut i = 0;
+        while i < 8 {
+            matrix |= ((images[i] >> t & 1) as u64) << (8 * (7 - t) + i);
+            i += 1;
+        }
+        t += 1;
+    }
+    matrix
+}
+
+/// `EVAL[h][i]` sends byte `h` of a pack to its share of the value of the pack's embedding at
+/// point `i`.
+const EVAL: [[u64; POINTS]; 2] = {
+    let mut maps = [[0u64; POINTS]; 2];
+    let mut h = 0;
+    while h < 2 {
+        let mut i = 0;
+        while i < POINTS {
+            let mut images = [0u8; 8];
+            let mut b = 0;
+            while b < 8 {
+                images[b] = value(RMFE.emb[8 * h + b], i);
+                b += 1;
+            }
+            maps[h][i] = byte_map(images);
+            i += 1;
+        }
+        h += 1;
+    }
+    maps
+};
+
+/// The value of `ones` at each point.
+const ONES: [u8; POINTS] = {
+    let mut ones = [0u8; POINTS];
+    let mut i = 0;
+    while i < POINTS {
+        ones[i] = value(RMFE.ones, i);
+        i += 1;
+    }
+    ones
+};
+
+/// `CRT[n]` is the mask of the value bits (bit `t` of the value at point `i` at bit `8 i + t`)
+/// whose sum is coefficient `n`: row `n` of the inverse of the evaluation map on polynomials of
+/// fewer than `8 * POINTS` coefficients, by Gauss-Jordan elimination.
+const CRT: [u64; 8 * POINTS] = {
+    const N: usize = 8 * POINTS;
+    // Row `8 i + t` sends a polynomial to bit `t` of its value at point `i`, beside the row of the
+    // identity that the row operations turn into the inverse's.
+    let mut rows = [[0u64; 2]; N];
+    let mut r = 0;
+    while r < N {
+        let mut n = 0;
+        while n < N {
+            rows[r][0] |= ((POWERS[r / 8][n] >> (r % 8) & 1) as u64) << n;
+            n += 1;
+        }
+        rows[r][1] = 1 << r;
+        r += 1;
+    }
+    let mut c = 0;
+    while c < N {
+        let mut p = c;
+        while rows[p][0] >> c & 1 == 0 {
+            p += 1;
+        }
+        let pivot = rows[p];
+        rows.swap(p, c);
+        let mut r = 0;
+        while r < N {
+            if r != c && rows[r][0] >> c & 1 == 1 {
+                rows[r][0] ^= pivot[0];
+                rows[r][1] ^= pivot[1];
+            }
+            r += 1;
+        }
+        c += 1;
+    }
+    let mut crt = [0u64; N];
+    let mut n = 0;
+    while n < N {
+        crt[n] = rows[n][1];
+        n += 1;
+    }
+    crt
+};
+
+/// `SLOT[q][8 i + t]` is the entry of [`Scratch::out`] holding bit `t` of pack `q`'s values at
+/// point `i`. Value registers ([`evaluate`]) hold pack `16 s + 8 l + u` at byte `16 l + 8 s + u`,
+/// and [`ProductSums::stage_lane_byte`] puts byte `16 l + 2 j + d` at qword `2 l + d` of register
+/// `8 i + j`, whose byte `n` is entry `32 r + n`.
+const SLOT: [[u16; 8 * POINTS]; PACKS] = {
+    let mut slot = [[0u16; 8 * POINTS]; PACKS];
+    let mut i = 0;
+    while i < POINTS {
+        let mut j = 0;
+        while j < 8 {
+            let mut l = 0;
+            while l < 2 {
+                let mut d = 0;
+                while d < 2 {
+                    let byte = 2 * j + d;
+                    let q = 16 * (byte / 8) + 8 * l + byte % 8;
+                    let mut t = 0;
+                    while t < 8 {
+                        slot[q][8 * i + t] = (32 * (8 * i + j) + 8 * (2 * l + d) + t) as u16;
+                        t += 1;
+                    }
+                    d += 1;
+                }
+                l += 1;
+            }
+            j += 1;
+        }
+        i += 1;
+    }
+    slot
+};
+
+/// Per-lane byte shuffle of a pack's two bytes apart: the lane's low bytes, then its high ones.
+const SPLIT: [u8; 32] = {
     let mut t = [0u8; 32];
     let mut i = 0;
     while i < 32 {
         let j = i % 16;
-        t[i] = if j % 2 == 0 { (j / 2) as u8 } else { (8 + j / 2) as u8 };
+        t[i] = if j < 8 { 2 * j as u8 } else { 2 * (j - 8) as u8 + 1 };
         i += 1;
     }
     t
 };
 
-/// 8x8 byte transpose of the qwords `a_0 .. a_7` (`p` = `a_0 .. a_3`, `q` = `a_4 .. a_7`): output
-/// qword `d` (`d < 4` in the first register) byte `n` = byte `d` of `a_{TRANSPOSED_ORDER[n]}`. Two
-/// in-lane byte shuffles, two 16-bit unpacks and two dword permutes.
-///
-/// # Safety
-/// AVX2 (the module's build).
+/// The values of a block position's 32 packs' embeddings at each point: register `i` holds point
+/// `i`, pack `16 s + 8 l + u` at byte `16 l + 8 s + u`.
 #[inline(always)]
-unsafe fn transpose_bytes8x8(p: V, q: V) -> [V; 2] {
+fn evaluate(words: &[u64; BLOCK_WORDS]) -> [V; POINTS] {
+    // SAFETY: AVX2 and GFNI are enabled at compile time (module cfg); the loads are of the eight
+    // words and of `SPLIT`.
     unsafe {
-        let il = _mm256_loadu_si256(INTERLEAVE.as_ptr().cast());
-        let (p, q) = (_mm256_shuffle_epi8(p, il), _mm256_shuffle_epi8(q, il));
-        // Dword d of lane 0: bytes d of (a0, a1, a4, a5); of lane 1: of (a2, a3, a6, a7).
-        let (e, f) = (_mm256_unpacklo_epi16(p, q), _mm256_unpackhi_epi16(p, q));
-        let idx = _mm256_setr_epi32(0, 4, 1, 5, 2, 6, 3, 7);
-        [_mm256_permutevar8x32_epi32(e, idx), _mm256_permutevar8x32_epi32(f, idx)]
+        let split = _mm256_loadu_si256(SPLIT.as_ptr().cast());
+        let w0 = _mm256_shuffle_epi8(_mm256_loadu_si256(words.as_ptr().cast()), split);
+        let w1 = _mm256_shuffle_epi8(_mm256_loadu_si256(words.as_ptr().add(4).cast()), split);
+        let (low, high) = (_mm256_unpacklo_epi64(w0, w1), _mm256_unpackhi_epi64(w0, w1));
+        std::array::from_fn(|i| {
+            _mm256_xor_si256(
+                _mm256_gf2p8affine_epi64_epi8(low, _mm256_set1_epi64x(EVAL[0][i] as i64), 0),
+                _mm256_gf2p8affine_epi64_epi8(high, _mm256_set1_epi64x(EVAL[1][i] as i64), 0),
+            )
+        })
     }
 }
 
-/// 4x4 transpose of qwords: `out[i]` qword `k` = `r[k]` qword `i`.
-///
-/// # Safety
-/// AVX2.
-#[inline(always)]
-unsafe fn transpose_qwords4x4(r: [V; 4]) -> [V; 4] {
-    unsafe {
-        let t0 = _mm256_unpacklo_epi64(r[0], r[1]);
-        let t1 = _mm256_unpackhi_epi64(r[0], r[1]);
-        let t2 = _mm256_unpacklo_epi64(r[2], r[3]);
-        let t3 = _mm256_unpackhi_epi64(r[2], r[3]);
-        [
-            _mm256_permute2x128_si256(t0, t2, 0x20),
-            _mm256_permute2x128_si256(t1, t3, 0x20),
-            _mm256_permute2x128_si256(t0, t2, 0x31),
-            _mm256_permute2x128_si256(t1, t3, 0x31),
-        ]
-    }
+/// Per pack, the coefficients of the weighted sums of its products, from the weighted sums of
+/// their value bits (entry [`SLOT`]`[q][8 i + t]` of `sums`).
+pub fn coefficients(sums: &[F128]) -> Vec<[F128; PRODUCT_BITS]> {
+    assert_eq!(sums.len(), PAYLOAD_BITS);
+    SLOT.iter()
+        .map(|slot| {
+            let bits: [F128; 8 * POINTS] = std::array::from_fn(|r| sums[slot[r] as usize]);
+            std::array::from_fn(|n| {
+                let mut mask = CRT[n];
+                let mut c = F128::ZERO;
+                while mask != 0 {
+                    c += bits[mask.trailing_zeros() as usize];
+                    mask &= mask - 1;
+                }
+                c
+            })
+        })
+        .collect()
 }
 
 /// Where staged register `r` of active lane byte `a` lies in the buffer (`n_active` active lane
@@ -189,7 +367,7 @@ impl ProductSums {
     }
 
     /// The weighted bit sums of a block (`BITS` positions of eight words) into `s.out`: entry
-    /// `48 q + c` is `sum over j of weights[j] * coefficient c of product(q, j)`.
+    /// [`SLOT`]`[q][8 i + t]` is `sum over j of weights[j] * bit t of product(q, j) at point i`.
     pub fn block_sums(&self, s: &mut Scratch, block: &[u64]) {
         let n_active = self.matrices.len();
         self.stage(block, &mut s.staged, n_active);
@@ -200,26 +378,29 @@ impl ProductSums {
     /// Phase 1: every active lane byte's column bytes into `staged[staged_index(r, a, n_active)]`.
     fn stage(&self, block: &[u64], staged: &mut [V], n_active: usize) {
         assert!(staged.len() >= STAGED * n_active);
-        let mut embedded = [[[0u32; PACKS]; 8]; 5];
-        let mut prod = [[0u64; PACKS]; 8];
+        // SAFETY: AVX2 is enabled at compile time.
+        let mut values = [[[unsafe { _mm256_setzero_si256() }; POINTS]; 8]; 5];
         let mut a = 0;
         for &(y, zb, mask) in &self.row_bytes {
             let (y, zb) = (y as usize, zb as usize);
-            for (x, lane) in embedded.iter_mut().enumerate() {
-                for (k, e) in lane.iter_mut().enumerate() {
-                    *e = embed(words(block, 64 * (x + 5 * y) + 8 * zb + k));
+            for (x, lane) in values.iter_mut().enumerate() {
+                for (k, v) in lane.iter_mut().enumerate() {
+                    *v = evaluate(words(block, 64 * (x + 5 * y) + 8 * zb + k));
                 }
             }
             for x in (0..5).filter(|x| mask >> x & 1 == 1) {
-                let (e0, e1, e2) = (&embedded[x], &embedded[(x + 1) % 5], &embedded[(x + 2) % 5]);
-                for (k, p) in prod.iter_mut().enumerate() {
-                    *p = products(&e0[k], &e1[k], &e2[k]);
-                }
                 assert!(a < n_active, "one staged column per active lane byte");
                 // SAFETY: AVX2 and GFNI are enabled at compile time; `a < n_active` (asserted) and
-                // `stage_lane_byte` writes registers `r < STAGED` only (`3 * 15 + 2`), so every store
+                // `stage_lane_byte` writes registers `r < STAGED` only (`8 * 5 + 7`), so every store
                 // is inside `staged` (asserted size).
-                unsafe { Self::stage_lane_byte(&prod, staged.as_mut_ptr(), a, n_active) };
+                unsafe {
+                    Self::stage_lane_byte(
+                        [&values[x], &values[(x + 1) % 5], &values[(x + 2) % 5]],
+                        staged.as_mut_ptr(),
+                        a,
+                        n_active,
+                    )
+                };
                 a += 1;
             }
         }
@@ -227,38 +408,40 @@ impl ProductSums {
         assert_eq!(a, n_active, "every active lane byte staged");
     }
 
-    /// The column bytes of one lane byte's products (`prod[k][q]`: position `k`, pack `q`): register
-    /// `r` holds column qwords `4 r .. 4 r + 4`, qword `6 q + m` being coefficient byte `m` of pack
-    /// `q` (bit `i` of its byte `b`: coefficient `8 m + b` of position `COLUMN_BIT_POSITION[i]`).
+    /// The column bytes of one lane byte's products, from the values of its three factors'
+    /// embeddings (`e[f][k][i]`: factor `f`, position `k`, point `i`): register `8 i + j` holds, in
+    /// qword `2 l + d`, the column byte of each bit of the products' values at point `i` for the
+    /// pack at byte `16 l + 2 j + d` of a value register ([`SLOT`]).
     ///
     /// # Safety
     /// AVX2 and GFNI; `staged + staged_index(r, a, n_active)` writable for `r < STAGED`.
     #[inline(always)]
-    unsafe fn stage_lane_byte(prod: &[[u64; PACKS]; 8], staged: *mut V, a: usize, n_active: usize) {
+    unsafe fn stage_lane_byte(e: [&[[V; POINTS]; 8]; 3], staged: *mut V, a: usize, n_active: usize) {
         unsafe {
             let bit_transpose = _mm256_set1_epi64x(BIT_TRANSPOSE);
-            let ld = |k: usize, q: usize| _mm256_loadu_si256(prod[k].as_ptr().add(q).cast());
-            for qq in (0..PACKS).step_by(4) {
-                // t[h][i] qword k = the product of pack qq + i at position 4 h + k.
-                let t = [
-                    transpose_qwords4x4([ld(0, qq), ld(1, qq), ld(2, qq), ld(3, qq)]),
-                    transpose_qwords4x4([ld(4, qq), ld(5, qq), ld(6, qq), ld(7, qq)]),
-                ];
-                let columns: [[V; 2]; 4] = std::array::from_fn(|i| {
-                    let [lo, hi] = transpose_bytes8x8(t[0][i], t[1][i]);
-                    [
-                        _mm256_gf2p8affine_epi64_epi8(bit_transpose, lo, 0),
-                        _mm256_gf2p8affine_epi64_epi8(bit_transpose, hi, 0),
-                    ]
+            for i in 0..POINTS {
+                let ones = _mm256_set1_epi8(ONES[i] as i8);
+                // `ones * (a + c) + b * c` at point `i`, per position.
+                let p: [V; 8] = std::array::from_fn(|k| {
+                    let (a, b, c) = (e[0][k][i], e[1][k][i], e[2][k][i]);
+                    _mm256_xor_si256(
+                        _mm256_gf2p8mul_epi8(_mm256_xor_si256(a, c), ones),
+                        _mm256_gf2p8mul_epi8(b, c),
+                    )
                 });
-                for pair in 0..2 {
-                    // Packs q, q + 1 take three registers: bytes 0..4 of q; 4, 5 of q and 0, 1
-                    // of q + 1; 2..4 and 4, 5 of q + 1.
-                    let (c0, c1) = (columns[2 * pair], columns[2 * pair + 1]);
-                    let r = 3 * ((qq + 2 * pair) / 2);
-                    *staged.add(staged_index(r, a, n_active)) = c0[0];
-                    *staged.add(staged_index(r + 1, a, n_active)) = _mm256_permute2x128_si256(c0[1], c1[0], 0x20);
-                    *staged.add(staged_index(r + 2, a, n_active)) = _mm256_permute2x128_si256(c1[0], c1[1], 0x21);
+                // 8x32 byte transpose: qword `d` of lane `l` of `w[j]` holds byte `16 l + 2 j + d` of each position.
+                let w = interleave_planes!(
+                    p,
+                    _mm256_unpacklo_epi8,
+                    _mm256_unpackhi_epi8,
+                    _mm256_unpacklo_epi16,
+                    _mm256_unpackhi_epi16,
+                    _mm256_unpacklo_epi32,
+                    _mm256_unpackhi_epi32
+                );
+                for (j, w) in w.into_iter().enumerate() {
+                    *staged.add(staged_index(8 * i + j, a, n_active)) =
+                        _mm256_gf2p8affine_epi64_epi8(bit_transpose, w, 0);
                 }
             }
         }

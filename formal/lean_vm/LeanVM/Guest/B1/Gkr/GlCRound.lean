@@ -40,17 +40,17 @@ theorem glc_round {B q cur pt npt noff : ℕ} {claimV : V} {cap : List V}
     (hk1 : some (B + 3, cur, 4 * q + 1) ∉ S.map loadKey)
     (hk2 : some (B + 6, cur, 4 * q + 2) ∉ S.map loadKey)
     (hk3 : some (B + 9, cur, 4 * q + 3) ∉ S.map loadKey)
-    (hke : some (B + 26, pt, q) ∉ S.map loadKey)
+    (hke : some (B + 25, pt, q) ∉ S.map loadKey)
     {xs : List E} (hxl : xs.length = 4)
     (hw : ∀ i < 4, LoadHolds rd (σ (.n cur)) (4 * q + i) (xs.getD i 0))
     {e : E} (he : LoadHolds rd (σ (.n pt)) q e)
     (hst : LoadHolds rd (σ (.n npt)) (noff + q)
       ((⟨cap.map σ, []⟩ : Fs).absorbAll xs dsObserve).squeeze.1) :
     Stmt.HoldsList C rd σ (gkRoundN B q (.n cur) (.n pt) (.n npt) noff claimV cap) True kret ∧
-      σ (.n (B + 25)) = ((⟨cap.map σ, []⟩ : Fs).absorbAll xs dsObserve).squeeze.1 ∧
+      σ (.n (B + 12)) = ((⟨cap.map σ, []⟩ : Fs).absorbAll xs dsObserve).squeeze.1 ∧
       ((List.range 5).map fun k ↦ σ (.n (B + 20 + k))) =
         ((⟨cap.map σ, []⟩ : Fs).absorbAll xs dsObserve).squeeze.2.cap ∧
-      σ (.n (B + 39)) = polyEval ((σ claimV + e * sumE xs) :: xs) (σ (.n (B + 25))) := by
+      σ (.n (B + 38)) = polyEval ((σ claimV + e * sumE xs) :: xs) (σ (.n (B + 12))) := by
   have g : ∀ a, Stmt.atom a ∈ gkRoundN B q (.n cur) (.n pt) (.n npt) noff claimV cap →
       Good rd S w σ a := fun a ha ↦ hG _ ha
   have sub : ∀ (b off : ℕ), fsNextT (.n cur) off b ⊆
@@ -90,45 +90,44 @@ theorem glc_round {B q cur pt npt noff : ℕ} {claimV : V} {cap : List V}
     simp [hins, pendCells, e01, e02, e04, e05, e07, e08, e10, e11, x0, x1, x2, x3]
   set P := ((⟨cap.map σ, []⟩ : Fs).absorbAll xs dsObserve).perm with hPd
   rw [← hperm] at hP
-  have hco : ChallengeOk σ (.n (B + 12)) (B + 25) :=
-    challengeT_good (fun s hs ↦ hG s (by simp only [gkRoundN, List.mem_append]; tauto))
-  have h25 : σ (.n (B + 25)) = challengeOf P := challengeT_value hco (hP 0 (by omega))
+  have h25 : σ (.n (B + 12)) = challengeOf P :=
+    challengeT_value (s0 := .n (B + 12)) (b := B + 12) rfl (hP 0 (by omega))
   -- the arithmetic
-  have l26 := good_read (g (.load (.n (B + 26)) (.n pt) q) (by simp [gkRoundN])) hke he
-  have a27 : σ (.n (B + 27)) = σ (.n B) + σ (.n (B + 3)) :=
-    g (.add (.n (B + 27)) (.n B) (.n (B + 3))) (by simp [gkRoundN])
-  have a28 : σ (.n (B + 28)) = σ (.n (B + 27)) + σ (.n (B + 6)) :=
-    g (.add (.n (B + 28)) (.n (B + 27)) (.n (B + 6))) (by simp [gkRoundN])
-  have a29 : σ (.n (B + 29)) = σ (.n (B + 28)) + σ (.n (B + 9)) :=
-    g (.add (.n (B + 29)) (.n (B + 28)) (.n (B + 9))) (by simp [gkRoundN])
-  have m30 := good_mul (g (.mul (.n (B + 30)) (.n (B + 26)) (.n (B + 29))) (by simp [gkRoundN]))
+  have l26 := good_read (g (.load (.n (B + 25)) (.n pt) q) (by simp [gkRoundN])) hke he
+  have a27 : σ (.n (B + 26)) = σ (.n B) + σ (.n (B + 3)) :=
+    g (.add (.n (B + 26)) (.n B) (.n (B + 3))) (by simp [gkRoundN])
+  have a28 : σ (.n (B + 27)) = σ (.n (B + 26)) + σ (.n (B + 6)) :=
+    g (.add (.n (B + 27)) (.n (B + 26)) (.n (B + 6))) (by simp [gkRoundN])
+  have a29 : σ (.n (B + 28)) = σ (.n (B + 27)) + σ (.n (B + 9)) :=
+    g (.add (.n (B + 28)) (.n (B + 27)) (.n (B + 9))) (by simp [gkRoundN])
+  have m30 := good_mul (g (.mul (.n (B + 29)) (.n (B + 25)) (.n (B + 28))) (by simp [gkRoundN]))
     (by omega) (by omega)
-  have a31 : σ (.n (B + 31)) = σ claimV + σ (.n (B + 30)) :=
-    g (.add (.n (B + 31)) claimV (.n (B + 30))) (by simp [gkRoundN])
-  have m32 := good_mul (g (.mul (.n (B + 32)) (.n (B + 25)) (.n (B + 9))) (by simp [gkRoundN]))
+  have a31 : σ (.n (B + 30)) = σ claimV + σ (.n (B + 29)) :=
+    g (.add (.n (B + 30)) claimV (.n (B + 29))) (by simp [gkRoundN])
+  have m32 := good_mul (g (.mul (.n (B + 31)) (.n (B + 12)) (.n (B + 9))) (by simp [gkRoundN]))
     (by omega) (by omega)
-  have a33 : σ (.n (B + 33)) = σ (.n (B + 6)) + σ (.n (B + 32)) :=
-    g (.add (.n (B + 33)) (.n (B + 6)) (.n (B + 32))) (by simp [gkRoundN])
-  have m34 := good_mul (g (.mul (.n (B + 34)) (.n (B + 25)) (.n (B + 33))) (by simp [gkRoundN]))
+  have a33 : σ (.n (B + 32)) = σ (.n (B + 6)) + σ (.n (B + 31)) :=
+    g (.add (.n (B + 32)) (.n (B + 6)) (.n (B + 31))) (by simp [gkRoundN])
+  have m34 := good_mul (g (.mul (.n (B + 33)) (.n (B + 12)) (.n (B + 32))) (by simp [gkRoundN]))
     (by omega) (by omega)
-  have a35 : σ (.n (B + 35)) = σ (.n (B + 3)) + σ (.n (B + 34)) :=
-    g (.add (.n (B + 35)) (.n (B + 3)) (.n (B + 34))) (by simp [gkRoundN])
-  have m36 := good_mul (g (.mul (.n (B + 36)) (.n (B + 25)) (.n (B + 35))) (by simp [gkRoundN]))
+  have a35 : σ (.n (B + 34)) = σ (.n (B + 3)) + σ (.n (B + 33)) :=
+    g (.add (.n (B + 34)) (.n (B + 3)) (.n (B + 33))) (by simp [gkRoundN])
+  have m36 := good_mul (g (.mul (.n (B + 35)) (.n (B + 12)) (.n (B + 34))) (by simp [gkRoundN]))
     (by omega) (by omega)
-  have a37 : σ (.n (B + 37)) = σ (.n B) + σ (.n (B + 36)) :=
-    g (.add (.n (B + 37)) (.n B) (.n (B + 36))) (by simp [gkRoundN])
-  have m38 := good_mul (g (.mul (.n (B + 38)) (.n (B + 25)) (.n (B + 37))) (by simp [gkRoundN]))
+  have a37 : σ (.n (B + 36)) = σ (.n B) + σ (.n (B + 35)) :=
+    g (.add (.n (B + 36)) (.n B) (.n (B + 35))) (by simp [gkRoundN])
+  have m38 := good_mul (g (.mul (.n (B + 37)) (.n (B + 12)) (.n (B + 36))) (by simp [gkRoundN]))
     (by omega) (by omega)
-  have a39 : σ (.n (B + 39)) = σ (.n (B + 31)) + σ (.n (B + 38)) :=
-    g (.add (.n (B + 39)) (.n (B + 31)) (.n (B + 38))) (by simp [gkRoundN])
-  have h25' : σ (.n (B + 25)) = ((⟨cap.map σ, []⟩ : Fs).absorbAll xs dsObserve).squeeze.1 := by
+  have a39 : σ (.n (B + 38)) = σ (.n (B + 30)) + σ (.n (B + 37)) :=
+    g (.add (.n (B + 38)) (.n (B + 30)) (.n (B + 37))) (by simp [gkRoundN])
+  have h25' : σ (.n (B + 12)) = ((⟨cap.map σ, []⟩ : Fs).absorbAll xs dsObserve).squeeze.1 := by
     rw [h25]; rfl
   refine ⟨?_, h25', ?_, ?_⟩
   · unfold gkRoundN
     rw [tb_holdsList_append_noRet (by rfl), tb_holdsList_append_noRet (by rfl),
       tb_holdsList_append_noRet (by rfl), tb_holdsList_append_noRet (by rfl),
-      tb_holdsList_append_noRet (by rfl), tb_holdsList_append_noRet (by rfl)]
-    refine ⟨⟨⟨⟨⟨⟨f0, f1⟩, f2⟩, f3⟩, ⟨hk, trivial⟩⟩, ⟨hco, trivial⟩⟩, ?_⟩
+      tb_holdsList_append_noRet (by rfl)]
+    refine ⟨⟨⟨⟨⟨f0, f1⟩, f2⟩, f3⟩, ⟨hk, trivial⟩⟩, ?_⟩
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
     exact ⟨l26.2, a27, a28, a29, m30, a31, by rw [← h25'] at hst; exact hst, m32, a33, m34, a35,
       m36, a37, m38, a39⟩
@@ -162,18 +161,18 @@ factor `ef q` at `pt[q]` and its challenge at `npt[noff + q]`; the claim and the
 theorem glc_rounds {B cur pt npt noff : ℕ} {claimV : V} {cap : List V} (hcl : cap.length = 5)
     {Cf : ℕ → List E} {ef : ℕ → E} (h4 : ∀ q, (Cf q).length = 4) :
     ∀ n, (∀ s ∈ glRounds B n (.n cur) (.n pt) (.n npt) noff claimV cap, GoodS rd S w σ s) →
-      (∀ q < n, some (B + 40 * q, cur, 4 * q) ∉ S.map loadKey ∧
-        some (B + 40 * q + 3, cur, 4 * q + 1) ∉ S.map loadKey ∧
-        some (B + 40 * q + 6, cur, 4 * q + 2) ∉ S.map loadKey ∧
-        some (B + 40 * q + 9, cur, 4 * q + 3) ∉ S.map loadKey ∧
-        some (B + 40 * q + 26, pt, q) ∉ S.map loadKey) →
+      (∀ q < n, some (B + 39 * q, cur, 4 * q) ∉ S.map loadKey ∧
+        some (B + 39 * q + 3, cur, 4 * q + 1) ∉ S.map loadKey ∧
+        some (B + 39 * q + 6, cur, 4 * q + 2) ∉ S.map loadKey ∧
+        some (B + 39 * q + 9, cur, 4 * q + 3) ∉ S.map loadKey ∧
+        some (B + 39 * q + 25, pt, q) ∉ S.map loadKey) →
       (∀ q < n, ∀ i < 4, LoadHolds rd (σ (.n cur)) (4 * q + i) ((Cf q).getD i 0)) →
       (∀ q < n, LoadHolds rd (σ (.n pt)) q (ef q)) →
       (∀ q < n, LoadHolds rd (σ (.n npt)) (noff + q)
         (challengeOf (gkP Cf ef (σ claimV) ⟨cap.map σ, []⟩ q))) →
       Stmt.HoldsList C rd σ (glRounds B n (.n cur) (.n pt) (.n npt) noff claimV cap) True kret ∧
-        ∀ q, 0 < q → q ≤ n → σ (.n (B + 40 * q - 1)) = (gkSt Cf ef (σ claimV) ⟨cap.map σ, []⟩ q).1 ∧
-          (glCap (B + 40 * q - 20)).map σ = (gkSt Cf ef (σ claimV) ⟨cap.map σ, []⟩ q).2.cap
+        ∀ q, 0 < q → q ≤ n → σ (.n (B + 39 * q - 1)) = (gkSt Cf ef (σ claimV) ⟨cap.map σ, []⟩ q).1 ∧
+          (glCap (B + 39 * q - 19)).map σ = (gkSt Cf ef (σ claimV) ⟨cap.map σ, []⟩ q).2.cap
   | 0, _, _, _, _, _ => ⟨trivial, fun q h0 h1 ↦ absurd h1 (by omega)⟩
   | n + 1, hG, hk, hw, he, hst => by
     rw [glcRounds_succ] at hG ⊢
@@ -182,21 +181,21 @@ theorem glc_rounds {B cur pt npt noff : ℕ} {claimV : V} {cap : List V} (hcl : 
       (fun q hq ↦ hst q (by omega))
     set St := gkSt Cf ef (σ claimV) ⟨cap.map σ, []⟩ with hSt
     -- the round's carried claim and capacity
-    have hin : σ (if n = 0 then claimV else .n (B + 40 * n - 1)) = (St n).1 ∧
-        (if n = 0 then cap else glCap (B + 40 * n - 20)).map σ = (St n).2.cap := by
+    have hin : σ (if n = 0 then claimV else .n (B + 39 * n - 1)) = (St n).1 ∧
+        (if n = 0 then cap else glCap (B + 39 * n - 19)).map σ = (St n).2.cap := by
       rcases Nat.eq_zero_or_pos n with h0 | h0
       · subst h0; simp [hSt, gkSt]
       · have := ih2 n h0 le_rfl
         simp only [show n ≠ 0 by omega, ↓reduceIte]
         exact this
     obtain ⟨k0, k1, k2, k3, ke⟩ := hk n (by omega)
-    have hgr : ∀ s ∈ gkRoundN (B + 40 * n) n (.n cur) (.n pt) (.n npt) noff
-        (if n = 0 then claimV else .n (B + 40 * n - 1))
-        (if n = 0 then cap else glCap (B + 40 * n - 20)), GoodS rd S w σ s :=
+    have hgr : ∀ s ∈ gkRoundN (B + 39 * n) n (.n cur) (.n pt) (.n npt) noff
+        (if n = 0 then claimV else .n (B + 39 * n - 1))
+        (if n = 0 then cap else glCap (B + 39 * n - 19)), GoodS rd S w σ s :=
       fun s hs ↦ hG s (List.mem_append_right _ (by rw [glRound]; exact hs))
-    have hSn : (⟨(if n = 0 then cap else glCap (B + 40 * n - 20)).map σ, []⟩ : Fs) = (St n).2 := by
+    have hSn : (⟨(if n = 0 then cap else glCap (B + 39 * n - 19)).map σ, []⟩ : Fs) = (St n).2 := by
       rw [hin.2, hSt, gkSt_empty]
-    have hP : (((⟨(if n = 0 then cap else glCap (B + 40 * n - 20)).map σ, []⟩ : Fs).absorbAll
+    have hP : (((⟨(if n = 0 then cap else glCap (B + 39 * n - 19)).map σ, []⟩ : Fs).absorbAll
         (Cf n) dsObserve).squeeze.1) = challengeOf (gkP Cf ef (σ claimV) ⟨cap.map σ, []⟩ n) := by
       rw [hSn]; rfl
     obtain ⟨hR, h25, hcap, h39⟩ := glc_round (C := C) (kret := kret) hgr
@@ -213,8 +212,8 @@ theorem glc_rounds {B cur pt npt noff : ℕ} {claimV : V} {cap : List V} (hcl : 
           ((St n).2.absorbAll (Cf n) dsObserve).squeeze.2) := rfl
       rw [hstep, ← hSn]
       refine ⟨?_, ?_⟩
-      · rw [show B + 40 * (n + 1) - 1 = B + 40 * n + 39 by omega, h39, h25, hin.1]
-      · rw [← hcap, show B + 40 * (n + 1) - 20 = B + 40 * n + 20 by omega]
+      · rw [show B + 39 * (n + 1) - 1 = B + 39 * n + 38 by omega, h39, h25, hin.1]
+      · rw [← hcap, show B + 39 * (n + 1) - 19 = B + 39 * n + 20 by omega]
         simp [glCap]
 
 end

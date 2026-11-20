@@ -59,7 +59,7 @@ theorem alwaysR_sumcheck (count : ℕ) : ∀ (eqs : List (Option E)) (claim : E)
   | [], _ => alwaysR_ret rfl
   | e :: eqs, claim => by
     unfold sumcheck
-    try simp only [VerifierProgram.bind_eq]
+    simp only [VerifierProgram.bind_eq]
     refine always_bind_all fun msg ↦ always_bind_all fun ch ↦ ?_
     refine AlwaysR.bind (fun r hr ↦ ?_) (alwaysR_sumcheck count eqs _)
     obtain ⟨pt, fin⟩ := r
@@ -68,7 +68,7 @@ theorem alwaysR_sumcheck (count : ℕ) : ∀ (eqs : List (Option E)) (claim : E)
 theorem always_foldRound (s : WhirState) :
     AlwaysR (foldRound s) fun r ↦ r.1.alphas.length = s.alphas.length + 1 := by
   unfold foldRound
-  try simp only [VerifierProgram.bind_eq]
+  simp only [VerifierProgram.bind_eq]
   repeat refine always_bind_all fun _ ↦ ?_
   exact alwaysR_ret (by simp)
 
@@ -77,7 +77,7 @@ theorem always_foldRounds : ∀ (n : ℕ) (s : WhirState),
   | 0, s => alwaysR_ret rfl
   | n + 1, s => by
     unfold foldRounds
-    try simp only [VerifierProgram.bind_eq]
+    simp only [VerifierProgram.bind_eq]
     refine AlwaysR.bind (fun r hr ↦ ?_) (always_foldRound s)
     obtain ⟨s1, round⟩ := r
     refine AlwaysR.bind (fun r' hr' ↦ ?_) (always_foldRounds n s1)
@@ -104,7 +104,7 @@ theorem alwaysR_whirLevelsOpen (logN lf : ℕ) : ∀ (levels : List Whir.Level) 
   | [], _, _, _ => alwaysR_fail
   | level :: rest, index, s, hle => by
     unfold B1.Whir.whirLevelsOpen
-    try simp only [VerifierProgram.bind_eq]
+    simp only [VerifierProgram.bind_eq]
     refine AlwaysR.bind (fun r hr ↦ ?_) (always_foldRounds level.fold s)
     obtain ⟨s1, rounds⟩ := r
     simp only at hr
@@ -135,7 +135,7 @@ theorem alwaysR_whirLevelsOpen (logN lf : ℕ) : ∀ (levels : List Whir.Level) 
 theorem always_whirOpen (μ r : ℕ) (target : E) :
     AlwaysR (B1.Whir.whirOpen μ r target) fun w ↦ w.point.length = μ := by
   unfold B1.Whir.whirOpen
-  try simp only [VerifierProgram.bind_eq]
+  simp only [VerifierProgram.bind_eq]
   cases hl : Whir.ladder μ r with
   | none => exact alwaysR_fail
   | some levels =>

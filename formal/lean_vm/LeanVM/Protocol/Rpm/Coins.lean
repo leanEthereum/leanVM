@@ -24,11 +24,9 @@ than some deterministic adversary of as many oracle queries, coins not counted (
 at a coin, the best of the finitely many continuations; at an oracle query, the query followed by
 the best continuation at each answer. Two instances:
 
-* **the random oracles** (`exists_det`): `KnowledgeSoundnessRom`
-  (`LeanVM/Protocol/Rom/Statement.lean`) quantifies over adversaries querying the two random
-  oracles only, and the random-oracle adversary that the random-permutation transfer produces
-  (`Common.advS2`: the adversary with the indifferentiability simulator) also flips coins; so the
-  bound of `knowledgeSoundnessRom_holds` holds for it (`knowledgeSoundness_coins`);
+* **the random oracles** (`exists_det`): the random-oracle adversary that the random-permutation
+  transfer produces (`Common.advS2`: the adversary with the indifferentiability simulator) also
+  flips coins, and the random-oracle bound is for adversaries querying the two oracles only;
 * **the random permutation** (`exists_det_rpm`): the end statements of `Statement/LeanVm.lean`
   quantify over adversaries with coins against `loggedRandomPermutationOracles`, the state the permutation's edges
   and the transcript the extractor reads. Each experiment is bounded by the experiment of a
@@ -144,19 +142,6 @@ noncomputable def experimentCoins (B : OracleComp (unifSpec + KeccakCalls) (Prog
   let (verdict, cache) ←
     (simulateQ KeccakCalls.randomOracle (verifierWithHash callKeccak256 callKeccakF1600 z.1.1 z.1.2 z.2)).run adversaryCache
   return ((z, verdict), cache, adversaryCache)
-
-/-- **Knowledge soundness against adversaries with coins**: private coins do not help, so the
-bound of `knowledgeSoundnessRom_holds` holds for every adversary with coins of at most `Q` oracle
-calls. -/
-theorem knowledgeSoundness_coins
-    {B : OracleComp (unifSpec + KeccakCalls) (ProgramAndInput × Proof)} {Q : ℕ}
-    (hB : Common.QueryCostAtMost B hashCalls Q) :
-    Pr{let z ← experimentCoins B}[Breaks extractor z] ≤ soundnessError Q := by
-  obtain ⟨A, hA, hle⟩ := exists_det (fun p ↦ do
-      let (verdict, cache) ←
-        (simulateQ KeccakCalls.randomOracle (verifierWithHash callKeccak256 callKeccakF1600 p.1.1.1 p.1.1.2 p.1.2)).run p.2
-      return ((p.1, verdict), cache, p.2)) (Breaks extractor) B Q hB ∅
-  exact hle.trans (knowledgeSoundnessRom_holds A Q hA)
 
 /-! ## The random-permutation experiments -/
 

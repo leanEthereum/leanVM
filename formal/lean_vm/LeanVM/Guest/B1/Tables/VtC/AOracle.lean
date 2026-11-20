@@ -34,11 +34,11 @@ def vtSelKC (i : ℕ) : ℕ :=
 /-- **The values the oracle answers.** -/
 def vtWKeys : List ℕ :=
   vtAllocVars ++ ((List.range 6).flatMap fun t ↦ [vtPadV t, vtPadV t + 1, vtPadV t + 2]) ++
-    [701, 2545, 810, 838] ++
+    [701, 2544, 810, 838] ++
     ((List.range 3).flatMap fun b ↦ [vtFwW b + 10, vtFwW b + 11]) ++
     ((List.range 51).flatMap fun i ↦ [vtSelKP i, vtSelKP i + 1]) ++
     ((List.range 45).flatMap fun i ↦ [vtSelKC i, vtSelKC i + 1]) ++
-    (List.range 24).map (1877 + ·)
+    (List.range 24).map (1876 + ·)
 
 /-- The first tail round's returns: its capacity, cursor, claim and challenge. -/
 noncomputable def vtTail1 (H : VtHonest) (B : VtBases) : List E :=
@@ -139,7 +139,7 @@ theorem vtWKeys_pads : ∀ t < 6, vtWKeys.idxOf (vtPadV t) = 112 + 3 * t ∧
     vtWKeys.idxOf (vtPadV t + 1) = 112 + (3 * t + 1) ∧
     vtWKeys.idxOf (vtPadV t + 2) = 112 + (3 * t + 2) := by decide +kernel
 set_option maxRecDepth 100000 in
-theorem vtWKeys_misc : vtWKeys.idxOf 701 = 130 ∧ vtWKeys.idxOf 2545 = 131 ∧
+theorem vtWKeys_misc : vtWKeys.idxOf 701 = 130 ∧ vtWKeys.idxOf 2544 = 131 ∧
     vtWKeys.idxOf 810 = 132 ∧ vtWKeys.idxOf 838 = 133 := by
   decide +kernel
 set_option maxRecDepth 100000 in
@@ -208,7 +208,7 @@ theorem vtWVals_count {i c j : ℕ} (hi : i < 45) (hc : c < 2)
   exact getD_flatMap_const' (S := 2) 0 _ (fun _ ↦ rfl) 45 i c hi hc
 
 set_option maxRecDepth 100000 in
-theorem vtWKeys_tail : ∀ i < 24, vtWKeys.idxOf (1877 + i) = 332 + i := by decide +kernel
+theorem vtWKeys_tail : ∀ i < 24, vtWKeys.idxOf (1876 + i) = 332 + i := by decide +kernel
 
 theorem vtTail1_length : (vtTail1 H B).length = 8 := by
   simp [vtTail1, vtBcR1, bcRound, Fs.squeeze, capOf]
@@ -231,11 +231,11 @@ theorem vtWVals_tail (i : ℕ) : (vtWVals H B).getD (332 + i) 0 = (vtTailW H B).
     getD_append_len (flatMap_len (S := 2) _ _ (fun _ ↦ rfl))]
 
 theorem vtW_tail (k : ℕ) (hk : k + 8 ≤ 24) :
-    (List.range 8).map (fun i ↦ vtW H B (1877 + k + i)) = ((vtTailW H B).drop k).take 8 := by
+    (List.range 8).map (fun i ↦ vtW H B (1876 + k + i)) = ((vtTailW H B).drop k).take 8 := by
   apply List.ext_getElem (by simp [vtTailW_length]; omega)
   intro i h1 h2
   simp only [List.length_map, List.length_range] at h1
-  rw [List.getElem_map, List.getElem_range, vtW, show 1877 + k + i = 1877 + (k + i) by omega,
+  rw [List.getElem_map, List.getElem_range, vtW, show 1876 + k + i = 1876 + (k + i) by omega,
     vtWKeys_tail _ (by omega), vtWVals_tail H B, List.getElem_take, List.getElem_drop,
     List.getD_eq_getElem _ _ (by rw [vtTailW_length]; omega)]
 
@@ -277,12 +277,12 @@ theorem vtW_ok : VtWOk H B (vtW H B) where
     rfl
   hw2 := by
     have := vtW_tail H B 8 (by norm_num)
-    rw [show 1877 + 8 = 1885 by rfl] at this
+    rw [show 1876 + 8 = 1884 by rfl] at this
     rw [this, vtTailW, List.drop_left' (vtTail1_length H B), List.take_left' (vtTail2_length H B)]
     rfl
   hw3 := by
     have := vtW_tail H B 16 (by norm_num)
-    rw [show 1877 + 16 = 1893 by rfl] at this
+    rw [show 1876 + 16 = 1892 by rfl] at this
     rw [this, vtTailW, ← List.append_assoc,
       List.drop_left' (by rw [List.length_append, vtTail1_length, vtTail2_length]),
       List.take_of_length_le (by rw [vtTail3_length])]

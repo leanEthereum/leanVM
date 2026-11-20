@@ -43,7 +43,7 @@ def VkQ (J : Inst) : Prop :=
     ∃ p τ, σ (.n 5) = σ (.n 12) * gen ^ p ∧ σ (.n 6) = gen ^ τ ∧ 9 ≤ τ ∧ τ ≤ 28 ∧ p + vkNeed τ ≤ 8192
 
 /-- `verify_keccak`'s call arguments in `verify_sub`. -/
-def vkArgsV : List V := [573, 574, 575, 576, 577, 578, 583, 569, 587, 584, 585, 589, 25].map .n
+def vkArgsV : List V := [556, 557, 558, 559, 560, 561, 566, 552, 570, 567, 568, 572, 25].map .n
 
 /-- The words of the bus after its GKR walk: the memory's two, the two finals, the bytecode's share. -/
 def busRestReads : ℕ := 4 + (1 + busBits * Child.roundReads 3 + 1)
@@ -150,7 +150,7 @@ theorem params_get {σ σ' : Val} {n : ℕ} {as : List V} (h : ((List.range n).m
 one, and so does the tables' segment. -/
 theorem front_carried {bytecode : List K} {C : CallRel} {rd : Reader} {σ : Val}
     (F : VerifySub.VsFront bytecode C rd σ) :
-    ∃ sp, (⟨[σ (.n 554), σ (.n 555), σ (.n 556), σ (.n 557), σ (.n 558)], []⟩ : Fs).Carries sp := by
+    ∃ sp, (⟨[σ (.n 538), σ (.n 539), σ (.n 540), σ (.n 541), σ (.n 542)], []⟩ : Fs).Carries sp := by
   have h0 : (⟨[σ (.n 20), σ (.n 21), σ (.n 22), σ (.n 23), σ (.n 24)], []⟩ : Fs).Carries
       ⟨keccakF1600 (seedInput F.seed F.pi), [], none⟩ := ⟨F.hcap0.symm, rfl, rfl⟩
   obtain ⟨sp1, h1⟩ := carries_absorbAll (VerifySub.vsWords σ) dsObserve h0

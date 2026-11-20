@@ -27,7 +27,7 @@ open scoped ENNReal
 
 noncomputable example (O : OpeningIface) (prog : LeanIsaProgram) (input : PublicInput) :
     Spec (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) (fun _ ↦ False)
-      (fun b _ ↦ b = false) ((2 : ℝ≥0∞)⁻¹ ^ 125) 0 0 :=
+      (fun b h ↦ b = false ∨ stmtG O prog input h) ((2 : ℝ≥0∞)⁻¹ ^ 125) 0 0 :=
   leanVmSpec O (frontIface prog input) (bytecodeWords prog)
 
 noncomputable example (prog : LeanIsaProgram) (input : PublicInput) :

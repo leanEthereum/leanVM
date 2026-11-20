@@ -206,7 +206,7 @@ theorem step (tg' : Targeting HashInput HashOutput Coordinate) (hdig : tg'.diges
             · rw [lazyStep_canonical M bytes s q hp canonical hk heq, OracleComp.tsum_prEvent_map_mul]
               calc ∑' r, Pr{let x ← sampleCoordinate (M.outgoing q.1) s}[x = r] * K.pot y' r.2
                   ≤ ∑' r, Pr{let x ← sampleCoordinate (M.outgoing q.1) s}[x = r] * K.pot (y' + 1) r.2 :=
-                    ENNReal.tsum_le_tsum fun r => mul_le_mul_of_nonneg_left (K.pot_mono (Nat.le_succ _) _) bot_le
+                    tsum_le_tsum fun r => mul_le_mul_of_nonneg_left (K.pot_mono (Nat.le_succ _) _) bot_le
                 _ ≤ _ := K.sample_mean (y' + 1) s _
             · rw [lazyStep_other M bytes s q hp canonical hk heq]
               cases hc : s.cache bytes with
@@ -473,7 +473,7 @@ theorem endValue_le (s : St) (y : ℕ) : endValue K.payoff s ≤ K.pot y s := by
       K.done s + K.pend s := by
     by_cases hb : K.Bad s
     · calc _ ≤ ∑' T, Pr{let x ← completion s.known}[x = T] :=
-            ENNReal.tsum_le_tsum fun T => mul_le_of_le_one_right' (by split_ifs <;> simp)
+            tsum_le_tsum fun T => mul_le_of_le_one_right' (by split_ifs <;> simp)
         _ ≤ 1 := (OracleComp.tsum_prEvent_le_one _)
         _ = K.done s := by rw [done, ite_eq_left hb]
         _ ≤ _ := le_self_add
@@ -491,7 +491,7 @@ theorem endValue_le (s : St) (y : ℕ) : endValue K.payoff s ≤ K.pot y s := by
         · exact le_rfl
       calc _ ≤ ∑' T, Pr{let x ← completion s.known}[x = T] *
               (if ∃ c, s.known c = none ∧ T c ∈ debts K.tg K.initial s c then 1 else 0) :=
-            ENNReal.tsum_le_tsum fun T => mul_le_mul_of_nonneg_left (hpay T) bot_le
+            tsum_le_tsum fun T => mul_le_mul_of_nonneg_left (hpay T) bot_le
         _ = Pr{let T ← completion s.known}[∃ c ∈ (Finset.univ : Finset Coordinate), s.known c = none ∧
               T c ∈ debts K.tg K.initial s c] := by
             rw [OracleComp.prEvent_eq_tsum_ite]
@@ -521,7 +521,7 @@ theorem endValue_le (s : St) (y : ℕ) : endValue K.payoff s ≤ K.pot y s := by
       rw [tsum_ind, K.prob_fct s f]
   have hNG : ∑' T, Pr{let x ← completion s.known}[x = T] * ∑ f, K.ngInd T s f = K.ng s := by
     simp only [Finset.mul_sum]
-    rw [Summable.tsum_finsetSum (fun _ _ => ENNReal.summable)]
+    rw [Summable.tsum_finsetSum (fun _ _ => CompleteLattice.summable)]
     exact Finset.sum_congr rfl fun f _ => hcell1 f
   have hcell2 : ∀ f g, ∑' T, Pr{let x ← completion s.known}[x = T] * K.pairInd T s f g =
       if Recd s f ∧ Recd s g ∧ f.Rel g then K.cw s f * K.cw s g else 0 := by
@@ -537,20 +537,20 @@ theorem endValue_le (s : St) (y : ℕ) : endValue K.payoff s ≤ K.pot y s := by
       rw [div_eq_mul_inv, ← mul_assoc, Finset.mul_sum]
       simp only [Finset.mul_sum]
     refine (tsum_congr hmul).trans ?_
-    rw [ENNReal.tsum_mul_right, Summable.tsum_finsetSum (fun _ _ => ENNReal.summable),
-      Finset.sum_congr rfl fun f _ => Summable.tsum_finsetSum (fun _ _ => ENNReal.summable), div_eq_mul_inv]
+    rw [ENNReal.tsum_mul_right, Summable.tsum_finsetSum (fun _ _ => CompleteLattice.summable),
+      Finset.sum_congr rfl fun f _ => Summable.tsum_finsetSum (fun _ _ => CompleteLattice.summable), div_eq_mul_inv]
     refine congrArg (· * 2⁻¹) ?_
     unfold pp
     exact Finset.sum_congr rfl fun f _ => Finset.sum_congr rfl fun g _ => hcell2 f g
   calc endValue K.payoff s
       ≤ ∑' T, Pr{let x ← completion s.known}[x = T] * ((if Hit K.tg K.initial T s ∨ K.WotsBad s then 1 else 0) +
           ∑ f, K.ngInd T s f + (∑ f, ∑ g, K.pairInd T s f g) / 2) :=
-        ENNReal.tsum_le_tsum fun T => mul_le_mul_of_nonneg_left (K.payoff_le_split T s) bot_le
+        tsum_le_tsum fun T => mul_le_mul_of_nonneg_left (K.payoff_le_split T s) bot_le
     _ = ∑' T, Pr{let x ← completion s.known}[x = T] * (if Hit K.tg K.initial T s ∨ K.WotsBad s then 1 else 0) +
         ∑' T, Pr{let x ← completion s.known}[x = T] * ∑ f, K.ngInd T s f +
         ∑' T, Pr{let x ← completion s.known}[x = T] * ((∑ f, ∑ g, K.pairInd T s f g) / 2) := by
         simp only [mul_add]
-        rw [ENNReal.tsum_add, ENNReal.tsum_add]
+        rw [tsum_add, tsum_add]
     _ ≤ K.done s + K.pend s + K.ng s + K.pp s / 2 := by
         rw [hNG, hPP]
         exact add_le_add (add_le_add hHW le_rfl) le_rfl

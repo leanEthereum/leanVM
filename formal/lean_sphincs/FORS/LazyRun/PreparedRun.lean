@@ -342,12 +342,12 @@ theorem tsum_bound_le {α : Type} (mx : ProbComp α) (g : α → ℝ≥0∞) (A 
     (h : ∀ x ∈ support mx, g x ≤ A + C * φ x) :
     ∑' x, Pr{let y ← mx}[y = x] * g x ≤ A + C * ∑' x, Pr{let y ← mx}[y = x] * φ x := by
   calc ∑' x, Pr{let y ← mx}[y = x] * g x ≤ ∑' x, Pr{let y ← mx}[y = x] * (A + C * φ x) := by
-        refine ENNReal.tsum_le_tsum fun x => ?_
+        refine tsum_le_tsum fun x => ?_
         by_cases hx : x ∈ support mx
         · exact mul_le_mul_right (h x hx) _
         · rw [(prEvent_eq_zero_of_not_mem_support _) hx, zero_mul, zero_mul]
     _ = (∑' x, Pr{let y ← mx}[y = x]) * A + C * ∑' x, Pr{let y ← mx}[y = x] * φ x := by
-        simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right, mul_left_comm _ C, ENNReal.tsum_mul_left]
+        simp only [mul_add, tsum_add, ENNReal.tsum_mul_right, mul_left_comm _ C, ENNReal.tsum_mul_left]
     _ ≤ A + C * ∑' x, Pr{let y ← mx}[y = x] * φ x := add_le_add (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)) le_rfl
 
 /-- Expected share of failing indices over the samples and their preparations. -/
@@ -584,7 +584,7 @@ theorem tsum_elim_le {β : Type} (mx : ProbComp ((OtsKey → Option β) × Query
     ∑' x, Pr{let y ← mx}[y = x] * (x.1 i).elim (1 : ℝ≥0∞) (fun _ => 0) ≤ Pr{let x ← mx}[x.1 i = none] := by
   classical
   rw [OracleComp.prEvent_eq_tsum_ite mx (fun x => x.1 i = none)]
-  refine ENNReal.tsum_le_tsum fun x => ?_
+  refine tsum_le_tsum fun x => ?_
   cases hx : x.1 i with
   | none => simp
   | some v => simp
@@ -597,11 +597,11 @@ theorem expectedFail_le : expectedFail ≤ (2 : ℝ≥0∞)⁻¹ ^ 201 := by
     intro parameterOutput fixed highs remaining
     calc _ ≤ ∑' prepared, Pr{let x ← preparation parameterOutput fixed highs remaining}[x = prepared] *
           ∑ i : OtsKey, (prepared.1 i).elim (1 : ℝ≥0∞) (fun _ => 0) :=
-          ENNReal.tsum_le_tsum fun prepared => mul_le_mul_right (failMass_le_count prepared.1) _
+          tsum_le_tsum fun prepared => mul_le_mul_right (failMass_le_count prepared.1) _
       _ = ∑ i : OtsKey, ∑' prepared, Pr{let x ← preparation parameterOutput fixed highs remaining}[x = prepared] *
           (prepared.1 i).elim (1 : ℝ≥0∞) (fun _ => 0) := by
           simp only [Finset.mul_sum]
-          rw [Summable.tsum_finsetSum (fun _ _ => ENNReal.summable)]
+          rw [Summable.tsum_finsetSum (fun _ _ => CompleteLattice.summable)]
       _ ≤ ∑ i : OtsKey, Pr{let prepared ← preparation parameterOutput fixed highs remaining}[prepared.1 i = none] :=
           Finset.sum_le_sum fun i _ => tsum_elim_le _ i
       _ ≤ ∑ _i : OtsKey, (2 : ℝ≥0∞)⁻¹ ^ (2 ^ 18) :=
@@ -626,7 +626,7 @@ theorem expectedFail_le : expectedFail ≤ (2 : ℝ≥0∞)⁻¹ ^ 201 := by
   have hconst : ∀ {α : Type} (mx : ProbComp α) (g : α → ℝ≥0∞) (c : ℝ≥0∞), (∀ x, g x ≤ c) →
       ∑' x, Pr{let y ← mx}[y = x] * g x ≤ c := by
     intro α mx g c hg
-    calc _ ≤ ∑' x, Pr{let y ← mx}[y = x] * c := ENNReal.tsum_le_tsum fun x => mul_le_mul_right (hg x) _
+    calc _ ≤ ∑' x, Pr{let y ← mx}[y = x] * c := tsum_le_tsum fun x => mul_le_mul_right (hg x) _
       _ ≤ c := by rw [ENNReal.tsum_mul_right]; exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
   unfold expectedFail
   exact hconst _ _ _ fun parameterOutput => hconst _ _ _ fun fixed => hconst _ _ _ fun highs =>

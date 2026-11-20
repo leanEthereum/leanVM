@@ -64,7 +64,7 @@ theorem probEvent_stopBefore_le {α : Type} (bad : OracleWorld.Domain → Prop)
       split
       · simp
       · simp only [run'_query_bind, OracleComp.prEvent_bind_eq_tsum]
-        exact ENNReal.tsum_le_tsum fun result => mul_le_mul' le_rfl (ih result.1 result.2)
+        exact tsum_le_tsum fun result => mul_le_mul' le_rfl (ih result.1 result.2)
 
 theorem probEvent_le_stopBefore_add_failure {α : Type} (bad : OracleWorld.Domain → Prop)
     [DecidablePred bad] (computation : OracleComp OracleWorld α)
@@ -80,8 +80,8 @@ theorem probEvent_le_stopBefore_add_failure {α : Type} (bad : OracleWorld.Domai
       split
       · simp
       · simp only [run'_query_bind, OracleComp.prEvent_bind_eq_tsum, OracleComp.prEvent_bind_eq_tsum,
-          ← ENNReal.tsum_add]
-        exact ENNReal.tsum_le_tsum fun result =>
+          ← tsum_add]
+        exact tsum_le_tsum fun result =>
           (mul_le_mul' le_rfl (ih result.1 result.2)).trans_eq (mul_add ..)
 
 end XmssSecurity.Seeded

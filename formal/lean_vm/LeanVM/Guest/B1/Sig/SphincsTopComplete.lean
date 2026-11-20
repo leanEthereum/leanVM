@@ -61,16 +61,23 @@ def LayerCallAt (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig : Sphincs.Si
     σ (sLeafOf L.val) = cellOf128 (layerLeaf pk (digestIdx pk m sig) sig L S)
 
 theorem LayerCallAt.congr {pk : Sphincs.PublicKey} {m : HashSig.Message} {sig : Sphincs.Signature} {σ σ' : Val}
-    {L : Sphincs.Layer} {S : E} {K : Nat} (h : LayerCallAt pk m sig σ L S) (hK : sLayerBase L.val + 48 ≤ K)
+    {L : Sphincs.Layer} {S : E} {K : Nat} (h : LayerCallAt pk m sig σ L S)
+    (hK : sLayerBase L.val + 48 + 2 * a0W (sAcOf L.val) ≤ K)
     (ha : ∀ k < K, σ' (.n k) = σ (.n k)) : LayerCallAt pk m sig σ' L S := by
   have Sh := layerShape L.isLt
   have t : ∀ v : V, NBv K v → σ' v = σ v := fun v ⟨k, hk, ek⟩ => by rw [ek]; exact ha k hk
   obtain ⟨h1, h2⟩ := h
-  refine ⟨?_, by rw [t (sLeafOf L.val) ⟨sLayerBase L.val + 47, by omega, rfl⟩]; exact h2⟩
+  have ha0 : NBv K (sA0Of L.val) := by
+    rw [← sA0Of_cell L.isLt]
+    rcases hac : sAcOf L.val with _ | c
+    · exact (Sh.a0 hac).mono' (by omega)
+    · rw [hac] at hK
+      exact ⟨_, by simp only [a0W] at hK ⊢; omega, rfl⟩
+  refine ⟨?_, by rw [t (sLeafOf L.val) ⟨sLayerBase L.val + 47 + 2 * a0W (sAcOf L.val), by omega, rfl⟩]; exact h2⟩
   rw [← h1]
   simp only [sCallArgs, List.map_cons, List.map_nil]
-  rw [t sPP ⟨2, by have := Sh.digest; omega, rfl⟩, t _ (Sh.a0.mono' (by omega)), t _ (Sh.a1.mono' (by omega)),
-    t (sEncOf L.val) ⟨sLayerBase L.val + 46, by omega, rfl⟩]
+  rw [t sPP ⟨2, by have := Sh.digest; omega, rfl⟩, t _ ha0, t _ (Sh.a1.mono' (by omega)),
+    t (sEncOf L.val) ⟨sLayerBase L.val + 46 + a0W (sAcOf L.val), by omega, rfl⟩]
 
 /-- **Layer `l` of an honest signature completes** to the root cell of the statement's layer, its call of
 `sp_wots` the honest one. -/
@@ -79,7 +86,7 @@ theorem layer_stage_vals (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm :
     {l : Nat} (hl : l < 3) {S : E} {r : HashSig.Digest}
     (hr : LayerReaches pk.publicSeed (digestIdx pk m sig) sig ⟨l, hl⟩ (cellVal S) r)
     (σ : Val) (h1 : σ (.n 1) = bb) (hbot : BottomPost bb pk m sig σ)
-    (ha0 : σ (sA0Of l) = adrsCell0 l (layerTreeN (digestT pk m sig) l))
+    (ha0 : a0Val σ (sA0Of l) (sAcOf l) = adrsCell0 l (layerTreeN (digestT pk m sig) l))
     (ha1 : σ (sA1Of l) = adrsCell1 0 (layerLeafN (digestT pk m sig) l) 0 0)
     (hsg : σ (sSignedOf l) = S) :
     r = cellVal (layerRootCell pk (digestIdx pk m sig) sig ⟨l, hl⟩ S) ∧
@@ -94,12 +101,14 @@ theorem layer_stage_vals (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm :
   have et := treeOf_idx pk m sig ⟨l, hl⟩
   have el := leafOf_idx pk m sig ⟨l, hl⟩
   have hc := layer_call hC hV
-  have henc : encDigestCell (σ sPP) (σ (sA0Of l)) (σ (sA1Of l) + lit (7 * 2 ^ 24)) (σ (sSignedOf l))
+  have henc : encDigestCell (σ sPP) (a0Val σ (sA0Of l) (sAcOf l)) (σ (sA1Of l) + lit (7 * 2 ^ 24))
+      (σ (sSignedOf l))
       (eOfNat (beWordAt 0 (sig.layers ⟨l, hl⟩).counter.toNat)) =
       layerEnc pk (digestIdx pk m sig) sig ⟨l, hl⟩ S := by
     rw [hpp, ha0, ha1, adrsCell1_enc, hsg, layerEnc, et, el]
-  have hcall : C "sp_wots" [σ sPP, σ (sA0Of l), σ (sA1Of l),
-      encDigestCell (σ sPP) (σ (sA0Of l)) (σ (sA1Of l) + lit (7 * 2 ^ 24)) (σ (sSignedOf l))
+  have hcall : C "sp_wots" [σ sPP, a0Val σ (sA0Of l) (sAcOf l), σ (sA1Of l),
+      encDigestCell (σ sPP) (a0Val σ (sA0Of l) (sAcOf l)) (σ (sA1Of l) + lit (7 * 2 ^ 24))
+        (σ (sSignedOf l))
         (eOfNat (beWordAt 0 (sig.layers ⟨l, hl⟩).counter.toNat))]
       [cellOf128 (layerLeaf pk (digestIdx pk m sig) sig ⟨l, hl⟩ S)] := by
     rw [henc, hpp, ha0, ha1]
@@ -113,7 +122,7 @@ theorem layer_stage_vals (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm :
       have hz' : z < sLeafLen l := hz
       simp only [hz', decide_true, Bool.true_and, bitE])
     (fun z hz => hd.2.2.2.1 l hl z hz)
-  obtain ⟨σ', he', ⟨h3, h4, h5, h6, h7⟩, hh'⟩ := hL
+  obtain ⟨σ', he', ⟨h3, h4, h5, h6, h7, h8⟩, hh'⟩ := hL
   have Sh := layerShape hl
   have t : ∀ v : V, NBv (sLayerBase l) v → σ' v = σ v := fun v ⟨k, hk, ek⟩ => by
     rw [ek]; exact he'.apply (Or.inl hk)
@@ -123,7 +132,7 @@ theorem layer_stage_vals (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm :
     rw [hpp, ha0] at h
     exact h
   · simp only [sCallArgs, spCallArgs, sEncOf, List.map_cons, List.map_nil]
-    rw [t sPP ⟨2, by have := Sh.digest; omega, rfl⟩, t _ Sh.a0, t _ Sh.a1, h6, henc, hpp, ha0, ha1, et, el]
+    rw [t sPP ⟨2, by have := Sh.digest; omega, rfl⟩, h8, t _ Sh.a1, h6, henc, hpp, ha0, ha1, et, el]
 
 /-- **Layer `l` of an honest signature completes** (`layer_stage_vals` without its call). -/
 theorem layer_stage (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : MemOK rd 256) {bb : E}
@@ -131,7 +140,7 @@ theorem layer_stage (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : MemO
     {l : Nat} (hl : l < 3) {S : E} {r : HashSig.Digest}
     (hr : LayerReaches pk.publicSeed (digestIdx pk m sig) sig ⟨l, hl⟩ (cellVal S) r)
     (σ : Val) (h1 : σ (.n 1) = bb) (hbot : BottomPost bb pk m sig σ)
-    (ha0 : σ (sA0Of l) = adrsCell0 l (layerTreeN (digestT pk m sig) l))
+    (ha0 : a0Val σ (sA0Of l) (sAcOf l) = adrsCell0 l (layerTreeN (digestT pk m sig) l))
     (ha1 : σ (sA1Of l) = adrsCell1 0 (layerLeafN (digestT pk m sig) l) 0 0)
     (hsg : σ (sSignedOf l) = S) :
     r = cellVal (layerRootCell pk (digestIdx pk m sig) sig ⟨l, hl⟩ S) ∧

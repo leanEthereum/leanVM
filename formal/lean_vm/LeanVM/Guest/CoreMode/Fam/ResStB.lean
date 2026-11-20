@@ -33,11 +33,11 @@ open LeanVM.Prover.Exec
 @[expose] public section
 
 /-- A layer's last record's cursor cell. -/
-def layCell (first : ℕ) : ℕ := if first = 1 then 792 else 765
+def layCell (first : ℕ) : ℕ := if first = 1 then 773 else 747
 
 /-- A loop's cursor value, and its cell. -/
 def loopCur (rem : Bool) : V := if rem then .n 14 else .n 20
-def loopCell (rem : Bool) : ℕ := if rem then 18 else 21
+def loopCell (rem : Bool) : ℕ := if rem then 17 else 20
 
 end
 
@@ -65,11 +65,11 @@ theorem stRes_of {M : ℕ → E} {fp o : ℕ} {st : Base} {c q : ℕ} {S : E}
 
 theorem lay_load_top {first : ℕ} (hf : first < 2) :
     (topAtoms (coreOf (layIdx first)).body).contains
-      (.load (.n (layOff first + 744)) (.n (layOff first + 738)) 80) = true := by
+      (.load (.n (layOff first + 743)) (.n (layOff first + 737)) 80) = true := by
   interval_cases first <;> decide +kernel
 
 theorem layCell_facts {first : ℕ} (hf : first < 2) :
-    cellJ (layIdx first) (.n (layOff first + 744)) = layCell first ∧ 2 ≤ layCell first ∧
+    cellJ (layIdx first) (.n (layOff first + 743)) = layCell first ∧ 2 ≤ layCell first ∧
       layCell first < fsN (layIdx first) := by
   interval_cases first <;> decide +kernel
 
@@ -124,7 +124,7 @@ theorem st_lay (t : TopAt A r K i e j) (hr : r.Ok) {first : ℕ} (hf : first < 2
   obtain ⟨vs, hw, hF, -⟩ := t.events hr
   have hon := topAtoms_on_path hw (List.contains_iff_mem.mp (lay_load_top hf))
   obtain ⟨hcell, h2, hlt⟩ := layCell_facts hf
-  have hm := t.cell hr hF (x := .n (layOff first + 744)) (namedOf_atom hon (by simp [atomUses])) (by rw [hcell]; exact h2)
+  have hm := t.cell hr hF (x := .n (layOff first + 743)) (namedOf_atom hon (by simp [atomUses])) (by rw [hcell]; exact h2)
     (by rw [hcell]; exact hlt)
   rw [hcell] at hm
   obtain ⟨h15, h17, -⟩ := layIdx_facts hf

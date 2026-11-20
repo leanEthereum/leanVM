@@ -1,0 +1,41 @@
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "py-lean-pq"
+# The version is bindings/Cargo.toml's workspace version, which release-please sets.
+dynamic = ["version"]
+description = "Python bindings for leanXMSS and leanSPHINCS post-quantum signatures and their leanVM aggregation"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+authors = [{ name = "Kevaundray Wedderburn" }]
+requires-python = ">=3.11"
+keywords = ["xmss", "sphincs", "leanxmss", "leansphincs", "post-quantum", "ethereum", "zkvm", "snark"]
+classifiers = [
+  "Programming Language :: Rust",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Security :: Cryptography",
+]
+
+[project.optional-dependencies]
+dev = ["maturin>=1.7,<2.0", "pytest>=8", "mypy>=1.10"]
+
+[project.urls]
+Repository = "https://github.com/leanEthereum/leanVM/tree/main/bindings/python"
+Issues = "https://github.com/leanEthereum/leanVM/issues"
+Changelog = "https://github.com/leanEthereum/leanVM/blob/main/bindings/CHANGELOG.md"
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+include = ["py.typed", "py_lean_pq.pyi"]
+# `uv run`'s editable install builds in release too: debug builds sign far slower.
+profile = "release"
+
+[tool.uv]
+# Rebuild the editable install when the Rust sources change, not only pyproject.toml.
+cache-keys = [{ file = "pyproject.toml" }, { file = "Cargo.toml" }, { file = "src/**/*.rs" }]

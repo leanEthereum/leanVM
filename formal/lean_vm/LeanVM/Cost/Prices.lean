@@ -5,22 +5,20 @@ public import Statement.CostMachine
 /-!
 # The budgets' exact prices
 
-The closed-form prices `lean_vm` proves of the compiled extractor and the compiled guest decoder,
-part by part (`Cost/Bounds/`), natural-number formulas only. The statement's budgets are short
-upper bounds on them: `leanVmKnowledgeExtractorBudget` (`Statement/CostMachine.lean`) above `extractorPrice`
-at every shape the replay admits, at its stack size (`extractorPrice_le_budget`, and the
-compiled extractor within it, `extractorC_within`, `Cost/Bounds/Top.lean`), and
+The closed-form prices `lean_vm` proves of the compiled extractor's parts and of the compiled
+guest decoder (`Cost/Bounds/`, `Cost/AS/Bounds/`), natural-number formulas only. The statement's
+budgets are short upper bounds on them: `leanVmKnowledgeExtractorBudget`
+(`Statement/CostMachine.lean`) above the agreement-set extractor's price wherever it extracts, at
+the stack size the proof announces (`asPrice_within`, `Cost/AS/End.lean`), and
 `guestWitnessDecoderBudget` (`Statement/LeanVmGuest.lean`) above `guestDecoderPrice` on every valid
 execution (`guestDecoderPrice_le_budget`, `Cost/Bounds/Guest/Budget.lean`).
 -/
 
-/-! ## The extractor's price
+/-! ## The extractor's parts
 
-About `2^max(80, 2μ + 25) + 2^14.85·N·log²N` for `N` permutation queries (`O(N·log³N)` as `N`
-grows) at a stack of `2^μ`, the list decoder's part priced at the statement's budget term less
-`2^75` and the rest at the worst shape (`(μ, R) = (30, 4)`, `κ = ℓ = 30`, about `2^66.6` for at
-most `2^40` queries); at `(30, 4)` about `2^85.00` for at most `2^40` queries (the list decoder
-dominating) and `2^156.86` for `2^128` queries (the transcript's index dominating). -/
+The transcript's index and the committed leaves (`Cost/Bounds/Leaves.lean`), the runner's step and
+the bytecode's words; the agreement-set extractor's price is assembled from them in
+`Cost/AS/Bounds/Top.lean` and bounded by the budget in `Cost/AS/Within.lean`. -/
 
 namespace LeanVM.Cost
 
@@ -33,19 +31,6 @@ def limbsBelowTwoPow (E : ℕ) : ℕ := E / 64 + 1
 replay), its memory of `2^κ` words and its program of `2^ℓ` instructions indexed in sorted
 tables. -/
 def runnerStepPrice (κ ℓ : ℕ) : ℕ := 366000 + 36 * ℓ + 936 * κ
-
-/-- One candidate's run: at most `2^35` steps (the step cap), and its memory image. -/
-def stackRunPrice (κ ℓ : ℕ) : ℕ := (runnerStepPrice κ ℓ + 41) * 2 ^ 35 + 45 * 2 ^ κ + 1738
-
-/-- The runner's tables: the sorted address tables of the memory and the program. -/
-def runnerTablesPrice (κ ℓ : ℕ) : ℕ :=
-  (74 * κ + 121) * 2 ^ κ + (74 * ℓ + 121) * 2 ^ ℓ + 73 * ℓ + 357
-
-/-- The fast path (interpolation alone, for a word without errors), a column of `w` words read at
-`15·w + cW`. -/
-def fastPathPrice (μ R w cW : ℕ) : ℕ :=
-  64 * ((μ - 6) * (345 * 2 ^ (μ - 6 + R) + 5845) + 108 * 2 ^ (μ - 6 + R) + 15047) +
-    (15 * w + cW + 12 * w + 44) * 2 ^ (μ - 6 + R) + 1008 * 2 ^ μ + 1071
 
 /-- One step of the transcript's replay, amortized: two lookups among `25`-word keys, one among
 `8`-word keys, three insertions into sorted maps below `2^D` entries, a block's `B` bytes; `W` the
@@ -72,44 +57,11 @@ def transcriptIndexPrice (D L N W : ℕ) : ℕ :=
     (N + 1) * ((firstAnswersStepPrice L D W + 11) + (preimageStepPrice L D W + 11) +
       D * (20 + (40 + 26 * L + 9 * W) * (D + 2)) + 67) + 44
 
-/-- The committed leaves: a tree of height `h`, leaves of `64` words, each lookup `D` levels of
-binary searches. -/
-def committedLeavesPrice (D h W : ℕ) : ℕ :=
-  2 ^ h * (2 * (D * (20 + (162 + 9 * W) * (D + 2)) + 42) + 60712 + 5 * h)
-
-/-- The list decoder's part (the extractor's Guruswami–Sudan decoder over the `64` lanes, each
-interpolated by the approximant basis on `pmSolver`, and the pruning), beyond the word's reads, at
-a stack of `2^μ`: the statement's budget term `2^max(80, 2μ + 25)` less `2^75`. It is `lean_vm`'s
-`pmDecoderBudget` (`Cost/Bounds/PMLane/ShapeDefs.lean`), and bounds the decoder at every admissible
-shape of that size (`decodeStacksPMC_cost_worst`, `Cost/Bounds/PMLane/Decode.lean`): about
-`2^80.93` at `μ = 28`, `2^82.91` at `29`, `2^84.91` at `30`, rate `4` the worst. -/
-def listDecoderWorstPrice (μ : ℕ) : ℕ := 2 ^ max 80 (2 * μ + 25) - 2 ^ 75
-
-/-- The list decoder's part, at every admissible shape of a stack of `2^μ`: its word's reads and
-`listDecoderWorstPrice μ`. -/
-def listDecoderPrice (μ : ℕ) : ℕ := 1751 * 2 ^ 28 + listDecoderWorstPrice μ + 22
-
 /-- The bytecode's words: `16·2^ℓ` words. -/
 def bytecodeWordsPrice (ℓ : ℕ) : ℕ := 5712 * 2 ^ ℓ + 947
 
-/-- The stage after the stack's root: the transcript's index, the committed leaves of height `h`,
-the fast path, the runner's tables, at most `1 + 2^12` candidate runs and the list decoder. -/
-def afterRootStagePrice (μ R κ ℓ D N h W : ℕ) : ℕ :=
-  transcriptIndexPrice D 512 N W + committedLeavesPrice D h W + fastPathPrice μ R 64 23 +
-    runnerTablesPrice κ ℓ + (stackRunPrice κ ℓ + 21) * (2 ^ 12 + 1) + listDecoderPrice μ + 133
-
 /-- The levels of the extractor's sorted maps for `N` permutation queries: `log₂(N + 2) + 1`. -/
 def extractorSortedMapLevels (N : ℕ) : ℕ := Nat.log2 (N + 2) + 1
-
-/-- **An upper bound on the extractor's price at a shape**: the stack's log-size `μ`, the rate's
-`R`, the memory's `κ`, the program's `ℓ`, `N` permutation queries (`D =
-extractorSortedMapLevels N` levels of the sorted maps, their positions and weights of at most
-`limbsBelowTwoPow (D + 1)` limbs): the bytecode's words, the replay of the verifier's first two
-steps, the stage and the glue. -/
-def extractorPrice (μ R κ ℓ N : ℕ) : ℕ :=
-  bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977128636) +
-    afterRootStagePrice μ R κ ℓ (extractorSortedMapLevels N) N (μ - 6 + R)
-      (limbsBelowTwoPow (extractorSortedMapLevels N + 1)) + 69
 
 end
 
@@ -122,7 +74,7 @@ namespace LeanVM.Node
 /-! ### The guest decoder's price
 
 A closed-form upper bound that `lean_vm` proves on the compiled decoder's price
-(`Cost/Bounds/Guest/Budget.lean`), as `extractorPrice` is the extractor's: a price per step of the
+(`Cost/Bounds/Guest/Budget.lean`): a price per step of the
 run, the address tables at the run's `κ` and `ℓ`, and a constant. Per step, the decoder replays the
 step (`runnerStepPrice`) and files the state in its table of function entries
 (`guestDecoderStateFilingPrice`: the precondition test of each function entered there, at most two,

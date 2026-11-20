@@ -2,7 +2,7 @@
 
 At an honest instance of `verify_tables` the exponents of its words are linear forms over nine slacks `s` (`a = mu - 19`,
 `b = mu - n`, `c_t = n - tau_t`, `d = mu - lm`), each in a box `[0, ub]` (`EndExec.vt_exps`): `g_bus_mu` (value `9`)
-`19 + a`, `g_zc_n` (`2545`) `19 + a - b`, `dims_g[1 + t]` (`28 + t`, ghost `GB + 1 + t`) `19 + a - b - c_t`,
+`19 + a`, `g_zc_n` (`2544`) `19 + a - b`, `dims_g[1 + t]` (`28 + t`, ghost `GB + 1 + t`) `19 + a - b - c_t`,
 `dims_g[0]` (`27`, ghost `GB`) `19 + a - d`. A word the top-level atoms make of such words has the form they give
 (`vtF`): a constant `g^k`, a product, a copy, or a quotient (`a = x·b`) whose form is nonnegative on the box. A residual
 holds when, after each arm condition `x = g^j` is added as an equation (a multiple of `F_x - j` subtracted), the forms
@@ -45,7 +45,7 @@ def base(x):
             return None
     if x == 9:
         return lin(19, a=1)
-    if x == 2545:
+    if x == 2544:
         return lin(19, a=1, b=-1)
     if x == 27:
         return lin(19, a=1, d=-1)
@@ -134,7 +134,7 @@ def apply_arms(atoms, arms, f):
     return f
 
 
-NNB = [9, 27, 28, 29, 30, 31, 32, 33, 2545]
+NNB = [9, 27, 28, 29, 30, 31, 32, 33, 2544]
 
 
 def nonneg(atoms, arms, f):
@@ -195,13 +195,13 @@ ATOMS = [('const', 26, (1, 0)),
          ('const', 821, (524288, 0)),
          ('mul', 822, 26, 821),
          ('mul', 9, 823, 822),
-         ('mul', 2545, 2547, 28),
-         ('mul', 2545, 2928, 28),
-         ('mul', 2545, 3217, 29),
-         ('mul', 2545, 3390, 30),
-         ('mul', 2545, 3688, 31),
-         ('mul', 2545, 4017, 32),
-         ('mul', 2545, 5941, 33)]
+         ('mul', 2544, 2546, 28),
+         ('mul', 2544, 2926, 28),
+         ('mul', 2544, 3215, 29),
+         ('mul', 2544, 3388, 30),
+         ('mul', 2544, 3686, 31),
+         ('mul', 2544, 4015, 32),
+         ('mul', 2544, 5939, 33)]
 
 
 def vt_exp(k, r):

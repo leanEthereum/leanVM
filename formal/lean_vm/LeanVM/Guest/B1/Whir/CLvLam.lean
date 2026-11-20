@@ -27,8 +27,8 @@ variable {H : CallRel → Reader → Prop}
 /-- The squeeze's permutation on the capacity `cap`. -/
 def lamS (cap : List E) : KeccakState := (⟨cap, []⟩ : Fs).perm
 
-/-- The values after the squeeze's permutation: `λ`, one and `1/λ`. -/
-def lamVals (S : KeccakState) : List E := [rdCell S 0, word 1 0, (rdCell S 0)⁻¹]
+/-- The values after the squeeze's permutation (`λ` its cell `0`): one and `1/λ`. -/
+def lamVals (S : KeccakState) : List E := [word 1 0, (rdCell S 0)⁻¹]
 
 /-- **The batching challenge, honestly**. -/
 theorem osLam_complete {st : OsSt} (σ : Val) (hsf : st.Sf) (hok : ∀ C rd, H C rd → st.Ok σ)
@@ -97,24 +97,23 @@ theorem osLam_complete {st : OsSt} (σ : Val) (hsf : st.Sf) (hok : ∀ C rd, H C
           w 2 (by omega), w 3 (by omega), w 4 (by omega), hc]
         simp [pendCells]
   -- `λ` and `1/λ`
-  have b5 := BlkA.seq (H := H) (show k ≤ j + 13 by omega) (show j + 13 ≤ j + 13 + 3 by omega) b3
-    (B := [osCp (j + 13) j, osCst (j + 14) (word 1 0), osMul (j + 14) (j + 15) (j + 13)])
-    (OutB := fun σ' ↦ ∀ i < 3, σ' (.n (j + 13 + i)) = (lamVals S).getD i 0) fun σ1 ha1 ho1 ↦ by
+  have b5 := BlkA.seq (H := H) (show k ≤ j + 13 by omega) (show j + 13 ≤ j + 13 + 2 by omega) b3
+    (B := [osCst (j + 13) (word 1 0), osMul (j + 13) (j + 14) j])
+    (OutB := fun σ' ↦ ∀ i < 2, σ' (.n (j + 13 + i)) = (lamVals S).getD i 0) fun σ1 ha1 ho1 ↦ by
       refine ⟨lstF (j + 13) (lamVals S), fun C rd hH σ' ha hr ↦ ?_⟩
-      have v : ∀ i < 3, σ' (.n (j + 13 + i)) = (lamVals S).getD i 0 := fun i hi ↦
+      have v : ∀ i < 2, σ' (.n (j + 13 + i)) = (lamVals S).getD i 0 := fun i hi ↦
         lstF_at hr (by simp [lamVals]) i (by simp [lamVals]; omega)
       refine ⟨?_, v⟩
       obtain ⟨-, e3⟩ := ho1 C rd hH
       have v0 := v 0 (by omega)
       have v1 := v 1 (by omega)
-      have v2 := v 2 (by omega)
-      simp only [lamVals, List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at v0 v1 v2
+      simp only [lamVals, List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at v0 v1
       have ej : σ' (.n j) = rdCell S 0 := by rw [ha _ (by omega)]; simpa using e3 0 (by omega)
-      simp only [osCp, osCst, osMul, allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_copy,
-        holds_const, holds_mul, ej, v0, v1, v2, word_one]
-      refine ⟨trivial, trivial, ?_⟩
+      simp only [osCst, osMul, allOk_cons, allOk_nil, and_true, stmtOk_atom,
+        holds_const, holds_mul, ej, v0, v1, word_one]
+      refine ⟨trivial, ?_⟩
       exact (inv_mul_cancel₀ hlam).symm
-  have ek : (osLam st).2.k = j + 13 + 3 := rfl
+  have ek : (osLam st).2.k = j + 13 + 2 := rfl
   rw [ek]
   refine BlkA.congr (BlkA.monoH b5.agree fun C rd hH σ' ha ⟨ho, hag⟩ ↦ ?_) (by
     simp only [osLam, List.append_assoc, List.cons_append, List.nil_append]; rfl)
@@ -127,8 +126,8 @@ theorem osLam_complete {st : OsSt} (σ : Val) (hsf : st.Sf) (hok : ∀ C rd, H C
     have hf' : f ∈ [j + 8, j + 9, j + 10, j + 11, j + 12] := hf
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hf'
     rcases hf' with rfl | rfl | rfl | rfl | rfl <;> omega
-  · show st.cb < j + 13 + 3; have := hsf.below.cb; omega
-  · show st.claim < j + 13 + 3; have := hsf.below.claim; omega
+  · show st.cb < j + 13 + 2; have := hsf.below.cb; omega
+  · show st.claim < j + 13 + 2; have := hsf.below.claim; omega
   · intro m hm; obtain ⟨a, b, d⟩ := hsf.below.mats m hm
     exact ⟨by omega, by omega, by omega⟩
   · have hq' : some p = some q := hq
@@ -138,10 +137,10 @@ theorem osLam_complete {st : OsSt} (σ : Val) (hsf : st.Sf) (hok : ∀ C rd, H C
     rw [e3 8 (by omega), e3 9 (by omega), e3 10 (by omega), e3 11 (by omega), e3 12 (by omega)]
     simp only [capOf, ← rdCell_eq]
     rfl
-  · show σ' (.n (j + 13)) = _
-    simpa [lamVals] using e5 0 (by omega)
-  · show σ' (.n (j + 15)) = _
-    simpa [lamVals] using e5 2 (by omega)
+  · show σ' (.n j) = _
+    simpa using e3 0 (by omega)
+  · show σ' (.n (j + 14)) = _
+    simpa [lamVals] using e5 1 (by omega)
   · show σ' (.n st.cb) * gen ^ st.co = σ (.n st.cb) * gen ^ st.co
     rw [hag _ hsf.below.cb]
 

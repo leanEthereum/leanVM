@@ -49,7 +49,7 @@ theorem duplexVm_verifierRZ (prog : LeanIsaProgram) (input : PublicInput) (proof
 
 /-- A refining program commits words no wider. -/
 theorem widthsLE_of_refines {α : Type} {W : ℕ} {P' P : VerifierProgram α}
-    (h : Limits.Refines P' P) : WidthsLE W P → WidthsLE W P' := by
+    (h : Refines P' P) : WidthsLE W P → WidthsLE W P' := by
   induction h with
   | fail P => intro _; trivial
   | ret a => intro hc; exact hc

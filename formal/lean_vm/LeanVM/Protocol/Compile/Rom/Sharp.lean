@@ -16,7 +16,7 @@ public import LeanVM.Protocol.Compile.Rom.Complete
 # Completeness, union only over the transcript's answers
 
 `romCompleteSharp`. The honest prover of `P` runs against the logged random oracles, then the
-compiled verifier of `P'`, a program refining `P` (`Limits.Refines`: `P` with failures inserted).
+compiled verifier of `P'`, a program refining `P` (`Refines`: `P` with failures inserted).
 The verifier rejects only where the honest transcript fails a check of `P'` (`traceOk`,
 `runProof_prove_trace`). Along the prover's run, each challenge of the transcript comes from a
 fresh permutation answer, unless some answer's capacity is that of an earlier permutation input
@@ -255,10 +255,6 @@ theorem squeezeI_none (F : KeccakState → KeccakState) {sp : Sponge} (hg : sp.g
 theorem squeezeI_some (F : KeccakState → KeccakState) {sp : Sponge} {c : E}
     (hg : sp.ground = some c) : squeezeI F sp = (c, { sp with ground := none }) := by
   simp [squeezeI, squeeze, hg]
-
-/-- The capacity of a permutation's input is the sponge's. -/
-theorem capOf_duplexInput (sp : Sponge) : capOf (duplexInput sp) = capOf sp.state := by
-  rw [duplexInput_eq, capOf_duplexOf]
 
 theorem lookF_none_of_cap {ℓ : Log} {s : KeccakState} (h : ∀ y ∈ fIns ℓ, capOf y ≠ capOf s) :
     lookF ℓ s = none :=
@@ -692,7 +688,7 @@ refining program `p'` with no collision is at most `p'`'s ideal failure probabil
 theorem trace_le (S : Strategy) {fuel bits height : ℕ} (Ptop : VerifierProgram Bool)
     (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64)
     (hg : ∀ h b k, Ptop.after h = some (.grind b k) → S.Follows h → b ≤ bits)
-    {p' p : VerifierProgram Bool} (hR : Guest.Limits.Refines p' p) :
+    {p' p : VerifierProgram Bool} (hR : Refines p' p) :
     ∀ (h : List Ev) (sp : Sponge) (cs : List Tree) (ℓ : Log) (n : ℕ)
       (K : Option (List E × List (List Opening)) → OracleComp KeccakCalls β),
       Ptop.after h = some p → S.Follows h → ProverSp sp → Fresh ℓ sp.state → TreesOf cs h →
@@ -955,7 +951,7 @@ end Main
 /-- Where the honest transcript passes the checks of a refining program, the prover makes its
 proof. -/
 theorem proveFrom_ne_none_of_trace (H : Bytes → Digest) (F : KeccakState → KeccakState)
-    (S : Strategy) (fuel : ℕ) {p' p : VerifierProgram Bool} (hR : Guest.Limits.Refines p' p) :
+    (S : Strategy) (fuel : ℕ) {p' p : VerifierProgram Bool} (hR : Refines p' p) :
     ∀ (sp : Sponge) (h : List Ev), traceOk H F S fuel p' sp h → proveFrom H F S fuel p sp h ≠ none := by
   induction hR with
   | fail p => intro sp h ht; exact absurd ht id
@@ -1002,7 +998,7 @@ rejects the honest prover's proof of `P` with probability at most `P'`'s ideal f
 probability against `S` (every challenge uniform and independent), plus `(1 - 2^-bits)^fuel`
 per quarter of cost, plus a capacity collision among the `Q` queries of the prover and the
 verifier, `Q · Q · 2^-256`. -/
-theorem romCompleteSharp (P P' : VerifierProgram Bool) (hR : Guest.Limits.Refines P' P)
+theorem romCompleteSharp (P P' : VerifierProgram Bool) (hR : Refines P' P)
     (S : Strategy) (σ : Seed) {bits fuel height n : ℕ} (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64)
     (hg : ∀ h b k, P.after h = some (.grind b k) → S.Follows h → b ≤ bits)
     (hP : P.CostLE height n) (hP' : P'.CostLE height n) :

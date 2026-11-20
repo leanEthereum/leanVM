@@ -118,18 +118,18 @@ def selCall (x : ℕ × ℕ × ℕ × ℕ × Option ℕ × ℕ × ℕ × ℕ) : 
 
 /-- The `verify_tables_loop0` call. -/
 def loopCall : Stmt :=
-  .callIf (.n 2637) name% «verify_tables_loop0» [.n 2638, .n 2545, .n 2628, .n 18, .n 2635, .n 2631]
+  .callIf (.n 2635) name% «verify_tables_loop0» [.n 2636, .n 2544, .n 2626, .n 18, .n 2633, .n 2629]
 
 /-- The `eq_prefix_chain_rev` call. -/
-def epcCall : Stmt := .call "eq_prefix_chain_rev" [.n 2653, .n 16, .n 2635, .n 700, .n 2545] []
+def epcCall : Stmt := .call "eq_prefix_chain_rev" [.n 2651, .n 16, .n 2633, .n 700, .n 2544] []
 
 /-- The slot sumcheck's tail round `k` (`k < 3`): its capacity, cursor and claim, `tabs`. -/
 def otrCall (k : ℕ) : Stmt :=
   .call "opening_tail_round"
-    ([[.n 1863, .n 1864, .n 1865, .n 1866, .n 1867, .n 1876, .n 1874],
-      [.n 1877, .n 1878, .n 1879, .n 1880, .n 1881, .n 1882, .n 1883],
-      [.n 1885, .n 1886, .n 1887, .n 1888, .n 1889, .n 1890, .n 1891]].getD k [] ++ [.n 18])
-    ((List.range 8).map fun i ↦ .n (1877 + 8 * k + i))
+    ([[.n 1863, .n 1864, .n 1865, .n 1866, .n 1867, .n 1875, .n 1873],
+      [.n 1876, .n 1877, .n 1878, .n 1879, .n 1880, .n 1881, .n 1882],
+      [.n 1884, .n 1885, .n 1886, .n 1887, .n 1888, .n 1889, .n 1890]].getD k [] ++ [.n 18])
+    ((List.range 8).map fun i ↦ .n (1876 + 8 * k + i))
 
 /-- `verify_tables`' calls, in order. -/
 def vtCalls : List Stmt :=
@@ -294,11 +294,11 @@ theorem vt_nμ (I : VtIn H B w rd) : H.n ≤ H.μ := by
   obtain ⟨t, ht, e⟩ := vt_n_ex I.hs.hr
   rw [← e]; exact I.hs.hτμ t ht
 
-theorem vt_e2500 (I : VtIn H B w rd) : σv (.n 2545) = gen ^ H.n := by
+theorem vt_e2500 (I : VtIn H B w rd) : σv (.n 2544) = gen ^ H.n := by
   have g : GoodS rd vtSL w σv
-      (fixNe (.atom (.hint (.witness "zc_tau_max" (.stack [.n 2545]))))) :=
-    vt_goodS rfl (vt_mem_at 2591 _ (by decide +kernel))
-  have := g (.n 2545) (by simp)
+      (fixNe (.atom (.hint (.witness "zc_tau_max" (.stack [.n 2544]))))) :=
+    vt_goodS rfl (vt_mem_at 2590 _ (by decide +kernel))
+  have := g (.n 2544) (by simp)
   rw [this]; exact I.hw.w2544
 
 /-! ## Each family -/
@@ -535,31 +535,31 @@ theorem vt_loop_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv loop
   refine ⟨h.1, fun hne ↦ ?_⟩
   have hc := h.2 hne
   have e2500 := vt_e2500 I
-  have e2597 : σv (.n 2637) = 1 + gen ^ H.n := by
-    rw [vt_add (d := 2637) (x := 2636) (y := 2545) (vt_mem_at 2666 _ (by decide +kernel)),
-      vt_const (vt_mem_at 2665 (.atom (.const (.n 2636) (word 1 0))) (by decide +kernel)),
+  have e2597 : σv (.n 2635) = 1 + gen ^ H.n := by
+    rw [vt_add (d := 2635) (x := 2634) (y := 2544) (vt_mem_at 2664 _ (by decide +kernel)),
+      vt_const (vt_mem_at 2663 (.atom (.const (.n 2634) (word 1 0))) (by decide +kernel)),
       tb_word_one, e2500]
-  have e2598 : σv (.n 2638) = gen ^ 0 := by
-    rw [vt_const (vt_mem_at 2667 (.atom (.const (.n 2638) (word 1 0))) (by decide +kernel)),
+  have e2598 : σv (.n 2636) = gen ^ 0 := by
+    rw [vt_const (vt_mem_at 2665 (.atom (.const (.n 2636) (word 1 0))) (by decide +kernel)),
       tb_word_one, pow_zero]
   have hK : 0 < H.n := by
     rcases Nat.eq_zero_or_pos H.n with h0 | h0
     · exact absurd (by rw [e2597, h0, pow_zero]; exact CharTwo.add_self_eq_zero 1) hne
     · exact h0
-  have a2589 : σv (.n 2628) = w 2628 := vt_alloc' (by unfold vtAllocVars; simp)
-  have a2592 : σv (.n 2631) = w 2631 := vt_alloc' (by unfold vtAllocVars; simp)
-  have a2635 : σv (.n 2635) = w 2635 := vt_alloc' (by unfold vtAllocVars; simp)
+  have a2589 : σv (.n 2626) = w 2626 := vt_alloc' (by unfold vtAllocVars; simp)
+  have a2592 : σv (.n 2629) = w 2629 := vt_alloc' (by unfold vtAllocVars; simp)
+  have a2635 : σv (.n 2633) = w 2633 := vt_alloc' (by unfold vtAllocVars; simp)
   simp only [List.map_cons, List.map_nil] at hc ⊢
   rw [e2598, e2500, a2589, a2592, a2635] at hc ⊢
   obtain ⟨d, hd⟩ := hc
   -- the rounds' cursor words
-  have hR : TbReadsAt rd (w 2628)
+  have hR : TbReadsAt rd (w 2626)
       (zcRoundsW H.cap0 H.target (ofK (addressOfIndex B.cur) * gen ^ 13 * gen) H.xsR H.n) := by
     have := vt_own_reads I.hm I.hw (j := 108 + 0) (by norm_num)
-    rw [ownW_getD_Z H B (k := 0) (by norm_num), show vtAllocVars.getD (108 + 0) 0 = 2628 by decide]
+    rw [ownW_getD_Z H B (k := 0) (by norm_num), show vtAllocVars.getD (108 + 0) 0 = 2626 by decide]
       at this
     exact this
-  have hcur : ∀ k < H.n, ∀ c, LoadHolds rd (w 2628 * gen ^ (7 * k)) 5 c →
+  have hcur : ∀ k < H.n, ∀ c, LoadHolds rd (w 2626 * gen ^ (7 * k)) 5 c →
       PtrIn (H.reg B) c 3 := by
     intro k hk c hcl
     have r := zcRoundsW_reads (cap0_length H) hR k hk.le
@@ -584,8 +584,8 @@ theorem vt_loop_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv loop
 theorem vt_epc_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv epcCall) :
     VSH (coreProgram.RelIn rd (H.reg B)) rd σv epcCall := by
   have e2500 := vt_e2500 I
-  have a2613 : σv (.n 2653) = w 2653 := vt_alloc' (by unfold vtAllocVars; simp)
-  have a2635 : σv (.n 2635) = w 2635 := vt_alloc' (by unfold vtAllocVars; simp)
+  have a2613 : σv (.n 2651) = w 2651 := vt_alloc' (by unfold vtAllocVars; simp)
+  have a2635 : σv (.n 2633) = w 2633 := vt_alloc' (by unfold vtAllocVars; simp)
   have a703 : σv (.n 700) = w 700 := vt_alloc' (by unfold vtAllocVars; simp)
   have hnμ := vt_nμ I
   have hμ : H.μ < 33 := I.hs.hμ33
@@ -602,34 +602,34 @@ theorem vt_epc_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv epcCa
 
 /-- The tail rounds' cursors: `7 + 2k` words into the stream. -/
 theorem vt_otr_cursor (I : VtIn H B w rd) {k : ℕ} (hk : k < 3) :
-    σv (.n ([1876, 1882, 1890].getD k 0)) = ofK (addressOfIndex B.cur) * gen ^ (7 + 2 * k) := by
+    σv (.n ([1875, 1881, 1889].getD k 0)) = ofK (addressOfIndex B.cur) * gen ^ (7 + 2 * k) := by
   interval_cases k
-  · show σv (.n 1876) = _
-    rw [vt_mulF (H := H) (B := B) (w := w) (rd := rd) (d := 1876) (x := 5) (y := 1875)
-        (vt_mem_at 1939 _ (by decide +kernel)) (by norm_num) (by norm_num),
-      vt_const (H := H) (B := B) (w := w) (rd := rd) (d := 1875) (e := word 128 0)
-        (vt_mem_at 1938 _ (by decide +kernel)), show (128 : ℕ) = 2 ^ 7 by norm_num,
+  · show σv (.n 1875) = _
+    rw [vt_mulF (H := H) (B := B) (w := w) (rd := rd) (d := 1875) (x := 5) (y := 1874)
+        (vt_mem_at 1938 _ (by decide +kernel)) (by norm_num) (by norm_num),
+      vt_const (H := H) (B := B) (w := w) (rd := rd) (d := 1874) (e := word 128 0)
+        (vt_mem_at 1937 _ (by decide +kernel)), show (128 : ℕ) = 2 ^ 7 by norm_num,
       tb_word_two_pow (by norm_num), vt_p (by norm_num)]
     rfl
-  · show σv (.n 1882) = _
-    have g : GoodS rd vtSL w σv (otrCall 0) := vt_goodS rfl (vt_mem_at 1940 (otrCall 0) (by decide +kernel))
-    have e := g (.n 1882) (List.mem_map.mpr ⟨5, List.mem_range.mpr (by norm_num), rfl⟩)
+  · show σv (.n 1881) = _
+    have g : GoodS rd vtSL w σv (otrCall 0) := vt_goodS rfl (vt_mem_at 1939 (otrCall 0) (by decide +kernel))
+    have e := g (.n 1881) (List.mem_map.mpr ⟨5, List.mem_range.mpr (by norm_num), rfl⟩)
     have h1 := congrArg (fun l ↦ l.getD 5 0) I.hw.hw1
     simp only [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range,
       show (5 : ℕ) < 8 from by norm_num, Option.map_some, Option.getD_some] at h1
-    rw [e, show (V.n 1882).idx = 1877 + 5 from rfl, h1, List.getElem?_append_right
+    rw [e, show (V.n 1881).idx = 1876 + 5 from rfl, h1, List.getElem?_append_right
       (by simp [vtBcR1, bcRound, Fs.squeeze, capOf])]
     simp only [List.length_cons, List.length_nil, vtBcR1, bcRound, Fs.squeeze, capOf]
     show (H.args B).getD 5 0 * gen ^ 7 * gen ^ 2 = _
     show ofK (addressOfIndex B.cur) * gen ^ 7 * gen ^ 2 = _
     ring
-  · show σv (.n 1890) = _
-    have g : GoodS rd vtSL w σv (otrCall 1) := vt_goodS rfl (vt_mem_at 1942 (otrCall 1) (by decide +kernel))
-    have e := g (.n 1890) (List.mem_map.mpr ⟨5, List.mem_range.mpr (by norm_num), rfl⟩)
+  · show σv (.n 1889) = _
+    have g : GoodS rd vtSL w σv (otrCall 1) := vt_goodS rfl (vt_mem_at 1941 (otrCall 1) (by decide +kernel))
+    have e := g (.n 1889) (List.mem_map.mpr ⟨5, List.mem_range.mpr (by norm_num), rfl⟩)
     have h1 := congrArg (fun l ↦ l.getD 5 0) I.hw.hw2
     simp only [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range,
       show (5 : ℕ) < 8 from by norm_num, Option.map_some, Option.getD_some] at h1
-    rw [e, show (V.n 1890).idx = 1885 + 5 from rfl, h1, List.getElem?_append_right
+    rw [e, show (V.n 1889).idx = 1884 + 5 from rfl, h1, List.getElem?_append_right
       (by simp [vtBcR2, bcRound, Fs.squeeze, capOf])]
     simp only [List.length_cons, List.length_nil, vtBcR2, bcRound, Fs.squeeze, capOf]
     show ofK (addressOfIndex B.cur) * gen ^ 7 * gen ^ 2 * gen ^ 2 = _

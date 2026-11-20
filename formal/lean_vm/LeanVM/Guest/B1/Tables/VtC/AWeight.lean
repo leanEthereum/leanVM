@@ -47,7 +47,7 @@ def vtKidW {ι : Type} (ω : ι → String → ℕ) (Wss W10 : ι → ℕ) (t : 
 (`block_group_order`), its round count (`zc_tau_max`). -/
 def vtQn (H : VtHonest) (B : VtBases) (rd : Reader) (σ : Val) : Prop :=
   ∃ o, σ = vtσ rd (vtW H (B.at o)) (H.args B) ∧ MemL rd (bufL o H.sizes (H.ownW B)) ∧
-    σ (.n 37) = ofK (addressOfIndex (o + 24 + 24 + 24)) ∧ σ (.n 2545) = gen ^ H.n
+    σ (.n 37) = ofK (addressOfIndex (o + 24 + 24 + 24)) ∧ σ (.n 2544) = gen ^ H.n
 
 theorem nodeHonest_monoQ {P : Program} {f : String} {Q Q' : Val → Prop} {cs : Val → List Call} {bs : Val → List ℕ}
     {Ts : List (Tree → Prop)} {t : Tree} (h : Budget.NodeHonest P f Q cs bs Ts t) (hQ : ∀ σ, Q σ → Q' σ) :
@@ -101,7 +101,7 @@ theorem verify_tables_completeAtTBWR {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest}
   have hvals : ∀ fp rd, LowDef κ rd →
       MemL rd (vtL (H.linL B) H.sizes (fun _ ↦ H.ownW B) fs fp) →
       let σ := vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B)
-      σ (.n 2545) = gen ^ H.n ∧ σ (.n 2637) = 1 + gen ^ H.n ∧ σ (.n 2638) = 1 :=
+      σ (.n 2544) = gen ^ H.n ∧ σ (.n 2635) = 1 + gen ^ H.n ∧ σ (.n 2636) = 1 :=
     fun fp rd _ _ ↦ vt_loopVals H B (B.at (fp + fs "verify_tables")) rd
   have hn32 : H.n < 33 := by
     have := hs.hτ33
@@ -290,7 +290,7 @@ theorem verify_tables_completeAtTBWR {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest}
       obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hkind
       rw [vtCallBnd_callIf]
       have hn0 := hn0 _ v20 ht
-      have hpre : LoopPre ([V.n 2638, V.n 2545, V.n 2628, V.n 18, V.n 2635, V.n 2631].map σ) := by
+      have hpre : LoopPre ([V.n 2636, V.n 2544, V.n 2626, V.n 18, V.n 2633, V.n 2629].map σ) := by
         simp only [List.map_cons, List.map_nil, v21, v17]
         exact loopPre_gen hn0 (by omega) _
       have := h10 rd' t _ r hn hpre hv hbo

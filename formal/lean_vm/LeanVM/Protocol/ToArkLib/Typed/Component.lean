@@ -34,8 +34,8 @@ make, and they are handed on unchanged. `Def.reduction` is the component as an A
   make knowledge appear (`IsProverPreserving`), that at every verifier prefix a fresh challenge
   makes it appear with probability at most the error there (`IsLocallyBounded`, at the
   component's samplers), and that after the last move the state is the output relation at the
-  verdict (`TerminalRelation`). `Security.certificate` is the ArkLib `KnowledgeCertificate`; by
-  `samplesChallenges_frontFragment` the component's verifier draws exactly its challenges.
+  verdict (`TerminalRelation`): the fields of ArkLib's `KnowledgeCertificate`, at the component's
+  schedule of challenges.
 
 A security holds no real number: the errors are in its type and its propositions, so a security,
 its extractor included, computes.
@@ -178,25 +178,6 @@ structure Security (D : Def O StmtIn WitIn StmtOut WitOut σ)
   /-- After the last move, the state is the output relation at the verdict. -/
   terminal : ∀ s o, TerminalRelation (extractor s o) (outProblem O relOut o) (fun _ ↦ ())
     fun path ↦ D.verdict s path.toBranchPath
-
-/-- The security's knowledge certificate at a statement and oracles. -/
-noncomputable def Security.certificate {D : Def O StmtIn WitIn StmtOut WitOut σ}
-    {relIn : Set ((StmtIn × ∀ i, O i) × WitIn)} {relOut : Set ((StmtOut × ∀ i, O i) × WitOut)}
-    {err : Errors D.tree D.roles} (S : Security D relIn relOut err) (s : StmtIn) (o : ∀ i, O i) :
-    KnowledgeCertificate D.tree D.roles (inState O relIn s o) where
-  extractor := S.extractor s o
-  challenges := schedule D.tree D.roles D.samplers err
-  prover_preserving := S.prover_preserving s o
-  local_bound := S.local_bound s o
-
-/-- The component's verifier draws its security's challenges, for any input oracles. -/
-theorem Security.samplesChallenges {D : Def O StmtIn WitIn StmtOut WitOut σ}
-    {relIn : Set ((StmtIn × ∀ i, O i) × WitIn)} {relOut : Set ((StmtOut × ∀ i, O i) × WitOut)}
-    {err : Errors D.tree D.roles} (S : Security D relIn relOut err) (initial : PFunctor)
-    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (s : StmtIn) (o : ∀ i, O i) :
-    SamplesChallenges unifSpec (QueryImpl.id' unifSpec) D.tree D.roles D.oracles initial impl _
-      (D.verifier initial s) (S.certificate s o).challenges :=
-  samplesChallenges_frontFragment D.tree D.roles D.oracles initial impl D.samplers err _
 
 /-! ## Raising the errors -/
 

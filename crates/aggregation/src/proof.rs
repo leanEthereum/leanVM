@@ -3,32 +3,9 @@
 use super::deferred::{DeferredBytecodeClaim, bytecode_vars};
 use super::guest::unified_guest;
 use super::statement::statement_digest;
-use super::{LeanSphincsClaim, LeanXmssClaim};
+use claims::AggregateClaims;
 use lean_vm_core::cpu::public_input_bytes;
 use primitives::field::F128;
-
-/// What an [`AggregateProof`] proves: every `(pubkey, message)` claim of two lists, one of leanXMSS and one of
-/// leanSPHINCS, had a valid signature, and, optionally, a commitment is the root of a well-formed matrix of blobs (see
-/// [`lean_da::BlobMatrix`]).
-///
-/// Each list is strictly sorted (so without duplicates), and may be empty.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct AggregateClaims {
-    pub lean_xmss: Vec<LeanXmssClaim>,
-    pub lean_sphincs: Vec<LeanSphincsClaim>,
-    /// `None` for no blobs.
-    pub da_commitment: Option<[u8; 32]>,
-}
-
-/// Which covered claims [`aggregate`](super::aggregate) proves.
-#[derive(Clone, Copy, Debug)]
-pub enum OutputClaims<'a> {
-    /// Every covered signature claim. The DA root is `blobs`' if any, otherwise the first
-    /// child's that has one, otherwise none.
-    All,
-    /// Exactly these, each covered by the inputs.
-    Only(&'a AggregateClaims),
-}
 
 /// A proof of some [`AggregateClaims`], which travel separately: [`Self::verify`] checks it against
 /// the claims the receiver expects.
@@ -63,14 +40,6 @@ pub(super) fn decode(bytes: &[u8]) -> Option<(Vec<F128>, &[u8])> {
 /// Whether each list is strictly sorted, so that no claim counts twice.
 pub(super) fn is_sorted(claims: &AggregateClaims) -> bool {
     claims.lean_xmss.windows(2).all(|w| w[0] < w[1]) && claims.lean_sphincs.windows(2).all(|w| w[0] < w[1])
-}
-
-impl AggregateClaims {
-    /// The number of `(pubkey, message)` claims, not of distinct signers: a pubkey may sign
-    /// several messages.
-    pub fn num_signature_claims(&self) -> usize {
-        self.lean_xmss.len() + self.lean_sphincs.len()
-    }
 }
 
 impl AggregateProof {

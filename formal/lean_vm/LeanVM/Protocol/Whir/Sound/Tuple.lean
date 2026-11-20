@@ -117,17 +117,19 @@ noncomputable def agreeT (dom : Fin n ↪ E) (U : ρ → E[X]) (Q : ρ → Fin n
 noncomputable def tclaim {m : ℕ} (κ : ℕ) (Φ : List E → E) (U : (Fin m → Bool) → E[X]) : E :=
   claimSum Φ fun u ↦ lowMsg κ (U u)
 
-/-- **The invariant**: every tuple of degree at most `d` agreeing with `Q` on at least `a` columns
-violates `(Φ, σ)`. -/
+/-- **The invariant**, relativised to the predicate `B`: every tuple of degree at most `d`
+agreeing with `Q` on at least `a` columns and satisfying `B` violates `(Φ, σ)`. With `B` true it
+is Annex B's; the agreement-set extractor takes `B` "the tuple's descent is bad". -/
 def TViol {m : ℕ} (κ : ℕ) (dom : Fin n ↪ E) (Q : (Fin m → Bool) → Fin n → E) (Φ : List E → E)
-    (σ : E) (a d : ℕ) : Prop :=
-  ∀ U : (Fin m → Bool) → E[X], DegLE d U → a ≤ (agreeT dom U Q).card → tclaim κ Φ U ≠ σ
+    (σ : E) (a d : ℕ) (B : ((Fin m → Bool) → E[X]) → Prop) : Prop :=
+  ∀ U : (Fin m → Bool) → E[X], DegLE d U → a ≤ (agreeT dom U Q).card → B U → tclaim κ Φ U ≠ σ
 
-/-- A higher threshold and a lower degree keep the invariant. -/
+/-- A higher threshold, a lower degree and a stronger predicate keep the invariant. -/
 theorem TViol.mono {m κ : ℕ} {dom : Fin n ↪ E} {Q : (Fin m → Bool) → Fin n → E} {Φ : List E → E}
-    {σ : E} {a a' d d' : ℕ} (h : TViol κ dom Q Φ σ a d) (ha : a ≤ a') (hd : d' ≤ d) :
-    TViol κ dom Q Φ σ a' d' :=
-  fun U hU hag ↦ h U (fun r ↦ (hU r).trans hd) (ha.trans hag)
+    {σ : E} {a a' d d' : ℕ} {B B' : ((Fin m → Bool) → E[X]) → Prop}
+    (h : TViol κ dom Q Φ σ a d B) (ha : a ≤ a') (hd : d' ≤ d) (hB : ∀ U, B' U → B U) :
+    TViol κ dom Q Φ σ a' d' B' :=
+  fun U hU hag hb ↦ h U (fun r ↦ (hU r).trans hd) (ha.trans hag) (hB U hb)
 
 /-! ## The affine fold -/
 
@@ -142,7 +144,7 @@ def foldQ {m : ℕ} (dom : Fin n ↪ E) (α β : E) (Q : (Fin (m + 1) → Bool) 
 /-- Over the finite field `E`, there are finitely many polynomials of degree at most `d`. -/
 theorem finite_natDegree_le (d : ℕ) : {P : E[X] | P.natDegree ≤ d}.Finite := by
   refine Set.Finite.of_finite_image (f := fun P : E[X] ↦ fun i : Fin (d + 1) ↦ P.coeff i)
-    (Set.toFinite _) fun P hP Q hQ h ↦ Polynomial.ext fun i ↦ ?_
+    (Set.toFinite _) fun P hP Q hQ h ↦ AddMonoidAlgebra.ext <| Finsupp.ext fun i ↦ ?_
   by_cases hi : i ≤ d
   · exact congrFun h ⟨i, Nat.lt_succ_of_le hi⟩
   · rw [coeff_eq_zero_of_natDegree_lt ((show P.natDegree ≤ d from hP).trans_lt (not_le.mp hi)),

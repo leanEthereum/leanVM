@@ -53,14 +53,15 @@ theorem treeBytes_eq (tree : ℕ) (htree : tree < 2 ^ 64) :
   have h96 : tree < 79228162514264337593543950336 := by omega
   simp only [FORS.bytesBE, bigEndianBytes, List.ofFn_succ, List.ofFn_zero]
   simp only [List.cons_append, List.nil_append, List.cons.injEq]
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩ <;>
-  · congr 1
-    apply BitVec.eq_of_toNat_eq
-    simp only [BitVec.extractLsb'_toNat, BitVec.toNat_ofNat, Nat.shiftRight_eq_div_pow]
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩ <;> congr 1 <;>
+    apply BitVec.eq_of_toNat_eq <;>
+    simp only [BitVec.extractLsb'_toNat, BitVec.toNat_ofNat, Nat.shiftRight_eq_div_pow] <;>
     simp only [Fin.val_succ, Fin.val_zero, Nat.reduceAdd, Nat.reduceSub, Nat.reduceMul,
       Nat.reducePow, Nat.mod_eq_of_lt h96, Nat.mod_eq_of_lt h64]
-    try rw [Nat.div_eq_of_lt (by omega)]
-    try simp
+  -- the zero word's four bytes
+  all_goals
+    rw [Nat.div_eq_of_lt (by omega)]
+    simp
 
 /-! ## Layers, indices and addresses -/
 

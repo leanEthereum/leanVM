@@ -822,12 +822,12 @@ theorem mean_store (y : ℕ) {s : St} {x : HashInput} (hx : s.cache x = none) (c
   calc ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] * K.pot y (s.store x u) + cr
       = ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] * (K.pot y (s.store x u) + cr) := by
         simp only [mul_add]
-        rw [ENNReal.tsum_add, tsum_uniform_const]
+        rw [tsum_add, tsum_uniform_const]
     _ ≤ ∑' u, Pr{let x ← ($ᵗ HashOutput : ProbComp HashOutput)}[x = u] * (K.pot y s + G (truncateHash u)) :=
-        ENNReal.tsum_le_tsum fun u => mul_le_mul_of_nonneg_left (h u) bot_le
+        tsum_le_tsum fun u => mul_le_mul_of_nonneg_left (h u) bot_le
     _ = K.pot y s + meanD G := by
         simp only [mul_add]
-        rw [ENNReal.tsum_add, tsum_uniform_const, mean_trunc]
+        rw [tsum_add, tsum_uniform_const, mean_trunc]
 
 theorem vrate_le (hρ : K.ρ ≤ 2) {s s' : St} (E : Prop) [Decidable E] (h : K.Armed s' → K.Armed s ∨ E) :
     K.vrate s' ≤ K.vrate s + (if ¬K.Armed s ∧ E then ENNReal.ofReal (2 - K.ρ) else 0) := by

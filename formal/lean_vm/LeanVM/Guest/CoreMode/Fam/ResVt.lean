@@ -37,12 +37,12 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 `g_zc_n = g^n`, `n < 34`. -/
 def VtQ (J : Inst) : Prop :=
   ∀ σ bufs kids, J.t = .node "verify_tables" σ bufs kids →
-    ∃ p n, σ (.n 5) = σ (.n 20) * gen ^ p ∧ σ (.n 2545) = gen ^ n ∧ n < 34 ∧ p + 1009 ≤ 8192
+    ∃ p n, σ (.n 5) = σ (.n 20) * gen ^ p ∧ σ (.n 2544) = gen ^ n ∧ n < 34 ∧ p + 1009 ≤ 8192
 
 /-- `verify_tables`' call arguments and returns in `verify_sub`. -/
 def vtArgsV : List V :=
-  [562, 563, 564, 565, 566, 567, 0, 1, 254, 253, 71, 26, 4, 335, 559, 6, 569, 568, 572, 570, 25].map .n
-def vtRetsV : List V := (List.range 10).map fun k ↦ .n (573 + k)
+  [545, 546, 547, 548, 549, 550, 0, 1, 254, 253, 71, 26, 4, 334, 530, 6, 552, 551, 555, 553, 25].map .n
+def vtRetsV : List V := (List.range 10).map fun k ↦ .n (556 + k)
 
 end
 
@@ -63,18 +63,18 @@ theorem vt_holds {rd : Reader} {C : CallRel} (hC : CallRel.Le C (coreProgram.Rel
   exact ⟨⟨_, holdsList_mono hC _ id (fun _ h ↦ h) h1⟩, h2⟩
 
 /-- **The bytecode share's cursor**: its three tail rounds leave the cursor `13` words on. -/
-theorem vt_cur13 {rd : Reader} {σ : Val} (h : Tables.VtH rd σ) : σ (.n 1898) = σ (.n 5) * gen ^ 13 := by
-  have a1938 := h.atomAt 1938 (.const (.n 1875) (word 128 0)) (by decide +kernel)
-  have a1939 := h.atomAt 1939 (.mul (.n 1876) (.n 5) (.n 1875)) (by decide +kernel)
-  have k1 := h.callAt 1940 "opening_tail_round" [.n 1863, .n 1864, .n 1865, .n 1866, .n 1867,
-    .n 1876, .n 1874, .n 18] [.n 1877, .n 1878, .n 1879, .n 1880, .n 1881, .n 1882, .n 1883,
-    .n 1884] (by decide +kernel)
-  have k2 := h.callAt 1942 "opening_tail_round" [.n 1877, .n 1878, .n 1879, .n 1880, .n 1881,
-    .n 1882, .n 1883, .n 18] [.n 1885, .n 1886, .n 1887, .n 1888, .n 1889, .n 1890, .n 1891,
-    .n 1892] (by decide +kernel)
-  have k3 := h.callAt 1944 "opening_tail_round" [.n 1885, .n 1886, .n 1887, .n 1888, .n 1889,
-    .n 1890, .n 1891, .n 18] [.n 1893, .n 1894, .n 1895, .n 1896, .n 1897, .n 1898, .n 1899,
-    .n 1900] (by decide +kernel)
+theorem vt_cur13 {rd : Reader} {σ : Val} (h : Tables.VtH rd σ) : σ (.n 1897) = σ (.n 5) * gen ^ 13 := by
+  have a1938 := h.atomAt 1937 (.const (.n 1874) (word 128 0)) (by decide +kernel)
+  have a1939 := h.atomAt 1938 (.mul (.n 1875) (.n 5) (.n 1874)) (by decide +kernel)
+  have k1 := h.callAt 1939 "opening_tail_round" [.n 1863, .n 1864, .n 1865, .n 1866, .n 1867,
+    .n 1875, .n 1873, .n 18] [.n 1876, .n 1877, .n 1878, .n 1879, .n 1880, .n 1881, .n 1882,
+    .n 1883] (by decide +kernel)
+  have k2 := h.callAt 1941 "opening_tail_round" [.n 1876, .n 1877, .n 1878, .n 1879, .n 1880,
+    .n 1881, .n 1882, .n 18] [.n 1884, .n 1885, .n 1886, .n 1887, .n 1888, .n 1889, .n 1890,
+    .n 1891] (by decide +kernel)
+  have k3 := h.callAt 1943 "opening_tail_round" [.n 1884, .n 1885, .n 1886, .n 1887, .n 1888,
+    .n 1889, .n 1890, .n 18] [.n 1892, .n 1893, .n 1894, .n 1895, .n 1896, .n 1897, .n 1898,
+    .n 1899] (by decide +kernel)
   simp only [Atom.Holds] at a1938 a1939
   simp only [List.map_cons, List.map_nil] at k1 k2 k3
   obtain ⟨_, _, -, e1⟩ := Tables.vt_otr k1
@@ -83,7 +83,7 @@ theorem vt_cur13 {rd : Reader} {σ : Val} (h : Tables.VtH rd σ) : σ (.n 1898) 
   obtain ⟨-, u1, -, -⟩ := Tables.vt_split8 (by rfl) e1
   obtain ⟨-, u2, -, -⟩ := Tables.vt_split8 (by rfl) e2
   obtain ⟨-, u3, -, -⟩ := Tables.vt_split8 (by rfl) e3
-  have hw128 : σ (.n 1875) = gen ^ 7 := by
+  have hw128 : σ (.n 1874) = gen ^ 7 := by
     rw [a1938, show (128 : ℕ) = 2 ^ 7 by norm_num, Tables.tb_word_two_pow (by norm_num)]
   rw [u3, u2, u1, a1939, hw128]
   ring
@@ -91,11 +91,11 @@ theorem vt_cur13 {rd : Reader} {σ : Val} (h : Tables.VtH rd σ) : σ (.n 1898) 
 /-- **The table sumcheck's rounds loop's setup**: its counter starts at `1`, and the first round record holds the
 cursor `14` words past `verify_tables`' cursor. -/
 theorem vt_zc_front {rd : Reader} {σ : Val} (h : Tables.VtH rd σ) :
-    σ (.n 2638) = 1 ∧ LoadHolds rd (σ (.n 2628)) 5 (σ (.n 5) * gen ^ 14) := by
-  have c2638 := h.atomAt 2667 (.const (.n 2638) (word 1 0)) (by decide +kernel)
-  have c2632 := h.atomAt 2658 (.const (.n 2632) (word 2 0)) (by decide +kernel)
-  have m2633 := h.atomAt 2659 (.mul (.n 2633) (.n 1898) (.n 2632)) (by decide +kernel)
-  have l2633 := h.atomAt 2660 (.load (.n 2633) (.n 2628) 5) (by decide +kernel)
+    σ (.n 2636) = 1 ∧ LoadHolds rd (σ (.n 2626)) 5 (σ (.n 5) * gen ^ 14) := by
+  have c2638 := h.atomAt 2665 (.const (.n 2636) (word 1 0)) (by decide +kernel)
+  have c2632 := h.atomAt 2656 (.const (.n 2630) (word 2 0)) (by decide +kernel)
+  have m2633 := h.atomAt 2657 (.mul (.n 2631) (.n 1897) (.n 2630)) (by decide +kernel)
+  have l2633 := h.atomAt 2658 (.load (.n 2631) (.n 2626) 5) (by decide +kernel)
   simp only [Atom.Holds] at c2638 c2632 m2633 l2633
   refine ⟨by rw [c2638, Tables.tb_word_one], ?_⟩
   rw [m2633, c2632, Tables.tb_word_gen, vt_cur13 h] at l2633
@@ -162,7 +162,7 @@ theorem vtQ_step (hr : r.Ok) :
   have e5 := params_get hpar (k := 5) (by decide) rfl
   have e20 := params_get hpar (k := 20) (by decide) rfl
   rw [hrt] at hrJ
-  have e5987 : σ (.n 5987) = σI (.n 579) := by
+  have e5987 : σ (.n 5982) = σI (.n 562) := by
     have := congrArg (·[6]?) hrJ
     simpa [Tables.vtRets, vtRetsV] using this
   -- its front

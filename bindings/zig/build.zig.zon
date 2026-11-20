@@ -1,0 +1,7 @@
+.{
+    .name = .lean_pq,
+    .version = "0.1.0",
+    .fingerprint = 0x9935e81abfd39cf1,
+    .minimum_zig_version = "0.16.0",
+    .paths = .{ "build.zig", "build.zig.zon", "include", "src", "README.md" },
+}

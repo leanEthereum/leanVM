@@ -6,10 +6,10 @@ import re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from symev import IR, parse_atom, VT_LEAN
 
-LO, HI = 2021, 2590          # the totals' loop
+LO, HI = 2020, 2589          # the totals' loop
 PW = [584 + 13 * t for t in range(6)]   # pad_weight[t] (`vtPadV`)
 W_BASE = 13                  # fp_w
-LEAF_BETA1 = 1976            # beta + 1
+LEAF_BETA1 = 1975            # beta + 1
 
 def defs(lo, hi):
     d = {}
@@ -177,7 +177,7 @@ def total_lemma(name, statement, target, leaves, extra_rw='', extra=(), d=None, 
             extra_rw + close)
 
 # ---- the push side ----
-push_total, pull_total, count_total = 2443, 2489, 2544
+push_total, pull_total, count_total = 2442, 2488, 2543
 def the_add(v):
     _, op, (a, b) = D[v]; assert op == 'add'; return a, b
 # bus_table_total[PUSH] = ((acc + padding) + (1 + selector_sum)) + leaf

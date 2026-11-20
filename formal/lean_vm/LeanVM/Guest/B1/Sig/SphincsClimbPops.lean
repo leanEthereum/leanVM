@@ -106,11 +106,15 @@ theorem sForsAt_quiet (a1 : V) (val : Nat → V) (c z x : Nat) : quiet (sForsAt 
   unfold sForsAt
   split_ifs <;> simp only [quiet_append, sAddK_quiet, sBe16_quiet] <;> rfl
 
-theorem sPathAddr_quiet (val : Nat → V) (off z m x : Nat) : quiet (sPathAddr val off z m x).1 = true := by
+theorem a0Pre_quiet (ac : Option E) (x : Nat) : quiet (a0Pre ac x) = true := by
+  cases ac <;> rfl
+
+theorem sPathAddr_quiet (a0 : V) (ac : Option E) (val : Nat → V) (off z m x : Nat) :
+    quiet (sPathAddr a0 ac val off z m x).1 = true := by
   unfold sPathAddr
   split
-  · rfl
-  · simp only [quiet_append, sBe16_quiet]; rfl
+  · simp only [quiet_append, a0Pre_quiet]; rfl
+  · simp only [quiet_append, sBe16_quiet, a0Pre_quiet]; rfl
 
 theorem kNode_quiet (pad : Nat) (pp a0 adr k0 k1 : V) (y : Nat) : quiet (kNode pad pp a0 adr k0 k1 y).1 = true :=
   rfl
@@ -216,35 +220,36 @@ theorem sForsTree_pops {pad : Nat} (hp : PadOK σ pad) {pp a0 a1 : V} {bit val :
 /-! ## A path -/
 
 /-- **A path pops its levels' children**, from any valuation where its atoms hold. -/
-theorem sPath_pops {pad : Nat} (hp : PadOK σ pad) {pp a0 : V} {bit val : Nat → V}
+theorem sPath_pops {pad : Nat} (hp : PadOK σ pad) {pp a0 : V} {ac : Option E} {bit val : Nat → V}
     {off e height : Nat} (hh : height ≤ 16) (he : e < 2 ^ height)
     (hbit : ∀ z < height, σ (bit (off + z)) = if e.testBit z then 1 else 0)
     (hval : ∀ z, z < height → σ (val (off + z)) = eOfNat (e >>> z)) :
     ∀ (m z : Nat) (cur : V) (x : Nat), z + m = height →
-      AtomsHold rd σ (sPath pad pp a0 bit val off m z cur x).1 →
-      FallPops rd σ (sPath pad pp a0 bit val off m z cur x).1
-        (climbPops "siblings" (pNodeE (σ pp) (σ a0) e (sPathSib σ bit off m z x)) e.testBit
-          (sPathSib σ bit off m z x) m z (σ cur))
+      AtomsHold rd σ (sPath pad pp a0 ac bit val off m z cur x).1 →
+      FallPops rd σ (sPath pad pp a0 ac bit val off m z cur x).1
+        (climbPops "siblings" (pNodeE (σ pp) (a0Val σ a0 ac) e (sPathSib σ bit off ac m z x)) e.testBit
+          (sPathSib σ bit off ac m z x) m z (σ cur))
   | 0, _, _, _, _, _ => FallPops.nil
   | m + 1, z, cur, x, hm, hA => by
       rw [sPath_succ] at hA ⊢
       obtain ⟨hib, hd⟩ := bit_facts (hbit z (by omega))
-      have hadr := sPathAddr_sound (off := off) (x := x + 4) (by omega)
+      obtain ⟨hadr, ha0⟩ := sPathAddr_sound (a0 := a0) (ac := ac) (off := off) (x := x + 4) (by omega)
         (by rw [show z + 1 + m = height by omega]; exact he)
         (fun j _ hj => hval j (by omega)) hA.left.left.right
       have hk := hA.left.right
       have hc : AtomsHold rd σ (isChildS cur (.n x) (.n (x + 1)) (bit (off + z)) (x + 2)) :=
         hA.left.left.left.sub fun s hs => List.mem_append_right _ hs
       have hlv := level_sound hp hib hc hk
-      have h1 := pairLevel_pops (rd := rd) "siblings" (sPathAddr_quiet val off z m (x + 4))
-        (kNode_quiet pad pp a0 (sPathAddr val off z m (x + 4)).2.2 (.n x) (.n (x + 1))
-          (sPathAddr val off z m (x + 4)).2.1) hib hc hd
+      have h1 := pairLevel_pops (rd := rd) "siblings" (sPathAddr_quiet a0 ac val off z m (x + 4))
+        (kNode_quiet pad pp (sPathAddr a0 ac val off z m (x + 4)).2.2.2
+          (sPathAddr a0 ac val off z m (x + 4)).2.2.1 (.n x) (.n (x + 1))
+          (sPathAddr a0 ac val off z m (x + 4)).2.1) hib hc hd
       have ih := sPath_pops hp hh he hbit hval m (z + 1) _ _ (by omega) hA.right
-      have hfirst : σ (.n ((sPathAddr val off z m (x + 4)).2.1 + 4)) =
-          pNodeE (σ pp) (σ a0) e (sPathSib σ bit off (m + 1) z x) z (σ cur) := by
-        rw [hlv, hd, hadr]
+      have hfirst : σ (.n ((sPathAddr a0 ac val off z m (x + 4)).2.1 + 4)) =
+          pNodeE (σ pp) (a0Val σ a0 ac) e (sPathSib σ bit off ac (m + 1) z x) z (σ cur) := by
+        rw [hlv, hd, hadr, ha0]
         simp [pNodeE, sPathSib]
-      have hw : (sPathAddr val off z m (x + 4)).2.1 + 5 = x + pathWidth m := by
+      have hw : (sPathAddr a0 ac val off z m (x + 4)).2.1 + 5 = x + pathWidth ac m := by
         rw [sPathAddr_next]; unfold pathWidth; split_ifs <;> omega
       refine FallPops.congr_pops (h1.append ih) ?_
       rw [climbPops, ← hfirst, List.singleton_append, List.cons.injEq]

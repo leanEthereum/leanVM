@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.BMain
 
-  **`verify_tables`' bus sides complete** (statements `765 ..< 2593`).
+  **`verify_tables`' bus sides complete** (statements `765 ..< 2592`).
 -/
 
 module
@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.VtC.BAll
 /-!
 # The bus sides, complete
 
-`vtB_complete`: under `VtBHyp`, every statement of `765 ..< 2593` holds on the honest valuation,
+`vtB_complete`: under `VtBHyp`, every statement of `765 ..< 2592` holds on the honest valuation,
 every load reads inside `vtBufsB`, the framework words and the bytecode share's are the cursor's,
 the share's last capacity and cursor are the honest ones (`vtBcR3`), the selectors are the blocks'
 `blockSel`, and the three bus totals are `vtAcc0/1/2`'s at the honest words and GKR leaves (as
@@ -93,9 +93,9 @@ theorem vtP_fw_copies {rd : Reader} {σ : Val} (h : VtP rd σ) :
   exact ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13⟩
 
 /-- `beta + 1` (the soundness's `vt_beta1`, on `VtP`). -/
-theorem vtP_beta1 {rd : Reader} {σ : Val} (h : VtP rd σ) : σ (.n 1976) = σ (.n 14) + 1 := by
-  have a1 := h.atomAt 2021 (.const (.n 1975) (word 1 0)) (by decide +kernel)
-  have a2 := h.atomAt 2022 (.add (.n 1976) (.n 14) (.n 1975)) (by decide +kernel)
+theorem vtP_beta1 {rd : Reader} {σ : Val} (h : VtP rd σ) : σ (.n 1975) = σ (.n 14) + 1 := by
+  have a1 := h.atomAt 2020 (.const (.n 1974) (word 1 0)) (by decide +kernel)
+  have a2 := h.atomAt 2021 (.add (.n 1975) (.n 14) (.n 1974)) (by decide +kernel)
   simp only [Atom.Holds] at a1 a2
   rw [a2, a1, tb_word_one]
 
@@ -120,21 +120,21 @@ theorem vtB_indexArm (hl : args.length = 21) {x r : V} {point : List E} {κ : �
     ⟨point.take κ, by simp; omega, tbReadsAt_take hz κ, rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- **`verify_tables`' bus sides complete** (statements `765 ..< 2593`). -/
+/-- **`verify_tables`' bus sides complete** (statements `765 ..< 2592`). -/
 theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
-    (∀ s ∈ (vtPre.drop 765).take 1828, VSH (coreProgram.Rel rd) rd σv s) ∧
-      LoadsInBuf σv (vtBufsB σv) ((vtPre.drop 765).take 1828) ∧
+    (∀ s ∈ (vtPre.drop 765).take 1827, VSH (coreProgram.Rel rd) rd σv s) ∧
+      LoadsInBuf σv (vtBufsB σv) ((vtPre.drop 765).take 1827) ∧
       [σv (.n 813), σv (.n 817), σv (.n 1303), σv (.n 1317)] = D.xs ∧
-      σv (.n 1841) = D.w.getD 0 0 ∧ σv (.n 1906) = D.w.getD 9 0 ∧
-      [σv (.n 1893), σv (.n 1894), σv (.n 1895), σv (.n 1896), σv (.n 1897)] =
+      σv (.n 1841) = D.w.getD 0 0 ∧ σv (.n 1905) = D.w.getD 9 0 ∧
+      [σv (.n 1892), σv (.n 1893), σv (.n 1894), σv (.n 1895), σv (.n 1896)] =
         (vtBcR3 (vtF0 args D.xs) D.w).1 ∧
-      σv (.n 1898) = args.getD 5 0 * gen ^ 13 ∧
-      σv (.n 2443) = (vtAcc0 (layoutOf D.bc D.lm D.rows) D.weights (args.getD 14 0) D.point
+      σv (.n 1897) = args.getD 5 0 * gen ^ 13 ∧
+      σv (.n 2442) = (vtAcc0 (layoutOf D.bc D.lm D.rows) D.weights (args.getD 14 0) D.point
         [D.xs.getD 0 0, D.xs.getD 1 0] (D.w.getD 0 0) (D.leaves.getD 0 0)).2 ∧
-      σv (.n 2489) = (vtAcc1 (layoutOf D.bc D.lm D.rows) D.weights (args.getD 14 0) D.point
+      σv (.n 2488) = (vtAcc1 (layoutOf D.bc D.lm D.rows) D.weights (args.getD 14 0) D.point
         [D.xs.getD 0 0, D.xs.getD 1 0] (D.xs.getD 2 0) (D.xs.getD 3 0) (D.w.getD 0 0)
         (D.leaves.getD 0 0) (D.leaves.getD 1 0)).2 ∧
-      σv (.n 2544) = (vtAcc2 (layoutOf D.bc D.lm D.rows) D.weights (args.getD 14 0) D.point
+      σv (.n 2543) = (vtAcc2 (layoutOf D.bc D.lm D.rows) D.weights (args.getD 14 0) D.point
         [D.xs.getD 0 0, D.xs.getD 1 0] (D.xs.getD 2 0) (D.xs.getD 3 0) (D.w.getD 0 0)
         (D.leaves.getD 0 0) (D.leaves.getD 1 0) (D.leaves.getD 2 0)).2 ∧
       σv (.n 789) = blockSel (vtSizesP D.lm (vtHt D.rows)) D.point.length 0 D.point ∧
@@ -229,10 +229,10 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
   have g1332 := vtB_glue_1332 hl hpoolσ hidxσ hc7 h1345 h1360
   have g1912 := vtB_glue_1912 hl hc7
   have g1926 := vtB_glue_1926 hl hw hptσ b1931 b1940 b1941 b1942 b1943 b1944 b1945 b1951 b2020
-  have g2021 := vtB_glue_2021 hl hw hleavesσ
+  have g2021 := vtB_glue_2020 hl hw hleavesσ
   -- every statement
-  have hall : ∀ s ∈ (vtPre.drop 765).take 1828, VSH (coreProgram.Rel rd) rd σv s := by
-    refine vtB_cover [1, 12, 3, 13, 17, 13, 18, 490, 147, 433, 14, 95, 572] 765 fun i hi ↦ ?_
+  have hall : ∀ s ∈ (vtPre.drop 765).take 1827, VSH (coreProgram.Rel rd) rd σv s := by
+    refine vtB_cover [1, 12, 3, 13, 17, 13, 18, 490, 147, 433, 14, 94, 572] 765 fun i hi ↦ ?_
     simp only [List.length_cons, List.length_nil] at hi
     interval_cases i
     · exact g765
@@ -269,29 +269,29 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
   have m1 : σv (.n 1309) = σv (.n 817) := by
     rw [(vt_readAt hl 1349 (d := .n 1309) (by decide +kernel) (by decide +kernel)
       (hpoolσ 1 (by norm_num))).1, x1]
-  have t0 : σv (.n 2442) = D.leaves.getD 0 0 :=
-    (vt_readAt hl 2488 (d := .n 2442) (by decide +kernel) (by decide +kernel)
+  have t0 : σv (.n 2441) = D.leaves.getD 0 0 :=
+    (vt_readAt hl 2487 (d := .n 2441) (by decide +kernel) (by decide +kernel)
       (hleavesσ 0 (by norm_num))).1
-  have t1 : σv (.n 2488) = D.leaves.getD 1 0 :=
-    (vt_readAt hl 2534 (d := .n 2488) (by decide +kernel) (by decide +kernel)
+  have t1 : σv (.n 2487) = D.leaves.getD 1 0 :=
+    (vt_readAt hl 2533 (d := .n 2487) (by decide +kernel) (by decide +kernel)
       (hleavesσ 1 (by norm_num))).1
-  have t2 : σv (.n 2543) = D.leaves.getD 2 0 :=
-    (vt_readAt hl 2589 (d := .n 2543) (by decide +kernel) (by decide +kernel)
+  have t2 : σv (.n 2542) = D.leaves.getD 2 0 :=
+    (vt_readAt hl 2588 (d := .n 2542) (by decide +kernel) (by decide +kernel)
       (hleavesσ 2 (by norm_num))).1
   obtain ⟨d810, d815, d819, d838, d1293, d1294, d1299, d1313, d1436, d1305, d1307, d1309,
     d1319⟩ := vtP_fw_copies hP
   have hpw' : ∀ t < 6, paddingWeight (D.point.take (vtHt D.rows t)) (vtRw D.rows t) =
       σv (.n (vtPadV t)) := fun t ht ↦ (hpw t ht).symm
   have e0 := vt_total0 hbc D.weights (σv (.n 14)) D.point [σv (.n 813), σv (.n 817)]
-    (σv (.n 1841)) (σv (.n 2442)) _ _ _ (fun c ↦ σv (.n c)) (fun t ↦ σv (.n (vtPadV t)))
+    (σv (.n 1841)) (σv (.n 2441)) _ _ _ (fun c ↦ σv (.n c)) (fun t ↦ σv (.n (vtPadV t)))
     s0.symm s1.symm s2.symm (fun i hi ↦ hS i hi) hpw' hr
   have e1 := vt_total1 hbc D.weights (σv (.n 14)) D.point [σv (.n 813), σv (.n 817)]
-    (σv (.n 1303)) (σv (.n 1317)) (σv (.n 1841)) (σv (.n 2442)) (σv (.n 2488)) _ _ _
+    (σv (.n 1303)) (σv (.n 1317)) (σv (.n 1841)) (σv (.n 2441)) (σv (.n 2487)) _ _ _
     (fun c ↦ σv (.n c)) (fun t ↦ σv (.n (vtPadV t))) s0.symm s1.symm s2.symm (fun i hi ↦ hS i hi)
     hpw' hr
   have e2 := vt_total2 (bc := D.bc) (lm := D.lm) D.weights (σv (.n 14)) D.point
     [σv (.n 813), σv (.n 817)] (σv (.n 1303)) (σv (.n 1317)) (σv (.n 1841))
-    (σv (.n 2442)) (σv (.n 2488)) (σv (.n 2543)) (fun c ↦ σv (.n c)) (fun t ↦ σv (.n (vtPadV t))) W
+    (σv (.n 2441)) (σv (.n 2487)) (σv (.n 2542)) (fun c ↦ σv (.n c)) (fun t ↦ σv (.n (vtPadV t))) W
     (fun i hi ↦ hSC i hi) hpw' hr
   have hpad := vtP_push_pad hP hw
   rw [vtP_beta1 hP] at hpad
@@ -312,26 +312,26 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
     refine ⟨?_, ?_⟩ <;> simp only [List.cons.injEq, and_true] <;> refine ⟨?_, ?_, ?_⟩ <;> ring
   obtain ⟨fP, fQ⟩ := hfp (layoutOf D.bc D.lm D.rows) (vt_layout_logMemory D.bc D.lm D.rows)
     (vt_layout_logBytecode D.bc D.lm D.rows hbc)
-  have T0 : σv (.n 2443) = (vtAcc0 (layoutOf D.bc D.lm D.rows) D.weights (σv (.n 14)) D.point
-      [σv (.n 813), σv (.n 817)] (σv (.n 1841)) (σv (.n 2442))).2 := by
+  have T0 : σv (.n 2442) = (vtAcc0 (layoutOf D.bc D.lm D.rows) D.weights (σv (.n 14)) D.point
+      [σv (.n 813), σv (.n 817)] (σv (.n 1841)) (σv (.n 2441))).2 := by
     rw [e0, fP, vtP_push_total hP, vtP_push_fw hP hw, hpad, vtP_push_sel hP, hsum, d810, d815,
       d819, d838, d1293, d1843, c0, c1, c2]
     simp only [List.getD_cons_zero, List.getD_cons_succ]
     ring
-  have T1 : σv (.n 2489) = (vtAcc1 (layoutOf D.bc D.lm D.rows) D.weights (σv (.n 14)) D.point
+  have T1 : σv (.n 2488) = (vtAcc1 (layoutOf D.bc D.lm D.rows) D.weights (σv (.n 14)) D.point
       [σv (.n 813), σv (.n 817)] (σv (.n 1303)) (σv (.n 1317)) (σv (.n 1841))
-      (σv (.n 2442)) (σv (.n 2488))).2 := by
+      (σv (.n 2441)) (σv (.n 2487))).2 := by
     rw [e1, fQ, vtP_pull_total hP, vtP_pull_fw hP hw, hpad, vtP_pull_sel hP, d1294, d1299, d1313,
       d1436, d1305, d1307, d1309, d1319, i1', i2', m0, m1, d1843, c0, c1, c2]
     simp only [List.getD_cons_zero, List.getD_cons_succ]
     ring
-  have T2 : σv (.n 2544) = (vtAcc2 (layoutOf D.bc D.lm D.rows) D.weights (σv (.n 14)) D.point
+  have T2 : σv (.n 2543) = (vtAcc2 (layoutOf D.bc D.lm D.rows) D.weights (σv (.n 14)) D.point
       [σv (.n 813), σv (.n 817)] (σv (.n 1303)) (σv (.n 1317)) (σv (.n 1841))
-      (σv (.n 2442)) (σv (.n 2488)) (σv (.n 2543))).2 := by
+      (σv (.n 2441)) (σv (.n 2487)) (σv (.n 2542))).2 := by
     rw [e2, vtP_count_total hP, vtP_count_pad hP W, vtP_count_sel hP, hsumC]
     ring
   simp only [x0, x1, x2, x3, e1840, t0, t1, t2, p 14 (by norm_num)] at T0 T1 T2
-  have h1897 : σv (.n 1898) = σv (.n 5) * gen ^ 13 := by rw [e1897, p 5 (by norm_num)]
+  have h1897 : σv (.n 1897) = σv (.n 5) * gen ^ 13 := by rw [e1897, p 5 (by norm_num)]
   exact ⟨hall, vtB_loadsInBuf _ h1897, hxs, e1840, e1905, ecap3, e1897, T0, T1, T2, s0, s1, s2,
     c0, c1, c2, hS, hSC⟩
 

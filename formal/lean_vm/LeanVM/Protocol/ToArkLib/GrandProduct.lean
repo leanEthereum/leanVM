@@ -45,9 +45,9 @@ the slot `Typed.stepSlot F nside ρ m`:
 `gkr` reads the roots as the statement at layer `0`, takes one binary step first when `μ` is odd
 (`Gkr.odd`) and steps of radix four after (`Gkr.layerSteps`), each step opening with its
 combiner; its slot is `Typed.gkrSlot F nside μ`, so that a protocol's slot that appends it takes
-it, and its errors are `Typed.gkrErrors`, which its knowledge soundness is stated at.
-`gkrComplete` is its completeness, composed from its parts' through `Typed.Complete.append` on the
-layer identities of `LeanVM.Protocol.ToCompPoly.ProductTree`.
+it, and its errors are `Typed.gkrErrors`. Its parts' completeness halves (`Gkr.oddComplete`,
+`Gkr.layerStepsComplete`) rest on the layer identities of
+`LeanVM.Protocol.ToCompPoly.ProductTree`.
 
 *Riders* are further tables computed from the public data and the oracles, each on at most `μ`
 variables. The input relation asks each to be zero; the output relation asks each extension to
@@ -582,14 +582,6 @@ def gkr : Typed.Def O (X × (Fin nside → F)) Unit (Gkr.LayerStmt X F nside μ)
     (Typed.gkrSlot F nside μ) :=
   (Gkr.odd nside μ leaves (μ % 2) (Nat.le_of_lt_succ (Nat.mod_lt μ two_pos))).append
     (Gkr.layerSteps nside μ leaves (μ / 2) (μ % 2) (Nat.mod_add_div μ 2))
-
-omit [∀ i, OracleInterface (O i)] in
-/-- **Perfect completeness** of the grand-product argument on the typed framework. -/
-theorem gkrComplete :
-    Typed.Complete (gkr nside μ leaves) (Gkr.relIn nside μ leaves riders)
-      (Gkr.relOut nside μ leaves riders) :=
-  (Gkr.oddComplete nside μ leaves riders (μ % 2) _ (Nat.mod_le μ 2)).append
-    (Gkr.layerStepsComplete nside μ leaves riders (μ / 2) (μ % 2) _)
 
 end
 end LeanVM.Protocol

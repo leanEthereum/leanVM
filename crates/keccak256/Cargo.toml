@@ -9,7 +9,7 @@ workspace = true
 
 [dev-dependencies]
 sha3.workspace = true
-bench.workspace = true
+bench_harness.workspace = true
 parallel = { package = "stable_parallel", path = "../stable_prover/parallel" }
 verifier.workspace = true
 

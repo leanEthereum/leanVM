@@ -57,8 +57,8 @@ def vtCallKindB : Stmt → Bool
       (f != "shared_selector_tables" || (a.length == 6 && r.isEmpty))
   | .dispatch _ fs' _ _ => fs'.all fun g ↦ g != name% «verify_tables_loop0» &&
       g != name% «shared_selector_tables_loop0» && g != "shared_selector_tables"
-  | .callIf c f a => f == name% «verify_tables_loop0» && c == .n 2637 &&
-      a == [.n 2638, .n 2545, .n 2628, .n 18, .n 2635, .n 2631]
+  | .callIf c f a => f == name% «verify_tables_loop0» && c == .n 2635 &&
+      a == [.n 2636, .n 2544, .n 2626, .n 18, .n 2633, .n 2629]
   | _ => true
 
 theorem vt_callKinds : vtPre.all vtCallKindB = true := by decide +kernel

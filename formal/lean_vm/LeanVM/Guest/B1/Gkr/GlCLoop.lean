@@ -58,16 +58,16 @@ def glcPre : List Stmt :=
 
 /-- The guard and the next call's argument. -/
 def glcPost : List Stmt :=
-  [.atom (.const (.n 341) (word 2 0)), .atom (.mul (.n 342) (.n 0) (.n 341)),
-    .atom (.add (.n 343) (.n 342) (.n 1)), .atom (.const (.n 344) (word 2 0)),
-    .atom (.mul (.n 345) (.n 0) (.n 344))]
+  [.atom (.const (.n 333) (word 2 0)), .atom (.mul (.n 334) (.n 0) (.n 333)),
+    .atom (.add (.n 335) (.n 334) (.n 1)), .atom (.const (.n 336) (word 2 0)),
+    .atom (.mul (.n 337) (.n 0) (.n 336))]
 
 /-- The iteration's atoms. -/
 def glcA : List Stmt := glcPre ++ (gkPre true 8).map glcMap ++ glcPost
 
 /-- The loop's body, calling `nm`. -/
 def glcBody (nm : String) : List Stmt :=
-  glcA ++ [.callIf (.n 343) nm [.n 345, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []]
+  glcA ++ [.callIf (.n 335) nm [.n 337, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []]
 
 /-- The loop's parameters. -/
 def glcPar6 : List V := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5]
@@ -90,10 +90,10 @@ theorem glcFound {p o : ℕ} (hp : p < 4) (ho : o < 2) : ∃ fn : Fn, coreProgra
     exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
-/-- Every statement of `gkPre true 8` is an atom over values `.n k`, `k ≤ 332`, never the window
+/-- Every statement of `gkPre true 8` is an atom over values `.n k`, `k ≤ 324`, never the window
 table's or the stream's, its loads through `pt` at `q < 8` or `42 + q`. -/
 def gk8Ok : Stmt → Bool
-  | .atom a => a.vals.all fun v => decide (v = .n v.idx) && decide (v.idx ≤ 332) &&
+  | .atom a => a.vals.all fun v => decide (v = .n v.idx) && decide (v.idx ≤ 324) &&
       decide (v.idx ≠ 3) && decide (v.idx ≠ 4)
   | _ => false
 
@@ -147,12 +147,12 @@ def glcVal (x N head qrow nqrow tabs : E) (σgk : Val) (v : V) : E :=
     qrow * glcY8 x, nqrow * glcY8 x].getD v.idx 0
   else if v.idx < 17 then σgk (.n (v.idx - 7))
   else if v.idx = 17 then σgk (.n 2)
-  else if v.idx ≤ 340 then σgk (.n (v.idx - 8))
-  else [gen, x * gen, x * gen + N, gen, x * gen].getD (v.idx - 341) 0
+  else if v.idx ≤ 332 then σgk (.n (v.idx - 8))
+  else [gen, x * gen, x * gen + N, gen, x * gen].getD (v.idx - 333) 0
 
 theorem glc_val_sh {x N head qrow nqrow tabs : E} {σgk : Val} (hσv : ∀ v, σgk v = σgk (.n v.idx))
     (h0 : σgk (.n 0) = head * x) (h1 : σgk (.n 1) = qrow * glcY8 x) {v : V}
-    (hvi : v.idx ≤ 332) (h3 : v.idx ≠ 3) (h4 : v.idx ≠ 4) :
+    (hvi : v.idx ≤ 324) (h3 : v.idx ≠ 3) (h4 : v.idx ≠ 4) :
     v.idx ≠ 2 → glcVal x N head qrow nqrow tabs σgk (glcSh v) = σgk v := by
   intro e2
   rw [hσv v]
@@ -168,7 +168,7 @@ theorem glc_val_sh {x N head qrow nqrow tabs : E} {σgk : Val} (hσv : ∀ v, σ
   · have i1 : ¬ v.idx + 8 < 12 := by omega
     have i2 : ¬ v.idx + 8 < 17 := by omega
     have i3 : ¬ v.idx + 8 = 17 := by omega
-    have i4 : v.idx + 8 ≤ 340 := by omega
+    have i4 : v.idx + 8 ≤ 332 := by omega
     have i5 : ¬ v.idx < 5 := by omega
     simp only [glcSh, glcVal, e0, e1, e2, e5, i1, i2, i3, i4, i5, ↓reduceIte, Nat.add_sub_cancel]
 
@@ -200,7 +200,7 @@ theorem glc_iter {rd : Reader} (x N head qrow nqrow tabs : E) (hnq : nqrow = qro
     exact this.1
   set σ := glcVal x N head qrow nqrow tabs σgk with hσ
   -- every value of `gkPre true 8` renamed
-  have hv : ∀ v : V, v = .n v.idx → v.idx ≤ 332 → v.idx ≠ 3 → v.idx ≠ 4 →
+  have hv : ∀ v : V, v = .n v.idx → v.idx ≤ 324 → v.idx ≠ 3 → v.idx ≠ 4 →
       σ (glcSh v) = σgk v := by
     intro v _ hvi h3 h4
     by_cases e2 : v.idx = 2

@@ -31,7 +31,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 theorem glPre_noRet : Stmt.noRetList glPre = true := by decide
 
-theorem glD_pos {p : ℕ} (hp : p ≠ 0) : glD p = 80 * p + 6 := by simp [glD, hp]
+theorem glD_pos {p : ℕ} (hp : p ≠ 0) : glD p = 78 * p + 6 := by simp [glD, hp]
 
 section Sem
 
@@ -42,9 +42,9 @@ theorem gl_pre (h : Stmt.HoldsList C rd σ glPre True kret) {j sh : ℕ} (hx : �
     (hsg : σ (.n 5) = gen ^ (2 - sh)) (hsh : sh < 2) {s : Fs} {cur : E} {st : GkrState}
     {row pos : E} (hslot : GkSlot rd (σ (.n 0)) (2 * j + 2 - sh) s cur st row pos) :
     σ (.n 15) = σ (.n 0) * gen ^ (10 * (2 * j + 2 - sh)) ∧ σ (.n 21) = cur ∧
-      σ (.n 40) = s.squeeze.1 ∧ (glCap 35).map σ = s.squeeze.2.cap ∧ σ (.n 44) = pos ∧
-      σ (.n 53) = σ (.n 2) * gen ^ (40 * (j + 1)) ∧ σ (.n 54) = σ (.n 1) * pos ∧
-      σ (.n 58) = polyEval st.values s.squeeze.1 ∧
+      σ (.n 27) = s.squeeze.1 ∧ (glCap 35).map σ = s.squeeze.2.cap ∧ σ (.n 43) = pos ∧
+      σ (.n 52) = σ (.n 2) * gen ^ (40 * (j + 1)) ∧ σ (.n 53) = σ (.n 1) * pos ∧
+      σ (.n 57) = polyEval st.values s.squeeze.1 ∧
       σ (.n 23) = 0 ∧ σ (.n 24) = 0 ∧ σ (.n 25) = 0 ∧ σ (.n 26) = 0 := by
   have hnr := glPre_noRet
   obtain ⟨hcl, hcap, hpe, hcur, hvl, hval, -, -, hpos⟩ := hslot
@@ -88,30 +88,28 @@ theorem gl_pre (h : Stmt.HoldsList C rd σ glPre True kret) {j sh : ℕ} (hx : �
       (List.range 5).map fun k ↦ V.n (16 + k)) : List V).map σ = rateOf s.pend ++ s.cap := by
     rw [ly_zero_rate c23 c24 c25 c26, hpe, hcapE]
   rw [hins] at hP hB
-  have c40 := a 19 (.copy (.n 40) (.n 27)) (by decide +kernel)
-  simp only [Atom.Holds] at c40
-  have e40 : σ (.n 40) = s.squeeze.1 := by
-    rw [c40, hP 0 (by omega)]
+  have e40 : σ (.n 27) = s.squeeze.1 := by
+    rw [hP 0 (by omega)]
     exact (Keccak.challengeOf_cells _).symm
   -- the values, the position, the point row, the head record, the claim
-  have l41 := a 20 (.load (.n 41) (.n 15) 6) (by decide +kernel)
-  have l42 := a 21 (.load (.n 42) (.n 15) 7) (by decide +kernel)
-  have l43 := a 22 (.load (.n 43) (.n 15) 8) (by decide +kernel)
-  have l44 := a 23 (.load (.n 44) (.n 15) 9) (by decide +kernel)
-  have c45 := a 24 (.const (.n 45) (word 2 0)) (by decide +kernel)
-  have m46 := a 25 (.mul (.n 46) (.n 4) (.n 45)) (by decide +kernel)
-  have m47 := a 26 (.mul (.n 47) (.n 46) (.n 46)) (by decide +kernel)
-  have m48 := a 27 (.mul (.n 48) (.n 47) (.n 47)) (by decide +kernel)
-  have m49 := a 28 (.mul (.n 49) (.n 48) (.n 46)) (by decide +kernel)
-  have m50 := a 29 (.mul (.n 50) (.n 49) (.n 49)) (by decide +kernel)
-  have m51 := a 30 (.mul (.n 51) (.n 50) (.n 50)) (by decide +kernel)
-  have m52 := a 31 (.mul (.n 52) (.n 51) (.n 51)) (by decide +kernel)
-  have m53 := a 32 (.mul (.n 53) (.n 2) (.n 52)) (by decide +kernel)
-  have m54 := a 33 (.mul (.n 54) (.n 1) (.n 44)) (by decide +kernel)
-  have m55 := a 34 (.mul (.n 55) (.n 40) (.n 43)) (by decide +kernel)
-  have a56 := a 35 (.add (.n 56) (.n 42) (.n 55)) (by decide +kernel)
-  have m57 := a 36 (.mul (.n 57) (.n 40) (.n 56)) (by decide +kernel)
-  have a58 := a 37 (.add (.n 58) (.n 41) (.n 57)) (by decide +kernel)
+  have l41 := a 19 (.load (.n 40) (.n 15) 6) (by decide +kernel)
+  have l42 := a 20 (.load (.n 41) (.n 15) 7) (by decide +kernel)
+  have l43 := a 21 (.load (.n 42) (.n 15) 8) (by decide +kernel)
+  have l44 := a 22 (.load (.n 43) (.n 15) 9) (by decide +kernel)
+  have c45 := a 23 (.const (.n 44) (word 2 0)) (by decide +kernel)
+  have m46 := a 24 (.mul (.n 45) (.n 4) (.n 44)) (by decide +kernel)
+  have m47 := a 25 (.mul (.n 46) (.n 45) (.n 45)) (by decide +kernel)
+  have m48 := a 26 (.mul (.n 47) (.n 46) (.n 46)) (by decide +kernel)
+  have m49 := a 27 (.mul (.n 48) (.n 47) (.n 45)) (by decide +kernel)
+  have m50 := a 28 (.mul (.n 49) (.n 48) (.n 48)) (by decide +kernel)
+  have m51 := a 29 (.mul (.n 50) (.n 49) (.n 49)) (by decide +kernel)
+  have m52 := a 30 (.mul (.n 51) (.n 50) (.n 50)) (by decide +kernel)
+  have m53 := a 31 (.mul (.n 52) (.n 2) (.n 51)) (by decide +kernel)
+  have m54 := a 32 (.mul (.n 53) (.n 1) (.n 43)) (by decide +kernel)
+  have m55 := a 33 (.mul (.n 54) (.n 27) (.n 42)) (by decide +kernel)
+  have a56 := a 34 (.add (.n 55) (.n 41) (.n 54)) (by decide +kernel)
+  have m57 := a 35 (.mul (.n 56) (.n 27) (.n 55)) (by decide +kernel)
+  have a58 := a 36 (.add (.n 57) (.n 40) (.n 56)) (by decide +kernel)
   simp only [Atom.Holds] at l41 l42 l43 l44 c45 m46 m47 m48 m49 m50 m51 m52 m53 m54 m55 a56 m57 a58
   rw [tb_word_gen] at c45
   have e41 := tb_loadHolds_unique ((ld _ _).mp l41) (hval 0 (by omega))
@@ -119,7 +117,7 @@ theorem gl_pre (h : Stmt.HoldsList C rd σ glPre True kret) {j sh : ℕ} (hx : �
   have e43 := tb_loadHolds_unique ((ld _ _).mp l43) (hval 2 (by omega))
   have e44 := tb_loadHolds_unique ((ld _ _).mp l44) hpos
   have e21 := tb_loadHolds_unique ((ld _ _).mp l21) hcur
-  have e53 : σ (.n 53) = σ (.n 2) * gen ^ (40 * (j + 1)) := by
+  have e53 : σ (.n 52) = σ (.n 2) * gen ^ (40 * (j + 1)) := by
     rw [m53, m52, m51, m50, m49, m48, m47, m46, c45, hx, ← pow_succ]
     ring
   refine ⟨e15, e21, e40, ?_, e44, e53, by rw [m54, e44], ?_, c23, c24, c25, c26⟩
@@ -134,9 +132,9 @@ theorem gl_pre (h : Stmt.HoldsList C rd σ glPre True kret) {j sh : ℕ} (hx : �
 
 /-- **The head record's stores**: the state after the head rounds. -/
 theorem gl_headStore {p : ℕ} (hp4 : p < 4) (h : Stmt.HoldsList C rd σ (glHeadStore p) True kret) :
-    TbCapAt rd (σ (.n 54)) 0 gkCap ((glCapAfter 59 (2 * p) (glCap 35)).map σ) ∧
-      LoadHolds rd (σ (.n 54)) (5 * gkCap) (σ (.n 21) * gen ^ (4 * (2 * p))) ∧
-      LoadHolds rd (σ (.n 54)) (6 * gkCap) (σ (glClaimAfter 59 (2 * p) (.n 58))) := by
+    TbCapAt rd (σ (.n 53)) 0 gkCap ((glCapAfter 58 (2 * p) (glCap 35)).map σ) ∧
+      LoadHolds rd (σ (.n 53)) (5 * gkCap) (σ (.n 21) * gen ^ (4 * (2 * p))) ∧
+      LoadHolds rd (σ (.n 53)) (6 * gkCap) (σ (glClaimAfter 58 (2 * p) (.n 57))) := by
   rcases Nat.eq_zero_or_pos p with rfl | hp
   · simp only [glHeadStore, ↓reduceIte, glHeadStore0, tb_holdsList_append_noRet
       (tb_noRetList_mapAtoms 5 _), tb_holdsList_mapAtoms] at h
@@ -151,20 +149,20 @@ theorem gl_headStore {p : ℕ} (hp4 : p < 4) (h : Stmt.HoldsList C rd σ (glHead
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hr hc
     obtain ⟨c, m, l1, l2⟩ := hr
     rw [tb_word_two_pow (by omega)] at c
-    have e1 : glCapAfter 59 (2 * p) (glCap 35) = glCap (39 + 80 * p) := by
+    have e1 : glCapAfter 58 (2 * p) (glCap 35) = glCap (39 + 78 * p) := by
       simp only [glCapAfter, show 2 * p ≠ 0 by omega, ↓reduceIte]
-      rw [show 59 + 40 * (2 * p) - 20 = 39 + 80 * p by omega]
-    have e2 : glClaimAfter 59 (2 * p) (.n 58) = .n (58 + 80 * p) := by
+      rw [show 58 + 39 * (2 * p) - 19 = 39 + 78 * p by omega]
+    have e2 : glClaimAfter 58 (2 * p) (.n 57) = .n (57 + 78 * p) := by
       simp only [glClaimAfter, show 2 * p ≠ 0 by omega, ↓reduceIte]
-      rw [show 59 + 40 * (2 * p) - 1 = 58 + 80 * p by omega]
+      rw [show 58 + 39 * (2 * p) - 1 = 57 + 78 * p by omega]
     rw [e1, e2, show 4 * (2 * p) = 8 * p by ring, ← c, ← m]
     exact ⟨tbCapAt_glCap (off := 0) (fun k hk => by simpa using hc k hk), l1, l2⟩
 
 /-- **The loop's call**, on `qrow = pt·g^(2p)` and `nqrow = qrow·g^42`. -/
 theorem gl_loopCall {p : ℕ} (hp : p < 4) {nm : String}
     (h : Stmt.HoldsList C rd σ (glLoopCall p nm) True kret) :
-    1 + σ (.n 3) ≠ 0 → C nm [1, σ (.n 3), σ (.n 54), σ (.n 53) * gen ^ (2 * p),
-      σ (.n 53) * gen ^ (2 * p) * gen ^ 42, σ (.n 7)] [] := by
+    1 + σ (.n 3) ≠ 0 → C nm [1, σ (.n 3), σ (.n 53), σ (.n 52) * gen ^ (2 * p),
+      σ (.n 52) * gen ^ (2 * p) * gen ^ 42, σ (.n 7)] [] := by
   rcases Nat.eq_zero_or_pos p with rfl | hp1
   · simp only [glLoopCall, ↓reduceIte, glLoopCall0, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
       List.map_cons, List.map_nil] at h
@@ -188,15 +186,15 @@ theorem gl_loopCall {p : ℕ} (hp : p < 4) {nm : String}
 
 /-- **The tail's pointers** and the last record's loads. -/
 theorem gl_tailSetup {p : ℕ} (hp4 : p < 4) (h : Stmt.HoldsList C rd σ (glTailSetup p) True kret) :
-    σ (.n (68 + glD p)) = σ (.n 53) * gen ^ (2 * p) * σ (.n 3) ^ 8 ∧
-      σ (.n (71 + glD p)) = σ (.n (68 + glD p)) * gen ^ 42 ∧
-      TbCapAt rd (σ (.n 54) * σ (.n 3)) 0 gkCap ((glCap (72 + glD p)).map σ) ∧
-      LoadHolds rd (σ (.n 54) * σ (.n 3)) (5 * gkCap) (σ (.n (77 + glD p))) ∧
-      LoadHolds rd (σ (.n 54) * σ (.n 3)) (6 * gkCap) (σ (.n (78 + glD p))) := by
-  have hloads : ∀ w, Stmt.HoldsList C rd σ (glTailLoads p w) True kret → σ (.n w) = σ (.n 54) * σ (.n 3) →
-      TbCapAt rd (σ (.n 54) * σ (.n 3)) 0 gkCap ((glCap (72 + glD p)).map σ) ∧
-      LoadHolds rd (σ (.n 54) * σ (.n 3)) (5 * gkCap) (σ (.n (77 + glD p))) ∧
-      LoadHolds rd (σ (.n 54) * σ (.n 3)) (6 * gkCap) (σ (.n (78 + glD p))) := by
+    σ (.n (67 + glD p)) = σ (.n 52) * gen ^ (2 * p) * σ (.n 3) ^ 8 ∧
+      σ (.n (70 + glD p)) = σ (.n (67 + glD p)) * gen ^ 42 ∧
+      TbCapAt rd (σ (.n 53) * σ (.n 3)) 0 gkCap ((glCap (71 + glD p)).map σ) ∧
+      LoadHolds rd (σ (.n 53) * σ (.n 3)) (5 * gkCap) (σ (.n (76 + glD p))) ∧
+      LoadHolds rd (σ (.n 53) * σ (.n 3)) (6 * gkCap) (σ (.n (77 + glD p))) := by
+  have hloads : ∀ w, Stmt.HoldsList C rd σ (glTailLoads p w) True kret → σ (.n w) = σ (.n 53) * σ (.n 3) →
+      TbCapAt rd (σ (.n 53) * σ (.n 3)) 0 gkCap ((glCap (71 + glD p)).map σ) ∧
+      LoadHolds rd (σ (.n 53) * σ (.n 3)) (5 * gkCap) (σ (.n (76 + glD p))) ∧
+      LoadHolds rd (σ (.n 53) * σ (.n 3)) (6 * gkCap) (σ (.n (77 + glD p))) := by
     intro w hl hw
     simp only [glTailLoads, tb_holdsList_append_noRet (tb_noRetList_mapAtoms 5 _),
       tb_holdsList_mapAtoms] at hl
@@ -213,7 +211,7 @@ theorem gl_tailSetup {p : ℕ} (hp4 : p < 4) (h : Stmt.HoldsList C rd σ (glTail
     have hD : glD 0 = 0 := rfl
     simp only [hD, Nat.add_zero, Nat.mul_zero, pow_zero, mul_one]
     refine ⟨by rw [m68, m67, m66, m65]; ring, by rw [m71, m70, c69, m68, m67]; ring,
-      hloads 64 hl m64⟩
+      hloads 63 hl m64⟩
   · have hp0 : p ≠ 0 := by omega
     simp only [glTailSetup, hp0, ↓reduceIte, glTailSetupP, holdsList_append, Stmt.HoldsList,
       Stmt.Holds, Atom.Holds] at h
@@ -221,7 +219,7 @@ theorem gl_tailSetup {p : ℕ} (hp4 : p < 4) (h : Stmt.HoldsList C rd σ (glTail
     rw [tb_word_two_pow (by omega)] at c4 c7
     obtain ⟨hcap, hcur, hcl⟩ := hloads _ hl m0
     rw [glD_pos hp0] at hcap hcur hcl ⊢
-    rw [show 68 + (80 * p + 6) = 74 + 80 * p by omega, show 71 + (80 * p + 6) = 77 + 80 * p by omega]
+    rw [show 67 + (78 * p + 6) = 73 + 78 * p by omega, show 70 + (78 * p + 6) = 76 + 78 * p by omega]
     refine ⟨?_, ?_, hcap, hcur, hcl⟩
     · rw [m6, m5, c4, m3, m2, m1]; ring
     · rw [m9, m8, c7, m6, m5, c4, m3, m2, m1, pow_add]

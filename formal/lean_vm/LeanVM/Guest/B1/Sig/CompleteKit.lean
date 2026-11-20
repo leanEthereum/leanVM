@@ -119,7 +119,6 @@ theorem cwBase_lt (W : WotsT) {G q : Nat} (target : E) (d0 : V) (b : Nat) (hq : 
   have hend := groupT_end W (3 * G) 1 false (cwState W b G).1 (cwState W b G).2.1 (cwState W b G).2.2
   rw [codewordT_snd]
   rw [groupStart_eq] at hend
-  simp only [Bool.false_eq_true, ↓reduceIte] at hend
   omega
 
 theorem cwPos_lt (W : WotsT) {G : Nat} {K : Nat → Nat} (target : E) (d0 : V) (b : Nat) (hG : 0 < G)
@@ -139,7 +138,6 @@ theorem cwPos_lt (W : WotsT) {G : Nat} {K : Nat → Nat} (target : E) (d0 : V) (
     rw [hn3] at hj
     have hend := groupT_end W (3 * G) 1 false (cwState W b G).1 (cwState W b G).2.1 (cwState W b G).2.2
     rw [groupStart_eq] at hend
-    simp only [Bool.false_eq_true, ↓reduceIte] at hend
     omega
   · have h1 : i / 3 = G := by omega
     have h2 : i % 3 = 0 := by omega
@@ -191,7 +189,6 @@ theorem codewordT_numBelow {W : WotsT} {B : Nat} (hW : StepShape W B) {G : Nat} 
     (show B ≤ (cwState W b G).2.2 by omega) hpiG heiG (fun j => (hpw j).mono' (by omega))
   have hendL := groupT_end W (3 * G) 1 false (cwState W b G).1 (cwState W b G).2.1 (cwState W b G).2.2
   rw [groupStart_eq] at hendL
-  simp only [Bool.false_eq_true, ↓reduceIte] at hendL
   rw [valsList_append, valsList_append]
   refine ((hnbG.mono (by omega)).append (hnbL.mono (by omega))).append ?_
   intro x hx
@@ -200,9 +197,9 @@ theorem codewordT_numBelow {W : WotsT} {B : Nat} (hW : StepShape W B) {G : Nat} 
   rcases hx with rfl | rfl | rfl | rfl | rfl
   · obtain ⟨j, hj, rfl⟩ := hd0
     exact ⟨j, by omega, rfl⟩
-  · exact ⟨_, by rw [groupStart_eq]; simp only [Bool.false_eq_true, ↓reduceIte]; omega, rfl⟩
+  · exact ⟨_, by rw [groupStart_eq]; omega, rfl⟩
   · exact ⟨_, by omega, rfl⟩
-  · exact ⟨_, by rw [groupStart_eq]; simp only [Bool.false_eq_true, ↓reduceIte]; omega, rfl⟩
+  · exact ⟨_, by rw [groupStart_eq]; omega, rfl⟩
   · exact ⟨_, by omega, rfl⟩
 
 theorem cwTip_lt (W : WotsT) {G : Nat} (target : E) (d0 : V) (b : Nat) (hG : 0 < G) {i : Nat}
@@ -212,7 +209,6 @@ theorem cwTip_lt (W : WotsT) {G : Nat} (target : E) (d0 : V) (b : Nat) (hG : 0 <
   have hs := (slot_bounds W (i / 3 == 0) (cwState W b (i / 3)).2.2 (i % 3) 2 (by norm_num)).2
   have hendL := groupT_end W (3 * G) 1 false (cwState W b G).1 (cwState W b G).2.1 (cwState W b G).2.2
   rw [groupStart_eq] at hendL
-  simp only [Bool.false_eq_true, ↓reduceIte] at hendL
   rcases Nat.lt_or_ge (i / 3) G with hq | hq
   · have hle := cwState_le W b (i / 3 + 1) (G - (i / 3 + 1))
     rw [show i / 3 + 1 + (G - (i / 3 + 1)) = G by omega] at hle
@@ -226,7 +222,6 @@ theorem cwTip_lt (W : WotsT) {G : Nat} (target : E) (d0 : V) (b : Nat) (hG : 0 <
     have hfG : (G == 0) = false := by simp; omega
     rw [h1, h2, hfG] at hs ⊢
     rw [groupStart_eq] at hs
-    simp only [Bool.false_eq_true, ↓reduceIte] at hs
     omega
 
 theorem kBlocks_end (pad : Nat) (cs : List KC) (B : Nat) (tailRun : Bool) (n : Nat) :

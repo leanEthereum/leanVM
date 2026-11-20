@@ -127,7 +127,7 @@ theorem interp_potential2 {α : Type} (P : D → Prop) (hP : ∀ x, P x → mode
                 (endValue payoff out.2 + pay * digestCount tg out.1.2.2.1 + pay2 * fleafCount IsFleaf out.1.2.2.1)
             ≤ ∑' result, Pr{let x ← costStep model input state}[x = result] *
                 (Φ (budget - sourceCost input) result.2 + c) := by
-              refine ENNReal.tsum_le_tsum fun result => ?_
+              refine tsum_le_tsum fun result => ?_
               by_cases hr : result ∈ support (costStep model input state)
               · refine mul_le_mul_right ?_ _
                 have hallowed := allowed_of_prepared initial model input state (hprep state hstate)
@@ -145,7 +145,7 @@ theorem interp_potential2 {α : Type} (P : D → Prop) (hP : ∀ x, P x → mode
                           pay2 * fleafCount IsFleaf out.1.2.2.1) +
                       (∑' out, Pr{let x ← (interp tg initial model (next result.1)
                         (budget - sourceCost input) result.2)}[x = out]) * c := by
-                      rw [← ENNReal.tsum_mul_right, ← ENNReal.tsum_add]
+                      rw [← ENNReal.tsum_mul_right, ← tsum_add]
                       refine tsum_congr fun out => ?_
                       rw [hc]
                       ring
@@ -156,7 +156,7 @@ theorem interp_potential2 {α : Type} (P : D → Prop) (hP : ∀ x, P x → mode
               · rw [(prEvent_eq_zero_of_not_mem_support _) hr, zero_mul, zero_mul]
           _ = ∑' result, Pr{let x ← costStep model input state}[x = result] * Φ (budget - sourceCost input) result.2 +
                 (∑' result, Pr{let x ← costStep model input state}[x = result]) * c := by
-              rw [← ENNReal.tsum_mul_right, ← ENNReal.tsum_add]
+              rw [← ENNReal.tsum_mul_right, ← tsum_add]
               refine tsum_congr fun result => ?_
               ring
           _ ≤ ∑' result, Pr{let x ← costStep model input state}[x = result] * Φ (budget - sourceCost input) result.2 +

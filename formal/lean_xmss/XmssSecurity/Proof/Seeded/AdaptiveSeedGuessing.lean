@@ -55,8 +55,8 @@ theorem probEvent_random_cache_change_le {hit : HashInput → MasterSeed → Pro
   calc
     _ ≤ Pr{let x ← sampleMasterSeed >>= fun _ => (simulateQ romImpl computation).run' cache}[event x] +
         Pr{let x ← sampleMasterSeed >>= stopped}[x = none] := by
-      simp only [OracleComp.prEvent_bind_eq_tsum, OracleComp.prEvent_bind_eq_tsum, ← ENNReal.tsum_add]
-      exact ENNReal.tsum_le_tsum fun seed =>
+      simp only [OracleComp.prEvent_bind_eq_tsum, OracleComp.prEvent_bind_eq_tsum, ← tsum_add]
+      exact tsum_le_tsum fun seed =>
         (mul_le_mul' le_rfl (probEvent_cache_change_le (fun input => hit input seed)
           computation (initial seed) cache (hagree seed) event)).trans_eq (mul_add ..)
     _ ≤ _ := by

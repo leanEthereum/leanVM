@@ -36,8 +36,8 @@ namespace Spec
 
 variable {P : VerifierProgram Bool} {εmax L : ENNReal}
 
-/-- The escape probability of a group is at most the potential. -/
-theorem esc_le (S : Spec P (fun _ ↦ False) (fun b _ ↦ b = false) εmax L 0) :
+/-- The escape probability of a group is at most the potential, whatever the postcondition. -/
+theorem esc_le {Q : Bool → List Ev → Prop} (S : Spec P (fun _ ↦ False) Q εmax L 0) :
     ∀ (q : VerifierProgram Bool) {l : List Ev}, P.Reachable l → P.after l = some q →
       esc (S.D []) l q ≤ S.V [] l
   | .ret true, l, hl, ha => by
@@ -79,7 +79,7 @@ theorem esc_le (S : Spec P (fun _ ↦ False) (fun b _ ↦ b = false) εmax L 0) 
 
 open Classical in
 /-- The escape bound of the certificate: the potential at a reachable boundary in doom. -/
-noncomputable def certε (S : Spec P (fun _ ↦ False) (fun b _ ↦ b = false) εmax L 0)
+noncomputable def certε {Q : Bool → List Ev → Prop} (S : Spec P (fun _ ↦ False) Q εmax L 0)
     (h : List Ev) : ENNReal :=
   if P.Reachable h ∧ Boundary h ∧ S.D [] h then S.V [] h else 0
 
@@ -139,6 +139,41 @@ theorem toCertOfLead_bound (S : Spec P (fun h ↦ h = []) (fun b _ ↦ b = false
     (hL : L ≤ εmax) (h : List Ev) :
     (2 : ENNReal)⁻¹ ^ grindBits h * S.toCertOfLead.ε h ≤ εmax :=
   S.ofStart.toCert_bound (fun _ ↦ (S.start_V [] rfl).trans hL) h
+
+/-! ## With an acceptance predicate -/
+
+section G
+
+variable {G : List Ev → Prop}
+
+/-- **The doom certificate of a specification whose returns in doom reject or satisfy `G`**. -/
+noncomputable def toCertG (S : Spec P (fun _ ↦ False) (fun b h ↦ b = false ∨ G h) εmax L 0) :
+    CertG P G where
+  D := S.D []
+  ε := certε S
+  read x hl ha hD := S.read x (reach_nil_iff.2 hl) ha hD
+  grind hl ha hD := S.grind (reach_nil_iff.2 hl) ha hD
+  commit word hl ha hw hD := S.commit word (reach_nil_iff.2 hl) ha hw hD
+  group {h p} hl hb ha _ hD := by
+    have hc : P.Reachable h ∧ Boundary h ∧ S.D [] h := ⟨hl, hb, hD⟩
+    simp only [certε, hc]
+    exact esc_le S p hl ha
+  final hl ha hD := by simpa using S.post (reach_nil_iff.2 hl) ha hD
+
+/-- **The certificate's bound** of `toCertG`, given the bound of the start group. -/
+theorem toCertG_bound (S : Spec P (fun _ ↦ False) (fun b h ↦ b = false ∨ G h) εmax L 0)
+    (hstart : S.D [] [] → S.V [] [] ≤ εmax) (h : List Ev) :
+    (2 : ENNReal)⁻¹ ^ grindBits h * S.toCertG.ε h ≤ εmax := by
+  change (2 : ENNReal)⁻¹ ^ grindBits h * certε S h ≤ εmax
+  unfold certε
+  split_ifs with hc
+  · obtain ⟨hl, hb, hD⟩ := hc
+    rcases eq_or_ne h [] with rfl | hne
+    · simpa [grindBits] using hstart hD
+    · exact S.bound (reach_nil_iff.2 hl) hne ((endsMove_iff_boundary hne).2 hb) hD
+  · simp
+
+end G
 
 end Spec
 

@@ -213,11 +213,11 @@ theorem gw_f2_map {α β : Type} {R : α → β → Prop} {F : ℕ → α} {G : 
 /-! ## `gkr_layer__L{p}_L{o}` -/
 
 /-- The value the loop's guard adds `x_m` to (`1`). -/
-def glOne (p : ℕ) : ℕ := if p = 0 then 59 else 61 + 80 * p
+def glOne (p : ℕ) : ℕ := if p = 0 then 58 else 60 + 78 * p
 
 /-- The loop's arguments past the start and end. -/
 def glLRest (p : ℕ) : List V :=
-  if p = 0 then [.n 54, .n 53, .n 63, .n 7] else [.n 54, .n (65 + 80 * p), .n (67 + 80 * p), .n 7]
+  if p = 0 then [.n 53, .n 52, .n 62, .n 7] else [.n 53, .n (64 + 78 * p), .n (66 + 78 * p), .n 7]
 
 /-- `gkr_layer__L{p}_L{o}`'s checks: its loop call from `σ (glOne p + 2) = 1` below `x_m`, guarded
 by `σ (glOne p + 1) = 1 + x_m`. -/

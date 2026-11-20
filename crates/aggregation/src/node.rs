@@ -9,11 +9,11 @@ use super::guest::{fs_seed, unified_guest};
 #[cfg(test)]
 use super::hints::FORGE;
 use super::hints::{Hints, lean_sphincs_hints, lean_xmss_hints};
-use super::proof::{AggregateClaims, AggregateProof, OutputClaims, is_sorted};
+use super::proof::{AggregateProof, is_sorted};
 use super::statement::{
     lean_sphincs_claim_cells, lean_xmss_claim_cells, list_chain_cells, list_split, statement_digest,
 };
-use super::{MAX_LOG_INV_RATE, MAX_RECURSIONS, MIN_LOG_INV_RATE};
+use super::{AggregateClaims, MAX_LOG_INV_RATE, MAX_RECURSIONS, MIN_LOG_INV_RATE, OutputClaims};
 use fiat_shamir_prover::merkle::hash_to_scalars;
 use isa::{Prover, Stats};
 use lean_da::CELLS_PER_ROW;

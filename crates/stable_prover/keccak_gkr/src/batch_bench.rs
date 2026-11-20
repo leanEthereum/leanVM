@@ -1,7 +1,7 @@
 //! The standalone batch benchmark of the `hash_batch` bench target and the tests: witness, commitment, reduction and
 //! opening of `n` random permutations, then verification. Where a pass's time goes is its span tree.
 
-use bench::{Metric, Plan, Timing, bencher_json};
+use bench_harness::{Metric, Plan, Timing, bencher_json};
 use isa::pretty_integer;
 use pcs::Committed;
 use primitives::field::{F64, F128Unreduced};
@@ -32,7 +32,7 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
     let inputs: Vec<[u64; STATE_LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
 
     let (proof, prove) = plan.warm_then_measure(|final_pass| {
-        let _quiet = (!final_pass).then(bench::suppress_tracing);
+        let _quiet = (!final_pass).then(bench_harness::suppress_tracing);
         let _span = tracing::info_span!("Keccak GKR prove", n).entered();
         let mut committed = vec![F64(0); 1 << shape.stack_log()];
         let witness = tracing::info_span!("Witness").in_scope(|| Witness::generate(shape, &inputs, &mut committed));

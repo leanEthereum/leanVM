@@ -12,6 +12,7 @@ module
 public import LeanVM.Guest.EndFinal
 public import LeanVM.Guest.Complete
 public import LeanVM.Protocol.LeanVMRpm
+public import LeanVM.Protocol.KnowledgeSoundness
 public import Statement.LeanVmGuest
 public import Statement.Corollaries
 public import Common.Transfer

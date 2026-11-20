@@ -31,13 +31,13 @@ open LeanVM.Protocol.KeccakGkr Finset
 @[expose] public section
 
 /-- **What the weight section must compute**: from the claim's record and the local point (at
-`loc`, `o + 746`, its lane weights at `laneW o`), the weight value is the claim's weights against
+`loc`, `o + 745`, its lane weights at `laneW o`), the weight value is the claim's weights against
 the local point's equality weights. -/
 def WeightOk (first o : ℕ) : Prop :=
   ∀ (C : CallRel) (rd : Reader) (σ : Val) (c : KeccakClaim) (y : ℕ) (locPt : List E)
     (next : Prop) (kret : List E → Prop),
     ClaimRec rd (first = 1) (σ (.n 11)) c y → locPt.length = 11 →
-    ReadsAt rd (σ (.n (o + 746))) locPt →
+    ReadsAt rd (σ (.n (o + 745))) locPt →
     (∀ i < 25, σ (.n (laneW o i)) = eqAt (locPt.drop 6) i) →
     Stmt.HoldsList C rd σ (weightT first o) next kret →
     σ (.n (weightVal first o)) = dot ((eqKernel locPt).take keccakBits) c.weights ∧ next
@@ -52,7 +52,7 @@ theorem weightOk_one (o : ℕ) : WeightOk 1 o := by
   rw [← loadHolds_unique hl3 hlp] at hlanes
   obtain ⟨hv, hn⟩ := lanesEqT_holds (fl := locPt.drop 6) hf hlanes hlen hloc hlocL h
   refine ⟨?_, hn⟩
-  rw [show weightVal 1 o = o + 1189 + 109 by simp [weightVal], hv, hw,
+  rw [show weightVal 1 o = o + 1177 + 109 by simp [weightVal], hv, hw,
     firstWeight_eq locPt lanes hlocL]
 
 theorem fsNext_load {cur : V} {off b : ℕ} {next : Prop} {kret : List E → Prop} {C : CallRel}
@@ -102,8 +102,8 @@ theorem layer_sound {first : ℕ} (hf : first < 2) (hW : WeightOk first (layOff 
       rw [List.getD_eq_getElem ((prodTab first).map _) _ (by simp [hl]; omega), List.getElem_map,
         List.getD_eq_getElem (prodTab first) _ (by omega)]) hb
   obtain ⟨hhor, hb⟩ := hb
-  have e717 : σ (.n (o + 717)) =
-      polyEval ((prodTab first).map fun p ↦ σ (.n p.a)) (σ (.n (o + 544))) := hhor
+  have e717 : σ (.n (o + 716)) =
+      polyEval ((prodTab first).map fun p ↦ σ (.n p.a)) (σ (.n (o + 531))) := hhor
   clear hhor
   have hprodL : ((prodTab first).map fun p ↦ σ (.n p.a)).length = productBits := by simp [hl]; rfl
   generalize (prodTab first).map (fun p ↦ σ (.n p.a)) = prod at hrd hproj hsq e717 hprodL hgrind
@@ -114,7 +114,7 @@ theorem layer_sound {first : ℕ} (hf : first < 2) (hW : WeightOk first (layOff 
   replace hb := lastT_holds hb
   obtain ⟨e739, hlastR, hb⟩ := hb
   -- the local rounds
-  replace hb := localRounds_run (cap := (cap5 (o + 739)).map σ) rfl 11 (by omega) hb
+  replace hb := localRounds_run (cap := (cap5 (o + 738)).map σ) rfl 11 (by omega) hb
   obtain ⟨⟨msgs, hmL, hmR, hlocR, hvR, hcapR⟩, hb⟩ := hb
   simp only [Nat.reduceAdd, Nat.reduceMul, Nat.reduceSub, Nat.add_assoc] at hvR hcapR
   -- `t`
@@ -128,7 +128,7 @@ theorem layer_sound {first : ℕ} (hf : first < 2) (hW : WeightOk first (layOff 
   -- the lane weights of the local point
   replace hb := eqfT_holds (by omega) (by omega) (by decide) (by decide) hb
   obtain ⟨⟨rs, hrsL, hrs, hent⟩, hb⟩ := hb
-  generalize hlp : (localRunF msgs (σ (.n (o + 745))) ⟨(cap5 (o + 739)).map σ, []⟩).1.1 = locPt
+  generalize hlp : (localRunF msgs (σ (.n (o + 744))) ⟨(cap5 (o + 738)).map σ, []⟩).1.1 = locPt
     at hlocR
   have hlocL : locPt.length = 11 := by rw [← hlp, localRunF_length, hmL]
   have hrs6 : rs = locPt.drop 6 := by
@@ -149,7 +149,7 @@ theorem layer_sound {first : ℕ} (hf : first < 2) (hW : WeightOk first (layOff 
   generalize weightVal first o = WV at hb hwv
   replace hb := tailT_holds hlocL hlocR hf' p1 p2 p3 hb
   obtain ⟨hfinal, hbeta, hout0, hout2, hout4, hout3, hlanes, hout5, hflips, hret⟩ := hb
-  have hk625 : σ (.n (o + 625)) = sumE (keccakInstanceWeights (σ (.n (o + 544)))) :=
+  have hk625 : σ (.n (o + 624)) = sumE (keccakInstanceWeights (σ (.n (o + 531)))) :=
     loadHolds_unique hkap hkapOut
   rw [e739, e727] at hlastR
   have W : LayerW first rd (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) (σ (.n 3)) (σ (.n 4)) (σ (.n 7))
@@ -161,35 +161,35 @@ theorem layer_sound {first : ℕ} (hf : first < 2) (hW : WeightOk first (layOff 
       nonce := σ (.n (nonceV first))
       hnonce := hnl
       hgrind := hgrind
-      sv := σ (.n (o + 544))
+      sv := σ (.n (o + 531))
       capS := (cap5 (o + 539)).map σ
       hsq := hsq
       hmuOut := hmuOut
       hkapOut := hkapOut
-      rc := σ (.n (o + 720))
-      pt := σ (.n (o + 719))
-      pp := σ (.n (o + 718))
+      rc := σ (.n (o + 719))
+      pt := σ (.n (o + 718))
+      pp := σ (.n (o + 717))
       hpp := hpp
       tb := σ (.n 14)
       h0 := by rw [← e717, show productBits + 1 = 48 from rfl]; exact hrec0
       hloop := ⟨hik, hloopC⟩
       hrem := ⟨hik', hremC⟩
-      capL := (cap5 (o + 739)).map σ
-      curL := σ (.n (o + 744))
-      vL := σ (.n (o + 745))
+      capL := (cap5 (o + 738)).map σ
+      curL := σ (.n (o + 743))
+      vL := σ (.n (o + 744))
       hlast := hlastR
       msgs := msgs
       hmsgsL := hmL
       hmsgs := hmR
-      loc := σ (.n (o + 746))
+      loc := σ (.n (o + 745))
       locPt := locPt
-      vR := σ (.n (o + 1109))
-      capR := (cap5 (o + 1096)).map σ
+      vR := σ (.n (o + 1097))
+      capR := (cap5 (o + 1085)).map σ
       hlocal := Prod.ext (Prod.ext hlp hvR) hcapR
       hloc := hlocR
-      t0 := σ (.n (o + 1110))
-      t1 := σ (.n (o + 1113))
-      t2 := σ (.n (o + 1116))
+      t0 := σ (.n (o + 1098))
+      t1 := σ (.n (o + 1101))
+      t2 := σ (.n (o + 1104))
       ht := by
         rw [readsAt_gen_pow_mul]
         intro k hk
@@ -199,13 +199,13 @@ theorem layer_sound {first : ℕ} (hf : first < 2) (hW : WeightOk first (layOff 
         · exact lt1
         · exact lt2
       hfin := by rw [← hk625, ← hwv]; exact hfinal
-      beta := σ (.n (WE + 21))
+      beta := σ (.n (WE + 8))
       capB := (cap5 (WE + 16)).map σ
       hbeta := hbeta
       hout0 := hout0
       hout2 := hout2
       hout4 := hout4
-      lo := σ (.n (WE + 26))
+      lo := σ (.n (WE + 25))
       fl := σ (.n (topV WE + 3))
       hout3 := hout3
       hlanes := hlanes

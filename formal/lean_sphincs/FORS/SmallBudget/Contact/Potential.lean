@@ -38,9 +38,9 @@ attribute [local instance] Classical.propDecidable
 
 theorem tsum_min_leF {α : Type} (mx : ProbComp α) (X : α → ℝ≥0∞) :
     ∑' a, Pr{let x ← mx}[x = a] * min 1 (X a) ≤ min 1 (∑' a, Pr{let x ← mx}[x = a] * X a) := by
-  refine le_min ?_ (ENNReal.tsum_le_tsum fun a => mul_le_mul_right (min_le_right _ _) _)
+  refine le_min ?_ (tsum_le_tsum fun a => mul_le_mul_right (min_le_right _ _) _)
   calc ∑' a, Pr{let x ← mx}[x = a] * min 1 (X a) ≤ ∑' a, Pr{let x ← mx}[x = a] * 1 :=
-        ENNReal.tsum_le_tsum fun a => mul_le_mul_right (min_le_left _ _) _
+        tsum_le_tsum fun a => mul_le_mul_right (min_le_left _ _) _
     _ = ∑' a, Pr{let x ← mx}[x = a] := by simp only [mul_one]
     _ ≤ 1 := (OracleComp.tsum_prEvent_le_one _)
 
@@ -62,7 +62,7 @@ theorem pairE_sum_range (n : ℕ) (F : (DigestCall → HashOutput) → ℕ → �
     pairE (fun a => ∑ j ∈ Finset.range n, F a j) = ∑ j ∈ Finset.range n, pairE fun a => F a j := by
   unfold pairE
   simp only [Finset.mul_sum]
-  rw [Summable.tsum_finsetSum (fun _ _ => ENNReal.summable)]
+  rw [Summable.tsum_finsetSum (fun _ _ => CompleteLattice.summable)]
 
 /-! ### The potential -/
 

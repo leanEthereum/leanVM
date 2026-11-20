@@ -254,7 +254,7 @@ theorem oqVal_cost (hP : Includes P Decoder.oqValC.costDeps) (F : ℕ) (hF : F <
   have := oqRK_cost P hs (by includes) F hF (s.folds - 1) (by have := hs.2.1; omega)
   have := oqRK_le hs F (s.folds - 1)
   have := hs.2.1
-  rw [Decoder.oqValC.costEq P hP, Auto.LeanVM.Guest.B1.oqAcc.c858.costEq P (by includes)]
+  rw [Decoder.oqValC.costEq P hP, Auto.LeanVM.Guest.B1.oqAcc.c409.costEq P (by includes)]
   unfold oqRO
   limbs_one; omega
 
@@ -277,18 +277,19 @@ theorem oqResN_cost (hP : Includes P Decoder.oqResNC.costDeps) (hf : s.final = 0
 theorem oqEnd_cost (hP : Includes P Decoder.oqEndC.costDeps) (hf : s.final = 0) (b : ℕ)
     (hb : b < 2 ^ 21) (emit : Bool) :
     machineCost P Decoder.oqEndC.costIdx
-      [encodeValue s, encodeValue b, encodeValue emit] ≤ 282 := by
+      [encodeValue s, encodeValue b, encodeValue emit] ≤ 287 := by
   have := oqResN_cost P hs (by includes) hf b hb emit
   have := oqRes_le hs hf b emit
   have := oqCh_lt hs b hb emit
   rw [Decoder.oqEndC.costEq P hP]
+  simp only [hf, Nat.zero_ne_one, ↓reduceIte]
   limbs_one; omega
 
 theorem oqE1_lt : oqE1 s < 2 ^ 20 := hs.2.2.2.2.2.2.2.2
 
-/-- The second query's first value at level 0 (`oqE1C`): at most `286`. -/
+/-- The second query's first value at level 0 (`oqE1C`): at most `291`. -/
 theorem oqE1_cost (hP : Includes P Decoder.oqE1C.costDeps) (hb : s.base = 1) :
-    machineCost P Decoder.oqE1C.costIdx [encodeValue s] ≤ 286 := by
+    machineCost P Decoder.oqE1C.costIdx [encodeValue s] ≤ 291 := by
   have := oqEnd_cost P hs (by includes) (hs.2.2.2.2.2.1 hb) 16 (by norm_num) true
   rw [Decoder.oqE1C.costEq P hP]
   omega
@@ -541,11 +542,11 @@ theorem digestOfCells640_cost (hP : Includes P Decoder.digestOfCellsWC.costDeps)
   omega
 
 omit hrd hR in
-/-- A bit (`testBit.c211`), of a word: at most `9`. -/
-theorem testBit_cost (hP : Includes P Auto.Nat.testBit.c211.costDeps) (q l : ℕ) (hq : q < 2 ^ 64)
+/-- A bit (`testBit.c108`), of a word: at most `9`. -/
+theorem testBit_cost (hP : Includes P Auto.Nat.testBit.c108.costDeps) (q l : ℕ) (hq : q < 2 ^ 64)
     (hl : l < 2 ^ 64) :
-    machineCost P Auto.Nat.testBit.c211.costIdx [encodeValue q, encodeValue l] ≤ 9 := by
-  rw [Auto.Nat.testBit.c211.costEq P hP]
+    machineCost P Auto.Nat.testBit.c108.costIdx [encodeValue q, encodeValue l] ≤ 9 := by
+  rw [Auto.Nat.testBit.c108.costEq P hP]
   have h1 : q >>> l ≤ q := Nat.shiftRight_le q l
   have h2 : 1 &&& q >>> l ≤ 1 := Nat.and_le_left
   limbs_one
@@ -1196,7 +1197,7 @@ variable {σ : Val} {σV : MachineValue}
   {cl : E → E → ℕ} {clV : MachineValue}
   (hcl : ∀ a b : E, RunsApp P clV [encodeValue a, encodeValue b] (encodeValue (cl a b)))
   {C : ℕ} (hC : ∀ a b : E, appCost P clV [encodeValue a, encodeValue b] ≤ C)
-  {L : ℕ} (hL : cl (σ (.n 25)) (σ (.n 1919)) ≤ L) (hL32 : L ≤ 2 ^ 32)
+  {L : ℕ} (hL : cl (σ (.n 25)) (σ (.n 1885)) ≤ L) (hL32 : L ≤ 2 ^ 32)
 include hσ hS hVn hF hcl hC hL hL32
 
 omit hrd hR hVn hF hcl hC hL hL32 in
@@ -1228,10 +1229,10 @@ theorem vsPiOfAt_cost (hP : Includes P Decoder.vsPiOfAtC.costDeps) (T : WhirTabs
     machineCost P Decoder.vsPiOfAtC.costIdx
       [encodeValue T, rdV, σV, VnV, clV, encodeValue j, frV] ≤ vsAtPrice R S F C L := by
   rw [Decoder.vsPiOfAtC.costEq P hP T rd rdV hrd σ σV hσ Vn VnV hVn cl clV hcl j fr frV hfr]
-  have := hS (.n 25); have := hS (.n 1919); have := hfrS (.n 9)
-  have := hC (σ (.n 25)) (σ (.n 1919))
+  have := hS (.n 25); have := hS (.n 1885); have := hfrS (.n 9)
+  have := hC (σ (.n 25)) (σ (.n 1885))
   have hl := hL
-  have hw1 := wordsFrom_cost P hrd hR (by includes) (cl (σ (.n 25)) (σ (.n 1919)))
+  have hw1 := wordsFrom_cost P hrd hR (by includes) (cl (σ (.n 25)) (σ (.n 1885)))
     ((σ (.n 25)).limb 0) (by omega)
   have := Nat.mul_le_mul_left (R + 56) hl
   have hwd := hT.words j
@@ -1239,7 +1240,7 @@ theorem vsPiOfAt_cost (hP : Includes P Decoder.vsPiOfAtC.costDeps) (T : WhirTabs
     (by omega)
   have := Nat.mul_le_mul_left (R + 56) hwd
   have ha := append_cost P (by includes)
-    (wordsFrom rd ((σ (.n 25)).limb 0) (cl (σ (.n 25)) (σ (.n 1919))))
+    (wordsFrom rd ((σ (.n 25)).limb 0) (cl (σ (.n 25)) (σ (.n 1885))))
     (wordsFrom rd ((fr (.n 9)).limb 0) (T.words.getD j 0))
   rw [length_wordsFrom] at ha
   obtain ⟨hcl7, hcok⟩ := hT.calls j

@@ -24,7 +24,7 @@ def auto(s):
     return False
 air = []
 for p in range(LO, HI):
-    m = re.match(r'\.atom \(\.mul \(\.n 2545\) \(\.n (\d+)\) \(\.n (2[8-9]|3[0-3])\)\)$', ir[p])
+    m = re.match(r'\.atom \(\.mul \(\.n 2544\) \(\.n (\d+)\) \(\.n (2[8-9]|3[0-3])\)\)$', ir[p])
     if m: air.append((p, int(m.group(1)), int(m.group(2)) - 28))
 assert [a[2] for a in air] == list(range(6))
 evs = {}  # cursor read position -> k

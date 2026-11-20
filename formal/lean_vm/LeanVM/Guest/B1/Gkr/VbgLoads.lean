@@ -36,11 +36,11 @@ theorem vbg_mem {s : Stmt} (h : vbgEvL.any (fun t ↦ tbStmtsEqb [s] [t]) = true
 /-- The pointer and offset classes of `vbgEvL`'s loads. -/
 def vbgLoadOk : Stmt → Bool
   | .atom (.load _ (.n p) off) =>
-      (p == 5 && decide (off < 14)) || ((p == 174 && decide (off < 10)) ||
+      (p == 5 && decide (off < 14)) || ((p == 173 && decide (off < 10)) ||
         ((p == 18 && decide (off < 42)) ||
-        (((p == 64 || p == 66 || p == 67) && decide (off < 33)) ||
-        (((p == 166 || p == 399 || p == 401) && off == 0) ||
-        ((p == 413 && decide (off < 10)) || (p == 427 && decide (off < 3)))))))
+        (((p == 63 || p == 65 || p == 66) && decide (off < 33)) ||
+        (((p == 165 || p == 395 || p == 397) && off == 0) ||
+        ((p == 409 && decide (off < 10)) || (p == 423 && decide (off < 3)))))))
   | .atom (.load ..) => false
   | _ => true
 
@@ -56,9 +56,9 @@ theorem vbg_ptrs (hσ : σ = B1.Val.ofArgs (ev rd W args vbgEvL))
     {layers rounds rows odd bnd rem vals : E}
     (hW : W = vbgW layers rounds rows odd bnd rem vals) :
     σ (.n 5) = cur ∧ σ (.n 6) = gen ^ depth ∧ σ (.n 15) = gen ^ (10 * (depth + 2)) ∧
-      σ (.n 16) = layers ∧ σ (.n 17) = rounds ∧ σ (.n 18) = rows ∧ σ (.n 64) = odd ∧
-      σ (.n 66) = bnd ∧ σ (.n 67) = rem ∧ σ (.n 166) = odd * gen ^ depth ∧
-      σ (.n 399) = bnd * gen ^ depth ∧ σ (.n 401) = rem * gen ^ depth ∧ σ (.n 427) = vals := by
+      σ (.n 16) = layers ∧ σ (.n 17) = rounds ∧ σ (.n 18) = rows ∧ σ (.n 63) = odd ∧
+      σ (.n 65) = bnd ∧ σ (.n 66) = rem ∧ σ (.n 165) = odd * gen ^ depth ∧
+      σ (.n 395) = bnd * gen ^ depth ∧ σ (.n 397) = rem * gen ^ depth ∧ σ (.n 423) = vals := by
   obtain ⟨c', hc'⟩ := Option.isSome_iff_exists.mp vb_chk
   have hl : args.length = 10 := by rw [hargs]; simp [hcl]
   have par : ∀ i < 10, σ (.n i) = args.getD i 0 := fun i hi ↦ by
@@ -86,17 +86,17 @@ theorem vbg_ptrs (hσ : σ = B1.Val.ofArgs (ev rd W args vbgEvL))
     rw [al (.hint (.alloc (.n 17) 6034)) 17 (by decide +kernel) rfl, hW]; simp [vbgW]
   have e18 : σ (.n 18) = rows := by
     rw [al (.hint (.alloc (.n 18) 1640)) 18 (by decide +kernel) rfl, hW]; simp [vbgW]
-  have e64 : σ (.n 64) = odd := by
-    rw [al (.hint (.alloc (.n 64) 33)) 64 (by decide +kernel) rfl, hW]; simp [vbgW]
-  have e66 : σ (.n 66) = bnd := by
+  have e64 : σ (.n 63) = odd := by
+    rw [al (.hint (.alloc (.n 63) 33)) 63 (by decide +kernel) rfl, hW]; simp [vbgW]
+  have e66 : σ (.n 65) = bnd := by
+    rw [al (.hint (.alloc (.n 65) 33)) 65 (by decide +kernel) rfl, hW]; simp [vbgW]
+  have e67 : σ (.n 66) = rem := by
     rw [al (.hint (.alloc (.n 66) 33)) 66 (by decide +kernel) rfl, hW]; simp [vbgW]
-  have e67 : σ (.n 67) = rem := by
-    rw [al (.hint (.alloc (.n 67) 33)) 67 (by decide +kernel) rfl, hW]; simp [vbgW]
-  have e427 : σ (.n 427) = vals := by
-    rw [al (.hint (.alloc (.n 427) 3)) 427 (by decide +kernel) rfl, hW]; simp [vbgW]
-  have m166 := mul 166 64 6 (by decide +kernel) (by omega) (by omega)
-  have m399 := mul 399 66 6 (by decide +kernel) (by omega) (by omega)
-  have m401 := mul 401 67 6 (by decide +kernel) (by omega) (by omega)
+  have e427 : σ (.n 423) = vals := by
+    rw [al (.hint (.alloc (.n 423) 3)) 423 (by decide +kernel) rfl, hW]; simp [vbgW]
+  have m166 := mul 165 63 6 (by decide +kernel) (by omega) (by omega)
+  have m399 := mul 395 65 6 (by decide +kernel) (by omega) (by omega)
+  have m401 := mul 397 66 6 (by decide +kernel) (by omega) (by omega)
   refine ⟨e5, e6, ?_, e16, e17, e18, e64, e66, e67, by rw [m166, e64, e6], by rw [m399, e66, e6],
     by rw [m401, e67, e6], e427⟩
   rw [m15, m14, m13, m12, m11, e6, c10, ← pow_add, ← pow_add, ← pow_add, ← pow_add, ← pow_add]

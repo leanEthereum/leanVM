@@ -124,7 +124,7 @@ theorem psiF_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateActiv
   simp only [Nat.add_sub_cancel]
   have hmass : ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] = 1 := by simp
   unfold psiF psiCoreF
-  simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right, hmass, one_mul]
+  simp only [mul_add, tsum_add, ENNReal.tsum_mul_right, hmass, one_mul]
   rw [add_right_comm]
   refine add_le_add ?_ (lam_mono le_rfl (Nat.le_succ y))
   by_cases hL : signatureLimit < L.length
@@ -183,13 +183,13 @@ theorem psiF_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateActiv
       _ ≤ _ := add_le_add le_rfl (mul_le_of_le_one_right' hf1le)
   calc _ ≤ ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] *
         (K.wsum (gA R C0) r.2 + coinPotF K data s Ms L y + κ * ν * S) := by
-        refine ENNReal.tsum_le_tsum fun r => ?_
+        refine tsum_le_tsum fun r => ?_
         by_cases hr : r ∈ support (ordinaryStep model x s.known s)
         · exact mul_le_mul_right (hpt r hr) _
         · rw [(prEvent_eq_zero_of_not_mem_support _) hr, zero_mul, zero_mul]
     _ = ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] * K.wsum (gA R C0) r.2 +
           (coinPotF K data s Ms L y + κ * ν * S) := by
-        simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right, hmass, one_mul]
+        simp only [mul_add, tsum_add, ENNReal.tsum_mul_right, hmass, one_mul]
         ring
     _ ≤ (K.wsum (gA R C0) s + ν * C0 * f1) + (coinPotF K data s Ms L y + κ * ν * S) :=
         add_le_add hmean le_rfl

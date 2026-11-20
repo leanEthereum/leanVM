@@ -81,6 +81,11 @@ def vsWinWord : E := word 133823759239872512 0
 /-- `tabs` into `d`: the constant at `c`, then `g_squares · c`. -/
 def vsTabsT (c d : ℕ) : List Stmt := [vsConst c vsWinWord, vsMul d 4 c]
 
+/-- A permutation with nothing waiting (the zero cell `8`, the cells `9 .. 11`), on the capacity
+from `capb`, outputs from `o`: its first output is the challenge. -/
+def vsPermT (capb o : ℕ) : Stmt :=
+  keccakA ([.n 8, .n 8, .n 8, .n 8, .n 8, .n 9, .n 10, .n 11] ++ vsRun capb 5) (vsRun o 13)
+
 /-- A squeeze with nothing waiting (the zero cell `8`, the cells `9 .. 11`), on the capacity
 from `capb`, outputs from `o`, the challenge at `o + 13`. -/
 def vsSqzT (capb o : ℕ) : List Stmt :=
@@ -165,12 +170,12 @@ def vsOodT : List Stmt :=
   fsNonceT (.n 25) 10 283 ++ zero2T 286 ++
   [keccakA [.n 269, .n 270, .n 272, .n 273, .n 284, .n 285, .n 286, .n 287, .n 263, .n 264,
     .n 265, .n 266, .n 267] (vsRun 288 13)] ++ vsTabsT 301 302 ++
-  [grindCallT 15 (.n 289) (.n 302), vsCopy 303 288, vsAlloc 304 30,
-    .dispatch (.n 278) vsSqpNames [.n 296, .n 297, .n 298, .n 299, .n 300, .n 303, .n 304]
-      (vsRun 305 5),
-    vsAlloc 310 1, vsConst 311 (word 2048 0), vsMul 312 25 311,
-    vsCall "opening_message__L1_L1" [305, 306, 307, 308, 309, 312, 310]
-      ((List.range 8).map (313 + ·))]
+  [grindCallT 15 (.n 289) (.n 302), vsAlloc 303 30,
+    .dispatch (.n 278) vsSqpNames [.n 296, .n 297, .n 298, .n 299, .n 300, .n 288, .n 303]
+      (vsRun 304 5),
+    vsAlloc 309 1, vsConst 310 (word 2048 0), vsMul 311 25 310,
+    vsCall "opening_message__L1_L1" [304, 305, 306, 307, 308, 311, 309]
+      ((List.range 8).map (312 + ·))]
 
 /-- `INV_GEN^BUS_MIN_MU = g^-20`. -/
 def vsGinvBus : E := word 14347465658197868555 0
@@ -184,44 +189,46 @@ def vsBgNames : List String :=
 
 /-- The bus grind: `g^(μ - 20)` below `g^13`, its check dispatched on it. -/
 def vsBusGrindT : List Stmt :=
-  [vsConst 321 vsGinvBus, vsMul 322 253 321, vsConst 323 (word 8192 0),
-    vsRange 322 324 325 326 323] ++ vsTabsT 327 328 ++
-  [.dispatch (.n 322) vsBgNames [.n 314, .n 328] [.n 329]]
+  [vsConst 320 vsGinvBus, vsMul 321 253 320, vsConst 322 (word 8192 0),
+    vsRange 321 323 324 325 322] ++ vsTabsT 326 327 ++
+  [.dispatch (.n 321) vsBgNames [.n 313, .n 327] [.n 328]]
+
+/-- The capacity's first value before slot weight `i + 1`'s permutation. -/
+def vsFpwCap (i : ℕ) : ℕ := if i = 0 then 329 else 330 + 13 * i
 
 /-- The sixteen slot weights, the first `opening_message`'s, then `β`. -/
 def vsFpwT : List Stmt :=
-  (List.range 5).map (fun i ↦ vsCopy (330 + i) (315 + i)) ++ [vsAlloc 335 16, vsLd 313 335 0] ++
-  (List.range 15).flatMap (fun i ↦ vsSqzT (330 + 14 * i) (336 + 14 * i) ++
-    [vsLd (349 + 14 * i) 335 (i + 1)]) ++ vsSqzT 540 546
+  (List.range 5).map (fun i ↦ vsCopy (329 + i) (314 + i)) ++ [vsAlloc 334 16, vsLd 312 334 0] ++
+  (List.range 15).flatMap (fun i ↦ [vsPermT (vsFpwCap i) (335 + 13 * i),
+    vsLd (335 + 13 * i) 334 (i + 1)]) ++ [vsPermT 525 530]
 
 /-- The bus's GKR, the tables, the Keccak reduction. -/
 def vsCallsT : List Stmt :=
-  vsTabsT 560 561 ++
-  [vsCall "verify_bus_gkr" [554, 555, 556, 557, 558, 320, 253, 254, 561, 25] ((List.range 7).map (562 + ·)),
-    vsAlloc 569 34, vsAlloc 570 4] ++ vsTabsT 571 572 ++
-  [vsCall "verify_tables" [562, 563, 564, 565, 566, 567, 0, 1, 254, 253, 71, 26, 4, 335, 559, 6,
-      569, 568, 572, 570, 25] ((List.range 10).map (573 + ·)),
-    vsLd 583 71 6, vsAlloc 584 78, vsAlloc 585 64, vsConst 586 (word 3710851743744 0),
-    vsMul 587 582 586] ++ vsTabsT 588 589 ++
-  [vsCall "verify_keccak" [573, 574, 575, 576, 577, 578, 583, 569, 587, 584, 585, 589, 25]
-      ((List.range 7).map (590 + ·))]
+  vsTabsT 543 544 ++
+  [vsCall "verify_bus_gkr" [538, 539, 540, 541, 542, 319, 253, 254, 544, 25] ((List.range 7).map (545 + ·)),
+    vsAlloc 552 34, vsAlloc 553 4] ++ vsTabsT 554 555 ++
+  [vsCall "verify_tables" [545, 546, 547, 548, 549, 550, 0, 1, 254, 253, 71, 26, 4, 334, 530, 6,
+      552, 551, 555, 553, 25] ((List.range 10).map (556 + ·)),
+    vsLd 566 71 6, vsAlloc 567 78, vsAlloc 568 64, vsConst 569 (word 3710851743744 0),
+    vsMul 570 565 569] ++ vsTabsT 571 572 ++
+  [vsCall "verify_keccak" [556, 557, 558, 559, 560, 561, 566, 552, 570, 567, 568, 572, 25]
+      ((List.range 7).map (573 + ·))]
 
 /-- The value of the ring map's challenge `i`. -/
-def vsCh (i : ℕ) : ℕ := 621 + 15 * i
+def vsCh (i : ℕ) : ℕ := 603 + 14 * i
 
 /-- The capacity's first value before the ring map's squeeze `i` (`i < 15`). -/
-def vsChCap (i : ℕ) : ℕ := if i = 0 then 613 else 615 + 15 * i
+def vsChCap (i : ℕ) : ℕ := if i = 0 then 596 else 598 + 14 * i
 
 /-- The ring map's sixteen challenges: a grind's nonce absorbed, the first drawn by its
 permutation, fifteen squeezed, then stored in `map_challenges`. -/
 def vsMapsT : List Stmt :=
-  (List.range 5).map (fun i ↦ vsCopy (597 + i) (590 + i)) ++ fsNonceT (.n 595) 0 602 ++
-  [keccakA [.n 603, .n 604, .n 8, .n 8, .n 8, .n 9, .n 10, .n 11, .n 597, .n 598, .n 599, .n 600,
-    .n 601] (vsRun 605 13)] ++ vsTabsT 618 619 ++
-  [grindCallT 13 (.n 606) (.n 619), vsCopy 620 605, vsCopy 621 620] ++
-  (List.range 15).flatMap (fun i ↦ vsSqzT (vsChCap i) (622 + 15 * i) ++
-    [vsCopy (vsCh (i + 1)) (635 + 15 * i)]) ++
-  vsAlloc 847 16 :: (List.range 16).map (fun i ↦ vsLd (vsCh i) 847 i)
+  (List.range 5).map (fun i ↦ vsCopy (580 + i) (573 + i)) ++ fsNonceT (.n 578) 0 585 ++
+  [keccakA [.n 586, .n 587, .n 8, .n 8, .n 8, .n 9, .n 10, .n 11, .n 580, .n 581, .n 582, .n 583,
+    .n 584] (vsRun 588 13)] ++ vsTabsT 601 602 ++
+  [grindCallT 13 (.n 589) (.n 602), vsCopy 603 588] ++
+  (List.range 15).flatMap (fun i ↦ vsSqzT (vsChCap i) (604 + 14 * i)) ++
+  vsAlloc 814 16 :: (List.range 16).map (fun i ↦ vsLd (vsCh i) 814 i)
 
 /-- The squarings of `c_table`'s term `q + 1` in block `b` (from `s`), from the previous power. -/
 def vsSqT (b s q : ℕ) : List Stmt :=
@@ -230,44 +237,44 @@ def vsSqT (b s q : ℕ) : List Stmt :=
     let x := if k = 0 then (if q = 0 then vsCh (8 + b) else t - 2) else t + k - 1
     vsMul (t + k) x x
 
-/-- Block `b` of `c_table` (from `s = 849 + 64 b`): `c[8p + b] = f_p · g_b^(2^(8p))`. -/
+/-- Block `b` of `c_table` (from `s = 816 + 64 b`): `c[8p + b] = f_p · g_b^(2^(8p))`. -/
 def vsCtabBlock (b : ℕ) : List Stmt :=
-  let s := 849 + 64 * b
-  [vsMul s (vsCh 0) (vsCh (8 + b)), vsLd s 848 b] ++
+  let s := 816 + 64 * b
+  [vsMul s (vsCh 0) (vsCh (8 + b)), vsLd s 815 b] ++
   (List.range 7).flatMap fun q ↦
     let t := s + 1 + 9 * q
-    vsSqT b s q ++ [vsMul (t + 8) (vsCh (q + 1)) (t + 7), vsLd (t + 8) 848 (8 * (q + 1) + b)]
+    vsSqT b s q ++ [vsMul (t + 8) (vsCh (q + 1)) (t + 7), vsLd (t + 8) 815 (8 * (q + 1) + b)]
 
 /-- `c_table`, then `ring_switch_target`. -/
 def vsCtabT : List Stmt :=
-  vsAlloc 848 64 :: (List.range 8).flatMap vsCtabBlock ++
-    [vsCall "ring_switch_target" [585, 847] [1361]]
+  vsAlloc 815 64 :: (List.range 8).flatMap vsCtabBlock ++
+    [vsCall "ring_switch_target" [568, 814] [1328]]
 
 /-- The pooled claim of the `i`-th batched one: the output lanes' `105 .. 129` are left out. -/
 def vsKept (i : ℕ) : ℕ := if i < 105 then i else i + 25
 
 /-- Where pooled claim `j`'s value is: the bus's `4` and the public input's `2` in `claim_pool`
-(`6`), the tables' `153` column evaluations at `col_eval_words` (`582`), from `j - 4`. -/
-def vsClaimAt (j : ℕ) : ℕ × ℕ := if 4 ≤ j ∧ j < 157 then (582, j - 4) else (6, j)
+(`6`), the tables' `153` column evaluations at `col_eval_words` (`565`), from `j - 4`. -/
+def vsClaimAt (j : ℕ) : ℕ × ℕ := if 4 ≤ j ∧ j < 157 then (565, j - 4) else (6, j)
 
-/-- The power of `λ` before batched claim `i`. -/
-def vsPw (i : ℕ) : ℕ := 1375 + 4 * i
+/-- The power of `λ` before batched claim `i`: `λ` itself (`1329`) before the first. -/
+def vsPw (i : ℕ) : ℕ := if i = 0 then 1329 else 1341 + 4 * i
 
 /-- The target before batched claim `i`. -/
-def vsTg (i : ℕ) : ℕ := if i = 0 then 1361 else 1374 + 4 * i
+def vsTg (i : ℕ) : ℕ := if i = 0 then 1328 else 1340 + 4 * i
 
 /-- Batched claim `i`: its value read, the target and the power updated. -/
 def vsLamStep (i : ℕ) : List Stmt :=
-  [vsLd (1376 + 4 * i) (vsClaimAt (vsKept i)).1 (vsClaimAt (vsKept i)).2,
-    vsMul (1377 + 4 * i) (vsPw i) (1376 + 4 * i), vsAdd (1378 + 4 * i) (vsTg i) (1377 + 4 * i),
-    vsMul (1379 + 4 * i) (vsPw i) 1375]
+  [vsLd (1342 + 4 * i) (vsClaimAt (vsKept i)).1 (vsClaimAt (vsKept i)).2,
+    vsMul (1343 + 4 * i) (vsPw i) (1342 + 4 * i), vsAdd (1344 + 4 * i) (vsTg i) (1343 + 4 * i),
+    vsMul (1345 + 4 * i) (vsPw i) 1329]
 
 /-- The batching challenge, the target: the `134` pooled claims, the Keccak reduction's, the
 out-of-domain value. -/
 def vsLamT : List Stmt :=
-  vsSqzT 840 1362 ++ (List.range 134).flatMap vsLamStep ++
-    [vsMul 1912 1911 596, vsAdd 1913 1910 1912, vsMul 1914 1911 1375, vsLd 1915 310 0,
-      vsMul 1916 1914 1915, vsAdd 1917 1913 1916]
+  vsPermT 808 1329 :: (List.range 134).flatMap vsLamStep ++
+    [vsMul 1878 1877 579, vsAdd 1879 1876 1878, vsMul 1880 1877 1329, vsLd 1881 309 0,
+      vsMul 1882 1880 1881, vsAdd 1883 1879 1882]
 
 /-- `open_stacked`'s specializations, in dispatch order. -/
 def vsOpenNames : List String :=
@@ -278,16 +285,16 @@ def vsOpenNames : List String :=
 /-- The dispatch to `open_stacked` on the stack's size `size_sel`, the rate `rate_sel` its first
 argument, the terminal, the deferred claim. -/
 def vsTailT : List Stmt :=
-  [vsConst 1918 (word 2 0), vsMul 1919 595 1918] ++ vsTabsT 1920 1921 ++
+  [vsConst 1884 (word 2 0), vsMul 1885 578 1884] ++ vsTabsT 1886 1887 ++
   [.dispatch (.n 278) vsOpenNames
-      [.n 66, .n 1370, .n 1371, .n 1372, .n 1373, .n 1374, .n 1917, .n 268, .n 271, .n 1919,
-        .n 1921]
-      (vsRun 1922 5),
-    vsCall "check_opening_terminal" [4, 254, 569, 581, 253, 579, 72, 583, 83, 1375, 275, 584, 848,
-      1923, 1924, 1925, 1926, 1922, 304, 276] []] ++
-  (List.range 19).flatMap (fun k ↦ [vsLd (1927 + k) 254 k, vsLd (1927 + k) 5 k]) ++
-  (List.range 4).flatMap (fun k ↦ [vsLd (1946 + k) 570 k, vsLd (1946 + k) 5 (19 + k)]) ++
-  [vsLd 580 5 23, .ret []]
+      [.n 66, .n 1337, .n 1338, .n 1339, .n 1340, .n 1341, .n 1883, .n 268, .n 271, .n 1885,
+        .n 1887]
+      (vsRun 1888 5),
+    vsCall "check_opening_terminal" [4, 254, 552, 564, 253, 562, 72, 566, 83, 1329, 275, 567, 815,
+      1889, 1890, 1891, 1892, 1888, 303, 276] []] ++
+  (List.range 19).flatMap (fun k ↦ [vsLd (1893 + k) 254 k, vsLd (1893 + k) 5 k]) ++
+  (List.range 4).flatMap (fun k ↦ [vsLd (1912 + k) 553 k, vsLd (1912 + k) 5 (19 + k)]) ++
+  [vsLd 563 5 23, .ret []]
 
 /-- **`verify_sub`'s body as a template.** -/
 def vsT : List Stmt :=

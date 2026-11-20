@@ -72,7 +72,7 @@ theorem gl_loop_step {p o : ℕ} (hp : p < 4) (ho : o < 2) {N head qrow nqrow ta
   · rw [← m6, show σ (.n 3) * σ (.n 0) ^ 8 = σ (.n 10) by rw [m10, e9]]
     refine glOut_of_run (tbCapAt_glCap (off := 0) (fun k hk => by simpa using hcap k hk))
       (by exact l17) (by exact l18) R (tbCapAt_glCap (fun k hk => hcap' k hk)) ?_ (by exact l338)
-    rw [show σ (.n 17) * gen ^ (4 * 8) = σ (.n 340) by rw [m340, c339]]
+    rw [show σ (.n 17) * gen ^ (4 * 8) = σ (.n 332) by rw [m340, c339]]
     exact l340
   · have := hnext (by rw [a343, m342, c341]; exact hne)
     rw [m345, c344] at this

@@ -35,7 +35,7 @@ open LeanVM.Protocol.Verifier (gen)
 
 /-- The terminal's call arguments in `verify_sub`. -/
 def termArgsV : List V :=
-  [4, 254, 569, 581, 253, 579, 72, 583, 83, 1375, 275, 584, 848, 1923, 1924, 1925, 1926, 1922, 304, 276].map .n
+  [4, 254, 552, 564, 253, 562, 72, 566, 83, 1329, 275, 567, 815, 1889, 1890, 1891, 1892, 1888, 303, 276].map .n
 
 end
 

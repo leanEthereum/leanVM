@@ -49,7 +49,7 @@ def VbgQ (J : Inst) : Prop :=
   ∀ σ bufs kids, J.t = .node name% «verify_bus_gkr» σ bufs kids → σ (.n 5) = σ (.n 9) * gen ^ 13
 
 /-- `verify_bus_gkr`'s call arguments in `verify_sub`. -/
-def vbgArgsV : List V := [554, 555, 556, 557, 558, 320, 253, 254, 561, 25].map .n
+def vbgArgsV : List V := [538, 539, 540, 541, 542, 319, 253, 254, 544, 25].map .n
 
 /-- **`gkr_layers__L{o}`'s depth and root slot**: `n_four = g^n`, `rem_g = g^r`, `start_g = g^(2 - o)`,
 the root-most slot's cursor `q ≤ 27` words into the stream. -/
