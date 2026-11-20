@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerCG
 public import LeanVM.Guest.B1.KeccakGkr.FlatF
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
 /-!
 # A layer's placement facts
@@ -46,8 +48,8 @@ theorem layerT_pre (first : ℕ) : layerT first = layerPre first ++ [.ret (layer
 
 theorem layer_fn {first : ℕ} (hf : first < 2) :
     ∃ fn, coreProgram.find? (layerName first) = some fn ∧ fn.body = layerT first ∧
-      fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12,
-        .n 13, .n 14, .n 15] := by
+      fn.params = [.n (valf% «keccak_layer» "fs0"), .n (valf% «keccak_layer» "fs1"), .n (valf% «keccak_layer» "fs2"), .n (valf% «keccak_layer» "fs3"), .n (valf% «keccak_layer» "fs4"), .n (valf% «keccak_layer» "p0"), .n (valf% «keccak_layer» "p1"), .n (valf% «keccak_layer» "cursor@1"), .n (valf% «keccak_layer» "y_g"), .n (valf% «keccak_layer» "step_g"), .n (valf% «keccak_layer» "rem_g"), .n (valf% «keccak_layer» "claim"), .n (valf% «keccak_layer» "out"),
+        .n (valf% «keccak_layer» "iota"), .n (valf% «keccak_layer» "tabs"), .n (valf% «keccak_layer» "stream")] := by
   interval_cases first
   · exact ⟨_, find_layer265, layer_body265, rfl⟩
   · exact ⟨_, find_layer264, layer_body264, rfl⟩

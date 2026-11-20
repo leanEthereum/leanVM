@@ -10,6 +10,8 @@ public import LeanVM.Guest.B1.KeccakGkr.VkCA
 public import LeanVM.Guest.B1.KeccakGkr.VkFirst
 public import LeanVM.Guest.B1.KeccakGkr.EqTreeC
 public import LeanVM.Guest.B1.KeccakGkr.StoreFacts
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # The first claim's record, completely
@@ -75,53 +77,53 @@ set_option maxRecDepth 20000 in
 /-- **The first claim's record, completely.** -/
 theorem vkFirst_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ s ∈ vkFirstT, GoodS rd vkSt w σ s)
     {chis outs rl : List E} {r0 : E} (h4 : 4 ≤ chis.length)
-    (hzv : ∀ i < 4, LoadHolds rd (σ (.n 9)) i (chis.getD i 0))
-    (hrlL : rl.length = 5) (hrl : ∀ i < 5, LoadHolds rd (σ (.n 87)) i (rl.getD i 0))
-    (hseg : LoadHolds rd (σ (.n 68)) 0 r0) (houts : outs.length = 25)
-    (hol : ReadsAt rd (σ (.n 8)) outs)
+    (hzv : ∀ i < 4, LoadHolds rd (σ (.n (val% «verify_keccak» "z_vals"))) i (chis.getD i 0))
+    (hrlL : rl.length = 5) (hrl : ∀ i < 5, LoadHolds rd (σ (.n (val% «verify_keccak» "r_lane"))) i (rl.getD i 0))
+    (hseg : LoadHolds rd (σ (.n (val% «verify_keccak» "segment"))) 0 r0) (houts : outs.length = 25)
+    (hol : ReadsAt rd (σ (.n (val% «verify_keccak» "output_lanes"))) outs)
     (hT203 : ∀ t, 1 ≤ t → t ≤ 4 → ∀ i < 2 ^ t,
-      LoadHolds rd (σ (.n 158)) (2 ^ t - 2 + i) ((eqKernel ((chis.take 4).take t)).getD i 0))
+      LoadHolds rd (σ (.n (val% «verify_keccak» "mu_tree"))) (2 ^ t - 2 + i) ((eqKernel ((chis.take 4).take t)).getD i 0))
     (hT274 : ∀ t, 1 ≤ t → t ≤ 5 → ∀ i < 2 ^ t,
-      LoadHolds rd (σ (.n 229)) (2 ^ t - 2 + i) ((eqKernel (rl.take t)).getD i 0))
-    (hT382 : ∀ i < 2, LoadHolds rd (σ (.n 337)) i ((eqKernel [r0]).getD i 0)) :
-    σ (.n 157) = 1 ∧ σ (.n 336) = σ (.n 229) * gen ^ 30 ∧
+      LoadHolds rd (σ (.n (val% «verify_keccak» "lane_tree"))) (2 ^ t - 2 + i) ((eqKernel (rl.take t)).getD i 0))
+    (hT382 : ∀ i < 2, LoadHolds rd (σ (.n (val% «verify_keccak» "segment_tree"))) i ((eqKernel [r0]).getD i 0)) :
+    σ (.n (val% «verify_keccak» "s32#0")) = 1 ∧ σ (.n (val% «verify_keccak» "s40#1")) = σ (.n (val% «verify_keccak» "lane_tree")) * gen ^ 30 ∧
     (∀ i < 16, σ (.n (213 + i)) = (eqKernel (chis.take 4)).getD i 0) ∧
-    σ (.n 442) = σ (.n 153) + (eqKernel [r0]).getD 1 0 *
+    σ (.n (val% «verify_keccak» "s45#2")) = σ (.n (val% «verify_keccak» "x@1")) + (eqKernel [r0]).getD 1 0 *
       ∑ k ∈ range 25, (eqKernel rl).getD k 0 * outs.getD k 0 ∧
     ∀ {next : Prop} {kret : List E → Prop},
-      LoadHolds rd (σ (.n 156)) 1 (σ (.n 157)) → LoadHolds rd (σ (.n 156)) 2 (σ (.n 62)) →
-      (∀ i < 16, LoadHolds rd (σ (.n 156)) (6 + i) (σ (.n (213 + i)))) →
-      LoadHolds rd (σ (.n 156)) 3 (σ (.n 336)) → LoadHolds rd (σ (.n 156)) 0 (σ (.n 442)) →
+      LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) 1 (σ (.n (val% «verify_keccak» "s32#0"))) → LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) 2 (σ (.n (val% «verify_keccak» "point"))) →
+      (∀ i < 16, LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) (6 + i) (σ (.n (213 + i)))) →
+      LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) 3 (σ (.n (val% «verify_keccak» "s40#1"))) → LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) 0 (σ (.n (val% «verify_keccak» "s45#2"))) →
       next → Stmt.HoldsList C rd σ vkFirstT next kret := by
   obtain ⟨k1, k2, k3, k4, k5, k7, k8, k9⟩ := vkFirst_kernel
   have gA : ∀ a, Stmt.atom a ∈ vkFirstT → Good rd vkSt w σ a := fun a h ↦ hg _ h
-  have mE1 : ∀ s ∈ eqtreeT (.n 9) (.n 158) 0 159 4, s ∈ vkFirstT := fun s hs ↦ by
+  have mE1 : ∀ s ∈ eqtreeT (.n (val% «verify_keccak» "z_vals")) (.n (val% «verify_keccak» "mu_tree")) 0 159 4, s ∈ vkFirstT := fun s hs ↦ by
     rw [vkFirstT]; exact (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _ hs))))))))
-  have mCW : ∀ s ∈ copyWordsT (.n 158) (.n 156) 14 6 213 16, s ∈ vkFirstT := fun s hs ↦ by
+  have mCW : ∀ s ∈ copyWordsT (.n (val% «verify_keccak» "mu_tree")) (.n (val% «verify_keccak» "claims")) 14 6 213 16, s ∈ vkFirstT := fun s hs ↦ by
     rw [vkFirstT]; exact (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _ hs)))))))
-  have mE2 : ∀ s ∈ eqtreeT (.n 87) (.n 229) 0 230 5, s ∈ vkFirstT := fun s hs ↦ by
+  have mE2 : ∀ s ∈ eqtreeT (.n (val% «verify_keccak» "r_lane")) (.n (val% «verify_keccak» "lane_tree")) 0 230 5, s ∈ vkFirstT := fun s hs ↦ by
     rw [vkFirstT]; exact (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _ hs)))))
-  have mE3 : ∀ s ∈ eqtreeT (.n 68) (.n 337) 0 338 1, s ∈ vkFirstT := fun s hs ↦ by
+  have mE3 : ∀ s ∈ eqtreeT (.n (val% «verify_keccak» "segment")) (.n (val% «verify_keccak» "segment_tree")) 0 338 1, s ∈ vkFirstT := fun s hs ↦ by
     rw [vkFirstT]; exact (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _ hs)))
   have mPD : ∀ s ∈ vkFirstPD, s ∈ vkFirstT := fun s hs ↦ by
     rw [vkFirstT]; exact (List.mem_append_left _ (List.mem_append_right _ hs))
   -- the atoms
-  have c202 : σ (.n 157) = word 1 0 := gA ((.const (.n 157) (word 1 0))) (by simp [vkFirstT])
-  have c380 : σ (.n 335) = word 1073741824 0 :=
-    gA ((.const (.n 335) (word 1073741824 0))) (by simp [vkFirstT])
+  have c202 : σ (.n (val% «verify_keccak» "s32#0")) = word 1 0 := gA ((.const (.n (val% «verify_keccak» "s32#0")) (word 1 0))) (by simp [vkFirstT])
+  have c380 : σ (.n (val% «verify_keccak» "s40#0")) = word 1073741824 0 :=
+    gA ((.const (.n (val% «verify_keccak» "s40#0")) (word 1073741824 0))) (by simp [vkFirstT])
   have m381 := mulG (by norm_num) (by norm_num)
-    (gA ((.mul (.n 336) (.n 229) (.n 335))) (by simp [vkFirstT]))
-  have g485 : Good rd vkSt w σ (.load (.n 440) (.n 337) 1) :=
-    gA ((.load (.n 440) (.n 337) 1)) (by simp [vkFirstT])
+    (gA ((.mul (.n (val% «verify_keccak» "s40#1")) (.n (val% «verify_keccak» "lane_tree")) (.n (val% «verify_keccak» "s40#0")))) (by simp [vkFirstT]))
+  have g485 : Good rd vkSt w σ (.load (.n (val% «verify_keccak» "s45#0")) (.n (val% «verify_keccak» "segment_tree")) 1) :=
+    gA ((.load (.n (val% «verify_keccak» "s45#0")) (.n (val% «verify_keccak» "segment_tree")) 1)) (by simp [vkFirstT])
   have m486 := mulG (by norm_num) (by norm_num)
-    (gA ((.mul (.n 441) (.n 440) (.n 439))) (by simp [vkFirstT]))
-  have a487 : σ (.n 442) = σ (.n 153) + σ (.n 441) :=
-    gA ((.add (.n 442) (.n 153) (.n 441))) (by simp [vkFirstT])
-  have e202 : σ (.n 157) = 1 := by rw [c202, word_one]
-  have e381 : σ (.n 336) = σ (.n 229) * gen ^ 30 := by rw [m381, c380, word_2p30]
+    (gA ((.mul (.n (val% «verify_keccak» "s45#1")) (.n (val% «verify_keccak» "s45#0")) (.n (val% «verify_keccak» "output@25")))) (by simp [vkFirstT]))
+  have a487 : σ (.n (val% «verify_keccak» "s45#2")) = σ (.n (val% «verify_keccak» "x@1")) + σ (.n (val% «verify_keccak» "s45#1")) :=
+    gA ((.add (.n (val% «verify_keccak» "s45#2")) (.n (val% «verify_keccak» "x@1")) (.n (val% «verify_keccak» "s45#1")))) (by simp [vkFirstT])
+  have e202 : σ (.n (val% «verify_keccak» "s32#0")) = 1 := by rw [c202, word_one]
+  have e381 : σ (.n (val% «verify_keccak» "s40#1")) = σ (.n (val% «verify_keccak» "lane_tree")) * gen ^ 30 := by rw [m381, c380, word_2p30]
   -- the trees
   have E1 : ∀ {next : Prop} {kret : List E → Prop}, next →
-      Stmt.HoldsList C rd σ (eqtreeT (.n 9) (.n 158) 0 159 4) next kret :=
+      Stmt.HoldsList C rd σ (eqtreeT (.n (val% «verify_keccak» "z_vals")) (.n (val% «verify_keccak» "mu_tree")) 0 159 4) next kret :=
     fun hn ↦ eqtree_complete (by norm_num)
       (fun s hs ↦ hg s (mE1 s hs)) (not_mem_of_noneIn k1)
       (rs := chis.take 4) (by simp; omega)
@@ -131,12 +133,12 @@ theorem vkFirst_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ s ∈ vkF
         rw [this, zero_add]; exact hzv t ht)
       hT203 hn
   have E2 : ∀ {next : Prop} {kret : List E → Prop}, next →
-      Stmt.HoldsList C rd σ (eqtreeT (.n 87) (.n 229) 0 230 5) next kret :=
+      Stmt.HoldsList C rd σ (eqtreeT (.n (val% «verify_keccak» "r_lane")) (.n (val% «verify_keccak» "lane_tree")) 0 230 5) next kret :=
     fun hn ↦ eqtree_complete (by norm_num)
       (fun s hs ↦ hg s (mE2 s hs)) (not_mem_of_noneIn k2)
       (rs := rl) hrlL (fun t ht ↦ by rw [zero_add]; exact hrl t ht) hT274 hn
   have E3 : ∀ {next : Prop} {kret : List E → Prop}, next →
-      Stmt.HoldsList C rd σ (eqtreeT (.n 68) (.n 337) 0 338 1) next kret :=
+      Stmt.HoldsList C rd σ (eqtreeT (.n (val% «verify_keccak» "segment")) (.n (val% «verify_keccak» "segment_tree")) 0 338 1) next kret :=
     fun hn ↦ eqtree_complete (by norm_num)
       (fun s hs ↦ hg s (mE3 s hs)) (not_mem_of_noneIn k3)
       (rs := [r0]) rfl (fun t ht ↦ by obtain rfl : t = 0 := by omega
@@ -147,7 +149,7 @@ theorem vkFirst_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ s ∈ vkF
   -- the instance weights copied
   have e258 : ∀ i < 16, σ (.n (213 + i)) = (eqKernel (chis.take 4)).getD i 0 := by
     intro i hi
-    have g : Good rd vkSt w σ (.load (.n (213 + i)) (.n 158) (14 + i)) :=
+    have g : Good rd vkSt w σ (.load (.n (213 + i)) (.n (val% «verify_keccak» "mu_tree")) (14 + i)) :=
       gA _ (mCW _ (by
         simp only [copyWordsT, List.mem_flatten, List.mem_map, List.mem_range]
         exact ⟨_, ⟨i, hi, rfl⟩, by simp⟩))
@@ -183,9 +185,9 @@ theorem vkFirst_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ s ∈ vkF
       exact loadHolds_unique hv (hol k (by omega)))
     (by simp [consecOffs]) (PD (next := True) (kret := fun _ ↦ True) trivial)
   simp only [consecOffs, List.length_map, List.length_range, pairsDotV] at hdot
-  have l485 : LoadHolds rd (σ (.n 337)) 1 ((eqKernel [r0]).getD 1 0) := hT382 1 (by norm_num)
+  have l485 : LoadHolds rd (σ (.n (val% «verify_keccak» "segment_tree"))) 1 ((eqKernel [r0]).getD 1 0) := hT382 1 (by norm_num)
   have e485 := load_val g485 (not_mem_of_noneIn k9 _ (by simp)) l485
-  have e487 : σ (.n 442) = σ (.n 153) + (eqKernel [r0]).getD 1 0 *
+  have e487 : σ (.n (val% «verify_keccak» "s45#2")) = σ (.n (val% «verify_keccak» "x@1")) + (eqKernel [r0]).getD 1 0 *
       ∑ k ∈ range 25, (eqKernel rl).getD k 0 * outs.getD k 0 := by
     rw [a487, m486, e485, hdot]
   refine ⟨e202, e381, e258, e487, fun {next kret} s1 s2 s6 s3 s0 hn ↦ ?_⟩

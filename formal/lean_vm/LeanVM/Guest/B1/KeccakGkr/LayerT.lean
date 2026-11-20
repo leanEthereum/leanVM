@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.KeccakGkr.Prod
 public import LeanVM.Guest.B1.KeccakGkr.LayerRmfe
 public import LeanVM.Guest.B1.KeccakGkr.EqFrame
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
 /-!
 # `keccak_layer` as a template
@@ -101,7 +103,7 @@ def muB (first : ℕ) : ℕ := 21 + 2 * first
 /-- The capacity (and the waiting cells) copied, the instance weights read, the readers. -/
 def headT (first : ℕ) : List Stmt :=
   (List.range (5 + 2 * first)).map (fun i ↦ .atom (.copy (.n (16 + i)) (.n i))) ++
-    (List.range 16).map (fun i ↦ .atom (.load (.n (muB first + i)) (.n 11) (6 + i))) ++
+    (List.range 16).map (fun i ↦ .atom (.load (.n (muB first + i)) (.n (valf% «keccak_layer» "claim")) (6 + i))) ++
     (List.range 111).map fun t ↦ .atom (.add (.n (muB first + 16 + t))
       (.n (muB first + projA.getD t 0)) (.n (muB first + projB.getD t 0)))
 
@@ -223,8 +225,8 @@ def layOff (first : ℕ) : ℕ := 20 * first + 1
 
 /-- The projection plus `ι·κ` against the claim's value. -/
 def checkT (a : ℕ) : List Stmt :=
-  [.atom (.load (.n (a + 1)) (.n 11) 1), .atom (.mul (.n (a + 2)) (.n 13) (.n (a + 1))),
-    .atom (.add (.n (a + 3)) (.n a) (.n (a + 2))), .atom (.load (.n (a + 4)) (.n 11) 0),
+  [.atom (.load (.n (a + 1)) (.n (valf% «keccak_layer» "claim")) 1), .atom (.mul (.n (a + 2)) (.n (valf% «keccak_layer» "iota")) (.n (a + 1))),
+    .atom (.add (.n (a + 3)) (.n a) (.n (a + 2))), .atom (.load (.n (a + 4)) (.n (valf% «keccak_layer» "claim")) 0),
     .atom (.assertEq (.n (a + 3)) (.n (a + 4)))]
 
 /-- The cells of the permutation of the waiting scalars and the nonce (`first = 0`), or of the full
@@ -241,14 +243,14 @@ def sqIns : ℕ → List V
 `layOff first + 531`. -/
 def sqT (first : ℕ) : List Stmt :=
   if first = 1 then
-    [keccakA (sqIns 1) ((List.range 13).map fun k ↦ .n (531 + k))] ++ fsNonceT (.n 7) 47 544 ++
+    [keccakA (sqIns 1) ((List.range 13).map fun k ↦ .n (531 + k))] ++ fsNonceT (.n (valf% «keccak_layer» "cursor@1")) 47 544 ++
       padRunT 547 ++
       [keccakA (permIns 1 [.n 545, .n 546] 548 (cap5 539)) ((List.range 13).map fun k ↦ .n (552 + k)),
-        grindCallT 3 (.n 553) (.n 14)]
+        grindCallT 3 (.n 553) (.n (valf% «keccak_layer» "tabs"))]
   else
-    fsNonceT (.n 7) 47 529 ++
+    fsNonceT (.n (valf% «keccak_layer» "cursor@1")) 47 529 ++
       [keccakA (sqIns 0) ((List.range 13).map fun k ↦ .n (532 + k)),
-        grindCallT 3 (.n 533) (.n 14)]
+        grindCallT 3 (.n 533) (.n (valf% «keccak_layer» "tabs"))]
 
 /-- The product at `s`, Horner from the top coefficient `a 46`, from the value `b`. -/
 def hornerT (a : ℕ → ℕ) (s b : ℕ) : List Stmt :=
@@ -262,34 +264,34 @@ def hornerT (a : ℕ → ℕ) (s b : ℕ) : List Stmt :=
 product and the nonce, the product at `s`), the eight-round loop on `step_g`, and
 the remainder loop on `rem_g` from `rounds·step_g`, `prev_point·step_g⁸`, `point·step_g⁸`. -/
 def packSetupT (o first : ℕ) : List Stmt :=
-  [.atom (.load (.n (o + 717)) (.n 11) 2), .atom (.hint (.allocDyn (.n (o + 718)) (.n 8))),
+  [.atom (.load (.n (o + 717)) (.n (valf% «keccak_layer» "claim")) 2), .atom (.hint (.allocDyn (.n (o + 718)) (.n (valf% «keccak_layer» "y_g")))),
     .atom (.hint (.alloc (.n (o + 719)) 112)),
     .atom (.load (.n (o + 539)) (.n (o + 719)) 0), .atom (.load (.n (o + 540)) (.n (o + 719)) 16),
     .atom (.load (.n (o + 541)) (.n (o + 719)) 32), .atom (.load (.n (o + 542)) (.n (o + 719)) 48),
     .atom (.load (.n (o + 543)) (.n (o + 719)) 64),
     .atom (.const (.n (o + 720)) (word 281474976710656 0)),
-    .atom (.mul (.n (o + 721)) (.n 7) (.n (o + 720))),
+    .atom (.mul (.n (o + 721)) (.n (valf% «keccak_layer» "cursor@1")) (.n (o + 720))),
     .atom (.load (.n (o + 721)) (.n (o + 719)) 80), .atom (.load (.n (o + 716)) (.n (o + 719)) 96),
-    .atom (.const (.n (o + 722)) (word 1 0)), .atom (.add (.n (o + 723)) (.n (o + 722)) (.n 9)),
+    .atom (.const (.n (o + 722)) (word 1 0)), .atom (.add (.n (o + 723)) (.n (o + 722)) (.n (valf% «keccak_layer» "step_g"))),
     .atom (.const (.n (o + 724)) (word 1 0)),
     .callIf (.n (o + 723)) (packLoopName first)
-      [.n (o + 724), .n 9, .n (o + 719), .n (o + 717), .n (o + 718), .n 14],
-    .atom (.mul (.n (o + 725)) (.n (o + 719)) (.n 9)), .atom (.mul (.n (o + 726)) (.n 9) (.n 9)),
+      [.n (o + 724), .n (valf% «keccak_layer» "step_g"), .n (o + 719), .n (o + 717), .n (o + 718), .n (valf% «keccak_layer» "tabs")],
+    .atom (.mul (.n (o + 725)) (.n (o + 719)) (.n (valf% «keccak_layer» "step_g"))), .atom (.mul (.n (o + 726)) (.n (valf% «keccak_layer» "step_g")) (.n (valf% «keccak_layer» "step_g"))),
     .atom (.mul (.n (o + 727)) (.n (o + 726)) (.n (o + 726))),
     .atom (.mul (.n (o + 728)) (.n (o + 727)) (.n (o + 727))),
     .atom (.mul (.n (o + 729)) (.n (o + 717)) (.n (o + 728))),
-    .atom (.mul (.n (o + 730)) (.n 9) (.n 9)),
+    .atom (.mul (.n (o + 730)) (.n (valf% «keccak_layer» "step_g")) (.n (valf% «keccak_layer» "step_g"))),
     .atom (.mul (.n (o + 731)) (.n (o + 730)) (.n (o + 730))),
     .atom (.mul (.n (o + 732)) (.n (o + 731)) (.n (o + 731))),
     .atom (.mul (.n (o + 733)) (.n (o + 718)) (.n (o + 732))),
-    .atom (.const (.n (o + 734)) (word 1 0)), .atom (.add (.n (o + 735)) (.n (o + 734)) (.n 10)),
+    .atom (.const (.n (o + 734)) (word 1 0)), .atom (.add (.n (o + 735)) (.n (o + 734)) (.n (valf% «keccak_layer» "rem_g"))),
     .atom (.const (.n (o + 736)) (word 1 0)),
     .callIf (.n (o + 735)) (remLoopName first)
-      [.n (o + 736), .n 10, .n (o + 725), .n (o + 729), .n 14, .n (o + 733)]]
+      [.n (o + 736), .n (valf% «keccak_layer» "rem_g"), .n (o + 725), .n (o + 729), .n (valf% «keccak_layer» "tabs"), .n (o + 733)]]
 
 /-- The last record (`rounds·step_g·rem_g`) read, the local point allocated. -/
 def lastT (o : ℕ) : List Stmt :=
-  [.atom (.mul (.n (o + 737)) (.n (o + 725)) (.n 10))] ++
+  [.atom (.mul (.n (o + 737)) (.n (o + 725)) (.n (valf% «keccak_layer» "rem_g")))] ++
     (List.range 7).map (fun j ↦ .atom (.load (.n (o + 738 + j)) (.n (o + 737)) (16 * j))) ++
     [.atom (.hint (.alloc (.n (o + 745)) 11))]
 
@@ -494,10 +496,10 @@ def formAll (lp : V) (sh f : ℕ → ℕ) (B : ℕ) : List Stmt × ℕ × ℕ :=
 /-- The weight section. -/
 def weightT (first o : ℕ) : List Stmt :=
   if first = 1 then
-    .atom (.load (.n (o + 1176)) (.n 11) 3) :: lanesEqT (.n (o + 1176)) (.n (o + 745)) (laneW o)
+    .atom (.load (.n (o + 1176)) (.n (valf% «keccak_layer» "claim")) 3) :: lanesEqT (.n (o + 1176)) (.n (o + 745)) (laneW o)
       (o + 1177)
   else
-    [.atom (.load (.n (o + 1176)) (.n 11) 3), .atom (.load (.n (o + 1177)) (.n 11) 4)] ++
+    [.atom (.load (.n (o + 1176)) (.n (valf% «keccak_layer» "claim")) 3), .atom (.load (.n (o + 1177)) (.n (valf% «keccak_layer» "claim")) 4)] ++
       shiftsT (.n (o + 1177)) (.n (o + 745)) (o + 1178) ++
       (formAll (.n (o + 1176)) (shiftsV (o + 1178)) (laneW o) (shiftsEnd (o + 1178))).1
 
@@ -581,16 +583,16 @@ def tailT (o W wv : ℕ) : List Stmt :=
     .atom (.add (.n (W + 22)) (.n (o + 1101)) (.n (W + 21))),
     .atom (.mul (.n (W + 23)) (.n (W + 8)) (.n (W + 22))),
     .atom (.add (.n (W + 24)) (.n (o + 1098)) (.n (W + 23))),
-    .atom (.load (.n (W + 24)) (.n 12) 0), .atom (.load (.n (o + 718)) (.n 12) 2),
-    .atom (.load (.n (o + 745)) (.n 12) 4), .atom (.hint (.alloc (.n (W + 25)) 25))] ++
+    .atom (.load (.n (W + 24)) (.n (valf% «keccak_layer» "out")) 0), .atom (.load (.n (o + 718)) (.n (valf% «keccak_layer» "out")) 2),
+    .atom (.load (.n (o + 745)) (.n (valf% «keccak_layer» "out")) 4), .atom (.hint (.alloc (.n (W + 25)) 25))] ++
   lanesOutT (W + 8) (laneW o) (W + 25) (W + 26) ++
-  [.atom (.load (.n (W + 25)) (.n 12) 3)] ++
+  [.atom (.load (.n (W + 25)) (.n (valf% «keccak_layer» "out")) 3)] ++
   eqfT (.n (o + 745)) 0 5 32 (sliceB W) ++
   [.atom (.load (.n (topV W)) (.n (o + 745)) 5), .atom (.const (.n (topV W + 1)) (word 1 0)),
     .atom (.add (.n (topV W + 2)) (.n (topV W + 1)) (.n (topV W))),
     .atom (.hint (.alloc (.n (topV W + 3)) 7))] ++
   lflipsT W ++
-  [.atom (.load (.n (topV W + 3)) (.n 12) 5)] ++
+  [.atom (.load (.n (topV W + 3)) (.n (valf% «keccak_layer» "out")) 5)] ++
   (List.range 5).map (fun j ↦ .atom (.copy (.n (topV W + 305 + j)) (.n (W + 16 + j)))) ++
   [.atom (.const (.n (topV W + 310)) (word 68719476736 0)),
     .atom (.mul (.n (topV W + 311)) (.n (o + 743)) (.n (topV W + 310))),
@@ -602,7 +604,7 @@ def tailT (o W wv : ℕ) : List Stmt :=
 
 /-- **`keccak_layer__L{first}`'s body.** -/
 def layerT (first : ℕ) : List Stmt :=
-  headT first ++ prodT (.n 7) (muB first) (prodTab first) ++ checkT (accL first) ++
+  headT first ++ prodT (.n (valf% «keccak_layer» "cursor@1")) (muB first) (prodTab first) ++ checkT (accL first) ++
     sqT first ++ rmfeBlockT (layOff first) ++
     hornerT (fun k ↦ ((prodTab first).getD k default).a) (layOff first + 531) (layOff first + 625) ++
     packSetupT (layOff first) first ++ lastT (layOff first) ++

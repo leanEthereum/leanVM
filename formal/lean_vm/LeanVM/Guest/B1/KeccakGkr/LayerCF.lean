@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerCE
 public import LeanVM.Guest.B1.KeccakGkr.LayerCD
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
 /-!
 # The tail, completely
@@ -155,13 +157,13 @@ theorem layer_tail_complete {first : ℕ} (hf : first < 2)
     σ (.n (tW first + 8)) = (tailSq (layOff first) σ).1 ∧
       (cap5 (tW first + 16)).map σ = (tailSq (layOff first) σ).2.cap ∧
       ∀ {next : Prop} {kret : List E → Prop},
-        LoadHolds rd (σ (.n 12)) 0 (σ (.n (layOff first + 1098)) + (tailSq (layOff first) σ).1 *
+        LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 0 (σ (.n (layOff first + 1098)) + (tailSq (layOff first) σ).1 *
           (σ (.n (layOff first + 1101)) + (tailSq (layOff first) σ).1 * σ (.n (layOff first + 1104)))) →
-        LoadHolds rd (σ (.n 12)) 2 (σ (.n (layOff first + 718))) →
-        LoadHolds rd (σ (.n 12)) 4 (σ (.n (layOff first + 745))) →
-        LoadHolds rd (σ (.n 12)) 3 (σ (.n (tW first + 25))) →
+        LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 2 (σ (.n (layOff first + 718))) →
+        LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 4 (σ (.n (layOff first + 745))) →
+        LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 3 (σ (.n (tW first + 25))) →
         ReadsAt rd (σ (.n (tW first + 25))) (lanesOut locPt (tailSq (layOff first) σ).1) →
-        LoadHolds rd (σ (.n 12)) 5 (σ (.n (topV (tW first) + 3))) →
+        LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 5 (σ (.n (topV (tW first) + 3))) →
         ReadsAt rd (σ (.n (topV (tW first) + 3)))
           (flipsOf (laterWeights (lanesOut locPt (tailSq (layOff first) σ).1) (eqKernel (locPt.take 6)))) →
         kret ((cap5 (tW first + 16)).map σ ++ [σ (.n (layOff first + 743)) * gen ^ 36]) →

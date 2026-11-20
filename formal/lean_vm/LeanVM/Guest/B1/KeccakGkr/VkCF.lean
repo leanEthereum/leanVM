@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkCE
 public import LeanVM.Guest.B1.KeccakGkr.VkHolds
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # The inputs' check and the return, completely
@@ -30,22 +32,22 @@ variable {rd : Reader} {w : ℕ → E} {σ : Val}
 set_option maxRecDepth 20000 in
 /-- **The inputs' check and the return, completely.** -/
 theorem vkFin_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkFinT, GoodS rd vkSt w σ st)
-    {τ : ℕ} (hτ : 4 ≤ τ) (h17 : σ (.n 19) = gen ^ (τ - 4)) {pp lc lp : E}
+    {τ : ℕ} (hτ : 4 ≤ τ) (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4)) {pp lc lp : E}
     {point loc lanes slotI slices : List E}
-    (hpp : LoadHolds rd (σ (.n 156)) 266 pp) (hpt : ReadsAt rd pp point)
+    (hpp : LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) 266 pp) (hpt : ReadsAt rd pp point)
     (hptL : point.length = τ - 3)
-    (hlc : LoadHolds rd (σ (.n 156)) 268 lc) (hloc : ReadsAt rd lc loc) (hlocL : loc.length = 11)
-    (hlp : LoadHolds rd (σ (.n 156)) 267 lp) (hlanes : ReadsAt rd lp lanes)
-    (hlen : lanes.length = 25) (hslot : ReadsAt rd (σ (.n 1325)) slotI) (hslotL : slotI.length = 6)
-    (hsl : ReadsAt rd (σ (.n 10)) slices) (hslL : slices.length = 64)
-    (hchk : σ (.n 1322) * formVal (fun l ↦ ∑ m ∈ range 2,
+    (hlc : LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) 268 lc) (hloc : ReadsAt rd lc loc) (hlocL : loc.length = 11)
+    (hlp : LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) 267 lp) (hlanes : ReadsAt rd lp lanes)
+    (hlen : lanes.length = 25) (hslot : ReadsAt rd (σ (.n (val% «verify_keccak» "in_slot"))) slotI) (hslotL : slotI.length = 6)
+    (hsl : ReadsAt rd (σ (.n (val% «verify_keccak» "slices"))) slices) (hslL : slices.length = 64)
+    (hchk : σ (.n (val% «verify_keccak» "mu_at_low@16")) * formVal (fun l ↦ ∑ m ∈ range 2,
         eqAt [point.getD (τ - 4) 0] m * eqAt slotI (25 * (0 + m) + l)) (kLane lanes)
         (fun r ↦ ∑ z ∈ range 64, slices.getD z 0 * eqAt (loc.take 6) ((z + r) % 64)) =
-      σ (.n 1334)) (h1251 : σ (.n 1197) = σ (.n 9) * gen ^ 39) :
-    σ (.n 1740) = pp ∧ σ (.n 3355) = 1 + σ (.n 19) ∧ σ (.n 3356) = 1 ∧
-      σ (.n 3358) = σ (.n 9) * gen ^ 43 ∧
-      ∀ {kret : List E → Prop}, kret [σ (.n 1735), σ (.n 1736), σ (.n 1737), σ (.n 1738),
-        σ (.n 1739), σ (.n 1333) * gen ^ 64, σ (.n 926)] →
+      σ (.n (val% «verify_keccak» "in_value"))) (h1251 : σ (.n (val% «verify_keccak» "fs0@15~11")) = σ (.n (val% «verify_keccak» "z_vals")) * gen ^ 39) :
+    σ (.n (val% «verify_keccak» "last_point")) = pp ∧ σ (.n (val% «verify_keccak» "s81#1")) = 1 + σ (.n (val% «verify_keccak» "pack_g")) ∧ σ (.n (val% «verify_keccak» "s81#2")) = 1 ∧
+      σ (.n (val% «verify_keccak» "s81#4")) = σ (.n (val% «verify_keccak» "z_vals")) * gen ^ 43 ∧
+      ∀ {kret : List E → Prop}, kret [σ (.n (val% «verify_keccak» "nxt[8]@22")), σ (.n (val% «verify_keccak» "nxt[9]@22")), σ (.n (val% «verify_keccak» "nxt[10]@22")), σ (.n (val% «verify_keccak» "nxt[11]@22")),
+        σ (.n (val% «verify_keccak» "nxt[12]@22")), σ (.n (val% «verify_keccak» "cursor@16")) * gen ^ 64, σ (.n (val% «verify_keccak» "x@2"))] →
         Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkFinT False kret := by
   obtain ⟨k1, k2, k4, k5, k6, k8, k9, k10, k12, k13, k14⟩ := vkFin_ker
   have mSL : ∀ st ∈ vkFinSL, st ∈ vkFinT := fun st h ↦ by
@@ -53,7 +55,7 @@ theorem vkFin_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkFi
     exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _ h))))))))
-  have mLD : ∀ st ∈ (List.range 64).map (fun z ↦ Stmt.atom (.load (.n (1976 + z)) (.n 10) z)),
+  have mLD : ∀ st ∈ (List.range 64).map (fun z ↦ Stmt.atom (.load (.n (1976 + z)) (.n (val% «verify_keccak» "slices")) z)),
       st ∈ vkFinT := fun st h ↦ by
     rw [vkFinT]
     exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
@@ -72,15 +74,15 @@ theorem vkFin_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkFi
     rw [vkFinT]; exact List.mem_append_left _ (List.mem_append_right _ h)
   have gA : ∀ a, Stmt.atom a ∈ vkFinT → Good rd vkSt w σ a := fun a h ↦ hg _ h
   -- the pointers
-  have e4977 : σ (.n 1740) = pp :=
-    load_val (gA (.load (.n 1740) (.n 156) 266) (by simp [vkFinT])) (not_mem_of_noneIn k1 _ (by simp)) hpp
-  have e5212 : σ (.n 1975) = lc :=
-    load_val (gA (.load (.n 1975) (.n 156) 268) (by simp [vkFinT])) (not_mem_of_noneIn k1 _ (by simp)) hlc
-  have e6363 : σ (.n 3138) = lp :=
-    load_val (gA (.load (.n 3138) (.n 156) 267) (by simp [vkFinT])) (not_mem_of_noneIn k1 _ (by simp)) hlp
+  have e4977 : σ (.n (val% «verify_keccak» "last_point")) = pp :=
+    load_val (gA (.load (.n (val% «verify_keccak» "last_point")) (.n (val% «verify_keccak» "claims")) 266) (by simp [vkFinT])) (not_mem_of_noneIn k1 _ (by simp)) hpp
+  have e5212 : σ (.n (val% «verify_keccak» "last_local")) = lc :=
+    load_val (gA (.load (.n (val% «verify_keccak» "last_local")) (.n (val% «verify_keccak» "claims")) 268) (by simp [vkFinT])) (not_mem_of_noneIn k1 _ (by simp)) hlc
+  have e6363 : σ (.n (val% «verify_keccak» "last_lanes")) = lp :=
+    load_val (gA (.load (.n (val% «verify_keccak» "last_lanes")) (.n (val% «verify_keccak» "claims")) 267) (by simp [vkFinT])) (not_mem_of_noneIn k1 _ (by simp)) hlp
   have m4978 := mulG (by norm_num) (by norm_num)
-    (gA (.mul (.n 1741) (.n 1740) (.n 19)) (by simp [vkFinT]))
-  have hseg : LoadHolds rd (σ (.n 1741)) 0 (point.getD (τ - 4) 0) := by
+    (gA (.mul (.n (val% «verify_keccak» "s72#0")) (.n (val% «verify_keccak» "last_point")) (.n (val% «verify_keccak» "pack_g"))) (by simp [vkFinT]))
+  have hseg : LoadHolds rd (σ (.n (val% «verify_keccak» "s72#0"))) 0 (point.getD (τ - 4) 0) := by
     rw [m4978, e4977, h17, loadHolds_mul_gen_pow, List.getD_eq_getElem _ _ (by omega)]
     exact hpt _ (by omega)
   -- the slot's lane weights
@@ -130,7 +132,7 @@ theorem vkFin_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkFi
   obtain ⟨hform, -⟩ := formAll_holds (by rw [e6363]; exact hlanes) hlen
     (FA (next := True) (kret := fun _ ↦ True) trivial)
   rw [k14] at hform
-  have hform' : σ (.n 3352) = formVal (fun l ↦ ∑ m ∈ range 2,
+  have hform' : σ (.n (val% «verify_keccak» "total@30")) = formVal (fun l ↦ ∑ m ∈ range 2,
         eqAt [point.getD (τ - 4) 0] m * eqAt slotI (25 * (0 + m) + l)) (kLane lanes)
         (fun r ↦ ∑ z ∈ range 64, slices.getD z 0 * eqAt (loc.take 6) ((z + r) % 64)) := by
     rw [hform]
@@ -138,24 +140,24 @@ theorem vkFin_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkFi
     rw [hlw l hl, hrs', hr']
   -- the check, the copy loop, the return
   have m6578 := mulG (by norm_num) (by norm_num)
-    (gA (.mul (.n 3353) (.n 1322) (.n 3352)) (by rw [← k14]; simp [vkFinT]))
-  have e6578 : σ (.n 3353) = σ (.n 1334) := by rw [m6578, hform', hchk]
-  have c6579 : σ (.n 3354) = word 1 0 := gA (.const (.n 3354) (word 1 0)) (by simp [vkFinT])
-  have a6580 : σ (.n 3355) = σ (.n 3354) + σ (.n 19) :=
-    gA (.add (.n 3355) (.n 3354) (.n 19)) (by simp [vkFinT])
-  have c6581 : σ (.n 3356) = word 1 0 := gA (.const (.n 3356) (word 1 0)) (by simp [vkFinT])
-  have c6582 : σ (.n 3357) = word 16 0 :=
-    gA (.const (.n 3357) (word 16 0)) (by simp [vkFinT])
+    (gA (.mul (.n (val% «verify_keccak» "s79#1")) (.n (val% «verify_keccak» "mu_at_low@16")) (.n (val% «verify_keccak» "total@30"))) (by rw [← k14]; simp [vkFinT]))
+  have e6578 : σ (.n (val% «verify_keccak» "s79#1")) = σ (.n (val% «verify_keccak» "in_value")) := by rw [m6578, hform', hchk]
+  have c6579 : σ (.n (val% «verify_keccak» "s81#0")) = word 1 0 := gA (.const (.n (val% «verify_keccak» "s81#0")) (word 1 0)) (by simp [vkFinT])
+  have a6580 : σ (.n (val% «verify_keccak» "s81#1")) = σ (.n (val% «verify_keccak» "s81#0")) + σ (.n (val% «verify_keccak» "pack_g")) :=
+    gA (.add (.n (val% «verify_keccak» "s81#1")) (.n (val% «verify_keccak» "s81#0")) (.n (val% «verify_keccak» "pack_g"))) (by simp [vkFinT])
+  have c6581 : σ (.n (val% «verify_keccak» "s81#2")) = word 1 0 := gA (.const (.n (val% «verify_keccak» "s81#2")) (word 1 0)) (by simp [vkFinT])
+  have c6582 : σ (.n (val% «verify_keccak» "s81#3")) = word 16 0 :=
+    gA (.const (.n (val% «verify_keccak» "s81#3")) (word 16 0)) (by simp [vkFinT])
   have m6583 := mulG (by norm_num) (by norm_num)
-    (gA (.mul (.n 3358) (.n 1197) (.n 3357)) (by simp [vkFinT]))
+    (gA (.mul (.n (val% «verify_keccak» "s81#4")) (.n (val% «verify_keccak» "fs0@15~11")) (.n (val% «verify_keccak» "s81#3"))) (by simp [vkFinT]))
   have ecp : ∀ j < 5, σ (.n (3359 + j)) = σ (.n (1735 + j)) := fun j hj ↦
     hg _ (mCP _ (List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩))
-  have c6589 : σ (.n 3364) = word 27 0 := gA (.const (.n 3364) (word 27 0)) (by simp [vkFinT])
+  have c6589 : σ (.n (val% «verify_keccak» "s82#1")) = word 27 0 := gA (.const (.n (val% «verify_keccak» "s82#1")) (word 27 0)) (by simp [vkFinT])
   have m6590 := mulG (by norm_num) (by norm_num)
-    (gA (.mul (.n 3365) (.n 1333) (.n 3364)) (by simp [vkFinT]))
-  have e6591 : σ (.n 3366) = σ (.n 3365) := gA (.copy (.n 3366) (.n 3365)) (by simp [vkFinT])
-  have e6592 : σ (.n 3367) = σ (.n 926) := gA (.copy (.n 3367) (.n 926)) (by simp [vkFinT])
-  have e6580 : σ (.n 3355) = 1 + σ (.n 19) := by rw [a6580, c6579, word_one]
+    (gA (.mul (.n (val% «verify_keccak» "s82#2")) (.n (val% «verify_keccak» "cursor@16")) (.n (val% «verify_keccak» "s82#1"))) (by simp [vkFinT]))
+  have e6591 : σ (.n (val% «verify_keccak» "s82#0[5]")) = σ (.n (val% «verify_keccak» "s82#2")) := gA (.copy (.n (val% «verify_keccak» "s82#0[5]")) (.n (val% «verify_keccak» "s82#2"))) (by simp [vkFinT])
+  have e6592 : σ (.n (val% «verify_keccak» "s82#0[6]")) = σ (.n (val% «verify_keccak» "x@2")) := gA (.copy (.n (val% «verify_keccak» "s82#0[6]")) (.n (val% «verify_keccak» "x@2"))) (by simp [vkFinT])
+  have e6580 : σ (.n (val% «verify_keccak» "s81#1")) = 1 + σ (.n (val% «verify_keccak» "pack_g")) := by rw [a6580, c6579, word_one]
   refine ⟨e4977, e6580, by rw [c6581, word_one], by rw [m6583, c6582, word_16, h1251, mul_assoc, ← pow_add],
     fun {kret} hk ↦ ?_⟩
   rw [vkFinT]
@@ -164,7 +166,7 @@ theorem vkFin_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkFi
   refine ⟨by rw [e4977]; exact hpp, m4978, SL ⟨by rw [e5212]; exact hlc, ?_⟩⟩
   rw [holdsList_map_atoms]
   refine ⟨fun z hz ↦ ?_, FT ⟨by rw [e6363]; exact hlp, FA ?_⟩⟩
-  · show LoadHolds rd (σ (.n 10)) z (σ (.n (1976 + z)))
+  · show LoadHolds rd (σ (.n (val% «verify_keccak» "slices"))) z (σ (.n (1976 + z)))
     rw [eLD z hz, List.getD_eq_getElem _ _ (by omega)]; exact hsl z (by omega)
   rw [k14]
   refine ⟨m6578, by rw [e6578]; exact e_add_self _, c6579, a6580, c6581, c6582, m6583,

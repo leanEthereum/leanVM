@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkCS
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # The body, whole
@@ -58,9 +60,9 @@ theorem steps_chain (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {�
 
 /-- **The twelve steps, on the layout.** -/
 theorem steps_holds (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : Val}
-    (hσd : σ = D.val rd B curE chiE olE zvE slE tbE stE) (h17 : σ (.n 19) = gen ^ (D.τ - 4))
-    (h201 : σ (.n 156) = ptr (B + D.o201))
-    (h274 : σ (.n 229) = ptr (B + D.o274)) {next : Prop} {kret : List E → Prop} (hn : next) :
+    (hσd : σ = D.val rd B curE chiE olE zvE slE tbE stE) (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (D.τ - 4))
+    (h201 : σ (.n (val% «verify_keccak» "claims")) = ptr (B + D.o201))
+    (h274 : σ (.n (val% «verify_keccak» "lane_tree")) = ptr (B + D.o274)) {next : Prop} {kret : List E → Prop} (hn : next) :
     Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkStepsT next kret := by
   have S : ∀ s, s < 12 → ∀ {next : Prop} {kret : List E → Prop}, next →
       Stmt.HoldsList (fun _ _ _ ↦ True) rd σ
@@ -83,17 +85,17 @@ theorem body_holds (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ
   obtain ⟨-, -, p6, -, -, p9, p10, h17, -, -, a58, -, -, -, -, -, -, -, -, -, a201, -,
     a274, -, HF⟩ := head_first h hm hσd
   obtain ⟨-, -, -, -, -, eO, e3701, -, -, -, -, HO⟩ := out_on h hm hσd p6 p9 h17 a58 a274
-  have e3699 : σ (.n 924) = ptr (curE + D.lcur 12 + 12) := by
+  have e3699 : σ (.n (val% «verify_keccak» "cursor@14")) = ptr (curE + D.lcur 12 + 12) := by
     have := eO 5 (by norm_num)
     rw [this, oRets, List.getD_append_right _ _ _ _ (by rw [(O_ok h).2]), (O_ok h).2]
     simp [cL, ptr_mul_gen]
   obtain ⟨-, -, e1251, -, e4104, e4107, -, -, e4110, -, hcp, HI⟩ :=
     in_on h hm hσd p6 p9 p10 a201 e3699
-  have e4115 : σ (.n 1333) = ptr (curE + D.lcur 12 + 33) := by
+  have e4115 : σ (.n (val% «verify_keccak» "cursor@16")) = ptr (curE + D.lcur 12 + 33) := by
     rw [show (1333 : ℕ) = 1328 + 5 from rfl, e4110 5 (by norm_num), sRets,
       List.getD_append_right _ _ _ _ (by rw [(S_ok h).2]), (S_ok h).2]
     simp only [Nat.sub_self, List.getD_cons_zero, cL, ptr_mul_gen, ptr_mul_gen1]
-  have e4116 : σ (.n 1334) = D.S.2.1 := by
+  have e4116 : σ (.n (val% «verify_keccak» "in_value")) = D.S.2.1 := by
     rw [show (1334 : ℕ) = 1328 + 6 from rfl, e4110 6 (by norm_num), sRets,
       List.getD_append_right _ _ _ _ (by rw [(S_ok h).2]; norm_num), (S_ok h).2]
     rfl
@@ -105,15 +107,15 @@ theorem body_holds (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ
   rfl
 
 theorem val_57 (h : D.Ok) {σ : Val} (hσd : σ = D.val rd B curE chiE olE zvE slE tbE stE)
-    (h17 : σ (.n 19) = gen ^ (D.τ - 4)) : σ (.n 61) = gen ^ (D.τ - 3) := by
+    (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (D.τ - 4)) : σ (.n (val% «verify_keccak» "point~1")) = gen ^ (D.τ - 3) := by
   have hG : ∀ s ∈ vkT, pinB s = false → GoodS rd vkSt (D.w B curE) σ s := by
     subst hσd; exact (val_good h).2.1
   have gA : ∀ a, Stmt.atom a ∈ vkT → pinB (.atom a) = false → Good rd vkSt (D.w B curE) σ a :=
     fun a h hp ↦ hG _ h hp
-  have c56 : σ (.n 60) = Guest.word 2 0 :=
-    gA (.const (.n 60) (Guest.word 2 0)) (by simp [vkT, vkHeadT, vkPointT]) rfl
+  have c56 : σ (.n (val% «verify_keccak» "point~0")) = Guest.word 2 0 :=
+    gA (.const (.n (val% «verify_keccak» "point~0")) (Guest.word 2 0)) (by simp [vkT, vkHeadT, vkPointT]) rfl
   have m57 := mulG (by norm_num) (by norm_num)
-    (gA (.mul (.n 61) (.n 19) (.n 60)) (by simp [vkT, vkHeadT, vkPointT]) rfl)
+    (gA (.mul (.n (val% «verify_keccak» "point~1")) (.n (val% «verify_keccak» "pack_g")) (.n (val% «verify_keccak» "point~0"))) (by simp [vkT, vkHeadT, vkPointT]) rfl)
   rw [m57, h17, c56, word_gen, ← pow_succ]
   congr 1
   have := h.1

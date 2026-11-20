@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkCCK
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # The openings' blocks
@@ -56,8 +58,8 @@ def slRes (a : Atom) : Bool := match a with
   | _ => false
 
 theorem vkSlices_ker :
-    (slicesT (.n 1333) 1335 1340).all isAtom = true ∧
-    (resid (atomsL (slicesT (.n 1333) 1335 1340))).all slRes = true := by
+    (slicesT (.n (val% «verify_keccak» "cursor@16")) 1335 1340).all isAtom = true ∧
+    (resid (atomsL (slicesT (.n (val% «verify_keccak» "cursor@16")) 1335 1340))).all slRes = true := by
   decide +kernel
 
 /-- The inputs' lane weights. -/

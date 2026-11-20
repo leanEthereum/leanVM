@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerCC
 public import LeanVM.Guest.B1.KeccakGkr.LayerProof
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
 /-!
 # `t`, the lane weights and the claim's weights, completely
@@ -115,22 +117,22 @@ for a later claim, its local point at `lc`, and the local point at `loc`. -/
 theorem weight_complete {first : ℕ} (hf : first < 2)
     (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ s ∈ weightT first (layOff first), GoodS rd S w σ s)
     (hS : ∀ a ∈ resid (atomsL (weightT first (layOff first))), a ∉ S)
-    {cw : List E} (hcw : ReadsAt rd (σ (.n 11)) cw) (hcwl : 22 ≤ cw.length)
+    {cw : List E} (hcw : ReadsAt rd (σ (.n (valf% «keccak_layer» "claim"))) cw) (hcwl : 22 ≤ cw.length)
     {lanes : List E} (hll : lanes.length = 25) (hlanes : ReadsAt rd (cw.getD 3 0) lanes)
     {locPt : List E} (hl : locPt.length = 11) (hloc : ReadsAt rd (σ (.n (layOff first + 745))) locPt)
     {locC : List E} (hlc : first = 0 → locC.length = 11 ∧ ReadsAt rd (cw.getD 4 0) locC) :
     ∀ {next : Prop} {kret : List E → Prop}, next →
       Stmt.HoldsList C rd σ (weightT first (layOff first)) next kret := by
   obtain ⟨hall, hr⟩ := weight_kernel hf
-  have hcw3 : LoadHolds rd (σ (.n 11)) 3 (cw.getD 3 0) := by
+  have hcw3 : LoadHolds rd (σ (.n (valf% «keccak_layer» "claim"))) 3 (cw.getD 3 0) := by
     rw [List.getD_eq_getElem _ _ (by omega)]; exact hcw 3 (by omega)
-  have hcw4 : LoadHolds rd (σ (.n 11)) 4 (cw.getD 4 0) := by
+  have hcw4 : LoadHolds rd (σ (.n (valf% «keccak_layer» "claim"))) 4 (cw.getD 4 0) := by
     rw [List.getD_eq_getElem _ _ (by omega)]; exact hcw 4 (by omega)
-  have g85 : Good rd S w σ (.load (.n (layOff first + 1176)) (.n 11) 3) := by
-    have := hg (.atom (.load (.n (layOff first + 1176)) (.n 11) 3)) (by
+  have g85 : Good rd S w σ (.load (.n (layOff first + 1176)) (.n (valf% «keccak_layer» "claim")) 3) := by
+    have := hg (.atom (.load (.n (layOff first + 1176)) (.n (valf% «keccak_layer» "claim")) 3)) (by
       unfold weightT; split <;> simp)
     exact this
-  have hS85 : Atom.load (.n (layOff first + 1176)) (.n 11) 3 ∉ S := hS _ (by
+  have hS85 : Atom.load (.n (layOff first + 1176)) (.n (valf% «keccak_layer» "claim")) 3 ∉ S := hS _ (by
     interval_cases first <;> decide +kernel)
   have e85 := load_val (w := w) g85 hS85 hcw3
   intro next kret hn
@@ -146,11 +148,11 @@ theorem weight_complete {first : ℕ} (hf : first < 2)
       have hf0 : first = 0 := by omega
       simp only [List.mem_singleton] at hq
       subst hq
-      have g86 : Good rd S w σ (.load (.n (layOff first + 1177)) (.n 11) 4) := by
-        have := hg (.atom (.load (.n (layOff first + 1177)) (.n 11) 4)) (by
+      have g86 : Good rd S w σ (.load (.n (layOff first + 1177)) (.n (valf% «keccak_layer» "claim")) 4) := by
+        have := hg (.atom (.load (.n (layOff first + 1177)) (.n (valf% «keccak_layer» "claim")) 4)) (by
           unfold weightT; simp [hf1])
         exact this
-      have hS86 : Atom.load (.n (layOff first + 1177)) (.n 11) 4 ∉ S := hS _ (by
+      have hS86 : Atom.load (.n (layOff first + 1177)) (.n (valf% «keccak_layer» "claim")) 4 ∉ S := hS _ (by
         subst hf0; decide +kernel)
       have e86 := load_val (w := w) g86 hS86 hcw4
       obtain ⟨hlcl, hlcr⟩ := hlc hf0

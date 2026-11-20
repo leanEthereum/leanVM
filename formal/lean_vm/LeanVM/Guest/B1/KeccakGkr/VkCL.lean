@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkCK
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # The head and the first record, on the layout
@@ -89,7 +91,7 @@ theorem alloc_goodP {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {pr
     | _ => simp [Main.Stmt.allocSz] at hsx
   | _ => simp [Main.Stmt.allocSz] at hsx
 
-theorem vk_ker2 : noStoreVia [.n 5, .n 7] vkSt = true ∧
+theorem vk_ker2 : noStoreVia [.n (val% «verify_keccak» "cursor@1"), .n (val% «verify_keccak» "chi")] vkSt = true ∧
     (vkFirstT ++ vkStepsT ++ vkOutT ++ vkInT ++ vkFinT).all (fun s ↦ !pinB s) = true := by
   decide +kernel
 
