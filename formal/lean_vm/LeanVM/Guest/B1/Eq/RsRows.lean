@@ -8,6 +8,9 @@ module
 
 public import LeanVM.Guest.B1.Eq.Meaning
 public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«rs_eq_rows__L»
+import LeanVM.Guest.Data.ValNames.«rs_eq_rows__L0»
 
 /-!
 # `rs_eq_rows` (lean_ethereum.py)
@@ -99,12 +102,12 @@ def rrCoord (n k i : ℕ) : List Stmt :=
 
 /-- Row `k`: its word, the coordinates, the product stored. -/
 def rrRow (n k : ℕ) : List Stmt :=
-  [.atom (.load (.n (rrS n k)) (.n 0) k)] ++ ((List.range n).map (rrCoord n k)).flatten ++
-    [.atom (.load (.n (rrAcc n k n)) (.n 0) (64 + k))]
+  [.atom (.load (.n (rrS n k)) (.n (valf% «rs_eq_rows» "row")) k)] ++ ((List.range n).map (rrCoord n k)).flatten ++
+    [.atom (.load (.n (rrAcc n k n)) (.n (valf% «rs_eq_rows» "row")) (64 + k))]
 
 /-- The coordinates' reads. -/
 def rrHeadBlk (i : ℕ) : List Stmt :=
-  [.atom (.load (.n (3 + 2 * i)) (.n 1) i), .atom (.load (.n (4 + 2 * i)) (.n 2) i)]
+  [.atom (.load (.n (3 + 2 * i)) (.n (valf% «rs_eq_rows» "zs")) i), .atom (.load (.n (4 + 2 * i)) (.n (valf% «rs_eq_rows» "ps")) i)]
 
 /-- The return's first value. -/
 def rrT (n : ℕ) : ℕ := rrS n 63 + 1 + 2 * n
@@ -115,8 +118,8 @@ def rrBody (n : ℕ) : List Stmt :=
     [.atom (.const (.n (rrT n)) (word 27 0)), .atom (.mul (.n (rrT n + 1)) (.n 0) (.n (rrT n))),
       .atom (.copy (.n (rrT n + 2)) (.n (rrT n + 1))), .ret [.n (rrT n + 2)]]
 
-theorem rs_eq_rows_L0_body : Fn.body fn% «rs_eq_rows__L0» = [.atom (.copy (.n 3) (.n 0)),
-    .ret [.n 3]] :=
+theorem rs_eq_rows_L0_body : Fn.body fn% «rs_eq_rows__L0» = [.atom (.copy (.n (val% «rs_eq_rows__L0» "s2#0")) (.n (val% «rs_eq_rows__L0» "row"))),
+    .ret [.n (val% «rs_eq_rows__L0» "s2#0")]] :=
   stmtsEqb_sound (by decide +kernel)
 theorem rs_eq_rows_L1_body : Fn.body fn% «rs_eq_rows__L1» = rrBody 1 :=
   stmtsEqb_sound (by decide +kernel)
@@ -154,8 +157,8 @@ theorem holds_rrCoord {C : CallRel} {rd : Reader} {σ : Val} (n k i : ℕ) (kret
 
 /-- Row `k`'s conditions. -/
 def RrRowOk (rd : Reader) (σ : Val) (n k : ℕ) : Prop :=
-  LoadHolds rd (σ (.n 0)) k (σ (.n (rrS n k))) ∧ (∀ i < n, RrCoordOk σ n k i) ∧
-    LoadHolds rd (σ (.n 0)) (64 + k) (σ (.n (rrAcc n k n)))
+  LoadHolds rd (σ (.n (valf% «rs_eq_rows» "row"))) k (σ (.n (rrS n k))) ∧ (∀ i < n, RrCoordOk σ n k i) ∧
+    LoadHolds rd (σ (.n (valf% «rs_eq_rows» "row"))) (64 + k) (σ (.n (rrAcc n k n)))
 
 theorem rrRow_noRet (n k : ℕ) : Stmt.noRetList (rrRow n k) = true := by
   rw [rrRow, noRetList_append', noRetList_append', noRetList_flatten_range _ _ (rrCoord_noRet n k)]
@@ -169,8 +172,8 @@ theorem holds_rrRow {C : CallRel} {rd : Reader} {σ : Val} (n k : ℕ) (kret : L
 
 theorem holds_rrHeadBlk {C : CallRel} {rd : Reader} {σ : Val} (i : ℕ) (kret : List E → Prop) :
     Stmt.HoldsList C rd σ (rrHeadBlk i) True kret ↔
-      LoadHolds rd (σ (.n 1)) i (σ (.n (3 + 2 * i))) ∧
-        LoadHolds rd (σ (.n 2)) i (σ (.n (4 + 2 * i))) := by
+      LoadHolds rd (σ (.n (valf% «rs_eq_rows» "zs"))) i (σ (.n (3 + 2 * i))) ∧
+        LoadHolds rd (σ (.n (valf% «rs_eq_rows» "ps"))) i (σ (.n (4 + 2 * i))) := by
   simp only [rrHeadBlk, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
 
 /-- The body of `rs_eq_rows__L{n}`, unfolded to its conditions. -/
@@ -455,7 +458,7 @@ theorem rr_iff {name : String} {f : Fn} (n : ℕ) (hn : 0 < n)
 theorem rr0_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "rs_eq_rows__L0" args rets ↔ MeaningRsEqRows 0 rd args rets := by
   rw [rel_iff_sem (coreProgram_find?_at (j := idx% «rs_eq_rows__L0») rfl), rs_eq_rows_L0_body,
-    show Fn.params fn% «rs_eq_rows__L0» = [.n 0, .n 1, .n 2] from rfl]
+    show Fn.params fn% «rs_eq_rows__L0» = [.n (val% «rs_eq_rows__L0» "row"), .n (val% «rs_eq_rows__L0» "zs"), .n (val% «rs_eq_rows__L0» "ps")] from rfl]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
   constructor
   · rintro ⟨σ, hp, h3, hret⟩
