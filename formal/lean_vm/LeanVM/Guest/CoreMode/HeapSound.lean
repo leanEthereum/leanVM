@@ -102,25 +102,6 @@ theorem CCell.beq_eq {a b : CCell} (h : a.beq b = true) : a = b := by
 
 end Mono
 
-/-! ## Evaluation order -/
-
-section Seq
-
-variable {β : Type}
-
-theorem basesSeq_eq : ∀ (l : List (ℕ × ℕ)) (k : List (ℕ × ℕ) → β), basesSeq l k = k l
-  | [], _ => rfl
-  | (a, e) :: l, k => by
-    rw [basesSeq, natSeq_eq, natSeq_eq, basesSeq_eq l]
-
-theorem CCell.seq_eq (c : CCell) (k : CCell → β) : c.seq k = k c := by
-  rw [CCell.seq, basesSeq_eq, natSeq_eq]
-
-theorem HSt.seq_eq (st : HSt) (k : HSt → β) : st.seq k = k st := by
-  rw [HSt.seq, Trie.seq_eq, Trie.seq_eq, natSeq_eq]
-
-end Seq
-
 /-! ## Tries -/
 
 section Tries
