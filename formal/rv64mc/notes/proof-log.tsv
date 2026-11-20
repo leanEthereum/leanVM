@@ -25,7 +25,7 @@ Alloc.RawVec.*.GrowOne (13 instances)	15 each	0	147 + 5 each	17.2 + 6.2	Proof/Ru
 CompilerBuiltins.Mem.Memcpy	127	10	0	-	not proved (spec MemcpySpec only)
 CompilerBuiltins.Mem.Memmove	268	20	0	-	not proved (spec MemmoveSpec only)
 CompilerBuiltins.Mem.Memset	38	3	0	-	not proved (spec MemsetSpec only)
-Alloc.RawVec.RawVecInner.FinishGrow	68	0	0	-	not proved (FinishGrowSpec stated: fresh block of new_cap * size bytes holding the old bytes first; Err payload below 2^63)
+Alloc.RawVec.RawVecInner.FinishGrow	68	0	0	-	not proved (FinishGrowSpec stated: fresh block of new_cap * size bytes holding the old bytes first; Err payload below 2^63); FINDING: as stated it is not provable for elements aligned below 8 when NEXT is not 8-aligned: alloc then returns q = NEXT unaligned, memcpy's byte stores change the doubleword at alignToDword q, which lies below NEXT, and Env.Frame (word-granular, fresh region = [NEXT, NEXT')) forbids that; fix either in the guest (Bump rounds blocks to 8 bytes, NEXT stays 8-aligned) or in Env.MayWrite (the doubleword holding NEXT, bytes below NEXT kept)
 Alloc.RawVec.RawVecInner.TryAllocateIn*	57, 48	1	0	-	not proved
 (infrastructure) Core/Repr.lean	-	-	195	12.6	footprints, watermark, Owned, value predicates with keep lemmas, byte lemmas, AbiRegs.updReg_iff, Holds.pre_call
 (infrastructure) scripts/type-layouts.sh	-	-	-	132	one run: guest build with -Zprint-type-sizes and two cargo checks with rustc_dump_layout probes (119 user + 13 sys, 138 s wall); --check reproduces byte for byte
