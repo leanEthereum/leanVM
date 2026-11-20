@@ -11,9 +11,10 @@ check that the words encode a program (`validEncodingRust`), the counting sort, 
 block's words, `Bytecode::new` (`newRust`) and `Bytecode::evaluate` (`evaluateRust`). A mirror fails
 (`none`) exactly where the Rust returns `Err`; where the Rust panics it may return anything.
 
-The statement has no counterpart of the encoding check (it verifies a proof for any words); the
-IV is `fiatShamirIv` (`fiatShamirIvRust_eq`). What the walk needs of a prepared bytecode is
-`BytecodeOk`, which `Bytecode::new` gives (`newRust_ok`): the counting sort permutes its items
+The statement has no counterpart of the encoding check (it verifies a proof for any words), but
+every program's bytecode passes it (`validEncodingRust_bytecodeWords`); the IV is `fiatShamirIv`
+(`fiatShamirIvRust_eq`). What the walk needs of a prepared bytecode is `BytecodeOk`, which
+`Bytecode::new` gives (`newRust_ok`): the counting sort permutes its items
 (`countingSortRust_perm`), so a block's members hold exactly its nonzero words at their positions,
 and `evaluate`'s blocks, weighed by the eq table's low and high coordinates, sum to the
 multilinear extension (`multilinearEval_eq_sum`, `eqKernel_split`).
@@ -715,7 +716,8 @@ theorem blockValueRust_blockMembers (lw : List E) (c : List (BitVec 64))
     wordPairs_sum lw c 0 (by omega)]
   simp
 
-private theorem chunksW_eq {α : Type} (S : ℕ) (hS : 0 < S) : ∀ (A : ℕ) (l : List α), l.length = A * S →
+private theorem chunksW_eq {α : Type} (S : ℕ) (hS : 0 < S) :
+    ∀ (A : ℕ) (l : List α), l.length = A * S →
     chunksW S l = (List.range A).map fun b ↦ (l.drop (b * S)).take S
   | 0, l, h => by
     rw [chunksW, dite_eq_left (Or.inl (List.length_eq_zero_iff.mp (by simpa using h)))]
@@ -831,6 +833,93 @@ theorem newRust_length {words : List (BitVec 64)} {bc : BytecodeRust}
   omega
 
 end NewOk
+
+
+/-! ## Every program's encoding is valid -/
+
+section ValidEncoding
+
+open LeanVM LeanVM.Arithmetization
+
+private theorem busCode_toBitVec (op : Opcode) :
+    (op.busCode).toBitVec = 1#64 <<< (match op with
+      | .xor => 0 | .mulNative => 1 | .setConstant => 2 | .deref => 3 | .jump => 4
+      | .keccak => 5) := by
+  have h : ∀ n, (g ^ (n + 1)).toBitVec = timesX (g ^ n).toBitVec := fun n ↦ by
+    rw [pow_succ, timesX_eq]
+  have h0 : (g ^ 0).toBitVec = 1#64 := rfl
+  cases op <;> simp only [Opcode.busCode, addressOfIndex, h, h0] <;> decide
+
+private theorem getD_flatMap_finRange {β : Type} (d : β) (N pc : ℕ) (hpc : pc < N) :
+    ∀ (m : ℕ) (f : Fin m → Fin N → β) (s : ℕ),
+      ((List.finRange m).flatMap fun s ↦ (List.finRange N).map (f s)).getD (s * N + pc) d =
+        if h : s < m then f ⟨s, h⟩ ⟨pc, hpc⟩ else d
+  | 0, _, s => by simp
+  | m + 1, f, 0 => by
+    rw [List.finRange_succ, List.flatMap_cons, List.getD_eq_getElem?_getD,
+      List.getElem?_append_left (by simpa using hpc)]
+    simp [List.getElem?_eq_getElem (show pc < (List.finRange N).length by simpa using hpc)]
+  | m + 1, f, s + 1 => by
+    rw [List.finRange_succ, List.flatMap_cons, List.getD_eq_getElem?_getD,
+      List.getElem?_append_right (by simp; nlinarith), ← List.getD_eq_getElem?_getD,
+      List.flatMap_map]
+    have := getD_flatMap_finRange d N pc hpc m (fun s ↦ f s.succ) s
+    simp only [List.length_map, List.length_finRange,
+      show (s + 1) * N + pc - N = s * N + pc by rw [Nat.succ_mul]; omega] at this ⊢
+    rw [this]
+    simp
+
+private theorem getD_map_toBitVec (l : List K) (n : ℕ) :
+    (l.map BF64.toBitVec).getD n (BF64.toBitVec 0) = BF64.toBitVec (l.getD n 0) := by
+  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_map]
+  cases l[n]? <;> rfl
+
+/-- **`is_valid_encoding_of_a_leanisa_program` accepts every program's bytecode**: the statement's
+programs have at most `2^30` instructions, and `instructionSlots` meets every slot check. -/
+theorem validEncodingRust_bytecodeWords (program : LeanIsaProgram) :
+    validEncodingRust ((bytecodeWords program).map BF64.toBitVec) = true := by
+  have hlen : ((bytecodeWords program).map BF64.toBitVec).length = 2 ^ program.logSize <<< 4 := by
+    simp [bytecodeWords, Nat.shiftLeft_eq]
+    omega
+  have hL : program.logSize ≤ 30 := program.logSize_le
+  have hslot : ∀ pc (hpc : pc < 2 ^ program.logSize) s,
+      slotRust ((bytecodeWords program).map BF64.toBitVec) (2 ^ program.logSize) pc s =
+        ((instructionSlots (program.instructions ⟨pc, hpc⟩)).toList.getD s 0).toBitVec := by
+    intro pc hpc s
+    unfold slotRust
+    rw [show (0 : BitVec 64) = BF64.toBitVec 0 from rfl, getD_map_toBitVec, bytecodeWords,
+      getD_flatMap_finRange 0 _ pc hpc, List.getD_eq_getElem?_getD]
+    split
+    · simp [*]
+    · rw [List.getElem?_eq_none (by simp; omega)]
+      rfl
+  have hsh : 2 ^ program.logSize <<< 4 >>> 4 = 2 ^ program.logSize := by
+    simp [Nat.shiftLeft_eq, Nat.shiftRight_eq_div_pow]
+  have hpow : 2 ^ program.logSize &&& (2 ^ program.logSize - 1) = 0 := by
+    rw [Nat.and_two_pow_sub_one_eq_mod, Nat.mod_self]
+  unfold validEncodingRust
+  simp only [hlen, hsh, hpow, List.all_eq_true, List.mem_range, Bool.and_eq_true]
+  refine ⟨⟨⟨by simp, by simp⟩, by simpa using Nat.pow_le_pow_right two_pos hL⟩, fun pc hpc ↦ ?_⟩
+  unfold instructionOkRust
+  simp only [hslot pc hpc]
+  generalize program.instructions ⟨pc, hpc⟩ = ins
+  cases ins with
+  | deref _ _ _ mode =>
+    cases mode <;> simp [instructionSlots, busEntry, busCode_toBitVec, List.range_succ,
+      List.range'_succ, List.getD_eq_getElem?_getD, derefFlags]
+  | keccak _ _ _ _ _ inOdd outOdd outCells =>
+    cases inOdd <;> cases outOdd <;> cases outCells <;> simp [instructionSlots, busEntry,
+      busCode_toBitVec, List.range_succ, List.getD_eq_getElem?_getD, keccakOutputFlags,
+      layoutFlagWord]
+  | _ => simp [instructionSlots, busEntry, busCode_toBitVec, List.range_succ, List.range'_succ,
+    List.getD_eq_getElem?_getD]
+
+/-- `Bytecode::new` prepares every program's bytecode. -/
+theorem newRust_bytecodeWords (program : LeanIsaProgram) :
+    ∃ bc, newRust ((bytecodeWords program).map BF64.toBitVec) = some bc :=
+  ⟨_, by rw [newRust, ite_eq_left (validEncodingRust_bytecodeWords program)]⟩
+
+end ValidEncoding
 
 end
 

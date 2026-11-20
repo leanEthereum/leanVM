@@ -130,7 +130,8 @@ theorem evaluate_eq_sum (f : Form) (column : ℕ → E) :
   rw [Form.evaluate, sumE_eq_sum]
   rfl
 
-private theorem sum_map_set {α : Type} (g : α → E) (l : List α) (i : ℕ) (a : α) (hi : i < l.length) :
+private theorem sum_map_set {α : Type} (g : α → E) (l : List α) (i : ℕ) (a : α)
+    (hi : i < l.length) :
     ((l.set i a).map g).sum = (l.map g).sum - g l[i] + g a := by
   have hi' : i < (l.map g).length := by simpa using hi
   have h2 : (l.map g).sum = ((l.map g).take i).sum + g l[i] + ((l.map g).drop (i + 1)).sum := by
@@ -1385,8 +1386,8 @@ private theorem foldl_append_eq_flatMap {α β : Type} (f : α → List β) :
   | x :: l, init => by
     rw [List.foldl_cons, foldl_append_eq_flatMap f l, List.flatMap_cons, List.append_assoc]
 
-private theorem flatMap_forall₂ {α α' β : Type} {R : α → α' → Prop} {f : α → List β} {g : α' → List β}
-    (h : ∀ a b, R a b → f a = g b) :
+private theorem flatMap_forall₂ {α α' β : Type} {R : α → α' → Prop} {f : α → List β}
+    {g : α' → List β} (h : ∀ a b, R a b → f a = g b) :
     ∀ {l : List α} {l' : List α'}, List.Forall₂ R l l' → l.flatMap f = l'.flatMap g
   | _, _, .nil => rfl
   | _, _, .cons hab hl => by rw [List.flatMap_cons, List.flatMap_cons, h _ _ hab,

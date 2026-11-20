@@ -47,14 +47,16 @@ def mergedForm : Form :=
 
 #guard (List.range 40).all fun mu ↦ busGrindingBitsRust mu == busGrindingBits mu
 
-/-- `build_layout` on the one-instruction program and memory `2^5`, in the Rust and the statement. -/
+/-- `build_layout` on the one-instruction program and memory `2^5`, in the Rust and the
+statement. -/
 def layoutPair (rows : List ℕ) : Option (LayoutRust × Layout) := do
   let l ← buildLayoutRust xorProgram.length 5#64 (rows.map (BitVec.ofNat 64))
   let L ← buildLayout (xorProgram.map BF64.ofBitVec) 5 rows
   pure (l, L)
 
 /-- The blocks' sizes and owners. -/
-def blockShape (bs : List BusBlock) : List (ℕ × ℕ × ℕ) := bs.map fun b ↦ (b.logRows, b.rows, b.owner)
+def blockShape (bs : List BusBlock) : List (ℕ × ℕ × ℕ) :=
+  bs.map fun b ↦ (b.logRows, b.rows, b.owner)
 
 /-- The layouts agree, and so do their bus layouts. -/
 def layoutAgrees (rows : List ℕ) : Bool :=
