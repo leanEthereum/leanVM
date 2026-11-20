@@ -94,7 +94,7 @@ theorem sFields_seq_ok :
   seqB_ok (by decide +kernel)
 
 theorem sCheckB_ok :
-    SeqOK 1296 ([cst 1296 corr1W, addS (.n 1297) sMd1.2.2 (.n 1296)] ++ sCheckB) 1306 :=
+    SeqOK 1296 ([cst 1296 corr1W, addS (.n (val% «verify_sig_lean_sphincs» "s34#1")) sMd1.2.2 (.n (val% «verify_sig_lean_sphincs» "s34#0"))] ++ sCheckB) 1306 :=
   seqB_ok (by decide +kernel)
 theorem sCheckC_ok : SeqOK 1363 sCheckC 1372 := seqB_ok (by decide +kernel)
 
@@ -117,7 +117,7 @@ def SBits (σ : Val) : Prop := BitsAt σ (digestNatOf (σ sHm0) (σ sHm0b) (σ s
 
 theorem SBits.congr {σ σ' : Val} (h : SBits σ) (hσ : ∀ k < 300, σ' (.n k) = σ (.n k)) : SBits σ' := by
   unfold SBits
-  rw [show sHm0 = .n 17 from rfl, show sHm0b = .n 18 from rfl, show sHm1 = .n 27 from rfl, hσ 17 (by norm_num),
+  rw [show sHm0 = .n (val% «verify_sig_lean_sphincs» "d0[0]") from rfl, show sHm0b = .n (val% «verify_sig_lean_sphincs» "d0[1]") from rfl, show sHm1 = .n (val% «verify_sig_lean_sphincs» "d1[0]") from rfl, hσ 17 (by norm_num),
     hσ 18 (by norm_num), hσ 27 (by norm_num)]
   exact BitsAt.congr h hσ
 
@@ -292,8 +292,8 @@ theorem sDigestBlock_complete (hm : MemOK rd 256) {bb p : E} (hbb : ByteBits rd 
     (msg : HashSig.Message) (R : HashSig.Randomizer)
     (hcl : ClaimAt rd p (cellOf128 pk.publicSeed) (cellOf128 pk.root) (cellOf128 (msg.extractLsb' 0 128))
       (cellOf128 (msg.extractLsb' 128 128)))
-    (σ : Val) (h0 : σ (.n 0) = p) (h1 : σ (.n 1) = bb) :
-    Completes C rd 2 1372 sDigestBlock σ (fun σ' => σ' sPP = cellOf128 pk.publicSeed ∧
+    (σ : Val) (h0 : σ (.n (val% «verify_sig_lean_sphincs» "signer")) = p) (h1 : σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb) :
+    Completes C rd (val% «verify_sig_lean_sphincs» "pp") (val% «verify_sig_lean_sphincs» "a0_b~0") sDigestBlock σ (fun σ' => σ' sPP = cellOf128 pk.publicSeed ∧
       σ' sRoot = cellOf128 pk.root ∧ σ' sRand = cellOf128 R ∧ PadOK σ' sPad ∧
       DigestAt σ' (Id.run (Sphincs.Verification.messageDigest (m := Id) LeanVM.Semantics.keccakF1600 pk R
         msg)).toNat ∧ DigestPtrs σ' bb ∧
@@ -308,20 +308,20 @@ theorem sDigestBlock_complete (hm : MemOK rd 256) {bb p : E} (hbb : ByteBits rd 
     rw [cellOf128_eq128, BitVec.extractLsb'_toNat, Nat.shiftRight_eq_div_pow, Nat.mod_eq_of_lt (by omega)]
   rw [e0, e1] at hcl
   rw [sDigestBlock_split]
-  refine Completes.append (m := 6) (by norm_num) (by norm_num) sMsg_nb
+  refine Completes.append (m := (val% «verify_sig_lean_sphincs» "rho")) (by norm_num) (by norm_num) sMsg_nb
     (sMsg_complete hcl σ h0) (fun σ1 he1 ⟨pP, pR, m0, m1⟩ => ?_)
-  refine Completes.append (m := 28) (by norm_num) (by norm_num) sDigests_nb
+  refine Completes.append (m := (val% «verify_sig_lean_sphincs» "bits0[0]")) (by norm_num) (by norm_num) sDigests_nb
     (sDigests_complete (C := C) (rd := rd) (Rho := cellOf128 R) σ1)
     (fun σ2 he2 ⟨rR, hpad, d0, d1⟩ => ?_)
-  have t21 : ∀ k < 6, σ2 (.n k) = σ1 (.n k) := fun k hk => he2.apply (Or.inl hk)
+  have t21 : ∀ k < (val% «verify_sig_lean_sphincs» "rho"), σ2 (.n k) = σ1 (.n k) := fun k hk => he2.apply (Or.inl hk)
   have hcells : ∀ i, hmsgCells σ2 i = [cellOf128 R, cellOf128 pk.publicSeed, cellOf128 pk.root,
       eOfNat128 (M % 2 ^ 128), eOfNat128 (M / 2 ^ 128), word (i * 2 ^ 24) 0] := by
     intro i
     simp only [hmsgCells]
-    rw [rR, show sPP = .n 2 from rfl, t21 2 (by norm_num), show sRoot = .n 3 from rfl, t21 3 (by norm_num),
-      show sM0 = .n 4 from rfl, t21 4 (by norm_num), show sM1 = .n 5 from rfl, t21 5 (by norm_num)]
-    rw [← show sPP = .n 2 from rfl, pP, ← show sRoot = .n 3 from rfl, pR, ← show sM0 = .n 4 from rfl, m0,
-      ← show sM1 = .n 5 from rfl, m1]
+    rw [rR, show sPP = .n (val% «verify_sig_lean_sphincs» "pp") from rfl, t21 2 (by norm_num), show sRoot = .n (val% «verify_sig_lean_sphincs» "pk_root") from rfl, t21 3 (by norm_num),
+      show sM0 = .n (val% «verify_sig_lean_sphincs» "m0") from rfl, t21 4 (by norm_num), show sM1 = .n (val% «verify_sig_lean_sphincs» "m1") from rfl, t21 5 (by norm_num)]
+    rw [← show sPP = .n (val% «verify_sig_lean_sphincs» "pp") from rfl, pP, ← show sRoot = .n (val% «verify_sig_lean_sphincs» "pk_root") from rfl, pR, ← show sM0 = .n (val% «verify_sig_lean_sphincs» "m0") from rfl, m0,
+      ← show sM1 = .n (val% «verify_sig_lean_sphincs» "m1") from rfl, m1]
   have hmn : msgNat (eOfNat128 (M % 2 ^ 128)) (eOfNat128 (M / 2 ^ 128)) = M := by
     simp only [msgNat]
     rw [cellNat_eOfNat128 (Nat.mod_lt _ (by norm_num)), cellNat_eOfNat128 (by omega)]
@@ -337,18 +337,18 @@ theorem sDigestBlock_complete (hm : MemOK rd 256) {bb p : E} (hbb : ByteBits rd 
     have hR : R = cellVal (cellOf128 R) := (cellVal_cellOf128 R).symm
     rw [← hpk, hR, hmsgDigest_cells, ← hMdef, ← d0, d1, digestOf_toNat (hmsgNat_lt _ _)]
     rfl
-  have h12 : σ2 (.n 1) = bb := by
+  have h12 : σ2 (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb := by
     rw [he2.apply (Or.inl (by norm_num)), he1.apply (Or.inl (by norm_num))]; exact h1
   refine ((sFieldsCheck_complete hm hbb σ2 h12).keep
     (Q := fun σ' => σ' sPP = cellOf128 pk.publicSeed ∧ σ' sRoot = cellOf128 pk.root ∧
       σ' sRand = cellOf128 R ∧ PadOK σ' sPad)
     (Q' := fun σ' => σ' sPP = cellOf128 pk.publicSeed ∧ σ' sRoot = cellOf128 pk.root ∧
       σ' sRand = cellOf128 R ∧ PadOK σ' sPad)
-    ⟨by rw [show sPP = .n 2 from rfl, t21 2 (by norm_num)]; exact pP,
-      by rw [show sRoot = .n 3 from rfl, t21 3 (by norm_num)]; exact pR, rR, hpad⟩
-    (fun σ' he ⟨q1, q2, q3, q4⟩ => ⟨by rw [show sPP = .n 2 from rfl, he.apply (Or.inl (by norm_num))]; exact q1,
-      by rw [show sRoot = .n 3 from rfl, he.apply (Or.inl (by norm_num))]; exact q2,
-      by rw [show sRand = .n 6 from rfl, he.apply (Or.inl (by norm_num))]; exact q3,
+    ⟨by rw [show sPP = .n (val% «verify_sig_lean_sphincs» "pp") from rfl, t21 2 (by norm_num)]; exact pP,
+      by rw [show sRoot = .n (val% «verify_sig_lean_sphincs» "pk_root") from rfl, t21 3 (by norm_num)]; exact pR, rR, hpad⟩
+    (fun σ' he ⟨q1, q2, q3, q4⟩ => ⟨by rw [show sPP = .n (val% «verify_sig_lean_sphincs» "pp") from rfl, he.apply (Or.inl (by norm_num))]; exact q1,
+      by rw [show sRoot = .n (val% «verify_sig_lean_sphincs» "pk_root") from rfl, he.apply (Or.inl (by norm_num))]; exact q2,
+      by rw [show sRand = .n (val% «verify_sig_lean_sphincs» "rho") from rfl, he.apply (Or.inl (by norm_num))]; exact q3,
       q4.congr (b := 28) (by simp [sPad]) (fun k hk => (he.apply (Or.inl hk)).symm)⟩)).mono
     le_rfl le_rfl ?_
   rintro σ' ⟨⟨hD, hu, hun, hS⟩, q1, q2, q3, q4⟩

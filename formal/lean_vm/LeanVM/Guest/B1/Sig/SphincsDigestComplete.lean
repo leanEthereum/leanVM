@@ -49,7 +49,7 @@ theorem bFold_desc (X : Nat) :
 `n` bytes, every byte's pointer the table's. -/
 theorem sFromMarks_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) {b n x X : Nat}
     (hn : 1 ≤ n) (hn8 : n ≤ 8) (σ : Val) (hx : 2 ≤ x) (hbx : b + n ≤ x)
-    (hmk : ∀ t < n, σ (.n (b + t)) = ofK (addressOfIndex (X / 256 ^ t % 256))) (h1 : σ (.n 1) = bb) :
+    (hmk : ∀ t < n, σ (.n (b + t)) = ofK (addressOfIndex (X / 256 ^ t % 256))) (h1 : σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb) :
     Completes C rd x (x + 6 + 9 * (n - 1)) (sFromMarks b n x).1 σ
       (fun σ' => σ' (sFromMarks b n x).2.2 = eOfNat (X % 256 ^ n) ∧
         ∀ k ≤ n - 1, BytePtr bb (σ' (.n (fbPtr x k)))) := by
@@ -105,13 +105,13 @@ theorem word_ctr_one : word (2 ^ 24) 0 + word (2 ^ 32) 0 = word (1 * 2 ^ 24 + 2 
 
 /-- The statements before `H_msg`'s first `KECCAK`: its tail run, the `0x80`, the padding run. -/
 def hPre0 : List Stmt :=
-  [copyS (.n 7) sM1, cst 8 (word (2 ^ 32) 0), cst 9 (word 0 0), cst 10 (word 0 0),
+  [copyS (.n (val% «verify_sig_lean_sphincs» "s7#0")) sM1, cst 8 (word (2 ^ 32) 0), cst 9 (word 0 0), cst 10 (word 0 0),
     cst 11 (word (2 ^ 63) 0)] ++ padRun sPad
 
 /-- Between the two calls: the second's counter cell with the `0x01`, its tail run, the `0x80`. -/
 def hPre1 : List Stmt :=
-  [cst 19 (word (2 ^ 24) 0), cst 20 (word (2 ^ 32) 0), addS (.n 21) (.n 19) (.n 20), copyS (.n 22) sM1,
-    copyS (.n 23) (.n 21), cst 24 (word 0 0), cst 25 (word 0 0), cst 26 (word (2 ^ 63) 0)]
+  [cst 19 (word (2 ^ 24) 0), cst 20 (word (2 ^ 32) 0), addS (.n (val% «verify_sig_lean_sphincs» "s8#2")) (.n (val% «verify_sig_lean_sphincs» "s8#0")) (.n (val% «verify_sig_lean_sphincs» "s8#1")), copyS (.n (val% «verify_sig_lean_sphincs» "s8#3")) sM1,
+    copyS (.n (val% «verify_sig_lean_sphincs» "s8#3[1]")) (.n (val% «verify_sig_lean_sphincs» "s8#2")), cst 24 (word 0 0), cst 25 (word 0 0), cst 26 (word (2 ^ 63) 0)]
 
 theorem sDigests_eq : sDigests = hintW "sp_rand" [sRand] :: (hPre0 ++
     ([kecS (sHIns 7) (runV 17 2) false false] ++ (hPre1 ++ [kecS (sHIns 22) (runV 27 1) false false]))) := by

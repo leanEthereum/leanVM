@@ -68,14 +68,14 @@ theorem word_ctr_pad {i : Nat} (hi : i < 256) :
 block from the zero state. -/
 theorem kec84_sound {ins : List V} {o n : Nat} {a b c d e : E} {i : Nat} (hi : i < 256)
     (hK : AtomsHold rd σ [kecS ins (runV o n) false false])
-    (hrate : ∀ k < 9, σ (ins.getD k (.n 0)) =
+    (hrate : ∀ k < 9, σ (ins.getD k (.n (val% «verify_sig_lean_sphincs» "signer"))) =
       [a, b, c, d, e, word (i * 2 ^ 24 + 2 ^ 32) 0, 0, 0, word (2 ^ 63) 0].getD k 0)
-    (hcap : ∀ k, 9 ≤ k → k < 13 → σ (ins.getD k (.n 0)) = 0) :
+    (hcap : ∀ k, 9 ≤ k → k < 13 → σ (ins.getD k (.n (val% «verify_sig_lean_sphincs» "signer"))) = 0) :
     (1 ≤ n → σ (.n o) = (hcellLen [a, b, c, d, e, word (i * 2 ^ 24) 0] 84).1) ∧
       (2 ≤ n → σ (.n (o + 1)) = (hcellLen [a, b, c, d, e, word (i * 2 ^ 24) 0] 84).2) := by
   have hk := hK.atom (List.mem_singleton_self _)
   obtain ⟨hl, -, O, hk, hw⟩ := keccak_holds_full hk
-  have hget : ∀ k : Fin 13, cells13 (ins.map σ) k = σ (ins.getD k.val (.n 0)) := fun k => by
+  have hget : ∀ k : Fin 13, cells13 (ins.map σ) k = σ (ins.getD k.val (.n (val% «verify_sig_lean_sphincs» "signer"))) := fun k => by
     simp only [cells13, List.getD_eq_getElem?_getD, List.getElem?_map]
     rw [List.getElem?_eq_getElem (by omega)]
     rfl
@@ -230,7 +230,7 @@ theorem high_low_bytes {x : E} {l N : Nat} (hl : l < 2 ^ 16)
   omega
 
 /-- The tree index's high byte's six unused bits, folded most significant first. -/
-def padV (b : Nat) : V := if b = 0 then .n 275 else .n (1280 + 3 * (b - 1) + 2)
+def padV (b : Nat) : V := if b = 0 then .n (val% «verify_sig_lean_sphincs» "bits1[119]") else .n (1280 + 3 * (b - 1) + 2)
 
 theorem sPadBits_sound {T : Nat} (hb : BitsAt σ T) (h : AtomsHold rd σ sPadBits) :
     ∀ b ≤ 5, σ (padV b) = eOfNat (T / 2 ^ (247 - b) % 2 ^ (b + 1))
@@ -275,20 +275,20 @@ def sCheckA : List Stmt :=
 
 /-- `d0[0] = md0 + corr0` and `md1 + corr1`: the places `vals` carries taken out. -/
 def sCheckCorr : List Stmt :=
-  [cst 1295 corr0W, addS sHm0 sMd0.2.2 (.n 1295), cst 1296 corr1W, addS (.n 1297) sMd1.2.2 (.n 1296)]
+  [cst 1295 corr0W, addS sHm0 sMd0.2.2 (.n (val% «verify_sig_lean_sphincs» "s33#0")), cst 1296 corr1W, addS (.n (val% «verify_sig_lean_sphincs» "s34#1")) sMd1.2.2 (.n (val% «verify_sig_lean_sphincs» "s34#0"))]
 
 /-- Between `d0[0] = md0 + corr0` and `d0[1] = …`: the tree index's two high bytes placed. -/
 def sCheckB : List Stmt :=
-  [cst 1298 (word 4 0), mulS (.n 1299) (.n 1294) (.n 1298), addS (.n 1300) (sLVal 24) (.n 1299),
-    cst 1301 (pw 112), mulS (.n 1302) (.n 1300) (.n 1301), addS (.n 1303) (.n 1297) (.n 1302),
-    cst 1304 (pw 120), mulS (.n 1305) sTreeMid (.n 1304)]
+  [cst 1298 (word 4 0), mulS (.n (val% «verify_sig_lean_sphincs» "s34#3")) (.n (val% «verify_sig_lean_sphincs» "pad@5")) (.n (val% «verify_sig_lean_sphincs» "s34#2")), addS (.n (val% «verify_sig_lean_sphincs» "s34#4")) (sLVal 24) (.n (val% «verify_sig_lean_sphincs» "s34#3")),
+    cst 1301 (pw 112), mulS (.n (val% «verify_sig_lean_sphincs» "s34#6")) (.n (val% «verify_sig_lean_sphincs» "s34#4")) (.n (val% «verify_sig_lean_sphincs» "s34#5")), addS (.n (val% «verify_sig_lean_sphincs» "s34#7")) (.n (val% «verify_sig_lean_sphincs» "s34#1")) (.n (val% «verify_sig_lean_sphincs» "s34#6")),
+    cst 1304 (pw 120), mulS (.n (val% «verify_sig_lean_sphincs» "s34#9")) sTreeMid (.n (val% «verify_sig_lean_sphincs» "s34#8"))]
 
 /-- After the unused bytes: the second call's high lane. -/
 def sCheckC : List Stmt :=
-  [addS (.n 1363) sHm1 (sLVal 8), cst 1364 (word 256 0), mulS (.n 1365) (sLVal 0) (.n 1364),
-    addS (.n 1366) (.n 1363) (.n 1365), cst 1367 (word 65536 0),
-    mulS (.n 1368) sUnused.2.2 (.n 1367), addS (.n 1369) (.n 1366) (.n 1368),
-    cst 1370 (word 2 1), mulS (.n 1371) (.n 1369) (.n 1370)]
+  [addS (.n (val% «verify_sig_lean_sphincs» "high~0")) sHm1 (sLVal 8), cst 1364 (word 256 0), mulS (.n (val% «verify_sig_lean_sphincs» "high~2")) (sLVal 0) (.n (val% «verify_sig_lean_sphincs» "high~1")),
+    addS (.n (val% «verify_sig_lean_sphincs» "high~3")) (.n (val% «verify_sig_lean_sphincs» "high~0")) (.n (val% «verify_sig_lean_sphincs» "high~2")), cst 1367 (word 65536 0),
+    mulS (.n (val% «verify_sig_lean_sphincs» "high~5")) sUnused.2.2 (.n (val% «verify_sig_lean_sphincs» "high~4")), addS (.n (val% «verify_sig_lean_sphincs» "high~6")) (.n (val% «verify_sig_lean_sphincs» "high~3")) (.n (val% «verify_sig_lean_sphincs» "high~5")),
+    cst 1370 (word 2 1), mulS (.n (val% «verify_sig_lean_sphincs» "high")) (.n (val% «verify_sig_lean_sphincs» "high~6")) (.n (val% «verify_sig_lean_sphincs» "high~7"))]
 
 theorem sCheck_split : sCheck = sCheckA ++ sCheckCorr ++ sCheckB ++
     [addS sHm0b (.n (val% «verify_sig_lean_sphincs» "s34#7")) (.n (val% «verify_sig_lean_sphincs» "s34#9")), hintW "sp_unused" (runV 1306 6)] ++ sUnused.1 ++ sCheckC ++
@@ -309,33 +309,33 @@ theorem lval_0 {T : Nat} (hl : LValsAt σ T) : σ (sLVal 0) = eOfNat (layerLeafN
 
 /-- **The tree's middle byte and the unused bits.** -/
 theorem sCheckA_sound {T : Nat} (hb : BitsAt σ T) (hl : LValsAt σ T) (h : AtomsHold rd σ sCheckA) :
-    σ sTreeMid = eOfNat (byteN T 31) ∧ σ (.n 1294) = eOfNat (T / 2 ^ 242 % 2 ^ 6) := by
+    σ sTreeMid = eOfNat (byteN T 31) ∧ σ (.n (val% «verify_sig_lean_sphincs» "pad@5")) = eOfNat (T / 2 ^ 242 % 2 ^ 6) := by
   have hA := h.left
   have hL2 : layerLeafN T 2 < 2 ^ 10 := by simpa [sLeafLen] using layerLeafN_lt T 2
   refine ⟨?_, ?_⟩
-  · have k : σ (.n 1277) = word 256 0 := hA.atom (a := .const _ _) (by simp [cst])
-    have m : σ (.n 1278) = σ (sLVal 24) * σ (.n 1277) := hA.atom (a := .mul _ _ _) (by simp [mulS])
-    have a : σ sTreeMid = σ (sLVal 16) + σ (.n 1278) := hA.atom (a := .add sTreeMid _ _) (by simp [addS])
+  · have k : σ (.n (val% «verify_sig_lean_sphincs» "tree_mid~0")) = word 256 0 := hA.atom (a := .const _ _) (by simp [cst])
+    have m : σ (.n (val% «verify_sig_lean_sphincs» "tree_mid~1")) = σ (sLVal 24) * σ (.n (val% «verify_sig_lean_sphincs» "tree_mid~0")) := hA.atom (a := .mul _ _ _) (by simp [mulS])
+    have a : σ sTreeMid = σ (sLVal 16) + σ (.n (val% «verify_sig_lean_sphincs» "tree_mid~1")) := hA.atom (a := .add sTreeMid _ _) (by simp [addS])
     rw [a, m, k, lval_16 hl, lval_24 hl, word_eq_eOfNat, show (256 : Nat) = 2 ^ 8 by norm_num, mul_comm,
       Value.eOfNat_two_pow_mul (by rw [Nat.shiftRight_eq_div_pow]; omega), eOfNat_low, layerLeaf2_low]
   · have pad := sPadBits_sound hb h.right 5 le_rfl
-    rw [show padV 5 = .n 1294 from rfl] at pad
+    rw [show padV 5 = .n (val% «verify_sig_lean_sphincs» "pad@5") from rfl] at pad
     simpa using pad
 
 /-- **The tree index's two high bytes placed**: with `md1`, the first call's second cell. -/
 theorem sCheckB_sound {T : Nat} (hl : LValsAt σ T) (tm : σ sTreeMid = eOfNat (byteN T 31))
-    (pad : σ (.n 1294) = eOfNat (T / 2 ^ 242 % 2 ^ 6))
-    (h1 : σ (.n 1297) = eOfNat128 (T / 2 ^ 128 % 2 ^ 112)) (hB : AtomsHold rd σ sCheckB) :
-    σ (.n 1303) + σ (.n 1305) = eOfNat128 (T / 2 ^ 128 % 2 ^ 128) := by
-  have k6 : σ (.n 1298) = word 4 0 := hB.atom (a := .const _ _) (by simp [sCheckB, cst])
-  have m7 : σ (.n 1299) = σ (.n 1294) * σ (.n 1298) := hB.atom (a := .mul _ _ _) (by simp [sCheckB, mulS])
-  have a8 : σ (.n 1300) = σ (sLVal 24) + σ (.n 1299) := hB.atom (a := .add _ _ _) (by simp [sCheckB, addS])
-  have k9 : σ (.n 1301) = pw 112 := hB.atom (a := .const _ _) (by simp [sCheckB, cst])
-  have m0 : σ (.n 1302) = σ (.n 1300) * σ (.n 1301) := hB.atom (a := .mul _ _ _) (by simp [sCheckB, mulS])
-  have a1 : σ (.n 1303) = σ (.n 1297) + σ (.n 1302) := hB.atom (a := .add _ _ _) (by simp [sCheckB, addS])
-  have k2 : σ (.n 1304) = pw 120 := hB.atom (a := .const _ _) (by simp [sCheckB, cst])
-  have m3 : σ (.n 1305) = σ sTreeMid * σ (.n 1304) := hB.atom (a := .mul _ _ _) (by simp [sCheckB, mulS])
-  have b30 : σ (.n 1300) = eOfNat (byteN T 30) := by
+    (pad : σ (.n (val% «verify_sig_lean_sphincs» "pad@5")) = eOfNat (T / 2 ^ 242 % 2 ^ 6))
+    (h1 : σ (.n (val% «verify_sig_lean_sphincs» "s34#1")) = eOfNat128 (T / 2 ^ 128 % 2 ^ 112)) (hB : AtomsHold rd σ sCheckB) :
+    σ (.n (val% «verify_sig_lean_sphincs» "s34#7")) + σ (.n (val% «verify_sig_lean_sphincs» "s34#9")) = eOfNat128 (T / 2 ^ 128 % 2 ^ 128) := by
+  have k6 : σ (.n (val% «verify_sig_lean_sphincs» "s34#2")) = word 4 0 := hB.atom (a := .const _ _) (by simp [sCheckB, cst])
+  have m7 : σ (.n (val% «verify_sig_lean_sphincs» "s34#3")) = σ (.n (val% «verify_sig_lean_sphincs» "pad@5")) * σ (.n (val% «verify_sig_lean_sphincs» "s34#2")) := hB.atom (a := .mul _ _ _) (by simp [sCheckB, mulS])
+  have a8 : σ (.n (val% «verify_sig_lean_sphincs» "s34#4")) = σ (sLVal 24) + σ (.n (val% «verify_sig_lean_sphincs» "s34#3")) := hB.atom (a := .add _ _ _) (by simp [sCheckB, addS])
+  have k9 : σ (.n (val% «verify_sig_lean_sphincs» "s34#5")) = pw 112 := hB.atom (a := .const _ _) (by simp [sCheckB, cst])
+  have m0 : σ (.n (val% «verify_sig_lean_sphincs» "s34#6")) = σ (.n (val% «verify_sig_lean_sphincs» "s34#4")) * σ (.n (val% «verify_sig_lean_sphincs» "s34#5")) := hB.atom (a := .mul _ _ _) (by simp [sCheckB, mulS])
+  have a1 : σ (.n (val% «verify_sig_lean_sphincs» "s34#7")) = σ (.n (val% «verify_sig_lean_sphincs» "s34#1")) + σ (.n (val% «verify_sig_lean_sphincs» "s34#6")) := hB.atom (a := .add _ _ _) (by simp [sCheckB, addS])
+  have k2 : σ (.n (val% «verify_sig_lean_sphincs» "s34#8")) = pw 120 := hB.atom (a := .const _ _) (by simp [sCheckB, cst])
+  have m3 : σ (.n (val% «verify_sig_lean_sphincs» "s34#9")) = σ sTreeMid * σ (.n (val% «verify_sig_lean_sphincs» "s34#8")) := hB.atom (a := .mul _ _ _) (by simp [sCheckB, mulS])
+  have b30 : σ (.n (val% «verify_sig_lean_sphincs» "s34#4")) = eOfNat (byteN T 30) := by
     rw [a8, m7, k6, pad, lval_24 hl, layerLeaf2_high, word_eq_eOfNat, show (4 : Nat) = 2 ^ 2 by norm_num,
       mul_comm, Value.eOfNat_two_pow_mul (by omega), add_comm,
       Value.eOfNat_add_of_lt (Nat.mod_lt _ (by norm_num))]
@@ -345,7 +345,7 @@ theorem sCheckB_sound {T : Nat} (hl : LValsAt σ T) (tm : σ sTreeMid = eOfNat (
     rw [e, show 8 * 30 = 240 by norm_num]
     generalize T / 2 ^ 240 = X
     omega
-  have e41 : σ (.n 1303) = eOfNat128 (T / 2 ^ 128 % 2 ^ 120) := by
+  have e41 : σ (.n (val% «verify_sig_lean_sphincs» "s34#7")) = eOfNat128 (T / 2 ^ 128 % 2 ^ 120) := by
     rw [a1, m0, b30, k9, h1, pw_mul (by norm_num) (by have := byteN_lt T 30; norm_num; omega),
       eOfNat128_add_shift (Nat.mod_lt _ (by positivity)), show (120 : Nat) = 112 + 8 by norm_num,
       mod_split (T / 2 ^ 128) 112 8, Nat.div_div_eq_div_mul, ← pow_add, byteN, Nat.add_comm]
@@ -357,18 +357,18 @@ theorem sCheckB_sound {T : Nat} (hl : LValsAt σ T) (tm : σ sTreeMid = eOfNat (
 `y⁻¹`. -/
 theorem sCheckC_sound {T N : Nat} (hl : LValsAt σ T) (hN : σ sUnused.2.2 = eOfNat N) (hN48 : N < 2 ^ 48)
     (hC : AtomsHold rd σ sCheckC) :
-    σ (.n 1371) = (σ sHm1 + eOfNat (T / 2 ^ 256 % 2 ^ 16) + eOfNat (2 ^ 16 * N)) * word 2 1 := by
+    σ (.n (val% «verify_sig_lean_sphincs» "high")) = (σ sHm1 + eOfNat (T / 2 ^ 256 % 2 ^ 16) + eOfNat (2 ^ 16 * N)) * word 2 1 := by
   have hL1 : layerLeafN T 1 < 2 ^ 8 := by simpa [sLeafLen] using layerLeafN_lt T 1
   have hL0 : layerLeafN T 0 < 2 ^ 8 := by simpa [sLeafLen] using layerLeafN_lt T 0
-  have a01 : σ (.n 1363) = σ sHm1 + σ (sLVal 8) := hC.atom (a := .add _ _ _) (by simp [sCheckC, addS])
-  have k02 : σ (.n 1364) = word 256 0 := hC.atom (a := .const _ _) (by simp [sCheckC, cst])
-  have m03 : σ (.n 1365) = σ (sLVal 0) * σ (.n 1364) := hC.atom (a := .mul _ _ _) (by simp [sCheckC, mulS])
-  have a04 : σ (.n 1366) = σ (.n 1363) + σ (.n 1365) := hC.atom (a := .add _ _ _) (by simp [sCheckC, addS])
-  have k05 : σ (.n 1367) = word 65536 0 := hC.atom (a := .const _ _) (by simp [sCheckC, cst])
-  have m06 : σ (.n 1368) = σ sUnused.2.2 * σ (.n 1367) := hC.atom (a := .mul _ _ _) (by simp [sCheckC, mulS])
-  have a07 : σ (.n 1369) = σ (.n 1366) + σ (.n 1368) := hC.atom (a := .add _ _ _) (by simp [sCheckC, addS])
-  have k08 : σ (.n 1370) = word 2 1 := hC.atom (a := .const _ _) (by simp [sCheckC, cst])
-  have m09 : σ (.n 1371) = σ (.n 1369) * σ (.n 1370) := hC.atom (a := .mul _ _ _) (by simp [sCheckC, mulS])
+  have a01 : σ (.n (val% «verify_sig_lean_sphincs» "high~0")) = σ sHm1 + σ (sLVal 8) := hC.atom (a := .add _ _ _) (by simp [sCheckC, addS])
+  have k02 : σ (.n (val% «verify_sig_lean_sphincs» "high~1")) = word 256 0 := hC.atom (a := .const _ _) (by simp [sCheckC, cst])
+  have m03 : σ (.n (val% «verify_sig_lean_sphincs» "high~2")) = σ (sLVal 0) * σ (.n (val% «verify_sig_lean_sphincs» "high~1")) := hC.atom (a := .mul _ _ _) (by simp [sCheckC, mulS])
+  have a04 : σ (.n (val% «verify_sig_lean_sphincs» "high~3")) = σ (.n (val% «verify_sig_lean_sphincs» "high~0")) + σ (.n (val% «verify_sig_lean_sphincs» "high~2")) := hC.atom (a := .add _ _ _) (by simp [sCheckC, addS])
+  have k05 : σ (.n (val% «verify_sig_lean_sphincs» "high~4")) = word 65536 0 := hC.atom (a := .const _ _) (by simp [sCheckC, cst])
+  have m06 : σ (.n (val% «verify_sig_lean_sphincs» "high~5")) = σ sUnused.2.2 * σ (.n (val% «verify_sig_lean_sphincs» "high~4")) := hC.atom (a := .mul _ _ _) (by simp [sCheckC, mulS])
+  have a07 : σ (.n (val% «verify_sig_lean_sphincs» "high~6")) = σ (.n (val% «verify_sig_lean_sphincs» "high~3")) + σ (.n (val% «verify_sig_lean_sphincs» "high~5")) := hC.atom (a := .add _ _ _) (by simp [sCheckC, addS])
+  have k08 : σ (.n (val% «verify_sig_lean_sphincs» "high~7")) = word 2 1 := hC.atom (a := .const _ _) (by simp [sCheckC, cst])
+  have m09 : σ (.n (val% «verify_sig_lean_sphincs» "high")) = σ (.n (val% «verify_sig_lean_sphincs» "high~6")) * σ (.n (val% «verify_sig_lean_sphincs» "high~7")) := hC.atom (a := .mul _ _ _) (by simp [sCheckC, mulS])
   rw [m09, k08, a07, m06, k05, a04, m03, k02, a01, lval_8 hl, lval_0 hl, hN, word_eq_eOfNat, word_eq_eOfNat,
     show (256 : Nat) = 2 ^ 8 by norm_num, show (65536 : Nat) = 2 ^ 16 by norm_num,
     mul_comm (eOfNat (layerLeafN T 0)), Value.eOfNat_two_pow_mul (by omega), mul_comm (eOfNat N),
@@ -664,8 +664,8 @@ the claim pointer are the claim of `PK.seed`, `PK.root` and the message's two ce
 statement's `H_msg` of the claim and the randomizer is `digestOf T` for a `T` whose bits and fields
 the block holds. -/
 theorem sDigestBlock_sound_stmt {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
-    (hbb : ByteBits L.read (σ (.n 1))) (h : AtomsHold L.read σ sDigestBlock) :
-    PadOK σ sPad ∧ ∃ c d, ClaimAt L.read (σ (.n 0)) (σ sPP) (σ sRoot) c d ∧ ∃ T, DigestAt σ T ∧
+    (hbb : ByteBits L.read (σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")))) (h : AtomsHold L.read σ sDigestBlock) :
+    PadOK σ sPad ∧ ∃ c d, ClaimAt L.read (σ (.n (val% «verify_sig_lean_sphincs» "signer"))) (σ sPP) (σ sRoot) c d ∧ ∃ T, DigestAt σ T ∧
         Id.run (Sphincs.Verification.messageDigest (m := Id) LeanVM.Semantics.keccakF1600
           (sphincsClaimOf (σ sPP) (σ sRoot) c d).1 (cellVal (σ sRand))
           (sphincsClaimOf (σ sPP) (σ sRoot) c d).2) = digestOf T := by

@@ -40,10 +40,10 @@ theorem stepPn_eq : ∀ s < 11,
 /-- **The claim records' pointers the steps pass on**: step `s ≥ 1` reads claim `s`'s at
 `stepCb s` and claim `s + 1`'s at `stepPn s`, as the step before computed them. -/
 theorem steps_chain (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : Val}
-    (hσd : σ = D.val rd B curE chiE olE zvE slE tbE stE) (h17 : σ (.n 19) = gen ^ (D.τ - 4))
-    (h201 : σ (.n 156) = ptr (B + D.o201)) (h274 : σ (.n 229) = ptr (B + D.o274)) :
-    ∀ s, s < 12 → 1 ≤ s → σ (.n (stepCb s)) = σ (.n 156) * gen ^ (22 * (s - 1)) ∧
-      σ (.n (stepPn s)) = σ (.n 156) * gen ^ (22 * s)
+    (hσd : σ = D.val rd B curE chiE olE zvE slE tbE stE) (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (D.τ - 4))
+    (h201 : σ (.n (val% «verify_keccak» "claims")) = ptr (B + D.o201)) (h274 : σ (.n (val% «verify_keccak» "lane_tree")) = ptr (B + D.o274)) :
+    ∀ s, s < 12 → 1 ≤ s → σ (.n (stepCb s)) = σ (.n (val% «verify_keccak» "claims")) * gen ^ (22 * (s - 1)) ∧
+      σ (.n (stepPn s)) = σ (.n (val% «verify_keccak» "claims")) * gen ^ (22 * s)
   | 0, _, h1 => absurd h1 (by norm_num)
   | 1, _, _ => by
     refine ⟨by simp [stepCb], ?_⟩
@@ -123,7 +123,7 @@ theorem val_57 (h : D.Ok) {σ : Val} (hσd : σ = D.val rd B curE chiE olE zvE s
 
 /-- **The buffers' sizes.** -/
 theorem body_sizes (h : D.Ok) {σ : Val} (hσd : σ = D.val rd B curE chiE olE zvE slE tbE stE)
-    (h17 : σ (.n 19) = gen ^ (D.τ - 4)) :
+    (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (D.τ - 4)) :
     (vkPre.filterMap Main.Stmt.allocSz).map (fun x ↦ x.2.elim id fun s ↦ logG (σ s)) = D.sizes := by
   have hτ := h.2.1
   rw [vkPre_kernel.2.2.1]
@@ -160,8 +160,8 @@ theorem layer_call (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ
     (fun h1 ↦ (steps_chain h hm hσd h17 a201 a274 s hs h1).1)
     (fun h1 ↦ (steps_chain h hm hσd h17 a201 a274 s hs h1).2)
   have hy := D.layer_y h hs.le
-  have p11 : σ (.n 11) = ptr tbE := by rw [hσd]; exact val_tabs h
-  have p12 : σ (.n 12) = ptr stE := by rw [hσd]; exact val_stream h
+  have p11 : σ (.n (val% «verify_keccak» "tabs")) = ptr tbE := by rw [hσd]; exact val_tabs h
+  have p12 : σ (.n (val% «verify_keccak» "stream")) = ptr stE := by rw [hσd]; exact val_stream h
   have hE := stepE_eq s hs
   have hT6 := stepT0_lt s hs
   set T := stepT0 s (stepB s) with hT

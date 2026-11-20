@@ -41,12 +41,12 @@ def secA2 (first : ℕ) : List Stmt := checkT (accL first) ++ sqT first
 
 /-- The residual atoms of the head and the product: the claim's weights, the stream words. -/
 def residA1 (first : ℕ) : List Atom :=
-  (List.range 16).map (fun i ↦ .load (.n (muB first + i)) (.n 11) (6 + i)) ++
-    (List.range 47).map fun k ↦ .load (.n ((prodTab first).getD k default).a) (.n 7) k
+  (List.range 16).map (fun i ↦ .load (.n (muB first + i)) (.n (valf% «keccak_layer» "claim")) (6 + i)) ++
+    (List.range 47).map fun k ↦ .load (.n ((prodTab first).getD k default).a) (.n (valf% «keccak_layer» "cursor@1")) k
 
 /-- The residual atoms of the check. -/
 def residC (first : ℕ) : List Atom :=
-  [.load (.n (accL first + 1)) (.n 11) 1, .load (.n (accL first + 4)) (.n 11) 0,
+  [.load (.n (accL first + 1)) (.n (valf% «keccak_layer» "claim")) 1, .load (.n (accL first + 4)) (.n (valf% «keccak_layer» "claim")) 0,
     .assertEq (.n (accL first + 3)) (.n (accL first + 4))]
 
 theorem secA_atoms {first : ℕ} (hf : first < 2) :
@@ -67,8 +67,8 @@ theorem secA_residC {first : ℕ} (hf : first < 2) :
   · decide +kernel
 
 theorem prodTab_a_eq {first : ℕ} (hf : first < 2) {prod : List E} (hpl : prod.length = 47)
-    (hr : ReadsAt rd (σ (.n 7)) prod)
-    (hr' : ReadsAt rd (σ (.n 7)) ((prodTab first).map fun p ↦ σ (.n p.a))) :
+    (hr : ReadsAt rd (σ (.n (valf% «keccak_layer» "cursor@1"))) prod)
+    (hr' : ReadsAt rd (σ (.n (valf% «keccak_layer» "cursor@1"))) ((prodTab first).map fun p ↦ σ (.n p.a))) :
     (prodTab first).map (fun p ↦ σ (.n p.a)) = prod := by
   obtain ⟨hl, -⟩ := prodTab_facts first hf
   apply List.ext_getElem (by simp [hl, hpl])

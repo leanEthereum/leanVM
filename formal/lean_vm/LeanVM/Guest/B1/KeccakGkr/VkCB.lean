@@ -60,17 +60,17 @@ theorem loads_complete {B : List Stmt} (hall : B.all isAtom = true) (hσ : ∀ v
   | _ => simp [ldR] at hl'
 
 /-- The pairs' dot product of the first record: the lane weights and the output lanes. -/
-abbrev vkFirstPD : List Stmt := pairsDotT (.n 229) (.n 8) (consecOffs 30 0 25) 341
+abbrev vkFirstPD : List Stmt := pairsDotT (.n (val% «verify_keccak» "lane_tree")) (.n (val% «verify_keccak» "output_lanes")) (consecOffs 30 0 25) 341
 
 theorem vkFirst_kernel :
-    noneIn (eqtreeReads (.n 9) (.n 158) 0 159 4) vkSt = true ∧
-    noneIn (eqtreeReads (.n 87) (.n 229) 0 230 5) vkSt = true ∧
-    noneIn (eqtreeReads (.n 68) (.n 337) 0 338 1) vkSt = true ∧
-    noneIn ((List.range 16).map fun i ↦ .load (.n (213 + i)) (.n 158) (14 + i)) vkSt = true ∧
+    noneIn (eqtreeReads (.n (val% «verify_keccak» "z_vals")) (.n (val% «verify_keccak» "mu_tree")) 0 159 4) vkSt = true ∧
+    noneIn (eqtreeReads (.n (val% «verify_keccak» "r_lane")) (.n (val% «verify_keccak» "lane_tree")) 0 230 5) vkSt = true ∧
+    noneIn (eqtreeReads (.n (val% «verify_keccak» "segment")) (.n (val% «verify_keccak» "segment_tree")) 0 338 1) vkSt = true ∧
+    noneIn ((List.range 16).map fun i ↦ .load (.n (213 + i)) (.n (val% «verify_keccak» "mu_tree")) (14 + i)) vkSt = true ∧
     vkFirstPD.all isAtom = true ∧
-    (resid (atomsL vkFirstPD)).all (ldR [(.n 229, 30, 55), (.n 8, 0, 25)]) = true ∧
+    (resid (atomsL vkFirstPD)).all (ldR [(.n (val% «verify_keccak» "lane_tree"), 30, 55), (.n (val% «verify_keccak» "output_lanes"), 0, 25)]) = true ∧
     noneIn (resid (atomsL vkFirstPD)) vkSt = true ∧
-    noneIn [.load (.n 440) (.n 337) 1] vkSt = true := by
+    noneIn [.load (.n (val% «verify_keccak» "s45#0")) (.n (val% «verify_keccak» "segment_tree")) 1] vkSt = true := by
   decide +kernel
 
 set_option maxRecDepth 20000 in

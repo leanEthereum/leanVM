@@ -102,7 +102,7 @@ theorem eqf_complete {o : ℕ} (ho : LayOff o) (hσ : ∀ v, σ v = σ (.n v.idx
 
 /-- The pointers the weight section loads through. -/
 def weightPs (first o : ℕ) : List (V × ℕ) :=
-  [(.n 11, 22), (.n (o + 1176), 25), (.n (o + 745), 11)] ++
+  [(.n (valf% «keccak_layer» "claim"), 22), (.n (o + 1176), 25), (.n (o + 745), 11)] ++
     if first = 1 then [] else [(.n (o + 1177), 11)]
 
 theorem weight_kernel {first : ℕ} (hf : first < 2) :

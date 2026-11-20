@@ -35,10 +35,10 @@ def stepGroups (s : ℕ) : List (V × ℕ × ℕ) :=
 
 /-- The pointers the body loads through, with their offsets' ranges. -/
 def vkGroups : List (V × ℕ × ℕ) :=
-  [(.n 5, 0, 1), (.n 7, 0, 4), (.n 8, 0, 25), (.n 9, 0, 4), (.n 9, 39, 43), (.n 10, 0, 64),
-    (.n 68, 0, 1), (.n 87, 0, 5), (.n 156, 0, 286), (.n 158, 0, 30), (.n 229, 0, 62),
-    (.n 337, 0, 2), (.n 916, 0, 6), (.n 924, 0, 1), (.n 929, 0, 1), (.n 1205, 0, 30),
-    (.n 1333, 0, 64), (.n 1325, 0, 6), (.n 1741, 0, 1), (.n 1975, 0, 6), (.n 3138, 0, 25)] ++
+  [(.n (val% «verify_keccak» "cursor@1"), 0, 1), (.n (val% «verify_keccak» "chi"), 0, 4), (.n (val% «verify_keccak» "output_lanes"), 0, 25), (.n (val% «verify_keccak» "z_vals"), 0, 4), (.n (val% «verify_keccak» "z_vals"), 39, 43), (.n (val% «verify_keccak» "slices"), 0, 64),
+    (.n (val% «verify_keccak» "segment"), 0, 1), (.n (val% «verify_keccak» "r_lane"), 0, 5), (.n (val% «verify_keccak» "claims"), 0, 286), (.n (val% «verify_keccak» "mu_tree"), 0, 30), (.n (val% «verify_keccak» "lane_tree"), 0, 62),
+    (.n (val% «verify_keccak» "segment_tree"), 0, 2), (.n (val% «verify_keccak» "out_slot"), 0, 6), (.n (val% «verify_keccak» "cursor@14"), 0, 1), (.n (val% «verify_keccak» "s52#0"), 0, 1), (.n (val% «verify_keccak» "low_tree"), 0, 30),
+    (.n (val% «verify_keccak» "cursor@16"), 0, 64), (.n (val% «verify_keccak» "in_slot"), 0, 6), (.n (val% «verify_keccak» "s72#0"), 0, 1), (.n (val% «verify_keccak» "last_local"), 0, 6), (.n (val% «verify_keccak» "last_lanes"), 0, 25)] ++
     (List.range 12).flatMap stepGroups
 
 /-- A load through one of `vkGroups`. -/

@@ -34,8 +34,8 @@ theorem mem_stepCoreF {s b : ℕ} {st : Stmt} (h : st ∈ flipsT s (b + 6)) : st
 /-- **A step's core, completely**, given its flips. -/
 theorem stepCore_of_flips {s b : ℕ} (hs : s < 12) (hb : 19 ≤ b) (hσ : ∀ v, σ v = σ (.n v.idx))
     (hg : ∀ st ∈ stepCore s b, GoodS rd vkSt w σ st) (hk : stepKer s b)
-    {τ : ℕ} (hτ1 : 9 ≤ τ) (h17 : σ (.n 19) = gen ^ (τ - 4)) {c : KeccakClaim} {pp : E}
-    (hpp : LoadHolds rd (σ (.n 156)) (22 * s + 2) pp) (hpt : ReadsAt rd pp c.point)
+    {τ : ℕ} (hτ1 : 9 ≤ τ) (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4)) {c : KeccakClaim} {pp : E}
+    (hpp : LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) (22 * s + 2) pp) (hpt : ReadsAt rd pp c.point)
     (hptL : c.point.length = τ - 3)
     (hF : ∀ i ∈ iotaUsed s, σ (.n (flipOf s (b + 6) i)) = c.weights.getD (2 ^ i - 1) 0)
     (HF : ∀ {next : Prop} {kret : List E → Prop}, next →
@@ -44,14 +44,14 @@ theorem stepCore_of_flips {s b : ℕ} (hs : s < 12) (hb : 19 ≤ b) (hσ : ∀ v
       ∀ {next : Prop} {kret : List E → Prop}, next → Stmt.HoldsList C rd σ (stepCore s b) next kret := by
   obtain ⟨k1, -, -, -, k7, k9⟩ := hk
   have gA : ∀ a, Stmt.atom a ∈ stepCore s b → Good rd vkSt w σ a := fun a h ↦ hg _ h
-  have mA : ∀ st ∈ [Stmt.atom (.load (.n b) (.n 156) (22 * s + 2)),
-      .atom (.mul (.n (b + 1)) (.n b) (.n 19))] ++ eqfLevel0T (.n (b + 1)) 0 (b + 2),
+  have mA : ∀ st ∈ [Stmt.atom (.load (.n b) (.n (val% «verify_keccak» "claims")) (22 * s + 2)),
+      .atom (.mul (.n (b + 1)) (.n b) (.n (val% «verify_keccak» "pack_g")))] ++ eqfLevel0T (.n (b + 1)) 0 (b + 2),
       st ∈ stepCore s b := fun st h ↦
     List.mem_append_left _ (List.mem_append_left _ h)
   have e0 : σ (.n b) = pp :=
     load_val (gA _ (mA _ (by simp))) (not_mem_of_noneIn k1 _ (by simp)) hpp
   have m1 := mulG (by omega) (by omega)
-    (gA (.mul (.n (b + 1)) (.n b) (.n 19)) (mA _ (by simp)))
+    (gA (.mul (.n (b + 1)) (.n b) (.n (val% «verify_keccak» "pack_g"))) (mA _ (by simp)))
   -- the segment weights
   have hr : LoadHolds rd (σ (.n (b + 1))) 0 (c.point.getD (τ - 4) 0) := by
     rw [m1, e0, h17, loadHolds_mul_gen_pow, List.getD_eq_getElem _ _ (by omega)]
@@ -65,7 +65,7 @@ theorem stepCore_of_flips {s b : ℕ} (hs : s < 12) (hb : 19 ≤ b) (hσ : ∀ v
   have p5 : σ (.n (b + 5)) = σ (.n (b + 2)) :=
     gA (.copy (.n (b + 5)) (.n (b + 2))) (mA _ (by simp [eqfLevel0T]))
   have HA : ∀ {next : Prop} {kret : List E → Prop}, next → Stmt.HoldsList C rd σ
-      ([Stmt.atom (.load (.n b) (.n 156) (22 * s + 2)), .atom (.mul (.n (b + 1)) (.n b) (.n 19))] ++
+      ([Stmt.atom (.load (.n b) (.n (val% «verify_keccak» "claims")) (22 * s + 2)), .atom (.mul (.n (b + 1)) (.n b) (.n (val% «verify_keccak» "pack_g")))] ++
         eqfLevel0T (.n (b + 1)) 0 (b + 2)) next kret := by
     intro next kret hn
     simp only [eqfLevel0T, List.cons_append, List.nil_append, Stmt.HoldsList, Stmt.Holds,
@@ -93,7 +93,7 @@ theorem load_mem_resid {B : List Stmt} {d p : V} {off : ℕ} (h : Stmt.atom (.lo
 /-- **The first claim's flips, completely.** -/
 theorem flips0_complete {b : ℕ} (hσ : ∀ v, σ v = σ (.n v.idx))
     (hg : ∀ st ∈ stepCore 0 b, GoodS rd vkSt w σ st) (hk : stepKer 0 b) {L0 : E}
-    (hL0 : LoadHolds rd (σ (.n 229)) 30 L0) {c : KeccakClaim}
+    (hL0 : LoadHolds rd (σ (.n (val% «verify_keccak» "lane_tree"))) 30 L0) {c : KeccakClaim}
     (hw0 : ∀ z < 64, c.weights.getD z 0 = L0 * gen ^ z) :
     (∀ i ∈ iotaUsed 0, σ (.n (flipOf 0 (b + 6) i)) = c.weights.getD (2 ^ i - 1) 0) ∧
       ∀ {next : Prop} {kret : List E → Prop}, next →

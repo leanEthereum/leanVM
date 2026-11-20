@@ -35,8 +35,8 @@ variable {D : VkData} {rd : Reader} {B curE chiE olE zvE slE tbE stE : ℕ} {ls 
 
 /-- Word `k` of claim `s`'s record, through the claim records' pointer. -/
 theorem rec_word (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : Val}
-    (h201 : σ (.n 156) = ptr (B + D.o201)) {s : ℕ} (hs : s < 12) {k : ℕ} (hk : k < 22) :
-    LoadHolds rd (σ (.n 156)) (22 * s + k) ((D.CL B ls s).cw.getD k 0) := by
+    (h201 : σ (.n (val% «verify_keccak» "claims")) = ptr (B + D.o201)) {s : ℕ} (hs : s < 12) {k : ℕ} (hk : k < 22) :
+    LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) (22 * s + k) ((D.CL B ls s).cw.getD k 0) := by
   have hcw := memL_entry (CL_mem h hm hs) (b := (D.CL B ls s).bclaim) (ws := (D.CL B ls s).cw)
     (by simp [ClaimLay.L])
   have hbc : (D.CL B ls s).bclaim = B + D.o201 + 22 * s := by cases s <;> rfl

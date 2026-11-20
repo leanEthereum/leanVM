@@ -47,18 +47,18 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
 /-! ## Values and constants -/
 
 /-- `PK.seed`, `signer[1]` (offset `0`). -/
-def sPP : V := .n 2
+def sPP : V := .n (val% «verify_sig_lean_sphincs» "pp")
 /-- `PK.root`, `signer[GEN]` (offset `1`). -/
-def sRoot : V := .n 3
+def sRoot : V := .n (val% «verify_sig_lean_sphincs» "pk_root")
 /-- The padding run of `verify_sig_lean_sphincs`, set by `H_msg`'s first call. -/
 def sPad : Nat := 12
 /-- `R`, the randomizer. -/
-def sRand : V := .n 6
+def sRand : V := .n (val% «verify_sig_lean_sphincs» "rho")
 /-- The first call's two output cells, the digest's (`d0`, a two-cell `out`). -/
-def sHm0 : V := .n 17
-def sHm0b : V := .n 18
+def sHm0 : V := .n (val% «verify_sig_lean_sphincs» "d0[0]")
+def sHm0b : V := .n (val% «verify_sig_lean_sphincs» "d0[1]")
 /-- The second call's one output cell (`d1`). -/
-def sHm1 : V := .n 27
+def sHm1 : V := .n (val% «verify_sig_lean_sphincs» "d1[0]")
 
 /-- `g^255`, as the compiler writes it: the bound of a byte's range check. -/
 def g255W : E := word 9223372036854810629 0
@@ -97,8 +97,8 @@ def sFromMarks (b n x : Nat) : List Stmt × Nat × V := sFromBytes (sMarks b n).
 
 /-- `m0`, `m1`: the message `M`'s two cells, `signer[GEN^2]`, `signer[GEN^3]` (offsets `2`, `3`),
 which `H_msg` hashes as they are. -/
-def sM0 : V := .n 4
-def sM1 : V := .n 5
+def sM0 : V := .n (val% «verify_sig_lean_sphincs» "m0")
+def sM1 : V := .n (val% «verify_sig_lean_sphincs» "m1")
 
 /-- The claim's four cells loaded: `PK.seed`, `PK.root`, `m0`, `m1`. -/
 def sMsg : List Stmt :=
@@ -247,7 +247,7 @@ def sMdBytes : List Stmt := (sMdByte 0 1067).1 ++ sMd0.1 ++ sMd1.1
 /-! ## The check -/
 
 /-- The tree index's middle byte, the top leaf's low byte. -/
-def sTreeMid : V := .n 1279
+def sTreeMid : V := .n (val% «verify_sig_lean_sphincs» "tree_mid")
 
 /-- The six unused bits of the tree index's high byte, most significant first. -/
 def sPadBits : List Stmt :=

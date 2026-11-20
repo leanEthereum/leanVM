@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkCB
 public import LeanVM.Guest.B1.KeccakGkr.VkChain
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # The steps' cores
@@ -48,7 +50,7 @@ def stepPn (s : ℕ) : ℕ := if s = 0 then 0 else stepB s - 7
 
 /-- Step `s` but its call. -/
 def stepCore (s b : ℕ) : List Stmt :=
-  [.atom (.load (.n b) (.n 156) (22 * s + 2)), .atom (.mul (.n (b + 1)) (.n b) (.n 19))] ++
+  [.atom (.load (.n b) (.n (val% «verify_keccak» "claims")) (22 * s + 2)), .atom (.mul (.n (b + 1)) (.n b) (.n (val% «verify_keccak» "pack_g")))] ++
   eqfLevel0T (.n (b + 1)) 0 (b + 2) ++ flipsT s (b + 6) ++
   iotaSegT s (b + 6) (b + 6 + flipSz s * (iotaUsed s).length) (b + 4) (b + 5)
 
@@ -61,13 +63,13 @@ theorem stepT_split (s b : ℕ) (cap : List ℕ) (cur cb pn : ℕ) :
 
 /-- The pointers the flips load through, and their ranges. -/
 def flipPs (s b : ℕ) : List (V × ℕ × ℕ) :=
-  if s = 0 then [(.n 229, 30, 31)]
-  else (.n 156, 22 * s + 5, 22 * s + 6) :: (List.range (iotaUsed s).length).map fun j ↦
+  if s = 0 then [(.n (val% «verify_keccak» "lane_tree"), 30, 31)]
+  else (.n (val% «verify_keccak» "claims"), 22 * s + 5, 22 * s + 6) :: (List.range (iotaUsed s).length).map fun j ↦
     (.n (b + 6 + 2 * j), 0, 7)
 
 /-- What the kernel checks of step `s`'s core. -/
 def stepKer (s b : ℕ) : Prop :=
-  noneIn [.load (.n b) (.n 156) (22 * s + 2), .load (.n (b + 2)) (.n (b + 1)) 0] vkSt = true ∧
+  noneIn [.load (.n b) (.n (val% «verify_keccak» "claims")) (22 * s + 2), .load (.n (b + 2)) (.n (b + 1)) 0] vkSt = true ∧
   (flipsT s (b + 6)).all isAtom = true ∧
   (resid (atomsL (flipsT s (b + 6)))).all (ldR (flipPs s b)) = true ∧
   noneIn (resid (atomsL (flipsT s (b + 6)))) vkSt = true ∧

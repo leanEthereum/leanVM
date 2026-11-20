@@ -214,16 +214,16 @@ theorem flipsT_holdsL {s b : ℕ} (hs : s ≠ 0) {fl : E} {ws : List E}
 
 /-! ## A later step -/
 
-theorem claimRec_loads {P : ℕ} {k : ℕ} {v : E} (h : LoadHolds rd (σ (.n 156) * gen ^ (22 * k)) P v) :
-    LoadHolds rd (σ (.n 156)) (22 * k + P) v := (loadHolds_mul_gen_pow rd _ _ _ _).1 h
+theorem claimRec_loads {P : ℕ} {k : ℕ} {v : E} (h : LoadHolds rd (σ (.n (val% «verify_keccak» "claims")) * gen ^ (22 * k)) P v) :
+    LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) (22 * k + P) v := (loadHolds_mul_gen_pow rd _ _ _ _).1 h
 
 /-- The step's segment weights (`eqtree_frame` of one coordinate): the claim's last
 coordinate `r` read through `pt·pack_g`, `1 + r` and `r` at `b + 4`, `b + 5`. -/
 theorem stepSeg_holds {b off : ℕ} {pp : E} {pt : List E} {τ : ℕ} (hτ : 4 ≤ τ)
-    (hptL : pt.length = τ - 3) (hpt : ReadsAt rd pp pt) (h17 : σ (.n 19) = gen ^ (τ - 4))
-    (hpp : LoadHolds rd (σ (.n 156)) off pp) {next : Prop} {kret : List E → Prop}
-    (h : Stmt.HoldsList C rd σ ([.atom (.load (.n b) (.n 156) off),
-      .atom (.mul (.n (b + 1)) (.n b) (.n 19))] ++ eqfLevel0T (.n (b + 1)) 0 (b + 2)) next kret) :
+    (hptL : pt.length = τ - 3) (hpt : ReadsAt rd pp pt) (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4))
+    (hpp : LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) off pp) {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ ([.atom (.load (.n b) (.n (val% «verify_keccak» "claims")) off),
+      .atom (.mul (.n (b + 1)) (.n b) (.n (val% «verify_keccak» "pack_g")))] ++ eqfLevel0T (.n (b + 1)) 0 (b + 2)) next kret) :
     (σ (.n (b + 4)) = (eqKernel [pt.getD (τ - 4) 0]).getD 0 0 ∧
       σ (.n (b + 5)) = (eqKernel [pt.getD (τ - 4) 0]).getD 1 0) ∧ next := by
   rw [holdsList_append] at h

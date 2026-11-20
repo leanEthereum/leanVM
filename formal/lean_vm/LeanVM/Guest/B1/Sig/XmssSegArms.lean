@@ -134,7 +134,7 @@ theorem armsM_getElem (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) 
 
 /-- Group `p`'s running product and encoding cells and its virtual base, the groups from `vb0`. -/
 def sSt (W : WotsT) (vb0 : Nat) : Nat → V × V × Nat
-  | 0 => (.n 0, .n 0, vb0)
+  | 0 => (.n (val% «main_loop2» "xi"), .n (val% «main_loop2» "xi"), vb0)
   | p + 1 =>
       let st := sSt W vb0 p
       (prodT W (p == 0) (lxN p) st.2.2, encT W (p == 0) (lxN p) st.2.2,

@@ -45,7 +45,7 @@ theorem DigestAt.congr {σ σ' : Val} {T : Nat} (h : DigestAt σ T)
     (ha : ∀ k < 1372, σ' (.n k) = σ (.n k)) : DigestAt σ' T := by
   obtain ⟨hT, hb, hv, hl, hm⟩ := h
   refine ⟨hT, fun k hk => by rw [ha _ (by omega)]; exact hb k hk, fun c hc z hz => ?_,
-    fun l hl3 z hz => ?_, by rw [show sTreeMid = .n 1279 from rfl, ha _ (by norm_num)]; exact hm⟩
+    fun l hl3 z hz => ?_, by rw [show sTreeMid = .n (val% «verify_sig_lean_sphincs» "tree_mid") from rfl, ha _ (by norm_num)]; exact hm⟩
   · obtain ⟨k, hk, ek⟩ := sFVal_below hc hz
     rw [ek, ha k hk, ← ek]; exact hv c hc z hz
   · obtain ⟨k, hk, ek⟩ := sLVal_below (sLeafOff l + z)
@@ -111,13 +111,13 @@ theorem BottomPost.congr {bb : E} {pk : Sphincs.PublicKey} {m : HashSig.Message}
     (ha : ∀ k < 5249, σ' (.n k) = σ (.n k)) : BottomPost bb pk m sig σ' := by
   obtain ⟨hp, hpp, hr, hd, hq, ha0, hk, hf⟩ := h
   refine ⟨hp.congr (b := 5249) (by unfold sPad; omega) fun j hj => (ha j hj).symm,
-    by rw [show sPP = .n 2 from rfl, ha _ (by norm_num)]; exact hpp,
-    by rw [show sRoot = .n 3 from rfl, ha _ (by norm_num)]; exact hr,
+    by rw [show sPP = .n (val% «verify_sig_lean_sphincs» "pp") from rfl, ha _ (by norm_num)]; exact hpp,
+    by rw [show sRoot = .n (val% «verify_sig_lean_sphincs» "pk_root") from rfl, ha _ (by norm_num)]; exact hr,
     hd.congr fun k hk => ha k (by omega),
     hq.congr (b := 5249) (fun q hq' => by have := sDigestBlock_ptrs q hq'; omega) ha,
-    by rw [show sA0B = .n 1379 from rfl, ha _ (by norm_num)]; exact ha0,
-    by rw [show sKeyB = .n 1381 from rfl, ha _ (by norm_num)]; exact hk,
-    by rw [show sForsPk = .n 5248 from rfl, ha _ (by norm_num)]; exact hf⟩
+    by rw [show sA0B = .n (val% «verify_sig_lean_sphincs» "a0_b") from rfl, ha _ (by norm_num)]; exact ha0,
+    by rw [show sKeyB = .n (val% «verify_sig_lean_sphincs» "key_b") from rfl, ha _ (by norm_num)]; exact hk,
+    by rw [show sForsPk = .n (val% «verify_sig_lean_sphincs» "fors_pk[0]") from rfl, ha _ (by norm_num)]; exact hf⟩
 
 /-- **The digest, the bottom key's address and FORS complete** for the claim of `pk` and `m` at
 `n0`, the byte table at `n1`, a signature `sig`. -/

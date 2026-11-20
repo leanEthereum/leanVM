@@ -51,9 +51,9 @@ def sForsBit (k : Nat) : V := sMdBit (10 * (k / 10) + 9 - k % 10)
 
 /-- `a0_b` (the bottom key's layer `0` and tree: `lvals[8] · 2^120 + tree_mid · 2^112 + lvals[24] ·
 2^104`), `key_b` (its leaf, `lvals[0] · 2^56`), and `fors_at = key_b + SP_FORS_TREE`. -/
-def sA0B : V := .n 1379
-def sKeyB : V := .n 1381
-def sForsA1 : V := .n 1383
+def sA0B : V := .n (val% «verify_sig_lean_sphincs» "a0_b")
+def sKeyB : V := .n (val% «verify_sig_lean_sphincs» "key_b")
+def sForsA1 : V := .n (val% «verify_sig_lean_sphincs» "fors_at")
 
 /-- `a0_b`, `key_b`, from `n1372`. -/
 def sForsAddrs : List Stmt :=
@@ -73,7 +73,7 @@ def sForsBase (c : Nat) : Nat := 1384 + ((List.range c).map forsTreeW).sum
 def sRootOf (c : Nat) : V := .n (sForsBase (c + 1) - 1)
 
 /-- The FORS public key, `fors_pk[0]`. -/
-def sForsPk : V := .n 5248
+def sForsPk : V := .n (val% «verify_sig_lean_sphincs» "fors_pk[0]")
 
 /-! ## The hypertree -/
 
@@ -91,8 +91,8 @@ def sAcOf (l : Nat) : Option E := if l = 2 then some (lit (2 ^ 25)) else none
 /-- Layer `l`'s `a0` (the top layer's: the cell its call of `sp_wots` reads), its key pair's `A1`
 (`sp_wots`'s `a1`), its counter, its encoding digest's first cell and its leaf (`sp_wots`'s
 return). -/
-def sA0Of (l : Nat) : V := if l = 0 then sA0B else if l = 1 then .n 5404 else .n 5609
-def sA1Of (l : Nat) : V := if l = 0 then sKeyB else if l = 1 then .n 5406 else .n 5560
+def sA0Of (l : Nat) : V := if l = 0 then sA0B else if l = 1 then .n (val% «verify_sig_lean_sphincs» "a0_m") else .n (val% «verify_sig_lean_sphincs» "leaf@3~1")
+def sA1Of (l : Nat) : V := if l = 0 then sKeyB else if l = 1 then .n (val% «verify_sig_lean_sphincs» "key_m") else .n (val% «verify_sig_lean_sphincs» "key_t")
 def sCtrOf (l : Nat) : V := .n (sLayerBase l + 36)
 def sEncOf (l : Nat) : V := .n (sLayerBase l + 46 + a0W (sAcOf l))
 def sLeafOf (l : Nat) : V := .n (sLayerBase l + 47 + 2 * a0W (sAcOf l))

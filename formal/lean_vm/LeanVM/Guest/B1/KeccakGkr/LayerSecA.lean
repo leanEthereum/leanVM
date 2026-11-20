@@ -142,7 +142,7 @@ theorem prodTab_facts (first : ℕ) (hf : first < 2) :
     (prodTab first).length = 47 ∧
     spChain (cap5 16, pend0 first) (prodTab first) = some (capF first, pendF first) ∧
     accOk projR none 0 (prodTab first) = true ∧ accLast none (prodTab first) = some (accL first) ∧
-    (prodT (.n 7) (muB first) (prodTab first)).all isAtom = true := by
+    (prodT (.n (valf% «keccak_layer» "cursor@1")) (muB first) (prodTab first)).all isAtom = true := by
   interval_cases first
   · exact ⟨rfl, by decide +kernel, by decide +kernel, by decide +kernel, by decide +kernel⟩
   · exact ⟨rfl, by decide +kernel, by decide +kernel, by decide +kernel, by decide +kernel⟩

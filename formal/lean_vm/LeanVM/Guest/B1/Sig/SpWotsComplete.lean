@@ -11,6 +11,8 @@ module
 public import LeanVM.Guest.B1.Sig.SpWotsGroupComplete
 public import LeanVM.Guest.B1.Sig.SpWotsSound
 public import LeanVM.Guest.B1.Sig.CompleteKit
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«sp_wots»
 
 /-!
 # `sp_wots`'s template, complete
@@ -312,7 +314,7 @@ theorem spCode_complete {d : Nat → Nat} (hd : ∀ i, d i < 4) (vals : Nat → 
   have hst0 : (spState 0).2.2 = 16 := by rw [spState_zero]
   have hC := spC_ge
   rw [← spGLEnd_full] at hC
-  refine ⟨Completes.append (m := 16) (by norm_num) (by omega) hseq.numBelow (seq_completes hseq σ)
+  refine ⟨Completes.append (m := (val% «sp_wots» "group@1")) (by norm_num) (by omega) hseq.numBelow (seq_completes hseq σ)
     (fun σ1 he1 hp1 => ?_), ?_⟩
   · have hpow : ∀ s < 10, σ1 (.n (6 + s)) = gen ^ s := by
       intro s hs
@@ -382,26 +384,26 @@ theorem spEP_lt : spEnc false 1 (spState 21).2.2 < spC ∧ spProd false 1 (spSta
 
 /-- **The checks complete**, the encoding the argument's and the product the target. -/
 theorem spChecks_eq : spChecks =
-    [.atom (.assertEq (.n (spEnc false 1 (spState 21).2.2)) (.n 3)), cst spC spTarget,
+    [.atom (.assertEq (.n (spEnc false 1 (spState 21).2.2)) (.n (val% «sp_wots» "encoding"))), cst spC spTarget,
       .atom (.assertEq (.n (spProd false 1 (spState 21).2.2)) (.n spC)), cst (spC + 1) spPkC,
-      addS (.n (spC + 2)) (.n 2) (.n (spC + 1))] := by
+      addS (.n (spC + 2)) (.n (val% «sp_wots» "a1")) (.n (spC + 1))] := by
   rw [spChecks, spGs_eq]
 
 theorem spCheck_complete (σ : Val)
-    (henc : σ (.n (spEnc false 1 (spState 21).2.2)) = σ (.n 3))
+    (henc : σ (.n (spEnc false 1 (spState 21).2.2)) = σ (.n (val% «sp_wots» "encoding")))
     (hprod : σ (.n (spProd false 1 (spState 21).2.2)) = spTarget) :
     Completes C rd spC (spC + 3) spChecks σ
-      (fun σ' => σ' (.n (spC + 2)) = σ (.n 2) + spPkC) := by
+      (fun σ' => σ' (.n (spC + 2)) = σ (.n (val% «sp_wots» "a1")) + spPkC) := by
   obtain ⟨hE, hP⟩ := spEP_lt
   have hC := spC_ge
-  obtain ⟨e0, e1, e2⟩ := upds3 σ spTarget spPkC (σ (.n 2) + spPkC) spC
+  obtain ⟨e0, e1, e2⟩ := upds3 σ spTarget spPkC (σ (.n (val% «sp_wots» "a1")) + spPkC) spC
   have hext : Ext spC (spC + 3) σ
-      (upds σ [(spC, spTarget), (spC + 1, spPkC), (spC + 2, σ (.n 2) + spPkC)]) :=
+      (upds σ [(spC, spTarget), (spC + 1, spPkC), (spC + 2, σ (.n (val% «sp_wots» "a1")) + spPkC)]) :=
     upds_ext σ _ (by
       intro q hq
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
       rcases hq with rfl | rfl | rfl <;> simp)
-  set σ3 := upds σ [(spC, spTarget), (spC + 1, spPkC), (spC + 2, σ (.n 2) + spPkC)]
+  set σ3 := upds σ [(spC, spTarget), (spC + 1, spPkC), (spC + 2, σ (.n (val% «sp_wots» "a1")) + spPkC)]
     with hσ3
   have below : ∀ j < spC, σ3 (.n j) = σ (.n j) := fun j hj => hext.apply (Or.inl hj)
   rw [spChecks_eq]
@@ -508,26 +510,26 @@ theorem spDigit_eq {d : Nat → Nat} (hd : ∀ i, d i < 4) {vals : Nat → E} {�
 /-- **`sp_wots`'s template is complete, holding what it hints**: for any `pp`, `a0`, `a1`, digits below `4` of sum `128` and chain values, on a memory of at least `64` words, its body holds of some valuation whose arguments are `pp`, `a0`, `a1` and the digits' encoding (`spX`), returning the one-time leaf of the values (`spLeafCell`), each group's digit word and starts the digits' and the values (`SpGP`). -/
 theorem sp_wots_completeT_vals {pp a0 a1 : E} {d : Nat → Nat} (hd : ∀ i, d i < 4)
     (hsum : ∑ i ∈ Finset.range 64, d i = 128) {vals : Nat → E} (hm : MemOK rd 64) :
-    ∃ σ : Val, σ (.n 0) = pp ∧ σ (.n 1) = a0 ∧ σ (.n 2) = a1 ∧ σ (.n 3) = eOfNat128 (spX d 64) ∧
+    ∃ σ : Val, σ (.n (val% «sp_wots» "pp")) = pp ∧ σ (.n (val% «sp_wots» "a0")) = a0 ∧ σ (.n (val% «sp_wots» "a1")) = a1 ∧ σ (.n (val% «sp_wots» "encoding")) = eOfNat128 (spX d 64) ∧
       (∀ q < 22, SpGP d vals q σ) ∧
       Stmt.HoldsList C rd σ spBodyT False (fun rs => rs = [spLeafCell pp a0 a1 d vals]) := by
   set σI : Val := Function.update (Function.update (Function.update (Function.update (fun _ => 0)
-    (.n 0) pp) (.n 1) a0) (.n 2) a1) (.n 3) (eOfNat128 (spX d 64)) with hσI
-  have i0 : σI (.n 0) = pp := by simp [hσI]
-  have i1 : σI (.n 1) = a0 := by simp [hσI]
-  have i2 : σI (.n 2) = a1 := by simp [hσI]
-  have i3 : σI (.n 3) = eOfNat128 (spX d 64) := by simp [hσI]
+    (.n (val% «sp_wots» "pp")) pp) (.n (val% «sp_wots» "a0")) a0) (.n (val% «sp_wots» "a1")) a1) (.n (val% «sp_wots» "encoding")) (eOfNat128 (spX d 64)) with hσI
+  have i0 : σI (.n (val% «sp_wots» "pp")) = pp := by simp [hσI]
+  have i1 : σI (.n (val% «sp_wots» "a0")) = a0 := by simp [hσI]
+  have i2 : σI (.n (val% «sp_wots» "a1")) = a1 := by simp [hσI]
+  have i3 : σI (.n (val% «sp_wots» "encoding")) = eOfNat128 (spX d 64) := by simp [hσI]
   have hC := spC_ge
   obtain ⟨hA, hnbA⟩ := spCode_complete (C := C) (rd := rd) hd vals hm σI
   -- the checks
   have hB : Completes C rd 4 (spC + 3) (spHead ++ spChecks) σI
       (fun σ' => ((∀ q < 22, SpGP d vals q σ') ∧ SpGood spPad σ') ∧
-        σ' (.n (spC + 2)) = σI (.n 2) + spPkC) := by
+        σ' (.n (spC + 2)) = σI (.n (val% «sp_wots» "a1")) + spPkC) := by
     refine Completes.append (m := spC) (by omega) (by omega) hnbA hA.withHolds
       (fun σ2 he2 ⟨⟨hpow, hgp, hgd⟩, hh2⟩ => ?_)
-    have hag2 : AgreeBelow 4 σI σ2 := he2.agree
-    have h23 : σ2 (.n 3) = eOfNat128 (spX d 64) := by rw [← hag2 3 (by norm_num)]; exact i3
-    have h22 : σ2 (.n 2) = σI (.n 2) := (hag2 2 (by norm_num)).symm
+    have hag2 : AgreeBelow (val% «sp_wots» "at[0]") σI σ2 := he2.agree
+    have h23 : σ2 (.n (val% «sp_wots» "encoding")) = eOfNat128 (spX d 64) := by rw [← hag2 3 (by norm_num)]; exact i3
+    have h22 : σ2 (.n (val% «sp_wots» "a1")) = σI (.n (val% «sp_wots» "a1")) := (hag2 2 (by norm_num)).symm
     have hs := (holdsList_split_atoms (xs := spCopies ++ spPowers) rfl hh2).2
     rw [show spGs.1 ++ spLast.1 = spGs.1 ++ (spLast.1 ++ []) by simp] at hs
     obtain ⟨henc, hprod⟩ := spVals hd hsum hs hpow hgp
@@ -565,10 +567,10 @@ theorem sp_wots_completeT_vals {pp a0 a1 : E} {d : Nat → Nat} (hd : ∀ i, d i
     show upds σ4 _ _ = upds σ4 _ _
     rw [upds_cons_self, hext.apply (Or.inl hlt)]
   obtain ⟨σf, hef, hgpf, hhf⟩ := hD
-  have f0 : σf (.n 0) = pp := by rw [hef.apply (Or.inl (by norm_num))]; exact i0
-  have f1 : σf (.n 1) = a0 := by rw [hef.apply (Or.inl (by norm_num))]; exact i1
-  have f2 : σf (.n 2) = a1 := by rw [hef.apply (Or.inl (by norm_num))]; exact i2
-  have f3 : σf (.n 3) = eOfNat128 (spX d 64) := by rw [hef.apply (Or.inl (by norm_num))]; exact i3
+  have f0 : σf (.n (val% «sp_wots» "pp")) = pp := by rw [hef.apply (Or.inl (by norm_num))]; exact i0
+  have f1 : σf (.n (val% «sp_wots» "a0")) = a0 := by rw [hef.apply (Or.inl (by norm_num))]; exact i1
+  have f2 : σf (.n (val% «sp_wots» "a1")) = a1 := by rw [hef.apply (Or.inl (by norm_num))]; exact i2
+  have f3 : σf (.n (val% «sp_wots» "encoding")) = eOfNat128 (spX d 64) := by rw [hef.apply (Or.inl (by norm_num))]; exact i3
   have hbody : spBodyT = (((spHead ++ spChecks) ++ spLeafK.1) ++
       [copyS (.n spLeafK.2.1) (.n spLeafK.2.2)]) ++ [.ret [.n spLeafK.2.1]] := by
     rw [spBodyT_parts, spHead]
@@ -590,7 +592,7 @@ valuation whose arguments are `pp`, `a0`, `a1` and the digits' encoding (`spX`),
 one-time leaf of the values (`spLeafCell`). -/
 theorem sp_wots_completeT {pp a0 a1 : E} {d : Nat → Nat} (hd : ∀ i, d i < 4)
     (hsum : ∑ i ∈ Finset.range 64, d i = 128) {vals : Nat → E} (hm : MemOK rd 64) :
-    ∃ σ : Val, σ (.n 0) = pp ∧ σ (.n 1) = a0 ∧ σ (.n 2) = a1 ∧ σ (.n 3) = eOfNat128 (spX d 64) ∧
+    ∃ σ : Val, σ (.n (val% «sp_wots» "pp")) = pp ∧ σ (.n (val% «sp_wots» "a0")) = a0 ∧ σ (.n (val% «sp_wots» "a1")) = a1 ∧ σ (.n (val% «sp_wots» "encoding")) = eOfNat128 (spX d 64) ∧
       Stmt.HoldsList C rd σ spBodyT False (fun rs => rs = [spLeafCell pp a0 a1 d vals]) :=
   let ⟨σ, h0, h1, h2, h3, _, hh⟩ := sp_wots_completeT_vals (C := C) hd hsum (vals := vals) hm
   ⟨σ, h0, h1, h2, h3, hh⟩

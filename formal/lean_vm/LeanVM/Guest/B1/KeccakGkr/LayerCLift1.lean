@@ -65,7 +65,7 @@ def dispB : Stmt → Bool
 
 /-- The pointers the body loads through, each with a bound on the offsets. -/
 def layerGroups (first : ℕ) : List (V × ℕ) :=
-  [(.n 7, 48), (.n 11, 22), (.n 12, 22), (.n (layOff first + 719), 112),
+  [(.n (valf% «keccak_layer» "cursor@1"), 48), (.n (valf% «keccak_layer» "claim"), 22), (.n (valf% «keccak_layer» "out"), 22), (.n (layOff first + 719), 112),
     (.n (layOff first + 737), 97), (.n (layOff first + 743), 36),
     (.n (layOff first + 1176), 25), (.n (layOff first + 745), 11), (.n (tW first + 25), 25),
     (.n (topV (tW first) + 3), 7)] ++
@@ -74,19 +74,19 @@ def layerGroups (first : ℕ) : List (V × ℕ) :=
 /-- The calls of the body: the grind's `grind_check`, the eight-round loop and the remainder
 loop. -/
 def layerCalls (first : ℕ) : List (Option V × String × List V × List V) :=
-  [(none, grindCheckName 3, [.n (layOff first + 532), .n 14], []),
+  [(none, grindCheckName 3, [.n (layOff first + 532), .n (valf% «keccak_layer» "tabs")], []),
     (some (.n (layOff first + 723)), packLoopName first,
-      [.n (layOff first + 724), .n 9, .n (layOff first + 719), .n (layOff first + 717),
-        .n (layOff first + 718), .n 14], []),
+      [.n (layOff first + 724), .n (valf% «keccak_layer» "step_g"), .n (layOff first + 719), .n (layOff first + 717),
+        .n (layOff first + 718), .n (valf% «keccak_layer» "tabs")], []),
     (some (.n (layOff first + 735)), remLoopName first,
-      [.n (layOff first + 736), .n 10, .n (layOff first + 725), .n (layOff first + 729), .n 14,
+      [.n (layOff first + 736), .n (valf% «keccak_layer» "rem_g"), .n (layOff first + 725), .n (layOff first + 729), .n (valf% «keccak_layer» "tabs"),
         .n (layOff first + 733)], [])]
 
 theorem layerPre_kernel {first : ℕ} (hf : first < 2) :
     (layerPre first).all Stmt.flat = true ∧
     (layerPre first).filterMap Main.Stmt.addrS = [] ∧
     (layerPre first).filterMap Main.Stmt.allocSz =
-      [(.n (layOff first + 718), .inr (.n 8)), (.n (layOff first + 719), .inl 112),
+      [(.n (layOff first + 718), .inr (.n (valf% «keccak_layer» "y_g"))), (.n (layOff first + 719), .inl 112),
         (.n (layOff first + 745), .inl 11), (.n (tW first + 25), .inl 25),
         (.n (topV (tW first) + 3), .inl 7)] ∧
     (layerPre first).all (fun s ↦ !dispB s) = true ∧
