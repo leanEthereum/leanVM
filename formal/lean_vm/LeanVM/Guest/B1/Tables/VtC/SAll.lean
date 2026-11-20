@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.SAll
 
-  `verify_tables`' statements before the bus sides (`0 ..< 765`) hold on the honest valuation.
+  `verify_tables`' statements before the bus sides (`0 ..< 755`) hold on the honest valuation.
 -/
 
 module
@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SP2
 
 /-!
-# Statements `0 ..< 765`
+# Statements `0 ..< 755`
 
 `vtS_complete`: for the memory's log-size `lm ≤ 32`, the bus point (`|point| < 33`) and the
 tables' heights `τ t = max (log2Ceil (n t)) floor < 31`, `τ t ≤ |point|`, on a memory defined
@@ -36,7 +36,7 @@ theorem vtTauList_getD {τ : ℕ → ℕ} {t : ℕ} (ht : t < 6) : (vtTauList τ
   rw [List.getD_eq_getElem _ _ (by simp [vtTauList]; exact ht)]
   simp [vtTauList]
 
-/-- **`verify_tables`' statements `0 ..< 765` complete.** -/
+/-- **`verify_tables`' statements `0 ..< 755` complete.** -/
 theorem vtS_complete (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} (hlm : lm ≤ 32)
     (point : List E) (hμ33 : point.length < 33) (τ n : ℕ → ℕ)
     (hτ : ∀ t < 6, τ t = max (log2Ceil (n t)) (tableLogFloors.getD t 0))
@@ -50,14 +50,14 @@ theorem vtS_complete (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} (
     (hkeyW : TbReadsAt rd (w 33) (vtGKeyW lm τ)) (hszW : TbReadsAt rd (w 34) (vtGSizeW lm τ))
     (hbaseW : TbReadsAt rd (w 35) (vtGBaseW lm τ)) (hordW : TbReadsAt rd (w 36) (vtGOrdW lm τ))
     (hidxc : TbReadsAt rd (w 664) vtIdxcW) (hz1 : TbReadsAt rd (w 699) (point.map (1 + ·)))
-    (hrun : ∀ t < 6, RunTables rd (w 701 * gen ^ (288 * t)) (w 702 * gen ^ (144 * t))
+    (hrun : ∀ t < 6, RunTables rd (w (710 + 13 * t)) (w (711 + 13 * t))
       (point.length - τ t) (point.drop (τ t)) ((point.map (1 + ·)).drop (τ t))
       ((gSquaresList.drop (τ t)).take (point.length - τ t)))
     -- the callees' returns
     (hwp : ∀ t < 6, w (vtPadV t) = paddingWeight (point.take (τ t)) (n t) ∧
       w (vtPadV t + 1) = PadLead (τ t) (n t) ∧ w (vtPadV t + 2) = PadRest (τ t) (n t))
     (hw704 : w 700 = 0) :
-    (∀ s ∈ (vtPre.drop 0).take 765, VSH (coreProgram.Rel rd) rd σv s) ∧
+    (∀ s ∈ (vtPre.drop 0).take 755, VSH (coreProgram.Rel rd) rd σv s) ∧
       (∀ i < 5, σv (.n (20 + i)) = σv (.n i)) ∧
       (∀ i < 8, σv (.n (25 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) ∧
       (∀ i < 4, σv (.n (33 + i)) = w (33 + i)) ∧
@@ -68,7 +68,7 @@ theorem vtS_complete (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} (
       (∀ t < 6, σv (.n (vtPadV t)) = paddingWeight (point.take (τ t)) (n t)) ∧
       (∀ t < 6, σv (.n (vtShLen t)) = gen ^ (point.length - τ t)) ∧
       σv (.n 664) = w 664 ∧ σv (.n 699) = w 699 ∧
-      σv (.n 701) = w 701 ∧ σv (.n 702) = w 702 := by
+      (∀ t < 6, σv (.n (vtEqV t)) = w (vtEqV t - 2) ∧ σv (.n (vtGV t)) = w (vtGV t - 2)) := by
   have hτ' : ∀ t < 6, τ t < 33 := fun t ht ↦ by have := hτ31 t ht; omega
   obtain ⟨h1, hcp, hkb, hal, hP, hC⟩ :=
     vtS_sort hl hlow hlm hτ' hdims hE hkeyW hszW hbaseW hordW
@@ -80,10 +80,10 @@ theorem vtS_complete (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} (
     rw [show 2 + t = t + 1 + 1 by omega]
     simp only [List.cons_append, List.nil_append, List.getD_cons_succ]
     rw [vtTauList_getD ht]
-  obtain ⟨h2, hpw, hsl, e668, e703, e705, e706⟩ := vtS_p2 hl hlow point hμ33 τ n hτ hτ31
+  obtain ⟨h2, hpw, hsl, e668, e703, eptr⟩ := vtS_p2 hl hlow point hμ33 τ n hτ hτ31
     hτμ hkbt hz h9 hrows hE.1 hwp hidxc hz1 hw704 hrun
-  exact ⟨forall_slice_join (a := 0) (l1 := 563) (l2 := 202) h1 h2, hcp, hkb, hal, hP, hC,
-    hpw, hsl, e668, e703, e705, e706⟩
+  exact ⟨forall_slice_join (a := 0) (l1 := 563) (l2 := 192) h1 h2, hcp, hkb, hal, hP, hC,
+    hpw, hsl, e668, e703, eptr⟩
 
 end
 
