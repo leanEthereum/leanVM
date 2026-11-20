@@ -655,14 +655,13 @@ $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
 ($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 30$; argued, not a Lean theorem;
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
-\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $568917$)
-limits any program. It was set at the compiled decoder's size when the guest's frame-cell table was a
-literal of one number per cell ($568507$, proved at most that, and a slack of $410$, room for one
-leanXMSS signature's encoding, $309$, but not two). The compiled decoder now packs that table, four
-cells to a number (cells below $2^{16}$, the functions grouped by size), and is $265979$ (proved at
-most that, measured exactly; the packed table is $214111$ of it). So the bound leaves $302938$ beside
-the compiled decoder's code, room for about $980$ signatures' encodings: it no longer excludes a table
-of witnesses by itself, and a program may also compute its tables from its input.
+\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $266862$)
+limits any program; it is the compiled decoder's size, $266432$ (proved at most that, and measured
+exactly; the guest's frame-cell table, packed four cells to a number, is $214997$ of it), and a slack of
+$430$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
+table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many statements)
+fits there. It does not bound what a program written differently could hold: a program may compute
+its tables from its input.
 
 The proofs' decoder is \lean{LeanVM.Guest.End.decode}, defined in \lean{lean_vm}; a program
 computing it within its size bound and budget gives \lean{GuestKnowledgeSoundness}
@@ -811,9 +810,9 @@ decoder's budget has no cap on the steps, and it prices the witness at the bound
 execution's asserts and its children's accepted proofs give ($16$ children, claims of each scheme
 below the memory's size, a cursor of $8192$ words each), not at the run's.
 \item That the size bounds exclude a table of witnesses for every program: literals count toward
-size, and the decoder's bound is not tight (it leaves room for about $980$ signatures' encodings
-beside the compiled decoder, which packs the guest's frame-cell table; a decoder computing that
-table from its input would free room for about $690$ more).
+size, and the bounds are tight only for programs written like the compiled ones (a decoder
+computing the guest's frame-cell table from its input would free room for about $690$ signatures'
+encodings).
 \item How $D$ computes the witness: the statement accepts any program that computes it from the
 execution within its budget, not only one that reads it off the memory.
 \item A tight extractor budget: it is $2^{\max(58,\,2\mu + 9)} + O(N\log^3 N)$, priced at the worst shape of each stack size.
