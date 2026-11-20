@@ -2,5 +2,5 @@ module	instr	loops	proof_lines	cpu_s	manual_notes
 Proof.Walk.VerifyExecution	2	0	7	1	proved: a tail call of walk (checked folded to true in walk), by Runtime.tail_ok with walk's spec as hypothesis.
 Proof.Walk.Verdict	0	0	75	3	Model-to-Verdict bridge, no machine code: decodeInput's leaf indices are words (Reader bind/pure decomposition), then mainVerdictRust_sound.
 Table.Walk	0	0	20	2	verify_execution at the image from walk's Table contract; rv64_sound_of_main: rv64_sound from MainSpec at Needs.Main (holds_need_mono, kernel_eq Needs.Main <= need).
-Main	287	7	0	0	specified only (MainSpec, Final/MainSpec.lean): needs Bytecode::new's and Input::digest's contracts (missing) and the parse loops' invariants against decodeInput.
 Verifier.Walk	762	16	0	0	specified only (Spec/Walk/Execution.lean): 36 callees, most without a Spec (verify_bus_balance, table_sumcheck, verify_keccak, build_layout, verify_stacked_opening, Transcript::new, ...).
+Main	287	7	0	69	not proved (wave 2 exploration, out of the time box): rv_auto with stops at the 5 loop heads and Bytecode::new's ghost words given steps every path and leaves 82 goals without rv_sym.heap; with rv_sym.heap it stops at Bytecode::new and Input::digest with Holds.pre whole (result slots in main's frame, input below the heap). 69 s, 3 GB per run. See notes/status.md.
