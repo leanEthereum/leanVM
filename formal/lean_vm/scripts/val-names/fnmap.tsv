@@ -259,3 +259,15 @@ LeanVM/Guest/B1/Exact/RsEqRun.lean rs_eq_run
 LeanVM/Guest/B1/Exact/SharedTables.lean shared_selector_tables
 LeanVM/Guest/B1/Exact/VkExact.lean verify_keccak
 LeanVM/Guest/B1/Exact/VtOwn.lean verify_tables
+# Place: the level functions' proofs over their families
+LeanVM/Guest/B1/Place/LpProof.lean level_positions__L
+LeanVM/Guest/B1/Place/LqProof.lean level_queries__L
+LeanVM/Guest/B1/Place/OsMeanB.lean@round_relIn opening_round
+LeanVM/Guest/B1/Place/OsQPlace.lean@sqEb decode_query_windows__L
+LeanVM/Guest/B1/Place/OsQPlace.lean@sqGroupRuns_mem decode_query_windows__L
+LeanVM/Guest/B1/Place/OsRound.lean opening_round
+LeanVM/Guest/B1/Place/LqExact.lean level_queries__L
+LeanVM/Guest/B1/Place/LqProofP.lean level_queries__L
+LeanVM/Guest/B1/Place/LrLoops.lean@lrLoop1_iter level_residual__L_loop0
+LeanVM/Guest/B1/Place/LrLoops.lean@lrLoop2_iter level_residual__L_loop1
+LeanVM/Guest/B1/Place/LrProof.lean level_residual__L
