@@ -1,6 +1,6 @@
 # The statement's machine as the meet of riscv-zkvm's two
 
-`Rv64mc/Probe/StepMeet.lean` defines the machine the end statement will name and proves that every step of it is a step of SP1's `stepSp1` (`step_stepSp1`) and of riscv-zkvm's generic `step` (`step_step`), both without `sorry`. An accepting run of ours is then an accepting run of the machine machine-checked's `SafeN` is about (`detStep stepSp1`), and also of braid's `Rv64.step`, which is the generic `step`.
+`Rv64mc/EndStatement.lean` defines the machine the end statement names, and `Rv64mc/StepMeet.lean` proves that every step of it is a step of SP1's `stepSp1` (`step_stepSp1`) and of riscv-zkvm's generic `step` (`step_step`), both without `sorry`. An accepting run of ours is then an accepting run of the machine machine-checked's `SafeN` is about (`detStep stepSp1`), and also of braid's `Rv64.step`, which is the generic `step`.
 
 ```lean
 def inWindow (a : Word) (w : Nat) : Bool :=
