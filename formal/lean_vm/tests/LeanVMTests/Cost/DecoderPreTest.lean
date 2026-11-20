@@ -1,5 +1,7 @@
-import LeanVM.Cost.Decoder.PreTable
-import LeanVMTests.Runs
+module
+
+public import LeanVM.Cost.Decoder.PreTable
+public import LeanVMTests.Runs
 
 /-!
 # Tests: the decoder's compiled precondition test on small inputs
@@ -15,6 +17,8 @@ namespace LeanVMTests.Cost.DecoderPreTest
 
 open LeanVM.Cost LeanVM.Cost.Decoder LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.Exec
 open LeanVM.Guest.Fast LeanVM.Extraction.Fast
+
+@[expose] public section
 
 /-- A compiled function's value on `vs`, in the program of the bodies `deps`. -/
 def runOn (deps : List (ℕ × Term)) (i : ℕ) (vs : List MachineValue) : Option MachineValue :=
@@ -56,4 +60,5 @@ test_runs runs := [
   -- The powers table, compiled: `gen^(2^j)`, `j < 34`, by squarings.
   ("genPowsC", fun _ ↦ runOn genPowsC.costDeps genPowsC.costIdx [] == some (encodeValue genPows))]
 
+end
 end LeanVMTests.Cost.DecoderPreTest
