@@ -1,5 +1,6 @@
 import Rv64mc.Model.RingSwitch
 import Rv64mc.Model.KeccakGkr
+import Rv64mc.Model.Whir
 
 /-!
 # The PCS mirrors on the Rust's test inputs
@@ -87,4 +88,120 @@ def lcgPairs (count : ℕ) : List (ℕ × ℕ) :=
 
 end Keccak
 
+/-! ## `whir.rs`: the novel basis, `times_x`, the affine row fold -/
+
+section Whir
+
+/-- `W_i(x) = prod_(u in span(1, x, ..., x^(i-1))) (x + u)`. -/
+def vanishing (i : ℕ) (x : K) : K :=
+  (List.range (2 ^ i)).foldl (fun acc u ↦ acc * (x + BF64.ofBitVec (BitVec.ofNat 64 u))) 1
+
+def referenceWhat (i : ℕ) (x : K) : K := vanishing i x * kInvK (vanishing i (kShl i))
+
+def eqE (a b : E) : Bool := limbs a == limbs b
+
+def eqOptE (a : Option E) (b : E) : Bool := a.map limbs == some (limbs b)
+
+/-- The test's `times_x`: the product by `X` in the novel basis. -/
+def timesX (coefficients : List E) (roots : List K) : List E :=
+  let a := (List.range (roots.length - 1)).map fun i ↦
+    roots.getD (i + 1) 0 * kInvK (kSquareK (roots.getD i 0))
+  (List.range coefficients.length).foldl (fun out c ↦
+    let h := coefficients.getD c 0
+    let t := ((List.range 64).takeWhile fun i ↦ c.testBit i).length
+    let st := ((a.take t).zipIdx).foldl (fun (st : List E × K) (aj : K × ℕ) ↦
+      let i := (c >>> aj.2) <<< aj.2
+      (st.1.set i (st.1.getD i 0 + mulKE h st.2), st.2 * aj.1)) (out, 1)
+    st.1.set (c + 1) (st.1.getD (c + 1) 0 + mulKE h st.2))
+    (List.replicate (coefficients.length + 1) 0)
+
+def paddedSum (left right : List E) : List E :=
+  (List.range (max left.length right.length)).map fun i ↦ left.getD i 0 + right.getD i 0
+
+def sub4 : SubspaceRust := (SubspaceRust.new 4).getD ⟨[], []⟩
+
+def sub5 : SubspaceRust := (SubspaceRust.new 5).getD ⟨[], []⟩
+
+-- `novel_basis_matches_the_vanishing_products`
+def nbStream : List E := xorshift 0x2545F4914F6CDD1D#64 23 20
+
+def nbCoeffs : List E := nbStream.take 19
+
+def nbPoints : List K :=
+  [0, BF64.ofBitVec 5#64, kShl 4, BF64.ofBitVec (limbs (nbStream.getD 19 0)).1]
+
+#guard nbPoints.all fun x ↦
+  (List.range 5).all fun i ↦ ((sub4.at x).getD i 0).toBitVec == (referenceWhat i x).toBitVec
+
+#guard nbPoints.all fun x ↦ eqOptE (novelEvalRust nbCoeffs (sub4.at x))
+  (sumRust ((List.range 19).map fun c ↦ (List.range 5).foldl (fun acc i ↦
+    if c.testBit i then mulKE acc (referenceWhat i x) else acc) (nbCoeffs.getD c 0)))
+
+-- `times_x_is_multiplication_by_x`
+def txStream : List E := xorshift 0x2545F4914F6CDD1D#64 23 19
+
+#guard ((List.range 3).foldl (fun (st : Bool × List E) r ↦
+    let product := timesX st.2 sub5.roots
+    let x := BF64.ofBitVec (limbs (txStream.getD (16 + r) 0)).1
+    let what := sub5.at x
+    let ok := match novelEvalRust product what, novelEvalRust st.2 what with
+      | some a, some b => eqE a (mulKE b x)
+      | _, _ => false
+    (st.1 && ok, product)) (true, txStream.take 16)).1
+
+-- `affine_row_fold_and_high_correction`
+def afStream : List E := xorshift 0x2545F4914F6CDD1D#64 23 (8 * 16 + 6 + 4)
+
+def afLanes : List (List E) := (List.range 8).map fun l ↦ (afStream.drop (16 * l)).take 16
+
+def afRounds : List FoldRound :=
+  (List.range 3).map fun r ↦ ⟨afStream.getD (128 + 2 * r) 0, afStream.getD (128 + 2 * r + 1) 0⟩
+
+def afPoints : List K :=
+  (List.range 4).map fun i ↦ BF64.ofBitVec (limbs (afStream.getD (134 + i) 0)).1
+
+def afRows : List (List E) := afPoints.map fun x ↦
+  afLanes.map fun lane ↦ (novelEvalRust lane (sub5.at x)).getD 0
+
+def afFolded : List E := (afRounds.foldl (fun lanes round ↦
+    (List.range (lanes.length / 2)).map fun i ↦
+      let f := lanes.getD (2 * i) []
+      let g := lanes.getD (2 * i + 1) []
+      let xf := timesX f sub5.roots
+      paddedSum (paddedSum g (f.map (round.alpha * ·))) (xf.map (round.beta * ·)))
+    afLanes).getD 0 []
+
+#guard afFolded.length == 16 + 3
+
+#guard (afPoints.zip afRows).all fun (x, row) ↦
+  let what := sub5.at x
+  match foldRowRust row x afRounds, novelEvalRust afFolded what,
+      novelEvalRust (afFolded.drop 16) what, novelEvalRust (afFolded.take 16) what with
+  | some value, some full, some high, some low =>
+    eqE value full && eqE (value + mulKE high (what.getD 4 0)) low
+  | _, _, _, _ => false
+
+end Whir
+
 end Rv64mc.Model.TestsPcs
+
+/-! The axiom footprint of the PCS mirrors' simulations: Lean's three. -/
+
+/--
+info: 'Rv64mc.Model.SimR.ringSwitch' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms Rv64mc.Model.SimR.ringSwitch
+
+/--
+info: 'Rv64mc.Model.SimR.verifyKeccak' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms Rv64mc.Model.SimR.verifyKeccak
+
+/--
+info: 'Rv64mc.Model.SimRoots.verifyStackedOpening' depends on axioms: [propext, Classical.choice,
+  Quot.sound]
+-/
+#guard_msgs (whitespace := lax) in
+#print axioms Rv64mc.Model.SimRoots.verifyStackedOpening
