@@ -94,6 +94,7 @@ theorem rawX_stepP (fs : String → ℕ) (cert : String → V → ℕ) {nrx X cv
     refine (hext v fun k h1 h2 e => ?_).symm
     subst e
     simp only [Bool.or_eq_true, decide_eq_true_eq] at this
+    simp only [Sig.xEnd] at h1 h2
     omega
   have hpar : (fn% «main_loop2»).params.map σ' = l2ArgsAt i nrx X cv tb := by
     rw [← l2σ_params rd i nrx X cv tb (D.slot i), show (fn% «main_loop2»).params = l2Fn.params from rfl,
@@ -132,7 +133,8 @@ theorem rawX_stepP (fs : String → ℕ) (cert : String → V → ℕ) {nrx X cv
   rw [hw] at hpure
   have hal : allocs σ' es = [] := allocs_pure hpure
   -- the guard
-  have e66 : σ' (.n 119744) = gen ^ i * word 2 0 + gen ^ nrx := by rw [hext.apply (by omega)]; rfl
+  have e66 : σ' (.n 119744) = gen ^ i * word 2 0 + gen ^ nrx := by
+    rw [hext.apply (by simp only [Sig.xEnd]; omega)]; rfl
   have htk : decide (σ' (.n 119744) ≠ 0) = decide (i + 1 < nrx) := by
     rw [e66, guard_taken hnrx (by omega)]
     exact decide_eq_decide.mpr (by omega)
@@ -144,7 +146,7 @@ theorem rawX_stepP (fs : String → ℕ) (cert : String → V → ℕ) {nrx X cv
     · rw [ite_eq_right h0, decide_eq_true h0]; rfl
   have hargs : (V.n 119746 :: (List.range 55).map fun j => V.n (j + 1)).map σ' = l2ArgsAt (i + 1) nrx X cv tb := by
     have e68 : σ' (.n 119746) = gen ^ (i + 1) := by
-      rw [hext.apply (by omega)]
+      rw [hext.apply (by simp only [Sig.xEnd]; omega)]
       show gen ^ i * word 2 0 = _
       rw [word_gen, gen_pow_mul_gen]
     rw [List.map_cons, e68, l2ArgsAt, List.cons_append, List.map_map, ← l2σ_tail rd i nrx X cv tb (D.slot i)]
