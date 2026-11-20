@@ -9,8 +9,6 @@ module
 
 public import LeanVM.Guest.B1.Common.Sponge
 public import LeanVM.Guest.GuestConst
--- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
-import LeanVM.Guest.Data.Source
 
 /-!
 # Sumcheck rounds: meanings (TRIAGE G #30-32)
@@ -32,8 +30,8 @@ challenge is a plain squeeze (`Fs.grindSqueeze_zero`), and the window table `tab
 not read.
 
 A round record (`ROUND_FS = 0`, `ROUND_CURSOR = 5`, `ROUND_CLAIM = 6`, `ROUND_SLOTS = 7`) holds a
-sponge's five capacity cells, a stream cursor and a claim, its fields `stride` words apart
-(`fs_load`, `fs_store`: `1` for `sumcheck_round4`, `GKR_ROUNDS_CAP = 862` for `gkr_rounds`).
+sponge's five capacity cells, a stream cursor and a claim in `ROUND_SLOTS` consecutive words
+(`fs_load`, `fs_store` with stride `1`); the next record is `ROUND_SLOTS` words on.
 -/
 
 namespace LeanVM.Guest.B1
@@ -70,9 +68,6 @@ def sumcheck_round4_SpecP (P : Program) : Prop :=
 
 /-! ## `gkr_rounds` (TRIAGE #31) -/
 
-/-- `GKR_ROUNDS_CAP`: the stride of a GKR round record's fields. -/
-abbrev gkrRoundsCap : ℕ := guest_const% GKR_ROUNDS_CAP
-
 /-- `MU_CAP + 2`: where the rounds' challenges go in the point buffer. -/
 abbrev gkrChallengeAt : ℕ := 42
 
@@ -87,23 +82,23 @@ def gkrRun : List (List E) → List E → E → Fs → List E × E × Fs
     (r.1 :: res.1, res.2)
   | _, _, claim, s => ([], claim, s)
 
-/-- **`gkr_rounds(rd, pt, tabs, n)`**: the record at `rd` (fields `862` words apart) carries a sponge's
+/-- **`gkr_rounds(rd, pt, tabs, n)`**: the record at `rd` (consecutive fields) carries a sponge's
 capacity, a cursor and a claim; the `4n` stream words at the cursor are the rounds' coefficients
 `c1 .. c4`, the words `pt[q]`, `q < n`, the previous point's coordinates; the rounds
-(`gkrRun`) store their challenges at `pt[42 + q]`, and the record `rd·g^n` carries the sponge,
-the cursor `4n` words on and the claim after them. -/
+(`gkrRun`) store their challenges at `pt[42 + q]`, and the record `rd·g^(7n)`, `n` records on,
+carries the sponge, the cursor `4n` words on and the claim after them. -/
 def MeaningGkrRounds (n : ℕ) (rd : Reader) : List E → List E → Prop
   | [rec, pt, _], rets =>
       rets = [0] ∧ ∃ (cap : List E) (cur claim : E) (cs : List (List E)) (es : List E),
-        CapAt rd rec 0 gkrRoundsCap cap ∧
-        LoadHolds rd rec (5 * gkrRoundsCap) cur ∧ LoadHolds rd rec (6 * gkrRoundsCap) claim ∧
+        CapAt rd rec 0 1 cap ∧
+        LoadHolds rd rec 5 cur ∧ LoadHolds rd rec 6 claim ∧
         cs.length = n ∧ (∀ c ∈ cs, c.length = 4) ∧ ReadsAt rd cur cs.flatten ∧
         es.length = n ∧ ReadsAt rd pt es ∧
         let res := gkrRun cs es claim ⟨cap, []⟩
         ReadsAt rd (pt * gen ^ gkrChallengeAt) res.1 ∧
-        CapAt rd rec n gkrRoundsCap res.2.2.cap ∧
-        LoadHolds rd rec (n + 5 * gkrRoundsCap) (cur * gen ^ (4 * n)) ∧
-        LoadHolds rd rec (n + 6 * gkrRoundsCap) res.2.1
+        CapAt rd rec (7 * n) 1 res.2.2.cap ∧
+        LoadHolds rd rec (7 * n + 5) (cur * gen ^ (4 * n)) ∧
+        LoadHolds rd rec (7 * n + 6) res.2.1
   | _, _ => False
 
 /-- `gkr_rounds__L0` (`if const(n != 0)` false): it returns `0` and does nothing else. -/
