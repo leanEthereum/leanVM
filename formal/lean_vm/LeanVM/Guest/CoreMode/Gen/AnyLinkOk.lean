@@ -12,7 +12,7 @@ public import LeanVM.Guest.CoreMode.Gen.AnyCallers1
 public import LeanVM.Guest.CoreMode.Gen.AnyCallers2
 public import LeanVM.Guest.CoreMode.Gen.AnyCallers3
 public import LeanVM.Guest.CoreMode.Gen.AnyCallers4
-public import LeanVM.Guest.EndExecRA
+public import LeanVM.Guest.CoreMode.Fam.ResA
 
 namespace LeanVM.Guest.EndExec
 

@@ -8,8 +8,8 @@
 
 module
 
-public import LeanVM.Guest.EndExecRF
-public import LeanVM.Guest.EndExecRCs
+public import LeanVM.Guest.CoreMode.Fam.ResF
+public import LeanVM.Guest.CoreMode.Fam.ResCs
 public import LeanVM.Guest.CoreMode.Fam.CsQ
 public import LeanVM.Guest.CoreMode.CoreRes
 public import LeanVM.Guest.CoreMode.HeapCSound
@@ -17,11 +17,11 @@ public import LeanVM.Guest.CoreMode.Fam.ExpQv
 public import LeanVM.Guest.EndExecCoreSplit
 public import LeanVM.Guest.EndExecCoreVt
 public import LeanVM.Guest.EndExecCoreVk
-public import LeanVM.Guest.EndExecRExp
-public import LeanVM.Guest.EndExecRVs
-public import LeanVM.Guest.EndExecRCp
+public import LeanVM.Guest.CoreMode.Fam.ResExp
+public import LeanVM.Guest.CoreMode.Fam.ResVs
+public import LeanVM.Guest.CoreMode.Fam.ResCp
 public import LeanVM.Guest.EndExecCoreDa
-public import LeanVM.Guest.EndExecRGkrQ
+public import LeanVM.Guest.CoreMode.Fam.ResGkrQ
 
 /-!
 # The residual families, sound

@@ -24,7 +24,7 @@ def render():
     for k, (a, m) in enumerate(ranges):
         mod = 'LeanVM.Guest.CoreMode.Gen.TermCallers%d' % k
         t = [header(mod, 'The callers\' check of `termCallers`, functions %d to %d.' % (a, a + m - 1))]
-        t.append('public import LeanVM.Guest.Res.MonoDefs\npublic import LeanVM.Guest.Res.TermDefs\n\n'
+        t.append('public import LeanVM.Guest.CoreMode.Fam.MonoDefs\npublic import LeanVM.Guest.CoreMode.Fam.TermDefs\n\n'
                  'namespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
                  'public section\n\ntheorem termCallers_%d : RangeOk (fun _ fn => callersG termCallers fn) %d %d := by\n'
                  '  unfold RangeOk; decide +kernel\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, m))
@@ -32,7 +32,7 @@ def render():
     mod = 'LeanVM.Guest.CoreMode.Gen.TermCallers'
     t = [header(mod, 'The callers\' check of `termCallers`, every function.')]
     t.append(''.join('public import %s\n' % m for m in mods))
-    t.append('public import LeanVM.Guest.Res.LinkDefs\n\nnamespace LeanVM.Guest.Res\n\n'
+    t.append('public import LeanVM.Guest.CoreMode.Fam.LinkDefs\n\nnamespace LeanVM.Guest.Res\n\n'
              'open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory\n\npublic section\n\n')
     app = 'termCallers_0'
     for a, m in ranges[1:]: app = '(%s.append termCallers_%d)' % (app, a)

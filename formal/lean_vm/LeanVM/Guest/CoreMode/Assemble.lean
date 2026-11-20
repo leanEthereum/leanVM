@@ -7,8 +7,8 @@
 
 module
 
-public import LeanVM.Guest.Mode.CertAssemble
-public import LeanVM.Guest.EndExecRS
+public import LeanVM.Guest.CoreMode.CertAssemble
+public import LeanVM.Guest.CoreMode.Fam.ResS
 public import LeanVM.Guest.CoreMode.ListLit
 public import LeanVM.Guest.CoreMode.SigTrie
 

@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.EndExecRVtG
+public import LeanVM.Guest.CoreMode.Fam.ResVtG
 public import LeanVM.Guest.B1.Tables.Vt.ZcCert
 public import LeanVM.Guest.B1.Tables.Vt.SelsAll
 public import LeanVM.Guest.CoreMode.CoreRes

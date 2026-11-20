@@ -12,7 +12,7 @@ public import LeanVM.Guest.CoreMode.Gen.MonoCallers1
 public import LeanVM.Guest.CoreMode.Gen.MonoCallers2
 public import LeanVM.Guest.CoreMode.Gen.MonoCallers3
 public import LeanVM.Guest.CoreMode.Gen.MonoCallers4
-public import LeanVM.Guest.EndExecRMR
+public import LeanVM.Guest.CoreMode.Fam.ResMR
 
 namespace LeanVM.Guest.EndExec
 

@@ -1,8 +1,7 @@
 """The guest's compiled code, read from the generated data (no inference): each compiled function's code, hints,
 arguments and returned words (`Pack/*/{Bundle,Sig}.lean`), the advice's hints, the powers of `g`, the jump table;
 from them (`derive`) each function's operations, table jumps, callees, loop helpers and frame signature (its entry and
-return cells by the frame layout, a loop's self cell); and the Lean literals the core route's generators print.
-`scripts/mode-cert/data.py` reads the code through `load`."""
+return cells by the frame layout, a loop's self cell); and the Lean literals the core route's generators print."""
 import re, glob, os, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 LEAN_VM = os.path.normpath(os.path.join(HERE, '..', '..'))

@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.EndExecRef
+public import LeanVM.Guest.CoreMode.Fam.Ref
 public import LeanVM.Guest.EndExecHSlots
 
 /-!

@@ -20,7 +20,7 @@ public import LeanVM.Guest.CoreMode.Gen.CarryCallers9
 public import LeanVM.Guest.CoreMode.Gen.CarryCallers10
 public import LeanVM.Guest.CoreMode.Gen.CarryCallers11
 public import LeanVM.Guest.CoreMode.Gen.CarryCallers12
-public import LeanVM.Guest.Res.LinkDefs
+public import LeanVM.Guest.CoreMode.Fam.LinkDefs
 
 namespace LeanVM.Guest.Res
 

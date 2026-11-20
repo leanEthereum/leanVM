@@ -7,8 +7,8 @@
 
 module
 
-public import LeanVM.Guest.Res.Down
-public import LeanVM.Guest.Res.LoopTree
+public import LeanVM.Guest.CoreMode.Fam.Down
+public import LeanVM.Guest.CoreMode.Fam.LoopTree
 
 /-!
 # Trees, their words and their bodies

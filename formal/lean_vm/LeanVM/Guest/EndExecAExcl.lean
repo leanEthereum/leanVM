@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.EndExecALate
-public import LeanVM.Guest.EndExecRCld
+public import LeanVM.Guest.CoreMode.Fam.ResCld
 
 /-!
 # `claim_list_digest`'s buffer

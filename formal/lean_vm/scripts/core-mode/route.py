@@ -24,8 +24,8 @@ SIGS = None
 
 
 def sigs():
-    """Each function's `Mode.Sig`, by namespace name, fields parsed: what `sigc.py` writes (a routed function's
-    signature as written, the others' the mode walk's inference's, `MODE_CERT_CACHE`), whether or not it has run."""
+    """Each function's `Mode.Sig`, by namespace name, fields parsed: what `sigc.py` writes (each function's
+    contract as written, or `sigseed.py`'s), whether or not it has run."""
     global SIGS
     if SIGS is not None:
         return SIGS
@@ -258,7 +258,7 @@ def route(verbose=False):
             continue
         why['unwritten promise'] += 1
     if verbose:
-        print('route', len(out), 'of', len(P), dict(why))
+        print('route', len(out), 'of', len(P), dict(why), 'by check', dict(collections.Counter(r['kind'] for r in out.values())))
     return out
 
 

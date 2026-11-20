@@ -11,8 +11,8 @@
 * `CoreMode/Gen/Certs/Sig<k>.lean`: each certificate's callee signatures among `coreCerts` or `offSigs`;
 * `CoreMode/Gen/Certs.lean`: `coreFacts : CoreFacts …` and `main`'s start (`mainOk_core`).
 
-The functions off the route are the mode walk's (`scripts/mode-cert/gen.py`, `Mode.offCerts`), which
-`Res/Off.lean` gives as `OffFacts`. `--check` writes nothing and fails when a file differs.
+Every function is on the route: `offSigs` is empty, and the end theorem takes `OffFacts.nil`.
+`--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/core-mode/certs.py [--check]"""
 import sys, os, re, glob
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

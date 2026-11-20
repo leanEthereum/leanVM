@@ -4,7 +4,7 @@
 #
 #   scripts/regen-guest.sh                 # write
 #   scripts/regen-guest.sh --check         # write nothing, fail if any file is stale
-#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt cert mode bridge core-mode memory res whir count tables decoder
+#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt cert bridge core-mode memory res whir count tables decoder
 #   scripts/regen-guest.sh --jobs N        # the Lean builds' job cap (lake-build.py's --jobs)
 #
 # Run from anywhere; it works in lean_vm. Each step's generator reads only what the steps before it
@@ -29,16 +29,15 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-steps=(export core changes vt cert mode bridge core-mode memory res whir count tables decoder)
+steps=(export core changes vt cert bridge core-mode memory res whir count tables decoder)
 case " ${steps[*]} " in *" $from "*) ;; *) echo "unknown step $from: one of ${steps[*]}" >&2; exit 2 ;; esac
 step() { printf '\n==> [%dm%02ds] %s\n' $((SECONDS / 60)) $((SECONDS % 60)) "$*"; }
 capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-# The mode walk's inference, computed once by the `mode` step and read by `core-mode`'s frame walks;
-# the core IR's parse, shared by the core-mode generators; their pairings, computed once while what they
+# The core IR's parse, shared by the core-mode generators; their pairings, computed once while what they
 # read is unchanged (`scripts/core-mode/memo.py`).
-export MODE_CERT_CACHE=$tmp/mode-cert.pkl CORE_MODE_CACHE=$tmp/core-mode.pkl CORE_MEMO=$tmp/memo
+export CORE_MODE_CACHE=$tmp/core-mode.pkl CORE_MEMO=$tmp/memo
 
 # A Lean build: skipped under `--check`, which builds every target first (`prebuild`).
 built=
@@ -62,7 +61,6 @@ parts_core=(core_ir core_names core_vsat) targets_core=(guest-core)
 parts_changes=(changes) targets_changes=()
 parts_vt=(vt) targets_vt=()
 parts_cert=(cert) targets_cert=(guest-cert)
-parts_mode=(mode) targets_mode=()
 parts_core_mode=(core_mode) targets_core_mode=()
 parts_bridge=(bridge) targets_bridge=()
 parts_memory=(memory) targets_memory=(guest-memory)
@@ -116,29 +114,11 @@ part_cert() {
   gen guest-cert
 }
 
-part_mode() {
-  step "mode: the mode walk's signatures and checks (scripts/mode-cert/gen.py)"
-  local rc=0
-  python3 -I scripts/mode-cert/gen.py "${check[@]}" || rc=$?
-  touch "$tmp/mode-cert.done"
-  [ $rc -eq 0 ] || return $rc
-  step "mode: the residuals by family (scripts/mode-cert/res.py)"
-  python3 -I scripts/mode-cert/res.py "${check[@]}"
-}
-
 # The core route (`formal/notes/core-mode.md`): its functions' signatures, heap certificates, pairings, frame
-# walks and route data. A routed function keeps its signature (its contract) and its frame walk takes its facts from
-# the frame layout and its own walk; only the functions off the route read the `mode` step's inference
-# (`MODE_CERT_CACHE`), signatures and frame walks alike; written, the route
-# changes which functions the mode walk checks, so the mode certificates are written again after it.
+# walks and route data. Every function keeps its signature (its contract, as written, or by hand in
+# `scripts/core-mode/sigseed.py`) and its frame walk takes its facts from the frame layout and its own walk.
 # After `bridge`: the route data reads the bridge's alignment links (`Bridge/ProgAl/Link*`).
 part_core_mode() {
-  if [ ! -f "$MODE_CERT_CACHE" ]; then
-    case " ${selected[*]} " in
-      *" mode "*) until [ -f "$tmp/mode-cert.done" ]; do sleep 2; done ;;
-    esac
-  fi
-  [ -f "$MODE_CERT_CACHE" ] || part_mode
   step "core-mode: the claim list's callees linked to its table (scripts/core-mode/anylink.py)"
   python3 -I scripts/core-mode/anylink.py "${check[@]}"
   step "core-mode: each function's signature (scripts/core-mode/sigc.py)"
@@ -159,11 +139,6 @@ part_core_mode() {
   python3 -I scripts/core-mode/pair.py --emit "${check[@]}"
   step "core-mode: frame walks (scripts/core-mode/frame_gen.py)"
   in_place core-mode/frame_gen.py python3 -I scripts/core-mode/frame_gen.py
-  if [ ${#check[@]} -eq 0 ]; then
-    step "core-mode: the mode certificates of the functions off the route (scripts/mode-cert/gen.py, res.py)"
-    python3 -I scripts/mode-cert/gen.py
-    python3 -I scripts/mode-cert/res.py
-  fi
   step "core-mode: route data (scripts/core-mode/core.py)"
   python3 -I scripts/core-mode/core.py "${check[@]}"
   step "core-mode: the core route's certificates, the end theorem's assembly (scripts/core-mode/certs.py)"
@@ -193,22 +168,12 @@ part_memory() {
 }
 
 part_res() {
-  step "res: the certificates' termination facts (scripts/res-cert/term.py)"
-  python3 -I scripts/res-cert/term.py "${check[@]}"
-  step "res: the residuals' families (scripts/res-cert/sel.py)"
-  python3 -I scripts/res-cert/sel.py "${check[@]}"
-  step "res: the residuals less the claim lists' linked table reads (scripts/res-cert/link.py)"
-  python3 -I scripts/res-cert/link.py "${check[@]}"
   step "res: the monotone claim lists' callers (scripts/core-mode/monocall.py)"
   python3 -I scripts/core-mode/monocall.py "${check[@]}"
   step "res: facts carried down to callees (scripts/core-mode/carry.py)"
   python3 -I scripts/core-mode/carry.py "${check[@]}"
   step "res: check_opening_terminal's callers (scripts/core-mode/termcall.py)"
   python3 -I scripts/core-mode/termcall.py "${check[@]}"
-  step "res: the residuals less the monotone claim lists' table reads (scripts/res-cert/mono.py)"
-  python3 -I scripts/res-cert/mono.py "${check[@]}"
-  step "res: every sub residual in a proved family (scripts/res-cert/sub.py)"
-  python3 -I scripts/res-cert/sub.py "${check[@]}"
 }
 
 part_whir_data() {

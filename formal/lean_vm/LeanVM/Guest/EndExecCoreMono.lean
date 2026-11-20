@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.EndExecRMR
+public import LeanVM.Guest.CoreMode.Fam.ResMR
 public import LeanVM.Guest.EndExecCoreLink
 
 /-!

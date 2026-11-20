@@ -8,15 +8,15 @@
 module
 
 public import LeanVM.Guest.CoreMode.Core
-public import LeanVM.Guest.Res.FamDefs
+public import LeanVM.Guest.CoreMode.Fam.FamDefs
 public import LeanVM.Guest.B1.Selectors.ColumnSelector
 public import LeanVM.Guest.CoreMode.Gen.AnyLink
 public import LeanVM.Guest.B1.Digest.MonoDefs
 public import LeanVM.Guest.CoreMode.CoreGhost
 public import LeanVM.Guest.CoreMode.LoopLink
-public import LeanVM.Guest.Res.SelDefs
-public import LeanVM.Guest.Res.TermDefs
-public import LeanVM.Guest.Res.ExpDefs
+public import LeanVM.Guest.CoreMode.Fam.SelDefs
+public import LeanVM.Guest.CoreMode.Fam.TermDefs
+public import LeanVM.Guest.CoreMode.Fam.ExpDefs
 import LeanVM.Guest.Data.Source
 
 /-!

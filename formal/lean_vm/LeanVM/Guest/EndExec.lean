@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.EndExecRef
+public import LeanVM.Guest.CoreMode.Fam.Ref
 public import LeanVM.Guest.ExecDecodable
 public import LeanVM.Guest.Mode.ResRef
 public import LeanVM.Guest.EndRpm
@@ -21,10 +21,10 @@ public import LeanVM.Guest.CoreMode.Route
 The chain: a node within the budget has a reference run (`ref_exists`, `EndExecRef.lean`); the
 executor run on the guest's advice (`guestAdvice`) follows it (`execute_complete_guest`, the
 invariant `guestInv` and its rule `inv_rule_of_specs`, each function's frame interface `FnSpec`, the
-mode walk's), so it returns a valid execution committing no
+core route's), so it returns a valid execution committing no
 more cells than the reference, at most `2^30` (`execute_guest_complete`, `guestExecution_complete`).
 
-What the chain rests on and is not yet proved is `ExecGaps Ks Km E0 X Pro`, for the mode walk's
+What the chain rests on is `ExecGaps Ks Km E0 X Pro`, for the core route's
 certificates `Ks` (`main`'s `Km`, their program `E0`), the other tracks' invariant `X` (the witness
 streams' cursor, the bump pointer, the frame-to-instance map) and the prologue's states `Pro`, each a
 function of the node's reference run. Each field names the track that discharges it. Proved here:
@@ -122,7 +122,7 @@ theorem logMemorySize_le_28 {prog : LeanIsaProgram} {e : Execution prog}
 /-! ## The certificates -/
 
 /-- **The certificates, closed**: each is a guest function's (its code and entry), its operands below
-`2^28`, its frame meeting its interface (`FnSpec`: the mode walk's, or the core route's, its core data
+`2^28`, its frame meeting its interface (`FnSpec`: the core route's, its core data
 among `T`, each the deployed guest's, `CfOk`); and they are tied to each other as `ProgOk` asks. -/
 structure ModeCerts (Ks : List Mode.Cert) (Km : Mode.Cert) (E0 : Mode.Env) : Prop where
   fn : ∀ K ∈ Ks, ∃ f ∈ Data.functions, K.code = f.code ∧ K.F.entry = f.entryPc ∧
@@ -219,10 +219,8 @@ prologue's states `Pro`, each read at a node's reference run `r` (`Ref.Ok`) and 
 tables `C` for its advice. `X` is read at the states where an instruction starts, before its hints;
 a hint's obligation is at the state its predecessors at that pc reach. -/
 structure ExecGaps (Ks : List Mode.Cert) (Km : Mode.Cert) (E0 : Mode.Env) (X Pro : Ref → St → Prop) : Prop where
-  /-- Every function the run enters meets its frame interface (`FnSpec`: the mode walk, its
-  certificate kernel-checked), its certificate tied to the others (the mode walk track:
-  `scripts/mode-cert/gen.py`, the walk closed on its remaining functions, the heavy functions'
-  checks, the certificates assembled). -/
+  /-- Every function the run enters meets its frame interface (`FnSpec`: the core route's, its
+  checks kernel-checked), its certificate tied to the others (`CoreMode.coreFacts`, `assemble`). -/
   certs : ModeCerts Ks Km E0
   /-- The children's loop, `main_loop2` and `main_loop3` complete by trees exact on the memory
   (the exactness track: `Budget.mainExactHyp_of_l5`, the children's loop's E form). -/

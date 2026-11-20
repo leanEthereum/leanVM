@@ -5,10 +5,9 @@ oracle) with the kernel's check of its walk (`frameOk … = true := by decide +k
 function in windows (`frameWin`), each its own module `FrameW{k}.lean`, from the cut states
 `frame.py` computes. For a function on the core route, beside its walk, its frame interface's data
 (`envC`, its callees' signatures by key, `CoreMode.envOf`; `funC`, its entry, length, signature
-(`sigc.py`) and nonzero residuals). A function on the core route takes its oracle and stores from its pairing and its
-residual divisors from its own walk (`frame_run.own_nz`); one off the route, from the mode walk's inference
-(`frame_data.py`, `MODE_CERT_CACHE`, read only then). The frame signatures are the frame layout's (`compiled.fsig`).
-Usage: [MODE_CERT_CACHE=FILE] python3 -I scripts/core-mode/frame_gen.py [--only PACK...] [--fns NAME...]"""
+(`sigc.py`) and nonzero residuals). A function takes its oracle and stores from its pairing and its residual divisors
+from its own walk (`frame_run.own_nz`). The frame signatures are the frame layout's (`compiled.fsig`).
+Usage: python3 -I scripts/core-mode/frame_gen.py [--only PACK...] [--fns NAME...]"""
 import os, re, sys, collections, glob
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -297,12 +296,11 @@ def main(argv):
         if f['ns'] != n and f['ns'] in ROUTE:
             ROUTE[n] = ROUTE[f['ns']]
             gen_pack[n] = gen_pack[f['ns']]
-    # the mode walk's inference, only for the functions off the core route
     off = [n for p, names in MG.packs().items() if not only or p in only for n in names
            if n not in ROUTE and (not fns_only or n in fns_only)]
-    if off and not os.environ.get('MODE_CERT_CACHE'):
-        raise SystemExit('frame_gen: %d functions off the core route need MODE_CERT_CACHE' % len(off))
-    D = FD.load(os.environ['MODE_CERT_CACHE'] if off else None, os.environ.get('FRAME_CACHE'), only=off)
+    if off:
+        raise SystemExit('frame_gen: off the core route: %s' % ', '.join(sorted(off)))
+    D = FD.load()
     files = {}
     stats = collections.Counter()
     def one_pack(item):

@@ -7,8 +7,8 @@
 
 module
 
-public import LeanVM.Guest.Res.MonoDefs
-public import LeanVM.Guest.Res.TermDefs
+public import LeanVM.Guest.CoreMode.Fam.MonoDefs
+public import LeanVM.Guest.CoreMode.Fam.TermDefs
 
 namespace LeanVM.Guest.Res
 

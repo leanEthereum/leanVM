@@ -502,7 +502,7 @@ def hctab_file(packs):
 def main():
     R = route.route_sub()
     po = heap.pack_of()
-    # by the pack of its code, by key (the pack's `coreFns`, which `scripts/mode-cert/gen.py` lists in the same order);
+    # by the pack of its code, by key (the pack's `coreFns`);
     # a function's heap data and pairing are in its heap pack's `Gen/<pack>/` (`heap.pack_of`)
     packs = {}
     for k in sorted(R):

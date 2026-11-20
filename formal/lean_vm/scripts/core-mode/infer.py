@@ -1,5 +1,5 @@
 """Heap certificates of the core IR for every function (`formal/notes/core-mode.md`, milestones 2 to 4): the
-bytecode walk's inference (`scripts/mode-cert/infer.py`) ported to core names. A measurement and the certificates'
+former bytecode walk's inference ported to core names. A measurement and the certificates'
 source, not a proof: `heapOk` (`LeanVM/Guest/CoreMode/Heap.lean`) checks what is emitted.
 
 Bottom-up over the call graph, each function's body is walked in statement order (`Pass`), its signature (`Sig`)

@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Res.LinkDefs
+public import LeanVM.Guest.CoreMode.Fam.LinkDefs
 
 namespace LeanVM.Guest.Res
 

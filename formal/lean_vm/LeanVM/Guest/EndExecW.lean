@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Guest.EndExecYPtr
-public import LeanVM.Guest.EndExecRS
+public import LeanVM.Guest.CoreMode.Fam.ResS
 public import LeanVM.Guest.CoreMode.Gen.CarryOk
 public import LeanVM.Guest.B1.Bits.Log2
 public import LeanVM.Guest.B1.Bits.Tables

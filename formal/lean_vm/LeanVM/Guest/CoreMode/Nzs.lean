@@ -7,10 +7,10 @@
 module
 
 public import LeanVM.Guest.CoreMode.Assemble
-public import LeanVM.Guest.EndExecRM
+public import LeanVM.Guest.CoreMode.Fam.ResM
 public import LeanVM.Guest.CoreMode.Gen.MonoWalkOk
-public import LeanVM.Guest.EndExecRVtG
-public import LeanVM.Guest.EndExecRCp
+public import LeanVM.Guest.CoreMode.Fam.ResVtG
+public import LeanVM.Guest.CoreMode.Fam.ResCp
 public import LeanVM.Guest.EndExecW
 
 /-!

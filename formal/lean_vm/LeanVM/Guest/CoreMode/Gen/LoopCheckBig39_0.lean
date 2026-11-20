@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Res.LoopDefs
+public import LeanVM.Guest.CoreMode.Fam.LoopDefs
 public import LeanVM.Guest.Memory.GuestMem.Data
 
 namespace LeanVM.Guest.Res

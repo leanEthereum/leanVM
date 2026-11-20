@@ -113,7 +113,7 @@ def _fixed():
             os.path.join(lv, 'LeanVM', 'Guest', 'Data', '**', '*.lean'), os.path.join(FORMAL, 'Statement', 'Data', '*.lean')]
     recs = [('f', p) for pat in pats for p in sorted(glob.glob(pat, recursive=True))]
     recs += [('g', pat, True) for pat in pats]
-    recs += [('f', os.path.abspath(os.environ[k])) for k in ('CORE_MODE_CACHE', 'MODE_CERT_CACHE') if os.environ.get(k)]
+    recs += [('f', os.path.abspath(os.environ[k])) for k in ('CORE_MODE_CACHE',) if os.environ.get(k)]
     env = sorted((k, v) for k, v in os.environ.items() if k.startswith(('CORE_', 'MODE_', 'FRAME_'))
                  and k not in ('CORE_MEMO', 'CORE_MEMO_LOG', 'CORE_MODE_JOBS'))
     return recs, json.dumps(env)

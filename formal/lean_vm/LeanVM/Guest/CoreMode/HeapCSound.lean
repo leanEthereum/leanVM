@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.HeapC
 public import LeanVM.Guest.CoreMode.HeapSound
-public import LeanVM.Guest.Res.LoopTree
+public import LeanVM.Guest.CoreMode.Fam.LoopTree
 
 /-!
 # The heap check with calls and loops is sound
