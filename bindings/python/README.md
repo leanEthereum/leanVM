@@ -6,7 +6,7 @@ Python bindings for the leanXMSS and leanSPHINCS post-quantum signatures and the
 
 <!-- x-release-please-start-version -->
 ```bash
-pip install py-lean-pq==0.14.0
+pip install py-lean-pq==0.15.0
 ```
 <!-- x-release-please-end -->
 
