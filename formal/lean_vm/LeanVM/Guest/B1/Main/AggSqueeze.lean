@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Main.AggAbsorb
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `aggregate_claims_loop1` and `aggregate_claims_loop2`

@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Placement.Kappas
 public import LeanVM.Guest.Value.Pigeonhole
+public import Statement.LeanDa
 
 /-!
 # Range checks, exponents and stack offsets

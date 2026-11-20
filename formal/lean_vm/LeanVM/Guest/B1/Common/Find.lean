@@ -6,7 +6,8 @@
 
 module
 
-public import LeanVM.Guest.CoreNames
+public import LeanVM.Guest.CoreData
+import LeanVM.Guest.CoreNames
 
 /-!
 # Functions by position

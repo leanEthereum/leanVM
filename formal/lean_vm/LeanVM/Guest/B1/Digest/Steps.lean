@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Digest.Range
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # Steps: memory, loops, chains between states

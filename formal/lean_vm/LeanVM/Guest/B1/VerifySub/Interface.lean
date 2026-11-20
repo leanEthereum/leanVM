@@ -7,20 +7,23 @@
 
 module
 
-public import LeanVM.Guest.B1.Tables.Interface
-public import LeanVM.Guest.B1.Placement.Interface
-public import LeanVM.Guest.B1.KeccakGkr.Interface
-public import LeanVM.Guest.B1.Ring.Interface
-public import LeanVM.Guest.B1.Bits.Meaning
-public import Statement.LeanVmGuest
-public import LeanXmss.Scheme
-public import Statement.LeanSphincs
+import LeanVM.Guest.B1.Tables.Interface
+import LeanVM.Guest.B1.Placement.Interface
+import LeanVM.Guest.B1.KeccakGkr.Interface
+import LeanVM.Guest.B1.Ring.Interface
+import LeanVM.Guest.B1.Bits.Meaning
+import Statement.LeanVmGuest
+import LeanXmss.Scheme
+import Statement.LeanSphincs
 public import Statement.Fast.Schemes
-public import LeanDa.Scheme
+import LeanDa.Scheme
 public import Statement.Fast.Keccak
 public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
-public import LeanVM.Facts.Verifier
+public import LeanVM.Guest.B1.Common.Basic
+public import LeanVM.Guest.CoreData
+public import Statement.LeanVmGuestBatching
+import LeanVM.Facts.Verifier
 
 /-!
 # `verify_sub` (TRIAGE G #71): the interface

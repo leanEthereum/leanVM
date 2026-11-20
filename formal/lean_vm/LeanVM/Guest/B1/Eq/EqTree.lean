@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Common.Atoms
+public import LeanVM.Guest.B1.Common.Basic
 
 /-!
 # `eqtree` (TRIAGE #23)

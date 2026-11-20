@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Opening.Interface
 public import LeanVM.Guest.B1.Fs.Templates
+public import LeanVM.Guest.Value.KeccakSponge
 
 /-!
 # The templates of `opening_queries`

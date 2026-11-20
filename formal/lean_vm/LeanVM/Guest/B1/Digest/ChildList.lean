@@ -15,6 +15,7 @@ public import LeanVM.Guest.B1.Digest.ChildListAny2
 public import LeanVM.Guest.B1.Digest.ChildListAny3
 public import LeanVM.Guest.B1.Digest.ChildListLasts
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `child_claim_list_any`

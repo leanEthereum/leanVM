@@ -8,19 +8,20 @@
 module
 
 public import LeanVM.Guest.Value.KeccakSponge
-public import Statement.LeanVmGuest
-public import LeanXmss.Scheme
-public import Statement.LeanSphincs
+import Statement.LeanVmGuest
+import LeanXmss.Scheme
+import Statement.LeanSphincs
 public import Statement.Fast.Schemes
-public import LeanDa.Scheme
+import LeanDa.Scheme
 public import Statement.Fast.Keccak
 public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
-public import LeanVM.Facts.Verifier
+import LeanVM.Facts.Verifier
 public import LeanVM.Guest.Batch.Def
 public import LeanDa.WithHash
-public import LeanDa.Commitment
+import LeanDa.Commitment
 public import LeanVM.Guest.WithHash
+import LeanVM.Guest.Value.KeccakEval
 
 /-!
 # Baked Keccak constants

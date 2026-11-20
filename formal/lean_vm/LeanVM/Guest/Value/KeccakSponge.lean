@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.Value.KeccakLayout
+public import LeanVM.Guest.Word
+import LeanVM.Guest.Value.KeccakEval
 
 /-!
 # The sponge over message cells

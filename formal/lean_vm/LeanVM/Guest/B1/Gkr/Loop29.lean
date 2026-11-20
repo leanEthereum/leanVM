@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Gkr.Rounds
 public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.CoreData
+public import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # `verify_bus_gkr_loop0_loop0`

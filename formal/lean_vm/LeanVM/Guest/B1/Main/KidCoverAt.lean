@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.B1.Digest.StatementComplete
+public import Statement.LeanVmGuest
 
 /-!
 # A child's statement digest, placed

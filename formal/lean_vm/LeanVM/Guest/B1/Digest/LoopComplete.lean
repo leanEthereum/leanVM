@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Digest.Loops
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # Loops, completely

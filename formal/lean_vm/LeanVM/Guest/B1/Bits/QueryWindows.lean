@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Bits.QueryWindowsLib
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `decode_query_windows` (`guests/lean_ethereum.py`)

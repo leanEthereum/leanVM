@@ -12,6 +12,7 @@ public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Source
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # Rounds between records

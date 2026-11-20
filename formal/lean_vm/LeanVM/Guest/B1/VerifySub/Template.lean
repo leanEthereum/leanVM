@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.VerifySub.Interface
 public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Whir.Split
+public import LeanVM.Guest.B1.Tables.InterfaceP
 
 /-!
 # `verify_sub` as a template

@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.B1.Bits.QueryWindowsT
 public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Guest.B1.Opening.FoldAlg
+public import LeanVM.Protocol.RunWithHash
 
 /-!
 # The WHIR queries: the interface

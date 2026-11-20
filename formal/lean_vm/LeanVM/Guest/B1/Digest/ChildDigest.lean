@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Digest.ChildMono
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `child_claim_list_digest`

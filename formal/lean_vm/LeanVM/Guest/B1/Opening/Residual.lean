@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Common.Atoms
+import LeanVM.Guest.Value.Bits
 
 /-!
 # `residual_query`

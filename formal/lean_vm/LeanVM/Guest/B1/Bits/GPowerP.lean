@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Bits.MeaningP
 import LeanVM.Guest.B1.Common.Vc
 public import LeanVM.Guest.Pack.P41.Core
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `g_power_of_word` (TRIAGE #17)

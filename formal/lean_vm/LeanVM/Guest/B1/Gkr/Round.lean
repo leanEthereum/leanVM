@@ -9,6 +9,8 @@
 module
 
 public import LeanVM.Guest.B1.Gkr.Spec
+public import LeanVM.Guest.B1.Fs.Templates
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # One GKR round (`gkr_rounds`)

@@ -12,6 +12,7 @@ public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.VerifySub.Interface
 public import LeanVM.Guest.B1.Whir.Interface
 public import LeanVM.Guest.B1.Gkr.InterfaceP
+public import LeanVM.Guest.B1.Tables.InterfaceP
 
 /-!
 # The deferring verifier, regrouped

@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Digest.MonoDefs
+import LeanVM.Guest.B1.Common.Find
 
 namespace LeanVM.Guest.B1.Digest
 
