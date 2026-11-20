@@ -71,9 +71,6 @@ def layEnd (first : ℕ) : List Stmt :=
 /-- A layer's tail before `layEnd`. -/
 def layTailPre (first : ℕ) : List Stmt := (layTail first).take ((layTail first).length - 4)
 
-/-- The cell of `verify_keccak`'s frame holding step `s`'s layer frame pointer. -/
-def vkSiteQ (s : ℕ) : ℕ := [379, 408, 436, 467, 498, 529, 556, 587, 617, 650, 681, 711].getD s 0
-
 end
 
 public section
@@ -368,11 +365,6 @@ theorem vkCall_mem {s : ℕ} (hs : s < 12) :
   rw [vkStepsT_eq]
   exact List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨s, List.mem_range.mpr hs, rfl⟩,
     stepCall_mem s (vkB s) (vkCap s) (vkCurA s) (vkCb s) (vkPn s)⟩
-
-/-- Step `s`'s call's site: its layer frame pointer's cell (`vkSiteQ`). -/
-theorem vk_sites : (List.range 12).all (fun s ↦ ((B2C.siteOf (fn_idx% «verify_keccak»)
-    ⟨(vkCall s).1, (vkCall s).2.1, (vkCall s).2.2, true⟩).map (·.q)) == some (vkSiteQ s)) = true := by
-  decide +kernel
 
 /-! ## Down from `verify_keccak` -/
 

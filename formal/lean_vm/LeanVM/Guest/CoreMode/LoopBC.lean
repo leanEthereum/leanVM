@@ -36,16 +36,6 @@ def loopBC (fn : Fn) : Bool :=
   | .ret [] :: .callIf _ g args :: pre => (g == fn.name) && Nat.beq args.length fn.params.length && pre.all isAC
   | _ => false
 
-theorem loopBC_of_loopB {fn : Fn} (h : loopB fn = true) : loopBC fn = true := by
-  unfold loopB at h
-  unfold loopBC
-  split at h
-  · rename_i c g args pre hrev
-    rw [hrev]
-    simp only [Bool.and_eq_true, List.all_eq_true] at h ⊢
-    exact ⟨h.1, fun s hs ↦ by have := h.2 s hs; cases s <;> simp_all [isAtomS, isAC]⟩
-  · cases h
-
 theorem loopBC_spec {fn : Fn} (h : loopBC fn = true) : ∃ (pre : List Stmt) (c : V) (args : List V),
     fn.body = pre ++ [.callIf c fn.name args, .ret []] ∧ args.length = fn.params.length ∧ ∀ s ∈ pre, isAC s = true := by
   unfold loopBC at h
@@ -57,34 +47,6 @@ theorem loopBC_spec {fn : Fn} (h : loopBC fn = true) : ∃ (pre : List Stmt) (c 
     rw [← List.reverse_reverse fn.body, hrev]
     simp
   · cases h
-
-/-- The event of an atom or a call. -/
-def acEv : Stmt → Ev
-  | .atom a => .atom a
-  | .call f args rets => .call f args rets
-  | _ => .skip "" []
-
-theorem walk_ac (σ : Val) : ∀ (pre ss : List Stmt), (∀ s ∈ pre, isAC s = true) →
-    walk σ (pre ++ ss) = (walk σ ss).pre (pre.map acEv)
-  | [], ss, _ => by cases h : walk σ ss <;> simp [Out.pre, h]
-  | s :: pre, ss, h => by
-    have ih := walk_ac σ pre ss fun s hs ↦ h s (List.mem_cons_of_mem _ hs)
-    have hs := h s List.mem_cons_self
-    cases s with
-    | atom a =>
-      rw [List.cons_append, walk_atom_cons, ih]
-      cases walk σ ss <;> simp [Out.pre, acEv]
-    | call f args rets =>
-      rw [List.cons_append, walk_call_cons, ih]
-      cases walk σ ss <;> simp [Out.pre, acEv]
-    | _ => simp [isAC] at hs
-
-theorem walk_loopC (σ : Val) (pre : List Stmt) (hpre : ∀ s ∈ pre, isAC s = true) (c : V) (f : String)
-    (args : List V) :
-    walk σ (pre ++ [.callIf c f args, .ret []]) =
-      .ret (pre.map acEv ++ [.inK c, if σ c = 0 then .skip f args else .call f args []]) [] := by
-  rw [walk_ac σ pre _ hpre, walk_callIf_cons, walk_ret_cons]
-  simp [Out.pre]
 
 theorem stmts_loopC {pre : List Stmt} (hpre : ∀ s ∈ pre, isAC s = true) {c : V} {f : String} {args : List V}
     {s : Stmt} (h : s ∈ stmtsOf (pre ++ [.callIf c f args, .ret []])) :

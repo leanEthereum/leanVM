@@ -40,31 +40,6 @@ open LeanVM.Prover.Exec
 
 public section
 
-/-! ## The block's leading atoms -/
-
-/-- The leading atoms of a block. -/
-def leadAtoms : List Stmt → List Atom
-  | .atom a :: ss => a :: leadAtoms ss
-  | _ => []
-
-/-- The block past its leading atoms. -/
-def leadRest : List Stmt → List Stmt
-  | .atom _ :: ss => leadRest ss
-  | ss => ss
-
-theorem lead_split : ∀ ss : List Stmt, ss = (leadAtoms ss).map Stmt.atom ++ leadRest ss
-  | [] => rfl
-  | .atom a :: ss => by
-    simp only [leadAtoms, leadRest, List.map_cons, List.cons_append]
-    exact congrArg _ (lead_split ss)
-  | .ite .. :: _ | .match_ .. :: _ | .call .. :: _ | .callIf .. :: _ | .dispatch .. :: _
-  | .ret _ :: _ => rfl
-
-/-- **A leading atom is on every returning path.** -/
-theorem lead_on_path {σ : Core.Val} {ss : List Stmt} {es : List Ev} {vs : List V} (hw : walk σ ss = .ret es vs)
-    {a : Atom} (ha : a ∈ leadAtoms ss) : Ev.atom a ∈ es :=
-  Bridge.atoms_on_path (by rw [← lead_split]; exact hw) a ha
-
 /-! ## The body's facts -/
 
 /-- **What `certify_placement`'s body gives** on a memory of at most `2^32` words with the

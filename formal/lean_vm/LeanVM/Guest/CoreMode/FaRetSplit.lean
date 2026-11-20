@@ -24,23 +24,6 @@ noncomputable def faRetI (Cf : CFun) (code : List OffsetInstruction) (i : ℕ) :
     | none => false
   | _ => true
 
-/-- **The frame run cells at every return**, from chunks of `B` offsets each. -/
-theorem faRetOk_of_chunks {Cf : CFun} {code : List OffsetInstruction} (B m : ℕ) (hn : code.length ≤ B * m)
-    (h : ∀ c < m, (!faNeed Cf || (List.range' (B * c) B).all (faRetI Cf code)) = true) : faRetOk Cf code = true := by
-  unfold faRetOk
-  cases hf : faNeed Cf
-  · rfl
-  simp only [Bool.not_true, Bool.false_or, List.all_eq_true, List.mem_range]
-  intro i hi
-  have hB : 0 < B := Nat.pos_of_ne_zero fun h0 ↦ by rw [h0, Nat.zero_mul] at hn; omega
-  have hc : i / B < m := Nat.div_lt_of_lt_mul (Nat.lt_of_lt_of_le hi hn)
-  have := h (i / B) hc
-  simp only [hf, Bool.not_true, Bool.false_or, List.all_eq_true] at this
-  have hlo := Nat.mul_div_le i B
-  have hhi := Nat.lt_div_mul_add (a := i) hB
-  rw [Nat.mul_comm (i / B)] at hhi
-  exact this i (List.mem_range'_1.2 ⟨hlo, hhi⟩)
-
 /-- `faRetAt`'s check of a frame run's values `k ∈ [B·c, B·c + B)` only, and of its cells past the run at chunk `0`. -/
 noncomputable def faRetAtC (X : Bridge.AlignCtx) (body : List Stmt) (fas : List (ℕ × ℕ)) (A : FSt) (B c : ℕ) :
     Stmt → Bool

@@ -36,7 +36,7 @@ theorem mainSig_ok : Fn.«main».csig.entry = [0, 1] ∧ Fn.«main».csig.self =
 /-- **`MainOk` from `main`'s signature**, entry and the guest's table. -/
 theorem mainOk_of {Km : Mode.Cert} {E0 : Mode.Env} (hsig : Km.F.sig = Fn.«main».csig)
     (hent : Km.F.entry = Data.f0.instructionCount) (hpows : E0.pows = Data.powTree) (hjt : E0.jt = Data.jtTrie)
-    (hlo : E0.jtLo = 430) (hhi : E0.jtHi = 430 + Data.f0.instructionCount) : MainOk Km E0 := by
+    (hlo : E0.jtLo = Data.mainCells) (hhi : E0.jtHi = Data.mainCells + Data.f0.instructionCount) : MainOk Km E0 := by
   obtain ⟨h1, h2, h3, h4, h5⟩ := mainSig_ok
   have hmc := mainCells_eq
   have hpl : proLen = Data.f0.instructionCount := rfl

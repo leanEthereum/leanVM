@@ -282,49 +282,6 @@ theorem PairCtx.seq_eq {β : Type} (P : PairCtx) (k : PairCtx → β) : P.seq k 
   | K, [] => chainEnd code K = true
   | K, K' :: ks => winOkH X H O S body code d K K' = true ∧ ChainH X H O S body code d K' ks
 
-theorem chainH_go {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List Stmt}
-    {code : List OffsetInstruction} {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} :
-    ∀ (ks : List KSt) (K : KSt) (st : St) (acc : List (ℕ × Zip)), ChainH X H O S body code d K ks →
-      StOk body d.2.2 st → stOfK body d.2.2 K = st →
-      ((pairGo (PairCtx.ofH X H O S) (code.drop K.i) st acc).bind fun p ↦ alignEnd p.1 p.2).isSome
-  | [], K, st, acc, hc, _, hk => by
-    simp only [ChainH, chainEnd, Bool.and_eq_true, Nat.beq_eq, Option.isNone_iff_eq_none,
-      List.isEmpty_iff, lenTR_eq, Nat.add_zero] at hc
-    obtain ⟨⟨hi, hcur⟩, hpend⟩ := hc
-    subst hk
-    rw [hi, List.drop_length]
-    simp [pairGo, alignEnd, stOfK, hcur, hpend]
-  | K' :: ks, K, st, acc, hc, hst, hk => by
-    obtain ⟨hw, hc⟩ := hc
-    rw [winOkH, PairCtx.seq_eq, decide_eq_true_eq, hk] at hw
-    obtain ⟨⟨st1, acc1⟩, h1, hK⟩ := Option.map_eq_some_iff.mp hw
-    obtain ⟨hst1, hi1⟩ := pairGo_ok _ _ hst h1
-    have hKi : K'.i = st1.i := by rw [← hK]; rfl
-    have hsi : st.i = K.i := by rw [← hk]; rfl
-    have hlen := List.length_take_le (K'.i - K.i) (code.drop K.i)
-    have hle : K.i ≤ K'.i := by omega
-    have hsplit : code.drop K.i = (code.drop K.i).take (K'.i - K.i) ++ code.drop K'.i := by
-      conv_lhs => rw [← List.take_append_drop (K'.i - K.i) (code.drop K.i)]
-      rw [List.drop_drop, show K.i + (K'.i - K.i) = K'.i by omega]
-    rw [hsplit, pairGo_append, pairGo_acc, h1]
-    simp only [Option.map_some, Option.bind_some]
-    exact chainH_go ks K' st1 (acc1 ++ acc) hc hst1 (by rw [← hK]; exact stOfK_keyOfSt hst1)
-
-/-- **A chain of windows is the whole pass.** -/
-theorem pairOk_of_chain {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List Stmt}
-    {code : List OffsetInstruction} {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} (hpre : alignPre X d = true)
-    {ks : List KSt} (hc : ChainH X H O S body code d ⟨0, 0, some ([], 0), [], []⟩ ks) :
-    pairOk X H O S body code d = true := by
-  rw [pairOk, PairCtx.seq_eq]
-  change (alignPre X d && (pairRun (PairCtx.ofH X H O S) body code d).isSome) = true
-  rw [hpre, Bool.true_and]
-  have h0 : stOfK body d.2.2 ⟨0, 0, some ([], 0), [], []⟩ = ⟨0, d.2.2, some (Zip.init body), [], []⟩ := by
-    simp [stOfK, zipOf, zUp, blockAt, Zip.init]
-  have hst : StOk body d.2.2 ⟨0, d.2.2, some (Zip.init body), [], []⟩ :=
-    ⟨⟨0, rfl⟩, by simpa using zOk_init body, by simp, by simp⟩
-  have := chainH_go ks _ _ [] hc hst h0
-  simpa [pairRun] using this
-
 end
 
 end LeanVM.Guest.CoreMode

@@ -47,10 +47,6 @@ theorem writtenC_left {a b : List Ev} {x : K} (h : WrittenC sigOf H rd σ ws0 a 
   · exact Or.inl h
   · exact Or.inr ⟨e, List.mem_append_left _ he, hw⟩
 
-theorem writtenC_right {a b : List Ev} {e : Ev} (he : e ∈ b) {x : K} (h : EvW sigOf rd σ e x) :
-    WrittenC sigOf H rd σ ws0 (a ++ b) x :=
-  Or.inr ⟨e, List.mem_append_right _ he, h⟩
-
 /-- **Atoms that are no stores add nothing to `WrittenC`** on a path whose needs are written before
 them, but those among `fs`. -/
 theorem written_extendC {fs : List Atom} : ∀ {as : List Atom} {pre rest : List Ev},
@@ -215,25 +211,6 @@ theorem pair_fallC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     | .call .. => true
     | _ => false
 
-theorem straightC_stmts : ∀ {body : List Stmt}, straightC body = true → ∀ s ∈ stmtsOf body,
-    (∃ a, s = .atom a) ∨ (∃ vs, s = .ret vs) ∨ ∃ f args rets, s = .call f args rets
-  | [], _, s, hs => by simp [stmtsOf] at hs
-  | b :: body, h, s, hs => by
-    simp only [straightC, List.all_cons, Bool.and_eq_true] at h
-    simp only [stmtsOf, List.mem_cons, List.mem_append] at hs
-    rcases hs with rfl | hs | hs
-    · cases s with
-      | atom a => exact Or.inl ⟨a, rfl⟩
-      | ret vs => exact Or.inr (Or.inl ⟨vs, rfl⟩)
-      | call f args rets => exact Or.inr (Or.inr ⟨f, args, rets, rfl⟩)
-      | _ => simp at h
-    · cases b with
-      | atom => simp [stmtsSub] at hs
-      | ret => simp [stmtsSub] at hs
-      | call => simp [stmtsSub] at hs
-      | _ => simp at h
-    · exact straightC_stmts (by simpa [straightC] using h.2) s hs
-
 /-- **At a return jump** (`od = 0`, `of = 1`, never zero, not forward, cell `0` no constant pc) of
 a body of atoms, calls and returns, the events past the position write nothing new but its flow
 hints' atoms. -/
@@ -290,83 +267,6 @@ theorem pair_retC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
   · exact Or.inl h
   · rw [List.mem_filter] at ha
     exact Or.inr ⟨a, ha.1, ha.2, by simp [ha.1], hwa⟩
-
-/-- **At a call** (a `JUMP` never zero, not forward, not a return): the pairing takes it by its head
-statement, a `call` at its site `of`, to the callee of entry `od`'s pc, the rest at the site's return
-offset; the events up to the call are its hints' atoms and reads, writing what the hints write and
-cells already written, then the call, then atoms that write nothing. -/
-theorem pair_callC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
-    {code : List OffsetInstruction} {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)}
-    (hok : pairOk X H O S body code d = true) {i : ℕ} {pos : List Stmt}
-    (hat : pairAt (PairCtx.ofH X H O S) body code d i = some pos) {oc od of : ℕ}
-    (hci : code[i]? = some (.jump oc od of)) (hz : X.zeroAt oc = false) (hf : fwdJ X i oc od of = false)
-    (hnr : ¬ (od = 0 ∧ of = 1)) (hm : X.main = false) (hsf : X.selfAt of = false)
-    (hctrl : ∀ s ∈ stmtsOf body, NoCD s) :
-    ∃ f args rets s t o pos', X.siteAt of args rets = some s ∧ X.pcAt od = some t ∧ X.entOk t f = true ∧
-      X.nzAt oc = true ∧ X.fwdOff i s.r = some o ∧ pairAt (PairCtx.ofH X H O S) body code d o = some pos' ∧
-      ∃ as : List Atom, List.Forall₂ (Pairs X) (as.filter flowAtom)
-        (((d.2.2.lookup (X.entry + i)).getD []).filter isaFlowHint) ∧
-      ∀ {sigOf : String → HSig} {rd : Reader} {ws0 : List E} {σ : Val} {pre es : List Ev} {vs : List V},
-        walk σ pos = .ret es vs → ReadsAt sigOf H rd σ ws0 pre es →
-        ∃ (evs : List Ev) (cs : List Atom) (es' : List Ev), es = evs ++ Ev.call f args rets :: (cs.map Ev.atom ++ es') ∧ walk σ pos' = .ret es' vs ∧
-          (∀ a ∈ cs, stopL a = false) ∧ (∀ a ∈ as, Ev.atom a ∈ evs) ∧
-          (∀ e ∈ evs, EvM sigOf rd σ e) ∧ ∀ x, WrittenC sigOf H rd σ ws0 (pre ++ evs) x → WrittenC sigOf H rd σ ws0 pre x ∨
-            ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ evs ∧ Writes σ a x := by
-  obtain ⟨ins, z, as, hins, -, hpos, hq, hpairs, hcase⟩ := pairAt_step hok hat
-  rw [hci] at hins
-  cases hins
-  rcases hcase with ⟨hnj, -⟩ | ⟨oc', od', of', zs, heq, -, -, -, hzs, ⟨bs, hzpos, hbs⟩, tabs, r, hr, -, h2, -⟩
-  · exact absurd rfl (hnj oc od of)
-  simp only [OffsetInstruction.jump.injEq] at heq
-  obtain ⟨rfl, rfl, rfl⟩ := heq
-  unfold jumpStepH at hr
-  simp only [PairCtx.ofH, hz, hf, Bool.cond_false] at hr
-  rcases hcur : zs.cur with _ | ⟨st, ss⟩
-  · simp [headStepH, hcur] at hr
-  have hs : st ∈ stmtsOf body := zok_stmts hzs (by rw [Bridge.Zip.pos_head hcur]; exact List.mem_cons_self)
-  obtain ⟨f, args, rets, rfl⟩ : ∃ f args rets, st = .call f args rets := by
-    cases st with
-    | atom a => simp [headStepH, hcur] at hr
-    | ret vs' =>
-      simp only [headStepH, hcur, hm, Bool.and_eq_true, Nat.beq_eq, Bool.cond_eq_ite] at hr
-      split_ifs at hr <;> simp_all
-    | ite c z n => simp [headStepH, hcur, hsf] at hr
-    | match_ x arms => simp [headStepH, hcur, hsf] at hr
-    | callIf c f args => exact absurd rfl ((hctrl _ hs).1 c f args)
-    | dispatch x fs args rets => exact absurd rfl ((hctrl _ hs).2 x fs args rets)
-    | call f args rets => exact ⟨f, args, rets, rfl⟩
-  simp only [headStepH, hcur] at hr
-  rcases hsite : X.siteAt of args rets with _ | s
-  · simp [hsite] at hr
-  rcases hpt : X.pcAt od with _ | t
-  · simp [hsite, hpt] at hr
-  rcases hc : (PairCtx.ofH X H O S).nL (zs.next ss) with _ | c
-  · simp [PairCtx.ofH] at hc; simp [hsite, hpt, hc] at hr
-  simp only [PairCtx.ofH] at hc
-  simp only [hsite, hpt, hc, Bool.cond_eq_ite, Bool.and_eq_true] at hr
-  split_ifs at hr with hh
-  · obtain ⟨o, ho, rfl⟩ := Option.map_eq_some_iff.mp hr
-    have hat' := h2 (o, c) List.mem_cons_self
-    obtain ⟨cs, hcs, hcpos, -⟩ := normG_pos _ _ hc
-    refine ⟨f, args, rets, s, t, o, c.pos, hsite, rfl, hh.2, hh.1, ho, hat', as, hpairs, fun {sigOf rd ws0 σ pre es vs} hp hrw ↦ ?_⟩
-    rw [hpos, hzpos, Bridge.Zip.pos_head hcur, hcpos, ← List.append_assoc, ← List.map_append] at hp
-    obtain ⟨es1, hes1, rfl⟩ := walk_atoms_ret hp
-    rw [Bridge.walk_call_cons] at hes1
-    obtain ⟨es2, hes2, rfl⟩ := pre_eq_ret hes1
-    obtain ⟨es3, hes3, rfl⟩ := walk_atoms_ret hes2
-    refine ⟨(as ++ bs).map Ev.atom, cs, es3, by simp, hes3, hcs, fun a ha ↦ by simp [ha], evM_atoms _, fun x hx ↦ ?_⟩
-    have hqa : ∀ a ∈ as ++ bs, a ∉ as.filter flowAtom → stopS H.readT a = false := by
-      intro a ha hn
-      rcases List.mem_append.mp ha with ha | ha
-      · cases hfa : flowAtom a
-        · exact hq a ha hfa
-        · exact absurd (List.mem_filter.mpr ⟨ha, hfa⟩) hn
-      · exact hbs a ha
-    rcases written_extendC (fs := as.filter flowAtom) (rest := Ev.call f args rets :: (cs.map Ev.atom ++ es3))
-        (by simpa [List.append_assoc] using hrw) hqa hx with h | ⟨a, ha, hwa⟩
-    · exact Or.inl h
-    · rw [List.mem_filter] at ha
-      exact Or.inr ⟨a, ha.1, ha.2, by simp [ha.1], hwa⟩
 
 end
 

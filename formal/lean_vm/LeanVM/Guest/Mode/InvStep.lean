@@ -5,11 +5,8 @@ public import LeanVM.Guest.Mode.InvDefs
 /-!
 # One step, along the reference
 
-`step_atX`: `step_at` with the hints in order, so that a hint's agreement is needed only at the state
-its predecessors at the pc reach (`stepOk_hintsX`), the residuals at the states the hints reach, the
-step's instruction moded and the run's state before it handed to what comes after, with the hints'
-run. `onRef_next`: an instruction the executor runs along the reference leaves it on the reference,
-or in the final state. `stepOk_conj`: what the instruction gives past all its hints joins a step's
+`onRef_next`: an instruction the executor runs along the reference leaves it on the reference, or in
+the final state. `stepOk_conj`: what the instruction gives past all its hints joins a step's
 obligations.
 -/
 
@@ -100,95 +97,6 @@ theorem stepOk_conj {C : Ctx} {M : ℕ → E} {op : Op} {I J : St → Prop} (s0 
       stepOk_conj s0 l s' (hm.trans m)
         (fun s1 s'' e1 m1 e2 hf hI ↦ hJ s1 s'' (by rw [List.foldlM_cons, e, ok_bind]; exact e1) m1 e2 hf hI)
         (h2 s' e m)⟩
-
-/-! ## The step, its hints in order -/
-
-theorem stepOk_hintsX {C : Ctx} {M : ℕ → E} {Inv : St → Prop} {op : Op} (s0 : St) :
-    ∀ (hs : List Hint) (s : St) (A A' : Abs), Moves M s0 s → Holds s A → stepHints A hs = some A' →
-      (∀ pre h post, hs = pre ++ h :: post → ∀ s1, pre.foldlM (runHint C) s = .ok s1 → Moves M s0 s1 →
-        HintIn s1 h → HintOk C M s1 h) →
-      (∀ s1, hs.foldlM (runHint C) s = .ok s1 → Moves M s0 s1 → Holds s1 A' → StepOk C M Inv op [] s1) →
-      StepOk C M Inv op hs s
-  | [], s, A, A', hm, hA, h, _, hk => by
-    cases h
-    exact hk s rfl hm hA
-  | x :: xs, s, A, A', hm, hA, h, hh, hk => by
-    simp only [stepHints, Option.bind_eq_some_iff] at h
-    obtain ⟨B, hB, h⟩ := h
-    have hs := hm.fine
-    have hin := (stepHint_sound (C := C) (s' := s) ⟨hs.agree.wf, hs.dl⟩ hs.fp hs.agree.used hA hB).1
-    refine ⟨hh [] x xs rfl s rfl hm hin, fun s1 e1 m1 ↦ ?_⟩
-    have hrun := (stepHint_sound (C := C) (s' := s1) ⟨hs.agree.wf, hs.dl⟩ hs.fp hs.agree.used hA hB).2
-    exact stepOk_hintsX s0 xs s1 B A' (hm.trans m1) (hrun e1 m1.fine.agree.used) h
-      (fun pre y post hp s2 e2 m2 ↦ hh (x :: pre) y post (by rw [hp]; rfl) s2
-        (by rw [List.foldlM_cons, e1, ok_bind]; exact e2) m2)
-      (fun s2 e2 m2 ↦ hk s2 (by rw [List.foldlM_cons, e1, ok_bind]; exact e2) m2)
-
-/-- **A step at an offset the walk reaches**, as `step_at`, its hints in order: each hint's agreement
-needed at the state its predecessors reach, the residuals at the states the hints reach, and what
-comes after given the state before the instruction, its modedness and its run. -/
-theorem step_atX {C : Ctx} {M : ℕ → E} {Inv : St → Prop} {K : Cert} (hK : CertOk C K)
-    {s : St} {i : ℕ} (hi : i < K.code.length) (hpc : s.pc = K.F.entry + i)
-    (hat : AtOff K.E K.F K.code i s) (hs : Fine M s) (hE : EnvOk s K.E)
-    (hhint : ∀ pre h post, (K.F.hints.get i).getD [] = pre ++ h :: post → ∀ s1,
-      pre.foldlM (runHint C) s = .ok s1 → Moves M s s1 → HintIn s1 h → HintOk C M s1 h)
-    (hres : ∀ s1, Moves M s s1 → ∀ r ∈ (K.F.res.get i).getD [], ResIn s1 r → ResHolds s1 r)
-    (href : RefOk M s (opOfOff K.code[i]))
-    (hfall : ∀ s1 s', ((K.F.hints.get i).getD []).foldlM (runHint C) s = .ok s1 → Moves M s s1 →
-      OpModed M s1 (opOfOff K.code[i]) →
-      runOp C s1 (opOfOff K.code[i]) = .ok s' → s'.pc = s.pc + 1 → s'.fp = s.fp → Fine M s' →
-      s1.mem ≤ s'.mem → AtOff K.E K.F K.code (i + 1) s' → Inv { s' with steps := s'.steps + 1 })
-    (hjump : ∀ c d f A go A' s1 s', ((K.F.hints.get i).getD []).foldlM (runHint C) s = .ok s1 →
-      K.code[i] = .jump c d f → Moves M s s1 →
-      OpModed M s1 (.jump c d f) → Holds s1 A →
-      jumpI K.E K.F i A d f = some (go, A') →
-      (∀ ts, go = .to ts → ∀ s'' j, j ∈ ts → Holds s'' A' → AtOff K.E K.F K.code j s'') →
-      runOp C s1 (.jump c d f) = .ok s' → Fine M s' → s1.mem ≤ s'.mem → s'.pc < C.ops.size →
-      s1.mem.get (s1.fp + d) = some (ofK (g ^ s'.pc)) →
-      s1.mem.get (s1.fp + f) = some (ofK (g ^ s'.fp)) → Inv { s' with steps := s'.steps + 1 }) :
-    StepOk C M Inv (opOfOff K.code[i]) ((C.hints[s.pc]?).getD []) s := by
-  have hops := hK.ops i hi
-  obtain ⟨A, hA, pa, cs, pb, e, -, hnext, hcov⟩ := atOff_step hK.walk hi hat
-  obtain ⟨A1, A2, h1, h2, hc⟩ := offStep_cases e
-  have hsz : K.F.entry + i < C.ops.size := cert_pc hK hi
-  rw [hpc, hK.hints i hi]
-  refine stepOk_hintsX s _ s A A1 (Moves.refl' hs) hA h1 hhint (fun s1 hP1 hm hA1 ↦ ?_)
-  have hA2 : Holds s1 A2 :=
-    addRes_sound' hm.fine.agree.wf hm.fine.agree.used hA1 (hres s1 hm) h2
-  have hg1 : s1.Good := ⟨hm.fine.agree.wf, hm.fine.dl⟩
-  have hpc1 : s1.pc = K.F.entry + i := hm.pc.trans hpc
-  have hE1 : EnvOk s1 K.E := EnvOk.mono hm.le hE
-  have href1 : RefOk M s1 (opOfOff K.code[i]) := href.congr hm.fp
-  rcases hc with ⟨hnj, A3, h3, rfl⟩ | ⟨c, d, f, hins, h3, hc⟩
-  · obtain ⟨hreads, hstep⟩ := stepOp_sound (C := C) (s' := s1) hg1 hm.fine.fp (by rw [hpc1]; exact hsz)
-      hm.fine.agree.used hE1 hA2 (by rw [hpc1]; exact h3)
-    have hmo := opModed_of hm.fine.agree hreads href1
-    refine ⟨hmo, fun s' e' hf' hle' ↦ ?_⟩
-    have hH' := (stepOp_sound (C := C) (s' := s') hg1 hm.fine.fp (by rw [hpc1]; exact hsz)
-      hm.fine.agree.used hE1 hA2 (by rw [hpc1]; exact h3)).2 hnj e'
-    obtain ⟨hpc', hfp'⟩ := runOp_nj hg1 hm.fine.fp (by rw [hpc1]; exact hsz) hnj e'
-    exact hfall s1 _ hP1 hm hmo e' (by rw [hpc', hm.pc]) (by rw [hfp', hm.fp]) hf'
-      hle' (hnext _ ⟨A3, List.mem_singleton_self _, hH'⟩)
-  · have hop : opOfOff K.code[i] = .jump c d f := by rw [hins]; rfl
-    obtain ⟨hreads, -⟩ := stepOp_sound (C := C) (s' := s1) hg1 hm.fine.fp (by rw [hpc1]; exact hsz)
-      hm.fine.agree.used hE1 hA2 (by rw [hpc1]; exact h3)
-    have hmo := opModed_of hm.fine.agree hreads href1
-    refine ⟨hmo, fun s' e' hf' hle' ↦ ?_⟩
-    have e'' := e'
-    rw [hop] at e'' hmo
-    obtain ⟨vc, vd, vf, hvc, hvd, hvf, -, hcase⟩ := jump_vals hg1 e''
-    rcases hcase with ⟨rfl, hpc', hfp'⟩ | ⟨hne, rfl, rfl, hpcs, -⟩
-    · have hL : Holds s1 (A2.learn0 c) := hA2.learn0 hvc
-      have hmem : A2.learn0 c ∈ cs := by
-        rcases hc with ⟨-, rfl⟩ | ⟨-, -, -, hm', -⟩
-        · exact List.mem_singleton_self _
-        · exact hm' fun ht ↦ condOf_true hA2 ht hvc rfl
-      exact hfall s1 _ hP1 hm (hop ▸ hmo) e' (by rw [hpc', hm.pc]) (by rw [hfp', hm.fp]) hf'
-        hle' (hnext _ ⟨_, hmem, hL.mono hle' hfp'⟩)
-    · rcases hc with ⟨hf0, -⟩ | ⟨go, A', hj, -, hcj⟩
-      · exact absurd (condOf_false hA2 hf0 hvc) hne
-      · exact hjump c d f A2 go A' s1 s' hP1 hins hm hmo hA2 hj
-          (fun ts hgo s'' j hj hH ↦ hcov s'' j (hcj ts hgo s'' j hj hH)) e'' hf' hle' hpcs hvd hvf
 
 end
 

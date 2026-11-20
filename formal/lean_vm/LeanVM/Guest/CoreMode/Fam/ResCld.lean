@@ -10,8 +10,14 @@ module
 public import LeanVM.Guest.EndExecW
 public import LeanVM.Guest.CoreMode.Fam.ResA
 public import LeanVM.Guest.B1.Digest.ClaimList
-public import LeanVM.Guest.CoreMode.Fam.ResTile
-
+public import LeanVM.Guest.CoreMode.Fam.ResF
+public import LeanVM.Guest.CoreMode.Fam.ResS
+public import LeanVM.Guest.B1.Exact.RsEqRun
+public import LeanVM.Guest.B1.Exact.SharedTables
+public import LeanVM.Guest.CoreMode.Fam.SubDefs
+public import LeanVM.Guest.CoreMode.Fam.ResVk
+public import LeanVM.Guest.CoreMode.Fam.TileDefs
+public import LeanVM.Guest.CoreMode.Fam.ResExp
 namespace LeanVM.Guest.EndExec
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.Core LeanVM.Guest.Memory
@@ -51,16 +57,6 @@ theorem cl_zero_callees : Stmt.blockCallees (B1.Digest.cl23Zero ++
 theorem walk_call_cons {σ : Core.Val} (f : String) (args rets : List V) (ps : List Stmt) :
     Memory.walk σ (.call f args rets :: ps) = (Memory.walk σ ps).pre [.call f args rets] := by
   rw [Memory.walk, Memory.walk1, Out.seq]
-
-/-- **The frames' tiles' sums at the honest frames**: none listed. -/
-theorem tiles_ok {A : String → Bridge.FnAl} : ∀ p ∈ Res.tiles, TileAt A p.1 p.2.1 p.2.2 := by
-  simp [Res.tiles]
-
-/-- **The tile families at an honest frame.** -/
-theorem tileFam_top {A : String → Bridge.FnAl} {r : Ref} {K : Mode.Cert} {i : ℕ} {e : Bridge.Ent} {j : ℕ}
-    {w : Res.Wit} (t : TopAt A r K i e j) (hr : r.Ok) (hW : Res.witOk j w = true) {x : Mode.Res}
-    (hx : Res.tileFamB j w x = true) : RRes (refMem r.img) e.I.fp x :=
-  tileFam_top_of tiles_ok t hr hW hx
 
 end
 

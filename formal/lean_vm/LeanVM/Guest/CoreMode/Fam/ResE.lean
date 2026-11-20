@@ -3,7 +3,7 @@
 
   `check_opening_terminal`'s exponent and dimension facts, read off what `verify_sub` hands it
   (`Res.TermFront`), and the families on them sound at the honest frames: its order residuals
-  (F7, F8) and its claims' low points (F9).
+  and its claims' low points.
 -/
 
 module
@@ -22,10 +22,6 @@ public import LeanVM.Guest.B1.Terminal.HoldsOf
 `[0, log_mem, τ_0, …, τ_5]`, `tau_keccak_g = g^τ_5`; a pooled claim's low point, of length its
 source's exponent plus its adjustment (`claimLowDim`), is a prefix of the bus point (`g_bus_mu`) or
 of the tables' point (`g_zc_n`), at most `40` long.
-
-`ltExp_top` (F7, F8): at an honest frame with `ExpQ`, the base of an order residual is `g^e`, `e`
-below its fact's bound. `dim_top` (F9): with `DimQ`, the low base is `g^(e + c)` (`lowOk_top`), so
-`[T]·g^(e + c + d)` is the chain's point at `e + c + d`, below `[o]`'s exponent plus `t`.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -261,193 +257,10 @@ theorem TopAt.param (t : TopAt A r K i e j) (hr : r.Ok) {p : V} (hp : p ∈ (cor
 
 end
 
-/-- A word read through a frame cell names its base. -/
-theorem rbase_hp_load (hr : r.Ok) {fp q k : ℕ} {P v : E} (hP : refMem r.img (fp + q) = P)
-    (hld : LoadHolds r.img.read P k v) : RBase (refMem r.img) fp (.hp q k) v := by
-  have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
-  obtain ⟨-, hrd⟩ := hld
-  obtain ⟨x, hx, hxa⟩ := read_pow hrd hκ
-  refine ⟨x, ⟨?_, hx⟩, ?_⟩
-  · rw [hP, Mode.limb_mul_ofK]; exact hxa
-  · rw [hxa] at hrd
-    exact ((refRd_img hκ r.img) _ _ (by unfold maxCells at hx; omega) hrd).2
-
-theorem expOf_spec {j : ℕ} {B : Base} {p : V} {b : ℕ} (h : expOf j B = some (p, b)) :
-    ∃ c ∈ expFacts, c.1 = (coreOf j).name ∧ (coreOf j).params[c.2.1]? = some p ∧
-      baseAt j p c.2.2.1 B = true ∧ c.2.2.2 = b := by
-  obtain ⟨c, hc, hf⟩ := List.exists_of_findSome?_eq_some h
-  split_ifs at hf with h1
-  split at hf
-  · rename_i p' hp'
-    split_ifs at hf with h2
-    obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hf)
-    exact ⟨c, hc, by simpa using h1, hp', h2, rfl⟩
-  · cases hf
-
 section
 
 variable {A : String → FnAl} {K : Mode.Cert} {i : ℕ} {e : Bridge.Ent} {j : ℕ} {w : Wit}
 
-/-- **A base with an exponent fact, at an honest frame**: its word is `g^κ`, `κ < b`. -/
-theorem expBase_top (t : TopAt A r K i e j) (hr : r.Ok) (hE : ExpQ r e.I)
-    {B : Base} {p : V} {b : ℕ} (hB : expOf j B = some (p, b)) (hin : inFr j (cellJ j p) = true) :
-    ∃ κ < b, RBase (refMem r.img) e.I.fp B (gen ^ κ) := by
-  obtain ⟨c, hc, hn, hp, hbase, rfl⟩ := expOf_spec hB
-  obtain ⟨f, bufs, kids, hJ, hf, hname⟩ := t.found
-  have hH := hE f e.σ bufs kids hJ _ hf c hc (by rw [hn, hname]) p hp
-  have hpc := t.param hr (List.mem_of_getElem? hp) hin
-  obtain ⟨c1, c2, oo, bb⟩ := c
-  simp only at hH hbase hp
-  cases oo with
-  | none =>
-    cases B with
-    | fr o =>
-      simp only [baseAt, beq_iff_eq] at hbase
-      obtain ⟨κ, hκ, hv⟩ := hH
-      exact ⟨κ, hκ, by rw [← hbase]; show refMem r.img (e.I.fp + cellJ j p) = _; rw [hpc, hv]⟩
-    | hp _ _ => simp [baseAt] at hbase
-  | some k =>
-    cases B with
-    | fr _ => simp [baseAt] at hbase
-    | hp q k' =>
-      simp only [baseAt, Bool.and_eq_true, beq_iff_eq] at hbase
-      obtain ⟨hq, rfl⟩ := hbase
-      obtain ⟨κ, hκ, hld⟩ := hH
-      exact ⟨κ, hκ, rbase_hp_load hr (by rw [← hq, hpc]) hld⟩
-
-/-- **F7, F8 at an honest frame.** -/
-theorem ltExp_top (t : TopAt A r K i e j) (hr : r.Ok) (hE : ExpQ r e.I)
-    {x : Mode.Res} (hx : ltFactB j x = true) : RRes (refMem r.img) e.I.fp x := by
-  match x, hx with
-  | .lt (.ex B tt) (.num N), hx =>
-    simp only [ltFactB] at hx
-    cases hB : expOf j B with
-    | none => rw [hB] at hx; cases hx
-    | some pb =>
-      obtain ⟨p, b⟩ := pb
-      rw [hB] at hx
-      simp only [Bool.and_eq_true, decide_eq_true_eq] at hx
-      obtain ⟨⟨⟨hin, hb⟩, hN⟩, hlt⟩ := hx
-      obtain ⟨κ, hκ, hR⟩ := expBase_top t hr hE hB hin
-      exact ⟨κ + tt, N, ⟨_, κ, hR, by rw [ofK_gpow], by omega, rfl⟩, rfl, by omega⟩
-  | .lt (.ex _ _) (.ex _ _), hx => simp [ltFactB] at hx
-  | .lt (.num _) _, hx => simp [ltFactB] at hx
-  | .sub _ _, hx => simp [ltFactB] at hx
-  | .nz _, hx => simp [ltFactB] at hx
-  | .name _, hx => simp [ltFactB] at hx
-
-theorem dimShape_eq {a b : Rng} {B : Base} {o t : ℕ} (h : dimShape a b = some (B, o, t)) :
-    ∃ T, a.q.bs = [(.fr T, 1), (B, 1)] ∧ b.q.bs = [(.fr T, 1)] ∧ b.hi = .ex (.fr o) t := by
-  unfold dimShape at h
-  split at h
-  · rename_i T B' T' o' t' hA hB hH
-    split_ifs at h with hT
-    simp only [Option.some.injEq, Prod.mk.injEq] at h
-    obtain ⟨rfl, rfl, rfl⟩ := h
-    exact ⟨T, hA, by rw [hB, hT], hH⟩
-  · cases h
-
-/-- **A claim's low base at an honest frame**: the word at `[pk]·g^k` times `g^c`, with `ok k c`. -/
-theorem lowOk_top (t : TopAt A r K i e j) (hr : r.Ok) (hW : witOk j w = true) {pk : V} {B : Base}
-    {ok : ℕ → ℕ → Bool} (h : Res.lowOk j w pk B ok = true) (hpk : pk ∈ (coreOf j).params) :
-    ∃ k c, ok k c = true ∧ ∀ v, LoadHolds r.img.read (e.σ pk) k (gen ^ v) →
-      RBase (refMem r.img) e.I.fp B (gen ^ (v + c)) := by
-  obtain ⟨vs, -, hF, hev, hwa, -⟩ := t.wit hr hW
-  have hall : ∀ a ∈ w.as, a.Holds r.img.read e.σ := fun a ha ↦ hev _ (hwa _ ha)
-  cases B with
-  | hp q k =>
-    simp only [Res.lowOk, Bool.and_eq_true, beq_iff_eq] at h
-    obtain ⟨⟨hin, hq⟩, hok⟩ := h
-    have hpc := t.param hr hpk (by rw [hq]; exact hin)
-    rw [hq] at hpc
-    exact ⟨k, 0, hok, fun v hld ↦ by rw [Nat.add_zero]; exact rbase_hp_load hr hpc hld⟩
-  | fr P =>
-    simp only [Res.lowOk, Bool.and_eq_true, List.any_eq_true] at h
-    obtain ⟨hin, m, hm, hmb⟩ := h
-    cases m with
-    | mul P' y z =>
-      simp only [Bool.and_eq_true, beq_iff_eq, List.any_eq_true] at hmb
-      obtain ⟨hP, l, hl, hlb⟩ := hmb
-      cases l with
-      | load y' p k =>
-        simp only [Bool.and_eq_true, decide_eq_true_eq] at hlb
-        obtain ⟨⟨rfl, hpp⟩, hc⟩ := hlb
-        split at hc
-        · rename_i c hcz
-          obtain ⟨wc, hwc, hpw⟩ := Option.bind_eq_some_iff.mp hcz
-          have hzw : e.σ z = wc := hall _ (constOf_sound hwc)
-          have hmul : e.σ P' = e.σ y' * e.σ z := hall _ hm
-          have hld : LoadHolds r.img.read (e.σ p) k (e.σ y') := hall _ hl
-          rw [hpp] at hld
-          simp only [inFr, Bool.and_eq_true, decide_eq_true_eq] at hin
-          have hcell := t.cell hr hF (namedOf_atom (x := P') (hwa _ hm) (by simp [atomUses]))
-            (by rw [hP]; exact hin.1) (by rw [hP]; exact hin.2)
-          rw [hP] at hcell
-          refine ⟨k, c, hc, fun v hv ↦ ?_⟩
-          show refMem r.img (e.I.fp + P) = _
-          rw [hcell, hmul, B1.loadHolds_unique hld hv, hzw, powOf_sound hpw, ← Value.gen_pow_eq_ofK, ← pow_add]
-        · cases hc
-      | _ => simp at hlb
-    | _ => simp at hmb
-
-/-- **F9 at an honest frame**: the claim's low point is the chain's point at its length. -/
-theorem dim_top (t : TopAt A r K i e j) (hr : r.Ok) (hW : witOk j w = true) (hD : DimQ r e.I) {x : Mode.Res}
-    (hx : dimB j w x = true) : RRes (refMem r.img) e.I.fp x := by
-  match x, hx with
-  | .sub a [b], hx =>
-    simp only [dimB] at hx
-    cases hs : dimShape a b with
-    | none => rw [hs] at hx; cases hx
-    | some s =>
-      obtain ⟨B, o, tt⟩ := s
-      rw [hs] at hx
-      obtain ⟨T, hA, hB, hH⟩ := dimShape_eq hs
-      simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq, List.any_eq_true] at hx
-      obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hal, hah⟩, had⟩, hbl⟩, hbS⟩, hbd⟩, hfp⟩, hk⟩, ht1⟩, hoin⟩, c, hc, hcx⟩ := hx
-      obtain ⟨hcn, hcx⟩ := hcx
-      split at hcx
-      · rename_i pk pb hpk hpb
-        simp only [Bool.and_eq_true, beq_iff_eq] at hcx
-        obtain ⟨ho, hlow⟩ := hcx
-        obtain ⟨f, bufs, kids, hJ, hf, hname⟩ := t.found
-        obtain ⟨m, hm, hgb, hps⟩ := hD f e.σ bufs kids hJ _ hf c hc (by rw [hcn, hname]) pk pb hpk hpb
-        obtain ⟨kk, cc, hok, hR⟩ := lowOk_top t hr hW hlow (List.mem_of_getElem? hpk)
-        simp only [List.contains_iff_mem] at hok
-        obtain ⟨κ, hld, hκm⟩ := hps _ hok
-        have hRB := hR κ hld
-        have hpbc := t.param hr (List.mem_of_getElem? hpb) (by rw [ho]; exact hoin)
-        rw [ho] at hpbc
-        refine ⟨0, 1, by rw [hal]; rfl, by rw [hah]; rfl, fun vq hvq jj _ hjj ↦
-          ⟨b, List.mem_singleton_self _, fun vb ylo yhi hvb hlo hhi ↦ ?_⟩⟩
-        obtain rfl : jj = 0 := by omega
-        rw [hbl] at hlo
-        change ylo = 0 at hlo
-        rw [hH] at hhi
-        obtain ⟨vo, mo, hvo, hvo', hmo, rfl⟩ := hhi
-        change refMem r.img (e.I.fp + o) = vo at hvo
-        rw [hpbc, hgb, hvo', ofK_gpow] at hvo
-        obtain rfl : m = mo := Value.gen_pow_inj (by omega) (by omega) hvo
-        simp only at hκm
-        refine ⟨a.q.k - b.q.k + (κ + cc), by omega, by omega, ?_⟩
-        obtain ⟨wq, hwq, rfl⟩ := hvq
-        obtain ⟨wb, hwb, rfl⟩ := hvb
-        rw [hA] at hwq
-        rw [hB] at hwb
-        obtain ⟨u1, w1, hu1, ⟨u2, w2, hu2, hw2, rfl⟩, rfl⟩ := hwq
-        obtain ⟨u1', w1', hu1', hw1', rfl⟩ := hwb
-        simp only [RBs] at hw2 hw1'
-        subst hw2 hw1'
-        rw [rbase_uniq hu2 hRB, rbase_uniq hu1 hu1', hfp, had, hbS, hbd]
-        simp only [pow_one, mul_one, Nat.mul_zero, Nat.add_zero, one_mul, ofK_gpow]
-        rw [show a.q.k = b.q.k + (a.q.k - b.q.k) by omega, pow_add, pow_add,
-          show b.q.k + (a.q.k - b.q.k) - b.q.k = a.q.k - b.q.k by omega]
-        ring
-      · cases hcx
-  | .sub _ [], hx => simp [dimB] at hx
-  | .sub _ (_ :: _ :: _), hx => simp [dimB] at hx
-  | .lt _ _, hx => simp [dimB] at hx
-  | .nz _, hx => simp [dimB] at hx
-  | .name _, hx => simp [dimB] at hx
 end
 
 end

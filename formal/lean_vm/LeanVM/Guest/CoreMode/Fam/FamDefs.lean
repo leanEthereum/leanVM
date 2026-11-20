@@ -131,9 +131,9 @@ noncomputable def shiftHi (j : ℕ) (w : Wit) (hi : Mode.Idx) (pc : ℕ) : Bool 
   | .num H => cellLt j w pc (H + 1)
   | _ => false
 
-/-- **A run over a product scaled by a factor** (F4, F6): `⟨Q·x, 0, [c], 1, d⟩` inside `⟨Q, 0, hi, 1, d⟩`,
+/-- **A run over a product scaled by a factor**: `⟨Q·x, 0, [c], 1, d⟩` inside `⟨Q, 0, hi, 1, d⟩`,
 the code's `[p] = [c]·[o]` with `[o]` the factor `x`'s word, `[c]` and `[o]` bounded cells, and `hi`
-the exponent of `[p]` (F4) or a constant above it (F6). -/
+the exponent of `[p]` or a constant above it. -/
 noncomputable def shiftB (j : ℕ) (w : Wit) : Mode.Res → Bool
   | .sub a [b] => match frEx a.hi with
     | some c =>
@@ -169,7 +169,7 @@ noncomputable def mulConst (j : ℕ) (w : Wit) (p : ℕ) (B : Mode.Base) (ok : �
             | none => false))
     | _ => false
 
-/-- **A run past a factor inside the run up to the factor times a constant** (F5):
+/-- **A run past a factor inside the run up to the factor times a constant**:
 `⟨Q·x·g^c', lo, hi, S, d⟩` inside `⟨Q, 0, [p] + t, 1, 0⟩`, `c'` past `Q`'s offset, the code's
 `[p] = [o]·g^z` with `[o]` the factor `x`'s word bounded, the run's last point `c' + S·(hi - 1) + d`
 below `z + t`. -/
@@ -214,7 +214,7 @@ def sideShape (a b : Mode.Rng) : Option (ℕ × ℕ × ℕ × ℕ) :=
   | [(.fr T, 1), (.hp q r, 1)], [(.fr T', 1)], .num lo, .num hi => if T = T' then some (q, r, lo, hi) else none
   | _, _, _, _ => none
 
-/-- **A read guarded by the exponent tables' side section** (F2): `⟨[T]·[q]@r·g^c, 0, 1, 1, 0⟩` inside
+/-- **A read guarded by the exponent tables' side section**: `⟨[T]·[q]@r·g^c, 0, 1, 1, 0⟩` inside
 `⟨[T], lo, hi, 1, c⟩`, the word `y` a top-level load reads from `[q]·g^r` range checked below `N` and
 its side read (`sideRead`). -/
 noncomputable def sideB (j : ℕ) (w : Wit) : Mode.Res → Bool
@@ -231,8 +231,8 @@ noncomputable def sideB (j : ℕ) (w : Wit) : Mode.Res → Bool
     | none => false
   | _ => false
 
-/-- **The `sub` families read off the function's own code**: F4 and F6 (`shiftB`), F2 (`sideB`), F5
-(`runB`). -/
+/-- **The `sub` families read off the function's own code**: a run over a product scaled by a factor
+(`shiftB`), a read the side section guards (`sideB`), a run past a factor (`runB`). -/
 noncomputable def subFamB (j : ℕ) (w : Wit) (x : Mode.Res) : Bool := shiftB j w x || sideB j w x || runB j w x
 
 end

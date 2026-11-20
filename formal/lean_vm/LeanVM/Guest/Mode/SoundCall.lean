@@ -358,25 +358,6 @@ theorem trIdxK_num {A : Abs} {mq : Mono} {n : ℕ} {j : Idx} {k : ℕ}
   simp only [trIdxK, Option.some.injEq, Prod.mk.injEq] at h
   exact ⟨h.1.symm, h.2.symm⟩
 
-/-- **A callee's exponent, moved in**: the caller's value is the callee's, when it is below `2^62`
-or the base is not shifted. -/
-theorem trIdx_down {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA : Holds sC A)
-    {i j : Idx} {k : ℕ} (h : trIdxK A mq i = some (j, k)) {y : ℕ} (hy : IdxVal sC j y)
-    (hs : k = 0 ∨ y < 2 ^ 62) : IdxVal sE i y := by
-  cases i with
-  | num n =>
-    obtain ⟨rfl, -⟩ := trIdxK_num h
-    exact hy
-  | ex x c =>
-    rcases trIdxK_ex h with ⟨rfl, k', hk', hb, rfl⟩ | ⟨hk, y', hb, rfl⟩
-    · have hy' : y = c + k' := hy
-      exact ⟨_, k', (trBase_iff F hA hb _).mpr (MonoVal.gp k'), rfl, hk', by omega⟩
-    · obtain ⟨v, e, hv, rfl, he, rfl⟩ := hy
-      refine ⟨ofK (g ^ (k + e)), k + e,
-        (trBase_iff F hA hb _).mpr (MonoVal.base1.mpr ⟨_, hv, by rw [pow_add, ofK_mul]⟩), rfl, ?_,
-        by omega⟩
-      rcases hs with rfl | hs <;> omega
-
 /-- **A callee's exponent, moved out**: the callee's value is the caller's, when the caller's base has
 an exponent or the base is not shifted. -/
 theorem trIdx_up {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA : Holds sC A)
@@ -404,44 +385,9 @@ theorem trIdx_up {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA : 
       obtain ⟨e', rfl, he', rfl⟩ := key
       exact ⟨_, e', hp, rfl, he', by omega⟩
 
-theorem Idx.small_sound {s : St} {i : Idx} (h : i.small = true) {y : ℕ} (hy : IdxVal s i y) :
-    y < 2 ^ 62 := by
-  cases i with
-  | num n =>
-    simp only [Idx.small, decide_eq_true_eq] at h
-    rw [show y = n from hy]; exact h
-  | ex b c =>
-    simp only [Idx.small, beq_iff_eq] at h
-    subst h
-    obtain ⟨v, e, -, -, he, rfl⟩ := hy
-    omega
-
-theorem Abs.small_sound {s : St} {A : Abs} (hA : Holds s A) {j : Idx} (h : A.small j = true) {y : ℕ}
-    (hy : IdxVal s j y) : y < 2 ^ 62 := by
-  unfold Abs.small at h
-  rcases Bool.or_eq_true_iff.mp h with h | h
-  · exact Idx.small_sound h hy
-  · obtain ⟨p, hm, hh⟩ := List.any_eq_true.mp h
-    simp only [Bool.and_eq_true] at hh
-    obtain ⟨xa, xb, -, hb, -⟩ := hA.lt p hm
-    obtain ⟨xa', ha', hle⟩ := Abs.le_sound hA hh.2 hb
-    rw [hy.unique ha']
-    have := Idx.small_sound hh.1 hb
-    omega
-
 theorem idxUp_some {A : Abs} {mq : Mono} {i j : Idx} (h : idxUp A mq i = some j) :
     ∃ k, trIdxK A mq i = some (j, k) ∧ (k = 0 ∨ A.hasIdx j = true) := by
   unfold idxUp at h
-  split at h
-  · rename_i j' k hk
-    split_ifs at h with h1
-    cases h
-    exact ⟨k, hk, by simpa using h1⟩
-  · cases h
-
-theorem idxDown_some {A : Abs} {mq : Mono} {i j : Idx} (h : idxDown A mq i = some j) :
-    ∃ k, trIdxK A mq i = some (j, k) ∧ (k = 0 ∨ A.small j = true) := by
-  unfold idxDown at h
   split at h
   · rename_i j' k hk
     split_ifs at h with h1
@@ -453,11 +399,6 @@ theorem idxUp_val {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA :
     {i j : Idx} (h : idxUp A mq i = some j) {x : ℕ} (hx : IdxVal sE i x) : IdxVal sC j x := by
   obtain ⟨k, hk, hs⟩ := idxUp_some h
   exact trIdx_up F hA hk hx (hs.imp id (Abs.hasIdx_sound hA))
-
-theorem idxDown_val {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA : Holds sC A)
-    {i j : Idx} (h : idxDown A mq i = some j) {y : ℕ} (hy : IdxVal sC j y) : IdxVal sE i y := by
-  obtain ⟨k, hk, hs⟩ := idxDown_some h
-  exact trIdx_down F hA hk hy (hs.imp id fun h ↦ Abs.small_sound hA h hy)
 
 theorem trRngBy_some {A : Abs} {mq : Mono} {tr : Idx → Option Idx} {r r' : Rng}
     (h : trRngBy A mq tr r = some r') : ∃ q lo hi, trMono A mq r.q = some q ∧ tr r.lo = some lo ∧
@@ -477,14 +418,6 @@ theorem RW.trUp {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA : H
   exact ⟨vq, xlo, xhi, (trMono_iff F hA hq vq).mp h1, idxUp_val F hA hlo h2, idxUp_val F hA hhi h3,
     fun j a b ↦ F.mem ▸ h4 j a b⟩
 
-/-- **A callee's run, moved in.** -/
-theorem RW.trDown {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA : Holds sC A)
-    {r r' : Rng} (h : trRngDown A mq r = some r') (hr : RW sC r') : RW sE r := by
-  obtain ⟨q, lo, hi, hq, hlo, hhi, rfl⟩ := trRngBy_some h
-  obtain ⟨vq, xlo, xhi, h1, h2, h3, h4⟩ := hr
-  exact ⟨vq, xlo, xhi, (trMono_iff F hA hq vq).mpr h1, idxDown_val F hA hlo h2,
-    idxDown_val F hA hhi h3, fun j a b ↦ F.mem ▸ h4 j a b⟩
-
 /-- **A callee's run of pointers, moved out.** -/
 theorem PW.trUp {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA : Holds sC A)
     {r r' : Rng} {os : List ℕ} (h : trRngUp A mq r = some r') (hr : PW sE r os) : PW sC r' os := by
@@ -492,14 +425,6 @@ theorem PW.trUp {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA : H
   obtain ⟨vq, xlo, xhi, h1, h2, h3, h4⟩ := hr
   exact ⟨vq, xlo, xhi, (trMono_iff F hA hq vq).mp h1, idxUp_val F hA hlo h2, idxUp_val F hA hhi h3,
     fun j a b ↦ F.mem ▸ h4 j a b⟩
-
-/-- **A callee's run of pointers, moved in.** -/
-theorem PW.trDown {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA : Holds sC A)
-    {r r' : Rng} {os : List ℕ} (h : trRngDown A mq r = some r') (hr : PW sC r' os) : PW sE r os := by
-  obtain ⟨q, lo, hi, hq, hlo, hhi, rfl⟩ := trRngBy_some h
-  obtain ⟨vq, xlo, xhi, h1, h2, h3, h4⟩ := hr
-  exact ⟨vq, xlo, xhi, (trMono_iff F hA hq vq).mpr h1, idxDown_val F hA hlo h2,
-    idxDown_val F hA hhi h3, fun j a b ↦ F.mem ▸ h4 j a b⟩
 
 /-- The own frame, as a callee's. -/
 theorem Frames.own {s : St} (hfp : s.fp < maxCells) (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells)

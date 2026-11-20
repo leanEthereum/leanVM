@@ -3,20 +3,11 @@ module
 public import LeanVM.Guest.Mode.SoundEntry
 
 /-!
-# Loops: termination facts and accumulated runs
+# Accumulated runs
 
-A loop helper's signature states, at each iteration's entry, its counter's exponent below its
-bound's (`Sig.term`), and, at its outermost return, the runs it writes over the counter's range
-(`Sig.postL`).
-
-`termStep_sound`: at a tail call the walk accepts, the next iteration's counter is this one's times
-a positive power of `g`, its bound the same word. `term_holds`: the counters' exponents increasing,
-the last one's naming the bound (the loop exits), every iteration's entry has its termination facts.
-
-`loop_step`: at a tail call the walk accepts, the next iteration's run and this iteration's point
-(written on every path, `loopOk`) give this iteration's run; `RW.last`, the exiting iteration's;
-`loop_stepP`, `PW.last`, the same for runs of pointers. `retStay_sound`: the next iteration's
-guarantees at return are this one's.
+A loop helper's signature states, at its outermost return, the runs it writes over its counter's range
+(`Sig.postL`): `RW.cons`, `RW.last`, `PW.cons`, `PW.last` build them iteration by iteration, and
+`loop_step` gives an iteration's run from the next one's and its own point.
 -/
 
 namespace LeanVM.Guest.Mode
@@ -25,93 +16,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
 open LeanVM.Prover.Exec
 
 @[expose] public section
-
-/-! ## Termination -/
-
-/-- **A tail call's counters**: the next iteration's counter is this one's times `g^t`, `t > 0`, its
-bound the same exponent. -/
-theorem termStep_sound {s sN : St} {A : Abs} {e : ℕ} {G : Sig} (hA : Holds s A)
-    (F : Frames s sN (.own e)) (h : termStep A e G = true) :
-    ∀ p ∈ G.term, ∃ a t, p.1 = .ex a 0 ∧ 0 < t ∧
-      (∀ u, BaseVal sN a u ↔ ∃ u', BaseVal s a u' ∧ u = ofK (g ^ t) * u') ∧
-      ∀ x, IdxVal sN p.2 x ↔ IdxVal s p.2 x := by
-  intro p hp
-  have := List.all_eq_true.mp h p hp
-  have hcnt : ∀ a, (match idxUp A (.own e) (.ex a 0) with
-      | some a' => match (Idx.ex a 0).off a' with
-        | some t => decide (0 < t)
-        | none => false
-      | none => false) = true → ∃ t, 0 < t ∧
-        ∀ u, BaseVal sN a u ↔ ∃ u', BaseVal s a u' ∧ u = ofK (g ^ t) * u' := by
-    intro a h1
-    split at h1
-    · rename_i a' ha'
-      split at h1
-      · rename_i t ht
-        obtain ⟨k, hk, -⟩ := idxUp_some ha'
-        rcases trIdxK_ex hk with ⟨-, k', -, -, rfl⟩ | ⟨-, y, hb, rfl⟩
-        · simp [Idx.off] at ht
-        simp only [Idx.off, Bool.and_eq_true, decide_eq_true_eq] at ht
-        split_ifs at ht with hc
-        cases ht
-        obtain rfl := Base.beq_eq hc.1
-        simp only [decide_eq_true_eq] at h1
-        exact ⟨k, by omega, fun u ↦ by rw [trBase_iff F hA hb u, MonoVal.base1]⟩
-      · cases h1
-    · cases h1
-  rcases p with ⟨_ | ⟨a, _ | _⟩, _ | ⟨b, _ | _⟩⟩ <;> try (simp at this; done)
-  · simp only [Bool.and_eq_true] at this
-    obtain ⟨t, ht, hiff⟩ := hcnt a this.1
-    exact ⟨a, t, rfl, ht, hiff, fun x ↦ Iff.rfl⟩
-  · simp only [Bool.and_eq_true] at this
-    obtain ⟨h1, h2⟩ := this
-    obtain ⟨t, ht, hiff⟩ := hcnt a h1
-    refine ⟨a, t, rfl, ht, hiff, fun x ↦ ?_⟩
-    split at h2
-    · rename_i b' hb'
-      obtain rfl := Idx.beq_eq h2
-      obtain ⟨k2, hk2, -⟩ := idxUp_some hb'
-      rcases trIdxK_ex hk2 with ⟨-, k', -, -, he⟩ | ⟨-, y2, hb2, he⟩
-      · cases he
-      · simp only [Idx.ex.injEq] at he
-        obtain ⟨rfl, he⟩ := he
-        obtain rfl : k2 = 0 := by omega
-        have hbv := fun u ↦ (trBase_iff F hA hb2 u).trans MonoVal.single
-        constructor
-        · rintro ⟨v, e', h1, h2, h3, h4⟩; exact ⟨v, e', (hbv v).mp h1, h2, h3, h4⟩
-        · rintro ⟨v, e', h1, h2, h3, h4⟩; exact ⟨v, e', (hbv v).mpr h1, h2, h3, h4⟩
-    · cases h2
-
-/-- The counters' exponents increasing, the last one's naming the bound: every earlier one is below
-it. -/
-theorem lt_of_exit {c : ℕ → ℕ} {J en : ℕ} (hinc : ∀ j < J, c j < c (j + 1)) (hJ : c J < 2 ^ 63)
-    (hen : en < 2 ^ 62) (hexit : g ^ c J = g ^ en) : ∀ j < J, c j < en := by
-  have heq : c J = en := gpow_inj hJ (by omega) hexit
-  have key : ∀ d j, j + d ≤ J → c j + d ≤ c (j + d) := by
-    intro d
-    induction d with
-    | zero => intro j _; simp
-    | succ d ih =>
-      intro j hj
-      have h1 := ih j (by omega)
-      have h2 := hinc (j + d) (by omega)
-      show c j + (d + 1) ≤ c (j + d + 1)
-      omega
-  intro j hj
-  have := key (J - j) j (by omega)
-  rw [show j + (J - j) = J by omega] at this
-  omega
-
-/-- **Termination gives the entry inequalities**: iterations `j < J`, iteration `j`'s counter the
-word `g^(c j)` and its bound `g^en`, the counters increasing and the loop exiting when the counter
-names the bound: each iteration's entry has its termination fact. -/
-theorem term_holds {s : ℕ → St} {a : Base} {b : Idx} {c : ℕ → ℕ} {J en : ℕ}
-    (hinc : ∀ j < J, c j < c (j + 1)) (hJ : c J < 2 ^ 63) (hen : en < 2 ^ 62)
-    (hexit : g ^ c J = g ^ en) (ha : ∀ j < J, BaseVal (s j) a (ofK (g ^ c j)))
-    (hb : ∀ j < J, IdxVal (s j) b en) : ∀ j < J, LTF (s j) (.ex a 0) b := by
-  intro j hj
-  have hlt := lt_of_exit hinc hJ hen hexit j hj
-  exact ⟨c j, en, ⟨_, c j, ha j hj, rfl, by omega, rfl⟩, hb j hj, hlt⟩
 
 /-! ## Accumulated runs -/
 
@@ -162,48 +66,12 @@ theorem PW.last {s : St} {r : Rng} {os : List ℕ} {y : ℕ} (hy : IdxVal s r.lo
   obtain ⟨vq, hq⟩ := Rng.first_q hv
   exact PW.cons (PW.nil hq (Idx.succ_val' hy) hz le_rfl) hp
 
-/-- **A loop's accumulated run of pointers, one iteration**, as `loop_step`. -/
-theorem loop_stepP {s sN : St} {A : Abs} {e : ℕ} (hA : Holds s A) (F : Frames s sN (.own e))
-    {r : Rng} {os : List ℕ} (hst : trRngUp A (.own e) r = some ⟨r.q, r.lo.succ, r.hi, r.S, r.d⟩)
-    (hn : PW sN r os) (hp : HP s r.first os) : PW s r os :=
-  PW.cons (PW.trUp F hA hst hn) hp
-
-/-- **A loop's accumulated run, one iteration**: at a tail call the walk accepts (`tailOk_sound`),
+/-- **A loop's accumulated run, one iteration**: at a tail call the walk accepts,
 the next iteration's run (its frame `fp·g^e`) and this iteration's point give this iteration's run. -/
 theorem loop_step {s sN : St} {A : Abs} {e : ℕ} (hA : Holds s A) (F : Frames s sN (.own e))
     {r : Rng} (hst : trRngUp A (.own e) r = some ⟨r.q, r.lo.succ, r.hi, r.S, r.d⟩) (hn : RW sN r)
     (hp : HW s r.first) : RW s r :=
   RW.cons (RW.trUp F hA hst hn) hp
-
-/-! ## Guarantees at return -/
-
-/-- **A loop's guarantees at return, one iteration**: at a tail call the walk accepts (`retStay`),
-the next iteration's guarantees (its frame `fp·g^e`) are this one's. -/
-theorem retStay_sound {s sN : St} {A : Abs} {e : ℕ} {G : Sig} (hA : Holds s A)
-    (F : Frames s sN (.own e)) (h : retStay A e G = true) (hR : RetHolds sN G) : RetHolds s G := by
-  unfold retStay at h
-  simp only [Bool.and_eq_true, List.isEmpty_iff, List.all_eq_true] at h
-  obtain ⟨⟨⟨⟨⟨⟨h0, h1⟩, hT⟩, hC⟩, hp⟩, hr⟩, hq⟩ := h
-  refine ⟨by simp [h0], fun m hm ↦ ?_, fun r hm ↦ ?_, fun q hm ↦ ?_, by simp [h1], by simp [hT], by simp [hC]⟩
-  · have := hp m hm
-    split at this
-    · rename_i k hk
-      obtain rfl := Mono.beq_eq this
-      obtain ⟨v, x, h2, h3, h4⟩ := hR.2.1 _ hm
-      exact ⟨v, x, (trMono_iff F hA hk v).mp h2, h3, F.mem ▸ h4⟩
-    · cases this
-  · have := hr r hm
-    split at this
-    · rename_i r' hr'
-      obtain rfl := Rng.beq_eq this
-      exact RW.trUp F hA hr' (hR.2.2.1 _ hm)
-    · cases this
-  · have := hq q hm
-    split at this
-    · rename_i r' hr'
-      obtain rfl := Rng.beq_eq this
-      exact PW.trUp F hA hr' (hR.2.2.2.1 _ hm)
-    · cases this
 
 end
 

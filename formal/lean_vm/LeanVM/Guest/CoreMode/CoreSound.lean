@@ -151,69 +151,6 @@ theorem has_hasP {t : Exec.Trie Unit} {i : ℕ} : has t i = hasP t i := by
 
 /-! ## The shape -/
 
-theorem straight_straightC : ∀ {body : List Stmt}, straight body = true → straightC body = true
-  | [], _ => rfl
-  | s :: body, h => by
-    simp only [straight, List.all_cons, Bool.and_eq_true] at h
-    simp only [straightC, List.all_cons, Bool.and_eq_true]
-    refine ⟨?_, straight_straightC (by simpa [straight] using h.2)⟩
-    cases s <;> simp_all
-
-/-- **The events of a body of atoms, calls and returns**: its atoms' and its calls'. -/
-theorem straightC_ev {σ : Val} : ∀ {body : List Stmt}, straightC body = true → ∀ {es : List Ev} {vs : List V},
-    walk σ body = .ret es vs → ∀ e ∈ es, (∃ a, e = .atom a ∧ Stmt.atom a ∈ body) ∨
-      ∃ f args rets, e = .call f args rets ∧ Stmt.call f args rets ∈ body
-  | [], _, es, vs, hw => by simp [walk] at hw
-  | s :: body, h, es, vs, hw => by
-    simp only [straightC, List.all_cons, Bool.and_eq_true] at h
-    have ih := @straightC_ev σ body (by simpa [straightC] using h.2)
-    cases s with
-    | atom b =>
-      rw [Bridge.walk_atom_cons] at hw
-      obtain ⟨es', hw', rfl⟩ := Bridge.pre_eq_ret hw
-      intro e he
-      rcases List.mem_cons.mp he with rfl | he
-      · exact Or.inl ⟨b, rfl, List.mem_cons_self⟩
-      · rcases ih hw' e he with ⟨a, h1, h2⟩ | ⟨f, args, rets, h1, h2⟩
-        · exact Or.inl ⟨a, h1, List.mem_cons_of_mem _ h2⟩
-        · exact Or.inr ⟨f, args, rets, h1, List.mem_cons_of_mem _ h2⟩
-    | call f args rets =>
-      rw [Bridge.walk_call_cons] at hw
-      obtain ⟨es', hw', rfl⟩ := Bridge.pre_eq_ret hw
-      intro e he
-      rcases List.mem_cons.mp he with rfl | he
-      · exact Or.inr ⟨f, args, rets, rfl, List.mem_cons_self⟩
-      · rcases ih hw' e he with ⟨a, h1, h2⟩ | ⟨f, args, rets, h1, h2⟩
-        · exact Or.inl ⟨a, h1, List.mem_cons_of_mem _ h2⟩
-        · exact Or.inr ⟨f, args, rets, h1, List.mem_cons_of_mem _ h2⟩
-    | ret vs' =>
-      rw [Bridge.walk_ret_cons, Memory.Out.ret.injEq] at hw
-      obtain ⟨rfl, -⟩ := hw
-      intro e he
-      cases he
-    | _ => simp at h
-
-/-- The returned values of a body of atoms, calls and returns are a `ret`'s. -/
-theorem straightC_ret {σ : Val} : ∀ {body : List Stmt}, straightC body = true → ∀ {es : List Ev} {vs : List V},
-    walk σ body = .ret es vs → Stmt.ret vs ∈ body
-  | [], _, es, vs, hw => by simp [walk] at hw
-  | s :: body, h, es, vs, hw => by
-    simp only [straightC, List.all_cons, Bool.and_eq_true] at h
-    cases s with
-    | atom b =>
-      rw [Bridge.walk_atom_cons] at hw
-      obtain ⟨es', hw', rfl⟩ := Bridge.pre_eq_ret hw
-      exact List.mem_cons_of_mem _ (straightC_ret (by simpa [straightC] using h.2) hw')
-    | call f args rets =>
-      rw [Bridge.walk_call_cons] at hw
-      obtain ⟨es', hw', rfl⟩ := Bridge.pre_eq_ret hw
-      exact List.mem_cons_of_mem _ (straightC_ret (by simpa [straightC] using h.2) hw')
-    | ret vs' =>
-      rw [Bridge.walk_ret_cons, Memory.Out.ret.injEq] at hw
-      obtain ⟨-, rfl⟩ := hw
-      exact List.mem_cons_self
-    | _ => simp at h
-
 theorem retsN_len {σ : Val} {body : List Stmt} {n : ℕ} (hn : retsN n (stmtsOf body) = true)
     {es : List Ev} {vs : List V} (hw : walk σ body = .ret es vs) : vs.length = n := by
   have h := List.all_eq_true.mp hn _ (Bridge.walk_retS body hw)

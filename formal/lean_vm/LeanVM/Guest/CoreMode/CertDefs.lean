@@ -3,6 +3,7 @@ module
 public import LeanVM.Guest.ExecDecodable
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.CoreMode.GlueG
 
 /-!
 # What each certificate contributes
@@ -10,8 +11,7 @@ public import LeanVM.Guest.Data.Pows
 The certificates are assembled pack by pack (`CoreMode/Gen/<pack>/Cert.lean`, `scripts/core-mode/certs.py`)
 into `ModeCerts` (`CoreMode/Assemble.lean`). Each certificate contributes facts of its own: `CertSt`,
 decided by the kernel or by `rfl` (its length, its program, a loop's tail call and runs, its termination
-facts' cells); `CertWalk`, a walk and its hints the advice's, which give a frame interface
-(`fnSpec_walk`, `FnSpec`); `FnLink`, its code a function of the
+facts' cells); `fnSpec_core`, its frame interface (`FnSpec`) from the core route's; `FnLink`, its code a function of the
 guest's table; `SigsIn`, each callee signature its environment holds a certificate's (as a list, `Trie.entries`,
 `CoreMode/Contracts.lean`), and `nodupB` decides that a list of entries has no duplicate, as a bit set.
 -/
@@ -24,18 +24,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-! ## Per certificate -/
 
-/-- Each run a loop guarantees is over its termination fact's range. -/
-def loopRngB (G : Sig) : Bool :=
-  (G.postL ++ G.postLP.map (·.1)).all fun r ↦ decide ((r.lo, r.hi) ∈ G.term)
-
-/-- The jump table's end: `__jump_tables`' slots, from `main`'s `430` cells on. -/
-abbrev jtEnd : ℕ := 430 + Data.f0.instructionCount
-
 /-- The certificate's facts the kernel decides: its length, a code, an entry past `__jump_tables`'s, the guest's jump table and
-halting pc, a loop's runs, its termination facts' cells. -/
+halting pc, its termination facts' cells. -/
 noncomputable def staticB (K : Cert) : Bool :=
-  K.F.len == K.code.length && 0 < K.code.length && 0 < K.F.entry && K.E.jtLo == 430 && K.E.jtHi == jtEnd &&
-    K.E.halt == 524287 && loopRngB K.F.sig && termFr K.F.sig
+  K.F.len == K.code.length && 0 < K.code.length && 0 < K.F.entry && K.E.jtLo == CoreMode.jtLo &&
+    K.E.jtHi == CoreMode.jtHi && K.E.halt == CoreMode.haltPc && termFr K.F.sig
 
 /-- **A certificate's static facts**: `staticB`, and the guest's powers and jump table. -/
 structure CertSt (K : Cert) : Prop where
@@ -43,40 +36,21 @@ structure CertSt (K : Cert) : Prop where
   pows : K.E.pows = Data.powTree
   jt : K.E.jt = Data.jtTrie
 
-/-- A certificate's walk accepts its code. -/
-abbrev WalkHyp (K : Cert) : Prop := walk K.E K.F K.code = true
-
-/-- A certificate's hints are the advice's. -/
-abbrev HintsHyp (K : Cert) : Prop := HintsOk K.F Data.adviceHints
-
-/-- **A certificate's walk and hints.** -/
-def CertWalk (K : Cert) : Prop := WalkHyp K ∧ HintsHyp K
-
 /-- **A certificate's code is a guest function's**, its operands small. -/
 def FnLink (K : Cert) : Prop :=
   (∃ f ∈ Data.functions, K.code = f.code ∧ K.F.entry = f.entryPc) ∧ K.code.all offSmall = true
 
 theorem staticB_spec {K : Cert} (h : staticB K = true) :
-    K.F.len = K.code.length ∧ 0 < K.code.length ∧ 0 < K.F.entry ∧ K.E.jtLo = 430 ∧ K.E.jtHi = jtEnd ∧
-      K.E.halt = 524287 ∧ loopRngB K.F.sig = true ∧ termFr K.F.sig = true := by
+    K.F.len = K.code.length ∧ 0 < K.code.length ∧ 0 < K.F.entry ∧ K.E.jtLo = CoreMode.jtLo ∧ K.E.jtHi = CoreMode.jtHi ∧
+      K.E.halt = CoreMode.haltPc ∧ termFr K.F.sig = true := by
   simpa only [staticB, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq, and_assoc] using h
-
-theorem loopRng_of {G : Sig} (h : loopRngB G = true) :
-    ∀ r ∈ G.postL ++ G.postLP.map (·.1), (r.lo, r.hi) ∈ G.term := fun r hr ↦
-  of_decide_eq_true (List.all_eq_true.1 h r hr)
-
-/-- **A function on the walk meets its frame interface**: its static facts, its walk and its hints. -/
-theorem fnSpec_walk {tab : List CoreMode.HcEnt} {T : List CoreMode.CFun} {K : Cert} (hst : CertSt K)
-    (hw : CertWalk K) (hb : CoreMode.walkB tab K = true := by decide +kernel) : FnSpec tab T K :=
-  have h := staticB_spec hst.b
-  fnSpec_of_walk hw.1 h.1 hw.2 (loopRng_of h.2.2.2.2.2.2.1) hb T
 
 /-- **A function on the core route meets its frame interface**: its core data among `T` at its entry, its
 interface, and the heap contracts' table agreeing with it. -/
 theorem fnSpec_core {tab : List CoreMode.HcEnt} {T : List CoreMode.CFun} {K : Cert} {Cf : CoreMode.CFun}
     (hT : Cf ∈ T) (he : Cf.frame.entry = K.F.entry) (hs : FnSpecC K Cf)
     (hb : CoreMode.ctB tab K Cf = true := by decide +kernel) : FnSpec tab T K :=
-  .inr ⟨Cf, hT, he, hs, hb⟩
+  ⟨Cf, hT, he, hs, hb⟩
 
 /-- A callee's signature at entry `p.1` is `p.2`, a certificate's among `Ks`, not `main`'s. -/
 def SigIn (Ks : List Cert) (p : ℕ × Sig) : Prop :=
@@ -85,26 +59,12 @@ def SigIn (Ks : List Cert) (p : ℕ × Sig) : Prop :=
 /-- Every callee signature of `K`'s environment is a certificate's among `Ks`. -/
 def SigsIn (Ks : List Cert) (K : Cert) : Prop := ∀ p ∈ K.E.sigs.entries, SigIn Ks p
 
-theorem sigsIn_of {Ks : List Cert} {K : Cert} {l : List (ℕ × Sig)} (h : K.E.sigs.entries = l)
-    (h' : ∀ p ∈ l, SigIn Ks p) : SigsIn Ks K := by
-  unfold SigsIn; rw [h]; exact h'
-
 /-- A list's facts, element by element. -/
 theorem fa_cons {α : Type} {P : α → Prop} {a : α} {l : List α} (h : P a) (t : ∀ x ∈ l, P x) :
     ∀ x ∈ a :: l, P x :=
   List.forall_mem_cons.2 ⟨h, t⟩
 
 theorem fa_nil {α : Type} {P : α → Prop} : ∀ x ∈ ([] : List α), P x := fun _ h ↦ absurd h List.not_mem_nil
-
-/-- The facts of the lists' elements, list by list. -/
-theorem fa_flatten {α : Type} {P : α → Prop} {ls : List (List α)} (h : ∀ l ∈ ls, ∀ x ∈ l, P x) :
-    ∀ x ∈ ls.flatten, P x := fun x hx ↦ by
-  obtain ⟨l, hl, hx⟩ := List.mem_flatten.1 hx
-  exact h l hl x hx
-
-theorem mem_flatten_of {α : Type} {ls : List (List α)} {l : List α} {x : α} (hl : l ∈ ls) (hx : x ∈ l) :
-    x ∈ ls.flatten :=
-  List.mem_flatten.2 ⟨l, hl, hx⟩
 
 /-- **A function's code from the table**: function `j` is `c`, and the certificate's code and entry
 are its. -/

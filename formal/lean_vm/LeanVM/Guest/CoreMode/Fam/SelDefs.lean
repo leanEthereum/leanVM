@@ -33,11 +33,10 @@ completeness check reads it).
 `ltFactB j r`: residual `r` is `[B] + t < N`, `B` named by an exponent fact (`expFacts`: a listed
 parameter's word, or the word read through it, is `g^e`, `e` below a bound `b`), `b + t ≤ N`.
 
-`splitB j r`: residual `r` is a run inside another over the same product, both read off a split
-of the frame (`splits`: `[n] = [s]^S·[r]`, `[s]` and `[r]` powers of `g`). `nzB nzs j o`: residual
+`splits`: the frame's splits `[n] = [s]^S·[r]`, `[s]` and `[r]` powers of `g`. `nzB nzs j o`: residual
 `nz o` is the cell of a parameter of function `j`, its loop counter or listed in `nzs`. `ResOk exc nzs K`: certificate `K` is listed in `exc`, or each of its residuals
 is a name, a selector's bound, an exponent fact's bound or such a divisor at its function's index, or a run inside others
-(`sub`), decided per certificate (`resOk_of`). `allV p t`: every value stored in `t` satisfies `p`
+(`sub`), decided per certificate. `allV p t`: every value stored in `t` satisfies `p`
 (`allV_get`).
 -/
 
@@ -149,20 +148,6 @@ noncomputable def splits : List (ℕ × V × V × V × ℕ) := [
   (fn_idx% «shared_selector_tables», .n 39, .n 20, .n 5, 4),
   (fn_idx% «verify_keccak», .n 35, .n 49, .n 21, 8)]
 
-/-- **A run inside a split**: of stride `S` up to `[s]`'s exponent at an offset below `S`, or of
-stride `1` up to `[r]`'s exponent past `[s]^S` (`[s]^S` last or first among the bases), inside the run
-up to `[n]`'s exponent over the same product. -/
-def splitShape (s r n S : ℕ) : Mode.Res → Bool
-  | .sub a [b] => decide (b.lo = .num 0 ∧ b.hi = .ex (.fr n) 0 ∧ b.S = 1 ∧ b.d = 0 ∧ a.lo = .num 0 ∧
-      ((a.q = b.q ∧ a.hi = .ex (.fr s) 0 ∧ a.S = S ∧ a.d < S) ∨
-        ((a.q = ⟨b.q.fp, b.q.k, b.q.bs ++ [(.fr s, S)]⟩ ∨ a.q = ⟨b.q.fp, b.q.k, (.fr s, S) :: b.q.bs⟩) ∧
-          a.hi = .ex (.fr r) 0 ∧ a.S = 1 ∧ a.d = 0)))
-  | _ => false
-
-/-- A run inside a split of function `j`'s frame. -/
-noncomputable def splitB (j : ℕ) (x : Mode.Res) : Bool :=
-  splits.any fun p ↦ p.1 == j && splitShape (cellJ j p.2.1) (cellJ j p.2.2.1) (cellJ j p.2.2.2.1) p.2.2.2.2 x
-
 /-- Cell `o` is inside function `j`'s frame. -/
 noncomputable def inFr (j o : ℕ) : Bool := decide (2 ≤ o) && decide (o < fsN j)
 
@@ -201,7 +186,7 @@ noncomputable def expOf (j : ℕ) (B : Mode.Base) : Option (V × ℕ) :=
       | none => none
     else none
 
-/-- **An order residual bounded by an exponent fact** (F7, F8): `[B] + t < N`, `B` named by a fact of
+/-- **An order residual bounded by an exponent fact**: `[B] + t < N`, `B` named by a fact of
 bound `b`, `b + t ≤ N`. -/
 noncomputable def ltFactB (j : ℕ) : Mode.Res → Bool
   | .lt (.ex B t) (.num N) => match expOf j B with
@@ -225,15 +210,6 @@ noncomputable def famB (nzs : List (String × V)) (j : ℕ) : Mode.Res → Bool
 is in the families at its function's index `j`. -/
 def ResOk (exc : List Mode.Cert) (nzs : List (String × V)) (K : Mode.Cert) : Prop :=
   K ∈ exc ∨ ∃ j, j < nFns ∧ (fnOf j).entryPc = K.F.entry ∧ allV (fun l ↦ l.all (famB nzs j)) K.F.res = true
-
-theorem resOk_of {exc : List Mode.Cert} {nzs : List (String × V)} {K : Mode.Cert} {j : ℕ}
-    (h : (decide (j < nFns) && (fnOf j).entryPc == K.F.entry && allV (fun l ↦ l.all (famB nzs j)) K.F.res) = true) :
-    ResOk exc nzs K := by
-  simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at h
-  exact Or.inr ⟨j, h.1.1, h.1.2, h.2⟩
-
-theorem resOk_exc {exc : List Mode.Cert} {nzs : List (String × V)} {K : Mode.Cert} (h : K ∈ exc) :
-    ResOk exc nzs K := Or.inl h
 
 /-! ## Soundness -/
 

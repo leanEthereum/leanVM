@@ -19,7 +19,7 @@ open LeanVM.Guest LeanVM.Guest.Exec LeanVM.Guest.EndExec
 @[expose] public section
 
 /-- The guest's program as every certificate's environment has it, but the signatures. -/
-noncomputable def guestE0 : Env := ⟨Data.powTree, Data.jtTrie, 430, jtEnd, .nil, 524287⟩
+noncomputable def guestE0 : Env := ⟨Data.powTree, Data.jtTrie, CoreMode.jtLo, CoreMode.jtHi, .nil, CoreMode.haltPc⟩
 
 theorem jt_guest : ∀ d e, Data.jtTrie.get d = some e → e < 2 ^ 62 := jt_lt_of (by decide +kernel)
 
@@ -41,12 +41,12 @@ theorem modeCerts_of {Ks : List Cert} {Km : Cert} {tab : List CoreMode.HcEnt} {T
     exact ⟨(hst K hK).pows, (hst K hK).jt, h1, h2, h3⟩
   pows := PowTree.ok_of_okW Checked.powTree_ok
   jt := jt_guest
-  halt := by show 524287 = _; rw [guest_logSize]; rfl
+  halt := by show CoreMode.haltPc = _; rw [guest_logSize]; decide
   main := hm
   mainF := hmF
   mainRet := not_ret_of hmR
   mainTerm := hmT
-  termFr K hK := (staticB_spec (hst K hK).b).2.2.2.2.2.2.2
+  termFr K hK := (staticB_spec (hst K hK).b).2.2.2.2.2.2
 
 /-- No certificate's entry is `__jump_tables`'s (`entryNode_X`). -/
 theorem entry_ne_zero {Ks : List Cert} (hst : ∀ K ∈ Ks, CertSt K) : ∀ K ∈ Ks, K.F.entry ≠ 0 :=

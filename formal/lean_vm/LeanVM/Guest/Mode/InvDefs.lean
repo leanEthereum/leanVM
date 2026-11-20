@@ -171,10 +171,6 @@ structure ProgOk (prog : LeanIsaProgram) (C : Ctx) (Ks : List Cert) (Km : Cert) 
 
 /-! ## Facts read off the memory and the frame -/
 
-theorem holds_stOf {s : St} {A : Abs} : Holds s A ↔ Holds (stOf s.mem s.fp) A :=
-  ⟨fun h ↦ Holds.mono (s := s) (s' := stOf s.mem s.fp) (Mem.le_refl _) rfl h,
-    fun h ↦ Holds.mono (s := stOf s.mem s.fp) (s' := s) (Mem.le_refl _) rfl h⟩
-
 theorem Cov.mono {s s' : St} (hle : s.mem ≤ s'.mem) (hfp : s'.fp = s.fp) {P : Pend} {j : ℕ}
     (h : Cov s P j) : Cov s' P j :=
   let ⟨G, hG, hj, B, hB, hH⟩ := h
@@ -206,13 +202,6 @@ theorem RetAll.mono {m m' : Mem} (hle : m ≤ m') {fp : ℕ} {G : Sig} (h : RetA
   ⟨RetHolds.mono (s := stOf m fp) (s' := stOf m' fp) hle rfl h.1,
     fun r hr ↦ RW.mono (s := stOf m fp) (s' := stOf m' fp) hle rfl (h.2.1 r hr),
     fun q hq ↦ PW.mono (s := stOf m fp) (s' := stOf m' fp) hle rfl (h.2.2 q hq)⟩
-
-/-- `RetAll` read off a state's memory and frame. -/
-theorem retAll_of {s : St} {G : Sig} (hR : RetHolds s G) (hL : ∀ r ∈ G.postL, RW s r)
-    (hLP : ∀ q ∈ G.postLP, PW s q.1 q.2) : RetAll s.mem s.fp G :=
-  ⟨RetHolds.mono (s := s) (s' := stOf s.mem s.fp) (Mem.le_refl _) rfl hR,
-    fun r hr ↦ RW.mono (s := s) (s' := stOf s.mem s.fp) (Mem.le_refl _) rfl (hL r hr),
-    fun q hq ↦ PW.mono (s := s) (s' := stOf s.mem s.fp) (Mem.le_refl _) rfl (hLP q hq)⟩
 
 theorem PostAt.mono {Ct : Cts} {t : ℕ} {G : Sig} {m m' : Mem} (hle : m ≤ m') {fp : ℕ}
     (h : PostAt Ct t G m fp) : PostAt Ct t G m' fp := by
@@ -336,10 +325,6 @@ theorem code_pc {C : Ctx} {K : Cert} (hK : CodeOk C K) {i : ℕ} (hi : i < K.cod
   rw [Array.getElem?_eq_none (by omega)] at h0
   cases h0
 
-theorem cert_pc {C : Ctx} {K : Cert} (hK : CertOk C K) {i : ℕ} (hi : i < K.code.length) :
-    K.F.entry + i < C.ops.size :=
-  code_pc hK.code hi
-
 /-! ## The chain of a loop's iterations -/
 
 theorem Chain.fp0 {Ct : Cts} {m : Mem} {K : Cert} :
@@ -360,25 +345,6 @@ theorem Chain.back {Ct : Cts} {m : Mem} {K : Cert} (hwf : m.WF) (hu : m.used ≤
       PostAt Ct K.F.entry K.F.sig m fp0
   | [], _, _, h, ht => h ▸ ht
   | _ :: _, _, _, ⟨h1, h2⟩, ht => Chain.back hwf hu h2 (h1.back m (Mem.le_refl _) hwf hu ht)
-
-/-- **The exiting iteration's runs**: at a return the walk accepts, each run ranging over a
-termination fact is its point. -/
-theorem ret_runs {s : St} {A : Abs} {G : Sig} (hA : Holds s A) (hfp : s.fp < maxCells)
-    (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells) (h : retOk A G = true)
-    (hT : ∀ p ∈ G.term, LTF s p.1 p.2)
-    (hrng : ∀ r ∈ G.postL ++ G.postLP.map (·.1), (r.lo, r.hi) ∈ G.term) :
-    (∀ r ∈ G.postL, RW s r) ∧ ∀ q ∈ G.postLP, PW s q.1 q.2 := by
-  obtain ⟨-, hpt, hptP⟩ := retOk_sound hA hfp hwf hu h
-  have hex := retOk_exit hA h
-  refine ⟨fun r hr ↦ ?_, fun q hq ↦ ?_⟩
-  · have hp := hrng r (List.mem_append_left _ hr)
-    obtain ⟨xa, xb, ha, hb, -⟩ := hT _ hp
-    have := hex _ hp xa xb ha hb
-    exact RW.last ha (this ▸ hb) (hpt r hr)
-  · have hp := hrng q.1 (List.mem_append_right _ (List.mem_map_of_mem hq))
-    obtain ⟨xa, xb, ha, hb, -⟩ := hT _ hp
-    have := hex _ hp xa xb ha hb
-    exact PW.last ha (this ▸ hb) (hptP q hq)
 
 end
 

@@ -9,7 +9,9 @@ module
 
 public import LeanVM.Guest.CoreMode.Fam.ResStB
 public import LeanVM.Guest.CoreMode.Fam.ResGkrL
-public import LeanVM.Guest.CoreMode.Fam.ResVtB
+public import LeanVM.Guest.CoreMode.Fam.ResVtL
+public import LeanVM.Guest.CoreMode.Fam.ResCld
+public import LeanVM.Guest.CoreMode.Fam.SubDefs
 public import LeanVM.Guest.EndExecCoreMono
 
 /-!

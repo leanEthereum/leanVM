@@ -83,7 +83,19 @@ def load():
     return dict(fns=fns, hints=hints, mainFrame=mainFrame, pows=pows, jt=jt)
 
 
-JT_LO, HALT = 430, 2 ** 19 - 1
+def _jt_lo():
+    """The jump table's first cell: `main`'s frame size (`Data/FrameSizes.lean`'s `mainCells`)."""
+    t = open(os.path.join(ROOT, 'Data', 'FrameSizes.lean')).read()
+    return int(re.search(r'abbrev mainCells : ℕ := (\d+)', t).group(1))
+
+
+def _halt():
+    """The halting pc, the program's last (`Statement/Data/Bytecode.lean`'s `logSize`)."""
+    t = open(os.path.join(STATEMENT, 'Data', 'Bytecode.lean')).read()
+    return 2 ** int(re.search(r'def logSize : ℕ := (\d+)', t).group(1)) - 1
+
+
+JT_LO, HALT = _jt_lo(), _halt()
 
 
 def conv(op, a):
@@ -147,7 +159,7 @@ def derive(P):
         na, nr = f['nargs'], f['nret']
         fsig[f['entry']] = ([0, 1] + list(range(2, 2 + na)), selfc.get(f['entry']) if n in isloop else None,
                             list(range(2 + na, 2 + na + nr)))
-    return dict(P, calls=calls, isloop=isloop, fsig=fsig, jt_hi=JT_HI, halt=HALT)
+    return dict(P, calls=calls, isloop=isloop, fsig=fsig, jt_lo=JT_LO, jt_hi=JT_HI, halt=HALT)
 
 
 _CODE = []

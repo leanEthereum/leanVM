@@ -136,8 +136,6 @@ theorem vs_vk_sites :
     Res.sitesB (fun f args _ ↦ f != "verify_keccak" || args == vkArgsV) VerifySub.vsT = true := by
   decide +kernel
 
-theorem vk_not_vs : ("verify_keccak" : String) ≠ name% «verify_sub» := by decide
-
 theorem vk_params : (fn% «verify_keccak»).params = (List.range 13).map V.n := rfl
 
 /-- A parameter's word, from a callee's parameters `v_0 .. v_(n-1)` matched to a call's arguments. -/

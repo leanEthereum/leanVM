@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Guest.Mode.InvWalk
+public import LeanVM.Guest.Mode.InvRule
 public import LeanVM.Guest.Mode.HintsCtx
 public import LeanVM.Guest.Bytecode
 public import LeanVM.Guest.CoreMode.CoreSound
@@ -9,14 +9,11 @@ public import LeanVM.Guest.CoreMode.Contracts
 /-!
 # A guest function's certificate, tied to the executor
 
-`certOk_fn`: a guest function's mode walk (`walk`), its length, its operands below `2^28`
-(`offSmall`) and its hints the advice's (`HintsOk`) make its certificate one `ProgOk` takes
-(`CertOk`): the executor's instruction at each of its pcs is its code's (`ctx_op_off`, from the fetch
-lemma and the decoder's `OpOf`), and its hints the advice's (`ctx_hintsOk`); `codeOk_fn`, its code
-alone the executor's (`CodeOk`). `FnSpec`: a guest function's frame interface on the executor's
-tables for the guest's advice, for its frame predicate `guestQ` (the walk's, `coreRoute` being
-empty); `fnSpec_of_walk`, from its walk. `guest_inv_rule`, `guest_inv_init`: `inv_rule` and
-`inv_init` on the guest program.
+`codeOk_fn`: a guest function's code, its operands below `2^28` (`offSmall`), is the executor's
+(`CodeOk`): the executor's instruction at each of its pcs is its code's (`ctx_op_off`, from the fetch
+lemma and the decoder's `OpOf`). `FnSpec`: a guest function's frame interface on the executor's
+tables for the guest's advice, the core route's (`FnSpecC`, from its kernel checks by `fnSpecC_of`),
+for its frame predicate `guestQ` (`frameSpec_guest`).
 -/
 
 namespace LeanVM.Guest.Mode
@@ -121,21 +118,6 @@ theorem codeOk_of {prog : LeanIsaProgram} {adv : Advice} {C : Ctx} (hC : Ctx.of 
     obtain ⟨hpc, he⟩ := hins i hi
     exact ctx_op_off hC hpc he (List.all_eq_true.mp hs _ (List.getElem_mem _))⟩
 
-/-- **A certificate tied to the executor**: its walk, its length, its instructions the program's at
-its pcs, small, and its hints the advice's. -/
-theorem certOk_of {prog : LeanIsaProgram} {adv : Advice} {C : Ctx} (hC : Ctx.of prog adv = .ok C)
-    (ha : adv.hints = Data.adviceHints) {K : Cert} (hw : walk K.E K.F K.code = true)
-    (hlen : K.F.len = K.code.length)
-    (hins : ∀ i (hi : i < K.code.length), ∃ hpc : K.F.entry + i < 2 ^ prog.logSize,
-      prog.instructions ⟨_, hpc⟩ = K.code[i].toLeanIsaInstruction)
-    (hs : K.code.all offSmall = true) (hh : HintsOk K.F Data.adviceHints) : CertOk C K :=
-  ⟨hw, hlen, fun i hi ↦ by
-    obtain ⟨hpc, he⟩ := hins i hi
-    exact ctx_op_off hC hpc he (List.all_eq_true.mp hs _ (List.getElem_mem _)),
-   fun i hi ↦ by
-    obtain ⟨hpc, -⟩ := hins i hi
-    exact (ctx_hintsOk hC ha hh (hlen ▸ hi) hpc).symm⟩
-
 /-- A guest function's instructions are the program's at its pcs. -/
 theorem fn_ins {f : CompiledFunction} (hf : f ∈ Data.functions) {K : Cert} (hcode : K.code = f.code)
     (hentry : K.F.entry = f.entryPc) : ∀ i (hi : i < K.code.length),
@@ -157,15 +139,6 @@ theorem fn_ins {f : CompiledFunction} (hf : f ∈ Data.functions) {K : Cert} (hc
   rw [← hcode, List.getElem?_eq_getElem hi, Option.some.injEq] at hc
   rw [hc]
 
-/-- **A guest function's certificate** is tied to the executor run on the guest's advice: its walk,
-its length, its operands small and its hints the advice's. -/
-theorem certOk_fn {adv : Advice} {C : Ctx} (hC : Ctx.of guestProgram adv = .ok C)
-    (ha : adv.hints = Data.adviceHints) {f : CompiledFunction} (hf : f ∈ Data.functions) {K : Cert}
-    (hcode : K.code = f.code) (hentry : K.F.entry = f.entryPc) (hw : walk K.E K.F K.code = true)
-    (hlen : K.F.len = K.code.length) (hs : K.code.all offSmall = true)
-    (hh : HintsOk K.F Data.adviceHints) : CertOk C K :=
-  certOk_of hC ha hw hlen (fn_ins hf hcode hentry) hs hh
-
 /-- **A guest function's code is the executor's**, run on any advice, its operands small. -/
 theorem codeOk_fn {adv : Advice} {C : Ctx} (hC : Ctx.of guestProgram adv = .ok C)
     {f : CompiledFunction} (hf : f ∈ Data.functions) {K : Cert} (hcode : K.code = f.code)
@@ -173,13 +146,6 @@ theorem codeOk_fn {adv : Advice} {C : Ctx} (hC : Ctx.of guestProgram adv = .ok C
   codeOk_of hC (fn_ins hf hcode hentry) hs
 
 /-! ## Each function's frame interface -/
-
-/-- **A function on the walk meets its frame interface**: on the executor's tables for any advice
-with the guest's hints, its code the executor's, the walk's frame predicate `AtOff` meets
-`FrameSpec` for any memory and states. -/
-def FnSpecW (K : Cert) : Prop :=
-  ∀ adv C, Ctx.of guestProgram adv = .ok C → adv.hints = Data.adviceHints → CodeOk C K →
-    ∀ M Y Ct, ModeCts Ct K → FrameSpec C M Y Ct K (AtOff K.E K.F K.code)
 
 /-- **A function on the core route meets its frame interface**, its core data `Cf`: on the
 executor's tables for any advice with the guest's hints, its code the executor's, on a reference
@@ -191,23 +157,17 @@ def FnSpecC (K : Cert) (Cf : CoreMode.CFun) : Prop :=
       (∀ s, Y s → ∃ n, OnRef guestProgram img n s) → CoreMode.CoreHon img Y K Cf → CoreMode.UsedNext C img Y →
         CoreMode.CtOk img Ct K Cf → FrameSpec C (refMem img) Y Ct K (CoreMode.CoreAt img Cf K.code)
 
-/-- **A guest function's frame interface**, at the heap contracts' table `tab`: the walk's, the function at no
-table entry and calling none (`walkB`), or the core route's with core data among `T` at its entry agreeing with the
-table (`ctB`). -/
+/-- **A guest function's frame interface**, at the heap contracts' table `tab`: the core route's, with core data
+among `T` at its entry agreeing with the table (`ctB`). -/
 def FnSpec (tab : List CoreMode.HcEnt) (T : List CoreMode.CFun) (K : Cert) : Prop :=
-  (FnSpecW K ∧ CoreMode.walkB tab K = true) ∨
-    ∃ Cf ∈ T, Cf.frame.entry = K.F.entry ∧ FnSpecC K Cf ∧ CoreMode.ctB tab K Cf = true
+  ∃ Cf ∈ T, Cf.frame.entry = K.F.entry ∧ FnSpecC K Cf ∧ CoreMode.ctB tab K Cf = true
 
-open Classical in
 /-- **A guest function's frame predicate** at the reference image `img`, the core data `T`, the table `tab`: the
-core route's (`CoreAt`, at core data among `T` at its entry meeting its interface and agreeing with the table), if
-any, else the walk's (`AtOff`). -/
-noncomputable def guestQ (tab : List CoreMode.HcEnt) (T : List CoreMode.CFun) {κ : ℕ} (img : MemoryImage κ)
+core route's (`CoreAt`, at core data among `T` at its entry meeting its interface and agreeing with the table). -/
+def guestQ (tab : List CoreMode.HcEnt) (T : List CoreMode.CFun) {κ : ℕ} (img : MemoryImage κ)
     (K : Cert) : ℕ → St → Prop :=
-  if ∃ Cf ∈ T, Cf.frame.entry = K.F.entry ∧ FnSpecC K Cf ∧ CoreMode.ctB tab K Cf = true then
-    fun i s ↦ ∃ Cf ∈ T, Cf.frame.entry = K.F.entry ∧ FnSpecC K Cf ∧ CoreMode.ctB tab K Cf = true ∧
-      CoreMode.CoreAt img Cf K.code i s
-  else AtOff K.E K.F K.code
+  fun i s ↦ ∃ Cf ∈ T, Cf.frame.entry = K.F.entry ∧ FnSpecC K Cf ∧ CoreMode.ctB tab K Cf = true ∧
+    CoreMode.CoreAt img Cf K.code i s
 
 theorem Resume.imp {Ct : Cts} {Q Q' : ℕ → St → Prop} (h : ∀ i s, Q i s → Q' i s) {fpC ro t : ℕ} {G : Sig}
     {fpE : ℕ} {m0 : Mem} (hr : Resume Ct Q fpC ro t G fpE m0) : Resume Ct Q' fpC ro t G fpE m0 :=
@@ -233,46 +193,16 @@ theorem frameSpec_guest {tab : List CoreMode.HcEnt} {T : List CoreMode.CFun} {K 
     (hY : ∀ s, Y s → ∃ n, OnRef guestProgram img n s)
     (hH : ∀ Cf ∈ T, Cf.frame.entry = K.F.entry → CoreMode.CoreHon img Y K Cf) (hU : CoreMode.UsedNext C img Y) :
     FrameSpec C (refMem img) Y (CoreMode.ctOf img tab) K (guestQ tab T img K) := by
-  by_cases hc : ∃ Cf ∈ T, Cf.frame.entry = K.F.entry ∧ FnSpecC K Cf ∧ CoreMode.ctB tab K Cf = true
-  · have hq : guestQ tab T img K = fun i s ↦ ∃ Cf ∈ T, Cf.frame.entry = K.F.entry ∧ FnSpecC K Cf ∧
-        CoreMode.ctB tab K Cf = true ∧ CoreMode.CoreAt img Cf K.code i s := by
-      unfold guestQ; rw [ite_eq_left hc]
-    rw [hq]
-    have hS : ∀ Cf ∈ T, Cf.frame.entry = K.F.entry → FnSpecC K Cf → CoreMode.ctB tab K Cf = true →
-        FrameSpec C (refMem img) Y (CoreMode.ctOf img tab) K (CoreMode.CoreAt img Cf K.code) :=
-      fun Cf hCf he hs hb ↦ hs adv C hC ha hK img Y _ hκ hY (hH Cf hCf he) hU (CoreMode.ctOk_of_ctB hb)
-    obtain ⟨Cf0, hCf0, he0, hs0, hb0⟩ := hc
-    refine ⟨fun hle hfp ⟨Cf, hCf, he, hs, hb, hq⟩ ↦ ⟨Cf, hCf, he, hs, hb, (hS Cf hCf he hs hb).mono hle hfp hq⟩,
-      fun hA hf ↦ ⟨Cf0, hCf0, he0, hs0, hb0, (hS Cf0 hCf0 he0 hs0 hb0).entry hA hf⟩, ?_⟩
-    intro s i hi hpc ⟨Cf, hCf, he, hs, hb, hq⟩ hf hy h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 Inv k
-    exact (hS Cf hCf he hs hb).step hi hpc hq hf hy h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11
-      fun s1 s' e1 hm hmo e hf' hle hout ↦ k s1 s' e1 hm hmo e hf' hle
-        (hout.imp fun j s hq' ↦ ⟨Cf, hCf, he, hs, hb, hq'⟩)
-  · have hq : guestQ tab T img K = AtOff K.E K.F K.code := by
-      unfold guestQ; rw [ite_eq_right hc]
-    rw [hq]
-    rcases h with ⟨h, hw⟩ | h
-    · exact h adv C hC ha hK _ Y _ (CoreMode.modeCts_of_walkB hw)
-    · exact absurd h hc
-
-/-- **A function on the walk meets its frame interface**: its walk, its length, its hints the
-advice's and its loop's runs over its termination facts. -/
-theorem fnSpecW_of_walk {K : Cert} (hw : walk K.E K.F K.code = true) (hlen : K.F.len = K.code.length)
-    (hh : HintsOk K.F Data.adviceHints)
-    (hrng : ∀ r ∈ K.F.sig.postL ++ K.F.sig.postLP.map (·.1), (r.lo, r.hi) ∈ K.F.sig.term) : FnSpecW K := by
-  intro adv C hC ha hK M Y Ct hCt
-  obtain ⟨hsize, -⟩ := ctx_of_spec hC
-  refine frameSpec_walk ⟨hw, hlen, hK.ops, fun i hi ↦ ?_⟩ hrng hCt
-  have hpc := code_pc hK hi
-  rw [hsize] at hpc
-  exact (ctx_hintsOk hC ha hh (hlen ▸ hi) hpc).symm
-
-/-- A function on the walk, for any core data. -/
-theorem fnSpec_of_walk {K : Cert} (hw : walk K.E K.F K.code = true) (hlen : K.F.len = K.code.length)
-    (hh : HintsOk K.F Data.adviceHints)
-    (hrng : ∀ r ∈ K.F.sig.postL ++ K.F.sig.postLP.map (·.1), (r.lo, r.hi) ∈ K.F.sig.term)
-    {tab : List CoreMode.HcEnt} (hb : CoreMode.walkB tab K = true) (T : List CoreMode.CFun) : FnSpec tab T K :=
-  .inl ⟨fnSpecW_of_walk hw hlen hh hrng, hb⟩
+  have hS : ∀ Cf ∈ T, Cf.frame.entry = K.F.entry → FnSpecC K Cf → CoreMode.ctB tab K Cf = true →
+      FrameSpec C (refMem img) Y (CoreMode.ctOf img tab) K (CoreMode.CoreAt img Cf K.code) :=
+    fun Cf hCf he hs hb ↦ hs adv C hC ha hK img Y _ hκ hY (hH Cf hCf he) hU (CoreMode.ctOk_of_ctB hb)
+  obtain ⟨Cf0, hCf0, he0, hs0, hb0⟩ := h
+  refine ⟨fun hle hfp ⟨Cf, hCf, he, hs, hb, hq⟩ ↦ ⟨Cf, hCf, he, hs, hb, (hS Cf hCf he hs hb).mono hle hfp hq⟩,
+    fun hA hf ↦ ⟨Cf0, hCf0, he0, hs0, hb0, (hS Cf0 hCf0 he0 hs0 hb0).entry hA hf⟩, ?_⟩
+  intro s i hi hpc ⟨Cf, hCf, he, hs, hb, hq⟩ hf hy h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 Inv k
+  exact (hS Cf hCf he hs hb).step hi hpc hq hf hy h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11
+    fun s1 s' e1 hm hmo e hf' hle hout ↦ k s1 s' e1 hm hmo e hf' hle
+      (hout.imp fun j s hq' ↦ ⟨Cf, hCf, he, hs, hb, hq'⟩)
 
 /-- An instruction's operands below `2^28` are small. -/
 theorem smallOps_of {code : List OffsetInstruction} (h : code.all offSmall = true) :
@@ -293,30 +223,6 @@ theorem hintsEq_of_fn {K : Cert} {Fh : List (ℕ × List Hint)} {j : ℕ} {d : �
 /-- **A function on the core route meets its frame interface**, from the kernel's checks. -/
 theorem fnSpecC_of {K : Cert} {Cf : CoreMode.CFun} (hok : CoreMode.CoreOk K Cf) : FnSpecC K Cf :=
   fun _ _ hC ha hK _ _ _ _ hκ hY hH hU hCt ↦ CoreMode.frameSpec_core hok hC ha hK hκ hY hH hU hCt
-
-/-! ## On the guest -/
-
-/-- **The invariant rule on the guest program.** -/
-theorem guest_inv_rule {adv : Advice} {κ n : ℕ} {img : MemoryImage κ} {C : Ctx} {Ks : List Cert}
-    {Km : Cert} {E0 : Env} {X Pro : St → Prop} (hκ : κ ≤ 28) (hC : Ctx.of guestProgram adv = .ok C)
-    (P : ProgOk guestProgram C Ks Km E0)
-    (hW : ∀ K ∈ Ks, CertOk C K ∧ ∀ r ∈ K.F.sig.postL ++ K.F.sig.postLP.map (·.1), (r.lo, r.hi) ∈ K.F.sig.term)
-    (R : Prem guestProgram img n C Ks X)
-    (hpro : ∀ s op, X s → Pro s → Fine (refMem img) s → OnRef guestProgram img n s →
-      C.ops[s.pc]? = some op →
-      StepOk C (refMem img) (fun s' ↦ Pro s' ∨ StartMain Km E0 s') op ((C.hints[s.pc]?).getD []) s) :
-    InvRule guestProgram img n C (refMem img)
-      (guestInv guestProgram Ks Km E0 (fun _ ↦ none) (fun K ↦ AtOff K.E K.F K.code) X Pro) :=
-  inv_rule hκ hC P hW R hpro
-
-/-- **The invariant holds at the guest's initial state.** -/
-theorem guest_inv_init {adv : Advice} {input : PublicInput} {Ks : List Cert} {Km : Cert} {E0 : Env}
-    {Ct : Cts} {Q : Cert → ℕ → St → Prop} {X Pro : St → Prop}
-    (hinit : ∀ C m, Ctx.of guestProgram adv = .ok C → initMem adv input = .ok m →
-      X (initSt C adv m) ∧ Pro (initSt C adv m)) :
-    ∀ C m, Ctx.of guestProgram adv = .ok C → initMem adv input = .ok m →
-      guestInv guestProgram Ks Km E0 Ct Q X Pro (initSt C adv m) :=
-  fun C m hC hm ↦ inv_init (hinit C m hC hm).1 (hinit C m hC hm).2
 
 end
 

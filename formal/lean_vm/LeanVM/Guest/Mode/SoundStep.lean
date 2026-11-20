@@ -5,7 +5,7 @@ public import LeanVM.Guest.Mode.Sem
 /-!
 # What an executor step writes, and the walk's state updated
 
-The words an instruction leaves (`xor_vals`, `mul_vals`, `set_vals`, `deref_vals`,
+The words an instruction leaves (`mul_vals`, `set_vals`, `deref_vals`,
 `keccak_writes`), and each way the walk adds a fact, sound when the fact holds (`Holds.addW`, …).
 -/
 
@@ -57,15 +57,6 @@ theorem Holds.addLt (h : Holds s A) {a b : Idx} (hl : LTF s a b) : Holds s (A.ad
       rcases List.mem_cons.mp hp with rfl | hp
       · exact hl
       · exact h.lt p hp }
-
-theorem Holds.setPr (h : Holds s A) {l : List (ℕ × ℕ × ℕ)} (hl : ∀ p ∈ l, PrF s p.1 p.2.1 p.2.2) :
-    Holds s { A with pr := l } :=
-  { h with pr := hl }
-
-theorem Holds.setPrXs (h : Holds s A) {l : List (ℕ × ℕ × ℕ)} (hl : ∀ p ∈ l, PrF s p.1 p.2.1 p.2.2)
-    {t : Exec.Trie (ℕ × ℕ)} (ht : ∀ c a b, t.get c = some (a, b) → XorF s a b c) :
-    Holds s { A with pr := l, xs := t } :=
-  { h with pr := hl, xs := ht }
 
 theorem Mono.ownCell_eq {k : Mono} {d : ℕ} (h : k.ownCell = some d) : k = .own d ∧ d < 2 ^ 62 := by
   obtain ⟨fp, kk, bs⟩ := k
@@ -171,24 +162,6 @@ theorem Holds.addLtC {s : St} {A : Abs} (h : Holds s A) {x : ℕ} {b : Idx} (hl 
   · exact h1
 
 /-! ## What instructions write -/
-
-theorem xor_vals {C : Ctx} {s s' : St} {a b c : ℕ} (hs : s.Good)
-    (e : runOp C s (.xor a b c) = .ok s') :
-    ∃ va vb, s.mem.get (s.fp + a) = some va ∧ s.mem.get (s.fp + b) = some vb ∧
-      s'.mem.get (s.fp + c) = some (va + vb) := by
-  simp only [runOp, bind_ok] at e
-  obtain ⟨ca, hca, cb, hcb, cc, hcc, va, hva, vb, hvb, s1, hs1, e⟩ := e
-  simp only [pure_ok] at e; subst e
-  obtain ⟨m, hm, rfl⟩ := St.withMem_ok hs1
-  rw [bind_ok] at hm
-  obtain ⟨m1, hm1, hm⟩ := hm
-  simp only [pure_ok] at hm; subst hm
-  obtain ⟨-, -, hput⟩ := Mem.put_ok hs.wf hm1
-  obtain ⟨rfl, -⟩ := cellAt_ok hca
-  obtain ⟨rfl, -⟩ := cellAt_ok hcb
-  obtain ⟨rfl, -⟩ := cellAt_ok hcc
-  exact ⟨va, vb, Mem.read_ok hva, Mem.read_ok hvb,
-    (Mem.le_trans (Mem.le_ensure _ _) (Mem.le_ensure _ _)).get _ _ hput⟩
 
 theorem mul_vals {C : Ctx} {s s' : St} {a b c : ℕ} (hs : s.Good)
     (e : runOp C s (.mul a b c) = .ok s') :

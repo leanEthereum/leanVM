@@ -6,12 +6,11 @@
   and each one's static facts, frame interface (`fnSpec_core` of its `fnSpecC`), code, termination
   facts (`termOk_of` at its index) and residuals (`NzOnly CoreMode.coreNzs`);
 * `CoreMode/Gen/Certs/List.lean`: the list `coreCerts`, pack by pack, each one's membership, no entry
-  twice, the core data `coreTable`, and `offSigs`: the routed functions' callees off the route, by
-  entry and signature;
-* `CoreMode/Gen/Certs/Sig<k>.lean`: each certificate's callee signatures among `coreCerts` or `offSigs`;
+  twice and the core data `coreTable`;
+* `CoreMode/Gen/Certs/Sig<k>.lean`: each certificate's callee signatures among `coreCerts`;
 * `CoreMode/Gen/Certs.lean`: `coreFacts : CoreFacts …` and `main`'s start (`mainOk_core`).
 
-Every function is on the route: `offSigs` is empty, and the end theorem takes `OffFacts.nil`.
+Every function is on the route: a callee off it fails here.
 `--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/core-mode/certs.py [--check]"""
 import sys, os, re, glob
@@ -36,10 +35,6 @@ def imports(ms):
     return ''.join('public import %s\n' % m for m in sorted(ms))
 
 
-def lst(xs):
-    return '[%s]' % ',\n    '.join(xs)
-
-
 def fq(k): return 'Fn.«%s»' % k
 
 
@@ -53,37 +48,14 @@ def wrap(xs, ind=2, width=100):
     return '[' + ('\n' + ' ' * (ind + 1)).join(lines) + ']'
 
 
-def by_ns(pattern, files):
-    """`namespace LeanVM.Guest.Fn.«k»` blocks of `files` matching `pattern`: k -> the first group."""
-    out = {}
-    for f in files:
-        t = open(f, encoding='utf-8').read()
-        for blk in t.split('namespace LeanVM.Guest.Fn.«')[1:]:
-            k = blk[:blk.index('»')]
-            m = re.search(pattern, blk)
-            if m: out[k] = m.group(1)
-    return out
-
-
-def qualified(one, block, d):
-    """k -> the number each glue module `d` gives it, one declaration a line (`one`) or in `Fn.«k»` blocks (`block`)."""
-    files = glob.glob(os.path.join(CM, d, '*.lean'))
-    out = {k: int(v) for k, v in by_ns(block, files).items()}
-    for f in files:
-        out.update((k, int(v)) for k, v in re.findall(one, open(f, encoding='utf-8').read()))
-    return out
-
-
 def load():
-    """Each pack's routed functions in its `coreFns` order; each one's callees, entry, index, residuals."""
+    """Each pack's routed functions in its `coreFns` order; each one's callees and residuals, and its code's glue module."""
     packs = {}
     for f in sorted(glob.glob(os.path.join(OUT, '*', 'Core.lean'))):
         m = re.search(r'def coreFns : List CoreMode.CFun :=\n(.*?)\n\n', open(f, encoding='utf-8').read(), re.S)
         if m:
             ks = re.findall(r'Fn\.«([^»]+)»\.cfun', m.group(1))
             if ks: packs[f.split(os.sep)[-2]] = ks
-    entry = qualified(r'abbrev (?:Fn\.)?«([^»]+)»\.entry : Nat := (\d+)', r'abbrev entry : Nat := (\d+)', 'GlueE')
-    idx = qualified(r'abbrev (?:Fn\.)?«([^»]+)»\.idx : ℕ := (\d+)', r'abbrev idx : ℕ := (\d+)', 'GlueA')
     glue = {}
     for f in glob.glob(os.path.join(CM, 'GlueC', '*.lean')):
         t = open(f, encoding='utf-8').read()
@@ -103,17 +75,19 @@ def load():
         for k, d in FL.parse(t).items():
             callees[k] = d['callees']
             if 'fnz' not in d: nores.add(k)
-    return packs, entry, idx, callees, nores, glue
+    return packs, callees, nores, glue
 
 
 def render():
-    packs, entry, idx, callees, nores, glue = load()
+    packs, callees, nores, glue = load()
     routed = {k for ks in packs.values() for k in ks}
     pk = sorted(packs)
     # each function's callees as its environment lists them (`envC`, by entry): the trie's order, which moves with the
-    # entries' bits, never printed (`sigsOr_of_list`)
+    # entries' bits, never printed (`sigsIn_of_list`)
     sigs = {k: callees[k] for k in routed}
-    off = sorted({m for k in routed for m in callees[k] if m not in routed}, key=lambda m: entry[m])
+    off = sorted({m for k in routed for m in callees[k] if m not in routed})
+    if off:
+        sys.exit('certs: callees off the core route: ' + ', '.join(off))
     files = {}
     CE = 'EndExec.CertE CoreMode.hcTab CoreMode.coreNzs'
     # each pack's certificates
@@ -136,7 +110,7 @@ def render():
         files[os.path.join(OUT, p, 'Cert.lean')] = ''.join(t)
     # the list
     mod = 'LeanVM.Guest.CoreMode.Gen.Certs.List'
-    t = [header(mod, 'The core route\'s certificates, no entry twice, its core data and its callees off the route.')]
+    t = [header(mod, 'The core route\'s certificates, no entry twice and its core data.')]
     t.append(imports({'LeanVM.Guest.CoreMode.Gen.«%s».Cert' % p for p in pk}))
     t.append('\nset_option Elab.async false\nset_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest.CoreMode\n\n'
              'open LeanVM.Guest LeanVM.Guest.Mode\n\n@[expose] public section\n\n')
@@ -144,9 +118,7 @@ def render():
              'noncomputable def corePacks : List (List (%s)) :=\n  %s\n\n' % (CE, wrap(['CorePack.«%s».ces' % p for p in pk])))
     t.append('/-- **The core route\'s certificates.** -/\nnoncomputable def coreCerts : List Mode.Cert := corePacks.flatten.map (·.K)\n\n')
     t.append('/-- **The core route\'s data**, pack by pack. -/\nnoncomputable def coreTable : List CoreMode.CFun := corePacks.flatten.map (·.cf)\n\n')
-    t.append('/-- **The routed functions\' callees off the route**, by entry and signature. -/\n'
-             'noncomputable def offSigs : List (ℕ × Mode.Sig) :=\n  %s\n\nend\n\npublic section\n\n' % (
-                 lst(['(%s.entry, %s.csig)' % (fq(m), fq(m)) for m in off]) if off else '[]'))
+    t.append('end\n\npublic section\n\n')
     t.append('/-- No entry twice. -/\ntheorem coreCerts_nodup : nodupB (coreCerts.map (·.F.entry)) 0 = true := by decide +kernel\n\n')
     t.append('end\n\nend LeanVM.Guest.CoreMode\n\n/-! Each certificate is among them (`modeCert_in`). -/\n\n'
              'namespace LeanVM.Guest.Fn\n\npublic section\n\n')
@@ -166,10 +138,10 @@ def render():
         for p in ps:
             sp = []
             for k in packs[p]:
-                one = ['sig_in%% «%s»' % m if m in routed else '.inr (list_mem%% %d)' % off.index(m) for m in sigs[k]]
-                sp.append('sigsOr_of_list %s.modeSigs fa%%%s' % (fq(k), wrap(one, 6, 118)))
+                one = ['sig_in%% «%s»' % m for m in sigs[k]]
+                sp.append('sigsIn_of_list %s.modeSigs fa%%%s' % (fq(k), wrap(one, 6, 118)))
             t.append('\nnamespace LeanVM.Guest.CorePack.«%s»\n\nopen LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.EndExec\n\n'
-                     'public section\n\ntheorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e.K := fa%%[\n  %s]\n\n'
+                     'public section\n\ntheorem certs_sigs : ∀ e ∈ ces, SigsIn CoreMode.coreCerts e.K := fa%%[\n  %s]\n\n'
                      'end\n\nend LeanVM.Guest.CorePack.«%s»\n' % (p, ',\n  '.join(sp), p))
         files[os.path.join(OUT, 'Certs', 'Sig%d.lean' % c)] = ''.join(t)
     mod = 'LeanVM.Guest.CoreMode.Gen.Certs'
@@ -177,26 +149,26 @@ def render():
     t.append(imports({'LeanVM.Guest.CoreMode.Gen.Certs.Sig%d' % c for c in range(len(chunks))}))
     t.append('\nset_option Elab.async false\n\nnamespace LeanVM.Guest.CoreMode\n\nopen LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.EndExec\n\n'
              'public section\n\n')
-    t.append('theorem coreCerts_sigs : ∀ K ∈ coreCerts, SigsOr coreCerts offSigs K :=\n  CertE.fa (ls := corePacks) fa%%%s\n\n' % (
+    t.append('theorem coreCerts_sigs : ∀ K ∈ coreCerts, SigsIn coreCerts K :=\n  CertE.fa (ls := corePacks) fa%%%s\n\n' % (
         wrap(['CorePack.«%s».certs_sigs' % p for p in pk], 6)))
     t.append('/-- **What the core route gives of the end theorem\'s assembly.** -/\n'
-             'theorem coreFacts : CoreFacts CoreMode.hcTab coreCerts coreTable coreNzs offSigs Fn.«main».modeCert :=\n'
+             'theorem coreFacts : CoreFacts CoreMode.hcTab coreCerts coreTable coreNzs Fn.«main».modeCert :=\n'
              '  CoreFacts.of corePacks coreCerts_sigs coreNzs_ok coreCerts_nodup Fn.«main».modeCert_in rfl (by decide +kernel) rfl\n'
              '    (by decide +kernel)\n\n')
     t.append('/-- **`main`\'s certificate starts as the prologue leaves it.** -/\n'
              'theorem mainOk_core : MainOk Fn.«main».modeCert guestE0 := mainOk_guest rfl rfl\n\nend\n\nend LeanVM.Guest.CoreMode\n')
     files[os.path.join(OUT, 'Certs.lean')] = ''.join(t)
-    return files, off
+    return files
 
 
 def main(argv):
     check = '--check' in argv
-    files, off = render()
+    files = render()
     have = glob.glob(os.path.join(OUT, '*', 'Cert.lean')) + glob.glob(os.path.join(OUT, 'Certs', '*.lean'))
     bad = genfiles.sync(files, have, check)
     genfiles.fail_if_stale(bad, check)
-    print('core certificates: %d files, %d callees off the route, %s' % (
-        len(files), len(off), 'unchanged' if not bad else ('stale' if check else 'written')))
+    print('core certificates: %d files, %s' % (
+        len(files), 'unchanged' if not bad else ('stale' if check else 'written')))
 
 
 if __name__ == '__main__':

@@ -17,7 +17,7 @@ public import LeanVM.Guest.Memory.Family
 
 A callee reads `[pE]·[x]^4`, `x` range-checked against its parameter `pL`, and the residual asks
 that this lie inside its caller's table: the run of four cells from `[[1]·g^2]·g^(4j)`, `j` below the
-exponent of `[[1]·g^5]` (`anyTab`), header cell `1` naming the caller's frame. A `Link` names the
+exponent of `[[1]·g^5]`, header cell `1` naming the caller's frame. A `Link` names the
 callees (`fams`: name, the indices of `pE` and `pL` among its parameters) and their caller `o`,
 whose cell `2` holds its entries parameter `uE` and cell `5` its bound `uL = w · c`, `c = g`; the
 callees get `uE` and `w`. A loop callee passes them on along its tail calls.
@@ -25,8 +25,7 @@ callees get `uE` and `w`. A loop callee passes them on along its tail calls.
 The checks: `originB` (the caller: its cells, the bound's atoms on every path, its call sites of the
 callees passing `uE` and `w`, each a site of its plumbing); `calleeB` (each callee: `pE` and `pL` no
 loop counter, a loop not calling itself before its tail); `callersB` (a function calling a callee
-is the caller, or the callee itself, a loop). `anyResB L j x`: residual `x` of function `j` is such
-a read, its cells and range check checked against the body.
+is the caller, or the callee itself, a loop).
 -/
 
 namespace LeanVM.Guest.Res
@@ -82,24 +81,6 @@ noncomputable def callersB (L : Link) (fn : Fn) : Bool :=
 /-- A range check of a value of cell `o` against `pL`. -/
 noncomputable def rcAt (j : ℕ) (pL : V) (o : ℕ) : Atom → Bool
   | .rangeCheck x _ _ _ k => decide (k = pL) && cellJ j x == o
-  | _ => false
-
-/-- **The caller's table**: four runs of stride 4, from `[[1]·g^2]` up to the exponent of `[[1]·g^5]`. -/
-def anyTab : List Mode.Rng :=
-  (List.range 4).map fun d => ⟨⟨0, 0, [(.hp 1 2, 1)]⟩, .num 0, .ex (.hp 1 5) 0, 4, d⟩
-
-/-- The shape of a read: four cells from `[cE]·[cO]^4`. -/
-def anyRead (cE cO : ℕ) : Mode.Rng := ⟨⟨0, 0, [(.fr cE, 1), (.fr cO, 4)]⟩, .num 0, .num 4, 1, 0⟩
-
-/-- **A read of function `j` inside its caller's table**: `[pE]·[x]^4` for a callee of `L`, `x`
-range-checked against `pL` on every path, both cells inside the frame. -/
-noncomputable def anyResB (L : Link) (j : ℕ) : Mode.Res → Bool
-  | .sub a bs => decide (bs = anyTab) && L.fams.any fun F => (coreOf j).name == F.1 &&
-      match (coreOf j).params[F.2.1]?, (coreOf j).params[F.2.2]?, a.q.bs with
-      | some pE, some pL, [(.fr cE, 1), (.fr cO, 4)] => decide (a = anyRead cE cO) &&
-          cellJ j pE == cE && Nat.ble 2 cE && Nat.blt cE (fsN j) && Nat.ble 2 cO && Nat.blt cO (fsN j) &&
-          scanAt (rcAt j pL cO) (coreOf j).body
-      | _, _, _ => false
   | _ => false
 
 theorem walkOk_const {α : Type} (c : α → Bool) : ∀ (j : ℕ) (l : List α), walkOk (fun _ x => c x) j l = l.all c

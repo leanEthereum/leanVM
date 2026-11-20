@@ -12,13 +12,7 @@ residual's cells are written (`ResIn`), the executor's words are `M`'s (`Fine`),
 `ResHolds`; `prem_res`: `Prem.res` from `ResRef`, `RRes` at every state of every certificate's
 function, wherever the residual's bases have words in `M` (`RIn`, from `ResIn`).
 
-The nonzero residuals all sit at a back-solved `MUL` `[c] = [a]·[o]`, `o` the divisor (`nzMul`, a
-kernel check per function). On the reference that `MUL` holds (`ref_mul`, from `OnRef`), so the
-divisor is nonzero where the product is (`nz_mul`): the residual moves from the divisor to the
-product cell (`numAt`), and is discharged outright when the product cell holds a nonzero word the
-frame fixes (`nz_read`, a `SET`'s constant: `FrameHolds.stat`). The order residuals of `walk_path`
-are window bounds (`ltWin`), each holding where the reference's windows do (`RWins`, `lt_win`).
-`resRef_mul`, `resRef_win`: one function's `ResRef` by these families.
+`ref_mul`: on the reference a `MUL` holds (from `OnRef`).
 -/
 
 namespace LeanVM.Guest.Mode
@@ -153,11 +147,6 @@ theorem prem_res {prog : LeanIsaProgram} {κ : ℕ} {img : MemoryImage κ} {n : 
     rw [← hm.fp] at h'
     exact resHolds_of_ref hm.fine.agree hin h'
 
-/-- `ResRef` from each certificate's own. -/
-theorem resRef_of {prog : LeanIsaProgram} {κ : ℕ} {img : MemoryImage κ} {n : ℕ} {Ks : List Cert}
-    {X : St → Prop} (h : ∀ Kc ∈ Ks, ResRef prog img n [Kc] X) : ResRef prog img n Ks X :=
-  fun Kc hK ↦ h Kc hK Kc (List.mem_singleton_self _)
-
 /-! ## Nonzero divisors -/
 
 /-- **The reference's `MUL`**: at a state on the reference run whose instruction is `[c] = [a]·[b]`,
@@ -192,132 +181,12 @@ theorem ref_mul {prog : LeanIsaProgram} {adv : Advice} {κ n : ℕ} {img : Memor
   rw [((refRd_img hκ img).at hs.fp ha hA).2, ((refRd_img hκ img).at hs.fp hb hB).2,
     ((refRd_img hκ img).at hs.fp hc hC').2]
 
-/-- The product cell of the `MUL` at an offset. -/
-def numAt (code : List OffsetInstruction) (i : ℕ) : ℕ :=
-  match code[i]? with
-  | some (.mul _ _ c) => c
-  | _ => 0
-
 /-- A residual sits at a `MUL` as its divisor, if nonzero. -/
 def nzAt (ins : Option OffsetInstruction) : Res → Bool
   | .nz o => match ins with
     | some (.mul _ b _) => b == o
     | _ => false
   | _ => true
-
-/-- **Every nonzero residual is a `MUL`'s divisor**, at its offset. -/
-def nzMul (F : Fun) (code : List OffsetInstruction) : Bool :=
-  (List.range code.length).all fun i ↦ ((F.res.get i).getD []).all (nzAt code[i]?)
-
-/-- **A nonzero residual from its product**: at a state on the reference at a certificate's offset,
-a nonzero residual there holds of the reference once the product cell of its `MUL` is nonzero. -/
-theorem nz_mul {prog : LeanIsaProgram} {adv : Advice} {κ n : ℕ} {img : MemoryImage κ} {C : Ctx}
-    (hκ : κ ≤ 28) (hC : Ctx.of prog adv = .ok C) {Kc : Cert} (hK : CertOk C Kc)
-    (hm : nzMul Kc.F Kc.code = true) {s : St} (hs : Fine (refMem img) s) (hon : OnRef prog img n s)
-    {i : ℕ} (hi : i < Kc.code.length) (hpc : s.pc = Kc.F.entry + i) {o : ℕ}
-    (hr : Res.nz o ∈ (Kc.F.res.get i).getD []) (hnum : refMem img (s.fp + numAt Kc.code i) ≠ 0) :
-    RRes (refMem img) s.fp (.nz o) := by
-  have h1 := List.all_eq_true.mp (List.all_eq_true.mp hm i (List.mem_range.mpr hi)) _ hr
-  rw [List.getElem?_eq_getElem hi] at h1
-  have hop := hK.ops i hi
-  rw [← hpc] at hop
-  unfold numAt at hnum
-  rw [List.getElem?_eq_getElem hi] at hnum
-  generalize Kc.code[i] = ins at h1 hop hnum
-  cases ins with
-  | mul a b c =>
-    simp only [nzAt, beq_iff_eq] at h1
-    subst h1
-    have e := ref_mul hκ hC hs hon (a := a) (b := b) (c := c) hop
-    rw [e] at hnum
-    exact right_ne_zero_of_mul hnum
-  | _ => simp [nzAt] at h1
-
-/-- A cell the reference image holds a nonzero word at is nonzero in `refMem`. -/
-theorem nz_read {κ : ℕ} (hκ : κ ≤ 28) {img : MemoryImage κ} {c : ℕ} (hc : c < 2 ^ 62) {w : E}
-    (h : img.read (addressOfIndex c) = some w) (hw : w ≠ 0) : refMem img c ≠ 0 := by
-  rw [((refRd_img hκ img) c w hc h).2]
-  exact hw
-
-
-/-! ## Window bounds -/
-
-/-- The reference's windows at frame cell `q`: each cell `k < n` past the cell `[q]` names holds
-`g^e`, `e < N`. -/
-def RWins (M : ℕ → E) (fp q n N : ℕ) : Prop :=
-  ∀ k < n, ∀ x, Names (M (fp + q) * ofK (g ^ k)) x → ∃ e < N, M x = ofK (g ^ e)
-
-/-- A residual, if an order, is a window's bound: `[[q]·g^k]`'s exponent below `N`, `k < n`. -/
-def winAt (q n N : ℕ) : Res → Bool
-  | .lt (.ex (.hp q' k) 0) (.num N') => q' == q && decide (k < n) && N' == N
-  | .lt _ _ => false
-  | _ => true
-
-/-- **Every order residual is a window's bound.** -/
-def ltWin (F : Fun) (len q n N : ℕ) : Bool :=
-  (List.range len).all fun i ↦ ((F.res.get i).getD []).all (winAt q n N)
-
-/-- **The order residuals from the windows**: at an offset of a function whose order residuals are
-all window bounds, each holds of the reference wherever its windows do. -/
-theorem lt_win {M : ℕ → E} {fp q n N : ℕ} (hN : N ≤ 2 ^ 62) (hw : RWins M fp q n N) {Kc : Cert}
-    (hc : ltWin Kc.F Kc.code.length q n N = true) {i : ℕ} (hi : i < Kc.code.length) {a b : Idx}
-    (hr : Res.lt a b ∈ (Kc.F.res.get i).getD []) (hin : RIn M fp (.lt a b)) : RRes M fp (.lt a b) := by
-  have h1 := List.all_eq_true.mp (List.all_eq_true.mp hc i (List.mem_range.mpr hi)) _ hr
-  match a, b, h1, hin with
-  | .ex (.hp q' k) 0, .num N', h1, ⟨⟨_, x, hx, _⟩, _⟩ =>
-    simp only [winAt, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h1
-    obtain ⟨⟨rfl, hk⟩, rfl⟩ := h1
-    obtain ⟨e, he, hxe⟩ := hw k hk x hx
-    exact ⟨e, _, ⟨M x, e, ⟨x, hx, rfl⟩, hxe, by omega, rfl⟩, rfl, he⟩
-  | .ex (.hp _ _) (_ + 1), _, h1, _ => simp [winAt] at h1
-  | .ex (.hp _ _) 0, .ex _ _, h1, _ => simp [winAt] at h1
-  | .ex (.fr _) _, _, h1, _ => simp [winAt] at h1
-  | .num _, _, h1, _ => simp [winAt] at h1
-
-
-/-! ## A function's residuals by family -/
-
-/-- **A function's residuals, its nonzero ones from their products**: `ResRef` for one certificate
-whose nonzero residuals are `MUL` divisors, given each product cell nonzero on the reference and the
-other residuals on the reference. -/
-theorem resRef_mul {prog : LeanIsaProgram} {adv : Advice} {κ n : ℕ} {img : MemoryImage κ} {C : Ctx}
-    {X : St → Prop} {Kc : Cert} (hκ : κ ≤ 28) (hC : Ctx.of prog adv = .ok C) (hK : CertOk C Kc)
-    (hm : nzMul Kc.F Kc.code = true)
-    (hnum : ∀ s i, X s → Fine (refMem img) s → OnRef prog img n s → i < Kc.code.length →
-      s.pc = Kc.F.entry + i → ∀ o, Res.nz o ∈ (Kc.F.res.get i).getD [] →
-        refMem img (s.fp + numAt Kc.code i) ≠ 0)
-    (hother : ∀ s i, X s → Fine (refMem img) s → OnRef prog img n s → i < Kc.code.length →
-      s.pc = Kc.F.entry + i → ∀ r ∈ (Kc.F.res.get i).getD [], (∀ o, r ≠ .nz o) →
-        RIn (refMem img) s.fp r → RRes (refMem img) s.fp r) :
-    ResRef prog img n [Kc] X := by
-  intro K' hK' s i hX hs hon hi hpc r hr hin
-  rw [List.mem_singleton] at hK'
-  subst hK'
-  cases r with
-  | nz o => exact nz_mul hκ hC hK hm hs hon hi hpc hr (hnum s i hX hs hon hi hpc o hr)
-  | lt a b => exact hother s i hX hs hon hi hpc _ hr (fun _ h ↦ by cases h) hin
-  | sub a bs => exact hother s i hX hs hon hi hpc _ hr (fun _ h ↦ by cases h) hin
-  | name o => exact hother s i hX hs hon hi hpc _ hr (fun _ h ↦ by cases h) hin
-
-/-- **A function's residuals, its orders from its windows**: `ResRef` for one certificate whose
-order residuals are window bounds, given its windows on the reference at every state and the other
-residuals on the reference. -/
-theorem resRef_win {prog : LeanIsaProgram} {κ n : ℕ} {img : MemoryImage κ} {X : St → Prop} {Kc : Cert}
-    {q w N : ℕ} (hN : N ≤ 2 ^ 62) (hc : ltWin Kc.F Kc.code.length q w N = true)
-    (hw : ∀ s i, X s → Fine (refMem img) s → OnRef prog img n s → i < Kc.code.length →
-      s.pc = Kc.F.entry + i → RWins (refMem img) s.fp q w N)
-    (hother : ∀ s i, X s → Fine (refMem img) s → OnRef prog img n s → i < Kc.code.length →
-      s.pc = Kc.F.entry + i → ∀ r ∈ (Kc.F.res.get i).getD [], (∀ a b, r ≠ .lt a b) →
-        RIn (refMem img) s.fp r → RRes (refMem img) s.fp r) :
-    ResRef prog img n [Kc] X := by
-  intro K' hK' s i hX hs hon hi hpc r hr hin
-  rw [List.mem_singleton] at hK'
-  subst hK'
-  cases r with
-  | lt a b => exact lt_win hN (hw s i hX hs hon hi hpc) hc hi hr hin
-  | nz o => exact hother s i hX hs hon hi hpc _ hr (fun _ _ h ↦ by cases h) hin
-  | sub a bs => exact hother s i hX hs hon hi hpc _ hr (fun _ _ h ↦ by cases h) hin
-  | name o => exact hother s i hX hs hon hi hpc _ hr (fun _ _ h ↦ by cases h) hin
 
 end
 

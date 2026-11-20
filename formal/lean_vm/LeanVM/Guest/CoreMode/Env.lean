@@ -9,7 +9,7 @@ public import LeanVM.Guest.CoreMode.GlueG
 
 What the frame interface (`Mode.Cert`) of a function on the core route is told of the program, from the
 core route's own data: its callees' signatures by key (`sigTrie`), the guest's powers, jump table and
-halting pc (`envOf`; the jump table's end, a constant of the program, from the glue `GlueG`). A function's signature (`Fn.«k».csig`, `CoreMode/Sig/<pack>.lean`) and its
+halting pc (`envOf`; the jump table's bounds and the halting pc, constants of the program, from the glue `GlueG`). A function's signature (`Fn.«k».csig`, `CoreMode/Sig/<pack>.lean`) and its
 certificate's data (`Fn.«k».envC`, `funC`, in its frame walk's module) are written by
 `scripts/core-mode/frame_gen.py`.
 -/
@@ -22,7 +22,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- **The guest's program as a core-route function's certificate has it**, its callees' signatures `l`. -/
 noncomputable def envOf (l : List Mode.Sig) : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, jtHi, sigTrie l, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, jtLo, jtHi, sigTrie l, haltPc⟩
 
 end
 
