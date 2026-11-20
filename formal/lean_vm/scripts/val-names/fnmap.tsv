@@ -310,3 +310,5 @@ LeanVM/Guest/B1/Whir/CSqLoop.lean level_positions__L_loop0
 LeanVM/Guest/B1/Whir/CHead.lean@osHead_complete open_stacked__L
 LeanVM/Guest/B1/Whir/Open.lean@osHead_roots open_stacked__L
 LeanVM/Guest/B1/Whir/Open.lean@open_generic open_stacked__L
+# Merkle
+LeanVM/Guest/B1/Merkle/CapPops.lean level_queries__L
