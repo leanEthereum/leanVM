@@ -1,0 +1,33 @@
+--- a/crates/verifier/src/multilinear.rs
++++ b/crates/verifier/src/multilinear.rs
+@@ -71,7 +71,7 @@
+     assert_eq!(left.len(), right.len());
+     let mut result = ONE;
+     for (&x, &y) in left.iter().zip(right) {
+-        result *= ONE + x + y;
++        result *= ONE + x * y;
+     }
+     result
+ }
+--- a/formal/Statement/LeanVmVerifier.lean
++++ b/formal/Statement/LeanVmVerifier.lean
+@@ -520,7 +520,7 @@
+ 
+ /-- `eq_eval(left, right) = Π (1 + x + y)` (`multilinear.rs`). -/
+ def eqEval (left right : List E) : E :=
+-  (List.zipWith (fun x z ↦ 1 + x + z) left right).foldl (· * ·) 1
++  (List.zipWith (fun x z ↦ 1 + x * z) left right).foldl (· * ·) 1
+ 
+ /-- `dot(left, right) = Σ x·y` (`multilinear.rs`). -/
+ def dot (left right : List E) : E :=
+--- a/formal/rv64mc/Rv64mc/Model/Multilinear.lean
++++ b/formal/rv64mc/Rv64mc/Model/Multilinear.lean
+@@ -73,7 +73,7 @@
+ /-- `eq_eval`: `assert_eq!` of the lengths, then `result *= 1 + x + y` over the zipped slices. -/
+ def eqEvalRust (left right : List E) : Option E :=
+   if left.length = right.length then
+-    some ((left.zip right).foldl (fun result (x, y) ↦ result * (1 + x + y)) 1)
++    some ((left.zip right).foldl (fun result (x, y) ↦ result * (1 + x * y)) 1)
+   else none
+ 
+ theorem eqEvalRust_eq {left right : List E} (h : left.length = right.length) :

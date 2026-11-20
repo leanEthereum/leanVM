@@ -1,0 +1,29 @@
+label	sha	templates_changed	tmpl_cpu_s	link_cpu_s	proof_modules	proof_spec_table_final_model_modules	failed_modules	regen_layouts_cpu_s	build_cpu_s	lean_cpu_s	total_cpu_s	total_wall_s	sweep_cpu_s	changed_proved_callers_proved
+C0	8b32b983d	0	0	0	0	0	0	158	37	0	194	172	0	-
+C1	8b32b983d	1	3	913	47	158	1	159	2560	2360	2719	562	6	-
+C2	8b32b983d	1	3	881	0	11	0	169	1076	965	1245	380	6	-
+C3	8b32b983d	0	2	909	0	9	8	148	1099	996	1247	363	6	-
+C4	8b32b983d	5	13	894	56	136	1	160	2160	1979	2320	493	31	-
+C5	8b32b983d	4	24	1002	1	8	16	162	1224	1110	1387	396	100	-
+C1-rebuild1	8b32b983d	?	0	0	1	4	0	0	32	23	32	22	0	-
+C3-rebuild1	8b32b983d	?	0	0	0	10	2	0	75	50	75	29	0	-
+C3-rebuild2	8b32b983d	?	0	0	0	2	1	0	19	10	19	11	0	-
+C3-rebuild3	8b32b983d	?	0	0	0	1	0	0	13	5	13	10	0	-
+C4-rebuild1	8b32b983d	?	0	0	0	1	1	0	28	7	28	23	0	-
+C4-rebuild2	8b32b983d	?	0	0	6	47	1	0	297	267	297	61	0	-
+C4-rebuild3	8b32b983d	?	0	0	5	6	2	0	82	71	82	47	0	-
+C4-rebuild4	8b32b983d	?	0	0	5	6	0	0	65	52	65	34	0	-
+C5-rebuild1	8b32b983d	?	0	0	2	12	1	0	74	60	74	24	0	-
+base-c48bd7dea	c48bd7dea	0	0	0	43	49	1	147	882	798	1028	317	0	-
+C6	c48bd7dea	1	2	713	2	7	3	147	993	893	1141	336	5	Verifier.Field.E.AsMul.Mul: proved, callers 11/32 proved
+C6-rebuild1	c48bd7dea	?	0	0	63	180	3	0	1915	1806	1915	386	0	-
+C6-rebuild2	c48bd7dea	?	0	0	2	5	2	0	174	154	174	75	0	-
+C7	c48bd7dea	0	0	0	1	1	1	151	149	112	300	235	0	-
+C7b	c48bd7dea	1	2	710	2	9	2	152	986	887	1138	340	5	Verifier.Multilinear.Dot: proved, callers 1/8 proved
+C7b-rebuild1	c48bd7dea	?	0	0	46	141	1	0	1489	1407	1489	315	0	-
+C8	c48bd7dea	1	2	672	2	10	2	112	961	867	1073	312	6	Verifier.Transcript.Sponge.Duplex: proved, callers 3/3 proved
+C8b	c48bd7dea	1	3	733	2	10	2	179	1119	1003	1299	394	5	Verifier.Transcript.Sponge.Duplex: proved, callers 3/3 proved
+C8b-rebuild1	c48bd7dea	?	0	0	2	2	1	0	186	176	186	74	0	-
+C9	c48bd7dea	1	2	703	59	169	3	150	2676	2483	2826	557	5	Verifier.Multilinear.PolyEval: proved, callers 0/4 proved
+C9-rebuild1	c48bd7dea	?	0	0	6	24	1	0	228	215	228	64	0	-
+cold-rebuild1	c48bd7dea	?	669	866	83	221	1	0	4333	4088	4333	516	0	-

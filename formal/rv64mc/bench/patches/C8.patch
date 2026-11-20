@@ -1,0 +1,22 @@
+--- a/crates/verifier/src/transcript.rs
++++ b/crates/verifier/src/transcript.rs
+@@ -51,12 +51,15 @@
+     fn duplex(&mut self) {
+         let mut input = self.state;
+         input[..16].fill(0);
+-        for (i, &(value, tag)) in self.pending[..self.n_pending].iter().enumerate() {
+-            input[4 * i..4 * i + 4].copy_from_slice(&[value.c0, value.c1, 0, tag]);
+-        }
++        for (lanes, &(value, tag)) in input.chunks_exact_mut(4).zip(&self.pending[..self.n_pending]) {
++            lanes[0] = value.c0;
++            lanes[1] = value.c1;
++            lanes[2] = 0;
++            lanes[3] = tag;
++        }
++        self.n_pending = 0;
+         keccak_f(&mut input);
+         self.state = input;
+-        self.n_pending = 0;
+     }
+ 
+     pub(crate) fn absorb(&mut self, value: E, tag: u64) {

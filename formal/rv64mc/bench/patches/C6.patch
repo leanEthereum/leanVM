@@ -1,0 +1,16 @@
+--- a/crates/verifier/src/field.rs
++++ b/crates/verifier/src/field.rs
+@@ -178,11 +178,11 @@
+ 
+ impl Mul for E {
+     type Output = Self;
+-    /// Karatsuba: three base products, then y^2 = x y + 1 folds `a1 b1 y^2` back, the x a one-bit shift.
++    /// Schoolbook: four base products, then y^2 = x y + 1 folds `a1 b1 y^2` back, the x a one-bit shift.
+     fn mul(self, rhs: Self) -> Self {
+         let (a, b) = (self, rhs);
+         let (p0, p1) = (clmul(a.c0, b.c0), clmul(a.c1, b.c1));
+-        let middle = clmul(a.c0 ^ a.c1, b.c0 ^ b.c1) ^ p0 ^ p1;
++        let middle = clmul(a.c0, b.c1) ^ clmul(a.c1, b.c0);
+         Self::new(reduce(p0 ^ p1), reduce(middle ^ p1 << 1))
+     }
+ }

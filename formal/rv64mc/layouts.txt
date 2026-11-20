@@ -1,0 +1,106 @@
+# The types whose layouts `scripts/type-layouts.sh` writes to Rv64mc/Gen/Layouts.lean (namespace Rv64mc.Layouts).
+#
+#   dump NAME MODULE TYPE   the layout rustc computes for TYPE, as written in MODULE (a file of the verifier's no_std
+#                           copy, `main` for the guest's own), read from `#[rustc_dump_layout(debug)]`: size, alignment,
+#                           each field's offset (named from the source's declaration), and for an enum its tag's
+#                           offset, size and encoding with each variant's tag value and field offsets
+#   pts NAME TYPE           the layout `-Zprint-type-sizes` prints for TYPE (its printed name), for the types no
+#                           module can name (alloc's internals): size, alignment, each field's offset
+#   family NAME PREFIX      every type `-Zprint-type-sizes` prints whose name starts with PREFIX has NAME's fields
+#                           at NAME's offsets
+#   path NAME STEP...       the offset of a nested field: the sum of the steps' offsets (each `TYPE.FIELD` of a NAME
+#                           above)
+
+# Vec<T>, for every T: the buffer's capacity and pointer, then the length
+pts Vec alloc::vec::Vec<field::E>
+pts RawVec alloc::raw_vec::RawVec<field::E>
+pts RawVecInner alloc::raw_vec::RawVecInner
+family Vec alloc::vec::Vec<
+family RawVec alloc::raw_vec::RawVec<
+path Vec.cap Vec.buf RawVec.inner RawVecInner.cap
+path Vec.ptr Vec.buf RawVec.inner RawVecInner.ptr
+
+# what the allocator is called with, and what reserving returns
+pts AllocLayout core::alloc::Layout
+dump TryReserveError lib alloc::collections::TryReserveError
+dump ResultUnitTryReserve lib Result<(), alloc::collections::TryReserveError>
+dump ResultBlockTryReserve lib Result<core::ptr::NonNull<[u8]>, alloc::collections::TryReserveError>
+
+# the field and the hash
+dump K field K
+dump E field E
+dump Digest hash Digest
+dump SliceE lib &'static [E]
+dump OptionE lib Option<E>
+
+# the proof and the transcript
+dump MerklePath merkle MerklePath
+dump Proof transcript Proof
+dump Sponge transcript Sponge
+dump Transcript transcript Transcript<'static>
+
+# the layout
+dump Form layout Form
+dump Table layout Table
+dump BusBlock layout BusBlock
+dump Layout layout Layout<'static>
+dump Placement multilinear Placement
+dump OptionPlacement multilinear Option<Placement>
+
+dump Flushes layout Flushes
+dump KeccakShape keccak KeccakShape
+dump KeccakClaim keccak Claim
+dump KeccakOpenings keccak KeccakOpenings
+dump Scaled field Scaled
+dump Scaler multilinear Scaler
+
+# verdicts
+dump VerifierError lib VerifierError
+dump ResultUnit lib Result<(), VerifierError>
+dump ResultE lib Result<E, VerifierError>
+dump ResultVecE lib Result<Vec<E>, VerifierError>
+dump ResultUsize lib Result<usize, VerifierError>
+dump ResultKeccakClaim keccak Result<Claim, VerifierError>
+dump ResultKeccakOpenings keccak Result<KeccakOpenings, VerifierError>
+dump ResultLayerOut keccak Result<(Vec<E>, [E; 64], E), VerifierError>
+dump ResultPlacement multilinear Result<Placement, VerifierError>
+dump StackWeight lib StackWeight
+
+# the elements of the vectors that grow by one (`RawVec<T>::grow_one`)
+dump ColumnClaim bus ColumnClaim
+dump FoldRound whir FoldRound
+dump GluedClaim whir GluedClaim
+dump KVecU16 lib (K, Vec<u16>)
+dump StackClaim lib (StackWeight, E)
+dump VecEVecE lib (Vec<E>, Vec<E>)
+dump VecUsizeE lib (Vec<usize>, E)
+
+# WHIR and the ring switch: the structures passed by reference, and the results returned through memory
+dump WhirConfig whir WhirConfig
+dump Subspace whir Subspace
+dump GluedWeight whir GluedWeight
+dump RingWeight ring_switch RingWeight
+dump ResultWhirConfig whir Result<WhirConfig, VerifierError>
+dump ResultVecU64 whir Result<Vec<u64>, VerifierError>
+dump ResultERingWeight ring_switch Result<(E, RingWeight), VerifierError>
+dump ResultVecEE lib Result<(Vec<E>, E), VerifierError>
+dump VecEE lib (Vec<E>, E)
+dump ERingWeight ring_switch (E, RingWeight)
+
+# the bytecode and the bus: the structures, the sort's pairs, and the results returned through memory
+dump Bytecode bytecode Bytecode
+dump U64U16 lib (u64, u16)
+dump ResultBytecode bytecode Result<Bytecode, VerifierError>
+dump OptionStackClaim lib Option<(StackWeight, E)>
+dump BusLayout bus BusLayout
+dump BusResult bus BusResult
+dump ResultBusResult bus Result<BusResult, VerifierError>
+dump ResultGkr bus Result<(E, Vec<E>, Vec<E>), VerifierError>
+dump ResultTableEvaluations bus Result<Vec<(Vec<E>, Vec<E>)>, VerifierError>
+
+# the guest's input reader
+dump Input main Input<'static>
+
+# what `walk` and `verify_execution` return
+dump Summary lib Summary
+dump ResultSummary lib Result<Summary, VerifierError>

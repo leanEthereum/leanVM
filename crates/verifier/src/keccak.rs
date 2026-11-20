@@ -58,8 +58,11 @@ pub struct KeccakShape {
 }
 
 impl KeccakShape {
+    /// `ROUNDS / depth`, counted without a division.
     pub fn segments(&self) -> usize {
-        ROUNDS / self.depth
+        (1..=ROUNDS)
+            .take_while(|segments| segments * self.depth <= ROUNDS)
+            .count()
     }
 
     fn pack_bits(&self) -> usize {

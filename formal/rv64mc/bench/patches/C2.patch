@@ -1,0 +1,21 @@
+--- a/crates/verifier/src/merkle.rs
++++ b/crates/verifier/src/merkle.rs
+@@ -27,12 +27,12 @@
+ impl MerklePath {
+     pub(crate) fn root(&self) -> Digest {
+         let mut node = hash_leaf(&self.leaf);
+-        for (level, sibling) in self.siblings.iter().enumerate() {
+-            node = if self.leaf_index >> level & 1 == 0 {
+-                hash_pair(&node.0, sibling)
+-            } else {
+-                hash_pair(sibling, &node.0)
+-            };
++        // Bit `level` of the index, as `leaf_index >> level` reads it (the shift taken mod 64): rotated into bit 0.
++        let mut index = self.leaf_index;
++        for sibling in &self.siblings {
++            let (left, right) = if index & 1 == 0 { (&node.0, sibling) } else { (sibling, &node.0) };
++            node = hash_pair(left, right);
++            index = index.rotate_right(1);
+         }
+         node
+     }
