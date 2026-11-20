@@ -4,7 +4,8 @@ import re, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import vtflat
 top, flat, ctr, cend = vtflat.load()
-assert cend == 5995, cend
+# the checker's counter at the end past every value the body names
+assert all(v < cend for _, s in flat for v in vtflat.vs(s)), cend
 st = []
 for (k, s), c in zip(flat, ctr):
     m = re.match(r'\.atom \(\.load \(\.n (\d+)\) \(\.n (\d+)\) (\d+)\)$', s)

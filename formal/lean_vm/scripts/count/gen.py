@@ -34,7 +34,7 @@ The checker is `checker.py`, a mirror of `Memory/Static.lean`; `--cache` keeps t
 import sys, os, re, argparse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import core, checker, writelean, ratio, deployed, vscount, family
-from core import L
+from core import L, Lopt
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # (Lean opcode, family letter, index in `Opcode`'s order)
@@ -58,18 +58,23 @@ def VROOTS(g):
 # loop, `shared_selector_tables`' callees and the terminal's `ring_switch_target_loop0`, which bound those two
 # callees of `verify_sub` by their trees' shapes.
 def WROOTS(g):
-    return ([n for p in ['block_selector__L', 'block_selector_tab__L', 'eq_prefix_run__L', 'index_mle__L',
-                         'padding_weight__L', 'plus_one_run__L', 'sel_partial_nibble__L', 'column_selector__L']
+    # (a guest without `verify_tables`' copy loop `verify_tables_loop1` fills `chi` in `eq_prefix_chain_rev`)
+    return ([n for p in ['block_selector__L', 'block_selector_tab__L', 'eq_prefix_run__L', 'eq_prefix_run_rev__L',
+                         'index_mle__L', 'padding_weight__L', 'plus_one_run__L', 'sel_partial_nibble__L',
+                         'column_selector__L']
              for n in g.family(p)] +
-            ['eq_prefix_chain', 'sumcheck_round4', L('verify_tables_loop0'), L('verify_tables_loop1'), L('shared_selector_tables_loop0'), L('check_opening_terminal_loop0'), 'selector_tables',
-             'opening_tail_round'])
+            [f for f in ['eq_prefix_chain', 'eq_prefix_chain_rev'] if f in g.by] +
+            [f for f in ['sumcheck_round4', L('verify_tables_loop0'), Lopt('verify_tables_loop1'),
+                         L('shared_selector_tables_loop0'), L('check_opening_terminal_loop0'), 'selector_tables',
+                         'opening_tail_round'] if f])
 # `verify_sub`'s callees with no static bound, and the terminal's `ring_switch_target_loop0` and
 # `ring_switch_weight` (`verify_tables` and the terminal are bounded by their trees' shapes, the `W`
 # families), within ratios of their words (`Count/RatioV*`).
 RATIOV_ROOTS = [('Vbg', 'verify_bus_gkr'), ('Vk', 'verify_keccak'), ('Vl15', L('check_opening_terminal_loop0')),
                 ('Vrsw', 'ring_switch_weight')]
 # `verify_tables`' callees `Count/VsWords` bounds apart from the others (`vtPairs`).
-VT_APART = [L('verify_tables_loop0'), L('verify_tables_loop1'), L('shared_selector_tables_loop0'), 'shared_selector_tables']
+VT_APART = [f for f in [L('verify_tables_loop0'), Lopt('verify_tables_loop1'), L('shared_selector_tables_loop0'),
+                        'shared_selector_tables'] if f]
 MAIN_CALLEES = ['exponent_tables', 'claim_list_digest', L('main_loop0'), L('main_loop1'), L('main_loop2'), L('main_loop3'),
                 'da_verify', L('main_loop4'), AGG, 'statement_digest']
 

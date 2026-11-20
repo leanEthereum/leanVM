@@ -5,7 +5,7 @@ of `verify_sub`, `child_claim_list_digest` and `main_loop4`, as tables checked a
 count certificates (`Count/StaticV.lean`) by `decide +kernel`, one module per opcode; and
 `verify_tables`' and the terminal's bounds (`kcVtW`, `kcTermW`, from the `W` certificates)."""
 import os, re
-from core import L
+from core import L, Lopt
 
 # The guest's constants, as `guest-export` writes them to `Data/Source.lean` (`guest_const%`).
 _SRC = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'LeanVM', 'Guest', 'Data',
@@ -65,7 +65,7 @@ def vt_term(g):
         for st in g.fns[g.by['verify_tables']]['body']:
             if st[0] == 'call': t += wss if st[1] == 'shared_selector_tables' else stat(k, st[1])
             elif st[0] == 'callIf':
-                assert st[2] in (L('verify_tables_loop0'), L('verify_tables_loop1')); t += 32 * loop(k, st[2])
+                assert st[2] in (L('verify_tables_loop0'), Lopt('verify_tables_loop1')); t += 32 * loop(k, st[2])
             elif st[0] == 'dispatch': t += max(stat(k, f) for f in st[2])
             else: assert st[0] in ('atom', 'ret') or (st[0] == 'ite' and not blk_callees([st])), st[0]
         vtW.append(t)

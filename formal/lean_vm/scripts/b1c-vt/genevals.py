@@ -4,15 +4,14 @@
 import os, sys, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from symev import IR, VT_LEAN
-
-CUR = 2652
+from vtanchor import CUR, EQP
 N_EV, N_PERM = 153, 38
 def main():
     ev = []; perm = []
     for p in sorted(IR):
         s = IR[p]
         m = re.match(r'\.atom \(\.load \(\.n (\d+)\) \(\.n %d\) (\d+)\)' % CUR, s)
-        if m and int(m.group(2)) == len(ev) and p > 2689:
+        if m and int(m.group(2)) == len(ev) and p > EQP:
             b = int(m.group(1)); ev.append((p, b))
             assert IR[p + 3].startswith(f'.atom (.copy (.n {b + 3}) (.n {b}))'), (p, IR[p + 3])
         m = re.match(r'\.atom \(\.keccak \[\.n (\d+).*\] \[\.n (\d+),', s)
