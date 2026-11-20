@@ -1680,7 +1680,7 @@ def alignGoal (ty : Expr) : MetaM (Option Expr) := do
 
 /-- Close what is closed by reduction, by an address fact, or by a hypothesis; split conjunctions, unfold
     definitions; leave the rest, its reads reduced. -/
-partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
+partial def closeSide (g : MVarId) (split : Bool := false) : MetaM (List MVarId) := g.withContext do
   let ty := (← instantiateMVars (← g.getType)).consumeMData.headBeta
   if ty.isConstOf ``True then
     g.assign (mkConst ``True.intro)
@@ -1691,10 +1691,12 @@ partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
     let ga ← newGoal g a
     let gb ← newGoal g b
     g.assign (mkApp4 (mkConst ``And.intro) a b ga gb)
-    -- each conjunct on its own: one out of recursion depth or heartbeats is left, the others closed
+    -- `split` (a callee's precondition): each conjunct on its own, one out of recursion depth or heartbeats left and
+    -- the others closed; else the whole goal is left as it was (`closeSideSafe`)
+    unless split do return (← closeSide ga.mvarId!) ++ (← closeSide gb.mvarId!)
     let part (h : Expr) : MetaM (List MVarId) := do
       let saved ← saveState
-      tryCatchRuntimeEx (closeSide h.mvarId!) fun _ => do
+      tryCatchRuntimeEx (closeSide h.mvarId! true) fun _ => do
         saved.restore
         return [h.mvarId!]
     return (← part ga) ++ (← part gb)
@@ -1703,7 +1705,7 @@ partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
     return []
   if let some ty' ← unfoldHead? ty then
     let g' ← g.replaceTargetDefEq ty'
-    return ← closeSide g'
+    return ← closeSide g' split
   let (ty, p) ← normReads ty
   if let some pf ← holdsGoal ty then
     let g ← match p with
@@ -1817,10 +1819,7 @@ partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
         let dt := (← instantiateMVars d.type).consumeMData
         if dt.getAppFn.constName? == some c then
           let saved ← saveState
-          let same ← tryCatchRuntimeEx
-            (withCurrHeartbeats <| withTheReader Core.Context (fun c => { c with maxHeartbeats := 20000 * 1000 }) <|
-              withTransparency .default (isDefEq dt ty))
-            fun _ => pure false
+          let same ← try withTransparency .default (isDefEq dt ty) catch _ => pure false
           if same then
             g.assign d.toExpr
             return []
@@ -1828,9 +1827,9 @@ partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
   return [g]
 
 /-- `closeSide`, out of recursion depth or heartbeats leaving the goal as it was. -/
-def closeSideSafe (g : MVarId) : MetaM (List MVarId) := do
+def closeSideSafe (g : MVarId) (split : Bool := false) : MetaM (List MVarId) := do
   let saved ← saveState
-  tryCatchRuntimeEx (closeSide g) fun _ => do
+  tryCatchRuntimeEx (closeSide g split) fun _ => do
     saved.restore
     return [g]
 
@@ -2232,7 +2231,7 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
         let hk ← newGoal g kT
         g.assign (← appN ``Rv64mc.Tactic.step_call (base ++ [(`ret, ret), (`tgt, tgt), (`f, f), (`Pre, Pre),
           (`Post, Post), (`hcon, hcon), (`hc, hc), (`hpre, hpre), (`hk, hk)]))
-        let side ← closeSideSafe hpre.mvarId!
+        let side ← closeSideSafe hpre.mvarId! (split := true)
         let g' ← afterCall hk.mvarId! k
         pure (some (side ++ g'.toList))
       | some ``Lprog.LinstrR.Ltail =>
@@ -2253,7 +2252,7 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
         g.assign (← appN ``Rv64mc.Tactic.step_tail (base ++ [(`tgt, tgt), (`f, f), (`Pre, Pre), (`Post, Post),
           (`hcon, hcon), (`hc, hc), (`hsp, hsp), (`hpre, hpre),
           (`hk, hk)]))
-        let side := (← closeSideSafe hsp.mvarId!) ++ (← closeSideSafe hpre.mvarId!)
+        let side := (← closeSideSafe hsp.mvarId!) ++ (← closeSideSafe hpre.mvarId! (split := true))
         let g' ← afterCall hk.mvarId! k
         pure (some (side ++ g'.toList))
       | some ``Lprog.LinstrR.Lret =>
