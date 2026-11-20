@@ -1,3 +1,5 @@
 guest/target/
 guest/verifier-nostd/
 out/
+Rv64mc/Gen/
+Rv64mc/Gen.lean

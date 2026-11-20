@@ -2,15 +2,18 @@
   Rv64mc.Probe.EMul
 
   The contract of `<E as Mul>::mul`, proved once over any program `p` whose function `i` is the template
-  `tmpl L`, from its callees' contracts: the result is the Rust's Karatsuba over whatever `clmul` and `reduce`
-  compute, and the ABI is kept (`Abi`). Nothing here names an address of the image.
+  `tmpl L` that `scripts/gen.py` writes for it, from its callees' contracts: the result is the Rust's Karatsuba over
+  whatever `clmul` and `reduce` compute, and the ABI is kept (`Abi`). Nothing here names an address of the image, and
+  the template changes only with the function's own code: moving it or its callees rebuilds the link step, not this.
 -/
 
-import Rv64mc.Probe.EMulTmpl
+import Rv64mc.Gen.Tmpl.Verifier.Field.E.AsMul.Mul
+import Rv64mc.Core.Abi
 
 namespace Rv64mc.Probe.EMul
 
 open RiscvZkvm.Rv64 Lprog Lprog.RiscV
+open Rv64mc.Gen.Verifier.Field.E.AsMul.Mul (Link tmpl)
 
 variable (cl : Word → Word → Word × Word) (rd : Word → Word → Word)
 
