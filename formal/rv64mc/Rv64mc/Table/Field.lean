@@ -41,63 +41,63 @@ open MachineChecked.RiscV.Lift Rv64mc.Gen
 
 variable (env : Env)
 
-theorem reduce : Spec.Field.Reduce.spec env (liftProg fns) 21 Needs.Verifier.Field.Reduce :=
-  Proof.Field.Reduce.ok env _ 21 _ Verifier.Field.Reduce.tmpl_eq _
+theorem reduce : Spec.Field.Reduce.spec env (liftProg fns) Idx.Verifier.Field.Reduce Needs.Verifier.Field.Reduce :=
+  Proof.Field.Reduce.ok env _ Idx.Verifier.Field.Reduce _ Verifier.Field.Reduce.tmpl_eq _
 
 theorem clmulLow
     (hd : DataRef.Words env Verifier.Field.ClmulLow.link.d_c8_d07a1b83 Verifier.Field.ClmulLow.d_c8_d07a1b83_words) :
-    Spec.Field.ClmulLow.spec env (liftProg fns) 22 Needs.Verifier.Field.ClmulLow :=
-  Proof.Field.ClmulLow.ok env _ 22 _ Verifier.Field.ClmulLow.tmpl_eq hd (by decide)
+    Spec.Field.ClmulLow.spec env (liftProg fns) Idx.Verifier.Field.ClmulLow Needs.Verifier.Field.ClmulLow :=
+  Proof.Field.ClmulLow.ok env _ Idx.Verifier.Field.ClmulLow _ Verifier.Field.ClmulLow.tmpl_eq hd (by decide)
 
 theorem clmul
     (hd : DataRef.Words env Verifier.Field.ClmulLow.link.d_c8_d07a1b83 Verifier.Field.ClmulLow.d_c8_d07a1b83_words) :
-    Spec.Field.Clmul.spec env (liftProg fns) 20 Needs.Verifier.Field.Clmul :=
-  Proof.Field.Clmul.ok env _ 20 _ Verifier.Field.Clmul.tmpl_eq Verifier.Field.Clmul.wf (by decide) (clmulLow env hd)
+    Spec.Field.Clmul.spec env (liftProg fns) Idx.Verifier.Field.Clmul Needs.Verifier.Field.Clmul :=
+  Proof.Field.Clmul.ok env _ Idx.Verifier.Field.Clmul _ Verifier.Field.Clmul.tmpl_eq Verifier.Field.Clmul.wf (by decide) (clmulLow env hd)
 
 theorem eMul
     (hd : DataRef.Words env Verifier.Field.ClmulLow.link.d_c8_d07a1b83 Verifier.Field.ClmulLow.d_c8_d07a1b83_words) :
-    Spec.Field.EMul.spec env (liftProg fns) 25 Needs.Verifier.Field.E.AsMul.Mul :=
-  Proof.Field.EMul.ok env _ 25 _ Verifier.Field.E.AsMul.Mul.tmpl_eq Verifier.Field.E.AsMul.Mul.wf (by decide)
+    Spec.Field.EMul.spec env (liftProg fns) Idx.Verifier.Field.E.AsMul.Mul Needs.Verifier.Field.E.AsMul.Mul :=
+  Proof.Field.EMul.ok env _ Idx.Verifier.Field.E.AsMul.Mul _ Verifier.Field.E.AsMul.Mul.tmpl_eq Verifier.Field.E.AsMul.Mul.wf (by decide)
     (by decide) (clmul env hd) (reduce env)
 
 theorem eqEval
     (hd : DataRef.Words env Verifier.Field.ClmulLow.link.d_c8_d07a1b83 Verifier.Field.ClmulLow.d_c8_d07a1b83_words)
-    (hfail : Spec.Runtime.NoReturn env (liftProg fns) 14 Needs.Core.Panicking.AssertFailedUsizeUsize) :
-    Spec.Multilinear.EqEval.spec env (liftProg fns) 98 Needs.Verifier.Multilinear.EqEval :=
-  Proof.Multilinear.EqEval.ok env _ 98 _ Verifier.Multilinear.EqEval.tmpl_eq Verifier.Multilinear.EqEval.wf
+    (hfail : Spec.Runtime.NoReturn env (liftProg fns) Idx.Core.Panicking.AssertFailedUsizeUsize Needs.Core.Panicking.AssertFailedUsizeUsize) :
+    Spec.Multilinear.EqEval.spec env (liftProg fns) Idx.Verifier.Multilinear.EqEval Needs.Verifier.Multilinear.EqEval :=
+  Proof.Multilinear.EqEval.ok env _ Idx.Verifier.Multilinear.EqEval _ Verifier.Multilinear.EqEval.tmpl_eq Verifier.Multilinear.EqEval.wf
     (by decide) (by decide) (eMul env hd) hfail
 
-theorem spread : Spec.Field.Spread.spec env (liftProg fns) 105 Needs.Verifier.Field.Spread :=
-  Proof.Field.Spread.ok env _ 105 _ Verifier.Field.Spread.tmpl_eq _
+theorem spread : Spec.Field.Spread.spec env (liftProg fns) Idx.Verifier.Field.Spread Needs.Verifier.Field.Spread :=
+  Proof.Field.Spread.ok env _ Idx.Verifier.Field.Spread _ Verifier.Field.Spread.tmpl_eq _
 
 theorem baseMul
     (hd : DataRef.Words env Verifier.Field.ClmulLow.link.d_c8_d07a1b83 Verifier.Field.ClmulLow.d_c8_d07a1b83_words) :
-    Spec.Field.BaseMul.spec env (liftProg fns) 19 Needs.Verifier.Field.BaseMul :=
-  Proof.Field.BaseMul.ok env _ 19 _ Verifier.Field.BaseMul.tmpl_eq Verifier.Field.BaseMul.wf (by decide) (by decide)
+    Spec.Field.BaseMul.spec env (liftProg fns) Idx.Verifier.Field.BaseMul Needs.Verifier.Field.BaseMul :=
+  Proof.Field.BaseMul.ok env _ Idx.Verifier.Field.BaseMul _ Verifier.Field.BaseMul.tmpl_eq Verifier.Field.BaseMul.wf (by decide) (by decide)
     (clmul env hd) (reduce env)
 
-theorem eSquare : Spec.Field.ESquare.spec env (liftProg fns) 104 Needs.Verifier.Field.E.Square :=
-  Proof.Field.ESquare.ok env _ 104 _ Verifier.Field.E.Square.tmpl_eq Verifier.Field.E.Square.wf (by decide)
+theorem eSquare : Spec.Field.ESquare.spec env (liftProg fns) Idx.Verifier.Field.E.Square Needs.Verifier.Field.E.Square :=
+  Proof.Field.ESquare.ok env _ Idx.Verifier.Field.E.Square _ Verifier.Field.E.Square.tmpl_eq Verifier.Field.E.Square.wf (by decide)
     (by decide) (spread env) (reduce env)
 
 theorem ePow
     (hd : DataRef.Words env Verifier.Field.ClmulLow.link.d_c8_d07a1b83 Verifier.Field.ClmulLow.d_c8_d07a1b83_words) :
-    Spec.Field.EPow.spec env (liftProg fns) 170 Needs.Verifier.Field.E.Pow :=
-  Proof.Field.EPow.ok env _ 170 _ Verifier.Field.E.Pow.tmpl_eq Verifier.Field.E.Pow.wf (by decide) (by decide)
+    Spec.Field.EPow.spec env (liftProg fns) Idx.Verifier.Field.E.Pow Needs.Verifier.Field.E.Pow :=
+  Proof.Field.EPow.ok env _ Idx.Verifier.Field.E.Pow _ Verifier.Field.E.Pow.tmpl_eq Verifier.Field.E.Pow.wf (by decide) (by decide)
     (eSquare env) (eMul env hd)
 
-theorem eSumCopied : Spec.Field.ESumCopied.spec env (liftProg fns) 35 Needs.Verifier.Field.E.SumCopiedIterE :=
-  Proof.Field.ESumCopied.ok env _ 35 _ Verifier.Field.E.SumCopiedIterE.tmpl_eq _
+theorem eSumCopied : Spec.Field.ESumCopied.spec env (liftProg fns) Idx.Verifier.Field.E.SumCopiedIterE Needs.Verifier.Field.E.SumCopiedIterE :=
+  Proof.Field.ESumCopied.ok env _ Idx.Verifier.Field.E.SumCopiedIterE _ Verifier.Field.E.SumCopiedIterE.tmpl_eq _
 
 theorem kInv
     (hd : DataRef.Words env Verifier.Field.ClmulLow.link.d_c8_d07a1b83 Verifier.Field.ClmulLow.d_c8_d07a1b83_words) :
-    Spec.Field.KInv.spec env (liftProg fns) 127 Needs.Verifier.Field.K.Inv :=
-  Proof.Field.KInv.ok env _ 127 _ Verifier.Field.K.Inv.tmpl_eq Verifier.Field.K.Inv.wf (by decide) (by decide)
+    Spec.Field.KInv.spec env (liftProg fns) Idx.Verifier.Field.K.Inv Needs.Verifier.Field.K.Inv :=
+  Proof.Field.KInv.ok env _ Idx.Verifier.Field.K.Inv _ Verifier.Field.K.Inv.tmpl_eq Verifier.Field.K.Inv.wf (by decide) (by decide)
     (by decide) (spread env) (reduce env) (baseMul env hd)
 
-theorem scaledMul (hpanic : Spec.Runtime.NoReturn env (liftProg fns) 16 Needs.Core.Panicking.PanicBoundsCheck) :
-    Spec.Field.Scaled.mulSpec env (liftProg fns) 95 Needs.Verifier.Field.Scaled.Mul :=
-  Proof.Field.ScaledMul.ok env _ 95 _ Verifier.Field.Scaled.Mul.tmpl_eq Verifier.Field.Scaled.Mul.wf (by decide) hpanic
+theorem scaledMul (hpanic : Spec.Runtime.NoReturn env (liftProg fns) Idx.Core.Panicking.PanicBoundsCheck Needs.Core.Panicking.PanicBoundsCheck) :
+    Spec.Field.Scaled.mulSpec env (liftProg fns) Idx.Verifier.Field.Scaled.Mul Needs.Verifier.Field.Scaled.Mul :=
+  Proof.Field.ScaledMul.ok env _ Idx.Verifier.Field.Scaled.Mul _ Verifier.Field.Scaled.Mul.tmpl_eq Verifier.Field.Scaled.Mul.wf (by decide) hpanic
 
 end Rv64mc.Table.Field
 

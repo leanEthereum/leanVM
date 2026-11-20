@@ -19,15 +19,15 @@ open MachineChecked.RiscV.Lift Rv64mc.Gen
 variable (env : Env)
 
 theorem busGrindingBits
-    (hgb : Spec.Transcript.GrindingBits.spec env (liftProg fns) 50 Needs.Verifier.Transcript.GrindingBits) :
-    Spec.Bus.BusGrindingBits.spec env (liftProg fns) 151 Needs.Verifier.Bus.BusGrindingBits :=
-  Proof.Bus.BusGrindingBits.ok env _ 151 _ Verifier.Bus.BusGrindingBits.tmpl_eq Verifier.Bus.BusGrindingBits.wf hgb
+    (hgb : Spec.Transcript.GrindingBits.spec env (liftProg fns) Idx.Verifier.Transcript.GrindingBits Needs.Verifier.Transcript.GrindingBits) :
+    Spec.Bus.BusGrindingBits.spec env (liftProg fns) Idx.Verifier.Bus.BusGrindingBits Needs.Verifier.Bus.BusGrindingBits :=
+  Proof.Bus.BusGrindingBits.ok env _ Idx.Verifier.Bus.BusGrindingBits _ Verifier.Bus.BusGrindingBits.tmpl_eq Verifier.Bus.BusGrindingBits.wf hgb
 
 theorem onStack
-    (hsp : Spec.Multilinear.StackPoint.spec env (liftProg fns) 131 Needs.Verifier.Multilinear.Placement.StackPoint)
-    (hpanic : Spec.Runtime.NoReturn env (liftProg fns) 16 0) :
-    Spec.Bus.OnStack.spec env (liftProg fns) 130 Needs.Verifier.Bus.ColumnClaim.OnStack :=
-  Proof.Bus.OnStack.ok env _ 130 _ Verifier.Bus.ColumnClaim.OnStack.tmpl_eq Verifier.Bus.ColumnClaim.OnStack.wf
+    (hsp : Spec.Multilinear.StackPoint.spec env (liftProg fns) Idx.Verifier.Multilinear.Placement.StackPoint Needs.Verifier.Multilinear.Placement.StackPoint)
+    (hpanic : Spec.Runtime.NoReturn env (liftProg fns) Idx.Core.Panicking.PanicBoundsCheck 0) :
+    Spec.Bus.OnStack.spec env (liftProg fns) Idx.Verifier.Bus.ColumnClaim.OnStack Needs.Verifier.Bus.ColumnClaim.OnStack :=
+  Proof.Bus.OnStack.ok env _ Idx.Verifier.Bus.ColumnClaim.OnStack _ Verifier.Bus.ColumnClaim.OnStack.tmpl_eq Verifier.Bus.ColumnClaim.OnStack.wf
     (by decide) hsp hpanic
 
 end Rv64mc.Table.Bus

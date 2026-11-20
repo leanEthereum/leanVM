@@ -30,15 +30,15 @@ def linearTransposeNeed : Nat :=
 theorem linearTranspose
     (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
     (hend : env.heapEnd = 0x78000000#64)
-    (hms : MemsetSpec env (liftProg fns) 224 Needs.CompilerBuiltins.Mem.Memset)
-    (hres : ReserveSpec env 8 16 (liftProg fns) 38 Needs.Alloc.Vec.VecE.Reserve)
+    (hms : MemsetSpec env (liftProg fns) Idx.CompilerBuiltins.Mem.Memset Needs.CompilerBuiltins.Mem.Memset)
+    (hres : ReserveSpec env 8 16 (liftProg fns) Idx.Alloc.Vec.VecE.Reserve Needs.Alloc.Vec.VecE.Reserve)
     (hpi : DataRef.Words env Verifier.Keccak.LinearTransposeE.link.d_c200_f4afdee4
       Verifier.Keccak.LinearTransposeE.d_c200_f4afdee4_words)
     (hrho : Proof.Keccak.LinearTranspose.RhoAt env Verifier.Keccak.LinearTransposeE.link.d_c100_179d68cc)
     (hmagic : DataRef.Words env Verifier.Keccak.LinearTransposeE.link.d_c8_e5d50e4a
       Verifier.Keccak.LinearTransposeE.d_c8_e5d50e4a_words) :
-    Spec.Keccak.LinearTranspose.spec env (liftProg fns) 36 linearTransposeNeed :=
-  Proof.Keccak.LinearTranspose.ok env _ 36 _ Verifier.Keccak.LinearTransposeE.tmpl_eq
+    Spec.Keccak.LinearTranspose.spec env (liftProg fns) Idx.Verifier.Keccak.LinearTransposeE linearTransposeNeed :=
+  Proof.Keccak.LinearTranspose.ok env _ Idx.Verifier.Keccak.LinearTransposeE _ Verifier.Keccak.LinearTransposeE.tmpl_eq
     Verifier.Keccak.LinearTransposeE.wf (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
     (Runtime.memset env hms) (Runtime.alloc env hnext hend) hres (Runtime.panicBoundsCheck env)
     (Runtime.assertFailedUsizeUsize env) (Runtime.handleError env) hpi hrho hmagic

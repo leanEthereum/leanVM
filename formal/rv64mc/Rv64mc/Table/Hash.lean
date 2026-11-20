@@ -17,8 +17,8 @@ open MachineChecked.RiscV.Lift Rv64mc.Gen
 variable (env : Env)
 
 theorem digestFromHalves :
-    Spec.Hash.DigestFromHalves.spec env (liftProg fns) 46 Needs.Verifier.Hash.Digest.FromHalves :=
-  Proof.Hash.DigestFromHalves.ok env _ 46 _ Verifier.Hash.Digest.FromHalves.tmpl_eq _
+    Spec.Hash.DigestFromHalves.spec env (liftProg fns) Idx.Verifier.Hash.Digest.FromHalves Needs.Verifier.Hash.Digest.FromHalves :=
+  Proof.Hash.DigestFromHalves.ok env _ Idx.Verifier.Hash.Digest.FromHalves _ Verifier.Hash.Digest.FromHalves.tmpl_eq _
 
 end Rv64mc.Table.Hash
 

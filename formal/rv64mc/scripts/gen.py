@@ -13,7 +13,7 @@ from the Lake package's directory (default `out/gen.elf`). Under DIR (default `R
   value and `jalr` offset, each data reference's `auipc` value, `lo12` offset and address, the return addresses as
   `L.base + k`), `tmpl L`, the lift with those values `L`'s, and `Link.WF`, what the link step proves of them. It names
   no address or index, so it changes only when the function's own code or its callees' names do.
-- `Link/<M>.lean`, per function: the image's `link : Link`, `tmpl_eq : (liftProg fns)[i]? = some (tmpl link)` and
+- `Link/<M>.lean`, per function: the image's `link : Link`, `tmpl_eq : (liftProg fns)[Idx.<M>]? = some (tmpl link)` and
   `wf : Link.WF (liftProg fns) link`, both checked by the kernel.
 - `Needs.lean`: per function, the stack it needs (`Needs.<M> : Nat`): its frame (the sum of its `addi sp, sp, -N`) plus
   the most any callee needs, and at least what a tail callee needs; it fails on recursion. Proofs never import it:
@@ -557,7 +557,8 @@ def link_module(img, i, tchunks, callees, sites, data, mcname):
     cf = dict(callees)
     base = img.fns[i][1]
     fields = [f"name := {mcname}", f"base := {w64(base)}"]
-    fields += [f"«{f.strip('«»')}» := ⟨{j}, {w64(img.fns[j][1])}⟩" for j, f in callees]
+    fields += [f"«{f.strip('«»')}» := ⟨Idx.{'.'.join(img.mod[j])}, {w64(img.fns[j][1])}⟩" for j, f in callees]
+    ix = f"Idx.{mod}"
     fields += [f"{s} := ⟨{w64(hi)}, {w64(lo)}⟩" for s, (hi, lo), _ in sites]
     fields += [f"{d} := ⟨{w64(hi)}, {w64(lo)}, {w64(a)}⟩" for d, (hi, lo, a) in data]
     parts = ", ".join(f"c{j} link" for j in range(len(tchunks)))
@@ -565,10 +566,10 @@ def link_module(img, i, tchunks, callees, sites, data, mcname):
         "/-",
         f"  {NS}.Link.{mod}",
         "",
-        f"  Written by `scripts/gen.py`; do not edit. Function {i} of the image is the template at `link`.",
+        f"  Written by `scripts/gen.py`; do not edit. Function `{ix}` of the image is the template at `link`.",
         "-/",
         "",
-        f"import {NS}.Words",
+        f"import {NS}.Index",
         f"import {NS}.Tmpl.{mod}",
         "",
         f"namespace {ns}",
@@ -583,13 +584,13 @@ def link_module(img, i, tchunks, callees, sites, data, mcname):
     lines += [f"  {x}" for x in fields]
     lines += [
         "",
-        f"kernel_eq head : (liftProg fns)[{i}]?.map (fun g => (g.name, g.addr, g.depth)) =",
+        f"kernel_eq head : (liftProg fns)[{ix}]?.map (fun g => (g.name, g.addr, g.depth)) =",
         "    some ((tmpl link).name, (tmpl link).addr, (tmpl link).depth)",
         "",
-        f"kernel_eq parts : (liftProg fns)[{i}]?.map (fun g => chunks chunk g.body) = some [{parts}]",
+        f"kernel_eq parts : (liftProg fns)[{ix}]?.map (fun g => chunks chunk g.body) = some [{parts}]",
         "",
-        f"/-- **Function {i} of the image is the template at `link`.** -/",
-        f"theorem tmpl_eq : (liftProg fns)[{i}]? = some (tmpl link) :=",
+        f"/-- **Function `{ix}` of the image is the template at `link`.** -/",
+        f"theorem tmpl_eq : (liftProg fns)[{ix}]? = some (tmpl link) :=",
         "  getElem?_eq_of_chunks head parts rfl",
         "",
     ]
@@ -633,17 +634,26 @@ def words_module(mc_text, lean_elf):
 
 def index_module(img, sizes):
     rows = [
-        f"  ({lean_str('.'.join(img.mod[i]))}, {lean_str(s)}, {i}, {a}, {sizes[i]})" for i, (s, a) in enumerate(img.fns)
+        f"  ({lean_str('.'.join(img.mod[i]))}, {lean_str(s)}, Idx.{'.'.join(img.mod[i])}, {a}, {sizes[i]})"
+        for i, (s, a) in enumerate(img.fns)
     ]
+    idx = [f"abbrev {'.'.join(img.mod[i])} : Nat := {i}" for i in range(len(img.fns))]
     return "\n".join([
         "/-",
         f"  {NS}.Index",
         "",
-        "  Written by `scripts/gen.py`; do not edit. Each function's module, symbol, index, address and size in",
-        "  instructions, checked against `words`.",
+        "  Written by `scripts/gen.py`; do not edit. Each function's index by its stable name (`Idx.<M>`, what proofs",
+        "  and tables name a function by, never a numeral), and its module, symbol, index, address and size in",
+        "  instructions, checked against `words` (`index_eq`).",
         "-/",
         "",
         f"import {NS}.Words",
+        "",
+        f"namespace {NS}.Idx",
+        "",
+        "\n".join(idx),
+        "",
+        f"end {NS}.Idx",
         "",
         f"namespace {NS}",
         "",

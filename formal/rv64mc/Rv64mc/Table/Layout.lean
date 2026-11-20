@@ -29,38 +29,38 @@ open MachineChecked.RiscV.Lift Rv64mc.Gen
 
 variable (env : Env)
 
-theorem isOutputLane : Spec.Layout.IsOutputLane.spec env (liftProg fns) 185 :=
-  Proof.Layout.IsOutputLane.ok env _ 185 _ Verifier.Layout.IsOutputLane.tmpl_eq
+theorem isOutputLane : Spec.Layout.IsOutputLane.spec env (liftProg fns) Idx.Verifier.Layout.IsOutputLane :=
+  Proof.Layout.IsOutputLane.ok env _ Idx.Verifier.Layout.IsOutputLane _ Verifier.Layout.IsOutputLane.tmpl_eq
 
-theorem qkeccakSlot : Spec.Layout.QkeccakSlot.spec env (liftProg fns) 184 :=
-  Proof.Layout.QkeccakSlot.ok env _ 184 _ Verifier.Layout.QkeccakSlot.tmpl_eq
+theorem qkeccakSlot : Spec.Layout.QkeccakSlot.spec env (liftProg fns) Idx.Verifier.Layout.QkeccakSlot :=
+  Proof.Layout.QkeccakSlot.ok env _ Idx.Verifier.Layout.QkeccakSlot _ Verifier.Layout.QkeccakSlot.tmpl_eq
 
-theorem keccakShape (hpanic : Spec.Runtime.NoReturn env (liftProg fns) 16 0) :
-    Spec.Layout.KeccakShape.spec env (liftProg fns) 180 :=
-  Proof.Layout.KeccakShape.ok env _ 180 _ Verifier.Layout.KeccakShape.tmpl_eq Verifier.Layout.KeccakShape.wf hpanic
+theorem keccakShape (hpanic : Spec.Runtime.NoReturn env (liftProg fns) Idx.Core.Panicking.PanicBoundsCheck 0) :
+    Spec.Layout.KeccakShape.spec env (liftProg fns) Idx.Verifier.Layout.KeccakShape :=
+  Proof.Layout.KeccakShape.ok env _ Idx.Verifier.Layout.KeccakShape _ Verifier.Layout.KeccakShape.tmpl_eq Verifier.Layout.KeccakShape.wf hpanic
 
-theorem nConstraints (hpanic : Spec.Runtime.NoReturn env (liftProg fns) 16 0)
+theorem nConstraints (hpanic : Spec.Runtime.NoReturn env (liftProg fns) Idx.Core.Panicking.PanicBoundsCheck 0)
     (hdata : Spec.Layout.Table.NConstraintsData env Verifier.Layout.Table.NConstraints.link.d_c48_401b839e) :
-    Spec.Layout.Table.nConstraintsSpec env (liftProg fns) 49 :=
-  Proof.Layout.Table.nConstraints env _ 49 _ Verifier.Layout.Table.NConstraints.tmpl_eq
+    Spec.Layout.Table.nConstraintsSpec env (liftProg fns) Idx.Verifier.Layout.Table.NConstraints :=
+  Proof.Layout.Table.nConstraints env _ Idx.Verifier.Layout.Table.NConstraints _ Verifier.Layout.Table.NConstraints.tmpl_eq
     Verifier.Layout.Table.NConstraints.wf hpanic hdata
 
-theorem countColumns (hpanic : Spec.Runtime.NoReturn env (liftProg fns) 16 0)
+theorem countColumns (hpanic : Spec.Runtime.NoReturn env (liftProg fns) Idx.Core.Panicking.PanicBoundsCheck 0)
     (hdata : Spec.Layout.Table.CountColumnsData env Verifier.Layout.Table.CountColumns.link.d_c96_da3654e1) :
-    Spec.Layout.Table.countColumnsSpec env (liftProg fns) 177 :=
-  Proof.Layout.Table.countColumns env _ 177 _ Verifier.Layout.Table.CountColumns.tmpl_eq
+    Spec.Layout.Table.countColumnsSpec env (liftProg fns) Idx.Verifier.Layout.Table.CountColumns :=
+  Proof.Layout.Table.countColumns env _ Idx.Verifier.Layout.Table.CountColumns _ Verifier.Layout.Table.CountColumns.tmpl_eq
     Verifier.Layout.Table.CountColumns.wf hpanic hdata
 
-theorem committed : Spec.Layout.Committed.spec env (liftProg fns) 57 :=
-  Proof.Layout.Committed.ok env _ 57 _ Verifier.Layout.Layout.Committed.tmpl_eq
+theorem committed : Spec.Layout.Committed.spec env (liftProg fns) Idx.Verifier.Layout.Layout.Committed :=
+  Proof.Layout.Committed.ok env _ Idx.Verifier.Layout.Layout.Committed _ Verifier.Layout.Layout.Committed.tmpl_eq
 
-theorem gpow {need : Nat} (hpow : Spec.Field.EPow.spec env (liftProg fns) 170 need) :
-    Spec.Layout.Gpow.spec env (liftProg fns) 157 need :=
-  Proof.Layout.Gpow.ok env _ 157 need _ Verifier.Layout.Gpow.tmpl_eq Verifier.Layout.Gpow.wf hpow
+theorem gpow {need : Nat} (hpow : Spec.Field.EPow.spec env (liftProg fns) Idx.Verifier.Field.E.Pow need) :
+    Spec.Layout.Gpow.spec env (liftProg fns) Idx.Verifier.Layout.Gpow need :=
+  Proof.Layout.Gpow.ok env _ Idx.Verifier.Layout.Gpow need _ Verifier.Layout.Gpow.tmpl_eq Verifier.Layout.Gpow.wf hpow
 
-theorem term (halloc : Spec.Runtime.AllocSpec env (liftProg fns) 6 0)
-    (hpanic : Spec.Runtime.NoReturn env (liftProg fns) 17 0) : Spec.Layout.Term.spec env (liftProg fns) 167 :=
-  Proof.Layout.Term.ok env _ 167 _ Verifier.Layout.Form.Term.tmpl_eq Verifier.Layout.Form.Term.wf halloc hpanic
+theorem term (halloc : Spec.Runtime.AllocSpec env (liftProg fns) Idx.VerifierRv64.Bump.AsGlobalAlloc.Alloc 0)
+    (hpanic : Spec.Runtime.NoReturn env (liftProg fns) Idx.Core.Panicking.PanicNounwindFmt 0) : Spec.Layout.Term.spec env (liftProg fns) Idx.Verifier.Layout.Form.Term :=
+  Proof.Layout.Term.ok env _ Idx.Verifier.Layout.Form.Term _ Verifier.Layout.Form.Term.tmpl_eq Verifier.Layout.Form.Term.wf halloc hpanic
 
 end Rv64mc.Table.Layout
 

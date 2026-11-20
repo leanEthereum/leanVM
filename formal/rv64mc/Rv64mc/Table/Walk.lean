@@ -26,14 +26,14 @@ theorem holds_need_mono {env : Env} {p : Lprog (Op Reg) Reg} {i n n' : Nat}
 
 variable (env : Env)
 
-theorem verifyExecution (hwalk : Spec.Walk.Execution.spec env (liftProg fns) 42 Needs.Verifier.Walk) :
-    Spec.Walk.Execution.spec env (liftProg fns) 214 Needs.Verifier.VerifyExecution :=
-  Proof.Walk.VerifyExecution.ok env _ 214 _ Verifier.VerifyExecution.tmpl_eq Verifier.VerifyExecution.wf hwalk
+theorem verifyExecution (hwalk : Spec.Walk.Execution.spec env (liftProg fns) Idx.Verifier.Walk Needs.Verifier.Walk) :
+    Spec.Walk.Execution.spec env (liftProg fns) Idx.Verifier.VerifyExecution Needs.Verifier.VerifyExecution :=
+  Proof.Walk.VerifyExecution.ok env _ Idx.Verifier.VerifyExecution _ Verifier.VerifyExecution.tmpl_eq Verifier.VerifyExecution.wf hwalk
 
 kernel_eq need_main : decide (Needs.Main ≤ Rv64mc.need) = true
 
 /-- **The end theorem from `main`'s contract at the stack it needs.** -/
-theorem rv64_sound_of_main (hmain : MainSpec Rv64mc.env (liftProg fns) 7 Needs.Main) :
+theorem rv64_sound_of_main (hmain : MainSpec Rv64mc.env (liftProg fns) Idx.Main Needs.Main) :
     AllDecode image ∧ Sound image :=
   rv64_sound fun words ↦ holds_need_mono (hmain words) (by simpa using need_main)
 
