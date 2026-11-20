@@ -61,7 +61,7 @@ in_place() {
 
 # Each step's parts, and the Lean targets they run.
 parts_export=(export) targets_export=()
-parts_core=(core_ir core_names core_vsat) targets_core=(guest-core)
+parts_core=(core_ir core_names core_vsat core_valnames) targets_core=(guest-core)
 parts_changes=(changes) targets_changes=()
 parts_vt=(vt) targets_vt=()
 parts_cert=(cert) targets_cert=(guest-cert)
@@ -99,6 +99,11 @@ part_core_ir() {
 part_core_names() {
   step "core: the names' modulus (CoreNames)"
   python3 -I scripts/core-names-modulus "${check[@]}"
+}
+
+part_core_valnames() {
+  step "core: the value names the proofs cite (scripts/val-names/gen.py)"
+  python3 -I scripts/val-names/gen.py "${check[@]}"
 }
 
 part_core_vsat() {
@@ -253,8 +258,9 @@ done
 # Writing, each part starts once the parts whose output it reads are done (`after_<part>`, parts of the
 # steps not selected counting as done), so independent parts run at once; the Lean generators' builds
 # first (`exes`), together. A part's output is printed when it ends; a part whose inputs failed does not run.
-after_exes=(export) after_core_ir=(exes) after_core_names=(core_ir) after_core_vsat=(core_ir) after_changes=(core_ir)
-after_vt=(core_ir) after_cert=(core_names core_vsat changes vt) after_memory=(core_ir)
+after_exes=(export) after_core_ir=(exes) after_core_names=(core_ir) after_core_vsat=(core_ir) after_core_valnames=(core_ir)
+after_changes=(core_ir)
+after_vt=(core_ir) after_cert=(core_names core_vsat core_valnames changes vt) after_memory=(core_ir core_valnames)
 after_bridge_align=(cert) after_bridge_checks=(bridge_align) after_core_mode=(bridge_align)
 after_res=(core_mode bridge_checks) after_whir_data=(cert) after_whir_mat_plan=(whir_data)
 after_walk_known=(whir_mat_plan) after_whir_queries=(walk_known) after_count_gen=(whir_queries memory cert)
