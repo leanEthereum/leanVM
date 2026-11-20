@@ -11,6 +11,12 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_column_offsets»
 import LeanVM.Guest.Data.ValNames.«da_column_offsets_loop0»
+import LeanVM.Guest.Data.ValNames.«da_column_offsets_loop1»
+import LeanVM.Guest.Data.ValNames.«da_column_offsets_loop2»
+import LeanVM.Guest.Data.ValNames.«da_column_offsets_loop3»
+import LeanVM.Guest.Data.ValNames.«da_column_offsets_loop4»
+import LeanVM.Guest.Data.ValNames.«da_column_offsets_loop5»
+import LeanVM.Guest.Data.ValNames.«da_column_offsets_loop6»
 
 /-!
 # `da_column_offsets`
@@ -140,23 +146,23 @@ theorem off_loop_step {b : ℕ} (hok : offLoopOk (coreProgram.getD (idx% «da_co
   refine ⟨fun N off st hN j hj ↦ ?_, hnext⟩
   have hat := atoms_of_flat hall
   rw [atomsEqb_sound hat0] at hat
-  have hpar : (coreProgram.getD (idx% «da_column_offsets_loop0» + b) default).params = [V.n (val% «da_column_offsets_loop0» "xh"),
-      V.n (val% «da_column_offsets_loop0» "bound"), V.n (val% «da_column_offsets_loop0» "offsets"), V.n (val% «da_column_offsets_loop0» "steps")] := by
+  have hpar : (coreProgram.getD (idx% «da_column_offsets_loop0» + b) default).params = [V.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "xh"),
+      V.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "bound"), V.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "offsets"), V.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "steps")] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
   obtain ⟨-, h2, h3⟩ := hps
-  have hm : ∀ a ∈ [Atom.mul (.n (val% «da_column_offsets_loop0» "src~0")) (.n (val% «da_column_offsets_loop0» "xh")) (.n (val% «da_column_offsets_loop0» "xh")), .mul (.n (val% «da_column_offsets_loop0» "src~1")) (.n (val% «da_column_offsets_loop0» "src~0")) (.n (val% «da_column_offsets_loop0» "xh")), .mul (.n (val% «da_column_offsets_loop0» "src~2")) (.n (val% «da_column_offsets_loop0» "src~1")) (.n (val% «da_column_offsets_loop0» "src~1")),
-      .mul (.n (val% «da_column_offsets_loop0» "src~3")) (.n (val% «da_column_offsets_loop0» "src~2")) (.n (val% «da_column_offsets_loop0» "xh")), .mul (.n (val% «da_column_offsets_loop0» "src")) (.n (val% «da_column_offsets_loop0» "offsets")) (.n (val% «da_column_offsets_loop0» "src~3"))], a.Holds rd σ := fun a ha ↦
+  have hm : ∀ a ∈ [Atom.mul (.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "src~0")) (.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "xh")) (.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "xh")), .mul (.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "src~1")) (.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "src~0")) (.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "xh")), .mul (.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "src~2")) (.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "src~1")) (.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "src~1")),
+      .mul (.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "src~3")) (.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "src~2")) (.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "xh")), .mul (.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "src")) (.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "offsets")) (.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "src~3"))], a.Holds rd σ := fun a ha ↦
     hat a (List.mem_append_left _ (List.mem_append_left _ ha))
   simp only [List.mem_cons, List.mem_nil_iff, or_false, forall_eq_or_imp, forall_eq,
     Atom.Holds] at hm
   obtain ⟨m4, m5, m6, m7, m8⟩ := hm
-  have h7 : σ (.n (val% «da_column_offsets_loop0» "src")) = off * x ^ 7 := by
+  have h7 : σ (.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "src")) = off * x ^ 7 := by
     rw [m8, m7, m6, m5, m4, h2, hx]; ring
-  have hj' : ∀ a ∈ [Atom.load (.n (9 + 3 * j)) (.n (val% «da_column_offsets_loop0» "src")) j, .load (.n (10 + 3 * j)) (.n (val% «da_column_offsets_loop0» "steps")) j,
+  have hj' : ∀ a ∈ [Atom.load (.n (9 + 3 * j)) (.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "src")) j, .load (.n (10 + 3 * j)) (.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "steps")) j,
       .add (.n (11 + 3 * j)) (.n (9 + 3 * j)) (.n (10 + 3 * j)),
-      .load (.n (11 + 3 * j)) (.n (val% «da_column_offsets_loop0» "src")) (7 * 2 ^ b + j)], a.Holds rd σ := fun a ha ↦
+      .load (.n (11 + 3 * j)) (.n (val% «da_column_offsets_loop0» «da_column_offsets_loop1» «da_column_offsets_loop2» «da_column_offsets_loop3» «da_column_offsets_loop4» «da_column_offsets_loop5» «da_column_offsets_loop6» "src")) (7 * 2 ^ b + j)], a.Holds rd σ := fun a ha ↦
     hat a (List.mem_append_left _ (List.mem_append_right _
       (List.mem_flatMap.mpr ⟨j, List.mem_range.mpr hj, ha⟩)))
   simp only [List.mem_cons, List.mem_nil_iff, or_false, forall_eq_or_imp, forall_eq,
