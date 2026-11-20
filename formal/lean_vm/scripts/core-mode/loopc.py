@@ -9,6 +9,8 @@ others. Usage (a census): python3 -I scripts/core-mode/loopc.py [--fn NAME] [--e
 import os, sys, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+sys.path.append(os.path.join(HERE, '..'))
+import genfiles  # noqa: E402
 import infer as I  # noqa: E402
 sys.modules.setdefault('infer', I)
 import route, callc  # noqa: E402
@@ -185,6 +187,12 @@ def infer_one(k, S):
 
 
 def results(verbose=False):
+    """`_results`, computed once while its inputs are unchanged (`memo.py`)."""
+    import memo
+    return memo.cached('loopc.results', lambda: _results(verbose))
+
+
+def _results(verbose=False):
     I.F.clear()
     S = route.sigs()
     out, why = {}, collections.Counter()
@@ -194,7 +202,7 @@ def results(verbose=False):
             out[k] = infer_one(k, S)
         except No as e:
             why[str(e).split(':')[0]] += 1
-            if verbose and '-v' in sys.argv:
+            if verbose == 'why':
                 print(k, e)
     if verbose:
         print('loops: %d of %d candidates' % (len(out), len(cs)), dict(why.most_common()))
@@ -263,27 +271,15 @@ def emit(R, check):
                        f'def hcert : CoreMode.HCert where\n{lcert(R[k])}\n'
                        f'end\nend LeanVM.Guest.Fn.«{k}»\n')
         files[os.path.join(GEN, pack, 'DataL.lean')] = ''.join(out)
-    stale = []
-    for path in sorted(set(glob.glob(os.path.join(GEN, '*', 'DataL.lean'))) - set(files)):
-        stale.append(path)
-        if not check:
-            os.remove(path)
-    for path, text in sorted(files.items()):
-        old = open(path, encoding='utf-8').read() if os.path.exists(path) else None
-        if old != text:
-            stale.append(path)
-            if not check:
-                os.makedirs(os.path.dirname(path), exist_ok=True)
-                open(path, 'w', encoding='utf-8').write(text)
+    stale = genfiles.sync(files, glob.glob(os.path.join(GEN, '*', 'DataL.lean')), check)
     print('loopc: %d functions, %d files, %d lines' % (len(R), len(files), sum(t.count('\n') for t in files.values())) +
           ((', stale: %d' % len(stale)) if check else ''))
-    if check and stale:
-        sys.exit(1)
+    genfiles.fail_if_stale(stale, check)
 
 
 if __name__ == '__main__':
     if '--emit' in sys.argv:
-        R, _ = results(True)
+        R, _ = results('why' if '-v' in sys.argv else True)
         emit(R, '--check' in sys.argv)
     elif '--fn' in sys.argv:
         k = sys.argv[sys.argv.index('--fn') + 1]

@@ -8,9 +8,10 @@ not grow.
 `results()` returns `{name: dict(pass, sig, cs)}` for the functions whose certificate is complete, and the reasons of the
 others. Usage (a census): python3 -I scripts/core-mode/callc.py [--fn NAME]"""
 import os, re, sys, collections
-ARGV = list(sys.argv)
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+sys.path.append(os.path.join(HERE, '..'))
+import genfiles  # noqa: E402
 import infer as I  # noqa: E402
 sys.modules.setdefault('infer', I)
 import route  # noqa: E402
@@ -70,10 +71,8 @@ class No(Exception):
 
 
 def _em():
-    """`emitc` (whose import takes `sys.argv` over), the caller's arguments kept."""
-    saved = list(sys.argv)
+    """`emitc`, set for the core route's certificates."""
     import emitc
-    sys.argv[:] = saved
     emitc.WORD_RUN = True
     I.ARMRUN[0] = True
     I.DUPCALL[0] = True
@@ -246,11 +245,6 @@ def hp_facts(ms, n, ent=None):
             raise No('pointer base slot')
         by[(q, d)].add(k)
     return [(I.mk(((q - 2, 1),), d), tuple(sorted(ks))) for (q, d), ks in sorted(by.items())]
-
-
-def hp1s(G):
-    """The caller's cells `d` (bases `.hp 1 d`) among `hp_bs`."""
-    return [d for q, d in hp_bs(G) if q == 1]
 
 
 def hp_bs(G):
@@ -889,8 +883,7 @@ def infer_one(k, S, allow=None, hcsig=None):
     H, Sv, pas = EM.solve(k, P, sigs, sigOf)
     if (pas.fails or Sv.miss) and has_fa(body) and fa_past(k):
         # with frame run cells past their runs, which the frame walk has written at the returns (`CoreMode.FAW`)
-        EM.C.FA_EXTRA[k] = fa_past(k)
-        H, Sv, pas = EM.solve(k, P, sigs, sigOf)
+        H, Sv, pas = EM.solve(k, P, sigs, sigOf, fa_past(k))
     if pas.fails or Sv.miss:
         raise No('unwitnessed: ' + str((list(pas.fails) + [('miss',) + m for m in Sv.miss])[0])[:60])
     # the callees' ghost words, those `hpArgOk` names
@@ -1018,7 +1011,7 @@ def _results(verbose=False):
             out[k] = r
         else:
             why[str(e).split(':')[0]] += 1
-            if verbose and '--why' in ARGV:
+            if verbose == 'why':
                 print(k, e)
     # bodies closed only with residuals of families (`callcres.py`, `CoreMode/CoreRes.lean`)
     import callcres
@@ -1051,16 +1044,6 @@ set_option maxRecDepth 100000
 set_option linter.all false
 """
 
-
-
-def lcsig(h):
-    """A callee's heap signature as Lean, no auxiliary declaration."""
-    EM = _em()
-    ax = EM.Aux()
-    t = EM.lsig(h, ax)
-    if ax.defs:
-        raise No('callee signature too long')
-    return t
 
 
 def lcsig_aux(h, pre):
@@ -1214,10 +1197,11 @@ GENW = os.path.join(GUEST, 'CoreMode', 'GenW')
 def windows(R, po, shared=frozenset()):
     """The heap checks estimated past `heapwin.BUDGET` (the heartbeats, or the memory a module may take), in windows
     (`heapwin.one`): `GenW/<fn>/`, its `Ok.lean` stating `Fn.«fn».heap_okW` at the callees' signatures `csigs` as
-    `CFun.sigOf` reads them, which `core.py`'s `heap_okC` takes. `({path: text}, {directory})`."""
+    `CFun.sigOf` reads them, which `core.py`'s `heap_okC` takes, by path."""
     import heapwin
-    epo = heapwin.E.pack_of()
-    files, dirs = {}, set()
+    import heap
+    epo = heap.pack_of()
+    files = {}
     for k in sorted(R):
         H = R[k]['cert']
         sigs = {I.callee(f): h for f, h in R[k]['cs'].items()}
@@ -1228,10 +1212,9 @@ def windows(R, po, shared=frozenset()):
                    pre=f'{hcsig_ref(k)[:-len("sig")]}sig_pre' if in_sigs(k, R[k], shared) else 'sig_pre',
                    data=['LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0]],
                    sigw='(fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})')
-        for name, text in heapwin.one(k, H, sigOf, [], epo, gen=gen):
+        for name, text in heapwin.one(k, H, sigOf, epo, gen):
             files[os.path.join(GENW, k, name + '.lean')] = text
-        dirs.add(os.path.join(GENW, k))
-    return files, dirs
+    return files
 
 
 def emit(R, check):
@@ -1261,46 +1244,24 @@ def emit(R, check):
             sigp[po[c][0]][1].append((c, t))
     for pack, (ks, cps) in sorted(sigp.items()):
         files[os.path.join(GEN, pack, 'Sig.lean')] = sig_file(pack, ks, R, cps)
-    import glob
-    stale = []
-    for path in sorted(set(glob.glob(os.path.join(GEN, '*', 'Sig.lean')) + glob.glob(os.path.join(GEN, 'HcSig.lean')))
-                       - set(files)):
-        stale.append(path)
-        if not check:
-            os.remove(path)
-    wfiles, wdirs = windows(R, po, shared)
+    wfiles = windows(R, po, shared)
     files.update(wfiles)
-    for path in sorted(set(glob.glob(os.path.join(GENW, '*', '*.lean'))) - set(wfiles)):
-        stale.append(path)
-        if not check:
-            os.remove(path)
-    for d in sorted(set(glob.glob(os.path.join(GENW, '*'))) - wdirs):
-        if not check:
-            os.rmdir(d)
-    for path in sorted(set(glob.glob(os.path.join(GEN, '*', 'DataC.lean'))) - set(files)):
-        stale.append(path)
-        if not check:
-            os.remove(path)
     jt_sym(files)
-    for path, text in sorted(files.items()):
-        old = open(path, encoding='utf-8').read() if os.path.exists(path) else None
-        if old != text:
-            stale.append(path)
-            if not check:
-                os.makedirs(os.path.dirname(path), exist_ok=True)
-                open(path, 'w', encoding='utf-8').write(text)
+    import glob
+    have = (glob.glob(os.path.join(GEN, '*', 'Sig.lean')) + glob.glob(os.path.join(GEN, 'HcSig.lean')) +
+            glob.glob(os.path.join(GENW, '*', '*.lean')) + glob.glob(os.path.join(GEN, '*', 'DataC.lean')))
+    stale = genfiles.sync(files, have, check)
     print('callc: %d functions, %d files, %d lines' % (len(R), len(files), sum(t.count('\n') for t in files.values())) +
           ((', stale: %d' % len(stale)) if check else ''))
-    if check and stale:
-        sys.exit(1)
+    genfiles.fail_if_stale(stale, check)
 
 
 if __name__ == '__main__':
-    if '--emit' in ARGV:
-        R, _ = results(True)
-        emit(R, '--check' in ARGV)
-    elif '--fn' in ARGV:
-        k = ARGV[ARGV.index('--fn') + 1]
+    if '--emit' in sys.argv:
+        R, _ = results('why' if '--why' in sys.argv else True)
+        emit(R, '--check' in sys.argv)
+    elif '--fn' in sys.argv:
+        k = sys.argv[sys.argv.index('--fn') + 1]
         I.F.clear()
         I.F.update({'ptr', 'pfr'})
         try:

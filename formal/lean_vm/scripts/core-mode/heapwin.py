@@ -1,17 +1,16 @@
 """The kernel's heap check of a function in windows (`CoreMode/HeapCWin.lean` for a loop helper, `HeapCWinF.lean`
 otherwise): the one `decide` of `heapOkC` would run past the default heartbeats or the memory a module may take.
 
-The certificate is `emitc.py`'s (`GenC/<pack>/Data.lean`, its `hcert`); `emitc.py` windows `KERNEL_WIN` and every
-function whose check `fn_cost` estimates above `BUDGET` thousand heartbeats. The statements are cut between top-level
-statements, each window estimated at most `WIN` and at most `ATOMS` atoms; a window that is one `match` and still over
-`WIN` is checked by windows of its arms (`HeapCWinM.lean`). `heapc.py`'s pass (the check in Python, step for step)
-gives the state at each cut, written as data over the previous state (`Lits.lstate`: each trie `insL` of its new
-entries over the previous state's trie, the pass only adding entries; the lists the previous state's plus what is new;
-values, runs, arms and cells' bases that recur shared as `def`s). The windows cover a loop helper's body without its
-tail (`loopBody`), or a function's body before a last part that holds its first top-level `ret`. Per function, in
-`GenCW/<fn>/` (not under `GenC/`, whose files `emitc.py` owns):
+`callc.py` and `loopcc.py` window every certificate whose check `fn_cost` estimates above `BUDGET` thousand heartbeats
+(`one`). The statements are cut between top-level statements, each window estimated at most `WIN` and at most `ATOMS`
+atoms; a window that is one `match` and still over `WIN` is checked by windows of its arms (`HeapCWinM.lean`).
+`heapc.py`'s pass (the check in Python, step for step) gives the state at each cut, written as data over the previous
+state (`Lits.lstate`: each trie `insL` of its new entries over the previous state's trie, the pass only adding entries;
+the lists the previous state's plus what is new; values, runs, arms and cells' bases that recur shared as `def`s). The
+windows cover a loop helper's body without its tail (`loopBody`), or a function's body before a last part that holds
+its first top-level `ret`. Per function, in `GenW/<fn>/` (`callc.py`) or `GenWL/<fn>/` (`loopcc.py`):
 
-* `Cx.lean` (parts `CxD<j>`, equations `CxH<j>` if long): `sigW` (the callees' signatures, as `emitc.py` writes
+* `Cx.lean` (parts `CxD<j>`, equations `CxH<j>` if long): `sigW` (the callees' signatures as `CFun.sigOf` reads
   them); each trie `cxOf` builds from the certificate as a literal of its shape whose entries are positions of the
   certificate's lists (`nthO`, `lrefs`: nothing restated), `hcx<field>` its equation (one `decide +kernel`); the
   context `cxL` and `hcx : cxOf .. = cxL` (`cxOf_lit`), so that no window builds the tries (each window's proof
@@ -23,35 +22,23 @@ tail (`loopBody`), or a function's body before a last part that holds its first 
   `arms<i>_<t> : armsOkW ..` (the arms' summaries `sum<i>_<t>`) and `W<i>` the join (`joinOk`) and `win<i>` by
   `winOk_of_arms` (`winOkF_of_arms`);
 * `Ok.lean`: `head_ok`, `tail_ok` (a function: `last_ok`, the statements from the last cut on) and
-  `Fn.«fn».heap_okC : heapOkC pows sigOf core hcert = true` (the statement `emitc.py` writes for the other
-  functions), by `heapOkC_of_wins` (`heapOkC_of_winsF`).
-
-The core route's certificates (`callc.py`, `Gen/<pack>/DataC.lean`) are windowed the same way (`one`, with `gen`):
-`GenW/<fn>/`, at the callees' signatures `csigs` as `CFun.sigOf` reads them, the windows' namespace `HeapWG`, the
-check `Fn.«fn».heap_okW`.
-
-usage (from formal/lean_vm, `CORE_MODE_CACHE` set): python3 -I scripts/core-mode/heapwin.py [--fn NAME,..]
-  [--budget N] [--out DIR] [--check] [--mods FILE]. `emitc.py` runs it for the functions it windows (`run`), so its
-  `--check` and `--mods` cover these modules too.
+  `Fn.«fn».heap_okW`, the check at the callees' signatures, by `heapOkC_of_wins` (`heapOkC_of_winsF`), which
+  `core.py`'s `heap_okC` takes.
 """
 import sys, os, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-argv = list(sys.argv)
-sys.argv = sys.argv[:1]
 import infer as I
 import heapc as C
 import emitc as E
 
-GUEST = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
-FNS = ['main_loop2']
 # atoms per window: the kernel's memory grows with the atoms a window's pass and ghost check go through; the default
-# keeps a window of `main_loop2` within the 7.5 GB a module may take (measured: `m2-heap.md`)
+# keeps a window of `main_loop2` within the memory a module may take
 ATOMS = 15000
 # The kernel's work, in thousands of heartbeats (the heartbeat limit's unit), estimated from `heapc.py`'s pass: per
 # line it executes (`Meter`), per atom (the ghost check), per character of the certificate (the context's tries), per
 # frame run cell and top-level statement (`faOk`), per trie entry or list element of a window's states (comparing the
-# end state). Fitted to the measured heartbeats of the 1532 one-piece checks and of the windows.
+# end state). Fitted to the measured heartbeats of the one-piece checks and of the windows.
 W_LINE, W_ATOM, W_CERT, W_FA, W_ENT = 0.2, 15, 0.02, 0.4, 0.5
 # a check estimated above `BUDGET` is windowed, each window estimated at most `WIN` (the default limit is 200000)
 BUDGET, WIN = 90000, 100000
@@ -478,10 +465,6 @@ def repack(text):
     return '\n'.join(out)
 
 
-def sig_lam(k, names):
-    return E.sig_text([f'| "{n}" => Fn.«{I.callee(n)}».hcert.sig' for n in sorted(names) if I.callee(n) in I.CORE])
-
-
 def emit_arms(k, i, a, split, blk, ns, base, imps, sub='HeapW', smod=None):
     """The arm windows of window `i`, the `match` at statement `a`: `[(name, text)]`, module `W<i>A<t>` holding the
     summaries `sum<i>_<t>` of its arms and `arms<i>_<t> : armsOkW ..`."""
@@ -587,19 +570,14 @@ def wprf(d):
     return f'by\n  simp only [{d}, withCx_cx hcx]\n  decide +kernel'
 
 
-def emit(k, H, sts, cs, names, po, splits={}, gen=None):
-    """The modules of one function: `[(name, text)]`. `gen`: for the core route's certificates (`gen_run`), a dict
-    of `root` (the modules' prefix), `sub` (the namespace under the function's), `data` (the certificate's
-    modules), `sigw` (the callees' signatures, as Lean) and `final` (the name of the heap check's theorem)."""
+def emit(k, H, sts, cs, po, splits, gen):
+    """The modules of one function: `[(name, text)]`. `gen`, a dict of `root` (the modules' prefix), `sub` (the
+    namespace under the function's), `data` (the certificate's modules), `sigw` (the callees' signatures, as Lean),
+    `final` (the name of the heap check's theorem) and `pre` (its precondition's name, default `sig_pre`)."""
     pack, core_mod = po[k][0], po[k][1]
-    cal = sorted({I.callee(n) for n in names} & set(I.CORE))
-    data = sorted({f'LeanVM.Guest.CoreMode.GenC.«{po[c][0]}».Data' for c in cal + [k]})
-    gen = gen or {}
-    data = gen.get('data', data)
-    sub = gen.get('sub', 'HeapW')
-    sigw = gen.get('sigw') or sig_lam(k, names)
+    data, sub, sigw = gen['data'], gen['sub'], gen['sigw']
     ns = f'LeanVM.Guest.Fn.«{k}»'
-    base = f'{gen.get("root", "LeanVM.Guest.CoreMode.GenCW")}.«{k}»'
+    base = f'{gen["root"]}.«{k}»'
     mods = []
     loop = is_loop(H)
     nw = len(cs) - 1 if loop else len(cs) - 2      # a function's last chunk is `lastOkF`'s
@@ -736,7 +714,7 @@ def emit(k, H, sts, cs, names, po, splits={}, gen=None):
     lst = ', '.join(f'({cs[i]}, {sub}.st{i})' for i in range(1, n + 1))
     wins = ''.join(f'{sub}.win{i}, by omega,\n    ' for i in range(n))
     thm, last = ('heapOkC_of_wins', 'tail_ok') if loop else ('heapOkC_of_winsF', 'last_ok')
-    ok += (f'/-- `{k}`: the heap check, in {n} windows. -/\ntheorem {gen.get("final", "heap_okC")} : CoreMode.heapOkC Fn.«{k}».pows\n'
+    ok += (f'/-- `{k}`: the heap check, in {n} windows. -/\ntheorem {gen["final"]} : CoreMode.heapOkC Fn.«{k}».pows\n'
            f'    {sigw}\n    core hcert = true :=\n'
            f'  CoreMode.{thm} (l := [{lst}]) {sub}.head_ok\n    {f"⟨{wins}trivial⟩" if n else "trivial"} rfl '
            f'{sub}.{last}\n')
@@ -745,7 +723,7 @@ def emit(k, H, sts, cs, names, po, splits={}, gen=None):
     return mods
 
 
-def one(k, H, sigOf, names, po, budget=None, gen=None):
+def one(k, H, sigOf, po, gen, budget=None):
     """The windowed modules of one function's certificate `H` at its callees' signatures `sigOf`: `[(name, text)]`."""
     sts, costs, P = states(k, H, sigOf)
     pre = region(k, H)
@@ -771,59 +749,4 @@ def one(k, H, sigOf, names, po, budget=None, gen=None):
     print(f'{k}: {len(pre)} statements, {sum(na)} atoms, estimated {sum(costs):.0f}k heartbeats; {nw} windows'
           f'{f" ({len(splits)} split by arms)" if splits else ""}, the largest {max(w)[0]:.0f}k '
           f'({max(x[1] for x in w)} atoms)')
-    return emit(k, H, sts, cs, names, po, splits, gen)
-
-
-def write(mods, root, k, out, check):
-    """Write (or compare, `check`) one function's modules under `out/<k>/`: `(module names, stale paths)`."""
-    stale, names = [], []
-    for name, text in mods:
-        path = os.path.join(out, k, name + '.lean')
-        names.append(f'{root}.«{k}».{name}')
-        if check:
-            if not os.path.exists(path) or open(path, encoding='utf-8').read() != text:
-                stale.append(path)
-        else:
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            with open(path, 'w', encoding='utf-8') as fh:
-                fh.write(text)
-    return names, stale
-
-
-def run(res, built, fns, out, budget=None, check=False):
-    """The windowed modules of `fns` from `emitc.build`'s result `built`, written under `out` (or compared, `check`):
-    `(modules, stale paths)`. `emitc.py` calls this for its `KERNEL_WIN` functions."""
-    sigs, certs, why, drops, stmt_names, stats = built
-    po = E.pack_of()
-    stale, mods = [], []
-    for k in fns:
-        if k in why:
-            sys.exit(f'{k}: the Python check fails: {why[k][:3]}')
-        H = certs[k]
-        ms = one(k, H, lambda g: sigs.get(I.callee(g), C.EMPTY), stmt_names[k], po, budget)
-        m, st = write(ms, 'LeanVM.Guest.CoreMode.GenCW', k, out, check)
-        mods += m
-        stale += st
-    return mods, stale
-
-
-def main():
-    fns = argv[argv.index('--fn') + 1].split(',') if '--fn' in argv else FNS
-    budget = int(argv[argv.index('--budget') + 1]) if '--budget' in argv else None
-    out = argv[argv.index('--out') + 1] if '--out' in argv else os.path.join(GUEST, 'CoreMode', 'GenCW')
-    I.F.difference_update(E.OFF)
-    I.set_features(argv)
-    res, dt = I.run_all()
-    print(f'inferred {len(res)} functions in {dt:.1f} s')
-    mods, stale = run(res, E.build(res, set(fns)), fns, out, budget, '--check' in argv)
-    if '--mods' in argv:
-        with open(argv[argv.index('--mods') + 1], 'w') as fh:
-            fh.write('\n'.join(mods) + '\n')
-    if '--check' in argv:
-        print('checked: ' + (f'{len(stale)} stale: {stale[:5]}' if stale else 'up to date'))
-        if stale:
-            sys.exit(1)
-
-
-if __name__ == '__main__':
-    main()
+    return emit(k, H, sts, cs, po, splits, gen)
