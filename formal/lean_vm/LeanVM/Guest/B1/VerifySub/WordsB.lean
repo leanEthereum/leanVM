@@ -7,9 +7,8 @@
 
 module
 
-public import LeanVM.Guest.B1.Tables.VtC.Calls
-public import LeanVM.Guest.B1.Tables.VtC.Kids
-public import LeanVM.Guest.B1.Gkr.GlCLayers
+public import LeanVM.Guest.B1.Tables.VtWords
+public import LeanVM.Guest.B1.Gkr.VbgWords
 public import LeanVM.Guest.Budget.Static
 public import LeanVM.Guest.Memory.LoopPre
 public import LeanVM.Guest.B1.Terminal.TermWeight
@@ -37,26 +36,6 @@ open LeanVM.Node LeanVM.Guest.Memory
 
 @[expose] public section
 
-/-! ## The maxima -/
-
-/-- The largest of a list. -/
-def lmax (l : List ℕ) : ℕ := l.foldl max 0
-
-theorem foldl_max_ge : ∀ (l : List ℕ) (a : ℕ), a ≤ l.foldl max a ∧ ∀ x ∈ l, x ≤ l.foldl max a
-  | [], _ => ⟨le_rfl, fun _ h => by simp at h⟩
-  | y :: l, a => by
-    obtain ⟨h1, h2⟩ := foldl_max_ge l (max a y)
-    refine ⟨le_trans (le_max_left a y) h1, fun x hx => ?_⟩
-    rcases List.mem_cons.mp hx with rfl | hx
-    · exact le_trans (le_max_right a x) h1
-    · exact h2 x hx
-
-theorem le_lmax {l : List ℕ} {x : ℕ} (h : x ∈ l) : x ≤ lmax l := (foldl_max_ge l 0).2 x h
-
-theorem le_lmax2 (f : ℕ → ℕ → ℕ) {A B a b : ℕ} (ha : a < A) (hb : b < B) :
-    f a b ≤ lmax ((List.range A).flatMap fun a ↦ (List.range B).map (f a)) :=
-  le_lmax (List.mem_flatMap.2 ⟨a, List.mem_range.2 ha, List.mem_map.2 ⟨b, List.mem_range.2 hb, rfl⟩⟩)
-
 /-! ## The statically bounded callees -/
 
 /-- `squeeze_point_from`'s arms, by the stack log `20 .. 30`. -/
@@ -82,35 +61,20 @@ theorem le_armMax (K : String → ℕ) {names : List String} {f : String} (h : f
 /-! ## The words facts -/
 
 /-- **`verify_sub`'s callees' words facts**, at the frame sizes `fs`: `g_power_of_word`'s (`Bg`),
-the statically bounded callees' (`Kst`), `verify_bus_gkr`'s radix-four layers' tree (`KL`, on its
-dispatch's arguments) and its loop (`K8`),
-`verify_tables`' callees (`Kf`, `Ksh`, `K10`), `ring_switch_target`'s loop (`B14`),
+the statically bounded callees' (`Kst`), `verify_bus_gkr`'s and `verify_tables`' words interfaces (`vbg`,
+`vt`), `ring_switch_target`'s loop (`B14`),
 the terminal's pure callees (`Beqc`,
 `K15`, `Bcs`, `Brs`) — a loop's words per iteration, its run's one phantom frame charged once by the
 `TotalLeOn … LoopPre` fact; and, at the weights `ωv op` (an opcode's instructions per frame), the
-weights of `verify_tables`' callees (`Kvw`, `Wss`, `Kw10`) and of the terminal's (`Weqc`, `W15`,
+weights interface of `verify_tables` (`vtW`) and the weights of the terminal's callees (`Weqc`, `W15`,
 `Wst`, `Wcs`, `Wrsw`), which bound those two callees' trees (`vtWB`, `termWB`). -/
 structure VsWords (fs : String → ℕ) : Type where
   Bg : ℕ
   hg : TotalLe coreProgram fs "g_power_of_word" fun _ ↦ Bg
   Kst : String → ℕ
   hst : ∀ g ∈ vsStaticS, TotalLe coreProgram fs g fun _ ↦ Kst g
-  KL : ℕ
-  K8 : ℕ
-  hL : ∀ o < 2, TotalLeOn coreProgram fs (Tables.glcLsN o)
-    (fun a ↦ ∃ n ≤ 3, ∃ r < 4, a.getD 3 0 = gen ^ n ∧ a.getD 4 0 = gen ^ r) (fun _ ↦ KL)
-  h8 : TotalLeOn coreProgram fs name% «verify_bus_gkr_loop0» LoopPre (fun a ↦ logG (a.getD 1 0) *
-      K8 + fs name% «verify_bus_gkr_loop0»)
-  Kf : String → ℕ
-  Ksh : ℕ
-  K10 : ℕ
-  hKf : ∀ g ∈ Tables.vtKidS, g ≠ name% «verify_tables_loop0» →
-      g ≠ name% «shared_selector_tables_loop0» → g ≠ "shared_selector_tables" →
-    TotalLe coreProgram fs g (fun _ ↦ Kf g)
-  hsh : TotalLeOn coreProgram fs "shared_selector_tables"
-    (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh)
-  h10 : TotalLeOn coreProgram fs name% «verify_tables_loop0» LoopPre (fun a ↦ logG (a.getD 1 0) *
-      K10 + fs name% «verify_tables_loop0»)
+  vbg : Tables.VbgWords fs
+  vt : Tables.VtWords fs
   B14 : ℕ
   hl14 : TotalLeOn coreProgram fs name% «ring_switch_target_loop0» (fun a ↦ a.getD 0 0 = 1) fun _ ↦
       B14
@@ -125,16 +89,7 @@ structure VsWords (fs : String → ℕ) : Type where
   hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a ↦ a.getD 3 0 = gen ^ c)
     fun _ ↦ Brs
   ωv : Opcode → String → ℕ
-  Kvw : Opcode → String → ℕ
-  Wss : Opcode → ℕ
-  Kw10 : Opcode → ℕ
-  hKvw : ∀ op, ∀ g ∈ Tables.vtKidS, g ≠ name% «verify_tables_loop0» →
-      g ≠ name% «shared_selector_tables_loop0» → g ≠ "shared_selector_tables" →
-    WeightLe coreProgram (ωv op) g (fun _ ↦ Kvw op g)
-  hssw : ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "shared_selector_tables" →
-    (∃ n < 64, args.getD 5 0 = gen ^ n) → t.Valid coreProgram rd args rets →
-    t.BufsOk coreProgram → t.weight (ωv op) ≤ Wss op
-  h10w : ∀ op, Budget.LoopW (ωv op) name% «verify_tables_loop0» (Kw10 op)
+  vtW : Tables.VtWeights ωv
   Weqc : Opcode → ℕ
   W15 : Opcode → ℕ
   Wst : Opcode → ℕ
@@ -154,9 +109,9 @@ structure VsWords (fs : String → ℕ) : Type where
 
 /-! ## The bounds -/
 
-/-- **`verify_tables`' weight bound** at `W.ωv op`: its frame's and its calls' (`vtBs`). -/
+/-- **`verify_tables`' weight bound** at `W.ωv op`. -/
 noncomputable def vtWB {fs : String → ℕ} (W : VsWords fs) (op : Opcode) : ℕ :=
-  W.ωv op "verify_tables" + (Tables.vtBs (W.Kvw op) (W.Wss op) (32 * W.Kw10 op)).sum
+  Tables.vtWeightB W.vtW op
 
 /-- **The terminal's weight bound** at `W.ωv op`: its frame's and its calls' (`termWs`). -/
 noncomputable def termWB {fs : String → ℕ} (W : VsWords fs) (op : Opcode) : ℕ :=

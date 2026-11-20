@@ -67,7 +67,7 @@ theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget deployedBvA
       exact (vsBoundAt_eq_deployedBvAt h1 h2 h3 h4).le
 
 /-- The largest child's words. -/
-kernel_lit deployedBvMax : ℕ := Count.vsFixed + B1.VerifySub.lmax Count.osCs
+kernel_lit deployedBvMax : ℕ := Count.vsFixed + B1.lmax Count.osCs
 
 theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ deployedBvMax := by
   rw [← deployedBvMax_eq]
@@ -77,19 +77,19 @@ theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ deployedBvMax := by
     rw [List.getD_eq_getElem?_getD]
     cases hi : Count.osCs[μ - 20]? with
     | none => exact Nat.zero_le _
-    | some x => exact B1.VerifySub.le_lmax (List.mem_of_getElem? hi)
+    | some x => exact B1.le_lmax (List.mem_of_getElem? hi)
   · exact Nat.zero_le _
 
 /-- `verify_sub`'s instructions of opcode `op` at its opening arms. -/
 def childList (op : LeanVM.Parameters.Opcode) : List ℕ := (List.range 11).map fun m ↦ (Count.deployedInstrs op).childShape (m + 20) 1
 
 /-- The largest of `verify_sub`'s instructions of each opcode over its opening arms (`Fits.childMax`). -/
-kernel_lit cmXor : ℕ := B1.VerifySub.lmax (childList .xor)
-kernel_lit cmMul : ℕ := B1.VerifySub.lmax (childList .mulNative)
-kernel_lit cmSet : ℕ := B1.VerifySub.lmax (childList .setConstant)
-kernel_lit cmDeref : ℕ := B1.VerifySub.lmax (childList .deref)
-kernel_lit cmJump : ℕ := B1.VerifySub.lmax (childList .jump)
-kernel_lit cmKeccak : ℕ := B1.VerifySub.lmax (childList .keccak)
+kernel_lit cmXor : ℕ := B1.lmax (childList .xor)
+kernel_lit cmMul : ℕ := B1.lmax (childList .mulNative)
+kernel_lit cmSet : ℕ := B1.lmax (childList .setConstant)
+kernel_lit cmDeref : ℕ := B1.lmax (childList .deref)
+kernel_lit cmJump : ℕ := B1.lmax (childList .jump)
+kernel_lit cmKeccak : ℕ := B1.lmax (childList .keccak)
 
 end
 end LeanVM.Guest.Budget

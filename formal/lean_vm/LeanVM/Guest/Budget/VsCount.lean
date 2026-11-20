@@ -47,11 +47,11 @@ open LeanVM.Guest.Count
 
 /-- `squeeze_point_from`'s arms' instructions of `op`, the largest (`vsStNames` `8 .. 18`). -/
 def vsSqMax (op : Opcode) : ℕ :=
-  B1.VerifySub.lmax ((List.range 11).map fun j ↦ (kcVsStT op).getD (8 + j) 0)
+  B1.lmax ((List.range 11).map fun j ↦ (kcVsStT op).getD (8 + j) 0)
 
 /-- `bus_grind_check`'s arms' instructions of `op`, the largest (`vsStNames` `19 .. 32`). -/
 def vsBgMax (op : Opcode) : ℕ :=
-  B1.VerifySub.lmax ((List.range 14).map fun j ↦ (kcVsStT op).getD (19 + j) 0)
+  B1.lmax ((List.range 14).map fun j ↦ (kcVsStT op).getD (19 + j) 0)
 
 /-- **The callees' instructions of `op`** at the arm `c`, the two ratio-bounded ones within
 the words `Bs`. -/
@@ -205,11 +205,11 @@ theorem busGrindName_eq {j : ℕ} (hj : j < 14) :
   interval_cases j <;> rfl
 
 theorem le_vsSqMax (op : Opcode) {j : ℕ} (hj : j < 11) : (kcVsStT op).getD (8 + j) 0 ≤ vsSqMax op :=
-  B1.VerifySub.le_lmax (List.mem_map.2 ⟨j, List.mem_range.2 hj, rfl⟩)
+  B1.le_lmax (List.mem_map.2 ⟨j, List.mem_range.2 hj, rfl⟩)
 
 theorem le_vsBgMax (op : Opcode) {j : ℕ} (hj : j < 14) :
     (kcVsStT op).getD (19 + j) 0 ≤ vsBgMax op :=
-  B1.VerifySub.le_lmax (List.mem_map.2 ⟨j, List.mem_range.2 hj, rfl⟩)
+  B1.le_lmax (List.mem_map.2 ⟨j, List.mem_range.2 hj, rfl⟩)
 
 /-- **`verify_sub`'s instructions of `op`**: a node of B1-d's shape at `Count.vsWordsOs` (`vsTs`)
 weighs at most its frame's weight and `vsWs op (μ - 20) (vsBsAt vsWordsOs Bvk μ r)`. -/
@@ -268,7 +268,7 @@ theorem vsWs_mono (op : Opcode) (c : ℕ) {Bs Bs' : List ℕ} (h9 : Bs.getD 9 0 
 words: at most `vsCountT op` at the arm `μ - 20`. -/
 theorem vs_weight_le_vsTs (op : Opcode) {Bvk μ r d : ℕ} (hμ1 : 20 ≤ μ) (hμ2 : μ ≤ 30)
     (hd : d < 14)
-    (h5 : B1.VerifySub.vbgMax B2C.fs vsWords.KL vsWords.K8 ≤ 39767) (h7 : Bvk ≤ 56404)
+    (h5 : B1.Tables.vbgMax B2C.fs vsWords.vbg ≤ 39767) (h7 : Bvk ≤ 56404)
     {rd : Reader} {t : Tree} {args rets : List E}
     (h : FlatShape coreProgram "verify_sub" (B1.VerifySub.vsTs B2C.fs vsWordsOs Bvk μ r d) t)
     (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :

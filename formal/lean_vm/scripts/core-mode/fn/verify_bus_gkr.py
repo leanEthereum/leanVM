@@ -16,6 +16,7 @@ CONTRACTS = {'verify_bus_gkr_loop0': sig(
 
 # its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
 OWN = [
+    'LeanVM/Guest/Count/Fn/verify_bus_gkr.lean',
     'LeanVM/Guest/B1/Gkr/**',
     'LeanVM/Guest/B1/Sumcheck/Gkr.lean',
     'LeanVM/Guest/CoreMode/Fam/ResGkr*.lean',

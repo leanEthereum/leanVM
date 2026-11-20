@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.WordsB
-public import LeanVM.Guest.B1.Gkr.VbgBound
 public import LeanVM.Guest.B1.Place.OsSpec
 public import LeanVM.Guest.B1.Terminal.KidsDepBP
 public import LeanVM.Guest.B1.Placement.CertifyAt
@@ -26,7 +25,7 @@ sixteen callees' bounds, in call order (`fn% «verify_sub»`): two `g_power_of_w
 `grind_check__L15`, the `squeeze_point_from` dispatch, `opening_message__L1_L1`, the
 `bus_grind_check` dispatch, `verify_bus_gkr`, `verify_tables`, `verify_keccak`, `grind_check__L13`,
 `ring_switch_target`, the `open_stacked` dispatch and the terminal; the maxima over the honest
-children's depths (`vbgMax`, `vtMax`, `osMax`) or a dispatch's arms (`armMax`, `busGrindMax`: an
+children's depths (`Tables.vbgMax`, `Tables.vtMax`, `osMax`) or a dispatch's arms (`armMax`, `busGrindMax`: an
 arm's frame and its `grind_check`'s) where a callee's bound depends on them. `vsBound W Bvk = fs "verify_sub" + 8710 + (vsBs W Bvk).sum`: the frame,
 the own buffers (`8679 + d` words, `d ≤ 31`) and the callees. `vsNames μ r d`, `vsTs`: the
 callees' names (the squeeze's arm at the stack log `μ`, the bus grind's at the depth `d`,
@@ -43,20 +42,6 @@ open LeanVM.Node LeanVM.Guest.Memory
 @[expose] public section
 
 /-! ## The bounds -/
-
-/-- `verify_bus_gkr`'s bound over the depths below `32`. -/
-@[irreducible] noncomputable def vbgMax (fs : String → ℕ) (KL K8 : ℕ) : ℕ :=
-  lmax ((List.range 32).map (Tables.vbgBound fs KL K8))
-
-/-- `verify_tables`' bound at the bus depth `m` and the largest height `n`. -/
-noncomputable def vtBnd (fs : String → ℕ) (Kf : String → ℕ) (Ksh K10 m n : ℕ) : ℕ :=
-  fs "verify_tables" + (3875 + m + 9 * (n + 1)) +
-    ((Tables.vtBs Kf Ksh (Tables.vtRunB fs K10 n)).sum +
-      Tables.ifFrames fs Tables.vtPre)
-
-/-- `verify_tables`' bound over the depths below `32` and the heights below `31`. -/
-@[irreducible] noncomputable def vtMax (fs : String → ℕ) (Kf : String → ℕ) (Ksh K10 : ℕ) : ℕ :=
-  lmax ((List.range 32).flatMap fun m ↦ (List.range 31).map (vtBnd fs Kf Ksh K10 m))
 
 /-- `open_stacked`'s bound over its arms (stack logs `20 .. 30`). -/
 @[irreducible] noncomputable def osMax (fs Bnd : String → ℕ) : ℕ :=
@@ -81,7 +66,7 @@ noncomputable def vsBsWith {fs : String → ℕ} (W : VsWordsOs fs) (Bvk os : �
     fs "certify_placement" + Tables.cpSizes.sum,
     fs "log2_ceil_in_the_exponent__L16_L34" + 2 * fs "assert_small_g_power",
     W.Kst "grind_check__L15", armMax W.Kst squeezeNames, W.Kst "opening_message__L1_L1",
-    busGrindMax fs, vbgMax fs W.KL W.K8, vtMax fs W.Kf W.Ksh W.K10, Bvk,
+    busGrindMax fs, Tables.vbgMax fs W.vbg, Tables.vtMax fs W.vt, Bvk,
     W.Kst "grind_check__L13", fs "ring_switch_target" + 72 + W.B14, os,
     termBound fs W.Beqc W.K15 W.Bcs W.Brs]
 

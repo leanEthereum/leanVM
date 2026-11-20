@@ -319,6 +319,8 @@ def vt_perm(k, r):
 
 # its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
 OWN = [
+    'LeanVM/Guest/B1/Tables/VtWords*.lean',
+    'LeanVM/Guest/Count/Fn/verify_tables.lean',
     'LeanVM/Guest/B1/Tables/Vt/**',
     'LeanVM/Guest/B1/Tables/VtC/**',
     'LeanVM/Guest/B1/Tables/Kids/**',
