@@ -16,16 +16,16 @@ public import LeanVM.Guest.CoreData
 
 `verify_bus_gkr_loop0`'s body is the core IR's (`(fn% «verify_bus_gkr_loop0»).body`); its arguments
 are `[x, bound, start_g, layers, tabs, rounds, claim, odd_g, g_bus_mu, k_mod_next]`. From the layer
-slot at `layers·x_layer^13`, `x_layer = x²·start_g`: the combiner's permutation over the slot's
-capacity, nothing waiting (a grind of `0` bits), the first round record, the rounds
-(`verify_bus_gkr_loop0_loop0`, then `gkr_rounds__L{2r}` at `r = k % 4`, then `gkr_rounds__L1` at an
-odd depth), the twelve children read, their check, the two new coordinates squeezed, and the next
-slot `26` words on.
+record at `layers·x^13` (a record of `13` words per radix-four layer, the root-most's at `0`): the
+combiner's permutation over the record's capacity, nothing waiting (a grind of `0` bits), the
+first round record (`7` words at `rounds·pos`), the rounds (`verify_bus_gkr_loop0_loop0`, then
+`gkr_rounds__L{2r}` at `r = k % 4`, then `gkr_rounds__L1` at an odd depth), the twelve children
+read, their check, the two new coordinates squeezed, and the next layer record `13` words on.
 
-At `x = g^j` and `start_g = g^(2 - sh)`, `sh` the depth's parity, the slot is that of point length
-`L = 2j + 2 - sh = 2k + sh`, `k = j + 1 - sh` its radix-four index, whose `half = g^(k / 4)` and
-`parity = g^(k % 4)` count its `L` rounds: eight per `verify_bus_gkr_loop0_loop0` iteration, two per
-`parity` step, and one at an odd depth.
+At `x = g^j` and `start_g = g^(2 - sh)`, `sh` the depth's parity, the record is that of point
+length `L = 2j + 2 - sh = 2k + sh`, `k = j + 1 - sh` its radix-four index, whose `half = g^(k / 4)`
+and `parity = g^(k % 4)` count its `L` rounds: eight per `verify_bus_gkr_loop0_loop0` iteration,
+two per `parity` step, and one at an odd depth.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -59,7 +59,7 @@ theorem lyFound : ∃ fn : Fn, coreProgram.find? name% «verify_bus_gkr_loop0» 
   · exact absurd h (by simp)
 
 /-- `verify_bus_gkr_loop0`'s statements before its `ret`. -/
-noncomputable def lyPre : List Stmt := lyBody.take 189
+noncomputable def lyPre : List Stmt := lyBody.take 197
 
 theorem lyBody_eq : lyBody = lyPre ++ [.ret []] := tbStmtsEqb_sound (by decide +kernel)
 
@@ -67,17 +67,19 @@ theorem lyPre_noRet : Stmt.noRetList lyPre = true := by decide +kernel
 
 /-! ## The layer slot -/
 
-/-- **The slot of point length `L`** in `layers` (`LAYER_SLOTS = 13`): the carried capacity of the
-sponge `s`, nothing waiting, the cursor, the three trees' values, a row holding the point (of
-length `L`), the round position, `half` and `parity`. -/
+/-- **The layer record of point length `L`** in `layers` (`LAYER_SLOTS = 13` words, the record of
+layer `(L - 1) / 2`): the carried capacity of the sponge `s`, nothing waiting, the cursor, the
+three trees' values, a row holding the point (of length `L`), the round position, `half` and
+`parity`. -/
 def GkSlot (rd : Reader) (layers : E) (L : ℕ) (s : Fs) (cur : E) (st : GkrState)
     (row pos half parity : E) : Prop :=
-  s.cap.length = 5 ∧ (∀ j < 5, LoadHolds rd layers (13 * L + j) (s.cap.getD j 0)) ∧ s.pend = [] ∧
-    LoadHolds rd layers (13 * L + 5) cur ∧ st.values.length = 3 ∧
-    (∀ t < 3, LoadHolds rd layers (13 * L + 6 + t) (st.values.getD t 0)) ∧
-    LoadHolds rd layers (13 * L + 9) row ∧ st.point.length = L ∧ TbReadsAt rd row st.point ∧
-    LoadHolds rd layers (13 * L + 10) pos ∧ LoadHolds rd layers (13 * L + 11) half ∧
-    LoadHolds rd layers (13 * L + 12) parity
+  s.cap.length = 5 ∧ (∀ j < 5, LoadHolds rd layers (13 * ((L - 1) / 2) + j) (s.cap.getD j 0)) ∧
+    s.pend = [] ∧ LoadHolds rd layers (13 * ((L - 1) / 2) + 5) cur ∧ st.values.length = 3 ∧
+    (∀ t < 3, LoadHolds rd layers (13 * ((L - 1) / 2) + 6 + t) (st.values.getD t 0)) ∧
+    LoadHolds rd layers (13 * ((L - 1) / 2) + 9) row ∧ st.point.length = L ∧
+    TbReadsAt rd row st.point ∧ LoadHolds rd layers (13 * ((L - 1) / 2) + 10) pos ∧
+    LoadHolds rd layers (13 * ((L - 1) / 2) + 11) half ∧
+    LoadHolds rd layers (13 * ((L - 1) / 2) + 12) parity
 
 /-- The table `k_mod_next`: at `g^r`, `r < 4`, the next layer index's
 `g^((r + 1) % 4)`, and at `g^(4 + r)` its carry into `half`, `g^((r + 1) / 4)`. -/
@@ -152,43 +154,43 @@ section Sem
 
 variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
 
-/-- **The layer's head**: at `x = g^j` with `start_g = g^(2 - sh)`, the slot is at
-`layers·g^(13 L)`, `L = 2j + 2 - sh`; the combiner is the slot's sponge's challenge, and the first
-round record carries the sponge after it, the cursor and the combined claim. -/
+/-- **The layer's head**: at `x = g^j` with `start_g = g^(2 - sh)`, the layer record is at
+`layers·g^(13 j)`, of `L = 2j + 2 - sh`; the combiner is the record's sponge's challenge, and the
+first round record carries the sponge after it, the cursor and the combined claim. -/
 theorem ly_head (h : Stmt.HoldsList C rd σ lyPre True kret) {j sh : ℕ} (hx : σ (.n 0) = gen ^ j)
     (hsg : σ (.n 2) = gen ^ (2 - sh)) (hsh : sh < 2) {s : Fs} {cur : E} {st : GkrState}
     {row pos half parity : E}
     (hslot : GkSlot rd (σ (.n 3)) (2 * j + 2 - sh) s cur st row pos half parity) :
     σ (.n 10) = gen ^ (2 * j) ∧ σ (.n 11) = gen ^ (2 * j + 2 - sh) ∧
-      σ (.n 17) = σ (.n 3) * gen ^ (13 * (2 * j + 2 - sh)) ∧
+      σ (.n 17) = σ (.n 3) * gen ^ (13 * j) ∧
       σ (.n 29) = s.squeeze.1 ∧ σ (.n 45) = row ∧ σ (.n 46) = pos ∧
       σ (.n 47) = σ (.n 5) * pos ∧ σ (.n 52) = half ∧ σ (.n 53) = parity ∧
-      TbCapAt rd (σ (.n 47)) 0 gkCap s.squeeze.2.cap ∧
-      LoadHolds rd (σ (.n 47)) (5 * gkCap) cur ∧
-      LoadHolds rd (σ (.n 47)) (6 * gkCap) (polyEval st.values s.squeeze.1) := by
+      TbCapAt rd (σ (.n 47)) 0 1 s.squeeze.2.cap ∧
+      LoadHolds rd (σ (.n 47)) 5 cur ∧
+      LoadHolds rd (σ (.n 47)) 6 (polyEval st.values s.squeeze.1) := by
   have hnr := lyPre_noRet
   obtain ⟨hcl, hcap, hpe, hcur, hvl, hval, hrow, -, -, hpos, hhalf, hpar⟩ := hslot
   have a := fun n a heq => tb_holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr h n a heq
   have m10 := a 0 (.mul (.n 10) (.n 0) (.n 0)) (by decide +kernel)
   have m11 := a 1 (.mul (.n 11) (.n 10) (.n 2)) (by decide +kernel)
-  have m12 := a 2 (.mul (.n 12) (.n 11) (.n 11)) (by decide +kernel)
-  have m13 := a 3 (.mul (.n 13) (.n 12) (.n 11)) (by decide +kernel)
+  have m12 := a 2 (.mul (.n 12) (.n 0) (.n 0)) (by decide +kernel)
+  have m13 := a 3 (.mul (.n 13) (.n 12) (.n 0)) (by decide +kernel)
   have m14 := a 4 (.mul (.n 14) (.n 13) (.n 13)) (by decide +kernel)
   have m15 := a 5 (.mul (.n 15) (.n 14) (.n 14)) (by decide +kernel)
-  have m16 := a 6 (.mul (.n 16) (.n 15) (.n 11)) (by decide +kernel)
+  have m16 := a 6 (.mul (.n 16) (.n 15) (.n 0)) (by decide +kernel)
   have m17 := a 7 (.mul (.n 17) (.n 3) (.n 16)) (by decide +kernel)
   simp only [Atom.Holds] at m10 m11 m12 m13 m14 m15 m16 m17
   set L := 2 * j + 2 - sh with hL
   have e10 : σ (.n 10) = gen ^ (2 * j) := by rw [m10, hx, ← pow_add]; ring_nf
   have e11 : σ (.n 11) = gen ^ L := by
     rw [m11, e10, hsg, ← pow_add, show 2 * j + (2 - sh) = L by omega]
-  have e17 : σ (.n 17) = σ (.n 3) * gen ^ (13 * L) := by
-    rw [m17, m16, m15, m14, m13, m12, e11, ← pow_add, ← pow_add, ← pow_add, ← pow_add,
-      ← pow_add]
-    ring_nf
-  have ld : ∀ k w, LoadHolds rd (σ (.n 17)) k w ↔ LoadHolds rd (σ (.n 3)) (13 * L + k) w := by
-    intro k w; rw [e17, tb_loadHolds_mul_gen_pow]
-  -- the slot's capacity, the combiner's permutation
+  have e17 : σ (.n 17) = σ (.n 3) * gen ^ (13 * j) := by
+    rw [m17, m16, m15, m14, m13, m12, hx]
+    ring
+  have hj : (L - 1) / 2 = j := by omega
+  have ld : ∀ k w, LoadHolds rd (σ (.n 17)) k w ↔
+      LoadHolds rd (σ (.n 3)) (13 * ((L - 1) / 2) + k) w := by
+    intro k w; rw [e17, tb_loadHolds_mul_gen_pow, hj]
   have hcapL := tb_holds_slice hnr h 8 ((List.range 5).map fun k ↦
     Stmt.atom (.load (.n (18 + k)) (.n 17) k)) (by decide +kernel)
   rw [tb_holdsList_mapAtoms] at hcapL
@@ -221,12 +223,12 @@ theorem ly_head (h : Stmt.HoldsList C rd σ lyPre True kret) {j sh : ℕ} (hx : 
   have l47 := a 24 (.load (.n 46) (.n 17) 10) (by decide +kernel)
   have m48 := a 25 (.mul (.n 47) (.n 5) (.n 46)) (by decide +kernel)
   have l23 := a 13 (.load (.n 23) (.n 17) 5) (by decide +kernel)
-  have l23' := a 31 (.load (.n 23) (.n 47) 4310) (by decide +kernel)
+  have l23' := a 31 (.load (.n 23) (.n 47) 5) (by decide +kernel)
   have m49 := a 32 (.mul (.n 48) (.n 29) (.n 44)) (by decide +kernel)
   have a50 := a 33 (.add (.n 49) (.n 43) (.n 48)) (by decide +kernel)
   have m51 := a 34 (.mul (.n 50) (.n 29) (.n 49)) (by decide +kernel)
   have a52 := a 35 (.add (.n 51) (.n 42) (.n 50)) (by decide +kernel)
-  have l52 := a 36 (.load (.n 51) (.n 47) 5172) (by decide +kernel)
+  have l52 := a 36 (.load (.n 51) (.n 47) 6) (by decide +kernel)
   have l53 := a 37 (.load (.n 52) (.n 17) 11) (by decide +kernel)
   have l54 := a 38 (.load (.n 53) (.n 17) 12) (by decide +kernel)
   simp only [Atom.Holds] at l43 l44 l45 l46 l47 m48 l23 l23' m49 a50 m51 a52 l52 l53 l54
@@ -241,7 +243,7 @@ theorem ly_head (h : Stmt.HoldsList C rd σ lyPre True kret) {j sh : ℕ} (hx : 
   rw [e47] at m48
   -- the first record
   have hst := tb_holds_slice hnr h 26 ((List.range 5).map fun k ↦
-    Stmt.atom (.load (.n (37 + k)) (.n 47) (862 * k))) (by decide +kernel)
+    Stmt.atom (.load (.n (37 + k)) (.n 47) k)) (by decide +kernel)
   rw [tb_holdsList_mapAtoms] at hst
   simp only [Atom.Holds] at hst
   refine ⟨e10, e11, e17, e42, e46, e47, m48, e53, e54, ⟨by simp [Fs.squeeze, capOf], ?_⟩,
@@ -249,7 +251,7 @@ theorem ly_head (h : Stmt.HoldsList C rd σ lyPre True kret) {j sh : ℕ} (hx : 
   · intro k hk
     have hk5 : k < 5 := by simpa [Fs.squeeze, capOf] using hk
     have := hst k hk5
-    rw [show 0 + k * gkCap = 862 * k by unfold gkCap; ring]
+    rw [show 0 + k * 1 = k by ring]
     interval_cases k
     · rw [hP 8 (by omega)] at this; exact this
     · rw [hP 9 (by omega)] at this; exact this

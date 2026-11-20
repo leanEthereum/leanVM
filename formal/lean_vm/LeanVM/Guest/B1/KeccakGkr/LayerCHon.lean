@@ -17,7 +17,7 @@ the pack rounds' and the position rounds' messages, `t`). From them, on the run
 `verifyKeccakLayer` makes (`layerSq`, `layerPack`, `layerLocal`, `layerBeta`, `layerClaim`):
 
 * `run k`: the first `k` pack rounds (`packRunF`); `recWords cur`: the round records' buffer,
-  field `f` of record `j` at `16 f + j`, record `j` the state after `8j` rounds for
+  field `f` of record `j` at `11 f + j`, record `j` the state after `8j` rounds for
   `j ≤ ⌊y/8⌋` (the eight-round loop), then one round a record (the remainder loop) (`recK`);
 * `chs`, `locPt`, `beta`, `next`: the pack challenges, the local point, `β`, the next claim;
 * `outW`: the next claim's record (its pointers given); `rets cur`: the returns.
@@ -80,8 +80,8 @@ def recField (cur : E) (f j : ℕ) : E :=
   else (D.run first (D.recK j)).1.1
 
 /-- The records' buffer. -/
-def recWords (cur : E) : List E := (List.range 112).map fun i ↦
-  if i % 16 ≤ D.y / 8 + D.y % 8 then D.recField first cur (i / 16) (i % 16) else 0
+def recWords (cur : E) : List E := (List.range 77).map fun i ↦
+  if i % 11 ≤ D.y / 8 + D.y % 8 then D.recField first cur (i / 11) (i % 11) else 0
 
 /-- The pack rounds. -/
 def pack : (E × List E) × Fs := layerPack D.c (D.s0 first) D.product D.nonce D.packMsgs

@@ -15,8 +15,8 @@ public import LeanVM.Guest.WalkTags
 The preconditions not of the table's form (`Obl.Sig`) are relations between a function's arguments
 and memory, B1's (`WalkWindows.lean`, `WalkTags.lean`):
 
-* `gkr`: `verify_bus_gkr_loop0`, `GkrPar` on its `[layers, x, start_g, k_mod_next]` (arguments
-  `3, 0, 2, 9`): the parity words its dispatch reads;
+* `gkr`: `verify_bus_gkr_loop0`, `GkrPar` on its `[layers, x, k_mod_next]` (arguments
+  `3, 0, 9`): the parity words its dispatch reads;
 * `loop w`: a loop helper of `opening_queries` on `[x, N, positions, qptrs, …]`, the walk from `x`
   to `N` (`WinWalk2` at level `0`, `base = 1`, else `WinWalk`) on `qptrs` and `x ≠ N`;
 * `main w`: an `opening_queries` specialization, `OqMainWins` on its window pointers `qptrs`
@@ -59,7 +59,7 @@ def LoopWalk (rd : Reader) (w : WalkSpec) (t x N : E) : Prop :=
 
 /-- **What an `ext` function asks** of its argument words `a`. -/
 def XSpec.Holds (rd : Reader) (a : List E) : XSpec → Prop
-  | .gkr => GkrPar rd (a.getD 3 0) (a.getD 0 0) (a.getD 2 0) (a.getD 9 0)
+  | .gkr => GkrPar rd (a.getD 3 0) (a.getD 0 0) (a.getD 9 0)
   | .loop w => LoopWalk rd w (a.getD 3 0) (a.getD 0 0) (a.getD 1 0) ∧ a.getD 0 0 ≠ a.getD 1 0
   | .main w => OqMainWins rd w.d w.cd w.odd w.base (a.getD 6 0) (a.getD 7 0)
   | .lq n w => OqMainWins rd w.d w.cd w.odd w.base (a.getD 5 0) (gen ^ n)

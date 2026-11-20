@@ -26,7 +26,7 @@ A function's precondition names tuples of its frame cells in relations by tag:
 * `tagTabs = 2^21`: `WinTabs` on `[tabs]`, the window table `open_stacked__L{m}` takes as an
   argument (`lean_ethereum.py`), which its decodes and grinds read.
 
-* `tagGkr = 2^20`: `GkrPar` on `[layers, x, start_g, k_mod_next]`, `verify_bus_gkr`'s
+* `tagGkr = 2^20`: `GkrPar` on `[layers, x, k_mod_next]`, `verify_bus_gkr`'s
   radix-four layer loop `verify_bus_gkr_loop0` (`lean_ethereum.py`): the parity word
   `layer[g^LAYER_PARITY]` of layer `x` it dispatches on, and the table `k_mod_next` that steps it.
 * `lqTag n odd base d cd`, from `2^21`: `OqMainWins` on `[win_ptrs]` at `n_iters_g = g^n`, the
@@ -94,13 +94,13 @@ def lqSem (t : ℕ) (rd : Reader) (ws : List E) : Prop :=
 `open_stacked`'s window table `tabs`, which `verify_sub` hands it. -/
 def tagTabs : ℕ := 2 ^ 21
 
-/-- **`verify_bus_gkr_loop0`'s parity obligation** on `layers`, the iteration `x`, `start_g` and `k_mod_next`:
+/-- **`verify_bus_gkr_loop0`'s parity obligation** on `layers`, the iteration `x` and `k_mod_next`:
 `k_mod_next[g^r]`, `r < 4`, if read, is `g^e`, `e < 4`; and the parity word `layer[g^12]` of
-layer `x`, `layer = layers·(x²·start_g)^13` (`LAYER_SLOTS = 13`, `LAYER_PARITY = 12`), if read,
-is `g^e`, `e < 4`. -/
-def GkrPar (rd : Reader) (layers x startG kmn : E) : Prop :=
+layer `x`, `layer = layers·x^13` (a record of `LAYER_SLOTS = 13` words per radix-four layer,
+`LAYER_PARITY = 12`), if read, is `g^e`, `e < 4`. -/
+def GkrPar (rd : Reader) (layers x kmn : E) : Prop :=
   (∀ r < 4, ∀ v, LoadHolds rd kmn r v → ∃ e < 4, v = ofK (addressOfIndex e)) ∧
-    ∀ p, LoadHolds rd (layers * (x * x * startG) ^ 13) 12 p → ∃ e < 4, p = ofK (addressOfIndex e)
+    ∀ p, LoadHolds rd (layers * x ^ 13) 12 p → ∃ e < 4, p = ofK (addressOfIndex e)
 
 theorem walkTag_lt {kind odd d cd : ℕ} (hk : kind < 4) (ho : odd < 2) (hc : cd < 64) (hd : d < 64) :
     walkTag kind odd d cd < 2 ^ 16 := by
