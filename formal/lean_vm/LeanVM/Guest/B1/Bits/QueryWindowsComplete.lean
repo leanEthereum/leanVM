@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Bits.QueryWindowsHonest
 public import LeanVM.Guest.Exact.Defs
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«decode_query_windows__L»
 
 /-!
 # `decode_query_windows`, complete (`guests/lean_ethereum.py`)
@@ -103,7 +105,7 @@ def QwEnv.Ok (Q : QwEnv) (σ : Val) : Atom → Prop
       ∃ e < 128, σ q = Q.tabs * gen ^ e ∧ off = 0
   | .frameAddr q (r :: _) => r = .n r.idx ∧ 5 ≤ r.idx ∧ r.idx < 41 ∧ σ q = Q.run * gen ^ (r.idx - 5)
   | .frameAddr _ [] => False
-  | .hint (.windowsExp v start width count (.stack ds)) => v = .n 0 ∧
+  | .hint (.windowsExp v start width count (.stack ds)) => v = .n (valf% «decode_query_windows» "squeezed_word") ∧
       ds.map σ = (List.range count).map fun i ↦
         ofK (g ^ ((LeanVM.Prover.Exec.wordNat Q.word >>> (start + i * width)) % 2 ^ width))
   | .hint _ => False
@@ -256,7 +258,7 @@ theorem qw_tabs {n : ℕ} (hn : n < 128) : LoadHolds rd (Q.tabs * gen ^ n) 0 (eO
 /-! ## A window read -/
 
 theorem qwRead_complete {l : List E} {k : ℕ} (hl : l.length = k) {c : V} {start w n : ℕ}
-    (hw : w ≤ 7) (hn : n < 2 ^ w) (hnW : n = (eToNat Q.word >>> start) % 2 ^ w) (hpre : QwStab l fun σ ↦ σ c = gen ^ n ∧ σ (.n 3) = Q.tabs) :
+    (hw : w ≤ 7) (hn : n < 2 ^ w) (hnW : n = (eToNat Q.word >>> start) % 2 ^ w) (hpre : QwStab l fun σ ↦ σ c = gen ^ n ∧ σ (.n (valf% «decode_query_windows» "tabs")) = Q.tabs) :
     QwExt l (qwRead c start w k).2.1 fun σ ↦
       qwAK rd Q σ (qwRead c start w k).1 ∧ σ (qwRead c start w k).2.2 = eOfNat n := by
   have h2w : 2 ^ w ≤ 128 := le_trans (Nat.pow_le_pow_right (n := 2) (by decide) hw) (by decide)
@@ -278,8 +280,8 @@ theorem qwRead_complete {l : List E} {k : ℕ} (hl : l.length = k) {c : V} {star
 
 /-- The split's first statements: the two runs hinted, range checked. -/
 def qwSplitA (start a w k : ℕ) : List Stmt :=
-  [.atom (.hint (.windowsExp (.n 0) start a 1 (.stack [.n k]))),
-    .atom (.hint (.windowsExp (.n 0) (start + a) (w - a) 1 (.stack [.n (k + 1)]))),
+  [.atom (.hint (.windowsExp (.n (valf% «decode_query_windows» "squeezed_word")) start a 1 (.stack [.n k]))),
+    .atom (.hint (.windowsExp (.n (valf% «decode_query_windows» "squeezed_word")) (start + a) (w - a) 1 (.stack [.n (k + 1)]))),
     .atom (.const (.n (k + 2)) (qwBound a)),
     .atom (.rangeCheck (.n k) (.n (k + 3)) (.n (k + 4)) (.n (k + 5)) (.n (k + 2))),
     .atom (.const (.n (k + 6)) (qwBound (w - a))),
@@ -287,9 +289,9 @@ def qwSplitA (start a w k : ℕ) : List Stmt :=
 
 /-- The split's last statements: the join, the two table reads. -/
 def qwSplitC (c : V) (a k : ℕ) (sq : V) : List Stmt :=
-  [.atom (.mul c (.n k) sq), .atom (.mul (.n (k + 10 + a)) (.n 3) (.n k)),
+  [.atom (.mul c (.n k) sq), .atom (.mul (.n (k + 10 + a)) (.n (valf% «decode_query_windows» "tabs")) (.n k)),
     .atom (.load (.n (k + 11 + a)) (.n (k + 10 + a)) 0),
-    .atom (.mul (.n (k + 12 + a)) (.n 3) (.n (k + 1))),
+    .atom (.mul (.n (k + 12 + a)) (.n (valf% «decode_query_windows» "tabs")) (.n (k + 1))),
     .atom (.load (.n (k + 13 + a)) (.n (k + 12 + a)) 0)]
 
 omit hT hlow in
@@ -329,7 +331,7 @@ omit hlow in
 theorem qwSplitC_complete {l : List E} {k a : ℕ} (hl : l.length = k + 10 + a) {c sq : V}
     {n1 n2 : ℕ} (hn1 : n1 < 128) (hn2 : n2 < 128)
     (hpre : QwStab l fun σ ↦ σ c = gen ^ n1 * (gen ^ n2) ^ 2 ^ a ∧ σ (.n k) = gen ^ n1 ∧
-      σ (.n (k + 1)) = gen ^ n2 ∧ σ sq = (gen ^ n2) ^ 2 ^ a ∧ σ (.n 3) = Q.tabs) :
+      σ (.n (k + 1)) = gen ^ n2 ∧ σ sq = (gen ^ n2) ^ 2 ^ a ∧ σ (.n (valf% «decode_query_windows» "tabs")) = Q.tabs) :
     QwExt l (k + 14 + a) fun σ ↦ qwAK rd Q σ (qwSplitC c a k sq) ∧
       σ (.n (k + 11 + a)) = eOfNat n1 ∧ σ (.n (k + 13 + a)) = eOfNat n2 := by
   refine ⟨[Q.tabs * gen ^ n1, eOfNat n1, Q.tabs * gen ^ n2, eOfNat n2], by simp [hl]; omega,
@@ -359,7 +361,7 @@ theorem qwSplit_complete {l : List E} {k : ℕ} (hl : l.length = k) {c : V} {sta
     (ha1 : 1 ≤ a) (ha : a < w) (hw : w ≤ 7) (hn1 : n1 < 2 ^ a) (hn2 : n2 < 2 ^ (w - a))
     (hn1W : n1 = (eToNat Q.word >>> start) % 2 ^ a)
     (hn2W : n2 = (eToNat Q.word >>> (start + a)) % 2 ^ (w - a))
-    (hpre : QwStab l fun σ ↦ σ c = gen ^ (n1 + 2 ^ a * n2) ∧ σ (.n 3) = Q.tabs) :
+    (hpre : QwStab l fun σ ↦ σ c = gen ^ (n1 + 2 ^ a * n2) ∧ σ (.n (valf% «decode_query_windows» "tabs")) = Q.tabs) :
     QwExt l (qwSplit c start a w k).2.1 fun σ ↦ qwAK rd Q σ (qwSplit c start a w k).1 ∧
       σ (qwSplit c start a w k).2.2.1 = eOfNat n1 ∧ σ (qwSplit c start a w k).2.2.2 = eOfNat n2 := by
   have h2a : 2 ^ a ≤ 128 :=
@@ -383,7 +385,7 @@ theorem qwWindow_complete {l : List E} {k : ℕ} (hl : l.length = k) {d cd base 
     {lo hi : Option V} {n : ℕ} {LO HI : E} (hw : (qwWin d cd i).2 ≤ 7)
     (hn : n < 2 ^ (qwWin d cd i).2)
     (hnW : n = (eToNat Q.word >>> (base + (qwWin d cd i).1)) % 2 ^ (qwWin d cd i).2)
-    (hpre : QwStab l fun σ ↦ σ (.n (5 + at0 + i)) = gen ^ n ∧ σ (.n 3) = Q.tabs ∧
+    (hpre : QwStab l fun σ ↦ σ (.n (5 + at0 + i)) = gen ^ n ∧ σ (.n (valf% «decode_query_windows» "tabs")) = Q.tabs ∧
       qwOpt σ lo = LO ∧ qwOpt σ hi = HI) :
     QwExt l (qwWindow d cd base cut at0 i k lo hi).2.1 fun σ ↦
       qwAK rd Q σ (qwWindow d cd base cut at0 i k lo hi).1 ∧
@@ -447,7 +449,7 @@ theorem qwWindows_complete {d cd base cut at0 : ℕ} {ns : ℕ → ℕ} : ∀ (i
     l.length = k → ∀ {lo hi : Option V} {LO HI : E},
     (∀ t < m, (qwWin d cd (i + t)).2 ≤ 7 ∧ ns (i + t) < 2 ^ (qwWin d cd (i + t)).2 ∧
       ns (i + t) = (eToNat Q.word >>> (base + (qwWin d cd (i + t)).1)) % 2 ^ (qwWin d cd (i + t)).2) →
-    QwStab l (fun σ ↦ (∀ t < m, σ (.n (5 + at0 + (i + t))) = gen ^ ns (i + t)) ∧ σ (.n 3) = Q.tabs ∧
+    QwStab l (fun σ ↦ (∀ t < m, σ (.n (5 + at0 + (i + t))) = gen ^ ns (i + t)) ∧ σ (.n (valf% «decode_query_windows» "tabs")) = Q.tabs ∧
       qwOpt σ lo = LO ∧ qwOpt σ hi = HI) →
     QwExt l (qwWindows d cd base cut at0 i m k lo hi).2.1 fun σ ↦
       qwAK rd Q σ (qwWindows d cd base cut at0 i m k lo hi).1 ∧
@@ -494,7 +496,7 @@ theorem qwPr_complete {l : List E} {k : ℕ} (hl : l.length = k) {j base cut d :
     (hd : 1 ≤ d) (hd26 : d ≤ 28) (hbase : base + d ≤ 128) (hcut : cut = 64 - base % 64)
     (hj : j < Q.np) (hpos : LoadHolds rd Q.pos j (eOfNat P))
     (hpre : QwStab l fun σ ↦ σ lo = eOfNat (P % 2 ^ cut) ∧ (cut < d → σ hi = eOfNat (P / 2 ^ cut)) ∧
-      σ (.n 1) = Q.pos ∧ qwOpt σ recon = R) :
+      σ (.n (valf% «decode_query_windows» "positions_out")) = Q.pos ∧ qwOpt σ recon = R) :
     QwExt l (qwPr j base cut d k lo hi recon).2.1 fun σ ↦
       qwAK rd Q σ (qwPr j base cut d k lo hi recon).1 ∧
       qwOpt σ (qwPr j base cut d k lo hi recon).2.2 = R + eOfNat128 (2 ^ base * P) := by
@@ -572,7 +574,7 @@ theorem qwPr_complete {l : List E} {k : ℕ} (hl : l.length = k) {j base cut d :
 /-- What every position reads of the frame's first values: the arguments, the `wins` run's
 address and the words of the run where the memory holds them. -/
 def QwBase (rd : Reader) (Q : QwEnv) (σ : Val) : Prop :=
-  σ (.n 1) = Q.pos ∧ σ (.n 2) = Q.ptrs ∧ σ (.n 3) = Q.tabs ∧ σ (.n 4) = Q.run ∧ IsInK Q.run ∧
+  σ (.n (valf% «decode_query_windows» "positions_out")) = Q.pos ∧ σ (.n (valf% «decode_query_windows» "win_ptrs_out")) = Q.ptrs ∧ σ (.n (valf% «decode_query_windows» "tabs")) = Q.tabs ∧ σ (.n (valf% «decode_query_windows» "s5#0")) = Q.run ∧ IsInK Q.run ∧
     ∀ x < 36, ∀ v, rd (Q.run.limb 0 * Parameters.addressOfIndex x) = some v → v = σ (.n (5 + x))
 
 omit hT hlow in
@@ -655,8 +657,8 @@ theorem qwPos_complete {l : List E} {k : ℕ} (hl : l.length = k) {d cd : ℕ} (
   have h := (hW.bind fun m1 hm1 hs1 ↦
     (qwPr_complete hm1 (j := j) (base := j * d) (cut := cut) (d := d) (recon := recon) (P := P)
       (R := R)
-      (lo := ((qwWindows d cd (j * d) cut (j * qwN d cd) 0 (qwN d cd) k none none).2.2.1.getD (.n 0)))
-      (hi := ((qwWindows d cd (j * d) cut (j * qwN d cd) 0 (qwN d cd) k none none).2.2.2.getD (.n 0)))
+      (lo := ((qwWindows d cd (j * d) cut (j * qwN d cd) 0 (qwN d cd) k none none).2.2.1.getD (.n (valf% «decode_query_windows» "squeezed_word"))))
+      (hi := ((qwWindows d cd (j * d) cut (j * qwN d cd) 0 (qwN d cd) k none none).2.2.2.getD (.n (valf% «decode_query_windows» "squeezed_word"))))
       (fun h0 ↦ by rw [hrec h0, Nat.zero_mul]) hP (by omega) hd26 hbase rfl (by omega) hpos
       (((hpre.ext m1).and hs1).mono fun σ ⟨⟨_, hb, hR⟩, _, elo, ehi⟩ ↦
         ⟨?_, fun hc ↦ ?_, hb.1, hR⟩)).bind
@@ -718,7 +720,7 @@ theorem qwRest_complete {d cd : ℕ} (hs : QwShape d cd) {rs : ℕ → ℕ}
     (hrs : ∀ r < qwRestN d, rs r < 2 ^ (qwRestWin d r).2)
     (hrsW : ∀ r < qwRestN d, rs r = (eToNat Q.word >>> (qwRestWin d r).1) % 2 ^ (qwRestWin d r).2) :
     ∀ (i m : ℕ) {l : List E} {k : ℕ}, l.length = k → ∀ {recon : Option V} {R : E},
-    i + m ≤ qwRestN d → QwStab l (fun σ ↦ σ (.n 3) = Q.tabs ∧ qwOpt σ recon = R) →
+    i + m ≤ qwRestN d → QwStab l (fun σ ↦ σ (.n (valf% «decode_query_windows» "tabs")) = Q.tabs ∧ qwOpt σ recon = R) →
     QwExt l (qwRest d i m k recon).2.1 fun σ ↦ qwAK rd Q σ (qwRest d i m k recon).1 ∧
       qwOpt σ (qwRest d i m k recon).2.2 =
         R + ∑ t ∈ Finset.range m, eOfNat128 (2 ^ (qwRestWin d (i + t)).1 * rs (i + t)) ∧
@@ -767,7 +769,7 @@ noncomputable def qwFrame0 (rd : Reader) (d cd : ℕ) (w pos ptrs tabs run : E) 
     if x < 128 / d * qwN d cd then qwRunW d cd w x
     else (rd (run.limb 0 * Parameters.addressOfIndex x)).getD 0
 
-theorem qwRun_eq : qwRun = .n 5 :: (List.range 35).map (fun i ↦ V.n (5 + (i + 1))) := rfl
+theorem qwRun_eq : qwRun = .n (valf% «decode_query_windows» "wins[0]") :: (List.range 35).map (fun i ↦ V.n (5 + (i + 1))) := rfl
 
 theorem qwRun_getElem {x : ℕ} (hx : x < qwRun.length) : qwRun[x] = .n (5 + x) := by
   simp [qwRun]
@@ -782,7 +784,7 @@ theorem qw_holds {d cd : ℕ} (hs : QwShape d cd) {rd : Reader} {w pos ptrs tabs
     (hrun : FrameRun rd run (128 / d * qwN d cd) (qwRunW d cd w))
     (hrd : ∀ j < 128 / d, LoadHolds rd pos j (eOfNat (qwPosOf d w j)) ∧
       LoadHolds rd ptrs j (run * gen ^ (j * qwN d cd))) :
-    ∃ σ : Val, [V.n 0, .n 1, .n 2, .n 3].map σ = [w, pos, ptrs, tabs] ∧
+    ∃ σ : Val, [V.n (valf% «decode_query_windows» "squeezed_word"), .n (valf% «decode_query_windows» "positions_out"), .n (valf% «decode_query_windows» "win_ptrs_out"), .n (valf% «decode_query_windows» "tabs")].map σ = [w, pos, ptrs, tabs] ∧
       qwAK rd ⟨pos, ptrs, tabs, run, 128 / d, w⟩ σ (qwBody d cd) ∧
       ∀ C : CallRel, Stmt.HoldsList C rd σ (qwBody d cd) False (fun rs ↦ rs = []) := by
   set Q : QwEnv := ⟨pos, ptrs, tabs, run, 128 / d, w⟩ with hQ
@@ -818,8 +820,8 @@ theorem qw_holds {d cd : ℕ} (hs : QwShape d cd) {rd : Reader} {w pos ptrs tabs
       have : (j' + 1) * qwN d cd ≤ 128 / d * qwN d cd := Nat.mul_le_mul_right _ hj'
       nlinarith
     rw [Nat.add_assoc, g t _ (by omega), ite_pos' hx, qwRunW_at w hi]
-  have hw0 : QwStab l0 fun σ ↦ σ (.n 0) = w := fun _ ↦ rfl
-  have hFA : QwStab l0 fun σ ↦ qwAK rd Q σ [.atom (.frameAddr (.n 4) qwRun)] := fun t ↦ by
+  have hw0 : QwStab l0 fun σ ↦ σ (.n (valf% «decode_query_windows» "squeezed_word")) = w := fun _ ↦ rfl
+  have hFA : QwStab l0 fun σ ↦ qwAK rd Q σ [.atom (.frameAddr (.n (valf% «decode_query_windows» "s5#0")) qwRun)] := fun t ↦ by
     obtain ⟨_, _, _, h4, hrK, hf⟩ := hbase t
     rw [qwAK_cons, qwAK_nil, and_true]
     refine ⟨⟨by rw [h4]; exact hrK, fun x hx v hv ↦ ?_⟩, ?_⟩
@@ -885,7 +887,7 @@ theorem qw_holds {d cd : ℕ} (hs : QwShape d cd) {rd : Reader} {w pos ptrs tabs
         rw [show N + t - 128 / d = t from Nat.add_sub_cancel_left N t, e1]
   have hsome := hrsome (hpsome (Or.inr hper1))
   have hassert : σ ((qwRest d 0 (qwRestN d) (qwPositions d cd 0 N 41 none).2.1
-      (qwPositions d cd 0 N 41 none).2.2).2.2.getD (.n 0)) + σ (.n 0) = 0 := by
+      (qwPositions d cd 0 N 41 none).2.2).2.2.getD (.n (valf% «decode_query_windows» "squeezed_word"))) + σ (.n (valf% «decode_query_windows» "squeezed_word")) = 0 := by
     rw [qwOpt_getD (σ := σ) hsome, htot, hσ0]
     exact e_add_eq_zero_iff.mpr rfl
   have hAK : qwAK rd Q σ (qwBody d cd) := by

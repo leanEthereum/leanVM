@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Bits.BusGrindPlaced
 public import LeanVM.Guest.B1.Tables.FlatAtTE
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«bus_grind_check__L»
 
 /-!
 # `bus_grind_check`, placed and exact
@@ -33,7 +35,7 @@ theorem bgBody_pinned (d : ℕ) : Stmt.blockNextOk isComputed pinsInverse (bgBod
 
 /-- `bus_grind_check__L{d}`'s statements before its return. -/
 def bgPre (d : ℕ) : List Stmt :=
-  [.call (grindCheckName (busGrindBits d)) [.n 0, .n 1] [], .atom (.const (.n 2) (word 0 0))]
+  [.call (grindCheckName (busGrindBits d)) [.n (valf% «bus_grind_check» "word"), .n (valf% «bus_grind_check» "tabs")] [], .atom (.const (.n (valf% «bus_grind_check» "s1#0")) (word 0 0))]
 
 /-- **`bus_grind_check__L{d}`'s honest shape** on the memory `rd`: its callee exact at every node. -/
 def busGrindHonest (d : ℕ) (rd : Reader) : Tree → Prop :=
@@ -67,7 +69,7 @@ theorem bus_grind_check_completeDTBRG {d : ℕ} (hd : d ∈ busGrindDeployed) {�
       exact ⟨rfl, w', tabs', by rw [he.1, he.2], ht, hpow⟩
   let kid : Kid := ⟨grindCheckName (busGrindBits d), true, [w, tabs], Lin, Returns []⟩
   have h := completeAt_flatDTBRR (fs := fs) (cert := cert) hf hl κ Lin [w, tabs] [0]
-    (pre := bgPre d) (vs := [.n 2]) (by rw [hbody]; rfl) rfl rfl [] (fun _ => [])
+    (pre := bgPre d) (vs := [.n (valf% «bus_grind_check» "s1#0")]) (by rw [hbody]; rfl) rfl rfl [] (fun _ => [])
     (fun _ => List.Forall₂.nil) (fun _ => [kid]) (fun _ _ => True)
     (fun rd => [fun t => t.Every (ExactAt coreProgram rd)]) [Bg] Bg
     (fun _ => ⟨fun _ => (hG hgp).mono le_rfl

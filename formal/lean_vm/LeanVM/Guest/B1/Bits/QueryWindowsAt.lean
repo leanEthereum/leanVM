@@ -12,6 +12,8 @@ public import LeanVM.Guest.Memory.LiftPure
 public import LeanVM.Guest.Memory.PopsNil
 public import LeanVM.Guest.B1.Main.RelAtInE
 public import LeanVM.Guest.Exact.Free
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«decode_query_windows__L»
 
 /-!
 # `decode_query_windows`, placed (`guests/lean_ethereum.py`)
@@ -48,12 +50,12 @@ open LeanVM.Protocol.Verifier hiding Layout
 /-- The `wins` run of the honest run at `fp`: the positions' windows at the certificate's cell of
 `.n 5`. -/
 def qwRunL (cert : String → V → ℕ) (name : String) (fp d cd : ℕ) (w : E) : Layout :=
-  [(fp + cert name (.n 5), qwRunList d cd w)]
+  [(fp + cert name (.n (valf% «decode_query_windows» "wins[0]")), qwRunList d cd w)]
 
 /-- Position `j`'s window pointer at `fp`: the `wins` run's address, shifted to the position's first
 window. -/
 def qwPtrAt (cert : String → V → ℕ) (name : String) (fp d cd j : ℕ) : E :=
-  ofK (Parameters.addressOfIndex (fp + cert name (.n 5))) * gen ^ (j * qwN d cd)
+  ofK (Parameters.addressOfIndex (fp + cert name (.n (valf% «decode_query_windows» "wins[0]")))) * gen ^ (j * qwN d cd)
 
 /-- The loads of `decode_query_windows(word, positions, win_ptrs, tabs)` lie in `R`: `positions`
 and `win_ptrs` below `128 / d`, `tabs` below `128` (`RegPtrs [(1, 128 / d), (2, 128 / d), (3, 128)]
@@ -117,11 +119,11 @@ theorem qw_mem_blockAtoms {a : Atom} : ∀ {ss : List Stmt}, Stmt.atom a ∈ ss 
 
 /-- The body's statements before its `ret`. -/
 def qwPre (d cd : ℕ) : List Stmt :=
-  [.atom (.frameAddr (.n 4) qwRun)] ++ (qwPositions d cd 0 (128 / d) 41 none).1 ++
+  [.atom (.frameAddr (.n (valf% «decode_query_windows» "s5#0")) qwRun)] ++ (qwPositions d cd 0 (128 / d) 41 none).1 ++
     (qwRest d 0 (qwRestN d) (qwPositions d cd 0 (128 / d) 41 none).2.1
       (qwPositions d cd 0 (128 / d) 41 none).2.2).1 ++
     [.atom (.assertEq ((qwRest d 0 (qwRestN d) (qwPositions d cd 0 (128 / d) 41 none).2.1
-      (qwPositions d cd 0 (128 / d) 41 none).2.2).2.2.getD (.n 0)) (.n 0))]
+      (qwPositions d cd 0 (128 / d) 41 none).2.2).2.2.getD (.n (valf% «decode_query_windows» "squeezed_word"))) (.n (valf% «decode_query_windows» "squeezed_word")))]
 
 theorem qwBody_eq (d cd : ℕ) : qwBody d cd = qwPre d cd ++ [.ret []] := by
   simp [qwBody, qwPre]
@@ -154,18 +156,18 @@ theorem qwDecodeAtDE_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cer
   obtain ⟨fn, hfind, hps, hbody⟩ := hq
   intro w pos ptrs tabs Lin fp hreg hpre
   have hM : 128 / d * qwN d cd ≤ 36 := hs.2.2.1
-  have hrunA : Atom.frameAddr (.n 4) qwRun ∈ Lift.blockAtoms fn.body := by
+  have hrunA : Atom.frameAddr (.n (valf% «decode_query_windows» "s5#0")) qwRun ∈ Lift.blockAtoms fn.body := by
     rw [hbody]; exact qw_mem_blockAtoms (by simp [qwBody])
-  have hc5 : cert name (.n 5) + 36 ≤ fs name := by
-    have h := hfit name fn hfind (.n 4) (.n 5) ((List.range 35).map fun i ↦ V.n (5 + (i + 1)))
+  have hc5 : cert name (.n (valf% «decode_query_windows» "wins[0]")) + 36 ≤ fs name := by
+    have h := hfit name fn hfind (.n (valf% «decode_query_windows» "s5#0")) (.n (valf% «decode_query_windows» "wins[0]")) ((List.range 35).map fun i ↦ V.n (5 + (i + 1)))
       (by rw [← qwRun_eq]; exact hrunA)
     simpa using h
-  have hcell : ∀ x < 36, cert name (.n (5 + x)) = cert name (.n 5) + x := fun x hx ↦ by
-    have hx' : x < (V.n 5 :: (List.range 35).map fun i ↦ V.n (5 + (i + 1))).length := by
+  have hcell : ∀ x < 36, cert name (.n (5 + x)) = cert name (.n (valf% «decode_query_windows» "wins[0]")) + x := fun x hx ↦ by
+    have hx' : x < (V.n (valf% «decode_query_windows» "wins[0]") :: (List.range 35).map fun i ↦ V.n (5 + (i + 1))).length := by
       simpa using hx
-    have h := hcons name fn hfind (.n 4) (.n 5) ((List.range 35).map fun i ↦ V.n (5 + (i + 1)))
+    have h := hcons name fn hfind (.n (valf% «decode_query_windows» "s5#0")) (.n (valf% «decode_query_windows» "wins[0]")) ((List.range 35).map fun i ↦ V.n (5 + (i + 1)))
       (by rw [← qwRun_eq]; exact hrunA) x hx'
-    have e : (V.n 5 :: (List.range 35).map fun i ↦ V.n (5 + (i + 1)))[x] = V.n (5 + x) := by
+    have e : (V.n (valf% «decode_query_windows» "wins[0]") :: (List.range 35).map fun i ↦ V.n (5 + (i + 1)))[x] = V.n (5 + x) := by
       rcases x with _ | x
       · rfl
       · simp [Nat.add_comm]
@@ -180,7 +182,7 @@ theorem qwDecodeAtDE_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cer
   rw [List.append_nil] at hL
   obtain ⟨hR, hLin⟩ := Main.memL_append.mp hL
   obtain ⟨hT, hrd⟩ := hpre rd hlow hLin
-  set run : E := ofK (Parameters.addressOfIndex (fp + cert name (.n 5))) with hrun
+  set run : E := ofK (Parameters.addressOfIndex (fp + cert name (.n (valf% «decode_query_windows» "wins[0]")))) with hrun
   have hlow7 : ∀ i < 128, (rd (Parameters.addressOfIndex i)).isSome := fun i hi ↦
     hlow i (lt_of_lt_of_le hi (by
       calc 128 = 2 ^ 7 := rfl
@@ -219,9 +221,9 @@ theorem qwDecodeAtDE_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cer
   rw [← hps] at hp'
   simp only [List.map_cons, List.map_nil, List.cons.injEq] at hp
   obtain ⟨h0, h1, h2, h3, -⟩ := hp
-  have hrunEs : (V.n 5, 36) ∈ runs es := by
-    refine List.mem_filterMap.mpr ⟨.atom (.frameAddr (.n 4) qwRun), ?_, by rw [qwRun_eq]; rfl⟩
-    exact List.mem_flatMap.mpr ⟨.atom (.frameAddr (.n 4) qwRun), by simp [qwPre], by simp [slEvs]⟩
+  have hrunEs : (V.n (valf% «decode_query_windows» "wins[0]"), 36) ∈ runs es := by
+    refine List.mem_filterMap.mpr ⟨.atom (.frameAddr (.n (valf% «decode_query_windows» "s5#0")) qwRun), ?_, by rw [qwRun_eq]; rfl⟩
+    exact List.mem_flatMap.mpr ⟨.atom (.frameAddr (.n (valf% «decode_query_windows» "s5#0")) qwRun), by simp [qwPre], by simp [slEvs]⟩
   have hnw : ∀ e ∈ es, e.noWit := fun e he ↦ by
     obtain ⟨a, ha, rfl⟩ := qw_ev_mem he
     have hok := (hAK a ha).2
@@ -297,8 +299,8 @@ theorem qwDecodeAtDE_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cer
     simp only [qwRunL, List.mem_singleton] at hq
     subst hq
     simp only [qwRunList, List.length_map, List.length_range] at hq2
-    exact Or.inl (Or.inr ⟨(V.n 5, 36), hrunEs, by show fp + cert name (.n 5) ≤ i; exact hq1,
-      by show i < fp + cert name (.n 5) + 36; omega⟩)
+    exact Or.inl (Or.inr ⟨(V.n (valf% «decode_query_windows» "wins[0]"), 36), hrunEs, by show fp + cert name (.n (valf% «decode_query_windows» "wins[0]")) ≤ i; exact hq1,
+      by show i < fp + cert name (.n (valf% «decode_query_windows» "wins[0]")) + 36; omega⟩)
 
 /-- **`decode_query_windows__L{d}_L{cd}` placed** (`qwDecodeAtDE_of` without exactness). -/
 theorem qwDecodeAtD_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cert)

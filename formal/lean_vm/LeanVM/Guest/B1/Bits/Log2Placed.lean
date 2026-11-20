@@ -144,7 +144,7 @@ theorem asg_rc_low {κ : ℕ} (hκ4 : 4 ≤ κ) {rd : Reader} (hlow : LowDef κ 
 
 /-- `assert_small_g_power`'s statements before its `ret`. -/
 def asgPre : List Stmt :=
-  asgHead ++ ((List.range 8).map asgBlk).flatten ++ [.atom (.assertEq (.n 72) (.n 0))]
+  asgHead ++ ((List.range 8).map asgBlk).flatten ++ [.atom (.assertEq (.n (val% «assert_small_g_power» "rebuilt@9")) (.n (val% «assert_small_g_power» "x")))]
 
 theorem asgBody_split : asgBody = asgPre ++ [.ret []] := by
   simp only [asgBody, asgPre, List.append_assoc, List.singleton_append]
@@ -159,7 +159,7 @@ theorem asg_not_loop : coreProgram.loop "assert_small_g_power" = false := by
 
 /-- `assert_small_g_power`'s computed hint: the nine digits of its argument's exponent. -/
 def asgHint : Atom :=
-  .hint (.digitsExp (.n 0) 36 9 4 0 none (.stack [.n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10]))
+  .hint (.digitsExp (.n (val% «assert_small_g_power» "x")) 36 9 4 0 none (.stack [.n (val% «assert_small_g_power» "digits[0]"), .n (val% «assert_small_g_power» "digits[1]"), .n (val% «assert_small_g_power» "digits[2]"), .n (val% «assert_small_g_power» "digits[3]"), .n (val% «assert_small_g_power» "digits[4]"), .n (val% «assert_small_g_power» "digits[5]"), .n (val% «assert_small_g_power» "digits[6]"), .n (val% «assert_small_g_power» "digits[7]"), .n (val% «assert_small_g_power» "digits[8]")]))
 
 theorem asg_sites : Stmt.blockNextOk (fun a => isComputed a && !decide (a ∈ [asgHint])) pinsInverse
     (Fn.body fn% «assert_small_g_power») = true := by
@@ -168,10 +168,10 @@ theorem asg_sites : Stmt.blockNextOk (fun a => isComputed a && !decide (a ∈ [a
 theorem asg_noWit : Stmt.noWitList (Fn.body fn% «assert_small_g_power») = true := by decide +kernel
 
 /-- **The digits hint is exact** on a valuation holding `g^e`'s digits. -/
-theorem asgHint_exact {rd : Reader} {σ : Val} {e : ℕ} (he : e < 2 ^ 36) (e0 : σ (.n 0) = gen ^ e)
+theorem asgHint_exact {rd : Reader} {σ : Val} {e : ℕ} (he : e < 2 ^ 36) (e0 : σ (.n (val% «assert_small_g_power» "x")) = gen ^ e)
     (ed : ∀ j < 9, σ (.n (j + 2)) = gen ^ (e / 16 ^ j % 16)) : asgHint.Exact rd σ := by
   refine ⟨e, 0, he, by rw [e0, gen_pow_eq_ofK], rfl, ?_⟩
-  have hl : Dest.words rd σ (.stack [.n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10]) =
+  have hl : Dest.words rd σ (.stack [.n (val% «assert_small_g_power» "digits[0]"), .n (val% «assert_small_g_power» "digits[1]"), .n (val% «assert_small_g_power» "digits[2]"), .n (val% «assert_small_g_power» "digits[3]"), .n (val% «assert_small_g_power» "digits[4]"), .n (val% «assert_small_g_power» "digits[5]"), .n (val% «assert_small_g_power» "digits[6]"), .n (val% «assert_small_g_power» "digits[7]"), .n (val% «assert_small_g_power» "digits[8]")]) =
       (List.range 9).map fun j => σ (.n (j + 2)) := rfl
   rw [hl]
   refine List.map_congr_left fun j hj => ?_
@@ -270,10 +270,10 @@ theorem lc_walk (fl : ℕ) (σ : Val) : walk σ (lcBody fl) = .ret (lcEvs fl σ)
   · simp [h, lcEvs, Out.seq, Out.pre, walk_straight_fall σ lcMin lcMin_straight, Main.slEvs]
 
 /-- The asserted call on `g^(2^L) / g_N`. -/
-def lcCall1 : Call := ⟨"assert_small_g_power", [.n 49, .n 1], [], true⟩
+def lcCall1 : Call := ⟨"assert_small_g_power", [.n (valf% «log2_ceil_in_the_exponent» "s5#2"), .n (valf% «log2_ceil_in_the_exponent» "g_squares")], [], true⟩
 
 /-- The asserted call above the floor. -/
-def lcCall2 : Call := ⟨"assert_small_g_power", [.n 58, .n 1], [], true⟩
+def lcCall2 : Call := ⟨"assert_small_g_power", [.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#6"), .n (valf% «log2_ceil_in_the_exponent» "g_squares")], [], true⟩
 
 theorem lcEvs_parts (fl : ℕ) (σ : Val) :
     allocDsts (lcEvs fl σ) = [] ∧ allocs σ (lcEvs fl σ) = [] ∧
@@ -352,7 +352,7 @@ def lcBits : List V := (List.range 34).map fun k => .n (2 + k)
 /-- `log2_ceil_in_the_exponent`'s computed hints: the bits of its argument's exponent into its frame, and their
 `⌈log₂⌉` above the floor. -/
 def lcSites (fl : ℕ) : List Atom :=
-  [.hint (.bitsExp (.n 0) 34 (.stack lcBits)), .hint (.log2Ceil (.stack lcBits) 34 fl (.n 36))]
+  [.hint (.bitsExp (.n (valf% «log2_ceil_in_the_exponent» "g_N")) 34 (.stack lcBits)), .hint (.log2Ceil (.stack lcBits) 34 fl (.n (valf% «log2_ceil_in_the_exponent» "g_log")))]
 
 theorem lc_sites : ∀ fl < 34,
     Stmt.blockNextOk (fun a => isComputed a && !decide (a ∈ lcSites fl)) pinsInverse (lcBody fl) = true := by
@@ -381,7 +381,7 @@ exponent table it returns `g^L`, `L = max fl (log2Ceil N) < 34`, the hinted bits
 frame, within its frame and two frames of `assert_small_g_power`, by a tree every node of which is exact on the memory: its bits are
 `N`'s, its `⌈log₂⌉` theirs. -/
 theorem lce_completeAtBE (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
-    (hf : coreProgram.find? name = some fn) (hp : fn.params = [.n 0, .n 1])
+    (hf : coreProgram.find? name = some fn) (hp : fn.params = [.n (valf% «log2_ceil_in_the_exponent» "g_N"), .n (valf% «log2_ceil_in_the_exponent» "g_squares")])
     (hb : fn.body = lcBody fl) (hl : coreProgram.loop name = false) (κ : ℕ) (hκ6 : 6 ≤ κ)
     (N sqE : ℕ) (hN : N < 2 ^ 34) (hL : max fl (log2Ceil N) < 34) :
     CompleteAtDTBR fs cert κ name (log2Lin sqE) [gen ^ N, ofK (Parameters.addressOfIndex sqE)]
@@ -450,7 +450,7 @@ theorem lce_completeAtBE (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
     gen ^ N * invGenWord, invGenWord, gen ^ L * invGenWord, q * (gen ^ L * invGenWord),
     gen ^ 2 ^ (L - 1), gen ^ (N - (2 ^ (L - 1) + 1)), gen ^ L]
   let σ : Val := Val.ofArgs w
-  have h19 : σ (.n 51) = 0 ↔ L = fl := by
+  have h19 : σ (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) = 0 ↔ L = fl := by
     show gen ^ L + word (2 ^ fl) 0 = 0 ↔ _
     rw [wfl, e_add_eq_zero_iff]
     exact ⟨fun h ↦ gen_pow_inj (by omega) (by omega) h, fun h ↦ by rw [h]⟩
@@ -490,7 +490,7 @@ theorem lce_completeAtBE (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
     rw [hb]; exact hh
   have hsat := walk_sat (P := coreProgram) fn.body
     (coreProgram_wf fn (List.mem_of_find?_eq_some hf)) hh'
-  have hw : walk σ fn.body = .ret (lcEvs fl σ) [.n 59] := by rw [hb, lc_walk]
+  have hw : walk σ fn.body = .ret (lcEvs fl σ) [.n (valf% «log2_ceil_in_the_exponent» "s7#0")] := by rw [hb, lc_walk]
   rw [hw] at hsat
   obtain ⟨p1, p2, p3, p4, p5⟩ := lcEvs_parts fl σ
   set es := lcEvs fl σ with hes
@@ -498,7 +498,7 @@ theorem lce_completeAtBE (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
   have hcm : CallsMatch σ (calls es) kids outs := by
     rw [p4]
     by_cases hLf : L = fl
-    · have e19 : σ (.n 51) = 0 := h19.2 hLf
+    · have e19 : σ (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) = 0 := h19.2 hLf
       have hex : extra = [] := ite_pos' hLf
       simp only [e19, ↓reduceIte, kids, hex] at ho ⊢
       obtain ⟨o, rfl⟩ : ∃ o, outs = [o] := by
@@ -506,7 +506,7 @@ theorem lce_completeAtBE (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
         | [o], _ => exact ⟨o, rfl⟩
       obtain ⟨ho1, -⟩ := ho
       refine ⟨rfl, rfl, fun _ ↦ ⟨rfl, (ho1 rfl).1.symm⟩, trivial⟩
-    · have e19 : σ (.n 51) ≠ 0 := fun h ↦ hLf (h19.1 h)
+    · have e19 : σ (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) ≠ 0 := fun h ↦ hLf (h19.1 h)
       have hex : extra = [asgKid sqE (N - (2 ^ (L - 1) + 1))] := ite_neg' hLf
       simp only [e19, ↓reduceIte, kids, hex] at ho ⊢
       obtain ⟨o1, o2, rfl⟩ : ∃ o1 o2, outs = [o1, o2] := by
@@ -551,7 +551,7 @@ theorem lce_completeAtBE (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
     rw [p4, List.length_map]
     by_cases hLf : L = fl
     · simp [h19.2 hLf, kids, extra, hLf]
-    · simp [show σ (.n 51) ≠ 0 from fun h ↦ hLf (h19.1 h), kids, extra, hLf]
+    · simp [show σ (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) ≠ 0 from fun h ↦ hLf (h19.1 h), kids, extra, hLf]
   have h := RelAtInT.every_of_walk hf hw hlen hexact <| relAtInWT_of_walk (P := coreProgram) (fs := fs) (cert := cert)
     (R := RegionL (log2Lin sqE)) (D := RegionL []) (Dk := fun i ↦ False ∨ outRegion kids outs i)
     (N := Nk) (fp := fp) (args := [gen ^ N, q]) (rets := [gen ^ L])

@@ -233,3 +233,16 @@ LeanVM/Guest/B1/Selectors/SharedWeight.lean shared_selector_tables
 # Fs
 LeanVM/Guest/B1/Fs/MessageSound.lean opening_message__L
 LeanVM/Guest/B1/Fs/MessageT.lean opening_message__L
+# Bits
+LeanVM/Guest/B1/Bits/BusGrindPlacedE.lean bus_grind_check__L
+LeanVM/Guest/B1/Bits/Grind.lean grind_check__L
+LeanVM/Guest/B1/Bits/GrindPlaced.lean grind_check__L
+LeanVM/Guest/B1/Bits/Log2Placed.lean@asgHint assert_small_g_power
+LeanVM/Guest/B1/Bits/Log2Placed.lean@asgHint_exact assert_small_g_power
+LeanVM/Guest/B1/Bits/Log2Placed.lean@lcCall1 log2_ceil_in_the_exponent__L
+LeanVM/Guest/B1/Bits/Log2Placed.lean@lcCall2 log2_ceil_in_the_exponent__L
+LeanVM/Guest/B1/Bits/Log2Placed.lean@lcSites log2_ceil_in_the_exponent__L
+LeanVM/Guest/B1/Bits/QueryWindows.lean decode_query_windows__L
+LeanVM/Guest/B1/Bits/QueryWindowsAt.lean decode_query_windows__L
+LeanVM/Guest/B1/Bits/QueryWindowsComplete.lean decode_query_windows__L
+LeanVM/Guest/B1/Bits/QueryWindowsT.lean decode_query_windows__L
