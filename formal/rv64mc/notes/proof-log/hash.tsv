@@ -1,2 +1,10 @@
 module	instr	loops	proof_lines	cpu_s	manual_notes
 Proof.Hash.DigestFromHalves	61	0	52	25.4	32 byte stores (sb) to sret: rv_auto leaves the frame with Out, Static, BytesAt and ByteFrame over the setByte chain; frame/static by repeat refine (frame_setByte, static_setMem), bytes by interval_cases k (32) and simp through the chain (most of the cost), ByteFrame by repeat rw getByte_setByte_ne; Pre owns the doublewords of the digest (DwordsOf), not just its bytes
+Hash.Digest.Words	3	0	-	-	not done: a tail call of memcpy, whose contract is on bytes; its words (WordsAt) need a bytes-to-doubleword lemma and an 8-aligned destination, and Holds does not give the stack pointer alignment
+Hash.Digest.Halves	19	0	-	-	not done: reads Digest::words result from its own stack as doublewords (same alignment gap)
+Hash.KeccakF	391	1	-	-	specified (Spec/Hash/KeccakF.lean, by the keccak family); not proved: the round constants are memcpy-ed from .rodata to the stack and read as doublewords (bytes to doublewords, stack alignment), rho/pi reads a u32 table by lw (DataRef.Words gives doublewords only) into a memset stack array through permuted offsets (needs a permutation invariant); 24-round loop with an inner 25-lane loop
+Hash.XorBlock	430	0	-	-	specified only (Spec/Hash/Keccak.lean): 136 byte loads assembled into 17 lanes interleaved with lane stores; out of budget
+Hash.KeccakHash	136	1	-	-	specified only: its state is memset (bytes) then read as lanes by xor_block (bytes to doublewords, stack alignment)
+Merkle.HashPair	111	0	-	-	specified only (Spec/Merkle/Merkle.lean): byte loads into a stack buffer then keccak_hash (blocked on keccak_hash)
+Merkle.HashLeaf	55	0	-	-	specified only: Vec<u8> built by reserve and memcpy, then keccak_hash
+Merkle.MerklePath.Root	144	2	-	-	specified only (PathAt of Spec/Transcript/Repr)
