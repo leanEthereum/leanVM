@@ -280,3 +280,15 @@ LeanVM/Guest/B1/Ring/Loop14Complete.lean ring_switch_target_loop0
 LeanVM/Guest/B1/Ring/TargetComplete.lean ring_switch_target
 # Sumcheck
 LeanVM/Guest/B1/Sumcheck/Batch.lean batch_sumcheck__L
+# Terminal
+LeanVM/Guest/B1/Terminal/Blocks.lean check_opening_terminal
+LeanVM/Guest/B1/Terminal/Body.lean check_opening_terminal
+LeanVM/Guest/B1/Terminal/Claims.lean check_opening_terminal
+LeanVM/Guest/B1/Terminal/ClaimsComplete.lean check_opening_terminal
+LeanVM/Guest/B1/Terminal/HoldsOf.lean check_opening_terminal
+LeanVM/Guest/B1/Terminal/Support.lean check_opening_terminal
+LeanVM/Guest/B1/Terminal/Template.lean check_opening_terminal
+LeanVM/Guest/B1/Terminal/TermEval.lean check_opening_terminal
+LeanVM/Guest/B1/Terminal/TermFacts.lean check_opening_terminal
+LeanVM/Guest/B1/Terminal/PiChain.lean check_opening_terminal_loop0
+LeanVM/Guest/B1/Terminal/EqPrefixIn.lean eq_prefix_run__L
