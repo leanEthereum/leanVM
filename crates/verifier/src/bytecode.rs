@@ -44,16 +44,7 @@ impl Bytecode {
                 .collect();
             keccak_hash(&iv_preimage)
         };
-        let blocks = stacked_bytecode
-            .chunks(1 << BLOCK_LOG)
-            .map(|block| {
-                // Fewest positions first: the sum over a value's positions then runs one length many times over, so
-                // its loop exit is predicted.
-                let mut members = group_by_word(block);
-                members.sort_by_key(|(_, at)| at.len());
-                members
-            })
-            .collect();
+        let blocks = stacked_bytecode.chunks(1 << BLOCK_LOG).map(block_members).collect();
         Ok(Self {
             len: stacked_bytecode.len(),
             fiat_shamir_iv,
@@ -94,6 +85,19 @@ impl Bytecode {
                 .map(|(block, &weight)| weight * block_value(block)),
         ))
     }
+}
+
+/// A block's distinct nonzero words, each with its positions in increasing order: fewest positions first, equal counts
+/// in increasing word order. The sum over a value's positions then runs one length many times over, so its loop exit is
+/// predicted.
+fn block_members(block: &[u64]) -> Vec<(K, Vec<u16>)> {
+    let mut members = group_by_word(block);
+    let order: Vec<usize> = (0..members.len()).collect();
+    let order = counting_sort(&order, block.len() + 1, |&index| members[index].1.len());
+    order
+        .into_iter()
+        .map(|index| (members[index].0, std::mem::take(&mut members[index].1)))
+        .collect()
 }
 
 /// A block's distinct nonzero words in increasing order, each with its positions in increasing order.

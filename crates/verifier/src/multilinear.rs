@@ -133,17 +133,40 @@ impl Placement {
 
 /// Blocks of `2^size` laid end to end, largest first, ties by index: their offsets, and the total's `log2`, rounded up.
 pub fn stack_offsets(sizes: &[usize]) -> (Vec<u64>, usize) {
-    let mut order: Vec<usize> = (0..sizes.len()).collect();
-    order.sort_by_key(|&index| (std::cmp::Reverse(sizes[index]), index));
     let mut offsets = vec![0; sizes.len()];
     let mut total = 0;
-    for index in order {
-        offsets[index] = total;
-        total += 1 << sizes[index];
+    let largest = sizes.iter().copied().max().unwrap_or(0);
+    for size in (0..=largest).rev() {
+        for (index, &block) in sizes.iter().enumerate() {
+            if block == size {
+                offsets[index] = total;
+                total += 1 << size;
+            }
+        }
     }
     (offsets, log2_ceil(total))
 }
 
 fn selector_point(selector: u64, length: usize) -> Vec<E> {
     (0..length).map(|bit| E::new(selector >> bit & 1, 0)).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stack_offsets_place_largest_first_ties_by_index() {
+        for sizes in [vec![], vec![0], vec![3, 5, 3, 0, 5, 1, 7, 1], vec![2, 2, 2]] {
+            let mut order: Vec<usize> = (0..sizes.len()).collect();
+            order.sort_by_key(|&index| (std::cmp::Reverse(sizes[index]), index));
+            let mut expected = vec![0; sizes.len()];
+            let mut total = 0;
+            for index in order {
+                expected[index] = total;
+                total += 1 << sizes[index];
+            }
+            assert_eq!(stack_offsets(&sizes), (expected, log2_ceil(total)));
+        }
+    }
 }
