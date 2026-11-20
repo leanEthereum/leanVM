@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Da.Help
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_pad_loop0»
+import LeanVM.Guest.B1.Common.Vc
 
 /-!
 # The padding blobs
@@ -68,25 +69,14 @@ theorem pad_sound {roots nb : E} {d : ℕ} (hd : d < ordG)
     (hrel : coreProgram.Rel rd "da_pad" [roots, nb, gen ^ d] []) :
     ∀ j < d, LoadHolds rd (roots * nb ^ 2 * (gen ^ j) ^ 2) 0 (digestHalves daPadBlobDigest).1 ∧
       LoadHolds rd (roots * nb ^ 2 * (gen ^ j) ^ 2) 1 (digestHalves daPadBlobDigest).2 := by
-  have hok := dpad_ok
-  unfold dpadOk at hok
-  simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨hparams, hbody⟩ := hok
-  obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_da_pad _ _).mp hrel
-  rw [stmtsEqb_sound hbody] at hb
-  rw [hparams] at hpar
-  simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar
-  obtain ⟨h0, h1, h2⟩ := hpar
-  simp only [dpadBody, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
-  obtain ⟨c3, a4, c5, -, hcall, -⟩ := hb
-  refine loop_sound (f := name% «da_pad_loop0») (ps := [gen ^ d, roots, nb]) hd rfl
+  revert hrel
+  rw [rel_iff_fnSem find_da_pad]
+  vc [word_one]
+  rintro ⟨-, hcall, -⟩
+  exact loop_sound (f := name% «da_pad_loop0») (ps := [gen ^ d, roots, nb]) hd rfl
     (fun y hy => by
       obtain ⟨k1, k2⟩ := padL_step hy
-      exact ⟨k1 _ _ _ rfl, k2⟩)
-    (fun hne => ?_)
-  have := hcall (by rw [a4, c3, word_one, h2]; exact hne)
-  rw [c5, word_one, h2, h0, h1] at this
-  exact this
+      exact ⟨k1 _ _ _ rfl, k2⟩) hcall
 
 end
 end LeanVM.Guest.B1.Da
