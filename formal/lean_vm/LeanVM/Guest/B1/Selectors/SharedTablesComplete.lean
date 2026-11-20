@@ -348,23 +348,28 @@ def ssB (n k : ℕ) : E := bitE (n.testBit k)
 /-- The factor of bit `k` of `n` at share `t`. -/
 def ssF (n k t : ℕ) : E := word 1 0 + ssB n k * word (imFactor t) 0
 
-/-- **Value `x` of `shared_selector_tables`.** -/
+/-- **Value `x` of `shared_selector_tables`**, returning the tables `eqt`, `gt`. -/
 def ssVal (eqt gt z z1 gsq : E) (n x : ℕ) : E :=
-  let v20 := ssF n 0 0 * ssF n 1 1
-  let v39 := ssF n 2 0 * ssF n 3 1 * ssF n 4 2 * ssF n 5 3
-  let v41 := v39 * v39 * (v39 * v39)
-  let v47 := v41 * v41 * (v41 * v41)
-  [eqt, gt, z, z1, gsq, gen ^ n, ssB n 0, ssB n 1, ssB n 2, ssB n 3, ssB n 4, ssB n 5,
+  let v18 := ssF n 0 0 * ssF n 1 1
+  let v37 := ssF n 2 0 * ssF n 3 1 * ssF n 4 2 * ssF n 5 3
+  let v39 := v37 * v37 * (v37 * v37)
+  let v54 := v39 * v39 * (v39 * v39)
+  let v42 := v37 * word 2 0
+  let v45 := v42 * v42 * (v42 * v42) * (v42 * v42 * (v42 * v42))
+  let v46 := v45 * v45
+  [z, z1, gsq, gen ^ n, ssB n 0, ssB n 1, ssB n 2, ssB n 3, ssB n 4, ssB n 5,
     word 1 0, word (imFactor 0) 0, ssB n 0 * word (imFactor 0) 0, ssF n 0 0,
-    word 1 0, word (imFactor 1) 0, ssB n 1 * word (imFactor 1) 0, ssF n 1 1, v20,
+    word 1 0, word (imFactor 1) 0, ssB n 1 * word (imFactor 1) 0, ssF n 1 1, v18,
     word 1 0, word (imFactor 0) 0, ssB n 2 * word (imFactor 0) 0, ssF n 2 0,
     word 1 0, word (imFactor 1) 0, ssB n 3 * word (imFactor 1) 0, ssF n 3 1,
     ssF n 2 0 * ssF n 3 1,
     word 1 0, word (imFactor 2) 0, ssB n 4 * word (imFactor 2) 0, ssF n 4 2,
     ssF n 2 0 * ssF n 3 1 * ssF n 4 2,
-    word 1 0, word (imFactor 3) 0, ssB n 5 * word (imFactor 3) 0, ssF n 5 3, v39,
-    v39 * v39, v41, v41 * v20, word 1 0, word 1 0 + v39, word 1 0, v41 * v41, v47,
-    eqt * v47, eqt * v47 * v47, gt * v47, z * v41, z1 * v41, gsq * v41, 0].getD x 0
+    word 1 0, word (imFactor 3) 0, ssB n 5 * word (imFactor 3) 0, ssF n 5 3, v37,
+    v37 * v37, v39, v39 * v18, word 2 0, v42, v42 * v42, v42 * v42 * (v42 * v42), v45, v46,
+    v46 * v46, eqt, gt,
+    word 1 0, word 1 0 + v37, word 1 0, v39 * v39, v54,
+    eqt * v54, eqt * v54 * v54, gt * v54, z * v39, z1 * v39, gsq * v39, 0, eqt, gt].getD x 0
 
 theorem ssF_eq (n k t : ℕ) (ht : t < 34) :
     ssF n k t = gen ^ (2 ^ t * (n.testBit k).toNat) := by
@@ -392,9 +397,9 @@ theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_
   intro rd eqt gt z z1 gsq n zs zs1 gs hn hzl hz1l hgl hz hz1 hg hrt
   obtain ⟨fn, hf, hp, hb⟩ := ssFound
   obtain ⟨hr, hq⟩ := ss_bits hn
-  have v20 : ssF n 0 0 * ssF n 1 1 = gen ^ (n % 4) := by
+  have v18 : ssF n 0 0 * ssF n 1 1 = gen ^ (n % 4) := by
     rw [ssF_eq n 0 0 (by norm_num), ssF_eq n 1 1 (by norm_num), ← pow_add, hr]; ring_nf
-  have v39 : ssF n 2 0 * ssF n 3 1 * ssF n 4 2 * ssF n 5 3 = gen ^ (n / 4) := by
+  have v37 : ssF n 2 0 * ssF n 3 1 * ssF n 4 2 * ssF n 5 3 = gen ^ (n / 4) := by
     rw [ssF_eq n 2 0 (by norm_num), ssF_eq n 3 1 (by norm_num), ssF_eq n 4 2 (by norm_num),
       ssF_eq n 5 3 (by norm_num), ← pow_add, ← pow_add, ← pow_add, hq]; ring_nf
   have hn4 : n = 4 * (n / 4) + n % 4 := by omega
@@ -403,7 +408,7 @@ theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_
   simp only [ssPre, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and, and_true, List.map_cons,
     List.map_nil]
   simp (config := { decide := true }) only [ssVal, List.getD_eq_getElem?_getD,
-    List.getElem?_cons_zero, List.getElem?_cons_succ, Option.getD_some, true_and, v20, v39]
+    List.getElem?_cons_zero, List.getElem?_cons_succ, Option.getD_some, true_and, v18, v37]
   set q := n / 4 with hqd
   have p4 : gen ^ q * gen ^ q * (gen ^ q * gen ^ q) = gen ^ (4 * q) := by
     simp only [← pow_add]; congr 1; omega
@@ -428,7 +433,7 @@ theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_
     exact lp_chain hlz hlz1 hlg hz hz1 hg (fun j hj ↦ hrt j (by omega)) 0 hq0
   · -- the partial nibble
     have hr4 : n % 4 < 4 := by omega
-    refine ⟨n % 4, by simpa using hr4, gen_pow_eq_ofK _, ?_⟩
+    refine ⟨⟨n % 4, by simpa using hr4, gen_pow_eq_ofK _, ?_⟩, trivial⟩
     rw [lName_sel_partial (n % 4) hr4, mul_assoc, ← pow_add, show 16 * q + 16 * q = 32 * q by omega]
     have hlen : ∀ l : List E, l.length = n → (nib l q).length = n % 4 := fun l hl ↦ by
       simp [nib, hl]; omega
