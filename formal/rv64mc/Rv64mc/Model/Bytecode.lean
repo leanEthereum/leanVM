@@ -13,8 +13,10 @@ block's words, `Bytecode::new` (`newRust`) and `Bytecode::evaluate` (`evaluateRu
 
 The statement has no counterpart of the encoding check (it verifies a proof for any words); the
 IV is `fiatShamirIv` (`fiatShamirIvRust_eq`). What the walk needs of a prepared bytecode is
-`BytecodeOk`. The counting sort permutes its items (`countingSortRust_perm`), so a block's members
-hold exactly its nonzero words at their positions, whatever their order.
+`BytecodeOk`, which `Bytecode::new` gives (`newRust_ok`): the counting sort permutes its items
+(`countingSortRust_perm`), so a block's members hold exactly its nonzero words at their positions,
+and `evaluate`'s blocks, weighed by the eq table's low and high coordinates, sum to the
+multilinear extension (`multilinearEval_eq_sum`, `eqKernel_split`).
 -/
 
 namespace Rv64mc.Model
@@ -451,6 +453,406 @@ structure BytecodeOk (words : List K) (bc : BytecodeRust) : Prop where
   evaluate : ∀ point, evaluateRust bc point =
     if point.length < 64 ∧ words.length = 2 ^ point.length then
       some (multilinearEval (words.map ofK) point) else none
+
+/-! ## The multilinear extension as an eq-weighted sum -/
+
+section EqSum
+
+private theorem foldPairs_getElem?' (r : E) : ∀ (A : List E) (i : ℕ), (foldPairs r A)[i]? =
+    if i < A.length / 2 then some (A.getD (2 * i) 0 * (1 + r) + A.getD (2 * i + 1) 0 * r)
+    else none
+  | [], i => by simp [foldPairs]
+  | [a], i => by simp [foldPairs]
+  | a :: b :: rest, 0 => by simp [foldPairs]
+  | a :: b :: rest, i + 1 => by
+    rw [foldPairs, List.getElem?_cons_succ, foldPairs_getElem?' r rest i]
+    have h1 : 2 * (i + 1) = 2 * i + 1 + 1 := by ring
+    simp only [List.length_cons, h1, List.getD_cons_succ]
+    congr 1
+    apply propext
+    omega
+
+private theorem foldPairs_length' (r : E) : ∀ (A : List E), (foldPairs r A).length = A.length / 2
+  | [] => by simp [foldPairs]
+  | [a] => by simp [foldPairs]
+  | a :: b :: rest => by
+    rw [foldPairs, List.length_cons, foldPairs_length' r rest]
+    simp only [List.length_cons]
+    omega
+
+private theorem eqKernel_foldl (rs : List E) : ∀ out : List E,
+    rs.foldl (fun out r ↦ out.map (· * (1 + r)) ++ out.map (· * r)) out =
+      (eqKernel rs).flatMap fun w ↦ out.map (· * w) := by
+  induction rs with
+  | nil => intro out; simp [eqKernel]
+  | cons r rs ih =>
+    intro out
+    have he : eqKernel (r :: rs) = (eqKernel rs).flatMap fun w ↦
+        ([1].map (· * (1 + r)) ++ [1].map (· * r)).map (· * w) := ih _
+    rw [List.foldl_cons, ih, he, List.flatMap_assoc]
+    apply List.flatMap_congr
+    intro w _
+    simp only [List.map_cons, List.map_nil, List.cons_append, List.nil_append, List.flatMap_cons,
+      List.flatMap_nil, List.append_nil, List.map_append, List.map_map]
+    refine congrArg₂ (· ++ ·) (List.map_congr_left fun x _ ↦ ?_) (List.map_congr_left fun x _ ↦ ?_)
+    · simp only [Function.comp_apply]
+      ring
+    · simp only [Function.comp_apply]
+      ring
+
+private theorem eqKernel_append (low high : List E) :
+    eqKernel (low ++ high) = (eqKernel high).flatMap fun w ↦ (eqKernel low).map (· * w) := by
+  rw [eqKernel, List.foldl_append, ← eqKernel, eqKernel_foldl]
+
+private theorem getD_append_l {l l' : List E} {i : ℕ} (h : i < l.length) :
+    (l ++ l').getD i 0 = l.getD i 0 := by
+  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_append_left h]
+
+private theorem getD_append_r {l l' : List E} {i : ℕ} (h : l.length ≤ i) :
+    (l ++ l').getD i 0 = l'.getD (i - l.length) 0 := by
+  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_append_right h]
+
+private theorem getD_flatMap_mul (A : List E) (hA : 0 < A.length) : ∀ (W : List E) (i : ℕ),
+    (W.flatMap fun w ↦ A.map (· * w)).getD i 0 = A.getD (i % A.length) 0 * W.getD (i / A.length) 0
+  | [], i => by simp
+  | w :: W, i => by
+    rw [List.flatMap_cons]
+    by_cases hi : i < A.length
+    · rw [getD_append_l (by simpa using hi), Nat.mod_eq_of_lt hi, Nat.div_eq_of_lt hi]
+      simp [List.getD_eq_getElem?_getD]
+      cases A[i]? <;> simp
+    · have hL : A.length ≤ i := by omega
+      rw [getD_append_r (by simpa using hL), List.length_map,
+        getD_flatMap_mul A hA W]
+      have h1 : i % A.length = (i - A.length) % A.length := Nat.mod_eq_sub_mod hL
+      have h2 : i / A.length = (i - A.length) / A.length + 1 := Nat.div_eq_sub_div hA hL
+      rw [h1, h2, List.getD_cons_succ]
+
+private theorem sum_range_two_mul (f : ℕ → E) : ∀ N : ℕ,
+    ∑ i ∈ Finset.range (2 * N), f i = ∑ j ∈ Finset.range N, (f (2 * j) + f (2 * j + 1))
+  | 0 => by simp
+  | N + 1 => by
+    rw [show 2 * (N + 1) = 2 * N + 1 + 1 by ring, Finset.sum_range_succ, Finset.sum_range_succ,
+      sum_range_two_mul f N, Finset.sum_range_succ]
+    ring
+
+/-- **`multilinearEval` is the eq-weighted sum of the table.** -/
+theorem multilinearEval_eq_sum : ∀ (point mle : List E), mle.length = 2 ^ point.length →
+    multilinearEval mle point =
+      ∑ i ∈ Finset.range (2 ^ point.length), (eqKernel point).getD i 0 * mle.getD i 0
+  | [], mle, h => by
+    match mle, h with
+    | [a], _ => simp [multilinearEval, eqKernel]
+  | r :: rs, mle, h => by
+    have hF : (foldPairs r mle).length = 2 ^ rs.length := by
+      rw [foldPairs_length', h, List.length_cons, pow_succ]
+      omega
+    have hm : multilinearEval mle (r :: rs) = multilinearEval (foldPairs r mle) rs := rfl
+    have hk : eqKernel (r :: rs) = (eqKernel rs).flatMap fun w ↦ [1 + r, r].map (· * w) := by
+      rw [show r :: rs = [r] ++ rs from rfl, eqKernel_append]
+      simp [eqKernel]
+    rw [hm, multilinearEval_eq_sum rs _ hF, hk, List.length_cons, pow_succ, mul_comm,
+      sum_range_two_mul]
+    apply Finset.sum_congr rfl
+    intro j hj
+    rw [Finset.mem_range] at hj
+    have hp := foldPairs_getElem?' r mle j
+    rw [ite_eq_left (by rw [h, List.length_cons, pow_succ]; omega)] at hp
+    rw [getD_flatMap_mul _ (by simp), getD_flatMap_mul _ (by simp),
+      List.getD_eq_getElem?_getD (l := foldPairs r mle) (i := j), hp, Option.getD_some,
+      show [1 + r, r].length = 2 from rfl]
+    rw [show 2 * j % 2 = 0 by omega, show (2 * j + 1) % 2 = 1 by omega, show 2 * j / 2 = j by omega,
+      show (2 * j + 1) / 2 = j by omega]
+    simp only [List.getD_cons_zero, List.getD_cons_succ]
+    ring
+
+/-- The eq weights split at `m`: the low coordinates by the index's remainder, the high by its
+quotient. -/
+theorem eqKernel_split (point : List E) (m j : ℕ) (hm : m ≤ point.length) :
+    (eqKernel point).getD j 0 = (eqKernel (point.take m)).getD (j % 2 ^ m) 0 *
+      (eqKernel (point.drop m)).getD (j / 2 ^ m) 0 := by
+  conv_lhs => rw [← List.take_append_drop m point]
+  rw [eqKernel_append, getD_flatMap_mul _ (by rw [eqKernel_length]; positivity), eqKernel_length,
+    List.length_take, min_eq_left hm]
+
+/-- A sum over `A · B` indices, block by block. -/
+theorem sum_range_blocks (f : ℕ → E) (B : ℕ) : ∀ A : ℕ,
+    ∑ j ∈ Finset.range (A * B), f j = ∑ b ∈ Finset.range A, ∑ i ∈ Finset.range B, f (b * B + i)
+  | 0 => by simp
+  | A + 1 => by
+    rw [Nat.succ_mul, Finset.sum_range_add, sum_range_blocks f B A, Finset.sum_range_succ]
+
+end EqSum
+
+
+/-! ## `Bytecode::new` prepares the words' bytecode -/
+
+section NewOk
+
+/-- A word as a field element: `K(word)` in `E`. -/
+def wordE (w : BitVec 64) : E := ofK (BF64.ofBitVec w)
+
+theorem wordE_zero : wordE 0#64 = 0 := rfl
+
+theorem wordE_toBitVec (k : K) : wordE k.toBitVec = ofK k := rfl
+
+/-- The (word, position) pairs of a block's members. -/
+def pairsOf (ms : List (BitVec 64 × List (BitVec 16))) : List (BitVec 64 × BitVec 16) :=
+  ms.flatMap fun m ↦ m.2.map fun p ↦ (m.1, p)
+
+/-- A pair's share of a block's value. -/
+def pairTerm (lw : List E) (pw : BitVec 64 × BitVec 16) : E := lw.getD pw.2.toNat 0 * wordE pw.1
+
+theorem blockValueRust_eq (lw : List E) (ms : List (BitVec 64 × List (BitVec 16))) :
+    blockValueRust lw ms = ((pairsOf ms).map (pairTerm lw)).sum := by
+  unfold blockValueRust
+  rw [foldl_add_eq_add_sum, zero_add]
+  induction ms with
+  | nil => rfl
+  | cons m ms ih =>
+    obtain ⟨w, ps⟩ := m
+    rw [List.map_cons, List.sum_cons, ih, show pairsOf ((w, ps) :: ms) = ps.map (fun p ↦ (w, p)) ++
+      pairsOf ms from rfl, List.map_append,
+      List.sum_append]
+    dsimp only
+    rw [foldl_add_eq_add_sum, zero_add, mulKE_eq, ← List.sum_map_mul_right, List.map_map]
+    rfl
+
+theorem pairsOf_groupStep (ms : List (BitVec 64 × List (BitVec 16))) (p : BitVec 64 × BitVec 16) :
+    pairsOf (groupStep ms p) = pairsOf ms ++ [p] := by
+  unfold groupStep
+  cases h : ms.getLast? with
+  | none => simp [pairsOf]
+  | some lp =>
+    obtain ⟨last, pos⟩ := lp
+    dsimp only
+    split_ifs with he
+    · obtain ⟨ys, rfl⟩ := List.getLast?_eq_some_iff.mp h
+      subst he
+      simp [pairsOf]
+    · simp [pairsOf]
+
+theorem pairsOf_foldl_groupStep (l : List (BitVec 64 × BitVec 16)) :
+    ∀ acc, pairsOf (l.foldl groupStep acc) = pairsOf acc ++ l := by
+  induction l with
+  | nil => intro acc; simp
+  | cons p l ih => intro acc; rw [List.foldl_cons, ih, pairsOf_groupStep, List.append_assoc]; rfl
+
+theorem byteKey_lt (byte : ℕ) (p : BitVec 64 × BitVec 16) : byteKey byte p < 256 :=
+  BitVec.isLt _
+
+theorem sortPasses_perm : ∀ (bytes : List ℕ) (pairs : List (BitVec 64 × BitVec 16)),
+    (bytes.foldl (fun pairs byte ↦ countingSortRust pairs 256 (byteKey byte)) pairs).Perm pairs
+  | [], _ => List.Perm.refl _
+  | b :: bs, _ => (sortPasses_perm bs _).trans
+      (countingSortRust_perm _ _ _ fun x _ ↦ byteKey_lt b x)
+
+/-- `group_by_word`'s input: the nonzero words with their positions. -/
+def wordPairs (c : List (BitVec 64)) : List (BitVec 64 × BitVec 16) :=
+  (c.zipIdx.filter fun wp ↦ wp.1 != 0).map fun wp ↦ (wp.1, BitVec.ofNat 16 wp.2)
+
+theorem pairsOf_groupByWord (c : List (BitVec 64)) :
+    (pairsOf (groupByWordRust c)).Perm (wordPairs c) := by
+  unfold groupByWordRust
+  rw [pairsOf_foldl_groupStep]
+  exact sortPasses_perm _ _
+
+private theorem length_le_pairsOf {ms : List (BitVec 64 × List (BitVec 16))} {m}
+    (h : m ∈ ms) : m.2.length ≤ (pairsOf ms).length := by
+  unfold pairsOf
+  rw [List.length_flatMap]
+  have := List.le_sum_of_mem (List.mem_map_of_mem (f := fun m : BitVec 64 × List (BitVec 16) ↦
+    (m.2.map fun p ↦ (m.1, p)).length) h)
+  simpa using this
+
+private theorem takeFold (ms : List (BitVec 64 × List (BitVec 16))) :
+    ∀ (order : List ℕ) (out cur : List (BitVec 64 × List (BitVec 16))), order.Nodup →
+      (∀ i ∈ order, cur.getD i (0, []) = ms.getD i (0, [])) →
+      (order.foldl (fun (acc : List (BitVec 64 × List (BitVec 16)) ×
+          List (BitVec 64 × List (BitVec 16))) index ↦
+        let member := acc.2.getD index (0, [])
+        (acc.1 ++ [member], acc.2.set index (member.1, []))) (out, cur)).1 =
+        out ++ order.map fun i ↦ ms.getD i (0, [])
+  | [], out, cur, _, _ => by simp
+  | i :: rest, out, cur, hnd, hcur => by
+    rw [List.foldl_cons]
+    dsimp only
+    rw [takeFold ms rest _ _ (List.nodup_cons.mp hnd).2 fun j hj ↦ ?_, hcur i (by simp),
+      List.map_cons, List.append_assoc, List.singleton_append]
+    have hji : i ≠ j := fun e ↦ (List.nodup_cons.mp hnd).1 (e ▸ hj)
+    rw [List.getD_eq_getElem?_getD, List.getElem?_set_ne hji, ← List.getD_eq_getElem?_getD,
+      hcur j (by simp [hj])]
+
+theorem blockMembersRust_perm (c : List (BitVec 64)) :
+    (blockMembersRust c).Perm (groupByWordRust c) := by
+  unfold blockMembersRust
+  dsimp only
+  have hlen : (pairsOf (groupByWordRust c)).length ≤ c.length := by
+    rw [(pairsOf_groupByWord c).length_eq, wordPairs, List.length_map]
+    exact (List.length_filter_le _ _).trans (by simp)
+  have hord := countingSortRust_perm (fun index ↦ ((groupByWordRust c).getD index (0, [])).2.length)
+    (List.range (groupByWordRust c).length) (c.length + 1) fun i hi ↦ by
+      have hi' : i < (groupByWordRust c).length := List.mem_range.mp hi
+      show ((groupByWordRust c).getD i (0, [])).2.length < c.length + 1
+      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi', Option.getD_some]
+      exact Nat.lt_succ_of_le ((length_le_pairsOf (List.getElem_mem hi')).trans hlen)
+  rw [takeFold _ _ _ _ (hord.nodup_iff.mpr List.nodup_range) fun _ _ ↦ rfl, List.nil_append]
+  refine (hord.map _).trans ?_
+  apply List.Perm.of_eq
+  apply List.ext_getElem (by simp)
+  intro i h1 h2
+  simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h2]
+
+private theorem wordPairs_sum (lw : List E) : ∀ (c : List (BitVec 64)) (k : ℕ),
+    k + c.length ≤ 2 ^ 16 →
+    ((((c.zipIdx k).filter fun wp ↦ wp.1 != 0).map fun wp ↦
+      (wp.1, BitVec.ofNat 16 wp.2)).map (pairTerm lw)).sum =
+      ∑ i ∈ Finset.range c.length, lw.getD (k + i) 0 * wordE (c.getD i 0)
+  | [], _, _ => by simp
+  | w :: c, k, hk => by
+    rw [List.zipIdx_cons, List.length_cons, Finset.sum_range_succ', List.getD_cons_zero]
+    have ih := wordPairs_sum lw c (k + 1) (by simp at hk; omega)
+    have hrest : ∑ i ∈ Finset.range c.length, lw.getD (k + (i + 1)) 0 * wordE ((w :: c).getD
+        (i + 1) 0) = ∑ i ∈ Finset.range c.length, lw.getD (k + 1 + i) 0 * wordE (c.getD i 0) :=
+      Finset.sum_congr rfl fun i _ ↦ by rw [List.getD_cons_succ, show k + (i + 1) = k + 1 + i by
+        omega]
+    rw [hrest, ← ih, List.filter_cons]
+    have hkn : (BitVec.ofNat 16 k).toNat = k := by
+      rw [BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by simp at hk; omega)]
+    by_cases hw : w = 0#64
+    · simp [hw, wordE_zero]
+    · rw [ite_eq_left (by simpa using hw), List.map_cons, List.map_cons, List.sum_cons, add_comm]
+      simp [pairTerm, hkn]
+
+theorem pairsOf_perm {ms ms' : List (BitVec 64 × List (BitVec 16))} (h : ms.Perm ms') :
+    (pairsOf ms).Perm (pairsOf ms') :=
+  h.flatMap_right _
+
+theorem blockValueRust_blockMembers (lw : List E) (c : List (BitVec 64))
+    (hc : c.length ≤ 2 ^ 16) :
+    blockValueRust lw (blockMembersRust c) =
+      ∑ i ∈ Finset.range c.length, lw.getD i 0 * wordE (c.getD i 0) := by
+  rw [blockValueRust_eq, ((pairsOf_perm (blockMembersRust_perm c)).map _).sum_eq,
+    ((pairsOf_groupByWord c).map _).sum_eq, wordPairs,
+    wordPairs_sum lw c 0 (by omega)]
+  simp
+
+theorem chunksW_eq {α : Type} (S : ℕ) (hS : 0 < S) : ∀ (A : ℕ) (l : List α), l.length = A * S →
+    chunksW S l = (List.range A).map fun b ↦ (l.drop (b * S)).take S
+  | 0, l, h => by
+    rw [chunksW, dite_eq_left (Or.inl (List.length_eq_zero_iff.mp (by simpa using h)))]
+    rfl
+  | A + 1, l, h => by
+    have hne : l ≠ [] := by
+      rintro rfl
+      simp only [List.length_nil] at h
+      have : 0 < (A + 1) * S := Nat.mul_pos (by omega) hS
+      omega
+    rw [chunksW, dite_eq_right fun h' ↦ h'.elim hne (by omega), chunksW_eq S hS A (l.drop S) (by
+      rw [List.length_drop, h, Nat.succ_mul]; omega), List.range_succ_eq_map]
+    simp only [List.map_cons, List.map_map, zero_mul, List.drop_zero]
+    congr 1
+    refine List.map_congr_left fun b _ ↦ ?_
+    simp only [Function.comp_apply, List.drop_drop]
+    congr 2
+    rw [Nat.succ_mul]
+    omega
+
+theorem chunksW_single {α : Type} (S : ℕ) (l : List α) (h0 : l ≠ []) (h : l.length ≤ S) :
+    chunksW S l = [l] := by
+  have hS : S ≠ 0 := fun e ↦ h0 (List.length_eq_zero_iff.mp (by omega))
+  rw [chunksW, dite_eq_right fun h' ↦ h'.elim h0 hS, List.take_of_length_le h, chunksW,
+    dite_eq_left (Or.inl (List.drop_eq_nil_of_le h))]
+
+private theorem sum_zip_range {α : Type} (F : α × E → E) :
+    ∀ (hw : List E) (g : ℕ → α),
+      ((((List.range hw.length).map g).zip hw).map F).sum =
+        ∑ b ∈ Finset.range hw.length, F (g b, hw.getD b 0)
+  | [], _ => by simp
+  | x :: hw, g => by
+    rw [List.length_cons, List.range_succ_eq_map, List.map_cons, List.map_map, List.zip_cons_cons,
+      List.map_cons, List.sum_cons, sum_zip_range F hw, Finset.sum_range_succ', add_comm]
+    rfl
+
+private theorem getD_map_ofK (words : List K) (j : ℕ) :
+    (words.map ofK).getD j 0 = wordE ((words.map BF64.toBitVec).getD j 0) := by
+  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_map]
+  cases words[j]? <;> rfl
+
+private theorem chunk_getD (W : List (BitVec 64)) (o B i : ℕ) (hi : i < B) :
+    ((W.drop o).take B).getD i 0 = W.getD (o + i) 0 := by
+  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_take_of_lt hi,
+    List.getElem?_drop]
+
+/-- **`Bytecode::new` prepares the words' bytecode**: where it returns `Ok`, the count, the IV,
+and `evaluate`, the multilinear extension by blocks, are the words'. -/
+theorem newRust_ok {words : List K} {bc : BytecodeRust}
+    (h : newRust (words.map BF64.toBitVec) = some bc) : BytecodeOk words bc := by
+  unfold newRust at h
+  split_ifs at h with hv
+  cases h
+  refine ⟨by simp, fiatShamirIvRust_eq words, fun point ↦ ?_⟩
+  unfold evaluateRust
+  simp only [List.length_map]
+  split_ifs with hc
+  swap
+  · rfl
+  obtain ⟨hn, hwl⟩ := hc
+  generalize hW : words.map BF64.toBitVec = W
+  have hWl : W.length = 2 ^ point.length := by rw [← hW, List.length_map, hwl]
+  generalize hm : min point.length blockLog = m
+  have hmn : m ≤ point.length := hm ▸ min_le_left _ _
+  have hm14 : m ≤ 14 := hm ▸ min_le_right _ _
+  have hBA : 2 ^ point.length = 2 ^ (point.length - m) * 2 ^ m := by
+    rw [← pow_add, Nat.sub_add_cancel hmn]
+  have hblocks : chunksW (2 ^ blockLog) W =
+      (List.range (2 ^ (point.length - m))).map fun b ↦ (W.drop (b * 2 ^ m)).take (2 ^ m) := by
+    by_cases hb : blockLog ≤ point.length
+    · rw [show m = blockLog by rw [← hm]; exact min_eq_right hb]
+      exact chunksW_eq _ (by positivity) _ _ (by
+        rw [hWl, hBA, show m = blockLog by rw [← hm]; exact min_eq_right hb])
+    · have hmp : m = point.length := by rw [← hm]; exact min_eq_left (by omega)
+      rw [hmp, Nat.sub_self, pow_zero, chunksW_single _ _ (fun e ↦ by
+        simp only [e, List.length_nil] at hWl; exact absurd hWl.symm (by positivity))
+        (by rw [hWl]; exact Nat.pow_le_pow_right (by norm_num) (by omega))]
+      simp [← hWl]
+  have hhw : (eqKernel (point.drop m)).length = 2 ^ (point.length - m) := by
+    rw [eqKernel_length, List.length_drop]
+  rw [eqKernelRust_eq _ (by simp; omega), eqKernelRust_eq _ (by simp; omega), hblocks,
+    List.map_map, foldl_add_eq_add_sum, zero_add, ← hhw, sum_zip_range, hhw,
+    multilinearEval_eq_sum point _ (by simp [hwl]), hBA, sum_range_blocks]
+  congr 1
+  refine Finset.sum_congr rfl fun b hb ↦ ?_
+  rw [Finset.mem_range] at hb
+  have hlen : ((W.drop (b * 2 ^ m)).take (2 ^ m)).length = 2 ^ m := by
+    rw [List.length_take, List.length_drop, hWl, hBA]
+    have : (b + 1) * 2 ^ m ≤ 2 ^ (point.length - m) * 2 ^ m := Nat.mul_le_mul_right _ hb
+    rw [Nat.succ_mul] at this
+    omega
+  have h16 : 2 ^ m ≤ 2 ^ 16 := Nat.pow_le_pow_right (by norm_num) (by omega)
+  dsimp only [Function.comp_apply]
+  rw [blockValueRust_blockMembers _ _ (by rw [hlen]; exact h16), hlen, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun i hi ↦ ?_
+  rw [Finset.mem_range] at hi
+  rw [eqKernel_split point m _ hmn, getD_map_ofK, hW, chunk_getD _ _ _ _ hi,
+    show (b * 2 ^ m + i) % 2 ^ m = i by rw [Nat.mul_comm, Nat.mul_add_mod, Nat.mod_eq_of_lt hi],
+    show (b * 2 ^ m + i) / 2 ^ m = b by
+      rw [Nat.mul_comm, Nat.mul_add_div (by positivity), Nat.div_eq_of_lt hi, add_zero]]
+  ring
+
+
+/-- `Bytecode::new`'s words number at most `2^34` (`16 · 2^30`). -/
+theorem newRust_length {words : List (BitVec 64)} {bc : BytecodeRust}
+    (h : newRust words = some bc) : words.length ≤ 2 ^ 34 := by
+  unfold newRust at h
+  split_ifs at h with hv
+  unfold validEncodingRust at hv
+  simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hv
+  obtain ⟨⟨⟨-, hl⟩, hn⟩, -⟩ := hv
+  rw [Nat.shiftLeft_eq] at hl
+  omega
+
+end NewOk
 
 end
 

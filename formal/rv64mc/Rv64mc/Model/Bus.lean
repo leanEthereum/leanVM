@@ -491,18 +491,6 @@ theorem Returns.require (c : Prop) [Decidable c] : Returns (TM.require c) fun _ 
   split_ifs at h with hc
   exact hc
 
-theorem eqKernel_length' (point : List E) : (eqKernel point).length = 2 ^ point.length := by
-  unfold eqKernel
-  suffices ∀ (out : List E), (point.foldl (fun out r ↦ out.map (· * (1 + r)) ++ out.map (· * r))
-      out).length = out.length * 2 ^ point.length from by simpa using this [1]
-  induction point with
-  | nil => intro out; simp
-  | cons r rs ih =>
-    intro out
-    rw [List.foldl_cons, ih]
-    simp only [List.length_append, List.length_map, List.length_cons]
-    ring
-
 theorem ret_bind' {α β : Type} (a : α) (f : α → VerifierProgram β) :
     (VerifierProgram.ret a >>= f) = f a := rfl
 
@@ -630,7 +618,7 @@ theorem SimR.verifyBusBalance (l : LayoutRust) (L : Layout) (hl : l.Rel L) (word
   refine SimR.bindEq Sim.nextScalar fun value ↦ ?_
   refine SimR.whenChecked_bind ?_
   simp only [bind_assoc]
-  rw [eqKernelRust_eq _ (by omega), dotRust_eq (by rw [hw16, eqKernel_length', hsp]; rfl)]
+  rw [eqKernelRust_eq _ (by omega), dotRust_eq (by rw [hw16, eqKernel_length, hsp]; rfl)]
   simp only [TM.ofOption, pure_bind]
   refine SimR.bindEq (Sim.require _) fun _ ↦ ?_
   rw [hbc.evaluate]

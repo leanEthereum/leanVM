@@ -14,8 +14,8 @@ the Rust's order, and `walkRust_sound`: where the mirror returns `Ok` from the t
 anything.
 
 The stack's root is read in step 2 and opened in step 7; every step between them mirrors a program
-that reads no commitment (`NoCommit`, `Model.Transcript`), so it keeps the roots and the opening runs
-from the stack's root alone (`SimRoots`, `StackRoots`, `Model.Whir`).
+that reads no commitment (`NoCommit`, `Model.Transcript`), so it keeps the roots and the opening
+runs from the stack's root alone (`SimRoots`, `StackRoots`, `Model.Whir`).
 -/
 
 namespace Rv64mc.Model
@@ -540,7 +540,8 @@ theorem NoCommit.verifyBusBalance (layout : Layout) :
   exact NoCommit.gkrLayers _ _
 
 theorem NoCommit.tableTerms (cp fp point : List E) :
-    ∀ rows cursor final, NoCommit (LeanVM.Protocol.Verifier.tableTerms cp fp point rows cursor final)
+    ∀ rows cursor final,
+      NoCommit (LeanVM.Protocol.Verifier.tableTerms cp fp point rows cursor final)
   | [], _, _ => NoCommit.ret _
   | _ :: rest, _, _ => by
     unfold LeanVM.Protocol.Verifier.tableTerms
@@ -684,16 +685,19 @@ theorem SimRoots.walkBody (words : List K) (bc : BytecodeRust)
 /-! ## The end theorem -/
 
 /-- **`verify_execution` is sound for the statement**: where the mirror of `verify_execution`
-(checked mode, from `Transcript::new` on the bytecode's IV) returns `Ok`, on a prepared bytecode of
-the statement's words (`BytecodeOk`, which `Bytecode::new` builds), the statement's verifier over
-Keccak-f[1600] accepts. The words' count fits a `usize`, every leaf index a `u64` (the wire
-format's). -/
+(checked mode, from `Transcript::new` on the bytecode's IV) returns `Ok`, on the bytecode
+`Bytecode::new` prepared from the statement's words, the statement's verifier over Keccak-f[1600]
+accepts. Every leaf index fits a `u64` (the wire format's). -/
 theorem walkRust_sound (words : List K) (bc : BytecodeRust)
-    (hbc : BytecodeOk words bc) (hlen : words.length < 2 ^ 64) (publicInput : Digest)
-    (proof : Proof) (hl : ∀ phase ∈ proof.openings, ∀ o ∈ phase, o.leafIndex < 2 ^ 64)
-    {summary : SummaryRust}
+    (hbc : newRust (words.map BF64.toBitVec) = some bc) (publicInput : Digest) (proof : Proof)
+    (hl : ∀ phase ∈ proof.openings, ∀ o ∈ phase, o.leafIndex < 2 ^ 64) {summary : SummaryRust}
     (h : verifyExecutionRust bc (digestBits publicInput) proof = some summary) :
     verifyWith (m := Id) keccakF1600 words publicInput proof = true := by
+  have hlen : words.length < 2 ^ 64 := by
+    have := newRust_length hbc
+    rw [List.length_map] at this
+    omega
+  replace hbc := newRust_ok hbc
   have ht0 : (⟨proof, SpongeRust.new bc.fiatShamirIv (digestBits publicInput), 0, 0, true, []⟩ :
       TState) = TState.new proof (fiatShamirIv words) publicInput true := by
     rw [TState.new, hbc.iv]
@@ -733,12 +737,32 @@ theorem walkRust_sound (words : List K) (bc : BytecodeRust)
       rw [hprog]
       exact hfin
 
+/-- `main`'s verdict on its decoded input (`formal/rv64mc/guest/src/main.rs`): `REJECT` where
+`Bytecode::new` fails, else `ACCEPT` exactly where `verify_execution` returns `Ok`. -/
+def mainVerdictRust (words : List (BitVec 64)) (publicInput : List (BitVec 8)) (proof : Proof) :
+    Bool :=
+  match newRust words with
+  | none => false
+  | some bc => (verifyExecutionRust bc publicInput proof).isSome
+
+/-- **`main` accepts only what the statement accepts.** -/
+theorem mainVerdictRust_sound (words : List K) (publicInput : Digest) (proof : Proof)
+    (hl : ∀ phase ∈ proof.openings, ∀ o ∈ phase, o.leafIndex < 2 ^ 64)
+    (h : mainVerdictRust (words.map BF64.toBitVec) (digestBits publicInput) proof = true) :
+    verifyWith (m := Id) keccakF1600 words publicInput proof = true := by
+  unfold mainVerdictRust at h
+  split at h
+  · cases h
+  · next bc hbc =>
+    obtain ⟨_, hs⟩ := Option.isSome_iff_exists.mp h
+    exact walkRust_sound words bc hbc publicInput proof hl hs
+
 end
 
 /--
-info: 'Rv64mc.Model.walkRust_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'Rv64mc.Model.mainVerdictRust_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
-#print axioms walkRust_sound
+#print axioms mainVerdictRust_sound
 
 end Rv64mc.Model
