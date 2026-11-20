@@ -95,7 +95,8 @@ theorem ringWeightInner_eq : ∀ (product : E) (values rPrime : List E),
 
 /-- **`ring_weight` is `ringWeight`**, for a point and an opening point of one length (the
 weight's point and the opening's, both of the stack's or the window's variables). -/
-theorem ringWeightRust_eq {r rPrime : List E} (h : r.length = rPrime.length) (coefficients : List E) :
+theorem ringWeightRust_eq {r rPrime : List E} (h : r.length = rPrime.length)
+    (coefficients : List E) :
     ringWeightRust r rPrime coefficients = some (ringWeight r rPrime coefficients) := by
   rw [ringWeightRust, ite_eq_left h, ringWeight, Option.some.injEq]
   suffices ∀ (acc : E × List E), acc.2.length = rPrime.length →

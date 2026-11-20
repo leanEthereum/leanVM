@@ -8,6 +8,7 @@ public import Rv64mc.Model.Merkle
 public import Rv64mc.Model.Sponge
 public import Rv64mc.Model.Transcript
 public import Rv64mc.Model.RingSwitch
+public import Rv64mc.Model.KeccakGkr
 
 /-!
 # Mirrors of the Rust verifier
