@@ -446,21 +446,33 @@ theorem prod_three_bits (r : ℕ) (hr : r < 8) :
     Finset.prod_range_succ, Finset.prod_range_zero, one_mul] at this
   exact this
 
-/-- **`rs_eq_run`'s meaning gives its core IR**: the loop over the `count / 8` full chunks, the
-remainder's call (`chunks_of_rows`). -/
-theorem rs_eq_run_complete (rd : Reader) (args rets : List E) (hm : MeaningRsEqRun rd args rets) :
-    coreProgram.Rel rd "rs_eq_run" args rets := by
-  obtain ⟨z, p, cg, rfl⟩ : ∃ z p cg, args = [z, p, cg] := by
-    match args, hm with
-    | [a, b, c], _ => exact ⟨a, b, c, rfl⟩
-  obtain ⟨count, hcount, rfl, zs, ps, lz, lp, hz, hpp, chain, hones, hr, rfl⟩ := hm
-  obtain ⟨w3, w5, w17⟩ := rs_consts
+/-- **The words `rs_eq_run` runs on**: `count` coordinates `zs` at `z` and `ps` at `p`, the chain at
+`chain` with row `0` ones and row `h`, `1 ≤ h ≤ ⌈count/8⌉`, the products over the first
+`min(8h, count)` coordinates. -/
+def RsMem (rd : Reader) (z p chain : E) (count : ℕ) (zs ps : List E) : Prop :=
+  zs.length = count ∧ ps.length = count ∧ ReadsAt rd z zs ∧ ReadsAt rd p ps ∧
+    ReadsAt rd chain (List.replicate 64 1) ∧
+    ∀ h, 1 ≤ h → h ≤ (count + 7) / 8 → ∀ k < 64, LoadHolds rd chain (64 * h + k)
+      (ringRow 1 (zs.take (min (8 * h) count)) (ps.take (min (8 * h) count)) k)
+
+/-- **`rs_eq_run`'s callees on its words**: `rs_eq_run_loop0` over the `count / 8` full chunks
+(guarded by `1 + g^(count / 8)`), the remainder's `rs_eq_rows__L{count % 8}` returning the last
+row. -/
+theorem rs_kids_rel {rd : Reader} {z p chain : E} {count : ℕ} {zs ps : List E} (hcount : count < 64)
+    (hm : RsMem rd z p chain count zs ps) :
+    (IsInK (1 + gen ^ (count / 8)) ∧ (1 + gen ^ (count / 8) ≠ 0 →
+      coreProgram.Rel rd name% «rs_eq_run_loop0» [1, gen ^ (count / 8), chain, z, p] [])) ∧
+    coreProgram.Rel rd (rsEqRowsNames.getD (count % 8) "")
+      [chain * gen ^ (64 * (count / 8)), z * gen ^ (8 * (count / 8)), p * gen ^ (8 * (count / 8))]
+      [chain * gen ^ (64 * ((count + 7) / 8))] := by
+  obtain ⟨lz, lp, hz, hpp, hones, hr⟩ := hm
   have hch := chunks_of_rows (c := List.replicate 64 1) lz lp (by simp) hz hpp (fun _ ↦ hones)
     (fun h h1 h2 k hk ↦ by
       rw [List.getD_eq_getElem _ _ (by simp; omega), List.getElem_replicate]
       exact hr h h1 h2 k hk)
   obtain ⟨q, hq⟩ : ∃ q, q = count / 8 := ⟨_, rfl⟩
   obtain ⟨r, hr8⟩ : ∃ r, r = count % 8 := ⟨_, rfl⟩
+  rw [← hq, ← hr8]
   -- the loop over the full chunks
   have hbody : ∀ j < q, L5Body rd chain z p (gen ^ j) := by
     intro j hj
@@ -476,20 +488,24 @@ theorem rs_eq_run_complete (rd : Reader) (args rets : List E) (hm : MeaningRsEqR
     (fun d x ↦ loop5_sound rd (gen ^ q) chain z p d x)
     (fun x hb hk hn ↦ loop5_complete rd _ _ _ _ x hb hk hn)).mpr
     ⟨q, by show q < 2 ^ 64 - 1; omega, rfl, hbody⟩
+  refine ⟨hloop, ?_⟩
   -- the remainder
-  have hdisp : coreProgram.Rel rd (rsEqRowsNames.getD r "")
-      [chain * gen ^ (64 * q), z * gen ^ (8 * q), p * gen ^ (8 * q)]
-      [chain * gen ^ (64 * ((count + 7) / 8))] := by
-    refine (rs_eq_rows_holds r (by omega) rd _ _).2 ?_
-    rcases Nat.eq_zero_or_pos r with h0 | h0
-    · exact Or.inl ⟨h0, by rw [show (count + 7) / 8 = q by omega]⟩
-    · have hok := hch q (by omega)
-      refine Or.inr ⟨h0, _, _, _, ?_, ?_, hok.2.2.1, hok.1, hok.2.1, hok.2.2.2.1, hok.2.2.2.2, ?_⟩
-      · simp only [List.length_take, List.length_drop, lz]; omega
-      · simp only [List.length_take, List.length_drop, lp]; omega
-      · rw [show (count + 7) / 8 = q + 1 by omega, mul_assoc, ← pow_add]
-        ring_nf
-  -- the valuation
+  refine (rs_eq_rows_holds r (by omega) rd _ _).2 ?_
+  rcases Nat.eq_zero_or_pos r with h0 | h0
+  · exact Or.inl ⟨h0, by rw [show (count + 7) / 8 = q by omega]⟩
+  · have hok := hch q (by omega)
+    refine Or.inr ⟨h0, _, _, _, ?_, ?_, hok.2.2.1, hok.1, hok.2.1, hok.2.2.2.1, hok.2.2.2.2, ?_⟩
+    · simp only [List.length_take, List.length_drop, lz]; omega
+    · simp only [List.length_take, List.length_drop, lp]; omega
+    · rw [show (count + 7) / 8 = q + 1 by omega, mul_assoc, ← pow_add]
+      ring_nf
+
+/-- **The honest valuation of `rs_eq_run`'s body** on the coordinates at `z`, the point at `p`, the
+chain at `chain` and the count `count`: the bits of `count % 8` and `count / 8`, the chain's size,
+row `0`'s ones, the remainder's row pointers and its return, the last row. -/
+noncomputable def rsW (z p chain : E) (count : ℕ) : List E :=
+  let q := count / 8
+  let r := count % 8
   let b : ℕ → E := fun j ↦ bitE (r.testBit j)
   let b' : ℕ → E := fun j ↦ bitE (q.testBit j)
   let u13 := word 1 0 + b 0 * word 3 0
@@ -508,7 +524,7 @@ theorem rs_eq_run_complete (rd : Reader) (args rets : List E) (hm : MeaningRsEqR
   let t50 := u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37))
   let t53 := t50 * t50 * (t50 * t50) * (t50 * t50 * (t50 * t50))
   let res := chain * gen ^ (64 * ((count + 7) / 8))
-  let w : List E := [z, p, gen ^ count, b 0, b 1, b 2, b' 0, b' 1, b' 2,
+  [z, p, gen ^ count, b 0, b 1, b 2, b' 0, b' 1, b' 2,
     word 1 0, word 3 0, b 0 * word 3 0, u13, word 1 0, word 5 0, b 1 * word 5 0, u17,
     u13 * u17, word 1 0, word 17 0, b 2 * word 17 0, u22, u23,
     word 1 0, word 3 0, b' 0 * word 3 0, u27, word 1 0, word 5 0, b' 1 * word 5 0, u31,
@@ -519,26 +535,59 @@ theorem rs_eq_run_complete (rd : Reader) (args rets : List E) (hm : MeaningRsEqR
     [word 1 0, word 1 0 + u37, word 1 0,
     u37 * u37, u37 * u37 * (u37 * u37), t47, u37 * u37, u37 * u37 * (u37 * u37), t50, t50 * t50,
     t50 * t50 * (t50 * t50), t53, chain * t53, z * t47, p * t47, res, res]
-  have e23 : u23 = gen ^ r := by
-    rw [← prod_three_bits r (by omega), ← w3, ← w5, ← w17, ← word_one]
-  have e37 : u37 = gen ^ q := by
-    rw [← prod_three_bits q (by omega), ← w3, ← w5, ← w17, ← word_one]
-  have e47 : t47 = gen ^ (8 * q) := by
-    show u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37)) = _
-    rw [e37]; ring
-  have e50 : t50 = gen ^ (8 * q) := by
-    show u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37)) = _
-    rw [e37]; ring
-  have e53 : t53 = gen ^ (64 * q) := by
-    show t50 * t50 * (t50 * t50) * (t50 * t50 * (t50 * t50)) = _
-    rw [e50]; ring
-  have hw50 : ∀ k < 64, w.getD (50 + k) 0 = word 1 0 := by
-    intro k hk
+
+/-- The honest valuation, as a valuation. -/
+noncomputable def rsVal (z p chain : E) (count : ℕ) : Val := Val.ofArgs (rsW z p chain count)
+
+/-- **The honest valuation's words**: the parameters, `q_g`, `r_g`, the chain and its size, the
+loop's guard and start, the remainder's pointers and the return. -/
+theorem rsVal_vals (z p chain : E) {count : ℕ} (hcount : count < 64) :
+    let σ := rsVal z p chain count
+    σ (.n 0) = z ∧ σ (.n 1) = p ∧ σ (.n 2) = gen ^ count ∧ σ (.n 36) = gen ^ (count / 8) ∧
+      σ (.n 22) = gen ^ (count % 8) ∧ σ (.n 48) = gen ^ (64 * (count / 8 + 2)) ∧
+      σ (.n 49) = chain ∧ σ (.n 115) = 1 + gen ^ (count / 8) ∧ σ (.n 116) = 1 ∧
+      σ (.n 126) = chain * gen ^ (64 * (count / 8)) ∧ σ (.n 127) = z * gen ^ (8 * (count / 8)) ∧
+      σ (.n 128) = p * gen ^ (8 * (count / 8)) ∧
+      σ (.n 129) = chain * gen ^ (64 * ((count + 7) / 8)) ∧
+      σ (.n 130) = chain * gen ^ (64 * ((count + 7) / 8)) ∧
+      ∀ k < 64, σ (.n (50 + k)) = 1 := by
+  obtain ⟨w3, w5, w17⟩ := rs_consts
+  have w4 : word 4 0 = gen ^ 2 := word_two_pow (a := 2) (by norm_num)
+  have e37 : (word 1 0 + bitE ((count / 8).testBit 0) * word 3 0) *
+      (word 1 0 + bitE ((count / 8).testBit 1) * word 5 0) *
+      (word 1 0 + bitE ((count / 8).testBit 2) * word 17 0) = gen ^ (count / 8) := by
+    rw [← prod_three_bits (count / 8) (by omega), ← w3, ← w5, ← w17, ← word_one]
+  have e23 : (word 1 0 + bitE ((count % 8).testBit 0) * word 3 0) *
+      (word 1 0 + bitE ((count % 8).testBit 1) * word 5 0) *
+      (word 1 0 + bitE ((count % 8).testBit 2) * word 17 0) = gen ^ (count % 8) := by
+    rw [← prod_three_bits (count % 8) (by omega), ← w3, ← w5, ← w17, ← word_one]
+  intro σ
+  refine ⟨rfl, rfl, rfl, e37, e23, ?_, rfl, ?_, word_one, ?_, ?_, ?_, rfl, rfl, fun k hk ↦ ?_⟩
+  · show _ * _ * (_ * _) * (_ * _ * (_ * _)) * (_ * _ * (_ * _) * (_ * _ * (_ * _))) = _
+    simp only [e37, w4]; ring
+  · show word 1 0 + _ = _
+    rw [e37, word_one]
+  · show chain * (_ * _ * (_ * _) * (_ * _ * (_ * _))) = _
+    simp only [e37]; ring
+  · show z * (_ * _ * (_ * _) * (_ * _ * (_ * _))) = _
+    simp only [e37]; ring
+  · show p * (_ * _ * (_ * _) * (_ * _ * (_ * _))) = _
+    simp only [e37]; ring
+  · show (rsW z p chain count).getD (50 + k) 0 = 1
+    rw [← word_one]
     interval_cases k <;> rfl
-  rw [rel_iff_sem find_rs_eq_run, show Fn.params fn% «rs_eq_run» = [.n 0, .n 1, .n 2] from rfl,
-    rs_eq_run_body, rsBody]
-  refine ⟨Val.ofArgs w, rfl, ?_⟩
-  rw [holdsList_append, holdsList_append]
+
+/-- **The honest valuation satisfies `rs_eq_run`'s body** on its words (`RsMem`), returning the
+last row. -/
+theorem rsVal_holds {rd : Reader} {z p chain : E} {count : ℕ} {zs ps : List E} (hcount : count < 64)
+    (hm : RsMem rd z p chain count zs ps) :
+    Stmt.HoldsList (coreProgram.Rel rd) rd (rsVal z p chain count) rsBody False
+      (fun rs ↦ rs = [chain * gen ^ (64 * ((count + 7) / 8))]) := by
+  obtain ⟨hloop, hdisp⟩ := rs_kids_rel hcount hm
+  obtain ⟨-, -, -, -, hones, -⟩ := hm
+  obtain ⟨-, -, -, e36, e22, -, -, e115, e116, e126, e127, e128, -, -, e50⟩ :=
+    rsVal_vals z p chain hcount
+  rw [rsBody, holdsList_append, holdsList_append]
   rw [holdsList_noRet _ rsHead_noRet, holdsList_noRet _ rsOnes_noRet, rsOnes_holds]
   refine ⟨?_, fun k hk ↦ ⟨?_, ?_⟩, ?_⟩
   · simp only [rsHead, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and, and_true]
@@ -547,29 +596,38 @@ theorem rs_eq_run_complete (rd : Reader) (args rets : List E) (hm : MeaningRsEqR
       (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, rfl,
       (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_, rfl, rfl, rfl, rfl,
       rfl, rfl, rfl, rfl⟩
-    show u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37)) * u23 + gen ^ count = 0
-    rw [e_add_eq_zero_iff, e23, e37, show count = 8 * q + r by omega]
-    ring
-  · show w.getD (50 + k) 0 = word 1 0
-    exact hw50 k hk
-  · show LoadHolds rd chain k (w.getD (50 + k) 0)
-    rw [hw50 k hk, word_one]
+    show rsVal z p chain count (.n 39) * rsVal z p chain count (.n 22) + gen ^ count = 0
+    have e39 : rsVal z p chain count (.n 39) =
+        rsVal z p chain count (.n 36) * rsVal z p chain count (.n 36) *
+          (rsVal z p chain count (.n 36) * rsVal z p chain count (.n 36)) *
+          (rsVal z p chain count (.n 36) * rsVal z p chain count (.n 36) *
+            (rsVal z p chain count (.n 36) * rsVal z p chain count (.n 36))) := rfl
+    rw [e39, e36, e22, e_add_eq_zero_iff, ← pow_add, ← pow_add, ← pow_add, ← pow_add]
+    congr 1; omega
+  · rw [e50 k hk, word_one]
+  · rw [e50 k hk]
     have := readsAt_getD hones (i := k) (by simp; omega)
     rwa [List.getD_eq_getElem _ _ (by simp; omega), List.getElem_replicate] at this
   · simp only [rsTail, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
     refine ⟨rfl, rfl, rfl, ?_, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-      ⟨r, by simp only [List.length_cons, List.length_nil]; omega, ?_, ?_⟩, rfl, rfl⟩
-    · show IsInK (word 1 0 + u37)
-      rw [word_one, e37]; exact hloop.1
-    · show word 1 0 + u37 ≠ 0 → coreProgram.Rel rd name% «rs_eq_run_loop0» [word 1 0, u37, chain,
-        z, p] []
-      rw [word_one, e37]; exact hloop.2
-    · show u23 = _
-      rw [e23, gen_pow_eq_ofK]
-    · rw [rsNames_get r (by omega)]
-      show coreProgram.Rel rd _ [chain * t53, z * t47, p * t47] [res]
-      rw [e53, e47]
+      ⟨count % 8, by simp only [List.length_cons, List.length_nil]; omega, ?_, ?_⟩, rfl, rfl⟩
+    · rw [e115]; exact hloop.1
+    · rw [e115, e116, e36]
+      exact hloop.2
+    · rw [e22, gen_pow_eq_ofK]
+    · rw [rsNames_get (count % 8) (by omega), e126, e127, e128]
       exact hdisp
+
+/-- **`rs_eq_run`'s meaning gives its core IR**: the honest valuation (`rsVal_holds`). -/
+theorem rs_eq_run_complete (rd : Reader) (args rets : List E) (hm : MeaningRsEqRun rd args rets) :
+    coreProgram.Rel rd "rs_eq_run" args rets := by
+  obtain ⟨z, p, cg, rfl⟩ : ∃ z p cg, args = [z, p, cg] := by
+    match args, hm with
+    | [a, b, c], _ => exact ⟨a, b, c, rfl⟩
+  obtain ⟨count, hcount, rfl, zs, ps, lz, lp, hz, hpp, chain, hones, hr, rfl⟩ := hm
+  rw [rel_iff_sem find_rs_eq_run, show Fn.params fn% «rs_eq_run» = [.n 0, .n 1, .n 2] from rfl,
+    rs_eq_run_body]
+  exact ⟨rsVal z p chain count, rfl, rsVal_holds hcount ⟨lz, lp, hz, hpp, hones, hr⟩⟩
 
 /-- **`rs_eq_run`'s core IR is its meaning.** -/
 theorem rs_eq_run_holds : rs_eq_run_Spec := fun rd args rets ↦
