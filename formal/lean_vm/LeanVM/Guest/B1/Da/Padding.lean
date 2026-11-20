@@ -10,6 +10,8 @@ public import LeanVM.Guest.B1.Main.Loops
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Source
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_padding»
 
 /-!
 # `da_padding`
@@ -60,14 +62,14 @@ theorem word_gMax : word (2 ^ guest_const% DA_MAX_ROWS) 0 = gen ^ guest_const% D
 
 /-- **`da_padding`'s body, checked.** -/
 def padOk (fn : Fn) : Bool :=
-  decide (fn.params = [.n 0]) &&
+  decide (fn.params = [.n (val% «da_padding» "n_blob_g")]) &&
   match splitBody fn.body with
   | some (A, vs) =>
-    decide (vs = [.n 11]) &&
-    A.any (isConstAt (.n 1) 1 0) && A.any (isAddAt (.n 2) (.n 0) (.n 1)) && A.any (isNeAt (.n 2)) &&
-    rcConstOk A (.n 0) (2 ^ guest_const% DA_MAX_ROWS) &&
-    A.any (isConstAt (.n 9) (2 ^ guest_const% DA_MAX_ROWS) 0) && A.any (isMulAt (.n 9) (.n 10) (.n 0)) &&
-    A.any (isCopyAt (.n 11) (.n 10))
+    decide (vs = [.n (val% «da_padding» "s2#0")]) &&
+    A.any (isConstAt (.n (val% «da_padding» "s0#0")) 1 0) && A.any (isAddAt (.n (val% «da_padding» "s0#1")) (.n (val% «da_padding» "n_blob_g")) (.n (val% «da_padding» "s0#0"))) && A.any (isNeAt (.n (val% «da_padding» "s0#1"))) &&
+    rcConstOk A (.n (val% «da_padding» "n_blob_g")) (2 ^ guest_const% DA_MAX_ROWS) &&
+    A.any (isConstAt (.n (val% «da_padding» "s2#1")) (2 ^ guest_const% DA_MAX_ROWS) 0) && A.any (isMulAt (.n (val% «da_padding» "s2#1")) (.n (val% «da_padding» "s2#2")) (.n (val% «da_padding» "n_blob_g"))) &&
+    A.any (isCopyAt (.n (val% «da_padding» "s2#0")) (.n (val% «da_padding» "s2#2")))
   | none => false
 
 set_option maxRecDepth 100000 in
@@ -95,7 +97,7 @@ theorem da_padding_holds : da_padding_sound_Spec := by
       have := ne_sound hne hat
       rw [add_sound ha2 hat, h0, hr0', pow_zero, const_sound hc1 hat, word_one] at this
       exact this (e_add_eq_zero_iff.mpr rfl)
-    have h10 : σ (.n 10) = gen ^ (guest_const% DA_MAX_ROWS - r) := by
+    have h10 : σ (.n (val% «da_padding» "s2#2")) = gen ^ (guest_const% DA_MAX_ROWS - r) := by
       have e := mulAt_sound hm9 hat
       rw [const_sound hc9 hat, word_gMax, h0] at e
       refine mul_right_cancel₀ (gen_pow_ne_zero r) ?_
@@ -103,7 +105,7 @@ theorem da_padding_holds : da_padding_sound_Spec := by
       congr 1
       omega
     refine ⟨r, by omega, by rw [maxRows_eq]; omega, h0, ?_⟩
-    have hret' : [σ (.n 11)] = rets := hret
+    have hret' : [σ (.n (val% «da_padding» "s2#0"))] = rets := hret
     rw [← hret', copy_sound hcp11 hat, h10, maxRows_eq]
   · exact absurd hok (by simp)
 

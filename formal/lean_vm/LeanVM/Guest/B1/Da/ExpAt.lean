@@ -15,6 +15,8 @@ public import LeanVM.Guest.B1.Da.Interface
 public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.Memory.LiftPure
 public import LeanVM.Guest.Memory.UniformF
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_expand__L»
 
 /-!
 # `da_expand`, placed
@@ -88,8 +90,8 @@ theorem expRun_get {D k : ℕ} (hD : D ≤ 7) (hk : k < 256) :
 
 /-- The loads of `da_expand`'s computing atoms: a power, a shift, a node's factor. -/
 theorem expBodyA_load {top D : ℕ} {d' p : V} {off : ℕ} (h : Atom.load d' p off ∈ expBodyA top D) :
-    (∃ d < D, p = .n 2 ∧ off = top - d) ∨ (∃ d < D, p = .n 3 ∧ off = top - d) ∨
-      ∃ d < D, ∃ y < 2 ^ d, p = .n 1 ∧ off = 2 ^ d + y := by
+    (∃ d < D, p = .n (valf% «da_expand» "zs") ∧ off = top - d) ∨ (∃ d < D, p = .n (valf% «da_expand» "shifts") ∧ off = top - d) ∨
+      ∃ d < D, ∃ y < 2 ^ d, p = .n (valf% «da_expand» "factors") ∧ off = 2 ^ d + y := by
   simp only [expBodyA, expDepthA, expNodeA, List.mem_cons, List.mem_flatMap, List.mem_range,
     List.not_mem_nil, or_false, reduceCtorEq, false_or, Atom.load.injEq] at h
   rcases h with ⟨d, hd, ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨y, hy, ⟨-, rfl, rfl⟩⟩⟩
@@ -182,15 +184,15 @@ theorem exp_completeAtFB {f : String} {fn : Fn} (hf : coreProgram.find? f = some
       good_congr (fun v hv => hag v (by
         have := List.all_eq_true.mp (List.all_eq_true.mp hvals a ha) v hv
         simpa using this)) (hgs (.atom a) (List.mem_map_of_mem ha))
-    have hpar : ∀ i < 4, σ (.n i) = [root, gen ^ cf, gen ^ cz, gen ^ cs].getD i 0 := by
+    have hpar : ∀ i < (valf% «da_expand» "nodes[1]"), σ (.n i) = [root, gen ^ cf, gen ^ cz, gen ^ cs].getD i 0 := by
       intro i hi
       have hB : 4 ≤ expB D := by unfold expB; omega
       rw [← hag _ (by show i < expB D; omega), hevl]
       exact ev_params rd w hchk' (by simpa using hi)
-    have e0 : σ (.n 0) = root := hpar 0 (by norm_num)
-    have e1 : σ (.n 1) = gen ^ cf := hpar 1 (by norm_num)
-    have e2 : σ (.n 2) = gen ^ cz := hpar 2 (by norm_num)
-    have e3 : σ (.n 3) = gen ^ cs := hpar 3 (by norm_num)
+    have e0 : σ (.n (valf% «da_expand» "root")) = root := hpar 0 (by norm_num)
+    have e1 : σ (.n (valf% «da_expand» "factors")) = gen ^ cf := hpar 1 (by norm_num)
+    have e2 : σ (.n (valf% «da_expand» "zs")) = gen ^ cz := hpar 2 (by norm_num)
+    have e3 : σ (.n (valf% «da_expand» "shifts")) = gen ^ cs := hpar 3 (by norm_num)
     have htl_at : ∀ j, σ (.n (expB D + j)) = tl.getD j 0 := fun j => by
       rw [hσ, ← hlen]; exact ofArgs_new evl tl j
     have hmC : expC D - expB D - 1 = 1 + (256 - 2 ^ (D + 1)) := by unfold expC; omega
@@ -225,7 +227,7 @@ theorem exp_completeAtFB {f : String} {fn : Fn} (hf : coreProgram.find? f = some
       rw [e3] at h
       have h' := hS rd hLin d hd
       exact Option.some.inj (h.2.symm.trans h'.2)
-    have hFv : ∀ n, 1 ≤ n → n < 2 ^ D → memAt rd (σ (.n 1)) n = F n := by
+    have hFv : ∀ n, 1 ≤ n → n < 2 ^ D → memAt rd (σ (.n (valf% «da_expand» "factors"))) n = F n := by
       intro n h1 h2
       rw [e1, memAt, (hF rd hLin n h1 h2).2]
       rfl
@@ -240,7 +242,7 @@ theorem exp_completeAtFB {f : String} {fn : Fn} (hf : coreProgram.find? f = some
       · rw [show top - (top - d') = d' by omega]
         exact hSv d' (by omega)
     -- the run
-    have hrv : ∀ k < 256, σ ((expRun D)[k]?.getD (.n 0)) =
+    have hrv : ∀ k < 256, σ ((expRun D)[k]?.getD (.n (valf% «da_expand» "root"))) =
         (expRunVals root F Z S top D).getD k 0 := by
       intro k hk
       rw [expRun_get hD hk, Option.getD_some, List.getD_eq_getElem _ _ (by rw [hlenR]; exact hk),

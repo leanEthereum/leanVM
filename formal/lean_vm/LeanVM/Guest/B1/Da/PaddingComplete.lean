@@ -12,6 +12,8 @@ public import LeanVM.Guest.B1.Digest.CompleteSmall
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Source
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_padding»
 
 /-!
 # `da_padding`, completely
@@ -35,12 +37,12 @@ def da_padding_complete_Spec : Prop :=
     coreProgram.Rel rd "da_padding" [gen ^ r] [gen ^ (LeanDa.maxRows - r)]
 
 theorem da_padding_body : Fn.body fn% «da_padding» = [
-    .atom (.const (.n 1) (word 1 0)), .atom (.add (.n 2) (.n 0) (.n 1)),
-    .atom (.hint (.inverse (.n 2) (.n 3))), .atom (.assertNe (.n 2) (.n 3) (.n 4)),
-    .atom (.const (.n 5) (word (2 ^ guest_const% DA_MAX_ROWS) 0)),
-    .atom (.rangeCheck (.n 0) (.n 6) (.n 7) (.n 8) (.n 5)),
-    .atom (.const (.n 9) (word (2 ^ guest_const% DA_MAX_ROWS) 0)),
-    .atom (.mul (.n 9) (.n 10) (.n 0)), .atom (.copy (.n 11) (.n 10)), .ret [.n 11]] :=
+    .atom (.const (.n (val% «da_padding» "s0#0")) (word 1 0)), .atom (.add (.n (val% «da_padding» "s0#1")) (.n (val% «da_padding» "n_blob_g")) (.n (val% «da_padding» "s0#0"))),
+    .atom (.hint (.inverse (.n (val% «da_padding» "s0#1")) (.n (val% «da_padding» "s0#2")))), .atom (.assertNe (.n (val% «da_padding» "s0#1")) (.n (val% «da_padding» "s0#2")) (.n (val% «da_padding» "s0#3"))),
+    .atom (.const (.n (val% «da_padding» "s1#0")) (word (2 ^ guest_const% DA_MAX_ROWS) 0)),
+    .atom (.rangeCheck (.n (val% «da_padding» "n_blob_g")) (.n (val% «da_padding» "s1#1")) (.n (val% «da_padding» "s1#2")) (.n (val% «da_padding» "s1#3")) (.n (val% «da_padding» "s1#0"))),
+    .atom (.const (.n (val% «da_padding» "s2#1")) (word (2 ^ guest_const% DA_MAX_ROWS) 0)),
+    .atom (.mul (.n (val% «da_padding» "s2#1")) (.n (val% «da_padding» "s2#2")) (.n (val% «da_padding» "n_blob_g"))), .atom (.copy (.n (val% «da_padding» "s2#0")) (.n (val% «da_padding» "s2#2"))), .ret [.n (val% «da_padding» "s2#0")]] :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 10000 in

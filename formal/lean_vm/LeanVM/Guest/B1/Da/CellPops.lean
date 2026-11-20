@@ -13,6 +13,8 @@ public import LeanVM.Guest.B1.Common.NoWitMute
 public import LeanVM.Guest.B1.Da.CellComplete
 public import LeanVM.Guest.Hints
 public import LeanVM.Guest.Memory.Uniform
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_verify_cell»
 
 /-!
 # A cell check's pops
@@ -75,7 +77,7 @@ theorem cell_pops {rd : Reader} {σ : Val} {bufs : List ℕ} {kids : List Memory
 /-- **`da_verify_cell` is complete, popping its symbols**: `da_verify_cell_complete_vals`'s valuation, and every valid call instance of it on that valuation pops `syms`. -/
 theorem da_verify_cell_complete_pops (rd : Reader) (lv : E) (syms : List E) (ws : List E)
     (hsl : syms.length = LeanDa.cellSymbols) (hwl : ws.length = LeanDa.cellSymbols) (hreads : ReadsAt rd lv ws) :
-    ∃ σ : Val, σ (.n 0) = lv ∧ (∀ C : CallRel,
+    ∃ σ : Val, σ (.n (val% «da_verify_cell» "lvals")) = lv ∧ (∀ C : CallRel,
       Stmt.HoldsList C rd σ (Fn.body fn% «da_verify_cell») False (fun rs => rs = cellRets syms ws)) ∧
       ∀ (bufs : List ℕ) (kids : List Memory.Tree) (args rets : List E),
         (Memory.Tree.node "da_verify_cell" σ bufs kids).Valid coreProgram rd args rets →

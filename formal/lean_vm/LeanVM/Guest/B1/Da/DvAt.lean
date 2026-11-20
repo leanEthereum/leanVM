@@ -17,6 +17,8 @@ public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Source
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_verify»
 
 /-!
 # `da_verify`, placed
@@ -46,7 +48,7 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL iterK)
 /-- **`da_verify`'s block, its shape** (kernel evaluation). -/
 noncomputable def dvCOk : Bool :=
   dvP.all Core.Stmt.flat && dvP.all B1.notIteB && decide (dvP.filterMap Stmt.addrS = []) &&
-  decide (dvP.filterMap Stmt.allocSz = [(.n 10, .inr (.n 9))]) && decide (dvP.filterMap Stmt.loadS = [(.n 16, 0)])
+  decide (dvP.filterMap Stmt.allocSz = [(.n (val% «da_verify» "roots"), .inr (.n (val% «da_verify» "roots~0")))]) && decide (dvP.filterMap Stmt.loadS = [(.n (val% «da_verify» "s10#0"), 0)])
 
 theorem dv_cok : dvCOk = true := by decide +kernel
 
@@ -113,7 +115,7 @@ def dvVals (r L : ℕ) (z : E) (q : ℕ × ℕ × ℕ × ℕ) (bw bb : ℕ) (c0 
     kecOut (dvKIns r c0 c1) false false 0, kecOut (dvKIns r c0 c1) false false 1, z]
 
 /-- **`da_verify`'s honest valuation exposing its challenge `z`.** -/
-def dvQz (r L : ℕ) (z : E) (σ : Val) : Prop := dvQ r L σ ∧ σ (.n 3) = z
+def dvQz (r L : ℕ) (z : E) (σ : Val) : Prop := dvQ r L σ ∧ σ (.n (val% «da_verify» "z")) = z
 
 /-- The predicates on `da_verify`'s callees' trees, its blob loop by a tree of `Tb`. -/
 def dvTsC (r L : ℕ) (Tb : Tree → Prop) : List (Tree → Prop) :=
@@ -133,10 +135,10 @@ theorem dvNH_of_zC {r L : ℕ} {z : E} {Tb : Tree → Prop} {t : Tree} (h : dvNH
 of its inputs (`dvKIns`). -/
 theorem dvK_good {rd : Reader} (r L : ℕ) (z : E) (q : ℕ × ℕ × ℕ × ℕ) (bw bb : ℕ) (c0 c1 : E) (tb : ℕ) :
     Good rd [] (fun _ => 0) (Val.ofArgs (dvVals r L z q bw bb c0 c1 tb))
-      (.keccak [.n 14, .n 15, .n 17, .n 19, .n 18, .n 19, .n 20, .n 21, .n 23, .n 19, .n 20, .n 21,
-        .n 22] [.n 24, .n 25] false false) := by
-  have hins : [V.n 14, .n 15, .n 17, .n 19, .n 18, .n 19, .n 20, .n 21, .n 23, .n 19, .n 20, .n 21,
-      .n 22].map (Val.ofArgs (dvVals r L z q bw bb c0 c1 tb)) = dvKIns r c0 c1 := by
+      (.keccak [.n (val% «da_verify» "r0"), .n (val% «da_verify» "r1"), .n (val% «da_verify» "s10#1"), .n (val% «da_verify» "s10#2[1]"), .n (val% «da_verify» "s10#2"), .n (val% «da_verify» "s10#2[1]"), .n (val% «da_verify» "s10#2[2]"), .n (val% «da_verify» "s10#2[3]"), .n (val% «da_verify» "s10#3"), .n (val% «da_verify» "s10#2[1]"), .n (val% «da_verify» "s10#2[2]"), .n (val% «da_verify» "s10#2[3]"),
+        .n (val% «da_verify» "s10#2[4]")] [.n (val% «da_verify» "commitment[0]"), .n (val% «da_verify» "commitment[1]")] false false) := by
+  have hins : [V.n (val% «da_verify» "r0"), .n (val% «da_verify» "r1"), .n (val% «da_verify» "s10#1"), .n (val% «da_verify» "s10#2[1]"), .n (val% «da_verify» "s10#2"), .n (val% «da_verify» "s10#2[1]"), .n (val% «da_verify» "s10#2[2]"), .n (val% «da_verify» "s10#2[3]"), .n (val% «da_verify» "s10#3"), .n (val% «da_verify» "s10#2[1]"), .n (val% «da_verify» "s10#2[2]"), .n (val% «da_verify» "s10#2[3]"),
+      .n (val% «da_verify» "s10#2[4]")].map (Val.ofArgs (dvVals r L z q bw bb c0 c1 tb)) = dvKIns r c0 c1 := by
     simp only [List.map_cons, List.map_nil, ofArgs_n, dvVals, dvKIns, List.getD_cons_succ,
       List.getD_cons_zero]
   refine ⟨rfl, Or.inr (Or.inl rfl), fun c hc => ?_⟩
@@ -152,8 +154,8 @@ theorem dvK_good {rd : Reader} (r L : ℕ) (z : E) (q : ℕ × ℕ × ℕ × ℕ
 /-- **The last `KECCAK` holds** on `da_verify`'s valuation. -/
 theorem dvK_holds {rd : Reader} (r L : ℕ) (z : E) (q : ℕ × ℕ × ℕ × ℕ) (bw bb : ℕ) (c0 c1 : E) (tb : ℕ) :
     SHolds (fun _ _ _ => True) rd (Val.ofArgs (dvVals r L z q bw bb c0 c1 tb))
-      (.atom (.keccak [.n 14, .n 15, .n 17, .n 19, .n 18, .n 19, .n 20, .n 21, .n 23, .n 19, .n 20,
-        .n 21, .n 22] [.n 24, .n 25] false false)) :=
+      (.atom (.keccak [.n (val% «da_verify» "r0"), .n (val% «da_verify» "r1"), .n (val% «da_verify» "s10#1"), .n (val% «da_verify» "s10#2[1]"), .n (val% «da_verify» "s10#2"), .n (val% «da_verify» "s10#2[1]"), .n (val% «da_verify» "s10#2[2]"), .n (val% «da_verify» "s10#2[3]"), .n (val% «da_verify» "s10#3"), .n (val% «da_verify» "s10#2[1]"), .n (val% «da_verify» "s10#2[2]"),
+        .n (val% «da_verify» "s10#2[3]"), .n (val% «da_verify» "s10#2[4]")] [.n (val% «da_verify» "commitment[0]"), .n (val% «da_verify» "commitment[1]")] false false)) :=
   holds_of_good (dvK_good (rd := rd) r L z q bw bb c0 c1 tb) trivial
 
 set_option maxRecDepth 20000 in
@@ -253,7 +255,7 @@ theorem dv_completeAtB_z (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ} (
   unfold dvCOk at hcok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hcok
   obtain ⟨⟨⟨⟨hflat, hni⟩, haddr⟩, halloc⟩, hloads⟩ := hcok
-  have hb : Fn.body fn% «da_verify» = dvP ++ [.ret [.n 26, .n 27, .n 28]] := rfl
+  have hb : Fn.body fn% «da_verify» = dvP ++ [.ret [.n (val% «da_verify» "s11#0"), .n (val% «da_verify» "s11#0[1]"), .n (val% «da_verify» "s11#0[2]")]] := rfl
   have hbufL : ∀ bb, bufL bb (dvSizes r L) [rootsCells r L syms] = [(bb, rootsCells r L syms)] :=
     fun bb => by simp [bufL, bases, dvSizes]
   refine ((completeAt_flatDepRet (fs := fs) (cert := cert) find_da_verify
@@ -414,7 +416,7 @@ theorem dv_completeAtB_z (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ} (
       cases s <;> simp only [reduceCtorEq, Option.some.injEq] at hsa
       subst hsa
       exact hall _ hs
-    have hkr : (σ (.n 24), σ (.n 25)) = digestHalves (daRoot r L syms) := by
+    have hkr : (σ (.n (val% «da_verify» "commitment[0]")), σ (.n (val% «da_verify» "commitment[1]"))) = digestHalves (daRoot r L syms) := by
       have hok := dv_ok
       unfold dvOk at hok
       simp only [Bool.and_eq_true] at hok
@@ -446,7 +448,7 @@ theorem dv_completeAtB_z (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ} (
       simp only [List.mem_singleton] at hq
       subst hq
       refine ⟨tb + r, ?_, Or.inl (hbr r hr)⟩
-      rw [show σ (.n 16) = gen ^ (tb + r) by rw [hσ, pow_add]; rfl, limb0_gen_pow_mul, Nat.add_zero]
+      rw [show σ (.n (val% «da_verify» "s10#0")) = gen ^ (tb + r) by rw [hσ, pow_add]; rfl, limb0_gen_pow_mul, Nat.add_zero]
     · exact ⟨⟨by rw [hσ]; rfl, by rw [hσ]; rfl, by rw [hσ]; show word 1 0 + _ = _; rw [word_one],
         by rw [hσ]; exact word_one⟩, by rw [hσ]; rfl⟩
   · simp only [dvB, dvKB, dvKBs, List.sum_cons, List.sum_nil]

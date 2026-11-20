@@ -15,6 +15,8 @@ public import LeanVM.Guest.B1.Da.DvHonest
 public import LeanVM.Guest.B1.Da.VectorMath
 public import LeanVM.Guest.B1.Da.VerifyChk
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_weights»
 
 /-!
 # The weights, completely
@@ -91,30 +93,30 @@ theorem colRun_reads {rd : Reader} {L : Layout} (hm : MemL rd L) {c : ℕ} (z : 
 /-- Column `h`'s statements: its leaf `top_leaves[h]`, the offsets' pointer `wsOff h`, the
 expansion, its result at `weights[h]`. -/
 def wsS (h : ℕ) : List Stmt :=
-  .atom (.load (wsLeaf h) (.n 0) h) ::
+  .atom (.load (wsLeaf h) (.n (val% «da_weights» "top_leaves")) h) ::
     ((if h = 0 then [] else [.atom (.const (.n (4 * h + 4)) (word 128 0)),
       .atom (.mul (wsOff h) (wsOff (h - 1)) (.n (4 * h + 4)))]) ++
-    [.call "da_expand__L6_L7" [wsLeaf h, .n 1, .n 2, wsOff h] [.n (4 * h + 6)],
-      .atom (.load (.n (4 * h + 6)) (.n 4) h)])
+    [.call "da_expand__L6_L7" [wsLeaf h, .n (val% «da_weights» "cell_factors"), .n (val% «da_weights» "zs"), wsOff h] [.n (4 * h + 6)],
+      .atom (.load (.n (4 * h + 6)) (.n (val% «da_weights» "weights")) h)])
 
 /-- `da_weights`' block: its buffer, the columns, the returned pointer. -/
 def wsPre : List Stmt :=
-  .atom (.hint (.alloc (.n 4) 128)) ::
-    ((List.range 128).flatMap wsS ++ [.atom (.copy (.n 515) (.n 4))])
+  .atom (.hint (.alloc (.n (val% «da_weights» "weights")) 128)) ::
+    ((List.range 128).flatMap wsS ++ [.atom (.copy (.n (val% «da_weights» "s2#0")) (.n (val% «da_weights» "weights")))])
 
 /-- Column `h`'s call. -/
 def wsCallS (h : ℕ) : Option V × String × List V × List V :=
-  (none, "da_expand__L6_L7", [wsLeaf h, .n 1, .n 2, wsOff h], [.n (4 * h + 6)])
+  (none, "da_expand__L6_L7", [wsLeaf h, .n (val% «da_weights» "cell_factors"), .n (val% «da_weights» "zs"), wsOff h], [.n (4 * h + 6)])
 
 /-- **`da_weights`' body, exactly** (kernel evaluation). -/
 noncomputable def wsXOk : Bool :=
-  decide ((fn% «da_weights»).params = [.n 0, .n 1, .n 2, .n 3]) &&
-  stmtsEqb (Fn.body fn% «da_weights») (wsPre ++ [.ret [.n 515]]) &&
+  decide ((fn% «da_weights»).params = [.n (val% «da_weights» "top_leaves"), .n (val% «da_weights» "cell_factors"), .n (val% «da_weights» "zs"), .n (val% «da_weights» "offsets")]) &&
+  stmtsEqb (Fn.body fn% «da_weights») (wsPre ++ [.ret [.n (val% «da_weights» "s2#0")]]) &&
   wsPre.all Core.Stmt.flat && wsPre.all noLoadIte && wsPre.all noDispatch &&
   decide (wsPre.filterMap Main.Stmt.addrS = []) &&
-  decide (wsPre.filterMap Main.Stmt.allocSz = [(.n 4, .inl 128)]) &&
+  decide (wsPre.filterMap Main.Stmt.allocSz = [(.n (val% «da_weights» "weights"), .inl 128)]) &&
   decide (wsPre.filterMap Main.Stmt.callS = (List.range 128).map wsCallS) &&
-  decide (wsPre.filterMap Stmt.loadS = (List.range 128).flatMap fun h => [(.n 0, h), (.n 4, h)])
+  decide (wsPre.filterMap Stmt.loadS = (List.range 128).flatMap fun h => [(.n (val% «da_weights» "top_leaves"), h), (.n (val% «da_weights» "weights"), h)])
 
 set_option maxRecDepth 100000 in
 theorem ws_xok : wsXOk = true := by decide +kernel
@@ -340,7 +342,7 @@ theorem ws_completeAtB (hrf : Lift.RunsFit fs cert) (z : E) (bz bt bc bo : ℕ) 
   unfold wsXOk at hx
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hx
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨hpar, hbody⟩, hflat⟩, hnli⟩, hnd⟩, haddr⟩, halloc⟩, hcalls⟩, hloads⟩ := hx
-  have hb : (fn% «da_weights»).body = wsPre ++ [.ret [.n 515]] := stmtsEqb_sound hbody
+  have hb : (fn% «da_weights»).body = wsPre ++ [.ret [.n (val% «da_weights» "s2#0")]] := stmtsEqb_sound hbody
   have hLz : ∀ {rd : Reader}, MemL rd (wsKLin z bz bc bo) →
       ∀ j < 14, LoadHolds rd (gen ^ bz) j (zsVal z j) := fun hm j hj => by
     have := reads_of_memL hm List.mem_cons_self j (by simp [zsCells]; exact hj)
@@ -395,8 +397,8 @@ theorem ws_completeAtB (hrf : Lift.RunsFit fs cert) (z : E) (bz bt bc bo : ℕ) 
     set σ := wsσ z bt bc bz bo (fp + fs "da_weights") R with hσdef
     have hbuf : ReadsAt rd (gen ^ (fp + fs "da_weights")) (wsCells cert fps) :=
       reads_of_memL hB (by simp [bufL, bases])
-    have s0 : σ (.n 0) = gen ^ (bt + 2 ^ 7) := by simp [hσdef, wsσ_n, wsv]
-    have s4 : σ (.n 4) = gen ^ (fp + fs "da_weights") := by simp [hσdef, wsσ_n, wsv]
+    have s0 : σ (.n (val% «da_weights» "top_leaves")) = gen ^ (bt + 2 ^ 7) := by simp [hσdef, wsσ_n, wsv]
+    have s4 : σ (.n (val% «da_weights» "weights")) = gen ^ (fp + fs "da_weights") := by simp [hσdef, wsσ_n, wsv]
     have hall : ∀ s ∈ wsPre, SHolds (fun _ _ _ => True) rd σ s := by
       intro s hs
       simp only [wsPre, List.mem_cons, List.mem_append, List.mem_flatMap, List.mem_range,
@@ -405,7 +407,7 @@ theorem ws_completeAtB (hrf : Lift.RunsFit fs cert) (z : E) (bz bt bc bo : ℕ) 
       · trivial
       · simp only [wsS, List.mem_cons, List.mem_append] at hs
         rcases hs with rfl | hs
-        · show LoadHolds rd (σ (.n 0)) h (σ (wsLeaf h))
+        · show LoadHolds rd (σ (.n (val% «da_weights» "top_leaves"))) h (σ (wsLeaf h))
           rw [s0, hσdef, wsσ_leaf hh, pow_add, loadHolds_mul_gen_pow,
             show (2 : ℕ) ^ 7 = 128 by norm_num]
           exact loadHolds_of_reads (reads_of_memL hLin (List.mem_cons_of_mem _ List.mem_cons_self))
@@ -424,10 +426,10 @@ theorem ws_completeAtB (hrf : Lift.RunsFit fs cert) (z : E) (bz bt bc bo : ℕ) 
         · simp only [List.not_mem_nil, or_false] at hs
           rcases hs with rfl | rfl
           · trivial
-          · show LoadHolds rd (σ (.n 4)) h (σ (.n (4 * h + 6)))
+          · show LoadHolds rd (σ (.n (val% «da_weights» "weights"))) h (σ (.n (4 * h + 6)))
             rw [s4, hσdef, wsσ_ret hh]
             exact loadHolds_of_reads hbuf (by simp [wsCells]; omega) (by simp [wsCells, hh, hR])
-      · show σ (.n 515) = σ (.n 4)
+      · show σ (.n (val% «da_weights» "s2#0")) = σ (.n (val% «da_weights» "weights"))
         simp [hσdef, wsσ_n, wsv]
     have hcs : wsPre.filterMap (Stmt.callSF σ) = (List.range 128).map wsCallS := by
       rw [← hcalls]

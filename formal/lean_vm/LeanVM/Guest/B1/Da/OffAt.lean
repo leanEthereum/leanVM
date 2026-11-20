@@ -14,6 +14,8 @@ public import LeanVM.Guest.B1.Da.HonestDefs
 public import LeanVM.Guest.B1.Da.KidsMap
 public import LeanVM.Guest.B1.Da.AtTB
 public import LeanVM.Guest.B1.Tables.FlatAtT
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_column_offsets»
 
 /-!
 # `da_column_offsets`, placed
@@ -105,7 +107,7 @@ theorem offLoop_rel {b : ℕ} (hb : b < 7) {Z : ℕ → E} {b0 bs : ℕ}
   rwa [pow_zero] at this
 
 theorem isOffLoad_spec {d p : V} {off : ℕ} (h : isOffLoad d p off = true) :
-    off < 7 ∧ ((p = .n 1 ∧ d = .n (2 + off)) ∨ (p = .n 0 ∧ ∃ b < 7, d = .n (offB b + 1 + 3 * off)) ∨
+    off < 7 ∧ ((p = .n (val% «da_column_offsets» "offsets") ∧ d = .n (2 + off)) ∨ (p = .n (val% «da_column_offsets» "zs") ∧ ∃ b < 7, d = .n (offB b + 1 + 3 * off)) ∨
       ∃ b < 7, p = .n (offB b) ∧ d = .n (offB b + 1 + 3 * off + 2)) := by
   simp only [isOffLoad, Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq, List.any_eq_true,
     List.mem_range] at h
@@ -202,10 +204,10 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
   obtain ⟨-, -, hgs⟩ := ev_spec rd w offP [gen ^ c] hchk
   rw [show [gen ^ c].length = 1 from rfl, hS, ← hσ] at hgs
   have hgA : ∀ a, Stmt.atom a ∈ offP → Good rd offStores w σ a := fun a h => hgs (.atom a) h
-  have e0 : σ (.n 0) = gen ^ c := by rw [hσ]; exact ev_params rd w (l := [gen ^ c]) hchk (by simp)
+  have e0 : σ (.n (val% «da_column_offsets» "zs")) = gen ^ c := by rw [hσ]; exact ev_params rd w (l := [gen ^ c]) hchk (by simp)
   -- the buffers' pointers
-  have e1 : σ (.n 1) = gen ^ b0 := by
-    have := hgA (.hint (.alloc (.n 1) 896)) (List.mem_append_left _ (List.mem_append_left _
+  have e1 : σ (.n (val% «da_column_offsets» "offsets")) = gen ^ b0 := by
+    have := hgA (.hint (.alloc (.n (val% «da_column_offsets» "offsets")) 896)) (List.mem_append_left _ (List.mem_append_left _
       List.mem_cons_self))
     simpa [Good, w] using this
   have eB : ∀ b < 7, σ (.n (offB b)) = gen ^ (b0 + 896 + 7 * b) := by
@@ -220,7 +222,7 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
       σ (.n (offB b + 1 + 3 * j + 2)) = Z j * ofK (wK j (2 ^ (7 + b))) := by
     intro b hb' j hj
     have e := fun a (ha : a ∈ offStepA b j) => hgA a (mem_offP_block hb' (mem_offBlock_step hj ha))
-    have l1 := e (.load (.n (offB b + 1 + 3 * j)) (.n 0) j) (by simp [offStepA])
+    have l1 := e (.load (.n (offB b + 1 + 3 * j)) (.n (val% «da_column_offsets» "zs")) j) (by simp [offStepA])
     have c1 := e (.const (.n (offB b + 1 + 3 * j + 1)) (word (offC b j) 0)) (by simp [offStepA])
     have m1 := e (.mul (.n (offB b + 1 + 3 * j + 2)) (.n (offB b + 1 + 3 * j))
       (.n (offB b + 1 + 3 * j + 1))) (by simp [offStepA])
@@ -248,8 +250,8 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
     simp only [Good] at c22 c23 a24 c25 c26
     rw [hNb b hb', word_one] at *
     exact ⟨by rw [a24, c22, c23], c25, c26⟩
-  have hcopy : σ (.n 198) = σ (.n 1) :=
-    hgA (.copy (.n 198) (.n 1)) (List.mem_append_right _ (List.mem_singleton_self _))
+  have hcopy : σ (.n (val% «da_column_offsets» "s3#0")) = σ (.n (val% «da_column_offsets» "offsets")) :=
+    hgA (.copy (.n (val% «da_column_offsets» "s3#0")) (.n (val% «da_column_offsets» "offsets"))) (List.mem_append_right _ (List.mem_singleton_self _))
   -- the atoms
   have hat : ∀ a ∈ offAtoms, a.Holds rd σ := by
     refine atoms_holds (S := offStores) (w := w) (fun a ha => ?_) fun a ha hns => Or.inl ?_
@@ -266,12 +268,12 @@ theorem off_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
       · -- a zero
         have hc := hgA (.const (.n (2 + off)) (word 0 0)) (mem_offP_zero ho8 (by simp [offZeroA]))
         simp only [Good] at hc
-        show LoadHolds rd (σ (.n 1)) off (σ (.n (2 + off)))
+        show LoadHolds rd (σ (.n (val% «da_column_offsets» "offsets"))) off (σ (.n (2 + off)))
         rw [e1, hc, word_zero]
         have := hRo off (by simp [offCells]; omega)
         rwa [offCells_get (by omega), show off / 7 = 0 by omega, Nat.mul_zero, wK_zero, ofK_zero,
           mul_zero] at this
-      · show LoadHolds rd (σ (.n 0)) off (σ (.n (offB b + 1 + 3 * off)))
+      · show LoadHolds rd (σ (.n (val% «da_column_offsets» "zs"))) off (σ (.n (offB b + 1 + 3 * off)))
         rw [e0, (hstep b hb' off ho8).1]
         exact hzs rd hLin off ho8
       · show LoadHolds rd (σ (.n (offB b))) off (σ (.n (offB b + 1 + 3 * off + 2)))

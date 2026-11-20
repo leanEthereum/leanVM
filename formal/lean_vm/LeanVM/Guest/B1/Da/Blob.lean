@@ -11,6 +11,9 @@ public import LeanVM.Guest.B1.Da.VectorHolds
 public import LeanVM.Guest.B1.Da.Help
 public import LeanVM.Guest.B1.Main.LoopsC
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_verify_blob»
+import LeanVM.Guest.Data.ValNames.«da_verify_blob_loop0»
 
 /-!
 # `da_verify_blob`
@@ -67,10 +70,10 @@ theorem loop_fromC {f : String} {ps : List E} {N : E} {m a : ℕ} {B : E → Pro
 `da_verify_cell` call on it, its sum `σc (.n 7)` added to the running sum at `base·x`, its digest
 `σc (.n 5)`, `σc (.n 6)` the leaf at `base·x²`. -/
 def CellStepB (C : CallRel) (rd : Reader) (σc : Val) (w base x : E) : Prop :=
-  LoadHolds rd (w * x) 0 (σc (.n 4)) ∧
-    C "da_verify_cell" [σc (.n 4)] [σc (.n 5), σc (.n 6), σc (.n 7)] ∧
-    ∃ a : E, LoadHolds rd (base * x) 512 a ∧ LoadHolds rd (base * x) 513 (a + σc (.n 7)) ∧
-      LoadHolds rd (base * x ^ 2) 0 (σc (.n 5)) ∧ LoadHolds rd (base * x ^ 2) 1 (σc (.n 6))
+  LoadHolds rd (w * x) 0 (σc (.n (val% «da_verify_blob_loop0» "d0~4"))) ∧
+    C "da_verify_cell" [σc (.n (val% «da_verify_blob_loop0» "d0~4"))] [σc (.n (val% «da_verify_blob_loop0» "d0")), σc (.n (val% «da_verify_blob_loop0» "d1")), σc (.n (val% «da_verify_blob_loop0» "s"))] ∧
+    ∃ a : E, LoadHolds rd (base * x) 512 a ∧ LoadHolds rd (base * x) 513 (a + σc (.n (val% «da_verify_blob_loop0» "s"))) ∧
+      LoadHolds rd (base * x ^ 2) 0 (σc (.n (val% «da_verify_blob_loop0» "d0"))) ∧ LoadHolds rd (base * x ^ 2) 1 (σc (.n (val% «da_verify_blob_loop0» "d1")))
 
 theorem c_stepW (hVm : UnfoldsV rd C Vm) {x : E} {ps : List E}
     (h : C name% «da_verify_blob_loop0» (x :: ps) []) :
@@ -97,8 +100,8 @@ theorem c_stepW (hVm : UnfoldsV rd C Vm) {x : E} {ps : List E}
     rw [a10] at l10
     rw [m12, m11, h2, hx, ← sq] at l5 l6
     exact ⟨l4, hc, _, l9, l10, l5, l6⟩
-  · have e16 : σ (.n 16) = x * gen + word 325 0 := by rw [a16, m14, c13, c15, word_gen, hx]
-    have e18 : σ (.n 18) = x * gen := by rw [m18, c17, word_gen, hx]
+  · have e16 : σ (.n (val% «da_verify_blob_loop0» "s7#3")) = x * gen + word 325 0 := by rw [a16, m14, c13, c15, word_gen, hx]
+    have e18 : σ (.n (val% «da_verify_blob_loop0» "s7#5")) = x * gen := by rw [m18, c17, word_gen, hx]
     have := hcall (by rw [e16]; exact hne)
     rw [e18] at this
     rw [← hps]
@@ -135,19 +138,19 @@ theorem blob_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel
   rw [c2, word_zero] at l2
   rw [c3, word_one, ← pow_zero gen, hpar] at hloop
   -- the cells
-  have L : ∀ h < 128, CellStepB C rd (blobCellV Vm w c0 c1 h) w (σ (.n 1)) (gen ^ h) :=
+  have L : ∀ h < 128, CellStepB C rd (blobCellV Vm w c0 c1 h) w (σ (.n (val% «da_verify_blob» "base"))) (gen ^ h) :=
     fun h hh => loop_fromC (C := C) (f := name% «da_verify_blob_loop0») (N := gen ^ 128) (m := 128) (a := 0)
-      (B := fun x => CellStepB C rd (Vm name% «da_verify_blob_loop0» [x, w, σ (.n 1)] []) w (σ (.n 1)) x)
+      (B := fun x => CellStepB C rd (Vm name% «da_verify_blob_loop0» [x, w, σ (.n (val% «da_verify_blob» "base"))] []) w (σ (.n (val% «da_verify_blob» "base"))) x)
       (by unfold ordG; omega) rfl (fun x hx => by
         obtain ⟨k1, k2⟩ := c_stepW hVm hx
         exact ⟨k1 _ _ rfl, by rw [← word_g128]; exact k2⟩)
       hloop h (Nat.zero_le _) hh
   have cell : ∀ h < 128, (blobSyms Vm w c0 c1 h).length = 128 ∧ ∃ a : E,
-      LoadHolds rd (σ (.n 1)) (h + 512) a ∧
-      LoadHolds rd (σ (.n 1)) (h + 513) (a + ∑ e ∈ Finset.range 128, dualAt z (128 * h + e) *
+      LoadHolds rd (σ (.n (val% «da_verify_blob» "base"))) (h + 512) a ∧
+      LoadHolds rd (σ (.n (val% «da_verify_blob» "base"))) (h + 513) (a + ∑ e ∈ Finset.range 128, dualAt z (128 * h + e) *
         (blobSyms Vm w c0 c1 h).getD e 0) ∧
-      LoadHolds rd (σ (.n 1)) (2 * h) (digestHalves (keccak256 ((blobSyms Vm w c0 c1 h).flatMap E.toBytes))).1 ∧
-      LoadHolds rd (σ (.n 1)) (2 * h + 1)
+      LoadHolds rd (σ (.n (val% «da_verify_blob» "base"))) (2 * h) (digestHalves (keccak256 ((blobSyms Vm w c0 c1 h).flatMap E.toBytes))).1 ∧
+      LoadHolds rd (σ (.n (val% «da_verify_blob» "base"))) (2 * h + 1)
         (digestHalves (keccak256 ((blobSyms Vm w c0 c1 h).flatMap E.toBytes))).2 := by
     intro h hh
     obtain ⟨hwl, hc, a, ha, has, hd0, hd1⟩ := L h hh
@@ -159,7 +162,7 @@ theorem blob_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel
     simp only [List.cons.injEq, and_true] at hlv'
     subst hlv'
     have hsy : blobSyms Vm w c0 c1 h = cellSymsOf (Vm "da_verify_cell" [lv]
-        [blobCellV Vm w c0 c1 h (.n 5), blobCellV Vm w c0 c1 h (.n 6), blobCellV Vm w c0 c1 h (.n 7)]) := by
+        [blobCellV Vm w c0 c1 h (.n (val% «da_verify_blob_loop0» "d0")), blobCellV Vm w c0 c1 h (.n (val% «da_verify_blob_loop0» "d1")), blobCellV Vm w c0 c1 h (.n (val% «da_verify_blob_loop0» "s"))]) := by
       rw [blobSyms, e4]
     rw [hsy]
     simp only [digestCells, List.cons_append, List.nil_append, List.cons.injEq, and_true] at hrets
@@ -177,7 +180,7 @@ theorem blob_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel
       hlvv e he' _ (hrd e (by rw [hlen]; unfold LeanDa.cellSymbols; omega)).2]
   refine ⟨fun h hh => (cell h hh).1, ?_, ?_⟩
   · -- the running sum
-    have run : ∀ h ≤ 128, LoadHolds rd (σ (.n 1)) (h + 512)
+    have run : ∀ h ≤ 128, LoadHolds rd (σ (.n (val% «da_verify_blob» "base"))) (h + 512)
         (∑ h' ∈ Finset.range h, ∑ e ∈ Finset.range 128,
           dualAt z (128 * h' + e) * (blobSyms Vm w c0 c1 h').getD e 0) := by
       intro h
@@ -193,13 +196,13 @@ theorem blob_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel
     rw [a45] at l4
     exact loadHolds_unique (run 128 le_rfl) (by simpa using l4)
   · -- the root
-    have e01 : (c0, c1) = (σ (.n 6), σ (.n 7)) := by rw [← hret.1, ← hret.2, cp8, cp9]
+    have e01 : (c0, c1) = (σ (.n (val% «da_verify_blob» "b0")), σ (.n (val% «da_verify_blob» "b1"))) := by rw [← hret.1, ← hret.2, cp8, cp9]
     rw [e01]
-    have hl7 : coreProgram.Rel rd (daLevelsName 7) [σ (.n 1)] [σ (.n 6), σ (.n 7)] := hle _ _ _ hlv
+    have hl7 : coreProgram.Rel rd (daLevelsName 7) [σ (.n (val% «da_verify_blob» "base"))] [σ (.n (val% «da_verify_blob» "b0")), σ (.n (val% «da_verify_blob» "b1"))] := hle _ _ _ hlv
     have hk7 : ofK (Parameters.addressOfIndex 7) = gen ^ 7 := (gen_pow_eq_ofK 7).symm
-    have hf : ∀ i < 2 ^ 7, LoadHolds rd (σ (.n 1)) (2 * i)
+    have hf : ∀ i < 2 ^ 7, LoadHolds rd (σ (.n (val% «da_verify_blob» "base"))) (2 * i)
         (digestHalves (keccak256 ((blobSyms Vm w c0 c1 i).flatMap E.toBytes))).1 ∧
-        LoadHolds rd (σ (.n 1)) (2 * i + 1)
+        LoadHolds rd (σ (.n (val% «da_verify_blob» "base"))) (2 * i + 1)
           (digestHalves (keccak256 ((blobSyms Vm w c0 c1 i).flatMap E.toBytes))).2 := fun i hi => by
       obtain ⟨-, -, -, -, k0, k1⟩ := cell i (by norm_num at hi; omega)
       exact ⟨k0, k1⟩

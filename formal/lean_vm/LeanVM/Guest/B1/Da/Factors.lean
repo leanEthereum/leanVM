@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Da.Cell
 public import LeanVM.Guest.B1.Da.VectorMath
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_factors__L»
 
 /-!
 # `da_factors`
@@ -41,19 +43,19 @@ def facNodeA (top d y : ℕ) : List Atom :=
   let v := facB d + 1 + 4 * y
   [.const (.n v) (word (facC top d y) 0), .mul (.n (v + 1)) (.n (facB d)) (.n v),
     .const (.n (v + 2)) (word 1 0), .add (.n (v + 3)) (.n (v + 1)) (.n (v + 2)),
-    .load (.n (v + 3)) (.n 1) (2 ^ d + y)]
+    .load (.n (v + 3)) (.n (valf% «da_factors» "factors")) (2 ^ d + y)]
 
 /-- Depth `d`'s atoms: its power, then its nodes. -/
 def facDepthA (top d : ℕ) : List Atom :=
-  .load (.n (facB d)) (.n 0) (top - d) :: (List.range (2 ^ d)).flatMap (facNodeA top d)
+  .load (.n (facB d)) (.n (valf% «da_factors» "zs")) (top - d) :: (List.range (2 ^ d)).flatMap (facNodeA top d)
 
 /-- **`da_factors`' atoms**: the run, the depths, the returned copy. -/
 def facT (top D : ℕ) : List Atom :=
-  .hint (.alloc (.n 1) 128) :: (List.range D).flatMap (facDepthA top) ++ [.copy (.n (facB D)) (.n 1)]
+  .hint (.alloc (.n (valf% «da_factors» "factors")) 128) :: (List.range D).flatMap (facDepthA top) ++ [.copy (.n (facB D)) (.n (valf% «da_factors» "factors"))]
 
 /-- **`da_factors`' body, checked.** -/
 def facOk (fn : Fn) (top D : ℕ) : Bool :=
-  decide (fn.params = [.n 0]) &&
+  decide (fn.params = [.n (valf% «da_factors» "zs")]) &&
   match splitBody fn.body with
   | some (A, vs) => decide (vs = [.n (facB D)]) && atomsEqb A (facT top D)
   | none => false
@@ -65,8 +67,8 @@ theorem facC_word (top d y : ℕ) : word (facC top d y) 0 = ofK (wK (top - d) (y
 
 /-- **A node's facts.** -/
 theorem fac_node {top D d y : ℕ} (hd : d < D) (hy : y < 2 ^ d) (hat : ∀ a ∈ facT top D, a.Holds rd σ) :
-    LoadHolds rd (σ (.n 0)) (top - d) (σ (.n (facB d))) ∧
-      LoadHolds rd (σ (.n 1)) (2 ^ d + y)
+    LoadHolds rd (σ (.n (valf% «da_factors» "zs"))) (top - d) (σ (.n (facB d))) ∧
+      LoadHolds rd (σ (.n (valf% «da_factors» "factors"))) (2 ^ d + y)
         (σ (.n (facB d)) * ofK (wK (top - d) (y * 2 ^ (top - d + 1))) + 1) := by
   have hdep : ∀ a ∈ facDepthA top d, a.Holds rd σ := fun a ha ↦
     hat a (List.mem_cons_of_mem _ (List.mem_append_left _
@@ -97,8 +99,8 @@ theorem da_factors_val {fn : Fn} {top D : ℕ} (hok : facOk fn top D = true) (hD
     rw [atomsEqb_sound htm] at hat
     rw [hparams] at hpar
     subst hpar hrets
-    have hcp : σ (.n (facB D)) = σ (.n 1) := by
-      have := hat (.copy (.n (facB D)) (.n 1)) (List.mem_cons_of_mem _ (List.mem_append_right _
+    have hcp : σ (.n (facB D)) = σ (.n (valf% «da_factors» "factors")) := by
+      have := hat (.copy (.n (facB D)) (.n (valf% «da_factors» "factors"))) (List.mem_cons_of_mem _ (List.mem_append_right _
         (List.mem_singleton_self _)))
       exact this
     simp only [List.map_cons, List.map_nil, MeaningDaFactors]
