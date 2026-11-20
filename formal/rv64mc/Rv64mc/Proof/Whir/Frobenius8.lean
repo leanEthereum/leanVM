@@ -70,7 +70,7 @@ theorem loop (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (v : E)
     {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame}
     {regs : Reg → Word} {m : MachineState}
     (hk : ∀ r' m', Holds.post env (Post v) (fun _ _ _ => False) ret top regs m r' m' →
-      rvIsa.SafeN p sp1Ctx G n Q ⟨rest, r', m'⟩)
+      rvIsa.SafeN p sp1Ctx G n Q ⟨rest, r', m'⟩) (hal : top.toNat % 16 = 0)
     (hstk : env.stackLimit.toNat + need ≤ top.toNat) (hst : env.Static m)
     (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (h8 : 8 * (regs .x12).toNat < 2 ^ 64) :
     ∀ k j R M, j + k + 1 = 8 * (regs .x12).toNat → Inv env v ret top regs m j R M →
@@ -102,7 +102,7 @@ theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]?
   rv_auto hp with [hL] using [hsq]
   · rw [p_zero hc]; rfl
   · rw [p_zero hc]; rfl
-  refine loop env p i L v hp hL hnS hsq hk hpre_3 hpre_4 hpre_5 hpre_8 (8 * (regs .x12).toNat - 1) 0 _ _
+  refine loop env p i L v hp hL hnS hsq hk (by assumption) hpre_3 hpre_4 hpre_5 hpre_8 (8 * (regs .x12).toNat - 1) 0 _ _
     (by have := p_pos hc; omega) ?_
   rv_close
   · exact count_start hpre_8

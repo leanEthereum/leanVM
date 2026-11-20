@@ -30,7 +30,7 @@ theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Gen.Start.Link) (
     using [(hmain words).contract]
   -- `main`'s precondition, at `sp = stackTop`
   · refine ⟨⟨by simp [updReg_apply], by simp [updReg_apply]⟩, ?_, hst, by rw [hnx]; exact hheap,
-      by simpa [updReg_apply] using h10, hcap, hin, hnx⟩
+      ⟨by simpa [updReg_apply] using h10, hcap, hin, hnx⟩, by simp only [lsym_simp]; decide⟩
     simp only [lsym_simp]
     exact hstack
   -- the halt: accepting only where `main` returned `0`, and no state after it

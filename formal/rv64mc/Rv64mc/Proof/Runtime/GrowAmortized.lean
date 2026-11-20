@@ -45,7 +45,7 @@ theorem after (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {nfg : Nat}
       rvIsa.SafeN p sp1Ctx G n Q ⟨rest, r', m'⟩)
     (hstk : env.stackLimit.toNat + (48 + nfg) ≤ top.toNat) (hst : env.Static m)
     (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (hpre : GrowPre env (regs .x13).toNat (regs .x14).toNat regs m)
-    (hsp : regs .x2 = top) {nc : Word} (hnc1 : (regs .x11).toNat + (regs .x12).toNat ≤ nc.toNat)
+    (hsp : regs .x2 = top) (hal : top.toNat % 16 = 0) {nc : Word} (hnc1 : (regs .x11).toNat + (regs .x12).toNat ≤ nc.toNat)
     (hnc2 : (m.getMem (regs .x10)).toNat ≤ nc.toNat) (hnc3 : 0 < nc.toNat) (R : Reg → Word)
     (hR2 : R .x2 = top + 0xffffffffffffffd0#64) (hR8 : R .x8 = nc) (hR10 : R .x10 = regs .x10)
     (hR11 : R .x11 = m.getMem (regs .x10)) (hR14 : R .x14 = regs .x13)
@@ -81,7 +81,7 @@ theorem after (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {nfg : Nat}
       saved3_getMem hl24 (by rcases hown.1 with h | h <;> omega)
   -- `finish_grow(sp, cap, ptr, nc, align, size)`'s precondition
   · refine Holds.pre_call (by show _ ≤ (R .x2).toNat; rw [hR2, h48]; omega) (static_saved3 hl24 hst)
-      (by rw [next_saved3 hl24]; exact hnx) ?_
+      (by rw [next_saved3 hl24]; exact hnx) ?_ (by show (R .x2).toNat % 16 = 0; rw [hR2, h48]; omega)
     simp only [FinishGrowPre, updReg_apply, reduceCtorEq, ite_true, ite_false, hR2, hR11, hR14, hR15]
     refine ⟨⟨Or.inr (Nat.le_refl _), by simp only [Layouts.ResultBlockTryReserve.byteSize]; omega⟩, hal0, hal1,
       hnc2, Nat.mul_pos hnc3 hsz, ?_, hcs⟩
@@ -194,7 +194,7 @@ theorem after (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {nfg : Nat}
 /-- **The contract of `grow_amortized`**, with 48 bytes of stack beyond `finish_grow`'s. -/
 theorem ok (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {nfg : Nat}
     (hfg : FinishGrowSpec env p L.finishGrow.idx nfg) : GrowAmortizedSpec env p i (48 + nfg) := by
-  intro G n Q ret top rest regs m ⟨⟨hra, hsp⟩, hstk, hst, hnx, hpre⟩ hk
+  intro G n Q ret top rest regs m ⟨⟨hra, hsp⟩, hstk, hst, hnx, hpre, hal⟩ hk
   lsym hp stop [42] with [hra, hsp]
   all_goals
     have hpre' := hpre
@@ -208,7 +208,7 @@ theorem ok (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {nfg : Nat}
   iterate 8
     · have hreq : (regs .x12 + regs .x11).toNat = (regs .x11).toNat + (regs .x12).toNat := by
         rw [BitVec.le_def] at hc_1; rw [BitVec.toNat_add] at hc_1 ⊢; omega
-      refine after (nc := _) hp hL hfg hk hstk hst hnx hpre hsp ?_ ?_ ?_ _ rfl rfl rfl rfl rfl rfl
+      refine after (nc := _) hp hL hfg hk hstk hst hnx hpre hsp hal ?_ ?_ ?_ _ rfl rfl rfl rfl rfl rfl
         ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ <;>
         simp only [updReg_apply, reduceCtorEq, ite_true, ite_false] <;>
         simp only [BitVec.lt_def, BitVec.le_def, h2c, hreq] at hc hc_2 ⊢ <;>

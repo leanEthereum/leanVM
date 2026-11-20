@@ -63,8 +63,8 @@ variable (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? =
   (hk : ∀ r' m', Holds.post env KInv.Post (fun _ _ _ => False) ret top regs m r' m' →
     rvIsa.SafeN p sp1Ctx G n Q ⟨rest, r', m'⟩)
   (hstk : env.stackLimit.toNat + need ≤ top.toNat) (hst : env.Static m)
-  (hnx : (env.next m).toNat ≤ env.heapEnd.toNat)
-include hp hL hnS hnR hnM hsp hrd hbm hk hstk hst hnx
+  (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (hal : top.toNat % 16 = 0)
+include hp hL hnS hnR hnM hsp hrd hbm hk hstk hst hnx hal
 
 /-- From `t48`: 12 squarings, times `t12`, 3 squarings, times `t3`, the last squaring. -/
 theorem seg3 : ∀ v8 v9 v18 v R M, v8 = t3 (regs .x10) → v9 = t12 (regs .x10) → v = t48 (regs .x10) →
@@ -82,7 +82,7 @@ theorem seg2 : ∀ v8 v9 v18 v R M, v8 = t3 (regs .x10) → v9 = t12 (regs .x10)
   intro v8 v9 v18 v R M h8 h9 h18 hv hinv
   rv_intro hinv
   rv_sym hp stop [432] with [hL] using [hsp, hrd, hbm]
-  refine seg3 env p i L hp hL hnS hnR hnM hsp hrd hbm hk hstk hst hnx v8 v9 v18 ?v _ _ h8 h9 ?hv ?hinv
+  refine seg3 env p i L hp hL hnS hnR hnM hsp hrd hbm hk hstk hst hnx hal v8 v9 v18 ?v _ _ h8 h9 ?hv ?hinv
   case hinv => rv_close; rfl
   subst h18 hv
   simp only [append_hi_lo, reduce_spread, t48, kSq_succ, kSq_zero]
@@ -95,7 +95,8 @@ theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]?
     (hsp : Spread.spec env p L.spread.idx needS) (hrd : Reduce.spec env p L.reduce.idx needR)
     (hbm : BaseMul.spec env p L.baseMul.idx needM) : KInv.spec env p i need := by
   rv_auto hp stop [234] with [hL] using [hsp, hrd, hbm]
-  refine seg2 env p i L hp hL hnS hnR hnM hsp hrd hbm hk hpre_3 hpre_4 hpre_5 ?v8 ?v9 ?v18 ?v _ _ ?h8 ?h9 ?h18 ?hv
+  refine seg2 env p i L hp hL hnS hnR hnM hsp hrd hbm hk hpre_3 hpre_4 hpre_5 (by assumption) ?v8 ?v9 ?v18 ?v _ _ ?h8 ?h9
+    ?h18 ?hv
     ?hinv
   case hinv => rv_close; all_goals rfl
   all_goals simp only [append_hi_lo, reduce_spread, t3, t12, t24, kSq_succ, kSq_zero]

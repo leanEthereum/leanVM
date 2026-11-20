@@ -83,7 +83,7 @@ theorem loop (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (v : E) (
     {G : State rvIsa → Prop} {n : Nat} {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame}
     {regs : Reg → Word} {m : MachineState}
     (hk : ∀ r' m', Holds.post env (Post v gs) (fun _ _ _ => False) ret top regs m r' m' →
-      rvIsa.SafeN p sp1Ctx G n Q ⟨rest, r', m'⟩)
+      rvIsa.SafeN p sp1Ctx G n Q ⟨rest, r', m'⟩) (hal : top.toNat % 16 = 0)
     (hstk : env.stackLimit.toNat + need ≤ top.toNat) (hst : env.Static m)
     (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (hg : EListAt m (regs .x12) (gs.map Model.limbs))
     (hl : env.Live m (regs .x12) (Layouts.E.byteSize * gs.length)) :
@@ -127,7 +127,7 @@ theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]?
   · have h0 : gs.length = 0 := by simpa using (len_zero (by simp; omega)).1 hc
     rw [List.length_eq_zero_iff.1 h0]; rfl
   have h0 : gs.length ≠ 0 := fun h => hc ((len_zero (by simp; omega)).2 (by simpa using h))
-  refine loop env p i L v gs hp hL hnM hnS hmul hsq hk hpre_3 hpre_4 hpre_5 hpre_9 hpre_10
+  refine loop env p i L v gs hp hL hnM hnS hmul hsq hk (by assumption) hpre_3 hpre_4 hpre_5 hpre_9 hpre_10
     (gs.length - 1) 0 _ _ (by omega) ?_
   rv_close
   · exact ptr_start _

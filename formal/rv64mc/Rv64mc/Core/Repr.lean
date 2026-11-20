@@ -238,9 +238,9 @@ theorem AbiRegs.refl {top : Word} {regs : Reg → Word} (h : regs .x2 = top) : A
     states it. -/
 theorem Holds.pre_call {env : Env} {need : Nat} {Pre : (Reg → Word) → MachineState → Prop}
     {ret : Word} {R : Reg → Word} {m : MachineState} (hstk : env.stackLimit.toNat + need ≤ (R .x2).toNat)
-    (hst : env.Static m) (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (hpre : Pre (Lprog.updReg R .x1 ret) m) :
-    Holds.pre env need Pre ret (R .x2) (Lprog.updReg R .x1 ret) m :=
-  ⟨⟨by simp [Lprog.updReg_apply], by simp [Lprog.updReg_apply]⟩, hstk, hst, hnx, hpre⟩
+    (hst : env.Static m) (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (hpre : Pre (Lprog.updReg R .x1 ret) m)
+    (hal : (R .x2).toNat % 16 = 0) : Holds.pre env need Pre ret (R .x2) (Lprog.updReg R .x1 ret) m :=
+  ⟨⟨by simp [Lprog.updReg_apply], by simp [Lprog.updReg_apply]⟩, hstk, hst, hnx, hpre, hal⟩
 
 /-! ## Bytes in doublewords -/
 

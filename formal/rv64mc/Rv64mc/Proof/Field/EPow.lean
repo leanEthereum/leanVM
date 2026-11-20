@@ -65,7 +65,7 @@ theorem loop (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i
     {G : State rvIsa → Prop} {n : Nat} {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame}
     {regs : Reg → Word} {m : MachineState}
     (hk : ∀ r' m', Holds.post env EPow.Post (fun _ _ _ => False) ret top regs m r' m' →
-      rvIsa.SafeN p sp1Ctx G n Q ⟨rest, r', m'⟩)
+      rvIsa.SafeN p sp1Ctx G n Q ⟨rest, r', m'⟩) (hal : top.toNat % 16 = 0)
     (hstk : env.stackLimit.toNat + need ≤ top.toNat) (hst : env.Static m)
     (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) :
     ∀ k (b o : Model.Limbs) (N : Word) R M, (N >>> 1).toNat < 2 ^ k →
@@ -102,12 +102,12 @@ theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]?
   rv_auto hp with [hL] using [hsq, hmul]
   · rw [hc, Model.ePow, ePowLoop_zero]; rfl
   · rw [hc, Model.ePow, ePowLoop_zero]; rfl
-  · refine loop env p i L hp hL hnS hnM hsq hmul hk hpre_3 hpre_4 hpre_5 64 Model.eGen Model.eOne (regs .x10) _ _
+  · refine loop env p i L hp hL hnS hnM hsq hmul hk (by assumption) hpre_3 hpre_4 hpre_5 64 Model.eGen Model.eOne (regs .x10) _ _
       (BitVec.isLt _) ?_ ?_
     · rw [Model.ePow, ePowLoop_step _ _ hc_1, ite_eq_right (bit_eq hc)]
     · rv_close
       all_goals rfl
-  · refine loop env p i L hp hL hnS hnM hsq hmul hk hpre_3 hpre_4 hpre_5 64 Model.eGen
+  · refine loop env p i L hp hL hnS hnM hsq hmul hk (by assumption) hpre_3 hpre_4 hpre_5 64 Model.eGen
       (eMul Model.eOne Model.eGen) (regs .x10) _ _ (BitVec.isLt _) ?_ ?_
     · rw [Model.ePow, ePowLoop_step _ _ hc_1, ite_eq_left (bit_ne hc)]
     · rv_close

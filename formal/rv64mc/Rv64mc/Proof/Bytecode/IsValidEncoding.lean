@@ -341,7 +341,7 @@ theorem loop (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (ws : Lis
     {G : State rvIsa → Prop} {n : Nat} {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame}
     {regs : Reg → Word} {m : MachineState}
     (hk : ∀ r' m', Holds.post env (Post ws) (fun _ _ _ => False) ret top regs m r' m' →
-      rvIsa.SafeN p sp1Ctx G n Q ⟨rest, r', m'⟩)
+      rvIsa.SafeN p sp1Ctx G n Q ⟨rest, r', m'⟩) (hsp16 : top.toNat % 16 = 0)
     (hstk : env.stackLimit.toNat + need ≤ top.toNat) (hst : env.Static m)
     (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (hw : WordsAt m (regs .x10) ws)
     (hl : env.Live m (regs .x10) (8 * ws.length)) (hLN : ws.length = 16 * N) (hpow : N.isPowerOfTwo)
@@ -403,7 +403,7 @@ theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]?
   · exact absurd h3 (BitVec.not_lt.2 hc)
   · exact absurd h2 (BitVec.not_lt.2 hc_3)
   · exact absurd h2 (BitVec.not_lt.2 hc_3)
-  refine loop env p i L ws (ws.length / 16) hp hL hfail hk hpre_3 hpre_4 hpre_5 hpre_7 hpre_8 hLN hpow hb
+  refine loop env p i L ws (ws.length / 16) hp hL hfail hk (by assumption) hpre_3 hpre_4 hpre_5 hpre_7 hpre_8 hLN hpow hb
     (ws.length / 16 - 1) 0 _ _ (by omega) ?_
   have e7 : regs .x10 - BitVec.ofNat 64 (ws.length / 16) <<< 3 + BitVec.ofNat 64 (ws.length / 16) <<< 6 =
       slotBase (regs .x10) (ws.length / 16) 7 := by addr_tac

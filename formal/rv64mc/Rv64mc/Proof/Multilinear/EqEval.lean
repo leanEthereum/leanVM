@@ -112,7 +112,7 @@ theorem loop (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (xs ys : 
     (hk : ∀ r' m', Holds.post env (Post xs ys) (fun _ _ _ => False) ret top regs m r' m' →
       rvIsa.SafeN p sp1Ctx G n Q ⟨rest, r', m'⟩)
     (hstk : env.stackLimit.toNat + need ≤ top.toNat) (hst : env.Static m)
-    (hnx : (env.next m).toNat ≤ env.heapEnd.toNat)
+    (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (hal : top.toNat % 16 = 0)
     (hx : EListAt m (regs .x10) (xs.map Model.limbs)) (hy : EListAt m (regs .x12) (ys.map Model.limbs))
     (hlx : env.Live m (regs .x10) (Layouts.E.byteSize * xs.length))
     (hly : env.Live m (regs .x12) (Layouts.E.byteSize * ys.length)) (hlen : xs.length = ys.length) :
@@ -161,7 +161,7 @@ theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]?
     have h0 : xs.length = 0 := by simpa using (len_zero (by simp; omega)).1 hc
     simp [acc, h0, Model.limbs_one, Model.eOne]
   have h0 : xs.length ≠ 0 := fun h => hc ((len_zero (by simp; omega)).2 (by simpa using h))
-  refine loop env p i L xs ys hp hL hnM hmul hk hpre_3 hpre_4 hpre_5 hpre_7 hpre_9 hpre_10 hpre_11 hlen
+  refine loop env p i L xs ys hp hL hnM hmul hk hpre_3 hpre_4 hpre_5 (by assumption) hpre_7 hpre_9 hpre_10 hpre_11 hlen
     (xs.length - 1) 0 _ _ (by omega) ?_
   rv_close
   all_goals first

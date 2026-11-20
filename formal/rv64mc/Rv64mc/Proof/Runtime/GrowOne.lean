@@ -95,7 +95,7 @@ theorem ok {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {fd : Lfundef (Op Reg)
     (hs1 : s1.WF he) (halign : align < 2 ^ 63) (hsize : size < 2 ^ 63) {nga : Nat}
     (hGa : GrowAmortizedSpec env p ga.idx nga) (hHe : NoReturn env p he.idx nga) :
     GrowOneSpec env align size p i (16 + nga) := by
-  intro G n Q ret top rest regs m ⟨⟨hra, hsp⟩, hstk, hst, hnx, hpre⟩ hk
+  intro G n Q ret top rest regs m ⟨⟨hra, hsp⟩, hstk, hst, hnx, hpre, hal⟩ hk
   obtain ⟨name, addr, depth, body⟩ := fd
   simp only at hb
   subst hb
@@ -132,6 +132,7 @@ theorem ok {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {fd : Lfundef (Op Reg)
   -- `grow_amortized(self, cap, 1, align, size)`'s precondition
   · refine Holds.pre_call (by show _ ≤ (top + 0xfffffffffffffff0#64).toNat; rw [h16]; omega)
       (Env.static_setMem_stack hst hb8) (by rw [hnx1]; exact hnx) ?_
+      (by show (top + 0xfffffffffffffff0#64).toNat % 16 = 0; rw [h16]; omega)
     show GrowPre env (BitVec.ofNat 64 align).toNat (BitVec.ofNat 64 size).toNat _ _
     rw [hal', hsz']
     refine ⟨?_, hsz, hal0, hal1, ?_, ?_⟩
@@ -146,9 +147,11 @@ theorem ok {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {fd : Lfundef (Op Reg)
     · show ((m.setMem (top + 0xfffffffffffffff8#64) ret).getMem (rvCapAt (regs .x10))).toNat * size < 2 ^ 63
       rw [hcap1]; exact hcs
   -- `handle_error`'s precondition, from the stack `grow_amortized` returned
-  · refine Holds.pre_call ?_ hret.2.2.1 hret.2.1.2.1 trivial
-    show _ ≤ (r' .x2).toNat
-    rw [hret.1.1, h16]; omega
+  · refine Holds.pre_call ?_ hret.2.2.1 hret.2.1.2.1 trivial ?_
+    · show _ ≤ (r' .x2).toNat
+      rw [hret.1.1, h16]; omega
+    · show (r' .x2).toNat % 16 = 0
+      rw [hret.1.1, h16]; omega
   -- `ra`, read back from its slot, which `grow_amortized` keeps
   · show m'.getMem (top + 0xfffffffffffffff8#64) = ret
     have hout : ¬ GrowOut regs m (top + 0xfffffffffffffff8#64) := by

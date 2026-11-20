@@ -6,7 +6,7 @@
   in SP1's context (`sp1Ctx`), with the calling convention added on both sides:
 
   * before: called from `ra` with the stack at `sp` (`Entry`), `need` bytes of stack free above `env.stackLimit`,
-    `env.Static` true, `NEXT` within the heap, and `Pre`;
+    `env.Static` true, `NEXT` within the heap, `Pre`, and `sp` a multiple of 16 (the ABI's);
   * after: `sp` back and `s0`..`s11` kept (`AbiRegs`), every memory word kept but those the call may write
     (`env.Frame`: its stack, what it allocates, `NEXT`, and `Out`), `NEXT` grown within the heap, `env.Static`
     true, and `Post`.
@@ -46,11 +46,12 @@ def AbiRegs (top : Word) (regs r' : Reg → Word) : Prop :=
 
 namespace Holds
 
-/-- The precondition of `Holds`: the entry, the stack bound, the environment's invariants, `Pre`. -/
+/-- The precondition of `Holds`: the entry, the stack bound, the environment's invariants, `Pre`, and the stack top
+    16-aligned (the RISC-V ABI's, which `_start` sets up). -/
 def pre (env : Env) (need : Nat) (Pre : (Reg → Word) → MachineState → Prop) (ret top : Word)
     (regs : Reg → Word) (m : MachineState) : Prop :=
   Entry ret top regs ∧ env.stackLimit.toNat + need ≤ top.toNat ∧ env.Static m ∧
-    (env.next m).toNat ≤ env.heapEnd.toNat ∧ Pre regs m
+    (env.next m).toNat ≤ env.heapEnd.toNat ∧ Pre regs m ∧ top.toNat % 16 = 0
 
 /-- The postcondition of `Holds`: the ABI's registers, the memory frame, the static data, `Post`. -/
 def post (env : Env) (Post : (Reg → Word) → MachineState → (Reg → Word) → MachineState → Prop)
@@ -88,11 +89,12 @@ theorem call (h : Holds env p f need Pre Post Out) {fn pc : Nat} {fd : Lfundef (
     {Q : State rvIsa → Prop} (hf : p[fn]? = some fd) (hi : fd.body[pc]? = some (.Lcall ret tgt))
     (hc : rvIsa.callee p regs tgt = some f) (hstack : env.stackLimit.toNat + need ≤ (regs .x2).toNat)
     (hst : env.Static m) (hnext : (env.next m).toNat ≤ env.heapEnd.toNat) (hpre : Pre (updReg regs .x1 ret) m)
+    (halign : (regs .x2).toNat % 16 = 0)
     (hk : ∀ r' m', AbiRegs (regs .x2) (updReg regs .x1 ret) r' →
       env.Frame (regs .x2) (Out (updReg regs .x1 ret) m) m m' → env.Static m' →
       Post (updReg regs .x1 ret) m r' m' → rvIsa.SafeN p sp1Ctx G n Q ⟨⟨fn, pc + 1, rv, top⟩ :: rest, r', m'⟩) :
     rvIsa.SafeN p sp1Ctx G n Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ :=
-  SafeN.call_contract hf hi h hc ⟨⟨by simp [updReg_apply], by simp [updReg_apply]⟩, hstack, hst, hnext, hpre⟩
+  SafeN.call_contract hf hi h hc ⟨⟨by simp [updReg_apply], by simp [updReg_apply]⟩, hstack, hst, hnext, hpre, halign⟩
     fun r' m' ⟨ha, hfr, hs, hp⟩ => hk r' m' ha hfr hs hp
 
 /-- **More stack than a contract needs is enough.** -/

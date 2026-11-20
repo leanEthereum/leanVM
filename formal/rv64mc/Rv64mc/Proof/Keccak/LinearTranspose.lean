@@ -699,7 +699,7 @@ theorem mid (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (ws : List
     (hmagic : DataRef.Words env L.d_c8_e5d50e4a Gen.Verifier.Keccak.LinearTransposeE.d_c8_e5d50e4a_words)
     {G : State rvIsa → Prop} {n : Nat} {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame}
     {regs : Reg → Word} {m : MachineState} (hstk : env.stackLimit.toNat + need ≤ top.toNat)
-    (hst : env.Static m) (hnx : (env.next m).toNat ≤ env.heapEnd.toNat)
+    (hst : env.Static m) (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (hsp16 : top.toNat % 16 = 0)
     (hl3 : ∀ P, ∀ k j R M, j + k + 1 = 1600 → Inv3 env ws ret top regs m P 1600 j R M →
       rvIsa.SafeN p sp1Ctx G n Q ⟨⟨i, 314, ret, top⟩ :: rest, R, M⟩) :
     ∀ R M, Exit2 env ws ret top regs m R M →
@@ -1041,7 +1041,8 @@ theorem loop1 (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (ws : Li
     (hrho : RhoAt env L.d_c100_179d68cc)
     {G : State rvIsa → Prop} {n : Nat} {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame}
     {regs : Reg → Word} {m : MachineState} (hstk : env.stackLimit.toNat + need ≤ top.toNat)
-    (hst : env.Static m) (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (htal : top.toNat % 8 = 0)
+    (hst : env.Static m) (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (hsp16 : top.toNat % 16 = 0)
+    (htal : top.toNat % 8 = 0)
     (hx : EListAt m (regs .x11) (ws.map Model.limbs)) (hl : env.Live m (regs .x11) (Layouts.E.byteSize * ws.length))
     (hlen : ws.length = 1600)
     (hl2 : ∀ R M, Inv2 env ws ret top regs m 0 R M →
@@ -1116,9 +1117,9 @@ theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]?
   rw [rho_load0 hrho hret2_15]
   have h3 := fun P => loop3 env p i L ws hp P 1600 htop
     (fin env p i L ws hp P 1600 htop hpre_4 hpre_5 ⟨hpre_9, hpre_10⟩ hlen hk)
-  have h2 := mid env p i L ws hp hL hnAl hnRes hnHe hal hres hhe hmagic hpre_3 hpre_4 hpre_5 h3
+  have h2 := mid env p i L ws hp hL hnAl hnRes hnHe hal hres hhe hmagic hpre_3 hpre_4 hpre_5 (by assumption) h3
   have h1 := loop2 env p i L ws hp htop h2
-  refine loop1 env p i L ws hp hL hnMs hnPb hms hpb hpi hrho hpre_3 hpre_4 hpre_5 hpre_11 hpre_7 hpre_8 hlen
+  refine loop1 env p i L ws hp hL hnMs hnPb hms hpb hpi hrho hpre_3 hpre_4 hpre_5 (by assumption) hpre_11 hpre_7 hpre_8 hlen
     (fun R M h => h1 1599 0 R M (by omega) h) 1599 0 0 _ _ (by omega) (by omega) ?_
   refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, f1, s1⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
     fun k hk => absurd hk (Nat.not_lt_zero _)⟩

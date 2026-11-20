@@ -62,7 +62,7 @@ theorem inc_ok (i : Nat) (base : Word) (hp : p[i]? = some (incTmpl base)) :
 theorem caller_ok (j : Nat) (L : Link) (hp : p[j]? = some (callerTmpl L)) (hL : L.WF p)
     (hinc : Holds env p L.inc.idx 0 (fun _ _ => True) Post) :
     Holds env p j 16 (fun _ _ => True) Post := by
-  intro G n Q ret top rest regs m ⟨⟨hra, hsp⟩, hstk, hst, hnx, _⟩ hk
+  intro G n Q ret top rest regs m ⟨⟨hra, hsp⟩, hstk, hst, hnx, _, hal⟩ hk
   have hlay := env.layout
   -- the slot `ra` is saved in, and the callee's stack top
   have hslot : (top + 0xfffffffffffffff8#64).toNat = top.toNat - 8 := by bv_omega
@@ -72,7 +72,8 @@ theorem caller_ok (j : Nat) (L : Link) (hp : p[j]? = some (callerTmpl L)) (hL : 
     using [hinc.contract]
   -- the callee's precondition
   · refine ⟨⟨by simp [updReg_apply], by simp [updReg_apply]⟩, by simp only [lsym_simp, hsp']; omega,
-      Env.static_setMem_stack hst hlo, by rw [Env.next_setMem_stack hlo]; exact hnx, trivial⟩
+      Env.static_setMem_stack hst hlo, by rw [Env.next_setMem_stack hlo]; exact hnx, trivial,
+      by simp only [lsym_simp, hsp']; omega⟩
   -- `ra` read back from the slot the callee keeps
   · have := hret.2.1.getMem_above (by omega) (a := top + 0xfffffffffffffff8#64) (by omega) id
     simp [updReg_apply, this]

@@ -74,19 +74,19 @@ theorem capacityOverflow_ok (L : Alloc.RawVec.CapacityOverflow.Link)
 theorem assertFailedUsizeUsize_ok (L : Core.Panicking.AssertFailedUsizeUsize.Link)
     (hp : p[i]? = some (Core.Panicking.AssertFailedUsizeUsize.tmpl L)) (hL : L.WF p)
     (h : NoReturn env p L.assertFailedInner.idx need) : NoReturn env p i need := by
-  intro G n Q ret top rest regs m ⟨⟨hra, hsp⟩, hstk, hst, hnx, _⟩ _
+  intro G n Q ret top rest regs m ⟨⟨hra, hsp⟩, hstk, hst, hnx, _, hal⟩ _
   lsym hp with [hra, hsp, Lprog.Isa.addrAt, hL.assertFailedInner, hL.s0, Holds.post] using [h.contract]
   exact ⟨⟨by simp [updReg_apply], by simp [updReg_apply]⟩, by simpa [updReg_apply, hsp] using hstk, hst, hnx,
-    trivial⟩
+    trivial, by simpa [updReg_apply, hsp] using hal⟩
 
 /-- `handle_error`: `capacity_overflow` for a zero argument, else `panic_nounwind_fmt`. -/
 theorem handleError_ok (L : Alloc.RawVec.HandleError.Link) (hp : p[i]? = some (Alloc.RawVec.HandleError.tmpl L))
     (hL : L.WF p) (h1 : NoReturn env p L.capacityOverflow.idx need)
     (h2 : NoReturn env p L.panicNounwindFmt.idx need) : NoReturn env p i need := by
-  intro G n Q ret top rest regs m ⟨⟨hra, hsp⟩, hstk, hst, hnx, _⟩ _
+  intro G n Q ret top rest regs m ⟨⟨hra, hsp⟩, hstk, hst, hnx, _, hal⟩ _
   lsym hp with [hra, hsp, Lprog.Isa.addrAt, hL.capacityOverflow, hL.panicNounwindFmt, hL.s0, hL.s1, Holds.post]
     using [h1.contract, h2.contract]
   all_goals exact ⟨⟨by simp [updReg_apply], by simp [updReg_apply]⟩, by simpa [updReg_apply, hsp] using hstk, hst,
-    hnx, trivial⟩
+    hnx, trivial, by simpa [updReg_apply, hsp] using hal⟩
 
 end Rv64mc.Proof.Runtime.Panics

@@ -40,6 +40,13 @@ theorem align_slot {S need k : Nat} {t c : BitVec 64} (h : S + need ≤ t.toNat)
     (hc : slotK need c k = true) (hk : k % 16 = 0) : (t + c).toNat % 16 = 0 := by
   have := slot_eq h hc; omega
 
+/-- **`t - k` is 16-aligned** when `t` and `k` are (`c` is `-k`). -/
+theorem align_off {t c : BitVec 64} {k : Nat} (ht : t.toNat % 16 = 0) (hc : c.toNat + k = 2 ^ 64)
+    (h16 : k % 16 = 0) : (t + c).toNat % 16 = 0 := by
+  rw [BitVec.toNat_add]
+  have := t.isLt
+  omega
+
 /-- An address off the stack is no slot of it. -/
 theorem ne_of_off_stack {S : Nat} {t x y : Word} (hoff : x.toNat < S ∨ t.toNat ≤ x.toNat) (hlo : S ≤ y.toNat)
     (hhi : y.toNat < t.toNat) : x ≠ y := fun e => by subst e; omega

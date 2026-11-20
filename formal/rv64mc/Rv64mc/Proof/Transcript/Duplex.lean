@@ -46,7 +46,7 @@ theorem tail (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i
     (r : Model.SpongeRust) {G : State rvIsa → Prop} {n : Nat} {Q : State rvIsa → Prop} {ret top : Word}
     {rest : List Frame} {regs : Reg → Word} {m : MachineState}
     (hk : ∀ r' m', Holds.post env (Post r) Out ret top regs m r' m' →
-      rvIsa.SafeN p sp1Ctx G n Q ⟨rest, r', m'⟩)
+      rvIsa.SafeN p sp1Ctx G n Q ⟨rest, r', m'⟩) (hsp16 : top.toNat % 16 = 0)
     (hstk : env.stackLimit.toNat + need ≤ top.toNat) (hst : env.Static m)
     (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (hs : SpongeAt m (regs .x10) r)
     (ha : InFrame top (regs .x10) Layouts.Sponge.byteSize) :
@@ -183,7 +183,7 @@ theorem ok_at (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
     have h8 : (top + 18446744073709551608#64).toNat = top.toNat - 8 := slot_toNat (by decide) (by omega) (by decide)
     have h16 : (top + 18446744073709551600#64).toNat = top.toNat - 16 := slot_toNat (by decide) (by omega) (by decide)
     have h24 : (top + 18446744073709551592#64).toNat = top.toNat - 24 := slot_toNat (by decide) (by omega) (by decide)
-    refine tail env p i L hp hL hnC hnK hcpy hkf r hk hpre_3 hpre_4 hpre_5 hpre_6 ⟨hpre_7, hpre_8⟩ _ _ ?_
+    refine tail env p i L hp hL hnC hnK hcpy hkf r hk hpre_9 hpre_3 hpre_4 hpre_5 hpre_6 ⟨hpre_7, hpre_8⟩ _ _ ?_
     rv_close
   -- the saved registers, past the waiting scalars' stores, the fill and the copy
   all_goals try

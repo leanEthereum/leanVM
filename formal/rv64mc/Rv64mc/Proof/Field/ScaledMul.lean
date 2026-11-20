@@ -221,7 +221,7 @@ theorem loop (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (tabs : L
     {G : State rvIsa → Prop} {n : Nat} {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame}
     {regs : Reg → Word} {m : MachineState}
     (hk : ∀ r' m', Holds.post env (MulPost tabs) (fun _ _ _ => False) ret top regs m r' m' →
-      rvIsa.SafeN p sp1Ctx G n Q ⟨rest, r', m'⟩)
+      rvIsa.SafeN p sp1Ctx G n Q ⟨rest, r', m'⟩) (hal : top.toNat % 16 = 0)
     (hstk : env.stackLimit.toNat + need ≤ top.toNat) (hst : env.Static m)
     (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (he : EListAt m (regs .x10) tabs)
     (hl : env.Live m (regs .x10) (Layouts.E.byteSize * tabs.length))
@@ -291,7 +291,7 @@ theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]?
     · exact b 8 (by decide) hc_9
     · exact b 9 (by decide) hc_10
     · exact b 10 (by decide) hc
-  refine loop env p i L tabs hp hL hnP hpanic hk hpre_3 hpre_4 hpre_5 hpre_7 hpre_8 hb0 10 0 _ _ (by omega)
+  refine loop env p i L tabs hp hL hnP hpanic hk (by assumption) hpre_3 hpre_4 hpre_5 hpre_7 hpre_8 hb0 10 0 _ _ (by omega)
     (fun w hw => absurd hw (Nat.not_lt_zero w)) ?_
   rv_close
   all_goals simp only [win0, w1, w2, w3, w4, w5, w6, w7, w8, w9, win10, shl_idx, part_succ, part_zero, rd,

@@ -23,7 +23,7 @@ def forwardBody (s : Site) (c : Callee) (ret : Word) : List (LinstrR (Op Reg) Re
 theorem forward_ok {env : Env} {p : Lprog (Op Reg) Reg} {i need : Nat} {fd : Lfundef (Op Reg) Reg}
     (hp : p[i]? = some fd) {s : Site} {c : Callee} {ret : Word} (hb : fd.body = forwardBody s c ret)
     (hc : c.WF p) (hs : s.WF c) (h : NoReturn env p c.idx need) : NoReturn env p i need := by
-  intro G n Q ret' top rest regs m ⟨⟨hra, hsp⟩, hstk, hst, hnx, _⟩ _
+  intro G n Q ret' top rest regs m ⟨⟨hra, hsp⟩, hstk, hst, hnx, _, hal⟩ _
   obtain ⟨name, addr, depth, body⟩ := fd
   simp only at hb
   subst hb
@@ -31,7 +31,7 @@ theorem forward_ok {env : Env} {p : Lprog (Op Reg) Reg} {i need : Nat} {fd : Lfu
   simp only [Site.WF] at hs
   lsym hp with [hra, hsp, Lprog.Isa.addrAt, hc, hs, Holds.post, forwardBody] using [h.contract]
   · exact ⟨⟨by simp [updReg_apply], by simp [updReg_apply]⟩, by simpa [updReg_apply, hsp] using hstk, hst, hnx,
-      trivial⟩
+      trivial, by simpa [updReg_apply, hsp] using hal⟩
 
 /-- The body `auipc t1, s.hi; jr s.lo(t1)`: a tail call of `c`. -/
 def tailBody (s : Site) (c : Callee) : List (LinstrR (Op Reg) Reg) :=
@@ -47,7 +47,7 @@ theorem tail_ok {env : Env} {p : Lprog (Op Reg) Reg} {i need : Nat} {fd : Lfunde
     (hpre : ∀ regs m, Pre regs m → Pre (updReg regs .x6 s.hi) m)
     (hpost : ∀ regs m r' m', Post (updReg regs .x6 s.hi) m r' m' → Post regs m r' m')
     (hout : ∀ regs m a, Out (updReg regs .x6 s.hi) m a → Out regs m a) : Holds env p i need Pre Post Out := by
-  intro G n Q ret top rest regs m ⟨⟨hra, hsp⟩, hstk, hst, hnx, hP⟩ hk
+  intro G n Q ret top rest regs m ⟨⟨hra, hsp⟩, hstk, hst, hnx, hP, hal⟩ hk
   obtain ⟨name, addr, depth, body⟩ := fd
   simp only at hb
   subst hb
@@ -55,7 +55,7 @@ theorem tail_ok {env : Env} {p : Lprog (Op Reg) Reg} {i need : Nat} {fd : Lfunde
   simp only [Site.WF] at hs
   lsym hp with [Lprog.Isa.addrAt, hc, hs, tailBody] using [h.contract]
   · simp [updReg_apply, hsp]
-  · exact ⟨⟨by simp [updReg_apply, hra], by simp [updReg_apply, hsp]⟩, hstk, hst, hnx, hpre _ _ hP⟩
+  · exact ⟨⟨by simp [updReg_apply, hra], by simp [updReg_apply, hsp]⟩, hstk, hst, hnx, hpre _ _ hP, hal⟩
   · obtain ⟨hr, hf, hs', hq⟩ := hret
     refine hk _ _ ⟨?_, ⟨hf.1, hf.2.1, fun a ha => hf.2.2 a fun hw => ha ?_⟩, hs', hpost _ _ _ _ hq⟩
     · simpa [AbiRegs, updReg_apply] using hr

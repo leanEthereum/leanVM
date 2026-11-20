@@ -72,7 +72,7 @@ theorem round_up8 {N : Word} (hN : N.toNat < 2 ^ 63) :
 theorem ok (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p)
     (hnext : L.d_NEXT.addr = env.nextAddr) (hend : env.heapEnd = 0x78000000#64)
     (hhalt : NoReturn env p L.halt.idx 0) : AllocSpec env p i 0 := by
-  intro G n Q ret top rest regs m ⟨⟨hra, hsp⟩, hstk, hst, hnx, hsz⟩ hk
+  intro G n Q ret top rest regs m ⟨⟨hra, hsp⟩, hstk, hst, hnx, hsz, hal⟩ hk
   have hd : L.d_NEXT.hi + L.d_NEXT.lo = env.nextAddr := hL.d_NEXT.trans hnext
   have hN : (m.getMem env.nextAddr).toNat ≤ 0x78000000 := by
     simpa [Env.next, hend] using hnx
@@ -99,5 +99,6 @@ theorem ok (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmp
       rw [next_setNext, hend']
   -- `halt`'s precondition
   · exact Holds.pre_call (by show _ ≤ (regs .x2).toNat; rw [hsp]; exact hstk) hst hnx trivial
+      (by show (regs .x2).toNat % 16 = 0; rw [hsp]; exact hal)
 
 end Rv64mc.Proof.Runtime.Alloc

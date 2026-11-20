@@ -1643,8 +1643,8 @@ def cheapDefEq (a b : Expr) : MetaM Bool := do
       saved.restore
       return false
 
-/-- `(top + c).toNat % 16 = 0` for a slot `top + c` a multiple of 16 below the function's stack top, from
-    `top.toNat % 16 = 0` (`align_slot`): a callee's stack top aligned where the caller's is. -/
+/-- `(top + c).toNat % 16 = 0` for `c` a multiple of 16 below the function's stack top, from `top.toNat % 16 = 0`
+    (`align_off`): a callee's stack top aligned where the caller's is. -/
 def alignGoal (ty : Expr) : MetaM (Option Expr) := do
   unless ty.isAppOfArity ``Eq 3 do return none
   let lhs := ty.appFn!.appArg!
@@ -1652,16 +1652,17 @@ def alignGoal (ty : Expr) : MetaM (Option Expr) := do
     return none
   let n := lhs.appFn!.appArg!
   unless n.isAppOfArity ``BitVec.toNat 2 do return none
-  let some (h, S, top, need, nv) ← ownStack | return none
+  let some (_, _, top, _) ← rawStack | return none
   let (bx, cx) ← affine n.appArg!
   unless bx == some top && cx != 0 do return none
   let k := 2 ^ 64 - cx
-  unless k ≤ nv && k % 16 == 0 do return none
+  unless k % 16 == 0 do return none
   let some ht ← hypOf (← mkEq (← mkAppM ``HMod.hMod #[← mkAppM ``BitVec.toNat #[top], mkNatLit 16]) (mkNatLit 0))
     | return none
-  let tru ← mkEqRefl (mkConst ``Bool.true)
-  return some (← appN ``Rv64mc.Tactic.align_slot [(`S, S), (`need, need), (`k, mkNatLit k), (`t, top),
-    (`c, n.appArg!.appArg!), (`h, h), (`ht, ht), (`hc, tru), (`hk, ← mkDecideProof (← mkEq (← mkAppM ``HMod.hMod #[mkNatLit k, mkNatLit 16]) (mkNatLit 0)))])
+  let c := n.appArg!.appArg!
+  let hc ← mkDecideProof (← mkEq (← mkAppM ``HAdd.hAdd #[← mkAppM ``BitVec.toNat #[c], mkNatLit k]) (← mkAppM ``HPow.hPow #[mkNatLit 2, mkNatLit 64]))
+  let h16 ← mkDecideProof (← mkEq (← mkAppM ``HMod.hMod #[mkNatLit k, mkNatLit 16]) (mkNatLit 0))
+  return some (← mkAppM ``Rv64mc.Tactic.align_off #[ht, hc, h16])
 
 /-- Close what is closed by reduction, by an address fact, or by a hypothesis; split conjunctions, unfold
     definitions; leave the rest, its reads reduced. -/

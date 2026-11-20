@@ -30,10 +30,11 @@ variable {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat}
 /-- **The contract of `Input::word`**, with no stack, from `halt`'s. -/
 theorem ok (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p) (hhalt : NoReturn env p L.halt.idx 0) :
     InputWordSpec env p i 0 := by
-  intro G n Q ret top rest regs m ⟨⟨hra, hsp⟩, hstk, hst, hnx, hlo, hhi⟩ hk
+  intro G n Q ret top rest regs m ⟨⟨hra, hsp⟩, hstk, hst, hnx, ⟨hlo, hhi⟩, hal⟩ hk
   lsym hp with [hra, hsp, Lprog.Isa.addrAt, hL.halt, hL.s0, Holds.post] using [hhalt.contract]
   -- `halt`'s precondition
   · exact Holds.pre_call (by show _ ≤ (regs .x2).toNat; rw [hsp]; exact hstk) hst hnx trivial
+      (by show (regs .x2).toNat % 16 = 0; rw [hsp]; exact hal)
   -- the return
   · have hlay := env.layout
     simp only [Layouts.Input.byteSize] at hhi
