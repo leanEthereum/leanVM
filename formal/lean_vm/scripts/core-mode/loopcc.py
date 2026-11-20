@@ -8,9 +8,10 @@ solver (`emitc.solve`) in `infer.py`'s pass at those signatures, which must not 
 `results()` returns `{name: dict(cert, cs)}` for the functions whose certificate is complete, and the reasons of the
 others. Usage (a census): python3 -I scripts/core-mode/loopcc.py [--fn NAME] [--why] [--emit [--check]]"""
 import os, sys, collections
-ARGV = list(sys.argv)
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+sys.path.append(os.path.join(HERE, '..'))
+import genfiles  # noqa: E402
 import infer as I  # noqa: E402
 sys.modules.setdefault('infer', I)
 import route, callc, loopc  # noqa: E402
@@ -172,6 +173,12 @@ def infer_one(k, S):
 
 
 def results(verbose=False):
+    """`_results`, computed once while its inputs are unchanged (`memo.py`)."""
+    import memo
+    return memo.cached('loopcc.results', lambda: _results(verbose))
+
+
+def _results(verbose=False):
     I.F.clear()
     I.F.update({'ptr', 'pfr'})
     S = route.sigs()
@@ -197,7 +204,7 @@ def results(verbose=False):
                 out[k]['text'] = callc.ldata(k, out[k])
             except No as e:
                 why[str(e).split(':')[0]] += 1
-                if verbose and '--why' in ARGV:
+                if verbose == 'why':
                     print(k, e)
     finally:
         EM.Solver.pt = base
@@ -231,10 +238,11 @@ GENWL = os.path.join(os.path.dirname(GEN), 'GenWL')
 def windows(R, po):
     """The heap checks estimated past `heapwin.BUDGET`, in windows (`heapwin.one`, `HeapCWin` for a loop helper):
     `GenWL/<fn>/`, its `Ok.lean` stating `Fn.«fn».heap_okW` at the callees' signatures `csigs` and its own as
-    `CFun.sigOf` reads them, which `core.py`'s `heap_okC` takes. `({path: text}, {directory})`."""
+    `CFun.sigOf` reads them, which `core.py`'s `heap_okC` takes, by path."""
     import heapwin
-    epo = heapwin.E.pack_of()
-    files, dirs = {}, set()
+    import heap
+    epo = heap.pack_of()
+    files = {}
     for k in sorted(R):
         H = R[k]['cert']
         sigs = {I.callee(f): h for f, h in R[k]['cs'].items()}
@@ -245,16 +253,9 @@ def windows(R, po):
         gen = dict(root='LeanVM.Guest.CoreMode.GenWL', sub='HeapWL', final='heap_okW',
                    data=['LeanVM.Guest.CoreMode.Gen.«%s».DataLC' % po[k][0]],
                    sigw='(fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})')
-        for name, text in heapwin.one(k, H, sigOf, [], epo, gen=gen):
+        for name, text in heapwin.one(k, H, sigOf, epo, gen):
             files[os.path.join(GENWL, k, name + '.lean')] = text
-        dirs.add(os.path.join(GENWL, k))
-    return files, dirs
-
-
-def win_fns():
-    """The functions whose heap check `windows` writes (from the tree)."""
-    import glob
-    return {os.path.basename(os.path.dirname(f)) for f in glob.glob(os.path.join(GENWL, '*', 'Ok.lean'))}
+    return files
 
 
 def emit(R, check):
@@ -275,39 +276,20 @@ def emit(R, check):
             text = text.replace('public import LeanVM.Guest.CoreMode.Defs\n',
                                 'public import LeanVM.Guest.CoreMode.Defs\npublic import LeanVM.Guest.CoreMode.WitOf\n', 1)
         files[os.path.join(GEN, pack, 'DataLC.lean')] = text
-    stale = []
-    for path in sorted(set(glob.glob(os.path.join(GEN, '*', 'DataLC.lean'))) - set(files)):
-        stale.append(path)
-        if not check:
-            os.remove(path)
-    wfiles, wdirs = windows(R, po)
-    files.update(wfiles)
-    for path in sorted(set(glob.glob(os.path.join(GENWL, '*', '*.lean'))) - set(wfiles)):
-        stale.append(path)
-        if not check:
-            os.remove(path)
-    for d in sorted(set(glob.glob(os.path.join(GENWL, '*'))) - wdirs):
-        if not check:
-            os.rmdir(d)
-    for path, text in sorted(files.items()):
-        old = open(path, encoding='utf-8').read() if os.path.exists(path) else None
-        if old != text:
-            stale.append(path)
-            if not check:
-                os.makedirs(os.path.dirname(path), exist_ok=True)
-                open(path, 'w', encoding='utf-8').write(text)
+    files.update(windows(R, po))
+    have = glob.glob(os.path.join(GEN, '*', 'DataLC.lean')) + glob.glob(os.path.join(GENWL, '*', '*.lean'))
+    stale = genfiles.sync(files, have, check)
     print('loopcc: %d functions, %d files, %d lines' % (len(R), len(files), sum(t.count('\n') for t in files.values())) +
           ((', stale: %d' % len(stale)) if check else ''))
-    if check and stale:
-        sys.exit(1)
+    genfiles.fail_if_stale(stale, check)
 
 
 if __name__ == '__main__':
-    if '--emit' in ARGV:
-        R, _ = results(True)
-        emit(R, '--check' in ARGV)
-    elif '--fn' in ARGV:
-        k = ARGV[ARGV.index('--fn') + 1]
+    if '--emit' in sys.argv:
+        R, _ = results('why' if '--why' in sys.argv else True)
+        emit(R, '--check' in sys.argv)
+    elif '--fn' in sys.argv:
+        k = sys.argv[sys.argv.index('--fn') + 1]
         I.F.clear()
         I.F.update({'ptr', 'pfr'})
         try:

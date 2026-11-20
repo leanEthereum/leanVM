@@ -53,7 +53,7 @@ def main():
         rets.clear()
         try:
             walk(k)
-        except (FR.Fail, KeyError, PR.Fail, PR.AL.Fail):
+        except (FR.Fail, PR.Fail, PR.AL.Fail):
             out[k] = []
             continue
         W = set.intersection(*rets) if rets else set()

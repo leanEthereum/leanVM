@@ -1,46 +1,22 @@
-"""The heap certificates of `infer.py` in `heapOkC`'s input format (`m2-format.md`, `CoreMode/Defs.lean`), and their
-checks.
+"""The core route's heap certificates in `heapOkC`'s input format (`CoreMode/Defs.lean`), found from `infer.py`'s
+inference, and their check in Python: the solver of `callc.py`, `loopcc.py`, `callhc.py` and `callcres.py`.
 
 The inference gives each function's signature and residuals; the witnesses are then found in `heapOkC`'s own pass
 (`heapc.py`, the check in Python step for step): each read, callee precondition and own guarantee gets a witness of
 the check's scope (an event's serial, a precondition, a run or pointer fact or pointer run in scope with the residuals
 it needs, `pts`, `cat`, `mrg`, `word`, `skip`), so serials, joins and selector guarantees are the check's. The reads
 taking a stored word (`hvs`), the quotients (`divs`) and the callees' ghost words (`gargs`) follow the inference's
-values. What the check cannot witness is reported by cause; only functions the Python check passes get a kernel check.
-
-With `--out DIR` (nothing is written without it: the end theorem reads the core route's own checks, `callc.py`),
-per pack: `DIR/<pack>/Data.lean`, every function's `hcert` (long lists split into auxiliary
-`def`s, each elaborated within the default heartbeats); `Ok.lean`, `heap_okC : heapOkC pows sigOf core hcert =
-true` for each function whose certificate the Python check passes and whose check is small enough for one `decide`
-(the others are windowed: `heapwin.py`, `GenCW/<fn>/` beside `DIR`), `sigOf` its callees' signatures by their `Fn.name`. Residuals
-carry the branch conditions common to the paths the inference asked them on (`CRes.under`); a `mrg` whose root has no
-exponent gets one stated (`exp`).
-
-usage (from formal/lean_vm, `CORE_MODE_CACHE` set): python3 -I scripts/core-mode/emitc.py [--with F,..] [--without F,..]
-  [--out DIR] [--check] [--mods FILE] [--fn NAME,..] (those functions only, nothing written) [--report FILE.json]
-  (each failing function's causes)
+values (`solve`). What the check cannot witness is reported by cause (`check`). Residuals carry the branch conditions
+common to the paths the inference asked them on (`CRes.under`); a `mrg` whose root has no exponent gets one stated
+(`exp`). `lcert`, `lsig`, `lwits`: the certificate's Lean text, long lists split into auxiliary `def`s.
 """
-import sys, os, collections, glob, re, json
+import sys, os, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-argv = list(sys.argv)
-sys.argv = sys.argv[:1]
 import infer as I
 import heapc as C
-if __name__ == '__main__':
-    # `heapwin.py` imports this module by name: one instance (one `Pass` instrumentation)
-    sys.modules.setdefault('emitc', sys.modules[__name__])
 
-GUEST = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
-NAME = {k: nm for nm, k in I.STABLE.items()}
-# the inference's features `heapOkC` has no counterpart of, off by default: offsets modulo `g`'s order (cells are
-# naturals there) and range checks as free facts (there every fact is a residual)
-OFF = {'wrap', 'lts'}
 PTSMAX = 4096
-# functions checked in windows whatever their size (`heapwin.py`, `GenCW/<fn>/`); every other passing function whose
-# check `heapwin.fn_cost` puts over `heapwin.BUDGET` (past the default heartbeats, or the memory a module may take, in
-# one `decide`) is windowed too
-KERNEL_WIN = {'main_loop2'}
 # a pointer fact at a word whose cells one run in scope holds: that run's witness after `pts` (`ptsWR`), not a point
 # witness per offset; the core route's certificates (`callc.py`) only
 WORD_RUN = False
@@ -461,10 +437,6 @@ class Solver:
                 self.stats['ptBack'] += 1
                 return f
         return None
-
-    def all_facts(self, st):
-        """The usable facts as pairs."""
-        return [(a, b) for a, l in self.fidx(st)[0].items() for b, _ in l]
 
     def fact_shifted(self, st, k, hi):
         """The largest `k' - s` of a fact `(g^k', hi·g^s)`: `e(hi) > k' - s` (`-1`: none)."""
@@ -1676,10 +1648,11 @@ class Solver:
 
 # ---- one function
 
-def solve(k, P, sigs, sigOf):
+def solve(k, P, sigs, sigOf, fa_extra=()):
+    """`k`'s certificate at the signatures, its frame runs' cells those of its body and `fa_extra`."""
     params, body = I.CORE[k]
     H = C.HCert(sigs[k])
-    H.fas = C.fa_pairs(body) + C.FA_EXTRA.get(k, [])
+    H.fas = C.fa_pairs(body) + list(fa_extra)
     H.dups = sorted(getattr(P, 'dups', ()))
     S = Solver(k, P, H, sigs)
     S.miss = []
@@ -2023,307 +1996,3 @@ def lcert(H, sig_only=False):
     if H.gargs:
         out += '  gargs := [' + wrap((f'("{g}", {lnums(a)}, [{", ".join(map(lcell, ms))}])' for g, a, ms in H.gargs)) + ']\n'
     return ax.defs, out
-
-
-def sig_text(arms):
-    """The callees' signatures as a `match` on the name, its arms packed several to a line."""
-    if not arms:
-        return '(fun _ ↦ .empty)'
-    return '(fun g ↦ match g with\n    ' + wrap(arms + ['| _ => .empty)'], '    ', 118).replace(',\n', '\n').replace(', |', ' |')
-
-
-def routed():
-    """The functions on the core route: each pack's `coreFns` (`CoreMode/Gen/*/Core.lean`, as `core.py` writes them)."""
-    out = set()
-    for f in glob.glob(os.path.join(GUEST, 'CoreMode', 'Gen', '*', 'Core.lean')):
-        m = re.search(r'def coreFns : List CoreMode.CFun :=\n(.*?)\n\n', open(f, encoding='utf-8').read(), re.S)
-        if m:
-            out |= set(re.findall(r'Fn\.«([^»]+)»\.cfun', m.group(1)))
-    return out
-
-
-def pack_of():
-    out = {}
-    for p in glob.glob(os.path.join(GUEST, 'Pack', '*', 'Core*.lean')):
-        pack = os.path.basename(os.path.dirname(p))
-        text = open(p, encoding='utf-8').read()
-        ms = list(re.finditer(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', text, re.M))
-        for i, m in enumerate(ms):
-            # the module that defines the function's `core` (a split body's parts come first in no order)
-            end = ms[i + 1].start() if i + 1 < len(ms) else len(text)
-            has = re.search(r'^noncomputable def core : Core\.Fn', text[m.end():end], re.M) is not None
-            prev = out.get(m.group(1))
-            if prev is None or has and not prev[2]:
-                out[m.group(1)] = (pack, os.path.basename(p)[:-5], has)
-    return {k: v[:2] for k, v in out.items()}
-
-
-HEADER = '''/-
-  LeanVM.Guest.CoreMode.GenC.«{pack}».{mod}
-
-  Generated by `scripts/core-mode/emitc.py`; do not edit.
-  {what}
--/
-
-module
-
-'''
-
-
-def slots(x, out):
-    """The slots a signature entry is over (cell bases, `.val` indices)."""
-    if isinstance(x, (list, tuple)):
-        if len(x) == 2 and x[0] == 'val' and isinstance(x[1], int):
-            out.add(x[1])
-            return out
-        if len(x) == 2 and isinstance(x[0], tuple) and isinstance(x[1], int) and \
-                all(isinstance(p, tuple) and len(p) == 2 and all(isinstance(q, int) for q in p) for p in x[0]):
-            out.update(b for b, _ in x[0])
-            return out
-        for y in x:
-            slots(y, out)
-    return out
-
-
-def wit_runs(w, out):
-    """The run serials a witness names."""
-    if w[0] in ('run', 'prep', 'app', 'back'):
-        out.add(w[1])
-    if w[0] in ('prep', 'app'):
-        wit_runs(w[2], out)
-    return out
-
-
-def prune(G, m, H):
-    """`G` without the ghost runs among its preconditions that no witness of `H` names (its callers need not name
-    their ghosts), else `None`."""
-    used = set()
-    for w in list(H.reads.values()) + [w for ws in H.calls + H.rets for w in ws]:
-        if isinstance(w, tuple) and w:
-            wit_runs(w, used)
-    keep = [r for i, r in enumerate(G.preR) if i in used or not any(m <= b < m + G.ghosts for b in slots(r, set()))]
-    if len(keep) == len(G.preR):
-        return None
-    G2 = C.HSig(**{f: getattr(G, f) for f in C.HSig.FIELDS}, ghosts=G.ghosts)
-    G2.preR = keep
-    return G2
-
-
-def ghostless(G, m):
-    """`G` without its preconditions over ghosts, else `None`."""
-    keep = [r for r in G.preR if not any(m <= b < m + G.ghosts for b in slots(r, set()))]
-    if len(keep) == len(G.preR):
-        return None
-    G2 = C.HSig(**{f: getattr(G, f) for f in C.HSig.FIELDS}, ghosts=G.ghosts)
-    G2.preR = keep
-    return G2
-
-
-def ghosts_used(G, m):
-    """The ghosts (by index) a signature is over."""
-    out = set()
-    for f in C.HSig.FIELDS:
-        slots(getattr(G, f), out)
-    return {b - m for b in out if m <= b < m + G.ghosts}
-
-
-def build(res, only=None):
-    """Every function's signature, certificate and the Python check's verdict (with `only`, those functions and
-    their callees, whose signatures `prune` may change)."""
-    only_deps = set()
-    todo = list(only or ())
-    while todo:
-        for c in I.CALLS.get(todo.pop(), ()):
-            if c in I.CORE and c not in only_deps:
-                only_deps.add(c)
-                todo.append(c)
-    sigs, drops = {}, {}
-    for k in I.ORDER:
-        dr = []
-        sigs[k] = sig_of(I.SIGS[k], len(I.CORE[k][0]), dr)
-        if dr:
-            drops[k] = dr
-    stmt_names = collections.defaultdict(set)
-    for k in I.CORE:
-        for s in I.stmts(I.CORE[k][1]):
-            if s[0] == 'call':
-                stmt_names[k].add(s[1])
-            elif s[0] == 'callIf':
-                stmt_names[k].add(s[2])
-            elif s[0] == 'dispatch':
-                stmt_names[k].update(s[2])
-
-    def sigOf(g):
-        return sigs.get(I.callee(g), C.EMPTY)
-    certs, why, stats = {}, {}, collections.Counter()
-    for k in I.ORDER:
-        if only and k not in only and k not in only_deps:
-            continue
-        P = res[k]
-        H, S, pas = solve(k, P, sigs, sigOf)
-        if not P.loop:
-            G0, G = sigs[k], ghostless(sigs[k], len(I.CORE[k][0]))
-            if G is not None:
-                # without its ghost runs, if it passes so (its callers need not name their ghosts)
-                sigs[k] = G
-                H1, S1, pas1 = solve(k, P, sigs, sigOf)
-                if not pas1.fails and not S1.miss and not pas.fails and not S.miss and check(k, H1, sigOf) is None:
-                    H, S, pas = H1, S1, pas1
-                    stats['ghostless'] += 1
-                else:
-                    sigs[k] = G0
-            G = prune(sigs[k], len(I.CORE[k][0]), H)
-            if G is not None:
-                sigs[k] = G
-                stats['pruned'] += 1
-                H, S, pas = solve(k, P, sigs, sigOf)
-        stats.update(S.stats)
-        certs[k] = H
-        fails = list(pas.fails) + [('miss',) + m for m in S.miss]
-        if not fails:
-            e = check(k, H, sigOf)
-            if e is not None:
-                fails = [('recheck', e)]
-        if fails:
-            why[k] = fails
-    return sigs, certs, why, drops, stmt_names, stats
-
-
-def cause(k, fails, P):
-    """A failure's class, for the report."""
-    f = fails[0]
-    return f[0] if f[0] != 'miss' else 'miss:' + str(f[1][0] if isinstance(f[1], tuple) else f[1]) + ':' + str(f[2] if len(f) > 2 and isinstance(f[2], str) else '')
-
-
-def emit(out, res, check_only, only=None):
-    built = build(res, only)
-    sigs, certs, why, drops, stmt_names, stats = built
-    passing = {k for k in certs if k not in why}
-    import heapwin
-    sigOf = lambda g: sigs.get(I.callee(g), C.EMPTY)
-    # a certificate whose context alone (its tries, built in every window) is over a window's budget cannot be checked
-    # in windows: passing the Python check, no kernel check (`nokernel`)
-    nokernel = {k for k in passing if heapwin.W_CERT * heapwin.cert_size(certs[k]) > heapwin.BUDGET / 2}
-    wins = sorted(k for k in passing - nokernel
-                  if k in KERNEL_WIN or heapwin.fn_cost(k, certs[k], sigOf) > heapwin.BUDGET)
-    closed = set()
-    for k in I.ORDER:
-        if k in passing and all(c in closed for c in I.CALLS[k] if c != k and c in I.CORE):
-            closed.add(k)
-    po = pack_of()
-    # Lean only for the functions off the core route (`routed`), the kernel's checks they wait on, and their callees'
-    # certificates (signatures the checks read); the routed ones' checks are the route's own (`callc.py`, `Gen/`)
-    cal = lambda k: sorted({I.callee(n) for n in stmt_names[k]} & set(I.CORE))
-    off = set(certs) - routed()
-    lean = off | {c for k in off for c in cal(k)}
-    wins = [k for k in wins if k in off]
-    if out is None:
-        # no Lean (no `--out`): the report only
-        lean, wins = set(), []
-    packs = collections.defaultdict(list)
-    for k in sorted(lean):
-        packs[po[k][0]].append(k)
-    stale, mods, lines = [], [], 0
-    for pack, ks in sorted(packs.items()):
-        d = os.path.join(out, pack)
-        data = HEADER.format(pack=pack, mod='Data', what=f'The heap certificates of `{ks[0]}` and {len(ks) - 1} more.')
-        data += 'public import LeanVM.Guest.CoreMode.Defs\n\nset_option maxRecDepth 100000\nset_option linter.all false\n'
-        oks = [k for k in ks if k in off and k in passing and k not in wins and k not in nokernel]
-        imps = sorted({f'LeanVM.Guest.Pack.«{pack}».{po[k][1]}' for k in oks} |
-                      {f'LeanVM.Guest.CoreMode.GenC.«{po[c][0]}».Data' for k in oks for c in cal(k)})
-        ok = HEADER.format(pack=pack, mod='Ok', what=f'The kernel\'s heap checks of {len(oks)} functions.')
-        ok += f'public import LeanVM.Guest.CoreMode.HeapC\npublic import LeanVM.Guest.CoreMode.Pows.«{pack}»\n'
-        ok += ''.join(f'public import {m}\n' for m in imps)
-        ok += f'public import LeanVM.Guest.CoreMode.GenC.«{pack}».Data\n\nset_option Elab.async false\n'
-        for k in ks:
-            aux, body = lcert(certs[k], sig_only=k not in passing or k in nokernel)
-            auxt = ''.join(f'/-- Part of `hcert`. -/\n{d}\n' for d in aux)
-            data += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n{auxt}'
-                     f'/-- `{k}`: its heap certificate{"" if k in passing and k not in nokernel else " (its signature only: not checked)"}. -/\n'
-                     f'def hcert : CoreMode.HCert where\n{body}\nend\nend LeanVM.Guest.Fn.«{k}»\n')
-        for k in oks:
-            names = sorted(stmt_names[k])
-            arms = [f'| "{n}" => Fn.«{I.callee(n)}».hcert.sig' for n in names if I.callee(n) in I.CORE]
-            sig = sig_text(arms)
-            ok += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n'
-                   f'/-- `{k}`: the heap check. -/\n'
-                   f'theorem heap_okC : CoreMode.heapOkC Fn.«{k}».pows\n    {sig}\n    core hcert = true := by\n'
-                   f'  decide +kernel\n\nend\nend LeanVM.Guest.Fn.«{k}»\n')
-        files = [('Data', data)] + ([('Ok', ok)] if oks else [])
-        for name, text in files:
-            path = os.path.join(d, name + '.lean')
-            lines += text.count('\n')
-            mods.append(f'LeanVM.Guest.CoreMode.GenC.«{pack}».{name}')
-            if check_only:
-                if not os.path.exists(path) or open(path, encoding='utf-8').read() != text:
-                    stale.append(path)
-            else:
-                os.makedirs(d, exist_ok=True)
-                with open(path, 'w', encoding='utf-8') as fh:
-                    fh.write(text)
-    if out is None:
-        pass
-    elif check_only and not only:
-        have = set(glob.glob(os.path.join(out, '*', '*.lean')))
-        want = {os.path.join(out, m.split('«')[1].split('»')[0], m.rsplit('.', 1)[1] + '.lean') for m in mods}
-        stale += sorted(have - want)
-    elif not only:
-        want = {os.path.join(out, m.split('«')[1].split('»')[0], m.rsplit('.', 1)[1] + '.lean') for m in mods}
-        for p in set(glob.glob(os.path.join(out, '*', '*.lean'))) - want:
-            os.remove(p)
-    # the windowed kernel checks (`heapwin.py`, `GenCW/<fn>/`)
-    if wins and not only:
-        wout = os.path.join(os.path.dirname(out), 'GenCW')
-        wmods, wstale = heapwin.run(res, built, wins, wout, check=check_only)
-        mods += wmods
-        stale += wstale
-        want = {os.path.join(wout, m.split('«')[1].split('»')[0], m.rsplit('.', 1)[1] + '.lean') for m in wmods}
-        have = set(glob.glob(os.path.join(wout, '*', '*.lean')))
-        if check_only:
-            stale += sorted(have - want)
-        else:
-            for p in have - want:
-                os.remove(p)
-            for d in glob.glob(os.path.join(wout, '*')):
-                if os.path.isdir(d) and not os.listdir(d):
-                    os.rmdir(d)
-    clean, inf_closed = I.closure(res)
-    cw = collections.Counter(cause(k, why[k], res[k]) for k in why)
-    print(f'certificates: {len(certs)}; the Python check passes {len(passing)} (closed, callees too: {len(closed)}); '
-          f'the inference closes {len(inf_closed)}, of which pass {len(passing & inf_closed)}; '
-          f'{len(packs)} packs, {lines} lines')
-    print('  failures by first cause:', dict(cw.most_common()))
-    print(f'  passing, no kernel check (certificate over half a window): {sorted(nokernel)}')
-    print('  of the inference\'s closed:', dict(collections.Counter(cause(k, why[k], res[k]) for k in why
-                                                                     if k in inf_closed).most_common()))
-    print('  signature entries dropped:', dict(collections.Counter(x[0] for v in drops.values() for x in v)))
-    print('  solver:', dict(stats))
-    if check_only and not only:
-        print(f'checked: ' + (f'{len(stale)} stale: {stale[:5]}' if stale else 'up to date'))
-        if stale:
-            sys.exit(1)
-    if '--report' in argv:
-        with open(argv[argv.index('--report') + 1], 'w') as fh:
-            json.dump({k: [repr(f) for f in v[:20]] for k, v in why.items()}, fh, indent=0)
-    return mods, certs, why
-
-
-def main():
-    if '--lean' not in argv and '--with' not in argv:
-        I.F.difference_update(OFF)
-    I.set_features(argv)
-    res, dt = I.run_all()
-    print(f'inferred {len(res)} functions in {dt:.1f} s, features: {",".join(sorted(I.F)) or "(none)"}')
-    out = argv[argv.index('--out') + 1] if '--out' in argv else None
-    only = set(argv[argv.index('--fn') + 1].split(',')) if '--fn' in argv else None
-    mods, certs, why = emit(out, res, '--check' in argv or only is not None, only)
-    if only:
-        for k in sorted(only):
-            print(k, 'PASS' if k not in why else why[k][:10])
-    if '--mods' in argv:
-        with open(argv[argv.index('--mods') + 1], 'w') as fh:
-            fh.write('\n'.join(mods) + '\n')
-
-
-if __name__ == '__main__':
-    main()

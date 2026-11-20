@@ -8,6 +8,8 @@ import sys, os, glob
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import resgen
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+import genfiles  # noqa: E402
 
 OUT = resgen.OUT
 
@@ -48,17 +50,9 @@ def render():
 
 
 def main(argv):
-    files = render(); bad = []
-    for p in glob.glob(os.path.join(OUT, 'MonoCallers*.lean')):
-        if p not in files:
-            bad.append(p)
-            if '--check' not in argv: os.remove(p)
-    for p, text in sorted(files.items()):
-        old = open(p).read() if os.path.exists(p) else None
-        if old == text: continue
-        bad.append(p)
-        if '--check' not in argv: open(p, 'w').write(text)
-    if '--check' in argv and bad: print('stale:', *bad, sep='\n  '); sys.exit(1)
+    files = render()
+    bad = genfiles.sync(files, glob.glob(os.path.join(OUT, 'MonoCallers*.lean')), '--check' in argv)
+    genfiles.fail_if_stale(bad, '--check' in argv)
     print('MonoWalk: %d files, %s' % (len(files), 'unchanged' if not bad else ('stale' if '--check' in argv else 'written')))
 
 

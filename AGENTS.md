@@ -162,4 +162,3 @@ In the recursion program, the prover sends the verifier advice, called hints. Hi
 | `PCS_LOG_N`, `PCS_LOG_INV_RATE`, `PCS_POINT_CLAIMS`, `PCS_RING_CLAIMS`         | PCS throughput bench: size, rate, claims              |
 | `WHIR_NUM_VARS`, `WHIR_LOG_INV_RATE`                                           | `print_whir_query_counts`'s shape                     |
 | `DBG_PROF{,_DUMP}`, `DBG_LOOPS`, `DBG_DISASM`, `DBG_LOWER`, `DBG_PLACEHOLDERS` | compiler / guest-cycle attribution                    |
-| `DBG_JUMP_DUMP`                                                                | stable executor: taken jumps and final memory to `PATH.<cycles>.*` (`formal/lean_vm/scripts/core-mode/validate.sh`) |

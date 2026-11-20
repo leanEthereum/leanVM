@@ -16,7 +16,9 @@ usage (from formal/lean_vm): python3 -I scripts/core-mode/heap.py [--fn NAME] [-
 """
 import sys, os, collections
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import coreir
+import genfiles
 
 D = coreir.load()
 CORE, STABLE, POWS = D['core'], D['stable'], dict(D['pows'])
@@ -328,14 +330,21 @@ module
 
 
 def pack_of():
-    """Each function's pack (`Pack/<pack>/Core*.lean` holds its core, `Core` its definition)."""
+    """Each function's pack and the module of it that defines its `core` (`Pack/<pack>/Core*.lean`: a split body's
+    parts come first, in no order), `(pack, module)`."""
     import re, glob
     out = {}
     for p in glob.glob(os.path.join(GUEST, 'Pack', '*', 'Core*.lean')):
         pack = os.path.basename(os.path.dirname(p))
-        for m in re.finditer(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', open(p, encoding='utf-8').read(), re.M):
-            out.setdefault(m.group(1), (pack, 'Core'))
-    return out
+        text = open(p, encoding='utf-8').read()
+        ms = list(re.finditer(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', text, re.M))
+        for i, m in enumerate(ms):
+            end = ms[i + 1].start() if i + 1 < len(ms) else len(text)
+            has = re.search(r'^noncomputable def core : Core\.Fn', text[m.end():end], re.M) is not None
+            prev = out.get(m.group(1))
+            if prev is None or has and not prev[2]:
+                out[m.group(1)] = (pack, os.path.basename(p)[:-5], has)
+    return {k: v[:2] for k, v in out.items()}
 
 
 def lean_cell(c):
@@ -370,26 +379,21 @@ def lean_cert(f, pre=None):
             f'  res := []\n')
 
 
-CHECK = '--check' in sys.argv
-stale = []
-
-
-def emit(out_dir, res):
+def emit(out_dir, res, check=False):
+    """Each pack's `Data.lean` and `Ok.lean` under `out_dir`, a pack with no function left removed (`check`: compared,
+    nothing written)."""
+    import glob
     packs = collections.defaultdict(list)
-    if CHECK:
-        import glob
-        have = {os.path.dirname(p) for p in glob.glob(os.path.join(out_dir, '*', 'Ok.lean'))}
     po = pack_of()
     import route
     R = route.route()
     for k in sorted(res):
         if res[k].fail is None:
             packs[po[k]].append(k)
-    lines = 0
+    files = {}
     mods = []
     for (pack, coremod), ks in sorted(packs.items()):
         d = os.path.join(out_dir, pack)
-        os.makedirs(d, exist_ok=True)
         data = HEADER.format(pack=pack, mod='Data', what=f'The heap certificates of `{ks[0]}` and {len(ks) - 1} more.')
         data += 'public import LeanVM.Guest.CoreMode.Defs\n\nset_option maxRecDepth 100000\nset_option linter.all false\n'
         ok = HEADER.format(pack=pack, mod='Ok', what=f'The kernel\'s heap checks of `{ks[0]}` and {len(ks) - 1} more.')
@@ -409,20 +413,14 @@ def emit(out_dir, res):
             oks += f'theorem Fn.«{k}».heap_ok : CoreMode.heapOk Fn.«{k}».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel\n'
         ok += '\nset_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\npublic section\n\n' + oks + '\nend\n\nend LeanVM.Guest\n'
         for name, text in (('Data', data), ('Ok', ok)):
-            path = os.path.join(d, name + '.lean')
-            if CHECK:
-                if not os.path.exists(path) or open(path, encoding='utf-8').read() != text:
-                    stale.append(path)
-            else:
-                with open(path, 'w', encoding='utf-8') as fh:
-                    fh.write(text)
-            lines += text.count('\n')
+            files[os.path.join(d, name + '.lean')] = text
             mods.append(f'LeanVM.Guest.CoreMode.Gen.«{pack}».{name}')
-    if CHECK:
-        stale.extend(sorted(have - {os.path.join(out_dir, p) for p, _ in packs}))
+    have = glob.glob(os.path.join(out_dir, '*', 'Data.lean')) + glob.glob(os.path.join(out_dir, '*', 'Ok.lean'))
+    stale = genfiles.sync(files, have, check)
+    lines = sum(t.count('\n') for t in files.values())
+    if check:
         print(f'checked {len(packs)} packs: ' + (f'{len(stale)} stale: {stale[:5]}' if stale else 'up to date'))
-        if stale:
-            sys.exit(1)
+        genfiles.fail_if_stale(stale, check)
     else:
         print(f'emitted {len(packs)} packs, {sum(len(v) for v in packs.values())} functions, {lines} lines')
     return mods
@@ -518,7 +516,7 @@ def main():
         print(f'oracle: {len(out)} functions, {sum(len(o["reads"]) for o in out.values())} read DEREFs, '
               f'{sum(len(o["stores"]) for o in out.values())} store DEREFs; unpaired: {bad}')
     if '--emit' in sys.argv:
-        mods = emit(sys.argv[sys.argv.index('--emit') + 1], res)
+        mods = emit(sys.argv[sys.argv.index('--emit') + 1], res, '--check' in sys.argv)
         if '--mods' in sys.argv:
             with open(sys.argv[sys.argv.index('--mods') + 1], 'w') as fh:
                 fh.write('\n'.join(mods) + '\n')

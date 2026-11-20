@@ -10,6 +10,8 @@ import sys, os, re, glob
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+sys.path.append(os.path.join(HERE, '..'))
+import genfiles  # noqa: E402
 import coreir
 import resgen
 
@@ -121,20 +123,8 @@ def path(mod):
 
 def main(argv):
     check = '--check' in argv
-    files = render(); stale = []
-    for mod, text in files.items():
-        p = path(mod)
-        old = open(p, encoding='utf-8').read() if os.path.exists(p) else None
-        if old != text:
-            stale.append(mod)
-            if not check:
-                os.makedirs(os.path.dirname(p), exist_ok=True)
-                with open(p, 'w', encoding='utf-8') as f: f.write(text)
-    keep = {path(m) for m in files}
-    extra = [p for p in glob.glob(os.path.join(OUT, 'AnyCallers*.lean')) if p not in keep]
-    for p in extra:
-        stale.append(p)
-        if not check: os.remove(p)
+    files = {path(m): text for m, text in render().items()}
+    stale = genfiles.sync(files, glob.glob(os.path.join(OUT, 'AnyCallers*.lean')), check)
     print('anylink: %d files, %d stale%s' % (len(files), len(stale), (': ' + ', '.join(stale)) if stale else ''))
     return 1 if check and stale else 0
 

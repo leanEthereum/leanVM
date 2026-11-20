@@ -13,6 +13,8 @@ usage (from formal/lean_vm): python3 -I scripts/core-mode/sigc.py [--check] [--f
 import os, re, sys, glob
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+sys.path.append(os.path.join(HERE, '..'))
+import genfiles  # noqa: E402
 sys.setrecursionlimit(100000)
 import compiled as C  # noqa: E402
 from sigseed import SEEDS  # noqa: E402
@@ -98,23 +100,10 @@ def main(argv):
     lits, kept = signatures(fresh)
     want = files(lits)
     want.update(glue_g())
-    stale = []
-    for path, text in sorted(want.items()):
-        if os.path.exists(path) and open(path, encoding='utf-8').read() == text:
-            continue
-        if '--check' in argv:
-            stale.append(path)
-        else:
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            open(path, 'w', encoding='utf-8').write(text)
-    for path in sorted(set(glob.glob(os.path.join(OUT, '*.lean')) + glob.glob(os.path.join(GLUE, '*.lean'))) - set(want)):
-        if '--check' in argv:
-            stale.append(path)
-        else:
-            os.remove(path)
-    if stale:
-        print('stale:', *stale, sep='\n  ')
-        sys.exit(1)
+    check = '--check' in argv
+    have = glob.glob(os.path.join(OUT, '*.lean')) + glob.glob(os.path.join(GLUE, '*.lean'))
+    stale = genfiles.sync(want, have, check)
+    genfiles.fail_if_stale(stale, check)
     print('signatures: %d functions (%d kept as written), %d packs' % (len(lits), kept, len(want) // 2))
 
 

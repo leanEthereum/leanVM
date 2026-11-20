@@ -379,3 +379,75 @@ def fn_thms(thms, ns='LeanVM.Guest'):
         out.append(f'theorem Fn.«{k}».{name} : {stmt} := by {tac}\n')
     return (f'set_option linter.style.nameCheck false\n\nnamespace {ns}\n\npublic section\n\n' + ''.join(out) +
             f'\nend\n\nend {ns}\n')
+
+
+# ---- the hints `compiles` pairs (`Bridge/Defs.lean`)
+
+# the ISA hints that compile a core flow hint
+FLOW = {'witnessStack', 'witnessHeap', 'log2Ceil', 'bitDecompose', 'bitDecomposeExp', 'windowsExp',
+        'digitDecomposeExp', 'fieldLimbs', 'inverse'}
+
+
+def run_need(vs, b):
+    return [(v, b + i) for i, v in enumerate(vs)]
+
+
+def dest_need(d, bd, pos, n):
+    if d[0] == 'stack' and bd[0] == 'stack' and len(d[1]) == n:
+        return run_need(d[1], bd[1] + pos)
+    if d[0] == 'heap' and bd[0] == 'heap' and d[2] == pos and d[3] == n:
+        return [(d[1], bd[1])]
+    return None
+
+
+def need(c, h):
+    """The cells `compiles` needs of the core hint `c`'s values for the ISA hint `h`, `(value, cell)`,
+    or `None` when no cell map makes `h` compile `c`."""
+    k, t = c[0], h[0]
+    if k == 'witness' and c[2][0] == 'stack' and t == 'witnessStack':
+        return run_need(c[2][1], h[2]) if c[1] == h[1] and len(c[2][1]) == h[3] else None
+    if k == 'witness' and c[2][0] == 'heap' and t == 'witnessHeap':
+        _, p, off, ln = c[2]
+        return [(p, h[2])] if c[1] == h[1] and off == h[3] and ln == h[4] else None
+    if k == 'bits' and t == 'bitDecompose':
+        _, v, start, nbits, d = c
+        if start != 0 or nbits != h[3]:
+            return None
+        dn = dest_need(d, h[2], 0, nbits)
+        return None if dn is None else [(v, h[1])] + dn
+    if k == 'bitsExp' and t == 'bitDecomposeExp':
+        _, v, nbits, d = c
+        if nbits != h[3] or nbits > 62:
+            return None
+        dn = dest_need(d, h[2], 0, nbits)
+        return None if dn is None else [(v, h[1])] + dn
+    if k == 'digitsExp' and t == 'digitDecomposeExp':
+        _, v, nb, nd, db, st, sc, d = c
+        if (nb, nd, db, st) != tuple(h[3:7]) or nb > 62 or (sc is None) != (h[7] is None):
+            return None
+        dn = dest_need(d, h[2], 0, nd)
+        return None if dn is None else [(v, h[1])] + ([] if sc is None else [(sc, h[7])]) + dn
+    if k == 'windowsExp' and t == 'windowsExp':
+        _, v, st, w, n, d = c
+        if (st, w, n) != tuple(h[4:7]):
+            return None
+        dn = dest_need(d, h[2], h[3], n)
+        return None if dn is None else [(v, h[1])] + dn
+    if k == 'log2Ceil' and t == 'log2Ceil':
+        _, d, nbits, fl, dst = c
+        if (nbits, fl) != (h[3], h[4]):
+            return None
+        dn = dest_need(d, h[1], 0, nbits)
+        return None if dn is None else dn + [(dst, h[2])]
+    if k == 'inverse' and t == 'inverse':
+        return [(c[1], h[1]), (c[2], h[2])]
+    if k == 'limbs' and t == 'fieldLimbs':
+        return [(c[1], h[1])] + run_need(c[2], h[2]) if len(c[2]) == h[3] else None
+    return None
+
+
+def core_module(key):
+    """The core IR module of a function whose pack is its own (`align.py` reads it)."""
+    if os.path.isdir(os.path.join(ROOT, 'Pack', key)):
+        return f'LeanVM.Guest.Pack.«{key}».Core'
+    return None
