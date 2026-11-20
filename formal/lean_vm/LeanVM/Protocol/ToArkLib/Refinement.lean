@@ -7,7 +7,8 @@
 
 module
 
-public import ArkLib.Interaction.Oracle.Security.Knowledge
+public import Mathlib.Data.Set.Defs
+public import Mathlib.Data.Option.Basic
 
 /-!
 # Refinements
@@ -15,11 +16,7 @@ public import ArkLib.Interaction.Oracle.Security.Knowledge
 A `Refinement R S` between two relations over the same statements is a map on witnesses that
 sends every witness valid for `R` to one valid for `S`. Knowledge of `R` then yields knowledge of
 `S` by applying the map to whatever an extractor returns: `map_option_valid` is that step on an
-extractor's output slot (a witness, or a failure), and `knowledge_transport` is the step on a
-knowledge certificate: on a path whose terminal witness holds, if the extracted witness mapped by
-the refinement is invalid for `S`, the extracted witness is invalid for `R`, so a challenge on
-the path was bad (ArkLib's `extraction_failure_implies_bad_challenge`), the event each challenge's
-error bounds.
+extractor's output slot (a witness, or a failure).
 -/
 
 namespace LeanVM.Protocol
@@ -59,20 +56,6 @@ theorem map_option_valid {R : Set (Stmt × W₁)} {S : Set (Stmt × W₂)} (f : 
   exact f.map_valid x w (h w hw)
 
 end Refinement
-
-open Interaction.Oracle.Security in
-/-- **Knowledge transports along a refinement.** For a knowledge certificate from `R` at a
-statement, on a path whose terminal witness holds, if the extracted witness mapped by the
-refinement is invalid for `S`, a challenge on the path turned the state from false to true. -/
-theorem Refinement.knowledge_transport {Stmt W₁ W₂ : Type} {R : Set (Stmt × W₁)}
-    {S : Set (Stmt × W₂)} (f : Refinement R S) (x : Stmt) {tree : Interaction.Oracle.TypeTree}
-    {roles : tree.RoleDecoration} (cert : KnowledgeCertificate tree roles ⟨W₁, fun w ↦ (x, w) ∈ R⟩)
-    (path : tree.ExecutionPath) (w : (cert.extractor.terminalState path).Witness)
-    (hgood : (cert.extractor.terminalState path).holds w)
-    (hbad : (x, f.map x (cert.extractor.extractWitness path w)) ∉ S) :
-    RoundExtractor.BadChallengeOnPath cert.extractor roles path w :=
-  RoundExtractor.extraction_failure_implies_bad_challenge _ _ cert.prover_preserving path w hgood
-    fun h ↦ hbad (f.map_valid x _ h)
 
 end
 end LeanVM.Protocol

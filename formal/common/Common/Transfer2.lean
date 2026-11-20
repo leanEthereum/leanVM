@@ -278,117 +278,67 @@ theorem simulator2_step_replay (q : PermutationQuery (SpState Dg E C)) (σ : Sim
 /-- The two-oracle ROM adversary with its permutation transcript logged, oldest first. -/
 noncomputable def advImplLog2 : QueryImpl (dSpec Msg Dg (SpState Dg E C))
     (StateT (SimState Dg E C × List (PermutationQuery (SpState Dg E C) × SpState Dg E C))
-      (OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C))))
-  | .inr (.inr q) => StateT.mk fun s ↦
-      (fun z ↦ (z.1, (z.2, s.2 ++ [(q, z.1)]))) <$> (simulator2 P q).run s.1
-  | t => StateT.mk fun s ↦ (fun z ↦ (z.1, (z.2, s.2))) <$> (advImpl2 P t).run s.1
+      (OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)))) :=
+  logImpl (simulator2 P) (advImpl2 P)
 
 /-- Forgetting the transcript gives the two-oracle ROM adversary. -/
 theorem advImplLog2_proj {α : Type} (A : OracleComp (dSpec Msg Dg (SpState Dg E C)) α)
     (s : SimState Dg E C × List (PermutationQuery (SpState Dg E C) × SpState Dg E C)) :
     Prod.map id Prod.fst <$> (simulateQ (advImplLog2 P) A).run s =
       (simulateQ (advImpl2 P) A).run s.1 :=
-  OracleComp.map_run_simulateQ_eq_of_query_map_eq _ _ _ (fun t s ↦ by
-    rcases t with n | m | q <;> simp [advImplLog2, advImpl2, Functor.map_map]) A s
+  logImpl_proj (simulator2 P) (advImpl2 P) (fun _ ↦ rfl) A s
 
 /-- **The simulator's state is the replay of the transcript**, in the two-oracle model. -/
 theorem simulator2_state_eq_replay {α : Type} (A : OracleComp (dSpec Msg Dg (SpState Dg E C)) α)
     {z} (hz : z ∈ support ((simulateQ (advImplLog2 P) A).run (SimState.init iv, []))) :
-    z.2.1 = replay iv z.2.2 := by
-  refine inv_of_mem_support_run (spec' := unifSpec + hfSpec Msg Dg (SpState Dg E C))
-    (advImplLog2 P) (fun s ↦ s.1 = replay iv s.2) (fun t s hs w hw ↦ ?_) A rfl z hz
-  rcases t with n | m | q
-  · simp only [advImplLog2, advImpl2, StateT.run_mk, StateT.run_monadLift, monadLift_self,
-      support_map, Set.mem_image, mem_support_bind_iff, support_pure,
-      Set.mem_singleton_iff] at hw
-    obtain ⟨_, ⟨u, -, rfl⟩, rfl⟩ := hw
-    exact hs
-  · simp only [advImplLog2, advImpl2, StateT.run_mk, StateT.run_monadLift, monadLift_self,
-      support_map, Set.mem_image, mem_support_bind_iff, support_pure,
-      Set.mem_singleton_iff] at hw
-    obtain ⟨_, ⟨u, -, rfl⟩, rfl⟩ := hw
-    exact hs
-  · simp only [advImplLog2, StateT.run_mk, support_map, Set.mem_image] at hw
-    obtain ⟨w', hw', rfl⟩ := hw
-    simp only [replay, List.foldl_append, List.foldl_cons, List.foldl_nil]
-    rw [simulator2_step_replay P q s.1 hw', hs]
-    rfl
+    z.2.1 = replay iv z.2.2 :=
+  logImpl_state_eq_replay iv (simulator2 P) (advImpl2 P) (simulator2_step_replay P)
+    (fun _ σ _ hz ↦ snd_eq_of_mem_support_liftM _ σ hz)
+    (fun _ σ _ hz ↦ snd_eq_of_mem_support_liftM _ σ hz) A hz
 
-/-- An output reachable in the two-oracle ROM is reachable with arbitrary answers. -/
-theorem fst_mem_support_of_mem_support_ro2 {β : Type}
-    {X : OracleComp (unifSpec + hfSpec Msg Dg (SpState Dg E C)) β}
-    {c : HCache Msg Dg (SpState Dg E C)} {z : β × HCache Msg Dg (SpState Dg E C)}
-    (hz : z ∈ support ((simulateQ (hfSpec Msg Dg (SpState Dg E C)).romImpl X).run c)) :
-    z.1 ∈ support X :=
-  support_simulateQ_run'_subset (hfSpec Msg Dg (SpState Dg E C)).romImpl X c (by
-    rw [StateT.run'_eq, support_map]; exact ⟨z, hz, rfl⟩)
-
-/-- The digests of the simulator's rooted paths are cached `H` answers, and stay. -/
-theorem roOK2_step (t : (dSpec Msg Dg (SpState Dg E C)).Domain)
-    (s : (SimState Dg E C × List (PermutationQuery (SpState Dg E C) × SpState Dg E C)) ×
-      HCache Msg Dg (SpState Dg E C))
-    (hs : ∀ md ∈ simPaths P s.1.1, s.2 (.inl md.1) = some md.2) {z}
-    (hz : z ∈ support (((foldRO (advImplLog2 P)) t).run s)) :
-    ∀ md ∈ simPaths P z.2.1.1, z.2.2 (.inl md.1) = some md.2 := by
-  rw [foldRO_run] at hz
-  simp only [support_map, Set.mem_image] at hz
-  obtain ⟨w, hw, rfl⟩ := hz
-  have hle := le_of_mem_support_run _ s.2 hw
-  have hold : ∀ md ∈ simPaths P s.1.1, w.2 (.inl md.1) = some md.2 := fun md hmd ↦
-    hle (hs md hmd)
-  rcases t with n | m | q
-  · have := fst_mem_support_of_mem_support_ro2 hw
-    simp only [advImplLog2, advImpl2, StateT.run_mk, StateT.run_monadLift, monadLift_self,
-      support_map, Set.mem_image, mem_support_bind_iff, support_pure,
-      Set.mem_singleton_iff] at this
-    obtain ⟨_, ⟨u, -, rfl⟩, h⟩ := this
-    rw [← h]; exact hold
-  · have := fst_mem_support_of_mem_support_ro2 hw
-    simp only [advImplLog2, advImpl2, StateT.run_mk, StateT.run_monadLift, monadLift_self,
-      support_map, Set.mem_image, mem_support_bind_iff, support_pure,
-      Set.mem_singleton_iff] at this
-    obtain ⟨_, ⟨u, -, rfl⟩, h⟩ := this
-    rw [← h]; exact hold
-  · simp only [advImplLog2, StateT.run_mk, simulateQ_map, StateT.run_map, support_map,
-      Set.mem_image] at hw
-    obtain ⟨w', hw', rfl⟩ := hw
-    simp only at hold ⊢
-    cases q with
-    | inverse y =>
-      have := simulator2_step_replay P _ _ (fst_mem_support_of_mem_support_ro2 hw')
-      rw [this]
-      simp only [replayStep]
-      split
-      · exact hold
-      · exact hold
-    | forward x =>
-      simp only [simulator2, StateT.run_mk] at hw'
-      split at hw'
-      · simp only [simulateQ_pure, StateT.run_pure, support_pure,
-          Set.mem_singleton_iff] at hw'
-        subst hw'; exact hold
-      · split at hw'
-        · next s β hch =>
-          simp only [simulateQ_bind, StateT.run_bind, simulateQ_pure, StateT.run_pure,
-            mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hw'
-          obtain ⟨⟨y, c₁⟩, hy, rfl⟩ := hw'
-          intro md hmd
-          simp only [simPaths, List.mem_filterMap, List.mem_cons] at hmd
-          obtain ⟨p, hp | hp, hpm⟩ := hmd
-          · subst hp
-            obtain ⟨m', hm', rfl⟩ := Option.map_eq_some_iff.mp hpm
-            rw [rootedAnswer2_run_some P hm'] at hy
-            simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff,
-              support_uniformSample, Set.mem_univ, true_and] at hy
-            obtain ⟨⟨d, c₂⟩, hd, ec, hec⟩ := hy
-            simp only [Prod.mk.injEq] at hec
-            obtain ⟨rfl, rfl⟩ := hec
-            exact (roStep_support _ _ hd).2.1
-          · exact hold md (List.mem_filterMap.mpr ⟨p, hp, hpm⟩)
-        · simp only [simulateQ_bind, StateT.run_bind, simulateQ_pure, StateT.run_pure,
-            fQuery_run, mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hw'
-          obtain ⟨w₁, -, rfl⟩ := hw'
-          exact hold
+/-- The digests of the two-oracle simulator's rooted paths are cached `H` answers, and stay. -/
+theorem simulator2_good (q : PermutationQuery (SpState Dg E C)) (σ : SimState Dg E C)
+    (c : HCache Msg Dg (SpState Dg E C)) (hs : ∀ md ∈ simPaths P σ, c (.inl md.1) = some md.2)
+    (w : (SpState Dg E C × SimState Dg E C) × HCache Msg Dg (SpState Dg E C))
+    (hw : w ∈ support ((simulateQ (hfSpec Msg Dg (SpState Dg E C)).romImpl
+      ((simulator2 P q).run σ)).run c)) :
+    ∀ md ∈ simPaths P w.1.2, w.2 (.inl md.1) = some md.2 := by
+  have hold : ∀ md ∈ simPaths P σ, w.2 (.inl md.1) = some md.2 := fun md hmd ↦
+    le_of_mem_support_run _ c hw (hs md hmd)
+  cases q with
+  | inverse y =>
+    rw [simulator2_step_replay P _ _ (fst_mem_support_of_mem_support_rom hw)]
+    simp only [replayStep]
+    split
+    · exact hold
+    · exact hold
+  | forward x =>
+    simp only [simulator2, StateT.run_mk] at hw
+    split at hw
+    · simp only [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hw
+      subst hw; exact hold
+    · split at hw
+      · next s β hch =>
+        simp only [simulateQ_bind, StateT.run_bind, simulateQ_pure, StateT.run_pure,
+          mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hw
+        obtain ⟨⟨y, c₁⟩, hy, rfl⟩ := hw
+        intro md hmd
+        simp only [simPaths, List.mem_filterMap, List.mem_cons] at hmd
+        obtain ⟨p, hp | hp, hpm⟩ := hmd
+        · subst hp
+          obtain ⟨m', hm', rfl⟩ := Option.map_eq_some_iff.mp hpm
+          rw [rootedAnswer2_run_some P hm'] at hy
+          simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff,
+            support_uniformSample, Set.mem_univ, true_and] at hy
+          obtain ⟨⟨d, c₂⟩, hd, ec, hec⟩ := hy
+          simp only [Prod.mk.injEq] at hec
+          obtain ⟨rfl, rfl⟩ := hec
+          exact (roStep_support _ _ hd).2.1
+        · exact hold md (List.mem_filterMap.mpr ⟨p, hp, hpm⟩)
+      · simp only [simulateQ_bind, StateT.run_bind, simulateQ_pure, StateT.run_pure,
+          fQuery_run, mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hw
+        obtain ⟨w₁, -, rfl⟩ := hw
+        exact hold
 
 /-- **The hash queries of the adversary's transcript, in the two-oracle ROM**: on every reachable
 state of the logged two-oracle ROM adversary, every pair `(m, d)` of `pathsOf` of the
@@ -398,24 +348,18 @@ theorem pathsOf_ideal2 {α : Type} (A : OracleComp (dSpec Msg Dg (SpState Dg E C
     (hz : z ∈ support ((simulateQ (foldRO (advImplLog2 P)) A).run
       (((SimState.init iv : SimState Dg E C), []), ∅))) :
     ∀ md ∈ pathsOf P iv z.2.1.2, z.2.2 (.inl md.1) = some md.2 := by
-  have hRO := inv_of_mem_support_run (spec' := unifSpec) (foldRO (advImplLog2 P))
-    (fun s ↦ ∀ md ∈ simPaths P s.1.1, s.2 (.inl md.1) = some md.2)
-    (fun t s hs w hw ↦ roOK2_step P t s hs hw) A
-    (s := (((SimState.init iv : SimState Dg E C), []), ∅)) (by
+  obtain ⟨hrep, hgood⟩ := logImpl_reachable iv (simulator2 P) (advImpl2 P)
+    (fun σ c ↦ ∀ md ∈ simPaths P σ, c (.inl md.1) = some md.2) (simulator2_step_replay P)
+    (fun _ σ _ hz ↦ snd_eq_of_mem_support_liftM _ σ hz)
+    (fun _ σ _ hz ↦ snd_eq_of_mem_support_liftM _ σ hz)
+    (fun _ _ _ h hle md hmd ↦ hle (h md hmd)) (simulator2_good P) (by
       simp only [simPaths, SimState.init, List.filterMap_cons, List.filterMap_nil]
       rcases h : P.unpad [] with _ | a
       · simp
-      · exact absurd ((P.unpad_eq_some_iff _ _).mp h) (P.pad_ne_nil a))
-    z hz
-  have h1 := run_simulateQ_foldRO (advImplLog2 P) A ((SimState.init iv : SimState Dg E C), [])
-    (∅ : HCache Msg Dg (SpState Dg E C))
-  have hz' : ((z.1, z.2.1), z.2.2) ∈ support ((simulateQ (hfSpec Msg Dg (SpState Dg E C)).romImpl
-      ((simulateQ (advImplLog2 P) A).run (SimState.init iv, []))).run ∅) := by
-    rw [h1, support_map]; exact ⟨z, hz, rfl⟩
-  have hrep := simulator2_state_eq_replay P iv A (fst_mem_support_of_mem_support_ro2 hz')
+      · exact absurd ((P.unpad_eq_some_iff _ _).mp h) (P.pad_ne_nil a)) A hz
   intro md hmd
   rw [pathsOf, ← hrep] at hmd
-  exact hRO md hmd
+  exact hgood md hmd
 
 end Setting
 

@@ -19,7 +19,7 @@ public import LeanVM.Protocol.Compile.Cost
 
 Refusing every zero challenge only inserts failures (`refines_refusingZeroChallenge`), so the
 statement's refusing verifier accepts only proofs the leanVM verifier accepts, by the same run
-(`Limits.run_refines`): `leanVmVerifier_of_refusingZero`. Against challenges uniform and
+(`run_refines`): `leanVmVerifier_of_refusingZero`. Against challenges uniform and
 independent it fails at most `|E|⁻¹` more often per sample than the verifier
 (`failFrom_refusingZeroProgram_le`).
 -/
@@ -92,7 +92,7 @@ variable {S : Strategy}
 
 /-- A refining program costs at most what the refined one costs. -/
 theorem costs_of_refines {α : Type} {height : ℕ} {P' P : VerifierProgram α}
-    (h : Limits.Refines P' P) :
+    (h : Refines P' P) :
     ∀ {n : ℕ} {Q : α → Prop}, VerifierProgram.Costs height P n Q →
       VerifierProgram.Costs height P' n Q := by
   induction h with

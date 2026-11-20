@@ -49,24 +49,26 @@ at `ζ` and each side's forms summed (`sum_tableSummand`), so it is the target e
 seam's two claims hold (`tableSummand_target`). In characteristic two the factor
 `(1 − r)(1 − ζ) + rζ` of `eq` is the deployed `1 + ζ + r`.
 
-Perfect completeness (`tableSumcheckComplete`), from `Seam.bus` to `Seam.table`, needs the
-degree bound `d ≤ 2`: the slot's rounds are cubic, and the summand has degree `d + 1` in each
-variable (`tableSummand_degree`). The bus phase's column claims, the public lines and the Keccak
-predicate ride through the sumcheck as its side condition (`side`), and the Keccak predicate holds
-along every point (`M3Instance.auxAt_of_aux`), so at the final one.
+Perfect completeness of the parts (`batch_complete`, then the rounds' and the final values'),
+from `Seam.bus` to `Seam.table`, needs the degree bound `d ≤ 2`: the slot's rounds are cubic, and
+the summand has degree `d + 1` in each variable (`tableSummand_degree`). The bus phase's column
+claims, the public lines and the Keccak predicate ride through the sumcheck as its side condition
+(`side`), and the Keccak predicate holds along every point (`M3Instance.auxAt_of_aux`), so at the
+final one.
 
-Round-by-round knowledge soundness (`tableSumcheckSecurity`), between the same seams and under the
-same bound, is at the slot's error: `(B + 2)/|E|` on `ξ`, since a false claim among the `B + 3`
-batched survives only at a root of a nonzero polynomial of degree at most `B + 2` in `ξ`, the
-true values being fixed before it (`trueValues`); `3/|E|` on each round's challenge; nothing on
-the final values, which the table seam determines (`finalClaims_holds_iff`). The Keccak predicate
-is not checked by any challenge of its own: the table seam asks it at the final point
-(`M3Instance.auxAt`), and the rounds carry it as an invariant along the challenges
-(`inv`, `M3Instance.auxStage`), the zero test of `Spine/KeccakZero.lean` with the high coordinates
-bound first, as the rounds draw them. A round that restores a broken invariant does so at one
-challenge at most (`inv_sound`), within the round's own `3/|E|`: a candidate alive after the round
-had a true claim and a true invariant before it, or a challenge among the round polynomial's three
-agreements with the honest one or the zero test's one root.
+Round-by-round knowledge soundness of the parts (`xiSecurity`, the rounds' family's `inv_sound`,
+`finalValuesSecurity`), between the same seams and under the same bound, is at the slot's error:
+`(B + 2)/|E|` on `ξ`, since a false claim among the `B + 3` batched survives only at a root of a
+nonzero polynomial of degree at most `B + 2` in `ξ`, the true values being fixed before it
+(`trueValues`); `3/|E|` on each round's challenge; nothing on the final values, which the table seam
+determines (`finalClaims_holds_iff`). The Keccak predicate is not checked by any challenge of its
+own: the table seam asks it at the final point (`M3Instance.auxAt`), and the rounds carry it as an
+invariant along the challenges (`inv`, `M3Instance.auxStage`), the zero test of
+`Spine/KeccakZero.lean` with the high coordinates bound first, as the rounds draw them. A round that
+restores a broken invariant does so at one challenge at most (`inv_sound`), within the round's own
+`3/|E|`: a candidate alive after the round had a true claim and a true invariant before it, or a
+challenge among the round polynomial's three agreements with the honest one or the zero test's one
+root.
 
 Written from the specification; the order of the powers, the shared side powers, the weights and
 the order of the final values are checked against `crates/lean_vm_core/src/cpu/mod.rs`,
@@ -577,17 +579,6 @@ def tableSumcheck : Typed.Def (TheOracle I) (I.Stmt × BusOut I) Unit (I.Stmt ×
   ((batchStep I).append (Sumcheck.rounds (tableSummand I) Sumcheck.unitWeights nodes)).append
     (Sumcheck.final (tableSummand I) (tableOut I))
 
-/-- **Completeness on the typed framework.** -/
-theorem tableSumcheckComplete (hd : I.d ≤ 2) :
-    Typed.Complete (tableSumcheck I) (Seam.bus I) (Seam.table I) :=
-  ((Typed.batchComplete (batch_complete I)).append
-    (Sumcheck.roundsComplete (tableSummand I) Sumcheck.unitWeights nodes (side I)
-      (tableSummand_degree I hd) nodes_injective)).append
-    (Sumcheck.finalComplete (tableSummand I) Sumcheck.unitWeights nodes (side I) (tableOut I)
-      fun s o w hside ↦ by
-        cases w
-        exact tableOut_mem_table I s o hside)
-
 /-- The batching challenge's security, the phase's first part, at `(B + 2)/|E|`. -/
 def xiSecurity :
     Typed.Security (batchStep I) (Seam.bus I)
@@ -610,30 +601,6 @@ theorem relIn_inv :
   congr 1
   funext ctx
   exact propext (inv_zero I ctx)
-
-/-- The rounds' security, with the Keccak predicate's escape absorbed, at `3/|E|` per round. -/
-def roundsSecurity (hd : I.d ≤ 2) :
-    Typed.Security (Sumcheck.rounds (tableSummand I) Sumcheck.unitWeights nodes)
-      (Sumcheck.relIn (tableSummand I) Sumcheck.unitWeights (side I))
-      (SumcheckRound.rel (Sumcheck.familyInv (tableSummand I) Sumcheck.unitWeights nodes (inv I))
-        I.τmax)
-      (Typed.roundsErrors E 3 (((3 : ℕ) : ℝ≥0) / (Nat.card E : ℝ≥0)) I.τmax) :=
-  relIn_inv I ▸ Sumcheck.roundsSecurityInv (tableSummand I) Sumcheck.unitWeights nodes (inv I)
-    (tableSummand_degree I hd) nodes_injective (inv_sound I)
-
-/-- **Knowledge soundness on the typed framework**, at the slot's errors `tableErrors I`, with
-the extractor that keeps the trivial witness. -/
-def tableSumcheckSecurity (hd : I.d ≤ 2) :
-    Typed.Security (tableSumcheck I) (Seam.bus I) (Seam.table I) (tableErrors I) :=
-  (((xiSecurity I).append (roundsSecurity I hd)).append
-    (finalValuesSecurity I)).mono (by
-      refine Typed.Errors.Le.append ((Typed.drawSlot E).append (Typed.roundsSlot E 3 I.τmax)).tree
-        ((Typed.drawSlot E).append (Typed.roundsSlot E 3 I.τmax)).roles
-        (Typed.Errors.Le.append (Typed.drawSlot E).tree (Typed.drawSlot E).roles ?_ ?_)
-        (Typed.Errors.Le.refl _ _ _)
-      · exact ⟨le_of_eq (by rw [natCast_div_card_eq_overE]; rfl), fun _ ↦ trivial⟩
-      · rw [natCast_div_card_eq_overE]
-        exact Typed.Errors.Le.refl _ _ _)
 
 end TableSumcheck
 

@@ -13,7 +13,7 @@ public import LeanVM.Guest.Limits
 public import LeanVM.Guest.NZProgram
 public import LeanVM.Protocol.WithHashBridge
 public import LeanVM.Protocol.WithHash
-public import LeanVM.Guest.Refines
+public import LeanVM.Protocol.Compile.Refines
 
 /-!
 # The zero-challenge refusal is a restriction

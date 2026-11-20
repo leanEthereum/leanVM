@@ -1,7 +1,8 @@
 /-
-  LeanVM.Protocol.ToArkLib.Whir.AffineCombinerJohnson
+  LeanVM.Protocol.ToArkLib.Whir.JohnsonCount
 
-  The Johnson count `jl n a r`, in natural numbers, for set systems. Candidate for ArkLib.
+  The Johnson double count for set systems, and the Johnson count `jl n a r` in natural numbers.
+  Candidate for ArkLib.
 -/
 
 module
@@ -17,15 +18,18 @@ Annex B of the leanVM specification (`doc/leanvm/body/b-polynomial-commitment-sc
 `thm:johnson-general`, and [CWYZ26], Lemma 3.2, in the integer form the Rust analysis
 evaluates (`crates/pcs/src/whir_config/affine_mca.rs`, `johnson_list(n, a, r)`):
 
+* `johnson_count`: `L` sets of size `a` in an `n`-set, meeting pairwise in at most `r` points,
+  satisfy `(|L| a)² ≤ n (|L| a + |L| (|L| - 1) r)`, by Cauchy-Schwarz on the incidence counts;
+  `johnson_count_of_le` takes sets of size at least `a`;
 * `jl n a r = ⌊n (a - r) / (a² - n r)⌋`;
 * `card_le_jl`: a family of sets of at least `a` points of an `n`-set, meeting pairwise in at most
   `r` points, has at most `jl n a r` members when `a² > n r`.
 
-The proof is the double count of `LeanVM.Protocol.Whir.johnson_count` (Cauchy-Schwarz on the
-incidence counts), repeated here so that the affine-combiner files depend on Mathlib alone.
+It depends on Mathlib alone, so that the affine-combiner files do; the real and interleaved forms
+are in `LeanVM.Protocol.ToArkLib.Whir.Johnson`.
 -/
 
-namespace LeanVM.Protocol.Whir.AffineCombiner
+namespace LeanVM.Protocol.Whir
 
 open Finset
 
@@ -42,7 +46,7 @@ variable {ι β : Type*} [Fintype ι] [DecidableEq ι] [DecidableEq β]
 
 /-- The double count: `L` sets of exactly `a` points of an `n`-set, pairwise meeting in at most `r`
 points, satisfy `(|L| a)² ≤ n (|L| a + |L| (|L| - 1) r)`. -/
-theorem jl_count (L : Finset β) (S : β → Finset ι) (a r : ℕ)
+theorem johnson_count (L : Finset β) (S : β → Finset ι) (a r : ℕ)
     (ha : ∀ b ∈ L, (S b).card = a)
     (hr : ∀ b ∈ L, ∀ b' ∈ L, b ≠ b' → (S b ∩ S b').card ≤ r) :
     (L.card * a) ^ 2 ≤ Fintype.card ι * (L.card * a + L.card * (L.card - 1) * r) := by
@@ -82,7 +86,7 @@ theorem jl_count (L : Finset β) (S : β → Finset ι) (a r : ℕ)
       exact Nat.mul_le_mul_left _ h3
 
 /-- The double count for sets of at least `a` points: each set is shrunk to `a` of its points. -/
-theorem jl_count_of_le (L : Finset β) (T : β → Finset ι) (a r : ℕ)
+theorem johnson_count_of_le (L : Finset β) (T : β → Finset ι) (a r : ℕ)
     (ha : ∀ b ∈ L, a ≤ (T b).card)
     (hr : ∀ b ∈ L, ∀ b' ∈ L, b ≠ b' → (T b ∩ T b').card ≤ r) :
     (L.card * a) ^ 2 ≤ Fintype.card ι * (L.card * a + L.card * (L.card - 1) * r) := by
@@ -92,7 +96,7 @@ theorem jl_count_of_le (L : Finset β) (T : β → Finset ι) (a r : ℕ)
       exact ⟨S, fun _ ↦ ⟨hS, hcard⟩⟩
     · exact ⟨∅, fun h ↦ absurd h hb⟩
   choose S hS using hex
-  refine jl_count L S a r (fun b hb ↦ (hS b hb).2) fun b hb b' hb' hne ↦ ?_
+  refine johnson_count L S a r (fun b hb ↦ (hS b hb).2) fun b hb b' hb' hne ↦ ?_
   exact (Finset.card_le_card (Finset.inter_subset_inter (hS b hb).1 (hS b' hb').1)).trans
     (hr b hb b' hb' hne)
 
@@ -113,7 +117,7 @@ theorem card_le_jl (L : Finset β) (T : β → Finset ι) (a r : ℕ)
     have : a * a ≤ n * r := Nat.mul_le_mul han (not_le.mp h).le
     omega
   have hN : 1 ≤ L.card := Finset.card_pos.mpr ⟨b₀, hb₀⟩
-  have hcount := jl_count_of_le L T a r ha hr
+  have hcount := johnson_count_of_le L T a r ha hr
   unfold jl
   rw [Nat.le_div_iff_mul_le (by omega)]
   -- Divide the double count by `|L|`, in the integers.
@@ -137,4 +141,4 @@ theorem card_le_jl (L : Finset β) (T : β → Finset ι) (a r : ℕ)
 end SetSystem
 
 end
-end LeanVM.Protocol.Whir.AffineCombiner
+end LeanVM.Protocol.Whir

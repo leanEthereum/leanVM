@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.Refines
+  LeanVM.Protocol.Compile.Refines
 
   A verifier program refining another: the same program with failures inserted.
 -/
@@ -12,15 +12,15 @@ public import LeanVM.Protocol.RunWithHash
 # Refining programs
 
 `Refines P' P`: the program `P'` is `P` with failures inserted, step for step. Running a refining
-program is running the program, where it does not fail (`run_refines`, `runProof_refines`). No
-guest data: the protocol's compiled verifier (`Protocol/Compile/Rom/Ideal.lean`) and the guest's
-zero-challenge refusal (`LimitsNZ.lean`) both read it.
+program is running the program, where it does not fail (`run_refines`, `runProof_refines`). The
+honest prover's simulation (`Protocol/Compile/Prover.lean`, `Rom/Sharp.lean`) and the guest's
+zero-challenge refusal (`Guest/LimitsNZ.lean`, `Guest/Child/`) read it.
 -/
 
-namespace LeanVM.Guest.Limits
+namespace LeanVM.Protocol.Compile
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
-open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+open LeanVM.Protocol.Verifier
 
 @[expose] public section
 
@@ -135,4 +135,4 @@ theorem runProof_refines {P' P : VerifierProgram Bool} (h : Refines P' P) (seed 
 end Run
 
 end
-end LeanVM.Guest.Limits
+end LeanVM.Protocol.Compile

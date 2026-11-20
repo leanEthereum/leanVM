@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerJohnson
+public import LeanVM.Protocol.ToArkLib.Whir.JohnsonCount
 
 /-!
 # Interpolation parameters

@@ -236,7 +236,7 @@ theorem transcriptHashes_eq_of_mem_support (A : DetAdversary)
       rw [h1, support_map]
       exact ⟨w, hw, rfl⟩
     exact Common.simulator2_state_eq_replay _ _ _
-      (Common.fst_mem_support_of_mem_support_ro2 hz')
+      (Common.fst_mem_support_of_mem_support_rom hz')
   have hrev : ∀ m d, w.2.2 (.inl m) = some d →
       (m, d) ∈ Common.pathsOf Common.keccakPadding Common.KState.zero w.2.1.2 := by
     intro m d hd

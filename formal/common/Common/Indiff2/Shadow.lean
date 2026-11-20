@@ -234,8 +234,8 @@ theorem ideal1F_le_shadow (NF : (Dg × E) → Prop) [DecidablePred NF] {α : Typ
     hagree hm1 hm2 D s₀ p
   have h2 := prEvent_run_le_add_bad (aug2 P iv NF) (aug1 P iv NF) (fun s ↦ s.2.flag = true)
     (fun t s hs q ↦ (hagree t s hs q).symm) hm2 hm1 D s₀ p
-  have heq := prEvent_run_bad_eq (aug1 P iv NF) (aug2 P iv NF) (fun s ↦ s.2.flag = true)
-    hagree hm1 hm2 D s₀
+  have heq := ProgramLogic.Relational.prEvent_simulateQ_run_bad_eq (aug1 P iv NF) (aug2 P iv NF)
+    (fun s ↦ s.2.flag = true) hagree hm1 hm2 D s₀
   rw [heq] at h2
   have e1 : Pr{let z ← (simulateQ (aug1 P iv NF) D).run s₀}[p z.1] =
       Pr{let a ← (simulateQ (foldRO (ideal1FImpl P)) D).run' (SimState.init iv, ∅)}[p a] :=
