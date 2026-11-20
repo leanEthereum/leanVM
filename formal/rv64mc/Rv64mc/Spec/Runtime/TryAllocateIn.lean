@@ -29,16 +29,17 @@ def taPtrAt (a : Word) : Word := a + BitVec.ofNat 64 (tryAllocInner + Layouts.Ra
 def TryAllocPre (env : Env) (regs : Reg → Word) (m : MachineState) : Prop :=
   env.Owned m (regs .x2) (regs .x10) tryAllocBytes ∧ 0 < (regs .x13).toNat ∧ (regs .x13).toNat < 2 ^ 63
 
-/-- `try_allocate_in`'s postcondition: on `Ok`, an empty buffer for no bytes, else a fresh block of the capacity
-    asked for, zeroed when `init` is nonzero. -/
+/-- `try_allocate_in`'s postcondition: on `Ok`, the bytes asked for fit an `isize`, and the buffer is empty for no
+    bytes, else a fresh block of the capacity asked for, zeroed when `init` is nonzero. -/
 def TryAllocPost (env : Env) (regs : Reg → Word) (m : MachineState) (_r' : Reg → Word) (m' : MachineState) :
     Prop :=
   m'.getMem (taTagAt (regs .x10)) = 0#64 →
-    ((regs .x11).toNat * (regs .x14).toNat = 0 ∧ m'.getMem (taCapAt (regs .x10)) = 0#64) ∨
+    (regs .x11).toNat * (regs .x14).toNat < 2 ^ 63 ∧
+    (((regs .x11).toNat * (regs .x14).toNat = 0 ∧ m'.getMem (taCapAt (regs .x10)) = 0#64) ∨
     ((regs .x11).toNat * (regs .x14).toNat ≠ 0 ∧ m'.getMem (taCapAt (regs .x10)) = regs .x11 ∧
       env.Fresh m m' (m'.getMem (taPtrAt (regs .x10))) ((regs .x11).toNat * (regs .x14).toNat) ∧
       (regs .x12 ≠ 0#64 → ∀ k, k < (regs .x11).toNat * (regs .x14).toNat →
-        m'.getByte (m'.getMem (taPtrAt (regs .x10)) + BitVec.ofNat 64 k) = 0#8))
+        m'.getByte (m'.getMem (taPtrAt (regs .x10)) + BitVec.ofNat 64 k) = 0#8)))
 
 /-- What `try_allocate_in` writes: its result. -/
 def TryAllocOut (regs : Reg → Word) (_m : MachineState) : Word → Prop := InRange (regs .x10) tryAllocBytes
