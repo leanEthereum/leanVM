@@ -51,23 +51,23 @@ def vtFwSelT (w b kv : ℕ) (prev : Option ℕ) : List Stmt :=
     .atom (.assertEq (.n (w + 11)) (.n (vtBoffV b)))] ++
   vtFwTail w prev
 
-theorem vtFw0_check : tbStmtsEqb (vtFwSelT 778 0 25 none)
-    ((vtAt 766).take (vtFwSelT 778 0 25 none).length) = true := by
+theorem vtFw0_check : tbStmtsEqb (vtFwSelT 780 0 25 none)
+    ((vtAt 756).take (vtFwSelT 780 0 25 none).length) = true := by
   decide +kernel
 
-theorem vtFw1_check : tbStmtsEqb (vtFwSelT 794 1 26 (some 788))
-    ((vtAt 781).take (vtFwSelT 794 1 26 (some 788)).length) = true := by
+theorem vtFw1_check : tbStmtsEqb (vtFwSelT 796 1 26 (some 790))
+    ((vtAt 771).take (vtFwSelT 796 1 26 (some 790)).length) = true := by
   decide +kernel
 
-theorem vtFw2_check : tbStmtsEqb (vtFwSelT 822 2 821 (some 806))
-    ((vtAt 811).take (vtFwSelT 822 2 821 (some 806)).length) = true := by
+theorem vtFw2_check : tbStmtsEqb (vtFwSelT 824 2 823 (some 808))
+    ((vtAt 801).take (vtFwSelT 824 2 823 (some 808)).length) = true := by
   decide +kernel
 
 /-- Block `2`'s `kappa_g = kb[0]·g^19`. -/
 theorem vt_fw2_kappa {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    σ (.n 821) = σ (.n 25) * gen ^ 19 := by
-  have c := h.atomAt 809 (.const (.n 820) (word 524288 0)) (by decide +kernel)
-  have m := h.atomAt 810 (.mul (.n 821) (.n 25) (.n 820)) (by decide +kernel)
+    σ (.n 823) = σ (.n 25) * gen ^ 19 := by
+  have c := h.atomAt 799 (.const (.n 822) (word 524288 0)) (by decide +kernel)
+  have m := h.atomAt 800 (.mul (.n 823) (.n 25) (.n 822)) (by decide +kernel)
   simp only [Atom.Holds] at c m
   rw [m, c, show (524288 : ℕ) = 2 ^ 19 by norm_num, tb_word_two_pow (by norm_num)]
 
