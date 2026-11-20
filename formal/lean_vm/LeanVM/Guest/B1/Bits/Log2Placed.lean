@@ -41,6 +41,38 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
 
+/-! ## The template
+
+`log2_ceil_in_the_exponent`'s expansion at the floor `fl` (`lcBody`), equal to both specializations by
+kernel evaluation; the placed run below walks it. -/
+
+/-- The check above the floor: `g_N · g⁻¹ / g_squares[g^(L-1)]` a small g-power. -/
+def lcMin : List Stmt :=
+  [.atom (.const (.n 52) invGenWord), .atom (.mul (.n 53) (.n 0) (.n 52)),
+    .atom (.const (.n 54) invGenWord), .atom (.mul (.n 55) (.n 36) (.n 54)),
+    .atom (.mul (.n 56) (.n 1) (.n 55)), .atom (.load (.n 57) (.n 56) 0),
+    .atom (.mul (.n 53) (.n 58) (.n 57)), .call "assert_small_g_power" [.n 58, .n 1] []]
+
+/-- The expansion of `log2_ceil_in_the_exponent` at the floor `fl`, 34 bits. -/
+def lcBody (fl : ℕ) : List Stmt :=
+  [.atom (.hint (.bitsExp (.n 0) 34 (.stack ((List.range 34).map fun k => .n (2 + k))))),
+    .atom (.hint (.log2Ceil (.stack ((List.range 34).map fun k => .n (2 + k))) 34 fl (.n 36))),
+    .atom (.const (.n 37) (word (2 ^ 33) 0)),
+    .atom (.rangeCheck (.n 36) (.n 38) (.n 39) (.n 40) (.n 37)),
+    .atom (.const (.n 41) (word (2 ^ 33) 0)), .atom (.const (.n 42) (word (2 ^ fl) 0)),
+    .atom (.mul (.n 36) (.n 43) (.n 42)),
+    .atom (.rangeCheck (.n 43) (.n 44) (.n 45) (.n 46) (.n 41)),
+    .atom (.mul (.n 47) (.n 1) (.n 36)), .atom (.load (.n 48) (.n 47) 0),
+    .atom (.mul (.n 48) (.n 49) (.n 0)), .call "assert_small_g_power" [.n 49, .n 1] [],
+    .atom (.const (.n 50) (word (2 ^ fl) 0)), .atom (.add (.n 51) (.n 36) (.n 50)),
+    .ite (.n 51) [] lcMin, .atom (.copy (.n 59) (.n 36)), .ret [.n 59]]
+
+theorem log2_ceil_in_the_exponent_L0_L34_body : Fn.body fn% «log2_ceil_in_the_exponent__L0_L34» =
+    lcBody 0 := stmtsEqb_sound (by decide +kernel)
+
+theorem log2_ceil_in_the_exponent_L16_L34_body : Fn.body fn% «log2_ceil_in_the_exponent__L16_L34» =
+    lcBody 16 := stmtsEqb_sound (by decide +kernel)
+
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 /-! ## The layouts -/
