@@ -8,7 +8,7 @@
 -/
 
 import Rv64mc.Gen.Tmpl.Verifier.Field.E.AsMul.Mul
-import Rv64mc.Core.Abi
+import Rv64mc.Probe.Abi
 
 namespace Rv64mc.Probe.EMul
 

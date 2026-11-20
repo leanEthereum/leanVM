@@ -5,19 +5,52 @@ import Statement.LeanVmVerifier
 /-!
 # What is proved about the RV64IM image of the verifier
 
-The trusted statement. An image (`Image`: an entry, the code words from a base, and the data words) is loaded
-with the input words at `inputBase` and their number in `a0` (`Loaded`); the code is exactly the image's words as
-riscv-zkvm's decoder reads them, and nothing else is code. The machine (`step`) is riscv-zkvm's execution of one
-decoded instruction, which stops at every `ECALL`, `EBREAK` and `CSRS`, at an address with no code, and at a memory
-access that SP1 would refuse (`memOkSp1`: beyond `2^37`, misaligned, or a store over code) or that leaves the
-guest's windows (`inWindow`). `Sound`: a run that stops at the halting `ECALL` (`t0 = 0`) with `a0 = 0` read an
-input that decodes (`decodeInput`, the format `guest/src/main.rs` documents) to a bytecode, a public input and a
-proof that the statement's verifier `verifyWith` over Keccak-f[1600] accepts. `AllDecode`: every code word is an
-instruction the machine models, so that no word the decoder cannot read makes `Sound` hold by trapping.
+The trusted statement. `Sound image`: a run of the loaded image that halts with `a0 = 0` read an input that decodes
+(`decodeInput`, the format `guest/src/main.rs` documents) to a bytecode, a public input and a proof that the
+statement's verifier `verifyWith` over Keccak-f[1600] accepts. `AllDecode image`: every code word decodes to an
+instruction the machine runs, so that no word the decoder cannot read, and no `EBREAK` or `CSRS`, makes `Sound`
+hold by stopping the machine. The end theorem is `rv64_sound` (`Final/End.lean`), `AllDecode image ∧ Sound image`
+for the concrete image; until `main`'s proof lands, `main`'s contract (`MainSpec`) is its one hypothesis.
 
-The end result is `AllDecode image ∧ Sound image` for the image built by `scripts/nostd-verifier.sh` and `guest/`.
-Every memory word but the image's data and the input is arbitrary at the start, and so are all registers but `a0`
-(`_start` sets `sp` and `gp` itself). A deployment whose machine continues where this one stops is not covered.
+## The loader (`Loaded`)
+
+The image (`Image`: the entry, the code words from `codeBase`, the data as 8-byte words at their addresses) is
+loaded with: the program counter at the entry; the code map exactly the image's words as riscv-zkvm's `decode`
+reads them, and nothing else code; every data word in memory; the input words at `inputBase = 0x10000000`, one every
+8 bytes; their number in `a0`, at most `inputCapacity = 2^25`, so that they end below the heap at `0x20000000`. Every
+other memory word and register is arbitrary (`_start` sets `sp` and `gp` itself).
+
+## Where the machine stops
+
+`step` is riscv-zkvm's `execInstrBr` of the decoded instruction at `pc`, and stops (`none`):
+* at every `ECALL` (so at the halting one, which `Halts` asks for, and at any other system call), `EBREAK` and `CSRS`;
+* where the code map has nothing: no code, or a word that does not decode (riscv-zkvm's `Instr` lacks `ADDW`, `SLLW`,
+  `SRAW`, `SRAIW`, `MULW`, `DIVW`, `DIVUW`, `REMW`, `REMUW`, which RV64IM has; `AllDecode` excludes them);
+* at a load or store that SP1 refuses (`memOkSp1`: beyond `2^37`, misaligned for its width, a store over code), or
+  that is not wholly inside one of the guest's two windows (`inWindow`): `0x10000000..0x78000000` (input and heap)
+  and `0xa0000000..0xc0000000` (static data and stack). Code, at `0x80000000`, is in neither, so loads from code
+  stop it too.
+A machine that continues where this one stops (one that runs system calls, allows misaligned or out-of-window
+accesses, or loads from code) can accept runs this statement says nothing about. `TrapFree` names the theorem that
+would close this: every loaded run stops only at the halting `ECALL`. It is not proved.
+
+## Weaker than #738, or than intent
+
+* System calls: every `ECALL` stops the machine, where #738's generic `step` hands host calls to the host.
+* Windows: the two windows are narrower than riscv-zkvm's zones (`0x20..0x78000000`, `0x40000000..0x40002000`,
+  `0xa0000000..0xc0000000`) that #738's machine allows, and SP1's checks are added.
+* Word operations: #738's machine executes all RV64IM 32-bit operations; here those outside `Instr` stop it, and
+  `AllDecode` must hold of the image instead.
+* The verdict is `a0 = 0` (#738: `1`).
+* Soundness only, and partial: no completeness (#738 names `Complete` but never defines it), no termination; a run
+  that stops elsewhere or never halts is not constrained.
+* The image is the build of `scripts/nostd-verifier.sh`'s `no_std` copy of `crates/verifier`, with the inline
+  attributes it inserts (`boundaries.txt`), and `guest/`; the end theorem is about the ELF whose sha256 is
+  `image.sha256`, read by `Rv64mc/ImageOfElf.lean`.
+* Trusted besides this file: riscv-zkvm's `decode` (tied to Sail by no theorem, `docs/validation.md`), `execInstrBr`
+  (tied to Sail for one step, under side conditions, by `step_execute_sail_sim`, for every instruction but `SUBW`,
+  `SRLW`, `SLLIW`, `SRLIW`, `MV`, `LI`, `NOP` and `CSRS`; the image uses `SRLW` and `SRLIW`), `memOkSp1`, and the
+  ELF reader.
 -/
 
 namespace Rv64mc
@@ -45,13 +78,19 @@ def Image.codeAt (img : Image) (pc : Word) : Option Instr :=
     (img.code[(pc.toNat - img.codeBase.toNat) / 4]?).bind decode
   else none
 
-/-- Every code word is an instruction riscv-zkvm's `Instr` models. -/
-def AllDecode (img : Image) : Prop := ∀ w ∈ img.code, (decode w).isSome
+/-- A decoded word the machine runs: an instruction of `Instr`, and neither `EBREAK` nor `CSRS`, at which `step`
+    stops (`ECALL` stops it too, but it is how the image halts). -/
+def Runnable : Option Instr → Bool
+  | none | some .EBREAK | some (.CSRS ..) => false
+  | some _ => true
+
+/-- Every code word decodes to an instruction the machine runs. -/
+def AllDecode (img : Image) : Prop := ∀ w ∈ img.code, Runnable (decode w) = true
 
 /-! ## The machine -/
 
 /-- The guest's data windows (`guest/link.x`, `guest/src/main.rs`): the input and the heap,
-    `0x10000000..0x78000000`; `.rodata`, `.data`, `.bss` and the stack, `0xa0000000..0xc0000000`. -/
+    `0x10000000..0x78000000`; the static data (`.rodata`, `.data`) and the stack, `0xa0000000..0xc0000000`. -/
 def inWindow (a : Word) (w : Nat) : Bool :=
   (decide (0x10000000 ≤ a.toNat) && decide (a.toNat + w ≤ 0x78000000)) ||
     (decide (0xa0000000 ≤ a.toNat) && decide (a.toNat + w ≤ 0xc0000000))
@@ -169,5 +208,11 @@ def Sound (img : Image) : Prop :=
   ∀ words s n, Loaded img words s → Halts s n 0 →
     ∃ bytecode publicInput proof, decodeInput words = some (bytecode, publicInput, proof) ∧
       verify bytecode publicInput proof = true
+
+/-- **The open obligation that would make `Sound` hold of machines that continue where `step` stops**: every run of
+    the loaded image stops only at the halting `ECALL` (`t0 = 0`). Not proved. -/
+def TrapFree (img : Image) : Prop :=
+  ∀ words s n t, Loaded img words s → steps n s = some t → step t = none →
+    t.code t.pc = some .ECALL ∧ t.getReg .x5 = 0
 
 end Rv64mc

@@ -16,7 +16,8 @@ from the Lake package's directory (default `out/gen.elf`). Under DIR (default `R
 - `Link/<M>.lean`, per function: the image's `link : Link`, `tmpl_eq : (liftProg fns)[i]? = some (tmpl link)` and
   `wf : Link.WF (liftProg fns) link`, both checked by the kernel.
 - `Words.lean` (machine-checked's, in this namespace), `Index.lean` (module, symbol, index, address and size of each
-  function, checked against `words`), the umbrellas `Tmpl.lean`, `Link.lean` and `../Gen.lean`, `hashes.tsv` (a hash
+  function, checked against `words`), `Image.lean` (the end statement's `Rv64mc.image`, read from the ELF by
+  `Rv64mc/ImageOfElf.lean` when built), the umbrellas `Tmpl.lean`, `Link.lean` and `../Gen.lean`, `hashes.tsv` (a hash
   of each template) and `index.tsv`.
 
 Only files whose text changes are rewritten, and files of functions that are gone are removed. The generator fails on
@@ -28,6 +29,7 @@ without its relocation, an address left in a template. `--check` writes nothing 
 import argparse
 import collections
 import hashlib
+import json
 import os
 import re
 import struct
@@ -646,6 +648,14 @@ def index_module(img, sizes):
     ])
 
 
+def image_module(elf_sha, lean_elf):
+    """The end statement's `Rv64mc.image`, read from the ELF by `Rv64mc.ImageOfElf` when the module is built; the
+    ELF's sha256 is in the text, so that the module is rebuilt when the ELF changes."""
+    return (f"/-\n  {NS}.Image\n\n  Written by `scripts/gen.py`; do not edit. The end statement's image: `imageOfElf` of "
+            f"the ELF with sha256\n  {elf_sha}.\n-/\n\nimport Rv64mc.ImageOfElf\n\nnamespace Rv64mc\n\n"
+            f"elf_image image {json.dumps(lean_elf)}\n\nend Rv64mc\n")
+
+
 def umbrella(name, mods, doc):
     return f"/-\n  {name}\n\n  Written by `scripts/gen.py`; do not edit. {doc}\n-/\n\n" + "".join(f"import {m}\n" for m in mods)
 
@@ -671,6 +681,7 @@ def generate(args):
         index_rows.append(f"{'.'.join(img.mod[i])}\t{i}\t{words[i][1]:#x}\t{sizes[i]}\t{words[i][0]}\t{img.key[i]}")
     files["Words.lean"] = words_module(open(os.path.join(mcdir, "Words.lean")).read(), args.lean_elf)
     files["Index.lean"] = index_module(img, sizes)
+    files["Image.lean"] = image_module(sha(open(args.elf, "rb").read()), args.lean_elf)
     tm = sorted(f"{NS}.Tmpl." + ".".join(m) for m in img.mod)
     lm = sorted(f"{NS}.Link." + ".".join(m) for m in img.mod)
     files["Tmpl.lean"] = umbrella(f"{NS}.Tmpl", tm, "Every function's template.")

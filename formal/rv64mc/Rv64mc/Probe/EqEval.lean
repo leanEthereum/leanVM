@@ -8,7 +8,7 @@
 -/
 
 import Rv64mc.Link.Basic
-import Rv64mc.Core.Abi
+import Rv64mc.Probe.Abi
 
 namespace Rv64mc.Probe.EqEval
 

@@ -4,8 +4,9 @@
     lake exe rv64mc-run ELF WORDS [--verify] [--fuel N]
 
   `ELF` is the guest image, `WORDS` the input as little-endian 64-bit words (`scripts/input-words.py`). The image is
-  read into the statement's `Image` (the executable segment as code words, every other segment as 8-byte data
-  words), the loaded state is built and checked against `Loaded`, and the statement's `step` is run until it stops.
+  read into the statement's `Image` by `Rv64mc.readImage`, the reader the end theorem's `image` is defined with
+  (`Rv64mc/ImageOfElf.lean`), the loaded state is built and checked against `Loaded`, and the statement's `step` is
+  run until it stops.
   It prints whether `AllDecode` holds, `decodeInput`'s result, the statement's `verify` on it with `--verify`, and
   where the run stopped: at the halting `ECALL` with its `a0`, or trapped.
 
@@ -15,28 +16,10 @@
   to `Image.codeAt` on every code address. Not proved: that this loop computes `steps` (`notes/non-vacuity.md`).
 -/
 
-import Rv64mc.EndStatement
-import RiscvZkvm.Interpreter.Elf
+import Rv64mc.ImageOfElf
 import RiscvZkvm.Interpreter.State
 
 open RiscvZkvm.Rv64 RiscvZkvm.Interpreter Rv64mc
-
-/-- The statement's `Image` of an ELF: the executable segment's 32-bit words, the others' 8-byte words. -/
-def imageOfElf (e : Elf64Image) : Except String Image := do
-  let some text := e.segments.find? (·.executable) | throw "no executable segment"
-  let word32 (bs : ByteArray) (i : Nat) : BitVec 32 :=
-    BitVec.ofNat 32 ((List.range 4).foldl (fun acc k => acc + (bs.get! (i + k)).toNat * 256 ^ k) 0)
-  let code := (List.range (text.data.size / 4)).map fun k => word32 text.data (4 * k)
-  let mut data : List (Word × Word) := []
-  for seg in e.segments do
-    if seg.executable then continue
-    if seg.vaddr % 8 != 0 then throw s!"data segment at {seg.vaddr} not 8-aligned"
-    for k in List.range ((seg.memsz + 7) / 8) do
-      let v := (List.range 8).foldl (fun acc j =>
-        let i := 8 * k + j
-        acc + (if i < seg.data.size then (seg.data.get! i).toNat else 0) * 256 ^ j) 0
-      data := (BitVec.ofNat 64 (seg.vaddr + 8 * k), BitVec.ofNat 64 v) :: data
-  return { entry := BitVec.ofNat 64 e.entry, codeBase := BitVec.ofNat 64 text.vaddr, code, data := data.reverse }
 
 /-- The 32 registers of a machine state. -/
 def regsArray (m : MachineState) : Array Word :=
@@ -81,15 +64,10 @@ def main (args : List String) : IO UInt32 := do
   let fuel := match args.dropWhile (· != "--fuel") with
     | _ :: n :: _ => n.toNat!
     | _ => 10 ^ 11
-  let elf ← match parseElf64 (← IO.FS.readBinFile elfPath) with
-    | .ok e => pure e
-    | .error err => IO.eprintln s!"ELF: {err}"; return 2
-  let img ← match imageOfElf elf with
-    | .ok i => pure i
-    | .error err => IO.eprintln s!"image: {err}"; return 2
+  let img ← try readImage elfPath catch err => IO.eprintln s!"{err}"; return 2
   let words := readWords (← IO.FS.readBinFile wordsPath)
   IO.println s!"image: entry {img.entry.toHex}, {img.code.length} code words, {img.data.length} data words"
-  IO.println s!"AllDecode: {img.code.all fun w => (RiscvZkvm.Interpreter.decode w).isSome}"
+  IO.println s!"AllDecode: {img.code.all fun w => Runnable (RiscvZkvm.Interpreter.decode w)}"
   IO.println s!"input: {words.length} words (capacity {inputCapacity})"
   -- the loaded state: data, then input; registers zero but `a0`
   let mem0 : Std.HashMap Word Word := img.data.foldl (fun acc (a, v) => acc.insert a v) {}
@@ -117,7 +95,8 @@ def main (args : List String) : IO UInt32 := do
   match decodeInput words with
   | none => IO.println "decodeInput: none"
   | some (bc, pi, proof) =>
-    IO.println s!"decodeInput: some (bytecode {bc.length} words, stream {proof.stream.length} scalars, {proof.openings.length} phases)"
+    IO.println s!"decodeInput: some (bytecode {bc.length} words, stream {proof.stream.length} scalars, \
+      {proof.openings.length} phases)"
     if doVerify then IO.println s!"verify: {verify bc pi proof}"
   let mut (n, e, stopped) := (0, e0, false)
   while !stopped && n < fuel do

@@ -1,7 +1,7 @@
 /-
   Rv64mc.Final.Sound
 
-  `Sound` from `main`'s contract (`sound_of_main`). A loaded image is at `_start`, whose template `Start.tmpl` is
+  `Sound` from `main`'s contract (`sound_of_main`). A loaded image is at `_start`, whose template `Gen.Start.tmpl` is
   the lift of function `gs` of machine-checked's functions `fns`; `Start.ok` makes it safe for the verdict at
   Lprog, machine-checked's transfer theorem (`SafeN.of_lift`) carries that to SP1's machine, and `sound_of_safe` to
   the statement's. Every hypothesis but `MainSpec` is a fact about the concrete image that the link step decides:
@@ -17,10 +17,10 @@ namespace Rv64mc
 open RiscvZkvm.Rv64 MachineChecked.RiscV MachineChecked.RiscV.Lift Lprog Lprog.RiscV
 
 /-- **The image is sound if `main` keeps its contract.** -/
-theorem sound_of_main {img : Image} {fns : List Fn} {env : Env} {need gs : Nat} {fn : Fn} {L : Start.Link}
+theorem sound_of_main {img : Image} {fns : List Fn} {env : Env} {need gs : Nat} {fn : Fn} {L : Gen.Start.Link}
     (hok : ProgOk fns) (hfns : FnsIn img fns) (hg : fns[gs]? = some fn)
-    (hstart : (liftProg fns)[gs]? = some (Start.tmpl L)) (hentry : L.base = img.entry)
-    (hL : L.WF (liftProg fns))
+    (hstart : (liftProg fns)[gs]? = some (Gen.Start.tmpl L)) (hentry : L.base = img.entry)
+    (hL : Gen.Start.Link.WF (liftProg fns) L)
     (hstatic : ∀ m : MachineState, (∀ p ∈ img.data, m.getMem p.1 = p.2) → env.Static m)
     (hnext : (env.nextAddr, heapStart) ∈ img.data) (hheap : heapStart.toNat ≤ env.heapEnd.toNat)
     (hstack : env.stackLimit.toNat + need ≤ stackTop.toNat)

@@ -6,8 +6,8 @@
 
 `lake exe rv64mc-run ELF WORDS [--verify] [--fuel N]` (`RunImage.lean`):
 
-1. reads the ELF into the statement's `Image` (the executable segment as 32-bit code words from its address, every other loadable segment as 8-byte data words, zero past its file size: what `scripts/export-image.py` exports);
-2. prints `AllDecode` computed on those words with riscv-zkvm's `decode`, the definition the statement uses;
+1. reads the ELF into the statement's `Image` with `Rv64mc.readImage` (`Rv64mc/ImageOfElf.lean`), the reader that also defines the end theorem's `image` (`Rv64mc/Gen/Image.lean`), so the two cannot differ;
+2. prints `AllDecode` computed on those words with riscv-zkvm's `decode`, the definition the statement uses (the end theorem proves it in the kernel, `Rv64mc/Final/End.lean`);
 3. builds a state with the data words, the input words at `inputBase`, `a0` their number and every other register and word zero, and checks every clause of `Loaded` on it: `pc`, the code map against `Image.codeAt` at every code address and one past the end, every data word, every input word, `a0`, the capacity;
 4. prints `decodeInput words` and, with `--verify`, the statement's `verify` on what it decodes;
 5. runs the statement's `step` until it returns `none`, and prints whether the state it stopped in satisfies `Halts`'s last clauses (an `ECALL` at `pc`, `t0 = 0`) and its `a0`.
@@ -29,7 +29,20 @@ python3 -I scripts/input-words.py FIX/fibonacci-rate4 fib-trunc.words --truncate
 .lake/build/bin/rv64mc-run out/canon.elf fib-trunc.words           # run: halted, a0 = 2; decodeInput: none
 ```
 
-The expected lines are what the guest's verdicts mean (`guest/src/main.rs`); the results observed on the canonical image are in the commit message that adds the runner. A CI job and every benchmark binary should run the three.
+The expected lines are what the guest's verdicts mean (`guest/src/main.rs`). A CI job and every benchmark binary should run the three.
+
+## Results
+
+On the image whose sha256 is `8cb4e7b8…` (`image.sha256`), with the fixtures of `formal/lean_vm/scripts/export-verifier-fixtures-rust.sh` on this tree. On every one `AllDecode` and every clause of `Loaded` held; honest inputs decoded, the statement's `verify` accepted them and the run halted with `a0 = 0`; the flipped inputs decoded, `verify` rejected them and the run halted with `a0 = 1`; the truncated ones did not decode and the run halted with `a0 = 2`. Steps of the statement's machine:
+
+| fixture | input words | honest (a0 = 0) | flipped (a0 = 1) | truncated (a0 = 2) |
+| --- | --- | --- | --- | --- |
+| fibonacci-rate4 | 16,664 | 127,045,937 | 2,600,063 | 1,667,432 |
+| conditionals-rate2 | 24,906 | 154,632,148 | 4,009,179 | 3,076,546 |
+| chain1000-rate3 | 24,044 | 159,582,002 | 4,071,083 | 3,137,094 |
+| chain4-rate1 | 38,700 | 204,975,556 | 4,334,868 | 3,402,212 |
+
+The runner steps about 140,000 instructions a second; the honest runs take 15 to 25 CPU-minutes each.
 
 ## What it does not show
 

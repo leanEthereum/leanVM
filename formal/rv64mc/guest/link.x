@@ -1,5 +1,6 @@
 /* riscv-zkvm's memory map: code in its own immutable map at 0x80000000; data, constants and the stack in the RAM
-   window 0xa0000000..0xc0000000; the inputs and the heap in the low window 0x20..0x78000000. */
+   window 0xa0000000..0xc0000000; the input (from 0x10000000) and the heap (from 0x20000000) in the low window
+   0x10000000..0x78000000. */
 ENTRY(_start)
 SECTIONS {
   . = 0x80000000;
