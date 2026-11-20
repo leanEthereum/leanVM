@@ -6,7 +6,6 @@ use crate::hash::{STATE_LANES, keccak_f};
 use crate::keccak::KeccakShape;
 use crate::multilinear::{Placement, log2_ceil, log2_strict, stack_offsets};
 use crate::{VerifierError, require};
-use std::collections::BTreeMap;
 use std::ops::Add;
 
 pub const BUS_BITS: usize = 4; // bus communicates tuples of 2^BUS_BITS field elements
@@ -14,19 +13,23 @@ pub const BUS_BITS: usize = 4; // bus communicates tuples of 2^BUS_BITS field el
 /// A polynomial of degree at most 2 in a table's columns.
 #[derive(Clone, Debug, Default)]
 pub struct Form {
-    terms: BTreeMap<Vec<usize>, E>, // monomial -> coefficient; [] is 1, [i] is x_i, [i, j] is x_i*x_j
+    terms: Vec<(Vec<usize>, E)>, // (monomial, coefficient), sorted by monomial; [] is 1, [i] is x_i, [i, j] is x_i*x_j
 }
 
 impl Form {
     fn term(monomial: Vec<usize>, coefficient: E) -> Self {
         Self {
-            terms: BTreeMap::from([(monomial, coefficient)]),
+            terms: vec![(monomial, coefficient)],
         }
     }
 
     pub fn add_scaled(&mut self, other: &Form, weight: E) {
-        for (monomial, &coefficient) in &other.terms {
-            *self.terms.entry(monomial.clone()).or_default() += weight * coefficient;
+        for (monomial, coefficient) in &other.terms {
+            let at = self.terms.partition_point(|(m, _)| m < monomial);
+            match self.terms.get_mut(at) {
+                Some((m, c)) if m == monomial => *c += weight * *coefficient,
+                _ => self.terms.insert(at, (monomial.clone(), weight * *coefficient)),
+            }
         }
     }
 
@@ -39,7 +42,7 @@ impl Form {
         E::sum(
             self.terms
                 .iter()
-                .map(|(monomial, &c)| monomial.iter().fold(c, |acc, &index| acc * column[index])),
+                .map(|(monomial, c)| monomial.iter().fold(*c, |acc, &index| acc * column[index])),
         )
     }
 }
@@ -536,15 +539,17 @@ fn stacked_blocks(columns: usize) -> Vec<usize> {
         .collect()
 }
 
-/// The stack of columns of these log sizes: each stacked column's offset, and its log size, floored at the PCS minimum.
-fn stack(kappas: &[usize]) -> (BTreeMap<usize, u64>, usize) {
+/// The stack of columns of these log sizes: each column's offset, `None` for one with no block of its own, and the
+/// stack's log size, floored at the PCS minimum.
+fn stack(kappas: &[usize]) -> (Vec<Option<u64>>, usize) {
     let blocks = stacked_blocks(kappas.len());
     let block_kappas: Vec<usize> = blocks.iter().map(|&column| kappas[column]).collect();
     let (block_offsets, total_log) = stack_offsets(&block_kappas);
-    (
-        blocks.into_iter().zip(block_offsets).collect(),
-        MIN_STACKED_LOG.max(total_log),
-    )
+    let mut offsets = vec![None; kappas.len()];
+    for (column, offset) in blocks.into_iter().zip(block_offsets) {
+        offsets[column] = Some(offset);
+    }
+    (offsets, MIN_STACKED_LOG.max(total_log))
 }
 
 /// The stack of the smallest execution of a bytecode of `2^log_bytecode` instructions: the least memory, every table at
@@ -601,8 +606,8 @@ pub fn build_layout<'a>(
     let (offsets, stack_log) = stack(&kappas);
     let placement = |(column, &kappa): (usize, &usize)| {
         let index = match qkeccak_slot(column) {
-            Some(slot) => offsets[&QKECCAK] + ((slot as u64) << kappa),
-            None => *offsets.get(&column)?,
+            Some(slot) => offsets[QKECCAK]? + ((slot as u64) << kappa),
+            None => offsets[column]?,
         };
         Some(Placement {
             variables: kappa,
