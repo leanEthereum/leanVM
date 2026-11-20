@@ -177,6 +177,8 @@ def head_name(ty):
     ty = ty.strip()
     if ty.startswith("&"):
         return "&"
+    if ty.startswith("("):
+        return "()"
     return re.match(r"(?:\w+::)*(\w+)", ty).group(1)
 
 
@@ -336,6 +338,8 @@ def gen(spec_path, src, main, pts_path, dump_path, out_path, check):
             if variants["_"] == "Single":
                 if head == "&":
                     names = ["ptr", "len"] if len(offs) == 2 else ["ptr"]
+                elif head == "()":
+                    names = [f"f{k}" for k in range(len(offs))]
                 elif len(offs) == 0:
                     names = []
                 else:

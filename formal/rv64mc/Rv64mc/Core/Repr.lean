@@ -93,6 +93,47 @@ theorem Frame.keeps_above {top : Word} {out : Word → Prop} {m m' : MachineStat
     (hout : ∀ b, InRange a n b → ¬ out b) : Keeps m m' a n :=
   fun b hb => h.getMem_above hlim (by have := hb.1; omega) (hout b hb)
 
+/-- A store into the call's `out`, not into `NEXT`, is in its frame. -/
+theorem Frame.setMem_out {top b v : Word} {out : Word → Prop} {m : MachineState}
+    (h : (env.next m).toNat ≤ env.heapEnd.toNat) (hb : out b) (hn : b ≠ env.nextAddr) :
+    env.Frame top out m (m.setMem b v) := by
+  have hn' : env.next (m.setMem b v) = env.next m := by
+    simp [next, MachineState.getMem, MachineState.setMem, Ne.symm hn]
+  refine ⟨by rw [hn']; omega, by rw [hn']; exact h, fun a ha => ?_⟩
+  have : a ≠ b := fun he => ha (Or.inr (Or.inr (Or.inr (he ▸ hb))))
+  simp [MachineState.getMem, MachineState.setMem, this]
+
+/-- A store outside the static data keeps it. -/
+theorem static_setMem {b v : Word} {m : MachineState} (hs : env.Static m)
+    (hb : b.toNat < env.staticLo.toNat ∨ env.staticHi.toNat ≤ b.toNat) : env.Static (m.setMem b v) := by
+  refine env.static_frame m _ (fun c hc hc' => ?_) hs
+  have : c ≠ b := fun he => by rw [he] at hc hc'; omega
+  simp [MachineState.getMem, MachineState.setMem, this]
+
+/-- **`[a, a + n)` is a caller's to write**: allocated (below `NEXT`) or in a caller's frame (at or above `top`, the
+    stack pointer at the call), without wrapping: never `NEXT` nor the static data. -/
+def Owned (env : Env) (m : MachineState) (top a : Word) (n : Nat) : Prop :=
+  (a.toNat + n ≤ (env.next m).toNat ∨ top.toNat ≤ a.toNat) ∧ a.toNat + n < 2 ^ 64
+
+theorem Owned.not_next {m : MachineState} {top a b : Word} {n : Nat} (h : env.Owned m top a n)
+    (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (hlim : env.stackLimit.toNat ≤ top.toNat) (hb : InRange a n b) :
+    b ≠ env.nextAddr := fun he => by
+  have := env.layout; rw [he] at hb; unfold InRange at hb; rcases h.1 with h1 | h1 <;> omega
+
+theorem Owned.not_static {m : MachineState} {top a b : Word} {n : Nat} (h : env.Owned m top a n)
+    (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (hlim : env.stackLimit.toNat ≤ top.toNat) (hb : InRange a n b) :
+    b.toNat < env.staticLo.toNat ∨ env.staticHi.toNat ≤ b.toNat := by
+  have := env.layout; unfold InRange at hb; rcases h.1 with h1 | h1 <;> omega
+
+/-- What a caller owns, a callee from a lower stack top owns too, after any call. -/
+theorem Owned.frame {m m' : MachineState} {top top' a : Word} {n : Nat} {out : Word → Prop} {t : Word}
+    (h : env.Owned m top a n) (hf : env.Frame t out m m') (ht : top'.toNat ≤ top.toNat) : env.Owned m' top' a n := by
+  refine ⟨?_, h.2⟩
+  have := hf.1
+  rcases h.1 with h1 | h1
+  · exact Or.inl (by omega)
+  · exact Or.inr (by omega)
+
 end Env
 
 /-! ## Values -/

@@ -55,5 +55,14 @@ dump ResultUsize lib Result<usize, VerifierError>
 dump ResultPlacement multilinear Result<Placement, VerifierError>
 dump StackWeight lib StackWeight
 
+# the elements of the vectors that grow by one (`RawVec<T>::grow_one`)
+dump ColumnClaim bus ColumnClaim
+dump FoldRound whir FoldRound
+dump GluedClaim whir GluedClaim
+dump KVecU16 lib (K, Vec<u16>)
+dump StackClaim lib (StackWeight, E)
+dump VecEVecE lib (Vec<E>, Vec<E>)
+dump VecUsizeE lib (Vec<usize>, E)
+
 # the guest's input reader
 dump Input main Input<'static>
