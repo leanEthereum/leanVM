@@ -18,13 +18,14 @@ open LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.EndExec
 public section
 
 theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e.K := fa%[
-  sigsOr_of_list Fn.«child_claim_list_digest».modeSigs fa%[.inr (list_mem% 1),
-      .inr (list_mem% 2),
+  sigsOr_of_list Fn.«child_claim_list_digest».modeSigs fa%[.inl ⟨_, Fn.«child_claim_list_any».modeCert_in, rfl, rfl, rfl⟩,
+      .inl ⟨_, Fn.«child_claim_list_mono».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«list_split».modeCert_in, rfl, rfl, rfl⟩],
   sigsOr_of_list Fn.«child_claim_list_last__L6».modeSigs fa%[],
   sigsOr_of_list Fn.«claim_list_last__L1».modeSigs fa%[],
   sigsOr_of_list Fn.«column_selector__L25».modeSigs fa%[],
   sigsOr_of_list Fn.«da_column_offsets_loop5».modeSigs fa%[.inl ⟨_, Fn.«da_column_offsets_loop5».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of_list Fn.«da_padding».modeSigs fa%[],
   sigsOr_of_list Fn.«index_mle__L15».modeSigs fa%[],
   sigsOr_of_list Fn.«level_positions__L16_L18_L6».modeSigs fa%[.inl ⟨_, Fn.«decode_query_windows__L18_L6».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«level_positions__L16_L18_L6_loop0».modeCert_in, rfl, rfl, rfl⟩],

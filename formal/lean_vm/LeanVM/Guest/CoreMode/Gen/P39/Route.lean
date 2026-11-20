@@ -19,9 +19,14 @@ open LeanVM.Guest
 
 public section
 
+theorem hon2_body : (CoreMode.bodyCore Fn.«child_claim_list_any_loop0».cfun.fn.body || CoreMode.loopBC Fn.«child_claim_list_any_loop0».cfun.fn) = true := by decide +kernel
+theorem hon2_ptr : (Bridge.stmtsOf Fn.«child_claim_list_any_loop0».cfun.fn.body).all (CoreMode.ptrCellB Fn.«child_claim_list_any_loop0».idx) = true := by decide +kernel
+theorem hon2_ret : (Bridge.stmtsOf Fn.«child_claim_list_any_loop0».cfun.fn.body).all (CoreMode.retCellB Fn.«child_claim_list_any_loop0».idx) = true := by decide +kernel
+theorem hon2_sel : (CoreMode.selGo Fn.«child_claim_list_any_loop0».idx Fn.«child_claim_list_any_loop0».cfun.fn.params [] Fn.«child_claim_list_any_loop0».cfun.fn.body || CoreMode.loopBC Fn.«child_claim_list_any_loop0».cfun.fn) = true := by decide +kernel
+theorem hon2_rest : CoreMode.honRest Fn.«child_claim_list_any_loop0».idx Fn.«child_claim_list_any_loop0».cfun.fn = true := by decide +kernel
 theorem cfOk0 : CoreMode.CfOk Fn.«aggregate_claims_loop2».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«aggregate_claims_loop2».tie rfl rfl rfl (by decide +kernel)
 theorem cfOk1 : CoreMode.CfOk Fn.«block_selector__L16».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«block_selector__L16».tie rfl rfl rfl (by decide +kernel)
-theorem cfOk2 : CoreMode.CfOk Fn.«child_claim_list_any_loop0».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«child_claim_list_any_loop0».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk2 : CoreMode.CfOk Fn.«child_claim_list_any_loop0».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«child_claim_list_any_loop0».tie rfl rfl rfl (by rw [CoreMode.honB_of hon2_body hon2_ptr hon2_ret hon2_sel hon2_rest]; decide +kernel)
 theorem cfOk3 : CoreMode.CfOk Fn.«eq_prefix_run__L1».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«eq_prefix_run__L1».tie rfl rfl rfl (by decide +kernel)
 theorem cfOk4 : CoreMode.CfOk Fn.«fold_final_msg__L2».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«fold_final_msg__L2».tie rfl rfl rfl (by decide +kernel)
 theorem cfOk5 : CoreMode.CfOk Fn.«level_positions__L13_L21_L3_loop0».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«level_positions__L13_L21_L3_loop0».tie rfl rfl rfl (by decide +kernel)

@@ -62,6 +62,9 @@ def pair_mod(g, n):
 SPLIT = 5000
 # a heap certificate of more residual lists than `RES_SPLIT` has each list's families checked apart
 RES_SPLIT = 8
+# a body of more statements than `HON_SPLIT` has its honest valuation's parts checked apart (`honB_of`): in one
+# evaluation its route check is the heaviest declaration of its module
+HON_SPLIT = 2000
 # a body with a frame run of more values than `FA_RUN` has its frame run cells at returns checked `FA_B` values at a
 # time (`CoreMode.faRetOk_of_kchunks`): one evaluation over a long run is the heaviest declaration of its module
 FA_RUN = 64
@@ -596,7 +599,7 @@ def main():
                 hb = (f'(by rw [CoreMode.honB_of hon{j}_long.1 hon{j}_long.2.1 hon{j}_long.2.2.1 hon{j}_long.2.2.2 '
                       f'hon{j}_rest, CoreMode.faOkB_of_noFA (CoreMode.loopFields_of_wins Fn.«{k}».loop_wins).2.2.2.2.2.1'
                       f'{"".join(", " + x for x in rw)}]; decide +kernel)')
-            elif long_body(k):
+            elif nstmts(heap.CORE[k][1]) > HON_SPLIT:
                 fn = f'Fn.«{k}».cfun.fn'
                 parts = [('body', f'(CoreMode.bodyCore {fn}.body || CoreMode.loopBC {fn})', 'its body\'s statements'),
                          ('ptr', f'(Bridge.stmtsOf {fn}.body).all (CoreMode.ptrCellB {x})', 'its pointers\' cells'),

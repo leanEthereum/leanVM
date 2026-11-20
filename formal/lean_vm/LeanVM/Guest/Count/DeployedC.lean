@@ -26,7 +26,7 @@ theorem clC_eq : clC B2C.fs wSB = 4744 := by
     wSB_idx (j := 22) (f := "list_split") (by decide +kernel)]
   decide +kernel
 
-theorem ccC_eq : ccC B2C.fs wSB = 11622 := by
+theorem ccC_eq : ccC B2C.fs wSB = 11624 := by
   unfold ccC
   rw [ccl_sum, ccm_sum,
     fs_idx (j := 24) (f := "child_claim_list_digest") (by decide +kernel),
@@ -52,7 +52,7 @@ theorem clS_eq : clS B2C.fs wSK = 33 := by
     wSK_idx (j := 350) (f := "__loop1_claim_list_digest") (by decide +kernel)]
   decide +kernel
 
-theorem l5A1_eq : l5A1 B2C.fs wSB = 23424 := by
+theorem l5A1_eq : l5A1 B2C.fs wSB = 23428 := by
   unfold l5A1
   rw [ccC_eq,
     fs_idx (j := 40) (f := "__loop4_main") (by decide +kernel),

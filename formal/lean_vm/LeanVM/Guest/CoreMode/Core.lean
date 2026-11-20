@@ -606,6 +606,20 @@ residual bounds (`resArg`). -/
 noncomputable def idxPowC (Cf : CFun) (args : List V) (i : CIdx) : Bool :=
   idxPow Cf.pows Cf.fn.body args i || expArg Cf.xc Cf.fn.params.length args i || resArg Cf.H.res args i
 
+/-- **A callee's run bound at a call on `args` its ghost slot `b`** (`|args| ≤ b`): the word the certificate names there
+(`gargsOf`) a parameter's whose entry cell's word has an exponent (`xc`). -/
+noncomputable def ghostArg (Cf : CFun) (f : String) (args : List V) : CIdx → Bool
+  | .val b => decide (args.length ≤ b) && match (gargsOf Cf.H.gargs f args)[b - args.length]? with
+    | some c => match c.bases with
+      | [(k, 1)] => Nat.beq c.off 0 && decide (k < Cf.fn.params.length) && Cf.xc.contains (2 + k)
+      | _ => false
+    | none => false
+  | _ => false
+
+/-- A callee's run bound at a call of `f` on `args` has an exponent: `idxPowC`, or its ghost slot's (`ghostArg`). -/
+noncomputable def idxPowG (Cf : CFun) (f : String) (args : List V) (i : CIdx) : Bool :=
+  idxPowC Cf args i || ghostArg Cf f args i
+
 /-- **A pointer-based product** `g^k · [[q] · g^d]`: its frame cell `q` and offset `d`. -/
 def hpOf (m : Mode.Mono) : Option (ℕ × ℕ) :=
   match m.fp, m.bs with
@@ -753,11 +767,17 @@ def nubP : List (ℕ × ℕ) → List (ℕ × ℕ) → List (ℕ × ℕ)
   | acc, [] => acc.reverse
   | acc, x :: l => nubP (bif acc.contains x then acc else x :: acc) l
 
+/-- A caller's cell's exponent bound (`.hp 1 d`, no offset) as a base. -/
+def hpBnd : Mode.Idx → List (Mode.Base × ℕ)
+  | .ex (.hp q d) c => bif Nat.beq q 1 && Nat.beq c 0 then [(.hp q d, 1)] else []
+  | _ => []
+
 /-- **A callee's pointer bases** (`.hp q d`) its entry runs' products and its entry products but pointer facts
 (`hpOf`) name, once each, in order: its ghost slots at a call, ghost `j` the word of `(hpBs G)[j]`: the caller's cell
 `d` for `q = 1`, the word at cell `d` past argument `q - 2`'s word otherwise (`hpArgOk`). -/
 def hpBs (G : Mode.Sig) : List (ℕ × ℕ) :=
-  nubP [] (((G.preR.flatMap fun r ↦ r.q.bs) ++ (G.pre.filter fun m ↦ (hpOf m).isNone).flatMap (·.bs)).filterMap
+  nubP [] (((G.preR.flatMap fun r ↦ r.q.bs) ++ (G.pre.filter fun m ↦ (hpOf m).isNone).flatMap (·.bs) ++
+    G.preR.flatMap fun r ↦ hpBnd r.lo ++ hpBnd r.hi).filterMap
     fun b ↦ match b.1 with
     | .hp q d => some (q, d)
     | .fr _ => none)
@@ -780,8 +800,16 @@ def baseC1 (G : Mode.Sig) (na : ℕ) (ps : List (ℕ × ℕ)) : Mode.Base → Bo
   | .hp q d => ps.contains (q, d) && (Nat.beq q 1 ||
       (decide (2 ≤ q) && decide (q - 2 < na) && decide (q < 2 ^ 28) && G.entry.contains q))
 
-/-- A run whose bounds are constants or frame cells' exponents (`idxX`). -/
-def boundsX (r : Mode.Rng) : Bool := (idxX r.lo).isSome && (idxX r.hi).isSome
+/-- A bound a caller's cell's exponent (`.hp 1 d`, no offset). -/
+def isHp1 : Mode.Idx → Bool
+  | .ex (.hp q _) c => Nat.beq q 1 && Nat.beq c 0
+  | _ => false
+
+/-- A run bound: a constant or a frame cell's exponent (`idxX`), or a caller's cell's (`isHp1`). -/
+def bndX (i : Mode.Idx) : Bool := (idxX i).isSome || isHp1 i
+
+/-- A run whose bounds are constants, frame cells' exponents (`idxX`) or caller's cells' (`isHp1`). -/
+def boundsX (r : Mode.Rng) : Bool := bndX r.lo && bndX r.hi
 
 /-- A run of constant bounds. -/
 def numB (r : Mode.Rng) : Bool :=
@@ -1001,8 +1029,8 @@ also naming returned words' monomials (its mode signature's `retV`, `fitB`'s `re
 noncomputable def callChkM (Cf : CFun) (g : String) (args : List V) : Bool :=
   !(g == Cf.fn.name) && ((Cf.hcs.lookup g).isSome || (Cf.sigOf g).postV.isEmpty &&
     (Cf.sigOf g).retEq.isEmpty) && ((Cf.hcs.lookup g).isNone || Nat.beq (Cf.sigOf g).ghosts 0) &&
-    ((Cf.sigOf g).preR.all fun q ↦ idxPowC Cf args q.lo && idxPowC Cf args q.hi) &&
-    (Cf.sigOf g).prePR.all fun p ↦ idxPowC Cf args p.1.lo && idxPowC Cf args p.1.hi
+    ((Cf.sigOf g).preR.all fun q ↦ idxPowG Cf g args q.lo && idxPowG Cf g args q.hi) &&
+    (Cf.sigOf g).prePR.all fun p ↦ idxPowG Cf g args p.1.lo && idxPowG Cf g args p.1.hi
 
 /-- A checked call of a callee on a mode contract gives nothing beyond its writes. -/
 theorem callChk_evM {Cf : CFun} {g : String} {args rets : List V} (h : callChk Cf g args = true)

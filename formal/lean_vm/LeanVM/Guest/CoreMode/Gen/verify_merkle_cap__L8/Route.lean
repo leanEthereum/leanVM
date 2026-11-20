@@ -19,7 +19,12 @@ open LeanVM.Guest
 
 public section
 
-theorem cfOk0 : CoreMode.CfOk Fn.«verify_merkle_cap__L8».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«verify_merkle_cap__L8».tie rfl rfl rfl (by decide +kernel)
+theorem hon0_body : (CoreMode.bodyCore Fn.«verify_merkle_cap__L8».cfun.fn.body || CoreMode.loopBC Fn.«verify_merkle_cap__L8».cfun.fn) = true := by decide +kernel
+theorem hon0_ptr : (Bridge.stmtsOf Fn.«verify_merkle_cap__L8».cfun.fn.body).all (CoreMode.ptrCellB Fn.«verify_merkle_cap__L8».idx) = true := by decide +kernel
+theorem hon0_ret : (Bridge.stmtsOf Fn.«verify_merkle_cap__L8».cfun.fn.body).all (CoreMode.retCellB Fn.«verify_merkle_cap__L8».idx) = true := by decide +kernel
+theorem hon0_sel : (CoreMode.selGo Fn.«verify_merkle_cap__L8».idx Fn.«verify_merkle_cap__L8».cfun.fn.params [] Fn.«verify_merkle_cap__L8».cfun.fn.body || CoreMode.loopBC Fn.«verify_merkle_cap__L8».cfun.fn) = true := by decide +kernel
+theorem hon0_rest : CoreMode.honRest Fn.«verify_merkle_cap__L8».idx Fn.«verify_merkle_cap__L8».cfun.fn = true := by decide +kernel
+theorem cfOk0 : CoreMode.CfOk Fn.«verify_merkle_cap__L8».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«verify_merkle_cap__L8».tie rfl rfl rfl (by rw [CoreMode.honB_of hon0_body hon0_ptr hon0_ret hon0_sel hon0_rest]; decide +kernel)
 
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=

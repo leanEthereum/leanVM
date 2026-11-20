@@ -91,6 +91,7 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
       .inl ⟨_, Fn.«level_residual__L218_L15_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩],
   sigsOr_of_list Fn.«level_residual__L25_L9_L4_L2_loop1».modeSigs fa%[.inl ⟨_, Fn.«level_residual__L25_L9_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩],
   sigsOr_of_list Fn.«level_residual__L37_L15_L4_L2_loop1».modeSigs fa%[.inl ⟨_, Fn.«level_residual__L37_L15_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩],
+  sigsOr_of_list Fn.«log2_ceil_in_the_exponent__L16_L34».modeSigs fa%[.inl ⟨_, Fn.«assert_small_g_power».modeCert_in, rfl, rfl, rfl⟩],
   sigsOr_of_list Fn.«main_loop3».modeSigs fa%[.inl ⟨_, Fn.«main_loop3».modeCert_in, rfl, rfl, rfl⟩,
       .inl ⟨_, Fn.«verify_sig_lean_sphincs».modeCert_in, rfl, rfl, rfl⟩],
   sigsOr_of_list Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0».modeSigs fa%[.inl ⟨_, Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0_loop0».modeCert_in, rfl, rfl, rfl⟩],

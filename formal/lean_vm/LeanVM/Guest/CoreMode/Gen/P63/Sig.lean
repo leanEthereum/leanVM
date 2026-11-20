@@ -45,6 +45,11 @@ def «child_claim_list_last__L10».sig : CoreMode.HSig :=
         ⟨⟨[(1, 1)], 2⟩, 4, (.num 0), (.mono ⟨[(4, 1)], 1⟩)⟩,
         ⟨⟨[(1, 1)], 3⟩, 4, (.num 0), (.mono ⟨[(4, 1)], 1⟩)⟩],
       postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 13)⟩] }
+def «child_claim_list_mono».sig : CoreMode.HSig := 
+    { preR := [⟨⟨[(0, 1)], 0⟩, 4, (.num 0), (.val 3)⟩, ⟨⟨[(0, 1)], 1⟩, 4, (.num 0), (.val 3)⟩,
+        ⟨⟨[(0, 1)], 2⟩, 4, (.num 0), (.val 3)⟩, ⟨⟨[(0, 1)], 3⟩, 4, (.num 0), (.val 3)⟩],
+      postR := [⟨⟨[(0, 1)], 0⟩, 4, (.num 0), (.val 3)⟩, ⟨⟨[(0, 1)], 1⟩, 4, (.num 0), (.val 3)⟩,
+        ⟨⟨[(0, 1)], 2⟩, 4, (.num 0), (.val 3)⟩, ⟨⟨[(0, 1)], 3⟩, 4, (.num 0), (.val 3)⟩] }
 def «level_positions__L6_L16_L4».sig : CoreMode.HSig := 
     { preR := [⟨⟨[(8, 1)], 0⟩, 1, (.num 0), (.num 64)⟩],
       postR := [⟨⟨[(6, 1)], 0⟩, 1, (.num 0), (.num 8)⟩, ⟨⟨[(6, 1)], 0⟩, 8, (.num 1), (.num 6)⟩,

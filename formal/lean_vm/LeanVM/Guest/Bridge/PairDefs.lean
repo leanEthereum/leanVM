@@ -84,6 +84,12 @@ def allocOf : Atom → Option V
 def cellOk (extra : List (ℕ × ℕ)) (locs : List ℕ) (n : ℕ) (v : V) : Bool :=
   (extra.lookup v.idx).isNone && Nat.blt v.idx (2 ^ 30) && Nat.ble 2 (locs.getD v.idx 0) && Nat.blt (locs.getD v.idx 0) n
 
+/-- A frame value at its hint-only cell (of `extra`), in `[2, n)`. -/
+def hintOnlyOk (extra : List (ℕ × ℕ)) (n : ℕ) (v : V) : Bool :=
+  match extra.lookup v.idx with
+  | some c => Nat.ble 2 c && Nat.blt c n
+  | none => false
+
 /-- A buffer from offset `0`, of length in `(0, 2^30)`, its pointer at its certificate cell or a
 hint-only one, allocated and written whole on the spine `sp`. -/
 def bufOk (extra : List (ℕ × ℕ)) (locs : List ℕ) (n : ℕ) (sp : List Atom) (b : V × ℕ × ℕ) : Bool :=
@@ -93,7 +99,8 @@ def bufOk (extra : List (ℕ × ℕ)) (locs : List ℕ) (n : ℕ) (sp : List Ato
 
 /-- **A computed hint atom's cells and buffer.** -/
 def pairAtomOk (extra : List (ℕ × ℕ)) (locs : List ℕ) (n : ℕ) (sp : List Atom) : Atom → Bool
-  | .hint h => !compHint h || ((hintFrame h).all (cellOk extra locs n) && match hintBuf h with
+  | .hint h => !compHint h || ((hintFrame h).all (fun v ↦ cellOk extra locs n v || hintOnlyOk extra n v) &&
+      match hintBuf h with
     | none => true
     | some b => bufOk extra locs n sp b)
   | _ => true

@@ -43,6 +43,7 @@ theorem pair_tailLC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     (hsf : X.selfAt of = false) (hnx : X.nextAt of = true) (hod : od ≠ 0)
     (hst : ∀ s ∈ stmtsOf body, loopStmtC s = true) :
     ∃ c f args pos', Stmt.callIf c f args ∈ stmtsOf body ∧ X.locAt c.idx = oc ∧
+      (∃ t, X.pcAt od = some t ∧ X.entOk t f = true) ∧
       pairAt (PairCtx.ofH X H O S) body code d (i + 1) = some pos' ∧ retNil pos' = true ∧
       ∃ as : List Atom, List.Forall₂ (Pairs X) (as.filter flowAtom)
         (((d.2.2.lookup (X.entry + i)).getD []).filter isaFlowHint) ∧
@@ -77,12 +78,13 @@ theorem pair_tailLC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     | ite c z n => simp [headStepH, hcur, PairCtx.ofH, hsf] at hh
     | match_ x arms => simp [headStepH, hcur, PairCtx.ofH, hsf] at hh
     | _ => simp [loopStmtC] at hl
-  obtain ⟨hloc, t, ca, -, -, hca, rfl, hcase⟩ := headH_callIf hh hcur
+  obtain ⟨hloc, t, ca, hpt, hent, hca, rfl, hcase⟩ := headH_callIf hh hcur
   have hrn : retNil ca.pos = true := by
     rcases hcase with ⟨-, h⟩ | ⟨h, -⟩
     · exact h
     · simp only [PairCtx.ofH] at h; rw [hnx] at h; cases h
-  refine ⟨c, f, args, ca.pos, hs, hloc, h1 ca rfl, hrn, as, hpairs, fun {sigOf rd ws0 σ pre es vs} hp hrw ↦ ?_⟩
+  refine ⟨c, f, args, ca.pos, hs, hloc, ⟨t, hpt, hent⟩, h1 ca rfl, hrn, as, hpairs,
+    fun {sigOf rd ws0 σ pre es vs} hp hrw ↦ ?_⟩
   obtain ⟨cs, hcs, hcpos, -⟩ := normG_pos _ _ hca
   rw [hpos, hzpos, Zip.pos_head hcur, hcpos, ← List.append_assoc, ← List.map_append] at hp
   obtain ⟨es1, hes1, rfl⟩ := walk_atoms_ret hp

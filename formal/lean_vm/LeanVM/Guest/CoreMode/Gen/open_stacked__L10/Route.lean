@@ -19,7 +19,12 @@ open LeanVM.Guest
 
 public section
 
-theorem cfOk0 : CoreMode.CfOk Fn.«open_stacked__L10».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«open_stacked__L10».tie rfl rfl rfl (by decide +kernel)
+theorem hon0_body : (CoreMode.bodyCore Fn.«open_stacked__L10».cfun.fn.body || CoreMode.loopBC Fn.«open_stacked__L10».cfun.fn) = true := by decide +kernel
+theorem hon0_ptr : (Bridge.stmtsOf Fn.«open_stacked__L10».cfun.fn.body).all (CoreMode.ptrCellB Fn.«open_stacked__L10».idx) = true := by decide +kernel
+theorem hon0_ret : (Bridge.stmtsOf Fn.«open_stacked__L10».cfun.fn.body).all (CoreMode.retCellB Fn.«open_stacked__L10».idx) = true := by decide +kernel
+theorem hon0_sel : (CoreMode.selGo Fn.«open_stacked__L10».idx Fn.«open_stacked__L10».cfun.fn.params [] Fn.«open_stacked__L10».cfun.fn.body || CoreMode.loopBC Fn.«open_stacked__L10».cfun.fn) = true := by decide +kernel
+theorem hon0_rest : CoreMode.honRest Fn.«open_stacked__L10».idx Fn.«open_stacked__L10».cfun.fn = true := by decide +kernel
+theorem cfOk0 : CoreMode.CfOk Fn.«open_stacked__L10».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«open_stacked__L10».tie rfl rfl rfl (by rw [CoreMode.honB_of hon0_body hon0_ptr hon0_ret hon0_sel hon0_rest]; decide +kernel)
 
 /-- The pack's core data, each the deployed guest's. -/
 theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=

@@ -13,10 +13,6 @@ namespace LeanVM.Guest.Res
 
 /-- **The parameters carried nonzero in `K`**: callee, parameter position. -/
 def carriedNz : List (String × Nat) := [
-  ("child_claim_list_any", 4),
-  ("child_claim_list_any", 5),
-  ("child_claim_list_mono", 4),
-  ("child_claim_list_mono", 5),
   ("keccak_layer__L0", 8),
   ("keccak_layer__L1", 8),
   ("opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1", 7),

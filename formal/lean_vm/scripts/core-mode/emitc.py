@@ -651,7 +651,7 @@ class Solver:
         self._in_der = True
         try:
             base, S, lo, hi = Q
-            cands = []
+            cands, cands2 = [], []
             for r in sorted(st.rs, reverse=True):
                 B = st.rs[r][0]
                 if any(C.expOf(base[0], b) < e for b, e in B[0]) or base[1] < B[1]:
@@ -662,7 +662,16 @@ class Solver:
                         if R not in cands:
                             cands.append(R)
                 cands.append((B, 1, ((), 0), C.cshift(hi, 1)))
-            for R in cands:
+                # a run of the scope's stride, up to a side of a kept equation, when `Q`'s stride is a multiple of it
+                # (after the others)
+                Sr = st.rs[r][1]
+                if Sr > 1 and S % Sr == 0 and base[0] == B[0] and (base[1] - B[1]) % Sr == 0:
+                    for a, b in st.eqs:
+                        for H in sorted((a, b), key=lambda H: bool(H[0])):
+                            R = (B, Sr, ((), 0), H)
+                            if R not in cands2:
+                                cands2.append(R)
+            for R in cands + [R for R in cands2 if R not in cands]:
                 ws = self.run(st, R)
                 if ws is None:
                     continue
@@ -672,7 +681,7 @@ class Solver:
                     return [('drv', R, [])] + ws
                 # a residual `subR Q R` (under the site's path)
                 g = tuple(dict.fromkeys(self.X.path))
-                q, Rr = (base, S, self.idx(st, lo), self.idx(st, hi)), (R[0], 1, ('num', 0), self.idx(st, R[3]))
+                q, Rr = (base, S, self.idx(st, lo), self.idx(st, hi)), (R[0], R[1], ('num', 0), self.idx(st, R[3]))
                 if C.runF(st.env, q) != Q or C.runF(st.env, Rr) != R:
                     continue
                 res = ('subR', q, Rr)

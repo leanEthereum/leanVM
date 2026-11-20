@@ -462,8 +462,8 @@ theorem childFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m o0 p
 noncomputable def anyFlat : List Stmt := (Fn.body fn% «child_claim_list_any»).dropLast
 
 set_option maxRecDepth 100000 in
-theorem child_claim_list_any_shape : Fn.body fn% «child_claim_list_any» = anyFlat ++ [.ret [.n 66,
-    .n 67]] :=
+theorem child_claim_list_any_shape : Fn.body fn% «child_claim_list_any» = anyFlat ++ [.ret [.n 68,
+    .n 69]] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-- The body: `limit = last · g`, the zero state at `chain = .n 17`, the big frames' loop,
@@ -489,8 +489,8 @@ noncomputable def anyBodyOk : Bool :=
   monoIs (atomsIn anyFlat) (.n 48) (.n 2) (.n 4) 136 &&
   mono2Is (atomsIn anyFlat) (.n 57) (.n 17) (.n 4) 13 (.n 5) 13 &&
   mono2Is (atomsIn anyFlat) (.n 63) (.n 2) (.n 4) 136 (.n 5) 17 &&
-  (atomsIn anyFlat).any (isCopyAt (.n 66) (.n 64)) &&
-  (atomsIn anyFlat).any (isCopyAt (.n 67) (.n 65))
+  (atomsIn anyFlat).any (isCopyAt (.n 68) (.n 64)) &&
+  (atomsIn anyFlat).any (isCopyAt (.n 69) (.n 65))
 
 set_option maxRecDepth 100000 in
 theorem anyBody_ok : anyBodyOk = true := by decide +kernel

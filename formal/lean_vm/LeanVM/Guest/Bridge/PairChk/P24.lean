@@ -25,7 +25,7 @@ theorem Fn.«plus_one_run__L33».pairOk : Bridge.pairChk [] cert.locs fs core.bo
 theorem Fn.«block_selector__L0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«block_selector__L26».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«block_selector_tab__L17».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
-theorem Fn.«log2_ceil_in_the_exponent__L16_L34».pairOk : Bridge.pairChk [(3, 6)] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«log2_ceil_in_the_exponent__L16_L34».pairOk : Bridge.pairChk [(2, 5), (3, 6), (4, 7), (5, 8), (6, 9), (7, 10), (8, 11), (9, 12), (10, 13), (11, 14), (12, 15), (13, 16), (14, 17), (15, 18), (16, 19), (17, 20), (18, 21), (19, 22), (20, 23), (21, 24), (22, 25), (23, 26), (24, 27), (25, 28), (26, 29), (27, 30), (28, 31), (29, 32), (30, 33), (31, 34), (32, 35), (33, 36), (34, 37), (35, 38)] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«bus_grind_check__L3».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«grind_check__L13».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«child_claim_list_mono_last__L15».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel

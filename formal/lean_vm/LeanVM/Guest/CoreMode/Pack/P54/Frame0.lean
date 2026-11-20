@@ -40,6 +40,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P54».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P54».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P54».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P54».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P54».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P12»
 public import LeanVM.Guest.CoreMode.Sig.«P16»
@@ -67,16 +68,16 @@ open LeanVM.Guest.Exec
 
 @[expose] public section
 
+noncomputable def Fn.«da_verify».envC : Mode.Env := CoreMode.envOf [Fn.«da_levels__L32_L5».csig,
+    Fn.«da_padding».csig, Fn.«da_pad».csig, Fn.«da_vector».csig, Fn.«da_verify_loop0».csig,
+    Fn.«da_weights».csig]
+noncomputable def Fn.«da_verify».funC : Mode.Fun := ⟨Fn.«da_verify».entry, 63, Fn.«da_verify».csig,
+    .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«da_verify».frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«da_verify».entry, 63,
     Fn.«da_verify».csig, (CoreMode.sigTrie [Fn.«da_levels__L32_L5».csig, Fn.«da_padding».csig,
     Fn.«da_pad».csig, Fn.«da_vector».csig, Fn.«da_verify_loop0».csig, Fn.«da_weights».csig]),
-    524287, advice.2.2, .nil, .nil, .nil, .nil, (.node none (.node none (.node none (.node none
-    (.node (some ()) .nil .nil) .nil) (.node none (.node none .nil (.node (some ()) .nil .nil))
-    .nil)) (.node none (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node (some
-    ()) .nil .nil))) (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil
-    .nil)) (.node (some ()) .nil .nil)) (.node (some ()) .nil .nil)) (.node (some ()) .nil (.node
-    (some ()) .nil .nil)))), .nil, .nil⟩
+    524287, advice.2.2, .nil, .nil, .nil, .nil, Fn.«da_verify».pairO, Fn.«da_verify».pairS, .nil⟩
 
 theorem Fn.«da_verify».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel

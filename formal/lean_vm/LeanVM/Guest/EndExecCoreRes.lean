@@ -21,6 +21,7 @@ public import LeanVM.Guest.EndExecRExp
 public import LeanVM.Guest.EndExecRVs
 public import LeanVM.Guest.EndExecRCp
 public import LeanVM.Guest.EndExecCoreDa
+public import LeanVM.Guest.EndExecRGkrQ
 
 /-!
 # The residual families, sound
@@ -441,6 +442,39 @@ theorem subRC_holds {q r : CoreMode.CRun} (h : CoreMode.subRC q r = true) (σ : 
     rw [show qo + S * j = ro + S * (j + k) by rw [Nat.mul_add]; omega]
   · cases h
 
+/-- **A run of constant bounds inside one of the same bases, its stride a multiple** (`subRCm`) at any valuation. -/
+theorem subRCm_holds {q r : CoreMode.CRun} (h : CoreMode.subRCm q r = true) (σ : Val) : (CRes.subR q r).Holds σ := by
+  obtain ⟨⟨qb, qo⟩, S, ql, qh⟩ := q
+  obtain ⟨⟨rb, ro⟩, S', rl, rh⟩ := r
+  unfold CoreMode.subRCm at h
+  split at h
+  · rename_i l hh l' h' hql hqh hrl hrh
+    simp only at hql hqh hrl hrh
+    subst hql hqh hrl hrh
+    simp only [Bool.and_eq_true, Nat.beq_eq, Nat.blt_eq, Nat.ble_eq] at h
+    obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hb, hS0⟩, hSm⟩, hro⟩, hdv⟩, hl⟩, hh'⟩, hlc⟩, hhc⟩, hlc'⟩, hhc'⟩ := h
+    have hb' := CoreMode.basesBeq_eq hb
+    subst hb'
+    intro x hx
+    obtain ⟨ylo, yhi, j, hylo, hyhi, hlj, hjh, rfl⟩ := hx
+    simp only [idxC] at hylo hyhi
+    rw [CoreMode.rep_const hlc, Option.some.injEq] at hylo
+    rw [CoreMode.rep_const hhc, Option.some.injEq] at hyhi
+    subst hylo hyhi
+    obtain ⟨k, hk⟩ : ∃ k, qo - ro = S' * k :=
+      ⟨(qo - ro) / S', (Nat.mul_div_cancel' (Nat.dvd_of_mod_eq_zero hdv)).symm⟩
+    obtain ⟨m, hm⟩ : ∃ m, S = S' * m := ⟨S / S', (Nat.mul_div_cancel' (Nat.dvd_of_mod_eq_zero hSm)).symm⟩
+    have hkS : (qo - ro) / S' = k := by rw [hk, Nat.mul_div_cancel_left _ hS0]
+    have hmS : S / S' = m := by rw [hm, Nat.mul_div_cancel_left _ hS0]
+    rw [hkS, hmS] at hl hh'
+    have hmj : m * j ≤ m * (hh - 1) := Nat.mul_le_mul_left _ (by omega)
+    have hml : m * l ≤ m * j := Nat.mul_le_mul_left _ hlj
+    refine ⟨l', h', k + m * j, (by simp only [idxC]; exact CoreMode.rep_const hlc'),
+      (by simp only [idxC]; exact CoreMode.rep_const hhc'), by omega, by omega, ?_⟩
+    simp only [CoreMode.CCell.valW, mul_assoc, ← CoreMode.ofK_mul', addressOfIndex, ← pow_add]
+    rw [show qo + S * j = ro + S' * (k + m * j) by rw [hm, Nat.mul_add, ← Nat.mul_assoc]; omega]
+  · cases h
+
 /-- **The `sel` family below a selector's word times a power of `g`** (`g^j` below `x·g^c`, `j < c`, `x` a top-level
 selector of `m` arms, `m + c < 2^62`). -/
 theorem resSelN_sound {fn : Fn} {xc : List ℕ} {σ : Val} {es : List Ev} {vs : List V}
@@ -684,8 +718,10 @@ theorem resFam_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
       obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
       exact negFam_sound (logMemorySize_le_28 (e := r.exec) hr.size) r.img hw hh hcs h
   | .subR q r', h => by
-    simp only [resFam] at h
-    exact subRC_holds h σ
+    simp only [resFam, Bool.or_eq_true] at h
+    rcases h with h | h
+    · exact subRC_holds h σ
+    · exact subRCm_holds h σ
   | .lt (.val x) (.val p), h => by
     obtain ⟨args, rets, fn', hf', -, es, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
     obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
@@ -1333,21 +1369,30 @@ theorem vtCp_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreP
 
 /-! ## `da_pad`'s gap -/
 
-/-- **`da_pad`'s gap holds** at an honest instance (`daGap`): `DaPadQ`. -/
+/-- **`da_pad`'s gap and `da_verify`'s blob count and gap hold** at an honest instance (`daGap`): `DaPadQ`,
+`daV_inst`. -/
 theorem daGap_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
     (hf : coreProgram.find? f = some fn) : ∀ x : CRes, CoreMode.daGap fn x = true → x.Holds σ
   | .under gs r', h => fun _ ↦ daGap_inst hr hI ht hf r' h
   | .lt a b, h => by
-    simp only [CoreMode.daGap, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
-    obtain ⟨⟨hn, rfl⟩, h⟩ := h
+    simp only [CoreMode.daGap] at h
     split at h
     · rename_i m
-      simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-      have hf' : f = name% «da_pad» := by rw [← find_name' hf, hn]
-      subst hf'
-      obtain ⟨k, hk, e2⟩ := daPadQ_all hr I hI σ bufs kids ht
-      exact ltF_of_pow (e := k) h.2 (by omega) (by rw [e2, Value.gen_pow_eq_ofK])
+      simp only [Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq, decide_eq_true_eq] at h
+      obtain ⟨hm, (⟨⟨hn, rfl⟩, hmr⟩ | ⟨hn, ⟨rfl, hmr⟩ | ⟨rfl, hmr⟩⟩)⟩ := h
+      · have hf' : f = name% «da_pad» := by rw [← find_name' hf, hn]
+        subst hf'
+        obtain ⟨k, hk, e2⟩ := daPadQ_all hr I hI σ bufs kids ht
+        exact ltF_of_pow (e := k) hm (by omega) (by rw [e2, Value.gen_pow_eq_ofK])
+      · have hf' : f = name% «da_verify» := by rw [← find_name' hf, hn]
+        subst hf'
+        obtain ⟨n, -, hn32, e1, -⟩ := daV_inst hr hI ht
+        exact ltF_of_pow (e := n) hm (by omega) (by rw [e1, Value.gen_pow_eq_ofK])
+      · have hf' : f = name% «da_verify» := by rw [← find_name' hf, hn]
+        subst hf'
+        obtain ⟨n, hn1, -, -, e2⟩ := daV_inst hr hI ht
+        exact ltF_of_pow (e := guest_const% DA_MAX_ROWS - n) hm (by omega) (by rw [e2, Value.gen_pow_eq_ofK])
     · cases h
   | .nz _, h | .subR _ _, h | .subP _ _, h | .sub _ _, h => by simp [CoreMode.daGap] at h
 
@@ -1516,18 +1561,53 @@ theorem rcTab_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts core
     · cases h
   | .nz _, h | .subR _ _, h | .subP _ _, h | .sub _ _, h => by simp [CoreMode.rcTab] at h
 
+/-- **`verify_bus_gkr`'s layer loop's family holds** at an honest instance (`lyQC`): `LyQ` puts its slot's cursor `q`
+words into its stream with room for `140` words a layer to the last; the pairs end `8j` words past it, the last
+record's cursor `4L` (`ly_curs`). -/
+theorem lyQC_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
+    {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
+    (hf : coreProgram.find? f = some fn) : ∀ x : CRes, CoreMode.lyQC fn x = true → x.Holds σ
+  | .under gs r', h => fun _ ↦ lyQC_inst hr hI ht hf r' h
+  | .sub c q, h => by
+    simp only [CoreMode.lyQC, Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq, decide_eq_true_eq] at h
+    obtain ⟨⟨hn, rfl⟩, hc⟩ := h
+    have hf' : f = name% «verify_bus_gkr_loop0» := by rw [← find_name' hf, hn]
+    subst hf'
+    obtain rfl : fn = fn% «verify_bus_gkr_loop0» := Option.some.inj (hf.symm.trans find_ly)
+    obtain ⟨jj, m, sh, q, h0, -, hjm, hm, hsh, h2, h8, hcur, hroom⟩ := lyQ_all hr I hI σ bufs kids ht
+    obtain ⟨args, rets, hv⟩ := inst_valid' hr hI ht
+    obtain ⟨-, hb⟩ := Res.holds_of_valid gkr_hfs hv hf
+    rw [ly_body, holdsList_append, holdsList_noRet _ B1.Tables.lyPre_noRet] at hb
+    obtain ⟨-, -, e65, e80, -⟩ := ly_curs (fun _ _ _ h ↦ Res.KidRel.rel h) hb.1 (by omega) hsh h0 h2 h8 hcur
+    have hcap : (8192 : ℕ) < CoreMode.capE := by rw [CoreMode.capE_eq]; norm_num
+    obtain ⟨cb, co⟩ := c
+    have key : ∀ (v k : ℕ), σ (.n v) = σ (.n 9) * Protocol.Verifier.gen ^ q * Protocol.Verifier.gen ^ k →
+        q + k + co < 8192 → cb = [(v, 1)] → (CRes.sub ⟨cb, co⟩ ⟨⟨[(9, 1)], 0⟩, 1, .num 0, .num 8192⟩).Holds σ := by
+      intro v k hvk hk hcb
+      subst hcb
+      refine ⟨0, 8192, q + k + co, CoreMode.rep_const (by rw [CoreMode.capE_eq]; norm_num),
+        CoreMode.rep_const hcap, Nat.zero_le _, by omega, ?_⟩
+      simp only [CoreMode.CCell.addrW, CoreMode.CCell.valW, CoreMode.prodW, vw, pow_one, mul_one, one_mul, hvk,
+        ← Value.gen_pow_eq_ofK, addressOfIndex]
+      simp only [mul_assoc, ← pow_add]
+      ring_nf
+    rcases hc with ⟨hcb, hco⟩ | ⟨hcb, hco⟩
+    · exact key 65 (8 * jj) e65 (by simp only at hco; omega) hcb
+    · exact key 80 (4 * (2 * jj + 2 - sh)) e80 (by simp only at hco; omega) hcb
+  | .lt _ _, h | .nz _, h | .subR _ _, h | .subP _ _, h => by simp [CoreMode.lyQC] at h
+
 /-- **The residuals of a heap certificate of families hold** at an honest instance of its function, in
 a frame holding its parameters whose entry runs' exponent cells are powers of `g`. -/
 theorem resOk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {Cf : CFun}
     (hf : coreProgram.find? f = some Cf.fn) (h : resOk Cf = true) (hml : CoreMode.mlK Cf.fn = none)
-    (hst : CoreMode.stK Cf.fn = none) (hgw : Cf.H.sig.gw = []) {fp : ℕ}
+    (hst : CoreMode.stK Cf.fn = none) (hcm : CoreMode.cmK Cf.fn = none) (hgw : Cf.H.sig.gw = []) {fp : ℕ}
     (hpar : ∀ k < Cf.fn.params.length, CoreMode.Rd r.img fp (2 + k) = some (σ (V.n k)))
     (hx : CoreMode.ExpW r.img Cf.xc fp) : ResF Cf.H σ := fun x hx' ↦ by
   have := List.all_eq_true.mp h x hx'
   simp only [CoreMode.resFamG, Bool.or_eq_true, Bool.and_eq_true] at this
-  rcases this with ((⟨((((((((((((hf' | hq) | hsp) | hvt) | hp) | hrc) | hcp) | hvs) | hly) | hvc) | hdg) | htb) | hvk), -⟩ |
-    hm) | hs) | he
+  rcases this with (((⟨(((((((((((((hf' | hq) | hsp) | hvt) | hp) | hrc) | hcp) | hvs) | hly) | hvc) | hdg) | htb) | hvk) | hlq), -⟩ |
+    hm) | hs) | hc) | he
   · exact resFam_inst hr hI ht hf hx hpar x hf'
   · exact resQ_inst hr hI ht hf hq
   · exact splitFam_inst hr hI ht hf hsp
@@ -1541,8 +1621,10 @@ theorem resOk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts core
   · exact daGap_inst hr hI ht hf x hdg
   · exact rcTab_inst hr hI ht hf x htb
   · exact vkQC_inst hr hI ht hf x hvk
+  · exact lyQC_inst hr hI ht hf x hlq
   · cases x <;> simp [CoreMode.mlSub, hml] at hm
   · cases x <;> simp [CoreMode.stSub, hst] at hs
+  · rw [CoreMode.cmSub_none hcm] at hc; cases hc
   · simp [CoreMode.vtExp, hgw, CoreMode.vtGw] at he
 
 /-- **The residuals of a heap certificate of families hold** at a valuation `σ'` agreeing below `GB` with an honest
@@ -1554,12 +1636,13 @@ theorem resOk_instG {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     (hx : CoreMode.ExpW r.img Cf.xc fp) {σ' : Val}
     (hag : ∀ m < CoreMode.GB, σ' (V.n m) = σ (V.n m)) (hml : ∀ x, CoreMode.mlSub Cf.fn x = true → x.Holds σ')
     (hst : ∀ x, CoreMode.stSub Cf.fn x = true → x.Holds σ')
+    (hcm : ∀ x, CoreMode.cmSub Cf.fn x = true → x.Holds σ')
     (hvx : ∀ x, CoreMode.vtExp Cf.fn Cf.H.sig.gw x = true → x.Holds σ') :
     ResF Cf.H σ' := fun x hx' ↦ by
   have := List.all_eq_true.mp h x hx'
   simp only [CoreMode.resFamG, Bool.or_eq_true, Bool.and_eq_true, List.all_eq_true, Nat.blt_eq] at this
-  rcases this with ((⟨((((((((((((hf' | hq) | hsp) | hvt) | hp) | hrc) | hcp) | hvs) | hly) | hvc) | hdg) | htb) | hvk), hv⟩ |
-    hm) | hs) | he
+  rcases this with (((⟨(((((((((((((hf' | hq) | hsp) | hvt) | hp) | hrc) | hcp) | hvs) | hly) | hvc) | hdg) | htb) | hvk) | hlq), hv⟩ |
+    hm) | hs) | hc) | he
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (resFam_inst hr hI ht hf hx hpar x hf')
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (resQ_inst hr hI ht hf hq)
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (splitFam_inst hr hI ht hf hsp)
@@ -1573,8 +1656,10 @@ theorem resOk_instG {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (daGap_inst hr hI ht hf x hdg)
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (rcTab_inst hr hI ht hf x htb)
   · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (vkQC_inst hr hI ht hf x hvk)
+  · exact (CoreMode.CRes.holds_congr fun m hm ↦ hag m (hv m hm)).mpr (lyQC_inst hr hI ht hf x hlq)
   · exact hml x hm
   · exact hst x hs
+  · exact hcm x hc
   · exact hvx x he
 
 end

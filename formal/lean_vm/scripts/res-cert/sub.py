@@ -20,7 +20,8 @@ import wit
 OUT = term.OUT
 # the nonzero values proved here, by their proofs
 PROVED = {('certify_placement', 155): 'nzVal_cp155', ('child_claim_list_mono_last__L0', 1): 'nzVal_ml0 mono_ok',
-          ('verify_tables', 133): 'nzVal_vt133', ('verify_tables', 430): 'nzVal_vt430'}
+          ('verify_tables', 133): 'nzVal_vt133', ('verify_tables', 430): 'nzVal_vt430',
+          ('log2_ceil_in_the_exponent__L0_L34', 0): 'nzVal_lce0', ('log2_ceil_in_the_exponent__L16_L34', 0): 'nzVal_lce16'}
 
 
 def header(mod, what):
@@ -47,7 +48,7 @@ def render():
     mod = 'LeanVM.Guest.Res.SubCerts'
     t = [header(mod, '`ResTop offCerts` from the listed certificates\' residuals and the listed parameters\' nonzero values.')]
     t.append(''.join('public import %s\n' % m for m in mods))
-    t.append('public import LeanVM.Guest.Res.MonoOk\npublic import LeanVM.Guest.EndExecRSub\npublic import LeanVM.Guest.EndExecRCp\n')
+    t.append('public import LeanVM.Guest.Res.MonoOk\npublic import LeanVM.Guest.EndExecRSub\npublic import LeanVM.Guest.EndExecRCp\npublic import LeanVM.Guest.EndExecW\n')
     t.append('\nset_option Elab.async false\n\nnamespace LeanVM.Guest.EndExec\n\nopen LeanVM.Guest LeanVM.Guest.Mode '
              'LeanVM.Guest.Res\n\npublic section\n\n/-- **Every certificate\'s `sub` residuals are in the families.** -/\n'
              'theorem offCerts_sub : ∀ K ∈ offCerts, SubOk resExc K :=\n  fa_flatten (fa_flatten (%s))\n\n' % term.chain(

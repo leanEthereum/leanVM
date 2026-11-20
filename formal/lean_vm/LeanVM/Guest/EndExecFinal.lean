@@ -13,7 +13,6 @@ public import LeanVM.Guest.EndExecR
 public import LeanVM.Guest.EndExecCore
 public import LeanVM.Guest.CoreMode.Gen.Certs
 public import LeanVM.Guest.Res.Off
-public import LeanVM.Guest.EndExecRLce
 public import LeanVM.Guest.EndExecYDeployed
 public import LeanVM.Guest.EndExecYWitCells
 public import LeanVM.Guest.EndExecYShape
@@ -27,7 +26,6 @@ public import LeanVM.Guest.Budget.MainExact
 public import LeanVM.Guest.EndExecW
 public import LeanVM.Guest.EndExecRCld
 public import LeanVM.Guest.EndExecRCp
-public import LeanVM.Guest.EndExecRGkrC
 
 @[expose] public section
 
@@ -112,11 +110,8 @@ theorem assembled (h : Mode.ModeHyps) :
       ResTop allCerts alignA ∧ TermNode allCerts :=
   assemble CoreMode.coreFacts (offFacts h fun K hK ↦ by
     simp only [Res.resExc, List.mem_cons, List.not_mem_nil, or_false] at hK
-    rcases hK with rfl | rfl | rfl | rfl
-    · exact resCld_alignA
-    · exact resLce0_alignA
-    · exact resLce16_alignA
-    · exact resLy_alignA)
+    rcases hK with rfl
+    exact resCld_alignA)
 
 /-- **`ExecGaps` from the open facts**, every proved part wired in. -/
 theorem execGaps_of (O : OpenGaps) :

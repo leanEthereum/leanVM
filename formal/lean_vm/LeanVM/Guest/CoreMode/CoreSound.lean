@@ -514,8 +514,8 @@ theorem callsB_spec {Cf : CFun} (hcb : callsB Cf = true) {f : String} {args rets
     (hs : Stmt.call f args rets ∈ stmtsOf Cf.fn.body ∨
       (rets = [] ∧ ∃ c, Stmt.callIf c f args ∈ stmtsOf Cf.fn.body) ∨
       ∃ x fs, Stmt.dispatch x fs args rets ∈ stmtsOf Cf.fn.body ∧ f ∈ fs) :
-    (∀ q ∈ (Cf.sigOf f).preR, (idxPowC Cf args q.lo && idxPowC Cf args q.hi) = true) ∧
-    ∀ p ∈ (Cf.sigOf f).prePR, (idxPowC Cf args p.1.lo && idxPowC Cf args p.1.hi) = true := by
+    (∀ q ∈ (Cf.sigOf f).preR, (idxPowG Cf f args q.lo && idxPowG Cf f args q.hi) = true) ∧
+    ∀ p ∈ (Cf.sigOf f).prePR, (idxPowG Cf f args p.1.lo && idxPowG Cf f args p.1.hi) = true := by
   have := callsB_chk hcb hs
   simp only [callChkM, Bool.and_eq_true] at this
   exact ⟨List.all_eq_true.mp this.1.2, List.all_eq_true.mp this.2⟩
@@ -1051,6 +1051,46 @@ theorem idxPowC_rep {img : MemoryImage κ} {Cf : CFun} (hp : Cf.pows.Ok) (htop :
   | num n => simp [expArg] at h
   | mono c => simp [expArg] at h
 
+
+/-- **A callee's run bound at a call has an exponent** (`idxPowG`): `idxPowC`'s, or its ghost slot's, a parameter's word
+whose entry cell has an exponent (`ExpW`). -/
+theorem idxPowG_rep {img : MemoryImage κ} {Cf : CFun} (hp : Cf.pows.Ok) (htop : Cf.fn.body.all topOk = true)
+    {fp : ℕ} {σ : Val} {rd : Reader} {es : List Ev} {vs : List V} (hw : walk σ Cf.fn.body = .ret es vs)
+    (hh : ∀ e ∈ es, e.Holds rd σ) (hpar : ∀ k < Cf.fn.params.length, Rd img fp (2 + k) = some (σ (V.n k)))
+    (hx : ExpW img Cf.xc fp) (hres : ResF Cf.H σ) {f : String} {args : List V} {i : CIdx}
+    (h : idxPowG Cf f args i = true) : IdxEx (slotW (args.map σ ++ gargsW Cf.H σ f args)) i := by
+  rcases Bool.or_eq_true_iff.mp h with h | h
+  · exact idxPowC_rep hp htop hw hh hpar hx hres h
+  cases i with
+  | val b =>
+    simp only [ghostArg, Bool.and_eq_true, decide_eq_true_eq] at h
+    obtain ⟨hb, h⟩ := h
+    split at h
+    · rename_i c hc
+      split at h
+      · rename_i k hck
+        simp only [Bool.and_eq_true, Nat.beq_eq, decide_eq_true_eq, List.contains_iff_mem] at h
+        obtain ⟨⟨hoff, hk⟩, hxc⟩ := h
+        obtain ⟨e, he, hrd⟩ := hx _ hxc
+        have hσk : σ (V.n k) = ofK (g ^ e) := by
+          have := hpar k hk
+          rw [hrd] at this
+          exact (Option.some.inj this).symm
+        have hs : slotW (args.map σ ++ gargsW Cf.H σ f args) b = σ (V.n k) := by
+          unfold slotW gargsW
+          rw [List.getD_eq_getElem?_getD, List.getElem?_append_right (by simpa using hb), List.length_map,
+            List.getElem?_map, hc]
+          obtain ⟨cb, co⟩ := c
+          simp only at hck hoff
+          subst hck hoff
+          simp [CCell.valW, prodW, vw]
+        refine ⟨e, ?_, Nat.zero_le _⟩
+        rw [idxC, valW_baseC, hs, hσk]
+        exact rep_of (by rw [capE_eq]; exact he)
+      · cases h
+    · cases h
+  | num n => simp [ghostArg] at h
+  | mono c => simp [ghostArg] at h
 /-- **The promised products' bases at the return**: a parameter's frame cell, a return cell holding the
 returned value, the word past a parameter's a top-level `load` read, written. -/
 theorem baseCellsP_of {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {G : Mode.Sig} {m : Mode.Mono}
@@ -2285,6 +2325,35 @@ theorem idxL_of_idxX {gl : List (ℕ × ℕ × ℕ)} {i : Mode.Idx} {ci : CIdx} 
     | fr o => exact h
     | hp q d => simp [idxX] at h
 
+/-- **A bound's exponent, the caller's cells linked**: a constant's or a frame cell's (`idxX`), or a caller's cell's
+(`isHp1`, its word the linked slot's). -/
+theorem rep_idxValL {gl : List (ℕ × ℕ × ℕ)} {gp : List ((ℕ × ℕ) × ℕ)} {s : St} {ws : List E} {i : Mode.Idx}
+    {ci : CIdx} (hi : idxL gl i = some ci) (hb : bndX i = true) (hc : SlotGetL gl gp s ws (idxB i)) {x : ℕ}
+    (h : rep ((idxC ci).valW (slotW ws)) = some x) (hx : (idxC ci).off ≤ x) : IdxVal s i x := by
+  rcases Bool.or_eq_true_iff.mp hb with hb | hb
+  · obtain ⟨ci', hci'⟩ := Option.isSome_iff_exists.mp hb
+    rw [idxL_of_idxX hci', Option.some.injEq] at hi
+    subst hi
+    exact rep_idxVal hci' (slotGet_ofL hci' hc) h hx
+  · match i, hb, hi with
+    | .ex (.hp q d) c, hb, hi =>
+      simp only [isHp1, Bool.and_eq_true, Nat.beq_eq] at hb
+      obtain ⟨rfl, rfl⟩ := hb
+      simp only [idxL, and_self, ↓reduceIte, Option.map_eq_some_iff] at hi
+      obtain ⟨p, hp, rfl⟩ := hi
+      obtain ⟨w, hw, hv⟩ := hc _ List.mem_cons_self
+      simp only [BaseL, ↓reduceIte, hp, Option.map_some, Option.some.injEq] at hw
+      have hval : (idxC (bif Nat.beq p.2 0 then CIdx.val p.1 else .mono ⟨[(p.1, 1)], p.2⟩)).valW (slotW ws) = w := by
+        rw [← hw]
+        cases hk : Nat.beq p.2 0
+        · simp [idxC, CCell.valW, prodW, addressOfIndex]
+        · rw [Nat.beq_eq] at hk
+          simp [idxC, valW_baseC, hk]
+      rw [hval] at h
+      obtain ⟨hx1, hwx⟩ := rep_spec h
+      rw [capE_eq] at hx1
+      exact ⟨w, x, hv, by rw [hwx, addressOfIndex], hx1, rfl⟩
+
 /-- **A run of exponent bounds, the caller's cells linked** (`boundsX`): its heap run's cells written, its bounds
 having exponents, it is written. -/
 theorem slot_rwLX {gl : List (ℕ × ℕ × ℕ)} {gp : List ((ℕ × ℕ) × ℕ)} {s : St} {ws : List E} {r : Mode.Rng}
@@ -2292,18 +2361,15 @@ theorem slot_rwLX {gl : List (ℕ × ℕ × ℕ)} {gp : List ((ℕ × ℕ) × �
     (hel : IdxEx (slotW ws) q.lo) (heh : IdxEx (slotW ws) q.hi) (h : ∀ x, q.Set (slotW ws) x → WrK s.mem x) :
     RW s r := by
   obtain ⟨lo, hi, c, hlo, hhi, hmc, rfl⟩ := rngL_spec hr
-  simp only [boundsX, Bool.and_eq_true, Option.isSome_iff_exists] at hbx
-  obtain ⟨⟨lo2, hlo2⟩, ⟨hi2, hhi2⟩⟩ := hbx
-  rw [idxL_of_idxX hlo2, Option.some.injEq] at hlo
-  rw [idxL_of_idxX hhi2, Option.some.injEq] at hhi
-  subst hlo hhi
+  simp only [boundsX, Bool.and_eq_true] at hbx
+  obtain ⟨hbl, hbh⟩ := hbx
   have hcq : SlotGetL gl gp s ws r.q.bs := fun b hb ↦ hc b (by simp [rngM, hb])
   have hcl : SlotGetL gl gp s ws (idxB r.lo) := fun b hb ↦ hc b (by simp [rngM, hb])
   have hch : SlotGetL gl gp s ws (idxB r.hi) := fun b hb ↦ hc b (by simp [rngM, hb])
   obtain ⟨ylo, hylo, hylo'⟩ := hel
   obtain ⟨yhi, hyhi, hyhi'⟩ := heh
-  refine ⟨_, ylo, yhi, monoVal_slotL' hmc hcq, rep_idxVal hlo2 (slotGet_ofL hlo2 hcl) hylo hylo',
-    rep_idxVal hhi2 (slotGet_ofL hhi2 hch) hyhi hyhi', fun j h1 h2 ↦ ?_⟩
+  refine ⟨_, ylo, yhi, monoVal_slotL' hmc hcq, rep_idxValL hlo hbl hcl hylo hylo',
+    rep_idxValL hhi hbh hch hyhi hyhi', fun j h1 h2 ↦ ?_⟩
   have hx := h _ (runSet_iff.mpr ⟨ylo, yhi, j, hylo, hyhi, h1, h2, rfl⟩)
   rw [run_cell]
   exact names_wrk hx
@@ -3343,7 +3409,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
             refine ⟨f, args, rets, st, t, o, pos', hsite, hfo, hat', as, hpairs, ?_, ?_, hout, ht30, G, hG, hr30,
               entOk_spec hentF, hfit⟩
             · intro σ pre es vs rd hσ hb' hwp' hrw
-              rcases hkA with hkA | ⟨c, hloc, rfl, hkA⟩
+              rcases hkA with ⟨-, hkA⟩ | ⟨c, -, hloc, rfl, hkA⟩
               · exact hkA hwp' hrw
               obtain ⟨evs, cs, es', rfl, hwp2, hcs, hasin, hevM, hW'⟩ := hkA hwp' hrw
               have hcond := hσ.jc.cond _ _ hb' c (by simp)
@@ -3638,9 +3704,9 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
             have hSG : ∀ {m : Mode.Mono}, monoS G args.length true m = true →
                 SlotGet s' (args.map σ0 ++ gargsW Cf.H σ0 f args) m.bs := fun hm' ↦
               slotGet_of hκ hf'.agree hf'.fp hws1 hentry.w hm'
-            have hexp1 : ∀ j, idxPowC Cf args j = true →
+            have hexp1 : ∀ j, idxPowG Cf f args j = true →
                 IdxEx (slotW (args.map σ0 ++ gargsW Cf.H σ0 f args)) j := fun j h ↦
-              idxPowC_rep hok.pows htop hb hh0 hσ0.par hxw (hσ0.res hxw) h
+              idxPowG_rep hok.pows htop hb hh0 hσ0.par hxw (hσ0.res hxw) h
             have hW1 : ∀ x, WrittenC Cf.sigOf Cf.H rd σ0 (Cf.fn.params.map σ0) (pre ++ evs) x → WrK s'.mem x :=
               fun x hx ↦ (hWs1 x hx).mono hle'
             obtain ⟨hgl, ⟨hrpre, hrpreR⟩, hrptr⟩ := callReq_pre (ders_of hok.heap hbody hb hcallE) hreq

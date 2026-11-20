@@ -34,6 +34,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P11».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P11».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P11».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P11».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P11».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P15»
 public import LeanVM.Guest.CoreMode.Sig.«P26»
@@ -57,27 +58,17 @@ open LeanVM.Guest.Exec
 
 @[expose] public section
 
+noncomputable def Fn.«verify_bus_gkr_loop0».envC : Mode.Env := CoreMode.envOf
+    [Fn.«gkr_rounds__L1».csig, Fn.«gkr_rounds__L2».csig, Fn.«verify_bus_gkr_loop0_loop0».csig,
+    Fn.«verify_bus_gkr_loop0».csig]
+noncomputable def Fn.«verify_bus_gkr_loop0».funC : Mode.Fun := ⟨Fn.«verify_bus_gkr_loop0».entry,
+    227, Fn.«verify_bus_gkr_loop0».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«verify_bus_gkr_loop0».frameFun : CoreMode.FFun :=
   ⟨{ env := [(13, (.fpg 0))], fpOne := false, pows := fpows, scaled := [13] },
     Fn.«verify_bus_gkr_loop0».entry, 227, Fn.«verify_bus_gkr_loop0».csig, (CoreMode.sigTrie
-    [Fn.«gkr_rounds__L1».csig, Fn.«gkr_rounds__L2».csig, Fn.«verify_bus_gkr_loop0_loop0».csig]),
-    524287, advice.2.2, .nil, .nil, .nil, .nil, (.node none (.node none (.node none (.node (some ())
-    .nil (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node (some ())
-    .nil .nil) .nil))) (.node (some ()) .nil (.node none .nil (.node none (.node (some ()) .nil
-    .nil) .nil)))) (.node none (.node (some ()) (.node none .nil (.node none .nil (.node (some ())
-    .nil .nil))) (.node none .nil (.node (some ()) (.node (some ()) .nil .nil) (.node (some ()) .nil
-    .nil)))) (.node none (.node (some ()) .nil (.node none .nil (.node (some ()) .nil .nil))) (.node
-    none (.node none .nil (.node (some ()) .nil .nil)) .nil)))) (.node none (.node none (.node (some
-    ()) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil) (.node none (.node none .nil
-    (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil .nil) .nil))) (.node (some ())
-    (.node (some ()) (.node none .nil (.node (some ()) .nil .nil)) (.node none (.node (some ()) .nil
-    .nil) .nil)) (.node none .nil (.node none (.node (some ()) .nil .nil) .nil)))) (.node none
-    (.node (some ()) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)
-    .nil) (.node none (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none
-    (.node (some ()) .nil .nil) .nil))) (.node none (.node (some ()) (.node none (.node none (.node
-    (some ()) .nil .nil) .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)) (.node none
-    (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none .nil (.node (some
-    ()) .nil .nil))))))), .nil, .nil⟩
+    [Fn.«gkr_rounds__L1».csig, Fn.«gkr_rounds__L2».csig, Fn.«verify_bus_gkr_loop0_loop0».csig,
+    Fn.«verify_bus_gkr_loop0».csig]), 524287, advice.2.2, .nil, .nil, .nil, .nil,
+    Fn.«verify_bus_gkr_loop0».pairO, Fn.«verify_bus_gkr_loop0».pairS, .nil⟩
 
 theorem Fn.«verify_bus_gkr_loop0».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true :=
     by

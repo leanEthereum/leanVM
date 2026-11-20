@@ -18,7 +18,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
 
 example : Data.functions.length = fn_count% := by decide +kernel
 
-example : Data.codeLen = 457072 := rfl
+example : Data.codeLen = 457074 := rfl
 
 /-- `sp_wots` is function 20, the largest after `__loop2_main` (function 39, 114219 instructions). -/
 theorem spWots_mem : Data.f20 ∈ Data.functions := mem_functions (j := 20) rfl
@@ -97,7 +97,7 @@ example : guestProgram.fetch (addressOfIndex 14644) =
 /-- The first instruction of the program, in `__jump_tables`: `SET fp[430]` to a jump target, a
 power of `g`. -/
 example : guestProgram.fetch (addressOfIndex 0) = some (OffsetInstruction.set 430
-    8344899526803633904 0).toLeanIsaInstruction :=
+    4391183912891281217 0).toLeanIsaInstruction :=
   guest_fetch_of (f := Data.f0) (mem_functions (j := 0) rfl) (i := 0) (by decide +kernel)
     (by decide +kernel) (by decide +kernel)
 

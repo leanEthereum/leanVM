@@ -219,9 +219,8 @@ namespace LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L0_L34»
 @[expose] public section
 def hcert : CoreMode.HCert where
   sig := CoreMode.HcSig.«log2_ceil_in_the_exponent__L0_L34».sig
-  reads := [(4, [(3, 0, .ev 0), (3, 1, .ev 1), (3, 2, .ev 2), (3, 3, .ev 3), (3, 4, .ev 4), (3, 5, .ev 5), (3, 6, .ev 6), (3, 7, .ev 7), (3, 8, .ev 8), (3, 9, .ev 9), (3, 10, .ev 10), (3, 11, .ev 11), (3, 12, .ev 12), (3, 13, .ev 13), (3, 14, .ev 14), (3, 15, .ev 15), (3, 16, .ev 16), (3, 17, .ev 17), (3, 18, .ev 18), (3, 19, .ev 19), (3, 20, .ev 20), (3, 21, .ev 21), (3, 22, .ev 22), (3, 23, .ev 23), (3, 24, .ev 24), (3, 25, .ev 25), (3, 26, .ev 26), (3, 27, .ev 27), (3, 28, .ev 28), (3, 29, .ev 29), (3, 30, .ev 30), (3, 31, .ev 31), (3, 32, .ev 32), (3, 33, .ev 33)]),
-    (16, [(15, 0, .run 9 [0])]), (25, [(24, 0, .run 9 [1])])]
-  res := [.lt (.val 4) (.num 34), .under [.nonzero 19] (.lt (.mono ⟨[(11, 1), (22, 1)], 0⟩) (.num 34))]
+  reads := [(48, [(47, 0, .run 9 [0])]), (57, [(56, 0, .run 9 [1])])]
+  res := [.lt (.val 36) (.num 34), .under [.nonzero 51] (.lt (.mono ⟨[(43, 1), (54, 1)], 0⟩) (.num 34))]
   calls := [(List.flatten [CoreMode.runR 0 9]), (List.flatten [CoreMode.runR 11 9])]
   rets := [(List.flatten [CoreMode.runR 11 9,
         [.pts, .run 9 [], .run 11 [], .run 11 [], .run 11 [], .run 11 [], .run 11 [], .run 11 [], .run 11 [],
@@ -244,7 +243,7 @@ def hcert : CoreMode.HCert where
         .run 18 [], .run 19 [], .run 19 [], .run 19 [], .run 19 [], .run 19 [], .run 19 [], .run 19 [],
         .run 19 [], .run 19 [], .run 19 [], .run 19 [], .run 19 [], .run 19 [], .run 19 [], .run 19 [],
         .run 19 [], .run 9 [], .run 10 []]])]
-  eqs := [21]
+  eqs := [53]
 
 def csigs : List (String × CoreMode.HSig) :=
   [("assert_small_g_power", CoreMode.HcSig.«assert_small_g_power».sig)]

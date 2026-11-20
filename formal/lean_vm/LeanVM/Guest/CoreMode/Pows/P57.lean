@@ -58,7 +58,7 @@ noncomputable def Fn.«level_residual__L32_L12_L4_L2_loop0».pows : Exec.PowTree
 theorem Fn.«level_residual__L32_L12_L4_L2_loop0».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«level_residual__L55_L18_L6_L3_loop0».pows : Exec.PowTree := (.node 2 1 .leaf .leaf)
 theorem Fn.«level_residual__L55_L18_L6_L3_loop0».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
-noncomputable def Fn.«log2_ceil_in_the_exponent__L0_L34».pows : Exec.PowTree := (.node 17179869184 34 (.node 8589934592 33 .leaf .leaf) .leaf)
+noncomputable def Fn.«log2_ceil_in_the_exponent__L0_L34».pows : Exec.PowTree := (.node 8589934592 33 .leaf .leaf)
 theorem Fn.«log2_ceil_in_the_exponent__L0_L34».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0».pows : Exec.PowTree := (.node 2 1 .leaf .leaf)
 theorem Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)

@@ -16,15 +16,10 @@ Then:
    move, `(b)`), and every script still naming `MODE_CERT_CACHE` or `mode-cert`.
 
 Before it (found by a dry run with the functions off the route stubbed, `--force`):
-* `callc.fa_past` (`fa_past.py`) reads the mode walk's oracle and residuals (`frame_data.load(MODE_CERT_CACHE)`) for
-  routed functions too: without them the frame run cells past the run are lost and three routed functions
-  (`da_expand__L6_L7`, `da_expand__L13_L7`, `decode_query_windows__L14_L2`) drop off the route. It must walk with the
-  core route's oracle and stores (the pairing's `pairO`/`pairS`) and its own residual divisors (`frame_run.own_nz`),
-  as `frame_gen.py` does.
-* `Res/ResGiven.lean` (`res-cert/sel.py`'s) is still read through `Res/SubDefs`: with `resExc` empty it imports
-  nothing and must be written by hand (or `SubDefs` drop it).
+* (done here) `Res/ResGiven.lean`, `res-cert/sel.py`'s, was read through `Res/SubDefs` only for its import: SubDefs
+  drops it (`sub_defs`), and it goes with the rest.
 * The modules named for the old route that the end theorem still reaches (reported in 4: `EndExecR*`, `Mode/*`,
-  `Res/*Defs`, `Bridge/AlignWin` through the hint bridge) are hand modules to rename or move, `(b)`.
+  `Res/*Defs`) are hand modules to move: `move-old-route.py`, run after this script.
 * `sigc.py`, `frame_gen.py`, `frame_data.py`, `frame_run.py`, `route.py` read `MODE_CERT_CACHE` only for functions off
   the route: with none left their branches are dead and go with it.
 
@@ -39,7 +34,7 @@ RX = re.compile(r'^(?:public |meta |private )*import (?:all )?(\S+)', re.M)
 OFF_IMPORTS = ['LeanVM.Guest.Res.Off', 'LeanVM.Guest.EndExecRCld', 'LeanVM.Guest.EndExecRCp',
                'LeanVM.Guest.EndExecRGkrC', 'LeanVM.Guest.EndExecRLce']
 KEEP_IMPORTS = ['LeanVM.Guest.CoreMode.Gen.AnyLinkOk', 'LeanVM.Guest.CoreMode.Gen.MonoWalkOk']
-OLD = re.compile(r'LeanVM\.Guest\.(Pack\.[^.]+\.Mode|Mode\.|Res\.|EndExecR|Bridge\.AlignWin)')
+OLD = re.compile(r'LeanVM\.Guest\.(Pack\.[^.]+\.Mode|Mode\.|Res\.|EndExecR)')
 
 
 def text(p):
@@ -112,6 +107,16 @@ def end_final():
     return p, t
 
 
+def sub_defs():
+    """`Res/SubDefs.lean` without `Res/ResGiven` (`res-cert/sel.py`'s, gone with it): its families take the list of
+    certificates given whole as a parameter (`SubOk exc K`), and with none left nothing names it."""
+    p = os.path.join(G, 'Res', 'SubDefs.lean')
+    t = text(p).replace('public import LeanVM.Guest.Res.ResGiven\n', '')
+    t = t.replace('`EndExec.resOpen_subOk` (`EndExecRSub`): given `SubOk resExc` of every certificate and the listed\n'
+                  'certificates\' residuals, no `sub` residual outside the families is left open.\n', '')
+    return p, t
+
+
 def regen_script():
     p = os.path.join(LV, 'scripts', 'regen-guest.sh')
     t = text(p)
@@ -136,7 +141,7 @@ def main():
         sys.exit('drop-mode-route: functions are still off the core route (--force for a dry run)')
     imp, files = graph()
     before = reach(imp, set())
-    cut = {('LeanVM.Guest.EndExecFinal', m) for m in OFF_IMPORTS}
+    cut = {('LeanVM.Guest.EndExecFinal', m) for m in OFF_IMPORTS} | {('LeanVM.Guest.Res.SubDefs', 'LeanVM.Guest.Res.ResGiven')}
     imp['LeanVM.Guest.EndExecFinal'] = imp['LeanVM.Guest.EndExecFinal'] + KEEP_IMPORTS
     after = reach(imp, cut)
     gone = set(m for m in before - after if m in files)
@@ -164,6 +169,8 @@ def main():
     p, t = end_final()
     open(p, 'w', encoding='utf-8').write(t)
     p, t = regen_script()
+    open(p, 'w', encoding='utf-8').write(t)
+    p, t = sub_defs()
     open(p, 'w', encoding='utf-8').write(t)
     paths = [files[m] for m in gone] + [os.path.join(LV, 'scripts', d) for d in ('mode-cert', 'res-cert')]
     if NOGIT:

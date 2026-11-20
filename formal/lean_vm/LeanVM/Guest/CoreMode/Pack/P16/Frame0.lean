@@ -47,6 +47,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P16».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P16».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P16».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P16».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P16».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P16»
 public import LeanVM.Guest.CoreMode.Sig.«P17»
@@ -93,9 +94,13 @@ noncomputable def Fn.«child_claim_list_digest».frameFun : CoreMode.FFun :=
 theorem Fn.«child_claim_list_digest».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true
     := by
   decide +kernel
+noncomputable def Fn.«da_padding».envC : Mode.Env := CoreMode.envOf []
+noncomputable def Fn.«da_padding».funC : Mode.Fun := ⟨Fn.«da_padding».entry, 11,
+    Fn.«da_padding».csig, .nil, .nil, .nil, false, .nil⟩
 noncomputable def Fn.«da_padding».frameFun : CoreMode.FFun :=
   ⟨{ env := [], fpOne := false, pows := fpows, scaled := [] }, Fn.«da_padding».entry, 11,
-    Fn.«da_padding».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil, .nil, .nil, .nil⟩
+    Fn.«da_padding».csig, .nil, 524287, advice.2.2, .nil, .nil, .nil, .nil, Fn.«da_padding».pairO,
+    Fn.«da_padding».pairS, .nil⟩
 
 theorem Fn.«da_padding».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
   decide +kernel
