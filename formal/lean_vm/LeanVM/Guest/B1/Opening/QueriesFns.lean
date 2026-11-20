@@ -57,7 +57,10 @@ bodies. -/
 def OqFns (p : String × String × OqShape) : Prop :=
   WalkFn coreProgram (oqWalkOf p.2.2.oq) p.2.2.oq.pd p.2.2.cd ∧
     ∃ fm fl : Fn, coreProgram.find? p.1 = some fm ∧
-      fm.params = [.n (valf% «opening_queries» "cap"), .n (valf% «opening_queries» "flags"), .n (valf% «opening_queries» "lam_inv"), .n (valf% «opening_queries» "coefs"), .n (valf% «opening_queries» "hs"), .n (valf% «opening_queries» "positions"), .n (valf% «opening_queries» "query_win_ptrs"), .n (valf% «opening_queries» "n_iters_g")] ∧
+      fm.params = [.n (valf% «opening_queries» "cap"), .n (valf% «opening_queries» "flags"), .n
+          (valf% «opening_queries» "lam_inv"), .n (valf% «opening_queries» "coefs"), .n
+          (valf% «opening_queries» "hs"), .n (valf% «opening_queries» "positions"), .n
+          (valf% «opening_queries» "query_win_ptrs"), .n (valf% «opening_queries» "n_iters_g")] ∧
       fm.body = oqMainT p.2.2.oq p.2.2.odd (oqWalkOf p.2.2.oq) p.2.1 ∧
       coreProgram.find? p.2.1 = some fl ∧ fl.params = oqLoopParams ∧
       fl.body = oqLoopT p.2.2.oq p.2.2.odd (oqWalkOf p.2.2.oq) p.2.1
