@@ -304,8 +304,21 @@ def classify(path, src, overrides, vals, stmts, cnames, ties, families, where):
                     re.search(r'(?<![\w.\'])' + re.escape(v) + r'(?![\w\'])', code[a:b]) for v in fmvars)
         return False
 
+    def in_pattern(i):
+        """Whether `i` is in a match arm's pattern (`| .load _ (.n 1) off => …`): a term there
+        would not be a pattern."""
+        ls = code.rfind("\n", 0, i) + 1
+        le = code.find("\n", i)
+        le = len(code) if le < 0 else le
+        before, after = code[ls:i], code[i:le]
+        bars = [m.start() for m in re.finditer(r'(?<![|<])\|(?![|>])', before)]
+        if not bars: return False
+        bar = bars[-1]
+        return "=>" not in before[bar:] and "=>" in after
+
     def fn_at(i):
         """The function a literal at `i` reads: its declaration's, else the file's, if unique."""
+        if in_pattern(i): return None, "in a match pattern"
         if frame_ctx(i): return None, "frame-map context (frame cells, not core values)"
         def chosen(o): return (("family", o), None) if o in families else (o, None)
         fs = set()
