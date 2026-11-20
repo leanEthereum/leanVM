@@ -50,8 +50,12 @@ def gen():
     for t, (p, q) in enumerate(S):
         er, gr = rets[t]
         assert D[SH_EQ[t]] == (q + 1, 'copy', [er]) and D[SH_G[t]] == (q + 2, 'copy', [gr])
-        cases.append(f'  · exact ⟨by rw [vt_copyAt hl {q + 1} (d := .n {SH_EQ[t]}) (x := .n {er}) (by decide +kernel), r{t}.1],\n'
-                     f'      by rw [vt_copyAt hl {q + 2} (d := .n {SH_G[t]}) (x := .n {gr}) (by decide +kernel), r{t}.2]⟩')
+        cases.append(f'  · exact ⟨by\n'
+                     f'      show σv (.n {SH_EQ[t]}) = w {er}\n'
+                     f'      rw [vt_copyAt hl {q + 1} (d := .n {SH_EQ[t]}) (x := .n {er}) (by decide +kernel), r{t}.1],\n'
+                     f'    by\n'
+                     f'      show σv (.n {SH_G[t]}) = w {gr}\n'
+                     f'      rw [vt_copyAt hl {q + 2} (d := .n {SH_G[t]}) (x := .n {gr}) (by decide +kernel), r{t}.2]⟩')
     L.append('set_option maxRecDepth 100000 in\n'
              '/-- **The tables\' pointers**: table `t`\'s nibble tables are what its `shared_selector_tables`\n'
              'call returned, the oracle\'s answers. -/\n'

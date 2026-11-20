@@ -14,8 +14,9 @@ public import LeanVM.Guest.B1.Selectors.SharedTablesComplete
 
 `vtIdxcW`: `idxc_tab`'s words `1 + g^(2^t)`; `idxc_ok`: its stores hold on a memory holding them.
 `zeta1_ok`: `plus_one_run` on `g^μ` holds when `zeta1` holds `1 + ζ_k`. `sh_call`: a table's
-`shared_selector_tables` call on a run of `μ - τ` coordinates, its nibble tables in place
-(`RunTables`); the calls' statements are `SShT`'s.
+`shared_selector_tables` call on a run of `μ - τ` coordinates, returning its two tables with its
+nibble tables in place (`RunTables`); `vtc_shRets`: a call's returns are the oracle's answers; the
+calls' statements are `SShT`'s.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -77,13 +78,22 @@ theorem zeta1_ok (hl : args.length = 20) {point : List E}
   simp only [List.map_cons, List.map_nil, MeaningPlusOneRun]
   exact ⟨⟨point, rfl, hz, hz1⟩, by rw [hg]; simp [hw]⟩
 
+/-- **A `shared_selector_tables` call's returns are the oracle's answers.** -/
+theorem vtc_shRets (hl : args.length = 20) (n : ℕ) (a : List V) (er gr : ℕ)
+    (heq : tbStmtsEqb [.call "shared_selector_tables" a [.n er, .n gr]] ((vtAt n).take 1) = true) :
+    vtσ rd w args (.n er) = w er ∧ vtσ rd w args (.n gr) = w gr := by
+  have h := vt_goodAt (rd := rd) (w := w) hl n _ heq
+  simp only [fixNe, GoodS, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp,
+    forall_eq] at h
+  exact h
+
 theorem sh_call {μ τ : ℕ} {point : List E} (hμ : point.length = μ) (hμ33 : μ < 33)
     (hτμ : τ ≤ μ) {eqt gt z z1 gsq : E}
     (hzv : TbReadsAt rd z (point.drop τ)) (hz1v : TbReadsAt rd z1 ((point.map (1 + ·)).drop τ))
     (hsqv : TbReadsAt rd gsq ((gSquaresList.drop τ).take (μ - τ)))
     (hrun : RunTables rd eqt gt (μ - τ) (point.drop τ) ((point.map (1 + ·)).drop τ)
       ((gSquaresList.drop τ).take (μ - τ))) :
-    coreProgram.Rel rd "shared_selector_tables" [eqt, gt, z, z1, gsq, gen ^ (μ - τ)] [] := by
+    coreProgram.Rel rd "shared_selector_tables" [z, z1, gsq, gen ^ (μ - τ)] [eqt, gt] := by
   have hsql : gSquaresList.length = 34 := by simp [gSquaresList]
   exact shared_selector_tables_complete_holds rd eqt gt z z1 gsq (μ - τ) _ _ _ (by omega)
     (by simp; omega) (by simp; omega) (by simp [hsql]; omega) hzv hz1v hsqv hrun
