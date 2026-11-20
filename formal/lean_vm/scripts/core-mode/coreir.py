@@ -7,10 +7,10 @@
   ('dispatch', x, fs, args, rets) ('ret', vs);
 `comp`, each compiled function's code `[(op, [operands])]`, entry, instruction count and certificate cells
 (`Cert.locs`, by value number); `stable`, the stable name of each compiler name; `pows`, the powers of `g`
-by their `K` bits. Parsed once and cached at `$CORE_MODE_CACHE` (default this tree's `.lake/core-mode-cache.pkl`, so no
-other tree's parse is read); delete the cache after a regen.
+by their `K` bits. Parsed once and cached at `$CORE_MODE_CACHE` (default this tree's `.lake/core-mode-cache.pkl`), with
+the digest of what the parse reads (`_inputs`): a cache of other inputs is parsed again.
 """
-import os, sys, re, pickle
+import os, sys, re, pickle, glob, hashlib
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import memo  # noqa: E402,F401  (first: it records what the process reads, `memo.py`)
@@ -119,10 +119,28 @@ def _mode_data():
     return _by_path('compiled', 'core-mode/compiled.py').load()
 
 
+def _inputs():
+    """The digest of what the parse reads: the guest's generated packs and data, the statement's data, and the
+    parsing scripts."""
+    guest = os.path.join(HERE, '..', '..', 'LeanVM', 'Guest')
+    pats = [os.path.join(guest, 'Pack', '*', '*.lean'), os.path.join(guest, 'Data', '*.lean'),
+            os.path.join(HERE, '..', '..', '..', 'Statement', 'Data', '*.lean'), os.path.join(HERE, 'coreir.py'),
+            os.path.join(HERE, 'compiled.py'), os.path.join(HERE, '..', 'bridge-cert', 'data.py')]
+    h = hashlib.sha256()
+    for p in sorted(f for pat in pats for f in glob.glob(pat)):
+        h.update(os.path.relpath(p, HERE).encode() + b'\0')
+        with open(p, 'rb') as fh:
+            h.update(hashlib.sha256(fh.read()).digest())
+    return h.hexdigest()
+
+
 def load():
+    key = _inputs()
     if os.path.exists(CACHE):
         with open(CACHE, 'rb') as f:
-            return pickle.load(f)
+            cached = pickle.load(f)
+        if cached.get('key') == key:
+            return cached
     texts = BD.core_texts()
     fns, names = {}, {}
     for k, t in texts.items():
@@ -138,7 +156,7 @@ def load():
         comp[k] = dict(entry=b['entry'], count=b['count'], locs=b['locs'], plumb=b['plumb'],
                        code=[(op, [int(x) if x.isdigit() else x for x in args]) for op, args in m['code']] if m else None,
                        nargs=m.get('nargs') if m else None)
-    out = dict(core=fns, stable=names, comp=comp, pows=md['pows'], hints=md['hints'], core_text_lines={k: t.count('\n') for k, t in texts.items()})
+    out = dict(key=key, core=fns, stable=names, comp=comp, pows=md['pows'], hints=md['hints'], core_text_lines={k: t.count('\n') for k, t in texts.items()})
     # written whole, then renamed: generators running at once read a complete cache or none
     tmp = '%s.%d' % (CACHE, os.getpid())
     os.makedirs(os.path.dirname(os.path.abspath(CACHE)), exist_ok=True)

@@ -11,6 +11,8 @@ Usage: python3 -I scripts/core-mode/frame_gen.py [--only PACK...] [--fns NAME...
 import os, re, sys, collections, glob
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+sys.path.append(os.path.join(HERE, '..'))
+import genfiles  # noqa: E402
 import frame as FR  # noqa: E402
 import frame_data as FD  # noqa: E402
 import frame_run as RUN  # noqa: E402
@@ -436,17 +438,12 @@ def main(argv):
             '@[expose] public section\n\n' +
             ''.join(fpowsDef(D['fns'][n]['ns']) for n in sorted(names, key=lambda n: D['fns'][n]['ns'])) +
             '\nend\n\nend LeanVM.Guest\n')
-    if not only and not fns_only:
-        # a window or module no longer written (fewer windows, a function moved)
-        for path in glob.glob(os.path.join(OUT, '*', 'Frame*.lean')):
-            if path not in files: os.remove(path)
-    lines = 0
-    for path, text in sorted(files.items()):
-        text = wrap(text)
-        lines += text.count('\n')
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        old = open(path).read() if os.path.exists(path) else None
-        if old != text: open(path, 'w').write(text)
+    files = {path: wrap(text) for path, text in files.items()}
+    # a window, module or pack no longer written (fewer windows, a function moved, a pack gone)
+    have = [] if only or fns_only else (glob.glob(os.path.join(OUT, '*', 'Frame*.lean')) +
+                                        glob.glob(os.path.join(FD.ROOT, 'CoreMode', 'GlueP', '*.lean')))
+    genfiles.sync(files, have)
+    lines = sum(text.count('\n') for text in files.values())
     print('files', len(files), 'functions', stats['fns'], 'windows', stats['windows'], 'lines', lines)
 
 
