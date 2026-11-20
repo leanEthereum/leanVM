@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.1](https://github.com/leanEthereum/leanVM/compare/bindings-v0.13.0...bindings-v0.13.1) (2026-11-20)
+
+
+### Bug Fixes
+
+* add leanvm-sidecar --version ([8895fd1](https://github.com/leanEthereum/leanVM/commit/8895fd13d33acd90192f5d3ccc2f11f2332ce72e))
+
 ## [0.13.0](https://github.com/leanEthereum/leanVM/compare/bindings-v0.12.0...bindings-v0.13.0) (2026-11-19)
 
 
