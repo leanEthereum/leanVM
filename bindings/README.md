@@ -1,6 +1,6 @@
 # Bindings
 
-leanXMSS and leanSPHINCS signatures and their aggregation, for Python, Node.js, Java, Go, Zig and Nim.
+leanXMSS and leanSPHINCS signatures, their aggregation, and the consensus VRF tree, for Python, Node.js, Java, Go, Zig and Nim.
 
 - Signing and verifying signatures run in your process, on every platform.
 - Aggregating, and verifying aggregates, run in the [sidecar](#sidecar), a separate process (Linux and macOS).

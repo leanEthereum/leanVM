@@ -3,6 +3,7 @@
 mod aggregate;
 mod error;
 pub mod sphincs;
+pub mod vrf;
 pub mod xmss;
 
 pub use aggregate::{Aggregate, Sidecar, MAX_CHILDREN};

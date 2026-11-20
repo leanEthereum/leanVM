@@ -1,6 +1,6 @@
 const native = require('./index.js')
 
-const { Aggregate, Sidecar, SphincsSecretKey, XmssSecretKey } = native
+const { Aggregate, Sidecar, SphincsSecretKey, VrfKey, XmssSecretKey } = native
 
 XmssSecretKey.generate = native.generateXmssSecretKey
 XmssSecretKey.fromSeed = native.xmssSecretKeyFromSeed
@@ -10,6 +10,9 @@ XmssSecretKey.fromCacheBytes = native.xmssSecretKeyFromCacheBytes
 SphincsSecretKey.generate = native.generateSphincsSecretKey
 SphincsSecretKey.fromSeed = native.sphincsSecretKeyFromSeed
 SphincsSecretKey.fromBytes = native.sphincsSecretKeyFromBytes
+
+VrfKey.fromSeed = native.vrfKeyFromSeed
+VrfKey.fromCacheBytes = native.vrfKeyFromCacheBytes
 
 // async: an invalid argument rejects the promise rather than throwing.
 Sidecar.connect = async (socket) => native.sidecarConnect(socket)
@@ -28,6 +31,8 @@ module.exports = {
   xmssVerify: native.xmssVerify,
   SphincsSecretKey,
   sphincsVerify: native.sphincsVerify,
+  VrfKey,
+  vrfVerify: native.vrfVerify,
   Aggregate,
   Sidecar,
 }

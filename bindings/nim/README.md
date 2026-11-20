@@ -1,6 +1,6 @@
 # lean-pq Nim bindings
 
-Nim bindings for leanXMSS and leanSPHINCS signatures and their recursive aggregation.
+Nim bindings for leanXMSS and leanSPHINCS signatures, their recursive aggregation, and the consensus VRF tree.
 
 ## Install
 
@@ -57,6 +57,12 @@ proc main() =
     sphincsSignature = sphincsKey.sign(message).expect("signature")
   doAssert sphincsVerify(sphincsPublicKey, message, sphincsSignature)
 
+  seed[0] = 0x03
+  let
+    vrfKey = VrfKey.init(seed, 1000, 2000).expect("key")
+    vrfRoot = vrfKey.root().expect("root")
+  doAssert vrfVerify(vrfRoot, 1500, vrfKey.proof(1500).expect("proof"))
+
   # Handles are freed when collected; `close` frees them now.
   xmssKey.close()
   doAssert xmssKey.sign(message, 8).isErr()
@@ -100,6 +106,12 @@ sidecar.close()
 - `LeanPqSidecar.start("leanvm-sidecar", getHomeDir() / ".leanvm" / "run" / "sidecar.sock", threads = 0)` launches a sidecar instead (`threads` 0: one per core). The socket's directory must be private to you; `start` creates it so if missing. `prover()` returns `experimental` or `stable`.
 - A sidecar serves at most 16 connections: share one `LeanPqSidecar` per process. Calls on it run one at a time. `close` disconnects and stops a sidecar `start` launched.
 - On Linux, ignore `SIGPIPE` (`signal(SIGPIPE, SIG_IGN)` from `std/posix`), so that a sidecar that dies fails the call instead of killing the program.
+
+## VRF
+
+A key is a 32-byte seed and the slots `start ..< stop`, with `stop <= 2^31`: both fix the root, so keep both. Building it hashes every slot of the range once; a proof then costs about `3 sqrt(R)` hashes for `R` slots. A proof is 1024 bytes: the slot's secret, then its leaf's 31 siblings, which reveal no other secret. An empty range, a range past `2^31` and a slot outside the range return an error.
+
+`cacheToBytes()` encodes the key's cache, its range and cached layer (about `32 sqrt(R)` bytes, no secret), and `VrfKey.fromCacheBytes(seed, root, cache)` rebuilds the key from its seed and that cache without hashing the range, failing if the cache does not lead to `root`.
 
 ## Build from source
 

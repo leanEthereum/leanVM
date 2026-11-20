@@ -11,6 +11,7 @@ claims.workspace = true
 verifier.workspace = true
 lean_xmss.workspace = true
 lean_sphincs.workspace = true
+lean_vrf.workspace = true
 isa.workspace = true
 aggregation.workspace = true
 lean_da.workspace = true

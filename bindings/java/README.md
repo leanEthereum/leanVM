@@ -1,6 +1,6 @@
 # lean-pq for Java
 
-Java bindings for the leanXMSS and leanSPHINCS post-quantum signatures and their aggregation into one proof.
+Java bindings for the leanXMSS and leanSPHINCS post-quantum signatures, their aggregation into one proof, and the consensus VRF tree.
 
 ## Install
 
@@ -49,6 +49,21 @@ try (XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
 - leanSPHINCS is stateless and deterministic; a key signs at most `2^30` messages.
 - `toBytes()` is the key's 32-byte seed, which is secret; `fromBytes` restores the key.
 - `cacheToBytes()` returns the key's trees, which are not secret; `XmssSecretKey.fromCacheBytes(seed, publicKey, cache)` loads the key from them instead of rebuilding them, checking them against the public key.
+
+## VRF
+
+```java
+import org.ethereum.leanpq.*;
+
+try (VrfKey key = VrfKey.fromSeed(seed32, 1000, 2000)) {
+    byte[] root = key.root();
+    boolean valid = LeanPq.vrfVerify(root, 1500, key.proof(1500));
+}
+```
+
+A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both fix the root, so keep both. Building it hashes every slot of the range once; a proof then costs about `3 sqrt(R)` hashes for `R` slots. A proof is 1024 bytes: the slot's secret, then its leaf's 31 siblings, which reveal no other secret. An empty range, a range past `2^31` and a slot outside the range throw `LeanPqException`.
+
+`cacheToBytes()` encodes the key's cache, its range and cached layer (about `32 sqrt(R)` bytes, no secret), and `VrfKey.fromCacheBytes(seed, root, cache)` rebuilds the key from its seed and that cache without hashing the range, failing if the cache does not lead to `root`.
 
 ## Aggregate
 

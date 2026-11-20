@@ -18,6 +18,7 @@ claims = { path = "../crates/claims" }
 sidecar = { path = "../crates/sidecar" }
 lean_xmss = { path = "../crates/lean_xmss" }
 lean_sphincs = { path = "../crates/lean_sphincs" }
+lean_vrf = { path = "../crates/lean_vrf" }
 lean-pq = { path = "rust" }
 
 [profile.release]
