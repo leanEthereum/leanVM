@@ -377,6 +377,20 @@ struct Advice<'a> {
 
 /// Reserve `size` fresh cells for the region whose pointer is `cell`, unless it already points somewhere: write the
 /// region's base `g^{next_free}` there.
+/// `m[a] = m[b]`: carry a written side to the other (`put` checks it when both are), or link two unwritten sides
+/// until either is written. A range-check touch may leave both unwritten for good: only the validity of `a`
+/// matters there.
+fn cell_link(m: &mut Mem, a: u32, b: u32) -> Result<(), Fault> {
+    if m.written(a) {
+        m.put(b, m.get(a))
+    } else if m.written(b) {
+        m.put(a, m.get(b))
+    } else {
+        m.link(a, b);
+        Ok(())
+    }
+}
+
 fn alloc(m: &mut Mem, g: &mut GPow, next_free: &mut u32, cell: u32, size: u32) -> Result<(), Fault> {
     if m.written(cell) {
         return Ok(());
@@ -570,24 +584,22 @@ pub fn execute(
                 });
                 pc += 1;
             }
-            Op::Deref { o1, o2, o3, mode } => {
+            Op::Deref {
+                o1,
+                o2,
+                o3,
+                mode,
+                o2b,
+                o3b,
+            } => {
                 let a1 = at(fp, o1)?;
                 let p = m.read(a1);
                 let p_addr = p.as_base().ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
                 let base = g.log(p_addr).ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
                 let (a2, a3) = (at(base, o2)?, at(fp, o3)?);
                 match mode {
-                    // `m[a2] = m[a3]`: carry a written side to the other (`put` checks it when both are), or
-                    // link two unwritten sides until either is written. A range-check touch may leave both
-                    // unwritten for good: only the validity of `a2` matters there.
                     DerefMode::Cell => {
-                        if m.written(a2) {
-                            m.put(a3, m.get(a2)).map_err(fail)?;
-                        } else if m.written(a3) {
-                            m.put(a2, m.get(a3)).map_err(fail)?;
-                        } else {
-                            m.link(a2, a3);
-                        }
+                        cell_link(&mut m, a2, a3).map_err(fail)?;
                     }
                     // The return target and the frame base are stored as addresses, which JUMP reads back.
                     DerefMode::Pc => {
@@ -599,13 +611,28 @@ pub fn execute(
                         m.put(a2, F128::from(g.pow(fp as usize))).map_err(fail)?;
                     }
                 }
+                let (r1, r2, r3) = (
+                    m.bump_access_count(a1),
+                    m.bump_access_count(a2),
+                    m.bump_access_count(a3),
+                );
+                // The second link, in the cell mode only.
+                let (r4, r5) = if mode == DerefMode::Cell {
+                    let (a4, a5) = (at(base, o2b)?, at(fp, o3b)?);
+                    cell_link(&mut m, a4, a5).map_err(fail)?;
+                    (m.bump_access_count(a4), m.bump_access_count(a5))
+                } else {
+                    (0, 0)
+                };
                 deref.push(Drow {
                     pc,
                     fp,
-                    r1: m.bump_access_count(a1),
-                    r2: m.bump_access_count(a2),
-                    r3: m.bump_access_count(a3),
+                    r1,
+                    r2,
+                    r3,
                     bytecode_read,
+                    r4,
+                    r5,
                 });
                 pc += 1;
             }

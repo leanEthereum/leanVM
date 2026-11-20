@@ -31,6 +31,9 @@ pub(crate) struct Drow {
     pub(crate) r2: u32,
     pub(crate) r3: u32,
     pub(crate) bytecode_read: u32,
+    /// The second link's counts: its target, its local cell.
+    pub(crate) r4: u32,
+    pub(crate) r5: u32,
 }
 pub(crate) struct Jrow {
     pub(crate) pc: u32,

@@ -61,11 +61,13 @@ pub(crate) enum LOp {
         b: Off,
         c: Off,
     },
+    /// With `pair`, the second link `(o2b, o3b)` through the same pointer (`isa::Op::Deref`).
     Deref {
         o1: Off,
         o2: Off,
         o3: Off,
         mode: DerefMode,
+        pair: Option<(Off, Off)>,
     },
     Jump {
         oc: Off,

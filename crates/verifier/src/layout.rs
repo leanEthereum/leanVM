@@ -182,6 +182,15 @@ impl Flushes {
         self.counted(&[constant(SEP_MEM), address], counter, count, values);
     }
 
+    /// `memory_cols` unless the column `a` or the column `b` is 1 (at most one is): the push's counter is
+    /// `count·(g + (a + b)·(g + 1))`, `g·count` when both are 0 and the pull's `count` otherwise.
+    fn memory_cols_unless(&mut self, a: usize, b: usize, address: Form, count: usize, columns: &[usize]) {
+        let counter = col(count, 1) + prod(a, count, 1) + prod(a, count, 0) + prod(b, count, 1) + prod(b, count, 0);
+        let values: [Form; 2] =
+            std::array::from_fn(|limb| columns.get(limb).map_or(constant(ZERO), |&column| col(column, 0)));
+        self.counted(&[constant(SEP_MEM), address], counter, count, &values);
+    }
+
     /// The cell's limbs are the named columns, a missing high one zero.
     fn memory_cols(&mut self, address: Form, count: usize, columns: &[usize]) {
         let values = std::array::from_fn(|limb| columns.get(limb).map_or(constant(ZERO), |&column| col(column, 0)));
@@ -253,6 +262,8 @@ fn flushes_deref() -> Flushes {
     let [cnt_ptr, cnt_target, cnt_local, cnt_bc] =
         cols(DEREF_COLUMNS, ["cnt_ptr", "cnt_target", "cnt_local", "cnt_bc"]);
     let v3 = cols(DEREF_COLUMNS, ["v3_0", "v3_1"]);
+    let [o2b, o3b, cnt_target2, cnt_local2] = cols(DEREF_COLUMNS, ["o2b", "o3b", "cnt_target2", "cnt_local2"]);
+    let v4 = cols(DEREF_COLUMNS, ["v4_0", "v4_1"]);
 
     let gated = |lane: usize| [col(lane, 0), prod(f_pc, lane, 0), prod(f_fp, lane, 0)];
 
@@ -263,11 +274,22 @@ fn flushes_deref() -> Flushes {
     ];
     let mut flushes = Flushes::default();
     flushes.state_step(pc, fp);
-    let operands = vec![col(o1, 0), col(o2, 0), col(o3, 0), col(f_pc, 0), col(f_fp, 0)];
+    let operands = vec![
+        col(o1, 0),
+        col(o2, 0),
+        col(o3, 0),
+        col(f_pc, 0),
+        col(f_fp, 0),
+        col(o2b, 0),
+        col(o3b, 0),
+    ];
     flushes.bytecode(pc, cnt_bc, OP_DEREF, operands);
     flushes.memory_cols(prod(fp, o1, 0), cnt_ptr, &[ptr]);
     flushes.memory(prod(ptr, o2, 0), cnt_target, &store);
     flushes.memory_cols(prod(fp, o3, 0), cnt_local, &v3);
+    // The second link, through the same pointer, in the cell mode only.
+    flushes.memory_cols_unless(f_pc, f_fp, prod(ptr, o2b, 0), cnt_target2, &v4);
+    flushes.memory_cols_unless(f_pc, f_fp, prod(fp, o3b, 0), cnt_local2, &v4);
     flushes
 }
 
@@ -386,7 +408,7 @@ pub const N_TABLES: usize = 6;
 const ARITH_COLUMNS: &[&str] = &["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "vb_0", "vb_1", "cnt_a", "cnt_b", "cnt_c", "cnt_bc"];
 const SET_COLUMNS: &[&str] = &["pc", "fp", "o", "k_0", "k_1", "cnt", "cnt_bc"];
 #[rustfmt::skip]
-const DEREF_COLUMNS: &[&str] = &["pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr", "v3_0", "v3_1", "cnt_ptr", "cnt_target", "cnt_local", "cnt_bc"];
+const DEREF_COLUMNS: &[&str] = &["pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr", "v3_0", "v3_1", "o2b", "o3b", "v4_0", "v4_1", "cnt_ptr", "cnt_target", "cnt_local", "cnt_bc", "cnt_target2", "cnt_local2"];
 #[rustfmt::skip]
 const JUMP_COLUMNS: &[&str] = &["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f", "cnt_bc", "w", "b"];
 // KECCAK's columns: these, then the input lanes `in_l`, the output lanes `out_l`, a read count `cnt_c` for each cell

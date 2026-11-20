@@ -83,11 +83,16 @@ pub enum Op {
         /// low lane with `c1 = 0`.
         k: E,
     },
+    /// `m[m[fp·o1]·o2] = m[fp·o3]` (or, in the `Pc` and `Fp` modes, the return target or `fp` stored there), and
+    /// in the `Cell` mode also `m[m[fp·o1]·o2b] = m[fp·o3b]`: two links through one pointer. A single link repeats
+    /// itself, `o2b = o2` and `o3b = o3`.
     Deref {
         o1: u32,
         o2: u32,
         o3: u32,
         mode: DerefMode,
+        o2b: u32,
+        o3b: u32,
     },
     Jump {
         oc: u32,

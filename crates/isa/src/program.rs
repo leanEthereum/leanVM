@@ -79,7 +79,18 @@ fn encode(op: &Op) -> [u64; 1 + BYTECODE_OPERANDS] {
         Op::Xor { a, b, c } => put(OP_XOR, &[a, b, c], &[]),
         Op::Mul { a, b, c } => put(OP_MUL, &[a, b, c], &[]),
         Op::Set { o, k } => put(OP_SET, &[o], &[k.c0, k.c1]),
-        Op::Deref { o1, o2, o3, mode } => put(OP_DEREF, &[o1, o2, o3], &[flag(mode.f_pc()), flag(mode.f_fp())]),
+        Op::Deref {
+            o1,
+            o2,
+            o3,
+            mode,
+            o2b,
+            o3b,
+        } => put(
+            OP_DEREF,
+            &[o1, o2, o3],
+            &[flag(mode.f_pc()), flag(mode.f_fp()), g_pow(o2b), g_pow(o3b)],
+        ),
         Op::Jump { oc, od, of } => put(OP_JUMP, &[oc, od, of], &[]),
         Op::Keccak {
             m: [m0, m1, m2, m3],
