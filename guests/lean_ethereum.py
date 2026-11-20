@@ -2125,12 +2125,10 @@ def sel_partial_nibble(eq_out, g_out, z, z1, gs, width: Const):
     return 0
 
 
-def shared_selector_tables(zeta_hi, zeta1_hi, gsq_hi, len_g):
-    # Per nibble j of a selector run of length n = 4q + r (coordinates 4j..4j+3
-    # past κ, the last nibble r wide), the eq tables over its low 1..4
-    # coordinates and the g-powers of its indices' offset shares. The split of n
-    # is advice, each bit pinned and the whole tied back to len_g. Returns the two
-    # tables, q + 1 nibbles each, SEL_TAB_EQ_STRIDE and 16 cells a nibble.
+def selector_run_nibbles(len_g):
+    # A selector run of length n = 4q + r, r < 4, split into its q full nibbles
+    # (coordinates 4j..4j+3 past κ) and a last one r wide. The split is advice,
+    # each bit pinned and the whole tied back to len_g. Returns g^q.
     nb = StackBuf(6)
     hint_decompose_bits_exponent(nb, len_g, 6)
     for k in unroll(0, 6):
@@ -2142,10 +2140,16 @@ def shared_selector_tables(zeta_hi, zeta1_hi, gsq_hi, len_g):
         q_g *= 1 + nb[k] * (1 + GEN ** (2 ** (k - 2)))
     q4 = q_g ** 4
     assert q4 * r_g == len_g
-    nibbles = q_g * GEN
-    g_len = nibbles ** 16
-    eq_tab = HeapBuf(g_len * g_len)
-    g_tab = HeapBuf(g_len)
+    return q_g
+
+
+def shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g, q_g):
+    # Per nibble j of a selector run of length n = 4q + r split by
+    # selector_run_nibbles (q_g = g^q), the eq tables over its low 1..4
+    # coordinates and the g-powers of its indices' offset shares, into the
+    # caller's tables of q + 1 nibbles, SEL_TAB_EQ_STRIDE and 16 cells a nibble.
+    q4 = q_g ** 4
+    r_g = len_g / q4
     for xq in mul_range(1, q_g):
         x4 = xq ** 4
         x16 = x4 ** 4
@@ -2153,7 +2157,7 @@ def shared_selector_tables(zeta_hi, zeta1_hi, gsq_hi, len_g):
         sel_g_nibble(g_tab * x16, gsq_hi * x4, 4)
     q16 = q4 ** 4
     done = match(log(r_g), range(0, 4), lambda w: sel_partial_nibble(eq_tab * q16 * q16, g_tab * q16, zeta_hi * q4, zeta1_hi * q4, gsq_hi * q4, w))  # a match needs a target
-    return eq_tab, g_tab
+    return
 
 
 @inline
@@ -2352,7 +2356,12 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
         tau_g = kb[2 + t]
         shared_len[t] = g_bus_mu / tau_g
         assert log(shared_len[t]) < SIZE_BITS
-        eq_t, g_t = shared_selector_tables(zeta * tau_g, zeta1 * tau_g, g_squares * tau_g, shared_len[t])
+        # Each table sized to its run, q + 1 nibbles of SEL_TAB_EQ_STRIDE and 16 cells.
+        q_g = selector_run_nibbles(shared_len[t])
+        g_len = (q_g * GEN) ** 16
+        eq_t = HeapBuf(g_len * g_len)
+        g_t = HeapBuf(g_len)
+        shared_selector_tables(eq_t, g_t, zeta * tau_g, zeta1 * tau_g, g_squares * tau_g, shared_len[t], q_g)
         shared_eq[t] = eq_t
         shared_g[t] = g_t
     block_eq_hi = StackBuf(N_BLOCKS)         # every block's eq_hi, reused below
