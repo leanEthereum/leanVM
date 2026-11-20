@@ -1,0 +1,4 @@
+module	instr	loops	proof_lines	cpu_s	manual_notes
+Proof.Field.Reduce	14	0	3	2.3	Model.reduce on the two words of a u128 (setWidth_append), XOR order by simp (most of the cost)
+Proof.Field.EMul	61	0	3	1.0	u128 words folded back (hi128_xor, lo128_shl1, ...), XOR order by simp
+Proof.Multilinear.EqEval	40	1	63	2.9	loop lemma (Inv: pointers, fold prefix acc, frame); back edge: 2 pointer steps, 2 fold steps (body_val); exit test end_iff; slice loads by EListAt.load

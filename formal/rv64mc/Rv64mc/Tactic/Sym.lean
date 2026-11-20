@@ -21,7 +21,11 @@
   * a call or tail call through a contract (`using`) resolves its target by the link facts given (`with`), closes
     the callee's precondition where it can (`closeSide`), and goes on after the return with the callee's
     postcondition split into hypotheses `hret<k>_<j>`;
-  * a branch on a comparison gives two goals, each with the comparison's outcome as a proposition `hc`.
+  * a branch on a comparison gives two goals, each with the comparison's outcome as a proposition `hc`;
+  * under `Holds` (`Core/Holds.lean`), a goal or contract is unfolded to the contract it is, and `closeSide` closes
+    the frame (`Env.Frame`, built store by store and call by call: `Tactic/Frame.lean`), `env.Static`, `NEXT`'s
+    bound and a callee's stack room from the function's own stack bound; a callee's frame without `out` becomes a
+    frame hypothesis (`keep<k>_1`) that loads read through.
 
   It stops at a program counter in `stop`, at the target of a backward jump (a loop's head, for a loop lemma), at a
   call without a contract, and where the function returns, which `finish` closes by the contract's continuation,
@@ -37,6 +41,7 @@
 import Lean
 import Rv64mc.Tactic.Steps
 import Rv64mc.Tactic.Addr
+import Rv64mc.Tactic.Frame
 
 namespace Rv64mc.Tactic.Sym
 
@@ -47,12 +52,12 @@ initialize registerTraceClass `rv_sym
 
 /-! ## Terms -/
 
-/-- `c` applied to its arguments by binder name, with no unification: every binder must be given. -/
+/-- `c` applied to its arguments by binder name, with no unification: every binder up to the last given. -/
 def appN (c : Name) (args : List (Name × Expr)) : MetaM Expr := do
   let info ← getConstInfo c
   let mut ty := info.type
   let mut xs : Array Expr := #[]
-  while ty.isForall do
+  while ty.isForall && xs.size < args.length do
     let .forallE n _ b _ := ty | unreachable!
     match args.lookup n with
     | some a => xs := xs.push a; ty := b.instantiate1 a
@@ -283,7 +288,14 @@ partial def evalE (R e : Expr) : MetaM (Expr × Expr) := do
 
 /-! ## Facts in the context -/
 
-/-- The bounds `L ≤ t.toNat` and `t.toNat ≤ H` the context gives a base `t`, as `L ≤ t` and `t ≤ H` on words. -/
+/-- A natural number the term reduces to (a literal, or a sum of literals and constants defined as such). -/
+def natVal? (e : Expr) : MetaM (Option Nat) := do
+  if let some n ← evalNat e then return some n
+  evalNat (← whnf e)
+
+/-- The bounds `L ≤ t.toNat` and `t.toNat ≤ H` the context gives a base `t`, `L` and `H` numerals: from `L ≤ t` and
+    `t ≤ H` on words, or from a stack bound `S + need ≤ t.toNat` (`Holds.pre`), the upper one `2^64 - 1` if no
+    hypothesis gives one. -/
 def bounds (t : Expr) : MetaM (Option (Expr × Nat × Expr × Nat)) := do
   let mut lo : Option (Expr × Nat) := none
   let mut hi : Option (Expr × Nat) := none
@@ -296,13 +308,38 @@ def bounds (t : Expr) : MetaM (Option (Expr × Nat × Expr × Nat)) := do
       let b := ty.appArg!
       if b == t then
         if let some v ← lit? a then
-          if lo.all (·.2 < v) then lo := some (d.toExpr, v)
+          if lo.all (·.2 < v) then
+            lo := some (← mkExpectedTypeHint d.toExpr (← mkAppM ``LE.le #[mkNatLit v, ← mkAppM ``BitVec.toNat #[t]]), v)
       if a == t then
         if let some v ← lit? b then
-          if hi.all (v < ·.2) then hi := some (d.toExpr, v)
-  match lo, hi with
-  | some (hl, l), some (hh, h) => return some (hl, l, hh, h)
-  | _, _ => return none
+          if hi.all (v < ·.2) then
+            hi := some (← mkExpectedTypeHint d.toExpr (← mkAppM ``LE.le #[← mkAppM ``BitVec.toNat #[t], mkNatLit v]), v)
+      -- `S + need ≤ t.toNat`
+      if b.isAppOfArity ``BitVec.toNat 2 && b.appArg! == t && a.isAppOfArity ``HAdd.hAdd 6 then
+        if let some v ← natVal? a.appArg! then
+          if lo.all (·.2 < v) then
+            let p ← mkAppM ``Rv64mc.Tactic.lo_of_room #[d.toExpr]
+            lo := some (← mkExpectedTypeHint p (← mkAppM ``LE.le #[mkNatLit v, b]), v)
+  let hi' ← match hi with
+    | some x => pure x
+    | none => pure (← mkAppM ``Rv64mc.Tactic.toNat_le_max #[t], 18446744073709551615)
+  match lo with
+  | some (hl, l) => return some (hl, l, hi'.1, hi'.2)
+  | none => return none
+
+/-- The stack bound `env.stackLimit.toNat + need ≤ t.toNat` of a stack top `t`, its `need`'s value. -/
+def stackBound (t : Expr) : MetaM (Option (Expr × Expr × Nat)) := do
+  for d in ← getLCtx do
+    if d.isImplementationDetail then continue
+    let ty := (← instantiateMVars d.type).consumeMData
+    if ty.isAppOfArity ``LE.le 4 then
+      let a := ty.appFn!.appArg!
+      let b := ty.appArg!
+      if b.isAppOfArity ``BitVec.toNat 2 && b.appArg! == t && a.isAppOfArity ``HAdd.hAdd 6 then
+        let s := a.appFn!.appArg!
+        if s.isAppOfArity ``BitVec.toNat 2 && s.appArg!.isAppOf ``Rv64mc.Env.stackLimit then
+          if let some v ← natVal? a.appArg! then return some (d.toExpr, a.appArg!, v)
+  return none
 
 /-- A hypothesis `t ≤ x`, or `t = x` read as one. -/
 def leHyp (t x : Expr) : MetaM (Option Expr) := do
@@ -335,7 +372,7 @@ def neProof (a b : Expr) : MetaM (Option Expr) := do
     let some (hl, l, _, _) ← bounds t | continue
     unless toInt64 cy < 0 && 0 ≤ (l : Int) + toInt64 cy do continue
     let p ← appN ``Rv64mc.Tactic.ne_add_of_le [(`t, t), (`a, x), (`c, mkLit cy),
-      (`L, ← mkAppM ``BitVec.toNat #[mkLit l]), (`hL, hl), (`ha, hx), (`h, ← mkEqRefl (mkConst ``Bool.true))]
+      (`L, mkNatLit l), (`hL, hl), (`ha, hx), (`h, ← mkEqRefl (mkConst ``Bool.true))]
     return some (← if sym then mkAppM ``Ne.symm #[p] else pure p)
   for d in ← getLCtx do
     if d.isImplementationDetail then continue
@@ -359,14 +396,14 @@ def leProof (lo a : Expr) : MetaM (Option Expr) := do
     unless 0 ≤ (l : Int) + toInt64 ca ∧ (h : Int) + toInt64 ca < 2 ^ 64 ∧ (cl : Int) ≤ l + toInt64 ca do
       return none
     return some (← appN ``Rv64mc.Tactic.lit_le_add [(`t, t), (`c, mkLit ca), (`k, mkRawNatLit cl),
-      (`L, ← mkAppM ``BitVec.toNat #[mkLit l]), (`H, ← mkAppM ``BitVec.toNat #[mkLit h]), (`hL, hl), (`hH, hh),
+      (`L, mkNatLit l), (`H, mkNatLit h), (`hL, hl), (`hH, hh),
       (`h, ← mkEqRefl (mkConst ``Bool.true))])
   if ba.isNone then
     let some t := bl | return none
     let some (hl, l, hh, h) ← bounds t | return none
     unless 0 ≤ (l : Int) + toInt64 cl ∧ (h : Int) + toInt64 cl ≤ ca do return none
     return some (← appN ``Rv64mc.Tactic.add_le_lit [(`t, t), (`c, mkLit cl), (`k, mkRawNatLit ca),
-      (`L, ← mkAppM ``BitVec.toNat #[mkLit l]), (`H, ← mkAppM ``BitVec.toNat #[mkLit h]), (`hL, hl), (`hH, hh),
+      (`L, mkNatLit l), (`H, mkNatLit h), (`hL, hl), (`hH, hh),
       (`h, ← mkEqRefl (mkConst ``Bool.true))])
   let some t := bl | return none
   unless bl == ba do
@@ -376,12 +413,12 @@ def leProof (lo a : Expr) : MetaM (Option Expr) := do
     let some (hl, l, _, _) ← bounds t | return none
     unless toInt64 cl < 0 && 0 ≤ (l : Int) + toInt64 cl do return none
     return some (← appN ``Rv64mc.Tactic.add_le_of_le [(`t, t), (`a, a), (`c, mkLit cl),
-      (`L, ← mkAppM ``BitVec.toNat #[mkLit l]), (`hL, hl), (`ha, ha), (`h, ← mkEqRefl (mkConst ``Bool.true))])
+      (`L, mkNatLit l), (`hL, hl), (`ha, ha), (`h, ← mkEqRefl (mkConst ``Bool.true))])
   let some (hl, l, hh, h) ← bounds t | return none
   let ok := 0 ≤ (l : Int) + toInt64 cl ∧ (h : Int) + toInt64 ca < 2 ^ 64 ∧ toInt64 cl ≤ toInt64 ca
   unless ok do return none
-  let lN ← mkAppM ``BitVec.toNat #[mkLit l]
-  let hN ← mkAppM ``BitVec.toNat #[mkLit h]
+  let lN := mkNatLit l
+  let hN := mkNatLit h
   let tru ← mkEqRefl (mkConst ``Bool.true)
   let common := [(`t, t), (`L, lN), (`H, hN), (`hL, hl), (`hH, hh), (`h, tru)]
   if cl == 0 then return some (← appN ``Rv64mc.Tactic.le_add ((`c, mkLit ca) :: common))
@@ -396,7 +433,7 @@ def ltProof (a b : Expr) : MetaM (Option Expr) := do
   unless ba == bb do return none
   let some (hl, l, hh, h) ← bounds t | return none
   unless 0 ≤ (l : Int) + toInt64 ca ∧ (h : Int) + toInt64 cb < 2 ^ 64 ∧ toInt64 ca < toInt64 cb do return none
-  let common := [(`t, t), (`L, ← mkAppM ``BitVec.toNat #[mkLit l]), (`H, ← mkAppM ``BitVec.toNat #[mkLit h]),
+  let common := [(`t, t), (`L, mkNatLit l), (`H, mkNatLit h),
     (`hL, hl), (`hH, hh), (`h, ← mkEqRefl (mkConst ``Bool.true))]
   if cb == 0 then return some (← appN ``Rv64mc.Tactic.add_lt ((`c, mkLit ca) :: common))
   if ca == 0 then return none
@@ -493,7 +530,11 @@ def newGoal (g : MVarId) (t : Expr) : MetaM Expr :=
 
 /-! ## Splitting facts -/
 
-def keep : List Name := [``Ne, ``Not, ``Iff, ``Lprog.Isa.Contract, ``Lprog.Isa.SafeN, ``LE.le, ``LT.lt, ``Eq]
+def keep : List Name := [``Ne, ``Not, ``Iff, ``Lprog.Isa.Contract, ``Lprog.Isa.SafeN, ``LE.le, ``LT.lt, ``Eq,
+  ``Rv64mc.Env.Frame, ``Rv64mc.Env.Static, ``Rv64mc.Env.MayWrite, ``Rv64mc.Env.next, ``Rv64mc.Holds,
+  -- `Core/Repr.lean`'s representation predicates, which a proof uses whole (`EListAt.keep`, `Frame.keeps_live`)
+  `Rv64mc.Env.Live, `Rv64mc.Env.Fresh, `Rv64mc.Keeps, `Rv64mc.InRange, `Rv64mc.WordsAt, `Rv64mc.EAt,
+  `Rv64mc.EListAt, `Rv64mc.BytesAt, `Rv64mc.DigestAt, `Rv64mc.VecAt]
 
 /-- A Prop-valued definition at the head of `t`, unfolded. -/
 def unfoldHead? (t : Expr) : MetaM (Option Expr) := do
@@ -570,6 +611,133 @@ def absorbFacts (g : MVarId) (facts : Array Expr) : MetaM MVarId := g.withContex
     (`n, (args[5]!)), (`Q, (args[6]!)), (`m, M), (`st, st), (`R, R0), (`R', R'), (`e, e), (`k, g')])
   return g'.mvarId!
 
+/-! ## `Holds`: the memory frame, the static data, `NEXT`, the stack -/
+
+/-- `out` is the empty set of words (`fun _ => False`, as a contract's default `Out` gives it). -/
+def isF (out : Expr) : MetaM Bool := do
+  match (← whnfR out).headBeta with
+  | .lam _ _ b _ => return b.isConstOf ``False
+  | _ => return false
+
+/-- The function's own stack bound, `env.stackLimit.toNat + need ≤ top.toNat` (`Holds.pre`): its proof, `S`,
+    `top`, `need` and `need`'s value. -/
+def ownStack : MetaM (Option (Expr × Expr × Expr × Expr × Nat)) := do
+  for d in ← getLCtx do
+    if d.isImplementationDetail then continue
+    let ty := (← instantiateMVars d.type).consumeMData
+    if ty.isAppOfArity ``LE.le 4 then
+      let a := ty.appFn!.appArg!
+      let b := ty.appArg!
+      if b.isAppOfArity ``BitVec.toNat 2 && a.isAppOfArity ``HAdd.hAdd 6 then
+        let S := a.appFn!.appArg!
+        if S.isAppOfArity ``BitVec.toNat 2 && S.appArg!.isAppOf ``Rv64mc.Env.stackLimit then
+          if let some v ← natVal? a.appArg! then return some (d.toExpr, S, b.appArg!, a.appArg!, v)
+  return none
+
+/-- A hypothesis whose type is `t`, up to reducible unfolding. -/
+def hypOf (t : Expr) : MetaM (Option Expr) := do
+  for d in ← getLCtx do
+    if d.isImplementationDetail then continue
+    if ← withReducible (isDefEq (← instantiateMVars d.type) t) then return some d.toExpr
+  return none
+
+/-- A proof of `S + need ≤ (t + c).toNat` style facts about a slot `x` of the stack below `top`, from the stack
+    bound: `S ≤ x.toNat` and `x.toNat < top.toNat`, or `x.toNat ≤ top.toNat` (`le`). -/
+def slotFacts (x : Expr) : MetaM (Option (Expr × Expr × Expr)) := do
+  let some (h, S, top, need, nv) ← ownStack | return none
+  let (bx, cx) ← affine x
+  unless bx == some top && toInt64 cx < 0 && 0 ≤ (nv : Int) + toInt64 cx do return none
+  let args := [(`S, S), (`need, need), (`t, top), (`c, mkLit cx), (`h, h), (`hc, ← mkEqRefl (mkConst ``Bool.true))]
+  return some (← appN ``Rv64mc.Tactic.slot_ge args, ← appN ``Rv64mc.Tactic.slot_lt args,
+    ← appN ``Rv64mc.Tactic.slot_le args)
+
+/-- `env.Frame top F m0 X`, for `X` the memory the function made from `m0`: its stores into its stack, its callees'
+    frames (`Env.Frame … F N X` in the context). -/
+partial def frameWalk (env top m0 X : Expr) : MetaM (Option Expr) := do
+  let X := X.consumeMData
+  if X == m0 then
+    let nx ← mkAppM ``Rv64mc.Env.next #[env, m0]
+    let hnxT ← mkAppM ``LE.le #[← mkAppM ``BitVec.toNat #[nx], ← mkAppM ``BitVec.toNat #[← mkAppM ``Rv64mc.Env.heapEnd #[env]]]
+    let some hnx ← hypOf hnxT | return none
+    return some (← appN ``Rv64mc.Tactic.frame_refl [(`env, env), (`top, top), (`m, m0), (`h, hnx)])
+  if X.isAppOfArity ``MachineState.setMem 3 then
+    let N := X.appFn!.appFn!.appArg!
+    let a := X.appFn!.appArg!
+    let v := X.appArg!
+    let some h1 ← frameWalk env top m0 N | return none
+    let some (hlo, hhi, _) ← slotFacts a | return none
+    return some (← appN ``Rv64mc.Tactic.frame_store [(`env, env), (`top, top), (`a, a), (`v, v), (`m, m0), (`N, N),
+      (`h1, h1), (`hlo, hlo), (`hhi, hhi)])
+  for d in ← getLCtx do
+    if d.isImplementationDetail then continue
+    let ty := (← instantiateMVars d.type).consumeMData
+    unless ty.isAppOfArity ``Rv64mc.Env.Frame 5 do continue
+    let args := ty.getAppArgs
+    unless args[4]! == X && (← isF (args[2]!)) do continue
+    let top' := args[1]!
+    let N := args[3]!
+    let ht ← if top' == top then mkAppM ``Nat.le_refl #[← mkAppM ``BitVec.toNat #[top]] else do
+      let some (_, _, hle) ← slotFacts top' | continue
+      pure hle
+    let some h1 ← frameWalk env top m0 N | continue
+    return some (← appN ``Rv64mc.Tactic.frame_call [(`env, env), (`top, top), (`top', top'), (`m, m0), (`N, N),
+      (`X, X), (`h1, h1), (`h2, d.toExpr), (`ht, ht)])
+  return none
+
+/-- The entry's memory: the one `env.Static` and `NEXT`'s bound are assumed of (`Holds.pre`). -/
+def entryMem (env : Expr) : MetaM (Option (Expr × Expr)) := do
+  for d in ← getLCtx do
+    if d.isImplementationDetail then continue
+    let ty := (← instantiateMVars d.type).consumeMData
+    if ty.isAppOfArity ``Rv64mc.Env.Static 2 && ty.appFn!.appArg! == env then
+      let m0 := ty.appArg!
+      let nx ← mkAppM ``Rv64mc.Env.next #[env, m0]
+      let hnxT ← mkAppM ``LE.le #[← mkAppM ``BitVec.toNat #[nx],
+        ← mkAppM ``BitVec.toNat #[← mkAppM ``Rv64mc.Env.heapEnd #[env]]]
+      if (← hypOf hnxT).isSome then return some (m0, d.toExpr)
+  return none
+
+/-- A goal of `Holds`'s: the frame of the function's memory, the static data or `NEXT`'s bound in a memory it made,
+    a callee's stack room. -/
+def holdsGoal (ty : Expr) : MetaM (Option Expr) := do
+  if ty.isAppOfArity ``Rv64mc.Env.Frame 5 then
+    let args := ty.getAppArgs
+    let some h ← frameWalk (args[0]!) (args[1]!) (args[3]!) (args[4]!) | return none
+    return some (← appN ``Rv64mc.Tactic.frame_weaken [(`env, args[0]!), (`top, args[1]!), (`out, args[2]!),
+      (`m, args[3]!), (`X, args[4]!), (`h, h)])
+  let viaFrame (env X : Expr) : MetaM (Option (Expr × Expr)) := do
+    let some (m0, hst) ← entryMem env | return none
+    let some (_, _, top, _, _) ← ownStack | return none
+    let some h ← frameWalk env top m0 X | return none
+    return some (h, hst)
+  if ty.isAppOfArity ``Rv64mc.Env.Static 2 then
+    let some (h, hst) ← viaFrame ty.appFn!.appArg! ty.appArg! | return none
+    return some (← mkAppM ``Rv64mc.Tactic.static_of_frame #[hst, h])
+  if ty.isAppOfArity ``LE.le 4 then
+    let a := ty.appFn!.appArg!
+    let b := ty.appArg!
+    -- `(env.next X).toNat ≤ env.heapEnd.toNat`
+    if a.isAppOfArity ``BitVec.toNat 2 && a.appArg!.isAppOfArity ``Rv64mc.Env.next 2 then
+      let nx := a.appArg!
+      let some (h, _) ← viaFrame nx.appFn!.appArg! nx.appArg! | return none
+      return some (← mkAppM ``Rv64mc.Tactic.frame_next #[h])
+    -- `env.stackLimit.toNat + need' ≤ (top + c).toNat`: a callee's room
+    if b.isAppOfArity ``BitVec.toNat 2 && a.isAppOfArity ``HAdd.hAdd 6 then
+      let some need' ← natVal? a.appArg! | return none
+      let some (h, S, top, need, nv) ← ownStack | return none
+      unless a.appFn!.appArg! == S do return none
+      let (bx, cx) ← affine b.appArg!
+      unless bx == some top do return none
+      let tru ← mkEqRefl (mkConst ``Bool.true)
+      if cx == 0 then
+        unless need' ≤ nv do return none
+        return some (← appN ``Rv64mc.Tactic.room0 [(`S, S), (`need, need), (`need', a.appArg!), (`t, top), (`h, h),
+          (`hc, tru)])
+      unless toInt64 cx ≤ 0 && (need' : Int) - toInt64 cx ≤ nv do return none
+      return some (← appN ``Rv64mc.Tactic.room [(`S, S), (`need, need), (`need', a.appArg!), (`t, top),
+        (`c, mkLit cx), (`h, h), (`hc, tru)])
+  return none
+
 /-! ## Side goals -/
 
 /-- A proof of `X.getMem a = Y.getMem a` for an address `a` at or above `lo` (`ha : lo ≤ a`): every store into `X`
@@ -609,10 +777,19 @@ partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
     let gb ← newGoal g b
     g.assign (mkApp4 (mkConst ``And.intro) a b ga gb)
     return (← closeSide ga.mvarId!) ++ (← closeSide gb.mvarId!)
+  if let some pf ← holdsGoal ty then
+    g.assign pf
+    return []
   if let some ty' ← unfoldHead? ty then
     let g' ← g.replaceTargetDefEq ty'
     return ← closeSide g'
   let (ty, p) ← normReads ty
+  if let some pf ← holdsGoal ty then
+    let g ← match p with
+      | some p => g.replaceTargetEq ty p
+      | none => pure g
+    g.assign pf
+    return []
   let g ← match p with
     | some p => g.replaceTargetEq ty p
     | none => pure g
@@ -637,7 +814,7 @@ partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
     let b := ty.appArg!
     let (ba, ca) ← affine a
     let (bb, cb) ← affine b
-    if a == b || (ba == bb && ca == cb) then
+    if a == b || (ba == bb && ca == cb) || (← withReducible (isDefEq a b)) then
     g.assign (← mkEqRefl a)
     return []
   if ty.isAppOfArity ``LE.le 4 then
@@ -755,12 +932,20 @@ def targetIdx (tgt : Expr) : MetaM (Option Expr) := do
       if t.isAppOfArity ``List.nil 1 then return some l.appFn!.appArg!
   return none
 
+/-- A definition of a contract (`Holds`, a `NoReturn`) unfolded to the contract it is. -/
+partial def toContract (ty : Expr) : MetaM Expr := do
+  let ty := ty.consumeMData.headBeta
+  if ty.isAppOf ``Lprog.Isa.Contract then return ty
+  match ← unfoldDefinition? ty with
+  | some ty' => toContract ty'
+  | none => return ty
+
 /-- A contract among those given for function `f`. -/
 def specFor (cfg : Cfg) (f : Expr) : MetaM (Option (Expr × Expr × Expr)) := do
   for (pf, ty) in cfg.specs do
     -- a contract for every function, or for each value of a parameter: its arguments by unification
     let (xs, _, ty) ← forallMetaTelescope ty
-    let ty := (← instantiateMVars ty).consumeMData
+    let ty ← toContract (← instantiateMVars ty)
     if ty.isAppOfArity ``Lprog.Isa.Contract 7 then
       let args := ty.getAppArgs
       if ← withReducible (isDefEq (args[4]!) f) then
@@ -782,6 +967,25 @@ def afterCall (g : MVarId) (k : Nat) : MetaM (Option MVarId) := do
         g.withContext do g.assign (← mkFalseElim (← g.getType) (mkFVar h))
         return none
     let g ← g.tryClear (fvs[2]!)
+    let g ← g.withContext do
+      let mut above := #[]
+      for h in hs do
+        let ty := (← instantiateMVars (← h.getType)).consumeMData
+        unless ty.isAppOfArity ``Rv64mc.Env.Frame 5 do continue
+        let args := ty.getAppArgs
+        unless ← isF (args[2]!) do continue
+        let some (hb, S, top, need, _) ← ownStack | continue
+        let hlim ← if args[1]! == top then
+            mkAppM ``Nat.le_trans #[← mkAppM ``Nat.le_add_right #[S, need], hb]
+          else do
+            let some (hlo, _, _) ← slotFacts (args[1]!) | continue
+            pure hlo
+        let pf ← appN ``Rv64mc.Tactic.frame_above [(`env, args[0]!), (`top, args[1]!), (`M, args[3]!),
+          (`X, args[4]!), (`h, mkFVar h), (`hlim, hlim)]
+        above := above.push (pf, ← inferType pf)
+      if above.isEmpty then return g
+      let (g, _) ← addFacts g (Name.mkSimple s!"keep{k}") above
+      return g
     some <$> absorbFacts g (hs.map mkFVar)
 
 /-- The goal that the function has returned to its caller: closed by the contract's continuation in the context
@@ -1091,6 +1295,7 @@ syntax (name := rvSym) "rv_sym " term rvSymArgs : tactic
 /-- The precondition's facts as hypotheses `hpre_k`, and what they say of the entry's registers written into the
     register file. -/
 def openContract (g : MVarId) : MetaM MVarId := do
+  let g ← g.replaceTargetDefEq (← toContract (← instantiateMVars (← g.getType)))
   let (fvs, g) ← g.introN 10 [`G, `n, `Q, `ret, `top, `rest, `regs, `m, `hpre, `hk]
   g.withContext do
     let pre := mkFVar (fvs[8]!)
@@ -1147,6 +1352,7 @@ syntax (name := rvSweep) "rv_sweep " term rvSymArgs : tactic
   let cfg ← elabArgs stx[1] stx[2]
   let g ← getMainGoal
   let gt := (← instantiateMVars (← g.getType)).consumeMData
+  let gt ← toContract gt
   unless gt.isAppOfArity ``Lprog.Isa.Contract 7 do throwError "rv_sweep: the goal is not a contract"
   let ga := gt.getAppArgs
   let mut g := g
