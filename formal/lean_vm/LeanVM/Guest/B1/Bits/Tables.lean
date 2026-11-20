@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Bits.Meaning
 public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«exponent_tables»
 
 /-!
 # `exponent_tables`
@@ -310,12 +312,12 @@ def etWord (t : ℕ) : ℕ := if t < 236 then etWordsN.getD (etOff t) 0 else t -
 
 /-- `g_squares[g^o] = w`, folded: the word at offset `etOff t`. -/
 def etBlk (t : ℕ) : List Stmt :=
-  [.atom (.const (.n (t + 1)) (word (etWord t) 0)), .atom (.load (.n (t + 1)) (.n 0) (etOff t))]
+  [.atom (.const (.n (t + 1)) (word (etWord t) 0)), .atom (.load (.n (t + 1)) (.n (val% «exponent_tables» "g_squares")) (etOff t))]
 
 /-- The expansion of `exponent_tables`. -/
 def etBody : List Stmt :=
-  [.atom (.hint (.alloc (.n 0) 2284))] ++ ((List.range 2284).map etBlk).flatten ++
-  [.atom (.copy (.n 2285) (.n 0)), .ret [.n 2285]]
+  [.atom (.hint (.alloc (.n (val% «exponent_tables» "g_squares")) 2284))] ++ ((List.range 2284).map etBlk).flatten ++
+  [.atom (.copy (.n (val% «exponent_tables» "s8#0")) (.n (val% «exponent_tables» "g_squares"))), .ret [.n (val% «exponent_tables» "s8#0")]]
 
 theorem exponent_tables_body : Fn.body fn% «exponent_tables» = etBody :=
   stmtsEqb_sound (by decide +kernel)
