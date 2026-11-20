@@ -698,7 +698,8 @@ def sync(out, files, check):
                 os.makedirs(os.path.dirname(path), exist_ok=True)
                 with open(path, "w") as f:
                     f.write(text)
-    for p in sorted(present - want):
+    # Layouts.lean is scripts/type-layouts.sh's
+    for p in sorted(present - want - {"Layouts.lean"}):
         if p.endswith(".lean") or p.endswith(".tsv"):
             changed["removed"] += 1
             if not check:

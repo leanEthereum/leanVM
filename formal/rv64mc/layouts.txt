@@ -1,0 +1,59 @@
+# The types whose layouts `scripts/type-layouts.sh` writes to Rv64mc/Gen/Layouts.lean (namespace Rv64mc.Layouts).
+#
+#   dump NAME MODULE TYPE   the layout rustc computes for TYPE, as written in MODULE (a file of the verifier's no_std
+#                           copy, `main` for the guest's own), read from `#[rustc_dump_layout(debug)]`: size, alignment,
+#                           each field's offset (named from the source's declaration), and for an enum its tag's
+#                           offset, size and encoding with each variant's tag value and field offsets
+#   pts NAME TYPE           the layout `-Zprint-type-sizes` prints for TYPE (its printed name), for the types no
+#                           module can name (alloc's internals): size, alignment, each field's offset
+#   family NAME PREFIX      every type `-Zprint-type-sizes` prints whose name starts with PREFIX has NAME's fields
+#                           at NAME's offsets
+#   path NAME STEP...       the offset of a nested field: the sum of the steps' offsets (each `TYPE.FIELD` of a NAME
+#                           above)
+
+# Vec<T>, for every T: the buffer's capacity and pointer, then the length
+pts Vec alloc::vec::Vec<field::E>
+pts RawVec alloc::raw_vec::RawVec<field::E>
+pts RawVecInner alloc::raw_vec::RawVecInner
+family Vec alloc::vec::Vec<
+family RawVec alloc::raw_vec::RawVec<
+path Vec.cap Vec.buf RawVec.inner RawVecInner.cap
+path Vec.ptr Vec.buf RawVec.inner RawVecInner.ptr
+
+# what the allocator is called with, and what reserving returns
+pts AllocLayout core::alloc::Layout
+dump TryReserveError lib alloc::collections::TryReserveError
+dump ResultUnitTryReserve lib Result<(), alloc::collections::TryReserveError>
+
+# the field and the hash
+dump K field K
+dump E field E
+dump Digest hash Digest
+dump SliceE lib &'static [E]
+dump OptionE lib Option<E>
+
+# the proof and the transcript
+dump MerklePath merkle MerklePath
+dump Proof transcript Proof
+dump Sponge transcript Sponge
+dump Transcript transcript Transcript<'static>
+
+# the layout
+dump Form layout Form
+dump Table layout Table
+dump BusBlock layout BusBlock
+dump Layout layout Layout<'static>
+dump Placement multilinear Placement
+dump OptionPlacement multilinear Option<Placement>
+
+# verdicts
+dump VerifierError lib VerifierError
+dump ResultUnit lib Result<(), VerifierError>
+dump ResultE lib Result<E, VerifierError>
+dump ResultVecE lib Result<Vec<E>, VerifierError>
+dump ResultUsize lib Result<usize, VerifierError>
+dump ResultPlacement multilinear Result<Placement, VerifierError>
+dump StackWeight lib StackWeight
+
+# the guest's input reader
+dump Input main Input<'static>
