@@ -44,21 +44,21 @@ def SqIter (rd : Reader) (d cd po : ℕ) (sqz qpos qbp tabs x : E) : Prop :=
 
 /-- The squeeze loop's body before its tail. -/
 def sqLoopA (lv : OsLv) : List Stmt :=
-  let pw := osPowSteps 0 (osPowDigits (128 / lv.depth)) 0 34
-  let p1 := osMat 3 lv.posOff (34 + osPowLen (128 / lv.depth))
+  let pw := osPowSteps 0 (osPowDigits (128 / lv.depth)) 0 33
+  let p1 := osMat 3 lv.posOff (33 + osPowLen (128 / lv.depth))
   let p2 := osMat 4 lv.posOff (p1.2.2 + 1)
   [osMul 6 0 0, osMul 7 6 6, osMul 8 7 0, osMul 9 2 8] ++
     ((List.range 5).map fun i ↦ osLd (10 + i) 9 i) ++
     [osCst 15 (word 1 0), osCst 16 (word 0 0), osCst 17 (word 0 0), osCst 18 (word 0 0),
-      osCst 19 (word 0 0), osKeccak [16, 16, 16, 16, 16, 17, 18, 19, 10, 11, 12, 13, 14] 20, osCp 33 20] ++
+      osCst 19 (word 0 0), osKeccak [16, 16, 16, 16, 16, 17, 18, 19, 10, 11, 12, 13, 14] 20] ++
     ((List.range 5).map fun i ↦ osLd (28 + i) 9 (5 + i)) ++
     pw.1 ++ p1.1 ++ [osMul p1.2.2 p1.2.1 pw.2] ++ p2.1 ++ [osMul p2.2.2 p2.2.1 pw.2] ++
     [.call ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
-      [.n 33, .n p1.2.2, .n p2.2.2, .n 5] []]
+      [.n 20, .n p1.2.2, .n p2.2.2, .n 5] []]
 
 /-- The value the loop's tail starts at. -/
 def sqLoopE (lv : OsLv) : ℕ :=
-  (osMat 4 lv.posOff ((osMat 3 lv.posOff (34 + osPowLen (128 / lv.depth))).2.2 + 1)).2.2 + 1
+  (osMat 4 lv.posOff ((osMat 3 lv.posOff (33 + osPowLen (128 / lv.depth))).2.2 + 1)).2.2 + 1
 
 theorem sqLoopBody_split (lv : OsLv) (name : String) :
     sqLoopBody lv name = (sqLoopA lv ++ osLoopTailA (sqLoopE lv)) ++
@@ -94,9 +94,9 @@ theorem sqLoop_step (lv : OsLv) (hpw : digitsVal (osPowDigits (128 / lv.depth)) 
   obtain ⟨t2, t4⟩ := osLoopTailA_val hT
   unfold sqLoopA at hA
   simp only [allOk_append, allOk_cons, allOk_nil, and_true, stmtOk_atom, stmtOk_call, holds_mul,
-    holds_load, holds_const, holds_copy, osMul, osLd, osCst, osCp, osKeccak, List.range_succ, List.range_zero, List.map_cons, List.map_nil,
+    holds_load, holds_const, osMul, osLd, osCst, osKeccak, List.range_succ, List.range_zero, List.map_cons, List.map_nil,
     List.nil_append, List.cons_append, Nat.add_zero, and_assoc] at hA
-  obtain ⟨m5, m6, m7, m8, l9, l10, l11, l12, l13, c14, c15, c16, c17, c18, hK, hch, s27, s28, s29,
+  obtain ⟨m5, m6, m7, m8, l9, l10, l11, l12, l13, c14, c15, c16, c17, c18, hK, s27, s28, s29,
     s30, s31, hpw1, hp1, hmul1, hp2, hmul2, hdc⟩ := hA
   have hrow : σ (.n 9) = sqz * x ^ 5 := by
     rw [m8, m7, m6, m5, h0, h2]; ring
@@ -105,9 +105,9 @@ theorem sqLoop_step (lv : OsLv) (hpw : digitsVal (osPowDigits (128 / lv.depth)) 
     simp [pendCells, c15, c16, c17, c18, word_zero, cap])
   have e : ∀ c : Fin 13, σ (.n (20 + c.val)) = cellsOfState (⟨cap, []⟩ : Fs).perm false c :=
     fun c ↦ by simpa [osRun] using outs_eq hout c (by simp [osRun])
-  have hw : σ (.n 33) = (⟨cap, []⟩ : Fs).squeeze.1 := by
-    rw [hch, Fs.squeeze, Keccak.challengeOf_cells]; exact e 0
-  have hpwv := osPowSteps_val (C := P.Rel rd) (σ := σ) 0 (osPowDigits (128 / lv.depth)) 0 34
+  have hw : σ (.n 20) = (⟨cap, []⟩ : Fs).squeeze.1 := by
+    rw [Fs.squeeze, Keccak.challengeOf_cells]; exact e 0
+  have hpwv := osPowSteps_val (C := P.Rel rd) (σ := σ) 0 (osPowDigits (128 / lv.depth)) 0 33
     1 (by rw [pow_one]) hpw1
   rw [hpw, h0] at hpwv
   have hq1 := osMat_val hpo hp1

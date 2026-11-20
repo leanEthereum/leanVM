@@ -105,10 +105,10 @@ theorem kNode_complete {pad : Nat} {pp a0 adr k0 k1 : V} {y : Nat} (σ : Val)
 
 /-- **A level of a tree completes**: its children hinted at `x` in the order of the bit `bt`
 (`mPair bt cur sib`), `is_child`, its address `addr` (a sequential block from `x + 4` whose value
-`adr`), then the node's 80-byte hash from `y`. -/
+`adr`), then the node's 80-byte hash from `y`, its `A0` below `y`. -/
 theorem pairNode_complete (name : String) {pad : Nat} {pp a0 cur bit adr : V} {x y : Nat}
     {addr : List Stmt} (σ : Val) (hpx : pad + 5 ≤ x)
-    (hpp : NBv x pp) (ha0 : NBv x a0) (hbit : NBv x bit) (hcur : NBv x cur)
+    (hpp : NBv x pp) (ha0 : NBv y a0) (hbit : NBv x bit) (hcur : NBv x cur)
     (hseq : SeqOK (x + 4) addr y) (hadr : NBv y adr)
     {bt : Bool} (hbv : σ bit = if bt then 1 else 0) {sib : E} :
     Completes C rd x (y + 5)
@@ -170,7 +170,7 @@ theorem pairNode_complete (name : String) {pad : Nat} {pp a0 cur bit adr : V} {x
       simp only [List.mem_cons, List.not_mem_nil, or_false]
       rintro c (rfl | rfl | rfl | rfl | rfl)
       · exact hpp.mono' (by omega)
-      · exact ha0.mono' (by omega)
+      · exact ha0
       · exact hadr
       · exact ⟨x, by omega, rfl⟩
       · exact ⟨x + 1, by omega, rfl⟩)
@@ -248,14 +248,38 @@ theorem sBe16_out (val : Nat → V) (pos n x : Nat) :
     (sBe16 val pos n x).2.2 = .n ((sBe16 val pos n x).2.1 - 1) := by
   unfold sBe16; split <;> rfl
 
-theorem sPathAddr_seq {val : Nat → V} {off z m x : Nat} (h1 : m ≠ 0 → NBv x (val (off + z + 1)))
-    (h9 : 9 ≤ m → NBv x (val (off + z + 1 + 8))) :
-    SeqOK x (sPathAddr val off z m x).1 (sPathAddr val off z m x).2.1 ∧
-      NBv (sPathAddr val off z m x).2.1 (sPathAddr val off z m x).2.2 := by
+/-- A use's `A0` is set in sequence. -/
+theorem a0Pre_seq (ac : Option E) (y : Nat) : SeqOK y (a0Pre ac y) (y + a0W ac) := by
+  cases ac with
+  | none => rfl
+  | some c => exact ⟨rfl, rfl⟩
+
+theorem a0Pre_atoms (ac : Option E) (y : Nat) : atomsOnly (a0Pre ac y) = true := by
+  cases ac <;> rfl
+
+theorem a0W_some {ac : Option E} (h : ac ≠ none) : a0W ac = 1 := by
+  cases ac with
+  | none => exact absurd rfl h
+  | some _ => rfl
+
+/-- A use's `A0` cell is below `b`: the value's, or the cell its `a0Pre` sets. -/
+theorem a0Cell_nb {a0 : V} {ac : Option E} {y b : Nat} (ha : ac = none → NBv b a0)
+    (hw : ac ≠ none → y < b) : NBv b (a0Cell a0 ac y) := by
+  cases ac with
+  | none => exact ha rfl
+  | some c => exact ⟨y, hw (by simp), rfl⟩
+
+theorem sPathAddr_seq {a0 : V} {ac : Option E} {val : Nat → V} {off z m x : Nat}
+    (h1 : m ≠ 0 → NBv x (val (off + z + 1))) (h9 : 9 ≤ m → NBv x (val (off + z + 1 + 8)))
+    (ha0 : ac = none → NBv x a0) :
+    SeqOK x (sPathAddr a0 ac val off z m x).1 (sPathAddr a0 ac val off z m x).2.1 ∧
+      NBv (sPathAddr a0 ac val off z m x).2.1 (sPathAddr a0 ac val off z m x).2.2.1 ∧
+      NBv (sPathAddr a0 ac val off z m x).2.1 (sPathAddr a0 ac val off z m x).2.2.2 := by
   unfold sPathAddr
   by_cases hm0 : m = 0
   · simp only [hm0, ↓reduceIte]
-    exact ⟨⟨rfl, rfl⟩, ⟨x, by omega, rfl⟩⟩
+    refine ⟨SeqOK.append (a0Pre_seq ac x) ⟨rfl, by simp only [SeqOK]; omega⟩, ⟨_, by omega, rfl⟩,
+      a0Cell_nb (b := x + 1 + a0W ac) (fun h => (ha0 h).mono' (by omega)) (fun _ => by omega)⟩
   · simp only [hm0, ↓reduceIte]
     have hs := sBe16_seq (val := val) (pos := off + z + 1) (n := m) (x := x) (h1 hm0)
       (fun h => h9 (by omega))
@@ -263,52 +287,54 @@ theorem sPathAddr_seq {val : Nat → V} {off z m x : Nat} (h1 : m ≠ 0 → NBv 
     have ho := sBe16_out val (off + z + 1) m x
     have hx : x < (sBe16 val (off + z + 1) m x).2.1 := by
       rw [sBe16_next]; split <;> omega
-    refine ⟨SeqOK.append hs ⟨rfl, ⟨rfl, ?_, ⟨_, by omega, rfl⟩⟩, rfl⟩, ⟨_, by omega, rfl⟩⟩
+    refine ⟨SeqOK.append (SeqOK.append hs ⟨rfl, ⟨rfl, ?_, ⟨_, by omega, rfl⟩⟩, rfl⟩)
+      (a0Pre_seq ac _), ⟨_, by omega, rfl⟩,
+      a0Cell_nb (fun h => (ha0 h).mono' (by omega)) (fun h => by rw [a0W_some h]; omega)⟩
     rw [ho]; exact ⟨_, by omega, rfl⟩
 
 /-! ## The paths -/
 
-theorem sPath_le (pad : Nat) (pp a0 : V) (bit val : Nat → V) (off : Nat) :
-    ∀ (m z : Nat) (cur : V) (x : Nat), x ≤ (sPath pad pp a0 bit val off m z cur x).2.1
+theorem sPath_le (pad : Nat) (pp a0 : V) (ac : Option E) (bit val : Nat → V) (off : Nat) :
+    ∀ (m z : Nat) (cur : V) (x : Nat), x ≤ (sPath pad pp a0 ac bit val off m z cur x).2.1
   | 0, _, _, _ => le_rfl
   | m + 1, z, cur, x => by
       rw [sPath_succ]
       dsimp only
-      refine le_trans ?_ (sPath_le pad pp a0 bit val off m (z + 1)
-        (.n ((sPathAddr val off z m (x + 4)).2.1 + 4)) ((sPathAddr val off z m (x + 4)).2.1 + 5))
+      refine le_trans ?_ (sPath_le pad pp a0 ac bit val off m (z + 1)
+        (.n ((sPathAddr a0 ac val off z m (x + 4)).2.1 + 4)) ((sPathAddr a0 ac val off z m (x + 4)).2.1 + 5))
       rw [sPathAddr_next]
       unfold pathWidth
       split_ifs <;> omega
 
 /-- **A path completes** from level `z` (base `x`), `m` levels to the height `height`: each level's
 children hinted in the order of the leaf `e`'s bit, the siblings `sib` read back. -/
-theorem sPath_complete {pad : Nat} {pp a0 : V} {bit val : Nat → V} {off e height : Nat}
+theorem sPath_complete {pad : Nat} {pp a0 : V} {ac : Option E} {bit val : Nat → V} {off e height : Nat}
     (hh : height ≤ 16) (he : e < 2 ^ height) {sib : Nat → E} :
     ∀ (m z : Nat) (cur : V) (x : Nat) (σ : Val), z + m = height → pad + 5 ≤ x → NBv x pp →
-      NBv x a0 → (∀ j < height, NBv x (bit (off + j))) → (∀ j < height, NBv x (val (off + j))) →
+      (ac = none → NBv x a0) → (∀ j < height, NBv x (bit (off + j))) → (∀ j < height, NBv x (val (off + j))) →
       NBv x cur → PadOK σ pad →
       (∀ j < height, σ (bit (off + j)) = if e.testBit j then 1 else 0) →
       (∀ j < height, σ (val (off + j)) = eOfNat (e >>> j)) →
-      Completes C rd x (sPath pad pp a0 bit val off m z cur x).2.1
-        (sPath pad pp a0 bit val off m z cur x).1 σ
-        (fun σ' => AgreeBelow x σ σ' ∧ ∀ j, z ≤ j → j < z + m → sPathSib σ' bit off m z x j = sib j)
+      Completes C rd x (sPath pad pp a0 ac bit val off m z cur x).2.1
+        (sPath pad pp a0 ac bit val off m z cur x).1 σ
+        (fun σ' => AgreeBelow x σ σ' ∧ ∀ j, z ≤ j → j < z + m → sPathSib σ' bit off ac m z x j = sib j)
   | 0, _, _, _, σ, _, _, _, _, _, _, _, _, _, _ =>
       ⟨σ, Ext.refl _ _ _, ⟨fun _ _ => rfl, fun j h1 h2 => by omega⟩, fun _ _ hn => hn⟩
   | m + 1, z, cur, x, σ, hm, hpx, hpp, ha0, hbn, hvn, hcur, hp, hbit, hval => by
       rw [sPath_succ]
-      set A := sPathAddr val off z m (x + 4) with hA
-      obtain ⟨hseqA, hadrA⟩ := sPathAddr_seq (val := val) (off := off) (z := z) (m := m)
-        (x := x + 4)
+      set A := sPathAddr a0 ac val off z m (x + 4) with hA
+      obtain ⟨hseqA, hadrA, ha0A⟩ := sPathAddr_seq (a0 := a0) (ac := ac) (val := val) (off := off)
+        (z := z) (m := m) (x := x + 4)
         (fun hm0 => (hvn (z + 1) (by omega)).mono' (by omega)) (fun h9 => by
           rw [show off + z + 1 + 8 = off + (z + 9) by omega]
-          exact (hvn (z + 9) (by omega)).mono' (by omega))
-      have hnext := sPathAddr_next val off z m x
-      rw [← hA] at hseqA hadrA hnext
-      have hlev := pairNode_complete (C := C) (rd := rd) "siblings" σ hpx hpp ha0
+          exact (hvn (z + 9) (by omega)).mono' (by omega)) (fun h => (ha0 h).mono' (by omega))
+      have hnext := sPathAddr_next a0 ac val off z m x
+      rw [← hA] at hseqA hadrA ha0A hnext
+      have hlev := pairNode_complete (C := C) (rd := rd) "siblings" σ hpx hpp ha0A
         (hbn z (by omega)) hcur hseqA hadrA (bt := e.testBit z) (sib := sib z) (hbit z (by omega))
       have hnb : NumBelow (A.2.1 + 5) (Stmt.valsList ([hintW "siblings" [.n x, .n (x + 1)]] ++
           isChildS cur (.n x) (.n (x + 1)) (bit (off + z)) (x + 2) ++ A.1 ++
-          (kNode pad pp a0 A.2.2 (.n x) (.n (x + 1)) A.2.1).1)) := by
+          (kNode pad pp A.2.2.2 A.2.2.1 (.n x) (.n (x + 1)) A.2.1).1)) := by
         have hle := hseqA.le
         simp only [valsList_append]
         refine NumBelow.append (NumBelow.append (NumBelow.append ?_ ?_) ?_) ?_
@@ -326,15 +352,15 @@ theorem sPath_complete {pad : Nat} {pp a0 : V} {bit val : Nat → V} {off e heig
           simp only [List.mem_cons, List.not_mem_nil, or_false]
           rintro v (rfl | rfl | rfl | rfl | rfl)
           · exact hpp.mono' (by omega)
-          · exact ha0.mono' (by omega)
+          · exact ha0A
           · exact hadrA
           · exact ⟨x, by omega, rfl⟩
           · exact ⟨x + 1, by omega, rfl⟩
       have hle := hseqA.le
-      have hx18 : x + pathWidth m = A.2.1 + 5 := by
+      have hx18 : x + pathWidth ac m = A.2.1 + 5 := by
         rw [hnext]; unfold pathWidth; split_ifs <;> omega
       refine Completes.append (m := A.2.1 + 5) (by omega)
-        (sPath_le pad pp a0 bit val off m (z + 1) _ _) hnb (hlev.withAtoms (by
+        (sPath_le pad pp a0 ac bit val off m (z + 1) _ _) hnb (hlev.withAtoms (by
           simp only [atomsOnly_append, hseqA.atoms, kNode]; rfl)) (fun σ1 he1 h1 => ?_)
       obtain ⟨⟨hag1, hk0, hk1⟩, hA1⟩ := h1
       have t1 : ∀ v, NBv x v → σ1 v = σ v := fun v hv => hag1.apply hv
@@ -344,7 +370,7 @@ theorem sPath_complete {pad : Nat} {pp a0 : V} {bit val : Nat → V} {off e heig
       have hlv := level_sound hp1 hib1
         (hA1.left.left.sub fun t ht => List.mem_append_right _ ht) hA1.right
       have ih := sPath_complete (sib := sib) hh he m (z + 1) (.n (A.2.1 + 4)) (A.2.1 + 5)
-        σ1 (by omega) (by omega) (hpp.mono' (by omega)) (ha0.mono' (by omega))
+        σ1 (by omega) (by omega) (hpp.mono' (by omega)) (fun h => (ha0 h).mono' (by omega))
         (fun j hj => (hbn j hj).mono' (by omega)) (fun j hj => (hvn j hj).mono' (by omega))
         ⟨A.2.1 + 4, by omega, rfl⟩ hp1 (fun j hj => by rw [t1 _ (hbn j hj)]; exact hbit j hj)
         (fun j hj => by rw [t1 _ (hvn j hj)]; exact hval j hj)
@@ -365,42 +391,47 @@ theorem sPath_complete {pad : Nat} {pp a0 : V} {bit val : Nat → V} {off e heig
 theorem sBe16_atoms (val : Nat → V) (pos n x : Nat) : atomsOnly (sBe16 val pos n x).1 = true := by
   unfold sBe16; split <;> rfl
 
-theorem sPathAddr_atoms (val : Nat → V) (off z m x : Nat) :
-    atomsOnly (sPathAddr val off z m x).1 = true := by
+theorem sPathAddr_atoms (a0 : V) (ac : Option E) (val : Nat → V) (off z m x : Nat) :
+    atomsOnly (sPathAddr a0 ac val off z m x).1 = true := by
   unfold sPathAddr
   split
-  · rfl
-  · simp only [atomsOnly_append, sBe16_atoms]; rfl
+  · simp only [atomsOnly_append, a0Pre_atoms]; rfl
+  · simp only [atomsOnly_append, sBe16_atoms, a0Pre_atoms]; rfl
 
-theorem sPath_atoms (pad : Nat) (pp a0 : V) (bit val : Nat → V) (off : Nat) :
-    ∀ (m z : Nat) (cur : V) (x : Nat), atomsOnly (sPath pad pp a0 bit val off m z cur x).1 = true
+theorem sPath_atoms (pad : Nat) (pp a0 : V) (ac : Option E) (bit val : Nat → V) (off : Nat) :
+    ∀ (m z : Nat) (cur : V) (x : Nat), atomsOnly (sPath pad pp a0 ac bit val off m z cur x).1 = true
   | 0, _, _, _ => rfl
   | m + 1, z, cur, x => by
       rw [sPath_succ]
       simp only [atomsOnly_append, sPathAddr_atoms, kNode,
-        sPath_atoms pad pp a0 bit val off m (z + 1)]
+        sPath_atoms pad pp a0 ac bit val off m (z + 1)]
       rfl
 
 /-- **A whole path completes** to the root `pFold` of `pNodeE` from `cur`, the siblings `sib`. -/
-theorem sPath_complete_val {pad : Nat} {pp a0 : V} {bit val : Nat → V} {off e height : Nat}
-    (hh : height ≤ 16) (he : e < 2 ^ height) {sib : Nat → E} {cur : V} {x : Nat} (σ : Val) (hpx : pad + 5 ≤ x) (hpp : NBv x pp) (ha0 : NBv x a0)
+theorem sPath_complete_val {pad : Nat} {pp a0 : V} {ac : Option E} {bit val : Nat → V} {off e height : Nat}
+    (hh : height ≤ 16) (he : e < 2 ^ height) {sib : Nat → E} {cur : V} {x : Nat} (σ : Val)
+    (hpx : pad + 5 ≤ x) (hpp : NBv x pp) (ha0 : ac = none → NBv x a0)
     (hbn : ∀ j < height, NBv x (bit (off + j))) (hvn : ∀ j < height, NBv x (val (off + j)))
     (hcur : NBv x cur) (hp : PadOK σ pad)
     (hbit : ∀ j < height, σ (bit (off + j)) = if e.testBit j then 1 else 0)
     (hval : ∀ j < height, σ (val (off + j)) = eOfNat (e >>> j)) :
-    Completes C rd x (sPath pad pp a0 bit val off height 0 cur x).2.1
-      (sPath pad pp a0 bit val off height 0 cur x).1 σ
+    Completes C rd x (sPath pad pp a0 ac bit val off height 0 cur x).2.1
+      (sPath pad pp a0 ac bit val off height 0 cur x).1 σ
       (fun σ' => AgreeBelow x σ σ' ∧
-        σ' (sPath pad pp a0 bit val off height 0 cur x).2.2 =
-          pFold (pNodeE (σ pp) (σ a0) e sib) height (σ cur)) := by
-  have h := (sPath_complete (C := C) (rd := rd) (sib := sib) hh he height 0 cur x σ (by omega) hpx hpp ha0
+        σ' (sPath pad pp a0 ac bit val off height 0 cur x).2.2 =
+          pFold (pNodeE (σ pp) (a0Val σ a0 ac) e sib) height (σ cur)) := by
+  have h := (sPath_complete (C := C) (rd := rd) (ac := ac) (sib := sib) hh he height 0 cur x σ (by omega) hpx hpp ha0
     hbn hvn hcur hp hbit hval).withAtoms (sPath_atoms ..)
   refine h.mono le_rfl le_rfl (fun σ' ⟨⟨hag, hs⟩, hA⟩ => ⟨hag, ?_⟩)
   have t : ∀ v, NBv x v → σ' v = σ v := fun v hv => hag.apply hv
+  have ta : a0Val σ' a0 ac = a0Val σ a0 ac := by
+    cases ac with
+    | none => exact t _ (ha0 rfl)
+    | some _ => rfl
   rw [sPath_sound (hp.congr hpx hag) hh he
     (fun j hj => by rw [t _ (hbn j hj)]; exact hbit j hj)
     (fun j hj => by rw [t _ (hvn j hj)]; exact hval j hj) height 0 cur x (by omega) hA,
-    ← nIter_zero, t _ hpp, t _ ha0, t _ hcur]
+    ← nIter_zero, t _ hpp, ta, t _ hcur]
   refine nIter_congr_lt _ _ _ fun j _ hj => ?_
   unfold pNodeE
   rw [hs j (by omega) (by omega)]

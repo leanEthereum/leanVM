@@ -43,7 +43,7 @@ theorem generalFiberMass_ne_zero_of_apply_ne_zero
     generalFiberMass p f (f value) ≠ 0 := by
   unfold generalFiberMass
   intro hzero
-  rw [ENNReal.tsum_eq_zero] at hzero
+  rw [tsum_eq_zero_iff] at hzero
   exact hvalue (by simpa using hzero value)
 
 theorem generalFiberMass_ne_top
@@ -171,7 +171,7 @@ theorem generalFiberCouplingWeight_sum_eq_one
         ∑' left, ∑' right,
           generalFiberCouplingWeight p q f g (left, right) :=
       by
-        rw [← ENNReal.tsum_prod]
+        rw [← tsum_prod]
     _ = ∑' left, p left := by
       simp_rw [generalFiberCouplingWeight_sum_right p q f g hmap]
     _ = 1 := p.tsum_coe
@@ -215,7 +215,7 @@ theorem generalFiberCoupling_isCoupling
         ∑' candidate, ∑' right,
           if left = candidate then
             generalFiberCoupling p q f g hmap (candidate, right) else 0 := by
-          rw [← ENNReal.tsum_prod]
+          rw [← tsum_prod]
       _ = (∑' candidate, ∑' right,
           if left = candidate then
             generalFiberCouplingWeight p q f g (candidate, right) else 0) := by
@@ -253,7 +253,7 @@ theorem generalFiberCoupling_isCoupling
         ∑' left, ∑' candidate,
           if right = candidate then
             generalFiberCoupling p q f g hmap (left, candidate) else 0 := by
-          rw [← ENNReal.tsum_prod]
+          rw [← tsum_prod]
       _ = (∑' left, ∑' candidate,
           if right = candidate then
             generalFiberCouplingWeight p q f g (left, candidate) else 0) := by
@@ -309,7 +309,7 @@ each output's mass is the probability of drawing it. -/
 noncomputable def outputPMF {α ι : Type} {spec : OracleSpec ι}
     [OracleSpec.UniformAnswerMeasure spec] (oa : OracleComp spec α) : PMF α :=
   ⟨fun x => Pr{let y ← oa}[y = x], by
-    exact ENNReal.summable.hasSum_iff.mpr (OracleComp.tsum_prEvent_eq_one oa)⟩
+    exact CompleteLattice.summable.hasSum_iff.mpr (OracleComp.tsum_prEvent_eq_one oa)⟩
 
 variable {ι ι₁ ι₂ : Type} {spec : OracleSpec ι} {spec₁ : OracleSpec ι₁} {spec₂ : OracleSpec ι₂}
   [OracleSpec.UniformAnswerMeasure spec]
@@ -389,7 +389,7 @@ theorem exists_pmf_of_relTriple {oa : OracleComp spec₁ α} {ob : OracleComp sp
   have hsum : ∑' pair, cm.joint {pair} = 1 := by
     rw [tsum_eq_sum (s := F) hw0]
     exact Measure.sum_apply_singleton_eq_one hF
-  let c : PMF (α × β) := ⟨fun pair => cm.joint {pair}, ENNReal.summable.hasSum_iff.mpr hsum⟩
+  let c : PMF (α × β) := ⟨fun pair => cm.joint {pair}, CompleteLattice.summable.hasSum_iff.mpr hsum⟩
   have hc : c.toMeasure = cm.joint := by
     refine Measure.ext_of_compl_eq_zero (F := F) ?_ hF fun pair _ =>
       PMF.toMeasure_apply_singleton c pair (measurableSet_singleton pair)

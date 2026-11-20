@@ -150,31 +150,31 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
   have h276 : w 276 = gen ^ S.μs := by
     rw [wr (j := 4) (k := 0) (a := 276) (by norm_num) (by decide) rfl, O.o4, S.μs_eq hbl]; rfl
   -- `ood_value`
-  have hood : ∃ v, LoadHolds rd (w 310) 0 v := by
-    rw [wa (i := 7) (a := 310) (by norm_num) rfl]
+  have hood : ∃ v, LoadHolds rd (w 309) 0 v := by
+    rw [wa (i := 7) (a := 309) (by norm_num) rfl]
     exact vs_rdgL (xs := [S.oodV]) (own 7 (by norm_num)) (by simp)
   -- `fp_w`
   have o7 := O.o7
-  have hfpw : ReadsAt rd (w 335) (w 313 :: ((vsFpwFs w).squeezeN 15).1) := by
-    have e313 : w 313 = challengeOf S.busSt := by
-      rw [wr (j := 7) (k := 0) (a := 313) (by norm_num) (by decide) rfl, o7, Keccak.challengeOf_cells]; rfl
+  have hfpw : ReadsAt rd (w 334) (w 312 :: ((vsFpwFs w).squeezeN 15).1) := by
+    have e313 : w 312 = challengeOf S.busSt := by
+      rw [wr (j := 7) (k := 0) (a := 312) (by norm_num) (by decide) rfl, o7, Keccak.challengeOf_cells]; rfl
     have eF : vsFpwFs w = ⟨capOf S.busSt, []⟩ := by
       simp only [vsFpwFs]
-      rw [wr (j := 7) (k := 2) (a := 315) (by norm_num) (by decide) rfl,
-        wr (j := 7) (k := 3) (a := 316) (by norm_num) (by decide) rfl,
-        wr (j := 7) (k := 4) (a := 317) (by norm_num) (by decide) rfl,
-        wr (j := 7) (k := 5) (a := 318) (by norm_num) (by decide) rfl,
-        wr (j := 7) (k := 6) (a := 319) (by norm_num) (by decide) rfl, o7]
+      rw [wr (j := 7) (k := 2) (a := 314) (by norm_num) (by decide) rfl,
+        wr (j := 7) (k := 3) (a := 315) (by norm_num) (by decide) rfl,
+        wr (j := 7) (k := 4) (a := 316) (by norm_num) (by decide) rfl,
+        wr (j := 7) (k := 5) (a := 317) (by norm_num) (by decide) rfl,
+        wr (j := 7) (k := 6) (a := 318) (by norm_num) (by decide) rfl, o7]
       rfl
-    rw [wa (i := 8) (a := 335) (by norm_num) rfl, e313, eF]
+    rw [wa (i := 8) (a := 334) (by norm_num) rfl, e313, eF]
     have h8 : ReadsAt rd (ptr (bs.getD 8 0)) S.wb.1 := own 8 (by norm_num)
     rwa [(S.bus_inv hbl).2.2.1] at h8
   -- `col_eval_words`, in the stream
   obtain ⟨hOk, -, -, hxl⟩ := S.H_run hbl
-  have hcol : ∀ k < 153, ∃ v, LoadHolds rd (w 582) k v := by
+  have hcol : ∀ k < 153, ∃ v, LoadHolds rd (w 565) k v := by
     intro k hk
     have hT : ReadsAt rd (ptr (S.cT bs)) S.xsT := subOf_memL hB (S.sub_xsT b hbl)
-    rw [wr (j := 10) (k := 9) (a := 582) (by norm_num) (by decide) rfl, O.o10]
+    rw [wr (j := 10) (k := 9) (a := 565) (by norm_num) (by decide) rfl, O.o10]
     simp only [Tables.VtHonest.retsH, Fs.squeeze, capOf, List.cons_append, List.nil_append,
       List.getD_cons_succ, List.getD_cons_zero]
     rw [show ofK (addressOfIndex (S.vtB bs sqE (S.leavesB (outs.take 10))).cur) = ptr (S.cT bs) from rfl,
@@ -193,8 +193,8 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
     rw [hl]; simp only [List.mem_cons, List.not_mem_nil, or_false] at hk; omega
   -- the ring map's nonce, challenges and `c_table`
   have o11 := O.o11
-  have hnonce : LoadHolds rd (w 595) 0 S.ringN := by
-    rw [wr (j := 11) (k := 5) (a := 595) (by norm_num) (by decide) rfl, o11]
+  have hnonce : LoadHolds rd (w 578) 0 S.ringN := by
+    rw [wr (j := 11) (k := 5) (a := 578) (by norm_num) (by decide) rfl, o11]
     simp only [capOf, List.cons_append, List.nil_append, List.getD_cons_succ, List.getD_cons_zero]
     have h := S.sub_stream b (P := sizeWords S.logMem S.rowsN S.rate ++ [S.x0, S.x1] ++
       [S.oodN, S.oodV] ++ [S.busN] ++ S.xsG ++ S.xsT ++ S.xsK) (X := [S.ringN])
@@ -208,11 +208,11 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
     exact hr
   have hK : vsKCap w = capOf S.s6.perm := by
     simp only [vsKCap]
-    rw [wr (j := 11) (k := 0) (a := 590) (by norm_num) (by decide) rfl,
-      wr (j := 11) (k := 1) (a := 591) (by norm_num) (by decide) rfl,
-      wr (j := 11) (k := 2) (a := 592) (by norm_num) (by decide) rfl,
-      wr (j := 11) (k := 3) (a := 593) (by norm_num) (by decide) rfl,
-      wr (j := 11) (k := 4) (a := 594) (by norm_num) (by decide) rfl, o11]
+    rw [wr (j := 11) (k := 0) (a := 573) (by norm_num) (by decide) rfl,
+      wr (j := 11) (k := 1) (a := 574) (by norm_num) (by decide) rfl,
+      wr (j := 11) (k := 2) (a := 575) (by norm_num) (by decide) rfl,
+      wr (j := 11) (k := 3) (a := 576) (by norm_num) (by decide) rfl,
+      wr (j := 11) (k := 4) (a := 577) (by norm_num) (by decide) rfl, o11]
     rfl
   have hR : vsRchs (vsKCap w) S.ringN = S.rchs := by
     rw [hK]
@@ -221,8 +221,8 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
     rfl
   -- the deferred claim
   have hfresh := S.fresh_eq hbl
-  have h580 : w 580 = S.H.bv := by
-    rw [wr (j := 10) (k := 7) (a := 580) (by norm_num) (by decide) rfl, O.o10]
+  have h580 : w 563 = S.H.bv := by
+    rw [wr (j := 10) (k := 7) (a := 563) (by norm_num) (by decide) rfl, O.o10]
     simp only [Tables.VtHonest.retsH, Fs.squeeze, capOf, List.cons_append, List.nil_append,
       List.getD_cons_succ, List.getD_cons_zero]
   obtain ⟨-, -, -, -, hzl, -⟩ := S.gkr_inv hbl
@@ -265,15 +265,15 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
     nonce := S.ringN
     hnonce := hnonce
     hmaps := by
-      rw [hR, wa (i := 13) (a := 847) (by norm_num) rfl]; exact own 13 (by norm_num)
+      rw [hR, wa (i := 13) (a := 814) (by norm_num) rfl]; exact own 13 (by norm_num)
     hct := by
-      rw [hR, wa (i := 14) (a := 848) (by norm_num) rfl]; exact own 14 (by norm_num)
+      rw [hR, wa (i := 14) (a := 815) (by norm_num) rfl]; exact own 14 (by norm_num)
     zs := S.rG.2.1
     hzl := by omega
     hz := by rw [wa (i := 5) (a := 254) (by norm_num) rfl]; exact own 5 (by norm_num)
     al := S.H.slots
     hall := S.slots_length
-    hal := by rw [wa (i := 10) (a := 570) (by norm_num) rfl]; exact own 10 (by norm_num)
+    hal := by rw [wa (i := 10) (a := 553) (by norm_num) rfl]; exact own 10 (by norm_num)
     hout := by
       have h := hL _ hout
       rw [hfresh] at h

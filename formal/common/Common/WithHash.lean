@@ -367,8 +367,11 @@ noncomputable def schemeWithHash :
 attribute [local irreducible] KeyGenerationAndSigning.treeNodeWithHash
   KeyGenerationAndSigning.signWithHash
 
-/-- The rest of leanXMSS's key generation once `S` and `P` are derived: the top tree's root. -/
-def keygenRest (key : SchemeSeedKey) : OracleComp HashSpec (PublicKey × SchemeSeedKey) := do
+/-- The rest of leanXMSS's key generation once `S` and `P` are derived: the top tree's root. Its
+spec is `KeptKey`'s, `SufCma.SchemeHashSpec`: with the equal `HashSpec`, the kernel would unfold
+the computation's `support` before the specs when it checks `keptKey`. -/
+def keygenRest (key : SchemeSeedKey) :
+    OracleComp SufCma.SchemeHashSpec (PublicKey × SchemeSeedKey) := do
   let root ← KeyGenerationAndSigning.treeNodeWithHash key.parameter topLayer key.schemeSeed
     layerHeight 0
   return (⟨root, key.parameter⟩, key)

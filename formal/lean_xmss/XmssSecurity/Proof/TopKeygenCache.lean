@@ -717,8 +717,11 @@ theorem Concrete.honestKeygen_topDecodingsSelected
   subst hresult
   rw [← hcache] at hroot
   have hselected := topDecodingsSelected_sequenceFin parameter key _ key
-    (fun index hne => OracleComp.isQueryBoundP_bind (m := 0) (htree index)
-      fun bottomRoot _ => OracleComp.isQueryBoundP_bind (m := 0) (by simp) fun base _ =>
+    -- A tactic block, so `hsigned` fixes the computation first: elaborated before it, the bound's
+    -- term differs from the computation and the kernel unfolds both to match them.
+    (fun index hne => by
+      refine OracleComp.isQueryBoundP_bind (m := 0) (htree index) fun bottomRoot _ => ?_
+      exact OracleComp.isQueryBoundP_bind (m := 0) (by simp) fun base _ =>
         topSignFrom_queryBound_zero_other_key parameter key index hne bottomRoot base _ 0)
     (fun initialCache finalCache result hcomponent hnone => by
       obtain ⟨bottomRoot, bottomCache, hbottomRun, hbase, _⟩ :=

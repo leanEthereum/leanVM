@@ -83,7 +83,7 @@ project beside them are proved in the proof projects; their statements are not p
 \item \lean{LeanVmGuestCompleteness.lean}: the deployed limits, honest children, the guest's completeness and \lean{BatchingSound}.
 \item \lean{Corollaries.lean}, optional: \lean{AggregateSound}.
 \end{enumerate}
-\lean{Statement/Data/} needs no review beyond its provenance check: \lean{lean_vm/scripts/guest-export --check}, which CI runs on every change to \lean{formal/}, \lean{crates/} or the Cargo manifests, fails when it differs from leanVM's sources. \lean{Statement/Fast/} needs none: each \lean{@[csimp]} lemma is an equation the kernel checks.
+\lean{Statement/Data/} needs no review beyond its provenance: it is not committed, and \lean{lean_vm/scripts/guest-export} writes it from leanVM's sources before every build, in CI and in \lean{check-all.sh}. \lean{Statement/Fast/} needs none: each \lean{@[csimp]} lemma is an equation the kernel checks.
 
 \section{The setting}
 
@@ -654,7 +654,7 @@ $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
 
 \paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $568917$)
 limits any program; it is the compiled decoder's size, $568507$ (proved
-at most that; it measures $568425$; the guest's frame-cell table is $517271$ of it), and a slack of
+at most that; it measures $566531$; the guest's frame-cell table is $515352$ of it), and a slack of
 $410$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
 table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many statements)
 fits there. It does not bound what a program written differently could hold: the frame-cell table

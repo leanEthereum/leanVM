@@ -39,9 +39,9 @@ theorem stepPn_eq : ∀ s < 11,
 `stepCb s` and claim `s + 1`'s at `stepPn s`, as the step before computed them. -/
 theorem steps_chain (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : Val}
     (hσd : σ = D.val rd B curE chiE olE zvE slE tbE) (h17 : σ (.n 18) = gen ^ (D.τ - 4))
-    (h201 : σ (.n 161) = ptr (B + D.o201)) (h274 : σ (.n 234) = ptr (B + D.o274)) :
-    ∀ s, s < 12 → 1 ≤ s → σ (.n (stepCb s)) = σ (.n 161) * gen ^ (22 * (s - 1)) ∧
-      σ (.n (stepPn s)) = σ (.n 161) * gen ^ (22 * s)
+    (h201 : σ (.n 155) = ptr (B + D.o201)) (h274 : σ (.n 228) = ptr (B + D.o274)) :
+    ∀ s, s < 12 → 1 ≤ s → σ (.n (stepCb s)) = σ (.n 155) * gen ^ (22 * (s - 1)) ∧
+      σ (.n (stepPn s)) = σ (.n 155) * gen ^ (22 * s)
   | 0, _, h1 => absurd h1 (by norm_num)
   | 1, _, _ => by
     refine ⟨by simp [stepCb], ?_⟩
@@ -59,8 +59,8 @@ theorem steps_chain (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {�
 /-- **The twelve steps, on the layout.** -/
 theorem steps_holds (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : Val}
     (hσd : σ = D.val rd B curE chiE olE zvE slE tbE) (h17 : σ (.n 18) = gen ^ (D.τ - 4))
-    (h201 : σ (.n 161) = ptr (B + D.o201))
-    (h274 : σ (.n 234) = ptr (B + D.o274)) {next : Prop} {kret : List E → Prop} (hn : next) :
+    (h201 : σ (.n 155) = ptr (B + D.o201))
+    (h274 : σ (.n 228) = ptr (B + D.o274)) {next : Prop} {kret : List E → Prop} (hn : next) :
     Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkStepsT next kret := by
   have S : ∀ s, s < 12 → ∀ {next : Prop} {kret : List E → Prop}, next →
       Stmt.HoldsList (fun _ _ _ ↦ True) rd σ
@@ -83,18 +83,18 @@ theorem body_holds (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ
   obtain ⟨-, -, p6, -, -, p9, p10, h17, -, -, a58, -, -, -, -, -, -, -, -, -, a201, -,
     a274, -, HF⟩ := head_first h hm hσd
   obtain ⟨-, -, -, -, -, eO, e3701, -, -, -, -, HO⟩ := out_on h hm hσd p6 p9 h17 a58 a274
-  have e3699 : σ (.n 929) = ptr (curE + D.lcur 12 + 12) := by
+  have e3699 : σ (.n 923) = ptr (curE + D.lcur 12 + 12) := by
     have := eO 5 (by norm_num)
     rw [this, oRets, List.getD_append_right _ _ _ _ (by rw [(O_ok h).2]), (O_ok h).2]
     simp [cL, ptr_mul_gen]
   obtain ⟨-, -, e1251, -, e4104, e4107, -, -, e4110, -, hcp, HI⟩ :=
     in_on h hm hσd p6 p9 p10 a201 e3699
-  have e4115 : σ (.n 1338) = ptr (curE + D.lcur 12 + 33) := by
-    rw [show (1338 : ℕ) = 1333 + 5 from rfl, e4110 5 (by norm_num), sRets,
+  have e4115 : σ (.n 1332) = ptr (curE + D.lcur 12 + 33) := by
+    rw [show (1332 : ℕ) = 1327 + 5 from rfl, e4110 5 (by norm_num), sRets,
       List.getD_append_right _ _ _ _ (by rw [(S_ok h).2]), (S_ok h).2]
     simp only [Nat.sub_self, List.getD_cons_zero, cL, ptr_mul_gen, ptr_mul_gen1]
-  have e4116 : σ (.n 1339) = D.S.2.1 := by
-    rw [show (1339 : ℕ) = 1333 + 6 from rfl, e4110 6 (by norm_num), sRets,
+  have e4116 : σ (.n 1333) = D.S.2.1 := by
+    rw [show (1333 : ℕ) = 1327 + 6 from rfl, e4110 6 (by norm_num), sRets,
       List.getD_append_right _ _ _ _ (by rw [(S_ok h).2]; norm_num), (S_ok h).2]
     rfl
   obtain ⟨-, -, -, -, HFn⟩ := fin_on h hm hσd p9 p10 h17 a201 e4104 e4107 e4116 e1251

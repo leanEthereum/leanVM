@@ -77,13 +77,13 @@ theorem tsum_le_add_mul_probEvent {β : Type} (mx : ProbComp β) (g : β → ℝ
     (E : β → Prop) [DecidablePred E] (h : ∀ r ∈ support mx, g r ≤ a + b * if E r then 1 else 0) :
     ∑' r, Pr{let x ← mx}[x = r] * g r ≤ a + b * Pr{let x ← mx}[E x] := by
   calc ∑' r, Pr{let x ← mx}[x = r] * g r ≤ ∑' r, Pr{let x ← mx}[x = r] * (a + b * if E r then 1 else 0) := by
-        refine ENNReal.tsum_le_tsum fun r => ?_
+        refine tsum_le_tsum fun r => ?_
         by_cases hr : r ∈ support mx
         · exact mul_le_mul_right (h r hr) _
         · simp [(prEvent_eq_zero_of_not_mem_support _) hr]
     _ = (∑' r, Pr{let x ← mx}[x = r]) * a + b * Pr{let x ← mx}[E x] := by
         simp_rw [mul_add]
-        rw [ENNReal.tsum_add, ENNReal.tsum_mul_right, OracleComp.prEvent_eq_tsum_ite, ← ENNReal.tsum_mul_left]
+        rw [tsum_add, ENNReal.tsum_mul_right, OracleComp.prEvent_eq_tsum_ite, ← ENNReal.tsum_mul_left]
         congr 1
         refine tsum_congr fun r => ?_
         split_ifs <;> ring

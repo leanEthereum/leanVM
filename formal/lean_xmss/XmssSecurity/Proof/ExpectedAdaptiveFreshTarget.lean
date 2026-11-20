@@ -70,8 +70,9 @@ theorem mixed_adaptive_truncated_output_fresh_relevant_hit_from_cache_le_expecte
           rw [OracleComp.tsum_prEvent_map_mul]
         rw [hrun, OracleComp.prEvent_bind_eq_tsum, hcount, div_eq_mul_inv,
           ← ENNReal.tsum_mul_right]
-        apply ENNReal.tsum_le_tsum
+        apply tsum_le_tsum
         intro sampled
+        beta_reduce
         rw [mul_assoc]
         gcongr
         exact ih sampled cache
@@ -202,7 +203,7 @@ theorem mixed_adaptive_truncated_output_fresh_relevant_hit_from_cache_le_expecte
                     (expectedSimulatedQueryCount romImpl
                       (IsRelevantHashQuery relevant) (next output)
                         (cache.cacheQuery hashInput output) / digestCard)) := by
-                  apply ENNReal.tsum_le_tsum
+                  apply tsum_le_tsum
                   intro output
                   by_cases heq : truncateHash output = target hashInput
                   · simp only [heq, ite_true]
@@ -221,7 +222,7 @@ theorem mixed_adaptive_truncated_output_fresh_relevant_hit_from_cache_le_expecte
                     expectedSimulatedQueryCount romImpl
                       (IsRelevantHashQuery relevant) (next output)
                         (cache.cacheQuery hashInput output)) / digestCard := by
-                rw [ENNReal.tsum_add]
+                rw [tsum_add]
                 congr 1
                 rw [div_eq_mul_inv, ← ENNReal.tsum_mul_right]
                 apply tsum_congr
@@ -287,7 +288,7 @@ theorem mixed_adaptive_truncated_output_fresh_relevant_hit_from_cache_le_expecte
                   (expectedSimulatedQueryCount romImpl
                     (IsRelevantHashQuery relevant) (next output)
                       (cache.cacheQuery hashInput output) / digestCard) := by
-                    apply ENNReal.tsum_le_tsum
+                    apply tsum_le_tsum
                     intro output
                     exact mul_le_mul' le_rfl (hcontinue output)
               _ = (∑' output, Pr{let x ← ($ᵗ HashOutput)}[x = output] *
@@ -383,8 +384,9 @@ theorem mixed_adaptiveFreshDigestCollision_after_prefix_le_expectedMovedContinua
               targetInput prefixResult.1 prefixResult.2 input ≠ input)
             (continuation prefixResult.1) prefixResult.2 /
               ((2 ^ digestBits : Nat) : ENNReal)) := by
-      apply ENNReal.tsum_le_tsum
+      apply tsum_le_tsum
       intro prefixResult
+      beta_reduce
       by_cases hprefix : prefixResult ∈
           support ((simulateQ romImpl head).run initialCache)
       · gcongr

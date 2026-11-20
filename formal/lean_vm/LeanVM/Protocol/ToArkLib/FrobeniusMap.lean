@@ -13,7 +13,7 @@ public import Mathlib.Algebra.CharP.Lemmas
 public import Mathlib.Algebra.CharP.Reduced
 public import Mathlib.Algebra.Field.Basic
 public import Mathlib.Data.Fintype.BigOperators
-public import ArkLib.Data.MvPolynomial.SchwartzZippelCounting
+public import ToMathlib.Algebra.MvPolynomial.SchwartzZippel
 
 /-!
 # The two-stage Frobenius map
@@ -157,8 +157,8 @@ theorem card_linear_zero_le {m : ℕ} {c : Fin m → F} (hc : c ≠ 0) :
     refine (MvPolynomial.totalDegree_mul _ _).trans ?_
     rw [MvPolynomial.totalDegree_C, add_zero]
     exact (MvPolynomial.totalDegree_X b).le
-  have h := MvPolynomial.card_zeros_le_of_totalDegree_le_fin P hP hdeg
-  simp only [hev, one_mul] at h
+  have h := MvPolynomial.card_zeros_le_of_totalDegree_le P hP hdeg
+  simp only [hev, one_mul, Fintype.card_fin] at h
   exact h
 
 /-- **Twisted by a Frobenius power**: `Σ_b g_b^(2^t) · c_b`, `c ≠ 0`, vanishes on `|F|^(m-1)` of

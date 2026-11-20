@@ -113,7 +113,7 @@ theorem guestFold_eq {x : E} {rounds : List FoldRound} {n : ℕ} (hn : rounds.le
     have h2 : 2 ^ n = 2 * 2 ^ (n - 1) := by rw [← pow_succ']; congr 1; omega
     rw [lanesAt_succ x rounds lanes (by omega), getD_foldLanesE _ _ _ _ (by rw [hL]; omega),
       ha0 m hm, ht 0 hj]
-    all_goals simp only [lanesAt, List.take_zero, List.foldl_nil]
+    simp only [lanesAt, List.take_zero, List.foldl_nil]
   | succ j ih =>
     intro hj m hm
     have hL := hlen (j + 1) (by omega)

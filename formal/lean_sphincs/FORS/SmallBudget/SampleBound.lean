@@ -467,13 +467,13 @@ theorem sample_boundF (adversary : Adversary) (hnr : adversary.NoRepeat) (q : �
         _ = _ := by ring
     · rw [(prEvent_eq_zero_of_not_mem_support _) hout, zero_mul, zero_mul]
   rw [OracleComp.prEvent_bind_eq_tsum]
-  refine le_trans (ENNReal.tsum_le_tsum hstep) ?_
+  refine le_trans (tsum_le_tsum hstep) ?_
   have hsplit : ∑' out, Pr{let x ← run}[x = out] * ((endValue pay out.2 + finalValue param data tgA prepared.2 [] out) +
         finalA4 K data.root out.1.1 out.1.2.1 out.2) =
       (∑' out, Pr{let x ← run}[x = out] * endValue pay out.2 +
         ∑' out, Pr{let x ← run}[x = out] * finalValue param data tgA prepared.2 [] out) +
         ∑' out, Pr{let x ← run}[x = out] * finalA4 K data.root out.1.1 out.1.2.1 out.2 := by
-    rw [← ENNReal.tsum_add, ← ENNReal.tsum_add]
+    rw [← tsum_add, ← tsum_add]
     refine tsum_congr fun out => ?_
     ring
   rw [hsplit]
@@ -483,7 +483,7 @@ theorem sample_boundF (adversary : Adversary) (hnr : adversary.NoRepeat) (q : �
   set Ef := ∑' out, Pr{let x ← run}[x = out] * (fleafCount IsF out.1.2.2.1 : ℝ≥0∞) with hEf
   have hA3' : Ev + b0 * Ed + c0 * Ef ≤ ENNReal.ofReal (ρ * (q' : ℕ) / 2 ^ 128) := by
     refine le_trans (le_of_eq ?_) hA3
-    rw [hEv, hEd, hEf, ← ENNReal.tsum_mul_left, ← ENNReal.tsum_mul_left, ← ENNReal.tsum_add, ← ENNReal.tsum_add]
+    rw [hEv, hEd, hEf, ← ENNReal.tsum_mul_left, ← ENNReal.tsum_mul_left, ← tsum_add, ← tsum_add]
     refine tsum_congr fun out => ?_
     ring
   have hpc : ν * ((signatureLimit : ℝ≥0∞) * revRate) + payB ≤ c0 := arm_paysF ρ _ κ hκ1 hκ

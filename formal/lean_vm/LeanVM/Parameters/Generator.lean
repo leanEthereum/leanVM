@@ -92,7 +92,7 @@ theorem g_pow_div_6700417_ne_one : g ^ ((2 ^ 64 - 1) / 6700417) ≠ 1 :=
 
 /-- `g` generates `K^×`: its order is exactly `2^64 - 1`. -/
 theorem orderOf_g : orderOf g = 2 ^ 64 - 1 := by
-  refine orderOf_eq_of_pow_and_pow_div_prime (by norm_num) g_pow_card_sub_one
+  refine orderOf_eq_of_pow_and_pow_div_prime g_pow_card_sub_one
     fun p hp hdvd ↦ ?_
   rw [card_sub_one_factorization] at hdvd
   simp only [Nat.Prime.dvd_mul hp, or_assoc] at hdvd

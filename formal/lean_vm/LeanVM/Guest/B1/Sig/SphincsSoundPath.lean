@@ -350,65 +350,90 @@ def pNodeE (pp a0 : E) (e : Nat) (sib : Nat → E) (z : Nat) (v : E) : E :=
   (hcell [pp, a0, pathAdr (z + 1) (e >>> (z + 1)), (mPair (e.testBit z) v (sib z)).1,
     (mPair (e.testBit z) v (sib z)).2]).1
 
-/-- A path level's width when `m` levels follow it. -/
-def pathWidth (m : Nat) : Nat := if m = 0 then 10 else if (m + 7) / 8 = 2 then 16 else 13
+/-- A path level's width when `m` levels follow it, its `A0` set before its hash as `ac` says. -/
+def pathWidth (ac : Option E) (m : Nat) : Nat :=
+  (if m = 0 then 10 else if (m + 7) / 8 = 2 then 16 else 13) + a0W ac
 
 /-- The hinted sibling of level `j` of `sPath … m z cur x` (`0` outside its levels). -/
-def sPathSib (σ : Val) (bit : Nat → V) (off : Nat) : Nat → Nat → Nat → Nat → E
+def sPathSib (σ : Val) (bit : Nat → V) (off : Nat) (ac : Option E) : Nat → Nat → Nat → Nat → E
   | 0, _, _, _ => 0
   | m + 1, z, x, j => if j = z then siblingOf σ (bit (off + z)) x
-      else sPathSib σ bit off m (z + 1) (x + pathWidth m) j
+      else sPathSib σ bit off ac m (z + 1) (x + pathWidth ac m) j
 
-/-- A path level's address from base `x`, `m` levels after it: below the root the
-index `val (off + z + 1)` (`sBe16`) plus the constant, at the root the constant alone. The
-statements, the next base and the address. -/
-def sPathAddr (val : Nat → V) (off z m x : Nat) : List Stmt × Nat × V :=
-  if m = 0 then ([cst x (lit (pathConst (z + 1)))], x + 1, .n x)
+/-- A path level's address and `A0` from base `x`, `m` levels after it: below the root the index
+`val (off + z + 1)` (`sBe16`) plus the constant, then the `A0`; at the root the `A0`, then the
+constant alone. The statements, the next base, the address and the `A0`'s cell. -/
+def sPathAddr (a0 : V) (ac : Option E) (val : Nat → V) (off z m x : Nat) : List Stmt × Nat × V × V :=
+  if m = 0 then
+    (a0Pre ac x ++ [cst (x + a0W ac) (lit (pathConst (z + 1)))], x + 1 + a0W ac, .n (x + a0W ac),
+      a0Cell a0 ac x)
   else
     let be := sBe16 val (off + z + 1) m x
-    (be.1 ++ [cst be.2.1 (lit (pathConst (z + 1))), addS (.n (be.2.1 + 1)) be.2.2 (.n be.2.1)],
-      be.2.1 + 2, .n (be.2.1 + 1))
+    (be.1 ++ [cst be.2.1 (lit (pathConst (z + 1))), addS (.n (be.2.1 + 1)) be.2.2 (.n be.2.1)] ++
+      a0Pre ac (be.2.1 + 2), be.2.1 + 2 + a0W ac, .n (be.2.1 + 1), a0Cell a0 ac (be.2.1 + 2))
 
-theorem sPath_succ (pad : Nat) (pp a0 : V) (bit val : Nat → V) (off m z : Nat) (cur : V) (x : Nat) :
-    sPath pad pp a0 bit val off (m + 1) z cur x =
+theorem sPath_succ (pad : Nat) (pp a0 : V) (ac : Option E) (bit val : Nat → V) (off m z : Nat)
+    (cur : V) (x : Nat) :
+    sPath pad pp a0 ac bit val off (m + 1) z cur x =
       ([hintW "siblings" [.n x, .n (x + 1)]] ++
         isChildS cur (.n x) (.n (x + 1)) (bit (off + z)) (x + 2) ++
-          (sPathAddr val off z m (x + 4)).1 ++
-          (kNode pad pp a0 (sPathAddr val off z m (x + 4)).2.2 (.n x) (.n (x + 1))
-            (sPathAddr val off z m (x + 4)).2.1).1 ++
-          (sPath pad pp a0 bit val off m (z + 1) (.n ((sPathAddr val off z m (x + 4)).2.1 + 4))
-            ((sPathAddr val off z m (x + 4)).2.1 + 5)).1,
-        (sPath pad pp a0 bit val off m (z + 1) (.n ((sPathAddr val off z m (x + 4)).2.1 + 4))
-            ((sPathAddr val off z m (x + 4)).2.1 + 5)).2.1,
-        (sPath pad pp a0 bit val off m (z + 1) (.n ((sPathAddr val off z m (x + 4)).2.1 + 4))
-            ((sPathAddr val off z m (x + 4)).2.1 + 5)).2.2) := by
-  simp only [sPath, sPathAddr, (kNode_shape ..).1, (kNode_shape ..).2]
+          (sPathAddr a0 ac val off z m (x + 4)).1 ++
+          (kNode pad pp (sPathAddr a0 ac val off z m (x + 4)).2.2.2
+            (sPathAddr a0 ac val off z m (x + 4)).2.2.1 (.n x) (.n (x + 1))
+            (sPathAddr a0 ac val off z m (x + 4)).2.1).1 ++
+          (sPath pad pp a0 ac bit val off m (z + 1) (.n ((sPathAddr a0 ac val off z m (x + 4)).2.1 + 4))
+            ((sPathAddr a0 ac val off z m (x + 4)).2.1 + 5)).1,
+        (sPath pad pp a0 ac bit val off m (z + 1) (.n ((sPathAddr a0 ac val off z m (x + 4)).2.1 + 4))
+            ((sPathAddr a0 ac val off z m (x + 4)).2.1 + 5)).2.1,
+        (sPath pad pp a0 ac bit val off m (z + 1) (.n ((sPathAddr a0 ac val off z m (x + 4)).2.1 + 4))
+            ((sPathAddr a0 ac val off z m (x + 4)).2.1 + 5)).2.2) := by
+  by_cases hm : m = 0
+  · subst hm
+    simp only [sPath, sPathAddr, (kNode_shape ..).1, (kNode_shape ..).2, ↓reduceIte]
+  · simp only [sPath, sPathAddr, (kNode_shape ..).1, (kNode_shape ..).2, hm, ↓reduceIte]
 
 theorem sBe16_next (val : Nat → V) (pos n x : Nat) :
     (sBe16 val pos n x).2.1 = x + (if (n + 7) / 8 = 2 then 5 else 2) := by
   unfold sBe16; split <;> rfl
 
-/-- The address part of a path level ends `pathWidth m - 5` after its base. -/
-theorem sPathAddr_next (val : Nat → V) (off z m x : Nat) :
-    (sPathAddr val off z m (x + 4)).2.1 = x + pathWidth m - 5 := by
+/-- The address part of a path level ends `pathWidth ac m - 5` after its base. -/
+theorem sPathAddr_next (a0 : V) (ac : Option E) (val : Nat → V) (off z m x : Nat) :
+    (sPathAddr a0 ac val off z m (x + 4)).2.1 = x + pathWidth ac m - 5 := by
   unfold sPathAddr pathWidth
   by_cases hm0 : m = 0
-  · simp [hm0]
+  · simp [hm0]; omega
   · simp only [hm0, ↓reduceIte, sBe16_next]
     split_ifs <;> omega
 
+/-- The `A0` a use reads: what `a0Val` says, once its `a0Pre` holds. -/
+theorem a0Pre_sound {a0 : V} {ac : Option E} {x : Nat}
+    (h : AtomsHold rd σ (a0Pre ac x)) : σ (a0Cell a0 ac x) = a0Val σ a0 ac := by
+  cases ac with
+  | none => rfl
+  | some c => exact h.atom (a := .const (.n x) c) (by simp [a0Pre, cst])
+
+/-- A use's `A0` read under a valuation agreeing below `b`, the value's below `b`. -/
+theorem a0Val_agree {σ' : Val} {a0 : V} {ac : Option E} {b : Nat} (ha0 : ac = none → NBv b a0)
+    (h : ∀ v, NBv b v → σ' v = σ v) : a0Val σ' a0 ac = a0Val σ a0 ac := by
+  cases ac with
+  | none => exact h _ (ha0 rfl)
+  | some _ => rfl
+
 /-- **A path level's address, sound**: the node at height `z + 1` on the path of `e`, `m` levels
-after it (`e < 2^(z + 1 + m)`). -/
-theorem sPathAddr_sound {val : Nat → V} {off e z m x : Nat} (hzm : z + 1 + m ≤ 16)
-    (he : e < 2 ^ (z + 1 + m))
+after it (`e < 2^(z + 1 + m)`), and its `A0`. -/
+theorem sPathAddr_sound {a0 : V} {ac : Option E} {val : Nat → V} {off e z m x : Nat}
+    (hzm : z + 1 + m ≤ 16) (he : e < 2 ^ (z + 1 + m))
     (hval : ∀ j, z < j → j ≤ z + m → σ (val (off + j)) = eOfNat (e >>> j))
-    (hA : AtomsHold rd σ (sPathAddr val off z m x).1) :
-    σ (sPathAddr val off z m x).2.2 = pathAdr (z + 1) (e >>> (z + 1)) := by
+    (hA : AtomsHold rd σ (sPathAddr a0 ac val off z m x).1) :
+    σ (sPathAddr a0 ac val off z m x).2.2.1 = pathAdr (z + 1) (e >>> (z + 1)) ∧
+      σ (sPathAddr a0 ac val off z m x).2.2.2 = a0Val σ a0 ac := by
   unfold sPathAddr at hA ⊢
   by_cases hm0 : m = 0
   · subst hm0
     simp only [↓reduceIte] at hA ⊢
-    have c0 : σ (.n x) = lit (pathConst (z + 1)) := hA.atom (a := .const _ _) (by simp [cst])
+    refine ⟨?_, a0Pre_sound hA.left⟩
+    have c0 : σ (.n (x + a0W ac)) = lit (pathConst (z + 1)) :=
+      hA.right.atom (a := .const _ _) (by simp [cst])
     have hq : e >>> (z + 1) = 0 := by
       rw [Nat.shiftRight_eq_div_pow]
       exact Nat.div_eq_of_lt (by simpa using he)
@@ -417,6 +442,8 @@ theorem sPathAddr_sound {val : Nat → V} {off e z m x : Nat} (hzm : z + 1 + m �
     rw [c0, hq, pathAdr, a1Hi, pathConst, lit, hlo, hhi]
     simp only [Nat.zero_div, Nat.zero_mod, Nat.mul_zero, Nat.add_zero]
   · simp only [hm0, ↓reduceIte] at hA ⊢
+    refine ⟨?_, a0Pre_sound hA.right⟩
+    have hA := hA.left
     have hv : e >>> (z + 1) < 2 ^ m := by
       rw [Nat.shiftRight_eq_div_pow]
       have : e < 2 ^ (z + 1) * 2 ^ m := by rw [← pow_add]; exact he
@@ -446,20 +473,20 @@ theorem sPathAddr_sound {val : Nat → V} {off e z m x : Nat} (hzm : z + 1 + m �
 /-- **`sp_path`, sound**: from level `z` (base `x`), `m` levels to height `height`, the bits those
 of `e < 2^height` and the shifted values `e`'s, the node reached is `nIter` of the levels, the
 siblings those hinted (`sPathSib`). -/
-theorem sPath_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 : V} {bit val : Nat → V}
+theorem sPath_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 : V} {ac : Option E} {bit val : Nat → V}
     {off e height : Nat}
     (hh : height ≤ 16) (he : e < 2 ^ height)
     (hbit : ∀ z < height, σ (bit (off + z)) = if e.testBit z then 1 else 0)
     (hval : ∀ z, z < height → σ (val (off + z)) = eOfNat (e >>> z)) :
     ∀ (m z : Nat) (cur : V) (x : Nat), z + m = height →
-      AtomsHold rd σ (sPath pad pp a0 bit val off m z cur x).1 →
-      σ (sPath pad pp a0 bit val off m z cur x).2.2 =
-        nIter (pNodeE (σ pp) (σ a0) e (sPathSib σ bit off m z x)) z m (σ cur)
+      AtomsHold rd σ (sPath pad pp a0 ac bit val off m z cur x).1 →
+      σ (sPath pad pp a0 ac bit val off m z cur x).2.2 =
+        nIter (pNodeE (σ pp) (a0Val σ a0 ac) e (sPathSib σ bit off ac m z x)) z m (σ cur)
   | 0, _, _, _, _, _ => rfl
   | m + 1, z, cur, x, hm, hA => by
       rw [sPath_succ] at hA ⊢
       obtain ⟨hib, hd⟩ := bit_facts (hbit z (by omega))
-      have hadr := sPathAddr_sound (off := off) (x := x + 4) (by omega)
+      obtain ⟨hadr, ha0⟩ := sPathAddr_sound (a0 := a0) (ac := ac) (off := off) (x := x + 4) (by omega)
         (by rw [show z + 1 + m = height by omega]; exact he)
         (fun j _ hj => hval j (by omega)) hA.left.left.right
       have hk := hA.left.right
@@ -467,12 +494,12 @@ theorem sPath_sound {pad : Nat} (hp : PadOK σ pad) {pp a0 : V} {bit val : Nat �
         hA.left.left.left.sub fun s hs => List.mem_append_right _ hs
       have hlv := level_sound hp hib hc hk
       have hrest := sPath_sound hp hh he hbit hval m (z + 1) _ _ (by omega) hA.right
-      have hfirst : σ (.n ((sPathAddr val off z m (x + 4)).2.1 + 4)) =
-          pNodeE (σ pp) (σ a0) e (sPathSib σ bit off (m + 1) z x) z (σ cur) := by
-        rw [hlv, hd, hadr]
+      have hfirst : σ (.n ((sPathAddr a0 ac val off z m (x + 4)).2.1 + 4)) =
+          pNodeE (σ pp) (a0Val σ a0 ac) e (sPathSib σ bit off ac (m + 1) z x) z (σ cur) := by
+        rw [hlv, hd, hadr, ha0]
         simp [pNodeE, sPathSib]
       rw [hrest, nIter, hfirst, sPathAddr_next,
-        show x + pathWidth m - 5 + 5 = x + pathWidth m by unfold pathWidth; split_ifs <;> omega]
+        show x + pathWidth ac m - 5 + 5 = x + pathWidth ac m by unfold pathWidth; split_ifs <;> omega]
       refine nIter_congr _ _ _ fun j hj => ?_
       unfold pNodeE
       simp only [sPathSib, show j ≠ z by omega, ite_false]

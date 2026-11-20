@@ -410,7 +410,7 @@ theorem spine_value (hboundary : BoundaryCorrect f parameter seed labels) (steps
           keptPosition parameter topLayer / 2 ^ steps := by
         simp only [spineIndex, Nat.add_sub_cancel_left, hpos]
       cases hb : (keptPosition parameter topLayer / 2 ^ steps).testBit 0 <;>
-        try simp only [Bool.false_eq_true, ↓reduceIte, eval_tweakableHash]
+        simp only [Bool.false_eq_true, ↓reduceIte, eval_tweakableHash]
       all_goals
         apply congrArg (fun input : HashInput => truncateHash (f input))
         have hb' := hb

@@ -11,7 +11,7 @@ public import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
 public import VCVio.OracleComp.QueryTracking.QueryBound.Basic
 public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import VCVio.EvalDist.ProbabilityNotation
-import ToMathlib.Probability.UniformOn
+import ToCslib.Probability.UniformOn
 
 /-!
 # Potential bounds for lazily sampled random oracles

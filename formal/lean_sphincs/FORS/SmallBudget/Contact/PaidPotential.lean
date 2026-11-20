@@ -167,7 +167,7 @@ theorem tsum_bound_payF {α : Type} (mx : ProbComp α) (X : ℝ≥0∞) (Y : α 
     ∑' a, Pr{let x ← mx}[x = a] * (X + pay * Y a) ≤ X + pay * ∑' a, Pr{let x ← mx}[x = a] * Y a := by
   calc ∑' a, Pr{let x ← mx}[x = a] * (X + pay * Y a)
       = (∑' a, Pr{let x ← mx}[x = a]) * X + pay * ∑' a, Pr{let x ← mx}[x = a] * Y a := by
-        simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right]
+        simp only [mul_add, tsum_add, ENNReal.tsum_mul_right]
         rw [← ENNReal.tsum_mul_left]
         congr 1
         exact tsum_congr fun a => by ring

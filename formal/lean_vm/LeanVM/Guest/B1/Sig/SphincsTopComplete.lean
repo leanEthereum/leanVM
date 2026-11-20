@@ -38,7 +38,7 @@ theorem layer_stage (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : MemO
     {l : Nat} (hl : l < 3) {S : E} {r : HashSig.Digest}
     (hr : LayerReaches pk.publicSeed (digestIdx pk m sig) sig ⟨l, hl⟩ (cellVal S) r)
     (σ : Val) (h1 : σ (.n 1) = bb) (hbot : BottomPost bb pk m sig σ)
-    (ha0 : σ (sA0Of l) = adrsCell0 l (layerTreeN (digestT pk m sig) l))
+    (ha0 : a0Val σ (sA0Of l) (sAcOf l) = adrsCell0 l (layerTreeN (digestT pk m sig) l))
     (ha1 : σ (sA1Of l) = adrsCell1 0 (layerLeafN (digestT pk m sig) l) 0 0)
     (hsg : σ (sSignedOf l) = S) :
     r = cellVal (layerRootCell pk (digestIdx pk m sig) sig ⟨l, hl⟩ S) ∧
@@ -51,12 +51,14 @@ theorem layer_stage (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : MemO
   have et := treeOf_idx pk m sig ⟨l, hl⟩
   have el := leafOf_idx pk m sig ⟨l, hl⟩
   have hc := layer_call hC hV
-  have henc : encDigestCell (σ sPP) (σ (sA0Of l)) (σ (sA1Of l) + lit (7 * 2 ^ 24)) (σ (sSignedOf l))
+  have henc : encDigestCell (σ sPP) (a0Val σ (sA0Of l) (sAcOf l)) (σ (sA1Of l) + lit (7 * 2 ^ 24))
+      (σ (sSignedOf l))
       (eOfNat (beWordAt 0 (sig.layers ⟨l, hl⟩).counter.toNat)) =
       layerEnc pk (digestIdx pk m sig) sig ⟨l, hl⟩ S := by
     rw [hpp, ha0, ha1, adrsCell1_enc, hsg, layerEnc, et, el]
-  have hcall : C "sp_wots" [σ sPP, σ (sA0Of l), σ (sA1Of l),
-      encDigestCell (σ sPP) (σ (sA0Of l)) (σ (sA1Of l) + lit (7 * 2 ^ 24)) (σ (sSignedOf l))
+  have hcall : C "sp_wots" [σ sPP, a0Val σ (sA0Of l) (sAcOf l), σ (sA1Of l),
+      encDigestCell (σ sPP) (a0Val σ (sA0Of l) (sAcOf l)) (σ (sA1Of l) + lit (7 * 2 ^ 24))
+        (σ (sSignedOf l))
         (eOfNat (beWordAt 0 (sig.layers ⟨l, hl⟩).counter.toNat))]
       [cellOf128 (layerLeaf pk (digestIdx pk m sig) sig ⟨l, hl⟩ S)] := by
     rw [henc, hpp, ha0, ha1]

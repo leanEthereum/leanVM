@@ -73,7 +73,7 @@ theorem expectedFinal_le {Inv : σ → Prop}
       calc
         _ ≤ ∑' r, Pr{let x ← (implementation input).run s}[x = r] *
               (f r.2 + expectedSimulatedCost implementation cost (next r.1) r.2) := by
-            refine ENNReal.tsum_le_tsum fun r => ?_
+            refine tsum_le_tsum fun r => ?_
             by_cases hr : r ∈ support ((implementation input).run s)
             · exact mul_le_mul_right (ih r.1 r.2 (hinv input s hs r hr)) _
             · simp [(prEvent_eq_zero_of_not_mem_support _) hr]
@@ -81,7 +81,7 @@ theorem expectedFinal_le {Inv : σ → Prop}
               ∑' r, Pr{let x ← (implementation input).run s}[x = r] *
                 expectedSimulatedCost implementation cost (next r.1) r.2 := by
             simp_rw [mul_add]
-            exact ENNReal.tsum_add
+            exact tsum_add
         _ ≤ (f s + cost input s) + ∑' r, Pr{let x ← (implementation input).run s}[x = r] *
               expectedSimulatedCost implementation cost (next r.1) r.2 :=
             add_le_add (hstep input s hs) le_rfl
@@ -110,9 +110,9 @@ theorem expectedFinal_ge {Inv : σ → Prop}
         _ = ∑' r, Pr{let x ← (implementation input).run s}[x = r] *
               (f r.2 + expectedSimulatedCost implementation cost (next r.1) r.2) := by
             simp_rw [mul_add]
-            exact ENNReal.tsum_add.symm
+            exact tsum_add.symm
         _ ≤ _ := by
-            refine ENNReal.tsum_le_tsum fun r => ?_
+            refine tsum_le_tsum fun r => ?_
             by_cases hr : r ∈ support ((implementation input).run s)
             · exact mul_le_mul_right (ih r.1 r.2 (hinv input s hs r hr)) _
             · simp [(prEvent_eq_zero_of_not_mem_support _) hr]
@@ -140,7 +140,7 @@ theorem expectedSimulatedCost_add (left right : spec.Domain → σ → ℝ≥0�
   | pure value => simp
   | query_bind input next ih =>
       simp only [expectedSimulatedCost_query_bind, ih, mul_add]
-      rw [ENNReal.tsum_add]
+      rw [tsum_add]
       ac_rfl
 
 theorem expectedSimulatedCost_const_mul (c : ℝ≥0∞) (cost : spec.Domain → σ → ℝ≥0∞)
@@ -172,7 +172,7 @@ theorem const_mul_probEvent_le_expectedFinal (f : σ → ℝ≥0∞) (E : σ →
       expectedFinal implementation f computation s := by
   classical
   rw [OracleComp.prEvent_eq_tsum_ite, expectedFinal, ← ENNReal.tsum_mul_left]
-  refine ENNReal.tsum_le_tsum fun r => ?_
+  refine tsum_le_tsum fun r => ?_
   split_ifs with hr
   · rw [mul_comm]
     exact mul_le_mul_right (hf r.2 hr) _

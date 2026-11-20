@@ -119,16 +119,16 @@ theorem copyWordsT_holds {src dst : V} {sOff dOff b n : ℕ} {next : Prop} {kret
 theorem sqZeroT_holds {capb o : ℕ} {cap : List E} (hcap : (cap5 capb).map σ = cap)
     (hz : ∀ k < 4, σ (.n (69 + k)) = 0) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (sqZeroT capb o) next kret) :
-    σ (.n (o + 13)) = (⟨cap, []⟩ : Fs).squeeze.1 ∧
+    σ (.n o) = (⟨cap, []⟩ : Fs).squeeze.1 ∧
       (cap5 (o + 8)).map σ = (⟨cap, []⟩ : Fs).squeeze.2.cap ∧ next := by
-  rw [sqZeroT, holdsList_append, holds_challengeT] at h
+  rw [sqZeroT] at h
   simp only [keccakA, Stmt.HoldsList, Stmt.Holds] at h
-  obtain ⟨hk, hch, hn⟩ := h
+  obtain ⟨hk, hn⟩ := h
   have hin : ([V.n 69, .n 69, .n 69, .n 69, .n 69, .n 70, .n 71, .n 72] ++ cap5 capb).map σ =
       rateOf (⟨cap, []⟩ : Fs).pend ++ (⟨cap, []⟩ : Fs).cap := by
     rw [List.map_append, hcap, rateOf_nil]
     simp [hz 0 (by omega), hz 1 (by omega), hz 2 (by omega), hz 3 (by omega)]
-  have := squeeze_atom (s := ⟨cap, []⟩) hk hin (b := o + 13) (by simpa using hch)
+  have := squeeze_atom (s := ⟨cap, []⟩) hk hin (b := o) rfl
   refine ⟨this.1, ?_, hn⟩
   rw [← this.2]
   simp [cap5, List.range_succ]
@@ -137,27 +137,27 @@ theorem sqZeroT_holds {capb o : ℕ} {cap : List E} (hcap : (cap5 capb).map σ =
 theorem vkSqueezesT_holds {cap0 : List E} (hcap : (cap5 12).map σ = cap0)
     (hz : ∀ k < 4, σ (.n (69 + k)) = 0) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ vkSqueezesT next kret) :
-    (⟨cap0, []⟩ : Fs).squeezeN 1 = ([σ (.n 86)], ⟨(cap5 81).map σ, []⟩) ∧
+    (⟨cap0, []⟩ : Fs).squeezeN 1 = ([σ (.n 73)], ⟨(cap5 81).map σ, []⟩) ∧
       (⟨(cap5 81).map σ, []⟩ : Fs).squeezeN 5 =
-        ((List.range 5).map (fun i ↦ σ (.n (101 + 14 * i))), ⟨(cap5 152).map σ, []⟩) ∧
-      LoadHolds rd (σ (.n 67)) 0 (σ (.n 86)) ∧
-      (∀ i < 5, LoadHolds rd (σ (.n 87)) i (σ (.n (101 + 14 * i)))) ∧ next := by
+        ((List.range 5).map (fun i ↦ σ (.n (87 + 13 * i))), ⟨(cap5 147).map σ, []⟩) ∧
+      LoadHolds rd (σ (.n 67)) 0 (σ (.n 73)) ∧
+      (∀ i < 5, LoadHolds rd (σ (.n 86)) i (σ (.n (87 + 13 * i)))) ∧ next := by
   rw [vkSqueezesT, holdsList_append, holdsList_append, holdsList_range_flatten _ _
     (fun _ ↦ rfl)] at h
   obtain ⟨q0c, q0p, h⟩ := sqZeroT_holds hcap hz h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
   obtain ⟨l86, -, hall, hn⟩ := h
-  have step : ∀ i < 5, σ (.n (101 + 14 * i)) =
-        (⟨(cap5 (if i = 0 then 81 else 82 + 14 * i)).map σ, []⟩ : Fs).squeeze.1 ∧
-      (cap5 (96 + 14 * i)).map σ =
-        (⟨(cap5 (if i = 0 then 81 else 82 + 14 * i)).map σ, []⟩ : Fs).squeeze.2.cap ∧
-      LoadHolds rd (σ (.n 87)) i (σ (.n (101 + 14 * i))) := by
+  have step : ∀ i < 5, σ (.n (87 + 13 * i)) =
+        (⟨(cap5 (if i = 0 then 81 else 82 + 13 * i)).map σ, []⟩ : Fs).squeeze.1 ∧
+      (cap5 (95 + 13 * i)).map σ =
+        (⟨(cap5 (if i = 0 then 81 else 82 + 13 * i)).map σ, []⟩ : Fs).squeeze.2.cap ∧
+      LoadHolds rd (σ (.n 86)) i (σ (.n (87 + 13 * i))) := by
     intro i hi
     have hb := hall i hi
     rw [holdsList_append] at hb
     obtain ⟨q1, q2, hb⟩ := sqZeroT_holds rfl hz hb
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hb
-    refine ⟨by rw [show 101 + 14 * i = 88 + 14 * i + 13 by omega]; exact q1, ?_, hb⟩
+    refine ⟨q1, ?_, hb⟩
     rw [← q2]; congr 2; omega
   refine ⟨?_, ?_, l86, fun i hi ↦ (step i hi).2.2, hn⟩
   · simp only [Fs.squeezeN]
@@ -165,11 +165,11 @@ theorem vkSqueezesT_holds {cap0 : List E} (hcap : (cap5 12).map σ = cap0)
     have : (⟨cap0, []⟩ : Fs).squeeze.2 = ⟨(cap5 81).map σ, []⟩ := by
       rw [show ((⟨cap0, []⟩ : Fs).squeeze.2) = ⟨(⟨cap0, []⟩ : Fs).squeeze.2.cap, []⟩ from rfl, ← q0p]
     rw [this]
-  · have hs : ∀ i < 5, (⟨(cap5 (if i = 0 then 81 else 82 + 14 * i)).map σ, []⟩ : Fs).squeeze.2 =
-        ⟨(cap5 (96 + 14 * i)).map σ, []⟩ := by
+  · have hs : ∀ i < 5, (⟨(cap5 (if i = 0 then 81 else 82 + 13 * i)).map σ, []⟩ : Fs).squeeze.2 =
+        ⟨(cap5 (95 + 13 * i)).map σ, []⟩ := by
       intro i hi
-      rw [show (⟨(cap5 (if i = 0 then 81 else 82 + 14 * i)).map σ, []⟩ : Fs).squeeze.2 =
-        ⟨(⟨(cap5 (if i = 0 then 81 else 82 + 14 * i)).map σ, []⟩ : Fs).squeeze.2.cap, []⟩ from rfl,
+      rw [show (⟨(cap5 (if i = 0 then 81 else 82 + 13 * i)).map σ, []⟩ : Fs).squeeze.2 =
+        ⟨(⟨(cap5 (if i = 0 then 81 else 82 + 13 * i)).map σ, []⟩ : Fs).squeeze.2.cap, []⟩ from rfl,
         ← (step i hi).2.1]
     have s0 := step 0 (by omega); have s1 := step 1 (by omega); have s2 := step 2 (by omega)
     have s3 := step 3 (by omega); have s4 := step 4 (by omega)
@@ -192,12 +192,12 @@ theorem vkHeadT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ 
         σ (.n 7) * gen ^ 4] []) ∧
     σ (.n 67) = σ (.n 61) * σ (.n 18) ∧
     (⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], []⟩ : Fs).squeezeN 1 =
-      ([σ (.n 86)], ⟨(cap5 81).map σ, []⟩) ∧
+      ([σ (.n 73)], ⟨(cap5 81).map σ, []⟩) ∧
     (⟨(cap5 81).map σ, []⟩ : Fs).squeezeN 5 =
-      ((List.range 5).map (fun i ↦ σ (.n (101 + 14 * i))), ⟨(cap5 152).map σ, []⟩) ∧
-    LoadHolds rd (σ (.n 67)) 0 (σ (.n 86)) ∧
-    (∀ i < 5, LoadHolds rd (σ (.n 87)) i (σ (.n (101 + 14 * i)))) ∧
-    (LoadHolds rd (σ (.n 5)) 0 (σ (.n 158)) ∧ FsPackOk σ (.n 158) (158 + 1) dsObserve) ∧
+      ((List.range 5).map (fun i ↦ σ (.n (87 + 13 * i))), ⟨(cap5 147).map σ, []⟩) ∧
+    LoadHolds rd (σ (.n 67)) 0 (σ (.n 73)) ∧
+    (∀ i < 5, LoadHolds rd (σ (.n 86)) i (σ (.n (87 + 13 * i)))) ∧
+    (LoadHolds rd (σ (.n 5)) 0 (σ (.n 152)) ∧ FsPackOk σ (.n 152) (152 + 1) dsObserve) ∧
     next := by
   rw [vkHeadT, holdsList_append, holdsList_append, holdsList_append, holdsList_append,
     holdsList_append, holdsList_map_atoms] at h

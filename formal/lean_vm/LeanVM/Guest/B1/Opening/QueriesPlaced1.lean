@@ -221,7 +221,7 @@ theorem ok_finT (hfinal : s.final = 1) (x : V) (v : ℕ) :
     AtomsOk (OqAtomOk s coefs hs) (oqFinT s x hs v) := by
   unfold oqFinT oqWsT
   refine atomsOk_append (atomsOk_append (atomsOk_cons trivial (atomsOk_flatten fun y hy ↦ ?_))
-    (ok_novel s coefs hs hfinal v)) (atomsOk_cons trivial (atomsOk_cons trivial atomsOk_nil))
+    (ok_novel s coefs hs hfinal v)) (atomsOk_cons trivial atomsOk_nil)
   obtain ⟨i, -, rfl⟩ := List.mem_map.mp hy
   exact atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons trivial atomsOk_nil))
 

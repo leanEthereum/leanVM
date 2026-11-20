@@ -51,12 +51,12 @@ def atomsDeep : Stmt → Bool
 
 /-- `verify_bus_gkr_loop0`'s call. -/
 def vbgCall7 : Stmt :=
-  .callIf (.n 379) name% «verify_bus_gkr_loop0» [.n 380, .n 382, .n 375, .n 16, .n 8, .n 17, .n 63,
-      .n 142, .n 6,
-    .n 64]
+  .callIf (.n 375) name% «verify_bus_gkr_loop0» [.n 376, .n 378, .n 371, .n 16, .n 8, .n 17, .n 62,
+      .n 141, .n 6,
+    .n 63]
 
 /-- `verify_bus_gkr_loop1`'s call. -/
-def vbgCall8 : Stmt := .callIf (.n 392) name% «verify_bus_gkr_loop1» [.n 393, .n 6, .n 7, .n 390]
+def vbgCall8 : Stmt := .callIf (.n 388) name% «verify_bus_gkr_loop1» [.n 389, .n 6, .n 7, .n 386]
 
 /-- Every statement is an atom, an `ite` of atoms, or one of the two calls. -/
 def vbgKindB (s : Stmt) : Bool :=
@@ -65,8 +65,8 @@ def vbgKindB (s : Stmt) : Bool :=
 theorem vbg_kinds : vbgPre.all vbgKindB = true := by decide +kernel
 
 theorem vbg_allocs : vbgPre.filterMap Main.Stmt.allocSz = [(.n 16, .inr (.n 15)),
-    (.n 17, .inl 6034), (.n 18, .inl 1640), (.n 64, .inl 8), (.n 73, .inl 33),
-    (.n 74, .inl 33), (.n 394, .inl 3)] := by
+    (.n 17, .inl 6034), (.n 18, .inl 1640), (.n 63, .inl 8), (.n 72, .inl 33),
+    (.n 73, .inl 33), (.n 390, .inl 3)] := by
   decide +kernel
 
 theorem vsh_atomsDeep {C C' : CallRel} {rd : Reader} {σ : Val} :
@@ -100,9 +100,9 @@ theorem gk_xs_len {depth : ℕ} (hd2 : 2 ≤ depth) {cap0 xs : List E} {r : E ×
 
 theorem vbg_load_cls {d p : V} {off : ℕ} (hm : Stmt.atom (.load d p off) ∈ vbgEvL) :
     p = .n p.idx ∧ ((p.idx = 5 ∧ off < 14) ∨ (p.idx = 16 ∧ off < 39) ∨ (p.idx = 18 ∧ off < 42) ∨
-      (p.idx = 64 ∧ off < 8) ∨ ((p.idx = 73 ∨ p.idx = 74) ∧ off < 33) ∨
-      (((p.idx = 141 ∨ p.idx = 377) ∨ p.idx = 381) ∧ off = 0) ∨ (p.idx = 388 ∧ off < 10) ∨
-      (p.idx = 394 ∧ off < 3)) := by
+      (p.idx = 63 ∧ off < 8) ∨ ((p.idx = 72 ∨ p.idx = 73) ∧ off < 33) ∨
+      (((p.idx = 140 ∨ p.idx = 373) ∨ p.idx = 377) ∧ off = 0) ∨ (p.idx = 384 ∧ off < 10) ∨
+      (p.idx = 390 ∧ off < 3)) := by
   have hok := List.all_eq_true.mp vbg_loadOk _ hm
   obtain ⟨path, tag, k⟩ := p
   cases path with
@@ -136,11 +136,11 @@ noncomputable def vbgσ (rd : Reader) (depth : ℕ) (cap0 : List E) (tabs : E)
 `verify_bus_gkr_loop0`'s
 arguments. -/
 def VbgVals (σ : Val) (depth eL eR eK : ℕ) (tabs : E) : Prop :=
-  σ (.n 380) = 1 ∧ σ (.n 382) = gen ^ ((depth - 1) / 2) ∧ σ (.n 375) = gen ^ (2 - depth % 2) ∧
-    σ (.n 393) = 1 ∧ σ (.n 6) = gen ^ depth ∧ σ (.n 16) = ofK (addressOfIndex eL) ∧
-    σ (.n 17) = ofK (addressOfIndex eR) ∧ σ (.n 64) = ofK (addressOfIndex eK) ∧
-    σ (.n 8) = tabs ∧ σ (.n 142) = gen ^ (depth % 2) ∧
-    σ (.n 379) = 1 + gen ^ ((depth - 1) / 2)
+  σ (.n 376) = 1 ∧ σ (.n 378) = gen ^ ((depth - 1) / 2) ∧ σ (.n 371) = gen ^ (2 - depth % 2) ∧
+    σ (.n 389) = 1 ∧ σ (.n 6) = gen ^ depth ∧ σ (.n 16) = ofK (addressOfIndex eL) ∧
+    σ (.n 17) = ofK (addressOfIndex eR) ∧ σ (.n 63) = ofK (addressOfIndex eK) ∧
+    σ (.n 8) = tabs ∧ σ (.n 141) = gen ^ (depth % 2) ∧
+    σ (.n 375) = 1 + gen ^ ((depth - 1) / 2)
 
 /-- The seven buffers of `verify_bus_gkr` in a region, and the cursor's words and the point. -/
 structure VbgR (R : ℕ → Prop) (depth : ℕ) (xs : List E) (ec ez eL eR eP eK : ℕ) : Prop where
@@ -229,31 +229,31 @@ theorem vbg_run {depth κ : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32) (hκ : 
     rw [hσ, ev_params rd W (by rw [hl]; exact hc') (by rw [hl]; omega), hargs]; simp [hcl]
   have one : ∀ d : ℕ, vbgEvL.any (fun t ↦ tbStmtsEqb [.atom (.const (.n d) (word 1 0))] [t]) =
       true → σ (.n d) = 1 := fun d h ↦ by rw [← tb_word_one]; exact g _ h
-  have c380 := one 380 (by decide +kernel)
-  have c393 := one 393 (by decide +kernel)
-  have c376 := one 376 (by decide +kernel)
-  have c143 := one 143 (by decide +kernel)
+  have c380 := one 376 (by decide +kernel)
+  have c393 := one 389 (by decide +kernel)
+  have c376 := one 372 (by decide +kernel)
+  have c143 := one 142 (by decide +kernel)
   -- `loop_bounds[depth]`, `depth_odd[depth]`
-  have hbd : LoadHolds rd (σ (.n 381)) 0 (gen ^ ((depth - 1) / 2)) := by
+  have hbd : LoadHolds rd (σ (.n 377)) 0 (gen ^ ((depth - 1) / 2)) := by
     rw [e381, tb_loadHolds_mul_gen_pow, Nat.add_zero]
     have := hB depth (by simp [vbgBndW]; omega)
     simpa [vbgBndW] using this
-  have r382 := good_read (g (.load (.n 382) (.n 381) 0) (by decide +kernel)) (by decide +kernel) hbd
-  have r378 := good_read (g (.load (.n 378) (.n 377) 0) (by decide +kernel)) (by decide +kernel)
+  have r382 := good_read (g (.load (.n 378) (.n 377) 0) (by decide +kernel)) (by decide +kernel) hbd
+  have r378 := good_read (g (.load (.n 374) (.n 373) 0) (by decide +kernel)) (by decide +kernel)
     (by rw [e377, ← e381]; exact hbd)
-  have a379 : σ (.n 379) = σ (.n 376) + σ (.n 378) :=
-    g (.add (.n 379) (.n 376) (.n 378)) (by decide +kernel)
-  have hod : LoadHolds rd (σ (.n 141)) 0 (gen ^ (depth % 2)) := by
+  have a379 : σ (.n 375) = σ (.n 372) + σ (.n 374) :=
+    g (.add (.n 375) (.n 372) (.n 374)) (by decide +kernel)
+  have hod : LoadHolds rd (σ (.n 140)) 0 (gen ^ (depth % 2)) := by
     rw [e141, tb_loadHolds_mul_gen_pow, Nat.add_zero]
     have := hO depth (by simp [vbgOddW]; omega)
     simpa [vbgOddW] using this
-  have r142 := good_read (g (.load (.n 142) (.n 141) 0) (by decide +kernel)) (by decide +kernel) hod
-  have c374 : σ (.n 374) = gen ^ 2 := by
-    rw [← tb_word_four]; exact g (.const (.n 374) (word 4 0)) (by decide +kernel)
-  have e375 : σ (.n 375) = gen ^ (2 - depth % 2) := by
-    have h := g (.mul (.n 374) (.n 375) (.n 142)) (by decide +kernel)
-    have hn : ¬ ((V.n 375).idx < (V.n 374).idx ∧ (V.n 142).idx < (V.n 374).idx) := by
-      show ¬ (375 < 374 ∧ 142 < 374); omega
+  have r142 := good_read (g (.load (.n 141) (.n 140) 0) (by decide +kernel)) (by decide +kernel) hod
+  have c374 : σ (.n 370) = gen ^ 2 := by
+    rw [← tb_word_four]; exact g (.const (.n 370) (word 4 0)) (by decide +kernel)
+  have e375 : σ (.n 371) = gen ^ (2 - depth % 2) := by
+    have h := g (.mul (.n 370) (.n 371) (.n 141)) (by decide +kernel)
+    have hn : ¬ ((V.n 371).idx < (V.n 370).idx ∧ (V.n 141).idx < (V.n 370).idx) := by
+      show ¬ (371 < 370 ∧ 141 < 370); omega
     simp only [Good, hn, ↓reduceIte] at h
     rw [h, c374, r142.1]
     have hs : depth % 2 ≤ 2 := by omega
@@ -264,7 +264,7 @@ theorem vbg_run {depth κ : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32) (hκ : 
   have hLb := tbReadsAt_flatMap_eq (w := 13) _ (depth + 2)
     (fun c _ ↦ vbgLayBlock_length hcl c) hL
   have hdb := hLb depth (by omega)
-  have hrow : LoadHolds rd (σ (.n 388)) 9
+  have hrow : LoadHolds rd (σ (.n 384)) 9
       (ofK (addressOfIndex eP) * gen ^ (40 * ((depth - depth % 2) / 2 + depth % 2))) := by
     rw [e388]
     have := hdb 9 (by rw [vbgLayBlock_length hcl]; omega)
@@ -273,7 +273,7 @@ theorem vbg_run {depth κ : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32) (hκ : 
     unfold vbgLayBlock at this
     simp only [show 1 ≤ depth by omega, and_self, le_refl, ↓reduceIte, vbgSlotW] at this
     rwa [gkSlotWords_getD9 inv.1 inv.2.1] at this
-  have r390 := good_read (g (.load (.n 390) (.n 388) 9) (by decide +kernel)) (by decide +kernel) hrow
+  have r390 := good_read (g (.load (.n 386) (.n 384) 9) (by decide +kernel)) (by decide +kernel) hrow
   refine ⟨fun s hs ↦ ?_, fun d p off hm ↦ ?_, ?_, ?_, hrt, c380, r382.1, e375, c393, e6, e16, e17,
     e64, e8, r142.1, by rw [a379, c376, r378.1]⟩
   · -- the statements

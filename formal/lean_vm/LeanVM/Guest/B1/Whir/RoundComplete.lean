@@ -43,7 +43,7 @@ def rdS3 (as xs : List E) : KeccakState :=
 /-- `β`'s permutation. -/
 def rdS4 (as xs : List E) : KeccakState := (⟨capOf (rdS3 as xs), []⟩ : Fs).perm
 
-/-- The arithmetic tail's values, from `76`. -/
+/-- The arithmetic tail's values, from `74`. -/
 def rdTail (as xs : List E) : List E :=
   let al := rdCell (rdS3 as xs) 0
   let be := rdCell (rdS4 as xs) 0
@@ -71,10 +71,8 @@ def rdVals (as xs : List E) (k : ℕ) : E :=
   else if k < 43 then [xs.getD 4 0, xs.getD 4 0, wp].getD (k - 40) 0
   else if k < 48 then [word 1 0, 0, 0, 0, 0].getD (k - 43) 0
   else if k < 61 then rdCell (rdS3 as xs) (k - 48)
-  else if k = 61 then rdCell (rdS3 as xs) 0
-  else if k < 75 then rdCell (rdS4 as xs) (k - 62)
-  else if k = 75 then rdCell (rdS4 as xs) 0
-  else (rdTail as xs).getD (k - 76) 0
+  else if k < 74 then rdCell (rdS4 as xs) (k - 61)
+  else (rdTail as xs).getD (k - 74) 0
 
 theorem rdVals_49 (as xs : List E) : rdVals as xs 49 = rdCell (rdS3 as xs) 1 := by
   simp [rdVals]
@@ -112,8 +110,8 @@ theorem rd_sponges (f0 f1 f2 f3 f4 cur claim tabs gp cp u0 w c0 c1 n2 : E) :
 
 /-! ## The body holds -/
 
-theorem roundBody_split : roundBody = roundBody.dropLast ++ [.ret [.n 86, .n 87, .n 88,
-    .n 89, .n 90, .n 93, .n 94]] := by
+theorem roundBody_split : roundBody = roundBody.dropLast ++ [.ret [.n 84, .n 85, .n 86,
+    .n 87, .n 88, .n 91, .n 92]] := by
   rfl
 
 /-- **`opening_round`'s body holds at its honest values** on its meaning, under a call relation
@@ -160,7 +158,7 @@ theorem round_complete {C : CallRel} {rd : Reader} {args rets : List E}
   have l4 : LoadHolds rd cur 4 n2 := hrd 4 (by simp [xs])
   clear hrd
   refine ⟨?_, ?_⟩
-  · simp only [roundBody, fsNonceT, fsNextT, fsPackT, padRunT, challengeT, permIns, osRun, keccakA,
+  · simp only [roundBody, fsNonceT, fsNextT, fsPackT, padRunT, permIns, osRun, keccakA,
       osLd, osMul, osAdd, osCp, osCst, List.range_succ, List.range_zero, List.map_cons,
       List.map_nil, List.nil_append, List.cons_append, List.take, List.dropLast_cons_cons,
       List.dropLast_singleton, Nat.reduceAdd]

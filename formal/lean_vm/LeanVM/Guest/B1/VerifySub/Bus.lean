@@ -48,16 +48,16 @@ theorem vsRun5 (b : ℕ) : (vsRun b 5).map σ =
 
 /-- One slot weight's squeeze and store. -/
 def vsFpwBlk (i : ℕ) : List Stmt :=
-  vsSqzT (330 + 14 * i) (336 + 14 * i) ++ [vsLd (349 + 14 * i) 335 (i + 1)]
+  [vsPermT (vsFpwCap i) (335 + 13 * i), vsLd (335 + 13 * i) 334 (i + 1)]
 
-/-- **The slot weights' squeezes**: after `n` of them the sponge's capacity is at `330 + 14 n`,
-and squeeze `i` is at `349 + 14 i`, stored at `fp_w[i + 1]`. -/
+/-- **The slot weights' squeezes**: after `n` of them the sponge's capacity is at `vsFpwCap n`,
+and squeeze `i` is at `335 + 13 i`, stored at `fp_w[i + 1]`. -/
 theorem fpw_loop (h8 : σ (.n 8) = 0) (h9 : σ (.n 9) = 0) (h10 : σ (.n 10) = 0)
     (h11 : σ (.n 11) = 0) : ∀ (n : ℕ) {nx : Prop},
     Stmt.HoldsList C rd σ ((List.range n).flatMap vsFpwBlk) nx kret →
-      sqSt ⟨(vsRun 330 5).map σ, []⟩ n = ⟨(vsRun (330 + 14 * n) 5).map σ, []⟩ ∧
-        (∀ i < n, (sqSt ⟨(vsRun 330 5).map σ, []⟩ i).squeeze.1 = σ (.n (349 + 14 * i)) ∧
-          LoadHolds rd (σ (.n 335)) (i + 1) (σ (.n (349 + 14 * i)))) ∧ nx := by
+      sqSt ⟨(vsRun 329 5).map σ, []⟩ n = ⟨(vsRun (vsFpwCap n) 5).map σ, []⟩ ∧
+        (∀ i < n, (sqSt ⟨(vsRun 329 5).map σ, []⟩ i).squeeze.1 = σ (.n (335 + 13 * i)) ∧
+          LoadHolds rd (σ (.n 334)) (i + 1) (σ (.n (335 + 13 * i)))) ∧ nx := by
   intro n
   induction n with
   | zero => exact fun h ↦ ⟨rfl, fun i hi ↦ absurd hi (by omega), h⟩
@@ -65,20 +65,17 @@ theorem fpw_loop (h8 : σ (.n 8) = 0) (h9 : σ (.n 9) = 0) (h10 : σ (.n 10) = 0
     intro nx h
     rw [List.range_succ, List.flatMap_append, holdsList_append] at h
     obtain ⟨hs, hi, h'⟩ := ih h
-    rw [List.flatMap_singleton, vsFpwBlk, holdsList_append] at h'
-    obtain ⟨hsq, h''⟩ := vsSqzT_holds h8 h9 h10 h11 h'
+    rw [List.flatMap_singleton, vsFpwBlk, holds_cons1] at h'
+    obtain ⟨hsq, h''⟩ := vsPermT_holds h8 h9 h10 h11 h'
     obtain ⟨hl, hn⟩ := holds_ld1.1 h''
-    have e13 : 336 + 14 * n + 13 = 349 + 14 * n := by omega
+    have hc : vsFpwCap (n + 1) = 335 + 13 * n + 8 := by
+      simp only [vsFpwCap, Nat.add_one_ne_zero, ↓reduceIte]; omega
     refine ⟨?_, fun i hi' ↦ ?_, hn⟩
-    · rw [sqSt, hs, hsq, show 336 + 14 * n + 8 = 330 + 14 * (n + 1) by omega,
-        show 336 + 14 * n + 9 = 330 + 14 * (n + 1) + 1 by omega,
-        show 336 + 14 * n + 10 = 330 + 14 * (n + 1) + 2 by omega,
-        show 336 + 14 * n + 11 = 330 + 14 * (n + 1) + 3 by omega,
-        show 336 + 14 * n + 12 = 330 + 14 * (n + 1) + 4 by omega, vsRun5]
+    · rw [sqSt, hs, hsq, hc, vsRun5]
     · rcases Nat.lt_succ_iff_lt_or_eq.1 hi' with hi' | rfl
       · exact hi i hi'
       · refine ⟨?_, hl⟩
-        rw [hs, hsq, ← e13]
+        rw [hs, hsq]
 
 /-- **The bus challenges**. -/
 theorem vsBusFpw_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L : MemoryImage κ)
@@ -86,13 +83,13 @@ theorem vsBusFpw_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (
     (h8 : σ (.n 8) = 0) (h9 : σ (.n 9) = 0) (h10 : σ (.n 10) = 0) (h11 : σ (.n 11) = 0)
     {μ : ℕ} (hμ : μ < 34) (h253 : σ (.n 253) = gen ^ μ)
     {s : Fs} {nn : E}
-    (hS : [σ (.n 313), σ (.n 314), σ (.n 315), σ (.n 316), σ (.n 317), σ (.n 318), σ (.n 319)] =
+    (hS : [σ (.n 312), σ (.n 313), σ (.n 314), σ (.n 315), σ (.n 316), σ (.n 317), σ (.n 318)] =
       [cellsOfState (s.nonceState nn) false 0, cellsOfState (s.nonceState nn) false 1] ++
         capOf (s.nonceState nn))
     (h : Stmt.HoldsList C L.read σ (vsBusGrindT ++ vsFpwT) next kret) :
-    20 ≤ μ ∧ ∃ weights : List E, weights.length = 16 ∧ ReadsAt L.read (σ (.n 335)) weights ∧
-      RunsTo (busChallenges μ) s [nn] (weights, σ (.n 559))
-        ⟨[σ (.n 554), σ (.n 555), σ (.n 556), σ (.n 557), σ (.n 558)], []⟩ ∧ next := by
+    20 ≤ μ ∧ ∃ weights : List E, weights.length = 16 ∧ ReadsAt L.read (σ (.n 334)) weights ∧
+      RunsTo (busChallenges μ) s [nn] (weights, σ (.n 530))
+        ⟨[σ (.n 538), σ (.n 539), σ (.n 540), σ (.n 541), σ (.n 542)], []⟩ ∧ next := by
   have hκ6 : 6 ≤ κ := by simp only [winTabBits] at hκw; omega
   rw [holdsList_append, vsBusGrindT, holdsList_append, holdsList_append] at h
   simp only [Stmt.HoldsList, Stmt.Holds, vsConst, vsMul, vsRange, Atom.Holds] at h
@@ -113,7 +110,7 @@ theorem vsBusFpw_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (
   subst hje
   -- the grind
   rw [vsBgName_eq (by omega) hj] at hbg
-  have hwt : WinTabs L.read (σ (.n 328)) := by rw [h328]; exact winTabs_of_expWinTab hwin
+  have hwt : WinTabs L.read (σ (.n 327)) := by rw [h328]; exact winTabs_of_expWinTab hwin
   obtain ⟨-, hpow⟩ := (bus_grind_check_holds j (List.mem_range.2 (by omega)) hκ hκw L _ _ hwt _).1
     (hC _ _ _ hbg)
   have hbits : busGrindBits j = busGrindingBits μ := by
@@ -131,21 +128,21 @@ theorem vsBusFpw_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (
     show (List.range 5) = [0, 1, 2, 3, 4] from rfl] at h
   simp only [List.map_cons, List.map_nil, Stmt.HoldsList, Stmt.Holds, vsCopy, vsAlloc, vsLd,
     Atom.Holds] at h
-  obtain ⟨c0, c1, c2, c3, c4, -, l313, hL⟩ := h
+  obtain ⟨c0, c1, c2, c3, c4, -, l312, hL⟩ := h
   obtain ⟨hs15, hsq, hL'⟩ := fpw_loop h8 h9 h10 h11 15 hL
-  obtain ⟨hβ, hn⟩ := vsSqzT_holds h8 h9 h10 h11 hL'
-  have hcap : capOf S = (vsRun 330 5).map σ := by
+  obtain ⟨hβ, hn⟩ := vsPermT_holds h8 h9 h10 h11 hL'
+  have hcap : capOf S = (vsRun 329 5).map σ := by
     rw [← ecap]
-    show _ = [σ (.n 330), σ (.n 331), σ (.n 332), σ (.n 333), σ (.n 334)]
+    show _ = [σ (.n 329), σ (.n 330), σ (.n 331), σ (.n 332), σ (.n 333)]
     rw [c0, c1, c2, c3, c4]
-  have hT : ((⟨capOf S, []⟩ : Fs).squeezeN 15).2 = ⟨(vsRun 540 5).map σ, []⟩ := by
+  have hT : ((⟨capOf S, []⟩ : Fs).squeezeN 15).2 = ⟨(vsRun 525 5).map σ, []⟩ := by
     rw [hcap, squeezeN_eq]
     exact hs15
   have hβ' : ((⟨capOf S, []⟩ : Fs).squeezeN 15).2.squeeze =
-      (σ (.n 559), ⟨[σ (.n 554), σ (.n 555), σ (.n 556), σ (.n 557), σ (.n 558)], []⟩) := by
+      (σ (.n 530), ⟨[σ (.n 538), σ (.n 539), σ (.n 540), σ (.n 541), σ (.n 542)], []⟩) := by
     rw [hT]; exact hβ
   have hW : ((⟨capOf S, []⟩ : Fs).squeezeN 15).1 =
-      (List.range 15).map fun x ↦ (sqSt ⟨(vsRun 330 5).map σ, []⟩ x).squeeze.1 := by
+      (List.range 15).map fun x ↦ (sqSt ⟨(vsRun 329 5).map σ, []⟩ x).squeeze.1 := by
     rw [hcap, squeezeN_eq]
   refine ⟨by omega, challengeOf S :: ((⟨capOf S, []⟩ : Fs).squeezeN 15).1,
     by simp [vs_squeezeN_length], ?_, ?_, hn⟩
@@ -154,7 +151,7 @@ theorem vsBusFpw_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (
     rcases k with _ | i
     · simp only [List.getElem_cons_zero]
       rw [Keccak.challengeOf_cells, ← e313]
-      exact l313
+      exact l312
     · simp only [List.length_cons, List.length_map, List.length_range] at hk
       simp only [List.getElem_cons_succ, List.getElem_map, List.getElem_range]
       rw [(hsq i (by omega)).1]

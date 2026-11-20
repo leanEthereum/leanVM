@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerT
 `layerA_holds`: if `headT ++ prodT ++ checkT ++ sqT` holds, the product (the table's coefficients)
 is read at the cursor, its projection plus `ι·κ` is the claim's value (`projectedOf`),
 the nonce at the cursor's word `47` passes the grind of `3` bits, and `s` (value
-`layOff first + 544`) with the capacity after it (from `layOff first + 539`) is `layerSq` of the
+`layOff first + 531`) with the capacity after it (from `layOff first + 539`) is `layerSq` of the
 sponge the layer starts from. The readers (`headT`, a straight line of sums over the
 instance weights) are, by kernel evaluation of their masks, the projection's (`reader_proj`).
 -/
@@ -194,10 +194,9 @@ capacity cells `b + 8 ..`, is the grind's squeeze. -/
 theorem grind_sq {s : Fs} {n : E} {b : ℕ}
     (hout : ∀ k (hk : k < 13), σ (((List.range 13).map fun j ↦ V.n (b + j)).getD k default) =
       cellsOfState (s.nonceState n) false ⟨k, hk⟩)
-    (hpow : ((σ (.n (b + 1))).limb 0).lane.toNat % 2 ^ 3 = 0)
-    (hch : ChallengeOk σ (.n b) (b + 13)) :
+    (hpow : ((σ (.n (b + 1))).limb 0).lane.toNat % 2 ^ 3 = 0) :
     s.GrindOk sGrindBits n ∧
-      s.grindSqueeze sGrindBits n = (σ (.n (b + 13)), ⟨(cap5 (b + 8)).map σ, []⟩) := by
+      s.grindSqueeze sGrindBits n = (σ (.n b), ⟨(cap5 (b + 8)).map σ, []⟩) := by
   have h0 := hout 0 (by omega)
   have h1 := hout 1 (by omega)
   simp only [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range (by omega : 0 < 13),
@@ -207,12 +206,12 @@ theorem grind_sq {s : Fs} {n : E} {b : ℕ}
   obtain ⟨hok, hc, hs⟩ := grindSqueeze_cells (s := s) (by decide : (3 : ℕ) ≠ 0) n _ _ h0 h1 hpow
   have hcap := capOf_outs hout
   refine ⟨hok, Prod.ext ?_ ?_⟩
-  · rw [hc, hch]
+  · rw [hc]
   · rw [hs, hcap]
     rfl
 
 /-- **The grind and the squeeze** (`sqT`): from the cells the product leaves, the nonce read at
-the cursor's word `47`, the grind holds and its squeeze is `s` (`layOff first + 544`) with the
+the cursor's word `47`, the grind holds and its squeeze is `s` (`layOff first + 531`) with the
 capacity from `layOff first + 539`. -/
 theorem sqT_holds {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (capF first, pendF first))
     (hG : ∀ w, C (grindCheckName 3) [w, σ (.n 14)] [] → (w.limb 0).lane.toNat % 2 ^ 3 = 0)
@@ -220,11 +219,11 @@ theorem sqT_holds {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (capF 
     LoadHolds rd (σ (.n 7)) 47 (σ (.n (nonceV first))) ∧
       s.GrindOk sGrindBits (σ (.n (nonceV first))) ∧
       s.grindSqueeze sGrindBits (σ (.n (nonceV first))) =
-        (σ (.n (layOff first + 544)), ⟨(cap5 (layOff first + 539)).map σ, []⟩) ∧ next := by
+        (σ (.n (layOff first + 531)), ⟨(cap5 (layOff first + 539)).map σ, []⟩) ∧ next := by
   interval_cases first
   · simp only [sqT, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte, holdsList_append, holds_fsNonceT,
-      holds_challengeT, keccakA, grindCallT, Stmt.HoldsList, Stmt.Holds] at h
-    obtain ⟨⟨hl, hp⟩, hk, hg, hch, hn⟩ := h
+      keccakA, grindCallT, Stmt.HoldsList, Stmt.Holds] at h
+    obtain ⟨⟨hl, hp⟩, hk, hg, hn⟩ := h
     have hlen := pendOk_length hs.2
     have hs' : SpOk σ (s.absorb (σ (.n 528)) dsPowNonce)
         (capF 0, pendF 0 ++ [(.n 529, .n 530)]) := by
@@ -233,11 +232,11 @@ theorem sqT_holds {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (capF 
       exact ⟨hs.1, pendOk_append hs.2 (fsPackT_cells hp)⟩
     obtain ⟨-, hout⟩ := spOk_perm hs' hk (zs := []) (by decide) rfl (by decide)
     have hg' := hG _ hg
-    obtain ⟨hok, hsq⟩ := grind_sq (s := s) (n := σ (.n 528)) (b := 531) hout hg' hch
+    obtain ⟨hok, hsq⟩ := grind_sq (s := s) (n := σ (.n 528)) (b := 531) hout hg'
     exact ⟨hl, hok, hsq, hn⟩
   · simp only [sqT, ↓reduceIte, holdsList_append, holds_fsNonceT, holds_padRunT,
-      holds_challengeT, keccakA, grindCallT, Stmt.HoldsList, Stmt.Holds] at h
-    obtain ⟨hk1, ⟨hl, hp⟩, ⟨-, z1, z2, z3, z4⟩, hk2, hg, hch, hn⟩ := h
+      keccakA, grindCallT, Stmt.HoldsList, Stmt.Holds] at h
+    obtain ⟨hk1, ⟨hl, hp⟩, ⟨-, z1, z2, z3, z4⟩, hk2, hg, hn⟩ := h
     have hlen := pendOk_length hs.2
     obtain ⟨-, hout1⟩ := spOk_perm hs hk1 (zs := []) (by decide) rfl (by decide)
     have hcap1 := capOf_outs hout1
@@ -248,7 +247,7 @@ theorem sqT_holds {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (capF 
     obtain ⟨-, hout⟩ := spOk_perm hs' hk2 (zs := [.n 547, .n 547, .n 547, .n 548, .n 549, .n 550])
       (by decide) (by simp [z1, z2, z3, z4]) (by decide)
     have hg' := hG _ hg
-    obtain ⟨hok, hsq⟩ := grind_sq (s := s) (n := σ (.n 543)) (b := 551) hout hg' hch
+    obtain ⟨hok, hsq⟩ := grind_sq (s := s) (n := σ (.n 543)) (b := 551) hout hg'
     exact ⟨hl, hok, hsq, hn⟩
 
 /-- **The product and `s`**. -/
@@ -267,7 +266,7 @@ theorem layerA_holds {first : ℕ} (hf : first < 2) {y : ℕ} {c : KeccakClaim} 
           (σ (.n (nonceV first))) ∧
       layerSq (plainStart first [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] w)
         ((prodTab first).map fun p ↦ σ (.n p.a)) (σ (.n (nonceV first))) =
-        (σ (.n (layOff first + 544)), ⟨(cap5 (layOff first + 539)).map σ, []⟩) ∧
+        (σ (.n (layOff first + 531)), ⟨(cap5 (layOff first + 539)).map σ, []⟩) ∧
       next := by
   obtain ⟨hl, hch, hacc, hlast, hall⟩ := prodTab_facts first hf
   obtain ⟨hmuL, -, hval, hkap, hmus, -, -⟩ := hcr

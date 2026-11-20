@@ -34,7 +34,7 @@ theorem add_natDegree_coeff_le (R : MvPolynomial (Fin 3) L) (i : ℕ)
   set j := ((trivEquiv L R).coeff i).natDegree
   obtain ⟨k, hk⟩ : ∃ k, (((trivEquiv L R).coeff i).coeff j).coeff k ≠ 0 := by
     by_contra h; push Not at h
-    exact (leadingCoeff_ne_zero.mpr hi) (Polynomial.ext h)
+    exact (leadingCoeff_ne_zero.mpr hi) (AddMonoidAlgebra.ext (Finsupp.ext h))
   have hmem : tri k j i ∈ R.support := by
     rw [MvPolynomial.mem_support_iff, ← coeff_trivEquiv]; simpa using hk
   have := le_yzDeg hmem
@@ -98,8 +98,8 @@ theorem card_excludedLines_le {F : Type*} [Field F] [Fintype F] [Algebra F L]
     · rw [← trivEval_X_eq, hRt, ← trivEquiv_pderiv, trivEval_trivEquiv]; exact h2 ab hab
   have hinj : Set.InjOn line S := by
     intro ab hab ab' hab' heq
-    have c0 := congrArg (coeff · 0) heq
-    have c1 := congrArg (coeff · 1) heq
+    have c0 := congrArg (·.coeff 0) heq
+    have c1 := congrArg (·.coeff 1) heq
     simp only [line, coeff_add, coeff_C_mul, coeff_X_zero, coeff_X_one,
       mul_zero, add_zero, mul_one, coeff_C, one_ne_zero, ↓reduceIte, zero_add] at c0 c1
     refine Prod.ext ((algebraMap F L).injective ?_) ((algebraMap F L).injective ?_)

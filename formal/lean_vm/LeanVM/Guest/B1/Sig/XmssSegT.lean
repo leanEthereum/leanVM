@@ -81,15 +81,13 @@ def sPrologue : List Stmt :=
 `armT` with the encoding of `k`'s own `n` digits, `k % 4^n` (`W.enc`, leanXMSS's default). -/
 def armM (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
     (prodIn encIn prodOut encOut : V) (k b : Nat) : List Stmt × Nat :=
-  let ws := walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0
-    (if fold then b + 1 else b)
-  let enc0 := if fold then V.n b else encIn
-  let pre := if fold then [cst b (word 0 0)] else []
-  let prod := if fold then copyS prodOut (W.power (digitSum k n))
-    else mulS prodOut prodIn (W.power (digitSum k n))
-  if k % 4 ^ n = 0 then (pre ++ ws.1 ++ [prod, copyS encOut enc0], ws.2)
-  else (pre ++ ws.1 ++ [prod, cst ws.2 (lit (W.enc first n (k % 4 ^ n))), addS encOut enc0 (.n ws.2)],
-    ws.2 + 1)
+  let ws := walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 b
+  if fold then
+    (ws.1 ++ [copyS prodOut (W.power (digitSum k n)),
+      .atom (.const encOut (lit (W.enc first n (k % 4 ^ n))))], ws.2)
+  else if k % 4 ^ n = 0 then (ws.1 ++ [mulS prodOut prodIn (W.power (digitSum k n)), copyS encOut encIn], ws.2)
+  else (ws.1 ++ [mulS prodOut prodIn (W.power (digitSum k n)), cst ws.2 (lit (W.enc first n (k % 4 ^ n))),
+    addS encOut encIn (.n ws.2)], ws.2 + 1)
 
 /-- Arms `k ..< k + m` from base `b`; arm `0` allocates the outputs after its walks. -/
 def armsM (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
@@ -258,10 +256,10 @@ def l2Pre : List Stmt :=
 /-- `main_loop2`'s statements after the check: the next counter and the self-call, the carried tags
 passed on unchanged. -/
 def l2Post : List Stmt :=
-  [cst 120764 (word 2 0), mulS (.n 120765) (.n 0) (.n 120764),
-    addS (.n 120766) (.n 120765) (.n 1), cst 120767 (word 2 0),
-    mulS (.n 120768) (.n 0) (.n 120767),
-    .callIf (.n 120766) name% «main_loop2» (.n 120768 :: (List.range 55).map fun j => V.n (j + 1)),
+  [cst 119742 (word 2 0), mulS (.n 119743) (.n 0) (.n 119742),
+    addS (.n 119744) (.n 119743) (.n 1), cst 119745 (word 2 0),
+    mulS (.n 119746) (.n 0) (.n 119745),
+    .callIf (.n 119744) name% «main_loop2» (.n 119746 :: (List.range 55).map fun j => V.n (j + 1)),
         .ret []]
 
 end

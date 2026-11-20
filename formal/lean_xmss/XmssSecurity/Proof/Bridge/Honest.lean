@@ -148,6 +148,14 @@ structure Prepared (seed : MasterSeed) (d : Derivations)
   prog_le : progCache seed d ≤ cache
   log_agree : ∀ x, Tweakable x → hashCacheOfLog result.2 x = cache x
 
+/-- `resolves_of_run` and `cache_le_of_run` on `HashSpec`, checked on an abstract computation: they
+take `HashInput →ₒ HashOutput`, and on `honestRun d` the kernel would unfold its `support` to match. -/
+private theorem resolves_and_le_of_run {α : Type} (computation : OracleComp HashSpec α)
+    (before : QueryCache HashSpec) (result : α × QueryCache HashSpec)
+    (h : result ∈ support ((simulateQ randomOracle computation).run before)) :
+    Resolves result.2 computation result.1 ∧ before ≤ result.2 :=
+  ⟨resolves_of_run computation before result h, cache_le_of_run computation before result h⟩
+
 theorem prepared_of_mem (seed : MasterSeed) (d : Derivations)
     (result : (Digest × (TopIndex → Option (Randomness × Encoding))) × QueryLog HashSpec)
     (cache : QueryCache HashSpec)
@@ -158,12 +166,12 @@ theorem prepared_of_mem (seed : MasterSeed) (d : Derivations)
     have h : (result.1, cache) ∈ support ((simulateQ randomOracle (honestRun d)).run (progCache seed d)) := by
       rw [← withQueryLog_run_forget, support_map]
       exact ⟨(result, cache), hmem, rfl⟩
-    exact resolves_of_run _ _ _ h
+    exact (resolves_and_le_of_run _ _ _ h).1
   prog_le := by
     have h : (result.1, cache) ∈ support ((simulateQ randomOracle (honestRun d)).run (progCache seed d)) := by
       rw [← withQueryLog_run_forget, support_map]
       exact ⟨(result, cache), hmem, rfl⟩
-    exact cache_le_of_run _ _ _ h
+    exact (resolves_and_le_of_run _ _ _ h).2
   log_agree := by
     intro x hx
     have hfinal := withQueryLog_finalCache _ _ _ hmem

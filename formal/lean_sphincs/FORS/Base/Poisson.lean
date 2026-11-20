@@ -51,7 +51,7 @@ theorem poisW_succ (a : ℝ≥0) (n : ℕ) : poisW a (n + 1) * ((n + 1 : ℕ) : 
   ring
 
 theorem poisW_mean (a : ℝ≥0) : ∑' n, poisW a n * (n : ℝ≥0∞) = a := by
-  rw [tsum_eq_zero_add' ENNReal.summable]
+  rw [tsum_eq_zero_add' CompleteLattice.summable]
   simp only [Nat.cast_zero, mul_zero, zero_add]
   have h : ∀ n : ℕ, poisW a (n + 1) * ((n + 1 : ℕ) : ℝ≥0∞) = (a : ℝ≥0∞) * poisW a n := poisW_succ a
   simp only [Nat.cast_succ] at h ⊢
@@ -108,12 +108,12 @@ noncomputable def pois (a : ℝ≥0) (l : ι) (G : (ι → ℕ) → ℝ≥0∞) 
 
 theorem pois_mono (a : ℝ≥0) (l : ι) {G H : (ι → ℕ) → ℝ≥0∞} (h : ∀ k, G k ≤ H k) (k : ι → ℕ) :
     pois a l G k ≤ pois a l H k :=
-  ENNReal.tsum_le_tsum fun _ => by gcongr; exact h _
+  tsum_le_tsum fun _ => by gcongr; exact h _
 
 theorem pois_add (a : ℝ≥0) (l : ι) (G H : (ι → ℕ) → ℝ≥0∞) (k : ι → ℕ) :
     pois a l (fun x => G x + H x) k = pois a l G k + pois a l H k := by
   unfold pois
-  simp only [mul_add, ENNReal.tsum_add]
+  simp only [mul_add, tsum_add]
 
 theorem pois_const_mul (a : ℝ≥0) (l : ι) (c : ℝ≥0∞) (G : (ι → ℕ) → ℝ≥0∞) (k : ι → ℕ) :
     pois a l (fun x => c * G x) k = c * pois a l G k := by
@@ -136,7 +136,7 @@ theorem pois_comm (a b : ℝ≥0) (l j : ι) (G : (ι → ℕ) → ℝ≥0∞) (
     pois a l (pois b j G) k = pois b j (pois a l G) k := by
   unfold pois
   simp only [← ENNReal.tsum_mul_left]
-  rw [ENNReal.tsum_comm]
+  rw [tsum_comm]
   congr 1; funext n; congr 1; funext m
   rw [add_right_comm]
   ring
@@ -146,8 +146,8 @@ theorem pois_pois (a b : ℝ≥0) (l : ι) (G : (ι → ℕ) → ℝ≥0∞) (k 
     pois a l (pois b l G) k = pois (a + b) l G k := by
   unfold pois
   simp only [← ENNReal.tsum_mul_left]
-  rw [← ENNReal.tsum_prod]
-  rw [← (Finset.HasAntidiagonal.sigmaAntidiagonalEquivProd).tsum_eq, ENNReal.tsum_sigma']
+  rw [← tsum_prod]
+  rw [← (Finset.HasAntidiagonal.sigmaAntidiagonalEquivProd).tsum_eq, tsum_sigma']
   congr 1; funext s
   change ∑' x : ↥(Finset.HasAntidiagonal.antidiagonal s),
     (fun p : ℕ × ℕ => poisW a p.1 * (poisW b p.2 * G (k + Pi.single l p.1 + Pi.single l p.2))) x = _
@@ -161,7 +161,7 @@ theorem pois_pois (a b : ℝ≥0) (l : ι) (G : (ι → ℕ) → ℝ≥0∞) (k 
 
 theorem le_pois (a : ℝ≥0) (l : ι) {G : (ι → ℕ) → ℝ≥0∞} (hG : Monotone G) (k : ι → ℕ) : G k ≤ pois a l G k := by
   calc G k = ∑' n, poisW a n * G k := by rw [ENNReal.tsum_mul_right, poisW_tsum, one_mul]
-    _ ≤ pois a l G k := ENNReal.tsum_le_tsum fun _ => by gcongr; exact hG le_self_add
+    _ ≤ pois a l G k := tsum_le_tsum fun _ => by gcongr; exact hG le_self_add
 
 /-! ### Iid Poisson coordinates -/
 
@@ -227,7 +227,7 @@ theorem le_poisList_of_le {G H : (ι → ℕ) → ℝ≥0∞} (a : ℝ≥0) (ls 
   | nil => exact h
   | cons l ls ih =>
       have hmono : Monotone (pois a l H) := fun k k' hk =>
-        ENNReal.tsum_le_tsum fun _ => by gcongr; exact hH (add_le_add_left hk _)
+        tsum_le_tsum fun _ => by gcongr; exact hH (add_le_add_left hk _)
       exact ih hmono fun k => le_trans (h k) (le_pois a l hH k)
 
 /-- **Semigroup** of iid Poisson coordinates. -/
@@ -263,12 +263,12 @@ theorem sum_add_single (k : ι → ℕ) (l : ι) (n : ℕ) : ∑ i, (k + Pi.sing
   simp only [Pi.add_apply, Finset.sum_add_distrib, Finset.sum_pi_single', Finset.mem_univ, ite_true]
 
 theorem CountGood.pois {G : (ι → ℕ) → ℝ≥0∞} (hG : CountGood G) (a : ℝ≥0) (l : ι) : CountGood (pois a l G) where
-  mono := fun k k' hk => ENNReal.tsum_le_tsum fun _ => by gcongr; exact hG.mono (add_le_add_left hk _)
+  mono := fun k k' hk => tsum_le_tsum fun _ => by gcongr; exact hG.mono (add_le_add_left hk _)
   super := by
     intro k i j hij
     unfold H0.pois
-    rw [← ENNReal.tsum_add, ← ENNReal.tsum_add]
-    refine ENNReal.tsum_le_tsum fun n => ?_
+    rw [← tsum_add, ← tsum_add]
+    refine tsum_le_tsum fun n => ?_
     rw [← mul_add, ← mul_add]
     refine mul_le_mul_right ?_ _
     have h := hG.super (k + Pi.single l n) i j hij
@@ -277,8 +277,8 @@ theorem CountGood.pois {G : (ι → ℕ) → ℝ≥0∞} (hG : CountGood G) (a :
   convex := by
     intro k i
     unfold H0.pois
-    rw [← ENNReal.tsum_add, ← ENNReal.tsum_add]
-    refine ENNReal.tsum_le_tsum fun n => ?_
+    rw [← tsum_add, ← tsum_add]
+    refine tsum_le_tsum fun n => ?_
     rw [← mul_add, ← mul_add]
     refine mul_le_mul_right ?_ _
     have h := hG.convex (k + Pi.single l n) i
@@ -288,7 +288,7 @@ theorem CountGood.pois {G : (ι → ℕ) → ℝ≥0∞} (hG : CountGood G) (a :
     obtain ⟨C, r, h⟩ := hG.growth
     refine ⟨C * Real.toNNReal (Real.exp ((a : ℝ) * r - a)), r, fun k => ?_⟩
     calc H0.pois a l G k ≤ ∑' n, poisW a n * ((C : ℝ≥0∞) * (r : ℝ≥0∞) ^ (∑ i, k i + n)) :=
-          ENNReal.tsum_le_tsum fun n => by gcongr; rw [← sum_add_single k l n]; exact h _
+          tsum_le_tsum fun n => by gcongr; rw [← sum_add_single k l n]; exact h _
       _ = (C : ℝ≥0∞) * (r : ℝ≥0∞) ^ (∑ i, k i) * ∑' n, poisW a n * (r : ℝ≥0∞) ^ n := by
           rw [← ENNReal.tsum_mul_left]
           congr 1; funext n; rw [pow_add]; ring
@@ -339,8 +339,8 @@ theorem good_chord_point {G : (ι → ℕ) → ℝ≥0∞} (hG : CountGood G) (k
 /-- **Chord.** `G(k) + a G(k + e_l) ≤ Pois_l(a) G (k) + a G(k)`. -/
 theorem good_chord {G : (ι → ℕ) → ℝ≥0∞} (hG : CountGood G) (a : ℝ≥0) (l : ι) (k : ι → ℕ) :
     G k + (a : ℝ≥0∞) * G (k + Pi.single l 1) ≤ pois a l G k + (a : ℝ≥0∞) * G k := by
-  have h := ENNReal.tsum_le_tsum fun n => mul_le_mul_right (good_chord_point hG k l n) (poisW a n)
-  simp only [mul_add, ENNReal.tsum_add] at h
+  have h := tsum_le_tsum fun n => mul_le_mul_right (good_chord_point hG k l n) (poisW a n)
+  simp only [mul_add, tsum_add] at h
   rw [ENNReal.tsum_mul_right, poisW_tsum, one_mul] at h
   simp only [← mul_assoc, ENNReal.tsum_mul_right, poisW_mean] at h
   exact h
@@ -371,8 +371,8 @@ theorem good_cross_point {G : (ι → ℕ) → ℝ≥0∞} (hG : CountGood G) (k
 
 theorem good_cross {G : (ι → ℕ) → ℝ≥0∞} (hG : CountGood G) (a : ℝ≥0) {l j : ι} (hlj : l ≠ j) (k : ι → ℕ) :
     pois a j G k + G (k + Pi.single l 1) ≤ pois a j G (k + Pi.single l 1) + G k := by
-  have h := ENNReal.tsum_le_tsum fun n => mul_le_mul_right (good_cross_point hG k hlj n) (poisW a n)
-  simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right, poisW_tsum, one_mul] at h
+  have h := tsum_le_tsum fun n => mul_le_mul_right (good_cross_point hG k hlj n) (poisW a n)
+  simp only [mul_add, tsum_add, ENNReal.tsum_mul_right, poisW_tsum, one_mul] at h
   exact h
 
 /-! ### Uniform-or-nothing slots against iid Poisson coordinates -/

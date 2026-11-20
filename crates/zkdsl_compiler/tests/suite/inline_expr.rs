@@ -1,10 +1,7 @@
 //! `@inline` calls in EXPRESSION position: embedded in arithmetic, as a heap
 //! store's RHS, or under further ops: must produce the same values as the
-//! statement-position form. Regression test for the dropped-RetBind bug: an
-//! inlined tail return of a plain var records a g-address alias, which only
-//! `let`/tuple bindings used to consume; expression positions read the
-//! never-written dst cell (zeros) and left the stale bind to corrupt the next
-//! `let`.
+//! statement-position form. An inlined return of a plain name must read the
+//! cell the body bound it to.
 
 use crate::common::compile;
 use lean_vm_core::cpu::{prove, verify};

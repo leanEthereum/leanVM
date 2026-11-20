@@ -35,7 +35,7 @@ def pinB : Stmt → Bool
 /-- The body but its pinned bits. -/
 def vkEvL : List Stmt := vkT.filter fun s ↦ !pinB s
 
-theorem vk_chk : Fwd.chk 12 vkEvL = some 3373 := by decide +kernel
+theorem vk_chk : Fwd.chk 12 vkEvL = some 3367 := by decide +kernel
 
 /-- The stores of the body. -/
 def vkSt : List Atom := storesOf 12 vkEvL

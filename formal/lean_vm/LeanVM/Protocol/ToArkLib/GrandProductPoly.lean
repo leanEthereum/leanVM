@@ -9,9 +9,10 @@
 module
 
 public import LeanVM.Protocol.ToCompPoly.Fingerprint
-public import ArkLib.Data.MvPolynomial.SchwartzZippelCounting
+public import ToMathlib.Algebra.MvPolynomial.SchwartzZippel
+public import Mathlib.Algebra.MvPolynomial.Equiv
+public import Mathlib.Algebra.Polynomial.Roots
 import Mathlib.Algebra.MvPolynomial.NoZeroDivisors
-import Mathlib.Algebra.Polynomial.Roots
 
 /-!
 # Grand products of linear fingerprints
@@ -33,7 +34,7 @@ public padding row's (`doc/leanvm/body/08-end-to-end-protocol.tex`, Proposition 
 * Every factor has total degree at most one, so two different multisets of at most `cap` leaves
   differ by a nonzero polynomial of degree at most `cap`, which vanishes at no more than
   `cap · |F|^m` of the `|F|^(m+1)` points over a finite field `F`
-  (`card_grandProduct_collision_le`, `card_paddedProduct_collision_le`, by ArkLib's counting
+  (`card_grandProduct_collision_le`, `card_paddedProduct_collision_le`, by VCVio's counting
   Schwartz-Zippel). The multisets are fixed before the point.
 
 The product argument uses Mathlib's `Polynomial.roots_multiset_prod_X_sub_C`. Requested upstream,

@@ -536,7 +536,7 @@ theorem sign_term (hparse : ∀ ρ call, model.parse (GraphView.pblk parameter d
         (X d + (freshNewWeight parameter data m s gf out + outWeight parameter data m s 0 gp out)) ≤
       X d + c * ∑ start, walk (nextRand (data.steps m)) landing (stOf parameter data m s) (poolValue parameter data m s gp)
         (freshAvg Finset.univ gf) 0 digestAttemptLimit start := by
-    rw [tsum_congr fun out => mul_add _ _ _, ENNReal.tsum_add, ENNReal.tsum_mul_right]
+    rw [tsum_congr fun out => mul_add _ _ _, tsum_add, ENNReal.tsum_mul_right]
     exact add_le_add (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)) hscan
   refine le_trans hsum ?_
   -- the base value joins every walk

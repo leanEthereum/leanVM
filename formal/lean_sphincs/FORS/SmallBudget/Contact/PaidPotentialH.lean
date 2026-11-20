@@ -199,7 +199,7 @@ theorem goodXFH_draw (L : QueryLog SigningSpec) (draw : ℕ)
   rw [interp_drawHB, OracleComp.tsum_prEvent_bind_mul, OracleComp.tsum_prEvent_bind_mul]
   calc _ ≤ ∑' v, Pr{let x ← (liftM (unifSpec.query draw) : ProbComp (Fin (draw + 1)))}[x = v] *
         (Φ s P Ms L d R budget + pay * expCount K model IsF (next v) budget s) :=
-        ENNReal.tsum_le_tsum fun v => mul_le_mul_right (h v budget s P Ms d R hB) _
+        tsum_le_tsum fun v => mul_le_mul_right (h v budget s P Ms d R hB) _
     _ ≤ _ := tsum_bound_payF pay _ _ _
 
 /-- **One ordinary query**, with the payment. -/
@@ -227,14 +227,14 @@ theorem goodXFH_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateAc
     rw [OracleComp.tsum_prEvent_map_mul]
     congr 1
     simp only [fleafCount_cons_inl, mul_add]
-    rw [ENNReal.tsum_add, ENNReal.tsum_mul_right, HiddenDebt.interp_mass, one_mul]
+    rw [tsum_add, ENNReal.tsum_mul_right, HiddenDebt.interp_mass, one_mul]
   by_cases hnew : ∃ p call, x = pblk K.p data p call ∧ s.cache (pblk K.p data p firstCall) = none
   · obtain ⟨p, c, rfl, hp0⟩ := hnew
     rcases hnewp budget s P Ms L d R hb hB p hp0 with hone | hnewp'
     · -- the potential is at least one: final values are at most one
       calc _ ≤ ∑' out, Pr{let x ← (interp K.tg K.initial model
               (liftM (CostSpecH.query (.inl (.inr (.inl (pblk K.p data p c))))) >>= next) budget s)}[x = out] * 1 :=
-            ENNReal.tsum_le_tsum fun out => mul_le_mul_right (hG1 _ _ _) _
+            tsum_le_tsum fun out => mul_le_mul_right (hG1 _ _ _) _
         _ ≤ 1 := by simp only [mul_one]; exact (OracleComp.tsum_prEvent_le_one _)
         _ ≤ _ := le_trans hone le_self_add
     -- every call of the pair is fresh and untargeted
@@ -288,7 +288,7 @@ theorem goodXFH_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateAc
     simp only [OracleComp.tsum_prEvent_map_mul]
     calc _ ≤ ∑' r, Pr{let z ← ordinaryStep model x s.known s}[z = r] *
           (Φ r.2 P Ms L d R (budget - 1) + pay * expCount K model IsF (next r.1) (budget - 1) r.2) := by
-          refine ENNReal.tsum_le_tsum fun r => ?_
+          refine tsum_le_tsum fun r => ?_
           by_cases hr : r ∈ support (ordinaryStep model x s.known s)
           · exact mul_le_mul_right (h r.1 (budget - 1) r.2 P Ms d R
               (binvFH_ordinary hMp hMi hb hB x hnew r hr)) _
@@ -296,7 +296,7 @@ theorem goodXFH_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateAc
       _ = ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] * Φ r.2 P Ms L d R (budget - 1) +
           pay * ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] *
             expCount K model IsF (next r.1) (budget - 1) r.2 := by
-          simp only [mul_add, ENNReal.tsum_add]
+          simp only [mul_add, tsum_add]
           rw [← ENNReal.tsum_mul_left]
           congr 1
           exact tsum_congr fun a => by ring
@@ -307,7 +307,7 @@ theorem goodXFH_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateAc
       _ = Φ s P Ms L d R budget + pay * ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] *
             ((if IsF x then 1 else 0) + expCount K model IsF (next r.1) (budget - 1) r.2) := by
           have hmass : ∑' r, Pr{let y ← ordinaryStep model x s.known s}[y = r] = 1 := by simp
-          simp only [mul_add, ENNReal.tsum_add, ENNReal.tsum_mul_right, hmass, one_mul]
+          simp only [mul_add, tsum_add, ENNReal.tsum_mul_right, hmass, one_mul]
           ring
 
 theorem goodXFH_pure (hfin : FinalPaysF K data Qtot model Φ G) (L : QueryLog SigningSpec)
@@ -370,14 +370,14 @@ theorem goodXFH_sign (hG0 : ∀ R s, G none R s = 0) (hsign : SignPaysF K data Q
         simp only [hE1, hres, Option.elim]
         rw [interpThen_some K.tg K.initial model next budget o1 r hres, OracleComp.tsum_prEvent_map_mul]
         unfold expCount
-        refine ENNReal.tsum_le_tsum fun o2 => mul_le_mul_right ?_ _
+        refine tsum_le_tsum fun o2 => mul_le_mul_right ?_ _
         simp only [fleafCount_append, Nat.cast_add]
         exact le_add_self
   rw [interp_bind, OracleComp.tsum_prEvent_bind_mul]
   calc _ ≤ ∑' o1, Pr{let x ← interp K.tg K.initial model loop budget s}[x = o1] *
         (o1.1.1.elim 0 (fun r => Φ o1.2 (newPairs K.p data m s o1.2 ++ P) (addMsg Ms m) (L ++ [⟨m, r⟩])
           (discAfter K.p data m s d o1) (R ++ o1.1.2.1) (budget - traceCost o1.1.2.2.1)) + pay * E1 o1) := by
-        refine ENNReal.tsum_le_tsum fun o1 => ?_
+        refine tsum_le_tsum fun o1 => ?_
         by_cases ho1 : o1 ∈ support (interp K.tg K.initial model loop budget s)
         · exact mul_le_mul_right (hpt o1 ho1) _
         · rw [(prEvent_eq_zero_of_not_mem_support _) ho1, zero_mul, zero_mul]
@@ -385,7 +385,7 @@ theorem goodXFH_sign (hG0 : ∀ R s, G none R s = 0) (hsign : SignPaysF K data Q
           o1.1.1.elim 0 (fun r => Φ o1.2 (newPairs K.p data m s o1.2 ++ P) (addMsg Ms m) (L ++ [⟨m, r⟩])
             (discAfter K.p data m s d o1) (R ++ o1.1.2.1) (budget - traceCost o1.1.2.2.1)) +
         pay * ∑' o1, Pr{let x ← interp K.tg K.initial model loop budget s}[x = o1] * E1 o1 := by
-        simp only [mul_add, ENNReal.tsum_add]
+        simp only [mul_add, tsum_add]
         rw [← ENNReal.tsum_mul_left]
         congr 1
         exact tsum_congr fun a => by ring
@@ -393,7 +393,7 @@ theorem goodXFH_sign (hG0 : ∀ R s, G none R s = 0) (hsign : SignPaysF K data Q
         refine add_le_add (hsign budget s P Ms L d R hB m hm) (mul_le_mul_right ?_ _)
         unfold expCount
         rw [interp_bind, OracleComp.tsum_prEvent_bind_mul]
-        exact ENNReal.tsum_le_tsum fun o1 => mul_le_mul_right (hE1le o1) _
+        exact tsum_le_tsum fun o1 => mul_le_mul_right (hE1le o1) _
 
 /-- **A paid potential through any adversary that never repeats a message**, with the payments. -/
 theorem goodXFH_advProg (hMp : model.parse = HiddenGraph.parse K.p (candidateActive K.p))

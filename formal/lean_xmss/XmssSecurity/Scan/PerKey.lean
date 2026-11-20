@@ -118,7 +118,7 @@ theorem preBad_le (Q : ℕ) (hQ : Q ≤ 2 ^ 127) (computation : OracleComp (Orac
       landing ^ 2 * expectedFinal I (f3 secretKey Q) computation s0 := by
     unfold expectedFinal
     rw [← ENNReal.tsum_mul_left, ← ENNReal.tsum_mul_left]
-    refine ENNReal.tsum_le_tsum fun r => ?_
+    refine tsum_le_tsum fun r => ?_
     rw [mul_left_comm, mul_left_comm (landing ^ 2)]
     exact mul_le_mul' le_rfl (landing_mul_hvSum_le Q (k := r.2.2) secretKey.parameter r.2.1.1 r.2.1.2)
   have h3 : expectedFinal I (f3 secretKey Q) computation s0 ≤
@@ -227,7 +227,7 @@ theorem collision_le_core (Q : ℕ) (hQ : Q < 2 ^ 127) (computation : OracleComp
       ∑' r, Pr{let x ← run}[x = r] * (N * N * (if PreBad secretKey r.2.1.2 then 1 else 0) +
         (f4 secretKey r.2 + N * Ecount r)) := by
     rw [OracleComp.prEvent_bind_eq_tsum, ← ENNReal.tsum_mul_left]
-    refine ENNReal.tsum_le_tsum fun r => ?_
+    refine tsum_le_tsum fun r => ?_
     rw [mul_left_comm]
     refine mul_le_mul' le_rfl ?_
     rw [prEvent_map, OracleComp.prEvent_eq_tsum_ite, ← ENNReal.tsum_mul_left]
@@ -236,7 +236,7 @@ theorem collision_le_core (Q : ℕ) (hQ : Q < 2 ^ 127) (computation : OracleComp
             Pr{let x ← (simulateQ romImpl (cont r.1)).run r.2.1.1}[x = v] else 0) ≤
           ∑' v, Pr{let x ← (simulateQ romImpl (cont r.1)).run r.2.1.1}[x = v] *
             (N * N * (if PreBad secretKey r.2.1.2 then 1 else 0) + N * N * postPot P r.2.1.2 v.2) := by
-          refine ENNReal.tsum_le_tsum fun v => ?_
+          refine tsum_le_tsum fun v => ?_
           dsimp only
           by_cases h1 : r.2.1.2.leafIndices.Nodup ∧ (PreBad secretKey r.2.1.2 ∨ PostBad P r.2.1.2 v.2)
           · rw [ite_eq_left h1, mul_comm]
@@ -251,7 +251,7 @@ theorem collision_le_core (Q : ℕ) (hQ : Q < 2 ^ 127) (computation : OracleComp
               (N * N * (if PreBad secretKey r.2.1.2 then 1 else 0)) +
             ∑' v, Pr{let x ← (simulateQ romImpl (cont r.1)).run r.2.1.1}[x = v] * (N * N * postPot P r.2.1.2 v.2) := by
           simp_rw [mul_add]
-          rw [ENNReal.tsum_add, ENNReal.tsum_mul_right]
+          rw [tsum_add, ENNReal.tsum_mul_right]
       _ ≤ 1 * (N * N * (if PreBad secretKey r.2.1.2 then 1 else 0)) +
             (N * N * postPot P r.2.1.2 r.2.1.1 + N * Ecount r) :=
           add_le_add (mul_le_mul' (OracleComp.tsum_prEvent_le_one _) le_rfl)
@@ -280,7 +280,7 @@ theorem collision_le_core (Q : ℕ) (hQ : Q < 2 ^ 127) (computation : OracleComp
       N * N * Pr{let r ← run}[PreBad secretKey r.2.1.2] + expectedFinal I (f4 secretKey) computation s0 +
         N * ∑' r, Pr{let x ← run}[x = r] * Ecount r := by
         simp_rw [mul_add]
-        rw [ENNReal.tsum_add, ENNReal.tsum_add, add_assoc, expectedFinal, ← ENNReal.tsum_mul_left,
+        rw [tsum_add, tsum_add, add_assoc, expectedFinal, ← ENNReal.tsum_mul_left,
           OracleComp.prEvent_eq_tsum_ite, ← ENNReal.tsum_mul_left]
         congr 1
         · refine tsum_congr fun r => ?_

@@ -224,10 +224,10 @@ theorem sp_wots_soundT {rets : List E}
 
 /-! ## The guest's numbering -/
 
-theorem spR_small {i : Nat} (hi : i ≤ 29) : spR i = i := by
+theorem spR_small {i : Nat} (hi : i ≤ 28) : spR i = i := by
   unfold spR spZero
-  rw [show List.countP (fun x => decide (x < i)) [29, 148, 245, 330, 399, 496, 581, 654, 711, 796,
-    869, 930, 975, 1044, 1101, 1146] = 0 by
+  rw [show List.countP (fun x => decide (x < i)) [28, 140, 229, 306, 367, 456, 533, 598, 647, 724,
+    789, 842, 879, 940, 989, 1026] = 0 by
       rw [List.countP_eq_zero]
       intro a ha
       simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
@@ -236,7 +236,7 @@ theorem spR_small {i : Nat} (hi : i ≤ 29) : spR i = i := by
         rfl | rfl | rfl <;> omega]
   simp
 
-theorem spRen_small {i : Nat} (hi : i ≤ 29) : spRen (.n i) = .n i := by
+theorem spRen_small {i : Nat} (hi : i ≤ 28) : spRen (.n i) = .n i := by
   simp [spRen, spR_small hi, V.n]
 
 /-- **Chain `i`'s digit** in the guest's valuation `σ`. -/
@@ -257,7 +257,7 @@ theorem sp_wots_sound_cells {rets : List E}
       leaf = spLeafCell (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) (spDigitR σ) fun i => σ (spStartR σ i) := by
   rw [spBody_eq, spBody, Stmt.holdsList_rename] at h
   obtain ⟨leaf, h1, h3, h4, h5, h6⟩ := sp_wots_soundT h
-  have e : ∀ i ≤ 29, (σ ∘ spRen) (.n i) = σ (.n i) := fun i hi => by
+  have e : ∀ i ≤ 28, (σ ∘ spRen) (.n i) = σ (.n i) := fun i hi => by
     rw [Function.comp_apply, spRen_small hi]
   rw [e 3 (by norm_num)] at h5
   rw [e 0 (by norm_num), e 1 (by norm_num), e 2 (by norm_num)] at h6

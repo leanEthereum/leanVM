@@ -16,12 +16,13 @@ public import LeanVM.Protocol.ToArkLib.Typed.Schedule
 /-!
 # Typed slots and errors
 
-Each phase's typed component is at the slot written here (the slot is part of its type), and its
-security at the errors written here, the numbers `Spine/Errors.lean` charges the same challenges:
+Each phase's typed component is at the slot written here (the slot is part of its type). The
+errors written here bound each challenge of a slot, the numbers `Spine/Errors.lean` charges the
+same challenges:
 
 * the bus (`busSlot`, `busErrors`): `(α, β)` at `2^{μ_bus}/|E|`, the roots at no error, the
   grand-product argument at its errors from the unit `1/|E|`, the boundary values at no error;
-* the table sumcheck (`tableSlot`, `tableErrors`): `ξ` at `(B + 2)/|E|`, the `τ_max` rounds of
+* the table sumcheck (`tableSlot`): `ξ` at `(B + 2)/|E|`, the `τ_max` rounds of
   degree `3` at `3/|E|` each, the final values at no error;
 * the public input (`pubSlot`, `pubErrors`): the challenge `r` at `1/|E|`, then the values of
   the lines marked `sent`;
@@ -65,11 +66,6 @@ noncomputable abbrev busErrors : Errors (busSlot I).tree (busSlot I).roles :=
 value per column of each sumcheck table. -/
 abbrev tableSlot : Slot :=
   ((drawSlot E).append (roundsSlot E 3 I.τmax)).append (saySlot (Vector E I.tableColumns))
-
-/-- The table sumcheck's errors: `B + 2` on `ξ`, `3` per round. -/
-noncomputable abbrev tableErrors : Errors (tableSlot I).tree (tableSlot I).roles :=
-  Errors.append _ _ (Errors.append _ _ (drawErrors E (overE (I.B + 2))) (roundsErrors E 3 (overE 3)
-    I.τmax)) (sayErrors _)
 
 /-! ## The public input -/
 

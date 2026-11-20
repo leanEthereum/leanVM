@@ -125,7 +125,10 @@ theorem card_badChallenge_le_of_unit {relIn : Set ((StmtIn × ∀ i, O i) × Uni
   · refine le_trans (le_of_eq ?_) (Nat.zero_le N)
     rw [Nat.card_eq_zero]
     exact Or.inl ⟨fun ⟨_, w, hw, _⟩ ↦ hw (by cases w; exact hin)⟩
-  · refine le_trans (Nat.card_mono (Set.toFinite _) fun c ⟨w, _, hw⟩ ↦ ?_) (h hin)
+  · refine le_trans ?_ (h hin)
+    refine Nat.card_le_card_of_injective (fun c ↦ ⟨c.1, ?_⟩)
+      fun _ _ h ↦ Subtype.ext (congrArg Subtype.val h :)
+    obtain ⟨w, _, hw⟩ := c.2
     cases w
     exact hw
 

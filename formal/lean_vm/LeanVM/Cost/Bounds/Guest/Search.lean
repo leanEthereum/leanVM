@@ -271,7 +271,7 @@ theorem mergeNewerCover_cost (hP : Includes P mergeNewerCoverC.costDeps) :
       rw [limbs_of_lt hx.1, limbs_of_lt hy.1, limbs_of_lt hx.2, limbs_of_lt hy.2]
       generalize compareOn (fun x ↦ x.1) x.1 y.1 = o1
       generalize compare x.1 y.1 = o2
-      cases o1 <;> cases o2 <;> dsimp only <;> (try split_ifs) <;> omega
+      cases o1 <;> cases o2 <;> dsimp only <;> split_ifs <;> omega
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
 /-- Two levels merged (`levelMergeCoverC`), weights word-sized: at most `60` per entry and `20`. -/

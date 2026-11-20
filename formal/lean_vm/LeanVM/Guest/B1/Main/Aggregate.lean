@@ -357,10 +357,10 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hm : MemOk rd)
   refine ⟨trivial, ?_⟩
   simp only [List.all_eq_true, List.mem_range, Bool.and_eq_true] at hseed hz3 hrate hpt1 hout
   -- the absorbing loop
-  have L25 : ∀ c < m, L25Step rd (σ (.n 33)) (σ (.n 2)) (σ (.n 8)) (σ (.n 3)) (σ (.n 9))
+  have L25 : ∀ c < m, L25Step rd (σ (.n 30)) (σ (.n 2)) (σ (.n 8)) (σ (.n 3)) (σ (.n 9))
       (σ (.n 1)) (gen ^ c) :=
     loop_sound (f := name% «aggregate_claims_loop0»)
-      (ps := [σ (.n 0), σ (.n 33), σ (.n 2), σ (.n 8), σ (.n 3), σ (.n 9), σ (.n 1)])
+      (ps := [σ (.n 0), σ (.n 30), σ (.n 2), σ (.n 8), σ (.n 3), σ (.n 9), σ (.n 1)])
       (by unfold ordG; omega) hN
       (fun y hy => by
         obtain ⟨h1, h2⟩ := l25_step hy
@@ -372,21 +372,21 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hm : MemOk rd)
   obtain ⟨rounds, hrl, hrd, hpt, hrets⟩ := hbsm
   rw [genMul_sound hg109 hat] at hrd
   have hrnd : rounds = aggRounds rd σ := rounds_of_reads hrl hrd
-  have h115 : σ (.n 115) = (bsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90), σ (.n 91),
-      σ (.n 92), σ (.n 93)], []⟩).1.2 := by
+  have h115 : σ (.n 112) = (bsRun rounds (σ (.n 103)) ⟨[σ (.n 86), σ (.n 87), σ (.n 88),
+      σ (.n 89), σ (.n 90)], []⟩).1.2 := by
     have := congrArg List.getLast? hrets
     simpa using this
-  have hptl : (bsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90), σ (.n 91), σ (.n 92),
-      σ (.n 93)], []⟩).1.1.length = 23 := by rw [bsRun_len, hrl]
-  refine ⟨⟨(bsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90), σ (.n 91),
-    σ (.n 92), σ (.n 93)], []⟩).1.1, σ (.n 7)⟩, hptl, ?_, ?_⟩
+  have hptl : (bsRun rounds (σ (.n 103)) ⟨[σ (.n 86), σ (.n 87), σ (.n 88), σ (.n 89),
+      σ (.n 90)], []⟩).1.1.length = 23 := by rw [bsRun_len, hrl]
+  refine ⟨⟨(bsRun rounds (σ (.n 103)) ⟨[σ (.n 86), σ (.n 87), σ (.n 88),
+    σ (.n 89), σ (.n 90)], []⟩).1.1, σ (.n 7)⟩, hptl, ?_, ?_⟩
   · -- the claim written
     intro k hk
     simp only [DeferredBytecodeClaim.cells, List.length_append, List.length_cons, List.length_nil,
       hptl] at hk
     by_cases hk23 : k < 23
-    · rw [show (DeferredBytecodeClaim.cells ⟨(bsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90),
-        σ (.n 91), σ (.n 92), σ (.n 93)], []⟩).1.1, σ (.n 7)⟩)[k] = _ from
+    · rw [show (DeferredBytecodeClaim.cells ⟨(bsRun rounds (σ (.n 103)) ⟨[σ (.n 86), σ (.n 87),
+        σ (.n 88), σ (.n 89), σ (.n 90)], []⟩).1.1, σ (.n 7)⟩)[k] = _ from
         List.getElem_append_left (by rw [hptl]; exact hk23)]
       obtain ⟨h1, h2⟩ := hout k hk23
       have e := loadHolds_unique (load_sound h1 hat) (hpt k (by rw [hptl]; exact hk23))
@@ -394,19 +394,19 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hm : MemOk rd)
       exact load_sound h2 hat
     · have hk' : k = 23 := by omega
       subst hk'
-      rw [show (DeferredBytecodeClaim.cells ⟨(bsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90),
-        σ (.n 91), σ (.n 92), σ (.n 93)], []⟩).1.1, σ (.n 7)⟩)[23] = σ (.n 7) by
+      rw [show (DeferredBytecodeClaim.cells ⟨(bsRun rounds (σ (.n 103)) ⟨[σ (.n 86), σ (.n 87),
+        σ (.n 88), σ (.n 89), σ (.n 90)], []⟩).1.1, σ (.n 7)⟩)[23] = σ (.n 7) by
           simp [DeferredBytecodeClaim.cells, List.getElem_append_right, hptl]]
       exact load_sound hl7 hat
   -- the batching
   intro cs hcl hcw
   -- row 0
-  have hcap0 : rowCap rd (σ (.n 33)) = capOf batchSeed := by
+  have hcap0 : rowCap rd (σ (.n 30)) = capOf batchSeed := by
     refine list_eq_of_getD (n := 5) (by simp [rowCap]) (by simp [capOf]) fun i hi => ?_
     obtain ⟨hcst, hld⟩ := hseed i hi
     rw [← seed_cells i hi, ← const_sound hcst hat, ← memAt_of_load (load_sound hld hat)]
     simp [rowCap, List.getD_eq_getElem?_getD, hi]
-  have hrow0 : RowRel rd (σ (.n 33)) (aggS0.absorbAll (Batch.childCountCells m) dsObserve) := by
+  have hrow0 : RowRel rd (σ (.n 30)) (aggS0.absorbAll (Batch.childCountCells m) dsObserve) := by
     rw [absorb_head, ← hcap0]
     refine rowRel_full (by simp) fun j hj => ?_
     obtain ⟨r1, r2⟩ := hrate j hj
@@ -416,16 +416,19 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hm : MemOk rd)
       rw [hN] at this
       exact this
     · obtain ⟨hc, hp⟩ := hz3 0 (by omega)
+      have hv : σ (.n (17 + 2 * 0)) = 0 := by rw [const_sound hc hat, word_zero]
       have := packOf_of (packIn_sound hp hat)
-      rw [const_sound hc hat, word_zero] at this
+      rw [show ([gen ^ m, 0, 0, 0] : List E).getD 1 0 = σ (.n (17 + 2 * 0)) from hv.symm]
       exact this
     · obtain ⟨hc, hp⟩ := hz3 1 (by omega)
+      have hv : σ (.n (17 + 2 * 1)) = 0 := by rw [const_sound hc hat, word_zero]
       have := packOf_of (packIn_sound hp hat)
-      rw [const_sound hc hat, word_zero] at this
+      rw [show ([gen ^ m, 0, 0, 0] : List E).getD 2 0 = σ (.n (17 + 2 * 1)) from hv.symm]
       exact this
     · obtain ⟨hc, hp⟩ := hz3 2 (by omega)
+      have hv : σ (.n (17 + 2 * 2)) = 0 := by rw [const_sound hc hat, word_zero]
       have := packOf_of (packIn_sound hp hat)
-      rw [const_sound hc hat, word_zero] at this
+      rw [show ([gen ^ m, 0, 0, 0] : List E).getD 3 0 = σ (.n (17 + 2 * 2)) from hv.symm]
       exact this
   have hpend0 : (aggS0.absorbAll (Batch.childCountCells m) dsObserve).pend.length = 4 := by
     rw [absorb_head]; rfl
@@ -433,25 +436,25 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hm : MemOk rd)
   obtain ⟨hrowm, hpendm⟩ := absorb_rows hcl hcw L25 hrow0 hpend0 m le_rfl
   rw [List.take_of_length_le (by omega), show Batch.childCountCells m ++ cs.flatMap Batch.childCells =
     Batch.cellsBeforeChallenge cs by rw [Batch.cellsBeforeChallenge, hcl]] at hrowm hpendm
-  have hrow42 : RowRel rd (σ (.n 42)) (aggAbs cs) := by
+  have hrow42 : RowRel rd (σ (.n 39)) (aggAbs cs) := by
     rw [monoIs_sound hm42 hat, hN]
     exact hrowm
   -- the last row's permutation
   have hin := rowIn_sound hrin hat
   have hout1 := DupSpec.keccak_facts (keccak_sound hk hat)
   rw [hin, ← rowRel_perm hrow42] at hout1
-  have o : ∀ c (hc : c < 13), σ (.n (60 + c)) = cellsOfState (aggAbs cs).perm false ⟨c, hc⟩ :=
+  have o : ∀ c (hc : c < 13), σ (.n (57 + c)) = cellsOfState (aggAbs cs).perm false ⟨c, hc⟩ :=
     fun c hc => by
       have := hout1 c hc
-      rwa [show aggKo.getD c default = .n (60 + c) by
+      rwa [show aggKo.getD c default = .n (57 + c) by
         simp [aggKo, List.getD_eq_getElem?_getD, hc]] at this
   -- the nonce's permutation
   have hnh := allIn_holds hnA hat C (fun _ => True)
   rw [aggNonceA_eq, holdsList_append, holds_fsNonceT, holds_padRunT] at hnh
   obtain ⟨⟨hl73, hpk⟩, ⟨-, h77, h78, h79, h80⟩, -⟩ := hnh
   obtain ⟨h74, h75⟩ := hpk
-  have h73 : σ (.n 73) = (aggHints rd σ).lambdaGrindNonce := (memAt_of_load hl73).symm
-  have hnin : aggNi.map σ = [σ (.n 73), word 0 dsPowNonce, 0, 0, 0, 0, 0, 0] ++
+  have h73 : σ (.n 70) = (aggHints rd σ).lambdaGrindNonce := (memAt_of_load hl73).symm
+  have hnin : aggNi.map σ = [σ (.n 70), word 0 dsPowNonce, 0, 0, 0, 0, 0, 0] ++
       capOf (aggAbs cs).perm := by
     simp only [aggNi, permIns, List.take, List.cons_append, List.nil_append, List.map_cons,
       List.map_nil, h74, h75, h77, h78, h79, h80, capOf, o 8 (by omega), o 9 (by omega),
@@ -459,84 +462,84 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hm : MemOk rd)
     rfl
   have hnout := DupSpec.keccak_facts (keccak_sound hkn hat)
   rw [hnin, ← nonce_ins (s := aggAbs cs) hpendm, h73, ← aggN] at hnout
-  have q : ∀ c (hc : c < 13), σ (.n (81 + c)) =
+  have q : ∀ c (hc : c < 13), σ (.n (78 + c)) =
       cellsOfState (aggN cs (aggHints rd σ).lambdaGrindNonce) false ⟨c, hc⟩ :=
     fun c hc => by
       have := hnout c hc
-      rwa [show aggNo.getD c default = .n (81 + c) by
+      rwa [show aggNo.getD c default = .n (78 + c) by
         simp [aggNo, List.getD_eq_getElem?_getD, hc]] at this
   -- the proof of work and `λ`
   have hg := agg_grind hm hW (by simpa using call_of_flat hall hgr)
   obtain ⟨-, hpow⟩ := hg
-  have q1 : σ (.n 82) = cellsOfState (aggN cs (aggHints rd σ).lambdaGrindNonce) false 1 :=
+  have q1 : σ (.n 79) = cellsOfState (aggN cs (aggHints rd σ).lambdaGrindNonce) false 1 :=
     q 1 (by omega)
   have hpowOk : powOk Batch.batchLambdaGrindBits
       (Keccak.lane (aggN cs (aggHints rd σ).lambdaGrindNonce) 2) = true := by
     have := (grindOk_iff (s := aggAbs cs) (bits := 2) (by omega)
       (aggHints rd σ).lambdaGrindNonce).mpr (by rw [← aggN, ← q1]; exact hpow)
     exact this.resolve_left (by omega)
-  have hlam : σ (.n 81) = challengeOf (aggN cs (aggHints rd σ).lambdaGrindNonce) := by
+  have hlam : σ (.n 78) = challengeOf (aggN cs (aggHints rd σ).lambdaGrindNonce) := by
     rw [q 0 (by omega), Keccak.challengeOf_cells]
     rfl
-  have hcapN : (⟨[σ (.n 89), σ (.n 90), σ (.n 91), σ (.n 92), σ (.n 93)], []⟩ : Fs) =
+  have hcapN : (⟨[σ (.n 86), σ (.n 87), σ (.n 88), σ (.n 89), σ (.n 90)], []⟩ : Fs) =
       (aggLam cs (aggHints rd σ).lambdaGrindNonce).2 := by
     simp only [aggLam, capOf, Fs.mk.injEq, and_true]
     rw [q 8 (by omega), q 9 (by omega), q 10 (by omega), q 11 (by omega), q 12 (by omega)]
     rfl
-  have hagg : (aggLam cs (aggHints rd σ).lambdaGrindNonce).1 = Batch.lambdaPowers (σ (.n 81)) m := by
+  have hagg : (aggLam cs (aggHints rd σ).lambdaGrindNonce).1 = Batch.lambdaPowers (σ (.n 78)) m := by
     simp only [aggLam, hcl, hlam]
   -- the records
-  have L26 : ∀ c < m, L26Step rd (σ (.n 98)) (σ (.n 8)) (σ (.n 9)) (σ (.n 81) * σ (.n 81))
-      (σ (.n 81)) (gen ^ c) := by
+  have L26 : ∀ c < m, L26Step rd (σ (.n 95)) (σ (.n 8)) (σ (.n 9)) (σ (.n 78) * σ (.n 78))
+      (σ (.n 78)) (gen ^ c) := by
     have h := loop_sound (f := name% «aggregate_claims_loop1»)
-      (ps := [σ (.n 0), σ (.n 98), σ (.n 8), σ (.n 9), σ (.n 94), σ (.n 81)])
-      (B := fun x => L26Step rd (σ (.n 98)) (σ (.n 8)) (σ (.n 9)) (σ (.n 94)) (σ (.n 81)) x)
+      (ps := [σ (.n 0), σ (.n 95), σ (.n 8), σ (.n 9), σ (.n 91), σ (.n 78)])
+      (B := fun x => L26Step rd (σ (.n 95)) (σ (.n 8)) (σ (.n 9)) (σ (.n 91)) (σ (.n 78)) x)
       (by unfold ordG; omega) hN
       (fun y hy => by
         obtain ⟨h1, h2⟩ := l26_step hy
         exact ⟨h1 _ _ _ _ _ _ rfl, h2⟩)
       (fun hne => by simpa using guard_sound hg34 hall hne)
     rwa [isMul_sound hm94 hat] at h
-  have h98 : memAt rd (σ (.n 98)) 0 = 1 := by
+  have h98 : memAt rd (σ (.n 95)) 0 = 1 := by
     rw [memAt_of_load (load_sound hl99 hat), const_sound hc99 hat, word_one]
-  have h98z : memAt rd (σ (.n 98)) 1 = 0 := by
+  have h98z : memAt rd (σ (.n 95)) 1 = 0 := by
     rw [memAt_of_load (load_sound hl100 hat), const_sound hc100 hat, word_zero]
   have CH := chain_rows hcl hcw L25 L26 h98 h98z
-  have p105 : σ (.n 105) = σ (.n 98) * (gen ^ m) ^ 2 := by
+  have p105 : σ (.n 102) = σ (.n 95) * (gen ^ m) ^ 2 := by
     rw [monoIs_sound hm105 hat, hN]
-  have hclaim : Batch.batchedClaim cs (aggLam cs (aggHints rd σ).lambdaGrindNonce).1 = σ (.n 106) := by
+  have hclaim : Batch.batchedClaim cs (aggLam cs (aggHints rd σ).lambdaGrindNonce).1 = σ (.n 103) := by
     obtain ⟨-, hacc⟩ := CH m le_rfl
     rw [List.take_of_length_le (by omega)] at hacc
     rw [hagg, ← memAt_of_load (load_sound hl106 hat), p105, hacc]
     rfl
-  have hrun : aggRun cs (aggHints rd σ) = bsRun rounds (σ (.n 106))
-      ⟨[σ (.n 89), σ (.n 90), σ (.n 91), σ (.n 92), σ (.n 93)], []⟩ := by
+  have hrun : aggRun cs (aggHints rd σ) = bsRun rounds (σ (.n 103))
+      ⟨[σ (.n 86), σ (.n 87), σ (.n 88), σ (.n 89), σ (.n 90)], []⟩ := by
     rw [aggRun, hclaim, ← hcapN, hrnd]
     rfl
   -- the weight
-  have L27 : ∀ c < m, L27Step rd (σ (.n 8)) (σ (.n 9)) (σ (.n 116)) (σ (.n 98)) (σ (.n 188))
-      (σ (.n 81)) (gen ^ c) :=
+  have L27 : ∀ c < m, L27Step rd (σ (.n 8)) (σ (.n 9)) (σ (.n 113)) (σ (.n 95)) (σ (.n 185))
+      (σ (.n 78)) (gen ^ c) :=
     loop_sound (f := name% «aggregate_claims_loop2»)
-      (ps := [σ (.n 0), σ (.n 8), σ (.n 9), σ (.n 116), σ (.n 98), σ (.n 188), σ (.n 81)])
+      (ps := [σ (.n 0), σ (.n 8), σ (.n 9), σ (.n 113), σ (.n 95), σ (.n 185), σ (.n 78)])
       (by unfold ordG; omega) hN
       (fun y hy => by
         obtain ⟨h1, h2⟩ := l27_step hy
         exact ⟨h1 _ _ _ _ _ _ _ rfl, h2⟩)
       (fun hne => by simpa using guard_sound hg35 hall hne)
-  have hptr : (memRun rd (σ (.n 116)) 23).map (1 + ·) = (bsRun rounds (σ (.n 106))
-      ⟨[σ (.n 89), σ (.n 90), σ (.n 91), σ (.n 92), σ (.n 93)], []⟩).1.1 := by
+  have hptr : (memRun rd (σ (.n 113)) 23).map (1 + ·) = (bsRun rounds (σ (.n 103))
+      ⟨[σ (.n 86), σ (.n 87), σ (.n 88), σ (.n 89), σ (.n 90)], []⟩).1.1 := by
     rw [readsAt_memRun hpt, hptl]
     refine map_one_add_memRun fun k hk => ?_
     obtain ⟨⟨⟨c1, l1⟩, a1⟩, s1⟩ := hpt1 k hk
     rw [memAt_of_load (load_sound s1 hat), add_sound a1 hat, const_sound c1 hat, word_one,
       memAt_of_load (load_sound l1 hat)]
-  have hz188 : memAt rd (σ (.n 188)) 0 = 0 := by
+  have hz188 : memAt rd (σ (.n 185)) 0 = 0 := by
     rw [memAt_of_load (load_sound hl189 hat), const_sound hc189 hat, word_zero]
   have W := weight_rows hcl hcw L25 L27 (fun c hc => (CH c hc.le).1) hptr hz188 m le_rfl
   rw [List.take_of_length_le (by omega)] at W
   have hw : Batch.batchedBytecodeWeight cs (aggLam cs (aggHints rd σ).lambdaGrindNonce).1
-      (bsRun rounds (σ (.n 106))
-      ⟨[σ (.n 89), σ (.n 90), σ (.n 91), σ (.n 92), σ (.n 93)], []⟩).1.1 = σ (.n 194) := by
+      (bsRun rounds (σ (.n 103))
+      ⟨[σ (.n 86), σ (.n 87), σ (.n 88), σ (.n 89), σ (.n 90)], []⟩).1.1 = σ (.n 191) := by
     rw [hagg, ← memAt_of_load (load_sound hl194 hat), isMul_sound hm193 hat, hN, W]
     rfl
   -- the check

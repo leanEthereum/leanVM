@@ -97,7 +97,7 @@ theorem eq_numerators_of_root (Rs : Polynomial K[X]) (s : K) (hs : s ≠ 0)
     ∀ n, 1 ≤ n → ε.coeff n = numerators Rs s d n := by
   intro n hn
   induction n using Nat.strong_induction_on with
-  | h n ih =>
+  | ind n ih =>
   obtain ⟨t, rfl⟩ : ∃ t, n = t + 1 := ⟨n - 1, by omega⟩
   set prior : ℕ → K := fun i ↦ if i ≤ t then numerators Rs s d i else 0
   set π := positivePrefix prior (t + 1)
@@ -210,7 +210,7 @@ theorem totalDegree_numerators_le (Rs : Polynomial (Polynomial (MvPolynomial σ 
     ∀ n, 1 ≤ n → (numerators Rs s d n).totalDegree ≤ 1 + (2 * n - 1) * (h - 1) := by
   intro n hn
   induction n using Nat.strong_induction_on with
-  | h n ih =>
+  | ind n ih =>
   obtain ⟨t, rfl⟩ : ∃ t, n = t + 1 := ⟨n - 1, by omega⟩
   set prior : ℕ → MvPolynomial σ K := fun i ↦ if i ≤ t then numerators Rs s d i else 0
   set π := positivePrefix prior (t + 1)

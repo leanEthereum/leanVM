@@ -1,0 +1,439 @@
+package leanpq
+
+import (
+	"os"
+	"path/filepath"
+	"reflect"
+	"runtime"
+	"strings"
+	"sync"
+	"testing"
+)
+
+func TestEncodingLengths(t *testing.T) {
+	if got := len(SphincsSignature{}); got != 7740 {
+		t.Fatalf("leanSPHINCS signature length = %d, want 7740", got)
+	}
+	if sphincsRecordLen != 7804 {
+		t.Fatalf("leanSPHINCS record length = %d, want 7804", sphincsRecordLen)
+	}
+	if got := len(XmssSignature{}); got != 2404 {
+		t.Fatalf("leanXMSS signature length = %d, want 2404", got)
+	}
+	if xmssRecordLen != 2468 {
+		t.Fatalf("leanXMSS record length = %d, want 2468", xmssRecordLen)
+	}
+}
+
+func TestSignAndVerify(t *testing.T) {
+	message := bytes32(0x42)
+	other := bytes32(0x43)
+
+	xmssKey := mustXmssKey(t, bytes32(1))
+	xmssPublicKey := mustXmssPublicKey(t, xmssKey)
+	xmssSignature, err := xmssKey.Sign(message, 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := XmssVerify(xmssPublicKey, message, xmssSignature); err != nil {
+		t.Fatalf("leanXMSS signature must verify: %v", err)
+	}
+	if XmssVerify(xmssPublicKey, other, xmssSignature) == nil {
+		t.Fatal("leanXMSS signature must not verify under another message")
+	}
+
+	sphincsKey := mustSphincsKey(t, bytes32(2))
+	sphincsPublicKey := mustSphincsPublicKey(t, sphincsKey)
+	sphincsSignature, err := sphincsKey.Sign(message)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := SphincsVerify(sphincsPublicKey, message, sphincsSignature); err != nil {
+		t.Fatalf("leanSPHINCS signature must verify: %v", err)
+	}
+	if SphincsVerify(sphincsPublicKey, other, sphincsSignature) == nil {
+		t.Fatal("leanSPHINCS signature must not verify under another message")
+	}
+}
+
+func TestSecretKeysRoundTripThroughBytes(t *testing.T) {
+	message := bytes32(7)
+
+	xmssKey := mustXmssKey(t, bytes32(3))
+	encoded, err := xmssKey.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	restoredXmss, err := XmssSecretKeyFromBytes(encoded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer restoredXmss.Close()
+	xmssPublicKey := mustXmssPublicKey(t, xmssKey)
+	if mustXmssPublicKey(t, restoredXmss) != xmssPublicKey {
+		t.Fatal("restored leanXMSS key must keep its public key")
+	}
+	xmssSignature, err := restoredXmss.Sign(message, 9)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := XmssVerify(xmssPublicKey, message, xmssSignature); err != nil {
+		t.Fatal(err)
+	}
+
+	sphincsKey := mustSphincsKey(t, bytes32(4))
+	encoded, err = sphincsKey.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(encoded) != 32 {
+		t.Fatalf("leanSPHINCS secret key encoding has %d bytes, want 32", len(encoded))
+	}
+	restoredSphincs, err := SphincsSecretKeyFromBytes(encoded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer restoredSphincs.Close()
+	sphincsPublicKey := mustSphincsPublicKey(t, sphincsKey)
+	if mustSphincsPublicKey(t, restoredSphincs) != sphincsPublicKey {
+		t.Fatal("restored leanSPHINCS key must keep its public key")
+	}
+	sphincsSignature, err := restoredSphincs.Sign(message)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := SphincsVerify(sphincsPublicKey, message, sphincsSignature); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAggregateRecursively(t *testing.T) {
+	sidecar := sharedSidecar(t)
+	assertProver(t, sidecar)
+	first := bytes32(0x11)
+	second := bytes32(0x22)
+	xmssKey := mustXmssKey(t, bytes32(5))
+	xmssPublicKey := mustXmssPublicKey(t, xmssKey)
+	sphincsKey := mustSphincsKey(t, bytes32(6))
+	sphincsPublicKey := mustSphincsPublicKey(t, sphincsKey)
+
+	firstXmss, err := xmssKey.Sign(first, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	left, err := sidecar.Aggregate(nil, []XmssSignedMessage{{xmssPublicKey, first, firstXmss}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer left.Close()
+
+	sphincsSignature, err := sphincsKey.Sign(first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	right, err := sidecar.Aggregate(nil, nil, []SphincsSignedMessage{{sphincsPublicKey, first, sphincsSignature}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer right.Close()
+
+	secondXmss, err := xmssKey.Sign(second, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := sidecar.Aggregate(
+		[]*Aggregate{left, right}, []XmssSignedMessage{{xmssPublicKey, second, secondXmss}}, nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+
+	encoded, err := root.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedXmss := []Claim{{xmssPublicKey, first}, {xmssPublicKey, second}}
+	expectedSphincs := []Claim{{sphincsPublicKey, first}}
+	rootXmss, err := root.XmssClaims()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(rootXmss, expectedXmss) {
+		t.Fatalf("root leanXMSS claims = %x, want %x", rootXmss, expectedXmss)
+	}
+
+	// The receiver rebuilds the claims in any order; a repeated claim counts once.
+	received, err := sidecar.Verify(
+		encoded, []Claim{{xmssPublicKey, second}, {xmssPublicKey, first}, {xmssPublicKey, second}}, expectedSphincs,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer received.Close()
+	xmssClaims, err := received.XmssClaims()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(xmssClaims, expectedXmss) {
+		t.Fatalf("leanXMSS claims = %x, want %x", xmssClaims, expectedXmss)
+	}
+	sphincsClaims, err := received.SphincsClaims()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(sphincsClaims, expectedSphincs) {
+		t.Fatalf("leanSPHINCS claims = %x, want %x", sphincsClaims, expectedSphincs)
+	}
+
+	reencoded, err := received.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	roundTrip, err := sidecar.Verify(reencoded, xmssClaims, sphincsClaims)
+	if err != nil {
+		t.Fatalf("an aggregate must decode against its own claims: %v", err)
+	}
+	roundTrip.Close()
+
+	wrongClaims := []struct {
+		name    string
+		xmss    []Claim
+		sphincs []Claim
+	}{
+		{"one leanXMSS claim short", expectedXmss[:1], expectedSphincs},
+		{"no leanSPHINCS claim", expectedXmss, nil},
+		{"another leanXMSS message", []Claim{{xmssPublicKey, first}, {xmssPublicKey, bytes32(0x33)}}, expectedSphincs},
+		{"an extra leanSPHINCS claim", expectedXmss, []Claim{{sphincsPublicKey, first}, {sphincsPublicKey, second}}},
+		{"claims of the wrong scheme", expectedSphincs, expectedXmss},
+	}
+	for _, claims := range wrongClaims {
+		if wrong, err := sidecar.Verify(encoded, claims.xmss, claims.sphincs); err == nil {
+			wrong.Close()
+			t.Fatalf("the proof must be rejected against %s", claims.name)
+		}
+	}
+
+	truncated := encoded[:len(encoded)-1]
+	if wrong, err := sidecar.Verify(truncated, expectedXmss, expectedSphincs); err == nil {
+		wrong.Close()
+		t.Fatal("truncated aggregate bytes must be rejected")
+	}
+	tampered := append([]byte(nil), encoded...)
+	tampered[len(tampered)/2] ^= 1
+	if wrong, err := sidecar.Verify(tampered, expectedXmss, expectedSphincs); err == nil {
+		wrong.Close()
+		t.Fatal("tampered aggregate bytes must be rejected")
+	}
+	if wrong, err := sidecar.Verify(nil, expectedXmss, expectedSphincs); err == nil {
+		wrong.Close()
+		t.Fatal("empty aggregate bytes must be rejected")
+	}
+}
+
+func TestRejectsEmptyAggregation(t *testing.T) {
+	if aggregate, err := sharedSidecar(t).Aggregate(nil, nil, nil); err == nil {
+		aggregate.Close()
+		t.Fatal("an aggregation of nothing must fail")
+	}
+}
+
+func TestStartSidecar(t *testing.T) {
+	sidecar := sharedSidecar(t)
+	binary := environment(t, "LEANVM_SIDECAR_BIN")
+	leaf, claims := proveLeaf(t, sidecar)
+	proof, err := leaf.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	socket := shortSocketPath(t)
+
+	started, err := StartSidecar(binary, socket, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer started.Close()
+	assertProver(t, started)
+	verified, err := started.Verify(proof, claims, nil)
+	if err != nil {
+		t.Fatalf("the started sidecar must verify a proof: %v", err)
+	}
+	verified.Close()
+	if second, err := StartSidecar(binary, socket, 0); err == nil || !strings.Contains(err.Error(), "already listens") {
+		second.Close()
+		t.Fatalf("a second start on the same socket = %v, want an error", err)
+	}
+
+	started.Close()
+	if _, err := started.Verify(proof, claims, nil); err == nil {
+		t.Fatal("a closed sidecar must refuse calls")
+	}
+	if connected, err := ConnectSidecar(socket); err == nil {
+		connected.Close()
+		t.Fatal("Close must stop the sidecar StartSidecar launched")
+	}
+}
+
+func TestConnectWithoutUnixSockets(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("only Windows lacks Unix sockets")
+	}
+	if sidecar, err := ConnectSidecar("sidecar.sock"); err == nil {
+		sidecar.Close()
+		t.Fatal("connecting to a sidecar must fail on Windows")
+	}
+}
+
+func TestConcurrentNativeErrors(t *testing.T) {
+	// Ensure at least 2 OS threads for concurrent testing.
+	if old := runtime.GOMAXPROCS(0); old < 2 {
+		runtime.GOMAXPROCS(2)
+		defer runtime.GOMAXPROCS(old)
+	}
+
+	// Connecting where nothing listens fails with the same message on every thread.
+	missing := shortSocketPath(t)
+	_, connectError := ConnectSidecar(missing)
+	if connectError == nil {
+		t.Fatal("connecting where no sidecar listens must fail")
+	}
+
+	var workers sync.WaitGroup
+	start := make(chan struct{})
+	for range 4 * runtime.NumCPU() {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			<-start
+			for range 10000 {
+				key, err := XmssSecretKeyFromBytes([]byte{1})
+				key.Close()
+				if want := "leanpq: leanXMSS secret key must be 32 bytes, got 1"; err == nil || err.Error() != want {
+					t.Errorf("XmssSecretKeyFromBytes error = %v, want %q", err, want)
+					return
+				}
+				sidecar, err := ConnectSidecar(missing)
+				sidecar.Close()
+				if err == nil || err.Error() != connectError.Error() {
+					t.Errorf("ConnectSidecar error = %v, want %q", err, connectError)
+					return
+				}
+			}
+		}()
+	}
+	close(start)
+	workers.Wait()
+}
+
+var shared struct {
+	once    sync.Once
+	sidecar *Sidecar
+	err     error
+}
+
+// sharedSidecar connects once to the sidecar at LEANVM_SIDECAR_SOCKET, and skips the test on
+// Windows, which cannot reach one.
+func sharedSidecar(t *testing.T) *Sidecar {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("the leanVM sidecar needs Unix sockets")
+	}
+	socket := environment(t, "LEANVM_SIDECAR_SOCKET")
+	shared.once.Do(func() { shared.sidecar, shared.err = ConnectSidecar(socket) })
+	if shared.err != nil {
+		t.Fatal(shared.err)
+	}
+	return shared.sidecar
+}
+
+// proveLeaf proves one leanXMSS signature, and returns the aggregate and its claims.
+func proveLeaf(t *testing.T, sidecar *Sidecar) (*Aggregate, []Claim) {
+	t.Helper()
+	message := bytes32(0x44)
+	key := mustXmssKey(t, bytes32(7))
+	publicKey := mustXmssPublicKey(t, key)
+	signature, err := key.Sign(message, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	leaf, err := sidecar.Aggregate(nil, []XmssSignedMessage{{publicKey, message, signature}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(leaf.Close)
+	return leaf, []Claim{{publicKey, message}}
+}
+
+// shortSocketPath returns a socket path in a new directory directly under the system temp dir:
+// macOS limits socket paths to 104 bytes, which t.TempDir's nesting can exceed.
+func shortSocketPath(t *testing.T) string {
+	t.Helper()
+	directory, err := os.MkdirTemp("", "lpq")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.RemoveAll(directory) })
+	return filepath.Join(directory, "s.sock")
+}
+
+func assertProver(t *testing.T, sidecar *Sidecar) {
+	t.Helper()
+	if prover, err := sidecar.Prover(); err != nil || (prover != "experimental" && prover != "stable") {
+		t.Fatalf("Prover() = %q, %v; want experimental or stable", prover, err)
+	}
+}
+
+func environment(t *testing.T, name string) string {
+	t.Helper()
+	value := os.Getenv(name)
+	if value == "" {
+		t.Fatalf("set %s to run the aggregation tests", name)
+	}
+	return value
+}
+
+func mustXmssKey(t *testing.T, seed [32]byte) *XmssSecretKey {
+	t.Helper()
+	key, err := XmssSecretKeyFromSeed(seed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(key.Close)
+	return key
+}
+
+func mustSphincsKey(t *testing.T, seed [32]byte) *SphincsSecretKey {
+	t.Helper()
+	key, err := SphincsSecretKeyFromSeed(seed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(key.Close)
+	return key
+}
+
+func mustXmssPublicKey(t *testing.T, key *XmssSecretKey) [32]byte {
+	t.Helper()
+	publicKey, err := key.PublicKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return publicKey
+}
+
+func mustSphincsPublicKey(t *testing.T, key *SphincsSecretKey) [32]byte {
+	t.Helper()
+	publicKey, err := key.PublicKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return publicKey
+}
+
+func bytes32(value byte) [32]byte {
+	var result [32]byte
+	for index := range result {
+		result[index] = value
+	}
+	return result
+}

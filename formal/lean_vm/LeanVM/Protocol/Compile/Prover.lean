@@ -19,6 +19,7 @@ public import LeanVM.Protocol.KeccakHash
 public import LeanVM.Parameters.Field
 public import LeanVM.Protocol.ToArkLib.Merkle
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.Compile.Refines
 
 /-!
 # The honest prover and the completeness of the compilation
@@ -62,8 +63,14 @@ function of `H` and `F`.
 The proof is a simulation: from a history `h` and sponge `sp`, if the prover's output from
 there is the stream `xs` and the openings `os`, then `run` from the state with sponge `sp`, stream
 `xs ++ restS`, openings `os ++ restO` and the roots of the trees committed in `h` returns `true`
-with exactly `restS` and `restO` left (`run_proveFrom`). The Merkle step is the generic
-`MerkleTree.rootOfPath_path`, after `climb_mod` reduces the position to its low `height` bits.
+with exactly `restS` and `restO` left. It is proved once, for a program `P'` refining the one the
+prover follows (`Refines`), wherever the honest transcript passes every check of `P'`
+(`traceOk`: its proofs of work find their nonces, nothing waits where `P'` absorbs, every
+committed word is well shaped, every opening is of a committed word, and `P'` returns `true`):
+`run_proveFrom_trace`, and `runProof_prove_trace` for a whole proof. A winning strategy's
+transcript passes the checks of the program itself (`traceOk_of_acceptsFrom`), which gives
+`run_proveFrom`. The Merkle step is the generic `MerkleTree.rootOfPath_path`, after `climb_mod`
+reduces the position to its low `height` bits.
 -/
 
 namespace LeanVM.Protocol.Compile
@@ -470,85 +477,93 @@ theorem squeezeI_ground (sp : Sponge) : (squeezeI F sp).2.ground = none := by
     simp only [Id.run, bind, pure]
     assumption
 
-/-- **The simulation.** If the strategy wins from `h`, the words committed in `h` are well
-shaped, and the honest prover's output from `h` at sponge `sp` is `(xs, os)`, then the compiled
-verifier, from sponge `sp` with the roots of `h`'s trees, accepts on any stream and openings that
-start with `xs` and `os`, leaving exactly what follows them. -/
-theorem run_proveFrom (S : Strategy) (fuel : ℕ) :
-    ∀ (p : VerifierProgram Bool) (h : List Ev) (sp : Sponge) (xs : List E)
-      (os : List (List Opening)) (restS : List E) (restO : List (List Opening)),
-      S.AcceptsFrom p h → (∀ c ∈ commits h, WellShaped c.2.1 c.2.2) → GrindThenSample p →
-      (sp.ground = none ∨ ∃ k, p = .sample k) →
+/-- **The honest prover's transcript passes every check of `P`**, from the sponge `sp` and the
+history `h`: the prover's moves, its sponge and its proof-of-work searches as `proveFrom` makes
+them. -/
+def traceOk (S : Strategy) (fuel : ℕ) : VerifierProgram Bool → Sponge → List Ev → Prop
+  | .ret b, _, _ => b = true
+  | .fail, _, _ => False
+  | .read k, sp, h => sp.ground = none ∧
+      traceOk S fuel (k (S.msg h)) (absorbI F sp (S.msg h) dsObserve) (h ++ [Ev.read (S.msg h)])
+  | .sample k, sp, h =>
+      traceOk S fuel (k (squeezeI F sp).1) (squeezeI F sp).2 (h ++ [Ev.sample (squeezeI F sp).1])
+  | .grind b k, sp, h => sp.ground = none ∧ ∃ n, findNonce F b sp fuel = some n ∧
+      traceOk S fuel k (powStep F sp n).2 (h ++ [Ev.grind b])
+  | .commit ht w k, sp, h => sp.ground = none ∧ WellShaped w (S.word h) ∧
+      traceOk S fuel k
+        (absorbI F (absorbI F sp (digestHalves (treeRoot H ht (S.word h))).1 dsObserve)
+          (digestHalves (treeRoot H ht (S.word h))).2 dsObserve)
+        (h ++ [Ev.commit ht w (S.word h)])
+  | .query i ps k, sp, h => ∃ rows, answer h i ps = some rows ∧
+      traceOk S fuel (k rows) sp (h ++ [Ev.query rows])
+
+/-- **The simulation, for a refining program.** If the honest prover's run along `p` from `h` at
+the sponge `sp` outputs `(xs, os)` and its transcript passes every check of `p'`, a refinement of
+`p`, the compiled verifier of `p'` from sponge `sp` with the roots of `h`'s trees accepts on any
+stream and openings that start with `xs` and `os`, leaving exactly what follows them. -/
+theorem run_proveFrom_trace (S : Strategy) (fuel : ℕ) {p' p : VerifierProgram Bool}
+    (hR : Refines p' p) :
+    ∀ (h : List Ev) (sp : Sponge) (xs : List E) (os : List (List Opening)) (restS : List E)
+      (restO : List (List Opening)),
+      traceOk H F S fuel p' sp h → (∀ c ∈ commits h, WellShaped c.2.1 c.2.2) →
       proveFrom H F S fuel p sp h = some (xs, os) →
-      ∃ s', runWithHash (m := Id) H F p ⟨sp, xs ++ restS, os ++ restO, rootsOf H (commits h)⟩ =
+      ∃ s', runWithHash (m := Id) H F p' ⟨sp, xs ++ restS, os ++ restO, rootsOf H (commits h)⟩ =
           some (true, s') ∧ s'.stream = restS ∧ s'.openings = restO := by
-  intro p
-  induction p with
+  induction hR with
+  | fail p =>
+    intro h sp xs os restS restO ht
+    exact absurd ht id
   | ret b =>
-    intro h sp xs os restS restO hacc _ _ _ hp
-    simp only [Strategy.AcceptsFrom] at hacc
+    intro h sp xs os restS restO ht _ hp
+    simp only [traceOk] at ht
     simp only [proveFrom, Option.some.injEq, Prod.mk.injEq] at hp
     obtain ⟨rfl, rfl⟩ := hp
-    exact ⟨_, by rw [hacc]; rfl, rfl, rfl⟩
-  | fail =>
-    intro h sp xs os restS restO hacc
-    exact absurd hacc id
-  | read k ih =>
-    intro h sp xs os restS restO hacc hws hP hg hp
-    have hg0 : sp.ground = none := hg.resolve_right (by simp)
+    exact ⟨_, by rw [ht]; rfl, rfl, rfl⟩
+  | @read k k' _ ih =>
+    intro h sp xs os restS restO ht hws hp
+    obtain ⟨hg0, ht⟩ := ht
     simp only [proveFrom] at hp
-    obtain ⟨t, ht, he⟩ := Option.map_eq_some_iff.mp hp
+    obtain ⟨t, htt, he⟩ := Option.map_eq_some_iff.mp hp
     simp only [Prod.mk.injEq] at he
     obtain ⟨rfl, rfl⟩ := he
     have hws' : ∀ c ∈ commits (h ++ [Ev.read (S.msg h)]), WellShaped c.2.1 c.2.2 := by
       simpa [commits_append, commits] using hws
-    obtain ⟨s', hrun, hs1, hs2⟩ := ih _ _ _ t.1 t.2 restS restO hacc hws'
-      (grindThenSample_after hP (l := [Ev.read (S.msg h)]) (by simp [VerifierProgram.after]))
-      (Or.inl ((absorbI_ground F _ _ _).trans hg0)) ht
+    obtain ⟨s', hrun, hs1, hs2⟩ := ih _ _ _ t.1 t.2 restS restO ht hws' htt
     refine ⟨s', ?_, hs1, hs2⟩
     rw [← hrun]
     simp [runWithHash, commits_append, commits, hg0]
     rfl
-  | sample k ih =>
-    intro h sp xs os restS restO hacc hws hP _ hp
+  | @sample k k' _ ih =>
+    intro h sp xs os restS restO ht hws hp
     simp only [proveFrom] at hp
     have hws' : ∀ c ∈ commits (h ++ [Ev.sample (squeezeI F sp).1]), WellShaped c.2.1 c.2.2 := by
       simpa [commits_append, commits] using hws
-    obtain ⟨s', hrun, hs1, hs2⟩ := ih _ _ _ xs os restS restO (hacc _) hws'
-      (grindThenSample_after hP (l := [Ev.sample (squeezeI F sp).1]) (by simp [VerifierProgram.after]))
-      (Or.inl (squeezeI_ground F sp)) hp
+    obtain ⟨s', hrun, hs1, hs2⟩ := ih _ _ _ xs os restS restO ht hws' hp
     refine ⟨s', ?_, hs1, hs2⟩
     rw [← hrun]
     simp [runWithHash, commits_append, commits]
     rfl
-  | grind b k ih =>
-    intro h sp xs os restS restO hacc hws hP hg hp
-    have hg0 : sp.ground = none := hg.resolve_right (by simp)
-    obtain ⟨k', rfl⟩ := hP [] b k rfl
-    simp only [proveFrom] at hp
-    split at hp
-    · exact absurd hp (by simp)
-    · rename_i n hn
-      obtain ⟨t, ht, he⟩ := Option.map_eq_some_iff.mp hp
-      simp only [Prod.mk.injEq] at he
-      obtain ⟨rfl, rfl⟩ := he
-      have hws' : ∀ c ∈ commits (h ++ [Ev.grind b]), WellShaped c.2.1 c.2.2 := by
-        simpa [commits_append, commits] using hws
-      obtain ⟨s', hrun, hs1, hs2⟩ := ih _ _ t.1 t.2 restS restO hacc hws'
-        (grindThenSample_after hP (l := [Ev.grind b]) (by simp [VerifierProgram.after]))
-        (Or.inr ⟨k', rfl⟩) ht
-      refine ⟨s', ?_, hs1, hs2⟩
-      have hpow := powOk_of_findNonce F hn
-      rw [← hrun]
-      simp only [commits_append, commits, List.append_nil] at *
-      simp only [runWithHash, List.cons_append, hg0]
-      show (if powOk b (powStep F sp n).1 = true then _ else pure none) = _
-      simp only [hpow, ↓reduceIte]
-      rfl
-  | commit ht w k ih =>
-    intro h sp xs os restS restO hacc hws hP hg hp
-    have hg0 : sp.ground = none := hg.resolve_right (by simp)
-    obtain ⟨hw, hacc⟩ := hacc
+  | @grind b k k' _ ih =>
+    intro h sp xs os restS restO ht hws hp
+    obtain ⟨hg0, n, hn, ht⟩ := ht
+    simp only [proveFrom, hn] at hp
+    obtain ⟨t, htt, he⟩ := Option.map_eq_some_iff.mp hp
+    simp only [Prod.mk.injEq] at he
+    obtain ⟨rfl, rfl⟩ := he
+    have hws' : ∀ c ∈ commits (h ++ [Ev.grind b]), WellShaped c.2.1 c.2.2 := by
+      simpa [commits_append, commits] using hws
+    obtain ⟨s', hrun, hs1, hs2⟩ := ih _ _ t.1 t.2 restS restO ht hws' htt
+    refine ⟨s', ?_, hs1, hs2⟩
+    have hpow := powOk_of_findNonce F hn
+    rw [← hrun]
+    simp only [commits_append, commits, List.append_nil] at *
+    simp only [runWithHash, List.cons_append, hg0]
+    show (if powOk b (powStep F sp n).1 = true then _ else pure none) = _
+    simp only [hpow, ↓reduceIte]
+    rfl
+  | @commit ht w k k' _ ih =>
+    intro h sp xs os restS restO htr hws hp
+    obtain ⟨hg0, hw, htr⟩ := htr
     simp only [proveFrom] at hp
     obtain ⟨t, htt, he⟩ := Option.map_eq_some_iff.mp hp
     simp only [Prod.mk.injEq] at he
@@ -558,10 +573,7 @@ theorem run_proveFrom (S : Strategy) (fuel : ℕ) :
       rintro c (hc | rfl)
       · exact hws c hc
       · exact hw
-    obtain ⟨s', hrun, hs1, hs2⟩ := ih _ _ t.1 t.2 restS restO hacc hws'
-      (grindThenSample_after hP (l := [Ev.commit ht w (S.word h)])
-        (by simp [VerifierProgram.after]))
-      (Or.inl ((absorbI_ground F _ _ _).trans ((absorbI_ground F _ _ _).trans hg0))) htt
+    obtain ⟨s', hrun, hs1, hs2⟩ := ih _ _ t.1 t.2 restS restO htr hws' htt
     refine ⟨s', ?_, hs1, hs2⟩
     rw [← hrun]
     have hroots : rootsOf H (commits (h ++ [Ev.commit ht w (S.word h)])) =
@@ -570,10 +582,9 @@ theorem run_proveFrom (S : Strategy) (fuel : ℕ) :
     simp only [runWithHash, List.cons_append, hg0]
     rw [digestOfScalars_digestScalars, hroots]
     rfl
-  | query i ps k ih =>
-    intro h sp xs os restS restO hacc hws hP hg hp
-    have hg0 : sp.ground = none := hg.resolve_right (by simp)
-    obtain ⟨rows, hans, hacc⟩ := hacc
+  | @query i ps k k' _ ih =>
+    intro h sp xs os restS restO htr hws hp
+    obtain ⟨rows, hans, htr⟩ := htr
     simp only [proveFrom] at hp
     split at hp
     · rename_i hc
@@ -590,10 +601,7 @@ theorem run_proveFrom (S : Strategy) (fuel : ℕ) :
           WellShaped c.2.1 c.2.2 := by
         simpa [commits_append, commits] using hws
       have hw : WellShaped w word := hws _ (List.mem_of_getElem? hc)
-      obtain ⟨s', hrun, hs1, hs2⟩ := ih _ _ _ t.1 t.2 restS restO hacc hws'
-        (grindThenSample_after hP (l := [Ev.query (ps.map fun q ↦ word (q % 2 ^ ht))])
-          (by simp [VerifierProgram.after]))
-        (Or.inl hg0) htt
+      obtain ⟨s', hrun, hs1, hs2⟩ := ih _ _ _ t.1 t.2 restS restO htr hws' htt
       refine ⟨s', ?_, hs1, hs2⟩
       rw [← hrun]
       have hroot : (rootsOf H (commits h))[i]? = some (treeRoot H ht word, ht, w) := by
@@ -603,6 +611,106 @@ theorem run_proveFrom (S : Strategy) (fuel : ℕ) :
       simp only [bind] at hopen ⊢
       rw [hopen]
       simp [commits_append, commits]
+
+/-- **The honest transcript passes the checks of the program it follows**, where the strategy
+wins from `h`, every proof of work is followed at once by a challenge, and no challenge waits
+unless the program starts with one. -/
+theorem traceOk_of_acceptsFrom (S : Strategy) (fuel : ℕ) :
+    ∀ (p : VerifierProgram Bool) (h : List Ev) (sp : Sponge) (xs : List E)
+      (os : List (List Opening)),
+      S.AcceptsFrom p h → GrindThenSample p → (sp.ground = none ∨ ∃ k, p = .sample k) →
+      proveFrom H F S fuel p sp h = some (xs, os) → traceOk H F S fuel p sp h := by
+  intro p
+  induction p with
+  | ret b => intro _ _ _ _ hacc _ _ _; exact hacc
+  | fail => intro _ _ _ _ hacc; exact hacc.elim
+  | read k ih =>
+    intro h sp xs os hacc hP hg hp
+    have hg0 : sp.ground = none := hg.resolve_right (by simp)
+    simp only [proveFrom] at hp
+    obtain ⟨t, ht, -⟩ := Option.map_eq_some_iff.mp hp
+    exact ⟨hg0, ih _ _ _ t.1 t.2 hacc
+      (grindThenSample_after hP (l := [Ev.read (S.msg h)]) (by simp [VerifierProgram.after]))
+      (Or.inl ((absorbI_ground F _ _ _).trans hg0)) ht⟩
+  | sample k ih =>
+    intro h sp xs os hacc hP _ hp
+    simp only [proveFrom] at hp
+    exact ih _ _ _ xs os (hacc _)
+      (grindThenSample_after hP (l := [Ev.sample (squeezeI F sp).1])
+        (by simp [VerifierProgram.after]))
+      (Or.inl (squeezeI_ground F sp)) hp
+  | grind b k ih =>
+    intro h sp xs os hacc hP hg hp
+    have hg0 : sp.ground = none := hg.resolve_right (by simp)
+    obtain ⟨k', rfl⟩ := hP [] b k rfl
+    simp only [proveFrom] at hp
+    split at hp
+    · exact absurd hp (by simp)
+    · rename_i n hn
+      obtain ⟨t, ht, -⟩ := Option.map_eq_some_iff.mp hp
+      exact ⟨hg0, n, hn, ih _ _ t.1 t.2 hacc
+        (grindThenSample_after hP (l := [Ev.grind b]) (by simp [VerifierProgram.after]))
+        (Or.inr ⟨k', rfl⟩) ht⟩
+  | commit ht w k ih =>
+    intro h sp xs os hacc hP hg hp
+    have hg0 : sp.ground = none := hg.resolve_right (by simp)
+    obtain ⟨hw, hacc⟩ := hacc
+    simp only [proveFrom] at hp
+    obtain ⟨t, htt, -⟩ := Option.map_eq_some_iff.mp hp
+    exact ⟨hg0, hw, ih _ _ t.1 t.2 hacc
+      (grindThenSample_after hP (l := [Ev.commit ht w (S.word h)])
+        (by simp [VerifierProgram.after]))
+      (Or.inl ((absorbI_ground F _ _ _).trans ((absorbI_ground F _ _ _).trans hg0))) htt⟩
+  | query i ps k ih =>
+    intro h sp xs os hacc hP hg hp
+    obtain ⟨rows, hans, hacc⟩ := hacc
+    simp only [proveFrom] at hp
+    split at hp
+    · rename_i hc
+      simp [answer, hc] at hans
+    · rename_i ht w word hc
+      obtain ⟨t, htt, -⟩ := Option.map_eq_some_iff.mp hp
+      have hrows : rows = ps.map fun q ↦ word (q % 2 ^ ht) := by
+        simp only [answer, hc, Option.map_some, Option.some.injEq] at hans
+        exact hans.symm
+      subst hrows
+      exact ⟨_, hans, ih _ _ _ t.1 t.2 hacc
+        (grindThenSample_after hP (l := [Ev.query (ps.map fun q ↦ word (q % 2 ^ ht))])
+          (by simp [VerifierProgram.after]))
+        (Or.inl (hg.resolve_right (by simp))) htt⟩
+
+/-- **The simulation.** If the strategy wins from `h`, the words committed in `h` are well
+shaped, and the honest prover's output from `h` at sponge `sp` is `(xs, os)`, then the compiled
+verifier, from sponge `sp` with the roots of `h`'s trees, accepts on any stream and openings that
+start with `xs` and `os`, leaving exactly what follows them: `run_proveFrom_trace` at the program
+itself. -/
+theorem run_proveFrom (S : Strategy) (fuel : ℕ) (p : VerifierProgram Bool) (h : List Ev)
+    (sp : Sponge) (xs : List E) (os : List (List Opening)) (restS : List E)
+    (restO : List (List Opening)) (hacc : S.AcceptsFrom p h)
+    (hws : ∀ c ∈ commits h, WellShaped c.2.1 c.2.2) (hP : GrindThenSample p)
+    (hg : sp.ground = none ∨ ∃ k, p = .sample k) (hp : proveFrom H F S fuel p sp h = some (xs, os)) :
+    ∃ s', runWithHash (m := Id) H F p ⟨sp, xs ++ restS, os ++ restO, rootsOf H (commits h)⟩ =
+        some (true, s') ∧ s'.stream = restS ∧ s'.openings = restO :=
+  run_proveFrom_trace H F S fuel (Refines.refl p) h sp xs os restS restO
+    (traceOk_of_acceptsFrom H F S fuel p h sp xs os hacc hP hg hp) hws hp
+
+/-- **The compiled verifier of a refining program accepts the honest proof** wherever the honest
+transcript passes its checks. -/
+theorem runProof_prove_trace (S : Strategy) (fuel : ℕ) {P' P : VerifierProgram Bool}
+    (hR : Refines P' P) (seed : KeccakState) {π : Proof}
+    (ht : traceOk H F S fuel P' ⟨seed, [], none⟩ [])
+    (hπ : prove H F P S seed fuel = some π) :
+    runProofWithHash (m := Id) H F P' seed π = true := by
+  obtain ⟨t, htt, rfl⟩ := Option.map_eq_some_iff.mp hπ
+  obtain ⟨s', hrun, hs1, hs2⟩ :=
+    run_proveFrom_trace H F S fuel hR [] ⟨seed, [], none⟩ t.1 t.2 [] [] ht (by simp [commits]) htt
+  simp only [List.append_nil] at hrun
+  simp only [runProofWithHash, bind]
+  show (match runWithHash (m := Id) H F P' ⟨⟨seed, [], none⟩, t.1, t.2, rootsOf H (commits [])⟩ with
+    | some (true, s) => _ | _ => _) = true
+  rw [hrun]
+  simp [hs1, hs2]
+  rfl
 
 end Simulation
 

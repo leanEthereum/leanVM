@@ -1,0 +1,94 @@
+# lean-pq for Java
+
+Java bindings for the leanXMSS and leanSPHINCS post-quantum signatures and their aggregation into one proof.
+
+## Install
+
+Maven Central, `io.github.crate-crypto:lean-pq`, JDK 25. Gradle (Kotlin DSL):
+
+<!-- x-release-please-start-version -->
+```kotlin
+implementation("io.github.crate-crypto:lean-pq:0.13.0")
+```
+<!-- x-release-please-end -->
+
+Maven:
+
+<!-- x-release-please-start-version -->
+```xml
+<dependency>
+  <groupId>io.github.crate-crypto</groupId>
+  <artifactId>lean-pq</artifactId>
+  <version>0.13.0</version>
+</dependency>
+```
+<!-- x-release-please-end -->
+
+- The module is `org.ethereum.leanpq`. Grant it native access: `java --enable-native-access=org.ethereum.leanpq`, or `--enable-native-access=ALL-UNNAMED` on the class path.
+- The jar bundles the native library for Linux x86_64 and aarch64 (glibc 2.17+), macOS x86_64 and arm64, and Windows x86_64; x86_64 needs AVX2 and PCLMULQDQ.
+- It is extracted under `java.io.tmpdir`, which must allow executable mappings (on Windows, under `%LOCALAPPDATA%\lean-pq\native`). `-Dlean.pq.native.path=FILE` loads another build instead.
+
+## Sign and verify
+
+```java
+import org.ethereum.leanpq.*;
+
+try (XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
+     SphincsSecretKey sphincs = SphincsSecretKey.fromSeed(otherSeed32)) {
+    byte[] xmssSig = xmss.sign(message32, 7); // at leaf index 7
+    boolean xmssValid = LeanPq.xmssVerify(xmss.publicKey(), message32, xmssSig);
+
+    byte[] sphincsSig = sphincs.sign(message32);
+    boolean sphincsValid = LeanPq.sphincsVerify(sphincs.publicKey(), message32, sphincsSig);
+}
+```
+
+- Public keys and messages are 32 bytes; signatures are 2404 (leanXMSS) or 7740 (leanSPHINCS) bytes.
+- `XmssSecretKey`, `SphincsSecretKey`, `Sidecar` and `Aggregate` are `AutoCloseable`: use try-with-resources.
+- leanXMSS is stateful: a key has `2^32` leaf indices, and must never sign two messages at the same one. Persist a high-water leaf index next to the key and advance it before publishing a signature. `prepare(leafIndex)` builds a leaf's signing state ahead of time.
+- leanSPHINCS is stateless and deterministic; a key signs at most `2^30` messages.
+- `toBytes()` is the key's 32-byte seed, which is secret; `fromBytes` restores the key.
+
+## Aggregate
+
+Aggregation runs in a leanVM sidecar, a separate process (Linux and macOS): see [the sidecar](../README.md#sidecar).
+
+```java
+import java.nio.file.Path;
+import java.util.List;
+import org.ethereum.leanpq.*;
+
+Path socket = Path.of(System.getProperty("user.home"), ".leanvm", "sidecar.sock");
+try (Sidecar sidecar = Sidecar.connect(socket); // or Sidecar.start(binary, socket, threads)
+     XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
+     SphincsSecretKey sphincs = SphincsSecretKey.fromSeed(otherSeed32);
+     Aggregate leaf = sidecar.aggregate(
+         List.of(),
+         List.of(new SignedMessage(xmss.publicKey(), message32, xmss.sign(message32, 7))),
+         List.of(new SignedMessage(sphincs.publicKey(), message32, sphincs.sign(message32))));
+     Aggregate root = sidecar.aggregate(List.of(leaf), List.of(), List.of());
+     Aggregate received = sidecar.verify(root.toBytes(), root.xmssClaims(), root.sphincsClaims())) {
+    List<SignatureClaim> xmssClaims = received.xmssClaims();
+}
+```
+
+- `aggregate(children, xmss, sphincs)` verifies raw signatures before proving and takes at most 16 children. The result proves the union of their claims.
+- `toBytes()` is the proof alone: send the claims alongside it, or let the receiver rebuild them.
+- `verify(bytes, xmssClaims, sphincsClaims)` accepts exactly those claims, in any order, and throws `LeanPqException` otherwise; verifying also needs the sidecar. `xmssClaims()` and `sphincsClaims()` are sorted.
+- `Sidecar.start(binary, socket)` launches a sidecar on a socket in a private directory, such as `~/.leanvm/run/sidecar.sock`, with one thread per core, as does `threads` 0. `prover()` is `"experimental"` or `"stable"`, which make the same proofs.
+- A `Sidecar` is safe to share between threads; its calls run one at a time. A sidecar serves at most 16 connections, so share one `Sidecar` per process.
+- `close()` stops a sidecar `start` launched at once, failing calls in progress, and frees the handle once they return; later calls throw `IllegalStateException`. An unreachable started `Sidecar` is stopped when the Cleaner frees it.
+
+## Build and test
+
+Needs JDK 25, Gradle 9.1 or newer and Rust. From the repository root:
+
+```sh
+gradle -p bindings/java test
+```
+
+The test task builds the native library itself. The aggregation tests use the sidecar listening on `LEANVM_SIDECAR_SOCKET`, and start one from the executable at `LEANVM_SIDECAR_BIN`. Building the release jar is in [RELEASING.md](../RELEASING.md#maven-central).
+
+## License
+
+MIT OR Apache-2.0

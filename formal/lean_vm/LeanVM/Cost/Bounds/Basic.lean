@@ -234,7 +234,7 @@ macro_rules
     List.nil_append, List.cons_append, Nat.add_zero, Nat.zero_add, Nat.rec_zero, Nat.rec_add_one,
     max_self, max_limbs_one, max_one_limbs] at $loc)
 
-#allow_unused_tactic! LeanVM.Cost.Bounds.costSimp LeanVM.Cost.Bounds.costSimpAt
+allow_unused_tactic LeanVM.Cost.Bounds.costSimp LeanVM.Cost.Bounds.costSimpAt
 
 /-- A price affine in `D`, paid `n ≤ C` times, with `D·C` an atom: `omega` reads the result (the
 bounds state products of sizes as such atoms, so a sum of bounds stays linear). -/

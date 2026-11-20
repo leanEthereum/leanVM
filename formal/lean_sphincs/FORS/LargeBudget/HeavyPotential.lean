@@ -237,7 +237,7 @@ theorem upper_scanW (hparse : ∀ ρ call, model.parse (GraphView.pblk parameter
   rw [mul_add]
   refine le_trans (le_of_eq ?_) (add_le_add
     (interp_weight_constW tg initial model (s := s) (signCostSource parameter data m) budget (X d)) hscan)
-  rw [← ENNReal.tsum_add]
+  rw [← tsum_add]
   exact tsum_congr fun out => by ring
 
 /-- **One signing call, the law of the signed view, weighted**. -/

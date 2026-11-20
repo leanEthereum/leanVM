@@ -180,7 +180,7 @@ theorem sequenceFin_prob [DecidableEq D] {α : Type} (Inv : QueryCache (D →ₒ
       · intro _ hone0
         calc _ ≤ ∑' a, Pr{let x ← (simulateQ (randomOracle (spec := D →ₒ R)) (f 0)).run c0}[x = a] *
               (if bad a.1 then 1 else 0) := by
-              refine ENNReal.tsum_le_tsum fun a => mul_le_mul_right ?_ _
+              refine tsum_le_tsum fun a => mul_le_mul_right ?_ _
               split_ifs with hb
               · exact (prEvent_le_one _)
               · refine le_of_eq (prEvent_eq_zero_of_forall_mem_support _ _ fun res hres hbad => hb ?_)
@@ -196,7 +196,7 @@ theorem sequenceFin_prob [DecidableEq D] {α : Type} (Inv : QueryCache (D →ₒ
           _ ≤ B := hone0 c0 hc0
       · intro hkeep' hone'
         calc _ ≤ ∑' a, Pr{let x ← (simulateQ (randomOracle (spec := D →ₒ R)) (f 0)).run c0}[x = a] * B := by
-              refine ENNReal.tsum_le_tsum fun a => ?_
+              refine tsum_le_tsum fun a => ?_
               by_cases ha : a ∈ support ((simulateQ (randomOracle (spec := D →ₒ R)) (f 0)).run c0)
               · refine mul_le_mul_right ?_ _
                 have hinv := hkeep' 0 (Fin.succ_ne_zero j).symm c0 hc0 a ha

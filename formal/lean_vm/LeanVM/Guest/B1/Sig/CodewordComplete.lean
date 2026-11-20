@@ -251,7 +251,6 @@ theorem codewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Ste
   have hpwG : ∀ j, NBv (cwState W b G).2.2 (W.power j) := fun j => (hpw j).mono' (by omega)
   have hendL := groupT_end W (3 * G) 1 false (cwState W b G).1 (cwState W b G).2.1 (cwState W b G).2.2
   rw [groupStart_eq] at hendL
-  simp only [Bool.false_eq_true, ↓reduceIte, Nat.add_zero] at hendL
   rw [codewordT_eq, codewordT_snd]
   have hnbG := groupsT_numBelow hW hb0 hB hpw G 0
   simp only [Nat.zero_add] at hnbG
@@ -309,7 +308,7 @@ theorem codewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Ste
       rw [show q + 1 + (G - (q + 1)) = G by omega] at hle
       have hend := groupT_end W (3 * q) 3 (q == 0) (cwState W b q).1 (cwState W b q).2.1 (cwState W b q).2.2
       rw [← cwState_succ, groupStart_eq] at hend
-      refine ⟨by rw [he'.apply (Or.inl (by split at hend <;> omega))]; exact (hq.2 q hqG).1,
+      refine ⟨by rw [he'.apply (Or.inl (by omega))]; exact (hq.2 q hqG).1,
         fun t ht => ?_⟩
       · obtain ⟨j, ej, hj⟩ := hposq q hqG t ht
         rw [ej, he'.apply (Or.inl hj), ← ej]

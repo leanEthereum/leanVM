@@ -90,19 +90,19 @@ theorem vbg_loop7_total {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
 theorem vbg_noDisp : vbgPre.all noDispB = true := by decide +kernel
 
 theorem vbg_callS : vbgPre.filterMap Main.Stmt.callS =
-    [(some (.n 379), name% «verify_bus_gkr_loop0», [.n 380, .n 382, .n 375, .n 16, .n 8, .n 17,
-        .n 63, .n 142, .n 6,
-        .n 64], []),
-      (some (.n 392), name% «verify_bus_gkr_loop1», [.n 393, .n 6, .n 7, .n 390],
+    [(some (.n 375), name% «verify_bus_gkr_loop0», [.n 376, .n 378, .n 371, .n 16, .n 8, .n 17,
+        .n 62, .n 141, .n 6,
+        .n 63], []),
+      (some (.n 388), name% «verify_bus_gkr_loop1», [.n 389, .n 6, .n 7, .n 386],
           [])] := by decide +kernel
 
 /-- `verify_bus_gkr`'s frames: `verify_bus_gkr_loop0`'s, then `verify_bus_gkr_loop1`'s. -/
 theorem vbg_flatCalls (σ : Val) : flatCalls vbgPre σ =
-    [⟨name% «verify_bus_gkr_loop0», [.n 380, .n 382, .n 375, .n 16, .n 8, .n 17, .n 63, .n 142,
-        .n 6, .n 64], [],
-        decide (σ (.n 379) ≠ 0)⟩,
-      ⟨name% «verify_bus_gkr_loop1», [.n 393, .n 6, .n 7, .n 390], [],
-          decide (σ (.n 392) ≠ 0)⟩] := by
+    [⟨name% «verify_bus_gkr_loop0», [.n 376, .n 378, .n 371, .n 16, .n 8, .n 17, .n 62, .n 141,
+        .n 6, .n 63], [],
+        decide (σ (.n 375) ≠ 0)⟩,
+      ⟨name% «verify_bus_gkr_loop1», [.n 389, .n 6, .n 7, .n 386], [],
+          decide (σ (.n 388) ≠ 0)⟩] := by
   have e : vbgPre.filterMap (Stmt.callSF σ) = vbgPre.filterMap Main.Stmt.callS := by
     refine List.filterMap_congr fun s hs ↦ ?_
     have := List.all_eq_true.mp vbg_noDisp s hs

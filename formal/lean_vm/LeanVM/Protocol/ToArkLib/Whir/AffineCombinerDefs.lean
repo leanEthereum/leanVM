@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerJohnson
+public import LeanVM.Protocol.ToArkLib.Whir.JohnsonCount
 public import Mathlib.Algebra.Polynomial.Roots
 public import Mathlib.Data.Set.Finite.Lattice
 
@@ -130,7 +130,7 @@ omit [Fintype ι] [DecidableEq ι] [Fintype ρ] in
 /-- Over a finite field, there are finitely many polynomials of degree at most `d`. -/
 theorem finite_natDegree_le [Finite F] (d : ℕ) : {P : F[X] | P.natDegree ≤ d}.Finite := by
   refine Set.Finite.of_finite_image (f := fun P : F[X] ↦ fun i : Fin (d + 1) ↦ P.coeff i)
-    (Set.toFinite _) fun P hP Q hQ h ↦ Polynomial.ext fun i ↦ ?_
+    (Set.toFinite _) fun P hP Q hQ h ↦ AddMonoidAlgebra.ext <| Finsupp.ext fun i ↦ ?_
   by_cases hi : i ≤ d
   · exact congrFun h ⟨i, Nat.lt_succ_of_le hi⟩
   · rw [coeff_eq_zero_of_natDegree_lt ((show P.natDegree ≤ d from hP).trans_lt (not_le.mp hi)),

@@ -43,9 +43,9 @@ variable {rd : Reader}
 /-- The oracle of `aggregate_claims`' hints and its sumcheck's returns `res`. -/
 def aggOrc (P : AggPtrs) (h : BatchingHints) (res : (List E × E) × Fs) (j : ℕ) : E :=
   if j = 6 then P.msgs else if j = 7 then h.finalBytecodeValue else if j = 8 then P.lf
-  else if j = 9 then P.lc else if j = 33 then P.absorb else if j = 98 then P.chain
-  else if j = 107 then P.pt else if j = 116 then P.pt1 else if j = 188 then P.w
-  else if j = 115 then res.1.2 else if 110 ≤ j ∧ j < 115 then res.2.cap.getD (j - 110) 0 else 0
+  else if j = 9 then P.lc else if j = 30 then P.absorb else if j = 95 then P.chain
+  else if j = 104 then P.pt else if j = 113 then P.pt1 else if j = 185 then P.w
+  else if j = 112 then res.1.2 else if 107 ≤ j ∧ j < 112 then res.2.cap.getD (j - 107) 0 else 0
 
 theorem const_good {S : List Atom} {w : ℕ → E} {σ : Val} {atoms : List Atom} {x : V} {lo hi : ℕ}
     (h : atoms.any (isConstAt x lo hi) = true) (hg : ∀ a ∈ atoms, Good rd S w σ a) :
@@ -211,26 +211,26 @@ structure AggVals (rd : Reader) (σ : Val) (m : ℕ) (cpi cfresh ccarried dst ta
   v6 : σ (.n 6) = P.msgs
   v8 : σ (.n 8) = P.lf
   v9 : σ (.n 9) = P.lc
-  v33 : σ (.n 33) = P.absorb
-  v81 : σ (.n 81) = lamA cs h
-  v94 : σ (.n 94) = lamA cs h * lamA cs h
-  v98 : σ (.n 98) = P.chain
-  v107 : σ (.n 107) = P.pt
-  v116 : σ (.n 116) = P.pt1
-  v188 : σ (.n 188) = P.w
-  p42 : σ (.n 42) = P.absorb * (gen ^ m) ^ 13
-  p105 : σ (.n 105) = P.chain * (gen ^ m) ^ 2
-  p193 : σ (.n 193) = P.w * gen ^ m
-  g35 : σ (.n 35) = 1 + gen ^ m
-  g36 : σ (.n 36) = 1
-  g102 : σ (.n 102) = 1 + gen ^ m
-  g103 : σ (.n 103) = 1
-  g191 : σ (.n 191) = 1 + gen ^ m
-  g192 : σ (.n 192) = 1
-  grArgs : [σ (.n 82), σ (.n 5)] = [cellsOfState (aggN cs h.lambdaGrindNonce) false 1, tabs]
-  bsArgs : [σ (.n 89), σ (.n 90), σ (.n 91), σ (.n 92), σ (.n 93), σ (.n 109), σ (.n 106),
-    σ (.n 107), σ (.n 5)] = capOf (aggN cs h.lambdaGrindNonce) ++ [P.msgs * gen, claimAt cs h m, P.pt, tabs]
-  bsRets : [σ (.n 110), σ (.n 111), σ (.n 112), σ (.n 113), σ (.n 114), σ (.n 115)] =
+  v33 : σ (.n 30) = P.absorb
+  v81 : σ (.n 78) = lamA cs h
+  v94 : σ (.n 91) = lamA cs h * lamA cs h
+  v98 : σ (.n 95) = P.chain
+  v107 : σ (.n 104) = P.pt
+  v116 : σ (.n 113) = P.pt1
+  v188 : σ (.n 185) = P.w
+  p42 : σ (.n 39) = P.absorb * (gen ^ m) ^ 13
+  p105 : σ (.n 102) = P.chain * (gen ^ m) ^ 2
+  p193 : σ (.n 190) = P.w * gen ^ m
+  g35 : σ (.n 32) = 1 + gen ^ m
+  g36 : σ (.n 33) = 1
+  g102 : σ (.n 99) = 1 + gen ^ m
+  g103 : σ (.n 100) = 1
+  g191 : σ (.n 188) = 1 + gen ^ m
+  g192 : σ (.n 189) = 1
+  grArgs : [σ (.n 79), σ (.n 5)] = [cellsOfState (aggN cs h.lambdaGrindNonce) false 1, tabs]
+  bsArgs : [σ (.n 86), σ (.n 87), σ (.n 88), σ (.n 89), σ (.n 90), σ (.n 106), σ (.n 103),
+    σ (.n 104), σ (.n 5)] = capOf (aggN cs h.lambdaGrindNonce) ++ [P.msgs * gen, claimAt cs h m, P.pt, tabs]
+  bsRets : [σ (.n 107), σ (.n 108), σ (.n 109), σ (.n 110), σ (.n 111), σ (.n 112)] =
     (aggRun cs h).2.cap ++ [(aggRun cs h).1.2]
 
 set_option maxRecDepth 20000 in
@@ -297,30 +297,30 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
   have v7 : σ (.n 7) = h.finalBytecodeValue := by rw [h7]; rfl
   have v8 : σ (.n 8) = P.lf := by rw [h8]; rfl
   have v9 : σ (.n 9) = P.lc := by rw [h9]; rfl
-  have v33 : σ (.n 33) = P.absorb := by rw [h33]; rfl
-  have v98 : σ (.n 98) = P.chain := by rw [h98]; rfl
-  have v107 : σ (.n 107) = P.pt := by rw [h107]; rfl
-  have v116 : σ (.n 116) = P.pt1 := by rw [h116]; rfl
-  have v188 : σ (.n 188) = P.w := by rw [h188]; rfl
+  have v33 : σ (.n 30) = P.absorb := by rw [h33]; rfl
+  have v98 : σ (.n 95) = P.chain := by rw [h98]; rfl
+  have v107 : σ (.n 104) = P.pt := by rw [h107]; rfl
+  have v116 : σ (.n 113) = P.pt1 := by rw [h116]; rfl
+  have v188 : σ (.n 185) = P.w := by rw [h188]; rfl
   have hret : GoodS rd aggStores w σ (.call "batch_sumcheck__L23"
-      [.n 89, .n 90, .n 91, .n 92, .n 93, .n 109, .n 106, .n 107, .n 5]
-      [.n 110, .n 111, .n 112, .n 113, .n 114, .n 115]) := by
+      [.n 86, .n 87, .n 88, .n 89, .n 90, .n 106, .n 103, .n 104, .n 5]
+      [.n 107, .n 108, .n 109, .n 110, .n 111, .n 112]) := by
     obtain ⟨s, hs, he⟩ := List.any_eq_true.mp (hcallsIn (.call "batch_sumcheck__L23"
-      [.n 89, .n 90, .n 91, .n 92, .n 93, .n 109, .n 106, .n 107, .n 5]
-      [.n 110, .n 111, .n 112, .n 113, .n 114, .n 115])
+      [.n 86, .n 87, .n 88, .n 89, .n 90, .n 106, .n 103, .n 104, .n 5]
+      [.n 107, .n 108, .n 109, .n 110, .n 111, .n 112])
       (by simp [aggCalls]))
     rw [← stmtEqb_sound he]
     exact hgs s (hmemP s hs)
   simp only [GoodS, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at hret
   obtain ⟨r110, r111, r112, r113, r114, r115⟩ := hret
-  have v115 : σ (.n 115) = (aggRun cs h).1.2 := by rw [r115]; rfl
+  have v115 : σ (.n 112) = (aggRun cs h).1.2 := by rw [r115]; rfl
   -- the products
   have hP : ∀ a ∈ (atomsIn aggP).filter pureB, a.Holds rd σ := pure_holds hg
-  have p42 : σ (.n 42) = P.absorb * (gen ^ cs.length) ^ 13 := by
+  have p42 : σ (.n 39) = P.absorb * (gen ^ cs.length) ^ 13 := by
     rw [monoIs_sound hm42 hP, v33, e0]
-  have p105 : σ (.n 105) = P.chain * (gen ^ cs.length) ^ 2 := by
+  have p105 : σ (.n 102) = P.chain * (gen ^ cs.length) ^ 2 := by
     rw [monoIs_sound hm105 hP, v98, e0]
-  have p193 : σ (.n 193) = P.w * gen ^ cs.length := by rw [isMul_sound hm193 hP, v188, e0]
+  have p193 : σ (.n 190) = P.w * gen ^ cs.length := by rw [isMul_sound hm193 hP, v188, e0]
   -- the loads
   have hg' : ∀ a ∈ aggA, Good rd aggStores w σ a := fun a ha => hg a (mem_aggA.mp ha).1
   have hnS : ∀ a ∈ aggA, a ∉ aggStores := fun a ha => (mem_aggA.mp ha).2
@@ -328,45 +328,45 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
   have hlast := hmem.absorb cs.length le_rfl
   rw [absSt_last rfl] at hlast
   have hchm := hmem.chain cs.length le_rfl
-  have L43 : ∀ k (hk : k < 13), σ (.n (43 + k)) = (rowW (aggAbs cs)).getD k 0 ∧
-      (Atom.load (.n (43 + k)) (.n 42) k).Holds rd σ := fun k hk => by
-    have hm : Atom.load (.n (43 + k)) (.n 42) k ∈ aggA := hll _ (List.mem_append_left _
+  have L43 : ∀ k (hk : k < 13), σ (.n (40 + k)) = (rowW (aggAbs cs)).getD k 0 ∧
+      (Atom.load (.n (40 + k)) (.n 39) k).Holds rd σ := fun k hk => by
+    have hm : Atom.load (.n (40 + k)) (.n 39) k ∈ aggA := hll _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
         (List.mem_append_left _ (List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩))))))
     refine load_of_good (hnS _ hm) (hg' _ hm) ?_
     rw [p42, List.getD_eq_getElem _ _ (by rw [rowW_length hokA]; exact hk)]
     exact hlast k (by rw [rowW_length hokA]; exact hk)
-  have L73 : σ (.n 73) = h.lambdaGrindNonce ∧ (Atom.load (.n 73) (.n 6) 0).Holds rd σ := by
-    have hm : Atom.load (.n 73) (.n 6) 0 ∈ aggA := hll _ (List.mem_append_left _
+  have L73 : σ (.n 70) = h.lambdaGrindNonce ∧ (Atom.load (.n 70) (.n 6) 0).Holds rd σ := by
+    have hm : Atom.load (.n 70) (.n 6) 0 ∈ aggA := hll _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
         (List.mem_append_right _ (List.mem_singleton_self _))))))
     refine load_of_good (hnS _ hm) (hg' _ hm) ?_
     rw [v6]
     exact hmem.msgs 0 (by simp)
-  have L106 : σ (.n 106) = claimAt cs h cs.length ∧ (Atom.load (.n 106) (.n 105) 1).Holds rd σ := by
-    have hm : Atom.load (.n 106) (.n 105) 1 ∈ aggA := hll _ (List.mem_append_left _
+  have L106 : σ (.n 103) = claimAt cs h cs.length ∧ (Atom.load (.n 103) (.n 102) 1).Holds rd σ := by
+    have hm : Atom.load (.n 103) (.n 102) 1 ∈ aggA := hll _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _
         (List.mem_singleton_self _)))))
     refine load_of_good (hnS _ hm) (hg' _ hm) ?_
     rw [p105]
     exact hchm 1 (by simp)
-  have L118 : ∀ k (hk : k < 23), σ (.n (118 + 3 * k)) = (aggRun cs h).1.1.getD k 0 ∧
-      (Atom.load (.n (118 + 3 * k)) (.n 107) k).Holds rd σ := fun k hk => by
-    have hm : Atom.load (.n (118 + 3 * k)) (.n 107) k ∈ aggA := hll _ (List.mem_append_left _
+  have L118 : ∀ k (hk : k < 23), σ (.n (115 + 3 * k)) = (aggRun cs h).1.1.getD k 0 ∧
+      (Atom.load (.n (115 + 3 * k)) (.n 104) k).Holds rd σ := fun k hk => by
+    have hm : Atom.load (.n (115 + 3 * k)) (.n 104) k ∈ aggA := hll _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_right _
         (List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩))))
     refine load_of_good (hnS _ hm) (hg' _ hm) ?_
     rw [v107, List.getD_eq_getElem _ _ (by rw [hptl]; exact hk)]
     exact hmem.pt k (by rw [hptl]; exact hk)
-  have L194 : σ (.n 194) = weightAt cs h cs.length ∧ (Atom.load (.n 194) (.n 193) 0).Holds rd σ := by
-    have hm : Atom.load (.n 194) (.n 193) 0 ∈ aggA := hll _ (List.mem_append_left _
+  have L194 : σ (.n 191) = weightAt cs h cs.length ∧ (Atom.load (.n 191) (.n 190) 0).Holds rd σ := by
+    have hm : Atom.load (.n 191) (.n 190) 0 ∈ aggA := hll _ (List.mem_append_left _
       (List.mem_append_right _ (List.mem_singleton_self _)))
     refine load_of_good (hnS _ hm) (hg' _ hm) ?_
     rw [p193]
     exact hmem.w cs.length le_rfl
-  have L196 : ∀ k (hk : k < 23), σ (.n (196 + k)) = (aggRun cs h).1.1.getD k 0 ∧
-      (Atom.load (.n (196 + k)) (.n 107) k).Holds rd σ := fun k hk => by
-    have hm : Atom.load (.n (196 + k)) (.n 107) k ∈ aggA := hll _ (List.mem_append_right _
+  have L196 : ∀ k (hk : k < 23), σ (.n (193 + k)) = (aggRun cs h).1.1.getD k 0 ∧
+      (Atom.load (.n (193 + k)) (.n 104) k).Holds rd σ := fun k hk => by
+    have hm : Atom.load (.n (193 + k)) (.n 104) k ∈ aggA := hll _ (List.mem_append_right _
       (List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩))
     refine load_of_good (hnS _ hm) (hg' _ hm) ?_
     rw [v107, List.getD_eq_getElem _ _ (by rw [hptl]; exact hk)]
@@ -385,21 +385,21 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
       · exact (L118 k hk).2
       · exact L194.2
       · exact (L196 k hk).2
-    · show σ (.n 115) + σ (.n 195) = 0
+    · show σ (.n 112) + σ (.n 192) = 0
       rw [isMul_sound hm195 hP, v115, v7, L194.1, weightAt_last rfl]
       exact e_add_eq_zero_iff.mpr hfin
   -- the stores
   have hst0 := absSt_ok cs.length cs 0
   have hrow0 := hmem.absorb 0 (Nat.zero_le _)
   rw [pow_zero, one_pow, mul_one] at hrow0
-  have r0 : ∀ k < 13, LoadHolds rd (σ (.n 33)) k ((rowW (absSt cs.length cs 0)).getD k 0) :=
+  have r0 : ∀ k < 13, LoadHolds rd (σ (.n 30)) k ((rowW (absSt cs.length cs 0)).getD k 0) :=
     fun k hk => by
       rw [v33, List.getD_eq_getElem _ _ (by rw [rowW_length hst0]; exact hk)]
       exact hrow0 k (by rw [rowW_length hst0]; exact hk)
-  have hpack : ∀ j < 4, ∀ (x : V), packIn (atomsIn aggP) x (15 + 3 * j) = true →
+  have hpack : ∀ j < 4, ∀ (x : V), packIn (atomsIn aggP) x (15 + 2 * j) = true →
       σ x = [gen ^ cs.length, 0, 0, 0].getD j 0 →
-      LoadHolds rd (σ (.n 33)) (5 + 2 * j) (σ (.n (15 + 3 * j))) ∧
-        LoadHolds rd (σ (.n 33)) (6 + 2 * j) (σ (.n (16 + 3 * j))) := by
+      LoadHolds rd (σ (.n 30)) (5 + 2 * j) (σ (.n (15 + 2 * j))) ∧
+        LoadHolds rd (σ (.n 30)) (6 + 2 * j) (σ (.n (16 + 2 * j))) := by
     intro j hj x hpb hx
     have hpc := pack_cells hpb hg
     have hr := Keccak.rateCell_scalar (absSt cs.length cs 0).pend j (by rw [absSt_zero]; simp; omega)
@@ -413,14 +413,14 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
     have b' := r0 (5 + (2 * j + 1)) (by omega)
     rw [rowW_getD_rate hst0 (by omega), hr.1] at a
     rw [rowW_getD_rate hst0 (by omega), hr.2, show 5 + (2 * j + 1) = 6 + 2 * j by omega,
-      show 15 + 3 * j + 1 = 16 + 3 * j by omega] at b'
+      show 15 + 2 * j + 1 = 16 + 2 * j by omega] at b'
     exact ⟨a, b'⟩
-  have hpackZ : ∀ j < 3, LoadHolds rd (σ (.n 33)) (5 + 2 * (j + 1)) (σ (.n (15 + 3 * (j + 1)))) ∧
-      LoadHolds rd (σ (.n 33)) (6 + 2 * (j + 1)) (σ (.n (16 + 3 * (j + 1)))) := by
+  have hpackZ : ∀ j < 3, LoadHolds rd (σ (.n 30)) (5 + 2 * (j + 1)) (σ (.n (15 + 2 * (j + 1)))) ∧
+      LoadHolds rd (σ (.n 30)) (6 + 2 * (j + 1)) (σ (.n (16 + 2 * (j + 1)))) := by
     intro j hj
     obtain ⟨hc, hp⟩ := hz3 j hj
-    refine hpack (j + 1) (by omega) (.n (17 + 3 * j))
-      (by rw [show 15 + 3 * (j + 1) = 18 + 3 * j by omega]; exact hp) ?_
+    refine hpack (j + 1) (by omega) (.n (17 + 2 * j))
+      (by rw [show 15 + 2 * (j + 1) = 17 + 2 * j by omega]; exact hp) ?_
     rw [const_good hc hg, word_zero]
     rcases (show j = 0 ∨ j = 1 ∨ j = 2 by omega) with rfl | rfl | rfl <;> rfl
   have hch0 := hmem.chain 0 (Nat.zero_le _)
@@ -433,7 +433,7 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
       List.mem_cons, List.not_mem_nil, or_false] at haS
     rcases haS with ((((((⟨i, hi, rfl⟩ | ⟨j, hj, rfl | rfl⟩) | (rfl | rfl)) | ⟨k, hk, rfl⟩) | rfl) |
       ⟨k, hk, rfl⟩) | rfl)
-    · show LoadHolds rd (σ (.n 33)) i (σ (.n (10 + i)))
+    · show LoadHolds rd (σ (.n 30)) i (σ (.n (10 + i)))
       have e := r0 i (by omega)
       rw [rowW_getD_cap hst0 hi, absSt_zero, ← seed_cells i hi, ← const_good (hseed i hi).1 hg] at e
       exact e
@@ -445,25 +445,25 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
       · exact (hpack 0 (by omega) (.n 0) hp0 (by rw [e0]; rfl)).2
       · obtain ⟨j', rfl⟩ : ∃ j', j = j' + 1 := ⟨j - 1, by omega⟩
         exact (hpackZ j' (by omega)).2
-    · show LoadHolds rd (σ (.n 98)) 0 (σ (.n 99))
+    · show LoadHolds rd (σ (.n 95)) 0 (σ (.n 96))
       have e := hch0 0 (by simp)
       rw [v98, const_good hc99 hg, word_one]
       simpa using e
-    · show LoadHolds rd (σ (.n 98)) 1 (σ (.n 100))
+    · show LoadHolds rd (σ (.n 95)) 1 (σ (.n 97))
       have e := hch0 1 (by simp)
       rw [v98, const_good hc100 hg, word_zero]
       simpa [claimAt_zero] using e
-    · show LoadHolds rd (σ (.n 116)) k (σ (.n (119 + 3 * k)))
+    · show LoadHolds rd (σ (.n 113)) k (σ (.n (116 + 3 * k)))
       have e := hmem.pt1 k (by rw [List.length_map, hptl]; exact hk)
       rw [List.getElem_map, ← List.getD_eq_getElem _ 0] at e
       rw [v116, add_sound (hadd k hk) hP, const_good (hpt1 k hk).1.1.1 hg, word_one, (L118 k hk).1]
       exact e
-    · show LoadHolds rd (σ (.n 188)) 0 (σ (.n 189))
+    · show LoadHolds rd (σ (.n 185)) 0 (σ (.n 186))
       have e := hmem.w 0 (Nat.zero_le _)
       rw [pow_zero, mul_one, weightAt_zero] at e
       rw [v188, const_good hc189 hg, word_zero]
       exact e
-    · show LoadHolds rd (σ (.n 4)) k (σ (.n (196 + k)))
+    · show LoadHolds rd (σ (.n 4)) k (σ (.n (193 + k)))
       have e := hdst k (by rw [hdl]; omega)
       rw [← List.getD_eq_getElem _ 0] at e
       rw [e4, (L196 k hk).1]
@@ -491,10 +491,10 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
   have hin := rowIn_sound hrin hat
   have hout1 := DupSpec.keccak_facts (keccak_sound hk hat)
   rw [hin, ← rowRel_perm (rowRel_of_reads hokA (by rw [p42]; exact hlast))] at hout1
-  have o : ∀ c (hc : c < 13), σ (.n (60 + c)) = cellsOfState (aggAbs cs).perm false ⟨c, hc⟩ :=
+  have o : ∀ c (hc : c < 13), σ (.n (57 + c)) = cellsOfState (aggAbs cs).perm false ⟨c, hc⟩ :=
     fun c hc => by
       have := hout1 c hc
-      rwa [show aggKo.getD c default = .n (60 + c) by
+      rwa [show aggKo.getD c default = .n (57 + c) by
         simp [aggKo, List.getD_eq_getElem?_getD, hc]] at this
   -- the nonce's permutation
   have hnh := allIn_holds hnA hat (coreProgram.Rel rd) (fun _ => True)
@@ -503,7 +503,7 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
   obtain ⟨h74, h75⟩ := hpk
   have hpendm : (aggAbs cs).pend.length = 4 := by
     rw [← absSt_last rfl]; exact absSt_pend (m := cs.length) hcw cs.length le_rfl
-  have hnin : aggNi.map σ = [σ (.n 73), word 0 dsPowNonce, 0, 0, 0, 0, 0, 0] ++
+  have hnin : aggNi.map σ = [σ (.n 70), word 0 dsPowNonce, 0, 0, 0, 0, 0, 0] ++
       capOf (aggAbs cs).perm := by
     simp only [aggNi, permIns, List.take, List.cons_append, List.nil_append, List.map_cons,
       List.map_nil, h74, h75, h77, h78, h79, h80, capOf, o 8 (by omega), o 9 (by omega),
@@ -511,16 +511,16 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
     rfl
   have hnout := DupSpec.keccak_facts (keccak_sound hkn hat)
   rw [hnin, ← nonce_ins (s := aggAbs cs) hpendm, L73.1, ← aggN] at hnout
-  have q : ∀ c (hc : c < 13), σ (.n (81 + c)) =
+  have q : ∀ c (hc : c < 13), σ (.n (78 + c)) =
       cellsOfState (aggN cs h.lambdaGrindNonce) false ⟨c, hc⟩ :=
     fun c hc => by
       have := hnout c hc
-      rwa [show aggNo.getD c default = .n (81 + c) by
+      rwa [show aggNo.getD c default = .n (78 + c) by
         simp [aggNo, List.getD_eq_getElem?_getD, hc]] at this
-  have v81 : σ (.n 81) = lamA cs h := by
+  have v81 : σ (.n 78) = lamA cs h := by
     rw [q 0 (by omega), lamA, Keccak.challengeOf_cells]
     rfl
-  have q1 : σ (.n 82) = cellsOfState (aggN cs h.lambdaGrindNonce) false 1 := q 1 (by omega)
+  have q1 : σ (.n 79) = cellsOfState (aggN cs h.lambdaGrindNonce) false 1 := q 1 (by omega)
   refine ⟨hat, e0, e1, e2, e3, e4, e5, v6, v8, v9, v33, v81,
     by rw [isMul_sound hm94 hP, v81], v98, v107, v116, v188, p42, p105, p193,
     by rw [g35, e0], g36, by rw [g102, e0], g103, by rw [g191, e0], g192, by rw [q1, e5], ?_, ?_⟩

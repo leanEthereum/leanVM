@@ -134,10 +134,11 @@ theorem exists_reducedFactor (q : MvPolynomial (Fin 3) L) (hq : Irreducible q)
   · -- The top `Z`-coefficient of `G` gives a monomial of `R` with `Z`-exponent at least `1`.
     obtain ⟨j, hj⟩ : ∃ j, (G.coeff G.natDegree).coeff j ≠ 0 := by
       by_contra h; push Not at h
-      exact (leadingCoeff_ne_zero.mpr (ne_zero_of_natDegree_gt hGpos)) (Polynomial.ext h)
+      exact (leadingCoeff_ne_zero.mpr (ne_zero_of_natDegree_gt hGpos))
+        (AddMonoidAlgebra.ext (Finsupp.ext h))
     obtain ⟨k, hk⟩ : ∃ k, ((G.coeff G.natDegree).coeff j).coeff k ≠ 0 := by
       by_contra h; push Not at h
-      exact hj (Polynomial.ext h)
+      exact hj (AddMonoidAlgebra.ext (Finsupp.ext h))
     have hmem : tri k j G.natDegree ∈ R.support := by
       rw [MvPolynomial.mem_support_iff, hcoeffR]
       simpa [hσ] using hk
@@ -157,10 +158,11 @@ theorem exists_reducedFactor (q : MvPolynomial (Fin 3) L) (hq : Irreducible q)
     omega
   · obtain ⟨j, hj⟩ : ∃ j, (G.coeff G.natDegree).coeff j ≠ 0 := by
       by_contra h; push Not at h
-      exact (leadingCoeff_ne_zero.mpr (ne_zero_of_natDegree_gt hGpos)) (Polynomial.ext h)
+      exact (leadingCoeff_ne_zero.mpr (ne_zero_of_natDegree_gt hGpos))
+        (AddMonoidAlgebra.ext (Finsupp.ext h))
     obtain ⟨k, hk⟩ : ∃ k, ((G.coeff G.natDegree).coeff j).coeff k ≠ 0 := by
       by_contra h; push Not at h
-      exact hj (Polynomial.ext h)
+      exact hj (AddMonoidAlgebra.ext (Finsupp.ext h))
     have hmq : tri k j (e * G.natDegree) ∈ q.support := by
       rw [MvPolynomial.mem_support_iff, hcoeffq]; exact hk
     have := MvPolynomial.monomial_le_degreeOf 2 hmq

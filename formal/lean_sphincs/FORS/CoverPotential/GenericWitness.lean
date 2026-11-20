@@ -464,7 +464,7 @@ theorem sign_expectG_level (hW : WitnessProps W) (gate : State → Prop)
     rw [termO_eq_cons hm hM]
     exact term_expectO tg initial model hparse' hkind' hinv (excessW_props hW hb0) _ _ budget K
   unfold canonG coreG
-  simp only [mul_add, ENNReal.tsum_add]
+  simp only [mul_add, tsum_add]
   rw [tsum_list_sum]
   calc _ ≤ failMass Fail + (P.map (candG parameter data W wbar Fail s Ms L d (n + 1) K)).sum +
         (K * hValueG parameter data W wbar b0 s Ms L d (n + 1) K + K * failMass Fail) +

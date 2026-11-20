@@ -104,7 +104,7 @@ theorem coeff_trivEquiv (Q : MvPolynomial (Fin 3) L) (m : Fin 3 →₀ ℕ) :
       simp [a, b, c', h]
     · have := mt hiff.mpr h
       split_ifs <;> simp_all
-  | add p q hp hq => simp [coeff_add, hp, hq]
+  | add p q hp hq => simp [hp, hq]
 
 /-- Substituting `x, y, z ∈ L[X]` for the inner, middle and outer variables. -/
 noncomputable def trivEval (x y z : L[X]) : L[X][X][X] →+* L[X] :=

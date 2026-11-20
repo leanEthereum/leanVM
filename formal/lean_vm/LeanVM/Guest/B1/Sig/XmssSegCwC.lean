@@ -113,13 +113,11 @@ theorem matchArm_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Step
 theorem armM_snd_ge (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
     (prodIn encIn prodOut encOut : V) (k b : Nat) :
     b ≤ (armM W slots first n fold prodIn encIn prodOut encOut k b).2 := by
-  have hw : ∀ st, (if fold then b + 1 else b) ≤
-      (walksT W slots first k st n 0 (if fold then b + 1 else b)).2 := fun st => by
+  have hw : ∀ st, b ≤ (walksT W slots first k st n 0 b).2 := fun st => by
     rw [walksT_snd, walkBase_eq]; omega
-  have hb : b ≤ (if fold then b + 1 else b) := by split <;> omega
   have h := hw (if k = 0 then W.size + 1 else W.size)
   unfold armM
-  by_cases hk : k % 4 ^ n = 0 <;> simp only [hk, ↓reduceIte] <;> omega
+  cases fold <;> by_cases hk : k % 4 ^ n = 0 <;> simp only [hk, ↓reduceIte, Bool.false_eq_true] <;> omega
 
 theorem armsM_snd_ge (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
     (prodIn encIn prodOut encOut : V) :

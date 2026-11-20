@@ -114,7 +114,7 @@ theorem SepGood.one_add {g : ℕ → ℝ≥0∞} (hg : SepGood g) : SepGood (fun
 
 theorem poisMean_one_add (μ : ℝ≥0) (g : ℕ → ℝ≥0∞) : poisMean μ (fun n => 1 + g n) = 1 + poisMean μ g := by
   unfold poisMean
-  simp only [mul_add, mul_one, ENNReal.tsum_add, poisW_tsum]
+  simp only [mul_add, mul_one, tsum_add, poisW_tsum]
 
 
 theorem κE_toReal (H b : ℕ) (hH : totalHeight = H) (hb : subtreeHeight = b) : κE.toReal = (κQ H : ℝ) := by

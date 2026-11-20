@@ -1,0 +1,34 @@
+[package]
+name = "lean-pq"
+version.workspace = true
+edition = "2021"
+publish = false
+description = "Safe Rust API for leanXMSS and leanSPHINCS signatures and their aggregation"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/leanEthereum/leanVM"
+readme = "README.md"
+keywords = ["cryptography", "signature", "xmss", "sphincs", "post-quantum"]
+categories = ["cryptography"]
+
+[dependencies]
+getrandom = "0.3"
+lean_sphincs = { workspace = true }
+claims = { workspace = true }
+lean_xmss = { workspace = true }
+thiserror = "2.0.21"
+
+# The sidecar's client, which proves and verifies aggregates in another process over a Unix socket.
+[target.'cfg(unix)'.dependencies]
+sidecar = { workspace = true }
+
+[dev-dependencies]
+proptest = { version = "1.12", default-features = false, features = ["std"] }
+
+[lints.rust]
+missing_debug_implementations = "warn"
+missing_docs = "warn"
+unreachable_pub = "warn"
+unsafe_code = "forbid"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }

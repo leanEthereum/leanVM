@@ -8,7 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Opening.QueriesPlacedE
 public import LeanVM.Guest.B1.Fs.LeafPlaced
-public import LeanVM.Guest.B1.Merkle.CapAll
+public import LeanVM.Guest.B1.Merkle.CapLinksAll
 public import LeanVM.Guest.Lift.OsCallees
 public import LeanVM.Guest.B1.Place.OsMean
 

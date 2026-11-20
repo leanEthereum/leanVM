@@ -80,8 +80,7 @@ noncomputable def batchDifference (a v : Fin J → R) : Polynomial R :=
 theorem coeff_batchDifference (a v : Fin J → R) (j : Fin J) :
     (batchDifference a v).coeff j.val = a j - v j := by
   classical
-  simp [batchDifference, Polynomial.finsetSum_coeff, Polynomial.coeff_monomial,
-    Fin.val_inj]
+  simp [batchDifference, Polynomial.coeff_monomial, Finsupp.single_apply, Fin.val_inj]
 
 /-- A false component makes the difference polynomial nonzero. -/
 theorem batchDifference_ne_zero (a v : Fin J → R) (h : ∃ j, a j ≠ v j) :

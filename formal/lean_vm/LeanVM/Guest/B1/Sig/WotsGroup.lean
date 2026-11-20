@@ -32,10 +32,10 @@ theorem walksT_snd (W : WotsT) (slots : Nat → Nat → Nat) (first k stride : N
 theorem armT_snd (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
     (prodIn encIn prodOut encOut : V) (k b : Nat) :
     (armT W slots first n fold prodIn encIn prodOut encOut k b).2 =
-      if k = 0 then walkBase (W.size + 1) k 0 n (if fold then b + 1 else b)
-      else walkBase W.size k 0 n (if fold then b + 1 else b) + 1 := by
+      if k = 0 then walkBase (W.size + 1) k 0 n b
+      else walkBase W.size k 0 n b + (if fold then 0 else 1) := by
   unfold armT
-  split <;> simp_all [walksT_snd]
+  cases fold <;> by_cases hk : k = 0 <;> simp [hk, walksT_snd]
 
 /-- The base after arm `k` from `a`. -/
 def armNext (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
@@ -62,7 +62,7 @@ theorem armsT_snd (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fol
   | m + 1, k, _ => armsT_snd W slots first n fold prodIn encIn prodOut encOut m (k + 1) _
 
 /-- The group's start, as a number. -/
-theorem groupStart_eq (fold : Bool) (b : Nat) : groupStart fold b = b + 6 + (if fold then 1 else 0) := rfl
+theorem groupStart_eq (fold : Bool) (b : Nat) : groupStart fold b = b + 6 := rfl
 
 theorem chainStride_eq (W : WotsT) : chainStride W = 1 + 3 * (W.size + 1) := rfl
 
@@ -102,21 +102,21 @@ theorem walkSize_zero (S t : Nat) : walkSize S (dig 0 t) = 1 + 3 * S := by
 /-- **Arm `0`'s walks are laid out.** -/
 theorem arm0_lay (W : WotsT) {B : Nat} (fold : Bool) {b n : Nat} (hB : B ≤ b + 6) :
     (∀ t < n, WalkLay W B (slotsT W fold b t) (W.size + 1) (dig 0 t)
-      (walkBase (W.size + 1) 0 0 t (if fold then b + 6 + 1 else b + 6))) ∧
+      (walkBase (W.size + 1) 0 0 t (b + 6))) ∧
     (∀ t < n, ∀ t' < n, t ≠ t' → ∀ x,
       WalkR (slotsT W fold b t) (W.size + 1) (dig 0 t)
-        (walkBase (W.size + 1) 0 0 t (if fold then b + 6 + 1 else b + 6)) x →
+        (walkBase (W.size + 1) 0 0 t (b + 6)) x →
       ¬ WalkR (slotsT W fold b t') (W.size + 1) (dig 0 t')
-        (walkBase (W.size + 1) 0 0 t' (if fold then b + 6 + 1 else b + 6)) x) ∧
-    (∀ x, WalksR (slotsT W fold b) (W.size + 1) 0 n (if fold then b + 6 + 1 else b + 6) x →
+        (walkBase (W.size + 1) 0 0 t' (b + 6)) x) ∧
+    (∀ x, WalksR (slotsT W fold b) (W.size + 1) 0 n (b + 6) x →
       ∃ j, x = .n j ∧ groupStart fold b ≤ j ∧ j < groupStart fold b + chainStride W * n) := by
-  have hgs : (if fold then b + 6 + 1 else b + 6) = groupStart fold b := by cases fold <;> rfl
-  have hwb : ∀ t, walkBase (W.size + 1) 0 0 t (if fold then b + 6 + 1 else b + 6) =
+  have hgs : (b + 6) = groupStart fold b := rfl
+  have hwb : ∀ t, walkBase (W.size + 1) 0 0 t (b + 6) =
       groupStart fold b + chainStride W * t := by
     intro t; rw [walkBase_zero, hgs, chainStride_eq, mul_comm]
   -- region of chain t
   have hreg : ∀ t x, WalkR (slotsT W fold b t) (W.size + 1) (dig 0 t)
-      (walkBase (W.size + 1) 0 0 t (if fold then b + 6 + 1 else b + 6)) x →
+      (walkBase (W.size + 1) 0 0 t (b + 6)) x →
       ∃ j, x = .n j ∧ groupStart fold b + chainStride W * t ≤ j ∧
         j < groupStart fold b + chainStride W * (t + 1) := by
     rintro t x (⟨u, hu, rfl⟩ | ⟨s, hs, u, hu, rfl⟩)
@@ -168,15 +168,14 @@ theorem walkBase_le (S k b : Nat) {t t' : Nat} (h : t ≤ t') : walkBase S k 0 t
 theorem armPos_lay (W : WotsT) {B : Nat} (fold : Bool) {b n k a : Nat} (hB : B ≤ b + 6)
     (ha : groupStart fold b + chainStride W * n + 2 ≤ a) :
     (∀ t < n, WalkLay W B (slotsT W fold b t) W.size (dig k t)
-      (walkBase W.size k 0 t (if fold then a + 1 else a))) ∧
+      (walkBase W.size k 0 t a)) ∧
     (∀ t < n, ∀ t' < n, t ≠ t' → ∀ x,
-      WalkR (slotsT W fold b t) W.size (dig k t) (walkBase W.size k 0 t (if fold then a + 1 else a)) x →
-      ¬ WalkR (slotsT W fold b t') W.size (dig k t') (walkBase W.size k 0 t' (if fold then a + 1 else a)) x) ∧
-    (∀ x, WalksR (slotsT W fold b) W.size k n (if fold then a + 1 else a) x →
+      WalkR (slotsT W fold b t) W.size (dig k t) (walkBase W.size k 0 t a) x →
+      ¬ WalkR (slotsT W fold b t') W.size (dig k t') (walkBase W.size k 0 t' a) x) ∧
+    (∀ x, WalksR (slotsT W fold b) W.size k n a x →
       ∃ j, x = .n j ∧ ((groupStart fold b ≤ j ∧ j < groupStart fold b + chainStride W * n) ∨
-        ((if fold then a + 1 else a) ≤ j ∧ j < walkBase W.size k 0 n (if fold then a + 1 else a)))) := by
-  set b0 := if fold then a + 1 else a with hb0
-  have hab : a ≤ b0 := by rw [hb0]; split <;> omega
+        (a ≤ j ∧ j < walkBase W.size k 0 n a))) := by
+  set b0 := a
   have hslot : ∀ t < n, ∀ s < 3, slotsT W fold b t s + 1 ≤ groupStart fold b + chainStride W * n := by
     intro t ht s hs
     have h1 := slot_bounds W fold b t s hs
@@ -259,28 +258,26 @@ theorem armB_succ (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (
 theorem armB_one (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b : Nat) :
     armB W first n fold prodIn encIn b 1 = groupStart fold b + chainStride W * n + 2 := by
   rw [armB_succ, armB_zero, armNext, armT_snd]
-  simp only [↓reduceIte, walkBase_zero, chainStride_eq]
-  cases fold <;> simp [groupStart] <;> ring
+  simp only [↓reduceIte, walkBase_zero, chainStride_eq, groupStart]
+  ring
 
 theorem armB_next_pos (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b k : Nat)
     (hk : k ≠ 0) :
     armB W first n fold prodIn encIn b (k + 1) =
-      walkBase W.size k 0 n (if fold then armB W first n fold prodIn encIn b k + 1
-        else armB W first n fold prodIn encIn b k) + 1 := by
+      walkBase W.size k 0 n (armB W first n fold prodIn encIn b k) + (if fold then 0 else 1) := by
   rw [armB_succ, armNext, armT_snd]
   simp only [hk, ↓reduceIte]
 
-theorem armB_lt (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b : Nat) :
-    ∀ k, armB W first n fold prodIn encIn b k < armB W first n fold prodIn encIn b (k + 1)
+theorem armB_le_succ (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b : Nat) :
+    ∀ k, armB W first n fold prodIn encIn b k ≤ armB W first n fold prodIn encIn b (k + 1)
   | 0 => by
       rw [armB_one, armB_zero, groupStart_eq]
-      split <;> omega
+      omega
   | k + 1 => by
       rw [armB_next_pos W first n fold prodIn encIn b (k + 1) (by omega)]
-      have := walkBase_le W.size (k + 1) (if fold = true then armB W first n fold prodIn encIn b (k + 1) + 1
-        else armB W first n fold prodIn encIn b (k + 1)) (Nat.zero_le n)
+      have := walkBase_le W.size (k + 1) (armB W first n fold prodIn encIn b (k + 1)) (Nat.zero_le n)
       simp only [walkBase] at this
-      cases fold <;> simp only [Bool.false_eq_true, ↓reduceIte] at this ⊢ <;> omega
+      omega
 
 theorem armB_mono (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b : Nat) {k k' : Nat}
     (h : k ≤ k') : armB W first n fold prodIn encIn b k ≤ armB W first n fold prodIn encIn b k' := by
@@ -289,7 +286,7 @@ theorem armB_mono (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (
             subst this; exact le_rfl
   | succ k' ih =>
       rcases Nat.lt_or_ge k (k' + 1) with h1 | h1
-      · have := armB_lt W first n fold prodIn encIn b k'; have := ih (by omega); omega
+      · have := armB_le_succ W first n fold prodIn encIn b k'; have := ih (by omega); omega
       · have : k = k' + 1 := by omega
         subst this; exact le_rfl
 

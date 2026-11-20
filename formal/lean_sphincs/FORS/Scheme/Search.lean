@@ -97,7 +97,7 @@ theorem probEvent_searchLoop (inputs : Nat → HashInput) (decode : HashOutput �
               omega
             exact (QueryCache.cacheQuery_of_ne cache u hne).trans
               (hfresh s (Nat.le_of_succ_le hs) hsb)
-      refine le_trans (ENNReal.tsum_le_tsum (fun u => mul_le_mul_right (hterm u) _)) ?_
+      refine le_trans (tsum_le_tsum (fun u => mul_le_mul_right (hterm u) _)) ?_
       rw [tsum_fintype, Finset.sum_congr rfl (fun u _ => by rw [mul_ite, mul_zero]),
         Finset.sum_ite, Finset.sum_const_zero, add_zero, Finset.sum_const, nsmul_eq_mul,
         pow_succ', failMass, div_eq_mul_inv, ← mul_assoc]

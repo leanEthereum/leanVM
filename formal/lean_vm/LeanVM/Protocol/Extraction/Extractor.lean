@@ -26,7 +26,7 @@ deterministic.
    64-byte preimage holds, a leaf the words of its unique answered preimage; an unanswered node
    gives zero leaves.
 3. **The subspace polynomials** (`subspacePoly`).
-4. **Novel-basis coefficients and evaluations** (`novelInv`, `novelFwd`): the additive NTT of
+4. **Novel-basis coefficients from evaluations** (`novelInv`): the inverse additive NTT of
    Annex D (`doc/leanvm/body/d-novel-basis.tex`); `stackOf`, the stack of `2^μ` words of `64`
    lanes' low parts.
 5. **The execution** (`candidateExecutionIn`): a stack's memory image run from the initial state
@@ -44,12 +44,11 @@ moved here verbatim, but for the address indices and the public boundary (`powIn
 `boundaryOK`, `Statement/Prover/Witness.lean`), which the statement keeps for the honest prover.
 
 **Credits.** `K` is CompPoly's `BF64` (github.com/Verified-zkEVM/CompPoly at
-`572f997390aa4fc131ef30b1186fa1dcf292ca10`, Apache-2.0, Nicolas Schleicher), and `CPolynomial`
-CompPoly's (Quang Dao, Gregor Mitscha-Baude, Derek Sorensen, Desmond Coles, Valerii Huhnin, Julian
-Sutherland). The novel-basis transforms are the additive NTT of Lin, Chung and Han (FOCS 2014), as
-in Diamond and Posen, *Polylogarithmic proofs for multilinears over binary towers* (2024),
-Algorithm 2, whose forward stage and point order are CompPoly's `AdditiveNTT` (Chung Thai Nguyen
-and Quang Dao); no code of it is copied.
+`572f997390aa4fc131ef30b1186fa1dcf292ca10`, Apache-2.0, Nicolas Schleicher). The inverse
+novel-basis transform is the inverse additive NTT of Lin, Chung and Han (FOCS 2014), as in
+Diamond and Posen, *Polylogarithmic proofs for multilinears over binary towers* (2024),
+Algorithm 2, in the point order of CompPoly's `AdditiveNTT` (Chung Thai Nguyen and Quang Dao); no
+code of it is copied.
 -/
 
 @[expose] public section
@@ -139,28 +138,17 @@ def leafAt (leaves : Array (List K)) (height width v : ℕ) : List K :=
 exactly on `U_i = {x_v | v < 2^i}`. -/
 def subspacePoly (i : ℕ) (a : K) : K := ∏ v ∈ Finset.range (2 ^ i), (a + K.ofBits v)
 
-/-! ### 4. Novel-basis coefficients and evaluations
+/-! ### 4. Novel-basis coefficients from evaluations
 
-The additive NTT in the novel basis `X_j(a) = ∏_{i < 64, bit i of j} Ŵ_i(a)`, `Ŵ_i` the
-normalized subspace polynomial `W_i(a) / W_i(x_{2^i})`, on the points `x_v`. Stage `i` pairs the positions `p`
-and `p + 2^i` (bit `i` of `p` clear) with the twiddle `t = Ŵ_i(x_{⌊p/2^(i+1)⌋·2^(i+1)})`: the
-forward stage maps `(lo, hi)` to `(lo + t·hi, lo + (t + 1)·hi)`, the inverse stage maps it back
-(characteristic two). -/
+The inverse additive NTT in the novel basis `X_j(a) = ∏_{i < 64, bit i of j} Ŵ_i(a)`, `Ŵ_i` the
+normalized subspace polynomial `W_i(a) / W_i(x_{2^i})`, on the points `x_v`. Stage `i` pairs the
+positions `p` and `p + 2^i` (bit `i` of `p` clear) with the twiddle
+`t = Ŵ_i(x_{⌊p/2^(i+1)⌋·2^(i+1)})` and maps `(lo, hi)` to `(lo + t·(lo + hi), lo + hi)`. -/
 
 /-- Stage `i`'s twiddles over a buffer of `2^m`: entry `w` is `Ŵ_i(x_{w·2^(i+1)})`. -/
 def novelTwiddles (m i : ℕ) : Array K :=
   let nrm := (subspacePoly i (K.ofBits (2 ^ i)))⁻¹
   Array.ofFn fun w : Fin (2 ^ (m - (i + 1))) ↦ subspacePoly i (K.ofBits (w.val * 2 ^ (i + 1))) * nrm
-
-/-- The forward butterfly stage `i` over a buffer of `2^m`. -/
-def novelFwdStage (m i : ℕ) (b : Array K) : Array K :=
-  let tw := novelTwiddles m i
-  Array.ofFn fun p : Fin (2 ^ m) ↦
-    let t := tw.getD (p.val / 2 ^ (i + 1)) 0
-    if p.val.testBit i then
-      b.getD (p.val - 2 ^ i) 0 + (t + 1) * b.getD p.val 0
-    else
-      b.getD p.val 0 + t * b.getD (p.val + 2 ^ i) 0
 
 /-- The inverse butterfly stage `i` over a buffer of `2^m`. -/
 def novelInvStage (m i : ℕ) (b : Array K) : Array K :=
@@ -172,22 +160,10 @@ def novelInvStage (m i : ℕ) (b : Array K) : Array K :=
     else
       b.getD p.val 0 + t * (b.getD p.val 0 + b.getD (p.val + 2 ^ i) 0)
 
-/-- **The forward transform**: the `2^κ` novel-basis coefficients `c`, tiled `2^R` times, through
-stages `κ − 1, …, 0`; entry `v` is `Σ_{j<2^κ} c_j·X_j(x_v)` for `v < 2^(κ+R)`, so the encoding of
-a lane. -/
-def novelFwd (κ R : ℕ) (c : Array K) : Array K :=
-  (List.range κ).foldr (fun i b ↦ novelFwdStage (κ + R) i b)
-    (Array.ofFn fun p : Fin (2 ^ (κ + R)) ↦ c.getD (p.val % 2 ^ κ) 0)
-
 /-- **The inverse transform** on `U_κ`: the evaluations `y_v`, `v < 2^κ`, through stages
 `0, …, κ − 1`, give the novel-basis coefficients. -/
 def novelInv (κ : ℕ) (y : Array K) : Array K :=
   (List.range κ).foldl (fun b i ↦ novelInvStage κ i b) y
-
-/-- **Monomial to novel basis**: the novel-basis coefficients of `p` (of degree `< 2^κ`), from its
-evaluations on `U_κ`. -/
-def toNovel (κ : ℕ) (p : CPolynomial K) : Array K :=
-  novelInv κ (Array.ofFn fun v : Fin (2 ^ κ) ↦ p.eval (K.ofBits v.val))
 
 end LeanVM.Extraction
 

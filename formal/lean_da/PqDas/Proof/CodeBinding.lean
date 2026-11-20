@@ -77,8 +77,8 @@ private lemma prEvent_bind_le_add₃ {α : Type} (oa : ProbComp α)
     Pr{let x ← oa >>= f}[x = true] ≤
       Pr{let x ← oa >>= g₁}[x = true] + Pr{let x ← oa >>= g₂}[x = true] + Pr{let x ← oa >>= g₃}[x = true] := by
   simp only [OracleComp.prEvent_bind_eq_tsum]
-  rw [← ENNReal.tsum_add, ← ENNReal.tsum_add]
-  refine ENNReal.tsum_le_tsum fun x => ?_
+  rw [← tsum_add, ← tsum_add]
+  refine tsum_le_tsum fun x => ?_
   by_cases hx : x ∈ support oa
   · rw [← mul_add, ← mul_add]
     exact mul_le_mul_right (h x hx) _

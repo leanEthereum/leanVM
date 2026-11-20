@@ -18,9 +18,9 @@ public import LeanVM.Guest.Data.NameStrings
 # `verify_bus_gkr_loop0`, of honest shape
 
 Iteration `c` of `verify_bus_gkr_loop0` (from `g^c` below `g^M`, layer `L = 2c + 2 - sh`, layer
-index `k = c + 1 - sh`) calls `verify_bus_gkr_loop0_loop0` from `1` (`σ 57`) below `g^(k/4)` (`σ
-53`, the slot's `half`), then `gkr_rounds__L{2r}` at the slot's `parity = g^r`, `r = k % 4` (`σ 54`,
-a dispatch), and `gkr_rounds__L1` when `sh = 1` (`σ 65 = g^sh + 1`), then itself from `g^(c+1)`,
+index `k = c + 1 - sh`) calls `verify_bus_gkr_loop0_loop0` from `1` (`σ 56`) below `g^(k/4)` (`σ
+52`, the slot's `half`), then `gkr_rounds__L{2r}` at the slot's `parity = g^r`, `r = k % 4` (`σ 53`,
+a dispatch), and `gkr_rounds__L1` when `sh = 1` (`σ 64 = g^sh + 1`), then itself from `g^(c+1)`,
 entered iff `c + 1 < M`.
 
 * `ly7Q sh c σ`: those values; `ly7Csb σ`, `ly7Tl σ`: the body's calls and the tail call;
@@ -37,12 +37,12 @@ open LeanVM.Protocol.Verifier (gen)
 
 @[expose] public section
 
-/-- The dispatch's index at `parity = σ 54`: `r` at `g^r`, `r < 4`. -/
+/-- The dispatch's index at `parity = σ 53`: `r` at `g^r`, `r < 4`. -/
 noncomputable def ly7Dr (σ : Val) : ℕ :=
-  if σ (.n 54) = gen ^ 1 then 1 else if σ (.n 54) = gen ^ 2 then 2
-  else if σ (.n 54) = gen ^ 3 then 3 else 0
+  if σ (.n 53) = gen ^ 1 then 1 else if σ (.n 53) = gen ^ 2 then 2
+  else if σ (.n 53) = gen ^ 3 then 3 else 0
 
-theorem ly7Dr_eq {σ : Val} {r : ℕ} (hr : r < 4) (h : σ (.n 54) = gen ^ r) : ly7Dr σ = r := by
+theorem ly7Dr_eq {σ : Val} {r : ℕ} (hr : r < 4) (h : σ (.n 53) = gen ^ r) : ly7Dr σ = r := by
   have ne : ∀ a b : ℕ, a < 4 → b < 4 → a ≠ b → (gen ^ a : E) ≠ gen ^ b := fun a b ha hb hab e ↦
     hab (gen_pow_inj (by omega) (by omega) e)
   unfold ly7Dr
@@ -55,28 +55,28 @@ theorem ly7Dr_eq {σ : Val} {r : ℕ} (hr : r < 4) (h : σ (.n 54) = gen ^ r) : 
 condition, the
 parity `g^(k % 4)`, `k = c + 1 - sh`, and whether the odd-depth round is called. -/
 def ly7Q (sh c : ℕ) (σ : Val) : Prop :=
-  σ (.n 53) = gen ^ ((c + 1 - sh) / 4) ∧ σ (.n 57) = 1 ∧
-    σ (.n 56) = 1 + gen ^ ((c + 1 - sh) / 4) ∧ σ (.n 54) = gen ^ ((c + 1 - sh) % 4) ∧
-    (σ (.n 65) = 0 ↔ sh = 0) ∧ c < 2 ^ 62
+  σ (.n 52) = gen ^ ((c + 1 - sh) / 4) ∧ σ (.n 56) = 1 ∧
+    σ (.n 55) = 1 + gen ^ ((c + 1 - sh) / 4) ∧ σ (.n 53) = gen ^ ((c + 1 - sh) % 4) ∧
+    (σ (.n 64) = 0 ↔ sh = 0) ∧ c < 2 ^ 62
 
 /-- The body's calls: `verify_bus_gkr_loop0_loop0`, the dispatched rounds, then the odd round when
 taken. -/
 noncomputable def ly7Csb (σ : Val) : List Call :=
   (lyA.filterMap Main.Stmt.callS).map (Main.mkCall σ) ++
-    [⟨lyRn (ly7Dr σ), [.n 61, .n 62, .n 4], [.n 63], true⟩] ++
-    (if σ (.n 65) = 0 then [] else (ly73.filterMap Main.Stmt.callS).map (Main.mkCall σ))
+    [⟨lyRn (ly7Dr σ), [.n 60, .n 61, .n 4], [.n 62], true⟩] ++
+    (if σ (.n 64) = 0 then [] else (ly73.filterMap Main.Stmt.callS).map (Main.mkCall σ))
 
 /-- The tail call. -/
 noncomputable def ly7Tl (σ : Val) : Call :=
-  Main.mkCall σ (some (.n 236), name% «verify_bus_gkr_loop0»,
-    [.n 238, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9], [])
+  Main.mkCall σ (some (.n 233), name% «verify_bus_gkr_loop0»,
+    [.n 235, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9], [])
 
 /-- One predicate per body call, none constraining. -/
 def ly7Tsb (sh _c : ℕ) : List (Tree → Prop) :=
   List.replicate (2 + (if sh = 1 then 1 else 0)) fun _ ↦ True
 
 /-- **`verify_bus_gkr_loop0`'s calls**: the body's, then the tail, at `parity = g^r`. -/
-theorem ly7_calls (σ : Val) {r : ℕ} (hr : r < 4) (h54 : σ (.n 54) = gen ^ r) {es : List Ev}
+theorem ly7_calls (σ : Val) {r : ℕ} (hr : r < 4) (h54 : σ (.n 53) = gen ^ r) {es : List Ev}
     {vs : List V} (hw : walk σ lyBody = .ret es vs) :
     calls es = ly7Csb σ ++ [ly7Tl σ] := by
   rw [ly_walk σ hr (by rw [h54, gen_pow_eq_ofK]), Out.ret.injEq] at hw
@@ -84,11 +84,11 @@ theorem ly7_calls (σ : Val) {r : ℕ} (hr : r < 4) (h54 : σ (.n 54) = gen ^ r)
   simp only [calls, List.filterMap_append]
   have hA := (Main.straight_parts σ lyA lyA_straight).2.2.2
   have hB := (Main.straight_parts σ lyB lyB_straight).2.2.2
-  have h65 := calls_lyBr (σ := σ) (c := .n 65) ly73_straight
+  have h65 := calls_lyBr (σ := σ) (c := .n 64) ly73_straight
   simp only [calls] at hA hB h65
   rw [hA, hB, lyB_calls]
   simp only [List.filterMap_cons, Ev.call?]
-  rw [show (lyBr σ (.n 65) ly73).filterMap Ev.call? = _ from h65]
+  rw [show (lyBr σ (.n 64) ly73).filterMap Ev.call? = _ from h65]
   simp [ly7Csb, ly7Tl, List.append_assoc, ly7Dr_eq hr h54]
 
 /-- The memory iteration `c < M` reads its bounds from: the slots' `half` and `parity`. -/
@@ -184,18 +184,18 @@ theorem ly7_chain {rd : Reader} {layers tabs rounds claim gmu kmn : E} {sh M : �
       have m15 := a 5 (.mul (.n 15) (.n 14) (.n 14)) (by decide +kernel)
       have m16 := a 6 (.mul (.n 16) (.n 15) (.n 11)) (by decide +kernel)
       have m17 := a 7 (.mul (.n 17) (.n 3) (.n 16)) (by decide +kernel)
-      have l53 := a 38 (.load (.n 53) (.n 17) 11) (by decide +kernel)
-      have l54 := a 39 (.load (.n 54) (.n 17) 12) (by decide +kernel)
-      have c55 := a 40 (.const (.n 55) (word 1 0)) (by decide +kernel)
-      have a56 := a 41 (.add (.n 56) (.n 55) (.n 53)) (by decide +kernel)
-      have c57 := a 42 (.const (.n 57) (word 1 0)) (by decide +kernel)
-      have c64 := a 50 (.const (.n 64) (word 1 0)) (by decide +kernel)
-      have a65 := a 51 (.add (.n 65) (.n 7) (.n 64)) (by decide +kernel)
-      have c234 := a 186 (.const (.n 234) (word 2 0)) (by decide +kernel)
-      have m235 := a 187 (.mul (.n 235) (.n 0) (.n 234)) (by decide +kernel)
-      have a236 := a 188 (.add (.n 236) (.n 235) (.n 1)) (by decide +kernel)
-      have c237 := a 189 (.const (.n 237) (word 2 0)) (by decide +kernel)
-      have m238 := a 190 (.mul (.n 238) (.n 0) (.n 237)) (by decide +kernel)
+      have l53 := a 37 (.load (.n 52) (.n 17) 11) (by decide +kernel)
+      have l54 := a 38 (.load (.n 53) (.n 17) 12) (by decide +kernel)
+      have c55 := a 39 (.const (.n 54) (word 1 0)) (by decide +kernel)
+      have a56 := a 40 (.add (.n 55) (.n 54) (.n 52)) (by decide +kernel)
+      have c57 := a 41 (.const (.n 56) (word 1 0)) (by decide +kernel)
+      have c64 := a 49 (.const (.n 63) (word 1 0)) (by decide +kernel)
+      have a65 := a 50 (.add (.n 64) (.n 7) (.n 63)) (by decide +kernel)
+      have c234 := a 183 (.const (.n 231) (word 2 0)) (by decide +kernel)
+      have m235 := a 184 (.mul (.n 232) (.n 0) (.n 231)) (by decide +kernel)
+      have a236 := a 185 (.add (.n 233) (.n 232) (.n 1)) (by decide +kernel)
+      have c237 := a 186 (.const (.n 234) (word 2 0)) (by decide +kernel)
+      have m238 := a 187 (.mul (.n 235) (.n 0) (.n 234)) (by decide +kernel)
       simp only [Atom.Holds] at m10 m11 m12 m13 m14 m15 m16 m17 l53 l54 c55 a56 c57 c64 a65
       simp only [Atom.Holds] at c234 m235 a236 c237 m238
       have hc : c < M := by omega
@@ -211,10 +211,10 @@ theorem ly7_chain {rd : Reader} {layers tabs rounds claim gmu kmn : E} {sh M : �
       rw [e17, tb_loadHolds_mul_gen_pow] at l53 l54
       have e53 := tb_loadHolds_unique l53 hhalf
       have e54 := tb_loadHolds_unique l54 hpar'
-      have e65 : σ (.n 65) = 0 ↔ sh = 0 := by
+      have e65 : σ (.n 64) = 0 ↔ sh = 0 := by
         rw [a65, c64, h7, tb_word_one, ← pow_zero gen, tb_gen_pow_add_eq_zero (by omega) (by omega)]
-      have e238 : σ (.n 238) = gen ^ (c + 1) := by rw [m238, c237, h0, tb_word_gen, pow_succ]
-      have e236 : σ (.n 236) = gen ^ (c + 1) + gen ^ M := by
+      have e238 : σ (.n 235) = gen ^ (c + 1) := by rw [m238, c237, h0, tb_word_gen, pow_succ]
+      have e236 : σ (.n 233) = gen ^ (c + 1) + gen ^ M := by
         rw [a236, m235, c234, h0, h1, tb_word_gen, pow_succ]
       have hQ : ly7Q sh c σ :=
         ⟨e53, by rw [c57, tb_word_one], by rw [a56, c55, tb_word_one, e53], e54, e65, by omega⟩
@@ -228,9 +228,9 @@ theorem ly7_chain {rd : Reader} {layers tabs rounds claim gmu kmn : E} {sh M : �
         simp only [ly7Csb, ly7Tsb, List.length_append, List.length_map, hA, List.length_replicate,
           List.length_singleton]
         by_cases hs : sh = 1
-        · have : σ (.n 65) ≠ 0 := fun h ↦ by have := e65.mp h; omega
+        · have : σ (.n 64) ≠ 0 := fun h ↦ by have := e65.mp h; omega
           simp [hs, this, h65']
-        · have : σ (.n 65) = 0 := e65.mpr (by omega)
+        · have : σ (.n 64) = 0 := e65.mpr (by omega)
           simp [hs, this]
       refine ⟨σ, ks' ++ [k], ?_, hQ, fun fn'' es' vs' hf'' hw' ↦ ?_, hlen, ?_⟩
       · have hbufs := hb.1
@@ -244,7 +244,7 @@ theorem ly7_chain {rd : Reader} {layers tabs rounds claim gmu kmn : E} {sh M : �
           have hB : lyB.filterMap Main.Stmt.allocSz = [] := by decide +kernel
           simp only [allocs, hA, hB, List.map_nil] at hA' hB'
           simp only [allocs, List.filterMap_append, hA', hB', List.nil_append, List.append_nil]
-          by_cases e' : σ (.n 65) = 0 <;>
+          by_cases e' : σ (.n 64) = 0 <;>
             simp [lyBr, e', Ev.alloc?, Main.slEvs, ly73]
         rw [hal]
       · rw [hf, Option.some.injEq] at hf''
@@ -254,7 +254,7 @@ theorem ly7_chain {rd : Reader} {layers tabs rounds claim gmu kmn : E} {sh M : �
       · refine kidsT_true_last (by rw [hlen]) (by rw [hkl, hlen])
           (fun T' hT' t ↦ by simp only [ly7Tsb, List.mem_replicate] at hT'; rw [hT'.2]; trivial)
           (fun ht ↦ ?_)
-        have ht' : σ (.n 236) ≠ 0 := by simpa [ly7Tl, Main.mkCall] using ht
+        have ht' : σ (.n 233) ≠ 0 := by simpa [ly7Tl, Main.mkCall] using ht
         have hc1 : c + 1 ≠ M := fun h ↦ ht' (by rw [e236, h]; exact e_add_self _)
         have hn : 0 < n := by omega
         have hkv' := hkv ht
@@ -268,19 +268,19 @@ theorem ly7_chain {rd : Reader} {layers tabs rounds claim gmu kmn : E} {sh M : �
 /-- The rounds the body calls: `gkr_rounds__L{2r}` (the dispatch), `gkr_rounds__L1` at an odd
 depth. -/
 noncomputable def ly7Rounds (σ : Val) : List Call :=
-  [⟨lyRn (ly7Dr σ), [.n 61, .n 62, .n 4], [.n 63], true⟩] ++
-    (if σ (.n 65) = 0 then [] else [⟨"gkr_rounds__L1", [.n 66, .n 67, .n 4], [.n 68], true⟩])
+  [⟨lyRn (ly7Dr σ), [.n 60, .n 61, .n 4], [.n 62], true⟩] ++
+    (if σ (.n 64) = 0 then [] else [⟨"gkr_rounds__L1", [.n 65, .n 66, .n 4], [.n 67], true⟩])
 
 /-- The body calls' bounds, by position: `verify_bus_gkr_loop0_loop0`'s, then `R` for each round. -/
 noncomputable def ly7Wb (fs : String → ℕ) (K29 R sh : ℕ) (c : ℕ) (σ : Val) : List ℕ :=
   ly7W29 fs K29 (c + 1 - sh) :: List.replicate (ly7Rounds σ).length R
 
 theorem ly73_calls (σ : Val) : (ly73.filterMap Main.Stmt.callS).map (Main.mkCall σ) =
-    [⟨"gkr_rounds__L1", [.n 66, .n 67, .n 4], [.n 68], true⟩] := rfl
+    [⟨"gkr_rounds__L1", [.n 65, .n 66, .n 4], [.n 67], true⟩] := rfl
 
 theorem ly7Csb_eq (σ : Val) : ly7Csb σ =
-    ⟨name% «verify_bus_gkr_loop0_loop0», [.n 57, .n 53, .n 48, .n 46, .n 4], [],
-        decide (σ (.n 56) ≠ 0)⟩ ::
+    ⟨name% «verify_bus_gkr_loop0_loop0», [.n 56, .n 52, .n 47, .n 45, .n 4], [],
+        decide (σ (.n 55) ≠ 0)⟩ ::
       ly7Rounds σ := by
   simp only [ly7Csb, ly7Rounds, ly73_calls]
   rw [lyA_calls]
@@ -306,9 +306,9 @@ theorem ly7Rounds_length {sh c : ℕ} {σ : Val} (hQ : ly7Q sh c σ) (hsh2 : sh 
   rw [List.length_append]
   congr 1
   by_cases hs : sh = 1
-  · have : σ (.n 65) ≠ 0 := fun h ↦ by have := e65.mp h; omega
+  · have : σ (.n 64) ≠ 0 := fun h ↦ by have := e65.mp h; omega
     simp [this, hs]
-  · have : σ (.n 65) = 0 := e65.mpr (by omega)
+  · have : σ (.n 64) = 0 := e65.mpr (by omega)
     simp [this, hs]
 
 /-- **`verify_bus_gkr_loop0`'s chain's words**: within the iterations' bounds `ly7B` and the last
@@ -343,8 +343,8 @@ theorem ly7_total {P : Core.Program} {rd : Reader} (fs : String → ℕ) {sh K29
       have : ∀ c ∈ ly7Rounds σ, c.taken = true := by
         intro c hc
         unfold ly7Rounds at hc
-        by_cases e' : σ (.n 65) = 0 <;> simp [e'] at hc <;>
-          (try rcases hc with rfl | rfl) <;> rfl
+        by_cases e' : σ (.n 64) = 0 <;> simp [e'] at hc <;>
+          (rcases hc with rfl | rfl) <;> rfl
       rw [this _ hm] at hu; exact absurd hu (by simp)
   · obtain ⟨e53, e57, e56, -, -, hcb⟩ := hQ
     have e := List.getElem_of_eq (ly7Csb_eq σ) hi

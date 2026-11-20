@@ -139,16 +139,16 @@ theorem oqQueryT_eq (s : Oq) (x bp cap flags coefs hs : V) (b : ℕ) (emit : Boo
   simp only [oqQueryT, List.append_assoc]
 
 /-- **One query holds at the honest values**, its call of `walk` in `C` on the leaf's halves, the
-window pointer, the cap and the flags; its result is its fold (`qwFold`), or `0` at the final
-level; its leaf cells are the leaf's digest's halves. -/
+window pointer, the cap and the flags; its result is its fold (`qwFold`) below the final level
+(at the final level it is the constant `0`, in no cell); its leaf cells are the leaf's digest's
+halves. -/
 theorem query_complete (hs : d.s.RowShape) (hfin : d.s.FinOk) {walk : String} {C : CallRel}
     {x bp cap flags coefs hsp : V} (hok : d.Ok rd (σ coefs) (σ hsp) (σ bp)) (hv : d.Hv σ)
     (hx : σ x = d.x) (hpad : σ (.n d.prV) = word 1 0) (hz : ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0)
     (hcap : σ cap = d.capv) (hflags : σ flags = d.flagsv)
     (hC : C walk [(digestHalves d.leaf).1, (digestHalves d.leaf).2, σ bp, d.capv, d.flagsv] []) :
     BlockOkC C rd σ (oqQueryT d.s x bp cap flags coefs hsp d.b d.emit d.pr walk) ∧
-      σ (.n (oqRes d.s d.b d.emit)) =
-        (if d.s.final = 1 then 0 else qwFold d.s.base d.rounds (d.q, d.row, d.sibs)) ∧
+      (d.s.final ≠ 1 → σ (.n (oqRes d.s d.b d.emit)) = qwFold d.s.base d.rounds (d.q, d.row, d.sibs)) ∧
       (σ (.n (oqOut d.s d.kL (d.s.B - 1) 0)), σ (.n (oqOut d.s d.kL (d.s.B - 1) 1))) =
         digestHalves d.leaf := by
   have hf1 : 1 ≤ d.s.folds := by rcases hs with ⟨-, h⟩ | ⟨-, h⟩ <;> omega
@@ -200,20 +200,12 @@ theorem query_complete (hs : d.s.RowShape) (hfin : d.s.FinOk) {walk : String} {C
     simp only at e0 e1
     rw [e0, e1, hcap, hflags]
     exact hC
-  · by_cases hfinal : d.s.final = 1
-    · obtain ⟨hW, hl, heq⟩ := hok.hfin hfinal
-      have hA := d.oqFin_complete (rd := rd) hf1 hfinal hfin hv hx hW hl
-        (d.finEq_of hs hok.hrow hok.hrl heq)
-      have h := hA _ (List.mem_append_right _ (List.mem_cons_of_mem _ (List.mem_singleton_self _)))
-      simp only [Atom.Holds] at h
-      simp only [oqRes, hfinal, ↓reduceIte]
-      rw [show oqVal d.s (oqCh d.s d.b d.emit) = d.v from rfl, show (oqNovel d.s (.n 0) d.v).2.2 =
-        (oqNovel d.s hsp d.v).2.2 from rfl, h, word_zero]
-    · simp only [oqRes, hfinal, ↓reduceIte]
-      rw [show oqVal d.s (oqCh d.s d.b d.emit) = d.v from rfl,
-        d.hv_of hv (by have := d.b_le_ch; have := d.ch_le_v; omega) le_rfl, d.val_v hf1,
-        d.foldVal_eq hs hok.hrow hok.hrl]
-      rfl
+  · intro hfinal
+    simp only [oqRes, hfinal, ↓reduceIte]
+    rw [show oqVal d.s (oqCh d.s d.b d.emit) = d.v from rfl,
+      d.hv_of hv (by have := d.b_le_ch; have := d.ch_le_v; omega) le_rfl, d.val_v hf1,
+      d.foldVal_eq hs hok.hrow hok.hrl]
+    rfl
 
 end QD
 

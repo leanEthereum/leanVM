@@ -1,0 +1,2 @@
+# maturin's `__init__.py` re-exports the compiled submodule, which the top-level stub covers.
+py_lean_pq\.py_lean_pq

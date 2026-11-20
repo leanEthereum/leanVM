@@ -63,7 +63,7 @@ theorem valH_mono {α : Type} (E : α → Prop) (P : OracleComp CostSpecH α) :
       split
       · rename_i hcost
         rw [ite_eq_left (hcost.trans hb)]
-        exact ENNReal.tsum_le_tsum fun a => mul_le_mul' le_rfl (ih a _ _ (by omega))
+        exact tsum_le_tsum fun a => mul_le_mul' le_rfl (ih a _ _ (by omega))
       · exact bot_le
 
 /-- Averaging a family of continuations after a common program. -/
@@ -85,8 +85,8 @@ theorem valH_bind_le_avg {ρ α β : Type} (E : β → Prop) (w : ρ → ℝ≥0
       split
       · rename_i hcost
         simp_rw [← ENNReal.tsum_mul_left]
-        rw [ENNReal.tsum_comm]
-        refine ENNReal.tsum_le_tsum fun a => ?_
+        rw [tsum_comm]
+        refine tsum_le_tsum fun a => ?_
         simp_rw [mul_left_comm (w _), ENNReal.tsum_mul_left]
         by_cases ha : a ∈ support (fixedCostPH g c i)
         · refine mul_le_mul' le_rfl (ih a (fun x hx b' => h x ?_ b') _)
@@ -120,7 +120,7 @@ theorem valH_bind_le_of {α β : Type} (E : β → Prop)
       split
       · calc
           _ ≤ ∑' a, Pr{let x ← fixedCostPH g c i}[x = a] * V0 := by
-            refine ENNReal.tsum_le_tsum fun a => ?_
+            refine tsum_le_tsum fun a => ?_
             by_cases ha : a ∈ support (fixedCostPH g c i)
             · refine mul_le_mul' le_rfl (ih a _ fun x hx b' hb' => h x ?_ b' (by omega))
               rw [simulateQ_bind, simulateQ_spec_query, mem_support_bind_iff]
@@ -334,7 +334,7 @@ theorem avg_advDet (E : Bool → Prop) (parameter : PublicParameter) (data : Pub
           _ ≤ ∑' low, Pr{let z ← ($ᵗ Randomness : ProbComp Randomness)}[z = low] *
                 valH g c E (signCostSourceLoopH parameter data m (data.step m) digestAttemptLimit low >>= fun r =>
                   advRand parameter data (next r) (L ++ [⟨m, r⟩])) b := by
-            refine ENNReal.tsum_le_tsum fun low => mul_le_mul' le_rfl ?_
+            refine tsum_le_tsum fun low => mul_le_mul' le_rfl ?_
             exact valH_bind_le_avg g c E _ _ _ _ (fun r _ b' => ih r (S ++ [m]) _ (hrest r) b') b
           _ ≤ _ := by
             rw [signCostSourceH]
@@ -562,7 +562,7 @@ theorem win_avg_le (parameter : PublicParameter) (data : PublicData) (adversary 
     _ ≤ ∑' lows, Pr{let z ← ($ᵗ Det.LTable : ProbComp Det.LTable)}[z = lows] *
           valH g c (· = true) (costGameDet parameter data (Det.joinTable lows data.steps)
             (Memo.memoAdv adversary)) b :=
-      ENNReal.tsum_le_tsum fun lows => mul_le_mul' le_rfl
+      tsum_le_tsum fun lows => mul_le_mul' le_rfl
         (memo_game_le g c parameter data _ adversary b)
     _ ≤ _ := avg_game g c parameter data _ hnr b
 

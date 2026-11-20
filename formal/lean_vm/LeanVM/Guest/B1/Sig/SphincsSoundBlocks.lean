@@ -36,27 +36,31 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
 /-- Layer `l`'s counter: its four bytes read (`sp_from_bytes`). -/
 def sLayerCtr (l : Nat) : List Stmt × Nat × V := sFromMarks (sLayerBase l) 4 (sLayerBase l + 4)
 
-/-- Layer `l`'s encoding: `KECCAK` of `[pp, a0, enc_at, signed, counter]`, 68 bytes. -/
+/-- Layer `l`'s encoding: `KECCAK` of `[pp, a0, enc_at, signed, counter]`, 68 bytes, after its
+`A0` (`a0Pre`). -/
 def sLayerK (l : Nat) (a0 signed : V) : List Stmt × Nat × Nat :=
-  kMsg sPad [.cell sPP, .cell a0, .cell (.n ((sLayerCtr l).2.1 + 1)), .cell signed,
-    .cell (sLayerCtr l).2.2] 68 false none ((sLayerCtr l).2.1 + 2)
+  kMsg sPad [.cell sPP, .cell (a0Cell a0 (sAcOf l) ((sLayerCtr l).2.1 + 2)),
+    .cell (.n ((sLayerCtr l).2.1 + 1)), .cell signed, .cell (sLayerCtr l).2.2] 68 false none
+    ((sLayerCtr l).2.1 + 2 + a0W (sAcOf l))
 
 /-- Layer `l` before its call: the counter hinted and read, `enc_at = a1 + WOTS_ENC`, the
-encoding. -/
+encoding, the call's `A0`. -/
 def sLayerPre (l : Nat) (a0 a1 signed : V) : List Stmt :=
   [hintW "sp_counter" (runV (sLayerBase l) 4)] ++ (sLayerCtr l).1 ++
     [cst (sLayerCtr l).2.1 (lit (7 * 2 ^ 24)),
       addS (.n ((sLayerCtr l).2.1 + 1)) a1 (.n (sLayerCtr l).2.1)] ++
-    (sLayerK l a0 signed).1
+    a0Pre (sAcOf l) ((sLayerCtr l).2.1 + 2) ++ (sLayerK l a0 signed).1 ++
+    a0Pre (sAcOf l) (sLayerK l a0 signed).2.1
 
 /-- Layer `l`'s call of `sp_wots`. -/
 def sLayerCall (l : Nat) (a0 a1 signed : V) : Stmt :=
-  .call "sp_wots" [sPP, a0, a1, .n (sLayerK l a0 signed).2.2] [.n (sLayerK l a0 signed).2.1]
+  .call "sp_wots" [sPP, a0Cell a0 (sAcOf l) (sLayerK l a0 signed).2.1, a1, .n (sLayerK l a0 signed).2.2]
+    [.n ((sLayerK l a0 signed).2.1 + a0W (sAcOf l))]
 
 /-- Layer `l`'s path, from the leaf `sp_wots` returns. -/
 def sLayerPath (l : Nat) (a0 signed : V) : List Stmt × Nat × V :=
-  sPath sPad sPP a0 sLeafBit sLVal (sOffOf l) (sHeightOf l) 0 (.n (sLayerK l a0 signed).2.1)
-    ((sLayerK l a0 signed).2.1 + 1)
+  sPath sPad sPP a0 (sAcOf l) sLeafBit sLVal (sOffOf l) (sHeightOf l) 0
+    (.n ((sLayerK l a0 signed).2.1 + a0W (sAcOf l))) ((sLayerK l a0 signed).2.1 + a0W (sAcOf l) + 1)
 
 /-- **A layer around its call.** -/
 theorem sLayerAt_eq (l : Nat) (a0 a1 signed : V) :
@@ -69,9 +73,17 @@ theorem sLayerAt_eq (l : Nat) (a0 a1 signed : V) :
 /-- The call's positions: the encoding digest at `sEncOf l`, the leaf at `sLeafOf l`, the counter
 at `sCtrOf l`. -/
 theorem sLayerK_out (l : Nat) (a0 signed : V) :
-    (sLayerK l a0 signed).2.2 = sLayerBase l + 46 ∧
-      (sLayerK l a0 signed).2.1 = sLayerBase l + 47 := by
-  constructor <;> rfl
+    (sLayerK l a0 signed).2.2 = sLayerBase l + 46 + a0W (sAcOf l) ∧
+      (sLayerK l a0 signed).2.1 = sLayerBase l + 47 + a0W (sAcOf l) := by
+  have h1 : (sLayerK l a0 signed).2.1 = (sLayerCtr l).2.1 + 2 + a0W (sAcOf l) + 8 := rfl
+  have h2 : (sLayerK l a0 signed).2.2 = (sLayerCtr l).2.1 + 2 + a0W (sAcOf l) + 7 := rfl
+  have h3 : (sLayerCtr l).2.1 = sLayerBase l + 37 := rfl
+  omega
+
+/-- The call's `A0` is the layer's `sA0Of l`: for the top layer, the cell its `a0Pre` sets. -/
+theorem sLayerCall_a0 {l : Nat} (hl : l < 3) (signed : V) :
+    a0Cell (sA0Of l) (sAcOf l) (sLayerK l (sA0Of l) signed).2.1 = sA0Of l := by
+  interval_cases l <;> rfl
 
 theorem sLayerCtr_out (l : Nat) :
     (sLayerCtr l).2.2 = sCtrOf l ∧ (sLayerCtr l).2.1 = sLayerBase l + 37 := by

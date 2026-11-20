@@ -38,8 +38,8 @@ theorem prEvent_bind_le_add {α β γ δ : Type} (mx : ProbComp α) (f : α → 
     (hp : ∀ x ∈ support mx, Pr{let y ← f x}[P y] ≤ Pr{let y ← g x}[Q y] + Pr{let y ← h x}[R y]) :
     Pr{let y ← mx >>= f}[P y] ≤ Pr{let y ← mx >>= g}[Q y] + Pr{let y ← mx >>= h}[R y] := by
   simp only [OracleComp.prEvent_bind_eq_tsum]
-  rw [← ENNReal.tsum_add]
-  refine ENNReal.tsum_le_tsum fun x ↦ ?_
+  rw [← tsum_add]
+  refine tsum_le_tsum fun x ↦ ?_
   by_cases hx : x ∈ support mx
   · rw [← mul_add]; gcongr; exact hp x hx
   · simp [prEvent_eq_zero_of_not_mem_support mx hx]
@@ -74,9 +74,9 @@ theorem prEvent_bind_le_add_const {α β γ : Type} (mx : ProbComp α) (f : α �
   simp only [OracleComp.prEvent_bind_eq_tsum]
   calc ∑' x, Pr{let z ← mx}[z = x] * Pr{let y ← f x}[P y]
       ≤ ∑' x, (Pr{let z ← mx}[z = x] * Pr{let y ← g x}[Q y] + Pr{let z ← mx}[z = x] * a) :=
-        ENNReal.tsum_le_tsum fun x ↦ by rw [← mul_add]; gcongr; exact hp x
+        tsum_le_tsum fun x ↦ by rw [← mul_add]; gcongr; exact hp x
     _ = (∑' x, Pr{let z ← mx}[z = x] * Pr{let y ← g x}[Q y]) +
-          (∑' x, Pr{let z ← mx}[z = x]) * a := by rw [ENNReal.tsum_add, ENNReal.tsum_mul_right]
+          (∑' x, Pr{let z ← mx}[z = x]) * a := by rw [tsum_add, ENNReal.tsum_mul_right]
     _ ≤ _ := add_le_add le_rfl (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one mx))
 
 /-- **A pointwise bound with a constant on the support**, averaged over a prefix. -/
@@ -87,12 +87,12 @@ theorem prEvent_bind_le_add_const_of_support {α β γ : Type} (mx : ProbComp α
   simp only [OracleComp.prEvent_bind_eq_tsum]
   calc ∑' x, Pr{let z ← mx}[z = x] * Pr{let y ← f x}[P y]
       ≤ ∑' x, (Pr{let z ← mx}[z = x] * Pr{let y ← g x}[Q y] + Pr{let z ← mx}[z = x] * a) :=
-        ENNReal.tsum_le_tsum fun x ↦ by
+        tsum_le_tsum fun x ↦ by
           by_cases hx : x ∈ support mx
           · rw [← mul_add]; gcongr; exact hp x hx
           · simp [prEvent_eq_zero_of_not_mem_support mx hx]
     _ = (∑' x, Pr{let z ← mx}[z = x] * Pr{let y ← g x}[Q y]) +
-          (∑' x, Pr{let z ← mx}[z = x]) * a := by rw [ENNReal.tsum_add, ENNReal.tsum_mul_right]
+          (∑' x, Pr{let z ← mx}[z = x]) * a := by rw [tsum_add, ENNReal.tsum_mul_right]
     _ ≤ _ := add_le_add le_rfl (mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one mx))
 
 /-- Events of binds with pointwise equal events are equal. -/

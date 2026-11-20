@@ -135,7 +135,7 @@ theorem pois_sepSum (a : ℝ≥0) (j : ι) (h : ι → ℕ → ℝ≥0∞) (k : 
     pois a j (fun x => ∑ l, h l (x l)) k = ∑ l, (if l = j then pois1 a (h l) (k l) else h l (k l)) := by
   unfold pois
   simp only [Finset.mul_sum]
-  rw [Summable.tsum_finsetSum (fun _ _ => ENNReal.summable)]
+  rw [Summable.tsum_finsetSum (fun _ _ => CompleteLattice.summable)]
   refine Finset.sum_congr rfl fun l _ => ?_
   by_cases hl : l = j
   · subst hl

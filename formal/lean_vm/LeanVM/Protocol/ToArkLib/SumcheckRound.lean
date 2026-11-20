@@ -193,7 +193,7 @@ theorem card_filter_evaluate_eq_le [Fintype F] [DecidableEq F] (q q' : Message F
     rw [Finset.sum_eq_single i]
     · simp
     · intro j _ hji
-      rw [ite_eq_right fun h ↦ hji (Fin.ext h)]
+      rw [Finsupp.single_apply, ite_eq_right fun h ↦ hji (Fin.ext h)]
     · intro h
       exact absurd (Finset.mem_univ _) h
   have hp0 : p ≠ 0 := by

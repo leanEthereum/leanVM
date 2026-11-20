@@ -68,7 +68,7 @@ theorem meanWeight_le_of_supportW {β : Type} (step : ProbComp (β × DebtState 
     (h : ∀ r ∈ support step, weight tg initial r.2 ≤ c) : meanWeight tg initial step ≤ c := by
   unfold meanWeight
   calc ∑' r, Pr{let x ← step}[x = r] * weight tg initial r.2 ≤ ∑' r, Pr{let x ← step}[x = r] * c := by
-        refine ENNReal.tsum_le_tsum fun r => ?_
+        refine tsum_le_tsum fun r => ?_
         by_cases hr : r ∈ support step
         · exact mul_le_mul_right (h r hr) _
         · rw [(prEvent_eq_zero_of_not_mem_support _) hr, zero_mul, zero_mul]
@@ -137,7 +137,7 @@ theorem interp_weight_leW {α : Type} (computation : OracleComp (SourceCostSpec 
       · rw [OracleComp.tsum_prEvent_bind_mul]
         simp only [OracleComp.tsum_prEvent_map_mul]
         calc _ ≤ ∑' r, Pr{let x ← costStep model input state}[x = r] * weight tg initial r.2 :=
-              ENNReal.tsum_le_tsum fun r => mul_le_mul_right (ih r.1 _ r.2) _
+              tsum_le_tsum fun r => mul_le_mul_right (ih r.1 _ r.2) _
           _ ≤ _ := meanWeight_costStep_leW tg initial model input state
       · rw [OracleComp.tsum_prEvent_pure_mul]
 
@@ -149,7 +149,7 @@ theorem interp_weight_mul_leW {α : Type} (computation : OracleComp (SourceCostS
       weight tg initial state * K := by
   calc _ ≤ ∑' out, Pr{let x ← interp tg initial model computation budget state}[x = out] *
         (weight tg initial out.2 * K) := by
-        refine ENNReal.tsum_le_tsum fun out => ?_
+        refine tsum_le_tsum fun out => ?_
         by_cases hout : out ∈ support (interp tg initial model computation budget state)
         · exact mul_le_mul_right (mul_le_mul_right (hG out hout) _) _
         · rw [(prEvent_eq_zero_of_not_mem_support _) hout, zero_mul, zero_mul]
@@ -204,7 +204,7 @@ theorem wflag_bind {α β : Type} (first : OracleComp (SourceCostSpec D R ι H) 
       intro budget state
       rw [bind_assoc, wflag_query_bind, wflag_query_bind, interp_query_bind]
       split_ifs with hcost
-      · rw [OracleComp.tsum_prEvent_bind_mul, ← ENNReal.tsum_add]
+      · rw [OracleComp.tsum_prEvent_bind_mul, ← tsum_add]
         refine tsum_congr fun r => ?_
         rw [OracleComp.tsum_prEvent_map_mul, ih r.1 (budget - sourceCost input) r.2]
         simp only [traceCost_append, recorded_cost, Nat.sub_sub]

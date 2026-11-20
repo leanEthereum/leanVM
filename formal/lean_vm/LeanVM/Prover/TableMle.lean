@@ -264,7 +264,7 @@ theorem evaluate_jumpTerms (cp : List E) (hcp : 2 ≤ cp.length) (ev : List E) :
     match cp, hcp with
     | a :: b :: rest, _ => exact ⟨a, b, rest, rfl⟩
   simp [jumpTerms, jumpConstraints, Form.evaluate, sumE_eq, dot_cons]
-  try ring
+  ring
 
 /-- **A table's polynomial** is the verifier's constraints and forms. -/
 theorem evaluate_rowTerms (cp fp : List E) (hcp : 2 ≤ cp.length) (bus : BusResult) (t : Fin 6)

@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Builds and checks the statement package and the five proof projects as .github/workflows/lean.yml
 # does, one after another, each in its own directory with its own manifest, then lean_vm against
-# this repository's Rust (`leanvm`, which needs cargo). `lake build` at the root runs it.
+# this repository's Rust (`leanvm`). The files derived from the guest are not committed: the first
+# build that reads them writes them (`regen-guest.sh`), so `statement`, `lean_vm`, `leanvm` and `lean`
+# need cargo. `lake build` at the root runs it.
 #
 #   ./check-all.sh [lean] [vectors] [statement] [common] [lean_xmss] [lean_sphincs] [lean_da] [lean_vm] [leanvm]
 #   (default: all seven; `lean` is the first six, built together first, `vectors` is `leanvm`)
@@ -64,6 +66,34 @@ cache_get() {
 }
 cache_get_in() { (cd "$1" && lake exe cache get); }
 
+# The files derived from the guest (`.gitignore`), once per run, before the first build that reads
+# them: every one (`regen-guest.sh`), or the bytecode alone for the statement (`guest-export`). The
+# projects they are written into are scanned for escapes again, the written files included.
+regen() {
+  once regen || return 0
+  once export || true
+  command -v cargo > /dev/null || fail "the files derived from the guest need cargo (regen-guest.sh)"
+  cache_get lean_vm
+  step "lean_vm: every file derived from the guest (regen-guest.sh)"
+  lean_vm/scripts/regen-guest.sh
+  rescan Statement lean_vm
+}
+export_guest() {
+  once export || return 0
+  command -v cargo > /dev/null || fail "the guest's bytecode needs cargo (guest-export)"
+  step "the guest's bytecode (guest-export)"
+  cargo build --release --manifest-path lean_vm/scripts/guest-export/Cargo.toml
+  capped lean_vm/scripts/guest-export/target/release/guest-export lean_vm
+  rescan Statement
+}
+rescan() {
+  local p
+  for p in "$@"; do
+    step "$p: forbid proof escapes, the generated files included"
+    python3 -I tools/escape-scan.py "$p" || fail "$p: proof escape"
+  done
+}
+
 # `lake build` in $1, its modules admitted by memory (`lake-build.py`), then no deprecation warning
 # from the modules matching $2. Its last step, a plain `lake build`, replays a cached module's
 # warnings, so the log lists every one.
@@ -109,6 +139,7 @@ statement() {
     fail "Statement imports more than Mathlib, VCVio, CompPoly and itself"
   fi
   cache_get Statement
+  export_guest
   if once "build:Statement"; then
     step "Statement: build, its modules admitted by memory"
     python3 -I lake-build.py Statement
@@ -170,6 +201,7 @@ together() {
     if once "cache:$p"; then bg "$p: lake exe cache get" cache_get_in "$p"; fi
   done
   wait_bg
+  regen
   step "all six projects: one build, its modules admitted by memory"
   python3 -I lake-build.py lean_vm LeanVM LeanVMTests "${EXES[@]}" @statement/Statement @common/Common \
     @lean-xmss-security/LeanXmss @lean-xmss-security/XmssSecurity @lean-xmss-security/+XmssSecurity.Tests.QueryBudget \
@@ -191,6 +223,7 @@ executables() {
 lean_vm() {
   no_escapes lean_vm
   cache_get lean_vm
+  regen
   # Fails on any warning and on an axiom footprint beyond Lean's three (`LeanVM.lean`).
   if once "build:lean_vm"; then
     step "lean_vm: build, its modules admitted by memory"
@@ -199,28 +232,23 @@ lean_vm() {
   axioms lean_vm LeanVM LeanVM.theorems_hold LeanVM.corollaries_hold \
     LeanVM.Wire.roundTrip LeanVM.Wire.oneEncoding LeanVM.Wire.proveWithHash_wireDecodable
   executables
-  bg "lean_vm: the private-import firewall holds (firewall-canary), every file derived from the guest is current" \
-    canary_regen
+  bg "lean_vm: the private-import firewall holds (firewall-canary)" python3 -I tools/firewall-canary.py
   bg "lean_vm: the Rust vectors' costly checks (node-vectors)" in_lean_vm .lake/build/bin/node-vectors
   # The tests' runs too slow for the interpreter (`tests/LeanVMTests/Runs.lean`), compiled; `lake env`
   # for the `.olean` it reads.
   bg "lean_vm: the tests' runs (test-runs)" in_lean_vm lake env .lake/build/bin/test-runs
 }
 in_lean_vm() { (cd lean_vm && capped "$@"); }
-# A private import stops a rebuild, as `tools/deps.py` assumes (`notes/per-function-cone.md`); the canary
-# rebuilds its own modules, so the Lean build that follows waits for it. Then every generator after the
-# export (`leanvm`, which needs cargo, checks the export's).
-canary_regen() {
-  python3 -I tools/firewall-canary.py
-  lean_vm/scripts/regen-guest.sh --check --from core
-}
+# A private import stops a rebuild, as `tools/deps.py` assumes (`notes/per-function-cone.md`).
 
-# Against this repository's Rust: the guest's data is the one leanVM's sources give, and the Lean and Rust verifiers, and
-# the Lean and Rust wire encodings, agree on the fixtures and their mutations.
+# Against this repository's Rust: the Lean and Rust verifiers, and the Lean and Rust wire encodings, agree on the
+# fixtures and their mutations.
 leanvm() {
   command -v cargo > /dev/null || fail "leanvm: needs cargo; name the other projects to skip it"
+  regen
   executables
-  bg "leanvm: the guest's data is leanVM's" guest_export_check
+  step "leanvm: the verifier fixtures, the Rust prover's proofs (export-verifier-fixtures-rust.sh)"
+  lean_vm/scripts/export-verifier-fixtures-rust.sh lean_vm/tests/fixtures/verifier
   bg "leanvm: the fold rounds' table is the prover's (whir-fold-table)" \
     cargo run --release --manifest-path lean_vm/scripts/whir-fold-table/Cargo.toml -- \
     lean_vm/LeanVM/Protocol/ToArkLib/Whir/AffineCombinerDeployedTable.lean --check
@@ -234,10 +262,6 @@ leanvm() {
   # mutations: the same verdicts and decoded proofs, and the round trip through `Proof.toBytes`.
   bg "leanvm: the proof's wire encoding, Lean against Rust (wire-diff)" wire_diff
   bg "leanvm: the statement's honest prover's proofs, Lean-made, against both verifiers (prover-diff)" prover_diff
-}
-guest_export_check() {
-  cargo build --release --manifest-path lean_vm/scripts/guest-export/Cargo.toml
-  capped lean_vm/scripts/guest-export/target/release/guest-export lean_vm --check
 }
 guest_diff() {
   local gd

@@ -1,0 +1,3 @@
+# Staged static bridge archives: release packages bundle them, main never holds them.
+native/
+nimcache/

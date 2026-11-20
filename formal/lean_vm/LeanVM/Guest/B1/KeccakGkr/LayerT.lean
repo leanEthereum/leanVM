@@ -237,18 +237,18 @@ def sqIns : ℕ → List V
 
 /-- The grind before `s` and its squeeze: the nonce read at the cursor's word `47`
 (`fs_absorb_nonce`), its permutation (outputs from `layOff first + 531`, after the full queue's at
-`first = 1`), `grind_check` of `3` bits on its output `1`, and `s` its output `0` copied to
-`layOff first + 544`. -/
+`first = 1`), `grind_check` of `3` bits on its output `1`, and `s` its output `0`,
+`layOff first + 531`. -/
 def sqT (first : ℕ) : List Stmt :=
   if first = 1 then
     [keccakA (sqIns 1) ((List.range 13).map fun k ↦ .n (530 + k))] ++ fsNonceT (.n 7) 47 543 ++
       padRunT 546 ++
       [keccakA (permIns 1 [.n 544, .n 545] 547 (cap5 538)) ((List.range 13).map fun k ↦ .n (551 + k)),
-        grindCallT 3 (.n 552) (.n 14)] ++ challengeT (.n 551) 564
+        grindCallT 3 (.n 552) (.n 14)]
   else
     fsNonceT (.n 7) 47 528 ++
       [keccakA (sqIns 0) ((List.range 13).map fun k ↦ .n (531 + k)),
-        grindCallT 3 (.n 532) (.n 14)] ++ challengeT (.n 531) 544
+        grindCallT 3 (.n 532) (.n 14)]
 
 /-- The product at `s`, Horner from the top coefficient `a 46`, from the value `b`. -/
 def hornerT (a : ℕ → ℕ) (s b : ℕ) : List Stmt :=
@@ -258,48 +258,48 @@ def hornerT (a : ℕ → ℕ) (s b : ℕ) : List Stmt :=
 
 /-! ## The pack rounds and the local rounds -/
 
-/-- The pack rounds' first record (`rounds`, `o + 720`: the capacity after `s`, the cursor past the
+/-- The pack rounds' first record (`rounds`, `o + 719`: the capacity after `s`, the cursor past the
 product and the nonce, the product at `s`), the eight-round loop on `step_g`, and
 the remainder loop on `rem_g` from `rounds·step_g`, `prev_point·step_g⁸`, `point·step_g⁸`. -/
 def packSetupT (o first : ℕ) : List Stmt :=
-  [.atom (.load (.n (o + 718)) (.n 11) 2), .atom (.hint (.allocDyn (.n (o + 719)) (.n 8))),
-    .atom (.hint (.alloc (.n (o + 720)) 112)),
-    .atom (.load (.n (o + 539)) (.n (o + 720)) 0), .atom (.load (.n (o + 540)) (.n (o + 720)) 16),
-    .atom (.load (.n (o + 541)) (.n (o + 720)) 32), .atom (.load (.n (o + 542)) (.n (o + 720)) 48),
-    .atom (.load (.n (o + 543)) (.n (o + 720)) 64),
-    .atom (.const (.n (o + 721)) (word 281474976710656 0)),
-    .atom (.mul (.n (o + 722)) (.n 7) (.n (o + 721))),
-    .atom (.load (.n (o + 722)) (.n (o + 720)) 80), .atom (.load (.n (o + 717)) (.n (o + 720)) 96),
-    .atom (.const (.n (o + 723)) (word 1 0)), .atom (.add (.n (o + 724)) (.n (o + 723)) (.n 9)),
-    .atom (.const (.n (o + 725)) (word 1 0)),
-    .callIf (.n (o + 724)) (packLoopName first)
-      [.n (o + 725), .n 9, .n (o + 720), .n (o + 718), .n (o + 719), .n 14],
-    .atom (.mul (.n (o + 726)) (.n (o + 720)) (.n 9)), .atom (.mul (.n (o + 727)) (.n 9) (.n 9)),
+  [.atom (.load (.n (o + 717)) (.n 11) 2), .atom (.hint (.allocDyn (.n (o + 718)) (.n 8))),
+    .atom (.hint (.alloc (.n (o + 719)) 112)),
+    .atom (.load (.n (o + 539)) (.n (o + 719)) 0), .atom (.load (.n (o + 540)) (.n (o + 719)) 16),
+    .atom (.load (.n (o + 541)) (.n (o + 719)) 32), .atom (.load (.n (o + 542)) (.n (o + 719)) 48),
+    .atom (.load (.n (o + 543)) (.n (o + 719)) 64),
+    .atom (.const (.n (o + 720)) (word 281474976710656 0)),
+    .atom (.mul (.n (o + 721)) (.n 7) (.n (o + 720))),
+    .atom (.load (.n (o + 721)) (.n (o + 719)) 80), .atom (.load (.n (o + 716)) (.n (o + 719)) 96),
+    .atom (.const (.n (o + 722)) (word 1 0)), .atom (.add (.n (o + 723)) (.n (o + 722)) (.n 9)),
+    .atom (.const (.n (o + 724)) (word 1 0)),
+    .callIf (.n (o + 723)) (packLoopName first)
+      [.n (o + 724), .n 9, .n (o + 719), .n (o + 717), .n (o + 718), .n 14],
+    .atom (.mul (.n (o + 725)) (.n (o + 719)) (.n 9)), .atom (.mul (.n (o + 726)) (.n 9) (.n 9)),
+    .atom (.mul (.n (o + 727)) (.n (o + 726)) (.n (o + 726))),
     .atom (.mul (.n (o + 728)) (.n (o + 727)) (.n (o + 727))),
-    .atom (.mul (.n (o + 729)) (.n (o + 728)) (.n (o + 728))),
-    .atom (.mul (.n (o + 730)) (.n (o + 718)) (.n (o + 729))),
-    .atom (.mul (.n (o + 731)) (.n 9) (.n 9)),
+    .atom (.mul (.n (o + 729)) (.n (o + 717)) (.n (o + 728))),
+    .atom (.mul (.n (o + 730)) (.n 9) (.n 9)),
+    .atom (.mul (.n (o + 731)) (.n (o + 730)) (.n (o + 730))),
     .atom (.mul (.n (o + 732)) (.n (o + 731)) (.n (o + 731))),
-    .atom (.mul (.n (o + 733)) (.n (o + 732)) (.n (o + 732))),
-    .atom (.mul (.n (o + 734)) (.n (o + 719)) (.n (o + 733))),
-    .atom (.const (.n (o + 735)) (word 1 0)), .atom (.add (.n (o + 736)) (.n (o + 735)) (.n 10)),
-    .atom (.const (.n (o + 737)) (word 1 0)),
-    .callIf (.n (o + 736)) (remLoopName first)
-      [.n (o + 737), .n 10, .n (o + 726), .n (o + 730), .n 14, .n (o + 734)]]
+    .atom (.mul (.n (o + 733)) (.n (o + 718)) (.n (o + 732))),
+    .atom (.const (.n (o + 734)) (word 1 0)), .atom (.add (.n (o + 735)) (.n (o + 734)) (.n 10)),
+    .atom (.const (.n (o + 736)) (word 1 0)),
+    .callIf (.n (o + 735)) (remLoopName first)
+      [.n (o + 736), .n 10, .n (o + 725), .n (o + 729), .n 14, .n (o + 733)]]
 
 /-- The last record (`rounds·step_g·rem_g`) read, the local point allocated. -/
 def lastT (o : ℕ) : List Stmt :=
-  [.atom (.mul (.n (o + 738)) (.n (o + 726)) (.n 10))] ++
-    (List.range 7).map (fun j ↦ .atom (.load (.n (o + 739 + j)) (.n (o + 738)) (16 * j))) ++
-    [.atom (.hint (.alloc (.n (o + 746)) 11))]
+  [.atom (.mul (.n (o + 737)) (.n (o + 725)) (.n 10))] ++
+    (List.range 7).map (fun j ↦ .atom (.load (.n (o + 738 + j)) (.n (o + 737)) (16 * j))) ++
+    [.atom (.hint (.alloc (.n (o + 745)) 11))]
 
 /-- `t`'s three words. -/
 def tReadsT (o : ℕ) : List Stmt :=
-  fsNextT (.n (o + 744)) 33 (o + 1110) ++ fsNextT (.n (o + 744)) 34 (o + 1113) ++
-    fsNextT (.n (o + 744)) 35 (o + 1116)
+  fsNextT (.n (o + 743)) 33 (o + 1098) ++ fsNextT (.n (o + 743)) 34 (o + 1101) ++
+    fsNextT (.n (o + 743)) 35 (o + 1104)
 
 /-- The lane weights of the local point (`f_lanes[LANE_OFF + i]`). -/
-def laneW (o i : ℕ) : ℕ := eqfVal (o + 1119) 5 25 4 i
+def laneW (o i : ℕ) : ℕ := eqfVal (o + 1107) 5 25 4 i
 
 /-! ## The first claim's weight -/
 
@@ -494,22 +494,22 @@ def formAll (lp : V) (sh f : ℕ → ℕ) (B : ℕ) : List Stmt × ℕ × ℕ :=
 /-- The weight section. -/
 def weightT (first o : ℕ) : List Stmt :=
   if first = 1 then
-    .atom (.load (.n (o + 1188)) (.n 11) 3) :: lanesEqT (.n (o + 1188)) (.n (o + 746)) (laneW o)
-      (o + 1189)
+    .atom (.load (.n (o + 1176)) (.n 11) 3) :: lanesEqT (.n (o + 1176)) (.n (o + 745)) (laneW o)
+      (o + 1177)
   else
-    [.atom (.load (.n (o + 1188)) (.n 11) 3), .atom (.load (.n (o + 1189)) (.n 11) 4)] ++
-      shiftsT (.n (o + 1189)) (.n (o + 746)) (o + 1190) ++
-      (formAll (.n (o + 1188)) (shiftsV (o + 1190)) (laneW o) (shiftsEnd (o + 1190))).1
+    [.atom (.load (.n (o + 1176)) (.n 11) 3), .atom (.load (.n (o + 1177)) (.n 11) 4)] ++
+      shiftsT (.n (o + 1177)) (.n (o + 745)) (o + 1178) ++
+      (formAll (.n (o + 1176)) (shiftsV (o + 1178)) (laneW o) (shiftsEnd (o + 1178))).1
 
 /-- The weight's value. -/
 def weightVal (first o : ℕ) : ℕ :=
-  if first = 1 then o + 1298
-  else (formAll (.n (o + 1188)) (shiftsV (o + 1190)) (laneW o) (shiftsEnd (o + 1190))).2.2
+  if first = 1 then o + 1286
+  else (formAll (.n (o + 1176)) (shiftsV (o + 1178)) (laneW o) (shiftsEnd (o + 1178))).2.2
 
 /-- The value after the weight section. -/
 def weightEnd (first o : ℕ) : ℕ :=
-  if first = 1 then o + 1299
-  else (formAll (.n (o + 1188)) (shiftsV (o + 1190)) (laneW o) (shiftsEnd (o + 1190))).2.1
+  if first = 1 then o + 1287
+  else (formAll (.n (o + 1176)) (shiftsV (o + 1178)) (laneW o) (shiftsEnd (o + 1178))).2.1
 
 /-- The next claim's lanes: `f[x] + β (f[x - 1] + β f[x - 2])` in each row, from `B`. -/
 def lanesOutT (beta : ℕ) (f : ℕ → ℕ) (lp B : ℕ) : List Stmt :=
@@ -552,7 +552,7 @@ def lflipT (lp : V) (sl : ℕ → ℕ) (top top1 i b : ℕ) : List Stmt :=
             (.n (b + 5 + 4 * k)))]).flatten
 
 /-- The slice tree of the local point's first five coordinates, from `E0`. -/
-def sliceB (W : ℕ) : ℕ := W + 127
+def sliceB (W : ℕ) : ℕ := W + 126
 
 /-- The top coordinate, `top`; `top1 = 1 + top` at `+ 2`; the flips' buffer at `+ 3`. -/
 def topV (W : ℕ) : ℕ := eqfEnd 5 32 (sliceB W)
@@ -560,41 +560,40 @@ def topV (W : ℕ) : ℕ := eqfEnd 5 32 (sliceB W)
 /-- The flips, from `topV W + 4`, each `43` values; then their stores and the flips' pointer. -/
 def lflipsT (W : ℕ) : List Stmt :=
   ((List.range 7).map fun i ↦
-    lflipT (.n (W + 26)) (eqfVal (sliceB W) 5 32 4) (topV W) (topV W + 2) i (topV W + 4 + 43 * i) ++
+    lflipT (.n (W + 25)) (eqfVal (sliceB W) 5 32 4) (topV W) (topV W + 2) i (topV W + 4 + 43 * i) ++
       [.atom (.load (.n (topV W + 4 + 43 * i + 42)) (.n (topV W + 3)) i)]).flatten
 
 /-- The final check, the squeeze of `β`, the next claim's record, its flips, the return; `W` the
 first value, `wv` the weight's. -/
 def tailT (o W wv : ℕ) : List Stmt :=
   [.atom (.copy (.n W) (.n wv)),
-    .atom (.mul (.n (W + 1)) (.n (o + 625)) (.n (o + 1110))),
-    .atom (.add (.n (W + 2)) (.n (o + 625)) (.n (o + 1113))),
-    .atom (.mul (.n (W + 3)) (.n (W + 2)) (.n (o + 1116))),
+    .atom (.mul (.n (W + 1)) (.n (o + 624)) (.n (o + 1098))),
+    .atom (.add (.n (W + 2)) (.n (o + 624)) (.n (o + 1101))),
+    .atom (.mul (.n (W + 3)) (.n (W + 2)) (.n (o + 1104))),
     .atom (.add (.n (W + 4)) (.n (W + 1)) (.n (W + 3))),
     .atom (.mul (.n (W + 5)) (.n W) (.n (W + 4))),
-    .atom (.assertEq (.n (W + 5)) (.n (o + 1109))),
+    .atom (.assertEq (.n (W + 5)) (.n (o + 1097))),
     .atom (.const (.n (W + 6)) (word 0 0)), .atom (.const (.n (W + 7)) (word 0 0)),
-    keccakA ([.n (o + 1111), .n (o + 1112), .n (o + 1114), .n (o + 1115), .n (o + 1117),
-      .n (o + 1118), .n (W + 6), .n (W + 7)] ++ cap5 (o + 1096))
+    keccakA ([.n (o + 1099), .n (o + 1100), .n (o + 1102), .n (o + 1103), .n (o + 1105),
+      .n (o + 1106), .n (W + 6), .n (W + 7)] ++ cap5 (o + 1085))
       ((List.range 13).map fun k ↦ .n (W + 8 + k))] ++
-  challengeT (.n (W + 8)) (W + 21) ++
-  [.atom (.mul (.n (W + 22)) (.n (W + 21)) (.n (o + 1116))),
-    .atom (.add (.n (W + 23)) (.n (o + 1113)) (.n (W + 22))),
-    .atom (.mul (.n (W + 24)) (.n (W + 21)) (.n (W + 23))),
-    .atom (.add (.n (W + 25)) (.n (o + 1110)) (.n (W + 24))),
-    .atom (.load (.n (W + 25)) (.n 12) 0), .atom (.load (.n (o + 719)) (.n 12) 2),
-    .atom (.load (.n (o + 746)) (.n 12) 4), .atom (.hint (.alloc (.n (W + 26)) 25))] ++
-  lanesOutT (W + 21) (laneW o) (W + 26) (W + 27) ++
-  [.atom (.load (.n (W + 26)) (.n 12) 3)] ++
-  eqfT (.n (o + 746)) 0 5 32 (sliceB W) ++
-  [.atom (.load (.n (topV W)) (.n (o + 746)) 5), .atom (.const (.n (topV W + 1)) (word 1 0)),
+  [.atom (.mul (.n (W + 21)) (.n (W + 8)) (.n (o + 1104))),
+    .atom (.add (.n (W + 22)) (.n (o + 1101)) (.n (W + 21))),
+    .atom (.mul (.n (W + 23)) (.n (W + 8)) (.n (W + 22))),
+    .atom (.add (.n (W + 24)) (.n (o + 1098)) (.n (W + 23))),
+    .atom (.load (.n (W + 24)) (.n 12) 0), .atom (.load (.n (o + 718)) (.n 12) 2),
+    .atom (.load (.n (o + 745)) (.n 12) 4), .atom (.hint (.alloc (.n (W + 25)) 25))] ++
+  lanesOutT (W + 8) (laneW o) (W + 25) (W + 26) ++
+  [.atom (.load (.n (W + 25)) (.n 12) 3)] ++
+  eqfT (.n (o + 745)) 0 5 32 (sliceB W) ++
+  [.atom (.load (.n (topV W)) (.n (o + 745)) 5), .atom (.const (.n (topV W + 1)) (word 1 0)),
     .atom (.add (.n (topV W + 2)) (.n (topV W + 1)) (.n (topV W))),
     .atom (.hint (.alloc (.n (topV W + 3)) 7))] ++
   lflipsT W ++
   [.atom (.load (.n (topV W + 3)) (.n 12) 5)] ++
   (List.range 5).map (fun j ↦ .atom (.copy (.n (topV W + 305 + j)) (.n (W + 16 + j)))) ++
   [.atom (.const (.n (topV W + 310)) (word 68719476736 0)),
-    .atom (.mul (.n (topV W + 311)) (.n (o + 744)) (.n (topV W + 310))),
+    .atom (.mul (.n (topV W + 311)) (.n (o + 743)) (.n (topV W + 310))),
     .atom (.copy (.n (topV W + 312)) (.n (topV W + 311))),
     .ret [.n (topV W + 305), .n (topV W + 306), .n (topV W + 307), .n (topV W + 308),
       .n (topV W + 309), .n (topV W + 312)]]
@@ -605,11 +604,11 @@ def tailT (o W wv : ℕ) : List Stmt :=
 def layerT (first : ℕ) : List Stmt :=
   headT first ++ prodT (.n 7) (muB first) (prodTab first) ++ checkT (accL first) ++
     sqT first ++ rmfeBlockT (layOff first) ++
-    hornerT (fun k ↦ ((prodTab first).getD k default).a) (layOff first + 544) (layOff first + 626) ++
+    hornerT (fun k ↦ ((prodTab first).getD k default).a) (layOff first + 531) (layOff first + 625) ++
     packSetupT (layOff first) first ++ lastT (layOff first) ++
-    localRoundsT (.n (layOff first + 744)) (.n (layOff first + 746)) (.n (layOff first + 745))
-      (cap5 (layOff first + 739)) (layOff first + 747) 11 ++
-    tReadsT (layOff first) ++ eqfT (.n (layOff first + 746)) 6 5 25 (layOff first + 1119) ++
+    localRoundsT (.n (layOff first + 743)) (.n (layOff first + 745)) (.n (layOff first + 744))
+      (cap5 (layOff first + 738)) (layOff first + 746) 11 ++
+    tReadsT (layOff first) ++ eqfT (.n (layOff first + 745)) 6 5 25 (layOff first + 1107) ++
     weightT first (layOff first) ++
     tailT (layOff first) (weightEnd first (layOff first)) (weightVal first (layOff first))
 

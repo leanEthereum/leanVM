@@ -1,0 +1,14 @@
+[package]
+name = "py-lean-pq"
+version.workspace = true
+edition = "2021"
+resolver = "2"
+
+[lib]
+name = "py_lean_pq"
+crate-type = ["cdylib"]
+
+[dependencies]
+# maturin enables pyo3/extension-module (pyproject.toml), so plain cargo builds link normally.
+pyo3 = { version = "0.28.3" }
+lean-pq = { workspace = true }

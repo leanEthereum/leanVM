@@ -35,7 +35,7 @@ open LeanVM.Parameters LeanVM.Protocol.Whir LeanVM.Protocol.Whir.AffineCombiner 
 theorem foldRoundBound_of_admissible {n : ℕ} (dom : Fin n ↪ E) {d A m D B N : ℕ}
     (hgap : n * d < (A - 1) * (A - 1)) (hadm : Admissible n d A m D B)
     (hN : nAff (Fintype.card E) n d A m D B +
-      2 * AffineCombiner.jl n (A - 1) d * (Fintype.card E : ℚ) ≤ N) :
+      2 * jl n (A - 1) d * (Fintype.card E : ℚ) ≤ N) :
     FoldRoundBound dom d A N := by
   classical
   intro ρ _ f g Λ₀ Λ₁ c Bp hviol u₀ v c₀ c₁
@@ -80,9 +80,9 @@ theorem foldRoundBound_of_ok {κ R k Aend j m D B budget : ℕ} (h64 : κ + R �
   have hq : (0 : ℚ) < (qE : ℚ) := by positivity
   refine le_of_mul_le_mul_left ?_ hq
   calc (qE : ℚ) * (nAff qE (roundN κ R) (roundD κ k) (roundA k Aend j) m D B +
-        2 * AffineCombiner.jl (roundN κ R) (roundA k Aend j - 1) (roundD κ k) * (qE : ℚ))
+        2 * jl (roundN κ R) (roundA k Aend j - 1) (roundD κ k) * (qE : ℚ))
       = (qE : ℚ) * nAff qE (roundN κ R) (roundD κ k) (roundA k Aend j) m D B +
-        2 * AffineCombiner.jl (roundN κ R) (roundA k Aend j - 1) (roundD κ k) * (qE : ℚ) ^ 2 := by
+        2 * jl (roundN κ R) (roundA k Aend j - 1) (roundD κ k) * (qE : ℚ) ^ 2 := by
         ring
     _ ≤ budget * (qE : ℚ) ^ 2 := hrow
     _ = (qE : ℚ) * (budget * (qE : ℚ)) := by ring

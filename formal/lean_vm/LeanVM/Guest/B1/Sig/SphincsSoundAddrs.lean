@@ -192,7 +192,8 @@ theorem sMidAddrs_sound {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sMid
 
 /-- **The top layer's addresses**. -/
 theorem sTopAddrs_sound {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sTopAddrs) :
-    σ (sA0Of 2) = adrsCell0 2 (layerTreeN T 2) ∧ σ (sA1Of 2) = adrsCell1 0 (layerLeafN T 2) 0 0 := by
+    a0Val σ (sA0Of 2) (sAcOf 2) = adrsCell0 2 (layerTreeN T 2) ∧
+      σ (sA1Of 2) = adrsCell1 0 (layerLeafN T 2) 0 0 := by
   obtain ⟨-, -, v24, vm⟩ := lval_cells hD
   obtain ⟨-, -, b2⟩ := leaves_lt T
   have c0 : σ (.n 5556) = lit (2 ^ 56) := h.atom (a := .const (.n 5556) _) (by simp [sTopAddrs, cst])
@@ -200,7 +201,7 @@ theorem sTopAddrs_sound {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sTop
   have c2 : σ (.n 5558) = lit (2 ^ 48) := h.atom (a := .const (.n 5558) _) (by simp [sTopAddrs, cst])
   have m3 : σ (.n 5559) = σ (sLVal 24) * σ (.n 5558) := h.atom (a := .mul (.n 5559) _ _) (by simp [sTopAddrs, mulS])
   have a4 : σ (sA1Of 2) = σ (.n 5557) + σ (.n 5559) := h.atom (a := .add (sA1Of 2) _ _) (by simp [sTopAddrs, addS])
-  have c5 : σ (sA0Of 2) = lit (2 ^ 25) := h.atom (a := .const (sA0Of 2) _) (by simp [sTopAddrs, cst, sA0Of])
+  have c5 : a0Val σ (sA0Of 2) (sAcOf 2) = lit (2 ^ 25) := rfl
   obtain ⟨m, hm, q, hq, e2⟩ : ∃ m < 256, ∃ q < 4, layerLeafN T 2 = m + 256 * q :=
     ⟨layerLeafN T 2 % 256, by omega, layerLeafN T 2 / 256, by omega, by omega⟩
   have hm' : layerLeafN T 2 % 256 = m := by omega

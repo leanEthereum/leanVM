@@ -55,23 +55,23 @@ def vsCallSkL : List (Option V × (String ⊕ (V × List String)) × List V × L
     (none, .inl "certify_placement", vsNs [83, 4], vsNs [274, 275]),
     (none, .inl "log2_ceil_in_the_exponent__L16_L34", vsNs [274, 4], vsNs [276]),
     (none, .inl "grind_check__L15", vsNs [289, 302], []),
-    (none, .inr (.n 278, vsSqpNames), vsNs [296, 297, 298, 299, 300, 303, 304],
-      vsNs [305, 306, 307, 308, 309]),
-    (none, .inl "opening_message__L1_L1", vsNs [305, 306, 307, 308, 309, 312, 310],
-      vsNs [313, 314, 315, 316, 317, 318, 319, 320]),
-    (none, .inr (.n 322, vsBgNames), vsNs [314, 328], vsNs [329]),
-    (none, .inl "verify_bus_gkr", vsNs [554, 555, 556, 557, 558, 320, 253, 254, 561],
-      vsNs [562, 563, 564, 565, 566, 567, 568]),
-    (none, .inl "verify_tables", vsNs [562, 563, 564, 565, 566, 567, 0, 1, 254, 253, 71, 26, 4,
-      335, 559, 6, 569, 568, 572, 570], vsNs [573, 574, 575, 576, 577, 578, 579, 580, 581, 582]),
-    (none, .inl "verify_keccak", vsNs [573, 574, 575, 576, 577, 578, 583, 569, 587, 584, 585, 589],
-      vsNs [590, 591, 592, 593, 594, 595, 596]),
-    (none, .inl "grind_check__L13", vsNs [606, 619], []),
-    (none, .inl "ring_switch_target", vsNs [585, 847], vsNs [1361]),
-    (none, .inr (.n 278, vsOpenNames), vsNs [66, 1370, 1371, 1372, 1373, 1374, 1917, 268, 271,
-      1919, 1921], vsNs [1922, 1923, 1924, 1925, 1926]),
-    (none, .inl "check_opening_terminal", vsNs [4, 254, 569, 581, 253, 579, 72, 583, 83, 1375, 275,
-      584, 848, 1923, 1924, 1925, 1926, 1922, 304, 276], [])]
+    (none, .inr (.n 278, vsSqpNames), vsNs [296, 297, 298, 299, 300, 288, 303],
+      vsNs [304, 305, 306, 307, 308]),
+    (none, .inl "opening_message__L1_L1", vsNs [304, 305, 306, 307, 308, 311, 309],
+      vsNs [312, 313, 314, 315, 316, 317, 318, 319]),
+    (none, .inr (.n 321, vsBgNames), vsNs [313, 327], vsNs [328]),
+    (none, .inl "verify_bus_gkr", vsNs [538, 539, 540, 541, 542, 319, 253, 254, 544],
+      vsNs [545, 546, 547, 548, 549, 550, 551]),
+    (none, .inl "verify_tables", vsNs [545, 546, 547, 548, 549, 550, 0, 1, 254, 253, 71, 26, 4,
+      334, 530, 6, 552, 551, 555, 553], vsNs [556, 557, 558, 559, 560, 561, 562, 563, 564, 565]),
+    (none, .inl "verify_keccak", vsNs [556, 557, 558, 559, 560, 561, 566, 552, 570, 567, 568, 572],
+      vsNs [573, 574, 575, 576, 577, 578, 579]),
+    (none, .inl "grind_check__L13", vsNs [589, 602], []),
+    (none, .inl "ring_switch_target", vsNs [568, 814], vsNs [1328]),
+    (none, .inr (.n 278, vsOpenNames), vsNs [66, 1337, 1338, 1339, 1340, 1341, 1883, 268, 271,
+      1885, 1887], vsNs [1888, 1889, 1890, 1891, 1892]),
+    (none, .inl "check_opening_terminal", vsNs [4, 254, 552, 564, 253, 562, 72, 566, 83, 1329, 275,
+      567, 815, 1889, 1890, 1891, 1892, 1888, 303, 276], [])]
 
 theorem vs_callsSk : vsCPre.filterMap vsCallSk = vsCallSkL := by decide +kernel
 
@@ -116,22 +116,22 @@ structure VsHonVals {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSe
   e271 : σ (.n 271) = S.x1
   oodCell : σ (.n 289) = cellsOfState S.oodSt false 1
   oodCap : [σ (.n 296), σ (.n 297), σ (.n 298), σ (.n 299), σ (.n 300)] = capOf S.oodSt
-  oodCh : σ (.n 303) = challengeOf S.oodSt
-  e312 : σ (.n 312) = ptr (vb bs 1) * gen ^ 11
-  s3cap : [σ (.n 554), σ (.n 555), σ (.n 556), σ (.n 557), σ (.n 558)] = S.s3.cap
-  beta : σ (.n 559) = S.wb.2
-  e583 : σ (.n 583) = gen ^ S.τ
-  e587 : σ (.n 587) = ptr (S.cL bs)
-  ringCell : σ (.n 606) = cellsOfState S.ringSt false 1
-  s7cap : [σ (.n 1370), σ (.n 1371), σ (.n 1372), σ (.n 1373), σ (.n 1374)] = capOf S.s7.perm
-  lam : σ (.n 1375) = S.lam
-  target : σ (.n 1917) = S.target
-  e1928 : σ (.n 1919) = ptr (S.cW bs)
+  oodCh : σ (.n 288) = challengeOf S.oodSt
+  e312 : σ (.n 311) = ptr (vb bs 1) * gen ^ 11
+  s3cap : [σ (.n 538), σ (.n 539), σ (.n 540), σ (.n 541), σ (.n 542)] = S.s3.cap
+  beta : σ (.n 530) = S.wb.2
+  e583 : σ (.n 566) = gen ^ S.τ
+  e587 : σ (.n 570) = ptr (S.cL bs)
+  ringCell : σ (.n 589) = cellsOfState S.ringSt false 1
+  s7cap : [σ (.n 1337), σ (.n 1338), σ (.n 1339), σ (.n 1340), σ (.n 1341)] = capOf S.s7.perm
+  lam : σ (.n 1329) = S.lam
+  target : σ (.n 1883) = S.target
+  e1928 : σ (.n 1885) = ptr (S.cW bs)
   e278 : σ (.n 278) = gen ^ (S.μs - 20)
   e66 : σ (.n 66) = Whir.rateSel S.rate
-  e322 : σ (.n 322) = gen ^ (S.d - 20)
+  e322 : σ (.n 321) = gen ^ (S.d - 20)
   e252 : σ (.n 252) = gen ^ S.pushT
-  tabs : ∀ d ∈ [302, 328, 561, 572, 589, 619, 1921], σ (.n d) = ptr sqE * gen ^ winTabAt
+  tabs : ∀ d ∈ [302, 327, 544, 555, 572, 602, 1887], σ (.n d) = ptr sqE * gen ^ winTabAt
 
 namespace ChildSegs
 
@@ -265,11 +265,11 @@ theorem vs_honVals {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : 
   have o7 := O.o7
   have eF : vsFpwFs w = ⟨capOf S.busSt, []⟩ := by
     simp only [vsFpwFs]
-    rw [wr (j := 7) (k := 2) (a := 315) (by norm_num) (by decide) rfl,
-      wr (j := 7) (k := 3) (a := 316) (by norm_num) (by decide) rfl,
-      wr (j := 7) (k := 4) (a := 317) (by norm_num) (by decide) rfl,
-      wr (j := 7) (k := 5) (a := 318) (by norm_num) (by decide) rfl,
-      wr (j := 7) (k := 6) (a := 319) (by norm_num) (by decide) rfl, o7]
+    rw [wr (j := 7) (k := 2) (a := 314) (by norm_num) (by decide) rfl,
+      wr (j := 7) (k := 3) (a := 315) (by norm_num) (by decide) rfl,
+      wr (j := 7) (k := 4) (a := 316) (by norm_num) (by decide) rfl,
+      wr (j := 7) (k := 5) (a := 317) (by norm_num) (by decide) rfl,
+      wr (j := 7) (k := 6) (a := 318) (by norm_num) (by decide) rfl, o7]
     rfl
   obtain ⟨-, hβ⟩ := vs_fpw (rd := rd) (w := w) (args := args) hl
   rw [eF] at hβ
@@ -277,19 +277,19 @@ theorem vs_honVals {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : 
   -- the tables' evaluations and the stream's cursors
   have hxl := (S.H_run hbl).2.2.2
   obtain ⟨c561, c572, c589, h583, h587⟩ := vs_callsV (rd := rd) (w := w) (args := args) hl
-  have h582 : w 582 = ptr (S.cT bs + (13 + (3 * S.nT + 1))) := by
-    rw [wr (j := 10) (k := 9) (a := 582) (by norm_num) (by decide) rfl, O.o10, vs_ptr_add]
+  have h582 : w 565 = ptr (S.cT bs + (13 + (3 * S.nT + 1))) := by
+    rw [wr (j := 10) (k := 9) (a := 565) (by norm_num) (by decide) rfl, O.o10, vs_ptr_add]
     simp only [Tables.VtHonest.retsH, Fs.squeeze, capOf, List.cons_append, List.nil_append,
       List.getD_cons_succ, List.getD_cons_zero]
     rw [show ofK (addressOfIndex (S.vtB bs sqE (S.leavesB (outs.take 10))).cur) = ptr (S.cT bs)
       from rfl, mul_assoc, mul_assoc, ← pow_succ', ← pow_add]
     rfl
   have o11 := O.o11
-  have h595 : w 595 = ptr (S.cK bs + S.xsK.length) := by
-    rw [wr (j := 11) (k := 5) (a := 595) (by norm_num) (by decide) rfl, o11, vs_ptr_add]
+  have h595 : w 578 = ptr (S.cK bs + S.xsK.length) := by
+    rw [wr (j := 11) (k := 5) (a := 578) (by norm_num) (by decide) rfl, o11, vs_ptr_add]
     simp only [capOf, List.cons_append, List.nil_append, List.getD_cons_succ, List.getD_cons_zero]
   -- the ring map
-  have hnonce : LoadHolds rd (w 595) 0 S.ringN := by
+  have hnonce : LoadHolds rd (w 578) 0 S.ringN := by
     rw [h595]
     have h := S.sub_stream b (P := sizeWords S.logMem S.rowsN S.rate ++ [S.x0, S.x1] ++
       [S.oodN, S.oodV] ++ [S.busN] ++ S.xsG ++ S.xsT ++ S.xsK) (X := [S.ringN])
@@ -300,17 +300,17 @@ theorem vs_honVals {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : 
       S.cK bs + S.xsK.length by simp only [ChildSegs.cK, ChildSegs.cT, ChildSegs.cG]; omega] at hr
   have hK : vsKCap w = capOf S.s6.perm := by
     simp only [vsKCap]
-    rw [wr (j := 11) (k := 0) (a := 590) (by norm_num) (by decide) rfl,
-      wr (j := 11) (k := 1) (a := 591) (by norm_num) (by decide) rfl,
-      wr (j := 11) (k := 2) (a := 592) (by norm_num) (by decide) rfl,
-      wr (j := 11) (k := 3) (a := 593) (by norm_num) (by decide) rfl,
-      wr (j := 11) (k := 4) (a := 594) (by norm_num) (by decide) rfl, o11]
+    rw [wr (j := 11) (k := 0) (a := 573) (by norm_num) (by decide) rfl,
+      wr (j := 11) (k := 1) (a := 574) (by norm_num) (by decide) rfl,
+      wr (j := 11) (k := 2) (a := 575) (by norm_num) (by decide) rfl,
+      wr (j := 11) (k := 3) (a := 576) (by norm_num) (by decide) rfl,
+      wr (j := 11) (k := 4) (a := 577) (by norm_num) (by decide) rfl, o11]
     rfl
   obtain ⟨-, m606, m619, -, mEnd⟩ := vs_maps (rd := rd) (w := w) (args := args) hl hnonce
   have hMap : vsMapSt (vsKCap w) S.ringN = S.ringSt := by rw [hK, S.ringSt_eq hbl]; rfl
   rw [hMap] at m606 mEnd
-  have hs7 : S.s7 = ⟨[vsσ rd w args (.n 840), vsσ rd w args (.n 841), vsσ rd w args (.n 842),
-      vsσ rd w args (.n 843), vsσ rd w args (.n 844)], []⟩ := by
+  have hs7 : S.s7 = ⟨[vsσ rd w args (.n 808), vsσ rd w args (.n 809), vsσ rd w args (.n 810),
+      vsσ rd w args (.n 811), vsσ rd w args (.n 812)], []⟩ := by
     rw [S.ring_inv.2.2.2.1, mEnd]
   -- λ and the target
   have hcol : S.claims.map (·.column) = Tables.claimColumns :=
@@ -331,14 +331,14 @@ theorem vs_honVals {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : 
     rw [Tables.VtHonest.poolW] at this
     have h2 := (Main.readsAt_append'.1 this).2
     rwa [List.length_append, List.length_replicate, hx4] at h2
-  have hcew : ReadsAt rd (w 582) (((S.claims.drop 4).take 153).map (·.value)) := by
+  have hcew : ReadsAt rd (w 565) (((S.claims.drop 4).take 153).map (·.value)) := by
     rw [S.col_vals hbl, (S.evs_eq hbl).1, h582, show 13 + (3 * S.nT + 1) = 14 + 3 * S.nT by omega]
     have hT : ReadsAt rd (ptr (S.cT bs)) S.xsT := subOf_memL hB (S.sub_xsT b hbl)
     rw [← List.take_append_drop (14 + 3 * S.nT) S.xsT] at hT
     have h2 := (Main.readsAt_append'.1 hT).2
     rwa [List.length_take, Nat.min_eq_left (by omega), ← vs_ptr_add] at h2
-  have hv : ReadsAt rd (w 310) [S.oodV] := by
-    rw [wa (i := 7) (a := 310) (by norm_num) rfl]; exact own 7 (by norm_num)
+  have hv : ReadsAt rd (w 309) [S.oodV] := by
+    rw [wa (i := 7) (a := 309) (by norm_num) rfl]; exact own 7 (by norm_num)
   obtain ⟨hlsq, htg⟩ := vs_lam (rd := rd) (w := w) (args := args) hl hcl hcol hpool hcew hpi hv
   rw [← hs7] at hlsq
   -- the tail
@@ -363,7 +363,7 @@ theorem vs_honVals {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : 
         vs_rdAt_of_load (vs_rdg hdims (k := 1 + t) (by simp [vsDimsW, S.hs_length]; omega))]
       simp only [vsDimsW, List.getD_cons_succ, show 1 + t = t + 1 by omega]
   have hτ : S.τ = S.hs.getD 5 0 := S.τ_eq
-  have hlam : vsσ rd w args (.n 1375) = S.lam := by
+  have hlam : vsσ rd w args (.n 1329) = S.lam := by
     show _ = S.s7.squeeze.1
     rw [hlsq]
   refine ⟨(W 7 (by omega)).1.trans st7, (W 0 (by omega)).1.trans st0,
@@ -383,8 +383,8 @@ theorem vs_honVals {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : 
   · exact (congrArg (fun p : E × Fs ↦ p.2.cap) hlsq).symm
   · exact hlam
   · rw [htg, S.target_eq hbl, hlam,
-      wr (j := 13) (k := 0) (a := 1361) (by norm_num) (by decide) rfl, O.o13,
-      wr (j := 11) (k := 6) (a := 596) (by norm_num) (by decide) rfl, o11, S.ring_inv.2.2.1]
+      wr (j := 13) (k := 0) (a := 1328) (by norm_num) (by decide) rfl, O.o13,
+      wr (j := 11) (k := 6) (a := 579) (by norm_num) (by decide) rfl, o11, S.ring_inv.2.2.1]
     rfl
   · rw [t1928, h595, ← pow_one gen, ← vs_ptr_add,
       show S.cW bs = S.cK bs + S.xsK.length + 1 by
@@ -473,36 +473,36 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
     · show vsSqpNames.getD (logG (σ (.n 278))) "" = squeezeNames.getD (S.μs - 20) ""
       rw [V.e278, LeanVM.Guest.Memory.logG_gen_pow (by have := S.hmu30; show S.layout.stackLog - 20 < _; omega)]
       rfl
-    · show [σ (.n 296), σ (.n 297), σ (.n 298), σ (.n 299), σ (.n 300), σ (.n 303), σ (.n 304)] =
+    · show [σ (.n 296), σ (.n 297), σ (.n 298), σ (.n 299), σ (.n 300), σ (.n 288), σ (.n 303)] =
         capOf S.oodSt ++ [challengeOf S.oodSt, ptr (vb bs 6)]
-      rw [← V.oodCap, V.oodCh, pa (i := 6) (a := 304) (by norm_num) rfl]; rfl
+      rw [← V.oodCap, V.oodCh, pa (i := 6) (a := 303) (by norm_num) rfl]; rfl
   · -- `opening_message__L1_L1`
     have hl6 : S.sZ.cap.length = 5 := vs_squeezeN_capLen _ _ (by simp [capOf])
     refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets' hl bs outs (j := 7) (by norm_num) rfl (by rw [O.o7]; simp [capOf])⟩⟩
-    have h6 := vs_rets' (rd := rd) hl bs outs (j := 6) (rs := [305, 306, 307, 308, 309]) (by norm_num) rfl (by rw [O.o6, hl6]; simp)
+    have h6 := vs_rets' (rd := rd) hl bs outs (j := 6) (rs := [304, 305, 306, 307, 308]) (by norm_num) rfl (by rw [O.o6, hl6]; simp)
     rw [O.o6] at h6
-    show (vsNs [305, 306, 307, 308, 309]).map σ ++ [σ (.n 312), σ (.n 310)] =
+    show (vsNs [304, 305, 306, 307, 308]).map σ ++ [σ (.n 311), σ (.n 309)] =
       S.sZ.cap ++ [ptr (vb bs 1) * gen ^ 11, ptr (vb bs 7)]
-    rw [h6, V.e312, pa (i := 7) (a := 310) (by norm_num) rfl]; rfl
+    rw [h6, V.e312, pa (i := 7) (a := 309) (by norm_num) rfl]; rfl
   · -- `bus_grind_check`
     refine ⟨?_, rfl, fun _ ↦ ⟨?_, vs_rets' hl bs outs (j := 8) (by norm_num) rfl (by rw [O.o8]; simp)⟩⟩
-    · show vsBgNames.getD (logG (σ (.n 322))) "" = busGrindNames.getD (S.d - 20) ""
+    · show vsBgNames.getD (logG (σ (.n 321))) "" = busGrindNames.getD (S.d - 20) ""
       rw [V.e322, LeanVM.Guest.Memory.logG_gen_pow (by omega)]
       rfl
-    · show [σ (.n 314), σ (.n 328)] = [cellsOfState S.busSt false 1, ptr sqE * gen ^ winTabAt]
-      rw [pr (j := 7) (k := 1) (a := 314) (by norm_num) (by decide) rfl, O.o7, V.tabs 328 (by simp)]
+    · show [σ (.n 313), σ (.n 327)] = [cellsOfState S.busSt false 1, ptr sqE * gen ^ winTabAt]
+      rw [pr (j := 7) (k := 1) (a := 313) (by norm_num) (by decide) rfl, O.o7, V.tabs 327 (by simp)]
       rfl
   · -- `verify_bus_gkr`
     obtain ⟨b9, hr9, -⟩ := O.o9
     obtain ⟨-, -, hc4, -, -, -⟩ := S.gkr_inv hbl
     refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets' hl bs outs (j := 9) (by norm_num) rfl (by rw [hr9]; simp [hc4])⟩⟩
-    show (vsNs [554, 555, 556, 557, 558]).map σ ++ [σ (.n 320), σ (.n 253), σ (.n 254), σ (.n 561)] =
+    show (vsNs [538, 539, 540, 541, 542]).map σ ++ [σ (.n 319), σ (.n 253), σ (.n 254), σ (.n 544)] =
       S.s3.cap ++ [ptr (ChildSegs.cG bs), gen ^ S.d, ptr (vb bs 5), ptr sqE * gen ^ winTabAt]
-    rw [show (vsNs [554, 555, 556, 557, 558]).map σ = [σ (.n 554), σ (.n 555), σ (.n 556),
-      σ (.n 557), σ (.n 558)] from rfl, V.s3cap,
-      pr (j := 7) (k := 7) (a := 320) (by norm_num) (by decide) rfl, O.o7,
+    rw [show (vsNs [538, 539, 540, 541, 542]).map σ = [σ (.n 538), σ (.n 539), σ (.n 540),
+      σ (.n 541), σ (.n 542)] from rfl, V.s3cap,
+      pr (j := 7) (k := 7) (a := 319) (by norm_num) (by decide) rfl, O.o7,
       show σ (.n 253) = gen ^ S.d from (vs_w hl (a := 253) (by decide)).trans (vs_w253 hbl S O),
-      pa (i := 5) (a := 254) (by norm_num) rfl, V.tabs 561 (by simp)]
+      pa (i := 5) (a := 254) (by norm_num) rfl, V.tabs 544 (by simp)]
     simp only [capOf, List.cons_append, List.nil_append, List.getD_cons_succ, List.getD_cons_zero]
     rw [mul_assoc, ← pow_add, ← vs_ptr_add]
     rfl
@@ -511,18 +511,18 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
     obtain ⟨-, -, hc4, -, hpl, -⟩ := S.gkr_inv hbl
     refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets' hl bs outs (j := 10) (by norm_num) rfl
       (by rw [O.o10]; simp [Tables.VtHonest.retsH, Fs.squeeze, capOf])⟩⟩
-    have e9 : ∀ k < 5, σ (.n (562 + k)) = S.s4.cap.getD k 0 := fun k hk ↦ by
-      rw [pr (j := 9) (k := k) (a := 562 + k) (by norm_num) (by simp [vsRetVars]; omega)
+    have e9 : ∀ k < 5, σ (.n (545 + k)) = S.s4.cap.getD k 0 := fun k hk ↦ by
+      rw [pr (j := 9) (k := k) (a := 545 + k) (by norm_num) (by simp [vsRetVars]; omega)
         (by interval_cases k <;> rfl), hr9, List.getD_append _ _ _ _ (by omega)]
-    have e567 : σ (.n 567) = ptr (S.cT bs) := by
-      rw [pr (j := 9) (k := 5) (a := 567) (by norm_num) (by decide) rfl, hr9,
+    have e567 : σ (.n 550) = ptr (S.cT bs) := by
+      rw [pr (j := 9) (k := 5) (a := 550) (by norm_num) (by decide) rfl, hr9,
         List.getD_append_right _ _ _ _ (by omega), hc4]
       show ptr (ChildSegs.cG bs) * gen ^ S.xsG.length = _
       rw [← vs_ptr_add]; rfl
     have h6 : (outs.getD 9 ([], [])).1.getD 6 0 = ptr b9 := by
       rw [hr9, List.getD_append_right _ _ _ _ (by omega), hc4]; rfl
-    have e568 : σ (.n 568) = ptr (S.leavesB (outs.take 10)) := by
-      rw [pr (j := 9) (k := 6) (a := 568) (by norm_num) (by decide) rfl]
+    have e568 : σ (.n 551) = ptr (S.leavesB (outs.take 10)) := by
+      rw [pr (j := 9) (k := 6) (a := 551) (by norm_num) (by decide) rfl]
       have hex : ∃ b, (ChildSegs.gkRes (outs.take 10)).1.getD 6 0 = ptr b ∧
           (b, S.rG.2.2) ∈ (ChildSegs.gkRes (outs.take 10)).2 := by
         refine ⟨b9, ?_, ?_⟩
@@ -534,35 +534,35 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
         rw [← (Classical.choose_spec h).1, ChildSegs.gkRes, take_getD _ _ (by norm_num)]
       · exact absurd hex ‹_›
     have hμ : S.H.μ = S.d := hpl
-    show [σ (.n 562), σ (.n 563), σ (.n 564), σ (.n 565), σ (.n 566), σ (.n 567), σ (.n 0),
-      σ (.n 1), σ (.n 254), σ (.n 253), σ (.n 71), σ (.n 26), σ (.n 4), σ (.n 335), σ (.n 559),
-      σ (.n 6), σ (.n 569), σ (.n 568), σ (.n 572), σ (.n 570)] =
+    show [σ (.n 545), σ (.n 546), σ (.n 547), σ (.n 548), σ (.n 549), σ (.n 550), σ (.n 0),
+      σ (.n 1), σ (.n 254), σ (.n 253), σ (.n 71), σ (.n 26), σ (.n 4), σ (.n 334), σ (.n 530),
+      σ (.n 6), σ (.n 552), σ (.n 551), σ (.n 555), σ (.n 553)] =
       S.H.args (S.vtB bs sqE (S.leavesB (outs.take 10)))
     rw [e9 0 (by norm_num), e9 1 (by norm_num), e9 2 (by norm_num), e9 3 (by norm_num),
       e9 4 (by norm_num), e567, show σ (.n 0) = args.getD 0 0 from vsC_param hl (by norm_num),
       show σ (.n 1) = args.getD 1 0 from vsC_param hl (by norm_num), pa (i := 5) (a := 254) (by norm_num) rfl,
       show σ (.n 253) = gen ^ S.d from (vs_w hl (a := 253) (by decide)).trans (vs_w253 hbl S O),
       pa (i := 3) (a := 71) (by norm_num) rfl, pa (i := 2) (a := 26) (by norm_num) rfl, p4,
-      pa (i := 8) (a := 335) (by norm_num) rfl, V.beta, pa (i := 0) (a := 6) (by norm_num) rfl,
-      pa (i := 9) (a := 569) (by norm_num) rfl, e568, V.tabs 572 (by simp),
-      pa (i := 10) (a := 570) (by norm_num) rfl, Tables.VtHonest.args, hμ]
+      pa (i := 8) (a := 334) (by norm_num) rfl, V.beta, pa (i := 0) (a := 6) (by norm_num) rfl,
+      pa (i := 9) (a := 552) (by norm_num) rfl, e568, V.tabs 555 (by simp),
+      pa (i := 10) (a := 553) (by norm_num) rfl, Tables.VtHonest.args, hμ]
     rfl
   · -- `verify_keccak`
     have hxl := (S.H_run hbl).2.2.2
     refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets' hl bs outs (j := 11) (by norm_num) rfl
       (by rw [O.o11]; simp [capOf])⟩⟩
-    have eK : ∀ k < 6, σ (.n (573 + k)) = (S.H.retsH (S.vtB bs sqE (S.leavesB (outs.take 10)))).getD k 0 :=
+    have eK : ∀ k < 6, σ (.n (556 + k)) = (S.H.retsH (S.vtB bs sqE (S.leavesB (outs.take 10)))).getD k 0 :=
       fun k hk ↦ by
-        rw [pr (j := 10) (k := k) (a := 573 + k) (by norm_num) (by simp [vsRetVars]; omega)
+        rw [pr (j := 10) (k := k) (a := 556 + k) (by norm_num) (by simp [vsRetVars]; omega)
           (by interval_cases k <;> rfl), O.o10]
-    show [σ (.n 573), σ (.n 574), σ (.n 575), σ (.n 576), σ (.n 577), σ (.n 578), σ (.n 583),
-      σ (.n 569), σ (.n 587), σ (.n 584), σ (.n 585), σ (.n 589)] =
+    show [σ (.n 556), σ (.n 557), σ (.n 558), σ (.n 559), σ (.n 560), σ (.n 561), σ (.n 566),
+      σ (.n 552), σ (.n 570), σ (.n 567), σ (.n 568), σ (.n 572)] =
       S.H.s3.squeeze.2.cap ++ [ptr (S.cK bs), gen ^ S.τ, ptr (vb bs 9), ptr (S.cL bs),
         ptr (vb bs 11), ptr (vb bs 12), ptr (sqE + winTabAt)]
     rw [eK 0 (by norm_num), eK 1 (by norm_num), eK 2 (by norm_num), eK 3 (by norm_num),
-      eK 4 (by norm_num), eK 5 (by norm_num), V.e583, pa (i := 9) (a := 569) (by norm_num) rfl,
-      V.e587, pa (i := 11) (a := 584) (by norm_num) rfl, pa (i := 12) (a := 585) (by norm_num) rfl,
-      V.tabs 589 (by simp), ← vs_ptr_add sqE winTabAt]
+      eK 4 (by norm_num), eK 5 (by norm_num), V.e583, pa (i := 9) (a := 552) (by norm_num) rfl,
+      V.e587, pa (i := 11) (a := 567) (by norm_num) rfl, pa (i := 12) (a := 568) (by norm_num) rfl,
+      V.tabs 572 (by simp), ← vs_ptr_add sqE winTabAt]
     simp only [Tables.VtHonest.retsH, Fs.squeeze, capOf, List.cons_append, List.nil_append,
       List.getD_cons_succ, List.getD_cons_zero]
     rw [show ofK (addressOfIndex (S.vtB bs sqE (S.leavesB (outs.take 10))).cur) = ptr (S.cT bs)
@@ -574,13 +574,13 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
   · -- `grind_check__L13`
     refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets' hl bs outs (j := 12) (rs := []) (by norm_num) rfl
       (by rw [O.o12]; simp)⟩⟩
-    show [σ (.n 606), σ (.n 619)] = [cellsOfState S.ringSt false 1, ptr sqE * gen ^ winTabAt]
-    rw [V.ringCell, V.tabs 619 (by simp)]
+    show [σ (.n 589), σ (.n 602)] = [cellsOfState S.ringSt false 1, ptr sqE * gen ^ winTabAt]
+    rw [V.ringCell, V.tabs 602 (by simp)]
   · -- `ring_switch_target`
     refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets' hl bs outs (j := 13) (by norm_num) rfl
       (by rw [O.o13]; simp)⟩⟩
-    show [σ (.n 585), σ (.n 847)] = [ptr (vb bs 12), ptr (vb bs 13)]
-    rw [pa (i := 12) (a := 585) (by norm_num) rfl, pa (i := 13) (a := 847) (by norm_num) rfl]; rfl
+    show [σ (.n 568), σ (.n 814)] = [ptr (vb bs 12), ptr (vb bs 13)]
+    rw [pa (i := 12) (a := 568) (by norm_num) rfl, pa (i := 13) (a := 814) (by norm_num) rfl]; rfl
   · -- `open_stacked`
     obtain ⟨b14, b14', hr14, -⟩ := O.o14
     refine ⟨?_, rfl, fun _ ↦ ⟨?_, vs_rets' hl bs outs (j := 14) (by norm_num) rfl
@@ -590,11 +590,11 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
       rw [V.e278, LeanVM.Guest.Memory.logG_gen_pow (by
         show S.layout.stackLog - 20 < _; omega), vsOpenNames_eq]
       rfl
-    · show [σ (.n 66), σ (.n 1370), σ (.n 1371), σ (.n 1372), σ (.n 1373), σ (.n 1374),
-        σ (.n 1917), σ (.n 268), σ (.n 271), σ (.n 1919), σ (.n 1921)] =
+    · show [σ (.n 66), σ (.n 1337), σ (.n 1338), σ (.n 1339), σ (.n 1340), σ (.n 1341),
+        σ (.n 1883), σ (.n 268), σ (.n 271), σ (.n 1885), σ (.n 1887)] =
         Whir.rateSel S.rate :: capOf S.s7.perm ++ [S.target, (digestHalves S.root).1,
           (digestHalves S.root).2, ptr (S.cW bs), ptr sqE * gen ^ winTabAt]
-      rw [V.e66, ← V.s7cap, V.target, V.e268, V.e271, V.e1928, V.tabs 1921 (by simp), ← S.hroot,
+      rw [V.e66, ← V.s7cap, V.target, V.e268, V.e271, V.e1928, V.tabs 1887 (by simp), ← S.hroot,
         digestScalars_digestOfScalars]
       rfl
   · -- `check_opening_terminal`
@@ -602,30 +602,30 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
     obtain ⟨b14, b14', hr14, hL14⟩ := O.o14
     refine ⟨rfl, (@decide_eq_true _ (Classical.propDecidable _) O.term).symm, fun _ ↦ ⟨?_,
       vs_rets' hl bs outs (j := 15) (rs := []) (by norm_num) rfl (by rw [O.o15]; simp)⟩⟩
-    have r10 : ∀ k < 10, σ (.n (573 + k)) =
+    have r10 : ∀ k < 10, σ (.n (556 + k)) =
         (S.H.retsH (S.vtB bs sqE (S.leavesB (outs.take 10)))).getD k 0 := fun k hk ↦ by
-      rw [pr (j := 10) (k := k) (a := 573 + k) (by norm_num) (by simp [vsRetVars]; omega)
+      rw [pr (j := 10) (k := k) (a := 556 + k) (by norm_num) (by simp [vsRetVars]; omega)
         (by interval_cases k <;> rfl), O.o10]
-    have r14 : ∀ k < 5, σ (.n (1922 + k)) = [S.w.target, ptr b14, ptr b14', S.w.inner,
+    have r14 : ∀ k < 5, σ (.n (1888 + k)) = [S.w.target, ptr b14, ptr b14', S.w.inner,
         S.w.residual].getD k 0 := fun k hk ↦ by
-      rw [pr (j := 14) (k := k) (a := 1922 + k) (by norm_num) (by simp [vsRetVars]; omega)
+      rw [pr (j := 14) (k := k) (a := 1888 + k) (by norm_num) (by simp [vsRetVars]; omega)
         (by interval_cases k <;> rfl), hr14]
-    show [σ (.n 4), σ (.n 254), σ (.n 569), σ (.n (573 + 8)), σ (.n 253), σ (.n (573 + 6)),
-      σ (.n 72), σ (.n 583), σ (.n 83), σ (.n 1375), σ (.n 275), σ (.n 584), σ (.n 848),
-      σ (.n (1922 + 1)), σ (.n (1922 + 2)), σ (.n (1922 + 3)), σ (.n (1922 + 4)),
-      σ (.n (1922 + 0)), σ (.n 304), σ (.n 276)] =
+    show [σ (.n 4), σ (.n 254), σ (.n 552), σ (.n (556 + 8)), σ (.n 253), σ (.n (556 + 6)),
+      σ (.n 72), σ (.n 566), σ (.n 83), σ (.n 1329), σ (.n 275), σ (.n 567), σ (.n 815),
+      σ (.n (1888 + 1)), σ (.n (1888 + 2)), σ (.n (1888 + 3)), σ (.n (1888 + 4)),
+      σ (.n (1888 + 0)), σ (.n 303), σ (.n 276)] =
       termArgs (ChildSegs.termB bs sqE (outs.take 15)) S.H.rm (gen ^ S.d) (gen ^ S.nT) (gen ^ S.logMem)
         (gen ^ S.τ) S.lam S.w.inner S.w.residual S.w.target
         (gen ^ max 16 (log2Ceil (Tables.stackTotal S.kappas)))
-    rw [p4, pa (i := 5) (a := 254) (by norm_num) rfl, pa (i := 9) (a := 569) (by norm_num) rfl,
+    rw [p4, pa (i := 5) (a := 254) (by norm_num) rfl, pa (i := 9) (a := 552) (by norm_num) rfl,
       r10 8 (by norm_num),
       show σ (.n 253) = gen ^ S.d from (vs_w hl (a := 253) (by decide)).trans (vs_w253 hbl S O),
       r10 6 (by norm_num), pr (j := 1) (k := 0) (a := 72) (by norm_num) (by decide) rfl, O.o1,
       V.e583, pa (i := 4) (a := 83) (by norm_num) rfl, V.lam,
       pr (j := 3) (k := 1) (a := 275) (by norm_num) (by decide) rfl, hr3,
-      pa (i := 11) (a := 584) (by norm_num) rfl, pa (i := 14) (a := 848) (by norm_num) rfl,
+      pa (i := 11) (a := 567) (by norm_num) rfl, pa (i := 14) (a := 815) (by norm_num) rfl,
       r14 1 (by norm_num), r14 2 (by norm_num), r14 3 (by norm_num), r14 4 (by norm_num),
-      r14 0 (by norm_num), pa (i := 6) (a := 304) (by norm_num) rfl,
+      r14 0 (by norm_num), pa (i := 6) (a := 303) (by norm_num) rfl,
       pr (j := 4) (k := 0) (a := 276) (by norm_num) (by decide) rfl, O.o4]
     simp only [termArgs, ChildSegs.termB, ChildSegs.termBs, ChildSegs.cpRes, ChildSegs.osRes,
       take_getD _ _ (show 3 < 15 by norm_num), take_getD _ _ (show 14 < 15 by norm_num), hL3, hL14,

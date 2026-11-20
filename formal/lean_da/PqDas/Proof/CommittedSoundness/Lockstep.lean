@@ -995,7 +995,7 @@ theorem runTrace_com_eq_of_mem_contextFork [DecidableEq L]
       _ = cf x₁ := by rw [hx₁]
       _ = some s := h₁
   subst s'
-  let commonLog : QueryLog (wrappedSpec L) := located.occurrence.before
+  let commonLog : QueryLog (wrappedSpec L) := located.occurrence.before.toList
   have hfirst := replayPathResult_mem_support_replayFirstRun main path hpath
   have hsecond := replayPathResult_mem_support_replayFirstRun main second.path
     (mem_support_replayFirstPath main second.path)
@@ -1011,40 +1011,33 @@ theorem runTrace_com_eq_of_mem_contextFork [DecidableEq L]
           (replayPathResult (located.occurrence.resume
             located.completion.answer) located.completion.suffix).2) := by
     have htrace := congrArg
-      (fun p : PFunctor.FreeM.Path main =>
-        (show QueryLog (wrappedSpec L) from
-          PFunctor.FreeM.Path.trace main p)) located.path_eq
+      (fun p : PFunctor.FreeM.Path main => (PFunctor.FreeM.Path.trace main p).toList)
+      located.path_eq
     calc
       (replayPathResult main path).2
           = (replayPathResult main located.completion.path).2 := htrace.symm
       _ = _ := by
-        change PFunctor.FreeM.Path.trace main located.completion.path =
-          List.append
-            (show PFunctor.TraceList (wrappedSpec L).toPFunctor from
-              commonLog)
-            (⟨Sum.inr (), located.completion.answer⟩ ::
-              PFunctor.FreeM.Path.trace
-                (located.occurrence.resume located.completion.answer)
-                located.completion.suffix)
-        unfold commonLog
-        exact PFunctor.FreeM.Cursor.Occurrence.trace_plug
-          located.occurrence located.completion.answer
-            located.completion.suffix
+        change ((PFunctor.FreeM.Path.trace main
+            (located.occurrence.plug located.completion.answer located.completion.suffix)).toList :
+            QueryLog (wrappedSpec L)) =
+          commonLog ++ (⟨Sum.inr (), located.completion.answer⟩ ::
+            show QueryLog (wrappedSpec L) from (PFunctor.FreeM.Path.trace
+              (located.occurrence.resume located.completion.answer) located.completion.suffix).toList)
+        rw [PFunctor.FreeM.Cursor.Occurrence.trace_plug]
+        rfl
   have hlog₂ : (replayPathResult main second.path).2 =
       commonLog ++
         (⟨Sum.inr (), second.answer⟩ ::
           (replayPathResult (located.occurrence.resume second.answer)
             second.suffix).2) := by
-    change PFunctor.FreeM.Path.trace main second.path =
-      List.append
-        (show PFunctor.TraceList (wrappedSpec L).toPFunctor from
-          commonLog)
-        (⟨Sum.inr (), second.answer⟩ ::
-          PFunctor.FreeM.Path.trace
-            (located.occurrence.resume second.answer) second.suffix)
-    unfold commonLog
-    exact PFunctor.FreeM.Cursor.Occurrence.trace_plug
-      located.occurrence second.answer second.suffix
+    change ((PFunctor.FreeM.Path.trace main
+        (located.occurrence.plug second.answer second.suffix)).toList :
+        QueryLog (wrappedSpec L)) =
+      commonLog ++ (⟨Sum.inr (), second.answer⟩ ::
+        show QueryLog (wrappedSpec L) from (PFunctor.FreeM.Path.trace
+          (located.occurrence.resume second.answer) second.suffix).toList)
+    rw [PFunctor.FreeM.Cursor.Occurrence.trace_plug]
+    rfl
   have htakeEq := runTrace_queryLog_take_eq C vc chk A ckVC
     (x₁ := x₁) (x₂ := x₂)
     (outerLog₁ := (replayPathResult main path).2)
@@ -1061,9 +1054,8 @@ theorem runTrace_com_eq_of_mem_contextFork [DecidableEq L]
     calc
       commonLog.countQ (fun x => x = Sum.inr ()) =
           PFunctor.TraceList.occurrences (P := (wrappedSpec L).toPFunctor)
-            (Sum.inr ())
-            (show PFunctor.TraceList (wrappedSpec L).toPFunctor from
-              commonLog) := QueryLog.countQ_eq_occurrences commonLog (Sum.inr ())
+            (Sum.inr ()) (FreeMonoid.ofList commonLog) :=
+        QueryLog.countQ_eq_occurrences commonLog (Sum.inr ())
       _ = (↑s : ℕ) := by
         simp [commonLog]
   rw [hprefixCount] at htakeEq

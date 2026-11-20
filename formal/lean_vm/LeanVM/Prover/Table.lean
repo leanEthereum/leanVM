@@ -271,7 +271,7 @@ theorem tableInit_inv (cols : Array (Array K))
         tableColList prog s q t i := by
       simp [tableColList, Vector.toList]
     have hmin : min (s.τ t) (nRounds s) = s.τ t := min_eq_left (τ_le_nRounds s t)
-    try dsimp only
+    dsimp only
     rw [getD_tableInit cols hcols t i, hmin]
     refine ⟨?_, fun p _ ↦ ?_⟩
     · rw [← Array.length_toList, hlist, length_tableColList]

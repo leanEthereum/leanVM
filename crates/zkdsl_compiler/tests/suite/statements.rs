@@ -550,6 +550,17 @@ def main():
     let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
     assert!(msg.contains("the loop cannot carry it"), "got `{msg}`");
 
+    // So is a folded `if` that assigns to a captured name: its bindings outlive it.
+    let folded = "def main():\n    p = GEN ** 0\n    t = 7\n    for i in mul_range(1, 8):\n        p[i] = t\n        if 2 * 3 == 6:\n            t = 9\n    return\n";
+    let ast = parse(folded).expect("parses");
+    let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
+        panic!("a folded `if` carried a value to the next iteration");
+    };
+    assert!(
+        err.downcast_ref::<String>()
+            .is_some_and(|m| m.contains("the loop cannot carry it"))
+    );
+
     // A real typo, outside any loop, still gets the plain message.
     let typo = "def main():\n    p = GEN ** 0\n    p[1] = nosuch\n    p[GEN] = GEN ** 0\n    return\n";
     let ast = parse(typo).expect("parses");
@@ -1025,7 +1036,7 @@ fn an_inline_call_does_not_steal_the_call_site_line() {
 /// testing `all(is not scalar)` rather than `any(is not scalar)` fired only when
 /// EVERY return was a buffer, so a `(scalar, StackBuf)` pair walked through.
 #[test]
-#[should_panic(expected = "StackBuf return cannot cross a match join")]
+#[should_panic(expected = "multi-cell StackBuf return needs a `let` binding, not a match join")]
 fn a_mixed_stack_buf_return_cannot_cross_a_match_join() {
     let src = "\
 @inline

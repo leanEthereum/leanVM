@@ -1,0 +1,23 @@
+name: Bindings PR title
+
+# Only pull requests touching bindings/ need a conventional title: release-please reads the
+# commits under bindings/ to version the bindings and write bindings/CHANGELOG.md.
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+    paths:
+      - bindings/**
+
+permissions:
+  pull-requests: read
+
+jobs:
+  conventional:
+    name: Validate conventional-commit format
+    runs-on: ubuntu-latest
+    steps:
+      # A squash merge's commit message is the PR title, so this keeps the commits on main
+      # conventional.
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
