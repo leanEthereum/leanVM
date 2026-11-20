@@ -16,6 +16,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«claim_list_digest»
 import LeanVM.Guest.Data.ValNames.«claim_list_last__L»
 import LeanVM.Guest.Data.ValNames.«claim_list_tail»
+import LeanVM.Guest.B1.Common.Vc
 
 /-!
 # `claim_list_digest`
@@ -99,20 +100,26 @@ theorem claim_list_tail_shape : Fn.body fn% «claim_list_tail» =
 theorem claim_list_tail_params : Fn.params fn% «claim_list_tail» = [.n (val% «claim_list_tail» "state"), .n (val% «claim_list_tail» "blk"), .n (val% «claim_list_tail» "rest")] := by
   decide +kernel
 
+/-- **`claim_list_tail` is its dispatch** on `rest = g^j`, `j < 17`, to `claim_list_last__L{j}` (`vc`). -/
+theorem tail_iff (rd : Reader) (args rets : List E) :
+    coreProgram.Rel rd "claim_list_tail" args rets ↔ ∃ sp blk j d0 d1, args = [sp, blk, ofK (addressOfIndex j)] ∧
+      j < 17 ∧ rets = [d0, d1] ∧ coreProgram.Rel rd (clNames.getD j "") [sp, blk] [d0, d1] := by
+  have hname : ∀ j (hj : j < clNames.length), clNames[j] = clNames.getD j "" :=
+    fun j hj => by rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj, Option.getD_some]
+  rw [rel_iff_fnSem find_claim_list_tail]
+  vc
+  constructor
+  · rintro ⟨sp, blk, x, rfl, d0, d1, ⟨j, hx, hj, hc⟩, rfl⟩
+    exact ⟨sp, blk, j, d0, d1, by rw [hx], hj, rfl, by rw [← hname j hj]; exact hc⟩
+  · rintro ⟨sp, blk, j, d0, d1, rfl, hj, rfl, hc⟩
+    exact ⟨sp, blk, _, rfl, d0, d1, ⟨j, rfl, hj, by rw [← hname j hj] at hc; exact hc⟩, rfl⟩
+
 /-- **`claim_list_tail` on `rest = g^j`, `j < 17`, is `claim_list_last__L{j}`.** -/
 theorem tail_sound {rd : Reader} {args rets : List E} (h : coreProgram.Rel rd "claim_list_tail" args rets) :
     ∃ sp blk j, args = [sp, blk, ofK (addressOfIndex j)] ∧ j < 17 ∧
       coreProgram.Rel rd (clNames.getD j "") [sp, blk] rets := by
-  obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_claim_list_tail args rets).mp h
-  rw [claim_list_tail_shape] at hb
-  rw [claim_list_tail_params] at hp
-  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
-  obtain ⟨⟨j, hj, hx, hc⟩, h5, h6, hr⟩ := hb
-  have hj17 : j < 17 := hj
-  refine ⟨σ (.n (val% «claim_list_tail» "state")), σ (.n (val% «claim_list_tail» "blk")), j, by rw [← hp, ← hx]; rfl, hj17, ?_⟩
-  rw [show clNames.getD j "" = clNames[j] by
-    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj]; rfl, ← hr, h5, h6]
-  exact hc
+  obtain ⟨sp, blk, j, d0, d1, rfl, hj, rfl, hc⟩ := (tail_iff rd args rets).mp h
+  exact ⟨sp, blk, j, rfl, hj, hc⟩
 
 /-! ## The frame loops: `m` claims a frame -/
 
