@@ -233,8 +233,6 @@ fn constants(ph: &mut Placeholders) {
         ("QW", &QUERY_WINDOW_BITS),
         ("QUERY_WINDOWS_CAP", &QUERY_WINDOWS_CAP),
         ("MU_CAP", &MU_CAP),
-        ("GKR_ROUNDS_CAP", &(MU_CAP * (MU_CAP + 1) / 2 + MU_CAP + 2)),
-        ("GKR_POINTS_CAP", &((MU_CAP + 1) * MU_CAP)),
         ("MIN_LOG_MEM", &verifier::MIN_LOG_MEMORY),
         ("MAX_LOG_MEM", &verifier::MAX_LOG_MEMORY),
         ("INV_GEN", &F128::from(F64::G.inv())),
@@ -703,7 +701,7 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
         ("LIG_FOLDS_OFF", OpeningShape::folds_before),
     ];
     // `open_stacked` has one arm per size and reads these at the size's first-rate row: a rate changes none of them.
-    const SIZE_ONLY: [&str; 8] = [
+    const SIZE_ONLY: [&str; 10] = [
         "LIG_N_LEVELS",
         "LIG_YR_LEVEL",
         "LIG_YR_LOG_LEN",
@@ -712,6 +710,8 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
         "LIG_LEAF_CELLS",
         "LIG_FOLDS_OFF",
         "LIG_RESIDUAL_FOLD_OFF",
+        "LIG_POS_OFF",
+        "LIG_POS_TOTAL",
     ];
     // One row per candidate, rates outer, sizes inner.
     let mut table = |name: &str, rows: Vec<Vec<usize>>| {
@@ -732,6 +732,23 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
         };
         table(name, cands.iter().map(padded).collect());
     }
+    // A level's query positions take the most any rate draws at the size, the levels' runs one after another.
+    let pos_most = |s: usize, lv: usize| {
+        cands.iter().skip(s).step_by(n_log_sizes).map(|c| c.squeezes(lv) * c.positions(lv)).max().unwrap()
+    };
+    let (mut pos_off, mut pos_total) = (Vec::new(), Vec::new());
+    for (i, c) in cands.iter().enumerate() {
+        let mut row = vec![0; maxlev];
+        let mut at = 0;
+        for (lv, off) in row.iter_mut().enumerate().take(c.levels()) {
+            *off = at;
+            at += pos_most(i % n_log_sizes, lv);
+        }
+        pos_off.push(row);
+        pos_total.push(vec![at]);
+    }
+    table("LIG_POS_OFF", pos_off);
+    table("LIG_POS_TOTAL", pos_total);
     // A per-level value's most over every candidate.
     let most = |f: Level| cands.iter().flat_map(|c| c.per_level(f)).max().unwrap();
     // `decode_query_windows`: a squeezed word's positions, each its path bits QW at a time, then the cap
@@ -746,16 +763,11 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
         "a squeezed word's windows past QUERY_WINDOWS_CAP"
     );
     let max_cols = most(|c, lv| c.log_message_columns[lv]);
-    ph.set("LIG_LOG_MSG_COLS_CAP", max_cols);
     ph.set("YR_LOG_CAP", most(|c, _| c.yr_log_len()));
     // A row is its hinted words, one a lane: K at level 0, packed two to a cell, E deeper.
     ph.set("LIG_ROW_CAP", most(OpeningShape::row_words));
     ph.set("LIG_PACKED_ROW_CAP", most(|c, _| c.row_words(0) / 2));
     ph.set("LIG_PATH_CAP", most(|c, lv| 4 * (c.tree_depths[lv] - c.cap_depth(lv))));
-    ph.set(
-        "LIG_LEVEL_POSITIONS_CAP",
-        most(|c, lv| c.squeezes(lv) * c.positions(lv)),
-    );
     ph.set("LIG_MAX_LEVELS", maxlev);
     ph.set("LIG_MIN_LOG_SIZE", minm);
     ph.set("LIG_N_LOG_SIZES", n_log_sizes);
