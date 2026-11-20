@@ -16,6 +16,8 @@ public import LeanVM.Guest.Pack.P23.Core
 public import LeanVM.Guest.Pack.P42.Core
 public import LeanVM.Guest.Pack.P56.Core
 public import LeanVM.Guest.Pack.P61.Core
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_merkle_cap__L»
 
 namespace LeanVM.Guest.B1
 
@@ -51,24 +53,24 @@ def mcBase (L k : ℕ) : ℕ :=
 
 /-- Node `k`'s atoms from the value `b`. -/
 def mcNode (L k b : ℕ) : List Stmt :=
-  [.atom (.load (.n b) (.n 1) k),
+  [.atom (.load (.n b) (.n (valf% «verify_merkle_cap» "flags")) k),
     .ite (.n b)
       (if 2 * k < L then
-        [.atom (.const (.n (b + 1)) (word 0 0)), .atom (.load (.n (b + 1)) (.n 1) (2 * k)),
-          .atom (.const (.n (b + 2)) (word 0 0)), .atom (.load (.n (b + 2)) (.n 1) (2 * k + 1))]
+        [.atom (.const (.n (b + 1)) (word 0 0)), .atom (.load (.n (b + 1)) (.n (valf% «verify_merkle_cap» "flags")) (2 * k)),
+          .atom (.const (.n (b + 2)) (word 0 0)), .atom (.load (.n (b + 2)) (.n (valf% «verify_merkle_cap» "flags")) (2 * k + 1))]
       else [])
       [.atom (.const (.n (b + mcOc L k)) w63),
         keccakA (mcIns L k (b + mcOc L k)) (mcOuts k)]]
 
 /-- The expansion of `verify_merkle_cap` at `L` leaves. -/
 def mcBody (L : ℕ) : List Stmt :=
-  ((List.range (4 * L - 2)).map fun i ↦ [.atom (.load (.n (i + 2)) (.n 0) (i + 2))]).flatten ++
+  ((List.range (4 * L - 2)).map fun i ↦ [.atom (.load (.n (i + 2)) (.n (valf% «verify_merkle_cap» "cap")) (i + 2))]).flatten ++
   [.atom (.const (.n (mcP L)) (word 1 0)), .atom (.const (.n (mcP L + 1)) (word 0 0)),
     .atom (.const (.n (mcP L + 2)) (word 0 0)), .atom (.const (.n (mcP L + 3)) (word 0 0)),
     .atom (.const (.n (mcP L + 4)) (word 0 0)), .atom (.const (.n (mcP L + 5)) w63),
     keccakA (mcIns L 1 (mcP L + 5)) (mcOuts 1)] ++
   ((List.range (L - 2)).map fun j ↦ mcNode L (j + 2) (mcBase L (j + 2))).flatten ++
-  [.atom (.copy (.n (mcBase L L)) (.n 2)), .atom (.copy (.n (mcBase L L + 1)) (.n 3)),
+  [.atom (.copy (.n (mcBase L L)) (.n (valf% «verify_merkle_cap» "runs[0]"))), .atom (.copy (.n (mcBase L L + 1)) (.n (valf% «verify_merkle_cap» "runs[1]"))),
     .ret [.n (mcBase L L), .n (mcBase L L + 1)]]
 
 theorem noRet_mcNode (L k b : ℕ) : Stmt.noRetList (mcNode L k b) = true := by

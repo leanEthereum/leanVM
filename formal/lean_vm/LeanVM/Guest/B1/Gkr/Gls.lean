@@ -9,6 +9,9 @@ module
 
 public import LeanVM.Guest.B1.Gkr.GlLayer
 public import LeanVM.Guest.B1.Gkr.GlCLayers
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«gkr_layers__L»
+import LeanVM.Guest.Data.ValNames.«gkr_layers__L_loop0»
 
 /-!
 # The radix-four layers' dispatch, soundly
@@ -122,8 +125,8 @@ theorem glsl_step {o : ℕ} (ho : o < 2) {N layers rounds pts start gmu tabs str
     List.nil_append, List.cons_append, List.cons.injEq, and_true] at hpar
   obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := hpar
   rw [hb, glcLsLBody, holdsList_append, holdsList_append,
-    holdsList_noRet _ (by rfl : Stmt.noRetList [.atom (.mul (.n 9) (.n 0) (.n 0)),
-      .atom (.mul (.n 10) (.n 9) (.n 9))] = true),
+    holdsList_noRet _ (by rfl : Stmt.noRetList [.atom (.mul (.n (valf% «gkr_layers» «_loop0» "x4~0")) (.n (valf% «gkr_layers» «_loop0» "x_m")) (.n (valf% «gkr_layers» «_loop0» "x_m"))),
+      .atom (.mul (.n (valf% «gkr_layers» «_loop0» "x4")) (.n (valf% «gkr_layers» «_loop0» "x4~0")) (.n (valf% «gkr_layers» «_loop0» "x4~0")))] = true),
     holdsList_noRet _ (glcChain_noRet ..)] at hbody
   obtain ⟨hpre, hch, hpost⟩ := hbody
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hpre
@@ -163,7 +166,7 @@ theorem gls_sound {o n r : ℕ} (ho : o < 2) (hr : r < 4) (hn : n < 2 ^ 30)
     exact (gen_pow_inj (by omega) (by omega) hx).symm
   subst hjr
   have hlast' : coreProgram.Rel rd (glcLastN jj o) [layers, rounds, pts, gen ^ n, gen ^ (4 * n),
-      start, gmu, tabs, stream] [σ (.n 14)] := by
+      start, gmu, tabs, stream] [σ (.n (valf% «gkr_layers» "done"))] := by
     have e : [glcLastN 0 o, glcLastN 1 o, glcLastN 2 o, glcLastN 3 o][jj] = glcLastN jj o := by
       interval_cases jj <;> rfl
     rw [e, m13, m12, h0, h1, h2, h3, h5, h6, h7, h8,
@@ -174,7 +177,7 @@ theorem gls_sound {o n r : ℕ} (ho : o < 2) (hr : r < 4) (hn : n < 2 ^ 30)
   intro j hj
   unfold GlLay
   rcases Nat.lt_or_ge j (4 * n) with hjn | hjn
-  · have hne : σ (.n 10) ≠ 0 := by
+  · have hne : σ (.n (valf% «gkr_layers» "s0#1")) ≠ 0 := by
       rw [a10, c9, h3]
       intro h0'
       have := gen_pow_inj (by omega) (by omega) ((e_add_eq_zero_iff.mp h0').symm.trans

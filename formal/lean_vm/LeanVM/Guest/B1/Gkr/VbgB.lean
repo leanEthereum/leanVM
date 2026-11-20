@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Gkr.VbgBound
 public import LeanVM.Guest.Memory.LoopPre
 public import LeanVM.Guest.B1.Tables.FlatLiftT
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_bus_gkr»
 
 /-!
 # `verify_bus_gkr`'s callees, within their words
@@ -34,10 +36,10 @@ variable {fs : String → ℕ}
 /-- `verify_bus_gkr`'s frames: the dispatch to `gkr_layers__L{o}`, then
 `verify_bus_gkr_loop0`'s. -/
 theorem vbg_flatCalls (σ : Val) : flatCalls vbgPre σ =
-    [⟨[glcLsN 0, glcLsN 1].getD (logG (σ (.n 166))) "", [.n 16, .n 17, .n 18, .n 396, .n 398,
-        .n 168, .n 6, .n 8, .n 9], [.n 402], true⟩,
-      ⟨name% «verify_bus_gkr_loop0», [.n 422, .n 6, .n 7, .n 419], [],
-          decide (σ (.n 421) ≠ 0)⟩] := by
+    [⟨[glcLsN 0, glcLsN 1].getD (logG (σ (.n (val% «verify_bus_gkr» "odd_g")))) "", [.n (val% «verify_bus_gkr» "layers"), .n (val% «verify_bus_gkr» "rounds"), .n (val% «verify_bus_gkr» "gkr_pts"), .n (val% «verify_bus_gkr» "n_four"), .n (val% «verify_bus_gkr» "rem_g"),
+        .n (val% «verify_bus_gkr» "start_g"), .n (val% «verify_bus_gkr» "g_bus_mu"), .n (val% «verify_bus_gkr» "tabs"), .n (val% «verify_bus_gkr» "stream")], [.n (val% «verify_bus_gkr» "done")], true⟩,
+      ⟨name% «verify_bus_gkr_loop0», [.n (val% «verify_bus_gkr» "s34#2"), .n (val% «verify_bus_gkr» "g_bus_mu"), .n (val% «verify_bus_gkr» "zeta"), .n (val% «verify_bus_gkr» "final_point_row")], [],
+          decide (σ (.n (val% «verify_bus_gkr» "s34#1")) ≠ 0)⟩] := by
   unfold flatCalls
   rw [vbgPre_eq']
   rfl

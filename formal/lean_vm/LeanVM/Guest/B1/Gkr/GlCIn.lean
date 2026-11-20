@@ -13,6 +13,9 @@ public import LeanVM.Guest.B1.Gkr.GlLoop
 public import LeanVM.Guest.B1.Tables.Kids.Walk
 public import LeanVM.Guest.B1.Tables.Kids.Loop9
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
+import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
 
 /-!
 # A radix-four layer, loading from a region
@@ -76,7 +79,7 @@ theorem gll_loads (nm : String) :
   gll_all (by decide +kernel) nm rfl
 
 theorem gll_calls (nm : String) : (glLoopPreK nm).filterMap Main.Stmt.callS =
-    [(some (.n 335), nm, [.n 337, .n 1, .n 2, .n 3, .n 4, .n 5], [])] := by
+    [(some (.n (valf% «gkr_layer» «_loop0» "s15#2")), nm, [.n (valf% «gkr_layer» «_loop0» "s15#4"), .n (valf% «gkr_layer» «_loop0» "bound"), .n (valf% «gkr_layer» «_loop0» "head"), .n (valf% «gkr_layer» «_loop0» "qrow"), .n (valf% «gkr_layer» «_loop0» "nqrow"), .n (valf% «gkr_layer» «_loop0» "tabs")], [])] := by
   rw [glLoopPreK, List.filterMap_append,
     show (glLoopPre ++ glLoopRounds ++ glLoopPostA).filterMap Main.Stmt.callS = [] by
       decide +kernel]
@@ -120,8 +123,8 @@ theorem gll_relIn {p o : ℕ} (hp : p < 4) (ho : o < 2) {rd : Reader} {R : ℕ �
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hpost
     obtain ⟨-, -, -, -, c341, m342, a343, c344, m345, -, hnext, -⟩ := hpost
     rw [tb_word_gen] at c341 c344
-    have e6 : σ (.n 6) = head * gen ^ k := by rw [m6, p0, p2]
-    have e9 : σ (.n 9) = gen ^ (8 * k) := by rw [m9, m8, m7, p0]; ring
+    have e6 : σ (.n (valf% «gkr_layer» «_loop0» "rd")) = head * gen ^ k := by rw [m6, p0, p2]
+    have e9 : σ (.n (valf% «gkr_layer» «_loop0» "y8")) = gen ^ (8 * k) := by rw [m9, m8, m7, p0]; ring
     refine ⟨fun s hs ↦ dispOk_of_noDisp (List.all_eq_true.mp (gll_noDisp _) s hs),
       loads_via (gll_loads _) fun pb hpb ↦ ?_, fun c hc ht ↦ ?_⟩
     · simp only [List.mem_cons, List.not_mem_nil, or_false] at hpb
@@ -134,8 +137,8 @@ theorem gll_relIn {p o : ℕ} (hp : p < 4) (ho : o < 2) {rd : Reader} {R : ℕ �
       simp only [List.map_cons, List.map_nil, List.mem_singleton] at hc
       subst hc
       simp only [Main.mkCall, decide_eq_true_eq] at ht ⊢
-      have e345 : σ (.n 337) = gen ^ (k + 1) := by rw [m345, c344, p0, pow_succ]
-      have e343 : σ (.n 335) = gen ^ (k + 1) + gen ^ K := by
+      have e345 : σ (.n (valf% «gkr_layer» «_loop0» "s15#4")) = gen ^ (k + 1) := by rw [m345, c344, p0, pow_succ]
+      have e343 : σ (.n (valf% «gkr_layer» «_loop0» "s15#2")) = gen ^ (k + 1) + gen ^ K := by
         rw [a343, m342, c341, p0, p1, pow_succ]
       have hk1 : k + 1 < K := by
         rcases Nat.lt_or_ge (k + 1) K with h' | h'
@@ -208,33 +211,33 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
 
 /-- The slot, its position, the point row and the head record, from the prefix. -/
 theorem gl_prePtrs (h : Stmt.HoldsList C rd σ glPre True kret) {j sh : ℕ}
-    (hx : σ (.n 4) = gen ^ j) (hsg : σ (.n 5) = gen ^ (2 - sh)) (hsh : sh < 2) :
-    σ (.n 15) = σ (.n 0) * gen ^ (10 * (2 * j + 2 - sh)) ∧ LoadHolds rd (σ (.n 15)) 9 (σ (.n 43)) ∧
-      σ (.n 52) = σ (.n 2) * gen ^ (40 * (j + 1)) ∧ σ (.n 53) = σ (.n 1) * σ (.n 43) := by
+    (hx : σ (.n (valf% «gkr_layer» "x_j")) = gen ^ j) (hsg : σ (.n (valf% «gkr_layer» "start_g")) = gen ^ (2 - sh)) (hsh : sh < 2) :
+    σ (.n (valf% «gkr_layer» "layer")) = σ (.n (valf% «gkr_layer» "layers")) * gen ^ (10 * (2 * j + 2 - sh)) ∧ LoadHolds rd (σ (.n (valf% «gkr_layer» "layer"))) 9 (σ (.n (valf% «gkr_layer» "round_pos"))) ∧
+      σ (.n (valf% «gkr_layer» "point_row")) = σ (.n (valf% «gkr_layer» "gkr_pts")) * gen ^ (40 * (j + 1)) ∧ σ (.n (valf% «gkr_layer» "head")) = σ (.n (valf% «gkr_layer» "rounds")) * σ (.n (valf% «gkr_layer» "round_pos")) := by
   have hnr := glPre_noRet
   have a := fun n a heq => tb_holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr h n a heq
-  have m9 := a 0 (.mul (.n 9) (.n 4) (.n 4)) (by decide +kernel)
-  have m10 := a 1 (.mul (.n 10) (.n 9) (.n 5)) (by decide +kernel)
-  have m11 := a 2 (.mul (.n 11) (.n 10) (.n 10)) (by decide +kernel)
-  have m12 := a 3 (.mul (.n 12) (.n 11) (.n 11)) (by decide +kernel)
-  have m13 := a 4 (.mul (.n 13) (.n 12) (.n 10)) (by decide +kernel)
-  have m14 := a 5 (.mul (.n 14) (.n 13) (.n 13)) (by decide +kernel)
-  have m15 := a 6 (.mul (.n 15) (.n 0) (.n 14)) (by decide +kernel)
-  have l44 := a 22 (.load (.n 43) (.n 15) 9) (by decide +kernel)
-  have c45 := a 23 (.const (.n 44) (word 2 0)) (by decide +kernel)
-  have m46 := a 24 (.mul (.n 45) (.n 4) (.n 44)) (by decide +kernel)
-  have m47 := a 25 (.mul (.n 46) (.n 45) (.n 45)) (by decide +kernel)
-  have m48 := a 26 (.mul (.n 47) (.n 46) (.n 46)) (by decide +kernel)
-  have m49 := a 27 (.mul (.n 48) (.n 47) (.n 45)) (by decide +kernel)
-  have m50 := a 28 (.mul (.n 49) (.n 48) (.n 48)) (by decide +kernel)
-  have m51 := a 29 (.mul (.n 50) (.n 49) (.n 49)) (by decide +kernel)
-  have m52 := a 30 (.mul (.n 51) (.n 50) (.n 50)) (by decide +kernel)
-  have m53 := a 31 (.mul (.n 52) (.n 2) (.n 51)) (by decide +kernel)
-  have m54 := a 32 (.mul (.n 53) (.n 1) (.n 43)) (by decide +kernel)
+  have m9 := a 0 (.mul (.n (valf% «gkr_layer» "x_layer~0")) (.n (valf% «gkr_layer» "x_j")) (.n (valf% «gkr_layer» "x_j"))) (by decide +kernel)
+  have m10 := a 1 (.mul (.n (valf% «gkr_layer» "x_layer")) (.n (valf% «gkr_layer» "x_layer~0")) (.n (valf% «gkr_layer» "start_g"))) (by decide +kernel)
+  have m11 := a 2 (.mul (.n (valf% «gkr_layer» "layer~0")) (.n (valf% «gkr_layer» "x_layer")) (.n (valf% «gkr_layer» "x_layer"))) (by decide +kernel)
+  have m12 := a 3 (.mul (.n (valf% «gkr_layer» "layer~1")) (.n (valf% «gkr_layer» "layer~0")) (.n (valf% «gkr_layer» "layer~0"))) (by decide +kernel)
+  have m13 := a 4 (.mul (.n (valf% «gkr_layer» "layer~2")) (.n (valf% «gkr_layer» "layer~1")) (.n (valf% «gkr_layer» "x_layer"))) (by decide +kernel)
+  have m14 := a 5 (.mul (.n (valf% «gkr_layer» "layer~3")) (.n (valf% «gkr_layer» "layer~2")) (.n (valf% «gkr_layer» "layer~2"))) (by decide +kernel)
+  have m15 := a 6 (.mul (.n (valf% «gkr_layer» "layer")) (.n (valf% «gkr_layer» "layers")) (.n (valf% «gkr_layer» "layer~3"))) (by decide +kernel)
+  have l44 := a 22 (.load (.n (valf% «gkr_layer» "round_pos")) (.n (valf% «gkr_layer» "layer")) 9) (by decide +kernel)
+  have c45 := a 23 (.const (.n (valf% «gkr_layer» "point_row~0")) (word 2 0)) (by decide +kernel)
+  have m46 := a 24 (.mul (.n (valf% «gkr_layer» "point_row~1")) (.n (valf% «gkr_layer» "x_j")) (.n (valf% «gkr_layer» "point_row~0"))) (by decide +kernel)
+  have m47 := a 25 (.mul (.n (valf% «gkr_layer» "point_row~2")) (.n (valf% «gkr_layer» "point_row~1")) (.n (valf% «gkr_layer» "point_row~1"))) (by decide +kernel)
+  have m48 := a 26 (.mul (.n (valf% «gkr_layer» "point_row~3")) (.n (valf% «gkr_layer» "point_row~2")) (.n (valf% «gkr_layer» "point_row~2"))) (by decide +kernel)
+  have m49 := a 27 (.mul (.n (valf% «gkr_layer» "point_row~4")) (.n (valf% «gkr_layer» "point_row~3")) (.n (valf% «gkr_layer» "point_row~1"))) (by decide +kernel)
+  have m50 := a 28 (.mul (.n (valf% «gkr_layer» "point_row~5")) (.n (valf% «gkr_layer» "point_row~4")) (.n (valf% «gkr_layer» "point_row~4"))) (by decide +kernel)
+  have m51 := a 29 (.mul (.n (valf% «gkr_layer» "point_row~6")) (.n (valf% «gkr_layer» "point_row~5")) (.n (valf% «gkr_layer» "point_row~5"))) (by decide +kernel)
+  have m52 := a 30 (.mul (.n (valf% «gkr_layer» "point_row~7")) (.n (valf% «gkr_layer» "point_row~6")) (.n (valf% «gkr_layer» "point_row~6"))) (by decide +kernel)
+  have m53 := a 31 (.mul (.n (valf% «gkr_layer» "point_row")) (.n (valf% «gkr_layer» "gkr_pts")) (.n (valf% «gkr_layer» "point_row~7"))) (by decide +kernel)
+  have m54 := a 32 (.mul (.n (valf% «gkr_layer» "head")) (.n (valf% «gkr_layer» "rounds")) (.n (valf% «gkr_layer» "round_pos"))) (by decide +kernel)
   simp only [Atom.Holds] at m9 m10 m11 m12 m13 m14 m15 l44 c45 m46 m47 m48 m49 m50 m51 m52
   simp only [Atom.Holds] at m53 m54
   rw [tb_word_gen] at c45
-  have e10 : σ (.n 10) = gen ^ (2 * j + 2 - sh) := by
+  have e10 : σ (.n (valf% «gkr_layer» "x_layer")) = gen ^ (2 * j + 2 - sh) := by
     rw [m10, m9, hx, hsg, ← pow_add, ← pow_add, show j + j + (2 - sh) = 2 * j + 2 - sh by omega]
   refine ⟨?_, l44, ?_, m54⟩
   · rw [m15, m14, m13, m12, m11, e10, ← pow_add, ← pow_add, ← pow_add, ← pow_add]
@@ -244,7 +247,7 @@ theorem gl_prePtrs (h : Stmt.HoldsList C rd σ glPre True kret) {j sh : ℕ}
 
 /-- The tail record's pointer. -/
 theorem gl_tailW {p : ℕ} (h : Stmt.HoldsList C rd σ (glTailSetup p) True kret) :
-    σ (.n (glW p)) = σ (.n 53) * σ (.n 3) := by
+    σ (.n (glW p)) = σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) := by
   rcases Nat.eq_zero_or_pos p with rfl | hp1
   · simp only [glTailSetup, ↓reduceIte, glTailSetup0, List.cons_append, Stmt.HoldsList,
       Stmt.Holds, Atom.Holds] at h
@@ -256,8 +259,8 @@ theorem gl_tailW {p : ℕ} (h : Stmt.HoldsList C rd σ (glTailSetup p) True kret
 
 /-- The loop's guard and arguments. -/
 theorem gl_loopCallV {p : ℕ} (hp4 : p < 4) {nm : String} (h : Stmt.HoldsList C rd σ (glLoopCall p nm) True kret) :
-    σ (.n (glG p)) = 1 + σ (.n 3) ∧ (glLA p).map σ = [1, σ (.n 3), σ (.n 53),
-      σ (.n 52) * gen ^ (2 * p), σ (.n 52) * gen ^ (2 * p) * gen ^ 42, σ (.n 7)] := by
+    σ (.n (glG p)) = 1 + σ (.n (valf% «gkr_layer» "x_m")) ∧ (glLA p).map σ = [1, σ (.n (valf% «gkr_layer» "x_m")), σ (.n (valf% «gkr_layer» "head")),
+      σ (.n (valf% «gkr_layer» "point_row")) * gen ^ (2 * p), σ (.n (valf% «gkr_layer» "point_row")) * gen ^ (2 * p) * gen ^ 42, σ (.n (valf% «gkr_layer» "tabs"))] := by
   rcases Nat.eq_zero_or_pos p with rfl | hp1
   · simp only [glLoopCall, ↓reduceIte, glLoopCall0, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
       List.map_cons, List.map_nil] at h
@@ -323,7 +326,7 @@ theorem gl_relIn {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hj : 4 * m + p < 2 ^ 3
   rw [p0] at e15
   rw [p2] at e53
   rw [p1] at e54
-  have e44 : σ (.n 43) = pos := by
+  have e44 : σ (.n (valf% «gkr_layer» "round_pos")) = pos := by
     rw [e15, tb_loadHolds_mul_gen_pow] at l44; exact tb_loadHolds_unique l44 hpos
   rw [e44] at e54
   obtain ⟨e68, e71, -⟩ := gl_tailSetup hp hTS

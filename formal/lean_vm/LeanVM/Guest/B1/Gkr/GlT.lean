@@ -10,6 +10,9 @@ module
 public import LeanVM.Guest.B1.Gkr.LayerTail
 public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.CoreData
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
+import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
 
 /-!
 # A radix-four layer's templates
@@ -70,80 +73,80 @@ def glD (p : ℕ) : ℕ := if p = 0 then 0 else 78 * p + 6
 
 /-- The prefix, common to the eight bodies. -/
 def glPre : List Stmt :=
-  [.atom (.mul (.n 9) (.n 4) (.n 4)),
-    .atom (.mul (.n 10) (.n 9) (.n 5)),
-    .atom (.mul (.n 11) (.n 10) (.n 10)),
-    .atom (.mul (.n 12) (.n 11) (.n 11)),
-    .atom (.mul (.n 13) (.n 12) (.n 10)),
-    .atom (.mul (.n 14) (.n 13) (.n 13)),
-    .atom (.mul (.n 15) (.n 0) (.n 14)),
-    .atom (.load (.n 16) (.n 15) 0),
-    .atom (.load (.n 17) (.n 15) 1),
-    .atom (.load (.n 18) (.n 15) 2),
-    .atom (.load (.n 19) (.n 15) 3),
-    .atom (.load (.n 20) (.n 15) 4),
-    .atom (.load (.n 21) (.n 15) 5),
-    .atom (.const (.n 22) (word 1 0)),
-    .atom (.const (.n 23) (word 0 0)),
-    .atom (.const (.n 24) (word 0 0)),
-    .atom (.const (.n 25) (word 0 0)),
-    .atom (.const (.n 26) (word 0 0)),
-    .atom (.keccak [.n 23, .n 23, .n 23, .n 23, .n 23, .n 24, .n 25, .n 26, .n 16, .n 17, .n 18, .n 19, .n 20] [.n 27, .n 28, .n 29, .n 30, .n 31, .n 32, .n 33, .n 34, .n 35, .n 36, .n 37, .n 38, .n 39] false false),
-    .atom (.load (.n 40) (.n 15) 6),
-    .atom (.load (.n 41) (.n 15) 7),
-    .atom (.load (.n 42) (.n 15) 8),
-    .atom (.load (.n 43) (.n 15) 9),
-    .atom (.const (.n 44) (word 2 0)),
-    .atom (.mul (.n 45) (.n 4) (.n 44)),
-    .atom (.mul (.n 46) (.n 45) (.n 45)),
-    .atom (.mul (.n 47) (.n 46) (.n 46)),
-    .atom (.mul (.n 48) (.n 47) (.n 45)),
-    .atom (.mul (.n 49) (.n 48) (.n 48)),
-    .atom (.mul (.n 50) (.n 49) (.n 49)),
-    .atom (.mul (.n 51) (.n 50) (.n 50)),
-    .atom (.mul (.n 52) (.n 2) (.n 51)),
-    .atom (.mul (.n 53) (.n 1) (.n 43)),
-    .atom (.mul (.n 54) (.n 27) (.n 42)),
-    .atom (.add (.n 55) (.n 41) (.n 54)),
-    .atom (.mul (.n 56) (.n 27) (.n 55)),
-    .atom (.add (.n 57) (.n 40) (.n 56))]
+  [.atom (.mul (.n (valf% «gkr_layer» "x_layer~0")) (.n (valf% «gkr_layer» "x_j")) (.n (valf% «gkr_layer» "x_j"))),
+    .atom (.mul (.n (valf% «gkr_layer» "x_layer")) (.n (valf% «gkr_layer» "x_layer~0")) (.n (valf% «gkr_layer» "start_g"))),
+    .atom (.mul (.n (valf% «gkr_layer» "layer~0")) (.n (valf% «gkr_layer» "x_layer")) (.n (valf% «gkr_layer» "x_layer"))),
+    .atom (.mul (.n (valf% «gkr_layer» "layer~1")) (.n (valf% «gkr_layer» "layer~0")) (.n (valf% «gkr_layer» "layer~0"))),
+    .atom (.mul (.n (valf% «gkr_layer» "layer~2")) (.n (valf% «gkr_layer» "layer~1")) (.n (valf% «gkr_layer» "x_layer"))),
+    .atom (.mul (.n (valf% «gkr_layer» "layer~3")) (.n (valf% «gkr_layer» "layer~2")) (.n (valf% «gkr_layer» "layer~2"))),
+    .atom (.mul (.n (valf% «gkr_layer» "layer")) (.n (valf% «gkr_layer» "layers")) (.n (valf% «gkr_layer» "layer~3"))),
+    .atom (.load (.n (valf% «gkr_layer» "sp[0]@1")) (.n (valf% «gkr_layer» "layer")) 0),
+    .atom (.load (.n (valf% «gkr_layer» "sp[1]@1")) (.n (valf% «gkr_layer» "layer")) 1),
+    .atom (.load (.n (valf% «gkr_layer» "sp[2]@1")) (.n (valf% «gkr_layer» "layer")) 2),
+    .atom (.load (.n (valf% «gkr_layer» "sp[3]@1")) (.n (valf% «gkr_layer» "layer")) 3),
+    .atom (.load (.n (valf% «gkr_layer» "sp[4]@1")) (.n (valf% «gkr_layer» "layer")) 4),
+    .atom (.load (.n (valf% «gkr_layer» "s4#0")) (.n (valf% «gkr_layer» "layer")) 5),
+    .atom (.const (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0")) (word 1 0)),
+    .atom (.const (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]")) (word 0 0)),
+    .atom (.const (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[2]")) (word 0 0)),
+    .atom (.const (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[3]")) (word 0 0)),
+    .atom (.const (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[4]")) (word 0 0)),
+    .atom (.keccak [.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[2]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[3]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[4]"), .n (valf% «gkr_layer» "sp[0]@1"), .n (valf% «gkr_layer» "sp[1]@1"), .n (valf% «gkr_layer» "sp[2]@1"), .n (valf% «gkr_layer» "sp[3]@1"), .n (valf% «gkr_layer» "sp[4]@1")] [.n (valf% «gkr_layer» "nxt[0]@1"), .n (valf% «gkr_layer» "nxt[1]@1"), .n (valf% «gkr_layer» "nxt[2]@1"), .n (valf% «gkr_layer» "nxt[3]@1"), .n (valf% «gkr_layer» "nxt[4]@1"), .n (valf% «gkr_layer» "nxt[5]@1"), .n (valf% «gkr_layer» "nxt[6]@1"), .n (valf% «gkr_layer» "nxt[7]@1"), .n (valf% «gkr_layer» "nxt[8]@1"), .n (valf% «gkr_layer» "nxt[9]@1"), .n (valf% «gkr_layer» "nxt[10]@1"), .n (valf% «gkr_layer» "nxt[11]@1"), .n (valf% «gkr_layer» "nxt[12]@1")] false false),
+    .atom (.load (.n (valf% «gkr_layer» "layer_vals[0]")) (.n (valf% «gkr_layer» "layer")) 6),
+    .atom (.load (.n (valf% «gkr_layer» "layer_vals[1]")) (.n (valf% «gkr_layer» "layer")) 7),
+    .atom (.load (.n (valf% «gkr_layer» "layer_vals[2]")) (.n (valf% «gkr_layer» "layer")) 8),
+    .atom (.load (.n (valf% «gkr_layer» "round_pos")) (.n (valf% «gkr_layer» "layer")) 9),
+    .atom (.const (.n (valf% «gkr_layer» "point_row~0")) (word 2 0)),
+    .atom (.mul (.n (valf% «gkr_layer» "point_row~1")) (.n (valf% «gkr_layer» "x_j")) (.n (valf% «gkr_layer» "point_row~0"))),
+    .atom (.mul (.n (valf% «gkr_layer» "point_row~2")) (.n (valf% «gkr_layer» "point_row~1")) (.n (valf% «gkr_layer» "point_row~1"))),
+    .atom (.mul (.n (valf% «gkr_layer» "point_row~3")) (.n (valf% «gkr_layer» "point_row~2")) (.n (valf% «gkr_layer» "point_row~2"))),
+    .atom (.mul (.n (valf% «gkr_layer» "point_row~4")) (.n (valf% «gkr_layer» "point_row~3")) (.n (valf% «gkr_layer» "point_row~1"))),
+    .atom (.mul (.n (valf% «gkr_layer» "point_row~5")) (.n (valf% «gkr_layer» "point_row~4")) (.n (valf% «gkr_layer» "point_row~4"))),
+    .atom (.mul (.n (valf% «gkr_layer» "point_row~6")) (.n (valf% «gkr_layer» "point_row~5")) (.n (valf% «gkr_layer» "point_row~5"))),
+    .atom (.mul (.n (valf% «gkr_layer» "point_row~7")) (.n (valf% «gkr_layer» "point_row~6")) (.n (valf% «gkr_layer» "point_row~6"))),
+    .atom (.mul (.n (valf% «gkr_layer» "point_row")) (.n (valf% «gkr_layer» "gkr_pts")) (.n (valf% «gkr_layer» "point_row~7"))),
+    .atom (.mul (.n (valf% «gkr_layer» "head")) (.n (valf% «gkr_layer» "rounds")) (.n (valf% «gkr_layer» "round_pos"))),
+    .atom (.mul (.n (valf% «gkr_layer» "claim@1~0")) (.n (valf% «gkr_layer» "nxt[0]@1")) (.n (valf% «gkr_layer» "layer_vals[2]"))),
+    .atom (.add (.n (valf% «gkr_layer» "claim@1")) (.n (valf% «gkr_layer» "layer_vals[1]")) (.n (valf% «gkr_layer» "claim@1~0"))),
+    .atom (.mul (.n (valf% «gkr_layer» "claim@2~0")) (.n (valf% «gkr_layer» "nxt[0]@1")) (.n (valf% «gkr_layer» "claim@1"))),
+    .atom (.add (.n (valf% «gkr_layer» "claim@2")) (.n (valf% «gkr_layer» "layer_vals[0]")) (.n (valf% «gkr_layer» "claim@2~0")))]
 
 /-- The head rounds. -/
 def glHeadRounds (p : ℕ) : List Stmt :=
-  glRounds 58 (2 * p) (.n 21) (.n 52) (.n 52) 42 (.n 57) (glCap 35)
+  glRounds 58 (2 * p) (.n (valf% «gkr_layer» "s4#0")) (.n (valf% «gkr_layer» "point_row")) (.n (valf% «gkr_layer» "point_row")) 42 (.n (valf% «gkr_layer» "claim@2")) (glCap 35)
 
 /-- The head record's stores, at `p = 0`. -/
 def glHeadStore0 : List Stmt :=
-  (List.range 5).map (fun k ↦ .atom (.load (.n (35 + k)) (.n 53) (862 * k))) ++
-    [.atom (.load (.n 21) (.n 53) 4310), .atom (.load (.n 57) (.n 53) 5172)]
+  (List.range 5).map (fun k ↦ .atom (.load (.n (35 + k)) (.n (valf% «gkr_layer» "head")) (862 * k))) ++
+    [.atom (.load (.n (valf% «gkr_layer» "s4#0")) (.n (valf% «gkr_layer» "head")) 4310), .atom (.load (.n (valf% «gkr_layer» "claim@2")) (.n (valf% «gkr_layer» "head")) 5172)]
 
 /-- The head record's stores, at `p ≥ 1`: the cursor `8p` words on. -/
 def glHeadStoreP (p : ℕ) : List Stmt :=
-  (List.range 5).map (fun k ↦ .atom (.load (.n (39 + 78 * p + k)) (.n 53) (862 * k))) ++
+  (List.range 5).map (fun k ↦ .atom (.load (.n (39 + 78 * p + k)) (.n (valf% «gkr_layer» "head")) (862 * k))) ++
     [.atom (.const (.n (58 + 78 * p)) (word (2 ^ (8 * p)) 0)),
-      .atom (.mul (.n (59 + 78 * p)) (.n 21) (.n (58 + 78 * p))),
-      .atom (.load (.n (59 + 78 * p)) (.n 53) 4310), .atom (.load (.n (57 + 78 * p)) (.n 53) 5172)]
+      .atom (.mul (.n (59 + 78 * p)) (.n (valf% «gkr_layer» "s4#0")) (.n (58 + 78 * p))),
+      .atom (.load (.n (59 + 78 * p)) (.n (valf% «gkr_layer» "head")) 4310), .atom (.load (.n (57 + 78 * p)) (.n (valf% «gkr_layer» "head")) 5172)]
 
 def glHeadStore (p : ℕ) : List Stmt := if p = 0 then glHeadStore0 else glHeadStoreP p
 
 /-- The loop's call, at `p = 0`. -/
 def glLoopCall0 (nm : String) : List Stmt :=
-  [.atom (.const (.n 58) (word 1 0)), .atom (.add (.n 59) (.n 58) (.n 3)),
+  [.atom (.const (.n 58) (word 1 0)), .atom (.add (.n 59) (.n 58) (.n (valf% «gkr_layer» "x_m"))),
     .atom (.const (.n 60) (word 1 0)), .atom (.const (.n 61) (word (2 ^ 42) 0)),
-    .atom (.mul (.n 62) (.n 52) (.n 61)),
-    .callIf (.n 59) nm [.n 60, .n 3, .n 53, .n 52, .n 62, .n 7]]
+    .atom (.mul (.n 62) (.n (valf% «gkr_layer» "point_row")) (.n 61)),
+    .callIf (.n 59) nm [.n 60, .n (valf% «gkr_layer» "x_m"), .n (valf% «gkr_layer» "head"), .n (valf% «gkr_layer» "point_row"), .n 62, .n (valf% «gkr_layer» "tabs")]]
 
 /-- The loop's call, at `p ≥ 1`. -/
 def glLoopCallP (p : ℕ) (nm : String) : List Stmt :=
   [.atom (.const (.n (60 + 78 * p)) (word 1 0)),
-    .atom (.add (.n (61 + 78 * p)) (.n (60 + 78 * p)) (.n 3)),
+    .atom (.add (.n (61 + 78 * p)) (.n (60 + 78 * p)) (.n (valf% «gkr_layer» "x_m"))),
     .atom (.const (.n (62 + 78 * p)) (word 1 0)),
     .atom (.const (.n (63 + 78 * p)) (word (2 ^ (2 * p)) 0)),
-    .atom (.mul (.n (64 + 78 * p)) (.n 52) (.n (63 + 78 * p))),
+    .atom (.mul (.n (64 + 78 * p)) (.n (valf% «gkr_layer» "point_row")) (.n (63 + 78 * p))),
     .atom (.const (.n (65 + 78 * p)) (word (2 ^ (42 + 2 * p)) 0)),
-    .atom (.mul (.n (66 + 78 * p)) (.n 52) (.n (65 + 78 * p))),
+    .atom (.mul (.n (66 + 78 * p)) (.n (valf% «gkr_layer» "point_row")) (.n (65 + 78 * p))),
     .callIf (.n (61 + 78 * p)) nm
-      [.n (62 + 78 * p), .n 3, .n 53, .n (64 + 78 * p), .n (66 + 78 * p), .n 7]]
+      [.n (62 + 78 * p), .n (valf% «gkr_layer» "x_m"), .n (valf% «gkr_layer» "head"), .n (64 + 78 * p), .n (66 + 78 * p), .n (valf% «gkr_layer» "tabs")]]
 
 def glLoopCall (p : ℕ) (nm : String) : List Stmt :=
   if p = 0 then glLoopCall0 nm else glLoopCallP p nm
@@ -155,23 +158,23 @@ def glTailLoads (p w : ℕ) : List Stmt :=
 
 /-- The tail's pointers, at `p = 0`. -/
 def glTailSetup0 : List Stmt :=
-  [.atom (.mul (.n 63) (.n 53) (.n 3)), .atom (.mul (.n 64) (.n 3) (.n 3)),
+  [.atom (.mul (.n 63) (.n (valf% «gkr_layer» "head")) (.n (valf% «gkr_layer» "x_m"))), .atom (.mul (.n 64) (.n (valf% «gkr_layer» "x_m")) (.n (valf% «gkr_layer» "x_m"))),
     .atom (.mul (.n 65) (.n 64) (.n 64)), .atom (.mul (.n 66) (.n 65) (.n 65)),
-    .atom (.mul (.n 67) (.n 52) (.n 66)), .atom (.const (.n 68) (word (2 ^ 42) 0)),
-    .atom (.mul (.n 69) (.n 52) (.n 68)), .atom (.mul (.n 70) (.n 69) (.n 66))] ++
+    .atom (.mul (.n 67) (.n (valf% «gkr_layer» "point_row")) (.n 66)), .atom (.const (.n 68) (word (2 ^ 42) 0)),
+    .atom (.mul (.n 69) (.n (valf% «gkr_layer» "point_row")) (.n 68)), .atom (.mul (.n 70) (.n 69) (.n 66))] ++
   glTailLoads 0 63
 
 /-- The tail's pointers, at `p ≥ 1`. -/
 def glTailSetupP (p : ℕ) : List Stmt :=
-  [.atom (.mul (.n (67 + 78 * p)) (.n 53) (.n 3)),
-    .atom (.mul (.n (68 + 78 * p)) (.n 3) (.n 3)),
+  [.atom (.mul (.n (67 + 78 * p)) (.n (valf% «gkr_layer» "head")) (.n (valf% «gkr_layer» "x_m"))),
+    .atom (.mul (.n (68 + 78 * p)) (.n (valf% «gkr_layer» "x_m")) (.n (valf% «gkr_layer» "x_m"))),
     .atom (.mul (.n (69 + 78 * p)) (.n (68 + 78 * p)) (.n (68 + 78 * p))),
     .atom (.mul (.n (70 + 78 * p)) (.n (69 + 78 * p)) (.n (69 + 78 * p))),
     .atom (.const (.n (71 + 78 * p)) (word (2 ^ (2 * p)) 0)),
-    .atom (.mul (.n (72 + 78 * p)) (.n 52) (.n (71 + 78 * p))),
+    .atom (.mul (.n (72 + 78 * p)) (.n (valf% «gkr_layer» "point_row")) (.n (71 + 78 * p))),
     .atom (.mul (.n (73 + 78 * p)) (.n (72 + 78 * p)) (.n (70 + 78 * p))),
     .atom (.const (.n (74 + 78 * p)) (word (2 ^ (42 + 2 * p)) 0)),
-    .atom (.mul (.n (75 + 78 * p)) (.n 52) (.n (74 + 78 * p))),
+    .atom (.mul (.n (75 + 78 * p)) (.n (valf% «gkr_layer» "point_row")) (.n (74 + 78 * p))),
     .atom (.mul (.n (76 + 78 * p)) (.n (75 + 78 * p)) (.n (70 + 78 * p)))] ++
   glTailLoads p (67 + 78 * p)
 
@@ -259,24 +262,24 @@ def glBody (p o : ℕ) (nm : String) : List Stmt :=
 
 /-- The iteration's pointers (`head·y`, `y^8`, `qrow·y^8`, `nqrow·y^8`) and its record. -/
 def glLoopPre : List Stmt :=
-  [.atom (.mul (.n 6) (.n 2) (.n 0)), .atom (.mul (.n 7) (.n 0) (.n 0)),
-    .atom (.mul (.n 8) (.n 7) (.n 7)), .atom (.mul (.n 9) (.n 8) (.n 8)),
-    .atom (.mul (.n 10) (.n 3) (.n 9)), .atom (.mul (.n 11) (.n 4) (.n 9))] ++
-  (List.range 5).map (fun k ↦ .atom (.load (.n (12 + k)) (.n 6) (862 * k))) ++
-  [.atom (.load (.n 17) (.n 6) 4310), .atom (.load (.n 18) (.n 6) 5172)]
+  [.atom (.mul (.n (valf% «gkr_layer» «_loop0» "rd")) (.n (valf% «gkr_layer» «_loop0» "head")) (.n (valf% «gkr_layer» «_loop0» "y"))), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "y2")) (.n (valf% «gkr_layer» «_loop0» "y")) (.n (valf% «gkr_layer» «_loop0» "y"))),
+    .atom (.mul (.n (valf% «gkr_layer» «_loop0» "y4")) (.n (valf% «gkr_layer» «_loop0» "y2")) (.n (valf% «gkr_layer» «_loop0» "y2"))), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "y8")) (.n (valf% «gkr_layer» «_loop0» "y4")) (.n (valf% «gkr_layer» «_loop0» "y4"))),
+    .atom (.mul (.n (valf% «gkr_layer» «_loop0» "pt")) (.n (valf% «gkr_layer» «_loop0» "qrow")) (.n (valf% «gkr_layer» «_loop0» "y8"))), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "npt")) (.n (valf% «gkr_layer» «_loop0» "nqrow")) (.n (valf% «gkr_layer» «_loop0» "y8")))] ++
+  (List.range 5).map (fun k ↦ .atom (.load (.n (12 + k)) (.n (valf% «gkr_layer» «_loop0» "rd")) (862 * k))) ++
+  [.atom (.load (.n (valf% «gkr_layer» «_loop0» "cur")) (.n (valf% «gkr_layer» «_loop0» "rd")) 4310), .atom (.load (.n (valf% «gkr_layer» «_loop0» "claim")) (.n (valf% «gkr_layer» «_loop0» "rd")) 5172)]
 
 /-- The iteration's eight rounds. -/
-def glLoopRounds : List Stmt := glRounds 19 8 (.n 17) (.n 10) (.n 11) 0 (.n 18) (glCap 12)
+def glLoopRounds : List Stmt := glRounds 19 8 (.n (valf% «gkr_layer» «_loop0» "cur")) (.n (valf% «gkr_layer» «_loop0» "pt")) (.n (valf% «gkr_layer» «_loop0» "npt")) 0 (.n (valf% «gkr_layer» «_loop0» "claim")) (glCap 12)
 
 /-- The next record, the guard and the next call. -/
 def glLoopPost (nm : String) : List Stmt :=
-  (List.range 5).map (fun k ↦ .atom (.load (.n (312 + k)) (.n 6) (1 + 862 * k))) ++
-  [.atom (.const (.n 331) (word (2 ^ 32) 0)), .atom (.mul (.n 332) (.n 17) (.n 331)),
-    .atom (.load (.n 332) (.n 6) 4311), .atom (.load (.n 330) (.n 6) 5173),
-    .atom (.const (.n 333) (word 2 0)), .atom (.mul (.n 334) (.n 0) (.n 333)),
-    .atom (.add (.n 335) (.n 334) (.n 1)), .atom (.const (.n 336) (word 2 0)),
-    .atom (.mul (.n 337) (.n 0) (.n 336)),
-    .callIf (.n 335) nm [.n 337, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []]
+  (List.range 5).map (fun k ↦ .atom (.load (.n (312 + k)) (.n (valf% «gkr_layer» «_loop0» "rd")) (1 + 862 * k))) ++
+  [.atom (.const (.n (valf% «gkr_layer» «_loop0» "s12#0")) (word (2 ^ 32) 0)), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "s12#1")) (.n (valf% «gkr_layer» «_loop0» "cur")) (.n (valf% «gkr_layer» «_loop0» "s12#0"))),
+    .atom (.load (.n (valf% «gkr_layer» «_loop0» "s12#1")) (.n (valf% «gkr_layer» «_loop0» "rd")) 4311), .atom (.load (.n (valf% «gkr_layer» «_loop0» "nclaim@8")) (.n (valf% «gkr_layer» «_loop0» "rd")) 5173),
+    .atom (.const (.n (valf% «gkr_layer» «_loop0» "s15#0")) (word 2 0)), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "s15#1")) (.n (valf% «gkr_layer» «_loop0» "y")) (.n (valf% «gkr_layer» «_loop0» "s15#0"))),
+    .atom (.add (.n (valf% «gkr_layer» «_loop0» "s15#2")) (.n (valf% «gkr_layer» «_loop0» "s15#1")) (.n (valf% «gkr_layer» «_loop0» "bound"))), .atom (.const (.n (valf% «gkr_layer» «_loop0» "s15#3")) (word 2 0)),
+    .atom (.mul (.n (valf% «gkr_layer» «_loop0» "s15#4")) (.n (valf% «gkr_layer» «_loop0» "y")) (.n (valf% «gkr_layer» «_loop0» "s15#3"))),
+    .callIf (.n (valf% «gkr_layer» «_loop0» "s15#2")) nm [.n (valf% «gkr_layer» «_loop0» "s15#4"), .n (valf% «gkr_layer» «_loop0» "bound"), .n (valf% «gkr_layer» «_loop0» "head"), .n (valf% «gkr_layer» «_loop0» "qrow"), .n (valf% «gkr_layer» «_loop0» "nqrow"), .n (valf% «gkr_layer» «_loop0» "tabs")], .ret []]
 
 /-- **The loop's body**, its own name `nm`. -/
 def glLoopBody (nm : String) : List Stmt := glLoopPre ++ glLoopRounds ++ glLoopPost nm

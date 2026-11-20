@@ -158,6 +158,9 @@ structure St where
   queue : Array Func
   /-- The loops lowered so far in this function. -/
   loopCtr : Nat := 0
+  /-- Each source name bound to a value, in order (`rebind`): a value's name for the proofs
+  (`guest-core --names`), not read by the lowering. -/
+  binds : Array (String × V) := #[]
   deriving Inhabited
 
 /-- The lowering monad. -/
@@ -251,7 +254,12 @@ def checkNotReserved (n : String) : M Unit := do
 /-- Bind a name, clearing its integer reading (`rebind`). -/
 def rebind (n : String) (b : Binding) : M Unit := do
   checkNotReserved n
-  modify fun st => { st with names := (n, ⟨b, none⟩) :: st.names.filter (·.1 != n) }
+  let named : List (String × V) := match b with
+    | .scalar v => [(n, v)]
+    | .stack cells => cells.zipIdx.map fun (c, k) => (s!"{n}[{k}]", c)
+    | _ => []
+  modify fun st => { st with names := (n, ⟨b, none⟩) :: st.names.filter (·.1 != n),
+                             binds := st.binds ++ named.toArray }
 
 /-- Attach an integer reading to a name's binding (`set_int`). -/
 def setInt (n : String) (k : Nat) : M Unit :=
@@ -1917,6 +1925,32 @@ def expandQueue (p : Program) : Nat → Nat → Array Func → Array Core.Fn →
           else do
             let (fn, queue) ← expandFn p f queue
             expandQueue p budget (i + 1) queue (out.push fn)
+
+/-- Each lowered function's source names, as `expandQueue` lowers them: its parameters', then
+each `rebind`'s, in order (`guest-core --names`). -/
+def expandBinds (p : Program) : Nat → Nat → Array Func → Array (String × Array (String × V)) →
+    Except String (Array (String × Array (String × V)))
+  | 0, _, _, _ => throw "too many functions"
+  | budget + 1, i, queue, out =>
+      match queue[i]? with
+      | none => return out
+      | some f =>
+          if f.hasConstParams || f.inline then expandBinds p budget (i + 1) queue out
+          else do
+            if let some q := f.params.find? (fun q => p.constArrays.any (·.1 == q.name)) then
+              throw s!"`{f.name}`: parameter `{q.name}` collides with a top-level constant array"
+            let ((), st) ← (lowerFunc f).run (initState p f queue)
+            let params := (paramBindings f).1.reverse.flatMap fun (n, b) => match b.val with
+              | .scalar v => [(n, v)]
+              | .stack cells => cells.zipIdx.map fun (c, k) => (s!"{n}[{k}]", c)
+              | _ => []
+            expandBinds p budget (i + 1) st.queue (out.push (f.name, params.toArray ++ st.binds))
+
+/-- The source names of every function the compiler lowers, in its order (`expandBinds`). -/
+def expandProgramBinds (p : Program) : Except String (Array (String × Array (String × V))) := do
+  let some main := p.funcs.find? (·.name == "main") | throw "program needs a `main`"
+  let queue := #[main] ++ (p.funcs.filter (·.name != "main")).toArray
+  expandBinds p 1000000 0 queue #[]
 
 /-- Every function the compiler lowers, in its order: `main` first. -/
 def expandProgram (p : Program) : Except String Core.Program := do

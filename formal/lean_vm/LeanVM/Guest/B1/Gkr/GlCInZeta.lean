@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B1.Tables.Kids.Loop9
 public import LeanVM.Guest.B1.Gkr.Loop8
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_bus_gkr_loop0»
 
 /-!
 # `verify_bus_gkr_loop0`, loading from a region
@@ -74,8 +76,8 @@ theorem vbz_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ} {zeta row : E}
       simp only [List.map_cons, List.map_nil, List.mem_singleton] at hcm
       subst hcm
       simp only [Main.mkCall, decide_eq_true_eq] at ht ⊢
-      have e11 : σ (.n 11) = gen ^ (k + 1) := by rw [m11, c10, p0, pow_succ]
-      have e9 : σ (.n 9) = gen ^ (k + 1) + gen ^ K := by rw [a9, m8, c7, p0, p1, pow_succ]
+      have e11 : σ (.n (val% «verify_bus_gkr_loop0» "s2#4")) = gen ^ (k + 1) := by rw [m11, c10, p0, pow_succ]
+      have e9 : σ (.n (val% «verify_bus_gkr_loop0» "s2#2")) = gen ^ (k + 1) + gen ^ K := by rw [a9, m8, c7, p0, p1, pow_succ]
       have hk1 : k + 1 < K := by
         rcases Nat.lt_or_ge (k + 1) K with h' | h'
         · exact h'

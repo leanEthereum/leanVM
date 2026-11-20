@@ -13,6 +13,9 @@ public import LeanVM.Guest.B1.Bits.Tables
 public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.Budget.BoundedE
 public import LeanVM.Guest.Memory.Uniform
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«assert_small_g_power»
+import LeanVM.Guest.Data.ValNames.«log2_ceil_in_the_exponent__L»
 
 /-!
 # `assert_small_g_power` and `log2_ceil_in_the_exponent`, placed
@@ -40,6 +43,38 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
+
+/-! ## The template
+
+`log2_ceil_in_the_exponent`'s expansion at the floor `fl` (`lcBody`), equal to both specializations by
+kernel evaluation; the placed run below walks it. -/
+
+/-- The check above the floor: `g_N · g⁻¹ / g_squares[g^(L-1)]` a small g-power. -/
+def lcMin : List Stmt :=
+  [.atom (.const (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#0")) invGenWord), .atom (.mul (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#1")) (.n (valf% «log2_ceil_in_the_exponent» "g_N")) (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#0"))),
+    .atom (.const (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#2")) invGenWord), .atom (.mul (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#3")) (.n (valf% «log2_ceil_in_the_exponent» "g_log")) (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#2"))),
+    .atom (.mul (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#4")) (.n (valf% «log2_ceil_in_the_exponent» "g_squares")) (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#3"))), .atom (.load (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#5")) (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#4")) 0),
+    .atom (.mul (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#1")) (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#6")) (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#5"))), .call "assert_small_g_power" [.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#6"), .n (valf% «log2_ceil_in_the_exponent» "g_squares")] []]
+
+/-- The expansion of `log2_ceil_in_the_exponent` at the floor `fl`, 34 bits. -/
+def lcBody (fl : ℕ) : List Stmt :=
+  [.atom (.hint (.bitsExp (.n (valf% «log2_ceil_in_the_exponent» "g_N")) 34 (.stack ((List.range 34).map fun k => .n (2 + k))))),
+    .atom (.hint (.log2Ceil (.stack ((List.range 34).map fun k => .n (2 + k))) 34 fl (.n (valf% «log2_ceil_in_the_exponent» "g_log")))),
+    .atom (.const (.n (valf% «log2_ceil_in_the_exponent» "s3#0")) (word (2 ^ 33) 0)),
+    .atom (.rangeCheck (.n (valf% «log2_ceil_in_the_exponent» "g_log")) (.n (valf% «log2_ceil_in_the_exponent» "s3#1")) (.n (valf% «log2_ceil_in_the_exponent» "s3#2")) (.n (valf% «log2_ceil_in_the_exponent» "s3#3")) (.n (valf% «log2_ceil_in_the_exponent» "s3#0"))),
+    .atom (.const (.n (valf% «log2_ceil_in_the_exponent» "s4#0")) (word (2 ^ 33) 0)), .atom (.const (.n (valf% «log2_ceil_in_the_exponent» "s4#1")) (word (2 ^ fl) 0)),
+    .atom (.mul (.n (valf% «log2_ceil_in_the_exponent» "g_log")) (.n (valf% «log2_ceil_in_the_exponent» "s4#2")) (.n (valf% «log2_ceil_in_the_exponent» "s4#1"))),
+    .atom (.rangeCheck (.n (valf% «log2_ceil_in_the_exponent» "s4#2")) (.n (valf% «log2_ceil_in_the_exponent» "s4#3")) (.n (valf% «log2_ceil_in_the_exponent» "s4#4")) (.n (valf% «log2_ceil_in_the_exponent» "s4#5")) (.n (valf% «log2_ceil_in_the_exponent» "s4#0"))),
+    .atom (.mul (.n (valf% «log2_ceil_in_the_exponent» "s5#0")) (.n (valf% «log2_ceil_in_the_exponent» "g_squares")) (.n (valf% «log2_ceil_in_the_exponent» "g_log"))), .atom (.load (.n (valf% «log2_ceil_in_the_exponent» "s5#1")) (.n (valf% «log2_ceil_in_the_exponent» "s5#0")) 0),
+    .atom (.mul (.n (valf% «log2_ceil_in_the_exponent» "s5#1")) (.n (valf% «log2_ceil_in_the_exponent» "s5#2")) (.n (valf% «log2_ceil_in_the_exponent» "g_N"))), .call "assert_small_g_power" [.n (valf% «log2_ceil_in_the_exponent» "s5#2"), .n (valf% «log2_ceil_in_the_exponent» "g_squares")] [],
+    .atom (.const (.n (valf% «log2_ceil_in_the_exponent» "s6#0")) (word (2 ^ fl) 0)), .atom (.add (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) (.n (valf% «log2_ceil_in_the_exponent» "g_log")) (.n (valf% «log2_ceil_in_the_exponent» "s6#0"))),
+    .ite (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) [] lcMin, .atom (.copy (.n (valf% «log2_ceil_in_the_exponent» "s7#0")) (.n (valf% «log2_ceil_in_the_exponent» "g_log"))), .ret [.n (valf% «log2_ceil_in_the_exponent» "s7#0")]]
+
+theorem log2_ceil_in_the_exponent_L0_L34_body : Fn.body fn% «log2_ceil_in_the_exponent__L0_L34» =
+    lcBody 0 := stmtsEqb_sound (by decide +kernel)
+
+theorem log2_ceil_in_the_exponent_L16_L34_body : Fn.body fn% «log2_ceil_in_the_exponent__L16_L34» =
+    lcBody 16 := stmtsEqb_sound (by decide +kernel)
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
@@ -178,7 +213,7 @@ theorem asg_completeAtBE (κ : ℕ) (hκ4 : 4 ≤ κ) (sqE e : ℕ) (he : e < 2 
   have hnw := walk_noWit (σ := σ) _ asg_noWit
   rw [hw] at hnw
   refine ⟨σ, asgPre.flatMap (Main.slEvs σ), [], by
-      rw [show Fn.params fn% «assert_small_g_power» = [.n 0, .n 1] from rfl]; simp [e0, e1], hw,
+      rw [show Fn.params fn% «assert_small_g_power» = [.n (val% «assert_small_g_power» "x"), .n (val% «assert_small_g_power» "g_squares")] from rfl]; simp [e0, e1], hw,
           rfl, hes, i4, i3, i2, by rw [i1]; rfl, fun A hA ↦ ?_, splice_nil_of _ _ hnw (by simp),
     exactAt_of_walk find_assert_small_g_power hw (exact_of_sites asg_sites hw hes fun a ha _ ↦ ?_)⟩
   · rw [loadAddrs_straight σ _ asgPre_straight, asgPre_loads] at hA
@@ -204,7 +239,7 @@ theorem asg_completeAtB (κ : ℕ) (hκ4 : 4 ≤ κ) (sqE e : ℕ) (he : e < 2 ^
 def lcHead (fl : ℕ) : List Stmt := (lcBody fl).take 14
 
 theorem lcBody_split (fl : ℕ) : lcBody fl =
-    lcHead fl ++ (.ite (.n 51) [] lcMin :: [.atom (.copy (.n 59) (.n 36)), .ret [.n 59]]) := rfl
+    lcHead fl ++ (.ite (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) [] lcMin :: [.atom (.copy (.n (valf% «log2_ceil_in_the_exponent» "s7#0")) (.n (valf% «log2_ceil_in_the_exponent» "g_log"))), .ret [.n (valf% «log2_ceil_in_the_exponent» "s7#0")]]) := rfl
 
 theorem lcHead_straight (fl : ℕ) : (lcHead fl).all Main.Stmt.straight = true := rfl
 
@@ -222,15 +257,15 @@ theorem walk_straight_pre (σ : Val) : ∀ (pre rest : List Stmt), pre.all Main.
 
 /-- The events of `log2_ceil_in_the_exponent` at the floor `fl`. -/
 noncomputable def lcEvs (fl : ℕ) (σ : Val) : List Ev :=
-  (lcHead fl).flatMap (Main.slEvs σ) ++ (.inK (.n 51) ::
-    ((if σ (.n 51) = 0 then [] else lcMin).flatMap (Main.slEvs σ) ++
-      [.atom (.copy (.n 59) (.n 36))]))
+  (lcHead fl).flatMap (Main.slEvs σ) ++ (.inK (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) ::
+    ((if σ (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) = 0 then [] else lcMin).flatMap (Main.slEvs σ) ++
+      [.atom (.copy (.n (valf% «log2_ceil_in_the_exponent» "s7#0")) (.n (valf% «log2_ceil_in_the_exponent» "g_log")))]))
 
-theorem lc_walk (fl : ℕ) (σ : Val) : walk σ (lcBody fl) = .ret (lcEvs fl σ) [.n 59] := by
+theorem lc_walk (fl : ℕ) (σ : Val) : walk σ (lcBody fl) = .ret (lcEvs fl σ) [.n (valf% «log2_ceil_in_the_exponent» "s7#0")] := by
   rw [lcBody_split, walk_straight_pre σ _ _ (lcHead_straight fl), walk, walk1,
-    show [Stmt.atom (.copy (.n 59) (.n 36)), .ret [.n 59]] = [Stmt.atom (.copy (.n 59) (.n 36))] ++
-      [.ret [.n 59]] from rfl, Main.walk_straight σ _ _ rfl]
-  by_cases h : σ (.n 51) = 0
+    show [Stmt.atom (.copy (.n (valf% «log2_ceil_in_the_exponent» "s7#0")) (.n (valf% «log2_ceil_in_the_exponent» "g_log"))), .ret [.n (valf% «log2_ceil_in_the_exponent» "s7#0")]] = [Stmt.atom (.copy (.n (valf% «log2_ceil_in_the_exponent» "s7#0")) (.n (valf% «log2_ceil_in_the_exponent» "g_log")))] ++
+      [.ret [.n (valf% «log2_ceil_in_the_exponent» "s7#0")]] from rfl, Main.walk_straight σ _ _ rfl]
+  by_cases h : σ (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) = 0
   · simp [h, lcEvs, walk, Out.seq, Out.pre, Main.slEvs]
   · simp [h, lcEvs, Out.seq, Out.pre, walk_straight_fall σ lcMin lcMin_straight, Main.slEvs]
 
@@ -243,9 +278,9 @@ def lcCall2 : Call := ⟨"assert_small_g_power", [.n 58, .n 1], [], true⟩
 theorem lcEvs_parts (fl : ℕ) (σ : Val) :
     allocDsts (lcEvs fl σ) = [] ∧ allocs σ (lcEvs fl σ) = [] ∧
       addrs (lcEvs fl σ) = [] ∧
-      calls (lcEvs fl σ) = lcCall1 :: (if σ (.n 51) = 0 then [] else [lcCall2]) ∧
-      loadAddrs σ (lcEvs fl σ) = (σ (.n 47)).limb 0 * addressOfIndex 0 ::
-        (if σ (.n 51) = 0 then [] else [(σ (.n 56)).limb 0 * addressOfIndex 0]) := by
+      calls (lcEvs fl σ) = lcCall1 :: (if σ (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) = 0 then [] else [lcCall2]) ∧
+      loadAddrs σ (lcEvs fl σ) = (σ (.n (valf% «log2_ceil_in_the_exponent» "s5#0"))).limb 0 * addressOfIndex 0 ::
+        (if σ (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) = 0 then [] else [(σ (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#4"))).limb 0 * addressOfIndex 0]) := by
   obtain ⟨a1, a2, a3, a4⟩ := Main.straight_parts σ _ (lcHead_straight fl)
   obtain ⟨b1, b2, b3, b4⟩ := Main.straight_parts σ _ lcMin_straight
   have la := loadAddrs_straight σ _ (lcHead_straight fl)
@@ -253,13 +288,13 @@ theorem lcEvs_parts (fl : ℕ) (σ : Val) :
   have h1 : (lcHead fl).filterMap Main.Stmt.allocSz = [] := rfl
   have h2 : (lcHead fl).filterMap Main.Stmt.addrS = [] := rfl
   have h3 : (lcHead fl).filterMap Main.Stmt.callS =
-      [(none, "assert_small_g_power", [.n 49, .n 1], [])] := rfl
-  have h4 : (lcHead fl).filterMap Stmt.loadS = [(.n 47, 0)] := rfl
+      [(none, "assert_small_g_power", [.n (valf% «log2_ceil_in_the_exponent» "s5#2"), .n (valf% «log2_ceil_in_the_exponent» "g_squares")], [])] := rfl
+  have h4 : (lcHead fl).filterMap Stmt.loadS = [(.n (valf% «log2_ceil_in_the_exponent» "s5#0"), 0)] := rfl
   have m1 : lcMin.filterMap Main.Stmt.allocSz = [] := rfl
   have m2 : lcMin.filterMap Main.Stmt.addrS = [] := rfl
   have m3 : lcMin.filterMap Main.Stmt.callS =
-      [(none, "assert_small_g_power", [.n 58, .n 1], [])] := rfl
-  have m4 : lcMin.filterMap Stmt.loadS = [(.n 56, 0)] := rfl
+      [(none, "assert_small_g_power", [.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#6"), .n (valf% «log2_ceil_in_the_exponent» "g_squares")], [])] := rfl
+  have m4 : lcMin.filterMap Stmt.loadS = [(.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#4"), 0)] := rfl
   rw [h1] at a1 a2
   rw [h2] at a3
   rw [h3] at a4
@@ -269,7 +304,7 @@ theorem lcEvs_parts (fl : ℕ) (σ : Val) :
   rw [m3] at b4
   rw [m4] at lb
   unfold lcEvs
-  by_cases h : σ (.n 51) = 0
+  by_cases h : σ (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) = 0
   · simp only [h, ↓reduceIte, List.flatMap_nil, List.nil_append, allocDsts_app, allocs_app,
       addrs_app, calls_app, loadAddrs_app, a1, a2, a3, a4, la]
     refine ⟨rfl, rfl, rfl, rfl, rfl⟩
@@ -281,26 +316,26 @@ theorem lcEvs_parts (fl : ℕ) (σ : Val) :
 /-- `log2_ceil_in_the_exponent`'s body under any call relation, valuation and continuation. -/
 theorem lc_holds_iff (fl : ℕ) (C : CallRel) (rd : Reader) (σ : Val) (kret : List E → Prop) :
     Stmt.HoldsList C rd σ (lcBody fl) False kret ↔
-      σ (.n 37) = word (2 ^ 33) 0 ∧
-      (LoadHolds rd (σ (.n 36)) 0 (σ (.n 39)) ∧ σ (.n 37) = σ (.n 36) * σ (.n 38) ∧
-        LoadHolds rd (σ (.n 38)) 0 (σ (.n 40))) ∧
-      σ (.n 41) = word (2 ^ 33) 0 ∧ σ (.n 42) = word (2 ^ fl) 0 ∧
-      σ (.n 36) = σ (.n 43) * σ (.n 42) ∧
-      (LoadHolds rd (σ (.n 43)) 0 (σ (.n 45)) ∧ σ (.n 41) = σ (.n 43) * σ (.n 44) ∧
-        LoadHolds rd (σ (.n 44)) 0 (σ (.n 46))) ∧
-      σ (.n 47) = σ (.n 1) * σ (.n 36) ∧ LoadHolds rd (σ (.n 47)) 0 (σ (.n 48)) ∧
-      σ (.n 48) = σ (.n 49) * σ (.n 0) ∧
-      C "assert_small_g_power" [σ (.n 49), σ (.n 1)] [] ∧
-      σ (.n 50) = word (2 ^ fl) 0 ∧ σ (.n 51) = σ (.n 36) + σ (.n 50) ∧
-      (IsInK (σ (.n 51)) ∧ (σ (.n 51) ≠ 0 →
-        σ (.n 52) = invGenWord ∧ σ (.n 53) = σ (.n 0) * σ (.n 52) ∧ σ (.n 54) = invGenWord ∧
-        σ (.n 55) = σ (.n 36) * σ (.n 54) ∧ σ (.n 56) = σ (.n 1) * σ (.n 55) ∧
-        LoadHolds rd (σ (.n 56)) 0 (σ (.n 57)) ∧ σ (.n 53) = σ (.n 58) * σ (.n 57) ∧
-        C "assert_small_g_power" [σ (.n 58), σ (.n 1)] [])) ∧
-      σ (.n 59) = σ (.n 36) ∧ kret [σ (.n 59)] := by
+      σ (.n (valf% «log2_ceil_in_the_exponent» "s3#0")) = word (2 ^ 33) 0 ∧
+      (LoadHolds rd (σ (.n (valf% «log2_ceil_in_the_exponent» "g_log"))) 0 (σ (.n (valf% «log2_ceil_in_the_exponent» "s3#2"))) ∧ σ (.n (valf% «log2_ceil_in_the_exponent» "s3#0")) = σ (.n (valf% «log2_ceil_in_the_exponent» "g_log")) * σ (.n (valf% «log2_ceil_in_the_exponent» "s3#1")) ∧
+        LoadHolds rd (σ (.n (valf% «log2_ceil_in_the_exponent» "s3#1"))) 0 (σ (.n (valf% «log2_ceil_in_the_exponent» "s3#3")))) ∧
+      σ (.n (valf% «log2_ceil_in_the_exponent» "s4#0")) = word (2 ^ 33) 0 ∧ σ (.n (valf% «log2_ceil_in_the_exponent» "s4#1")) = word (2 ^ fl) 0 ∧
+      σ (.n (valf% «log2_ceil_in_the_exponent» "g_log")) = σ (.n (valf% «log2_ceil_in_the_exponent» "s4#2")) * σ (.n (valf% «log2_ceil_in_the_exponent» "s4#1")) ∧
+      (LoadHolds rd (σ (.n (valf% «log2_ceil_in_the_exponent» "s4#2"))) 0 (σ (.n (valf% «log2_ceil_in_the_exponent» "s4#4"))) ∧ σ (.n (valf% «log2_ceil_in_the_exponent» "s4#0")) = σ (.n (valf% «log2_ceil_in_the_exponent» "s4#2")) * σ (.n (valf% «log2_ceil_in_the_exponent» "s4#3")) ∧
+        LoadHolds rd (σ (.n (valf% «log2_ceil_in_the_exponent» "s4#3"))) 0 (σ (.n (valf% «log2_ceil_in_the_exponent» "s4#5")))) ∧
+      σ (.n (valf% «log2_ceil_in_the_exponent» "s5#0")) = σ (.n (valf% «log2_ceil_in_the_exponent» "g_squares")) * σ (.n (valf% «log2_ceil_in_the_exponent» "g_log")) ∧ LoadHolds rd (σ (.n (valf% «log2_ceil_in_the_exponent» "s5#0"))) 0 (σ (.n (valf% «log2_ceil_in_the_exponent» "s5#1"))) ∧
+      σ (.n (valf% «log2_ceil_in_the_exponent» "s5#1")) = σ (.n (valf% «log2_ceil_in_the_exponent» "s5#2")) * σ (.n (valf% «log2_ceil_in_the_exponent» "g_N")) ∧
+      C "assert_small_g_power" [σ (.n (valf% «log2_ceil_in_the_exponent» "s5#2")), σ (.n (valf% «log2_ceil_in_the_exponent» "g_squares"))] [] ∧
+      σ (.n (valf% «log2_ceil_in_the_exponent» "s6#0")) = word (2 ^ fl) 0 ∧ σ (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) = σ (.n (valf% «log2_ceil_in_the_exponent» "g_log")) + σ (.n (valf% «log2_ceil_in_the_exponent» "s6#0")) ∧
+      (IsInK (σ (.n (valf% «log2_ceil_in_the_exponent» "s6#1"))) ∧ (σ (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) ≠ 0 →
+        σ (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#0")) = invGenWord ∧ σ (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#1")) = σ (.n (valf% «log2_ceil_in_the_exponent» "g_N")) * σ (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#0")) ∧ σ (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#2")) = invGenWord ∧
+        σ (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#3")) = σ (.n (valf% «log2_ceil_in_the_exponent» "g_log")) * σ (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#2")) ∧ σ (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#4")) = σ (.n (valf% «log2_ceil_in_the_exponent» "g_squares")) * σ (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#3")) ∧
+        LoadHolds rd (σ (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#4"))) 0 (σ (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#5"))) ∧ σ (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#1")) = σ (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#6")) * σ (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#5")) ∧
+        C "assert_small_g_power" [σ (.n (valf% «log2_ceil_in_the_exponent» "s6.t.s0#6")), σ (.n (valf% «log2_ceil_in_the_exponent» "g_squares"))] [])) ∧
+      σ (.n (valf% «log2_ceil_in_the_exponent» "s7#0")) = σ (.n (valf% «log2_ceil_in_the_exponent» "g_log")) ∧ kret [σ (.n (valf% «log2_ceil_in_the_exponent» "s7#0"))] := by
   rw [lcBody]
   simp only [Stmt.HoldsList]
-  simp only [holds_ite_noRet (.n 51) [] lcMin rfl rfl]
+  simp only [holds_ite_noRet (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) [] lcMin rfl rfl]
   simp only [lcMin, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and,
     and_true, implies_true]
 
@@ -546,7 +581,7 @@ theorem lce_completeAtBE (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
 
 /-- **`log2_ceil_in_the_exponent` at the floor `fl`, placed** (`lce_completeAtBE` without exactness). -/
 theorem lce_completeAtB (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
-    (hf : coreProgram.find? name = some fn) (hp : fn.params = [.n 0, .n 1])
+    (hf : coreProgram.find? name = some fn) (hp : fn.params = [.n (valf% «log2_ceil_in_the_exponent» "g_N"), .n (valf% «log2_ceil_in_the_exponent» "g_squares")])
     (hb : fn.body = lcBody fl) (hl : coreProgram.loop name = false) (κ : ℕ) (hκ6 : 6 ≤ κ)
     (N sqE : ℕ) (hN : N < 2 ^ 34) (hL : max fl (log2Ceil N) < 34) :
     CompleteAtB fs cert κ name (log2Lin sqE) [gen ^ N, ofK (Parameters.addressOfIndex sqE)]
