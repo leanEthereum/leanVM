@@ -9,6 +9,8 @@
 module
 
 public import LeanVM.Guest.B1.Sig.XmssSegT
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop2»
 
 /-!
 # The codeword's groups of four, sound
@@ -231,7 +233,7 @@ theorem sCodewordT_sound {W : WotsT} (hW : StepAtoms W) {f : Nat → Nat → E �
       σ d0 = lit (∑ i ∈ Finset.range 58, lxDigit (sK σ dg) i * 4 ^ i) := by
   have hgs := sGroupsT_eq W dg (dg + 70) 15 0
   simp only [Nat.zero_add] at hgs
-  have hgs' : (sGroupsT W dg 15 0 (.n 0) (.n 0) (dg + 70)).2 = _ := hgs
+  have hgs' : (sGroupsT W dg 15 0 (.n (val% «main_loop2» "xi")) (.n (val% «main_loop2» "xi")) (dg + 70)).2 = _ := hgs
   simp only [sCodewordT, List.append_assoc] at h
   rw [hgs'] at h
   have h0 := holdsList_split_atoms (xs := [hintW "lx_digits" (runV dg 15)] ++ sDigitChecks dg ++

@@ -10,6 +10,8 @@
 module
 
 public import LeanVM.Guest.B1.Sig.SphincsDigestComplete
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # The digest's fields and check, complete
@@ -80,11 +82,11 @@ theorem eq_eOfNat128_cellNat (x : E) : x = eOfNat128 (cellNat x) := by
 
 theorem sFieldsSplit : sBitsHint ++ sBooleans ++ sForsFields ++ sLeafShifts ++ sMdBytes ++ sCheck =
     (sBitsHint ++ sBooleans) ++ ((sForsFields ++ sLeafShifts ++ sMdBytes ++ sCheckA ++
-      [cst 1295 corr0W]) ++ ([addS sHm0 sMd0.2.2 (.n 1295)] ++
-      (([cst 1296 corr1W, addS (.n 1297) sMd1.2.2 (.n 1296)] ++ sCheckB) ++
-        ([addS sHm0b (.n 1303) (.n 1305)] ++
+      [cst 1295 corr0W]) ++ ([addS sHm0 sMd0.2.2 (.n (val% «verify_sig_lean_sphincs» "s33#0"))] ++
+      (([cst 1296 corr1W, addS (.n (val% «verify_sig_lean_sphincs» "s34#1")) sMd1.2.2 (.n (val% «verify_sig_lean_sphincs» "s34#0"))] ++ sCheckB) ++
+        ([addS sHm0b (.n (val% «verify_sig_lean_sphincs» "s34#7")) (.n (val% «verify_sig_lean_sphincs» "s34#9"))] ++
         ([hintW "sp_unused" (runV 1306 6)] ++ (sUnused.1 ++ (sCheckC ++
-          [.atom (.assertInK (.n 1371) sUnused.2.2)]))))))) := by
+          [.atom (.assertInK (.n (val% «verify_sig_lean_sphincs» "high")) sUnused.2.2)]))))))) := by
   rw [sCheck_split]; simp only [sCheckCorr, List.append_assoc]; rfl
 
 theorem sFields_seq_ok :
@@ -124,8 +126,8 @@ the fields, the bytes, the cells checked, the unused bytes read and the high lan
 the digest's fields of `T`, the cells' number, the unused bytes' pointers, and the bit run the bits of the cells
 (`SBits`). -/
 theorem sFieldsCheck_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) (σ : Val)
-    (h1 : σ (.n 1) = bb) :
-    Completes C rd 28 1372 (sBitsHint ++ sBooleans ++ sForsFields ++ sLeafShifts ++ sMdBytes ++ sCheck) σ
+    (h1 : σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb) :
+    Completes C rd (val% «verify_sig_lean_sphincs» "bits0[0]") (val% «verify_sig_lean_sphincs» "a0_b~0") (sBitsHint ++ sBooleans ++ sForsFields ++ sLeafShifts ++ sMdBytes ++ sCheck) σ
       (fun σ' => DigestAt σ' (digestNatOf (σ sHm0) (σ sHm0b) (σ sHm1)) ∧
         (∀ k ≤ 5, BytePtr bb (σ' (.n (fbPtr 1312 k)))) ∧
         (∀ j < 6, σ' (.n (1306 + j)) = ofK (addressOfIndex (unusedOf (σ sHm1) / 256 ^ j % 256))) ∧ SBits σ') := by
@@ -138,7 +140,7 @@ theorem sFieldsCheck_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb
   refine Completes.reload ((updRun_ext σ 28 272 f).mono le_rfl (by norm_num)) ?_
   set σb := updRun σ 28 272 f with hσb
   have hbits : BitsAt σb T := fun k hk => updRun_at σ 28 272 f hk
-  have blow : ∀ k < 28, σb (.n k) = σ (.n k) := fun k hk => by
+  have blow : ∀ k < (val% «verify_sig_lean_sphincs» "bits0[0]"), σb (.n k) = σ (.n k) := fun k hk => by
     rw [hσb]; exact updRun_below σ 28 272 f ⟨k, hk, rfl⟩
   -- the bits' hints and checks
   have hchk : AtomsHold rd σb (sBitsHint ++ sBooleans) := by
@@ -150,17 +152,17 @@ theorem sFieldsCheck_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb
       show σb _ = σb _ * σb _
       rw [hbits k hk]
       exact (bitE_mul_self _).symm
-  refine Completes.append (m := 300) (by norm_num) (by norm_num) sBits_nb
+  refine Completes.append (m := (val% «verify_sig_lean_sphincs» "vals[9]")) (by norm_num) (by norm_num) sBits_nb
     (completes_atoms (Post := fun σ' => σ' = σb) sBits_atoms (Ext.refl _ _ _) rfl hchk)
     (fun σ' _ e => ?_)
   subst e
   -- the fields, the leaves, the bytes, the tree's middle byte and the unused bits
   refine Completes.seq (m := 1296) sFields_seq_ok (by norm_num) (fun σ1 he1 hh1' => ?_)
-  have t1 : ∀ k < 300, σ1 (.n k) = σb (.n k) := fun k hk => he1.apply (Or.inl hk)
+  have t1 : ∀ k < (val% «verify_sig_lean_sphincs» "vals[9]"), σ1 (.n k) = σb (.n k) := fun k hk => he1.apply (Or.inl hk)
   have hb1 : BitsAt σ1 T := hbits.congr t1
   have hh1 : AtomsHold rd σ1 (sForsFields ++ sLeafShifts ++ sMdBytes ++ sCheckA) :=
     AtomsHold.left (ys := [cst 1295 corr0W]) hh1'
-  have k18 : σ1 (.n 1295) = corr0W :=
+  have k18 : σ1 (.n (val% «verify_sig_lean_sphincs» "s33#0")) = corr0W :=
     (AtomsHold.right (xs := sForsFields ++ sLeafShifts ++ sMdBytes ++ sCheckA) hh1').atom
       (a := .const _ _) (by simp [cst])
   have hA3 : AtomsHold rd σ1 (sForsFields ++ sLeafShifts ++ sMdBytes) := AtomsHold.left (ys := sCheckA) hh1
@@ -175,36 +177,36 @@ theorem sFieldsCheck_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb
     sMd1_sound hv1 (AtomsHold.right (xs := (sMdByte 0 1067).1 ++ sMd0.1) hmd)
   obtain ⟨tm1, pad1⟩ := sCheckA_sound hb1 hl1 (AtomsHold.right (xs := sForsFields ++ sLeafShifts ++ sMdBytes) hh1)
   have v0 : σ1 sHm0 = eOfNat128 (T % 2 ^ 128) := by
-    rw [show sHm0 = .n 17 from rfl, t1 _ (by norm_num), blow _ (by norm_num), ← show sHm0 = .n 17 from rfl,
+    rw [show sHm0 = .n (val% «verify_sig_lean_sphincs» "d0[0]") from rfl, t1 _ (by norm_num), blow _ (by norm_num), ← show sHm0 = .n (val% «verify_sig_lean_sphincs» "d0[0]") from rfl,
       eq_eOfNat128_cellNat (σ sHm0)]
     congr 1; simp only [hT, digestNatOf]; omega
-  refine Completes.checks (xs := [addS sHm0 sMd0.2.2 (.n 1295)]) rfl (fun a ha => by
+  refine Completes.checks (xs := [addS sHm0 sMd0.2.2 (.n (val% «verify_sig_lean_sphincs» "s33#0"))]) rfl (fun a ha => by
       simp only [addS, List.mem_singleton, Stmt.atom.injEq] at ha
       subst ha
-      show σ1 sHm0 = σ1 sMd0.2.2 + σ1 (.n 1295)
+      show σ1 sHm0 = σ1 sMd0.2.2 + σ1 (.n (val% «verify_sig_lean_sphincs» "s33#0"))
       rw [v0, k18, m0])
     (numBelow_of_all (by decide +kernel)) (by norm_num) ?_
   -- `md1 + corr1`, the tree index's high bytes placed
   refine Completes.seq (m := 1306) sCheckB_ok (by norm_num) (fun σ2 he2 hh2' => ?_)
-  have t2 : ∀ k < 1296, σ2 (.n k) = σ1 (.n k) := fun k hk => he2.apply (Or.inl hk)
+  have t2 : ∀ k < (val% «verify_sig_lean_sphincs» "s34#0"), σ2 (.n k) = σ1 (.n k) := fun k hk => he2.apply (Or.inl hk)
   have hh2 : AtomsHold rd σ2 sCheckB :=
-    AtomsHold.right (xs := [cst 1296 corr1W, addS (.n 1297) sMd1.2.2 (.n 1296)]) hh2'
+    AtomsHold.right (xs := [cst 1296 corr1W, addS (.n (val% «verify_sig_lean_sphincs» "s34#1")) sMd1.2.2 (.n (val% «verify_sig_lean_sphincs» "s34#0"))]) hh2'
   have hc0 := AtomsHold.left (ys := sCheckB) hh2'
-  have k19 : σ2 (.n 1296) = corr1W := hc0.atom (a := .const _ _) (by simp [cst])
-  have a20 : σ2 (.n 1297) = σ2 sMd1.2.2 + σ2 (.n 1296) := hc0.atom (a := .add _ _ _) (by simp [addS])
+  have k19 : σ2 (.n (val% «verify_sig_lean_sphincs» "s34#0")) = corr1W := hc0.atom (a := .const _ _) (by simp [cst])
+  have a20 : σ2 (.n (val% «verify_sig_lean_sphincs» "s34#1")) = σ2 sMd1.2.2 + σ2 (.n (val% «verify_sig_lean_sphincs» "s34#0")) := hc0.atom (a := .add _ _ _) (by simp [addS])
   have hB := sCheckB_sound (hl1.congr fun k hk => t2 k (by omega))
-    (by rw [show sTreeMid = .n 1279 from rfl, t2 _ (by norm_num)]; exact tm1)
+    (by rw [show sTreeMid = .n (val% «verify_sig_lean_sphincs» "tree_mid") from rfl, t2 _ (by norm_num)]; exact tm1)
     (by rw [t2 _ (by norm_num)]; exact pad1)
-    (by rw [a20, k19, show sMd1.2.2 = .n 1276 by decide +kernel, t2 _ (by norm_num), ← show sMd1.2.2 = .n 1276 by
+    (by rw [a20, k19, show sMd1.2.2 = .n (val% «verify_sig_lean_sphincs» "md1@13") by decide +kernel, t2 _ (by norm_num), ← show sMd1.2.2 = .n (val% «verify_sig_lean_sphincs» "md1@13") by
       decide +kernel]; exact m1) hh2
   have v0b : σ2 sHm0b = eOfNat128 (T / 2 ^ 128 % 2 ^ 128) := by
-    rw [show sHm0b = .n 18 from rfl, t2 _ (by norm_num), t1 _ (by norm_num), blow _ (by norm_num),
-      ← show sHm0b = .n 18 from rfl, eq_eOfNat128_cellNat (σ sHm0b)]
+    rw [show sHm0b = .n (val% «verify_sig_lean_sphincs» "d0[1]") from rfl, t2 _ (by norm_num), t1 _ (by norm_num), blow _ (by norm_num),
+      ← show sHm0b = .n (val% «verify_sig_lean_sphincs» "d0[1]") from rfl, eq_eOfNat128_cellNat (σ sHm0b)]
     congr 1; simp only [hT, digestNatOf]; omega
-  refine Completes.checks (xs := [addS sHm0b (.n 1303) (.n 1305)]) rfl (fun a ha => by
+  refine Completes.checks (xs := [addS sHm0b (.n (val% «verify_sig_lean_sphincs» "s34#7")) (.n (val% «verify_sig_lean_sphincs» "s34#9"))]) rfl (fun a ha => by
       simp only [addS, List.mem_singleton, Stmt.atom.injEq] at ha
       subst ha
-      show σ2 sHm0b = σ2 (.n 1303) + σ2 (.n 1305)
+      show σ2 sHm0b = σ2 (.n (val% «verify_sig_lean_sphincs» "s34#7")) + σ2 (.n (val% «verify_sig_lean_sphincs» "s34#9"))
       rw [v0b, hB])
     (numBelow_of_all (by decide +kernel)) (by norm_num) ?_
   -- the unused bytes
@@ -212,13 +214,13 @@ theorem sFieldsCheck_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb
   set g : Nat → E := fun k => ofK (addressOfIndex (U / 256 ^ k % 256)) with hg
   refine Completes.reload ((updRun_ext σ2 1306 6 g).mono le_rfl (by norm_num)) ?_
   set σu := updRun σ2 1306 6 g with hσu
-  have ulow : ∀ k < 1306, σu (.n k) = σ2 (.n k) := fun k hk => by
+  have ulow : ∀ k < (val% «verify_sig_lean_sphincs» "unused_bytes[0]"), σu (.n k) = σ2 (.n k) := fun k hk => by
     rw [hσu]; exact updRun_below σ2 1306 6 g ⟨k, hk, rfl⟩
   refine Completes.append (xs := [hintW "sp_unused" (runV 1306 6)]) (m := 1312) (by norm_num) (by norm_num)
     (by rw [valsList_hint]; exact numBelow_of_all (by decide)) (hintKeep_complete _ _ _ _ _)
     (fun σ3 _ e3 => ?_)
   subst e3
-  refine Completes.append (m := 1363) (by norm_num) (by norm_num)
+  refine Completes.append (m := (val% «verify_sig_lean_sphincs» "high~0")) (by norm_num) (by norm_num)
     (sFromBytes_shape (sMarks 1306 6).1 (sMarks 1306 6).2 1312 ⟨1311, by norm_num, by simp [sMarks]⟩
       (fun m hm => by simp [sMarks] at hm; obtain ⟨k, hk, rfl⟩ := hm; exact ⟨1306 + k, by omega, rfl⟩)).2.2
     (sFromMarks_complete (b := 1306) (n := 6) (x := 1312) (X := U) hm hbb (by norm_num) (by norm_num) σu
@@ -227,17 +229,17 @@ theorem sFieldsCheck_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb
     (fun σ4 he4 ⟨hu4, hp4⟩ => ?_)
   -- the high lane
   refine Completes.seq (m := 1372) sCheckC_ok (by norm_num) (fun σ5 he5 hh5 => ?_)
-  have t5 : ∀ k < 1296, σ5 (.n k) = σ1 (.n k) := fun k hk => by
+  have t5 : ∀ k < (val% «verify_sig_lean_sphincs» "s34#0"), σ5 (.n k) = σ1 (.n k) := fun k hk => by
     rw [he5.apply (Or.inl (by omega)), he4.apply (Or.inl (by omega)), ulow k (by omega), t2 k hk]
   have hl5 : LValsAt σ5 T := hl1.congr fun k hk => t5 k (by omega)
   have hu5 : σ5 sUnused.2.2 = eOfNat U := by
-    rw [show sUnused.2.2 = .n 1362 by decide +kernel, he5.apply (Or.inl (by norm_num)),
-      ← show sUnused.2.2 = .n 1362 by decide +kernel, show sUnused = sFromMarks 1306 6 1312 from rfl, hu4,
+    rw [show sUnused.2.2 = .n (val% «verify_sig_lean_sphincs» "value@6") by decide +kernel, he5.apply (Or.inl (by norm_num)),
+      ← show sUnused.2.2 = .n (val% «verify_sig_lean_sphincs» "value@6") by decide +kernel, show sUnused = sFromMarks 1306 6 1312 from rfl, hu4,
       Nat.mod_eq_of_lt (by have := unusedOf_lt (σ sHm1); norm_num; omega)]
   have hC := sCheckC_sound hl5 hu5 (unusedOf_lt _) hh5
   have y5 : σ5 sHm1 = σ sHm1 := by
-    rw [show sHm1 = .n 27 from rfl, t5 _ (by norm_num), t1 _ (by norm_num), blow _ (by norm_num)]
-  refine Completes.checks (xs := [.atom (.assertInK (.n 1371) sUnused.2.2)]) rfl (fun a ha => by
+    rw [show sHm1 = .n (val% «verify_sig_lean_sphincs» "d1[0]") from rfl, t5 _ (by norm_num), t1 _ (by norm_num), blow _ (by norm_num)]
+  refine Completes.checks (xs := [.atom (.assertInK (.n (val% «verify_sig_lean_sphincs» "high")) sUnused.2.2)]) rfl (fun a ha => by
       simp only [List.mem_singleton, Stmt.atom.injEq] at ha
       subst ha
       refine ⟨?_, by rw [hu5]; exact eOfNat_isInK _⟩
@@ -253,15 +255,15 @@ theorem sFieldsCheck_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb
       exact ofK_isInK _)
     (numBelow_of_all (by decide +kernel)) le_rfl ?_
   refine Completes.nil' ⟨⟨hTlt, hb1.congr fun k hk => t5 k (by omega), (hv1.congr fun k hk => t5 k (by omega)),
-    hl5, by rw [show sTreeMid = .n 1279 from rfl, t5 _ (by norm_num)]; exact tm1⟩, fun k hk => ?_, fun j hj => ?_, ?_⟩
+    hl5, by rw [show sTreeMid = .n (val% «verify_sig_lean_sphincs» "tree_mid") from rfl, t5 _ (by norm_num)]; exact tm1⟩, fun k hk => ?_, fun j hj => ?_, ?_⟩
   · rw [he5.apply (Or.inl (by simp only [fbPtr]; split <;> omega))]
     exact hp4 k hk
   · rw [he5.apply (Or.inl (by omega)), he4.apply (Or.inl (by omega)), hσu]
     exact updRun_at σ2 1306 6 g hj
   · have e0 : σ5 sHm0 = σ sHm0 := by
-      rw [show sHm0 = .n 17 from rfl, t5 _ (by norm_num), t1 _ (by norm_num), blow _ (by norm_num)]
+      rw [show sHm0 = .n (val% «verify_sig_lean_sphincs» "d0[0]") from rfl, t5 _ (by norm_num), t1 _ (by norm_num), blow _ (by norm_num)]
     have e0b : σ5 sHm0b = σ sHm0b := by
-      rw [show sHm0b = .n 18 from rfl, t5 _ (by norm_num), t1 _ (by norm_num), blow _ (by norm_num)]
+      rw [show sHm0b = .n (val% «verify_sig_lean_sphincs» "d0[1]") from rfl, t5 _ (by norm_num), t1 _ (by norm_num), blow _ (by norm_num)]
     unfold SBits
     rw [e0, e0b, y5]
     exact hb1.congr fun k hk => t5 k (by omega)

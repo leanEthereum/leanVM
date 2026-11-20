@@ -102,3 +102,5 @@ LeanVM/Guest/B1/Tables/VtC/FData.lean verify_tables
 LeanVM/Guest/B1/Tables/Kids/Loop10.lean verify_tables_loop0
 LeanVM/Guest/B1/Tables/Kids/Shared.lean shared_selector_tables
 LeanVM/Guest/B1/Tables/Kids/BlockSelTab.lean block_selector_tab__L
+# B1/Sig: the xmss segment's pops (each declaration about main_loop2's segment)
+LeanVM/Guest/B1/Sig/XmssSegPops.lean main_loop2

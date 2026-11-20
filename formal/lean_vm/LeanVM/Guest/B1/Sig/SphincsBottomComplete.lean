@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Sig.SphincsStagesComplete
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # The digest and FORS, complete
@@ -121,12 +123,12 @@ theorem BottomPost.congr {bb : E} {pk : Sphincs.PublicKey} {m : HashSig.Message}
 `n0`, the byte table at `n1`, a signature `sig`. -/
 theorem sBottom_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : E}
     (hbb : ByteBits rd bb) (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig : Sphincs.Signature)
-    (σ : Val) (h1 : σ (.n 1) = bb)
-    (hat : ClaimAt rd (σ (.n 0)) (cellOf128 pk.publicSeed) (cellOf128 pk.root) (msgLo m) (msgHi m)) :
-    Completes C rd 2 5249 (sDigestBlock ++ (sForsAddrs ++ sForsB.1)) σ (fun σ' => BottomPost bb pk m sig σ' ∧
+    (σ : Val) (h1 : σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb)
+    (hat : ClaimAt rd (σ (.n (val% «verify_sig_lean_sphincs» "signer"))) (cellOf128 pk.publicSeed) (cellOf128 pk.root) (msgLo m) (msgHi m)) :
+    Completes C rd (val% «verify_sig_lean_sphincs» "pp") (val% «verify_sig_lean_sphincs» "ctr[0]@1") (sDigestBlock ++ (sForsAddrs ++ sForsB.1)) σ (fun σ' => BottomPost bb pk m sig σ' ∧
       FallPops rd σ' (sDigestBlock ++ (sForsAddrs ++ sForsB.1)) (bottomPops pk m sig) ∧ SBits σ') := by
   set T := digestT pk m sig with hTd
-  refine Completes.append (m := 1372) (by norm_num) (by norm_num) sDigestBlock_nb
+  refine Completes.append (m := (val% «verify_sig_lean_sphincs» "a0_b~0")) (by norm_num) (by norm_num) sDigestBlock_nb
     (sDigestBlock_complete hm hbb pk m sig.randomizer hat σ rfl h1)
     (fun σA heA hA => ?_)
   obtain ⟨hppA, hrA, hrdA, hpA, hdA, hqA, hunA, hSA⟩ := hA
@@ -136,12 +138,12 @@ theorem sBottom_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : 
     rw [e] at hdA; exact hdA
   replace hqA := tablePtrs_of_digestPtrs hqA
   refine Completes.seq sForsAddrs_seq (by norm_num) (fun σB heB hAt => ?_)
-  have tB : ∀ k < 1372, σB (.n k) = σA (.n k) := fun k hk => heB.apply (Or.inl hk)
+  have tB : ∀ k < (val% «verify_sig_lean_sphincs» "a0_b~0"), σB (.n k) = σA (.n k) := fun k hk => heB.apply (Or.inl hk)
   have hdB := hdA.congr tB
   obtain ⟨ha0B, hkB⟩ := sForsAddrs_vals hdB.2.2.2.1 hdB.2.2.2.2 hAt
   have hpB : PadOK σB sPad := hpA.congr (b := 1372) (by unfold sPad; omega) fun j hj => (tB j hj).symm
   have hppB : σB sPP = cellOf128 pk.publicSeed := by
-    rw [show sPP = .n 2 from rfl, tB 2 (by norm_num)]; exact hppA
+    rw [show sPP = .n (val% «verify_sig_lean_sphincs» "pp") from rfl, tB 2 (by norm_num)]; exact hppA
   have hF := hB.fors C rd σB (layerTreeN T 0) (layerLeafN T 0) (forsLeafN T) (forsSecretCell sig)
     (forsSibCell sig) hpB ha0B hkB
     (fun c _ => forsLeafN_lt T c)
@@ -157,14 +159,14 @@ theorem sBottom_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : 
         rw [show (10 * c + z) / 10 = c by omega, show (10 * c + z) % 10 = z by omega]
       rw [e]; exact hdB.2.2.1 c hc z hz)
   obtain ⟨σC, heC, hfC, hhC⟩ := hF
-  have tC : ∀ k < 1382, σC (.n k) = σB (.n k) := fun k hk => heC.apply (Or.inl hk)
-  have tCA : ∀ k < 1372, σC (.n k) = σA (.n k) := fun k hk => by rw [tC k (by omega), tB k hk]
+  have tC : ∀ k < (val% «verify_sig_lean_sphincs» "fors_at~0"), σC (.n k) = σB (.n k) := fun k hk => heC.apply (Or.inl hk)
+  have tCA : ∀ k < (val% «verify_sig_lean_sphincs» "a0_b~0"), σC (.n k) = σA (.n k) := fun k hk => by rw [tC k (by omega), tB k hk]
   refine ⟨σC, heC, ⟨⟨hpA.congr (b := 1372) (by unfold sPad; omega) fun j hj => (tCA j hj).symm,
-    by rw [show sPP = .n 2 from rfl, tCA 2 (by norm_num)]; exact hppA,
-    by rw [show sRoot = .n 3 from rfl, tCA 3 (by norm_num)]; exact hrA,
+    by rw [show sPP = .n (val% «verify_sig_lean_sphincs» "pp") from rfl, tCA 2 (by norm_num)]; exact hppA,
+    by rw [show sRoot = .n (val% «verify_sig_lean_sphincs» "pk_root") from rfl, tCA 3 (by norm_num)]; exact hrA,
     hdA.congr tCA, hqA.congr sDigestBlock_ptrs tCA,
-    by rw [show sA0B = .n 1379 from rfl, tC _ (by norm_num)]; exact ha0B,
-    by rw [show sKeyB = .n 1381 from rfl, tC _ (by norm_num)]; exact hkB,
+    by rw [show sA0B = .n (val% «verify_sig_lean_sphincs» "a0_b") from rfl, tC _ (by norm_num)]; exact ha0B,
+    by rw [show sKeyB = .n (val% «verify_sig_lean_sphincs» "key_b") from rfl, tC _ (by norm_num)]; exact hkB,
     by rw [hfC.1, hppB]; rfl⟩, ?_, hSA.congr fun k hk => tCA k (by omega)⟩, hhC⟩
   have hd := sDigestBlock_pops (rd := rd) σA
   have hu : (runV 1306 6).map σA = (List.range 6).map fun j =>

@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.Sig.SpWotsCompleteStmt
 public import LeanVM.Guest.B1.Sig.BlockPops
 public import LeanVM.Guest.B1.Sig.PopsKit
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«sp_wots»
 
 /-!
 # `sp_wots`'s pops
@@ -131,7 +133,7 @@ theorem mem_valsList_append_left {xs ys : List Stmt} {v : V} (h : v ∈ Stmt.val
 /-- **`sp_wots` is complete, popping its groups' entries**: `sp_wots_complete_cells`, and on the completing valuation its path returns setting up no call and popping `spPopsT d vals`. -/
 theorem sp_wots_complete_cells_pops {pp a0 a1 : E} {d : Nat → Nat} (hd : ∀ i, d i < 4)
     (hsum : ∑ i ∈ Finset.range 64, d i = 128) {vals : Nat → E} (hm : MemOK rd 64) :
-    ∃ σ : Val, σ (.n 0) = pp ∧ σ (.n 1) = a0 ∧ σ (.n 2) = a1 ∧ σ (.n 3) = eOfNat128 (spX d 64) ∧
+    ∃ σ : Val, σ (.n (val% «sp_wots» "pp")) = pp ∧ σ (.n (val% «sp_wots» "a0")) = a0 ∧ σ (.n (val% «sp_wots» "a1")) = a1 ∧ σ (.n (val% «sp_wots» "encoding")) = eOfNat128 (spX d 64) ∧
       Stmt.HoldsList C rd σ (Fn.«sp_wots».core).body False (fun rs => rs = [spLeafCell pp a0 a1 d vals]) ∧
       ∃ es vs, walk σ (Fn.«sp_wots».core).body = .ret es vs ∧ calls es = [] ∧ evPops rd σ es = spPopsT d vals := by
   obtain ⟨σ', h0, h1, h2, h3, hgp, hh⟩ :=
@@ -163,9 +165,9 @@ theorem sp_wots_complete_pops (C : CallRel) (rd : Reader) (publicSeed : HashSig.
     (layer : Sphincs.Layer) (tree : Sphincs.TreeIndex) (leaf : Sphincs.TreeLeafIndex) (digest : HashSig.Digest)
     (values : Sphincs.ChainIndex → HashSig.Digest) (hm : MemOK rd 64)
     (hT : Sphincs.TargetSum.Valid (Sphincs.TargetSum.base2bDigits digest)) :
-    ∃ σ : Val, σ (.n 0) = cellOf128 publicSeed ∧
-      (σ (.n 1), σ (.n 2)) = keyAdrsCells layer.val tree.val leaf.val ∧
-      σ (.n 3) = cellOf128 digest ∧
+    ∃ σ : Val, σ (.n (val% «sp_wots» "pp")) = cellOf128 publicSeed ∧
+      (σ (.n (val% «sp_wots» "a0")), σ (.n (val% «sp_wots» "a1"))) = keyAdrsCells layer.val tree.val leaf.val ∧
+      σ (.n (val% «sp_wots» "encoding")) = cellOf128 digest ∧
       Stmt.HoldsList C rd σ (Fn.«sp_wots».core).body False
         (fun rs => rs = [cellOf128 (wotsLeafOf publicSeed layer tree leaf digest values)]) ∧
       ∃ es vs, walk σ (Fn.«sp_wots».core).body = .ret es vs ∧ calls es = [] ∧

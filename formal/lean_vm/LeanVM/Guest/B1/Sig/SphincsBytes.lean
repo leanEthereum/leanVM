@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Sig.SphincsDigestT
 public import LeanVM.Guest.B1.Sig.InterfaceP
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # `sp_from_bytes`, sound
@@ -57,14 +59,14 @@ theorem g255W_eq : g255W = ofK (addressOfIndex 255) := by
 /-- **A byte, sound**: a mark range checked below `256` and read off the byte table at
 `σ (.n 1)` is the word of its exponent. -/
 theorem sByte_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} {mark : V} {b : Nat}
-    (hbb : ByteBits L.read (σ (.n 1))) (h : AtomsHold L.read σ (sByte mark b)) :
+    (hbb : ByteBits L.read (σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")))) (h : AtomsHold L.read σ (sByte mark b)) :
     ∃ e < 256, σ (.n (b + 5)) = eOfNat e ∧ σ mark = ofK (addressOfIndex e) := by
   have hK : 1 ≤ 256 := by norm_num
   have c : σ (.n b) = g255W := h.atom (a := .const (.n b) g255W) (by simp [sByte, rangeS, cst])
   have r := h.atom (a := .rangeCheck mark (.n (b + 1)) (.n (b + 2)) (.n (b + 3)) (.n b))
     (by simp [sByte, rangeS])
-  have m : σ (.n (b + 4)) = σ (.n 1) * σ mark :=
-    h.atom (a := .mul (.n (b + 4)) (.n 1) mark) (by simp [sByte, mulS])
+  have m : σ (.n (b + 4)) = σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")) * σ mark :=
+    h.atom (a := .mul (.n (b + 4)) (.n (val% «verify_sig_lean_sphincs» "byte_bits")) mark) (by simp [sByte, mulS])
   have l : LoadHolds L.read (σ (.n (b + 4))) 0 (σ (.n (b + 5))) :=
     h.atom (a := .load (.n (b + 5)) (.n (b + 4)) 0) (by simp [sByte, loadS])
   obtain ⟨r1, r2, r3⟩ := r
@@ -72,9 +74,9 @@ theorem sByte_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} {mark : V}
   obtain ⟨e, he, hm⟩ := range_sound hκ L hK (by omega) r1 r2 r3
   obtain ⟨hbbK, hbbv⟩ := hbb e (by omega)
   obtain ⟨-, hl⟩ := l
-  have hp : σ (.n (b + 4)) = ofK ((σ (.n 1)).limb 0 * addressOfIndex e) := by
+  have hp : σ (.n (b + 4)) = ofK ((σ (.n (val% «verify_sig_lean_sphincs» "byte_bits"))).limb 0 * addressOfIndex e) := by
     rw [m, hm, ofK_mul, ← eq_ofK_limb hbbK]
-  have hl0 : (ofK ((σ (.n 1)).limb 0 * addressOfIndex e)).limb 0 = (σ (.n 1)).limb 0 *
+  have hl0 : (ofK ((σ (.n (val% «verify_sig_lean_sphincs» "byte_bits"))).limb 0 * addressOfIndex e)).limb 0 = (σ (.n (val% «verify_sig_lean_sphincs» "byte_bits"))).limb 0 *
       addressOfIndex e := by simp
   rw [hp, hl0] at hl
   simp only [addressOfIndex, pow_zero, mul_one] at hl hbbv
@@ -87,7 +89,7 @@ theorem word256_eq : word 256 0 = eOfNat (2 ^ 8) := word_eq_eOfNat 256
 
 /-- **The bytes after the top one, folded**: from a word below `M`, a word below `M · 256^n`. -/
 theorem sFromBytesRest_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
-    (hbb : ByteBits L.read (σ (.n 1))) :
+    (hbb : ByteBits L.read (σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")))) :
     ∀ (ms : List V) (b : Nat) (val : V) (N M : Nat), σ val = eOfNat N → N < M →
       M * 256 ^ ms.length ≤ 2 ^ 64 → AtomsHold L.read σ (sFromBytesRest ms b val).1 →
       ∃ N', σ (sFromBytesRest ms b val).2.2 = eOfNat N' ∧ N' < M * 256 ^ ms.length
@@ -118,7 +120,7 @@ theorem sFromBytesRest_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
       linarith
 
 /-- **`sp_from_bytes`, sound**: the value is a word below `256^n`, `n` the bytes. -/
-theorem sFromBytes_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} (hbb : ByteBits L.read (σ (.n 1)))
+theorem sFromBytes_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} (hbb : ByteBits L.read (σ (.n (val% «verify_sig_lean_sphincs» "byte_bits"))))
     {top : V} {rest : List V} {b : Nat} (hM : 256 ^ (rest.length + 1) ≤ 2 ^ 64)
     (h : AtomsHold L.read σ (sFromBytes top rest b).1) :
     ∃ N, σ (sFromBytes top rest b).2.2 = eOfNat N ∧ N < 256 ^ (rest.length + 1) := by

@@ -12,6 +12,8 @@ public import LeanVM.Guest.B1.Sig.SphincsSoundDigest
 public import LeanVM.Guest.B1.Sig.SphincsSoundPath
 public import LeanVM.Guest.B1.Sig.SphincsHash
 public import LeanVM.Guest.B1.Sig.SphincsT
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # The hypertree's addresses, sound
@@ -98,27 +100,27 @@ theorem sForsAddrs_sound {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sFo
     σ sA0B = adrsCell0 0 (layerTreeN T 0) ∧ σ sKeyB = adrsCell1 0 (layerLeafN T 0) 0 0 := by
   obtain ⟨v0, v8, v24, vm⟩ := lval_cells hD
   obtain ⟨b0, b1, b2⟩ := leaves_lt T
-  have c0 : σ (.n 1372) = lit (2 ^ 120) := h.atom (a := .const (.n 1372) _) (by simp [sForsAddrs, cst])
-  have m1 : σ (.n 1373) = σ (sLVal 8) * σ (.n 1372) := h.atom (a := .mul (.n 1373) _ _) (by simp [sForsAddrs, mulS])
-  have c2 : σ (.n 1374) = lit (2 ^ 112) := h.atom (a := .const (.n 1374) _) (by simp [sForsAddrs, cst])
-  have m3 : σ (.n 1375) = σ sTreeMid * σ (.n 1374) := h.atom (a := .mul (.n 1375) _ _) (by simp [sForsAddrs, mulS])
-  have a4 : σ (.n 1376) = σ (.n 1373) + σ (.n 1375) := h.atom (a := .add (.n 1376) _ _) (by simp [sForsAddrs, addS])
-  have c5 : σ (.n 1377) = lit (2 ^ 104) := h.atom (a := .const (.n 1377) _) (by simp [sForsAddrs, cst])
-  have m6 : σ (.n 1378) = σ (sLVal 24) * σ (.n 1377) := h.atom (a := .mul (.n 1378) _ _) (by simp [sForsAddrs, mulS])
-  have a7 : σ sA0B = σ (.n 1376) + σ (.n 1378) := h.atom (a := .add sA0B _ _) (by simp [sForsAddrs, addS])
-  have c8 : σ (.n 1380) = lit (2 ^ 56) := h.atom (a := .const (.n 1380) _) (by simp [sForsAddrs, cst])
-  have m9 : σ sKeyB = σ (sLVal 0) * σ (.n 1380) := h.atom (a := .mul sKeyB _ _) (by simp [sForsAddrs, mulS])
+  have c0 : σ (.n (val% «verify_sig_lean_sphincs» "a0_b~0")) = lit (2 ^ 120) := h.atom (a := .const (.n (val% «verify_sig_lean_sphincs» "a0_b~0")) _) (by simp [sForsAddrs, cst])
+  have m1 : σ (.n (val% «verify_sig_lean_sphincs» "a0_b~1")) = σ (sLVal 8) * σ (.n (val% «verify_sig_lean_sphincs» "a0_b~0")) := h.atom (a := .mul (.n (val% «verify_sig_lean_sphincs» "a0_b~1")) _ _) (by simp [sForsAddrs, mulS])
+  have c2 : σ (.n (val% «verify_sig_lean_sphincs» "a0_b~2")) = lit (2 ^ 112) := h.atom (a := .const (.n (val% «verify_sig_lean_sphincs» "a0_b~2")) _) (by simp [sForsAddrs, cst])
+  have m3 : σ (.n (val% «verify_sig_lean_sphincs» "a0_b~3")) = σ sTreeMid * σ (.n (val% «verify_sig_lean_sphincs» "a0_b~2")) := h.atom (a := .mul (.n (val% «verify_sig_lean_sphincs» "a0_b~3")) _ _) (by simp [sForsAddrs, mulS])
+  have a4 : σ (.n (val% «verify_sig_lean_sphincs» "a0_b~4")) = σ (.n (val% «verify_sig_lean_sphincs» "a0_b~1")) + σ (.n (val% «verify_sig_lean_sphincs» "a0_b~3")) := h.atom (a := .add (.n (val% «verify_sig_lean_sphincs» "a0_b~4")) _ _) (by simp [sForsAddrs, addS])
+  have c5 : σ (.n (val% «verify_sig_lean_sphincs» "a0_b~5")) = lit (2 ^ 104) := h.atom (a := .const (.n (val% «verify_sig_lean_sphincs» "a0_b~5")) _) (by simp [sForsAddrs, cst])
+  have m6 : σ (.n (val% «verify_sig_lean_sphincs» "a0_b~6")) = σ (sLVal 24) * σ (.n (val% «verify_sig_lean_sphincs» "a0_b~5")) := h.atom (a := .mul (.n (val% «verify_sig_lean_sphincs» "a0_b~6")) _ _) (by simp [sForsAddrs, mulS])
+  have a7 : σ sA0B = σ (.n (val% «verify_sig_lean_sphincs» "a0_b~4")) + σ (.n (val% «verify_sig_lean_sphincs» "a0_b~6")) := h.atom (a := .add sA0B _ _) (by simp [sForsAddrs, addS])
+  have c8 : σ (.n (val% «verify_sig_lean_sphincs» "key_b~0")) = lit (2 ^ 56) := h.atom (a := .const (.n (val% «verify_sig_lean_sphincs» "key_b~0")) _) (by simp [sForsAddrs, cst])
+  have m9 : σ sKeyB = σ (sLVal 0) * σ (.n (val% «verify_sig_lean_sphincs» "key_b~0")) := h.atom (a := .mul sKeyB _ _) (by simp [sForsAddrs, mulS])
   obtain ⟨m, hm, q, hq, e2⟩ : ∃ m < 256, ∃ q < 4, layerLeafN T 2 = m + 256 * q :=
     ⟨layerLeafN T 2 % 256, by omega, layerLeafN T 2 / 256, by omega, by omega⟩
   have hm' : layerLeafN T 2 % 256 = m := by omega
   have hq' : layerLeafN T 2 / 256 = q := by omega
-  have p1 : σ (.n 1373) = eOfNat128 (2 ^ (104 + 16) * layerLeafN T 1) := by
+  have p1 : σ (.n (val% «verify_sig_lean_sphincs» "a0_b~1")) = eOfNat128 (2 ^ (104 + 16) * layerLeafN T 1) := by
     rw [m1, v8, c0, show (2 : Nat) ^ 120 = 2 ^ (64 + 56) by norm_num,
       eOfNat_mul_lit_hi (by omega) (by norm_num)]
-  have p3 : σ (.n 1375) = eOfNat128 (2 ^ (104 + 8) * m) := by
+  have p3 : σ (.n (val% «verify_sig_lean_sphincs» "a0_b~3")) = eOfNat128 (2 ^ (104 + 8) * m) := by
     rw [m3, vm, hm', c2, show (2 : Nat) ^ 112 = 2 ^ (64 + 48) by norm_num,
       eOfNat_mul_lit_hi (by omega) (by norm_num)]
-  have p6 : σ (.n 1378) = eOfNat128 (2 ^ 104 * q) := by
+  have p6 : σ (.n (val% «verify_sig_lean_sphincs» "a0_b~6")) = eOfNat128 (2 ^ 104 * q) := by
     rw [m6, v24, hq', c5, show (2 : Nat) ^ 104 = 2 ^ (64 + 40) by norm_num,
       eOfNat_mul_lit_hi (by omega) (by norm_num)]
   have hN : beWordAt 0 0 + beWordAt 2 (layerTreeN T 0 / 2 ^ 32) + beWordAt 3 (layerTreeN T 0) =
@@ -155,23 +157,23 @@ theorem sMidAddrs_sound {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sMid
     σ (sA0Of 1) = adrsCell0 1 (layerTreeN T 1) ∧ σ (sA1Of 1) = adrsCell1 0 (layerLeafN T 1) 0 0 := by
   obtain ⟨-, v8, v24, vm⟩ := lval_cells hD
   obtain ⟨-, b1, b2⟩ := leaves_lt T
-  have c0 : σ (.n 5398) = lit (2 ^ 24) := h.atom (a := .const (.n 5398) _) (by simp [sMidAddrs, cst])
-  have c1 : σ (.n 5399) = lit (2 ^ 120) := h.atom (a := .const (.n 5399) _) (by simp [sMidAddrs, cst])
-  have m2 : σ (.n 5400) = σ sTreeMid * σ (.n 5399) := h.atom (a := .mul (.n 5400) _ _) (by simp [sMidAddrs, mulS])
-  have a3 : σ (.n 5401) = σ (.n 5398) + σ (.n 5400) := h.atom (a := .add (.n 5401) _ _) (by simp [sMidAddrs, addS])
-  have c4 : σ (.n 5402) = lit (2 ^ 112) := h.atom (a := .const (.n 5402) _) (by simp [sMidAddrs, cst])
-  have m5 : σ (.n 5403) = σ (sLVal 24) * σ (.n 5402) := h.atom (a := .mul (.n 5403) _ _) (by simp [sMidAddrs, mulS])
-  have a6 : σ (sA0Of 1) = σ (.n 5401) + σ (.n 5403) := h.atom (a := .add (sA0Of 1) _ _) (by simp [sMidAddrs, addS])
-  have c7 : σ (.n 5405) = lit (2 ^ 56) := h.atom (a := .const (.n 5405) _) (by simp [sMidAddrs, cst])
-  have m8 : σ (sA1Of 1) = σ (sLVal 8) * σ (.n 5405) := h.atom (a := .mul (sA1Of 1) _ _) (by simp [sMidAddrs, mulS])
+  have c0 : σ (.n (val% «verify_sig_lean_sphincs» "a0_m~0")) = lit (2 ^ 24) := h.atom (a := .const (.n (val% «verify_sig_lean_sphincs» "a0_m~0")) _) (by simp [sMidAddrs, cst])
+  have c1 : σ (.n (val% «verify_sig_lean_sphincs» "a0_m~1")) = lit (2 ^ 120) := h.atom (a := .const (.n (val% «verify_sig_lean_sphincs» "a0_m~1")) _) (by simp [sMidAddrs, cst])
+  have m2 : σ (.n (val% «verify_sig_lean_sphincs» "a0_m~2")) = σ sTreeMid * σ (.n (val% «verify_sig_lean_sphincs» "a0_m~1")) := h.atom (a := .mul (.n (val% «verify_sig_lean_sphincs» "a0_m~2")) _ _) (by simp [sMidAddrs, mulS])
+  have a3 : σ (.n (val% «verify_sig_lean_sphincs» "a0_m~3")) = σ (.n (val% «verify_sig_lean_sphincs» "a0_m~0")) + σ (.n (val% «verify_sig_lean_sphincs» "a0_m~2")) := h.atom (a := .add (.n (val% «verify_sig_lean_sphincs» "a0_m~3")) _ _) (by simp [sMidAddrs, addS])
+  have c4 : σ (.n (val% «verify_sig_lean_sphincs» "a0_m~4")) = lit (2 ^ 112) := h.atom (a := .const (.n (val% «verify_sig_lean_sphincs» "a0_m~4")) _) (by simp [sMidAddrs, cst])
+  have m5 : σ (.n (val% «verify_sig_lean_sphincs» "a0_m~5")) = σ (sLVal 24) * σ (.n (val% «verify_sig_lean_sphincs» "a0_m~4")) := h.atom (a := .mul (.n (val% «verify_sig_lean_sphincs» "a0_m~5")) _ _) (by simp [sMidAddrs, mulS])
+  have a6 : σ (sA0Of 1) = σ (.n (val% «verify_sig_lean_sphincs» "a0_m~3")) + σ (.n (val% «verify_sig_lean_sphincs» "a0_m~5")) := h.atom (a := .add (sA0Of 1) _ _) (by simp [sMidAddrs, addS])
+  have c7 : σ (.n (val% «verify_sig_lean_sphincs» "key_m~0")) = lit (2 ^ 56) := h.atom (a := .const (.n (val% «verify_sig_lean_sphincs» "key_m~0")) _) (by simp [sMidAddrs, cst])
+  have m8 : σ (sA1Of 1) = σ (sLVal 8) * σ (.n (val% «verify_sig_lean_sphincs» "key_m~0")) := h.atom (a := .mul (sA1Of 1) _ _) (by simp [sMidAddrs, mulS])
   obtain ⟨m, hm, q, hq, e2⟩ : ∃ m < 256, ∃ q < 4, layerLeafN T 2 = m + 256 * q :=
     ⟨layerLeafN T 2 % 256, by omega, layerLeafN T 2 / 256, by omega, by omega⟩
   have hm' : layerLeafN T 2 % 256 = m := by omega
   have hq' : layerLeafN T 2 / 256 = q := by omega
-  have p2 : σ (.n 5400) = eOfNat128 (2 ^ (112 + 8) * m) := by
+  have p2 : σ (.n (val% «verify_sig_lean_sphincs» "a0_m~2")) = eOfNat128 (2 ^ (112 + 8) * m) := by
     rw [m2, vm, hm', c1, show (2 : Nat) ^ 120 = 2 ^ (64 + 56) by norm_num,
       eOfNat_mul_lit_hi (by omega) (by norm_num)]
-  have p5 : σ (.n 5403) = eOfNat128 (2 ^ 112 * q) := by
+  have p5 : σ (.n (val% «verify_sig_lean_sphincs» "a0_m~5")) = eOfNat128 (2 ^ 112 * q) := by
     rw [m5, v24, hq', c4, show (2 : Nat) ^ 112 = 2 ^ (64 + 48) by norm_num,
       eOfNat_mul_lit_hi (by omega) (by norm_num)]
   have hN : beWordAt 0 1 + beWordAt 2 (layerTreeN T 1 / 2 ^ 32) + beWordAt 3 (layerTreeN T 1) =
@@ -196,19 +198,19 @@ theorem sTopAddrs_sound {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sTop
       σ (sA1Of 2) = adrsCell1 0 (layerLeafN T 2) 0 0 := by
   obtain ⟨-, -, v24, vm⟩ := lval_cells hD
   obtain ⟨-, -, b2⟩ := leaves_lt T
-  have c0 : σ (.n 5556) = lit (2 ^ 56) := h.atom (a := .const (.n 5556) _) (by simp [sTopAddrs, cst])
-  have m1 : σ (.n 5557) = σ sTreeMid * σ (.n 5556) := h.atom (a := .mul (.n 5557) _ _) (by simp [sTopAddrs, mulS])
-  have c2 : σ (.n 5558) = lit (2 ^ 48) := h.atom (a := .const (.n 5558) _) (by simp [sTopAddrs, cst])
-  have m3 : σ (.n 5559) = σ (sLVal 24) * σ (.n 5558) := h.atom (a := .mul (.n 5559) _ _) (by simp [sTopAddrs, mulS])
-  have a4 : σ (sA1Of 2) = σ (.n 5557) + σ (.n 5559) := h.atom (a := .add (sA1Of 2) _ _) (by simp [sTopAddrs, addS])
+  have c0 : σ (.n (val% «verify_sig_lean_sphincs» "key_t~0")) = lit (2 ^ 56) := h.atom (a := .const (.n (val% «verify_sig_lean_sphincs» "key_t~0")) _) (by simp [sTopAddrs, cst])
+  have m1 : σ (.n (val% «verify_sig_lean_sphincs» "key_t~1")) = σ sTreeMid * σ (.n (val% «verify_sig_lean_sphincs» "key_t~0")) := h.atom (a := .mul (.n (val% «verify_sig_lean_sphincs» "key_t~1")) _ _) (by simp [sTopAddrs, mulS])
+  have c2 : σ (.n (val% «verify_sig_lean_sphincs» "key_t~2")) = lit (2 ^ 48) := h.atom (a := .const (.n (val% «verify_sig_lean_sphincs» "key_t~2")) _) (by simp [sTopAddrs, cst])
+  have m3 : σ (.n (val% «verify_sig_lean_sphincs» "key_t~3")) = σ (sLVal 24) * σ (.n (val% «verify_sig_lean_sphincs» "key_t~2")) := h.atom (a := .mul (.n (val% «verify_sig_lean_sphincs» "key_t~3")) _ _) (by simp [sTopAddrs, mulS])
+  have a4 : σ (sA1Of 2) = σ (.n (val% «verify_sig_lean_sphincs» "key_t~1")) + σ (.n (val% «verify_sig_lean_sphincs» "key_t~3")) := h.atom (a := .add (sA1Of 2) _ _) (by simp [sTopAddrs, addS])
   have c5 : a0Val σ (sA0Of 2) (sAcOf 2) = lit (2 ^ 25) := rfl
   obtain ⟨m, hm, q, hq, e2⟩ : ∃ m < 256, ∃ q < 4, layerLeafN T 2 = m + 256 * q :=
     ⟨layerLeafN T 2 % 256, by omega, layerLeafN T 2 / 256, by omega, by omega⟩
   have hm' : layerLeafN T 2 % 256 = m := by omega
   have hq' : layerLeafN T 2 / 256 = q := by omega
-  have p1 : σ (.n 5557) = eOfNat128 (2 ^ (48 + 8) * m) := by
+  have p1 : σ (.n (val% «verify_sig_lean_sphincs» "key_t~1")) = eOfNat128 (2 ^ (48 + 8) * m) := by
     rw [m1, vm, hm', c0, eOfNat_mul_lit_lo (by omega) (by norm_num)]
-  have p3 : σ (.n 5559) = eOfNat128 (2 ^ 48 * q) := by
+  have p3 : σ (.n (val% «verify_sig_lean_sphincs» "key_t~3")) = eOfNat128 (2 ^ 48 * q) := by
     rw [m3, v24, hq', c2, eOfNat_mul_lit_lo (by omega) (by norm_num)]
   constructor
   · rw [c5, lit_eq _ (by norm_num), adrsCell0, cellOf128_eq_eOfNat128 (by

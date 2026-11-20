@@ -11,6 +11,8 @@ module
 public import LeanVM.Guest.B1.Sig.SphincsFields
 public import LeanVM.Guest.B1.Sig.SphincsBytes
 public import LeanVM.Guest.WithHashBridge
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # The message digest, sound
@@ -128,11 +130,11 @@ theorem sDigests_sound (h : AtomsHold rd σ sDigests) :
   have k6 := c 24 (word 0 0) (by simp [sDigests, cst])
   have k7 := c 25 (word 0 0) (by simp [sDigests, cst])
   have k8 := c 26 (word (2 ^ 63) 0) (by simp [sDigests, cst])
-  have a32 : σ (.n 21) = σ (.n 19) + σ (.n 20) := h.atom (a := .add (.n 21) _ _) (by simp [sDigests, addS])
+  have a32 : σ (.n (val% «verify_sig_lean_sphincs» "s8#2")) = σ (.n (val% «verify_sig_lean_sphincs» "s8#0")) + σ (.n (val% «verify_sig_lean_sphincs» "s8#1")) := h.atom (a := .add (.n (val% «verify_sig_lean_sphincs» "s8#2")) _ _) (by simp [sDigests, addS])
   have c7 := cp 7 sM1 (by simp [sDigests, copyS])
   have c33 := cp 22 sM1 (by simp [sDigests, copyS])
-  have c34 := cp 23 (.n 21) (by simp [sDigests, copyS])
-  have w1 : σ (.n 21) = word (1 * 2 ^ 24 + 2 ^ 32) 0 := by
+  have c34 := cp 23 (.n (val% «verify_sig_lean_sphincs» "s8#2")) (by simp [sDigests, copyS])
+  have w1 : σ (.n (val% «verify_sig_lean_sphincs» "s8#2")) = word (1 * 2 ^ 24 + 2 ^ 32) 0 := by
     have e := word_ctr_pad (i := 1) (by norm_num)
     rw [one_mul] at e
     rw [a32, k4, k5, e, one_mul]
@@ -164,8 +166,8 @@ theorem pw_64 : word 0 1 = pw 64 := by simp [pw]
 
 /-- **The message, sound**: the claim's keys and its message's two cells loaded. -/
 theorem sMsg_sound (h : AtomsHold rd σ sMsg) :
-    LoadHolds rd (σ (.n 0)) 0 (σ sPP) ∧ LoadHolds rd (σ (.n 0)) 1 (σ sRoot) ∧
-      LoadHolds rd (σ (.n 0)) 2 (σ sM0) ∧ LoadHolds rd (σ (.n 0)) 3 (σ sM1) :=
+    LoadHolds rd (σ (.n (val% «verify_sig_lean_sphincs» "signer"))) 0 (σ sPP) ∧ LoadHolds rd (σ (.n (val% «verify_sig_lean_sphincs» "signer"))) 1 (σ sRoot) ∧
+      LoadHolds rd (σ (.n (val% «verify_sig_lean_sphincs» "signer"))) 2 (σ sM0) ∧ LoadHolds rd (σ (.n (val% «verify_sig_lean_sphincs» "signer"))) 3 (σ sM1) :=
   ⟨h.atom (a := .load _ _ _) (by simp [sMsg, loadS]), h.atom (a := .load _ _ _) (by simp [sMsg, loadS]),
     h.atom (a := .load _ _ _) (by simp [sMsg, loadS]), h.atom (a := .load _ _ _) (by simp [sMsg, loadS])⟩
 
@@ -233,7 +235,7 @@ def padV (b : Nat) : V := if b = 0 then .n 275 else .n (1280 + 3 * (b - 1) + 2)
 theorem sPadBits_sound {T : Nat} (hb : BitsAt σ T) (h : AtomsHold rd σ sPadBits) :
     ∀ b ≤ 5, σ (padV b) = eOfNat (T / 2 ^ (247 - b) % 2 ^ (b + 1))
   | 0, _ => by
-      rw [show padV 0 = .n (28 + 247) from rfl, hb 247 (by norm_num), bitE_testBit]
+      rw [show padV 0 = .n (val% «verify_sig_lean_sphincs» "bits1[119]") from rfl, hb 247 (by norm_num), bitE_testBit]
       norm_num
   | b + 1, hb5 => by
       have ih := sPadBits_sound hb h b (by omega)
@@ -268,7 +270,7 @@ theorem lval_at {T : Nat} (hl : LValsAt σ T) {l z i : Nat} (hl3 : l < 3) (hz : 
 
 /-- The check's statements before `d0[0] = md0`: the tree's middle byte, the unused bits. -/
 def sCheckA : List Stmt :=
-  [cst 1277 (word 256 0), mulS (.n 1278) (sLVal 24) (.n 1277), addS sTreeMid (sLVal 16) (.n 1278)] ++
+  [cst 1277 (word 256 0), mulS (.n (val% «verify_sig_lean_sphincs» "tree_mid~1")) (sLVal 24) (.n (val% «verify_sig_lean_sphincs» "tree_mid~0")), addS sTreeMid (sLVal 16) (.n (val% «verify_sig_lean_sphincs» "tree_mid~1"))] ++
     sPadBits
 
 /-- `d0[0] = md0 + corr0` and `md1 + corr1`: the places `vals` carries taken out. -/
@@ -289,8 +291,8 @@ def sCheckC : List Stmt :=
     cst 1370 (word 2 1), mulS (.n 1371) (.n 1369) (.n 1370)]
 
 theorem sCheck_split : sCheck = sCheckA ++ sCheckCorr ++ sCheckB ++
-    [addS sHm0b (.n 1303) (.n 1305), hintW "sp_unused" (runV 1306 6)] ++ sUnused.1 ++ sCheckC ++
-    [.atom (.assertInK (.n 1371) sUnused.2.2)] := by
+    [addS sHm0b (.n (val% «verify_sig_lean_sphincs» "s34#7")) (.n (val% «verify_sig_lean_sphincs» "s34#9")), hintW "sp_unused" (runV 1306 6)] ++ sUnused.1 ++ sCheckC ++
+    [.atom (.assertInK (.n (val% «verify_sig_lean_sphincs» "high")) sUnused.2.2)] := by
   simp [sCheck, sCheckA, sCheckCorr, sCheckB, sCheckC]
 
 theorem lval_16 {T : Nat} (hl : LValsAt σ T) : σ (sLVal 16) = eOfNat (layerLeafN T 2) := by
@@ -376,7 +378,7 @@ theorem sCheckC_sound {T N : Nat} (hl : LValsAt σ T) (hN : σ sUnused.2.2 = eOf
 
 /-- **The check, sound**: the first call's cells are the digest's bytes `0 … 31` the bits spell,
 the second call's low two bytes its bytes `32`, `33`. -/
-theorem sCheck_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} (hbb : ByteBits L.read (σ (.n 1)))
+theorem sCheck_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} (hbb : ByteBits L.read (σ (.n (val% «verify_sig_lean_sphincs» "byte_bits"))))
     {T : Nat} (hb : BitsAt σ T) (hl : LValsAt σ T) (h0 : σ sMd0.2.2 + corr0W = eOfNat128 (T % 2 ^ 128))
     (h1 : σ sMd1.2.2 + corr1W = eOfNat128 (T / 2 ^ 128 % 2 ^ 112)) (h : AtomsHold L.read σ sCheck) :
     σ sTreeMid = eOfNat (byteN T 31) ∧ σ sHm0 = eOfNat128 (T % 2 ^ 128) ∧
@@ -391,17 +393,17 @@ theorem sCheck_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} (hbb : By
   have hA := h.left.left.left.left.left.left
   obtain ⟨tm, pad⟩ := sCheckA_sound hb hl hA
   refine ⟨tm, ?_, ?_, ?_⟩
-  · have k : σ (.n 1295) = corr0W := hc.atom (a := .const _ _) (by simp [sCheckCorr, cst])
-    have a : σ sHm0 = σ sMd0.2.2 + σ (.n 1295) := hc.atom (a := .add sHm0 _ _) (by simp [sCheckCorr, addS])
+  · have k : σ (.n (val% «verify_sig_lean_sphincs» "s33#0")) = corr0W := hc.atom (a := .const _ _) (by simp [sCheckCorr, cst])
+    have a : σ sHm0 = σ sMd0.2.2 + σ (.n (val% «verify_sig_lean_sphincs» "s33#0")) := hc.atom (a := .add sHm0 _ _) (by simp [sCheckCorr, addS])
     rw [a, k, h0]
-  · have k : σ (.n 1296) = corr1W := hc.atom (a := .const _ _) (by simp [sCheckCorr, cst])
-    have a : σ (.n 1297) = σ sMd1.2.2 + σ (.n 1296) :=
-      hc.atom (a := .add (.n 1297) _ _) (by simp [sCheckCorr, addS])
-    have a4 : σ sHm0b = σ (.n 1303) + σ (.n 1305) := hD.atom (a := .add sHm0b _ _) (by simp [addS])
+  · have k : σ (.n (val% «verify_sig_lean_sphincs» "s34#0")) = corr1W := hc.atom (a := .const _ _) (by simp [sCheckCorr, cst])
+    have a : σ (.n (val% «verify_sig_lean_sphincs» "s34#1")) = σ sMd1.2.2 + σ (.n (val% «verify_sig_lean_sphincs» "s34#0")) :=
+      hc.atom (a := .add (.n (val% «verify_sig_lean_sphincs» "s34#1")) _ _) (by simp [sCheckCorr, addS])
+    have a4 : σ sHm0b = σ (.n (val% «verify_sig_lean_sphincs» "s34#7")) + σ (.n (val% «verify_sig_lean_sphincs» "s34#9")) := hD.atom (a := .add sHm0b _ _) (by simp [addS])
     rw [a4, sCheckB_sound hl tm pad (by rw [a, k, h1]) hB]
   · obtain ⟨N, hN, hNlt⟩ := sFromMarks_sound hκ hbb (b := 1306) (n := 6) (x := 1312) (by norm_num)
       (by norm_num) hU
-    have hk : IsInK (σ (.n 1371)) := (hK.atom (a := .assertInK (.n 1371) sUnused.2.2) (by simp)).1
+    have hk : IsInK (σ (.n (val% «verify_sig_lean_sphincs» "high"))) := (hK.atom (a := .assertInK (.n (val% «verify_sig_lean_sphincs» "high")) sUnused.2.2) (by simp)).1
     rw [sCheckC_sound hl hN (by simpa using hNlt) hC] at hk
     exact high_low_bytes (Nat.mod_lt _ (by norm_num)) hk
 
@@ -462,9 +464,9 @@ theorem hmsg_take {R s r c d : E} {i : Nat} (hi : i < 256) :
 loaded; and a number `T` whose bits and fields the block holds, `T` the digest `H_msg`'s two calls
 give on `R | PK.seed | PK.root | M | BE_32(i)`. -/
 theorem sDigestBlock_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
-    (hbb : ByteBits L.read (σ (.n 1))) (h : AtomsHold L.read σ sDigestBlock) :
-    PadOK σ sPad ∧ LoadHolds L.read (σ (.n 0)) 0 (σ sPP) ∧ LoadHolds L.read (σ (.n 0)) 1 (σ sRoot) ∧
-      LoadHolds L.read (σ (.n 0)) 2 (σ sM0) ∧ LoadHolds L.read (σ (.n 0)) 3 (σ sM1) ∧
+    (hbb : ByteBits L.read (σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")))) (h : AtomsHold L.read σ sDigestBlock) :
+    PadOK σ sPad ∧ LoadHolds L.read (σ (.n (val% «verify_sig_lean_sphincs» "signer"))) 0 (σ sPP) ∧ LoadHolds L.read (σ (.n (val% «verify_sig_lean_sphincs» "signer"))) 1 (σ sRoot) ∧
+      LoadHolds L.read (σ (.n (val% «verify_sig_lean_sphincs» "signer"))) 2 (σ sM0) ∧ LoadHolds L.read (σ (.n (val% «verify_sig_lean_sphincs» "signer"))) 3 (σ sM1) ∧
         ∃ T, DigestAt σ T ∧
           T = hmsgNat (digestHalves (keccak256 (hmsgBytes (σ sRand) (σ sPP) (σ sRoot)
               (msgNat (σ sM0) (σ sM1)) 0)))
