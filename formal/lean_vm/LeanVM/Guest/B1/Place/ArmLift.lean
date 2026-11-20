@@ -276,6 +276,7 @@ theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11
       subst hx
       simp only [winPtrsA_length] at h2
       have hS := (hLv l hl3).2.2.2.2.1
+      rw [← hc] at hS
       refine Or.inr ⟨_, hqbE, ?_, ?_⟩
       · simp only at h1 ⊢; omega
       · simp only [qbpA_length] at h2 ⊢

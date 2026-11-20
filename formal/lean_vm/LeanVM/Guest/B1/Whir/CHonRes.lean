@@ -68,11 +68,10 @@ theorem finRes_eq (hHS : HonStatic h.c) (hF : FinStatic h.c h.G h.T h.recs)
       (List.range (h.c.levels.getD l default).folds).map fun i ↦
         (osOwnA h.own osIxHsA).getD ((h.c.levels.getD l default).foldsOff + i) 0 := by
     refine List.map_congr_left fun i hi ↦ ?_
-    have hi' := List.mem_range.mp hi
+    have hi' : i < (h.c.levels.getD l default).folds := List.mem_range.mp hi
     have htop := (chain_disj hHS.hsChain).2 l hl
-    have h6 := hHS.head (j := 6) (by omega)
-    rw [h.own_word (hHS.headLt (j := 6) (by omega)) (by rw [h6]; simp only [headSizes, List.getD_cons_succ,
-        List.getD_cons_zero]; omega),
+    have h6 : (osSizesL h.c).getD 6 0 = h.c.nFolds := by rw [hHS.head (j := 6) (by omega)]; rfl
+    rw [h.own_word (hHS.headLt (j := 6) (by omega)) (by rw [h6]; omega),
       ownW_hs, h.hs_seg hHS hl hi', hr, LvAt.osRec_high]
   -- the positions
   have hP : (List.range (h.c.levels.getD l default).queries).map (fun k ↦ eOfNat ((h.recs.getD l default).qs.getD k 0)) =

@@ -410,7 +410,7 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
       (fun C rd hH ↦ matsOk_agree (hmo C rd hH) hmb fun i hi ↦ ha5 i hi)
       (fun i hi ↦ by
         have hi' : i < y := by rw [← hmidl]; exact hi
-        rw [Nat.zero_add, take_getD hi']
+        rw [hmid, take_getD hi']
         exact ⟨(hS.lv i hi').posOff, (hS.lv i hi').colsB, (hS.lv i hi').hsB⟩)
       (fun i hi C rd hH ↦ by
         have hi' : i < y := by rw [← hmidl]; exact hi
