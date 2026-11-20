@@ -1,0 +1,5 @@
+module	instr	loops	proof_lines	cpu_s	manual_notes
+Spec.Transcript.Repr	-	-	176	-	SpongeAt/ProofAt/TranscriptAt as structures (rv_auto splits a Prop definition into conjuncts, a structure it keeps whole); keep lemmas through Keeps of the footprint plus HeapKept (the proof lies below NEXT); TranscriptAt carries the offsets' bounds (TState.Inv's)
+Proof.Transcript.Common	-	-	104	-	frame/static/HeapKept of stores into a caller's frame (sret, transcript fields); TranscriptAt.setStream; ProofAt.stream_len/openings_len/stream_elem at the code's addresses
+Proof.Transcript.Next	19	0	64	2.2	rv_auto leaves the Out frame (stores into the sret slot and the transcript; rv_sym's frame walk only knows stack stores) and Static, closed by frame_store_out chains; post: mirror step next_some/next_none, element by stream_elem, transcript by setStream then keep through the slot's stores
+Proof.Transcript.Finish	13	0	33	4.1	branchless second test (sltu/addi/ori) as tag_iff; lengths by stream_len/openings_len; ofNat_inj
