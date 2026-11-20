@@ -189,6 +189,17 @@ def global_ties(roots=("LeanVM",)):
             for y in bodies.get(x, ()):
                 if y in bodies and y != x and y not in renaming and not ties.get(y, set()) >= ties[x]:
                     ties.setdefault(y, set()).update(ties[x]); work.append(y)
+        # an untied template built from tied ones (`vkPre := vkT.dropLast`, `secA1 := (layerT 0).take k`)
+        # holds their statements: the functions every one of them is tied to
+        for x, names in bodies.items():
+            if x in ties or x in renaming: continue
+            sets = [ties[y] for y in names if y in ties and y != x]
+            # only from a template of a few functions: a generic builder tied to many (`fsAbsorbT`)
+            # says nothing of the numbering it is used in (`glTail`'s is canonical)
+            if sets and min(len(t) for t in sets) <= 8:
+                common = set.intersection(*sets)
+                if common:
+                    ties[x] = set(common); changed = True
         # a kernel-checked equation `T = A ++ B` of a tied template ties `A`, `B`
         for lhs, rhs in eqs:
             if lhs in ties and lhs not in renaming:
@@ -219,13 +230,20 @@ def closure(path):
 
 
 def bound_here(x, text):
-    """Whether the declaration binds `x` itself (a binder group `(x y : T)`, `fun`, `∀`, `∃`,
-    `intro`, `obtain`, `let`, `have`, a `match` pattern), so `x` there is not the template of that
-    name."""
+    """Whether the declaration binds `x` itself (a binder group `(x y : T)`, the names a `fun`, `∀`,
+    `∃`, `intro`, `obtain`, `let`, `have` or a `match` pattern introduces), so `x` there is not the
+    template of that name. Only the binders are read, never the expressions they range over."""
     e = re.escape(x)
-    return (re.search(r'[({]\s*(?:[\w\'.]+\s+)*' + e + r'(?:\s+[\w\'.]+)*\s*:', text) is not None or
-            re.search(r'(?:\bfun\s|∀\s*|∃\s*|\bintro\s|\brintro\s|\bobtain\s|\blet\s|\bhave\s|\bset\s|'
-                      r'\bcases\s|\binduction\s|\bwith\s|^\s*\|\s)[^:=\n]*\b' + e + r'\b', text, re.M) is not None)
+    if re.search(r'[({]\s*(?:[\w\'.]+\s+)*' + e + r'(?:\s+[\w\'.]+)*\s*:', text):
+        return True
+    pats = [r'(?:\bfun\b|∀|∃|λ)\s*([^,:=∈<≤>()]*?)\s*(?:,|:|=>|↦|∈|<|≤)',
+            r'\b(?:intro|rintro|obtain|rcases|cases|induction|let|have|set|generalize)\b([^:=\n]*?)(?::=|:|$)',
+            r'^\s*\|\s*([^=\n]*?)=>']
+    for pat in pats:
+        for m in re.finditer(pat, text, re.M):
+            if re.search(r'(?<![\w.\'])' + e + r'(?![\w\'])', m.group(1)):
+                return True
+    return False
 
 
 TIE_EQ = re.compile(r'^theorem\s+\S+\s*:\s*([a-z][\w\']*)\s*=\s*([^:]*?)\s*:=\s*(?:by\s+decide\b|tbStmtsEqb_sound|stmtsEqb_sound|rfl\b)',
