@@ -19,7 +19,11 @@ theorem inputPtrAt_eq (a : Word) : inputPtrAt a = a := by
 
 theorem inputLenAt_eq (a : Word) : inputLenAt a = a + 8#64 := rfl
 
-theorem ne_add8 (a : Word) : a ≠ a + 8#64 := by bv_decide
+theorem ne_add8 (a : Word) : a ≠ a + 8#64 := fun h => by
+  have := congrArg BitVec.toNat h
+  rw [BitVec.toNat_add, show (8#64 : Word).toNat = 8 by decide] at this
+  have := a.isLt
+  omega
 
 variable {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat}
 

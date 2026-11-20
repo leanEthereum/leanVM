@@ -56,14 +56,15 @@ fn halt(verdict: u64) -> ! {
     loop {}
 }
 
-/// Never frees: the program runs once.
+/// Never frees: the program runs once. Every block starts at a multiple of 8 (or of a larger alignment), so no two
+/// blocks share a doubleword's first byte: a store into a new block never writes a doubleword that starts below it.
 struct Bump;
 static mut NEXT: usize = HEAP_START;
 
 unsafe impl GlobalAlloc for Bump {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         unsafe {
-            let start = NEXT.next_multiple_of(layout.align());
+            let start = NEXT.next_multiple_of(layout.align().max(8));
             match start.checked_add(layout.size()) {
                 Some(end) if end <= HEAP_END => {
                     NEXT = end;
