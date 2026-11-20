@@ -402,7 +402,7 @@ impl Task for VrfKeyTask {
             }
             VrfKeySource::Cache { cache, root } => {
                 let root = bytes32(root, "root")?;
-                vrf::Key::from_cache_bytes(seed, cache, &root).map_err(api_error)
+                vrf::Key::from_cache_bytes(seed, &root, cache).map_err(api_error)
             }
         }
     }
@@ -733,8 +733,8 @@ pub fn vrf_key_from_seed(seed: Buffer, start: f64, end: f64) -> AsyncTask<VrfKey
 #[napi(ts_return_type = "Promise<VrfKey>")]
 pub fn vrf_key_from_cache_bytes(
     seed: Buffer,
-    cache: Buffer,
     root: Buffer,
+    cache: Buffer,
 ) -> AsyncTask<VrfKeyTask> {
     AsyncTask::new(VrfKeyTask {
         seed: seed.to_vec(),

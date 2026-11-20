@@ -92,7 +92,7 @@ if err := leanpq.VrfVerify(root, 1500, proof); err != nil {
 
 A key is a 32-byte seed and the slots `[start, end)`, with `end <= 2^31`: both fix the root, so keep both. Building it hashes every slot of the range once; a proof then costs about `3 sqrt(R)` hashes for `R` slots. A proof is 1024 bytes: the slot's secret, then its leaf's 31 siblings, which reveal no other secret. An empty range, a range past `2^31` and a slot outside the range return an error.
 
-`CacheBytes()` encodes the key's cache, its range and cached layer (about `32 sqrt(R)` bytes, no secret), and `VrfKeyFromCacheBytes(seed, cache, root)` rebuilds the key from its seed and that cache without hashing the range, failing if the cache does not lead to `root`.
+`CacheBytes()` encodes the key's cache, its range and cached layer (about `32 sqrt(R)` bytes, no secret), and `VrfKeyFromCacheBytes(seed, root, cache)` rebuilds the key from its seed and that cache without hashing the range, failing if the cache does not lead to `root`.
 
 ## Aggregate
 

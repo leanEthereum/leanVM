@@ -617,16 +617,16 @@ pub unsafe extern "C" fn lpq_vrf_key_new(
 pub unsafe extern "C" fn lpq_vrf_key_from_cache_bytes(
     seed: *const u8,
     seed_len: usize,
-    cache: *const u8,
-    cache_len: usize,
     root: *const u8,
     root_len: usize,
+    cache: *const u8,
+    cache_len: usize,
     out: *mut *mut VrfKeyHandle,
 ) -> c_int {
     ffi(|| {
         let seed = bytes32(seed, seed_len, "seed")?;
         let root = bytes32(root, root_len, "root")?;
-        let key = vrf::Key::from_cache_bytes(seed, bytes(cache, cache_len, "cache")?, &root)
+        let key = vrf::Key::from_cache_bytes(seed, &root, bytes(cache, cache_len, "cache")?)
             .map_err(|e| e.to_string())?;
         put_handle(out, VrfKeyHandle(key), "VRF key")
     })

@@ -388,14 +388,14 @@ proc init*(T: type VrfKey, seed: LeanPqSeed, start, stop: uint32): Result[VrfKey
   ok(VrfKey(handle: handle))
 
 proc fromCacheBytes*(
-    T: type VrfKey, seed: LeanPqSeed, cache: openArray[byte], root: VrfRoot
+    T: type VrfKey, seed: LeanPqSeed, root: VrfRoot, cache: openArray[byte]
 ): Result[VrfKey, string] =
-  ## Rebuilds a key from its seed and a cache from `cacheToBytes`, without hashing the range.
-  ## Fails if the cache is malformed or does not lead to `root`.
+  ## Rebuilds a key from its seed, its root and a cache from `cacheToBytes`, without hashing the
+  ## range. Fails if the cache is malformed or does not lead to `root`.
   var handle: ptr LpqVrfKey
   ? check(lpqVrfKeyFromCacheBytes(
-    addr seed[0], csize_t(seed.len), bytesPtr(cache), csize_t(cache.len),
-    addr root[0], csize_t(root.len), addr handle))
+    addr seed[0], csize_t(seed.len), addr root[0], csize_t(root.len),
+    bytesPtr(cache), csize_t(cache.len), addr handle))
   if handle.isNil:
     return err("native VRF key is null")
   ok(VrfKey(handle: handle))

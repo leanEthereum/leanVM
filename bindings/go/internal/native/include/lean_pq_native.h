@@ -100,7 +100,7 @@ void lpq_aggregate_destroy(lpq_aggregate *aggregate);
 /* Hashes every slot of the range. */
 int32_t lpq_vrf_key_new(const uint8_t *seed, size_t seed_len, uint32_t start, uint32_t end, lpq_vrf_key **out);
 /* Rebuilds a key from its seed and a cache from lpq_vrf_key_cache_to_bytes. Fails if the cache does not lead to root. */
-int32_t lpq_vrf_key_from_cache_bytes(const uint8_t *seed, size_t seed_len, const uint8_t *cache, size_t cache_len, const uint8_t *root, size_t root_len, lpq_vrf_key **out);
+int32_t lpq_vrf_key_from_cache_bytes(const uint8_t *seed, size_t seed_len, const uint8_t *root, size_t root_len, const uint8_t *cache, size_t cache_len, lpq_vrf_key **out);
 /* Encodes the key's cache: its range and cached layer, no secret. */
 int32_t lpq_vrf_key_cache_to_bytes(lpq_vrf_key *key, lpq_buffer *out);
 int32_t lpq_vrf_key_root(lpq_vrf_key *key, lpq_buffer *out);

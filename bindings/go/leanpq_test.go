@@ -230,7 +230,7 @@ func TestVrfKeyLoadsFromItsCache(t *testing.T) {
 	if _, err := hex.Decode(root[:], []byte("af45ef4aca47606c0e6722dc71af01e3f13df93253e6aec5805eb1e8ed3bb0fa")); err != nil {
 		t.Fatal(err)
 	}
-	loaded, err := VrfKeyFromCacheBytes(bytes32(9), cache, root)
+	loaded, err := VrfKeyFromCacheBytes(bytes32(9), root, cache)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,11 +249,11 @@ func TestVrfKeyLoadsFromItsCache(t *testing.T) {
 	if err := VrfVerify(root, 150, proof); err != nil {
 		t.Fatalf("a proof of the loaded VRF key must verify: %v", err)
 	}
-	if wrong, err := VrfKeyFromCacheBytes(bytes32(9), cache[:len(cache)-1], root); err == nil {
+	if wrong, err := VrfKeyFromCacheBytes(bytes32(9), root, cache[:len(cache)-1]); err == nil {
 		wrong.Close()
 		t.Fatal("a truncated VRF cache must be rejected")
 	}
-	if wrong, err := VrfKeyFromCacheBytes(bytes32(9), cache, [32]byte{}); err == nil {
+	if wrong, err := VrfKeyFromCacheBytes(bytes32(9), [32]byte{}, cache); err == nil {
 		wrong.Close()
 		t.Fatal("a VRF cache must be rejected under another root")
 	}

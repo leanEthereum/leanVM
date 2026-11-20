@@ -61,9 +61,9 @@ impl VrfKey {
         Some(uncached.with_cache(level, cache))
     }
 
-    /// Rebuilds a key from its seed and a cache from [`Self::cache_to_bytes`], without hashing the
-    /// range. `None` if the cache is malformed or does not lead to `root`.
-    pub fn from_cache_bytes(seed: [u8; 32], bytes: &[u8], root: &Hash) -> Option<Self> {
+    /// Rebuilds a key from its seed, its root and a cache from [`Self::cache_to_bytes`], without
+    /// hashing the range. `None` if the cache is malformed or does not lead to `root`.
+    pub fn from_cache_bytes(seed: [u8; 32], root: &Hash, bytes: &[u8]) -> Option<Self> {
         let (start, rest) = bytes.split_first_chunk::<4>()?;
         let (end, nodes) = rest.split_first_chunk::<4>()?;
         let slots = u32::from_le_bytes(*start)..u32::from_le_bytes(*end);

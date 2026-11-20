@@ -135,13 +135,13 @@ suite "lean_pq":
       key = VrfKey.init(seed, 100, 200).expect("key")
       cache = key.cacheToBytes().expect("cache")
       vrfRoot = key.root().expect("root")
-      loaded = VrfKey.fromCacheBytes(seed, cache, vrfRoot).expect("loaded key")
+      loaded = VrfKey.fromCacheBytes(seed, vrfRoot, cache).expect("loaded key")
     check:
       @vrfRoot == fromHex("af45ef4aca47606c0e6722dc71af01e3f13df93253e6aec5805eb1e8ed3bb0fa")
       loaded.cacheToBytes().expect("cache") == cache
       vrfVerify(vrfRoot, 150, loaded.proof(150).expect("proof"))
-      VrfKey.fromCacheBytes(seed, cache.toOpenArray(0, cache.len - 2), vrfRoot).isErr()
-      VrfKey.fromCacheBytes(seed, cache, default(VrfRoot)).isErr()
+      VrfKey.fromCacheBytes(seed, vrfRoot, cache.toOpenArray(0, cache.len - 2)).isErr()
+      VrfKey.fromCacheBytes(seed, default(VrfRoot), cache).isErr()
 
   test "secret keys round trip through bytes":
     let

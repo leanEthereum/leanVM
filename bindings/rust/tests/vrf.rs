@@ -49,13 +49,11 @@ fn rejects_bad_ranges_and_slots_outside_the_range() {
 fn loads_from_its_cache() {
     let key = Key::new([9; 32], 100..200).unwrap();
     let cache = key.cache_to_bytes();
-    let loaded = Key::from_cache_bytes([9; 32], &cache, &key.root()).unwrap();
+    let loaded = Key::from_cache_bytes([9; 32], &key.root(), &cache).unwrap();
     assert_eq!(loaded.proof(150).unwrap(), key.proof(150).unwrap());
     assert_eq!(
-        Key::from_cache_bytes([9; 32], &cache[1..], &key.root()).unwrap_err(),
-        Error::InvalidVrfCache {
-            actual: cache.len() - 1
-        }
+        Key::from_cache_bytes([9; 32], &key.root(), &cache[1..]).unwrap_err(),
+        Error::InvalidVrfCache
     );
-    assert!(Key::from_cache_bytes([9; 32], &cache, &[0; 32]).is_err());
+    assert!(Key::from_cache_bytes([9; 32], &[0; 32], &cache).is_err());
 }

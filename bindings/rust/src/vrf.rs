@@ -62,18 +62,16 @@ impl Key {
             .ok_or(Error::InvalidVrfRange { start, end })
     }
 
-    /// Rebuilds a key from its seed and a cache from [`Self::cache_to_bytes`], without hashing the
-    /// range.
+    /// Rebuilds a key from its seed, its root and a cache from [`Self::cache_to_bytes`], without
+    /// hashing the range.
     ///
     /// # Errors
     ///
     /// Fails if the cache is malformed or does not lead to `root`.
-    pub fn from_cache_bytes(seed: Seed, cache: &[u8], root: &Root) -> Result<Self, Error> {
-        VrfKey::from_cache_bytes(seed, cache, root)
+    pub fn from_cache_bytes(seed: Seed, root: &Root, cache: &[u8]) -> Result<Self, Error> {
+        VrfKey::from_cache_bytes(seed, root, cache)
             .map(Self)
-            .ok_or(Error::InvalidVrfCache {
-                actual: cache.len(),
-            })
+            .ok_or(Error::InvalidVrfCache)
     }
 
     /// Encodes the cache: the range, then the cached layer, about `32 sqrt(R)` bytes. It holds no

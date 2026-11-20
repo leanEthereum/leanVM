@@ -66,15 +66,15 @@ fn vrf_cache_bytes() {
             "{slots:?}: the cache holds a secret"
         );
 
-        let key = VrfKey::from_cache_bytes(seed(), &cache, &root).unwrap();
+        let key = VrfKey::from_cache_bytes(seed(), &root, &cache).unwrap();
         assert_eq!(hex(&key.root()), expected, "{slots:?}");
         assert_eq!(key.cache_to_bytes(), cache);
         assert_eq!(key.proof(slots.start), built.proof(slots.start));
 
-        assert!(VrfKey::from_cache_bytes(seed(), &cache, &[0; 32]).is_none());
-        assert!(VrfKey::from_cache_bytes([0; 32], &cache, &root).is_none());
-        assert!(VrfKey::from_cache_bytes(seed(), &cache[..cache.len() - 1], &root).is_none());
-        assert!(VrfKey::from_cache_bytes(seed(), &[&cache[..], &[0; 32]].concat(), &root).is_none());
+        assert!(VrfKey::from_cache_bytes(seed(), &[0; 32], &cache).is_none());
+        assert!(VrfKey::from_cache_bytes([0; 32], &root, &cache).is_none());
+        assert!(VrfKey::from_cache_bytes(seed(), &root, &cache[..cache.len() - 1]).is_none());
+        assert!(VrfKey::from_cache_bytes(seed(), &root, &[&cache[..], &[0; 32]].concat()).is_none());
         // Ranges with as many cached nodes, which the root alone does not tell apart.
         for (start, end) in [
             (slots.start.wrapping_sub(1), slots.end),
@@ -84,7 +84,7 @@ fn vrf_cache_bytes() {
         ] {
             let wrong_range = [&start.to_le_bytes(), &end.to_le_bytes(), &cache[8..]].concat();
             assert!(
-                VrfKey::from_cache_bytes(seed(), &wrong_range, &root).is_none(),
+                VrfKey::from_cache_bytes(seed(), &root, &wrong_range).is_none(),
                 "{slots:?} loaded as {start}..{end}"
             );
         }

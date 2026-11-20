@@ -332,12 +332,12 @@ func VrfKeyFromSeed(seed [32]byte, start, end uint32) (*VrfKey, error) {
 	return &VrfKey{handle: handle}, nil
 }
 
-// VrfKeyFromCacheBytes rebuilds a key from its seed and a cache from CacheBytes, without hashing
-// the range. It fails if the cache is malformed or does not lead to root.
-func VrfKeyFromCacheBytes(seed [32]byte, cache []byte, root [32]byte) (*VrfKey, error) {
+// VrfKeyFromCacheBytes rebuilds a key from its seed, its root and a cache from CacheBytes, without
+// hashing the range. It fails if the cache is malformed or does not lead to root.
+func VrfKeyFromCacheBytes(seed, root [32]byte, cache []byte) (*VrfKey, error) {
 	var handle *C.lpq_vrf_key
 	if err := call(func() C.int32_t {
-		return C.lpq_vrf_key_from_cache_bytes(arrayPointer(&seed), C.size_t(len(seed)), bytesPointer(cache), C.size_t(len(cache)), arrayPointer(&root), C.size_t(len(root)), &handle)
+		return C.lpq_vrf_key_from_cache_bytes(arrayPointer(&seed), C.size_t(len(seed)), arrayPointer(&root), C.size_t(len(root)), bytesPointer(cache), C.size_t(len(cache)), &handle)
 	}); err != nil {
 		return nil, err
 	}

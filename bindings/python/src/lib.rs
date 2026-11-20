@@ -13,7 +13,7 @@ fn api_error(error: lean_pq::Error) -> PyErr {
     match error {
         lean_pq::Error::InvalidLength { .. }
         | lean_pq::Error::InvalidXmssCache
-        | lean_pq::Error::InvalidVrfCache { .. } => PyValueError::new_err(error.to_string()),
+        | lean_pq::Error::InvalidVrfCache => PyValueError::new_err(error.to_string()),
         _ => LeanPqError::new_err(error.to_string()),
     }
 }
@@ -202,14 +202,14 @@ impl PyVrfKey {
         _cls: &Bound<'_, PyType>,
         py: Python<'_>,
         seed: &[u8],
-        cache: &[u8],
         root: &[u8],
+        cache: &[u8],
     ) -> PyResult<Self> {
         let seed = fixed(seed, "seed")?;
         let root = fixed(root, "root")?;
         Ok(Self {
             inner: py
-                .detach(move || vrf::Key::from_cache_bytes(seed, cache, &root))
+                .detach(move || vrf::Key::from_cache_bytes(seed, &root, cache))
                 .map_err(api_error)?,
         })
     }

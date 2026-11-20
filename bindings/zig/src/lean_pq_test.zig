@@ -103,15 +103,15 @@ test "VRF key loads from its cache" {
 
     var root: lpq.VrfRoot = undefined;
     _ = try std.fmt.hexToBytes(&root, "af45ef4aca47606c0e6722dc71af01e3f13df93253e6aec5805eb1e8ed3bb0fa");
-    var loaded = try lpq.VrfKey.fromCacheBytes(seed, cache, root);
+    var loaded = try lpq.VrfKey.fromCacheBytes(seed, root, cache);
     defer loaded.deinit();
     const reencoded = try loaded.cacheToBytes(allocator);
     defer allocator.free(reencoded);
     try std.testing.expectEqualSlices(u8, cache, reencoded);
     try lpq.vrfVerify(root, 150, &try loaded.proof(150));
 
-    try std.testing.expectError(error.NativeFailure, lpq.VrfKey.fromCacheBytes(seed, cache[0 .. cache.len - 1], root));
-    try std.testing.expectError(error.NativeFailure, lpq.VrfKey.fromCacheBytes(seed, cache, [_]u8{0} ** 32));
+    try std.testing.expectError(error.NativeFailure, lpq.VrfKey.fromCacheBytes(seed, root, cache[0 .. cache.len - 1]));
+    try std.testing.expectError(error.NativeFailure, lpq.VrfKey.fromCacheBytes(seed, [_]u8{0} ** 32, cache));
 }
 
 fn requiredEnv(name: []const u8, meaning: []const u8) ![]const u8 {

@@ -268,9 +268,9 @@ final class Native {
         }
     }
 
-    static MemorySegment vrfKeyFromCacheBytes(byte[] seed, byte[] cache, byte[] root) {
+    static MemorySegment vrfKeyFromCacheBytes(byte[] seed, byte[] root, byte[] cache) {
         try (Arena arena = Arena.ofConfined()) {
-            return handle(VRF_KEY_FROM_CACHE_BYTES, copy(arena, seed), (long) seed.length, copy(arena, cache), (long) cache.length, copy(arena, root), (long) root.length);
+            return handle(VRF_KEY_FROM_CACHE_BYTES, copy(arena, seed), (long) seed.length, copy(arena, root), (long) root.length, copy(arena, cache), (long) cache.length);
         }
     }
 

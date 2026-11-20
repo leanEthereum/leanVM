@@ -103,14 +103,14 @@ class LeanPqTest {
         byte[] root = HexFormat.of().parseHex("af45ef4aca47606c0e6722dc71af01e3f13df93253e6aec5805eb1e8ed3bb0fa");
         try (VrfKey key = VrfKey.fromSeed(bytes(9), 100, 200)) {
             byte[] cache = key.cacheToBytes();
-            try (VrfKey loaded = VrfKey.fromCacheBytes(bytes(9), cache, root)) {
+            try (VrfKey loaded = VrfKey.fromCacheBytes(bytes(9), root, cache)) {
                 assertArrayEquals(cache, loaded.cacheToBytes());
                 assertTrue(LeanPq.vrfVerify(root, 150, loaded.proof(150)));
             }
             byte[] truncated = Arrays.copyOf(cache, cache.length - 1);
-            assertThrows(LeanPqException.class, () -> VrfKey.fromCacheBytes(bytes(9), truncated, root));
-            assertThrows(LeanPqException.class, () -> VrfKey.fromCacheBytes(bytes(9), cache, new byte[32]));
-            assertThrows(IllegalArgumentException.class, () -> VrfKey.fromCacheBytes(new byte[31], cache, root));
+            assertThrows(LeanPqException.class, () -> VrfKey.fromCacheBytes(bytes(9), root, truncated));
+            assertThrows(LeanPqException.class, () -> VrfKey.fromCacheBytes(bytes(9), new byte[32], cache));
+            assertThrows(IllegalArgumentException.class, () -> VrfKey.fromCacheBytes(new byte[31], root, cache));
         }
     }
 

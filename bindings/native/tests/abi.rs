@@ -273,10 +273,10 @@ fn native_abi_reveals_and_verifies_vrf_proofs() {
             lpq_vrf_key_from_cache_bytes(
                 seed.as_ptr(),
                 32,
-                cache.as_ptr(),
-                cache.len(),
                 [0; 32].as_ptr(),
                 32,
+                cache.as_ptr(),
+                cache.len(),
                 &mut key
             ),
             ERROR
@@ -285,10 +285,10 @@ fn native_abi_reveals_and_verifies_vrf_proofs() {
             lpq_vrf_key_from_cache_bytes(
                 seed.as_ptr(),
                 32,
-                cache.as_ptr(),
-                cache.len(),
                 root.as_ptr(),
                 32,
+                cache.as_ptr(),
+                cache.len(),
                 &mut key
             ),
             OK
