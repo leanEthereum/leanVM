@@ -247,6 +247,7 @@ structure BusResultRust.Rel (r : BusResultRust) (R : BusResult) : Prop where
   point : r.point = R.point
   forms : formsDen r.forms = formsDen R.forms
   totals : r.totals = R.totals
+  formsLength : R.forms.length = tables.length
 
 instance : Inhabited TableRust := ⟨⟨0, [], {}⟩⟩
 
@@ -570,6 +571,22 @@ theorem frameworkRust_eq (weights memory : List E) (hw : weights.length = 16)
     rfl
 
 
+theorem accumulateSide_length (forms : List (List Form)) (side : ℕ) (blocks : List BusBlock)
+    (sl : BusLayout) (fps sw : List E) (beta : E) (point : List E) (tv : E) :
+    (accumulateSide forms side blocks sl fps sw beta point tv).1.length = forms.length := by
+  unfold accumulateSide
+  dsimp only
+  generalize (List.zip (sl.tables.map (·.eqAbove point)) blocks) = zs
+  suffices ∀ acc : List (List Form) × E, (zs.foldl (fun (forms, paddingRows) (selector, block) ↦
+      let form := blockForm block sw beta
+      let padding := (tables.getD block.owner default).padding
+      (forms.modify block.owner fun row ↦ row.modify side fun f ↦ f.addScaled form selector,
+        paddingRows + selector * paddingWeight (point.take block.logRows) block.rows *
+          (form.evaluate (padding.getD · 0) + 1))) acc).1.length = acc.1.length from this _
+  induction zs with
+  | nil => intro acc; rfl
+  | cons z zs ih => intro acc; rw [List.foldl_cons, ih]; simp
+
 /-- **`verify_bus_balance` runs `verifyBusBalance`**, the deployed verifier's, on a layout
 `build_layout` returned (`LayoutRust.Rel`, its blocks at most `2^30` rows each and at most `1024`
 per side) and the prepared bytecode of the statement's words. -/
@@ -661,7 +678,8 @@ theorem SimR.verifyBusBalance (l : LayoutRust) (L : Layout) (hl : l.Rel L) (word
       (by rw [← hcf, List.length_map, busLayoutRust_framework_length]; rfl)
     rw [h3]
     simp only [pure_bind]
-    refine SimR.pure ⟨?_, rfl, rfl, hf3, by rw [ht1, ht2, ht3]⟩
+    refine SimR.pure ⟨?_, rfl, rfl, hf3, by rw [ht1, ht2, ht3],
+      by simp only [accumulateSide_length, List.length_map]⟩
     match memory, hm2 with
     | [m0, m1], _ => rfl
   · rw [ite_eq_right hcond]

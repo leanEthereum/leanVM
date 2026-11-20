@@ -1431,7 +1431,7 @@ theorem tableLogHeightsRust_eq (tableRows : List (BitVec 64)) :
       dsimp only
       rw [log2CeilRust_eq]
 
-private theorem foldl_blocks {γ : Type} (f g h : γ → List BusBlock) :
+theorem foldl_blocks {γ : Type} (f g h : γ → List BusBlock) :
     ∀ (l : List γ) (a b c : List BusBlock),
       l.foldl (fun acc x ↦ (acc.1 ++ f x, acc.2.1 ++ g x, acc.2.2 ++ h x)) (a, b, c) =
         (a ++ l.flatMap f, b ++ l.flatMap g, c ++ l.flatMap h)
