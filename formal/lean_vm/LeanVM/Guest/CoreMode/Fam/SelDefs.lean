@@ -141,13 +141,6 @@ noncomputable def nzB (nzs : List (String × V)) (j o : ℕ) : Bool :=
     cellJ j v == o && (ctrOf j == some v || decide (((coreOf j).name, v) ∈ nzs))) ||
     nzs.any fun p ↦ p.1 == (coreOf j).name && cellJ j p.2 == o && topUses p.2 (coreOf j).body)
 
-/-- **The frames' splits**: function `j`, values `s`, `r`, `n` and a stride `S` with `n = s^S·r`,
-`s` and `r` powers of `g` (each one's bits hinted and pinned, `bitsExp`). -/
-noncomputable def splits : List (ℕ × V × V × V × ℕ) := [
-  (fn_idx% «rs_eq_run», .n 37, .n 23, .n 3, 8),
-  (fn_idx% «shared_selector_tables», .n 39, .n 20, .n 5, 4),
-  (fn_idx% «verify_keccak», .n 35, .n 49, .n 21, 8)]
-
 /-- Cell `o` is inside function `j`'s frame. -/
 noncomputable def inFr (j o : ℕ) : Bool := decide (2 ≤ o) && decide (o < fsN j)
 

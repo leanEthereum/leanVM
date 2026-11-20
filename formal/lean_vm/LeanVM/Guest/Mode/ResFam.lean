@@ -27,15 +27,6 @@ end
 
 /-! ## Nonzero divisors -/
 
-/-- A divisor holding a power of `g` is nonzero. -/
-theorem nz_gpow {M : ℕ → E} {fp o e : ℕ} (h : M (fp + o) = ofK (g ^ e)) : RRes M fp (.nz o) := by
-  show M (fp + o) ≠ 0
-  rw [h]
-  intro h0
-  have := congrArg (fun z : E ↦ z.limb 0) h0
-  simp only [limb_ofK, limb_zero] at this
-  exact pow_ne_zero _ g_ne_zero this
-
 /-- The reference's words at frame `fp` satisfy instruction `ins` (an `XOR` or a `MUL`). -/
 def ROp (M : ℕ → E) (fp : ℕ) : OffsetInstruction → Prop
   | .xor a b c => M (fp + c) = M (fp + a) + M (fp + b)

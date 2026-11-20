@@ -80,13 +80,6 @@ theorem any_of_anyB {α : Type} {key : α → ℕ} {l : List α} {f : α → Boo
   obtain ⟨y, hy, he⟩ := List.any_eq_true.mp h
   exact List.any_eq_true.mpr ⟨y, mem_buckets hy, he⟩
 
-/-- `anyB` over `l`'s buckets with an `eq` that is equality: `x ∈ l`. -/
-theorem mem_of_anyB {α : Type} {key : α → ℕ} {eq : α → α → Bool} (heq : ∀ x y, eq x y = true → x = y)
-    {l : List α} {x : α} {k : ℕ} (h : anyB (buckets key l) (eq x) k = true) : x ∈ l := by
-  obtain ⟨y, hy, he⟩ := List.any_eq_true.mp h
-  rw [heq x y he]
-  exact mem_buckets hy
-
 end
 
 end LeanVM.Guest.Mode

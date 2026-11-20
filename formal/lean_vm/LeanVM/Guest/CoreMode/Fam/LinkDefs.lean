@@ -78,11 +78,6 @@ loop. -/
 noncomputable def callersB (L : Link) (fn : Fn) : Bool :=
   sitesB (fun f _ _ => !(L.fams.any (·.1 == f)) || fn.name == L.oName || (fn.name == f && fn.loop)) fn.body
 
-/-- A range check of a value of cell `o` against `pL`. -/
-noncomputable def rcAt (j : ℕ) (pL : V) (o : ℕ) : Atom → Bool
-  | .rangeCheck x _ _ _ k => decide (k = pL) && cellJ j x == o
-  | _ => false
-
 theorem walkOk_const {α : Type} (c : α → Bool) : ∀ (j : ℕ) (l : List α), walkOk (fun _ x => c x) j l = l.all c
   | _, [] => rfl
   | j, x :: xs => by simp only [walkOk, List.all_cons, walkOk_const c (j + 1) xs]

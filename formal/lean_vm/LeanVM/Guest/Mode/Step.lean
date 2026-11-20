@@ -1,7 +1,8 @@
 module
 
-public import LeanVM.Guest.Mode.Pass
-public import LeanVM.Guest.Mode.SoundLoop
+public import LeanVM.Guest.Mode.SoundJoin
+public import LeanVM.Guest.Mode.Abs
+public import LeanVM.Guest.Mode.SoundEntry
 public import LeanVM.Guest.Value.Tower
 public import LeanVM.Prover.ExecuteComplete
 
@@ -97,21 +98,10 @@ structure Cert where
   F : Fun
   code : List OffsetInstruction
 
-/-- The walk accepts the function's code, which, with the walk's hints, is the executor's at its
-pcs. -/
-structure CertOk (C : Ctx) (K : Cert) : Prop where
-  walk : walk K.E K.F K.code = true
-  len : K.F.len = K.code.length
-  ops : ∀ i (hi : i < K.code.length), C.ops[K.F.entry + i]? = some (opOfOff K.code[i])
-  hints : ∀ i < K.code.length, (C.hints[K.F.entry + i]?).getD [] = (K.F.hints.get i).getD []
-
 /-! ## The step -/
 
 theorem Moves.refl' {M : ℕ → E} {s : St} (hs : Fine M s) : Moves M s s :=
   ⟨hs, Mem.le_refl _, rfl, rfl, rfl⟩
-
-theorem Holds.steps {s : St} {A : Abs} (h : Holds s A) (n : ℕ) : Holds { s with steps := n } A :=
-  Holds.mono (s := s) (s' := { s with steps := n }) (Mem.le_refl s.mem) rfl h
 
 theorem fine_steps {M : ℕ → E} {s : St} (h : Fine M s) (n : ℕ) : Fine M { s with steps := n } :=
   ⟨h.agree, h.dl, h.small, h.fp⟩

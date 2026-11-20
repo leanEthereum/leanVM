@@ -45,12 +45,6 @@ theorem foldlT_eq : ∀ (t : Exec.Trie Unit) (l : List ℕ),
     show (t.set () Exec.envDepth o).seq (foldlT · l) = _
     rw [Exec.Trie.seq_eq, foldlT_eq _ l, List.foldl_cons]
 
-theorem Abs.interS_eq (A B : Abs) : A.interS B = A.inter B := by
-  unfold Abs.interS
-  generalize A.inter B = C
-  obtain ⟨w, v, nz, hv, h, r, lt, pr, xs, p⟩ := C
-  simp only [lseq_eq]
-
 /-! ## Words -/
 
 /-- Word `v` names cell `x`. -/
@@ -297,42 +291,9 @@ theorem Holds.mono {A : Abs} (h : Holds s A) : Holds s' A where
   p q hq := (h.p q hq).mono hle hfp
   c q hq := (h.c q hq).mono hle hfp
 
-omit hfp in
-theorem EnvOk.mono {E : Env} (h : EnvOk s E) : EnvOk s' E :=
-  ⟨h.1, h.2.1, fun d e h1 h2 h3 ↦ hle.get _ _ (h.2.2 d e h1 h2 h3)⟩
-
 end mono
 
 /-! ## Products -/
-
-theorem BsVal.insert {s : St} {b : Base} {e : ℕ} {u : E} (hb : BaseVal s b u) :
-    ∀ {bs : List (Base × ℕ)} {w : E}, BsVal s bs w → BsVal s (insertBs (b, e) bs) (u ^ e * w)
-  | [], w, h => ⟨u, 1, hb, rfl, by rw [h]⟩
-  | (b', e') :: bs, _, ⟨u', w', h1, h2, h3⟩ => by
-    unfold insertBs
-    dsimp only
-    split_ifs with hq hl
-    · obtain rfl := Base.beq_eq hq
-      obtain rfl := hb.unique h1
-      exact ⟨u, w', hb, h2, by rw [h3, pow_add, mul_assoc]⟩
-    · exact ⟨u, u' ^ e' * w', hb, ⟨u', w', h1, h2, rfl⟩, by rw [h3]⟩
-    · exact ⟨u', u ^ e * w', h1, BsVal.insert hb h2, by rw [h3]; ring⟩
-
-theorem BsVal.mul {s : St} : ∀ {a b : List (Base × ℕ)} {va vb : E}, BsVal s a va → BsVal s b vb →
-    BsVal s (mulBs a b) (va * vb)
-  | [], _, _, _, h, h' => by rw [h, one_mul]; exact h'
-  | (_, _) :: _, _, _, _, ⟨u, w, h1, h2, h3⟩, h' => by
-    rw [h3, mul_assoc]
-    exact BsVal.insert h1 (BsVal.mul h2 h')
-
-theorem MonoVal.mul {s : St} {a b : Mono} {va vb : E} (ha : MonoVal s a va) (hb : MonoVal s b vb) :
-    MonoVal s (a.mul b) (va * vb) := by
-  obtain ⟨wa, h1, h2⟩ := ha
-  obtain ⟨wb, h1', h2'⟩ := hb
-  refine ⟨wa * wb, BsVal.mul h1 h1', ?_⟩
-  rw [h2, h2']
-  simp only [Mono.mul, pow_add, ofK_mul]
-  ring
 
 theorem MonoVal.shift {s : St} {m : Mono} {v : E} (h : MonoVal s m v) (o : ℕ) :
     MonoVal s (m.shift o) (v * ofK (g ^ o)) := by
@@ -345,9 +306,6 @@ theorem MonoVal.shift {s : St} {m : Mono} {v : E} (h : MonoVal s m v) (o : ℕ) 
 theorem MonoVal.root {s : St} {o : ℕ} {v : E} (h : s.mem.get (s.fp + o) = some v) :
     MonoVal s (.root o) v :=
   ⟨v, ⟨v, 1, h, rfl, by rw [pow_one, mul_one]⟩, by simp [Mono.root]⟩
-
-theorem MonoVal.gp {s : St} (e : ℕ) : MonoVal s (.gp e) (ofK (g ^ e)) :=
-  ⟨1, rfl, by simp [Mono.gp]⟩
 
 theorem MonoVal.own {s : St} (d : ℕ) : MonoVal s (.own d) (ofK (g ^ (s.fp + d))) :=
   ⟨1, rfl, by simp [Mono.own, pow_add, ofK_mul]⟩
@@ -716,11 +674,6 @@ theorem Idx.beq_eq {a b : Idx} (h : a.beq b = true) : a = b := by
   · simp at h
   · rw [Base.beq_eq h.1, h.2]
 
-theorem MonoVal.unshift {s : St} {m : Mono} {o : ℕ} {v : E} (h : MonoVal s (m.shift o) v) :
-    ∃ u, MonoVal s m u ∧ v = u * ofK (g ^ o) := by
-  obtain ⟨w, hw, rfl⟩ := h
-  exact ⟨_, ⟨w, hw, rfl⟩, by simp only [Mono.shift, pow_add, ofK_mul]; ring⟩
-
 /-- **A bound the walk knows**: the exponent has a value, at most it. -/
 theorem Abs.bound_sound {s : St} {A : Abs} (hA : Holds s A) {hi : Idx} {b : ℕ} (h : A.bound hi = some b) :
     ∃ x, IdxVal s hi x ∧ x ≤ b := by
@@ -764,13 +717,6 @@ theorem BsVal.append {s : St} : ∀ {a b : List (Base × ℕ)} {va vb : E}, BsVa
   | (_, _) :: _, _, _, _, ⟨u, w, h1, h2, h3⟩, h' => by
     rw [h3, mul_assoc]
     exact ⟨u, _, h1, BsVal.append h2 h', rfl⟩
-
-theorem BsVal.append_inv {s : St} : ∀ {a b : List (Base × ℕ)} {v : E}, BsVal s (a ++ b) v →
-    ∃ va vb, BsVal s a va ∧ BsVal s b vb ∧ v = va * vb
-  | [], _, v, h => ⟨1, v, rfl, h, by rw [one_mul]⟩
-  | (_, _) :: _, _, _, ⟨u, w, h1, h2, h3⟩ => by
-    obtain ⟨va, vb, ha, hb, rfl⟩ := BsVal.append_inv h2
-    exact ⟨u ^ _ * va, vb, ⟨u, va, h1, ha, rfl⟩, hb, by rw [h3]; ring⟩
 
 /-- **A pin the walk knows**: the base's word is `g` to it. -/
 theorem Abs.pin_sound {s : St} {A : Abs} (hA : Holds s A) {b : Base} {c : ℕ} (h : A.pin b = some c) :
@@ -857,29 +803,6 @@ theorem Abs.pinned_val {s : St} {A : Abs} (hA : Holds s A) {k : Mono} {v : E} (h
   obtain ⟨w, hw, rfl⟩ := h
   exact key k.bs ⟨k.fp, k.k, []⟩ _ w ⟨1, rfl, by simp⟩ hw
 
-/-- A product whose pinned form has a word has one. -/
-theorem Abs.pinned_ex {s : St} {A : Abs} (hA : Holds s A) {k : Mono} {v : E}
-    (h : MonoVal s (A.pinned k) v) : ∃ v', MonoVal s k v' := by
-  have key : ∀ (bs : List (Base × ℕ)) (m : Mono) (v : E), MonoVal s (bs.foldl A.pinStep m) v →
-      (∃ vm, MonoVal s m vm) ∧ ∃ w, BsVal s bs w := by
-    intro bs
-    induction bs with
-    | nil => intro m v h; exact ⟨⟨v, h⟩, 1, rfl⟩
-    | cons p bs ih =>
-      intro m v h
-      rw [List.foldl_cons] at h
-      obtain ⟨⟨vm', hm'⟩, w, hw⟩ := ih _ v h
-      unfold Abs.pinStep at hm'
-      split at hm'
-      · rename_i c hc
-        obtain ⟨u, hu, -⟩ := hm'.unshift
-        exact ⟨⟨u, hu⟩, _, _, w, A.pin_sound hA hc, hw, rfl⟩
-      · obtain ⟨w0, hw0, rfl⟩ := hm'
-        obtain ⟨va, vb, ha, ⟨u, w1, hu, hw1, rfl⟩, rfl⟩ := BsVal.append_inv hw0
-        exact ⟨⟨_, va, ha, rfl⟩, _, u, w, hu, hw, rfl⟩
-  obtain ⟨-, w, hw⟩ := key k.bs ⟨k.fp, k.k, []⟩ v h
-  exact ⟨_, w, hw, rfl⟩
-
 /-- A product `knownH` knows has a word. -/
 theorem Abs.knownH_val {s : St} {A : Abs} (hA : Holds s A) {m : Mono} (h : A.knownH m = true) :
     ∃ v, MonoVal s m v := by
@@ -939,18 +862,6 @@ theorem Abs.entR_sound {s : St} {A : Abs} (hA : Holds s A) {r : Rng} (h : A.entR
       have hc := List.all_eq_true.mp hall (j - a) (List.mem_range.mpr (by omega))
       have := Abs.coveredHR_ex hA hc (hvq.shift _)
       rwa [show r.S * (a + (j - a)) + r.d = r.S * j + r.d by congr 2; omega] at this
-  · cases h
-
-/-- **An empty run of pointers another state entails** holds. -/
-theorem Abs.entP_sound {s : St} {A : Abs} (hA : Holds s A) {r : Rng} (h : A.entP r = true)
-    (os : List ℕ) : PW s r os := by
-  unfold Abs.entP at h
-  split at h
-  · rename_i a b hlo hb
-    simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    obtain ⟨vq, hvq⟩ := Abs.knownH_val hA h.2
-    obtain ⟨xhi, hxhi, hle⟩ := Abs.bound_sound hA hb
-    exact ⟨vq, a, xhi, hvq, by rw [hlo]; rfl, hxhi, fun j hj1 hj2 ↦ absurd hj2 (by omega)⟩
   · cases h
 
 /-- A table read at a bounded index: the run it reads is written, and the cell is one of it. -/
@@ -1029,12 +940,6 @@ theorem inRng_val' {s : St} {A : Abs} (hA : Holds s A) {k : Mono} {r : Rng} {vq 
   · exact inRng1_val hA h1 h3 h
   · simp only [Bool.and_eq_true] at h
     exact inRng1_val (r := r.down) hA h1 (Idx.shift_val h3 _) h.2
-
-/-- A heap cell a known run holds has a word. -/
-theorem inRng_valR {s : St} {A : Abs} (hA : Holds s A) {k : Mono} {r : Rng} (hr : RW s r)
-    (h : A.inRng k r = true) : ∃ vk, MonoVal s k vk := by
-  obtain ⟨vq, xlo, xhi, h1, -, h3, -⟩ := hr
-  exact inRng_val' hA h1 h3 h
 
 /-- The cell past a pointer a run of pointers holds. -/
 theorem Abs.ptrHp_sound {s : St} {A : Abs} (hA : Holds s A) {o q d : ℕ}

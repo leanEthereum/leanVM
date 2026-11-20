@@ -277,13 +277,6 @@ noncomputable def addRets (A : FSt) (q : ℕ) : List ℕ → FSt
   | [] => A
   | o :: os => addRets (A.addQ q o) q os
 
-/-- The offsets of pcs in the function, past offset `i` and increasing. -/
-def armsOf (entry len i : ℕ) : List ℕ → Option (List ℕ)
-  | [] => some []
-  | pc :: pcs =>
-    if entry + i < pc ∧ pc < entry + len then (armsOf entry len i pcs).map ((pc - entry) :: ·)
-    else none
-
 /-- `[e + c]` holds `fp·g^e`, through a copy: a loop's next frame's self frame pointer. -/
 def selfAt (A : FSt) (e t : ℕ) : Bool :=
   A.hasW t && match A.cp.get t with

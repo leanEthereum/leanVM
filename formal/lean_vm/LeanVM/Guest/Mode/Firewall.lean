@@ -1,5 +1,4 @@
 import LeanVM.Guest.Mode.Abs
-import LeanVM.Guest.Mode.Win
 import LeanVM.Guest.Data.Pows
 
 /-! **The walk's domain reads the guest's code and its view alone.** `Mode.Abs` (the domain and the step
