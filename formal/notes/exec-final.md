@@ -1,5 +1,7 @@
 # The executor on the guest: computed hints, the reference memory, the advised sizes, the headline
 
+History: this plan was written beside the mode walk (`exec-mode.md`), which is deleted; the core route (`core-mode.md`) gives every function's frame interface instead, and `EndExecFinal.lean` assembles the end theorem from it with no open fact. Where the text below says the mode walk, read the core route; its paths and counts are as they were.
+
 Scope: what `execute_complete` (`LeanVM/Prover/ExecuteComplete.lean`) still needs on the deployed guest beyond the mode walk (`exec-mode.md`) and the pops (`exec-spec.md`, M5), and the chain to the headline. Prototypes (built in a scratch tree, not committed): `LeanVM/Guest/Memory/HonestX.lean`, `LeanVM/Guest/Exact/Defs.lean`, `LeanVM/Guest/Exact/InverseCheck.lean`, each about 2 s and under 1 GB.
 
 ## Recommendations in one place

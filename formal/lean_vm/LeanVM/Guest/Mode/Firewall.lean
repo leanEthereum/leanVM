@@ -2,10 +2,10 @@ import LeanVM.Guest.Mode.Abs
 import LeanVM.Guest.Mode.Win
 import LeanVM.Guest.Data.Pows
 
-/-! **The mode walk's certificates read the walk, the guest's code and their view alone.** Each
-`Pack/*/Mode*` module imports the walk (`Mode.Abs`, by windows `Mode.Win`), the powers of `g` and the
-jump table (`Data.Pows`), its pack's code (`Bundle`) and its callees' signatures (`ModeSig`). This module fails
-to build if the walk or `Data.Pows` reach the walk's soundness proofs, B1's, the protocol's, the
+/-! **The walk's domain reads the guest's code and its view alone.** `Mode.Abs` (the domain and the step
+rules, which the core route's frame walk `CoreMode/Frame.lean` and every generated frame walk import) and
+`Mode.Win` import the powers of `g` and the jump table (`Data.Pows`) and no proof. This module fails
+to build if they or `Data.Pows` reach the step rules' soundness proofs, B1's, the protocol's, the
 schemes' or the honest prover beyond its executor (`Statement.Prover.Execute`, whose `Op` and `Hint`
 the walk reads), as `B2C/CertFirewall.lean` does for the other certificates, or if what an importer of
 the walk sees reaches the guest's data, as `ViewFirewall.lean` does. -/
@@ -22,7 +22,7 @@ open Lean Elab Command in
     forbidden.any (·.isPrefixOf m) ||
       ((`Statement.Prover).isPrefixOf m && m != `Statement.Prover.Execute)
   unless reached.isEmpty do
-    throwError m!"the mode walk's certificates import {reached.toList}: keep the walk in modules \
+    throwError m!"the walk's domain imports {reached.toList}: keep the walk in modules \
       that do not (see `LeanVM/Guest/Mode/Firewall.lean`)"
   let data : Std.HashMap Name ModuleData :=
     (env.header.moduleNames.zip env.header.moduleData).foldl (fun m (n, d) ↦ m.insert n d) {}

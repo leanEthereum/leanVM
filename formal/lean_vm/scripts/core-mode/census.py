@@ -14,7 +14,7 @@ gets no point facts over its counter: those reads and writes are runs, reported 
 Each uncovered read is classified by the origin of its pointer's bases.
 
 usage (from formal/lean_vm): python3 -I scripts/core-mode/census.py [--fn NAME] [--list]
-(`coreir.py` caches the parsed data at `$CORE_MODE_CACHE`, default `/tmp/core-mode-cache.pkl`; delete it after a regen.)
+(`coreir.py` caches the parsed data at `$CORE_MODE_CACHE`, default this tree's `.lake/core-mode-cache.pkl`; delete it after a regen.)
 """
 import sys, os, collections
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

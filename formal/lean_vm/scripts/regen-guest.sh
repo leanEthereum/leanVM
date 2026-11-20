@@ -9,6 +9,7 @@
 #
 # Run from anywhere; it works in lean_vm. Each step's generator reads only what the steps before it
 # wrote, so a step that fails names what to fix before the rest can run, and `--from` resumes there.
+# Writing, the parts whose inputs are written run at once (`after_<part>`, below).
 # `--check` writes nothing, so every generator reads the tree as it is: the export and the Lean builds
 # the checks need go first, then every check runs at once, each one's output printed when all are
 # done, and every stale file is reported, not only the first.
@@ -39,9 +40,12 @@ trap 'rm -rf "$tmp"' EXIT
 # read is unchanged (`scripts/core-mode/memo.py`).
 export CORE_MODE_CACHE=$tmp/core-mode.pkl CORE_MEMO=$tmp/memo
 
-# A Lean build: skipped under `--check`, which builds every target first (`prebuild`).
+# A Lean build: skipped under `--check`, which builds every target first (`prebuild`). One at a time
+# (`$tmp/lake.lock`): the parts run at once, and a Lean run of built modules (`leanrun`) waits for no
+# build to be writing them.
 built=
-lakebuild() { [ -n "$built" ] || python3 -I ../lake-build.py . "$@" "${jobs[@]}"; }
+lakebuild() { [ -n "$built" ] || (flock 9; python3 -I ../lake-build.py . "$@" "${jobs[@]}") 9>"$tmp/lake.lock"; }
+leanrun() { (flock 9; capped lake env lean "$@") 9>"$tmp/lake.lock"; }
 
 # The Lean generators import the data the export wrote; each is built after the step before it.
 gen() {
@@ -62,7 +66,7 @@ parts_changes=(changes) targets_changes=()
 parts_vt=(vt) targets_vt=()
 parts_cert=(cert) targets_cert=(guest-cert)
 parts_core_mode=(core_mode) targets_core_mode=()
-parts_bridge=(bridge) targets_bridge=()
+parts_bridge=(bridge_align bridge_checks) targets_bridge=()
 parts_memory=(memory) targets_memory=(guest-memory)
 parts_res=(res) targets_res=()
 parts_whir=(whir_data whir_mat_plan walk_known whir_queries) targets_whir=(guest-core)
@@ -145,13 +149,17 @@ part_core_mode() {
   python3 -I scripts/core-mode/certs.py "${check[@]}"
 }
 
-part_bridge() {
-  step "bridge: the hint bridge's prefix class, a report (scripts/bridge-cert/gen.py)"
-  python3 -I scripts/bridge-cert/gen.py "${check[@]}"
+# What the core route reads of the bridge (`core-mode`'s glue, pairings and route data): its alignment.
+part_bridge_align() {
   step "bridge: the hint bridge's alignment checks (scripts/bridge-cert/align.py)"
   python3 -I scripts/bridge-cert/align.py "${check[@]}"
   step "bridge: the program's alignment assembled (scripts/bridge-cert/progal.py)"
   python3 -I scripts/bridge-cert/progal.py "${check[@]}"
+}
+
+part_bridge_checks() {
+  step "bridge: the hint bridge's prefix class, a report (scripts/bridge-cert/gen.py)"
+  python3 -I scripts/bridge-cert/gen.py "${check[@]}"
   step "bridge: the jump cells checked (scripts/bridge-cert/jumpcells.py)"
   python3 -I scripts/bridge-cert/jumpcells.py "${check[@]}"
   step "bridge: the computed hints paired (scripts/bridge-cert/pair.py)"
@@ -215,7 +223,7 @@ part_count_loops() {
 part_tables() {
   step "tables: open_stacked's call tables (scripts/whir-tables.lean)"
   lakebuild "${targets_tables[@]}"
-  capped lake env lean --run scripts/whir-tables.lean "${check[@]}"
+  leanrun --run scripts/whir-tables.lean "${check[@]}"
 }
 
 part_decoder() {
@@ -224,10 +232,10 @@ part_decoder() {
   local d=$tmp/decoder
   mkdir -p "$d"
   lakebuild LeanVM.Guest.Glob
-  capped lake env lean scripts/decoder-tables-entries.lean | sed -n "s/^entries: //p" > "$d/entries.txt"
+  leanrun scripts/decoder-tables-entries.lean | sed -n "s/^entries: //p" > "$d/entries.txt"
   python3 -I scripts/decoder-tables --entries "$d/entries.txt" "${check[@]}"
   lakebuild LeanVM.Cost.Decoder.GuestTables
-  capped lake env lean scripts/decoder-tables-inputs.lean > "$d/in.txt"
+  leanrun scripts/decoder-tables-inputs.lean > "$d/in.txt"
   for k in rows split; do sed -n "s/^$k: //p" "$d/in.txt" > "$d/$k.txt"; done
   python3 -I scripts/decoder-table-chunks --row-lengths "$d/rows.txt" --split-lengths "$d/split.txt" "${check[@]}"
 }
@@ -238,11 +246,43 @@ for s in "${steps[@]}"; do
   [ -n "$started" ] && selected+=("$s")
 done
 
+# Writing, each part starts once the parts whose output it reads are done (`after_<part>`, parts of the
+# steps not selected counting as done), so independent parts run at once; the Lean generators' builds
+# first (`exes`), together. A part's output is printed when it ends; a part whose inputs failed does not run.
+after_exes=(export) after_core_ir=(exes) after_core_names=(core_ir) after_core_vsat=(core_ir) after_changes=(core_ir)
+after_vt=(core_ir) after_cert=(core_names core_vsat changes vt) after_memory=(exes)
+after_bridge_align=(cert) after_bridge_checks=(bridge_align) after_core_mode=(bridge_align)
+after_res=(core_mode bridge_checks) after_whir_data=(cert) after_whir_mat_plan=(whir_data)
+after_walk_known=(whir_mat_plan) after_whir_queries=(walk_known) after_count_gen=(whir_queries memory cert)
+after_count_vsos=(count_gen) after_count_loops=(count_vsos core_mode) after_tables=(count_vsos) after_decoder=(cert)
+part_exes() {
+  step "exes: the Lean generators (guest-core, guest-cert, guest-memory)"
+  lakebuild guest-core guest-cert guest-memory
+}
+
 if [ ${#check[@]} -eq 0 ]; then
-  for s in "${selected[@]}"; do
-    eval "parts=(\"\${parts_${s//-/_}[@]}\")"
-    for p in "${parts[@]}"; do "part_$p"; done
+  todo=(exes)
+  for s in "${selected[@]}"; do eval "todo+=(\"\${parts_${s//-/_}[@]}\")"; done
+  pids=() failed=()
+  for p in "${todo[@]}"; do
+    (
+      eval "deps=(\${after_$p[@]+\"\${after_$p[@]}\"})"
+      for d in "${deps[@]}"; do
+        case " ${todo[*]} " in *" $d "*) ;; *) continue ;; esac
+        until [ -e "$tmp/$d.ok" ] || [ -e "$tmp/$d.failed" ]; do sleep 1; done
+        [ -e "$tmp/$d.ok" ] || { touch "$tmp/$p.failed"; exit 1; }
+      done
+      if ("part_$p") > "$tmp/$p.out" 2>&1; then touch "$tmp/$p.ok"; else touch "$tmp/$p.failed"; exit 1; fi
+    ) & pids+=($!)
   done
+  for i in "${!todo[@]}"; do
+    wait "${pids[$i]}" || failed+=("${todo[$i]}")
+    [ -e "$tmp/${todo[$i]}.out" ] && cat "$tmp/${todo[$i]}.out"
+  done
+  if [ ${#failed[@]} -gt 0 ]; then
+    echo "error: failed: ${failed[*]}" >&2
+    exit 1
+  fi
   step "done: adapt the proofs guest-changes listed, then python3 -I ../lake-build.py . LeanVM LeanVMTests (formal/AGENTS.md, Changing the spec)"
   exit 0
 fi

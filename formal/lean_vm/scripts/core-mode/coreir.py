@@ -7,8 +7,8 @@
   ('dispatch', x, fs, args, rets) ('ret', vs);
 `comp`, each compiled function's code `[(op, [operands])]`, entry, instruction count and certificate cells
 (`Cert.locs`, by value number); `stable`, the stable name of each compiler name; `pows`, the powers of `g`
-by their `K` bits. Parsed once and cached at `$CORE_MODE_CACHE` (default `/tmp/core-mode-cache.pkl`); delete
-the cache after a regen.
+by their `K` bits. Parsed once and cached at `$CORE_MODE_CACHE` (default this tree's `.lake/core-mode-cache.pkl`, so no
+other tree's parse is read); delete the cache after a regen.
 """
 import os, sys, re, pickle
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -25,7 +25,7 @@ def _by_path(name, rel):
 
 
 BD = _by_path('bridge_data', 'bridge-cert/data.py')
-CACHE = os.environ.get('CORE_MODE_CACHE', '/tmp/core-mode-cache.pkl')
+CACHE = os.environ.get('CORE_MODE_CACHE', os.path.join(HERE, '..', '..', '.lake', 'core-mode-cache.pkl'))
 sys.setrecursionlimit(1000000)
 
 
@@ -141,6 +141,7 @@ def load():
     out = dict(core=fns, stable=names, comp=comp, pows=md['pows'], hints=md['hints'], core_text_lines={k: t.count('\n') for k, t in texts.items()})
     # written whole, then renamed: generators running at once read a complete cache or none
     tmp = '%s.%d' % (CACHE, os.getpid())
+    os.makedirs(os.path.dirname(os.path.abspath(CACHE)), exist_ok=True)
     with open(tmp, 'wb') as f:
         pickle.dump(out, f)
     os.replace(tmp, CACHE)
