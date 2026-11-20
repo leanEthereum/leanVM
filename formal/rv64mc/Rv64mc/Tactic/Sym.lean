@@ -330,6 +330,20 @@ def leProof (lo a : Expr) : MetaM (Option Expr) := do
   if ca == 0 then return some (← appN ``Rv64mc.Tactic.add_le ((`c, mkLit cl) :: common))
   return some (← appN ``Rv64mc.Tactic.add_le_add ((`c1, mkLit cl) :: (`c2, mkLit ca) :: common))
 
+/-- A proof of `a < b` for offsets of one bounded base. -/
+def ltProof (a b : Expr) : MetaM (Option Expr) := do
+  let (ba, ca) ← affine a
+  let (bb, cb) ← affine b
+  let some t := ba | return none
+  unless ba == bb do return none
+  let some (hl, l, hh, h) ← bounds t | return none
+  unless 0 ≤ (l : Int) + toInt64 ca ∧ (h : Int) + toInt64 cb < 2 ^ 64 ∧ toInt64 ca < toInt64 cb do return none
+  let common := [(`t, t), (`L, ← mkAppM ``BitVec.toNat #[mkLit l]), (`H, ← mkAppM ``BitVec.toNat #[mkLit h]),
+    (`hL, hl), (`hH, hh), (`h, ← mkEqRefl (mkConst ``Bool.true))]
+  if cb == 0 then return some (← appN ``Rv64mc.Tactic.add_lt ((`c, mkLit ca) :: common))
+  if ca == 0 then return none
+  return some (← appN ``Rv64mc.Tactic.add_lt_add ((`c1, mkLit ca) :: (`c2, mkLit cb) :: common))
+
 /-- A hypothesis `∀ a, lo ≤ a → M.getMem a = N.getMem a`: what a callee's frame keeps of memory `M`. -/
 def frames (M : Expr) : MetaM (Array (Expr × Expr × Expr)) := do
   let mut out := #[]
@@ -452,30 +466,35 @@ def addFacts (g : MVarId) (base : Name) (facts : Array (Expr × Expr)) : MetaM (
 
 /-- Write the facts `R r = v` about the goal's base register file into its chain: `absorb`. -/
 def absorbFacts (g : MVarId) (facts : Array Expr) : MetaM MVarId := g.withContext do
-  let some a ← parseAt (← g.getType) | return g
-  let mut R := a.R
+  let t := (← instantiateMVars (← g.getType)).consumeMData
+  unless t.isAppOfArity ``Lprog.Isa.SafeN 8 do return g
+  let args := t.getAppArgs
+  let s ← whnfR (args[7]!)
+  unless s.isAppOfArity ``Lprog.State.mk 4 do return g
+  let st := s.getAppArgs[1]!
+  let R0 := s.getAppArgs[2]!
+  let M := s.getAppArgs[3]!
+  let mut R := R0
   let mut steps : Array (Expr × Expr × Expr × Expr) := #[]
   for h in facts do
     let ty := (← instantiateMVars (← inferType h)).consumeMData
     unless ty.isAppOfArity ``Eq 3 do continue
     let lhs := ty.appFn!.appArg!.consumeMData
     let .app f r := lhs | continue
-    unless f == a.R && (regName? r).isSome do continue
+    unless f == R0 && (regName? r).isSome do continue
     let v ← normReads ty.appArg!
     steps := steps.push (R, r, v, h)
     R := mkApp5 (mkConst ``Lprog.updReg) (mkConst ``RiscvZkvm.Rv64.Reg) (mkConst ``RiscvZkvm.Rv64.instDecidableEqReg)
       R r v
   if steps.isEmpty then return g
-  let goalT := mkAppN a.head (a.pre.push (mkApp3 a.stMk (mkApp2 a.cons
-    (mkApp4 a.frMk a.fnE (mkNatLit a.pc) a.rv a.top) a.rest) R a.M))
+  let goalT := mkAppN t.getAppFn ((args.extract 0 7).push (mkApp3 (mkApp s.getAppFn (s.getAppArgs[0]!)) st R M))
   let g' ← newGoal g goalT
-  let st := mkApp2 a.cons (mkApp4 a.frMk a.fnE (mkNatLit a.pc) a.rv a.top) a.rest
   let mut pf := g'
-  for (R0, r, v, h) in steps.reverse do
+  for (Rk, r, v, h) in steps.reverse do
     -- `h : base r = v` read in the chain so far, which is the base at `r` by reduction
-    let hty ← mkEq (mkApp R0 r) v
-    pf ← appN ``Rv64mc.Tactic.absorb [(`p, (a.pre[1]!)), (`E, (a.pre[2]!)), (`c, (a.pre[3]!)), (`G, (a.pre[4]!)),
-      (`n, (a.pre[5]!)), (`Q, (a.pre[6]!)), (`m, a.M), (`st, st), (`R, R0), (`r, r), (`v, v),
+    let hty ← mkEq (mkApp Rk r) v
+    pf ← appN ``Rv64mc.Tactic.absorb [(`p, (args[1]!)), (`E, (args[2]!)), (`c, (args[3]!)), (`G, (args[4]!)),
+      (`n, (args[5]!)), (`Q, (args[6]!)), (`m, M), (`st, st), (`R, Rk), (`r, r), (`v, v),
       (`h, ← mkExpectedTypeHint h hty), (`k, pf)]
   g.assign pf
   return g'.mvarId!
@@ -486,29 +505,20 @@ def absorbFacts (g : MVarId) (facts : Array Expr) : MetaM MVarId := g.withContex
     since `Y` is below `lo`, and every callee's frame keeps what is at or above `lo`. -/
 partial def memKeep (X Y a lo ha : Expr) : MetaM (Option Expr) := do
   let X := X.consumeMData
-  if X == Y then return some (← mkEqRefl (← mkAppM ``MachineState.getMem #[X, a]))
-  let some (hl, l, _, _) ← bounds lo | return none
-  let lN ← mkAppM ``BitVec.toNat #[mkLit l]
-  let tru ← mkEqRefl (mkConst ``Bool.true)
-  let below (y : Expr) : MetaM (Option Nat) := do
-    let (b, c) ← affine y
-    if b == some lo && toInt64 c < 0 && 0 ≤ (l : Int) + toInt64 c then return some c
-    return none
+  if X == Y || (← withReducible (isDefEq X Y)) then return some (← mkEqRefl (← mkAppM ``MachineState.getMem #[X, a]))
   if X.isAppOfArity ``MachineState.setMem 3 then
     let N := X.appFn!.appFn!.appArg!
     let y := X.appFn!.appArg!
     let w := X.appArg!
-    let some c ← below y | return none
-    let hne ← appN ``Rv64mc.Tactic.ne_add_of_le [(`t, lo), (`a, a), (`c, mkLit c), (`L, lN), (`hL, hl),
-      (`ha, ha), (`h, tru)]
+    let some hlt ← ltProof y lo | return none
+    let hne ← mkAppM ``Rv64mc.Tactic.ne_of_lt_le #[hlt, ha]
     let p1 ← mkAppOptM ``MachineState.getMem_setMem_ne #[N, y, a, w, hne]
     let some p2 ← memKeep N Y a lo ha | return none
     return some (← mkEqTrans p1 p2)
   for (F, lo', N) in ← frames X do
     let hle ← if lo' == lo then pure (some ha) else do
-      let some c ← below lo' | pure none
-      pure (some (← appN ``Rv64mc.Tactic.add_le_of_le [(`t, lo), (`a, a), (`c, mkLit c), (`L, lN), (`hL, hl),
-        (`ha, ha), (`h, tru)]))
+      let some h ← leProof lo' lo | pure none
+      pure (some (← mkAppM ``BitVec.le_trans #[h, ha]))
     let some hle := hle | continue
     let some p2 ← memKeep N Y a lo ha | continue
     return some (← mkEqTrans (mkApp2 F a hle) p2)
@@ -535,6 +545,7 @@ partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
   let g ← g.replaceTargetDefEq ty
   if let .forallE _ _ (.forallE _ hle eq _) _ := ty then
     if hle.isAppOfArity ``LE.le 4 && eq.isAppOfArity ``Eq 3 then
+      let saved ← saveState
       let (fvs, g') ← g.introN 2 [`a, `ha]
       let done ← g'.withContext do
         let a := mkFVar (fvs[0]!)
@@ -547,6 +558,7 @@ partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
             g'.assign pf; return true
         return false
       if done then return []
+      saved.restore
   if ty.isAppOfArity ``Eq 3 then
     let a := ty.appFn!.appArg!
     let b := ty.appArg!
@@ -570,6 +582,23 @@ partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
     return []
   return [g]
 
+/-- A branch's hypothesis `hc` under a name of its own: the earlier ones are `hc_1`, `hc_2`, … in the order they were
+    added, the latest `hc`. -/
+def nameApart (g : MVarId) : MetaM MVarId := g.withContext do
+  let lctx ← getLCtx
+  let same := lctx.foldl (init := #[]) fun acc d =>
+    if !d.isImplementationDetail && d.userName == `hc then acc.push d.fvarId else acc
+  if same.size ≤ 1 then return g
+  let mut k := lctx.foldl (init := 0) fun k d =>
+    match d.userName with
+    | .str .anonymous s => if !d.isImplementationDetail && s.startsWith "hc_" then k + 1 else k
+    | _ => k
+  let mut g := g
+  for fv in same.pop do
+    k := k + 1
+    g ← g.rename fv (Name.mkSimple s!"hc_{k}")
+  return g
+
 /-! ## The executor -/
 
 structure Cfg where
@@ -584,7 +613,7 @@ structure Cfg where
 partial def bodyOf (fd : Expr) : MetaM (Array Expr) := do
   let b ← whnf (← mkAppM ``Lprog.Lfundef.body #[fd])
   let rec go (l : Expr) (acc : Array Expr) : MetaM (Array Expr) := do
-    let l ← whnfR l
+    let l ← whnf l
     if l.isAppOfArity ``List.cons 3 then go l.appArg! (acc.push l.appFn!.appArg!)
     else return acc
   go b #[]
@@ -648,10 +677,15 @@ def targetIdx (tgt : Expr) : MetaM (Option Expr) := do
 /-- A contract among those given for function `f`. -/
 def specFor (cfg : Cfg) (f : Expr) : MetaM (Option (Expr × Expr × Expr)) := do
   for (pf, ty) in cfg.specs do
-    let ty := ty.consumeMData
+    -- a contract for every function, or for each value of a parameter: its arguments by unification
+    let (xs, _, ty) ← forallMetaTelescope ty
+    let ty := (← instantiateMVars ty).consumeMData
     if ty.isAppOfArity ``Lprog.Isa.Contract 7 then
       let args := ty.getAppArgs
-      if ← isDefEq (args[4]!) f then return some (pf, (args[5]!), (args[6]!))
+      if ← isDefEq (args[4]!) f then
+        let pf ← instantiateMVars (mkAppN pf xs)
+        if pf.hasExprMVar then continue
+        return some (pf, ← instantiateMVars (args[5]!), ← instantiateMVars (args[6]!))
   return none
 
 /-- After a call: `r'`, `m'` and the postcondition introduced, split into hypotheses `hret_k`, and what it says of
@@ -699,6 +733,7 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
   let mut todo : List (MVarId × List Nat) := [(g0, [])]
   let mut left : Array MVarId := #[]
   let mut calls := 0
+  let mut steps := 0
   while !todo.isEmpty do
     let (g, seen) := todo.head!
     todo := todo.tail!
@@ -717,7 +752,7 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
     let hi ← mkEqRefl (← mkAppM ``Option.some #[ins])
     let base := common ++ [(`hf, cfg.hp), (`hi, hi)]
     let k := calls + 1
-    if ins.isAppOf ``Lprog.LinstrR.Lcall then calls := k
+    if ins.isAppOf ``Lprog.LinstrR.Lcall || ins.isAppOf ``Lprog.LinstrR.Ltail then calls := k
     let step ← g.withContext do
       let args := ins.getAppArgs
       match ins.getAppFn.constName? with
@@ -758,18 +793,14 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
               (`v, v), (`ha, ha), (`hv, hv), (`h, h)]))
             pure (some [h.mvarId!])
           else
-            let hT ← withLocalDeclD `v word fun v => do
-              let lt ← mkEq (← mkAppM ``Lprog.Mem.load #[mkConst ``Lprog.RiscV.rvMem, w, x, a.M])
-                (← mkAppM ``Option.some #[v])
-              let val ← mkAppM ``ite #[← mkEq s (mkConst ``Bool.true), mkApp2 (mkConst ``UnOp.eval)
-                (mkApp (mkConst ``UnOp.sext) w) v, v]
-              mkForallFVars #[v] (← mkArrow lt (a.goal (a.pc + 1) (mkApp5 (mkConst ``Lprog.updReg)
-                (mkConst ``RiscvZkvm.Rv64.Reg) (mkConst ``RiscvZkvm.Rv64.instDecidableEqReg) a.R (oargs[1]!) val) a.M))
-            let h ← newGoal g hT
-            g.assign (← appN ``Rv64mc.Tactic.step_load (base ++ [(`rd, (oargs[1]!)), (`w, w), (`s, s),
+            let lv ← whnfCore (← unfoldDefinition (mkApp3 (mkConst ``Rv64mc.Tactic.loadVal) w a.M x))
+            let val := if s.isConstOf ``Bool.true then mkApp2 (mkConst ``UnOp.eval) (mkApp (mkConst ``UnOp.sext) w) lv
+              else lv
+            let h ← newGoal g (a.goal (a.pc + 1) (mkApp5 (mkConst ``Lprog.updReg) (mkConst ``RiscvZkvm.Rv64.Reg)
+              (mkConst ``RiscvZkvm.Rv64.instDecidableEqReg) a.R (oargs[1]!) val) a.M)
+            g.assign (← appN ``Rv64mc.Tactic.step_loadw (base ++ [(`rd, (oargs[1]!)), (`w, w), (`s, s),
               (`a, (oargs[4]!)), (`x, x), (`ha, ha), (`h, h)]))
-            let (_, h') ← h.mvarId!.introN 2 [`ld, `hld]
-            pure (some [h'])
+            pure (some [h.mvarId!])
         | some ``Lprog.Op.store =>
           let w := (oargs[1]!).consumeMData
           let (x, px) ← evalE a.R (oargs[2]!)
@@ -782,15 +813,11 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
               (`v, v), (`ha, ha), (`hv, hv), (`h, h)]))
             pure (some [h.mvarId!])
           else
-            let hT ← withLocalDeclD `m' (mkConst ``MachineState) fun m' => do
-              let st ← mkEq (← mkAppM ``Lprog.Mem.store #[mkConst ``Lprog.RiscV.rvMem, w, x, v, a.M])
-                (← mkAppM ``Option.some #[m'])
-              mkForallFVars #[m'] (← mkArrow st (a.goal (a.pc + 1) a.R m'))
-            let h ← newGoal g hT
-            g.assign (← appN ``Rv64mc.Tactic.step_store (base ++ [(`w, w), (`a, (oargs[2]!)), (`e, (oargs[3]!)),
+            let m' ← whnfCore (← unfoldDefinition (mkApp4 (mkConst ``Rv64mc.Tactic.storeMem) w a.M x v))
+            let h ← newGoal g (a.goal (a.pc + 1) a.R m')
+            g.assign (← appN ``Rv64mc.Tactic.step_storew (base ++ [(`w, w), (`a, (oargs[2]!)), (`e, (oargs[3]!)),
               (`x, x), (`v, v), (`ha, ha), (`hv, hv), (`h, h)]))
-            let (_, h') ← h.mvarId!.introN 2 [`mst, `hst]
-            pure (some [h'])
+            pure (some [h.mvarId!])
         | some ``Lprog.Op.skip =>
           let h ← newGoal g (a.goal (a.pc + 1) a.R a.M)
           g.assign (← appN ``Rv64mc.Tactic.step_skip (base ++ [(`h, h)]))
@@ -806,14 +833,7 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
           let o := o.consumeMData
           if o.isAppOfArity ``Lprog.LOperand.reg 2 then return readReg a.R o.appArg!
           if o.isAppOfArity ``Lprog.LOperand.imm 2 then
-            let some i ← (do
-                let i := o.appArg!
-                if let some n ← evalNat i then return some (n : Int)
-                if i.isAppOfArity ``Neg.neg 3 then
-                  if let some n ← evalNat i.appArg! then return some (-(n : Int))
-                if i.isAppOfArity ``Int.negSucc 1 then
-                  if let some n ← evalNat i.appArg! then return some (-((n : Int) + 1))
-                pure none) | return none
+            let some i ← getIntValue? o.appArg! | return none
             return some (mkLit (i % 2 ^ 64).toNat)
           return none
         let some x ← opnd (cargs[2]!) | return none
@@ -843,7 +863,7 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
           (`hs, ← mkEqRefl tru), (`ht, gt), (`hn, gn)]))
         let (_, gt') ← gt.mvarId!.intro `hc
         let (_, gn') ← gn.mvarId!.intro `hc
-        pure (some [gt', gn'])
+        pure (some [← nameApart gt', ← nameApart gn'])
       | some ``Lprog.LinstrR.Lcall =>
         let ret := (args[2]!)
         let tgt := (args[3]!)
@@ -868,6 +888,27 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
         let side ← closeSide hpre.mvarId!
         let g' ← afterCall hk.mvarId! k
         pure (some (side ++ g'.toList))
+      | some ``Lprog.LinstrR.Ltail =>
+        let tgt := args[2]!
+        let some f ← targetIdx tgt
+          | trace[rv_sym] "at {a.pc}: the tail call's target names no single function"; return none
+        let some (hcon, Pre, Post) ← specFor cfg f
+          | trace[rv_sym] "at {a.pc}: no contract for function {f}"; return none
+        let some hc ← calleeProof cfg a.R tgt f
+          | trace[rv_sym] "at {a.pc}: the facts given do not show that the tail call reaches {f}"; return none
+        let hsp ← newGoal g (← mkEq (mkApp a.R (mkConst ``RiscvZkvm.Rv64.Reg.x2)) a.top)
+        let hpre ← newGoal g (mkApp4 Pre a.rv a.top a.R a.M).headBeta
+        let kT ← withLocalDeclD `r' (← mkArrow (mkConst ``RiscvZkvm.Rv64.Reg) word) fun r' =>
+          withLocalDeclD `m' (mkConst ``MachineState) fun m' => do
+            mkForallFVars #[r', m'] (← mkArrow (mkAppN Post #[a.rv, a.top, a.R, a.M, r', m']).headBeta
+              (mkAppN a.head (a.pre.push (mkApp3 a.stMk a.rest r' m'))))
+        let hk ← newGoal g kT
+        g.assign (← appN ``Rv64mc.Tactic.step_tail (base ++ [(`tgt, tgt), (`f, f), (`Pre, Pre), (`Post, Post),
+          (`hcon, hcon), (`hc, hc), (`hsp, hsp), (`hpre, ← mkExpectedTypeHint hpre (mkApp4 Pre a.rv a.top a.R a.M)),
+          (`hk, hk)]))
+        let side := (← closeSide hsp.mvarId!) ++ (← closeSide hpre.mvarId!)
+        let g' ← afterCall hk.mvarId! k
+        pure (some (side ++ g'.toList))
       | some ``Lprog.LinstrR.Lret =>
         let h ← newGoal g (mkAppN a.head (a.pre.push (mkApp3 a.stMk a.rest a.R a.M)))
         let hra ← newGoal g (← mkEq (mkApp a.R (mkConst ``RiscvZkvm.Rv64.Reg.x1)) a.rv)
@@ -882,10 +923,26 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
       left := left.push g
     | some gs =>
       -- side goals (not a `SafeN` at a frame) go to `left` through `run`'s check, after the path's own
+      steps := steps + 1
       todo := gs.map (·, seen) ++ todo
+  trace[rv_sym] "{steps} instructions stepped, {left.size} goals left"
   return left.toList
 
 /-! ## The tactics -/
+
+/-- A fact given to the tactic, with its conjunctions and the fields of a structure of facts (a template's
+    `Link.WF`) as facts of their own. -/
+partial def expandFact (h : Expr) : MetaM (Array (Expr × Expr)) := do
+  let ty := (← whnfR (← instantiateMVars (← inferType h))).consumeMData
+  if ty.isAppOfArity ``And 2 then
+    return (← expandFact (← mkAppM ``And.left #[h])) ++ (← expandFact (← mkAppM ``And.right #[h]))
+  if let some n := ty.getAppFn.constName? then
+    if isStructure (← getEnv) n && n != ``Eq then
+      let mut out := #[]
+      for fld in getStructureFields (← getEnv) n do
+        out := out ++ (← expandFact (← mkProjection h fld))
+      return out
+  return #[(h, ty)]
 
 /-- The configuration from the tactic's arguments. -/
 def mkCfg (hp : Expr) (stops : List Nat) (facts specs : Array Expr) : MetaM Cfg := do
@@ -894,7 +951,7 @@ def mkCfg (hp : Expr) (stops : List Nat) (facts specs : Array Expr) : MetaM Cfg 
     throwError "rv_sym: {hp} is not `p[fn]? = some fd`"
   let fd := hpT.appArg!.appArg!
   let body ← bodyOf fd
-  let facts ← facts.mapM fun h => return (h, ← instantiateMVars (← inferType h))
+  let facts ← facts.foldlM (init := #[]) fun acc h => return acc ++ (← expandFact h)
   let specs ← specs.mapM fun h => return (h, ← instantiateMVars (← inferType h))
   return { hp, fd, body, facts, specs, stops }
 
@@ -939,5 +996,31 @@ syntax (name := rvAuto) "rv_auto " term rvSymArgs : tactic
   let g ← openContract (← getMainGoal)
   let left ← run cfg g
   replaceMainGoal left
+
+/-- **`rv_intro h`**: the hypothesis `h` split into its conjuncts (`h_k`, its definitions unfolded), and what they say
+    of the goal's register file written into it, as at a contract's entry: for a loop's invariant. -/
+syntax (name := rvIntro) "rv_intro " ident : tactic
+
+@[tactic rvIntro] def evalRvIntro : Tactic := fun stx => do
+  let g ← getMainGoal
+  let g ← g.withContext do
+    let h ← getFVarId stx[1]
+    let facts ← splitFact (mkFVar h) (← h.getType)
+    let (g, hs) ← addFacts g (← h.getUserName) facts
+    let g ← g.tryClear h
+    absorbFacts g (hs.map mkFVar)
+  replaceMainGoal [g]
+
+/-- **`rv_close`**: on every goal, what `rv_auto` closes of a side goal: conjunctions split, definitions unfolded,
+    equations by reduction or offsets, address bounds, memory a frame keeps, hypotheses. -/
+syntax (name := rvClose) "rv_close" : tactic
+
+@[tactic rvClose] def evalRvClose : Tactic := fun _ => do
+  let gs ← getGoals
+  let mut left := #[]
+  for g in gs do
+    if ← g.isAssigned then continue
+    left := left ++ (← closeSide g)
+  setGoals left.toList
 
 end Rv64mc.Tactic.Sym

@@ -56,7 +56,7 @@ theorem ok {E : Type} (c : Context rvIsa E) (p : Lprog (Op Reg) Reg) (L : Link) 
     (hcl : rvIsa.Contract p c L.clmul.idx (fun ret top regs _ => Entry ret top regs) (ClmulPost cl))
     (hrd : rvIsa.Contract p c L.reduce.idx (fun ret top regs _ => Entry ret top regs) (ReducePost rd)) :
     rvIsa.Contract p c i Pre (Post cl rd) := by
-  rv_auto hp with [hL.clmul, hL.reduce, hL.s0, hL.s1, hL.s2, hL.s3, hL.s4] using [hcl, hrd]
+  rv_auto hp with [hL] using [hcl, hrd]
   all_goals simp only [spec]
   · exact congr2 rd (by ac_rfl) (by ac_rfl)
   · rw [BitVec.xor_comm (regs .x11), BitVec.xor_comm (regs .x13)]

@@ -92,6 +92,43 @@ theorem step_store {w : Width} {a e : Lprog.Expr Reg} (x v : Word) (hf : p[fn]? 
     obtain ⟨rfl, rfl⟩ := he
     exact h _ hl
 
+/-- What a load of width `w` at `x` reads, zero-extended. -/
+def loadVal (w : Width) (m : MachineState) (x : Word) : Word :=
+  match w with
+  | .b1 => (m.getByte x).zeroExtend 64
+  | .b2 => (m.getHalfword x).zeroExtend 64
+  | .b4 => (m.getWord32 x).zeroExtend 64
+  | .b8 => m.getMem x
+
+/-- The memory after a store of width `w` of `v` at `x`. -/
+def storeMem (w : Width) (m : MachineState) (x v : Word) : MachineState :=
+  match w with
+  | .b1 => m.setByte x (v.truncate 8)
+  | .b2 => m.setHalfword x (v.truncate 16)
+  | .b4 => m.setWord32 x (v.truncate 32)
+  | .b8 => m.setMem x v
+
+/-- A load of any width at `x`, the value as the memory's accessor reads it. -/
+theorem step_loadw {rd : Reg} {w : Width} {s : Bool} {a : Lprog.Expr Reg} (x : Word) (hf : p[fn]? = some fd)
+    (hi : fd.body[pc]? = some (.Lopn (.load rd w s a))) (ha : a.eval regs = x)
+    (h : rvIsa.SafeN p c G n Q ⟨⟨fn, pc + 1, rv, top⟩ :: rest,
+      updReg regs rd (if s then (UnOp.sext w).eval (loadVal w m x) else loadVal w m x), m⟩) :
+    rvIsa.SafeN p c G n Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ := by
+  refine step_load x hf hi ha (fun v hv => ?_)
+  have : v = loadVal w m x := by
+    simp only [rvMem] at hv; split at hv <;> cases w <;> simp_all [loadVal]
+  subst this; exact h
+
+/-- A store of any width of `v` at `x`. -/
+theorem step_storew {w : Width} {a e : Lprog.Expr Reg} (x v : Word) (hf : p[fn]? = some fd)
+    (hi : fd.body[pc]? = some (.Lopn (.store w a e))) (ha : a.eval regs = x) (hv : e.eval regs = v)
+    (h : rvIsa.SafeN p c G n Q ⟨⟨fn, pc + 1, rv, top⟩ :: rest, regs, storeMem w m x v⟩) :
+    rvIsa.SafeN p c G n Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ := by
+  refine step_store x v hf hi ha hv (fun m' hm => ?_)
+  have : m' = storeMem w m x v := by
+    simp only [rvMem] at hm; split at hm <;> cases w <;> simp_all [storeMem]
+  subst this; exact h
+
 /-- What a comparison of a branch says when it holds (`pos`) and when it does not (`neg`). -/
 def cmpProp (op : String) (x y : Word) : Prop × Prop :=
   if op = "eq" then (x = y, x ≠ y)

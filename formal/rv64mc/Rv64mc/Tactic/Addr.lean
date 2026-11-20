@@ -70,6 +70,25 @@ theorem add_le_of_le {t a c : BitVec 64} {L : Nat} (hL : L ≤ t.toNat) (ha : t 
   have e := toNat_add_off (t := t) (c := c) (by omega) (by have := t.isLt; omega)
   rw [BitVec.le_def] at ha ⊢; omega
 
+/-- Offsets `c1 < c2` (signed) from any base in `[L, H]` that wrap neither below zero nor above `2^64`. -/
+def offLtLt (L H : Nat) (c1 c2 : BitVec 64) : Bool :=
+  decide (0 ≤ (L : Int) + c1.toInt ∧ (H : Int) + c2.toInt < 2 ^ 64 ∧ c1.toInt < c2.toInt)
+
+theorem add_lt_add {t c1 c2 : BitVec 64} {L H : Nat} (hL : L ≤ t.toNat) (hH : t.toNat ≤ H)
+    (h : offLtLt L H c1 c2 = true) : t + c1 < t + c2 := by
+  simp only [offLtLt, decide_eq_true_eq] at h
+  have e1 := toNat_add_off (t := t) (c := c1) (by omega) (by omega)
+  have e2 := toNat_add_off (t := t) (c := c2) (by omega) (by omega)
+  rw [BitVec.lt_def]; omega
+
+theorem add_lt {t c : BitVec 64} {L H : Nat} (hL : L ≤ t.toNat) (hH : t.toNat ≤ H)
+    (h : offLtLt L H c 0#64 = true) : t + c < t := by
+  simpa using add_lt_add hL hH h
+
+/-- An address at or above a bound is not one below it. -/
+theorem ne_of_lt_le {y lo a : BitVec 64} (h1 : y < lo) (h2 : lo ≤ a) : a ≠ y := by
+  rw [BitVec.lt_def] at h1; rw [BitVec.le_def] at h2; intro e; subst e; omega
+
 /-- A literal below every base in `[L, H]` plus an offset, `k ≤ t + c`. -/
 def litLe (L H k : Nat) (c : BitVec 64) : Bool :=
   decide (0 ≤ (L : Int) + c.toInt ∧ (H : Int) + c.toInt < 2 ^ 64 ∧ (k : Int) ≤ L + c.toInt ∧ k < 2 ^ 64)
