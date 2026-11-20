@@ -233,8 +233,11 @@ pub fn verify_keccak_batch(
     log_inv_rate: usize,
     proof: &Proof,
 ) -> Result<(), VerifierError> {
+    // A batch past the largest stack fails the next check too: bounding it first keeps the sum below from overflowing.
     require(
-        log_steps >= layout::KECCAK_MIN_STEPS_LOG && depth > 0 && ROUNDS.is_multiple_of(depth),
+        (layout::KECCAK_MIN_STEPS_LOG..=MAX_STACKED_LOG).contains(&log_steps)
+            && depth > 0
+            && ROUNDS.is_multiple_of(depth),
         VerifierError::CommittedSize,
     )?;
     let shape = KeccakShape { log_steps, depth };
@@ -338,7 +341,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     // evaluates itself, so the prover sends nothing. A line: numerator one, no grind.
     let public_challenge = transcript.sample();
     let (first, second) = public_input.halves();
-    let mut public_point = vec![ZERO; layout.placements[MEMORY_0].expect("memory is committed").variables];
+    let mut public_point = vec![ZERO; layout.committed(MEMORY_0)?.variables];
     public_point[0] = public_challenge;
     let public_pairs = [(first.c0, second.c0), (first.c1, second.c1)];
     for (column, (low, high)) in [MEMORY_0, MEMORY_1].into_iter().zip(public_pairs) {
@@ -373,8 +376,10 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     let (ringswitch_target, ringswitch_weight) = ring_switch(point, &slices, &mut transcript)?;
     // That claim is supported on q_keccak's region of the stack, so its weight carries the
     // placement's selector, and it leads the batch, taking the first power.
-    let qkeccak = layout.placements[QKECCAK].expect("q_keccak is committed");
-    let ringswitch: StackClaim = (StackWeight::PlacedRing(qkeccak, ringswitch_weight), ringswitch_target);
+    let ringswitch: StackClaim = (
+        StackWeight::PlacedRing(layout.committed(QKECCAK)?, ringswitch_weight),
+        ringswitch_target,
+    );
     let mut stack_claims = vec![ringswitch];
     stack_claims.extend(claims.iter().filter_map(|claim| claim.on_stack(&layout)));
     stack_claims.push((StackWeight::Eq(ood_point), ood_value));

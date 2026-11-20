@@ -111,6 +111,17 @@ pub struct Layout<'a> {
     pub keccak: KeccakShape,
 }
 
+impl Layout<'_> {
+    /// Where a committed column sits: a column nothing commits is refused.
+    pub fn committed(&self, column: usize) -> Result<Placement, VerifierError> {
+        self.placements
+            .get(column)
+            .copied()
+            .flatten()
+            .ok_or(VerifierError::CommittedSize)
+    }
+}
+
 pub fn gpow(index: u64) -> E {
     GEN.pow(index)
 }
@@ -583,11 +594,14 @@ fn column_kappas(tables: &[Table], log_memory: usize, log_bytecode: usize, table
 /// one of its slots, 2^height words, whether an input lane or a KECCAK column riding a spare slot (`qkeccak_slot`). An
 /// output lane is not committed at all, nothing ever opening it.
 fn stacked_blocks(columns: usize) -> Vec<usize> {
-    let base = GLOBAL_COLUMN_BASES[OP_KECCAK];
-    let outputs = base + KECCAK_OUT..base + KECCAK_OUT + STATE_LANES;
     (0..columns)
-        .filter(|column| qkeccak_slot(*column).is_none() && !outputs.contains(column))
+        .filter(|&column| qkeccak_slot(column).is_none() && !is_output_lane(column))
         .collect()
+}
+
+fn is_output_lane(column: usize) -> bool {
+    let base = GLOBAL_COLUMN_BASES[OP_KECCAK];
+    (base + KECCAK_OUT..base + KECCAK_OUT + STATE_LANES).contains(&column)
 }
 
 /// The stack of columns of these log sizes: each column's offset, `None` for one with no block of its own, and the
@@ -655,17 +669,20 @@ pub fn build_layout<'a>(
     let keccak = keccak_shape(&table_log_heights);
     let kappas = column_kappas(&tables, log_memory, log_bytecode, &table_log_heights);
     let (offsets, stack_log) = stack(&kappas);
+    // Every column but a q_keccak slot and an output lane has a block of its own: a missing one is refused.
+    let offset = |column: usize| offsets[column].ok_or(VerifierError::CommittedSize);
     let placement = |(column, &kappa): (usize, &usize)| {
         let index = match qkeccak_slot(column) {
-            Some(slot) => offsets[QKECCAK]? + ((slot as u64) << kappa),
-            None => offsets[column]?,
+            Some(slot) => offset(QKECCAK)? + ((slot as u64) << kappa),
+            None if is_output_lane(column) => return Ok(None),
+            None => offset(column)?,
         };
-        Some(Placement {
+        Ok(Some(Placement {
             variables: kappa,
             index,
-        })
+        }))
     };
-    let placements = kappas.iter().enumerate().map(placement).collect();
+    let placements = kappas.iter().enumerate().map(placement).collect::<Result<_, _>>()?;
     Ok(Layout {
         log_memory,
         log_bytecode,
