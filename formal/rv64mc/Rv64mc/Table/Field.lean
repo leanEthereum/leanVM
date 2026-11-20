@@ -14,12 +14,22 @@ import Rv64mc.Proof.Field.ClmulLow
 import Rv64mc.Proof.Field.Clmul
 import Rv64mc.Proof.Field.EMul
 import Rv64mc.Proof.Multilinear.EqEval
+import Rv64mc.Proof.Field.Spread
+import Rv64mc.Proof.Field.BaseMul
+import Rv64mc.Proof.Field.ESquare
+import Rv64mc.Proof.Field.EPow
+import Rv64mc.Proof.Field.ESumCopied
 import Rv64mc.Gen.Needs
 import Rv64mc.Gen.Link.Verifier.Field.Reduce
 import Rv64mc.Gen.Link.Verifier.Field.ClmulLow
 import Rv64mc.Gen.Link.Verifier.Field.Clmul
 import Rv64mc.Gen.Link.Verifier.Field.E.AsMul.Mul
 import Rv64mc.Gen.Link.Verifier.Multilinear.EqEval
+import Rv64mc.Gen.Link.Verifier.Field.Spread
+import Rv64mc.Gen.Link.Verifier.Field.BaseMul
+import Rv64mc.Gen.Link.Verifier.Field.E.Square
+import Rv64mc.Gen.Link.Verifier.Field.E.Pow
+import Rv64mc.Gen.Link.Verifier.Field.E.SumCopiedIterE
 
 namespace Rv64mc.Table.Field
 
@@ -53,8 +63,34 @@ theorem eqEval
   Proof.Multilinear.EqEval.ok env _ 98 _ Verifier.Multilinear.EqEval.tmpl_eq Verifier.Multilinear.EqEval.wf
     (by decide) (by decide) (eMul env hd) hfail
 
+theorem spread : Spec.Field.Spread.spec env (liftProg fns) 105 Needs.Verifier.Field.Spread :=
+  Proof.Field.Spread.ok env _ 105 _ Verifier.Field.Spread.tmpl_eq _
+
+theorem baseMul
+    (hd : DataRef.Words env Verifier.Field.ClmulLow.link.d_c8_d07a1b83 Verifier.Field.ClmulLow.d_c8_d07a1b83_words) :
+    Spec.Field.BaseMul.spec env (liftProg fns) 19 Needs.Verifier.Field.BaseMul :=
+  Proof.Field.BaseMul.ok env _ 19 _ Verifier.Field.BaseMul.tmpl_eq Verifier.Field.BaseMul.wf (by decide) (by decide)
+    (clmul env hd) (reduce env)
+
+theorem eSquare : Spec.Field.ESquare.spec env (liftProg fns) 104 Needs.Verifier.Field.E.Square :=
+  Proof.Field.ESquare.ok env _ 104 _ Verifier.Field.E.Square.tmpl_eq Verifier.Field.E.Square.wf (by decide)
+    (by decide) (spread env) (reduce env)
+
+theorem ePow
+    (hd : DataRef.Words env Verifier.Field.ClmulLow.link.d_c8_d07a1b83 Verifier.Field.ClmulLow.d_c8_d07a1b83_words) :
+    Spec.Field.EPow.spec env (liftProg fns) 170 Needs.Verifier.Field.E.Pow :=
+  Proof.Field.EPow.ok env _ 170 _ Verifier.Field.E.Pow.tmpl_eq Verifier.Field.E.Pow.wf (by decide) (by decide)
+    (eSquare env) (eMul env hd)
+
+theorem eSumCopied : Spec.Field.ESumCopied.spec env (liftProg fns) 35 Needs.Verifier.Field.E.SumCopiedIterE :=
+  Proof.Field.ESumCopied.ok env _ 35 _ Verifier.Field.E.SumCopiedIterE.tmpl_eq _
+
 end Rv64mc.Table.Field
 
 /-- info: 'Rv64mc.Table.Field.eqEval' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.Field.eqEval
+
+/-- info: 'Rv64mc.Table.Field.ePow' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.Field.ePow

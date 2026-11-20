@@ -1,0 +1,6 @@
+module	instr	loops	proof_lines	cpu_s	manual_notes
+Proof.Field.Spread	54	0	5	0.9	the two words of the 128-bit spread as the code computes them a word at a time (Model/Extra/Field.lean: a width- and offset-generic copy of Model.Field private spread invariant, 9 s once); a first per-bit attempt (interval_cases over 64 bits) timed out
+Proof.Field.BaseMul	8	0	7	0.6	append_hi_lo; nothing else
+Proof.Field.ESquare	36	0	7	0.4	u128 word lemmas of EMul (hi128_shl1 etc), one xor_comm
+Proof.Field.EPow	45	2	79	1.6	the compiler fixed self to GEN (every caller is gpow): spec on the exponent only; loop lemma at head 28 by induction on bits of the shifted exponent, Inv base/product/exponent/frame/prologue stores; ePowLoop unfolding lemmas, bit tests (n&1), half_lt measure
+Proof.Field.ESumCopied	19	1	87	3.1	loop lemma by induction on elements left (copy of Dot shape); end pointer the code computes from both ends ((q+16n-q)&~15) by end_eq; leaf return needs ra in the Inv and Static closed by static_of_frame (rv_sym leaves both)
