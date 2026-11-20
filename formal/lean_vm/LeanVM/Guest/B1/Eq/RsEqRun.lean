@@ -542,15 +542,20 @@ noncomputable def rsVal (z p chain : E) (count : ℕ) : Val := Val.ofArgs (rsW z
 /-- **The honest valuation's words**: the parameters, `q_g`, `r_g`, the chain and its size, the
 loop's guard and start, the remainder's pointers and the return. -/
 theorem rsVal_vals (z p chain : E) {count : ℕ} (hcount : count < 64) :
-    let σ := rsVal z p chain count
-    σ (.n 0) = z ∧ σ (.n 1) = p ∧ σ (.n 2) = gen ^ count ∧ σ (.n 36) = gen ^ (count / 8) ∧
-      σ (.n 22) = gen ^ (count % 8) ∧ σ (.n 48) = gen ^ (64 * (count / 8 + 2)) ∧
-      σ (.n 49) = chain ∧ σ (.n 115) = 1 + gen ^ (count / 8) ∧ σ (.n 116) = 1 ∧
-      σ (.n 126) = chain * gen ^ (64 * (count / 8)) ∧ σ (.n 127) = z * gen ^ (8 * (count / 8)) ∧
-      σ (.n 128) = p * gen ^ (8 * (count / 8)) ∧
-      σ (.n 129) = chain * gen ^ (64 * ((count + 7) / 8)) ∧
-      σ (.n 130) = chain * gen ^ (64 * ((count + 7) / 8)) ∧
-      ∀ k < 64, σ (.n (50 + k)) = 1 := by
+    rsVal z p chain count (.n 0) = z ∧ rsVal z p chain count (.n 1) = p ∧
+      rsVal z p chain count (.n 2) = gen ^ count ∧
+      rsVal z p chain count (.n 36) = gen ^ (count / 8) ∧
+      rsVal z p chain count (.n 22) = gen ^ (count % 8) ∧
+      rsVal z p chain count (.n 48) = gen ^ (64 * (count / 8 + 2)) ∧
+      rsVal z p chain count (.n 49) = chain ∧
+      rsVal z p chain count (.n 115) = 1 + gen ^ (count / 8) ∧
+      rsVal z p chain count (.n 116) = 1 ∧
+      rsVal z p chain count (.n 126) = chain * gen ^ (64 * (count / 8)) ∧
+      rsVal z p chain count (.n 127) = z * gen ^ (8 * (count / 8)) ∧
+      rsVal z p chain count (.n 128) = p * gen ^ (8 * (count / 8)) ∧
+      rsVal z p chain count (.n 129) = chain * gen ^ (64 * ((count + 7) / 8)) ∧
+      rsVal z p chain count (.n 130) = chain * gen ^ (64 * ((count + 7) / 8)) ∧
+      ∀ k < 64, rsVal z p chain count (.n (50 + k)) = 1 := by
   obtain ⟨w3, w5, w17⟩ := rs_consts
   have w4 : word 4 0 = gen ^ 2 := word_two_pow (a := 2) (by norm_num)
   have e37 : (word 1 0 + bitE ((count / 8).testBit 0) * word 3 0) *
@@ -561,7 +566,6 @@ theorem rsVal_vals (z p chain : E) {count : ℕ} (hcount : count < 64) :
       (word 1 0 + bitE ((count % 8).testBit 1) * word 5 0) *
       (word 1 0 + bitE ((count % 8).testBit 2) * word 17 0) = gen ^ (count % 8) := by
     rw [← prod_three_bits (count % 8) (by omega), ← w3, ← w5, ← w17, ← word_one]
-  intro σ
   refine ⟨rfl, rfl, rfl, e37, e23, ?_, rfl, ?_, word_one, ?_, ?_, ?_, rfl, rfl, fun k hk ↦ ?_⟩
   · show _ * _ * (_ * _) * (_ * _ * (_ * _)) * (_ * _ * (_ * _) * (_ * _ * (_ * _))) = _
     simp only [e37, w4]; ring
