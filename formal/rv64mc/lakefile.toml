@@ -32,3 +32,8 @@ rev = "v4.36.0"
 [[lean_lib]]
 name = "Rv64mc"
 globs = ["Rv64mc.+"]
+
+# The end statement's machine run on an image and an input (`notes/non-vacuity.md`).
+[[lean_exe]]
+name = "rv64mc-run"
+root = "RunImage"
