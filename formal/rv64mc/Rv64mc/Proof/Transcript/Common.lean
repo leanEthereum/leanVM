@@ -184,6 +184,12 @@ theorem HeapKept.trans {m m1 m2 : MachineState} (h1 : HeapKept env m m1) (h2 : H
     HeapKept env m m2 :=
   ⟨Nat.le_trans h1.1 h2.1, fun b hb => (h2.2 b (by have := h1.1; omega)).trans (h1.2 b hb)⟩
 
+/-- A slot of at most `k` bytes below `t`. -/
+theorem slot_ge_sub {S need k : Nat} {t c : Word} (h : S + need ≤ t.toNat) (hk : k ≤ need)
+    (hc : Tactic.slotOk k c = true) : t.toNat ≤ (t + c).toNat + k := by
+  simp only [Tactic.slotOk, decide_eq_true_eq] at hc
+  have := Tactic.toNat_add_neg (t := t) (c := c) (by omega) (by omega); omega
+
 /-! ## A transcript's fields -/
 
 /-- Two offsets of a footprint that does not wrap name different words. -/
@@ -237,6 +243,62 @@ theorem _root_.Rv64mc.Spec.Transcript.TranscriptAt.setStream {m : MachineState} 
     have := congrArg BitVec.toNat h
     rw [h336, toNat_alignToDword, toNat_add_ofNat (by omega)] at this
     omega
+
+/-- **A transcript through a memory that keeps its words, its proof and the heap**: every word outside
+    `[a + lo, a + 328)` (the part of the sponge a call writes) that lies below `NEXT` or at or above `top`, `NEXT`
+    not lower, the transcript and its proof safe from `top`. The sponge is the one stated in the new memory. -/
+theorem _root_.Rv64mc.Spec.Transcript.TranscriptAt.through {m M : MachineState} {a top : Word} {t : Model.TState}
+    {s : Model.SpongeRust} (ht : TranscriptAt env m a t) (hs : SpongeAt M (a + BitVec.ofNat 64 0) s)
+    (ha : a.toNat + Layouts.Transcript.byteSize < 2 ^ 64) (hta : top.toNat ≤ a.toNat)
+    (hq : ProofSafe env m top a) (hn : (env.next m).toNat ≤ (env.next M).toNat)
+    (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (hlim : env.stackLimit.toNat ≤ top.toNat)
+    (hk : ∀ b : Word, ¬ InRange a 328 b → (b.toNat < (env.next m).toNat ∨ top.toNat ≤ b.toNat) →
+      M.getMem b = m.getMem b) :
+    TranscriptAt env M a { t with sponge := s } := by
+  simp only [Layouts.Transcript.byteSize] at ha
+  have hk' : ∀ k, 328 ≤ k → k < 360 → M.getMem (a + BitVec.ofNat 64 k) = m.getMem (a + BitVec.ofNat 64 k) :=
+    fun k h1 h2 => hk _ (by rw [InRange, toNat_add_ofNat (by omega)]; omega)
+      (Or.inr (by rw [toNat_add_ofNat (by omega)]; omega))
+  obtain ⟨hb1, hb2, -, hp, hap, h1, h2, h3⟩ := ht
+  have hheap : HeapKept env m M := ⟨hn, fun b hb => hk b (fun h => by
+    unfold InRange at h; have := env.layout; omega) (Or.inl hb)⟩
+  simp only [Layouts.Transcript.proof, Layouts.Transcript.stream_offset,
+    Layouts.Transcript.opening_offset, Layouts.Transcript.checked] at hp hap h1 h2 h3 ⊢
+  have e328 := hk' 328 (by decide) (by decide)
+  refine ⟨hb1, hb2, hs, ?_, ?_, by rw [hk' 336 (by decide) (by decide)]; exact h1,
+    by rw [hk' 344 (by decide) (by decide)]; exact h2, ?_⟩
+  · rw [e328]
+    refine hp.keep hheap fun b hb => ?_
+    simp only [Layouts.Proof.byteSize] at hb
+    unfold ProofSafe proofAddr at hq
+    simp only [Layouts.Transcript.proof, Layouts.Proof.byteSize] at hq
+    unfold Apart at hap; simp only [Layouts.Proof.byteSize, Layouts.Transcript.byteSize] at hap
+    rcases hq with hl | hf
+    · unfold Env.Live at hl
+      exact hk b (fun h => by unfold InRange at h hb; omega) (Or.inl (by unfold InRange at hb; omega))
+    · exact hk b (fun h => by unfold InRange at h hb; omega) (Or.inr (by unfold InRange at hb; omega))
+  · rw [e328]; exact hap
+  · rw [getByte_congr]; exact h3
+    have h352 : (a + 352#64).toNat = a.toNat + 352 := toNat_add_ofNat (by omega)
+    have ha' : alignToDword (a + 352#64) = a + BitVec.ofNat 64 (352 - (a.toNat + 352) % 8) := by
+      apply BitVec.eq_of_toNat_eq; rw [toNat_alignToDword, h352, toNat_add_ofNat (by omega)]; omega
+    rw [ha']; exact hk' _ (by omega) (by omega)
+
+/-- **A transcript through the stores of a function's own stack**: a memory that keeps every word below the
+    stack's limit or at or above `top`. -/
+theorem _root_.Rv64mc.Spec.Transcript.TranscriptAt.stack {m P : MachineState} {a top : Word} {t : Model.TState}
+    (ht : TranscriptAt env m a t) (ha : a.toNat + Layouts.Transcript.byteSize < 2 ^ 64)
+    (hta : top.toNat ≤ a.toNat) (hq : ProofSafe env m top a) (hnx : (env.next m).toNat ≤ env.heapEnd.toNat)
+    (hk : ∀ b : Word, b.toNat < env.stackLimit.toNat ∨ top.toNat ≤ b.toNat → P.getMem b = m.getMem b) :
+    TranscriptAt env P a t := by
+  have := env.layout
+  have hn : env.next P = env.next m := hk _ (Or.inl (by omega))
+  refine ht.keep ha (fun b hb => hk b (Or.inr (by unfold InRange at hb; omega))) (fun b hb => ?_)
+    ⟨by rw [hn], fun b hb => hk b (Or.inl (by omega))⟩
+  unfold ProofSafe proofAddr at hq
+  rcases hq with hl | hf
+  · unfold Env.Live at hl; unfold InRange at hb; exact hk b (Or.inl (by omega))
+  · unfold InRange at hb; exact hk b (Or.inr (by omega))
 
 /-! ## A waiting scalar pushed -/
 
