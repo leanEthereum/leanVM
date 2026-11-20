@@ -32,6 +32,12 @@ theorem rel_iff_fnSem {P : Program} {rd : Reader} {n : String} {f : Fn} (h : P.f
   rw [rel_iff, h]
   simp only [Option.some.injEq, exists_eq_left']
 
+/-- The same at a finite depth: the body's calls one level shallower. -/
+theorem relN_succ_iff_fnSem {P : Program} {rd : Reader} {n : String} {f : Fn}
+    (h : P.find? n = some f) (d : ℕ) (args rets : List E) :
+    P.relN rd (d + 1) n args rets ↔ f.Sem (P.relN rd d) rd args rets := by
+  simp only [Program.relN, h, Option.some.injEq, exists_eq_left']
+
 /-- A `KECCAK` in the even layouts permutes into `permOf` of the cells it reads. -/
 theorem keccakF_cells (l : List E) : keccakF1600 (stateOfCells (cells13 l) false) = permOf l := rfl
 
