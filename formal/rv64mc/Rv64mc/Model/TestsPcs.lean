@@ -82,9 +82,19 @@ def lcgPairs (count : ℕ) : List (ℕ × ℕ) :=
 
 #guard (lcgPairs 1000).all fun (a, b) ↦ project (carryless (embed a) (embed b)) == (a &&& b)
 
--- The mirror of `linear_transpose` on the xorshift stream, against the statement's.
-#guard (linearTransposeRust (xorshift 0x2545F4914F6CDD1D#64 23 1600)).map (·.map limbs) ==
-  some ((keccakLinearTranspose (xorshift 0x2545F4914F6CDD1D#64 23 1600)).map limbs)
+-- `linear_transpose` on the xorshift stream: entries and the limbs' XOR, as the Rust prints them
+-- (`verifier::keccak::linear_transpose` of `E::new(s, s.rotate_left(23))`, 1600 draws).
+def ltOut : List Limbs :=
+  ((linearTransposeRust (xorshift 0x2545F4914F6CDD1D#64 23 1600)).getD []).map limbs
+
+#guard [0, 1, 63, 64, 319, 320, 777, 1599].map (ltOut.getD · (0#64, 0#64)) ==
+  [(0x603b83380813b9ea#64, 0x9c0409dcf5301dc1#64), (0x66002c9f43e2a419#64, 0x4fa1f1520cb30016#64),
+   (0xb4f5031d8811a63a#64, 0x8ec408d31d5a7a81#64), (0xc01c7341f3c7c42a#64, 0xa0f9e3e215600e39#64),
+   (0x13df1a2272af1627#64, 0x1139578b1389ef8d#64), (0xece657d9d159351d#64, 0xece8ac9a8ef6732b#64),
+   (0xf84da0a775b2c8fa#64, 0x53bad9647d7c26d0#64), (0xcadaedd1b9c3087b#64, 0xe8dce1843de56d76#64)]
+
+#guard ltOut.foldl (fun acc l ↦ (acc.1 ^^^ l.1, acc.2 ^^^ l.2)) (0#64, 0#64) ==
+  (0xe13834b0ddf16e3a#64, 0x586ef8b71d709c1a#64)
 
 end Keccak
 

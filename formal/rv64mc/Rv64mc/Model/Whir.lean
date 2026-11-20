@@ -15,16 +15,22 @@ Mirrors of `crates/verifier/src/whir.rs`: `whir_queries` and `derive_config`, `e
 six bits; a pure step that may panic or return `Err` is an `Option`, which the mirror's `TM`
 fails on. The mirror may return anything where the Rust panics, and fails only where it fails.
 
-Each pure mirror is proved equal to its counterpart whenever it returns (`_some` lemmas, which
-need no hypothesis: where the Rust would panic the mirror fails), or outright (`_eq`).
-`derive_config` is `Whir.ladder` on the whole parameter window (`deriveConfigRust_eq`, by
-evaluation).
+Each pure mirror is proved equal to its counterpart whenever it returns (`_some` lemmas: where
+the Rust would panic the mirror fails; `subspaceRootsRust_some`, `SubspaceRust.at_eq` and
+`inducedWeightRust_some` also assume fewer than `64` variables, as the shift `K(1 << i)` wraps past
+`63`), and returns on the shapes the verifier gives it (`_eq` lemmas: `SubspaceRust.new_eq`,
+`foldRowRust_eq`, `novelBasisRust_eq`, `novelEvalRust_eq`, `inducedWeightRust_eq`,
+`finalChecksRust_eq`, `batchedRust_eq`). `derive_config` is `Whir.ladder` on the whole parameter
+window (`deriveConfigRust_eq`, by evaluation). `Comp` lemmas state the converse of a simulation:
+the mirror returns wherever the statement runs (`Comp.foldRound`, `Comp.readOod`,
+`Comp.sampleQueries`).
 
 `verify_whir` reads commitments as it goes, and `merkle` opens the root a level holds; the
 statement indexes the roots it read. Its simulation (`SimRoots.verifyWhir`) is therefore stated
 over the transcripts whose ghost roots are the stack's root only (what `verify_execution` has
 read when it opens the stack), with `SimRoots`, `SimR` restricted to the transcripts whose ghost
-roots satisfy a predicate. Every other step keeps the roots (`RootsKept`).
+roots satisfy a predicate. Every other step reads no commitment (`NoCommit`), so keeps the
+roots.
 -/
 
 namespace Rv64mc.Model
@@ -144,7 +150,7 @@ private def deriveConfigOk (logN logInvRate : ℕ) : Bool :=
   deriveConfigRust logN logInvRate == (Whir.ladder logN logInvRate).map configOf
 
 private theorem deriveConfigOk_window : ∀ logN < 31, ∀ r < 5, deriveConfigOk logN r = true := by
-  decide
+  decide +kernel
 
 /-- **`derive_config` is `Whir.ladder`**, as the Rust's three vectors. -/
 theorem deriveConfigRust_eq (logN logInvRate : ℕ) :
@@ -172,7 +178,7 @@ private def ladderFactsB (logN r : ℕ) : Bool :=
       decide ((ls.map (·.fold)).sum ≤ logN)
 
 private theorem ladderFactsB_window : ∀ logN < 31, ∀ r < 5, ladderFactsB logN r = true := by
-  decide
+  decide +kernel
 
 theorem ladder_facts {logN r : ℕ} {ls : List Whir.Level} (h : Whir.ladder logN r = some ls) :
     LadderFacts logN ls := by
@@ -490,6 +496,124 @@ theorem inducedWeightRust_some {messageLog : ℕ} (hml : messageLog < 64) {queri
     refine List.foldl_ext _ _ _ fun total wq _ ↦ ?_
     have hq : K.ofBits wq.2.toNat = BF64.ofBitVec wq.2 := by simp [K.ofBits]
     simp only [Prod.map, id, hq, SubspaceRust.at_eq hml hs, mulKE_eq]
+
+/-! ## Where the pure mirrors return -/
+
+section Success
+
+private theorem eq_some_of {α : Type} {o : Option α} {a : α} (hs : o.isSome)
+    (h : ∀ v, o = some v → v = a) : o = some a := by
+  obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hs
+  rw [hv, h v hv]
+
+private theorem subspaceRootsLoop_isSome : ∀ (n : ℕ) (roots layer : List K), n ≤ layer.length →
+    (subspaceRootsLoop n roots layer).isSome
+  | 0, _, _, _ => rfl
+  | n + 1, roots, layer, h => by
+    simp only [subspaceRootsLoop]
+    split
+    · rename_i hm
+      rw [List.map_eq_nil_iff] at hm
+      subst hm
+      simp at h
+    · rename_i first rest hm
+      have := congrArg List.length hm
+      simp only [List.length_map, List.length_cons] at this
+      exact subspaceRootsLoop_isSome n _ _ (by omega)
+
+/-- **`Subspace::new(mu)` returns** the statement's roots and their inverses, for `mu < 64`. -/
+theorem SubspaceRust.new_eq {mu : ℕ} (hmu : mu < 64) :
+    SubspaceRust.new mu = some ⟨subspaceRoots mu, (subspaceRoots mu).map kInvK⟩ := by
+  have hs : (subspaceRootsRust mu).isSome :=
+    subspaceRootsLoop_isSome mu _ _ (by simp)
+  obtain ⟨r, hr⟩ := Option.isSome_iff_exists.1 hs
+  unfold SubspaceRust.new
+  rw [hr, ← subspaceRootsRust_some hmu hr]
+  rfl
+
+private theorem subspaceRootsAux_length : ∀ (n : ℕ) (last : K) (layer : List K),
+    n ≤ layer.length → (subspaceRootsAux n last layer).length = n
+  | 0, _, _, _ => rfl
+  | n + 1, last, layer, h => by
+    rw [subspaceRootsAux]
+    split
+    · rename_i hm
+      rw [List.map_eq_nil_iff] at hm
+      subst hm
+      simp at h
+    · rename_i first rest hm
+      have := congrArg List.length hm
+      simp only [List.length_map, List.length_cons] at this
+      rw [List.length_cons, subspaceRootsAux_length n _ _ (by omega)]
+
+private theorem subspaceAtAux_length : ∀ (pairs : List (K × K)) (x : K),
+    (subspaceAtAux pairs x).length = pairs.length
+  | [], _ => rfl
+  | _ :: ps, x => by rw [subspaceAtAux, List.length_cons, subspaceAtAux_length ps, List.length_cons]
+
+theorem subspaceAt_length (mu : ℕ) (x : K) : (subspaceAt mu x).length = mu + 1 := by
+  rw [subspaceAt, subspaceAtAux_length, List.length_map, subspaceRoots, List.length_cons,
+    subspaceRootsAux_length _ _ _ (by simp)]
+
+private theorem foldLanes_length (x : K) (round : FoldRound) (A : List E) :
+    (foldLanes x round A).length = A.length / 2 := by
+  rw [foldLanes_eq]; simp
+
+/-- **`fold_row` returns** on `2^r` lanes and `r` rounds. -/
+theorem foldRowRust_eq {values : List E} {x : K} {rounds : List FoldRound}
+    (h : values.length = 2 ^ rounds.length) :
+    foldRowRust values x rounds = some (foldRow values x rounds) := by
+  have hl : ∀ (rs : List FoldRound) (vs : List E), vs.length = 2 ^ rs.length →
+      (rs.foldl (foldRowRound x) vs).length = 1 := by
+    intro rs
+    induction rs with
+    | nil => intro vs h; simpa using h
+    | cons r rs ih =>
+      intro vs h
+      rw [List.foldl_cons]
+      refine ih _ ?_
+      rw [foldRowRound_eq, foldLanes_length, h, List.length_cons, pow_succ, Nat.mul_div_cancel _
+        (by norm_num)]
+  obtain ⟨v, hv⟩ := List.length_eq_one_iff.1 (hl rounds values h)
+  refine eq_some_of ?_ fun w hw ↦ foldRowRust_some hw
+  simp [foldRowRust, hv]
+
+private theorem novelBasisLoop_length (count : ℕ) : ∀ (what basis : List K), 1 ≤ basis.length →
+    min count (basis.length * 2 ^ what.length) ≤ (novelBasisLoop count what basis).length
+  | [], b, _ => by simp [novelBasisLoop]
+  | v :: vs, b, hb => by
+    rw [novelBasisLoop]
+    split_ifs with h
+    · exact le_trans (min_le_left _ _) h
+    · have := novelBasisLoop_length count vs (b ++ b.map (· * v)) (by simp; omega)
+      simp only [List.length_append, List.length_map, List.length_cons] at this ⊢
+      convert this using 2
+      ring
+
+/-- **`novel_basis` returns** on at most `2^|what|` elements. -/
+theorem novelBasisRust_eq {what : List K} {count : ℕ} (h : count ≤ 2 ^ what.length) :
+    novelBasisRust what count = some (novelBasis what count) := by
+  have hl := novelBasisLoop_length count what [1] (by simp)
+  simp only [List.length_singleton, one_mul, min_eq_left h] at hl
+  refine eq_some_of ?_ fun w hw ↦ novelBasisRust_some hw
+  simp [novelBasisRust, hl]
+
+/-- **`novel_eval` returns** on at most `2^|what|` coefficients. -/
+theorem novelEvalRust_eq {coefficients : List E} {what : List K}
+    (h : coefficients.length ≤ 2 ^ what.length) :
+    novelEvalRust coefficients what = some (novelEval coefficients what) := by
+  refine eq_some_of ?_ fun w hw ↦ novelEvalRust_some hw
+  simp [novelEvalRust, novelBasisRust_eq h]
+
+/-- **`induced_weight` returns** on a point of `message_log < 64` coordinates. -/
+theorem inducedWeightRust_eq {messageLog : ℕ} (hml : messageLog < 64) {queries : List (BitVec 64)}
+    {queryWeights point : List E} (h : point.length = messageLog) :
+    inducedWeightRust messageLog queries queryWeights point =
+      some (inducedWeight messageLog (queries.map BitVec.toNat) queryWeights point) := by
+  refine eq_some_of ?_ fun w hw ↦ inducedWeightRust_some hml hw
+  simp [inducedWeightRust, h, SubspaceRust.new_eq hml]
+
+end Success
 
 /-! ## `GluedWeight`, `GluedClaim`, the level's pure loops -/
 
@@ -825,6 +949,47 @@ private theorem sampleQueriesLoop_sim {d : ℕ} (hd0 : 0 < d) (hd : d < 64) (cou
     · rw [ite_eq_right hlt, ite_eq_left (by omega)]
       exact SimR.pure (by simp)
 
+private theorem sampleQueriesLoop_comp {d : ℕ} (hd0 : 0 < d) (hd : d < 64) (count : ℕ) :
+    ∀ (fuel : ℕ) (result : List (BitVec 64)), result.length ≤ count →
+    Comp (sampleQueriesLoop (BitVec.ofNat 64 (2 ^ d)) d count fuel result)
+      (sampleQueriesAux d fuel (count - result.length))
+  | 0, result, _ => by
+    simp only [sampleQueriesLoop, sampleQueriesAux]
+    exact Comp.pure _ _
+  | fuel + 1, result, hlen => by
+    simp only [sampleQueriesLoop, sampleQueriesAux]
+    by_cases hlt : result.length < count
+    · rw [ite_eq_left hlt, ite_eq_right (by omega)]
+      refine Comp.bindEq Comp.sample Sim.sample fun e ↦ ?_
+      have hq := queryChunks_eq (sampleWord e) hd0 hd count count 0 result (Nat.zero_le _)
+        (by omega)
+      simp only [Nat.zero_mul, Nat.sub_zero] at hq
+      have hlen' : (queryChunks (sampleWord e) (BitVec.ofNat 64 (2 ^ d)) d count count 0
+          result).length = result.length + min (128 / d) (count - result.length) := by
+        have := congrArg List.length hq
+        simpa using this
+      have hr : count - (result.length + min (128 / d) (count - result.length)) =
+          count - result.length - min (128 / d) (count - result.length) := by omega
+      have ih := sampleQueriesLoop_comp hd0 hd count fuel
+        (queryChunks (sampleWord e) (BitVec.ofNat 64 (2 ^ d)) d count count 0 result)
+        (by rw [hlen']; omega)
+      have hs := sampleQueriesLoop_sim hd0 hd count fuel
+        (queryChunks (sampleWord e) (BitVec.ofNat 64 (2 ^ d)) d count count 0 result)
+        (by rw [hlen']; omega)
+      rw [hlen', hr] at ih hs
+      rw [← bind_pure (sampleQueriesLoop _ _ _ _ _)]
+      exact Comp.bind ih hs fun _ _ _ ↦ Comp.pure _ _
+    · rw [ite_eq_right hlt, ite_eq_left (by omega)]
+      exact Comp.pure _ _
+
+/-- **`sample_queries` returns wherever `sampleQueries` runs**, at a depth in `1 .. 63`. -/
+theorem Comp.sampleQueries {d : ℕ} (hd0 : 0 < d) (hd : d < 64) (count : ℕ) :
+    Comp (sampleQueriesRust (1#64 <<< (d % 64)) count) (sampleQueries d count) := by
+  rw [one_shl_eq hd, sampleQueriesRust, log2StrictRust_two_pow hd]
+  simp only [TM.ofOption, pure_bind]
+  have := sampleQueriesLoop_comp hd0 hd count count [] (Nat.zero_le _)
+  simpa [LeanVM.Protocol.Verifier.sampleQueries] using this
+
 /-- **`sample_queries` runs `sampleQueries`**, at a depth in `1 .. 63`. -/
 theorem SimR.sampleQueries {d : ℕ} (hd0 : 0 < d) (hd : d < 64) (count : ℕ) :
     SimR (sampleQueriesRust (1#64 <<< (d % 64)) count) (sampleQueries d count)
@@ -838,13 +1003,14 @@ theorem NoCommit.sampleQueries (d count : ℕ) : NoCommit (sampleQueries d count
   suffices ∀ fuel rem, NoCommit (sampleQueriesAux d fuel rem) from this _ _
   intro fuel
   induction fuel with
-  | zero => intro rem; trivial
+  | zero => intro rem; exact NoCommit.ret _
   | succ n ih =>
     intro rem
     rw [sampleQueriesAux]
     split
-    · trivial
-    · exact NoCommit.bind (fun _ ↦ trivial) fun _ ↦ NoCommit.bind (ih _) fun _ ↦ trivial
+    · exact NoCommit.ret _
+    · exact NoCommit.bind NoCommit.sampleChallenge fun _ ↦ NoCommit.bind (ih _) fun _ ↦
+        NoCommit.ret _
 
 end SampleQueries
 
@@ -860,10 +1026,8 @@ private theorem readScalars_four {γ : Type} (f : List E → VerifierProgram γ)
 
 /-- **A fold round runs `foldRound`**: the same claim and round; the statement's `alphas` grows by
 the round's `alpha`. -/
-theorem SimR.foldRound (s : WhirState) :
-    SimR (foldRoundRust s.claim) (LeanVM.Protocol.Verifier.foldRound s) fun a b ↦
-      a.1 = b.1.claim ∧ a.2 = b.2 ∧ b.1.alphas = s.alphas ++ [a.2.alpha] ∧ b.1.glued = s.glued := by
-  have e : LeanVM.Protocol.Verifier.foldRound s = VerifierProgram.readScalars 4 >>= fun table ↦
+private theorem foldRound_eq (s : WhirState) :
+    LeanVM.Protocol.Verifier.foldRound s = VerifierProgram.readScalars 4 >>= fun table ↦
       (do
         VerifierProgram.grindProofOfWork Whir.foldGrindingBits
         let alpha ← VerifierProgram.sampleChallenge
@@ -873,12 +1037,37 @@ theorem SimR.foldRound (s : WhirState) :
             alpha * alpha * table.getD 1 0 + beta * table.getD 2 0 +
             alpha * beta * (table.getD 2 0 + table.getD 3 0),
           alphas := s.alphas ++ [alpha] }, ⟨alpha, beta⟩)) := by
-    rw [readScalars_four]; rfl
-  rw [e]
+  rw [readScalars_four]; rfl
+
+theorem SimR.foldRound (s : WhirState) :
+    SimR (foldRoundRust s.claim) (LeanVM.Protocol.Verifier.foldRound s) fun a b ↦
+      a.1 = b.1.claim ∧ a.2 = b.2 ∧ b.1.alphas = s.alphas ++ [a.2.alpha] ∧ b.1.glued = s.glued := by
+  rw [foldRound_eq]
   unfold foldRoundRust
   refine SimR.bindEq (Sim.nextScalars 4) fun table ↦ SimR.bindEq (Sim.grindCheck _) fun _ ↦
     SimR.bindEq Sim.sample fun alpha ↦ SimR.bindEq Sim.sample fun beta ↦
       SimR.pure ⟨by ring, rfl, rfl, rfl⟩
+
+/-- **A fold round returns wherever `foldRound` runs.** -/
+theorem Comp.foldRound (s : WhirState) :
+    Comp (foldRoundRust s.claim) (LeanVM.Protocol.Verifier.foldRound s) := by
+  rw [foldRound_eq]
+  unfold foldRoundRust
+  exact Comp.bindEq (Comp.nextScalars 4) (Sim.nextScalars 4) fun _ ↦
+    Comp.bindEq (Comp.grindCheck _) (Sim.grindCheck _) fun _ ↦
+      Comp.bindEq Comp.sample Sim.sample fun _ ↦ Comp.bindEq Comp.sample Sim.sample fun _ ↦
+        Comp.pure _ _
+
+/-- **`read_ood` returns** wherever its grind, samples and read run. -/
+theorem Comp.readOod (vars bits : ℕ) :
+    Comp (readOodRust vars bits) (do
+      VerifierProgram.grindProofOfWork bits
+      let z ← VerifierProgram.sampleChallenges vars
+      let value ← VerifierProgram.readScalar
+      return (z, value)) :=
+  Comp.bindEq (Comp.grindCheck _) (Sim.grindCheck _) fun _ ↦
+    Comp.bindEq (Comp.samples _) (Sim.samples _) fun _ ↦
+      Comp.bindEq Comp.nextScalar Sim.nextScalar fun _ ↦ Comp.pure _ _
 
 /-- **The fold rounds run `foldRounds`.** -/
 theorem SimR.foldRounds : ∀ (n : ℕ) (s : WhirState),
@@ -906,7 +1095,7 @@ theorem SimR.foldRounds : ∀ (n : ℕ) (s : WhirState),
 
 theorem NoCommit.foldRounds : ∀ (n : ℕ) (s : WhirState),
     NoCommit (LeanVM.Protocol.Verifier.foldRounds n s)
-  | 0, _ => trivial
+  | 0, _ => NoCommit.ret _
   | n + 1, s => by
     rw [LeanVM.Protocol.Verifier.foldRounds, LeanVM.Protocol.Verifier.foldRound]
     no_commit
@@ -999,6 +1188,57 @@ theorem batchedRust_some {sub : SubspaceRust} {mu : ℕ} (hmu : mu < 64)
       rw [hf] at hb
       simp only [Option.bind_some, Option.pure_def, Option.some.injEq] at hb
       rw [← hb, foldRowRust_some hf, novelEvalRust_some hc, mulKE_eq, SubspaceRust.at_eq hmu hsub]
+
+private theorem forM_of_all {α : Type} {f : α → Option Unit} :
+    ∀ (l : List α), (∀ x ∈ l, f x = some ()) → l.forM f = some ()
+  | [], _ => rfl
+  | a :: l, h => by
+    simp only [List.forM, h a (by simp)]
+    exact forM_of_all l fun x hx ↦ h x (by simp [hx])
+
+/-- **The final level's checks pass** where the statement's do, on rows of `2^r` lanes and at
+most `2^(mu+1)` coefficients. -/
+theorem finalChecksRust_eq {sub : SubspaceRust} {mu : ℕ} (hmu : mu < 64)
+    (hsub : SubspaceRust.new mu = some sub) {lanesOf : List (BitVec 64) → List E}
+    {rounds : List FoldRound} {folded : List E} {qs : List (BitVec 64)}
+    {ws : List (List (BitVec 64))} (hf : folded.length ≤ 2 ^ (mu + 1))
+    (h : ∀ x ∈ qs.zip ws, (lanesOf x.2).length = 2 ^ rounds.length ∧
+      foldRow (lanesOf x.2) (BF64.ofBitVec x.1) rounds =
+        novelEval folded (subspaceAt mu (BF64.ofBitVec x.1))) :
+    finalChecksRust sub lanesOf rounds folded qs ws = some () := by
+  refine forM_of_all _ fun x hx ↦ ?_
+  obtain ⟨hl, he⟩ := h x hx
+  simp [foldRowRust_eq hl, SubspaceRust.at_eq hmu hsub,
+    novelEvalRust_eq (what := subspaceAt mu (BF64.ofBitVec x.1))
+      (by rw [subspaceAt_length]; exact hf), he]
+
+private theorem foldlM_isSome {α : Type} {step : E → α → Option E} :
+    ∀ (l : List α) (acc : E), (∀ b, ∀ a ∈ l, (step b a).isSome) → (l.foldlM step acc).isSome
+  | [], _, _ => rfl
+  | a :: l, acc, h => by
+    obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 (h acc a (by simp))
+    rw [List.foldlM_cons, hb]
+    exact foldlM_isSome l b fun b' a' ha' ↦ h b' a' (by simp [ha'])
+
+/-- **A non-final level's batched queries return** on rows of `2^r` lanes and a high part of at
+most `2^(mu+1)` coefficients. -/
+theorem batchedRust_eq {sub : SubspaceRust} {mu : ℕ} (hmu : mu < 64)
+    (hsub : SubspaceRust.new mu = some sub) {lanesOf : List (BitVec 64) → List E}
+    {rounds : List FoldRound} {high : List E} {qs : List (BitVec 64)}
+    {ws : List (List (BitVec 64))} {qw : List E} (hh : high.length ≤ 2 ^ (mu + 1))
+    (h : ∀ x ∈ qs.zip ws, (lanesOf x.2).length = 2 ^ rounds.length) :
+    batchedRust sub mu lanesOf rounds high qs ws qw = some (sumE (((qs.zip ws).zip qw).map fun x ↦
+      let what := subspaceAt mu (BF64.ofBitVec x.1.1)
+      x.2 * (foldRow (lanesOf x.1.2) (BF64.ofBitVec x.1.1) rounds +
+        novelEval high what * ofK (what.getD mu 0)))) := by
+  have hs : (batchedRust sub mu lanesOf rounds high qs ws qw).isSome := by
+    refine foldlM_isSome _ _ fun b x hx ↦ ?_
+    have hl := h x.1 (List.of_mem_zip hx).1
+    simp [batchedStep, foldRowRust_eq hl, SubspaceRust.at_eq hmu hsub,
+      novelEvalRust_eq (what := subspaceAt mu (BF64.ofBitVec x.1.1))
+        (by rw [subspaceAt_length]; exact hh)]
+  obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hs
+  rw [hv, batchedRust_some hmu hsub hv]
 
 /-- A glued claim and the statement's: the same scalar and start, and a weight that agrees with
 the statement's wherever it returns. -/
@@ -1160,11 +1400,11 @@ theorem SimRoots.whirLevels (logN : ℕ) (ls : List Whir.Level) (hf : LadderFact
       simp only [readOodRust, bind_assoc, pure_bind]
       refine SimRoots.bindE (Sim.grindCheck _) (NoCommit.grindProofOfWork _) fun _ ↦ ?_
       refine SimRoots.bindE (Sim.samples _) (NoCommit.sampleChallenges _) fun oodPoint ↦ ?_
-      refine SimRoots.bindE Sim.nextScalar (fun _ ↦ trivial) fun oodValue ↦ ?_
+      refine SimRoots.bindE Sim.nextScalar NoCommit.readScalar fun oodValue ↦ ?_
       refine SimRoots.bindE (Sim.grindCheck _) (NoCommit.grindProofOfWork _) fun _ ↦ ?_
       refine SimRoots.bindR (SimR.sampleQueries (by omega) hdepth level.queries)
         (NoCommit.sampleQueries _ _) fun qs ps hq ↦ ?_
-      refine SimRoots.bindE Sim.sample (fun _ ↦ trivial) fun lam ↦ ?_
+      refine SimRoots.bindE Sim.sample NoCommit.sampleChallenge fun lam ↦ ?_
       rw [hr, one_shl_eq hdepth]
       refine SimRoots.merkle_bind (i := index)
         (height := logN - s₂.alphas.length + level.logInvRate) (fun roots hroots ↦ ?_) hdepth hq
@@ -1275,15 +1515,6 @@ def verifyStackedOpeningRust (root : List (BitVec 8)) (stackLog logInvRate : ℕ
   let target ← TM.ofOption (dotRust scales values)
   verifyWhirRust stackLog logInvRate target root basis
 
-/-- A ring weight agrees with the statement's wherever it returns. -/
-theorem RingWeightRust.evaluate_some {w : RingWeightRust} {x : List E} {v : E}
-    (h : w.evaluate x = some v) : v = ringWeight w.point x w.coefficients := by
-  unfold RingWeightRust.evaluate at h
-  by_cases hl : w.point.length = x.length
-  · rw [ringWeightRust_eq hl] at h
-    exact (Option.some.inj h).symm
-  · simp [ringWeightRust, hl] at h
-
 /-- A stacked claim and the statement's: the same value, and a weight that agrees with the
 statement's wherever it returns on a point of the stack's `stackLog ≤ 64` variables. -/
 def StackClaimRel (stackLog : ℕ) (c : StackWeightRust × E) (c' : StackClaim) : Prop :=
@@ -1295,7 +1526,9 @@ theorem stackClaimRel_eq (stackLog : ℕ) (point : List E) (value : E) :
   ⟨rfl, fun _ _ _ h ↦ eqEvalRust_some h⟩
 
 /-- **`PlacedRing` is the statement's ring-switching claim** (`ringSwitchClaim`), the weight the
-ring switch's. -/
+ring switch's. `walk` builds it from `layout.committed(QKECCAK)?`, the placement the statement's
+`layout.placement qkeccak` transcribes, and opens the stack at `stack_log ≤ MAX_STACKED_LOG = 30`
+(`CommittedSize`), so `stackLog ≤ 64`. -/
 theorem stackClaimRel_placedRing {stackLog : ℕ} (hs : stackLog ≤ 64) (layout : Layout)
     (placement : PlacementRust) (hp : placement.toSpec = layout.placement qkeccak)
     (w : RingWeightRust) (f : List E → E)
@@ -1345,7 +1578,7 @@ theorem SimRoots.verifyStackedOpening (stackLog logInvRate : ℕ) (d : Digest)
   unfold verifyStackedOpeningRust LeanVM.Protocol.Verifier.verifyStackedOpening
   rw [hlen]
   refine SimRoots.bindE (Sim.require _) (NoCommit.require _) fun _ ↦ ?_
-  refine SimRoots.bindE Sim.sample (fun _ ↦ trivial) fun lam ↦ ?_
+  refine SimRoots.bindE Sim.sample NoCommit.sampleChallenge fun lam ↦ ?_
   have hp : (powersM (limbs lam) claims'.length).map ofLimbsW = powers lam claims'.length := by
     rw [powersM_eq, List.map_map]
     simp [Function.comp_def, ofLimbsW_limbs]

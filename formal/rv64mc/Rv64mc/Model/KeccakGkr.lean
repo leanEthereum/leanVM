@@ -906,6 +906,46 @@ theorem SimR.verifyLayer (logSteps step : ℕ) (claim : KeccakClaim)
   simp only [List.length_map] at hpt
   rw [hpt, hs.2]
 
+/-- **`verify_layer` returns wherever `verifyKeccakLayer` runs**, on a claim of the layers'
+shape. -/
+theorem Comp.verifyLayer (logSteps step : ℕ) (claim : KeccakClaim)
+    (hs : KeccakSized logSteps claim) :
+    Comp (verifyLayerRust ⟨logSteps, 12⟩ step claim) (verifyKeccakLayer logSteps step claim) := by
+  have hp : (claim.point.drop (logSteps - 4)).length < 64 := by
+    rw [List.length_drop, hs.2]; omega
+  unfold verifyLayerRust verifyKeccakLayer
+  simp only [polyEvalRust_eq, instanceWeightsRust_eq]
+  refine Comp.bindEq (Comp.nextScalars _) (Sim.nextScalars _) fun product ↦ ?_
+  refine Comp.whenChecked_bind
+    (Comp.bindEq (Comp.require_iff ?h) (Sim.require_iff ?h) fun _ ↦ ?_)
+  case h => rw [projectedRust_eq, iotaRust_eq _ _ _ hp, sumRust_eq]
+  rw [grindingBitsRust_ofNat (by norm_num)]
+  refine Comp.bindEq (Comp.grindCheck _) (Sim.grindCheck _) fun _ ↦
+    Comp.bindEq Comp.sample Sim.sample fun s ↦ ?_
+  refine Comp.sumcheck_bind _ (by norm_num) (by norm_num) _ fun point v hpt ↦ ?_
+  refine Comp.sumcheck_bind _ (by norm_num) (by norm_num) _ fun localPt v' hloc ↦ ?_
+  have hloc' : localPt.length = 11 := by simpa using hloc
+  refine Comp.bindEq (Comp.nextScalars _) (Sim.nextScalars _) fun t ↦ Comp.whenChecked_bind ?_
+  rw [atLocalRust_eq _ _ hs.1 hloc']
+  simp only [TM.ofOption, pure_bind]
+  refine Comp.bindEq (Comp.require_iff ?g) (Sim.require_iff ?g) fun _ ↦ ?_
+  case g => rw [sumRust_eq, instanceWeightsRust_eq]
+  rw [grindingBitsRust_ofNat (by norm_num)]
+  refine Comp.bindEq (Comp.grindCheck _) (Sim.grindCheck _) fun _ ↦
+    Comp.bindEq Comp.sample Sim.sample fun beta ↦ ?_
+  rw [nextWeightsRust_eq _ hloc', linearTransposeRust_eq (by simp [keccakBits])]
+  simp only [pure_bind]
+  exact Comp.pure _ _
+
+/-- What `walk` hands `verify_keccak` meets its shape check: the `KECCAK` table's point has a
+coordinate per variable of its log-height, at least `KECCAK_MIN_STEPS_LOG = 9` (its floor in
+`TABLE_LOG_FLOORS`), and its output lanes are the `STATE_LANES = 25` columns from `KECCAK_OUT`. -/
+theorem verifyKeccakRust_require {logSteps : ℕ} {inst output : List E}
+    (hl : keccakMinStepsLog ≤ logSteps) (hi : inst.length = logSteps) (ho : output.length = 25) :
+    inst.length = (⟨logSteps, 12⟩ : KeccakShape).logSteps ∧ output.length = 25 ∧
+      4 ≤ (⟨logSteps, 12⟩ : KeccakShape).logSteps :=
+  ⟨hi, ho, le_trans (by decide) hl⟩
+
 /-- The layers `for step in steps`, from a claim of the layers' shape. -/
 theorem SimR.keccakLayers (logSteps : ℕ) {β γ : Type} {r : β → γ → Prop} :
     ∀ (steps : List ℕ) (claim : KeccakClaim), KeccakSized logSteps claim →

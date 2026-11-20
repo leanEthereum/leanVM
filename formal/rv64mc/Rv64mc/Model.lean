@@ -23,8 +23,11 @@ accumulators and early exits) on machine words, each proved equal to its counter
 statement (`Statement/LeanVmVerifier.lean`, `Statement/Field.lean`, `Statement/Keccak.lean`) or,
 for an internal helper, to what its caller's proof needs. The machine-code proofs target these
 mirrors. A module per Rust module: `Field` (`field.rs`, with `Clmul` for `clmul_low`),
-`Multilinear` (`multilinear.rs`), `Hash` (`hash.rs`), `Merkle` (`merkle.rs`), and `Sponge` and
-`Transcript` (`transcript.rs`); `Tests` checks them on the Rust's test vectors.
+`Multilinear` (`multilinear.rs`), `Hash` (`hash.rs`), `Merkle` (`merkle.rs`), `Sponge` and
+`Transcript` (`transcript.rs`), `RingSwitch` (`ring_switch.rs`), `KeccakGkr` (`keccak.rs` but for
+the permutation), `Whir` (`whir.rs`, and `lib.rs`'s stacked opening), `Layout` (`layout.rs`),
+`Bytecode` (`bytecode.rs`), `Bus` (`bus.rs`) and `Walk` (`lib.rs`'s `walk`); `Tests`, `TestsPcs`
+and `TestsWalk` check them on the Rust's test vectors.
 
 The mirrored Rust is `crates/verifier` at commit `1135c5255`; `scripts/model-drift.sh` fails when
 a mirrored file changes. The build fails if the axiom footprint of the main equalities grows

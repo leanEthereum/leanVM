@@ -435,15 +435,11 @@ theorem NoCommit.bind {α β : Type} {P : VerifierProgram α} {Q : α → Verifi
   | commit h w k ih => exact hP.elim
   | query i ps k ih => exact fun rows ↦ ih rows (hP rows)
 
-theorem NoCommit.readScalars : ∀ n, NoCommit (VerifierProgram.readScalars n)
-  | 0 => trivial
-  | n + 1 => NoCommit.bind (fun _ ↦ trivial) fun _ ↦
-      NoCommit.bind (NoCommit.readScalars n) fun _ ↦ trivial
+theorem NoCommit.ret {α : Type} (a : α) : NoCommit (VerifierProgram.ret a) := trivial
 
-theorem NoCommit.sampleChallenges : ∀ n, NoCommit (VerifierProgram.sampleChallenges n)
-  | 0 => trivial
-  | n + 1 => NoCommit.bind (fun _ ↦ trivial) fun _ ↦
-      NoCommit.bind (NoCommit.sampleChallenges n) fun _ ↦ trivial
+theorem NoCommit.readScalar : NoCommit VerifierProgram.readScalar := fun _ ↦ trivial
+
+theorem NoCommit.sampleChallenge : NoCommit VerifierProgram.sampleChallenge := fun _ ↦ trivial
 
 theorem NoCommit.grindProofOfWork (bits : ℕ) :
     NoCommit (VerifierProgram.grindProofOfWork bits) := by
@@ -453,18 +449,6 @@ theorem NoCommit.grindProofOfWork (bits : ℕ) :
 theorem NoCommit.require (c : Prop) [Decidable c] : NoCommit (VerifierProgram.require c) := by
   unfold VerifierProgram.require
   split <;> trivial
-
-/-- Close `NoCommit P` for a program built by `bind` from reads, samples, grinds, checks,
-openings and sumchecks; `match`es on pairs are split. -/
-macro "no_commit" : tactic => `(tactic| repeat' (first
-  | apply NoCommit.bind
-  | exact NoCommit.readScalars _
-  | exact NoCommit.sampleChallenges _
-  | exact NoCommit.grindProofOfWork _
-  | exact NoCommit.require _
-  | intro _
-  | split
-  | trivial))
 
 /-- A run of a program that reads no commitment keeps the roots. -/
 theorem NoCommit.runK_roots {α : Type} {P : VerifierProgram α} (hP : NoCommit P) :
@@ -518,6 +502,31 @@ theorem NoCommit.runK_roots {α : Type} {P : VerifierProgram α} (hP : NoCommit 
       · cases h
     · cases h
 
+theorem NoCommit.readScalars : ∀ n, NoCommit (VerifierProgram.readScalars n)
+  | 0 => NoCommit.ret _
+  | n + 1 => NoCommit.bind NoCommit.readScalar fun _ ↦
+      NoCommit.bind (NoCommit.readScalars n) fun _ ↦ NoCommit.ret _
+
+theorem NoCommit.sampleChallenges : ∀ n, NoCommit (VerifierProgram.sampleChallenges n)
+  | 0 => NoCommit.ret _
+  | n + 1 => NoCommit.bind NoCommit.sampleChallenge fun _ ↦
+      NoCommit.bind (NoCommit.sampleChallenges n) fun _ ↦ NoCommit.ret _
+
+/-- Close `NoCommit P` for a program built by `bind` from reads, samples, grinds, checks,
+openings and sumchecks; `match`es on pairs are split. -/
+macro "no_commit" : tactic => `(tactic| repeat' (first
+  | exact NoCommit.ret _
+  | exact NoCommit.readScalar
+  | exact NoCommit.sampleChallenge
+  | apply NoCommit.bind
+  | exact NoCommit.readScalars _
+  | exact NoCommit.sampleChallenges _
+  | exact NoCommit.grindProofOfWork _
+  | exact NoCommit.require _
+  | intro _
+  | split
+  | trivial))
+
 /-- `m` keeps the roots, from every transcript keeping `TState.Inv`. -/
 def RootsKept {α : Type} (m : TM α) : Prop :=
   ∀ t a t', t.Inv → m.run t = some (a, t') → t'.roots = t.roots
@@ -528,6 +537,24 @@ theorem RootsKept.ofSimR {α β : Type} {m : TM α} {P : VerifierProgram β} {r 
   intro t a t' hi hm
   obtain ⟨-, b, hb, -⟩ := h t a t' hi hm
   exact hP.runK_roots hb
+
+theorem RootsKept.pure {α : Type} (a : α) : RootsKept (Pure.pure a : TM α) := by
+  intro t b t' _ h
+  simp only [StateT.run_pure, Option.pure_def, Option.some.injEq, Prod.mk.injEq] at h
+  rw [← h.2]
+
+/-- A simulated step that reads no commitment, then steps that keep the roots. -/
+theorem RootsKept.bindSim {α β γ : Type} {m : TM α} {P : VerifierProgram β} {r : α → β → Prop}
+    {k : α → TM γ} (hm : SimR m P r) (hP : NoCommit P) (hk : ∀ a, RootsKept (k a)) :
+    RootsKept (m >>= k) := by
+  intro t c t' hi h
+  rw [StateT.run_bind] at h
+  cases hmt : m.run t with
+  | none => rw [hmt] at h; cases h
+  | some p =>
+    obtain ⟨a, t₁⟩ := p
+    rw [hmt] at h
+    exact (hk a t₁ c t' (hm t a t₁ hi hmt).1 h).trans (RootsKept.ofSimR hm hP t a t₁ hi hmt)
 
 /-- A simulated step that reads no commitment, then the rest from the same roots. -/
 theorem SimRoots.bindR {α β γ δ : Type} {pre : Roots → Prop} {m : TM α} {P : VerifierProgram β}
@@ -1101,16 +1128,16 @@ theorem Sim.sumcheck (claim : E) {count : ℕ} (hc : 2 ≤ count) (hc' : count <
 theorem NoCommit.sumcheck (claim : E) (count : ℕ) (equalities : List (Option E)) :
     NoCommit (sumcheck claim count equalities) := by
   induction equalities generalizing claim with
-  | nil => trivial
+  | nil => exact NoCommit.ret _
   | cons e es ih =>
     rw [LeanVM.Protocol.Verifier.sumcheck]
-    refine NoCommit.bind ?_ fun _ ↦ NoCommit.bind (fun _ ↦ trivial) fun _ ↦
-      NoCommit.bind (ih _) fun _ ↦ trivial
+    refine NoCommit.bind ?_ fun _ ↦ NoCommit.bind NoCommit.sampleChallenge fun _ ↦
+      NoCommit.bind (ih _) fun _ ↦ NoCommit.ret _
     cases e
-    · exact NoCommit.bind (fun _ ↦ trivial) fun _ ↦ NoCommit.bind (NoCommit.readScalars _)
-        fun _ ↦ NoCommit.bind (NoCommit.grindProofOfWork _) fun _ ↦ trivial
+    · exact NoCommit.bind NoCommit.readScalar fun _ ↦ NoCommit.bind (NoCommit.readScalars _)
+        fun _ ↦ NoCommit.bind (NoCommit.grindProofOfWork _) fun _ ↦ NoCommit.ret _
     · exact NoCommit.bind (NoCommit.readScalars _) fun _ ↦
-        NoCommit.bind (NoCommit.grindProofOfWork _) fun _ ↦ trivial
+        NoCommit.bind (NoCommit.grindProofOfWork _) fun _ ↦ NoCommit.ret _
 
 /-! ## `Transcript::new` and `finish` -/
 
@@ -1276,6 +1303,189 @@ theorem merkle_succeeds {t : TState} {height width : ℕ} (hh : height < 64)
 theorem finish_succeeds {t : TState} (hs : t.streamOffset = t.proof.stream.length)
     (ho : t.openingOffset = t.proof.openings.length) : TM.finish.run t = some ((), t) := by
   simp [TM.finish, StateT.run, hs, ho]
+
+/-! ## Completeness: where the statement runs, the mirror returns
+
+`Comp m P`: from a state keeping `TState.Inv`, whenever the statement's `run` of `P` from the state
+it stands for returns, `m` returns. It composes through `bind` with the step's simulation, which
+lines up the two intermediate states (`Comp.bind`). -/
+
+/-- `m` returns wherever `P` runs. -/
+def Comp {α β : Type} (m : TM α) (P : VerifierProgram β) : Prop :=
+  ∀ t b σ', t.Inv → runK P t.toSpec = some (b, σ') → ∃ a t', m.run t = some (a, t')
+
+theorem Comp.pure {α β : Type} (a : α) (b : β) :
+    Comp (Pure.pure a : TM α) (VerifierProgram.ret b) :=
+  fun _ _ _ _ _ ↦ ⟨a, _, rfl⟩
+
+theorem Comp.bind {α β γ δ : Type} {m : TM α} {P : VerifierProgram β} {r : α → β → Prop}
+    {k : α → TM γ} {Q : β → VerifierProgram δ} (hm : Comp m P) (hs : SimR m P r)
+    (hk : ∀ a b, r a b → Comp (k a) (Q b)) : Comp (m >>= k) (P >>= Q) := by
+  intro t c σ' hi h
+  rw [runK_bind] at h
+  cases hP : runK P t.toSpec with
+  | none => rw [hP] at h; cases h
+  | some p =>
+    obtain ⟨b₁, σ₁⟩ := p
+    rw [hP] at h
+    obtain ⟨a, t₁, hm₁⟩ := hm t b₁ σ₁ hi hP
+    obtain ⟨hi₁, b, hb, hab⟩ := hs t a t₁ hi hm₁
+    rw [hb] at hP
+    simp only [Option.some.injEq, Prod.mk.injEq] at hP
+    obtain ⟨rfl, rfl⟩ := hP
+    obtain ⟨c', t₂, h₂⟩ := hk a b hab t₁ c _ hi₁ h
+    exact ⟨c', t₂, by rw [StateT.run_bind, hm₁]; exact h₂⟩
+
+theorem Comp.bindEq {α γ δ : Type} {m : TM α} {P : VerifierProgram α} {k : α → TM γ}
+    {Q : α → VerifierProgram δ} (hm : Comp m P) (hs : Sim m P) (hk : ∀ a, Comp (k a) (Q a)) :
+    Comp (m >>= k) (P >>= Q) :=
+  Comp.bind hm hs fun a _ h ↦ by subst h; exact hk a
+
+private theorem drop_eq_cons {α : Type} {l : List α} {i : ℕ} {x : α} {xs : List α}
+    (h : l.drop i = x :: xs) : ∃ hi : i < l.length, l[i] = x := by
+  have hlt : i < l.length := by
+    by_contra hc
+    rw [List.drop_eq_nil_of_le (by omega)] at h
+    cases h
+  refine ⟨hlt, ?_⟩
+  rw [List.drop_eq_getElem_cons hlt] at h
+  exact (List.cons.inj h).1
+
+theorem Comp.nextScalar : Comp TM.nextScalar VerifierProgram.readScalar := by
+  intro t b σ' hi h
+  simp only [VerifierProgram.readScalar, runK, Compile.run, Id.run, TState.toSpec] at h
+  split at h
+  · rename_i x xs hs hg
+    obtain ⟨hl, -⟩ := drop_eq_cons hs
+    obtain ⟨t', h', -⟩ := nextScalar_succeeds hi hl (by rw [← toSpec_ground]; exact hg)
+    exact ⟨_, t', h'⟩
+  · cases h
+
+theorem Comp.sample : Comp TM.sample VerifierProgram.sampleChallenge :=
+  fun _ _ _ _ _ ↦ ⟨_, _, rfl⟩
+
+theorem Comp.nextScalars : ∀ n, Comp (TM.nextScalars n) (VerifierProgram.readScalars n)
+  | 0 => Comp.pure _ _
+  | n + 1 => Comp.bindEq Comp.nextScalar Sim.nextScalar fun _ ↦
+      Comp.bindEq (Comp.nextScalars n) (Sim.nextScalars n) fun _ ↦ Comp.pure _ _
+
+theorem Comp.samples : ∀ n, Comp (TM.samples n) (VerifierProgram.sampleChallenges n)
+  | 0 => Comp.pure _ _
+  | n + 1 => Comp.bindEq Comp.sample Sim.sample fun _ ↦
+      Comp.bindEq (Comp.samples n) (Sim.samples n) fun _ ↦ Comp.pure _ _
+
+theorem Comp.grindCheck (bits : ℕ) :
+    Comp (TM.grindCheck bits) (VerifierProgram.grindProofOfWork bits) := by
+  intro t b σ' hi h
+  by_cases hb : bits = 0
+  · subst hb
+    exact ⟨(), t, rfl⟩
+  · simp only [VerifierProgram.grindProofOfWork, hb, ↓reduceIte, runK, Compile.run, Id.run,
+      TState.toSpec] at h
+    split at h
+    · rename_i n xs hs hg
+      obtain ⟨hl, rfl⟩ := drop_eq_cons hs
+      obtain ⟨pow, s, habs, hk⟩ :=
+        grindCheck_succeeds hi hb hl (by rw [← toSpec_ground]; exact hg)
+      obtain ⟨-, -, hspec⟩ := absorbNonce_some hi.1 habs
+      rw [← hspec] at h
+      by_cases hp : powOk bits (UInt64.ofBitVec pow) = true
+      · obtain ⟨t', h'⟩ := hk hp
+        exact ⟨(), t', h'⟩
+      · change (if powOk bits (UInt64.ofBitVec pow) = true then _ else _ : Id _) = _ at h
+        rw [ite_eq_right hp] at h
+        cases h
+    · cases h
+
+theorem Comp.require_iff {c c' : Prop} [Decidable c] [Decidable c'] (h : c ↔ c') :
+    Comp (TM.require c) (VerifierProgram.require c') := by
+  intro t b σ' _ hr
+  by_cases hc : c'
+  · exact ⟨(), t, by simp [TM.require, StateT.run, h.mpr hc]⟩
+  · simp only [VerifierProgram.require, hc, ↓reduceIte, runK, Compile.run, Id.run] at hr
+    cases hr
+
+/-- A `checked()` branch: the body's completeness. -/
+theorem Comp.whenChecked_bind {γ δ : Type} {body : TM Unit} {k : Unit → TM γ}
+    {Q : VerifierProgram δ} (h : Comp (body >>= k) Q) : Comp (TM.whenChecked body >>= k) Q := by
+  intro t b σ' hi hr
+  have e : (TM.whenChecked body >>= k).run t = (body >>= k).run t := by
+    have e1 : TM.whenChecked body >>= k =
+        TM.checked >>= fun c ↦ (if c then body else Pure.pure ()) >>= k := by
+      simp only [TM.whenChecked, bind_assoc]
+    rw [e1]
+    show ((if t.checked then body else Pure.pure ()) >>= k).run t = _
+    rw [hi.2.2.2.1]
+    rfl
+  rw [e]
+  exact h t b σ' hi hr
+
+/-- A pure step of the Rust that returns. -/
+theorem Comp.ofOption_bind {α γ δ : Type} {o : Option α} {a : α} {k : α → TM γ}
+    {Q : VerifierProgram δ} (ho : o = some a) (h : Comp (k a) Q) :
+    Comp (TM.ofOption o >>= k) Q := by
+  subst ho
+  simpa only [TM.ofOption, pure_bind] using h
+
+theorem Comp.sumcheckRoundPoly {count : ℕ} (hc : 2 ≤ count) (hc' : count < 2 ^ 64) (claim : E)
+    (e : Option E) :
+    Comp (TM.sumcheckRoundPoly count claim e) (sumcheckRoundPoly count claim e) := by
+  cases e with
+  | none =>
+    simp only [TM.sumcheckRoundPoly, usizeSub_eq (by omega : 2 ≤ count) hc',
+      usizeSub_eq (by omega : 1 ≤ count) hc', usizeAdd_eq (by omega : count - 1 + 0 < 2 ^ 64),
+      Nat.add_zero, grindingBitsRust_ofNat (by omega : count - 1 < 2 ^ 64), sumRust_eq]
+    exact Comp.bindEq Comp.nextScalar Sim.nextScalar fun x ↦
+      Comp.bindEq (Comp.nextScalars _) (Sim.nextScalars _) fun xs ↦
+        Comp.bindEq (Comp.grindCheck _) (Sim.grindCheck _) fun _ ↦ Comp.pure _ _
+  | some f =>
+    simp only [TM.sumcheckRoundPoly, usizeSub_eq (by omega : 1 ≤ count) hc',
+      usizeAdd_eq (by omega : count - 1 + 1 < 2 ^ 64),
+      grindingBitsRust_ofNat (by omega : count - 1 + 1 < 2 ^ 64), sumRust_eq]
+    exact Comp.bindEq (Comp.nextScalars _) (Sim.nextScalars _) fun xs ↦
+      Comp.bindEq (Comp.grindCheck _) (Sim.grindCheck _) fun _ ↦ Comp.pure _ _
+
+/-- The sumcheck loop after the point pushed so far, followed by `k`. -/
+theorem Comp.sumcheckLoop_bind {β γ : Type} {count : ℕ} (hc : 2 ≤ count)
+    (hc' : count < 2 ^ 64) :
+    ∀ (eqs : List (Option E)) (pre : List E) (claim : E) (k : List E × E → TM β)
+    (K : List E × E → VerifierProgram γ),
+    (∀ p v, p.length = eqs.length → Comp (k (pre ++ p, v)) (K (p, v))) →
+    Comp (eqs.foldlM (TM.sumcheckRound count) (pre, claim) >>= k) (sumcheck claim count eqs >>= K)
+  | [], pre, claim, k, K, h => by
+    have h0 := h [] claim rfl
+    rw [List.append_nil] at h0
+    simp only [List.foldlM_nil, pure_bind]
+    exact h0
+  | e :: es, pre, claim, k, K, h => by
+    simp only [List.foldlM_cons, TM.sumcheckRound, bind_assoc, pure_bind]
+    rw [sumcheck]
+    simp only [VerifierProgram.bind_assoc']
+    refine Comp.bindEq (Comp.sumcheckRoundPoly hc hc' claim e)
+      (Sim.sumcheckRoundPoly hc hc' claim e) fun message ↦
+      Comp.bindEq Comp.sample Sim.sample fun c ↦ ?_
+    rw [polyEvalRust_eq]
+    refine Comp.sumcheckLoop_bind hc hc' es (pre ++ [c]) _ k _ fun p v hp ↦ ?_
+    have h1 := h (c :: p) v (by simp [hp])
+    rw [List.append_assoc, List.singleton_append]
+    exact h1
+
+theorem Comp.sumcheck_bind {β γ : Type} (claim : E) {count : ℕ} (hc : 2 ≤ count)
+    (hc' : count < 2 ^ 64) (eqs : List (Option E)) {k : List E × E → TM β}
+    {K : List E × E → VerifierProgram γ}
+    (h : ∀ p v, p.length = eqs.length → Comp (k (p, v)) (K (p, v))) :
+    Comp (TM.sumcheck claim count eqs >>= k) (sumcheck claim count eqs >>= K) :=
+  Comp.sumcheckLoop_bind hc hc' eqs [] claim k K h
+
+/-- `sumcheck`, its point of a coordinate per round. -/
+theorem SimR.sumcheck_len (claim : E) {count : ℕ} (hc : 2 ≤ count) (hc' : count < 2 ^ 64)
+    (eqs : List (Option E)) :
+    SimR (TM.sumcheck claim count eqs) (sumcheck claim count eqs)
+      fun a b ↦ a = b ∧ a.1.length = eqs.length := by
+  have h := SimR.sumcheck_bind claim hc hc' eqs (k := fun x ↦ Pure.pure x)
+    (K := VerifierProgram.ret) (r := fun a b ↦ a = b ∧ a.1.length = eqs.length)
+    fun p v hp ↦ SimR.pure ⟨rfl, hp⟩
+  rwa [bind_pure, VerifierProgram.bind_ret'] at h
 
 end
 

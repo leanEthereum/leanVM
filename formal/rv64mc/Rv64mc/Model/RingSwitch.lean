@@ -124,6 +124,21 @@ structure RingWeightRust where
 def RingWeightRust.evaluate (w : RingWeightRust) (rPrime : List E) : Option E :=
   ringWeightRust w.point rPrime w.coefficients
 
+/-- A ring weight evaluates at every opening point of its point's length. -/
+theorem RingWeightRust.evaluate_eq (w : RingWeightRust) {x : List E}
+    (hx : x.length = w.point.length) :
+    w.evaluate x = some (ringWeight w.point x w.coefficients) :=
+  ringWeightRust_eq hx.symm _
+
+/-- A ring weight agrees with the statement's wherever it returns. -/
+theorem RingWeightRust.evaluate_some {w : RingWeightRust} {x : List E} {v : E}
+    (h : w.evaluate x = some v) : v = ringWeight w.point x w.coefficients := by
+  unfold RingWeightRust.evaluate at h
+  by_cases hl : w.point.length = x.length
+  · rw [ringWeightRust_eq hl] at h
+    exact (Option.some.inj h).symm
+  · simp [ringWeightRust, hl] at h
+
 /-- `ring_switch(point, s, transcript)`: `grind_check(BATCH_GRINDING_BITS)?`, sixteen samples
 split at eight, the coefficients and the target. -/
 def ringSwitchRust (point s : List E) : TM (E × RingWeightRust) := do
@@ -135,17 +150,31 @@ def ringSwitchRust (point s : List E) : TM (E × RingWeightRust) := do
   let target := ringTargetRust s f g
   Pure.pure (target, ⟨point, coefficients⟩)
 
-/-- **`ring_switch` runs `ringSwitch`**: the same target, and a weight that evaluates, at every
-opening point of the claim point's length, to the statement's. -/
-theorem SimR.ringSwitch (point s : List E) :
+/-- **`ring_switch` runs `ringSwitch`**: the same target, and a weight that agrees with the
+statement's wherever it returns (and returns on the claim point's length,
+`RingWeightRust.evaluate_eq`), over the same point. -/
+theorem SimR.ringSwitch_agree (point s : List E) :
     SimR (ringSwitchRust point s) (ringSwitch point s) fun a b ↦
-      a.1 = b.1 ∧ ∀ x, x.length = point.length → a.2.evaluate x = some (b.2 x) := by
+      a.1 = b.1 ∧ a.2.point = point ∧ ∀ x v, a.2.evaluate x = some v → v = b.2 x := by
   unfold ringSwitchRust LeanVM.Protocol.Verifier.ringSwitch
   refine SimR.bindEq (Sim.grindCheck _) fun _ ↦ SimR.bindEq (Sim.samples _) fun ch ↦
-    SimR.pure ⟨?_, fun x hx ↦ ?_⟩
+    SimR.pure ⟨?_, rfl, fun x v h ↦ ?_⟩
   · simp only [ringTargetRust_eq, ringMapWidth]
-  · simp only [RingWeightRust.evaluate, ringWeightRust_eq hx.symm, ringCoefficientsRust_eq,
-      ringMapWidth]
+  · rw [RingWeightRust.evaluate_some h, ringCoefficientsRust_eq]
+    rfl
+
+/-- `ring_switch` runs `ringSwitch`, the weight evaluating on the claim point's length (the form
+`Model.Walk` uses; `SimR.ringSwitch_agree` is the general one). -/
+theorem SimR.ringSwitch (point s : List E) :
+    SimR (ringSwitchRust point s) (ringSwitch point s) fun a b ↦
+      a.1 = b.1 ∧ ∀ x, x.length = point.length → a.2.evaluate x = some (b.2 x) :=
+  SimR.mono (SimR.ringSwitch_agree point s) fun a b ⟨h1, h2, h3⟩ ↦ ⟨h1, fun x hx ↦ by
+    rw [RingWeightRust.evaluate_eq _ (by rw [h2]; exact hx)]
+    exact congrArg some (h3 _ _ (RingWeightRust.evaluate_eq _ (by rw [h2]; exact hx)))⟩
+
+theorem RootsKept.ringSwitch (point s : List E) : RootsKept (ringSwitchRust point s) :=
+  RootsKept.bindSim (Sim.grindCheck _) (NoCommit.grindProofOfWork _) fun _ ↦
+    RootsKept.bindSim (Sim.samples _) (NoCommit.sampleChallenges _) fun _ ↦ RootsKept.pure _
 
 end
 
