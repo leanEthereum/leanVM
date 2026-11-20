@@ -10,8 +10,8 @@ The generators run in a scratch mirror of `Tables/` (the body dumped by `dump.py
 left in this directory), in dependency order; `--check` writes nothing and fails naming each stale
 module. A module written whole gets a "do not edit" line in its header; four modules are partly
 written (the data definitions of `Vt/FormsData`, `Vt/FormsPad`, `Vt/EvalsT` and `VtC/FData`).
-The generators read the body at fixed statement positions, so a change to `verify_tables` itself
-is a change to them.
+The generators find the body's landmarks by their shape (`anchors.py`); the rest they read at fixed
+statement positions, so a change to `verify_tables` itself may be a change to them.
 """
 import os, re, shutil, subprocess, sys, tempfile
 from pathlib import Path
