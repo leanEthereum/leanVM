@@ -21,11 +21,9 @@ public import LeanVM.Guest.CoreMode.Fam.ExpDefs
 `subB j x`: residual `x` of function `j` is no `sub` residual, or one of the families
 (`splitB`, `anyResB anyLink`, `monoResB`, those read off the function's code, `subFamB` and
 `termFamB`, the proof stream's reads, `stB`, the runs a split cuts into blocks, `blkB`,
-`verify_tables`' table sumcheck's reads, `vtB`, the runs of a lift, `liftB`, `verify_keccak`'s
-reads past its layers, `vkStB`, the tiles, `tileFamB`, a lift
-read back, `liftBackB`, the same cells named one index up, `ordShiftB`, `verify_tables`' reads past
-its table sumcheck, `vtStB`, the runs a product's factors bound, `expFamB`, and `verify_tables`' groups'
-bases, `vtGrpB`, and `verify_sub`'s exponent facts' families, `vsB`).
+the runs of a lift, `liftB`, `verify_keccak`'s reads past its layers, `vkStB`, the tiles, `tileFamB`, a lift
+read back, `liftBackB`, the same cells named one index up, `ordShiftB`, the runs a product's factors bound,
+`expFamB`, and `verify_sub`'s exponent facts' families, `vsB`; `verify_tables`' are its own, `SubVt.lean`).
 `SubOk exc K`: certificate `K` is listed in `exc`, or each of its residuals passes `subB` at its
 function's index, decided per certificate (`subOk_of`).
 -/
@@ -56,40 +54,11 @@ noncomputable def stB (j : ℕ) : Mode.Res → Bool
       decide (Mode.Res.sub a bs = stRes s.2.1 s.2.2.1 a.q.k)
   | _ => false
 
-/-! ## `verify_tables`' table sumcheck -/
+/-! ## A read past a cursor base -/
 
 /-- The read `c` words past the cursor base `cur`, inside the stream `st·[0, 8192)`. -/
 def stResB (cur st : Mode.Base) (c : ℕ) : Mode.Res :=
   .sub ⟨⟨0, c, [(cur, 1)]⟩, .num 0, .num 1, 1, 0⟩ [⟨⟨0, 0, [(st, 1)]⟩, .num 0, .num 8192, 1, 0⟩]
-
-/-- **`verify_tables`' table sumcheck's reads** at function `j`: the rounds loop's reads of the stream
-`[[1]·g^22]` past its record's cursor (cell `17`) and past `sumcheck_round4`'s (`[[19]·g^3]`), below
-three words. -/
-noncomputable def vtB (j : ℕ) : Mode.Res → Bool
-  | .sub a bs => ((coreOf j).name == name% «verify_tables_loop0» && decide (a.q.k < 3) &&
-        (decide (Mode.Res.sub a bs = stResB (.fr 17) (.hp 1 22) a.q.k) ||
-          decide (Mode.Res.sub a bs = stResB (.hp 19 3) (.hp 1 22) a.q.k)))
-  | _ => false
-
-/-- **`verify_tables`' reads past its table sumcheck's last record's cursor** (cell `2880`) inside its
-stream (`[22]`), below `153` words. -/
-noncomputable def vtStB (j : ℕ) : Mode.Res → Bool
-  | .sub a bs => (coreOf j).name == name% «verify_tables» && decide (a.q.k < 153) &&
-      decide (Mode.Res.sub a bs = stRes 2880 (.fr 22) a.q.k)
-  | _ => false
-
-/-! ## `verify_tables`' groups -/
-
-/-- A side's groups' bases `[57]·g^[G0, G0 + m)`, each read through a rank's group
-`[57]·[[58]·g^(G0 + k)]`. -/
-def vtGrpRes (G0 m : ℕ) : Mode.Res :=
-  .sub ⟨⟨0, 0, [(.fr 57, 1)]⟩, .num G0, .num (G0 + m), 1, 0⟩
-    ((List.range m).map fun k ↦ ⟨⟨0, 0, [(.fr 57, 1), (.hp 58 (G0 + k), 1)]⟩, .num 0, .num 1, 1, 0⟩)
-
-/-- **`verify_tables`' groups' bases, read in group order**, at function `j`: the ranks of a side
-name each of its groups, the push side's `9` and the count side's `6`. -/
-noncomputable def vtGrpB (j : ℕ) (x : Mode.Res) : Bool :=
-  (coreOf j).name == name% «verify_tables» && (decide (x = vtGrpRes 0 9) || decide (x = vtGrpRes 18 6))
 
 /-! ## Runs cut into blocks by a split -/
 
@@ -168,9 +137,9 @@ noncomputable def vkStB (j : ℕ) : Mode.Res → Bool
 noncomputable def subB (j : ℕ) (w : Wit) : Mode.Res → Bool
   | .sub a bs => splitB j (.sub a bs) || anyResB anyLink j (.sub a bs) || monoResB j (.sub a bs) ||
       subFamB j w (.sub a bs) || termFamB j w (.sub a bs) || stB j (.sub a bs) ||
-      blkB j (.sub a bs) || vtB j (.sub a bs) || liftB j (.sub a bs) || vkStB j (.sub a bs) ||
+      blkB j (.sub a bs) || liftB j (.sub a bs) || vkStB j (.sub a bs) ||
       tileFamB j w (.sub a bs) || liftBackB j (.sub a bs) || ordShiftB j w (.sub a bs) ||
-      vtStB j (.sub a bs) || expFamB j w (.sub a bs) || vtGrpB j (.sub a bs) || vsB j (.sub a bs)
+      expFamB j w (.sub a bs) || vsB j (.sub a bs)
   | _ => true
 
 /-- **A certificate's `sub` residuals in the families**: it is listed in `exc`, or each is at its

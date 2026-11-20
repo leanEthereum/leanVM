@@ -212,10 +212,9 @@ def gl_of(k):
 
 
 def ml_k(k):
-    """`CoreMode.mlK`: `k` for `child_claim_list_mono_last__L{k}`, `1 ≤ k < 17`."""
-    import re
-    m = re.fullmatch(r'child_claim_list_mono_last__L(\d+)', k)
-    return int(m.group(1)) if m and 1 <= int(m.group(1)) < 17 else None
+    """`CoreMode.mlK`: the ghost family `ml`'s index of `k` (its rule file's `ml_k`), or None."""
+    import fnrules
+    return fnrules.first('ml_k', k)
 
 
 def gl_lean(k):
@@ -581,10 +580,11 @@ def own_sig(G, np, nr, gl=None):
     for x in range(np):
         if x not in sels and CORE_BODY.get('k') is not None and callcres.expq_bound(CORE_BODY['k'], x) is not None:
             sels[x] = callcres.expq_bound(CORE_BODY['k'], x)
-    # `da_pad`'s gap (`CoreMode.daGap`)
+    # a parameter its function's family bounds (its rule file's `sel_bound`: `da_pad`'s gap, `CoreMode.daGap`)
+    import fnrules
     for x in range(np):
-        if x not in sels and CORE_BODY.get('k') is not None and callcres.da_gap_bound(CORE_BODY['k'], x) is not None:
-            sels[x] = callcres.da_gap_bound(CORE_BODY['k'], x)
+        if x not in sels and CORE_BODY.get('k') is not None and fnrules.first('sel_bound', CORE_BODY['k'], x) is not None:
+            sels[x] = fnrules.first('sel_bound', CORE_BODY['k'], x)
     h.expRes = set()
 
     def own_run(r):
@@ -798,11 +798,12 @@ def exp_bounds(h, args, body, np, expc, k=None, acc=None):
                 if B is None and b[1] == 0:
                     B = (callcres.addr_bound(k, a) if k is not None else None) or \
                         callcres.rc_bound(callcres.top_atoms(body), a)
+                import fnrules
                 if B is None and b[1] == 0 and k is not None:
-                    B = callcres.vk_bound(k, a)
+                    B = fnrules.first('arg_bound', k, a)
                 if B is None and b[1] > 0 and k is not None:
                     # an argument times `g^c`, its bound plus `c` an exponent (`CoreMode.resArg`'s `.mono`)
-                    B = callcres.vs_bound(k, a)
+                    B = fnrules.first('arg_bound_mono', k, a)
                     if B is not None and not B + b[1] < 2 ** 62:
                         B = None
                 if B is None or acc is None:

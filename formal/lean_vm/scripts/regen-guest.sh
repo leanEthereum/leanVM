@@ -123,10 +123,13 @@ part_cert() {
 }
 
 # The core route (`formal/notes/core-mode.md`): its functions' signatures, heap certificates, pairings, frame
-# walks and route data. Every function keeps its signature (its contract, as written, or by hand in
-# `scripts/core-mode/sigseed.py`) and its frame walk takes its facts from the frame layout and its own walk.
+# walks and route data. Every function keeps its signature (its contract, by hand in its rule file
+# `scripts/core-mode/fn/<f>.py`, or as written) and its frame walk takes its facts from the frame layout and its own
+# walk. A function's own routing rules are in its rule file (`scripts/core-mode/fnrules.py`).
 # After `bridge`: the route data reads the bridge's alignment links (`Bridge/ProgAl/Link*`).
 part_core_mode() {
+  step "core-mode: each function's own routing facts and families registered (scripts/core-mode/fnreg.py)"
+  python3 -I scripts/core-mode/fnreg.py "${check[@]}"
   step "core-mode: the claim list's callees linked to its table (scripts/core-mode/anylink.py)"
   python3 -I scripts/core-mode/anylink.py "${check[@]}"
   step "core-mode: each function's signature (scripts/core-mode/sigc.py)"

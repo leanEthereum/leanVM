@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Core
-public import LeanVM.Guest.CoreMode.CoreRes
+public import LeanVM.Guest.CoreMode.CoreResG
 public import LeanVM.Guest.CoreMode.LoopBC
 public import LeanVM.Guest.Bridge.ProgAlDefs
 public import LeanVM.Guest.B2C.Cells

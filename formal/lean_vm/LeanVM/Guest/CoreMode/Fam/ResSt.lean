@@ -179,8 +179,7 @@ theorem vkQ_step (hr : r.Ok) :
   have hc : c ∈ calls es := List.mem_of_getElem? hci
   -- the caller is `verify_sub`
   have hcal := List.all_eq_true.mp (Res.calls_sites (Res.termCallers_all fnI (List.mem_of_find?_eq_some hfI)) hw c hc)
-    (name% «verify_keccak», name% «verify_sub»)
-    (List.mem_cons_of_mem _ (List.mem_append_right _ List.mem_cons_self))
+    (name% «verify_keccak», name% «verify_sub») (by decide)
   have hnI := Da.fn_name_of_find hfI
   rw [hcf] at hcal
   simp only [bne_self_eq_false, Bool.false_or, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq] at hcal

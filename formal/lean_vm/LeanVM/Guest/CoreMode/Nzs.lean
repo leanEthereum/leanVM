@@ -7,18 +7,15 @@
 module
 
 public import LeanVM.Guest.CoreMode.Assemble
-public import LeanVM.Guest.CoreMode.Fam.ResM
-public import LeanVM.Guest.CoreMode.Gen.MonoWalkOk
-public import LeanVM.Guest.CoreMode.Fam.ResVtG
-public import LeanVM.Guest.CoreMode.Fam.ResCp
+public import LeanVM.Guest.CoreMode.Gen.FnData
 public import LeanVM.Guest.EndExecW
 
 /-!
 # The core route's nonzero parameters
 
 A routed function's certificate carries residuals only where its frame walk back-solves a product by
-a divisor (`funC`'s residuals): each the nonzero value of a parameter listed here (`EndExec.NzOnly`),
-proved at every honest instance by its family.
+a divisor (`funC`'s residuals): each the nonzero value of a parameter listed here (`EndExec.NzOnly`), its function's
+own, proved at every honest instance by it (`coreNzs_ok`).
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -27,23 +24,9 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.EndExec
 
 @[expose] public section
 
-/-- The parameters whose nonzero values the core route's residuals are, by function. -/
-def coreNzs : List (String × V) :=
-  [("certify_placement", .n 155), ("child_claim_list_mono_last__L0", .n 1), ("verify_tables", .n 133),
-    ("verify_tables", .n 430), ("log2_ceil_in_the_exponent__L0_L34", .n 0),
-    ("log2_ceil_in_the_exponent__L16_L34", .n 0)]
-
-/-- Each listed parameter is nonzero at every honest instance of its function. -/
-theorem coreNzs_ok : ∀ p ∈ coreNzs, NzVal p.1 p.2 := by
-  intro p hp
-  simp only [coreNzs, List.mem_cons, List.not_mem_nil, or_false] at hp
-  rcases hp with rfl | rfl | rfl | rfl | rfl | rfl
-  · exact nzVal_cp155
-  · exact nzVal_ml0 mono_ok
-  · exact nzVal_vt133
-  · exact nzVal_vt430
-  · exact nzVal_lce0
-  · exact nzVal_lce16
+/-- The parameters whose nonzero values the core route's residuals are, by function: each function's own
+(`FnReg.nzs`, `CoreMode/Fn/<f>/Data.lean`; nonzero by its `Sound.lean`, `coreNzs_ok` in `NzsOk.lean`). -/
+abbrev coreNzs : List (String × V) := FnReg.nzs
 
 end
 

@@ -2,16 +2,13 @@
   LeanVM.Guest.CoreMode.HeapCTest
 
   The heap check with calls and loops on hand-written certificates: two loop helpers and a caller
-  of the guest, and small functions for returned words, runs consumed and a dispatch.
+  as the guest had them (frozen), and small functions for returned words, runs consumed and a dispatch.
 -/
 
 module
 
 public import LeanVM.Guest.CoreMode.HeapC
 public import LeanVM.Guest.Data.Pows
-public import LeanVM.Guest.Pack.«P0».Core
-public import LeanVM.Guest.Pack.«P53».Core
-public import LeanVM.Guest.Pack.«P11».Core
 
 /-!
 # Tests of `heapOkC`
@@ -62,6 +59,105 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 /-! ## Loop helpers of the guest -/
 
+/-- `verify_bus_gkr_loop0` as the guest had it, frozen: no guest edit changes the test. -/
+def loopCopy : Fn where
+  name := "__loop0_verify_bus_gkr"
+  params := [.n 0, .n 1, .n 2, .n 3]
+  body := [
+    .atom (.mul (.n 4) (.n 3) (.n 0)),
+    .atom (.load (.n 5) (.n 4) 0),
+    .atom (.mul (.n 6) (.n 2) (.n 0)),
+    .atom (.load (.n 5) (.n 6) 0),
+    .atom (.const (.n 7) (word 2 0)),
+    .atom (.mul (.n 8) (.n 0) (.n 7)),
+    .atom (.add (.n 9) (.n 8) (.n 1)),
+    .atom (.const (.n 10) (word 2 0)),
+    .atom (.mul (.n 11) (.n 0) (.n 10)),
+    .callIf (.n 9) "__loop0_verify_bus_gkr" [.n 11, .n 1, .n 2, .n 3],
+    .ret []]
+
+/-- `da_pad_loop0` as the guest had it, frozen: no guest edit changes the test. -/
+def loopPad : Fn where
+  name := "__loop0_da_pad"
+  params := [.n 0, .n 1, .n 2, .n 3]
+  body := [
+    .atom (.mul (.n 4) (.n 3) (.n 3)),
+    .atom (.mul (.n 5) (.n 2) (.n 4)),
+    .atom (.mul (.n 6) (.n 0) (.n 0)),
+    .atom (.mul (.n 7) (.n 5) (.n 6)),
+    .atom (.const (.n 8) (word 8002054802297438051 4108169256045952147)),
+    .atom (.load (.n 8) (.n 7) 0),
+    .atom (.const (.n 9) (word 12830724869163462953 1721925254677230945)),
+    .atom (.load (.n 9) (.n 7) 1),
+    .atom (.const (.n 10) (word 2 0)),
+    .atom (.mul (.n 11) (.n 0) (.n 10)),
+    .atom (.add (.n 12) (.n 11) (.n 1)),
+    .atom (.const (.n 13) (word 2 0)),
+    .atom (.mul (.n 14) (.n 0) (.n 13)),
+    .callIf (.n 12) "__loop0_da_pad" [.n 14, .n 1, .n 2, .n 3],
+    .ret []]
+
+/-- `opening_round` as the guest had it, frozen: no guest edit changes the test. -/
+def openingRound : Fn where
+  name := "opening_round"
+  params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]
+  body := (
+    .atom (.copy (.n 10) (.n 0)) ::
+    .atom (.copy (.n 11) (.n 1)) ::
+    .atom (.copy (.n 12) (.n 2)) ::
+    .atom (.copy (.n 13) (.n 3)) ::
+    .atom (.copy (.n 14) (.n 4)) ::
+    .atom (.load (.n 15) (.n 5) 0) ::
+    .atom (.copy (.n 16) (.n 15)) ::
+    .atom (.const (.n 17) (word 0 1)) ::
+    .atom (.load (.n 18) (.n 5) 1) ::
+    .atom (.copy (.n 19) (.n 18)) ::
+    .atom (.const (.n 20) (word 0 1)) ::
+    .atom (.load (.n 21) (.n 5) 2) ::
+    .atom (.copy (.n 22) (.n 21)) ::
+    .atom (.const (.n 23) (word 0 1)) ::
+    .atom (.load (.n 24) (.n 5) 3) ::
+    .atom (.copy (.n 25) (.n 24)) ::
+    .atom (.const (.n 26) (word 0 1)) ::
+    .atom (.keccak [.n 16, .n 17, .n 19, .n 20, .n 22, .n 23, .n 25, .n 26, .n 10, .n 11, .n 12, .n 13, .n 14] [.n 27, .n 28, .n 29, .n 30, .n 31, .n 32, .n 33, .n 34, .n 35, .n 36, .n 37, .n 38, .n 39] false false) ::
+    .atom (.load (.n 40) (.n 5) 4) ::
+    .atom (.copy (.n 41) (.n 40)) ::
+    .atom (.const (.n 42) (word 0 4)) ::
+    .atom (.const (.n 43) (word 1 0)) ::
+    .atom (.const (.n 44) (word 0 0)) ::
+    .atom (.const (.n 45) (word 0 0)) ::
+    .atom (.const (.n 46) (word 0 0)) ::
+    .atom (.const (.n 47) (word 0 0)) ::
+    .atom (.keccak [.n 41, .n 42, .n 44, .n 44, .n 44, .n 45, .n 46, .n 47, .n 35, .n 36, .n 37, .n 38, .n 39] [.n 48, .n 49, .n 50, .n 51, .n 52, .n 53, .n 54, .n 55, .n 56, .n 57, .n 58, .n 59, .n 60] false false) ::
+    .call "grind_check__L7" [.n 49, .n 7] [] ::
+    .atom (.copy (.n 61) (.n 48)) ::
+    .atom (.keccak [.n 44, .n 44, .n 44, .n 44, .n 44, .n 45, .n 46, .n 47, .n 56, .n 57, .n 58, .n 59, .n 60] [.n 62, .n 63, .n 64, .n 65, .n 66, .n 67, .n 68, .n 69, .n 70, .n 71, .n 72, .n 73, .n 74] false false) ::
+    .atom (.copy (.n 75) (.n 62)) ::
+    .atom (.load (.n 61) (.n 8) 0) ::
+    .atom (.load (.n 61) (.n 9) 0) ::
+    .atom (.load (.n 75) (.n 9) 1) ::
+    .atom (.mul (.n 76) (.n 75) (.n 21)) ::
+    .atom (.add (.n 77) (.n 15) (.n 76)) ::
+    .atom (.add (.n 78) (.n 15) (.n 6)) ::
+    .atom (.mul (.n 79) (.n 61) (.n 18)) ::
+    .atom (.add (.n 80) (.n 78) (.n 79)) ::
+    .atom (.add (.n 81) (.n 21) (.n 24)) ::
+    .atom (.mul (.n 82) (.n 75) (.n 81)) ::
+    .atom (.add (.n 83) (.n 80) (.n 82)) ::
+    .atom (.mul (.n 84) (.n 61) (.n 83)) ::
+    .atom (.add (.n 85) (.n 77) (.n 84)) ::
+    .atom (.copy (.n 86) (.n 70)) ::
+    .atom (.copy (.n 87) (.n 71)) ::
+    .atom (.copy (.n 88) (.n 72)) ::
+    .atom (.copy (.n 89) (.n 73)) ::
+    .atom (.copy (.n 90) (.n 74)) ::
+    .atom (.const (.n 91) (word 32 0)) ::
+    .atom (.mul (.n 92) (.n 5) (.n 91)) ::
+    .atom (.copy (.n 93) (.n 92)) ::
+    .atom (.copy (.n 94) (.n 85)) ::
+    .ret [.n 86, .n 87, .n 88, .n 89, .n 90, .n 93, .n 94] ::
+    [])
+
 /-- `__loop0_verify_bus_gkr`'s certificate. -/
 def h7 : HCert where
   sig :=
@@ -72,12 +168,12 @@ def h7 : HCert where
   calls := [[.run 0 []]]
   rets := [[.ev 1]]
 
-theorem loop7_ok : heapOkC Data.powTree (fun _ ↦ h7.sig) Fn.«verify_bus_gkr_loop0».core h7 = true := by
+theorem loop7_ok : heapOkC Data.powTree (fun _ ↦ h7.sig) loopCopy h7 = true := by
   decide +kernel
 
 /-- The point at the counter not written: the store's serial is `1`, not `0`. -/
 theorem loop7_bad :
-    heapOkC Data.powTree (fun _ ↦ h7.sig) Fn.«verify_bus_gkr_loop0».core { h7 with rets := [[.ev 0]] } = false := by
+    heapOkC Data.powTree (fun _ ↦ h7.sig) loopCopy { h7 with rets := [[.ev 0]] } = false := by
   decide +kernel
 
 /-- `__loop0_da_pad`'s certificate. -/
@@ -90,7 +186,7 @@ def h23 : HCert where
   calls := [[]]
   rets := [[.ev 0, .ev 1]]
 
-theorem loop23_ok : heapOkC Data.powTree (fun _ ↦ h23.sig) Fn.«da_pad_loop0».core h23 = true := by
+theorem loop23_ok : heapOkC Data.powTree (fun _ ↦ h23.sig) loopPad h23 = true := by
   decide +kernel
 
 /-! ## A caller of the guest -/
@@ -107,7 +203,7 @@ def hOR : HCert where
   rets := [[.ev 5, .ev 6, .ev 7]]
 
 theorem openingRound_ok :
-    heapOkC Data.powTree (fun g ↦ if g = "opening_round" then hOR.sig else .empty) Fn.«opening_round».core hOR =
+    heapOkC Data.powTree (fun g ↦ if g = "opening_round" then hOR.sig else .empty) openingRound hOR =
       true := by
   decide +kernel
 

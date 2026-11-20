@@ -2,8 +2,7 @@
   LeanVM.Guest.EndExecW
 
   Facts carried down the honest tree at listed parameters (`Res.carried`): the heap witness
-  pointers no spine pins, powers below `maxCells` (`WitPtrRes`), and `log2_ceil_in_the_exponent`'s
-  `g_N` nonzero (`NzVal`).
+  pointers no spine pins, powers below `maxCells` (`WitPtrRes`).
 -/
 
 module
@@ -31,8 +30,7 @@ caller's carried values or the return of a call of `exponent_tables` on the path
 
 `witPtrRes_guest : WitPtrRes`: a heap witness pointer its spine does not pin is in `K` by the
 carried values (`carryG`), and its hint writes the memory from offset `0`, so the pointer is a
-power below `maxCells`. `nzVal_lce0`, `nzVal_lce16`: `log2_ceil_in_the_exponent`'s
-`g^(2^L) = g_N · g^e` on the carried tables (`log2_holds`), so `g_N ≠ 0`.
+power below `maxCells`.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -325,34 +323,6 @@ theorem witPtrRes_guest : WitPtrRes := by
   rw [show addressOfIndex (0 + 0) = 1 by simp [addressOfIndex], mul_one] at hrd
   obtain ⟨b, hb, he⟩ := read_pow hrd hκ
   exact ⟨b, hb, by rw [Core.eq_ofK_limb hK, he]⟩
-
-/-! ## `log2_ceil_in_the_exponent`'s `g_N` -/
-
-/-- `g_N ≠ 0` at an honest instance of a `log2_ceil_in_the_exponent` specialization. -/
-theorem nzVal_lce {name : String} {fl : ℕ} {f : Fn} (hfind : coreProgram.find? name = some f)
-    (hps : f.params = [.n 0, .n 1]) (hc : (name, 1, Kd.tab) ∈ carried)
-    (hspec : B1.log2_ceil_in_the_exponent_SpecP coreProgram name fl) : NzVal name (.n 0) := by
-  intro r hr I hI σ bufs kids hIt
-  have ht := (carryQ_all hr I hI name σ bufs kids hIt f hfind _ hc rfl (.n 1) (by rw [hps]; rfl)).1
-  obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
-  have hrel := Tree.Valid.rel _ hv
-  obtain ⟨fn', hf', hpar, -⟩ := hv
-  obtain rfl : f = fn' := Option.some.inj (hfind.symm.trans hf')
-  rw [hps] at hpar
-  simp only [List.map_cons, List.map_nil] at hpar
-  subst hpar
-  have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
-  have h23 : 23 ≤ r.κ := twentyThree_le_logMem _
-  obtain ⟨L, -, -, ⟨e, -, he⟩, -⟩ := (hspec (by omega) (by omega) r.img _ _ ht rets).mp hrel
-  intro h0
-  rw [h0, zero_mul] at he
-  exact Value.gen_pow_ne_zero _ he
-
-theorem nzVal_lce0 : NzVal "log2_ceil_in_the_exponent__L0_L34" (.n 0) :=
-  nzVal_lce B1.find_lce_L0 rfl (by decide) B1.log2_holds.1
-
-theorem nzVal_lce16 : NzVal "log2_ceil_in_the_exponent__L16_L34" (.n 0) :=
-  nzVal_lce B1.find_lce_L16 rfl (by decide) B1.log2_holds.2
 
 end
 

@@ -13,7 +13,7 @@ public import LeanVM.Guest.CoreMode.Fam.ResVtSt
 public import LeanVM.Guest.CoreMode.Fam.ResExp
 public import LeanVM.Guest.B1.Tables.Vt.Sort
 public import LeanVM.Guest.B1.Tables.Vt.Pads
-public import LeanVM.Guest.CoreMode.Fam.SubDefs
+public import LeanVM.Guest.CoreMode.Fam.SubVt
 public import LeanVM.Guest.CoreMode.Fam.ResVtL
 
 /-!

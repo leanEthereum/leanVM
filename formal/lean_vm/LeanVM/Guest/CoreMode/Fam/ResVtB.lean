@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Fam.ResVtL
 public import LeanVM.Guest.CoreMode.Fam.ResCld
-public import LeanVM.Guest.CoreMode.Fam.SubDefs
+public import LeanVM.Guest.CoreMode.Fam.SubVt
 
 /-!
 # The table sumcheck's reads
