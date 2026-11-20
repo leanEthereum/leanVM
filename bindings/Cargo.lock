@@ -193,7 +193,7 @@ version = "0.1.0"
 
 [[package]]
 name = "lean-pq"
-version = "0.13.1"
+version = "0.14.0"
 dependencies = [
  "claims",
  "getrandom 0.3.4",
@@ -206,14 +206,14 @@ dependencies = [
 
 [[package]]
 name = "lean-pq-native"
-version = "0.13.1"
+version = "0.14.0"
 dependencies = [
  "lean-pq",
 ]
 
 [[package]]
 name = "lean-pq-node"
-version = "0.13.1"
+version = "0.14.0"
 dependencies = [
  "lean-pq",
  "napi",
@@ -375,7 +375,7 @@ dependencies = [
 
 [[package]]
 name = "py-lean-pq"
-version = "0.13.1"
+version = "0.14.0"
 dependencies = [
  "lean-pq",
  "pyo3",
