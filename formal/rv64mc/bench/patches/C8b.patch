@@ -1,0 +1,13 @@
+--- a/crates/verifier/src/transcript.rs
++++ b/crates/verifier/src/transcript.rs
+@@ -54,9 +54,9 @@
+         for (i, &(value, tag)) in self.pending[..self.n_pending].iter().enumerate() {
+             input[4 * i..4 * i + 4].copy_from_slice(&[value.c0, value.c1, 0, tag]);
+         }
++        self.n_pending = 0;
+         keccak_f(&mut input);
+         self.state = input;
+-        self.n_pending = 0;
+     }
+ 
+     pub(crate) fn absorb(&mut self, value: E, tag: u64) {

@@ -1,0 +1,13 @@
+--- a/crates/verifier/src/multilinear.rs
++++ b/crates/verifier/src/multilinear.rs
+@@ -79,8 +79,8 @@
+ pub fn dot(left: &[E], right: &[E]) -> E {
+     assert_eq!(left.len(), right.len());
+     let mut result = ZERO;
+-    for (&x, &y) in left.iter().zip(right) {
+-        result += x * y;
++    for i in (0..left.len()).rev() {
++        result += left[i] * right[i];
+     }
+     result
+ }

@@ -140,6 +140,26 @@ def read_time(path: Path) -> dict:
     return out
 
 
+def proof_status(project: Path, mods: list[str]) -> str:
+    """Per changed template: whether a table links its proof at the image, and how many of its callers' are."""
+    if not (project / "Rv64mc/Table").is_dir():
+        return "-"
+    tables = "".join(f.read_text(encoding="utf-8") for f in (project / "Rv64mc/Table").glob("*.lean"))
+    link_root = project / "Rv64mc/Gen/Link"
+    links = {f: f.read_text(encoding="utf-8") for f in link_root.rglob("*.lean")}
+
+    def proved(m: str) -> bool:
+        return re.search(rf"\bIdx\.{re.escape(m)}(?![\w.])", tables) is not None
+
+    out = []
+    for m in mods:
+        callers = sorted({str(f.relative_to(link_root).with_suffix("")).replace("/", ".") for f, t in links.items()
+                          if re.search(rf"⟨Idx\.{re.escape(m)},", t)} - {m})
+        n = sum(proved(c) for c in callers)
+        out.append(f"{m}: {'proved' if proved(m) else 'unproved'}, callers {n}/{len(callers)} proved")
+    return "; ".join(out) if out else "-"
+
+
 def report(meta: Path, label: str) -> None:
     rows = [l.split("\t") for l in read(meta / "lean.tsv").splitlines() if l]
     per = defaultdict(lambda: [0, 0.0, []])
@@ -183,18 +203,20 @@ def report(meta: Path, label: str) -> None:
     link_cpu = per["Gen.Link"][1] + per["Gen other"][1]
     proof_mods = per["Proof"][0] + per["Spec"][0] + per["Table"][0] + per["Final"][0] + per["Model"][0]
     pre = regen.get("cpu", 0) + layouts.get("cpu", 0)
+    status = proof_status(meta.parent / "formal/rv64mc", [l.split("\t")[1] for l in tmpl.splitlines()
+                                                        if l.startswith(("changed\t", "removed\t"))])
     row = [label, read(meta / "sha"), ch.group(1) if ch else "?", f"{per['Gen.Tmpl'][1]:.0f}", f"{link_cpu:.0f}",
            str(per["Proof"][0]), str(proof_mods), str(len(failed)), f"{pre:.0f}", f"{build.get('cpu', 0):.0f}",
            f"{total_cpu:.0f}", f"{pre + build.get('cpu', 0):.0f}",
            f"{regen.get('wall', 0) + layouts.get('wall', 0) + build.get('wall', 0):.0f}",
-           f"{sweep_cpu:.0f}"]
+           f"{sweep_cpu:.0f}", status]
     tsv = meta / "row.tsv"
     tsv.write_text("\t".join(row) + "\n", encoding="utf-8")
     md = [f"## {label}: {read(meta / 'title', label)}", "",
           f"Copy of `{read(meta / 'sha')}`; patch `{read(meta / 'patch')}` ({read(meta / 'patch-files')}).", "",
           f"**Binary.** {raw.group(0).strip() if raw else 'raw: ?'}; {mod_addr.group(0).strip() if mod_addr else ''}. "
           f"{tsummary}" + (f": {', '.join(changed[:12])}{', ...' if len(changed) > 12 else ''}" if changed else "")
-          + ".", "",
+          + ".", "", f"**Proved before the change** (changed or removed templates): {status}.", "",
           f"**Generation.** `regen.sh` {regen.get('cpu', 0):.0f} CPU-s / {regen.get('wall', 0):.0f} s, "
           f"`type-layouts.sh` {layouts.get('cpu', 0):.0f} CPU-s / {layouts.get('wall', 0):.0f} s"
           + (f" (Layouts.lean {read(meta / 'layouts-changed')})" if (meta / "layouts-changed").exists() else "")
@@ -274,7 +296,8 @@ def sweep(project: Path, meta: Path) -> None:
 
 
 HEADER = ("label\tsha\ttemplates_changed\ttmpl_cpu_s\tlink_cpu_s\tproof_modules\tproof_spec_table_final_model_modules"
-          "\tfailed_modules\tregen_layouts_cpu_s\tbuild_cpu_s\tlean_cpu_s\ttotal_cpu_s\ttotal_wall_s\tsweep_cpu_s\n")
+          "\tfailed_modules\tregen_layouts_cpu_s\tbuild_cpu_s\tlean_cpu_s\ttotal_cpu_s\ttotal_wall_s\tsweep_cpu_s"
+          "\tchanged_proved_callers_proved\n")
 
 if __name__ == "__main__":
     cmd = sys.argv[1]
