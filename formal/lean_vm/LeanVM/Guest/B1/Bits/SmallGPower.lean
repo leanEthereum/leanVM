@@ -20,8 +20,10 @@ exponent table (`ExpTables`) the share of `d_j = g^n` is `g^(n·16^j)`, so `x = 
 `e = Σ n_j 16^j < 2^36`, and conversely every such `x` passes with the digits of `e`
 (`assert_small_g_power_holds`).
 
-The expansion is `asgHead` (the hint and digit `0`), `asgBlk j` per digit `j + 1` (values
-`17 + 7j ..`, its share multiplied into the running product `asgAcc j`), the check.
+`vc` computes its condition; `asg_digit` reads it a digit at a time. The expansion `asgHead` (the
+hint and digit `0`), `asgBlk j` per digit `j + 1` (values `17 + 7j ..`, its share multiplied into
+the running product `asgAcc j`), the check, and its honest valuation (`asg_holds_of`) are what
+`Log2Placed`'s placed completeness walks.
 -/
 
 namespace LeanVM.Guest.B1
@@ -109,7 +111,7 @@ theorem asg_holds_iff (C : CallRel) (rd : Reader) (σ : Val) (kret : List E → 
   simp only [holdsList_append, holdsList_range_flatten 8 asgBlk (fun _ => rfl), holds_asgBlk,
     Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_nil, true_and]
 
-/-! ## Soundness -/
+/-! ## The digits -/
 
 /-- The share of digit `j` read through `q·g^n` at `34 + 16 j`: `g^(n·16^j)`. -/
 theorem asg_share {rd : Reader} {q s : E} (ht : ExpTables rd q) {j n : ℕ} (hj : j < 9)
@@ -119,7 +121,29 @@ theorem asg_share {rd : Reader} {q s : E} (ht : ExpTables rd q) {j n : ℕ} (hj 
     have := ht.2.1 j hj n hn
     rwa [show sizeBits + 16 * j + n = n + (34 + 16 * j) by simp only [sizeBits]; omega] at this)
 
-/-! ## Completeness -/
+/-- One digit, as the body's condition has it: its range check below `16` and its share read
+at `34 + 16 j` are a digit `n < 16` and its share `g^(n·16^j)`. -/
+private theorem asg_digit {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) {Lm : MemoryImage κ} {q : E}
+    (ht : ExpTables Lm.read q) {j : ℕ} (hj : j < 9) (off : ℕ) (hoff : off = 34 + 16 * j)
+    {R : E → E → Prop} :
+    (∃ d y t1, LoadHolds Lm.read d 0 t1 ∧ word 32768 0 = d * y ∧ ∃ t2, LoadHolds Lm.read y 0 t2 ∧
+      ∃ s, LoadHolds Lm.read (q * d) off s ∧ R d s) ↔
+      ∃ n < 16, R (gen ^ n) (gen ^ (n * 16 ^ j)) := by
+  have hK : (16 : ℕ) ≤ 2 ^ κ := le_trans (by decide) (Nat.pow_le_pow_right (by decide) hκ6)
+  have hrc := fun d ↦ rangeCheck_gen_iff hκ Lm d (K := 16) (by decide) hK (by decide)
+  subst hoff
+  constructor
+  · rintro ⟨d, y, t1, l1, hw, t2, l2, s, ls, hR⟩
+    obtain ⟨n, hn, rfl⟩ := (hrc d).1 ⟨y, t1, t2, l1, hw, l2⟩
+    exact ⟨n, hn, asg_share ht hj hn ls ▸ hR⟩
+  · rintro ⟨n, hn, hR⟩
+    obtain ⟨y, t1, t2, l1, hw, l2⟩ := (hrc _).2 ⟨n, hn, rfl⟩
+    refine ⟨_, y, t1, l1, hw, t2, l2, _, ?_, hR⟩
+    rw [loadHolds_mul_gen_pow]
+    have := ht.2.1 j hj n hn
+    rwa [show sizeBits + 16 * j + n = n + (34 + 16 * j) by simp only [sizeBits]; omega] at this
+
+/-! ## The honest valuation -/
 
 /-- The honest values: the arguments, the nine digits `g^(n_j)`, each block's constant, range
 check words, pointer, share and product (`n_j = e / 16^j % 16`). -/
@@ -242,27 +266,7 @@ theorem asg_holds_of {C : CallRel} {rd : Reader} {q : E} {e : ℕ} (he : e < 16 
     rw [Nat.mod_eq_of_lt (by simpa using he)]
     exact e_add_eq_zero_iff.mpr rfl
 
-/-- **One digit**, as the body's condition has it: its range check below `16` and its share read
-at `34 + 16 j` are a digit `n < 16` and its share `g^(n·16^j)`. -/
-theorem asg_digit {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) {Lm : MemoryImage κ} {q : E}
-    (ht : ExpTables Lm.read q) {j : ℕ} (hj : j < 9) (off : ℕ) (hoff : off = 34 + 16 * j)
-    {R : E → E → Prop} :
-    (∃ d y t1, LoadHolds Lm.read d 0 t1 ∧ word 32768 0 = d * y ∧ ∃ t2, LoadHolds Lm.read y 0 t2 ∧
-      ∃ s, LoadHolds Lm.read (q * d) off s ∧ R d s) ↔
-      ∃ n < 16, R (gen ^ n) (gen ^ (n * 16 ^ j)) := by
-  have hK : (16 : ℕ) ≤ 2 ^ κ := le_trans (by decide) (Nat.pow_le_pow_right (by decide) hκ6)
-  have hrc := fun d ↦ rangeCheck_gen_iff hκ Lm d (K := 16) (by decide) hK (by decide)
-  subst hoff
-  constructor
-  · rintro ⟨d, y, t1, l1, hw, t2, l2, s, ls, hR⟩
-    obtain ⟨n, hn, rfl⟩ := (hrc d).1 ⟨y, t1, t2, l1, hw, l2⟩
-    exact ⟨n, hn, asg_share ht hj hn ls ▸ hR⟩
-  · rintro ⟨n, hn, hR⟩
-    obtain ⟨y, t1, t2, l1, hw, l2⟩ := (hrc _).2 ⟨n, hn, rfl⟩
-    refine ⟨_, y, t1, l1, hw, t2, l2, _, ?_, hR⟩
-    rw [loadHolds_mul_gen_pow]
-    have := ht.2.1 j hj n hn
-    rwa [show sizeBits + 16 * j + n = n + (34 + 16 * j) by simp only [sizeBits]; omega] at this
+/-! ## The theorem -/
 
 /-- **`assert_small_g_power`'s core IR is its meaning.** -/
 theorem assert_small_g_power_holds : assert_small_g_power_Spec := by
@@ -285,7 +289,8 @@ theorem assert_small_g_power_holds : assert_small_g_power_Spec := by
     exact ⟨⟨_, by omega, hx.symm⟩, rfl⟩
   · rintro ⟨⟨e, he, rfl⟩, rfl⟩
     have hd : ∀ j, e / 16 ^ j % 16 < 16 := fun _ ↦ Nat.mod_lt _ (by decide)
-    refine ⟨_, hd 0, _, hd 1, _, hd 2, _, hd 3, _, hd 4, _, hd 5, _, hd 6, _, hd 7, _, hd 8, ?_, rfl⟩
+    refine ⟨_, hd 0, _, hd 1, _, hd 2, _, hd 3, _, hd 4, _, hd 5, _, hd 6, _, hd 7, _, hd 8, ?_,
+      rfl⟩
     congr 1
     conv_rhs => rw [← Nat.mod_eq_of_lt (show e < 16 ^ 9 by omega)]
     simp only [mod_sixteen_succ, pow_zero, Nat.mod_one, zero_add]
