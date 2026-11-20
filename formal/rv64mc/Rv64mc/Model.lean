@@ -11,6 +11,7 @@ public import Rv64mc.Model.RingSwitch
 public import Rv64mc.Model.KeccakGkr
 public import Rv64mc.Model.Whir
 public import Rv64mc.Model.Layout
+public import Rv64mc.Model.Bytecode
 
 /-!
 # Mirrors of the Rust verifier
