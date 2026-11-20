@@ -11,6 +11,8 @@ module
 public import LeanVM.Guest.B1.Sig.XmssSegCoreC
 public import LeanVM.Guest.B1.Sig.XmssSegPathC
 public import LeanVM.Guest.B1.Sig.XmssSegEnds
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop2»
 
 /-!
 # `verify_lean_xmss` in `main_loop2`, complete
@@ -125,20 +127,20 @@ theorem verify_lean_xmss_complete_vals_of (hW : LxWindowsC) (C : CallRel) (rd : 
   set part1 := sig.layers LeanXmss.topLayer with hp1
   rw [xSeg_split]
   -- the prologue
-  refine Completes.append (m := 88) (by norm_num) (by norm_num) sPrologue_nb
+  refine Completes.append (m := (val% «main_loop2» "rho@1")) (by norm_num) (by norm_num) sPrologue_nb
     (sPrologue_complete σ hldP (fun w => eOfNat (L >>> (8 * w))) (fun w => ofK (addressOfIndex (lxWin L w))))
     (fun σ1 he1 ⟨hP1, hhis1, hwin1, hpow1⟩ => ?_)
   have hs1 : σ1 sSigner = σ sSigner := he1.apply (Or.inl (by norm_num))
   have htags1 := lxTagsHold_congr htags he1.agree
   -- the bottom layer's digest
-  refine Completes.append (m := 104) (by norm_num) (by norm_num) sDigest0_nb
+  refine Completes.append (m := (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s5.u0.s0#0")) (by norm_num) (by norm_num) sDigest0_nb
     (sDigest0_complete (C := C) (rd := rd) σ1 (rho := cellOf128 part0.randomizer)
       (c := cellOf128 (m.extractLsb' 0 128)) (d := cellOf128 (m.extractLsb' 128 128))
       (by rw [hs1]; exact hldLo) (by rw [hs1]; exact hldHi)).withHolds
     (fun σ2 he2 ⟨⟨h88, h91, h92⟩, hh2⟩ => ?_)
   obtain ⟨-, -, hpad2, h90, h103⟩ := sDigest0_sound (atomsHold_of_holdsList (sDigest0_atoms 88) hh2)
-  have t2 : ∀ k < 88, σ2 (.n k) = σ1 (.n k) := fun k hk => he2.apply (Or.inl hk)
-  have hP2 : σ2 sLxPP = cellOf128 pk.parameter := by rw [show sLxPP = V.n 66 from rfl, t2 66 (by norm_num)]; exact hP1
+  have t2 : ∀ k < (val% «main_loop2» "rho@1"), σ2 (.n k) = σ1 (.n k) := fun k hk => he2.apply (Or.inl hk)
+  have hP2 : σ2 sLxPP = cellOf128 pk.parameter := by rw [show sLxPP = V.n (val% «main_loop2» "pp") from rfl, t2 66 (by norm_num)]; exact hP1
   have hhis2 : ∀ v < 4, σ2 (sHis v) = eOfNat (L >>> (8 * v)) := fun v hv => by
     rw [show sHis v = V.n (67 + v) from rfl, t2 _ (by omega)]; exact hhis1 v hv
   have hwin2 : ∀ w < 4, σ2 (sWin w) = ofK (addressOfIndex (lxWin L w)) := fun w hw => by
@@ -151,12 +153,12 @@ theorem verify_lean_xmss_complete_vals_of (hW : LxWindowsC) (C : CallRel) (rd : 
     exact lx_tag hpad2.2.1 (fun s hs => hpow2 s (by omega)) htags2 i hi
   -- the bottom digest decodes
   have hidx0 : σ2 (sHis 0) = eOfNat (xIdxNat 0 L) := by rw [xIdxNat_zero, hhis2 0 (by norm_num)]; rfl
-  have hM0 : HashSig.littleEndianBytes 32 m = [σ2 (.n 91), σ2 (.n 92)].flatMap cellBytes := by
+  have hM0 : HashSig.littleEndianBytes 32 m = [σ2 (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2")), σ2 (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3"))].flatMap cellBytes := by
     rw [h91, h92]
     calc HashSig.littleEndianBytes 32 m = HashSig.littleEndianBytes 32 (cellPairVal (cellOf128
           (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128))) := by rw [cellPairVal_cellOf128]
       _ = _ := by rw [bytesLE_cellPairVal]; simp
-  have ha0 : cellBytes (σ2 (.n 90)) = LeanXmss.tweakBytes
+  have ha0 : cellBytes (σ2 (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#1"))) = LeanXmss.tweakBytes
       (.message ⟨0, by decide⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨0, by decide⟩)) := by
     rw [h90, hidx0]
     exact xMsgAdr_bytes hL (by norm_num)
@@ -164,10 +166,10 @@ theorem verify_lean_xmss_complete_vals_of (hW : LxWindowsC) (C : CallRel) (rd : 
   have hmd0 := messageDigest_cells xq_keccak (pp := cellOf128 pk.parameter) (rho := cellOf128 part0.randomizer)
     ha0 hM0
   rw [hxpp, show xv (cellOf128 part0.randomizer) = part0.randomizer from cellVal_cellOf128 _] at hmd0
-  have hdec0' : LeanXmss.Codeword.decode (xv (hcell (cellOf128 pk.parameter :: σ2 (.n 90) ::
-      [σ2 (.n 91), σ2 (.n 92)] ++ [cellOf128 part0.randomizer])).1) = some enc0 := by
+  have hdec0' : LeanXmss.Codeword.decode (xv (hcell (cellOf128 pk.parameter :: σ2 (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#1")) ::
+      [σ2 (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2")), σ2 (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3"))] ++ [cellOf128 part0.randomizer])).1) = some enc0 := by
     rw [← hmd0]; exact hdec0
-  have hD0 : σ2 (.n 103) = (hcell (cellOf128 pk.parameter :: σ2 (.n 90) :: [σ2 (.n 91), σ2 (.n 92)] ++
+  have hD0 : σ2 (.n (val% «main_loop2» "digest[0]@1")) = (hcell (cellOf128 pk.parameter :: σ2 (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#1")) :: [σ2 (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2")), σ2 (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3"))] ++
       [cellOf128 part0.randomizer])).1 := by
     rw [h103, hP2, h88]; rfl
   rw [← hD0] at hdec0'
@@ -182,9 +184,9 @@ theorem verify_lean_xmss_complete_vals_of (hW : LxWindowsC) (C : CallRel) (rd : 
   rw [e0] at hnb0 hc0
   refine Completes.append (m := xTop) (by norm_num) (by norm_num) hnb0 hc0.withHolds
     (fun σ3 he3 ⟨hk3, hh3⟩ => ?_)
-  have t3 : ∀ k < 104, σ3 (.n k) = σ2 (.n k) := fun k hk => he3.apply (Or.inl hk)
+  have t3 : ∀ k < (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s5.u0.s0#0"), σ3 (.n k) = σ2 (.n k) := fun k hk => he3.apply (Or.inl hk)
   have hpad3 : PadOK σ3 sLxPad := hpad2.congr (b := 104) (by simp [sLxPad]) he3.agree
-  have hP3 : σ3 sLxPP = cellOf128 pk.parameter := by rw [show sLxPP = V.n 66 from rfl, t3 66 (by norm_num)]; exact hP2
+  have hP3 : σ3 sLxPP = cellOf128 pk.parameter := by rw [show sLxPP = V.n (val% «main_loop2» "pp") from rfl, t3 66 (by norm_num)]; exact hP2
   have hhis3 : ∀ v < 4, σ3 (sHis v) = eOfNat (L >>> (8 * v)) := fun v hv => by
     rw [show sHis v = V.n (67 + v) from rfl, t3 _ (by omega)]; exact hhis2 v hv
   have hwin3 : ∀ w < 4, σ3 (sWin w) = ofK (addressOfIndex (lxWin L w)) := fun w hw => by
@@ -199,16 +201,16 @@ theorem verify_lean_xmss_complete_vals_of (hW : LxWindowsC) (C : CallRel) (rd : 
     logG_eq (lxWin_lt L w) (by norm_num) (hwin3 w hw)
   -- the bottom root is the scheme's
   have hpart0 : sPart 0 88 σ3 = part0 :=
-    sPart_eq (by rw [show sRho 0 88 = V.n 88 from rfl, t3 88 (by norm_num)]; exact h88)
+    sPart_eq (by rw [show sRho 0 88 = V.n (val% «main_loop2» "rho@1") from rfl, t3 88 (by norm_num)]; exact h88)
       (hk3 σ3 (fun _ _ => rfl)).2.1 (hk3 σ3 (fun _ _ => rfl)).2.2
   have r0' := (sLayerCore_sound (layer := 0) (b := 88) (rest := []) hpad3 hpow3 (by norm_num)
     (by rw [List.append_nil]; exact hh3)).2.2.2 L hL
     (by show σ3 (sHis 0) = _; rw [hhis3 0 (by norm_num), xIdxNat_zero]; simp) hhis3 hkw3 htag3
-    (msgCells := [σ3 (.n 91), σ3 (.n 92)]) (M := HashSig.littleEndianBytes 32 m)
-    (by rw [hM0, t3 91 (by norm_num), t3 92 (by norm_num)]) (aMsg := σ3 (.n 90))
+    (msgCells := [σ3 (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2")), σ3 (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3"))]) (M := HashSig.littleEndianBytes 32 m)
+    (by rw [hM0, t3 91 (by norm_num), t3 92 (by norm_num)]) (aMsg := σ3 (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#1")))
     (by rw [t3 90 (by norm_num)]; exact ha0)
-    (by show σ3 (.n 103) = _; rw [t3 103 (by norm_num), t3 91 (by norm_num), t3 92 (by norm_num),
-      t3 90 (by norm_num), h103, show sRho 0 88 = V.n 88 from rfl, t3 88 (by norm_num), hP3, hP2]; rfl)
+    (by show σ3 (.n (val% «main_loop2» "digest[0]@1")) = _; rw [t3 103 (by norm_num), t3 91 (by norm_num), t3 92 (by norm_num),
+      t3 90 (by norm_num), h103, show sRho 0 88 = V.n (val% «main_loop2» "rho@1") from rfl, t3 88 (by norm_num), hP3, hP2]; rfl)
   rw [hP3, hxpp, hpart0, e0'] at r0'
   have hr0 : xv (σ3 (.n xRoot0)) = r0 := Option.some.inj (r0'.symm.trans (by rw [← hli]; exact h0))
   -- the top layer's digest
@@ -221,9 +223,9 @@ theorem verify_lean_xmss_complete_vals_of (hW : LxWindowsC) (C : CallRel) (rd : 
   have hpad4 : PadOK σ4 sLxPad := hpad3.congr (b := xTop) (by simp [sLxPad, xTop]) he4.agree
   obtain ⟨e41, e44, e46⟩ := sDigest1_sound hpad4 (atomsHold_of_holdsList (sDigest1_atoms _ _) hh4)
   have hs4 : σ4 sSigner = σ sSigner := by
-    rw [show sSigner = V.n 65 from rfl, t4 65 (by norm_num), t3 65 (by norm_num), t2 65 (by norm_num)]
+    rw [show sSigner = V.n (val% «main_loop2» "s3#2") from rfl, t4 65 (by norm_num), t3 65 (by norm_num), t2 65 (by norm_num)]
     exact hs1
-  have hP4 : σ4 sLxPP = cellOf128 pk.parameter := by rw [show sLxPP = V.n 66 from rfl, t4 66 (by norm_num)]; exact hP3
+  have hP4 : σ4 sLxPP = cellOf128 pk.parameter := by rw [show sLxPP = V.n (val% «main_loop2» "pp") from rfl, t4 66 (by norm_num)]; exact hP3
   have hhis4 : ∀ v < 4, σ4 (sHis v) = eOfNat (L >>> (8 * v)) := fun v hv => by
     rw [show sHis v = V.n (67 + v) from rfl, t4 _ (by simp only [xTop] at *; omega)]; exact hhis3 v hv
   have hwin4 : ∀ w < 4, σ4 (sWin w) = ofK (addressOfIndex (lxWin L w)) := fun w hw => by
@@ -268,7 +270,7 @@ theorem verify_lean_xmss_complete_vals_of (hW : LxWindowsC) (C : CallRel) (rd : 
     (fun σ5 he5 ⟨hk5, hh5⟩ => ?_)
   have t5 : ∀ k < (xTop + 7), σ5 (.n k) = σ4 (.n k) := fun k hk => he5.apply (Or.inl hk)
   have hpad5 : PadOK σ5 sLxPad := hpad4.congr (b := (xTop + 7)) (by simp [sLxPad]) he5.agree
-  have hP5 : σ5 sLxPP = cellOf128 pk.parameter := by rw [show sLxPP = V.n 66 from rfl, t5 66 (by norm_num)]; exact hP4
+  have hP5 : σ5 sLxPP = cellOf128 pk.parameter := by rw [show sLxPP = V.n (val% «main_loop2» "pp") from rfl, t5 66 (by norm_num)]; exact hP4
   have hhis5 : ∀ v < 4, σ5 (sHis v) = eOfNat (L >>> (8 * v)) := fun v hv => by
     rw [show sHis v = V.n (67 + v) from rfl, t5 _ (by simp only [xTop, xEnd] at *; omega)]; exact hhis4 v hv
   have hwin5 : ∀ w < 4, σ5 (sWin w) = ofK (addressOfIndex (lxWin L w)) := fun w hw => by
@@ -301,14 +303,14 @@ theorem verify_lean_xmss_complete_vals_of (hW : LxWindowsC) (C : CallRel) (rd : 
       rw [hr1]; exact (cellVal_cellOf128 _).symm)
   -- the key's root
   refine Completes.load ⟨65, by norm_num, rfl⟩ (w := cellOf128 pk.root)
-    (by rw [show sSigner = V.n 65 from rfl, t5 65 (by norm_num)]; rw [show V.n 65 = sSigner from rfl, hs4]
+    (by rw [show sSigner = V.n (val% «main_loop2» "s3#2") from rfl, t5 65 (by norm_num)]; rw [show V.n (val% «main_loop2» "s3#2") = sSigner from rfl, hs4]
         exact hldR) le_rfl (fun σ6 he6 e6 => ?_)
   refine completes_atoms rfl (Ext.refl _ _ _) (fun σ'' hag => ?_) (fun a ha => ?_)
   · have a5 : AgreeBelow xEnd σ5 σ'' := fun k hk => (he6.agree k hk).trans (hag k (by omega))
     have a4 : AgreeBelow (xTop + 7) σ4 σ'' := fun k hk => (he5.agree k hk).trans (a5 k (by simp only [xTop, xEnd] at *; omega))
     have a3 : AgreeBelow xTop σ3 σ'' := fun k hk => (he4.agree k hk).trans (a4 k (by omega))
-    have a2 : AgreeBelow 104 σ2 σ'' := fun k hk => (he3.agree k hk).trans (a3 k (by simp only [xTop, xEnd] at *; omega))
-    have hx0 : xv (σ2 (.n 103)) = @LeanXmss.Verification.messageDigestWithHash Id _ ⟨Node.keccakBits⟩
+    have a2 : AgreeBelow (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s5.u0.s0#0") σ2 σ'' := fun k hk => (he3.agree k hk).trans (a3 k (by simp only [xTop, xEnd] at *; omega))
+    have hx0 : xv (σ2 (.n (val% «main_loop2» "digest[0]@1"))) = @LeanXmss.Verification.messageDigestWithHash Id _ ⟨Node.keccakBits⟩
         pk.parameter LeanXmss.bottomLayer (LeanXmss.keyIndexOnLayer sig.leafIndex LeanXmss.bottomLayer)
         (HashSig.littleEndianBytes 32 m) part0.randomizer := by
       rw [hD0]; exact hmd0.symm
@@ -323,7 +325,7 @@ theorem verify_lean_xmss_complete_vals_of (hW : LxWindowsC) (C : CallRel) (rd : 
     refine ⟨fun v hv => ?_, fun w hw => ?_, ⟨?_, ?_, s0, p0⟩, ⟨?_, ?_, s1, p1⟩⟩
     · rw [show sHis v = V.n (67 + v) from rfl, ← a5 (67 + v) (by simp only [xTop, xEnd] at *; omega)]; exact hhis5 v hv
     · rw [show sWin w = V.n (71 + w) from rfl, ← a5 (71 + w) (by simp only [xTop, xEnd] at *; omega)]; exact hwin5 w hw
-    · rw [show sRho 0 88 = V.n 88 from rfl, ← a2 88 (by norm_num)]; exact h88
+    · rw [show sRho 0 88 = V.n (val% «main_loop2» "rho@1") from rfl, ← a2 88 (by norm_num)]; exact h88
     · unfold xN0 xDigestN; rw [← hx0]; exact d0
     · rw [show sRho 1 xTop = V.n (xTop + 2) from rfl, ← a4 (xTop + 2) (by norm_num)]; exact h4r
     · unfold xN1 xDigestN; rw [← hx1]; exact d1

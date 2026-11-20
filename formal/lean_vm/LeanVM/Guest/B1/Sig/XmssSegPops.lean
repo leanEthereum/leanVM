@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Sig.XmssSegComplete
 public import LeanVM.Guest.B1.Sig.XmssWinPops
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop2»
 
 /-!
 # The check's pops
@@ -141,8 +143,8 @@ theorem sPrologue_pops {σ : Val} {his win : Nat → E} (hh : ∀ v < 4, σ (sHi
   rw [sPrologue_split]
   exact FallPops.congr_pops ((h1.append h2).append hc).cons_atom rfl
 
-theorem sDigest0_pops (σ : Val) : FallPops rd σ (sDigest0 88) [("randomizer", [σ (.n 88)])] := by
-  have h : FallPops rd σ [hintW "randomizer" [.n 88]] [("randomizer", [σ (.n 88)])] := FallPops.atom _
+theorem sDigest0_pops (σ : Val) : FallPops rd σ (sDigest0 88) [("randomizer", [σ (.n (val% «main_loop2» "rho@1"))])] := by
+  have h : FallPops rd σ [hintW "randomizer" [.n (val% «main_loop2» "rho@1")]] [("randomizer", [σ (.n (val% «main_loop2» "rho@1"))])] := FallPops.atom _
   rw [sDigest0_split]
   exact FallPops.congr_pops (h.append (fallPops_quiet σ rfl)) rfl
 
@@ -171,7 +173,7 @@ theorem xSeg_pops {pk : HashSig.PublicKey} {m : HashSig.Message} {sig : LeanXmss
   obtain ⟨hh, hw, ⟨r0, d0, s0, p0⟩, ⟨r1, d1, s1, p1⟩⟩ := h
   rw [xSeg_split]
   have hd0 := sDigest0_pops (rd := rd) σ
-  rw [show σ (.n 88) = _ from r0] at hd0
+  rw [show σ (.n (val% «main_loop2» "rho@1")) = _ from r0] at hd0
   have hd1 := sDigest1_pops (rd := rd) σ xTop (.n xRoot0)
   rw [show σ (.n (xTop + 2)) = _ from r1] at hd1
   have ht : quiet [loadS (.n xEnd) sSigner 0, .atom (.assertEq (.n xRoot1) (.n xEnd))] = true := rfl

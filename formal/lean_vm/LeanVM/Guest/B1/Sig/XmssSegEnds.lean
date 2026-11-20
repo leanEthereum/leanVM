@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Sig.XmssSegT
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop2»
 
 /-!
 # The layers' ends
@@ -24,7 +26,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem sLayer0_snd : (sLayer 0 88 (.n 0)).2 = (xTop, .n xRoot0) := by decide +kernel
+theorem sLayer0_snd : (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2 = (xTop, .n xRoot0) := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem sLayer1_snd : (sLayer 1 xTop (.n xRoot0)).2 = (xEnd, .n xRoot1) := by decide +kernel
