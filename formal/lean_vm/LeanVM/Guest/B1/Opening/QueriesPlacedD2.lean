@@ -7,8 +7,6 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesPlacedD0
-import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«opening_queries__L»
 
 /-!
 # `opening_queries`, `CompleteAtB`, one statement
@@ -156,7 +154,7 @@ theorem oqCompleteDB1 (fs : String → ℕ) (cert : String → V → ℕ)
     (hcd : 2 ≤ s.cd) {odd : ℕ} (hodd : odd ≤ 1) {name loop : String}
     (hE : oqEntryB name s odd = true) (hW : WalkFn coreProgram (oqWalkOf s) s.pd s.cd) {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
-    (hpm : fm.params = [.n (valf% «opening_queries» "cap"), .n (valf% «opening_queries» "flags"), .n (valf% «opening_queries» "lam_inv"), .n (valf% «opening_queries» "coefs"), .n (valf% «opening_queries» "hs"), .n (valf% «opening_queries» "positions"), .n (valf% «opening_queries» "query_win_ptrs"), .n (valf% «opening_queries» "n_iters_g")])
+    (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7])
     (hbm : fm.body = oqMainT s odd (oqWalkOf s) loop)
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
     (hbl : fl.body = oqLoop1T s odd (oqWalkOf s) loop) : OqCompleteDB fs cert name loop s odd := by
@@ -176,7 +174,7 @@ theorem oqCompleteDB0 (fs : String → ℕ) (cert : String → V → ℕ)
     (hcd : 2 ≤ s.cd) {name loop : String} (hE : oqEntryB name s 0 = true)
     (hW : WalkFn coreProgram (oqWalkOf s) s.pd s.cd) {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
-    (hpm : fm.params = [.n (valf% «opening_queries» "cap"), .n (valf% «opening_queries» "flags"), .n (valf% «opening_queries» "lam_inv"), .n (valf% «opening_queries» "coefs"), .n (valf% «opening_queries» "hs"), .n (valf% «opening_queries» "positions"), .n (valf% «opening_queries» "query_win_ptrs"), .n (valf% «opening_queries» "n_iters_g")])
+    (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7])
     (hbm : fm.body = oqMainT s 0 (oqWalkOf s) loop)
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
     (hbl : fl.body = oqLoop0T s (oqWalkOf s) loop) : OqCompleteDB fs cert name loop s 0 := by
