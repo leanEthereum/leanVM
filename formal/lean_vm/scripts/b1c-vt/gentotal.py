@@ -6,10 +6,9 @@ import re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from symev import IR, parse_atom, VT_LEAN
 
-LO, HI = 2020, 2589          # the totals' loop
+from anchors import TOT_LO as LO, TOT_HI as HI, LEAF_BETA1, PUSH_TOTAL, PULL_TOTAL, COUNT_TOTAL
 PW = [583 + 13 * t for t in range(6)]   # pad_weight[t] (`vtPadV`)
 W_BASE = 13                  # fp_w
-LEAF_BETA1 = 1974            # beta + 1
 
 def defs(lo, hi):
     d = {}
@@ -177,7 +176,7 @@ def total_lemma(name, statement, target, leaves, extra_rw='', extra=(), d=None, 
             extra_rw + close)
 
 # ---- the push side ----
-push_total, pull_total, count_total = 2441, 2487, 2542
+push_total, pull_total, count_total = PUSH_TOTAL, PULL_TOTAL, COUNT_TOTAL
 def the_add(v):
     _, op, (a, b) = D[v]; assert op == 'add'; return a, b
 # bus_table_total[PUSH] = ((acc + padding) + (1 + selector_sum)) + leaf
@@ -257,34 +256,34 @@ FW_NOTE = "The framework blocks' coordinate values are the first loop's (`coord_
 
 def gen_rest():
     # ---- PushFw: the push side's framework accumulator ----
-    fwP_leaves = {14, 790, 807, 835, 810, 815, 819, 838, 1293, 1843}
-    consts = [def_pos(v, 'const') for v in (791, 792, 793, 808, 811, 836, 839)]
+    fwP_leaves = {14, 792, 809, 837, 812, 817, 821, 840, 1111, 1497}
+    consts = [def_pos(v, 'const') for v in (793, 794, 795, 810, 813, 838, 841)]
     fwP = total_lemma('vt_push_fw', ("The push side's framework accumulator.",
-        f'σ (.n {fw0}) = σ (.n 790) * (σ (.n 14) + (W 0 + W 1 + W 2)) +\n'
-        '      σ (.n 807) * (σ (.n 14) + (W 0 * gen + W 1 * σ (.n 810) + W 2 + W 3 * σ (.n 815) +\n'
-        '        W 4 * σ (.n 819))) +\n'
-        '      σ (.n 835) * (σ (.n 14) + (W 0 * gen ^ 2 + W 1 * σ (.n 838) + W 2)) +\n'
-        '      σ (.n 1293) * σ (.n 1843)'), fw0, fwP_leaves, extra=consts,
+        f'σ (.n {fw0}) = σ (.n 792) * (σ (.n 14) + (W 0 + W 1 + W 2)) +\n'
+        '      σ (.n 809) * (σ (.n 14) + (W 0 * gen + W 1 * σ (.n 812) + W 2 + W 3 * σ (.n 817) +\n'
+        '        W 4 * σ (.n 821))) +\n'
+        '      σ (.n 837) * (σ (.n 14) + (W 0 * gen ^ 2 + W 1 * σ (.n 840) + W 2)) +\n'
+        '      σ (.n 1111) * σ (.n 1497)'), fw0, fwP_leaves, extra=consts,
         extra_rw='  simp only [tb_word_one, tb_word_gen, vt_word4]\n')
     write('PushFw', "`verify_tables`' push side's framework blocks: their fingerprints' accumulator and the\n  bytecode share's public term.",
           'LeanVM.Guest.B1.Tables.Vt.PushPad',
           "# The push side's framework blocks\n\n`vt_push_fw`: the accumulator after the state, memory and bytecode blocks is\n`Σ_f eq_f·(β + Σ_i w_i·coord_i)`, the bytecode block's public slots left out, plus\n`public_eq·S`. " + FW_NOTE,
           'theorem vt_word4 : word 4 0 = gen ^ 2 := by\n  rw [show (4 : ℕ) = 2 ^ 2 by norm_num, tb_word_two_pow (by norm_num)]\n\n' + fwP)
     # ---- PullTotal ----
-    fwQ_leaves = {14, 1294, 1299, 1313, 1301, 1305, 1307, 1309, 1315, 1319, 1436, 1843}
-    constsQ = [def_pos(v, 'const') for v in (1295, 1296, 1297, 1300, 1314)]
+    fwQ_leaves = {14, 1112, 1117, 1131, 1119, 1123, 1125, 1127, 1133, 1137, 1254, 1497}
+    constsQ = [def_pos(v, 'const') for v in (1113, 1114, 1115, 1118, 1132)]
     fwQ = total_lemma('vt_pull_fw', ("The pull side's framework accumulator.",
-        f'σ (.n {fw1}) = σ (.n 1294) * (σ (.n 14) + (W 0 + W 1 * vtWFinalPc + W 2)) +\n'
-        '      σ (.n 1299) * (σ (.n 14) + (W 0 * gen + W 1 * σ (.n 1301) + W 2 * σ (.n 1305) +\n'
-        '        W 3 * σ (.n 1307) + W 4 * σ (.n 1309))) +\n'
-        '      σ (.n 1313) * (σ (.n 14) + (W 0 * gen ^ 2 + W 1 * σ (.n 1315) + W 2 * σ (.n 1319))) +\n'
-        '      σ (.n 1436) * σ (.n 1843)'), fw1, fwQ_leaves, extra=constsQ,
+        f'σ (.n {fw1}) = σ (.n 1112) * (σ (.n 14) + (W 0 + W 1 * vtWFinalPc + W 2)) +\n'
+        '      σ (.n 1117) * (σ (.n 14) + (W 0 * gen + W 1 * σ (.n 1119) + W 2 * σ (.n 1123) +\n'
+        '        W 3 * σ (.n 1125) + W 4 * σ (.n 1127))) +\n'
+        '      σ (.n 1131) * (σ (.n 14) + (W 0 * gen ^ 2 + W 1 * σ (.n 1133) + W 2 * σ (.n 1137))) +\n'
+        '      σ (.n 1254) * σ (.n 1497)'), fw1, fwQ_leaves, extra=constsQ,
         extra_rw='  simp only [tb_word_one, tb_word_gen, vt_word4]\n')
     # the pull side's running selector sum, over the push side's copies
     D2 = defs(def_pos(sel1, 'copy') - 160, def_pos(sel1, 'copy'))
-    copies = [790, 807, 835] + [c for _, _, c, _ in push_data]
+    copies = [792, 809, 837] + [c for _, _, c, _ in push_data]
     sumQ = total_lemma('vt_pull_sel', ("The pull side's selector sum: the push blocks' copies.",
-        f'σ (.n {sel1}) = σ (.n 790) + σ (.n 807) + σ (.n 835) +\n'
+        f'σ (.n {sel1}) = σ (.n 792) + σ (.n 809) + σ (.n 837) +\n'
         '      (vtPushPadData.map fun x ↦ σ (.n x.2.2.1)).sum'), sel1, set(copies), d=D2,
         extra_rw='  simp only [vtPushPadData, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil]\n',
         hyp='{rd : Reader} {σ : Val} (h : VtH rd σ)')
