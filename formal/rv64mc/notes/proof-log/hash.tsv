@@ -1,0 +1,2 @@
+module	instr	loops	proof_lines	cpu_s	manual_notes
+Proof.Hash.DigestFromHalves	61	0	52	25.4	32 byte stores (sb) to sret: rv_auto leaves the frame with Out, Static, BytesAt and ByteFrame over the setByte chain; frame/static by repeat refine (frame_setByte, static_setMem), bytes by interval_cases k (32) and simp through the chain (most of the cost), ByteFrame by repeat rw getByte_setByte_ne; Pre owns the doublewords of the digest (DwordsOf), not just its bytes
