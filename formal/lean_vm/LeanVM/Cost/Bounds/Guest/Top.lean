@@ -5,6 +5,7 @@ public import LeanVM.Cost.Bounds.Guest.Frames
 public import LeanVM.Cost.Bounds.Guest.Da
 public import LeanVM.Cost.Bounds.Decoder.PreTest
 public import LeanVM.Cost.Decoder.Witness
+public import LeanVM.Cost.Bounds.Decoder.EntryTable
 
 /-!
 # Bounds on the guest decoder's prices: the witness
@@ -333,18 +334,7 @@ end Top
 
 /-! ## `main`'s valuation -/
 
-theorem mainLocs_lt : ∀ x ∈ (Decoder.guestLocs.getD 1 #[]).toList, x < 2 ^ 20 := by
-  decide +kernel
-
-theorem mainLoc_lt (i : ℕ) : (Decoder.guestLocs.getD 1 #[]).getD i 0 < 2 ^ 20 := by
-  rw [Array.getD_eq_getD_getElem?]
-  cases h : (Decoder.guestLocs.getD 1 #[])[i]? with
-  | none => simp
-  | some x =>
-    simp only [Option.getD_some]
-    exact mainLocs_lt x (Array.mem_toList_iff.2 (Array.mem_of_getElem? h))
-
-/-- **`main`'s valuation** (`mainValC`, the cells' locations a literal of the program): a word of
+/-- **`main`'s valuation** (`mainValC`, its cell off the packed table, `locAt_cost`): a word of
 `main`'s frame, for every value, at most `R + 1521`. -/
 theorem mainVal_cost (hP : Includes P Decoder.mainValC.costDeps) {rd : Reader} {rdV : MachineValue}
     (hrd : ∀ a : K, RunsApp P rdV [encodeValue a] (encodeValue (rd a)))
@@ -352,10 +342,10 @@ theorem mainVal_cost (hP : Includes P Decoder.mainValC.costDeps) {rd : Reader} {
     machineCost P Decoder.mainValC.costIdx [rdV, encodeValue v] ≤ R + 1521 := by
   rw [Decoder.mainValC.costEq P hP rd rdV hrd]
   have := wordWith_cost (P := P) (rd := rd) (rdVal := rdV) (hrd := hrd) (R := R) (hR := hR)
-    (hW := (by norm_num : 0 < 20)) (hW64 := (by norm_num : 20 < 64)) (by includes) 1
-    ((Decoder.guestLocs.getD 1 #[]).getD v.idx 0) (mainLoc_lt _)
+    (hW := (by norm_num : 0 < 16)) (hW64 := (by norm_num : 16 < 64)) (by includes) 1
+    (Decoder.locAt 1 v.idx) (Decoder.locAt_lt _ _)
   unfold psAt at this
-  have hT := Decoder.guestLocsTableC.costEq P (by includes)
+  have hT := locAt_cost P (by includes) 1 v.idx
   omega
 
 end

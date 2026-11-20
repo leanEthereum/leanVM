@@ -18,7 +18,7 @@ public import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk9
 public import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk10
 public import LeanVM.Cost.Bounds.Decoder.GuestLocs.Chunk11
 
-/-! Bound: the guest's frame cells below `2^20`, the evaluations of `12` chunks of functions of at
+/-! Bound: the guest's frame cells below `2^16`, the evaluations of `12` chunks of functions of at
 most `40000` cells each (`GuestLocs/Chunk*.lean`, a module each: the whole table at once peaks over
 `12 GB` in the kernel), combined. -/
 
@@ -39,8 +39,8 @@ set_option maxRecDepth 100000 in
 /-- The table of frame cells ends after `1549` functions. -/
 theorem guestLocsList_drop_end : guestLocsList.drop 1549 = [] := rfl
 
-/-- Every frame cell is below `2^20`: the chunks' evaluations combined. -/
-theorem guestLocsList_lt : guestLocsList.all (fun l ↦ l.all (· < 2 ^ 20)) = true := by
+/-- Every frame cell is below `2^16`: the chunks' evaluations combined. -/
+theorem guestLocsList_lt : guestLocsList.all (fun l ↦ l.all (· < 2 ^ 16)) = true := by
   rw [← List.drop_zero (l := guestLocsList)]
   refine all_of_drop _ _ 0 20 guestLocsChunk0_lt ?_
   refine all_of_drop _ _ 20 20 guestLocsChunk1_lt ?_

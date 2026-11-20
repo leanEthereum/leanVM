@@ -8,12 +8,16 @@ import LeanVM.Cost.DecoderSize.Rows2
 import LeanVM.Cost.DecoderSize.Rows3
 import LeanVM.Cost.DecoderSize.Rows4
 import LeanVM.Cost.DecoderSize.Rows5
-import LeanVM.Cost.DecoderSize.Names0
-import LeanVM.Cost.DecoderSize.Names1
+import LeanVM.Cost.DecoderSize.Rows6
+import LeanVM.Cost.DecoderSize.Rows7
+import LeanVM.Cost.DecoderSize.Rows8
+import LeanVM.Cost.DecoderSize.Rows9
+import LeanVM.Cost.DecoderSize.Rows10
+import LeanVM.Cost.DecoderSize.Rows11
 import LeanVM.Cost.Decoder.GuestTablesCheck
 
 /-! **The decoder's table checks read the tables alone.** The kernel evaluations of the guest
-decoder's tables' sizes (`DecoderSize/Rows*.lean`, `Names*.lean`) are split into chunks, each
+decoder's tables' sizes (`DecoderSize/Rows*.lean`) are split into chunks, each
 under the memory a module may take, and with the tables' equality with the guest's signatures and
 certificates (`Decoder/GuestTablesCheck.lean`), a module is rebuilt whenever anything it imports
 changes. So they import only the tables (`Decoder/GuestTables.lean`), the definitions of the sizes
@@ -25,8 +29,8 @@ proofs. This module, which imports them alone, fails to build if their imports r
 
 open Lean Elab Command in
 #eval show CommandElabM Unit from do
-  let allowed := [`LeanVM.Cost.Decoder.GuestTables, `LeanVM.Cost.DecoderSize.Rows,
-    `LeanVM.Cost.Decoder.GuestTablesCheck]
+  let allowed := [`LeanVM.Cost.Decoder.GuestTables, `LeanVM.Cost.Decoder.GuestLanes,
+    `LeanVM.Cost.DecoderSize.Rows, `LeanVM.Cost.Decoder.GuestTablesCheck]
   let chunk (m : Name) : Bool :=
     m.getPrefix == `LeanVM.Cost.DecoderSize && m != `LeanVM.Cost.DecoderSize.Locs
   let forbidden := [`LeanVM.Guest.B1, `LeanVM.Guest.Located, `LeanVM.Protocol]

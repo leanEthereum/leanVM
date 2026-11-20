@@ -98,7 +98,7 @@ theorem guestLocsList_length : guestLocsList.length = nFns := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem guestLocs_eq {j : ℕ} (hj : j < nFns) : (guestLocs.getD j #[]).toList = (certOf j).locs := by
-  rw [← guestLocsList_eq j hj, guestLocs, guestLocsLit]
+  rw [← guestLocsList_eq j hj, guestLocs]
   have hl : j < guestLocsList.length := guestLocsList_length ▸ hj
   simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD, hl]
 

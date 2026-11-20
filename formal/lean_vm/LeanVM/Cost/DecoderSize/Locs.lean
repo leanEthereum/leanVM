@@ -11,11 +11,15 @@ public import LeanVM.Cost.DecoderSize.Rows2
 public import LeanVM.Cost.DecoderSize.Rows3
 public import LeanVM.Cost.DecoderSize.Rows4
 public import LeanVM.Cost.DecoderSize.Rows5
-public import LeanVM.Cost.DecoderSize.Names0
-public import LeanVM.Cost.DecoderSize.Names1
+public import LeanVM.Cost.DecoderSize.Rows6
+public import LeanVM.Cost.DecoderSize.Rows7
+public import LeanVM.Cost.DecoderSize.Rows8
+public import LeanVM.Cost.DecoderSize.Rows9
+public import LeanVM.Cost.DecoderSize.Rows10
+public import LeanVM.Cost.DecoderSize.Rows11
 
-/-! The size of the guest's frame cells, the chunks' sizes summed (`DecoderSize/Rows*.lean`,
-`Names*.lean`): every row's encoding's size, the table's literal less its array and `Term.literal`
+/-! The size of the guest's packed frame cells, the chunks' sizes summed (`DecoderSize/Rows*.lean`):
+the slots' row and every group's, the table's literal less its array and `Term.literal`
 (`Cost/DecoderSize.lean`). -/
 
 namespace LeanVM.Cost.Decoder
@@ -24,33 +28,36 @@ namespace LeanVM.Cost.Decoder
 
 set_option maxRecDepth 100000 in
 /-- **The rows' sizes**, summed. -/
-theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 517199 := by
-  have hl : guestLocsList.length = 1549 := by decide +kernel
-  have hn : guestLocsRow40.length = 41 := by decide +kernel
-  rw [sum_rowSize_eq_rowsSize, hl]
-  have s0 := rowsSize_split 0 40 1509 40 1549 rfl rfl
-  have c0 := rowsSize_0_40
-  have s1 := rowsSize_split 40 1 1508 41 1509 rfl rfl
-  have s2 := rowsSize_split 41 348 1160 389 1508 rfl rfl
-  have c2 := rowsSize_41_348
-  have s3 := rowsSize_split 389 722 438 1111 1160 rfl rfl
-  have c3 := rowsSize_389_722
-  have s4 := rowsSize_split 1111 195 243 1306 438 rfl rfl
-  have c4 := rowsSize_1111_195
-  have s5 := rowsSize_split 1306 162 81 1468 243 rfl rfl
-  have c5 := rowsSize_1306_162
-  have s6 := rowsSize_split 1468 81 0 1549 81 rfl rfl
-  have c6 := rowsSize_1468_81
-  have e := rowsSize_zero 1549
-  have g : guestLocsList.getD 40 [] = guestLocsRow40.flatten := rfl
-  have r := rowsSize_one (a := 40) (by omega)
-  rw [g] at r
-  rw [rowSize_flatten, hn] at r
-  have t0 := namesSize_split guestLocsRow40 0 23 18 23 41 rfl rfl
-  have d0 := namesSize_0_23
-  have t1 := namesSize_split guestLocsRow40 23 18 0 41 18 rfl rfl
-  have d1 := namesSize_23_18
-  have f := namesSize_zero guestLocsRow40 41
+theorem guestLanes_rowSize :
+    rowSize guestSlotsList + (guestLaneGroups.map fun g ↦ groupLen g + 1).sum = 214110 := by
+  have hs : rowSize guestSlotsList = 1550 := by decide +kernel
+  have hl : guestLaneGroups.length = 388 := by decide +kernel
+  rw [sum_groupSize_eq_groupsSize, hl, hs]
+  have s0 := groupsSize_split 0 1 387 1 388 rfl rfl
+  have c0 := groupsSize_0_1
+  have s1 := groupsSize_split 1 23 364 24 387 rfl rfl
+  have c1 := groupsSize_1_23
+  have s2 := groupsSize_split 24 40 324 64 364 rfl rfl
+  have c2 := groupsSize_24_40
+  have s3 := groupsSize_split 64 40 284 104 324 rfl rfl
+  have c3 := groupsSize_64_40
+  have s4 := groupsSize_split 104 24 260 128 284 rfl rfl
+  have c4 := groupsSize_104_24
+  have s5 := groupsSize_split 128 40 220 168 260 rfl rfl
+  have c5 := groupsSize_128_40
+  have s6 := groupsSize_split 168 40 180 208 220 rfl rfl
+  have c6 := groupsSize_168_40
+  have s7 := groupsSize_split 208 40 140 248 180 rfl rfl
+  have c7 := groupsSize_208_40
+  have s8 := groupsSize_split 248 40 100 288 140 rfl rfl
+  have c8 := groupsSize_248_40
+  have s9 := groupsSize_split 288 40 60 328 100 rfl rfl
+  have c9 := groupsSize_288_40
+  have s10 := groupsSize_split 328 40 20 368 60 rfl rfl
+  have c10 := groupsSize_328_40
+  have s11 := groupsSize_split 368 20 0 388 20 rfl rfl
+  have c11 := groupsSize_368_20
+  have e := groupsSize_zero 388
   omega
 
 end

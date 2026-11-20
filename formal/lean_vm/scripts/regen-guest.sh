@@ -236,8 +236,8 @@ part_decoder() {
   python3 -I scripts/decoder-tables --entries "$d/entries.txt" "${check[@]}"
   lakebuild LeanVM.Cost.Decoder.GuestTables
   leanrun scripts/decoder-tables-inputs.lean > "$d/in.txt"
-  for k in rows split; do sed -n "s/^$k: //p" "$d/in.txt" > "$d/$k.txt"; done
-  python3 -I scripts/decoder-table-chunks --row-lengths "$d/rows.txt" --split-lengths "$d/split.txt" "${check[@]}"
+  sed -n "s/^rows: //p" "$d/in.txt" > "$d/rows.txt"
+  python3 -I scripts/decoder-table-chunks --row-lengths "$d/rows.txt" "${check[@]}"
 }
 
 selected=() started=

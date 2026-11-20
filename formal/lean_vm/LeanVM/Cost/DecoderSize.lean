@@ -3,6 +3,7 @@ module
 public import LeanVM.Cost.DecoderProgram
 public import LeanVM.Cost.Decoder.Top
 public import LeanVM.Cost.DecoderSize.Locs
+public import LeanVM.Cost.Decoder.LanesCheck
 
 /-!
 # The guest decoder's program: its indices and its size, by evaluation
@@ -21,21 +22,23 @@ with its bodies `deps`:
   `decoderProgramOf_entry`);
 * its size is exactly the bodies' sizes and two per index without a body (a literal `0`), the
   indices being distinct (`size_ofList_add_length`, `decoderProgramOf_size_le_of_increasing`): at
-  most a measured number, then `guestWitnessDecoderSizeBound`. The guest's frame cells' literal
-  (`guestLocsTableC`, `517201`: the table's `517200` and one for its `Term.literal` node) is
-  measured by chunks of rows, each evaluation in a module of its own (`DecoderSize/Rows*.lean`,
-  `Names*.lean`, summed in `DecoderSize/Locs.lean`: one evaluation of the whole table takes over
-  `18` GB), its body picked out by its index (`decoderProgramBodies_filter_locs`, by unfolding); the
-  other bodies' sizes by `decide +kernel`, which reads the literal's index alone.
+  most a measured number, then `guestWitnessDecoderSizeBound`. The guest's frame cells' packed
+  literal (`guestLocsTableC`, `214112`: the table's `214111` and one for its `Term.literal` node,
+  `Decoder/Lanes.lean`) is its rows' sizes: the slots' row by evaluation, each group's row its
+  longest function's number of cells and one (`rowSize_packLanes`, every packed number one limb),
+  the groups' lengths evaluated by chunks, each in a module of its own (`DecoderSize/Rows*.lean`,
+  summed in `DecoderSize/Locs.lean`), its body picked out by its index
+  (`decoderProgramBodies_filter_locs`, by unfolding); the other bodies' sizes by `decide +kernel`,
+  which reads the literal's index alone.
 
-For the compiled top `decTopC` (`Decoder/Top.lean`): at most the bodies' sizes (`567786`: the frame
-cells' `517201` and the others', the entry's among them, `50585`, each exact) plus two per index
+For the compiled top `decTopC` (`Decoder/Top.lean`): at most the bodies' sizes (`264721`: the frame
+cells' `214112` and the others', the entry's among them, `50609`, each exact) plus two per index
 without a body, the indices up to the top's, `decTopC`'s own (the last index allocated), less the
 bodies (`costIdx - costDeps.length`; so the bound names no index, which moves when a module before
-it in the chain gains a function): `569044` at index `1055` with `426` bodies besides the entry, the
-program's exact size (`LeanVMTests/Cost/DecoderSize.lean`), of which the guest's frame cells
-(`guestLocs`, a literal held once, `guestLocsTable`) are `517200`. The frame cells (below `2^20`
-each), packed three to a limb, would take about a third of their `517200`. -/
+it in the chain gains a function): `265979` at index `1056` with `427` bodies besides the entry, the
+program's exact size (`LeanVMTests/Cost/DecoderSize.lean`), of which the guest's packed frame cells
+are `214111` (of `515650` cells: four to a number, the functions grouped by decreasing number of
+cells, the largest function's `120769` setting its group's length). -/
 
 namespace LeanVM.Cost
 
@@ -48,12 +51,52 @@ theorem decoderProgram_indices_increasing :
     increasingFrom 0 (decTopC.costDeps.map (·.1)) = true := by
   decide +kernel
 
-/-- **The guest's frame cells' literal**: its size, its rows' (`guestLocsList_rowSize`, the
-chunks of `DecoderSize/Locs.lean`), the array's and `Term.literal`'s. -/
-theorem guestLocsTable_size : guestLocsTableC.costBody.size = 517201 := by
+/-- A row of one-limb numbers: its length and one. -/
+theorem rowSize_of_lt (r : List ℕ) (h : ∀ x ∈ r, x < 2 ^ 64) : rowSize r = r.length + 1 := by
+  unfold rowSize
+  rw [sizeList_map]
+  congr 1
+  induction r with
+  | nil => rfl
+  | cons x r ih =>
+    rw [List.map_cons, List.sum_cons, ih (fun y hy ↦ h y (by simp [hy])), List.length_cons]
+    show limbCount x + _ = _
+    rw [limbs_of_lt (h x (by simp))]
+    omega
+
+/-- At most four rows of cells below `2^16`, packed: the longest row's length and one. -/
+theorem rowSize_packLanes (rows : List (List ℕ)) (h : ∀ r ∈ rows, ∀ x ∈ r, x < 65536)
+    (hl : rows.length ≤ 4) : rowSize (packLanes rows) = maxLength rows + 1 := by
+  rw [rowSize_of_lt _ (fun x hx ↦ ?_), packLanes_length]
+  obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.1 hx
+  have := packLanes_lt rows h hl i
+  rwa [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi, Option.getD_some] at this
+
+/-- Groups of at most four functions, packed: each group's longest function's cells and one. -/
+theorem sum_rowSize_groups (G : List (List ℕ)) (hG : ∀ g ∈ G, g.length ≤ 4) :
+    (G.map (rowSize ∘ fun g ↦ packLanes (g.map fun j ↦ guestLocsList.getD j []))).sum =
+      (G.map fun g ↦ groupLen g + 1).sum := by
+  induction G with
+  | nil => rfl
+  | cons g G ih =>
+    rw [List.map_cons, List.map_cons, List.sum_cons, List.sum_cons,
+      ih (fun g' hg' ↦ hG g' (by simp [hg'])), Function.comp_apply,
+      rowSize_packLanes _ (group_rows_lt g) (by rw [List.length_map]; exact hG g (by simp))]
+    unfold maxLength groupLen
+    rw [List.map_map]
+    rfl
+
+/-- **The guest's frame cells' packed literal**: its size, its rows' (the slots' and the groups',
+`guestLanes_rowSize`, the chunks of `DecoderSize/Locs.lean`), the array's and `Term.literal`'s. -/
+theorem guestLocsTable_size : guestLocsTableC.costBody.size = 214112 := by
   have h : guestLocsTableC.costBody = Term.literal (MachineValue.array
-      (guestLocsList.map fun r ↦ MachineValue.array (r.map encodeValue).toArray).toArray) := rfl
-  rw [h, literal_size, guestLocsList_rowSize]
+      (guestLanesList.map fun r ↦ MachineValue.array (r.map encodeValue).toArray).toArray) := rfl
+  have h4 := guestLaneGroups_le
+  rw [List.all_eq_true] at h4
+  have hg := sum_rowSize_groups guestLaneGroups (fun g hg ↦ of_decide_eq_true (h4 g hg))
+  have e := guestLanes_rowSize
+  rw [h, literal_size, guestLanesList, List.map_cons, List.sum_cons, List.map_map]
+  omega
 
 /-- The sum of a function over a list: over the entries `p` keeps and over the others. -/
 theorem sum_map_filter_add {α : Type} (f : α → ℕ) (p : α → Bool) (l : List α) :
@@ -90,9 +133,9 @@ per index without a body: the indices up to the top's, `decTopC.costIdx + 1`, le
 the entry and `decTopC.costDeps`. -/
 theorem decoderProgram_size_le_measured :
     (decoderProgramOf decTopC.costIdx decTopC.costDeps).size ≤
-      567786 + 2 * (decTopC.costIdx - decTopC.costDeps.length) :=
+      264721 + 2 * (decTopC.costIdx - decTopC.costDeps.length) :=
   decoderProgramOf_size_le_of_increasing decoderProgram_indices_increasing
-    (bodies_size_bound_of_split _ guestLocsTableC.costIdx decTopC.costIdx 517201 50585 567786
+    (bodies_size_bound_of_split _ guestLocsTableC.costIdx decTopC.costIdx 214112 50609 264721
       decTopC.costDeps.length _ decoderProgramBodies_filter_locs guestLocsTable_size
       (by decide +kernel) (by decide +kernel) rfl (by decide +kernel))
 
