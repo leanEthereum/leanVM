@@ -246,3 +246,8 @@ LeanVM/Guest/B1/Bits/QueryWindows.lean decode_query_windows__L
 LeanVM/Guest/B1/Bits/QueryWindowsAt.lean decode_query_windows__L
 LeanVM/Guest/B1/Bits/QueryWindowsComplete.lean decode_query_windows__L
 LeanVM/Guest/B1/Bits/QueryWindowsT.lean decode_query_windows__L
+# Eq
+LeanVM/Guest/B1/Eq/EqPrefix.lean eq_prefix_run__L
+LeanVM/Guest/B1/Eq/EqPrefixRev.lean eq_prefix_run_rev__L
+LeanVM/Guest/B1/Eq/FoldFinal.lean fold_final_msg__L
+LeanVM/Guest/B1/Eq/RsWords.lean rs_eq_run

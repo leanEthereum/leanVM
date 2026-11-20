@@ -7,6 +7,9 @@
 module
 
 public import LeanVM.Guest.B1.Eq.EqPrefix
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«eq_prefix_chain_rev»
+import LeanVM.Guest.Data.ValNames.«eq_prefix_run_rev__L»
 
 /-!
 # `eq_prefix_run_rev`, `eq_prefix_chain_rev`
@@ -95,18 +98,18 @@ def rvV : ℕ → ℕ
 
 /-- Coordinate `k` of `eq_prefix_run_rev__L{n}`. -/
 def rvBlk (n : ℕ) : ℕ → List Stmt
-  | 0 => [.atom (.load (.n 5) (.n 2) (n - 1 - 0)), .atom (.load (.n 5) (.n 1) 0),
-      .atom (.load (.n 6) (.n 3) 0), .atom (.add (.n 7) (.n 5) (.n 6)),
-      .atom (.load (.n 7) (.n 0) (0 + 1))]
-  | k + 1 => [.atom (.load (.n (8 + 4 * k)) (.n 2) (n - 1 - (k + 1))),
-      .atom (.load (.n (8 + 4 * k)) (.n 1) (k + 1)), .atom (.load (.n (9 + 4 * k)) (.n 3) (k + 1)),
+  | 0 => [.atom (.load (.n 5) (.n (valf% «eq_prefix_run_rev» "src")) (n - 1 - 0)), .atom (.load (.n 5) (.n (valf% «eq_prefix_run_rev» "out")) 0),
+      .atom (.load (.n 6) (.n (valf% «eq_prefix_run_rev» "b1")) 0), .atom (.add (.n 7) (.n 5) (.n 6)),
+      .atom (.load (.n 7) (.n (valf% «eq_prefix_run_rev» "chain")) (0 + 1))]
+  | k + 1 => [.atom (.load (.n (8 + 4 * k)) (.n (valf% «eq_prefix_run_rev» "src")) (n - 1 - (k + 1))),
+      .atom (.load (.n (8 + 4 * k)) (.n (valf% «eq_prefix_run_rev» "out")) (k + 1)), .atom (.load (.n (9 + 4 * k)) (.n (valf% «eq_prefix_run_rev» "b1")) (k + 1)),
       .atom (.add (.n (10 + 4 * k)) (.n (8 + 4 * k)) (.n (9 + 4 * k))),
       .atom (.mul (.n (7 + 4 * (k + 1))) (.n (7 + 4 * k)) (.n (10 + 4 * k))),
-      .atom (.load (.n (7 + 4 * (k + 1))) (.n 0) (k + 1 + 1))]
+      .atom (.load (.n (7 + 4 * (k + 1))) (.n (valf% «eq_prefix_run_rev» "chain")) (k + 1 + 1))]
 
 /-- The expansion of `eq_prefix_run_rev__L{n}`. -/
 def rvBody (n : ℕ) : List Stmt :=
-  [.atom (.const (.n 4) (word 1 0)), .atom (.load (.n 4) (.n 0) 0)] ++
+  [.atom (.const (.n (valf% «eq_prefix_run_rev» "s0#0")) (word 1 0)), .atom (.load (.n (valf% «eq_prefix_run_rev» "s0#0")) (.n (valf% «eq_prefix_run_rev» "chain")) 0)] ++
     ((List.range n).map (rvBlk n)).flatten ++ [.atom (.const (.n (rvA n)) (word 0 0)), .ret [.n (rvA n)]]
 
 /-- The sum `a + b1[k]` at coordinate `k` (coordinate `0`'s is its product). -/
@@ -116,16 +119,16 @@ def rvS : ℕ → ℕ
 
 /-- What coordinate `k` asks. -/
 def RvOk (rd : Reader) (σ : Val) (n k : ℕ) : Prop :=
-  LoadHolds rd (σ (.n 2)) (n - 1 - k) (σ (.n (rvA k))) ∧ LoadHolds rd (σ (.n 1)) k (σ (.n (rvA k))) ∧
-    LoadHolds rd (σ (.n 3)) k (σ (.n (rvB k))) ∧
+  LoadHolds rd (σ (.n (valf% «eq_prefix_run_rev» "src"))) (n - 1 - k) (σ (.n (rvA k))) ∧ LoadHolds rd (σ (.n (valf% «eq_prefix_run_rev» "out"))) k (σ (.n (rvA k))) ∧
+    LoadHolds rd (σ (.n (valf% «eq_prefix_run_rev» "b1"))) k (σ (.n (rvB k))) ∧
     σ (.n (rvS k)) = σ (.n (rvA k)) + σ (.n (rvB k)) ∧
     σ (.n (rvV (k + 1))) = σ (.n (rvV k)) * σ (.n (rvS k)) ∧
-    LoadHolds rd (σ (.n 0)) (k + 1) (σ (.n (rvV (k + 1))))
+    LoadHolds rd (σ (.n (valf% «eq_prefix_run_rev» "chain"))) (k + 1) (σ (.n (rvV (k + 1))))
 
 theorem rvBlk_noRet (n k : ℕ) : Stmt.noRetList (rvBlk n k) = true := by
   cases k <;> rfl
 
-theorem holds_rvBlk {C : CallRel} {rd : Reader} {σ : Val} (h4 : σ (.n 4) = 1) (n k : ℕ)
+theorem holds_rvBlk {C : CallRel} {rd : Reader} {σ : Val} (h4 : σ (.n (valf% «eq_prefix_run_rev» "s0#0")) = 1) (n k : ℕ)
     (kret : List E → Prop) : Stmt.HoldsList C rd σ (rvBlk n k) True kret ↔ RvOk rd σ n k := by
   cases k with
   | zero =>
@@ -136,7 +139,7 @@ theorem holds_rvBlk {C : CallRel} {rd : Reader} {σ : Val} (h4 : σ (.n 4) = 1) 
 
 /-- The function's relation, on the conditions of its blocks. -/
 theorem rv_iff (n : ℕ) {f : Fn} (hfind : coreProgram.find? (eqPrefixRunRevNames.getD n "") = some f)
-    (hparams : f.params = [.n 0, .n 1, .n 2, .n 3]) (hbody : f.body = rvBody n) (rd : Reader)
+    (hparams : f.params = [.n (valf% «eq_prefix_run_rev» "chain"), .n (valf% «eq_prefix_run_rev» "out"), .n (valf% «eq_prefix_run_rev» "src"), .n (valf% «eq_prefix_run_rev» "b1")]) (hbody : f.body = rvBody n) (rd : Reader)
     (args rets : List E) :
     coreProgram.Rel rd (eqPrefixRunRevNames.getD n "") args rets ↔
       MeaningEqPrefixRunRev n rd args rets := by
@@ -186,11 +189,11 @@ theorem rv_iff (n : ℕ) {f : Fn} (hfind : coreProgram.find? (eqPrefixRunRevName
           else as.getD ((v.idx - 4) / 4) 0 + bs.getD ((v.idx - 4) / 4) 0)
         else prefixProd 1 as bs ((v.idx - 4) / 4 + 1))
       else 0
-    have e0 : σ (.n 0) = chain := rfl
-    have e1 : σ (.n 1) = out := rfl
-    have e2 : σ (.n 2) = src := rfl
-    have e3 : σ (.n 3) = b1 := rfl
-    have e4 : σ (.n 4) = 1 := rfl
+    have e0 : σ (.n (valf% «eq_prefix_run_rev» "chain")) = chain := rfl
+    have e1 : σ (.n (valf% «eq_prefix_run_rev» "out")) = out := rfl
+    have e2 : σ (.n (valf% «eq_prefix_run_rev» "src")) = src := rfl
+    have e3 : σ (.n (valf% «eq_prefix_run_rev» "b1")) = b1 := rfl
+    have e4 : σ (.n (valf% «eq_prefix_run_rev» "s0#0")) = 1 := rfl
     have ifF : ∀ {c : Prop} [Decidable c] {x y : E}, ¬c → (if c then x else y) = y :=
       fun h => by simp [h]
     have ifT : ∀ {c : Prop} [Decidable c] {x y : E}, c → (if c then x else y) = x :=
@@ -546,9 +549,9 @@ theorem find_eq_prefix_chain_rev :
   coreProgram_find?_at (j := idx% «eq_prefix_chain_rev») rfl
 
 theorem eq_prefix_chain_rev_body : Fn.body fn% «eq_prefix_chain_rev» =
-    [.atom (.const (.n 5) (word (2 ^ 32) 0)),
-      .atom (.rangeCheck (.n 4) (.n 6) (.n 7) (.n 8) (.n 5)),
-      .dispatch (.n 4) eqPrefixRunRevNames [.n 0, .n 1, .n 2, .n 3] [.n 9], .ret []] :=
+    [.atom (.const (.n (val% «eq_prefix_chain_rev» "s0#0")) (word (2 ^ 32) 0)),
+      .atom (.rangeCheck (.n (val% «eq_prefix_chain_rev» "count_g")) (.n (val% «eq_prefix_chain_rev» "s0#1")) (.n (val% «eq_prefix_chain_rev» "s0#2")) (.n (val% «eq_prefix_chain_rev» "s0#3")) (.n (val% «eq_prefix_chain_rev» "s0#0"))),
+      .dispatch (.n (val% «eq_prefix_chain_rev» "count_g")) eqPrefixRunRevNames [.n (val% «eq_prefix_chain_rev» "chain"), .n (val% «eq_prefix_chain_rev» "out"), .n (val% «eq_prefix_chain_rev» "src"), .n (val% «eq_prefix_chain_rev» "b1")] [.n (val% «eq_prefix_chain_rev» "done")], .ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-- **`eq_prefix_chain_rev`'s core IR is its meaning.** -/
@@ -559,7 +562,7 @@ theorem eq_prefix_chain_rev_holds : eq_prefix_chain_rev_Spec := by
       eqPrefixRunRevNames[j] = eqPrefixRunRevNames.getD j "" :=
     fun j hj => by rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj, Option.getD_some]
   rw [rel_iff_sem find_eq_prefix_chain_rev,
-    show Fn.params fn% «eq_prefix_chain_rev» = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl,
+    show Fn.params fn% «eq_prefix_chain_rev» = [.n (val% «eq_prefix_chain_rev» "chain"), .n (val% «eq_prefix_chain_rev» "out"), .n (val% «eq_prefix_chain_rev» "src"), .n (val% «eq_prefix_chain_rev» "b1"), .n (val% «eq_prefix_chain_rev» "count_g")] from rfl,
         eq_prefix_chain_rev_body]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
   rw [word_two_pow (by norm_num)]
@@ -568,7 +571,7 @@ theorem eq_prefix_chain_rev_holds : eq_prefix_chain_rev_Spec := by
     subst hp
     rw [hname j hj, eq_prefix_run_rev_holds j (by omega)] at hcall
     obtain ⟨hep, h9⟩ := hcall
-    refine ⟨hret.symm, ⟨σ (.n 6), σ (.n 7), σ (.n 8), r1, by rw [← h5]; exact r2, r3⟩, j,
+    refine ⟨hret.symm, ⟨σ (.n (val% «eq_prefix_chain_rev» "s0#1")), σ (.n (val% «eq_prefix_chain_rev» "s0#2")), σ (.n (val% «eq_prefix_chain_rev» "s0#3")), r1, by rw [← h5]; exact r2, r3⟩, j,
       by omega, by rw [hx, gen_pow_eq_ofK], hep⟩
   · intro hm
     obtain ⟨chain, out, src, b1, cg, rfl⟩ : ∃ chain out src b1 cg,

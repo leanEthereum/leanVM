@@ -115,7 +115,7 @@ def rrT (n : ℕ) : ℕ := rrS n 63 + 1 + 2 * n
 /-- The expansion of `rs_eq_rows__L{n}`, `n ≥ 1`. -/
 def rrBody (n : ℕ) : List Stmt :=
   ((List.range n).map rrHeadBlk).flatten ++ ((List.range 64).map (rrRow n)).flatten ++
-    [.atom (.const (.n (rrT n)) (word 27 0)), .atom (.mul (.n (rrT n + 1)) (.n 0) (.n (rrT n))),
+    [.atom (.const (.n (rrT n)) (word 27 0)), .atom (.mul (.n (rrT n + 1)) (.n (valf% «rs_eq_rows» "row")) (.n (rrT n))),
       .atom (.copy (.n (rrT n + 2)) (.n (rrT n + 1))), .ret [.n (rrT n + 2)]]
 
 theorem rs_eq_rows_L0_body : Fn.body fn% «rs_eq_rows__L0» = [.atom (.copy (.n (val% «rs_eq_rows__L0» "s2#0")) (.n (val% «rs_eq_rows__L0» "row"))),
@@ -178,13 +178,13 @@ theorem holds_rrHeadBlk {C : CallRel} {rd : Reader} {σ : Val} (i : ℕ) (kret :
 
 /-- The body of `rs_eq_rows__L{n}`, unfolded to its conditions. -/
 theorem rr_unfold {name : String} {f : Fn} (n : ℕ) (hfind : coreProgram.find? name = some f)
-    (hparams : f.params = [.n 0, .n 1, .n 2]) (hbody : f.body = rrBody n) (rd : Reader)
+    (hparams : f.params = [.n (valf% «rs_eq_rows» "row"), .n (valf% «rs_eq_rows» "zs"), .n (valf% «rs_eq_rows» "ps")]) (hbody : f.body = rrBody n) (rd : Reader)
     (args rets : List E) :
-    coreProgram.Rel rd name args rets ↔ ∃ σ : Val, [σ (.n 0), σ (.n 1), σ (.n 2)] = args ∧
-      (∀ i < n, LoadHolds rd (σ (.n 1)) i (σ (.n (3 + 2 * i))) ∧
-        LoadHolds rd (σ (.n 2)) i (σ (.n (4 + 2 * i)))) ∧
+    coreProgram.Rel rd name args rets ↔ ∃ σ : Val, [σ (.n (valf% «rs_eq_rows» "row")), σ (.n (valf% «rs_eq_rows» "zs")), σ (.n (valf% «rs_eq_rows» "ps"))] = args ∧
+      (∀ i < n, LoadHolds rd (σ (.n (valf% «rs_eq_rows» "zs"))) i (σ (.n (3 + 2 * i))) ∧
+        LoadHolds rd (σ (.n (valf% «rs_eq_rows» "ps"))) i (σ (.n (4 + 2 * i)))) ∧
       (∀ k < 64, RrRowOk rd σ n k) ∧ σ (.n (rrT n)) = word 27 0 ∧
-      σ (.n (rrT n + 1)) = σ (.n 0) * σ (.n (rrT n)) ∧
+      σ (.n (rrT n + 1)) = σ (.n (valf% «rs_eq_rows» "row")) * σ (.n (rrT n)) ∧
       σ (.n (rrT n + 2)) = σ (.n (rrT n + 1)) ∧ [σ (.n (rrT n + 2))] = rets := by
   rw [rel_iff_sem hfind, hbody, hparams, rrBody]
   simp only [holdsList_append, holdsList_range_flatten n rrHeadBlk (fun _ ↦ rfl),
@@ -357,7 +357,7 @@ theorem ringRow_take_length (c : E) (zs ps : List E) (k : ℕ) (n : ℕ) (hz : z
   rw [← hz, List.take_length, show zs.length = ps.length by omega, List.take_length]
 
 theorem rr_iff {name : String} {f : Fn} (n : ℕ) (hn : 0 < n)
-    (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1, .n 2])
+    (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n (valf% «rs_eq_rows» "row"), .n (valf% «rs_eq_rows» "zs"), .n (valf% «rs_eq_rows» "ps")])
     (hbody : f.body = rrBody n) (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd name args rets ↔ MeaningRsEqRows n rd args rets := by
   rw [rr_unfold n hfind hparams hbody]
@@ -421,7 +421,7 @@ theorem rr_iff {name : String} {f : Fn} (n : ℕ) (hn : 0 < n)
         rw [rrAcc, show rrS n k + 2 + rrStride k * i = rrS n k + (1 + rrStride k * i + 1) by ring,
           ec k i 1 hk (by omega) (by have := hst k; omega)]
         rfl
-    have e0 : σ (.n 0) = row := rfl
+    have e0 : σ (.n (valf% «rs_eq_rows» "row")) = row := rfl
     refine ⟨σ, rfl, fun i hi ↦ ⟨?_, ?_⟩, fun k hk ↦ ⟨?_, fun i hi ↦ ⟨?_, ?_, fun h63 ↦ ?_⟩, ?_⟩,
       ?_, ?_, ?_, ?_⟩
     · rw [ev (3 + 2 * i), (eh i hi).1]; exact readsAt_getD rz (by omega)
