@@ -98,12 +98,6 @@ theorem absorbAll_four (cap : List E) (a b c d : E) (t : ℕ) :
     (⟨cap, []⟩ : Fs).absorbAll [a, b, c, d] t = ⟨cap, [(a, t), (b, t), (c, t), (d, t)]⟩ := by
   simp [Fs.absorbAll, Fs.absorb, rateScalars]
 
-/-- An output cell of a permutation. -/
-theorem outCell {σ : Val} {k : ℕ} {f : Fin 13 → E} (h : cells13 ((osRun k 13).map σ) = f)
-    (i : Fin 13) : σ (.n (k + i.val)) = f i := by
-  have := outs_eq h i (by simp [osRun])
-  simpa [osRun] using this
-
 /-! ## The run -/
 
 /-- **`opening_round`'s meaning runs the Spec's `foldRound`**: from the carried capacity `fs` with
