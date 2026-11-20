@@ -260,8 +260,7 @@ end LeanVM.Guest.Fn.«level_residual__L37_L13_L4_L2»
 namespace LeanVM.Guest.Fn.«main»
 @[expose] public section
 def hcert : CoreMode.HCert where
-  sig := 
-    { pre := [⟨[], 0⟩, ⟨[], 1⟩] }
+  sig := CoreMode.HcSig.«main».sig
   reads := [(404, [(403, 0, .prep 23 (.ev 260) [18])]), (445, [(415, 0, .app 48 (.ev 256) [19])]),
     (446, [(415, 1, .app 49 (.ev 257) [19])]), (450, [(449, 0, .pre 0)]), (454, [(453, 0, .pre 1)])]
   res := [.under [.nonzero 356] (.lt (.val 0) (.num 4611686018427387903)),

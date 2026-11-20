@@ -46,8 +46,7 @@ end LeanVM.Guest.Fn.«column_selector__L1»
 namespace LeanVM.Guest.Fn.«da_pad»
 @[expose] public section
 def hcert : CoreMode.HCert where
-  sig := 
-    { postR := [⟨⟨[(0, 1), (1, 2)], 0⟩, 2, (.num 0), (.val 2)⟩, ⟨⟨[(0, 1), (1, 2)], 1⟩, 2, (.num 0), (.val 2)⟩] }
+  sig := CoreMode.HcSig.«da_pad».sig
   reads := []
   res := [.lt (.val 2) (.num 32)]
   calls := [[]]
