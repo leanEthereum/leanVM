@@ -22,6 +22,7 @@ public import LeanVM.Guest.Word
 public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Protocol.KeccakHash
 public import LeanVM.Guest.GuestConst
+public import LeanVM.Guest.Coverage
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Source
 
