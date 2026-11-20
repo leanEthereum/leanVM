@@ -48,8 +48,8 @@ use field::{ZERO, powers};
 use hash::{ROUNDS, STATE_LANES};
 use keccak::{KeccakShape, verify_keccak};
 use layout::{GLOBAL_COLUMN_BASES, KECCAK_OUT, MEMORY_0, MEMORY_1, N_TABLES, OP_KECCAK, QKECCAK, build_layout};
-use multilinear::{dot, eq_eval, multilinear_eval};
-use ring_switch::ring_switch;
+use multilinear::{Placement, dot, eq_eval, multilinear_eval};
+use ring_switch::{RingWeight, ring_switch};
 use std::ops::Range;
 use transcript::Transcript;
 use whir::verify_whir;
@@ -140,8 +140,28 @@ fn require(condition: bool, error: VerifierError) -> Result<(), VerifierError> {
 /// follows from the announced shape, so a replay checks it too, like the committed size.
 pub const MAX_STACKED_CLAIMS: usize = 512;
 
+/// The weight a claim puts on the stack, a function of the opening's point `x`.
+enum StackWeight {
+    /// `eq(point, x)`.
+    Eq(Vec<E>),
+    /// The ring switch's weight, over the whole stack.
+    Ring(RingWeight),
+    /// The ring switch's weight on a placement's window, times the placement's selector.
+    PlacedRing(Placement, RingWeight),
+}
+
+impl StackWeight {
+    fn evaluate(&self, x: &[E]) -> E {
+        match self {
+            Self::Eq(point) => eq_eval(point, x),
+            Self::Ring(weight) => weight.evaluate(x),
+            Self::PlacedRing(placement, weight) => placement.eq_above(x) * weight.evaluate(&x[..placement.variables]),
+        }
+    }
+}
+
 /// The weight a claim puts on the stack, and the value it claims for it.
-type StackClaim<'a> = (Box<dyn Fn(&[E]) -> E + 'a>, E);
+type StackClaim = (StackWeight, E);
 
 /// Discharge every claim on the committed stack in one opening: the same powers of one challenge
 /// batch the values into the target, and the weights into the basis WHIR evaluates at its terminal point.
@@ -159,20 +179,20 @@ fn verify_stacked_opening(
     require(claims.len() <= MAX_STACKED_CLAIMS, VerifierError::StackedClaims)?;
     let scales = powers(transcript.sample(), claims.len());
     let evaluate_basis = |point: &[E]| {
-        let weights: Vec<E> = claims.iter().map(|(weight, _)| weight(point)).collect();
+        let weights: Vec<E> = claims.iter().map(|(weight, _)| weight.evaluate(point)).collect();
         dot(&scales, &weights)
     };
     let target = dot(&scales, &values);
-    verify_whir(transcript, stack_log, log_inv_rate, target, root, &evaluate_basis)
+    verify_whir(transcript, stack_log, log_inv_rate, target, root, evaluate_basis)
 }
 
 /// An OOD sample, read right after its commitment: a grind of `bits`, a point `z` of the committed variables, then the
-/// committed multilinear at `z`. Level 0's claim follows every other stacked claim.
-fn read_ood(transcript: &mut Transcript, vars: usize, bits: u32) -> Result<StackClaim<'static>, VerifierError> {
+/// committed multilinear at `z`, returned with `z`. Level 0's claim follows every other stacked claim.
+fn read_ood(transcript: &mut Transcript, vars: usize, bits: u32) -> Result<(Vec<E>, E), VerifierError> {
     transcript.grind_check(bits)?;
     let z = transcript.samples(vars);
     let value = transcript.next_scalar()?;
-    Ok((Box::new(move |x| eq_eval(&z, x)), value))
+    Ok((z, value))
 }
 
 /// What a walk of the proof leaves behind, for a prover that proves this verification in turn.
@@ -235,7 +255,7 @@ pub fn verify_keccak_batch(
     let mut transcript = Transcript::new(proof, Digest(*fiat_shamir_iv), Digest(statement), true);
     let halves = transcript.next_scalars(2)?;
     let root = Digest::from_halves(halves[0], halves[1]);
-    let ood = read_ood(&mut transcript, stack_log, OOD_GRINDING_BITS)?;
+    let (ood_point, ood_value) = read_ood(&mut transcript, stack_log, OOD_GRINDING_BITS)?;
     // The instance pins the committed middle states, a multilinear identity of degree `log_steps` in it.
     transcript.grind_check(grinding_bits(log_steps as u128))?;
     let instance = transcript.samples(log_steps);
@@ -243,11 +263,11 @@ pub fn verify_keccak_batch(
     let openings = verify_keccak(&mut transcript, shape, &instance, &output)?;
     let (point, slices) = openings.inputs;
     let (target, weight) = ring_switch(point, &slices, &mut transcript)?;
-    let mut claims: Vec<StackClaim> = vec![(Box::new(weight), target)];
+    let mut claims: Vec<StackClaim> = vec![(StackWeight::Ring(weight), target)];
     if let Some((point, word)) = openings.outputs {
-        claims.push((Box::new(move |x| eq_eval(&point, x)), word));
+        claims.push((StackWeight::Eq(point), word));
     }
-    claims.push(ood);
+    claims.push((StackWeight::Eq(ood_point), ood_value));
     verify_stacked_opening(&mut transcript, root, stack_log, log_inv_rate, &claims)?;
     transcript.finish()?;
     Ok(())
@@ -279,7 +299,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     // 2] parse WHIR commitment: one Merkle root (its OOD sample follows, outside the PCS).
     let halves = transcript.next_scalars(2)?;
     let root = Digest::from_halves(halves[0], halves[1]);
-    let ood = read_ood(&mut transcript, layout.stack_log, OOD_GRINDING_BITS)?;
+    let (ood_point, ood_value) = read_ood(&mut transcript, layout.stack_log, OOD_GRINDING_BITS)?;
 
     // 3] Bus: one batched GKR over the push, pull and count trees, then the leaf decomposition, which leaves each table
     // a degree-2 claim per tree.
@@ -354,13 +374,10 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     // That claim is supported on q_keccak's region of the stack, so its weight carries the
     // placement's selector, and it leads the batch, taking the first power.
     let qkeccak = layout.placements[QKECCAK].expect("q_keccak is committed");
-    let ringswitch: StackClaim = (
-        Box::new(move |x| qkeccak.eq_above(x) * ringswitch_weight(&x[..qkeccak.variables])),
-        ringswitch_target,
-    );
+    let ringswitch: StackClaim = (StackWeight::PlacedRing(qkeccak, ringswitch_weight), ringswitch_target);
     let mut stack_claims = vec![ringswitch];
     stack_claims.extend(claims.iter().filter_map(|claim| claim.on_stack(&layout)));
-    stack_claims.push(ood);
+    stack_claims.push((StackWeight::Eq(ood_point), ood_value));
     verify_stacked_opening(
         &mut transcript,
         root,

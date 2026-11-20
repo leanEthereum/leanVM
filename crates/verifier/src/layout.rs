@@ -189,18 +189,28 @@ impl Flushes {
     }
 }
 
-/// One instruction's table: its columns, its bus flushes, its constraints.
+/// One instruction's table: its columns, its bus flushes. Its constraints are [`Table::constraints`].
 pub struct Table {
     pub opcode: usize, // also its index in the table list, so g^opcode is its bytecode tag
     pub columns: Vec<String>,
     pub padding: Vec<E>, // the row a padding row holds
     pub flushes: Flushes,
-    pub constraints: fn(&[E]) -> Vec<E>,
 }
+
+/// How many constraints each table has: JUMP's two, and none elsewhere.
+const N_CONSTRAINTS: [usize; N_TABLES] = [0, 0, 0, 0, 2, 0];
 
 impl Table {
     pub fn n_constraints(&self) -> usize {
-        (self.constraints)(&vec![ZERO; self.width()]).len()
+        N_CONSTRAINTS[self.opcode]
+    }
+
+    /// Its constraints at a row's `columns`, [`Table::n_constraints`] of them.
+    pub fn constraints(&self, columns: &[E]) -> Vec<E> {
+        match self.opcode {
+            OP_JUMP => jump_constraints(columns),
+            _ => Vec::new(),
+        }
     }
 
     pub fn width(&self) -> usize {
@@ -447,15 +457,14 @@ fn keccak_columns() -> Vec<String> {
 }
 
 pub fn tables() -> Vec<Table> {
-    let table = |opcode, columns: Vec<String>, flushes, constraints| Table {
+    let table = |opcode, columns: Vec<String>, flushes| Table {
         opcode,
         padding: vec![ZERO; columns.len()],
         columns,
         flushes,
-        constraints,
     };
     let named = |columns: &[&str]| columns.iter().map(|name| name.to_string()).collect();
-    let mut keccak = table(OP_KECCAK, keccak_columns(), flushes_keccak(), |_| vec![]);
+    let mut keccak = table(OP_KECCAK, keccak_columns(), flushes_keccak());
     // A padding row is zero, but for KECCAK's output lanes: a padding row permutes zeros.
     let mut output = [0; STATE_LANES];
     keccak_f(&mut output);
@@ -463,11 +472,11 @@ pub fn tables() -> Vec<Table> {
         *padding = E::new(lane, 0);
     }
     vec![
-        table(OP_XOR, named(ARITH_COLUMNS), flushes_arith(OP_XOR, false), |_| vec![]),
-        table(OP_MUL, named(ARITH_COLUMNS), flushes_arith(OP_MUL, true), |_| vec![]),
-        table(OP_SET, named(SET_COLUMNS), flushes_set(), |_| vec![]),
-        table(OP_DEREF, named(DEREF_COLUMNS), flushes_deref(), |_| vec![]),
-        table(OP_JUMP, named(JUMP_COLUMNS), flushes_jump(), jump_constraints),
+        table(OP_XOR, named(ARITH_COLUMNS), flushes_arith(OP_XOR, false)),
+        table(OP_MUL, named(ARITH_COLUMNS), flushes_arith(OP_MUL, true)),
+        table(OP_SET, named(SET_COLUMNS), flushes_set()),
+        table(OP_DEREF, named(DEREF_COLUMNS), flushes_deref()),
+        table(OP_JUMP, named(JUMP_COLUMNS), flushes_jump()),
         keccak,
     ]
 }
@@ -614,4 +623,19 @@ pub fn build_layout<'a>(
         table_log_heights,
         keccak,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn constraint_counts_match_the_constraints() {
+        for table in tables() {
+            assert_eq!(
+                table.constraints(&vec![ZERO; table.width()]).len(),
+                table.n_constraints()
+            );
+        }
+    }
 }

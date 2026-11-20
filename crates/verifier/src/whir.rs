@@ -3,7 +3,7 @@
 use crate::field::{E, K, ONE, ZERO, powers};
 use crate::hash::Digest;
 use crate::layout::{MAX_STACKED_LOG, MIN_STACKED_LOG};
-use crate::multilinear::{log2_strict, multilinear_eval};
+use crate::multilinear::{eq_eval, log2_strict, multilinear_eval};
 use crate::transcript::{Transcript, sumcheck};
 use crate::{VerifierError, require};
 
@@ -202,7 +202,30 @@ fn induced_weight(message_log: usize, queries: &[u64], query_weights: &[E], poin
     Ok(total)
 }
 
-type WeightAt = Box<dyn Fn(&[E]) -> Result<E, VerifierError>>;
+/// The weight a glued claim owes, a function of the terminal point restricted to its level's message coordinates.
+enum GluedWeight {
+    /// An out-of-domain claim at its point: `eq(point, x)`.
+    Ood(Vec<E>),
+    /// A level's batched queries: [`induced_weight`].
+    Queries {
+        message_log: usize,
+        queries: Vec<u64>,
+        query_weights: Vec<E>,
+    },
+}
+
+impl GluedWeight {
+    fn evaluate(&self, x: &[E]) -> Result<E, VerifierError> {
+        match self {
+            Self::Ood(point) => Ok(eq_eval(point, x)),
+            Self::Queries {
+                message_log,
+                queries,
+                query_weights,
+            } => induced_weight(*message_log, queries, query_weights, x),
+        }
+    }
+}
 
 /// One claim glued into the running claim, and the weight it owes back.
 ///
@@ -212,7 +235,7 @@ type WeightAt = Box<dyn Fn(&[E]) -> Result<E, VerifierError>>;
 struct GluedClaim {
     scalar: E,         // the power of lambda it was glued with
     fold_start: usize, // how many fold rounds preceded the level
-    weight_at: WeightAt,
+    weight: GluedWeight,
 }
 
 /// Verify the base-field multilevel opening with a one-point terminal check.
@@ -228,7 +251,7 @@ pub fn verify_whir(
     log_inv_rate: usize,
     target: E,
     root: Digest,
-    evaluate_basis: &dyn Fn(&[E]) -> E,
+    evaluate_basis: impl Fn(&[E]) -> E,
 ) -> Result<(), VerifierError> {
     let config = derive_config(log_n, log_inv_rate)?;
     let levels = config.folds.len();
@@ -293,7 +316,7 @@ pub fn verify_whir(
             let lane_folds = config.folds[0];
             let mut weight = evaluate_basis(&[&point[lane_folds..], &point[..lane_folds]].concat());
             for glued_claim in &glued {
-                weight += glued_claim.scalar * (glued_claim.weight_at)(&point[glued_claim.fold_start..])?;
+                weight += glued_claim.scalar * glued_claim.weight.evaluate(&point[glued_claim.fold_start..])?;
             }
             let terminal = weight * multilinear_eval(&folded[..1 << mu], &tail)?;
             return require(terminal == claim, VerifierError::WhirTerminal);
@@ -302,7 +325,7 @@ pub fn verify_whir(
         let halves = transcript.next_scalars(2)?;
         let next_root = Digest::from_halves(halves[0], halves[1]);
         let high = transcript.next_scalars(fold_count)?;
-        let (ood_weight, ood_value) = crate::read_ood(transcript, mu, OOD_GRINDING_BITS)?;
+        let (ood_point, ood_value) = crate::read_ood(transcript, mu, OOD_GRINDING_BITS)?;
         // The queries and lambda, one message.
         transcript.grind_check(QUERY_GRINDING_BITS)?;
         let queries = sample_queries(transcript, block_length, config.queries[level])?;
@@ -323,14 +346,18 @@ pub fn verify_whir(
         glued.push(GluedClaim {
             scalar: lambda,
             fold_start: alphas.len(),
-            weight_at: Box::new(move |x| Ok(ood_weight(x))),
+            weight: GluedWeight::Ood(ood_point),
         });
         let lambda2 = lambda * lambda;
         claim += lambda2 * batched;
         glued.push(GluedClaim {
             scalar: lambda2,
             fold_start: alphas.len(),
-            weight_at: Box::new(move |x| induced_weight(mu, &queries, &query_weights, x)),
+            weight: GluedWeight::Queries {
+                message_log: mu,
+                queries,
+                query_weights,
+            },
         });
         current_root = next_root;
     }
