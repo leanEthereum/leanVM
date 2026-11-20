@@ -230,3 +230,6 @@ LeanVM/Guest/B1/Selectors/SharedTablesComplete.lean@lp_iter shared_selector_tabl
 LeanVM/Guest/B1/Selectors/SharedTotal.lean shared_selector_tables
 LeanVM/Guest/B1/Selectors/SharedVals.lean shared_selector_tables
 LeanVM/Guest/B1/Selectors/SharedWeight.lean shared_selector_tables
+# Fs
+LeanVM/Guest/B1/Fs/MessageSound.lean opening_message__L
+LeanVM/Guest/B1/Fs/MessageT.lean opening_message__L
