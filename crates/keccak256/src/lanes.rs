@@ -32,12 +32,13 @@ pub(crate) trait Lane: Copy {
     }
 }
 
-/// The 24 rounds of θ, ρ, π, χ and ι. Straight-line, so every rotation is an immediate and every lane a register.
+/// The 24 rounds of θ, ρ, π, χ and ι, on x86. Straight-line, so every rotation is an immediate and every lane a register.
 ///
 /// Each round reads one state and writes the other, a whole output row at a time: its five lanes, rotated by their ρ
 /// from where π takes them, then χ, then the row is stored and folded into the next round's column parities. A row
 /// at a time keeps about sixteen values live, which fits AVX2's sixteen registers, where forming all twenty-five lanes
 /// before χ spills.
+#[cfg(target_arch = "x86_64")]
 #[inline(always)]
 pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
     let mut c: [S; 5] = core::array::from_fn(|x| S::xor5(a[x], a[x + 5], a[x + 10], a[x + 15], a[x + 20]));
@@ -50,6 +51,7 @@ pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
 
 /// [`permute`] where only the first row of the result is read, as a digest, a grind's lane or a challenge reads it:
 /// lanes `0..5` come out permuted, the others are left stale. The last round computes that row alone.
+#[cfg(target_arch = "x86_64")]
 #[inline(always)]
 pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
     let mut c: [S; 5] = core::array::from_fn(|x| S::xor5(a[x], a[x + 5], a[x + 10], a[x + 15], a[x + 20]));
@@ -64,6 +66,7 @@ pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
 
 /// One round from `a` into the first `ROWS` rows of `out`, `c` holding the column parities of `a` on entry and, for a
 /// whole round, of `out` on exit.
+#[cfg(target_arch = "x86_64")]
 #[inline(always)]
 fn round<S: Lane, const ROWS: usize>(a: &[S; STATE_LANES], out: &mut [S; STATE_LANES], c: &mut [S; 5], rc: u64) {
     let d: [S; 5] = core::array::from_fn(|x| S::theta_d(c[(x + 4) % 5], c[(x + 1) % 5]));
@@ -143,6 +146,53 @@ fn round<S: Lane, const ROWS: usize>(a: &[S; STATE_LANES], out: &mut [S; STATE_L
             ],
         );
     }
+}
+
+/// The 24 rounds of θ, ρ, π, χ and ι, elsewhere. Straight-line, so every rotation is an immediate and every lane a register.
+///
+/// ρ and π are written by output row, χ takes the rows in turn, and the next round's column parities accumulate from
+/// the lanes χ writes, which schedules better than forming every lane before χ and every parity after it. With 32
+/// vector registers (NEON) nothing spills, and the x86 form's second state only adds loads and stores.
+#[cfg(not(target_arch = "x86_64"))]
+#[inline(always)]
+pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
+    let mut c: [S; 5] = core::array::from_fn(|x| S::xor5(a[x], a[x + 5], a[x + 10], a[x + 15], a[x + 20]));
+    for &rc in &RC {
+        let d: [S; 5] = core::array::from_fn(|x| S::theta_d(c[(x + 4) % 5], c[(x + 1) % 5]));
+        let t = |i: usize| a[i].xor(d[i % 5]);
+        // Row `y` holds the lanes π sends there, each rotated by its ρ.
+        #[rustfmt::skip]
+        let rows: [[S; 5]; 5] = [
+            [t(0), t(6).rotl::<44>(), t(12).rotl::<43>(), t(18).rotl::<21>(), t(24).rotl::<14>()],
+            [t(3).rotl::<28>(), t(9).rotl::<20>(), t(10).rotl::<3>(), t(16).rotl::<45>(), t(22).rotl::<61>()],
+            [t(1).rotl::<1>(), t(7).rotl::<6>(), t(13).rotl::<25>(), t(19).rotl::<8>(), t(20).rotl::<18>()],
+            [t(4).rotl::<27>(), t(5).rotl::<36>(), t(11).rotl::<10>(), t(17).rotl::<15>(), t(23).rotl::<56>()],
+            [t(2).rotl::<62>(), t(8).rotl::<55>(), t(14).rotl::<39>(), t(15).rotl::<41>(), t(21).rotl::<2>()],
+        ];
+        for (y, &[b0, b1, b2, b3, b4]) in rows.iter().enumerate() {
+            let mut row = [
+                S::chi(b0, b1, b2),
+                S::chi(b1, b2, b3),
+                S::chi(b2, b3, b4),
+                S::chi(b3, b4, b0),
+                S::chi(b4, b0, b1),
+            ];
+            if y == 0 {
+                row[0] = row[0].xor(S::splat(rc));
+            }
+            for x in 0..5 {
+                a[5 * y + x] = row[x];
+                c[x] = if y == 0 { row[x] } else { c[x].xor(row[x]) };
+            }
+        }
+    }
+}
+
+/// [`permute`]: lanes `0..5` come out permuted, as on x86, where the last round computes nothing else.
+#[cfg(not(target_arch = "x86_64"))]
+#[inline(always)]
+pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
+    permute(a);
 }
 
 /// One state: the scalar permutation, and the batched one where no vector backend applies.
