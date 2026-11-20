@@ -1,0 +1,39 @@
+/-
+  Rv64mc.Proof.Multilinear.SliceLoop
+
+  The arithmetic of a loop over `E` slices, as `rv_sym` states its pointers: element `j` at `q + 16 j`, a pointer
+  kept at `q + 16 j + 8`, the end at `q + 8 + len <<< 4`. Shared by the loops of `multilinear.rs`, each fact stated
+  with only what it needs so that no program state is carried into `omega`.
+-/
+
+import Rv64mc.Core.Repr
+
+namespace Rv64mc.Proof.Multilinear
+
+open RiscvZkvm.Rv64
+
+theorem step_ptr (q : Word) (j : Nat) :
+    q + BitVec.ofNat 64 (16 * j) + 24#64 = q + BitVec.ofNat 64 (16 * (j + 1)) + 8#64 := by
+  rw [BitVec.add_assoc, BitVec.add_assoc]; congr 1; apply BitVec.eq_of_toNat_eq; simp; omega
+
+theorem start_ptr (q : Word) : q + 8#64 = q + BitVec.ofNat 64 (16 * 0) + 8#64 := by simp
+
+/-- A live slice ends below the stack, with room for the end pointer. -/
+theorem live_bound {env : Env} {m : MachineState} {q : Word} {n : Nat} (hl : env.Live m q n)
+    (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) : q.toNat + n + 8 < 2 ^ 64 := by
+  have := env.layout; have := env.stackLimit.isLt; unfold Env.Live at hl; omega
+
+/-- The loop's exit test: past the last element. -/
+theorem end_iff {q : Word} {j len : Nat} (hq : q.toNat + 16 * len + 8 < 2 ^ 64) (hj : j < len) :
+    q + BitVec.ofNat 64 (16 * j) + 24#64 = q + 8#64 + BitVec.ofNat 64 len <<< 4 ↔ j + 1 = len := by
+  rw [BitVec.add_assoc, BitVec.add_assoc, BitVec.add_right_inj, ← BitVec.toNat_inj]
+  simp [BitVec.toNat_add, BitVec.toNat_shiftLeft, Nat.shiftLeft_eq]; omega
+
+theorem len_eq {a b : Nat} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) (h : BitVec.ofNat 64 a = BitVec.ofNat 64 b) :
+    a = b := by
+  rw [← BitVec.toNat_inj] at h; simp at h; omega
+
+theorem len_zero {a : Nat} (ha : a < 2 ^ 64) : BitVec.ofNat 64 a = 0#64 ↔ a = 0 := by
+  rw [← BitVec.toNat_inj]; simp; omega
+
+end Rv64mc.Proof.Multilinear

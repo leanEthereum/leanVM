@@ -1,0 +1,2 @@
+module	instr	loops	proof_lines	cpu_s	manual_notes
+Proof.Multilinear.Dot	44	1	102	7.0	copy of eq_eval's: loop lemma (Inv: pointers, fold prefix acc, frame, prologue stores); body_val by EListAt.load; step_limbs (product XORed into the sum, eMul_eq/eAdd_eq); shared slice-loop arithmetic in Proof/Multilinear/SliceLoop.lean
