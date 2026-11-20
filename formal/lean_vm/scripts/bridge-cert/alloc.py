@@ -565,7 +565,7 @@ def run(check):
         body = data.fn_thms([t for j, k in jks for t in thm1(j, k)])
         files[os.path.join(OUT, mod.split('AllocChk.')[1].strip('«»') + '.lean')] = (
             HEAD.format(mod=mod, what="The kernel's checks that compiled functions' allocation hints pass the check.")
-            + 'public import LeanVM.Guest.Bridge.AllocDefs\n'
+            + 'public import LeanVM.Guest.Bridge.AllocDefs\nimport all Statement.Data.AdviceHints\n'
             + ('' if win else 'public import LeanVM.Guest.Bridge.AllocFrDefs\npublic import LeanVM.Guest.Bridge.ChkLit\n')
             + f'public import {cm}\n'
             + ''.join(f'public import {m}\n' for m in imps)
@@ -576,14 +576,14 @@ def run(check):
                 fr_mods[k] = fmod
                 files[os.path.join(OUT, f'F_{k}.lean')] = (
                     HEAD.format(mod=fmod, what=f"The kernel's check of `{k}`'s frame hints' sizes.")
-                    + 'public import LeanVM.Guest.Bridge.AllocFrDefs\n'
+                    + 'public import LeanVM.Guest.Bridge.AllocFrDefs\nimport all Statement.Data.AdviceHints\n'
                     + f'public import {cm}\n' + ''.join(f'public import {m}\n' for m in imps)
                     + '\n' + ns(k, fr_thm(j, k)).rstrip('\n') + '\n')
                 bmod = f'LeanVM.Guest.Bridge.AllocChk.«B_{k}»'
                 body_mods[k] = bmod
                 files[os.path.join(OUT, f'B_{k}.lean')] = (
                     HEAD.format(mod=bmod, what=f"The kernel's check of `{k}`'s body for the bump pointer.")
-                    + 'public import LeanVM.Guest.Bridge.AllocDefs\n' + f'public import {cm}\n'
+                    + 'public import LeanVM.Guest.Bridge.AllocDefs\nimport all Statement.Data.AdviceHints\n' + f'public import {cm}\n'
                     + ''.join(f'public import {m}\n' for m in imps)
                     + '\n' + ns(k, body_thm(j, k)).rstrip('\n') + '\n')
                 if j in failed:
@@ -592,7 +592,7 @@ def run(check):
                 shape_mods[k] = smod
                 files[os.path.join(OUT, f'S_{k}.lean')] = (
                     HEAD.format(mod=smod, what=f"The kernel's check that `{k}`'s body allocates its top-level allocation atoms on every path.")
-                    + 'public import LeanVM.Guest.Bridge.AllocDefs\n'
+                    + 'public import LeanVM.Guest.Bridge.AllocDefs\nimport all Statement.Data.AdviceHints\n'
                     + ''.join(f'public import {m}\n' for m in imps if m.endswith('.Core'))
                     + '\n' + ns(k, shape(k)).rstrip('\n') + '\n')
     groups = {}

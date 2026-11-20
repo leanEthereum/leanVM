@@ -1,6 +1,7 @@
 module
 
 public import LeanVM.Guest.JumpTable.Entries
+import all Statement.Data.Bytecode
 
 /-!
 # `__jump_tables` for the mode walk

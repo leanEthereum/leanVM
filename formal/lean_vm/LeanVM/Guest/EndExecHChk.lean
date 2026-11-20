@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.Bridge.AllocAdv
 public import LeanVM.Guest.Bridge.AllocCur
 public import LeanVM.Guest.Memory.HeapSlots
+import all Statement.Data.Bytecode
+import all Statement.Data.AdviceHints
 
 /-!
 # The advised buffers, checked

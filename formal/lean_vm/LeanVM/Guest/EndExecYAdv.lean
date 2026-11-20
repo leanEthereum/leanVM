@@ -8,6 +8,7 @@
 module
 
 public import Statement.Data.AdviceHints
+import all Statement.Data.AdviceHints
 public import LeanVM.Guest.Hints
 
 /-!

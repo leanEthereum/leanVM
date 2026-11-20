@@ -12,6 +12,7 @@ public import LeanVM.Guest.CoreNames
 public import LeanVM.Guest.JumpTable
 public import LeanVM.Guest.CertName
 public import LeanVM.Guest.VsAt
+import all Statement.Data.Bytecode
 
 /-!
 # The checks' facts
@@ -279,7 +280,7 @@ theorem main_facts : (certOf 1).facts.env = [] ∧ (certOf 1).pre = [] ∧ (cert
     (certOf 1).sem = [] ∧ (certOf 1).nret = 0 ∧ (coreOf 1).params = [] ∧ (coreOf 1).name = "main" := by
   decide +kernel
 
-theorem fnOf_1 : (fnOf 1).entryPc = mainEntry := rfl
+theorem fnOf_1 : (fnOf 1).entryPc = mainEntry := by rfl
 
 end
 end LeanVM.Guest.End

@@ -86,7 +86,7 @@ project beside them are proved in the proof projects; their statements are not p
 \item \lean{Corollaries.lean}, optional: \lean{AggregateSound}, and \lean{GuestProverComplete}, the guest's prover's proof accepted.
 \end{enumerate}
 \lean{Statement/Prover/Guest.lean}, the guest's witness generation, is read as a specification of the Rust's (\texttt{aggregate}): from a node's statement and witness, the witness streams the guest pops, each named for the Rust's stream; with the compiler's hints, the executor's advice (\lean{guestAdvice}); the executor's run on it (\lean{guestExecution}); and the honest prover on that run (\lean{guestProve}). It needs no review for soundness (an execution the executor returns is valid whatever its advice), and \lean{GuestExecutionComplete} says it is complete.
-\lean{Statement/Data/} needs no review beyond its provenance: it is not committed, and \lean{lean_vm/scripts/guest-export} writes it from leanVM's sources before every build, in CI and in \lean{check-all.sh}. \lean{Statement/Fast/} needs none: each \lean{@[csimp]} lemma is an equation the kernel checks.
+\lean{Statement/Data/} needs no review beyond its provenance: it is not committed, and \lean{lean_vm/scripts/guest-export} writes it from leanVM's sources before every build, in CI and in \lean{check-all.sh}. Its definitions' bodies are not exposed (no \lean{@[expose]}), for build locality: the values are those its files write, and only the modules that evaluate them see them (\lean{import all}). \lean{Statement/Fast/} needs none: each \lean{@[csimp]} lemma is an equation the kernel checks.
 
 \section{The setting}
 

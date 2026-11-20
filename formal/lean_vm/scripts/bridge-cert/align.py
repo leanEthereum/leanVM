@@ -404,7 +404,8 @@ def glue_a(k):
 
 
 def imports(ms):
-    return ''.join(f'public import {m}\n' for m in sorted(set(ms))) + '\n'
+    # the checks read the advice's values, which `Statement/Data` does not expose
+    return ''.join(f'public import {m}\n' for m in sorted(set(ms))) + 'import all Statement.Data.AdviceHints\n\n'
 
 
 def ns(k, body):

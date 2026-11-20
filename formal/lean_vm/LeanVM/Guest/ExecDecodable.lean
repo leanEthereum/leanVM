@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.Mode.InvCert
+import all Statement.Data.Bytecode
 
 /-!
 # The guest program decodes

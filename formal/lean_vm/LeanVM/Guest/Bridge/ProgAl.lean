@@ -15,6 +15,8 @@ public import LeanVM.Guest.B2C.Cells
 public import LeanVM.Guest.CheckSplit
 public import LeanVM.Guest.Exec
 public import LeanVM.Guest.JumpTable
+import all Statement.Data.Bytecode
+import all Statement.Data.AdviceHints
 
 /-!
 # The deployed guest's alignment

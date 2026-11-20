@@ -12,6 +12,7 @@ public import LeanVM.Guest.B2C.CplAll
 public import LeanVM.Guest.B2C.Table
 public import LeanVM.Guest.Sound
 public import LeanVM.Guest.Memory.GuestMainFree
+import all Statement.Data.Bytecode
 
 /-!
 # B2's completeness

@@ -154,6 +154,7 @@ end LeanVM.Guest.Bridge
             HEAD.format(mod=f'LeanVM.Guest.Bridge.ProgAl.{tmod}',
                         what=f"The alignment tables' entries of the functions of `Checked.{mod}`.")
             + f'public import LeanVM.Guest.Bridge.ProgAlDefs\npublic import LeanVM.Guest.Checked.{mod}\n'
+            + 'import all Statement.Data.Bytecode\nimport all Statement.Data.AdviceHints\n'
             + ''.join(f'public import LeanVM.Guest.CoreMode.GlueE.«{q}»\n' for q in glue)
             + '''meta import LeanVM.Guest.KernelLit
 

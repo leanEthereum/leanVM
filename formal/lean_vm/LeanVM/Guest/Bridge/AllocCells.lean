@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.Bridge.AllocAdv
+import all Statement.Data.Bytecode
+import all Statement.Data.AdviceHints
 
 /-!
 # The frame cells the hints write

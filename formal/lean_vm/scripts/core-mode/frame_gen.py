@@ -250,6 +250,8 @@ def imports(pack, packs, gens=(), glue=(), env=False):
            'public import LeanVM.Guest.Pack.«%s».Bundle' % pack]
     out += ['public import %s' % pair_mod(g, n) for g, n in sorted(set(gens))]
     out += ['public import LeanVM.Guest.CoreMode.Sig.«%s»' % p for p in sorted(packs | {pack})]
+    # the walks read the advice's values, which `Statement/Data` does not expose
+    out += ['import all Statement.Data.AdviceHints']
     return '\n'.join(out) + '\n\nset_option Elab.async false\n'
 
 
@@ -393,7 +395,7 @@ def main(argv):
                 wm = 'LeanVM.Guest.CoreMode.Pack.«%s».FrameD%dW%d' % (p, k, m)
                 files[os.path.join(OUT, p, 'FrameD%dW%d.lean' % (k, m))] = (
                     header(wm, 'A window of `%s`\'s frame walk.' % n) +
-                    'public import LeanVM.Guest.CoreMode.Pack.«%s».FrameD%d\n\nset_option Elab.async false\n' % (p, k) +
+                    'public import LeanVM.Guest.CoreMode.Pack.«%s».FrameD%d\nimport all Statement.Data.AdviceHints\n\nset_option Elab.async false\n' % (p, k) +
                     ns(ns_, '/-- `%s`: its frame walk accepts offsets %d to %d. -/\ntheorem frameWin%d : CoreMode.frameWinS '
                        'frameFun code.chunks %s %s %d %d = true := by\n  decide +kernel\n' % (
                            n, a, b, m, cut_of(clens, a), cut_of(clens, b), a, b)))
@@ -408,7 +410,7 @@ def main(argv):
                 header(wl, 'The windows of `%s`\'s frame walk, chained.' % n) +
                 'public import LeanVM.Guest.CoreMode.FrameSlice\n' +
                 ''.join('public import LeanVM.Guest.CoreMode.Pack.«%s».FrameD%dW%d\n' % (p, k, m) for m in range(len(pairs))) +
-                '\nset_option Elab.async false\n' +
+                'import all Statement.Data.AdviceHints\n\nset_option Elab.async false\n' +
                 ns(ns_, '/-- `%s`: its hints by pc increase. -/\ntheorem frameHints : Mode.pcsIncr frameFun.hints = true := by\n'
                    '  decide +kernel\n\n/-- `%s`: its code\'s length. -/\ntheorem frameLen : code.chunks.flatten.length = %d := by\n'
                    '  decide +kernel\n\n/-- `%s`: its frame walk accepts its code, its windows chained. -/\n'

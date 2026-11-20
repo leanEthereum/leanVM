@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.EndExec
 public import LeanVM.Guest.Mode.JumpTables
+import all Statement.Data.Bytecode
+import all Statement.Data.AdviceHints
 
 /-!
 # The prologue
@@ -63,7 +65,7 @@ theorem mainCells_eq : Data.mainCells = 430 := rfl
 
 theorem f0_mem : Data.f0 ∈ Data.functions := List.mem_cons_self
 
-theorem f0_entry' : Data.f0.entryPc = 0 := rfl
+theorem f0_entry' : Data.f0.entryPc = 0 := by rfl
 
 /-- Every pc the advice gives hints at is past the prologue. -/
 theorem adviceHints_ge : Data.adviceHints.all (fun p ↦ decide (Data.jtSlots ≤ p.1)) = true := by

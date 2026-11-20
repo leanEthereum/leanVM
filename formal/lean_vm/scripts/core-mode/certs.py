@@ -31,7 +31,8 @@ def header(mod, what):
 
 
 def imports(ms):
-    return ''.join('public import %s\n' % m for m in sorted(ms))
+    # the certificates read the deployed guest's data, which `Statement/Data` does not expose
+    return ''.join('public import %s\n' % m for m in sorted(ms)) + 'import all Statement.Data.Bytecode\nimport all Statement.Data.AdviceHints\n'
 
 
 def lst(xs):
