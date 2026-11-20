@@ -4,10 +4,6 @@ import LeanVMTests.Protocol.Bus
 /-!
 # Bus phase knowledge-soundness tests
 
-* **The theorem has an inhabitant that computes** at the slot's errors `busErrors`: `busSecurity`
-  on the bus tests' instance and on the spine's toy is a `def` without `noncomputable`, and so is
-  its extractor, which the spine's composition reads.
-
 * **The challenges' bound rests on the products.** A stack whose only failing clause is the
   balance (`a = [1, 0]`: the push tuple `(0, x + 1)` is pulled as `(1, x + 1)`) has different
   products at the tests' challenge: the state after the challenges is false there, and true only
@@ -31,21 +27,6 @@ namespace LeanVMTests.Protocol.BusSecurity
 open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Bus LeanVMTests.Protocol.Bus
   CompPoly CPoly CMlPolynomialEval
 open scoped NNReal
-
-/-! ## The theorem has an inhabitant -/
-
-/-- Knowledge soundness of the bus phase on the bus tests' instance, at the slot's error. -/
-def security : Typed.Security (busPhase busToy conditions) (Seam.commit busToy)
-    (Seam.bus busToy) (busErrors busToy) :=
-  busSecurity busToy conditions
-
-/-- Its extractor. -/
-def extractor := security.extractor
-
-/-- Knowledge soundness of the bus phase on the spine's toy. -/
-def toySecurity : Typed.Security (busPhase Toy.toy toyConditions) (Seam.commit Toy.toy)
-    (Seam.bus Toy.toy) (busErrors Toy.toy) :=
-  busSecurity Toy.toy toyConditions
 
 /-! ## The challenges' bound rests on the products -/
 

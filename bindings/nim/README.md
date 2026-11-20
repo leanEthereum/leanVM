@@ -8,7 +8,7 @@ Needs Nim 2.2.12+. In your `.nimble`:
 
 <!-- x-release-please-start-version -->
 ```nim
-requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.12.0"
+requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.13.1"
 ```
 <!-- x-release-please-end -->
 
@@ -16,7 +16,7 @@ Or from the command line:
 
 <!-- x-release-please-start-version -->
 ```sh
-nimble install "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.12.0"
+nimble install "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.13.1"
 ```
 <!-- x-release-please-end -->
 
@@ -25,7 +25,7 @@ With [nimbus-build-system](https://github.com/status-im/nimbus-build-system), ve
 <!-- x-release-please-start-version -->
 ```sh
 git submodule add https://github.com/leanEthereum/leanVM vendor/leanVM
-git -C vendor/leanVM checkout bindings-v0.12.0
+git -C vendor/leanVM checkout bindings-v0.13.1
 ```
 <!-- x-release-please-end -->
 
@@ -72,6 +72,7 @@ main()
 
 - leanXMSS keys are stateful: store your own leaf index next to `XmssSecretKey.toBytes()` and never sign two different messages at the same index.
 - leanSPHINCS keys are stateless and deterministic, and sign at most `2^30` messages.
+- `XmssSecretKey.cacheToBytes()` returns the key's trees, which are not secret; `XmssSecretKey.fromCacheBytes(seed, publicKey, cache)` loads the key from them instead of rebuilding them, checking them against the public key.
 - Fallible calls return `Result[T, string]` from [`results`](https://github.com/arnetheduck/nim-results); verification returns `bool`. Modules are `{.push raises: [], gcsafe.}` and build under `--mm:refc` and `--mm:orc`.
 - Every later call on a closed value returns an error. Do not `close` a value while another thread uses it.
 

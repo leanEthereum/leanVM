@@ -88,12 +88,12 @@ theorem nz_refuseZero : ∀ P : VerifierProgram α, NZ P.refusingZeroChallenge P
   | .query _ _ k => .query fun r ↦ nz_refuseZero (k r)
 
 /-- **Refusing zero challenges anywhere only fails more.** -/
-theorem refines_refuseZero : ∀ P : VerifierProgram α, Limits.Refines P.refusingZeroChallenge P
+theorem refines_refuseZero : ∀ P : VerifierProgram α, Refines P.refusingZeroChallenge P
   | .ret a => .ret a
   | .fail => .fail _
   | .read k => .read fun x ↦ refines_refuseZero (k x)
   | .sample k => .sample fun c ↦ by
-      show Limits.Refines (if c = 0
+      show Refines (if c = 0
           then VerifierProgram.fail else (k c).refusingZeroChallenge) (k c)
       split
       · exact .fail _
@@ -104,14 +104,14 @@ theorem refines_refuseZero : ∀ P : VerifierProgram α, Limits.Refines P.refusi
 
 /-- **Refusing zero challenges anywhere refuses at least what any refusal of zero challenges
 does.** -/
-theorem refines_refuseZero_of_nz {Q P : VerifierProgram α} (h : NZ Q P) : Limits.Refines P.refusingZeroChallenge Q := by
+theorem refines_refuseZero_of_nz {Q P : VerifierProgram α} (h : NZ Q P) : Refines P.refusingZeroChallenge Q := by
   induction h with
   | ret a => exact .ret a
   | fail => exact .fail _
   | read _ ih => exact .read ih
   | sample _ ih =>
     refine .sample fun c ↦ ?_
-    show Limits.Refines (if c = 0 then VerifierProgram.fail else _) _
+    show Refines (if c = 0 then VerifierProgram.fail else _) _
     split
     · exact .fail _
     · rename_i hc
@@ -128,7 +128,7 @@ theorem verifyDeferredNZ_of_rz {bytecode : List K} {iv publicInput : Digest} {c 
     Limits.verifyDeferredNZ bytecode iv publicInput c π = true := by
   rw [Limits.verifyDeferredRefusingZero_eq_withHash] at h
   unfold Limits.verifyDeferredNZ
-  exact Limits.runProof_refines (refines_refuseZero_of_nz (nz_deferredProgram c bytecode
+  exact runProof_refines (refines_refuseZero_of_nz (nz_deferredProgram c bytecode
     publicInput)) _ π h
 
 /-- A child the guest program accepts is accepted by the guest's deferring verifier refusing a
@@ -145,7 +145,7 @@ theorem verifierNZ_of_rz {prog : LeanIsaProgram} {input : PublicInput} {π : Pro
     Budget.verifierNZ (m := Id) keccak256 keccakF1600 prog input π = true := by
   unfold Budget.verifierRefusingZeroWithHash at h
   unfold Budget.verifierNZ
-  exact Limits.runProof_refines (refines_refuseZero_of_nz
+  exact runProof_refines (refines_refuseZero_of_nz
     (NZ.bind (nz_verifyExecution _ _ _) fun _ ↦ NZ.refl _)) _ π h
 
 /-! ## The claim a run evaluates -/
@@ -168,7 +168,7 @@ theorem run_claimed_of_computed_rz (H : Bytes → Id Digest) (F : KeccakState �
   rw [hp] at h
   have hy : y.layout.bytecode = bytecode :=
     prefix_bytecode (VerifierProgram.returns_of_run H F
-      (Limits.run_refines (H := H) (F := F) (refines_refuseZero _) st (y, s1) hp))
+      (run_refines (H := H) (F := F) (refines_refuseZero _) st (y, s1) hp))
   simp only [Option.bind_some] at h
   rw [hy] at h
   by_cases hv : multilinearEval (bytecode.map ofK) y.bytecodePoint = y.value

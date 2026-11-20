@@ -22,6 +22,11 @@ pub enum Error {
         actual: usize,
     },
 
+    /// Bytes handed to [`SecretKey::from_cache_bytes`](crate::xmss::SecretKey::from_cache_bytes)
+    /// are not this key's tree cache: a wrong length, or trees that do not match its public key.
+    #[error("not this leanXMSS key's tree cache")]
+    InvalidXmssCache,
+
     /// A leanXMSS signature does not verify.
     #[error("leanXMSS signature at leaf index {leaf_index} does not verify")]
     XmssVerify {

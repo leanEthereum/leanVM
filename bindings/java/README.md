@@ -8,7 +8,7 @@ Maven Central, `io.github.crate-crypto:lean-pq`, JDK 25. Gradle (Kotlin DSL):
 
 <!-- x-release-please-start-version -->
 ```kotlin
-implementation("io.github.crate-crypto:lean-pq:0.12.0")
+implementation("io.github.crate-crypto:lean-pq:0.13.1")
 ```
 <!-- x-release-please-end -->
 
@@ -19,7 +19,7 @@ Maven:
 <dependency>
   <groupId>io.github.crate-crypto</groupId>
   <artifactId>lean-pq</artifactId>
-  <version>0.12.0</version>
+  <version>0.13.1</version>
 </dependency>
 ```
 <!-- x-release-please-end -->
@@ -48,6 +48,7 @@ try (XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
 - leanXMSS is stateful: a key has `2^32` leaf indices, and must never sign two messages at the same one. Persist a high-water leaf index next to the key and advance it before publishing a signature. `prepare(leafIndex)` builds a leaf's signing state ahead of time.
 - leanSPHINCS is stateless and deterministic; a key signs at most `2^30` messages.
 - `toBytes()` is the key's 32-byte seed, which is secret; `fromBytes` restores the key.
+- `cacheToBytes()` returns the key's trees, which are not secret; `XmssSecretKey.fromCacheBytes(seed, publicKey, cache)` loads the key from them instead of rebuilding them, checking them against the public key.
 
 ## VRF
 

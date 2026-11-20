@@ -14,7 +14,7 @@
 from std/os import parentDir, `/`, quoteShell, fileExists
 
 const
-  leanPqVersion = "0.12.0" # x-release-please-version
+  leanPqVersion = "0.13.1" # x-release-please-version
   leanPqNativeDir {.strdefine.} = ""
   leanPqNativeUrl {.strdefine, used.} =
     "https://github.com/leanEthereum/leanVM/releases/download/bindings-v" & leanPqVersion
@@ -96,6 +96,12 @@ proc lpqXmssSecretKeyFromBytes*(
   importc: "lpq_xmss_secret_key_from_bytes", header: lpqHeader.}
 proc lpqXmssSecretKeyToBytes*(key: ptr LpqXmssSecretKey, output: ptr LpqBuffer): int32 {.
   importc: "lpq_xmss_secret_key_to_bytes", header: lpqHeader.}
+proc lpqXmssSecretKeyCacheToBytes*(key: ptr LpqXmssSecretKey, output: ptr LpqBuffer): int32 {.
+  importc: "lpq_xmss_secret_key_cache_to_bytes", header: lpqHeader.}
+proc lpqXmssSecretKeyFromCacheBytes*(
+  seed: ptr byte, seedLen: csize_t, publicKey: ptr byte, publicKeyLen: csize_t,
+  cache: ptr byte, cacheLen: csize_t, output: ptr ptr LpqXmssSecretKey): int32 {.
+  importc: "lpq_xmss_secret_key_from_cache_bytes", header: lpqHeader.}
 proc lpqXmssSecretKeyPublicKey*(key: ptr LpqXmssSecretKey, output: ptr LpqBuffer): int32 {.
   importc: "lpq_xmss_secret_key_public_key", header: lpqHeader.}
 proc lpqXmssSecretKeyPrepare*(key: ptr LpqXmssSecretKey, leafIndex: uint32): int32 {.

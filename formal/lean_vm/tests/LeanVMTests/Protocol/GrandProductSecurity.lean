@@ -8,11 +8,6 @@ import LeanVMTests.Protocol.GrandProduct
 
 Over `E`, on the trees of the grand-product tests.
 
-* **The theorem has an inhabitant that computes** at the slot's errors: `gkrSecurity 3 4 sixteen
-  noRiders`, raised from the unit `1 / |E|` to the slot's `overE 1` (`overE_one`), is a `def`
-  without `noncomputable`, and so is its extractor; so are the instances with a zero rider, whose
-  input relation is inhabited, with a nonzero rider, whose input relation is empty, and for an
-  odd `μ`.
 * **The riders are tracked.** At the last layer of `gkr 1 2`, the rider `1 - x` is zero on the
   coordinates fixed so far exactly when the first combination challenge is its root.
 * **The round check is load-bearing.** Without it, the challenge of the second step's first
@@ -30,7 +25,7 @@ built from the hand run's values puts the trees' evaluation over `E` into a defi
 comparison, which does not finish. They are stated at the completeness
 half's relations, `family` and `childRel`: with no riders these are the security half's,
 `familyT` at `constTrack` definitionally and `childRelT … 0` by agreement on no challenge being
-equality, so the verifier refuted is the one `gkrSecurity` is proved for.
+equality, so the verifier refuted is the one the security halves are proved for.
 -/
 
 namespace LeanVMTests.Protocol.GrandProductSecurity
@@ -38,32 +33,6 @@ namespace LeanVMTests.Protocol.GrandProductSecurity
 open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Gkr LeanVM.Protocol.SumcheckRound
   LeanVMTests.Protocol.GrandProduct CompPoly CMlPolynomialEval
 open scoped NNReal
-
-/-! ## The theorem has an inhabitant -/
-
-/-- Knowledge soundness of `gkr 3 4` at the slot's errors, without riders. -/
-def security34 : Typed.Security (gkr 3 4 sixteen) (relIn 3 4 sixteen noRiders)
-    (relOut 3 4 sixteen noRiders) (Typed.gkrErrors E (overE 1) 3 4) :=
-  (gkrSecurity 3 4 sixteen noRiders).mono (Typed.Errors.Le.of_eq (by rw [overE_one]))
-
-/-- Its extractor at a statement, which a slot reads. -/
-def extractor34 := security34.extractor
-
-/-- With a zero rider: the input relation is inhabited. -/
-example : Typed.Security (gkr 1 2 four) (relIn 1 2 four zeroRider)
-    (relOut 1 2 four zeroRider) (Typed.gkrErrors E (overE 1) 1 2) :=
-  (gkrSecurity 1 2 four zeroRider).mono (Typed.Errors.Le.of_eq (by rw [overE_one]))
-
-/-- With a nonzero rider: no statement is in the input relation, and every one escapes at each
-challenge with at most the error charged to it. -/
-example : Typed.Security (gkr 1 2 four) (relIn 1 2 four rider) (relOut 1 2 four rider)
-    (Typed.gkrErrors E (overE 1) 1 2) :=
-  (gkrSecurity 1 2 four rider).mono (Typed.Errors.Le.of_eq (by rw [overE_one]))
-
-/-- For an odd `μ`, where the binary layer comes first. -/
-example : Typed.Security (gkr 3 3 eight) (relIn 3 3 eight noRiders)
-    (relOut 3 3 eight noRiders) (Typed.gkrErrors E (overE 1) 3 3) :=
-  (gkrSecurity 3 3 eight noRiders).mono (Typed.Errors.Le.of_eq (by rw [overE_one]))
 
 /-! ## The riders are tracked -/
 

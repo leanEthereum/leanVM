@@ -14,9 +14,9 @@ public import LeanVM.Protocol.TableSumcheck
 /-!
 # The table sumcheck's relations
 
-The table sumcheck phase's security on the typed framework (`tableSumcheckSecurity`,
-`LeanVM.Protocol.TableSumcheck`) appends three securities, the first and the last of them public
-(`xiSecurity`, `finalValuesSecurity`). This module reads them as doom transitions:
+The table sumcheck phase's parts on the typed framework (`LeanVM.Protocol.TableSumcheck`): the
+batching challenge's and the final values' securities (`xiSecurity`, `finalValuesSecurity`) and
+the rounds' family. This module reads them as doom transitions:
 
 * `xi_escape`: the batching challenge `ξ` escapes doom on the bus seam with probability at most
   `L₀ · (B + 2) / |E|`;

@@ -8,7 +8,7 @@ Needs Zig 0.16+.
 
 <!-- x-release-please-start-version -->
 ```sh
-version=0.12.0
+version=0.13.1
 zig fetch --save=lean_pq "https://github.com/leanEthereum/leanVM/releases/download/bindings-v$version/lean-pq-zig-$version.tar.gz"
 ```
 <!-- x-release-please-end -->
@@ -50,6 +50,7 @@ pub fn main() !void {
 
 - leanXMSS keys are stateful: store your own leaf index next to `XmssSecretKey.toBytes()` and never sign two different messages at the same index.
 - leanSPHINCS keys are stateless and deterministic, and sign at most `2^30` messages.
+- `XmssSecretKey.cacheToBytes(allocator)` returns the key's trees, which are not secret; `XmssSecretKey.fromCacheBytes(seed, public_key, cache)` loads the key from them instead of rebuilding them, checking them against the public key.
 - Call `deinit` exactly once on every `XmssSecretKey`, `SphincsSecretKey`, `VrfKey`, `Sidecar` and `Aggregate`. Returned slices belong to the allocator you pass.
 - A bad signature or VRF proof returns `error.InvalidSignature`; for other errors, `lastError` returns the message.
 

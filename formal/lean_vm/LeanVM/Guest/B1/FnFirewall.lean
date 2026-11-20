@@ -161,8 +161,8 @@ import LeanVM.Guest.B1.Sig.XmssStep
 import LeanVM.Guest.B1.Sig.XmssT
 import LeanVM.Guest.B1.Sig.XmssWindows
 
-import LeanVM.Guest.B1.Merkle.Cap
-import LeanVM.Guest.B1.Merkle.CapAllP
+import LeanVM.Guest.B1.Merkle.CapLinks
+import LeanVM.Guest.B1.Merkle.CapRef
 import LeanVM.Guest.B1.Merkle.Climb
 import LeanVM.Guest.B1.Merkle.Meaning
 import LeanVM.Guest.B1.Opening.FoldAlg
@@ -334,6 +334,7 @@ import LeanVM.Guest.B1.Fwd.NotStored
 import LeanVM.Guest.B1.VerifySub.NZRun
 import LeanVM.Guest.B1.VerifySub.Sizes
 import LeanVM.Guest.B1.Common.Atoms
+import LeanVM.Guest.B1.Common.HashPair
 import LeanVM.Guest.B1.Common.Basic
 import LeanVM.Guest.B1.Common.Loops
 import LeanVM.Guest.B1.Common.MemSize
@@ -341,6 +342,7 @@ import LeanVM.Guest.B1.Common.Phase
 import LeanVM.Guest.B1.Common.Run
 import LeanVM.Guest.B1.Common.Sponge
 import LeanVM.Guest.B1.Bits.Templates
+import LeanVM.Guest.Ref.Link
 
 /-! **B1's per-function proofs read their own function's core module alone.** A proof stated for
 every program that finds its function (`Finds`, `CoreFind.lean`), or a check of one function's
@@ -374,8 +376,8 @@ open Lean Elab Command in
   let Q := `LeanVM.Guest.B1.Bits
   -- single modules (not their numbered siblings), and the functions whose core modules each may read
   let single : List (Name × List Name) := [
-    (`LeanVM.Guest.B1.Merkle.Cap, []),
-    (`LeanVM.Guest.B1.Merkle.CapAllP, [`verify_merkle_cap__L2, `verify_merkle_cap__L3, `verify_merkle_cap__L4, `verify_merkle_cap__L5, `verify_merkle_cap__L6, `verify_merkle_cap__L7, `verify_merkle_cap__L8]),
+    (`LeanVM.Guest.B1.Merkle.CapRef, []),
+    (`LeanVM.Guest.B1.Merkle.CapLinks, [`verify_merkle_cap__L2, `verify_merkle_cap__L3, `verify_merkle_cap__L4, `verify_merkle_cap__L5, `verify_merkle_cap__L6, `verify_merkle_cap__L7, `verify_merkle_cap__L8]),
     (`LeanVM.Guest.B1.Merkle.Climb, []),
     (`LeanVM.Guest.B1.Merkle.Meaning, []),
     (`LeanVM.Guest.B1.Opening.FoldAlg, []),
@@ -536,13 +538,16 @@ open Lean Elab Command in
     (`LeanVM.Guest.B1.VerifySub.NZRun, []),
     (`LeanVM.Guest.B1.VerifySub.Sizes, []),
     (`LeanVM.Guest.B1.Common.Atoms, []),
+    (`LeanVM.Guest.B1.Common.HashPair, []),
     (`LeanVM.Guest.B1.Common.Basic, []),
     (`LeanVM.Guest.B1.Common.Loops, []),
     (`LeanVM.Guest.B1.Common.MemSize, []),
     (`LeanVM.Guest.B1.Common.Phase, []),
     (`LeanVM.Guest.B1.Common.Run, []),
     (`LeanVM.Guest.B1.Common.Sponge, []),
-    (`LeanVM.Guest.B1.Bits.Templates, [])]
+    (`LeanVM.Guest.B1.Bits.Templates, []),
+    (`LeanVM.Guest.Ref.Lang, []),
+    (`LeanVM.Guest.Ref.Link, [])]
   let families : List (Name × Option (List Name) × List Name) := [
     (Q ++ `GPowerP, some [`g_power_of_word], []),
     (Q ++ `MeaningP, some [], []),

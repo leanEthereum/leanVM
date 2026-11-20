@@ -32,6 +32,13 @@ void lpq_buffer_free(uint8_t *data, size_t len);
 int32_t lpq_xmss_secret_key_generate(lpq_xmss_secret_key **out);
 int32_t lpq_xmss_secret_key_from_bytes(const uint8_t *data, size_t len, lpq_xmss_secret_key **out);
 int32_t lpq_xmss_secret_key_to_bytes(lpq_xmss_secret_key *key, lpq_buffer *out);
+/*
+ * The trees a key holds, without any secret, and a key loaded from its seed, its 32-byte public
+ * key and those bytes in place of building the trees. Loading checks the cache against the public
+ * key, and fails for any bytes that are not this key's cache.
+ */
+int32_t lpq_xmss_secret_key_cache_to_bytes(lpq_xmss_secret_key *key, lpq_buffer *out);
+int32_t lpq_xmss_secret_key_from_cache_bytes(const uint8_t *seed, size_t seed_len, const uint8_t *public_key, size_t public_key_len, const uint8_t *cache, size_t cache_len, lpq_xmss_secret_key **out);
 int32_t lpq_xmss_secret_key_public_key(lpq_xmss_secret_key *key, lpq_buffer *out);
 int32_t lpq_xmss_secret_key_prepare(lpq_xmss_secret_key *key, uint32_t leaf_index);
 int32_t lpq_xmss_secret_key_sign(lpq_xmss_secret_key *key, const uint8_t *message, size_t message_len, uint32_t leaf_index, lpq_buffer *out);

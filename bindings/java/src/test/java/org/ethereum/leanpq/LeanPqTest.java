@@ -55,6 +55,34 @@ class LeanPqTest {
     }
 
     @Test
+    void xmssKeyLoadsFromItsTreeCache() {
+        byte[] message = bytes(7);
+        try (XmssSecretKey xmss = XmssSecretKey.fromSeed(bytes(7))) {
+            xmss.prepare(3);
+            byte[] cache = xmss.cacheToBytes();
+            byte[] publicKey = xmss.publicKey();
+            try (XmssSecretKey loaded = XmssSecretKey.fromCacheBytes(bytes(7), publicKey, cache)) {
+                assertArrayEquals(xmss.publicKey(), loaded.publicKey());
+                assertArrayEquals(cache, loaded.cacheToBytes());
+                byte[] signature = loaded.sign(message, 3);
+                assertArrayEquals(xmss.sign(message, 3), signature);
+                assertTrue(LeanPq.xmssVerify(xmss.publicKey(), message, signature));
+            }
+            byte[] truncated = Arrays.copyOf(cache, cache.length - 1);
+            byte[] tampered = cache.clone();
+            tampered[0] ^= 1;
+            byte[] otherKey;
+            try (XmssSecretKey other = XmssSecretKey.fromSeed(bytes(8))) {
+                otherKey = other.publicKey();
+            }
+            assertThrows(LeanPqException.class, () -> XmssSecretKey.fromCacheBytes(bytes(7), publicKey, truncated));
+            assertThrows(LeanPqException.class, () -> XmssSecretKey.fromCacheBytes(bytes(7), publicKey, tampered));
+            assertThrows(LeanPqException.class, () -> XmssSecretKey.fromCacheBytes(bytes(7), otherKey, cache));
+            assertThrows(IllegalArgumentException.class, () -> XmssSecretKey.fromCacheBytes(new byte[31], publicKey, cache));
+        }
+    }
+
+    @Test
     void vrfMatchesThePinnedVector() {
         byte[] root = HexFormat.of().parseHex("af45ef4aca47606c0e6722dc71af01e3f13df93253e6aec5805eb1e8ed3bb0fa");
         try (VrfKey key = VrfKey.fromSeed(bytes(9), 100, 200)) {

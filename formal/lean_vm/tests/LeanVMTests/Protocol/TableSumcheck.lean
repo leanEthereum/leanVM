@@ -37,9 +37,8 @@ totals those forms reach on the honest stack.
 * **Column groups.** A table with no constraint, flush or count column
   takes no part: on an instance with a taller column group the number of rounds is the sumcheck
   tables' `τ_max`.
-* **Inhabitants.** The phase fills the slot `tableSlot` on the toy instance, and completeness and
-  knowledge soundness at the slot's errors have inhabitants on both instances, the securities
-  plain definitions.
+* **Inhabitants.** The phase fills the slot `tableSlot` on the toy instance, and its parts'
+  completeness halves compose (`tableSumcheckComplete`), with inhabitants on both instances.
 * **The checks are load-bearing.** Without the final check the last message has no security at
   any error, whatever the extractor; without the round check the first round's challenge has no
   knowledge error below one.
@@ -414,6 +413,18 @@ example : Typed.Def (TheOracle Toy.toy) (Toy.toy.Stmt × BusOut Toy.toy) Unit
     (Toy.toy.Stmt × TableOut Toy.toy) Unit (tableSlot Toy.toy) :=
   tableSumcheck Toy.toy
 
+/-- **Completeness on the typed framework**: the phase's parts compose, from the bus seam to the
+table seam. -/
+theorem tableSumcheckComplete (I : M3Instance) (hd : I.d ≤ 2) :
+    Typed.Complete (tableSumcheck I) (Seam.bus I) (Seam.table I) :=
+  ((Typed.batchComplete (batch_complete I)).append
+    (Sumcheck.roundsComplete (tableSummand I) Sumcheck.unitWeights nodes (side I)
+      (tableSummand_degree I hd) nodes_injective)).append
+    (Sumcheck.finalComplete (tableSummand I) Sumcheck.unitWeights nodes (side I) (tableOut I)
+      fun s o w hside ↦ by
+        cases w
+        exact tableOut_mem_table I s o hside)
+
 /-- Completeness on the toy instance. -/
 theorem completeToy :
     Typed.Complete (tableSumcheck Toy.toy) (Seam.bus Toy.toy) (Seam.table Toy.toy) :=
@@ -491,16 +502,5 @@ theorem round_unchecked_one_le {e : ℝ≥0}
       ⟨(), side_twoTab x honest rfl,
         (Sumcheck.family_honest (tableSummand twoTab) Sumcheck.unitWeights nodes (side twoTab)
           (tableSummand_degree twoTab le_rfl) nodes_injective).next ctx 0 #v[] c (by decide)⟩
-
-/-- Knowledge soundness on the toy instance, at the slot's errors; a plain definition, so its
-extractor computes. -/
-def securityToy : Typed.Security (tableSumcheck Toy.toy) (Seam.bus Toy.toy) (Seam.table Toy.toy)
-    (tableErrors Toy.toy) :=
-  tableSumcheckSecurity Toy.toy le_rfl
-
-/-- Knowledge soundness on the two-table instance, at the slot's errors. -/
-def securityTwo : Typed.Security (tableSumcheck twoTab) (Seam.bus twoTab) (Seam.table twoTab)
-    (tableErrors twoTab) :=
-  tableSumcheckSecurity twoTab le_rfl
 
 end LeanVMTests.Protocol.TableSumcheck

@@ -185,6 +185,34 @@ impl SecretKey {
         self.seed
     }
 
+    /// Encodes the trees the key holds: the top tree and the bottom trees it used last.
+    ///
+    /// The bytes hold no secret. [`Self::from_cache_bytes`] loads them in place of building
+    /// the trees again.
+    #[must_use]
+    pub fn cache_to_bytes(&self) -> Vec<u8> {
+        self.expanded.cache_to_bytes()
+    }
+
+    /// Loads a key from its seed, its public key and the bytes of [`Self::cache_to_bytes`],
+    /// building no tree.
+    ///
+    /// The cache is checked against the public key, cheaply: a loaded key signs exactly as a
+    /// built one, whatever the bytes' source.
+    ///
+    /// # Errors
+    ///
+    /// Fails when the bytes are not this key's tree cache.
+    pub fn from_cache_bytes(
+        seed: Seed,
+        public_key: &PublicKey,
+        cache: &[u8],
+    ) -> Result<Self, Error> {
+        let expanded = LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &public_key.0, cache)
+            .ok_or(Error::InvalidXmssCache)?;
+        Ok(Self { seed, expanded })
+    }
+
     /// Returns the key's public key.
     #[must_use]
     pub fn public_key(&self) -> PublicKey {

@@ -6,7 +6,7 @@ Python bindings for the leanXMSS and leanSPHINCS post-quantum signatures, their 
 
 <!-- x-release-please-start-version -->
 ```bash
-pip install py-lean-pq==0.12.0
+pip install py-lean-pq==0.13.1
 ```
 <!-- x-release-please-end -->
 
@@ -32,6 +32,7 @@ lpq.sphincs_verify(sphincs_key.public_key, message, sphincs_sig)
 - leanXMSS is stateful: a key has `2^32` leaf indices, and must never sign two messages at the same one. Persist a high-water leaf index next to the key and advance it before publishing a signature. `prepare(leaf_index)` builds a leaf's signing state ahead of time.
 - leanSPHINCS is stateless and deterministic; a key signs at most `2^30` messages.
 - `to_bytes()` is the key's 32-byte seed, which is secret; `from_bytes` restores the key.
+- `cache_to_bytes()` returns the key's trees, which are not secret; `XmssSecretKey.from_cache_bytes(seed, public_key, cache)` loads the key from them instead of rebuilding them, checking them against the public key.
 - Failures raise `LeanPqError`, inputs of the wrong length `ValueError`. Every call that signs, verifies or reaches the sidecar releases the GIL.
 
 ## Aggregate

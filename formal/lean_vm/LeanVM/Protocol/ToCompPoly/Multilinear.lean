@@ -9,6 +9,7 @@
 module
 
 public import CompPoly.Multilinear.Basic
+import CompPoly.Multilinear.Unique
 import Mathlib.Algebra.BigOperators.Fin
 
 /-!
@@ -304,33 +305,18 @@ theorem boolVec_append {k m : ℕ} (i : Fin (2 ^ k)) (j : Fin (2 ^ m)) :
   simp only [boolVec, Vector.getElem_append, Vector.getElem_ofFn, testBit_cubeIndex]
   split <;> rfl
 
-/-- Two indices below `2 ^ m` agree iff their `m` low bits agree. -/
-theorem fin_eq_iff_testBit {m : ℕ} (i j : Fin (2 ^ m)) :
-    i = j ↔ ∀ b : Fin m, i.val.testBit b = j.val.testBit b := by
-  refine ⟨fun h b ↦ by rw [h], fun h ↦ Fin.ext (Nat.eq_of_testBit_eq fun b ↦ ?_)⟩
-  by_cases hb : b < m
-  · exact h ⟨b, hb⟩
-  · have hi : i.val < 2 ^ b :=
-      lt_of_lt_of_le i.isLt (Nat.pow_le_pow_right (by norm_num) (by omega))
-    have hj : j.val < 2 ^ b :=
-      lt_of_lt_of_le j.isLt (Nat.pow_le_pow_right (by norm_num) (by omega))
-    rw [Nat.testBit_lt_two_pow hi, Nat.testBit_lt_two_pow hj]
+/-- The point of the cube with index `j` is CompPoly's vertex `j`. -/
+private theorem boolVec_eq_vertex {m : ℕ} (j : Fin (2 ^ m)) : (boolVec j : Vector R m) = vertex j := by
+  apply Vector.ext
+  intro b hb
+  simp only [boolVec, vertex, Vector.getElem_ofFn, BitVec.getLsb_eq_getElem]
+  rfl
 
 /-- The Lagrange basis at a Boolean point is the indicator of that point. -/
 theorem lagrangeBasis_boolVec {m : ℕ} (j i : Fin (2 ^ m)) :
     (lagrangeBasis (boolVec j : Vector R m))[i.val] = if i = j then 1 else 0 := by
-  rw [lagrangeBasis_getElem_nat _ i.isLt]
-  have h : ∀ b : Fin m,
-      (if i.val.testBit b then (boolVec j : Vector R m)[b]
-        else 1 - (boolVec j : Vector R m)[b]) =
-      if i.val.testBit b = j.val.testBit b then 1 else 0 := by
-    intro b
-    simp only [boolVec, Fin.getElem_fin, Vector.getElem_ofFn]
-    cases i.val.testBit b <;> cases j.val.testBit b <;> simp
-  simp only [h, Fintype.prod_boole]
-  by_cases hij : i = j
-  · simp [hij]
-  · simp [hij, (fin_eq_iff_testBit i j).not.mp hij]
+  rw [boolVec_eq_vertex, lagrangeBasis_vertex]
+  exact if_congr eq_comm rfl rfl
 
 /-- Evaluating a table at a point of the cube reads the entry. -/
 theorem evalMle_boolVec {m : ℕ} (t : CMlPolynomialEval R m) (j : Fin (2 ^ m)) :

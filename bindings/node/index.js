@@ -716,5 +716,6 @@ module.exports.vrfKeyFromCacheBytes = nativeBinding.vrfKeyFromCacheBytes
 module.exports.vrfKeyFromSeed = nativeBinding.vrfKeyFromSeed
 module.exports.vrfVerify = nativeBinding.vrfVerify
 module.exports.xmssSecretKeyFromBytes = nativeBinding.xmssSecretKeyFromBytes
+module.exports.xmssSecretKeyFromCacheBytes = nativeBinding.xmssSecretKeyFromCacheBytes
 module.exports.xmssSecretKeyFromSeed = nativeBinding.xmssSecretKeyFromSeed
 module.exports.xmssVerify = nativeBinding.xmssVerify
