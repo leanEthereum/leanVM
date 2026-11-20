@@ -55,6 +55,11 @@ theorem ne_of_off_stack {S : Nat} {t x y : Word} (hoff : x.toNat < S ∨ t.toNat
 theorem toNat_add_lit (b c : BitVec 64) (n : Nat) (h : c.toNat = n) : (b + c).toNat = (b.toNat + n) % 2 ^ 64 := by
   rw [BitVec.toNat_add, h]
 
+/-- A negative offset's number, for `omega`, without a 64-bit constant: `b - k`, or it wraps. -/
+theorem toNat_add_negk (b c : BitVec 64) (k : Nat) (h : c.toNat + k = 2 ^ 64) :
+    b.toNat < k ∨ (b + c).toNat + k = b.toNat := by
+  rw [BitVec.toNat_add]; have := b.isLt; omega
+
 theorem ne_of_toNat {a b : BitVec 64} (h : a.toNat ≠ b.toNat) : a ≠ b := fun e => h (congrArg BitVec.toNat e)
 
 theorem le_of_toNat {a b : BitVec 64} (h : a.toNat ≤ b.toNat) : a ≤ b := BitVec.le_def.2 h

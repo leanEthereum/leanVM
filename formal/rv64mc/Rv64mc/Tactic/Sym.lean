@@ -624,17 +624,25 @@ partial def neNext (env a : Expr) : MetaM (Option Expr) := do
     with it, each word `b + c` among their atoms given its number. `nested`: no `NEXT` read through stores. -/
 partial def arithProve (goal : Expr) (nested : Bool := false) : MetaM (Option Expr) := do
   unless ← heapOn do return none
+  -- gathering the facts unfolds definitions and evaluates closed numbers: out of recursion depth or heartbeats there,
+  -- no proof, as `omega` failing
+  let saved ← saveState
+  tryCatchRuntimeEx (arithProveCore goal nested) fun _ => do
+    saved.restore
+    return none
+
+partial def arithProveCore (goal : Expr) (nested : Bool) : MetaM (Option Expr) := do
   let goal := (← instantiateMVars goal).consumeMData
   if goal.hasExprMVar then return none
   if goal.isAppOfArity ``Ne 3 then
     if ← isWordTy (goal.getArg! 0) then
       let g' ← mkAppM ``Ne #[← mkAppM ``BitVec.toNat #[goal.appFn!.appArg!], ← mkAppM ``BitVec.toNat #[goal.appArg!]]
-      let some p ← arithProve g' nested | return none
+      let some p ← arithProveCore g' nested | return none
       return some (← mkAppM ``Rv64mc.Tactic.ne_of_toNat #[p])
   if goal.isAppOfArity ``Eq 3 then
     if ← isWordTy (goal.getArg! 0) then
       let g' ← mkEq (← mkAppM ``BitVec.toNat #[goal.appFn!.appArg!]) (← mkAppM ``BitVec.toNat #[goal.appArg!])
-      let some p ← arithProve g' nested | return none
+      let some p ← arithProveCore g' nested | return none
       return some (← mkAppM ``BitVec.eq_of_toNat_eq #[p])
   let some g1 ← arithProp goal | return none
   let hasRegs := (g1.find? fun e => e.isAppOf ``Rv64mc.Tactic.rf || e.isAppOf ``Lprog.updReg).isSome
@@ -684,8 +692,14 @@ partial def arithProve (goal : Expr) (nested : Bool := false) : MetaM (Option Ex
       match slot with
       | some p => extra := extra.push (w, p)
       | none =>
-        let hc ← mkDecideProof (← mkEq (← mkAppM ``BitVec.toNat #[c]) (mkNatLit cw))
-        extra := extra.push (w, ← appN ``Rv64mc.Tactic.toNat_add_lit [(`b, b), (`c, c), (`n, mkNatLit cw), (`h, hc)])
+        if cw < 2 ^ 63 then
+          let hc ← mkDecideProof (← mkEq (← mkAppM ``BitVec.toNat #[c]) (mkNatLit cw))
+          extra := extra.push (w, ← appN ``Rv64mc.Tactic.toNat_add_lit [(`b, b), (`c, c), (`n, mkNatLit cw), (`h, hc)])
+        else
+          let k := 2 ^ 64 - cw
+          let hc ← mkDecideProof (← mkEq (← mkAppM ``HAdd.hAdd #[← mkAppM ``BitVec.toNat #[c], mkNatLit k])
+            (← mkAppM ``HPow.hPow #[mkNatLit 2, mkNatLit 64]))
+          extra := extra.push (w, ← appN ``Rv64mc.Tactic.toNat_add_negk [(`b, b), (`c, c), (`k, mkNatLit k), (`h, hc)])
       canon := canon.push (w, b)
       todo := b :: todo
     else if !nested && w.isAppOfArity ``Rv64mc.Env.next 2 then
@@ -1804,6 +1818,13 @@ partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
           saved.restore
   return [g]
 
+/-- `closeSide`, out of recursion depth or heartbeats leaving the goal as it was. -/
+def closeSideSafe (g : MVarId) : MetaM (List MVarId) := do
+  let saved ← saveState
+  tryCatchRuntimeEx (closeSide g) fun _ => do
+    saved.restore
+    return [g]
+
 /-- A branch's hypothesis `hc` under a name of its own: the earlier ones are `hc_1`, `hc_2`, … in the order they were
     added, the latest `hc`. -/
 def nameApart (g : MVarId) : MetaM MVarId := g.withContext do
@@ -2021,7 +2042,7 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
     let at? ← g.withContext do parseAt (← g.getType)
     let some a := at?
       | let gp? ← finish g
-        if let some gp := gp? then left := left ++ (← closeSide gp) else left := left.push g
+        if let some gp := gp? then left := left ++ (← closeSideSafe gp) else left := left.push g
         continue
     if ((cfg.stops.contains a.pc || cfg.heads.contains a.pc) && g != g0) || seen.contains a.pc then
       trace[rv_sym] "left at {a.pc}: a stop or a loop's head"
@@ -2202,7 +2223,7 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
         let hk ← newGoal g kT
         g.assign (← appN ``Rv64mc.Tactic.step_call (base ++ [(`ret, ret), (`tgt, tgt), (`f, f), (`Pre, Pre),
           (`Post, Post), (`hcon, hcon), (`hc, hc), (`hpre, hpre), (`hk, hk)]))
-        let side ← closeSide hpre.mvarId!
+        let side ← closeSideSafe hpre.mvarId!
         let g' ← afterCall hk.mvarId! k
         pure (some (side ++ g'.toList))
       | some ``Lprog.LinstrR.Ltail =>
@@ -2223,7 +2244,7 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
         g.assign (← appN ``Rv64mc.Tactic.step_tail (base ++ [(`tgt, tgt), (`f, f), (`Pre, Pre), (`Post, Post),
           (`hcon, hcon), (`hc, hc), (`hsp, hsp), (`hpre, hpre),
           (`hk, hk)]))
-        let side := (← closeSide hsp.mvarId!) ++ (← closeSide hpre.mvarId!)
+        let side := (← closeSideSafe hsp.mvarId!) ++ (← closeSideSafe hpre.mvarId!)
         let g' ← afterCall hk.mvarId! k
         pure (some (side ++ g'.toList))
       | some ``Lprog.LinstrR.Lret =>
@@ -2231,7 +2252,7 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
         let hra ← newGoal g (← mkEq (mkApp a.R (mkConst ``RiscvZkvm.Rv64.Reg.x1)) a.rv)
         let hsp ← newGoal g (← mkEq (mkApp a.R (mkConst ``RiscvZkvm.Rv64.Reg.x2)) a.top)
         g.assign (← appN ``Rv64mc.Tactic.step_ret (base ++ [(`hra, hra), (`hsp, hsp), (`h, h)]))
-        let side := (← closeSide hra.mvarId!) ++ (← closeSide hsp.mvarId!)
+        let side := (← closeSideSafe hra.mvarId!) ++ (← closeSideSafe hsp.mvarId!)
         pure (some (side ++ [h.mvarId!]))
       | _ => pure none
     match step with
@@ -2372,7 +2393,7 @@ syntax (name := rvClose) "rv_close" : tactic
   let mut left := #[]
   for g in gs do
     if ← g.isAssigned then continue
-    left := left ++ (← closeSide g)
+    left := left ++ (← closeSideSafe g)
   setGoals left.toList
 
 /-- **`rv_mem`**: the goal's reads of registers, of `NEXT` and of memory resolved, as the executor reads them: through
