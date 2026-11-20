@@ -126,11 +126,13 @@ structure TranscriptAt (env : Env) (m : MachineState) (a : Word) (t : Model.TSta
 def InFrame (top a : Word) (n : Nat) : Prop := top.toNat ≤ a.toNat ∧ a.toNat + n < 2 ^ 64
 
 /-- **The `Result<E, VerifierError>` at `a` is the mirror's outcome**: `Ok` with the value's limbs, or an `Err`
-    (`none`, whatever error it carries). -/
+    (`none`) whose error's tag is not `Result<(), VerifierError>`'s `Ok` niche, so that a caller passing the error
+    on returns an `Err`. -/
 def ResultEAt (m : MachineState) (a : Word) : Option E → Prop
   | some v => m.getMem (a + BitVec.ofNat 64 Layouts.ResultE.tagOffset) = BitVec.ofNat 64 Layouts.ResultE.Ok.tag ∧
       EAt m (a + BitVec.ofNat 64 Layouts.ResultE.Ok.f0) (Model.limbs v)
-  | none => m.getMem (a + BitVec.ofNat 64 Layouts.ResultE.tagOffset) = BitVec.ofNat 64 Layouts.ResultE.Err.tag
+  | none => m.getMem (a + BitVec.ofNat 64 Layouts.ResultE.tagOffset) = BitVec.ofNat 64 Layouts.ResultE.Err.tag ∧
+      m.getMem (a + BitVec.ofNat 64 Layouts.ResultE.Err.f0) ≠ BitVec.ofNat 64 Layouts.ResultUnit.Ok.tag
 
 /-! ## What a call keeps -/
 

@@ -50,9 +50,11 @@ theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]?
   · exact static_store (static_store hpre_4 hlim hpre_9) hlim
       (Nat.le_trans hpre_9 (toNat_le_add (n := 24) hpre_10 (by decide)))
   · rw [next_none ((ofNat_le_iff (by omega) (by omega)).1 hc)]
-    simp only [ResultEAt, Layouts.ResultE.tagOffset, Layouts.ResultE.Err.tag, BitVec.add_zero]
+    simp only [ResultEAt, Layouts.ResultE.tagOffset, Layouts.ResultE.Err.tag, Layouts.ResultE.Err.f0,
+      Layouts.ResultUnit.Ok.tag, BitVec.add_zero]
     rw [MachineState.getMem_setMem_ne (ne_add_self (n := 24) hpre_10 (by decide) (by decide)),
-      MachineState.getMem_setMem_eq]
+      MachineState.getMem_setMem_eq, MachineState.getMem_setMem_eq]
+    exact ⟨rfl, by decide⟩
   -- within the stream: `Ok`
   all_goals
     have hlt' : t.streamOffset < t.proof.stream.length := (ofNat_lt_iff (by omega) (by omega)).1 hc

@@ -37,7 +37,11 @@ theorem tag_some {M : MachineState} {a : Word} {v : E} (h : ResultEAt M a (some 
   simpa [ResultEAt, Layouts.ResultE.tagOffset, Layouts.ResultE.Ok.tag] using h.1
 
 theorem tag_none {M : MachineState} {a : Word} (h : ResultEAt M a none) : M.getMem a = 1#64 := by
-  simpa [ResultEAt, Layouts.ResultE.tagOffset, Layouts.ResultE.Err.tag] using h
+  simpa [ResultEAt, Layouts.ResultE.tagOffset, Layouts.ResultE.Err.tag] using h.1
+
+theorem err_none {M : MachineState} {a : Word} (h : ResultEAt M a none) :
+    M.getMem (a + 8#64) ≠ 18446744073709551615#64 := by
+  simpa [ResultEAt, Layouts.ResultE.Err.f0, Layouts.ResultUnit.Ok.tag] using h.2
 
 theorem limbs_some {M : MachineState} {a : Word} {v : E} (h : ResultEAt M a (some v)) :
     M.getMem (a + 8#64) = (Model.limbs v).1 ∧ M.getMem (a + 16#64) = (Model.limbs v).2 := by
@@ -165,10 +169,16 @@ theorem ok_at (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
   -- the result: `Err`
   all_goals try
     rw [nextScalar_none ho]
-    simp only [ResultEAt, Layouts.ResultE.tagOffset, Layouts.ResultE.Err.tag, BitVec.add_zero]
+    have he := err_none hret1_16
+    rw [BitVec.add_assoc, show (18446744073709551552#64 + 8#64 : Word) = 18446744073709551560#64 by decide] at he
+    simp only [ResultEAt, Layouts.ResultE.tagOffset, Layouts.ResultE.Err.tag, Layouts.ResultE.Err.f0,
+      Layouts.ResultUnit.Ok.tag, BitVec.add_zero]
     rw [MachineState.getMem_setMem_ne (ne_add_self (k := 16) hpre_10 (by decide) (by decide)),
       MachineState.getMem_setMem_ne (ne_add_self (k := 8) hpre_10 (by decide) (by decide)),
+      MachineState.getMem_setMem_eq, MachineState.getMem_setMem_ne
+        (add_ne_add (j := 8) (k := 16) (n := 24) hpre_10 (by decide) (by decide) (by decide)),
       MachineState.getMem_setMem_eq]
+    exact ⟨rfl, he⟩
   -- the result: `Ok`, the scalar observed
   focus
     have hx : (t.proof.stream[t.streamOffset]?).getD 0 = t.proof.stream[t.streamOffset] := by
