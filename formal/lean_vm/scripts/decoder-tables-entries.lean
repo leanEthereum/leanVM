@@ -3,7 +3,7 @@
   (`--entries`). `scripts/regen-guest.sh` runs it before `decoder-tables` writes
   `Cost/Decoder/GuestTables.lean`, which `decoder-tables-inputs.lean` imports.
 -/
-import LeanVM.Guest.Glob
+import LeanVM.Guest.CoreData
 
 open LeanVM.Guest
 

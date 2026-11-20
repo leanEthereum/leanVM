@@ -2,7 +2,7 @@ module
 
 public import LeanVM.Cost.Decoder.Hints
 public import LeanVM.Guest.Fast.Da
-import LeanVM.Guest.Value.Bits
+import LeanVM.Core.Value.Bits
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Source
@@ -30,7 +30,7 @@ looked up once:
 
 namespace LeanVM.Cost.Decoder
 
-open LeanVM.Cost LeanVM.Parameters LeanVM.Guest.Fast LeanVM.Guest.Core LeanVM.Guest.B1
+open LeanVM.Cost LeanVM.Parameters LeanVM.Guest.Fast LeanVM.Core LeanVM.Guest.B1
 open LeanVM.Guest.B1.Da LeanVM.Extraction.Fast LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -87,7 +87,7 @@ theorem dvSymsCols_eq (r : ℕ) (σ : Val) (Vn : NFrames) (i h : ℕ) :
   split
   · rename_i hc
     rw [dvCols_getD σ Vn hc.2]
-    simp only [dvSymsCell, cellSymsAt, dvRowVW, dvRowVN, LeanVM.Guest.Value.gen_pow_eq_ofK]
+    simp only [dvSymsCell, cellSymsAt, dvRowVW, dvRowVN, LeanVM.Core.Value.gen_pow_eq_ofK]
   · rfl
 
 /-- **The staged witness is the unstaged one.** -/

@@ -33,7 +33,7 @@ table below `2^23` (`GuestLimits.of_limits`): `guest_complete_numeric` gives a v
 namespace LeanVM.Guest.Budget
 
 open LeanVM.Guest.Completeness
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Node LeanVM.Protocol
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Node LeanVM.Protocol
 open LeanVM.Guest.End (work bytecode)
 
 @[expose] public section
@@ -57,7 +57,7 @@ theorem shapes_sum_le {ps : List (ℕ × ℕ)} (f : ℕ → ℕ → ℕ) {M : �
 /-- `verify_sub`'s instructions of each opcode at the largest opening arm. -/
 def childMax : Opcode → ℕ
   | .xor => 98091 | .mulNative => 181054 | .setConstant => 49823 | .deref => 104791
-  | .jump => 35720 | .keccak => 10983
+  | .jump => 35720 | .keccak => 11763
 
 theorem childShape_le_childMax (op : Opcode) (μ r : ℕ) :
     (Count.deployedInstrs op).childShape μ r ≤ childMax op := by

@@ -4,7 +4,7 @@ together with the arms' callees' words bounds (`Count.osLeafBounds`).
 
     python3 -I scripts/count/vsos.py LEAN_VM
 
-The numbers come from a mirror of `B1.osBos` at `B2C.fs` and `wSB` (`B1.osSizesL`, and for each call
+The numbers come from a mirror of `B1.osBos` at `Deployed.fs` and `wSB` (`B1.osSizesL`, and for each call
 statement of the arm's core IR, which `Whir/Data*.lean` check equal to `osBody (osCfg m)`, the
 largest of its callees' frames and constants); a mirror the Lean definitions disagree with fails
 the module's `decide +kernel`."""
@@ -117,7 +117,7 @@ theorem osNames_ok {m : ℕ} (hm : m < B1.osArms) :
   exacts [%s]
 
 /-- **Every arm's callees within `wSB`.** -/
-theorem osLeafBounds : B1.OsLeafBounds B2C.fs wSB := fun _ hm f hf =>
+theorem osLeafBounds : B1.OsLeafBounds Deployed.fs wSB := fun _ hm f hf =>
   wSB_totalLe (List.all_eq_true.mp (osNames_ok hm) f hf)
 ''' % ', '.join(names)
 mod('VsOsAll', '`open_stacked`\'s words at each arm (`osC m`), and its callees\' words bounds.', imports, body)

@@ -20,9 +20,9 @@ returns (the oracle's).
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Node LeanVM.Guest.Memory
+open LeanVM.Node LeanVM.Core.Memory
 
 @[expose] public section
 
@@ -471,7 +471,7 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
     have hl6 : S.sZ.cap.length = 5 := vs_squeezeN_capLen _ _ (by simp [capOf])
     refine ⟨?_, rfl, fun _ ↦ ⟨?_, vs_rets' hl bs outs (j := 6) (by norm_num) rfl (by rw [O.o6, hl6]; simp)⟩⟩
     · show vsSqpNames.getD (logG (σ (.n 278))) "" = squeezeNames.getD (S.μs - 20) ""
-      rw [V.e278, LeanVM.Guest.Memory.logG_gen_pow (by have := S.hmu30; show S.layout.stackLog - 20 < _; omega)]
+      rw [V.e278, LeanVM.Core.Memory.logG_gen_pow (by have := S.hmu30; show S.layout.stackLog - 20 < _; omega)]
       rfl
     · show [σ (.n 296), σ (.n 297), σ (.n 298), σ (.n 299), σ (.n 300), σ (.n 288), σ (.n 303)] =
         capOf S.oodSt ++ [challengeOf S.oodSt, ptr (vb bs 6)]
@@ -487,7 +487,7 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
   · -- `bus_grind_check`
     refine ⟨?_, rfl, fun _ ↦ ⟨?_, vs_rets' hl bs outs (j := 8) (by norm_num) rfl (by rw [O.o8]; simp)⟩⟩
     · show vsBgNames.getD (logG (σ (.n 321))) "" = busGrindNames.getD (S.d - 20) ""
-      rw [V.e322, LeanVM.Guest.Memory.logG_gen_pow (by omega)]
+      rw [V.e322, LeanVM.Core.Memory.logG_gen_pow (by omega)]
       rfl
     · show [σ (.n 313), σ (.n 327)] = [cellsOfState S.busSt false 1, ptr sqE * gen ^ winTabAt]
       rw [pr (j := 7) (k := 1) (a := 313) (by norm_num) (by decide) rfl, O.o7, V.tabs 327 (by simp)]
@@ -587,7 +587,7 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
       (by rw [hr14]; simp)⟩⟩
     · show vsOpenNames.getD (logG (σ (.n 278))) "" = Whir.openName S.μs
       have := S.hmu30
-      rw [V.e278, LeanVM.Guest.Memory.logG_gen_pow (by
+      rw [V.e278, LeanVM.Core.Memory.logG_gen_pow (by
         show S.layout.stackLog - 20 < _; omega), vsOpenNames_eq]
       rfl
     · show [σ (.n 66), σ (.n 1337), σ (.n 1338), σ (.n 1339), σ (.n 1340), σ (.n 1341),

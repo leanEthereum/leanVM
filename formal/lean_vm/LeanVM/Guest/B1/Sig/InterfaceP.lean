@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Guest.CoreLemmas
+public import LeanVM.Core.Lemmas
 public import Statement.LeanVmGuest
 public import LeanXmss.Scheme
 public import Statement.LeanSphincs
@@ -75,7 +75,7 @@ relation (`coreProgram.Rel`) gives it for leanSPHINCS (`verify_sig_lean_sphincs_
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

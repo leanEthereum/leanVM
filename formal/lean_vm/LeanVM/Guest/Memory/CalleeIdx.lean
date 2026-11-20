@@ -11,7 +11,9 @@ public import LeanVM.Guest.Memory.GuestIdx
 
 namespace LeanVM.Guest.Memory
 
-open LeanVM.Guest.Core LeanVM.Guest
+open LeanVM.Core.Memory
+
+open LeanVM.Core
 
 @[expose] public section
 

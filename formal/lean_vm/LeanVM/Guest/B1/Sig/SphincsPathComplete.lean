@@ -24,7 +24,7 @@ public import LeanVM.Guest.B1.Sig.MerkleComplete
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier (eOfNat)
 

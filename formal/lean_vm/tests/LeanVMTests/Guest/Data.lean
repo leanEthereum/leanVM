@@ -1,5 +1,5 @@
 import Statement.Data.Bytecode
-import LeanVM.Guest.Code
+import LeanVM.Core.Code
 import LeanVM.Guest.Data.Source
 import LeanVMTests.Guest.Manifest
 import LeanVMTests.Guest.Programs
@@ -48,7 +48,11 @@ def opcodeCounts : List Nat :=
 #guard guest.constArrays.length = 76
 #guard guest.funcs.any (·.name == "main")
 
-/- The compiler's sixteen test programs. -/
-#guard Programs.all.length = 16
+/- The compiler's seventeen test programs, the verifiers' fixture program at six step counts, the VM's and the prover's
+test programs and the front-end corpus. -/
+#guard Programs.all.length = 17
+#guard Programs.chains.length = 6
+#guard Programs.vm.length = 24
+#guard Programs.frontend.length = 189
 
 end LeanVMTests.Guest.Data

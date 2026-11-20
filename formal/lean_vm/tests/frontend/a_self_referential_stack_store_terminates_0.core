@@ -1,0 +1,9 @@
+def main []
+  copy %0 %0
+  const %1 1 0
+  load %0 %1 0
+  const %2 1 0
+  const %3 2 0
+  mul %4 %2 %3
+  load %0 %4 0
+  ret []

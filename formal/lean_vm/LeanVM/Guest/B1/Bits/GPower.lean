@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Common.Find
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Guest.Core
+open LeanVM.Core
 
 @[expose] public section
 

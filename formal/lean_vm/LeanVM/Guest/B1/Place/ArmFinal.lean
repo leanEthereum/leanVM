@@ -27,7 +27,7 @@ statements of `Place/OsSpec`.
 
 namespace LeanVM.Guest.B1.Arm
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Core.Memory
 open LeanVM.Guest.B1 LeanVM.Guest.B1.Whir
 open LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier hiding Layout

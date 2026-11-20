@@ -36,7 +36,7 @@ isa = { path = "../../../../crates/isa" }
 verifier = { path = "../../../../crates/verifier" }
 keccak256 = { path = "../../../../crates/keccak256" }
 fiat_shamir_prover = { path = "../../../../crates/fiat_shamir_prover" }
-zkdsl_compiler = { path = "../../../../crates/zkdsl_compiler" }
+zkdsl = { path = "../../../../crates/zkdsl" }
 claims = { path = "../../../../crates/claims" }
 lean_xmss = { path = "../../../../crates/lean_xmss" }
 lean_sphincs = { path = "../../../../crates/lean_sphincs" }

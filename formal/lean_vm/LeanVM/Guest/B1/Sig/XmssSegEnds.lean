@@ -17,7 +17,7 @@ layer at `119741` with its root at `111835` (by kernel evaluation).
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Core
 
 @[expose] public section
 

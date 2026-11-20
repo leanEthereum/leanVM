@@ -1,0 +1,6 @@
+def main []
+  const %0 5 0
+  const %1 7 0
+  const %2 5 0
+  assert_eq %0 %2
+  ret []

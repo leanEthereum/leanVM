@@ -21,7 +21,7 @@ found by its position (`coreProgram_find?_at`).
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Guest.Core LeanVM.Guest
+open LeanVM.Core
 
 @[expose] public section
 

@@ -22,7 +22,7 @@ with no evaluation.
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Guest.Core LeanVM.Guest
+open LeanVM.Core LeanVM.Guest
 
 @[expose] public section
 

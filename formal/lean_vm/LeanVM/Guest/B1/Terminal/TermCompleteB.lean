@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Terminal.TermComplete
 public import LeanVM.Guest.B1.Terminal.KidsDepB
 public import LeanVM.Guest.B1.Ring.CompleteB
-public import LeanVM.Guest.Memory.LoopPre
+public import LeanVM.Core.Memory.LoopPre
 public import LeanVM.Guest.Data.NameStrings
 
 /-!
@@ -22,7 +22,7 @@ public import LeanVM.Guest.Data.NameStrings
     + (fs "selector_tables" + 512) + 94·Bcs + (fs "ring_switch_weight" + 2240 + Brs)`
 
 (`completeAt_flatDepRB`, the callees within `termBs`, `termKids_completeB`). The pure callees'
-words are fs-generic hypotheses, in the forms the words certificates give at `B2C.fs`:
+words are fs-generic hypotheses, in the forms the words certificates give at `Deployed.fs`:
 
 * `hEqc`: `eq_prefix_chain` within `Beqc` (`TotalLe`, constant; its certificate: `184`), four calls;
 * `hL15`: `check_opening_terminal_loop0`'s run within `K15` per unit of its end's exponent and its
@@ -37,10 +37,10 @@ words are fs-generic hypotheses, in the forms the words certificates give at `B2
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.B1
 open LeanVM.Protocol
 open LeanVM.Protocol.Verifier hiding gpow
-open LeanVM.Guest.Memory
+open LeanVM.Core.Memory
 open LeanVM.Guest.B1.Main (MemL RegionL)
 
 @[expose] public section

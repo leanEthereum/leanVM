@@ -21,7 +21,7 @@ The reader of a leanXMSS signature off `main_loop2`'s iteration frame, off its t
 namespace LeanVM.Cost.Bounds.Guest
 
 open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Library LeanVM.Parameters
-open LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.Fast
+open LeanVM.Core LeanVM.Guest.B1 LeanVM.Guest.Fast
 
 public section
 

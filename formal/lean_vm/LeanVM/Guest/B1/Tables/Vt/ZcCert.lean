@@ -19,7 +19,7 @@ product of `g^n + g^τ_t` is zero), and `n ≤ μ` (`vt_zc_n`).
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section

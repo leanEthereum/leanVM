@@ -19,7 +19,7 @@ are the guarded loops; the blocks' `HeapBuf` hints, frames and loads are the lis
 
 namespace LeanVM.Guest.B1.Main
 
-open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B1.Digest
+open LeanVM.Core LeanVM.Guest.Memory LeanVM.Guest.B1.Digest
 
 @[expose] public section
 

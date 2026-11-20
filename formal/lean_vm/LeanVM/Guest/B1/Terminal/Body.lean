@@ -11,7 +11,7 @@ public import LeanVM.Guest.CoreData
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Guest.Core LeanVM.Guest.B1
+open LeanVM.Core LeanVM.Guest.B1
 
 @[expose] public section
 

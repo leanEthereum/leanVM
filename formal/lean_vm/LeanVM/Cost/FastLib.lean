@@ -7,7 +7,7 @@ public import LeanVM.Protocol.Extraction.Fast.Address
 import all LeanVM.Protocol.Extraction.Fast.SortedMap
 import all LeanVM.Protocol.Extraction.Fast.Lookup
 import all LeanVM.Protocol.Extraction.Fast.Replay
-public import LeanVM.Guest.Core
+public import LeanVM.Core
 
 /-!
 # The fast extractor's data, for the compiler
@@ -43,8 +43,8 @@ cost_enc LeanVM.Parameters.Whir.Level
 cost_enc LeanVM.Semantics.Registers
 cost_enc LeanVM.Parameters.Opcode
 -- the guest's value names, for the guest decoder's readers (a `Seg.i` names its callee by a string)
-cost_enc LeanVM.Guest.Core.Seg
-cost_enc LeanVM.Guest.Core.V
+cost_enc LeanVM.Core.Seg
+cost_enc LeanVM.Core.V
 
 /-- Equality of registers: of both fields. -/
 theorem decideEqRegisters {F : Type} [DecidableEq F] (x y : LeanVM.Semantics.Registers F)

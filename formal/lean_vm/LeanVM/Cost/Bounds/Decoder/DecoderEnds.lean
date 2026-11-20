@@ -82,9 +82,9 @@ theorem decodedOf_cost (hP : Includes P decodedOfC.costDeps) (s : LeanVM.Protoco
 /-- **The decoding** (`decoderOutputC`): the seed (at most `A`), the statement (at most `S`) and
 `15`. -/
 theorem decoderOutput_cost (hP : Includes P decoderOutputC.costDeps) (D : DiscreteLogTables)
-    (σ : LeanVM.Guest.Core.Val)
+    (σ : LeanVM.Core.Val)
     (σVal : MachineValue) (hσ : ∀ a, RunsApp P σVal [encodeValue a] (encodeValue (σ a)))
-    (rd : LeanVM.Guest.Core.Reader) (rdVal : MachineValue)
+    (rd : LeanVM.Core.Reader) (rdVal : MachineValue)
     (hrd : ∀ a, RunsApp P rdVal [encodeValue a] (encodeValue (rd a))) (w : LeanVM.Node.NodeWitness)
     (A S : ℕ) (hA : machineCost P decSeedC.costIdx [σVal] ≤ A)
     (hS : machineCost P decStmtC.costIdx [encodeValue D, σVal, rdVal] ≤ S) :

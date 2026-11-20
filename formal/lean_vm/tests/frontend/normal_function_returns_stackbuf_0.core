@@ -1,0 +1,26 @@
+def main []
+  const %0 5 0
+  call forward [%0] [%1 %2 %3]
+  add %4 %1 %2
+  const %5 1 0
+  load %4 %5 0
+  const %6 1 0
+  const %7 2 0
+  mul %8 %6 %7
+  load %3 %8 0
+  ret []
+def forward [%0]
+  call make [%0] [%1 %2 %3]
+  copy %4 %1
+  copy %5 %2
+  copy %6 %3
+  ret [%4 %5 %6]
+def make [%0]
+  copy %1 %0
+  const %2 3 0
+  add %3 %0 %2
+  const %4 11 0
+  copy %5 %1
+  copy %6 %3
+  copy %7 %4
+  ret [%5 %6 %7]

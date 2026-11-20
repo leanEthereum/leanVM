@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.Bits.MeaningP
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Guest.Core
+open LeanVM.Core
 
 @[expose] public section
 

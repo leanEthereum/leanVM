@@ -27,7 +27,7 @@ A round record holds its fields `862` words apart (`gkCap`), its cursor at `5·8
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.Memory
 open LeanVM.Protocol.Verifier (gen)
 
 @[expose] public section

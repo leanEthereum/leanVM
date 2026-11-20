@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Selectors.Interface
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Guest.Core
+open LeanVM.Core
 
 @[expose] public section
 

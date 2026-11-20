@@ -1,13 +1,13 @@
 /-
   LeanVM.Guest.ExpTables
 
-  The exponent table `exponent_tables` fills (`B1.ExpTables`), for the guest's shared check
-  context (`Glob`) and B1's meaning of `exponent_tables` (`B1/Bits/Meaning.lean`).
+  The exponent table `exponent_tables` fills (`B1.ExpTables`), for B1's meaning of
+  `exponent_tables` (`B1/Bits/Meaning.lean`) and the back end's obligations.
 -/
 
 module
 
-public import LeanVM.Guest.Core
+public import LeanVM.Core
 public import Statement.Field
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
@@ -16,8 +16,8 @@ import LeanVM.Guest.Data.Source
 /-!
 # The exponent table
 
-Defined here, apart from B1's proofs, so that the check context, and with it the kernel-checked
-certificates of the compiled functions (`B2C`), do not import them.
+Defined here, apart from B1's proofs, so that the back end's obligations (`Guest/Compiled/Obl/GuestU.lean`)
+do not import them.
 
 `exponent_tables()` (`lean_ethereum.py`) fills one read-only `HeapBuf(WIN_TAB_AT + WIN_TAB_LEN)`,
 `236 + 2048` words, indexed by g-powers, in five sections:
@@ -33,7 +33,7 @@ certificates of the compiled functions (`B2C`), do not import them.
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Protocol LeanVM.Protocol.Verifier
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 

@@ -20,12 +20,15 @@ output's first cell `f i s` of its input value (the step of chain `i` leaving po
   start (`walkStartV`: the hinted value, the tip itself at `d = 3`);
 * `armT_sound`: arm `k` walks each chain from its digit `k / 4^r % 4`, multiplies the product by
   `g^(digit sum)` and adds `k · 4^first` to the encoding;
-* `groupT_sound`: a group's dispatch runs one arm `k < 4^n`, its selector `g^k`.
+* `groupT_sound`: a group's dispatch runs one arm `k < 4^n`, its selector `g^k`;
+* `armM_sound`: arm `k` of a chained dispatch (`armM`) walks its chains from their starts and folds
+  the digit sum into the product, `k`'s own `n` digits into the encoding (`ArmOKM`);
+  `armsM_getElem`: arm `k` of `armsM` is `armM … k` from `armBaseM … k`.
 -/
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 
@@ -278,6 +281,104 @@ theorem groupT_sound {W : WotsT} (hW : StepAtoms W) {first n : Nat} {fold : Bool
           (encT W fold n b) 0 k (b + 6))).1 :=
   let r := groupD_sound (pre := []) hW rfl h
   ⟨r.1, r.2.2⟩
+
+/-! ## The arms of a chained dispatch (`armM`, `armsM`) -/
+
+open LeanVM.Guest.Value LeanVM.Protocol.Verifier
+
+/-- What arm `k` of a group establishes: `ArmOK` with the encoding of `k`'s own `n` digits. -/
+structure ArmOKM (W : WotsT) (f : Nat → Nat → E → E) (σ : Val) (slots : Nat → Nat → Nat)
+    (first n : Nat) (fold : Bool) (prodIn encIn prodOut encOut : V) (k : Nat)
+    (start : Nat → V) : Prop where
+  tip : ∀ r < n, σ (.n (slots r 2)) =
+    chainT f (first + r) (3 - k / 4 ^ r % 4) (k / 4 ^ r % 4) (σ (start r))
+  prod : σ prodOut = (if fold then 1 else σ prodIn) * σ (W.power (digitSum k n))
+  enc : σ encOut = (if fold then 0 else σ encIn) + lit (W.enc first n (k % 4 ^ n))
+
+theorem armM_atoms {W : WotsT} (hW : StepAtoms W) (slots : Nat → Nat → Nat) (first n : Nat)
+    (fold : Bool) (prodIn encIn prodOut encOut : V) (k b : Nat) :
+    atomsOnly (armM W slots first n fold prodIn encIn prodOut encOut k b).1 = true := by
+  simp only [armM]
+  split_ifs <;> simp [atomsOnly_append, walksT_atoms hW, atomsOnly, cst, copyS, mulS, addS]
+
+/-- **An arm of a group of `main_loop2`'s codeword**: its walks reach their tips from their starts,
+the product and the encoding are folded. -/
+theorem armM_sound {W : WotsT} {f : Nat → Nat → E → E} (hs : StepSound rd σ W f)
+    {slots : Nat → Nat → Nat} {first n : Nat} {fold : Bool} {prodIn encIn prodOut encOut : V}
+    {k b : Nat} (h : AtomsHold rd σ (armM W slots first n fold prodIn encIn prodOut encOut k b).1) :
+    ArmOKM W f σ slots first n fold prodIn encIn prodOut encOut k (armStart W slots fold k b) := by
+  have hws : AtomsHold rd σ (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 b).1 := by
+    refine h.sub fun x hx => ?_
+    unfold armM
+    cases fold <;> by_cases hk : k % 4 ^ n = 0 <;> simp [hk] at hx ⊢ <;> simp [hx]
+  have hin : ∀ x, (x ∈ (armM W slots first n fold prodIn encIn prodOut encOut k b).1) →
+      AtomsHold rd σ [x] := fun x hx => h.sub fun y hy => by
+    simp only [List.mem_singleton] at hy; subst hy; exact hx
+  refine ⟨fun r hr => ?_, ?_, ?_⟩
+  · have := walkT_sound hs (Nat.le_of_lt_succ (Nat.mod_lt _ (by norm_num))) (hws.sub fun x hx =>
+      mem_walksT W slots first k _ n 0 _ r hr x (by simpa using hx))
+    simpa [armStart] using this
+  · cases fold
+    · have hp := hin (mulS prodOut prodIn (W.power (digitSum k n))) (by
+        unfold armM; by_cases hk : k % 4 ^ n = 0 <;> simp [hk])
+      have := hp.atom (List.mem_singleton_self _)
+      simpa [mulS, Atom.Holds] using this
+    · have hp := hin (copyS prodOut (W.power (digitSum k n))) (by unfold armM; simp)
+      have := hp.atom (List.mem_singleton_self _)
+      simpa [copyS, Atom.Holds] using this
+  · cases fold
+    · by_cases hk : k % 4 ^ n = 0
+      · have he := hin (copyS encOut encIn) (by unfold armM; simp [hk])
+        have e := he.atom (List.mem_singleton_self _)
+        simp only [Atom.Holds] at e
+        have hl : lit (W.enc first n (k % 4 ^ n)) = 0 := by simp [hk, W.enc_zero, lit, word_zero]
+        rw [e, hl, add_zero]
+        rfl
+      · have he1 := hin (cst (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 b).2
+            (lit (W.enc first n (k % 4 ^ n)))) (by unfold armM; simp [hk])
+        have he2 := hin (addS encOut encIn
+            (.n (walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 b).2)) (by
+          unfold armM; simp [hk])
+        have e1 := he1.atom (List.mem_singleton_self _)
+        have e2 := he2.atom (List.mem_singleton_self _)
+        simp only [Atom.Holds] at e1 e2
+        rw [e2, e1]
+        rfl
+    · have he := hin (.atom (.const encOut (lit (W.enc first n (k % 4 ^ n))))) (by unfold armM; simp)
+      have e := he.atom (List.mem_singleton_self _)
+      simp only [Atom.Holds] at e
+      rw [e]
+      simp
+
+/-! ## The arms of a dispatch -/
+
+/-- The base arm `k + j` of `armsM` starts from. -/
+def armBaseM (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
+    (prodIn encIn prodOut encOut : V) : Nat → Nat → Nat → Nat
+  | _, 0, b => b
+  | k, j + 1, b => armBaseM W slots first n fold prodIn encIn prodOut encOut (k + 1) j
+      (if k = 0 then (armM W slots first n fold prodIn encIn prodOut encOut k b).2 + 2
+        else (armM W slots first n fold prodIn encIn prodOut encOut k b).2)
+
+theorem armsM_length (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
+    (prodIn encIn prodOut encOut : V) :
+    ∀ m k b, (armsM W slots first n fold prodIn encIn prodOut encOut m k b).1.length = m
+  | 0, _, _ => rfl
+  | m + 1, k, b => by simp [armsM, armsM_length W slots first n fold prodIn encIn prodOut encOut m]
+
+theorem armsM_getElem (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
+    (prodIn encIn prodOut encOut : V) :
+    ∀ m k b j (hj : j < (armsM W slots first n fold prodIn encIn prodOut encOut m k b).1.length),
+      (armsM W slots first n fold prodIn encIn prodOut encOut m k b).1[j] =
+        (armM W slots first n fold prodIn encIn prodOut encOut (k + j)
+          (armBaseM W slots first n fold prodIn encIn prodOut encOut k j b)).1
+  | 0, _, _, j, hj => absurd hj (by simp [armsM])
+  | m + 1, k, b, 0, _ => by simp [armsM, armBaseM]
+  | m + 1, k, b, j + 1, hj => by
+      simp only [armsM, List.getElem_cons_succ]
+      rw [armsM_getElem W slots first n fold prodIn encIn prodOut encOut m (k + 1) _ j
+        (by simp [armsM, armsM_length] at hj ⊢; omega)]
+      simp only [armBaseM, show k + 1 + j = k + (j + 1) by omega]
 
 end
 end LeanVM.Guest.B1.Sig

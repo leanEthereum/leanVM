@@ -22,7 +22,7 @@ call relation and the memory, with `OsOutA`'s outcome at the helpers' data `D`.
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
 open LeanVM.Guest.Value LeanVM.Guest.Memory LeanVM.Protocol LeanVM.Protocol.Verifier
 open LeanVM.Protocol.KeccakHash
 

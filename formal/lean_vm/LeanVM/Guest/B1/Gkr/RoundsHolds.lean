@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Sumcheck.Gkr
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section

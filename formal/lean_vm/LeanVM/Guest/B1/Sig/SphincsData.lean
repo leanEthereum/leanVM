@@ -16,7 +16,7 @@ import LeanVM.Guest.B1.Sig.SphincsData2
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Guest LeanVM.Core
 
 @[expose] public section
 

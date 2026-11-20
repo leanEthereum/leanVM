@@ -10,11 +10,11 @@ module
 public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.Lift.Sig
 public import LeanVM.Guest.Lift.RegD
-public import LeanVM.Guest.Memory.Size
+public import LeanVM.Core.Memory.Size
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section

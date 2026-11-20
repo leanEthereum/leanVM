@@ -6,6 +6,6 @@ Key file: [Theorems.lean](./Statement/Theorems.lean)
 
 ```sh
 cd formal
-./check-all.sh lean      # build and kernel-check every Lean project: no sorry, axioms Lean's three (needs cargo: it first writes the files derived from the guest, which are not committed)
+./check-all.sh lean      # build and kernel-check every Lean project: no sorry, axioms Lean's three (needs cargo: it first writes the compiled guest and the files derived from it, which are not committed)
 ./check-all.sh vectors   # compare with this repository's Rust: verifier and prover (needs cargo)
 ```

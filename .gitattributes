@@ -1,0 +1,3 @@
+# The compiled guest records a digest of the guest's source bytes, and `unified_guest()` refuses an artefact whose
+# digest differs: a CRLF checkout (Windows) would make every artefact built on Linux stale.
+guests/*.py text eol=lf

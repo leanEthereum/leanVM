@@ -1,5 +1,5 @@
 import LeanVMTests.Cost.DecoderChain
-import LeanVMTests.Cost.DecoderPreTest
+import LeanVMTests.Cost.DecoderSelfTest
 import LeanVMTests.Cost.DecoderReaders
 import LeanVMTests.Guest.CoreDataCheck
 import LeanVMTests.Protocol.EndToEnd.Front.Layout
@@ -22,7 +22,7 @@ open Lean LeanVMTests
 /-- Every module's runs, by module. -/
 def modules : List (String × Runs) := [
   ("Cost.DecoderChain", Cost.DecoderChain.runs ++ Cost.DecoderChain.frameRuns),
-  ("Cost.DecoderPreTest", Cost.DecoderPreTest.runs),
+  ("Cost.DecoderSelfTest", Cost.DecoderSelfTest.runs),
   ("Cost.DecoderReaders", Cost.DecoderReaders.runs),
   ("Protocol.EndToEnd.Front.Layout", Protocol.EndToEnd.Front.Layout.runs),
   ("Prover.Keccak", Prover.Keccak.runs),

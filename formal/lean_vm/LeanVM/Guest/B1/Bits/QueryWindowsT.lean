@@ -31,7 +31,7 @@ specializations against it by kernel evaluation.
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest
+open LeanVM.Parameters LeanVM.Core LeanVM.Guest.Value
 
 @[expose] public section
 

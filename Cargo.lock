@@ -19,7 +19,7 @@ dependencies = [
  "stable_primitives",
  "tracing",
  "verifier",
- "zkdsl_compiler",
+ "zkdsl",
 ]
 
 [[package]]
@@ -423,7 +423,7 @@ dependencies = [
  "stable_lean_vm_core",
  "tracing",
  "verifier",
- "zkdsl_compiler",
+ "zkdsl",
 ]
 
 [[package]]
@@ -645,7 +645,6 @@ dependencies = [
  "stable_primitives",
  "tracing",
  "verifier",
- "zkdsl_compiler",
 ]
 
 [[package]]
@@ -918,14 +917,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "zkdsl_compiler"
+name = "zkdsl"
 version = "0.1.0"
 dependencies = [
  "fiat_shamir_prover",
  "isa",
  "keccak256",
  "stable_lean_vm_core",
- "stable_parallel",
  "stable_primitives",
  "verifier",
 ]

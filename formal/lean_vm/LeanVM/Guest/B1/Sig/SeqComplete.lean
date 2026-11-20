@@ -19,7 +19,7 @@ an extension of any valuation on `b ..< b'`; `SeqOK.numBelow`: its values are nu
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 
 @[expose] public section
 

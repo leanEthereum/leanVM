@@ -21,7 +21,7 @@ against `g^M`, `M = DA_MAX_ROWS`), and the returned `gap_g` with `gap_g · n_blo
 
 namespace LeanVM.Guest.B1.Da
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.Value.Keccak
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 

@@ -21,7 +21,7 @@ theorem (`oqCompleteDE0`, `oqCompleteDE1`) at its functions (`oqFns_all`) and it
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 
 @[expose] public section
 

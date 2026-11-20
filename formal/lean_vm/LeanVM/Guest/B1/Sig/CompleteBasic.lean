@@ -21,7 +21,7 @@ atoms holds before any true continuation when its atoms do.
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash
 
 @[expose] public section

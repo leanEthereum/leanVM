@@ -1,0 +1,20 @@
+def main []
+  hint witness n [%0]
+  const %1 9223372036854775808 0
+  range_check %0 %2 %3 %4 %1
+  const %5 9223372036854775821 0
+  mul %6 %0 %5
+  const %7 32 0
+  range_check %7 %8 %9 %10 %6
+  const %11 9223372036854775821 0
+  mul %12 %0 %11
+  const %13 1 0
+  range_check %13 %14 %15 %16 %12
+  const %17 32 0
+  const %18 1 0
+  load %17 %18 0
+  const %19 1 0
+  const %20 2 0
+  mul %21 %19 %20
+  load %0 %21 0
+  ret []

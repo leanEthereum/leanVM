@@ -73,8 +73,8 @@ def decodedOf (s : LeanVM.Protocol.Digest) (st : NodeStatement) (w : NodeWitness
 
 /-- **The decoding**: the seed and the statement off `main`'s valuation `σ` and the reader `rd`
 (the statement's counts by the logarithm's tables `D`), the witness `w` given. -/
-noncomputable def decoderOutput (D : DiscreteLogTables) (σ : LeanVM.Guest.Core.Val)
-    (rd : LeanVM.Guest.Core.Reader) (w : NodeWitness) : SeedStatementAndWitness :=
+noncomputable def decoderOutput (D : DiscreteLogTables) (σ : LeanVM.Core.Val)
+    (rd : LeanVM.Core.Reader) (w : NodeWitness) : SeedStatementAndWitness :=
   decodedOf (Main.decSeed σ) (decStmtD D σ rd) w
 
 cost_compile decoderTablesC := decoderTables

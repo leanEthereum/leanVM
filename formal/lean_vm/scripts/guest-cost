@@ -1,0 +1,204 @@
+#!/usr/bin/env python3
+"""The proving cost of the compiled guest (`guests/lean_ethereum.compiled`), on the benchmarks of the root AGENTS.md.
+
+    scripts/guest-cost [--repeat N] [--top N] [--json OUT] [--keep DIR] [--prover P]
+
+Run from anywhere; it builds the CLI (`cargo build --release -p leanvm-bench`, so `source ~/.cargo/env` first), runs
+each benchmark once with the VM's per-pc profile (`DBG_PROF_DUMP`) and, unless `--repeat 0`, again `--repeat N`
+times for the proving time, and prints for each:
+
+* the rows of each opcode's table, exact (the per-pc counts against the artefact's opcodes), each table's height
+  (`2^tau`, the least power of two holding its rows), the memory cells used and the bytecode's slots;
+* `committed`: the words the prover commits, `13 (2^tau_XOR + 2^tau_MUL) + 7 2^tau_SET + 14 (2^tau_DEREF +
+  2^tau_JUMP) + 92 2^tau_KECCAK + 3 2^log_mem + 2^log_bytecode` (the committed columns of each table, `q_keccak`'s
+  64 words a KECCAK row among them, `crates/stable_prover/lean_vm_core/src/cpu/layout.rs`), checked against the
+  report's `TOTAL_COMMITTED`: what the commitment's encoding and Merkle work scale with;
+* `weighted`: the same sum over the rows themselves, not their tables' heights, `13 (XOR + MUL) + 7 SET + 14 (DEREF
+  + JUMP) + 92 KECCAK + 3 memory + bytecode`: the committed words a workload of the same shape costs on average over
+  its sizes, the metric a compiler change is ranked by; `committed` moves only when a table crosses a power of two;
+* each table's headroom: the share of its rows to remove for its height to halve;
+* the proving time, with the machine's load average around it (comparable only at similar load).
+
+`--top N` adds the N functions of the largest weighted cost, `--json OUT` writes every number, `--bench NAME=ARGS`
+(repeatable) runs other workloads, as a sweep over sizes does (`--bench xmss300='aggregate --xmss 300 --log-inv-rate 1'`).
+"""
+
+import argparse
+import json
+import math
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[3]
+ARTIFACT = ROOT / "guests" / "lean_ethereum.compiled"
+BENCHMARKS = [
+    ("xmss", ["aggregate", "--xmss", "900", "--log-inv-rate", "1"]),
+    ("sphincs", ["aggregate", "--sphincs", "220", "--log-inv-rate", "1"]),
+    ("recursion", ["recursion", "--n", "2", "--xmss-per-leaf", "900", "--log-inv-rate", "2"]),
+]
+TABLES = ["XOR", "MUL", "SET", "DEREF", "JUMP", "KECCAK"]
+TAG = {"X": "XOR", "M": "MUL", "S": "SET", "D": "DEREF", "J": "JUMP", "K": "KECCAK"}
+WIDTH = {"XOR": 13, "MUL": 13, "SET": 7, "DEREF": 14, "JUMP": 14, "KECCAK": 92}
+FLOOR = {"KECCAK": 9}
+MEMORY_WIDTH = 3
+
+
+def log2_ceil(n):
+    return max(0, (n - 1).bit_length())
+
+
+def read_artifact(path):
+    ops, fns = [], []
+    for line in path.read_text().splitlines():
+        tag = line.split(" ", 1)[0]
+        if tag in TAG:
+            ops.append(TAG[tag])
+        elif tag == "F":
+            _, name, entry, length = line.split()
+            fns.append((name, int(entry), int(length)))
+        elif tag == "size":
+            size = int(line.split()[1])
+    return ops, fns, size
+
+
+def read_profile(path):
+    counts, steps = {}, None
+    for line in path.read_text().splitlines():
+        if line.startswith("# steps"):
+            steps = int(line.split()[2])
+        elif line and line[0].isdigit():
+            pc, c = line.split()
+            counts[int(pc)] = int(c)
+    return counts, steps
+
+
+def report_numbers(text):
+    """The last report's cycles, memory, committed size and proving time."""
+    out = {}
+    for m in re.finditer(r"cycles \(VM steps\)\s*:\s*([\d,]+)", text):
+        out["cycles"] = int(m.group(1).replace(",", ""))
+    for m in re.finditer(r"MEMORY 2\^([\d.]+)", text):
+        out["memory"] = round(2 ** float(m.group(1)))
+    for m in re.finditer(r"TOTAL_COMMITTED 2\^([\d.]+)", text):
+        out["reported_committed_log"] = float(m.group(1))
+    for m in re.finditer(r"proving time\s*:\s*([\d.]+) s(?: ± ([\d.]+)%)?", text):
+        out["proving_s"] = float(m.group(1))
+        out["proving_spread_pct"] = float(m.group(2)) if m.group(2) else None
+    return out
+
+
+def load():
+    return os.getloadavg()[0] if hasattr(os, "getloadavg") else None
+
+
+def run_benchmark(binary, prover, args, prof_path, repeat):
+    for p in prof_path.parent.glob(prof_path.name + "*"):
+        p.unlink()
+    env = dict(os.environ, DBG_PROF="1", DBG_PROF_DUMP=str(prof_path))
+    profiled = subprocess.run([binary, "--prover", prover, *args], env=env, capture_output=True, text=True)
+    if profiled.returncode != 0:
+        sys.exit(f"{' '.join(args)} failed:\n{profiled.stdout}{profiled.stderr}")
+    # The CLI proves the benchmark's node last; a dump that finds its path taken goes to `path.PID`.
+    dumps = sorted(prof_path.parent.glob(prof_path.name + "*"), key=lambda p: p.stat().st_mtime)
+    numbers = report_numbers(profiled.stdout)
+    timing = {}
+    if repeat > 0:
+        before = load()
+        timed = subprocess.run([binary, "--prover", prover, *args, "--repeat", str(repeat)], capture_output=True, text=True)
+        if timed.returncode != 0:
+            sys.exit(f"{' '.join(args)} failed:\n{timed.stdout}{timed.stderr}")
+        timing = report_numbers(timed.stdout)
+        timing["load_before"], timing["load_after"] = before, load()
+    return dumps[-1], numbers, timing
+
+
+def analyse(ops, fns, size, counts, steps, numbers):
+    rows = dict.fromkeys(TABLES, 0)
+    for pc, c in counts.items():
+        rows[ops[pc]] += c
+    if sum(rows.values()) != steps or numbers.get("cycles", steps) != steps:
+        sys.exit(f"the profile's {sum(rows.values())} rows are not the run's {steps} steps")
+    taus = {t: max(log2_ceil(rows[t]), FLOOR.get(t, 0)) for t in TABLES}
+    mem = numbers["memory"]
+    log_mem, log_bc = log2_ceil(mem), log2_ceil(size)
+    committed = sum(WIDTH[t] << taus[t] for t in TABLES) + (MEMORY_WIDTH << log_mem) + (1 << log_bc)
+    weighted = sum(WIDTH[t] * rows[t] for t in TABLES) + MEMORY_WIDTH * mem + len(ops)
+    if abs(math.log2(committed) - numbers["reported_committed_log"]) > 0.002:
+        sys.exit(f"committed {committed} = 2^{math.log2(committed):.3f}, the report says "
+                 f"2^{numbers['reported_committed_log']}: the column widths moved, update WIDTH")
+    headroom = {t: (rows[t] - (1 << (taus[t] - 1))) / rows[t] if rows[t] and taus[t] > FLOOR.get(t, 0) else None
+                for t in TABLES}
+    headroom["memory"] = (mem - (1 << (log_mem - 1))) / mem
+    per_fn = []
+    for name, entry, length in fns:
+        cost = {t: 0 for t in TABLES}
+        for pc in range(entry, entry + length):
+            c = counts.get(pc)
+            if c:
+                cost[ops[pc]] += c
+        w = sum(WIDTH[t] * cost[t] for t in TABLES)
+        if w:
+            per_fn.append({"name": name, "cycles": sum(cost.values()), "weighted": w, "rows": cost})
+    per_fn.sort(key=lambda f: -f["weighted"])
+    return {"rows": rows, "steps": steps, "taus": taus, "memory": mem, "log_mem": log_mem, "bytecode": len(ops),
+            "log_bytecode": log_bc, "committed": committed, "weighted": weighted, "headroom": headroom,
+            "functions": per_fn}
+
+
+def show(name, r, timing, top):
+    print(f"{name}: {r['steps']:,} cycles, committed {r['committed']:,} (2^{math.log2(r['committed']):.3f}), "
+          f"weighted {r['weighted']:,}")
+    for t in TABLES:
+        h = r["headroom"][t]
+        print(f"  {t:7} {r['rows'][t]:>10,} rows  2^{r['taus'][t]:<2}  "
+              f"{'' if h is None else f'halves at -{100 * h:.1f}%'}")
+    print(f"  memory  {r['memory']:>10,} cells 2^{r['log_mem']:<2}  halves at -{100 * r['headroom']['memory']:.1f}%")
+    print(f"  bytecode {r['bytecode']:>9,} slots 2^{r['log_bytecode']}")
+    if timing:
+        spread = timing.get("proving_spread_pct")
+        print(f"  proving {timing['proving_s']} s{'' if spread is None else f' ± {spread}%'}"
+              f"  (load {timing['load_before']:.1f} before, {timing['load_after']:.1f} after)")
+    for f in r["functions"][:top]:
+        print(f"    {f['weighted']:>12,}  {f['cycles']:>9,} cycles  {f['name']}")
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--repeat", type=int, default=3)
+    ap.add_argument("--top", type=int, default=0)
+    ap.add_argument("--json")
+    ap.add_argument("--keep", help="directory for the profiles (default: target/guest-cost)")
+    ap.add_argument("--prover", default="experimental")
+    ap.add_argument("--only", choices=[b[0] for b in BENCHMARKS], action="append")
+    ap.add_argument("--bench", action="append", metavar="NAME=ARGS",
+                    help="a benchmark of the CLI's arguments ARGS instead of the default three (repeatable)")
+    a = ap.parse_args()
+    subprocess.run(["cargo", "build", "--release", "-q", "-p", "leanvm-bench"], cwd=ROOT, check=True)
+    target = Path(os.environ.get("CARGO_TARGET_DIR", ROOT / "target"))
+    binary = str(target / "release" / "leanvm-bench")
+    keep = Path(a.keep) if a.keep else target / "guest-cost"
+    keep.mkdir(parents=True, exist_ok=True)
+    ops, fns, size = read_artifact(ARTIFACT)
+    static = {t: ops.count(t) for t in TABLES}
+    print(f"guest: {len(ops):,} instructions in {len(fns)} functions, {size:,} slots; "
+          + "  ".join(f"{t} {static[t]:,}" for t in TABLES))
+    results = {"static": static, "instructions": len(ops), "slots": size}
+    benchmarks = [(b.split("=", 1)[0], b.split("=", 1)[1].split()) for b in a.bench] if a.bench else BENCHMARKS
+    for name, args in benchmarks:
+        if a.only and name not in a.only:
+            continue
+        dump, numbers, timing = run_benchmark(binary, a.prover, args, keep / f"{name}.prof", a.repeat)
+        counts, steps = read_profile(dump)
+        r = analyse(ops, fns, size, counts, steps, numbers)
+        r["timing"] = timing
+        show(name, r, timing, a.top)
+        results[name] = r
+    if a.json:
+        Path(a.json).write_text(json.dumps(results, indent=1))
+
+
+if __name__ == "__main__":
+    main()

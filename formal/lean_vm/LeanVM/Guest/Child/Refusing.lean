@@ -92,7 +92,7 @@ variable {S : Strategy}
 
 /-- A refining program costs at most what the refined one costs. -/
 theorem costs_of_refines {α : Type} {height : ℕ} {P' P : VerifierProgram α}
-    (h : Limits.Refines P' P) :
+    (h : Protocol.Refines P' P) :
     ∀ {n : ℕ} {Q : α → Prop}, VerifierProgram.Costs height P n Q →
       VerifierProgram.Costs height P' n Q := by
   induction h with

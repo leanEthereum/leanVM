@@ -4,45 +4,29 @@
 use isa::Program;
 use lean_vm_core::cpu::{prove, public_input_bytes, verify};
 use primitives::field::{F128, g_pow};
-use std::collections::BTreeMap;
 use std::sync::OnceLock;
-use zkdsl_compiler::{compile, parse_with_replacements};
 
-const SOURCE: &str = r#"
-from snark_lib import *
-
-LOOP_STEPS = LOOP_STEPS_PLACEHOLDER
-
-def mix(value, tag):
-    # A JUMP condition is K-valued (a g-power here), never an arbitrary word.
-    if tag == 0:
-        return value
-    return value * GEN + value
-
-def main():
-    # 160 bytes: two blocks, the second read in the odd layout.
-    digest = StackBuf(2)
-    keccak_cells([5, 7, 5, 7, 5, 7, 5, 7, 5, 7], digest)
-
-    chain = HeapBuf(LOOP_STEPS + 1)
-    chain[1] = digest[0]
-    for index in mul_range(1, GEN ** LOOP_STEPS):
-        chain[index * GEN] = mix(chain[index] + index, index) + index
-
-    public = GEN ** 0
-    public[1] = chain[GEN ** LOOP_STEPS]
-    public[GEN] = mix(digest[1], GEN ** 0)
-    return
-"#;
+/// The program `chain.py` at `loop_steps` loop steps, as the Lean back end compiled it (`lake exe guest-backend
+/// export programs`, at each of `guest-export`'s `CHAIN_STEPS`).
+fn compiled(loop_steps: usize) -> &'static str {
+    macro_rules! at {
+        ($($n:literal),*) => {
+            match loop_steps {
+                $($n => include_str!(concat!("../../../../zkdsl/tests/compiled/chain", $n, ".txt")),)*
+                _ => panic!("no compiled chain at {loop_steps} steps: add it to `CHAIN_STEPS` in guest-export"),
+            }
+        };
+    }
+    at!(4, 16, 300, 1000, 5000, 16384)
+}
 
 const LOOP_STEPS: usize = 16_384;
 
-/// The program above at `loop_steps` loop steps, and the public input it computes. Also the chain cases of
+/// The program at `loop_steps` loop steps, and the public input it computes. Also the chain cases of
 /// `formal/lean_vm/scripts/export-rust.sh`, which includes this file.
 pub(crate) fn chain(loop_steps: usize) -> (Program, [F128; 2]) {
-    let replacements = BTreeMap::from([("LOOP_STEPS_PLACEHOLDER".to_string(), loop_steps.to_string())]);
-    let ast = parse_with_replacements(SOURCE, &replacements).expect("parse zkDSL program");
-    (Program::from(compile(&ast)), public_input(loop_steps))
+    let program = Program::__from_text(compiled(loop_steps)).expect("the compiled chain program loads");
+    (program, public_input(loop_steps))
 }
 
 fn public_input(loop_steps: usize) -> [F128; 2] {

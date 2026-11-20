@@ -9,8 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Selectors.SharedVals
 public import LeanVM.Guest.Budget.Kids
-public import LeanVM.Guest.Memory.SizeTotal
-public import LeanVM.Guest.Memory.LoopPre
+public import LeanVM.Core.Memory.SizeTotal
+public import LeanVM.Core.Memory.LoopPre
 public import LeanVM.Guest.Data.NameStrings
 
 /-!
@@ -28,7 +28,7 @@ when skipped).
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.Memory LeanVM.Core.Memory
 open LeanVM.Protocol.Verifier (gen)
 
 @[expose] public section

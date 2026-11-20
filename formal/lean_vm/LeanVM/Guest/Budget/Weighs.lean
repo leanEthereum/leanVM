@@ -21,7 +21,7 @@ every valid tree of its function on such arguments does.
 
 namespace LeanVM.Guest.Budget
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

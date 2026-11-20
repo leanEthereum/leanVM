@@ -22,7 +22,7 @@ which `anyOk_of_parts` puts back together. Only definitions and the gluing.
 
 namespace LeanVM.Guest.B1.Digest
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 
 @[expose] public section
 

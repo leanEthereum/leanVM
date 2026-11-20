@@ -25,25 +25,25 @@ and loads are its top-level statements' and its frames its calls' and dispatches
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Core.Memory
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
 
 /-- An atom that neither allocates nor places a run. -/
-def _root_.LeanVM.Guest.Core.Atom.plain : Atom → Bool
+def _root_.LeanVM.Core.Atom.plain : Atom → Bool
   | .hint (.alloc ..) => false
   | .hint (.allocDyn ..) => false
   | .frameAddr .. => false
   | _ => true
 
 /-- A plain atom statement. -/
-def _root_.LeanVM.Guest.Core.Stmt.plainS : Stmt → Bool
+def _root_.LeanVM.Core.Stmt.plainS : Stmt → Bool
   | .atom a => a.plain
   | _ => false
 
 /-- A flat statement. -/
-def _root_.LeanVM.Guest.Core.Stmt.flat : Stmt → Bool
+def _root_.LeanVM.Core.Stmt.flat : Stmt → Bool
   | .atom _ => true
   | .call .. => true
   | .callIf .. => true
@@ -68,7 +68,7 @@ def DispOk (σ : Val) : Stmt → Prop
   | _ => True
 
 /-- The frame a flat statement sets up. -/
-noncomputable def _root_.LeanVM.Guest.Core.Stmt.callSF (σ : Val) : Stmt → Option (Option V × String × List V × List V)
+noncomputable def _root_.LeanVM.Core.Stmt.callSF (σ : Val) : Stmt → Option (Option V × String × List V × List V)
   | .dispatch x fs args rets => some (none, fs.getD (logG (σ x)) "", args, rets)
   | s => Main.Stmt.callS s
 

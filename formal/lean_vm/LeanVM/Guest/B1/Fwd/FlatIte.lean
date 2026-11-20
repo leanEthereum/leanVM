@@ -24,7 +24,7 @@ the list. `InBuf`, `LoadsInBuf`: loads inside buffers.
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Guest.B1.Fwd
 open LeanVM.Protocol.Verifier (gen)
 

@@ -10,7 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Sumcheck.Run
 public import LeanVM.Guest.B1.Fs.Templates
-public import LeanVM.Guest.CoreFind
+public import LeanVM.Core.Find
 public import LeanVM.Guest.Pack.P45.Core
 
 /-!
@@ -29,7 +29,7 @@ the permutation into `24 .. 36` (the challenge its first cell), the outputs.
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section

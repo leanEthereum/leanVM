@@ -27,8 +27,8 @@ levels' statements are each level's at its state `osStAt`.
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
-open LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
+open LeanVM.Guest.Value LeanVM.Core.Memory
 
 @[expose] public section
 

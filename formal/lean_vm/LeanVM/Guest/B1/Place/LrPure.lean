@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.HelperT
-public import LeanVM.Guest.Memory.Placed
+public import LeanVM.Core.Memory.Placed
 
 /-!
 # `level_residual`'s loops are pure
@@ -19,7 +19,7 @@ pure in themselves (`lrLoop1_pure`, `lrLoop2_pure`) at every row, by structure.
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

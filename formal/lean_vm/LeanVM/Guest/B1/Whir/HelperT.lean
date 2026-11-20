@@ -32,7 +32,7 @@ expansion numbers it (`lean_ethereum.py`):
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Core LeanVM.Guest.B1
 
 @[expose] public section
 

@@ -10,7 +10,7 @@ public import LeanVM.Guest.Memory.Uniform
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

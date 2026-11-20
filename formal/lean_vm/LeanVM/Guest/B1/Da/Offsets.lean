@@ -24,7 +24,7 @@ words), `steps[j] = zs[j] · Ŵ_j(e_(7 + b))` (`DA_VHAT_COLUMN[7b + j]`, here `o
 
 namespace LeanVM.Guest.B1.Da
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol.Verifier (eOfNat gen)
 open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 

@@ -14,19 +14,36 @@ import LeanVM.Guest.B1.Sig.SpWotsData1
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Guest LeanVM.Core
 
 @[expose] public section
 
 /-- **`sp_wots`'s body is the template**, renumbered as the guest numbers it, checked by the kernel
-in runs of `stmtsEqb` (`spBody_run_*`) and the leaf (`spBody_drop_127`). -/
+in runs of `stmtsEqb` (`spBody_run_*`) and the leaf (`spBody_drop_106`). -/
 theorem spBody_eq : (Fn.«sp_wots».core).body = spBody := by
-  have h120 := drop_eq_of_take (stmtsEqb_sound spBody_run_120) spBody_drop_127
-  have h112 := drop_eq_of_take (stmtsEqb_sound spBody_run_112) h120
-  have h104 := drop_eq_of_take (stmtsEqb_sound spBody_run_104) h112
-  have h96 := drop_eq_of_take (stmtsEqb_sound spBody_run_96) h104
-  have h88 := drop_eq_of_take (stmtsEqb_sound spBody_run_88) h96
-  have h80 := drop_eq_of_take (stmtsEqb_sound spBody_run_80) h88
+  have h105 := drop_eq_of_take (stmtsEqb_sound spBody_run_105) spBody_drop_106
+  have h104 := drop_eq_of_take (stmtsEqb_sound spBody_run_104) h105
+  have h103 := drop_eq_of_take (stmtsEqb_sound spBody_run_103) h104
+  have h102 := drop_eq_of_take (stmtsEqb_sound spBody_run_102) h103
+  have h101 := drop_eq_of_take (stmtsEqb_sound spBody_run_101) h102
+  have h100 := drop_eq_of_take (stmtsEqb_sound spBody_run_100) h101
+  have h99 := drop_eq_of_take (stmtsEqb_sound spBody_run_99) h100
+  have h98 := drop_eq_of_take (stmtsEqb_sound spBody_run_98) h99
+  have h97 := drop_eq_of_take (stmtsEqb_sound spBody_run_97) h98
+  have h96 := drop_eq_of_take (stmtsEqb_sound spBody_run_96) h97
+  have h95 := drop_eq_of_take (stmtsEqb_sound spBody_run_95) h96
+  have h94 := drop_eq_of_take (stmtsEqb_sound spBody_run_94) h95
+  have h93 := drop_eq_of_take (stmtsEqb_sound spBody_run_93) h94
+  have h92 := drop_eq_of_take (stmtsEqb_sound spBody_run_92) h93
+  have h91 := drop_eq_of_take (stmtsEqb_sound spBody_run_91) h92
+  have h90 := drop_eq_of_take (stmtsEqb_sound spBody_run_90) h91
+  have h89 := drop_eq_of_take (stmtsEqb_sound spBody_run_89) h90
+  have h88 := drop_eq_of_take (stmtsEqb_sound spBody_run_88) h89
+  have h87 := drop_eq_of_take (stmtsEqb_sound spBody_run_87) h88
+  have h86 := drop_eq_of_take (stmtsEqb_sound spBody_run_86) h87
+  have h85 := drop_eq_of_take (stmtsEqb_sound spBody_run_85) h86
+  have h84 := drop_eq_of_take (stmtsEqb_sound spBody_run_84) h85
+  have h80 := drop_eq_of_take (stmtsEqb_sound spBody_run_80) h84
   have h72 := drop_eq_of_take (stmtsEqb_sound spBody_run_72) h80
   have h64 := drop_eq_of_take (stmtsEqb_sound spBody_run_64) h72
   have h56 := drop_eq_of_take (stmtsEqb_sound spBody_run_56) h64

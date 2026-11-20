@@ -29,7 +29,7 @@ up to `2·2^E` of at most `W = wl E` limbs.
 namespace LeanVM.Cost.Bounds
 
 open LeanVM.Cost LeanVM.Cost.Decoder LeanVM.Cost.Library LeanVM.Parameters LeanVM.Semantics
-open LeanVM.Extraction LeanVM.Extraction.Fast LeanVM.Guest.Core LeanVM.Guest.Located
+open LeanVM.Extraction LeanVM.Extraction.Fast LeanVM.Core LeanVM.Guest.Located
 open LeanVM.Guest.Fast
 
 public section

@@ -24,7 +24,7 @@ the guest's terms.
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 open LeanVM.Protocol.EndToEnd.Complete (Terms termsEval canon FormC Coef insertTerm monoSort
   monoSort_perm termsEval_cons flushesC refSideC refSide refSide_eq evaluate_eq_termsEval)

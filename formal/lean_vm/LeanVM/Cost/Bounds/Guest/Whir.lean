@@ -31,7 +31,7 @@ cursor's length at most `L` and its price at most `C`:
 namespace LeanVM.Cost.Bounds.Guest
 
 open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Library LeanVM.Parameters
-open LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.Fast
+open LeanVM.Core LeanVM.Guest.B1 LeanVM.Guest.Fast
 
 public section
 

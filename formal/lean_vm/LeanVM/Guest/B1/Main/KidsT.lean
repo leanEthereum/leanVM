@@ -25,7 +25,9 @@ satisfying `Tt`.
 
 namespace LeanVM.Guest.Memory
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
+open LeanVM.Core.Memory
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 
@@ -33,13 +35,13 @@ variable (P : Core.Program) (fs : String → ℕ) (cert : String → V → ℕ)
 
 /-- **`RelAtIn` by a tree satisfying `T`.** -/
 def RelAtInT (rd : Reader) (R D : ℕ → Prop) (fp n : ℕ) (f : String) (args rets : List E)
-    (T : Tree → Prop) : Prop :=
-  ∃ t : Tree, (t.name = f ∧ t.Valid P rd args rets ∧ t.BufsOk P ∧ t.Placed P fs cert fp ∧
+    (T : Memory.Tree → Prop) : Prop :=
+  ∃ t : Memory.Tree, (t.name = f ∧ t.Valid P rd args rets ∧ t.BufsOk P ∧ t.Placed P fs cert fp ∧
     t.total fs = n ∧ t.LoadsIn P fs cert R fp ∧ ∀ i, D i → t.Data P fs cert fp i) ∧ T t
 
 /-- **`KidsFromIn`, the entered callees by trees satisfying `Ts`.** -/
 def KidsFromInT (rd : Reader) (σ : Val) (R : ℕ → Prop) :
-    (ℕ → Prop) → List Call → List (Tree → Prop) → ℕ → ℕ → (ℕ → Prop) → Prop
+    (ℕ → Prop) → List Call → List (Memory.Tree → Prop) → ℕ → ℕ → (ℕ → Prop) → Prop
   | Dacc, [], _, _, n, Dend => n = 0 ∧ ∀ i, Dend i → Dacc i
   | Dacc, c :: cs, Ts, b, n, Dend => ∃ (m n' : ℕ) (Rk Dk : ℕ → Prop), n = m + n' ∧
       (∀ i, Rk i → R i ∨ Dacc i) ∧
@@ -49,19 +51,19 @@ def KidsFromInT (rd : Reader) (σ : Val) (R : ℕ → Prop) :
       KidsFromInT rd σ R (fun i => Dacc i ∨ (c.taken = true ∧ Dk i)) cs Ts.tail (b + m) n' Dend
 
 /-- The entered callees' trees satisfy their predicates. -/
-def KidsT : List Call → List (Tree → Prop) → List Tree → Prop
+def KidsT : List Call → List (Memory.Tree → Prop) → List Memory.Tree → Prop
   | c :: cs, T :: Ts, k :: ks => (c.taken = true → T k) ∧ KidsT cs Ts ks
   | _, _, _ => True
 
 variable {P fs cert}
 
 theorem RelAtInT.relAtIn {rd : Reader} {R D : ℕ → Prop} {fp n : ℕ} {f : String} {args rets : List E}
-    {T : Tree → Prop} (h : RelAtInT P fs cert rd R D fp n f args rets T) :
+    {T : Memory.Tree → Prop} (h : RelAtInT P fs cert rd R D fp n f args rets T) :
     RelAtIn P fs cert rd R D fp n f args rets :=
   let ⟨t, ht, _⟩ := h
   ⟨t, ht⟩
 
-theorem RelAtIn.relAtInT {rd : Reader} {R D : ℕ → Prop} {fp n : ℕ} {f : String} {args rets : List E}
+theorem _root_.LeanVM.Core.Memory.RelAtIn.relAtInT {rd : Reader} {R D : ℕ → Prop} {fp n : ℕ} {f : String} {args rets : List E}
     (h : RelAtIn P fs cert rd R D fp n f args rets) :
     RelAtInT P fs cert rd R D fp n f args rets fun _ => True :=
   let ⟨t, ht⟩ := h
@@ -70,11 +72,11 @@ theorem RelAtIn.relAtInT {rd : Reader} {R D : ℕ → Prop} {fp n : ℕ} {f : St
 variable {rd : Reader} {σ : Val}
 
 /-- The callee of one frame, by a tree satisfying `T`. -/
-theorem kid_ofInT {c : Call} {b m : ℕ} {Rk Dk : ℕ → Prop} {T : Tree → Prop}
+theorem kid_ofInT {c : Call} {b m : ℕ} {Rk Dk : ℕ → Prop} {T : Memory.Tree → Prop}
     (hc : c.taken = false → P.Takes c.f c.args.length = true)
     (h : if c.taken then RelAtInT P fs cert rd Rk Dk b m c.f (c.args.map σ) (c.rets.map σ) T
       else m = fs c.f) :
-    ∃ k : Tree, Tree.KidsValid P rd σ [c] [k] ∧ k.BufsOk P ∧ k.Placed P fs cert b ∧
+    ∃ k : Memory.Tree, Tree.KidsValid P rd σ [c] [k] ∧ k.BufsOk P ∧ k.Placed P fs cert b ∧
       k.total fs = m ∧ k.LoadsIn P fs cert Rk b ∧ (c.taken = true → ∀ i, Dk i → k.Data P fs cert b i) ∧
       (c.taken = true → T k) := by
   by_cases ht : c.taken = true
@@ -88,10 +90,10 @@ theorem kid_ofInT {c : Call} {b m : ℕ} {Rk Dk : ℕ → Prop} {T : Tree → Pr
     exact ⟨k, hkv, hkb, hkp, hkt, hkl, hkd, fun h' => absurd h' ht⟩
 
 /-- The callees of `KidsFromIn`, placed one after another from `b`. -/
-theorem kids_of_kidsFromInT (R : ℕ → Prop) : ∀ (cs : List Call) (Ts : List (Tree → Prop)) (Dacc : ℕ → Prop) (b n : ℕ)
+theorem kids_of_kidsFromInT (R : ℕ → Prop) : ∀ (cs : List Call) (Ts : List (Memory.Tree → Prop)) (Dacc : ℕ → Prop) (b n : ℕ)
     (Dend : ℕ → Prop), (∀ c ∈ cs, c.taken = false → P.Takes c.f c.args.length = true) →
     KidsFromInT P fs cert rd σ R Dacc cs Ts b n Dend →
-    ∃ ks : List Tree, Tree.KidsValid P rd σ cs ks ∧ KidsT cs Ts ks ∧ Tree.BufsOkKids P ks ∧
+    ∃ ks : List Memory.Tree, Tree.KidsValid P rd σ cs ks ∧ KidsT cs Ts ks ∧ Tree.BufsOkKids P ks ∧
       Tree.PlacedKids P fs cert (bases b (ks.map (Tree.total fs))) ks ∧
       (ks.map (Tree.total fs)).sum = n ∧
       (∀ i, Dend i → Dacc i ∨ Tree.DataKids P fs cert (bases b (ks.map (Tree.total fs))) ks i) ∧
@@ -140,13 +142,13 @@ theorem relAtInWT_of_walk (hP : P.Wf) {R D Dk : ℕ → Prop} {fp N : ℕ} {f : 
     (hbuf : (allocDsts es).map σ = (bases (fp + fs f) (allocs σ es)).map fun b
         => ofK (addressOfIndex b))
     (haddr : ∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + cert f q.2)))
-    (Ts : List (Tree → Prop))
+    (Ts : List (Memory.Tree → Prop))
     (hk : KidsFromInT P fs cert rd σ (fun i => R i ∨ ownData cert fp (fp + fs f) f (allocs σ es) es i)
       (fun _ => False) (calls es) Ts (fp + fs f + (allocs σ es).sum) N Dk)
     (hload : ∀ A ∈ loadAddrs σ es, ∃ i, A = addressOfIndex i ∧
       (ownData cert fp (fp + fs f) f (allocs σ es) es i ∨ R i ∨ Dk i))
     (hD : ∀ i, D i → ownData cert fp (fp + fs f) f (allocs σ es) es i ∨ Dk i) :
-    ∃ t : Tree, (t.name = f ∧ t.Valid P rd args rets ∧ t.BufsOk P ∧ t.Placed P fs cert fp ∧
+    ∃ t : Memory.Tree, (t.name = f ∧ t.Valid P rd args rets ∧ t.BufsOk P ∧ t.Placed P fs cert fp ∧
       t.total fs = fs f + (allocs σ es).sum + N ∧ t.LoadsIn P fs cert R fp ∧
       ∀ i, D i → t.Data P fs cert fp i) ∧
       ∃ ks, t = .node f σ (allocs σ es) ks ∧ KidsT (calls es) Ts ks := by
@@ -160,7 +162,7 @@ theorem relAtInWT_of_walk (hP : P.Wf) {R D Dk : ℕ → Prop} {fp N : ℕ} {f : 
       | nil => exact Or.inr rfl
       | cons _ _ => exact hkv.elim
   obtain ⟨hbb, hkpos⟩ := kidPos_not_loop (fs := fs) (fp := fp) (bufs := allocs σ es) hl'
-  have hdata : ∀ i, (Tree.node f σ (allocs σ es) ks).Data P fs cert fp i ↔
+  have hdata : ∀ i, (Memory.Tree.node f σ (allocs σ es) ks).Data P fs cert fp i ↔
       ownData cert fp (fp + fs f) f (allocs σ es) es i ∨
         Tree.DataKids P fs cert (bases (fp + fs f + (allocs σ es).sum) (ks.map (Tree.total fs))) ks i := by
     intro i
@@ -192,15 +194,15 @@ theorem relAtInWT_of_walk (hP : P.Wf) {R D Dk : ℕ → Prop} {fp N : ℕ} {f : 
     · exact Or.inl h
     · exact (hkd i h).elim (fun h => h.elim) fun h => Or.inr h
 
-theorem kidsValid_length : ∀ {cs : List Call} {ks : List Tree}, Tree.KidsValid P rd σ cs ks →
+theorem kidsValid_length : ∀ {cs : List Call} {ks : List Memory.Tree}, Tree.KidsValid P rd σ cs ks →
     ks.length = cs.length
   | [], [], _ => rfl
   | _ :: _, _ :: _, h => by rw [List.length_cons, List.length_cons, kidsValid_length h.2.2]
   | [], _ :: _, h => by simp [Tree.KidsValid] at h
   | _ :: _, [], h => by simp [Tree.KidsValid] at h
 
-theorem kidsT_snoc {c : Call} {T : Tree → Prop} {k : Tree} : ∀ {cs : List Call}
-    {Ts : List (Tree → Prop)} {ks : List Tree}, Ts.length = cs.length → ks.length = cs.length →
+theorem kidsT_snoc {c : Call} {T : Memory.Tree → Prop} {k : Memory.Tree} : ∀ {cs : List Call}
+    {Ts : List (Memory.Tree → Prop)} {ks : List Memory.Tree}, Ts.length = cs.length → ks.length = cs.length →
     KidsT cs Ts ks → (c.taken = true → T k) → KidsT (cs ++ [c]) (Ts ++ [T]) (ks ++ [k])
   | [], [], [], _, _, _, hc => ⟨hc, trivial⟩
   | [], [], _ :: _, _, h2, _, _ => by simp at h2
@@ -214,8 +216,8 @@ theorem kidsT_snoc {c : Call} {T : Tree → Prop} {k : Tree} : ∀ {cs : List Ca
 `relAtIn_of_walk_loop` by the node at the walk's valuation, its children satisfying
 `KidsT (calls es) (Ts ++ [Tt])`: the other callees `Ts`, the tail call `Tt`. -/
 theorem relAtInWT_of_walk_loop (hP : P.Wf) {R D Dk Rt Dt : ℕ → Prop} {fp m N : ℕ} {f : String}
-    {args rets : List E} {fn : Fn} {es : List Ev} {vs : List V} {cs : List Call} {c : Call} {Ts : List (Tree → Prop)}
-    {Tt : Tree → Prop}
+    {args rets : List E} {fn : Fn} {es : List Ev} {vs : List V} {cs : List Call} {c : Call} {Ts : List (Memory.Tree → Prop)}
+    {Tt : Memory.Tree → Prop}
     (hf : P.find? f = some fn) (hl : P.loop f = true) (hp : fn.params.map σ = args)
     (hw : walk σ fn.body = .ret es vs) (hr : vs.map σ = rets) (hes : ∀ e ∈ es, e.Holds rd σ)
     (hc : calls es = cs ++ [c])
@@ -250,7 +252,7 @@ theorem relAtInWT_of_walk_loop (hP : P.Wf) {R D Dk Rt Dt : ℕ → Prop} {fp m N
     rfl
   have hlen : (bases (fp + fs f + m + (allocs σ es).sum) (ks.map (Tree.total fs))).length = ks.length := by
     rw [length_bases, List.length_map]
-  have hdata : ∀ i, (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert fp i ↔
+  have hdata : ∀ i, (Memory.Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert fp i ↔
       ownData cert fp (fp + fs f + m) f (allocs σ es) es i ∨
         Tree.DataKids P fs cert (bases (fp + fs f + m + (allocs σ es).sum) (ks.map (Tree.total fs))) ks i ∨
         k.Data P fs cert (fp + fs f) i := by
@@ -271,12 +273,12 @@ theorem relAtInWT_of_walk_loop (hP : P.Wf) {R D Dk Rt Dt : ℕ → Prop} {fp m N
   · rw [total_node, totalKids_eq_sum, hns, List.sum_append, hks]
     simp only [List.sum_cons, List.sum_nil]
     omega
-  · have hDk : ∀ i, Dk i → (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert fp i := fun i h =>
+  · have hDk : ∀ i, Dk i → (Memory.Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert fp i := fun i h =>
       (hkd i h).elim (fun h => h.elim) fun h => (hdata i).mpr (Or.inr (Or.inl h))
-    have hDt : ∀ i, c.taken = true ∧ Dt i → (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert fp i :=
+    have hDt : ∀ i, c.taken = true ∧ Dt i → (Memory.Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert fp i :=
       fun i h => (hdata i).mpr (Or.inr (Or.inr (hkd' h.1 i h.2)))
     have hown : ∀ i, ownData cert fp (fp + fs f + m) f (allocs σ es) es i →
-        (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert fp i := fun i h => (hdata i).mpr (Or.inl h)
+        (Memory.Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert fp i := fun i h => (hdata i).mpr (Or.inl h)
     rw [loadsIn_node, events_node hf hw, hkpos]
     refine ⟨fun A hA => ?_, loadsInKids_append hlen ?_ ?_⟩
     · obtain ⟨i, hi, h⟩ := hload A hA
@@ -305,7 +307,7 @@ end LeanVM.Guest.Memory
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Memory LeanVM.Core.Memory
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section

@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Digest.MonoDefs
 
 namespace LeanVM.Guest.B1.Digest
 
-open LeanVM.Guest.Core
+open LeanVM.Core
 
 @[expose] public section
 

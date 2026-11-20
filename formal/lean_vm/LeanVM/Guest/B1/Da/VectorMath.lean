@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Da.VectorDefs
 public import LeanVM.Parameters.Field
-public import LeanVM.Guest.Value.Tower
+public import LeanVM.Core.Value.Tower
 
 /-!
 # The product trees compute the dual codeword
@@ -24,7 +24,7 @@ tree, `da_expand` from the top leaf `h` with the cell factors and the column's s
 
 namespace LeanVM.Guest.B1.Da
 
-open LeanVM.Parameters LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Core.Value
 
 @[expose] public section
 

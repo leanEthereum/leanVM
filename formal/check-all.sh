@@ -67,7 +67,8 @@ cache_get() {
 cache_get_in() { (cd "$1" && lake exe cache get); }
 
 # The files derived from the guest (`.gitignore`), once per run, before the first build that reads
-# them: every one (`regen-guest.sh`), or the bytecode alone for the statement (`guest-export`). The
+# them: every one (`regen-guest.sh`), or the bytecode alone for the statement (`guest-export`, from the compiled
+# guest `guest-artifact` writes, which needs Lean). The
 # projects they are written into are scanned for escapes again, the written files included.
 regen() {
   once regen || return 0
@@ -81,7 +82,8 @@ regen() {
 export_guest() {
   once export || return 0
   command -v cargo > /dev/null || fail "the guest's bytecode needs cargo (guest-export)"
-  step "the guest's bytecode (guest-export)"
+  step "the guest's bytecode (guest-artifact, then guest-export)"
+  lean_vm/scripts/guest-artifact
   cargo build --release --manifest-path lean_vm/scripts/guest-export/Cargo.toml
   capped lean_vm/scripts/guest-export/target/release/guest-export lean_vm
   rescan Statement
@@ -186,7 +188,7 @@ lean_da() {
 }
 
 # Every lean_vm executable, in one build.
-EXES=(node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove test-runs)
+EXES=(node-vectors guest-core guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove test-runs)
 
 # The six projects' targets and lean_vm's executables in one build from lean_vm, whose workspace holds the other
 # five, so that their modules build beside lean_vm's instead of one project after another. The projects' own builds

@@ -26,7 +26,7 @@ public import LeanVM.Guest.B1.Da.LevelsComplete
 
 namespace LeanVM.Guest.B1.Da
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Core.Memory
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)

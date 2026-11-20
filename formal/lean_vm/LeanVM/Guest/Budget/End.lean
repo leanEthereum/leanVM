@@ -28,7 +28,7 @@ namespace LeanVM.Guest.Budget
 
 open LeanVM.Guest.Completeness
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Memory LeanVM.Core.Memory
 open LeanVM.Node LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Guest.End (MainComplete Budget work hdrOf bytecode words_le_of_size)
 open LeanVM.Guest.B1 (LowDef DisjL Within)

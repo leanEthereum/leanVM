@@ -30,8 +30,8 @@ layout (`layer_kids`), placed by `completeAtD_of_relIn`; `completeAt_flatOutF` p
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
-open LeanVM.Guest.Memory LeanVM.Guest.Lift LeanVM.Guest.B1.Fwd
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.B1
+open LeanVM.Core.Memory LeanVM.Guest.Lift LeanVM.Guest.B1.Fwd
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Guest.B1.Main (MemL RegionL)
 open LeanVM.Protocol.KeccakGkr

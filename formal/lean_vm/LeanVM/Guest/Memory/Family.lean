@@ -8,8 +8,8 @@
 
 module
 
-public import LeanVM.Guest.Memory.StaticVec
-public import LeanVM.Guest.Memory.Walk
+public import LeanVM.Core.Memory.StaticVec
+public import LeanVM.Core.Memory.Walk
 public import LeanVM.Guest.Memory.GuestCallees
 public import LeanVM.Guest.CoreData
 
@@ -29,7 +29,9 @@ checks of a vector family (`chkV`, the instruction counts by opcode) and of a sc
 
 namespace LeanVM.Guest.Memory
 
-open LeanVM.Guest.Core LeanVM.Guest
+open LeanVM.Core.Memory
+
+open LeanVM.Core
 
 @[expose] public section
 

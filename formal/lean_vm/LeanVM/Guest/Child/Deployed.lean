@@ -37,6 +37,8 @@ digest under the deployed seed:
 
 namespace LeanVM.Guest.Child
 
+open LeanVM.Core
+
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Protocol.LeanIsa
 open LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.EndToEnd.Complete

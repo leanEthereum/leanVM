@@ -94,12 +94,27 @@ fn main() {
     let _ = std::fs::remove_dir_all(&out);
     copy_dir(&crate_dir.join("src"), &out.join("src"));
     copy_dir(&leanvm.join("guests"), &out.join("guests"));
-    // The guest source sits at the repository's root, two levels above the crate: the copy reads it beside itself.
+    // The tests' Lean-compiled snippets, beside `src/` as in the crate.
+    copy_dir(&crate_dir.join("snippets"), &out.join("snippets"));
+    // The guest's source sits at the repository's root, two levels above the crate: the copy reads it beside itself.
     let guest = out.join("src/guest.rs");
     let text = std::fs::read_to_string(&guest).unwrap();
-    let from = r#"include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../guests/lean_ethereum.py"))"#;
-    assert!(text.contains(from), "the guest source is included from the repository's root");
-    std::fs::write(&guest, text.replace(from, r#"include_str!("../guests/lean_ethereum.py")"#)).unwrap();
+    let from = r#"include_str!("../../../guests/"#;
+    assert_eq!(text.matches(from).count(), 1, "the guest's source is included from the root");
+    std::fs::write(&guest, text.replace(from, r#"include_str!("../guests/"#)).unwrap();
+    // The compiled artefact, which `aggregation`'s own `build.rs` names: the one `scripts/guest-artifact` wrote, or,
+    // before there is one, an empty file, so that `guest-export --source` (which reads no artefact) builds and
+    // `scripts/guest-artifact` can write the first one; any other export then fails on loading it.
+    let artifact = leanvm.join("guests/lean_ethereum.compiled");
+    println!("cargo:rerun-if-changed={}", artifact.display());
+    let artifact = if artifact.is_file() {
+        artifact
+    } else {
+        let empty = out.join("no-artefact.compiled");
+        std::fs::write(&empty, "").unwrap();
+        empty
+    };
+    println!("cargo:rustc-env=LEANVM_GUEST_ARTIFACT_PATH={}", artifact.display());
 
     // The crate as this crate's module `aggregation`: `lib.rs` as the module's `mod.rs`, `crate::` paths pointed at
     // the module. The exporters, a child of it, read its submodules' private items, so every top-level item of a
@@ -144,12 +159,12 @@ fn main() {
     ));
     std::fs::write(&aggregation, text).unwrap();
 
-    // leanVM's `zkdsl_compiler` as this crate's module `compiler_overlay`, for the exporters that
+    // leanVM's `zkdsl` as this crate's module `compiler_overlay`, for the exporters that
     // read the parsed guest (`Ast`'s functions are crate-private since leanVM #669): its sources
     // copied, `lib.rs` as the module's `mod.rs`, and `crate::` paths pointed at the module.
     let compiler = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("compiler_overlay");
     let _ = std::fs::remove_dir_all(&compiler);
-    copy_dir(&leanvm.join("crates/zkdsl_compiler/src"), &compiler);
+    copy_dir(&leanvm.join("crates/zkdsl/src"), &compiler);
     std::fs::rename(compiler.join("lib.rs"), compiler.join("mod.rs")).unwrap();
     let mut files = Vec::new();
     rust_files(&compiler, &mut files);

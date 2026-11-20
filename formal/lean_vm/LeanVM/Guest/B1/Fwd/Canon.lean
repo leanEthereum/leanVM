@@ -20,7 +20,7 @@ public import LeanVM.Guest.B1.Fwd.Eval
 
 namespace LeanVM.Guest.B1.Fwd
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Guest.Value.Keccak
 
 @[expose] public section

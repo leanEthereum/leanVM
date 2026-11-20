@@ -45,12 +45,12 @@ elsewhere, where no child of a node within `Limits`, its caps agreeing and no ze
 (`B1.Main.childShape_bounds`). -/
 def deployedBvAt (μ r : ℕ) : ℕ :=
   if 20 ≤ μ ∧ μ ≤ 30 ∧ 1 ≤ r ∧ r ≤ 4 then
-    [378419, 378010, 380918, 384907, 395327, 400596, 409139, 415070, 422460, 425700, 428628].getD (μ - 20) 0
+    [341113, 341256, 344148, 347987, 358954, 365269, 377136, 382613, 390653, 393992, 397051].getD (μ - 20) 0
   else 0
 
 /-- `open_stacked`'s words at the 11 arms (`Count/VsOsAll`). -/
 theorem osC_getD {m : ℕ} (hm : m < 11) : Count.osC m =
-    [206827, 206418, 209326, 213315, 223735, 229004, 237547, 243478, 250868, 254108, 257036].getD m 0 := by
+    [179623, 179766, 182658, 186497, 197464, 203779, 215646, 221123, 229163, 232502, 235561].getD m 0 := by
   interval_cases m
   · exact Count.osC_0
   · exact Count.osC_1
@@ -80,11 +80,13 @@ theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget deployedBvA
     fun p hp => by
       obtain ⟨ch, hch, rfl⟩ :=
         List.mem_map.mp (show p ∈ w.children.map (childShape bytecode) from hp)
-      obtain ⟨h1, h2, h3, h4⟩ := B1.Main.childShape_bounds vsCompleteHyp_deployed hok hch
+      obtain ⟨h1, h2, h3, h4⟩ := B1.Main.childShape_bounds
+        (Compiled.Cpl.vsCompleteHyp_at (Compiled.Cpl.runsFitG Compiled.CplEval.cplOkAll)
+          (Compiled.Cpl.runsConsecG Compiled.CplEval.cplOkAll)) hok hch
       exact (vsBoundAt_eq_deployedBvAt h1 h2 h3 h4).le
 
 /-- The largest child's words: `μ = 30`. -/
-theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ 439001 := by
+theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ 397051 := by
   unfold deployedBvAt
   split_ifs with h
   · obtain ⟨h1, h2, -, -⟩ := h

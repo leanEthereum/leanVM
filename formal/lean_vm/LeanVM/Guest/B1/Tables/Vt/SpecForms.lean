@@ -28,7 +28,7 @@ terms, by the kernel-checked tie of the flushes and the baked terms (`vtTie0t`, 
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 open LeanVM.Protocol.EndToEnd.Complete (refSide refSide_eq refSideC FormC canon termsEval blockVal
   evaluate_eq_sum)

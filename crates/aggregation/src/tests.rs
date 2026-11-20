@@ -1,9 +1,8 @@
 use super::cells::{count, pack_16_bytes};
 use super::deferred::{DeferredBytecodeClaim, bytecode_sums, bytecode_value, bytecode_vars};
 use super::error::AggregateError;
-use super::guest::{GUEST_SOURCE, compile_guest, unified_guest};
+use super::guest::{ARTIFACT, load, unified_guest};
 use super::hints::{FORGE, Forgery, Hints};
-use super::placeholders::placeholder_map;
 use super::proof::{AggregateProof, decode, encode};
 use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
 use super::*;
@@ -19,7 +18,6 @@ use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use primitives::field::F128;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
-use zkdsl_compiler::{compile, parse_with_replacements};
 
 use crate::signers_cache::{
     LeanSphincsSigner, LeanXmssSigner, get_lean_sphincs_signers, get_signers, get_signers_for, message, message_for,
@@ -90,13 +88,25 @@ fn assert_forgery_rejected(
     );
 }
 
-/// The guest's helpers under a `main` of their own, compiled at the bytecode size `2^kbc`.
-fn guest_snippet(main: &str, kbc: usize) -> Program {
-    let (helpers, _) = GUEST_SOURCE.split_once("\ndef main():").unwrap();
-    let source = format!("{helpers}\ndef main():\n{main}");
-    Program::from(compile(
-        &parse_with_replacements(&source, &placeholder_map(kbc)).unwrap(),
-    ))
+/// The guest's helpers under a `main` of their own (`snippets/<name>.py`), as the Lean back end compiled them at the
+/// guest's placeholders (`lake exe guest-backend export snippets`).
+fn guest_snippet(name: &str) -> Program {
+    macro_rules! at {
+        ($($n:literal),*) => {
+            match name {
+                $($n => include_str!(concat!("../snippets/", $n, ".txt")),)*
+                _ => panic!("no snippet {name}"),
+            }
+        };
+    }
+    let text = at!(
+        "child_walk",
+        "column_selectors",
+        "da_membership",
+        "grind_check",
+        "list_split"
+    );
+    Program::__from_text(text).unwrap_or_else(|e| panic!("snippets/{name}.txt: {e}"))
 }
 
 #[test]
@@ -109,26 +119,6 @@ fn the_wire_layout_is_pinned() {
     // A count beyond the input, or beyond any input, fails whatever it claims.
     assert_eq!(decode(&[&le(3)[..], &bytes[8..]].concat()), None);
     assert_eq!(decode(&le(u64::MAX)), None);
-}
-
-/// The guest compiles to one program, always.
-///
-/// `unified_guest` finds a fixed point by compiling repeatedly and comparing
-/// the result's log size, so a compiler that read a hash seed would not just
-/// produce two incompatible transcripts, it could fail to converge at all.
-/// The small programs in `zkdsl_compiler`'s `determinism` suite pin the
-/// digests; this pins the one program large enough to hit every path that
-/// walks a map. A fixed `kbc` is enough: reproducibility does not depend on
-/// the size being the fixed point.
-#[test]
-fn guest_compiles_reproducibly() {
-    let (one, two) = (compile_guest(20), compile_guest(20));
-    assert_eq!(
-        format!("{:?}", one.prog),
-        format!("{:?}", two.prog),
-        "two compilations of the guest produced different bytecode, \
-             so the compiler is reading a hash seed"
-    );
 }
 
 /// The guest builds a leanXMSS address as its type's cell plus `lo`,
@@ -264,28 +254,8 @@ fn forged_opening_hints_are_rejected() {
 
 #[test]
 fn guest_column_selectors_match_native_eq() {
-    let kbc = 18;
-    let guest = guest_snippet(
-        r#"    # The selector tables read whole nibbles of coordinates, zero past the stack.
-    point = HeapBuf(4 * SEL_NIBBLES)
-    hint_witness(point[0:MAX_STACK_LOG], "point")
-    for k in unroll(MAX_STACK_LOG, 4 * SEL_NIBBLES):
-        point[GEN ** k] = 0
-    point1 = HeapBuf(4 * SEL_NIBBLES)
-    for k in unroll(0, 4 * SEL_NIBBLES):
-        point1[GEN ** k] = 1 + point[GEN ** k]
-    sel_eq = selector_tables(point, point1)
-    g_squares = exponent_tables()
-    sel_g = g_squares * GEN ** SIZE_BITS
-    offset = hint_witness("offset")
-    kappa_g = hint_witness("kappa")
-    weight = match(log(kappa_g), range(0, N_COLUMN_LOGS), lambda kappa: column_selector(offset, sel_eq, sel_g, kappa))
-    public = GEN ** 0
-    assert public[1] == weight
-    return
-"#,
-        kbc,
-    );
+    let guest = guest_snippet("column_selectors");
+    let kbc = unified_guest().prog.len().trailing_zeros() as usize;
     let mut rng = StdRng::seed_from_u64(813);
     for mu in verifier::min_execution_stacked_log(kbc)..=verifier::MAX_STACKED_LOG {
         let mut point: Vec<F128> = (0..mu)
@@ -450,16 +420,7 @@ fn a_node_passes_on_one_childs_da_root() {
 /// `list_split` itself, not reach the dispatch as a wild jump.
 #[test]
 fn list_split_rejects_a_negative_rest() {
-    let guest = guest_snippet(
-        r#"    n_g = hint_witness("n")
-    bigs, body, rest = list_split(n_g)
-    public = GEN ** 0
-    assert public[1] == body
-    assert public[GEN] == rest
-    return
-"#,
-        20,
-    );
+    let guest = guest_snippet("list_split");
     let split = |body: F128, rest: F128| {
         let mut hints = Hints::default();
         hints.push("n", vec![count(6)]);
@@ -481,13 +442,7 @@ fn list_split_rejects_a_negative_rest() {
 /// is checked, so this pins that a set bit below the window fails and one at or above it passes.
 #[test]
 fn grind_check_reads_the_low_bits() {
-    let guest = guest_snippet(
-        r#"    word = hint_witness("w")
-    grind_check(word, exponent_tables() * GEN ** WIN_TAB_AT, 3)
-    return
-"#,
-        20,
-    );
+    let guest = guest_snippet("grind_check");
     let check = |lane: u64| {
         let mut hints = Hints::default();
         hints.push("w", vec![F128::new(lane, 0x0123_4567_89AB_CDEF)]);
@@ -505,20 +460,7 @@ fn grind_check_reads_the_low_bits() {
 /// one row flipped, in either limb, though its root and vector are that matrix's: the row is no codeword.
 #[test]
 fn da_guest_checks_codeword_membership() {
-    let guest = guest_snippet(
-        r#"    byte_bits = HeapBuf(SP_BYTE_VALUES)
-    for v in unroll(0, SP_BYTE_VALUES):
-        byte_bits[GEN ** v] = v
-    r0, r1, z = da_verify(byte_bits)
-    digest = StackBuf(2)
-    keccak([r0, r1], [z, 0], digest)
-    public = GEN ** 0
-    assert public[1] == digest[0]
-    assert public[GEN] == digest[1]
-    return
-"#,
-        20,
-    );
+    let guest = guest_snippet("da_membership");
     let blobs = da_rows(3, 101);
     let witness = lean_da::BlobMatrix::build(&blobs).unwrap();
     let rows: Vec<Codeword> = (0..blobs.len()).map(|i| *witness.row(i).unwrap()).collect();
@@ -684,19 +626,7 @@ fn aggregate_two_messages() {
 /// would not see it: only the gap's `assert_gpow` does.
 #[test]
 fn a_child_walk_cannot_step_back() {
-    let guest = guest_snippet(
-        r#"    n_c = hint_witness("n")
-    table = HeapBuf(GEN ** 8)
-    hint_witness(table[0:8], "claims")
-    cover = HeapBuf(GEN ** 2)
-    d0, d1 = child_claim_list_digest(table, cover, GEN ** 3, GEN ** 2, n_c)
-    public = GEN ** 0
-    assert public[1] == d0
-    assert public[GEN] == d1
-    return
-"#,
-        20,
-    );
+    let guest = guest_snippet("child_walk");
     let claim = |i: u64| [1, 2, 3, 4].map(|k| F128::new(i * 7919 + k, k));
     let table: Vec<F128> = [claim(0), claim(1)].concat();
     let walk = |child: &[[F128; 4]], gaps: &[F128]| {
@@ -805,4 +735,15 @@ fn malformed_raw_signatures_are_errors() {
             Some(AggregateError::InvalidSignature)
         );
     }
+}
+
+/// An artefact compiled from other placeholders than its own size's, or whose IV is not its bytecode's, is refused.
+#[test]
+fn a_stale_or_altered_artefact_is_refused() {
+    let (input, rest) = ARTIFACT.split_once('\n').unwrap();
+    let stale = format!("input {}\n{rest}", "0".repeat(64));
+    assert!(load(&stale).unwrap_err().starts_with("stale"));
+    let (iv, rest) = rest.split_once('\n').unwrap();
+    let altered = format!("{input}\n{iv}\n{}", rest.replacen("\nX ", "\nM ", 1));
+    assert!(load(&altered).unwrap_err().contains("`iv`"));
 }

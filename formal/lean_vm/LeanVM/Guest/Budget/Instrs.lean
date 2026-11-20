@@ -27,7 +27,7 @@ namespace LeanVM.Guest.Budget
 
 open LeanVM.Guest.Completeness
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core LeanVM.Guest.Memory
 open LeanVM.Node LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Guest.End (Linear work)
 open LeanVM.Guest.B1.Main (hm hData hData_bounds coverage_eq xPlan sPlan)

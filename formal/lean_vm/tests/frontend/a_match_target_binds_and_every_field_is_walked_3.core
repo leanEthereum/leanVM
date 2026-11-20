@@ -1,0 +1,22 @@
+def main []
+  const %0 2 0
+  dispatch %0 [two__L0 two__L1] [] [%1 %2]
+  const %3 2 0
+  dispatch %3 [two__L0 two__L1] [] [%4 %5]
+  add %6 %4 %5
+  const %7 1 0
+  load %6 %7 0
+  const %8 1 0
+  const %9 1 0
+  const %10 2 0
+  mul %11 %9 %10
+  load %8 %11 0
+  ret []
+def two__L0 []
+  const %0 1 0
+  const %1 1 0
+  ret [%0 %1]
+def two__L1 []
+  const %0 2 0
+  const %1 2 0
+  ret [%0 %1]

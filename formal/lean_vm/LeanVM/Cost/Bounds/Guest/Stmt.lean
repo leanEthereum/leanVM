@@ -23,7 +23,7 @@ application of `main`'s valuation `σ`, the declared claims at most `2^34` of ea
 namespace LeanVM.Cost.Bounds.Guest
 
 open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Library LeanVM.Parameters
-open LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main
+open LeanVM.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main
 
 public section
 

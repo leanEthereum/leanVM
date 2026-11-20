@@ -29,7 +29,7 @@ loads from `R` when the walks' loads do (`relIn_of_leaf`, on the walks that hold
 
 namespace LeanVM.Guest.Lift
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 open LeanVM.Guest.B1 (LowDef Within CompleteAtD Returns disj_nil relAtIn_dmono)
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
@@ -284,8 +284,8 @@ def armsAtoms : List (List Stmt) → List Atom
 end
 
 /-- **Every frame run fits its frame**: a `frameAddr` run of a function's body has its cells, from
-the certificate's cell of its first value on, within the function's frame. The certificates'
-fact, discharged for the deployed instance from the checker's (`B2C.FnStatic`). -/
+the value cell of its first value on, within the function's frame. A fact of the placement,
+discharged for the deployed instance by the back end's static test (`Compiled.Cpl.runsFitG`). -/
 def RunsFit (fs : String → ℕ) (cert : String → V → ℕ) : Prop :=
   ∀ f fn, coreProgram.find? f = some fn → ∀ p r rs, Atom.frameAddr p (r :: rs) ∈ blockAtoms fn.body →
     cert f r + (rs.length + 1) ≤ fs f

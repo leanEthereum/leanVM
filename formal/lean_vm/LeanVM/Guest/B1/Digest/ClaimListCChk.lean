@@ -24,7 +24,7 @@ evaluates in order; the nonempty branch's stores are the zero state's, its other
 
 namespace LeanVM.Guest.B1.Digest
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.B1.Fwd
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1.Fwd
 
 @[expose] public section
 

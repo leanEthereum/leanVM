@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.Bounds.Decoder.PreTest
+public import LeanVM.Cost.Bounds.Decoder.SelfTest
 public import LeanVM.Cost.Decoder.Memory
 
 /-!

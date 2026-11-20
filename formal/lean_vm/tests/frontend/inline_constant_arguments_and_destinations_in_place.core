@@ -1,0 +1,10 @@
+def main []
+  const %0 1 0
+  load %1 %0 0
+  const %2 6 0
+  mul %3 %1 %2
+  mul %4 %1 %1
+  hint alloc %5 2
+  load %3 %5 0
+  load %4 %5 1
+  ret []

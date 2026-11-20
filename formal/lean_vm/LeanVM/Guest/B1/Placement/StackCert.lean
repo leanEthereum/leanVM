@@ -22,7 +22,7 @@ by `2^(k r)`. `tb_stack_cert`: the ranks name every block once, and every block'
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section

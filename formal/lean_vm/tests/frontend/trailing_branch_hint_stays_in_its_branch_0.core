@@ -1,0 +1,18 @@
+def main []
+  hint witness flag [%0]
+  const %1 1 0
+  add %2 %0 %1
+  if_zero %2
+    const %3 0 0
+    hint witness data [%4]
+    const %5 0 0
+  else
+  end
+  const %6 1 0
+  load %0 %6 0
+  const %7 0 0
+  const %8 1 0
+  const %9 2 0
+  mul %10 %8 %9
+  load %7 %10 0
+  ret []

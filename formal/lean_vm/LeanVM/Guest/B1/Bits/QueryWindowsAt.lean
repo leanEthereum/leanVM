@@ -31,7 +31,7 @@ the run's address and its tails' (`run·g^(r - 5)`, the run's cells consecutive 
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Core.Memory
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 open LeanVM.Protocol.Verifier hiding Layout
 
@@ -73,7 +73,7 @@ def QwDecodeAtD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (d
           (fs name) name [w, pos, ptrs, tabs] []
 
 /-- **Every frame run's cells are consecutive**: value `k` of a `frameAddr` run of a function's
-body sits `k` cells past the run's first. The certificates' fact (`B2C.FnStatic.run`), as
+body sits `k` cells past the run's first. A fact of the placement (`Compiled.Cpl.runsConsecG`), as
 `Lift.RunsFit` is. -/
 def RunsConsec (cert : String → V → ℕ) : Prop :=
   ∀ f fn, coreProgram.find? f = some fn → ∀ p r rs,

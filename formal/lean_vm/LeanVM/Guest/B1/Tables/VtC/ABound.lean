@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.AComplete
 public import LeanVM.Guest.B1.Tables.VtC.Calls
 public import LeanVM.Guest.B1.Tables.FlatLiftT
-public import LeanVM.Guest.Memory.LoopPre
+public import LeanVM.Core.Memory.LoopPre
 public import LeanVM.Guest.Data.NameStrings
 
 /-!
@@ -27,7 +27,7 @@ at the honest round count `n`.
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Core.Memory
 open LeanVM.Guest.B1.Fwd
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 open LeanVM.Protocol.Verifier (gen)

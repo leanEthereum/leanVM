@@ -34,7 +34,7 @@ the matrix's rows `r ≤ 2^k`, `k ≤ 34` (`r < 2^34`, `gLogD_lt`):
 namespace LeanVM.Cost.Bounds.Guest
 
 open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Library LeanVM.Parameters
-open LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main LeanVM.Guest.Fast
+open LeanVM.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main LeanVM.Guest.Fast
 
 public section
 

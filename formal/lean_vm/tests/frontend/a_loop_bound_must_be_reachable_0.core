@@ -1,0 +1,20 @@
+def main []
+  hint alloc %0 8
+  const %1 1 0
+  load %1 %0 0
+  const %2 1 0
+  call __loop0 [%2 %0] []
+  ret []
+def __loop0 [%0 %1]
+  mul %2 %1 %0
+  load %3 %2 0
+  mul %4 %1 %0
+  load %3 %4 1
+  const %5 2 0
+  mul %6 %0 %5
+  const %7 16 0
+  add %8 %6 %7
+  const %9 2 0
+  mul %10 %0 %9
+  call_if %8 __loop0 [%10 %1]
+  ret []

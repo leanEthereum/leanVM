@@ -19,7 +19,7 @@ it holds at `fp` by its frame and its buffer, returning `g^b` and claiming the b
 
 namespace LeanVM.Guest.B1.Main
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Core.Memory
 open LeanVM.Protocol.Verifier (gen eOfNat)
 open LeanVM.Guest.B1.Da (SlOk slEvs_holds limb0_gen_pow_mul)
 

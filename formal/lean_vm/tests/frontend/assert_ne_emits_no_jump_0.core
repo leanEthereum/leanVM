@@ -1,0 +1,15 @@
+def main []
+  const %0 32 0
+  const %1 128 0
+  add %2 %0 %1
+  hint inverse %2 %3
+  assert_ne %2 %3 %4
+  const %5 32 0
+  const %6 1 0
+  load %5 %6 0
+  const %7 128 0
+  const %8 1 0
+  const %9 2 0
+  mul %10 %8 %9
+  load %7 %10 0
+  ret []

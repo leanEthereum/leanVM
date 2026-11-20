@@ -18,7 +18,7 @@ order are at least as large). `vtB_stack_lt`: it is below any `2^m` holding all 
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol.Verifier
 
 @[expose] public section
