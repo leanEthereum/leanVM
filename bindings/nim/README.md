@@ -107,6 +107,7 @@ Needs Rust and [Zig](https://ziglang.org/) 0.15.2. From the repository root, on 
 
 ```sh
 rustup target add x86_64-unknown-linux-gnu
+rustup component add llvm-tools
 cargo install cargo-zigbuild --locked
 sh bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu bindings/nim/native/x86_64-linux-gnu
 cd bindings/nim && nimble test
