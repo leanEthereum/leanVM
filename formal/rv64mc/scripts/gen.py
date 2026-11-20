@@ -510,10 +510,16 @@ def tmpl_module(img, i, tchunks, callees, sites, data, depth):
     lines += [f"  {d} : DataRef" for d, _ in data]
     lines.append("")
     for d, (_, _, target) in data:
-        ws = data_words(img, target)
-        if ws is not None:
-            lines.append(f"/-- The doublewords at `{d}`, to the end of its object. -/")
+        dw = data_words(img, target)
+        if dw is not None:
+            ws, w32s, m, tail_zero = dw
+            past = "" if m % 8 == 0 else (
+                ", the last one partial, its bytes past the object the image's" + (" (zero)" if tail_zero else " (not zero)"))
+            lines.append(f"/-- The doublewords at `{d}`, to the end of its object ({m} bytes){past}. -/")
             lines.append(f"def {d}_words : List Word := [{', '.join(w64(w) for w in ws)}]")
+            lines.append("")
+            lines.append(f"/-- The 32-bit words at `{d}`, to the end of its object. -/")
+            lines.append(f"def {d}_words32 : List (BitVec 32) := [{', '.join(f'0x{w:08x}#32' for w in w32s)}]")
             lines.append("")
     for j, c in enumerate(tchunks):
         var = "L" if any("L." in x for x in c) else "_L"
@@ -672,25 +678,71 @@ def umbrella(name, mods, doc):
     return f"/-\n  {name}\n\n  Written by `scripts/gen.py`; do not edit. {doc}\n-/\n\n" + "".join(f"import {m}\n" for m in mods)
 
 
-SP_SUB = re.compile(r"Op\.set \(Reg\.x2\) \(Expr\.bin \(BinOp\.add\) \(Expr\.reg \(Reg\.x2\)\) \(Expr\.imm 0x([0-9a-f]{16})#64\)\)")
 CALL_TO = re.compile(r"LinstrR\.L(call|tail) .*\[L\.(\S+)\.idx\]")
 
 
+WRITES_RD = (0x37, 0x17, 0x6F, 0x67, 0x03, 0x13, 0x1B, 0x33, 0x3B)
+
+
+def frame_of(img, i, n):
+    """The bytes function `i` (of `n` instructions) takes from the stack: the sum of every decrement of `sp`, read from
+    its words. A decrement is an `addi sp, sp, -N`, or an `add`/`sub` of `sp` and a register holding a constant (from
+    `lui`, `addi`, `addiw` on `x0` or on a register holding one, propagated through straight-line code and forgotten
+    at every branch target). `addi sp, sp, N`, `addi sp, s0, -N` (a restore from the frame pointer) and setting `sp`
+    to a constant (`_start`) take nothing. Fails on any other write to `sp`."""
+    base = img.fns[i][1]
+    words = [struct.unpack("<I", img.elf.read(base + 4 * k, 4))[0] for k in range(n)]
+    targets = set()
+    for k, w in enumerate(words):
+        if w & 0x7F == 0x63:
+            targets.add(k + sext((w >> 31) << 12 | (w >> 7 & 1) << 11 | (w >> 25 & 0x3F) << 5 | (w >> 8 & 0xF) << 1, 13) // 4)
+        elif w & 0x7F == 0x6F:
+            targets.add(k + sext((w >> 31) << 20 | (w >> 12 & 0xFF) << 12 | (w >> 20 & 1) << 11 | (w >> 21 & 0x3FF) << 1, 21) // 4)
+    const, frame = {}, 0
+    for k, w in enumerate(words):
+        if k in targets:
+            const = {}
+        op, rd, f3, rs1, rs2, f7 = w & 0x7F, w >> 7 & 31, w >> 12 & 7, w >> 15 & 31, w >> 20 & 31, w >> 25
+        val = lambda r: 0 if r == 0 else const.get(r)
+        imm = sext(w >> 20, 12)
+        if rd == 0 or op not in WRITES_RD:
+            continue
+        new = None
+        if op == 0x37:
+            new = sext(w & 0xFFFFF000, 32)
+        elif op == 0x13 and f3 == 0 and val(rs1) is not None:
+            new = val(rs1) + imm
+        elif op == 0x13 and f3 == 1 and val(rs1) is not None:
+            new = val(rs1) << (w >> 20 & 63) & MASK
+        elif op == 0x1B and f3 == 0 and val(rs1) is not None:
+            new = sext((val(rs1) + imm) & 0xFFFFFFFF, 32)
+        if rd == 2:
+            if op == 0x13 and f3 == 0 and rs1 == 2:
+                frame += max(-imm, 0)
+            elif op == 0x33 and f3 == 0 and f7 in (0, 0x20) and rs1 == 2 and val(rs2) is not None:
+                frame += max(val(rs2) if f7 == 0x20 else -val(rs2), 0)
+            elif new is not None or (op == 0x13 and f3 == 0 and rs1 == 8 and imm <= 0):
+                pass
+            else:
+                fail(f"{img.key[i]}: instruction {k} ({w:#010x}) writes sp in a way no constant frame is read from")
+        if new is None:
+            const.pop(rd, None)
+        else:
+            const[rd] = new
+    return frame
+
+
 def frame_and_calls(img, i, tchunks, callees):
-    """The frame of function `i` (the bytes its `addi sp, sp, -N` take) and the indices it calls and tail-calls."""
+    """The frame of function `i` (`frame_of`) and the indices it calls and tail-calls."""
     by_field = {f: j for j, f in callees}
-    frame, calls, tails = 0, set(), set()
+    calls, tails = set(), set()
     for x in (y for c in tchunks for y in c):
-        for m in SP_SUB.finditer(x):
-            v = int(m.group(1), 16)
-            if v >= 1 << 63:
-                frame += (1 << 64) - v
         if x.startswith("LinstrR.Lcall") or x.startswith("LinstrR.Ltail"):
             m = CALL_TO.search(x)
             if not m or m.group(2) not in by_field:
                 fail(f"{img.key[i]}: a call whose callee is not a field (recursion?): {x}")
             (calls if m.group(1) == "call" else tails).add(by_field[m.group(2)])
-    return frame, calls, tails
+    return frame_of(img, i, sum(len(c) for c in tchunks)), calls, tails
 
 
 def needs_module(img, info):
@@ -730,7 +782,9 @@ def needs_module(img, info):
 
 
 def data_words(img, addr):
-    """The doublewords from `addr` to the end of its object, or None if the object holds an address."""
+    """The image's bytes from `addr` to the end of its object: as doublewords, the last one partial if the object ends
+    inside it (its bytes past the object the image's, zero past the section), and as 32-bit words; the length; whether
+    the bytes past the object are zero. None if the object holds an address."""
     obj = [s for s in img.sized if s["value"] <= addr < s["value"] + s["size"]]
     if obj:
         start, n = obj[0]["value"], obj[0]["size"]
@@ -743,10 +797,16 @@ def data_words(img, addr):
         n = min(later + [sec["addr"] + sec["size"]]) - addr
     if any(start <= o < start + n for o in img.data_relocs):
         return None
-    k = (start + n - addr) // 8
+    m = start + n - addr
+    k = (m + 7) // 8
     if k == 0 or k > 512:
         return None
-    return [struct.unpack("<Q", img.elf.read(addr + 8 * t, 8))[0] for t in range(k)]
+    _, sec = img.elf.section_at(addr)
+    avail = min(8 * k, sec["addr"] + sec["size"] - addr)
+    raw = img.elf.read(addr, avail) + bytes(8 * k - avail)
+    w64s = [struct.unpack_from("<Q", raw, 8 * t)[0] for t in range(k)]
+    w32s = [struct.unpack_from("<I", raw, 4 * t)[0] for t in range((m + 3) // 4)]
+    return w64s, w32s, m, not any(raw[m:])
 
 
 def generate(args):
