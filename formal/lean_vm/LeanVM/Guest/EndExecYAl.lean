@@ -10,6 +10,8 @@ public import LeanVM.Guest.EndExecY
 public import LeanVM.Guest.EndExecYAdvAl
 public import LeanVM.Guest.Bridge.ProgAl
 public import LeanVM.Guest.Mode.HintsData
+import all Statement.Data.Bytecode
+import all Statement.Data.AdviceHints
 
 /-!
 # The deployed alignment's advice

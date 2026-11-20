@@ -2,6 +2,8 @@ module
 
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Prover.ExecuteMem
+import all Statement.Data.Bytecode
+import all Statement.Data.AdviceHints
 
 /-!
 # The executor's hints are the advice's

@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.Bridge.ProgAlDefs
 public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.ProgAlData
+import all Statement.Data.AdviceHints
+import all Statement.Data.Bytecode
 
 /-!
 # The advised buffers' hints

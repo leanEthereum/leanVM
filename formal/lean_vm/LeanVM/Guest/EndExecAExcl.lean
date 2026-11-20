@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.EndExecALate
 public import LeanVM.Guest.CoreMode.Fam.ResCld
+import all Statement.Data.Bytecode
+import all Statement.Data.AdviceHints
 
 /-!
 # `claim_list_digest`'s buffer

@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.EndExecXOp
 public import LeanVM.Guest.EndExecXTrace
 public import LeanVM.Guest.EndExecParts
+import all Statement.Data.Bytecode
+import all Statement.Data.AdviceHints
 
 /-!
 # The tracks' invariant

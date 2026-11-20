@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Guest.Mode.Hints
 public import Statement.Data.AdviceHints
+import all Statement.Data.AdviceHints
 
 /-!
 # The guest's advice, by function
@@ -16,7 +17,7 @@ public section
 
 theorem adviceFns_ok : fnsOk Data.adviceFns 0 = true := by decide +kernel
 
-theorem adviceHints_eq : Data.adviceHints = flatFns Data.adviceFns := rfl
+theorem adviceHints_eq : Data.adviceHints = flatFns Data.adviceFns := by rfl
 
 end
 

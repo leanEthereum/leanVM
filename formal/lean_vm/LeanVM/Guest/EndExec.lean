@@ -14,6 +14,8 @@ public import LeanVM.Guest.EndRpm
 public import LeanVM.Guest.Budget.Fits
 public import Statement.LeanVmGuestCompleteness
 public import LeanVM.Guest.CoreMode.Route
+import all Statement.Data.Bytecode
+import all Statement.Data.AdviceHints
 
 /-!
 # The executor on the guest

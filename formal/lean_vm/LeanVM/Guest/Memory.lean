@@ -14,6 +14,7 @@ public import LeanVM.Guest.Memory.Alloc
 public import LeanVM.Guest.Memory.Tree
 public import LeanVM.Guest.Memory.Placed
 public import Statement.Data.Bytecode
+import all Statement.Data.Bytecode
 public import LeanVM.Guest.Code
 
 /-!

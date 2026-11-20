@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.Bridge.AllocAdv
 public import LeanVM.Guest.Bridge.AllocChk.All
 public import LeanVM.Guest.Bridge.AllocCur
+import all Statement.Data.Bytecode
+import all Statement.Data.AdviceHints
 
 /-!
 # The late hints' buffers
