@@ -64,5 +64,15 @@ dump StackClaim lib (StackWeight, E)
 dump VecEVecE lib (Vec<E>, Vec<E>)
 dump VecUsizeE lib (Vec<usize>, E)
 
+# WHIR and the ring switch: the structures passed by reference, and the results returned through memory
+dump WhirConfig whir WhirConfig
+dump Subspace whir Subspace
+dump GluedWeight whir GluedWeight
+dump RingWeight ring_switch RingWeight
+dump ResultWhirConfig whir Result<WhirConfig, VerifierError>
+dump ResultVecU64 whir Result<Vec<u64>, VerifierError>
+dump ResultERingWeight ring_switch Result<(E, RingWeight), VerifierError>
+dump ResultVecEE lib Result<(Vec<E>, E), VerifierError>
+
 # the guest's input reader
 dump Input main Input<'static>
