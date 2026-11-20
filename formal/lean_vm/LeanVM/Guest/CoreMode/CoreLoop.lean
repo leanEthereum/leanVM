@@ -300,18 +300,18 @@ theorem entry_facts {E0 : Mode.Env} {G : Mode.Sig} (hent : ∀ o ∈ G.entry, o 
     simp only at h
     refine ⟨fun o' ho' ↦ h.w o' ?_, h.h, fun r hr ↦ h.r r (List.mem_cons_of_mem _ hr), fun o' ho' ↦ ?_⟩
     · show (Exec.Trie.set () Exec.envDepth (Mode.foldlT .nil G.entry) o).get o' = some ()
-      rw [trie_get_set_eq () _ _ o o' ho1]
+      rw [Check.get_set_eq () _ _ o o' ho1]
       split_ifs
       · rfl
       · exact foldlT_mem _ _ hent ho'
     · cases ho'
       refine ⟨h.w o ?_, ?_⟩
       · show (Exec.Trie.set () Exec.envDepth (Mode.foldlT .nil G.entry) o).get o = some ()
-        rw [trie_get_set_eq () _ _ o o ho1]
+        rw [Check.get_set_eq () _ _ o o ho1]
         simp
       · obtain ⟨u, hu, hv⟩ := h.v o (.m (Mode.Mono.own 0)) (by
           show (Exec.Trie.set (Mode.Val.m (Mode.Mono.own 0)) Exec.envDepth .nil o).get o = _
-          rw [trie_get_set_eq _ _ _ o o ho1]
+          rw [Check.get_set_eq _ _ _ o o ho1]
           simp)
         rw [hu, monoVal_own0 hv]
 

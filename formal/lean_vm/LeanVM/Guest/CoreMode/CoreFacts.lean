@@ -11,6 +11,7 @@ public import LeanVM.Guest.CoreMode.CorePtr
 public import LeanVM.Guest.CoreMode.CoreLink
 public import LeanVM.Guest.CoreMode.Core
 public import LeanVM.Guest.CoreMode.WalkS
+public import LeanVM.Guest.TrieFacts
 
 /-!
 # The heap facts and the body's values
@@ -36,43 +37,6 @@ variable {κ : ℕ}
 
 /-! ## Tries -/
 
-theorem trie_get_set_eq {α : Type} (a : α) :
-    ∀ (d : ℕ) (t : Exec.Trie α) (n m : ℕ), n + 1 < 2 ^ d →
-      (t.set a d n).get m = if m = n then some a else t.get m
-  | 0, _, n, _, h => by simp at h
-  | d + 1, t, n, m, h => by
-    have hp : 2 ^ (d + 1) = 2 * 2 ^ d := by rw [Nat.pow_succ]; ring
-    rw [Exec.Trie.set_succ, Exec.Trie.get_eq_node t m]
-    by_cases h0 : n = 0
-    · subst h0
-      simp only [↓reduceIte, Exec.Trie.get_node]
-      by_cases hm : m = 0 <;> simp [hm]
-    · by_cases h1 : n % 2 = 1
-      · simp only [h0, h1, ↓reduceIte, Exec.Trie.get_node]
-        by_cases hm : m = 0
-        · simp only [hm, ↓reduceIte]
-          simp only [Ne.symm h0, ↓reduceIte]
-        · by_cases hm1 : m % 2 = 1
-          · rw [trie_get_set_eq a d _ _ _ (by omega)]
-            by_cases he : m = n
-            · subst he; simp [hm, hm1]
-            · have : m / 2 ≠ n / 2 := by omega
-              simp [hm, hm1, he, this]
-          · have : m ≠ n := by omega
-            simp [hm, hm1, this]
-      · simp only [h0, h1, ↓reduceIte, Exec.Trie.get_node]
-        by_cases hm : m = 0
-        · simp only [hm, ↓reduceIte]
-          simp only [Ne.symm h0, ↓reduceIte]
-        · by_cases hm1 : m % 2 = 1
-          · have : m ≠ n := by omega
-            simp [hm, hm1, this]
-          · rw [trie_get_set_eq a d _ _ _ (by omega)]
-            by_cases he : m = n
-            · subst he; simp [hm, hm1]
-            · have : m / 2 - 1 ≠ n / 2 - 1 := by omega
-              simp [hm, hm1, he, this]
-
 theorem foldlT_cons (t : Exec.Trie Unit) (a : ℕ) (l : List ℕ) :
     Mode.foldlT t (a :: l) = Mode.foldlT (t.set () Exec.envDepth a) l := by
   show (t.set () Exec.envDepth a).seq _ = _
@@ -85,7 +49,7 @@ theorem foldlT_keep : ∀ (l : List ℕ) (t : Exec.Trie Unit) {o : ℕ}, (∀ x 
   | a :: l, t, o, hl, h => by
     rw [foldlT_cons]
     refine foldlT_keep l _ (fun x hx ↦ hl x (List.mem_cons_of_mem _ hx)) ?_
-    rw [trie_get_set_eq () _ t a o (hl a List.mem_cons_self)]
+    rw [Check.get_set_eq () _ t a o (hl a List.mem_cons_self)]
     split_ifs <;> simp [h]
 
 theorem foldlT_mem : ∀ (l : List ℕ) (t : Exec.Trie Unit) {o : ℕ}, (∀ x ∈ l, x + 1 < 2 ^ Exec.envDepth) →
@@ -95,7 +59,7 @@ theorem foldlT_mem : ∀ (l : List ℕ) (t : Exec.Trie Unit) {o : ℕ}, (∀ x �
     rw [foldlT_cons]
     rcases List.mem_cons.mp h with rfl | h
     · refine foldlT_keep l _ (fun x hx ↦ hl x (List.mem_cons_of_mem _ hx)) ?_
-      rw [trie_get_set_eq () _ t o o (hl o List.mem_cons_self)]
+      rw [Check.get_set_eq () _ t o o (hl o List.mem_cons_self)]
       simp
     · exact foldlT_mem l _ (fun x hx ↦ hl x (List.mem_cons_of_mem _ hx)) h
 

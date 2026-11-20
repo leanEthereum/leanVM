@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.CoreMode.Heap
 public import LeanVM.Guest.Exec
 public import LeanVM.Guest.Value.Tower
+public import LeanVM.Guest.TrieFacts
 
 /-!
 # The heap check is sound
@@ -108,12 +109,6 @@ section Tries
 
 variable {α : Type}
 
-theorem getF_setF {a b : α} {d : ℕ} {t : Trie α} {n m : ℕ} (h : getF (setF a d t n) m = some b) :
-    (m = n ∧ b = a) ∨ getF t m = some b := by
-  rw [getF_eq, setF_eq] at h
-  rw [getF_eq]
-  exact Trie.get_set h
-
 theorem getF_nil (k : ℕ) : getF (Trie.nil : Trie α) k = none := rfl
 
 theorem getF_trieFrom : ∀ (l : List α) (i : ℕ) (t : Trie α) {k : ℕ} {b : α},
@@ -123,7 +118,7 @@ theorem getF_trieFrom : ∀ (l : List α) (i : ℕ) (t : Trie α) {k : ℕ} {b :
     rw [trieFrom, Trie.seq_eq, natSeq_eq] at h
     rcases getF_trieFrom l (i + 1) _ h with h | h
     · exact Or.inl (List.mem_cons_of_mem _ h)
-    · rcases getF_setF h with ⟨-, rfl⟩ | h
+    · rcases Check.getF_setF h with ⟨-, rfl⟩ | h
       · exact Or.inl List.mem_cons_self
       · exact Or.inr h
 
@@ -167,7 +162,7 @@ theorem envPut_ok {env : Trie CCell} (he : EnvOk σ env) {k : ℕ} {c : CCell} (
   | none =>
     intro k' c' h
     rw [CCell.seq_eq, Trie.seq_eq] at h
-    rcases getF_setF h with ⟨rfl, rfl⟩ | h
+    rcases Check.getF_setF h with ⟨rfl, rfl⟩ | h
     · exact hc
     · exact he k' c' h
 
@@ -181,7 +176,7 @@ theorem push_ok {W : K → Prop} {st : HSt} (hs : ScOk W σ st.sc) {c : CCell} (
   rw [Trie.seq_eq]
   refine ⟨rfl, fun n c' h ↦ ?_⟩
   change getF (setF c Exec.indexDepth st.sc st.n) n = some c' at h
-  rcases getF_setF h with ⟨-, rfl⟩ | h
+  rcases Check.getF_setF h with ⟨-, rfl⟩ | h
   · exact hc
   · exact hs n c' h
 
