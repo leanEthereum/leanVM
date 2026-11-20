@@ -6,13 +6,15 @@
   where the mirror returns a value and `t'`, the slot holds `Ok` with it and the transcript is `t'`; where it fails,
   the slot holds an `Err`. Each writes the slot and the transcript (`TOut`).
 
-  * `read_ood(transcript, vars, bits) -> Result<(Vec<E>, E), VerifierError>` (`lib.rs`; `vars` in `a2`, `bits` in
-    `a3`): `Model.readOodRust`, the point a fresh `Vec`;
+  * `read_ood(transcript, vars, bits) -> Result<(Vec<E>, E), VerifierError>` (`lib.rs`; `vars` in `a2`):
+    `Model.readOodRust`, the point a fresh `Vec`. Both callers pass `OOD_GRINDING_BITS`, and the image's code has it
+    as the constant `15` (no register carries `bits`), so the contract is at `bits = 15`;
   * `sample_queries(transcript, block_length, count) -> Result<Vec<u64>, VerifierError>` (`block_length` in `a2`,
     `count` in `a3`): `Model.sampleQueriesRust`, the positions a fresh `Vec`.
 -/
 
 import Rv64mc.Spec.Whir.Basic
+import Rv64mc.Spec.Transcript.NextScalar
 import Rv64mc.Spec.Multilinear.Basic
 import Rv64mc.Model.Whir
 
@@ -20,14 +22,13 @@ namespace Rv64mc.Spec.Whir.Transcript
 
 open RiscvZkvm.Rv64 Lprog Lprog.RiscV LeanVM.Parameters Rv64mc.Spec.Transcript
 
-/-- The transcript at `a1`, the result's slot of `n` bytes at `a0`, both in a caller's frame and apart. -/
+/-- The transcript at `a1`, the result's slot of `n` bytes at `a0`, as the transcript family's methods with a slot
+    take them (`NextScalar.SlotArgs`). -/
 def TPre (env : Env) (n : Nat) (t : Model.TState) (regs : Reg → Word) (m : MachineState) : Prop :=
-  TranscriptAt env m (regs .x11) t ∧ InFrame (regs .x2) (regs .x11) Layouts.Transcript.byteSize ∧
-    InFrame (regs .x2) (regs .x10) n ∧ Apart (regs .x10) n (regs .x11) Layouts.Transcript.byteSize
+  TranscriptAt env m (regs .x11) t ∧ NextScalar.SlotArgs env n regs m
 
 /-- What a transcript reader writes besides its stack and its allocations: the result's slot and the transcript. -/
-def TOut (n : Nat) (regs : Reg → Word) (_m : MachineState) (b : Word) : Prop :=
-  InRange (regs .x10) n b ∨ InRange (regs .x11) Layouts.Transcript.byteSize b
+abbrev TOut (n : Nat) : (Reg → Word) → MachineState → Word → Prop := NextScalar.Out n
 
 /-! ## `read_ood` -/
 
@@ -42,7 +43,7 @@ def OodResultAt (env : Env) (m m' : MachineState) (a : Word) : Option (List E ×
 
 def OodPost (env : Env) (t : Model.TState) (regs : Reg → Word) (m : MachineState) (_r' : Reg → Word)
     (m' : MachineState) : Prop :=
-  match (Model.readOodRust (regs .x12).toNat (regs .x13).toNat).run t with
+  match (Model.readOodRust (regs .x12).toNat 15).run t with
   | some (r, t') => OodResultAt env m m' (regs .x10) (some r) ∧ TranscriptAt env m' (regs .x11) t'
   | none => OodResultAt env m m' (regs .x10) none
 

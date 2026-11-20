@@ -29,7 +29,8 @@ def StackWeightAt (env : Env) (m : MachineState) (a : Word) : Model.StackWeightR
       RingWeightAt env m (a + BitVec.ofNat 64 Layouts.StackWeight.PlacedRing.f1) w
 
 def Pre (env : Env) (w : Model.StackWeightRust) (x : List E) (regs : Reg → Word) (m : MachineState) : Prop :=
-  StackWeightAt env m (regs .x10) w ∧ ESlice env m (regs .x11) (regs .x12) x
+  env.Owned m (regs .x2) (regs .x10) Layouts.StackWeight.byteSize ∧ StackWeightAt env m (regs .x10) w ∧
+    ESlice env m (regs .x11) (regs .x12) x
 
 def Post (w : Model.StackWeightRust) (x : List E) (_regs : Reg → Word) (_m : MachineState) (r' : Reg → Word)
     (_m' : MachineState) : Prop :=

@@ -66,7 +66,8 @@ def Inv (env : Env) (v : E) (ret top : Word) (regs : Reg → Word) (m : MachineS
 
 theorem loop (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (v : E)
     (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {need needS : Nat} (hnS : 16 + needS ≤ need)
-    (hsq : Spec.Field.ESquare.spec env p L.square.idx needS) {G : State rvIsa → Prop} {n : Nat} {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame}
+    (hsq : Spec.Field.ESquare.spec env p L.square.idx needS) {G : State rvIsa → Prop} {n : Nat}
+    {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame}
     {regs : Reg → Word} {m : MachineState}
     (hk : ∀ r' m', Holds.post env (Post v) (fun _ _ _ => False) ret top regs m r' m' →
       rvIsa.SafeN p sp1Ctx G n Q ⟨rest, r', m'⟩)
