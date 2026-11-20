@@ -44,371 +44,434 @@ open LeanVM.Protocol.Verifier
 
 @[expose] public section
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1`. -/
-theorem oqBody_985 : (Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1».core).body = oqMainT
-    (⟨0, 0, 4, 16, 12, 6, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 12, 6, 2,
-    3, 8, 3, 1, [1, 6]⟩ : OqShape).oq)
-    name% «opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1_loop0» :=
+theorem oqBody_opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1».core).body = oqMainT (⟨0, 0, 4, 16,
+    12, 6, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 12, 6, 2, 3, 8, 3, 1, [1,
+    6]⟩ : OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1_loop0`. -/
-theorem oqLoopBody_985 : (Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1_loop0».core).body
-    = oqLoop0T (⟨0, 0, 4, 16, 12, 6, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16,
-    12, 6, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq)
-    name% «opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1_loop0» :=
+theorem oqLoopBody_opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1_loop0».core).body = oqLoop0T (⟨0, 0, 4,
+    16, 12, 6, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16, 12, 6, 2, 3, 8, 3, 1,
+    [1, 6]⟩ : OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1`. -/
-theorem oqBody_988 : (Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1».core).body = oqMainT
-    (⟨0, 0, 4, 16, 15, 3, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 15, 3, 2,
-    3, 8, 3, 1, [1, 6]⟩ : OqShape).oq)
-    name% «opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1_loop0» :=
+theorem oqBody_opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1».core).body = oqMainT (⟨0, 0, 4, 16,
+    15, 3, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 15, 3, 2, 3, 8, 3, 1, [1,
+    6]⟩ : OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1_loop0`. -/
-theorem oqLoopBody_988 : (Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1_loop0».core).body
-    = oqLoop0T (⟨0, 0, 4, 16, 15, 3, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16,
-    15, 3, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq)
-    name% «opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1_loop0» :=
+theorem oqLoopBody_opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1_loop0».core).body = oqLoop0T (⟨0, 0, 4,
+    16, 15, 3, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16, 15, 3, 2, 3, 8, 3, 1,
+    [1, 6]⟩ : OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1`. -/
-theorem oqBody_1028 : (Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1».core).body =
-    oqMainT (⟨0, 0, 4, 16, 15, 3, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4,
-    16, 15, 3, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq)
+theorem oqBody_opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1».core).body = oqMainT (⟨0, 0, 4, 16,
+    15, 3, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 15, 3, 3, 6, 12, 4,
+    1, [1, 6, 360]⟩ : OqShape).oq)
     name% «opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1_loop0`. -/
-theorem oqLoopBody_1028 :
+theorem oqLoopBody_opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1 :
     (Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1_loop0».core).body = oqLoop0T (⟨0, 0,
     4, 16, 15, 3, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16, 15, 3, 3, 6,
     12, 4, 1, [1, 6, 360]⟩ : OqShape).oq)
     name% «opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0`. -/
-theorem oqBody_1057 : (Fn.«opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».core).body = oqMainT
-    (⟨0, 1, 6, 32, 17, 5, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 1, 6, 32, 17, 5, 0, 0,
-    0, 0, 0, []⟩ : OqShape).oq) name% «opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0» :=
+theorem oqBody_opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».core).body = oqMainT (⟨0, 1, 6, 32,
+    17, 5, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 1, 6, 32, 17, 5, 0, 0, 0, 0, 0, []⟩ :
+    OqShape).oq) name% «opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0`. -/
-theorem oqLoopBody_1057 : (Fn.«opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0».core).body
-    = oqLoop1T (⟨0, 1, 6, 32, 17, 5, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 1, 6, 32, 17,
-    5, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)
-    name% «opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0» :=
+theorem oqLoopBody_opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0».core).body = oqLoop1T (⟨0, 1, 6,
+    32, 17, 5, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 1, 6, 32, 17, 5, 0, 0, 0, 0, 0, []⟩
+    : OqShape).oq) name% «opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1`. -/
-theorem oqBody_1066 : (Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1».core).body =
-    oqMainT (⟨0, 0, 4, 16, 14, 2, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq 0 (oqWalkOf
-    (⟨0, 0, 4, 16, 14, 2, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq)
+theorem oqBody_opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1».core).body = oqMainT (⟨0, 0, 4, 16,
+    14, 2, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 14, 2,
+    4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq)
     name% «opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1_loop0`. -/
-theorem oqLoopBody_1066 :
+theorem oqLoopBody_opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1 :
     (Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1_loop0».core).body = oqLoop0T (⟨0, 0,
     4, 16, 14, 2, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16, 14,
     2, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq)
     name% «opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1`. -/
-theorem oqBody_1068 : (Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1».core).body =
-    oqMainT (⟨0, 0, 4, 16, 16, 4, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq 0 (oqWalkOf
-    (⟨0, 0, 4, 16, 16, 4, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq)
+theorem oqBody_opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1».core).body = oqMainT (⟨0, 0, 4, 16,
+    16, 4, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 16, 4,
+    4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq)
     name% «opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0`. -/
-theorem oqLoopBody_1068 :
+theorem oqLoopBody_opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1 :
     (Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0».core).body = oqLoop0T (⟨0, 0,
     4, 16, 16, 4, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16, 16,
     4, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq)
     name% «opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0`. -/
-theorem oqBody_1098 : (Fn.«opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».core).body = oqMainT
-    (⟨1, 1, 6, 32, 21, 3, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 21, 3, 0, 0,
-    0, 0, 0, []⟩ : OqShape).oq) name% «opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0» :=
+theorem oqBody_opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».core).body = oqMainT (⟨1, 1, 6, 32,
+    21, 3, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 21, 3, 0, 0, 0, 0, 0, []⟩ :
+    OqShape).oq) name% «opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0`. -/
-theorem oqLoopBody_1098 : (Fn.«opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».core).body
-    = oqLoop1T (⟨1, 1, 6, 32, 21, 3, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 21,
-    3, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)
-    name% «opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0» :=
+theorem oqLoopBody_opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».core).body = oqLoop1T (⟨1, 1, 6,
+    32, 21, 3, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 21, 3, 0, 0, 0, 0, 0, []⟩
+    : OqShape).oq) name% «opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0`. -/
-theorem oqBody_1103 : (Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0».core).body = oqMainT
-    (⟨0, 0, 4, 16, 20, 2, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 20, 2, 0, 0,
-    0, 0, 0, []⟩ : OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0» :=
+theorem oqBody_opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0».core).body = oqMainT (⟨0, 0, 4, 16,
+    20, 2, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 20, 2, 0, 0, 0, 0, 0, []⟩ :
+    OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0`. -/
-theorem oqLoopBody_1103 : (Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0».core).body
-    = oqLoop0T (⟨0, 0, 4, 16, 20, 2, 0, 0, 0, 0, 0, []⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16, 20,
-    2, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)
-    name% «opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0» :=
+theorem oqLoopBody_opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0».core).body = oqLoop0T (⟨0, 0, 4,
+    16, 20, 2, 0, 0, 0, 0, 0, []⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16, 20, 2, 0, 0, 0, 0, 0, []⟩ :
+    OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1`. -/
-theorem oqBody_1107 : (Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1».core).body =
-    oqMainT (⟨0, 0, 4, 16, 16, 4, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ :
-    OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 16, 4, 5, 15, 36, 6, 1, [1, 6, 360, 18245760,
-    78274681211224091]⟩ : OqShape).oq)
+theorem oqBody_opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1».core).body = oqMainT (⟨0, 0, 4, 16,
+    16, 4, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq 0 (oqWalkOf (⟨0,
+    0, 4, 16, 16, 4, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq)
     name% «opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1_loop0`. -/
-theorem oqLoopBody_1107 :
+theorem oqLoopBody_opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1 :
     (Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1_loop0».core).body = oqLoop0T (⟨0, 0,
     4, 16, 16, 4, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq (oqWalkOf
     (⟨0, 0, 4, 16, 16, 4, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq)
     name% «opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1`. -/
-theorem oqBody_1109 : (Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1».core).body =
-    oqMainT (⟨0, 0, 4, 16, 18, 6, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ :
-    OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 18, 6, 5, 15, 36, 6, 1, [1, 6, 360, 18245760,
-    78274681211224091]⟩ : OqShape).oq)
+theorem oqBody_opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1».core).body = oqMainT (⟨0, 0, 4, 16,
+    18, 6, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq 0 (oqWalkOf (⟨0,
+    0, 4, 16, 18, 6, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq)
     name% «opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1_loop0`. -/
-theorem oqLoopBody_1109 :
+theorem oqLoopBody_opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1 :
     (Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1_loop0».core).body = oqLoop0T (⟨0, 0,
     4, 16, 18, 6, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq (oqWalkOf
     (⟨0, 0, 4, 16, 18, 6, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq)
     name% «opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0`. -/
-theorem oqBody_1137 : (Fn.«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0».core).body = oqMainT
-    (⟨0, 1, 6, 32, 19, 7, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 1, 6, 32, 19, 7, 0, 0,
-    0, 0, 0, []⟩ : OqShape).oq) name% «opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0» :=
+theorem oqBody_opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0».core).body = oqMainT (⟨0, 1, 6, 32,
+    19, 7, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 1, 6, 32, 19, 7, 0, 0, 0, 0, 0, []⟩ :
+    OqShape).oq) name% «opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0`. -/
-theorem oqLoopBody_1137 : (Fn.«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0».core).body
-    = oqLoop1T (⟨0, 1, 6, 32, 19, 7, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 1, 6, 32, 19,
-    7, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)
-    name% «opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0» :=
+theorem oqLoopBody_opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0».core).body = oqLoop1T (⟨0, 1, 6,
+    32, 19, 7, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 1, 6, 32, 19, 7, 0, 0, 0, 0, 0, []⟩
+    : OqShape).oq) name% «opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1`. -/
-theorem oqBody_1147 : (Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1».core).body = oqMainT
-    (⟨0, 0, 4, 16, 17, 5, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 17, 5, 2,
-    3, 8, 3, 1, [1, 6]⟩ : OqShape).oq)
-    name% «opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1_loop0» :=
+theorem oqBody_opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1».core).body = oqMainT (⟨0, 0, 4, 16,
+    17, 5, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 17, 5, 2, 3, 8, 3, 1, [1,
+    6]⟩ : OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1_loop0`. -/
-theorem oqLoopBody_1147 : (Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1_loop0».core).body
-    = oqLoop0T (⟨0, 0, 4, 16, 17, 5, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16,
-    17, 5, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq)
-    name% «opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1_loop0» :=
+theorem oqLoopBody_opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1_loop0».core).body = oqLoop0T (⟨0, 0, 4,
+    16, 17, 5, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16, 17, 5, 2, 3, 8, 3, 1,
+    [1, 6]⟩ : OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0`. -/
-theorem oqBody_1184 : (Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0».core).body = oqMainT
-    (⟨1, 1, 6, 32, 23, 5, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 23, 5, 0, 0,
-    0, 0, 0, []⟩ : OqShape).oq) name% «opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0» :=
+theorem oqBody_opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0».core).body = oqMainT (⟨1, 1, 6, 32,
+    23, 5, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 23, 5, 0, 0, 0, 0, 0, []⟩ :
+    OqShape).oq) name% «opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0`. -/
-theorem oqLoopBody_1184 : (Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».core).body
-    = oqLoop1T (⟨1, 1, 6, 32, 23, 5, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 23,
-    5, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)
-    name% «opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0» :=
+theorem oqLoopBody_opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».core).body = oqLoop1T (⟨1, 1, 6,
+    32, 23, 5, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 23, 5, 0, 0, 0, 0, 0, []⟩
+    : OqShape).oq) name% «opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0`. -/
-theorem oqBody_1188 : (Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».core).body = oqMainT
-    (⟨0, 0, 4, 16, 22, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 22, 4, 0, 0,
-    0, 0, 0, []⟩ : OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0» :=
+theorem oqBody_opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».core).body = oqMainT (⟨0, 0, 4, 16,
+    22, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 22, 4, 0, 0, 0, 0, 0, []⟩ :
+    OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0`. -/
-theorem oqLoopBody_1188 : (Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0».core).body
-    = oqLoop0T (⟨0, 0, 4, 16, 22, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16, 22,
-    4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)
-    name% «opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0» :=
+theorem oqLoopBody_opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0».core).body = oqLoop0T (⟨0, 0, 4,
+    16, 22, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16, 22, 4, 0, 0, 0, 0, 0, []⟩ :
+    OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1`. -/
-theorem oqBody_1192 : (Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1».core).body =
-    oqMainT (⟨0, 0, 4, 16, 17, 5, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4,
-    16, 17, 5, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq)
+theorem oqBody_opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1».core).body = oqMainT (⟨0, 0, 4, 16,
+    17, 5, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 17, 5, 3, 6, 12, 4,
+    1, [1, 6, 360]⟩ : OqShape).oq)
     name% «opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0`. -/
-theorem oqLoopBody_1192 :
+theorem oqLoopBody_opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1 :
     (Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».core).body = oqLoop0T (⟨0, 0,
     4, 16, 17, 5, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16, 17, 5, 3, 6,
     12, 4, 1, [1, 6, 360]⟩ : OqShape).oq)
     name% «opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1`. -/
-theorem oqBody_1194 : (Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1».core).body =
-    oqMainT (⟨0, 0, 4, 16, 19, 7, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4,
-    16, 19, 7, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq)
+theorem oqBody_opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1».core).body = oqMainT (⟨0, 0, 4, 16,
+    19, 7, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 19, 7, 3, 6, 12, 4,
+    1, [1, 6, 360]⟩ : OqShape).oq)
     name% «opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0`. -/
-theorem oqLoopBody_1194 :
+theorem oqLoopBody_opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1 :
     (Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0».core).body = oqLoop0T (⟨0, 0,
     4, 16, 19, 7, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16, 19, 7, 3, 6,
     12, 4, 1, [1, 6, 360]⟩ : OqShape).oq)
     name% «opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1`. -/
-theorem oqBody_1236 : (Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1».core).body =
-    oqMainT (⟨0, 0, 4, 16, 18, 6, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq 0 (oqWalkOf
-    (⟨0, 0, 4, 16, 18, 6, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq)
+theorem oqBody_opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1».core).body = oqMainT (⟨0, 0, 4, 16,
+    18, 6, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 18, 6,
+    4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq)
     name% «opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0`. -/
-theorem oqLoopBody_1236 :
+theorem oqLoopBody_opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1 :
     (Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».core).body = oqLoop0T (⟨0, 0,
     4, 16, 18, 6, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16, 18,
     6, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq)
     name% «opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0`. -/
-theorem oqBody_1272 : (Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».core).body = oqMainT
-    (⟨1, 1, 6, 32, 25, 7, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 25, 7, 0, 0,
-    0, 0, 0, []⟩ : OqShape).oq) name% «opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0» :=
+theorem oqBody_opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».core).body = oqMainT (⟨1, 1, 6, 32,
+    25, 7, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 25, 7, 0, 0, 0, 0, 0, []⟩ :
+    OqShape).oq) name% «opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0`. -/
-theorem oqLoopBody_1272 : (Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».core).body
-    = oqLoop1T (⟨1, 1, 6, 32, 25, 7, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 25,
-    7, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)
-    name% «opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0» :=
+theorem oqLoopBody_opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».core).body = oqLoop1T (⟨1, 1, 6,
+    32, 25, 7, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 25, 7, 0, 0, 0, 0, 0, []⟩
+    : OqShape).oq) name% «opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0`. -/
-theorem oqBody_1276 : (Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0».core).body = oqMainT
-    (⟨0, 0, 4, 16, 24, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 24, 6, 0, 0,
-    0, 0, 0, []⟩ : OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0» :=
+theorem oqBody_opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0».core).body = oqMainT (⟨0, 0, 4, 16,
+    24, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 24, 6, 0, 0, 0, 0, 0, []⟩ :
+    OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0`. -/
-theorem oqLoopBody_1276 : (Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0».core).body
-    = oqLoop0T (⟨0, 0, 4, 16, 24, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16, 24,
-    6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)
-    name% «opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0» :=
+theorem oqLoopBody_opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0».core).body = oqLoop0T (⟨0, 0, 4,
+    16, 24, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16, 24, 6, 0, 0, 0, 0, 0, []⟩ :
+    OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0`. -/
-theorem oqBody_1315 : (Fn.«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0».core).body = oqMainT
-    (⟨1, 1, 6, 32, 26, 2, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 26, 2, 0, 0,
-    0, 0, 0, []⟩ : OqShape).oq) name% «opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0» :=
+theorem oqBody_opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0».core).body = oqMainT (⟨1, 1, 6, 32,
+    26, 2, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 26, 2, 0, 0, 0, 0, 0, []⟩ :
+    OqShape).oq) name% «opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0`. -/
-theorem oqLoopBody_1315 : (Fn.«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0».core).body
-    = oqLoop1T (⟨1, 1, 6, 32, 26, 2, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 26,
-    2, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)
-    name% «opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0» :=
+theorem oqLoopBody_opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0».core).body = oqLoop1T (⟨1, 1, 6,
+    32, 26, 2, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 26, 2, 0, 0, 0, 0, 0, []⟩
+    : OqShape).oq) name% «opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1`. -/
-theorem oqBody_1324 : (Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1».core).body = oqMainT
-    (⟨0, 0, 4, 16, 19, 7, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 19, 7, 2,
-    3, 8, 3, 1, [1, 6]⟩ : OqShape).oq)
-    name% «opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0» :=
+theorem oqBody_opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1».core).body = oqMainT (⟨0, 0, 4, 16,
+    19, 7, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 19, 7, 2, 3, 8, 3, 1, [1,
+    6]⟩ : OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0`. -/
-theorem oqLoopBody_1324 : (Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».core).body
-    = oqLoop0T (⟨0, 0, 4, 16, 19, 7, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16,
-    19, 7, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq)
-    name% «opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0» :=
+theorem oqLoopBody_opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».core).body = oqLoop0T (⟨0, 0, 4,
+    16, 19, 7, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16, 19, 7, 2, 3, 8, 3, 1,
+    [1, 6]⟩ : OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0`. -/
-theorem oqBody_1412 : (Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0».core).body = oqMainT
-    (⟨1, 1, 6, 32, 28, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 28, 4, 0, 0,
-    0, 0, 0, []⟩ : OqShape).oq) name% «opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0» :=
+theorem oqBody_opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0».core).body = oqMainT (⟨1, 1, 6, 32,
+    28, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 28, 4, 0, 0, 0, 0, 0, []⟩ :
+    OqShape).oq) name% «opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0`. -/
-theorem oqLoopBody_1412 : (Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0».core).body
-    = oqLoop1T (⟨1, 1, 6, 32, 28, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 28,
-    4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)
-    name% «opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0» :=
+theorem oqLoopBody_opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0».core).body = oqLoop1T (⟨1, 1, 6,
+    32, 28, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 (oqWalkOf (⟨1, 1, 6, 32, 28, 4, 0, 0, 0, 0, 0, []⟩
+    : OqShape).oq) name% «opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0`. -/
-theorem oqBody_1416 : (Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0».core).body = oqMainT
-    (⟨0, 0, 4, 16, 27, 3, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 27, 3, 0, 0,
-    0, 0, 0, []⟩ : OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0» :=
+theorem oqBody_opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0».core).body = oqMainT (⟨0, 0, 4, 16,
+    27, 3, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 (oqWalkOf (⟨0, 0, 4, 16, 27, 3, 0, 0, 0, 0, 0, []⟩ :
+    OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0`. -/
-theorem oqLoopBody_1416 : (Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0».core).body
-    = oqLoop0T (⟨0, 0, 4, 16, 27, 3, 0, 0, 0, 0, 0, []⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16, 27,
-    3, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)
-    name% «opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0» :=
+theorem oqLoopBody_opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0 :
+    (Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0».core).body = oqLoop0T (⟨0, 0, 4,
+    16, 27, 3, 0, 0, 0, 0, 0, []⟩ : OqShape).oq (oqWalkOf (⟨0, 0, 4, 16, 27, 3, 0, 0, 0, 0, 0, []⟩ :
+    OqShape).oq) name% «opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0» :=
   stmtsEqb_sound (by decide +kernel)
 
 end

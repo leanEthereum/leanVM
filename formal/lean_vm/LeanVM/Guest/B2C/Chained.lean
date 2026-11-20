@@ -9,13 +9,13 @@ module
 
 public import LeanVM.Guest.B2C.ChainDefs
 public import Mathlib.Tactic.IntervalCases
-public import LeanVM.Guest.B2C.Chained.K40_0
-public import LeanVM.Guest.B2C.Chained.K40_1
-public import LeanVM.Guest.B2C.Chained.K40_2
-public import LeanVM.Guest.B2C.Chained.K40_3
-public import LeanVM.Guest.B2C.Chained.K40_4
-public import LeanVM.Guest.B2C.Chained.K40_5
-public import LeanVM.Guest.B2C.Chained.K40_6
+public import LeanVM.Guest.B2C.Chained.K_main_loop2_0
+public import LeanVM.Guest.B2C.Chained.K_main_loop2_1
+public import LeanVM.Guest.B2C.Chained.K_main_loop2_2
+public import LeanVM.Guest.B2C.Chained.K_main_loop2_3
+public import LeanVM.Guest.B2C.Chained.K_main_loop2_4
+public import LeanVM.Guest.B2C.Chained.K_main_loop2_5
+public import LeanVM.Guest.B2C.Chained.K_main_loop2_6
 
 namespace LeanVM.Guest.B2C.Chained
 

@@ -29,15 +29,7 @@ set_option linter.all false
 namespace LeanVM.Guest.Fn.«block_selector_tab__L10»
 @[expose] public section
 def hcert : CoreMode.HCert where
-  sig := 
-    { pre := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(0, 1)], 2⟩],
-      preR := [⟨⟨[(1, 1)], 0⟩, 8, (.num 0), (.num 9)⟩, ⟨⟨[(1, 1)], 1⟩, 8, (.num 0), (.num 9)⟩,
-        ⟨⟨[(1, 1)], 2⟩, 8, (.num 0), (.num 9)⟩, ⟨⟨[(1, 1)], 3⟩, 8, (.num 0), (.num 9)⟩,
-        ⟨⟨[(1, 1)], 4⟩, 8, (.num 0), (.num 9)⟩, ⟨⟨[(1, 1)], 5⟩, 8, (.num 0), (.num 9)⟩,
-        ⟨⟨[(1, 1)], 6⟩, 8, (.num 0), (.num 9)⟩, ⟨⟨[(1, 1)], 7⟩, 8, (.num 0), (.num 9)⟩,
-        ⟨⟨[(2, 1)], 0⟩, 4, (.num 0), (.num 9)⟩, ⟨⟨[(2, 1)], 1⟩, 4, (.num 0), (.num 9)⟩,
-        ⟨⟨[(2, 1)], 2⟩, 4, (.num 0), (.num 9)⟩, ⟨⟨[(2, 1)], 3⟩, 4, (.num 0), (.num 9)⟩,
-        ⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 72)⟩, ⟨⟨[(2, 1)], 0⟩, 1, (.num 0), (.num 36)⟩] }
+  sig := CoreMode.HcSig.«block_selector_tab__L10».sig
   reads := [(3, [(0, 0, .pre 0)]), (9, [(8, 14, .run 12 [0])]), (11, [(10, 0, .run 13 [1])]), (12, [(0, 1, .pre 1)]),
     (18, [(17, 46, .run 12 [2])]), (21, [(20, 16, .run 13 [3])]), (23, [(0, 2, .pre 2)]),
     (29, [(28, 66, .run 12 [4])]), (32, [(31, 32, .run 13 [5])])]
@@ -88,14 +80,7 @@ end LeanVM.Guest.Fn.«bus_grind_check__L4»
 namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L12»
 @[expose] public section
 def hcert : CoreMode.HCert where
-  sig := 
-    { pre := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(0, 1)], 2⟩, ⟨[(0, 1)], 3⟩, ⟨[(0, 1)], 4⟩, ⟨[(0, 1)], 5⟩,
-        ⟨[(0, 1)], 6⟩, ⟨[(0, 1)], 7⟩, ⟨[(0, 1)], 8⟩, ⟨[(0, 1)], 9⟩, ⟨[(0, 1)], 10⟩, ⟨[(0, 1)], 11⟩,
-        ⟨[(0, 1)], 12⟩, ⟨[(0, 1)], 13⟩, ⟨[(0, 1)], 14⟩],
-      preR := [⟨⟨[(4, 1)], 0⟩, 4, (.num 0), (.val 3)⟩, ⟨⟨[(4, 1)], 1⟩, 4, (.num 0), (.val 3)⟩,
-        ⟨⟨[(4, 1)], 2⟩, 4, (.num 0), (.val 3)⟩, ⟨⟨[(4, 1)], 3⟩, 4, (.num 0), (.val 3)⟩],
-      postR := [⟨⟨[(0, 1)], 0⟩, 1, (.num 0), (.num 15)⟩],
-      ghosts := 1 }
+  sig := CoreMode.HcSig.«child_claim_list_mono_last__L12».sig
   reads := [(4, [(0, 13, .pre 13)]), (5, [(0, 14, .pre 14)]), (12, [(11, 0, .run 0 [0])]), (13, [(11, 1, .run 1 [1])]),
     (14, [(11, 2, .run 2 [2])]), (15, [(11, 3, .run 3 [3])]), (22, [(21, 4, .run 0 [4])]),
     (23, [(21, 5, .run 1 [5])]), (24, [(21, 6, .run 2 [6])]), (25, [(21, 7, .run 3 [7])]),
@@ -177,10 +162,7 @@ end LeanVM.Guest.Fn.«child_claim_list_mono_last__L12»
 namespace LeanVM.Guest.Fn.«claim_list_digest»
 @[expose] public section
 def hcert : CoreMode.HCert where
-  sig := 
-    { nv := [0, 1],
-      postRN := [⟨⟨[(0, 1)], 0⟩, 4, (.num 0), (.val 1)⟩, ⟨⟨[(0, 1)], 1⟩, 4, (.num 0), (.val 1)⟩,
-        ⟨⟨[(0, 1)], 2⟩, 4, (.num 0), (.val 1)⟩, ⟨⟨[(0, 1)], 3⟩, 4, (.num 0), (.val 1)⟩] }
+  sig := CoreMode.HcSig.«claim_list_digest».sig
   reads := []
   res := [.under [.nonzero 58, .nonzero 3] (.lt (.val 12) (.num 4611686018427387903)),
     .under [.nonzero 3] (.lt (.val 12) (.num 4611686018427387903)),

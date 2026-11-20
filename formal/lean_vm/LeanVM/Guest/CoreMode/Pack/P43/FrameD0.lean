@@ -776,9 +776,9 @@ noncomputable def frameCut0 : Option CoreMode.FSt × List (ℕ × List ℕ × Co
     (CoreMode.unitOf [59, 60, 62, 65, 66, 67, 68, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89,
     90, 93, 98, 101, 102, 103, 111, 112, 113, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298,
     299, 300, 301, 302, 303, 304, 307, 310, 313, 316, 319, 322, 325, 328, 331, 334, 337, 340, 343,
-    346, 347, 350, 352, 360]), (CoreMode.unitOf [4753988]), .nil, (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none .nil (.node (some 91) .nil .nil)) .nil) .nil)
-    .nil)) .nil), .nil⟩)])
+    346, 347, 350, 352, 360]), (CoreMode.unitOf [(290 * 16384 + (Fn.«main_loop2».jt0 + 512))]),
+    .nil, (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
+    (some 91) .nil .nil)) .nil) .nil) .nil)) .nil), .nil⟩)])
 
 /-- `__loop2_main`: its walk at offset 8000. -/
 noncomputable def frameCut1 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
@@ -856,8 +856,9 @@ noncomputable def frameCut1 : Option CoreMode.FSt × List (ℕ × List ℕ × Co
     68, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 93, 98, 101, 102, 103, 111, 112, 113,
     288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 307, 310,
     313, 316, 319, 322, 325, 328, 331, 334, 337, 340, 343, 346, 347, 350, 352, 360, 368]),
-    (CoreMode.unitOf [4770628]), .nil, (.node none (.node none .nil (.node none (.node none (.node
-    none (.node none .nil (.node (some 91) .nil .nil)) .nil) .nil) .nil)) .nil), .nil⟩)])
+    (CoreMode.unitOf [(291 * 16384 + (Fn.«main_loop2».jt0 + 768))]), .nil, (.node none (.node none
+    .nil (.node none (.node none (.node none (.node none .nil (.node (some 91) .nil .nil)) .nil)
+    .nil) .nil)) .nil), .nil⟩)])
 
 /-- `__loop2_main`: its walk at offset 12000. -/
 noncomputable def frameCut2 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
@@ -952,8 +953,9 @@ noncomputable def frameCut2 : Option CoreMode.FSt × List (ℕ × List ℕ × Co
     66, 67, 68, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 93, 98, 101, 102, 103, 111, 112,
     113, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 307,
     310, 313, 316, 319, 322, 325, 328, 331, 334, 337, 340, 343, 346, 347, 350, 352, 360, 368, 376,
-    384]), (CoreMode.unitOf [4803908]), .nil, (.node none (.node none .nil (.node none (.node none
-    (.node none (.node none .nil (.node (some 91) .nil .nil)) .nil) .nil) .nil)) .nil), .nil⟩)])
+    384]), (CoreMode.unitOf [(293 * 16384 + (Fn.«main_loop2».jt0 + 1280))]), .nil, (.node none
+    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some 91) .nil
+    .nil)) .nil) .nil) .nil)) .nil), .nil⟩)])
 
 /-- `__loop2_main`: its walk at offset 16000. -/
 noncomputable def frameCut3 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
@@ -1041,9 +1043,9 @@ noncomputable def frameCut3 : Option CoreMode.FSt × List (ℕ × List ℕ × Co
     [59, 60, 62, 65, 66, 67, 68, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 93, 98, 101,
     102, 103, 111, 112, 113, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301,
     302, 303, 304, 307, 310, 313, 316, 319, 322, 325, 328, 331, 334, 337, 340, 343, 346, 347, 350,
-    352, 360, 368, 376, 384, 392]), (CoreMode.unitOf [4820548]), .nil, (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none .nil (.node (some 91) .nil .nil)) .nil) .nil)
-    .nil)) .nil), .nil⟩)])
+    352, 360, 368, 376, 384, 392]), (CoreMode.unitOf [(294 * 16384 + (Fn.«main_loop2».jt0 +
+    1536))]), .nil, (.node none (.node none .nil (.node none (.node none (.node none (.node none
+    .nil (.node (some 91) .nil .nil)) .nil) .nil) .nil)) .nil), .nil⟩)])
 
 /-- `__loop2_main`: its walk at offset 20000. -/
 noncomputable def frameCut4 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
@@ -1144,9 +1146,9 @@ noncomputable def frameCut4 : Option CoreMode.FSt × List (ℕ × List ℕ × Co
     (CoreMode.unitOf [59, 60, 62, 65, 66, 67, 68, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89,
     90, 93, 98, 101, 102, 103, 111, 112, 113, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298,
     299, 300, 301, 302, 303, 304, 307, 310, 313, 316, 319, 322, 325, 328, 331, 334, 337, 340, 343,
-    346, 347, 350, 352, 360, 368, 376, 384, 392, 400, 408]), (CoreMode.unitOf [4853828]), .nil,
-    (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
-    91) .nil .nil)) .nil) .nil) .nil)) .nil), .nil⟩)])
+    346, 347, 350, 352, 360, 368, 376, 384, 392, 400, 408]), (CoreMode.unitOf [(296 * 16384 +
+    (Fn.«main_loop2».jt0 + 2048))]), .nil, (.node none (.node none .nil (.node none (.node none
+    (.node none (.node none .nil (.node (some 91) .nil .nil)) .nil) .nil) .nil)) .nil), .nil⟩)])
 
 /-- `__loop2_main`: its walk at offset 24000. -/
 noncomputable def frameCut5 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
@@ -1241,8 +1243,9 @@ noncomputable def frameCut5 : Option CoreMode.FSt × List (ℕ × List ℕ × Co
     85, 86, 87, 88, 89, 90, 93, 98, 101, 102, 103, 111, 112, 113, 288, 289, 290, 291, 292, 293, 294,
     295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 307, 310, 313, 316, 319, 322, 325, 328, 331,
     334, 337, 340, 343, 346, 347, 350, 352, 360, 368, 376, 384, 392, 400, 408, 416]),
-    (CoreMode.unitOf [4870468]), .nil, (.node none (.node none .nil (.node none (.node none (.node
-    none (.node none .nil (.node (some 91) .nil .nil)) .nil) .nil) .nil)) .nil), .nil⟩)])
+    (CoreMode.unitOf [(297 * 16384 + (Fn.«main_loop2».jt0 + 2304))]), .nil, (.node none (.node none
+    .nil (.node none (.node none (.node none (.node none .nil (.node (some 91) .nil .nil)) .nil)
+    .nil) .nil)) .nil), .nil⟩)])
 
 /-- `__loop2_main`: its walk at offset 28000. -/
 noncomputable def frameCut6 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
@@ -1309,8 +1312,9 @@ noncomputable def frameCut6 : Option CoreMode.FSt × List (ℕ × List ℕ × Co
     87, 88, 89, 90, 93, 98, 101, 102, 103, 111, 112, 113, 288, 289, 290, 291, 292, 293, 294, 295,
     296, 297, 298, 299, 300, 301, 302, 303, 304, 307, 310, 313, 316, 319, 322, 325, 328, 331, 334,
     337, 340, 343, 346, 347, 350, 352, 360, 368, 376, 384, 392, 400, 408, 416, 424]),
-    (CoreMode.unitOf [4887108]), .nil, (.node none (.node none .nil (.node none (.node none (.node
-    none (.node none .nil (.node (some 91) .nil .nil)) .nil) .nil) .nil)) .nil), .nil⟩)])
+    (CoreMode.unitOf [(298 * 16384 + (Fn.«main_loop2».jt0 + 2560))]), .nil, (.node none (.node none
+    .nil (.node none (.node none (.node none (.node none .nil (.node (some 91) .nil .nil)) .nil)
+    .nil) .nil)) .nil), .nil⟩)])
 
 /-- `__loop2_main`: its walk at offset 32000. -/
 noncomputable def frameCut7 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
@@ -1413,8 +1417,9 @@ noncomputable def frameCut7 : Option CoreMode.FSt × List (ℕ × List ℕ × Co
     85, 86, 87, 88, 89, 90, 93, 98, 101, 102, 103, 111, 112, 113, 288, 289, 290, 291, 292, 293, 294,
     295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 307, 310, 313, 316, 319, 322, 325, 328, 331,
     334, 337, 340, 343, 346, 347, 350, 352, 360, 368, 376, 384, 392, 400, 408, 416, 424, 432, 440]),
-    (CoreMode.unitOf [4920388]), .nil, (.node none (.node none .nil (.node none (.node none (.node
-    none (.node none .nil (.node (some 91) .nil .nil)) .nil) .nil) .nil)) .nil), .nil⟩)])
+    (CoreMode.unitOf [(300 * 16384 + (Fn.«main_loop2».jt0 + 3072))]), .nil, (.node none (.node none
+    .nil (.node none (.node none (.node none (.node none .nil (.node (some 91) .nil .nil)) .nil)
+    .nil) .nil)) .nil), .nil⟩)])
 
 /-- `__loop2_main`: its walk at offset 36000. -/
 noncomputable def frameCut8 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
@@ -1510,8 +1515,9 @@ noncomputable def frameCut8 : Option CoreMode.FSt × List (ℕ × List ℕ × Co
     90, 93, 98, 101, 102, 103, 111, 112, 113, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298,
     299, 300, 301, 302, 303, 304, 307, 310, 313, 316, 319, 322, 325, 328, 331, 334, 337, 340, 343,
     346, 347, 350, 352, 360, 368, 376, 384, 392, 400, 408, 416, 424, 432, 440, 448]),
-    (CoreMode.unitOf [4937028]), .nil, (.node none (.node none .nil (.node none (.node none (.node
-    none (.node none .nil (.node (some 91) .nil .nil)) .nil) .nil) .nil)) .nil), .nil⟩)])
+    (CoreMode.unitOf [(301 * 16384 + (Fn.«main_loop2».jt0 + 3328))]), .nil, (.node none (.node none
+    .nil (.node none (.node none (.node none (.node none .nil (.node (some 91) .nil .nil)) .nil)
+    .nil) .nil)) .nil), .nil⟩)])
 
 /-- `__loop2_main`: its walk at offset 40000. -/
 noncomputable def frameCut9 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
@@ -2318,18 +2324,18 @@ noncomputable def frameCut14 : Option CoreMode.FSt × List (ℕ × List ℕ × C
     745, 748, 751, 756, 761, 766, 771, 776, 781, 785, 791, 794, 797, 802, 807, 812, 817, 822, 827,
     831, 836, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031,
     1032, 1033, 1036, 1039, 1042, 1045, 1048, 1051, 1054, 1057, 1060, 1063, 1066, 1069, 1072, 1075,
-    1078, 1080]), (CoreMode.unitOf [16702020]), .nil, (.node none (.node none (.node none (.node
-    none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node (some 131)
-    .nil .nil) .nil) .nil))) .nil) .nil) .nil) (.node none (.node none (.node none (.node none .nil
-    (.node (some 91) .nil .nil)) .nil) .nil) (.node none (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node (some 464) .nil .nil))) .nil)) (.node none .nil (.node none (.node
-    none .nil (.node none (.node none (.node (some 125) .nil .nil) .nil) .nil)) .nil))))) (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some 465) .nil
-    (.node none (.node none (.node (some 122) .nil .nil) .nil) .nil)) .nil)))) (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
-    (some 128) .nil .nil) .nil) .nil)) .nil)))))), (.node none (.node none .nil (.node none .nil
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    (some 719) .nil .nil) .nil)))) .nil) .nil))) .nil)⟩)])
+    1078, 1080]), (CoreMode.unitOf [(1019 * 16384 + (Fn.«main_loop2».jt0 + 4608))]), .nil, (.node
+    none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    none (.node none (.node (some 131) .nil .nil) .nil) .nil))) .nil) .nil) .nil) (.node none (.node
+    none (.node none (.node none .nil (.node (some 91) .nil .nil)) .nil) .nil) (.node none (.node
+    none .nil (.node none (.node none .nil (.node none .nil (.node (some 464) .nil .nil))) .nil))
+    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node (some 125) .nil
+    .nil) .nil) .nil)) .nil))))) (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node (some 465) .nil (.node none (.node none (.node (some 122) .nil .nil) .nil)
+    .nil)) .nil)))) (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node none (.node none (.node (some 128) .nil .nil) .nil) .nil)) .nil)))))), (.node none (.node
+    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node (some 719) .nil .nil) .nil)))) .nil) .nil))) .nil)⟩)])
 
 /-- `__loop2_main`: its walk at offset 64000. -/
 noncomputable def frameCut15 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
@@ -2513,18 +2519,18 @@ noncomputable def frameCut15 : Option CoreMode.FSt × List (ℕ × List ℕ × C
     766, 771, 776, 781, 785, 791, 794, 797, 802, 807, 812, 817, 822, 827, 831, 836, 1018, 1019,
     1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1032, 1033, 1036, 1039,
     1042, 1045, 1048, 1051, 1054, 1057, 1060, 1063, 1066, 1069, 1072, 1075, 1078, 1080, 1088]),
-    (CoreMode.unitOf [16718660]), .nil, (.node none (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node none (.node none (.node (some 131) .nil .nil) .nil)
-    .nil))) .nil) .nil) .nil) (.node none (.node none (.node none (.node none .nil (.node (some 91)
-    .nil .nil)) .nil) .nil) (.node none (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node (some 464) .nil .nil))) .nil)) (.node none .nil (.node none (.node none .nil (.node
-    none (.node none (.node (some 125) .nil .nil) .nil) .nil)) .nil))))) (.node none (.node none
-    .nil (.node none .nil (.node none .nil (.node none (.node (some 465) .nil (.node none (.node
-    none (.node (some 122) .nil .nil) .nil) .nil)) .nil)))) (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none (.node none (.node (some 128) .nil .nil)
-    .nil) .nil)) .nil)))))), (.node none (.node none .nil (.node none .nil (.node none (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some 719) .nil .nil)
-    .nil)))) .nil) .nil))) .nil)⟩)])
+    (CoreMode.unitOf [(1020 * 16384 + (Fn.«main_loop2».jt0 + 4864))]), .nil, (.node none (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none
+    (.node (some 131) .nil .nil) .nil) .nil))) .nil) .nil) .nil) (.node none (.node none (.node none
+    (.node none .nil (.node (some 91) .nil .nil)) .nil) .nil) (.node none (.node none .nil (.node
+    none (.node none .nil (.node none .nil (.node (some 464) .nil .nil))) .nil)) (.node none .nil
+    (.node none (.node none .nil (.node none (.node none (.node (some 125) .nil .nil) .nil) .nil))
+    .nil))))) (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    (some 465) .nil (.node none (.node none (.node (some 122) .nil .nil) .nil) .nil)) .nil))))
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
+    (.node none (.node (some 128) .nil .nil) .nil) .nil)) .nil)))))), (.node none (.node none .nil
+    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node (some 719) .nil .nil) .nil)))) .nil) .nil))) .nil)⟩)])
 
 /-- `__loop2_main`: its walk at offset 68000. -/
 noncomputable def frameCut16 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
@@ -2722,18 +2728,18 @@ noncomputable def frameCut16 : Option CoreMode.FSt × List (ℕ × List ℕ × C
     785, 791, 794, 797, 802, 807, 812, 817, 822, 827, 831, 836, 1018, 1019, 1020, 1021, 1022, 1023,
     1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1032, 1033, 1036, 1039, 1042, 1045, 1048, 1051,
     1054, 1057, 1060, 1063, 1066, 1069, 1072, 1075, 1078, 1080, 1088, 1096, 1104]), (CoreMode.unitOf
-    [16751940]), .nil, (.node none (.node none (.node none (.node none (.node none (.node none .nil
-    (.node none .nil (.node none (.node none (.node (some 131) .nil .nil) .nil) .nil))) .nil) .nil)
-    .nil) (.node none (.node none (.node none (.node none .nil (.node (some 91) .nil .nil)) .nil)
-    .nil) (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some
-    464) .nil .nil))) .nil)) (.node none .nil (.node none (.node none .nil (.node none (.node none
-    (.node (some 125) .nil .nil) .nil) .nil)) .nil))))) (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node (some 465) .nil (.node none (.node none (.node (some
-    122) .nil .nil) .nil) .nil)) .nil)))) (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none (.node none (.node (some 128) .nil .nil) .nil) .nil))
-    .nil)))))), (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none
-    .nil (.node none .nil (.node none .nil (.node none (.node (some 719) .nil .nil) .nil)))) .nil)
-    .nil))) .nil)⟩)])
+    [(1022 * 16384 + (Fn.«main_loop2».jt0 + 5376))]), .nil, (.node none (.node none (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node (some
+    131) .nil .nil) .nil) .nil))) .nil) .nil) .nil) (.node none (.node none (.node none (.node none
+    .nil (.node (some 91) .nil .nil)) .nil) .nil) (.node none (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node (some 464) .nil .nil))) .nil)) (.node none .nil (.node none
+    (.node none .nil (.node none (.node none (.node (some 125) .nil .nil) .nil) .nil)) .nil)))))
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some 465)
+    .nil (.node none (.node none (.node (some 122) .nil .nil) .nil) .nil)) .nil)))) (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
+    (some 128) .nil .nil) .nil) .nil)) .nil)))))), (.node none (.node none .nil (.node none .nil
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    (some 719) .nil .nil) .nil)))) .nil) .nil))) .nil)⟩)])
 
 /-- `__loop2_main`: its walk at offset 72000. -/
 noncomputable def frameCut17 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
@@ -2924,18 +2930,18 @@ noncomputable def frameCut17 : Option CoreMode.FSt × List (ℕ × List ℕ × C
     761, 766, 771, 776, 781, 785, 791, 794, 797, 802, 807, 812, 817, 822, 827, 831, 836, 1018, 1019,
     1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1032, 1033, 1036, 1039,
     1042, 1045, 1048, 1051, 1054, 1057, 1060, 1063, 1066, 1069, 1072, 1075, 1078, 1080, 1088, 1096,
-    1104, 1112]), (CoreMode.unitOf [16768580]), .nil, (.node none (.node none (.node none (.node
-    none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node (some 131)
-    .nil .nil) .nil) .nil))) .nil) .nil) .nil) (.node none (.node none (.node none (.node none .nil
-    (.node (some 91) .nil .nil)) .nil) .nil) (.node none (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node (some 464) .nil .nil))) .nil)) (.node none .nil (.node none (.node
-    none .nil (.node none (.node none (.node (some 125) .nil .nil) .nil) .nil)) .nil))))) (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some 465) .nil
-    (.node none (.node none (.node (some 122) .nil .nil) .nil) .nil)) .nil)))) (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
-    (some 128) .nil .nil) .nil) .nil)) .nil)))))), (.node none (.node none .nil (.node none .nil
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    (some 719) .nil .nil) .nil)))) .nil) .nil))) .nil)⟩)])
+    1104, 1112]), (CoreMode.unitOf [(1023 * 16384 + (Fn.«main_loop2».jt0 + 5632))]), .nil, (.node
+    none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    none (.node none (.node (some 131) .nil .nil) .nil) .nil))) .nil) .nil) .nil) (.node none (.node
+    none (.node none (.node none .nil (.node (some 91) .nil .nil)) .nil) .nil) (.node none (.node
+    none .nil (.node none (.node none .nil (.node none .nil (.node (some 464) .nil .nil))) .nil))
+    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node (some 125) .nil
+    .nil) .nil) .nil)) .nil))))) (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node (some 465) .nil (.node none (.node none (.node (some 122) .nil .nil) .nil)
+    .nil)) .nil)))) (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node none (.node none (.node (some 128) .nil .nil) .nil) .nil)) .nil)))))), (.node none (.node
+    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node (some 719) .nil .nil) .nil)))) .nil) .nil))) .nil)⟩)])
 
 /-- `__loop2_main`: its walk at offset 76000. -/
 noncomputable def frameCut18 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
@@ -3119,18 +3125,18 @@ noncomputable def frameCut18 : Option CoreMode.FSt × List (ℕ × List ℕ × C
     781, 785, 791, 794, 797, 802, 807, 812, 817, 822, 827, 831, 836, 1018, 1019, 1020, 1021, 1022,
     1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1032, 1033, 1036, 1039, 1042, 1045, 1048,
     1051, 1054, 1057, 1060, 1063, 1066, 1069, 1072, 1075, 1078, 1080, 1088, 1096, 1104, 1112,
-    1120]), (CoreMode.unitOf [16785220]), .nil, (.node none (.node none (.node none (.node none
-    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node (some 131) .nil
-    .nil) .nil) .nil))) .nil) .nil) .nil) (.node none (.node none (.node none (.node none .nil
-    (.node (some 91) .nil .nil)) .nil) .nil) (.node none (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node (some 464) .nil .nil))) .nil)) (.node none .nil (.node none (.node
-    none .nil (.node none (.node none (.node (some 125) .nil .nil) .nil) .nil)) .nil))))) (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some 465) .nil
-    (.node none (.node none (.node (some 122) .nil .nil) .nil) .nil)) .nil)))) (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
-    (some 128) .nil .nil) .nil) .nil)) .nil)))))), (.node none (.node none .nil (.node none .nil
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    (some 719) .nil .nil) .nil)))) .nil) .nil))) .nil)⟩)])
+    1120]), (CoreMode.unitOf [(1024 * 16384 + (Fn.«main_loop2».jt0 + 5888))]), .nil, (.node none
+    (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
+    (.node none (.node (some 131) .nil .nil) .nil) .nil))) .nil) .nil) .nil) (.node none (.node none
+    (.node none (.node none .nil (.node (some 91) .nil .nil)) .nil) .nil) (.node none (.node none
+    .nil (.node none (.node none .nil (.node none .nil (.node (some 464) .nil .nil))) .nil)) (.node
+    none .nil (.node none (.node none .nil (.node none (.node none (.node (some 125) .nil .nil)
+    .nil) .nil)) .nil))))) (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node (some 465) .nil (.node none (.node none (.node (some 122) .nil .nil) .nil) .nil))
+    .nil)))) (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node
+    none (.node none (.node (some 128) .nil .nil) .nil) .nil)) .nil)))))), (.node none (.node none
+    .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node (some 719) .nil .nil) .nil)))) .nil) .nil))) .nil)⟩)])
 
 /-- `__loop2_main`: its walk at offset 80000. -/
 noncomputable def frameCut19 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
@@ -3329,18 +3335,18 @@ noncomputable def frameCut19 : Option CoreMode.FSt × List (ℕ × List ℕ × C
     785, 791, 794, 797, 802, 807, 812, 817, 822, 827, 831, 836, 1018, 1019, 1020, 1021, 1022, 1023,
     1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1032, 1033, 1036, 1039, 1042, 1045, 1048, 1051,
     1054, 1057, 1060, 1063, 1066, 1069, 1072, 1075, 1078, 1080, 1088, 1096, 1104, 1112, 1120, 1128,
-    1136]), (CoreMode.unitOf [16818500]), .nil, (.node none (.node none (.node none (.node none
-    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node (some 131) .nil
-    .nil) .nil) .nil))) .nil) .nil) .nil) (.node none (.node none (.node none (.node none .nil
-    (.node (some 91) .nil .nil)) .nil) .nil) (.node none (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node (some 464) .nil .nil))) .nil)) (.node none .nil (.node none (.node
-    none .nil (.node none (.node none (.node (some 125) .nil .nil) .nil) .nil)) .nil))))) (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some 465) .nil
-    (.node none (.node none (.node (some 122) .nil .nil) .nil) .nil)) .nil)))) (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
-    (some 128) .nil .nil) .nil) .nil)) .nil)))))), (.node none (.node none .nil (.node none .nil
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    (some 719) .nil .nil) .nil)))) .nil) .nil))) .nil)⟩)])
+    1136]), (CoreMode.unitOf [(1026 * 16384 + (Fn.«main_loop2».jt0 + 6400))]), .nil, (.node none
+    (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
+    (.node none (.node (some 131) .nil .nil) .nil) .nil))) .nil) .nil) .nil) (.node none (.node none
+    (.node none (.node none .nil (.node (some 91) .nil .nil)) .nil) .nil) (.node none (.node none
+    .nil (.node none (.node none .nil (.node none .nil (.node (some 464) .nil .nil))) .nil)) (.node
+    none .nil (.node none (.node none .nil (.node none (.node none (.node (some 125) .nil .nil)
+    .nil) .nil)) .nil))))) (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node (some 465) .nil (.node none (.node none (.node (some 122) .nil .nil) .nil) .nil))
+    .nil)))) (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node
+    none (.node none (.node (some 128) .nil .nil) .nil) .nil)) .nil)))))), (.node none (.node none
+    .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node (some 719) .nil .nil) .nil)))) .nil) .nil))) .nil)⟩)])
 
 /-- `__loop2_main`: its walk at offset 84000. -/
 noncomputable def frameCut20 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
@@ -3474,18 +3480,18 @@ noncomputable def frameCut20 : Option CoreMode.FSt × List (ℕ × List ℕ × C
     785, 791, 794, 797, 802, 807, 812, 817, 822, 827, 831, 836, 1018, 1019, 1020, 1021, 1022, 1023,
     1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1032, 1033, 1036, 1039, 1042, 1045, 1048, 1051,
     1054, 1057, 1060, 1063, 1066, 1069, 1072, 1075, 1078, 1080, 1088, 1096, 1104, 1112, 1120, 1128,
-    1136, 1144]), (CoreMode.unitOf [16835140]), .nil, (.node none (.node none (.node none (.node
-    none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node (some 131)
-    .nil .nil) .nil) .nil))) .nil) .nil) .nil) (.node none (.node none (.node none (.node none .nil
-    (.node (some 91) .nil .nil)) .nil) .nil) (.node none (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node (some 464) .nil .nil))) .nil)) (.node none .nil (.node none (.node
-    none .nil (.node none (.node none (.node (some 125) .nil .nil) .nil) .nil)) .nil))))) (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some 465) .nil
-    (.node none (.node none (.node (some 122) .nil .nil) .nil) .nil)) .nil)))) (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
-    (some 128) .nil .nil) .nil) .nil)) .nil)))))), (.node none (.node none .nil (.node none .nil
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    (some 719) .nil .nil) .nil)))) .nil) .nil))) .nil)⟩)])
+    1136, 1144]), (CoreMode.unitOf [(1027 * 16384 + (Fn.«main_loop2».jt0 + 6656))]), .nil, (.node
+    none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    none (.node none (.node (some 131) .nil .nil) .nil) .nil))) .nil) .nil) .nil) (.node none (.node
+    none (.node none (.node none .nil (.node (some 91) .nil .nil)) .nil) .nil) (.node none (.node
+    none .nil (.node none (.node none .nil (.node none .nil (.node (some 464) .nil .nil))) .nil))
+    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node (some 125) .nil
+    .nil) .nil) .nil)) .nil))))) (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node (some 465) .nil (.node none (.node none (.node (some 122) .nil .nil) .nil)
+    .nil)) .nil)))) (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node none (.node none (.node (some 128) .nil .nil) .nil) .nil)) .nil)))))), (.node none (.node
+    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node (some 719) .nil .nil) .nil)))) .nil) .nil))) .nil)⟩)])
 
 /-- `__loop2_main`: its walk at offset 88000. -/
 noncomputable def frameCut21 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
@@ -3692,18 +3698,19 @@ noncomputable def frameCut21 : Option CoreMode.FSt × List (ℕ × List ℕ × C
     771, 776, 781, 785, 791, 794, 797, 802, 807, 812, 817, 822, 827, 831, 836, 1018, 1019, 1020,
     1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1032, 1033, 1036, 1039, 1042,
     1045, 1048, 1051, 1054, 1057, 1060, 1063, 1066, 1069, 1072, 1075, 1078, 1080, 1088, 1096, 1104,
-    1112, 1120, 1128, 1136, 1144, 1152, 1160]), (CoreMode.unitOf [16868420]), .nil, (.node none
-    (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
-    (.node none (.node (some 131) .nil .nil) .nil) .nil))) .nil) .nil) .nil) (.node none (.node none
-    (.node none (.node none .nil (.node (some 91) .nil .nil)) .nil) .nil) (.node none (.node none
-    .nil (.node none (.node none .nil (.node none .nil (.node (some 464) .nil .nil))) .nil)) (.node
-    none .nil (.node none (.node none .nil (.node none (.node none (.node (some 125) .nil .nil)
-    .nil) .nil)) .nil))))) (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node (some 465) .nil (.node none (.node none (.node (some 122) .nil .nil) .nil) .nil))
-    .nil)))) (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node
-    none (.node none (.node (some 128) .nil .nil) .nil) .nil)) .nil)))))), (.node none (.node none
-    .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node (some 719) .nil .nil) .nil)))) .nil) .nil))) .nil)⟩)])
+    1112, 1120, 1128, 1136, 1144, 1152, 1160]), (CoreMode.unitOf [(1029 * 16384 +
+    (Fn.«main_loop2».jt0 + 7168))]), .nil, (.node none (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none .nil (.node none (.node none (.node (some 131) .nil .nil)
+    .nil) .nil))) .nil) .nil) .nil) (.node none (.node none (.node none (.node none .nil (.node
+    (some 91) .nil .nil)) .nil) .nil) (.node none (.node none .nil (.node none (.node none .nil
+    (.node none .nil (.node (some 464) .nil .nil))) .nil)) (.node none .nil (.node none (.node none
+    .nil (.node none (.node none (.node (some 125) .nil .nil) .nil) .nil)) .nil))))) (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some 465) .nil (.node
+    none (.node none (.node (some 122) .nil .nil) .nil) .nil)) .nil)))) (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node (some 128)
+    .nil .nil) .nil) .nil)) .nil)))))), (.node none (.node none .nil (.node none .nil (.node none
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some 719)
+    .nil .nil) .nil)))) .nil) .nil))) .nil)⟩)])
 
 /-- `__loop2_main`: its walk at offset 92000. -/
 noncomputable def frameCut22 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
@@ -3756,33 +3763,33 @@ noncomputable def frameCut22 : Option CoreMode.FSt × List (ℕ × List ℕ × C
     812, 817, 822, 827, 831, 836, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028,
     1029, 1030, 1031, 1032, 1033, 1036, 1039, 1042, 1045, 1048, 1051, 1054, 1057, 1060, 1063, 1066,
     1069, 1072, 1075, 1078, 1080, 1088, 1096, 1104, 1112, 1120, 1128, 1136, 1144, 1152, 1160, 1168,
-    1174]), (CoreMode.unitOf [16885060]), .nil, (.node none (.node none (.node none (.node none
-    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node (some 131) .nil
-    .nil) .nil) .nil))) .nil) .nil) .nil) (.node none (.node none (.node none (.node none .nil
-    (.node (some 91) .nil .nil)) .nil) .nil) (.node none (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node (some 464) .nil .nil))) .nil)) (.node none .nil (.node none (.node
-    none .nil (.node none (.node none (.node (some 125) .nil .nil) .nil) .nil)) .nil))))) (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some 465) .nil
-    (.node none (.node none (.node (some 122) .nil .nil) .nil) .nil)) .nil)))) (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
-    (some 128) .nil .nil) .nil) .nil)) .nil)))))), (.node none (.node none .nil (.node none .nil
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    (some 719) .nil .nil) .nil)))) .nil) .nil))) .nil)⟩), [(0, [92001, 92010, 92024, 92037, 92049,
-    92060, 92073, 92085, 92096, 92106, 92118, 92129, 92139, 92148, 92159, 92169, 92178, 92186,
-    92199, 92211, 92222, 92232, 92244, 92255, 92265, 92274, 92285, 92295, 92304, 92312, 92322,
-    92331, 92339, 92346, 92358, 92369, 92379, 92388, 92399, 92409, 92418, 92426, 92436, 92445,
-    92453, 92460, 92469, 92477, 92484, 92490, 92504, 92517, 92529, 92540, 92553, 92565, 92576,
-    92586, 92598, 92609, 92619, 92628, 92639, 92649, 92658, 92666, 92679, 92691, 92702, 92712,
-    92724, 92735, 92745, 92754, 92765, 92775, 92784, 92792, 92802, 92811, 92819, 92826, 92838,
-    92849, 92859, 92868, 92879, 92889, 92898, 92906, 92916, 92925, 92933, 92940, 92949, 92957,
-    92964, 92970, 92981, 92991, 93000, 93008, 93018, 93027, 93035, 93042, 93051, 93059, 93066,
-    93072, 93080, 93087, 93093], ⟨St.init (envOf [(58, (.fpg 0)), (78, (.gp 0)), (79, (.gp 1)), (80,
-    (.gp 2)), (81, (.gp 3)), (82, (.gp 4)), (83, (.gp 5)), (84, (.gp 6)), (85, (.gp 7)), (86, (.gp
-    8)), (87, (.gp 9)), (88, (.gp 10)), (89, (.gp 11)), (90, (.gp 12)), (98, (.gp 0)), (99, .zero),
-    (100, .zero), (101, (.gp 0)), (102, (.gp 63)), (103, (.gp 0)), (104, .zero), (105, .zero), (106,
-    .zero), (107, .zero), (111, (.gp 56)), (303, (.gp 255)), (346, (.gp 15)), (352, (.gp
-    (Fn.«main_loop2».entry + 41274))), (469, (.gp 106)), (471, (.gp 57)), (748, (.gp
-    (Fn.«main_loop2».entry + 50311))), (794, (.gp (Fn.«main_loop2».entry + 59273))), (836, (.gp
+    1174]), (CoreMode.unitOf [(1030 * 16384 + (Fn.«main_loop2».jt0 + 7424))]), .nil, (.node none
+    (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
+    (.node none (.node (some 131) .nil .nil) .nil) .nil))) .nil) .nil) .nil) (.node none (.node none
+    (.node none (.node none .nil (.node (some 91) .nil .nil)) .nil) .nil) (.node none (.node none
+    .nil (.node none (.node none .nil (.node none .nil (.node (some 464) .nil .nil))) .nil)) (.node
+    none .nil (.node none (.node none .nil (.node none (.node none (.node (some 125) .nil .nil)
+    .nil) .nil)) .nil))))) (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node (some 465) .nil (.node none (.node none (.node (some 122) .nil .nil) .nil) .nil))
+    .nil)))) (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node
+    none (.node none (.node (some 128) .nil .nil) .nil) .nil)) .nil)))))), (.node none (.node none
+    .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node (some 719) .nil .nil) .nil)))) .nil) .nil))) .nil)⟩), [(0, [92001, 92010,
+    92024, 92037, 92049, 92060, 92073, 92085, 92096, 92106, 92118, 92129, 92139, 92148, 92159,
+    92169, 92178, 92186, 92199, 92211, 92222, 92232, 92244, 92255, 92265, 92274, 92285, 92295,
+    92304, 92312, 92322, 92331, 92339, 92346, 92358, 92369, 92379, 92388, 92399, 92409, 92418,
+    92426, 92436, 92445, 92453, 92460, 92469, 92477, 92484, 92490, 92504, 92517, 92529, 92540,
+    92553, 92565, 92576, 92586, 92598, 92609, 92619, 92628, 92639, 92649, 92658, 92666, 92679,
+    92691, 92702, 92712, 92724, 92735, 92745, 92754, 92765, 92775, 92784, 92792, 92802, 92811,
+    92819, 92826, 92838, 92849, 92859, 92868, 92879, 92889, 92898, 92906, 92916, 92925, 92933,
+    92940, 92949, 92957, 92964, 92970, 92981, 92991, 93000, 93008, 93018, 93027, 93035, 93042,
+    93051, 93059, 93066, 93072, 93080, 93087, 93093], ⟨St.init (envOf [(58, (.fpg 0)), (78, (.gp
+    0)), (79, (.gp 1)), (80, (.gp 2)), (81, (.gp 3)), (82, (.gp 4)), (83, (.gp 5)), (84, (.gp 6)),
+    (85, (.gp 7)), (86, (.gp 8)), (87, (.gp 9)), (88, (.gp 10)), (89, (.gp 11)), (90, (.gp 12)),
+    (98, (.gp 0)), (99, .zero), (100, .zero), (101, (.gp 0)), (102, (.gp 63)), (103, (.gp 0)), (104,
+    .zero), (105, .zero), (106, .zero), (107, .zero), (111, (.gp 56)), (303, (.gp 255)), (346, (.gp
+    15)), (352, (.gp (Fn.«main_loop2».entry + 41274))), (469, (.gp 106)), (471, (.gp 57)), (748,
+    (.gp (Fn.«main_loop2».entry + 50311))), (794, (.gp (Fn.«main_loop2».entry + 59273))), (836, (.gp
     55)), (1080, (.gp (Fn.«main_loop2».entry + 100503)))]), (CoreMode.unitOf [0, 1, 2, 3, 4, 5, 6,
     7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
     32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
@@ -3904,18 +3911,18 @@ noncomputable def frameCut22 : Option CoreMode.FSt × List (ℕ × List ℕ × C
     802, 807, 812, 817, 822, 827, 831, 836, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025, 1026,
     1027, 1028, 1029, 1030, 1031, 1032, 1033, 1036, 1039, 1042, 1045, 1048, 1051, 1054, 1057, 1060,
     1063, 1066, 1069, 1072, 1075, 1078, 1080, 1088, 1096, 1104, 1112, 1120, 1128, 1136, 1144, 1152,
-    1160, 1168]), (CoreMode.unitOf [16885060]), .nil, (.node none (.node none (.node none (.node
-    none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node (some 131)
-    .nil .nil) .nil) .nil))) .nil) .nil) .nil) (.node none (.node none (.node none (.node none .nil
-    (.node (some 91) .nil .nil)) .nil) .nil) (.node none (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node (some 464) .nil .nil))) .nil)) (.node none .nil (.node none (.node
-    none .nil (.node none (.node none (.node (some 125) .nil .nil) .nil) .nil)) .nil))))) (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some 465) .nil
-    (.node none (.node none (.node (some 122) .nil .nil) .nil) .nil)) .nil)))) (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
-    (some 128) .nil .nil) .nil) .nil)) .nil)))))), (.node none (.node none .nil (.node none .nil
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    (some 719) .nil .nil) .nil)))) .nil) .nil))) .nil)⟩)])
+    1160, 1168]), (CoreMode.unitOf [(1030 * 16384 + (Fn.«main_loop2».jt0 + 7424))]), .nil, (.node
+    none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    none (.node none (.node (some 131) .nil .nil) .nil) .nil))) .nil) .nil) .nil) (.node none (.node
+    none (.node none (.node none .nil (.node (some 91) .nil .nil)) .nil) .nil) (.node none (.node
+    none .nil (.node none (.node none .nil (.node none .nil (.node (some 464) .nil .nil))) .nil))
+    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node (some 125) .nil
+    .nil) .nil) .nil)) .nil))))) (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node (some 465) .nil (.node none (.node none (.node (some 122) .nil .nil) .nil)
+    .nil)) .nil)))) (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node none (.node none (.node (some 128) .nil .nil) .nil) .nil)) .nil)))))), (.node none (.node
+    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node (some 719) .nil .nil) .nil)))) .nil) .nil))) .nil)⟩)])
 
 /-- `__loop2_main`: its walk at offset 96000. -/
 noncomputable def frameCut23 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
@@ -4130,18 +4137,19 @@ noncomputable def frameCut23 : Option CoreMode.FSt × List (ℕ × List ℕ × C
     802, 807, 812, 817, 822, 827, 831, 836, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025, 1026,
     1027, 1028, 1029, 1030, 1031, 1032, 1033, 1036, 1039, 1042, 1045, 1048, 1051, 1054, 1057, 1060,
     1063, 1066, 1069, 1072, 1075, 1078, 1080, 1088, 1096, 1104, 1112, 1120, 1128, 1136, 1144, 1152,
-    1160, 1168, 1176, 1184]), (CoreMode.unitOf [16918340]), .nil, (.node none (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
-    (some 131) .nil .nil) .nil) .nil))) .nil) .nil) .nil) (.node none (.node none (.node none (.node
-    none .nil (.node (some 91) .nil .nil)) .nil) .nil) (.node none (.node none .nil (.node none
-    (.node none .nil (.node none .nil (.node (some 464) .nil .nil))) .nil)) (.node none .nil (.node
-    none (.node none .nil (.node none (.node none (.node (some 125) .nil .nil) .nil) .nil))
-    .nil))))) (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    (some 465) .nil (.node none (.node none (.node (some 122) .nil .nil) .nil) .nil)) .nil))))
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    (.node none (.node (some 128) .nil .nil) .nil) .nil)) .nil)))))), (.node none (.node none .nil
-    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node (some 719) .nil .nil) .nil)))) .nil) .nil))) .nil)⟩)])
+    1160, 1168, 1176, 1184]), (CoreMode.unitOf [(1032 * 16384 + (Fn.«main_loop2».jt0 + 7936))]),
+    .nil, (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    .nil (.node none (.node none (.node (some 131) .nil .nil) .nil) .nil))) .nil) .nil) .nil) (.node
+    none (.node none (.node none (.node none .nil (.node (some 91) .nil .nil)) .nil) .nil) (.node
+    none (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some 464) .nil
+    .nil))) .nil)) (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
+    (some 125) .nil .nil) .nil) .nil)) .nil))))) (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node (some 465) .nil (.node none (.node none (.node (some 122)
+    .nil .nil) .nil) .nil)) .nil)))) (.node none .nil (.node none .nil (.node none .nil (.node none
+    (.node none .nil (.node none (.node none (.node (some 128) .nil .nil) .nil) .nil)) .nil)))))),
+    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node none (.node (some 719) .nil .nil) .nil)))) .nil) .nil)))
+    .nil)⟩)])
 
 /-- `__loop2_main`: its walk at offset 100000. -/
 noncomputable def frameCut24 : Option CoreMode.FSt × List (ℕ × List ℕ × CoreMode.FSt) :=
