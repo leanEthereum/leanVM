@@ -160,9 +160,12 @@ def global_ties(roots=("LeanVM",)):
                     if not n: continue
                     where.setdefault(n.split(".")[-1], set()).add(path)
                     text = code[a:b]
-                    if "rename" in text: renamers.add(n.split(".")[-1])
+                    if re.search(r"rename(?!_i)", text): renamers.add(n.split(".")[-1])
                     head = text.split(":=", 1)[0]
-                    if re.match(r'(?:@\[[^\]]*\]\s*)?(?:\w+\s+)*(?:def|abbrev)\b', text) and "Stmt" in head:
+                    # a template's result is statements and no parameter is one: a function of
+                    # statements (`fixNe`, `flatIte`) is a transformer, generic, never a template
+                    transformer = len(re.findall(r'\bStmt\b', head)) > 1 or re.search(r'Stmt\s*→', head)
+                    if re.match(r'(?:@\[[^\]]*\]\s*)?(?:\w+\s+)*(?:def|abbrev)\b', text) and "Stmt" in head and not transformer:
                         # a template that renames or maps statements (`renameList`, `.map f`) holds
                         # them in another numbering: nothing it names inherits its tie
                         body = text.split(":=", 1)[1] if ":=" in text else ""
@@ -172,7 +175,7 @@ def global_ties(roots=("LeanVM",)):
     # inherits a tie through it
     for x, (body, names) in mapped.items():
         maps = re.findall(r'\.map\s+([a-z][\w\']*)', body)
-        if "rename" in body or any(g in renamers for g in maps):
+        if re.search(r"rename(?!_i)", body) or any(g in renamers for g in maps):
             renaming.add(x); bodies.setdefault(x, set())
         else:
             bodies.setdefault(x, set()).update(names)
@@ -180,6 +183,7 @@ def global_ties(roots=("LeanVM",)):
     bodies = {x: ys for x, ys in bodies.items() if len(where.get(x, ())) == 1}
     BODIES.update(bodies)
     ties = {x: fs for x, fs in raw.items() if x in bodies and x not in renaming}
+    direct = set(ties)
     changed = True
     while changed:
         changed = False
@@ -189,17 +193,14 @@ def global_ties(roots=("LeanVM",)):
             for y in bodies.get(x, ()):
                 if y in bodies and y != x and y not in renaming and not ties.get(y, set()) >= ties[x]:
                     ties.setdefault(y, set()).update(ties[x]); work.append(y)
-        # an untied template built from tied ones (`vkPre := vkT.dropLast`, `secA1 := (layerT 0).take k`)
-        # holds their statements: the functions every one of them is tied to
+        # an untied template that is a piece of exactly one directly tied template (`vkPre :=
+        # vkT.dropLast`, `secA1 := (layerT 0).take k`) holds its statements; a template of several
+        # pieces (`glTail`, canonically numbered) inherits nothing
         for x, names in bodies.items():
             if x in ties or x in renaming: continue
-            sets = [ties[y] for y in names if y in ties and y != x]
-            # only from a template of a few functions: a generic builder tied to many (`fsAbsorbT`)
-            # says nothing of the numbering it is used in (`glTail`'s is canonical)
-            if sets and min(len(t) for t in sets) <= 8:
-                common = set.intersection(*sets)
-                if common:
-                    ties[x] = set(common); changed = True
+            src = [y for y in names if y in direct and y != x]
+            if len(src) == 1 and not [y for y in names if y in bodies and y not in direct and y != x]:
+                ties[x] = set(ties[src[0]]); changed = True
         # a kernel-checked equation `T = A ++ B` of a tied template ties `A`, `B`
         for lhs, rhs in eqs:
             if lhs in ties and lhs not in renaming:
