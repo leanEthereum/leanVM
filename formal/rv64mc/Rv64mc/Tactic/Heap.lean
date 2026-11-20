@@ -35,6 +35,15 @@ theorem slot_eq {S need k : Nat} {t c : BitVec 64} (h : S + need ≤ t.toNat) (h
   rw [this, Nat.add_mod_right, Nat.mod_eq_of_lt (by have := t.isLt; omega)]
   omega
 
+/-- **A callee's stack top is 16-aligned** when the caller's is and its frame a multiple of 16. -/
+theorem align_slot {S need k : Nat} {t c : BitVec 64} (h : S + need ≤ t.toNat) (ht : t.toNat % 16 = 0)
+    (hc : slotK need c k = true) (hk : k % 16 = 0) : (t + c).toNat % 16 = 0 := by
+  have := slot_eq h hc; omega
+
+/-- An address off the stack is no slot of it. -/
+theorem ne_of_off_stack {S : Nat} {t x y : Word} (hoff : x.toNat < S ∨ t.toNat ≤ x.toNat) (hlo : S ≤ y.toNat)
+    (hhi : y.toNat < t.toNat) : x ≠ y := fun e => by subst e; omega
+
 /-- An offset's number, for `omega`. -/
 theorem toNat_add_lit (b c : BitVec 64) (n : Nat) (h : c.toNat = n) : (b + c).toNat = (b.toNat + n) % 2 ^ 64 := by
   rw [BitVec.toNat_add, h]

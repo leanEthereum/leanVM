@@ -73,6 +73,11 @@ register_option rv_sym.heap : Bool := {
     folded, literal forms in the facts given. Off, `rv_sym` leaves the goals it left before them. -/
 def heapOn : MetaM Bool := return rv_sym.heap.get (← getOptions)
 
+register_option rv_sym.bind : Nat := {
+  defValue := 0
+  descr := "rv_sym: a callee's result deeper than this stays its own variable (0: every result is written in)"
+}
+
 /-! ## Terms -/
 
 /-- `c` applied to its arguments by binder name, with no unification: every binder up to the last given. -/
@@ -912,7 +917,7 @@ def keepAt (M x : Expr) : MetaM (Option (Expr × Expr)) := do
 
 /-- The doubleword `M` holds at `x`, read through its stores and its callees' frames, and a proof of
     `M.getMem x = v` where it is not `M.getMem x` itself. -/
-partial def readMem (M x : Expr) : MetaM (Expr × Option Expr) := do
+partial def readMem (M x : Expr) (off : Option (Option Expr) := none) : MetaM (Expr × Option Expr) := do
   let M := M.consumeMData
   if M.isAppOfArity ``MachineState.setMem 3 then
     let N := M.appFn!.appFn!.appArg!
@@ -922,9 +927,27 @@ partial def readMem (M x : Expr) : MetaM (Expr × Option Expr) := do
     let (by_, cy) ← affine y
     if x == y || (bx == by_ && cx == cy) then
       return (w, some (← mkAppOptM ``MachineState.getMem_setMem_eq #[N, y, w]))
+    -- a store into the stack, `x` off it: shown once for the whole run of stores (`ne_of_off_stack`)
+    if ← heapOn then
+      if let some (hlo, hhi, _) ← slotFacts y then
+        let own ← match ← ownStack with
+          | some (_, _, top, _, _) => pure (bx == some top)
+          | none => pure true
+        unless own do
+          let off ← match off with
+            | some o => pure o
+            | none => do
+              let some (_, S, top, _, _) ← ownStack | pure none
+              arithProve (← mkAppM ``Or #[← mkAppM ``LT.lt #[← mkAppM ``BitVec.toNat #[x], S],
+                ← mkAppM ``LE.le #[← mkAppM ``BitVec.toNat #[top], ← mkAppM ``BitVec.toNat #[x]]])
+          if let some hoff := off then
+            let hne ← mkAppM ``Rv64mc.Tactic.ne_of_off_stack #[hoff, hlo, hhi]
+            let p1 ← mkAppOptM ``MachineState.getMem_setMem_ne #[N, y, x, w, hne]
+            let (v, p2) ← readMem N x (some off)
+            return (v, some (← transOpt p1 p2))
     if let some hne ← neProof x y then
       let p1 ← mkAppOptM ``MachineState.getMem_setMem_ne #[N, y, x, w, hne]
-      let (v, p2) ← readMem N x
+      let (v, p2) ← readMem N x off
       return (v, some (← transOpt p1 p2))
     return (← mkAppM ``MachineState.getMem #[M, x], none)
   if M.isAppOfArity ``MachineState.setByte 3 then
@@ -1037,7 +1060,7 @@ def addFacts (g : MVarId) (base : Name) (facts : Array (Expr × Expr)) : MetaM (
 
 /-- The goal's register file, if the executor did not make it, as the `rf` of its values with the facts `R r = v`
     written into their places (`rf_eta`, `regs_eq`). -/
-def absorbFacts (g : MVarId) (facts : Array Expr) : MetaM MVarId := g.withContext do
+def absorbFacts (g : MVarId) (facts : Array Expr) (bind : Nat := 0) : MetaM MVarId := g.withContext do
   let t := (← instantiateMVars (← g.getType)).consumeMData
   unless t.isAppOfArity ``Lprog.Isa.SafeN 8 do return g
   let args := t.getAppArgs
@@ -1060,6 +1083,8 @@ def absorbFacts (g : MVarId) (facts : Array Expr) : MetaM MVarId := g.withContex
     let some k := regIdx? r | continue
     if eqs[k]!.isSome then continue
     let (v, pv) ← normReads ty.appArg!
+    -- a deep value stays the callee's register, its equation a hypothesis (`rv_sym.bind`)
+    if bind != 0 && k != 2 && v.approxDepth.toNat > bind then continue
     vals := vals.set! k v
     eqs := eqs.set! k (some (← transOpt h pv))
   let p0 ← mkAppM ``Rv64mc.Tactic.rf_eta #[R0]
@@ -1607,6 +1632,37 @@ def transportGoal (T : Expr) : MetaM (Option Expr) := do
     if let some p ← transport T d.toExpr then return some p
   return none
 
+/-- `a` and `b` equal by reducible unfolding, within a budget: two large terms that differ are given up on rather
+    than unfolded for minutes. -/
+def cheapDefEq (a b : Expr) : MetaM Bool := do
+  let saved ← saveState
+  tryCatchRuntimeEx
+    (withCurrHeartbeats <| withTheReader Core.Context (fun c => { c with maxHeartbeats := 20000 * 1000 }) <|
+      withReducible (isDefEq a b))
+    fun _ => do
+      saved.restore
+      return false
+
+/-- `(top + c).toNat % 16 = 0` for a slot `top + c` a multiple of 16 below the function's stack top, from
+    `top.toNat % 16 = 0` (`align_slot`): a callee's stack top aligned where the caller's is. -/
+def alignGoal (ty : Expr) : MetaM (Option Expr) := do
+  unless ty.isAppOfArity ``Eq 3 do return none
+  let lhs := ty.appFn!.appArg!
+  unless lhs.isAppOfArity ``HMod.hMod 6 && (← natVal? lhs.appArg!) == some 16 && (← natVal? ty.appArg!) == some 0 do
+    return none
+  let n := lhs.appFn!.appArg!
+  unless n.isAppOfArity ``BitVec.toNat 2 do return none
+  let some (h, S, top, need, nv) ← ownStack | return none
+  let (bx, cx) ← affine n.appArg!
+  unless bx == some top && cx != 0 do return none
+  let k := 2 ^ 64 - cx
+  unless k ≤ nv && k % 16 == 0 do return none
+  let some ht ← hypOf (← mkEq (← mkAppM ``HMod.hMod #[← mkAppM ``BitVec.toNat #[top], mkNatLit 16]) (mkNatLit 0))
+    | return none
+  let tru ← mkEqRefl (mkConst ``Bool.true)
+  return some (← appN ``Rv64mc.Tactic.align_slot [(`S, S), (`need, need), (`k, mkNatLit k), (`t, top),
+    (`c, n.appArg!.appArg!), (`h, h), (`ht, ht), (`hc, tru), (`hk, ← mkDecideProof (← mkEq (← mkAppM ``HMod.hMod #[mkNatLit k, mkNatLit 16]) (mkNatLit 0)))])
+
 /-- Close what is closed by reduction, by an address fact, or by a hypothesis; split conjunctions, unfold
     definitions; leave the rest, its reads reduced. -/
 partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
@@ -1668,9 +1724,15 @@ partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
   if ty.isAppOfArity ``Eq 3 then
     let a := ty.appFn!.appArg!
     let b := ty.appArg!
+    -- an invariant's value left to fill (`?v`): what the executor computed
+    if b.isMVar && !a.hasMVar then
+      if (← heapOn) && !(← b.mvarId!.isAssigned) then
+        b.mvarId!.assign a
+        g.assign (← mkEqRefl a)
+        return []
     let (ba, ca) ← affine a
     let (bb, cb) ← affine b
-    if a == b || (ba == bb && ca == cb) || (← withReducible (isDefEq a b)) then
+    if a == b || (ba == bb && ca == cb) || (← cheapDefEq a b) then
     g.assign (← mkEqRefl a)
     return []
   if ty.isAppOfArity ``LE.le 4 then
@@ -1685,6 +1747,10 @@ partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
     if d.isImplementationDetail then continue
     if (← instantiateMVars d.type).consumeMData == ty then
     g.assign d.toExpr
+    return []
+  -- a callee's stack top 16-aligned: the function's own, less a multiple of 16
+  if let some p ← alignGoal ty then
+    g.assign p
     return []
   if let some p ← arithProve ty then
     g.assign p
@@ -1915,7 +1981,7 @@ def afterCall (g : MVarId) (k : Nat) : MetaM (Option MVarId) := do
       if above.isEmpty then return g
       let (g, _) ← addFacts g (Name.mkSimple s!"keep{k}") above
       return g
-    some <$> absorbFacts g (hs.map mkFVar)
+    some <$> absorbFacts g (hs.map mkFVar) (rv_sym.bind.get (← getOptions))
 
 /-- The goal that the function has returned to its caller: closed by the contract's continuation in the context
     (`∀ r' m', Post … → SafeN p c G n Q ⟨rest, r', m'⟩`), leaving the postcondition. -/

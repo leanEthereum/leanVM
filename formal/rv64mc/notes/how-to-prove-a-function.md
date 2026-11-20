@@ -43,11 +43,15 @@ Put `set_option rv_sym.heap true in` before `theorem ok` of a function that stor
 - `using [...]` and `with [...]` are elaborated after `rv_auto` has opened the contract, so they may name its `regs`, `m`, `top`, `ret` and `hpre_k`: a callee's contract at a ghost of the entry, `hterm [] value (env.next m) 8#64 0`.
 - `through [pcs]` steps through the given backward-jump targets instead of stopping there (a dispatch join, a target inside one loop body); `through *` through every one (a path still stops where it would come back to a pc it has passed).
 - With `rv_sym.heap`, a branch on two literals (`2#64 = 0#64`) steps only the branch taken, and literals in `with` facts are put in the executor's form, so `48#64` and `BitVec.ofNat 64 48` match.
+- `set_option rv_sym.bind 32 in`: a callee's result whose value is deeper than 32 stays the callee's register (`r<k> .x10`), its equation a hypothesis `hret<k>_j`, instead of being written into the register file: a chain of calls (63 squarings) no longer nests one term in the next. Prove the final value by rewriting with the `hret` equations, or cut the chain into lemmas over variables as `Proof/Field/KInv.lean` does.
+- With `rv_sym.heap`, an equation `R .x = ?v` whose right side is a goal's metavariable (an invariant's value left to fill) is filled with the executor's value; a load from the heap through a run of stores into the stack shows once that its address is off the stack (`ne_of_off_stack`), not once per store.
+- An equation the closer compares by reducible unfolding is given a budget, so two large terms that differ are given up on instead of unfolded for minutes.
 
 ## Changelog
 
 - 2026-11-20: `rv_sym.heap` (above); `rv_mem`; `using`/`with` in the main goal's context; `through`; `Tactic/Heap.lean`. Fixes: a Nat `x ≤ x` side goal by `Nat.le_refl`; `NEXT`'s bound only for `(env.next X).toNat ≤ env.heapEnd.toNat`; a tail call's room from `needX ≤ need` (heap on).
 - 2026-11-20: byte stores and narrow table loads (heap on), `Core/ReprBytes.lean`; `keep<k>_2` is now one disjunctive keep (below `NEXT` or at or above the callee's top).
+- 2026-11-20: `rv_sym.bind`; invariant values filled; one off-stack proof per run of stack stores; budgeted reducible equality; a callee's stack top 16-aligned closed from `top.toNat % 16 = 0` in the context (`align_slot`), ready for an alignment conjunct in `Holds.pre`.
 
 ## Cost
 
