@@ -18,40 +18,40 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-abbrev Fn.«block_selector__L12».advice := Data.adviceFn178
-abbrev Fn.«block_selector__L12».idx : ℕ := 178
-abbrev Fn.«eq_prefix_run__L5».advice := Data.adviceFn48
-abbrev Fn.«eq_prefix_run__L5».idx : ℕ := 48
-abbrev Fn.«level_positions__L11_L22_L4_loop0».advice := Data.adviceFn1137
-abbrev Fn.«level_positions__L11_L22_L4_loop0».idx : ℕ := 1137
-abbrev Fn.«level_positions__L3_L13_L7_loop0».advice := Data.adviceFn983
-abbrev Fn.«level_positions__L3_L13_L7_loop0».idx : ℕ := 983
-abbrev Fn.«level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0».advice := Data.adviceFn733
-abbrev Fn.«level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0».idx : ℕ := 733
-abbrev Fn.«level_residual__L16_L7_L4_L2_loop0».advice := Data.adviceFn1406
-abbrev Fn.«level_residual__L16_L7_L4_L2_loop0».idx : ℕ := 1406
-abbrev Fn.«level_residual__L19_L9_L4_L2».advice := Data.adviceFn794
-abbrev Fn.«level_residual__L19_L9_L4_L2».idx : ℕ := 794
-abbrev Fn.«level_residual__L32_L9_L4_L2_loop0».advice := Data.adviceFn1126
-abbrev Fn.«level_residual__L32_L9_L4_L2_loop0».idx : ℕ := 1126
-abbrev Fn.«level_residual__L73_L16_L6_L3_loop0».advice := Data.adviceFn1075
-abbrev Fn.«level_residual__L73_L16_L6_L3_loop0».idx : ℕ := 1075
-abbrev Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1».advice := Data.adviceFn1109
-abbrev Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1».idx : ℕ := 1109
-abbrev Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1_loop0».advice := Data.adviceFn1522
-abbrev Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1_loop0».idx : ℕ := 1522
-abbrev Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0».advice := Data.adviceFn1143
-abbrev Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0».idx : ℕ := 1143
-abbrev Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1_loop0».advice := Data.adviceFn1543
-abbrev Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1_loop0».idx : ℕ := 1543
-abbrev Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0».advice := Data.adviceFn1460
-abbrev Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0».idx : ℕ := 1460
-abbrev Fn.«plus_one_run__L18».advice := Data.adviceFn150
-abbrev Fn.«plus_one_run__L18».idx : ℕ := 150
-abbrev Fn.«plus_one_run__L21».advice := Data.adviceFn153
-abbrev Fn.«plus_one_run__L21».idx : ℕ := 153
-abbrev Fn.«statement_digest».advice := Data.adviceFn22
-abbrev Fn.«statement_digest».idx : ℕ := 22
+abbrev Fn.«block_selector__L12».advice := Data.adviceFn213
+abbrev Fn.«block_selector__L12».idx : ℕ := 213
+abbrev Fn.«eq_prefix_run__L5».advice := Data.adviceFn49
+abbrev Fn.«eq_prefix_run__L5».idx : ℕ := 49
+abbrev Fn.«level_positions__L11_L22_L4_loop0».advice := Data.adviceFn1186
+abbrev Fn.«level_positions__L11_L22_L4_loop0».idx : ℕ := 1186
+abbrev Fn.«level_positions__L3_L13_L7_loop0».advice := Data.adviceFn1032
+abbrev Fn.«level_positions__L3_L13_L7_loop0».idx : ℕ := 1032
+abbrev Fn.«level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0».advice := Data.adviceFn774
+abbrev Fn.«level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0».idx : ℕ := 774
+abbrev Fn.«level_residual__L16_L7_L4_L2_loop0».advice := Data.adviceFn1455
+abbrev Fn.«level_residual__L16_L7_L4_L2_loop0».idx : ℕ := 1455
+abbrev Fn.«level_residual__L19_L9_L4_L2».advice := Data.adviceFn835
+abbrev Fn.«level_residual__L19_L9_L4_L2».idx : ℕ := 835
+abbrev Fn.«level_residual__L32_L9_L4_L2_loop0».advice := Data.adviceFn1175
+abbrev Fn.«level_residual__L32_L9_L4_L2_loop0».idx : ℕ := 1175
+abbrev Fn.«level_residual__L73_L16_L6_L3_loop0».advice := Data.adviceFn1124
+abbrev Fn.«level_residual__L73_L16_L6_L3_loop0».idx : ℕ := 1124
+abbrev Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1».advice := Data.adviceFn1158
+abbrev Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1».idx : ℕ := 1158
+abbrev Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1_loop0».advice := Data.adviceFn1579
+abbrev Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1_loop0».idx : ℕ := 1579
+abbrev Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0».advice := Data.adviceFn1192
+abbrev Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0».idx : ℕ := 1192
+abbrev Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1_loop0».advice := Data.adviceFn1600
+abbrev Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1_loop0».idx : ℕ := 1600
+abbrev Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0».advice := Data.adviceFn1517
+abbrev Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0».idx : ℕ := 1517
+abbrev Fn.«plus_one_run__L18».advice := Data.adviceFn185
+abbrev Fn.«plus_one_run__L18».idx : ℕ := 185
+abbrev Fn.«plus_one_run__L21».advice := Data.adviceFn188
+abbrev Fn.«plus_one_run__L21».idx : ℕ := 188
+abbrev Fn.«statement_digest».advice := Data.adviceFn23
+abbrev Fn.«statement_digest».idx : ℕ := 23
 
 end
 

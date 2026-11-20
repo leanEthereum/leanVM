@@ -106,8 +106,8 @@ theorem vt_forms3_shape (bc : List K) (lm : ℕ) {rows : List ℕ} (hr : rows.le
 
 /-- The guest's form values: table `t`'s push, pull and count forms. -/
 def vtFV : List (List ℕ) :=
-  [[2899, 2920, 2929], [3188, 3209, 3218], [3373, 3386, 3391], [3659, 3680, 3689],
-    [3984, 4009, 4018], [5774, 5887, 5942]]
+  [[2895, 2916, 2925], [3184, 3205, 3214], [3369, 3382, 3387], [3655, 3676, 3685],
+    [3980, 4005, 4014], [5770, 5883, 5938]]
 
 section
 variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)

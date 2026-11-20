@@ -12,8 +12,9 @@ public import LeanVM.Guest.Data.Pows
 public import Mathlib.Tactic.IntervalCases
 public import LeanVM.Guest.Pack.«P38».Core
 public import LeanVM.Guest.Pack.«P38».Bundle
+public import LeanVM.Guest.Pack.«P52».Sig
+public import LeanVM.Guest.Pack.«P7».Sig
 public import LeanVM.Guest.Pack.«P11».Sig
-public import LeanVM.Guest.Pack.«P56».Sig
 public import LeanVM.Guest.Pack.«P40».Sig
 
 set_option Elab.async false
@@ -25,11 +26,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `verify_bus_gkr`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«verify_bus_gkr_loop0».idx, Fn.«verify_bus_gkr_loop0».sig), (Fn.«verify_bus_gkr_loop1».idx, Fn.«verify_bus_gkr_loop1».sig)]) Data.jtTrie globSem) code Fn.«verify_bus_gkr».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«gkr_layers__L0».idx, Fn.«gkr_layers__L0».sig), (Fn.«gkr_layers__L1».idx, Fn.«gkr_layers__L1».sig), (Fn.«verify_bus_gkr_loop0».idx, Fn.«verify_bus_gkr_loop0».sig)]) Data.jtTrie globSem) code Fn.«verify_bus_gkr».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `verify_bus_gkr`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«verify_bus_gkr_loop0».idx, Fn.«verify_bus_gkr_loop0».sig), (Fn.«verify_bus_gkr_loop1».idx, Fn.«verify_bus_gkr_loop1».sig)]) Data.jtTrie globSem) code Fn.«verify_bus_gkr».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«gkr_layers__L0».idx, Fn.«gkr_layers__L0».sig), (Fn.«gkr_layers__L1».idx, Fn.«gkr_layers__L1».sig), (Fn.«verify_bus_gkr_loop0».idx, Fn.«verify_bus_gkr_loop0».sig)]) Data.jtTrie globSem) code Fn.«verify_bus_gkr».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -65,6 +66,30 @@ theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«eq_prefix_
 
 end
 end LeanVM.Guest.Fn.«eq_prefix_run__L28»
+
+namespace LeanVM.Guest.Fn.«eq_prefix_run_rev__L17»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+/-- `eq_prefix_run_rev__L17`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«eq_prefix_run_rev__L17».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+  decide +kernel
+
+/-- `eq_prefix_run_rev__L17`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«eq_prefix_run_rev__L17».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+  intro i hi k hk
+  have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nPartsD parts 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw0_0
+
+end
+end LeanVM.Guest.Fn.«eq_prefix_run_rev__L17»
 
 namespace LeanVM.Guest.Fn.«index_mle__L4»
 
@@ -185,28 +210,4 @@ theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«batch_sumc
 
 end
 end LeanVM.Guest.Fn.«batch_sumcheck__L23»
-
-namespace LeanVM.Guest.Fn.«grind_check__L19»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-/-- `grind_check__L19`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«grind_check__L19».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
-  decide +kernel
-
-/-- `grind_check__L19`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«grind_check__L19».core (cert.withPows Data.powTree) plumb fs parts arms false := by
-  intro i hi k hk
-  have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nPartsD parts 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw0_0
-
-end
-end LeanVM.Guest.Fn.«grind_check__L19»
 

@@ -34,6 +34,7 @@ namespace LeanVM.Guest
 public section
 
 alloc_chk% «eq_prefix_run__L33» []
+alloc_chk% «eq_prefix_run_rev__L31» []
 alloc_chk% «padding_weight__L25» []
 alloc_chk% «plus_one_run__L4» []
 alloc_chk% «index_mle__L22» []

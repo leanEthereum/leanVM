@@ -20,30 +20,30 @@ open LeanVM.Guest.B1.Main (nameSum dlK clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A
 /-- **`da_verify`'s constant words.** -/
 theorem dvC_eq : dvC B2C.fs wSB = 94356 := by
   unfold dvC
-  rw [fs_idx (j := 28) (f := "da_verify") (by decide +kernel),
-    fs_idx (j := 31) (f := "da_padding") (by decide +kernel),
-    fs_idx (j := 407) (f := "__loop0_da_verify") (by decide +kernel),
-    fs_idx (j := 30) (f := "da_pad") (by decide +kernel),
-    fs_idx (j := 410) (f := "__loop0_da_pad") (by decide +kernel),
-    wSB_idx (j := 34) (f := "da_vector") (by decide +kernel),
-    wSB_idx (j := 29) (f := "da_weights") (by decide +kernel)]
+  rw [fs_idx (j := 29) (f := "da_verify") (by decide +kernel),
+    fs_idx (j := 32) (f := "da_padding") (by decide +kernel),
+    fs_idx (j := 441) (f := "__loop0_da_verify") (by decide +kernel),
+    fs_idx (j := 31) (f := "da_pad") (by decide +kernel),
+    fs_idx (j := 444) (f := "__loop0_da_pad") (by decide +kernel),
+    wSB_idx (j := 35) (f := "da_vector") (by decide +kernel),
+    wSB_idx (j := 30) (f := "da_weights") (by decide +kernel)]
   decide +kernel
 
 /-- **`da_verify`'s words per row.** -/
 theorem dvS_eq : dvS B2C.fs wSK = 117096 := by
   unfold dvS B1.Main.iterK
-  rw [fs_idx (j := 407) (f := "__loop0_da_verify") (by decide +kernel),
-    fs_idx (j := 410) (f := "__loop0_da_pad") (by decide +kernel),
-    wSK_idx (j := 407) (f := "__loop0_da_verify") (by decide +kernel),
-    wSK_idx (j := 410) (f := "__loop0_da_pad") (by decide +kernel)]
+  rw [fs_idx (j := 441) (f := "__loop0_da_verify") (by decide +kernel),
+    fs_idx (j := 444) (f := "__loop0_da_pad") (by decide +kernel),
+    wSK_idx (j := 441) (f := "__loop0_da_verify") (by decide +kernel),
+    wSK_idx (j := 444) (f := "__loop0_da_pad") (by decide +kernel)]
   decide +kernel
 
 /-- **`da_verify`'s words per padded row.** -/
 theorem dvP_eq : dvP B2C.fs wSB wSK = 65 := by
   unfold dvP B1.Main.iterK
   rw [dlK_eq,
-    fs_idx (j := 410) (f := "__loop0_da_pad") (by decide +kernel),
-    wSK_idx (j := 410) (f := "__loop0_da_pad") (by decide +kernel)]
+    fs_idx (j := 444) (f := "__loop0_da_pad") (by decide +kernel),
+    wSK_idx (j := 444) (f := "__loop0_da_pad") (by decide +kernel)]
   decide +kernel
 
 end

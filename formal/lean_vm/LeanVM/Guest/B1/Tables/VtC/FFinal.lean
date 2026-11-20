@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Tables.VtC.FFinal
 
   `Vt/AsmForms.lean`'s forms' values and `Vt/AsmFinal.lean`'s final check on the window `VtF`:
-  `termsPure`'s terminal value over the six tables is the guest's `air_acc` (`σ 5947`).
+  `termsPure`'s terminal value over the six tables is the guest's `air_acc` (`σ 5943`).
 -/
 
 module
@@ -108,14 +108,14 @@ theorem vt_asm_finalF {rd : Reader} {σ : Val} (hV : VtF rd σ) (bc : List K)
     (hgn : σ (.n 2545) = gen ^ n) (hhn : ∀ t < 6, vtHt rows t ≤ n) (hnp : n ≤ point.length)
     {pts : List E} (hpl : pts.length = n)
     (hcp : ∀ j ≤ n, LoadHolds rd (σ (.n 2631)) j (pts.take j).prod)
-    (hpe : EqPrefix rd (σ (.n 2656)) 1 (σ (.n 16)) (σ (.n 700)) n)
+    (hpe : EqPrefix rd (σ (.n 2653)) 1 (σ (.n 16)) (σ (.n 700)) n)
     (hchi : ∀ i < n, LoadHolds rd (σ (.n 16)) (n - 1 - i) (pts.getD i 0)) :
     (termsPure ((powers (σ (.n 2611)) 5).take 2) ((powers (σ (.n 2611)) 5).drop 2) pts.reverse
       (List.zip (vtRows (tableHeightsOf rows)
         (vtAcc2 (layoutOf bc lm rows) weights (σ (.n 14)) point
           [σ (.n 813), σ (.n 817)] (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841))
         (σ (.n 2442)) (σ (.n 2488)) (σ (.n 2543))).1 point pts) (vtEvsT σ)) 0 0 []).1 =
-      σ (.n 5952) := by
+      σ (.n 5948) := by
   set F := (vtAcc2 (layoutOf bc lm rows) weights (σ (.n 14)) point
     [σ (.n 813), σ (.n 817)] (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841))
         (σ (.n 2442)) (σ (.n 2488)) (σ (.n 2543))).1 with hF
@@ -131,7 +131,7 @@ theorem vt_asm_finalF {rd : Reader} {σ : Val} (hV : VtF rd σ) (bc : List K)
   -- the weights
   have hwt : ∀ t < 6, ∀ {x cp pe : E}, σ (.n 2545) = x * σ (.n (28 + t)) →
       LoadHolds rd (σ (.n 2631) * x) 0 cp →
-      LoadHolds rd (σ (.n 2656) * σ (.n (28 + t))) 0 pe → Wt.getD t 0 = cp * pe := by
+      LoadHolds rd (σ (.n 2653) * σ (.n (28 + t))) 0 pe → Wt.getD t 0 = cp * pe := by
     intro t ht x cp pe hx hcpL hpeL
     exact vt_weight_guest hpl hnp hcp hpe hchi hz1 hgn (by rw [hH6]; exact ht) (hhn t ht) hx
       (hkbt t ht) hcpL hpeL

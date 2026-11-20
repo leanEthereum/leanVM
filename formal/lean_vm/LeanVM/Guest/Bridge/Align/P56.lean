@@ -33,7 +33,7 @@ namespace LeanVM.Guest
 noncomputable def Fn.«check_opening_terminal_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_check_opening_terminal", Fn.«check_opening_terminal_loop0».entry)] 524287 code.instructionCount
 noncomputable def Fn.«child_claim_list_mono_last__L6».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«da_levels__L128_L7_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_da_levels__L128_L7", Fn.«da_levels__L128_L7_loop0».entry)] 524287 code.instructionCount
-noncomputable def Fn.«gkr_rounds__L1».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
+noncomputable def Fn.«gkr_layer__L3_L1».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_gkr_layer__L3_L1", Fn.«gkr_layer__L3_L1_loop0».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L9_L22_L4_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L9_L22_L4", Fn.«level_positions__L9_L22_L4_loop0».entry), ("decode_query_windows__L22_L4", Fn.«decode_query_windows__L22_L4».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1", Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1».entry), ("verify_merkle_cap__L3", Fn.«verify_merkle_cap__L3».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_queries__L37_L0_L4_L16_L22_L4_L0_L0_L0_L0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L4", Fn.«verify_merkle_cap__L4».entry)] 524287 code.instructionCount
@@ -51,7 +51,6 @@ noncomputable def Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».ali
 noncomputable def Fn.«padding_weight__L16».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«padding_weight__L3».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«ring_switch_target».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_ring_switch_target", Fn.«ring_switch_target_loop0».entry)] 524287 code.instructionCount
-noncomputable def Fn.«verify_bus_gkr_loop1».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop1_verify_bus_gkr", Fn.«verify_bus_gkr_loop1».entry)] 524287 code.instructionCount
 noncomputable def Fn.«verify_merkle_cap__L2».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 
 end
@@ -67,7 +66,7 @@ public section
 align_chk% «check_opening_terminal_loop0»
 align_chk% «child_claim_list_mono_last__L6»
 align_chk% «da_levels__L128_L7_loop0»
-align_chk% «gkr_rounds__L1»
+align_chk% «gkr_layer__L3_L1»
 align_chk% «level_positions__L9_L22_L4_loop0»
 align_chk% «level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1»
 align_chk% «level_queries__L37_L0_L4_L16_L22_L4_L0_L0_L0_L0»
@@ -85,7 +84,6 @@ align_chk% «opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0»
 align_chk% «padding_weight__L16»
 align_chk% «padding_weight__L3»
 align_chk% «ring_switch_target»
-align_chk% «verify_bus_gkr_loop1»
 align_chk% «verify_merkle_cap__L2»
 
 end

@@ -11,6 +11,8 @@ public import LeanVM.Guest.Memory.AdvFreeOk25
 public import LeanVM.Guest.Memory.AdvFreeOk50
 public import LeanVM.Guest.Memory.AdvFreeOk325
 public import LeanVM.Guest.Memory.AdvFreeOk350
+public import LeanVM.Guest.Memory.AdvFreeOk450
+public import LeanVM.Guest.Memory.AdvFreeOk575
 public import LeanVM.Guest.Memory.AdvFreeOk800
 public import LeanVM.Guest.Memory.AdvFreeOk1200
 public import LeanVM.Guest.CoreData
@@ -32,8 +34,8 @@ public section
 theorem advFreeOk : AdvFreeOk := by
   unfold AdvFreeOk
   rw [coreProgram_length]
-  have h := (((((advFree_ok_0.append advFree_ok_25).append advFree_ok_50).append advFree_ok_325).append
-    advFree_ok_350).append advFree_ok_800).append advFree_ok_1200
+  have h := (((((((advFree_ok_0.append advFree_ok_25).append advFree_ok_50).append advFree_ok_325).append
+    advFree_ok_350).append advFree_ok_450).append advFree_ok_575).append advFree_ok_800).append advFree_ok_1200
   exact h
 
 end

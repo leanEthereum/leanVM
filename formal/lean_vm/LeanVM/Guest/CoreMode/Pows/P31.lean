@@ -20,6 +20,10 @@ namespace LeanVM.Guest
 
 noncomputable def Fn.«column_selector__L0».pows : Exec.PowTree := (.node 32768 15 .leaf .leaf)
 theorem Fn.«column_selector__L0».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
+noncomputable def Fn.«eq_prefix_run_rev__L10».pows : Exec.PowTree := .leaf
+theorem Fn.«eq_prefix_run_rev__L10».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
+noncomputable def Fn.«eq_prefix_run_rev__L29».pows : Exec.PowTree := .leaf
+theorem Fn.«eq_prefix_run_rev__L29».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«index_mle__L3».pows : Exec.PowTree := .leaf
 theorem Fn.«index_mle__L3».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«level_positions__L14_L16_L4_loop0».pows : Exec.PowTree := (.node 2 1 .leaf .leaf)

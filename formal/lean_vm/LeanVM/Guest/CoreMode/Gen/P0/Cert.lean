@@ -29,23 +29,24 @@ open LeanVM.Guest LeanVM.Guest.EndExec
 core_cert% «block_selector__L8» «P0» 0 []
 core_cert% «column_selector__L5» «P0» 1 []
 core_cert% «decode_query_windows__L16_L4» «P0» 2 []
-core_cert% «index_mle__L6» «P0» 3 []
-core_cert% «level_positions__L19_L26_L2» «P0» 4 [«decode_query_windows__L26_L2», «level_positions__L19_L26_L2_loop0»]
-core_cert% «level_positions__L6_L17_L5_loop0» «P0» 5 [«decode_query_windows__L17_L5», «level_positions__L6_L17_L5_loop0»]
-core_cert% «level_positions__L9_L24_L6_loop0» «P0» 6 [«decode_query_windows__L24_L6», «level_positions__L9_L24_L6_loop0»]
-core_cert% «level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0» «P0» 7 [«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0», «verify_merkle_cap__L4»]
-core_cert% «level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0» «P0» 8 [«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0», «verify_merkle_cap__L5»]
-core_cert% «level_residual__L218_L23_L6_L3_loop0» «P0» 9 [«level_residual__L218_L23_L6_L3_loop0»]
-core_cert% «level_residual__L23_L12_L4_L2_loop1» «P0» 10 [«level_residual__L23_L12_L4_L2_loop1»]
-core_cert% «level_residual__L25_L12_L4_L2» «P0» 11 [«level_residual__L25_L12_L4_L2_loop0», «level_residual__L25_L12_L4_L2_loop1»]
-core_cert% «level_residual__L25_L8_L4_L2_loop0» «P0» 12 [«level_residual__L25_L8_L4_L2_loop0»]
-core_cert% «level_residual__L28_L15_L4_L2_loop1» «P0» 13 [«level_residual__L28_L15_L4_L2_loop1»]
-core_cert% «level_residual__L28_L7_L4_L2_loop0» «P0» 14 [«level_residual__L28_L7_L4_L2_loop0»]
-core_cert% «level_residual__L37_L14_L4_L2_loop0» «P0» 15 [«level_residual__L37_L14_L4_L2_loop0»]
-core_cert% «level_residual__L44_L11_L4_L2» «P0» 16 [«level_residual__L44_L11_L4_L2_loop0», «level_residual__L44_L11_L4_L2_loop1»]
-core_cert% «opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0» «P0» 17 [«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0», «walk_path__L18_L2»]
-core_cert% «opening_round» «P0» 18 [«grind_check__L7»]
-core_cert% «squeeze_point_from__L30» «P0» 19 []
+core_cert% «eq_prefix_run_rev__L15» «P0» 3 []
+core_cert% «index_mle__L6» «P0» 4 []
+core_cert% «level_positions__L19_L26_L2» «P0» 5 [«decode_query_windows__L26_L2», «level_positions__L19_L26_L2_loop0»]
+core_cert% «level_positions__L6_L17_L5_loop0» «P0» 6 [«decode_query_windows__L17_L5», «level_positions__L6_L17_L5_loop0»]
+core_cert% «level_positions__L9_L24_L6_loop0» «P0» 7 [«decode_query_windows__L24_L6», «level_positions__L9_L24_L6_loop0»]
+core_cert% «level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0» «P0» 8 [«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0», «verify_merkle_cap__L4»]
+core_cert% «level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0» «P0» 9 [«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0», «verify_merkle_cap__L5»]
+core_cert% «level_residual__L218_L23_L6_L3_loop0» «P0» 10 [«level_residual__L218_L23_L6_L3_loop0»]
+core_cert% «level_residual__L23_L12_L4_L2_loop1» «P0» 11 [«level_residual__L23_L12_L4_L2_loop1»]
+core_cert% «level_residual__L25_L12_L4_L2» «P0» 12 [«level_residual__L25_L12_L4_L2_loop0», «level_residual__L25_L12_L4_L2_loop1»]
+core_cert% «level_residual__L25_L8_L4_L2_loop0» «P0» 13 [«level_residual__L25_L8_L4_L2_loop0»]
+core_cert% «level_residual__L28_L15_L4_L2_loop1» «P0» 14 [«level_residual__L28_L15_L4_L2_loop1»]
+core_cert% «level_residual__L28_L7_L4_L2_loop0» «P0» 15 [«level_residual__L28_L7_L4_L2_loop0»]
+core_cert% «level_residual__L37_L14_L4_L2_loop0» «P0» 16 [«level_residual__L37_L14_L4_L2_loop0»]
+core_cert% «level_residual__L44_L11_L4_L2» «P0» 17 [«level_residual__L44_L11_L4_L2_loop0», «level_residual__L44_L11_L4_L2_loop1»]
+core_cert% «opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0» «P0» 18 [«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0», «walk_path__L18_L2»]
+core_cert% «opening_round» «P0» 19 [«grind_check__L7»]
+core_cert% «squeeze_point_from__L30» «P0» 20 []
 
 end
 
@@ -58,7 +59,7 @@ namespace LeanVM.Guest.CorePack.«P0»
 /-- The pack's certificates with their facts. -/
 noncomputable def ces : List (EndExec.CertE CoreMode.hcTab CoreMode.coreNzs) :=
   [Fn.«block_selector__L8».ce, Fn.«column_selector__L5».ce, Fn.«decode_query_windows__L16_L4».ce,
-   Fn.«index_mle__L6».ce, Fn.«level_positions__L19_L26_L2».ce,
+   Fn.«eq_prefix_run_rev__L15».ce, Fn.«index_mle__L6».ce, Fn.«level_positions__L19_L26_L2».ce,
    Fn.«level_positions__L6_L17_L5_loop0».ce, Fn.«level_positions__L9_L24_L6_loop0».ce,
    Fn.«level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0».ce,
    Fn.«level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0».ce,

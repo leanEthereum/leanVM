@@ -127,9 +127,45 @@ def stCallers : List (String × String) :=
     (name% «keccak_layer__L0_loop1», name% «keccak_layer__L0»),
     (name% «keccak_layer__L1_loop0», name% «keccak_layer__L1»),
     (name% «keccak_layer__L1_loop1», name% «keccak_layer__L1»), (name% «verify_tables», name% «verify_sub»),
-    (name% «verify_tables_loop0», name% «verify_tables»), (name% «verify_tables_loop1», name% «verify_tables»),
-    (name% «verify_bus_gkr», name% «verify_sub»), (name% «verify_bus_gkr_loop0», name% «verify_bus_gkr»),
-    (name% «verify_bus_gkr_loop0_loop0», name% «verify_bus_gkr_loop0»), (name% «da_pad», name% «da_verify»)]
+    (name% «verify_tables_loop0», name% «verify_tables»), (name% «verify_bus_gkr», name% «verify_sub»),
+    (name% «da_pad», name% «da_verify»)]
+
+/-- **`verify_bus_gkr`'s layers and their callers** (`Res.callersM`): `gkr_layers__L{o}` called by
+`verify_bus_gkr`, its loop and `gkr_last_layers__L{r}_L{o}` by it, `gkr_layer__L{p}_L{o}` by that loop and by
+`gkr_last_layers__L{r}_L{o}`, `r > p`, its loop by it. -/
+def glCallers : List (String × List String) :=
+  [(name% «gkr_layers__L0», [name% «verify_bus_gkr»]),
+    (name% «gkr_layers__L0_loop0», [name% «gkr_layers__L0»]),
+    (name% «gkr_last_layers__L0_L0», [name% «gkr_layers__L0»]),
+    (name% «gkr_last_layers__L1_L0», [name% «gkr_layers__L0»]),
+    (name% «gkr_last_layers__L2_L0», [name% «gkr_layers__L0»]),
+    (name% «gkr_last_layers__L3_L0», [name% «gkr_layers__L0»]),
+    (name% «gkr_layer__L0_L0», [name% «gkr_layers__L0_loop0», name% «gkr_last_layers__L1_L0»,
+      name% «gkr_last_layers__L2_L0», name% «gkr_last_layers__L3_L0»]),
+    (name% «gkr_layer__L1_L0», [name% «gkr_layers__L0_loop0», name% «gkr_last_layers__L2_L0»,
+      name% «gkr_last_layers__L3_L0»]),
+    (name% «gkr_layer__L2_L0», [name% «gkr_layers__L0_loop0», name% «gkr_last_layers__L3_L0»]),
+    (name% «gkr_layer__L3_L0», [name% «gkr_layers__L0_loop0»]),
+    (name% «gkr_layer__L0_L0_loop0», [name% «gkr_layer__L0_L0»]),
+    (name% «gkr_layer__L1_L0_loop0», [name% «gkr_layer__L1_L0»]),
+    (name% «gkr_layer__L2_L0_loop0», [name% «gkr_layer__L2_L0»]),
+    (name% «gkr_layer__L3_L0_loop0», [name% «gkr_layer__L3_L0»]),
+    (name% «gkr_layers__L1», [name% «verify_bus_gkr»]),
+    (name% «gkr_layers__L1_loop0», [name% «gkr_layers__L1»]),
+    (name% «gkr_last_layers__L0_L1», [name% «gkr_layers__L1»]),
+    (name% «gkr_last_layers__L1_L1», [name% «gkr_layers__L1»]),
+    (name% «gkr_last_layers__L2_L1», [name% «gkr_layers__L1»]),
+    (name% «gkr_last_layers__L3_L1», [name% «gkr_layers__L1»]),
+    (name% «gkr_layer__L0_L1», [name% «gkr_layers__L1_loop0», name% «gkr_last_layers__L1_L1»,
+      name% «gkr_last_layers__L2_L1», name% «gkr_last_layers__L3_L1»]),
+    (name% «gkr_layer__L1_L1», [name% «gkr_layers__L1_loop0», name% «gkr_last_layers__L2_L1»,
+      name% «gkr_last_layers__L3_L1»]),
+    (name% «gkr_layer__L2_L1», [name% «gkr_layers__L1_loop0», name% «gkr_last_layers__L3_L1»]),
+    (name% «gkr_layer__L3_L1», [name% «gkr_layers__L1_loop0»]),
+    (name% «gkr_layer__L0_L1_loop0», [name% «gkr_layer__L0_L1»]),
+    (name% «gkr_layer__L1_L1_loop0», [name% «gkr_layer__L1_L1»]),
+    (name% «gkr_layer__L2_L1_loop0», [name% «gkr_layer__L2_L1»]),
+    (name% «gkr_layer__L3_L1_loop0», [name% «gkr_layer__L3_L1»])]
 
 /-- **The callees whose facts are carried and their callers** (`Res.callersG`): `check_opening_terminal`
 called by `verify_sub`, each `column_selector__L{κ}` by `check_opening_terminal`, and `stCallers`. -/

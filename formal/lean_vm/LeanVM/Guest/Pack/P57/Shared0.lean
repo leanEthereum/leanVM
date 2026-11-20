@@ -42,6 +42,33 @@ theorem shareOk : ShareOkD Fn.«eq_prefix_run__L29».core (cert.withPows Data.po
 end
 end LeanVM.Guest.Fn.«eq_prefix_run__L29»
 
+namespace LeanVM.Guest.Fn.«eq_prefix_run_rev__L16»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L16`, once. -/
+theorem st : shareStaticD Fn.«eq_prefix_run_rev__L16».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L16`, window 0. -/
+theorem sw0 : shareWinD Fn.«eq_prefix_run_rev__L16».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `eq_prefix_run_rev__L16`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«eq_prefix_run_rev__L16».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«eq_prefix_run_rev__L16»
+
 namespace LeanVM.Guest.Fn.«index_mle__L5»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -95,31 +122,4 @@ theorem shareOk : ShareOkD Fn.«column_selector__L6».core (cert.withPows Data.p
 
 end
 end LeanVM.Guest.Fn.«column_selector__L6»
-
-namespace LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L0_L34»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `log2_ceil_in_the_exponent__L0_L34`, once. -/
-theorem st : shareStaticD Fn.«log2_ceil_in_the_exponent__L0_L34».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `log2_ceil_in_the_exponent__L0_L34`, window 0. -/
-theorem sw0 : shareWinD Fn.«log2_ceil_in_the_exponent__L0_L34».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `log2_ceil_in_the_exponent__L0_L34`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«log2_ceil_in_the_exponent__L0_L34».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L0_L34»
 

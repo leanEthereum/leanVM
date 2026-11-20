@@ -15,6 +15,7 @@ public import LeanVM.Guest.CoreMode.GlueA.«P17»
 public import LeanVM.Guest.CoreMode.GlueA.«P18»
 public import LeanVM.Guest.CoreMode.GlueA.«P20»
 public import LeanVM.Guest.CoreMode.GlueA.«P22»
+public import LeanVM.Guest.CoreMode.GlueA.«P29»
 public import LeanVM.Guest.CoreMode.GlueA.«P36»
 public import LeanVM.Guest.CoreMode.GlueA.«P42»
 public import LeanVM.Guest.CoreMode.GlueA.«P45»
@@ -40,6 +41,7 @@ alloc_chk% «block_selector_tab__L24» []
 alloc_chk% «claim_list_last__L16» []
 alloc_chk% «child_claim_list_last__L13» []
 alloc_chk% «child_claim_list_mono_last__L8» []
+alloc_chk% «gkr_layers__L1_loop0» [«gkr_layer__L0_L1», «gkr_layer__L1_L1», «gkr_layer__L2_L1», «gkr_layer__L3_L1»]
 alloc_chk% «squeeze_point_from__L10» []
 alloc_chk% «level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0» [«verify_merkle_cap__L4», «opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0»]
 alloc_chk% «level_residual__L23_L7_L4_L2» [«level_residual__L23_L7_L4_L2_loop0», «level_residual__L23_L7_L4_L2_loop1»]

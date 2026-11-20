@@ -13,10 +13,8 @@ public import Mathlib.Tactic.IntervalCases
 public import LeanVM.Guest.Pack.«P11».Core
 public import LeanVM.Guest.Pack.«P11».Bundle
 public import LeanVM.Guest.Pack.«P11».Sig
-public import LeanVM.Guest.Pack.«P54».Sig
-public import LeanVM.Guest.Pack.«P49».Sig
-public import LeanVM.Guest.Pack.«P56».Sig
 public import LeanVM.Guest.Pack.«P28».Sig
+public import LeanVM.Guest.Pack.«P54».Sig
 public import LeanVM.Guest.Pack.«P62».Sig
 public import LeanVM.Guest.Pack.«P9».Sig
 
@@ -29,11 +27,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `__loop0_verify_bus_gkr`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«verify_bus_gkr_loop0».idx, Fn.«verify_bus_gkr_loop0».sig), (Fn.«verify_bus_gkr_loop0_loop0».idx, Fn.«verify_bus_gkr_loop0_loop0».sig), (Fn.«gkr_rounds__L2».idx, Fn.«gkr_rounds__L2».sig), (Fn.«gkr_rounds__L1».idx, Fn.«gkr_rounds__L1».sig)]) Data.jtTrie globSem) code Fn.«verify_bus_gkr_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«verify_bus_gkr_loop0».idx, Fn.«verify_bus_gkr_loop0».sig)]) Data.jtTrie globSem) code Fn.«verify_bus_gkr_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `__loop0_verify_bus_gkr`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«verify_bus_gkr_loop0».idx, Fn.«verify_bus_gkr_loop0».sig), (Fn.«verify_bus_gkr_loop0_loop0».idx, Fn.«verify_bus_gkr_loop0_loop0».sig), (Fn.«gkr_rounds__L2».idx, Fn.«gkr_rounds__L2».sig), (Fn.«gkr_rounds__L1».idx, Fn.«gkr_rounds__L1».sig)]) Data.jtTrie globSem) code Fn.«verify_bus_gkr_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«verify_bus_gkr_loop0».idx, Fn.«verify_bus_gkr_loop0».sig)]) Data.jtTrie globSem) code Fn.«verify_bus_gkr_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

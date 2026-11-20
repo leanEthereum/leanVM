@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreRef
-public import LeanVM.Guest.B1.Gkr.LayerStep
+public import LeanVM.Guest.B1.Gkr.LayerTail
 public import LeanVM.Guest.CoreData
 
 /-!
@@ -16,11 +16,12 @@ public import LeanVM.Guest.CoreData
 
 The root-most layer has no rounds: the combiner, drawn from the two roots waiting in the sponge,
 batches the three trees' roots into the claim the children's products check. `verify_bus_gkr`
-runs it in its body, in the two arms of an `ite` on `odd_g = g^(depth % 2)`:
+runs it in its body, in the two arms of an `ite` on `odd_g = g^(depth % 2)`, here renumbered to
+values `34` lower (`rtUn`; the body's are `rtSh` of them):
 
-* `rt_two` (`core% «verify_bus_gkr» s185_e`, an odd depth): two children a tree, `y` one coordinate
+* `rt_two` (`core% «verify_bus_gkr» s252_e`, an odd depth): two children a tree, `y` one coordinate
   (its grind of `0` bits a permutation of the two waiting), the slot of `L = 1`;
-* `rt_four` (`core% «verify_bus_gkr» s185_t`, an even depth): four children a tree, `y` two
+* `rt_four` (`core% «verify_bus_gkr» s252_t`, an even depth): four children a tree, `y` two
   coordinates, the slot of `L = 2`.
 
 Both start from the body's combiner `σ 59`, the claim `σ 63`, the sponge's capacity after the
@@ -34,11 +35,25 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- The binary root layer, the `ite`'s else arm. -/
-noncomputable def rtTwo : List Stmt := (core% «verify_bus_gkr» s185_e)
+/-- The arms' numbering from the body's: the arms' own values `34` down. -/
+def rtUn (v : V) : V := if 100 ≤ v.idx then .n (v.idx - 34) else v
 
-/-- The radix-four root layer, the `ite`'s then arm. -/
-noncomputable def rtFour : List Stmt := (core% «verify_bus_gkr» s185_t)
+/-- The body's numbering from the arms': values from `66` on `34` up. -/
+def rtSh (v : V) : V := if 66 ≤ v.idx then .n (v.idx + 34) else v
+
+/-- The binary root layer, the `ite`'s else arm, renumbered (`rtUn`). -/
+noncomputable def rtTwo : List Stmt := Stmt.renameList rtUn (core% «verify_bus_gkr» s252_e)
+
+/-- The radix-four root layer, the `ite`'s then arm, renumbered (`rtUn`). -/
+noncomputable def rtFour : List Stmt := Stmt.renameList rtUn (core% «verify_bus_gkr» s252_t)
+
+/-- The else arm is `rtTwo` in the body's numbering. -/
+theorem rtTwo_eq : (core% «verify_bus_gkr» s252_e) = Stmt.renameList rtSh rtTwo :=
+  tbStmtsEqb_sound (by decide +kernel)
+
+/-- The then arm is `rtFour` in the body's numbering. -/
+theorem rtFour_eq : (core% «verify_bus_gkr» s252_t) = Stmt.renameList rtSh rtFour :=
+  tbStmtsEqb_sound (by decide +kernel)
 
 theorem rtTwo_noRet : Stmt.noRetList rtTwo = true := by decide +kernel
 

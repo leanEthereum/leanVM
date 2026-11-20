@@ -92,6 +92,30 @@ theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«eq_prefix_
 end
 end LeanVM.Guest.Fn.«eq_prefix_run__L22»
 
+namespace LeanVM.Guest.Fn.«eq_prefix_run_rev__L24»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+/-- `eq_prefix_run_rev__L24`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«eq_prefix_run_rev__L24».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+  decide +kernel
+
+/-- `eq_prefix_run_rev__L24`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«eq_prefix_run_rev__L24».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+  intro i hi k hk
+  have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nPartsD parts 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw0_0
+
+end
+end LeanVM.Guest.Fn.«eq_prefix_run_rev__L24»
+
 namespace LeanVM.Guest.Fn.«padding_weight__L30»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -187,28 +211,4 @@ theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«block_sele
 
 end
 end LeanVM.Guest.Fn.«block_selector__L26»
-
-namespace LeanVM.Guest.Fn.«block_selector_tab__L17»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-/-- `block_selector_tab__L17`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«block_selector_tab__L17».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
-  decide +kernel
-
-/-- `block_selector_tab__L17`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«block_selector_tab__L17».core (cert.withPows Data.powTree) plumb fs parts arms false := by
-  intro i hi k hk
-  have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nPartsD parts 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw0_0
-
-end
-end LeanVM.Guest.Fn.«block_selector_tab__L17»
 

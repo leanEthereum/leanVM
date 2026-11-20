@@ -36,16 +36,15 @@ public import LeanVM.Guest.CoreMode.Gen.«P11».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P11».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P11».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P11».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P11».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P15»
 public import LeanVM.Guest.CoreMode.Sig.«P26»
 public import LeanVM.Guest.CoreMode.Sig.«P27»
 public import LeanVM.Guest.CoreMode.Sig.«P28»
 public import LeanVM.Guest.CoreMode.Sig.«P47»
-public import LeanVM.Guest.CoreMode.Sig.«P49»
 public import LeanVM.Guest.CoreMode.Sig.«P54»
 public import LeanVM.Guest.CoreMode.Sig.«P55»
-public import LeanVM.Guest.CoreMode.Sig.«P56»
 public import LeanVM.Guest.CoreMode.Sig.«P62»
 public import LeanVM.Guest.CoreMode.Sig.«P9»
 
@@ -59,8 +58,7 @@ open LeanVM.Guest.Exec
 
 @[expose] public section
 
-frame_fn% «verify_bus_gkr_loop0» 227 [«gkr_rounds__L1», «gkr_rounds__L2»,
-    «verify_bus_gkr_loop0_loop0», «verify_bus_gkr_loop0»] env [(13, (.fpg 0))] scaled [13]
+frame_fn% «verify_bus_gkr_loop0» 20 [«verify_bus_gkr_loop0»] sigs [] env [(6, (.fpg 0))] scaled [6]
 frame_fn% «padding_weight__L2» 34 []
 frame_fn% «padding_weight__L17» 156 []
 frame_fn% «child_claim_list_mono_last__L7» 138 []
@@ -80,6 +78,7 @@ frame_fn% «level_residual__L73_L20_L6_L3» 45 [«level_residual__L73_L20_L6_L3_
     «level_residual__L73_L20_L6_L3_loop1»]
 frame_fn% «da_levels__L128_L7_loop1» 35 [«da_levels__L128_L7_loop1»] sigs [] env [(5, (.fpg 0))]
     scaled [5]
+frame_fn% «gkr_layer__L3_L0» 422 [«gkr_layer__L3_L0_loop0»]
 frame_fn% «verify_merkle_cap__L3» 82 []
 frame_fn% «opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1» 23
     [«opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1_loop0»]

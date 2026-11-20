@@ -34,6 +34,8 @@ namespace LeanVM.Guest
 public section
 
 alloc_chk% «eq_prefix_run__L27» []
+alloc_chk% «eq_prefix_run_rev__L18» []
+alloc_chk% «eq_prefix_run_rev__L21» []
 alloc_chk% «block_selector__L5» []
 alloc_chk% «block_selector__L23» []
 alloc_chk% «block_selector_tab__L12» []
@@ -52,6 +54,7 @@ alloc_chk% «level_residual__L55_L16_L4_L2» [«level_residual__L55_L16_L4_L2_lo
 alloc_chk% «level_positions__L7_L24_L6» [«decode_query_windows__L24_L6», «level_positions__L7_L24_L6_loop0»]
 alloc_chk% «level_positions__L5_L23_L5» [«decode_query_windows__L23_L5», «level_positions__L5_L23_L5_loop0»]
 alloc_chk% «level_positions__L9_L25_L7» [«decode_query_windows__L25_L7», «level_positions__L9_L25_L7_loop0»]
+alloc_chk% «gkr_layer__L0_L1» [«gkr_layer__L0_L1_loop0»]
 alloc_chk% «level_residual__L37_L10_L4_L2_loop1» []
 alloc_chk% «level_residual__L23_L7_L4_L2_loop0» []
 alloc_chk% «level_residual__L44_L13_L4_L2_loop0» []

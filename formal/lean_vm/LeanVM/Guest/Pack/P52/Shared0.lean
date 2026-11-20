@@ -42,6 +42,33 @@ theorem shareOk : ShareOkD Fn.«eq_prefix_run__L31».core (cert.withPows Data.po
 end
 end LeanVM.Guest.Fn.«eq_prefix_run__L31»
 
+namespace LeanVM.Guest.Fn.«gkr_layers__L0»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `gkr_layers__L0`, once. -/
+theorem st : shareStaticD Fn.«gkr_layers__L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `gkr_layers__L0`, window 0. -/
+theorem sw0 : shareWinD Fn.«gkr_layers__L0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `gkr_layers__L0`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«gkr_layers__L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«gkr_layers__L0»
+
 namespace LeanVM.Guest.Fn.«padding_weight__L27»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -95,31 +122,4 @@ theorem shareOk : ShareOkD Fn.«plus_one_run__L6».core (cert.withPows Data.powT
 
 end
 end LeanVM.Guest.Fn.«plus_one_run__L6»
-
-namespace LeanVM.Guest.Fn.«index_mle__L19»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `index_mle__L19`, once. -/
-theorem st : shareStaticD Fn.«index_mle__L19».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `index_mle__L19`, window 0. -/
-theorem sw0 : shareWinD Fn.«index_mle__L19».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `index_mle__L19`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«index_mle__L19».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«index_mle__L19»
 

@@ -17,11 +17,11 @@ public import LeanVM.Guest.Pack.«P16».Sig
 public import LeanVM.Guest.Pack.«P24».Sig
 public import LeanVM.Guest.Pack.«P59».Sig
 public import LeanVM.Guest.Pack.«P43».Sig
-public import LeanVM.Guest.Pack.«P54».Sig
 public import LeanVM.Guest.Pack.«P40».Sig
 public import LeanVM.Guest.Pack.«P23».Sig
 public import LeanVM.Guest.Pack.«P11».Sig
 public import LeanVM.Guest.Pack.«P55».Sig
+public import LeanVM.Guest.Pack.«P54».Sig
 public import LeanVM.Guest.Pack.«P62».Sig
 public import LeanVM.Guest.Pack.«P9».Sig
 public import LeanVM.Guest.Pack.«P26».Sig
@@ -160,20 +160,6 @@ theorem w0 : checkWinCF (Glob.ofSigs [] Data.jtTrie globSem) code
 
 end
 end LeanVM.Guest.Fn.«child_claim_list_last__L4»
-
-namespace LeanVM.Guest.Fn.«verify_bus_gkr_loop0_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Check
-
-@[expose] public section
-
-/-- `__loop0___loop0_verify_bus_gkr`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(Fn.«verify_bus_gkr_loop0_loop0».idx, Fn.«verify_bus_gkr_loop0_loop0».sig)]) Data.jtTrie globSem) code
-    Fn.«verify_bus_gkr_loop0_loop0».core (cert.withPows Data.powTree) false 0 = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«verify_bus_gkr_loop0_loop0»
 
 namespace LeanVM.Guest.Fn.«level_residual__L55_L16_L6_L3»
 
@@ -380,6 +366,20 @@ theorem w0 : checkWinCF (Glob.ofSigs ([(Fn.«level_residual__L25_L12_L4_L2_loop1
 
 end
 end LeanVM.Guest.Fn.«level_residual__L25_L12_L4_L2_loop1»
+
+namespace LeanVM.Guest.Fn.«gkr_layer__L3_L0_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Check
+
+@[expose] public section
+
+/-- `__loop0_gkr_layer__L3_L0`, window 0. -/
+theorem w0 : checkWinCF (Glob.ofSigs ([(Fn.«gkr_layer__L3_L0_loop0».idx, Fn.«gkr_layer__L3_L0_loop0».sig)]) Data.jtTrie globSem) code
+    Fn.«gkr_layer__L3_L0_loop0».core (cert.withPows Data.powTree) false 0 = true := by
+  decide +kernel
+
+end
+end LeanVM.Guest.Fn.«gkr_layer__L3_L0_loop0»
 
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1_loop0»
 

@@ -23,6 +23,7 @@ public section
 theorem Fn.«da_vector».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«da_vector».idx == 1) = true := by decide +kernel
 theorem Fn.«main_loop3».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«main_loop3».idx == 1) = true := by decide +kernel
 theorem Fn.«eq_prefix_run__L22».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«eq_prefix_run__L22».idx == 1) = true := by decide +kernel
+theorem Fn.«eq_prefix_run_rev__L24».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«eq_prefix_run_rev__L24».idx == 1) = true := by decide +kernel
 theorem Fn.«padding_weight__L30».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«padding_weight__L30».idx == 1) = true := by decide +kernel
 theorem Fn.«plus_one_run__L33».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«plus_one_run__L33».idx == 1) = true := by decide +kernel
 theorem Fn.«block_selector__L0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«block_selector__L0».idx == 1) = true := by decide +kernel

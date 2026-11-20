@@ -268,7 +268,7 @@ theorem vsWs_mono (op : Opcode) (c : ℕ) {Bs Bs' : List ℕ} (h9 : Bs.getD 9 0 
 words: at most `vsCountT op` at the arm `μ - 20`. -/
 theorem vs_weight_le_vsTs (op : Opcode) {Bvk μ r d : ℕ} (hμ1 : 20 ≤ μ) (hμ2 : μ ≤ 30)
     (hd : d < 14)
-    (h5 : B1.VerifySub.vbgMax B2C.fs vsWords.K29 vsWords.R vsWords.K8 ≤ 39767) (h7 : Bvk ≤ 56404)
+    (h5 : B1.VerifySub.vbgMax B2C.fs vsWords.KL vsWords.K8 ≤ 39767) (h7 : Bvk ≤ 56404)
     {rd : Reader} {t : Tree} {args rets : List E}
     (h : FlatShape coreProgram "verify_sub" (B1.VerifySub.vsTs B2C.fs vsWordsOs Bvk μ r d) t)
     (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :

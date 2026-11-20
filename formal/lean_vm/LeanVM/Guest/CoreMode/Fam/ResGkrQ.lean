@@ -2,14 +2,14 @@
   LeanVM.Guest.CoreMode.Fam.ResGkrQ
 
   `verify_bus_gkr`'s cursor in the proof stream (`VbgQ`), carried down from `verify_sub`'s front, and
-  its layer loop's slots' cursors (`LyQ`), carried down from it.
+  its radix-four layers' slots' cursors, carried down `gkr_layers__L{o}`, its loop and
+  `gkr_last_layers__L{r}_L{o}` to each `gkr_layer__L{p}_L{o}` (`GlQ`).
 -/
 
 module
 
 public import LeanVM.Guest.CoreMode.Fam.ResStP
-public import LeanVM.Guest.B1.Gkr.Holds
-public import LeanVM.Guest.B1.Gkr.RoundsHolds
+public import LeanVM.Guest.CoreMode.Fam.ResGkrS
 
 /-!
 # `verify_bus_gkr`'s cursors
@@ -18,13 +18,20 @@ public import LeanVM.Guest.B1.Gkr.RoundsHolds
 is `verify_sub` (`Res.termCallers_all`), at `vbgArgsV` (`vs_vbg_sites`), whose front puts the cursor
 `13` words past the stream (`VerifySub.vs_front`).
 
-`LyQ r J`: at an instance of the layer loop `verify_bus_gkr_loop0` at `x = g^j` below `n_pairs = g^m`
-(`m ≤ 16`), the depth's parity `sh`, the slot of `L = 2j + 2 - sh` in `layers` holds the cursor
-`stream·g^q`, with room for `140` words a layer to the last. `ly_curs`: an iteration's records and
-slots, on its body alone: the first record holds the slot's cursor, the record the pairs end at
-`8j` words on (`l29_loop`), the last record `4L` (`ly_rounds`), the next slot `4L + 12`.
-`lyQ_all`: the loop's callers are `verify_bus_gkr` (its root slot's cursor `8` or `14` words past
-the roots, `vbg_root_slot`) and its own tail.
+The radix-four layers' slots (the slot of binary layer `L` in `layers`, field `5` its cursor), each
+cursor `stream·g^q` with `q ≤ 27 + 140 j` at radix-four layer `j`:
+
+* `GlsQ`: `gkr_layers__L{o}` at `n_four = g^n`, `rem_g = g^r` (`n, r < 4`), `start_g = g^(2 - o)`, the
+  root-most slot's cursor `14` or `8` words past `verify_bus_gkr`'s (`vbg_ls`), the dispatch taking
+  `o = depth % 2` (`walk_disp_sel`);
+* `GlsLQ`: its loop at `x_m = g^m < g^n`, the slot of layer `4m`; an iteration's four layers move it to
+  `4m + 4` (`gl_slots`, `ResGkrS`);
+* `GlastQ`: `gkr_last_layers__L{r}_L{o}` at `n_four = g^n`, `m4 = g^(4n)`, the slot of layer `4n`,
+  past the loop's run (`glsl_run`);
+* `GlQ`: `gkr_layer__L{p}_L{o}` at `x_m = g^m`, `x_j = g^(4m + p)`, the slot of `L = 2(4m + p) + 2 - o`
+  with room for the `4L + 12` words it reads, past its siblings before it.
+
+The callers come from `Res.glCallers_all`.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -44,226 +51,84 @@ def VbgQ (J : Inst) : Prop :=
 /-- `verify_bus_gkr`'s call arguments in `verify_sub`. -/
 def vbgArgsV : List V := [554, 555, 556, 557, 558, 320, 253, 254, 561, 25].map .n
 
-/-- `verify_bus_gkr_loop0`'s call arguments in `verify_bus_gkr`. -/
-def lyArgsV : List V := [369, 366, 135, 16, 8, 18, 17, 63, 133, 9, 6].map .n
+/-- **`gkr_layers__L{o}`'s depth and root slot**: `n_four = g^n`, `rem_g = g^r`, `start_g = g^(2 - o)`,
+the root-most slot's cursor `q ≤ 27` words into the stream. -/
+def GlsQ (r : Ref) (J : Inst) : Prop :=
+  ∀ o < 2, ∀ σ bufs kids, J.t = .node (glcLsN o) σ bufs kids →
+    ∃ n rr q, σ (.n 3) = gen ^ n ∧ n < 4 ∧ σ (.n 4) = gen ^ rr ∧ rr < 4 ∧ σ (.n 5) = gen ^ (2 - o) ∧
+      LoadHolds r.img.read (σ (.n 0)) (10 * (2 - o) + 5) (σ (.n 8) * gen ^ q) ∧ q ≤ 27
 
-/-- **A layer slot's cursor in the stream**: the loop at `x = g^j < g^m`, the slot of
-`L = 2j + 2 - sh` holding `stream·g^q`, room for `140` words a layer. -/
-def LyQ (r : Ref) (J : Inst) : Prop :=
-  ∀ σ bufs kids, J.t = .node name% «verify_bus_gkr_loop0» σ bufs kids →
-    ∃ j m sh q, σ (.n 0) = gen ^ j ∧ σ (.n 1) = gen ^ m ∧ j < m ∧ m ≤ 16 ∧ sh < 2 ∧
-      σ (.n 2) = gen ^ (2 - sh) ∧ σ (.n 8) = gen ^ sh ∧
-      LoadHolds r.img.read (σ (.n 3)) (10 * (2 * j + 2 - sh) + 5) (σ (.n 9) * gen ^ q) ∧
-      q + 140 * (m - j) ≤ 8192
+/-- **`gkr_layers__L{o}`'s loop at `x_m = g^m`**: the slot of radix-four layer `4m`. -/
+def GlsLQ (r : Ref) (J : Inst) : Prop :=
+  ∀ o < 2, ∀ σ bufs kids, J.t = .node (glcLsLN o) σ bufs kids →
+    ∃ m n q, σ (.n 0) = gen ^ m ∧ σ (.n 1) = gen ^ n ∧ m < n ∧ n < 4 ∧ σ (.n 5) = gen ^ (2 - o) ∧
+      LoadHolds r.img.read (σ (.n 2)) (10 * (2 * (4 * m) + 2 - o) + 5) (σ (.n 8) * gen ^ q) ∧
+      q ≤ 27 + 560 * m
+
+/-- **`gkr_last_layers__L{r}_L{o}`**: the slot of radix-four layer `4n`. -/
+def GlastQ (r : Ref) (J : Inst) : Prop :=
+  ∀ rr < 4, ∀ o < 2, ∀ σ bufs kids, J.t = .node (glcLastN rr o) σ bufs kids →
+    ∃ n q, σ (.n 3) = gen ^ n ∧ n < 4 ∧ σ (.n 4) = gen ^ (4 * n) ∧ σ (.n 5) = gen ^ (2 - o) ∧
+      LoadHolds r.img.read (σ (.n 0)) (10 * (2 * (4 * n) + 2 - o) + 5) (σ (.n 8) * gen ^ q) ∧
+      q ≤ 27 + 560 * n
+
+/-- **`gkr_layer__L{p}_L{o}`'s slot**: at `x_m = g^m`, `x_j = g^(4m + p)`, the slot of
+`L = 2(4m + p) + 2 - o` holds `stream·g^q` with room for the layer's `4L + 12` words. -/
+def GlQ (r : Ref) (J : Inst) : Prop :=
+  ∀ p < 4, ∀ o < 2, ∀ σ bufs kids, J.t = .node (glName p o) σ bufs kids →
+    ∃ m q, σ (.n 3) = gen ^ m ∧ m < 4 ∧ σ (.n 4) = gen ^ (4 * m + p) ∧ σ (.n 5) = gen ^ (2 - o) ∧
+      LoadHolds r.img.read (σ (.n 0)) (10 * (2 * (4 * m + p) + 2 - o) + 5) (σ (.n 8) * gen ^ q) ∧
+      q + 4 * (2 * (4 * m + p) + 2 - o) + 12 ≤ 8192
 
 end
 
 public section
 
-theorem find_vbg : coreProgram.find? name% «verify_bus_gkr» = some fn% «verify_bus_gkr» :=
-  coreProgram_find?_at (j := idx% «verify_bus_gkr») rfl
-
-theorem find_ly : coreProgram.find? name% «verify_bus_gkr_loop0» = some fn% «verify_bus_gkr_loop0» :=
-  coreProgram_find?_at (j := idx% «verify_bus_gkr_loop0») rfl
-
-theorem vbg_params : (fn% «verify_bus_gkr»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] :=
-  rfl
-
-theorem ly_params : (fn% «verify_bus_gkr_loop0»).params =
-    [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10] := rfl
-
-theorem vbg_body : (fn% «verify_bus_gkr»).body = vbgPre ++ [.ret vbgRets] := by
-  obtain ⟨fn, hf, -, hb⟩ := vbgFound
-  rw [Option.some.inj (find_vbg.symm.trans hf)]; exact hb
-
-theorem ly_body : (fn% «verify_bus_gkr_loop0»).body = lyPre ++ [.ret []] := by
-  obtain ⟨fn, hf, -, hb⟩ := lyFound
-  rw [Option.some.inj (find_ly.symm.trans hf), hb]; exact lyBody_eq
-
 theorem gkr_hfs : ∀ f', 1 ≤ B2C.fs f' := fun f' ↦ by
   unfold B2C.fs; split <;> simp [B2C.mainFrame, Data.mainCells, Data.jtSlots]
-
-theorem vbg_not_loop : (fn% «verify_bus_gkr»).loop = false := by decide +kernel
-
-theorem ly_loop : (fn% «verify_bus_gkr_loop0»).loop = true ∧ Res.endOfFn (fn% «verify_bus_gkr_loop0») = some none :=
-  by decide +kernel
 
 /-- **`verify_sub` calls `verify_bus_gkr` only at `vbgArgsV`.** -/
 theorem vs_vbg_sites :
     Res.sitesB (fun f args _ ↦ f != name% «verify_bus_gkr» || args == vbgArgsV) VerifySub.vsT = true := by
   decide +kernel
 
-/-- **`verify_bus_gkr` calls its layer loop only at `lyArgsV`.** -/
-theorem vbg_ly_sites :
-    Res.sitesB (fun f args _ ↦ f != name% «verify_bus_gkr_loop0» || args == lyArgsV)
-      (fn% «verify_bus_gkr»).body = true := by
-  decide +kernel
-
-/-! ## An iteration of the layer loop -/
-
-section Sem
-
-variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
-
-/-- **An iteration's cursors**: from the slot's cursor `cur`, the first record (`σ 56`) holds it, the
-pair loop is called on it, the record the pairs end at holds it `8j` words on (`σ 65`), the last
-record `4L` (`σ 80`), and the next slot `4L + 12`. -/
-theorem ly_curs (hC : CallRel.Le C (coreProgram.Rel rd)) (h : Stmt.HoldsList C rd σ lyPre True kret)
-    {j sh : ℕ} {cur : E} (hj : j < 2 ^ 30) (hsh : sh < 2) (hx : σ (.n 0) = gen ^ j)
-    (hsg : σ (.n 2) = gen ^ (2 - sh)) (e8 : σ (.n 8) = gen ^ sh)
-    (hcur : LoadHolds rd (σ (.n 3)) (10 * (2 * j + 2 - sh) + 5) cur) :
-    LoadHolds rd (σ (.n 56)) 4310 cur ∧
-      (1 + σ (.n 0) ≠ 0 → C name% «verify_bus_gkr_loop0_loop0» [1, σ (.n 0), σ (.n 56), σ (.n 55), σ (.n 4)]
-        []) ∧
-      σ (.n 65) = cur * gen ^ (8 * j) ∧ σ (.n 80) = cur * gen ^ (4 * (2 * j + 2 - sh)) ∧
-      LoadHolds rd (σ (.n 3)) (10 * (2 * j + 2 - sh + 2) + 5) (cur * gen ^ (4 * (2 * j + 2 - sh) + 12)) := by
-  have hnr := lyPre_noRet
-  have a := fun n a heq => tb_holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr h n a heq
-  have m11 := a 0 (.mul (.n 11) (.n 0) (.n 0)) (by decide +kernel)
-  have m12 := a 1 (.mul (.n 12) (.n 11) (.n 2)) (by decide +kernel)
-  have m13 := a 2 (.mul (.n 13) (.n 12) (.n 12)) (by decide +kernel)
-  have m14 := a 3 (.mul (.n 14) (.n 13) (.n 13)) (by decide +kernel)
-  have m15 := a 4 (.mul (.n 15) (.n 14) (.n 12)) (by decide +kernel)
-  have m16 := a 5 (.mul (.n 16) (.n 15) (.n 15)) (by decide +kernel)
-  have m17 := a 6 (.mul (.n 17) (.n 3) (.n 16)) (by decide +kernel)
-  have l23 := a 12 (.load (.n 23) (.n 17) 5) (by decide +kernel)
-  have l23' := a 39 (.load (.n 23) (.n 56) 4310) (by decide +kernel)
-  have l60 := a 44 (.load (.n 60) (.n 56) 5172) (by decide +kernel)
-  have c61 := a 45 (.const (.n 61) (word 1 0)) (by decide +kernel)
-  have a62 := a 46 (.add (.n 62) (.n 61) (.n 0)) (by decide +kernel)
-  have c63 := a 47 (.const (.n 63) (word 1 0)) (by decide +kernel)
-  have m64 := a 49 (.mul (.n 64) (.n 56) (.n 0)) (by decide +kernel)
-  have l65 := a 50 (.load (.n 65) (.n 64) 4310) (by decide +kernel)
-  have m72 := a 54 (.mul (.n 72) (.n 56) (.n 0)) (by decide +kernel)
-  have c73 := a 55 (.const (.n 73) (word 2 0)) (by decide +kernel)
-  have m74 := a 56 (.mul (.n 74) (.n 72) (.n 73)) (by decide +kernel)
-  have l80 := a 62 (.load (.n 80) (.n 74) 4310) (by decide +kernel)
-  have hst := tb_holds_slice hnr h 34 ((List.range 5).map fun k ↦
-    Stmt.atom (.load (.n (37 + k)) (.n 56) (862 * k))) (by decide +kernel)
-  rw [tb_holdsList_mapAtoms] at hst
-  simp only [Atom.Holds] at m11 m12 m13 m14 m15 m16 m17 l23 l23' l60 c61 a62 c63 m64 l65 m72 c73 m74 l80 hst
-  rw [tb_word_one] at c61 c63
-  rw [tb_word_gen] at c73
-  obtain ⟨-, hc35⟩ := tb_holds_callIf hnr h 48 (.n 62) name% «verify_bus_gkr_loop0_loop0» [.n 63,
-      .n 0, .n 56, .n 55, .n 4] (by decide +kernel)
-  simp only [List.map_cons, List.map_nil, c63] at hc35
-  set L := 2 * j + 2 - sh with hL
-  have e11 : σ (.n 11) = gen ^ (2 * j) := by rw [m11, hx, ← pow_add]; ring_nf
-  have e12 : σ (.n 12) = gen ^ L := by
-    rw [m12, e11, hsg, ← pow_add, show 2 * j + (2 - sh) = L by omega]
-  have e17 : σ (.n 17) = σ (.n 3) * gen ^ (10 * L) := by
-    rw [m17, m16, m15, m14, m13, e12, ← pow_add, ← pow_add, ← pow_add, ← pow_add]
-    ring_nf
-  rw [e17, tb_loadHolds_mul_gen_pow] at l23
-  obtain rfl : σ (.n 23) = cur := tb_loadHolds_unique l23 hcur
-  -- the first record
-  have hcap : TbCapAt rd (σ (.n 56)) 0 gkCap ((List.range 5).map fun k ↦ σ (.n (37 + k))) := by
-    refine ⟨by simp, fun k hk => ?_⟩
-    have hk5 : k < 5 := by simpa using hk
-    simp only [List.getElem_map, List.getElem_range]
-    rw [show 0 + k * gkCap = 862 * k by unfold gkCap; ring]
-    exact hst k hk5
-  have h0 : TbGkrRoundsOut 0 0 rd (σ (.n 56)) (σ (.n 55)) := gkrRoundsOut_zero hcap l23' l60
-  -- the pairs
-  have hcall : 1 + σ (.n 0) ≠ 0 → C name% «verify_bus_gkr_loop0_loop0» [1, σ (.n 0), σ (.n 56), σ (.n 55),
-      σ (.n 4)] [] := fun hne => hc35 (by rw [a62, c61]; exact hne)
-  have R2 := l29_loop (h := j) hx (by omega) (fun hne => hC _ _ _ (hcall hne)) h0
-  obtain ⟨-, cur2, -, -, -, -, hcur2, -, -, -, -, -, -, -, -, hend2, -⟩ := R2
-  obtain rfl : cur2 = σ (.n 23) := tb_loadHolds_unique hcur2 l23'
-  rw [m64, hx, tb_loadHolds_mul_gen_pow] at l65
-  have e65 : σ (.n 65) = σ (.n 23) * gen ^ (8 * j) := by
-    rw [tb_loadHolds_unique l65 hend2]; ring_nf
-  -- the last record
-  have R := ly_rounds hC tb_gkr_rounds_holds h hj hsh hx e11 e8 h0
-  obtain ⟨-, cur', -, -, -, -, hcur', -, -, -, -, -, -, -, -, hcurT, -⟩ := R
-  obtain rfl : cur' = σ (.n 23) := tb_loadHolds_unique hcur' l23'
-  have e74 : σ (.n 74) = σ (.n 56) * gen ^ (j + 1) := by rw [m74, m72, c73, hx, pow_succ]; ring
-  rw [e74, tb_loadHolds_mul_gen_pow] at l80
-  have e80 : σ (.n 80) = σ (.n 23) * gen ^ (4 * L) := tb_loadHolds_unique l80 hcurT
-  -- the next slot
-  obtain ⟨-, s25, -⟩ := ly_stores h
-  rw [e17, tb_loadHolds_mul_gen_pow, e80, mul_assoc, ← pow_add] at s25
-  refine ⟨l23', hcall, e65, e80, ?_⟩
-  rw [show 10 * (L + 2) + 5 = 10 * L + 25 by ring]
-  exact s25
-
-end Sem
-
-/-! ## `verify_bus_gkr`'s root slot -/
-
-/-- **`verify_bus_gkr`'s depth, tables and root slot**: `g_bus_mu = g^d`, `d < 33`, the loop's bound
-`g^((d - 1) / 2)`, `start_g = g^(2 - sh)` and `odd_g = g^sh` for `sh = d % 2`, and the root slot, of
-`L = 2 - sh`, holding the cursor `8` or `14` words past the frame's. -/
-theorem vbg_root_slot {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {C : CallRel} {σ : Val} {kret : List E → Prop}
-    (h : Stmt.HoldsList C Lm.read σ vbgPre True kret) :
-    ∃ d < 33, σ (.n 6) = gen ^ d ∧ σ (.n 366) = gen ^ ((d - 1) / 2) ∧ σ (.n 135) = gen ^ (2 - d % 2) ∧
-      σ (.n 133) = gen ^ (d % 2) ∧ σ (.n 369) = 1 ∧
-      LoadHolds Lm.read (σ (.n 16)) (10 * (2 - d % 2) + 5)
-        (σ (.n 5) * gen ^ (if d % 2 = 0 then 14 else 8)) := by
-  have hnr := vbgPre_noRet
-  have a := fun n a heq => tb_holds_atom (C := C) (rd := Lm.read) (σ := σ) (kret := kret) hnr h n a heq
-  have c19 := a 9 (.const (.n 19) (word 4294967296 0)) (by decide +kernel)
-  have rc := a 10 (.rangeCheck (.n 6) (.n 20) (.n 21) (.n 22) (.n 19)) (by decide +kernel)
-  simp only [Atom.Holds] at c19 rc
-  obtain ⟨d, hd, hg⟩ := tb_rc_sound' hμ Lm (K := 33) (by omega) (by norm_num)
-    (by rw [c19, show (4294967296 : ℕ) = 2 ^ 32 by norm_num, tb_word_two_pow (by norm_num),
-      gen_pow_eq_ofK]) rc.1 rc.2.1 rc.2.2
-  obtain ⟨e133, e366, e135⟩ := vbg_tables h hg hd
-  have m136 := a 178 (.mul (.n 136) (.n 135) (.n 135)) (by decide +kernel)
-  have m137 := a 179 (.mul (.n 137) (.n 136) (.n 136)) (by decide +kernel)
-  have m138 := a 180 (.mul (.n 138) (.n 137) (.n 135)) (by decide +kernel)
-  have m139 := a 181 (.mul (.n 139) (.n 138) (.n 138)) (by decide +kernel)
-  have m140 := a 182 (.mul (.n 140) (.n 16) (.n 139)) (by decide +kernel)
-  have c141 := a 183 (.const (.n 141) (word 1 0)) (by decide +kernel)
-  have a142 := a 184 (.add (.n 142) (.n 133) (.n 141)) (by decide +kernel)
-  have c369 := a 190 (.const (.n 369) (word 1 0)) (by decide +kernel)
-  simp only [Atom.Holds] at m136 m137 m138 m139 m140 c141 a142 c369
-  rw [tb_word_one] at c141 c369
-  have e140 : σ (.n 140) = σ (.n 16) * gen ^ (10 * (2 - d % 2)) := by
-    rw [m140, m139, m138, m137, m136, e135, ← pow_add, ← pow_add, ← pow_add, ← pow_add]
-    ring_nf
-  have hi := tb_holds_slice hnr h 185 [.ite (.n 142) rtFour rtTwo] (by decide +kernel)
-  simp only [Stmt.HoldsList] at hi
-  rw [tb_holds_ite_noRet _ _ _ rtFour_noRet rtTwo_noRet] at hi
-  obtain ⟨⟨-, hfour, htwo⟩, -⟩ := hi
-  refine ⟨d, hd, hg, e366, e135, e133, c369, ?_⟩
-  rw [← tb_loadHolds_mul_gen_pow, ← e140]
-  rcases Nat.mod_two_eq_zero_or_one d with h2 | h2
-  · have h0 : σ (.n 142) = 0 := by rw [a142, c141, e133, h2, pow_zero, e_add_self]
-    have hf := hfour h0
-    have b := fun n a heq => tb_holds_atom (C := C) (rd := Lm.read) (σ := σ) (kret := kret) rtFour_noRet hf n a heq
-    have c261 := b 78 (.const (.n 261) (word 16384 0)) (by decide +kernel)
-    have m262 := b 79 (.mul (.n 262) (.n 5) (.n 261)) (by decide +kernel)
-    have l262 := b 80 (.load (.n 262) (.n 140) 5) (by decide +kernel)
-    simp only [Atom.Holds] at c261 m262 l262
-    rw [show (16384 : ℕ) = 2 ^ 14 by norm_num, tb_word_two_pow (by norm_num)] at c261
-    rw [m262, c261] at l262
-    simpa [h2] using l262
-  · have hne : σ (.n 142) ≠ 0 := by
-      rw [a142, c141, e133, h2, pow_one]
-      intro h0
-      have := gen_pow_inj (a := 1) (b := 0) (by omega) (by omega)
-        ((pow_one gen).trans ((e_add_eq_zero_iff.mp h0).trans (pow_zero gen).symm))
-      omega
-    have hf := htwo hne
-    have b := fun n a heq => tb_holds_atom (C := C) (rd := Lm.read) (σ := σ) (kret := kret) rtTwo_noRet hf n a heq
-    have c353 := b 46 (.const (.n 353) (word 256 0)) (by decide +kernel)
-    have m354 := b 47 (.mul (.n 354) (.n 5) (.n 353)) (by decide +kernel)
-    have l354 := b 48 (.load (.n 354) (.n 140) 5) (by decide +kernel)
-    simp only [Atom.Holds] at c353 m354 l354
-    rw [show (256 : ℕ) = 2 ^ 8 by norm_num, tb_word_two_pow (by norm_num)] at c353
-    rw [m354, c353] at l354
-    simpa [h2] using l354
+/-- **A loop helper's tail call**: the last call of its path, its counter one step on. -/
+theorem loop_tail {rd : Reader} {fI : String} {fnI : Fn} (hfI : coreProgram.find? fI = some fnI)
+    (hl : fnI.loop = true) (hnc : fI ∉ Stmt.blockCallees (loopBody fnI)) {σI : Val} {es : List Ev} {vs : List V}
+    (hw : walk σI fnI.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σI) {i : ℕ} {c : Call}
+    (hci : (calls es)[i]? = some c) (hcf : c.f = fI) :
+    ∃ p0 prest i0, fnI.params = p0 :: prest ∧ c.args = i0 :: prest ∧
+      σI i0 = σI p0 * ofK (addressOfIndex 1) ∧ i + 1 = (calls es).length := by
+  obtain ⟨-, e0, -, hsh, -⟩ := progOk_guest.loop _ _ hfI hl
+  obtain ⟨p0, prest, c0, i0, es1, hps, hw1, hes, hi0, -⟩ := Res.loop_path hsh hw hh
+  subst hes
+  have hnm : fnI.name = fI := Da.fn_name_of_find hfI
+  rw [Res.loop_calls, hnm] at hci ⊢
+  have hi : i = (calls es1).length := by
+    by_contra hne
+    rcases Nat.lt_or_gt_of_ne hne with hlt | hgt
+    · rw [List.getElem?_append_left hlt] at hci
+      have hc1 := walk_callees (σ := σI) (loopBody fnI) (c := c) (by rw [hw1]; exact List.mem_of_getElem? hci)
+      rw [hcf] at hc1
+      exact hnc hc1
+    · rw [List.getElem?_append_right (by omega), List.getElem?_eq_none (by simp; omega)] at hci
+      cases hci
+  subst hi
+  rw [List.getElem?_append_right le_rfl, Nat.sub_self] at hci
+  simp only [List.getElem?_singleton, ↓reduceIte, Option.some.injEq] at hci
+  subst hci
+  exact ⟨p0, prest, i0, hps, rfl, hi0, by simp⟩
 
 /-! ## Down from `verify_sub` -/
 
 variable {r : Ref}
 
-/-- **`verify_bus_gkr`'s cursor passes down from `verify_sub`.** -/
-theorem vbgQ_step (hr : r.Ok) :
-    Res.KidStep coreProgram r.img.read B2C.H (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) VbgQ := by
-  intro I hI fI σI bufsI kidsI hIt fnI hfI es vs hw hh i c J hci hJS hk _ _ hname hval hph _
-    σ bufs kids hJt
+/-- A callee's frame, at a call entered. -/
+theorem kid_fn {P : Core.Program} {rd : Reader} {c : Call} {σI : Val} {J : Inst} {g : String} {σ : Val}
+    {bufs : List ℕ} {kids : List Tree} (hJt : J.t = .node g σ bufs kids)
+    (hval : c.taken = true → J.t.Valid P rd (c.args.map σI) (c.rets.map σI))
+    (hph : c.taken = false → ∃ g σ', J.t = .phantom g σ') :
+    ∃ fn, P.find? g = some fn ∧ fn.params.map σ = c.args.map σI := by
   have hct : c.taken = true := by
     cases h : c.taken
     · obtain ⟨g', σ', h'⟩ := hph h
@@ -272,6 +137,14 @@ theorem vbgQ_step (hr : r.Ok) :
   have hJv := hval hct
   rw [hJt] at hJv
   obtain ⟨fn, hfn, hpar, -⟩ := hJv
+  exact ⟨fn, hfn, hpar⟩
+
+/-- **`verify_bus_gkr`'s cursor passes down from `verify_sub`.** -/
+theorem vbgQ_step (hr : r.Ok) :
+    Res.KidStep coreProgram r.img.read B2C.H (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) VbgQ := by
+  intro I hI fI σI bufsI kidsI hIt fnI hfI es vs hw hh i c J hci hJS hk _ _ hname hval hph _
+    σ bufs kids hJt
+  obtain ⟨fn, hfn, hpar⟩ := kid_fn hJt hval hph
   have hcf : c.f = name% «verify_bus_gkr» := by rw [← hname, hJt]; rfl
   have hc : c ∈ calls es := List.mem_of_getElem? hci
   -- the caller is `verify_sub`
@@ -311,132 +184,291 @@ theorem vbgQ_step (hr : r.Ok) :
     (bytecode := List.replicate (2 ^ 23) 0) List.length_replicate hexp hwin hb
   rw [e5, e9, F.h320, F.h312, mul_assoc, ← pow_add]
 
+/-- **The root's instance is `main`'s.** -/
+theorem root_main (hr : r.Ok) {J : Inst} {rest : List Inst}
+    (he : r.T.insts B2C.fs coreProgram.loop B2C.H (0, r.T.block B2C.fs coreProgram.loop) r.hdr = J :: rest)
+    {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (hJt : J.t = .node f σ bufs kids) : f = "main" := by
+  obtain ⟨J', rest', he', ht, -⟩ := head_insts (fs := B2C.fs) (lp := coreProgram.loop) (H := B2C.H) r.T
+    (0, r.T.block B2C.fs coreProgram.loop) r.hdr
+  rw [he'] at he
+  obtain ⟨rfl, -⟩ := List.cons.inj he
+  have hn := hr.name
+  rw [← ht, hJt] at hn
+  simpa only [Tree.name] using hn
+
 /-- **`verify_bus_gkr`'s cursor at every honest instance.** -/
 theorem vbgQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, VbgQ J := by
   obtain ⟨rd, hH, hXh⟩ := hr.honest
   have hv := Covers.valid hH.toHonest hXh.covers
   refine Res.insts_down (vbgQ_step hr) r.T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
-  obtain ⟨J', rest', he', ht, -⟩ := head_insts (fs := B2C.fs) (lp := coreProgram.loop) (H := B2C.H) r.T
-    (0, r.T.block B2C.fs coreProgram.loop) r.hdr
-  rw [he'] at he
-  obtain ⟨rfl, -⟩ := List.cons.inj he
   intro σ bufs kids hJt
-  have hn := hr.name
-  rw [← ht, hJt] at hn
-  simp only [Tree.name] at hn
-  exact absurd hn (by decide)
+  exact absurd (root_main hr he hJt) (by decide)
 
 /-! ## Down from `verify_bus_gkr` -/
 
-/-- **A layer slot's cursor passes down from `verify_bus_gkr`, and from one iteration to the next.** -/
-theorem lyQ_step (hr : r.Ok) :
-    Res.KidStep coreProgram r.img.read B2C.H (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) (LyQ r) := by
-  intro I hI fI σI bufsI kidsI hIt fnI hfI es vs hw hh i c J hci hJS hk _ hhdr hname hval hph hQI
-    σ bufs kids hJt
-  have hct : c.taken = true := by
-    cases h : c.taken
-    · obtain ⟨g', σ', h'⟩ := hph h
-      rw [hJt] at h'; cases h'
-    · rfl
-  have hJv := hval hct
-  rw [hJt] at hJv
-  obtain ⟨fn, hfn, hpar, -⟩ := hJv
-  have hcf : c.f = name% «verify_bus_gkr_loop0» := by rw [← hname, hJt]; rfl
+/-- **`gkr_layers__L{o}`'s depth and root slot pass down from `verify_bus_gkr`.** -/
+theorem glsQ_step (hr : r.Ok) :
+    Res.KidStep coreProgram r.img.read B2C.H (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) (GlsQ r) := by
+  intro I hI fI σI bufsI kidsI hIt fnI hfI es vs hw hh i c J hci hJS hk _ _ hname hval hph _
+    o ho σ bufs kids hJt
+  obtain ⟨fn, hfn, hpar⟩ := kid_fn hJt hval hph
+  have hcf : c.f = glcLsN o := by rw [← hname, hJt]; rfl
   have hc : c ∈ calls es := List.mem_of_getElem? hci
-  obtain rfl : fn = fn% «verify_bus_gkr_loop0» := Option.some.inj (hfn.symm.trans find_ly)
-  rw [ly_params] at hpar
-  have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
-  -- the counter below the bound, at the callee
-  suffices H : ∃ j m sh q, σ (.n 0) = gen ^ j ∧ σ (.n 1) = gen ^ m ∧ j ≤ m ∧ m ≤ 16 ∧ sh < 2 ∧
-      σ (.n 2) = gen ^ (2 - sh) ∧ σ (.n 8) = gen ^ sh ∧
-      LoadHolds r.img.read (σ (.n 3)) (10 * (2 * j + 2 - sh) + 5) (σ (.n 9) * gen ^ q) ∧
-      q + 140 * (m - j) ≤ 8192 by
-    obtain ⟨j, m, sh, q, h0, h1, hjm, h3, h4, h5, h6, h7, h8⟩ := H
-    obtain ⟨j', hj', h0'⟩ := loop_ctr_lt hr hJS hJt find_ly ly_loop.1 ly_loop.2 ly_params h1 (by omega)
-    obtain rfl : j = j' := gen_pow_inj (by omega) (by omega) (h0.symm.trans h0')
-    exact ⟨j, m, sh, q, h0, h1, hj', h3, h4, h5, h6, h7, h8⟩
-  -- the caller: `verify_bus_gkr`, or the loop's tail
-  have hcal := List.all_eq_true.mp (Res.calls_sites (Res.termCallers_all fnI (List.mem_of_find?_eq_some hfI))
-    hw c hc) (name% «verify_bus_gkr_loop0», name% «verify_bus_gkr») (by decide)
-  have hnI := Da.fn_name_of_find hfI
-  rw [hcf] at hcal
-  simp only [bne_self_eq_false, Bool.false_or, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq] at hcal
-  obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
-  obtain ⟨-, hb⟩ := Res.holds_of_valid gkr_hfs hv hfI
-  rcases hcal with hV | ⟨hS, hl⟩
-  · -- `verify_bus_gkr`'s call
-    obtain rfl : fI = name% «verify_bus_gkr» := hnI.symm.trans hV
+  obtain ⟨fn', hf', hp', -⟩ := glcFnCheck_sound (glc_layers_check o ho).1
+  obtain rfl : fn = fn' := Option.some.inj (hfn.symm.trans hf')
+  rcases gl_caller hfI hw hc (gl_callers_mem.1 o ho).1 hcf with h | ⟨h, hl⟩
+  · simp only [List.mem_singleton] at h
+    subst h
     obtain rfl : fnI = fn% «verify_bus_gkr» := Option.some.inj (hfI.symm.trans find_vbg)
-    have hs := Res.calls_sites vbg_ly_sites hw c hc
-    rw [hcf] at hs
-    simp only [bne_self_eq_false, Bool.false_or, beq_iff_eq] at hs
-    rw [hs] at hpar
-    simp only [lyArgsV, List.map_cons, List.map_nil, List.cons.injEq] at hpar
-    obtain ⟨p0, p1, p2, p3, -, -, -, -, p8, p9, -⟩ := hpar
+    have hmem : [glcLsN 0, glcLsN 1].contains (glcLsN o) = true := by
+      interval_cases o <;> decide
+    -- the arguments
+    have hs := Res.calls_sites vbg_ls_sites hw c hc
+    simp only [hcf, hmem, Bool.not_true, Bool.false_or, beq_iff_eq] at hs
+    rw [hs, hp', glcPar9_eq] at hpar
+    simp only [vbgLsArgs, List.map_cons, List.map_nil, List.cons.injEq] at hpar
+    obtain ⟨p0, -, -, p3, p4, p5, -, -, p8, -⟩ := hpar
+    -- the dispatch's arm
+    rw [vbg_split] at hw
+    obtain ⟨sel, hsel, hx⟩ := walk_disp_sel vbg_split_sites.1 vbg_split_sites.2 hw hc (by rw [hcf]; exact hmem)
+    rw [hcf] at hsel
+    have hso := glcLs_sel ho hsel
+    -- the body
+    obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
+    obtain ⟨-, hb⟩ := Res.holds_of_valid gkr_hfs hv hfI
     rw [vbg_body, holdsList_append, holdsList_noRet _ vbgPre_noRet] at hb
-    obtain ⟨d, hd, hg, e366, e135, e133, e369, hroot⟩ :=
-      vbg_root_slot (by omega) r.img hb.1
+    have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
+    obtain ⟨d, hd, e167, e400, e402, e169, hroot⟩ := vbg_ls (by omega) r.img hb.1
+    rw [e167, ← gen_pow_eq_ofK] at hx
+    have hsd : d % 2 = sel := gen_pow_inj (by omega) (by omega) hx
+    subst hsd hso
     have e5 := vbgQ_all hr I hI σI bufsI kidsI hIt
-    refine ⟨0, (d - 1) / 2, d % 2, 13 + (if d % 2 = 0 then 14 else 8), ?_, ?_, Nat.zero_le _, by omega,
-      Nat.mod_lt _ (by norm_num), ?_, ?_, ?_, ?_⟩
-    · rw [p0, e369, pow_zero]
-    · rw [p1, e366]
-    · rw [p2, e135]
-    · rw [p8, e133]
-    · rw [p3, p9]
-      rw [e5, mul_assoc, ← pow_add] at hroot
-      simpa using hroot
-    · split <;> omega
-  · -- the loop's tail call
-    obtain rfl : fI = name% «verify_bus_gkr_loop0» := hnI.symm.trans hS
-    obtain rfl : fnI = fn% «verify_bus_gkr_loop0» := Option.some.inj (hfI.symm.trans find_ly)
-    obtain ⟨-, e0, -, hsh, -⟩ := progOk_guest.loop _ _ hfI hl
-    obtain ⟨p0, prest, c0, i0, es1, hps, hw1, hes, hi0, -⟩ := Res.loop_path hsh hw hh
-    subst hes
-    have hnm : (fn% «verify_bus_gkr_loop0»).name = name% «verify_bus_gkr_loop0» := Da.fn_name_of_find find_ly
-    rw [Res.loop_calls, hnm] at hci
-    have hi : i = (calls es1).length := by
-      by_contra hne
-      rcases Nat.lt_or_gt_of_ne hne with hlt | hgt
-      · rw [List.getElem?_append_left hlt] at hci
-        have hc1 := walk_callees (σ := σI) (loopBody (fn% «verify_bus_gkr_loop0»)) (c := c)
-          (by rw [hw1]; exact List.mem_of_getElem? hci)
-        rw [hcf] at hc1
-        exact absurd hc1 (by decide +kernel)
-      · rw [List.getElem?_append_right (by omega), List.getElem?_eq_none (by simp; omega)] at hci
-        cases hci
-    subst hi
-    rw [List.getElem?_append_right le_rfl, Nat.sub_self] at hci
-    simp only [List.getElem?_singleton, ↓reduceIte, Option.some.injEq] at hci
-    subst hci
-    rw [ly_params] at hps
-    obtain ⟨rfl, rfl⟩ := List.cons.inj hps
-    simp only [List.map_cons, List.map_nil, List.cons.injEq] at hpar
-    obtain ⟨p0, p1, p2, p3, -, -, -, -, p8, p9, -⟩ := hpar
-    -- the iteration's slot and its next one
-    obtain ⟨jI, m, sh, q, h0I, h1I, hjm, hm, hsh, h2I, h8I, hcurI, hroomI⟩ := hQI σI bufsI kidsI hIt
-    rw [ly_body, holdsList_append, holdsList_noRet _ lyPre_noRet] at hb
-    obtain ⟨-, -, -, -, hnext⟩ := ly_curs (fun _ _ _ h ↦ Res.KidRel.rel h) hb.1 (by omega) hsh h0I h2I h8I hcurI
-    refine ⟨jI + 1, m, sh, q + (4 * (2 * jI + 2 - sh) + 12), ?_, by rw [p1, h1I], by omega, hm, hsh,
-      by rw [p2, h2I], by rw [p8, h8I], ?_, by omega⟩
-    · rw [p0, hi0, h0I, ← gen_pow_eq_ofK, ← pow_add]
-    · rw [p3, p9, pow_add, ← mul_assoc, show 2 * (jI + 1) + 2 - sh = 2 * jI + 2 - sh + 2 by omega]
-      exact hnext
+    refine ⟨(d - 1) / 8, ((d - 1) / 2) % 4, 13 + (if d % 2 = 0 then 14 else 8), by rw [p3, e400], by omega,
+      by rw [p4, e402], Nat.mod_lt _ (by norm_num), by rw [p5, e169], ?_, by split <;> omega⟩
+    rw [p0, p8, pow_add, ← mul_assoc, ← e5]
+    exact hroot
+  · exfalso
+    subst h
+    rw [not_loop_of (gl_loopsB.1 o ho).1 hfI] at hl
+    cases hl
 
-/-- **A layer slot's cursor at every honest instance.** -/
-theorem lyQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, LyQ r J := by
+/-- **`gkr_layers__L{o}`'s depth and root slot at every honest instance.** -/
+theorem glsQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, GlsQ r J := by
   obtain ⟨rd, hH, hXh⟩ := hr.honest
   have hv := Covers.valid hH.toHonest hXh.covers
-  refine Res.insts_down (lyQ_step hr) r.T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
-  obtain ⟨J', rest', he', ht, -⟩ := head_insts (fs := B2C.fs) (lp := coreProgram.loop) (H := B2C.H) r.T
-    (0, r.T.block B2C.fs coreProgram.loop) r.hdr
-  rw [he'] at he
-  obtain ⟨rfl, -⟩ := List.cons.inj he
-  intro σ bufs kids hJt
-  have hn := hr.name
-  rw [← ht, hJt] at hn
-  simp only [Tree.name] at hn
-  exact absurd hn (by decide)
+  refine Res.insts_down (glsQ_step hr) r.T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
+  intro o ho σ bufs kids hJt
+  have := root_main hr he hJt
+  interval_cases o <;> exact absurd this (by decide)
+
+theorem gls_q_step {q q1 m : ℕ} (h1 : q1 ≤ q + 140 * 4) (h : q ≤ 27 + 560 * m) : q1 ≤ 27 + 560 * (m + 1) := by
+  rw [Nat.mul_add_one, ← Nat.add_assoc]
+  exact Nat.le_trans h1 (Nat.add_le_add_right h _)
+
+/-- **The loop's slot passes down from `gkr_layers__L{o}`, and from one iteration to the next.** -/
+theorem glsLQ_step (hr : r.Ok) :
+    Res.KidStep coreProgram r.img.read B2C.H (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) (GlsLQ r) := by
+  intro I hI fI σI bufsI kidsI hIt fnI hfI es vs hw hh i c J hci hJS hk _ _ hname hval hph hQI
+    o ho σ bufs kids hJt
+  obtain ⟨fn, hfn, hpar⟩ := kid_fn hJt hval hph
+  have hcf : c.f = glcLsLN o := by rw [← hname, hJt]; rfl
+  have hc : c ∈ calls es := List.mem_of_getElem? hci
+  obtain ⟨fn', hf', hp', hb'⟩ := glcFnCheck_sound (glc_layers_check o ho).2.1
+  obtain rfl : fn = fn' := Option.some.inj (hfn.symm.trans hf')
+  obtain ⟨hlp, hend, hnc⟩ := loop_of (gl_loopsB.1 o ho).2.1 hf'
+  have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
+  -- the counter below the bound, at the callee
+  suffices H : ∃ m n q, σ (.n 0) = gen ^ m ∧ σ (.n 1) = gen ^ n ∧ m ≤ n ∧ n < 4 ∧ σ (.n 5) = gen ^ (2 - o) ∧
+      LoadHolds r.img.read (σ (.n 2)) (10 * (2 * (4 * m) + 2 - o) + 5) (σ (.n 8) * gen ^ q) ∧
+      q ≤ 27 + 560 * m by
+    obtain ⟨m, n, q, h0, h1, hmn, hn, h5, hsl, hq⟩ := H
+    obtain ⟨m', hm', h0'⟩ := loop_ctr_lt hr hJS hJt hfn hlp hend (hp'.trans glcPar9_eq) h1 (by omega)
+    obtain rfl : m = m' := gen_pow_inj (by omega) (by omega) (h0.symm.trans h0')
+    exact ⟨m, n, q, h0, h1, hm', hn, h5, hsl, hq⟩
+  obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
+  obtain ⟨-, hb⟩ := Res.holds_of_valid gkr_hfs hv hfI
+  rw [hp', glcPar9_eq] at hpar
+  rcases gl_caller hfI hw hc (gl_callers_mem.1 o ho).2.1 hcf with h | ⟨h, hl⟩
+  · -- `gkr_layers__L{o}`'s call
+    simp only [List.mem_singleton] at h
+    subst h
+    obtain ⟨fnL, hfL, -, hbL⟩ := glcFnCheck_sound (glc_layers_check o ho).1
+    obtain rfl : fnI = fnL := Option.some.inj (hfI.symm.trans hfL)
+    have hs := Res.calls_sites (by rw [hbL]; exact (gl_sites o ho).1) hw c hc
+    simp only [hcf, bne_self_eq_false, Bool.false_or, Bool.and_eq_true, beq_iff_eq] at hs
+    rw [hs.1] at hpar
+    simp only [List.map_cons, List.map_nil, List.cons.injEq] at hpar
+    obtain ⟨p0, p1, p2, -, -, p5, -, -, p8, -⟩ := hpar
+    rw [hbL] at hb
+    obtain ⟨c11, -, -, -⟩ := gls_holds hb
+    obtain ⟨n, rr, q, h3, hn, -, -, h5, hsl, hq⟩ := glsQ_all hr I hI o ho σI bufsI kidsI hIt
+    refine ⟨0, n, q, by rw [p0, c11, pow_zero], by rw [p1, h3], Nat.zero_le _, hn, by rw [p5, h5], ?_, by omega⟩
+    rw [p2, p8]
+    simpa using hsl
+  · -- the loop's tail call
+    subst h
+    obtain rfl := Option.some.inj (hfI.symm.trans hf')
+    obtain ⟨p0, prest, i0, hps, hargs, hi0, -⟩ := loop_tail hfI hlp hnc hw hh hci hcf
+    rw [hp', glcPar9_eq] at hps
+    obtain ⟨rfl, rfl⟩ := List.cons.inj hps
+    rw [hargs] at hpar
+    simp only [List.map_cons, List.map_nil, List.cons.injEq] at hpar
+    obtain ⟨p0, p1, p2, -, -, p5, -, -, p8, -⟩ := hpar
+    obtain ⟨m, n, q, h0I, h1I, hmn, hn, h5I, hslI, hqI⟩ := hQI o ho σI bufsI kidsI hIt
+    rw [hb'] at hb
+    obtain ⟨m10, -, hcalls⟩ := glsl_holds hb
+    have hR : ∀ p < 4, coreProgram.Rel r.img.read (glName p o) [σI (.n 2), σI (.n 3), σI (.n 4), gen ^ m,
+        gen ^ (4 * m + p), gen ^ (2 - o), σI (.n 6), σI (.n 7), σI (.n 8)] [] := fun p hp ↦ by
+      have := Res.KidRel.rel (hcalls p hp)
+      rwa [m10, h0I, h5I, gl_pow4] at this
+    obtain ⟨q1, h1, hq1⟩ := gl_slots ho (by omega) 4 le_rfl hR hslI 4 le_rfl
+    refine ⟨m + 1, n, q1, ?_, by rw [p1, h1I], by omega, hn, by rw [p5, h5I], ?_, gls_q_step hq1 hqI⟩
+    · rw [p0, hi0, h0I, ← gen_pow_eq_ofK, ← pow_add]
+    · rw [p2, p8, show 4 * (m + 1) = 4 * m + 4 by ring]
+      exact h1
+
+/-- **The loop's slot at every honest instance.** -/
+theorem glsLQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, GlsLQ r J := by
+  obtain ⟨rd, hH, hXh⟩ := hr.honest
+  have hv := Covers.valid hH.toHonest hXh.covers
+  refine Res.insts_down (glsLQ_step hr) r.T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
+  intro o ho σ bufs kids hJt
+  have := root_main hr he hJt
+  interval_cases o <;> exact absurd this (by decide)
+
+/-- **`gkr_last_layers`' slot passes down from `gkr_layers__L{o}`**, past the loop's run. -/
+theorem glastQ_step (hr : r.Ok) :
+    Res.KidStep coreProgram r.img.read B2C.H (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) (GlastQ r) := by
+  intro I hI fI σI bufsI kidsI hIt fnI hfI es vs hw hh i c J hci hJS hk _ _ hname hval hph _
+    rr hrr o ho σ bufs kids hJt
+  obtain ⟨fn, hfn, hpar⟩ := kid_fn hJt hval hph
+  have hcf : c.f = glcLastN rr o := by rw [← hname, hJt]; rfl
+  have hc : c ∈ calls es := List.mem_of_getElem? hci
+  obtain ⟨fn', hf', hp', -⟩ := glcFnCheck_sound ((glc_layers_check o ho).2.2 rr hrr)
+  obtain rfl : fn = fn' := Option.some.inj (hfn.symm.trans hf')
+  rw [hp', glcPar9_eq] at hpar
+  rcases gl_caller hfI hw hc ((gl_callers_mem.1 o ho).2.2 rr hrr) hcf with h | ⟨h, hl⟩
+  · simp only [List.mem_singleton] at h
+    subst h
+    obtain ⟨fnL, hfL, -, hbL⟩ := glcFnCheck_sound (glc_layers_check o ho).1
+    obtain rfl : fnI = fnL := Option.some.inj (hfI.symm.trans hfL)
+    have hs := Res.calls_sites (by rw [hbL]; exact (gl_sites o ho).1) hw c hc
+    simp only [hcf, Bool.and_eq_true] at hs
+    have hs' := List.all_eq_true.mp hs.2 rr (List.mem_range.mpr hrr)
+    simp only [bne_self_eq_false, Bool.false_or, beq_iff_eq] at hs'
+    rw [hs'] at hpar
+    simp only [List.map_cons, List.map_nil, List.cons.injEq] at hpar
+    obtain ⟨p0, -, -, p3, p4, p5, -, -, p8, -⟩ := hpar
+    obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
+    obtain ⟨-, hb⟩ := Res.holds_of_valid gkr_hfs hv hfI
+    rw [hbL] at hb
+    obtain ⟨c11, a10, hloop, m13⟩ := gls_holds hb
+    obtain ⟨n, rr0, q, h3, hn, -, -, h5, hsl, hq⟩ := glsQ_all hr I hI o ho σI bufsI kidsI hIt
+    -- the slot of layer `4n`, past the loop's run
+    have hslot : ∃ q', LoadHolds r.img.read (σI (.n 0)) (10 * (2 * (4 * n) + 2 - o) + 5)
+        (σI (.n 8) * gen ^ q') ∧ q' ≤ 27 + 560 * n := by
+      rcases Nat.eq_zero_or_pos n with rfl | hn0
+      · exact ⟨q, by simpa using hsl, by omega⟩
+      · have hne : σI (.n 10) ≠ 0 := by
+          rw [a10, h3]
+          intro h0
+          have := gen_pow_inj (by omega) (by omega) ((e_add_eq_zero_iff.mp h0).symm.trans (pow_zero gen).symm)
+          omega
+        obtain ⟨dd, hrel⟩ := Res.KidRel.rel (hloop hne)
+        rw [c11, h3, h5, ← pow_zero gen] at hrel
+        obtain ⟨q', h', hq'⟩ := glsl_run ho hn dd 0 q hn0 hrel (by simpa using hsl)
+        exact ⟨q', h', by omega⟩
+    obtain ⟨q', h', hq'⟩ := hslot
+    exact ⟨n, q', by rw [p3, h3], hn, by rw [p4, m13, h3, glc_pow4], by rw [p5, h5], by rw [p0, p8]; exact h',
+      hq'⟩
+  · exfalso
+    subst h
+    rw [not_loop_of ((gl_loopsB.1 o ho).2.2 rr hrr) hfI] at hl
+    cases hl
+
+/-- **`gkr_last_layers`' slot at every honest instance.** -/
+theorem glastQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, GlastQ r J := by
+  obtain ⟨rd, hH, hXh⟩ := hr.honest
+  have hv := Covers.valid hH.toHonest hXh.covers
+  refine Res.insts_down (glastQ_step hr) r.T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
+  intro rr hrr o ho σ bufs kids hJt
+  have := root_main hr he hJt
+  interval_cases rr <;> interval_cases o <;> exact absurd this (by decide)
+
+/-- **A layer's slot passes down from `gkr_layers__L{o}`'s loop or from `gkr_last_layers`**, past its
+siblings before it. -/
+theorem glQ_step (hr : r.Ok) :
+    Res.KidStep coreProgram r.img.read B2C.H (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) (GlQ r) := by
+  intro I hI fI σI bufsI kidsI hIt fnI hfI es vs hw hh i c J hci hJS hk _ _ hname hval hph _
+    p hp o ho σ bufs kids hJt
+  obtain ⟨fn, hfn, hpar⟩ := kid_fn hJt hval hph
+  have hcf : c.f = glName p o := by rw [← hname, hJt]; rfl
+  have hc : c ∈ calls es := List.mem_of_getElem? hci
+  obtain ⟨fn', hf', hp', -⟩ := glIs_sound (glIs_layers p hp o ho)
+  obtain rfl : fn = fn' := Option.some.inj (hfn.symm.trans hf')
+  rw [hp', glParams_eq] at hpar
+  suffices H : ∃ m q, σ (.n 3) = gen ^ m ∧ m < 4 ∧ σ (.n 4) = gen ^ (4 * m + p) ∧ σ (.n 5) = gen ^ (2 - o) ∧
+      LoadHolds r.img.read (σ (.n 0)) (10 * (2 * (4 * m + p) + 2 - o) + 5) (σ (.n 8) * gen ^ q) ∧
+      q ≤ 27 + 140 * (4 * m + p) by
+    obtain ⟨m, q, h3, hm, h4, h5, hsl, hq⟩ := H
+    exact ⟨m, q, h3, hm, h4, h5, hsl, by omega⟩
+  obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
+  obtain ⟨-, hb⟩ := Res.holds_of_valid gkr_hfs hv hfI
+  have site : ∀ {A : ℕ → List V} {body : List Stmt}, fnI.body = body →
+      Res.sitesB (fun f args _ ↦ (List.range 4).all fun p ↦ f != glName p o || args == A p) body = true →
+      c.args = A p := fun {A body} hbd hsb ↦ by
+    have hs := List.all_eq_true.mp (Res.calls_sites (by rw [hbd]; exact hsb) hw c hc) p (List.mem_range.mpr hp)
+    simpa [hcf] using hs
+  rcases gl_caller hfI hw hc ((gl_callers_mem.2 p hp o ho).1) hcf with h | ⟨h, hl⟩
+  · simp only [List.mem_cons, List.mem_map, List.mem_filter, List.mem_range, decide_eq_true_eq] at h
+    rcases h with h | ⟨rr, ⟨hrr, hprr⟩, h⟩
+    · -- `gkr_layers__L{o}`'s loop
+      subst h
+      obtain ⟨fnL, hfL, -, hbL⟩ := glcFnCheck_sound (glc_layers_check o ho).2.1
+      obtain rfl : fnI = fnL := Option.some.inj (hfI.symm.trans hfL)
+      rw [site hbL (gl_sites o ho).2.1] at hpar
+      simp only [glLsLArgs, List.map_cons, List.map_nil, List.cons.injEq] at hpar
+      obtain ⟨p0, -, -, p3, p4, p5, -, -, p8, -⟩ := hpar
+      rw [hbL] at hb
+      obtain ⟨m10, hxs, hcalls⟩ := glsl_holds hb
+      obtain ⟨m, n, q, h0I, -, hmn, hn, h5I, hslI, hqI⟩ := glsLQ_all hr I hI o ho σI bufsI kidsI hIt
+      have hR : ∀ p < 4, coreProgram.Rel r.img.read (glName p o) [σI (.n 2), σI (.n 3), σI (.n 4), gen ^ m,
+          gen ^ (4 * m + p), gen ^ (2 - o), σI (.n 6), σI (.n 7), σI (.n 8)] [] := fun p hp ↦ by
+        have := Res.KidRel.rel (hcalls p hp)
+        rwa [m10, h0I, h5I, gl_pow4] at this
+      obtain ⟨q', h', hq'⟩ := gl_slots ho (by omega) 4 le_rfl hR hslI p hp.le
+      refine ⟨m, q', by rw [p3, h0I], by omega, ?_, by rw [p5, h5I], by rw [p0, p8]; exact h', by omega⟩
+      rw [p4, hxs p hp, m10, h0I, gl_pow4]
+    · -- `gkr_last_layers__L{r}_L{o}`
+      subst h
+      obtain ⟨fnL, hfL, -, hbL⟩ := glcFnCheck_sound ((glc_layers_check o ho).2.2 rr hrr)
+      obtain rfl : fnI = fnL := Option.some.inj (hfI.symm.trans hfL)
+      rw [site hbL ((gl_sites o ho).2.2 rr hrr)] at hpar
+      simp only [glLastArgs, List.map_cons, List.map_nil, List.cons.injEq] at hpar
+      obtain ⟨p0, -, -, p3, p4, p5, -, -, p8, -⟩ := hpar
+      rw [hbL] at hb
+      obtain ⟨hxs, hcalls⟩ := glast_holds hb
+      obtain ⟨n, q, h3I, hn, h4I, h5I, hslI, hqI⟩ := glastQ_all hr I hI rr hrr o ho σI bufsI kidsI hIt
+      have hR : ∀ p < rr, coreProgram.Rel r.img.read (glName p o) [σI (.n 0), σI (.n 1), σI (.n 2), gen ^ n,
+          gen ^ (4 * n + p), gen ^ (2 - o), σI (.n 6), σI (.n 7), σI (.n 8)] [] := fun p hp ↦ by
+        have := Res.KidRel.rel (hcalls p hp)
+        rwa [h3I, h4I, h5I, ← pow_add] at this
+      obtain ⟨q', h', hq'⟩ := gl_slots ho hn rr hrr.le hR hslI p hprr.le
+      refine ⟨n, q', by rw [p3, h3I], hn, ?_, by rw [p5, h5I], by rw [p0, p8]; exact h', by omega⟩
+      rw [p4, hxs p hprr, h4I, ← pow_add]
+  · exfalso
+    subst h
+    rw [not_loop_of (gl_loopsB.2 p hp o ho).1 hfI] at hl
+    cases hl
+
+/-- **A layer's slot at every honest instance.** -/
+theorem glQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, GlQ r J := by
+  obtain ⟨rd, hH, hXh⟩ := hr.honest
+  have hv := Covers.valid hH.toHonest hXh.covers
+  refine Res.insts_down (glQ_step hr) r.T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
+  intro p hp o ho σ bufs kids hJt
+  have := root_main hr he hJt
+  interval_cases p <;> interval_cases o <;> exact absurd this (by decide)
 
 end
 

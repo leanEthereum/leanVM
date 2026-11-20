@@ -20,6 +20,7 @@ public section
 theorem Fn.«claim_list_digest».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«main_loop4».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«eq_prefix_run__L25».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«eq_prefix_run_rev__L23».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«block_selector__L7».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«block_selector__L21».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«index_mle__L9».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
@@ -29,10 +30,12 @@ theorem Fn.«bus_grind_check__L11».pairOk : Bridge.pairChk [] cert.locs fs core
 theorem Fn.«child_claim_list_mono_last__L12».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«da_expand__L6_L7».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«da_expand__L13_L7».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«gkr_layers__L0_loop0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«gkr_layer__L2_L1».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_positions__L3_L12_L6_loop0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_positions__L3_L15_L3_loop0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel

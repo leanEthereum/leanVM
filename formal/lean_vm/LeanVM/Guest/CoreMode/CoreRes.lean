@@ -352,7 +352,10 @@ holds the stream, whose body loads the cursor `v`, reading at most `S` words pas
 def stLoops : List (String × ℕ × ℕ × ℕ) :=
   [(name% «keccak_layer__L0_loop0», 17, 20, 16), (name% «keccak_layer__L1_loop0», 17, 20, 16),
     (name% «keccak_layer__L0_loop1», 17, 14, 2), (name% «keccak_layer__L1_loop1», 17, 14, 2),
-    (name% «verify_bus_gkr_loop0_loop0», 11, 13, 8), (name% «verify_tables_loop0», 22, 11, 3)]
+    (name% «verify_tables_loop0», 22, 11, 3)] ++
+  [name% «gkr_layer__L0_L0_loop0», name% «gkr_layer__L1_L0_loop0», name% «gkr_layer__L2_L0_loop0»,
+    name% «gkr_layer__L3_L0_loop0», name% «gkr_layer__L0_L1_loop0», name% «gkr_layer__L1_L1_loop0»,
+    name% «gkr_layer__L2_L1_loop0», name% «gkr_layer__L3_L1_loop0»].map fun n ↦ (n, 10, 17, 32)
 
 /-- A stream-cursor loop's `(D, v, S)`. -/
 def stK (fn : Fn) : Option (ℕ × ℕ × ℕ) := stLoops.lookup fn.name
@@ -461,7 +464,7 @@ noncomputable def dimLt (fn : Fn) (x : V) (t : ℕ) (p : V) (u : ℕ) : Bool :=
 /-- **The residuals of the instance's exponent and dimension facts** (`expQ`, `dim`; `Res.expFacts`,
 `Res.dimFacts`, which the old route's F7 to F9 read): a value of an exponent fact (`expQB`), times `g^c`, below
 a constant, or a constant `g^k`, `k < c`, below it times `g^c`; a word of a dimension fact times `g^t` below its
-bound parameter times `g^u` (`dimLt`). -/
+bound parameter times `g^u` (`dimLt`); either under branch conditions. -/
 noncomputable def resQ (fn : Fn) : CRes → Bool
   | .lt (.val x) (.num n) => decide (n < capE) && (expQB fn (V.n x)).any (· ≤ n)
   | .lt (.mono c) (.num n) => match c.bases with
@@ -476,6 +479,7 @@ noncomputable def resQ (fn : Fn) : CRes → Bool
   | .lt (.mono a) (.mono c) => match a.bases, c.bases with
     | [(x, 1)], [(p, 1)] => dimLt fn (V.n x) a.off (V.n p) c.off
     | _, _ => false
+  | .under _ r => resQ fn r
   | _ => false
 
 /-! ## Split `g`-powers -/
@@ -520,10 +524,10 @@ def splitFam (fn : Fn) (r : CRes) : Bool :=
   splitsC.any fun p ↦ fn.name == p.1 && splitRes p.2 [] r
 
 /-- **`verify_tables`' reads past its table sumcheck's last record's cursor** (`vtSt`, the old route's `Res.vtStB` on
-core names): the cell `c` words past the cursor, the value `2652`, `c < 153`, one of its stream's, parameter `20`'s
+core names): the cell `c` words past the cursor, the value `2649`, `c < 153`, one of its stream's, parameter `20`'s
 `[0, 8192)` (`EndExec.vtStC_inst`). -/
 def vtStC (fn : Fn) : CRes → Bool
-  | .sub c q => fn.name == name% «verify_tables» && decide (c.bases = [(2652, 1)]) && decide (c.off < 153) &&
+  | .sub c q => fn.name == name% «verify_tables» && decide (c.bases = [(2649, 1)]) && decide (c.off < 153) &&
       decide (q = ⟨⟨[(20, 1)], 0⟩, 1, .num 0, .num 8192⟩)
   | _ => false
 
@@ -701,12 +705,12 @@ def vtAtoms : List Atom :=
     .mul (.n 822) (.n 26) (.n 821),
     .mul (.n 9) (.n 823) (.n 822),
     .mul (.n 2545) (.n 2547) (.n 28),
-    .mul (.n 2545) (.n 2932) (.n 28),
-    .mul (.n 2545) (.n 3221) (.n 29),
-    .mul (.n 2545) (.n 3394) (.n 30),
-    .mul (.n 2545) (.n 3692) (.n 31),
-    .mul (.n 2545) (.n 4021) (.n 32),
-    .mul (.n 2545) (.n 5945) (.n 33)]
+    .mul (.n 2545) (.n 2928) (.n 28),
+    .mul (.n 2545) (.n 3217) (.n 29),
+    .mul (.n 2545) (.n 3390) (.n 30),
+    .mul (.n 2545) (.n 3688) (.n 31),
+    .mul (.n 2545) (.n 4017) (.n 32),
+    .mul (.n 2545) (.n 5941) (.n 33)]
 
 /-- **`verify_tables`' exponent family**, its ghost slots its `dims_g` words. -/
 noncomputable def vtExp (fn : Fn) (gw : List (CCell × ℕ)) (r : CRes) : Bool :=
@@ -804,13 +808,6 @@ def layQC (fn : Fn) : CRes → Bool
   | .under _ r => layQC fn r
   | _ => false
 
-/-- **`verify_tables`' copy loop's read** (`EndExec.VtCQ`): `verify_tables_loop1`'s index `x·g^-1/i`, value `7`,
-below its bound, parameter `1`, either under branch conditions (`EndExec.vtCp_inst`). -/
-def vtCp (fn : Fn) : CRes → Bool
-  | .lt a b => fn.name == name% «verify_tables_loop1» && decide (a = .val 7) && decide (b = .val 1)
-  | .under _ r => vtCp fn r
-  | _ => false
-
 /-- **`da_pad`'s gap and `da_verify`'s blob count and gap** (`EndExec.DaPadQ`, `EndExec.daV_inst`): `da_pad`'s parameter
 `2`, the gap `g^(DA_MAX_ROWS - n)` `da_verify` hands it, has an exponent below `m`, `DA_MAX_ROWS ≤ m`; `da_verify`'s value
 `1`, the blob count `g^n`, below `m`, `DA_MAX_ROWS < m`, and its value `2`, the gap, below `m`, `DA_MAX_ROWS ≤ m`; either
@@ -857,23 +854,28 @@ noncomputable def tabK (fn : Fn) (T t : ℕ) : Option ℕ :=
   let as := Res.topAtoms fn.body
   (stAt as T t).bind fun c ↦ (Res.constOf as (V.n c)).bind Res.powOf1
 
-/-- An index's exponent at a table's row `t`: the read `x` at `k`, the index `J` at `t`, constants as they are. -/
-def tabEv (x J t k : ℕ) : CIdx → Option ℕ
+/-- An index's exponent, each value's exponent `ev` gives, constants as they are. -/
+def tabEv (ev : ℕ → Option ℕ) : CIdx → Option ℕ
   | .num n => some n
-  | .val v => bif Nat.beq v x then some k else bif Nat.beq v J then some t else none
-  | .mono c => c.bases.foldr (fun b acc ↦ acc.bind fun a ↦
-      (bif Nat.beq b.1 x then some (b.2 * k) else bif Nat.beq b.1 J then some (b.2 * t) else none).map (a + ·))
-      (some c.off)
+  | .val v => ev v
+  | .mono c => c.bases.foldr (fun b acc ↦ acc.bind fun a ↦ (ev b.1).map (b.2 * · + a)) (some c.off)
 
-/-- **A range-checked table read's order** (`rcTab`): an order over a table read `x` (`tabOf`), its index and
-constants, at every row of the table, either under branch conditions (`EndExec.rcTab_inst`). -/
+/-- **The exponents at a table's row `t`** over the index `J`: `J`'s is `t`, a table read over `J` (`tabOf`) the
+row's entry of its table (`tabK`). -/
+noncomputable def tabRowEv (fn : Fn) (J t v : ℕ) : Option ℕ :=
+  bif Nat.beq v J then some t else match tabOf fn v with
+    | some (T, J', _) => bif Nat.beq J' J then tabK fn T t else none
+    | none => none
+
+/-- **A range-checked table read's order** (`rcTab`): an order over table reads of one index (`tabOf`), the index and
+constants, at every row of the first read's table (`tabRowEv`), either under branch conditions
+(`EndExec.rcTab_inst`). -/
 noncomputable def rcTab (fn : Fn) : CRes → Bool
   | .lt a b => (a.vals ++ b.vals).any fun x ↦ match tabOf fn x with
-    | some (T, J, N) => (List.range N).all fun t ↦ match tabK fn T t with
-      | some k => match tabEv x J t k a, tabEv x J t k b with
-        | some u, some v => decide (u < v) && decide (v < capE)
-        | _, _ => false
-      | none => false
+    | some (_, J, N) => (List.range N).all fun t ↦
+      match tabEv (tabRowEv fn J t) a, tabEv (tabRowEv fn J t) b with
+      | some u, some v => decide (u < v) && decide (v < capE)
+      | _, _ => false
     | none => false
   | .under _ r => rcTab fn r
   | _ => false
@@ -935,21 +937,30 @@ def vkQC (fn : Fn) : CRes → Bool
   | .under _ r => vkQC fn r
   | r => fn.name == name% «verify_keccak» && (List.range 20).all fun i ↦ vkAt (9 + i) r
 
-/-- **`verify_bus_gkr`'s layer loop's family** (`EndExec.LyQ`, `EndExec.ly_curs`): a read `c < 8` words past the cursor
-its pairs end at (value `65`), or `c < 12` past its last record's (value `80`), one of its stream's, parameter `9`'s
-`[0, 8192)`, either under branch conditions (`EndExec.lyQC_inst`). -/
-def lyQC (fn : Fn) : CRes → Bool
-  | .sub c q => fn.name == name% «verify_bus_gkr_loop0» && decide (q = ⟨⟨[(9, 1)], 0⟩, 1, .num 0, .num 8192⟩) &&
-      ((decide (c.bases = [(65, 1)]) && decide (c.off < 8)) || (decide (c.bases = [(80, 1)]) && decide (c.off < 12)))
-  | .under _ r => lyQC fn r
+/-- **`gkr_layer__L{p}_L{o}`'s cursors** (`EndExec.gl_curs`): the value its layer record's cursor is loaded to (`21`),
+read `8p` words past (its first `2p` rounds), and its last record's (the tail: `77`, `163`, `243`, `323` by `p`), read
+`4 (2 - o) + 12` words past (its last rounds and the children). -/
+def glCurs : List (String × List (ℕ × ℕ)) :=
+  [(name% «gkr_layer__L0_L0», [(77, 20)]), (name% «gkr_layer__L1_L0», [(21, 8), (163, 20)]),
+    (name% «gkr_layer__L2_L0», [(21, 16), (243, 20)]), (name% «gkr_layer__L3_L0», [(21, 24), (323, 20)]),
+    (name% «gkr_layer__L0_L1», [(77, 16)]), (name% «gkr_layer__L1_L1», [(21, 8), (163, 16)]),
+    (name% «gkr_layer__L2_L1», [(21, 16), (243, 16)]), (name% «gkr_layer__L3_L1», [(21, 24), (323, 16)])]
+
+/-- **`gkr_layer`'s family** (`EndExec.GlQ`): a read `c` words past one of its cursors (`glCurs`), below its count, one
+of its stream's, parameter `8`'s `[0, 8192)`, either under branch conditions (`EndExec.glQC_inst`). -/
+def glQC (fn : Fn) : CRes → Bool
+  | .sub c q => (glCurs.lookup fn.name).any (fun cs ↦ match c.bases with
+      | [(x, 1)] => cs.any fun p ↦ Nat.beq p.1 x && Nat.blt c.off p.2
+      | _ => false) && decide (q = ⟨⟨[(8, 1)], 0⟩, 1, .num 0, .num 8192⟩)
+  | .under _ r => glQC fn r
   | _ => false
 
 /-- **A residual of a family**, ghost-free (`resFam`, `resQ`, `splitFam`, `vtStC`, `vtPerm`, `rcPts`, `cpPerm`,
-`vsExp`, `layQC`, `vtCp`, `daGap`, `rcTab`, `vkQC`, `lyQC`, its values below `GB`), or the ghost families `ml`, `st`
+`vsExp`, `layQC`, `daGap`, `rcTab`, `vkQC`, `glQC`, its values below `GB`), or the ghost families `ml`, `st`
 and `verify_tables`' exponent family. -/
 noncomputable def resFamG (fn : Fn) (xc : List ℕ) (gw : List (CCell × ℕ)) (r : CRes) : Bool :=
   ((resFam fn xc r || resQ fn r || splitFam fn r || vtStC fn r || vtPerm fn r || rcPts fn r || cpPerm fn r ||
-      vsExp fn r || layQC fn r || vtCp fn r || daGap fn r || rcTab fn r || vkQC fn r || lyQC fn r) &&
+      vsExp fn r || layQC fn r || daGap fn r || rcTab fn r || vkQC fn r || glQC fn r) &&
       r.vals.all (Nat.blt · GB)) ||
     mlSub fn r || stSub fn r || cmSub fn r || vtExp fn gw r
 

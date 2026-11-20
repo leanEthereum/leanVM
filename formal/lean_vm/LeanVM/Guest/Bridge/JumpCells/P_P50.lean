@@ -20,6 +20,7 @@ namespace LeanVM.Guest
 
 public section
 
+theorem Fn.«eq_prefix_run_rev__L13».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«eq_prefix_run_rev__L13».idx == 1) = true := by decide +kernel
 theorem Fn.«block_selector__L28».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«block_selector__L28».idx == 1) = true := by decide +kernel
 theorem Fn.«index_mle__L0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«index_mle__L0».idx == 1) = true := by decide +kernel
 theorem Fn.«block_selector_tab__L19».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«block_selector_tab__L19».idx == 1) = true := by decide +kernel
@@ -30,6 +31,7 @@ theorem Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».jcOk : Bridge.jcD
 theorem Fn.«level_positions__L15_L22_L4».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«level_positions__L15_L22_L4».idx == 1) = true := by decide +kernel
 theorem Fn.«level_queries__L55_L0_L4_L16_L23_L5_L0_L0_L0_L0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«level_queries__L55_L0_L4_L16_L23_L5_L0_L0_L0_L0».idx == 1) = true := by decide +kernel
 theorem Fn.«level_queries__L19_L0_L4_L16_L23_L5_L0_L0_L0_L0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«level_queries__L19_L0_L4_L16_L23_L5_L0_L0_L0_L0».idx == 1) = true := by decide +kernel
+theorem Fn.«gkr_layer__L1_L1».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«gkr_layer__L1_L1».idx == 1) = true := by decide +kernel
 theorem Fn.«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0».idx == 1) = true := by decide +kernel
 theorem Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».idx == 1) = true := by decide +kernel
 theorem Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0».idx == 1) = true := by decide +kernel

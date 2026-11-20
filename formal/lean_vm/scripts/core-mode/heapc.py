@@ -1330,8 +1330,8 @@ class Pass:
             if m is not None:
                 for o in offs:
                     st.push(cshift(m, o))
-        for q, S, d in abs_:
-            st.pushR((q, S, ((), 0), cshift(mx, d)))
+        for q, a, S, hi, b in abs_:
+            st.pushR((abBase(mx, q, a), S, ((), 0), abBase(mx, hi, b)))
         if len(fs) < CAPE:
             st.cd = st.cd + tuple(condE(X.sigOf, ms, mx, fs))
 
@@ -1459,15 +1459,29 @@ def vpHead(ws):
 
 
 def abHead(ws, i):
+    """`abHead`: the blocks `(q, a, S, hi, b)`, `ab q S d` the block `(q, 0, S, g^d, 1)`."""
     abs_ = []
-    while i < len(ws) and ws[i][0] == 'ab':
-        abs_.append((ws[i][1], ws[i][2], ws[i][3]))
+    while i < len(ws) and ws[i][0] in ('ab', 'abx'):
+        if ws[i][0] == 'ab':
+            abs_.append((ws[i][1], 0, ws[i][2], ((), ws[i][3]), 1))
+        else:
+            abs_.append(tuple(ws[i][1:6]))
         i += 1
     return abs_, i
 
 
+def abArmR(j, e):
+    """`abArmR`: arm `j`'s run of a block."""
+    q, a, S, hi, b = e
+    return (cshift(q, a * j), S, ((), 0), cshift(hi, b * j))
+
+
+def abBase(mx, c, a):
+    return c if a == 0 else cmul(c, cpow(mx, a))
+
+
 def abArm(X, st, ma, g, rets, j, abs_, ws, i):
-    """A dispatch arm `j`'s blocks: the runs `⟨q, S, 0, j + d⟩`, witnessed with the callee's guarantees pushed
+    """A dispatch arm `j`'s blocks: the runs `abArmR j e`, witnessed with the callee's guarantees pushed
     (`abArm`)."""
     if not abs_:
         return i
@@ -1476,8 +1490,8 @@ def abArm(X, st, ma, g, rets, j, abs_, ws, i):
     S_ = st.copy()
     if not pushPost(G, ma + mr, S_):
         return None
-    for q, S, d in abs_:
-        i = runOk(X, S_, (q, S, ((), 0), ((), j + d)), ws, i)
+    for e in abs_:
+        i = runOk(X, S_, abArmR(j, e), ws, i)
         if i is None:
             return None
     return i

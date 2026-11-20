@@ -35,6 +35,8 @@ namespace LeanVM.Guest
 noncomputable def Fn.«block_selector__L29».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«block_selector_tab__L18».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«column_selector__L2».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
+noncomputable def Fn.«eq_prefix_run_rev__L12».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
+noncomputable def Fn.«gkr_layer__L1_L0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_gkr_layer__L1_L0", Fn.«gkr_layer__L1_L0_loop0».entry)] 524287 code.instructionCount
 noncomputable def Fn.«index_mle__L1».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L11_L23_L5_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L11_L23_L5", Fn.«level_positions__L11_L23_L5_loop0».entry), ("decode_query_windows__L23_L5", Fn.«decode_query_windows__L23_L5».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L6_L15_L3».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L6_L15_L3", Fn.«level_positions__L6_L15_L3_loop0».entry), ("decode_query_windows__L15_L3", Fn.«decode_query_windows__L15_L3».entry)] 524287 code.instructionCount
@@ -66,6 +68,8 @@ public section
 align_chk% «block_selector__L29»
 align_chk% «block_selector_tab__L18»
 align_chk% «column_selector__L2»
+align_chk% «eq_prefix_run_rev__L12»
+align_chk% «gkr_layer__L1_L0»
 align_chk% «index_mle__L1»
 align_chk% «level_positions__L11_L23_L5_loop0»
 align_chk% «level_positions__L6_L15_L3»

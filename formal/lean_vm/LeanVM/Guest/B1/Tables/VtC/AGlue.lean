@@ -130,10 +130,10 @@ theorem vt_leaves_good (hl : args.length = 21) {leaves : List E} (hll : leaves.l
   · rw [rd1, rdAt, l1.2, Option.getD_some, List.getD_eq_getElem _ _ (by omega)]
   · rw [rd2, rdAt, l2.2, Option.getD_some, List.getD_eq_getElem _ _ (by omega)]
 
-theorem vtPermCap_38 : vtPermCap 38 = [.n 4687, .n 4688, .n 4689, .n 4690, .n 4691] := by
+theorem vtPermCap_38 : vtPermCap 38 = [.n 4683, .n 4684, .n 4685, .n 4686, .n 4687] := by
   decide +kernel
 
-theorem vtEvB_152 : vtEvB 152 = 4692 := by decide +kernel
+theorem vtEvB_152 : vtEvB 152 = 4688 := by decide +kernel
 
 /-- **The sponge after the evaluations**, from the evaluations' sponge facts: the last
 permutation's capacity and the last evaluation waiting, its rate cells `σ4688`, `σ4689`. -/
@@ -145,11 +145,11 @@ theorem vt_evalFs_good (hl : args.length = 21)
       vtCapV (vtσ rd w args) (j + 1) = capOf (Fs.perm ⟨vtCapV (vtσ rd w args) j,
         (((vtEvs (vtσ rd w args)).drop (4 * j)).take 4).map (·, dsObserve)⟩)) :
     rateOf (vtEvalFs (vtσ rd w args)).pend =
-        [vtσ rd w args (.n 4693), vtσ rd w args (.n 4694), 0, 0, 0, 0, 0, 0] ∧
-      (vtEvalFs (vtσ rd w args)).cap = [vtσ rd w args (.n 4687), vtσ rd w args (.n 4688),
-        vtσ rd w args (.n 4689), vtσ rd w args (.n 4690), vtσ rd w args (.n 4691)] := by
-  have g := vt_goodL (rd := rd) (w := w) hl 4269 [.atom (.copy (.n 4693) (.n 4692)),
-    .atom (.const (.n 4694) (word 0 1))] (by rw [vtPre_drop]; decide +kernel)
+        [vtσ rd w args (.n 4689), vtσ rd w args (.n 4690), 0, 0, 0, 0, 0, 0] ∧
+      (vtEvalFs (vtσ rd w args)).cap = [vtσ rd w args (.n 4683), vtσ rd w args (.n 4684),
+        vtσ rd w args (.n 4685), vtσ rd w args (.n 4686), vtσ rd w args (.n 4687)] := by
+  have g := vt_goodL (rd := rd) (w := w) hl 4264 [.atom (.copy (.n 4689) (.n 4688)),
+    .atom (.const (.n 4690) (word 0 1))] (by rw [vtPre_drop]; decide +kernel)
   generalize vtσ rd w args = σ at g hF ⊢
   simp only [GoodL, GoodS, fixNe, Good, and_true] at g
   obtain ⟨g0, g1⟩ := g

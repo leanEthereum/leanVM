@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.CoreMode.Fam.ResVtL
 
-  `verify_tables`' table sumcheck loops at their honest instances: the rounds loop's cursor in the
-  proof stream (`VtLQ`), the copy loop's counter and bound (`VtCQ`).
+  `verify_tables`' table sumcheck's rounds loop at its honest instances: its cursor in the proof stream
+  (`VtLQ`).
 -/
 
 module
@@ -17,12 +17,9 @@ public import LeanVM.Guest.B1.Tables.Vt.Loop10
 `VtLQ r J`: at an instance of `verify_tables_loop0`, its header names a frame `a` whose cell `22`
 (`verify_tables`' stream) holds `st`, its counter is `g^j` below its bound `g^n`, `n < 34`, and its
 round record `rounds·g^(7j)` holds the cursor `st·g^q` with room for its `3 (n - j)` words.
-`VtCQ J`: at an instance of `verify_tables_loop1`, its counter is `g^i` below its bound `g^n`, which
-its last parameter also holds, `n < 34`.
 
-`vtLQ_all`, `vtCQ_all`: at every honest instance, by `Res.insts_down`. The loops' callers are
-`verify_tables` and the loop itself (`Res.termCallers_all`). `verify_tables` calls each at its site
-(`vt_l10_sites`, `vt_l11_sites`), with the counter `1`, the bound `g_zc_n` (`VtQ`), and the first
+`vtLQ_all`: at every honest instance, by `Res.insts_down`. The loop's callers are `verify_tables` and
+the loop itself (`Res.termCallers_all`). `verify_tables` calls it at its site (`vt_l10_sites`), with the counter `1`, the bound `g_zc_n` (`VtQ`), and the first
 record's cursor `14` words past its own (`vt_zc_front`); a tail call keeps the header and the rest
 of the parameters and steps the counter (`Res.loop_path`), and an iteration's round moves the cursor
 three words on (`l10_next`).
@@ -45,14 +42,7 @@ def VtLQ (r : Ref) (J : Inst) : Prop :=
       LoadHolds r.img.read (σ (.n 2) * σ (.n 0) ^ 7) 5 (refMem r.img (a + 22) * gen ^ q) ∧
       q + 3 * (n - j) ≤ 8192
 
-/-- **The copy loop's counter below its bound**, which its last parameter also holds. -/
-def VtCQ (J : Inst) : Prop :=
-  ∀ σ bufs kids, J.t = .node name% «verify_tables_loop1» σ bufs kids →
-    ∃ i n, σ (.n 0) = gen ^ i ∧ σ (.n 1) = gen ^ n ∧ σ (.n 4) = gen ^ n ∧ i < n ∧ n < 34
-
-/-- The loops' arguments at `verify_tables`' calls. -/
 def l10ArgsV : List V := [.n 2638, .n 2545, .n 2628, .n 18, .n 2635, .n 2631]
-def l11ArgsV : List V := [.n 2641, .n 2545, .n 16, .n 2635, .n 2545]
 
 end
 
@@ -63,22 +53,13 @@ public section
 theorem find_l10 : coreProgram.find? name% «verify_tables_loop0» = some fn% «verify_tables_loop0» :=
   coreProgram_find?_at (j := idx% «verify_tables_loop0») rfl
 
-theorem find_l11 : coreProgram.find? name% «verify_tables_loop1» = some fn% «verify_tables_loop1» :=
-  coreProgram_find?_at (j := idx% «verify_tables_loop1») rfl
-
 theorem l10_facts : (fn% «verify_tables_loop0»).params = .n 0 :: .n 1 :: [.n 2, .n 3, .n 4, .n 5] ∧
     (fn% «verify_tables_loop0»).loop = true ∧ Res.endOfFn fn% «verify_tables_loop0» = some none ∧
     Stmt.blockCallees (loopBody fn% «verify_tables_loop0») = ["sumcheck_round4"] := by
   decide +kernel
 
-theorem l11_facts : (fn% «verify_tables_loop1»).params = .n 0 :: .n 1 :: [.n 2, .n 3, .n 4] ∧
-    (fn% «verify_tables_loop1»).loop = true ∧ Res.endOfFn fn% «verify_tables_loop1» = some none ∧
-    Stmt.blockCallees (loopBody fn% «verify_tables_loop1») = [] := by
-  decide +kernel
-
 variable {rd : Reader}
 
-/-- **An iteration moves the cursor** three words on, into the next record. -/
 theorem l10_next {x N rounds tabs rkb cprod cur : E} {rets : List E} {j : ℕ}
     (h : coreProgram.Rel rd name% «verify_tables_loop0» [x, N, rounds, tabs, rkb, cprod] rets)
     (hx : x = gen ^ j) (h0 : LoadHolds rd (rounds * x ^ 7) 5 cur) :
@@ -123,10 +104,6 @@ theorem vt_facts : (coreOf (fn_idx% «verify_tables»)).loop = false ∧
 /-- **`verify_tables` calls its loops only at their sites.** -/
 theorem vt_l10_sites : Res.sitesB (fun f args rets ↦ f != name% «verify_tables_loop0» ||
     (args == l10ArgsV && rets == [])) (fn% «verify_tables»).body = true := by
-  decide +kernel
-
-theorem vt_l11_sites : Res.sitesB (fun f args rets ↦ f != name% «verify_tables_loop1» ||
-    (args == l11ArgsV && rets == [])) (fn% «verify_tables»).body = true := by
   decide +kernel
 
 theorem vt_l10_site {c : Call} (ha : c.args = l10ArgsV) (hr : c.rets = []) :
@@ -245,7 +222,7 @@ theorem vtLQ_step (hr : r.Ok) :
     obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
     obtain ⟨-, hb⟩ := Res.holds_of_valid hfs_vt hv hfI
     obtain ⟨hVt, -⟩ := vt_holds (fun _ _ _ h ↦ Res.KidRel.rel h) hfI hb
-    obtain ⟨e2638, -, hrec0⟩ := vt_zc_front hVt
+    obtain ⟨e2638, hrec0⟩ := vt_zc_front hVt
     obtain ⟨p, n, e5, e2545, hn, hroom⟩ := vtQ_all hr I hI σI bufsI kidsI hIt
     rw [hargs] at hpar
     simp only [l10ArgsV, List.map_cons, List.map_nil, List.cons.injEq] at hpar
@@ -290,80 +267,6 @@ theorem vtLQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.
   obtain ⟨rd, hH, hXh⟩ := hr.honest
   have hv := Covers.valid hH.toHonest hXh.covers
   refine Res.insts_down (vtLQ_step hr) r.T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
-  obtain ⟨J', rest', he', ht, -⟩ := head_insts (fs := B2C.fs) (lp := coreProgram.loop) (H := B2C.H) r.T
-    (0, r.T.block B2C.fs coreProgram.loop) r.hdr
-  rw [he'] at he
-  obtain ⟨rfl, -⟩ := List.cons.inj he
-  intro σ bufs kids hJt
-  have hn := hr.name
-  rw [← ht, hJt] at hn
-  simp only [Tree.name] at hn
-  exact absurd hn (by decide)
-
-/-- **The copy loop's counter and bound pass down from `verify_tables`, and from one iteration to the
-next.** -/
-theorem vtCQ_step (hr : r.Ok) :
-    Res.KidStep coreProgram r.img.read B2C.H (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) VtCQ := by
-  intro I hI fI σI bufsI kidsI hIt fnI hfI es vs hw hh i c J hci hJS hk _ hhdr hname hval hph hQI
-    σ bufs kids hJt
-  have hct : c.taken = true := by
-    cases h : c.taken
-    · obtain ⟨g', σ', h'⟩ := hph h
-      rw [hJt] at h'; cases h'
-    · rfl
-  have hJv := hval hct
-  rw [hJt] at hJv
-  obtain ⟨fn, hfn, hpar, -⟩ := hJv
-  have hcf : c.f = name% «verify_tables_loop1» := by rw [← hname, hJt]; rfl
-  have hc : c ∈ calls es := List.mem_of_getElem? hci
-  obtain rfl : fn = fn% «verify_tables_loop1» := Option.some.inj (hfn.symm.trans find_l11)
-  obtain ⟨hpl, hll, hel, hbc⟩ := l11_facts
-  rw [hpl] at hpar
-  suffices H : ∃ i n, σ (.n 0) = gen ^ i ∧ σ (.n 1) = gen ^ n ∧ σ (.n 4) = gen ^ n ∧ n < 34 by
-    obtain ⟨i, n, h0, h1, h4, hn⟩ := H
-    obtain ⟨i', hi', h0'⟩ := loop_ctr_lt hr hJS hJt find_l11 hll hel hpl h1 hn
-    exact ⟨i', n, h0', h1, h4, hi', hn⟩
-  have hmem : (name% «verify_tables_loop1», name% «verify_tables») ∈ Res.termCallers := by decide
-  have hcal := List.all_eq_true.mp (Res.calls_sites (Res.termCallers_all fnI (List.mem_of_find?_eq_some hfI))
-    hw c hc) _ hmem
-  have hnI := Da.fn_name_of_find hfI
-  rw [hcf] at hcal
-  simp only [bne_self_eq_false, Bool.false_or, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq] at hcal
-  rcases hcal with hL | ⟨hS, hl⟩
-  · -- `verify_tables`' call
-    obtain rfl : fI = "verify_tables" := hnI.symm.trans hL
-    obtain rfl : fnI = fn% «verify_tables» := Option.some.inj (hfI.symm.trans VerifySub.find_vt)
-    have hs := Res.calls_sites vt_l11_sites hw c hc
-    rw [hcf] at hs
-    simp only [bne_self_eq_false, Bool.false_or, Bool.and_eq_true, beq_iff_eq] at hs
-    obtain ⟨hargs, -⟩ := hs
-    obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
-    obtain ⟨-, hb⟩ := Res.holds_of_valid hfs_vt hv hfI
-    obtain ⟨hVt, -⟩ := vt_holds (fun _ _ _ h ↦ Res.KidRel.rel h) hfI hb
-    obtain ⟨-, e2641, -⟩ := vt_zc_front hVt
-    obtain ⟨p, n, -, e2545, hn, -⟩ := vtQ_all hr I hI σI bufsI kidsI hIt
-    rw [hargs] at hpar
-    simp only [l11ArgsV, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar
-    obtain ⟨p0, p1, -, -, p4⟩ := hpar
-    exact ⟨0, n, by rw [p0, e2641, pow_zero], by rw [p1, e2545], by rw [p4, e2545], hn⟩
-  · -- the loop's tail call
-    obtain rfl : fI = name% «verify_tables_loop1» := hnI.symm.trans hS
-    obtain rfl : fnI = fn% «verify_tables_loop1» := Option.some.inj (hfI.symm.trans find_l11)
-    obtain ⟨c0, p0', prest, hps, hca, hi0, -⟩ := vt_tail hfI hll hbc (by decide) hIt hw hh hci hcf
-    rw [hpl] at hps
-    obtain ⟨rfl, rfl⟩ := List.cons.inj hps
-    rw [hca] at hpar
-    simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar
-    obtain ⟨p0, p1, -, -, p4⟩ := hpar
-    obtain ⟨iI, n, h0I, h1I, h4I, -, hn⟩ := hQI σI bufsI kidsI hIt
-    exact ⟨iI + 1, n, by rw [p0, hi0, h0I, ← Value.gen_pow_eq_ofK, ← pow_add], by rw [p1, h1I],
-      by rw [p4, h4I], hn⟩
-
-/-- **The copy loop's counter and bound at every honest instance.** -/
-theorem vtCQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, VtCQ J := by
-  obtain ⟨rd, hH, hXh⟩ := hr.honest
-  have hv := Covers.valid hH.toHonest hXh.covers
-  refine Res.insts_down (vtCQ_step hr) r.T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
   obtain ⟨J', rest', he', ht, -⟩ := head_insts (fs := B2C.fs) (lp := coreProgram.loop) (H := B2C.H) r.T
     (0, r.T.block B2C.fs coreProgram.loop) r.hdr
   rw [he'] at he

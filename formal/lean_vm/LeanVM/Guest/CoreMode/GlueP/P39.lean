@@ -20,7 +20,7 @@ open LeanVM.Guest.Exec
 @[expose] public section
 
 noncomputable def Fn.«aggregate_claims_loop2».fpows : PowTree :=
-  (.node 4611686018427389803 190 (.node 2 1 .leaf .leaf) (.node 8285256390892809583 251512 .leaf
+  (.node 4611686018427389803 190 (.node 2 1 .leaf .leaf) (.node 9039935244551087989 254674 .leaf
     .leaf))
 theorem Fn.«aggregate_claims_loop2».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
@@ -29,7 +29,7 @@ noncomputable def Fn.«block_selector__L16».fpows : PowTree :=
 theorem Fn.«block_selector__L16».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«child_claim_list_any_loop0».fpows : PowTree :=
-  (.node 9989238295342419208 3219 (.node 2 1 .leaf .leaf) (.node 17486793843624545403 237326 .leaf
+  (.node 3939435243225008542 240488 (.node 2 1 .leaf .leaf) (.node 9989238295342419208 3219 .leaf
     .leaf))
 theorem Fn.«child_claim_list_any_loop0».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
@@ -42,68 +42,68 @@ noncomputable def Fn.«fold_final_msg__L2».fpows : PowTree :=
 theorem Fn.«fold_final_msg__L2».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«level_positions__L13_L21_L3_loop0».fpows : PowTree :=
-  (.node 12538087801144265945 316152 (.node 2305843009213693952 61 (.node 2 1 .leaf .leaf) .leaf)
-    (.node 13404692186773485232 306720 .leaf .leaf))
+  (.node 5946969538174360839 322000 (.node 2305843009213693952 61 (.node 2 1 .leaf .leaf) .leaf)
+    (.node 16420514526333890797 312568 .leaf .leaf))
 theorem Fn.«level_positions__L13_L21_L3_loop0».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«level_positions__L5_L19_L7_loop0».fpows : PowTree :=
-  (.node 9798546798030735910 289179 (.node 2305843009213693952 61 (.node 2 1 .leaf .leaf) .leaf)
-    (.node 14835249689573419915 317017 .leaf .leaf))
+  (.node 14401781804251505429 295027 (.node 2305843009213693952 61 (.node 2 1 .leaf .leaf) .leaf)
+    (.node 17990295014129710696 322865 .leaf .leaf))
 theorem Fn.«level_positions__L5_L19_L7_loop0».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».fpows : PowTree :=
   (.node 949978046398464 109 (.node 4294967296 32 (.node 325 128 .leaf .leaf) .leaf) (.node
-    18143718578586117658 277285 (.node 15277504102145226282 298022 .leaf .leaf) .leaf))
+    9073793232074236572 283133 (.node 482990245206865990 303870 .leaf .leaf) .leaf))
 theorem Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«level_residual__L18_L6_L4_L2».fpows : PowTree :=
-  (.node 65536 16 (.node 64 6 (.node 4 2 .leaf .leaf) .leaf) (.node 9540181787490418813 326636
-    (.node 5895140434137231012 326304 .leaf .leaf) .leaf))
+  (.node 65536 16 (.node 64 6 (.node 4 2 .leaf .leaf) .leaf) (.node 13227393511721198070 332152
+    (.node 8944062117231725185 332484 .leaf .leaf) .leaf))
 theorem Fn.«level_residual__L18_L6_L4_L2».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«level_residual__L21_L6_L4_L2».fpows : PowTree :=
   (.node 4096 12 (.node 32 5 (.node 4 2 .leaf .leaf) (.node 64 6 .leaf .leaf)) (.node
-    7774691686666428583 325818 (.node 65536 16 .leaf .leaf) (.node 13043677550206120713 325486 .leaf
+    4284481792477658610 331666 (.node 65536 16 .leaf .leaf) (.node 5570026567052489922 331334 .leaf
     .leaf)))
 theorem Fn.«level_residual__L21_L6_L4_L2».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«level_residual__L23_L16_L4_L2_loop0».fpows : PowTree :=
-  (.node 1157707747728294315 788 (.node 2 1 .leaf .leaf) (.node 7347565138878682022 404458 .leaf
+  (.node 1157707747728294315 788 (.node 2 1 .leaf .leaf) (.node 14250577151089438113 410306 .leaf
     .leaf))
 theorem Fn.«level_residual__L23_L16_L4_L2_loop0».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«level_residual__L28_L11_L4_L2_loop0».fpows : PowTree :=
-  (.node 30518044740882708 618 (.node 2 1 .leaf .leaf) (.node 15468374111050131789 337778 .leaf
+  (.node 30518044740882708 618 (.node 2 1 .leaf .leaf) (.node 14751443404170073803 343626 .leaf
     .leaf))
 theorem Fn.«level_residual__L28_L11_L4_L2_loop0».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«level_residual__L32_L10_L4_L2_loop0».fpows : PowTree :=
-  (.node 29802779843328 584 (.node 2 1 .leaf .leaf) (.node 1088152832452284676 286924 .leaf .leaf))
+  (.node 29802779843328 584 (.node 2 1 .leaf .leaf) (.node 6819362267552032172 292772 .leaf .leaf))
 theorem Fn.«level_residual__L32_L10_L4_L2_loop0».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«level_residual__L37_L19_L4_L2_loop0».fpows : PowTree :=
-  (.node 632571514798880304 386555 (.node 2 1 .leaf .leaf) (.node 12395384267202646350 890 .leaf
+  (.node 7549162494022805863 392403 (.node 2 1 .leaf .leaf) (.node 12395384267202646350 890 .leaf
     .leaf))
 theorem Fn.«level_residual__L37_L19_L4_L2_loop0».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«level_residual__L55_L17_L6_L3_loop1».fpows : PowTree :=
-  (.node 348966092800 158 (.node 2 1 .leaf .leaf) (.node 2803177116165578894 311244 .leaf .leaf))
+  (.node 348966092800 158 (.node 2 1 .leaf .leaf) (.node 17737904227612902163 317092 .leaf .leaf))
 theorem Fn.«level_residual__L55_L17_L6_L3_loop1».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1».fpows : PowTree :=
-  (.node 13283070351191815174 415868 (.node 2 1 .leaf .leaf) .leaf)
+  (.node 15459302137668112434 423892 (.node 2 1 .leaf .leaf) .leaf)
 theorem Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L3_L6_L12_L4_L1».fpows : PowTree :=
-  (.node 12045954311532664283 418737 (.node 2 1 .leaf .leaf) .leaf)
+  (.node 14398246924734472391 426761 (.node 2 1 .leaf .leaf) .leaf)
 theorem Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L3_L6_L12_L4_L1».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1».fpows : PowTree :=
-  (.node 2995656060834203119 437201 (.node 2 1 .leaf .leaf) .leaf)
+  (.node 8154930922002656592 445225 (.node 2 1 .leaf .leaf) .leaf)
 theorem Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».fpows : PowTree :=
-  (.node 900857133975596725 436324 (.node 2 1 .leaf .leaf) (.node 3249036401615284318 434567 .leaf
+  (.node 1641426640581983606 444348 (.node 2 1 .leaf .leaf) (.node 17285584879311324267 442591 .leaf
     .leaf))
 theorem Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)

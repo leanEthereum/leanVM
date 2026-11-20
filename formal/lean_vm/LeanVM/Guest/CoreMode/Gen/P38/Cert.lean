@@ -31,23 +31,24 @@ core_cert% «bus_grind_check__L9» «P38» 1 [«grind_check__L26»]
 core_cert% «column_selector__L30» «P38» 2 []
 core_cert% «column_selector__L7» «P38» 3 []
 core_cert% «eq_prefix_run__L28» «P38» 4 []
-core_cert% «grind_check__L19» «P38» 5 []
-core_cert% «index_mle__L4» «P38» 6 []
-core_cert% «level_positions__L22_L25_L7» «P38» 7 [«decode_query_windows__L25_L7», «level_positions__L22_L25_L7_loop0»]
-core_cert% «level_positions__L4_L21_L3» «P38» 8 [«decode_query_windows__L21_L3», «level_positions__L4_L21_L3_loop0»]
-core_cert% «level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0» «P38» 9 [«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0», «verify_merkle_cap__L7»]
-core_cert% «level_queries__L44_L0_L4_L16_L20_L2_L0_L0_L0_L0» «P38» 10 [«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0», «verify_merkle_cap__L2»]
-core_cert% «level_residual__L109_L23_L6_L3» «P38» 11 [«level_residual__L109_L23_L6_L3_loop0», «level_residual__L109_L23_L6_L3_loop1»]
-core_cert% «level_residual__L17_L8_L4_L2» «P38» 12 [«level_residual__L17_L8_L4_L2_loop0», «level_residual__L17_L8_L4_L2_loop1»]
-core_cert% «level_residual__L19_L9_L4_L2_loop0» «P38» 13 [«level_residual__L19_L9_L4_L2_loop0»]
-core_cert% «level_residual__L23_L14_L4_L2_loop1» «P38» 14 [«level_residual__L23_L14_L4_L2_loop1»]
-core_cert% «level_residual__L25_L7_L4_L2_loop1» «P38» 15 [«level_residual__L25_L7_L4_L2_loop1»]
-core_cert% «level_residual__L28_L13_L4_L2_loop1» «P38» 16 [«level_residual__L28_L13_L4_L2_loop1»]
-core_cert% «level_residual__L28_L8_L4_L2_loop1» «P38» 17 [«level_residual__L28_L8_L4_L2_loop1»]
-core_cert% «level_residual__L55_L18_L6_L3_loop1» «P38» 18 [«level_residual__L55_L18_L6_L3_loop1»]
-core_cert% «opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0» «P38» 19 [«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0», «walk_path__L12_L5»]
-core_cert% «opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0» «P38» 20 [«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0», «walk_path__L18_L3»]
-core_cert% «verify_bus_gkr» «P38» 21 [«verify_bus_gkr_loop0», «verify_bus_gkr_loop1»]
+core_cert% «eq_prefix_run_rev__L17» «P38» 5 []
+core_cert% «grind_check__L19» «P38» 6 []
+core_cert% «index_mle__L4» «P38» 7 []
+core_cert% «level_positions__L22_L25_L7» «P38» 8 [«decode_query_windows__L25_L7», «level_positions__L22_L25_L7_loop0»]
+core_cert% «level_positions__L4_L21_L3» «P38» 9 [«decode_query_windows__L21_L3», «level_positions__L4_L21_L3_loop0»]
+core_cert% «level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0» «P38» 10 [«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0», «verify_merkle_cap__L7»]
+core_cert% «level_queries__L44_L0_L4_L16_L20_L2_L0_L0_L0_L0» «P38» 11 [«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0», «verify_merkle_cap__L2»]
+core_cert% «level_residual__L109_L23_L6_L3» «P38» 12 [«level_residual__L109_L23_L6_L3_loop0», «level_residual__L109_L23_L6_L3_loop1»]
+core_cert% «level_residual__L17_L8_L4_L2» «P38» 13 [«level_residual__L17_L8_L4_L2_loop0», «level_residual__L17_L8_L4_L2_loop1»]
+core_cert% «level_residual__L19_L9_L4_L2_loop0» «P38» 14 [«level_residual__L19_L9_L4_L2_loop0»]
+core_cert% «level_residual__L23_L14_L4_L2_loop1» «P38» 15 [«level_residual__L23_L14_L4_L2_loop1»]
+core_cert% «level_residual__L25_L7_L4_L2_loop1» «P38» 16 [«level_residual__L25_L7_L4_L2_loop1»]
+core_cert% «level_residual__L28_L13_L4_L2_loop1» «P38» 17 [«level_residual__L28_L13_L4_L2_loop1»]
+core_cert% «level_residual__L28_L8_L4_L2_loop1» «P38» 18 [«level_residual__L28_L8_L4_L2_loop1»]
+core_cert% «level_residual__L55_L18_L6_L3_loop1» «P38» 19 [«level_residual__L55_L18_L6_L3_loop1»]
+core_cert% «opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0» «P38» 20 [«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0», «walk_path__L12_L5»]
+core_cert% «opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0» «P38» 21 [«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0», «walk_path__L18_L3»]
+core_cert% «verify_bus_gkr» «P38» 22 [«gkr_layers__L0», «gkr_layers__L1», «verify_bus_gkr_loop0»]
 
 end
 
@@ -60,9 +61,9 @@ namespace LeanVM.Guest.CorePack.«P38»
 /-- The pack's certificates with their facts. -/
 noncomputable def ces : List (EndExec.CertE CoreMode.hcTab CoreMode.coreNzs) :=
   [Fn.«batch_sumcheck__L23».ce, Fn.«bus_grind_check__L9».ce, Fn.«column_selector__L30».ce,
-   Fn.«column_selector__L7».ce, Fn.«eq_prefix_run__L28».ce, Fn.«grind_check__L19».ce,
-   Fn.«index_mle__L4».ce, Fn.«level_positions__L22_L25_L7».ce, Fn.«level_positions__L4_L21_L3».ce,
-   Fn.«level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0».ce,
+   Fn.«column_selector__L7».ce, Fn.«eq_prefix_run__L28».ce, Fn.«eq_prefix_run_rev__L17».ce,
+   Fn.«grind_check__L19».ce, Fn.«index_mle__L4».ce, Fn.«level_positions__L22_L25_L7».ce,
+   Fn.«level_positions__L4_L21_L3».ce, Fn.«level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0».ce,
    Fn.«level_queries__L44_L0_L4_L16_L20_L2_L0_L0_L0_L0».ce, Fn.«level_residual__L109_L23_L6_L3».ce,
    Fn.«level_residual__L17_L8_L4_L2».ce, Fn.«level_residual__L19_L9_L4_L2_loop0».ce,
    Fn.«level_residual__L23_L14_L4_L2_loop1».ce, Fn.«level_residual__L25_L7_L4_L2_loop1».ce,

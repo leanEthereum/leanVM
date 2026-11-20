@@ -25,9 +25,9 @@ noncomputable def Fn.«verify_sig_lean_sphincs».fpows : PowTree :=
     4096 12 .leaf .leaf) (.node 65536 16 .leaf .leaf)) (.node 16777216 24 (.node 1048576 20 .leaf
     .leaf) .leaf))) (.node 18014398509481984 54 (.node 70368744177664 46 (.node 4294967296 32 (.node
     67108864 26 .leaf .leaf) (.node 1099511627776 40 .leaf .leaf)) (.node 4503599627370496 52 (.node
-    281474976710656 48 .leaf .leaf) .leaf)) (.node 9223372036854775808 63 (.node 288230376151711744
-    58 (.node 72057594037927936 56 .leaf .leaf) (.node 1152921504606846976 60 .leaf .leaf)) (.node
-    13961177240429061390 33508 (.node 9223372036854810629 255 .leaf .leaf) .leaf))))
+    281474976710656 48 .leaf .leaf) .leaf)) (.node 1152921504606846976 60 (.node 288230376151711744
+    58 (.node 72057594037927936 56 .leaf .leaf) (.node 1008010369747878838 33583 .leaf .leaf))
+    (.node 9223372036854810629 255 (.node 9223372036854775808 63 .leaf .leaf) .leaf))))
 theorem Fn.«verify_sig_lean_sphincs».fpows_ok : fpows.OkW :=
   PowTree.okW_of_okWB (by decide +kernel)
 

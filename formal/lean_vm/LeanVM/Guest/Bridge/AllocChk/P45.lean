@@ -36,6 +36,7 @@ public section
 
 alloc_chk% «opening_tail_round» []
 alloc_chk% «eq_prefix_run__L32» []
+alloc_chk% «eq_prefix_run_rev__L30» []
 alloc_chk% «grind_check__L7» []
 alloc_chk% «padding_weight__L24» []
 alloc_chk% «plus_one_run__L5» []
@@ -63,6 +64,7 @@ alloc_chk% «level_residual__L23_L11_L4_L2_loop1» []
 alloc_chk% «level_residual__L37_L17_L4_L2_loop0» []
 alloc_chk% «level_positions__L6_L26_L2_loop0» [«decode_query_windows__L26_L2»]
 alloc_chk% «level_residual__L28_L16_L4_L2_loop1» []
+alloc_chk% «gkr_layer__L0_L0_loop0» []
 alloc_chk% «opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0» [«walk_path__L12_L4»]
 alloc_chk% «walk_path__L18_L5» []
 

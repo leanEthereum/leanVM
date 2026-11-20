@@ -31,17 +31,18 @@ core_cert% «aggregate_claims_loop0» «P13» 0 [«aggregate_claims_loop0»]
 core_cert% «block_selector__L14» «P13» 1 []
 core_cert% «eq_prefix_run__L18» «P13» 2 []
 core_cert% «eq_prefix_run__L3» «P13» 3 []
-core_cert% «level_positions__L10_L19_L7_loop0» «P13» 4 [«decode_query_windows__L19_L7», «level_positions__L10_L19_L7_loop0»]
-core_cert% «level_positions__L22_L24_L6_loop0» «P13» 5 [«decode_query_windows__L24_L6», «level_positions__L22_L24_L6_loop0»]
-core_cert% «level_positions__L7_L21_L3» «P13» 6 [«decode_query_windows__L21_L3», «level_positions__L7_L21_L3_loop0»]
-core_cert% «level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0» «P13» 7 [«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0», «verify_merkle_cap__L4»]
-core_cert% «level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0» «P13» 8 [«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0», «verify_merkle_cap__L7»]
-core_cert% «level_residual__L18_L7_L4_L2_loop0» «P13» 9 [«level_residual__L18_L7_L4_L2_loop0»]
-core_cert% «level_residual__L21_L7_L4_L2_loop0» «P13» 10 [«level_residual__L21_L7_L4_L2_loop0»]
-core_cert% «level_residual__L55_L17_L6_L3» «P13» 11 [«level_residual__L55_L17_L6_L3_loop0», «level_residual__L55_L17_L6_L3_loop1»]
-core_cert% «level_residual__L73_L14_L6_L3_loop0» «P13» 12 [«level_residual__L73_L14_L6_L3_loop0»]
-core_cert% «plus_one_run__L27» «P13» 13 []
-core_cert% «walk_path__L24_L2» «P13» 14 []
+core_cert% «eq_prefix_run_rev__L9» «P13» 4 []
+core_cert% «level_positions__L10_L19_L7_loop0» «P13» 5 [«decode_query_windows__L19_L7», «level_positions__L10_L19_L7_loop0»]
+core_cert% «level_positions__L22_L24_L6_loop0» «P13» 6 [«decode_query_windows__L24_L6», «level_positions__L22_L24_L6_loop0»]
+core_cert% «level_positions__L7_L21_L3» «P13» 7 [«decode_query_windows__L21_L3», «level_positions__L7_L21_L3_loop0»]
+core_cert% «level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0» «P13» 8 [«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0», «verify_merkle_cap__L4»]
+core_cert% «level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0» «P13» 9 [«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0», «verify_merkle_cap__L7»]
+core_cert% «level_residual__L18_L7_L4_L2_loop0» «P13» 10 [«level_residual__L18_L7_L4_L2_loop0»]
+core_cert% «level_residual__L21_L7_L4_L2_loop0» «P13» 11 [«level_residual__L21_L7_L4_L2_loop0»]
+core_cert% «level_residual__L55_L17_L6_L3» «P13» 12 [«level_residual__L55_L17_L6_L3_loop0», «level_residual__L55_L17_L6_L3_loop1»]
+core_cert% «level_residual__L73_L14_L6_L3_loop0» «P13» 13 [«level_residual__L73_L14_L6_L3_loop0»]
+core_cert% «plus_one_run__L27» «P13» 14 []
+core_cert% «walk_path__L24_L2» «P13» 15 []
 
 end
 
@@ -54,9 +55,9 @@ namespace LeanVM.Guest.CorePack.«P13»
 /-- The pack's certificates with their facts. -/
 noncomputable def ces : List (EndExec.CertE CoreMode.hcTab CoreMode.coreNzs) :=
   [Fn.«aggregate_claims_loop0».ce, Fn.«block_selector__L14».ce, Fn.«eq_prefix_run__L18».ce,
-   Fn.«eq_prefix_run__L3».ce, Fn.«level_positions__L10_L19_L7_loop0».ce,
-   Fn.«level_positions__L22_L24_L6_loop0».ce, Fn.«level_positions__L7_L21_L3».ce,
-   Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».ce,
+   Fn.«eq_prefix_run__L3».ce, Fn.«eq_prefix_run_rev__L9».ce,
+   Fn.«level_positions__L10_L19_L7_loop0».ce, Fn.«level_positions__L22_L24_L6_loop0».ce,
+   Fn.«level_positions__L7_L21_L3».ce, Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».ce,
    Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».ce,
    Fn.«level_residual__L18_L7_L4_L2_loop0».ce, Fn.«level_residual__L21_L7_L4_L2_loop0».ce,
    Fn.«level_residual__L55_L17_L6_L3».ce, Fn.«level_residual__L73_L14_L6_L3_loop0».ce,

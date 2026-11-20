@@ -29,6 +29,7 @@ theorem Fn.«level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1».pairOk : Bridge.
 theorem Fn.«level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_residual__L73_L20_L6_L3».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«da_levels__L128_L7_loop1».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«gkr_layer__L3_L0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«verify_merkle_cap__L3».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel

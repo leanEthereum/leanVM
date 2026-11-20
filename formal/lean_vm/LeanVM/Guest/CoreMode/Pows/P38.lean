@@ -28,6 +28,8 @@ noncomputable def Fn.«column_selector__L7».pows : Exec.PowTree := (.node 32768
 theorem Fn.«column_selector__L7».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«eq_prefix_run__L28».pows : Exec.PowTree := .leaf
 theorem Fn.«eq_prefix_run__L28».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
+noncomputable def Fn.«eq_prefix_run_rev__L17».pows : Exec.PowTree := .leaf
+theorem Fn.«eq_prefix_run_rev__L17».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«grind_check__L19».pows : Exec.PowTree := (.node 524288 19 (.node 2048 11 (.node 2 1 .leaf .leaf) .leaf) (.node 55834575010 2047 .leaf .leaf))
 theorem Fn.«grind_check__L19».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«index_mle__L4».pows : Exec.PowTree := .leaf
@@ -60,7 +62,7 @@ noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loo
 theorem Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».pows : Exec.PowTree := (.node 2 1 .leaf .leaf)
 theorem Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
-noncomputable def Fn.«verify_bus_gkr».pows : Exec.PowTree := (.node 512 9 (.node 32 5 (.node 8 3 (.node 4 2 (.node 2 1 .leaf .leaf) .leaf) (.node 16 4 .leaf .leaf)) (.node 128 7 (.node 64 6 .leaf .leaf) (.node 256 8 .leaf .leaf))) (.node 8192 13 (.node 2048 11 (.node 1024 10 .leaf .leaf) (.node 4096 12 .leaf .leaf)) (.node 32768 15 (.node 16384 14 .leaf .leaf) (.node 4294967296 32 .leaf .leaf))))
+noncomputable def Fn.«verify_bus_gkr».pows : Exec.PowTree := (.node 256 8 (.node 4 2 (.node 2 1 .leaf .leaf) (.node 8 3 .leaf .leaf)) (.node 4294967296 32 (.node 16384 14 .leaf .leaf) .leaf))
 theorem Fn.«verify_bus_gkr».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 
 end

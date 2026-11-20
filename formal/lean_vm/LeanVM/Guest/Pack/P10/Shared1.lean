@@ -15,6 +15,33 @@ public import LeanVM.Guest.Pack.«P10».Bundle
 
 set_option Elab.async false
 
+namespace LeanVM.Guest.Fn.«index_mle__L8»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `index_mle__L8`, once. -/
+theorem st : shareStaticD Fn.«index_mle__L8».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `index_mle__L8`, window 0. -/
+theorem sw0 : shareWinD Fn.«index_mle__L8».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `index_mle__L8`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«index_mle__L8».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«index_mle__L8»
+
 namespace LeanVM.Guest.Fn.«block_selector_tab__L11»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -95,31 +122,4 @@ theorem shareOk : ShareOkD Fn.«bus_grind_check__L5».core (cert.withPows Data.p
 
 end
 end LeanVM.Guest.Fn.«bus_grind_check__L5»
-
-namespace LeanVM.Guest.Fn.«bus_grind_check__L10»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `bus_grind_check__L10`, once. -/
-theorem st : shareStaticD Fn.«bus_grind_check__L10».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `bus_grind_check__L10`, window 0. -/
-theorem sw0 : shareWinD Fn.«bus_grind_check__L10».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `bus_grind_check__L10`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«bus_grind_check__L10».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«bus_grind_check__L10»
 

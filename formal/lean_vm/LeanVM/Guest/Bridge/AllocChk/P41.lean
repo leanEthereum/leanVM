@@ -31,8 +31,10 @@ public section
 
 alloc_chk% «g_power_of_word» []
 alloc_chk% «eq_prefix_run__L14» []
+alloc_chk% «eq_prefix_run_rev__L5» []
 alloc_chk% «plus_one_run__L12» []
 alloc_chk% «block_selector__L18» []
+alloc_chk% «gkr_last_layers__L0_L1» []
 alloc_chk% «opening_message__L8_L1» []
 alloc_chk% «level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0» [«verify_merkle_cap__L6», «opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0»]
 alloc_chk% «level_residual__L32_L8_L4_L2» [«level_residual__L32_L8_L4_L2_loop0»]

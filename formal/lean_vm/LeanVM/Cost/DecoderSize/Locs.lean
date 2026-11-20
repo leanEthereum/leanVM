@@ -17,6 +17,7 @@ public import LeanVM.Cost.DecoderSize.Rows8
 public import LeanVM.Cost.DecoderSize.Rows9
 public import LeanVM.Cost.DecoderSize.Rows10
 public import LeanVM.Cost.DecoderSize.Rows11
+public import LeanVM.Cost.DecoderSize.Rows12
 
 /-! The size of the guest's packed frame cells, the chunks' sizes summed (`DecoderSize/Rows*.lean`):
 the slots' row and every group's, the table's literal less its array and `Term.literal`
@@ -29,35 +30,37 @@ namespace LeanVM.Cost.Decoder
 set_option maxRecDepth 100000 in
 /-- **The rows' sizes**, summed. -/
 theorem guestLanes_rowSize :
-    rowSize guestSlotsList + (guestLaneGroups.map fun g ↦ groupLen g + 1).sum = 214110 := by
-  have hs : rowSize guestSlotsList = 1550 := by decide +kernel
-  have hl : guestLaneGroups.length = 388 := by decide +kernel
+    rowSize guestSlotsList + (guestLaneGroups.map fun g ↦ groupLen g + 1).sum = 216214 := by
+  have hs : rowSize guestSlotsList = 1607 := by decide +kernel
+  have hl : guestLaneGroups.length = 402 := by decide +kernel
   rw [sum_groupSize_eq_groupsSize, hl, hs]
-  have s0 := groupsSize_split 0 1 387 1 388 rfl rfl
+  have s0 := groupsSize_split 0 1 401 1 402 rfl rfl
   have c0 := groupsSize_0_1
-  have s1 := groupsSize_split 1 23 364 24 387 rfl rfl
+  have s1 := groupsSize_split 1 23 378 24 401 rfl rfl
   have c1 := groupsSize_1_23
-  have s2 := groupsSize_split 24 40 324 64 364 rfl rfl
+  have s2 := groupsSize_split 24 40 338 64 378 rfl rfl
   have c2 := groupsSize_24_40
-  have s3 := groupsSize_split 64 40 284 104 324 rfl rfl
+  have s3 := groupsSize_split 64 40 298 104 338 rfl rfl
   have c3 := groupsSize_64_40
-  have s4 := groupsSize_split 104 24 260 128 284 rfl rfl
-  have c4 := groupsSize_104_24
-  have s5 := groupsSize_split 128 40 220 168 260 rfl rfl
-  have c5 := groupsSize_128_40
-  have s6 := groupsSize_split 168 40 180 208 220 rfl rfl
-  have c6 := groupsSize_168_40
-  have s7 := groupsSize_split 208 40 140 248 180 rfl rfl
-  have c7 := groupsSize_208_40
-  have s8 := groupsSize_split 248 40 100 288 140 rfl rfl
-  have c8 := groupsSize_248_40
-  have s9 := groupsSize_split 288 40 60 328 100 rfl rfl
-  have c9 := groupsSize_288_40
-  have s10 := groupsSize_split 328 40 20 368 60 rfl rfl
-  have c10 := groupsSize_328_40
-  have s11 := groupsSize_split 368 20 0 388 20 rfl rfl
-  have c11 := groupsSize_368_20
-  have e := groupsSize_zero 388
+  have s4 := groupsSize_split 104 17 281 121 298 rfl rfl
+  have c4 := groupsSize_104_17
+  have s5 := groupsSize_split 121 40 241 161 281 rfl rfl
+  have c5 := groupsSize_121_40
+  have s6 := groupsSize_split 161 40 201 201 241 rfl rfl
+  have c6 := groupsSize_161_40
+  have s7 := groupsSize_split 201 40 161 241 201 rfl rfl
+  have c7 := groupsSize_201_40
+  have s8 := groupsSize_split 241 40 121 281 161 rfl rfl
+  have c8 := groupsSize_241_40
+  have s9 := groupsSize_split 281 40 81 321 121 rfl rfl
+  have c9 := groupsSize_281_40
+  have s10 := groupsSize_split 321 40 41 361 81 rfl rfl
+  have c10 := groupsSize_321_40
+  have s11 := groupsSize_split 361 40 1 401 41 rfl rfl
+  have c11 := groupsSize_361_40
+  have s12 := groupsSize_split 401 1 0 402 1 rfl rfl
+  have c12 := groupsSize_401_1
+  have e := groupsSize_zero 402
   omega
 
 end

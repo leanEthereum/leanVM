@@ -395,6 +395,79 @@ noncomputable def core : Core.Fn where
 end
 end LeanVM.Guest.Fn.«eq_prefix_run__L15»
 
+namespace LeanVM.Guest.Fn.«eq_prefix_run_rev__L4»
+
+open LeanVM.Guest
+
+@[expose] public section
+
+namespace core
+
+/-- `eq_prefix_run_rev__L4`: the body. -/
+noncomputable def body : List Core.Stmt := [
+  .atom (.const (.n 4) (word 1 0)),
+  .atom (.load (.n 4) (.n 0) 0),
+  .atom (.load (.n 5) (.n 2) 3),
+  .atom (.load (.n 5) (.n 1) 0),
+  .atom (.load (.n 6) (.n 3) 0),
+  .atom (.add (.n 7) (.n 5) (.n 6)),
+  .atom (.load (.n 7) (.n 0) 1),
+  .atom (.load (.n 8) (.n 2) 2),
+  .atom (.load (.n 8) (.n 1) 1),
+  .atom (.load (.n 9) (.n 3) 1),
+  .atom (.add (.n 10) (.n 8) (.n 9)),
+  .atom (.mul (.n 11) (.n 7) (.n 10)),
+  .atom (.load (.n 11) (.n 0) 2),
+  .atom (.load (.n 12) (.n 2) 1),
+  .atom (.load (.n 12) (.n 1) 2),
+  .atom (.load (.n 13) (.n 3) 2),
+  .atom (.add (.n 14) (.n 12) (.n 13)),
+  .atom (.mul (.n 15) (.n 11) (.n 14)),
+  .atom (.load (.n 15) (.n 0) 3),
+  .atom (.load (.n 16) (.n 2) 0),
+  .atom (.load (.n 16) (.n 1) 3),
+  .atom (.load (.n 17) (.n 3) 3),
+  .atom (.add (.n 18) (.n 16) (.n 17)),
+  .atom (.mul (.n 19) (.n 15) (.n 18)),
+  .atom (.load (.n 19) (.n 0) 4),
+  .atom (.const (.n 20) (word 0 0)),
+  .ret [.n 20]]
+
+end core
+
+/-- `eq_prefix_run_rev__L4`. -/
+noncomputable def core : Core.Fn where
+  name := "eq_prefix_run_rev__L4"
+  params := [.n 0, .n 1, .n 2, .n 3]
+  body := core.body
+
+end
+end LeanVM.Guest.Fn.«eq_prefix_run_rev__L4»
+
+namespace LeanVM.Guest.Fn.«gkr_last_layers__L0_L0»
+
+open LeanVM.Guest
+
+@[expose] public section
+
+namespace core
+
+/-- `gkr_last_layers__L0_L0`: the body. -/
+noncomputable def body : List Core.Stmt := [
+  .atom (.const (.n 9) (word 0 0)),
+  .ret [.n 9]]
+
+end core
+
+/-- `gkr_last_layers__L0_L0`. -/
+noncomputable def core : Core.Fn where
+  name := "gkr_last_layers__L0_L0"
+  params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8]
+  body := core.body
+
+end
+end LeanVM.Guest.Fn.«gkr_last_layers__L0_L0»
+
 namespace LeanVM.Guest.Fn.«level_positions__L11_L22_L4»
 
 open LeanVM.Guest

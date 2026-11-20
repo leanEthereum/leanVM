@@ -23,31 +23,31 @@ set_option maxRecDepth 100000
 def dvStNames : List String := ["da_padding", "da_vector", "da_weights"]
 
 /-- Their core indices. -/
-def dvStJ : List ℕ := [31, 34, 29]
+def dvStJ : List ℕ := [32, 35, 30]
 
 /-- `da_verify`'s blob loop and the padding loop. -/
 def dvLpNames : List String := ["__loop0_da_verify", "__loop0_da_pad"]
 
 /-- Their core indices. -/
-def dvLpJ : List ℕ := [407, 410]
+def dvLpJ : List ℕ := [441, 444]
 
 /-- The core index of the tree over the blob roots, `B1.Da.dlTop`. -/
-def dlJ : ℕ := 408
+def dlJ : ℕ := 442
 
 /-- The core index of `claim_list_tail`. -/
-def clTJ : ℕ := 24
+def clTJ : ℕ := 25
 
 /-- `claim_list_digest`'s loops, per `136` and per `17` claims. -/
 def clLpNames : List String := ["__loop0_claim_list_digest", "__loop1_claim_list_digest"]
 
 /-- Their core indices. -/
-def clLpJ : List ℕ := [350, 351]
+def clLpJ : List ℕ := [384, 385]
 
 /-- The functions whose frames the counts weigh. -/
 def mvOmNames : List String := ["da_verify", "da_pad", "claim_list_digest"]
 
 /-- Their core indices. -/
-def mvOmJ : List ℕ := [28, 30, 23]
+def mvOmJ : List ℕ := [29, 31, 24]
 
 /-- The instructions of `dvStNames`. -/
 def kcDvStT : Opcode → List ℕ

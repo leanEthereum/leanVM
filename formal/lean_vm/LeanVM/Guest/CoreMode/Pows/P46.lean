@@ -68,8 +68,6 @@ noncomputable def Fn.«squeeze_point_from__L9».pows : Exec.PowTree := .leaf
 theorem Fn.«squeeze_point_from__L9».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«verify_keccak_loop0».pows : Exec.PowTree := (.node 2 1 .leaf .leaf)
 theorem Fn.«verify_keccak_loop0».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
-noncomputable def Fn.«verify_tables_loop1».pows : Exec.PowTree := (.node 2 1 .leaf .leaf)
-theorem Fn.«verify_tables_loop1».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 
 end
 

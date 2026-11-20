@@ -56,6 +56,33 @@ theorem shareOk : ShareOkD Fn.«eq_prefix_run__L21».core (cert.withPows Data.po
 end
 end LeanVM.Guest.Fn.«eq_prefix_run__L21»
 
+namespace LeanVM.Guest.Fn.«eq_prefix_run_rev__L27»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L27`, once. -/
+theorem st : shareStaticD Fn.«eq_prefix_run_rev__L27».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L27`, window 0. -/
+theorem sw0 : shareWinD Fn.«eq_prefix_run_rev__L27».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `eq_prefix_run_rev__L27`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«eq_prefix_run_rev__L27».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«eq_prefix_run_rev__L27»
+
 namespace LeanVM.Guest.Fn.«plus_one_run__L30»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -94,33 +121,6 @@ set_option maxRecDepth 100000 in
 theorem st : shareStaticD Fn.«block_selector__L3».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
-/-- `block_selector__L3`, window 0. -/
-theorem sw0 : shareWinD Fn.«block_selector__L3».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `block_selector__L3`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«block_selector__L3».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
 end
 end LeanVM.Guest.Fn.«block_selector__L3»
-
-namespace LeanVM.Guest.Fn.«block_selector__L25»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `block_selector__L25`, once. -/
-theorem st : shareStaticD Fn.«block_selector__L25».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«block_selector__L25»
 

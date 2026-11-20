@@ -21,6 +21,7 @@ theorem Fn.«padding_weight__L1».pairOk : Bridge.pairChk [] cert.locs fs core.b
 theorem Fn.«padding_weight__L14».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«block_selector_tab__L28».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«child_claim_list_mono_last__L4».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«gkr_last_layers__L3_L1».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_residual__L109_L16_L6_L3».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_positions__L22_L23_L5».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_positions__L15_L24_L6».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel

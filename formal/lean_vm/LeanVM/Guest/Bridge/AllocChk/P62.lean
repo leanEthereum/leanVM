@@ -40,6 +40,7 @@ public section
 
 alloc_chk% «main_loop1» []
 alloc_chk% «eq_prefix_run__L20» []
+alloc_chk% «eq_prefix_run_rev__L26» []
 alloc_chk% «plus_one_run__L31» []
 alloc_chk% «block_selector__L2» []
 alloc_chk% «block_selector__L24» []

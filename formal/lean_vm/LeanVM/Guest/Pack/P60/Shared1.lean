@@ -15,6 +15,33 @@ public import LeanVM.Guest.Pack.«P60».Bundle
 
 set_option Elab.async false
 
+namespace LeanVM.Guest.Fn.«block_selector_tab__L31»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `block_selector_tab__L31`, once. -/
+theorem st : shareStaticD Fn.«block_selector_tab__L31».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `block_selector_tab__L31`, window 0. -/
+theorem sw0 : shareWinD Fn.«block_selector_tab__L31».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `block_selector_tab__L31`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«block_selector_tab__L31».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«block_selector_tab__L31»
+
 namespace LeanVM.Guest.Fn.«squeeze_point_from__L7»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -95,31 +122,4 @@ theorem shareOk : ShareOkD Fn.«level_residual__L44_L15_L4_L2».core (cert.withP
 
 end
 end LeanVM.Guest.Fn.«level_residual__L44_L15_L4_L2»
-
-namespace LeanVM.Guest.Fn.«level_positions__L8_L27_L3»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `level_positions__L8_L27_L3`, once. -/
-theorem st : shareStaticD Fn.«level_positions__L8_L27_L3».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `level_positions__L8_L27_L3`, window 0. -/
-theorem sw0 : shareWinD Fn.«level_positions__L8_L27_L3».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `level_positions__L8_L27_L3`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«level_positions__L8_L27_L3».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«level_positions__L8_L27_L3»
 

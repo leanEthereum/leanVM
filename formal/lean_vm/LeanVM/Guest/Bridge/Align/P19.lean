@@ -39,6 +39,7 @@ namespace LeanVM.Guest
 
 noncomputable def Fn.«block_selector__L9».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«column_selector__L4».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
+noncomputable def Fn.«eq_prefix_run_rev__L14».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«index_mle__L7».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L4_L23_L5_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L4_L23_L5", Fn.«level_positions__L4_L23_L5_loop0».entry), ("decode_query_windows__L23_L5", Fn.«decode_query_windows__L23_L5».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L7_L18_L6_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L7_L18_L6", Fn.«level_positions__L7_L18_L6_loop0».entry), ("decode_query_windows__L18_L6", Fn.«decode_query_windows__L18_L6».entry)] 524287 code.instructionCount
@@ -76,6 +77,7 @@ public section
 
 align_chk% «block_selector__L9»
 align_chk% «column_selector__L4»
+align_chk% «eq_prefix_run_rev__L14»
 align_chk% «index_mle__L7»
 align_chk% «level_positions__L4_L23_L5_loop0»
 align_chk% «level_positions__L7_L18_L6_loop0»

@@ -15,6 +15,33 @@ public import LeanVM.Guest.Pack.«P62».Bundle
 
 set_option Elab.async false
 
+namespace LeanVM.Guest.Fn.«block_selector__L2»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `block_selector__L2`, once. -/
+theorem st : shareStaticD Fn.«block_selector__L2».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `block_selector__L2`, window 0. -/
+theorem sw0 : shareWinD Fn.«block_selector__L2».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `block_selector__L2`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«block_selector__L2».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«block_selector__L2»
+
 namespace LeanVM.Guest.Fn.«block_selector__L24»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -95,23 +122,4 @@ theorem shareOk : ShareOkD Fn.«bus_grind_check__L1».core (cert.withPows Data.p
 
 end
 end LeanVM.Guest.Fn.«bus_grind_check__L1»
-
-namespace LeanVM.Guest.Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0`, once. -/
-theorem st : shareStaticD Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0`, window 0. -/
-theorem sw0 : shareWinD Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0»
 

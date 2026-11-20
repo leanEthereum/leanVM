@@ -11,7 +11,7 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-abbrev Fn.«verify_sig_lean_sphincs».entry : Nat := 57221
+abbrev Fn.«verify_sig_lean_sphincs».entry : Nat := 57296
 
 end
 

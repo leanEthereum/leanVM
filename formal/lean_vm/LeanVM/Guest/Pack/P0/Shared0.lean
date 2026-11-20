@@ -42,6 +42,33 @@ theorem shareOk : ShareOkD Fn.«opening_round».core (cert.withPows Data.powTree
 end
 end LeanVM.Guest.Fn.«opening_round»
 
+namespace LeanVM.Guest.Fn.«eq_prefix_run_rev__L15»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L15`, once. -/
+theorem st : shareStaticD Fn.«eq_prefix_run_rev__L15».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L15`, window 0. -/
+theorem sw0 : shareWinD Fn.«eq_prefix_run_rev__L15».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `eq_prefix_run_rev__L15`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«eq_prefix_run_rev__L15».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«eq_prefix_run_rev__L15»
+
 namespace LeanVM.Guest.Fn.«block_selector__L8»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -95,31 +122,4 @@ theorem shareOk : ShareOkD Fn.«index_mle__L6».core (cert.withPows Data.powTree
 
 end
 end LeanVM.Guest.Fn.«index_mle__L6»
-
-namespace LeanVM.Guest.Fn.«column_selector__L5»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `column_selector__L5`, once. -/
-theorem st : shareStaticD Fn.«column_selector__L5».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `column_selector__L5`, window 0. -/
-theorem sw0 : shareWinD Fn.«column_selector__L5».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `column_selector__L5`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«column_selector__L5».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«column_selector__L5»
 

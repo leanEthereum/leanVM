@@ -22,7 +22,7 @@ public section
 theorem cfOk0 : CoreMode.CfOk Fn.«block_selector_tab__L29».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«block_selector_tab__L29».tie rfl rfl rfl (by decide +kernel)
 theorem cfOk1 : CoreMode.CfOk Fn.«child_claim_list_mono_last__L5».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«child_claim_list_mono_last__L5».tie rfl rfl rfl (by decide +kernel)
 theorem cfOk2 : CoreMode.CfOk Fn.«da_levels__L128_L7_loop3».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«da_levels__L128_L7_loop3».tie rfl rfl rfl (by decide +kernel)
-theorem cfOk3 : CoreMode.CfOk Fn.«gkr_rounds__L2».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«gkr_rounds__L2».tie rfl rfl rfl (by decide +kernel)
+theorem cfOk3 : CoreMode.CfOk Fn.«gkr_last_layers__L3_L0».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«gkr_last_layers__L3_L0».tie rfl rfl rfl (by decide +kernel)
 theorem cfOk4 : CoreMode.CfOk Fn.«level_positions__L13_L20_L2_loop0».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«level_positions__L13_L20_L2_loop0».tie rfl rfl rfl (by decide +kernel)
 theorem cfOk5 : CoreMode.CfOk Fn.«level_positions__L4_L14_L2».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«level_positions__L4_L14_L2».tie rfl rfl rfl (by decide +kernel)
 theorem cfOk6 : CoreMode.CfOk Fn.«level_positions__L6_L21_L3_loop0».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«level_positions__L6_L21_L3_loop0».tie rfl rfl rfl (by decide +kernel)

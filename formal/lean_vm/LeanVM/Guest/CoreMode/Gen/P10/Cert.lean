@@ -33,19 +33,21 @@ core_cert% «bus_grind_check__L10» «P10» 3 [«grind_check__L27»]
 core_cert% «bus_grind_check__L5» «P10» 4 [«grind_check__L22»]
 core_cert% «child_claim_list_mono_last__L13» «P10» 5 []
 core_cert% «eq_prefix_run__L24» «P10» 6 []
-core_cert% «grind_check__L15» «P10» 7 []
-core_cert% «index_mle__L8» «P10» 8 []
-core_cert% «level_positions__L8_L17_L5_loop0» «P10» 9 [«decode_query_windows__L17_L5», «level_positions__L8_L17_L5_loop0»]
-core_cert% «level_positions__L8_L21_L3» «P10» 10 [«decode_query_windows__L21_L3», «level_positions__L8_L21_L3_loop0»]
-core_cert% «level_positions__L8_L23_L5» «P10» 11 [«decode_query_windows__L23_L5», «level_positions__L8_L23_L5_loop0»]
-core_cert% «level_queries__L25_L0_L4_L16_L15_L3_L0_L0_L0_L0» «P10» 12 [«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0», «verify_merkle_cap__L3»]
-core_cert% «level_residual__L218_L17_L6_L3» «P10» 13 [«level_residual__L218_L17_L6_L3_loop0», «level_residual__L218_L17_L6_L3_loop1»]
-core_cert% «level_residual__L55_L19_L6_L3_loop0» «P10» 14 [«level_residual__L55_L19_L6_L3_loop0»]
-core_cert% «level_residual__L73_L24_L6_L3_loop0» «P10» 15 [«level_residual__L73_L24_L6_L3_loop0»]
-core_cert% «opening_message__L12_L1» «P10» 16 []
-core_cert% «opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1» «P10» 17 [«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1_loop0»]
-core_cert% «opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1» «P10» 18 [«opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1_loop0»]
-core_cert% «walk_path__L6_L7» «P10» 19 []
+core_cert% «eq_prefix_run_rev__L22» «P10» 7 []
+core_cert% «gkr_layer__L2_L0» «P10» 8 [«gkr_layer__L2_L0_loop0»]
+core_cert% «grind_check__L15» «P10» 9 []
+core_cert% «index_mle__L8» «P10» 10 []
+core_cert% «level_positions__L8_L17_L5_loop0» «P10» 11 [«decode_query_windows__L17_L5», «level_positions__L8_L17_L5_loop0»]
+core_cert% «level_positions__L8_L21_L3» «P10» 12 [«decode_query_windows__L21_L3», «level_positions__L8_L21_L3_loop0»]
+core_cert% «level_positions__L8_L23_L5» «P10» 13 [«decode_query_windows__L23_L5», «level_positions__L8_L23_L5_loop0»]
+core_cert% «level_queries__L25_L0_L4_L16_L15_L3_L0_L0_L0_L0» «P10» 14 [«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0», «verify_merkle_cap__L3»]
+core_cert% «level_residual__L218_L17_L6_L3» «P10» 15 [«level_residual__L218_L17_L6_L3_loop0», «level_residual__L218_L17_L6_L3_loop1»]
+core_cert% «level_residual__L55_L19_L6_L3_loop0» «P10» 16 [«level_residual__L55_L19_L6_L3_loop0»]
+core_cert% «level_residual__L73_L24_L6_L3_loop0» «P10» 17 [«level_residual__L73_L24_L6_L3_loop0»]
+core_cert% «opening_message__L12_L1» «P10» 18 []
+core_cert% «opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1» «P10» 19 [«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1_loop0»]
+core_cert% «opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1» «P10» 20 [«opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1_loop0»]
+core_cert% «walk_path__L6_L7» «P10» 21 []
 
 end
 
@@ -59,12 +61,12 @@ namespace LeanVM.Guest.CorePack.«P10»
 noncomputable def ces : List (EndExec.CertE CoreMode.hcTab CoreMode.coreNzs) :=
   [Fn.«block_selector__L20».ce, Fn.«block_selector__L6».ce, Fn.«block_selector_tab__L11».ce,
    Fn.«bus_grind_check__L10».ce, Fn.«bus_grind_check__L5».ce, Fn.«child_claim_list_mono_last__L13».ce,
-   Fn.«eq_prefix_run__L24».ce, Fn.«grind_check__L15».ce, Fn.«index_mle__L8».ce,
-   Fn.«level_positions__L8_L17_L5_loop0».ce, Fn.«level_positions__L8_L21_L3».ce,
-   Fn.«level_positions__L8_L23_L5».ce, Fn.«level_queries__L25_L0_L4_L16_L15_L3_L0_L0_L0_L0».ce,
-   Fn.«level_residual__L218_L17_L6_L3».ce, Fn.«level_residual__L55_L19_L6_L3_loop0».ce,
-   Fn.«level_residual__L73_L24_L6_L3_loop0».ce, Fn.«opening_message__L12_L1».ce,
-   Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1».ce,
+   Fn.«eq_prefix_run__L24».ce, Fn.«eq_prefix_run_rev__L22».ce, Fn.«gkr_layer__L2_L0».ce,
+   Fn.«grind_check__L15».ce, Fn.«index_mle__L8».ce, Fn.«level_positions__L8_L17_L5_loop0».ce,
+   Fn.«level_positions__L8_L21_L3».ce, Fn.«level_positions__L8_L23_L5».ce,
+   Fn.«level_queries__L25_L0_L4_L16_L15_L3_L0_L0_L0_L0».ce, Fn.«level_residual__L218_L17_L6_L3».ce,
+   Fn.«level_residual__L55_L19_L6_L3_loop0».ce, Fn.«level_residual__L73_L24_L6_L3_loop0».ce,
+   Fn.«opening_message__L12_L1».ce, Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1».ce,
    Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1».ce, Fn.«walk_path__L6_L7».ce]
 
 end

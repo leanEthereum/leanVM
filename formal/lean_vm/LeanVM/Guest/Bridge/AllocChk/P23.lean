@@ -18,6 +18,7 @@ public import LeanVM.Guest.CoreMode.GlueA.«P24»
 public import LeanVM.Guest.CoreMode.GlueA.«P27»
 public import LeanVM.Guest.CoreMode.GlueA.«P28»
 public import LeanVM.Guest.CoreMode.GlueA.«P2»
+public import LeanVM.Guest.CoreMode.GlueA.«P36»
 public import LeanVM.Guest.CoreMode.GlueA.«P42»
 public import LeanVM.Guest.CoreMode.GlueA.«P44»
 public import LeanVM.Guest.CoreMode.GlueA.«P47»
@@ -41,6 +42,7 @@ alloc_chk% «index_mle__L32» []
 alloc_chk% «block_selector_tab__L9» []
 alloc_chk% «claim_list_digest_loop1» []
 alloc_chk% «child_claim_list_mono_last__L3» []
+alloc_chk% «gkr_last_layers__L1_L0» [«gkr_layer__L0_L0»]
 alloc_chk% «level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0» [«verify_merkle_cap__L2», «opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0»]
 alloc_chk% «level_queries__L44_L0_L4_L16_L18_L6_L0_L0_L0_L0» [«verify_merkle_cap__L6», «opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0»]
 alloc_chk% «level_queries__L37_L0_L4_L16_L19_L7_L0_L0_L0_L0» [«verify_merkle_cap__L7», «opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0»]
@@ -53,6 +55,7 @@ alloc_chk% «verify_merkle_cap__L7» []
 alloc_chk% «level_positions__L3_L14_L2_loop0» [«decode_query_windows__L14_L2»]
 alloc_chk% «opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0» [«opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0»]
 alloc_chk% «level_positions__L15_L22_L4_loop0» [«decode_query_windows__L22_L4»]
+alloc_chk% «gkr_layer__L1_L1_loop0» []
 alloc_chk% «opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0_loop0» [«walk_path__L12_L3»]
 alloc_chk% «opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0_loop0» [«walk_path__L12_L4»]
 alloc_chk% «opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0_loop0» [«walk_path__L12_L6»]

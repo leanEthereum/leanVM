@@ -11,6 +11,7 @@ public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.AllocFrDefs
 public import LeanVM.Guest.Bridge.ChkLit
 public import LeanVM.Guest.Bridge.Align.«P52»
+public import LeanVM.Guest.CoreMode.GlueA.«P22»
 public import LeanVM.Guest.CoreMode.GlueA.«P23»
 public import LeanVM.Guest.CoreMode.GlueA.«P26»
 public import LeanVM.Guest.CoreMode.GlueA.«P28»
@@ -19,6 +20,8 @@ public import LeanVM.Guest.CoreMode.GlueA.«P2»
 public import LeanVM.Guest.CoreMode.GlueA.«P40»
 public import LeanVM.Guest.CoreMode.GlueA.«P42»
 public import LeanVM.Guest.CoreMode.GlueA.«P47»
+public import LeanVM.Guest.CoreMode.GlueA.«P48»
+public import LeanVM.Guest.CoreMode.GlueA.«P49»
 public import LeanVM.Guest.CoreMode.GlueA.«P4»
 public import LeanVM.Guest.CoreMode.GlueA.«P50»
 public import LeanVM.Guest.CoreMode.GlueA.«P52»
@@ -34,6 +37,7 @@ namespace LeanVM.Guest
 public section
 
 alloc_chk% «eq_prefix_run__L31» []
+alloc_chk% «gkr_layers__L0» [«gkr_layers__L0_loop0», «gkr_last_layers__L0_L0», «gkr_last_layers__L1_L0», «gkr_last_layers__L2_L0», «gkr_last_layers__L3_L0»]
 alloc_chk% «padding_weight__L27» []
 alloc_chk% «plus_one_run__L6» []
 alloc_chk% «index_mle__L19» []

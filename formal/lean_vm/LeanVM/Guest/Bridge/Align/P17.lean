@@ -72,6 +72,7 @@ noncomputable def Fn.«da_levels__L128_L7».alignCtx : Bridge.AlignCtx := Bridge
 noncomputable def Fn.«decode_query_windows__L22_L4».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«decode_query_windows__L27_L3».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«eq_prefix_run__L21».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
+noncomputable def Fn.«eq_prefix_run_rev__L27».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L15_L23_L5_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L15_L23_L5", Fn.«level_positions__L15_L23_L5_loop0».entry), ("decode_query_windows__L23_L5", Fn.«decode_query_windows__L23_L5».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L8_L24_L6_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L8_L24_L6", Fn.«level_positions__L8_L24_L6_loop0».entry), ("decode_query_windows__L24_L6", Fn.«decode_query_windows__L24_L6».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L9_L22_L4».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L9_L22_L4", Fn.«level_positions__L9_L22_L4_loop0».entry), ("decode_query_windows__L22_L4", Fn.«decode_query_windows__L22_L4».entry)] 524287 code.instructionCount
@@ -110,6 +111,7 @@ align_chk% «da_levels__L128_L7»
 align_chk% «decode_query_windows__L22_L4»
 align_chk% «decode_query_windows__L27_L3»
 align_chk% «eq_prefix_run__L21»
+align_chk% «eq_prefix_run_rev__L27»
 align_chk% «level_positions__L15_L23_L5_loop0»
 align_chk% «level_positions__L8_L24_L6_loop0»
 align_chk% «level_positions__L9_L22_L4»

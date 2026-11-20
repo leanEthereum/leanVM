@@ -22,6 +22,7 @@ public section
 
 theorem Fn.«verify_bus_gkr».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«verify_bus_gkr».idx == 1) = true := by decide +kernel
 theorem Fn.«eq_prefix_run__L28».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«eq_prefix_run__L28».idx == 1) = true := by decide +kernel
+theorem Fn.«eq_prefix_run_rev__L17».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«eq_prefix_run_rev__L17».idx == 1) = true := by decide +kernel
 theorem Fn.«index_mle__L4».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«index_mle__L4».idx == 1) = true := by decide +kernel
 theorem Fn.«column_selector__L7».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«column_selector__L7».idx == 1) = true := by decide +kernel
 theorem Fn.«column_selector__L30».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«column_selector__L30».idx == 1) = true := by decide +kernel

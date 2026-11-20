@@ -15,6 +15,33 @@ public import LeanVM.Guest.Pack.«P52».Bundle
 
 set_option Elab.async false
 
+namespace LeanVM.Guest.Fn.«index_mle__L19»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `index_mle__L19`, once. -/
+theorem st : shareStaticD Fn.«index_mle__L19».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `index_mle__L19`, window 0. -/
+theorem sw0 : shareWinD Fn.«index_mle__L19».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `index_mle__L19`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«index_mle__L19».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«index_mle__L19»
+
 namespace LeanVM.Guest.Fn.«index_mle__L20»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -95,31 +122,4 @@ theorem shareOk : ShareOkD Fn.«column_selector__L29».core (cert.withPows Data.
 
 end
 end LeanVM.Guest.Fn.«column_selector__L29»
-
-namespace LeanVM.Guest.Fn.«grind_check__L22»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `grind_check__L22`, once. -/
-theorem st : shareStaticD Fn.«grind_check__L22».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `grind_check__L22`, window 0. -/
-theorem sw0 : shareWinD Fn.«grind_check__L22».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `grind_check__L22`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«grind_check__L22».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«grind_check__L22»
 

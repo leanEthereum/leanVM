@@ -46,7 +46,8 @@ for its guarantees only (`faCells`): the frame cell holding `run[i]` is written 
 
 **Runs split.** A run needed may be split at a symbolic index `k` (`catM`: `k·h` the upper bound's word by the
 kept equations, both exponents existing), merged from residues whose root is given (`mrgE`), and, after a
-dispatch on `x`, a block `⟨q, S, g^0, x·g^d⟩` that every kept arm `j` writes up to `j + d` (`ab`).
+dispatch on `x`, a block `⟨q, S, g^0, x·g^d⟩` that every kept arm `j` writes up to `j + d` (`ab`), or one whose base
+moves with the arm, `⟨q·x^a, S, g^0, hi·x^b⟩`, arm `j` writing `⟨q·g^(a·j), S, g^0, hi·g^(b·j)⟩` (`abx`).
 
 **Loops.** A loop helper with `term = [(.val 0, end)]`: its shape (`loopShape`) checked, the pass over its body without the tail, the tail's `callIf` as a call, then its `ret []` (`tailC`): each guarantee written by the path, or, `end` being parameter `1` and the guarantee not over the counter, written by the path at the exit (`i' = end`, `i'` the next counter), the next iteration guaranteeing it otherwise; and a run `[counter, end)` over a base not over the counter is accumulated: the counter's point written by the path, the rest by the next iteration.
 
@@ -1339,23 +1340,30 @@ def vpHead : List Wit → List (ℕ × List ℕ) × List Wit
   | .vp j offs :: ws => ((j, offs) :: (vpHead ws).1, (vpHead ws).2)
   | ws => ([], ws)
 
-/-- A dispatch's leading `ab` entries (after its `vp`s), and the witnesses after them. -/
-def abHead : List Wit → List (CCell × ℕ × ℕ) × List Wit
-  | .ab q S d :: ws => ((q, S, d) :: (abHead ws).1, (abHead ws).2)
+/-- **A dispatch's block** `(q, a, S, hi, b)`: arm `j` writes the run `⟨q·g^(a·j), S, g^0, hi·g^(b·j)⟩`. -/
+abbrev AbE := CCell × ℕ × ℕ × CCell × ℕ
+
+/-- A dispatch's leading `ab` and `abx` entries (after its `vp`s), and the witnesses after them: `ab q S d` the block
+`(q, 0, S, g^d, 1)`. -/
+def abHead : List Wit → List AbE × List Wit
+  | .ab q S d :: ws => ((q, 0, S, ⟨[], d⟩, 1) :: (abHead ws).1, (abHead ws).2)
+  | .abx q a S hi b :: ws => ((q, a, S, hi, b) :: (abHead ws).1, (abHead ws).2)
   | ws => ([], ws)
 
-/-- The runs `⟨q, S, 0, j + d⟩` of a dispatch arm `j`'s blocks, each with its witnesses: the witnesses left. -/
-noncomputable def abRuns (X : CX) (st : CSt) (j : ℕ) : List (CCell × ℕ × ℕ) → List Wit → Option (List Wit)
+/-- Arm `j`'s run of a block. -/
+def abArmR (j : ℕ) (e : AbE) : PRun := ⟨e.1.shift (e.2.1 * j), e.2.2.1, ⟨[], 0⟩, e.2.2.2.1.shift (e.2.2.2.2 * j)⟩
+
+/-- The runs of a dispatch arm `j`'s blocks, each with its witnesses: the witnesses left. -/
+noncomputable def abRuns (X : CX) (st : CSt) (j : ℕ) : List AbE → List Wit → Option (List Wit)
   | [], ws => some ws
-  | (q, S, d) :: l, ws => match runOk X st ⟨q, S, ⟨[], 0⟩, ⟨[], j + d⟩⟩ ws with
+  | e :: l, ws => match runOk X st (abArmR j e) ws with
     | some ws' => abRuns X st j l ws'
     | none => none
 
-/-- **A dispatch arm `j`'s blocks** `abs` (`(q, S, d)`: the run `⟨q, S, 0, j + d⟩`), with the callee `g` on the
-arguments `ma`: in the state with the callee's guarantees pushed (as `vpArm`), each run witnessed. The witnesses
-left. -/
+/-- **A dispatch arm `j`'s blocks** `abs` (`abArmR`), with the callee `g` on the arguments `ma`: in the state with the
+callee's guarantees pushed (as `vpArm`), each run witnessed. The witnesses left. -/
 noncomputable def abArm (X : CX) (st : CSt) (ma : List CCell) (g : String) (rets : List V) (j : ℕ)
-    (abs : List (CCell × ℕ × ℕ)) (ws : List Wit) : Option (List Wit) :=
+    (abs : List AbE) (ws : List Wit) : Option (List Wit) :=
   match abs with
   | [] => some ws
   | _ :: _ => match monos st.env rets with
@@ -1364,9 +1372,12 @@ noncomputable def abArm (X : CX) (st : CSt) (ma : List CCell) (g : String) (rets
       | none => none
     | none => none
 
-/-- The runs a dispatch's blocks give, `x`'s monomial `mx`: `⟨q, S, g^0, mx·g^d⟩`. -/
-def abPost (mx : CCell) (abs : List (CCell × ℕ × ℕ)) : List PRun :=
-  abs.map fun p ↦ ⟨p.1, p.2.1, ⟨[], 0⟩, mx.shift p.2.2⟩
+/-- `c·mx^a` (`c` itself for `a = 0`). -/
+def abBase (mx c : CCell) (a : ℕ) : CCell := bif Nat.beq a 0 then c else c.mul (mx.pow a)
+
+/-- The runs a dispatch's blocks give, `x`'s monomial `mx`: `⟨q·mx^a, S, g^0, hi·mx^b⟩`. -/
+def abPost (mx : CCell) (abs : List AbE) : List PRun :=
+  abs.map fun e ↦ ⟨abBase mx e.1 e.2.1, e.2.2.1, ⟨[], 0⟩, abBase mx e.2.2.2.1 e.2.2.2.2⟩
 
 /-- The cells of a dispatch's returned pointers, at the returned words' monomials `mr`. -/
 def vpCells (mr : List CCell) (vps : List (ℕ × List ℕ)) : List CCell :=
@@ -1378,7 +1389,7 @@ def vpCells (mr : List CCell) (vps : List (ℕ × List ℕ)) : List CCell :=
 arm `j`'s seeing the guarantees of earlier dispatches' arms `j` on the same selector (`condSt`), then its
 returned pointers (`vpArm`) and blocks (`abArm`): the witnesses left and the arms kept. -/
 noncomputable def reqArmsX (X : CX) (st : CSt) (ms : List CCell) (args rets : List V) (vps : List (ℕ × List ℕ))
-    (abs : List (CCell × ℕ × ℕ)) (x : V) (mx : CCell) : ℕ → List String → List Wit → Option (List Wit × List String)
+    (abs : List AbE) (x : V) (mx : CCell) : ℕ → List String → List Wit → Option (List Wit × List String)
   | _, [], ws => some (ws, [])
   | j, g :: gs, ws => match armSkip X st mx j ws with
     | some ws' => reqArmsX X st ms args rets vps abs x mx (j + 1) gs ws'

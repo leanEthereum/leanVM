@@ -15,11 +15,11 @@ public import LeanVM.Guest.EndExecCoreMono
 /-!
 # The stream-cursor family, sound
 
-`st_inst`: at an honest instance of a stream-cursor loop (`stK`: `keccak_layer`'s two loops, `verify_bus_gkr`'s
-pair loop, `verify_tables`' rounds loop), its header names its caller's frame `a`, whose cell `D` holds the proof
+`st_inst`: at an honest instance of a stream-cursor loop (`stK`: `keccak_layer`'s two loops, `verify_tables`'
+rounds loop, `gkr_layer__L{p}_L{o}`'s loop), its header names its caller's frame `a`, whose cell `D` holds the proof
 stream; with its ghost words that stream and the frame's address (`setG σ [M (a + D), g^a]`), each read of the
 family (`stSub`) lies in the stream: the cursor the body loads from its record is `M (a + D)·g^q` with room for an
-iteration's words (`LoopQ`, `PairQ`, `VtLQ`), so `q + c < 8192` (`stSub_holds`). `stGlF`: its linked cells hold.
+iteration's words (`LoopQ`, `VtLQ`, `GlLQ`), so `q + c < 8192` (`stSub_holds`). `stGlF`: its linked cells hold.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -83,18 +83,24 @@ theorem stK_cases {fn : Fn} {D v S : ℕ} (hk : stK fn = some (D, v, S)) :
     (fn.name = name% «keccak_layer__L1_loop0» ∧ D = 17 ∧ v = 20 ∧ S = 16) ∨
     (fn.name = name% «keccak_layer__L0_loop1» ∧ D = 17 ∧ v = 14 ∧ S = 2) ∨
     (fn.name = name% «keccak_layer__L1_loop1» ∧ D = 17 ∧ v = 14 ∧ S = 2) ∨
-    (fn.name = name% «verify_bus_gkr_loop0_loop0» ∧ D = 11 ∧ v = 13 ∧ S = 8) ∨
-    (fn.name = name% «verify_tables_loop0» ∧ D = 22 ∧ v = 11 ∧ S = 3) := by
+    (fn.name = name% «verify_tables_loop0» ∧ D = 22 ∧ v = 11 ∧ S = 3) ∨
+    (∃ p < 4, ∃ o < 2, fn.name = B1.Tables.glLoopName p o ∧ D = 10 ∧ v = 17 ∧ S = 32) := by
   have hm := CoreMode.lookup_memL hk
-  simp only [CoreMode.stLoops, List.mem_cons, Prod.mk.injEq, List.not_mem_nil, or_false] at hm
-  rcases hm with ⟨h, rfl, rfl, rfl⟩ | ⟨h, rfl, rfl, rfl⟩ | ⟨h, rfl, rfl, rfl⟩ | ⟨h, rfl, rfl, rfl⟩ | ⟨h, rfl, rfl, rfl⟩ |
-    ⟨h, rfl, rfl, rfl⟩
+  simp only [CoreMode.stLoops, List.mem_append, List.mem_cons, List.mem_map, Prod.mk.injEq, List.not_mem_nil,
+    or_false] at hm
+  rcases hm with (⟨h, rfl, rfl, rfl⟩ | ⟨h, rfl, rfl, rfl⟩ | ⟨h, rfl, rfl, rfl⟩ | ⟨h, rfl, rfl, rfl⟩ |
+    ⟨h, rfl, rfl, rfl⟩) | ⟨n, hn, h, rfl, rfl, rfl⟩
   · exact Or.inl ⟨h, rfl, rfl, rfl⟩
   · exact Or.inr (Or.inl ⟨h, rfl, rfl, rfl⟩)
   · exact Or.inr (Or.inr (Or.inl ⟨h, rfl, rfl, rfl⟩))
   · exact Or.inr (Or.inr (Or.inr (Or.inl ⟨h, rfl, rfl, rfl⟩)))
   · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨h, rfl, rfl, rfl⟩))))
-  · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨h, rfl, rfl, rfl⟩))))
+  · refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ?_))))
+    rcases hn with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+    exacts [⟨0, by omega, 0, by omega, h.symm, rfl, rfl, rfl⟩, ⟨1, by omega, 0, by omega, h.symm, rfl, rfl, rfl⟩,
+      ⟨2, by omega, 0, by omega, h.symm, rfl, rfl, rfl⟩, ⟨3, by omega, 0, by omega, h.symm, rfl, rfl, rfl⟩,
+      ⟨0, by omega, 1, by omega, h.symm, rfl, rfl, rfl⟩, ⟨1, by omega, 1, by omega, h.symm, rfl, rfl, rfl⟩,
+      ⟨2, by omega, 1, by omega, h.symm, rfl, rfl, rfl⟩, ⟨3, by omega, 1, by omega, h.symm, rfl, rfl, rfl⟩]
 
 /-- **A stream-cursor loop is not of the ghost family `ml`.** -/
 theorem stK_mlK {fn : Fn} {p : ℕ × ℕ × ℕ} (hk : stK fn = some p) : CoreMode.mlK fn = none := by
@@ -124,15 +130,17 @@ theorem st_keccak {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreP
   rw [e6] at hl
   exact ⟨a, q, hhd, ha17, loadHolds_unique hl hld, room_of hjn hroom⟩
 
-/-- **`verify_bus_gkr`'s pair loop's cursor** in the stream: `PairQ` and the iteration's load. -/
-theorem st_pair {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
-    {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node name% «verify_bus_gkr_loop0_loop0» σ bufs kids) :
-    ∃ a q, I.hdr.2 = ofK (addressOfIndex a) ∧ a + 11 < maxCells ∧
-      σ (.n 13) = refMem r.img (a + 11) * gen ^ q ∧ q + 8 ≤ 8192 := by
-  obtain ⟨a, k, n, q, hhd, ha11, -, -, hkn, -, hld, hroom⟩ := pairQ_all hr I hI σ bufs kids ht
+/-- **A gkr layer's loop's cursor** in the stream: `GlLQ` and the iteration's load. -/
+theorem st_gl {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
+    {p o : ℕ} (hp : p < 4) (ho : o < 2) {σ : Val} {bufs : List ℕ} {kids : List Tree}
+    (ht : I.t = .node (B1.Tables.glLoopName p o) σ bufs kids) :
+    ∃ a q, I.hdr.2 = ofK (addressOfIndex a) ∧ a + 10 < maxCells ∧
+      σ (.n 17) = refMem r.img (a + 10) * gen ^ q ∧ q + 32 ≤ 8192 := by
+  obtain ⟨a, k, m, q, hhd, ha10, -, -, hkm, -, hld, hroom⟩ := glLQ_all hr I hI p hp o ho σ bufs kids ht
   obtain ⟨args, rets, fn', hf', -, es0, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
-  obtain rfl : fn' = fn% «verify_bus_gkr_loop0_loop0» := Option.some.inj (hf'.symm.trans find_pair)
-  exact ⟨a, q, hhd, ha11, (pair_next hw hh hld).1, room_of hkn hroom⟩
+  obtain ⟨fn, hf, -, hb⟩ := B1.Tables.glIs_sound (B1.Tables.glIs_loops p hp o ho)
+  obtain rfl : fn' = fn := Option.some.inj (hf'.symm.trans hf)
+  exact ⟨a, q, hhd, ha10, (gll_next hp ho hb hw hh hld).1, room_of hkm hroom⟩
 
 /-- **`verify_tables`' rounds loop's cursor** in the stream: `VtLQ` and the iteration's record and load. -/
 theorem st_vt {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
@@ -164,7 +172,7 @@ theorem st_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePro
   have hname : fn.name = f := find_name' hf
   have hgb : ∀ v, v < 21 → v < CoreMode.GB := fun v hv ↦ by unfold CoreMode.GB; omega
   rcases stK_cases hk with ⟨hn, rfl, rfl, rfl⟩ | ⟨hn, rfl, rfl, rfl⟩ | ⟨hn, rfl, rfl, rfl⟩ | ⟨hn, rfl, rfl, rfl⟩ |
-    ⟨hn, rfl, rfl, rfl⟩ | ⟨hn, rfl, rfl, rfl⟩
+    ⟨hn, rfl, rfl, rfl⟩ | ⟨p, hp, o, ho, hn, rfl, rfl, rfl⟩
   · obtain ⟨a, q, hhd, ha, hcur, hroom⟩ := st_keccak hr hI ht hf (first := 0) (by decide) false
       (by rw [← hname, hn]; rfl)
     exact ⟨a, hhd, ha, stSub_holds hk (hgb _ (by decide)) hcur hroom⟩
@@ -178,10 +186,10 @@ theorem st_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePro
       (by rw [← hname, hn]; rfl)
     exact ⟨a, hhd, ha, stSub_holds hk (hgb _ (by decide)) hcur hroom⟩
   · rw [← hname, hn] at ht
-    obtain ⟨a, q, hhd, ha, hcur, hroom⟩ := st_pair hr hI ht
+    obtain ⟨a, q, hhd, ha, hcur, hroom⟩ := st_vt hr hI ht
     exact ⟨a, hhd, ha, stSub_holds hk (hgb _ (by decide)) hcur hroom⟩
   · rw [← hname, hn] at ht
-    obtain ⟨a, q, hhd, ha, hcur, hroom⟩ := st_vt hr hI ht
+    obtain ⟨a, q, hhd, ha, hcur, hroom⟩ := st_gl hr hI hp ho ht
     exact ⟨a, hhd, ha, stSub_holds hk (hgb _ (by decide)) hcur hroom⟩
 
 /-- **A stream-cursor loop's linked cells** at its frame: the caller's cell `D` its first ghost word, the caller's

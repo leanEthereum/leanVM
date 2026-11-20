@@ -19,6 +19,8 @@ namespace LeanVM.Guest
 public section
 
 theorem Fn.«eq_prefix_run__L27».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
+theorem Fn.«eq_prefix_run_rev__L18».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
+theorem Fn.«eq_prefix_run_rev__L21».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«block_selector__L5».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«block_selector__L23».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«block_selector_tab__L12».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
@@ -37,6 +39,7 @@ theorem Fn.«level_residual__L55_L16_L4_L2».witOk : Bridge.witChk alignCtx fs c
 theorem Fn.«level_positions__L7_L24_L6».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«level_positions__L5_L23_L5».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«level_positions__L9_L25_L7».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
+theorem Fn.«gkr_layer__L0_L1».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«level_residual__L37_L10_L4_L2_loop1».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«level_residual__L23_L7_L4_L2_loop0».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«level_residual__L44_L13_L4_L2_loop0».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel

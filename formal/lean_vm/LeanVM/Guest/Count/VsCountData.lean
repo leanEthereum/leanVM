@@ -19,31 +19,31 @@ set_option maxRecDepth 100000
 @[expose] public section
 
 /-- The core indices of `open_stacked__L{c}`, `c < 11`. -/
-def osJ : List ℕ := [339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349]
+def osJ : List ℕ := [373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383]
 
 /-- `verify_sub`'s statically bounded callees but its opening arm. -/
 def vsStNames : List String := ["g_power_of_word", "log2_ceil_in_the_exponent__L0_L34", "certify_placement", "log2_ceil_in_the_exponent__L16_L34", "grind_check__L15", "opening_message__L1_L1", "grind_check__L13", "ring_switch_target", "squeeze_point_from__L20", "squeeze_point_from__L21", "squeeze_point_from__L22", "squeeze_point_from__L23", "squeeze_point_from__L24", "squeeze_point_from__L25", "squeeze_point_from__L26", "squeeze_point_from__L27", "squeeze_point_from__L28", "squeeze_point_from__L29", "squeeze_point_from__L30", "bus_grind_check__L0", "bus_grind_check__L1", "bus_grind_check__L2", "bus_grind_check__L3", "bus_grind_check__L4", "bus_grind_check__L5", "bus_grind_check__L6", "bus_grind_check__L7", "bus_grind_check__L8", "bus_grind_check__L9", "bus_grind_check__L10", "bus_grind_check__L11", "bus_grind_check__L12", "bus_grind_check__L13"]
 
 /-- Their core indices. -/
-def vsStJ : List ℕ := [2, 309, 15, 310, 311, 323, 338, 13, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337]
+def vsStJ : List ℕ := [2, 343, 16, 344, 345, 357, 372, 14, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371]
 
 /-- The core indices of `child_claim_list_last__L{k}`, `k < 17`. -/
-def cclJ : List ℕ := [371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387]
+def cclJ : List ℕ := [405, 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417, 418, 419, 420, 421]
 
 /-- The core indices of `child_claim_list_mono_last__L{k}`, `k < 17`. -/
-def ccmJ : List ℕ := [390, 391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406]
+def ccmJ : List ℕ := [424, 425, 426, 427, 428, 429, 430, 431, 432, 433, 434, 435, 436, 437, 438, 439, 440]
 
 /-- The core index of `list_split`. -/
-def lsJ : ℕ := 22
+def lsJ : ℕ := 23
 
 /-- The children's claim lists' loops: `child_claim_list_any`'s per `136` and per `17` claims, `child_claim_list_mono`'s. -/
 def ccLpNames : List String := ["__loop0_child_claim_list_any", "__loop1_child_claim_list_any", "__loop0_child_claim_list_mono", "__loop1_child_claim_list_mono"]
 
 /-- Their core indices. -/
-def ccLpJ : List ℕ := [369, 370, 388, 389]
+def ccLpJ : List ℕ := [403, 404, 422, 423]
 
 /-- The core indices of `verify_sub`, `child_claim_list_digest`, `main_loop4`, `child_claim_list_any`, `child_claim_list_mono`. -/
-def omJ : List ℕ := [18, 25, 41, 26, 27]
+def omJ : List ℕ := [19, 26, 42, 27, 28]
 
 /-- Their names. -/
 def omNames : List String := ["verify_sub", "child_claim_list_digest", "__loop4_main", "child_claim_list_any", "child_claim_list_mono"]
@@ -113,11 +113,11 @@ def omT : Opcode → List ℕ
 
 /-- `verify_tables`' instructions (`B1.VerifySub.vtWB Count.vsWords`). -/
 def kcVtW : Opcode → ℕ
-  | .xor => 2160
-  | .mulNative => 15273
-  | .setConstant => 2094
-  | .deref => 13434
-  | .jump => 635
+  | .xor => 2120
+  | .mulNative => 14816
+  | .setConstant => 1933
+  | .deref => 13370
+  | .jump => 570
   | .keccak => 77
 
 /-- The terminal's instructions (`B1.VerifySub.termWB Count.vsWords`). -/
@@ -131,12 +131,12 @@ def kcTermW : Opcode → ℕ
 
 /-- `verify_sub`'s instructions at the arm `c`, its two ratio-bounded callees within `39767`, `56404` words. -/
 def vsCountT : Opcode → List ℕ
-  | .xor => [72703, 73031, 73889, 74864, 75949, 76742, 77801, 78915, 79841, 80655, 81458]
-  | .mulNative => [150260, 150297, 151423, 152641, 154737, 155850, 157972, 159537, 160942, 162207, 162941]
-  | .setConstant => [37648, 37309, 37417, 37698, 38877, 39739, 39424, 39755, 40218, 40420, 40698]
-  | .deref => [82670, 81884, 81855, 83082, 85579, 87559, 87136, 87558, 88372, 89007, 89779]
-  | .jump => [25378, 25180, 25136, 25438, 26108, 26618, 26482, 26376, 26706, 26836, 27076]
-  | .keccak => [7322, 7373, 7423, 7478, 7949, 8254, 9626, 9764, 10175, 10229, 10367]
+  | .xor => [72942, 73270, 74128, 75103, 76188, 76981, 78040, 79154, 80080, 80894, 81697]
+  | .mulNative => [149803, 149840, 150966, 152184, 154280, 155393, 157515, 159080, 160485, 161750, 162484]
+  | .setConstant => [38958, 38619, 38727, 39008, 40187, 41049, 40734, 41065, 41528, 41730, 42008]
+  | .deref => [129968, 129182, 129153, 130380, 132877, 134857, 134434, 134856, 135670, 136305, 137077]
+  | .jump => [28097, 27899, 27855, 28157, 28827, 29337, 29201, 29095, 29425, 29555, 29795]
+  | .keccak => [7401, 7452, 7502, 7557, 8028, 8333, 9705, 9843, 10254, 10308, 10446]
 
 /-- **The tables check** against the `V` certificates and `B2C.plumbOf`. -/
 noncomputable def vsTabOk (op : Opcode) : Bool :=

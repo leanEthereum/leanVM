@@ -15,6 +15,60 @@ public import LeanVM.Guest.Pack.«P36».Bundle
 
 set_option Elab.async false
 
+namespace LeanVM.Guest.Fn.«block_selector__L22»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `block_selector__L22`, once. -/
+theorem st : shareStaticD Fn.«block_selector__L22».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `block_selector__L22`, window 0. -/
+theorem sw0 : shareWinD Fn.«block_selector__L22».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `block_selector__L22`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«block_selector__L22».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«block_selector__L22»
+
+namespace LeanVM.Guest.Fn.«block_selector_tab__L13»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `block_selector_tab__L13`, once. -/
+theorem st : shareStaticD Fn.«block_selector_tab__L13».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `block_selector_tab__L13`, window 0. -/
+theorem sw0 : shareWinD Fn.«block_selector_tab__L13».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `block_selector_tab__L13`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«block_selector_tab__L13».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«block_selector_tab__L13»
+
 namespace LeanVM.Guest.Fn.«keccak_layer__L1»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -41,55 +95,6 @@ set_option maxRecDepth 100000 in
 theorem sw2 : shareWinD Fn.«keccak_layer__L1».core (cert.withPows Data.powTree) plumb fs snaps 2 = true := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
-/-- `keccak_layer__L1`, window 3. -/
-theorem sw3 : shareWinD Fn.«keccak_layer__L1».core (cert.withPows Data.powTree) plumb fs snaps 3 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `keccak_layer__L1`, window 4. -/
-theorem sw4 : shareWinD Fn.«keccak_layer__L1».core (cert.withPows Data.powTree) plumb fs snaps 4 = true := by
-  decide +kernel
-
-/-- `keccak_layer__L1`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«keccak_layer__L1».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 4 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-  · exact sw1
-  · exact sw2
-  · exact sw3
-  · exact sw4
-⟩
-
 end
 end LeanVM.Guest.Fn.«keccak_layer__L1»
-
-namespace LeanVM.Guest.Fn.«column_selector__L9»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `column_selector__L9`, once. -/
-theorem st : shareStaticD Fn.«column_selector__L9».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `column_selector__L9`, window 0. -/
-theorem sw0 : shareWinD Fn.«column_selector__L9».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `column_selector__L9`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«column_selector__L9».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«column_selector__L9»
 

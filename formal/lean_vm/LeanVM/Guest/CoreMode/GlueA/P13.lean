@@ -18,36 +18,38 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-abbrev Fn.«aggregate_claims_loop0».advice := Data.adviceFn424
-abbrev Fn.«aggregate_claims_loop0».idx : ℕ := 424
-abbrev Fn.«block_selector__L14».advice := Data.adviceFn180
-abbrev Fn.«block_selector__L14».idx : ℕ := 180
-abbrev Fn.«eq_prefix_run__L18».advice := Data.adviceFn61
-abbrev Fn.«eq_prefix_run__L18».idx : ℕ := 61
-abbrev Fn.«eq_prefix_run__L3».advice := Data.adviceFn46
-abbrev Fn.«eq_prefix_run__L3».idx : ℕ := 46
-abbrev Fn.«level_positions__L10_L19_L7_loop0».advice := Data.adviceFn1017
-abbrev Fn.«level_positions__L10_L19_L7_loop0».idx : ℕ := 1017
-abbrev Fn.«level_positions__L22_L24_L6_loop0».advice := Data.adviceFn1311
-abbrev Fn.«level_positions__L22_L24_L6_loop0».idx : ℕ := 1311
-abbrev Fn.«level_positions__L7_L21_L3».advice := Data.adviceFn683
-abbrev Fn.«level_positions__L7_L21_L3».idx : ℕ := 683
-abbrev Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».advice := Data.adviceFn897
-abbrev Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».idx : ℕ := 897
-abbrev Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».advice := Data.adviceFn802
-abbrev Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».idx : ℕ := 802
-abbrev Fn.«level_residual__L18_L7_L4_L2_loop0».advice := Data.adviceFn1221
-abbrev Fn.«level_residual__L18_L7_L4_L2_loop0».idx : ℕ := 1221
-abbrev Fn.«level_residual__L21_L7_L4_L2_loop0».advice := Data.adviceFn1217
-abbrev Fn.«level_residual__L21_L7_L4_L2_loop0».idx : ℕ := 1217
-abbrev Fn.«level_residual__L55_L17_L6_L3».advice := Data.adviceFn622
-abbrev Fn.«level_residual__L55_L17_L6_L3».idx : ℕ := 622
-abbrev Fn.«level_residual__L73_L14_L6_L3_loop0».advice := Data.adviceFn994
-abbrev Fn.«level_residual__L73_L14_L6_L3_loop0».idx : ℕ := 994
-abbrev Fn.«open_stacked__L8».advice := Data.adviceFn348
-abbrev Fn.«open_stacked__L8».idx : ℕ := 348
-abbrev Fn.«plus_one_run__L27».advice := Data.adviceFn159
-abbrev Fn.«plus_one_run__L27».idx : ℕ := 159
+abbrev Fn.«aggregate_claims_loop0».advice := Data.adviceFn458
+abbrev Fn.«aggregate_claims_loop0».idx : ℕ := 458
+abbrev Fn.«block_selector__L14».advice := Data.adviceFn215
+abbrev Fn.«block_selector__L14».idx : ℕ := 215
+abbrev Fn.«eq_prefix_run__L18».advice := Data.adviceFn62
+abbrev Fn.«eq_prefix_run__L18».idx : ℕ := 62
+abbrev Fn.«eq_prefix_run__L3».advice := Data.adviceFn47
+abbrev Fn.«eq_prefix_run__L3».idx : ℕ := 47
+abbrev Fn.«eq_prefix_run_rev__L9».advice := Data.adviceFn94
+abbrev Fn.«eq_prefix_run_rev__L9».idx : ℕ := 94
+abbrev Fn.«level_positions__L10_L19_L7_loop0».advice := Data.adviceFn1066
+abbrev Fn.«level_positions__L10_L19_L7_loop0».idx : ℕ := 1066
+abbrev Fn.«level_positions__L22_L24_L6_loop0».advice := Data.adviceFn1360
+abbrev Fn.«level_positions__L22_L24_L6_loop0».idx : ℕ := 1360
+abbrev Fn.«level_positions__L7_L21_L3».advice := Data.adviceFn724
+abbrev Fn.«level_positions__L7_L21_L3».idx : ℕ := 724
+abbrev Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».advice := Data.adviceFn938
+abbrev Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».idx : ℕ := 938
+abbrev Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».advice := Data.adviceFn843
+abbrev Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».idx : ℕ := 843
+abbrev Fn.«level_residual__L18_L7_L4_L2_loop0».advice := Data.adviceFn1270
+abbrev Fn.«level_residual__L18_L7_L4_L2_loop0».idx : ℕ := 1270
+abbrev Fn.«level_residual__L21_L7_L4_L2_loop0».advice := Data.adviceFn1266
+abbrev Fn.«level_residual__L21_L7_L4_L2_loop0».idx : ℕ := 1266
+abbrev Fn.«level_residual__L55_L17_L6_L3».advice := Data.adviceFn663
+abbrev Fn.«level_residual__L55_L17_L6_L3».idx : ℕ := 663
+abbrev Fn.«level_residual__L73_L14_L6_L3_loop0».advice := Data.adviceFn1043
+abbrev Fn.«level_residual__L73_L14_L6_L3_loop0».idx : ℕ := 1043
+abbrev Fn.«open_stacked__L8».advice := Data.adviceFn382
+abbrev Fn.«open_stacked__L8».idx : ℕ := 382
+abbrev Fn.«plus_one_run__L27».advice := Data.adviceFn194
+abbrev Fn.«plus_one_run__L27».idx : ℕ := 194
 
 end
 

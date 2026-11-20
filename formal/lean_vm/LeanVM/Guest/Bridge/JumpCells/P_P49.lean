@@ -24,7 +24,7 @@ theorem Fn.«padding_weight__L0».jcOk : Bridge.jcDataD plumb fs (cert.withPows 
 theorem Fn.«padding_weight__L15».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«padding_weight__L15».idx == 1) = true := by decide +kernel
 theorem Fn.«block_selector_tab__L29».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«block_selector_tab__L29».idx == 1) = true := by decide +kernel
 theorem Fn.«child_claim_list_mono_last__L5».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«child_claim_list_mono_last__L5».idx == 1) = true := by decide +kernel
-theorem Fn.«gkr_rounds__L2».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«gkr_rounds__L2».idx == 1) = true := by decide +kernel
+theorem Fn.«gkr_last_layers__L3_L0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«gkr_last_layers__L3_L0».idx == 1) = true := by decide +kernel
 theorem Fn.«level_positions__L4_L14_L2».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«level_positions__L4_L14_L2».idx == 1) = true := by decide +kernel
 theorem Fn.«level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0».idx == 1) = true := by decide +kernel
 theorem Fn.«level_residual__L19_L7_L4_L2».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«level_residual__L19_L7_L4_L2».idx == 1) = true := by decide +kernel

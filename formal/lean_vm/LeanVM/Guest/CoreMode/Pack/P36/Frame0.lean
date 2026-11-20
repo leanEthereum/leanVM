@@ -41,6 +41,9 @@ public import LeanVM.Guest.CoreMode.Gen.«P36».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P36».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P36».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P36».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P36».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P36».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P36».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P14»
 public import LeanVM.Guest.CoreMode.Sig.«P20»
 public import LeanVM.Guest.CoreMode.Sig.«P21»
@@ -70,6 +73,8 @@ open LeanVM.Guest.Exec
 @[expose] public section
 
 frame_fn% «eq_prefix_run__L26» 134 []
+frame_fn% «eq_prefix_run_rev__L19» 117 []
+frame_fn% «eq_prefix_run_rev__L20» 123 []
 frame_fn% «block_selector__L4» 42 []
 frame_fn% «block_selector__L22» 222 []
 frame_fn% «block_selector_tab__L13» 44 []
@@ -94,6 +99,7 @@ frame_fn% «level_residual__L37_L17_L4_L2» 45 [«level_residual__L37_L17_L4_L2_
     «level_residual__L37_L17_L4_L2_loop1»]
 frame_fn% «level_positions__L6_L26_L2» 42 [«decode_query_windows__L26_L2»,
     «level_positions__L6_L26_L2_loop0»]
+frame_fn% «gkr_layer__L0_L0» 244 [«gkr_layer__L0_L0_loop0»]
 frame_fn% «level_positions__L28_L15_L3_loop0» 49 [«decode_query_windows__L15_L3»,
     «level_positions__L28_L15_L3_loop0»] env [(8, (.fpg 0))] scaled [8]
 frame_fn% «opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0» 320

@@ -2,7 +2,7 @@
   LeanVM.Guest.Count.VsBound
 
   **`verify_sub`'s words per child at the deployed instance**, at the child's opening arm:
-  `171736 + osC (μ - 20)` (`vsBoundAt_eq`), its sixteen callees' bounds evaluated by the kernel
+  `173661 + osC (μ - 20)` (`vsBoundAt_eq`), its sixteen callees' bounds evaluated by the kernel
   (`open_stacked`'s per arm, `Count/VsOs*`).
 -/
 
@@ -47,11 +47,11 @@ set_option maxRecDepth 100000 in
 /-- **`verify_sub`'s words for a child of stack log `μ`** at the deployed instance: its frame
 `2022` and buffers `8710`, `g_power_of_word` (`49`, twice), the two `log2_ceil` placements (`203`,
 `204`), `certify_placement` (`486`), the grind checks (`53`, twice), the squeeze dispatch (`532`),
-the opening message (`58`), the bus grind dispatch (`61`), `verify_bus_gkr` (`31525`),
-`verify_tables` (`38517`), `verify_keccak` (`56404`), `ring_switch_target` (`3544`) and the
-terminal (`29266`), `171736` in all, and `open_stacked` at the arm (`osC`), whatever the rate. -/
+the opening message (`58`), the bus grind dispatch (`61`), `verify_bus_gkr` (`34157`),
+`verify_tables` (`37810`), `verify_keccak` (`56404`), `ring_switch_target` (`3544`) and the
+terminal (`29266`), `173661` in all, and `open_stacked` at the arm (`osC`), whatever the rate. -/
 theorem vsBoundAt_eq {μ r : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 30) :
-    B1.VerifySub.vsBoundAt vsWordsOs B1.VerifySub.vkBound μ r = 171736 + osC (μ - 20) := by
+    B1.VerifySub.vsBoundAt vsWordsOs B1.VerifySub.vkBound μ r = 173661 + osC (μ - 20) := by
   rewrite [B1.VerifySub.vsBoundAt.eq_1, B1.VerifySub.vsBsAt.eq_1, B1.VerifySub.vsBsWith.eq_1,
     show vsWordsOs.Bnd = wSB from rfl, osBosAt_eq h1 h2,
     show vsWordsOs.toVsWords = vsWords from rfl, vbgMax_eq, vtMax_eq, bg_eq,

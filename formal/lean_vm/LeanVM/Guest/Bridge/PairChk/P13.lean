@@ -20,6 +20,7 @@ public section
 
 theorem Fn.«eq_prefix_run__L3».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«eq_prefix_run__L18».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«eq_prefix_run_rev__L9».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«plus_one_run__L27».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«block_selector__L14».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«aggregate_claims_loop0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel

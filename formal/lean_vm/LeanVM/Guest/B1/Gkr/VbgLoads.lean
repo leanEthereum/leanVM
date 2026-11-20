@@ -13,10 +13,10 @@ public import LeanVM.Guest.B1.Gkr.VbgMem
 # Pointers and loads
 
 On the honest valuation (`Fwd.ev` of `vbgEvL` with the allocations answered by `vbgW`):
-`vbg_ptrs` gives the allocations' pointers, `layers`' size `g^(10·(depth + 2))` and the tables
-shifted by `depth`. `vbg_loadOk`: every load of `vbgEvL` (a kernel check lists them by pointer and
-offset) lands inside the cursor's words, the root-most slot, the point rows, a table, the last
-slot or the values' buffer.
+`vbg_ptrs` gives the allocations' pointers, `layers`' size `g^(10·(depth + 2))` and the three
+tables shifted by `depth`. `vbg_loadOk`: every load of `vbgEvL` (a kernel check lists them by
+pointer and offset) lands inside the cursor's words, the root-most slot, the point rows, a table,
+the last slot or the values' buffer.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -36,10 +36,11 @@ theorem vbg_mem {s : Stmt} (h : vbgEvL.any (fun t ↦ tbStmtsEqb [s] [t]) = true
 /-- The pointer and offset classes of `vbgEvL`'s loads. -/
 def vbgLoadOk : Stmt → Bool
   | .atom (.load _ (.n p) off) =>
-      (p == 5 && decide (off < 14)) || ((p == 140 && decide (off < 10)) ||
-        ((p == 18 && decide (off < 42)) || (((p == 64 || p == 65) && decide (off < 33)) ||
-        (((p == 132 || p == 365) && off == 0) ||
-        ((p == 376 && decide (off < 10)) || (p == 390 && decide (off < 3)))))))
+      (p == 5 && decide (off < 14)) || ((p == 174 && decide (off < 10)) ||
+        ((p == 18 && decide (off < 42)) ||
+        (((p == 64 || p == 66 || p == 67) && decide (off < 33)) ||
+        (((p == 166 || p == 399 || p == 401) && off == 0) ||
+        ((p == 413 && decide (off < 10)) || (p == 427 && decide (off < 3)))))))
   | .atom (.load ..) => false
   | _ => true
 
@@ -52,11 +53,12 @@ variable {rd : Reader} {W : ℕ → E} {args : List E} {σ : Val}
 theorem vbg_ptrs (hσ : σ = B1.Val.ofArgs (ev rd W args vbgEvL))
     (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS W σ s) {depth : ℕ} {cap0 : List E} {cur zeta tabs stream : E}
     (hcl : cap0.length = 5) (hargs : args = cap0 ++ [cur, gen ^ depth, zeta, tabs, stream])
-    {layers rounds rows bnd odd vals : E} (hW : W = vbgW layers rounds rows bnd odd vals) :
+    {layers rounds rows odd bnd rem vals : E}
+    (hW : W = vbgW layers rounds rows odd bnd rem vals) :
     σ (.n 5) = cur ∧ σ (.n 6) = gen ^ depth ∧ σ (.n 15) = gen ^ (10 * (depth + 2)) ∧
-      σ (.n 16) = layers ∧ σ (.n 17) = rounds ∧ σ (.n 18) = rows ∧ σ (.n 64) = bnd ∧
-      σ (.n 65) = odd ∧ σ (.n 132) = odd * gen ^ depth ∧ σ (.n 365) = bnd * gen ^ depth ∧
-      σ (.n 390) = vals := by
+      σ (.n 16) = layers ∧ σ (.n 17) = rounds ∧ σ (.n 18) = rows ∧ σ (.n 64) = odd ∧
+      σ (.n 66) = bnd ∧ σ (.n 67) = rem ∧ σ (.n 166) = odd * gen ^ depth ∧
+      σ (.n 399) = bnd * gen ^ depth ∧ σ (.n 401) = rem * gen ^ depth ∧ σ (.n 427) = vals := by
   obtain ⟨c', hc'⟩ := Option.isSome_iff_exists.mp vb_chk
   have hl : args.length = 10 := by rw [hargs]; simp [hcl]
   have par : ∀ i < 10, σ (.n i) = args.getD i 0 := fun i hi ↦ by
@@ -84,15 +86,19 @@ theorem vbg_ptrs (hσ : σ = B1.Val.ofArgs (ev rd W args vbgEvL))
     rw [al (.hint (.alloc (.n 17) 6034)) 17 (by decide +kernel) rfl, hW]; simp [vbgW]
   have e18 : σ (.n 18) = rows := by
     rw [al (.hint (.alloc (.n 18) 1640)) 18 (by decide +kernel) rfl, hW]; simp [vbgW]
-  have e64 : σ (.n 64) = bnd := by
+  have e64 : σ (.n 64) = odd := by
     rw [al (.hint (.alloc (.n 64) 33)) 64 (by decide +kernel) rfl, hW]; simp [vbgW]
-  have e65 : σ (.n 65) = odd := by
-    rw [al (.hint (.alloc (.n 65) 33)) 65 (by decide +kernel) rfl, hW]; simp [vbgW]
-  have e390 : σ (.n 390) = vals := by
-    rw [al (.hint (.alloc (.n 390) 3)) 390 (by decide +kernel) rfl, hW]; simp [vbgW]
-  have m132 := mul 132 65 6 (by decide +kernel) (by omega) (by omega)
-  have m365 := mul 365 64 6 (by decide +kernel) (by omega) (by omega)
-  refine ⟨e5, e6, ?_, e16, e17, e18, e64, e65, by rw [m132, e65, e6], by rw [m365, e64, e6], e390⟩
+  have e66 : σ (.n 66) = bnd := by
+    rw [al (.hint (.alloc (.n 66) 33)) 66 (by decide +kernel) rfl, hW]; simp [vbgW]
+  have e67 : σ (.n 67) = rem := by
+    rw [al (.hint (.alloc (.n 67) 33)) 67 (by decide +kernel) rfl, hW]; simp [vbgW]
+  have e427 : σ (.n 427) = vals := by
+    rw [al (.hint (.alloc (.n 427) 3)) 427 (by decide +kernel) rfl, hW]; simp [vbgW]
+  have m166 := mul 166 64 6 (by decide +kernel) (by omega) (by omega)
+  have m399 := mul 399 66 6 (by decide +kernel) (by omega) (by omega)
+  have m401 := mul 401 67 6 (by decide +kernel) (by omega) (by omega)
+  refine ⟨e5, e6, ?_, e16, e17, e18, e64, e66, e67, by rw [m166, e64, e6], by rw [m399, e66, e6],
+    by rw [m401, e67, e6], e427⟩
   rw [m15, m14, m13, m12, m11, e6, c10, ← pow_add, ← pow_add, ← pow_add, ← pow_add, ← pow_add]
   ring_nf
 

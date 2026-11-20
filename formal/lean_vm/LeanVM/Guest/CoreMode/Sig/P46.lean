@@ -372,10 +372,6 @@ noncomputable def Fn.«verify_keccak_loop0».csig : Mode.Sig :=
   ⟨Fn.«verify_keccak_loop0».entry, [0, 1, 2, 3, 4, 5], (some 6), [], [⟨⟨0, 0, [((.fr 5), 1)]⟩, (.ex
     (.fr 2) 0), (.ex (.fr 3) 0), 1, 0⟩], [((.ex (.fr 2) 0), (.ex (.fr 3) 0))], [], [], [], [⟨⟨0, 0,
     [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 1, 0⟩], [], [], [], [], [], []⟩
-noncomputable def Fn.«verify_tables_loop1».csig : Mode.Sig :=
-  ⟨Fn.«verify_tables_loop1».entry, [0, 1, 2, 3, 4, 5, 6], (some 7), [], [⟨⟨0, 0, [((.fr 5), 1)]⟩,
-    (.num 0), (.ex (.fr 3) 0), 1, 0⟩], [((.ex (.fr 2) 0), (.ex (.fr 3) 0))], [], [], [], [⟨⟨0, 0,
-    [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 1, 0⟩], [], [], [], [], [], []⟩
 
 end
 

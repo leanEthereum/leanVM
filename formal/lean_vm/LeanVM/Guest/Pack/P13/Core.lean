@@ -600,6 +600,86 @@ noncomputable def core : Core.Fn where
 end
 end LeanVM.Guest.Fn.«eq_prefix_run__L3»
 
+namespace LeanVM.Guest.Fn.«eq_prefix_run_rev__L9»
+
+open LeanVM.Guest
+
+@[expose] public section
+
+namespace core
+
+/-- `eq_prefix_run_rev__L9`: the body. -/
+noncomputable def body : List Core.Stmt := (
+  .atom (.const (.n 4) (word 1 0)) ::
+  .atom (.load (.n 4) (.n 0) 0) ::
+  .atom (.load (.n 5) (.n 2) 8) ::
+  .atom (.load (.n 5) (.n 1) 0) ::
+  .atom (.load (.n 6) (.n 3) 0) ::
+  .atom (.add (.n 7) (.n 5) (.n 6)) ::
+  .atom (.load (.n 7) (.n 0) 1) ::
+  .atom (.load (.n 8) (.n 2) 7) ::
+  .atom (.load (.n 8) (.n 1) 1) ::
+  .atom (.load (.n 9) (.n 3) 1) ::
+  .atom (.add (.n 10) (.n 8) (.n 9)) ::
+  .atom (.mul (.n 11) (.n 7) (.n 10)) ::
+  .atom (.load (.n 11) (.n 0) 2) ::
+  .atom (.load (.n 12) (.n 2) 6) ::
+  .atom (.load (.n 12) (.n 1) 2) ::
+  .atom (.load (.n 13) (.n 3) 2) ::
+  .atom (.add (.n 14) (.n 12) (.n 13)) ::
+  .atom (.mul (.n 15) (.n 11) (.n 14)) ::
+  .atom (.load (.n 15) (.n 0) 3) ::
+  .atom (.load (.n 16) (.n 2) 5) ::
+  .atom (.load (.n 16) (.n 1) 3) ::
+  .atom (.load (.n 17) (.n 3) 3) ::
+  .atom (.add (.n 18) (.n 16) (.n 17)) ::
+  .atom (.mul (.n 19) (.n 15) (.n 18)) ::
+  .atom (.load (.n 19) (.n 0) 4) ::
+  .atom (.load (.n 20) (.n 2) 4) ::
+  .atom (.load (.n 20) (.n 1) 4) ::
+  .atom (.load (.n 21) (.n 3) 4) ::
+  .atom (.add (.n 22) (.n 20) (.n 21)) ::
+  .atom (.mul (.n 23) (.n 19) (.n 22)) ::
+  .atom (.load (.n 23) (.n 0) 5) ::
+  .atom (.load (.n 24) (.n 2) 3) ::
+  .atom (.load (.n 24) (.n 1) 5) ::
+  .atom (.load (.n 25) (.n 3) 5) ::
+  .atom (.add (.n 26) (.n 24) (.n 25)) ::
+  .atom (.mul (.n 27) (.n 23) (.n 26)) ::
+  .atom (.load (.n 27) (.n 0) 6) ::
+  .atom (.load (.n 28) (.n 2) 2) ::
+  .atom (.load (.n 28) (.n 1) 6) ::
+  .atom (.load (.n 29) (.n 3) 6) ::
+  .atom (.add (.n 30) (.n 28) (.n 29)) ::
+  .atom (.mul (.n 31) (.n 27) (.n 30)) ::
+  .atom (.load (.n 31) (.n 0) 7) ::
+  .atom (.load (.n 32) (.n 2) 1) ::
+  .atom (.load (.n 32) (.n 1) 7) ::
+  .atom (.load (.n 33) (.n 3) 7) ::
+  .atom (.add (.n 34) (.n 32) (.n 33)) ::
+  .atom (.mul (.n 35) (.n 31) (.n 34)) ::
+  .atom (.load (.n 35) (.n 0) 8) ::
+  .atom (.load (.n 36) (.n 2) 0) ::
+  .atom (.load (.n 36) (.n 1) 8) ::
+  .atom (.load (.n 37) (.n 3) 8) ::
+  .atom (.add (.n 38) (.n 36) (.n 37)) ::
+  .atom (.mul (.n 39) (.n 35) (.n 38)) ::
+  .atom (.load (.n 39) (.n 0) 9) ::
+  .atom (.const (.n 40) (word 0 0)) ::
+  .ret [.n 40] ::
+  [])
+
+end core
+
+/-- `eq_prefix_run_rev__L9`. -/
+noncomputable def core : Core.Fn where
+  name := "eq_prefix_run_rev__L9"
+  params := [.n 0, .n 1, .n 2, .n 3]
+  body := core.body
+
+end
+end LeanVM.Guest.Fn.«eq_prefix_run_rev__L9»
+
 namespace LeanVM.Guest.Fn.«level_positions__L10_L19_L7_loop0»
 
 open LeanVM.Guest

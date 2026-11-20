@@ -21,6 +21,7 @@ public section
 
 theorem Fn.«eq_prefix_run__L2».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«eq_prefix_run__L19».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
+theorem Fn.«eq_prefix_run_rev__L8».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«plus_one_run__L26».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«block_selector__L15».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«aggregate_claims_loop1».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel

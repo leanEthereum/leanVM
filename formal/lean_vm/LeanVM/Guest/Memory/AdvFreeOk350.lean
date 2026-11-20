@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Memory.AdvFreeOk350
 
-  `advFreeChk` on functions 350 to 799, by the kernel.
+  `advFreeChk` on functions 350 to 449, by the kernel.
 -/
 
 module
@@ -12,7 +12,7 @@ namespace LeanVM.Guest.Memory
 
 public section
 
-theorem advFree_ok_350 : RangeOk advFreeChk 350 450 := by unfold RangeOk; decide +kernel
+theorem advFree_ok_350 : RangeOk advFreeChk 350 100 := by unfold RangeOk; decide +kernel
 
 end
 

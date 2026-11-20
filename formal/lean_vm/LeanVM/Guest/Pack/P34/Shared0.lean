@@ -69,6 +69,33 @@ theorem shareOk : ShareOkD Fn.«eq_prefix_run__L11».core (cert.withPows Data.po
 end
 end LeanVM.Guest.Fn.«eq_prefix_run__L11»
 
+namespace LeanVM.Guest.Fn.«eq_prefix_run_rev__L0»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L0`, once. -/
+theorem st : shareStaticD Fn.«eq_prefix_run_rev__L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L0`, window 0. -/
+theorem sw0 : shareWinD Fn.«eq_prefix_run_rev__L0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `eq_prefix_run_rev__L0`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«eq_prefix_run_rev__L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«eq_prefix_run_rev__L0»
+
 namespace LeanVM.Guest.Fn.«plus_one_run__L17»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -95,31 +122,4 @@ theorem shareOk : ShareOkD Fn.«plus_one_run__L17».core (cert.withPows Data.pow
 
 end
 end LeanVM.Guest.Fn.«plus_one_run__L17»
-
-namespace LeanVM.Guest.Fn.«block_selector_tab__L33»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L33`, once. -/
-theorem st : shareStaticD Fn.«block_selector_tab__L33».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L33`, window 0. -/
-theorem sw0 : shareWinD Fn.«block_selector_tab__L33».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `block_selector_tab__L33`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«block_selector_tab__L33».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«block_selector_tab__L33»
 

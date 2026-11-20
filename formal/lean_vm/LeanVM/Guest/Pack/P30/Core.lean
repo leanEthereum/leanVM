@@ -262,6 +262,37 @@ noncomputable def core : Core.Fn where
 end
 end LeanVM.Guest.Fn.«da_levels__L128_L7_loop2»
 
+namespace LeanVM.Guest.Fn.«gkr_last_layers__L3_L1»
+
+open LeanVM.Guest
+
+@[expose] public section
+
+namespace core
+
+/-- `gkr_last_layers__L3_L1`: the body. -/
+noncomputable def body : List Core.Stmt := [
+  .call "gkr_layer__L0_L1" [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8] [],
+  .atom (.const (.n 9) (word 2 0)),
+  .atom (.mul (.n 10) (.n 4) (.n 9)),
+  .call "gkr_layer__L1_L1" [.n 0, .n 1, .n 2, .n 3, .n 10, .n 5, .n 6, .n 7, .n 8] [],
+  .atom (.const (.n 11) (word 2 0)),
+  .atom (.mul (.n 12) (.n 10) (.n 11)),
+  .call "gkr_layer__L2_L1" [.n 0, .n 1, .n 2, .n 3, .n 12, .n 5, .n 6, .n 7, .n 8] [],
+  .atom (.const (.n 13) (word 0 0)),
+  .ret [.n 13]]
+
+end core
+
+/-- `gkr_last_layers__L3_L1`. -/
+noncomputable def core : Core.Fn where
+  name := "gkr_last_layers__L3_L1"
+  params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8]
+  body := core.body
+
+end
+end LeanVM.Guest.Fn.«gkr_last_layers__L3_L1»
+
 namespace LeanVM.Guest.Fn.«level_positions__L15_L24_L6»
 
 open LeanVM.Guest

@@ -33,17 +33,20 @@ public import LeanVM.Guest.CoreMode.Gen.«P49».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P49».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P49».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P49».Pair
+public import LeanVM.Guest.CoreMode.Sig.«P10»
 public import LeanVM.Guest.CoreMode.Sig.«P21»
 public import LeanVM.Guest.CoreMode.Sig.«P24»
 public import LeanVM.Guest.CoreMode.Sig.«P25»
 public import LeanVM.Guest.CoreMode.Sig.«P26»
 public import LeanVM.Guest.CoreMode.Sig.«P3»
+public import LeanVM.Guest.CoreMode.Sig.«P36»
 public import LeanVM.Guest.CoreMode.Sig.«P4»
 public import LeanVM.Guest.CoreMode.Sig.«P42»
 public import LeanVM.Guest.CoreMode.Sig.«P43»
 public import LeanVM.Guest.CoreMode.Sig.«P44»
 public import LeanVM.Guest.CoreMode.Sig.«P47»
 public import LeanVM.Guest.CoreMode.Sig.«P49»
+public import LeanVM.Guest.CoreMode.Sig.«P5»
 public import LeanVM.Guest.CoreMode.Sig.«P50»
 public import LeanVM.Guest.CoreMode.Sig.«P56»
 public import LeanVM.Guest.CoreMode.Sig.«P9»
@@ -62,7 +65,7 @@ frame_fn% «padding_weight__L0» 10 []
 frame_fn% «padding_weight__L15» 140 []
 frame_fn% «block_selector_tab__L29» 84 []
 frame_fn% «child_claim_list_mono_last__L5» 108 []
-frame_fn% «gkr_rounds__L2» 76 []
+frame_fn% «gkr_last_layers__L3_L0» 45 [«gkr_layer__L0_L0», «gkr_layer__L1_L0», «gkr_layer__L2_L0»]
 frame_fn% «level_positions__L4_L14_L2» 42 [«decode_query_windows__L14_L2»,
     «level_positions__L4_L14_L2_loop0»]
 frame_fn% «level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0» 36

@@ -15,25 +15,6 @@ public import LeanVM.Guest.Pack.«P56».Bundle
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«level_residual__L32_L20_L4_L2_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `__loop0_level_residual__L32_L20_L4_L2`, window 1. -/
-theorem sw1 : shareWinD Fn.«level_residual__L32_L20_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop0_level_residual__L32_L20_L4_L2`, window 2. -/
-theorem sw2 : shareWinD Fn.«level_residual__L32_L20_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 2 = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«level_residual__L32_L20_L4_L2_loop0»
-
 namespace LeanVM.Guest.Fn.«level_residual__L17_L8_L4_L2_loop1»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C

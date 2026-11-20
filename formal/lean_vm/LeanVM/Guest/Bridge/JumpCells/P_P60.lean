@@ -22,6 +22,7 @@ public section
 
 theorem Fn.«eq_prefix_run__L8».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«eq_prefix_run__L8».idx == 1) = true := by decide +kernel
 theorem Fn.«eq_prefix_run__L13».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«eq_prefix_run__L13».idx == 1) = true := by decide +kernel
+theorem Fn.«eq_prefix_run_rev__L2».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«eq_prefix_run_rev__L2».idx == 1) = true := by decide +kernel
 theorem Fn.«plus_one_run__L15».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«plus_one_run__L15».idx == 1) = true := by decide +kernel
 theorem Fn.«block_selector_tab__L31».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«block_selector_tab__L31».idx == 1) = true := by decide +kernel
 theorem Fn.«squeeze_point_from__L7».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«squeeze_point_from__L7».idx == 1) = true := by decide +kernel

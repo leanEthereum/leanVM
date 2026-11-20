@@ -40,6 +40,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P17».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P17».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P17».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P17».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P17».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P0»
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P12»
@@ -171,6 +172,7 @@ frame_fn% «check_opening_terminal» 1724 [«check_opening_terminal_loop0», «c
     (.node (some frameCallee0) .nil .nil)
 frame_fn% «main_loop0» 20 [«main_loop0»] sigs [] env [(6, (.fpg 0))] scaled [6]
 frame_fn% «eq_prefix_run__L21» 109 []
+frame_fn% «eq_prefix_run_rev__L27» 165 []
 frame_fn% «plus_one_run__L30» 93 []
 frame_fn% «block_selector__L3» 32 []
 frame_fn% «block_selector__L25» 252 []

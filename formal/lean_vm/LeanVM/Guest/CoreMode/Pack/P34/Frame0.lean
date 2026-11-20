@@ -42,6 +42,8 @@ public import LeanVM.Guest.CoreMode.Gen.«P34».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P34».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P34».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P34».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P34».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P34».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P0»
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P16»
@@ -103,6 +105,7 @@ frame_fn% «child_claim_list_any» 92 [«child_claim_list_any_loop0», «child_c
     (.node none .nil (.node none (.node none .nil (.node none (.node (some 0) .nil .nil) .nil))
     .nil)) .nil)) calls (.node (some frameCallee0) .nil .nil)
 frame_fn% «eq_prefix_run__L11» 59 []
+frame_fn% «eq_prefix_run_rev__L0» 4 []
 frame_fn% «plus_one_run__L17» 54 []
 frame_fn% «block_selector_tab__L33» 94 []
 frame_fn% «keccak_layer__L0_loop0» 181 [«keccak_layer__L0_loop0»] env [(8, (.fpg 0))] scaled [8]
@@ -153,6 +156,7 @@ frame_fn% «level_positions__L9_L25_L7_loop0» 48 [«decode_query_windows__L25_L
     «level_positions__L9_L25_L7_loop0»] env [(8, (.fpg 0))] scaled [8]
 frame_fn% «level_residual__L218_L24_L6_L3_loop1» 192 [«level_residual__L218_L24_L6_L3_loop1»] sigs
     [] env [(9, (.fpg 0))] scaled [9]
+frame_fn% «gkr_layer__L0_L1_loop0» 272 [«gkr_layer__L0_L1_loop0»] env [(8, (.fpg 0))] scaled [8]
 end
 
 end LeanVM.Guest

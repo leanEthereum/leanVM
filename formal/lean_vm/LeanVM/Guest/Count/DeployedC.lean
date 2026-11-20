@@ -19,69 +19,69 @@ open LeanVM.Guest.B1.Main (nameSum dlK clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A
 
 theorem clC_eq : clC B2C.fs wSB = 2673 := by
   unfold clC
-  rw [fs_idx (j := 23) (f := "claim_list_digest") (by decide +kernel),
-    fs_idx (j := 350) (f := "__loop0_claim_list_digest") (by decide +kernel),
-    fs_idx (j := 351) (f := "__loop1_claim_list_digest") (by decide +kernel),
-    wSB_idx (j := 22) (f := "list_split") (by decide +kernel),
-    wSB_idx (j := 24) (f := "claim_list_tail") (by decide +kernel)]
+  rw [fs_idx (j := 24) (f := "claim_list_digest") (by decide +kernel),
+    fs_idx (j := 384) (f := "__loop0_claim_list_digest") (by decide +kernel),
+    fs_idx (j := 385) (f := "__loop1_claim_list_digest") (by decide +kernel),
+    wSB_idx (j := 23) (f := "list_split") (by decide +kernel),
+    wSB_idx (j := 25) (f := "claim_list_tail") (by decide +kernel)]
   decide +kernel
 
 theorem ccC_eq : ccC B2C.fs wSB = 11624 := by
   unfold ccC
   rw [ccl_sum, ccm_sum,
-    fs_idx (j := 25) (f := "child_claim_list_digest") (by decide +kernel),
-    fs_idx (j := 26) (f := "child_claim_list_any") (by decide +kernel),
-    fs_idx (j := 27) (f := "child_claim_list_mono") (by decide +kernel),
-    fs_idx (j := 369) (f := "__loop0_child_claim_list_any") (by decide +kernel),
-    fs_idx (j := 388) (f := "__loop0_child_claim_list_mono") (by decide +kernel),
-    fs_idx (j := 370) (f := "__loop1_child_claim_list_any") (by decide +kernel),
-    fs_idx (j := 389) (f := "__loop1_child_claim_list_mono") (by decide +kernel),
-    wSB_idx (j := 22) (f := "list_split") (by decide +kernel)]
+    fs_idx (j := 26) (f := "child_claim_list_digest") (by decide +kernel),
+    fs_idx (j := 27) (f := "child_claim_list_any") (by decide +kernel),
+    fs_idx (j := 28) (f := "child_claim_list_mono") (by decide +kernel),
+    fs_idx (j := 403) (f := "__loop0_child_claim_list_any") (by decide +kernel),
+    fs_idx (j := 422) (f := "__loop0_child_claim_list_mono") (by decide +kernel),
+    fs_idx (j := 404) (f := "__loop1_child_claim_list_any") (by decide +kernel),
+    fs_idx (j := 423) (f := "__loop1_child_claim_list_mono") (by decide +kernel),
+    wSB_idx (j := 23) (f := "list_split") (by decide +kernel)]
   decide +kernel
 
 theorem l5A0_eq : l5A0 B2C.fs = 60 := by
   unfold l5A0
-  rw [fs_idx (j := 41) (f := "__loop4_main") (by decide +kernel)]
+  rw [fs_idx (j := 42) (f := "__loop4_main") (by decide +kernel)]
   decide +kernel
 
 theorem clS_eq : clS B2C.fs wSK = 33 := by
   unfold clS B1.Main.iterK
-  rw [fs_idx (j := 350) (f := "__loop0_claim_list_digest") (by decide +kernel),
-    fs_idx (j := 351) (f := "__loop1_claim_list_digest") (by decide +kernel),
-    wSK_idx (j := 350) (f := "__loop0_claim_list_digest") (by decide +kernel),
-    wSK_idx (j := 351) (f := "__loop1_claim_list_digest") (by decide +kernel)]
+  rw [fs_idx (j := 384) (f := "__loop0_claim_list_digest") (by decide +kernel),
+    fs_idx (j := 385) (f := "__loop1_claim_list_digest") (by decide +kernel),
+    wSK_idx (j := 384) (f := "__loop0_claim_list_digest") (by decide +kernel),
+    wSK_idx (j := 385) (f := "__loop1_claim_list_digest") (by decide +kernel)]
   decide +kernel
 
 theorem l5A1_eq : l5A1 B2C.fs wSB = 23428 := by
   unfold l5A1
   rw [ccC_eq,
-    fs_idx (j := 41) (f := "__loop4_main") (by decide +kernel),
-    wSB_idx (j := 21) (f := "statement_digest") (by decide +kernel)]
+    fs_idx (j := 42) (f := "__loop4_main") (by decide +kernel),
+    wSB_idx (j := 22) (f := "statement_digest") (by decide +kernel)]
   decide +kernel
 
 theorem l5A2_eq : l5A2 B2C.fs = 51 := by
   unfold l5A2 ccS
-  rw [fs_idx (j := 369) (f := "__loop0_child_claim_list_any") (by decide +kernel),
-    fs_idx (j := 388) (f := "__loop0_child_claim_list_mono") (by decide +kernel),
-    fs_idx (j := 370) (f := "__loop1_child_claim_list_any") (by decide +kernel),
-    fs_idx (j := 389) (f := "__loop1_child_claim_list_mono") (by decide +kernel)]
+  rw [fs_idx (j := 403) (f := "__loop0_child_claim_list_any") (by decide +kernel),
+    fs_idx (j := 422) (f := "__loop0_child_claim_list_mono") (by decide +kernel),
+    fs_idx (j := 404) (f := "__loop1_child_claim_list_any") (by decide +kernel),
+    fs_idx (j := 423) (f := "__loop1_child_claim_list_mono") (by decide +kernel)]
   decide +kernel
 
 theorem agA0_eq : agA0 B2C.fs wSB = 1244 := by
   unfold agA0
-  rw [fs_idx (j := 36) (f := "aggregate_claims") (by decide +kernel),
-    wSB_idx (j := 424) (f := "grind_check__L2") (by decide +kernel),
-    wSB_idx (j := 426) (f := "batch_sumcheck__L23") (by decide +kernel)]
+  rw [fs_idx (j := 37) (f := "aggregate_claims") (by decide +kernel),
+    wSB_idx (j := 458) (f := "grind_check__L2") (by decide +kernel),
+    wSB_idx (j := 460) (f := "batch_sumcheck__L23") (by decide +kernel)]
   decide +kernel
 
 theorem agA1_eq : agA1 B2C.fs wSK = 1224 := by
   unfold agA1 B1.Main.iterK
-  rw [fs_idx (j := 423) (f := "__loop0_aggregate_claims") (by decide +kernel),
-    fs_idx (j := 425) (f := "__loop1_aggregate_claims") (by decide +kernel),
-    fs_idx (j := 427) (f := "__loop2_aggregate_claims") (by decide +kernel),
-    wSK_idx (j := 423) (f := "__loop0_aggregate_claims") (by decide +kernel),
-    wSK_idx (j := 425) (f := "__loop1_aggregate_claims") (by decide +kernel),
-    wSK_idx (j := 427) (f := "__loop2_aggregate_claims") (by decide +kernel)]
+  rw [fs_idx (j := 457) (f := "__loop0_aggregate_claims") (by decide +kernel),
+    fs_idx (j := 459) (f := "__loop1_aggregate_claims") (by decide +kernel),
+    fs_idx (j := 461) (f := "__loop2_aggregate_claims") (by decide +kernel),
+    wSK_idx (j := 457) (f := "__loop0_aggregate_claims") (by decide +kernel),
+    wSK_idx (j := 459) (f := "__loop1_aggregate_claims") (by decide +kernel),
+    wSK_idx (j := 461) (f := "__loop2_aggregate_claims") (by decide +kernel)]
   decide +kernel
 
 end

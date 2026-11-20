@@ -37,6 +37,7 @@ noncomputable def Fn.«aggregate_claims_loop0».alignCtx : Bridge.AlignCtx := Br
 noncomputable def Fn.«block_selector__L14».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«eq_prefix_run__L18».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«eq_prefix_run__L3».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
+noncomputable def Fn.«eq_prefix_run_rev__L9».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L10_L19_L7_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L10_L19_L7", Fn.«level_positions__L10_L19_L7_loop0».entry), ("decode_query_windows__L19_L7", Fn.«decode_query_windows__L19_L7».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L22_L24_L6_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L22_L24_L6", Fn.«level_positions__L22_L24_L6_loop0».entry), ("decode_query_windows__L24_L6", Fn.«decode_query_windows__L24_L6».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L7_L21_L3».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L7_L21_L3", Fn.«level_positions__L7_L21_L3_loop0».entry), ("decode_query_windows__L21_L3", Fn.«decode_query_windows__L21_L3».entry)] 524287 code.instructionCount
@@ -63,6 +64,7 @@ align_chk% «aggregate_claims_loop0»
 align_chk% «block_selector__L14»
 align_chk% «eq_prefix_run__L18»
 align_chk% «eq_prefix_run__L3»
+align_chk% «eq_prefix_run_rev__L9»
 align_chk% «level_positions__L10_L19_L7_loop0»
 align_chk% «level_positions__L22_L24_L6_loop0»
 align_chk% «level_positions__L7_L21_L3»

@@ -784,6 +784,47 @@ noncomputable def core : Core.Fn where
 end
 end LeanVM.Guest.Fn.«claim_list_last__L16»
 
+namespace LeanVM.Guest.Fn.«gkr_layers__L1_loop0»
+
+open LeanVM.Guest
+
+@[expose] public section
+
+namespace core
+
+/-- `gkr_layers__L1_loop0`: the body. -/
+noncomputable def body : List Core.Stmt := [
+  .atom (.mul (.n 9) (.n 0) (.n 0)),
+  .atom (.mul (.n 10) (.n 9) (.n 9)),
+  .call "gkr_layer__L0_L1" [.n 2, .n 3, .n 4, .n 0, .n 10, .n 5, .n 6, .n 7, .n 8] [],
+  .atom (.const (.n 11) (word 2 0)),
+  .atom (.mul (.n 12) (.n 10) (.n 11)),
+  .call "gkr_layer__L1_L1" [.n 2, .n 3, .n 4, .n 0, .n 12, .n 5, .n 6, .n 7, .n 8] [],
+  .atom (.const (.n 13) (word 2 0)),
+  .atom (.mul (.n 14) (.n 12) (.n 13)),
+  .call "gkr_layer__L2_L1" [.n 2, .n 3, .n 4, .n 0, .n 14, .n 5, .n 6, .n 7, .n 8] [],
+  .atom (.const (.n 15) (word 2 0)),
+  .atom (.mul (.n 16) (.n 14) (.n 15)),
+  .call "gkr_layer__L3_L1" [.n 2, .n 3, .n 4, .n 0, .n 16, .n 5, .n 6, .n 7, .n 8] [],
+  .atom (.const (.n 17) (word 2 0)),
+  .atom (.mul (.n 18) (.n 0) (.n 17)),
+  .atom (.add (.n 19) (.n 18) (.n 1)),
+  .atom (.const (.n 20) (word 2 0)),
+  .atom (.mul (.n 21) (.n 0) (.n 20)),
+  .callIf (.n 19) "__loop0_gkr_layers__L1" [.n 21, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8],
+  .ret []]
+
+end core
+
+/-- `gkr_layers__L1_loop0`. -/
+noncomputable def core : Core.Fn where
+  name := "__loop0_gkr_layers__L1"
+  params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8]
+  body := core.body
+
+end
+end LeanVM.Guest.Fn.«gkr_layers__L1_loop0»
+
 namespace LeanVM.Guest.Fn.«level_positions__L6_L22_L4»
 
 open LeanVM.Guest

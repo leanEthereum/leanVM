@@ -24,6 +24,7 @@ public import LeanVM.Guest.CoreMode.GlueA.«P3»
 public import LeanVM.Guest.CoreMode.GlueA.«P45»
 public import LeanVM.Guest.CoreMode.GlueA.«P46»
 public import LeanVM.Guest.CoreMode.GlueA.«P4»
+public import LeanVM.Guest.CoreMode.GlueA.«P50»
 public import LeanVM.Guest.CoreMode.GlueA.«P55»
 public import LeanVM.Guest.CoreMode.GlueA.«P56»
 public import LeanVM.Guest.CoreMode.GlueA.«P61»
@@ -39,8 +40,10 @@ public section
 
 alloc_chk% «verify_keccak» [«verify_keccak_loop0», «keccak_layer__L1», «keccak_layer__L0», «keccak_plain_rounds__L6_L0», «verify_keccak_loop1», «keccak_plain_rounds__L4_L1», «verify_keccak_loop2»]
 alloc_chk% «eq_prefix_run__L16» []
+alloc_chk% «eq_prefix_run_rev__L7» []
 alloc_chk% «plus_one_run__L10» []
 alloc_chk% «plus_one_run__L29» []
+alloc_chk% «gkr_last_layers__L2_L1» [«gkr_layer__L0_L1», «gkr_layer__L1_L1»]
 alloc_chk% «grind_check__L30» []
 alloc_chk% «level_residual__L44_L10_L4_L2» [«level_residual__L44_L10_L4_L2_loop0», «level_residual__L44_L10_L4_L2_loop1»]
 alloc_chk% «level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0» [«verify_merkle_cap__L3», «opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0»]

@@ -10,16 +10,40 @@ module
 public import LeanVM.Guest.Bridge.AlignDefs
 public import LeanVM.Guest.Bridge.ChkLit
 public import LeanVM.Guest.CoreMode.GlueA.«P12»
+public import LeanVM.Guest.CoreMode.GlueE.«P0»
+public import LeanVM.Guest.CoreMode.GlueE.«P10»
 public import LeanVM.Guest.CoreMode.GlueE.«P11»
 public import LeanVM.Guest.CoreMode.GlueE.«P12»
+public import LeanVM.Guest.CoreMode.GlueE.«P13»
+public import LeanVM.Guest.CoreMode.GlueE.«P15»
+public import LeanVM.Guest.CoreMode.GlueE.«P17»
+public import LeanVM.Guest.CoreMode.GlueE.«P19»
 public import LeanVM.Guest.CoreMode.GlueE.«P21»
+public import LeanVM.Guest.CoreMode.GlueE.«P22»
+public import LeanVM.Guest.CoreMode.GlueE.«P24»
+public import LeanVM.Guest.CoreMode.GlueE.«P26»
 public import LeanVM.Guest.CoreMode.GlueE.«P27»
 public import LeanVM.Guest.CoreMode.GlueE.«P29»
+public import LeanVM.Guest.CoreMode.GlueE.«P31»
 public import LeanVM.Guest.CoreMode.GlueE.«P34»
+public import LeanVM.Guest.CoreMode.GlueE.«P36»
+public import LeanVM.Guest.CoreMode.GlueE.«P38»
+public import LeanVM.Guest.CoreMode.GlueE.«P3»
+public import LeanVM.Guest.CoreMode.GlueE.«P41»
+public import LeanVM.Guest.CoreMode.GlueE.«P43»
+public import LeanVM.Guest.CoreMode.GlueE.«P45»
 public import LeanVM.Guest.CoreMode.GlueE.«P47»
+public import LeanVM.Guest.CoreMode.GlueE.«P48»
+public import LeanVM.Guest.CoreMode.GlueE.«P50»
 public import LeanVM.Guest.CoreMode.GlueE.«P53»
 public import LeanVM.Guest.CoreMode.GlueE.«P55»
+public import LeanVM.Guest.CoreMode.GlueE.«P57»
+public import LeanVM.Guest.CoreMode.GlueE.«P58»
+public import LeanVM.Guest.CoreMode.GlueE.«P5»
+public import LeanVM.Guest.CoreMode.GlueE.«P60»
+public import LeanVM.Guest.CoreMode.GlueE.«P62»
 public import LeanVM.Guest.CoreMode.GlueE.«P6»
+public import LeanVM.Guest.CoreMode.GlueE.«P7»
 public import LeanVM.Guest.CoreMode.GlueE.«P9»
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P12».Bundle
@@ -34,6 +58,10 @@ namespace LeanVM.Guest
 
 noncomputable def Fn.«column_selector__L1».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«da_pad».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_da_pad", Fn.«da_pad_loop0».entry)] 524287 code.instructionCount
+noncomputable def Fn.«eq_prefix_chain_rev».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("eq_prefix_run_rev__L0", Fn.«eq_prefix_run_rev__L0».entry), ("eq_prefix_run_rev__L1", Fn.«eq_prefix_run_rev__L1».entry), ("eq_prefix_run_rev__L10", Fn.«eq_prefix_run_rev__L10».entry), ("eq_prefix_run_rev__L11", Fn.«eq_prefix_run_rev__L11».entry), ("eq_prefix_run_rev__L12", Fn.«eq_prefix_run_rev__L12».entry), ("eq_prefix_run_rev__L13", Fn.«eq_prefix_run_rev__L13».entry), ("eq_prefix_run_rev__L14", Fn.«eq_prefix_run_rev__L14».entry), ("eq_prefix_run_rev__L15", Fn.«eq_prefix_run_rev__L15».entry), ("eq_prefix_run_rev__L16", Fn.«eq_prefix_run_rev__L16».entry), ("eq_prefix_run_rev__L17", Fn.«eq_prefix_run_rev__L17».entry), ("eq_prefix_run_rev__L18", Fn.«eq_prefix_run_rev__L18».entry), ("eq_prefix_run_rev__L19", Fn.«eq_prefix_run_rev__L19».entry), ("eq_prefix_run_rev__L2", Fn.«eq_prefix_run_rev__L2».entry), ("eq_prefix_run_rev__L20", Fn.«eq_prefix_run_rev__L20».entry), ("eq_prefix_run_rev__L21", Fn.«eq_prefix_run_rev__L21».entry), ("eq_prefix_run_rev__L22", Fn.«eq_prefix_run_rev__L22».entry), ("eq_prefix_run_rev__L23", Fn.«eq_prefix_run_rev__L23».entry), ("eq_prefix_run_rev__L24", Fn.«eq_prefix_run_rev__L24».entry), ("eq_prefix_run_rev__L25", Fn.«eq_prefix_run_rev__L25».entry), ("eq_prefix_run_rev__L26", Fn.«eq_prefix_run_rev__L26».entry), ("eq_prefix_run_rev__L27", Fn.«eq_prefix_run_rev__L27».entry), ("eq_prefix_run_rev__L28", Fn.«eq_prefix_run_rev__L28».entry), ("eq_prefix_run_rev__L29", Fn.«eq_prefix_run_rev__L29».entry), ("eq_prefix_run_rev__L3", Fn.«eq_prefix_run_rev__L3».entry), ("eq_prefix_run_rev__L30", Fn.«eq_prefix_run_rev__L30».entry), ("eq_prefix_run_rev__L31", Fn.«eq_prefix_run_rev__L31».entry), ("eq_prefix_run_rev__L32", Fn.«eq_prefix_run_rev__L32».entry), ("eq_prefix_run_rev__L4", Fn.«eq_prefix_run_rev__L4».entry), ("eq_prefix_run_rev__L5", Fn.«eq_prefix_run_rev__L5».entry), ("eq_prefix_run_rev__L6", Fn.«eq_prefix_run_rev__L6».entry), ("eq_prefix_run_rev__L7", Fn.«eq_prefix_run_rev__L7».entry), ("eq_prefix_run_rev__L8", Fn.«eq_prefix_run_rev__L8».entry), ("eq_prefix_run_rev__L9", Fn.«eq_prefix_run_rev__L9».entry)] 524287 code.instructionCount
+noncomputable def Fn.«eq_prefix_run_rev__L11».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
+noncomputable def Fn.«eq_prefix_run_rev__L28».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
+noncomputable def Fn.«gkr_layer__L1_L0_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_gkr_layer__L1_L0", Fn.«gkr_layer__L1_L0_loop0».entry)] 524287 code.instructionCount
 noncomputable def Fn.«index_mle__L2».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L11_L25_L7».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L11_L25_L7", Fn.«level_positions__L11_L25_L7_loop0».entry), ("decode_query_windows__L25_L7", Fn.«decode_query_windows__L25_L7».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L4_L20_L2».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L4_L20_L2", Fn.«level_positions__L4_L20_L2_loop0».entry), ("decode_query_windows__L20_L2", Fn.«decode_query_windows__L20_L2».entry)] 524287 code.instructionCount
@@ -63,6 +91,10 @@ public section
 
 align_chk% «column_selector__L1»
 align_chk% «da_pad»
+align_chk% «eq_prefix_chain_rev»
+align_chk% «eq_prefix_run_rev__L11»
+align_chk% «eq_prefix_run_rev__L28»
+align_chk% «gkr_layer__L1_L0_loop0»
 align_chk% «index_mle__L2»
 align_chk% «level_positions__L11_L25_L7»
 align_chk% «level_positions__L4_L20_L2»

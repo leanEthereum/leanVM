@@ -15,6 +15,25 @@ public import LeanVM.Guest.Pack.«P10».Bundle
 
 set_option Elab.async false
 
+namespace LeanVM.Guest.Fn.«level_residual__L73_L24_L6_L3_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `__loop0_level_residual__L73_L24_L6_L3`, window 2. -/
+theorem sw2 : shareWinD Fn.«level_residual__L73_L24_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs snaps 2 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop0_level_residual__L73_L24_L6_L3`, window 3. -/
+theorem sw3 : shareWinD Fn.«level_residual__L73_L24_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs snaps 3 = true := by
+  decide +kernel
+
+end
+end LeanVM.Guest.Fn.«level_residual__L73_L24_L6_L3_loop0»
+
 namespace LeanVM.Guest.Fn.«walk_path__L6_L7»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -22,13 +41,18 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L6_L7`, window 1. -/
-theorem sw1 : shareWinD Fn.«walk_path__L6_L7».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
+/-- `walk_path__L6_L7`, once. -/
+theorem st : shareStaticD Fn.«walk_path__L6_L7».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L6_L7`, window 2. -/
-theorem sw2 : shareWinD Fn.«walk_path__L6_L7».core (cert.withPows Data.powTree) plumb fs snaps 2 = true := by
+/-- `walk_path__L6_L7`, window 0. -/
+theorem sw0 : shareWinD Fn.«walk_path__L6_L7».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `walk_path__L6_L7`, window 1. -/
+theorem sw1 : shareWinD Fn.«walk_path__L6_L7».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
   decide +kernel
 
 end

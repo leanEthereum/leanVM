@@ -25,6 +25,7 @@ theorem Fn.«index_mle__L33».witOk : Bridge.witChk alignCtx fs core.body = true
 theorem Fn.«block_selector_tab__L8».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«claim_list_digest_loop0».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«child_claim_list_mono_last__L2».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
+theorem Fn.«gkr_last_layers__L1_L1».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«level_residual__L73_L14_L6_L3».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«level_positions__L10_L19_L7».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«level_residual__L21_L7_L4_L2».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
@@ -35,6 +36,7 @@ theorem Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».witOk : Bridge.wi
 theorem Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«da_levels__L128_L7_loop4».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«verify_merkle_cap__L6».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
+theorem Fn.«gkr_layer__L2_L1_loop0».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1_loop0».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 

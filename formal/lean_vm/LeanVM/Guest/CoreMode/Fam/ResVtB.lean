@@ -2,7 +2,7 @@
   LeanVM.Guest.CoreMode.Fam.ResVtB
 
   `verify_tables`' table sumcheck's reads (`Res.vtB`), sound at the honest frames: the rounds loop's
-  reads past its cursors lie in the stream, the copy loop's read of the challenges inside them.
+  reads past its cursors lie in the stream.
 -/
 
 module
@@ -17,9 +17,7 @@ public import LeanVM.Guest.CoreMode.Fam.SubDefs
 `stResB_of`: the read `c` words past a cursor base lies in the stream `st·[0, 8192)` once the base's
 word is `st·g^q`, `q + c < 8192`. `vt_l10_top`: at an honest frame of `verify_tables_loop0`, its
 record's cursor (cell `17`) and the cursor `sumcheck_round4`'s frame holds (`[19] + 3`, the first
-call's frame, `FrameHolds.site`, its argument `FrameHolds.kid`) are `st·g^q` (`VtLQ`). `vt_l11_top`:
-at an honest frame of `verify_tables_loop1`, cell `10` holds `g^(n - 1 - i)` (`Tables.vt_chi_index`)
-below the bound `g^n` (`VtCQ`).
+call's frame, `FrameHolds.site`, its argument `FrameHolds.kid`) are `st·g^q` (`VtLQ`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -28,7 +26,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Mode LeanVM.Gu
 open LeanVM.Guest.B1
 open LeanVM.Guest.B2C (idxOf FrameHolds fsN fn_of_idx cellJ namedOf siteOf)
 open LeanVM.Guest.Bridge (FnAl)
-open LeanVM.Guest.Res (vtB stResB vtcRes topAtoms)
+open LeanVM.Guest.Res (vtB stResB topAtoms)
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Prover.Exec
 
@@ -56,10 +54,6 @@ theorem stResB_of {M : ℕ → E} {fp : ℕ} {cur st : Base} {c q : ℕ} {S : E}
 theorem l10_idx : idxOf name% «verify_tables_loop0» = some (fn_idx% «verify_tables_loop0») := by
   decide +kernel
 
-theorem l11_idx : idxOf name% «verify_tables_loop1» = some (fn_idx% «verify_tables_loop1») := by
-  decide +kernel
-
-/-- The rounds loop's atoms on every path: the record `rounds·x^7` and its cursor's load. -/
 theorem l10_atoms_top :
     let as := topAtoms (coreOf (fn_idx% «verify_tables_loop0»)).body
     as.contains (.mul (.n 6) (.n 0) (.n 0)) = true ∧ as.contains (.mul (.n 7) (.n 6) (.n 0)) = true ∧
@@ -93,15 +87,6 @@ theorem l10_calls0 {σ : Core.Val} {es : List Ev} {vs : List V}
   simp only [Bridge.walk_atom_cons, walk_call_cons, Bridge.out_pre_pre] at hw
   obtain ⟨es', -, rfl⟩ := Bridge.pre_eq_ret hw
   rfl
-
-/-- The copy loop's cells: the bound, the challenges, the index `g^(n - 1 - i)`. -/
-theorem l11_cells : cellJ (fn_idx% «verify_tables_loop1») (.n 1) = 3 ∧
-    cellJ (fn_idx% «verify_tables_loop1») (.n 3) = 5 ∧ cellJ (fn_idx% «verify_tables_loop1») (.n 7) = 10 ∧
-    10 < fsN (fn_idx% «verify_tables_loop1») ∧ V.n 1 ∈ (coreOf (fn_idx% «verify_tables_loop1»)).params ∧
-    V.n 3 ∈ (coreOf (fn_idx% «verify_tables_loop1»)).params ∧ Res.inFr (fn_idx% «verify_tables_loop1») 3 = true ∧
-    Res.inFr (fn_idx% «verify_tables_loop1») 5 = true ∧
-    (topAtoms (coreOf (fn_idx% «verify_tables_loop1»)).body).contains (.mul (.n 6) (.n 7) (.n 0)) = true := by
-  decide +kernel
 
 section
 
@@ -180,78 +165,6 @@ theorem vt_l10_top (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name 
     rw [hxa] at h3
     obtain ⟨-, hmx⟩ := ref_read hr (by have := hxn.2; unfold maxCells at this; omega) h3
     rw [← hxM, hmx, ecur]
-
-/-- **The copy loop's read of the challenges** lies inside them. -/
-theorem vt_l11_top (t : TopAt A r K i e j) (hr : r.Ok) (hname : (coreOf j).name = name% «verify_tables_loop1») :
-    RRes (refMem r.img) e.I.fp vtcRes := by
-  obtain ⟨f, bufs, kids, hJ, hfj, hfn⟩ := t.found
-  rw [hname] at hfn
-  subst hfn
-  have hcj : coreOf j = fn% «verify_tables_loop1» := Option.some.inj (hfj.symm.trans find_l11)
-  obtain rfl : j = fn_idx% «verify_tables_loop1» := by
-    have := t.idx
-    rw [hJ] at this
-    exact Option.some.inj (this.symm.trans l11_idx)
-  obtain ⟨ii, n, h0, h1, h4, hin, hn⟩ := vtCQ_all hr e.I t.inst e.σ bufs kids hJ
-  -- the index `g^(n - 1 - i)`
-  obtain ⟨args, rets, hv⟩ := inst_valid' hr t.inst hJ
-  obtain ⟨-, hb⟩ := Res.holds_of_valid hfs_vt hv find_l11
-  obtain ⟨fn, hf, -, hbody⟩ := Tables.l11Found
-  obtain rfl : fn = fn% «verify_tables_loop1» := Option.some.inj (hf.symm.trans find_l11)
-  rw [hbody] at hb
-  simp only [Tables.l11Body, Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at hb
-  obtain ⟨c5, m6a, m6b, -⟩ := hb
-  simp only [Atom.Holds] at c5 m6a m6b
-  have hy : gen ^ n * Tables.vtWInvGen = e.σ (.n 7) * gen ^ ii := by rw [← h4, ← c5, ← m6a, m6b, h0]
-  have e7 := Tables.vt_chi_index hin hy
-  -- the cells
-  obtain ⟨hc1, hc3, hc7, h10, hp1, hp3, hf3, hf5, tm⟩ := l11_cells
-  obtain ⟨vs, hw, hF, -⟩ := t.events hr
-  have hm := topAtoms_on_path hw (List.contains_iff_mem.mp tm)
-  have hfb := t.fb
-  have hm10 := t.cell hr hF (x := .n 7) (namedOf_atom hm (by simp [atomUses])) (by rw [hc7]; omega)
-    (by rw [hc7]; omega)
-  rw [hc7] at hm10
-  have hm3 := t.param hr hp1 (by rw [hc1]; exact hf3)
-  rw [hc1] at hm3
-  have hm5 := t.param hr hp3 (by rw [hc3]; exact hf5)
-  rw [hc3] at hm5
-  -- the read inside the challenges
-  refine ⟨0, 1, rfl, rfl, fun vq hvq jj _ hjj ↦ ⟨_, List.mem_singleton_self _, fun vb ylo yhi hvb hlo hhi ↦ ?_⟩⟩
-  obtain rfl : jj = 0 := by omega
-  change ylo = 0 at hlo
-  subst hlo
-  obtain ⟨v3, ee, hv3, hee, he62, hy⟩ := hhi
-  change refMem r.img (e.I.fp + 3) = v3 at hv3
-  have hen : ee = n := by
-    rw [← hv3, hm3, h1, ← ofK_gpow] at hee
-    exact (ofK_gpow_inj (by omega) (by omega) hee).symm
-  refine ⟨n - 1 - ii, Nat.zero_le _, by omega, ?_⟩
-  obtain ⟨wq, ⟨u, w, hu, ⟨u2, w2, hu2, hw2, rfl⟩, rfl⟩, rfl⟩ := hvq
-  obtain ⟨wb, ⟨u', w', hu', hw', rfl⟩, rfl⟩ := hvb
-  change w2 = 1 at hw2
-  change w' = 1 at hw'
-  subst hw2 hw'
-  change refMem r.img (e.I.fp + 5) = u at hu
-  change refMem r.img (e.I.fp + 10) = u2 at hu2
-  change refMem r.img (e.I.fp + 5) = u' at hu'
-  rw [← hu, ← hu2, ← hu', hm10, e7]
-  simp only [ofK_gpow]
-  ring
-
-/-- **`verify_tables`' table sumcheck's reads at an honest frame.** -/
-theorem vt_top (t : TopAt A r K i e j) (hr : r.Ok) {x : Mode.Res} (hx : vtB j x = true) :
-    RRes (refMem r.img) e.I.fp x := by
-  match x, hx with
-  | .sub a bs, hx =>
-    simp only [vtB, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hx
-    rcases hx with ⟨⟨hn, hc⟩, hx | hx⟩ | ⟨hn, hx⟩ <;> rw [hx]
-    · exact (vt_l10_top t hr hn hc).1
-    · exact (vt_l10_top t hr hn hc).2
-    · exact vt_l11_top t hr hn
-  | .lt _ _, hx => simp [vtB] at hx
-  | .nz _, hx => simp [vtB] at hx
-  | .name _, hx => simp [vtB] at hx
 
 end
 

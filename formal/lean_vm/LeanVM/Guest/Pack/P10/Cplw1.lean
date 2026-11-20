@@ -12,16 +12,39 @@ public import LeanVM.Guest.Data.Pows
 public import Mathlib.Tactic.IntervalCases
 public import LeanVM.Guest.Pack.«P10».Core
 public import LeanVM.Guest.Pack.«P10».Bundle
+public import LeanVM.Guest.Pack.«P59».Sig
 public import LeanVM.Guest.Pack.«P11».Sig
 public import LeanVM.Guest.Pack.«P56».Sig
 public import LeanVM.Guest.Pack.«P15».Sig
 public import LeanVM.Guest.Pack.«P60».Sig
 public import LeanVM.Guest.Pack.«P47».Sig
 public import LeanVM.Guest.Pack.«P3».Sig
-public import LeanVM.Guest.Pack.«P14».Sig
-public import LeanVM.Guest.Pack.«P10».Sig
 
 set_option Elab.async false
+
+namespace LeanVM.Guest.Fn.«bus_grind_check__L10»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+/-- `bus_grind_check__L10`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«grind_check__L27».idx, Fn.«grind_check__L27».sig)]) Data.jtTrie globSem) code Fn.«bus_grind_check__L10».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+  decide +kernel
+
+/-- `bus_grind_check__L10`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«grind_check__L27».idx, Fn.«grind_check__L27».sig)]) Data.jtTrie globSem) code Fn.«bus_grind_check__L10».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+  intro i hi k hk
+  have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nPartsD parts 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw0_0
+
+end
+end LeanVM.Guest.Fn.«bus_grind_check__L10»
 
 namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L13»
 
@@ -174,28 +197,4 @@ theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«decode_query_windows__L23_L5».idx, 
 
 end
 end LeanVM.Guest.Fn.«level_positions__L8_L23_L5»
-
-namespace LeanVM.Guest.Fn.«level_positions__L8_L17_L5_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-/-- `__loop0_level_positions__L8_L17_L5`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«decode_query_windows__L17_L5».idx, Fn.«decode_query_windows__L17_L5».sig), (Fn.«level_positions__L8_L17_L5_loop0».idx, Fn.«level_positions__L8_L17_L5_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_positions__L8_L17_L5_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
-  decide +kernel
-
-/-- `__loop0_level_positions__L8_L17_L5`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«decode_query_windows__L17_L5».idx, Fn.«decode_query_windows__L17_L5».sig), (Fn.«level_positions__L8_L17_L5_loop0».idx, Fn.«level_positions__L8_L17_L5_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_positions__L8_L17_L5_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
-  intro i hi k hk
-  have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nPartsD parts 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw0_0
-
-end
-end LeanVM.Guest.Fn.«level_positions__L8_L17_L5_loop0»
 

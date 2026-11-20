@@ -18,6 +18,8 @@ namespace LeanVM.Guest
 public section
 
 theorem Fn.«eq_prefix_run__L27».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«eq_prefix_run_rev__L18».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«eq_prefix_run_rev__L21».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«block_selector__L5».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«block_selector__L23».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«block_selector_tab__L12».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
@@ -36,6 +38,7 @@ theorem Fn.«level_residual__L55_L16_L4_L2».pairOk : Bridge.pairChk [] cert.loc
 theorem Fn.«level_positions__L7_L24_L6».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_positions__L5_L23_L5».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_positions__L9_L25_L7».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«gkr_layer__L0_L1».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_residual__L37_L10_L4_L2_loop1».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_residual__L23_L7_L4_L2_loop0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_residual__L44_L13_L4_L2_loop0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel

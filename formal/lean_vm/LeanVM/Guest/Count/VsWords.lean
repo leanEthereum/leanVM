@@ -13,6 +13,7 @@ module
 public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.Count.StaticW
 public import LeanVM.Guest.B1.VerifySub.WordsB
+public import LeanVM.Guest.B1.VerifySub.GlsWords
 public import LeanVM.Guest.B1.Terminal.TermWordsFs
 public import LeanVM.Guest.B1.Selectors.SharedWeight
 public import LeanVM.Guest.Count.RatioV
@@ -26,17 +27,17 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory Le
 theorem vtPairs_ok : (vtPairs.all fun p => wOkB p.2 p.1) = true := by decide +kernel
 
 theorem vtPairs_names : B1.Tables.vtKidS.filter (fun g => g != (name% verify_tables_loop0) &&
-    g != (name% verify_tables_loop1) && g != "shared_selector_tables" &&
+    g != "shared_selector_tables" &&
     g != (name% shared_selector_tables_loop0)) =
     vtPairs.map Prod.fst := by decide +kernel
 
 theorem vt_kids_totalLe : ∀ g ∈ B1.Tables.vtKidS, g ≠ (name% verify_tables_loop0) →
-    g ≠ (name% verify_tables_loop1) → g ≠ (name% shared_selector_tables_loop0) →
+    g ≠ (name% shared_selector_tables_loop0) →
     g ≠ "shared_selector_tables" → TotalLe coreProgram B2C.fs g (fun _ => wSB g) := by
-  intro g hg h1 h11 h3 h2
+  intro g hg h1 h3 h2
   have hm : g ∈ vtPairs.map Prod.fst := by
     rw [← vtPairs_names, List.mem_filter]
-    exact ⟨hg, by simp [h1, h11, h2, h3]⟩
+    exact ⟨hg, by simp [h1, h2, h3]⟩
   obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hm
   exact wSB_totalLe (List.all_eq_true.mp vtPairs_ok p hp)
 
@@ -62,18 +63,16 @@ theorem sp_totalLe : ∀ j < 4,
   · rw [show B1.Tables.lName "sel_partial_nibble" 3 = "sel_partial_nibble__L3" by decide]
     exact totalLe_mono (wSB_totalLe (j := wIdx "sel_partial_nibble__L3") (by decide +kernel)) (by unfold kSp; omega)
 
-/-- The gkr rounds' words (`gkr_rounds__L{1,2}`), at most. -/
-noncomputable def kGr : ℕ := max (wSB "gkr_rounds__L1") (wSB "gkr_rounds__L2")
+/-- The radix-four layers' loops' words per iteration (`gkr_layer__L{p}_L{o}_loop0`). -/
+noncomputable def kGl (p o : ℕ) : ℕ :=
+  wSK (B1.Tables.glLoopName p o) - B2C.fs (B1.Tables.glLoopName p o)
 
-theorem gr_totalLe : ∀ n ∈ [1, 2],
-    TotalLe coreProgram B2C.fs (B1.Tables.lName "gkr_rounds" n) (fun _ => kGr) := by
-  intro n hn
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at hn
-  rcases hn with rfl | rfl
-  · rw [show B1.Tables.lName "gkr_rounds" 1 = "gkr_rounds__L1" by decide]
-    exact totalLe_mono (wSB_totalLe (j := wIdx "gkr_rounds__L1") (by decide +kernel)) (by unfold kGr; omega)
-  · rw [show B1.Tables.lName "gkr_rounds" 2 = "gkr_rounds__L2" by decide]
-    exact totalLe_mono (wSB_totalLe (j := wIdx "gkr_rounds__L2") (by decide +kernel)) (by unfold kGr; omega)
+theorem gl_loops_totalLeOn : ∀ p < 4, ∀ o < 2,
+    TotalLeOn coreProgram B2C.fs (B1.Tables.glLoopName p o) LoopPre
+      (fun a => logG (a.getD 1 0) * kGl p o + B2C.fs (B1.Tables.glLoopName p o)) := by
+  intro p hp o ho
+  simpa only [kGl, wSKt_eq] using wSKt_totalLeOn (j := wIdx (B1.Tables.glLoopName p o))
+    (f := B1.Tables.glLoopName p o) (by interval_cases p <;> interval_cases o <;> decide +kernel)
 
 /-! ## The weights of `verify_tables`' and the terminal's callees -/
 
@@ -81,13 +80,13 @@ theorem vtPairs_okW (op : Opcode) : (vtPairs.all fun p => kuOkB op p.2 p.1) = tr
   cases op <;> decide +kernel
 
 theorem vt_kids_weightLe (op : Opcode) : ∀ g ∈ B1.Tables.vtKidS, g ≠ (name% verify_tables_loop0) →
-    g ≠ (name% verify_tables_loop1) → g ≠ (name% shared_selector_tables_loop0) →
+    g ≠ (name% shared_selector_tables_loop0) →
     g ≠ "shared_selector_tables" →
       WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) g (fun _ => kuSB op g) := by
-  intro g hg h1 h11 h3 h2
+  intro g hg h1 h3 h2
   have hm : g ∈ vtPairs.map Prod.fst := by
     rw [← vtPairs_names, List.mem_filter]
-    exact ⟨hg, by simp [h1, h11, h2, h3]⟩
+    exact ⟨hg, by simp [h1, h2, h3]⟩
   obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hm
   exact kuSB_weightLe (List.all_eq_true.mp (vtPairs_okW op) p hp)
 
@@ -149,22 +148,18 @@ noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
   hg := wSB_totalLe (j := wIdx "g_power_of_word") (by decide +kernel)
   Kst := wSB
   hst := st_totalLe
-  K29 := wSK (name% verify_bus_gkr_loop0_loop0) - B2C.fs (name% verify_bus_gkr_loop0_loop0)
-  R := kGr
-  K8 := wSK (name% verify_bus_gkr_loop1) - B2C.fs (name% verify_bus_gkr_loop1)
-  h29 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% verify_bus_gkr_loop0_loop0) (by decide +kernel)
-  hR := gr_totalLe
-  h8 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% verify_bus_gkr_loop1) (by decide +kernel)
+  KL := B1.VerifySub.glsKL B2C.fs kGl
+  K8 := wSK (name% verify_bus_gkr_loop0) - B2C.fs (name% verify_bus_gkr_loop0)
+  hL := B1.VerifySub.gls_totalLeOn gl_loops_totalLeOn
+  h8 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% verify_bus_gkr_loop0) (by decide +kernel)
   Kf := wSB
   Ksh := B2C.fs "shared_selector_tables" +
     (B2C.fs (name% shared_selector_tables_loop0) + 15 * (wSK (name% shared_selector_tables_loop0) - B2C.fs (name% shared_selector_tables_loop0))) + kSp
   K10 := wSK (name% verify_tables_loop0) - B2C.fs (name% verify_tables_loop0)
-  K11 := wSK (name% verify_tables_loop1) - B2C.fs (name% verify_tables_loop1)
   hKf := vt_kids_totalLe
   hsh := B1.Tables.ss_totalLeOn (wSK (name% shared_selector_tables_loop0) - B2C.fs (name% shared_selector_tables_loop0)) kSp
     (by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% shared_selector_tables_loop0) (by decide +kernel)) sp_totalLe
   h10 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% verify_tables_loop0) (by decide +kernel)
-  h11 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% verify_tables_loop1) (by decide +kernel)
   B14 := 3204
   hl14 := B1.VerifySub.l14_totalLeOn_fs
   Beqc := 184
@@ -180,12 +175,10 @@ noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
   Wss := fun op => B2C.ωArm B2C.xmssArmC op "shared_selector_tables" + 15 * kuSK op (name% shared_selector_tables_loop0) +
     kSpW op
   Kw10 := fun op => kuSK op (name% verify_tables_loop0)
-  Kw11 := fun op => kuSK op (name% verify_tables_loop1)
   hKvw := vt_kids_weightLe
   hssw := fun op => B1.Tables.ss_weightLeOn _ _ _
     (loopW_of (kuSK_loop (j := idx% shared_selector_tables_loop0) (by cases op <;> decide +kernel))) (sp_weightLe op)
   h10w := fun op => loopW_of (kuSK_loop (j := idx% verify_tables_loop0) (by cases op <;> decide +kernel))
-  h11w := fun op => loopW_of (kuSK_loop (j := idx% verify_tables_loop1) (by cases op <;> decide +kernel))
   Weqc := fun op => kuSB op "eq_prefix_chain"
   W15 := fun op => krVl15A op * max (B2C.fs (name% check_opening_terminal_loop0)) (32 * 38) / 1000
   Wst := fun op => kuSB op "selector_tables"

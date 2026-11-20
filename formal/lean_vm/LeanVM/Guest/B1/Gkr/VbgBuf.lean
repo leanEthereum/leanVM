@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Gkr.VbgComplete
+public import LeanVM.Guest.B1.Gkr.GlCLayers
 public import LeanVM.Guest.B1.Gkr.VbgBound
 public import LeanVM.Guest.B1.Tables.FlatLift
 public import LeanVM.Guest.B1.Fwd.PureIn
@@ -17,14 +18,14 @@ public import LeanVM.Guest.Data.NameStrings
 
 `vbgFlat`: `verify_bus_gkr` as a flat function (`FlatFn`): its evaluation list `vbgEvL`, its
 range check's two reads (`vbgAux`, values `21`, `22`), its callees `vbgKidS`
-(`verify_bus_gkr_loop0`, `verify_bus_gkr_loop1` and theirs, placing nothing).
+(`gkr_layers__L{o}`, `verify_bus_gkr_loop0` and theirs, placing nothing).
 
-**The buffers.** `vbgLay` (`VbgComplete`) places the honest words as runs inside the six
+**The buffers.** `vbgLay` (`VbgComplete`) places the honest words as runs inside the seven
 buffers; `vbgOwnW` lays out each buffer whole, the runs at their offsets and zeros between:
 `layers` (`10·(depth + 2)` words, a slot of `10` per level, the levels `≡ depth (mod 2)` from `1`
-up to `depth`), the round records (`7` fields of `862` words, the loop's from position `1`), the
-point rows (`41` rows of `40`), the tables `loop_bounds`, `depth_odd` (`33` each) and the last
-slot's values (`3`). `vbg_memLay` (`VbgMem`): a memory
+up to `depth`), the round records (`7` fields of `862` words, layer `j`'s `j / 4 + 1` from
+position `gkPos`), the point rows (`41` rows of `40`), the tables `depth_odd`, `four_bounds`,
+`four_rem` (`33` each) and the last slot's values (`3`). `vbg_memLay` (`VbgMem`): a memory
 holding the whole buffers holds `vbgLay`.
 -/
 
@@ -40,8 +41,10 @@ open LeanVM.Guest.B1.Fwd
 
 /-- `verify_bus_gkr`'s callees, directly or not. -/
 def vbgKidS : List String :=
-  [name% «verify_bus_gkr_loop0_loop0», name% «verify_bus_gkr_loop0», name% «verify_bus_gkr_loop1»,
-    "gkr_rounds__L1", "gkr_rounds__L2"]
+  [glcLsN 0, glcLsN 1, glcLsLN 0, glcLsLN 1] ++
+    ((List.range 4).flatMap fun r ↦ [glcLastN r 0, glcLastN r 1]) ++
+    ((List.range 4).flatMap fun p ↦ [glName p 0, glName p 1, glLoopName p 0, glLoopName p 1]) ++
+    [name% «verify_bus_gkr_loop0»]
 
 theorem vbg_kids_pure : coreProgram.PureIn vbgKidS := pureIn_of_pureInB (by decide +kernel)
 
@@ -117,9 +120,9 @@ noncomputable def vbgRowBlock (t : ℕ) : List E :=
 /-- The point rows, whole. -/
 noncomputable def vbgRowsW : List E := (List.range 41).flatMap (vbgRowBlock depth cap0 xs)
 
-/-- The loop's step `j`'s (layer index `j + 1 - sh`) records' field `f`. -/
+/-- Radix-four layer `j`'s (layer index `j + 1 - sh`) records' field `f`. -/
 noncomputable def vbgRecRun (f j : ℕ) : List E :=
-  (List.range (j + 1 - depth % 2 + depth % 2 + 1)).map
+  (List.range (j / 4 + 1)).map
     (gkRecW cap0 xs (depth % 2) cur (j + 1 - depth % 2) f)
 
 /-- Field `f`'s `862` words of the round records. -/
@@ -133,9 +136,10 @@ noncomputable def vbgRoundsW : List E := (List.range 7).flatMap (vbgRecBlock dep
 
 end
 
-/-- The tables `loop_bounds`, `depth_odd`. -/
-def vbgBndW : List E := (List.range 33).map fun k ↦ gen ^ ((k - 1) / 2)
+/-- The tables `depth_odd`, `four_bounds`, `four_rem`. -/
 def vbgOddW : List E := (List.range 33).map fun k ↦ gen ^ (k % 2)
+def vbgBndW : List E := (List.range 33).map fun k ↦ gen ^ ((k - 1) / 8)
+def vbgRemW : List E := (List.range 33).map fun k ↦ gen ^ (((k - 1) / 2) % 4)
 
 /-- The last slot's values. -/
 noncomputable def vbgValsW (depth : ℕ) (cap0 xs : List E) : List E :=
@@ -144,7 +148,7 @@ noncomputable def vbgValsW (depth : ℕ) (cap0 xs : List E) : List E :=
 /-- The buffers' words. -/
 noncomputable def vbgOwnW (depth : ℕ) (cap0 xs : List E) (cur : E) : List (List E) :=
   [vbgLayersW depth cap0 xs cur, vbgRoundsW depth cap0 xs cur, vbgRowsW depth cap0 xs,
-    vbgBndW, vbgOddW, vbgValsW depth cap0 xs]
+    vbgOddW, vbgBndW, vbgRemW, vbgValsW depth cap0 xs]
 
 end
 end LeanVM.Guest.B1.Tables

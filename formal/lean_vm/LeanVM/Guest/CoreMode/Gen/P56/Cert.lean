@@ -29,7 +29,7 @@ open LeanVM.Guest LeanVM.Guest.EndExec
 core_cert% «check_opening_terminal_loop0» «P56» 0 [«check_opening_terminal_loop0»]
 core_cert% «child_claim_list_mono_last__L6» «P56» 1 []
 core_cert% «da_levels__L128_L7_loop0» «P56» 2 [«da_levels__L128_L7_loop0»]
-core_cert% «gkr_rounds__L1» «P56» 3 []
+core_cert% «gkr_layer__L3_L1» «P56» 3 [«gkr_layer__L3_L1_loop0»]
 core_cert% «level_positions__L9_L22_L4_loop0» «P56» 4 [«decode_query_windows__L22_L4», «level_positions__L9_L22_L4_loop0»]
 core_cert% «level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1» «P56» 5 [«opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1», «verify_merkle_cap__L3»]
 core_cert% «level_queries__L37_L0_L4_L16_L22_L4_L0_L0_L0_L0» «P56» 6 [«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0», «verify_merkle_cap__L4»]
@@ -47,8 +47,7 @@ core_cert% «opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0» «P56» 17 [�
 core_cert% «padding_weight__L16» «P56» 18 []
 core_cert% «padding_weight__L3» «P56» 19 []
 core_cert% «ring_switch_target» «P56» 20 [«ring_switch_target_loop0»]
-core_cert% «verify_bus_gkr_loop1» «P56» 21 [«verify_bus_gkr_loop1»]
-core_cert% «verify_merkle_cap__L2» «P56» 22 []
+core_cert% «verify_merkle_cap__L2» «P56» 21 []
 
 end
 
@@ -61,8 +60,8 @@ namespace LeanVM.Guest.CorePack.«P56»
 /-- The pack's certificates with their facts. -/
 noncomputable def ces : List (EndExec.CertE CoreMode.hcTab CoreMode.coreNzs) :=
   [Fn.«check_opening_terminal_loop0».ce, Fn.«child_claim_list_mono_last__L6».ce,
-   Fn.«da_levels__L128_L7_loop0».ce, Fn.«gkr_rounds__L1».ce, Fn.«level_positions__L9_L22_L4_loop0».ce,
-   Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».ce,
+   Fn.«da_levels__L128_L7_loop0».ce, Fn.«gkr_layer__L3_L1».ce,
+   Fn.«level_positions__L9_L22_L4_loop0».ce, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».ce,
    Fn.«level_queries__L37_L0_L4_L16_L22_L4_L0_L0_L0_L0».ce,
    Fn.«level_residual__L109_L23_L6_L3_loop1».ce, Fn.«level_residual__L17_L8_L4_L2_loop1».ce,
    Fn.«level_residual__L25_L15_L4_L2_loop0».ce, Fn.«level_residual__L32_L20_L4_L2_loop0».ce,
@@ -71,8 +70,7 @@ noncomputable def ces : List (EndExec.CertE CoreMode.hcTab CoreMode.coreNzs) :=
    Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0».ce,
    Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0».ce,
    Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».ce, Fn.«padding_weight__L16».ce,
-   Fn.«padding_weight__L3».ce, Fn.«ring_switch_target».ce, Fn.«verify_bus_gkr_loop1».ce,
-   Fn.«verify_merkle_cap__L2».ce]
+   Fn.«padding_weight__L3».ce, Fn.«ring_switch_target».ce, Fn.«verify_merkle_cap__L2».ce]
 
 end
 

@@ -131,8 +131,8 @@ def vtSL : List Atom := [
   .load (.n 2633) (.n 2628) 5,
   .load (.n 2621) (.n 2628) 6,
   .load (.n 2634) (.n 2631) 0,
-  .load (.n 5979) (.n 15) 157,
-  .load (.n 5982) (.n 15) 158]
+  .load (.n 5975) (.n 15) 157,
+  .load (.n 5978) (.n 15) 158]
 
 set_option maxRecDepth 100000 in
 /-- The counter `storesOf` carries stays unevaluated over long runs without loads: the kernel's

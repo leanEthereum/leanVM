@@ -17,6 +17,7 @@ public import LeanVM.Guest.CoreMode.GlueE.«P24»
 public import LeanVM.Guest.CoreMode.GlueE.«P27»
 public import LeanVM.Guest.CoreMode.GlueE.«P28»
 public import LeanVM.Guest.CoreMode.GlueE.«P2»
+public import LeanVM.Guest.CoreMode.GlueE.«P36»
 public import LeanVM.Guest.CoreMode.GlueE.«P42»
 public import LeanVM.Guest.CoreMode.GlueE.«P44»
 public import LeanVM.Guest.CoreMode.GlueE.«P47»
@@ -40,6 +41,8 @@ noncomputable def Fn.«block_selector_tab__L9».alignCtx : Bridge.AlignCtx := Br
 noncomputable def Fn.«child_claim_list_mono_last__L3».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«claim_list_digest_loop1».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop1_claim_list_digest", Fn.«claim_list_digest_loop1».entry)] 524287 code.instructionCount
 noncomputable def Fn.«da_levels__L128_L7_loop5».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop5_da_levels__L128_L7", Fn.«da_levels__L128_L7_loop5».entry)] 524287 code.instructionCount
+noncomputable def Fn.«gkr_last_layers__L1_L0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("gkr_layer__L0_L0", Fn.«gkr_layer__L0_L0».entry)] 524287 code.instructionCount
+noncomputable def Fn.«gkr_layer__L1_L1_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_gkr_layer__L1_L1", Fn.«gkr_layer__L1_L1_loop0».entry)] 524287 code.instructionCount
 noncomputable def Fn.«index_mle__L32».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L15_L22_L4_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L15_L22_L4", Fn.«level_positions__L15_L22_L4_loop0».entry), ("decode_query_windows__L22_L4", Fn.«decode_query_windows__L22_L4».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L3_L14_L2_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L3_L14_L2", Fn.«level_positions__L3_L14_L2_loop0».entry), ("decode_query_windows__L14_L2", Fn.«decode_query_windows__L14_L2».entry)] 524287 code.instructionCount
@@ -72,6 +75,8 @@ align_chk% «block_selector_tab__L9»
 align_chk% «child_claim_list_mono_last__L3»
 align_chk% «claim_list_digest_loop1»
 align_chk% «da_levels__L128_L7_loop5»
+align_chk% «gkr_last_layers__L1_L0»
+align_chk% «gkr_layer__L1_L1_loop0»
 align_chk% «index_mle__L32»
 align_chk% «level_positions__L15_L22_L4_loop0»
 align_chk% «level_positions__L3_L14_L2_loop0»

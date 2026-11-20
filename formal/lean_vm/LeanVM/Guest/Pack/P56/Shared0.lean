@@ -42,33 +42,6 @@ theorem shareOk : ShareOkD Fn.«ring_switch_target».core (cert.withPows Data.po
 end
 end LeanVM.Guest.Fn.«ring_switch_target»
 
-namespace LeanVM.Guest.Fn.«verify_bus_gkr_loop1»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `__loop1_verify_bus_gkr`, once. -/
-theorem st : shareStaticD Fn.«verify_bus_gkr_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop1_verify_bus_gkr`, window 0. -/
-theorem sw0 : shareWinD Fn.«verify_bus_gkr_loop1».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `__loop1_verify_bus_gkr`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«verify_bus_gkr_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«verify_bus_gkr_loop1»
-
 namespace LeanVM.Guest.Fn.«padding_weight__L3»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -122,4 +95,31 @@ theorem shareOk : ShareOkD Fn.«padding_weight__L16».core (cert.withPows Data.p
 
 end
 end LeanVM.Guest.Fn.«padding_weight__L16»
+
+namespace LeanVM.Guest.Fn.«check_opening_terminal_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `__loop0_check_opening_terminal`, once. -/
+theorem st : shareStaticD Fn.«check_opening_terminal_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop0_check_opening_terminal`, window 0. -/
+theorem sw0 : shareWinD Fn.«check_opening_terminal_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `__loop0_check_opening_terminal`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«check_opening_terminal_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«check_opening_terminal_loop0»
 

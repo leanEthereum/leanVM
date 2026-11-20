@@ -43,6 +43,7 @@ noncomputable def Fn.«bus_grind_check__L3».alignCtx : Bridge.AlignCtx := Bridg
 noncomputable def Fn.«child_claim_list_mono_last__L15».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«da_vector».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("da_column_offsets", Fn.«da_column_offsets».entry), ("da_expand__L13_L7", Fn.«da_expand__L13_L7».entry), ("da_factors__L13_L7_L0", Fn.«da_factors__L13_L7_L0».entry), ("da_factors__L6_L7_L128", Fn.«da_factors__L6_L7_L128».entry)] 524287 code.instructionCount
 noncomputable def Fn.«eq_prefix_run__L22».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
+noncomputable def Fn.«eq_prefix_run_rev__L24».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«grind_check__L13».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L44_L24_L6».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L44_L24_L6", Fn.«level_positions__L44_L24_L6_loop0».entry), ("decode_query_windows__L24_L6", Fn.«decode_query_windows__L24_L6».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L4_L14_L2_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L4_L14_L2", Fn.«level_positions__L4_L14_L2_loop0».entry), ("decode_query_windows__L14_L2", Fn.«decode_query_windows__L14_L2».entry)] 524287 code.instructionCount
@@ -77,6 +78,7 @@ align_chk% «bus_grind_check__L3»
 align_chk% «child_claim_list_mono_last__L15»
 align_chk% «da_vector»
 align_chk% «eq_prefix_run__L22»
+align_chk% «eq_prefix_run_rev__L24»
 align_chk% «grind_check__L13»
 align_chk% «level_positions__L44_L24_L6»
 align_chk% «level_positions__L4_L14_L2_loop0»

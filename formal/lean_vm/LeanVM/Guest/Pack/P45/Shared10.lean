@@ -15,11 +15,35 @@ public import LeanVM.Guest.Pack.«P45».Bundle
 
 set_option Elab.async false
 
+namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `__loop0_opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0`, window 3. -/
+theorem sw3 : shareWinD Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps 3 = true := by
+  decide +kernel
+
+end
+end LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0»
+
 namespace LeanVM.Guest.Fn.«walk_path__L18_L5»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `walk_path__L18_L5`, once. -/
+theorem st : shareStaticD Fn.«walk_path__L18_L5».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `walk_path__L18_L5`, window 0. -/
+theorem sw0 : shareWinD Fn.«walk_path__L18_L5».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `walk_path__L18_L5`, window 1. -/

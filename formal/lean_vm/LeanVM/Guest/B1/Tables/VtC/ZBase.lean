@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Tables.VtC.ZBase
 
   The table sumcheck's honest rounds (from the transcript words, the capacity and the target), the
-  buffers they fill, and `verify_tables`' statements `2591 ..< 2690` and `5530 ..< 5564`.
+  buffers they fill, and `verify_tables`' statements `2591 ..< 2685` and `5525 ..< 5559`.
 -/
 
 module
@@ -25,7 +25,7 @@ challenges, last first, as `chi` holds them).
 
 `zc_run`: the rounds are the specification's `sumcheck cl0 4 (replicate n none)`.
 `zc_l10B`: on a memory holding the buffers and the words, every iteration of `verify_tables_loop0`
-has its facts; `zc_l11C`: `verify_tables_loop1`'s, `chi` being `zc_rk` reversed.
+has its facts; `zc_chiRev`: `chi` is `zc_rk` reversed, as `eq_prefix_chain_rev` writes it.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -38,7 +38,7 @@ open LeanVM.Guest.B1.Fwd
 
 /-! ## The statements -/
 
-/-- `verify_tables`' statements `2591 ..< 2690` (G:2546-2591). -/
+/-- `verify_tables`' statements `2591 ..< 2685` (G:2565-2619). -/
 noncomputable def zBlk : List Stmt := [
     .atom (.hint (.witness "zc_tau_max" (.stack [.n 2545]))),
     .atom (.const (.n 2546) (word 4294967296 0)),
@@ -117,71 +117,66 @@ noncomputable def zBlk : List Stmt := [
     .atom (.const (.n 2636) (word 1 0)),
     .atom (.add (.n 2637) (.n 2636) (.n 2545)),
     .atom (.const (.n 2638) (word 1 0)),
-    .callIf (.n 2637) name% «verify_tables_loop0» [.n 2638, .n 2545, .n 2628, .n 18, .n 2635,
-        .n 2631],
-    .atom (.const (.n 2639) (word 1 0)),
-    .atom (.add (.n 2640) (.n 2639) (.n 2545)),
-    .atom (.const (.n 2641) (word 1 0)),
-    .callIf (.n 2640) name% «verify_tables_loop1» [.n 2641, .n 2545, .n 16, .n 2635, .n 2545],
-    .atom (.mul (.n 2642) (.n 2545) (.n 2545)),
-    .atom (.mul (.n 2643) (.n 2642) (.n 2545)),
-    .atom (.mul (.n 2644) (.n 2643) (.n 2643)),
-    .atom (.mul (.n 2645) (.n 2644) (.n 2545)),
-    .atom (.mul (.n 2646) (.n 2628) (.n 2645)),
-    .atom (.load (.n 2647) (.n 2646) 0),
-    .atom (.load (.n 2648) (.n 2646) 1),
-    .atom (.load (.n 2649) (.n 2646) 2),
-    .atom (.load (.n 2650) (.n 2646) 3),
-    .atom (.load (.n 2651) (.n 2646) 4),
-    .atom (.load (.n 2652) (.n 2646) 5),
-    .atom (.load (.n 2653) (.n 2646) 6),
-    .atom (.const (.n 2654) (word 2 0)),
-    .atom (.mul (.n 2655) (.n 2545) (.n 2654)),
-    .atom (.hint (.allocDyn (.n 2656) (.n 2655))),
-    .atom (.const (.n 2657) (word 1 0)),
-    .call "eq_prefix_chain" [.n 2656, .n 2657, .n 16, .n 700, .n 2545] []]
+    .callIf (.n 2637) name% «verify_tables_loop0» [.n 2638, .n 2545, .n 2628, .n 18,
+        .n 2635, .n 2631],
+    .atom (.mul (.n 2639) (.n 2545) (.n 2545)),
+    .atom (.mul (.n 2640) (.n 2639) (.n 2545)),
+    .atom (.mul (.n 2641) (.n 2640) (.n 2640)),
+    .atom (.mul (.n 2642) (.n 2641) (.n 2545)),
+    .atom (.mul (.n 2643) (.n 2628) (.n 2642)),
+    .atom (.load (.n 2644) (.n 2643) 0),
+    .atom (.load (.n 2645) (.n 2643) 1),
+    .atom (.load (.n 2646) (.n 2643) 2),
+    .atom (.load (.n 2647) (.n 2643) 3),
+    .atom (.load (.n 2648) (.n 2643) 4),
+    .atom (.load (.n 2649) (.n 2643) 5),
+    .atom (.load (.n 2650) (.n 2643) 6),
+    .atom (.const (.n 2651) (word 2 0)),
+    .atom (.mul (.n 2652) (.n 2545) (.n 2651)),
+    .atom (.hint (.allocDyn (.n 2653) (.n 2652))),
+    .call "eq_prefix_chain_rev" [.n 2653, .n 16, .n 2635, .n 700, .n 2545] []]
 
-/-- `verify_tables`' statements `5530 ..< 5564` (G:2682-2698). -/
+/-- `verify_tables`' statements `5525 ..< 5559` (G:2716-2723). -/
 noncomputable def zTail : List Stmt := [
-    .atom (.keccak [.n 4693, .n 4694, .n 2594, .n 2594, .n 2594, .n 2595, .n 2596, .n 2597, .n 4687, .n 4688, .n 4689, .n 4690, .n 4691] [.n 5953, .n 5954, .n 5955, .n 5956, .n 5957, .n 5958, .n 5959, .n 5960, .n 5961, .n 5962, .n 5963, .n 5964, .n 5965] false false),
-    .atom (.copy (.n 5966) (.n 5953)),
-    .atom (.hint (.limbs (.n 6) [.n 5967])),
-    .atom (.add (.n 5968) (.n 6) (.n 5967)),
-    .atom (.const (.n 5969) (word 2 1)),
-    .atom (.mul (.n 5970) (.n 5968) (.n 5969)),
-    .atom (.assertInK (.n 5967) (.n 5970)),
-    .atom (.copy (.n 5971) (.n 5967)),
-    .atom (.hint (.limbs (.n 7) [.n 5972])),
-    .atom (.add (.n 5973) (.n 7) (.n 5972)),
-    .atom (.const (.n 5974) (word 2 1)),
-    .atom (.mul (.n 5975) (.n 5973) (.n 5974)),
-    .atom (.assertInK (.n 5972) (.n 5975)),
-    .atom (.copy (.n 5976) (.n 5972)),
-    .atom (.add (.n 5977) (.n 5971) (.n 5976)),
-    .atom (.mul (.n 5978) (.n 5966) (.n 5977)),
-    .atom (.add (.n 5979) (.n 5971) (.n 5978)),
-    .atom (.load (.n 5979) (.n 15) 157),
-    .atom (.add (.n 5980) (.n 5970) (.n 5975)),
-    .atom (.mul (.n 5981) (.n 5966) (.n 5980)),
-    .atom (.add (.n 5982) (.n 5970) (.n 5981)),
-    .atom (.load (.n 5982) (.n 15) 158),
+    .atom (.keccak [.n 4689, .n 4690, .n 2594, .n 2594, .n 2594, .n 2595, .n 2596, .n 2597, .n 4683, .n 4684, .n 4685, .n 4686, .n 4687] [.n 5949, .n 5950, .n 5951, .n 5952, .n 5953, .n 5954, .n 5955, .n 5956, .n 5957, .n 5958, .n 5959, .n 5960, .n 5961] false false),
+    .atom (.copy (.n 5962) (.n 5949)),
+    .atom (.hint (.limbs (.n 6) [.n 5963])),
+    .atom (.add (.n 5964) (.n 6) (.n 5963)),
+    .atom (.const (.n 5965) (word 2 1)),
+    .atom (.mul (.n 5966) (.n 5964) (.n 5965)),
+    .atom (.assertInK (.n 5963) (.n 5966)),
+    .atom (.copy (.n 5967) (.n 5963)),
+    .atom (.hint (.limbs (.n 7) [.n 5968])),
+    .atom (.add (.n 5969) (.n 7) (.n 5968)),
+    .atom (.const (.n 5970) (word 2 1)),
+    .atom (.mul (.n 5971) (.n 5969) (.n 5970)),
+    .atom (.assertInK (.n 5968) (.n 5971)),
+    .atom (.copy (.n 5972) (.n 5968)),
+    .atom (.add (.n 5973) (.n 5967) (.n 5972)),
+    .atom (.mul (.n 5974) (.n 5962) (.n 5973)),
+    .atom (.add (.n 5975) (.n 5967) (.n 5974)),
+    .atom (.load (.n 5975) (.n 15) 157),
+    .atom (.add (.n 5976) (.n 5966) (.n 5971)),
+    .atom (.mul (.n 5977) (.n 5962) (.n 5976)),
+    .atom (.add (.n 5978) (.n 5966) (.n 5977)),
+    .atom (.load (.n 5978) (.n 15) 158),
+    .atom (.copy (.n 5979) (.n 5957)),
+    .atom (.copy (.n 5980) (.n 5958)),
+    .atom (.copy (.n 5981) (.n 5959)),
+    .atom (.copy (.n 5982) (.n 5960)),
     .atom (.copy (.n 5983) (.n 5961)),
-    .atom (.copy (.n 5984) (.n 5962)),
-    .atom (.copy (.n 5985) (.n 5963)),
-    .atom (.copy (.n 5986) (.n 5964)),
-    .atom (.copy (.n 5987) (.n 5965)),
-    .atom (.const (.n 5988) (word 10905190400 0)),
-    .atom (.mul (.n 5989) (.n 2652) (.n 5988)),
-    .atom (.copy (.n 5990) (.n 5989)),
-    .atom (.copy (.n 5991) (.n 2545)),
-    .atom (.copy (.n 5992) (.n 1906)),
-    .atom (.copy (.n 5993) (.n 5966)),
-    .atom (.copy (.n 5994) (.n 2652))]
+    .atom (.const (.n 5984) (word 10905190400 0)),
+    .atom (.mul (.n 5985) (.n 2649) (.n 5984)),
+    .atom (.copy (.n 5986) (.n 5985)),
+    .atom (.copy (.n 5987) (.n 2545)),
+    .atom (.copy (.n 5988) (.n 1906)),
+    .atom (.copy (.n 5989) (.n 5962)),
+    .atom (.copy (.n 5990) (.n 2649))]
 
 theorem zBlk_at : tbStmtsEqb zBlk ((vtPre.drop 2591).take zBlk.length) = true := by
   simp only [vtPre_drop]; decide +kernel
 
-theorem zTail_at : tbStmtsEqb zTail ((vtPre.drop 5530).take zTail.length) = true := by
+theorem zTail_at : tbStmtsEqb zTail ((vtPre.drop 5525).take zTail.length) = true := by
   simp only [vtPre_drop]; decide +kernel
 
 /-! ## The honest rounds -/
@@ -314,7 +309,7 @@ theorem zc_l10B {rd : Reader} {R tabs rkb C : E} {cap0 : List E} {cl0 cur0 : E} 
       List.prod_singleton] at this
 
 /-- **`chi` is `zc_rk` reversed** on the honest buffers. -/
-theorem zc_l11C {rd : Reader} {rkb chi : E} {cap0 : List E} {cl0 : E} {xs : List E} {n : ℕ}
+theorem zc_chiRev {rd : Reader} {rkb chi : E} {cap0 : List E} {cl0 : E} {xs : List E} {n : ℕ}
     (hrk : TbReadsAt rd rkb (zcRkW cap0 cl0 xs n)) (hchi : TbReadsAt rd chi (zcChis cap0 cl0 xs n)) :
     ∀ x < n, ∃ v, LoadHolds rd rkb (n - 1 - x) v ∧ LoadHolds rd chi x v := by
   intro x hx

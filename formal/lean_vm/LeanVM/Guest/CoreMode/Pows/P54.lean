@@ -26,6 +26,8 @@ noncomputable def Fn.«column_selector__L27».pows : Exec.PowTree := (.node 3276
 theorem Fn.«column_selector__L27».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«da_verify».pows : Exec.PowTree := (.node 9223372036854775808 63 (.node 325 128 .leaf .leaf) .leaf)
 theorem Fn.«da_verify».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
+noncomputable def Fn.«gkr_layer__L3_L0_loop0».pows : Exec.PowTree := (.node 4294967296 32 (.node 2 1 .leaf .leaf) .leaf)
+theorem Fn.«gkr_layer__L3_L0_loop0».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«index_mle__L17».pows : Exec.PowTree := .leaf
 theorem Fn.«index_mle__L17».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«level_positions__L10_L20_L2_loop0».pows : Exec.PowTree := (.node 2 1 .leaf .leaf)
@@ -72,8 +74,6 @@ noncomputable def Fn.«rs_eq_rows__L5».pows : Exec.PowTree := (.node 27 64 .lea
 theorem Fn.«rs_eq_rows__L5».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«squeeze_point_from__L21».pows : Exec.PowTree := .leaf
 theorem Fn.«squeeze_point_from__L21».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
-noncomputable def Fn.«verify_bus_gkr_loop0_loop0».pows : Exec.PowTree := (.node 256 8 (.node 2 1 .leaf .leaf) .leaf)
-theorem Fn.«verify_bus_gkr_loop0_loop0».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 noncomputable def Fn.«walk_path__L12_L2».pows : Exec.PowTree := (.node 9223372036854775808 63 .leaf .leaf)
 theorem Fn.«walk_path__L12_L2».pows_ok : pows.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)
 

@@ -298,6 +298,37 @@ noncomputable def core : Core.Fn where
 end
 end LeanVM.Guest.Fn.«eq_prefix_run__L31»
 
+namespace LeanVM.Guest.Fn.«gkr_layers__L0»
+
+open LeanVM.Guest
+
+@[expose] public section
+
+namespace core
+
+/-- `gkr_layers__L0`: the body. -/
+noncomputable def body : List Core.Stmt := [
+  .atom (.const (.n 9) (word 1 0)),
+  .atom (.add (.n 10) (.n 9) (.n 3)),
+  .atom (.const (.n 11) (word 1 0)),
+  .callIf (.n 10) "__loop0_gkr_layers__L0" [.n 11, .n 3, .n 0, .n 1, .n 2, .n 5, .n 6, .n 7, .n 8],
+  .atom (.mul (.n 12) (.n 3) (.n 3)),
+  .atom (.mul (.n 13) (.n 12) (.n 12)),
+  .dispatch (.n 4) ["gkr_last_layers__L0_L0", "gkr_last_layers__L1_L0", "gkr_last_layers__L2_L0", "gkr_last_layers__L3_L0"] [.n 0, .n 1, .n 2, .n 3, .n 13, .n 5, .n 6, .n 7, .n 8] [.n 14],
+  .atom (.const (.n 15) (word 0 0)),
+  .ret [.n 15]]
+
+end core
+
+/-- `gkr_layers__L0`. -/
+noncomputable def core : Core.Fn where
+  name := "gkr_layers__L0"
+  params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8]
+  body := core.body
+
+end
+end LeanVM.Guest.Fn.«gkr_layers__L0»
+
 namespace LeanVM.Guest.Fn.«grind_check__L22»
 
 open LeanVM.Guest

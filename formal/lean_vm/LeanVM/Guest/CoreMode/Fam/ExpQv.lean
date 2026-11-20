@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Fam.ResVt
+public import LeanVM.Guest.CoreMode.Fam.ResGkrQ
 
 /-!
 # `verify_tables`' precondition
@@ -113,12 +114,44 @@ theorem vtPQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.
 
 /-- **The exponent facts but `check_opening_terminal`'s at every honest instance**: `verify_tables`'
 `g_bus_mu = g^|point|`, `|point| < 33`, `dims_g`'s first word `g^logMem`, `logMem ≤ 32`, and its other six the
-tables' log-heights, below `31` (`B1.Tables.vt_pads`). -/
+tables' log-heights, below `31` (`B1.Tables.vt_pads`); `gkr_layer__L{p}_L{o}`'s `x_m` (`GlQ`) and
+`gkr_layers__L{o}`'s `n_four` and `rem_g` (`GlsQ`), below `4`. -/
 theorem expQv_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, ExpQv r J := by
   intro J hJ f σ bufs kids hJt fn hf c hc hcf hn v hv
   simp only [Res.expFacts, List.mem_append, List.mem_cons, List.mem_map, List.mem_range,
     List.not_mem_nil, or_false] at hc
-  rcases hc with (((rfl | rfl) | ⟨k, -, rfl⟩) | rfl | rfl) | ⟨k, hk, rfl⟩
+  rcases hc with ((((((rfl | rfl) | ⟨k, -, rfl⟩) | rfl | rfl) | ⟨k, hk, rfl⟩) | hg) | hg)
+  rotate_left 6
+  · -- `gkr_layer__L{p}_L{o}`'s `x_m`
+    obtain ⟨p, hp, o, ho, rfl⟩ : ∃ p < 4, ∃ o < 2, c = (Tables.glName p o, 3, none, 4) := by
+      rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+      exacts [⟨0, by omega, 0, by omega, rfl⟩, ⟨0, by omega, 1, by omega, rfl⟩, ⟨1, by omega, 0, by omega, rfl⟩,
+        ⟨1, by omega, 1, by omega, rfl⟩, ⟨2, by omega, 0, by omega, rfl⟩, ⟨2, by omega, 1, by omega, rfl⟩,
+        ⟨3, by omega, 0, by omega, rfl⟩, ⟨3, by omega, 1, by omega, rfl⟩]
+    dsimp only at hcf hv ⊢
+    subst hcf
+    obtain ⟨fn', hf', hp', -⟩ := Tables.glIs_sound (Tables.glIs_layers p hp o ho)
+    obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
+    rw [hp', glParams_eq] at hv
+    obtain rfl : V.n 3 = v := Option.some.inj hv
+    obtain ⟨m, q, h3, hm, -⟩ := glQ_all hr J hJ p hp o ho σ bufs kids hJt
+    exact ⟨m, hm, h3⟩
+  · -- `gkr_layers__L{o}`'s `n_four` and `rem_g`
+    obtain ⟨o, ho, i, hi, rfl⟩ : ∃ o < 2, ∃ i, (i = 3 ∨ i = 4) ∧ c = (Tables.glcLsN o, i, none, 4) := by
+      rcases hg with rfl | rfl | rfl | rfl
+      exacts [⟨0, by omega, 3, Or.inl rfl, rfl⟩, ⟨0, by omega, 4, Or.inr rfl, rfl⟩,
+        ⟨1, by omega, 3, Or.inl rfl, rfl⟩, ⟨1, by omega, 4, Or.inr rfl, rfl⟩]
+    dsimp only at hcf hv ⊢
+    subst hcf
+    obtain ⟨fn', hf', hp', -⟩ := Tables.glcFnCheck_sound (Tables.glc_layers_check o ho).1
+    obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
+    rw [hp', glcPar9_eq] at hv
+    obtain ⟨n, rr, q, h3, hn4, h4, hrr, -⟩ := glsQ_all hr J hJ o ho σ bufs kids hJt
+    rcases hi with rfl | rfl
+    · obtain rfl : V.n 3 = v := Option.some.inj hv
+      exact ⟨n, hn4, h3⟩
+    · obtain rfl : V.n 4 = v := Option.some.inj hv
+      exact ⟨rr, hrr, h4⟩
   · exact absurd rfl hn
   · exact absurd rfl hn
   · exact absurd rfl hn

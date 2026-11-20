@@ -11,7 +11,7 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-abbrev Fn.«open_stacked__L10».entry : Nat := 231782
+abbrev Fn.«open_stacked__L10».entry : Nat := 234944
 
 end
 

@@ -13,7 +13,7 @@ namespace LeanVM.Cost.Decoder
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem groupsSize_64_40 : groupsSize 64 40 = 9973 := by
+theorem groupsSize_64_40 : groupsSize 64 40 = 10723 := by
   decide +kernel
 
 end

@@ -8,7 +8,11 @@
 
 module
 
-public import LeanVM.Guest.B1.Gkr.Loop7Complete
+public import LeanVM.Guest.B1.Gkr.EvalC
+public import LeanVM.Guest.B1.Gkr.SpecInv
+public import LeanVM.Guest.B1.Gkr.Root
+public import LeanVM.Guest.B1.Gkr.LayerTail
+public import LeanVM.Guest.B1.Sumcheck.Gkr
 public import LeanVM.Guest.B1.Gkr.Holds
 
 /-!
@@ -40,6 +44,19 @@ open LeanVM.Guest.B1.Fwd
 /-! ## The evaluation list -/
 
 /-- `verify_bus_gkr`'s evaluation list. -/
+theorem forall_flatten_range {P : Stmt → Prop} {n : ℕ} {g : ℕ → List Stmt}
+    (h : ∀ i < n, ∀ s ∈ g i, P s) : ∀ s ∈ ((List.range n).map g).flatten, P s := by
+  intro s hs
+  obtain ⟨l, hl, hs⟩ := List.mem_flatten.mp hs
+  obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hl
+  exact h i (List.mem_range.mp hi) s hs
+
+theorem tb_isInK_one : IsInK (1 : E) := by simpa using tb_gen_pow_isInK 0
+
+theorem tb_squeezeN_two (s : Fs) : s.squeezeN 2 =
+    ([challengeOf s.perm, challengeOf (permOf (rateOf [] ++ capOf s.perm))],
+      ⟨capOf (permOf (rateOf [] ++ capOf s.perm)), []⟩) := rfl
+
 noncomputable def vbgEvL : List Stmt := (flatIte vbgPre).map fixNe
 
 theorem vb_chk : (chk 10 vbgEvL).isSome = true := by decide +kernel
@@ -96,7 +113,7 @@ def rtTwoL : List Stmt :=
   [.atom (.const (.n 364) (word 2 0)), .atom (.load (.n 364) (.n 140) 9)]
 
 set_option maxRecDepth 10000 in
-theorem rtTwo_eq : rtTwo = rtTwoL := tbStmtsEqb_sound (by decide +kernel)
+theorem rtTwoL_eq : rtTwo = rtTwoL := tbStmtsEqb_sound (by decide +kernel)
 
 /-- The radix-four arm. -/
 def rtFourL : List Stmt :=
@@ -127,11 +144,21 @@ def rtFourL : List Stmt :=
   [.atom (.const (.n 290) (word 2 0)), .atom (.load (.n 290) (.n 140) 9)]
 
 set_option maxRecDepth 10000 in
-theorem rtFour_eq : rtFour = rtFourL := tbStmtsEqb_sound (by decide +kernel)
+theorem rtFourL_eq : rtFour = rtFourL := tbStmtsEqb_sound (by decide +kernel)
 
 section Eval
 
 variable {C : CallRel} {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {kret : List E → Prop}
+
+/-- A permutation's thirteen outputs from `b`, and its capacity cells, on its equations. -/
+theorem lyc_keccak {ins : List V} {b : ℕ}
+    (hg : Good rd S w σ (.keccak ins (lyOuts b) false false)) :
+    (Atom.keccak ins (lyOuts b) false false).Holds rd σ ∧
+      (∀ k (hk : k < 13), σ (.n (b + k)) = cellsOfState (permOf (ins.map σ)) false ⟨k, hk⟩) ∧
+      (lyCap b).map σ = capOf (permOf (ins.map σ)) := by
+  obtain ⟨hk, -⟩ := keccak_good hg
+  obtain ⟨hP, hc⟩ := ly_keccak hk
+  exact ⟨hk, hP, hc⟩
 
 /-- A statement of the body satisfies its equations. -/
 theorem vb_good (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) (n : ℕ) (a : Atom)
@@ -142,26 +169,17 @@ theorem vb_good (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) (n : ℕ) (a : Ato
   rw [hfix] at h
   exact h
 
-/-- The statements of the root-most layer's arms satisfy their equations. -/
-theorem rt_goodArms (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) :
-    ∀ t ∈ rtFour ++ rtTwo, GoodS rd vbgS w σ t := by
-  have h := good_ite (G := fun s => GoodS rd vbgS w σ (fixNe s))
-    (fun s hs => hG _ (List.mem_map_of_mem hs)) 185 (.n 142) rtFour rtTwo (by decide +kernel)
-  intro t ht
-  have := h t ht
-  rwa [fixNe_of_noNe (List.all_eq_true.mp rtArms_noNe t ht)] at this
-
 /-- A block of the binary arm satisfies its equations. -/
-theorem rt2_goodB (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) (n : ℕ) (blk : List Stmt)
+theorem rt2_goodB (hA : ∀ t ∈ rtFour ++ rtTwo, GoodS rd S w σ t) (n : ℕ) (blk : List Stmt)
     (heq : tbStmtsEqb blk ((rtTwo.drop n).take blk.length) = true) :
-    ∀ s ∈ blk, GoodS rd vbgS w σ s :=
-  fun s hs => rt_goodArms hG s (List.mem_append_right _ (tb_mem_of_slice heq s hs))
+    ∀ s ∈ blk, GoodS rd S w σ s :=
+  fun s hs => hA s (List.mem_append_right _ (tb_mem_of_slice heq s hs))
 
 /-- A block of the radix-four arm satisfies its equations. -/
-theorem rt4_goodB (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) (n : ℕ) (blk : List Stmt)
+theorem rt4_goodB (hA : ∀ t ∈ rtFour ++ rtTwo, GoodS rd S w σ t) (n : ℕ) (blk : List Stmt)
     (heq : tbStmtsEqb blk ((rtFour.drop n).take blk.length) = true) :
-    ∀ s ∈ blk, GoodS rd vbgS w σ s :=
-  fun s hs => rt_goodArms hG s (List.mem_append_left _ (tb_mem_of_slice heq s hs))
+    ∀ s ∈ blk, GoodS rd S w σ s :=
+  fun s hs => hA s (List.mem_append_left _ (tb_mem_of_slice heq s hs))
 
 /-- **A child's read on its equations**: its word, packed and copied. -/
 theorem chc_read {cur o b0 i : ℕ} (gb : ∀ s ∈ chT (.n cur) o b0 i, GoodS rd S w σ s)
@@ -227,7 +245,8 @@ variable {C : CallRel} {rd : Reader} {w : ℕ → E} {σ : Val} {kret : List E �
 
 /-- **The binary arm, completely** (an odd depth): from the sponge `s` the roots wait in, one
 step of one level (no point), its six words past the roots, and the slot of `L = 1`. -/
-theorem rtc_two (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) {s : Fs} {st : GkrState}
+theorem rtc_two {S : List Atom} (hA : ∀ t ∈ rtFour ++ rtTwo, GoodS rd S w σ t)
+    (hk : ∀ i < 6, some (chB 291 i, 5, 2 + i) ∉ S.map loadKey) {s : Fs} {st : GkrState}
     (hpt : st.point = [])
     (h59 : σ (.n 59) = s.squeeze.1) (h63 : σ (.n 63) = polyEval st.values s.squeeze.1)
     (hcap : (lyCap 46).map σ = capOf s.perm)
@@ -252,14 +271,13 @@ theorem rtc_two (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) {s : Fs} {st : Gkr
   have hxs : GkStepD.xs ⟨[], [w0, w1], [w2, w3], [w4, w5]⟩ = [w0, w1, w2, w3, w4, w5] := rfl
   rw [hxs] at hx hcur'
   -- the children
-  have hk : ∀ i < 6, some (chB 291 i, 5, 2 + i) ∉ vbgS.map loadKey := by decide +kernel
   have ch : ∀ i < 6, LoadHolds rd (σ (.n 5)) (2 + i) ([w0, w1, w2, w3, w4, w5].getD i 0) := by
     intro i hi
     have := hx i (by simp; omega)
     rw [tb_loadHolds_mul_gen_pow] at this
     rwa [← List.getD_eq_getElem _ 0] at this
   have EV : ∀ i < 6, _ := fun i hi => chc_read (C := C)
-    (rt2_goodB hG (rtPos i) (chT (.n 5) 2 291 i) (rtTwo_check i hi)) (hk i hi) (ch i hi)
+    (rt2_goodB hA (rtPos i) (chT (.n 5) 2 291 i) (rtTwo_check i hi)) (hk i hi) (ch i hi)
   have ev : ∀ i < 6, ∀ v, [w0, w1, w2, w3, w4, w5].getD i 0 = v → σ (.n (chB 291 i)) = v :=
     fun i hi v hv => (EV i hi).1.trans hv
   have q : ∀ i < 6, ∀ v, [w0, w1, w2, w3, w4, w5].getD i 0 = v → σ (.n (chB 291 i + 3)) = v :=
@@ -273,7 +291,7 @@ theorem rtc_two (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) {s : Fs} {st : Gkr
   have q4 : σ (.n 323) = w4 := q 4 (by omega) w4 rfl
   have q5 : σ (.n 327) = w5 := q 5 (by omega) w5 rfl
   have g : ∀ n (a : Atom), tbStmtsEqb [.atom a] ((rtTwo.drop n).take 1) = true →
-      Good rd vbgS w σ a := fun n a heq => rt2_goodB hG n [.atom a] heq (.atom a) List.mem_cons_self
+      Good rd S w σ a := fun n a heq => rt2_goodB hA n [.atom a] heq (.atom a) List.mem_cons_self
   -- the first four children's permutation
   obtain ⟨k16, -⟩ := keccak_good (g 16 (.keccak (chRate 291 0 ++ lyCap 46) (lyOuts 307) false false)
     (by decide +kernel))
@@ -326,11 +344,11 @@ theorem rtc_two (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) {s : Fs} {st : Gkr
       List V).map σ) = rateOf [(w4, dsObserve), (w5, dsObserve)] ++ capOf P2 := by
     rw [List.map_append, B0, rateOf_eq_cells _ (by simp)]
     simp [pendCells, e321, e322, e325, e326, z42, z43, z44, z45]
-  obtain ⟨k36, hP3, hC3⟩ := lyc_keccak (rd := rd) (σ := σ) (S := vbgS) (w := w)
+  obtain ⟨k36, hP3, hC3⟩ := lyc_keccak (rd := rd) (σ := σ) (S := S) (w := w)
     (g 36 (.keccak ([.n 321, .n 322, .n 325, .n 326, .n 42, .n 43, .n 44, .n 45] ++
       lyCap 307) (lyOuts 338) false false) (by decide +kernel))
   rw [hr2] at hP3 hC3
-  have hco := challengeT_good (rt2_goodB hG 37 (challengeT (.n 338) 351) (by decide +kernel))
+  have hco := challengeT_good (rt2_goodB hA 37 (challengeT (.n 338) 351) (by decide +kernel))
   have e351 : σ (.n 351) = challengeOf (permOf (rateOf [(w4, dsObserve), (w5, dsObserve)] ++
       capOf P2)) := challengeT_value hco (hP3 0 (by omega))
   -- the sponge after the children
@@ -387,7 +405,7 @@ theorem rtc_two (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) {s : Fs} {st : Gkr
     rw [m354, c353, w8, show (8 : ℕ) = 2 + 6 by rfl, pow_add, ← mul_assoc]
     exact ld 5 _ hcur'
   have VAL : ∀ t < 3, ∀ (b u v off : ℕ), u < b → v < b → 351 < b →
-      (∀ s ∈ rtVal b u v off, GoodS rd vbgS w σ s) →
+      (∀ s ∈ rtVal b u v off, GoodS rd S w σ s) →
       LoadHolds rd (σ (.n 140)) off (σ (.n u) + σ (.n 351) * (σ (.n u) + σ (.n v))) →
       ∀ s ∈ rtVal b u v off, SHolds C rd σ s := by
     intro t _ b u v off hu hv h3 gb hl
@@ -410,13 +428,13 @@ theorem rtc_two (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) {s : Fs} {st : Gkr
     simp [multilinearEval, foldPairs]
     ring
   have V0 := VAL 0 (by omega) 355 294 298 6 (by omega) (by omega) (by omega)
-    (rt2_goodB hG 49 _ (by decide +kernel)) (hv' 0 (by omega) 294 298 (by rw [q0, q1]; rfl))
+    (rt2_goodB hA 49 _ (by decide +kernel)) (hv' 0 (by omega) 294 298 (by rw [q0, q1]; rfl))
   have V1 := VAL 1 (by omega) 358 302 306 7 (by omega) (by omega) (by omega)
-    (rt2_goodB hG 53 _ (by decide +kernel)) (hv' 1 (by omega) 302 306 (by rw [q2, q3]; rfl))
+    (rt2_goodB hA 53 _ (by decide +kernel)) (hv' 1 (by omega) 302 306 (by rw [q2, q3]; rfl))
   have V2 := VAL 2 (by omega) 361 323 327 8 (by omega) (by omega) (by omega)
-    (rt2_goodB hG 57 _ (by decide +kernel)) (hv' 2 (by omega) 323 327 (by rw [q4, q5]; rfl))
+    (rt2_goodB hA 57 _ (by decide +kernel)) (hv' 2 (by omega) 323 327 (by rw [q4, q5]; rfl))
   have c364 : σ (.n 364) = word 2 0 := g 61 (.const (.n 364) (word 2 0)) (by decide +kernel)
-  rw [rtTwo_eq]
+  rw [rtTwoL_eq]
   refine holdsList_straightN _ (by decide +kernel) ?_ trivial
   simp only [rtTwoL, List.forall_mem_append, List.forall_mem_cons, List.forall_mem_map,
     List.mem_range, List.not_mem_nil, IsEmpty.forall_iff, implies_true, and_true, and_assoc,
@@ -431,7 +449,8 @@ theorem rtc_two (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) {s : Fs} {st : Gkr
 
 /-- **The radix-four arm, completely** (an even depth): from the sponge `s` the roots wait in,
 one step of two levels (no point), its twelve words past the roots, and the slot of `L = 2`. -/
-theorem rtc_four (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) {s : Fs} {st : GkrState}
+theorem rtc_four {S : List Atom} (hA : ∀ t ∈ rtFour ++ rtTwo, GoodS rd S w σ t)
+    (hk : ∀ i < 12, some (chB 143 i, 5, 2 + i) ∉ S.map loadKey) {s : Fs} {st : GkrState}
     (hpt : st.point = [])
     (h59 : σ (.n 59) = s.squeeze.1) (h63 : σ (.n 63) = polyEval st.values s.squeeze.1)
     (hcap : (lyCap 46).map σ = capOf s.perm)
@@ -454,14 +473,13 @@ theorem rtc_four (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) {s : Fs} {st : Gk
   have hrun : D.run s st = ([], polyEval st.values s.squeeze.1, s.squeeze.2) := by
     rw [GkStepD.run, hcs, hpt]; rfl
   -- the children
-  have hk : ∀ i < 12, some (chB 143 i, 5, 2 + i) ∉ vbgS.map loadKey := by decide +kernel
   have ch : ∀ i < 12, LoadHolds rd (σ (.n 5)) (2 + i) ((D.ch0 ++ (D.ch1 ++ D.ch2)).getD i 0) := by
     intro i hi
     have := hx i (by simp [h0, h1, h2]; omega)
     rw [tb_loadHolds_mul_gen_pow] at this
     rwa [← List.getD_eq_getElem _ 0] at this
   have EV : ∀ i < 12, _ := fun i hi => chc_read (C := C)
-    (rt4_goodB hG (rtPos i) (chT (.n 5) 2 143 i) (rtFour_check i hi)) (hk i hi) (ch i hi)
+    (rt4_goodB hA (rtPos i) (chT (.n 5) 2 143 i) (rtFour_check i hi)) (hk i hi) (ch i hi)
   have hp : ∀ i < 12, FsPackOk σ (.n (chB 143 i)) (chB 143 i + 1) dsObserve :=
     fun i hi => (EV i hi).2.2.1
   have cp : ∀ i < 12, σ (.n (chB 143 i + 3)) = σ (.n (chB 143 i)) := fun i hi => (EV i hi).2.1
@@ -482,7 +500,7 @@ theorem rtc_four (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) {s : Fs} {st : Gk
   have hc1 : chWords σ 143 1 = D.ch1 := hcw 1 (by omega)
   have hc2 : chWords σ 143 2 = D.ch2 := hcw 2 (by omega)
   have g : ∀ n (a : Atom), tbStmtsEqb [.atom a] ((rtFour.drop n).take 1) = true →
-      Good rd vbgS w σ a := fun n a heq => rt4_goodB hG n [.atom a] heq (.atom a) List.mem_cons_self
+      Good rd S w σ a := fun n a heq => rt4_goodB hA n [.atom a] heq (.atom a) List.mem_cons_self
   -- the permutations of the children
   obtain ⟨k16, -⟩ := keccak_good (g 16 (.keccak (chRate 143 0 ++ lyCap 46) (lyOuts 159) false false)
     (by decide +kernel))
@@ -558,16 +576,16 @@ theorem rtc_four (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) {s : Fs} {st : Gk
   set P1 := Fs.perm ⟨capOf (Fs.perm ⟨capOf s.perm, D.ch0.map (·, dsObserve)⟩),
     D.ch1.map (·, dsObserve)⟩ with hP1
   set Q := Fs.perm ⟨capOf P1, D.ch2.map (·, dsObserve)⟩ with hQ
-  have hco2 := challengeT_good (rt4_goodB hG 68 (challengeT (.n 233) 246) (by decide +kernel))
+  have hco2 := challengeT_good (rt4_goodB hA 68 (challengeT (.n 233) 246) (by decide +kernel))
   have e246 : σ (.n 246) = challengeOf Q := challengeT_value hco2 (P2 0 (by omega))
   have hz : (([.n 42, .n 42, .n 42, .n 42, .n 42, .n 43, .n 44, .n 45] ++ lyCap 233 :
       List V).map σ) = rateOf [] ++ capOf Q := by
     rw [ly_zero_rate z42 z43 z44 z45, B2]
-  obtain ⟨k69, P3, B3⟩ := lyc_keccak (rd := rd) (σ := σ) (S := vbgS) (w := w)
+  obtain ⟨k69, P3, B3⟩ := lyc_keccak (rd := rd) (σ := σ) (S := S) (w := w)
     (g 69 (.keccak ([.n 42, .n 42, .n 42, .n 42, .n 42, .n 43, .n 44, .n 45] ++ lyCap 233)
       (lyOuts 247) false false) (by decide +kernel))
   rw [hz] at P3 B3
-  have hco3 := challengeT_good (rt4_goodB hG 70 (challengeT (.n 247) 260) (by decide +kernel))
+  have hco3 := challengeT_good (rt4_goodB hA 70 (challengeT (.n 247) 260) (by decide +kernel))
   have e260 : σ (.n 260) = challengeOf (permOf (rateOf [] ++ capOf Q)) :=
     challengeT_value hco3 (P3 0 (by omega))
   -- the sponge after the children
@@ -621,14 +639,14 @@ theorem rtc_four (hG : ∀ s ∈ vbgEvL, GoodS rd vbgS w σ s) {s : Fs} {st : Gk
       interval_cases t <;> rfl
     rw [hv] at h
     exact ld _ _ h
-  have V0 := chc_val (C := C) (rt4_goodB hG 81 (chValT 143 246 260 140 0 263 6) (by decide +kernel))
+  have V0 := chc_val (C := C) (rt4_goodB hA 81 (chValT 143 246 260 140 0 263 6) (by decide +kernel))
     (by omega) (by omega) (fun i hi => cp (4 * 0 + i) (by omega)) (sv 0 (by omega))
-  have V1 := chc_val (C := C) (rt4_goodB hG 91 (chValT 143 246 260 140 1 272 7) (by decide +kernel))
+  have V1 := chc_val (C := C) (rt4_goodB hA 91 (chValT 143 246 260 140 1 272 7) (by decide +kernel))
     (by omega) (by omega) (fun i hi => cp (4 * 1 + i) (by omega)) (sv 1 (by omega))
-  have V2 := chc_val (C := C) (rt4_goodB hG 101 (chValT 143 246 260 140 2 281 8) (by decide +kernel))
+  have V2 := chc_val (C := C) (rt4_goodB hA 101 (chValT 143 246 260 140 2 281 8) (by decide +kernel))
     (by omega) (by omega) (fun i hi => cp (4 * 2 + i) (by omega)) (sv 2 (by omega))
   have c290 : σ (.n 290) = word 2 0 := g 111 (.const (.n 290) (word 2 0)) (by decide +kernel)
-  rw [rtFour_eq]
+  rw [rtFourL_eq]
   refine holdsList_straightN _ (by decide +kernel) ?_ trivial
   simp only [rtFourL, List.forall_mem_append, List.forall_mem_cons, List.forall_mem_map,
     List.mem_range, List.not_mem_nil, IsEmpty.forall_iff, implies_true, and_true, and_assoc,

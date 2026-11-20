@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.VerifySub.Ood
 public import LeanVM.Guest.B1.VerifySub.Bus
 public import LeanVM.Guest.B1.VerifySub.Tail
 public import LeanVM.Guest.B1.Placement.Certify
-public import LeanVM.Guest.B1.Gkr.RoundsHolds
+public import LeanVM.Guest.B1.Gkr.Holds
 public import LeanVM.Guest.B1.Tables.Vt.VerifyTables
 
 /-!

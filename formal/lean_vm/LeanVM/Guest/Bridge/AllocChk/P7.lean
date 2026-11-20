@@ -19,8 +19,11 @@ public import LeanVM.Guest.CoreMode.GlueA.«P1»
 public import LeanVM.Guest.CoreMode.GlueA.«P21»
 public import LeanVM.Guest.CoreMode.GlueA.«P28»
 public import LeanVM.Guest.CoreMode.GlueA.«P2»
+public import LeanVM.Guest.CoreMode.GlueA.«P30»
 public import LeanVM.Guest.CoreMode.GlueA.«P35»
 public import LeanVM.Guest.CoreMode.GlueA.«P37»
+public import LeanVM.Guest.CoreMode.GlueA.«P3»
+public import LeanVM.Guest.CoreMode.GlueA.«P41»
 public import LeanVM.Guest.CoreMode.GlueA.«P42»
 public import LeanVM.Guest.CoreMode.GlueA.«P47»
 public import LeanVM.Guest.CoreMode.GlueA.«P4»
@@ -40,6 +43,8 @@ public section
 alloc_chk% «rs_eq_run» [«rs_eq_run_loop0», «rs_eq_rows__L0», «rs_eq_rows__L1», «rs_eq_rows__L2», «rs_eq_rows__L3», «rs_eq_rows__L4», «rs_eq_rows__L5», «rs_eq_rows__L6», «rs_eq_rows__L7»]
 alloc_chk% «da_verify_cell» []
 alloc_chk% «eq_prefix_run__L30» []
+alloc_chk% «eq_prefix_run_rev__L32» []
+alloc_chk% «gkr_layers__L1» [«gkr_layers__L1_loop0», «gkr_last_layers__L0_L1», «gkr_last_layers__L1_L1», «gkr_last_layers__L2_L1», «gkr_last_layers__L3_L1»]
 alloc_chk% «padding_weight__L26» []
 alloc_chk% «plus_one_run__L7» []
 alloc_chk% «index_mle__L18» []

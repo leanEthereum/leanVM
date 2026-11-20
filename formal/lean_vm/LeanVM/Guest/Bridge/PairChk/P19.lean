@@ -17,6 +17,7 @@ namespace LeanVM.Guest
 
 public section
 
+theorem Fn.«eq_prefix_run_rev__L14».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«block_selector__L9».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«index_mle__L7».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«column_selector__L4».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel

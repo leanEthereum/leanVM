@@ -12,7 +12,7 @@ namespace LeanVM.Guest.CoreMode
 @[expose] public section
 
 /-- The jump table's end (its cells `430` to `jtHi`). -/
-abbrev jtHi : Nat := 14352
+abbrev jtHi : Nat := 14395
 
 end
 

@@ -16,8 +16,7 @@ public import LeanVM.Guest.Data.NameStrings
 
 `verify_tables_loop0(x, g^n, rounds, tabs, rk, cprod)` at `x = g^j`: the record `rounds·x^7`
 (capacity cells `0 .. 4`, cursor `5`, claim `6`) runs `sumcheck_round4`, whose cursor and claim go
-to the next record; its challenge `r_j` is stored at `rk[x]`, and `cprod[x·g] = cprod[x]·r_j`. `l10_step`: an iteration's facts (`L10B`) and the next iteration's call. `l11Found`: the
-challenges' copy `verify_tables_loop1`'s body.
+to the next record; its challenge `r_j` is stored at `rk[x]`, and `cprod[x·g] = cprod[x]·r_j`. `l10_step`: an iteration's facts (`L10B`) and the next iteration's call.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -59,33 +58,6 @@ theorem l10Found : ∃ fn : Fn, coreProgram.find? name% «verify_tables_loop0» 
     fn.params = (List.range 6).map V.n ∧ fn.body = l10Body := by
   have h := l10Check_eq
   unfold l10Check at h
-  split at h
-  · rename_i fn hf
-    simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
-  · exact absurd h (by simp)
-
-/-- `verify_tables_loop1`'s body. -/
-def l11Body : List Stmt :=
-  [.atom (.const (.n 5) vtWInvGen), .atom (.mul (.n 6) (.n 4) (.n 5)),
-    .atom (.mul (.n 6) (.n 7) (.n 0)), .atom (.mul (.n 8) (.n 3) (.n 7)),
-    .atom (.load (.n 9) (.n 8) 0), .atom (.mul (.n 10) (.n 2) (.n 0)),
-    .atom (.load (.n 9) (.n 10) 0), .atom (.const (.n 11) (word 2 0)),
-    .atom (.mul (.n 12) (.n 0) (.n 11)), .atom (.add (.n 13) (.n 12) (.n 1)),
-    .atom (.const (.n 14) (word 2 0)), .atom (.mul (.n 15) (.n 0) (.n 14)),
-    .callIf (.n 13) name% «verify_tables_loop1» [.n 15, .n 1, .n 2, .n 3, .n 4], .ret []]
-
-noncomputable def l11Check : Bool :=
-  match coreProgram.find? name% «verify_tables_loop1» with
-  | some fn => decide (fn.params = (List.range 5).map V.n) && tbStmtsEqb fn.body l11Body
-  | none => false
-
-theorem l11Check_eq : l11Check = true := by decide +kernel
-
-theorem l11Found : ∃ fn : Fn, coreProgram.find? name% «verify_tables_loop1» = some fn ∧
-    fn.params = (List.range 5).map V.n ∧ fn.body = l11Body := by
-  have h := l11Check_eq
-  unfold l11Check at h
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h

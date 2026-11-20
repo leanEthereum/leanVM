@@ -11,7 +11,7 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-abbrev Fn.«sp_wots».entry : Nat := 33508
+abbrev Fn.«sp_wots».entry : Nat := 33583
 
 end
 

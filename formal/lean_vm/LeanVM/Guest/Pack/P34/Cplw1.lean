@@ -12,6 +12,8 @@ public import LeanVM.Guest.Data.Pows
 public import Mathlib.Tactic.IntervalCases
 public import LeanVM.Guest.Pack.«P34».Core
 public import LeanVM.Guest.Pack.«P34».Bundle
+public import LeanVM.Guest.Pack.«P42».Sig
+public import LeanVM.Guest.Pack.«P11».Sig
 public import LeanVM.Guest.Pack.«P47».Sig
 public import LeanVM.Guest.Pack.«P39».Sig
 public import LeanVM.Guest.Pack.«P62».Sig
@@ -20,9 +22,21 @@ public import LeanVM.Guest.Pack.«P24».Sig
 public import LeanVM.Guest.Pack.«P61».Sig
 public import LeanVM.Guest.Pack.«P53».Sig
 public import LeanVM.Guest.Pack.«P20».Sig
-public import LeanVM.Guest.Pack.«P42».Sig
 
 set_option Elab.async false
+
+namespace LeanVM.Guest.Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+/-- `level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1`, window 1, part 0. -/
+theorem cw1_0 : cplWinD (Glob.ofSigs ([(Fn.«verify_merkle_cap__L4».idx, Fn.«verify_merkle_cap__L4».sig), (Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1».idx, Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1».sig)]) Data.jtTrie globSem) code Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».core (cert.withPows Data.powTree) plumb fs parts arms false 1 0 = true := by
+  decide +kernel
+
+end
+end LeanVM.Guest.Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1»
 
 namespace LeanVM.Guest.Fn.«level_positions__L13_L21_L3»
 
@@ -159,17 +173,4 @@ theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«level_residual__L28_L11_L4_L2_loop0�
 
 end
 end LeanVM.Guest.Fn.«level_residual__L28_L11_L4_L2»
-
-namespace LeanVM.Guest.Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-/-- `level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«verify_merkle_cap__L5».idx, Fn.«verify_merkle_cap__L5».sig), (Fn.«opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0».idx, Fn.«opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0»
 

@@ -20,6 +20,7 @@ public section
 
 theorem Fn.«opening_tail_round».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«eq_prefix_run__L32».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
+theorem Fn.«eq_prefix_run_rev__L30».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«grind_check__L7».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«padding_weight__L24».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«plus_one_run__L5».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
@@ -47,6 +48,7 @@ theorem Fn.«level_residual__L23_L11_L4_L2_loop1».witOk : Bridge.witChk alignCt
 theorem Fn.«level_residual__L37_L17_L4_L2_loop0».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«level_positions__L6_L26_L2_loop0».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«level_residual__L28_L16_L4_L2_loop1».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
+theorem Fn.«gkr_layer__L0_L0_loop0».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«walk_path__L18_L5».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 

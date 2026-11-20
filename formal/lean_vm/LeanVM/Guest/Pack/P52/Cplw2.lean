@@ -12,10 +12,25 @@ public import LeanVM.Guest.Data.Pows
 public import Mathlib.Tactic.IntervalCases
 public import LeanVM.Guest.Pack.«P52».Core
 public import LeanVM.Guest.Pack.«P52».Bundle
+public import LeanVM.Guest.Pack.«P23».Sig
+public import LeanVM.Guest.Pack.«P47».Sig
 public import LeanVM.Guest.Pack.«P52».Sig
 public import LeanVM.Guest.Pack.«P62».Sig
 
 set_option Elab.async false
+
+namespace LeanVM.Guest.Fn.«level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+/-- `level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1`, window 1, part 0. -/
+theorem cw1_0 : cplWinD (Glob.ofSigs ([(Fn.«verify_merkle_cap__L7».idx, Fn.«verify_merkle_cap__L7».sig), (Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1».idx, Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1».sig)]) Data.jtTrie globSem) code Fn.«level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1».core (cert.withPows Data.powTree) plumb fs parts arms false 1 0 = true := by
+  decide +kernel
+
+end
+end LeanVM.Guest.Fn.«level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1»
 
 namespace LeanVM.Guest.Fn.«level_residual__L55_L10_L4_L2_loop0»
 

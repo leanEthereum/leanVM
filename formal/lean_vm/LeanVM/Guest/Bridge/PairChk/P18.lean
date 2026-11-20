@@ -25,6 +25,7 @@ theorem Fn.«block_selector_tab__L24».pairOk : Bridge.pairChk [] cert.locs fs c
 theorem Fn.«claim_list_last__L16».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«child_claim_list_last__L13».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«child_claim_list_mono_last__L8».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«gkr_layers__L1_loop0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«squeeze_point_from__L10».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_residual__L23_L7_L4_L2».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel

@@ -1,13 +1,14 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.ZSetup
 
-  `verify_tables`' statements `2591 ..< 2690`, completely: the table sumcheck's round count, its
+  `verify_tables`' statements `2591 ..< 2685`, completely: the table sumcheck's round count, its
   batching challenge and target, its rounds and its equality prefix.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Tables.VtC.ZBase
+public import LeanVM.Guest.B1.Eq.EqPrefixRev
 public import LeanVM.Guest.Data.NameStrings
 
 /-!
@@ -63,7 +64,7 @@ theorem z_rc {x y t1 t2 k : V} {a K : ℕ} (haK : a ≤ K) (hx : σ x = gen ^ a)
   · rw [hk, hx, ey', ← pow_add, Nat.add_sub_cancel' haK]
   · rw [e2, ey']; exact z_low_load h2
 
-/-- A range check's facts, as `eq_prefix_chain` states them. -/
+/-- A range check's facts, as `eq_prefix_chain_rev` states them. -/
 theorem z_rcd {a K : ℕ} (haK : a ≤ K) (h1 : (rd (Parameters.addressOfIndex a)).isSome)
     (h2 : (rd (Parameters.addressOfIndex (K - a))).isSome) : RangeChecked rd (gen ^ a) (gen ^ K) :=
   ⟨gen ^ (K - a), _, _, z_low_load h1, by rw [← pow_add, Nat.add_sub_cancel' haK],
@@ -83,19 +84,19 @@ end Helpers
 def zTarget (σ : Val) (ξ : E) : E :=
   ξ ^ 2 * σ (.n 2443) + ξ ^ 3 * σ (.n 2489) + ξ ^ 4 * σ (.n 2544)
 
-/-- What statements `2591 ..< 2690` give: `g^n`, `ξ` (the squeeze of `S`), the sponge after it,
+/-- What statements `2591 ..< 2685` give: `g^n`, `ξ` (the squeeze of `S`), the sponge after it,
 the target, the buffers' sizes and pointers, and the last record (the sponge, the cursor `3n`
 words on, the final claim). -/
 def ZOut (σ : Val) (w : ℕ → E) (S : Fs) (xs : List E) (n : ℕ) : Prop :=
   σ (.n 2545) = gen ^ n ∧ σ (.n 2611) = S.squeeze.1 ∧
     [σ (.n 2606), σ (.n 2607), σ (.n 2608), σ (.n 2609), σ (.n 2610)] = S.squeeze.2.cap ∧
     σ (.n 2621) = zTarget σ S.squeeze.1 ∧ σ (.n 2627) = gen ^ (7 * (n + 1)) ∧
-    σ (.n 2630) = gen ^ (n + 1) ∧ σ (.n 2655) = gen ^ (n + 1) ∧ σ (.n 2628) = w 2628 ∧
-    σ (.n 2631) = w 2631 ∧ σ (.n 2635) = w 2635 ∧ σ (.n 2656) = w 2656 ∧
-    [σ (.n 2647), σ (.n 2648), σ (.n 2649), σ (.n 2650), σ (.n 2651)] =
+    σ (.n 2630) = gen ^ (n + 1) ∧ σ (.n 2652) = gen ^ (n + 1) ∧ σ (.n 2628) = w 2628 ∧
+    σ (.n 2631) = w 2631 ∧ σ (.n 2635) = w 2635 ∧ σ (.n 2653) = w 2653 ∧
+    [σ (.n 2644), σ (.n 2645), σ (.n 2646), σ (.n 2647), σ (.n 2648)] =
       (zcRec S.squeeze.2.cap (zTarget σ S.squeeze.1) xs n).1 ∧
-    σ (.n 2652) = σ (.n 1898) * gen * gen ^ (3 * n) ∧
-    σ (.n 2653) = (zcRec S.squeeze.2.cap (zTarget σ S.squeeze.1) xs n).2
+    σ (.n 2649) = σ (.n 1898) * gen * gen ^ (3 * n) ∧
+    σ (.n 2650) = (zcRec S.squeeze.2.cap (zTarget σ S.squeeze.1) xs n).2
 
 /-- The statements evaluation alone does not settle. -/
 noncomputable def zRest : List Stmt := [
@@ -125,23 +126,23 @@ noncomputable def zRest : List Stmt := [
     .atom (.load (.n 2634) (.n 2631) 0),
     .callIf (.n 2637) name% «verify_tables_loop0» [.n 2638, .n 2545, .n 2628, .n 18, .n 2635,
         .n 2631],
-    .callIf (.n 2640) name% «verify_tables_loop1» [.n 2641, .n 2545, .n 16, .n 2635, .n 2545],
-    .atom (.load (.n 2647) (.n 2646) 0),
-    .atom (.load (.n 2648) (.n 2646) 1),
-    .atom (.load (.n 2649) (.n 2646) 2),
-    .atom (.load (.n 2650) (.n 2646) 3),
-    .atom (.load (.n 2651) (.n 2646) 4),
-    .atom (.load (.n 2652) (.n 2646) 5),
-    .atom (.load (.n 2653) (.n 2646) 6),
-    .call "eq_prefix_chain" [.n 2656, .n 2657, .n 16, .n 700, .n 2545] []]
+    .atom (.load (.n 2644) (.n 2643) 0),
+    .atom (.load (.n 2645) (.n 2643) 1),
+    .atom (.load (.n 2646) (.n 2643) 2),
+    .atom (.load (.n 2647) (.n 2643) 3),
+    .atom (.load (.n 2648) (.n 2643) 4),
+    .atom (.load (.n 2649) (.n 2643) 5),
+    .atom (.load (.n 2650) (.n 2643) 6),
+    .call "eq_prefix_chain_rev" [.n 2653, .n 16, .n 2635, .n 700, .n 2545] []]
 
 set_option maxRecDepth 100000 in
-/-- **Statements `2591 ..< 2690`, completely** (G:2546-2587): the hinted `g^n` with `n` the
+/-- **Statements `2591 ..< 2685`, completely** (G:2565-2619): the hinted `g^n` with `n` the
 largest `τ_t` (at most `m = |point|`), the squeeze `ξ` (`XI_GRIND_BITS = 0`) of the sponge `S`
 with the bytecode's value waiting, the target, the first record, `verify_tables_loop0`'s rounds on
 the honest buffers (records, running products, `chi`) and words `xs` at the cursor one past the
 bytecode's
-value, the last record, `eq_prefix_chain` into the prefix weights of `chi` against `zeta1`. -/
+value, the last record, `eq_prefix_chain_rev` copying `zc_rk` reversed into `chi` and its prefix
+weights against `zeta1`. -/
 theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 21)
     {m n : ℕ} {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t ≤ n) (hτn : ∃ t < 6, τ t = n) (hnm : n ≤ m)
     (hm : m ≤ 32) (h9 : vtσ rd w args (.n 9) = gen ^ m)
@@ -160,9 +161,9 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
     (hchi : TbReadsAt rd (vtσ rd w args (.n 16))
       (zcChis S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1) xs n))
     {zs1 : List E} (hz1 : TbReadsAt rd (vtσ rd w args (.n 700)) zs1) (hz1l : n ≤ zs1.length)
-    (hP : TbReadsAt rd (w 2656) ((List.range (n + 1)).map (prefixProd 1
+    (hP : TbReadsAt rd (w 2653) ((List.range (n + 1)).map (prefixProd 1
       (zcChis S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1) xs n) (zs1.take n)))) :
-    (∀ s ∈ (vtPre.drop 2591).take 99, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) ∧
+    (∀ s ∈ (vtPre.drop 2591).take 94, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) ∧
       ZOut (vtσ rd w args) w S xs n := by
   have g : GoodL rd w (vtσ rd w args) zBlk := vt_goodL hl 2591 zBlk zBlk_at
   have gk : Good rd vtSL w (vtσ rd w args) (.keccak [.n 1907, .n 1908, .n 2594, .n 2594, .n 2594, .n 2595, .n 2596, .n 2597, .n 1901,
@@ -171,7 +172,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
       .n 1902, .n 1903, .n 1904, .n 1905]
       (lyOuts 2598) false false)] (by decide +kernel)).1
   have e := tbStmtsEqb_sound zBlk_at
-  have hlen : zBlk.length = 99 := rfl
+  have hlen : zBlk.length = 94 := rfl
   suffices H : (∀ s ∈ zRest, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) ∧
       ZOut (vtσ rd w args) w S xs n by
     refine ⟨fun s hs => ?_, H.2⟩
@@ -187,7 +188,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
     g2642, g2643, g2644, g2645, g2646, g2647, g2648, g2649, g2650, g2651, g2652, g2653, g2654,
     g2655, g2656, g2657, g2658, g2659, g2660, g2661, g2662, g2663, g2664, g2665, g2666, g2667,
     g2668, g2669, g2670, g2671, g2672, g2673, g2674, g2675, g2676, g2677, g2678, g2679, g2680,
-    g2681, g2682, g2683, g2684, g2685, g2686, g2687, g2688, g2689⟩ := g
+    g2681, g2682, g2683, g2684⟩ := g
   have vn : σ (.n 2545) = gen ^ n := g2591.1.trans hwn
   -- n dominates every τ_t
   have hx : ∀ {t d : ℕ}, t < 6 → σ (.n d) = σ (.n 2545) * (σ (.n (28 + t)))⁻¹ →
@@ -262,7 +263,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
   have h5 : cap0.length = 5 := rfl
   have v2589 : σ (.n 2628) = w 2628 := g2649
   have v2592 : σ (.n 2631) = w 2631 := g2652
-  have v2613 : σ (.n 2656) = w 2656 := g2687
+  have v2613 : σ (.n 2653) = w 2653 := g2683
   have r0 := zcRoundsW_reads h5 hR 0 (by omega)
   rw [Nat.mul_zero, pow_zero, mul_one, zcRecW, ← v2589] at r0
   simp only [zcRec, Nat.mul_zero, pow_zero, mul_one, ← hcap0, ← vT] at r0
@@ -287,39 +288,28 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
     simp only [List.map_cons, List.map_nil]
     rw [g2667, tb_word_one, vn, v2589, v2592, v2635]
     exact l10_complete hn0 (zc_l10B h5 hR hC hrk hxs hxl)
-  have v2640 : σ (.n 2640) = 1 + gen ^ n := by rw [g2670, g2669, tb_word_one, vn]
-  have c2672 : VSH (coreProgram.Rel rd) rd σ
-      (.callIf (.n 2640) name% «verify_tables_loop1» [.n 2641, .n 2545, .n 16, .n 2635, .n 2545]) := by
-    refine ⟨by rw [v2640]; exact isInK_add (by simpa using gen_pow_isInK 0) (gen_pow_isInK n),
-      fun hne => ?_⟩
-    have hn0 : 0 < n := by
-      rcases Nat.eq_zero_or_pos n with rfl | h
-      · exact absurd (by rw [v2640, pow_zero]; exact CharTwo.add_self_eq_zero 1) hne
-      · exact h
-    simp only [List.map_cons, List.map_nil]
-    rw [g2671, tb_word_one, vn, v2635]
-    exact l11_complete hn0 (zc_l11C hrk hchi)
   -- the last record
-  have v2603 : σ (.n 2646) = w 2628 * gen ^ (7 * n) := by
-    rw [g2677, g2676, g2675, g2674, g2673, vn, v2589]; ring
+  have v2603 : σ (.n 2643) = w 2628 * gen ^ (7 * n) := by
+    rw [g2673, g2672, g2671, g2670, g2669, vn, v2589]; ring
   have rn := zcRoundsW_reads h5 hR n le_rfl
   rw [zcRecW, ← v2603] at rn
   have hlen := zcRec_len (cl0 := cl0) (xs := xs) h5 n
-  obtain ⟨e0, r2660⟩ := z_read g2678 (by decide +kernel) (rn 0 (by simp [hlen]))
-  obtain ⟨e1, r2661⟩ := z_read g2679 (by decide +kernel) (rn 1 (by simp [hlen]))
-  obtain ⟨e2, r2662⟩ := z_read g2680 (by decide +kernel) (rn 2 (by simp [hlen]))
-  obtain ⟨e3, r2663⟩ := z_read g2681 (by decide +kernel) (rn 3 (by simp [hlen]))
-  obtain ⟨e4, r2664⟩ := z_read g2682 (by decide +kernel) (rn 4 (by simp [hlen]))
-  obtain ⟨e5, r2665⟩ := z_read g2683 (by decide +kernel) (rn 5 (by simp [hlen]))
-  obtain ⟨e6, r2666⟩ := z_read g2684 (by decide +kernel) (rn 6 (by simp [hlen]))
+  obtain ⟨e0, r2660⟩ := z_read g2674 (by decide +kernel) (rn 0 (by simp [hlen]))
+  obtain ⟨e1, r2661⟩ := z_read g2675 (by decide +kernel) (rn 1 (by simp [hlen]))
+  obtain ⟨e2, r2662⟩ := z_read g2676 (by decide +kernel) (rn 2 (by simp [hlen]))
+  obtain ⟨e3, r2663⟩ := z_read g2677 (by decide +kernel) (rn 3 (by simp [hlen]))
+  obtain ⟨e4, r2664⟩ := z_read g2678 (by decide +kernel) (rn 4 (by simp [hlen]))
+  obtain ⟨e5, r2665⟩ := z_read g2679 (by decide +kernel) (rn 5 (by simp [hlen]))
+  obtain ⟨e6, r2666⟩ := z_read g2680 (by decide +kernel) (rn 6 (by simp [hlen]))
   -- the equality prefix
   have c2671 : VSH (coreProgram.Rel rd) rd σ
-      (.call "eq_prefix_chain" [.n 2656, .n 2657, .n 16, .n 700, .n 2545] []) := by
+      (.call "eq_prefix_chain_rev" [.n 2653, .n 16, .n 2635, .n 700, .n 2545] []) := by
     show coreProgram.Rel rd _ _ _
     simp only [List.map_cons, List.map_nil]
-    rw [g2688, tb_word_one, vn, v2613]
-    refine (eq_prefix_chain_holds rd _ _).mpr ⟨rfl, z_rcd (by omega) (hlow _ (by omega))
-      (hlow _ (by omega)), n, by omega, rfl, zcChis cap0 cl0 xs n, zs1.take n, by simp [zcChis, zcRkW],
+    rw [vn, v2613, v2635]
+    refine (eq_prefix_chain_rev_holds rd _ _).mpr ⟨rfl, z_rcd (by omega) (hlow _ (by omega))
+      (hlow _ (by omega)), n, by omega, rfl, zc_chiRev hrk hchi, zcChis cap0 cl0 xs n, zs1.take n,
+      by simp [zcChis, zcRkW],
       by simp; omega, hchi, fun k hk => by rw [List.getElem_take]; exact hz1 _ _, fun j hj => ?_⟩
     have := hP j (by simp; omega)
     simpa using this
@@ -337,7 +327,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
     simp only [zRest, List.mem_cons, List.not_mem_nil, or_false] at hs
     obtain rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
       rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-      rfl | rfl | rfl | rfl | rfl := hs
+      rfl | rfl | rfl | rfl := hs
     · exact m2573
     · exact rc2574
     · exact m2577
@@ -363,7 +353,6 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
     · exact s2648
     · exact s2650
     · exact c2654
-    · exact c2672
     · exact r2660
     · exact r2661
     · exact r2662
@@ -375,8 +364,8 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
   refine ⟨hrest, vn, vξ, hcap0, vT, ?_, ?_, ?_, v2589, v2592, v2635, v2613, ?_, ?_, ?_⟩
   · rw [g2648, g2647, g2646, g2645, g2644, g2643, tb_word_gen, vn]; ring
   · rw [g2651, g2650, tb_word_gen, vn]; ring
-  · rw [g2686, g2685, tb_word_gen, vn]; ring
-  · change [σ (.n 2647), σ (.n 2648), σ (.n 2649), σ (.n 2650), σ (.n 2651)] =
+  · rw [g2682, g2681, tb_word_gen, vn]; ring
+  · change [σ (.n 2644), σ (.n 2645), σ (.n 2646), σ (.n 2647), σ (.n 2648)] =
       (zcRec cap0 cl0 xs n).1
     apply List.ext_getElem (by simp [hlen])
     intro k h1 h2
@@ -391,7 +380,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
     · rw [List.getElem_cons_succ, List.getElem_cons_succ, List.getElem_cons_succ,
         List.getElem_cons_succ, List.getElem_cons_zero, e4, List.getElem_append_left]
   · rw [e5, List.getElem_append_right (by omega)]; simp [hlen]
-  · change σ (.n 2653) = (zcRec cap0 cl0 xs n).2
+  · change σ (.n 2650) = (zcRec cap0 cl0 xs n).2
     rw [e6, List.getElem_append_right (by omega)]; simp [hlen]
 
 end

@@ -18,9 +18,11 @@ public import LeanVM.Guest.CoreMode.GlueA.«P25»
 public import LeanVM.Guest.CoreMode.GlueA.«P38»
 public import LeanVM.Guest.CoreMode.GlueA.«P40»
 public import LeanVM.Guest.CoreMode.GlueA.«P47»
+public import LeanVM.Guest.CoreMode.GlueA.«P52»
 public import LeanVM.Guest.CoreMode.GlueA.«P55»
 public import LeanVM.Guest.CoreMode.GlueA.«P56»
 public import LeanVM.Guest.CoreMode.GlueA.«P59»
+public import LeanVM.Guest.CoreMode.GlueA.«P7»
 public import LeanVM.Guest.Pack.«P38».Bundle
 public import LeanVM.Guest.Pack.«P38».Core
 
@@ -30,8 +32,9 @@ namespace LeanVM.Guest
 
 public section
 
-alloc_chk% «verify_bus_gkr» [«verify_bus_gkr_loop0», «verify_bus_gkr_loop1»]
+alloc_chk% «verify_bus_gkr» [«gkr_layers__L0», «gkr_layers__L1», «verify_bus_gkr_loop0»]
 alloc_chk% «eq_prefix_run__L28» []
+alloc_chk% «eq_prefix_run_rev__L17» []
 alloc_chk% «index_mle__L4» []
 alloc_chk% «column_selector__L7» []
 alloc_chk% «column_selector__L30» []

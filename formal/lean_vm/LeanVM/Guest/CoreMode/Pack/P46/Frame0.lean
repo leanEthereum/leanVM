@@ -38,7 +38,6 @@ public import LeanVM.Guest.CoreMode.Gen.«P46».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P46».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P46».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P46».Pair
-public import LeanVM.Guest.CoreMode.Gen.«P46».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P0»
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P16»
@@ -66,8 +65,6 @@ open LeanVM.Guest.Exec
 frame_fn% «eq_prefix_run__L6» 34 []
 frame_fn% «plus_one_run__L22» 69 []
 frame_fn% «block_selector__L11» 112 []
-frame_fn% «verify_tables_loop1» 24 [«verify_tables_loop1»] env [(7, (.fpg 0))] scaled [7] nzr (.node
-    none .nil (.node (some [2]) .nil .nil)) fnz (.node none .nil (.node (some [(.nz 2)]) .nil .nil))
 frame_fn% «verify_keccak_loop0» 20 [«verify_keccak_loop0»] sigs [] env [(6, (.fpg 0))] scaled [6]
 frame_fn% «level_queries__L27_L0_L4_L16_L12_L6_L2_L8_L3_L1» 37
     [«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1», «verify_merkle_cap__L6»]

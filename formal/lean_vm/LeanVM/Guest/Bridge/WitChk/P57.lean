@@ -19,6 +19,7 @@ namespace LeanVM.Guest
 public section
 
 theorem Fn.«eq_prefix_run__L29».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
+theorem Fn.«eq_prefix_run_rev__L16».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«index_mle__L5».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«column_selector__L6».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«log2_ceil_in_the_exponent__L0_L34».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel

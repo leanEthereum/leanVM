@@ -22,8 +22,10 @@ public section
 
 theorem Fn.«g_power_of_word».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«g_power_of_word».idx == 1) = true := by decide +kernel
 theorem Fn.«eq_prefix_run__L14».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«eq_prefix_run__L14».idx == 1) = true := by decide +kernel
+theorem Fn.«eq_prefix_run_rev__L5».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«eq_prefix_run_rev__L5».idx == 1) = true := by decide +kernel
 theorem Fn.«plus_one_run__L12».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«plus_one_run__L12».idx == 1) = true := by decide +kernel
 theorem Fn.«block_selector__L18».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«block_selector__L18».idx == 1) = true := by decide +kernel
+theorem Fn.«gkr_last_layers__L0_L1».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«gkr_last_layers__L0_L1».idx == 1) = true := by decide +kernel
 theorem Fn.«opening_message__L8_L1».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«opening_message__L8_L1».idx == 1) = true := by decide +kernel
 theorem Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».idx == 1) = true := by decide +kernel
 theorem Fn.«level_residual__L32_L8_L4_L2».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«level_residual__L32_L8_L4_L2».idx == 1) = true := by decide +kernel

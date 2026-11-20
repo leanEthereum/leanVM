@@ -41,6 +41,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P33».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P33».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P33».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P33».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P33».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P0»
 public import LeanVM.Guest.CoreMode.Sig.«P10»
 public import LeanVM.Guest.CoreMode.Sig.«P11»
@@ -172,6 +173,7 @@ frame_fn% «level_residual__L44_L19_L4_L2_loop0» 774 [«level_residual__L44_L19
     env [(9, (.fpg 0))] scaled [9]
 frame_fn% «level_residual__L44_L20_L4_L2_loop0» 808 [«level_residual__L44_L20_L4_L2_loop0»] sigs []
     env [(9, (.fpg 0))] scaled [9]
+frame_fn% «gkr_layer__L3_L1_loop0» 272 [«gkr_layer__L3_L1_loop0»] env [(8, (.fpg 0))] scaled [8]
 frame_fn% «opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0_loop0» 102
     [«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0_loop0», «walk_path__L12_L3»] env [(12,
     (.fpg 0))] scaled [12]

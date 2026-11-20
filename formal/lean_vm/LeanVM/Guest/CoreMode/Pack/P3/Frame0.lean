@@ -34,6 +34,8 @@ public import LeanVM.Guest.CoreMode.Gen.«P3».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P3».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P3».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P3».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P3».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P3».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P1»
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P17»
@@ -47,6 +49,7 @@ public import LeanVM.Guest.CoreMode.Sig.«P39»
 public import LeanVM.Guest.CoreMode.Sig.«P4»
 public import LeanVM.Guest.CoreMode.Sig.«P45»
 public import LeanVM.Guest.CoreMode.Sig.«P46»
+public import LeanVM.Guest.CoreMode.Sig.«P50»
 public import LeanVM.Guest.CoreMode.Sig.«P55»
 public import LeanVM.Guest.CoreMode.Sig.«P56»
 public import LeanVM.Guest.CoreMode.Sig.«P61»
@@ -66,8 +69,10 @@ frame_fn% «verify_keccak» 3258 [«keccak_layer__L0», «keccak_layer__L1»,
     «keccak_plain_rounds__L4_L1», «keccak_plain_rounds__L6_L0», «verify_keccak_loop0»,
     «verify_keccak_loop1», «verify_keccak_loop2»]
 frame_fn% «eq_prefix_run__L16» 84 []
+frame_fn% «eq_prefix_run_rev__L7» 45 []
 frame_fn% «plus_one_run__L10» 33 []
 frame_fn% «plus_one_run__L29» 90 []
+frame_fn% «gkr_last_layers__L2_L1» 31 [«gkr_layer__L0_L1», «gkr_layer__L1_L1»]
 frame_fn% «grind_check__L30» 38 []
 frame_fn% «level_residual__L44_L10_L4_L2» 45 [«level_residual__L44_L10_L4_L2_loop0»,
     «level_residual__L44_L10_L4_L2_loop1»]

@@ -9,74 +9,74 @@ module
 
 public import LeanVM.Guest.B2C.ChainDefs
 public import Mathlib.Tactic.IntervalCases
-public import LeanVM.Guest.B2C.Chained.K40_0
-public import LeanVM.Guest.B2C.Chained.K40_1
-public import LeanVM.Guest.B2C.Chained.K40_2
-public import LeanVM.Guest.B2C.Chained.K40_3
-public import LeanVM.Guest.B2C.Chained.K40_4
-public import LeanVM.Guest.B2C.Chained.K40_5
-public import LeanVM.Guest.B2C.Chained.K40_6
+public import LeanVM.Guest.B2C.Chained.K41_0
+public import LeanVM.Guest.B2C.Chained.K41_1
+public import LeanVM.Guest.B2C.Chained.K41_2
+public import LeanVM.Guest.B2C.Chained.K41_3
+public import LeanVM.Guest.B2C.Chained.K41_4
+public import LeanVM.Guest.B2C.Chained.K41_5
+public import LeanVM.Guest.B2C.Chained.K41_6
 
 namespace LeanVM.Guest.B2C.Chained
 
 @[expose] public section
 
-theorem ok40 : ChainOk 40 := by
-  refine ⟨fn40, fun i hi ↦ ?_⟩
-  have hc : (certOf 40).cuts.length = 40 := by decide +kernel
+theorem ok41 : ChainOk 41 := by
+  refine ⟨fn41, fun i hi ↦ ?_⟩
+  have hc : (certOf 41).cuts.length = 40 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · exact cw40_0
-  · exact cw40_1
-  · exact cw40_2
-  · exact cw40_3
-  · exact cw40_4
-  · exact cw40_5
-  · exact cw40_6
-  · exact cw40_7
-  · exact cw40_8
-  · exact cw40_9
-  · exact cw40_10
-  · exact cw40_11
-  · exact cw40_12
-  · exact cw40_13
-  · exact cw40_14
-  · exact cw40_15
-  · exact cw40_16
-  · exact cw40_17
-  · exact cw40_18
-  · exact cw40_19
-  · exact cw40_20
-  · exact cw40_21
-  · exact cw40_22
-  · exact cw40_23
-  · exact cw40_24
-  · exact cw40_25
-  · exact cw40_26
-  · exact cw40_27
-  · exact cw40_28
-  · exact cw40_29
-  · exact cw40_30
-  · exact cw40_31
-  · exact cw40_32
-  · exact cw40_33
-  · exact cw40_34
-  · exact cw40_35
-  · exact cw40_36
-  · exact cw40_37
-  · exact cw40_38
-  · exact cw40_39
-  · exact cw40_40
+  · exact cw41_0
+  · exact cw41_1
+  · exact cw41_2
+  · exact cw41_3
+  · exact cw41_4
+  · exact cw41_5
+  · exact cw41_6
+  · exact cw41_7
+  · exact cw41_8
+  · exact cw41_9
+  · exact cw41_10
+  · exact cw41_11
+  · exact cw41_12
+  · exact cw41_13
+  · exact cw41_14
+  · exact cw41_15
+  · exact cw41_16
+  · exact cw41_17
+  · exact cw41_18
+  · exact cw41_19
+  · exact cw41_20
+  · exact cw41_21
+  · exact cw41_22
+  · exact cw41_23
+  · exact cw41_24
+  · exact cw41_25
+  · exact cw41_26
+  · exact cw41_27
+  · exact cw41_28
+  · exact cw41_29
+  · exact cw41_30
+  · exact cw41_31
+  · exact cw41_32
+  · exact cw41_33
+  · exact cw41_34
+  · exact cw41_35
+  · exact cw41_36
+  · exact cw41_37
+  · exact cw41_38
+  · exact cw41_39
+  · exact cw41_40
 
-/-- The functions with chains are `[40]`, read off `Data.plumbs` in one pass (indexing it by `plumbOf`
+/-- The functions with chains are `[41]`, read off `Data.plumbs` in one pass (indexing it by `plumbOf`
 for each function is quadratic in the kernel). -/
-theorem chained_plumbs : Data.plumbs.zipIdx.all (fun p ↦ p.1.chains.isEmpty || [40].contains p.2) = true := by
+theorem chained_plumbs : Data.plumbs.zipIdx.all (fun p ↦ p.1.chains.isEmpty || [41].contains p.2) = true := by
   decide +kernel
 
 theorem plumbs_length : nFns ≤ Data.plumbs.length := by decide +kernel
 
-/-- The functions with chains are `[40]`. -/
-theorem chained_only : (List.range nFns).all (fun j ↦ (plumbOf j).chains.isEmpty || [40].contains j) = true :=
+/-- The functions with chains are `[41]`. -/
+theorem chained_only : (List.range nFns).all (fun j ↦ (plumbOf j).chains.isEmpty || [41].contains j) = true :=
   List.all_eq_true.mpr fun j hj ↦ List.all_eq_true.mp chained_plumbs (plumbOf j, j) <|
     List.mem_zipIdx_iff_getElem?.mpr <| nth_eq_getElem? _ <|
       Nat.lt_of_lt_of_le (List.mem_range.mp hj) plumbs_length
@@ -89,7 +89,7 @@ theorem chainOk_all : ∀ j, 1 ≤ j → j < nFns → ChainOk j := fun j _ hj �
   · exact chainOk_of_nil h
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at h
     rcases h with rfl
-    · exact ok40
+    · exact ok41
 
 end
 end LeanVM.Guest.B2C.Chained

@@ -43,6 +43,7 @@ noncomputable def Fn.«bus_grind_check__L2».alignCtx : Bridge.AlignCtx := Bridg
 noncomputable def Fn.«child_claim_list_mono_last__L14».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«da_levels__L32_L5».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_da_levels__L32_L5", Fn.«da_levels__L32_L5_loop0».entry), ("__loop1_da_levels__L32_L5", Fn.«da_levels__L32_L5_loop1».entry), ("__loop2_da_levels__L32_L5", Fn.«da_levels__L32_L5_loop2».entry), ("__loop3_da_levels__L32_L5", Fn.«da_levels__L32_L5_loop3».entry), ("__loop4_da_levels__L32_L5", Fn.«da_levels__L32_L5_loop4».entry)] 524287 code.instructionCount
 noncomputable def Fn.«eq_prefix_run__L23».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
+noncomputable def Fn.«eq_prefix_run_rev__L25».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L3_L16_L4_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L3_L16_L4", Fn.«level_positions__L3_L16_L4_loop0».entry), ("decode_query_windows__L16_L4", Fn.«decode_query_windows__L16_L4».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L3_L20_L2».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L3_L20_L2", Fn.«level_positions__L3_L20_L2_loop0».entry), ("decode_query_windows__L20_L2", Fn.«decode_query_windows__L20_L2».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L3_L22_L4».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L3_L22_L4", Fn.«level_positions__L3_L22_L4_loop0».entry), ("decode_query_windows__L22_L4", Fn.«decode_query_windows__L22_L4».entry)] 524287 code.instructionCount
@@ -76,6 +77,7 @@ align_chk% «bus_grind_check__L2»
 align_chk% «child_claim_list_mono_last__L14»
 align_chk% «da_levels__L32_L5»
 align_chk% «eq_prefix_run__L23»
+align_chk% «eq_prefix_run_rev__L25»
 align_chk% «level_positions__L3_L16_L4_loop0»
 align_chk% «level_positions__L3_L20_L2»
 align_chk% «level_positions__L3_L22_L4»

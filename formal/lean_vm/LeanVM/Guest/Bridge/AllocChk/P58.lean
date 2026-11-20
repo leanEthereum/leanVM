@@ -36,6 +36,7 @@ public section
 
 alloc_chk% «eq_prefix_run__L2» []
 alloc_chk% «eq_prefix_run__L19» []
+alloc_chk% «eq_prefix_run_rev__L8» []
 alloc_chk% «plus_one_run__L26» []
 alloc_chk% «block_selector__L15» []
 alloc_chk% «aggregate_claims_loop1» []

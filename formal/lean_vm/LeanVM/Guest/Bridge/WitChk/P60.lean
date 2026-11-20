@@ -20,6 +20,7 @@ public section
 
 theorem Fn.«eq_prefix_run__L8».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«eq_prefix_run__L13».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
+theorem Fn.«eq_prefix_run_rev__L2».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«plus_one_run__L15».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«block_selector_tab__L31».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«squeeze_point_from__L7».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel

@@ -29,7 +29,7 @@ open LeanVM.Guest LeanVM.Guest.EndExec
 core_cert% «block_selector_tab__L29» «P49» 0 []
 core_cert% «child_claim_list_mono_last__L5» «P49» 1 []
 core_cert% «da_levels__L128_L7_loop3» «P49» 2 [«da_levels__L128_L7_loop3»]
-core_cert% «gkr_rounds__L2» «P49» 3 []
+core_cert% «gkr_last_layers__L3_L0» «P49» 3 [«gkr_layer__L0_L0», «gkr_layer__L1_L0», «gkr_layer__L2_L0»]
 core_cert% «level_positions__L13_L20_L2_loop0» «P49» 4 [«decode_query_windows__L20_L2», «level_positions__L13_L20_L2_loop0»]
 core_cert% «level_positions__L4_L14_L2» «P49» 5 [«decode_query_windows__L14_L2», «level_positions__L4_L14_L2_loop0»]
 core_cert% «level_positions__L6_L21_L3_loop0» «P49» 6 [«decode_query_windows__L21_L3», «level_positions__L6_L21_L3_loop0»]
@@ -58,7 +58,7 @@ namespace LeanVM.Guest.CorePack.«P49»
 /-- The pack's certificates with their facts. -/
 noncomputable def ces : List (EndExec.CertE CoreMode.hcTab CoreMode.coreNzs) :=
   [Fn.«block_selector_tab__L29».ce, Fn.«child_claim_list_mono_last__L5».ce,
-   Fn.«da_levels__L128_L7_loop3».ce, Fn.«gkr_rounds__L2».ce,
+   Fn.«da_levels__L128_L7_loop3».ce, Fn.«gkr_last_layers__L3_L0».ce,
    Fn.«level_positions__L13_L20_L2_loop0».ce, Fn.«level_positions__L4_L14_L2».ce,
    Fn.«level_positions__L6_L21_L3_loop0».ce, Fn.«level_positions__L6_L23_L5_loop0».ce,
    Fn.«level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0».ce,

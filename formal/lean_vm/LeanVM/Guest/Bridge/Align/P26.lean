@@ -38,6 +38,7 @@ noncomputable def Fn.«child_claim_list_last__L8».alignCtx : Bridge.AlignCtx :=
 noncomputable def Fn.«column_selector__L12».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«decode_query_windows__L12_L6».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«eq_prefix_run__L33».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
+noncomputable def Fn.«eq_prefix_run_rev__L31».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«grind_check__L20».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«index_mle__L22».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«keccak_layer__L1_loop1».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop1_keccak_layer__L1", Fn.«keccak_layer__L1_loop1».entry)] 524287 code.instructionCount
@@ -74,6 +75,7 @@ align_chk% «child_claim_list_last__L8»
 align_chk% «column_selector__L12»
 align_chk% «decode_query_windows__L12_L6»
 align_chk% «eq_prefix_run__L33»
+align_chk% «eq_prefix_run_rev__L31»
 align_chk% «grind_check__L20»
 align_chk% «index_mle__L22»
 align_chk% «keccak_layer__L1_loop1»

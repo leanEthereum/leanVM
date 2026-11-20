@@ -14,7 +14,6 @@ public import LeanVM.Guest.CoreMode.Fam.FamDefs
 public import LeanVM.Guest.CoreMode.Fam.TermDefs
 public import LeanVM.Guest.CoreMode.Fam.TileDefs
 public import LeanVM.Guest.CoreMode.Fam.ExpDefs
-public import LeanVM.Guest.CoreMode.Fam.GkrDefs
 
 /-!
 # The `sub` residuals' families
@@ -26,8 +25,7 @@ public import LeanVM.Guest.CoreMode.Fam.GkrDefs
 reads past its layers, `vkStB`, the tiles, `tileFamB`, a lift
 read back, `liftBackB`, the same cells named one index up, `ordShiftB`, `verify_tables`' reads past
 its table sumcheck, `vtStB`, the runs a product's factors bound, `expFamB`, and `verify_tables`' groups'
-bases, `vtGrpB`, and `verify_sub`'s exponent facts' families, `vsB`, `verify_bus_gkr`'s pair loop's reads of the stream,
-`gkrStB`, and its final point row's copy, `vbgRowB`).
+bases, `vtGrpB`, and `verify_sub`'s exponent facts' families, `vsB`).
 `SubOk exc K`: certificate `K` is listed in `exc`, or each of its residuals passes `subB` at its
 function's index, decided per certificate (`subOk_of`).
 -/
@@ -64,26 +62,20 @@ noncomputable def stB (j : ℕ) : Mode.Res → Bool
 def stResB (cur st : Mode.Base) (c : ℕ) : Mode.Res :=
   .sub ⟨⟨0, c, [(cur, 1)]⟩, .num 0, .num 1, 1, 0⟩ [⟨⟨0, 0, [(st, 1)]⟩, .num 0, .num 8192, 1, 0⟩]
 
-/-- The copy loop's read `[5]·[10]` inside the challenges `[5]·[0, e([3]))`. -/
-def vtcRes : Mode.Res :=
-  .sub ⟨⟨0, 0, [(.fr 5, 1), (.fr 10, 1)]⟩, .num 0, .num 1, 1, 0⟩
-    [⟨⟨0, 0, [(.fr 5, 1)]⟩, .num 0, .ex (.fr 3) 0, 1, 0⟩]
-
 /-- **`verify_tables`' table sumcheck's reads** at function `j`: the rounds loop's reads of the stream
 `[[1]·g^22]` past its record's cursor (cell `17`) and past `sumcheck_round4`'s (`[[19]·g^3]`), below
-three words, and the copy loop's read of the challenges. -/
+three words. -/
 noncomputable def vtB (j : ℕ) : Mode.Res → Bool
   | .sub a bs => ((coreOf j).name == name% «verify_tables_loop0» && decide (a.q.k < 3) &&
         (decide (Mode.Res.sub a bs = stResB (.fr 17) (.hp 1 22) a.q.k) ||
-          decide (Mode.Res.sub a bs = stResB (.hp 19 3) (.hp 1 22) a.q.k))) ||
-      ((coreOf j).name == name% «verify_tables_loop1» && decide (Mode.Res.sub a bs = vtcRes))
+          decide (Mode.Res.sub a bs = stResB (.hp 19 3) (.hp 1 22) a.q.k)))
   | _ => false
 
-/-- **`verify_tables`' reads past its table sumcheck's last record's cursor** (cell `2910`) inside its
+/-- **`verify_tables`' reads past its table sumcheck's last record's cursor** (cell `2908`) inside its
 stream (`[22]`), below `153` words. -/
 noncomputable def vtStB (j : ℕ) : Mode.Res → Bool
   | .sub a bs => (coreOf j).name == name% «verify_tables» && decide (a.q.k < 153) &&
-      decide (Mode.Res.sub a bs = stRes 2910 (.fr 22) a.q.k)
+      decide (Mode.Res.sub a bs = stRes 2908 (.fr 22) a.q.k)
   | _ => false
 
 /-! ## `verify_tables`' groups -/
@@ -178,8 +170,7 @@ noncomputable def subB (j : ℕ) (w : Wit) : Mode.Res → Bool
       subFamB j w (.sub a bs) || termFamB j w (.sub a bs) || stB j (.sub a bs) ||
       blkB j (.sub a bs) || vtB j (.sub a bs) || liftB j (.sub a bs) || vkStB j (.sub a bs) ||
       tileFamB j w (.sub a bs) || liftBackB j (.sub a bs) || ordShiftB j w (.sub a bs) ||
-      vtStB j (.sub a bs) || expFamB j w (.sub a bs) || vtGrpB j (.sub a bs) || vsB j (.sub a bs) ||
-      gkrStB j (.sub a bs) || vbgRowB j (.sub a bs)
+      vtStB j (.sub a bs) || expFamB j w (.sub a bs) || vtGrpB j (.sub a bs) || vsB j (.sub a bs)
   | _ => true
 
 /-- **A certificate's `sub` residuals in the families**: it is listed in `exc`, or each is at its

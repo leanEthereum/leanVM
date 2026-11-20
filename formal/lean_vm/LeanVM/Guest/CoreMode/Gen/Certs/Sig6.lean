@@ -21,6 +21,8 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
   sigsOr_of_list Fn.«column_selector__L10».modeSigs fa%[],
   sigsOr_of_list Fn.«column_selector__L29».modeSigs fa%[],
   sigsOr_of_list Fn.«eq_prefix_run__L31».modeSigs fa%[],
+  sigsOr_of_list Fn.«gkr_layers__L0».modeSigs fa%[sig_in% «gkr_last_layers__L0_L0», sig_in% «gkr_last_layers__L1_L0», sig_in% «gkr_last_layers__L2_L0»,
+       sig_in% «gkr_last_layers__L3_L0», sig_in% «gkr_layers__L0_loop0»],
   sigsOr_of_list Fn.«grind_check__L22».modeSigs fa%[],
   sigsOr_of_list Fn.«index_mle__L19».modeSigs fa%[],
   sigsOr_of_list Fn.«index_mle__L20».modeSigs fa%[],
@@ -57,6 +59,7 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
   sigsOr_of_list Fn.«block_selector_tab__L32».modeSigs fa%[],
   sigsOr_of_list Fn.«da_pad_loop0».modeSigs fa%[sig_in% «da_pad_loop0»],
   sigsOr_of_list Fn.«eq_prefix_run__L10».modeSigs fa%[],
+  sigsOr_of_list Fn.«eq_prefix_run_rev__L1».modeSigs fa%[],
   sigsOr_of_list Fn.«keccak_layer__L0_loop1».modeSigs fa%[sig_in% «keccak_layer__L0_loop1»],
   sigsOr_of_list Fn.«level_positions__L11_L25_L7_loop0».modeSigs fa%[sig_in% «decode_query_windows__L25_L7», sig_in% «level_positions__L11_L25_L7_loop0»],
   sigsOr_of_list Fn.«level_positions__L4_L20_L2_loop0».modeSigs fa%[sig_in% «decode_query_windows__L20_L2», sig_in% «level_positions__L4_L20_L2_loop0»],
@@ -98,6 +101,7 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
   sigsOr_of_list Fn.«column_selector__L27».modeSigs fa%[],
   sigsOr_of_list Fn.«da_verify».modeSigs fa%[sig_in% «da_levels__L32_L5», sig_in% «da_padding», sig_in% «da_pad», sig_in% «da_vector»,
        sig_in% «da_verify_loop0», sig_in% «da_weights»],
+  sigsOr_of_list Fn.«gkr_layer__L3_L0_loop0».modeSigs fa%[sig_in% «gkr_layer__L3_L0_loop0»],
   sigsOr_of_list Fn.«index_mle__L17».modeSigs fa%[],
   sigsOr_of_list Fn.«level_positions__L10_L20_L2_loop0».modeSigs fa%[sig_in% «decode_query_windows__L20_L2», sig_in% «level_positions__L10_L20_L2_loop0»],
   sigsOr_of_list Fn.«level_positions__L11_L18_L6_loop0».modeSigs fa%[sig_in% «decode_query_windows__L18_L6», sig_in% «level_positions__L11_L18_L6_loop0»],
@@ -121,7 +125,6 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
   sigsOr_of_list Fn.«plus_one_run__L8».modeSigs fa%[],
   sigsOr_of_list Fn.«rs_eq_rows__L5».modeSigs fa%[],
   sigsOr_of_list Fn.«squeeze_point_from__L21».modeSigs fa%[],
-  sigsOr_of_list Fn.«verify_bus_gkr_loop0_loop0».modeSigs fa%[sig_in% «verify_bus_gkr_loop0_loop0»],
   sigsOr_of_list Fn.«walk_path__L12_L2».modeSigs fa%[]]
 
 end
@@ -145,6 +148,9 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
   sigsOr_of_list Fn.«decode_query_windows__L25_L7».modeSigs fa%[],
   sigsOr_of_list Fn.«decode_query_windows__L28_L4».modeSigs fa%[],
   sigsOr_of_list Fn.«eq_prefix_run__L27».modeSigs fa%[],
+  sigsOr_of_list Fn.«eq_prefix_run_rev__L18».modeSigs fa%[],
+  sigsOr_of_list Fn.«eq_prefix_run_rev__L21».modeSigs fa%[],
+  sigsOr_of_list Fn.«gkr_layer__L0_L1».modeSigs fa%[sig_in% «gkr_layer__L0_L1_loop0»],
   sigsOr_of_list Fn.«keccak_layer__L0».modeSigs fa%[sig_in% «grind_check__L3», sig_in% «keccak_layer__L0_loop0», sig_in% «keccak_layer__L0_loop1»],
   sigsOr_of_list Fn.«level_positions__L28_L16_L4».modeSigs fa%[sig_in% «decode_query_windows__L16_L4», sig_in% «level_positions__L28_L16_L4_loop0»],
   sigsOr_of_list Fn.«level_positions__L4_L15_L3».modeSigs fa%[sig_in% «decode_query_windows__L15_L3», sig_in% «level_positions__L4_L15_L3_loop0»],
@@ -178,7 +184,7 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
   sigsOr_of_list Fn.«check_opening_terminal_loop0».modeSigs fa%[sig_in% «check_opening_terminal_loop0»],
   sigsOr_of_list Fn.«child_claim_list_mono_last__L6».modeSigs fa%[],
   sigsOr_of_list Fn.«da_levels__L128_L7_loop0».modeSigs fa%[sig_in% «da_levels__L128_L7_loop0»],
-  sigsOr_of_list Fn.«gkr_rounds__L1».modeSigs fa%[],
+  sigsOr_of_list Fn.«gkr_layer__L3_L1».modeSigs fa%[sig_in% «gkr_layer__L3_L1_loop0»],
   sigsOr_of_list Fn.«level_positions__L9_L22_L4_loop0».modeSigs fa%[sig_in% «decode_query_windows__L22_L4», sig_in% «level_positions__L9_L22_L4_loop0»],
   sigsOr_of_list Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».modeSigs fa%[sig_in% «opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1», sig_in% «verify_merkle_cap__L3»],
   sigsOr_of_list Fn.«level_queries__L37_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeSigs fa%[sig_in% «opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0», sig_in% «verify_merkle_cap__L4»],
@@ -196,7 +202,6 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
   sigsOr_of_list Fn.«padding_weight__L16».modeSigs fa%[],
   sigsOr_of_list Fn.«padding_weight__L3».modeSigs fa%[],
   sigsOr_of_list Fn.«ring_switch_target».modeSigs fa%[sig_in% «ring_switch_target_loop0»],
-  sigsOr_of_list Fn.«verify_bus_gkr_loop1».modeSigs fa%[sig_in% «verify_bus_gkr_loop1»],
   sigsOr_of_list Fn.«verify_merkle_cap__L2».modeSigs fa%[]]
 
 end
@@ -213,6 +218,7 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
   sigsOr_of_list Fn.«bus_grind_check__L8».modeSigs fa%[sig_in% «grind_check__L25»],
   sigsOr_of_list Fn.«column_selector__L6».modeSigs fa%[],
   sigsOr_of_list Fn.«eq_prefix_run__L29».modeSigs fa%[],
+  sigsOr_of_list Fn.«eq_prefix_run_rev__L16».modeSigs fa%[],
   sigsOr_of_list Fn.«grind_check__L18».modeSigs fa%[],
   sigsOr_of_list Fn.«index_mle__L5».modeSigs fa%[],
   sigsOr_of_list Fn.«level_positions__L16_L18_L6_loop0».modeSigs fa%[sig_in% «decode_query_windows__L18_L6», sig_in% «level_positions__L16_L18_L6_loop0»],
@@ -249,6 +255,7 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
   sigsOr_of_list Fn.«block_selector__L15».modeSigs fa%[],
   sigsOr_of_list Fn.«eq_prefix_run__L19».modeSigs fa%[],
   sigsOr_of_list Fn.«eq_prefix_run__L2».modeSigs fa%[],
+  sigsOr_of_list Fn.«eq_prefix_run_rev__L8».modeSigs fa%[],
   sigsOr_of_list Fn.«level_positions__L14_L16_L4».modeSigs fa%[sig_in% «decode_query_windows__L16_L4», sig_in% «level_positions__L14_L16_L4_loop0»],
   sigsOr_of_list Fn.«level_positions__L16_L17_L5».modeSigs fa%[sig_in% «decode_query_windows__L17_L5», sig_in% «level_positions__L16_L17_L5_loop0»],
   sigsOr_of_list Fn.«level_positions__L19_L27_L3».modeSigs fa%[sig_in% «decode_query_windows__L27_L3», sig_in% «level_positions__L19_L27_L3_loop0»],

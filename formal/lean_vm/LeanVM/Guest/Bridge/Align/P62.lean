@@ -45,6 +45,7 @@ noncomputable def Fn.«block_selector_tab__L15».alignCtx : Bridge.AlignCtx := B
 noncomputable def Fn.«bus_grind_check__L1».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("grind_check__L18", Fn.«grind_check__L18».entry)] 524287 code.instructionCount
 noncomputable def Fn.«decode_query_windows__L19_L7».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«eq_prefix_run__L20».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
+noncomputable def Fn.«eq_prefix_run_rev__L26».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L6_L24_L6».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L6_L24_L6", Fn.«level_positions__L6_L24_L6_loop0».entry), ("decode_query_windows__L24_L6", Fn.«decode_query_windows__L24_L6».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_queries__L218_L1_L6_L32_L20_L8_L0_L0_L0_L0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L8", Fn.«verify_merkle_cap__L8».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_queries__L21_L0_L4_L16_L17_L5_L0_L0_L0_L0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L5", Fn.«verify_merkle_cap__L5».entry)] 524287 code.instructionCount
@@ -81,6 +82,7 @@ align_chk% «block_selector_tab__L15»
 align_chk% «bus_grind_check__L1»
 align_chk% «decode_query_windows__L19_L7»
 align_chk% «eq_prefix_run__L20»
+align_chk% «eq_prefix_run_rev__L26»
 align_chk% «level_positions__L6_L24_L6»
 align_chk% «level_queries__L218_L1_L6_L32_L20_L8_L0_L0_L0_L0»
 align_chk% «level_queries__L21_L0_L4_L16_L17_L5_L0_L0_L0_L0»

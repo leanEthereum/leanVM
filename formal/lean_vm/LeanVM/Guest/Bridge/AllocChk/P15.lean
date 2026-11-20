@@ -35,6 +35,7 @@ public section
 
 alloc_chk% «eq_prefix_run__L9» []
 alloc_chk% «eq_prefix_run__L12» []
+alloc_chk% «eq_prefix_run_rev__L3» []
 alloc_chk% «plus_one_run__L14» []
 alloc_chk% «block_selector_tab__L30» []
 alloc_chk% «squeeze_point_from__L6» []
@@ -55,6 +56,7 @@ alloc_chk% «level_positions__L8_L21_L3_loop0» [«decode_query_windows__L21_L3�
 alloc_chk% «level_positions__L8_L23_L5_loop0» [«decode_query_windows__L23_L5»]
 alloc_chk% «level_residual__L73_L22_L6_L3_loop1» []
 alloc_chk% «level_residual__L55_L18_L4_L2_loop1» []
+alloc_chk% «gkr_layer__L2_L0_loop0» []
 alloc_chk% «opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1_loop0» [«walk_path__L18_L2»]
 alloc_chk% «opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1_loop0» [«walk_path__L18_L3»]
 

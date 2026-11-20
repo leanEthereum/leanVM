@@ -59,6 +59,10 @@ FEATURES = {
     'idx': 'a read at any index of a run (`b·j^S·g^(S·k)`, facts `lo <= j + k < hi`), bounds as residuals',
     'ptsrun': 'a run covered by its points (constant bounds, at most 64)',
     'armblock': 'arms writing a growing block `Q·[0, j + d)`: the run `Q·[0, e(x) + d)` after the dispatch',
+    'chain': 'a run needed covered by up to three pieces in scope from its base (residue runs, points), joined at '
+             'symbolic indices (`drv` of `catM`s), its upper bound below their end a residual',
+    'armsub': 'an own guarantee over a dispatch\'s selector `x` that each arm `j` writes at `x = g^j`: after the '
+              'dispatch, the guarantee (`abx`, a block whose base moves with the arm)',
     'hintrun': 'a heap hint\'s destination also a run',
     'div': 'a division\'s quotient gets the monomial `d / o`',
     'fa': 'a frame run\'s cells written when their values are defined (`frameAddr`)',
@@ -1049,6 +1053,14 @@ class Pass:
                         all(shift(end, S * j) in st.pts for j in range(u)):
                     self.stats['wr-run-around'] += 1
                     return ('sub', ('run', rw, []), [])
+        if 'chain' in F and lo == num(0) and S and hi[0]:
+            # the run made up of the pieces in scope from its base (`reach`), reaching past the upper bound:
+            # `e(hi) < e(k·g)`, a residual (`drv` of `catM`s)
+            k = reach(Q, S, [R for R, _ in st.runs], st.pts)
+            if k is not None and k != hi:
+                kr = self.addres(('lt', hi, shift(k, 1), 'chain'))
+                self.stats['wr-chain'] += 1
+                return ('sub', ('run', 0, []), [kr])
         if self.key in CTR_CALLERS and lo == num(0) and S and hi[0]:
             # residue runs `⟨Q·g^(S·d), S·K, 0, h⟩`, `d < K`, reaching past the upper bound: `e(hi) < e(h^K·g)`, a residual
             for K in (2, 4):
@@ -1634,6 +1646,32 @@ class Pass:
             st.pf[c] = (frozenset(offs), ('preP', k))
         self.block(st, self.body)
         return self
+
+
+def reach(Q, S, runs, pts, mul=mmul, pw=mpow, sh=shift):
+    """The bound `k` of the run `⟨Q, S, 0, k⟩` made up of at most three pieces in scope from `Q` (the shape `runOk`'s
+    `catM`s split): `K` residue runs `⟨Q'·g^(S·d), S·K, 0, h⟩`, `d < K` (`h^K` more), or the points `Q'·g^(S·i)`, `i < m`
+    (`g^m` more, the last piece); `None` if no piece has a bound over values."""
+    k, Q1 = num(0), Q
+    for _ in range(3):
+        step = None
+        for R in runs:
+            if R[0][0] != Q1[0] or R[0][1] != Q1[1] or R[2] != num(0) or not R[3][0] or R[1] <= S or R[1] % S:
+                continue
+            K = R[1] // S
+            if all((sh(Q1, S * d), R[1], num(0), R[3]) in runs for d in range(K)):
+                step = pw(R[3], K)
+                break
+        if step is None:
+            m = 0
+            while m < 64 and sh(Q1, S * m) in pts:
+                m += 1
+            if m:
+                k = sh(k, m)
+            break
+        k = mul(k, step)
+        Q1 = mul(Q, pw(k, S))
+    return k if k[0] else None
 
 
 # Loops whose run preconditions may be over the counter: a table the loop fills itself, row by row, each iteration

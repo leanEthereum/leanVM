@@ -17,6 +17,19 @@ public import LeanVM.Guest.Pack.«P9».Sig
 
 set_option Elab.async false
 
+namespace LeanVM.Guest.Fn.«level_residual__L37_L16_L4_L2_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+/-- `__loop0_level_residual__L37_L16_L4_L2`, window 0, part 1. -/
+theorem cw0_1 : cplWinD (Glob.ofSigs ([(Fn.«level_residual__L37_L16_L4_L2_loop0».idx, Fn.«level_residual__L37_L16_L4_L2_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L37_L16_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 1 = true := by
+  decide +kernel
+
+end
+end LeanVM.Guest.Fn.«level_residual__L37_L16_L4_L2_loop0»
+
 namespace LeanVM.Guest.Fn.«level_residual__L109_L24_L6_L3_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C

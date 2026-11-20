@@ -18,18 +18,17 @@ namespace LeanVM.Guest
 public section
 
 theorem Fn.«ring_switch_target».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
-theorem Fn.«verify_bus_gkr_loop1».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«padding_weight__L3».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«padding_weight__L16».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«check_opening_terminal_loop0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«child_claim_list_mono_last__L6».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
-theorem Fn.«gkr_rounds__L1».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_residual__L55_L13_L4_L2».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_queries__L37_L0_L4_L16_L22_L4_L0_L0_L0_L0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_residual__L44_L19_L4_L2».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_residual__L44_L20_L4_L2».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«da_levels__L128_L7_loop0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
+theorem Fn.«gkr_layer__L3_L1».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«verify_merkle_cap__L2».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel
 theorem Fn.«level_residual__L44_L16_L4_L2_loop0».pairOk : Bridge.pairChk [] cert.locs fs core.body = true := by decide +kernel

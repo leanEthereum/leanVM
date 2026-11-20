@@ -11,10 +11,12 @@ public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.AllocFrDefs
 public import LeanVM.Guest.Bridge.ChkLit
 public import LeanVM.Guest.Bridge.Align.«P49»
+public import LeanVM.Guest.CoreMode.GlueA.«P10»
 public import LeanVM.Guest.CoreMode.GlueA.«P21»
 public import LeanVM.Guest.CoreMode.GlueA.«P24»
 public import LeanVM.Guest.CoreMode.GlueA.«P25»
 public import LeanVM.Guest.CoreMode.GlueA.«P26»
+public import LeanVM.Guest.CoreMode.GlueA.«P36»
 public import LeanVM.Guest.CoreMode.GlueA.«P3»
 public import LeanVM.Guest.CoreMode.GlueA.«P42»
 public import LeanVM.Guest.CoreMode.GlueA.«P43»
@@ -24,6 +26,7 @@ public import LeanVM.Guest.CoreMode.GlueA.«P49»
 public import LeanVM.Guest.CoreMode.GlueA.«P4»
 public import LeanVM.Guest.CoreMode.GlueA.«P50»
 public import LeanVM.Guest.CoreMode.GlueA.«P56»
+public import LeanVM.Guest.CoreMode.GlueA.«P5»
 public import LeanVM.Guest.CoreMode.GlueA.«P9»
 public import LeanVM.Guest.Pack.«P49».Bundle
 public import LeanVM.Guest.Pack.«P49».Core
@@ -38,7 +41,7 @@ alloc_chk% «padding_weight__L0» []
 alloc_chk% «padding_weight__L15» []
 alloc_chk% «block_selector_tab__L29» []
 alloc_chk% «child_claim_list_mono_last__L5» []
-alloc_chk% «gkr_rounds__L2» []
+alloc_chk% «gkr_last_layers__L3_L0» [«gkr_layer__L0_L0», «gkr_layer__L1_L0», «gkr_layer__L2_L0»]
 alloc_chk% «level_positions__L4_L14_L2» [«decode_query_windows__L14_L2», «level_positions__L4_L14_L2_loop0»]
 alloc_chk% «level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0» [«verify_merkle_cap__L6», «opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0»]
 alloc_chk% «level_residual__L19_L7_L4_L2» [«level_residual__L19_L7_L4_L2_loop0», «level_residual__L19_L7_L4_L2_loop1»]

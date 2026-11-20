@@ -42,6 +42,33 @@ theorem shareOk : ShareOkD Fn.«eq_prefix_run__L24».core (cert.withPows Data.po
 end
 end LeanVM.Guest.Fn.«eq_prefix_run__L24»
 
+namespace LeanVM.Guest.Fn.«eq_prefix_run_rev__L22»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L22`, once. -/
+theorem st : shareStaticD Fn.«eq_prefix_run_rev__L22».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L22`, window 0. -/
+theorem sw0 : shareWinD Fn.«eq_prefix_run_rev__L22».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `eq_prefix_run_rev__L22`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«eq_prefix_run_rev__L22».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«eq_prefix_run_rev__L22»
+
 namespace LeanVM.Guest.Fn.«block_selector__L6»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -95,31 +122,4 @@ theorem shareOk : ShareOkD Fn.«block_selector__L20».core (cert.withPows Data.p
 
 end
 end LeanVM.Guest.Fn.«block_selector__L20»
-
-namespace LeanVM.Guest.Fn.«index_mle__L8»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `index_mle__L8`, once. -/
-theorem st : shareStaticD Fn.«index_mle__L8».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `index_mle__L8`, window 0. -/
-theorem sw0 : shareWinD Fn.«index_mle__L8».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `index_mle__L8`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«index_mle__L8».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«index_mle__L8»
 

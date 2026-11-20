@@ -36,6 +36,7 @@ namespace LeanVM.Guest
 public section
 
 alloc_chk% «eq_prefix_run__L23» []
+alloc_chk% «eq_prefix_run_rev__L25» []
 alloc_chk% «plus_one_run__L32» []
 alloc_chk% «block_selector__L1» []
 alloc_chk% «block_selector__L27» []

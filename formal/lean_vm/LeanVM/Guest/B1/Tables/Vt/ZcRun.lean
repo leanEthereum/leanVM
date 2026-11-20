@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Tables.Vt.Rounds
-public import LeanVM.Guest.B1.Eq.EqPrefix
+public import LeanVM.Guest.B1.Eq.EqPrefixRev
 public import LeanVM.Guest.Data.NameStrings
 
 /-!
@@ -93,12 +93,12 @@ theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 3
     ∃ (xs pts : List E) (claimN : E),
       RunsTo (sumcheck (σ (.n 2621)) 4 (List.replicate n none))
         ⟨(List.range 5).map fun k ↦ σ (.n (2606 + k)), []⟩ xs (pts, claimN)
-        ⟨(List.range 5).map fun k ↦ σ (.n (2647 + k)), []⟩ ∧
+        ⟨(List.range 5).map fun k ↦ σ (.n (2644 + k)), []⟩ ∧
       ReadsAt rd (σ (.n 1898) * gen) xs ∧ xs.length = 3 * n ∧ pts.length = n ∧
-      σ (.n 2652) = σ (.n 1898) * gen * gen ^ (3 * n) ∧ σ (.n 2653) = claimN ∧
+      σ (.n 2649) = σ (.n 1898) * gen * gen ^ (3 * n) ∧ σ (.n 2650) = claimN ∧
       (∀ i < n, LoadHolds rd (σ (.n 16)) (n - 1 - i) (pts.getD i 0)) ∧
       (∀ j ≤ n, LoadHolds rd (σ (.n 2631)) j ((pts.take j).prod)) ∧
-      EqPrefix rd (σ (.n 2656)) 1 (σ (.n 16)) (σ (.n 700)) n := by
+      EqPrefix rd (σ (.n 2653)) 1 (σ (.n 16)) (σ (.n 700)) n := by
   have a5207 := h.atomAt 2633 (.const (.n 2612) (word 1 0)) (by decide +kernel)
   have a5208 := h.atomAt 2634 (.mul (.n 2613) (.n 2612) (.n 2611)) (by decide +kernel)
   have a5209 := h.atomAt 2635 (.mul (.n 2614) (.n 2613) (.n 2611)) (by decide +kernel)
@@ -131,36 +131,35 @@ theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 3
   have a5238 := h.atomAt 2665 (.const (.n 2636) (word 1 0)) (by decide +kernel)
   have a5239 := h.atomAt 2666 (.add (.n 2637) (.n 2636) (.n 2545)) (by decide +kernel)
   have a5240 := h.atomAt 2667 (.const (.n 2638) (word 1 0)) (by decide +kernel)
-  have a5238' := h.atomAt 2669 (.const (.n 2639) (word 1 0)) (by decide +kernel)
-  have a5239' := h.atomAt 2670 (.add (.n 2640) (.n 2639) (.n 2545)) (by decide +kernel)
-  have a5240' := h.atomAt 2671 (.const (.n 2641) (word 1 0)) (by decide +kernel)
-  have a5242 := h.atomAt 2673 (.mul (.n 2642) (.n 2545) (.n 2545)) (by decide +kernel)
-  have a5243 := h.atomAt 2674 (.mul (.n 2643) (.n 2642) (.n 2545)) (by decide +kernel)
-  have a5244 := h.atomAt 2675 (.mul (.n 2644) (.n 2643) (.n 2643)) (by decide +kernel)
-  have a5245 := h.atomAt 2676 (.mul (.n 2645) (.n 2644) (.n 2545)) (by decide +kernel)
-  have a5246 := h.atomAt 2677 (.mul (.n 2646) (.n 2628) (.n 2645)) (by decide +kernel)
-  have a5247 := h.atomAt 2678 (.load (.n 2647) (.n 2646) 0) (by decide +kernel)
-  have a5248 := h.atomAt 2679 (.load (.n 2648) (.n 2646) 1) (by decide +kernel)
-  have a5249 := h.atomAt 2680 (.load (.n 2649) (.n 2646) 2) (by decide +kernel)
-  have a5250 := h.atomAt 2681 (.load (.n 2650) (.n 2646) 3) (by decide +kernel)
-  have a5251 := h.atomAt 2682 (.load (.n 2651) (.n 2646) 4) (by decide +kernel)
-  have a5252 := h.atomAt 2683 (.load (.n 2652) (.n 2646) 5) (by decide +kernel)
-  have a5253 := h.atomAt 2684 (.load (.n 2653) (.n 2646) 6) (by decide +kernel)
-  have a5254 := h.atomAt 2685 (.const (.n 2654) (word 2 0)) (by decide +kernel)
-  have a5255 := h.atomAt 2686 (.mul (.n 2655) (.n 2545) (.n 2654)) (by decide +kernel)
-  have a5257 := h.atomAt 2688 (.const (.n 2657) (word 1 0)) (by decide +kernel)
+  have a5242 := h.atomAt 2669 (.mul (.n 2639) (.n 2545) (.n 2545)) (by decide +kernel)
+  have a5243 := h.atomAt 2670 (.mul (.n 2640) (.n 2639) (.n 2545)) (by decide +kernel)
+  have a5244 := h.atomAt 2671 (.mul (.n 2641) (.n 2640) (.n 2640)) (by decide +kernel)
+  have a5245 := h.atomAt 2672 (.mul (.n 2642) (.n 2641) (.n 2545)) (by decide +kernel)
+  have a5246 := h.atomAt 2673 (.mul (.n 2643) (.n 2628) (.n 2642)) (by decide +kernel)
+  have a5247 := h.atomAt 2674 (.load (.n 2644) (.n 2643) 0) (by decide +kernel)
+  have a5248 := h.atomAt 2675 (.load (.n 2645) (.n 2643) 1) (by decide +kernel)
+  have a5249 := h.atomAt 2676 (.load (.n 2646) (.n 2643) 2) (by decide +kernel)
+  have a5250 := h.atomAt 2677 (.load (.n 2647) (.n 2643) 3) (by decide +kernel)
+  have a5251 := h.atomAt 2678 (.load (.n 2648) (.n 2643) 4) (by decide +kernel)
+  have a5252 := h.atomAt 2679 (.load (.n 2649) (.n 2643) 5) (by decide +kernel)
+  have a5253 := h.atomAt 2680 (.load (.n 2650) (.n 2643) 6) (by decide +kernel)
   have hloop := h.callIfAt 2668 (.n 2637) name% «verify_tables_loop0» [.n 2638, .n 2545, .n 2628,
       .n 18, .n 2635, .n 2631] (by decide +kernel)
-  have hcopy := h.callIfAt 2672 (.n 2640) name% «verify_tables_loop1» [.n 2641, .n 2545, .n 16,
-      .n 2635, .n 2545] (by decide +kernel)
-  have hchain := h.callAt 2689 "eq_prefix_chain" [.n 2656, .n 2657, .n 16, .n 700, .n 2545] []
+  have hchain := h.callAt 2684 "eq_prefix_chain_rev" [.n 2653, .n 16, .n 2635, .n 700, .n 2545] []
     (by decide +kernel)
   simp only [Atom.Holds] at a5207 a5208 a5209 a5210 a5211 a5212 a5213 a5214 a5215 a5216
   simp only [Atom.Holds] at a5217 a5218 a5219 a5220 a5221 a5222 a5224 a5225 a5227 a5228
   simp only [Atom.Holds] at a5229 a5230 a5231 a5232 a5233 a5234 a5235 a5236 a5237 a5238
   simp only [Atom.Holds] at a5239 a5240 a5242 a5243 a5244 a5245 a5246 a5247 a5248 a5249
-  simp only [Atom.Holds] at a5250 a5251 a5252 a5253 a5254 a5255 a5257 a5238' a5239' a5240'
-  simp only [List.map_cons, List.map_nil] at hloop hcopy hchain
+  simp only [Atom.Holds] at a5250 a5251 a5252 a5253
+  simp only [List.map_cons, List.map_nil] at hloop hchain
+  obtain ⟨hC, hep⟩ : EqPrefixRev rd (σ (.n 2653)) (σ (.n 16)) (σ (.n 2635)) (σ (.n 700)) n := by
+    have hm := (eq_prefix_chain_rev_holds rd _ _).mp hchain
+    simp only [MeaningEqPrefixChainRev] at hm
+    obtain ⟨-, -, n', hn', hn'v, hep⟩ := hm
+    rw [hgn] at hn'v
+    obtain rfl := gen_pow_inj (by omega) (by omega) hn'v
+    exact hep
   refine ⟨by rw [a5216, a5214, a5212, a5213, a5215, a5211, a5210, a5209, a5208, a5207,
     tb_word_one]; ring, ?_⟩
   have hne : 0 < n → ∀ a b : E, a = 1 → b = a + gen ^ n → b ≠ 0 := by
@@ -175,12 +174,6 @@ theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 3
     · have hr := hloop.2 (hne hn0 (σ (.n 2636)) _ (by rw [a5238, tb_word_one]) (by rw [a5239, hgn]))
       rw [a5240, tb_word_one, hgn] at hr
       exact l10_loop hn0 (by omega) hr
-  have hC : ∀ x < n, ∃ v, LoadHolds rd (σ (.n 2635)) (n - 1 - x) v ∧ LoadHolds rd (σ (.n 16)) x v := by
-    rcases Nat.eq_zero_or_pos n with rfl | hn0
-    · intro x hx; omega
-    · have hr := hcopy.2 (hne hn0 (σ (.n 2639)) _ (by rw [a5238', tb_word_one]) (by rw [a5239', hgn]))
-      rw [a5240', tb_word_one, hgn] at hr
-      exact l11_loop hn0 (by omega) hr
   have hc0 : CapAt rd (σ (.n 2628) * gen ^ (7 * 0)) 0 1
       ((List.range 5).map fun k ↦ σ (.n (2606 + k))) := by
     refine ⟨by simp, fun j hj => ?_⟩
@@ -200,10 +193,10 @@ theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 3
     rw [Nat.mul_zero, pow_zero, mul_one]; exact a5235
   obtain ⟨xs, pts, claimN, capN, hrun, hxs, hxl, hpl, hcN, hcurN, hclN, hchi⟩ :=
     l10_chain (by omega) hB n le_rfl 0 (by omega) _ _ _ hc0 hcur0 hcl0
-  have e5926 : σ (.n 2646) = σ (.n 2628) * gen ^ (7 * n) := by
+  have e5926 : σ (.n 2643) = σ (.n 2628) * gen ^ (7 * n) := by
     rw [a5246, a5245, a5244, a5243, a5242, hgn]; ring
   have hcF : CapAt rd (σ (.n 2628) * gen ^ (7 * n)) 0 1
-      ((List.range 5).map fun k ↦ σ (.n (2647 + k))) := by
+      ((List.range 5).map fun k ↦ σ (.n (2644 + k))) := by
     refine ⟨by simp, fun j hj => ?_⟩
     simp only [List.length_map, List.length_range] at hj
     simp only [Nat.zero_add, mul_one, List.getElem_map, List.getElem_range, ← e5926]
@@ -235,13 +228,7 @@ theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 3
       rw [tb_loadHolds_unique hcp (ih (by omega)), erk] at hcp1
       rw [List.prod_take_succ _ _ (by omega), ← List.getD_eq_getElem _ 0 (by omega)]
       exact hcp1
-  · have hm := (eq_prefix_chain_holds rd _ _).mp hchain
-    simp only [MeaningEqPrefixChain] at hm
-    obtain ⟨-, -, n', hn', hn'v, hep⟩ := hm
-    rw [hgn] at hn'v
-    obtain rfl := gen_pow_inj (by omega) (by omega) hn'v
-    rw [a5257, tb_word_one] at hep
-    exact hep
+  · exact hep
 
 end
 end LeanVM.Guest.B1.Tables

@@ -31,16 +31,44 @@ public import LeanVM.Guest.CoreMode.Gen.«P12».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P12».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P12».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P12».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P12».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P12».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P12».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P12».Pair
+public import LeanVM.Guest.CoreMode.Sig.«P0»
+public import LeanVM.Guest.CoreMode.Sig.«P10»
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P12»
+public import LeanVM.Guest.CoreMode.Sig.«P13»
+public import LeanVM.Guest.CoreMode.Sig.«P15»
+public import LeanVM.Guest.CoreMode.Sig.«P17»
+public import LeanVM.Guest.CoreMode.Sig.«P19»
 public import LeanVM.Guest.CoreMode.Sig.«P21»
+public import LeanVM.Guest.CoreMode.Sig.«P22»
+public import LeanVM.Guest.CoreMode.Sig.«P24»
+public import LeanVM.Guest.CoreMode.Sig.«P26»
 public import LeanVM.Guest.CoreMode.Sig.«P27»
 public import LeanVM.Guest.CoreMode.Sig.«P29»
+public import LeanVM.Guest.CoreMode.Sig.«P3»
+public import LeanVM.Guest.CoreMode.Sig.«P31»
 public import LeanVM.Guest.CoreMode.Sig.«P34»
+public import LeanVM.Guest.CoreMode.Sig.«P36»
+public import LeanVM.Guest.CoreMode.Sig.«P38»
+public import LeanVM.Guest.CoreMode.Sig.«P41»
+public import LeanVM.Guest.CoreMode.Sig.«P43»
+public import LeanVM.Guest.CoreMode.Sig.«P45»
 public import LeanVM.Guest.CoreMode.Sig.«P47»
+public import LeanVM.Guest.CoreMode.Sig.«P48»
+public import LeanVM.Guest.CoreMode.Sig.«P5»
+public import LeanVM.Guest.CoreMode.Sig.«P50»
 public import LeanVM.Guest.CoreMode.Sig.«P53»
 public import LeanVM.Guest.CoreMode.Sig.«P55»
+public import LeanVM.Guest.CoreMode.Sig.«P57»
+public import LeanVM.Guest.CoreMode.Sig.«P58»
 public import LeanVM.Guest.CoreMode.Sig.«P6»
+public import LeanVM.Guest.CoreMode.Sig.«P60»
+public import LeanVM.Guest.CoreMode.Sig.«P62»
+public import LeanVM.Guest.CoreMode.Sig.«P7»
 public import LeanVM.Guest.CoreMode.Sig.«P9»
 
 set_option Elab.async false
@@ -53,7 +81,39 @@ open LeanVM.Guest.Exec
 
 @[expose] public section
 
+def Fn.«eq_prefix_chain_rev».frameCallee0 : List ℕ := [Fn.«eq_prefix_run_rev__L0».entry,
+    Fn.«eq_prefix_run_rev__L1».entry, Fn.«eq_prefix_run_rev__L2».entry,
+    Fn.«eq_prefix_run_rev__L3».entry, Fn.«eq_prefix_run_rev__L4».entry,
+    Fn.«eq_prefix_run_rev__L5».entry, Fn.«eq_prefix_run_rev__L6».entry,
+    Fn.«eq_prefix_run_rev__L7».entry, Fn.«eq_prefix_run_rev__L8».entry,
+    Fn.«eq_prefix_run_rev__L9».entry, Fn.«eq_prefix_run_rev__L10».entry,
+    Fn.«eq_prefix_run_rev__L11».entry, Fn.«eq_prefix_run_rev__L12».entry,
+    Fn.«eq_prefix_run_rev__L13».entry, Fn.«eq_prefix_run_rev__L14».entry,
+    Fn.«eq_prefix_run_rev__L15».entry, Fn.«eq_prefix_run_rev__L16».entry,
+    Fn.«eq_prefix_run_rev__L17».entry, Fn.«eq_prefix_run_rev__L18».entry,
+    Fn.«eq_prefix_run_rev__L19».entry, Fn.«eq_prefix_run_rev__L20».entry,
+    Fn.«eq_prefix_run_rev__L21».entry, Fn.«eq_prefix_run_rev__L22».entry,
+    Fn.«eq_prefix_run_rev__L23».entry, Fn.«eq_prefix_run_rev__L24».entry,
+    Fn.«eq_prefix_run_rev__L25».entry, Fn.«eq_prefix_run_rev__L26».entry,
+    Fn.«eq_prefix_run_rev__L27».entry, Fn.«eq_prefix_run_rev__L28».entry,
+    Fn.«eq_prefix_run_rev__L29».entry, Fn.«eq_prefix_run_rev__L30».entry,
+    Fn.«eq_prefix_run_rev__L31».entry, Fn.«eq_prefix_run_rev__L32».entry]
+frame_fn% «eq_prefix_chain_rev» 16 [«eq_prefix_run_rev__L0», «eq_prefix_run_rev__L10»,
+    «eq_prefix_run_rev__L11», «eq_prefix_run_rev__L12», «eq_prefix_run_rev__L13»,
+    «eq_prefix_run_rev__L14», «eq_prefix_run_rev__L15», «eq_prefix_run_rev__L16»,
+    «eq_prefix_run_rev__L17», «eq_prefix_run_rev__L18», «eq_prefix_run_rev__L19»,
+    «eq_prefix_run_rev__L1», «eq_prefix_run_rev__L20», «eq_prefix_run_rev__L21»,
+    «eq_prefix_run_rev__L22», «eq_prefix_run_rev__L23», «eq_prefix_run_rev__L24»,
+    «eq_prefix_run_rev__L25», «eq_prefix_run_rev__L26», «eq_prefix_run_rev__L27»,
+    «eq_prefix_run_rev__L28», «eq_prefix_run_rev__L29», «eq_prefix_run_rev__L2»,
+    «eq_prefix_run_rev__L30», «eq_prefix_run_rev__L31», «eq_prefix_run_rev__L32»,
+    «eq_prefix_run_rev__L3», «eq_prefix_run_rev__L4», «eq_prefix_run_rev__L5»,
+    «eq_prefix_run_rev__L6», «eq_prefix_run_rev__L7», «eq_prefix_run_rev__L8»,
+    «eq_prefix_run_rev__L9»] tidx (.node none (.node none .nil (.node none .nil (.node (some 0) .nil
+    .nil))) .nil) calls (.node (some frameCallee0) .nil .nil)
 frame_fn% «da_pad» 12 [«da_pad_loop0»]
+frame_fn% «eq_prefix_run_rev__L11» 69 []
+frame_fn% «eq_prefix_run_rev__L28» 171 []
 frame_fn% «index_mle__L2» 12 []
 frame_fn% «column_selector__L1» 75 []
 frame_fn% «level_residual__L109_L14_L6_L3» 45 [«level_residual__L109_L14_L6_L3_loop0»,
@@ -79,6 +139,7 @@ frame_fn% «level_residual__L21_L8_L4_L2_loop0» 400 [«level_residual__L21_L8_L
     env [(9, (.fpg 0))] scaled [9]
 frame_fn% «level_residual__L18_L8_L4_L2_loop0» 400 [«level_residual__L18_L8_L4_L2_loop0»] sigs []
     env [(9, (.fpg 0))] scaled [9]
+frame_fn% «gkr_layer__L1_L0_loop0» 272 [«gkr_layer__L1_L0_loop0»] env [(8, (.fpg 0))] scaled [8]
 frame_fn% «opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1_loop0» 127
     [«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1_loop0», «walk_path__L6_L6»] env [(12,
     (.fpg 0))] scaled [12]

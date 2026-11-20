@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sumcheck.Gkr
 
-  B1 for `gkr_rounds`: equality-mode sumcheck rounds between GKR round records.
+  Equality-mode sumcheck rounds between GKR round records (the rounds template).
 -/
 
 module
@@ -13,9 +13,9 @@ public import LeanVM.Guest.B1.Common.Run
 public import LeanVM.Guest.B1.Common.Find
 
 /-!
-# `gkr_rounds` (TRIAGE #31)
+# GKR rounds between records
 
-Its body at `n` rounds (`gkBody false n`; its parameters the record, the point, the cursor, the
+The body of a rounds function at `n` rounds (`gkBody false n`; its parameters the record, the point, the cursor, the
 window table and the stream): the record's capacity and claim loaded into `5 .. 10`; round `q`
 (`gkRound q`, from `B = 11 + 40 q`): four stream words read and packed (`B + 3 t`, its cells
 `B + 3 t + 1`, `B + 3 t + 2`), the permutation of the four waiting with the previous capacity
@@ -23,11 +23,11 @@ into `B + 12` (`fs_grind_squeeze` at zero bits), its challenge (at `B + 25`), th
 coordinate `pt[q]` (at `B + 26`), the derived `c0`, the challenge stored at `pt[42 + q]`, the
 claim at the challenge (at `B + 39`); at an odd `n` a zero stored at `pt[42 + n]` (`gkPad`); the
 next record's capacity, cursor and claim stored. The window table and the stream are not read.
-`gkBody true n` also loads the cursor from the record (`gkCurLoad`), as the layer loop's
-iteration does (`verify_bus_gkr_loop0_loop0`, `gkBody true 2` renamed).
+`gkBody true n` also loads the cursor from the record (`gkCurLoad`), as a loop iteration of a
+radix-four GKR layer does.
 
 `gk_body_holds`: the honest valuation (`gkVals`) satisfies `gkBody lc n` over any call relation;
-`gkr_rounds_holds`: `gkr_rounds__L{1,2}`'s core IR is its meaning.
+`gk_sound`, `gk_complete`: a function whose body is `gkBody false n` is its meaning.
 -/
 
 namespace LeanVM.Guest.B1
@@ -858,28 +858,6 @@ theorem gk_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n <
     gk_body_holds false n hn hn2 (coreProgram.Rel rd) rd rec pt cur tabs stream h (by simp)
   rw [rel_iff_sem hfind, hbody, hparams]
   exact ⟨σ, by simp [e0, e1, e2, e3, e4], hh⟩
-
-set_option maxRecDepth 100000 in
-theorem gkr_rounds_body1 : Fn.body fn% «gkr_rounds__L1» = gkBody false 1 :=
-  stmtsEqb_sound (by decide +kernel)
-
-set_option maxRecDepth 100000 in
-theorem gkr_rounds_body2 : Fn.body fn% «gkr_rounds__L2» = gkBody false 2 :=
-  stmtsEqb_sound (by decide +kernel)
-
-/-- **`gkr_rounds`' core IR is its meaning**, at one and two rounds. -/
-theorem gkr_rounds_holds : gkr_rounds_Spec := by
-  have h1 : coreProgram.find? "gkr_rounds__L1" = some fn% «gkr_rounds__L1» :=
-    coreProgram_find?_at (j := idx% «gkr_rounds__L1») rfl
-  have h2 : coreProgram.find? "gkr_rounds__L2" = some fn% «gkr_rounds__L2» :=
-    coreProgram_find?_at (j := idx% «gkr_rounds__L2») rfl
-  intro n hn rd args rets
-  simp only [gkrRoundsCounts, List.mem_cons, List.not_mem_nil, or_false] at hn
-  rcases hn with rfl | rfl
-  · exact ⟨gk_sound 1 (by decide) (by decide) h1 rfl gkr_rounds_body1 rd args rets,
-      gk_complete 1 (by decide) (by decide) h1 rfl gkr_rounds_body1 rd args rets⟩
-  · exact ⟨gk_sound 2 (by decide) (by decide) h2 rfl gkr_rounds_body2 rd args rets,
-      gk_complete 2 (by decide) (by decide) h2 rfl gkr_rounds_body2 rd args rets⟩
 
 end
 end LeanVM.Guest.B1

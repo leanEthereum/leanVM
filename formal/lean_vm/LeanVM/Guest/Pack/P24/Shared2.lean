@@ -15,6 +15,33 @@ public import LeanVM.Guest.Pack.«P24».Bundle
 
 set_option Elab.async false
 
+namespace LeanVM.Guest.Fn.«block_selector_tab__L17»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `block_selector_tab__L17`, once. -/
+theorem st : shareStaticD Fn.«block_selector_tab__L17».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `block_selector_tab__L17`, window 0. -/
+theorem sw0 : shareWinD Fn.«block_selector_tab__L17».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `block_selector_tab__L17`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«block_selector_tab__L17».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«block_selector_tab__L17»
+
 namespace LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L16_L34»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -95,31 +122,4 @@ theorem shareOk : ShareOkD Fn.«grind_check__L13».core (cert.withPows Data.powT
 
 end
 end LeanVM.Guest.Fn.«grind_check__L13»
-
-namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L15»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `child_claim_list_mono_last__L15`, once. -/
-theorem st : shareStaticD Fn.«child_claim_list_mono_last__L15».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `child_claim_list_mono_last__L15`, window 0. -/
-theorem sw0 : shareWinD Fn.«child_claim_list_mono_last__L15».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `child_claim_list_mono_last__L15`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«child_claim_list_mono_last__L15».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«child_claim_list_mono_last__L15»
 

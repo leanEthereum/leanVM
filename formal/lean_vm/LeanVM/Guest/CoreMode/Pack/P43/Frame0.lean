@@ -35,6 +35,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P43».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P43».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P43».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P43».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P43».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P0»
 public import LeanVM.Guest.CoreMode.Sig.«P14»
 public import LeanVM.Guest.CoreMode.Sig.«P17»
@@ -62,6 +63,7 @@ open LeanVM.Guest.Exec
 @[expose] public section
 
 frame_fn% «eq_prefix_run__L23» 119 []
+frame_fn% «eq_prefix_run_rev__L25» 153 []
 frame_fn% «plus_one_run__L32» 99 []
 frame_fn% «block_selector__L1» 12 []
 frame_fn% «block_selector__L27» 272 []

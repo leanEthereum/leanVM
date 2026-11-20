@@ -293,7 +293,7 @@ noncomputable def core : Core.Fn where
 end
 end LeanVM.Guest.Fn.«da_levels__L128_L7_loop3»
 
-namespace LeanVM.Guest.Fn.«gkr_rounds__L2»
+namespace LeanVM.Guest.Fn.«gkr_last_layers__L3_L0»
 
 open LeanVM.Guest
 
@@ -301,95 +301,28 @@ open LeanVM.Guest
 
 namespace core
 
-/-- `gkr_rounds__L2`: the body. -/
-noncomputable def body : List Core.Stmt := (
-  .atom (.load (.n 5) (.n 0) 0) ::
-  .atom (.load (.n 6) (.n 0) 862) ::
-  .atom (.load (.n 7) (.n 0) 1724) ::
-  .atom (.load (.n 8) (.n 0) 2586) ::
-  .atom (.load (.n 9) (.n 0) 3448) ::
-  .atom (.load (.n 10) (.n 0) 5172) ::
-  .atom (.load (.n 11) (.n 2) 0) ::
-  .atom (.copy (.n 12) (.n 11)) ::
-  .atom (.const (.n 13) (word 0 1)) ::
-  .atom (.load (.n 14) (.n 2) 1) ::
-  .atom (.copy (.n 15) (.n 14)) ::
-  .atom (.const (.n 16) (word 0 1)) ::
-  .atom (.load (.n 17) (.n 2) 2) ::
-  .atom (.copy (.n 18) (.n 17)) ::
-  .atom (.const (.n 19) (word 0 1)) ::
-  .atom (.load (.n 20) (.n 2) 3) ::
-  .atom (.copy (.n 21) (.n 20)) ::
-  .atom (.const (.n 22) (word 0 1)) ::
-  .atom (.keccak [.n 12, .n 13, .n 15, .n 16, .n 18, .n 19, .n 21, .n 22, .n 5, .n 6, .n 7, .n 8, .n 9] [.n 23, .n 24, .n 25, .n 26, .n 27, .n 28, .n 29, .n 30, .n 31, .n 32, .n 33, .n 34, .n 35] false false) ::
-  .atom (.copy (.n 36) (.n 23)) ::
-  .atom (.load (.n 37) (.n 1) 0) ::
-  .atom (.add (.n 38) (.n 11) (.n 14)) ::
-  .atom (.add (.n 39) (.n 38) (.n 17)) ::
-  .atom (.add (.n 40) (.n 39) (.n 20)) ::
-  .atom (.mul (.n 41) (.n 37) (.n 40)) ::
-  .atom (.add (.n 42) (.n 10) (.n 41)) ::
-  .atom (.load (.n 36) (.n 1) 42) ::
-  .atom (.mul (.n 43) (.n 36) (.n 20)) ::
-  .atom (.add (.n 44) (.n 17) (.n 43)) ::
-  .atom (.mul (.n 45) (.n 36) (.n 44)) ::
-  .atom (.add (.n 46) (.n 14) (.n 45)) ::
-  .atom (.mul (.n 47) (.n 36) (.n 46)) ::
-  .atom (.add (.n 48) (.n 11) (.n 47)) ::
-  .atom (.mul (.n 49) (.n 36) (.n 48)) ::
-  .atom (.add (.n 50) (.n 42) (.n 49)) ::
-  .atom (.load (.n 51) (.n 2) 4) ::
-  .atom (.copy (.n 52) (.n 51)) ::
-  .atom (.const (.n 53) (word 0 1)) ::
-  .atom (.load (.n 54) (.n 2) 5) ::
-  .atom (.copy (.n 55) (.n 54)) ::
-  .atom (.const (.n 56) (word 0 1)) ::
-  .atom (.load (.n 57) (.n 2) 6) ::
-  .atom (.copy (.n 58) (.n 57)) ::
-  .atom (.const (.n 59) (word 0 1)) ::
-  .atom (.load (.n 60) (.n 2) 7) ::
-  .atom (.copy (.n 61) (.n 60)) ::
-  .atom (.const (.n 62) (word 0 1)) ::
-  .atom (.keccak [.n 52, .n 53, .n 55, .n 56, .n 58, .n 59, .n 61, .n 62, .n 31, .n 32, .n 33, .n 34, .n 35] [.n 63, .n 64, .n 65, .n 66, .n 67, .n 68, .n 69, .n 70, .n 71, .n 72, .n 73, .n 74, .n 75] false false) ::
-  .atom (.copy (.n 76) (.n 63)) ::
-  .atom (.load (.n 77) (.n 1) 1) ::
-  .atom (.add (.n 78) (.n 51) (.n 54)) ::
-  .atom (.add (.n 79) (.n 78) (.n 57)) ::
-  .atom (.add (.n 80) (.n 79) (.n 60)) ::
-  .atom (.mul (.n 81) (.n 77) (.n 80)) ::
-  .atom (.add (.n 82) (.n 50) (.n 81)) ::
-  .atom (.load (.n 76) (.n 1) 43) ::
-  .atom (.mul (.n 83) (.n 76) (.n 60)) ::
-  .atom (.add (.n 84) (.n 57) (.n 83)) ::
-  .atom (.mul (.n 85) (.n 76) (.n 84)) ::
-  .atom (.add (.n 86) (.n 54) (.n 85)) ::
-  .atom (.mul (.n 87) (.n 76) (.n 86)) ::
-  .atom (.add (.n 88) (.n 51) (.n 87)) ::
-  .atom (.mul (.n 89) (.n 76) (.n 88)) ::
-  .atom (.add (.n 90) (.n 82) (.n 89)) ::
-  .atom (.load (.n 71) (.n 0) 1) ::
-  .atom (.load (.n 72) (.n 0) 863) ::
-  .atom (.load (.n 73) (.n 0) 1725) ::
-  .atom (.load (.n 74) (.n 0) 2587) ::
-  .atom (.load (.n 75) (.n 0) 3449) ::
-  .atom (.const (.n 91) (word 256 0)) ::
-  .atom (.mul (.n 92) (.n 2) (.n 91)) ::
-  .atom (.load (.n 92) (.n 0) 4311) ::
-  .atom (.load (.n 90) (.n 0) 5173) ::
-  .atom (.const (.n 93) (word 0 0)) ::
-  .ret [.n 93] ::
-  [])
+/-- `gkr_last_layers__L3_L0`: the body. -/
+noncomputable def body : List Core.Stmt := [
+  .call "gkr_layer__L0_L0" [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8] [],
+  .atom (.const (.n 9) (word 2 0)),
+  .atom (.mul (.n 10) (.n 4) (.n 9)),
+  .call "gkr_layer__L1_L0" [.n 0, .n 1, .n 2, .n 3, .n 10, .n 5, .n 6, .n 7, .n 8] [],
+  .atom (.const (.n 11) (word 2 0)),
+  .atom (.mul (.n 12) (.n 10) (.n 11)),
+  .call "gkr_layer__L2_L0" [.n 0, .n 1, .n 2, .n 3, .n 12, .n 5, .n 6, .n 7, .n 8] [],
+  .atom (.const (.n 13) (word 0 0)),
+  .ret [.n 13]]
 
 end core
 
-/-- `gkr_rounds__L2`. -/
+/-- `gkr_last_layers__L3_L0`. -/
 noncomputable def core : Core.Fn where
-  name := "gkr_rounds__L2"
-  params := [.n 0, .n 1, .n 2, .n 3, .n 4]
+  name := "gkr_last_layers__L3_L0"
+  params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8]
   body := core.body
 
 end
-end LeanVM.Guest.Fn.«gkr_rounds__L2»
+end LeanVM.Guest.Fn.«gkr_last_layers__L3_L0»
 
 namespace LeanVM.Guest.Fn.«level_positions__L13_L20_L2_loop0»
 

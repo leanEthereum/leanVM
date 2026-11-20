@@ -563,6 +563,43 @@ noncomputable def core : Core.Fn where
 end
 end LeanVM.Guest.Fn.«eq_prefix_run__L8»
 
+namespace LeanVM.Guest.Fn.«eq_prefix_run_rev__L2»
+
+open LeanVM.Guest
+
+@[expose] public section
+
+namespace core
+
+/-- `eq_prefix_run_rev__L2`: the body. -/
+noncomputable def body : List Core.Stmt := [
+  .atom (.const (.n 4) (word 1 0)),
+  .atom (.load (.n 4) (.n 0) 0),
+  .atom (.load (.n 5) (.n 2) 1),
+  .atom (.load (.n 5) (.n 1) 0),
+  .atom (.load (.n 6) (.n 3) 0),
+  .atom (.add (.n 7) (.n 5) (.n 6)),
+  .atom (.load (.n 7) (.n 0) 1),
+  .atom (.load (.n 8) (.n 2) 0),
+  .atom (.load (.n 8) (.n 1) 1),
+  .atom (.load (.n 9) (.n 3) 1),
+  .atom (.add (.n 10) (.n 8) (.n 9)),
+  .atom (.mul (.n 11) (.n 7) (.n 10)),
+  .atom (.load (.n 11) (.n 0) 2),
+  .atom (.const (.n 12) (word 0 0)),
+  .ret [.n 12]]
+
+end core
+
+/-- `eq_prefix_run_rev__L2`. -/
+noncomputable def core : Core.Fn where
+  name := "eq_prefix_run_rev__L2"
+  params := [.n 0, .n 1, .n 2, .n 3]
+  body := core.body
+
+end
+end LeanVM.Guest.Fn.«eq_prefix_run_rev__L2»
+
 namespace LeanVM.Guest.Fn.«level_positions__L11_L23_L5»
 
 open LeanVM.Guest

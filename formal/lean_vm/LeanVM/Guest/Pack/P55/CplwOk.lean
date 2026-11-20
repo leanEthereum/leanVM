@@ -9,19 +9,19 @@ module
 
 public import LeanVM.Guest.B2C.CplCheck
 public import Mathlib.Tactic.IntervalCases
+public import LeanVM.Guest.Pack.«P55».Cplw0
 public import LeanVM.Guest.Pack.«P55».Cplw1
-public import LeanVM.Guest.Pack.«P55».Cplw2
 
-namespace LeanVM.Guest.Fn.«level_queries__L55_L0_L4_L16_L17_L5_L0_L0_L0_L0»
+namespace LeanVM.Guest.Fn.«keccak_layer__L0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `level_queries__L55_L0_L4_L16_L17_L5_L0_L0_L0_L0`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«verify_merkle_cap__L5».idx, Fn.«verify_merkle_cap__L5».sig), (Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».idx, Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code Fn.«level_queries__L55_L0_L4_L16_L17_L5_L0_L0_L0_L0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+/-- `keccak_layer__L0`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«grind_check__L3».idx, Fn.«grind_check__L3».sig), (Fn.«keccak_layer__L0_loop0».idx, Fn.«keccak_layer__L0_loop0».sig), (Fn.«keccak_layer__L0_loop1».idx, Fn.«keccak_layer__L0_loop1».sig)]) Data.jtTrie globSem) code Fn.«keccak_layer__L0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
-  have hc : (cert.withPows Data.powTree).cuts.length = 1 := by decide +kernel
+  have hc : (cert.withPows Data.powTree).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nPartsD parts 0 = 1 := by decide +kernel
@@ -32,7 +32,11 @@ theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«verify_merkle_cap__L5».idx, Fn.«ve
     rw [hn] at hk
     interval_cases k
     · exact cw1_0
+  · have hn : nPartsD parts 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw2_0
 
 end
-end LeanVM.Guest.Fn.«level_queries__L55_L0_L4_L16_L17_L5_L0_L0_L0_L0»
+end LeanVM.Guest.Fn.«keccak_layer__L0»
 

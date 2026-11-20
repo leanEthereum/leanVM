@@ -16,7 +16,7 @@ open LeanVM.Guest.Core LeanVM.Guest.Memory
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem termRange_341 : RangeOk (fun _ fn => termChk fn) 341 1 := by
+theorem termRange_375 : RangeOk (fun _ fn => termChk fn) 375 1 := by
   unfold RangeOk; decide +kernel
 
 end

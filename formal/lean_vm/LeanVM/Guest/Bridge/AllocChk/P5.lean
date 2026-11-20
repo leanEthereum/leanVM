@@ -31,6 +31,7 @@ namespace LeanVM.Guest
 
 public section
 
+alloc_chk% «eq_prefix_run_rev__L12» []
 alloc_chk% «block_selector__L29» []
 alloc_chk% «index_mle__L1» []
 alloc_chk% «block_selector_tab__L18» []
@@ -41,6 +42,7 @@ alloc_chk% «level_residual__L21_L8_L4_L2» [«level_residual__L21_L8_L4_L2_loop
 alloc_chk% «level_residual__L18_L8_L4_L2» [«level_residual__L18_L8_L4_L2_loop0», «level_residual__L18_L8_L4_L2_loop1»]
 alloc_chk% «level_queries__L16_L0_L4_L16_L21_L3_L0_L0_L0_L0» [«verify_merkle_cap__L3», «opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0»]
 alloc_chk% «level_queries__L25_L0_L4_L16_L24_L6_L0_L0_L0_L0» [«verify_merkle_cap__L6», «opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0»]
+alloc_chk% «gkr_layer__L1_L0» [«gkr_layer__L1_L0_loop0»]
 alloc_chk% «opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1» [«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1_loop0»]
 alloc_chk% «opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0» [«opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0»]
 alloc_chk% «opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0» [«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0»]

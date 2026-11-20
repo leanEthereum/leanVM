@@ -11,7 +11,7 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-abbrev Fn.«verify_merkle_cap__L8».entry : Nat := 327374
+abbrev Fn.«verify_merkle_cap__L8».entry : Nat := 333222
 
 end
 

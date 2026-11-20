@@ -562,7 +562,8 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
       have hmk := stK_mlK hsk
       obtain ⟨a, ha, haD, hsub⟩ := st_inst hr hI hIt hfind hsk
       have hD0 : D ≠ 0 := by
-        rcases stK_cases hsk with ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ <;>
+        rcases stK_cases hsk with ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ |
+          ⟨-, -, -, -, -, rfl, -⟩ <;>
           decide
       refine ⟨CoreMode.setG e.σ [refMem r.img (a + D), ofK (Parameters.g ^ a)], CoreMode.honB_setG hB hng,
         fun hxw ↦ ?_, ?_, fun c j hc ↦ by rw [List.isEmpty_iff.mp hgw0] at hc; cases hc⟩

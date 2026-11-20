@@ -662,6 +662,11 @@ class Solver:
                         if R not in cands:
                             cands.append(R)
                 cands.append((B, 1, ((), 0), C.cshift(hi, 1)))
+                if 'chain' in I.F and B == base and S == 1:
+                    # the run its pieces in scope make up (`infer.reach`)
+                    k = I.reach(B, 1, list(st.rs.values()), st.c2s, C.cmul, C.cpow, C.cshift)
+                    if k is not None and (B, 1, ((), 0), k) not in cands:
+                        cands.insert(0, (B, 1, ((), 0), k))
                 # a run of the scope's stride, up to a side of a kept equation, when `Q`'s stride is a multiple of it
                 # (after the others)
                 Sr = st.rs[r][1]
@@ -679,6 +684,11 @@ class Solver:
                 if C.runRun(F, st.eqs, Q, R):
                     self.stats['drv'] += 1
                     return [('drv', R, [])] + ws
+                # the upper bound below the made-up run's by a residual (`(hi, k·g)`)
+                f = self.fact(st, hi, C.cshift(R[3], 1)) if 'chain' in I.F else None
+                if f and C.runRun(self.X.facts(st.env, f), st.eqs, Q, R):
+                    self.stats['drv'] += 1
+                    return [('drv', R, f)] + ws
                 # a residual `subR Q R` (under the site's path)
                 g = tuple(dict.fromkeys(self.X.path))
                 q, Rr = (base, S, self.idx(st, lo), self.idx(st, hi)), (R[0], R[1], ('num', 0), self.idx(st, R[3]))
@@ -1217,7 +1227,7 @@ class Solver:
         for r in G.preR:
             t = C.instR(ms, r)
             w = self.run(st, t) if t is not None else None
-            if w is None and t is not None and 'der' in I.F:
+            if w is None and t is not None and ('der' in I.F or 'chain' in I.F):
                 w = self.drv(st, t)
             if w is None:
                 self.miss.append((where, 'preR', t))
@@ -1410,10 +1420,26 @@ class Solver:
                     break
                 per.append(w)
             else:
-                abs_.append((q, K, d))
+                abs_.append(('ab', q, K, d))
                 abw.append(per)
                 self.stats['ab'] += 1
-        ws = [('vp', vps[t][0], list(vps[t][1])) for t in keep] + [('ab',) + a for a in abs_]
+        # blocks whose base moves with the arm (`abx`): arm `j` writes `⟨q·g^(a·j), S, 0, hi·g^(b·j)⟩`
+        for e in (self.abx_cands(st, mx) if 'armsub' in I.F else ()):
+            per = []
+            for j, g in enumerate(fs):
+                if arms_j[j] is None or arms_j[j][0] == 'skip':
+                    per.append([])
+                    continue
+                sj = C.condSt(mx, j, st.cd, st)
+                w = pas.under(('arm', x, j), lambda: self.ab_arm(sj, ma, g, rets, C.abArmR(j, e)))
+                if w is None:
+                    break
+                per.append(w)
+            else:
+                abs_.append(('abx',) + tuple(e))
+                abw.append(per)
+                self.stats['abx'] += 1
+        ws = [('vp', vps[t][0], list(vps[t][1])) for t in keep] + abs_
         for j, a in enumerate(arms):
             if a[0] == 'skip':
                 ws.append(a)
@@ -1427,6 +1453,34 @@ class Solver:
         assert len(self.H.calls) == st.nc
         self.H.calls.append(ws if ok else [('fail',)])
         return ws if ok else None
+
+    def abx_cands(self, st, mx):
+        """The own guarantees over the selector `x` (`x·g^0` a value's own base) as blocks moving with the arm: a cell
+        `q·x^a` the run `⟨q·x^a, 1, 0, g⟩`, a run `⟨q·x^a, S, 0, hi·x^b⟩`, at the parameters' monomials."""
+        if len(mx[0]) != 1 or mx[0][0][1] != 1 or mx[1]:
+            return []
+        v = mx[0][0][0]
+        ms = C.monos(st.env, I.CORE[self.k][0])
+        if ms is None:
+            return []
+        G, out = self.H.sig, []
+
+        def split(c):
+            e = dict(c[0]).get(v, 0)
+            return (tuple(b for b in c[0] if b[0] != v), c[1]), e
+        for c in G.post:
+            c2 = C.instC(ms, c)
+            if c2 is not None:
+                q, a = split(c2)
+                if a:
+                    out.append((q, a, 1, ((), 1), 0))
+        for r in G.postR:
+            r2 = C.instR(ms, r)
+            if r2 is not None and r2[2] == ((), 0):
+                (q, a), (hi, b) = split(r2[0]), split(r2[3])
+                if a or b:
+                    out.append((q, a, r2[1], hi, b))
+        return list(dict.fromkeys(out))
 
     def ab_arm(self, st, ma, g, rets, Q):
         """A block's run in the arm's state with the callee's guarantees pushed (`abArm`)."""
@@ -1801,6 +1855,8 @@ def lwit(w):
         return f'.catM {lcell(w[1])} {lcell(w[2])} {lnums(w[3])}'
     if k == 'ab':
         return f'.ab {lcell(w[1])} {w[2]} {w[3]}'
+    if k == 'abx':
+        return f'.abx {lcell(w[1])} {w[2]} {w[3]} {lcell(w[4])} {w[5]}'
     if k == 'der':
         (b, S, lo, hi), res, ws = w[1], w[2], w[3]
         chain = '.wnil'

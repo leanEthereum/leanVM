@@ -13,10 +13,13 @@ public import LeanVM.Guest.Bridge.ChkLit
 public import LeanVM.Guest.Bridge.Align.«P30»
 public import LeanVM.Guest.CoreMode.GlueA.«P16»
 public import LeanVM.Guest.CoreMode.GlueA.«P25»
+public import LeanVM.Guest.CoreMode.GlueA.«P29»
 public import LeanVM.Guest.CoreMode.GlueA.«P30»
 public import LeanVM.Guest.CoreMode.GlueA.«P35»
 public import LeanVM.Guest.CoreMode.GlueA.«P3»
 public import LeanVM.Guest.CoreMode.GlueA.«P47»
+public import LeanVM.Guest.CoreMode.GlueA.«P50»
+public import LeanVM.Guest.CoreMode.GlueA.«P55»
 public import LeanVM.Guest.Pack.«P30».Bundle
 public import LeanVM.Guest.Pack.«P30».Core
 
@@ -30,6 +33,7 @@ alloc_chk% «padding_weight__L1» []
 alloc_chk% «padding_weight__L14» []
 alloc_chk% «block_selector_tab__L28» []
 alloc_chk% «child_claim_list_mono_last__L4» []
+alloc_chk% «gkr_last_layers__L3_L1» [«gkr_layer__L0_L1», «gkr_layer__L1_L1», «gkr_layer__L2_L1»]
 alloc_chk% «level_residual__L109_L16_L6_L3» [«level_residual__L109_L16_L6_L3_loop0», «level_residual__L109_L16_L6_L3_loop1»]
 alloc_chk% «level_positions__L22_L23_L5» [«decode_query_windows__L23_L5», «level_positions__L22_L23_L5_loop0»]
 alloc_chk% «level_positions__L15_L24_L6» [«decode_query_windows__L24_L6», «level_positions__L15_L24_L6_loop0»]

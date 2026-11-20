@@ -39,6 +39,8 @@ namespace LeanVM.Guest
 
 public section
 
+alloc_chk% «eq_prefix_run_rev__L10» []
+alloc_chk% «eq_prefix_run_rev__L29» []
 alloc_chk% «index_mle__L3» []
 alloc_chk% «column_selector__L0» []
 alloc_chk% «level_queries__L24_L0_L4_L16_L13_L7_L2_L8_L3_L1» [«verify_merkle_cap__L7», «opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1»]

@@ -15,6 +15,33 @@ public import LeanVM.Guest.Pack.«P26».Bundle
 
 set_option Elab.async false
 
+namespace LeanVM.Guest.Fn.«index_mle__L22»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `index_mle__L22`, once. -/
+theorem st : shareStaticD Fn.«index_mle__L22».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `index_mle__L22`, window 0. -/
+theorem sw0 : shareWinD Fn.«index_mle__L22».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `index_mle__L22`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«index_mle__L22».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«index_mle__L22»
+
 namespace LeanVM.Guest.Fn.«column_selector__L12»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -95,31 +122,4 @@ theorem shareOk : ShareOkD Fn.«keccak_layer__L1_loop1».core (cert.withPows Dat
 
 end
 end LeanVM.Guest.Fn.«keccak_layer__L1_loop1»
-
-namespace LeanVM.Guest.Fn.«grind_check__L20»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `grind_check__L20`, once. -/
-theorem st : shareStaticD Fn.«grind_check__L20».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `grind_check__L20`, window 0. -/
-theorem sw0 : shareWinD Fn.«grind_check__L20».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `grind_check__L20`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«grind_check__L20».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«grind_check__L20»
 

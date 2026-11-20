@@ -18,8 +18,8 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-abbrev Fn.«verify_sig_lean_sphincs».advice := Data.adviceFn21
-abbrev Fn.«verify_sig_lean_sphincs».idx : ℕ := 21
+abbrev Fn.«verify_sig_lean_sphincs».advice := Data.adviceFn22
+abbrev Fn.«verify_sig_lean_sphincs».idx : ℕ := 22
 
 end
 

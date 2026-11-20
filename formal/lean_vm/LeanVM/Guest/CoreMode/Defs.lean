@@ -159,6 +159,10 @@ inductive Wit where
   `⟨q, stride, 0, j + d⟩` (its witnesses follow the arm's `vp` points), so after the dispatch the run
   `⟨q, stride, g^0, x·g^d⟩` is written, `x` the selector. -/
   | ab (q : CCell) (stride d : ℕ)
+  /-- Leading a dispatch's witnesses (after its `ab`s): every kept arm `j` writes the run
+  `⟨q·g^(a·j), stride, 0, hi·g^(b·j)⟩` (its witnesses follow the arm's `ab` runs'), so after the dispatch the run
+  `⟨q·x^a, stride, g^0, hi·x^b⟩` is written, `x` the selector: a block whose base moves with the arm. -/
+  | abx (q : CCell) (a stride : ℕ) (hi : CCell) (b : ℕ)
   /-- A cell of a run in scope of lower bound `g^0` extended by the point after it (`base·hi^stride`, witnessed
   by `q`): the cell's index below the upper bound's next by a fact of these residuals. -/
   | app (r : ℕ) (q : Wit) (res : List ℕ)

@@ -79,8 +79,6 @@ frame_fn% «column_selector__L27» 21 []
 frame_fn% «squeeze_point_from__L21» 83 []
 frame_fn% «claim_list_last__L3» 54 []
 frame_fn% «child_claim_list_last__L4» 90 []
-frame_fn% «verify_bus_gkr_loop0_loop0» 94 [«verify_bus_gkr_loop0_loop0»] env [(7, (.fpg 0))] scaled
-    [7]
 frame_fn% «level_residual__L55_L16_L6_L3» 45 [«level_residual__L55_L16_L6_L3_loop0»,
     «level_residual__L55_L16_L6_L3_loop1»]
 frame_fn% «level_residual__L55_L15_L4_L2» 45 [«level_residual__L55_L15_L4_L2_loop0»,
@@ -109,6 +107,7 @@ frame_fn% «level_residual__L73_L20_L6_L3_loop0» 850 [«level_residual__L73_L20
     env [(9, (.fpg 0))] scaled [9]
 frame_fn% «level_residual__L25_L12_L4_L2_loop1» 113 [«level_residual__L25_L12_L4_L2_loop1»] sigs []
     env [(9, (.fpg 0))] scaled [9]
+frame_fn% «gkr_layer__L3_L0_loop0» 272 [«gkr_layer__L3_L0_loop0»] env [(8, (.fpg 0))] scaled [8]
 frame_fn% «opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1_loop0» 143
     [«opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1_loop0», «walk_path__L12_L4»] env [(12,
     (.fpg 0))] scaled [12]

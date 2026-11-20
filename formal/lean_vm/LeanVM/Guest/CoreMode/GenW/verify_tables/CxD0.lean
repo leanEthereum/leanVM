@@ -50,596 +50,599 @@ noncomputable def cxRd21 := dropO reads1 256
 noncomputable def cxRd22 := dropO reads1 288
 noncomputable def cxRtr0 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node none (.node none (.node (Option.map Prod.snd (nthO reads0 4)) (.node none (.node none (.node none (.node none
-    (.node none (.node (Option.map Prod.snd (nthO cxRd4 7)) (.node (Option.map Prod.snd (nthO cxRd14 9)) .nil .nil)
-    .nil) .nil) .nil) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd17 27)) .nil
-    .nil) .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd7 23)) .nil .nil) .nil))) (.node none (.node none
-    .nil (.node none (.node (Option.map Prod.snd (nthO cxRd7 12)) .nil .nil) .nil)) (.node none (.node none .nil
-    (.node none (.node (Option.map Prod.snd (nthO cxRd19 0)) .nil .nil) .nil)) (.node none (.node (Option.map Prod.snd
-    (nthO cxRd8 24)) .nil .nil) .nil)))) (.node none (.node none (.node none .nil (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd16 24)) .nil .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd20 25))
-    .nil .nil) .nil))) .nil) (.node none (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12
-    28)) (.node (Option.map Prod.snd (nthO cxRd21 28)) .nil .nil) .nil))) .nil))) (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd0 21)) .nil (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10
-    26)) .nil .nil)) .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd
-    (nthO cxRd21 20)) .nil .nil) .nil))) .nil)) (.node (Option.map Prod.snd (nthO cxRd0 10)) (.node none .nil (.node
-    none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18 23)) .nil .nil) .nil)) .nil)) (.node
-    none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 7)) .nil .nil) .nil) .nil)
-    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd22 4)) .nil .nil) .nil))) (.node none (.node
-    none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 29)) .nil .nil) .nil)) .nil))))) (.node (Option.map
-    Prod.snd (nthO reads0 10)) (.node (Option.map Prod.snd (nthO reads0 18)) (.node (Option.map Prod.snd (nthO reads0
-    30)) (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 11)) .nil
-    .nil) .nil))) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd7 28)) .nil .nil) .nil))) (.node
-    none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd3 13)) .nil .nil)))) (.node none (.node none .nil
-    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 22)) .nil .nil) .nil) .nil) (.node
-    none .nil (.node (Option.map Prod.snd (nthO reads1 4)) .nil .nil)))) (.node none (.node none (.node none .nil
-    (.node (Option.map Prod.snd (nthO cxRd10 12)) (.node (Option.map Prod.snd (nthO cxRd17 13)) .nil .nil) .nil))
-    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd22 0)) .nil .nil) .nil))) (.node none (.node
-    none (.node none (.node (Option.map Prod.snd (nthO cxRd16 9)) .nil .nil) .nil) .nil) .nil)))) (.node none (.node
-    none (.node (Option.map Prod.snd (nthO cxRd0 29)) (.node none .nil (.node none .nil (.node (Option.map Prod.snd
-    (nthO cxRd12 4)) .nil .nil))) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10 30)) (.node
-    (Option.map Prod.snd (nthO cxRd18 9)) .nil .nil) .nil)) .nil)) (.node none (.node none .nil (.node none .nil
-    (.node none (.node (Option.map Prod.snd (nthO cxRd21 24)) .nil .nil) .nil))) .nil)) (.node none (.node none (.node
-    none (.node none (.node (Option.map Prod.snd (nthO cxRd4 28)) (.node (Option.map Prod.snd (nthO cxRd14 24)) .nil
-    .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd9 30)) .nil .nil)) (.node none .nil (.node none (.node
-    (Option.map Prod.snd (nthO cxRd21 7)) .nil .nil) .nil))) (.node none (.node none .nil (.node (Option.map Prod.snd
-    (nthO cxRd11 9)) .nil .nil)) (.node none .nil (.node (Option.map Prod.snd (nthO reads1 13)) .nil .nil)))) (.node
-    none (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd22 8)) .nil .nil) .nil)))
-    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd7 0)) .nil .nil) .nil) .nil)))))) (.node none (.node
-    (Option.map Prod.snd (nthO reads0 7)) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd0 16)) (.node
-    none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 24)) (.node (Option.map Prod.snd (nthO cxRd20
-    8)) .nil .nil) .nil))) .nil) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd7 14))
-    .nil .nil) .nil)) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 3)) .nil .nil)
-    .nil)) .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd2 16)) (.node none .nil (.node
-    (Option.map Prod.snd (nthO cxRd9 18)) .nil .nil)) .nil) .nil) (.node none (.node none .nil (.node none .nil (.node
-    (Option.map Prod.snd (nthO cxRd12 30)) (.node (Option.map Prod.snd (nthO cxRd21 30)) .nil .nil) .nil))) (.node
-    none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 7)) .nil .nil) .nil) .nil) .nil)))) (.node
-    none (.node none (.node (Option.map Prod.snd (nthO cxRd0 26)) (.node (Option.map Prod.snd (nthO cxRd2 14)) (.node
-    none (.node (Option.map Prod.snd (nthO cxRd4 15)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd9 8)) .nil
-    .nil)) .nil) .nil) (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO
-    cxRd21 22)) .nil .nil) .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 28)) .nil .nil)
-    .nil) .nil))) (.node none (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd14
-    22)) .nil .nil) .nil) .nil) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 5)) .nil .nil)
-    .nil))) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 7)) .nil .nil)) .nil)) (.node none
-    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 9)) .nil .nil) .nil) .nil) (.node
-    none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd22 6)) .nil .nil) .nil))) (.node none (.node none .nil
-    (.node none (.node (Option.map Prod.snd (nthO cxRd19 31)) .nil .nil) .nil)) .nil))))) (.node (Option.map Prod.snd
-    (nthO reads0 12)) (.node (Option.map Prod.snd (nthO reads0 20)) (.node none (.node none (.node (Option.map
-    Prod.snd (nthO cxRd2 8)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd2 25)) .nil (.node
-    (Option.map Prod.snd (nthO cxRd10 24)) .nil .nil)) .nil)) (.node none (.node none (.node none .nil (.node
-    (Option.map Prod.snd (nthO cxRd10 4)) .nil .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO
-    cxRd21 18)) .nil .nil) .nil))) .nil)) (.node none (.node none (.node none .nil (.node none (.node (Option.map
-    Prod.snd (nthO cxRd7 1)) .nil .nil) .nil)) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO
-    cxRd15 24)) .nil .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd18 21)) .nil .nil) .nil)) .nil))
-    (.node none (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd17 15)) .nil .nil)
-    .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd22 2)) .nil .nil) .nil))) .nil))) (.node
-    none (.node (Option.map Prod.snd (nthO cxRd0 4)) (.node none (.node none .nil (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd16 22)) .nil .nil) .nil) .nil)) (.node none .nil (.node none (.node (Option.map
-    Prod.snd (nthO cxRd8 8)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd13 1)) .nil .nil)))) (.node none (.node
-    none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd17 5)) .nil .nil) .nil)) (.node none .nil
-    (.node none (.node (Option.map Prod.snd (nthO cxRd21 26)) .nil .nil) .nil))) (.node none (.node none .nil (.node
-    none (.node (Option.map Prod.snd (nthO cxRd19 17)) .nil .nil) .nil)) (.node none .nil (.node (Option.map Prod.snd
-    (nthO reads1 29)) .nil .nil))))) (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO
-    cxRd4 29)) .nil .nil) .nil) .nil) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd3 4)) .nil (.node
-    (Option.map Prod.snd (nthO reads1 16)) .nil .nil)))) (.node none (.node none (.node none .nil (.node none (.node
-    (Option.map Prod.snd (nthO cxRd17 24)) .nil .nil) .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd
-    (nthO cxRd22 10)) .nil .nil) .nil))) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 19))
-    .nil .nil)) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd14 7)) .nil .nil)))))))))
+    (.node none (.node (Option.map Prod.snd (nthO cxRd4 7)) .nil .nil) .nil) .nil) .nil) (.node none (.node none .nil
+    (.node none (.node (Option.map Prod.snd (nthO cxRd7 13)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO
+    cxRd21 13)) .nil .nil) .nil))) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd8 25)) .nil
+    .nil) .nil)))) (.node none (.node none (.node none .nil (.node none (.node none (.node (Option.map Prod.snd (nthO
+    cxRd16 25)) .nil .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd12 10)) .nil .nil))) (.node none (.node none
+    .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18 15)) .nil .nil) .nil)) (.node none (.node (Option.map
+    Prod.snd (nthO cxRd8 11)) .nil .nil) (.node (Option.map Prod.snd (nthO reads1 0)) .nil .nil)))) (.node none (.node
+    none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd17 9)) .nil .nil) .nil)) (.node none .nil
+    (.node (Option.map Prod.snd (nthO cxRd12 29)) (.node (Option.map Prod.snd (nthO cxRd21 29)) .nil .nil) .nil)))
+    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 6)) .nil .nil) .nil) (.node none
+    (.node (Option.map Prod.snd (nthO cxRd19 20)) .nil .nil) .nil)) .nil)))) (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd0 21)) (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd
+    (nthO cxRd20 17)) .nil .nil) .nil))) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd8 2)) .nil
+    .nil) .nil))) (.node none (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd16 30))
+    .nil .nil) .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 21)) .nil .nil) .nil)))
+    (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 11)) .nil .nil) .nil)) .nil)))
+    (.node (Option.map Prod.snd (nthO cxRd0 10)) (.node none .nil (.node none (.node none .nil (.node (Option.map
+    Prod.snd (nthO cxRd11 6)) .nil .nil)) (.node none .nil (.node (Option.map Prod.snd (nthO reads1 10)) .nil .nil))))
+    (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 8)) .nil .nil) .nil)
+    .nil) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd22 5)) .nil .nil) .nil))) .nil)))) (.node
+    (Option.map Prod.snd (nthO reads0 10)) (.node (Option.map Prod.snd (nthO reads0 18)) (.node (Option.map Prod.snd
+    (nthO reads0 30)) (.node none (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 28)) .nil
+    .nil))) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18 1)) .nil .nil) .nil))
+    .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 17))
+    .nil .nil) .nil))) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd3 13)) .nil (.node (Option.map Prod.snd
+    (nthO reads1 23)) .nil .nil))))) (.node none (.node none (.node none (.node none .nil (.node (Option.map Prod.snd
+    (nthO cxRd9 21)) .nil .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 31)) .nil .nil)
+    .nil))) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 23)) .nil .nil) .nil) .nil)
+    .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd22 1)) .nil
+    .nil) .nil))) .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd0 29)) (.node none (.node none
+    .nil (.node (Option.map Prod.snd (nthO cxRd9 12)) .nil .nil)) .nil) .nil) (.node none (.node none .nil (.node none
+    .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 25)) .nil .nil) .nil))) .nil)) (.node none (.node none
+    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 28)) (.node (Option.map Prod.snd (nthO cxRd14 25))
+    .nil .nil) .nil) .nil) .nil) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18
+    29)) .nil .nil) .nil)) .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map
+    Prod.snd (nthO cxRd22 9)) .nil .nil) .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd7 0))
+    .nil .nil) .nil) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd14 6)) .nil .nil)))))))) (.node none
+    (.node (Option.map Prod.snd (nthO reads0 7)) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd0 16))
+    .nil (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10 20)) .nil .nil)) .nil)) (.node none
+    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd7 15)) .nil .nil) .nil)) (.node none .nil
+    (.node none .nil (.node (Option.map Prod.snd (nthO reads1 22)) .nil .nil))))) (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd2 16)) .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20
+    28)) .nil .nil) .nil))) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd8 14)) .nil .nil)
+    .nil))) (.node none (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 31)) (.node
+    (Option.map Prod.snd (nthO cxRd21 31)) .nil .nil) .nil))) (.node none (.node none (.node none (.node (Option.map
+    Prod.snd (nthO cxRd16 8)) .nil .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd19 23)) .nil .nil)
+    .nil)) .nil)))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd0 26)) (.node (Option.map Prod.snd
+    (nthO cxRd2 14)) (.node none (.node (Option.map Prod.snd (nthO cxRd4 15)) .nil .nil) .nil) (.node none .nil (.node
+    none (.node (Option.map Prod.snd (nthO cxRd20 19)) .nil .nil) .nil))) .nil) (.node none (.node none (.node none
+    .nil (.node none (.node (Option.map Prod.snd (nthO cxRd17 1)) .nil .nil) .nil)) (.node none .nil (.node none
+    (.node (Option.map Prod.snd (nthO cxRd21 23)) .nil .nil) .nil))) (.node none (.node none (.node (Option.map
+    Prod.snd (nthO cxRd6 28)) .nil .nil) .nil) .nil))) (.node none (.node none (.node none (.node none (.node none
+    (.node (Option.map Prod.snd (nthO cxRd14 23)) .nil .nil) .nil) .nil) .nil) (.node none (.node none .nil (.node
+    (Option.map Prod.snd (nthO cxRd11 8)) .nil .nil)) .nil)) (.node none (.node none (.node none .nil (.node none
+    (.node (Option.map Prod.snd (nthO cxRd17 21)) .nil .nil) .nil)) (.node none .nil (.node none (.node (Option.map
+    Prod.snd (nthO cxRd22 7)) .nil .nil) .nil))) .nil)))) (.node (Option.map Prod.snd (nthO reads0 12)) (.node
+    (Option.map Prod.snd (nthO reads0 20)) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd2 8)) (.node
+    none .nil (.node (Option.map Prod.snd (nthO cxRd9 4)) .nil .nil)) (.node none .nil (.node (Option.map Prod.snd
+    (nthO cxRd11 30)) .nil .nil))) (.node none (.node (Option.map Prod.snd (nthO cxRd2 25)) .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd18 3)) .nil .nil) .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd8 0))
+    .nil .nil) .nil))) (.node none (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd16
+    28)) .nil .nil) .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 19)) .nil .nil)
+    .nil))) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 9)) .nil .nil) .nil))
+    .nil))) (.node none (.node none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 24)) .nil
+    .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd7 4)) .nil .nil) .nil)) (.node none (.node none (.node
+    none (.node (Option.map Prod.snd (nthO cxRd15 25)) .nil .nil) .nil) .nil) .nil)) (.node none (.node none (.node
+    none (.node none (.node (Option.map Prod.snd (nthO cxRd15 6)) .nil .nil) .nil) .nil) (.node none .nil (.node none
+    (.node (Option.map Prod.snd (nthO cxRd22 3)) .nil .nil) .nil))) .nil))) (.node none (.node (Option.map Prod.snd
+    (nthO cxRd0 4)) (.node none (.node none .nil (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 23))
+    .nil .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd12 7)) .nil .nil))) (.node none (.node none .nil (.node
+    none (.node (Option.map Prod.snd (nthO cxRd18 12)) .nil .nil) .nil)) (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd22 12)) .nil .nil) .nil)))) (.node none (.node none .nil (.node none .nil (.node
+    none (.node (Option.map Prod.snd (nthO cxRd21 27)) .nil .nil) .nil))) .nil)) (.node none (.node none (.node none
+    (.node none (.node (Option.map Prod.snd (nthO cxRd4 29)) .nil .nil) .nil) .nil) (.node none .nil (.node
+    (Option.map Prod.snd (nthO cxRd3 4)) (.node (Option.map Prod.snd (nthO cxRd8 23)) .nil .nil) .nil))) (.node none
+    (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10 15)) .nil .nil)) (.node none .nil (.node
+    none (.node (Option.map Prod.snd (nthO cxRd22 11)) .nil .nil) .nil))) (.node none (.node none .nil (.node none
+    (.node (Option.map Prod.snd (nthO cxRd20 5)) .nil .nil) .nil)) (.node none .nil (.node (Option.map Prod.snd (nthO
+    cxRd14 8)) .nil .nil)))))))))
 noncomputable def cxRtr1 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
-  (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node
-    (Option.map Prod.snd (nthO cxRd7 13)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd21 13)) .nil
-    .nil) .nil))) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd8 25)) .nil .nil) .nil)))) (.node
-    none (.node none (.node none .nil (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 25)) .nil .nil)
-    .nil) (.node (Option.map Prod.snd (nthO cxRd12 10)) .nil .nil))) (.node none (.node none .nil (.node none (.node
-    (Option.map Prod.snd (nthO cxRd18 15)) .nil .nil) .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd8 11))
-    .nil .nil) (.node (Option.map Prod.snd (nthO reads1 0)) .nil .nil)))) (.node none (.node none (.node none .nil
-    (.node none (.node (Option.map Prod.snd (nthO cxRd17 9)) .nil .nil) .nil)) (.node none .nil (.node (Option.map
-    Prod.snd (nthO cxRd12 29)) (.node (Option.map Prod.snd (nthO cxRd21 29)) .nil .nil) .nil))) (.node none (.node
-    none (.node none (.node (Option.map Prod.snd (nthO cxRd16 6)) .nil .nil) .nil) (.node none (.node (Option.map
-    Prod.snd (nthO cxRd19 20)) .nil .nil) .nil)) (.node (Option.map Prod.snd (nthO cxRd3 25)) .nil .nil))))) (.node
-    none (.node (Option.map Prod.snd (nthO cxRd0 1)) (.node none (.node none (.node none (.node (Option.map Prod.snd
-    (nthO cxRd4 14)) .nil .nil) .nil) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 17)) .nil
-    .nil) .nil))) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd8 2)) .nil .nil) .nil))) (.node
-    none (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd16 30)) .nil .nil) .nil))
-    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 21)) .nil .nil) .nil))) (.node none (.node
-    none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 11)) .nil .nil) .nil)) .nil))) (.node none (.node
-    none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 26)) .nil .nil) .nil) .nil) (.node none
-    (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 6)) .nil .nil)) (.node none .nil (.node (Option.map
-    Prod.snd (nthO reads1 10)) .nil .nil)))) (.node none (.node none (.node none (.node none (.node (Option.map
-    Prod.snd (nthO cxRd15 8)) .nil .nil) .nil) .nil) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO
-    cxRd22 5)) .nil .nil) .nil))) .nil)))) (.node (Option.map Prod.snd (nthO reads0 11)) (.node (Option.map Prod.snd
-    (nthO reads0 19)) (.node none (.node none (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO
-    cxRd11 28)) .nil .nil))) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18 1))
-    .nil .nil) .nil)) .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd
-    (nthO cxRd21 17)) .nil .nil) .nil))) (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO reads1
-    23)) .nil .nil))))) (.node none (.node none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9
-    21)) .nil .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 31)) .nil .nil) .nil)))
-    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 23)) .nil .nil) .nil) .nil) .nil))
-    (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd22 1)) .nil .nil)
-    .nil))) .nil))) (.node none (.node none (.node none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO
-    cxRd9 12)) .nil .nil)) .nil) .nil) (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map
-    Prod.snd (nthO cxRd21 25)) .nil .nil) .nil))) .nil)) (.node (Option.map Prod.snd (nthO cxRd0 13)) (.node none
-    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd14 25)) .nil .nil) .nil) .nil) .nil)
-    (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18 29)) .nil .nil) .nil)) .nil))
-    (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd22 9)) .nil .nil)
-    .nil))) (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd14 6)) .nil .nil)))))))) (.node
-    (Option.map Prod.snd (nthO reads0 0)) (.node (Option.map Prod.snd (nthO reads0 9)) (.node (Option.map Prod.snd
-    (nthO reads0 17)) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd2 4)) .nil .nil) (.node none
-    (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10 20)) .nil .nil)) .nil)) (.node none (.node none .nil
-    (.node none (.node (Option.map Prod.snd (nthO cxRd7 15)) .nil .nil) .nil)) (.node none .nil (.node (Option.map
-    Prod.snd (nthO cxRd3 12)) .nil (.node (Option.map Prod.snd (nthO reads1 22)) .nil .nil))))) (.node (Option.map
-    Prod.snd (nthO cxRd0 7)) (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd
-    (nthO cxRd20 28)) .nil .nil) .nil))) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd8 14))
-    .nil .nil) .nil))) (.node none (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 31))
-    (.node (Option.map Prod.snd (nthO cxRd21 31)) .nil .nil) .nil))) (.node none (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd16 8)) .nil .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd19 23))
-    .nil .nil) .nil)) (.node (Option.map Prod.snd (nthO cxRd3 28)) .nil .nil))))) (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 19)) .nil .nil) .nil)))
-    .nil) (.node none (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd17 1)) .nil .nil)
-    .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 23)) .nil .nil) .nil))) (.node none
-    .nil (.node (Option.map Prod.snd (nthO cxRd3 20)) .nil .nil)))) (.node none (.node none (.node none (.node none
-    (.node none (.node (Option.map Prod.snd (nthO cxRd14 23)) .nil .nil) .nil) .nil) .nil) (.node none (.node none
-    .nil (.node (Option.map Prod.snd (nthO cxRd11 8)) .nil .nil)) .nil)) (.node none (.node none (.node none .nil
-    (.node none (.node (Option.map Prod.snd (nthO cxRd17 21)) .nil .nil) .nil)) (.node none .nil (.node none (.node
-    (Option.map Prod.snd (nthO cxRd22 7)) .nil .nil) .nil))) .nil)))) (.node none (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd0 19)) (.node (Option.map Prod.snd (nthO cxRd2 10)) (.node none .nil (.node
-    (Option.map Prod.snd (nthO cxRd9 4)) .nil .nil)) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 30))
-    .nil .nil))) (.node none (.node (Option.map Prod.snd (nthO cxRd2 26)) .nil (.node none (.node (Option.map Prod.snd
-    (nthO cxRd18 3)) .nil .nil) .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd8 0)) .nil .nil) .nil)))
-    (.node none (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd16 28)) .nil .nil)
-    .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 19)) .nil .nil) .nil))) (.node none
-    (.node none (.node (Option.map Prod.snd (nthO cxRd6 25)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO
-    cxRd19 9)) .nil .nil) .nil)) .nil))) (.node none (.node none (.node none (.node none .nil (.node (Option.map
-    Prod.snd (nthO cxRd9 24)) .nil .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd7 5)) .nil .nil) .nil))
-    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 25)) .nil .nil) .nil) .nil) .nil))
-    (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 6)) .nil .nil) .nil)
-    .nil) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd22 3)) .nil .nil) .nil))) .nil))) (.node
-    none (.node none (.node (Option.map Prod.snd (nthO cxRd1 1)) (.node none .nil (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd16 23)) .nil .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd12 7)) .nil .nil)))
-    (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18 12)) .nil .nil) .nil)) (.node
-    none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd22 12)) .nil .nil) .nil)))) (.node none (.node none
-    .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 27)) .nil .nil) .nil))) (.node none
-    .nil (.node (Option.map Prod.snd (nthO cxRd3 23)) .nil .nil)))) (.node none (.node none (.node (Option.map
-    Prod.snd (nthO cxRd2 20)) .nil .nil) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd3 5)) (.node
-    (Option.map Prod.snd (nthO cxRd8 23)) .nil .nil) .nil))) (.node none (.node none (.node none .nil (.node
-    (Option.map Prod.snd (nthO cxRd10 15)) .nil .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO
-    cxRd22 11)) .nil .nil) .nil))) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20
-    5)) .nil .nil) .nil)) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd14 8)) .nil .nil)))))))))
+  (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    (Option.map Prod.snd (nthO cxRd11 24)) (.node (Option.map Prod.snd (nthO cxRd20 8)) .nil .nil) .nil))) .nil)
+    (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd7 14)) .nil .nil) .nil)) (.node
+    none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 3)) .nil .nil) .nil)) .nil))) (.node
+    none (.node none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 18)) .nil .nil)) .nil) .nil)
+    (.node none (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 30)) (.node (Option.map
+    Prod.snd (nthO cxRd21 30)) .nil .nil) .nil))) (.node none (.node none (.node none (.node (Option.map Prod.snd
+    (nthO cxRd16 7)) .nil .nil) .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd3 25)) .nil .nil))))) (.node none
+    (.node (Option.map Prod.snd (nthO cxRd0 1)) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO
+    cxRd4 14)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd9 8)) .nil .nil)) .nil) .nil) (.node none (.node none
+    .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 22)) .nil .nil) .nil))) .nil)) (.node
+    none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 26)) (.node (Option.map Prod.snd
+    (nthO cxRd14 22)) .nil .nil) .nil) .nil) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 5))
+    .nil .nil) .nil))) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 7)) .nil .nil)) .nil))
+    (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 9)) .nil .nil) .nil)
+    .nil) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd22 6)) .nil .nil) .nil))) (.node none
+    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 31)) .nil .nil) .nil)) .nil))))) (.node
+    (Option.map Prod.snd (nthO reads0 11)) (.node (Option.map Prod.snd (nthO reads0 19)) (.node none (.node none .nil
+    (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10 24)) .nil .nil)) .nil)) (.node none (.node
+    none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10 4)) .nil .nil)) (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd21 18)) .nil .nil) .nil))) .nil)) (.node none (.node none .nil (.node none (.node
+    none (.node none (.node (Option.map Prod.snd (nthO cxRd15 24)) .nil .nil) .nil) (.node none (.node (Option.map
+    Prod.snd (nthO cxRd18 21)) .nil .nil) .nil)) .nil)) (.node none (.node none (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd17 15)) .nil .nil) .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd
+    (nthO cxRd22 2)) .nil .nil) .nil))) .nil))) (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none (.node (Option.map Prod.snd (nthO cxRd16 22)) .nil .nil) .nil) .nil)) (.node none .nil (.node none
+    (.node (Option.map Prod.snd (nthO cxRd8 8)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd13 1)) .nil .nil))))
+    (.node none (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd17 5)) .nil .nil)
+    .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 26)) .nil .nil) .nil))) (.node none
+    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 17)) .nil .nil) .nil)) (.node none .nil
+    (.node (Option.map Prod.snd (nthO reads1 29)) .nil .nil))))) (.node (Option.map Prod.snd (nthO cxRd0 13)) (.node
+    none .nil (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO reads1 16)) .nil .nil)))) (.node
+    none (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd17 24)) .nil .nil) .nil))
+    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd22 10)) .nil .nil) .nil))) (.node none (.node
+    none .nil (.node (Option.map Prod.snd (nthO cxRd11 19)) .nil .nil)) (.node none .nil (.node (Option.map Prod.snd
+    (nthO cxRd14 7)) .nil .nil)))))))) (.node (Option.map Prod.snd (nthO reads0 0)) (.node (Option.map Prod.snd (nthO
+    reads0 9)) (.node (Option.map Prod.snd (nthO reads0 17)) (.node none (.node none (.node (Option.map Prod.snd (nthO
+    cxRd2 4)) .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 11)) .nil .nil) .nil)))
+    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd7 28)) .nil .nil) .nil))) (.node none .nil
+    (.node none .nil (.node (Option.map Prod.snd (nthO cxRd3 12)) .nil .nil)))) (.node (Option.map Prod.snd (nthO
+    cxRd0 7)) (.node none .nil (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 22)) .nil
+    .nil) .nil) .nil) (.node none .nil (.node (Option.map Prod.snd (nthO reads1 4)) .nil .nil)))) (.node none (.node
+    none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10 12)) (.node (Option.map Prod.snd (nthO cxRd17 13))
+    .nil .nil) .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd22 0)) .nil .nil) .nil)))
+    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 9)) .nil .nil) .nil) .nil) (.node
+    (Option.map Prod.snd (nthO cxRd3 28)) .nil .nil))))) (.node none (.node none (.node none (.node none .nil (.node
+    none .nil (.node (Option.map Prod.snd (nthO cxRd12 4)) .nil .nil))) (.node none (.node none .nil (.node
+    (Option.map Prod.snd (nthO cxRd10 30)) (.node (Option.map Prod.snd (nthO cxRd18 9)) .nil .nil) .nil)) .nil))
+    (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 24)) .nil .nil)
+    .nil))) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd3 20)) .nil .nil)))) (.node none (.node none (.node
+    none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd14 24)) .nil .nil) .nil) (.node (Option.map
+    Prod.snd (nthO cxRd9 30)) .nil .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 7))
+    .nil .nil) .nil))) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 9)) .nil .nil)) (.node
+    none .nil (.node (Option.map Prod.snd (nthO reads1 13)) .nil .nil)))) (.node none (.node none .nil (.node none
+    .nil (.node none (.node (Option.map Prod.snd (nthO cxRd22 8)) .nil .nil) .nil))) .nil)))) (.node none (.node none
+    (.node none (.node (Option.map Prod.snd (nthO cxRd0 19)) (.node (Option.map Prod.snd (nthO cxRd2 10)) .nil .nil)
+    (.node none (.node (Option.map Prod.snd (nthO cxRd2 26)) .nil (.node (Option.map Prod.snd (nthO cxRd10 26)) .nil
+    .nil)) .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21
+    20)) .nil .nil) .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 25)) .nil .nil) .nil)
+    .nil))) (.node none (.node none .nil (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO
+    cxRd18 23)) .nil .nil) .nil)) .nil)) (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd
+    (nthO cxRd15 7)) .nil .nil) .nil) .nil) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd22 4))
+    .nil .nil) .nil))) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 29)) .nil
+    .nil) .nil)) .nil)))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd1 1)) (.node none .nil (.node
+    none (.node none (.node (Option.map Prod.snd (nthO cxRd16 24)) .nil .nil) .nil) (.node none (.node (Option.map
+    Prod.snd (nthO cxRd20 25)) .nil .nil) .nil))) .nil) (.node none (.node none .nil (.node none .nil (.node
+    (Option.map Prod.snd (nthO cxRd12 28)) (.node (Option.map Prod.snd (nthO cxRd21 28)) .nil .nil) .nil))) (.node
+    none .nil (.node (Option.map Prod.snd (nthO cxRd3 23)) .nil .nil)))) (.node none (.node none (.node (Option.map
+    Prod.snd (nthO cxRd2 20)) .nil (.node none (.node (Option.map Prod.snd (nthO cxRd7 12)) .nil .nil) .nil)) (.node
+    none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 0)) .nil .nil) .nil)) (.node
+    (Option.map Prod.snd (nthO cxRd3 5)) (.node (Option.map Prod.snd (nthO cxRd8 24)) .nil .nil) .nil))) (.node none
+    (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd17 27)) .nil .nil) .nil)) (.node
+    none (.node (Option.map Prod.snd (nthO cxRd7 23)) .nil .nil) .nil)) (.node none .nil (.node none .nil (.node
+    (Option.map Prod.snd (nthO cxRd14 9)) .nil .nil)))))))))
 noncomputable def cxRtr2 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node none (.node none (.node (Option.map Prod.snd (nthO reads0 6)) (.node none (.node none (.node none (.node none
-    .nil (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 15)) .nil .nil) .nil) (.node (Option.map
-    Prod.snd (nthO cxRd11 22)) (.node (Option.map Prod.snd (nthO cxRd20 7)) .nil .nil) .nil))) .nil) (.node
-    (Option.map Prod.snd (nthO cxRd1 13)) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10 2))
-    .nil .nil)) .nil) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 1)) .nil .nil)
-    .nil)) (.node (Option.map Prod.snd (nthO cxRd3 8)) .nil .nil)))) (.node (Option.map Prod.snd (nthO cxRd0 6))
-    (.node (Option.map Prod.snd (nthO cxRd1 2)) .nil (.node none .nil (.node none .nil (.node (Option.map Prod.snd
-    (nthO cxRd13 4)) .nil .nil)))) (.node none .nil (.node none .nil (.node none .nil (.node (Option.map Prod.snd
-    (nthO cxRd14 0)) .nil .nil)))))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd0 22)) (.node
-    (Option.map Prod.snd (nthO cxRd2 12)) .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 0)) .nil
-    .nil))) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 17)) .nil .nil) .nil) (.node
-    none (.node (Option.map Prod.snd (nthO cxRd18 5)) .nil .nil) .nil)) (.node none (.node (Option.map Prod.snd (nthO
-    cxRd8 1)) .nil .nil) .nil))) (.node (Option.map Prod.snd (nthO cxRd1 19)) (.node none (.node none (.node none
-    (.node (Option.map Prod.snd (nthO cxRd14 30)) .nil .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd10 7)) .nil
-    .nil)) .nil) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 27)) .nil .nil) (.node (Option.map
-    Prod.snd (nthO cxRd11 15)) (.node (Option.map Prod.snd (nthO cxRd19 10)) .nil .nil) .nil)) (.node none .nil (.node
-    (Option.map Prod.snd (nthO reads1 27)) .nil .nil))))) (.node (Option.map Prod.snd (nthO cxRd0 11)) (.node none
-    (.node (Option.map Prod.snd (nthO cxRd2 18)) .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO
-    cxRd21 3)) .nil .nil) .nil))) .nil) (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd4 1))
-    .nil .nil)))))) (.node none (.node none (.node (Option.map Prod.snd (nthO reads0 31)) (.node (Option.map Prod.snd
-    (nthO cxRd0 18)) (.node (Option.map Prod.snd (nthO cxRd2 6)) .nil .nil) (.node none (.node none .nil (.node
-    (Option.map Prod.snd (nthO cxRd10 22)) .nil .nil)) .nil)) (.node (Option.map Prod.snd (nthO cxRd1 17)) (.node none
-    .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 23)) .nil .nil))) (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd6 22)) (.node (Option.map Prod.snd (nthO cxRd16 0)) .nil .nil) .nil) .nil) .nil)))
-    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18
-    19)) .nil .nil) .nil)) .nil)) .nil)) (.node none (.node none (.node none (.node none (.node none (.node none
-    (.node (Option.map Prod.snd (nthO cxRd14 15)) .nil .nil) .nil) .nil) (.node none .nil (.node none (.node
-    (Option.map Prod.snd (nthO cxRd20 21)) .nil .nil) .nil))) (.node (Option.map Prod.snd (nthO cxRd2 23)) .nil (.node
-    (Option.map Prod.snd (nthO cxRd2 30)) .nil .nil))) (.node none (.node none (.node none .nil (.node none (.node
-    (Option.map Prod.snd (nthO cxRd17 3)) .nil .nil) .nil)) .nil) (.node none .nil (.node none (.node (Option.map
-    Prod.snd (nthO cxRd8 30)) .nil .nil) .nil)))) (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node (Option.map Prod.snd (nthO reads1 14)) .nil .nil)))) (.node none (.node none (.node none .nil (.node none
-    (.node (Option.map Prod.snd (nthO cxRd17 23)) .nil .nil) .nil)) .nil) .nil))))) (.node none (.node (Option.map
-    Prod.snd (nthO reads0 8)) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd0 17)) (.node none .nil
-    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 17)) .nil .nil) .nil) (.node none (.node
-    (Option.map Prod.snd (nthO cxRd20 9)) .nil .nil) .nil))) (.node none .nil (.node none (.node (Option.map Prod.snd
-    (nthO cxRd7 26)) .nil .nil) .nil))) (.node (Option.map Prod.snd (nthO cxRd1 15)) (.node none .nil (.node none .nil
-    (.node (Option.map Prod.snd (nthO cxRd12 21)) (.node (Option.map Prod.snd (nthO cxRd21 15)) .nil .nil) .nil)))
-    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 30)) .nil .nil) .nil) .nil) .nil)))
-    (.node none (.node (Option.map Prod.snd (nthO cxRd1 5)) .nil (.node none .nil (.node none .nil (.node (Option.map
-    Prod.snd (nthO reads1 2)) .nil .nil)))) (.node none (.node none (.node none .nil (.node none (.node (Option.map
-    Prod.snd (nthO cxRd17 11)) .nil .nil) .nil)) .nil) .nil))) (.node (Option.map Prod.snd (nthO reads0 24)) (.node
-    none (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 18)) .nil
-    .nil) .nil))) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd8 4)) .nil .nil) .nil))) (.node
-    none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 0)) .nil .nil) .nil) .nil) .nil)
-    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 29)) .nil .nil) (.node none (.node (Option.map
-    Prod.snd (nthO cxRd19 13)) .nil .nil) .nil)) .nil))) (.node (Option.map Prod.snd (nthO cxRd0 12)) (.node none
-    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 27)) .nil .nil) (.node (Option.map Prod.snd (nthO
-    cxRd9 28)) .nil .nil)) .nil) (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO reads1 12)) .nil
-    .nil)))) .nil))) (.node (Option.map Prod.snd (nthO reads0 13)) (.node none (.node (Option.map Prod.snd (nthO cxRd0
-    0)) (.node none (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 29)) .nil .nil)))
-    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 15)) .nil .nil) .nil) (.node none
-    (.node (Option.map Prod.snd (nthO cxRd18 2)) .nil .nil) .nil)) .nil)) (.node (Option.map Prod.snd (nthO cxRd1 18))
-    (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10 5)) (.node (Option.map Prod.snd (nthO cxRd16
-    27)) .nil .nil) .nil)) .nil) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd3 17)) .nil (.node (Option.map
-    Prod.snd (nthO reads1 25)) .nil .nil))))) (.node none (.node none (.node none (.node none (.node (Option.map
-    Prod.snd (nthO cxRd4 24)) .nil .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd7 3)) .nil .nil)
-    .nil)) .nil) (.node none .nil (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19
-    27)) .nil .nil) .nil)) (.node (Option.map Prod.snd (nthO cxRd4 0)) .nil .nil))))) (.node none (.node (Option.map
-    Prod.snd (nthO cxRd0 5)) (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd14
-    17)) .nil .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd9 14)) .nil .nil)) .nil) (.node none .nil (.node
-    (Option.map Prod.snd (nthO cxRd3 0)) .nil (.node (Option.map Prod.snd (nthO cxRd13 2)) .nil .nil)))) (.node none
-    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd7 20)) .nil .nil) .nil)) (.node none .nil
-    (.node (Option.map Prod.snd (nthO cxRd3 22)) (.node (Option.map Prod.snd (nthO cxRd9 0)) .nil .nil) (.node
-    (Option.map Prod.snd (nthO reads1 30)) .nil .nil))))) (.node none (.node none (.node none (.node none .nil (.node
-    (Option.map Prod.snd (nthO cxRd10 0)) .nil .nil)) .nil) (.node none (.node none .nil (.node none (.node
-    (Option.map Prod.snd (nthO cxRd18 31)) .nil .nil) .nil)) .nil)) (.node none (.node none (.node none .nil (.node
-    none (.node (Option.map Prod.snd (nthO cxRd17 25)) .nil .nil) .nil)) .nil) .nil))))))
-noncomputable def cxRtr3 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
-  (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO reads0 29)) (.node none (.node none
     .nil (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 16)) .nil .nil) .nil) .nil)) (.node none
     (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10 18)) .nil .nil)) .nil)) (.node (Option.map Prod.snd
-    (nthO cxRd1 14)) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10 3)) .nil .nil)) (.node none
+    (nthO cxRd1 13)) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10 3)) .nil .nil)) (.node none
     .nil (.node (Option.map Prod.snd (nthO cxRd12 20)) .nil .nil))) (.node none .nil (.node (Option.map Prod.snd (nthO
-    cxRd3 9)) .nil (.node (Option.map Prod.snd (nthO reads1 20)) .nil .nil))))) (.node none (.node none (.node none
-    .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 27)) .nil .nil) .nil))) (.node none
-    .nil (.node none (.node (Option.map Prod.snd (nthO cxRd8 12)) .nil .nil) .nil))) (.node none .nil (.node none
-    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 21)) .nil .nil) .nil)) (.node (Option.map
-    Prod.snd (nthO cxRd3 26)) .nil (.node (Option.map Prod.snd (nthO cxRd14 1)) .nil .nil)))))) (.node (Option.map
-    Prod.snd (nthO reads0 23)) (.node (Option.map Prod.snd (nthO cxRd0 2)) (.node (Option.map Prod.snd (nthO cxRd0
-    25)) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 7)) .nil .nil)) .nil) (.node none (.node
-    (Option.map Prod.snd (nthO cxRd2 29)) .nil (.node (Option.map Prod.snd (nthO cxRd10 28)) .nil .nil)) .nil)) (.node
-    (Option.map Prod.snd (nthO cxRd1 20)) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd14
-    31)) .nil .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd16 31)) .nil .nil) .nil)) .nil) (.node
-    none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 16)) .nil .nil)) (.node none .nil (.node
-    (Option.map Prod.snd (nthO reads1 28)) .nil .nil))))) (.node none (.node none .nil (.node none (.node none .nil
-    (.node none (.node (Option.map Prod.snd (nthO cxRd18 25)) .nil .nil) .nil)) .nil)) (.node none .nil (.node none
-    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 30)) .nil .nil) .nil)) .nil))))) (.node none
-    (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO
-    cxRd15 14)) .nil .nil) .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd7 30)) .nil .nil) .nil)))
-    (.node none .nil (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 1)) .nil .nil) .nil)
-    (.node none (.node (Option.map Prod.snd (nthO cxRd19 7)) .nil .nil) .nil)) (.node (Option.map Prod.snd (nthO cxRd3
-    16)) .nil (.node (Option.map Prod.snd (nthO reads1 24)) .nil .nil))))) (.node (Option.map Prod.snd (nthO cxRd0 9))
-    (.node none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 22)) .nil .nil)) .nil) (.node
-    none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd8 16)) .nil .nil) (.node (Option.map Prod.snd (nthO
-    reads1 6)) .nil .nil)))) (.node none (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO
-    cxRd17 14)) .nil .nil) .nil)) .nil) .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd0 30))
-    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 17)) (.node (Option.map Prod.snd (nthO cxRd14 16))
-    .nil .nil) .nil) .nil) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 6)) .nil .nil))) (.node none
-    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18 11)) .nil .nil) .nil)) (.node (Option.map
-    Prod.snd (nthO cxRd2 31)) .nil .nil))) (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd
-    (nthO cxRd8 31)) .nil .nil) .nil)))) (.node (Option.map Prod.snd (nthO cxRd0 14)) (.node none (.node none .nil
-    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 9)) .nil .nil) .nil))) (.node none .nil
-    (.node (Option.map Prod.snd (nthO cxRd3 2)) .nil .nil))) .nil)))) (.node (Option.map Prod.snd (nthO reads0 2))
-    (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node (Option.map Prod.snd
-    (nthO cxRd11 26)) .nil .nil))) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd17
-    31)) .nil .nil) .nil)) .nil)) (.node (Option.map Prod.snd (nthO cxRd1 16)) (.node none .nil (.node none .nil
-    (.node (Option.map Prod.snd (nthO cxRd12 22)) .nil .nil))) (.node none (.node none (.node none (.node (Option.map
-    Prod.snd (nthO cxRd15 31)) .nil .nil) .nil) .nil) .nil))) (.node (Option.map Prod.snd (nthO cxRd0 8)) (.node none
-    (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 20)) .nil .nil)) (.node none .nil (.node
-    (Option.map Prod.snd (nthO cxRd12 12)) (.node (Option.map Prod.snd (nthO cxRd20 29)) .nil .nil) .nil))) .nil)
-    .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd0 3)) (.node none (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd4 16)) (.node (Option.map Prod.snd (nthO cxRd14 14)) .nil .nil) .nil) (.node
-    (Option.map Prod.snd (nthO cxRd9 10)) .nil .nil)) .nil) (.node (Option.map Prod.snd (nthO cxRd2 22)) .nil .nil))
-    (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 1)) .nil .nil) .nil)
-    .nil) .nil) .nil)) (.node none (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map
-    Prod.snd (nthO cxRd21 6)) .nil .nil) .nil))) .nil) (.node none .nil (.node none (.node none .nil (.node none
-    (.node (Option.map Prod.snd (nthO cxRd20 1)) .nil .nil) .nil)) .nil))))) (.node (Option.map Prod.snd (nthO reads0
-    14)) (.node none (.node none (.node none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 5))
-    .nil .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 15)) .nil .nil) .nil))) (.node
-    none (.node (Option.map Prod.snd (nthO cxRd2 27)) (.node none (.node (Option.map Prod.snd (nthO cxRd15 16)) .nil
-    .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd10 25)) .nil .nil)) .nil)) (.node none (.node none (.node none
-    .nil (.node (Option.map Prod.snd (nthO cxRd10 6)) .nil .nil)) .nil) (.node none (.node none .nil (.node
-    (Option.map Prod.snd (nthO cxRd11 14)) .nil .nil)) (.node none .nil (.node (Option.map Prod.snd (nthO reads1 26))
-    .nil .nil))))) (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 25)) .nil
-    .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd7 7)) .nil .nil) .nil)) (.node none (.node none .nil
-    (.node none (.node (Option.map Prod.snd (nthO cxRd18 22)) .nil .nil) .nil)) .nil)) (.node none (.node none (.node
-    none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd17 17)) .nil .nil) .nil)) .nil) .nil))) (.node
-    (Option.map Prod.snd (nthO reads0 28)) (.node none (.node none (.node none .nil (.node none .nil (.node
-    (Option.map Prod.snd (nthO cxRd12 8)) .nil .nil))) (.node none (.node none .nil (.node none (.node (Option.map
-    Prod.snd (nthO cxRd18 13)) .nil .nil) .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd8 10)) .nil .nil)
-    (.node none (.node (Option.map Prod.snd (nthO cxRd22 13)) .nil .nil) .nil)))) (.node none (.node none (.node none
-    .nil (.node none (.node (Option.map Prod.snd (nthO cxRd17 7)) .nil .nil) .nil)) .nil) (.node none (.node none .nil
-    (.node none (.node (Option.map Prod.snd (nthO cxRd19 19)) .nil .nil) .nil)) (.node none (.node (Option.map
-    Prod.snd (nthO cxRd9 1)) .nil .nil) (.node (Option.map Prod.snd (nthO reads1 31)) .nil .nil))))) (.node
+    cxRd3 8)) .nil (.node (Option.map Prod.snd (nthO reads1 20)) .nil .nil))))) (.node (Option.map Prod.snd (nthO
+    cxRd0 6)) (.node (Option.map Prod.snd (nthO cxRd1 2)) (.node none .nil (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd20 27)) .nil .nil) .nil))) (.node none .nil (.node none (.node (Option.map Prod.snd
+    (nthO cxRd8 12)) .nil .nil) .nil))) (.node none .nil (.node none (.node none .nil (.node none (.node (Option.map
+    Prod.snd (nthO cxRd19 21)) .nil .nil) .nil)) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd14 1)) .nil
+    .nil)))))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd0 22)) (.node (Option.map Prod.snd (nthO
+    cxRd2 12)) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 7)) .nil .nil)) .nil) (.node none (.node none
+    .nil (.node (Option.map Prod.snd (nthO cxRd10 28)) .nil .nil)) .nil)) (.node (Option.map Prod.snd (nthO cxRd1 19))
+    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd14 31)) .nil .nil) .nil) (.node none
+    (.node (Option.map Prod.snd (nthO cxRd16 31)) .nil .nil) .nil)) .nil) (.node none (.node none (.node (Option.map
+    Prod.snd (nthO cxRd6 27)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd11 16)) .nil .nil)) (.node none .nil
+    (.node (Option.map Prod.snd (nthO reads1 28)) .nil .nil))))) (.node (Option.map Prod.snd (nthO cxRd0 11)) (.node
+    none (.node (Option.map Prod.snd (nthO cxRd2 18)) .nil .nil) (.node none (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd18 25)) .nil .nil) .nil)) .nil)) (.node none .nil (.node none (.node none .nil
+    (.node none (.node (Option.map Prod.snd (nthO cxRd19 30)) .nil .nil) .nil)) (.node (Option.map Prod.snd (nthO
+    cxRd4 1)) .nil .nil)))))) (.node none (.node none (.node (Option.map Prod.snd (nthO reads0 31)) (.node (Option.map
+    Prod.snd (nthO cxRd0 18)) (.node (Option.map Prod.snd (nthO cxRd2 6)) .nil .nil) (.node none (.node none (.node
+    none (.node (Option.map Prod.snd (nthO cxRd15 14)) .nil .nil) .nil) .nil) (.node none (.node (Option.map Prod.snd
+    (nthO cxRd7 30)) .nil .nil) .nil))) (.node (Option.map Prod.snd (nthO cxRd1 17)) .nil (.node none (.node none
+    (.node (Option.map Prod.snd (nthO cxRd6 22)) (.node (Option.map Prod.snd (nthO cxRd16 1)) .nil .nil) .nil) (.node
+    none (.node (Option.map Prod.snd (nthO cxRd19 7)) .nil .nil) .nil)) (.node none .nil (.node (Option.map Prod.snd
+    (nthO reads1 24)) .nil .nil))))) (.node none (.node none (.node none (.node none .nil (.node (Option.map Prod.snd
+    (nthO cxRd9 22)) .nil .nil)) .nil) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd8 16)) .nil
+    .nil) (.node (Option.map Prod.snd (nthO reads1 6)) .nil .nil)))) (.node none (.node none (.node none .nil (.node
+    none (.node (Option.map Prod.snd (nthO cxRd17 14)) .nil .nil) .nil)) .nil) .nil))) (.node none (.node none (.node
+    none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd14 16)) .nil .nil) .nil) .nil)
+    (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 6)) .nil .nil))) (.node (Option.map Prod.snd (nthO cxRd2
+    23)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18 11)) .nil .nil) .nil)) (.node
+    (Option.map Prod.snd (nthO cxRd2 30)) .nil .nil))) (.node none .nil (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd8 31)) .nil .nil) .nil)))) (.node none (.node none (.node none .nil (.node none
+    .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 9)) .nil .nil) .nil))) .nil) .nil)))) (.node none (.node
+    (Option.map Prod.snd (nthO reads0 8)) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd0 17)) (.node
+    none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 26)) .nil .nil))) (.node none (.node none .nil
+    (.node none (.node (Option.map Prod.snd (nthO cxRd17 31)) .nil .nil) .nil)) .nil)) (.node (Option.map Prod.snd
+    (nthO cxRd1 15)) (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 22)) .nil .nil)))
+    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 31)) .nil .nil) .nil) .nil) .nil)))
+    (.node none (.node (Option.map Prod.snd (nthO cxRd1 5)) (.node none (.node none .nil (.node (Option.map Prod.snd
+    (nthO cxRd9 20)) .nil .nil)) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 12)) (.node (Option.map
+    Prod.snd (nthO cxRd20 29)) .nil .nil) .nil))) .nil) .nil)) (.node (Option.map Prod.snd (nthO reads0 24)) (.node
+    none (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd14 14)) .nil .nil)
+    .nil) (.node (Option.map Prod.snd (nthO cxRd9 10)) .nil .nil)) .nil) .nil) (.node none (.node none (.node none
+    (.node none (.node (Option.map Prod.snd (nthO cxRd15 1)) .nil .nil) .nil) .nil) .nil) (.node none (.node none
+    (.node (Option.map Prod.snd (nthO cxRd6 29)) .nil .nil) .nil) .nil))) (.node (Option.map Prod.snd (nthO cxRd0 12))
+    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 27)) .nil .nil) .nil) (.node none .nil
+    (.node none (.node (Option.map Prod.snd (nthO cxRd21 6)) .nil .nil) .nil))) .nil) (.node none .nil (.node none
+    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 1)) .nil .nil) .nil)) .nil))))) (.node
+    (Option.map Prod.snd (nthO reads0 13)) (.node none (.node (Option.map Prod.snd (nthO cxRd0 0)) (.node none (.node
+    none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 5)) .nil .nil)) (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd20 15)) .nil .nil) .nil))) (.node none (.node none (.node none (.node (Option.map
+    Prod.snd (nthO cxRd15 16)) .nil .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd10 25)) .nil .nil)) .nil))
+    (.node (Option.map Prod.snd (nthO cxRd1 18)) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10
+    6)) .nil .nil)) .nil) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 14)) .nil .nil))
+    (.node (Option.map Prod.snd (nthO cxRd3 17)) .nil (.node (Option.map Prod.snd (nthO reads1 26)) .nil .nil)))))
+    (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 24)) .nil .nil) .nil)
+    (.node none (.node (Option.map Prod.snd (nthO cxRd7 6)) .nil .nil) .nil)) (.node none (.node none .nil (.node none
+    (.node (Option.map Prod.snd (nthO cxRd18 22)) .nil .nil) .nil)) .nil)) (.node none (.node none (.node none .nil
+    (.node none (.node (Option.map Prod.snd (nthO cxRd17 17)) .nil .nil) .nil)) .nil) (.node none .nil (.node
+    (Option.map Prod.snd (nthO cxRd4 0)) .nil .nil))))) (.node none (.node (Option.map Prod.snd (nthO cxRd0 5)) (.node
+    none (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 8)) .nil .nil))) (.node none
+    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18 13)) .nil .nil) .nil)) (.node (Option.map
+    Prod.snd (nthO cxRd3 0)) (.node (Option.map Prod.snd (nthO cxRd8 10)) .nil .nil) (.node none (.node (Option.map
+    Prod.snd (nthO cxRd22 13)) .nil .nil) .nil)))) (.node none (.node none (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd17 7)) .nil .nil) .nil)) .nil) (.node none (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd19 19)) .nil .nil) .nil)) (.node (Option.map Prod.snd (nthO cxRd3 22)) (.node
+    (Option.map Prod.snd (nthO cxRd9 1)) .nil .nil) (.node (Option.map Prod.snd (nthO reads1 31)) .nil .nil)))))
+    (.node none (.node none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10 1)) .nil .nil))
+    .nil) .nil) (.node none .nil (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 14))
+    .nil .nil) .nil) .nil) .nil)))))))
+noncomputable def cxRtr3 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
+  (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO reads0 29)) (.node none (.node none
+    .nil (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 17)) .nil .nil) .nil) (.node none (.node
+    (Option.map Prod.snd (nthO cxRd20 9)) .nil .nil) .nil))) (.node none .nil (.node none (.node (Option.map Prod.snd
+    (nthO cxRd7 26)) .nil .nil) .nil))) (.node (Option.map Prod.snd (nthO cxRd1 14)) (.node none .nil (.node none .nil
+    (.node (Option.map Prod.snd (nthO cxRd12 21)) (.node (Option.map Prod.snd (nthO cxRd21 15)) .nil .nil) .nil)))
+    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 30)) .nil .nil) .nil) .nil) (.node
+    (Option.map Prod.snd (nthO cxRd3 9)) .nil .nil)))) (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node (Option.map Prod.snd (nthO reads1 2)) .nil .nil)))) (.node none (.node none (.node none .nil (.node none
+    (.node (Option.map Prod.snd (nthO cxRd17 11)) .nil .nil) .nil)) .nil) (.node none .nil (.node (Option.map Prod.snd
+    (nthO cxRd3 26)) .nil .nil))))) (.node (Option.map Prod.snd (nthO reads0 23)) (.node (Option.map Prod.snd (nthO
+    cxRd0 2)) (.node (Option.map Prod.snd (nthO cxRd0 25)) (.node none .nil (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd20 18)) .nil .nil) .nil))) (.node none (.node (Option.map Prod.snd (nthO cxRd2 29))
+    .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd8 4)) .nil .nil) .nil))) (.node (Option.map Prod.snd
+    (nthO cxRd1 20)) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 0)) .nil .nil) .nil)
+    .nil) .nil) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 13)) .nil .nil)
+    .nil)) .nil))) (.node none (.node none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 28))
+    .nil .nil)) .nil) (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO reads1 12)) .nil .nil))))
+    .nil))) (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node (Option.map
+    Prod.snd (nthO cxRd11 29)) .nil .nil))) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO
+    cxRd15 15)) .nil .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd18 2)) .nil .nil) .nil)) .nil))
+    (.node none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10 5)) (.node (Option.map Prod.snd
+    (nthO cxRd16 27)) .nil .nil) .nil)) .nil) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd3 16)) .nil
+    (.node (Option.map Prod.snd (nthO reads1 25)) .nil .nil))))) (.node (Option.map Prod.snd (nthO cxRd0 9)) (.node
+    none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd7 2)) .nil .nil) .nil)) .nil) (.node none
+    .nil (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 27)) .nil .nil) .nil))
+    .nil)))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd0 30)) (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd4 17)) (.node (Option.map Prod.snd (nthO cxRd14 17)) .nil .nil) .nil) (.node
+    (Option.map Prod.snd (nthO cxRd9 14)) .nil .nil)) .nil) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd2
+    31)) .nil (.node (Option.map Prod.snd (nthO cxRd13 2)) .nil .nil)))) (.node none (.node none .nil (.node none
+    (.node (Option.map Prod.snd (nthO cxRd7 20)) .nil .nil) .nil)) (.node none .nil (.node none (.node (Option.map
+    Prod.snd (nthO cxRd9 0)) .nil .nil) (.node (Option.map Prod.snd (nthO reads1 30)) .nil .nil))))) (.node
+    (Option.map Prod.snd (nthO cxRd0 14)) (.node none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO
+    cxRd10 0)) .nil .nil)) .nil) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18
+    31)) .nil .nil) .nil)) (.node (Option.map Prod.snd (nthO cxRd3 2)) .nil .nil))) (.node none (.node none (.node
+    none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd17 25)) .nil .nil) .nil)) .nil) .nil))))) (.node
+    (Option.map Prod.snd (nthO reads0 2)) (.node none (.node none (.node none (.node none .nil (.node none (.node none
+    .nil (.node (Option.map Prod.snd (nthO cxRd10 22)) .nil .nil)) .nil)) (.node (Option.map Prod.snd (nthO cxRd1 16))
+    (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 23)) .nil .nil))) (.node none (.node
+    none (.node none (.node (Option.map Prod.snd (nthO cxRd16 0)) .nil .nil) .nil) .nil) .nil))) (.node (Option.map
+    Prod.snd (nthO cxRd0 8)) (.node none .nil (.node none (.node none .nil (.node none (.node (Option.map Prod.snd
+    (nthO cxRd18 19)) .nil .nil) .nil)) .nil)) .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd0 3)) (.node
+    none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 16)) (.node (Option.map Prod.snd (nthO cxRd14
+    15)) .nil .nil) .nil) .nil) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 21)) .nil .nil)
+    .nil))) (.node (Option.map Prod.snd (nthO cxRd2 22)) .nil .nil)) (.node none (.node none (.node none .nil (.node
+    none (.node (Option.map Prod.snd (nthO cxRd17 3)) .nil .nil) .nil)) .nil) (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd8 30)) .nil .nil) .nil)))) (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node (Option.map Prod.snd (nthO reads1 14)) .nil .nil)))) (.node none (.node none (.node none .nil
+    (.node none (.node (Option.map Prod.snd (nthO cxRd17 23)) .nil .nil) .nil)) .nil) .nil)))) (.node (Option.map
+    Prod.snd (nthO reads0 14)) (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    (Option.map Prod.snd (nthO cxRd12 0)) .nil .nil))) (.node none (.node (Option.map Prod.snd (nthO cxRd2 27)) (.node
+    none (.node (Option.map Prod.snd (nthO cxRd15 17)) .nil .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO
+    cxRd18 5)) .nil .nil) .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd8 1)) .nil .nil) .nil))) (.node
+    none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd14 30)) .nil .nil) .nil) (.node
+    (Option.map Prod.snd (nthO cxRd10 7)) .nil .nil)) .nil) (.node none (.node none .nil (.node (Option.map Prod.snd
+    (nthO cxRd11 15)) (.node (Option.map Prod.snd (nthO cxRd19 10)) .nil .nil) .nil)) (.node none .nil (.node
+    (Option.map Prod.snd (nthO reads1 27)) .nil .nil))))) (.node none (.node none (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd4 25)) .nil .nil) .nil) (.node none .nil (.node none (.node (Option.map Prod.snd
+    (nthO cxRd21 3)) .nil .nil) .nil))) .nil) .nil)) (.node (Option.map Prod.snd (nthO reads0 28)) (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd13 4)) .nil .nil)))) (.node none
+    .nil (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd14 0)) .nil .nil))))) (.node
     (Option.map Prod.snd (nthO cxRd0 15)) (.node (Option.map Prod.snd (nthO cxRd1 12)) (.node none (.node none .nil
-    (.node (Option.map Prod.snd (nthO cxRd10 1)) .nil .nil)) .nil) .nil) (.node none .nil (.node none (.node none
-    (.node none (.node (Option.map Prod.snd (nthO cxRd16 14)) .nil .nil) .nil) .nil) .nil)))))))
+    (.node (Option.map Prod.snd (nthO cxRd10 2)) .nil .nil)) .nil) (.node none (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd19 1)) .nil .nil) .nil)) .nil)) (.node none .nil (.node none (.node none (.node
+    none (.node (Option.map Prod.snd (nthO cxRd16 15)) .nil .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd11 22))
+    (.node (Option.map Prod.snd (nthO cxRd20 7)) .nil .nil) .nil)) .nil)))))))
 noncomputable def cxRtr4 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
-  (.node none (.node none (.node (Option.map Prod.snd (nthO reads0 5)) (.node none (.node none (.node none .nil (.node
-    none (.node none (.node (Option.map Prod.snd (nthO cxRd5 23)) (.node (Option.map Prod.snd (nthO cxRd15 12)) .nil
-    .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd10 16)) .nil .nil)) .nil)) (.node none (.node none .nil (.node
-    none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 12)) .nil .nil) .nil))) (.node none (.node none
-    .nil (.node (Option.map Prod.snd (nthO cxRd11 10)) .nil .nil)) (.node (Option.map Prod.snd (nthO cxRd3 7)) .nil
-    (.node (Option.map Prod.snd (nthO reads1 18)) .nil .nil))))) (.node none (.node none (.node none .nil (.node none
-    .nil (.node (Option.map Prod.snd (nthO cxRd12 9)) .nil .nil))) (.node none (.node none .nil (.node none (.node
-    (Option.map Prod.snd (nthO cxRd18 14)) .nil .nil) .nil)) .nil)) (.node none (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd5 10)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd17 8)) .nil
-    .nil) .nil)) .nil) .nil))) (.node (Option.map Prod.snd (nthO reads0 22)) (.node none (.node none (.node none
-    (.node none (.node (Option.map Prod.snd (nthO cxRd4 13)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd9 6))
-    .nil .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 16)) .nil .nil) .nil))) (.node
-    none (.node none (.node (Option.map Prod.snd (nthO cxRd5 30)) .nil .nil) .nil) .nil)) (.node none (.node none .nil
-    (.node none (.node (Option.map Prod.snd (nthO cxRd7 17)) .nil .nil) .nil)) (.node none .nil (.node none (.node
-    (Option.map Prod.snd (nthO cxRd8 29)) .nil .nil) .nil)))) (.node none (.node none .nil (.node none .nil (.node
-    none (.node (Option.map Prod.snd (nthO cxRd8 19)) .nil .nil) (.node (Option.map Prod.snd (nthO reads1 9)) .nil
-    .nil)))) (.node (Option.map Prod.snd (nthO cxRd1 29)) (.node none (.node none (.node (Option.map Prod.snd (nthO
-    cxRd5 16)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd17 18)) .nil .nil) .nil)) .nil) (.node
-    none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 10)) .nil .nil) .nil) .nil) .nil))))) (.node
-    none (.node none (.node none (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO
-    cxRd14 10)) .nil .nil) .nil) .nil) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 27)) .nil .nil)))
-    (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18 0)) .nil .nil) .nil)) .nil))
-    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 2)) (.node (Option.map Prod.snd (nthO
-    cxRd14 29)) .nil .nil) .nil) .nil) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 16)) .nil
-    .nil) .nil))) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 5)) .nil .nil)
-    .nil)) (.node (Option.map Prod.snd (nthO cxRd3 14)) .nil .nil)))) (.node none (.node none (.node none .nil (.node
-    none .nil (.node (Option.map Prod.snd (nthO cxRd12 13)) (.node (Option.map Prod.snd (nthO cxRd20 30)) .nil .nil)
-    .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 8)) .nil .nil) .nil) .nil)) .nil)) (.node
-    (Option.map Prod.snd (nthO reads0 25)) (.node none (.node none (.node none (.node none .nil (.node (Option.map
-    Prod.snd (nthO cxRd9 11)) .nil .nil)) .nil) .nil) .nil) (.node none (.node none (.node none .nil (.node none .nil
-    (.node (Option.map Prod.snd (nthO cxRd12 18)) .nil .nil))) (.node none (.node none (.node (Option.map Prod.snd
-    (nthO cxRd6 15)) (.node (Option.map Prod.snd (nthO cxRd15 27)) .nil .nil) .nil) (.node none (.node (Option.map
-    Prod.snd (nthO cxRd18 28)) .nil .nil) .nil)) .nil)) (.node none .nil (.node none (.node none .nil (.node none
-    (.node (Option.map Prod.snd (nthO cxRd20 2)) .nil .nil) .nil)) .nil)))))) (.node none (.node none (.node none
-    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd2 3)) .nil .nil) (.node none (.node none .nil (.node
-    (Option.map Prod.snd (nthO cxRd10 19)) (.node (Option.map Prod.snd (nthO cxRd17 29)) .nil .nil) .nil)) .nil))
-    (.node none (.node (Option.map Prod.snd (nthO cxRd2 21)) (.node none (.node none (.node (Option.map Prod.snd (nthO
-    cxRd14 27)) .nil .nil) .nil) .nil) .nil) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11
-    12)) .nil .nil)) (.node none .nil (.node (Option.map Prod.snd (nthO reads1 21)) .nil .nil))))) (.node none (.node
-    (Option.map Prod.snd (nthO cxRd1 4)) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 21)) .nil
-    .nil) .nil) .nil) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd8 13)) .nil .nil) .nil)))
-    (.node none .nil (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 22)) .nil .nil)
-    .nil)) (.node (Option.map Prod.snd (nthO cxRd3 27)) .nil .nil))))) (.node none (.node none (.node (Option.map
-    Prod.snd (nthO cxRd0 27)) (.node (Option.map Prod.snd (nthO cxRd2 15)) .nil .nil) (.node none (.node none .nil
-    (.node (Option.map Prod.snd (nthO cxRd10 29)) .nil .nil)) .nil)) (.node none (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd5 6)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd17 0)) .nil
-    .nil) .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd7 19)) .nil .nil) .nil)) .nil)) (.node none (.node
-    none .nil (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 13)) .nil .nil) (.node none (.node
-    (Option.map Prod.snd (nthO cxRd18 26)) .nil .nil) .nil)) .nil)) (.node none (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd5 18)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd17 20)) .nil
-    .nil) .nil)) .nil) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 12)) .nil .nil)
-    .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd4 3)) .nil .nil)))))) (.node none (.node none (.node none (.node
-    none (.node (Option.map Prod.snd (nthO cxRd2 9)) (.node none (.node (Option.map Prod.snd (nthO cxRd4 12)) (.node
-    (Option.map Prod.snd (nthO cxRd14 12)) .nil .nil) .nil) .nil) (.node none .nil (.node none (.node (Option.map
-    Prod.snd (nthO cxRd20 13)) .nil .nil) .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 28))
-    .nil .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd7 31)) .nil .nil) .nil))) (.node none .nil
-    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 24)) .nil .nil) (.node none (.node (Option.map
-    Prod.snd (nthO cxRd19 8)) .nil .nil) .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd8 27)) .nil .nil)
-    .nil)))) (.node none (.node none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 23)) .nil
-    .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd7 2)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd12
-    15)) .nil .nil))) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd8 17)) .nil .nil) (.node
-    (Option.map Prod.snd (nthO reads1 7)) .nil .nil)))) .nil)) (.node (Option.map Prod.snd (nthO reads0 26)) (.node
-    none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 18)) .nil .nil) .nil) .nil)
-    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 3)) .nil .nil) .nil) .nil)) (.node (Option.map
-    Prod.snd (nthO cxRd1 23)) .nil (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 31)) .nil .nil)
-    .nil) .nil))) (.node none (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd
-    (nthO cxRd21 10)) .nil .nil) .nil))) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15
-    29)) .nil .nil) .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd8 22)) .nil .nil) .nil))) (.node
-    none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 10)) .nil .nil) .nil) (.node
-    (Option.map Prod.snd (nthO cxRd10 14)) .nil .nil)) .nil) (.node none (.node none .nil (.node none (.node
-    (Option.map Prod.snd (nthO cxRd20 4)) .nil .nil) .nil)) (.node (Option.map Prod.snd (nthO cxRd4 6)) .nil
-    .nil))))))))
-noncomputable def cxRtr5 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
-  (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
-    (Option.map Prod.snd (nthO cxRd11 23)) .nil .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO
-    cxRd5 24)) (.node (Option.map Prod.snd (nthO cxRd15 13)) .nil .nil) .nil) .nil) (.node none (.node (Option.map
-    Prod.snd (nthO cxRd7 24)) .nil .nil) .nil))) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO
-    cxRd5 0)) (.node (Option.map Prod.snd (nthO cxRd14 26)) .nil .nil) .nil) .nil) .nil) (.node none (.node none .nil
+  (.node none (.node none (.node (Option.map Prod.snd (nthO reads0 5)) (.node none (.node none (.node none (.node none
+    .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 23)) .nil .nil))) (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd5 23)) (.node (Option.map Prod.snd (nthO cxRd15 13)) .nil .nil) .nil) .nil) (.node
+    none (.node (Option.map Prod.snd (nthO cxRd7 24)) .nil .nil) .nil))) (.node none (.node none (.node none (.node
+    none (.node (Option.map Prod.snd (nthO cxRd14 26)) .nil .nil) .nil) .nil) .nil) (.node none (.node none .nil
     (.node (Option.map Prod.snd (nthO cxRd11 11)) (.node (Option.map Prod.snd (nthO cxRd19 2)) .nil .nil) .nil))
-    .nil))) (.node none (.node none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 17)) .nil
-    .nil)) .nil) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 1)) .nil .nil)) .nil)) .nil))
-    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd0 24)) (.node none .nil (.node none .nil (.node
-    (Option.map Prod.snd (nthO cxRd12 1)) .nil .nil))) (.node none (.node (Option.map Prod.snd (nthO cxRd2 28)) .nil
-    (.node none (.node (Option.map Prod.snd (nthO cxRd18 6)) .nil .nil) .nil)) .nil)) (.node none (.node none .nil
-    (.node none (.node (Option.map Prod.snd (nthO cxRd7 18)) .nil .nil) .nil)) .nil)) (.node none (.node none (.node
-    none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 26)) .nil .nil)) (.node none .nil (.node none (.node
-    (Option.map Prod.snd (nthO cxRd21 4)) .nil .nil) .nil))) (.node none .nil (.node none (.node (Option.map Prod.snd
-    (nthO cxRd8 20)) .nil .nil) .nil))) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5
-    17)) .nil .nil) .nil) .nil) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 11)) .nil
-    .nil) .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd4 2)) .nil .nil)))))) (.node none (.node none (.node none
-    (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd14 11)) .nil .nil) .nil)
-    .nil) .nil) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10 23)) .nil .nil)) .nil)) (.node
-    none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd3 15)) (.node (Option.map Prod.snd (nthO cxRd8
-    26)) .nil .nil) .nil)))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd2 17)) .nil (.node none
-    (.node none (.node (Option.map Prod.snd (nthO cxRd16 26)) .nil .nil) .nil) (.node (Option.map Prod.snd (nthO
-    cxRd12 14)) .nil .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 9)) .nil .nil) (.node
-    none (.node (Option.map Prod.snd (nthO cxRd18 20)) .nil .nil) .nil)) .nil)) (.node none .nil (.node none (.node
-    none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 25)) .nil .nil) .nil)) (.node (Option.map Prod.snd
-    (nthO cxRd3 30)) .nil .nil))))) (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
-    (.node (Option.map Prod.snd (nthO cxRd20 22)) .nil .nil) .nil))) (.node none (.node none (.node (Option.map
-    Prod.snd (nthO cxRd6 2)) .nil .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd8 7)) .nil .nil)
-    .nil))) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 8)) .nil .nil) (.node none
-    (.node (Option.map Prod.snd (nthO cxRd17 4)) .nil .nil) .nil)) .nil) (.node none (.node none .nil (.node none
-    (.node (Option.map Prod.snd (nthO cxRd19 16)) .nil .nil) .nil)) .nil))) (.node none (.node none (.node none .nil
-    (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 19)) .nil .nil))) (.node none (.node none (.node none
-    (.node (Option.map Prod.snd (nthO cxRd15 28)) .nil .nil) .nil) .nil) (.node none .nil (.node (Option.map Prod.snd
-    (nthO reads1 15)) .nil .nil)))) (.node (Option.map Prod.snd (nthO cxRd2 0)) .nil (.node none (.node none .nil
-    (.node (Option.map Prod.snd (nthO cxRd11 18)) .nil .nil)) .nil)))))) (.node (Option.map Prod.snd (nthO reads0 1))
-    (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd2 5)) (.node none (.node
-    (Option.map Prod.snd (nthO cxRd4 10)) .nil .nil) .nil) (.node none .nil (.node none (.node (Option.map Prod.snd
-    (nthO cxRd20 10)) .nil .nil) .nil))) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd7 27))
-    .nil .nil) .nil))) (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd14 28))
-    .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 20)) .nil .nil)
-    (.node (Option.map Prod.snd (nthO cxRd11 13)) .nil .nil)) .nil))) (.node none (.node none .nil (.node none (.node
-    none (.node (Option.map Prod.snd (nthO cxRd6 7)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd18
-    17)) .nil .nil) .nil)) (.node none .nil (.node (Option.map Prod.snd (nthO reads1 3)) .nil .nil)))) (.node
-    (Option.map Prod.snd (nthO cxRd1 26)) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 12)) .nil
-    .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd17 12)) .nil .nil) .nil)) .nil) .nil))) (.node none (.node
-    none (.node none (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 3)) .nil .nil)))
-    (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18 8)) .nil .nil) .nil)) (.node
-    none (.node (Option.map Prod.snd (nthO cxRd8 5)) .nil .nil) .nil))) (.node none .nil (.node none (.node none
-    (.node (Option.map Prod.snd (nthO cxRd6 30)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd19 14))
-    .nil .nil) .nil)) .nil))) (.node none (.node none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO
-    cxRd9 29)) .nil .nil)) .nil) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 14)) (.node
-    (Option.map Prod.snd (nthO cxRd15 26)) .nil .nil) .nil) .nil) .nil)) (.node none .nil (.node none (.node none
-    (.node none (.node (Option.map Prod.snd (nthO cxRd16 13)) .nil .nil) .nil) .nil) (.node (Option.map Prod.snd (nthO
-    cxRd4 4)) .nil .nil)))))) (.node none (.node (Option.map Prod.snd (nthO reads0 21)) (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd2 11)) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd14 13)) .nil
-    .nil) .nil) .nil) .nil) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 29)) .nil .nil) .nil)
-    .nil)) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 4)) .nil .nil) .nil) (.node
-    none (.node (Option.map Prod.snd (nthO cxRd7 16)) .nil .nil) .nil)) (.node none .nil (.node none (.node
-    (Option.map Prod.snd (nthO cxRd8 28)) .nil .nil) .nil)))) (.node none (.node none (.node none .nil (.node none
-    (.node (Option.map Prod.snd (nthO cxRd7 6)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd12 16)) (.node
-    (Option.map Prod.snd (nthO cxRd21 1)) .nil .nil) .nil))) (.node none .nil (.node none (.node (Option.map Prod.snd
-    (nthO cxRd8 18)) .nil .nil) .nil))) (.node none (.node none .nil (.node none .nil (.node (Option.map Prod.snd
-    (nthO cxRd13 0)) .nil .nil))) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19
-    28)) .nil .nil) .nil)) .nil)))) (.node (Option.map Prod.snd (nthO reads0 27)) (.node none (.node none (.node none
-    (.node none (.node (Option.map Prod.snd (nthO cxRd4 19)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd9 15))
-    .nil .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 24)) .nil .nil) .nil))) (.node
-    none (.node none (.node (Option.map Prod.snd (nthO cxRd6 4)) .nil .nil) .nil) (.node none .nil (.node (Option.map
-    Prod.snd (nthO cxRd13 3)) .nil .nil)))) .nil) (.node none (.node none .nil (.node none .nil (.node (Option.map
-    Prod.snd (nthO cxRd3 6)) .nil .nil))) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5
-    22)) (.node (Option.map Prod.snd (nthO cxRd15 11)) .nil .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO
-    cxRd17 26)) .nil .nil) .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd7 22)) .nil .nil) .nil)) (.node
-    none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 20)) .nil .nil)) .nil)))))))
+    (.node (Option.map Prod.snd (nthO cxRd3 7)) .nil .nil)))) (.node none (.node none (.node none (.node none .nil
+    (.node (Option.map Prod.snd (nthO cxRd9 17)) .nil .nil)) .nil) (.node none (.node none .nil (.node (Option.map
+    Prod.snd (nthO cxRd11 1)) .nil .nil)) .nil)) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO
+    cxRd5 10)) .nil .nil) .nil) .nil) .nil))) (.node (Option.map Prod.snd (nthO reads0 22)) (.node none (.node none
+    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 13)) .nil .nil) .nil) (.node none .nil (.node
+    (Option.map Prod.snd (nthO cxRd12 1)) .nil .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5
+    30)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd18 6)) .nil .nil) .nil)) .nil)) (.node none
+    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd7 18)) .nil .nil) .nil)) .nil)) (.node none
+    (.node none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 26)) .nil .nil)) (.node none .nil
+    (.node none (.node (Option.map Prod.snd (nthO cxRd21 4)) .nil .nil) .nil))) (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd8 20)) .nil .nil) .nil))) (.node (Option.map Prod.snd (nthO cxRd1 29)) (.node none
+    (.node none (.node (Option.map Prod.snd (nthO cxRd5 16)) .nil .nil) .nil) .nil) (.node none (.node none (.node
+    none (.node (Option.map Prod.snd (nthO cxRd16 11)) .nil .nil) .nil) .nil) .nil))))) (.node none (.node none (.node
+    none (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd14 11)) .nil .nil)
+    .nil) .nil) .nil) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10 23)) .nil .nil)) .nil))
+    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 2)) .nil .nil) .nil) .nil) (.node none
+    .nil (.node (Option.map Prod.snd (nthO cxRd3 14)) (.node (Option.map Prod.snd (nthO cxRd8 26)) .nil .nil) .nil))))
+    (.node none (.node none (.node none .nil (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 26))
+    .nil .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd12 14)) .nil .nil))) (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd6 8)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd18 20)) .nil
+    .nil) .nil)) .nil)) (.node none .nil (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO
+    cxRd19 25)) .nil .nil) .nil)) .nil)))) (.node (Option.map Prod.snd (nthO reads0 25)) (.node none (.node none
+    (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 22)) .nil .nil) .nil)))
+    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd8 7)) .nil .nil) .nil))) (.node none (.node
+    none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd17 4)) .nil .nil) .nil)) .nil) (.node none
+    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 16)) .nil .nil) .nil)) .nil))) (.node none
+    (.node none (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 19)) .nil .nil))) (.node
+    none (.node none (.node (Option.map Prod.snd (nthO cxRd6 15)) (.node (Option.map Prod.snd (nthO cxRd15 28)) .nil
+    .nil) .nil) .nil) (.node none .nil (.node (Option.map Prod.snd (nthO reads1 15)) .nil .nil)))) (.node none .nil
+    (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 18)) .nil .nil)) .nil)))))) (.node none
+    (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd2 3)) .nil (.node none .nil
+    (.node none (.node (Option.map Prod.snd (nthO cxRd20 10)) .nil .nil) .nil))) (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd7 27)) .nil .nil) .nil))) (.node none (.node (Option.map Prod.snd (nthO cxRd2 21))
+    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd14 28)) .nil .nil) .nil) .nil) .nil) (.node none
+    (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 13)) .nil .nil)) .nil))) (.node none (.node (Option.map
+    Prod.snd (nthO cxRd1 4)) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 21)) .nil .nil) .nil)
+    .nil) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18 17)) .nil .nil) .nil))
+    (.node none .nil (.node (Option.map Prod.snd (nthO reads1 3)) .nil .nil)))) (.node none (.node none (.node none
+    .nil (.node none (.node (Option.map Prod.snd (nthO cxRd17 12)) .nil .nil) .nil)) .nil) (.node none .nil (.node
+    (Option.map Prod.snd (nthO cxRd3 27)) .nil .nil))))) (.node none (.node none (.node (Option.map Prod.snd (nthO
+    cxRd0 27)) (.node (Option.map Prod.snd (nthO cxRd2 15)) .nil (.node none .nil (.node (Option.map Prod.snd (nthO
+    cxRd12 3)) .nil .nil))) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18 8)) .nil
+    .nil) .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd8 5)) .nil .nil) .nil))) (.node none (.node none
+    (.node none (.node (Option.map Prod.snd (nthO cxRd5 6)) .nil .nil) .nil) .nil) (.node none (.node none .nil (.node
+    none (.node (Option.map Prod.snd (nthO cxRd19 14)) .nil .nil) .nil)) .nil))) (.node none (.node none (.node none
+    (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 29)) .nil .nil)) .nil) (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd6 13)) (.node (Option.map Prod.snd (nthO cxRd15 26)) .nil .nil) .nil) .nil) .nil))
+    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 18)) .nil .nil) .nil) .nil) (.node
+    none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 13)) .nil .nil) .nil) .nil) (.node
+    (Option.map Prod.snd (nthO cxRd4 3)) .nil .nil)))))) (.node none (.node none (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd2 9)) (.node none (.node (Option.map Prod.snd (nthO cxRd4 12)) (.node (Option.map
+    Prod.snd (nthO cxRd14 13)) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node (Option.map Prod.snd (nthO
+    cxRd5 28)) .nil .nil) .nil) .nil)) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO
+    cxRd7 16)) .nil .nil) .nil)) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 24)) .nil .nil) .nil)
+    (.node none (.node (Option.map Prod.snd (nthO cxRd8 28)) .nil .nil) .nil)))) (.node none (.node none (.node none
+    .nil (.node none (.node (Option.map Prod.snd (nthO cxRd7 5)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd12
+    16)) (.node (Option.map Prod.snd (nthO cxRd21 1)) .nil .nil) .nil))) (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd8 18)) .nil .nil) .nil))) (.node none (.node none .nil (.node none .nil (.node
+    (Option.map Prod.snd (nthO cxRd13 0)) .nil .nil))) (.node none (.node none .nil (.node none (.node (Option.map
+    Prod.snd (nthO cxRd19 28)) .nil .nil) .nil)) .nil)))) (.node (Option.map Prod.snd (nthO reads0 26)) (.node none
+    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 18)) .nil .nil) (.node (Option.map
+    Prod.snd (nthO cxRd9 15)) .nil .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 24))
+    .nil .nil) .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 3)) .nil .nil) .nil) (.node
+    none .nil (.node (Option.map Prod.snd (nthO cxRd13 3)) .nil .nil)))) (.node (Option.map Prod.snd (nthO cxRd1 23))
+    .nil (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 31)) .nil .nil) .nil) .nil))) (.node none
+    .nil (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 11)) .nil .nil)
+    .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd17 26)) .nil .nil) .nil)) (.node none (.node (Option.map
+    Prod.snd (nthO cxRd7 22)) .nil .nil) .nil)) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11
+    20)) .nil .nil)) (.node (Option.map Prod.snd (nthO cxRd4 6)) .nil .nil))))))))
+noncomputable def cxRtr5 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
+  (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd5 24)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd10 19)) (.node (Option.map
+    Prod.snd (nthO cxRd17 29)) .nil .nil) .nil)) .nil)) (.node none (.node none (.node none (.node (Option.map
+    Prod.snd (nthO cxRd5 0)) (.node (Option.map Prod.snd (nthO cxRd14 27)) .nil .nil) .nil) .nil) .nil) (.node none
+    (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 12)) .nil .nil)) (.node none .nil (.node (Option.map
+    Prod.snd (nthO reads1 21)) .nil .nil))))) (.node none (.node none .nil (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd8 13)) .nil .nil) .nil))) (.node none .nil (.node none (.node none .nil (.node none
+    (.node (Option.map Prod.snd (nthO cxRd19 22)) .nil .nil) .nil)) .nil)))) (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd0 24)) .nil (.node none (.node (Option.map Prod.snd (nthO cxRd2 28)) .nil (.node
+    (Option.map Prod.snd (nthO cxRd10 29)) .nil .nil)) .nil)) (.node none (.node none (.node none .nil (.node none
+    (.node (Option.map Prod.snd (nthO cxRd17 0)) .nil .nil) .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd7
+    19)) .nil .nil) .nil)) .nil)) (.node none (.node none .nil (.node none (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd18 26)) .nil .nil) .nil)) .nil)) (.node none (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd5 17)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd17 20)) .nil
+    .nil) .nil)) .nil) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 12)) .nil .nil)
+    .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd4 2)) .nil .nil)))))) (.node none (.node none (.node none (.node
+    none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd14 12)) .nil .nil) .nil) .nil)
+    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 13)) .nil .nil) .nil))) (.node none .nil
+    (.node none (.node (Option.map Prod.snd (nthO cxRd7 31)) .nil .nil) .nil))) (.node none .nil (.node none (.node
+    none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 8)) .nil .nil) .nil)) (.node (Option.map Prod.snd
+    (nthO cxRd3 15)) (.node (Option.map Prod.snd (nthO cxRd8 27)) .nil .nil) .nil)))) (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd2 17)) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 23)) .nil .nil))
+    (.node none (.node (Option.map Prod.snd (nthO cxRd7 1)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd12 15))
+    .nil .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 9)) .nil .nil) .nil) (.node none
+    (.node (Option.map Prod.snd (nthO cxRd8 17)) .nil .nil) (.node (Option.map Prod.snd (nthO reads1 7)) .nil .nil))))
+    (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd3 30)) .nil .nil))))) (.node none (.node
+    none (.node none .nil (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 2)) .nil .nil) .nil) .nil))
+    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 8)) .nil .nil) .nil) .nil) .nil))
+    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21
+    10)) .nil .nil) .nil))) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 29)) .nil
+    .nil) .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd8 22)) .nil .nil) .nil))) (.node (Option.map
+    Prod.snd (nthO cxRd2 0)) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 10)) .nil
+    .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd10 14)) .nil .nil)) .nil) (.node none (.node none .nil (.node
+    none (.node (Option.map Prod.snd (nthO cxRd20 4)) .nil .nil) .nil)) .nil)))))) (.node (Option.map Prod.snd (nthO
+    reads0 1)) (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd2 5)) (.node none
+    (.node (Option.map Prod.snd (nthO cxRd4 10)) (.node (Option.map Prod.snd (nthO cxRd14 10)) .nil .nil) .nil) .nil)
+    (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 27)) .nil .nil))) (.node none (.node none .nil (.node
+    none (.node (Option.map Prod.snd (nthO cxRd18 0)) .nil .nil) .nil)) .nil)) (.node none (.node none (.node none
+    (.node none (.node (Option.map Prod.snd (nthO cxRd14 29)) .nil .nil) .nil) .nil) (.node none .nil (.node none
+    (.node (Option.map Prod.snd (nthO cxRd21 16)) .nil .nil) .nil))) (.node none (.node none (.node (Option.map
+    Prod.snd (nthO cxRd6 20)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd19 5)) .nil .nil) .nil))
+    .nil))) (.node none (.node none (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 13))
+    (.node (Option.map Prod.snd (nthO cxRd20 30)) .nil .nil) .nil))) (.node none (.node none (.node (Option.map
+    Prod.snd (nthO cxRd6 7)) .nil .nil) .nil) .nil)) (.node (Option.map Prod.snd (nthO cxRd1 26)) (.node none (.node
+    none (.node (Option.map Prod.snd (nthO cxRd5 12)) .nil .nil) .nil) .nil) .nil))) (.node none (.node none (.node
+    none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 11)) .nil .nil)) .nil) .nil) (.node none
+    .nil (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 30)) .nil .nil) .nil) .nil))) (.node none
+    (.node none (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 18)) .nil .nil))) (.node
+    none (.node none (.node (Option.map Prod.snd (nthO cxRd6 14)) (.node (Option.map Prod.snd (nthO cxRd15 27)) .nil
+    .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd18 28)) .nil .nil) .nil)) .nil)) (.node none .nil
+    (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 2)) .nil .nil) .nil)) (.node
+    (Option.map Prod.snd (nthO cxRd4 4)) .nil .nil)))))) (.node none (.node (Option.map Prod.snd (nthO reads0 21))
+    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd2 11)) (.node none .nil (.node (Option.map Prod.snd
+    (nthO cxRd9 6)) .nil .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 16)) .nil .nil)
+    .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 29)) .nil .nil) .nil) .nil)) (.node none
+    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 4)) .nil .nil) .nil) (.node none (.node
+    (Option.map Prod.snd (nthO cxRd7 17)) .nil .nil) .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd
+    (nthO cxRd8 29)) .nil .nil) .nil)))) (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map
+    Prod.snd (nthO cxRd8 19)) .nil .nil) (.node (Option.map Prod.snd (nthO reads1 9)) .nil .nil)))) (.node none (.node
+    none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd17 18)) .nil .nil) .nil)) .nil) (.node
+    none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 10)) .nil .nil) .nil) .nil) .nil)))) (.node
+    (Option.map Prod.snd (nthO reads0 27)) (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd
+    (nthO cxRd4 19)) .nil .nil) .nil) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 9)) .nil .nil)))
+    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 4)) .nil .nil) (.node none (.node (Option.map
+    Prod.snd (nthO cxRd18 14)) .nil .nil) .nil)) .nil)) (.node none (.node none (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd17 8)) .nil .nil) .nil)) .nil) .nil)) (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 12)) .nil .nil) .nil))) (.node none (.node
+    none .nil (.node (Option.map Prod.snd (nthO cxRd11 10)) .nil .nil)) (.node (Option.map Prod.snd (nthO cxRd3 6))
+    .nil (.node (Option.map Prod.snd (nthO reads1 18)) .nil .nil)))) (.node none (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd5 22)) (.node (Option.map Prod.snd (nthO cxRd15 12)) .nil .nil) .nil) (.node
+    (Option.map Prod.snd (nthO cxRd10 16)) .nil .nil)) .nil) .nil))))))
 noncomputable def cxRtr6 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO reads0 15)) (.node none (.node none (.node none
-    (.node none (.node (Option.map Prod.snd (nthO cxRd4 8)) .nil .nil) .nil) .nil) (.node none (.node none .nil (.node
-    (Option.map Prod.snd (nthO cxRd10 17)) (.node (Option.map Prod.snd (nthO cxRd17 28)) .nil .nil) .nil)) .nil))
-    (.node none .nil (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO reads1 19)) .nil .nil)))))
-    (.node none (.node (Option.map Prod.snd (nthO cxRd1 3)) (.node none (.node none (.node (Option.map Prod.snd (nthO
-    cxRd4 20)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd9 16)) .nil .nil)) (.node none .nil (.node none (.node
-    (Option.map Prod.snd (nthO cxRd20 26)) .nil .nil) .nil))) (.node none (.node none (.node (Option.map Prod.snd
-    (nthO cxRd6 5)) .nil .nil) .nil) .nil)) (.node (Option.map Prod.snd (nthO cxRd1 25)) (.node none (.node none
-    (.node none (.node (Option.map Prod.snd (nthO cxRd15 3)) .nil .nil) .nil) .nil) .nil) .nil))) (.node none (.node
-    none (.node (Option.map Prod.snd (nthO cxRd0 23)) (.node (Option.map Prod.snd (nthO cxRd2 13)) .nil (.node none
-    (.node none (.node (Option.map Prod.snd (nthO cxRd16 20)) .nil .nil) .nil) .nil)) (.node none (.node none .nil
-    (.node (Option.map Prod.snd (nthO cxRd10 27)) .nil .nil)) .nil)) (.node none (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd5 5)) .nil .nil) .nil) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12
-    24)) .nil .nil))) .nil)) (.node none (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO
-    cxRd7 8)) .nil .nil) .nil)) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 12)) .nil .nil) (.node
-    none (.node (Option.map Prod.snd (nthO cxRd18 24)) .nil .nil) .nil)) .nil)) (.node (Option.map Prod.snd (nthO
-    cxRd1 30)) .nil (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd14 5)) .nil .nil)))))))
-    (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd2 7)) (.node none (.node
-    (Option.map Prod.snd (nthO cxRd4 11)) .nil .nil) .nil) (.node none .nil (.node none (.node (Option.map Prod.snd
-    (nthO cxRd20 12)) .nil .nil) .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 27)) .nil
-    .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd7 29)) .nil .nil) .nil))) (.node none .nil (.node
-    none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 6)) .nil .nil) .nil)) .nil))) (.node
-    none (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd14 20)) .nil .nil)
-    .nil) .nil) .nil) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 5)) .nil .nil)) (.node
-    none .nil (.node (Option.map Prod.snd (nthO reads1 5)) .nil .nil)))) (.node none (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd5 13)) .nil .nil) .nil) .nil) (.node none .nil (.node none (.node (Option.map
-    Prod.snd (nthO cxRd9 3)) .nil .nil) .nil))))) (.node none (.node none (.node none (.node none .nil (.node none
-    .nil (.node (Option.map Prod.snd (nthO cxRd12 5)) .nil .nil))) (.node none (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd15 18)) .nil .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd10 31)) (.node
-    (Option.map Prod.snd (nthO cxRd18 10)) .nil .nil) .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd8 6))
-    .nil .nil) .nil))) (.node none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10 8)) .nil
-    .nil)) .nil) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 5)) .nil .nil) .nil)
-    (.node none (.node (Option.map Prod.snd (nthO cxRd19 15)) .nil .nil) .nil)) (.node (Option.map Prod.snd (nthO
-    cxRd3 21)) .nil .nil)))) (.node none (.node (Option.map Prod.snd (nthO cxRd1 9)) (.node none .nil (.node none .nil
-    (.node none (.node (Option.map Prod.snd (nthO cxRd21 8)) .nil .nil) .nil))) (.node none .nil (.node (Option.map
-    Prod.snd (nthO cxRd3 1)) .nil .nil))) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5
-    20)) .nil .nil) .nil) .nil) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 17)) .nil .nil))
-    (.node (Option.map Prod.snd (nthO cxRd4 5)) .nil .nil))))))) (.node none (.node none (.node none (.node none
-    (.node none (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 25)) .nil .nil))) (.node
-    none (.node none (.node (Option.map Prod.snd (nthO cxRd5 25)) .nil .nil) (.node none (.node (Option.map Prod.snd
-    (nthO cxRd17 30)) .nil .nil) .nil)) .nil)) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO
-    cxRd5 1)) .nil .nil) .nil) .nil) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 19)) .nil .nil)
-    (.node none (.node (Option.map Prod.snd (nthO cxRd19 4)) .nil .nil) .nil)) (.node (Option.map Prod.snd (nthO cxRd3
+    (.node none (.node (Option.map Prod.snd (nthO cxRd4 8)) .nil .nil) .nil) .nil) (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd7 25)) .nil .nil) .nil))) (.node none (.node none .nil (.node none .nil (.node none
+    (.node (Option.map Prod.snd (nthO cxRd21 14)) .nil .nil) .nil))) .nil)) (.node none (.node (Option.map Prod.snd
+    (nthO cxRd1 3)) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 20)) .nil .nil) .nil) (.node none
+    .nil (.node (Option.map Prod.snd (nthO cxRd12 11)) .nil .nil))) (.node none (.node none (.node (Option.map
+    Prod.snd (nthO cxRd6 5)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd11 2)) (.node (Option.map Prod.snd (nthO
+    cxRd18 16)) .nil .nil) .nil)) (.node none .nil (.node (Option.map Prod.snd (nthO reads1 1)) .nil .nil)))) (.node
+    (Option.map Prod.snd (nthO cxRd1 25)) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15
+    4)) .nil .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd17 10)) .nil .nil) .nil)) .nil) .nil)))
+    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd0 23)) (.node (Option.map Prod.snd (nthO cxRd2 13))
+    .nil (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 21)) .nil .nil) .nil) .nil)) (.node none
+    .nil (.node none (.node (Option.map Prod.snd (nthO cxRd8 3)) .nil .nil) .nil))) (.node none (.node none (.node
+    none (.node (Option.map Prod.snd (nthO cxRd5 5)) .nil .nil) .nil) (.node none .nil (.node (Option.map Prod.snd
+    (nthO cxRd12 25)) .nil .nil))) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 2))
+    .nil .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd19 12)) .nil .nil) .nil)) .nil))) (.node none
+    (.node none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 27)) .nil .nil)) (.node none
+    (.node (Option.map Prod.snd (nthO cxRd7 9)) .nil .nil) .nil)) (.node none (.node none (.node (Option.map Prod.snd
+    (nthO cxRd6 12)) .nil .nil) .nil) (.node none .nil (.node (Option.map Prod.snd (nthO reads1 11)) .nil .nil))))
+    (.node (Option.map Prod.snd (nthO cxRd1 30)) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd
+    (nthO cxRd17 19)) .nil .nil) .nil)) .nil) .nil)))) (.node none (.node none (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd2 7)) (.node none (.node (Option.map Prod.snd (nthO cxRd4 11)) .nil .nil) .nil)
+    .nil) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 27)) .nil .nil) .nil) .nil)) .nil) (.node
+    none (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd14 21)) .nil .nil)
+    .nil) .nil) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 0)) .nil .nil) .nil))) .nil)
+    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 13)) .nil .nil) .nil) .nil) (.node
+    none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 26)) .nil .nil) .nil)) (.node none .nil
+    (.node (Option.map Prod.snd (nthO cxRd14 2)) .nil .nil)))))) (.node none (.node none (.node none (.node none
+    (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 13)) .nil .nil)) .nil) (.node none (.node none (.node
+    none (.node (Option.map Prod.snd (nthO cxRd15 19)) .nil .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd11 0))
+    .nil .nil)) .nil)) (.node none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10 9)) .nil
+    .nil)) .nil) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd3 21)) .nil .nil)))) (.node none (.node
+    (Option.map Prod.snd (nthO cxRd1 9)) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 31))
+    .nil .nil)) .nil) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18 30)) .nil
+    .nil) .nil)) (.node (Option.map Prod.snd (nthO cxRd3 1)) (.node (Option.map Prod.snd (nthO cxRd8 21)) .nil .nil)
+    .nil))) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 20)) .nil .nil) (.node
+    (Option.map Prod.snd (nthO cxRd10 13)) .nil .nil)) .nil) (.node none (.node none .nil (.node none (.node
+    (Option.map Prod.snd (nthO cxRd20 3)) .nil .nil) .nil)) (.node (Option.map Prod.snd (nthO cxRd4 5)) .nil
+    .nil))))))) (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd5 25)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd10 21)) .nil .nil)) .nil))
+    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 1)) .nil .nil) .nil) .nil) (.node none
+    (.node none (.node (Option.map Prod.snd (nthO cxRd6 19)) .nil .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd3
     11)) .nil .nil)))) (.node none (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO
-    cxRd14 18)) .nil .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd9 19)) .nil .nil)) .nil) (.node none (.node
-    none .nil (.node (Option.map Prod.snd (nthO cxRd11 3)) .nil .nil)) .nil)) (.node none (.node none (.node none
-    (.node none (.node (Option.map Prod.snd (nthO cxRd15 5)) .nil .nil) .nil) .nil) .nil) .nil))) (.node none (.node
-    none (.node none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 9)) .nil .nil)) (.node none
-    .nil (.node (Option.map Prod.snd (nthO cxRd12 2)) .nil .nil))) (.node none (.node none (.node (Option.map Prod.snd
-    (nthO cxRd6 0)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd18 7)) .nil .nil) .nil)) .nil))
-    (.node none (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 26)) .nil .nil))) (.node
-    none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 3)) .nil .nil) .nil) .nil) .nil))) (.node
+    cxRd14 19)) .nil .nil) .nil) .nil) .nil) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 4))
+    (.node (Option.map Prod.snd (nthO cxRd18 18)) .nil .nil) .nil)) (.node none (.node (Option.map Prod.snd (nthO
+    cxRd8 15)) .nil .nil) .nil))) (.node none .nil (.node none (.node none .nil (.node none (.node (Option.map
+    Prod.snd (nthO cxRd19 24)) .nil .nil) .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd9 2)) .nil .nil)
+    .nil))))) (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map
+    Prod.snd (nthO cxRd20 20)) .nil .nil) .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 0))
+    .nil .nil) .nil) .nil)) (.node none (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO
+    cxRd17 2)) .nil .nil) .nil)) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 27)) .nil .nil))) (.node
+    none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 4)) .nil .nil) .nil) .nil) .nil))) (.node
     none (.node (Option.map Prod.snd (nthO cxRd1 7)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO
-    cxRd7 10)) .nil .nil) .nil)) .nil) (.node (Option.map Prod.snd (nthO cxRd1 31)) .nil (.node none (.node none .nil
-    (.node none (.node (Option.map Prod.snd (nthO cxRd20 0)) .nil .nil) .nil)) .nil))))) (.node none (.node none
-    (.node none (.node none (.node none .nil (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 18))
-    .nil .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd20 14)) .nil .nil) .nil))) .nil) (.node none
-    .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd3 18)) .nil .nil)))) (.node none (.node none (.node
-    none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd7 4)) .nil .nil) .nil)) (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd6 10)) .nil .nil) .nil) .nil)) (.node none (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd5 15)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd17 16)) .nil
-    .nil) .nil)) .nil) (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd14 3)) .nil .nil))))))
-    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd1 0)) (.node none .nil (.node none .nil (.node none
-    (.node (Option.map Prod.snd (nthO cxRd20 23)) .nil .nil) .nil))) (.node none (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd15 20)) .nil .nil) .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd8
-    9)) .nil .nil) .nil))) (.node (Option.map Prod.snd (nthO cxRd1 24)) (.node none (.node none (.node (Option.map
-    Prod.snd (nthO cxRd5 9)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd10 10)) (.node (Option.map Prod.snd
-    (nthO cxRd17 6)) .nil .nil) .nil)) .nil) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd
-    (nthO cxRd19 18)) .nil .nil) .nil)) .nil))) (.node none (.node (Option.map Prod.snd (nthO cxRd1 11)) (.node none
-    (.node none (.node (Option.map Prod.snd (nthO cxRd4 30)) .nil .nil) .nil) .nil) (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd6 17)) .nil .nil) .nil) (.node none .nil (.node (Option.map Prod.snd (nthO reads1
-    17)) .nil .nil)))) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd7 21)) .nil
-    .nil) .nil)) .nil))))))
+    cxRd7 11)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd12 17)) .nil .nil))) (.node none (.node none .nil
+    (.node none (.node (Option.map Prod.snd (nthO cxRd18 27)) .nil .nil) .nil)) .nil)) (.node (Option.map Prod.snd
+    (nthO cxRd1 31)) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd17 22)) .nil .nil)
+    .nil)) .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none
+    (.node (Option.map Prod.snd (nthO cxRd16 19)) .nil .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd11 31)) .nil
+    .nil))) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18 4)) .nil .nil) .nil))
+    .nil)) (.node none (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd16 29)) .nil
+    .nil) .nil)) .nil) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd3 18)) .nil .nil)))) (.node none (.node
+    none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 25)) .nil .nil)) (.node none (.node
+    (Option.map Prod.snd (nthO cxRd7 7)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd21 2)) .nil
+    .nil) .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 10)) .nil .nil) .nil) (.node none
+    .nil (.node (Option.map Prod.snd (nthO reads1 8)) .nil .nil)))) (.node none (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd5 15)) .nil .nil) .nil) .nil) (.node none .nil (.node none .nil (.node (Option.map
+    Prod.snd (nthO cxRd14 4)) .nil .nil)))))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd1 0)) .nil
+    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 21)) .nil .nil) .nil) .nil) .nil))
+    (.node (Option.map Prod.snd (nthO cxRd1 24)) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 9))
+    (.node (Option.map Prod.snd (nthO cxRd15 2)) .nil .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd10 11)) .nil
+    .nil)) .nil) .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd1 11)) (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd4 30)) .nil .nil) .nil) (.node none .nil (.node none (.node (Option.map Prod.snd
+    (nthO cxRd21 11)) .nil .nil) .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 17)) .nil
+    .nil) .nil) .nil)) (.node none .nil (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 21))
+    (.node (Option.map Prod.snd (nthO cxRd20 6)) .nil .nil) .nil)) .nil)))))))
 noncomputable def cxRtr7 : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO reads0 16)) (.node none (.node none (.node none
-    (.node none (.node (Option.map Prod.snd (nthO cxRd4 9)) .nil .nil) .nil) .nil) (.node none .nil (.node none (.node
-    (Option.map Prod.snd (nthO cxRd7 25)) .nil .nil) .nil))) (.node none (.node none .nil (.node none .nil (.node none
-    (.node (Option.map Prod.snd (nthO cxRd21 14)) .nil .nil) .nil))) (.node none .nil (.node (Option.map Prod.snd
-    (nthO cxRd3 10)) .nil .nil)))) (.node none (.node none (.node none .nil (.node none .nil (.node (Option.map
-    Prod.snd (nthO cxRd12 11)) .nil .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 6)) .nil
-    .nil) (.node (Option.map Prod.snd (nthO cxRd11 2)) (.node (Option.map Prod.snd (nthO cxRd18 16)) .nil .nil) .nil))
-    (.node none .nil (.node (Option.map Prod.snd (nthO reads1 1)) .nil .nil)))) (.node none (.node none (.node none
-    (.node (Option.map Prod.snd (nthO cxRd5 11)) (.node (Option.map Prod.snd (nthO cxRd15 4)) .nil .nil) .nil) (.node
-    none (.node (Option.map Prod.snd (nthO cxRd17 10)) .nil .nil) .nil)) .nil) .nil))) (.node none (.node none (.node
-    none (.node none .nil (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd16 21)) .nil .nil) .nil)
-    .nil)) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 31)) .nil .nil) .nil) (.node none (.node
-    (Option.map Prod.snd (nthO cxRd8 3)) .nil .nil) .nil))) (.node (Option.map Prod.snd (nthO cxRd1 21)) (.node none
-    .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 25)) .nil .nil))) (.node none (.node none (.node
-    none (.node (Option.map Prod.snd (nthO cxRd16 2)) .nil .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO
-    cxRd19 12)) .nil .nil) .nil)) .nil))) (.node none (.node (Option.map Prod.snd (nthO cxRd1 6)) (.node none (.node
-    none .nil (.node (Option.map Prod.snd (nthO cxRd9 27)) .nil .nil)) (.node none (.node (Option.map Prod.snd (nthO
-    cxRd7 9)) .nil .nil) .nil)) (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO reads1 11)) .nil
-    .nil)))) (.node none (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd17 19)) .nil
-    .nil) .nil)) .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node none (.node (Option.map
-    Prod.snd (nthO cxRd2 24)) .nil .nil) .nil)) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO
-    cxRd5 3)) .nil .nil) .nil) .nil) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 23)) .nil .nil)
-    .nil) .nil))) (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 23)) (.node
-    (Option.map Prod.snd (nthO cxRd14 21)) .nil .nil) .nil) .nil) (.node none .nil (.node none (.node (Option.map
-    Prod.snd (nthO cxRd21 0)) .nil .nil) .nil))) .nil) (.node (Option.map Prod.snd (nthO cxRd1 28)) (.node none (.node
-    none (.node (Option.map Prod.snd (nthO cxRd5 14)) .nil .nil) .nil) .nil) (.node none (.node none .nil (.node none
-    (.node (Option.map Prod.snd (nthO cxRd19 26)) .nil .nil) .nil)) (.node (Option.map Prod.snd (nthO cxRd3 31)) .nil
-    (.node (Option.map Prod.snd (nthO cxRd14 2)) .nil .nil)))))) (.node none (.node none (.node (Option.map Prod.snd
-    (nthO cxRd0 31)) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 13)) .nil .nil)) .nil)
-    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 19)) .nil .nil) .nil) (.node
-    (Option.map Prod.snd (nthO cxRd11 0)) .nil .nil)) .nil)) (.node none (.node none (.node none .nil (.node
-    (Option.map Prod.snd (nthO cxRd10 9)) .nil .nil)) .nil) .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd1
-    10)) (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9 31)) .nil .nil)) .nil) (.node none
-    (.node none (.node (Option.map Prod.snd (nthO cxRd6 16)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO
-    cxRd18 30)) .nil .nil) .nil)) (.node (Option.map Prod.snd (nthO cxRd3 3)) (.node (Option.map Prod.snd (nthO cxRd8
-    21)) .nil .nil) .nil))) (.node (Option.map Prod.snd (nthO cxRd2 1)) (.node none (.node none (.node (Option.map
-    Prod.snd (nthO cxRd5 21)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd10 13)) .nil .nil)) .nil) (.node none
-    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 3)) .nil .nil) .nil)) .nil)))))) (.node
-    (Option.map Prod.snd (nthO reads0 3)) (.node none (.node none (.node none (.node none .nil (.node none (.node none
-    (.node (Option.map Prod.snd (nthO cxRd5 26)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd10 21)) .nil .nil))
-    .nil)) (.node none .nil (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 21)) .nil .nil) .nil)
-    .nil))) (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 22)) (.node
-    (Option.map Prod.snd (nthO cxRd14 19)) .nil .nil) .nil) .nil) .nil) (.node none (.node none .nil (.node
-    (Option.map Prod.snd (nthO cxRd11 4)) (.node (Option.map Prod.snd (nthO cxRd18 18)) .nil .nil) .nil)) (.node none
-    (.node (Option.map Prod.snd (nthO cxRd8 15)) .nil .nil) .nil))) (.node (Option.map Prod.snd (nthO cxRd1 27)) .nil
-    (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 24)) .nil .nil) .nil)) (.node
-    (Option.map Prod.snd (nthO cxRd3 29)) (.node (Option.map Prod.snd (nthO cxRd9 2)) .nil .nil) .nil))))) (.node none
-    (.node none (.node (Option.map Prod.snd (nthO cxRd0 28)) (.node none .nil (.node none .nil (.node none (.node
-    (Option.map Prod.snd (nthO cxRd20 20)) .nil .nil) .nil))) (.node none (.node none (.node (Option.map Prod.snd
-    (nthO cxRd6 1)) .nil .nil) .nil) .nil)) (.node (Option.map Prod.snd (nthO cxRd1 22)) (.node none (.node none
-    (.node (Option.map Prod.snd (nthO cxRd5 7)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd17 2))
-    .nil .nil) .nil)) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 27)) .nil .nil))) (.node none (.node
-    none (.node none (.node (Option.map Prod.snd (nthO cxRd16 4)) .nil .nil) .nil) .nil) .nil))) (.node none (.node
-    (Option.map Prod.snd (nthO cxRd1 8)) (.node (Option.map Prod.snd (nthO cxRd2 19)) .nil (.node none (.node
-    (Option.map Prod.snd (nthO cxRd7 11)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd12 17)) .nil .nil))) (.node
-    none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18 27)) .nil .nil) .nil)) .nil)) (.node
-    none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 19)) .nil .nil) (.node none (.node
-    (Option.map Prod.snd (nthO cxRd17 22)) .nil .nil) .nil)) .nil) .nil)))) (.node none (.node none (.node none (.node
-    (Option.map Prod.snd (nthO cxRd0 20)) (.node none .nil (.node none (.node none (.node (Option.map Prod.snd (nthO
-    cxRd16 19)) .nil .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd11 31)) .nil .nil))) (.node none (.node none
-    .nil (.node none (.node (Option.map Prod.snd (nthO cxRd18 4)) .nil .nil) .nil)) .nil)) (.node none (.node none
-    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd16 29)) .nil .nil) .nil)) .nil) (.node none
-    (.node none (.node (Option.map Prod.snd (nthO cxRd6 26)) .nil .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd3
-    19)) .nil .nil)))) (.node none (.node none (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd9
-    25)) .nil .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 2)) .nil .nil) .nil)))
-    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 11)) .nil .nil) .nil) (.node none .nil (.node
-    (Option.map Prod.snd (nthO reads1 8)) .nil .nil)))) (.node none .nil (.node none .nil (.node none .nil (.node
-    (Option.map Prod.snd (nthO cxRd14 4)) .nil .nil)))))) (.node none (.node none (.node none .nil (.node none (.node
-    none (.node none (.node (Option.map Prod.snd (nthO cxRd15 21)) .nil .nil) .nil) .nil) .nil)) (.node none (.node
-    none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 2)) .nil .nil) .nil) (.node (Option.map
-    Prod.snd (nthO cxRd10 11)) .nil .nil)) .nil) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd3 24)) .nil
-    .nil)))) (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 31)) .nil .nil)
-    .nil) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 11)) .nil .nil) .nil))) (.node none
-    (.node none (.node (Option.map Prod.snd (nthO cxRd6 18)) .nil .nil) .nil) .nil)) (.node (Option.map Prod.snd (nthO
-    cxRd2 2)) .nil (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 21)) (.node (Option.map
-    Prod.snd (nthO cxRd20 6)) .nil .nil) .nil)) .nil)))))))
+    (.node none (.node (Option.map Prod.snd (nthO cxRd4 9)) .nil .nil) .nil) (.node none .nil (.node (Option.map
+    Prod.snd (nthO cxRd11 25)) .nil .nil))) (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO
+    cxRd17 30)) .nil .nil) .nil)) .nil)) (.node none .nil (.node none (.node none .nil (.node none (.node (Option.map
+    Prod.snd (nthO cxRd19 4)) .nil .nil) .nil)) (.node (Option.map Prod.snd (nthO cxRd3 10)) .nil .nil)))) (.node none
+    (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd14 18)) .nil .nil) .nil)
+    (.node (Option.map Prod.snd (nthO cxRd9 19)) .nil .nil)) .nil) (.node none (.node none (.node (Option.map Prod.snd
+    (nthO cxRd6 6)) .nil .nil) (.node (Option.map Prod.snd (nthO cxRd11 3)) .nil .nil)) .nil)) (.node none (.node none
+    (.node none (.node (Option.map Prod.snd (nthO cxRd5 11)) (.node (Option.map Prod.snd (nthO cxRd15 5)) .nil .nil)
+    .nil) .nil) .nil) .nil))) (.node none (.node none (.node none (.node none (.node none .nil (.node (Option.map
+    Prod.snd (nthO cxRd9 9)) .nil .nil)) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 2)) .nil .nil)))
+    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 31)) .nil .nil) (.node none (.node (Option.map
+    Prod.snd (nthO cxRd18 7)) .nil .nil) .nil)) .nil)) (.node (Option.map Prod.snd (nthO cxRd1 21)) (.node none .nil
+    (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12 26)) .nil .nil))) (.node none (.node none (.node none
+    (.node (Option.map Prod.snd (nthO cxRd16 3)) .nil .nil) .nil) .nil) .nil))) (.node none (.node (Option.map
+    Prod.snd (nthO cxRd1 6)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd7 10)) .nil .nil)
+    .nil)) .nil) (.node none .nil (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20
+    0)) .nil .nil) .nil)) .nil))))) (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none (.node (Option.map Prod.snd (nthO cxRd16 18)) .nil .nil) .nil) (.node none (.node (Option.map Prod.snd
+    (nthO cxRd20 14)) .nil .nil) .nil))) (.node none (.node (Option.map Prod.snd (nthO cxRd2 24)) .nil .nil) .nil))
+    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 3)) .nil .nil) .nil) .nil) (.node none
+    (.node none (.node (Option.map Prod.snd (nthO cxRd6 23)) .nil .nil) .nil) .nil))) (.node none (.node none (.node
+    none (.node none (.node (Option.map Prod.snd (nthO cxRd4 23)) .nil .nil) .nil) (.node none (.node (Option.map
+    Prod.snd (nthO cxRd7 3)) .nil .nil) .nil)) .nil) (.node (Option.map Prod.snd (nthO cxRd1 28)) (.node none (.node
+    none (.node (Option.map Prod.snd (nthO cxRd5 14)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd17
+    16)) .nil .nil) .nil)) .nil) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd3 31)) .nil (.node (Option.map
+    Prod.snd (nthO cxRd14 3)) .nil .nil)))))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd0 31))
+    (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 23)) .nil .nil) .nil)))
+    (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15 20)) .nil .nil) .nil) .nil) (.node
+    none (.node (Option.map Prod.snd (nthO cxRd8 9)) .nil .nil) .nil))) (.node none (.node none (.node none .nil
+    (.node (Option.map Prod.snd (nthO cxRd10 10)) (.node (Option.map Prod.snd (nthO cxRd17 6)) .nil .nil) .nil)) .nil)
+    (.node none (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd19 18)) .nil .nil) .nil)) .nil)))
+    (.node none (.node (Option.map Prod.snd (nthO cxRd1 10)) .nil (.node none (.node none (.node (Option.map Prod.snd
+    (nthO cxRd6 16)) .nil .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd3 3)) .nil (.node (Option.map Prod.snd
+    (nthO reads1 17)) .nil .nil)))) (.node (Option.map Prod.snd (nthO cxRd2 1)) (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd5 21)) .nil .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd7 21))
+    .nil .nil) .nil)) .nil))))) (.node (Option.map Prod.snd (nthO reads0 3)) (.node none (.node none (.node none
+    (.node none (.node none .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 12)) .nil .nil)
+    .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 26)) .nil .nil) .nil) (.node none (.node
+    (Option.map Prod.snd (nthO cxRd7 29)) .nil .nil) .nil))) (.node none .nil (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd6 21)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd19 6)) .nil
+    .nil) .nil)) .nil))) (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 22))
+    (.node (Option.map Prod.snd (nthO cxRd14 20)) .nil .nil) .nil) .nil) .nil) (.node none (.node none .nil (.node
+    (Option.map Prod.snd (nthO cxRd11 5)) .nil .nil)) (.node none .nil (.node (Option.map Prod.snd (nthO reads1 5))
+    .nil .nil)))) (.node (Option.map Prod.snd (nthO cxRd1 27)) .nil (.node none .nil (.node (Option.map Prod.snd (nthO
+    cxRd3 29)) (.node (Option.map Prod.snd (nthO cxRd9 3)) .nil .nil) .nil))))) (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd0 28)) (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO cxRd12
+    5)) .nil .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 1)) (.node (Option.map Prod.snd
+    (nthO cxRd15 18)) .nil .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd10 31)) (.node (Option.map Prod.snd (nthO
+    cxRd18 10)) .nil .nil) .nil)) (.node none (.node (Option.map Prod.snd (nthO cxRd8 6)) .nil .nil) .nil))) (.node
+    (Option.map Prod.snd (nthO cxRd1 22)) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 7)) .nil
+    .nil) (.node (Option.map Prod.snd (nthO cxRd10 8)) .nil .nil)) .nil) (.node none (.node none (.node none (.node
+    (Option.map Prod.snd (nthO cxRd16 5)) .nil .nil) .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd19 15))
+    .nil .nil) .nil)) .nil))) (.node none (.node (Option.map Prod.snd (nthO cxRd1 8)) (.node (Option.map Prod.snd
+    (nthO cxRd2 19)) .nil (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd21 8)) .nil .nil) .nil)))
+    .nil) (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd5 19)) .nil .nil) .nil) .nil)
+    (.node none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd11 17)) .nil .nil)) .nil))))) (.node none
+    (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd0 20)) (.node none .nil (.node none (.node none
+    (.node (Option.map Prod.snd (nthO cxRd16 20)) .nil .nil) .nil) .nil)) (.node none (.node none .nil (.node
+    (Option.map Prod.snd (nthO cxRd10 27)) .nil .nil)) .nil)) (.node none (.node none .nil (.node none .nil (.node
+    (Option.map Prod.snd (nthO cxRd12 24)) .nil .nil))) (.node none (.node none (.node (Option.map Prod.snd (nthO
+    cxRd6 26)) .nil .nil) .nil) (.node (Option.map Prod.snd (nthO cxRd3 19)) .nil .nil)))) (.node none (.node none
+    (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd7 8)) .nil .nil) .nil)) (.node none (.node none
+    (.node (Option.map Prod.snd (nthO cxRd6 11)) .nil .nil) (.node none (.node (Option.map Prod.snd (nthO cxRd18 24))
+    .nil .nil) .nil)) .nil)) (.node none .nil (.node none .nil (.node none .nil (.node (Option.map Prod.snd (nthO
+    cxRd14 5)) .nil .nil)))))) (.node none (.node none (.node none (.node none (.node none .nil (.node (Option.map
+    Prod.snd (nthO cxRd9 16)) .nil .nil)) (.node none .nil (.node none (.node (Option.map Prod.snd (nthO cxRd20 26))
+    .nil .nil) .nil))) .nil) (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd15
+    3)) .nil .nil) .nil) .nil) .nil) (.node none .nil (.node (Option.map Prod.snd (nthO cxRd3 24)) .nil .nil))))
+    (.node none (.node none (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd4 31)) .nil .nil) .nil)
+    .nil) (.node none (.node none (.node (Option.map Prod.snd (nthO cxRd6 18)) .nil .nil) .nil) (.node none .nil
+    (.node (Option.map Prod.snd (nthO reads1 19)) .nil .nil)))) (.node (Option.map Prod.snd (nthO cxRd2 2)) (.node
+    none (.node none .nil (.node (Option.map Prod.snd (nthO cxRd10 17)) (.node (Option.map Prod.snd (nthO cxRd17 28))
+    .nil .nil) .nil)) .nil) .nil))))))
 /-- `cxOf`'s trie `R`. -/
 noncomputable def cxR : Trie (List (ℕ × ℕ × CoreMode.Wit)) :=
   (.node none (.node none (.node none cxRtr0 cxRtr1) (.node none cxRtr2 cxRtr3)) (.node none (.node none cxRtr4
@@ -675,32 +678,32 @@ noncomputable def cxC : Trie (List CoreMode.Wit) :=
       (.node (nthO calls4 7) (.node (nthO calls7 9) .nil .nil) (.node (nthO calls11 1) .nil .nil)) (.node (nthO
       calls6 3) (.node (nthO calls9 5) .nil .nil) (.node (nthO calls12 7) .nil .nil))) (.node (nthO calls3 7) (.node
       (nthO calls5 5) (.node (nthO calls8 7) .nil .nil) (.node (nthO calls11 9) .nil .nil)) (.node (nthO calls7 1)
-      (.node (nthO calls10 3) .nil .nil) (.node (nthO calls12 15) .nil .nil)))) (.node (nthO calls2 5) (.node (nthO
-      calls3 3) (.node (nthO calls5 1) (.node (nthO calls8 3) .nil .nil) (.node (nthO calls11 5) .nil .nil)) (.node
-      (nthO calls6 7) (.node (nthO calls9 9) .nil .nil) (.node (nthO calls12 11) .nil .nil))) (.node (nthO calls4 3)
-      (.node (nthO calls5 9) (.node (nthO calls9 1) .nil .nil) (.node (nthO calls12 3) .nil .nil)) (.node (nthO
-      calls7 5) (.node (nthO calls10 7) .nil .nil) .nil)))) (.node (nthO calls1 2) (.node (nthO calls2 3) (.node
-      (nthO calls3 1) (.node (nthO calls4 9) (.node (nthO calls8 1) .nil .nil) (.node (nthO calls11 3) .nil .nil))
-      (.node (nthO calls6 5) (.node (nthO calls9 7) .nil .nil) (.node (nthO calls12 9) .nil .nil))) (.node (nthO
-      calls4 1) (.node (nthO calls5 7) (.node (nthO calls8 9) .nil .nil) (.node (nthO calls12 1) .nil .nil)) (.node
-      (nthO calls7 3) (.node (nthO calls10 5) .nil .nil) .nil))) (.node (nthO calls2 7) (.node (nthO calls3 5)
-      (.node (nthO calls5 3) (.node (nthO calls8 5) .nil .nil) (.node (nthO calls11 7) .nil .nil)) (.node (nthO
-      calls6 9) (.node (nthO calls10 1) .nil .nil) (.node (nthO calls12 13) .nil .nil))) (.node (nthO calls4 5)
-      (.node (nthO calls6 1) (.node (nthO calls9 3) .nil .nil) (.node (nthO calls12 5) .nil .nil)) (.node (nthO
-      calls7 7) (.node (nthO calls10 9) .nil .nil) .nil))))) (.node (nthO calls0 2) (.node (nthO calls1 1) (.node
-      (nthO calls2 2) (.node (nthO calls3 0) (.node (nthO calls4 8) (.node (nthO calls8 0) .nil .nil) (.node (nthO
-      calls11 2) .nil .nil)) (.node (nthO calls6 4) (.node (nthO calls9 6) .nil .nil) (.node (nthO calls12 8) .nil
-      .nil))) (.node (nthO calls4 0) (.node (nthO calls5 6) (.node (nthO calls8 8) .nil .nil) (.node (nthO calls12
-      0) .nil .nil)) (.node (nthO calls7 2) (.node (nthO calls10 4) .nil .nil) .nil))) (.node (nthO calls2 6) (.node
-      (nthO calls3 4) (.node (nthO calls5 2) (.node (nthO calls8 4) .nil .nil) (.node (nthO calls11 6) .nil .nil))
-      (.node (nthO calls6 8) (.node (nthO calls10 0) .nil .nil) (.node (nthO calls12 12) .nil .nil))) (.node (nthO
-      calls4 4) (.node (nthO calls6 0) (.node (nthO calls9 2) .nil .nil) (.node (nthO calls12 4) .nil .nil)) (.node
-      (nthO calls7 6) (.node (nthO calls10 8) .nil .nil) .nil)))) (.node (nthO calls2 0) (.node (nthO calls2 4)
-      (.node (nthO calls3 2) (.node (nthO calls5 0) (.node (nthO calls8 2) .nil .nil) (.node (nthO calls11 4) .nil
-      .nil)) (.node (nthO calls6 6) (.node (nthO calls9 8) .nil .nil) (.node (nthO calls12 10) .nil .nil))) (.node
-      (nthO calls4 2) (.node (nthO calls5 8) (.node (nthO calls9 0) .nil .nil) (.node (nthO calls12 2) .nil .nil))
-      (.node (nthO calls7 4) (.node (nthO calls10 6) .nil .nil) .nil))) (.node (nthO calls2 8) (.node (nthO calls3
-      6) (.node (nthO calls5 4) (.node (nthO calls8 6) .nil .nil) (.node (nthO calls11 8) .nil .nil)) (.node (nthO
+      (.node (nthO calls10 3) .nil .nil) .nil))) (.node (nthO calls2 5) (.node (nthO calls3 3) (.node (nthO calls5
+      1) (.node (nthO calls8 3) .nil .nil) (.node (nthO calls11 5) .nil .nil)) (.node (nthO calls6 7) (.node (nthO
+      calls9 9) .nil .nil) (.node (nthO calls12 11) .nil .nil))) (.node (nthO calls4 3) (.node (nthO calls5 9)
+      (.node (nthO calls9 1) .nil .nil) (.node (nthO calls12 3) .nil .nil)) (.node (nthO calls7 5) (.node (nthO
+      calls10 7) .nil .nil) .nil)))) (.node (nthO calls1 2) (.node (nthO calls2 3) (.node (nthO calls3 1) (.node
+      (nthO calls4 9) (.node (nthO calls8 1) .nil .nil) (.node (nthO calls11 3) .nil .nil)) (.node (nthO calls6 5)
+      (.node (nthO calls9 7) .nil .nil) (.node (nthO calls12 9) .nil .nil))) (.node (nthO calls4 1) (.node (nthO
+      calls5 7) (.node (nthO calls8 9) .nil .nil) (.node (nthO calls12 1) .nil .nil)) (.node (nthO calls7 3) (.node
+      (nthO calls10 5) .nil .nil) .nil))) (.node (nthO calls2 7) (.node (nthO calls3 5) (.node (nthO calls5 3)
+      (.node (nthO calls8 5) .nil .nil) (.node (nthO calls11 7) .nil .nil)) (.node (nthO calls6 9) (.node (nthO
+      calls10 1) .nil .nil) (.node (nthO calls12 13) .nil .nil))) (.node (nthO calls4 5) (.node (nthO calls6 1)
+      (.node (nthO calls9 3) .nil .nil) (.node (nthO calls12 5) .nil .nil)) (.node (nthO calls7 7) (.node (nthO
+      calls10 9) .nil .nil) .nil))))) (.node (nthO calls0 2) (.node (nthO calls1 1) (.node (nthO calls2 2) (.node
+      (nthO calls3 0) (.node (nthO calls4 8) (.node (nthO calls8 0) .nil .nil) (.node (nthO calls11 2) .nil .nil))
+      (.node (nthO calls6 4) (.node (nthO calls9 6) .nil .nil) (.node (nthO calls12 8) .nil .nil))) (.node (nthO
+      calls4 0) (.node (nthO calls5 6) (.node (nthO calls8 8) .nil .nil) (.node (nthO calls12 0) .nil .nil)) (.node
+      (nthO calls7 2) (.node (nthO calls10 4) .nil .nil) .nil))) (.node (nthO calls2 6) (.node (nthO calls3 4)
+      (.node (nthO calls5 2) (.node (nthO calls8 4) .nil .nil) (.node (nthO calls11 6) .nil .nil)) (.node (nthO
+      calls6 8) (.node (nthO calls10 0) .nil .nil) (.node (nthO calls12 12) .nil .nil))) (.node (nthO calls4 4)
+      (.node (nthO calls6 0) (.node (nthO calls9 2) .nil .nil) (.node (nthO calls12 4) .nil .nil)) (.node (nthO
+      calls7 6) (.node (nthO calls10 8) .nil .nil) .nil)))) (.node (nthO calls2 0) (.node (nthO calls2 4) (.node
+      (nthO calls3 2) (.node (nthO calls5 0) (.node (nthO calls8 2) .nil .nil) (.node (nthO calls11 4) .nil .nil))
+      (.node (nthO calls6 6) (.node (nthO calls9 8) .nil .nil) (.node (nthO calls12 10) .nil .nil))) (.node (nthO
+      calls4 2) (.node (nthO calls5 8) (.node (nthO calls9 0) .nil .nil) (.node (nthO calls12 2) .nil .nil)) (.node
+      (nthO calls7 4) (.node (nthO calls10 6) .nil .nil) .nil))) (.node (nthO calls2 8) (.node (nthO calls3 6)
+      (.node (nthO calls5 4) (.node (nthO calls8 6) .nil .nil) (.node (nthO calls11 8) .nil .nil)) (.node (nthO
       calls7 0) (.node (nthO calls10 2) .nil .nil) (.node (nthO calls12 14) .nil .nil))) (.node (nthO calls4 6)
       (.node (nthO calls6 2) (.node (nthO calls9 4) .nil .nil) (.node (nthO calls12 6) .nil .nil)) (.node (nthO
       calls7 8) (.node (nthO calls11 0) .nil .nil) .nil))))))

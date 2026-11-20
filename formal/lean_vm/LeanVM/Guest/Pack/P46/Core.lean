@@ -3998,39 +3998,3 @@ noncomputable def core : Core.Fn where
 
 end
 end LeanVM.Guest.Fn.«verify_keccak_loop0»
-
-namespace LeanVM.Guest.Fn.«verify_tables_loop1»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-namespace core
-
-/-- `verify_tables_loop1`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.const (.n 5) (word 9223372036854775821 0)),
-  .atom (.mul (.n 6) (.n 4) (.n 5)),
-  .atom (.mul (.n 6) (.n 7) (.n 0)),
-  .atom (.mul (.n 8) (.n 3) (.n 7)),
-  .atom (.load (.n 9) (.n 8) 0),
-  .atom (.mul (.n 10) (.n 2) (.n 0)),
-  .atom (.load (.n 9) (.n 10) 0),
-  .atom (.const (.n 11) (word 2 0)),
-  .atom (.mul (.n 12) (.n 0) (.n 11)),
-  .atom (.add (.n 13) (.n 12) (.n 1)),
-  .atom (.const (.n 14) (word 2 0)),
-  .atom (.mul (.n 15) (.n 0) (.n 14)),
-  .callIf (.n 13) "__loop1_verify_tables" [.n 15, .n 1, .n 2, .n 3, .n 4],
-  .ret []]
-
-end core
-
-/-- `verify_tables_loop1`. -/
-noncomputable def core : Core.Fn where
-  name := "__loop1_verify_tables"
-  params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core.body
-
-end
-end LeanVM.Guest.Fn.«verify_tables_loop1»

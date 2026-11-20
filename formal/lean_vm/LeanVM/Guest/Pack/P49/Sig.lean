@@ -62,17 +62,17 @@ def sig : Check.Sig :=
 end
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L5»
 
-namespace LeanVM.Guest.Fn.«gkr_rounds__L2»
+namespace LeanVM.Guest.Fn.«gkr_last_layers__L3_L0»
 
 @[expose] public section
 
-/-- `gkr_rounds__L2`: name, entry, arguments, return words, entry environment, bounds, memory and
+/-- `gkr_last_layers__L3_L0`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"gkr_rounds__L2", Fn.«gkr_rounds__L2».entry, 5, 1, [], [],
+  ⟨"gkr_last_layers__L3_L0", Fn.«gkr_last_layers__L3_L0».entry, 9, 1, [], [],
     [], [], []⟩
 end
-end LeanVM.Guest.Fn.«gkr_rounds__L2»
+end LeanVM.Guest.Fn.«gkr_last_layers__L3_L0»
 
 namespace LeanVM.Guest.Fn.«level_positions__L4_L14_L2»
 

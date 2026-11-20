@@ -11,21 +11,22 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-abbrev Fn.«aggregate_claims_loop0».entry : Nat := 250810
-abbrev Fn.«block_selector__L14».entry : Nat := 196935
-abbrev Fn.«eq_prefix_run__L18».entry : Nat := 179525
-abbrev Fn.«eq_prefix_run__L3».entry : Nat := 178715
-abbrev Fn.«level_positions__L10_L19_L7_loop0».entry : Nat := 289412
-abbrev Fn.«level_positions__L22_L24_L6_loop0».entry : Nat := 364994
-abbrev Fn.«level_positions__L7_L21_L3».entry : Nat := 264578
-abbrev Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».entry : Nat := 273148
-abbrev Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».entry : Nat := 269371
-abbrev Fn.«level_residual__L18_L7_L4_L2_loop0».entry : Nat := 340503
-abbrev Fn.«level_residual__L21_L7_L4_L2_loop0».entry : Nat := 339605
-abbrev Fn.«level_residual__L55_L17_L6_L3».entry : Nat := 262047
-abbrev Fn.«level_residual__L73_L14_L6_L3_loop0».entry : Nat := 283661
-abbrev Fn.«plus_one_run__L27».entry : Nat := 195344
-abbrev Fn.«walk_path__L24_L2».entry : Nat := 441883
+abbrev Fn.«aggregate_claims_loop0».entry : Nat := 253972
+abbrev Fn.«block_selector__L14».entry : Nat := 200121
+abbrev Fn.«eq_prefix_run__L18».entry : Nat := 179600
+abbrev Fn.«eq_prefix_run__L3».entry : Nat := 178790
+abbrev Fn.«eq_prefix_run_rev__L9».entry : Nat := 183271
+abbrev Fn.«level_positions__L10_L19_L7_loop0».entry : Nat := 295260
+abbrev Fn.«level_positions__L22_L24_L6_loop0».entry : Nat := 370842
+abbrev Fn.«level_positions__L7_L21_L3».entry : Nat := 267867
+abbrev Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».entry : Nat := 276437
+abbrev Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».entry : Nat := 272660
+abbrev Fn.«level_residual__L18_L7_L4_L2_loop0».entry : Nat := 346351
+abbrev Fn.«level_residual__L21_L7_L4_L2_loop0».entry : Nat := 345453
+abbrev Fn.«level_residual__L55_L17_L6_L3».entry : Nat := 265336
+abbrev Fn.«level_residual__L73_L14_L6_L3_loop0».entry : Nat := 289509
+abbrev Fn.«plus_one_run__L27».entry : Nat := 198530
+abbrev Fn.«walk_path__L24_L2».entry : Nat := 449907
 
 end
 

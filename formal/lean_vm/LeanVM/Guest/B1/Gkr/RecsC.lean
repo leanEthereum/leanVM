@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Gkr.RecsC
 
-  The honest round records of a run of GKR rounds: every run of consecutive rounds among them is
-  what `gkr_rounds` and `verify_bus_gkr_loop0_loop0` ask.
+  The honest round records of a run of GKR rounds: every run of consecutive rounds between two of
+  them is `TbGkrRoundsOut`.
 -/
 
 module
@@ -16,8 +16,7 @@ public import LeanVM.Guest.B1.Gkr.Rounds
 on and the claim after the first `r` rounds of `gkrRun cs es claim s`. `recs_rounds`: with the
 rounds' words at the cursor, the eq factors at `pt` and the challenges at `pt[42 ..]`, the `k`
 rounds from round `a`, between a record after `a` rounds and one `t` records on after `a + k`, are
-`TbGkrRoundsOut k t`. `LyRecs`: a layer's records, record `y ≤ j` after `2y` rounds and record
-`j + 1` after all of them.
+`TbGkrRoundsOut k t`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -34,13 +33,6 @@ def RecAt (rd : Reader) (rec cur : E) (cs : List (List E)) (es : List E) (claim 
   TbCapAt rd rec 0 gkCap (gkrRun (cs.take r) (es.take r) claim s).2.2.cap ∧
     LoadHolds rd rec (5 * gkCap) (cur * gen ^ (4 * r)) ∧
     LoadHolds rd rec (6 * gkCap) (gkrRun (cs.take r) (es.take r) claim s).2.1
-
-/-- **A layer's round records** from `head`: record `y ≤ j` after `2y` rounds, record `j + 1`
-after all of them. -/
-def LyRecs (rd : Reader) (head cur : E) (cs : List (List E)) (es : List E) (claim : E) (s : Fs)
-    (j : ℕ) : Prop :=
-  (∀ y ≤ j, RecAt rd (head * gen ^ y) cur cs es claim s (2 * y)) ∧
-    RecAt rd (head * gen ^ (j + 1)) cur cs es claim s cs.length
 
 theorem tb_gkrRun_take_add (cs : List (List E)) (es : List E) (claim : E) (s : Fs) (a k : ℕ)
     (hl : cs.length = es.length) :

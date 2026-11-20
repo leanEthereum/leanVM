@@ -13,11 +13,11 @@ public import LeanVM.Guest.Bridge.ProgAl.Tab0
 public import LeanVM.Guest.Bridge.ProgAl.Tab1
 public import LeanVM.Guest.Bridge.ProgAl.Tab10
 public import LeanVM.Guest.Bridge.ProgAl.Tab11
+public import LeanVM.Guest.Bridge.ProgAl.Tab12
 public import LeanVM.Guest.Bridge.ProgAl.Tab14
 public import LeanVM.Guest.Bridge.ProgAl.Tab15
 public import LeanVM.Guest.Bridge.ProgAl.Tab2
 public import LeanVM.Guest.Bridge.ProgAl.Tab3
-public import LeanVM.Guest.Bridge.ProgAl.Tab5
 public import LeanVM.Guest.Bridge.ProgAl.Tab6
 public import LeanVM.Guest.Bridge.ProgAl.Tab7
 public import LeanVM.Guest.Bridge.ProgAl.Tab8
@@ -26,11 +26,11 @@ public import LeanVM.Guest.Checked.Link0
 public import LeanVM.Guest.Checked.Link1
 public import LeanVM.Guest.Checked.Link10
 public import LeanVM.Guest.Checked.Link11
+public import LeanVM.Guest.Checked.Link12
 public import LeanVM.Guest.Checked.Link14
 public import LeanVM.Guest.Checked.Link15
 public import LeanVM.Guest.Checked.Link2
 public import LeanVM.Guest.Checked.Link3
-public import LeanVM.Guest.Checked.Link5
 public import LeanVM.Guest.Checked.Link6
 public import LeanVM.Guest.Checked.Link7
 public import LeanVM.Guest.Checked.Link8
@@ -46,81 +46,84 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«block_selector__L2».code_mem : code ∈ Data.functions := Checked.code168 ▸ End.fnOf_mem (by decide)
+theorem Fn.«block_selector__L2».code_mem : code ∈ Data.functions := Checked.code203 ▸ End.fnOf_mem (by decide)
 theorem Fn.«block_selector__L2».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [], advice) :=
-  ⟨Checked.code168, Checked.core168, Checked.cert168, Checked.plumbEq168, Bridge.ProgAl.tab168⟩
-theorem Fn.«block_selector__L24».code_mem : code ∈ Data.functions := Checked.code190 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code203, Checked.core203, Checked.cert203, Checked.plumbEq203, Bridge.ProgAl.tab203⟩
+theorem Fn.«block_selector__L24».code_mem : code ∈ Data.functions := Checked.code225 ▸ End.fnOf_mem (by decide)
 theorem Fn.«block_selector__L24».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [], advice) :=
-  ⟨Checked.code190, Checked.core190, Checked.cert190, Checked.plumbEq190, Bridge.ProgAl.tab190⟩
-theorem Fn.«block_selector_tab__L15».code_mem : code ∈ Data.functions := Checked.code249 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code225, Checked.core225, Checked.cert225, Checked.plumbEq225, Bridge.ProgAl.tab225⟩
+theorem Fn.«block_selector_tab__L15».code_mem : code ∈ Data.functions := Checked.code284 ▸ End.fnOf_mem (by decide)
 theorem Fn.«block_selector_tab__L15».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [], advice) :=
-  ⟨Checked.code249, Checked.core249, Checked.cert249, Checked.plumbEq249, Bridge.ProgAl.tab249⟩
-theorem Fn.«bus_grind_check__L1».code_mem : code ∈ Data.functions := Checked.code326 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code284, Checked.core284, Checked.cert284, Checked.plumbEq284, Bridge.ProgAl.tab284⟩
+theorem Fn.«bus_grind_check__L1».code_mem : code ∈ Data.functions := Checked.code360 ▸ End.fnOf_mem (by decide)
 theorem Fn.«bus_grind_check__L1».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("grind_check__L18", Fn.«grind_check__L18».entry)], advice) :=
-  ⟨Checked.code326, Checked.core326, Checked.cert326, Checked.plumbEq326, Bridge.ProgAl.tab326⟩
-theorem Fn.«decode_query_windows__L19_L7».code_mem : code ∈ Data.functions := Checked.code1016 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code360, Checked.core360, Checked.cert360, Checked.plumbEq360, Bridge.ProgAl.tab360⟩
+theorem Fn.«decode_query_windows__L19_L7».code_mem : code ∈ Data.functions := Checked.code1065 ▸ End.fnOf_mem (by decide)
 theorem Fn.«decode_query_windows__L19_L7».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [], advice) :=
-  ⟨Checked.code1016, Checked.core1016, Checked.cert1016, Checked.plumbEq1016, Bridge.ProgAl.tab1016⟩
-theorem Fn.«eq_prefix_run__L20».code_mem : code ∈ Data.functions := Checked.code63 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code1065, Checked.core1065, Checked.cert1065, Checked.plumbEq1065, Bridge.ProgAl.tab1065⟩
+theorem Fn.«eq_prefix_run__L20».code_mem : code ∈ Data.functions := Checked.code64 ▸ End.fnOf_mem (by decide)
 theorem Fn.«eq_prefix_run__L20».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [], advice) :=
-  ⟨Checked.code63, Checked.core63, Checked.cert63, Checked.plumbEq63, Bridge.ProgAl.tab63⟩
-theorem Fn.«level_positions__L6_L24_L6».code_mem : code ∈ Data.functions := Checked.code905 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code64, Checked.core64, Checked.cert64, Checked.plumbEq64, Bridge.ProgAl.tab64⟩
+theorem Fn.«eq_prefix_run_rev__L26».code_mem : code ∈ Data.functions := Checked.code111 ▸ End.fnOf_mem (by decide)
+theorem Fn.«eq_prefix_run_rev__L26».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [], advice) :=
+  ⟨Checked.code111, Checked.core111, Checked.cert111, Checked.plumbEq111, Bridge.ProgAl.tab111⟩
+theorem Fn.«level_positions__L6_L24_L6».code_mem : code ∈ Data.functions := Checked.code946 ▸ End.fnOf_mem (by decide)
 theorem Fn.«level_positions__L6_L24_L6».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("__loop0_level_positions__L6_L24_L6", Fn.«level_positions__L6_L24_L6_loop0».entry), ("decode_query_windows__L24_L6", Fn.«decode_query_windows__L24_L6».entry)], advice) :=
-  ⟨Checked.code905, Checked.core905, Checked.cert905, Checked.plumbEq905, Bridge.ProgAl.tab905⟩
-theorem Fn.«level_queries__L218_L1_L6_L32_L20_L8_L0_L0_L0_L0».code_mem : code ∈ Data.functions := Checked.code678 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code946, Checked.core946, Checked.cert946, Checked.plumbEq946, Bridge.ProgAl.tab946⟩
+theorem Fn.«level_queries__L218_L1_L6_L32_L20_L8_L0_L0_L0_L0».code_mem : code ∈ Data.functions := Checked.code719 ▸ End.fnOf_mem (by decide)
 theorem Fn.«level_queries__L218_L1_L6_L32_L20_L8_L0_L0_L0_L0».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L8", Fn.«verify_merkle_cap__L8».entry)], advice) :=
-  ⟨Checked.code678, Checked.core678, Checked.cert678, Checked.plumbEq678, Bridge.ProgAl.tab678⟩
-theorem Fn.«level_queries__L21_L0_L4_L16_L17_L5_L0_L0_L0_L0».code_mem : code ∈ Data.functions := Checked.code653 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code719, Checked.core719, Checked.cert719, Checked.plumbEq719, Bridge.ProgAl.tab719⟩
+theorem Fn.«level_queries__L21_L0_L4_L16_L17_L5_L0_L0_L0_L0».code_mem : code ∈ Data.functions := Checked.code694 ▸ End.fnOf_mem (by decide)
 theorem Fn.«level_queries__L21_L0_L4_L16_L17_L5_L0_L0_L0_L0».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L5", Fn.«verify_merkle_cap__L5».entry)], advice) :=
-  ⟨Checked.code653, Checked.core653, Checked.cert653, Checked.plumbEq653, Bridge.ProgAl.tab653⟩
-theorem Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».code_mem : code ∈ Data.functions := Checked.code568 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code694, Checked.core694, Checked.cert694, Checked.plumbEq694, Bridge.ProgAl.tab694⟩
+theorem Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».code_mem : code ∈ Data.functions := Checked.code609 ▸ End.fnOf_mem (by decide)
 theorem Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L6", Fn.«verify_merkle_cap__L6».entry)], advice) :=
-  ⟨Checked.code568, Checked.core568, Checked.cert568, Checked.plumbEq568, Bridge.ProgAl.tab568⟩
-theorem Fn.«level_queries__L28_L0_L4_L16_L21_L3_L0_L0_L0_L0».code_mem : code ∈ Data.functions := Checked.code772 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code609, Checked.core609, Checked.cert609, Checked.plumbEq609, Bridge.ProgAl.tab609⟩
+theorem Fn.«level_queries__L28_L0_L4_L16_L21_L3_L0_L0_L0_L0».code_mem : code ∈ Data.functions := Checked.code813 ▸ End.fnOf_mem (by decide)
 theorem Fn.«level_queries__L28_L0_L4_L16_L21_L3_L0_L0_L0_L0».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L3", Fn.«verify_merkle_cap__L3».entry)], advice) :=
-  ⟨Checked.code772, Checked.core772, Checked.cert772, Checked.plumbEq772, Bridge.ProgAl.tab772⟩
-theorem Fn.«level_queries__L28_L0_L4_L16_L23_L5_L0_L0_L0_L0».code_mem : code ∈ Data.functions := Checked.code861 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code813, Checked.core813, Checked.cert813, Checked.plumbEq813, Bridge.ProgAl.tab813⟩
+theorem Fn.«level_queries__L28_L0_L4_L16_L23_L5_L0_L0_L0_L0».code_mem : code ∈ Data.functions := Checked.code902 ▸ End.fnOf_mem (by decide)
 theorem Fn.«level_queries__L28_L0_L4_L16_L23_L5_L0_L0_L0_L0».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».entry), ("verify_merkle_cap__L5", Fn.«verify_merkle_cap__L5».entry)], advice) :=
-  ⟨Checked.code861, Checked.core861, Checked.cert861, Checked.plumbEq861, Bridge.ProgAl.tab861⟩
-theorem Fn.«level_residual__L109_L18_L6_L3_loop1».code_mem : code ∈ Data.functions := Checked.code1153 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code902, Checked.core902, Checked.cert902, Checked.plumbEq902, Bridge.ProgAl.tab902⟩
+theorem Fn.«level_residual__L109_L18_L6_L3_loop1».code_mem : code ∈ Data.functions := Checked.code1202 ▸ End.fnOf_mem (by decide)
 theorem Fn.«level_residual__L109_L18_L6_L3_loop1».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("__loop1_level_residual__L109_L18_L6_L3", Fn.«level_residual__L109_L18_L6_L3_loop1».entry)], advice) :=
-  ⟨Checked.code1153, Checked.core1153, Checked.cert1153, Checked.plumbEq1153, Bridge.ProgAl.tab1153⟩
-theorem Fn.«level_residual__L17_L7_L4_L2_loop0».code_mem : code ∈ Data.functions := Checked.code1404 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code1202, Checked.core1202, Checked.cert1202, Checked.plumbEq1202, Bridge.ProgAl.tab1202⟩
+theorem Fn.«level_residual__L17_L7_L4_L2_loop0».code_mem : code ∈ Data.functions := Checked.code1453 ▸ End.fnOf_mem (by decide)
 theorem Fn.«level_residual__L17_L7_L4_L2_loop0».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("__loop0_level_residual__L17_L7_L4_L2", Fn.«level_residual__L17_L7_L4_L2_loop0».entry)], advice) :=
-  ⟨Checked.code1404, Checked.core1404, Checked.cert1404, Checked.plumbEq1404, Bridge.ProgAl.tab1404⟩
-theorem Fn.«level_residual__L19_L6_L4_L2».code_mem : code ∈ Data.functions := Checked.code671 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code1453, Checked.core1453, Checked.cert1453, Checked.plumbEq1453, Bridge.ProgAl.tab1453⟩
+theorem Fn.«level_residual__L19_L6_L4_L2».code_mem : code ∈ Data.functions := Checked.code712 ▸ End.fnOf_mem (by decide)
 theorem Fn.«level_residual__L19_L6_L4_L2».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("__loop0_level_residual__L19_L6_L4_L2", Fn.«level_residual__L19_L6_L4_L2_loop0».entry), ("__loop1_level_residual__L19_L6_L4_L2", Fn.«level_residual__L19_L6_L4_L2_loop1».entry)], advice) :=
-  ⟨Checked.code671, Checked.core671, Checked.cert671, Checked.plumbEq671, Bridge.ProgAl.tab671⟩
-theorem Fn.«level_residual__L37_L13_L4_L2_loop1».code_mem : code ∈ Data.functions := Checked.code1124 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code712, Checked.core712, Checked.cert712, Checked.plumbEq712, Bridge.ProgAl.tab712⟩
+theorem Fn.«level_residual__L37_L13_L4_L2_loop1».code_mem : code ∈ Data.functions := Checked.code1173 ▸ End.fnOf_mem (by decide)
 theorem Fn.«level_residual__L37_L13_L4_L2_loop1».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("__loop1_level_residual__L37_L13_L4_L2", Fn.«level_residual__L37_L13_L4_L2_loop1».entry)], advice) :=
-  ⟨Checked.code1124, Checked.core1124, Checked.cert1124, Checked.plumbEq1124, Bridge.ProgAl.tab1124⟩
-theorem Fn.«level_residual__L55_L20_L4_L2».code_mem : code ∈ Data.functions := Checked.code924 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code1173, Checked.core1173, Checked.cert1173, Checked.plumbEq1173, Bridge.ProgAl.tab1173⟩
+theorem Fn.«level_residual__L55_L20_L4_L2».code_mem : code ∈ Data.functions := Checked.code965 ▸ End.fnOf_mem (by decide)
 theorem Fn.«level_residual__L55_L20_L4_L2».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("__loop0_level_residual__L55_L20_L4_L2", Fn.«level_residual__L55_L20_L4_L2_loop0».entry), ("__loop1_level_residual__L55_L20_L4_L2", Fn.«level_residual__L55_L20_L4_L2_loop1».entry)], advice) :=
-  ⟨Checked.code924, Checked.core924, Checked.cert924, Checked.plumbEq924, Bridge.ProgAl.tab924⟩
-theorem Fn.«level_residual__L73_L23_L6_L3».code_mem : code ∈ Data.functions := Checked.code876 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code965, Checked.core965, Checked.cert965, Checked.plumbEq965, Bridge.ProgAl.tab965⟩
+theorem Fn.«level_residual__L73_L23_L6_L3».code_mem : code ∈ Data.functions := Checked.code917 ▸ End.fnOf_mem (by decide)
 theorem Fn.«level_residual__L73_L23_L6_L3».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("__loop0_level_residual__L73_L23_L6_L3", Fn.«level_residual__L73_L23_L6_L3_loop0».entry), ("__loop1_level_residual__L73_L23_L6_L3", Fn.«level_residual__L73_L23_L6_L3_loop1».entry)], advice) :=
-  ⟨Checked.code876, Checked.core876, Checked.cert876, Checked.plumbEq876, Bridge.ProgAl.tab876⟩
-theorem Fn.«main_loop1».code_mem : code ∈ Data.functions := Checked.code39 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code917, Checked.core917, Checked.cert917, Checked.plumbEq917, Bridge.ProgAl.tab917⟩
+theorem Fn.«main_loop1».code_mem : code ∈ Data.functions := Checked.code40 ▸ End.fnOf_mem (by decide)
 theorem Fn.«main_loop1».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("__loop1_main", Fn.«main_loop1».entry)], advice) :=
-  ⟨Checked.code39, Checked.core39, Checked.cert39, Checked.plumbEq39, Bridge.ProgAl.tab39⟩
-theorem Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1_loop0».code_mem : code ∈ Data.functions := Checked.code1500 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code40, Checked.core40, Checked.cert40, Checked.plumbEq40, Bridge.ProgAl.tab40⟩
+theorem Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1_loop0».code_mem : code ∈ Data.functions := Checked.code1557 ▸ End.fnOf_mem (by decide)
 theorem Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1_loop0».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("__loop0_opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1", Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1_loop0».entry), ("walk_path__L12_L4", Fn.«walk_path__L12_L4».entry)], advice) :=
-  ⟨Checked.code1500, Checked.core1500, Checked.cert1500, Checked.plumbEq1500, Bridge.ProgAl.tab1500⟩
-theorem Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1_loop0».code_mem : code ∈ Data.functions := Checked.code1502 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code1557, Checked.core1557, Checked.cert1557, Checked.plumbEq1557, Bridge.ProgAl.tab1557⟩
+theorem Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1_loop0».code_mem : code ∈ Data.functions := Checked.code1559 ▸ End.fnOf_mem (by decide)
 theorem Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1_loop0».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("__loop0_opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1", Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1_loop0».entry), ("walk_path__L12_L6", Fn.«walk_path__L12_L6».entry)], advice) :=
-  ⟨Checked.code1502, Checked.core1502, Checked.cert1502, Checked.plumbEq1502, Bridge.ProgAl.tab1502⟩
-theorem Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0_loop0».code_mem : code ∈ Data.functions := Checked.code1513 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code1559, Checked.core1559, Checked.cert1559, Checked.plumbEq1559, Bridge.ProgAl.tab1559⟩
+theorem Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0_loop0».code_mem : code ∈ Data.functions := Checked.code1570 ▸ End.fnOf_mem (by decide)
 theorem Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0_loop0».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("__loop0_opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0_loop0».entry), ("walk_path__L18_L5", Fn.«walk_path__L18_L5».entry)], advice) :=
-  ⟨Checked.code1513, Checked.core1513, Checked.cert1513, Checked.plumbEq1513, Bridge.ProgAl.tab1513⟩
-theorem Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0_loop0».code_mem : code ∈ Data.functions := Checked.code1534 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code1570, Checked.core1570, Checked.cert1570, Checked.plumbEq1570, Bridge.ProgAl.tab1570⟩
+theorem Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0_loop0».code_mem : code ∈ Data.functions := Checked.code1591 ▸ End.fnOf_mem (by decide)
 theorem Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0_loop0».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("__loop0_opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0_loop0».entry), ("walk_path__L24_L2", Fn.«walk_path__L24_L2».entry)], advice) :=
-  ⟨Checked.code1534, Checked.core1534, Checked.cert1534, Checked.plumbEq1534, Bridge.ProgAl.tab1534⟩
-theorem Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0».code_mem : code ∈ Data.functions := Checked.code1488 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code1591, Checked.core1591, Checked.cert1591, Checked.plumbEq1591, Bridge.ProgAl.tab1591⟩
+theorem Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0».code_mem : code ∈ Data.functions := Checked.code1545 ▸ End.fnOf_mem (by decide)
 theorem Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("__loop0_opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0", Fn.«opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0».entry), ("walk_path__L12_L6", Fn.«walk_path__L12_L6».entry)], advice) :=
-  ⟨Checked.code1488, Checked.core1488, Checked.cert1488, Checked.plumbEq1488, Bridge.ProgAl.tab1488⟩
-theorem Fn.«plus_one_run__L31».code_mem : code ∈ Data.functions := Checked.code163 ▸ End.fnOf_mem (by decide)
+  ⟨Checked.code1545, Checked.core1545, Checked.cert1545, Checked.plumbEq1545, Bridge.ProgAl.tab1545⟩
+theorem Fn.«plus_one_run__L31».code_mem : code ∈ Data.functions := Checked.code198 ▸ End.fnOf_mem (by decide)
 theorem Fn.«plus_one_run__L31».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [], advice) :=
-  ⟨Checked.code163, Checked.core163, Checked.cert163, Checked.plumbEq163, Bridge.ProgAl.tab163⟩
+  ⟨Checked.code198, Checked.core198, Checked.cert198, Checked.plumbEq198, Bridge.ProgAl.tab198⟩
 
 end
 

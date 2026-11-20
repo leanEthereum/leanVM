@@ -247,7 +247,7 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
        sig_in% «block_selector_tab__L30», sig_in% «block_selector_tab__L31», sig_in% «block_selector_tab__L32»,
        sig_in% «block_selector_tab__L33», sig_in% «block_selector_tab__L3», sig_in% «block_selector_tab__L4»,
        sig_in% «block_selector_tab__L5», sig_in% «block_selector_tab__L6», sig_in% «block_selector_tab__L7»,
-       sig_in% «block_selector_tab__L8», sig_in% «block_selector_tab__L9», sig_in% «eq_prefix_chain»,
+       sig_in% «block_selector_tab__L8», sig_in% «block_selector_tab__L9», sig_in% «eq_prefix_chain_rev»,
        sig_in% «index_mle__L0», sig_in% «index_mle__L10», sig_in% «index_mle__L11», sig_in% «index_mle__L12»,
        sig_in% «index_mle__L13», sig_in% «index_mle__L14», sig_in% «index_mle__L15», sig_in% «index_mle__L16»,
        sig_in% «index_mle__L17», sig_in% «index_mle__L18», sig_in% «index_mle__L19», sig_in% «index_mle__L1»,
@@ -278,7 +278,7 @@ theorem certs_sigs : ∀ e ∈ ces, SigsOr CoreMode.coreCerts CoreMode.offSigs e
        sig_in% «plus_one_run__L31», sig_in% «plus_one_run__L32», sig_in% «plus_one_run__L33»,
        sig_in% «plus_one_run__L3», sig_in% «plus_one_run__L4», sig_in% «plus_one_run__L5», sig_in% «plus_one_run__L6»,
        sig_in% «plus_one_run__L7», sig_in% «plus_one_run__L8», sig_in% «plus_one_run__L9»,
-       sig_in% «shared_selector_tables», sig_in% «verify_tables_loop0», sig_in% «verify_tables_loop1»]]
+       sig_in% «shared_selector_tables», sig_in% «verify_tables_loop0»]]
 
 end
 

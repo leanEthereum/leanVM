@@ -15,24 +15,24 @@ public import LeanVM.Guest.Pack.«P49».Bundle
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«gkr_rounds__L2»
+namespace LeanVM.Guest.Fn.«gkr_last_layers__L3_L0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `gkr_rounds__L2`, once. -/
-theorem st : shareStaticD Fn.«gkr_rounds__L2».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+/-- `gkr_last_layers__L3_L0`, once. -/
+theorem st : shareStaticD Fn.«gkr_last_layers__L3_L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `gkr_rounds__L2`, window 0. -/
-theorem sw0 : shareWinD Fn.«gkr_rounds__L2».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+/-- `gkr_last_layers__L3_L0`, window 0. -/
+theorem sw0 : shareWinD Fn.«gkr_last_layers__L3_L0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-/-- `gkr_rounds__L2`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«gkr_rounds__L2».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+/-- `gkr_last_layers__L3_L0`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«gkr_last_layers__L3_L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
@@ -40,7 +40,7 @@ theorem shareOk : ShareOkD Fn.«gkr_rounds__L2».core (cert.withPows Data.powTre
 ⟩
 
 end
-end LeanVM.Guest.Fn.«gkr_rounds__L2»
+end LeanVM.Guest.Fn.«gkr_last_layers__L3_L0»
 
 namespace LeanVM.Guest.Fn.«level_positions__L4_L14_L2»
 

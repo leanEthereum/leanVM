@@ -69,6 +69,33 @@ theorem shareOk : ShareOkD Fn.«eq_prefix_run__L32».core (cert.withPows Data.po
 end
 end LeanVM.Guest.Fn.«eq_prefix_run__L32»
 
+namespace LeanVM.Guest.Fn.«eq_prefix_run_rev__L30»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L30`, once. -/
+theorem st : shareStaticD Fn.«eq_prefix_run_rev__L30».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L30`, window 0. -/
+theorem sw0 : shareWinD Fn.«eq_prefix_run_rev__L30».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `eq_prefix_run_rev__L30`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«eq_prefix_run_rev__L30».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«eq_prefix_run_rev__L30»
+
 namespace LeanVM.Guest.Fn.«grind_check__L7»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -95,31 +122,4 @@ theorem shareOk : ShareOkD Fn.«grind_check__L7».core (cert.withPows Data.powTr
 
 end
 end LeanVM.Guest.Fn.«grind_check__L7»
-
-namespace LeanVM.Guest.Fn.«padding_weight__L24»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `padding_weight__L24`, once. -/
-theorem st : shareStaticD Fn.«padding_weight__L24».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `padding_weight__L24`, window 0. -/
-theorem sw0 : shareWinD Fn.«padding_weight__L24».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `padding_weight__L24`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«padding_weight__L24».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«padding_weight__L24»
 

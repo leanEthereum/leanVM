@@ -32,6 +32,7 @@ namespace LeanVM.Guest
 public section
 
 alloc_chk% «opening_round» [«grind_check__L7»]
+alloc_chk% «eq_prefix_run_rev__L15» []
 alloc_chk% «block_selector__L8» []
 alloc_chk% «index_mle__L6» []
 alloc_chk% «column_selector__L5» []

@@ -18,8 +18,8 @@ public import LeanVM.Guest.B1.VerifySub.NodePops
 `VtQ J`: at an instance of `verify_tables`, its cursor is `stream·g^p` with room for `1009` words
 past it, and its table sumcheck runs `n < 34` rounds (`g_zc_n = g^n`).
 
-`vt_holds`: a node's body gives `B1.Tables.VtH` and its returns. `vt_zc_front`: the loops' counters
-start at `1` and the first round record's cursor is `14` words past the cursor (`vt_cur13`, the
+`vt_holds`: a node's body gives `B1.Tables.VtH` and its returns. `vt_zc_front`: the rounds loop's counter
+starts at `1` and the first round record's cursor is `14` words past the cursor (`vt_cur13`, the
 bytecode share's three tail rounds). `vtQ_all`: at every honest instance, by `Res.insts_down`: its
 only caller is `verify_sub` (`Res.termCallers_all`), at `vtArgsV` (`vs_vt_sites`), whose front puts
 the cursor at `stream·g^(13 + |xsG|)` with room for `verify_keccak`'s words (`vk_room`), and `g_zc_n`,
@@ -88,17 +88,16 @@ theorem vt_cur13 {rd : Reader} {σ : Val} (h : Tables.VtH rd σ) : σ (.n 1898) 
   rw [u3, u2, u1, a1939, hw128]
   ring
 
-/-- **The table sumcheck's loops' setup**: both counters start at `1`, and the first round record
-holds the cursor `14` words past `verify_tables`' cursor. -/
+/-- **The table sumcheck's rounds loop's setup**: its counter starts at `1`, and the first round record holds the
+cursor `14` words past `verify_tables`' cursor. -/
 theorem vt_zc_front {rd : Reader} {σ : Val} (h : Tables.VtH rd σ) :
-    σ (.n 2638) = 1 ∧ σ (.n 2641) = 1 ∧ LoadHolds rd (σ (.n 2628)) 5 (σ (.n 5) * gen ^ 14) := by
+    σ (.n 2638) = 1 ∧ LoadHolds rd (σ (.n 2628)) 5 (σ (.n 5) * gen ^ 14) := by
   have c2638 := h.atomAt 2667 (.const (.n 2638) (word 1 0)) (by decide +kernel)
-  have c2641 := h.atomAt 2671 (.const (.n 2641) (word 1 0)) (by decide +kernel)
   have c2632 := h.atomAt 2658 (.const (.n 2632) (word 2 0)) (by decide +kernel)
   have m2633 := h.atomAt 2659 (.mul (.n 2633) (.n 1898) (.n 2632)) (by decide +kernel)
   have l2633 := h.atomAt 2660 (.load (.n 2633) (.n 2628) 5) (by decide +kernel)
-  simp only [Atom.Holds] at c2638 c2641 c2632 m2633 l2633
-  refine ⟨by rw [c2638, Tables.tb_word_one], by rw [c2641, Tables.tb_word_one], ?_⟩
+  simp only [Atom.Holds] at c2638 c2632 m2633 l2633
+  refine ⟨by rw [c2638, Tables.tb_word_one], ?_⟩
   rw [m2633, c2632, Tables.tb_word_gen, vt_cur13 h] at l2633
   rw [show σ (.n 5) * gen ^ 14 = σ (.n 5) * gen ^ 13 * gen by ring]
   exact l2633
@@ -163,7 +162,7 @@ theorem vtQ_step (hr : r.Ok) :
   have e5 := params_get hpar (k := 5) (by decide) rfl
   have e20 := params_get hpar (k := 20) (by decide) rfl
   rw [hrt] at hrJ
-  have e5991 : σ (.n 5991) = σI (.n 579) := by
+  have e5987 : σ (.n 5987) = σI (.n 579) := by
     have := congrArg (·[6]?) hrJ
     simpa [Tables.vtRets, vtRetsV] using this
   -- its front
@@ -198,7 +197,7 @@ theorem vtQ_step (hr : r.Ok) :
   refine ⟨13 + F.xsG.length, chis.length, ?_, ?_, by have := F.hdep34; omega, ?_⟩
   · rw [e5, e20, F.h567, F.h320, F.h312]
     ring
-  · rw [← (Tables.vt_pi hJ).2.2.2.1, e5991, hgz]
+  · rw [← (Tables.vt_pi hJ).2.2.2.1, e5987, hgz]
   · simp only [vkNeed] at hroom
     omega
 

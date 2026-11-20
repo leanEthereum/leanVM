@@ -59,7 +59,6 @@ noncomputable def Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».ali
 noncomputable def Fn.«plus_one_run__L22».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«squeeze_point_from__L9».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«verify_keccak_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_verify_keccak", Fn.«verify_keccak_loop0».entry)] 524287 code.instructionCount
-noncomputable def Fn.«verify_tables_loop1».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop1_verify_tables", Fn.«verify_tables_loop1».entry)] 524287 code.instructionCount
 
 end
 
@@ -96,7 +95,6 @@ align_chk% «opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0»
 align_chk% «plus_one_run__L22»
 align_chk% «squeeze_point_from__L9»
 align_chk% «verify_keccak_loop0»
-align_chk% «verify_tables_loop1»
 
 end
 

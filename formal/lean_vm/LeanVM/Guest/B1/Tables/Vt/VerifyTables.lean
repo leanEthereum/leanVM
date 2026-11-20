@@ -47,8 +47,8 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     σ (.n 4), σ (.n 5), σ (.n 6), σ (.n 7), σ (.n 8), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12),
     σ (.n 13), σ (.n 14), σ (.n 15), σ (.n 16), σ (.n 17), σ (.n 18), σ (.n 19), σ (.n 20)] from rfl]
     at hpre ⊢
-  rw [show vtRets.map σ = [σ (.n 5983), σ (.n 5984), σ (.n 5985), σ (.n 5986), σ (.n 5987),
-    σ (.n 5990), σ (.n 5991), σ (.n 5992), σ (.n 5993), σ (.n 5994)] from rfl]
+  rw [show vtRets.map σ = [σ (.n 5979), σ (.n 5980), σ (.n 5981), σ (.n 5982), σ (.n 5983),
+    σ (.n 5986), σ (.n 5987), σ (.n 5988), σ (.n 5989), σ (.n 5990)] from rfl]
   obtain ⟨hpi, hz, hmu, hml, hlm1, hlm, ⟨ds, hdsl, hdims⟩, hE, -, hwl, hW, hvl, hvals⟩ := hpre
   -- the tables' heights and row counts
   have hpads := vt_pads hμ Lm σ h
@@ -150,7 +150,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
   have A_flat : evs.flatten = vtEvs σ := vt_evsT_flatten σ
   have A_fin : (termsPure ((powers (σ (.n 2611)) 5).take 2) ((powers (σ (.n 2611)) 5).drop 2)
       pts.reverse (List.zip (vtRows (tableHeightsOf rows) bus.forms point pts) evs) 0 0 []).1 =
-      σ (.n 2653) := by
+      σ (.n 2650) := by
     rw [hforms]
     exact vt_asm_final hμ Lm h bc hbc hz hmu hml hE hlm hr hτ hkb hwl hW hgn hτn hnm hpl
       hcprod hpeq hchi
@@ -166,7 +166,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     simp only [dot, List.drop_succ_cons, List.drop_zero, List.zipWith_cons_cons,
       List.zipWith_nil_left, List.foldl_cons, List.foldl_nil]
     ring
-  have hs1 : (⟨(List.range 5).map fun k ↦ σ (.n (2647 + k)), []⟩ : Fs) = ⟨vtCapV σ 0, []⟩ := rfl
+  have hs1 : (⟨(List.range 5).map fun k ↦ σ (.n (2644 + k)), []⟩ : Fs) = ⟨vtCapV σ 0, []⟩ := rfl
   have hn : L.tableLogHeights.foldl max 0 = n := vt_foldl_max hr hτn hτex
   have hsc : RunsTo (sumcheck (dot ((powers s0.squeeze.1 ((tables.map Table.nConstraints).sum +
       3)).drop (tables.map Table.nConstraints).sum) bus.totals) 4 (List.replicate n none))
@@ -234,7 +234,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
       simp only [vtEvs, List.length_map, List.length_range] at hk
       simp only [vtEvs, List.getElem_map, List.getElem_range]
       rw [show (vtFreshWords σ ++ (ys ++ [σ (.n 1906)])).length = 14 by simp [hysl, vtFreshWords],
-        hxl, show σ (.n 5) * gen ^ 14 * gen ^ (3 * n) = σ (.n 2652) by
+        hxl, show σ (.n 5) * gen ^ 14 * gen ^ (3 * n) = σ (.n 2649) by
           rw [h2647, h1897]; ring]
       exact (vt_eval h hk).1
   case run =>

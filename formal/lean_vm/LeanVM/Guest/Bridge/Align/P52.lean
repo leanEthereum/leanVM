@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Bridge.AlignDefs
 public import LeanVM.Guest.Bridge.ChkLit
 public import LeanVM.Guest.CoreMode.GlueA.«P52»
+public import LeanVM.Guest.CoreMode.GlueE.«P22»
 public import LeanVM.Guest.CoreMode.GlueE.«P23»
 public import LeanVM.Guest.CoreMode.GlueE.«P26»
 public import LeanVM.Guest.CoreMode.GlueE.«P28»
@@ -18,6 +19,8 @@ public import LeanVM.Guest.CoreMode.GlueE.«P2»
 public import LeanVM.Guest.CoreMode.GlueE.«P40»
 public import LeanVM.Guest.CoreMode.GlueE.«P42»
 public import LeanVM.Guest.CoreMode.GlueE.«P47»
+public import LeanVM.Guest.CoreMode.GlueE.«P48»
+public import LeanVM.Guest.CoreMode.GlueE.«P49»
 public import LeanVM.Guest.CoreMode.GlueE.«P4»
 public import LeanVM.Guest.CoreMode.GlueE.«P50»
 public import LeanVM.Guest.CoreMode.GlueE.«P52»
@@ -37,6 +40,7 @@ namespace LeanVM.Guest
 noncomputable def Fn.«column_selector__L10».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«column_selector__L29».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«eq_prefix_run__L31».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
+noncomputable def Fn.«gkr_layers__L0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_gkr_layers__L0", Fn.«gkr_layers__L0_loop0».entry), ("gkr_last_layers__L0_L0", Fn.«gkr_last_layers__L0_L0».entry), ("gkr_last_layers__L1_L0", Fn.«gkr_last_layers__L1_L0».entry), ("gkr_last_layers__L2_L0", Fn.«gkr_last_layers__L2_L0».entry), ("gkr_last_layers__L3_L0", Fn.«gkr_last_layers__L3_L0».entry)] 524287 code.instructionCount
 noncomputable def Fn.«grind_check__L22».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«index_mle__L19».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«index_mle__L20».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
@@ -72,6 +76,7 @@ public section
 align_chk% «column_selector__L10»
 align_chk% «column_selector__L29»
 align_chk% «eq_prefix_run__L31»
+align_chk% «gkr_layers__L0»
 align_chk% «grind_check__L22»
 align_chk% «index_mle__L19»
 align_chk% «index_mle__L20»

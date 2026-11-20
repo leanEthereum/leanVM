@@ -95,7 +95,7 @@ structure VtBases where
 def vtAllocVars : List ℕ :=
   [34, 35, 36, 37, 665, 700, 702, 703, 778] ++ (List.range 3).map (fun b ↦ vtFwW b + 6) ++
     (List.range 51).map (fun i ↦ (vtPushSel.getD i default).2.2.1) ++
-    (List.range 45).map (fun i ↦ (vtCountSel.getD i default).2.2.1) ++ [2628, 2631, 2635, 2656]
+    (List.range 45).map (fun i ↦ (vtCountSel.getD i default).2.2.1) ++ [2628, 2631, 2635, 2653]
 
 theorem vtAllocVars_length : vtAllocVars.length = 112 := by decide
 

@@ -20,7 +20,6 @@ public import LeanVM.Guest.Pack.«P33».Sig
 public import LeanVM.Guest.Pack.«P27».Sig
 public import LeanVM.Guest.Pack.«P16».Sig
 public import LeanVM.Guest.Pack.«P29».Sig
-public import LeanVM.Guest.Pack.«P45».Sig
 
 set_option Elab.async false
 
@@ -95,6 +94,30 @@ theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«eq_prefix_
 
 end
 end LeanVM.Guest.Fn.«eq_prefix_run__L25»
+
+namespace LeanVM.Guest.Fn.«eq_prefix_run_rev__L23»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+/-- `eq_prefix_run_rev__L23`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«eq_prefix_run_rev__L23».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+  decide +kernel
+
+/-- `eq_prefix_run_rev__L23`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«eq_prefix_run_rev__L23».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+  intro i hi k hk
+  have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nPartsD parts 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw0_0
+
+end
+end LeanVM.Guest.Fn.«eq_prefix_run_rev__L23»
 
 namespace LeanVM.Guest.Fn.«block_selector__L7»
 
@@ -191,28 +214,4 @@ theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«block_sele
 
 end
 end LeanVM.Guest.Fn.«block_selector_tab__L10»
-
-namespace LeanVM.Guest.Fn.«bus_grind_check__L4»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-/-- `bus_grind_check__L4`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«grind_check__L21».idx, Fn.«grind_check__L21».sig)]) Data.jtTrie globSem) code Fn.«bus_grind_check__L4».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
-  decide +kernel
-
-/-- `bus_grind_check__L4`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«grind_check__L21».idx, Fn.«grind_check__L21».sig)]) Data.jtTrie globSem) code Fn.«bus_grind_check__L4».core (cert.withPows Data.powTree) plumb fs parts arms false := by
-  intro i hi k hk
-  have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nPartsD parts 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw0_0
-
-end
-end LeanVM.Guest.Fn.«bus_grind_check__L4»
 

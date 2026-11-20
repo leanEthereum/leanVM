@@ -221,6 +221,37 @@ noncomputable def core : Core.Fn where
 end
 end LeanVM.Guest.Fn.«eq_prefix_run__L10»
 
+namespace LeanVM.Guest.Fn.«eq_prefix_run_rev__L1»
+
+open LeanVM.Guest
+
+@[expose] public section
+
+namespace core
+
+/-- `eq_prefix_run_rev__L1`: the body. -/
+noncomputable def body : List Core.Stmt := [
+  .atom (.const (.n 4) (word 1 0)),
+  .atom (.load (.n 4) (.n 0) 0),
+  .atom (.load (.n 5) (.n 2) 0),
+  .atom (.load (.n 5) (.n 1) 0),
+  .atom (.load (.n 6) (.n 3) 0),
+  .atom (.add (.n 7) (.n 5) (.n 6)),
+  .atom (.load (.n 7) (.n 0) 1),
+  .atom (.const (.n 8) (word 0 0)),
+  .ret [.n 8]]
+
+end core
+
+/-- `eq_prefix_run_rev__L1`. -/
+noncomputable def core : Core.Fn where
+  name := "eq_prefix_run_rev__L1"
+  params := [.n 0, .n 1, .n 2, .n 3]
+  body := core.body
+
+end
+end LeanVM.Guest.Fn.«eq_prefix_run_rev__L1»
+
 namespace LeanVM.Guest.Fn.«keccak_layer__L0_loop1»
 
 open LeanVM.Guest

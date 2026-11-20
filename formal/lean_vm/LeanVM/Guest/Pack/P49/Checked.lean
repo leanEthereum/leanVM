@@ -11,6 +11,9 @@ public import LeanVM.Guest.CheckView
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P49».Core
 public import LeanVM.Guest.Pack.«P49».Bundle
+public import LeanVM.Guest.Pack.«P36».Sig
+public import LeanVM.Guest.Pack.«P5».Sig
+public import LeanVM.Guest.Pack.«P10».Sig
 public import LeanVM.Guest.Pack.«P44».Sig
 public import LeanVM.Guest.Pack.«P24».Sig
 public import LeanVM.Guest.Pack.«P4».Sig
@@ -84,19 +87,19 @@ theorem w0 : checkWinCF (Glob.ofSigs [] Data.jtTrie globSem) code
 end
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L5»
 
-namespace LeanVM.Guest.Fn.«gkr_rounds__L2»
+namespace LeanVM.Guest.Fn.«gkr_last_layers__L3_L0»
 
 open LeanVM.Guest LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `gkr_rounds__L2`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs [] Data.jtTrie globSem) code
-    Fn.«gkr_rounds__L2».core (cert.withPows Data.powTree) false 0 = true := by
+/-- `gkr_last_layers__L3_L0`, window 0. -/
+theorem w0 : checkWinCF (Glob.ofSigs ([(Fn.«gkr_layer__L0_L0».idx, Fn.«gkr_layer__L0_L0».sig), (Fn.«gkr_layer__L1_L0».idx, Fn.«gkr_layer__L1_L0».sig), (Fn.«gkr_layer__L2_L0».idx, Fn.«gkr_layer__L2_L0».sig)]) Data.jtTrie globSem) code
+    Fn.«gkr_last_layers__L3_L0».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
 end
-end LeanVM.Guest.Fn.«gkr_rounds__L2»
+end LeanVM.Guest.Fn.«gkr_last_layers__L3_L0»
 
 namespace LeanVM.Guest.Fn.«level_positions__L4_L14_L2»
 

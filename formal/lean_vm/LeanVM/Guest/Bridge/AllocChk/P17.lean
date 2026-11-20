@@ -64,6 +64,7 @@ public section
 alloc_chk% «check_opening_terminal» [«eq_prefix_chain», «ring_switch_weight», «selector_tables», «check_opening_terminal_loop0», «column_selector__L0», «column_selector__L1», «column_selector__L2», «column_selector__L3», «column_selector__L4», «column_selector__L5», «column_selector__L6», «column_selector__L7», «column_selector__L8», «column_selector__L9», «column_selector__L10», «column_selector__L11», «column_selector__L12», «column_selector__L13», «column_selector__L14», «column_selector__L15», «column_selector__L16», «column_selector__L17», «column_selector__L18», «column_selector__L19», «column_selector__L20», «column_selector__L21», «column_selector__L22», «column_selector__L23», «column_selector__L24», «column_selector__L25», «column_selector__L26», «column_selector__L27», «column_selector__L28», «column_selector__L29», «column_selector__L30»]
 alloc_chk% «main_loop0» []
 alloc_chk% «eq_prefix_run__L21» []
+alloc_chk% «eq_prefix_run_rev__L27» []
 alloc_chk% «plus_one_run__L30» []
 alloc_chk% «block_selector__L3» []
 alloc_chk% «block_selector__L25» []

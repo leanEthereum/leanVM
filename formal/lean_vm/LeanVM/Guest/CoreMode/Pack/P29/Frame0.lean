@@ -36,6 +36,10 @@ public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P29».Pair
+public import LeanVM.Guest.CoreMode.Sig.«P10»
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P13»
 public import LeanVM.Guest.CoreMode.Sig.«P16»
@@ -47,9 +51,11 @@ public import LeanVM.Guest.CoreMode.Sig.«P27»
 public import LeanVM.Guest.CoreMode.Sig.«P29»
 public import LeanVM.Guest.CoreMode.Sig.«P33»
 public import LeanVM.Guest.CoreMode.Sig.«P35»
+public import LeanVM.Guest.CoreMode.Sig.«P36»
 public import LeanVM.Guest.CoreMode.Sig.«P4»
 public import LeanVM.Guest.CoreMode.Sig.«P42»
 public import LeanVM.Guest.CoreMode.Sig.«P45»
+public import LeanVM.Guest.CoreMode.Sig.«P5»
 public import LeanVM.Guest.CoreMode.Sig.«P56»
 public import LeanVM.Guest.CoreMode.Sig.«P58»
 public import LeanVM.Guest.CoreMode.Sig.«P6»
@@ -71,6 +77,7 @@ frame_fn% «claim_list_digest» 115 [«claim_list_digest_loop0», «claim_list_d
 frame_fn% «main_loop4» 96 [«child_claim_list_digest», «main_loop4», «statement_digest»,
     «verify_sub»] env [(18, (.fpg 0))] scaled [18]
 frame_fn% «eq_prefix_run__L25» 129 []
+frame_fn% «eq_prefix_run_rev__L23» 141 []
 frame_fn% «block_selector__L7» 72 []
 frame_fn% «block_selector__L21» 212 []
 frame_fn% «index_mle__L9» 47 []
@@ -80,6 +87,8 @@ frame_fn% «bus_grind_check__L11» 9 [«grind_check__L28»]
 frame_fn% «child_claim_list_mono_last__L12» 212 []
 frame_fn% «da_expand__L6_L7» 658 []
 frame_fn% «da_expand__L13_L7» 658 []
+frame_fn% «gkr_layers__L0_loop0» 78 [«gkr_layer__L0_L0», «gkr_layer__L1_L0», «gkr_layer__L2_L0»,
+    «gkr_layer__L3_L0», «gkr_layers__L0_loop0»] env [(11, (.fpg 0))] scaled [11]
 frame_fn% «level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0» 39
     [«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0», «verify_merkle_cap__L2»]
 frame_fn% «level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0» 37
@@ -88,6 +97,7 @@ frame_fn% «level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0» 35
     [«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0», «verify_merkle_cap__L4»]
 frame_fn% «level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1» 35
     [«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1», «verify_merkle_cap__L5»]
+frame_fn% «gkr_layer__L2_L1» 335 [«gkr_layer__L2_L1_loop0»]
 frame_fn% «level_positions__L3_L12_L6_loop0» 49 [«decode_query_windows__L12_L6»,
     «level_positions__L3_L12_L6_loop0»] env [(8, (.fpg 0))] scaled [8]
 frame_fn% «level_positions__L3_L15_L3_loop0» 49 [«decode_query_windows__L15_L3»,

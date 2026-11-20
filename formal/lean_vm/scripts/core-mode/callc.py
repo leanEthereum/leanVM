@@ -277,9 +277,10 @@ def base_c1(G, na, ps, b):
     return (b[1], b[2]) in ps and (b[1] == 1 or (2 <= b[1] and b[1] - 2 < na and b[1] < 2 ** 28 and b[1] in G['entry']))
 
 
-def callee_sig(G, na, nr, postq=False):
+def callee_sig(G, na, nr, postq=False, ext=True):
     """`fitB`: the callee's heap signature at a call of `na` arguments and `nr` returned words; a loop's
-    runs (`postL`, `postLP`) among its guarantees."""
+    runs (`postL`, `postLP`) among its guarantees; `ext`: a run extended by its next point too (`rngXExt`, not at a
+    loop helper's call, `fitBL`)."""
     if G['self'] != ('id', 'none') and not (G['self'][0] == 'some' and G['self'][1] < 2 ** 28):
         raise No('callee self')
     if 0 not in G['entry'] or 1 not in G['entry']:
@@ -375,7 +376,7 @@ def callee_sig(G, na, nr, postq=False):
                 h.postP.append((c, offs))
     # a run whose upper bound is a slot's exponent extended by its next point, a promised cell (`CoreMode.rngXExt`)
     import heapc
-    for r in G['postR'] + G['postL']:
+    for r in (G['postR'] + G['postL'] if ext else []):
         try:
             q = runX(r, na + nr)
         except No:

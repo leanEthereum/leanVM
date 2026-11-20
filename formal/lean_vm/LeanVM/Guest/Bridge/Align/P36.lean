@@ -46,6 +46,9 @@ noncomputable def Fn.«bus_grind_check__L7».alignCtx : Bridge.AlignCtx := Bridg
 noncomputable def Fn.«child_claim_list_mono_last__L11».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«column_selector__L9».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«eq_prefix_run__L26».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
+noncomputable def Fn.«eq_prefix_run_rev__L19».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
+noncomputable def Fn.«eq_prefix_run_rev__L20».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
+noncomputable def Fn.«gkr_layer__L0_L0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_gkr_layer__L0_L0", Fn.«gkr_layer__L0_L0_loop0».entry)] 524287 code.instructionCount
 noncomputable def Fn.«grind_check__L17».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«keccak_layer__L1».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_keccak_layer__L1", Fn.«keccak_layer__L1_loop0».entry), ("__loop1_keccak_layer__L1", Fn.«keccak_layer__L1_loop1».entry), ("grind_check__L3", Fn.«grind_check__L3».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L14_L26_L2_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L14_L26_L2", Fn.«level_positions__L14_L26_L2_loop0».entry), ("decode_query_windows__L26_L2", Fn.«decode_query_windows__L26_L2».entry)] 524287 code.instructionCount
@@ -85,6 +88,9 @@ align_chk% «bus_grind_check__L7»
 align_chk% «child_claim_list_mono_last__L11»
 align_chk% «column_selector__L9»
 align_chk% «eq_prefix_run__L26»
+align_chk% «eq_prefix_run_rev__L19»
+align_chk% «eq_prefix_run_rev__L20»
+align_chk% «gkr_layer__L0_L0»
 align_chk% «grind_check__L17»
 align_chk% «keccak_layer__L1»
 align_chk% «level_positions__L14_L26_L2_loop0»

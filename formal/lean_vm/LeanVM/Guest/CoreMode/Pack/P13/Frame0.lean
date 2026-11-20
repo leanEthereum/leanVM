@@ -28,6 +28,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P13».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P13».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P13».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P13».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P13».Pair
 public import LeanVM.Guest.CoreMode.Gen.«walk_path__L24_L2».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P13»
 public import LeanVM.Guest.CoreMode.Sig.«P20»
@@ -52,6 +53,7 @@ open LeanVM.Guest.Exec
 
 frame_fn% «eq_prefix_run__L3» 19 []
 frame_fn% «eq_prefix_run__L18» 94 []
+frame_fn% «eq_prefix_run_rev__L9» 57 []
 frame_fn% «plus_one_run__L27» 84 []
 frame_fn% «block_selector__L14» 142 []
 frame_fn% «aggregate_claims_loop0» 228 [«aggregate_claims_loop0»] env [(10, (.fpg 0))] scaled [10]

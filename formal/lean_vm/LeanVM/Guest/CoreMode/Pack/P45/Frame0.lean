@@ -44,6 +44,8 @@ public import LeanVM.Guest.CoreMode.Gen.«P45».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P45».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P45».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P45».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P45».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P45».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P21»
 public import LeanVM.Guest.CoreMode.Sig.«P28»
@@ -71,6 +73,7 @@ open LeanVM.Guest.Exec
 
 frame_fn% «opening_tail_round» 34 []
 frame_fn% «eq_prefix_run__L32» 164 []
+frame_fn% «eq_prefix_run_rev__L30» 183 []
 frame_fn% «grind_check__L7» 52 []
 frame_fn% «padding_weight__L24» 212 []
 frame_fn% «plus_one_run__L5» 18 []
@@ -115,6 +118,7 @@ frame_fn% «level_positions__L6_L26_L2_loop0» 48 [«decode_query_windows__L26_L
     «level_positions__L6_L26_L2_loop0»] env [(8, (.fpg 0))] scaled [8]
 frame_fn% «level_residual__L28_L16_L4_L2_loop1» 137 [«level_residual__L28_L16_L4_L2_loop1»] sigs []
     env [(9, (.fpg 0))] scaled [9]
+frame_fn% «gkr_layer__L0_L0_loop0» 272 [«gkr_layer__L0_L0_loop0»] env [(8, (.fpg 0))] scaled [8]
 frame_fn% «opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0» 604
     [«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0», «walk_path__L12_L4»] env [(12,
     (.fpg 0))] scaled [12]

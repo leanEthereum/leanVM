@@ -17,10 +17,8 @@ public import LeanVM.Guest.CoreMode.GlueA.«P26»
 public import LeanVM.Guest.CoreMode.GlueA.«P27»
 public import LeanVM.Guest.CoreMode.GlueA.«P28»
 public import LeanVM.Guest.CoreMode.GlueA.«P47»
-public import LeanVM.Guest.CoreMode.GlueA.«P49»
 public import LeanVM.Guest.CoreMode.GlueA.«P54»
 public import LeanVM.Guest.CoreMode.GlueA.«P55»
-public import LeanVM.Guest.CoreMode.GlueA.«P56»
 public import LeanVM.Guest.CoreMode.GlueA.«P62»
 public import LeanVM.Guest.CoreMode.GlueA.«P9»
 public import LeanVM.Guest.Pack.«P11».Bundle
@@ -32,7 +30,7 @@ namespace LeanVM.Guest
 
 public section
 
-alloc_chk% «verify_bus_gkr_loop0» [«verify_bus_gkr_loop0_loop0», «gkr_rounds__L2», «gkr_rounds__L1»]
+alloc_chk% «verify_bus_gkr_loop0» []
 alloc_chk% «padding_weight__L2» []
 alloc_chk% «padding_weight__L17» []
 alloc_chk% «child_claim_list_mono_last__L7» []
@@ -44,6 +42,7 @@ alloc_chk% «level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1» [«verify_merkle
 alloc_chk% «level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0» [«verify_merkle_cap__L3», «opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0»]
 alloc_chk% «level_residual__L73_L20_L6_L3» [«level_residual__L73_L20_L6_L3_loop0», «level_residual__L73_L20_L6_L3_loop1»]
 alloc_chk% «da_levels__L128_L7_loop1» []
+alloc_chk% «gkr_layer__L3_L0» [«gkr_layer__L3_L0_loop0»]
 alloc_chk% «verify_merkle_cap__L3» []
 alloc_chk% «opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1» [«opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1_loop0»]
 alloc_chk% «opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0» [«walk_path__L18_L4», «opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0»]

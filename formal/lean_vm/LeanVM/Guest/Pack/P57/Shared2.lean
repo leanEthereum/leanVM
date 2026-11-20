@@ -15,6 +15,33 @@ public import LeanVM.Guest.Pack.«P57».Bundle
 
 set_option Elab.async false
 
+namespace LeanVM.Guest.Fn.«level_positions__L4_L18_L6»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `level_positions__L4_L18_L6`, once. -/
+theorem st : shareStaticD Fn.«level_positions__L4_L18_L6».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `level_positions__L4_L18_L6`, window 0. -/
+theorem sw0 : shareWinD Fn.«level_positions__L4_L18_L6».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `level_positions__L4_L18_L6`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«level_positions__L4_L18_L6».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«level_positions__L4_L18_L6»
+
 namespace LeanVM.Guest.Fn.«level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -80,23 +107,4 @@ theorem shareOk : ShareOkD Fn.«level_queries__L15_L0_L4_L16_L20_L2_L3_L12_L4_L1
 
 end
 end LeanVM.Guest.Fn.«level_queries__L15_L0_L4_L16_L20_L2_L3_L12_L4_L1»
-
-namespace LeanVM.Guest.Fn.«level_residual__L25_L7_L4_L2_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `__loop0_level_residual__L25_L7_L4_L2`, once. -/
-theorem st : shareStaticD Fn.«level_residual__L25_L7_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop0_level_residual__L25_L7_L4_L2`, window 0. -/
-theorem sw0 : shareWinD Fn.«level_residual__L25_L7_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«level_residual__L25_L7_L4_L2_loop0»
 

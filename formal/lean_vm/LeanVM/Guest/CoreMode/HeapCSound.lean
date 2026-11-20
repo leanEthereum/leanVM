@@ -1422,6 +1422,7 @@ theorem ptOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
   | catM => simp [ptOk] at h
   | mrgE => simp [ptOk] at h
   | ab => simp [ptOk] at h
+  | abx => simp [ptOk] at h
   | perm k ns =>
     simp only [ptOk] at h
     cases hk : resAt X k with
@@ -1530,6 +1531,7 @@ theorem rnOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
   | catM => simp [rnOk] at h
   | mrgE => simp [rnOk] at h
   | ab => simp [rnOk] at h
+  | abx => simp [rnOk] at h
   | evs => simp [rnOk] at h
   | back => simp [rnOk] at h
   | der => simp [rnOk] at h
@@ -2547,6 +2549,7 @@ theorem hvDef_ok {st : CSt} (hs : StOk rd W σ st) {c : CCell} {d : V} (hd : rd 
   | .catM _ _ _ => hs
   | .mrgE _ _ _ => hs
   | .ab _ _ _ => hs
+  | .abx _ _ _ _ _ => hs
   | .evs _ _ _ => hs
   | .back _ _ _ => hs
   | .der _ _ _ _ _ _ => hs
@@ -3494,17 +3497,31 @@ theorem vpArm_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.
         exact vpPts_ok (hX := hX) (hpre := fun c hc ↦ Or.inl (hpre c hc)) (pushPost_ok hm hs hpp) hmr
           (by simpa using hlr) h
 
-/-- **A dispatch arm `j`'s blocks hold** in `W'`: each run `⟨q, S, 0, j + d⟩` written. -/
-def AbOk (W' : K → Prop) (σ : Val) (j : ℕ) (abs : List (CCell × ℕ × ℕ)) : Prop :=
-  ∀ p ∈ abs, RunF W' (vw σ) p.1 p.2.1 ⟨[], 0⟩ ⟨[], j + p.2.2⟩
+/-- **A dispatch arm `j`'s blocks hold** in `W'`: each run `abArmR j e` written. -/
+def AbOk (W' : K → Prop) (σ : Val) (j : ℕ) (abs : List AbE) : Prop :=
+  ∀ e ∈ abs, RunF W' (vw σ) (abArmR j e).base (abArmR j e).stride (abArmR j e).lo (abArmR j e).hi
+
+/-- A block's base or bound after the dispatch: at the taken arm `i`, arm `i`'s. -/
+theorem abBase_valW {w : ℕ → E} {mx : CCell} {i : ℕ} (hmi : mx.valW w = ofK (addressOfIndex i)) (c : CCell) (a : ℕ) :
+    (c.shift (a * i)).valW w = (abBase mx c a).valW w := by
+  rw [valW_shift]
+  unfold abBase
+  cases ha : Nat.beq a 0 with
+  | true =>
+    obtain rfl := Nat.eq_of_beq_eq_true ha
+    rw [Bool.cond_true, Nat.zero_mul, addressOfIndex, pow_zero, show ofK (1 : K) = 1 from map_one (algebraMap K E),
+      mul_one]
+  | false =>
+    rw [Bool.cond_false, valW_mul, valW_pow, hmi, ← ofK_pow', addressOfIndex, addressOfIndex, ← pow_mul,
+      Nat.mul_comm a i]
 
 theorem abRuns_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
-    (hs : StOk rd W σ st) {j : ℕ} : ∀ {abs : List (CCell × ℕ × ℕ)} {wl wl' : List Wit},
+    (hs : StOk rd W σ st) {j : ℕ} : ∀ {abs : List AbE} {wl wl' : List Wit},
       abRuns X st j abs wl = some wl' → AbOk W σ j abs
   | [], _, _, _ => fun p hp ↦ by simp at hp
-  | (q, S, d) :: l, wl, wl', h => by
+  | e :: l, wl, wl', h => by
     simp only [abRuns] at h
-    cases hr : runOk X st ⟨q, S, ⟨[], 0⟩, ⟨[], j + d⟩⟩ wl with
+    cases hr : runOk X st (abArmR j e) wl with
     | none => rw [hr] at h; cases h
     | some ws' =>
       rw [hr] at h
@@ -3517,7 +3534,7 @@ theorem abRuns_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c
 /-- **An arm's blocks**: written by the caller's events or the arm's call. -/
 theorem abArm_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt} (hs : StOk rd W σ st)
     {ma : List CCell} {args : List V} (hma : MsOk (vw σ) ma (slotW (args.map σ))) (hla : ma.length = args.length)
-    {g : String} {rets : List V} {j : ℕ} {abs : List (CCell × ℕ × ℕ)} {wl wl' : List Wit}
+    {g : String} {rets : List V} {j : ℕ} {abs : List AbE} {wl wl' : List Wit}
     (h : abArm X st ma g rets j abs wl = some wl') (hM : RetMOk (sigOf g) (args.map σ) (rets.map σ)) :
     AbOk (fun y ↦ W y ∨ EvW sigOf rd σ (.call g args rets) y) σ j abs := by
   cases abs with
@@ -3550,7 +3567,7 @@ theorem abArm_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.
 theorem reqArmsX_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
     (hs : StOk rd W σ st) {ms : List CCell} {args : List V} (hms : MsOk (vw σ) ms (slotW (args.map σ)))
     (hla : ms.length = args.length) {x : V} {mx : CCell} (hmx : mx.valW (vw σ) = σ x)
-    {rets : List V} {vps : List (ℕ × List ℕ)} {abs : List (CCell × ℕ × ℕ)} :
+    {rets : List V} {vps : List (ℕ × List ℕ)} {abs : List AbE} :
     ∀ {j : ℕ} {gs : List String} {wl wl' : List Wit} {kept : List String},
       reqArmsX X st ms args rets vps abs x mx j gs wl = some (wl', kept) → ∀ i (hi : i < gs.length),
         σ x = ofK (addressOfIndex (j + i)) →
@@ -3773,10 +3790,12 @@ theorem dispC_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.
                   refine pushRL_ok ?_ (fun _ h ↦ h) fun q hq ↦ ?_
                   swap
                   · -- the blocks' runs: the taken arm's, its index the selector's exponent
-                    obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hq
-                    refine (runF_congr rfl rfl ?_).mp (hab p hp)
-                    rw [valW_const, valW_shift, hmxv, hxi, ← ofK_mul', addressOfIndex, addressOfIndex,
-                      addressOfIndex, ← pow_add, Nat.zero_add]
+                    obtain ⟨e, he, rfl⟩ := List.mem_map.mp hq
+                    have hmi : mx.valW (vw σ) = ofK (addressOfIndex i) := by rw [hmxv, hxi]
+                    obtain ⟨q0, a, S, h0, b⟩ := e
+                    have h1 := hab _ he
+                    simp only [abArmR, Nat.zero_add] at h1
+                    exact (runF_congr (abBase_valW hmi q0 a) rfl (abBase_valW hmi h0 b)).mp h1
                   refine pushL_ok (pushPtrM_ok hm hg ?_ fun x hx ↦ Or.inr (by rw [← hX.sigOf]; exact hx))
                     (fun _ h ↦ h) fun c hc ↦ ?_
                   swap

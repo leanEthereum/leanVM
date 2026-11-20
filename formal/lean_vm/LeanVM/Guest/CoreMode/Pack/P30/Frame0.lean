@@ -32,12 +32,16 @@ public import LeanVM.Guest.CoreMode.Gen.«P30».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P30».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P30».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P30».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P30».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P16»
 public import LeanVM.Guest.CoreMode.Sig.«P25»
+public import LeanVM.Guest.CoreMode.Sig.«P29»
 public import LeanVM.Guest.CoreMode.Sig.«P3»
 public import LeanVM.Guest.CoreMode.Sig.«P30»
 public import LeanVM.Guest.CoreMode.Sig.«P35»
 public import LeanVM.Guest.CoreMode.Sig.«P47»
+public import LeanVM.Guest.CoreMode.Sig.«P50»
+public import LeanVM.Guest.CoreMode.Sig.«P55»
 
 set_option Elab.async false
 
@@ -53,6 +57,7 @@ frame_fn% «padding_weight__L1» 22 []
 frame_fn% «padding_weight__L14» 132 []
 frame_fn% «block_selector_tab__L28» 73 []
 frame_fn% «child_claim_list_mono_last__L4» 88 []
+frame_fn% «gkr_last_layers__L3_L1» 45 [«gkr_layer__L0_L1», «gkr_layer__L1_L1», «gkr_layer__L2_L1»]
 frame_fn% «level_residual__L109_L16_L6_L3» 45 [«level_residual__L109_L16_L6_L3_loop0»,
     «level_residual__L109_L16_L6_L3_loop1»]
 frame_fn% «level_positions__L22_L23_L5» 42 [«decode_query_windows__L23_L5»,

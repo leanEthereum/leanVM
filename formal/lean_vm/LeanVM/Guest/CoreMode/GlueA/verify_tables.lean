@@ -18,8 +18,8 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-abbrev Fn.«verify_tables».advice := Data.adviceFn12
-abbrev Fn.«verify_tables».idx : ℕ := 12
+abbrev Fn.«verify_tables».advice := Data.adviceFn13
+abbrev Fn.«verify_tables».idx : ℕ := 13
 
 end
 

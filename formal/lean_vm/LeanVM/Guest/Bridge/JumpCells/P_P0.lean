@@ -21,6 +21,7 @@ namespace LeanVM.Guest
 public section
 
 theorem Fn.«opening_round».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«opening_round».idx == 1) = true := by decide +kernel
+theorem Fn.«eq_prefix_run_rev__L15».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«eq_prefix_run_rev__L15».idx == 1) = true := by decide +kernel
 theorem Fn.«block_selector__L8».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«block_selector__L8».idx == 1) = true := by decide +kernel
 theorem Fn.«index_mle__L6».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«index_mle__L6».idx == 1) = true := by decide +kernel
 theorem Fn.«column_selector__L5».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«column_selector__L5».idx == 1) = true := by decide +kernel

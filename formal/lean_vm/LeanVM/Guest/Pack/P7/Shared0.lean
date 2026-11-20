@@ -102,17 +102,17 @@ theorem shareOk : ShareOkD Fn.«eq_prefix_run__L30».core (cert.withPows Data.po
 end
 end LeanVM.Guest.Fn.«eq_prefix_run__L30»
 
-namespace LeanVM.Guest.Fn.«padding_weight__L26»
+namespace LeanVM.Guest.Fn.«eq_prefix_run_rev__L32»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L26`, once. -/
-theorem st : shareStaticD Fn.«padding_weight__L26».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+/-- `eq_prefix_run_rev__L32`, once. -/
+theorem st : shareStaticD Fn.«eq_prefix_run_rev__L32».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 end
-end LeanVM.Guest.Fn.«padding_weight__L26»
+end LeanVM.Guest.Fn.«eq_prefix_run_rev__L32»
 

@@ -21,6 +21,7 @@ namespace LeanVM.Guest
 public section
 
 theorem Fn.«eq_prefix_run__L29».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«eq_prefix_run__L29».idx == 1) = true := by decide +kernel
+theorem Fn.«eq_prefix_run_rev__L16».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«eq_prefix_run_rev__L16».idx == 1) = true := by decide +kernel
 theorem Fn.«index_mle__L5».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«index_mle__L5».idx == 1) = true := by decide +kernel
 theorem Fn.«column_selector__L6».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«column_selector__L6».idx == 1) = true := by decide +kernel
 theorem Fn.«log2_ceil_in_the_exponent__L0_L34».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [(2, 5), (3, 6), (4, 7), (5, 8), (6, 9), (7, 10), (8, 11), (9, 12), (10, 13), (11, 14), (12, 15), (13, 16), (14, 17), (15, 18), (16, 19), (17, 20), (18, 21), (19, 22), (20, 23), (21, 24), (22, 25), (23, 26), (24, 27), (25, 28), (26, 29), (27, 30), (28, 31), (29, 32), (30, 33), (31, 34), (32, 35), (33, 36), (34, 37), (35, 38)] core code.code (Fn.«log2_ceil_in_the_exponent__L0_L34».idx == 1) = true := by decide +kernel

@@ -35,6 +35,7 @@ public section
 
 alloc_chk% «sumcheck_round4» []
 alloc_chk% «eq_prefix_run__L10» []
+alloc_chk% «eq_prefix_run_rev__L1» []
 alloc_chk% «plus_one_run__L16» []
 alloc_chk% «block_selector_tab__L32» []
 alloc_chk% «da_pad_loop0» []

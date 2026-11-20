@@ -13,17 +13,18 @@ public import LeanVM.Guest.B1.Tables.Kids.BlockSelTab
 public import LeanVM.Guest.B1.Tables.Kids.Shared
 public import LeanVM.Guest.B1.Tables.Kids.EqChain
 public import LeanVM.Guest.B1.Tables.Kids.Loop10
+public import LeanVM.Guest.B1.Eq.EqPrefixRevIn
 public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The calls, placed
 
 `plainStB`: an atom, or an `ite` of atoms, whose `VSH` does not depend on the call relation
-(`vsh_plain`). `verify_tables`' other statements are its `120` calls (`vt_calls`, by the kernel):
+(`vsh_plain`). `verify_tables`' other statements are its `119` calls (`vt_calls`, by the kernel):
 the padding weights (`pwCall`), `plus_one_run` (`porCall`), the shared selector tables (`shCall`),
 the framework blocks' selectors and `index_mle` (`fwCall`, `imCall`), the table blocks' selectors
 on their hinted digits (`selCall`), the slot sumcheck's tail rounds (`otrCall`),
-`verify_tables_loop0` and `eq_prefix_chain`.
+`verify_tables_loop0` and `eq_prefix_chain_rev`.
 
 A call's pointers are buffer bases times powers of `g` (from the statements' equations,
 `kappa_base` and the shared lengths of `vt_rel_completeF`), inside the buffers (`ptr_lin`,
@@ -119,12 +120,8 @@ def selCall (x : ℕ × ℕ × ℕ × ℕ × Option ℕ × ℕ × ℕ × ℕ) : 
 def loopCall : Stmt :=
   .callIf (.n 2637) name% «verify_tables_loop0» [.n 2638, .n 2545, .n 2628, .n 18, .n 2635, .n 2631]
 
-/-- The `verify_tables_loop1` call. -/
-def copyCall : Stmt :=
-  .callIf (.n 2640) name% «verify_tables_loop1» [.n 2641, .n 2545, .n 16, .n 2635, .n 2545]
-
-/-- The `eq_prefix_chain` call. -/
-def epcCall : Stmt := .call "eq_prefix_chain" [.n 2656, .n 2657, .n 16, .n 700, .n 2545] []
+/-- The `eq_prefix_chain_rev` call. -/
+def epcCall : Stmt := .call "eq_prefix_chain_rev" [.n 2653, .n 16, .n 2635, .n 700, .n 2545] []
 
 /-- The slot sumcheck's tail round `k` (`k < 3`): its capacity, cursor and claim, `tabs`. -/
 def otrCall (k : ℕ) : Stmt :=
@@ -140,7 +137,7 @@ def vtCalls : List Stmt :=
     [fwCall 0, fwCall 1, imCall 27 810, fwCall 2, imCall 822 838] ++
     (List.range 51).map (fun i ↦ selCall (vtPushSel.getD i default)) ++
     (List.range 45).map (fun i ↦ selCall (vtCountSel.getD i default)) ++
-    [otrCall 0, otrCall 1, otrCall 2, loopCall, copyCall, epcCall]
+    [otrCall 0, otrCall 1, otrCall 2, loopCall, epcCall]
 
 set_option maxRecDepth 100000 in
 /-- **The calls, by the kernel**: the statements that are not plain. -/
@@ -584,48 +581,23 @@ theorem vt_loop_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv loop
   · exact ptr_own0 I.hw (j := 110) (by norm_num) (by decide) (by simp [VtHonest.sizes]; omega)
   · exact ptr_own0 I.hw (j := 109) (by norm_num) (by decide) le_rfl
 
-theorem vt_copy_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv copyCall) :
-    VSH (coreProgram.RelIn rd (H.reg B)) rd σv copyCall := by
-  unfold copyCall at h ⊢
-  refine ⟨h.1, fun hne ↦ ?_⟩
-  have hc := h.2 hne
-  have e2500 := vt_e2500 I
-  have e2640 : σv (.n 2640) = 1 + gen ^ H.n := by
-    rw [vt_add (d := 2640) (x := 2639) (y := 2545) (vt_mem_at 2670 _ (by decide +kernel)),
-      vt_const (vt_mem_at 2669 (.atom (.const (.n 2639) (word 1 0))) (by decide +kernel)),
-      tb_word_one, e2500]
-  have e2641 : σv (.n 2641) = gen ^ 0 := by
-    rw [vt_const (vt_mem_at 2671 (.atom (.const (.n 2641) (word 1 0))) (by decide +kernel)),
-      tb_word_one, pow_zero]
-  have hK : 0 < H.n := by
-    rcases Nat.eq_zero_or_pos H.n with h0 | h0
-    · exact absurd (by rw [e2640, h0, pow_zero]; exact CharTwo.add_self_eq_zero 1) hne
-    · exact h0
-  have a2635 : σv (.n 2635) = w 2635 := vt_alloc' (by unfold vtAllocVars; simp)
-  simp only [List.map_cons, List.map_nil] at hc ⊢
-  rw [e2641, e2500, a2635, vt_s16] at hc ⊢
-  obtain ⟨d, hd⟩ := hc
-  have hn33 := vt_nμ I
-  have hμ33 : H.μ < 33 := I.hs.hμ33
-  refine loop11_relIn hK ?_ ?_ d 0 hK hd
-  · exact ptr_lin0 (q := (B.chi, H.chiW)) (by simp [VtHonest.linL]) (by
-      simp [VtHonest.chiW, zcChis, zcRkW])
-  · exact ptr_own0 I.hw (j := 110) (by norm_num) (by decide) (by simp [VtHonest.sizes]; omega)
-
 theorem vt_epc_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv epcCall) :
     VSH (coreProgram.RelIn rd (H.reg B)) rd σv epcCall := by
   have e2500 := vt_e2500 I
-  have a2613 : σv (.n 2656) = w 2656 := vt_alloc' (by unfold vtAllocVars; simp)
+  have a2613 : σv (.n 2653) = w 2653 := vt_alloc' (by unfold vtAllocVars; simp)
+  have a2635 : σv (.n 2635) = w 2635 := vt_alloc' (by unfold vtAllocVars; simp)
   have a703 : σv (.n 700) = w 700 := vt_alloc' (by unfold vtAllocVars; simp)
   have hnμ := vt_nμ I
   have hμ : H.μ < 33 := I.hs.hμ33
   simp only [epcCall, vsh_call, List.map_cons, List.map_nil] at h ⊢
   rw [e2500] at h ⊢
-  refine eq_prefix_chain_relIn (by omega) ?_ ?_ ?_ h
+  refine eq_prefix_chain_rev_relIn (by omega) ?_ ?_ ?_ ?_ h
   · rw [a2613]; exact ptr_own0 I.hw (j := 111) (by norm_num) (by decide) le_rfl
   · rw [vt_s16]
     exact ptr_lin0 (q := (B.chi, H.chiW)) (by simp [VtHonest.linL]) (by
       simp [VtHonest.chiW, zcChis, zcRkW])
+  · rw [a2635]
+    exact ptr_own0 I.hw (j := 110) (by norm_num) (by decide) (by simp [VtHonest.sizes]; omega)
   · rw [a703]; exact ptr_own0 I.hw (j := 5) (by norm_num) (by decide) hnμ
 
 /-- The tail rounds' cursors: `7 + 2k` words into the stream. -/
@@ -703,7 +675,7 @@ theorem vt_relIn_complete {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBase
       List.not_mem_nil, or_false] at hc
     obtain ⟨hP, hC⟩ := vt_sel_shapes
     rcases hc with (((((⟨t, ht, rfl⟩ | rfl) | ⟨t, ht, rfl⟩) | (rfl | rfl | rfl | rfl | rfl)) |
-      ⟨i, hi, rfl⟩) | ⟨i, hi, rfl⟩) | (rfl | rfl | rfl | rfl | rfl | rfl)
+      ⟨i, hi, rfl⟩) | ⟨i, hi, rfl⟩) | (rfl | rfl | rfl | rfl | rfl)
     · exact vt_pw_up I ht hv
     · exact vt_por_up I hv
     · exact vt_sh_up I ht hv
@@ -734,7 +706,6 @@ theorem vt_relIn_complete {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBase
     · exact vt_otr_up I (k := 1) (by norm_num) hv
     · exact vt_otr_up I (k := 2) (by norm_num) hv
     · exact vt_loop_up I hv
-    · exact vt_copy_up I hv
     · exact vt_epc_up I hv
   · exact vsh_plain hp hv
 

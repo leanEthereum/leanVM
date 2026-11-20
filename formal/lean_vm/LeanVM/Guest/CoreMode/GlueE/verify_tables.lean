@@ -11,7 +11,7 @@ namespace LeanVM.Guest
 
 @[expose] public section
 
-abbrev Fn.«verify_tables».entry : Nat := 19982
+abbrev Fn.«verify_tables».entry : Nat := 20067
 
 end
 

@@ -45,6 +45,11 @@ noncomputable def Fn.«eq_prefix_run__L10».csig : Mode.Sig :=
     [], [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 11), 1, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0),
     (.num 10), 1, 0⟩, ⟨⟨0, 0, [((.fr 5), 1)]⟩, (.num 0), (.num 10), 1, 0⟩], [], [], [], [], [], [],
     []⟩
+noncomputable def Fn.«eq_prefix_run_rev__L1».csig : Mode.Sig :=
+  ⟨Fn.«eq_prefix_run_rev__L1».entry, [0, 1, 2, 3, 4, 5], none, [⟨0, 0, [((.fr 4), 1)]⟩, ⟨0, 0,
+    [((.fr 5), 1)]⟩], [], [], [6], [], [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 2), 1, 0⟩, ⟨⟨0, 0,
+    [((.fr 3), 1)]⟩, (.num 0), (.num 1), 1, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 1), 1, 0⟩,
+    ⟨⟨0, 0, [((.fr 5), 1)]⟩, (.num 0), (.num 1), 1, 0⟩], [], [], [], [], [], [], []⟩
 noncomputable def Fn.«keccak_layer__L0_loop1».csig : Mode.Sig :=
   ⟨Fn.«keccak_layer__L0_loop1».entry, [0, 1, 2, 3, 4, 5, 6, 7], (some 8), [⟨0, 0, [((.fr 2), 1),
     ((.fr 4), 1)]⟩, ⟨0, 16, [((.fr 2), 1), ((.fr 4), 1)]⟩, ⟨0, 32, [((.fr 2), 1), ((.fr 4), 1)]⟩,

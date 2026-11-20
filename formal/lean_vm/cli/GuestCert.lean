@@ -1028,7 +1028,8 @@ memory bounds they take from named obligations. `verify_tables` dispatches on `g
 `CLAIM_GROUP = 17`; their arguments 2 and 6);
 `check_opening_terminal` on `kb[i] = kappa_base[g^i]` (argument 8, cell 10) and on `kb[0]·g^19`,
 `kb[7]·g^6`, which `verify_sub` knows from an obligation: `kb[0] = g^0`, `kb[1..6] < g^31`,
-`kb[7] < g^25` (`lean_ethereum.py`). -/
+`kb[7] < g^25` (`lean_ethereum.py`); `gkr_layers` on `rem_g` (argument 4, cell 6, below the four
+arms of its dispatch), which `verify_bus_gkr` reads from its table `four_rem` (`Check.tabRead`). -/
 def bounds (name : String) :
     List (ℕ × ℕ) × List (ℕ × ℕ) × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ × ℕ) :=
   if name == "list_split" then ([], [(5, 17)], [], [])
@@ -1039,6 +1040,7 @@ def bounds (name : String) :
     name == "log2_ceil_in_the_exponent__L15_L34" then
     ([], [(4, 34)], [], [])
   else if name.startsWith "open_stacked__L" then ([(2, 4)], [], [], [])
+  else if name.startsWith "gkr_layers__L" then ([(6, 4)], [], [], [])
   else if name == "check_opening_terminal" then
     ([], [], [(10, 0, 1)] ++ (List.range 6).map (fun i => (10, i + 1, 31)) ++ [(10, 7, 25)], [])
   else ([], [], [], [])

@@ -44,6 +44,11 @@ callee is its caller's, or its own, a loop. -/
 noncomputable def callersG (R : List (String × String)) (fn : Fn) : Bool :=
   sitesB (fun f _ _ => R.all fun p => p.1 != f || fn.name == p.2 || (fn.name == f && fn.loop)) fn.body
 
+/-- **The callers' check of one function** against `(callee, callers)` pairs: a call of a listed callee is one of
+its callers', or its own, a loop. -/
+noncomputable def callersM (R : List (String × List String)) (fn : Fn) : Bool :=
+  sitesB (fun f _ _ => R.all fun p => p.1 != f || p.2.contains fn.name || (fn.name == f && fn.loop)) fn.body
+
 /-- A call site of `child_claim_list_mono`'s callees: the frame loops and the last claims at their
 arguments, each a site of its plumbing. -/
 noncomputable def monoSiteB (o : ℕ) (f : String) (args rets : List V) : Bool :=

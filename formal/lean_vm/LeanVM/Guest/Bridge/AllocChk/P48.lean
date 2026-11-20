@@ -15,11 +15,13 @@ public import LeanVM.Guest.CoreMode.GlueA.«P14»
 public import LeanVM.Guest.CoreMode.GlueA.«P21»
 public import LeanVM.Guest.CoreMode.GlueA.«P25»
 public import LeanVM.Guest.CoreMode.GlueA.«P28»
+public import LeanVM.Guest.CoreMode.GlueA.«P36»
 public import LeanVM.Guest.CoreMode.GlueA.«P42»
 public import LeanVM.Guest.CoreMode.GlueA.«P47»
 public import LeanVM.Guest.CoreMode.GlueA.«P48»
 public import LeanVM.Guest.CoreMode.GlueA.«P4»
 public import LeanVM.Guest.CoreMode.GlueA.«P51»
+public import LeanVM.Guest.CoreMode.GlueA.«P5»
 public import LeanVM.Guest.CoreMode.GlueA.«P62»
 public import LeanVM.Guest.CoreMode.GlueA.«P6»
 public import LeanVM.Guest.Pack.«P48».Bundle
@@ -32,8 +34,10 @@ namespace LeanVM.Guest
 public section
 
 alloc_chk% «eq_prefix_run__L17» []
+alloc_chk% «eq_prefix_run_rev__L6» []
 alloc_chk% «plus_one_run__L11» []
 alloc_chk% «plus_one_run__L28» []
+alloc_chk% «gkr_last_layers__L2_L0» [«gkr_layer__L0_L0», «gkr_layer__L1_L0»]
 alloc_chk% «level_positions__L7_L15_L3» [«decode_query_windows__L15_L3», «level_positions__L7_L15_L3_loop0»]
 alloc_chk% «level_positions__L5_L18_L6» [«decode_query_windows__L18_L6», «level_positions__L5_L18_L6_loop0»]
 alloc_chk% «level_positions__L7_L17_L5» [«decode_query_windows__L17_L5», «level_positions__L7_L17_L5_loop0»]

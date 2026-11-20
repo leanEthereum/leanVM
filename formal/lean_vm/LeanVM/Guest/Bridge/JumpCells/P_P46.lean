@@ -23,7 +23,6 @@ public section
 theorem Fn.«eq_prefix_run__L6».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«eq_prefix_run__L6».idx == 1) = true := by decide +kernel
 theorem Fn.«plus_one_run__L22».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«plus_one_run__L22».idx == 1) = true := by decide +kernel
 theorem Fn.«block_selector__L11».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«block_selector__L11».idx == 1) = true := by decide +kernel
-theorem Fn.«verify_tables_loop1».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«verify_tables_loop1».idx == 1) = true := by decide +kernel
 theorem Fn.«verify_keccak_loop0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«verify_keccak_loop0».idx == 1) = true := by decide +kernel
 theorem Fn.«level_queries__L27_L0_L4_L16_L12_L6_L2_L8_L3_L1».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«level_queries__L27_L0_L4_L16_L12_L6_L2_L8_L3_L1».idx == 1) = true := by decide +kernel
 theorem Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».jcOk : Bridge.jcDataD plumb fs (cert.withPows Data.powTree) [] core code.code (Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».idx == 1) = true := by decide +kernel

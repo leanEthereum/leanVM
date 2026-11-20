@@ -30,6 +30,8 @@ noncomputable def Fn.«column_selector__L27».pairO : Exec.Trie Unit := CoreMode
 noncomputable def Fn.«column_selector__L27».pairS : Exec.Trie Unit := CoreMode.offsT []
 noncomputable def Fn.«da_verify».pairO : Exec.Trie Unit := CoreMode.offsT [51]
 noncomputable def Fn.«da_verify».pairS : Exec.Trie Unit := CoreMode.offsT []
+noncomputable def Fn.«gkr_layer__L3_L0_loop0».pairO : Exec.Trie Unit := CoreMode.offsT [6, 7, 8, 9, 10, 11, 12, 13, 17, 20, 23, 28, 43, 46, 49, 52, 57, 72, 75, 78, 81, 86, 101, 104, 107, 110, 115, 130, 133, 136, 139, 144, 159, 162, 165, 168, 173, 188, 191, 194, 197, 202, 217, 220, 223, 226, 231]
+noncomputable def Fn.«gkr_layer__L3_L0_loop0».pairS : Exec.Trie Unit := CoreMode.offsT [34, 63, 92, 121, 150, 179, 208, 237, 246, 247, 248, 249, 250, 253, 254]
 noncomputable def Fn.«index_mle__L17».pairO : Exec.Trie Unit := CoreMode.offsT [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80]
 noncomputable def Fn.«index_mle__L17».pairS : Exec.Trie Unit := CoreMode.offsT []
 noncomputable def Fn.«level_positions__L10_L20_L2_loop0».pairO : Exec.Trie Unit := CoreMode.offsT [4, 5, 6, 7, 8]
@@ -76,8 +78,6 @@ noncomputable def Fn.«rs_eq_rows__L5».pairO : Exec.Trie Unit := CoreMode.offsT
 noncomputable def Fn.«rs_eq_rows__L5».pairS : Exec.Trie Unit := CoreMode.offsT [26, 43, 60, 77, 94, 111, 128, 145, 162, 179, 196, 213, 230, 247, 264, 281, 298, 315, 332, 349, 366, 383, 400, 417, 434, 451, 468, 485, 502, 519, 536, 553, 570, 587, 604, 621, 638, 655, 672, 689, 706, 723, 740, 757, 774, 791, 808, 825, 842, 859, 876, 893, 910, 927, 944, 961, 978, 995, 1012, 1029, 1046, 1063, 1080, 1092]
 noncomputable def Fn.«squeeze_point_from__L21».pairO : Exec.Trie Unit := CoreMode.offsT []
 noncomputable def Fn.«squeeze_point_from__L21».pairS : Exec.Trie Unit := CoreMode.offsT [0, 14, 17, 20, 23, 26, 29, 32, 35, 38, 41, 44, 47, 50, 53, 56, 59, 62, 65, 68, 71]
-noncomputable def Fn.«verify_bus_gkr_loop0_loop0».pairO : Exec.Trie Unit := CoreMode.offsT [3, 4, 5, 6, 7, 8, 9, 10, 14, 17, 20, 25, 40, 43, 46, 49, 54]
-noncomputable def Fn.«verify_bus_gkr_loop0_loop0».pairS : Exec.Trie Unit := CoreMode.offsT [31, 60, 69, 70, 71, 72, 73, 76, 77]
 noncomputable def Fn.«walk_path__L12_L2».pairO : Exec.Trie Unit := CoreMode.offsT [0, 10, 587, 589, 1166, 1167]
 noncomputable def Fn.«walk_path__L12_L2».pairS : Exec.Trie Unit := CoreMode.offsT [1169, 1175, 1176]
 
@@ -89,6 +89,7 @@ theorem Fn.«child_claim_list_last__L4».pair_ok : CoreMode.pairOk alignCtx hcer
 theorem Fn.«claim_list_last__L3».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
 theorem Fn.«column_selector__L27».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
 theorem Fn.«da_verify».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«gkr_layer__L3_L0_loop0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
 theorem Fn.«index_mle__L17».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
 theorem Fn.«level_positions__L10_L20_L2_loop0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
 theorem Fn.«level_positions__L11_L18_L6_loop0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
@@ -112,7 +113,6 @@ theorem Fn.«padding_weight__L29».pair_ok : CoreMode.pairOk alignCtx hcert pair
 theorem Fn.«plus_one_run__L8».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
 theorem Fn.«rs_eq_rows__L5».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
 theorem Fn.«squeeze_point_from__L21».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
-theorem Fn.«verify_bus_gkr_loop0_loop0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
 theorem Fn.«walk_path__L12_L2».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
 
 end

@@ -21,6 +21,8 @@ public section
 theorem Fn.«rs_eq_run».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«da_verify_cell».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«eq_prefix_run__L30».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
+theorem Fn.«eq_prefix_run_rev__L32».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
+theorem Fn.«gkr_layers__L1».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«padding_weight__L26».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«plus_one_run__L7».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«index_mle__L18».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel

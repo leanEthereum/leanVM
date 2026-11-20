@@ -122,18 +122,6 @@ def sig : Check.Sig :=
 end
 end LeanVM.Guest.Fn.«child_claim_list_last__L4»
 
-namespace LeanVM.Guest.Fn.«verify_bus_gkr_loop0_loop0»
-
-@[expose] public section
-
-/-- `__loop0___loop0_verify_bus_gkr`: name, entry, arguments, return words, entry environment, bounds, memory and
-semantic relations it assumes. -/
-def sig : Check.Sig :=
-  ⟨"__loop0___loop0_verify_bus_gkr", Fn.«verify_bus_gkr_loop0_loop0».entry, 5, 0, [(7, (.fpg 0))], [],
-    [], [], []⟩
-end
-end LeanVM.Guest.Fn.«verify_bus_gkr_loop0_loop0»
-
 namespace LeanVM.Guest.Fn.«level_residual__L55_L16_L6_L3»
 
 @[expose] public section
@@ -301,6 +289,18 @@ def sig : Check.Sig :=
     [], [], []⟩
 end
 end LeanVM.Guest.Fn.«level_residual__L25_L12_L4_L2_loop1»
+
+namespace LeanVM.Guest.Fn.«gkr_layer__L3_L0_loop0»
+
+@[expose] public section
+
+/-- `__loop0_gkr_layer__L3_L0`: name, entry, arguments, return words, entry environment, bounds, memory and
+semantic relations it assumes. -/
+def sig : Check.Sig :=
+  ⟨"__loop0_gkr_layer__L3_L0", Fn.«gkr_layer__L3_L0_loop0».entry, 6, 0, [(8, (.fpg 0))], [],
+    [], [], []⟩
+end
+end LeanVM.Guest.Fn.«gkr_layer__L3_L0_loop0»
 
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1_loop0»
 

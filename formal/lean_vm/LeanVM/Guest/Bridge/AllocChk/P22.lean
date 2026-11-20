@@ -37,8 +37,10 @@ namespace LeanVM.Guest
 public section
 
 alloc_chk% «eq_prefix_run__L15» []
+alloc_chk% «eq_prefix_run_rev__L4» []
 alloc_chk% «plus_one_run__L13» []
 alloc_chk% «block_selector__L19» []
+alloc_chk% «gkr_last_layers__L0_L0» []
 alloc_chk% «level_positions__L3_L13_L7» [«decode_query_windows__L13_L7», «level_positions__L3_L13_L7_loop0»]
 alloc_chk% «level_residual__L73_L16_L6_L3» [«level_residual__L73_L16_L6_L3_loop0», «level_residual__L73_L16_L6_L3_loop1»]
 alloc_chk% «level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0» [«verify_merkle_cap__L7», «opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0»]

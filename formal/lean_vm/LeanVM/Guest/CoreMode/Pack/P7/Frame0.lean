@@ -41,6 +41,8 @@ public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P7».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P1»
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P16»
@@ -49,9 +51,12 @@ public import LeanVM.Guest.CoreMode.Sig.«P18»
 public import LeanVM.Guest.CoreMode.Sig.«P2»
 public import LeanVM.Guest.CoreMode.Sig.«P21»
 public import LeanVM.Guest.CoreMode.Sig.«P28»
+public import LeanVM.Guest.CoreMode.Sig.«P3»
+public import LeanVM.Guest.CoreMode.Sig.«P30»
 public import LeanVM.Guest.CoreMode.Sig.«P35»
 public import LeanVM.Guest.CoreMode.Sig.«P37»
 public import LeanVM.Guest.CoreMode.Sig.«P4»
+public import LeanVM.Guest.CoreMode.Sig.«P41»
 public import LeanVM.Guest.CoreMode.Sig.«P42»
 public import LeanVM.Guest.CoreMode.Sig.«P47»
 public import LeanVM.Guest.CoreMode.Sig.«P50»
@@ -78,6 +83,14 @@ frame_fn% «rs_eq_run» 59 [«rs_eq_rows__L0», «rs_eq_rows__L1», «rs_eq_rows
     .nil))) .nil) .nil) .nil) calls (.node (some frameCallee0) .nil .nil)
 frame_fn% «da_verify_cell» 538 []
 frame_fn% «eq_prefix_run__L30» 154 []
+frame_fn% «eq_prefix_run_rev__L32» 195 []
+def Fn.«gkr_layers__L1».frameCallee0 : List ℕ := [Fn.«gkr_last_layers__L0_L1».entry,
+    Fn.«gkr_last_layers__L1_L1».entry, Fn.«gkr_last_layers__L2_L1».entry,
+    Fn.«gkr_last_layers__L3_L1».entry]
+frame_fn% «gkr_layers__L1» 35 [«gkr_last_layers__L0_L1», «gkr_last_layers__L1_L1»,
+    «gkr_last_layers__L2_L1», «gkr_last_layers__L3_L1», «gkr_layers__L1_loop0»] tidx (.node none
+    (.node none (.node none (.node none (.node none (.node (some 0) .nil .nil) .nil) .nil) .nil)
+    .nil) .nil) calls (.node (some frameCallee0) .nil .nil)
 frame_fn% «padding_weight__L26» 228 []
 frame_fn% «plus_one_run__L7» 24 []
 frame_fn% «index_mle__L18» 92 []

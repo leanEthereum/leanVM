@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.Loop8Complete
 
-  `verify_bus_gkr_loop1`, completely: the point at `row` and at `zeta` gives its relation from `1`
+  `verify_bus_gkr_loop0`, completely: the point at `row` and at `zeta` gives its relation from `1`
   below `g^m`.
 -/
 
@@ -13,10 +13,10 @@ public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.CoreData
 
 /-!
-# `verify_bus_gkr_loop1`, completely
+# `verify_bus_gkr_loop0`, completely
 
 `l8_complete`: when the memory holds the same `m ≥ 1` words at `row` and at `zeta`,
-`verify_bus_gkr_loop1` holds from `1` below `g^m` (`loop_iff`, each iteration's atoms on the evident
+`verify_bus_gkr_loop0` holds from `1` below `g^m` (`loop_iff`, each iteration's atoms on the evident
 valuation).
 -/
 
@@ -27,10 +27,10 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Guest.B1
 
 @[expose] public section
 
-/-- `verify_bus_gkr_loop1`'s atoms. -/
+/-- `verify_bus_gkr_loop0`'s atoms. -/
 def l8A : List Stmt := l8Body.take 9
 
-theorem l8Body_eq : l8Body = l8A ++ [.callIf (.n 9) name% «verify_bus_gkr_loop1» [.n 11, .n 1,
+theorem l8Body_eq : l8Body = l8A ++ [.callIf (.n 9) name% «verify_bus_gkr_loop0» [.n 11, .n 1,
     .n 2, .n 3], .ret []] :=
   rfl
 
@@ -40,17 +40,17 @@ theorem l8A_atoms : AllAtoms l8A := by
   rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> exact ⟨_, rfl⟩
 
 set_option maxRecDepth 10000 in
-/-- **`verify_bus_gkr_loop1`, completely.** -/
+/-- **`verify_bus_gkr_loop0`, completely.** -/
 theorem l8_complete {rd : Reader} {zeta row : E} {m : ℕ} (hm : 0 < m) (hmb : m < 2 ^ 62)
     {pt : List E} (hl : pt.length = m) (hr : TbReadsAt rd row pt) (hz : TbReadsAt rd zeta pt) :
-    coreProgram.Rel rd name% «verify_bus_gkr_loop1» [1, gen ^ m, zeta, row] [] := by
+    coreProgram.Rel rd name% «verify_bus_gkr_loop0» [1, gen ^ m, zeta, row] [] := by
   obtain ⟨fn, hf, hp, hb⟩ := l8Found
   rw [l8Body_eq] at hb
-  have hstep : ∀ d x, coreProgram.relN rd (d + 1) name% «verify_bus_gkr_loop1» (x :: [gen ^ m,
+  have hstep : ∀ d x, coreProgram.relN rd (d + 1) name% «verify_bus_gkr_loop0» (x :: [gen ^ m,
       zeta, row]) [] ↔
       AtomsBody rd fn.params l8A (x :: [gen ^ m, zeta, row]) ∧ IsInK (x * gen + gen ^ m) ∧
         (x * gen + gen ^ m ≠ 0 →
-          coreProgram.relN rd d name% «verify_bus_gkr_loop1» (x * gen :: [gen ^ m, zeta,
+          coreProgram.relN rd d name% «verify_bus_gkr_loop0» (x * gen :: [gen ^ m, zeta,
               row]) []) := by
     intro d x
     refine loop_step_atoms hf hb l8A_atoms (fun σ hpar hall => ?_) d

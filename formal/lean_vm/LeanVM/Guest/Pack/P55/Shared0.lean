@@ -42,6 +42,60 @@ theorem shareOk : ShareOkD Fn.«eq_prefix_run__L27».core (cert.withPows Data.po
 end
 end LeanVM.Guest.Fn.«eq_prefix_run__L27»
 
+namespace LeanVM.Guest.Fn.«eq_prefix_run_rev__L18»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L18`, once. -/
+theorem st : shareStaticD Fn.«eq_prefix_run_rev__L18».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L18`, window 0. -/
+theorem sw0 : shareWinD Fn.«eq_prefix_run_rev__L18».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `eq_prefix_run_rev__L18`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«eq_prefix_run_rev__L18».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«eq_prefix_run_rev__L18»
+
+namespace LeanVM.Guest.Fn.«eq_prefix_run_rev__L21»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L21`, once. -/
+theorem st : shareStaticD Fn.«eq_prefix_run_rev__L21».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L21`, window 0. -/
+theorem sw0 : shareWinD Fn.«eq_prefix_run_rev__L21».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `eq_prefix_run_rev__L21`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«eq_prefix_run_rev__L21».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«eq_prefix_run_rev__L21»
+
 namespace LeanVM.Guest.Fn.«block_selector__L5»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -68,58 +122,4 @@ theorem shareOk : ShareOkD Fn.«block_selector__L5».core (cert.withPows Data.po
 
 end
 end LeanVM.Guest.Fn.«block_selector__L5»
-
-namespace LeanVM.Guest.Fn.«block_selector__L23»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `block_selector__L23`, once. -/
-theorem st : shareStaticD Fn.«block_selector__L23».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `block_selector__L23`, window 0. -/
-theorem sw0 : shareWinD Fn.«block_selector__L23».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `block_selector__L23`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«block_selector__L23».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«block_selector__L23»
-
-namespace LeanVM.Guest.Fn.«block_selector_tab__L12»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L12`, once. -/
-theorem st : shareStaticD Fn.«block_selector_tab__L12».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L12`, window 0. -/
-theorem sw0 : shareWinD Fn.«block_selector_tab__L12».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `block_selector_tab__L12`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«block_selector_tab__L12».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«block_selector_tab__L12»
 

@@ -40,6 +40,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P53».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P53».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P53».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P53».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P53».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P17»
 public import LeanVM.Guest.CoreMode.Sig.«P23»
@@ -66,6 +67,7 @@ open LeanVM.Guest.Exec
 
 frame_fn% «sumcheck_round4» 36 []
 frame_fn% «eq_prefix_run__L10» 54 []
+frame_fn% «eq_prefix_run_rev__L1» 9 []
 frame_fn% «plus_one_run__L16» 51 []
 frame_fn% «block_selector_tab__L32» 83 []
 frame_fn% «da_pad_loop0» 24 [«da_pad_loop0»] sigs [] env [(6, (.fpg 0))] scaled [6]

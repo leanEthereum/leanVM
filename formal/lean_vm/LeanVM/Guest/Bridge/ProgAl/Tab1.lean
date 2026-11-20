@@ -9,6 +9,19 @@ module
 
 public import LeanVM.Guest.Bridge.ProgAlDefs
 public import LeanVM.Guest.Checked.Link1
+public import LeanVM.Guest.CoreMode.GlueE.«P11»
+public import LeanVM.Guest.CoreMode.GlueE.«P18»
+public import LeanVM.Guest.CoreMode.GlueE.«P22»
+public import LeanVM.Guest.CoreMode.GlueE.«P23»
+public import LeanVM.Guest.CoreMode.GlueE.«P29»
+public import LeanVM.Guest.CoreMode.GlueE.«P3»
+public import LeanVM.Guest.CoreMode.GlueE.«P30»
+public import LeanVM.Guest.CoreMode.GlueE.«P37»
+public import LeanVM.Guest.CoreMode.GlueE.«P4»
+public import LeanVM.Guest.CoreMode.GlueE.«P41»
+public import LeanVM.Guest.CoreMode.GlueE.«P45»
+public import LeanVM.Guest.CoreMode.GlueE.«P48»
+public import LeanVM.Guest.CoreMode.GlueE.«P49»
 meta import LeanVM.Guest.KernelLit
 
 namespace LeanVM.Guest.Bridge.ProgAl
@@ -34,7 +47,7 @@ kernel_rfl tab114 : (Bridge.extraOf 114, Bridge.entsOf 114, Bridge.adviceOf 114)
 kernel_rfl tab115 : (Bridge.extraOf 115, Bridge.entsOf 115, Bridge.adviceOf 115) = ([], [], Data.adviceFn115)
 kernel_rfl tab116 : (Bridge.extraOf 116, Bridge.entsOf 116, Bridge.adviceOf 116) = ([], [], Data.adviceFn116)
 kernel_rfl tab117 : (Bridge.extraOf 117, Bridge.entsOf 117, Bridge.adviceOf 117) = ([], [], Data.adviceFn117)
-kernel_rfl tab118 : (Bridge.extraOf 118, Bridge.entsOf 118, Bridge.adviceOf 118) = ([], [], Data.adviceFn118)
+kernel_rfl tab118 : (Bridge.extraOf 118, Bridge.entsOf 118, Bridge.adviceOf 118) = ([], [("__loop0_rs_eq_run", Fn.«rs_eq_run_loop0».entry), ("rs_eq_rows__L8", Fn.«rs_eq_rows__L8».entry)], Data.adviceFn118)
 kernel_rfl tab119 : (Bridge.extraOf 119, Bridge.entsOf 119, Bridge.adviceOf 119) = ([], [], Data.adviceFn119)
 kernel_rfl tab120 : (Bridge.extraOf 120, Bridge.entsOf 120, Bridge.adviceOf 120) = ([], [], Data.adviceFn120)
 kernel_rfl tab121 : (Bridge.extraOf 121, Bridge.entsOf 121, Bridge.adviceOf 121) = ([], [], Data.adviceFn121)
@@ -44,10 +57,10 @@ kernel_rfl tab124 : (Bridge.extraOf 124, Bridge.entsOf 124, Bridge.adviceOf 124)
 kernel_rfl tab125 : (Bridge.extraOf 125, Bridge.entsOf 125, Bridge.adviceOf 125) = ([], [], Data.adviceFn125)
 kernel_rfl tab126 : (Bridge.extraOf 126, Bridge.entsOf 126, Bridge.adviceOf 126) = ([], [], Data.adviceFn126)
 kernel_rfl tab127 : (Bridge.extraOf 127, Bridge.entsOf 127, Bridge.adviceOf 127) = ([], [], Data.adviceFn127)
-kernel_rfl tab128 : (Bridge.extraOf 128, Bridge.entsOf 128, Bridge.adviceOf 128) = ([], [], Data.adviceFn128)
-kernel_rfl tab129 : (Bridge.extraOf 129, Bridge.entsOf 129, Bridge.adviceOf 129) = ([], [], Data.adviceFn129)
-kernel_rfl tab130 : (Bridge.extraOf 130, Bridge.entsOf 130, Bridge.adviceOf 130) = ([], [], Data.adviceFn130)
-kernel_rfl tab131 : (Bridge.extraOf 131, Bridge.entsOf 131, Bridge.adviceOf 131) = ([], [], Data.adviceFn131)
+kernel_rfl tab128 : (Bridge.extraOf 128, Bridge.entsOf 128, Bridge.adviceOf 128) = ([], [("__loop0_gkr_layers__L0", Fn.«gkr_layers__L0_loop0».entry), ("gkr_last_layers__L0_L0", Fn.«gkr_last_layers__L0_L0».entry), ("gkr_last_layers__L1_L0", Fn.«gkr_last_layers__L1_L0».entry), ("gkr_last_layers__L2_L0", Fn.«gkr_last_layers__L2_L0».entry), ("gkr_last_layers__L3_L0", Fn.«gkr_last_layers__L3_L0».entry)], Data.adviceFn128)
+kernel_rfl tab129 : (Bridge.extraOf 129, Bridge.entsOf 129, Bridge.adviceOf 129) = ([], [("__loop0_gkr_layers__L1", Fn.«gkr_layers__L1_loop0».entry), ("gkr_last_layers__L0_L1", Fn.«gkr_last_layers__L0_L1».entry), ("gkr_last_layers__L1_L1", Fn.«gkr_last_layers__L1_L1».entry), ("gkr_last_layers__L2_L1", Fn.«gkr_last_layers__L2_L1».entry), ("gkr_last_layers__L3_L1", Fn.«gkr_last_layers__L3_L1».entry)], Data.adviceFn129)
+kernel_rfl tab130 : (Bridge.extraOf 130, Bridge.entsOf 130, Bridge.adviceOf 130) = ([], [("__loop0_verify_bus_gkr", Fn.«verify_bus_gkr_loop0».entry)], Data.adviceFn130)
+kernel_rfl tab131 : (Bridge.extraOf 131, Bridge.entsOf 131, Bridge.adviceOf 131) = ([], [("__loop0_shared_selector_tables", Fn.«shared_selector_tables_loop0».entry)], Data.adviceFn131)
 kernel_rfl tab132 : (Bridge.extraOf 132, Bridge.entsOf 132, Bridge.adviceOf 132) = ([], [], Data.adviceFn132)
 kernel_rfl tab133 : (Bridge.extraOf 133, Bridge.entsOf 133, Bridge.adviceOf 133) = ([], [], Data.adviceFn133)
 kernel_rfl tab134 : (Bridge.extraOf 134, Bridge.entsOf 134, Bridge.adviceOf 134) = ([], [], Data.adviceFn134)

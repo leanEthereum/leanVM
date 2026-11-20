@@ -41,7 +41,7 @@ def vtDigA (b w t : ℕ) : Atom :=
 def vtBitA (b : ℕ) : Atom := .hint (.bitsExp (.n (vtBoffV b)) 34 (.heap (.n (vtFwW b + 6)) 0 34))
 
 /-- The two limbs hints. -/
-def vtLimbA : List Atom := [.hint (.limbs (.n 6) [.n 5967]), .hint (.limbs (.n 7) [.n 5972])]
+def vtLimbA : List Atom := [.hint (.limbs (.n 6) [.n 5963]), .hint (.limbs (.n 7) [.n 5968])]
 
 /-- `verify_tables`' computed hints not pinned by the next atom. -/
 def vtSites : List Atom :=
@@ -110,8 +110,8 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **The limbs hints are exact** on the honest valuation: it evaluates them. -/
 theorem vt_limbs_exact (hl : args.length = 21) : ∀ a ∈ vtLimbA, a.Exact rd (vtσ rd w args) := by
-  have g1 := vt_goodL (rd := rd) (w := w) hl 5532 [.atom (.hint (.limbs (.n 6) [.n 5967]))] (by decide +kernel)
-  have g2 := vt_goodL (rd := rd) (w := w) hl 5538 [.atom (.hint (.limbs (.n 7) [.n 5972]))] (by decide +kernel)
+  have g1 := vt_goodL (rd := rd) (w := w) hl 5527 [.atom (.hint (.limbs (.n 6) [.n 5963]))] (by decide +kernel)
+  have g2 := vt_goodL (rd := rd) (w := w) hl 5533 [.atom (.hint (.limbs (.n 7) [.n 5968]))] (by decide +kernel)
   generalize vtσ rd w args = σ at g1 g2 ⊢
   simp only [GoodL, GoodS, fixNe, Good, and_true] at g1 g2
   intro a ha

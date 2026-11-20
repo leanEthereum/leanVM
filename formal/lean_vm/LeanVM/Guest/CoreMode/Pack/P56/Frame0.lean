@@ -35,7 +35,6 @@ public import LeanVM.Guest.CoreMode.Gen.«P56».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P56».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P56».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P56».Pair
-public import LeanVM.Guest.CoreMode.Gen.«P56».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P1»
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P14»
@@ -57,13 +56,11 @@ open LeanVM.Guest.Exec
 @[expose] public section
 
 frame_fn% «ring_switch_target» 279 [«ring_switch_target_loop0»]
-frame_fn% «verify_bus_gkr_loop1» 20 [«verify_bus_gkr_loop1»] sigs [] env [(6, (.fpg 0))] scaled [6]
 frame_fn% «padding_weight__L3» 44 []
 frame_fn% «padding_weight__L16» 148 []
 frame_fn% «check_opening_terminal_loop0» 22 [«check_opening_terminal_loop0»] sigs [] env [(6, (.fpg
     0))] scaled [6]
 frame_fn% «child_claim_list_mono_last__L6» 122 []
-frame_fn% «gkr_rounds__L1» 49 []
 frame_fn% «level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1» 35
     [«opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1», «verify_merkle_cap__L3»]
 frame_fn% «level_residual__L55_L13_L4_L2» 45 [«level_residual__L55_L13_L4_L2_loop0»,
@@ -76,6 +73,7 @@ frame_fn% «level_residual__L44_L20_L4_L2» 45 [«level_residual__L44_L20_L4_L2_
     «level_residual__L44_L20_L4_L2_loop1»]
 frame_fn% «da_levels__L128_L7_loop0» 33 [«da_levels__L128_L7_loop0»] sigs [] env [(5, (.fpg 0))]
     scaled [5]
+frame_fn% «gkr_layer__L3_L1» 394 [«gkr_layer__L3_L1_loop0»]
 frame_fn% «verify_merkle_cap__L2» 38 []
 frame_fn% «opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0» 25
     [«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0_loop0»]

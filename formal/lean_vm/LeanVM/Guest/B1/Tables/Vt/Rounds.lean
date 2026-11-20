@@ -17,8 +17,7 @@ public import LeanVM.Guest.Data.NameStrings
 * `l10_loop`: `verify_tables_loop0` from `1` below `g^n` gives every iteration's facts, `j < n`;
 * `l10_chain`: from record `j` (capacity `cap`, cursor `cur`, claim `claim`), the remaining `k`
   rounds run `sumcheck claim 4 (replicate k none)` on the words at the cursor, to the last record,
-  their challenges stored in `rk` from `j`;
-* `l11_loop`: `verify_tables_loop1` copies `rk` into `chi` reversed, `chi[x] = rk[n - 1 - x]`.
+  their challenges stored in `rk` from `j`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -118,56 +117,6 @@ theorem l10_chain {rd : Reader} {rounds tabs rkb cprod : E} {n : ℕ} (hn : n < 
       · simp only [List.getD_cons_succ]
         rw [show j + (i + 1) = j + 1 + i by ring]
         exact hchi i (by omega)
-
-/-- What an iteration of `verify_tables_loop1` at `x` gives: the word at `rk·y`, `g^n·g⁻¹ = y·x`, stored
-at `chi·x`. -/
-def L11B (rd : Reader) (chi rkb gn x : E) : Prop :=
-  ∃ y v, gn * vtWInvGen = y * x ∧ LoadHolds rd (rkb * y) 0 v ∧ LoadHolds rd (chi * x) 0 v
-
-/-- **An iteration of `verify_tables_loop1`.** -/
-theorem l11_step {rd : Reader} {N chi rkb gn : E} (d : ℕ) (x : E)
-    (h : coreProgram.relN rd (d + 1) name% «verify_tables_loop1» (x :: [N, chi, rkb, gn]) []) :
-    L11B rd chi rkb gn x ∧
-      (x * gen + N ≠ 0 → coreProgram.relN rd d name% «verify_tables_loop1» (x * gen :: [N, chi, rkb, gn]) []) := by
-  obtain ⟨fn, hf, σ, hpar, hbody⟩ := h
-  obtain ⟨fn', hf', hp, hb⟩ := l11Found
-  rw [hf] at hf'
-  obtain rfl := Option.some.inj hf'
-  rw [hp] at hpar
-  simp only [List.map_cons, List.map_nil, List.range_succ, List.range_zero, List.nil_append,
-    List.cons_append, List.cons.injEq, and_true] at hpar
-  obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := hpar
-  rw [hb] at hbody
-  simp only [l11Body, Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at hbody
-  obtain ⟨c5, m6, m6', m8, l9, m10, l9', c11, m12, a13, c14, m15, ⟨-, hnext, -⟩⟩ := hbody
-  simp only [Atom.Holds] at c5 m6 m6' m8 l9 m10 l9' c11 m12 a13 c14 m15
-  refine ⟨⟨σ (.n 7), σ (.n 9), by rw [← m6', m6, c5], by rw [← m8]; exact l9,
-    by rw [← m10]; exact l9'⟩, fun hne => ?_⟩
-  rw [tb_word_gen] at c11 c14
-  have := hnext (by rw [a13, m12, c11]; exact hne)
-  rw [m15, c14] at this
-  exact this
-
-/-- **`verify_tables_loop1` from `1` below `g^n`**: `chi[x] = rk[n - 1 - x]`, `x < n`. -/
-theorem l11_loop {rd : Reader} {chi rkb : E} {n : ℕ} (hn0 : 0 < n) (hn : n < 2 ^ 62)
-    (h : coreProgram.Rel rd name% «verify_tables_loop1» [1, gen ^ n, chi, rkb, gen ^ n] []) :
-    ∀ x < n, ∃ v, LoadHolds rd rkb (n - 1 - x) v ∧ LoadHolds rd chi x v := by
-  rw [← pow_zero gen] at h
-  obtain ⟨m, -, hN, hall⟩ := tb_loop_sound (B := L11B rd chi rkb (gen ^ n))
-    (fun d x hx => l11_step d x hx) 0 h
-  have hm : n ≤ m := by
-    by_contra hc
-    have := gen_pow_inj (by omega) (by omega) hN
-    omega
-  intro x hx
-  obtain ⟨y, v, hy, hr, hc⟩ := hall x (by omega) (by omega)
-  have h1 : gen ^ n * vtWInvGen * gen = gen ^ n := by rw [mul_assoc, vtWInvGen_mul, mul_one]
-  rw [hy, mul_assoc, ← pow_succ] at h1
-  have e : y * gen ^ (x + 1) = gen ^ (n - 1 - x) * gen ^ (x + 1) := by
-    rw [h1, ← pow_add, show n - 1 - x + (x + 1) = n by omega]
-  rw [mul_right_cancel₀ (pow_ne_zero _ gen_ne_zero) e, tb_loadHolds_mul_gen_pow, Nat.add_zero] at hr
-  rw [tb_loadHolds_mul_gen_pow, Nat.add_zero] at hc
-  exact ⟨v, hr, hc⟩
 
 end
 end LeanVM.Guest.B1.Tables

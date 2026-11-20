@@ -87,6 +87,7 @@ alloc_chk% «opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1» [«opening_qu
 alloc_chk% «opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1» [«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0»]
 alloc_chk% «level_residual__L44_L19_L4_L2_loop0» []
 alloc_chk% «level_residual__L44_L20_L4_L2_loop0» []
+alloc_chk% «gkr_layer__L3_L1_loop0» []
 alloc_chk% «opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0_loop0» [«walk_path__L12_L3»]
 alloc_chk% «opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0» [«walk_path__L18_L6»]
 

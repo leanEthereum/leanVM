@@ -53,6 +53,7 @@ public section
 
 alloc_chk% «child_claim_list_any» [«child_claim_list_any_loop0», «child_claim_list_any_loop1», «child_claim_list_last__L0», «child_claim_list_last__L1», «child_claim_list_last__L2», «child_claim_list_last__L3», «child_claim_list_last__L4», «child_claim_list_last__L5», «child_claim_list_last__L6», «child_claim_list_last__L7», «child_claim_list_last__L8», «child_claim_list_last__L9», «child_claim_list_last__L10», «child_claim_list_last__L11», «child_claim_list_last__L12», «child_claim_list_last__L13», «child_claim_list_last__L14», «child_claim_list_last__L15», «child_claim_list_last__L16»]
 alloc_chk% «eq_prefix_run__L11» []
+alloc_chk% «eq_prefix_run_rev__L0» []
 alloc_chk% «plus_one_run__L17» []
 alloc_chk% «block_selector_tab__L33» []
 alloc_chk% «keccak_layer__L0_loop0» []
@@ -80,6 +81,7 @@ alloc_chk% «level_positions__L5_L23_L5_loop0» [«decode_query_windows__L23_L5�
 alloc_chk% «level_residual__L55_L21_L6_L3_loop1» []
 alloc_chk% «level_positions__L9_L25_L7_loop0» [«decode_query_windows__L25_L7»]
 alloc_chk% «level_residual__L218_L24_L6_L3_loop1» []
+alloc_chk% «gkr_layer__L0_L1_loop0» []
 
 end
 

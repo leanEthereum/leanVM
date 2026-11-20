@@ -29,27 +29,28 @@ open LeanVM.Guest LeanVM.Guest.EndExec
 core_cert% «column_selector__L10» «P52» 0 []
 core_cert% «column_selector__L29» «P52» 1 []
 core_cert% «eq_prefix_run__L31» «P52» 2 []
-core_cert% «grind_check__L22» «P52» 3 []
-core_cert% «index_mle__L19» «P52» 4 []
-core_cert% «index_mle__L20» «P52» 5 []
-core_cert% «level_positions__L37_L19_L7_loop0» «P52» 6 [«decode_query_windows__L19_L7», «level_positions__L37_L19_L7_loop0»]
-core_cert% «level_positions__L3_L12_L6» «P52» 7 [«decode_query_windows__L12_L6», «level_positions__L3_L12_L6_loop0»]
-core_cert% «level_positions__L3_L15_L3» «P52» 8 [«decode_query_windows__L15_L3», «level_positions__L3_L15_L3_loop0»]
-core_cert% «level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1» «P52» 9 [«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1», «verify_merkle_cap__L7»]
-core_cert% «level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0» «P52» 10 [«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0», «verify_merkle_cap__L4»]
-core_cert% «level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0» «P52» 11 [«opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0», «verify_merkle_cap__L6»]
-core_cert% «level_residual__L15_L6_L4_L2_loop1» «P52» 12 [«level_residual__L15_L6_L4_L2_loop1»]
-core_cert% «level_residual__L18_L9_L4_L2_loop1» «P52» 13 [«level_residual__L18_L9_L4_L2_loop1»]
-core_cert% «level_residual__L19_L10_L4_L2_loop0» «P52» 14 [«level_residual__L19_L10_L4_L2_loop0»]
-core_cert% «level_residual__L218_L22_L6_L3_loop1» «P52» 15 [«level_residual__L218_L22_L6_L3_loop1»]
-core_cert% «level_residual__L21_L9_L4_L2_loop1» «P52» 16 [«level_residual__L21_L9_L4_L2_loop1»]
-core_cert% «level_residual__L55_L10_L4_L2_loop0» «P52» 17 [«level_residual__L55_L10_L4_L2_loop0»]
-core_cert% «level_residual__L73_L17_L6_L3_loop0» «P52» 18 [«level_residual__L73_L17_L6_L3_loop0»]
-core_cert% «opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1_loop0» «P52» 19 [«opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1_loop0», «walk_path__L12_L4»]
-core_cert% «opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1_loop0» «P52» 20 [«opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1_loop0», «walk_path__L12_L6»]
-core_cert% «padding_weight__L27» «P52» 21 []
-core_cert% «plus_one_run__L6» «P52» 22 []
-core_cert% «walk_path__L18_L6» «P52» 23 []
+core_cert% «gkr_layers__L0» «P52» 3 [«gkr_last_layers__L0_L0», «gkr_last_layers__L1_L0», «gkr_last_layers__L2_L0», «gkr_last_layers__L3_L0», «gkr_layers__L0_loop0»]
+core_cert% «grind_check__L22» «P52» 4 []
+core_cert% «index_mle__L19» «P52» 5 []
+core_cert% «index_mle__L20» «P52» 6 []
+core_cert% «level_positions__L37_L19_L7_loop0» «P52» 7 [«decode_query_windows__L19_L7», «level_positions__L37_L19_L7_loop0»]
+core_cert% «level_positions__L3_L12_L6» «P52» 8 [«decode_query_windows__L12_L6», «level_positions__L3_L12_L6_loop0»]
+core_cert% «level_positions__L3_L15_L3» «P52» 9 [«decode_query_windows__L15_L3», «level_positions__L3_L15_L3_loop0»]
+core_cert% «level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1» «P52» 10 [«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1», «verify_merkle_cap__L7»]
+core_cert% «level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0» «P52» 11 [«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0», «verify_merkle_cap__L4»]
+core_cert% «level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0» «P52» 12 [«opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0», «verify_merkle_cap__L6»]
+core_cert% «level_residual__L15_L6_L4_L2_loop1» «P52» 13 [«level_residual__L15_L6_L4_L2_loop1»]
+core_cert% «level_residual__L18_L9_L4_L2_loop1» «P52» 14 [«level_residual__L18_L9_L4_L2_loop1»]
+core_cert% «level_residual__L19_L10_L4_L2_loop0» «P52» 15 [«level_residual__L19_L10_L4_L2_loop0»]
+core_cert% «level_residual__L218_L22_L6_L3_loop1» «P52» 16 [«level_residual__L218_L22_L6_L3_loop1»]
+core_cert% «level_residual__L21_L9_L4_L2_loop1» «P52» 17 [«level_residual__L21_L9_L4_L2_loop1»]
+core_cert% «level_residual__L55_L10_L4_L2_loop0» «P52» 18 [«level_residual__L55_L10_L4_L2_loop0»]
+core_cert% «level_residual__L73_L17_L6_L3_loop0» «P52» 19 [«level_residual__L73_L17_L6_L3_loop0»]
+core_cert% «opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1_loop0» «P52» 20 [«opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1_loop0», «walk_path__L12_L4»]
+core_cert% «opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1_loop0» «P52» 21 [«opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1_loop0», «walk_path__L12_L6»]
+core_cert% «padding_weight__L27» «P52» 22 []
+core_cert% «plus_one_run__L6» «P52» 23 []
+core_cert% «walk_path__L18_L6» «P52» 24 []
 
 end
 
@@ -62,7 +63,7 @@ namespace LeanVM.Guest.CorePack.«P52»
 /-- The pack's certificates with their facts. -/
 noncomputable def ces : List (EndExec.CertE CoreMode.hcTab CoreMode.coreNzs) :=
   [Fn.«column_selector__L10».ce, Fn.«column_selector__L29».ce, Fn.«eq_prefix_run__L31».ce,
-   Fn.«grind_check__L22».ce, Fn.«index_mle__L19».ce, Fn.«index_mle__L20».ce,
+   Fn.«gkr_layers__L0».ce, Fn.«grind_check__L22».ce, Fn.«index_mle__L19».ce, Fn.«index_mle__L20».ce,
    Fn.«level_positions__L37_L19_L7_loop0».ce, Fn.«level_positions__L3_L12_L6».ce,
    Fn.«level_positions__L3_L15_L3».ce, Fn.«level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1».ce,
    Fn.«level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0».ce,

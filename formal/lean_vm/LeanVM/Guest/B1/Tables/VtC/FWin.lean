@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.FWin
 
-  The honest window `2685 ..< 5529`: on a memory holding the evaluations at the cursor, `fp_w`,
+  The honest window `2685 ..< 5524`: on a memory holding the evaluations at the cursor, `fp_w`,
   the challenges' products and the equality prefix, every statement of the window holds of the
   honest valuation.
 -/
@@ -50,14 +50,14 @@ theorem vt_readM (hl : args.length = 21) {d p : V} {off : ℕ}
 
 /-- The cursor's read. -/
 theorem vtF_evRead (hl : args.length = 21) {evs : List E}
-    (hcur : TbReadsAt rd (vtσ rd w args (.n 2652)) evs) (hevl : 153 ≤ evs.length) {k : ℕ}
+    (hcur : TbReadsAt rd (vtσ rd w args (.n 2649)) evs) (hevl : 153 ≤ evs.length) {k : ℕ}
     (hk : k < 153) :
-    LoadHolds rd (vtσ rd w args (.n 2652)) k (evs.getD k 0) ∧
+    LoadHolds rd (vtσ rd w args (.n 2649)) k (evs.getD k 0) ∧
       vtσ rd w args (.n (vtEvB k)) = evs.getD k 0 := by
   have heq := vtEval_check k hk
-  have hs : Stmt.atom (.load (.n (vtEvB k)) (.n 2652) k) ∈ vtPre :=
+  have hs : Stmt.atom (.load (.n (vtEvB k)) (.n 2649) k) ∈ vtPre :=
     vt_mem_slice (vtPre_drop _ ▸ heq) (by simp [vtEvalT, fsNextT, vtEvB])
-  obtain ⟨hm, hr⟩ := vt_bufLoad (p := 2652) (b := 153) hl vtF_loadsBelow (by simp) hcur hevl
+  obtain ⟨hm, hr⟩ := vt_bufLoad (p := 2649) (b := 153) hl vtF_loadsBelow (by simp) hcur hevl
     (vtEvL_mem hs (fun _ _ _ h ↦ by cases h))
   exact ⟨hm, hr (not_mem_vtSL vtF_noStore.2.1 _ _)⟩
 
@@ -73,7 +73,7 @@ theorem vtAirT_rest : ∀ t < 6,
     tbStmtsEqb ((vtAirT t).filter fun s ↦ !autoB s) (vtAirRest t) = true := by
   decide +kernel
 
-theorem vtAirX_gt : ∀ t < 6, 2656 < vtAirX t ∧ vtTauV t < vtAirX t := by decide
+theorem vtAirX_gt : ∀ t < 6, 2653 < vtAirX t ∧ vtTauV t < vtAirX t := by decide
 
 /-- Table `t`'s weight block's equations: `x = g^n/g^τ`, the pointers `cprod·x`, `peq·g^τ`. -/
 theorem vtF_airGood (hl : args.length = 21) {t : ℕ} (ht : t < 6) :
@@ -82,7 +82,7 @@ theorem vtF_airGood (hl : args.length = 21) {t : ℕ} (ht : t < 6) :
       vtσ rd w args (.n (vtAirX t + 1)) =
         vtσ rd w args (.n 2631) * vtσ rd w args (.n (vtAirX t)) ∧
       vtσ rd w args (.n (vtAirX t + 3)) =
-        vtσ rd w args (.n 2656) * vtσ rd w args (.n (vtTauV t)) := by
+        vtσ rd w args (.n 2653) * vtσ rd w args (.n (vtTauV t)) := by
   have g := vt_goodL (rd := rd) (w := w) hl _ _ (vtPre_drop _ ▸ vtAirT_check t ht)
   obtain ⟨hx, hτx⟩ := vtAirX_gt t ht
   set σ := vtσ rd w args with hσ
@@ -102,7 +102,7 @@ theorem vtF_air (hl : args.length = 21) {τs : ℕ → ℕ}
     (hkbt : ∀ t < 6, vtσ rd w args (.n (28 + t)) = gen ^ τs t) {n : ℕ}
     (hgn : vtσ rd w args (.n 2545) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n) {cp pe : ℕ → E}
     (hcp : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 2631)) j (cp j))
-    (hpe : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 2656)) j (pe j)) {t : ℕ} (ht : t < 6) :
+    (hpe : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 2653)) j (pe j)) {t : ℕ} (ht : t < 6) :
     ∀ s ∈ (vtAirT t).filter (fun s ↦ !autoB s),
       VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by
   have hτ : vtσ rd w args (.n (vtTauV t)) = gen ^ τs t := hkbt t ht
@@ -137,7 +137,7 @@ theorem vtF_airVals (hl : args.length = 21) {τs : ℕ → ℕ}
     (hkbt : ∀ t < 6, vtσ rd w args (.n (28 + t)) = gen ^ τs t) {n : ℕ}
     (hgn : vtσ rd w args (.n 2545) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n) {t : ℕ} (ht : t < 6) :
     vtσ rd w args (.n (vtAirX t + 1)) = vtσ rd w args (.n 2631) * gen ^ (n - τs t) ∧
-      vtσ rd w args (.n (vtAirX t + 3)) = vtσ rd w args (.n 2656) * gen ^ τs t := by
+      vtσ rd w args (.n (vtAirX t + 3)) = vtσ rd w args (.n 2653) * gen ^ τs t := by
   have hτ : vtσ rd w args (.n (vtTauV t)) = gen ^ τs t := hkbt t ht
   obtain ⟨gd, gp, gq⟩ := vtF_airGood (rd := rd) (w := w) hl ht
   refine ⟨?_, by rw [gq, hτ]⟩
@@ -147,7 +147,7 @@ theorem vtF_airVals (hl : args.length = 21) {τs : ℕ → ℕ}
 
 /-- **Evaluation `k`'s read holds.** -/
 theorem vtF_ev (hl : args.length = 21) {evs : List E}
-    (hcur : TbReadsAt rd (vtσ rd w args (.n 2652)) evs) (hevl : 153 ≤ evs.length) {k : ℕ}
+    (hcur : TbReadsAt rd (vtσ rd w args (.n 2649)) evs) (hevl : 153 ≤ evs.length) {k : ℕ}
     (hk : k < 153) :
     ∀ s ∈ vtEvRest k, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by
   obtain ⟨hm, hb⟩ := vtF_evRead (w := w) hl hcur hevl hk
@@ -171,14 +171,14 @@ theorem vtF_perm (hl : args.length = 21) {j : ℕ} (hj : j < 38) :
 /-- **The honest window**: on a memory holding the evaluations `evs` at the cursor, `fp_w`'s first
 16 words, the tables' `g^τ` in `kappa_base`'s frame variables, `n ≥ τ` with `g^n`, and the
 challenges' products `cp` and the equality prefix `pe` up to `n`, every statement of
-`2685 ..< 5529` holds. -/
+`2685 ..< 5524` holds. -/
 theorem vtF_window (hl : args.length = 21) {evs : List E} (hevl : 153 ≤ evs.length)
-    (hcur : TbReadsAt rd (vtσ rd w args (.n 2652)) evs)
+    (hcur : TbReadsAt rd (vtσ rd w args (.n 2649)) evs)
     {W : List E} (hW : TbReadsAt rd (vtσ rd w args (.n 13)) W) (hWl : 16 ≤ W.length)
     {τs : ℕ → ℕ} (hkbt : ∀ t < 6, vtσ rd w args (.n (28 + t)) = gen ^ τs t)
     {n : ℕ} (hgn : vtσ rd w args (.n 2545) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n)
     {cp pe : ℕ → E} (hcp : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 2631)) j (cp j))
-    (hpe : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 2656)) j (pe j)) :
+    (hpe : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n 2653)) j (pe j)) :
     ∀ s ∈ (vtPre.drop vtFLo).take (vtFHi - vtFLo),
       VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by
   intro s hs

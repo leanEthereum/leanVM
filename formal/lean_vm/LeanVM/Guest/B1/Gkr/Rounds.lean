@@ -1,8 +1,7 @@
 /-
   LeanVM.Guest.B1.Gkr.Rounds
 
-  Runs of GKR rounds between round records: B1-a's meaning of `gkr_rounds` (copied), rounds
-  chained, and `verify_bus_gkr`'s inner loop `da_column_offsets_loop1`, four rounds an iteration.
+  Runs of GKR rounds between round records, and rounds chained.
 -/
 
 module
@@ -20,8 +19,8 @@ A round record (`ROUND_FS = 0`, `ROUND_CURSOR = 5`, `ROUND_CLAIM = 6`, fields `8
 carries a sponge's capacity, a stream cursor and a claim. `TbGkrRoundsOut n s rd rec pt` (B1-a's
 `GkrRoundsOut`, its cursor in the record): from the record at `rec`, `n` rounds read `4n` words at
 its cursor, their eq factors at `pt[0 .. n]`, store their challenges at `pt[42 ..]`, and the
-record at `rec·g^s` carries the sponge, the cursor and the claim after them (`gkrRun`). A call of
-`gkr_rounds` and an iteration of the layer loop's inner loop each move one record (`s = 1`).
+record at `rec·g^s` carries the sponge, the cursor and the claim after them (`gkrRun`). An
+iteration of a radix-four layer's loop moves one record (`s = 1`).
 
 * `tb_gkrRun_append`: rounds run in sequence;
 * `gkrRoundsOut_append`: two runs of rounds, the second from the first's last record, are one.
@@ -54,15 +53,6 @@ def TbGkrRoundsOut (n s : ℕ) (rd : Reader) (rec pt : E) : Prop :=
     TbCapAt rd rec s gkCap (gkrRun cs es claim ⟨cap, []⟩).2.2.cap ∧
     LoadHolds rd rec (s + 5 * gkCap) (cur * gen ^ (4 * n)) ∧
     LoadHolds rd rec (s + 6 * gkCap) (gkrRun cs es claim ⟨cap, []⟩).2.1
-
-/-- `gkr_rounds__L{n}`, `n ∈ {1, 2}`, is sound (B1-a's `gkr_rounds_Spec`, in this direction;
-B1-a proves it): on the cursor its record carries, its rounds move one record, and an odd count
-ends the row of challenges with a zero. -/
-def tb_gkr_rounds_Spec : Prop :=
-  ∀ n ∈ gkrRoundsCounts, ∀ (rd : Reader) (rec pt cur tabs stream : E) (rets : List E),
-    coreProgram.Rel rd (gkrRoundsName n) [rec, pt, cur, tabs, stream] rets →
-      LoadHolds rd rec (5 * gkCap) cur →
-      TbGkrRoundsOut n 1 rd rec pt ∧ (n % 2 = 1 → LoadHolds rd pt (42 + n) 0)
 
 /-! ## Rounds in sequence -/
 
@@ -164,6 +154,15 @@ theorem gkrRoundsOut_append {rd : Reader} {n1 n2 s1 s2 : ℕ} {rec pt : E}
     rw [hrun, tb_gkrRun_eta cs1 es1 claim cap rfl,
       show s1 + s2 + 6 * gkCap = s1 + (s2 + 6 * gkCap) by ring]
     exact hcl2'
+
+/-- No rounds: a record's facts. -/
+theorem gkrRoundsOut_zero {rd : Reader} {rec pt : E} {cap : List E} {cur claim : E}
+    (hc : TbCapAt rd rec 0 gkCap cap)
+    (hcur : LoadHolds rd rec (5 * gkCap) cur) (hcl : LoadHolds rd rec (6 * gkCap) claim) :
+    TbGkrRoundsOut 0 0 rd rec pt :=
+  ⟨cap, cur, claim, [], [], hc, hcur, hcl, rfl, by simp, tbReadsAt_nil _ _, rfl,
+    tbReadsAt_nil _ _, tbReadsAt_nil _ _, by simpa [gkrRun] using hc,
+    by simpa using hcur, by simpa [gkrRun] using hcl⟩
 
 end
 end LeanVM.Guest.B1.Tables

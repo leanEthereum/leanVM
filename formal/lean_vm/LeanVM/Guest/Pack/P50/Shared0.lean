@@ -15,6 +15,33 @@ public import LeanVM.Guest.Pack.«P50».Bundle
 
 set_option Elab.async false
 
+namespace LeanVM.Guest.Fn.«eq_prefix_run_rev__L13»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L13`, once. -/
+theorem st : shareStaticD Fn.«eq_prefix_run_rev__L13».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L13`, window 0. -/
+theorem sw0 : shareWinD Fn.«eq_prefix_run_rev__L13».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `eq_prefix_run_rev__L13`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«eq_prefix_run_rev__L13».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«eq_prefix_run_rev__L13»
+
 namespace LeanVM.Guest.Fn.«block_selector__L28»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -95,31 +122,4 @@ theorem shareOk : ShareOkD Fn.«block_selector_tab__L19».core (cert.withPows Da
 
 end
 end LeanVM.Guest.Fn.«block_selector_tab__L19»
-
-namespace LeanVM.Guest.Fn.«column_selector__L3»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `column_selector__L3`, once. -/
-theorem st : shareStaticD Fn.«column_selector__L3».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `column_selector__L3`, window 0. -/
-theorem sw0 : shareWinD Fn.«column_selector__L3».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `column_selector__L3`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«column_selector__L3».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«column_selector__L3»
 

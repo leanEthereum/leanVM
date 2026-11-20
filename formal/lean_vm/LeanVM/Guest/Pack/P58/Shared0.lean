@@ -69,6 +69,33 @@ theorem shareOk : ShareOkD Fn.«eq_prefix_run__L19».core (cert.withPows Data.po
 end
 end LeanVM.Guest.Fn.«eq_prefix_run__L19»
 
+namespace LeanVM.Guest.Fn.«eq_prefix_run_rev__L8»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L8`, once. -/
+theorem st : shareStaticD Fn.«eq_prefix_run_rev__L8».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `eq_prefix_run_rev__L8`, window 0. -/
+theorem sw0 : shareWinD Fn.«eq_prefix_run_rev__L8».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `eq_prefix_run_rev__L8`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«eq_prefix_run_rev__L8».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«eq_prefix_run_rev__L8»
+
 namespace LeanVM.Guest.Fn.«plus_one_run__L26»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -95,31 +122,4 @@ theorem shareOk : ShareOkD Fn.«plus_one_run__L26».core (cert.withPows Data.pow
 
 end
 end LeanVM.Guest.Fn.«plus_one_run__L26»
-
-namespace LeanVM.Guest.Fn.«block_selector__L15»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `block_selector__L15`, once. -/
-theorem st : shareStaticD Fn.«block_selector__L15».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `block_selector__L15`, window 0. -/
-theorem sw0 : shareWinD Fn.«block_selector__L15».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `block_selector__L15`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«block_selector__L15».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«block_selector__L15»
 

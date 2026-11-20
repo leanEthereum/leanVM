@@ -34,6 +34,8 @@ public import LeanVM.Guest.CoreMode.Gen.«P23».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P23».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P23».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P23».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P23».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P23».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P17»
 public import LeanVM.Guest.CoreMode.Sig.«P2»
@@ -41,6 +43,7 @@ public import LeanVM.Guest.CoreMode.Sig.«P23»
 public import LeanVM.Guest.CoreMode.Sig.«P24»
 public import LeanVM.Guest.CoreMode.Sig.«P27»
 public import LeanVM.Guest.CoreMode.Sig.«P28»
+public import LeanVM.Guest.CoreMode.Sig.«P36»
 public import LeanVM.Guest.CoreMode.Sig.«P4»
 public import LeanVM.Guest.CoreMode.Sig.«P42»
 public import LeanVM.Guest.CoreMode.Sig.«P44»
@@ -67,6 +70,7 @@ frame_fn% «block_selector_tab__L9» 34 []
 frame_fn% «claim_list_digest_loop1» 203 [«claim_list_digest_loop1»] sigs [] env [(6, (.fpg 0))]
     scaled [6]
 frame_fn% «child_claim_list_mono_last__L3» 82 []
+frame_fn% «gkr_last_layers__L1_L0» 16 [«gkr_layer__L0_L0»]
 frame_fn% «level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0» 38
     [«opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0», «verify_merkle_cap__L2»]
 frame_fn% «level_queries__L44_L0_L4_L16_L18_L6_L0_L0_L0_L0» 37
@@ -90,6 +94,7 @@ frame_fn% «opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0» 25
     [«opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0»]
 frame_fn% «level_positions__L15_L22_L4_loop0» 48 [«decode_query_windows__L22_L4»,
     «level_positions__L15_L22_L4_loop0»] env [(8, (.fpg 0))] scaled [8]
+frame_fn% «gkr_layer__L1_L1_loop0» 272 [«gkr_layer__L1_L1_loop0»] env [(8, (.fpg 0))] scaled [8]
 frame_fn% «opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0_loop0» 604
     [«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0_loop0», «walk_path__L12_L3»] env [(12,
     (.fpg 0))] scaled [12]

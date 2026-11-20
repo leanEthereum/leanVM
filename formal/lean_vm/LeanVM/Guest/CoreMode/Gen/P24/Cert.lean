@@ -33,22 +33,23 @@ core_cert% «bus_grind_check__L3» «P24» 3 [«grind_check__L20»]
 core_cert% «child_claim_list_mono_last__L15» «P24» 4 []
 core_cert% «da_vector» «P24» 5 [«da_column_offsets», «da_expand__L13_L7», «da_factors__L13_L7_L0», «da_factors__L6_L7_L128»]
 core_cert% «eq_prefix_run__L22» «P24» 6 []
-core_cert% «grind_check__L13» «P24» 7 []
-core_cert% «level_positions__L44_L24_L6» «P24» 8 [«decode_query_windows__L24_L6», «level_positions__L44_L24_L6_loop0»]
-core_cert% «level_positions__L4_L14_L2_loop0» «P24» 9 [«decode_query_windows__L14_L2», «level_positions__L4_L14_L2_loop0»]
-core_cert% «level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0» «P24» 10 [«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0», «verify_merkle_cap__L6»]
-core_cert% «level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0» «P24» 11 [«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0», «verify_merkle_cap__L5»]
-core_cert% «level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0» «P24» 12 [«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0», «verify_merkle_cap__L6»]
-core_cert% «level_residual__L19_L7_L4_L2_loop0» «P24» 13 [«level_residual__L19_L7_L4_L2_loop0»]
-core_cert% «level_residual__L19_L8_L4_L2» «P24» 14 [«level_residual__L19_L8_L4_L2_loop0», «level_residual__L19_L8_L4_L2_loop1»]
-core_cert% «level_residual__L218_L15_L6_L3» «P24» 15 [«level_residual__L218_L15_L6_L3_loop0», «level_residual__L218_L15_L6_L3_loop1»]
-core_cert% «level_residual__L25_L9_L4_L2_loop1» «P24» 16 [«level_residual__L25_L9_L4_L2_loop1»]
-core_cert% «level_residual__L37_L15_L4_L2_loop1» «P24» 17 [«level_residual__L37_L15_L4_L2_loop1»]
-core_cert% «log2_ceil_in_the_exponent__L16_L34» «P24» 18 nz [«assert_small_g_power»]
-core_cert% «main_loop3» «P24» 19 [«main_loop3», «verify_sig_lean_sphincs»]
-core_cert% «opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0» «P24» 20 [«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0_loop0»]
-core_cert% «padding_weight__L30» «P24» 21 []
-core_cert% «plus_one_run__L33» «P24» 22 []
+core_cert% «eq_prefix_run_rev__L24» «P24» 7 []
+core_cert% «grind_check__L13» «P24» 8 []
+core_cert% «level_positions__L44_L24_L6» «P24» 9 [«decode_query_windows__L24_L6», «level_positions__L44_L24_L6_loop0»]
+core_cert% «level_positions__L4_L14_L2_loop0» «P24» 10 [«decode_query_windows__L14_L2», «level_positions__L4_L14_L2_loop0»]
+core_cert% «level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0» «P24» 11 [«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0», «verify_merkle_cap__L6»]
+core_cert% «level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0» «P24» 12 [«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0», «verify_merkle_cap__L5»]
+core_cert% «level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0» «P24» 13 [«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0», «verify_merkle_cap__L6»]
+core_cert% «level_residual__L19_L7_L4_L2_loop0» «P24» 14 [«level_residual__L19_L7_L4_L2_loop0»]
+core_cert% «level_residual__L19_L8_L4_L2» «P24» 15 [«level_residual__L19_L8_L4_L2_loop0», «level_residual__L19_L8_L4_L2_loop1»]
+core_cert% «level_residual__L218_L15_L6_L3» «P24» 16 [«level_residual__L218_L15_L6_L3_loop0», «level_residual__L218_L15_L6_L3_loop1»]
+core_cert% «level_residual__L25_L9_L4_L2_loop1» «P24» 17 [«level_residual__L25_L9_L4_L2_loop1»]
+core_cert% «level_residual__L37_L15_L4_L2_loop1» «P24» 18 [«level_residual__L37_L15_L4_L2_loop1»]
+core_cert% «log2_ceil_in_the_exponent__L16_L34» «P24» 19 nz [«assert_small_g_power»]
+core_cert% «main_loop3» «P24» 20 [«main_loop3», «verify_sig_lean_sphincs»]
+core_cert% «opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0» «P24» 21 [«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0_loop0»]
+core_cert% «padding_weight__L30» «P24» 22 []
+core_cert% «plus_one_run__L33» «P24» 23 []
 
 end
 
@@ -62,8 +63,9 @@ namespace LeanVM.Guest.CorePack.«P24»
 noncomputable def ces : List (EndExec.CertE CoreMode.hcTab CoreMode.coreNzs) :=
   [Fn.«block_selector__L0».ce, Fn.«block_selector__L26».ce, Fn.«block_selector_tab__L17».ce,
    Fn.«bus_grind_check__L3».ce, Fn.«child_claim_list_mono_last__L15».ce, Fn.«da_vector».ce,
-   Fn.«eq_prefix_run__L22».ce, Fn.«grind_check__L13».ce, Fn.«level_positions__L44_L24_L6».ce,
-   Fn.«level_positions__L4_L14_L2_loop0».ce, Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».ce,
+   Fn.«eq_prefix_run__L22».ce, Fn.«eq_prefix_run_rev__L24».ce, Fn.«grind_check__L13».ce,
+   Fn.«level_positions__L44_L24_L6».ce, Fn.«level_positions__L4_L14_L2_loop0».ce,
+   Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».ce,
    Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».ce,
    Fn.«level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0».ce,
    Fn.«level_residual__L19_L7_L4_L2_loop0».ce, Fn.«level_residual__L19_L8_L4_L2».ce,

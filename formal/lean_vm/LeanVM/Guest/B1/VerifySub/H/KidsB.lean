@@ -125,17 +125,17 @@ theorem vbg_kidB (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 6 ≤ κ) (W
       (S.s3.cap ++ [ptr (cG bs), gen ^ S.d, ptr (vb bs 5), ptr sqE * gen ^ winTabAt,
         ptr (vb bs 1)])
       (Tables.VbgOut S.s4.cap (ptr (cG bs) * gen ^ S.xsG.length) S.rG.2.2)
-      (vbgMax fs W.K29 W.R W.K8) := by
+      (vbgMax fs W.KL W.K8) := by
   have hd := S.d_bounds hbl
   obtain ⟨h3, h4, -⟩ := S.gkr_inv hbl
   have hrun : RunsTo (Tables.gkrPhase S.d) ⟨S.s3.cap, []⟩ S.xsG S.rG ⟨S.s4.cap, []⟩ := by
     rw [← h3, ← h4]; exact S.runG
   have hc : ∃ sp, (⟨S.s3.cap, []⟩ : Fs).Carries sp := by rw [← h3]; exact S.c3
-  have hB : Tables.vbgBound fs W.K29 W.R W.K8 S.d ≤ vbgMax fs W.K29 W.R W.K8 := by
+  have hB : Tables.vbgBound fs W.KL W.K8 S.d ≤ vbgMax fs W.KL W.K8 := by
     unfold vbgMax
     exact le_lmax (List.mem_map.2 ⟨S.d, List.mem_range.2 (by omega), rfl⟩)
   exact (Tables.verify_bus_gkr_completeAtTB (by omega) (by omega) hκ hrun hc
-    (ptr sqE * gen ^ winTabAt) (ptr (vb bs 1)) (cG bs) (vb bs 5) W.h29 W.hR W.h8).toCompleteAtB.mono le_rfl hB
+    (ptr sqE * gen ^ winTabAt) (ptr (vb bs 1)) (cG bs) (vb bs 5) W.hL W.h8).toCompleteAtB.mono le_rfl hB
 
 end ChildSegs
 

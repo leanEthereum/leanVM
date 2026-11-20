@@ -35,6 +35,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P38».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P38».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P38».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P38».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P38».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P11»
 public import LeanVM.Guest.CoreMode.Sig.«P23»
 public import LeanVM.Guest.CoreMode.Sig.«P24»
@@ -42,9 +43,11 @@ public import LeanVM.Guest.CoreMode.Sig.«P25»
 public import LeanVM.Guest.CoreMode.Sig.«P38»
 public import LeanVM.Guest.CoreMode.Sig.«P40»
 public import LeanVM.Guest.CoreMode.Sig.«P47»
+public import LeanVM.Guest.CoreMode.Sig.«P52»
 public import LeanVM.Guest.CoreMode.Sig.«P55»
 public import LeanVM.Guest.CoreMode.Sig.«P56»
 public import LeanVM.Guest.CoreMode.Sig.«P59»
+public import LeanVM.Guest.CoreMode.Sig.«P7»
 
 set_option Elab.async false
 
@@ -56,8 +59,14 @@ open LeanVM.Guest.Exec
 
 @[expose] public section
 
-frame_fn% «verify_bus_gkr» 363 [«verify_bus_gkr_loop0», «verify_bus_gkr_loop1»]
+def Fn.«verify_bus_gkr».frameCallee0 : List ℕ := [Fn.«gkr_layers__L0».entry,
+    Fn.«gkr_layers__L1».entry]
+frame_fn% «verify_bus_gkr» 389 [«gkr_layers__L0», «gkr_layers__L1», «verify_bus_gkr_loop0»] tidx
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    none .nil (.node none (.node (some 0) .nil .nil) .nil)) .nil)))) .nil) .nil) calls (.node (some
+    frameCallee0) .nil .nil)
 frame_fn% «eq_prefix_run__L28» 144 []
+frame_fn% «eq_prefix_run_rev__L17» 105 []
 frame_fn% «index_mle__L4» 22 []
 frame_fn% «column_selector__L7» 66 []
 frame_fn% «column_selector__L30» 12 []

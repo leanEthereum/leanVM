@@ -40,6 +40,8 @@ namespace LeanVM.Guest
 noncomputable def Fn.«block_selector__L19».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«da_levels__L32_L5_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_da_levels__L32_L5", Fn.«da_levels__L32_L5_loop0».entry)] 524287 code.instructionCount
 noncomputable def Fn.«eq_prefix_run__L15».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
+noncomputable def Fn.«eq_prefix_run_rev__L4».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
+noncomputable def Fn.«gkr_last_layers__L0_L0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L11_L22_L4».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L11_L22_L4", Fn.«level_positions__L11_L22_L4_loop0».entry), ("decode_query_windows__L22_L4", Fn.«decode_query_windows__L22_L4».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L3_L13_L7».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L3_L13_L7", Fn.«level_positions__L3_L13_L7_loop0».entry), ("decode_query_windows__L13_L7", Fn.«decode_query_windows__L13_L7».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L3_L20_L2_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L3_L20_L2", Fn.«level_positions__L3_L20_L2_loop0».entry), ("decode_query_windows__L20_L2", Fn.«decode_query_windows__L20_L2».entry)] 524287 code.instructionCount
@@ -76,6 +78,8 @@ public section
 align_chk% «block_selector__L19»
 align_chk% «da_levels__L32_L5_loop0»
 align_chk% «eq_prefix_run__L15»
+align_chk% «eq_prefix_run_rev__L4»
+align_chk% «gkr_last_layers__L0_L0»
 align_chk% «level_positions__L11_L22_L4»
 align_chk% «level_positions__L3_L13_L7»
 align_chk% «level_positions__L3_L20_L2_loop0»

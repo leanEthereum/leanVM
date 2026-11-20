@@ -28,8 +28,8 @@ noncomputable def Fn.«child_claim_list_mono_last__L5».pairO : Exec.Trie Unit :
 noncomputable def Fn.«child_claim_list_mono_last__L5».pairS : Exec.Trie Unit := CoreMode.offsT [7, 17, 27, 37, 47]
 noncomputable def Fn.«da_levels__L128_L7_loop3».pairO : Exec.Trie Unit := CoreMode.offsT [8, 9, 10, 11]
 noncomputable def Fn.«da_levels__L128_L7_loop3».pairS : Exec.Trie Unit := CoreMode.offsT [19, 20]
-noncomputable def Fn.«gkr_rounds__L2».pairO : Exec.Trie Unit := CoreMode.offsT [0, 1, 2, 3, 4, 5, 6, 10, 13, 16, 21, 36, 39, 42, 45, 50]
-noncomputable def Fn.«gkr_rounds__L2».pairS : Exec.Trie Unit := CoreMode.offsT [27, 56, 65, 66, 67, 68, 69, 72, 73]
+noncomputable def Fn.«gkr_last_layers__L3_L0».pairO : Exec.Trie Unit := CoreMode.offsT []
+noncomputable def Fn.«gkr_last_layers__L3_L0».pairS : Exec.Trie Unit := CoreMode.offsT []
 noncomputable def Fn.«level_positions__L13_L20_L2_loop0».pairO : Exec.Trie Unit := CoreMode.offsT [4, 5, 6, 7, 8]
 noncomputable def Fn.«level_positions__L13_L20_L2_loop0».pairS : Exec.Trie Unit := CoreMode.offsT [16, 17, 18, 19, 20]
 noncomputable def Fn.«level_positions__L4_L14_L2».pairO : Exec.Trie Unit := CoreMode.offsT [31, 32, 33, 34, 35]
@@ -70,7 +70,7 @@ public section
 theorem Fn.«block_selector_tab__L29».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
 theorem Fn.«child_claim_list_mono_last__L5».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
 theorem Fn.«da_levels__L128_L7_loop3».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
-theorem Fn.«gkr_rounds__L2».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
+theorem Fn.«gkr_last_layers__L3_L0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
 theorem Fn.«level_positions__L13_L20_L2_loop0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
 theorem Fn.«level_positions__L4_L14_L2».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel
 theorem Fn.«level_positions__L6_L21_L3_loop0».pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS core.body code.code advice = true := by decide +kernel

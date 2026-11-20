@@ -28,11 +28,11 @@ def F0 : Facts := {}
 `fp[17..20]`, in the even layout, to the two cells `fp[6..7]`, in the even layout. -/
 def hashIns : OffsetInstruction := .keccak 26 9 10 11 12 28 17 6 false false .two
 
-theorem hash_name : Data.f353.name = "claim_list_last__L0" ∧ Data.f353.entryPc = 235723 := by
+theorem hash_name : Data.f387.name = "claim_list_last__L0" ∧ Data.f387.entryPc = 238885 := by
   decide +kernel
 
-theorem hash_shape : (exec F0 Data.f353).segs.map (fun s ↦ (s.start, s.env.sub Sym.beq .nil,
-    (branchExits s.items).isEmpty, (s.items.filterMap Item.atom?).contains (.instr 235744 hashIns),
+theorem hash_shape : (exec F0 Data.f387).segs.map (fun s ↦ (s.start, s.env.sub Sym.beq .nil,
+    (branchExits s.items).isEmpty, (s.items.filterMap Item.atom?).contains (.instr 238906 hashIns),
       s.exit.kind)) = [(0, true, true, true, .ret)] := by
   decide +kernel
 
@@ -40,7 +40,7 @@ theorem hash_shape : (exec F0 Data.f353).segs.map (fun s ↦ (s.start, s.env.sub
 returns, in fewer steps, with its `KECCAK` holding: the cells it reads hold a state whose
 Keccak-f[1600]'s first two cells the cells it writes hold. -/
 theorem hash_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
-    FunSpecReached guestProgram L 235723 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
+    FunSpecReached guestProgram L 238885 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
       (∀ c : Fin 13, L.read (fp * addressOfIndex (keccakInOff 26 9 10 11 12 28 17 c.val)) = some
           (input c)) ∧
       (∀ c : Fin 13, c.val < KeccakOutputCells.two.cellCount →
@@ -51,8 +51,8 @@ theorem hash_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
   simp only [Prod.mk.injEq] at he
   obtain ⟨h0, henv, hb, hmem, hkind⟩ := he
   have hctx : Ctx F0 κ fp := ⟨trivial, fun h ↦ absurd h (by decide), hκ⟩
-  have hentry : Data.f353.entryPc + s.start = 235723 := by rw [h0]; rfl
-  have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 353) rfl)) hs
+  have hentry : Data.f387.entryPc + s.start = 238885 := by rw [h0]; rfl
+  have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 387) rfl)) hs
     (EnvHolds.nil.sub henv) (hentry ▸ h)
   obtain ⟨hall, k', -, hlt, -, -, r, hr, hsafe⟩ :=
     RunK.straight (List.isEmpty_iff.mp hb) hrun
@@ -66,28 +66,28 @@ open LeanVM.Guest.Check in
 noncomputable def bookOf (f : CompiledFunction) : Book :=
   ((exec F0 f).segs.flatMap fun s ↦ s.items.filterMap Item.atom?).foldl addFact .nil
 
-theorem names : Data.f11.name = "shared_selector_tables" ∧ Data.f13.name = "verify_keccak" := by
+theorem names : Data.f12.name = "shared_selector_tables" ∧ Data.f14.name = "verify_keccak" := by
   decide +kernel
 
 open LeanVM.Guest.Check in
 /-- `r_g = (1 + b₀(1 + g))(1 + b₁(1 + g²))` in `fp[21]`, the selector of the dispatch on
 `log(r_g)` over four arms: `g^e` with `e < 4`. -/
-theorem r_g_bound : selBound (bookOf Data.f11) selFuel 21 = some 4 := by decide +kernel
+theorem r_g_bound : selBound (bookOf Data.f12) selFuel 21 = some 4 := by decide +kernel
 
 open LeanVM.Guest.Check in
 set_option maxRecDepth 100000 in
 /-- `rem_g = (1 + b₀(1 + g))(1 + b₁(1 + g²))(1 + b₂(1 + g⁴))` in `fp[61]`, the remainder of a
 layer's rounds that `verify_keccak` passes to `keccak_layer`: `g^e` with `e < 8`. -/
-theorem rem_g_bound : selBound (bookOf Data.f13) selFuel 61 = some 8 := by decide +kernel
+theorem rem_g_bound : selBound (bookOf Data.f14) selFuel 61 = some 8 := by decide +kernel
 
 open LeanVM.Guest.Check in
 set_option maxRecDepth 100000 in
 /-- Its first factor `1 + b₀(1 + g)` in `fp[54]`: `g^e` with `e < 2`. -/
-theorem rem_g_factor_bound : selBound (bookOf Data.f13) selFuel 54 = some 2 := by decide +kernel
+theorem rem_g_factor_bound : selBound (bookOf Data.f14) selFuel 54 = some 2 := by decide +kernel
 
 open LeanVM.Guest.Check in
 set_option maxRecDepth 100000 in
 /-- A selector bound is only claimed of such a selector: `fp[53] = b₀·(1 + g)` is none. -/
-theorem rem_g_scaled_none : selBound (bookOf Data.f13) selFuel 53 = none := by decide +kernel
+theorem rem_g_scaled_none : selBound (bookOf Data.f14) selFuel 53 = none := by decide +kernel
 
 end LeanVMTests.Guest.Exec

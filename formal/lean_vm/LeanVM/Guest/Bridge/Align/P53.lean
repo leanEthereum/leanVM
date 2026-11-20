@@ -37,6 +37,7 @@ namespace LeanVM.Guest
 noncomputable def Fn.«block_selector_tab__L32».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«da_pad_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_da_pad", Fn.«da_pad_loop0».entry)] 524287 code.instructionCount
 noncomputable def Fn.«eq_prefix_run__L10».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
+noncomputable def Fn.«eq_prefix_run_rev__L1».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [] 524287 code.instructionCount
 noncomputable def Fn.«keccak_layer__L0_loop1».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop1_keccak_layer__L0", Fn.«keccak_layer__L0_loop1».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L11_L25_L7_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L11_L25_L7", Fn.«level_positions__L11_L25_L7_loop0».entry), ("decode_query_windows__L25_L7", Fn.«decode_query_windows__L25_L7».entry)] 524287 code.instructionCount
 noncomputable def Fn.«level_positions__L4_L20_L2_loop0».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs [] code.entryPc false plumb Data.powTree Data.jtTrie [("__loop0_level_positions__L4_L20_L2", Fn.«level_positions__L4_L20_L2_loop0».entry), ("decode_query_windows__L20_L2", Fn.«decode_query_windows__L20_L2».entry)] 524287 code.instructionCount
@@ -75,6 +76,7 @@ public section
 align_chk% «block_selector_tab__L32»
 align_chk% «da_pad_loop0»
 align_chk% «eq_prefix_run__L10»
+align_chk% «eq_prefix_run_rev__L1»
 align_chk% «keccak_layer__L0_loop1»
 align_chk% «level_positions__L11_L25_L7_loop0»
 align_chk% «level_positions__L4_L20_L2_loop0»

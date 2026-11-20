@@ -38,6 +38,7 @@ public section
 alloc_chk% «da_vector» [«da_column_offsets», «da_factors__L13_L7_L0», «da_expand__L13_L7», «da_factors__L6_L7_L128»]
 alloc_chk% «main_loop3» [«verify_sig_lean_sphincs»]
 alloc_chk% «eq_prefix_run__L22» []
+alloc_chk% «eq_prefix_run_rev__L24» []
 alloc_chk% «padding_weight__L30» []
 alloc_chk% «plus_one_run__L33» []
 alloc_chk% «block_selector__L0» []

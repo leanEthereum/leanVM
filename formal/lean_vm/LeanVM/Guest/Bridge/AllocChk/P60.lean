@@ -34,6 +34,7 @@ public section
 
 alloc_chk% «eq_prefix_run__L8» []
 alloc_chk% «eq_prefix_run__L13» []
+alloc_chk% «eq_prefix_run_rev__L2» []
 alloc_chk% «plus_one_run__L15» []
 alloc_chk% «block_selector_tab__L31» []
 alloc_chk% «squeeze_point_from__L7» []

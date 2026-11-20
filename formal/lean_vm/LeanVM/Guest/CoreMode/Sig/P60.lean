@@ -57,6 +57,12 @@ noncomputable def Fn.«eq_prefix_run__L8».csig : Mode.Sig :=
     5), 1)]⟩, ⟨0, 7, [((.fr 4), 1)]⟩, ⟨0, 7, [((.fr 5), 1)]⟩], [], [], [6], [], [⟨⟨0, 0, [((.fr 2),
     1)]⟩, (.num 0), (.num 9), 1, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 8), 1, 0⟩, ⟨⟨0, 0,
     [((.fr 5), 1)]⟩, (.num 0), (.num 8), 1, 0⟩], [], [], [], [], [], [], []⟩
+noncomputable def Fn.«eq_prefix_run_rev__L2».csig : Mode.Sig :=
+  ⟨Fn.«eq_prefix_run_rev__L2».entry, [0, 1, 2, 3, 4, 5], none, [⟨0, 0, [((.fr 4), 1)]⟩, ⟨0, 0,
+    [((.fr 5), 1)]⟩, ⟨0, 1, [((.fr 4), 1)]⟩, ⟨0, 1, [((.fr 5), 1)]⟩], [], [], [6], [], [⟨⟨0, 0,
+    [((.fr 2), 1)]⟩, (.num 0), (.num 3), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 2), 1, 0⟩,
+    ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 5), 1)]⟩, (.num 0), (.num
+    2), 1, 0⟩], [], [], [], [], [], [], []⟩
 noncomputable def Fn.«level_positions__L11_L23_L5».csig : Mode.Sig :=
   ⟨Fn.«level_positions__L11_L23_L5».entry, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], none, [], [⟨⟨0, 0,
     [((.fr 10), 1)]⟩, (.num 0), (.num 64), 1, 0⟩, ⟨⟨0, 0, [((.fr 10), 1)]⟩, (.num 0), (.num 128),

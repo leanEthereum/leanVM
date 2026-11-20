@@ -38,6 +38,8 @@ public import LeanVM.Guest.CoreMode.Gen.«P22».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P22».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P22».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P22».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P22».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P22».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P14»
 public import LeanVM.Guest.CoreMode.Sig.«P17»
 public import LeanVM.Guest.CoreMode.Sig.«P2»
@@ -66,8 +68,10 @@ open LeanVM.Guest.Exec
 @[expose] public section
 
 frame_fn% «eq_prefix_run__L15» 79 []
+frame_fn% «eq_prefix_run_rev__L4» 27 []
 frame_fn% «plus_one_run__L13» 42 []
 frame_fn% «block_selector__L19» 192 []
+frame_fn% «gkr_last_layers__L0_L0» 3 []
 frame_fn% «level_positions__L3_L13_L7» 42 [«decode_query_windows__L13_L7»,
     «level_positions__L3_L13_L7_loop0»]
 frame_fn% «level_residual__L73_L16_L6_L3» 45 [«level_residual__L73_L16_L6_L3_loop0»,

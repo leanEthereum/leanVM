@@ -11,16 +11,40 @@ public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.AllocFrDefs
 public import LeanVM.Guest.Bridge.ChkLit
 public import LeanVM.Guest.Bridge.Align.«P12»
+public import LeanVM.Guest.CoreMode.GlueA.«P0»
+public import LeanVM.Guest.CoreMode.GlueA.«P10»
 public import LeanVM.Guest.CoreMode.GlueA.«P11»
 public import LeanVM.Guest.CoreMode.GlueA.«P12»
+public import LeanVM.Guest.CoreMode.GlueA.«P13»
+public import LeanVM.Guest.CoreMode.GlueA.«P15»
+public import LeanVM.Guest.CoreMode.GlueA.«P17»
+public import LeanVM.Guest.CoreMode.GlueA.«P19»
 public import LeanVM.Guest.CoreMode.GlueA.«P21»
+public import LeanVM.Guest.CoreMode.GlueA.«P22»
+public import LeanVM.Guest.CoreMode.GlueA.«P24»
+public import LeanVM.Guest.CoreMode.GlueA.«P26»
 public import LeanVM.Guest.CoreMode.GlueA.«P27»
 public import LeanVM.Guest.CoreMode.GlueA.«P29»
+public import LeanVM.Guest.CoreMode.GlueA.«P31»
 public import LeanVM.Guest.CoreMode.GlueA.«P34»
+public import LeanVM.Guest.CoreMode.GlueA.«P36»
+public import LeanVM.Guest.CoreMode.GlueA.«P38»
+public import LeanVM.Guest.CoreMode.GlueA.«P3»
+public import LeanVM.Guest.CoreMode.GlueA.«P41»
+public import LeanVM.Guest.CoreMode.GlueA.«P43»
+public import LeanVM.Guest.CoreMode.GlueA.«P45»
 public import LeanVM.Guest.CoreMode.GlueA.«P47»
+public import LeanVM.Guest.CoreMode.GlueA.«P48»
+public import LeanVM.Guest.CoreMode.GlueA.«P50»
 public import LeanVM.Guest.CoreMode.GlueA.«P53»
 public import LeanVM.Guest.CoreMode.GlueA.«P55»
+public import LeanVM.Guest.CoreMode.GlueA.«P57»
+public import LeanVM.Guest.CoreMode.GlueA.«P58»
+public import LeanVM.Guest.CoreMode.GlueA.«P5»
+public import LeanVM.Guest.CoreMode.GlueA.«P60»
+public import LeanVM.Guest.CoreMode.GlueA.«P62»
 public import LeanVM.Guest.CoreMode.GlueA.«P6»
+public import LeanVM.Guest.CoreMode.GlueA.«P7»
 public import LeanVM.Guest.CoreMode.GlueA.«P9»
 public import LeanVM.Guest.Pack.«P12».Bundle
 public import LeanVM.Guest.Pack.«P12».Core
@@ -31,7 +55,10 @@ namespace LeanVM.Guest
 
 public section
 
+alloc_chk% «eq_prefix_chain_rev» [«eq_prefix_run_rev__L0», «eq_prefix_run_rev__L1», «eq_prefix_run_rev__L2», «eq_prefix_run_rev__L3», «eq_prefix_run_rev__L4», «eq_prefix_run_rev__L5», «eq_prefix_run_rev__L6», «eq_prefix_run_rev__L7», «eq_prefix_run_rev__L8», «eq_prefix_run_rev__L9», «eq_prefix_run_rev__L10», «eq_prefix_run_rev__L11», «eq_prefix_run_rev__L12», «eq_prefix_run_rev__L13», «eq_prefix_run_rev__L14», «eq_prefix_run_rev__L15», «eq_prefix_run_rev__L16», «eq_prefix_run_rev__L17», «eq_prefix_run_rev__L18», «eq_prefix_run_rev__L19», «eq_prefix_run_rev__L20», «eq_prefix_run_rev__L21», «eq_prefix_run_rev__L22», «eq_prefix_run_rev__L23», «eq_prefix_run_rev__L24», «eq_prefix_run_rev__L25», «eq_prefix_run_rev__L26», «eq_prefix_run_rev__L27», «eq_prefix_run_rev__L28», «eq_prefix_run_rev__L29», «eq_prefix_run_rev__L30», «eq_prefix_run_rev__L31», «eq_prefix_run_rev__L32»]
 alloc_chk% «da_pad» [«da_pad_loop0»]
+alloc_chk% «eq_prefix_run_rev__L11» []
+alloc_chk% «eq_prefix_run_rev__L28» []
 alloc_chk% «index_mle__L2» []
 alloc_chk% «column_selector__L1» []
 alloc_chk% «level_residual__L109_L14_L6_L3» [«level_residual__L109_L14_L6_L3_loop0», «level_residual__L109_L14_L6_L3_loop1»]
@@ -46,6 +73,7 @@ alloc_chk% «level_positions__L6_L15_L3_loop0» [«decode_query_windows__L15_L3�
 alloc_chk% «level_residual__L37_L11_L4_L2_loop1» []
 alloc_chk% «level_residual__L21_L8_L4_L2_loop0» []
 alloc_chk% «level_residual__L18_L8_L4_L2_loop0» []
+alloc_chk% «gkr_layer__L1_L0_loop0» []
 alloc_chk% «opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1_loop0» [«walk_path__L6_L6»]
 alloc_chk% «opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0» [«walk_path__L12_L5»]
 alloc_chk% «opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0» [«walk_path__L12_L7»]

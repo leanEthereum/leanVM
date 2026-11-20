@@ -11,7 +11,7 @@ public import LeanVM.Guest.CoreMode.HeapC
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P0».Core
 public import LeanVM.Guest.Pack.«P53».Core
-public import LeanVM.Guest.Pack.«P56».Core
+public import LeanVM.Guest.Pack.«P11».Core
 
 /-!
 # Tests of `heapOkC`
@@ -19,7 +19,7 @@ public import LeanVM.Guest.Pack.«P56».Core
 Certificates written by hand, each checked by the kernel (`decide +kernel`), and a wrong witness
 rejected.
 
-* `__loop1_verify_bus_gkr` (`verify_bus_gkr_loop1`): reads `p3·i` (its own `preR`, at its counter by the
+* `__loop0_verify_bus_gkr` (`verify_bus_gkr_loop0`): reads `p3·i` (its own `preR`, at its counter by the
   termination fact), stores at `p2·i` (its `postR`, accumulated), its tail call's `preR` one further
   (the shifted lower bound).
 * `__loop0_da_pad` (`da_pad_loop0`): two accumulated runs of stride 2 over `p2·p3²`.
@@ -62,7 +62,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 /-! ## Loop helpers of the guest -/
 
-/-- `__loop1_verify_bus_gkr`'s certificate. -/
+/-- `__loop0_verify_bus_gkr`'s certificate. -/
 def h7 : HCert where
   sig :=
     { preR := [⟨⟨[(3, 1)], 0⟩, 1, .val 0, .val 1⟩], postR := [⟨⟨[(2, 1)], 0⟩, 1, .val 0, .val 1⟩],
@@ -72,12 +72,12 @@ def h7 : HCert where
   calls := [[.run 0 []]]
   rets := [[.ev 1]]
 
-theorem loop7_ok : heapOkC Data.powTree (fun _ ↦ h7.sig) Fn.«verify_bus_gkr_loop1».core h7 = true := by
+theorem loop7_ok : heapOkC Data.powTree (fun _ ↦ h7.sig) Fn.«verify_bus_gkr_loop0».core h7 = true := by
   decide +kernel
 
 /-- The point at the counter not written: the store's serial is `1`, not `0`. -/
 theorem loop7_bad :
-    heapOkC Data.powTree (fun _ ↦ h7.sig) Fn.«verify_bus_gkr_loop1».core { h7 with rets := [[.ev 0]] } = false := by
+    heapOkC Data.powTree (fun _ ↦ h7.sig) Fn.«verify_bus_gkr_loop0».core { h7 with rets := [[.ev 0]] } = false := by
   decide +kernel
 
 /-- `__loop0_da_pad`'s certificate. -/
@@ -1593,6 +1593,37 @@ theorem useAb_bad :
 theorem useAb_long :
     heapOkC Data.powTree sigsAb useAb { hUseAb with calls := [[.ab ⟨[(0, 1)], 0⟩ 1 2, .pts, .ev 0, .pts, .ev 0, .ev 1],
       [.run 0 []]] } = false := by
+  decide +kernel
+
+/-! ## A block whose base moves with the arm -/
+
+/-- Arm `j` writes `p·g^(2j)`; `needM` needs `p·x^2`. -/
+def sigsAbx (g : String) : HSig :=
+  if g = "mv0" then { post := [⟨[(0, 1)], 0⟩] }
+  else if g = "mv1" then { post := [⟨[(0, 1)], 2⟩] }
+  else if g = "needM" then { pre := [⟨[(0, 1), (1, 2)], 0⟩] } else .empty
+
+/-- A dispatch on `x` over `mv0`, `mv1`, then `needM` on `p, x`. -/
+def useAbx : Fn where
+  name := "useAbx"
+  params := [.n 0, .n 1]
+  body := [.dispatch (.n 1) ["mv0", "mv1"] [.n 0] [], .call "needM" [.n 0, .n 1] [], .ret []]
+
+/-- `useAbx`'s certificate: the block `abx p 2 1 g^1 0`, arm `j`'s run `p·g^(2j)·g^[0, 1)` by its callee's point;
+after the dispatch, `p·x^2·g^[0, 1)` at run serial `0`. -/
+def hUseAbx : HCert where
+  sig := {}
+  reads := []
+  res := []
+  calls := [[.abx ⟨[(0, 1)], 0⟩ 2 1 ⟨[], 1⟩ 0, .pts, .ev 0, .pts, .ev 0], [.run 0 []]]
+  rets := [[]]
+
+theorem useAbx_ok : heapOkC Data.powTree sigsAbx useAbx hUseAbx = true := by decide +kernel
+
+/-- The base moving by `1` an arm: arm `1`'s cell `p·g` not written. -/
+theorem useAbx_bad :
+    heapOkC Data.powTree sigsAbx useAbx { hUseAbx with calls := [[.abx ⟨[(0, 1)], 0⟩ 1 1 ⟨[], 1⟩ 0, .pts, .ev 0,
+      .pts, .ev 0], [.run 0 []]] } = false := by
   decide +kernel
 
 /-! ## Constant preconditions: the public input (round 6, E12) -/

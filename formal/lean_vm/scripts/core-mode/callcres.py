@@ -20,9 +20,10 @@ FEATURES = {'ptr', 'pfr', 'idx', 'rules'}
 # range-checked point indices (`rcpts`)
 VT_FEATS = {'verify_tables': (FEATURES | {'armblock', 'perm', 'vthi', 'lastres'},),
             'verify_keccak': (FEATURES | {'postQ', 'hv', 'der'},),
-            'verify_bus_gkr': (FEATURES | {'join', 'ptsrun', 'rcpts'},),
+            'verify_bus_gkr': (FEATURES | {'join', 'ptsrun', 'rcpts', 'chain'},),
             'certify_placement': (FEATURES | {'rcpts', 'perm'},),
-            'da_verify': (FEATURES | {'der'},)}
+            'da_verify': (FEATURES | {'der'},),
+            'gkr_layers__L0': (FEATURES | {'join', 'armsub'},), 'gkr_layers__L1': (FEATURES | {'join', 'armsub'},)}
 
 
 _SIGS = {}
@@ -99,7 +100,9 @@ def exp_diff(atoms, x):
 EXP_FACTS = [('check_opening_terminal', 7, None, 31), ('check_opening_terminal', 8, 0, 1)] + \
     [('check_opening_terminal', 8, j + 1, 31) for j in range(7)] + \
     [('verify_tables', 9, None, 33), ('verify_tables', 10, 0, 33)] + \
-    [('verify_tables', 10, j + 1, 31) for j in range(6)]
+    [('verify_tables', 10, j + 1, 31) for j in range(6)] + \
+    [('gkr_layer__L%d_L%d' % (p, o), 3, None, 4) for p in range(4) for o in range(2)] + \
+    [('gkr_layers__L%d' % o, i, None, 4) for o in range(2) for i in (3, 4)]
 DIM_FACTS = [('check_opening_terminal', 8, 4, {(1, 0), (0, 19)}),
              ('check_opening_terminal', 8, 5, {(j, 0) for j in range(2, 8)})]
 
@@ -521,8 +524,9 @@ def cm_res(k, r):
 ST_LOOPS = {
     'keccak_layer__L0_loop0': (17, 20, 16), 'keccak_layer__L1_loop0': (17, 20, 16),
     'keccak_layer__L0_loop1': (17, 14, 2), 'keccak_layer__L1_loop1': (17, 14, 2),
-    'verify_bus_gkr_loop0_loop0': (11, 13, 8), 'verify_tables_loop0': (22, 11, 3),
+    'verify_tables_loop0': (22, 11, 3),
 }
+ST_LOOPS.update({'gkr_layer__L%d_L%d_loop0' % (p, o): (10, 17, 32) for p in range(4) for o in range(2)})
 
 
 def st_sub(k, c):
@@ -741,7 +745,7 @@ def res_ok(k, res, S):
     """`CoreMode.resFamG`: a ghost-free residual of a family, or the ghost family's."""
     import vtexp
     return all(((res_fam(k, r, S[k]) or split_fam(k, r) or vtexp.vt_perm(k, r) or vs_exp(k, r) or cp_perm(k, r) or
-                 rc_pts(k, r) or lay_q(k, r) or vt_cp(k, r) or da_gap(k, r) or rc_tab(k, r) or vk_q(k, r) or ly_q(k, r)) and
+                 rc_pts(k, r) or lay_q(k, r) or da_gap(k, r) or rc_tab(k, r) or vk_q(k, r) or gl_q(k, r)) and
                 all(v < I.GB for v in vals(r))) or
                (r[0] == 'sub' and (ml_sub(k, r[1]) == r or st_sub(k, r[1]) == r)) or cm_res(k, r) or
                vtexp.vt_exp(k, r) for r in res)
@@ -769,7 +773,7 @@ def sel_facts(EM):
 
 
 # `verify_tables`' last table sumcheck record's cursor and its stream parameter (`CoreMode.vtStC`)
-VT_ST, VT_STREAM = 2652, 20
+VT_ST, VT_STREAM = 2649, 20
 
 
 def vt_st_sub(k, c):
@@ -804,36 +808,32 @@ def lay_q(k, r):
     return r[0] == 'sub' and lay_st_sub(k, r[1]) == r
 
 
-# `verify_bus_gkr_loop0`'s cursors past its slot's (`CoreMode.lyQC`, `EndExec.ly_curs`): value, words read past it
-LY_CURS = {65: 8, 80: 12}
+# `gkr_layer__L{par}_L{odd}`'s cursors (`CoreMode.glQC`, `EndExec.gl_curs`): the value its layer record's cursor is loaded
+# to (`21`), read `8 par` words past (its first `2 par` rounds), and its last record's (the tail), read `4 (2 - odd) + 12`
+# words past (its last rounds and the children)
+GL_TAIL = (77, 163, 243, 323)
+GL_CURS = {'gkr_layer__L%d_L%d' % (p, o): dict(([(21, 8 * p)] if p else []) + [(GL_TAIL[p], 20 - 4 * o)])
+           for p in range(4) for o in range(2)}
 
 
-def ly_st_sub(k, c):
-    """`CoreMode.lyQC`: the layer loop's read `c` words past the cursor its pairs end at (`65`, `c < 8`) or its last
-    record's (`80`, `c < 12`), one of its stream's `[9]·[0, 8192)`."""
-    if I.callee(k) == 'verify_bus_gkr_loop0' and len(c[0]) == 1 and c[0][0][1] == 1 and \
-            c[1] < LY_CURS.get(c[0][0][0], 0):
-        return ('sub', c, ((((9, 1),), 0), 1, ('num', 0), ('num', 8192)))
+def gl_st_sub(k, c):
+    """`CoreMode.glQC`: gkr_layer's read `c` words past one of its cursors (`GL_CURS`), one of its stream's
+    `[8]·[0, 8192)`."""
+    cs = GL_CURS.get(I.callee(k))
+    if cs and len(c[0]) == 1 and c[0][0][1] == 1 and c[1] < cs.get(c[0][0][0], 0):
+        return ('sub', c, ((((8, 1),), 0), 1, ('num', 0), ('num', 8192)))
     return None
 
 
-def ly_q(k, r):
-    """`CoreMode.lyQC`: a read past the layer loop's cursors (`ly_st_sub`), under branch conditions."""
+def gl_q(k, r):
+    """`CoreMode.glQC`: a read past gkr_layer's cursors (`gl_st_sub`), under branch conditions."""
     if r[0] == 'under':
-        return ly_q(k, r[2])
-    return r[0] == 'sub' and ly_st_sub(k, r[1]) == r
+        return gl_q(k, r[2])
+    return r[0] == 'sub' and gl_st_sub(k, r[1]) == r
 
 
 # leaf loop helpers whose residuals are of a family: on `loopcc.py`'s route, not `loopc.py`'s (which takes none)
-LEAF_FAM = {'verify_tables_loop1'}
-
-
-def vt_cp(k, r):
-    """`CoreMode.vtCp`: `verify_tables_loop1`'s read index `x·g^-1/i` (value `7`) below its bound (parameter `1`)
-    (`EndExec.VtCQ`)."""
-    if r[0] == 'under':
-        return vt_cp(k, r[2])
-    return I.callee(k) == 'verify_tables_loop1' and r == ('lt', ('val', 7), ('val', 1))
+LEAF_FAM = set()
 
 
 def _guest_const(name):
@@ -881,21 +881,31 @@ def tab_k(k, T, t):
     return pow_of(w)
 
 
-def tab_ev(x, J, t, kk, i):
-    """`CoreMode.tabEv`."""
+def tab_ev(ev, i):
+    """`CoreMode.tabEv`: an index's exponent, each value's by `ev`."""
     if i[0] == 'num':
         return i[1]
     if i[0] == 'val':
-        return kk if i[1] == x else t if i[1] == J else None
+        return ev(i[1])
     acc = i[1][1]
     for b, e in i[1][0]:
-        if b == x:
-            acc += e * kk
-        elif b == J:
-            acc += e * t
-        else:
+        x = ev(b)
+        if x is None:
             return None
+        acc += e * x
     return acc
+
+
+def tab_row_ev(k, J, t):
+    """`CoreMode.tabRowEv`: the index `J`'s exponent `t`, a table read over `J` its table's row `t` entry."""
+    def ev(v):
+        if v == J:
+            return t
+        tab = tab_of(k, v)
+        if tab is None or tab[1] != J:
+            return None
+        return tab_k(k, tab[0], t)
+    return ev
 
 
 def ivals(i):
@@ -903,7 +913,8 @@ def ivals(i):
 
 
 def rc_tab(k, r):
-    """`CoreMode.rcTab`: an order over a range-checked table read, its index and constants, at every row."""
+    """`CoreMode.rcTab`: an order over table reads of one index, the index and constants, at every row of the first
+    read's table."""
     if r[0] == 'under':
         return rc_tab(k, r[2])
     if r[0] != 'lt':
@@ -912,12 +923,11 @@ def rc_tab(k, r):
         tab = tab_of(k, x)
         if tab is None:
             continue
-        T, J, N = tab
+        _, J, N = tab
 
         def row(t):
-            kk = tab_k(k, T, t)
-            u = tab_ev(x, J, t, kk, r[1]) if kk is not None else None
-            v = tab_ev(x, J, t, kk, r[2]) if kk is not None else None
+            ev = tab_row_ev(k, J, t)
+            u, v = tab_ev(ev, r[1]), tab_ev(ev, r[2])
             return u is not None and v is not None and u < v < CAPE
         if all(row(t) for t in range(N)):
             return True
@@ -959,7 +969,7 @@ def cs_reads(EM):
         kap = cs_kappa(self.k)
         r = cs_sub(kap) if kap is not None else (ml_sub(self.k, c) or cm_sub(self.k, c) or st_sub(self.k, c) or
                                                  vt_st_sub(self.k, c) or
-                                                 lay_st_sub(self.k, c) or ly_st_sub(self.k, c))
+                                                 lay_st_sub(self.k, c) or gl_st_sub(self.k, c))
         if r is None or c != r[1]:
             return None
         R = EM.C.runF(st.env, r[2])

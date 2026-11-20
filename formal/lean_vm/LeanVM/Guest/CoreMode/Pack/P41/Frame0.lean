@@ -29,6 +29,8 @@ public import LeanVM.Guest.CoreMode.Gen.«P41».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P41».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P41».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P41».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P41».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P41».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P17»
 public import LeanVM.Guest.CoreMode.Sig.«P29»
 public import LeanVM.Guest.CoreMode.Sig.«P4»
@@ -51,8 +53,10 @@ open LeanVM.Guest.Exec
 
 frame_fn% «g_power_of_word» 48 []
 frame_fn% «eq_prefix_run__L14» 74 []
+frame_fn% «eq_prefix_run_rev__L5» 33 []
 frame_fn% «plus_one_run__L12» 39 []
 frame_fn% «block_selector__L18» 182 []
+frame_fn% «gkr_last_layers__L0_L1» 3 []
 frame_fn% «opening_message__L8_L1» 60 []
 frame_fn% «level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0» 37
     [«opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0», «verify_merkle_cap__L6»]

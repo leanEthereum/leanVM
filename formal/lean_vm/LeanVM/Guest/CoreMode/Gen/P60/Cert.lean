@@ -30,27 +30,28 @@ core_cert% «block_selector_tab__L31» «P60» 0 []
 core_cert% «decode_query_windows__L13_L7» «P60» 1 []
 core_cert% «eq_prefix_run__L13» «P60» 2 []
 core_cert% «eq_prefix_run__L8» «P60» 3 []
-core_cert% «level_positions__L11_L23_L5» «P60» 4 [«decode_query_windows__L23_L5», «level_positions__L11_L23_L5_loop0»]
-core_cert% «level_positions__L3_L23_L5_loop0» «P60» 5 [«decode_query_windows__L23_L5», «level_positions__L3_L23_L5_loop0»]
-core_cert% «level_positions__L5_L24_L6_loop0» «P60» 6 [«decode_query_windows__L24_L6», «level_positions__L5_L24_L6_loop0»]
-core_cert% «level_positions__L6_L19_L7_loop0» «P60» 7 [«decode_query_windows__L19_L7», «level_positions__L6_L19_L7_loop0»]
-core_cert% «level_positions__L7_L25_L7_loop0» «P60» 8 [«decode_query_windows__L25_L7», «level_positions__L7_L25_L7_loop0»]
-core_cert% «level_positions__L8_L18_L6_loop0» «P60» 9 [«decode_query_windows__L18_L6», «level_positions__L8_L18_L6_loop0»]
-core_cert% «level_positions__L8_L27_L3» «P60» 10 [«decode_query_windows__L27_L3», «level_positions__L8_L27_L3_loop0»]
-core_cert% «level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0» «P60» 11 [«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0», «verify_merkle_cap__L6»]
-core_cert% «level_residual__L218_L17_L6_L3_loop1» «P60» 12 [«level_residual__L218_L17_L6_L3_loop1»]
-core_cert% «level_residual__L23_L6_L4_L2_loop0» «P60» 13 [«level_residual__L23_L6_L4_L2_loop0»]
-core_cert% «level_residual__L25_L11_L4_L2_loop0» «P60» 14 [«level_residual__L25_L11_L4_L2_loop0»]
-core_cert% «level_residual__L25_L16_L4_L2» «P60» 15 [«level_residual__L25_L16_L4_L2_loop0», «level_residual__L25_L16_L4_L2_loop1»]
-core_cert% «level_residual__L44_L12_L4_L2_loop0» «P60» 16 [«level_residual__L44_L12_L4_L2_loop0»]
-core_cert% «level_residual__L44_L15_L4_L2» «P60» 17 [«level_residual__L44_L15_L4_L2_loop0», «level_residual__L44_L15_L4_L2_loop1»]
-core_cert% «level_residual__L55_L18_L4_L2_loop0» «P60» 18 [«level_residual__L55_L18_L4_L2_loop0»]
-core_cert% «level_residual__L73_L22_L6_L3_loop0» «P60» 19 [«level_residual__L73_L22_L6_L3_loop0»]
-core_cert% «opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1_loop0» «P60» 20 [«opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1_loop0», «walk_path__L12_L3»]
-core_cert% «opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1» «P60» 21 [«opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1_loop0»]
-core_cert% «opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0» «P60» 22 [«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0», «walk_path__L18_L4»]
-core_cert% «plus_one_run__L15» «P60» 23 []
-core_cert% «squeeze_point_from__L7» «P60» 24 []
+core_cert% «eq_prefix_run_rev__L2» «P60» 4 []
+core_cert% «level_positions__L11_L23_L5» «P60» 5 [«decode_query_windows__L23_L5», «level_positions__L11_L23_L5_loop0»]
+core_cert% «level_positions__L3_L23_L5_loop0» «P60» 6 [«decode_query_windows__L23_L5», «level_positions__L3_L23_L5_loop0»]
+core_cert% «level_positions__L5_L24_L6_loop0» «P60» 7 [«decode_query_windows__L24_L6», «level_positions__L5_L24_L6_loop0»]
+core_cert% «level_positions__L6_L19_L7_loop0» «P60» 8 [«decode_query_windows__L19_L7», «level_positions__L6_L19_L7_loop0»]
+core_cert% «level_positions__L7_L25_L7_loop0» «P60» 9 [«decode_query_windows__L25_L7», «level_positions__L7_L25_L7_loop0»]
+core_cert% «level_positions__L8_L18_L6_loop0» «P60» 10 [«decode_query_windows__L18_L6», «level_positions__L8_L18_L6_loop0»]
+core_cert% «level_positions__L8_L27_L3» «P60» 11 [«decode_query_windows__L27_L3», «level_positions__L8_L27_L3_loop0»]
+core_cert% «level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0» «P60» 12 [«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0», «verify_merkle_cap__L6»]
+core_cert% «level_residual__L218_L17_L6_L3_loop1» «P60» 13 [«level_residual__L218_L17_L6_L3_loop1»]
+core_cert% «level_residual__L23_L6_L4_L2_loop0» «P60» 14 [«level_residual__L23_L6_L4_L2_loop0»]
+core_cert% «level_residual__L25_L11_L4_L2_loop0» «P60» 15 [«level_residual__L25_L11_L4_L2_loop0»]
+core_cert% «level_residual__L25_L16_L4_L2» «P60» 16 [«level_residual__L25_L16_L4_L2_loop0», «level_residual__L25_L16_L4_L2_loop1»]
+core_cert% «level_residual__L44_L12_L4_L2_loop0» «P60» 17 [«level_residual__L44_L12_L4_L2_loop0»]
+core_cert% «level_residual__L44_L15_L4_L2» «P60» 18 [«level_residual__L44_L15_L4_L2_loop0», «level_residual__L44_L15_L4_L2_loop1»]
+core_cert% «level_residual__L55_L18_L4_L2_loop0» «P60» 19 [«level_residual__L55_L18_L4_L2_loop0»]
+core_cert% «level_residual__L73_L22_L6_L3_loop0» «P60» 20 [«level_residual__L73_L22_L6_L3_loop0»]
+core_cert% «opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1_loop0» «P60» 21 [«opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1_loop0», «walk_path__L12_L3»]
+core_cert% «opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1» «P60» 22 [«opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1_loop0»]
+core_cert% «opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0» «P60» 23 [«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0», «walk_path__L18_L4»]
+core_cert% «plus_one_run__L15» «P60» 24 []
+core_cert% «squeeze_point_from__L7» «P60» 25 []
 
 end
 
@@ -63,7 +64,7 @@ namespace LeanVM.Guest.CorePack.«P60»
 /-- The pack's certificates with their facts. -/
 noncomputable def ces : List (EndExec.CertE CoreMode.hcTab CoreMode.coreNzs) :=
   [Fn.«block_selector_tab__L31».ce, Fn.«decode_query_windows__L13_L7».ce, Fn.«eq_prefix_run__L13».ce,
-   Fn.«eq_prefix_run__L8».ce, Fn.«level_positions__L11_L23_L5».ce,
+   Fn.«eq_prefix_run__L8».ce, Fn.«eq_prefix_run_rev__L2».ce, Fn.«level_positions__L11_L23_L5».ce,
    Fn.«level_positions__L3_L23_L5_loop0».ce, Fn.«level_positions__L5_L24_L6_loop0».ce,
    Fn.«level_positions__L6_L19_L7_loop0».ce, Fn.«level_positions__L7_L25_L7_loop0».ce,
    Fn.«level_positions__L8_L18_L6_loop0».ce, Fn.«level_positions__L8_L27_L3».ce,

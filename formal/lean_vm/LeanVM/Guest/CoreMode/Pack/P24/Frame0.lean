@@ -36,6 +36,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P24».Pair
 public import LeanVM.Guest.CoreMode.Sig.«P1»
 public import LeanVM.Guest.CoreMode.Sig.«P17»
 public import LeanVM.Guest.CoreMode.Sig.«P20»
@@ -66,6 +67,7 @@ frame_fn% «da_vector» 68 [«da_column_offsets», «da_expand__L13_L7», «da_f
     «da_factors__L6_L7_L128»]
 frame_fn% «main_loop3» 36 [«main_loop3», «verify_sig_lean_sphincs»] env [(9, (.fpg 0))] scaled [9]
 frame_fn% «eq_prefix_run__L22» 114 []
+frame_fn% «eq_prefix_run_rev__L24» 147 []
 frame_fn% «padding_weight__L30» 260 []
 frame_fn% «plus_one_run__L33» 102 []
 frame_fn% «block_selector__L0» 4 []

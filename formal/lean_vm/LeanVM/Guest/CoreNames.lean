@@ -34,7 +34,7 @@ def encL : List UInt8 → ℕ
 def encS (s : String) : ℕ := encL s.toByteArray.data.toList
 
 /-- The modulus under which the names' encodings differ (`scripts/core-names-modulus`). -/
-def namesMod : ℕ := 110270
+def namesMod : ℕ := 116411
 
 /-- Pairwise distinctness through the bit set `seen`: each entry's bit is clear, then set. -/
 def nodupBits : List ℕ → ℕ → Bool

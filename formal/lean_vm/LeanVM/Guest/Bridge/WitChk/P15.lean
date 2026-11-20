@@ -20,6 +20,7 @@ public section
 
 theorem Fn.«eq_prefix_run__L9».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«eq_prefix_run__L12».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
+theorem Fn.«eq_prefix_run_rev__L3».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«plus_one_run__L14».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«block_selector_tab__L30».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«squeeze_point_from__L6».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
@@ -40,6 +41,7 @@ theorem Fn.«level_positions__L8_L21_L3_loop0».witOk : Bridge.witChk alignCtx f
 theorem Fn.«level_positions__L8_L23_L5_loop0».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«level_residual__L73_L22_L6_L3_loop1».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«level_residual__L55_L18_L4_L2_loop1».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
+theorem Fn.«gkr_layer__L2_L0_loop0».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1_loop0».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 theorem Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1_loop0».witOk : Bridge.witChk alignCtx fs core.body = true := by decide +kernel
 

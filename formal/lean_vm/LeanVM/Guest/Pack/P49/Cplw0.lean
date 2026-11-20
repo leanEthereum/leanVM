@@ -12,6 +12,9 @@ public import LeanVM.Guest.Data.Pows
 public import Mathlib.Tactic.IntervalCases
 public import LeanVM.Guest.Pack.«P49».Core
 public import LeanVM.Guest.Pack.«P49».Bundle
+public import LeanVM.Guest.Pack.«P36».Sig
+public import LeanVM.Guest.Pack.«P5».Sig
+public import LeanVM.Guest.Pack.«P10».Sig
 public import LeanVM.Guest.Pack.«P44».Sig
 public import LeanVM.Guest.Pack.«P24».Sig
 public import LeanVM.Guest.Pack.«P4».Sig
@@ -115,18 +118,18 @@ theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«child_clai
 end
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L5»
 
-namespace LeanVM.Guest.Fn.«gkr_rounds__L2»
+namespace LeanVM.Guest.Fn.«gkr_last_layers__L3_L0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `gkr_rounds__L2`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«gkr_rounds__L2».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+/-- `gkr_last_layers__L3_L0`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(Fn.«gkr_layer__L0_L0».idx, Fn.«gkr_layer__L0_L0».sig), (Fn.«gkr_layer__L1_L0».idx, Fn.«gkr_layer__L1_L0».sig), (Fn.«gkr_layer__L2_L0».idx, Fn.«gkr_layer__L2_L0».sig)]) Data.jtTrie globSem) code Fn.«gkr_last_layers__L3_L0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `gkr_rounds__L2`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«gkr_rounds__L2».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+/-- `gkr_last_layers__L3_L0`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs ([(Fn.«gkr_layer__L0_L0».idx, Fn.«gkr_layer__L0_L0».sig), (Fn.«gkr_layer__L1_L0».idx, Fn.«gkr_layer__L1_L0».sig), (Fn.«gkr_layer__L2_L0».idx, Fn.«gkr_layer__L2_L0».sig)]) Data.jtTrie globSem) code Fn.«gkr_last_layers__L3_L0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -137,7 +140,7 @@ theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«gkr_rounds
     · exact cw0_0
 
 end
-end LeanVM.Guest.Fn.«gkr_rounds__L2»
+end LeanVM.Guest.Fn.«gkr_last_layers__L3_L0»
 
 namespace LeanVM.Guest.Fn.«level_positions__L4_L14_L2»
 

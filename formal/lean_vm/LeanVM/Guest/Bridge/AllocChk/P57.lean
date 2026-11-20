@@ -35,6 +35,7 @@ namespace LeanVM.Guest
 public section
 
 alloc_chk% «eq_prefix_run__L29» []
+alloc_chk% «eq_prefix_run_rev__L16» []
 alloc_chk% «index_mle__L5» []
 alloc_chk% «column_selector__L6» []
 alloc_chk% «log2_ceil_in_the_exponent__L0_L34» [«assert_small_g_power»]

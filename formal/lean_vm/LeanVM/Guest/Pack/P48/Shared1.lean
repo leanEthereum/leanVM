@@ -15,6 +15,60 @@ public import LeanVM.Guest.Pack.«P48».Bundle
 
 set_option Elab.async false
 
+namespace LeanVM.Guest.Fn.«gkr_last_layers__L2_L0»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `gkr_last_layers__L2_L0`, once. -/
+theorem st : shareStaticD Fn.«gkr_last_layers__L2_L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `gkr_last_layers__L2_L0`, window 0. -/
+theorem sw0 : shareWinD Fn.«gkr_last_layers__L2_L0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `gkr_last_layers__L2_L0`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«gkr_last_layers__L2_L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«gkr_last_layers__L2_L0»
+
+namespace LeanVM.Guest.Fn.«level_positions__L7_L15_L3»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `level_positions__L7_L15_L3`, once. -/
+theorem st : shareStaticD Fn.«level_positions__L7_L15_L3».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `level_positions__L7_L15_L3`, window 0. -/
+theorem sw0 : shareWinD Fn.«level_positions__L7_L15_L3».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `level_positions__L7_L15_L3`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«level_positions__L7_L15_L3».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«level_positions__L7_L15_L3»
+
 namespace LeanVM.Guest.Fn.«level_positions__L5_L18_L6»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -68,58 +122,4 @@ theorem shareOk : ShareOkD Fn.«level_positions__L7_L17_L5».core (cert.withPows
 
 end
 end LeanVM.Guest.Fn.«level_positions__L7_L17_L5»
-
-namespace LeanVM.Guest.Fn.«level_positions__L7_L19_L7»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `level_positions__L7_L19_L7`, once. -/
-theorem st : shareStaticD Fn.«level_positions__L7_L19_L7».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `level_positions__L7_L19_L7`, window 0. -/
-theorem sw0 : shareWinD Fn.«level_positions__L7_L19_L7».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `level_positions__L7_L19_L7`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«level_positions__L7_L19_L7».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«level_positions__L7_L19_L7»
-
-namespace LeanVM.Guest.Fn.«opening_message__L36_L1»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `opening_message__L36_L1`, once. -/
-theorem st : shareStaticD Fn.«opening_message__L36_L1».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `opening_message__L36_L1`, window 0. -/
-theorem sw0 : shareWinD Fn.«opening_message__L36_L1».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `opening_message__L36_L1`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«opening_message__L36_L1».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«opening_message__L36_L1»
 

@@ -22,9 +22,9 @@ namespace LeanVM.Guest
 
 public section
 
-theorem Fn.«verify_sig_lean_sphincs».code_mem : code ∈ Data.functions := Checked.code21 ▸ End.fnOf_mem (by decide)
+theorem Fn.«verify_sig_lean_sphincs».code_mem : code ∈ Data.functions := Checked.code22 ▸ End.fnOf_mem (by decide)
 theorem Fn.«verify_sig_lean_sphincs».tie : fnOf idx = code ∧ coreOf idx = core ∧ certOf idx = cert.withPows Data.powTree ∧ B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = ([], [("sp_wots", Fn.«sp_wots».entry)], advice) :=
-  ⟨Checked.code21, Checked.core21, Checked.cert21, Checked.plumbEq21, Bridge.ProgAl.tab21⟩
+  ⟨Checked.code22, Checked.core22, Checked.cert22, Checked.plumbEq22, Bridge.ProgAl.tab22⟩
 
 end
 

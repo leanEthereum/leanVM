@@ -36,7 +36,6 @@ public section
 alloc_chk% «eq_prefix_run__L6» []
 alloc_chk% «plus_one_run__L22» []
 alloc_chk% «block_selector__L11» []
-alloc_chk% «verify_tables_loop1» []
 alloc_chk% «verify_keccak_loop0» []
 alloc_chk% «level_queries__L27_L0_L4_L16_L12_L6_L2_L8_L3_L1» [«verify_merkle_cap__L6», «opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1»]
 alloc_chk% «level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0» [«verify_merkle_cap__L5», «opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0»]

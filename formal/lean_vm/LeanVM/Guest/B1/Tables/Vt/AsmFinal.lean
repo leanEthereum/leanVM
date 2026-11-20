@@ -32,12 +32,12 @@ open LeanVM.Protocol.EndToEnd.Complete (termsPure length_tableWeights jumpConstr
 theorem vt_weight_guest {rd : Reader} {σ : Val} {point pts : List E} {n : ℕ}
     (hpl : pts.length = n) (hnp : n ≤ point.length)
     (hcp : ∀ j ≤ n, LoadHolds rd (σ (.n 2631)) j (pts.take j).prod)
-    (hpe : EqPrefix rd (σ (.n 2656)) 1 (σ (.n 16)) (σ (.n 700)) n)
+    (hpe : EqPrefix rd (σ (.n 2653)) 1 (σ (.n 16)) (σ (.n 700)) n)
     (hchi : ∀ i < n, LoadHolds rd (σ (.n 16)) (n - 1 - i) (pts.getD i 0))
     (hz1 : TbReadsAt rd (σ (.n 700)) (point.map (1 + ·))) (hgn : σ (.n 2545) = gen ^ n)
     {heights : List ℕ} {t : ℕ} (ht : t < heights.length) (hh : heights.getD t 0 ≤ n)
     {x τv cp pe : E} (hx : σ (.n 2545) = x * τv) (hτv : τv = gen ^ heights.getD t 0)
-    (hcpL : LoadHolds rd (σ (.n 2631) * x) 0 cp) (hpeL : LoadHolds rd (σ (.n 2656) * τv) 0 pe) :
+    (hcpL : LoadHolds rd (σ (.n 2631) * x) 0 cp) (hpeL : LoadHolds rd (σ (.n 2653) * τv) 0 pe) :
     (tableWeights heights point pts.reverse).getD t 0 = cp * pe := by
   set hg := heights.getD t 0
   have hxv : x = gen ^ (n - hg) := by
@@ -106,14 +106,14 @@ theorem vt_asm_final {σ : Val} (h : VtH Lm.read σ) (bc : List K) (hbc : bc.len
     (hgn : σ (.n 2545) = gen ^ n) (hhn : ∀ t < 6, vtHt rows t ≤ n) (hnp : n ≤ point.length)
     {pts : List E} (hpl : pts.length = n)
     (hcp : ∀ j ≤ n, LoadHolds Lm.read (σ (.n 2631)) j (pts.take j).prod)
-    (hpe : EqPrefix Lm.read (σ (.n 2656)) 1 (σ (.n 16)) (σ (.n 700)) n)
+    (hpe : EqPrefix Lm.read (σ (.n 2653)) 1 (σ (.n 16)) (σ (.n 700)) n)
     (hchi : ∀ i < n, LoadHolds Lm.read (σ (.n 16)) (n - 1 - i) (pts.getD i 0)) :
     (termsPure ((powers (σ (.n 2611)) 5).take 2) ((powers (σ (.n 2611)) 5).drop 2) pts.reverse
       (List.zip (vtRows (tableHeightsOf rows)
         (vtAcc2 (layoutOf bc lm rows) weights (σ (.n 14)) point
           [σ (.n 813), σ (.n 817)] (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841))
           (σ (.n 2442)) (σ (.n 2488)) (σ (.n 2543))).1 point pts) (vtEvsT σ)) 0 0 []).1 =
-      σ (.n 2653) := by
+      σ (.n 2650) := by
   have hz1 := vt_zeta1 h hz hmu (by omega)
   set F := (vtAcc2 (layoutOf bc lm rows) weights (σ (.n 14)) point
     [σ (.n 813), σ (.n 817)] (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841))
@@ -133,7 +133,7 @@ theorem vt_asm_final {σ : Val} (h : VtH Lm.read σ) (bc : List K) (hbc : bc.len
     rwa [show 26 + (2 + t) = 28 + t by omega, Nat.add_comm 2 t, vt_tau_getD lm _ ht] at this
   have hwt : ∀ t < 6, ∀ {x cp pe : E}, σ (.n 2545) = x * σ (.n (28 + t)) →
       LoadHolds Lm.read (σ (.n 2631) * x) 0 cp →
-      LoadHolds Lm.read (σ (.n 2656) * σ (.n (28 + t))) 0 pe → Wt.getD t 0 = cp * pe := by
+      LoadHolds Lm.read (σ (.n 2653) * σ (.n (28 + t))) 0 pe → Wt.getD t 0 = cp * pe := by
     intro t ht x cp pe hx hcpL hpeL
     exact vt_weight_guest hpl hnp hcp hpe hchi hz1 hgn (by rw [hH6]; exact ht) (hhn t ht) hx
       (hkbt t ht) hcpL hpeL

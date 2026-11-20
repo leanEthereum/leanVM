@@ -51,7 +51,6 @@ core_cert% «opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0» «P46» 21 [�
 core_cert% «plus_one_run__L22» «P46» 22 []
 core_cert% «squeeze_point_from__L9» «P46» 23 []
 core_cert% «verify_keccak_loop0» «P46» 24 [«verify_keccak_loop0»]
-core_cert% «verify_tables_loop1» «P46» 25 nz [«verify_tables_loop1»]
 
 end
 
@@ -77,7 +76,7 @@ noncomputable def ces : List (EndExec.CertE CoreMode.hcTab CoreMode.coreNzs) :=
    Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1_loop0».ce,
    Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0».ce,
    Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».ce, Fn.«plus_one_run__L22».ce,
-   Fn.«squeeze_point_from__L9».ce, Fn.«verify_keccak_loop0».ce, Fn.«verify_tables_loop1».ce]
+   Fn.«squeeze_point_from__L9».ce, Fn.«verify_keccak_loop0».ce]
 
 end
 

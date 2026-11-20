@@ -183,7 +183,7 @@ walks' from `WalkKnown`, and nothing for the others (`Plain`, `Checked.all_plain
 theorem cutsKnown_of (hvd : VsDimsKnown) (hvs : VsKnown) (hwalk : WalkKnown) {j : ℕ} (h2 : 2 ≤ j)
     (hj : j < nFns) : CutsKnown j := by
   intro κ L h16 h32 fp hmem hsem i hi h0 hl
-  by_cases h19 : j = 19
+  by_cases h19 : j = fn_idx% «verify_sub»
   · subst h19
     exact known_vs hvd hvs h16 h32 hsem hi h0 hl
   · by_cases ho : j ∈ Checked.oblFns
