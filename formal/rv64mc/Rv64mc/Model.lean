@@ -12,6 +12,7 @@ public import Rv64mc.Model.KeccakGkr
 public import Rv64mc.Model.Whir
 public import Rv64mc.Model.Layout
 public import Rv64mc.Model.Bytecode
+public import Rv64mc.Model.Bus
 
 /-!
 # Mirrors of the Rust verifier
