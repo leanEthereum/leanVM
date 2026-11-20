@@ -35,6 +35,8 @@ Put `set_option rv_sym.heap true in` before `theorem ok` of a function that stor
 - A representation predicate of a later memory, from a hypothesis of the same predicate (same arguments) of an earlier one, is carried by its lemma `<P>.keep` (or `<P>.keep'`; a definition without one by the one it unfolds to): `WordsAt.keep`, `EAt.keep`, `EListAt.keep`, `VecAt.keep`. The lemma's premises are filled: a memory kept (`Keeps m m' a n`, or any definition that unfolds to `∀ b, … → m'.getMem b = m.getMem b`) by walking the stores and the callees' frames with `omega` on the addresses, a fact about numbers by `omega`, a part (`Elems m p xs → Elems m' p xs`) recursively. So a family that states `<P>.keep` in this form (the footprint as `Keeps` over a range, a nested structure's buffers as one `Region lo hi` below `NEXT`) gets its predicate carried across stores and calls for free.
 - A representation predicate a callee's precondition asks of memory built in place (a `Vec` header on the stack): its fields (a structure, `VecAt`) or its definition's parts (`WordsAt`, `EAt`) are closed one by one, reads of memory resolved through the stores; closed comparisons by `decide`; a `∀ k, k < [].length → …` by `omega`; a hypothesis of the same predicate up to unfolding (`Model.constantRust v` against the literal form) closes it.
 - `rv_mem` rewrites the goal's reads (registers, `NEXT`, memory) as the executor does, for the postcondition you prove by hand.
+- Byte stores (`sb`, kept as `setByte`) are stores into the doubleword at their aligned address (`Core/ReprBytes.lean`): a load reads through them (`getMem_setByte_ne`, or `getMem_setByte_eq` into its own doubleword, giving `replaceByte`), and they enter the frame (`frame_byte`, `frame_byte_out`, `frame_byte_fresh`), `env.Static` (`static_byte`) and `NEXT` (`next_setByte`). Eight bytes at an aligned address are its doubleword: `getMem_of_bytes` (`BytesAt` to `packBytes`), and `getByte_aligned` the other way.
+- A narrow load (`lb`, `lh`, `lw`, signed or not) at a literal offset of a constant table reads its value, given `DataRef.Words env L.d_<key> d_<key>_words` and `DataRef.Aligned L.d_<key> n` (the base a multiple of 8, `n` doublewords; the link step proves it by `decide`). At a symbolic offset (a loop), use `DataRef.Words.load` (the value is `dwLoad w ws[k] o`).
 
 ## Arguments and options
 
@@ -45,6 +47,7 @@ Put `set_option rv_sym.heap true in` before `theorem ok` of a function that stor
 ## Changelog
 
 - 2026-11-20: `rv_sym.heap` (above); `rv_mem`; `using`/`with` in the main goal's context; `through`; `Tactic/Heap.lean`. Fixes: a Nat `x ≤ x` side goal by `Nat.le_refl`; `NEXT`'s bound only for `(env.next X).toNat ≤ env.heapEnd.toNat`; a tail call's room from `needX ≤ need` (heap on).
+- 2026-11-20: byte stores and narrow table loads (heap on), `Core/ReprBytes.lean`; `keep<k>_2` is now one disjunctive keep (below `NEXT` or at or above the callee's top).
 
 ## Cost
 

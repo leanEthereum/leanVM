@@ -54,6 +54,7 @@ import Rv64mc.Tactic.Addr
 import Rv64mc.Tactic.Frame
 import Rv64mc.Tactic.Heap
 import Rv64mc.Core.ReprLemmas
+import Rv64mc.Core.ReprBytes
 
 namespace Rv64mc.Tactic.Sym
 
@@ -167,7 +168,8 @@ def readStep (e : Expr) : SimpM Simp.Step := do
   if e.isAppOfArity ``Lprog.Isa.sp 1 || e.isAppOfArity ``Lprog.Isa.link 1 then
     let e' ← whnfR e
     if (regName? e').isSome then return .done { expr := e' }
-  if e.isAppOf ``Rv64mc.Tactic.rf || e.isAppOf ``Lprog.updReg || e.isAppOf ``MachineState.setMem then
+  if e.isAppOf ``Rv64mc.Tactic.rf || e.isAppOf ``Lprog.updReg || e.isAppOf ``MachineState.setMem ||
+      e.isAppOf ``MachineState.setByte then
     if let .app f a := e then
       let f' := f.consumeMData
       if (f'.isAppOfArity ``Lprog.updReg 5 || f'.isAppOfArity ``Rv64mc.Tactic.rf 32) && (regName? a).isSome then
@@ -590,6 +592,13 @@ mutual
 /-- `env.next X = env.next B` for the memory `B` that `X` stores into, through stores apart from `NEXT`. -/
 partial def nextNorm (env X : Expr) : MetaM (Expr × Option Expr) := do
   let X := X.consumeMData
+  if X.isAppOfArity ``MachineState.setByte 3 then
+    let N := X.appFn!.appFn!.appArg!
+    let a := X.appFn!.appArg!
+    let some hne ← neNext env (← mkAppM ``alignToDword #[a]) | return (X, none)
+    let p1 ← mkAppOptM ``Rv64mc.next_setByte #[env, N, a, X.appArg!, hne]
+    let (B, p2) ← nextNorm env N
+    return (B, some (← transOpt p1 p2))
   unless X.isAppOfArity ``MachineState.setMem 3 do return (X, none)
   let N := X.appFn!.appFn!.appArg!
   let a := X.appFn!.appArg!
@@ -617,6 +626,11 @@ partial def arithProve (goal : Expr) (nested : Bool := false) : MetaM (Option Ex
       let g' ← mkAppM ``Ne #[← mkAppM ``BitVec.toNat #[goal.appFn!.appArg!], ← mkAppM ``BitVec.toNat #[goal.appArg!]]
       let some p ← arithProve g' nested | return none
       return some (← mkAppM ``Rv64mc.Tactic.ne_of_toNat #[p])
+  if goal.isAppOfArity ``Eq 3 then
+    if ← isWordTy (goal.getArg! 0) then
+      let g' ← mkEq (← mkAppM ``BitVec.toNat #[goal.appFn!.appArg!]) (← mkAppM ``BitVec.toNat #[goal.appArg!])
+      let some p ← arithProve g' nested | return none
+      return some (← mkAppM ``BitVec.eq_of_toNat_eq #[p])
   let some g1 ← arithProp goal | return none
   let hasRegs := (g1.find? fun e => e.isAppOf ``Rv64mc.Tactic.rf || e.isAppOf ``Lprog.updReg).isSome
   let (g2, pe) ← if hasRegs then normReads g1 else pure (g1, none)
@@ -644,6 +658,10 @@ partial def arithProve (goal : Expr) (nested : Bool := false) : MetaM (Option Ex
     if seen.contains w then continue
     seen := seen.push w
     extra := extra.push (w, ← mkAppM ``BitVec.isLt #[w])
+    if w.isAppOfArity ``alignToDword 1 then
+      extra := extra.push (w, ← mkAppM ``Rv64mc.toNat_alignToDword' #[w.appArg!])
+      todo := w.appArg! :: todo
+      continue
     let (bw, cw) ← affine w
     let some b := bw
       | extra := extra.push (w, ← mkDecideProof (← mkEq (← mkAppM ``BitVec.toNat #[w]) (mkNatLit cw)))
@@ -717,7 +735,8 @@ end
 
 /-- `NEXT` read through stores apart from it, as a simproc. -/
 def nextStep (e : Expr) : SimpM Simp.Step := do
-  if e.isAppOfArity ``Rv64mc.Env.next 2 && e.appArg!.consumeMData.isAppOfArity ``MachineState.setMem 3 then
+  if e.isAppOfArity ``Rv64mc.Env.next 2 && (e.appArg!.consumeMData.isAppOfArity ``MachineState.setMem 3 ||
+      e.appArg!.consumeMData.isAppOfArity ``MachineState.setByte 3) then
     let (B, p?) ← withTransparency .default (nextNorm e.appFn!.appArg! e.appArg!)
     if let some p := p? then
       return .done { expr := mkApp2 e.appFn!.appFn! e.appFn!.appArg! B, proof? := some p }
@@ -726,7 +745,8 @@ def nextStep (e : Expr) : SimpM Simp.Step := do
 /-- `ty` with `NEXT` read through the stores apart from it (`nextNorm`), and a proof of `ty = ty'` where it changed. -/
 def nextTy (ty : Expr) : MetaM (Expr × Option Expr) := do
   let ty ← instantiateMVars ty
-  let has := ty.find? fun e => e.isAppOfArity ``Rv64mc.Env.next 2 && e.appArg!.consumeMData.isAppOf ``MachineState.setMem
+  let has := ty.find? fun e => e.isAppOfArity ``Rv64mc.Env.next 2 &&
+    (e.appArg!.consumeMData.isAppOf ``MachineState.setMem || e.appArg!.consumeMData.isAppOf ``MachineState.setByte)
   if has.isNone then return (ty, none)
   let ctx ← Simp.mkContext (simpTheorems := #[]) (congrTheorems := ← getSimpCongrTheorems)
   let (r, _) ← Simp.main ty ctx (methods := { pre := nextStep })
@@ -906,6 +926,24 @@ partial def readMem (M x : Expr) : MetaM (Expr × Option Expr) := do
       let p1 ← mkAppOptM ``MachineState.getMem_setMem_ne #[N, y, x, w, hne]
       let (v, p2) ← readMem N x
       return (v, some (← transOpt p1 p2))
+    return (← mkAppM ``MachineState.getMem #[M, x], none)
+  if M.isAppOfArity ``MachineState.setByte 3 then
+    let N := M.appFn!.appFn!.appArg!
+    let y := M.appFn!.appArg!
+    let c := M.appArg!
+    let ay ← mkAppM ``alignToDword #[y]
+    if let some hne ← neProof x ay then
+      let p1 ← mkAppOptM ``Rv64mc.getMem_setByte_ne #[N, y, x, c, hne]
+      let (v, p2) ← readMem N x
+      return (v, some (← transOpt p1 p2))
+    if let some heq ← arithProve (← mkEq ay x) then
+      let p1 ← mkAppOptM ``Rv64mc.getMem_setByte_eq #[N, y, x, c, heq]
+      let (v, p2) ← readMem N x
+      let off ← mkAppM ``byteOffset #[y]
+      let p2' ← match p2 with
+        | some p => some <$> mkCongrArg (← lam word fun u => mkAppM ``replaceByte #[u, off, c]) p
+        | none => pure none
+      return (← mkAppM ``replaceByte #[v, off, c], some (← transOpt p1 p2'))
     return (← mkAppM ``MachineState.getMem #[M, x], none)
   if let some (p1, N) ← keepAt M x then
     let (v, p2) ← readMem N x
@@ -1098,6 +1136,31 @@ partial def frameWalk (env top out m0 X : Expr) : MetaM (Option Expr) := do
       | return none
     let some hhi ← arithProve (← mkAppM ``LT.lt #[← num a, ← num (← mkAppM ``Rv64mc.Env.next #[env, B])]) | return none
     return some (← appN ``Rv64mc.Tactic.frame_fresh (st ++ [(`B, B), (`hn, hn), (`hlo, hlo), (`hhi, hhi)]))
+  if X.isAppOfArity ``MachineState.setByte 3 then
+    -- a byte store, into the doubleword at its aligned address
+    let N := X.appFn!.appFn!.appArg!
+    let a := X.appFn!.appArg!
+    let c := X.appArg!
+    let some h1 ← frameWalk env top out m0 N | return none
+    let ay ← mkAppM ``alignToDword #[a]
+    let num (e : Expr) : MetaM Expr := mkAppM ``BitVec.toNat #[e]
+    let st := base ++ [(`a, a), (`c, c), (`N, N), (`h1, h1)]
+    if let some hlo ← arithProve (← mkAppM ``LE.le #[← num (← mkAppM ``Rv64mc.Env.stackLimit #[env]), ← num ay]) then
+      if let some hhi ← arithProve (← mkAppM ``LT.lt #[← num ay, ← num top]) then
+        return some (← appN ``Rv64mc.frame_byte (st ++ [(`hlo, hlo), (`hhi, hhi)]))
+    unless ← isF out do
+      if let some hb ← arithProve (mkApp out ay).headBeta then
+        if let some hn ← neNext env ay then
+          return some (← appN ``Rv64mc.frame_byte_out (st ++ [(`hb, hb), (`hn, hn)]))
+    let (B, hn?) ← nextNorm env N
+    let hn ← match hn? with
+      | some p => pure p
+      | none => mkEqRefl (← mkAppM ``Rv64mc.Env.next #[env, N])
+    let some hlo ← arithProve (← mkAppM ``LE.le #[← num (← mkAppM ``Rv64mc.Env.next #[env, m0]), ← num ay])
+      | return none
+    let some hhi ← arithProve (← mkAppM ``LT.lt #[← num ay, ← num (← mkAppM ``Rv64mc.Env.next #[env, B])])
+      | return none
+    return some (← appN ``Rv64mc.frame_byte_fresh (st ++ [(`B, B), (`hn, hn), (`hlo, hlo), (`hhi, hhi)]))
   for d in ← getLCtx do
     if d.isImplementationDetail then continue
     let ty := (← instantiateMVars d.type).consumeMData
@@ -1127,6 +1190,16 @@ partial def frameWalk (env top out m0 X : Expr) : MetaM (Option Expr) := do
 partial def staticWalk (env X : Expr) : MetaM (Option Expr) := do
   let X := X.consumeMData
   if let some h ← hypOf (← mkAppM ``Rv64mc.Env.Static #[env, X]) then return some h
+  if X.isAppOfArity ``MachineState.setByte 3 then
+    let N := X.appFn!.appFn!.appArg!
+    let a := X.appFn!.appArg!
+    let some hs ← staticWalk env N | return none
+    let ay ← mkAppM ``alignToDword #[a]
+    let num (e : Expr) : MetaM Expr := mkAppM ``BitVec.toNat #[e]
+    let apart ← mkAppM ``Or #[← mkAppM ``LT.lt #[← num ay, ← num (← mkAppM ``Rv64mc.Env.staticLo #[env])],
+      ← mkAppM ``LE.le #[← num (← mkAppM ``Rv64mc.Env.staticHi #[env]), ← num ay]]
+    let some h ← arithProve apart | return none
+    return some (← appN ``Rv64mc.static_byte [(`env, env), (`N, N), (`a, a), (`c, X.appArg!), (`hs, hs), (`h, h)])
   unless X.isAppOfArity ``MachineState.setMem 3 do return none
   let N := X.appFn!.appFn!.appArg!
   let a := X.appFn!.appArg!
@@ -1254,6 +1327,69 @@ def dataRead (M x : Expr) : MetaM (Option (Expr × Expr)) := do
     return some (v, ← mkExpectedTypeHint p (← mkEq (← mkAppM ``MachineState.getMem #[M, x]) v))
   return none
 
+/-- A narrow load (`w` not `b8`, sign-extended if `s`) from a constant table, `x` at `d.hi + d.lo + c`, where
+    hypotheses `DataRef.Words env d ws` and `DataRef.Aligned d n` give the table and its alignment: the value, a
+    literal, and a proof of `(if s then sext (loadVal w M x) else loadVal w M x) = v` (`DataRef.Words.load`, the rest
+    by evaluation). -/
+def dataLoad (M x w s : Expr) : MetaM (Option (Expr × Expr)) := do
+  let some size := (match w.constName? with
+    | some ``Lprog.Width.b1 => some 1
+    | some ``Lprog.Width.b2 => some 2
+    | some ``Lprog.Width.b4 => some 4
+    | _ => none : Option Nat) | return none
+  let some sgn := (if s.isConstOf ``Bool.true then some true else if s.isConstOf ``Bool.false then some false
+    else none) | return none
+  let (bx, cx) ← affine x
+  let some b := bx | return none
+  unless b.isAppOfArity ``HAdd.hAdd 6 do return none
+  let hi := b.appFn!.appArg!
+  let lo := b.appArg!
+  unless hi.isAppOfArity ``Rv64mc.DataRef.hi 1 && lo.isAppOfArity ``Rv64mc.DataRef.lo 1 && hi.appArg! == lo.appArg! do
+    return none
+  let dref := hi.appArg!
+  let k := cx / 8
+  let o := cx % 8
+  let mut words : Option (Expr × Expr × Array Expr) := none
+  let mut aligned : Option Expr := none
+  for d in ← getLCtx do
+    if d.isImplementationDetail then continue
+    let ty := (← instantiateMVars d.type).consumeMData
+    if ty.isAppOfArity ``Rv64mc.DataRef.Words 3 && ty.getAppArgs[1]! == dref then
+      if let some elems ← listElems ty.getAppArgs[2]! then words := some (d.toExpr, ty.getAppArgs[0]!, elems)
+    if ty.isAppOfArity ``Rv64mc.DataRef.Aligned 2 && ty.getAppArgs[0]! == dref then aligned := some d.toExpr
+  let some (hw, env, elems) := words | return none
+  let some hal := aligned | return none
+  unless k < elems.size do return none
+  let some wk ← lit? elems[k]! | return none
+  -- the bytes read, and their sign extension
+  let bits := 8 * size
+  let raw := (wk >>> (8 * (o / size * size))) % 2 ^ bits
+  let val := if sgn && raw ≥ 2 ^ (bits - 1) then raw + (2 ^ 64 - 2 ^ bits) else raw
+  let some hs ← holdsGoal (← mkAppM ``Rv64mc.Env.Static #[env, M]) | return none
+  let ws ← inferType hw
+  let hv ← mkDecideProof (← mkEq (← mkAppM ``GetElem?.getElem? #[ws.appArg!, mkNatLit k]) (← mkAppM ``Option.some #[elems[k]!]))
+  let hc ← mkDecideProof (← mkEq (mkNatLit cx) (mkNatLit (8 * k + o)))
+  let ho ← mkDecideProof (← mkAppM ``LT.lt #[mkNatLit o, mkNatLit 8])
+  let hW ← mkDecideProof (mkNot (← mkEq w (mkConst ``Lprog.Width.b8)))
+  -- `loadVal w M x = dwLoad w wk o`, at `x` written `d.hi + d.lo + BitVec.ofNat 64 cx`
+  let p1 ← mkAppOptM ``Rv64mc.DataRef.Words.load #[env, dref, ws.appArg!, M, w, hw, hs, hal, mkNatLit k, mkNatLit o,
+    mkNatLit cx, elems[k]!, hv, hc, ho, hW]
+  let lv ← mkAppM ``Rv64mc.Tactic.loadVal #[w, M, x]
+  let p1 ← if cx == 0 then do
+      -- `x` is the base itself: `b = b + 0`
+      let e0 ← mkEqSymm (← mkAppM ``BitVec.add_zero #[b])
+      mkEqTrans (← mkCongrArg (← lam word fun t => mkAppM ``Rv64mc.Tactic.loadVal #[w, M, t]) e0) p1
+    else pure p1
+  let p1 ← mkExpectedTypeHint p1 (← mkEq lv (← mkAppM ``Rv64mc.dwLoad #[w, elems[k]!, mkNatLit o]))
+  let f ← lam word fun t => do
+    mkAppM ``ite #[← mkEq s (mkConst ``Bool.true), mkApp2 (mkConst ``UnOp.eval) (mkApp (mkConst ``UnOp.sext) w) t, t]
+  let pf ← mkCongrArg f p1
+  let rhs := (mkApp f (← mkAppM ``Rv64mc.dwLoad #[w, elems[k]!, mkNatLit o])).headBeta
+  let q ← mkDecideProof (← mkEq rhs (mkLit val))
+  let p ← mkEqTrans pf q
+  let ite ← mkAppM ``ite #[← mkEq s (mkConst ``Bool.true), mkApp2 (mkConst ``UnOp.eval) (mkApp (mkConst ``UnOp.sext) w) lv, lv]
+  return some (mkLit val, ← mkExpectedTypeHint p (← mkEq ite (mkLit val)))
+
 /-! ## Side goals -/
 
 /-- A proof of `X.getMem a = Y.getMem a` for an address `a` at or above `lo` (`ha : lo ≤ a`): every store into `X`
@@ -1301,7 +1437,7 @@ partial def normAddr (x : Expr) : MetaM (Expr × Option Expr) := do
     a word-valued accessor of memory (`vecPtr m a`) unfolded first. -/
 def memStep (e : Expr) : SimpM Simp.Step := do
   -- a memory is left as it is: its stored values are what the executor wrote
-  if e.isAppOf ``MachineState.setMem then return .done { expr := e }
+  if e.isAppOf ``MachineState.setMem || e.isAppOf ``MachineState.setByte then return .done { expr := e }
   if e.isAppOfArity ``MachineState.getMem 2 then
     let M := e.appFn!.appArg!
     let x := e.appArg!
@@ -1876,6 +2012,12 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
             let h ← newGoal g (a.goal (a.pc + 1) R' a.M)
             g.assign (← appN ``Rv64mc.Tactic.step_ld (base ++ [(`rd, (oargs[1]!)), (`a, (oargs[4]!)), (`x, x),
               (`v, v), (`R', R'), (`ha, ha), (`hv, hv), (`hR, hR), (`h, h)]))
+            pure (some [h.mvarId!])
+          else if let some (val, hv) ← (if ← heapOn then dataLoad a.M x w s else pure none) then
+            let (R', hR) ← writeReg a.R (oargs[1]!) val
+            let h ← newGoal g (a.goal (a.pc + 1) R' a.M)
+            g.assign (← appN ``Rv64mc.Tactic.step_loadw (base ++ [(`rd, (oargs[1]!)), (`w, w), (`s, s),
+              (`a, (oargs[4]!)), (`x, x), (`v, val), (`R', R'), (`ha, ha), (`hv, hv), (`hR, hR), (`h, h)]))
             pure (some [h.mvarId!])
           else
             let lv ← whnfCore (← unfoldDefinition (mkApp3 (mkConst ``Rv64mc.Tactic.loadVal) w a.M x))
