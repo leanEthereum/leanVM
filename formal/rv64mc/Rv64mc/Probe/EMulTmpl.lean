@@ -6,7 +6,8 @@
   the template is the lift of the image's function with every address a field of `Link`.
 -/
 
-import Rv64mc.Probe.Link
+import Rv64mc.Link.Basic
+import Rv64mc.Core.Abi
 
 namespace Rv64mc.Probe.EMul
 

@@ -7,7 +7,8 @@
   function index a variable it cannot tell that a path came back.
 -/
 
-import Rv64mc.Probe.Link
+import Rv64mc.Link.Basic
+import Rv64mc.Core.Abi
 
 namespace Rv64mc.Probe.EqEval
 
