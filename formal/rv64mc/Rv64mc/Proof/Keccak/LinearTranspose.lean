@@ -778,9 +778,9 @@ theorem shl_ofNat (k s : Nat) : BitVec.ofNat 64 k <<< s = BitVec.ofNat 64 (2 ^ s
 
 theorem rho_load {env : Env} {d : DataRef} {M : MachineState} (h : RhoAt env d) (hs : env.Static M) {k : Nat}
     (hk : k < 25) :
-    UnOp.eval (UnOp.sext .b4) (Tactic.loadVal .b4 M (d.hi + d.lo + BitVec.ofNat 64 k <<< 2)) =
+    UnOp.eval (UnOp.sext .b4) (BitVec.zeroExtend 64 (M.getWord32 (d.hi + d.lo + BitVec.ofNat 64 k <<< 2))) =
       BitVec.ofNat 64 (Model.keccakRhoRust.getD k 0) := by
-  rw [Tactic.loadVal, shl_ofNat, show 2 ^ 2 * k = 4 * k by omega, h M hs k hk, sext32 (rho_lt k hk)]
+  rw [shl_ofNat, show 2 ^ 2 * k = 4 * k by omega, h M hs k hk, sext32 (rho_lt k hk)]
 
 theorem pi_words : ∀ k, k < 25 → Gen.Verifier.Keccak.LinearTransposeE.d_c200_f4afdee4_words.getD k 0 <<< 6 =
     BitVec.ofNat 64 (64 * Model.keccakPiRust.getD k 0) := by decide +kernel
@@ -832,6 +832,20 @@ theorem load_g {env : Env} {top : Word} {m M : MachineState} {ws : List E} {w : 
       show (64 * lane + z) % 64 = z by omega, List.getD_eq_getElem _ _ hj]
   simp only [List.getElem_map, hg, and_self]
 
+theorem start_ofs (t : Word) (c : Nat) : t + BitVec.ofNat 64 c = t + BitVec.ofNat 64 c + BitVec.ofNat 64 (16 * 0) := by
+  rw [Nat.mul_zero]; exact (BitVec.add_zero _).symm
+
+theorem start_ofs8 (t : Word) (c : Nat) :
+    t + BitVec.ofNat 64 (c + 8) = t + BitVec.ofNat 64 c + BitVec.ofNat 64 (16 * 0) + 8#64 := by
+  rw [Nat.mul_zero, ← start_ofs, BitVec.add_assoc, BitVec.ofNat_add_ofNat]
+
+theorem succ_ofNat2 (a b : Nat) : BitVec.ofNat 64 (a + b) + 1#64 = BitVec.ofNat 64 (a + (b + 1)) := by
+  rw [BitVec.ofNat_add_ofNat, Nat.add_assoc]
+
+theorem step_ptr2 (q : Word) (a b : Nat) :
+    q + BitVec.ofNat 64 (16 * (a + b)) + 24#64 = q + BitVec.ofNat 64 (16 * (a + (b + 1))) + 8#64 :=
+  step_ptr q (a + b)
+
 theorem dec_ofNat {z : Nat} (hz : z < 64) :
     BitVec.ofNat 64 (64 - z) + 18446744073709551615#64 = BitVec.ofNat 64 (64 - (z + 1)) := by
   rw [show 64 - z = 64 - (z + 1) + 1 by omega, BitVec.ofNat_add, BitVec.add_assoc,
@@ -846,5 +860,272 @@ theorem lane_ptr' (q : Word) (lane : Nat) :
     q + BitVec.ofNat 64 (16 * (64 * lane)) + 1032#64 = q + BitVec.ofNat 64 (16 * (64 * (lane + 1))) + 8#64 := by
   rw [BitVec.add_assoc, BitVec.add_assoc, BitVec.ofNat_add_ofNat, BitVec.ofNat_add_ofNat]
   congr 2
+
+
+/-- One position of `g`'s fill on memory. -/
+theorem loop1_mem {env : Env} {ws : List E} {ret top : Word} {regs : Reg → Word} {m M : MachineState} {k : Nat}
+    (htop : env.stackLimit.toNat + 30816 ≤ top.toNat) (hk : k < 1600) (hst : env.Static m)
+    (hf : env.Frame top Tactic.F m M) (hs : Saved ret top regs m M)
+    (hg : PairsAt M (top + 18446744073709520824#64) (gF ws) k) :
+    let M' := (M.setMem (top + 18446744073709520824#64 + BitVec.ofNat 64 (16 * k)) (gF ws k).1).setMem
+      (top + 18446744073709520824#64 + BitVec.ofNat 64 (16 * k) + 8#64) (gF ws k).2
+    env.Frame top Tactic.F m M' ∧ Saved ret top regs m M' ∧
+      PairsAt M' (top + 18446744073709520824#64) (gF ws) (k + 1) ∧ env.Static M' ∧
+      (env.next M').toNat ≤ env.heapEnd.toNat := by
+  intro M'
+  have := top.isLt
+  have hgb := gBase_toNat (top := top) (by omega)
+  have e0 := toNat_elem (a := top + 18446744073709520824#64) (k := k) (by omega)
+  have e8 := toNat_elem8 (a := top + 18446744073709520824#64) (k := k) (by omega)
+  obtain ⟨h1, h2⟩ := frame_saved2 (v := (gF ws k).1) (w := (gF ws k).2) hf hs (by omega)
+    (x := top + 18446744073709520824#64 + BitVec.ofNat 64 (16 * k))
+    (y := top + 18446744073709520824#64 + BitVec.ofNat 64 (16 * k) + 8#64) ⟨by omega, by omega⟩ ⟨by omega, by omega⟩
+  exact ⟨h1, h2, hg.push (by omega), Tactic.static_of_frame hst h1, h1.2.1⟩
+
+theorem alignToDword_self {a : Word} (h : a.toNat % 8 = 0) : alignToDword a = a := by
+  apply BitVec.eq_of_toNat_eq; rw [toNat_alignToDword]; omega
+
+/-- **A `memset` of the frame below the prologue's stores**: the frame and those stores kept, and every word of the
+    frame outside the range. -/
+theorem memset_frame {env : Env} {ret top : Word} {regs : Reg → Word} {m M m2 : MachineState} {a : Word} {len : Nat}
+    {out : Word → Prop} (htop : env.stackLimit.toNat + 30816 ≤ top.toNat) (hf : env.Frame top Tactic.F m M)
+    (hs : Saved ret top regs m M) (h2 : env.Frame (top + 18446744073709520800#64) out M m2)
+    (hout : ∀ b, out b → InRange a len b) (ha : (top + 18446744073709520800#64).toNat ≤ a.toNat)
+    (ha' : a.toNat + len ≤ top.toNat - 48) :
+    env.Frame top Tactic.F m m2 ∧ Saved ret top regs m m2 ∧
+      ∀ b : Word, (top + 18446744073709520800#64).toNat ≤ b.toNat → ¬ InRange a len b → m2.getMem b = M.getMem b := by
+  have := top.isLt
+  have esp := toNat_top (t := top) (c := 18446744073709520800) (by decide) (by omega)
+  have hsb := savedBase_toNat (top := top) (by omega)
+  have keep : ∀ b : Word, (top + 18446744073709520800#64).toNat ≤ b.toNat → ¬ InRange a len b →
+      m2.getMem b = M.getMem b := fun b hb hn => h2.getMem_above (by omega) hb fun ho => hn (hout b ho)
+  refine ⟨hf.trans h2 (by omega) fun b hb => ?_, fun b hb => ?_, keep⟩
+  · have := hout b hb; unfold InRange at this; exact Or.inl ⟨by omega, by omega⟩
+  · rw [BitVec.le_def, hsb] at hb
+    rw [keep b (by omega) (fun h => by unfold InRange at h; omega)]
+    exact hs b (by rw [BitVec.le_def, hsb]; exact hb)
+
+/-- **A doubleword whose eight bytes are zero** is zero, at an aligned address. -/
+theorem getMem_eq_zero {M : MachineState} {a : Word} (ha : a.toNat % 8 = 0) (ha' : a.toNat + 8 < 2 ^ 64)
+    (h : ∀ k, k < 8 → M.getByte (a + BitVec.ofNat 64 k) = 0#8) : M.getMem a = 0#64 := by
+  have e : ∀ k, k < 8 → extractByte (M.getMem a) k = 0#8 := fun k hk => by
+    have := h k hk
+    have hn : (a + BitVec.ofNat 64 k).toNat = a.toNat + k := toNat_add_ofNat (by omega)
+    have hal : alignToDword (a + BitVec.ofNat 64 k) = a := by
+      apply BitVec.eq_of_toNat_eq; rw [toNat_alignToDword, hn]; omega
+    simpa [MachineState.getByte, hal, byteOffset_eq_toNat_mod, hn, Nat.add_mod, ha, Nat.mod_eq_of_lt hk] using this
+  apply BitVec.eq_of_getLsbD_eq
+  intro i hi
+  have := congrArg (fun b => BitVec.getLsbD b (i % 8)) (e (i / 8) (by omega))
+  simp only [extractByte, BitVec.getLsbD_setWidth, BitVec.truncate_eq_setWidth, BitVec.getLsbD_ushiftRight,
+    BitVec.getLsbD_zero] at this
+  simp only [BitVec.getLsbD_zero]
+  rw [show i = i / 8 * 8 + i % 8 by omega]
+  simpa [Nat.mod_lt _ (show 8 > 0 by decide)] using this
+
+/-- `memset` of the column sums: they read zero, which is the column sums after no position. -/
+theorem memset_cols {env : Env} {ws : List E} {ret top : Word} {regs : Reg → Word} {m M m2 : MachineState}
+    {out : Word → Prop} (htop : env.stackLimit.toNat + 30816 ≤ top.toNat) (htal : top.toNat % 8 = 0)
+    (hf : env.Frame top Tactic.F m M) (hs : Saved ret top regs m M)
+    (hg : PairsAt M (top + 18446744073709520824#64) (gF ws) 1600)
+    (h2 : env.Frame (top + 18446744073709520800#64) out M m2)
+    (hout : ∀ b, out b → InRange (top + 18446744073709546424#64) 5120 b)
+    (hz : ∀ k, k < 5120 → m2.getByte (top + 18446744073709546424#64 + BitVec.ofNat 64 k) = 0#8) :
+    env.Frame top Tactic.F m m2 ∧ Saved ret top regs m m2 ∧
+      PairsAt m2 (top + 18446744073709520824#64) (gF ws) 1600 ∧
+      PairsAt m2 (top + 18446744073709546424#64) (colsF ws 0) 320 := by
+  have := top.isLt
+  have esp := toNat_top (t := top) (c := 18446744073709520800) (by decide) (by omega)
+  have hgb := gBase_toNat (top := top) (by omega)
+  have hcb := colsBase_toNat (top := top) (by omega)
+  obtain ⟨f2, s2, k2⟩ := memset_frame htop hf hs h2 hout (by omega) (by omega)
+  refine ⟨f2, s2, hg.congr (by omega) fun b hb => k2 b (by unfold InRange at hb; omega)
+    (fun h => by unfold InRange at h hb; omega), fun c hc => ?_⟩
+  have h0 : colsF ws 0 c = (0#64, 0#64) := by
+    unfold colsF; rw [Model.colsUpTo_zero, Model.limbs_zero]; rfl
+  rw [h0]
+  have e0 := toNat_elem (a := top + 18446744073709546424#64) (k := c) (by omega)
+  have zero : ∀ o, o < 5120 → o % 8 = 0 → m2.getMem (top + 18446744073709546424#64 + BitVec.ofNat 64 o) = 0#64 := by
+    intro o ho ho8
+    have eo := toNat_elem (a := top + 18446744073709546424#64) (k := o / 16) (by omega)
+    refine getMem_eq_zero (by rw [toNat_add_ofNat (by omega)]; omega) (by rw [toNat_add_ofNat (by omega)]; omega)
+      fun k hk => ?_
+    rw [BitVec.add_assoc, BitVec.ofNat_add_ofNat]; exact hz (o + k) (by omega)
+  refine ⟨zero (16 * c) (by omega) (by omega), ?_⟩
+  have := zero (16 * c + 8) (by omega) (by omega)
+  rwa [← BitVec.ofNat_add_ofNat, ← BitVec.add_assoc] at this
+
+/-- `g`'s fill's invariant at the inner head, at bit `z` of lane `lane`. -/
+def Inv1 (env : Env) (ws : List E) (L : Link) (ret top : Word) (regs : Reg → Word) (m : MachineState)
+    (lane z : Nat) (R : Reg → Word) (M : MachineState) : Prop :=
+  Base env ret top regs m R M ∧ R .x9 = regs .x11 ∧
+    R .x12 = L.d_c200_f4afdee4.hi + L.d_c200_f4afdee4.lo ∧ R .x13 = L.d_c100_179d68cc.hi + L.d_c100_179d68cc.lo ∧
+    R .x14 = BitVec.ofNat 64 (lane + 1) ∧
+    R .x11 = top + 18446744073709520824#64 + BitVec.ofNat 64 (16 * (64 * lane)) + 8#64 ∧
+    R .x16 = BitVec.ofNat 64 (64 * Model.keccakPiRust.getD lane 0) ∧
+    R .x15 = BitVec.ofNat 64 (Model.keccakRhoRust.getD lane 0 + z) ∧ R .x17 = BitVec.ofNat 64 (64 - z) ∧
+    R .x5 = top + 18446744073709520824#64 + BitVec.ofNat 64 (16 * (64 * lane + z)) + 8#64 ∧
+    PairsAt M (top + 18446744073709520824#64) (gF ws) (64 * lane + z)
+
+set_option hygiene false in
+/-- One bit of `g`'s fill from the inner head: the read from `w`, the two stores, and the inner head again, the
+    outer head and on to the inner one, or the column sums' head after `memset`. -/
+macro "lt_iter1" : tactic => `(tactic| (
+  have hlane : lane < 25 := by omega
+  have hkn : 64 * lane + z < 1600 := by omega
+  rv_intro hinv
+  obtain ⟨f1, f2, f3, f4, f5⟩ := loop1_mem htop hkn hst hinv_13 hinv_14 hinv_24
+  have := top.isLt
+  have hg := load_g hinv_13 hnx hx hl hlen hlane hz
+  rv_sym hp stop [154] with [hL] using [hms, hpb]
+  all_goals (try rw [idx_eq (pi_lt lane hlane)] at *)
+  all_goals (try rw [hg.1, hg.2] at *)
+  all_goals first
+    | with_reducible exact f4
+    | with_reducible exact f5
+    | (rw [colsBase_toNat (by omega)]; simp only [BitVec.toNat_ofNat]; omega)
+    | (have hz1 : z + 1 < 64 := by rw [dec_ofNat hz, ofNat_inj (by omega) (by omega)] at hc; omega
+       first
+       | (exfalso; omega)
+       | (apply ih lane (z + 1) _ _ (by omega) hz1
+          rv_close
+          all_goals
+            first
+            | with_reducible exact f1
+            | with_reducible exact f2
+            | (rw [← Nat.add_assoc]; exact f3)
+            | rw [succ_ofNat2]
+            | rw [dec_ofNat hz]
+            | rw [step_ptr2]))
+    | (have hl1 : lane + 1 < 25 := by rw [ofNat_inj (by omega) (by omega)] at hc; omega
+       have hz63 : z = 63 := by rw [dec_ofNat hz, ofNat_inj (by omega) (by omega)] at hc_2; omega
+       first
+       | (exfalso; omega)
+       | (rv_sym hp stop [78] with [hL] using [hms, hpb]
+          rw [pi_load hpi f4 hl1, rho_load hrho f4 hl1]
+          apply ih (lane + 1) 0 _ _ (by omega) (by omega)
+          rv_close
+          all_goals
+            first
+            | with_reducible exact f2
+            | rw [succ_ofNat]
+            | (rw [lane_ptr]; done)
+            | (rw [lane_ptr']; done)
+            | rfl
+            | (rw [show 64 * (lane + 1) + 0 = 64 * lane + z + 1 by omega]; exact f3)))
+    | (have hl24 : lane = 24 := by rw [ofNat_inj (by omega) (by omega)] at hc; omega
+       have hz63 : z = 63 := by rw [dec_ofNat hz, ofNat_inj (by omega) (by omega)] at hc_2; omega
+       first
+       | (exfalso; omega)
+       | (obtain ⟨g1, g2, g3, g4⟩ := memset_cols (ws := ws) htop htal f1 f2
+            (by rw [show (1600 : Nat) = 64 * lane + z + 1 by omega]; exact f3) hret2_14
+            (fun b hb => by
+              simp only [Spec.Runtime.CopyOut, Spec.Runtime.DwordsOf, Lprog.updReg_apply, Tactic.rf,
+                reduceCtorEq, ite_false] at hb
+              rw [alignToDword_self hcal, hcal] at hb
+              exact hb)
+            (fun k hk => (hret2_17 k (by simpa using hk)).trans (by decide))
+          apply hl2
+          refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, g1, g2⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, g3, g4⟩
+          all_goals rv_close
+          · exact start_ofs top 18446744073709546424
+          · exact start_ofs8 top 18446744073709546424
+          · exact start_ofs8 top 18446744073709520824))))
+
+set_option maxHeartbeats 4000000 in
+theorem loop1 (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (ws : List E)
+    (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {need nMs nPb : Nat} (hnMs : 30816 + nMs ≤ need)
+    (hnPb : 30816 + nPb ≤ need)
+    (hms : Spec.Runtime.MemsetSpec env p L.memset.idx nMs) (hpb : Spec.Runtime.NoReturn env p L.panicBoundsCheck.idx nPb)
+    (hpi : DataRef.Words env L.d_c200_f4afdee4 Gen.Verifier.Keccak.LinearTransposeE.d_c200_f4afdee4_words)
+    (hrho : RhoAt env L.d_c100_179d68cc)
+    {G : State rvIsa → Prop} {n : Nat} {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame}
+    {regs : Reg → Word} {m : MachineState} (hstk : env.stackLimit.toNat + need ≤ top.toNat)
+    (hst : env.Static m) (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (htal : top.toNat % 8 = 0)
+    (hx : EListAt m (regs .x11) (ws.map Model.limbs)) (hl : env.Live m (regs .x11) (Layouts.E.byteSize * ws.length))
+    (hlen : ws.length = 1600)
+    (hl2 : ∀ R M, Inv2 env ws ret top regs m 0 R M →
+      rvIsa.SafeN p sp1Ctx G n Q ⟨⟨i, 154, ret, top⟩ :: rest, R, M⟩) :
+    ∀ k lane z R M, 64 * lane + z + k + 1 = 1600 → z < 64 → Inv1 env ws L ret top regs m lane z R M →
+      rvIsa.SafeN p sp1Ctx G n Q ⟨⟨i, 78, ret, top⟩ :: rest, R, M⟩ := by
+  have htop : env.stackLimit.toNat + 30816 ≤ top.toNat := by omega
+  have hcal : (top + 18446744073709546424#64).toNat % 8 = 0 := by
+    rw [colsBase_toNat (by omega)]; omega
+  intro k
+  induction k with
+  | zero =>
+    intro lane z R M hk hz hinv
+    lt_iter1
+  | succ k ih =>
+    intro lane z R M hk hz hinv
+    lt_iter1
+
+
+theorem rho_load0 {env : Env} {d : DataRef} {M : MachineState} (h : RhoAt env d) (hs : env.Static M) :
+    UnOp.eval (UnOp.sext .b4) (BitVec.zeroExtend 64 (M.getWord32 (d.hi + d.lo))) =
+      BitVec.ofNat 64 (Model.keccakRhoRust.getD 0 0) := by
+  have := h M hs 0 (by decide)
+  rw [Nat.mul_zero, show BitVec.ofNat 64 0 = 0#64 from rfl, BitVec.add_zero] at this
+  rw [this]; exact sext32 (rho_lt 0 (by decide))
+
+set_option maxHeartbeats 4000000 in
+/-- **`linear_transpose::<E>` keeps its contract.** -/
+theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p)
+    {need nMs nAl nRes nPb nAf nHe : Nat} (hnMs : 30816 + nMs ≤ need) (hnAl : 30816 + nAl ≤ need)
+    (hnRes : 30816 + nRes ≤ need) (hnPb : 30816 + nPb ≤ need) (hnAf : 30816 + nAf ≤ need)
+    (hnHe : 30816 + nHe ≤ need)
+    (hms : Spec.Runtime.MemsetSpec env p L.memset.idx nMs) (hal : Spec.Runtime.AllocSpec env p L.alloc.idx nAl)
+    (hres : Spec.Runtime.ReserveSpec env 8 16 p L.reserve.idx nRes)
+    (hpb : Spec.Runtime.NoReturn env p L.panicBoundsCheck.idx nPb)
+    (haf : Spec.Runtime.NoReturn env p L.assertFailedUsizeUsize.idx nAf)
+    (hhe : Spec.Runtime.NoReturn env p L.handleError.idx nHe)
+    (hpi : DataRef.Words env L.d_c200_f4afdee4 Gen.Verifier.Keccak.LinearTransposeE.d_c200_f4afdee4_words)
+    (hrho : RhoAt env L.d_c100_179d68cc)
+    (hmagic : DataRef.Words env L.d_c8_e5d50e4a Gen.Verifier.Keccak.LinearTransposeE.d_c8_e5d50e4a_words) :
+    spec env p i need := by
+  intro ws
+  rv_auto hp with [hL] using [hms, hal, hres, hpb, haf, hhe]
+  all_goals have htop : env.stackLimit.toNat + 30816 ≤ top.toNat := by omega
+  all_goals have := top.isLt
+  · rw [toNat_top (by decide) (by omega)]; simp only [BitVec.toNat_ofNat]; omega
+  have hlen : ws.length = 1600 := by
+    have h7 := hpre_7.1
+    simp only [List.length_map, Layouts.E.byteSize] at h7 hc
+    exact (ofNat_inj (by omega) (by decide)).1 hc
+  have hlay := env.layout
+  rw [hpre_2] at hpre_9 hpre_11
+  -- the prologue's stores, then `g`'s `memset`
+  have f0 : env.Frame top Tactic.F m ((((((m.setMem (top + 18446744073709551608#64) ret).setMem
+      (top + 18446744073709551600#64) (regs .x8)).setMem (top + 18446744073709551592#64) (regs .x9)).setMem
+      (top + 18446744073709551584#64) (regs .x18)).setMem (top + 18446744073709551576#64) (regs .x19)).setMem
+      (top + 18446744073709551568#64) (regs .x20)) := by
+    refine Tactic.frame_store (Tactic.frame_store (Tactic.frame_store (Tactic.frame_store (Tactic.frame_store
+      (Tactic.frame_store (Tactic.frame_refl hpre_5) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_ <;>
+      rw [toNat_top (by decide) (by omega)] <;> omega
+  obtain ⟨f1, s1, -⟩ := memset_frame (ret := ret) (regs := regs) htop f0 (fun a _ => rfl) hret2_14
+    (a := top + 18446744073709520824#64) (len := 25600)
+    (fun b hb => by
+      simp only [Spec.Runtime.CopyOut, Spec.Runtime.DwordsOf, Lprog.updReg_apply, Tactic.rf, reduceCtorEq,
+        ite_false] at hb
+      have hal8 : (top + 18446744073709520824#64).toNat % 8 = 0 := by rw [gBase_toNat (by omega)]; omega
+      rw [alignToDword_self hal8, hal8] at hb
+      exact hb)
+    (by rw [toNat_top (by decide) (by omega), gBase_toNat (by omega)]; omega)
+    (by rw [gBase_toNat (by omega)]; omega)
+  rv_sym hp stop [78] with [hL] using [hms, hpb]
+  rw [rho_load0 hrho hret2_15]
+  have h3 := fun P => loop3 env p i L ws hp P 1600 htop
+    (fin env p i L ws hp P 1600 htop hpre_4 hpre_5 ⟨hpre_9, hpre_10⟩ hlen hk)
+  have h2 := mid env p i L ws hp hL hnAl hnRes hnHe hal hres hhe hmagic hpre_3 hpre_4 hpre_5 h3
+  have h1 := loop2 env p i L ws hp htop h2
+  refine loop1 env p i L ws hp hL hnMs hnPb hms hpb hpi hrho hpre_3 hpre_4 hpre_5 hpre_11 hpre_7 hpre_8 hlen
+    (fun R M h => h1 1599 0 R M (by omega) h) 1599 0 0 _ _ (by omega) (by omega) ?_
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, f1, s1⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+    fun k hk => absurd hk (Nat.not_lt_zero _)⟩
+  all_goals rv_close
+  · exact start_ofs8 top 18446744073709520824
+  · decide +kernel
+  · rfl
+  · exact start_ofs8 top 18446744073709520824
 
 end Rv64mc.Proof.Keccak.LinearTranspose
