@@ -1094,9 +1094,9 @@ def self_sig(r):
 
 def sig_shared(R):
     """The callees' signatures stated once (`Gen/<pack>/Sig.lean`) and named by their callers' `csigs`: `(shared,
-    refs)`, `shared` the functions whose own heap signature some caller's copy equals (their certificates name it
-    too), `refs` each callee's name for its copy (a callee's copy is the same in every caller): its own signature
-    (`sig`), or for a copy in two callers or more, the copy (`csig`)."""
+    refs)`, `shared` every function (its certificate names its own signature there), `refs` each callee's name for its
+    copy (a callee's copy is the same in every caller): its own signature (`sig`), or for a copy in two callers or
+    more, the copy (`csig`)."""
     own = {k: self_sig(r) for k, r in R.items()}
     copies = collections.defaultdict(collections.Counter)
     for k, r in R.items():
@@ -1104,11 +1104,12 @@ def sig_shared(R):
         for f, h in r['cs'].items():
             if f not in hcf:
                 copies[I.callee(f)][lcsigK(h)] += 1
-    shared, refs = set(), {}
+    # every function's own signature stated in its pack whatever its callers (none, or their copies), so an edit
+    # elsewhere moves no other function's text
+    shared, refs = set(R), {}
     for c, cnt in copies.items():
         for t, n in cnt.items():
             if c in R and own[c] == t:
-                shared.add(c)
                 refs[(c, t)] = hcsig_ref(c)
             elif n >= 2 or '\x00' in t:
                 refs[(c, t)] = f'CoreMode.HcSig.«{c}».csig' if len(cnt) == 1 else None

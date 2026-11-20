@@ -2936,8 +2936,9 @@ module
 
 "
 
-/-- A module of checks, named after its first window. -/
-def checkedName (p : ℕ × ℕ) : String := s!"F{p.1}_{p.2}"
+/-- A split window's module of checks, by its function's stable name (not its index, which an edit elsewhere
+moves) and the window. -/
+def checkedName (k : String) (w : ℕ) : String := s!"F_{k}_{w}"
 
 def powName (k : ℕ) : String := if k < 10 then s!"Pow0{k}" else s!"Pow{k}"
 
@@ -3019,14 +3020,14 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
   let gText (g : ℕ × ℕ × List (ℕ × ℕ)) : String :=
     s!"({g.1}, {g.2.1}, {listText (g.2.2.map pairText)})"
   let splitFiles (j w : ℕ) (gs : List (ℕ × ℕ × List (ℕ × ℕ))) : List (String × String) :=
-    let xname := s!"X{j}_{w}"
+    let xname := s!"X_{I[j]!.key}_{w}"
     let xfile := (xname, checkedHeader xname "What the groups of arms of a window of one `match` compute alike, once." ++
       "public import LeanVM.Guest.B2C.SplitPre\npublic meta import LeanVM.Guest.B2C.WinLit\n\n" ++
       "namespace LeanVM.Guest.Checked\n\nopen LeanVM.Guest.B2C\n\n@[expose] public section\n\n" ++
       s!"/-- `{fns[j]!.name}`, window {w}: what its groups of arms compute alike. -/\n" ++
       s!"win_lit x{j}_{w} {j} {w}\n\nend\nend LeanVM.Guest.Checked\n")
     let chunks := chunksOf groupsPerFile gs.zipIdx
-    let cname (k : ℕ) : String := s!"G{j}_{w}_{k}"
+    let cname (k : ℕ) : String := s!"G_{I[j]!.key}_{w}_{k}"
     let gfiles := chunks.map fun (c, k) =>
       (cname k, checkedHeader (cname k) "The kernel's checks of groups of arms of a window of one `match`." ++
         s!"public import LeanVM.Guest.Checked.{xname}\n\n" ++ asyncOff ++
@@ -3038,7 +3039,7 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
         "end\nend LeanVM.Guest.Checked\n")
     let n := gs.length
     let pats := " | ".intercalate ((List.range n).map fun _ => "rfl")
-    let wfile := (checkedName (j, w), checkedHeader (checkedName (j, w))
+    let wfile := (checkedName I[j]!.key w, checkedHeader (checkedName I[j]!.key w)
         "The kernel's check of a window of one `match`, by groups of its arms." ++
       "public import LeanVM.Guest.CheckSplit\n" ++
       String.join (chunks.map fun (_, k) => s!"public import LeanVM.Guest.Checked.{cname k}\n") ++
@@ -3203,7 +3204,7 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
   let blocks := ((List.range ((fns.size - 1 + fnBlock - 1) / fnBlock)).map fun b =>
     ((List.range fnBlock).map (b * fnBlock + 1 + ·)).filter (· < fns.size))
   let okFiles := blocks.zipIdx.map fun (js, b) =>
-    let pubs := js.flatMap fun j => (splitWins.filter (·.1 == j)).map fun (_, w, _) => checkedName (j, w)
+    let pubs := js.flatMap fun j => (splitWins.filter (·.1 == j)).map fun (_, w, _) => checkedName I[j]!.key w
     let privs := (js.flatMap fun j =>
       let I_j := I[j]!
       let locs := if alone j then (groups.toList.filter (·.1 == j)).map fun (_, ws) => packMod I_j.key (locName ws)
@@ -3261,13 +3262,13 @@ def bigStatic : ℕ := 100000
 def bigStaticChunk : ℕ := 60000
 
 /-- The static sharing check of function `j` of many values: the chain of bit sets of its windows'
-cells (`Shared/N{j}`, `ns`), modules adding a few windows' cells each (`Shared/B{j}_{m}`), and the
-check from them (`Shared/B{j}`, `B2C.shareStatic_of_chain`). `counts`: the windows' numbers of
+cells (`Shared/N_<key>`, `ns`), modules adding a few windows' cells each (`Shared/B_<key>_{m}`), and the
+check from them (`Shared/B_<key>`, `B2C.shareStatic_of_chain`). `counts`: the windows' numbers of
 values. -/
-def bigStaticFiles (fname : String) (j : ℕ) (ns : Array ℕ) (counts : List ℕ) :
+def bigStaticFiles (fname : String) (j : ℕ) (key : String) (ns : Array ℕ) (counts : List ℕ) :
     List (System.FilePath × String) := Id.run do
   let hex (x : ℕ) : String := "0x" ++ String.ofList (Nat.toDigits 16 x)
-  let nfile := (sharedDir / s!"N{j}.lean", checkedHeader s!"B2C.Shared.N{j}"
+  let nfile := (sharedDir / s!"N_{key}.lean", checkedHeader s!"B2C.Shared.N_{key}"
       s!"The bit sets of `{fname}`'s values' cells, window by window." ++
     "public import LeanVM.Guest.B2C.ShareStatic\n\nnamespace LeanVM.Guest.B2C.Shared\n\n@[expose] public section\n\n" ++
     s!"/-- `{fname}`: the bit set of the cells of the values of its windows before each window. -/\n" ++
@@ -3282,18 +3283,18 @@ def bigStaticFiles (fname : String) (j : ℕ) (ns : Array ℕ) (counts : List �
       size := 0
     groups := groups.modify (groups.size - 1) (·.push w)
     size := size + c
-  let gname (m : ℕ) : String := s!"B{j}_{m}"
+  let gname (m : ℕ) : String := s!"B_{key}_{m}"
   let gfiles := groups.toList.zipIdx.map fun (ws, m) =>
     (sharedDir / (gname m ++ ".lean"), checkedHeader ("B2C.Shared." ++ gname m)
         s!"The bit sets of `{fname}`'s values' cells: windows {ws[0]!} to {ws.back!}." ++
-      s!"public import LeanVM.Guest.B2C.Shared.N{j}\n\nnamespace LeanVM.Guest.B2C.Shared\n\n@[expose] public section\n\n" ++
+      s!"public import LeanVM.Guest.B2C.Shared.N_{key}\n\nnamespace LeanVM.Guest.B2C.Shared\n\n@[expose] public section\n\n" ++
       String.join (ws.toList.map fun w =>
         s!"set_option maxRecDepth 100000 in\n/-- `{fname}`: window {w}'s cells. -/\n" ++
         s!"theorem lb{j}_{w} : bitsFrom (listElementOrDefault locBits{j} {w} 0) (listElementOrDefault (certOf {j}).cells {w} []) = listElementOrDefault locBits{j} {w + 1} 0 := by\n" ++
         "  decide +kernel\n\n") ++
       "end\nend LeanVM.Guest.B2C.Shared\n")
   let nw := counts.length
-  let sfile := (sharedDir / s!"B{j}.lean", checkedHeader s!"B2C.Shared.B{j}"
+  let sfile := (sharedDir / s!"B_{key}.lean", checkedHeader s!"B2C.Shared.B_{key}"
       s!"The static sharing check of `{fname}`, by the bit sets of its windows' cells." ++
     "public import Mathlib.Tactic.IntervalCases\n" ++
     String.join ((List.range groups.size).map fun m => s!"public import LeanVM.Guest.B2C.Shared.{gname m}\n") ++
@@ -3313,7 +3314,7 @@ window has its static check, window and `ShareOk` together, one of several its `
 index. -/
 def sharedFiles (statics : Array (ℕ × ℕ)) (wins : Array (ℕ × ℕ × ℕ)) (n : ℕ)
     (splits : Std.HashMap (ℕ × ℕ) (List (ℕ × ℕ × List (ℕ × ℕ))))
-    (bigs : Std.HashMap ℕ (Array ℕ × List ℕ)) (glue : List String) :
+    (bigs : Std.HashMap ℕ (Array ℕ × List ℕ)) (glue : List String) (key : ℕ → String) :
     List (System.FilePath × String) := Id.run do
   let fns := Data.functions.toArray
   let cut (j : ℕ) : Bool := wins.any fun (j', w, _) => j' == j && w > 0
@@ -3336,7 +3337,11 @@ def sharedFiles (statics : Array (ℕ × ℕ)) (wins : Array (ℕ × ℕ × ℕ)
       size := 0
     groups := groups.modify (groups.size - 1) (·.push (j, w))
     size := size + l
-  let name (k : ℕ) : String := if k < 10 then s!"S00{k}" else if k < 100 then s!"S0{k}" else s!"S{k}"
+  -- a module by its first item's function, by stable name, and window
+  let name (k : ℕ) : String := match (groups[k]!)[0]? with
+    | some (j, some w) => s!"S_{key j}_{w}"
+    | some (j, none) => s!"S_{key j}_s"
+    | none => s!"S_{k}"
   let stText (j : ℕ) : String :=
     s!"set_option maxRecDepth 100000 in\n/-- `{fns[j]!.name}`, once. -/\n" ++
     s!"theorem st{j} : shareStatic {j} = true := by decide +kernel\n\n"
@@ -3364,7 +3369,7 @@ def sharedFiles (statics : Array (ℕ × ℕ)) (wins : Array (ℕ × ℕ × ℕ)
     s!"({g.1}, {g.2.1}, {(r 1).1}, {(r 1).2}, {(r 0).1}, {(r 0).2})"
   let splitFiles := (splits.toList.mergeSort (fun a b => a.1 ≤ b.1)).flatMap fun ((j, w), gs) =>
     let chunks := chunksOf groupsPerFile gs.zipIdx
-    let gname (k : ℕ) : String := s!"H{j}_{w}_{k}"
+    let gname (k : ℕ) : String := s!"H_{key j}_{w}_{k}"
     let gfiles := chunks.map fun (c, k) =>
       (sharedDir / (gname k ++ ".lean"), checkedHeader ("B2C.Shared." ++ gname k)
         "The kernel's sharing checks of groups of arms of a window of one `match`." ++
@@ -3376,7 +3381,7 @@ def sharedFiles (statics : Array (ℕ × ℕ)) (wins : Array (ℕ × ℕ × ℕ)
         "end\nend LeanVM.Guest.B2C.Shared\n")
     let nG := gs.length
     let pats := " | ".intercalate ((List.range nG).map fun _ => "rfl")
-    let wname := s!"T{j}_{w}"
+    let wname := s!"T_{key j}_{w}"
     let wfile := (sharedDir / (wname ++ ".lean"), checkedHeader ("B2C.Shared." ++ wname)
         "The kernel's sharing check of a window of one `match`, by groups of its arms." ++
       "public import LeanVM.Guest.B2C.ShareSplit\n" ++
@@ -3393,7 +3398,7 @@ def sharedFiles (statics : Array (ℕ × ℕ)) (wins : Array (ℕ × ℕ × ℕ)
     gfiles ++ [wfile]
   let files := files ++ splitFiles ++
     (bigs.toList.mergeSort (fun a b => a.1 ≤ b.1)).flatMap fun (j, (ns, counts)) =>
-      bigStaticFiles fns[j]!.name j ns counts
+      bigStaticFiles fns[j]!.name j (key j) ns counts
   let cutFns := (wins.toList.filterMap fun (j, w, _) => if w > 0 then some j else none).eraseDups
   let cutOk := String.join (cutFns.map fun j =>
     let ws := (wins.toList.filter (·.1 == j)).map (·.2.1)
@@ -3680,7 +3685,7 @@ def armsFile (P : List Core.Fn) (rows : List (Array (ℕ × List (List ℕ)))) :
 (`B2CPack`), and the index `B2C/Cplw.lean` of the `n` functions, the packs' through the modules
 `glue`. -/
 def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ × ℕ × List (ℕ × ℕ)))) (n : ℕ)
-    (glue : List String) : List (System.FilePath × String) := Id.run do
+    (glue : List String) (key : ℕ → String) : List (System.FilePath × String) := Id.run do
   -- the checks, in modules of consecutive parts
   -- a heavy part (a costly one, or one of `heavyFns`) has a module of its own
   -- a window of more than `bigWin` instructions (`__loop2_main`'s chained `match`es, 2816: ~170 s,
@@ -3702,7 +3707,7 @@ def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ 
     groups := groups.modify (groups.size - 1) (·.push (j, i, k))
     size := size + c
   let names := (fps.map fun fp => (fp.j, fp.name)).foldl (fun m (j, s) => m.insert j s) ({} : Std.HashMap ℕ String)
-  let mname (js : Array (ℕ × ℕ × ℕ)) : String := let p := js[0]?.getD (0, 0, 0); s!"C{p.1}_{p.2.1}_{p.2.2}"
+  let mname (js : Array (ℕ × ℕ × ℕ)) : String := let p := js[0]?.getD (0, 0, 0); s!"C_{key p.1}_{p.2.1}_{p.2.2}"
   -- a function's `CplOk` goes with its parts when they share a module, else in the index
   let modOf : Std.HashMap ℕ (List ℕ) := groups.toList.zipIdx.foldl (fun m (js, g) =>
     js.foldl (fun m (j, _, _) => m.insert j ((g :: m.getD j []).eraseDups)) m) {}
@@ -3738,11 +3743,11 @@ def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ 
     s!"({g.1}, {g.2.1}, {(r 1).1}, {(r 1).2}, {(r 0).1}, {(r 0).2})"
   let splitFiles := (splits.toList.mergeSort (fun a b => a.1 ≤ b.1)).flatMap fun ((j, w), gs) =>
     let chunks := chunksOf groupsPerFile gs.zipIdx
-    let gname (k : ℕ) : String := s!"D{j}_{w}_{k}"
+    let gname (k : ℕ) : String := s!"D_{key j}_{w}_{k}"
     let gfiles := chunks.map fun (c, k) =>
       (cplwDir / (gname k ++ ".lean"), header ("B2C.Cplw." ++ gname k)
         "The kernel's completeness checks of groups of arms of a window of one `match`." ++
-        s!"public import LeanVM.Guest.Checked.X{j}_{w}\n\n" ++ asyncOff ++
+        s!"public import LeanVM.Guest.Checked.X_{key j}_{w}\n\n" ++ asyncOff ++
         "namespace LeanVM.Guest.B2C.Cplw\n\n@[expose] public section\n\n" ++
         String.join (c.map fun (g, k) =>
           s!"/-- `{names.getD j ""}`, window {w}, arms {g.1} to {g.2.1 - 1}. -/\n" ++
@@ -3751,7 +3756,7 @@ def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ 
         "end\nend LeanVM.Guest.B2C.Cplw\n")
     let nG := gs.length
     let pats := " | ".intercalate ((List.range nG).map fun _ => "rfl")
-    let wname := s!"E{j}_{w}"
+    let wname := s!"E_{key j}_{w}"
     let wfile := (cplwDir / (wname ++ ".lean"), header ("B2C.Cplw." ++ wname)
         "The kernel's completeness check of a window of one `match`, by groups of its arms." ++
       "public import LeanVM.Guest.B2C.CplSplit\n" ++
@@ -3781,7 +3786,7 @@ def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ 
 /-! ## The chained `match`es' checks
 
 `B2C.chainFn j` and `B2C.chainWin j i` (`B2C/Chain.lean`) of each function with chains, by the
-kernel, `chainedPer` windows a module (`B2C/Chained/K{j}_{n}`); `B2C/Chained.lean` gives
+kernel, `chainedPer` windows a module (`B2C/Chained/K_<key>_{n}`, by the function's stable name); `B2C/Chained.lean` gives
 `ChainOk j` of every function, the others having no chains. -/
 
 def chainedDir : System.FilePath := "LeanVM/Guest/B2C/Chained"
@@ -3790,14 +3795,14 @@ def chainedDir : System.FilePath := "LeanVM/Guest/B2C/Chained"
 def chainedPer : ℕ := 6
 
 /-- The chained check's files: per function with chains `(j, name, windows)`. -/
-def chainedFiles (fns : List (ℕ × String × ℕ)) : List (System.FilePath × String) := Id.run do
+def chainedFiles (fns : List (ℕ × String × ℕ)) (key : ℕ → String) : List (System.FilePath × String) := Id.run do
   let mut files : Array (System.FilePath × String) := #[]
   let mut oks : String := ""
   for (j, name, nw) in fns do
     let groups := (List.range ((nw + chainedPer - 1) / chainedPer)).map fun g =>
       ((List.range nw).drop (g * chainedPer)).take chainedPer
     for (ws, g) in groups.zipIdx do
-      let m := s!"K{j}_{g}"
+      let m := s!"K_{key j}_{g}"
       files := files.push (chainedDir / (m ++ ".lean"), header ("B2C.Chained." ++ m)
         "The kernel's checks of the chained `match`es' targets, window by window." ++
         "public import LeanVM.Guest.B2C.ChainDefs\n\n" ++ asyncOff ++
@@ -4208,16 +4213,19 @@ noncomputable def certs : List Check.Cert :=
   return (([("Pows", powsFile T), ("FrameSizes", framesFile frames.toList fns[0]!.instructionCount)] ++
       [("Cert", index), ("Plumb", plumbIndex), ("CplParts", partsIndex), ("Snaps", snapsIndex)]).map fun (n, t) =>
     (dataDir / (n ++ ".lean"), t)) ++ fnFiles.toList ++ checked ++
-    sharedFiles (shareStatics.filter (special ·.1)) (shareWins.filter (special ·.1)) P.length shareSplits bigStatics shareGlue ++
-    CplK.cplFiles (cplFns.toList.filter (special ·.j)) splits P.length cplGlue ++ [(dataDir / "CplArms.lean", armsText)] ++
-    CplK.chainedFiles chainedFns.toList ++ packed
+    sharedFiles (shareStatics.filter (special ·.1)) (shareWins.filter (special ·.1)) P.length shareSplits bigStatics shareGlue
+      (fun j => infos[j]!.key) ++
+    CplK.cplFiles (cplFns.toList.filter (special ·.j)) splits P.length cplGlue (fun j => infos[j]!.key) ++
+    [(dataDir / "CplArms.lean", armsText)] ++ CplK.chainedFiles chainedFns.toList (fun j => infos[j]!.key) ++ packed
 
 /-- The generated files on disk. -/
 def existing : IO (List System.FilePath) := do
   let gen (pre : String) (n : String) : Bool :=
     let cs := n.toList
+    let mid := (cs.drop pre.length).take (cs.length - pre.length - 5)
+    -- a module by index (`F12_3`), or a split window's by its function's stable name (`F_<key>_3`)
     cs.take pre.length == pre.toList && cs.reverse.take 5 == ".lean".toList.reverse &&
-      ((cs.drop pre.length).take (cs.length - pre.length - 5)).all fun c => c.isDigit || c == '_'
+      ((mid.all fun c => c.isDigit || c == '_') || (mid.head? == some '_' && mid.all fun c => c.isAlphanum || c == '_'))
   let ds ← dataDir.readDir
   let cs ← if ← checkedDir.isDir then checkedDir.readDir else pure #[]
   let ss ← if ← sharedDir.isDir then sharedDir.readDir else pure #[]

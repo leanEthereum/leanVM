@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Defs
+public import LeanVM.Guest.CoreMode.Gen.«verify_sig_lean_sphincs».Sig
 public import LeanVM.Guest.CoreMode.WitOf
 
 set_option maxRecDepth 100000
@@ -16,11 +17,7 @@ set_option linter.all false
 namespace LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
 @[expose] public section
 def hcert : CoreMode.HCert where
-  sig := 
-    { pre := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(0, 1)], 2⟩, ⟨[(0, 1)], 3⟩],
-      post := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(0, 1)], 2⟩, ⟨[(0, 1)], 3⟩],
-      preR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 256)⟩],
-      postR := [⟨⟨[(1, 1)], 0⟩, 1, (.num 0), (.num 256)⟩] }
+  sig := CoreMode.HcSig.«verify_sig_lean_sphincs».sig
   reads := [(2, [(0, 0, .pre 0)]), (3, [(0, 1, .pre 1)]), (4, [(0, 2, .pre 2)]), (5, [(0, 3, .pre 3)]),
     (1317, [(1316, 0, .run 0 [0])]), (1323, [(1322, 0, .run 0 [1])]), (1332, [(1331, 0, .run 0 [2])]),
     (1341, [(1340, 0, .run 0 [3])]), (1350, [(1349, 0, .run 0 [4])]), (1359, [(1358, 0, .run 0 [5])]),
