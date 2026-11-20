@@ -55,16 +55,19 @@ public section
 
 /-! ## The checks -/
 
-theorem cld_idx25 : B2C.idxOf "claim_list_digest" = some 25 := by decide +kernel
+/-- `claim_list_digest`'s compiled index. -/
+abbrev cldJ : ℕ := fn_idx% «claim_list_digest»
 
-theorem cld_bufs : bufsOf (fnAl 25).X (fnAl 25).d = [(0, .allocAdvice 33 Hints.heapSizeStream)] := by
+theorem cld_idx : B2C.idxOf "claim_list_digest" = some cldJ := by decide +kernel
+
+theorem cld_bufs : bufsOf (fnAl cldJ).X (fnAl cldJ).d = [(0, .allocAdvice 33 Hints.heapSizeStream)] := by
   decide +kernel
 
-theorem cld_lates : (allocHints (fnAl 25).d).filter (fun q ↦ isLate q.2) = [(31, .allocLate 33 (.exp 32))] := by
+theorem cld_lates : (allocHints (fnAl cldJ).d).filter (fun q ↦ isLate q.2) = [(31, .allocLate 33 (.exp 32))] := by
   decide +kernel
 
-theorem cld_cells : (ctxOf 25).locAt 23 = 33 ∧ allocCellOk (ctxOf 25) (B2C.fsN 25) (.n 23) = true ∧
-    (ctxOf 25).locAt 22 = 32 ∧ allocCellOk (ctxOf 25) (B2C.fsN 25) (.n 22) = true := by
+theorem cld_cells : (ctxOf cldJ).locAt 23 = 33 ∧ allocCellOk (ctxOf cldJ) (B2C.fsN cldJ) (.n 23) = true ∧
+    (ctxOf cldJ).locAt 22 = 32 ∧ allocCellOk (ctxOf cldJ) (B2C.fsN cldJ) (.n 22) = true := by
   decide +kernel
 
 theorem cld_late_al : (alOf alignA "claim_list_digest" 31).map callsSure = some true := by decide +kernel
@@ -159,17 +162,17 @@ when the path takes it. -/
 theorem cld_frame {r : Ref} (hr : r.Ok) {pc fp : ℕ} {done : List Pop} {e : Ent} {st : List Ent}
     (hT : RefTrack alignA r pc fp (done, e :: st)) {j : ℕ} (hj : B2C.idxOf e.I.t.name = some j)
     (hex : j ∈ AllocChk.allocExcl) :
-    j = 25 ∧ e.I.t.name = "claim_list_digest" ∧ e.fn = fn% «claim_list_digest» ∧ alignA e.I.t.name = fnAl 25 ∧
+    j = cldJ ∧ e.I.t.name = "claim_list_digest" ∧ e.fn = fn% «claim_list_digest» ∧ alignA e.I.t.name = fnAl cldJ ∧
       (e.pre ++ e.es).filterMap Ev.allocH? = (if e.σ (.n 3) = 0 then [] else [.allocDyn (.n 23) (.n 22)]) ∧
       e.I.t.bufs = ((e.pre ++ e.es).filterMap Ev.allocH?).map (allocSizeOf e.σ) := by
-  have hj25 : j = 25 := by simpa [AllocChk.allocExcl] using hex
-  subst hj25
+  have hjc : j = cldJ := by simpa [AllocChk.allocExcl] using hex
+  subst hjc
   obtain ⟨rd, hHon, hHX⟩ := hr.honest
   obtain ⟨hI, j', bufs, kids, vs, hj', hIt, hfn, hw, -⟩ := (hT.frames hr.name hHon hHX.covers) e List.mem_cons_self
-  obtain rfl : (25 : ℕ) = j' := Option.some.inj (hj.symm.trans hj')
+  obtain rfl : cldJ = j' := Option.some.inj (hj.symm.trans hj')
   have hE := hT.track.ents e List.mem_cons_self
   obtain ⟨i, hi, hia, hna, -⟩ := B2C.fn_of_idx hj
-  obtain ⟨i', hi', hia', hna', -⟩ := B2C.fn_of_idx cld_idx25
+  obtain ⟨i', hi', hia', hna', -⟩ := B2C.fn_of_idx cld_idx
   obtain rfl : i = i' := by omega
   have hname : e.I.t.name = "claim_list_digest" := hna.symm.trans hna'
   have hfn' : e.fn = fn% «claim_list_digest» := by
@@ -177,7 +180,7 @@ theorem cld_frame {r : Ref} (hr : r.Ok) {pc fp : ℕ} {done : List Pop} {e : Ent
     rw [hname, B1.Digest.find_claim_list_digest] at this
     exact (Option.some.inj this).symm
   have hw0 := hw
-  rw [← hfn, show coreOf 25 = fn% «claim_list_digest» from hfn.trans hfn'] at hw
+  rw [← hfn, show coreOf cldJ = fn% «claim_list_digest» from hfn.trans hfn'] at hw
   have hA := cld_allocH hw
   refine ⟨rfl, hname, hfn', alignA_of hj, hA, ?_⟩
   have hb1 := bufs_of_ok (insts_bufsOk r.T _ r.hdr hHon.bufsOk e.I hI) hIt
@@ -290,7 +293,7 @@ theorem exclReady_alignA : ExclReady alignA := by
     ⟨hE.mem, hE.node, hE.find, hE.path, hE.kids⟩
   obtain ⟨hσ, -⟩ := hE'.alloc_at (cert := B2C.cert) hIp hIP hdk
   obtain ⟨hc1, hc2⟩ := cellRef hr htr hj ⟨_, hev, by simp [atomUses, hintUses]⟩ cld_cells.2.1
-  have h33 : (ctxOf 25).locAt (V.n 23).idx = 33 := cld_cells.1
+  have h33 : (ctxOf cldJ).locAt (V.n 23).idx = 33 := cld_cells.1
   rw [h33] at hc1 hc2
   have hnlt : n < maxCells := by unfold maxCells at hbound ⊢; omega
   refine ⟨Or.inr ⟨n, hnx, hnlt, by rw [hsxfp]; exact hc1, by rw [hnfx]; exact hbound, ?_⟩,
@@ -320,7 +323,7 @@ theorem lateExcl_guest : LateExcl := by
       List.mem_map.mpr ⟨_, List.mem_of_getElem? hget', ?_⟩⟩, rfl⟩
     rw [hU.1]; simp
   rw [hA2] at hqm
-  have hm : (off, Hint.allocLate p b) ∈ (allocHints (fnAl 25).d).filter (fun q ↦ isLate q.2) :=
+  have hm : (off, Hint.allocLate p b) ∈ (allocHints (fnAl cldJ).d).filter (fun q ↦ isLate q.2) :=
     List.mem_filter.mpr ⟨hqm, rfl⟩
   rw [cld_lates, List.mem_singleton, Prod.mk.injEq, Hint.allocLate.injEq] at hm
   obtain ⟨rfl, rfl, rfl⟩ := hm
@@ -354,7 +357,7 @@ theorem lateExcl_guest : LateExcl := by
   have hevs : e.I.t.events coreProgram = e.pre ++ e.es := by rw [hIt]; exact events_node hE.find hw
   have hpow := dynPow_guest r hr e.I hI _ _ _ _ hIt (.n 23) (.n 22) (by rw [hevs]; exact hev)
   have hval := cellRef hr htr hj ⟨_, hev, by simp [atomUses, hintUses]⟩ cld_cells.2.2.2
-  have h32 : (ctxOf 25).locAt (V.n 22).idx = 32 := cld_cells.2.2.1
+  have h32 : (ctxOf cldJ).locAt (V.n 22).idx = 32 := cld_cells.2.2.1
   rw [h32] at hval
   refine ⟨n, ?_, by unfold maxCells at hbound ⊢; omega⟩
   rw [peek_of_written hag hin', hsxfp, hval.2]

@@ -19,6 +19,12 @@ def functionCount : Nat := 1606
 /-- The instructions of each opcode (`XOR`, `MUL`, `SET`, `DEREF`, `JUMP`, `KECCAK`), the padding included. -/
 def opcodeCounts : List Nat := [99164, 125920, 119204, 80355, 20520, 79125]
 
+/-- The source's functions. -/
+def sourceFunctionCount : Nat := 138
+
+/-- The source's constant arrays. -/
+def constArrayCount : Nat := 76
+
 /-- `fs_seed`: the guest's Fiat-Shamir IV, two cells as `(c0, c1)` limbs. -/
 def fsSeed : List (Nat × Nat) := [(6754147685293965331, 493391122663960744), (7214349854803574470, 5021308979315314454)]
 

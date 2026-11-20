@@ -6,8 +6,9 @@ public import LeanVM.Guest.JumpTable.Entries
 # `__jump_tables` for the mode walk
 
 `__jump_tables` (function `0`, from pc `0`) has no walk: it is straight-line `SET`s, which the
-walk's environment (`Mode.Env`, its table `Data.jtTrie` over the cells `jtLo = 430` up to
-`jtHi = 14395`, `Data.powTree` naming its words) reads as written before `main` starts. `jtSlots`,
+walk's environment (`Mode.Env`, its table `Data.jtTrie` over the cells from `jtLo`, `main`'s cells
+`Data.mainCells`, up to `jtHi`, past the slots `Data.jtSlots`, `Data.powTree` naming its words) reads
+as written before `main` starts. `jtSlots`,
 the kernel's check of its code: instruction `i` sets cell `jtLo + i` to the word `g^t` of the
 table's target `t` there (`f0_slot`), and the instructions are exactly the cells from `jtLo` to
 `jtHi` (`jt_span`). So a run of it writes every cell of the walk's jump table run (`jtRng`) with
@@ -32,8 +33,12 @@ set_option maxRecDepth 100000 in
 /-- **`__jump_tables` writes the jump table, slot by slot.** -/
 theorem jtSlots : walkOk slotOk 0 Data.f0.code = true := by decide +kernel
 
-/-- Its cells are the walk's jump table run's. -/
-theorem jt_span : Data.mainCells = 430 ∧ Data.mainCells + Data.f0.instructionCount = 14395 := by
+/-- Its cells are the walk's jump table run's: one per slot. -/
+theorem jt_span : Data.f0.instructionCount = Data.jtSlots := by
+  decide
+
+/-- The jump table's cells are small offsets. -/
+theorem jt_lt : Data.mainCells + Data.jtSlots < 2 ^ 28 := by
   decide
 
 /-- Instruction `i` of `__jump_tables` sets cell `jtLo + i` to `g^t`, `t` the table's target. -/

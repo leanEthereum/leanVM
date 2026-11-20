@@ -9,7 +9,7 @@ evaluation of its size, or of its equality with the certificates, takes 10-19 GB
   function's slot (`guestSlotsList`, `4·(g + 1) + k` for lane `k` of group `g`);
 * `LeanVM/Cost/DecoderSize/Rows{k}.lean`: `groupsSize a n = S`, the groups `a … a + n - 1`, each
   group's longest row and one, by `decide +kernel` on at most `--limit` cells and `GROUPS` groups;
-* `LeanVM/Cost/DecoderSize/Locs.lean`: their sum and the slots' row's size;
+* `LeanVM/Cost/DecoderSize/Locs.lean`: their sum and the slots' row's size, `guestLanesRowSize`;
 * `LeanVM/Cost/DecoderTablesFirewall.lean`: the guard that the chunks and the tables' equality with
   the certificates (`Decoder/GuestTablesCheck.lean`, written by hand) import the tables alone;
 * `LeanVM/Cost/Bounds/Decoder/GuestLocs/Chunk{k}.lean`: the frame cells of rows `a … a + n - 1`
@@ -125,7 +125,8 @@ def size_files(rows, limit):
     ssize = len(slots) + 1  # every slot one limb
     total = ssize + sum(gsize)
     lines = ["theorem guestLanes_rowSize :",
-             f"    rowSize guestSlotsList + (guestLaneGroups.map fun g ↦ groupLen g + 1).sum = {total} := by",
+             "    rowSize guestSlotsList + (guestLaneGroups.map fun g ↦ groupLen g + 1).sum = guestLanesRowSize := by",
+             f"  show _ = {total}",
              f"  have hs : rowSize guestSlotsList = {ssize} := by decide +kernel",
              f"  have hl : guestLaneGroups.length = {G} := by decide +kernel",
              "  rw [sum_groupSize_eq_groupsSize, hl, hs]"]
@@ -140,6 +141,7 @@ def size_files(rows, limit):
         "The size of the guest's packed frame cells, the chunks' sizes summed "
         "(`DecoderSize/Rows*.lean`): the slots' row and every group's, the table's literal less its "
         "array and `Term.literal` (`Cost/DecoderSize.lean`).",
+        f"/-- The rows' sizes' sum. -/\nabbrev guestLanesRowSize : Nat := {total}\n\n"
         "set_option maxRecDepth 100000 in\n/-- **The rows' "
         "sizes**, summed. -/\n" + "\n".join(lines) + "\n")
     files[LANES] = lanes_file(groups, slots)

@@ -27,10 +27,14 @@ namespace LeanVM.Cost.Decoder
 
 @[expose] public section
 
+/-- The rows' sizes' sum. -/
+abbrev guestLanesRowSize : Nat := 216214
+
 set_option maxRecDepth 100000 in
 /-- **The rows' sizes**, summed. -/
 theorem guestLanes_rowSize :
-    rowSize guestSlotsList + (guestLaneGroups.map fun g ↦ groupLen g + 1).sum = 216214 := by
+    rowSize guestSlotsList + (guestLaneGroups.map fun g ↦ groupLen g + 1).sum = guestLanesRowSize := by
+  show _ = 216214
   have hs : rowSize guestSlotsList = 1607 := by decide +kernel
   have hl : guestLaneGroups.length = 402 := by decide +kernel
   rw [sum_groupSize_eq_groupsSize, hl, hs]

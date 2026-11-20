@@ -53,19 +53,20 @@ structure MainOk (Km : Mode.Cert) (E0 : Mode.Env) : Prop where
   preR : Km.F.sig.preR = []
   preP : Km.F.sig.preP = []
 
-theorem proLen_eq : proLen = 13965 := by
-  have := jt_span
-  show Data.f0.instructionCount = 13965
-  omega
+theorem proLen_eq : proLen = Data.jtSlots := jt_span
 
-theorem mainCells_eq : Data.mainCells = 430 := jt_span.1
+theorem proLen_pos : 0 < proLen := by
+  rw [proLen_eq]
+  decide
+
+theorem mainCells_eq : Data.mainCells = 430 := rfl
 
 theorem f0_mem : Data.f0 ∈ Data.functions := List.mem_cons_self
 
 theorem f0_entry' : Data.f0.entryPc = 0 := rfl
 
 /-- Every pc the advice gives hints at is past the prologue. -/
-theorem adviceHints_ge : Data.adviceHints.all (fun p ↦ decide (13965 ≤ p.1)) = true := by
+theorem adviceHints_ge : Data.adviceHints.all (fun p ↦ decide (Data.jtSlots ≤ p.1)) = true := by
   decide +kernel
 
 /-- **No hint in the prologue.** -/
@@ -100,7 +101,8 @@ theorem op_pro {adv : Advice} {C : Ctx} (hC : Ctx.of guestProgram adv = .ok C) {
     guestProgram.fetch_gpow, Option.some.injEq] at hfe
   have hs : offSmall (.set (Data.mainCells + i) k0 0) = true := by
     rw [proLen_eq] at hi
-    simp only [offSmall, decide_eq_true_eq, mainCells_eq]
+    have := jt_lt
+    simp only [offSmall, decide_eq_true_eq]
     omega
   exact ⟨k0, t, ctx_op_off hC hpc hfe hs, hjt, hfind⟩
 
@@ -171,8 +173,8 @@ theorem pro_step {Km : Mode.Cert} {E0 : Mode.Env} (hM : MainOk Km E0) (hpows : E
   by_cases hlast : s.pc + 1 < proLen
   · exact Or.inl ⟨hpc' ▸ hlast, hfp0, written_mono hle h0, written_mono hle h1, hpc' ▸ hsl⟩
   have hend : s.pc + 1 = proLen := by omega
-  have hmc := mainCells_eq
   have hpl := proLen_eq
+  have hlt := jt_lt
   have hJ : JtMem E0 s'.mem := by
     refine ⟨by rw [hM.jtHi]; unfold maxCells; omega, fun j hj1 hj2 ↦ ?_, fun d e' hd1 hd2 hd ↦ ?_⟩
     · rw [hM.jtLo] at hj1
@@ -209,7 +211,7 @@ theorem pro_init {adv : Advice} {input : PublicInput} {C : Ctx} {m : Mem}
   have e2 : m1.put 1 input.word1 = .ok m := hm
   obtain ⟨-, hwf1, hg0⟩ := Mem.put_ok hwf0 e1
   obtain ⟨hle, -, hg1⟩ := Mem.put_ok hwf1 e2
-  refine ⟨by show 0 < proLen; rw [proLen_eq]; norm_num, rfl, written_of_get (hle.get _ _ hg0),
+  refine ⟨proLen_pos, rfl, written_of_get (hle.get _ _ hg0),
     written_of_get hg1, fun j hj ↦ absurd hj (Nat.not_lt_zero _)⟩
 
 end

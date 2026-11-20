@@ -16,42 +16,48 @@ open Lean LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Core
 
 By index, by name and against the compiled functions, at the first, a middle and the last
 function, at the two largest (`__loop2_main`, the raw leanXMSS loop with `verify_lean_xmss` inlined, and
-`sp_wots`) and at `verify_sig_lean_sphincs`, the first function past `sp_wots` (core 21, compiled
-function 22). -/
+`sp_wots`) and at `verify_sig_lean_sphincs`, the first function past `sp_wots`; each named by its stable
+name (`idx%`, `fn_idx%`), so another function's change moves none. -/
 
 set_option maxRecDepth 100000
 
 example : coreProgram.length = core_count% := coreProgram_length
 
-example : coreProgram.find? "main" = some Data.core0 :=
-  Program.find?_of_indexOf? (j := 0) (by decide +kernel) rfl
+example : coreProgram.find? "main" = some fn% «main» :=
+  Program.find?_of_indexOf? (j := idx% «main») (by decide +kernel) rfl
 
-example : coreProgram.find? "__loop2_main" = some Data.core40 :=
-  Program.find?_of_indexOf? (j := 40) (by decide +kernel) rfl
+example : coreProgram.find? "__loop2_main" = some fn% «main_loop2» :=
+  Program.find?_of_indexOf? (j := idx% «main_loop2») (by decide +kernel) rfl
 
-example : coreProgram.find? "sp_wots" = some Data.core20 :=
-  Program.find?_of_indexOf? (j := 20) (by decide +kernel) rfl
+example : coreProgram.find? "sp_wots" = some fn% «sp_wots» :=
+  Program.find?_of_indexOf? (j := idx% «sp_wots») (by decide +kernel) rfl
 
-example : coreProgram.find? "verify_sig_lean_sphincs" = some Data.core21 :=
-  Program.find?_of_indexOf? (j := 21) (by decide +kernel) rfl
+example : coreProgram.find? "verify_sig_lean_sphincs" = some fn% «verify_sig_lean_sphincs» :=
+  Program.find?_of_indexOf? (j := idx% «verify_sig_lean_sphincs») (by decide +kernel) rfl
 
-example : coreProgram.find? "squeeze_point_from__L18" = some Data.core671 :=
-  Program.find?_of_indexOf? (j := 671) (by decide +kernel) rfl
+example : coreProgram.find? "squeeze_point_from__L18" = some fn% «squeeze_point_from__L18» :=
+  Program.find?_of_indexOf? (j := idx% «squeeze_point_from__L18») (by decide +kernel) rfl
 
-example : coreProgram.find? "walk_path__L18_L4" = some Data.core1553 :=
-  Program.find?_of_indexOf? (j := 1553) (by decide +kernel) rfl
+example : coreProgram.find? "walk_path__L18_L4" = some fn% «walk_path__L18_L4» :=
+  Program.find?_of_indexOf? (j := idx% «walk_path__L18_L4») (by decide +kernel) rfl
 
-example : Data.core20.name = Data.f21.name := name_eq_compiled (j := 20) rfl rfl
+example : (fn% «sp_wots»).name = (Data.functions[fn_idx% «sp_wots»]'(by decide +kernel)).name :=
+  name_eq_compiled (j := idx% «sp_wots») rfl (List.getElem?_eq_getElem _)
 
-example : Data.core21.name = Data.f22.name := name_eq_compiled (j := 21) rfl rfl
+example : (fn% «verify_sig_lean_sphincs»).name =
+    (Data.functions[fn_idx% «verify_sig_lean_sphincs»]'(by decide +kernel)).name :=
+  name_eq_compiled (j := idx% «verify_sig_lean_sphincs») rfl (List.getElem?_eq_getElem _)
 
-example : Data.core40.name = Data.f41.name := name_eq_compiled (j := 40) rfl rfl
+example : (fn% «main_loop2»).name = (Data.functions[fn_idx% «main_loop2»]'(by decide +kernel)).name :=
+  name_eq_compiled (j := idx% «main_loop2») rfl (List.getElem?_eq_getElem _)
 
-example : coreProgram.find? "walk_path__L12_L8" = some Data.core1604 :=
-  Program.find?_of_indexOf? (j := 1604) (by decide +kernel) rfl
+example : coreProgram.find? "walk_path__L12_L8" = some fn% «walk_path__L12_L8» :=
+  Program.find?_of_indexOf? (j := idx% «walk_path__L12_L8») (by decide +kernel) rfl
 
-example : Data.core1553.name = Data.f1554.name := name_eq_compiled (j := 1553) rfl rfl
+example : (fn% «walk_path__L18_L4»).name = (Data.functions[fn_idx% «walk_path__L18_L4»]'(by decide +kernel)).name :=
+  name_eq_compiled (j := idx% «walk_path__L18_L4») rfl (List.getElem?_eq_getElem _)
 
-example : Data.core1604.name = Data.f1605.name := name_eq_compiled (j := 1604) rfl rfl
+example : (fn% «walk_path__L12_L8»).name = (Data.functions[fn_idx% «walk_path__L12_L8»]'(by decide +kernel)).name :=
+  name_eq_compiled (j := idx% «walk_path__L12_L8») rfl (List.getElem?_eq_getElem _)
 
 end LeanVMTests.Guest.CoreData
