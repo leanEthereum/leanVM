@@ -93,6 +93,7 @@ Code changes never reached callers, not even to rebuild them; mirror edits rebui
 | --- | --- | --- |
 | cold build | 4,333 CPU-s (1.2 CPU-h), 516 s wall on 8 jobs | about 23.4 CPU-h, about 8 h wall (12 jobs, memory-capped to about 4.3 at once), peak 24.9 GB (13.3 GB for one module) |
 | after C1 | 2,751 CPU-s, a 3-minute repair | 13,356 CPU-s (3.71 CPU-h), 57 min wall, peak 22.6 GB, before any repair: 182 modules rebuilt, 28 failed (27 proof files, 13,486 lines), 707 unchecked as importers of a failed one (701 proof files, 194,552 lines, `soundness` among them); first errors: 10 hardcoded pc or word index in a kernel check, 10 renamed block lemma, 8 address literal in a statement; the 3 sampled are renaming only; 228 proof files (76,569 lines) name a shifted address; no renaming script (estimated half a day to a day to write) |
+| after C2 (`MerklePath::root` rewrite, Rust only) | 1,245 CPU-s, no proof broke (`root` and its inlining site `Transcript::merkle` not yet proved) | 10,692 CPU-s (2.97 CPU-h), 30 min: 33 modules failed (26 also failed in C1), 699 never checked; `root` is inlined into `verify_stacked_opening`, whose body changed (1,965 of 2,014 words differ modulo addresses), so its proofs must be redone, not renamed; 389 proof files (124k lines) reference a moved or changed function |
 | proof lines with a binary-specific token | 8.8% of 14,432 (mid-campaign) | 29% of 215,295 |
 | absolute code addresses in proof text | 1 line | 6,962 |
 
