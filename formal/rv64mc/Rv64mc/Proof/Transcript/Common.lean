@@ -145,6 +145,45 @@ theorem slot_mono {S need : Nat} {t c d : Word} (h : S + need ≤ t.toNat) (hc :
   have h2 := Tactic.toNat_add_neg (t := t) (c := d) (by omega) (by omega)
   omega
 
+/-- `t - k` written as the code writes it, `t + (2^64 - k)`. -/
+theorem toNat_sub_lit {t : Word} {k : Nat} (hk : k ≤ t.toNat) (hk0 : 0 < k) :
+    (t + BitVec.ofNat 64 (2 ^ 64 - k)).toNat = t.toNat - k := by
+  rw [BitVec.toNat_add, BitVec.toNat_ofNat]
+  have := t.isLt
+  rw [Nat.mod_eq_of_lt (a := 2 ^ 64 - k) (by omega)]
+  omega
+
+theorem getMem_setByte_ne {M : MachineState} {a b : Word} {v : BitVec 8} (h : b ≠ alignToDword a) :
+    (M.setByte a v).getMem b = M.getMem b := by
+  simp only [MachineState.setByte]; exact MachineState.getMem_setMem_ne h
+
+/-- A byte store into the call's `out`: the doubleword holding it is in the frame. -/
+theorem frame_store_byte {top b : Word} {v : BitVec 8} {out : Word → Prop} {m M : MachineState}
+    (h : env.Frame top out m M) (hlim : env.stackLimit.toNat ≤ top.toNat)
+    (hb : top.toNat ≤ (alignToDword b).toNat) (ho : out (alignToDword b)) : env.Frame top out m (M.setByte b v) :=
+  frame_store_out h hlim hb ho
+
+theorem static_store_byte {top b : Word} {v : BitVec 8} {M : MachineState} (hs : env.Static M)
+    (hlim : env.stackLimit.toNat ≤ top.toNat) (hb : top.toNat ≤ (alignToDword b).toNat) :
+    env.Static (M.setByte b v) :=
+  static_store hs hlim hb
+
+theorem alignToDword_of_aligned {a : Word} {k : Nat} (ha : a.toNat % 8 = 0) (hk : k % 8 = 0)
+    (hak : a.toNat + k < 2 ^ 64) : alignToDword (a + BitVec.ofNat 64 k) = a + BitVec.ofNat 64 k := by
+  apply BitVec.eq_of_toNat_eq; rw [toNat_alignToDword, toNat_add_ofNat hak]; omega
+
+theorem getMem_setByte_gt {M : MachineState} {a b : Word} {v : BitVec 8} (h : b.toNat < (alignToDword a).toNat) :
+    (M.setByte a v).getMem b = M.getMem b :=
+  getMem_setByte_ne fun he => by rw [he] at h; omega
+
+theorem getMem_setByte_lt {M : MachineState} {a b : Word} {v : BitVec 8} (h : (alignToDword a).toNat < b.toNat) :
+    (M.setByte a v).getMem b = M.getMem b :=
+  getMem_setByte_ne fun he => by rw [he] at h; omega
+
+theorem HeapKept.trans {m m1 m2 : MachineState} (h1 : HeapKept env m m1) (h2 : HeapKept env m1 m2) :
+    HeapKept env m m2 :=
+  ⟨Nat.le_trans h1.1 h2.1, fun b hb => (h2.2 b (by have := h1.1; omega)).trans (h1.2 b hb)⟩
+
 /-! ## A transcript's fields -/
 
 /-- Two offsets of a footprint that does not wrap name different words. -/
