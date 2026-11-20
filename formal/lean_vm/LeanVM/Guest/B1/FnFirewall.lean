@@ -162,6 +162,7 @@ import LeanVM.Guest.B1.Sig.XmssT
 import LeanVM.Guest.B1.Sig.XmssWindows
 
 import LeanVM.Guest.B1.Merkle.CapLinks
+import LeanVM.Guest.B1.Merkle.CapMaps
 import LeanVM.Guest.B1.Merkle.CapRef
 import LeanVM.Guest.B1.Merkle.Climb
 import LeanVM.Guest.B1.Merkle.Meaning
@@ -342,6 +343,8 @@ import LeanVM.Guest.B1.Common.Phase
 import LeanVM.Guest.B1.Common.Run
 import LeanVM.Guest.B1.Common.Sponge
 import LeanVM.Guest.B1.Bits.Templates
+import LeanVM.Guest.Ref.Elab
+import LeanVM.Guest.Ref.Keccak
 import LeanVM.Guest.Ref.Link
 
 /-! **B1's per-function proofs read their own function's core module alone.** A proof stated for
@@ -378,6 +381,7 @@ open Lean Elab Command in
   let single : List (Name × List Name) := [
     (`LeanVM.Guest.B1.Merkle.CapRef, []),
     (`LeanVM.Guest.B1.Merkle.CapLinks, [`verify_merkle_cap__L2, `verify_merkle_cap__L3, `verify_merkle_cap__L4, `verify_merkle_cap__L5, `verify_merkle_cap__L6, `verify_merkle_cap__L7, `verify_merkle_cap__L8]),
+    (`LeanVM.Guest.B1.Merkle.CapMaps, [`verify_merkle_cap__L2, `verify_merkle_cap__L3, `verify_merkle_cap__L4, `verify_merkle_cap__L5, `verify_merkle_cap__L6, `verify_merkle_cap__L7, `verify_merkle_cap__L8]),
     (`LeanVM.Guest.B1.Merkle.Climb, []),
     (`LeanVM.Guest.B1.Merkle.Meaning, []),
     (`LeanVM.Guest.B1.Opening.FoldAlg, []),
@@ -546,6 +550,8 @@ open Lean Elab Command in
     (`LeanVM.Guest.B1.Common.Run, []),
     (`LeanVM.Guest.B1.Common.Sponge, []),
     (`LeanVM.Guest.B1.Bits.Templates, []),
+    (`LeanVM.Guest.Ref.Elab, []),
+    (`LeanVM.Guest.Ref.Keccak, []),
     (`LeanVM.Guest.Ref.Lang, []),
     (`LeanVM.Guest.Ref.Link, [])]
   let families : List (Name × Option (List Name) × List Name) := [

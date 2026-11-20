@@ -12,14 +12,16 @@ public import LeanVM.Guest.B1.Common.Basic
 public import LeanVM.Guest.CoreLemmas
 public import LeanVM.Guest.Value.KeccakSponge
 public import LeanVM.Guest.Renumber
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # Linking a core function to a reference function
 
-`Linked f r` compares a core function `f` (`LeanVM.Guest.Core`, renumbered: its values are
-`V.n k`) with a reference function `r` (`LeanVM.Guest.Ref`), and `Linked.sem_iff` is what a
-`true` gives: the two relations are equal. The check is evaluated by the kernel, once per
-specialization (`decide +kernel`), with nothing written per specialization.
+`Map.check m f r` compares a core function `f` (`LeanVM.Guest.Core`, renumbered: its values are
+`V.n k`) with a reference function `r` (`LeanVM.Guest.Ref`) given a map `m`, and
+`Map.check_sem_iff` is what a `true` gives: the two relations are equal. The check is evaluated by
+the kernel, once per specialization (`decide +kernel`); `Linked f r` is the check against the
+inferred map.
 
 **The check** (`Map.check`) walks the core body and the commands of `r` together, given a `Map`:
 the term over `r`'s names of every core value (`Map.h`), and which values are *owners*, each
@@ -28,11 +30,15 @@ standing for the name its term is. No two owners have one name (`distinct`).
 * `SET`, `XOR`, `MUL` and copies into a value are its definition: its term must be the term of the
   atom's right side, and no command of `r` answers it. So the constants the lowering sets (the
   Keccak padding run, a stored zero), their sharing and the copies into return cells are invisible
-  in `r`.
+  in `r`. Into a known value or an owner (a cell every arm of a `match` writes) they answer a
+  `Cmd.eq` of its term and the right side's (`Map.assign`).
 * A `DEREF` answers a `Cmd.load`, a `KECCAK` of four cells and the 64-byte padding into two cells a
-  `Cmd.hash2` (`keccak_pair_iff`), a forward branch a `Cmd.ifNz`, on equal terms.
+  `Cmd.hash2` (`keccak_pair_iff`), any other `KECCAK` a `Cmd.keccak`, an `assert` a `Cmd.eq`, a
+  range check a `Cmd.range`, a forward branch a `Cmd.ifNz` and a `match` a `Cmd.match_` whose
+  arms answer its arms exactly, on equal terms. A hint answers nothing.
 * A value is read only once *known*: defined on this path, or the owner of the name its term is
-  (a hinted or loaded word, an output cell). A branch's definitions are forgotten at its join.
+  (a hinted or loaded word, an output cell). A branch's or an arm's definitions are forgotten at
+  its join.
 
 The kernel is slow per step of a recursion, so the check spends a bounded number of steps per
 value: the known values and the owned names' numbers (`Coded`) are bit sets, and a value's entry
@@ -44,10 +50,20 @@ core atom gives its command (`Map.stmts_fwd`). From a valuation `ρ` of the name
 takes its term's word (`Map.sig`), and each command gives its atom, a definition holding by the
 check on terms (`Map.stmts_bwd`).
 
-**The map is inferred** (`infer`) by the same walk, unverified: a wrong map fails the check.
+A `ret` ends the body; calls, a `ret` in a branch and the atoms not listed fail the check.
 
-What is covered is what `verify_merkle_cap` uses; a `ret` ends the body, and every other atom and
-statement fails the check.
+**The map is inferred** (`infer`) by the same walk, unverified: a wrong map fails the check. A
+hinted value is named where a command first reads it, after later values (a value a `ret` reads
+first is not named, and the inferred map fails). A function's module computes the map at
+elaboration (`LeanVM.Guest.Ref.Elab`) and the kernel checks it (`Map.check_sem_iff`); `Linked`
+infers it in the kernel too, which suits small functions only (naming a value late rewrites the
+entries after it).
+
+**In pieces.** A body too large for one evaluation is checked in pieces (`Map.Pieces`), each in a
+declaration of its own: each piece answers its commands exactly and leaves a given set of values
+known for the next (`Map.segOk`); `Map.pieces_fwd_at` and `Map.pieces_sem_iff` are what the pieces
+give, `Map.pieces_fwd_at` with the values listed owning their names (`ownersAt`), for statements
+that read a hinted value at its value.
 -/
 
 namespace LeanVM.Guest.Ref
@@ -122,6 +138,16 @@ structure Map (X : Type) where
 /-- The entry of a core value. -/
 def Map.e (m : Map X) (k : Nat) : Tm X × Bool := (sfx m.ent k).headD (.const 0, false)
 
+/-- The rests of the entries from every `128`th value below `n`, evaluated in order, so that a
+check that starts reading at `n` recurses no deeper through `sfx`. Always `true`. It works because
+the kernel reuses the `sfx` terms it has evaluated and evaluates `||` left to right. -/
+def Map.warm (m : Map X) (n : Nat) : Bool :=
+  (List.range (n / 128)).all fun j => (sfx m.ent (128 * j)).isEmpty || true
+
+omit [DecidableEq X] in
+theorem Map.e_eq (m : Map X) (k : Nat) : m.e k = (m.ent.drop k).headD (.const 0, false) := by
+  rw [Map.e, sfx_eq_drop]
+
 /-- The term of a core value. -/
 def Map.h (m : Map X) (d : V) : Tm X := (m.e d.idx).1
 
@@ -163,20 +189,44 @@ def pad64 : List (Tm X) :=
     .const (word 9223372036854775808 0), .const (word 0 0), .const (word 0 0), .const (word 0 0),
     .const (word 0 0)]
 
+/-- Define `d` as `t`; or, `d` known or an owner, answer the command `a == t'` with `a` its term
+and `t'` the term `t`. -/
+def Map.assign (m : Map X) (K : Nat) (d : V) (t : Tm X) (rs : List (Cmd X)) :
+    Option (Nat × List (Cmd X)) :=
+  match m.define K d t, rs with
+  | some K, rs => some (K, rs)
+  | none, .eq a t' :: rs => (m.use K d).bind fun K =>
+      if (m.h d).eqb a && t.eqb t' then some (K, rs) else none
+  | none, _ => none
+
+/-- Answer a command reading the values `ds` whose terms are `ts`: read each, compare its term. -/
+def Map.answer (m : Map X) (K : Nat) :
+    List V → List (Tm X) → List (Cmd X) → Option (Nat × List (Cmd X))
+  | [], [], rs => some (K, rs)
+  | d :: ds, t :: ts, rs =>
+      (m.use K d).bind fun K => if (m.h d).eqb t then m.answer K ds ts rs else none
+  | _, _, _ => none
+
 /-- An atom against the commands left: the known values after it and the commands after it. -/
 def Map.atom (m : Map X) (K : Nat) : Atom → List (Cmd X) → Option (Nat × List (Cmd X))
-  | .const d c, rs => (m.define K d (.const c)).map (·, rs)
-  | .copy d s, rs => (m.use K s).bind fun K => (m.define K d (m.h s)).map (·, rs)
+  | .const d c, rs => m.assign K d (.const c) rs
+  | .copy d s, rs => (m.use K s).bind fun K => m.assign K d (m.h s) rs
   | .add d a b, rs => (m.use K a).bind fun K => (m.use K b).bind fun K =>
-      (m.define K d (.add (m.h a) (m.h b))).map (·, rs)
+      m.assign K d (.add (m.h a) (m.h b)) rs
   | .mul d a b, rs => (m.use K a).bind fun K => (m.use K b).bind fun K =>
-      (m.define K d (.mul (m.h a) (m.h b))).map (·, rs)
-  | .load d p off, .load td tp off' :: rs => (m.use K p).bind fun K => (m.use K d).bind fun K =>
-      if (m.h d).eqb td && (m.h p).eqb tp && off == off' then some (K, rs) else none
+      m.assign K d (.mul (m.h a) (m.h b)) rs
+  | .load d p off, .load td tp off' :: rs =>
+      if off == off' then m.answer K [p, d] [tp, td] rs else none
   | .keccak ins [o0, o1] false false, .hash2 l0 l1 r0 r1 t0 t1 :: rs =>
-      (m.uses K ins).bind fun K => (m.use K o0).bind fun K => (m.use K o1).bind fun K =>
-        if Tm.eqbs (ins.map m.h) ([l0, l1, r0, r1] ++ pad64) && (m.h o0).eqb t0 && (m.h o1).eqb t1
-        then some (K, rs) else none
+      m.answer K (ins ++ [o0, o1]) ([l0, l1, r0, r1] ++ pad64 ++ [t0, t1]) rs
+  | .keccak ins outs i o, .keccak tins touts i' o' :: rs =>
+      if ins.length == tins.length && i == i' && o == o' then
+        m.answer K (ins ++ outs) (tins ++ touts) rs
+      else none
+  | .assertEq a b, .eq ta tb :: rs => m.answer K [a, b] [ta, tb] rs
+  | .rangeCheck x y t1 t2 k, .range tx ty tt1 tt2 tk :: rs =>
+      m.answer K [x, y, t1, t2, k] [tx, ty, tt1, tt2, tk] rs
+  | .hint _, rs => some (K, rs)
   | _, _ => none
 
 /-- A branch on `c` against the commands left, given the check of each of its blocks: they answer
@@ -199,12 +249,24 @@ def Map.stmt (m : Map X) (K : Nat) : Stmt → List (Cmd X) → Option (Nat × Li
   | .atom a, rs => m.atom K a rs
   | .ite c z n, rs =>
       m.branch K c rs (fun K rz => Map.stmts m K z rz) (fun K rn => Map.stmts m K n rn)
+  | .match_ x arms, .match_ tc rarms :: rs => (m.use K x).bind fun K =>
+      if (m.h x).eqb tc && Map.arms m K arms rarms then some (K, rs) else none
   | .match_ .., _ | .call .., _ | .callIf .., _ | .dispatch .., _ | .ret _, _ => none
 
 /-- A block against the commands left. -/
 def Map.stmts (m : Map X) (K : Nat) : List Stmt → List (Cmd X) → Option (Nat × List (Cmd X))
   | [], rs => some (K, rs)
   | s :: ss, rs => (Map.stmt m K s rs).bind fun p => Map.stmts m p.1 ss p.2
+
+/-- A `match`'s arms against the commands' arms: each block answers its commands exactly, from
+the values known before the `match`. -/
+def Map.arms (m : Map X) (K : Nat) : List (List Stmt) → List (List (Cmd X)) → Bool
+  | [], [] => true
+  | a :: as, r :: rs =>
+      (match Map.stmts m K a r with
+        | some (_, []) => true
+        | _ => false) && Map.arms m K as rs
+  | _, _ => false
 end
 
 /-- A `ret` of the returned terms, no command left. -/
@@ -231,50 +293,75 @@ def Map.check [Coded X] (m : Map X) (f : Fn) (r : Func X) : Bool :=
 
 /-! ## Inferring the map -/
 
-/-- The map being inferred: the entries of the values below `n`, last first, and the bit set of
+/-- The map being inferred: the entries of the values below `n`, last first (`none` for a value
+given none yet: a hint is named where it is first read, after later values), and the bit set of
 the numbers of the names owned. The core values are numbered in order of first occurrence
-(`Fn.renumber`), so an entry is given to the next value, by a `cons`. The kernel evaluates lazily:
-each step matches on the state, so that no chain of pending updates builds up. -/
+(`Fn.renumber`), so an entry is mostly given to the next value, by a `cons`. The kernel evaluates
+lazily: each step matches on the state, so that no chain of pending updates builds up. -/
 structure Acc (X : Type) where
-  rev : List (Tm X × Bool)
+  rev : List (Option (Tm X × Bool))
   n : Nat
   used : Nat
 
+/-- The entry of a core value so far. -/
+def Acc.entry (a : Acc X) (k : Nat) : Option (Tm X × Bool) :=
+  bif k.blt a.n then a.rev.getD (a.n - 1 - k) none else none
+
 /-- The term of a core value so far. -/
-def Acc.h (a : Acc X) (d : V) : Tm X :=
-  bif d.idx.blt a.n then (a.rev.getD (a.n - 1 - d.idx) (.const 0, false)).1 else .const 0
+def Acc.h (a : Acc X) (d : V) : Tm X := ((a.entry d.idx).map Prod.fst).getD (.const 0)
 
-/-- The entries with one more, for the value `k`. -/
-def Acc.push (rev : List (Tm X × Bool)) (n k : Nat) (e : Tm X × Bool) : List (Tm X × Bool) :=
-  e :: (List.replicate (k - n) (.const 0, false) ++ rev)
-
-/-- Give `d` the term `t`, unless it has one. -/
-def Acc.bind (a : Acc X) (d : V) (t : Tm X) : Acc X :=
+/-- Give `d` the entry `e` unless it has one, `used` the names owned after. -/
+def Acc.give (a : Acc X) (d : V) (e : Tm X × Bool) (used : Nat) : Acc X :=
   match a with
-  | ⟨rev, n, used⟩ =>
-      bif d.idx.blt n then a else ⟨Acc.push rev n d.idx (t, false), d.idx + 1, used⟩
+  | ⟨rev, n, u⟩ =>
+      bif d.idx.blt n then
+        bif (rev.getD (n - 1 - d.idx) none).isSome then ⟨rev, n, u⟩
+        else ⟨rev.set (n - 1 - d.idx) (some e), n, used⟩
+      else ⟨some e :: (List.replicate (d.idx - n) none ++ rev), d.idx + 1, used⟩
 
 /-- Give `d` the term `t`, unless it has one, as the owner of the name `t` is, unless it has
 one. -/
 def Acc.name [Coded X] (a : Acc X) (d : V) (t : Tm X) : Acc X :=
-  match a with
-  | ⟨rev, n, used⟩ =>
-      bif d.idx.blt n then a
-      else
-        match t with
-        | .v x =>
-            bif used.testBit (Coded.code x) then ⟨Acc.push rev n d.idx (t, false), d.idx + 1, used⟩
-            else ⟨Acc.push rev n d.idx (t, true), d.idx + 1, used ||| 1 <<< Coded.code x⟩
-        | _ => ⟨Acc.push rev n d.idx (t, false), d.idx + 1, used⟩
+  match t with
+  | .v x => bif a.used.testBit (Coded.code x) then a.give d (t, false) a.used
+      else a.give d (t, true) (a.used ||| 1 <<< Coded.code x)
+  | _ => a.give d (t, false) a.used
+
+/-- Name each of `ds` by the term in its place. -/
+def Acc.names [Coded X] (a : Acc X) : List V → List (Tm X) → Acc X
+  | d :: ds, t :: ts =>
+      match a.name d t with
+      | ⟨rev, n, used⟩ => Acc.names ⟨rev, n, used⟩ ds ts
+  | _, _ => a
+
+/-- Define `d` as `t`, or, before the command `x == t` with `x` not owned yet, make it the owner of
+`x`; `d` seen already, answer the command `_ == t'` unless `t` is its term. -/
+def Acc.assign [Coded X] (a : Acc X) (d : V) (t : Tm X) (rs : List (Cmd X)) :
+    Acc X × List (Cmd X) :=
+  bif d.idx.blt a.n then
+    match rs with
+    | .eq _ _ :: rs' => bif (a.h d).eqb t then (a, rs) else (a, rs')
+    | rs => (a, rs)
+  else
+    match rs with
+    | .eq (.v x) t' :: rs' =>
+        bif t'.eqb t && !a.used.testBit (Coded.code x) then
+          (a.give d (.v x, true) (a.used ||| 1 <<< Coded.code x), rs')
+        else (a.give d (t, false) a.used, rs)
+    | rs => (a.give d (t, false) a.used, rs)
 
 /-- The terms an atom gives. -/
 def Acc.atom [Coded X] (a : Acc X) : Atom → List (Cmd X) → Acc X × List (Cmd X)
-  | .const d c, rs => (a.bind d (.const c), rs)
-  | .copy d s, rs => (a.bind d (a.h s), rs)
-  | .add d x y, rs => (a.bind d (.add (a.h x) (a.h y)), rs)
-  | .mul d x y, rs => (a.bind d (.mul (a.h x) (a.h y)), rs)
+  | .const d c, rs => a.assign d (.const c) rs
+  | .copy d s, rs => a.assign d (a.h s) rs
+  | .add d x y, rs => a.assign d (.add (a.h x) (a.h y)) rs
+  | .mul d x y, rs => a.assign d (.mul (a.h x) (a.h y)) rs
   | .load d _ _, .load td _ _ :: rs => (a.name d td, rs)
   | .keccak _ [o0, o1] _ _, .hash2 _ _ _ _ t0 t1 :: rs => ((a.name o0 t0).name o1 t1, rs)
+  | .keccak ins outs _ _, .keccak tins touts _ _ :: rs => ((a.names ins tins).names outs touts, rs)
+  | .assertEq x y, .eq tx ty :: rs => (a.names [x, y] [tx, ty], rs)
+  | .rangeCheck x y t1 t2 k, .range tx ty tt1 tt2 tk :: rs =>
+      (a.names [x, y, t1, t2, k] [tx, ty, tt1, tt2, tk], rs)
   | _, rs => (a, rs)
 
 mutual
@@ -282,6 +369,7 @@ mutual
 def Acc.stmt [Coded X] (a : Acc X) : Stmt → List (Cmd X) → Acc X × List (Cmd X)
   | .atom x, rs => a.atom x rs
   | .ite _ z n, .ifNz _ rz rn :: rs => ((Acc.stmts (Acc.stmts a z rz).1 n rn).1, rs)
+  | .match_ _ arms, .match_ _ rarms :: rs => (Acc.arms a arms rarms, rs)
   | _, rs => (a, rs)
 
 /-- The terms a block gives. -/
@@ -290,13 +378,20 @@ def Acc.stmts [Coded X] (a : Acc X) : List Stmt → List (Cmd X) → Acc X × Li
   | s :: ss, rs =>
       match Acc.stmt a s rs with
       | (⟨rev, n, used⟩, rs) => Acc.stmts ⟨rev, n, used⟩ ss rs
+
+/-- The terms a `match`'s arms give, in order. -/
+def Acc.arms [Coded X] (a : Acc X) : List (List Stmt) → List (List (Cmd X)) → Acc X
+  | b :: bs, r :: rs =>
+      match (Acc.stmts a b r).1 with
+      | ⟨rev, n, used⟩ => Acc.arms ⟨rev, n, used⟩ bs rs
+  | _, _ => a
 end
 
-/-- The map of a core function and a reference function that agree. -/
+/-- The map of a core function and a reference function that agree, inferred by the walk of the
+check. -/
 def infer [Coded X] (f : Fn) (r : Func X) : Map X :=
-  match (((f.params.zip r.params).foldl (fun (a : Acc X) p => a.name p.1 (.v p.2))
-    (⟨[], 0, 0⟩ : Acc X)).stmts f.body r.body).1 with
-  | ⟨rev, _, _⟩ => ⟨rev.reverse⟩
+  match ((⟨[], 0, 0⟩ : Acc X).names f.params (r.params.map .v)).stmts f.body r.body with
+  | (⟨rev, _, _⟩, _) => ⟨rev.reverse.map (·.getD (.const 0, false))⟩
 
 /-- The core function `f` is the reference function `r`, as the kernel evaluates it. -/
 def Linked [Coded X] (f : Fn) (r : Func X) : Bool := (infer f r).check f r
@@ -374,73 +469,52 @@ theorem distinct_spec [Coded X] : ∀ (l : List (Tm X × Bool)) (U : Nat), disti
         intro c hc'
         rw [Nat.testBit_or, Bool.or_eq_false_iff, Nat.one_shiftLeft, Nat.testBit_two_pow] at hc'
         exact ⟨hc'.1, fun e => by simp [e] at hc'⟩
-      refine ⟨fun i c hi => ?_, fun i j c hi hj => ?_⟩
-      · cases i with
-        | zero =>
-          simp only [List.getElem?_cons_zero, Option.bind_some, hc] at hi
-          cases hi
-          exact h.1
-        | succ i => exact (hU c (ha i c hi)).1
-      · cases i <;> cases j
-        · rfl
-        · simp only [List.getElem?_cons_zero, Option.bind_some, hc] at hi
-          cases hi
-          exact absurd rfl (hU _ (ha _ _ hj)).2
-        · simp only [List.getElem?_cons_zero, Option.bind_some, hc] at hj
-          cases hj
-          exact absurd rfl (hU _ (ha _ _ hi)).2
-        · rw [hb _ _ c hi hj]
+      refine ⟨fun i c hi => ?_, fun i j c hi hj => ?_⟩ <;>
+        rcases i with _ | i <;> try rcases j with _ | j
+      · simp only [List.getElem?_cons_zero, Option.bind_some, hc, Option.some.injEq] at hi
+        exact hi ▸ h.1
+      · exact (hU c (ha i c hi)).1
+      · rfl
+      · simp only [List.getElem?_cons_zero, Option.bind_some, hc, Option.some.injEq] at hi
+        exact absurd hi.symm (hU _ (ha _ _ hj)).2
+      · simp only [List.getElem?_cons_zero, Option.bind_some, hc, Option.some.injEq] at hj
+        exact absurd hj.symm (hU _ (ha _ _ hi)).2
+      · rw [hb _ _ c hi hj]
     · rename_i hc
       obtain ⟨ha, hb⟩ := distinct_spec l U h
       refine ⟨fun i c hi => ?_, fun i j c hi hj => ?_⟩
-      · cases i with
-        | zero => simp [hc] at hi
-        | succ i => exact ha i c hi
-      · cases i <;> cases j
-        · rfl
-        · simp [hc] at hi
-        · simp [hc] at hj
-        · rw [hb _ _ c hi hj]
+      · rcases i with _ | i
+        exacts [by simp [hc] at hi, ha i c hi]
+      · rcases i with _ | i <;> rcases j with _ | j
+        exacts [rfl, absurd hi (by simp [hc]), absurd hj (by simp [hc]), by rw [hb _ _ c hi hj]]
 
 omit [DecidableEq X] in
 /-- Under the check, a name's word is its owner's. -/
 theorem Map.rho_owner [Coded X] (hd : distinct m.ent 0 = true) (σ : Val) {k : Nat} {x : X}
     (hk : m.e k = (.v x, true)) : m.rho σ x = σ (.n k) := by
-  have key : ∀ j, m.e j = (.v x, true) → m.ent[j]?.bind ownerCode = some (Coded.code x) := by
-    intro j hj
-    rw [Map.e, sfx_eq_drop, List.headD_eq_head?_getD, List.head?_drop] at hj
-    cases he : m.ent[j]? with
-    | none => rw [he] at hj; cases hj
-    | some e => rw [he] at hj; cases hj; rfl
-  unfold Map.rho
-  split
-  · rename_i hex
-    rw [(distinct_spec _ _ hd).2 _ _ _ (key _ (Classical.choose_spec hex)) (key _ hk)]
-  · rename_i hex
-    exact absurd ⟨k, hk⟩ hex
+  have key : ∀ j, m.e j = (.v x, true) → m.ent[j]?.bind ownerCode = some (Coded.code x) :=
+    fun j hj => by
+      rw [Map.e_eq, List.headD_eq_head?_getD, List.head?_drop] at hj
+      cases he : m.ent[j]? <;> simp_all [ownerCode]
+  have hex : ∃ k, m.e k = (.v x, true) := ⟨k, hk⟩
+  rw [Map.rho, dite_eq_left hex,
+    (distinct_spec _ _ hd).2 _ _ _ (key _ (Classical.choose_spec hex)) (key _ hk)]
 
 omit [DecidableEq X] in
 theorem Map.use_fwd {σ : Val} {K K' : Nat} {d : V} (h : m.use K d = some K')
     (hK : m.Known σ K) : m.Known σ K' ∧ σ d = (m.h d).eval (m.rho σ) := by
   unfold Map.use at h
+  split at h <;> [skip; cases h]
+  have hd : σ d = σ (.n d.idx) := congrArg σ (vEqb_iff.mp ‹_›)
   split at h
-  · rename_i hd
-    have hd : σ d = σ (.n d.idx) := congrArg σ (vEqb_iff.mp hd)
-    split at h
-    · rename_i hb
-      cases h
-      exact ⟨hK, hd.trans (hK.2 _ hb)⟩
-    · split at h
-      · rename_i x hx
-        cases h
-        have key : σ (.n d.idx) = (m.h (.n d.idx)).eval (m.rho σ) := by
-          show _ = (m.e d.idx).1.eval _
-          rw [hx]
-          exact (hK.1 _ _ hx).symm
-        exact ⟨⟨hK.1, fun k hk => (testBit_set hk).elim (hK.2 k) fun e => by subst e; exact key⟩,
-          hd.trans key⟩
-      · cases h
   · cases h
+    exact ⟨hK, hd.trans (hK.2 _ ‹_›)⟩
+  split at h <;> cases h
+  rename_i x hx
+  have key : σ (.n d.idx) = (m.h (.n d.idx)).eval (m.rho σ) := by
+    rw [Map.h, hx]
+    exact (hK.1 _ _ hx).symm
+  exact ⟨⟨hK.1, fun k hk => (testBit_set hk).elim (hK.2 k) fun e => e ▸ key⟩, hd.trans key⟩
 
 omit [DecidableEq X] in
 theorem Map.uses_fwd {σ : Val} : ∀ {ds : List V} {K K' : Nat}, m.uses K ds = some K' →
@@ -454,13 +528,8 @@ theorem Map.uses_fwd {σ : Val} : ∀ {ds : List V} {K K' : Nat}, m.uses K ds = 
 
 theorem Map.define_eq {K K' : Nat} {d : V} {t : Tm X} (h : m.define K d t = some K') :
     m.h d = t ∧ d = .n d.idx ∧ K' = K ||| 1 <<< d.idx := by
-  unfold Map.define at h
-  split at h
-  · rename_i hc
-    rw [Bool.and_eq_true] at hc
-    cases h
-    exact ⟨Tm.eqb_sound hc.2, vEqb_iff.mp hc.1, rfl⟩
-  · cases h
+  simp only [Map.define, Option.ite_none_right_eq_some, Bool.and_eq_true, Option.some.injEq] at h
+  exact ⟨Tm.eqb_sound h.1.2, vEqb_iff.mp h.1.1, h.2.symm⟩
 
 theorem Map.define_fwd {σ : Val} {K K' : Nat} {d : V} {t : Tm X} (h : m.define K d t = some K')
     (hK : m.Known σ K) (hd : σ d = t.eval (m.rho σ)) : m.Known σ K' := by
@@ -470,51 +539,141 @@ theorem Map.define_fwd {σ : Val} {K K' : Nat} {d : V} {t : Tm X} (h : m.define 
   · exact hK.2 k hk
   · rw [← ed, et, hd]
 
+private theorem Map.assign_fwd {σ : Val} {K K' : Nat} {d : V} {t : Tm X} {rs rs' : List (Cmd X)}
+    (h : m.assign K d t rs = some (K', rs')) (hK : m.Known σ K) (hd : σ d = t.eval (m.rho σ)) :
+    m.Known σ K' ∧ (Cmd.SatList rd (m.rho σ) rs' → Cmd.SatList rd (m.rho σ) rs) := by
+  unfold Map.assign at h
+  split at h
+  · cases h
+    exact ⟨Map.define_fwd (by assumption) hK hd, id⟩
+  · simp only [Option.bind_eq_some_iff, Option.ite_none_right_eq_some, Bool.and_eq_true,
+      Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨K1, h1, ⟨ea, et⟩, rfl, rfl⟩ := h
+    obtain ⟨hK1, e⟩ := Map.use_fwd h1 hK
+    refine ⟨hK1, fun hr => Cmd.satList_cons.mpr ⟨?_, hr⟩⟩
+    rw [Cmd.Sat, ← Tm.eqb_sound ea, ← Tm.eqb_sound et, ← e, hd]
+  · cases h
+
+private theorem Map.assign_bwd {ρ : X → E} {K K' : Nat} {d : V} {t : Tm X} {rs rs' : List (Cmd X)}
+    (h : m.assign K d t rs = some (K', rs')) (hs : Cmd.SatList rd ρ rs) :
+    m.sig ρ d = t.eval ρ ∧ Cmd.SatList rd ρ rs' := by
+  unfold Map.assign at h
+  split at h
+  · cases h
+    exact ⟨congrArg (Tm.eval ρ) (Map.define_eq (by assumption)).1, hs⟩
+  · simp only [Option.bind_eq_some_iff, Option.ite_none_right_eq_some, Bool.and_eq_true,
+      Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨K1, -, ⟨ea, et⟩, rfl, rfl⟩ := h
+    obtain ⟨hl, hr⟩ := Cmd.satList_cons.mp hs
+    rw [Cmd.Sat, ← Tm.eqb_sound ea, ← Tm.eqb_sound et] at hl
+    exact ⟨hl, hr⟩
+  · cases h
+
+omit [DecidableEq X] in
+private theorem keccakWords_map {σ : Val} {ins outs : List V} {i o : Bool} :
+    KeccakWords (ins.map σ) (outs.map σ) i o ↔ (Atom.keccak ins outs i o).Holds rd σ := by
+  simp only [KeccakWords, Atom.Holds, List.length_map]
+
+/-- An answered command `c` holds of the names' words when the values read are their terms'. -/
+private theorem Map.answer_fwd {σ : Val} {c : Cmd X} {rs : List (Cmd X)} :
+    ∀ {K K' : Nat} {ds : List V} {ts : List (Tm X)} {rs' : List (Cmd X)},
+      m.answer K ds ts rs = some (K', rs') → m.Known σ K →
+      (ds.map σ = ts.map (Tm.eval (m.rho σ)) → c.Sat rd (m.rho σ)) →
+      m.Known σ K' ∧ (Cmd.SatList rd (m.rho σ) rs' → Cmd.SatList rd (m.rho σ) (c :: rs))
+  | _, _, [], [], _, h, hK, hc => by
+    simp only [Map.answer, Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    exact ⟨hK, fun hr => Cmd.satList_cons.mpr ⟨hc rfl, hr⟩⟩
+  | _, _, d :: ds, t :: ts, _, h, hK, hc => by
+    simp only [Map.answer, Option.bind_eq_some_iff, Option.ite_none_right_eq_some] at h
+    obtain ⟨K1, h1, he, h2⟩ := h
+    obtain ⟨hK1, e⟩ := Map.use_fwd h1 hK
+    exact Map.answer_fwd h2 hK1 fun es =>
+      hc (by rw [List.map_cons, List.map_cons, e, Tm.eqb_sound he, es])
+  | _, _, [], _ :: _, _, h, _, _ | _, _, _ :: _, [], _, h, _, _ => by simp [Map.answer] at h
+
+/-- An answered command `c` that holds of the names' words gives `P` when the values read are their
+terms. -/
+private theorem Map.answer_bwd {ρ : X → E} {c : Cmd X} {rs : List (Cmd X)} {P : Prop} :
+    ∀ {K K' : Nat} {ds : List V} {ts : List (Tm X)} {rs' : List (Cmd X)},
+      m.answer K ds ts rs = some (K', rs') → Cmd.SatList rd ρ (c :: rs) →
+      (ds.map (m.sig ρ) = ts.map (Tm.eval ρ) → c.Sat rd ρ → P) → P ∧ Cmd.SatList rd ρ rs'
+  | _, _, [], [], _, h, hs, hc => by
+    simp only [Map.answer, Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨-, rfl⟩ := h
+    exact ⟨hc rfl (Cmd.satList_cons.mp hs).1, (Cmd.satList_cons.mp hs).2⟩
+  | _, _, d :: ds, t :: ts, _, h, hs, hc => by
+    simp only [Map.answer, Option.bind_eq_some_iff, Option.ite_none_right_eq_some] at h
+    obtain ⟨K1, -, he, h2⟩ := h
+    exact Map.answer_bwd h2 hs fun es =>
+      hc (by rw [List.map_cons, List.map_cons, es, ← Tm.eqb_sound he]; rfl)
+  | _, _, [], _ :: _, _, h, _, _ | _, _, _ :: _, [], _, h, _, _ => by simp [Map.answer] at h
+
+omit [DecidableEq X] in
+/-- The words of a `KECCAK` of four cells and the 64-byte padding into two, split. -/
+private theorem pair_words {ins : List V} {o0 o1 : V} {f : V → E} {l0 l1 r0 r1 t0 t1 : Tm X}
+    {ρ : X → E}
+    (e : (ins ++ [o0, o1]).map f = ([l0, l1, r0, r1] ++ pad64 ++ [t0, t1]).map (Tm.eval ρ)) :
+    ins.map f = [l0.eval ρ, l1.eval ρ, r0.eval ρ, r1.eval ρ, word 1 0, word 0 0, word 0 0,
+      word 0 0, word 9223372036854775808 0, word 0 0, word 0 0, word 0 0, word 0 0] ∧
+      f o0 = t0.eval ρ ∧ f o1 = t1.eval ρ := by
+  rw [List.map_append, List.map_append] at e
+  obtain ⟨e1, e2⟩ := List.append_inj' e (by simp)
+  simp only [pad64, List.cons_append, List.nil_append, List.map_cons, List.map_nil, Tm.eval,
+    List.cons.injEq, and_true] at e1 e2
+  exact ⟨e1, e2⟩
+
 theorem Map.atom_fwd {σ : Val} {K K' : Nat} {a : Atom} {rs rs' : List (Cmd X)}
     (h : m.atom K a rs = some (K', rs')) (hK : m.Known σ K) (ha : a.Holds rd σ) :
     m.Known σ K' ∧ (Cmd.SatList rd (m.rho σ) rs' → Cmd.SatList rd (m.rho σ) rs) := by
   unfold Map.atom at h
   split at h
-  · obtain ⟨K1, h1, e⟩ := Option.map_eq_some_iff.mp h
-    cases e
-    exact ⟨Map.define_fwd h1 hK ha, id⟩
-  · simp only [Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
-    obtain ⟨K1, h1, K2, h2, e⟩ := h
-    cases e
+  · exact Map.assign_fwd h hK ha
+  · obtain ⟨K1, h1, h2⟩ := Option.bind_eq_some_iff.mp h
     obtain ⟨hK1, es⟩ := Map.use_fwd h1 hK
-    exact ⟨Map.define_fwd h2 hK1 (Eq.trans ha es), id⟩
-  · simp only [Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
-    obtain ⟨K1, h1, K2, h2, K3, h3, e⟩ := h
-    cases e
+    exact Map.assign_fwd h2 hK1 (Eq.trans ha es)
+  · simp only [Option.bind_eq_some_iff] at h
+    obtain ⟨K1, h1, K2, h2, h3⟩ := h
     obtain ⟨hK1, ea⟩ := Map.use_fwd h1 hK
     obtain ⟨hK2, eb⟩ := Map.use_fwd h2 hK1
-    exact ⟨Map.define_fwd h3 hK2 (Eq.trans ha (congrArg₂ (· + ·) ea eb)), id⟩
-  · simp only [Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
-    obtain ⟨K1, h1, K2, h2, K3, h3, e⟩ := h
-    cases e
+    exact Map.assign_fwd h3 hK2 (Eq.trans ha (congrArg₂ (· + ·) ea eb))
+  · simp only [Option.bind_eq_some_iff] at h
+    obtain ⟨K1, h1, K2, h2, h3⟩ := h
     obtain ⟨hK1, ea⟩ := Map.use_fwd h1 hK
     obtain ⟨hK2, eb⟩ := Map.use_fwd h2 hK1
-    exact ⟨Map.define_fwd h3 hK2 (Eq.trans ha (congrArg₂ (· * ·) ea eb)), id⟩
-  · simp only [Option.bind_eq_some_iff, Option.ite_none_right_eq_some, Bool.and_eq_true,
-      beq_iff_eq, Option.some.injEq, Prod.mk.injEq] at h
-    obtain ⟨K1, h1, K2, h2, ⟨⟨ed, ep⟩, rfl⟩, rfl, rfl⟩ := h
-    obtain ⟨hK1, e1⟩ := Map.use_fwd h1 hK
-    obtain ⟨hK2, e2⟩ := Map.use_fwd h2 hK1
-    refine ⟨hK2, fun hr => Cmd.satList_cons.mpr ⟨?_, hr⟩⟩
-    rw [Cmd.Sat, ← Tm.eqb_sound ed, ← Tm.eqb_sound ep, ← e1, ← e2]
-    exact ha
-  · simp only [Option.bind_eq_some_iff, Option.ite_none_right_eq_some, Bool.and_eq_true,
-      Option.some.injEq, Prod.mk.injEq] at h
-    obtain ⟨K1, h1, K2, h2, K3, h3, ⟨⟨ei, e0⟩, e1⟩, rfl, rfl⟩ := h
-    obtain ⟨hK1, es⟩ := Map.uses_fwd h1 hK
-    obtain ⟨hK2, eo0⟩ := Map.use_fwd h2 hK1
-    obtain ⟨hK3, eo1⟩ := Map.use_fwd h3 hK2
-    refine ⟨hK3, fun hr => Cmd.satList_cons.mpr ⟨?_, hr⟩⟩
-    rw [Tm.eqbs_sound ei] at es
-    simp only [pad64, List.cons_append, List.nil_append, List.map_cons, List.map_nil,
-      Tm.eval] at es
-    rw [Cmd.Sat, ← Tm.eqb_sound e0, ← Tm.eqb_sound e1, ← eo0, ← eo1]
+    exact Map.assign_fwd h3 hK2 (Eq.trans ha (congrArg₂ (· * ·) ea eb))
+  · split at h
+    · rename_i ho
+      refine Map.answer_fwd h hK fun e => ?_
+      simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at e
+      rw [Cmd.Sat, ← e.1, ← e.2, ← beq_iff_eq.mp ho]
+      exact ha
+    · cases h
+  · refine Map.answer_fwd h hK fun e => ?_
+    obtain ⟨es, eo0, eo1⟩ := pair_words e
+    rw [Cmd.Sat, ← eo0, ← eo1]
     exact (keccak_pair_iff es).mp ha
+  · split at h
+    · rename_i hc
+      simp only [Bool.and_eq_true, beq_iff_eq] at hc
+      obtain ⟨⟨hl, rfl⟩, rfl⟩ := hc
+      refine Map.answer_fwd h hK fun e => ?_
+      rw [List.map_append, List.map_append] at e
+      obtain ⟨e1, e2⟩ := List.append_inj e (by simp [hl])
+      rw [Cmd.Sat, ← e1, ← e2]
+      exact keccakWords_map.mpr ha
+    · cases h
+  · refine Map.answer_fwd h hK fun e => ?_
+    simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at e
+    rw [Cmd.Sat, ← e.1, ← e.2]
+    exact Value.e_add_eq_zero_iff.mp ha
+  · refine Map.answer_fwd h hK fun e => ?_
+    simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at e
+    obtain ⟨ex, ey, e1, e2, ek⟩ := e
+    rw [Cmd.Sat, ← ex, ← ey, ← e1, ← e2, ← ek]
+    exact ha
+  · cases h
+    exact ⟨hK, id⟩
   · cases h
 
 theorem Map.atom_bwd {ρ : X → E} {K K' : Nat} {a : Atom} {rs rs' : List (Cmd X)}
@@ -522,37 +681,47 @@ theorem Map.atom_bwd {ρ : X → E} {K K' : Nat} {a : Atom} {rs rs' : List (Cmd 
     a.Holds rd (m.sig ρ) ∧ Cmd.SatList rd ρ rs' := by
   unfold Map.atom at h
   split at h
-  · obtain ⟨K1, h1, e⟩ := Option.map_eq_some_iff.mp h
-    cases e
-    exact ⟨congrArg (Tm.eval ρ) (Map.define_eq h1).1, hs⟩
-  · simp only [Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
-    obtain ⟨K1, h1, K2, h2, e⟩ := h
-    cases e
-    exact ⟨congrArg (Tm.eval ρ) (Map.define_eq h2).1, hs⟩
-  · simp only [Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
-    obtain ⟨K1, h1, K2, h2, K3, h3, e⟩ := h
-    cases e
-    exact ⟨congrArg (Tm.eval ρ) (Map.define_eq h3).1, hs⟩
-  · simp only [Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
-    obtain ⟨K1, h1, K2, h2, K3, h3, e⟩ := h
-    cases e
-    exact ⟨congrArg (Tm.eval ρ) (Map.define_eq h3).1, hs⟩
-  · simp only [Option.bind_eq_some_iff, Option.ite_none_right_eq_some, Bool.and_eq_true,
-      beq_iff_eq, Option.some.injEq, Prod.mk.injEq] at h
-    obtain ⟨K1, h1, K2, h2, ⟨⟨ed, ep⟩, rfl⟩, rfl, rfl⟩ := h
-    obtain ⟨hl, hr⟩ := Cmd.satList_cons.mp hs
-    rw [Cmd.Sat, ← Tm.eqb_sound ed, ← Tm.eqb_sound ep] at hl
-    exact ⟨hl, hr⟩
-  · simp only [Option.bind_eq_some_iff, Option.ite_none_right_eq_some, Bool.and_eq_true,
-      Option.some.injEq, Prod.mk.injEq] at h
-    obtain ⟨K1, h1, K2, h2, K3, h3, ⟨⟨ei, e0⟩, e1⟩, rfl, rfl⟩ := h
-    obtain ⟨hl, hr⟩ := Cmd.satList_cons.mp hs
-    rw [Cmd.Sat, ← Tm.eqb_sound e0, ← Tm.eqb_sound e1] at hl
-    have hins := congrArg (List.map (Tm.eval ρ)) (Tm.eqbs_sound ei)
-    rw [List.map_map] at hins
-    simp only [pad64, List.cons_append, List.nil_append, List.map_cons, List.map_nil,
-      Tm.eval] at hins
-    exact ⟨(keccak_pair_iff hins).mpr hl, hr⟩
+  · exact Map.assign_bwd h hs
+  · obtain ⟨K1, -, h2⟩ := Option.bind_eq_some_iff.mp h
+    exact Map.assign_bwd h2 hs
+  · simp only [Option.bind_eq_some_iff] at h
+    obtain ⟨K1, -, K2, -, h3⟩ := h
+    exact Map.assign_bwd h3 hs
+  · simp only [Option.bind_eq_some_iff] at h
+    obtain ⟨K1, -, K2, -, h3⟩ := h
+    exact Map.assign_bwd h3 hs
+  · split at h
+    · rename_i ho
+      refine Map.answer_bwd h hs fun e hl => ?_
+      simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at e
+      rw [Cmd.Sat, ← e.1, ← e.2, ← beq_iff_eq.mp ho] at hl
+      exact hl
+    · cases h
+  · refine Map.answer_bwd h hs fun e hl => ?_
+    obtain ⟨es, eo0, eo1⟩ := pair_words e
+    rw [Cmd.Sat, ← eo0, ← eo1] at hl
+    exact (keccak_pair_iff es).mpr hl
+  · split at h
+    · rename_i hc
+      simp only [Bool.and_eq_true, beq_iff_eq] at hc
+      obtain ⟨⟨hl, rfl⟩, rfl⟩ := hc
+      refine Map.answer_bwd h hs fun e hk => ?_
+      rw [List.map_append, List.map_append] at e
+      obtain ⟨e1, e2⟩ := List.append_inj e (by simp [hl])
+      rw [Cmd.Sat, ← e1, ← e2] at hk
+      exact keccakWords_map.mp hk
+    · cases h
+  · refine Map.answer_bwd h hs fun e hl => ?_
+    simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at e
+    rw [Cmd.Sat, ← e.1, ← e.2] at hl
+    exact Value.e_add_eq_zero_iff.mpr hl
+  · refine Map.answer_bwd h hs fun e hl => ?_
+    simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at e
+    obtain ⟨ex, ey, e1, e2, ek⟩ := e
+    rw [Cmd.Sat, ← ex, ← ey, ← e1, ← e2, ← ek] at hl
+    exact hl
+  · cases h
+    exact ⟨trivial, hs⟩
   · cases h
 
 mutual
@@ -568,27 +737,32 @@ theorem Map.stmt_fwd {σ : Val} (kret : List E → Prop) :
   | .ite c z n, K, K', rs, rs', next, h, hK, hs => by
     rw [Map.stmt] at h
     unfold Map.branch at h
-    split at h
-    · simp only [Option.bind_eq_some_iff, Option.ite_none_right_eq_some] at h
-      obtain ⟨K1, h1, hc, h2⟩ := h
-      split at h2
-      · rename_i hz hn
-        cases h2
-        obtain ⟨hK1, ec⟩ := Map.use_fwd h1 hK
-        rw [Tm.eqb_sound hc] at ec
-        rw [Stmt.Holds] at hs
-        obtain ⟨hk, h0, h1'⟩ := hs
-        have nil : Cmd.SatList rd (m.rho σ) [] := Cmd.satList_nil
-        refine ⟨hK1, ?_, fun hr => ?_⟩
-        · by_cases e : σ c = 0
-          · exact (Map.stmts_fwd kret z _ _ _ _ next hz hK1 (h0 e)).2.1
-          · exact (Map.stmts_fwd kret n _ _ _ _ next hn hK1 (h1' e)).2.1
-        · rw [Cmd.SatList, Cmd.Sat, ← ec]
-          exact ⟨⟨hk, fun e => (Map.stmts_fwd kret z _ _ _ _ next hz hK1 (h0 e)).2.2 nil,
-            fun e => (Map.stmts_fwd kret n _ _ _ _ next hn hK1 (h1' e)).2.2 nil⟩, hr⟩
-      · cases h2
-    · cases h
-  | .match_ .., _, _, _, _, _, h, _, _ | .call .., _, _, _, _, _, h, _, _
+    split at h <;>
+      simp only [Option.bind_eq_some_iff, Option.ite_none_right_eq_some, reduceCtorEq] at h
+    obtain ⟨K1, h1, hc, h2⟩ := h
+    split at h2 <;> cases h2
+    rename_i hz hn
+    obtain ⟨hK1, ec⟩ := Map.use_fwd h1 hK
+    rw [Stmt.Holds] at hs
+    obtain ⟨hk, h0, h1'⟩ := hs
+    have Z := fun e => Map.stmts_fwd kret z _ _ _ _ next hz hK1 (h0 e)
+    have N := fun e => Map.stmts_fwd kret n _ _ _ _ next hn hK1 (h1' e)
+    refine ⟨hK1, (em (σ c = 0)).elim (fun e => (Z e).2.1) fun e => (N e).2.1, fun hr => ?_⟩
+    rw [Cmd.SatList, Cmd.Sat, ← Tm.eqb_sound hc, ← ec]
+    exact ⟨⟨hk, fun e => (Z e).2.2 Cmd.satList_nil, fun e => (N e).2.2 Cmd.satList_nil⟩, hr⟩
+  | .match_ x arms, K, K', rs, rs', next, h, hK, hs => by
+    rcases rs with _ | ⟨_ | _ | _ | _ | _ | _ | ⟨tc, rarms⟩, rs⟩ <;> rw [Map.stmt] at h <;>
+      try cases h
+    simp only [Option.bind_eq_some_iff, Option.ite_none_right_eq_some, Bool.and_eq_true,
+      Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨K1, h1, ⟨hc, ha⟩, rfl, rfl⟩ := h
+    obtain ⟨hK1, ec⟩ := Map.use_fwd h1 hK
+    rw [Stmt.Holds] at hs
+    obtain ⟨hn, hsat⟩ := Map.arms_fwd kret arms rarms 0 K1 x next ha hK1 hs
+    refine ⟨hK1, hn, fun hr => Cmd.satList_cons.mpr ⟨?_, hr⟩⟩
+    rw [Cmd.Sat, ← Tm.eqb_sound hc, ← ec]
+    exact hsat
+  | .call .., _, _, _, _, _, h, _, _
   | .callIf .., _, _, _, _, _, h, _, _ | .dispatch .., _, _, _, _, _, h, _, _
   | .ret _, _, _, _, _, _, h, _, _ => by rw [Map.stmt] at h; cases h
 
@@ -608,6 +782,25 @@ theorem Map.stmts_fwd {σ : Val} (kret : List E → Prop) :
     obtain ⟨hK1, hn, i1⟩ := Map.stmt_fwd kret s _ _ _ _ _ h1 hK hs
     obtain ⟨hK2, hn2, i2⟩ := Map.stmts_fwd kret ss _ _ _ _ _ h2 hK1 hn
     exact ⟨hK2, hn2, i1 ∘ i2⟩
+
+theorem Map.arms_fwd {σ : Val} (kret : List E → Prop) :
+    ∀ (arms : List (List Stmt)) (rarms : List (List (Cmd X))) (j K : Nat) (x : V) (next : Prop),
+      m.arms K arms rarms = true → m.Known σ K → Stmt.HoldsArms C rd σ x j arms next kret →
+      next ∧ Cmd.SatArms rd (m.rho σ) (σ x) j rarms
+  | [], _, _, _, _, _, _, _, hs => by rw [Stmt.HoldsArms] at hs; exact hs.elim
+  | _ :: _, [], _, _, _, _, h, _, _ => by simp [Map.arms] at h
+  | a :: as, r :: rs, j, K, x, next, h, hK, hs => by
+    rw [Map.arms, Bool.and_eq_true] at h
+    obtain ⟨h1, h2⟩ := h
+    rw [Stmt.HoldsArms] at hs
+    rw [Cmd.SatArms]
+    rcases hs with ⟨hx, ha⟩ | hs
+    · split at h1
+      · rename_i K' he
+        obtain ⟨-, hn, i⟩ := Map.stmts_fwd kret a K K' r [] next he hK ha
+        exact ⟨hn, .inl ⟨hx, i Cmd.satList_nil⟩⟩
+      · cases h1
+    · exact (Map.arms_fwd kret as rs (j + 1) K x next h2 hK hs).imp_right .inr
 end
 
 mutual
@@ -623,20 +816,26 @@ theorem Map.stmt_bwd {ρ : X → E} (kret : List E → Prop) :
   | .ite c z n, K, K', rs, rs', next, h, hs, hn => by
     rw [Map.stmt] at h
     unfold Map.branch at h
-    split at h
-    · simp only [Option.bind_eq_some_iff, Option.ite_none_right_eq_some] at h
-      obtain ⟨K1, h1, hc, h2⟩ := h
-      split at h2
-      · rename_i hz hn'
-        cases h2
-        rw [Cmd.SatList, Cmd.Sat, ← Tm.eqb_sound hc] at hs
-        obtain ⟨⟨hk, h0, h1'⟩, hr⟩ := hs
-        rw [Stmt.Holds]
-        exact ⟨hk, fun e => Map.stmts_bwd kret z _ _ _ _ next hz (h0 e) fun _ => hn hr,
-          fun e => Map.stmts_bwd kret n _ _ _ _ next hn' (h1' e) fun _ => hn hr⟩
-      · cases h2
-    · cases h
-  | .match_ .., _, _, _, _, _, h, _, _ | .call .., _, _, _, _, _, h, _, _
+    split at h <;>
+      simp only [Option.bind_eq_some_iff, Option.ite_none_right_eq_some, reduceCtorEq] at h
+    obtain ⟨K1, -, hc, h2⟩ := h
+    split at h2 <;> cases h2
+    rename_i hz hn'
+    rw [Cmd.SatList, Cmd.Sat, ← Tm.eqb_sound hc] at hs
+    obtain ⟨⟨hk, h0, h1'⟩, hr⟩ := hs
+    rw [Stmt.Holds]
+    exact ⟨hk, fun e => Map.stmts_bwd kret z _ _ _ _ next hz (h0 e) fun _ => hn hr,
+      fun e => Map.stmts_bwd kret n _ _ _ _ next hn' (h1' e) fun _ => hn hr⟩
+  | .match_ x arms, K, K', rs, rs', next, h, hs, hn => by
+    rcases rs with _ | ⟨_ | _ | _ | _ | _ | _ | ⟨tc, rarms⟩, rs⟩ <;> rw [Map.stmt] at h <;>
+      try cases h
+    simp only [Option.bind_eq_some_iff, Option.ite_none_right_eq_some, Bool.and_eq_true,
+      Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨K1, -, ⟨hc, ha⟩, rfl, rfl⟩ := h
+    rw [Cmd.SatList, Cmd.Sat, ← Tm.eqb_sound hc] at hs
+    rw [Stmt.Holds]
+    exact Map.arms_bwd kret arms rarms 0 K1 x next ha hs.1 (hn hs.2)
+  | .call .., _, _, _, _, _, h, _, _
   | .callIf .., _, _, _, _, _, h, _, _ | .dispatch .., _, _, _, _, _, h, _, _
   | .ret _, _, _, _, _, _, h, _, _ => by rw [Map.stmt] at h; cases h
 
@@ -655,6 +854,24 @@ theorem Map.stmts_bwd {ρ : X → E} (kret : List E → Prop) :
     rw [Stmt.HoldsList]
     exact Map.stmt_bwd kret s _ _ _ _ _ h1 hs fun hr =>
       Map.stmts_bwd kret ss _ _ _ _ _ h2 hr hn
+
+theorem Map.arms_bwd {ρ : X → E} (kret : List E → Prop) :
+    ∀ (arms : List (List Stmt)) (rarms : List (List (Cmd X))) (j K : Nat) (x : V) (next : Prop),
+      m.arms K arms rarms = true → Cmd.SatArms rd ρ (m.sig ρ x) j rarms → next →
+      Stmt.HoldsArms C rd (m.sig ρ) x j arms next kret
+  | _, [], _, _, _, _, _, hs, _ => by rw [Cmd.SatArms] at hs; exact hs.elim
+  | [], _ :: _, _, _, _, _, h, _, _ => by simp [Map.arms] at h
+  | a :: as, r :: rs, j, K, x, next, h, hs, hn => by
+    rw [Map.arms, Bool.and_eq_true] at h
+    obtain ⟨h1, h2⟩ := h
+    rw [Cmd.SatArms] at hs
+    rw [Stmt.HoldsArms]
+    rcases hs with ⟨hx, ha⟩ | hs
+    · split at h1
+      · rename_i K' he
+        exact .inl ⟨hx, Map.stmts_bwd kret a K K' r [] next he ha fun _ => hn⟩
+      · cases h1
+    · exact .inr (Map.arms_bwd kret as rs (j + 1) K x next h2 hs hn)
 end
 
 theorem Map.body_fwd {σ : Val} {kret : List E → Prop} :
@@ -676,8 +893,7 @@ theorem Map.body_fwd {σ : Val} {kret : List E → Prop} :
     · split at h
       · rename_i p h1
         obtain ⟨hK1, hn, i⟩ := Map.stmt_fwd kret s _ _ _ _ _ h1 hK hs
-        obtain ⟨hr, hk⟩ := Map.body_fwd ss _ _ rets h hK1 hn
-        exact ⟨i hr, hk⟩
+        exact (Map.body_fwd ss _ _ rets h hK1 hn).imp_left i
       · cases h
 
 theorem Map.body_bwd {ρ : X → E} {kret : List E → Prop} :
@@ -701,32 +917,179 @@ theorem Map.body_bwd {ρ : X → E} {kret : List E → Prop} :
         exact Map.stmt_bwd kret s _ _ _ _ _ h1 hs fun hr => Map.body_bwd ss _ _ rets h hr hk
       · cases h
 
-/-- **A linked core function is its reference function**: the same relation on the memory, the
-arguments and the return words. -/
-theorem Linked.sem_iff [Coded X] {f : Fn} {r : Func X} (h : Linked f r = true)
-    (args rets : List E) : f.Sem C rd args rets ↔ r.Sem rd args rets := by
-  unfold Linked Map.check at h
+omit [DecidableEq X] in
+private theorem map_v_eval (ρ : X → E) (l : List X) : (l.map Tm.v).map (Tm.eval ρ) = l.map ρ := by
+  rw [List.map_map]; rfl
+
+/-! ## A body in pieces -/
+
+/-- A list cut into pieces of the given lengths, and the rest. -/
+def cutAt {α : Type} : List Nat → List α → List (List α)
+  | [], l => [l]
+  | c :: cs, l => l.take c :: cutAt cs (l.drop c)
+
+theorem flatten_cutAt {α : Type} : ∀ (cs : List Nat) (l : List α), (cutAt cs l).flatten = l
+  | [], l => by simp [cutAt]
+  | c :: cs, l => by rw [cutAt, List.flatten_cons, flatten_cutAt cs, List.take_append_drop]
+
+theorem length_cutAt {α : Type} :
+    ∀ (cs : List Nat) (l : List α), (cutAt cs l).length = cs.length + 1
+  | [], _ => rfl
+  | _ :: cs, l => by rw [cutAt, List.length_cons, length_cutAt cs, List.length_cons]
+
+/-- A piece of a body answers its commands exactly from the known values `K`, leaving those of
+`Kc` known. -/
+def Map.segOk (m : Map X) (K Kc : Nat) (ss : List Stmt) (rs : List (Cmd X)) : Bool :=
+  match m.stmts K ss rs with
+  | some (k, []) => k &&& Kc == Kc
+  | _ => false
+
+/-- A body in pieces against its commands in pieces: each piece but the last answers its commands
+from the known values `K` (the first) or `Kc` (the others), leaving those of `Kc` known, and the
+last ends the body, returning `rets`. -/
+def Map.Pieces (m : Map X) (Kc : Nat) (rets : List (Tm X)) :
+    Nat → List (List Stmt) → List (List (Cmd X)) → Prop
+  | K, [ss], [rs] => m.body K ss rs rets = true
+  | K, ss :: s' :: P, rs :: r' :: Q =>
+      m.segOk K Kc ss rs = true ∧ Map.Pieces m Kc rets Kc (s' :: P) (r' :: Q)
+  | _, _, _ => False
+
+omit [DecidableEq X] in
+private theorem Map.known_mono {σ : Val} {K Kc : Nat} (h : K &&& Kc = Kc) (hK : m.Known σ K) :
+    m.Known σ Kc :=
+  ⟨hK.1, fun k hk => hK.2 k (by
+    rw [← h, Nat.testBit_and] at hk; exact ((Bool.and_eq_true _ _).mp hk).1)⟩
+
+private theorem Map.segOk_eq {K Kc : Nat} {ss : List Stmt} {rs : List (Cmd X)}
+    (h : m.segOk K Kc ss rs = true) :
+    ∃ k, m.stmts K ss rs = some (k, []) ∧ k &&& Kc = Kc := by
+  unfold Map.segOk at h
+  split at h
+  exacts [⟨_, ‹_›, by simpa using h⟩, by cases h]
+
+private theorem Map.pieces_fwd {σ : Val} {kret : List E → Prop} {Kc : Nat} {rets : List (Tm X)} :
+    ∀ (K : Nat) (P : List (List Stmt)) (Q : List (List (Cmd X))), m.Pieces Kc rets K P Q →
+      m.Known σ K → Stmt.HoldsList C rd σ P.flatten False kret →
+      Cmd.SatList rd (m.rho σ) Q.flatten ∧ kret (rets.map (Tm.eval (m.rho σ)))
+  | K, [ss], [rs], h, hK, hb => by
+    rw [Map.Pieces] at h
+    simp only [List.flatten_cons, List.flatten_nil, List.append_nil] at hb ⊢
+    exact Map.body_fwd _ _ _ _ h hK hb
+  | K, ss :: s' :: P, rs :: r' :: Q, h, hK, hb => by
+    rw [Map.Pieces] at h
+    obtain ⟨k, hs, hk⟩ := Map.segOk_eq h.1
+    rw [List.flatten_cons, holdsList_append] at hb
+    obtain ⟨hK', hn, i⟩ := Map.stmts_fwd kret ss _ _ _ _ _ hs hK hb
+    obtain ⟨hr, hret⟩ := Map.pieces_fwd Kc _ _ h.2 (Map.known_mono hk hK') hn
+    exact ⟨by rw [List.flatten_cons, Cmd.satList_append]; exact ⟨i Cmd.satList_nil, hr⟩, hret⟩
+  | _, [], _, h, _, _ | _, _ :: _, [], h, _, _ | _, [_], _ :: _ :: _, h, _, _
+  | _, _ :: _ :: _, [_], h, _, _ => by simp [Map.Pieces] at h
+
+private theorem Map.pieces_bwd {ρ : X → E} {kret : List E → Prop} {Kc : Nat} {rets : List (Tm X)} :
+    ∀ (K : Nat) (P : List (List Stmt)) (Q : List (List (Cmd X))), m.Pieces Kc rets K P Q →
+      Cmd.SatList rd ρ Q.flatten → kret (rets.map (Tm.eval ρ)) →
+      Stmt.HoldsList C rd (m.sig ρ) P.flatten False kret
+  | K, [ss], [rs], h, hs, hk => by
+    rw [Map.Pieces] at h
+    simp only [List.flatten_cons, List.flatten_nil, List.append_nil] at hs ⊢
+    exact Map.body_bwd _ _ _ _ h hs hk
+  | K, ss :: s' :: P, rs :: r' :: Q, h, hs, hk => by
+    rw [Map.Pieces] at h
+    obtain ⟨k, hst, -⟩ := Map.segOk_eq h.1
+    rw [List.flatten_cons, Cmd.satList_append] at hs
+    rw [List.flatten_cons, holdsList_append]
+    exact Map.stmts_bwd kret ss _ _ _ _ _ hst hs.1 fun _ => Map.pieces_bwd Kc _ _ h.2 hs.2 hk
+  | _, [], _, h, _, _ | _, _ :: _, [], h, _, _ | _, [_], _ :: _ :: _, h, _, _
+  | _, _ :: _ :: _, [_], h, _, _ => by simp [Map.Pieces] at h
+
+/-- `Map.Pieces` from its pieces read by index: the first from `K`, the others from `Kc`. -/
+theorem Map.pieces_of {Kc : Nat} {rets : List (Tm X)} :
+    ∀ (n K : Nat) (P : List (List Stmt)) (Q : List (List (Cmd X))), P.length = n + 1 →
+      Q.length = n + 1 →
+      (∀ i < n, m.segOk (if i = 0 then K else Kc) Kc (P.getD i []) (Q.getD i []) = true) →
+      m.body (if n = 0 then K else Kc) (P.getD n []) (Q.getD n []) rets = true →
+      m.Pieces Kc rets K P Q
+  | 0, K, P, Q, hP, hQ, _, ht => by
+    obtain ⟨ss, rfl⟩ := List.length_eq_one_iff.mp hP
+    obtain ⟨rs, rfl⟩ := List.length_eq_one_iff.mp hQ
+    rw [Map.Pieces]
+    simpa using ht
+  | n + 1, K, P, Q, hP, hQ, hs, ht => by
+    match P, Q, hP, hQ with
+    | ss :: s' :: P, rs :: r' :: Q, hP, hQ =>
+      rw [Map.Pieces]
+      exact ⟨by simpa using hs 0 (by omega), Map.pieces_of n Kc _ _ (by simpa using hP)
+        (by simpa using hQ) (fun i hi => by simpa using hs (i + 1) (by omega)) (by simpa using ht)⟩
+    | [], _, h, _ | [_], _, h, _ | _, [], _, h | _, [_], _, h => simp at h
+
+/-! ## Owners at given values -/
+
+/-- Each listed core value is the owner of the listed name. -/
+def ownersAt (m : Map X) (pos : List (Nat × X)) : Bool :=
+  pos.all fun p => match m.e p.1 with
+    | (.v x, true) => decide (x = p.2)
+    | _ => false
+
+/-! ## Soundness of a check -/
+
+/-- **A map that checks a core function's body in pieces makes it its reference function**: from
+a valuation of the core values, the names' (their owners' words) satisfy the commands and give
+the return words; the listed values own their names. -/
+theorem Map.pieces_fwd_at [Coded X] {f : Fn} {r : Func X} {K Kc : Nat}
+    {P : List (List Stmt)} {Q : List (List (Cmd X))} {pos : List (Nat × X)}
+    (hd : distinct m.ent 0 = true) (hu : m.uses 0 f.params = some K)
+    (hp : f.params.map m.h = r.params.map .v) (hP : f.body = P.flatten) (hQ : r.body = Q.flatten)
+    (hs : m.Pieces Kc r.rets K P Q) (hpos : ownersAt m pos = true) {σ : Val}
+    {kret : List E → Prop} (hb : Stmt.HoldsList C rd σ f.body False kret) :
+    f.params.map σ = r.params.map (m.rho σ) ∧ (∀ p ∈ pos, m.rho σ p.2 = σ (.n p.1)) ∧
+      Cmd.SatList rd (m.rho σ) r.body ∧ kret (r.rets.map (Tm.eval (m.rho σ))) := by
+  obtain ⟨hK, ep⟩ := Map.uses_fwd (σ := σ) hu
+    ⟨fun _ _ => Map.rho_owner hd σ, fun k hk => by simp at hk⟩
+  obtain ⟨hsat, hret⟩ := Map.pieces_fwd K P Q hs hK (hP ▸ hb)
+  refine ⟨by rw [ep, hp, map_v_eval], fun p hp => ?_, hQ ▸ hsat, hret⟩
+  have := List.all_eq_true.mp hpos p hp
+  split at this
+  · rename_i x he
+    rw [← of_decide_eq_true this]
+    exact Map.rho_owner hd σ he
+  · cases this
+
+/-- **A map that checks a core function's body in pieces makes it its reference function**: the
+same relation on the memory, the arguments and the return words. -/
+theorem Map.pieces_sem_iff [Coded X] {f : Fn} {r : Func X} {K Kc : Nat}
+    {P : List (List Stmt)} {Q : List (List (Cmd X))}
+    (hd : distinct m.ent 0 = true) (hu : m.uses 0 f.params = some K)
+    (hp : f.params.map m.h = r.params.map .v) (hP : f.body = P.flatten) (hQ : r.body = Q.flatten)
+    (hs : m.Pieces Kc r.rets K P Q) (args rets : List E) :
+    f.Sem C rd args rets ↔ r.Sem rd args rets := by
   unfold Fn.Sem Func.Sem
+  constructor
+  · rintro ⟨σ, rfl, hb⟩
+    obtain ⟨ep, -, hsat, hret⟩ := Map.pieces_fwd_at (pos := []) hd hu hp hP hQ hs rfl hb
+    exact ⟨_, ep.symm, hsat, hret⟩
+  · rintro ⟨ρ, rfl, hsat, hret⟩
+    refine ⟨m.sig ρ, ?_, hP ▸ Map.pieces_bwd K P Q hs (hQ ▸ hsat) hret⟩
+    rw [← map_v_eval ρ r.params, ← hp, List.map_map]
+    rfl
+
+/-- **A map that checks a core function makes it its reference function**: the same relation on
+the memory, the arguments and the return words. -/
+theorem Map.check_sem_iff [Coded X] {f : Fn} {r : Func X} (h : m.check f r = true)
+    (args rets : List E) : f.Sem C rd args rets ↔ r.Sem rd args rets := by
+  unfold Map.check at h
   rw [Bool.and_eq_true] at h
-  obtain ⟨hd, h⟩ := h
   split at h
   · rename_i K hu
     rw [Bool.and_eq_true] at h
-    obtain ⟨hp, hb⟩ := h
-    have hp := Tm.eqbs_sound hp
-    have vmap : ∀ (ρ : X → E) (l : List X), (l.map Tm.v).map (Tm.eval ρ) = l.map ρ :=
-      fun ρ l => by rw [List.map_map]; rfl
-    constructor
-    · rintro ⟨σ, rfl, hs⟩
-      obtain ⟨hK, ep⟩ := Map.uses_fwd (σ := σ) hu
-        ⟨fun _ _ => Map.rho_owner hd σ, fun k hk => by simp at hk⟩
-      obtain ⟨hsat, hret⟩ := Map.body_fwd _ _ _ _ hb hK hs
-      exact ⟨_, by rw [ep, hp, vmap], hsat, hret⟩
-    · rintro ⟨ρ, rfl, hsat, hret⟩
-      refine ⟨(infer f r).sig ρ, ?_, Map.body_bwd _ _ _ _ hb hsat hret⟩
-      rw [← vmap ρ r.params, ← hp, List.map_map]
-      rfl
-  · cases h
+    exact Map.pieces_sem_iff (Kc := 0) (P := [f.body]) (Q := [r.body]) h.1 hu
+      (Tm.eqbs_sound h.2.1) (by simp) (by simp) h.2.2 args rets
+  · exact absurd h.2 (by simp)
+
+/-- **A linked core function is its reference function**: the same relation on the memory, the
+arguments and the return words. -/
+theorem Linked.sem_iff [Coded X] {f : Fn} {r : Func X} (h : Linked f r = true)
+    (args rets : List E) : f.Sem C rd args rets ↔ r.Sem rd args rets :=
+  Map.check_sem_iff h args rets
 
 end
 end LeanVM.Guest.Ref
