@@ -4,7 +4,7 @@
   The transcript's contracts at the image (`liftProg Gen.fns`): each `ok` at its function's index, with the
   generated link (`Gen.….link`, `tmpl_eq`, `wf`) and the stack each needs (`Gen.Needs`, each bound by `decide`),
   from the runtime's table and, where a callee is not proved at the image yet (`compiler_builtins`' `memcpy` and
-  `memset`, `keccak_f`, `Sponge::new`), its contract as a hypothesis. The indices are the generator's (`Rv64mc/Gen/index.tsv`).
+  `memset`, `keccak_f`, `Sponge::new`, `alloc`, `Vec::reserve`), its contract as a hypothesis. The indices are the generator's (`Rv64mc/Gen/index.tsv`).
 -/
 
 import Rv64mc.Proof.Transcript.Next
@@ -17,6 +17,8 @@ import Rv64mc.Proof.Transcript.GrindCheck
 import Rv64mc.Proof.Transcript.GrindingBits
 import Rv64mc.Proof.Transcript.New
 import Rv64mc.Proof.Transcript.Duplex
+import Rv64mc.Proof.Transcript.Samples
+import Rv64mc.Gen.Link.Verifier.Transcript.Transcript.Samples
 import Rv64mc.Gen.Link.Verifier.Transcript.Sponge.Duplex
 import Rv64mc.Table.Runtime
 import Rv64mc.Gen.Needs
@@ -85,6 +87,15 @@ theorem grindCheck :
   Proof.Transcript.GrindCheck.ok env _ Idx.Verifier.Transcript.Transcript.GrindCheck _ Verifier.Transcript.Transcript.GrindCheck.tmpl_eq
     Verifier.Transcript.Transcript.GrindCheck.wf (by decide) (by decide) (next env) (absorbNonce env hcb hsb hkf)
 
+theorem samples
+    (hal : Spec.Runtime.AllocSpec env (liftProg fns) Idx.VerifierRv64.Bump.AsGlobalAlloc.Alloc
+      Needs.VerifierRv64.Bump.AsGlobalAlloc.Alloc)
+    (hres : Spec.Runtime.ReserveSpec env 8 16 (liftProg fns) Idx.Alloc.Vec.VecE.Reserve Needs.Alloc.Vec.VecE.Reserve) :
+    Spec.Transcript.Samples.spec env (liftProg fns) 132 Needs.Verifier.Transcript.Transcript.Samples :=
+  Proof.Transcript.Samples.ok env _ 132 _ Verifier.Transcript.Transcript.Samples.tmpl_eq
+    Verifier.Transcript.Transcript.Samples.wf (by decide) (by decide) (by decide) (by decide) hal hres
+    (Table.Runtime.handleError env) (sample env hcb hsb hkf)
+
 end Duplex
 
 theorem new (hsn : Spec.Transcript.SpongeNew.spec env (liftProg fns) Idx.Verifier.Transcript.Sponge.New Needs.Verifier.Transcript.Sponge.New) :
@@ -105,3 +116,7 @@ end Rv64mc.Table.Transcript
 /-- info: 'Rv64mc.Table.Transcript.grindingBits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.Transcript.grindingBits
+
+/-- info: 'Rv64mc.Table.Transcript.samples' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.Transcript.samples
