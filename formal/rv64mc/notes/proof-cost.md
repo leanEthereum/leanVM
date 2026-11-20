@@ -1,6 +1,6 @@
 # What a per-function proof costs, and why
 
-Measured on the shared 32-core host (load 25 to 35 from other sessions), CPU seconds: for one declaration, Lean's profiler (tactic execution plus kernel type checking); for a file, `/usr/bin/time` on `lake env lean` less the imports (about 5.4 s). Wall time is not comparable under the host's load. The benchmark is `<E as Mul>::mul` (61 instructions, 18 memory operations, 5 calls) over its relocatable template, with phase 0's contract unchanged (`Rv64mc/Tactic/Bench/EMulAuto.lean`; the `lsym` proof it replaces is phase 0's `Probe/EMul.lean`).
+Measured on the shared 32-core host (load 25 to 35 from other sessions), CPU seconds: for one declaration, Lean's profiler (tactic execution plus kernel type checking); for a file, `/usr/bin/time` on `lake env lean` less the imports (about 5.4 s). Wall time is not comparable under the host's load. The benchmark is `<E as Mul>::mul` (61 instructions, 18 memory operations, 5 calls) over its relocatable template, with phase 0's contract unchanged (a copy of the template under `Rv64mc/Tactic/Bench/`, and the `lsym` proof it replaced in `Rv64mc/Probe/`, both since removed; `Proof/Field/EMul.lean` is the proof of the image's function).
 
 ## The cost curve on `E::mul`
 

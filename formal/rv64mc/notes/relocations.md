@@ -9,4 +9,4 @@ The guest links with `--emit-relocs` and `--no-relax` (`guest/build.rs`); `scrip
 - `.rodata` holds 147 `R_RISCV_64` absolute words (vtables of `Box<dyn Fn>`, panic locations), each equal to its target: the data image the link step checks depends on addresses through these words only.
 - No jump tables (`-C jump-tables=no`): no `jalr` through a loaded address except the `Box<dyn Fn>` calls (23 `jalr` through `a*`/`s*` registers), which the crates rewrite removes.
 
-The call site's two constants, the `auipc` value `hi` and the `jalr` offset `lo`, change whenever the distance to the callee changes, even for an unchanged caller, so a template takes each site as a field (`Site`) and its callee as another (`Callee`: index and entry), tied by `Site.WF` and `Callee.WF` (`Rv64mc/Probe/Link.lean`).
+The call site's two constants, the `auipc` value `hi` and the `jalr` offset `lo`, change whenever the distance to the callee changes, even for an unchanged caller, so a template takes each site as a field (`Site`) and its callee as another (`Callee`: index and entry), tied by `Site.WF` and `Callee.WF` (`Rv64mc/Link/Basic.lean`).

@@ -1,6 +1,6 @@
 # Templates and the link step
 
-`scripts/regen.sh` builds the guest (or takes `--elf`), lifts it with machine-checked's `decompile --to lean --proved` and runs `scripts/gen.py`, which writes `Rv64mc/Gen/` (gitignored): per function a template `Tmpl/<M>.lean` and a link module `Link/<M>.lean`, plus `Words.lean`, `Index.lean`, `hashes.tsv`, `index.tsv`. `gen.py --diff OLD NEW` lists the templates that changed. A proof imports a template and `Rv64mc.Link.Basic` only (as `Probe/EMul.lean` does), so it is rebuilt only when that function's own code changes.
+`scripts/regen.sh` builds the guest (or takes `--elf`), lifts it with machine-checked's `decompile --to lean --proved` and runs `scripts/gen.py`, which writes `Rv64mc/Gen/` (gitignored): per function a template `Tmpl/<M>.lean` and a link module `Link/<M>.lean`, plus `Words.lean`, `Index.lean`, `hashes.tsv`, `index.tsv`. `gen.py --diff OLD NEW` lists the templates that changed. A proof imports a template and `Rv64mc.Link.Basic` only (as `Proof/Field/EMul.lean` does), so it is rebuilt only when that function's own code changes.
 
 ## The canonical image
 
@@ -42,4 +42,4 @@ Iteration, both from `c0` (a clean build of the canonical sources): C1 changes 1
 - The floor is the whole link step: `Words` is one module, and each `Link` module's kernel check evaluates `liftProg fns`, which depends on every function's entry through `entryOf`.
 - A relocatable lift theorem in machine-checked (`liftFn` parametric in the function's base and a table of callee entries) would let the link step check only each function's own words and one entry table, instead of re-evaluating `liftProg` over the whole program per function.
 - A callee field named like a Lean token (`stack`, `next`, `at`) needs `«»`; `gen.py` escapes callee fields in the link module's values and a fixed list in templates.
-- `Probe/EMul.lean` imports a generated module: run `regen.sh` before building it.
+- Every proof imports a generated module: run `regen.sh` before building.

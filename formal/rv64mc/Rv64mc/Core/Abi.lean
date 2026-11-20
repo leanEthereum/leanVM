@@ -2,7 +2,7 @@
   Rv64mc.Core.Abi
 
   The entry every contract's precondition assumes (`Entry`). The registers and memory a call keeps are `Holds`'s
-  (`Core/Holds.lean`: `AbiRegs`, `Env.Frame`); the phase-0 probes' `Abi` is in `Probe/Abi.lean`.
+  (`Core/Holds.lean`: `AbiRegs`, `Env.Frame`).
 -/
 
 import LprogRiscV.Lsym
