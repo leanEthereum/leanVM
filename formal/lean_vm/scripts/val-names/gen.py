@@ -13,6 +13,9 @@ writes nothing and fails when a file differs. Run from `lean_vm`.
 """
 import os, re, subprocess, sys
 
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import genfiles  # noqa: E402
+
 ROOT = os.getcwd()
 OUT = os.path.join("LeanVM", "Guest", "Data", "ValNames")
 SKIP = (os.path.join("LeanVM", "Guest", "Data"), os.path.join("LeanVM", "Guest", "Pack"))
@@ -92,20 +95,12 @@ def main():
     if bad:
         print("\n".join(bad), file=sys.stderr)
         return 1
-    stale = [os.path.join(OUT, x) for x in (os.listdir(OUT) if os.path.isdir(OUT) else []) if os.path.join(OUT, x) not in files]
-    diff = [p for p, s in files.items() if not os.path.exists(p) or open(p, encoding="utf-8").read() != s]
-    if check:
-        for p in diff + stale:
-            print(f"{p} is stale", file=sys.stderr)
-        return 1 if diff or stale else 0
-    os.makedirs(OUT, exist_ok=True)
-    for p in diff:
-        open(p, "w", encoding="utf-8").write(files[p])
-    for p in stale:
-        os.remove(p)
-    print(f"val-names: {sum(len(r) for r in c.values())} names of {len(files)} functions, {len(diff)} written")
+    existing = [os.path.join(OUT, x) for x in (os.listdir(OUT) if os.path.isdir(OUT) else [])]
+    stale = genfiles.sync(files, existing, check)
+    genfiles.fail_if_stale(stale, check)
+    if not check:
+        print(f"val-names: {sum(len(r) for r in c.values())} names of {len(files)} functions, {len(stale)} written or removed")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())
