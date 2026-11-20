@@ -135,6 +135,10 @@ def decls(code):
 
 
 BODIES = {}
+# the templates that spell a value's number (`.n 12`) or are tied to a body directly: only they are in
+# one function's numbering; a builder of statements from a base it is given (`booleans b n`, `cst`),
+# tied only through the templates that use it, is in none
+FIXED = set()
 
 
 def global_ties(roots=("LeanVM",)):
@@ -170,6 +174,10 @@ def global_ties(roots=("LeanVM",)):
                         # them in another numbering: nothing it names inherits its tie
                         body = text.split(":=", 1)[1] if ":=" in text else ""
                         mapped[n.split(".")[-1]] = (body, set(IDENT.findall(body)))
+                        if re.search(r'(?<![\w])(?:V\.n|\.n)\s+\(?(?:\d|valf?%)', body): FIXED.add(n.split(".")[-1])
+                        # a template that is a body or a piece of one (`vbgBody := (fn% «f»).body`)
+                        for g in functions(body, {}):
+                            raw.setdefault(n.split(".")[-1], set()).add(g)
     # a template that renames statements (`renameList`), or maps them by a function that renames
     # (`.map glcMap`), holds them in another numbering: it is tied to nothing, nothing it names
     # inherits a tie through it
@@ -183,7 +191,8 @@ def global_ties(roots=("LeanVM",)):
     bodies = {x: ys for x, ys in bodies.items() if len(where.get(x, ())) == 1}
     BODIES.update(bodies)
     ties = {x: fs for x, fs in raw.items() if x in bodies and x not in renaming}
-    direct = set(ties)
+    # tied to a body directly: evidence like a template that spells numbers
+    FIXED.update(ties)
     changed = True
     while changed:
         changed = False
@@ -193,14 +202,6 @@ def global_ties(roots=("LeanVM",)):
             for y in bodies.get(x, ()):
                 if y in bodies and y != x and y not in renaming and not ties.get(y, set()) >= ties[x]:
                     ties.setdefault(y, set()).update(ties[x]); work.append(y)
-        # an untied template that is a piece of exactly one directly tied template (`vkPre :=
-        # vkT.dropLast`, `secA1 := (layerT 0).take k`) holds its statements; a template of several
-        # pieces (`glTail`, canonically numbered) inherits nothing
-        for x, names in bodies.items():
-            if x in ties or x in renaming: continue
-            src = [y for y in names if y in direct and y != x]
-            if len(src) == 1 and not [y for y in names if y in bodies and y not in direct and y != x]:
-                ties[x] = set(ties[src[0]]); changed = True
         # a kernel-checked equation `T = A ++ B` of a tied template ties `A`, `B`
         for lhs, rhs in eqs:
             if lhs in ties and lhs not in renaming:
@@ -298,7 +299,7 @@ def classify(path, src, overrides, vals, stmts, cnames, ties, families, where):
                 sets = [{g} for g in functions(text, cnames)]
                 seen = closure(path)
                 sets += [ties[x] for x in set(IDENT.findall(text)) | {n}
-                         if x in ties and where.get(x) in seen and (x == n or not bound_here(x, text))]
+                         if x in ties and x in FIXED and where.get(x) in seen and (x == n or not bound_here(x, text))]
                 if sets:
                     fs = set.intersection(*sets)
                     if not fs:
