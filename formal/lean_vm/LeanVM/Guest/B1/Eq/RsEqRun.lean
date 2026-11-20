@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Eq.RsLoop
 public import LeanVM.Guest.B1.Bits.GPower
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.B1.Common.Vc
 
 /-!
 # `rs_eq_run` (lean_ethereum.py)
@@ -287,212 +288,139 @@ theorem chunk_of_meaning {rd : Reader} {chain z p ret : E} {n t : ℕ} (hn : 0 <
   · simp only [List.cons.injEq, and_true] at hret
     exact ⟨zt, pt, ct, hz, hp, ⟨rz, rp, hc, rc, hst⟩, hret⟩
 
-/-- **`rs_eq_run`'s core IR computes its meaning.** -/
-theorem rs_eq_run_sound (rd : Reader) (args rets : List E)
-    (h : coreProgram.Rel rd "rs_eq_run" args rets) : MeaningRsEqRun rd args rets := by
+/-- Three pinned bits, as the body multiplies them: `g^r` for some `r < 8`. -/
+private theorem rs_bits {b0 b1 b2 : E} (h0 : b0 = b0 * b0) (h1 : b1 = b1 * b1) (h2 : b2 = b2 * b2) :
+    ∃ r < 8, (1 + b0 * word 3 0) * (1 + b1 * word 5 0) * (1 + b2 * word 17 0) = gen ^ r := by
   obtain ⟨w3, w5, w17⟩ := rs_consts
-  rw [rel_iff_sem find_rs_eq_run, show Fn.params fn% «rs_eq_run» = [.n 0, .n 1, .n 2,
-      .n 3] from rfl,
-    rs_eq_run_body, rsBody] at h
-  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and] at h
-  obtain ⟨σ, hp, b0, h10, h11, h12, h13, b1, h14, h15, h16, h17, h18, b2, h19, h20, h21, h22, h23,
-    b3, h24, h25, h26, h27, b4, h28, h29, h30, h31, h32, b5, h33, h34, h35, h36, h37, h38, h39,
-    h40, h41, ha, h42, h43, h44, hK, hcall, h45, h46, h47, h48, h49, h50, h51, h52, h53, h54,
-    h55, h56, ⟨j, hj, hx, hdisp⟩, h58, hret⟩ := h
-  subst hp
-  have hbr : ∀ j < 3, σ (.n (4 + j)) * σ (.n (4 + j)) = σ (.n (4 + j)) := by
-    intro j hj; interval_cases j
-    exacts [b0.symm, b1.symm, b2.symm]
-  have hbq : ∀ j < 3, σ (.n (7 + j)) * σ (.n (7 + j)) = σ (.n (7 + j)) := by
-    intro j hj; interval_cases j
-    exacts [b3.symm, b4.symm, b5.symm]
-  have rg : σ (.n 23) = ∏ j ∈ Finset.range 3, (1 + σ (.n (4 + j)) * (gen ^ 2 ^ j + 1)) := by
-    simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul]
-    rw [h23, h18, h13, h17, h22, h12, h16, h21, h10, h14, h19, h11, h15, h20, w3, w5, w17, word_one]
-  have qg : σ (.n 37) = ∏ j ∈ Finset.range 3, (1 + σ (.n (7 + j)) * (gen ^ 2 ^ j + 1)) := by
-    simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul]
-    rw [h37, h32, h27, h31, h36, h26, h30, h35, h24, h28, h33, h25, h29, h34, w3, w5, w17, word_one]
-  rw [prod_gen_pow_of_bool hbr] at rg
-  rw [prod_gen_pow_of_bool hbq] at qg
-  set r := bitsVal (fun j ↦ decide (σ (.n (4 + j)) = 1)) 3 with hrdef
-  set q := bitsVal (fun j ↦ decide (σ (.n (7 + j)) = 1)) 3 with hqdef
-  have hr8 : r < 8 := bitsVal_lt _ 3
-  have hq8 : q < 8 := bitsVal_lt _ 3
-  have hcg : σ (.n 3) = gen ^ (8 * q + r) := by
-    rw [← e_add_eq_zero_iff.mp ha, h41, h40, h39, h38, qg, rg, ← pow_add, ← pow_add, ← pow_add,
-      ← pow_add]
-    congr 1; ring
-  -- the loop over the full chunks
-  rw [h43, h42, word_one] at hK hcall
-  rw [h44, word_one] at hcall
-  obtain ⟨m, hm, hm', hB⟩ := (guarded_loop_rel_iff
-    (fun d x ↦ loop5_sound rd (σ (.n 37)) (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) d x)
-    (fun x hb hk hn ↦ loop5_complete rd _ _ _ _ x hb hk hn)).mp ⟨hK, hcall⟩
-  have hmq : m = q := by
-    rw [qg] at hm'
-    exact gen_pow_inj hm (by show q < 2 ^ 64 - 1; omega) hm'.symm
-  subst hmq
-  have hch : ∀ t < q, ∃ zt pt ct, zt.length = 8 ∧ pt.length = 8 ∧
-      ChunkOk rd (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) t zt pt ct := fun t ht ↦ by
-    obtain ⟨ret, hr⟩ := hB t ht
-    rw [← pow_mul, ← pow_mul, Nat.mul_comm t 64, Nat.mul_comm t 8] at hr
-    obtain ⟨zt, pt, ct, a, b, c, -⟩ :=
-      chunk_of_meaning (by norm_num) ((rs_eq_rows_holds 8 le_rfl rd _ _).1 hr)
-    exact ⟨zt, pt, ct, a, b, c⟩
-  choose! Zc Pc Cc hZc hPc hCc using hch
-  -- the remainder
-  have hj' : j = r := by
-    rw [rg, gen_pow_eq_ofK] at hx
-    exact gen_pow_inj (by simp only [List.length_cons, List.length_nil] at hj; show j < 2 ^ 64 - 1; omega) (by show r < 2 ^ 64 - 1; omega)
-      (by rw [gen_pow_eq_ofK, gen_pow_eq_ofK]; exact hx.symm)
-  subst hj'
-  rw [rsNames_get _ hj] at hdisp
-  have e53 : σ (.n 53) = gen ^ (64 * q) := by
-    rw [h53, h52, h51, h50, h49, h48, qg]; ring
-  have e47 : σ (.n 47) = gen ^ (8 * q) := by rw [h47, h46, h45, qg]; ring
-  rw [h54, h55, h56, e53, e47] at hdisp
-  have hm8 := (rs_eq_rows_holds r (by omega) rd _ _).1 hdisp
-  obtain ⟨Zl, Pl, Cl, hZl, hPl, hl, h57⟩ : ∃ Zl Pl Cl, Zl.length = r ∧ Pl.length = r ∧
-      (0 < r → ChunkOk rd (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) q Zl Pl Cl) ∧
-      σ (.n 57) = σ (.n 0) * gen ^ (64 * ((8 * q + r + 7) / 8)) := by
-    rcases Nat.eq_zero_or_pos r with h0 | h0
-    · rcases hm8 with ⟨-, hr⟩ | ⟨h, -⟩
-      · simp only [List.cons.injEq, and_true] at hr
-        refine ⟨[], [], [], by simp [h0], by simp [h0], fun h ↦ absurd h (by omega), ?_⟩
-        rw [hr, show (8 * q + r + 7) / 8 = q by omega]
-      · omega
-    · obtain ⟨zt, pt, ct, a, b, c, d⟩ := chunk_of_meaning h0 hm8
-      refine ⟨zt, pt, ct, a, b, fun _ ↦ c, ?_⟩
-      rw [d, mul_assoc, ← pow_add, show (8 * q + r + 7) / 8 = q + 1 by omega]
-      ring_nf
-  let Z : ℕ → List E := fun t ↦ if t < q then Zc t else Zl
-  let P : ℕ → List E := fun t ↦ if t < q then Pc t else Pl
-  let C : ℕ → List E := fun t ↦ if t < q then Cc t else Cl
-  obtain ⟨lz, lp, lc, rz, rp, rc, rows⟩ := rows_of_chunks (rd := rd) (chain := σ (.n 0))
-    (z := σ (.n 1)) (p := σ (.n 2)) (q := q) (r := r) (by omega) Z P C
-    (fun t ht ↦ by simp only [Z, ite_pos' ht]; exact hZc t ht)
-    (fun t ht ↦ by simp only [P, ite_pos' ht]; exact hPc t ht)
-    (by simp only [Z, ite_neg' (lt_irrefl q)]; exact hZl)
-    (by simp only [P, ite_neg' (lt_irrefl q)]; exact hPl)
-    (fun t ht ↦ by simp only [Z, P, C, ite_pos' ht]; exact hCc t ht)
-    (fun h ↦ by simp only [Z, P, C, ite_neg' (lt_irrefl q)]; exact hl h)
-  refine ⟨8 * q + r, by omega, hcg, _, _, _, lz, lp, lc, rz, rp, rc, rows, ?_⟩
-  rw [← hret, h58, h57]
+  have hb : ∀ j < 3, [b0, b1, b2].getD j 0 * [b0, b1, b2].getD j 0 = [b0, b1, b2].getD j 0 := by
+    intro j hj
+    interval_cases j
+    exacts [h0.symm, h1.symm, h2.symm]
+  refine ⟨_, bitsVal_lt (fun j ↦ decide ([b0, b1, b2].getD j 0 = 1)) 3, ?_⟩
+  rw [← prod_gen_pow_of_bool hb, w3, w5, w17]
+  simp [Finset.prod_range_succ]
 
-/-- `g^(Σ bits)` from the three hinted bits, as the template multiplies them. -/
-theorem prod_three_bits (r : ℕ) (hr : r < 8) :
-    (1 + bitE (r.testBit 0) * (gen ^ 2 ^ 0 + 1)) * (1 + bitE (r.testBit 1) * (gen ^ 2 ^ 1 + 1)) *
-      (1 + bitE (r.testBit 2) * (gen ^ 2 ^ 2 + 1)) = gen ^ r := by
+/-- The bits of `r < 8`, as the body multiplies them. -/
+private theorem rs_bits_of (r : ℕ) (hr : r < 8) :
+    (1 + bitE (r.testBit 0) * word 3 0) * (1 + bitE (r.testBit 1) * word 5 0) *
+      (1 + bitE (r.testBit 2) * word 17 0) = gen ^ r := by
+  obtain ⟨w3, w5, w17⟩ := rs_consts
   have := prod_bitE_gen_pow r.testBit 3
   rw [bitsVal_testBit (show r < 2 ^ 3 by omega), Finset.prod_range_succ, Finset.prod_range_succ,
     Finset.prod_range_succ, Finset.prod_range_zero, one_mul] at this
+  rw [w3, w5, w17]
   exact this
 
-/-- **`rs_eq_run`'s meaning gives its core IR**: the loop over the `count / 8` full chunks, the
-remainder's call (`chunks_of_rows`). -/
-theorem rs_eq_run_complete (rd : Reader) (args rets : List E) (hm : MeaningRsEqRun rd args rets) :
-    coreProgram.Rel rd "rs_eq_run" args rets := by
-  obtain ⟨chain, z, p, cg, rfl⟩ : ∃ chain z p cg, args = [chain, z, p, cg] := by
-    match args, hm with
-    | [a, b, c, d], _ => exact ⟨a, b, c, d, rfl⟩
-  obtain ⟨count, hcount, rfl, zs, ps, c, lz, lp, lc, hz, hpp, hc, hr, rfl⟩ := hm
-  obtain ⟨w3, w5, w17⟩ := rs_consts
-  have hch := chunks_of_rows lz lp lc hz hpp hc hr
-  obtain ⟨q, hq⟩ : ∃ q, q = count / 8 := ⟨_, rfl⟩
-  obtain ⟨r, hr8⟩ : ∃ r, r = count % 8 := ⟨_, rfl⟩
-  -- the loop over the full chunks
-  have hbody : ∀ j < q, L5Body rd chain z p (gen ^ j) := by
-    intro j hj
-    have hok := hch j (by omega)
-    show ∃ x, coreProgram.Rel rd "rs_eq_rows__L8"
-      [chain * (gen ^ j) ^ 64, z * (gen ^ j) ^ 8, p * (gen ^ j) ^ 8] [x]
-    rw [← pow_mul, ← pow_mul, Nat.mul_comm j 64, Nat.mul_comm j 8]
-    exact ⟨_, (rs_eq_rows_holds 8 le_rfl rd _ _).2 (Or.inr ⟨by norm_num, _, _, _,
-      by simp only [List.length_take, List.length_drop, lz]; omega,
-      by simp only [List.length_take, List.length_drop, lp]; omega,
-      hok.2.2.1, hok.1, hok.2.1, hok.2.2.2.1, hok.2.2.2.2, rfl⟩)⟩
-  have hloop := (guarded_loop_rel_iff (B := L5Body rd chain z p)
-    (fun d x ↦ loop5_sound rd (gen ^ q) chain z p d x)
-    (fun x hb hk hn ↦ loop5_complete rd _ _ _ _ x hb hk hn)).mpr
-    ⟨q, by show q < 2 ^ 64 - 1; omega, rfl, hbody⟩
-  -- the remainder
-  have hdisp : coreProgram.Rel rd (rsEqRowsNames.getD r "")
-      [chain * gen ^ (64 * q), z * gen ^ (8 * q), p * gen ^ (8 * q)]
-      [chain * gen ^ (64 * ((count + 7) / 8))] := by
-    refine (rs_eq_rows_holds r (by omega) rd _ _).2 ?_
-    rcases Nat.eq_zero_or_pos r with h0 | h0
-    · exact Or.inl ⟨h0, by rw [show (count + 7) / 8 = q by omega]⟩
-    · have hok := hch q (by omega)
-      refine Or.inr ⟨h0, _, _, _, ?_, ?_, hok.2.2.1, hok.1, hok.2.1, hok.2.2.2.1, hok.2.2.2.2, ?_⟩
-      · simp only [List.length_take, List.length_drop, lz]; omega
-      · simp only [List.length_take, List.length_drop, lp]; omega
-      · rw [show (count + 7) / 8 = q + 1 by omega, mul_assoc, ← pow_add]
-        ring_nf
-  -- the valuation
-  let b : ℕ → E := fun j ↦ bitE (r.testBit j)
-  let b' : ℕ → E := fun j ↦ bitE (q.testBit j)
-  let u13 := word 1 0 + b 0 * word 3 0
-  let u17 := word 1 0 + b 1 * word 5 0
-  let u22 := word 1 0 + b 2 * word 17 0
-  let u23 := u13 * u17 * u22
-  let u27 := word 1 0 + b' 0 * word 3 0
-  let u31 := word 1 0 + b' 1 * word 5 0
-  let u36 := word 1 0 + b' 2 * word 17 0
-  let u37 := u27 * u31 * u36
-  let s40 := u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37))
-  let t47 := u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37))
-  let t50 := u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37))
-  let t53 := t50 * t50 * (t50 * t50) * (t50 * t50 * (t50 * t50))
-  let res := chain * gen ^ (64 * ((count + 7) / 8))
-  let w : List E := [chain, z, p, gen ^ count, b 0, b 1, b 2, b' 0, b' 1, b' 2,
-    word 1 0, word 3 0, b 0 * word 3 0, u13, word 1 0, word 5 0, b 1 * word 5 0, u17,
-    u13 * u17, word 1 0, word 17 0, b 2 * word 17 0, u22, u23,
-    word 1 0, word 3 0, b' 0 * word 3 0, u27, word 1 0, word 5 0, b' 1 * word 5 0, u31,
-    u27 * u31, word 1 0, word 17 0, b' 2 * word 17 0, u36, u37,
-    u37 * u37, u37 * u37 * (u37 * u37), s40, s40 * u23, word 1 0, word 1 0 + u37, word 1 0,
-    u37 * u37, u37 * u37 * (u37 * u37), t47, u37 * u37, u37 * u37 * (u37 * u37), t50, t50 * t50,
-    t50 * t50 * (t50 * t50), t53, chain * t53, z * t47, p * t47, res, res]
-  have e23 : u23 = gen ^ r := by
-    rw [← prod_three_bits r (by omega), ← w3, ← w5, ← w17, ← word_one]
-  have e37 : u37 = gen ^ q := by
-    rw [← prod_three_bits q (by omega), ← w3, ← w5, ← w17, ← word_one]
-  have e47 : t47 = gen ^ (8 * q) := by
-    show u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37)) = _
-    rw [e37]; ring
-  have e50 : t50 = gen ^ (8 * q) := by
-    show u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37)) = _
-    rw [e37]; ring
-  have e53 : t53 = gen ^ (64 * q) := by
-    show t50 * t50 * (t50 * t50) * (t50 * t50 * (t50 * t50)) = _
-    rw [e50]; ring
-  rw [rel_iff_sem find_rs_eq_run, show Fn.params fn% «rs_eq_run» = [.n 0, .n 1, .n 2,
-      .n 3] from rfl,
-    rs_eq_run_body, rsBody]
-  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and]
-  refine ⟨Val.ofArgs w, rfl, (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, (bitE_mul_self _).symm,
-    rfl, rfl, rfl, rfl, rfl, (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, rfl,
-    (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, rfl,
-    (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_, rfl, rfl, rfl, ?_, ?_,
-    rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-    ⟨r, by simp only [List.length_cons, List.length_nil]; omega, ?_, ?_⟩, rfl, rfl⟩
-  · show u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37)) * u23 + gen ^ count = 0
-    rw [e_add_eq_zero_iff, e23, e37, show count = 8 * q + r by omega]
-    ring
-  · show IsInK (word 1 0 + u37)
-    rw [word_one, e37]; exact hloop.1
-  · show word 1 0 + u37 ≠ 0 → coreProgram.Rel rd name% «rs_eq_run_loop0» [word 1 0, u37, chain, z,
-      p] []
-    rw [word_one, e37]; exact hloop.2
-  · show u23 = _
-    rw [e23, gen_pow_eq_ofK]
-  · rw [rsNames_get r (by omega)]
-    show coreProgram.Rel rd _ [chain * t53, z * t47, p * t47] [res]
-    rw [e53, e47]
-    exact hdisp
-
 /-- **`rs_eq_run`'s core IR is its meaning.** -/
-theorem rs_eq_run_holds : rs_eq_run_Spec := fun rd args rets ↦
-  ⟨rs_eq_run_sound rd args rets, rs_eq_run_complete rd args rets⟩
+theorem rs_eq_run_holds : rs_eq_run_Spec := by
+  intro rd args rets
+  have h8 : ∀ x : E, x * x * (x * x) * (x * x * (x * x)) = x ^ 8 := fun x ↦ by ring
+  rw [rel_iff_fnSem find_rs_eq_run]
+  rcases args with _ | ⟨chain, _ | ⟨z, _ | ⟨p, _ | ⟨cg, _ | ⟨_, _⟩⟩⟩⟩⟩ <;> vc [word_one] <;>
+    simp only [MeaningRsEqRun, h8]
+  constructor
+  · rintro ⟨x4, b0, x5, b1, x6, b2, x7, b3, x8, b4, x9, b5, ha, hK, hcall, x57,
+      ⟨j, hx, hj, hdisp⟩, rfl⟩
+    obtain ⟨r, hr8, hR⟩ := rs_bits b0 b1 b2
+    obtain ⟨q, hq8, hQ⟩ := rs_bits b3 b4 b5
+    rw [hR, hQ] at ha
+    rw [hR] at hx
+    rw [hQ] at hK hcall hdisp
+    have hcg : cg = gen ^ (8 * q + r) := by
+      rw [← e_add_eq_zero_iff.mp ha, ← pow_mul, ← pow_add, Nat.mul_comm]
+    -- the loop over the full chunks
+    obtain ⟨m, hm, hm', hB⟩ := (guarded_loop_rel_iff
+      (fun d x ↦ loop5_sound rd (gen ^ q) chain z p d x)
+      (fun x hb hk hn ↦ loop5_complete rd _ _ _ _ x hb hk hn)).mp ⟨hK, hcall⟩
+    obtain rfl : m = q := gen_pow_inj hm (by show q < 2 ^ 64 - 1; omega) hm'.symm
+    have hch : ∀ t < m, ∃ zt pt ct, zt.length = 8 ∧ pt.length = 8 ∧
+        ChunkOk rd chain z p t zt pt ct := fun t ht ↦ by
+      obtain ⟨ret, hr⟩ := hB t ht
+      rw [← pow_mul, ← pow_mul, Nat.mul_comm t 64, Nat.mul_comm t 8] at hr
+      obtain ⟨zt, pt, ct, a, b, c, -⟩ :=
+        chunk_of_meaning (by norm_num) ((rs_eq_rows_holds 8 le_rfl rd _ _).1 hr)
+      exact ⟨zt, pt, ct, a, b, c⟩
+    choose! Zc Pc Cc hZc hPc hCc using hch
+    -- the remainder
+    obtain rfl : j = r := gen_pow_inj (by show j < 2 ^ 64 - 1; omega)
+      (by show r < 2 ^ 64 - 1; omega) (by rw [gen_pow_eq_ofK, hx])
+    rw [rsNames_get _ hj, ← pow_mul, ← pow_mul, ← pow_mul, show m * (8 * 8) = 64 * m by ring,
+      show m * 8 = 8 * m by ring] at hdisp
+    have hm8 := (rs_eq_rows_holds j (by omega) rd _ _).1 hdisp
+    obtain ⟨Zl, Pl, Cl, hZl, hPl, hl, h57⟩ : ∃ Zl Pl Cl, Zl.length = j ∧ Pl.length = j ∧
+        (0 < j → ChunkOk rd chain z p m Zl Pl Cl) ∧
+        x57 = chain * gen ^ (64 * ((8 * m + j + 7) / 8)) := by
+      rcases Nat.eq_zero_or_pos j with h0 | h0
+      · rcases hm8 with ⟨-, hr⟩ | ⟨h, -⟩
+        · simp only [List.cons.injEq, and_true] at hr
+          refine ⟨[], [], [], by simp [h0], by simp [h0], fun h ↦ absurd h (by omega), ?_⟩
+          rw [hr, show (8 * m + j + 7) / 8 = m by omega]
+        · omega
+      · obtain ⟨zt, pt, ct, a, b, c, d⟩ := chunk_of_meaning h0 hm8
+        refine ⟨zt, pt, ct, a, b, fun _ ↦ c, ?_⟩
+        rw [d, mul_assoc, ← pow_add, show (8 * m + j + 7) / 8 = m + 1 by omega]
+        ring_nf
+    let Z : ℕ → List E := fun t ↦ if t < m then Zc t else Zl
+    let P : ℕ → List E := fun t ↦ if t < m then Pc t else Pl
+    let C : ℕ → List E := fun t ↦ if t < m then Cc t else Cl
+    obtain ⟨lz, lp, lc, rz, rp, rc, rows⟩ := rows_of_chunks (rd := rd) (chain := chain) (z := z)
+      (p := p) (q := m) (r := j) (by omega) Z P C
+      (fun t ht ↦ by simp only [Z, ite_pos' ht]; exact hZc t ht)
+      (fun t ht ↦ by simp only [P, ite_pos' ht]; exact hPc t ht)
+      (by simp only [Z, ite_neg' (lt_irrefl m)]; exact hZl)
+      (by simp only [P, ite_neg' (lt_irrefl m)]; exact hPl)
+      (fun t ht ↦ by simp only [Z, P, C, ite_pos' ht]; exact hCc t ht)
+      (fun h ↦ by simp only [Z, P, C, ite_neg' (lt_irrefl m)]; exact hl h)
+    exact ⟨8 * m + j, by omega, hcg, _, _, _, lz, lp, lc, rz, rp, rc, rows, by rw [h57]⟩
+  · rintro ⟨count, hcount, rfl, zs, ps, c, lz, lp, lc, hz, hpp, hc, hr, rfl⟩
+    have hch := chunks_of_rows lz lp lc hz hpp hc hr
+    obtain ⟨q, hq⟩ : ∃ q, q = count / 8 := ⟨_, rfl⟩
+    obtain ⟨r, hr8⟩ : ∃ r, r = count % 8 := ⟨_, rfl⟩
+    -- the loop over the full chunks
+    have hbody : ∀ j < q, L5Body rd chain z p (gen ^ j) := by
+      intro j hj
+      have hok := hch j (by omega)
+      show ∃ x, coreProgram.Rel rd "rs_eq_rows__L8"
+        [chain * (gen ^ j) ^ 64, z * (gen ^ j) ^ 8, p * (gen ^ j) ^ 8] [x]
+      rw [← pow_mul, ← pow_mul, Nat.mul_comm j 64, Nat.mul_comm j 8]
+      exact ⟨_, (rs_eq_rows_holds 8 le_rfl rd _ _).2 (Or.inr ⟨by norm_num, _, _, _,
+        by simp only [List.length_take, List.length_drop, lz]; omega,
+        by simp only [List.length_take, List.length_drop, lp]; omega,
+        hok.2.2.1, hok.1, hok.2.1, hok.2.2.2.1, hok.2.2.2.2, rfl⟩)⟩
+    have hloop := (guarded_loop_rel_iff (B := L5Body rd chain z p)
+      (fun d x ↦ loop5_sound rd (gen ^ q) chain z p d x)
+      (fun x hb hk hn ↦ loop5_complete rd _ _ _ _ x hb hk hn)).mpr
+      ⟨q, by show q < 2 ^ 64 - 1; omega, rfl, hbody⟩
+    -- the remainder
+    have hdisp : coreProgram.Rel rd (rsEqRowsNames.getD r "")
+        [chain * gen ^ (64 * q), z * gen ^ (8 * q), p * gen ^ (8 * q)]
+        [chain * gen ^ (64 * ((count + 7) / 8))] := by
+      refine (rs_eq_rows_holds r (by omega) rd _ _).2 ?_
+      rcases Nat.eq_zero_or_pos r with h0 | h0
+      · exact Or.inl ⟨h0, by rw [show (count + 7) / 8 = q by omega]⟩
+      · have hok := hch q (by omega)
+        refine Or.inr ⟨h0, _, _, _, ?_, ?_, hok.2.2.1, hok.1, hok.2.1, hok.2.2.2.1, hok.2.2.2.2, ?_⟩
+        · simp only [List.length_take, List.length_drop, lz]; omega
+        · simp only [List.length_take, List.length_drop, lp]; omega
+        · rw [show (count + 7) / 8 = q + 1 by omega, mul_assoc, ← pow_add]
+          ring_nf
+    have hb := fun n i ↦ (bitE_mul_self (Nat.testBit n i)).symm
+    refine ⟨_, hb r 0, _, hb r 1, _, hb r 2, _, hb q 0, _, hb q 1, _, hb q 2, ?_, ?_, ?_,
+      _, ⟨r, ?_, by omega, ?_⟩, rfl⟩ <;>
+      simp only [rs_bits_of q (by omega), rs_bits_of r (by omega)]
+    · rw [e_add_eq_zero_iff, ← pow_mul, ← pow_add]
+      congr 1; omega
+    · exact hloop.1
+    · exact hloop.2
+    · rw [gen_pow_eq_ofK]
+    · rw [rsNames_get r (by omega), ← pow_mul, ← pow_mul, ← pow_mul,
+        show q * (8 * 8) = 64 * q by ring, show q * 8 = 8 * q by ring]
+      exact hdisp
+
+/-- **`rs_eq_run`'s core IR computes its meaning.** -/
+theorem rs_eq_run_sound (rd : Reader) (args rets : List E)
+    (h : coreProgram.Rel rd "rs_eq_run" args rets) : MeaningRsEqRun rd args rets :=
+  (rs_eq_run_holds rd args rets).mp h
 
 end
 end LeanVM.Guest.B1
