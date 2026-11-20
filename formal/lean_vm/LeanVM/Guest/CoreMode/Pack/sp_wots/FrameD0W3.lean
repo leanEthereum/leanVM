@@ -15,7 +15,8 @@ namespace LeanVM.Guest.Fn.«sp_wots»
 open LeanVM.Guest LeanVM.Guest.Exec
 @[expose] public section
 /-- `sp_wots`: its frame walk accepts offsets 21000 to 23713. -/
-theorem frameWin3 : CoreMode.frameWin frameFun code.chunks.flatten 21000 23713 = true := by
+theorem frameWin3 : CoreMode.frameWinS frameFun code.chunks (10, 520) (12, 0) 21000 23713 = true :=
+    by
   decide +kernel
 end
 end LeanVM.Guest.Fn.«sp_wots»

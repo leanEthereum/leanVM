@@ -18,7 +18,8 @@ open LeanVM.Guest
 public section
 
 /-- `sp_wots`: the pairing from offset 0 to 4096. -/
-theorem pairWin0 : CoreMode.winOkH alignCtx hcert pairO pairS Fn.«sp_wots».core.body Fn.«sp_wots».code.code Fn.«sp_wots».advice pairK0 pairK1 = true := by
+theorem pairWin0 : CoreMode.winOkHS alignCtx hcert pairO pairS Fn.«sp_wots».core.body Fn.«sp_wots».code.chunks Fn.«sp_wots».advice (0, 0) (2, 0) pairK0
+    pairK1 = true := by
   decide +kernel
 
 end

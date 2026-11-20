@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.Bridge.AlignCtx.«exponent_tables».Ok
 public import LeanVM.Guest.CoreMode.Gen.«P42».«exponent_tables».W0
 public import LeanVM.Guest.CoreMode.Gen.«P42».«exponent_tables».W1
-public import LeanVM.Guest.CoreMode.PairRun
+public import LeanVM.Guest.CoreMode.PairSlice
 
 namespace LeanVM.Guest.Fn.«exponent_tables»
 
@@ -19,12 +19,12 @@ open LeanVM.Guest
 public section
 
 /-- `exponent_tables`: the pairing's last state is at the end. -/
-theorem pairEndOk : Bridge.chainEnd Fn.«exponent_tables».code.code pairK2 = true := by
+theorem pairEndOk : CoreMode.chainEndS Fn.«exponent_tables».code.chunks (3, 0) pairK2 = true := by
   decide +kernel
 
 /-- `exponent_tables`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
 theorem pair_ok : CoreMode.pairOk alignCtx hcert pairO pairS Fn.«exponent_tables».core.body Fn.«exponent_tables».code.code Fn.«exponent_tables».advice = true :=
-  CoreMode.pairOk_of_chain alignPreOk (ks := [pairK1, pairK2])
+  CoreMode.pairOk_of_chainS alignPreOk (ks := [((2, 0), pairK1), ((3, 0), pairK2)])
     (And.intro pairWin0 (And.intro pairWin1 pairEndOk))
 
 end

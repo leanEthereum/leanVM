@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.Bridge.AlignCtx.«exponent_tables».Ctx
 public import LeanVM.Guest.CoreMode.Gen.«P42».DataC
 public import LeanVM.Guest.CoreMode.GlueA.«P42»
-public import LeanVM.Guest.CoreMode.PairDefs
+public import LeanVM.Guest.CoreMode.PairSlice
 
 namespace LeanVM.Guest.Fn.«exponent_tables»
 

@@ -22,7 +22,7 @@ import heap
 
 WIN = AL.WIN
 # a function whose pairing windows at `WIN` instructions take past 6.5 GB a module: its own size
-WINS = {'main_loop2': 1536}
+WINS = {'main_loop2': 2048}
 
 
 def stmt(e, env):
@@ -354,6 +354,10 @@ def args(k, f, ctx='alignCtx'):
     return f'{ctx} hcert pairO pairS Fn.«{k}».core.body Fn.«{k}».code.code Fn.«{k}».advice'
 
 
+def argsS(k, ctx):
+    return f'{ctx} hcert pairO pairS Fn.«{k}».core.body Fn.«{k}».code.chunks Fn.«{k}».advice'
+
+
 def packed_ctx(k):
     """Whether `k`'s alignment context has its cells packed ahead (`alignCtxP`, `Bridge/AlignCtx/<k>/`): its pairing
     windows then read that one, the check taken through `alignCtxEq`."""
@@ -405,8 +409,21 @@ def kst(k, f, K):
     return f'⟨{i}, {nd}, {c}, [{pe}], [{ta}]⟩'
 
 
+def cut_of(clens, i):
+    """Offset `i` of the code as a cut `(p, r)` of its chunks (`Bridge.PCut`): chunk `p`, offset `r` in it; the code's end
+    is `(len, 0)`."""
+    p = 0
+    while p < len(clens) and i >= clens[p]:
+        i -= clens[p]; p += 1
+    assert p < len(clens) or i == 0
+    return f'({p}, {i})'
+
+
 def render_win(pack, f):
     k = f['key']
+    # the windows over slices of the code's chunks (`CoreMode/PairSlice.lean`): none walks the code before it
+    clens = AL.functions()[k]['clens']
+    assert sum(clens) == f['states'][-1][0]
     base = f'LeanVM.Guest.CoreMode.Gen.«{pack}».«{k}»'
     ks = f['states']
     files = {}
@@ -416,7 +433,7 @@ def render_win(pack, f):
                    for n, K in enumerate(ks))
     files[os.path.join(GEN, pack, k, 'Ctx.lean')] = (
         HEADER.format(mod=f'{base}.Ctx', what=f"`{k}`'s pairing oracle and the pass's states at its windows' ends.")
-        + imports(['LeanVM.Guest.CoreMode.PairDefs', f'LeanVM.Guest.CoreMode.GlueA.«{pack}»', data_mod(pack, f),
+        + imports(['LeanVM.Guest.CoreMode.PairSlice', f'LeanVM.Guest.CoreMode.GlueA.«{pack}»', data_mod(pack, f),
                    f'LeanVM.Guest.Bridge.AlignCtx.«{k}».Ctx'])
         + ns(k, f'''@[expose] public section
 
@@ -429,7 +446,8 @@ def render_win(pack, f):
             + imports([f'{base}.Ctx']) + 'set_option Elab.async false\n\n' + ns(k, f'''public section
 
 /-- `{k}`: the pairing from offset {ks[n][0]} to {ks[n + 1][0]}. -/
-theorem pairWin{n} : CoreMode.winOkH {args(k, f, wctx)} pairK{n} pairK{n + 1} = true := by
+theorem pairWin{n} : CoreMode.winOkHS {argsS(k, wctx)} {cut_of(clens, ks[n][0])} {cut_of(clens, ks[n + 1][0])} pairK{n}
+    pairK{n + 1} = true := by
   decide +kernel
 
 end
@@ -439,17 +457,17 @@ end
         chain = f'(And.intro pairWin{n} {chain})'
     files[os.path.join(GEN, pack, k, 'Ok.lean')] = (
         HEADER.format(mod=f'{base}.Ok', what=f"`{k}`'s pairing check, by its windows.")
-        + imports(['LeanVM.Guest.CoreMode.PairRun', f'LeanVM.Guest.Bridge.AlignCtx.«{k}».Ok']
+        + imports(['LeanVM.Guest.CoreMode.PairSlice', f'LeanVM.Guest.Bridge.AlignCtx.«{k}».Ok']
                   + [f'{base}.W{n}' for n in range(len(ks) - 1)])
         + ns(k, f'''public section
 
 /-- `{k}`: the pairing's last state is at the end. -/
-theorem pairEndOk : Bridge.chainEnd Fn.«{k}».code.code pairK{len(ks) - 1} = true := by
+theorem pairEndOk : CoreMode.chainEndS Fn.«{k}».code.chunks ({len(clens)}, 0) pairK{len(ks) - 1} = true := by
   decide +kernel
 
 /-- `{k}`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads{" (its context " + wctx + ")" if packed else ""}. -/
 theorem pair_ok{"P" if packed else ""} : CoreMode.pairOk {args(k, f, wctx)} = true :=
-  CoreMode.pairOk_of_chain alignPreOk (ks := [{', '.join(f'pairK{n}' for n in range(1, len(ks)))}])
+  CoreMode.pairOk_of_chainS alignPreOk (ks := [{', '.join(f'({cut_of(clens, ks[n][0])}, pairK{n})' for n in range(1, len(ks)))}])
     {chain}
 {f'''
 /-- `{k}`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/

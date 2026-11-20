@@ -91,7 +91,7 @@ ROUTE = {}
 
 # a function whose windows at `WIN` instructions take past 6.5 GB a module: its own size (`main_loop2`,
 # `__loop2_main` to the compiler: its walk reads its packed alignment context)
-WINS = {'__loop2_main': 3000}
+WINS = {'__loop2_main': 4000}
 
 
 def cutsFor(D, n):
@@ -255,6 +255,30 @@ def fpowsDef(k):
             'theorem Fn.«%s».fpows_ok : fpows.OkW :=\n  PowTree.okW_of_okWB (by decide +kernel)\n' % (k, FPOWS.get(k, '.leaf'), k))
 
 
+def chunk_lens(k):
+    """The lengths of function `k`'s code chunks (`CompiledFunction.chunks`)."""
+    for path in glob.glob(os.path.join(FD.ROOT, 'Pack', '*', 'Bundle.lean')):
+        t = open(path, encoding='utf-8').read()
+        for head in ('\nnamespace LeanVM.Guest.Fn.«%s»\n' % k, '\nnamespace LeanVM.Guest.Fn.%s\n' % k):
+            i = t.find(head)
+            if i < 0: continue
+            blk = t[i:t.find('\nend LeanVM.Guest.Fn.', i)]
+            cm = re.search(r'def code : CompiledFunction :=\s*⟨"[^"]*", \d+, \d+, \[([^\]]*)\]⟩', blk)
+            ds = {m.group(1): m.group(2) for m in re.finditer(r'^def (c\d+) : List OffsetInstruction := \[\n(.*?)\]$', blk, re.S | re.M)}
+            # one instruction a line
+            return [ds[c.strip()].count('\n') + 1 for c in cm.group(1).split(',') if c.strip()]
+    raise SystemExit('frame_gen: no code of %s' % k)
+
+
+def cut_of(clens, i):
+    """Offset `i` of the code as a cut `(p, r)` of its chunks (`Bridge.PCut`); the code's end is `(len, 0)`."""
+    p = 0
+    while p < len(clens) and i >= clens[p]:
+        i -= clens[p]; p += 1
+    assert p < len(clens) or i == 0
+    return '(%d, %d)' % (p, i)
+
+
 def funDef(D, n, lit, defs):
     return ''.join(defs) + 'noncomputable def frameFun : CoreMode.FFun :=\n  %s\n\n' % lit
 
@@ -321,26 +345,32 @@ def main(argv):
             mod = 'LeanVM.Guest.CoreMode.Pack.«%s».FrameD%d' % (p, k)
             files[os.path.join(OUT, p, 'FrameD%d.lean' % k)] = (
                 header(mod, 'The frame walk\'s data of `%s`, checked in windows.' % n) +
-                'public import LeanVM.Guest.CoreMode.TrieOf\n' +
+                'public import LeanVM.Guest.CoreMode.TrieOf\npublic import LeanVM.Guest.CoreMode.FrameSlice\n' +
                 imports(p, packs, [(gen_pack[n], ns_)] if n in ROUTE else [], {gen_pack.get(ns_, p)}, n in ROUTE) +
                 ns(ns_, funDef(D, n, lit, defs)))
             bounds = [0] + cuts + [D['fns'][n]['count']]
+            # the windows over slices of the code's chunks (`CoreMode/FrameSlice.lean`): none walks the code before it
+            clens = chunk_lens(ns_)
+            assert sum(clens) == bounds[-1]
             for m in range(len(bounds) - 1):
                 a, b = bounds[m], bounds[m + 1]
                 wm = 'LeanVM.Guest.CoreMode.Pack.«%s».FrameD%dW%d' % (p, k, m)
                 files[os.path.join(OUT, p, 'FrameD%dW%d.lean' % (k, m))] = (
                     header(wm, 'A window of `%s`\'s frame walk.' % n) +
                     'public import LeanVM.Guest.CoreMode.Pack.«%s».FrameD%d\n\nset_option Elab.async false\n' % (p, k) +
-                    ns(ns_, '/-- `%s`: its frame walk accepts offsets %d to %d. -/\ntheorem frameWin%d : CoreMode.frameWin '
-                       'frameFun code.chunks.flatten %d %d = true := by\n  decide +kernel\n' % (n, a, b, m, a, b)))
+                    ns(ns_, '/-- `%s`: its frame walk accepts offsets %d to %d. -/\ntheorem frameWin%d : CoreMode.frameWinS '
+                       'frameFun code.chunks %s %s %d %d = true := by\n  decide +kernel\n' % (
+                           n, a, b, m, cut_of(clens, a), cut_of(clens, b), a, b)))
             pairs = list(zip(bounds[:-1], bounds[1:]))
             wl = 'LeanVM.Guest.CoreMode.Pack.«%s».FrameL%d' % (p, k)
-            chain = 'List.forall_mem_nil _'
+            chain = 'trivial'
             for m in reversed(range(len(pairs))):
-                chain = 'List.forall_mem_cons.2 ⟨frameWin%d, %s⟩' % (m, chain)
+                chain = '⟨frameWin%d, %s⟩' % (m, chain)
+            chain = 'CoreMode.chainFS_wins %s (0, 0) 0\n    %s (CoreMode.restL_zero _)' % (
+                lst(bounds[1:], lambda x: '(%s, %d)' % (cut_of(clens, x), x)), chain)
             files[os.path.join(OUT, p, 'FrameL%d.lean' % k)] = (
                 header(wl, 'The windows of `%s`\'s frame walk, chained.' % n) +
-                'public import LeanVM.Guest.CoreMode.FrameWin\n' +
+                'public import LeanVM.Guest.CoreMode.FrameSlice\n' +
                 ''.join('public import LeanVM.Guest.CoreMode.Pack.«%s».FrameD%dW%d\n' % (p, k, m) for m in range(len(pairs))) +
                 '\nset_option Elab.async false\n' +
                 ns(ns_, '/-- `%s`: its hints by pc increase. -/\ntheorem frameHints : Mode.pcsIncr frameFun.hints = true := by\n'
@@ -370,6 +400,10 @@ def main(argv):
             '@[expose] public section\n\n' +
             ''.join(fpowsDef(D['fns'][n]['ns']) for n in sorted(names, key=lambda n: D['fns'][n]['ns'])) +
             '\nend\n\nend LeanVM.Guest\n')
+    if not only and not fns_only:
+        # a window or module no longer written (fewer windows, a function moved)
+        for path in glob.glob(os.path.join(OUT, '*', 'Frame*.lean')):
+            if path not in files: os.remove(path)
     lines = 0
     for path, text in sorted(files.items()):
         text = wrap(text)

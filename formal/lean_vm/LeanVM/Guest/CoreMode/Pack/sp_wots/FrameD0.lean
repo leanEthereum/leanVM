@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.TrieOf
+public import LeanVM.Guest.CoreMode.FrameSlice
 public import LeanVM.Guest.CoreMode.Frame
 public import LeanVM.Guest.CoreMode.FrameLit
 public import LeanVM.Guest.CoreMode.GlueP.«sp_wots»
