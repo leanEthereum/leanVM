@@ -1,9 +1,10 @@
 /-
-  Rv64mc.Tactic.Bench.EMul
+  Rv64mc.Tactic.Bench.EMulAuto
 
-  The contract of `<E as Mul>::mul`, proved once over any program `p` whose function `i` is the template
-  `tmpl L`, from its callees' contracts: the result is the Rust's Karatsuba over whatever `clmul` and `reduce`
-  compute, and the ABI is kept (`Abi`). Nothing here names an address of the image.
+  Phase 0's contract of `<E as Mul>::mul` (`Probe/EMul.lean`, there by `lsym` and frame lemmas), the statement
+  unchanged, by `rv_auto`: over any program `p` whose function `i` is the template `tmpl L`, from its callees'
+  contracts, the result is the Rust's Karatsuba over whatever `clmul` and `reduce` compute, and the ABI is kept
+  (`Abi`). What is left after `rv_auto` is the two functional equations.
 -/
 
 import Rv64mc.Tactic.Bench.EMulTmpl
