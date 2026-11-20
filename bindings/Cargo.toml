@@ -11,7 +11,7 @@ resolver = "2"
 
 [workspace.package]
 # The release version of every binding; release-please updates it.
-version = "0.13.1"
+version = "0.14.0"
 
 [workspace.dependencies]
 claims = { path = "../crates/claims" }
