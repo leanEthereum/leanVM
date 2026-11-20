@@ -172,12 +172,12 @@ theorem xSeg_pops {pk : HashSig.PublicKey} {m : HashSig.Message} {sig : LeanXmss
   rw [xSeg_split]
   have hd0 := sDigest0_pops (rd := rd) σ
   rw [show σ (.n 88) = _ from r0] at hd0
-  have hd1 := sDigest1_pops (rd := rd) σ 62094 (.n 49853)
-  rw [show σ (.n (62094 + 2)) = _ from r1] at hd1
-  have ht : quiet [loadS (.n 119741) sSigner 0, .atom (.assertEq (.n 111835) (.n 119741))] = true := rfl
+  have hd1 := sDigest1_pops (rd := rd) σ xTop (.n xRoot0)
+  rw [show σ (.n (xTop + 2)) = _ from r1] at hd1
+  have ht : quiet [loadS (.n xEnd) sSigner 0, .atom (.assertEq (.n xRoot1) (.n xEnd))] = true := rfl
   exact FallPops.congr_pops ((sPrologue_pops (rd := rd) hh hw).append (hd0.append
     ((sCore_pops (rd := rd) (layer := 0) (b := 88) (by norm_num) hw d0 s0 p0).append (hd1.append
-      ((sCore_pops (rd := rd) (layer := 1) (b := 62094) (by norm_num) hw d1 s1 p1).append
+      ((sCore_pops (rd := rd) (layer := 1) (b := xTop) (by norm_num) hw d1 s1 p1).append
         (fallPops_quiet σ ht)))))) (by
     simp only [xSegPops, xLayerPops, List.cons_append, List.nil_append, List.append_nil])
 
@@ -188,8 +188,8 @@ theorem verify_lean_xmss_complete_pops_of (hW : LxWindowsC) (C : CallRel) (rd : 
     (hat : ClaimAt rd (σ sSigner) (cellOf128 pk.root) (cellOf128 pk.parameter)
       (cellOf128 (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128)))
     (hv : LeanXmss.verifyWithKeccak pk m sig = true) :
-    Completes C rd 66 119742 xSeg σ
-      (fun σ' => ∀ σ'', AgreeBelow 119742 σ' σ'' → FallPops rd σ'' xSeg (xSegPops pk m sig)) :=
+    Completes C rd 66 (xEnd + 1) xSeg σ
+      (fun σ' => ∀ σ'', AgreeBelow (xEnd + 1) σ' σ'' → FallPops rd σ'' xSeg (xSegPops pk m sig)) :=
   (verify_lean_xmss_complete_vals_of hW C rd σ pk m sig hm htags hat hv).mono le_rfl le_rfl
     fun _ h σ'' hag => xSeg_pops (h σ'' hag)
 

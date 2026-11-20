@@ -43,6 +43,15 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
 
 /-- The padding run of the check, set by the bottom layer's message digest. -/
 def sLxPad : Nat := 98
+
+/-- Where the top layer's values start: the bottom layer's end (`sLayer0_snd`). -/
+abbrev xTop : Nat := 62094
+/-- The bottom layer's root (`sLayer0_snd`). -/
+abbrev xRoot0 : Nat := 49853
+/-- Where the top layer ends: the signer's load (`sLayer1_snd`). -/
+abbrev xEnd : Nat := 119741
+/-- The top layer's root (`sLayer1_snd`). -/
+abbrev xRoot1 : Nat := 111835
 /-- The claim's pointer, `lx_table · idx^4`. -/
 def sSigner : V := .n 65
 def sLxPP : V := .n 66
@@ -256,10 +265,10 @@ def l2Pre : List Stmt :=
 /-- `main_loop2`'s statements after the check: the next counter and the self-call, the carried tags
 passed on unchanged. -/
 def l2Post : List Stmt :=
-  [cst 119742 (word 2 0), mulS (.n 119743) (.n 0) (.n 119742),
-    addS (.n 119744) (.n 119743) (.n 1), cst 119745 (word 2 0),
-    mulS (.n 119746) (.n 0) (.n 119745),
-    .callIf (.n 119744) name% «main_loop2» (.n 119746 :: (List.range 55).map fun j => V.n (j + 1)),
+  [cst (xEnd + 1) (word 2 0), mulS (.n (xEnd + 2)) (.n 0) (.n (xEnd + 1)),
+    addS (.n (xEnd + 3)) (.n (xEnd + 2)) (.n 1), cst (xEnd + 4) (word 2 0),
+    mulS (.n (xEnd + 5)) (.n 0) (.n (xEnd + 4)),
+    .callIf (.n (xEnd + 3)) name% «main_loop2» (.n (xEnd + 5) :: (List.range 55).map fun j => V.n (j + 1)),
         .ret []]
 
 end

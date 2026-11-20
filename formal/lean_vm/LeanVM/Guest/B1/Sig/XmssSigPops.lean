@@ -178,7 +178,7 @@ theorem verify_lean_xmss_complete_pops (C : CallRel) (rd : Reader) (σ : Val) (p
     (hat : ClaimAt rd (σ sSigner) (cellOf128 pk.root) (cellOf128 pk.parameter)
       (cellOf128 (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128)))
     (hv : LeanXmss.verifyWithKeccak pk m sig = true) :
-    Completes C rd 66 119742 xSeg σ (fun σ' => ∀ σ'', AgreeBelow 119742 σ' σ'' →
+    Completes C rd 66 (xEnd + 1) xSeg σ (fun σ' => ∀ σ'', AgreeBelow (xEnd + 1) σ' σ'' →
       FallPops rd σ'' xSeg (xSegPops pk m sig) ∧ SameStreams (xSegPops pk m sig) (Hints.xmssHints pk m sig)) :=
   (verify_lean_xmss_complete_pops_of lxWindowsC C rd σ pk m sig hm htags hat hv).mono le_rfl le_rfl
     fun _ h σ'' hag => ⟨h σ'' hag, xSegPops_sameStreams pk m sig⟩
