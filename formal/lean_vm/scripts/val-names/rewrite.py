@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Rewrite the value numbers and statement positions a hand proof spells to their names.
 
-    python3 -I scripts/val-names/rewrite.py [--write] [--fn F | --fn-map TSV] [--suggest] [--dump FILE]
+    python3 -I scripts/val-names/rewrite.py [--write] [--fn F] [--fn-map TSV] [--suggest] [--dump FILE]
         [--report TSV] FILE...
 
 For each file it finds the one core function whose body the file reads (`fn% «f»`, `core% «f» …`,
-`Fn.«f».core`, `idx% «f»`, `find? "name"`, and the templates tied to a body anywhere; `--fn F` or a
-`--fn-map` names it when the source does not, a person's decision: `FILE F`, `FILE@decl F`, or
+`Fn.«f».core`, `idx% «f»`, `find? "name"`, and the templates tied to a body anywhere; `--fn F` or the
+map (`--fn-map`, by default `scripts/val-names/fnmap.tsv`) names it when the source does not, a
+person's decision: `FILE F`, `FILE@decl F`, or
 `tie T F` for a template the source ties by a check the tool cannot read, `F` a function or a family
 `f__L` (every specialization of `f`) or `f__L_loop0` (their loops); `--suggest` lists the candidates
 and their evidence) and
@@ -140,7 +141,7 @@ def global_ties(roots=("LeanVM",)):
     """Template definition (a `def` or `abbrev` whose type names `Stmt`, its name defined in one file
     only) -> the functions whose bodies it is tied to, closed down the templates a tied one names; and
     the file that defines each."""
-    raw, bodies, where = {}, {}, {}
+    raw, bodies, where, eqs, renaming, renamers, mapped = {}, {}, {}, [], set(), set(), {}
     for top in roots:
         for d, _, fs in os.walk(top):
             if d.startswith((os.path.join("LeanVM", "Guest", "Data"), os.path.join("LeanVM", "Guest", "Pack"))):
@@ -153,27 +154,47 @@ def global_ties(roots=("LeanVM",)):
                     fn = next(g for g in m.groups()[:4] if g)
                     for x in IDENT.findall(m.group(5)):
                         raw.setdefault(x, set()).add(fn)
+                for m in TIE_EQ.finditer(code):
+                    eqs.append((m.group(1), IDENT.findall(m.group(2))))
                 for a, b, n in decls(code):
                     if not n: continue
                     where.setdefault(n.split(".")[-1], set()).add(path)
                     text = code[a:b]
+                    if "rename" in text: renamers.add(n.split(".")[-1])
                     head = text.split(":=", 1)[0]
                     if re.match(r'(?:@\[[^\]]*\]\s*)?(?:\w+\s+)*(?:def|abbrev)\b', text) and "Stmt" in head:
                         # a template that renames or maps statements (`renameList`, `.map f`) holds
                         # them in another numbering: nothing it names inherits its tie
                         body = text.split(":=", 1)[1] if ":=" in text else ""
-                        names = set() if re.search(r'rename|\.map\s+(?!fun\b)[a-z]', body) else set(IDENT.findall(body))
-                        bodies.setdefault(n.split(".")[-1], set()).update(names)
+                        mapped[n.split(".")[-1]] = (body, set(IDENT.findall(body)))
+    # a template that renames statements (`renameList`), or maps them by a function that renames
+    # (`.map glcMap`), holds them in another numbering: it is tied to nothing, nothing it names
+    # inherits a tie through it
+    for x, (body, names) in mapped.items():
+        maps = re.findall(r'\.map\s+([a-z][\w\']*)', body)
+        if "rename" in body or any(g in renamers for g in maps):
+            renaming.add(x); bodies.setdefault(x, set())
+        else:
+            bodies.setdefault(x, set()).update(names)
     # a name two files define is no one template's: dropped
     bodies = {x: ys for x, ys in bodies.items() if len(where.get(x, ())) == 1}
     BODIES.update(bodies)
-    ties = {x: fs for x, fs in raw.items() if x in bodies}
-    work = list(ties)
-    while work:
-        x = work.pop()
-        for y in bodies.get(x, ()):
-            if y in bodies and y != x and not ties.get(y, set()) >= ties[x]:
-                ties.setdefault(y, set()).update(ties[x]); work.append(y)
+    ties = {x: fs for x, fs in raw.items() if x in bodies and x not in renaming}
+    changed = True
+    while changed:
+        changed = False
+        work = list(ties)
+        while work:
+            x = work.pop()
+            for y in bodies.get(x, ()):
+                if y in bodies and y != x and y not in renaming and not ties.get(y, set()) >= ties[x]:
+                    ties.setdefault(y, set()).update(ties[x]); work.append(y)
+        # a kernel-checked equation `T = A ++ B` of a tied template ties `A`, `B`
+        for lhs, rhs in eqs:
+            if lhs in ties and lhs not in renaming:
+                for y in rhs:
+                    if y in bodies and y != lhs and y not in renaming and not ties.get(y, set()) >= ties[lhs]:
+                        ties.setdefault(y, set()).update(ties[lhs]); changed = True
     return ties, {x: next(iter(ps)) for x, ps in where.items() if len(ps) == 1}
 
 
@@ -206,6 +227,9 @@ def bound_here(x, text):
             re.search(r'(?:\bfun\s|∀\s*|∃\s*|\bintro\s|\brintro\s|\bobtain\s|\blet\s|\bhave\s|\bset\s|'
                       r'\bcases\s|\binduction\s|\bwith\s|^\s*\|\s)[^:=\n]*\b' + e + r'\b', text, re.M) is not None)
 
+
+TIE_EQ = re.compile(r'^theorem\s+\S+\s*:\s*([a-z][\w\']*)\s*=\s*([^:]*?)\s*:=\s*(?:by\s+decide\b|tbStmtsEqb_sound|stmtsEqb_sound|rfl\b)',
+                    re.M | re.S)
 
 ARGS = [re.compile(r'\bCompletes\w*\s+[^\s()]+\s+[^\s()]+\s+(\d+)\s+(\d+)\b'),
         re.compile(r'\bAgreeBelow\s+(\d+)\b'), re.compile(r'\bNBv\s+(\d+)\b'),
@@ -243,11 +267,11 @@ def classify(path, src, overrides, vals, stmts, cnames, ties, families, where):
 
     def fn_at(i):
         """The function a literal at `i` reads: its declaration's, else the file's, if unique."""
+        def chosen(o): return (("family", o), None) if o in families else (o, None)
         fs = set()
         for a, b, n in spans:
             if a <= i < b:
-                o = overrides.get(n.split(".")[-1], overrides.get(""))
-                if o: return (("family", o), None) if o in families else (o, None)
+                if n.split(".")[-1] in overrides: return chosen(overrides[n.split(".")[-1]])
                 text = code[a:b]
                 # the functions every template and body reference of the declaration is tied to: a
                 # generic builder tied to many (`cst`, a shared walk) narrows nothing, a template of
@@ -261,16 +285,17 @@ def classify(path, src, overrides, vals, stmts, cnames, ties, families, where):
                     if not fs:
                         return None, "templates of different functions: " + ",".join(sorted(set.union(*sets))[:3]) + ",…"
                 break
-        else:
-            o = overrides.get("")
-            if o: return (("family", o), None) if o in families else (o, None)
-        if not fs: fs = filefs
+        # the map's function for the file, where the declaration's own evidence names none
+        if not fs and "" in overrides: return chosen(overrides[""])
+        # no fallback to the file's functions: a declaration that names no tied template and no body
+        # (a lemma on a renumbered arm, `σ (.n 139)` of `rtTwo`) may be in another numbering
         if len(fs) == 1: return next(iter(fs)), None
         keys = {family_key(g) for g in fs}
         if len(keys) == 1 and None not in keys:
             k = keys.pop()
-            if set(fs) == families.get(k, set()): return ("family", k), None
-            if len(fs) <= FAMILY: return tuple(sorted(fs)), None
+            # a template of several specializations is named over the whole family: its value has
+            # one name in every specialization (`valf%` checks it), or the literal is flagged
+            if len(fs) > 1 and set(fs) <= families.get(k, set()): return ("family", k), None
         return None, ("no function" if not fs else f"{len(fs)} functions " + ",".join(sorted(fs)[:3]) + ",…")
 
     def name_of(f, k, kind="value"):
@@ -462,8 +487,9 @@ def main():
     # the map: `FILE F` (the file's function), `FILE@decl F` (a declaration's), `tie T F` (a
     # template the source ties by a check the tool cannot read); `F` a function or a family `f__L…`
     fnmap = {}
-    if "--fn-map" in args:
-        for l in open(args[args.index("--fn-map") + 1], encoding="utf-8"):
+    mp = args[args.index("--fn-map") + 1] if "--fn-map" in args else os.path.join(os.path.dirname(__file__), "fnmap.tsv")
+    if os.path.exists(mp):
+        for l in open(mp, encoding="utf-8"):
             if not l.strip() or l.startswith("#"): continue
             w = l.split()
             if w[0] == "tie":

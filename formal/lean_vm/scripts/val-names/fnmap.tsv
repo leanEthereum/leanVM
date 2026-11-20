@@ -1,0 +1,6 @@
+# The function of a file or a declaration, where the source names none, decided by reading it (rewrite.py --fn-map): `FILE F`, `FILE@decl F`, `tie T F`; `F` a function or a family `f__L`, `f__L_loop0`.
+LeanVM/Guest/B1/Sig/XmssSegT.lean main_loop2
+LeanVM/Guest/B1/Bits/SmallGPower.lean assert_small_g_power
+LeanVM/Guest/B1/Ring/WeightComplete.lean ring_switch_weight
+LeanVM/Guest/B1/Eq/RsRows.lean@rs_eq_rows_L0_body rs_eq_rows__L0
+LeanVM/Guest/B1/Eq/PlusOne.lean plus_one_run__L
