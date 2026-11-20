@@ -4,8 +4,8 @@
   The multilinear contracts at the image (`liftProg Gen.fns`): each `ok` at its function's index
   (`Rv64mc/Gen/index.tsv`), with the generated link (`tmpl_eq`, `wf`) and stack (`Gen.Needs`, a caller's bound over
   its callee's by `decide`). `E::mul` is `Table.Field.eMul` (from `clmul_low`'s constant, `hd`); what is not proved
-  at the image yet is a hypothesis: `E::square`, `Scaled::new` and `Scaled::mul`, and the panic chain's
-  `assert_failed`.
+  at the image yet is a hypothesis: `E::square`, `Scaled::new` and `Scaled::mul`, `alloc`, `Vec::reserve`, and the
+  panic chain's `assert_failed` and `handle_error`.
 -/
 
 import Rv64mc.Table.Field
@@ -15,12 +15,14 @@ import Rv64mc.Proof.Multilinear.IndexMle
 import Rv64mc.Proof.Multilinear.PaddingWeight
 import Rv64mc.Proof.Multilinear.ScalerNew
 import Rv64mc.Proof.Multilinear.ScalerMul
+import Rv64mc.Proof.Multilinear.SelectorPoint
 import Rv64mc.Gen.Link.Verifier.Multilinear.Dot
 import Rv64mc.Gen.Link.Verifier.Multilinear.PolyEval
 import Rv64mc.Gen.Link.Verifier.Multilinear.IndexMle
 import Rv64mc.Gen.Link.Verifier.Multilinear.PaddingWeight
 import Rv64mc.Gen.Link.Verifier.Multilinear.Scaler.New
 import Rv64mc.Gen.Link.Verifier.Multilinear.Scaler.Mul
+import Rv64mc.Gen.Link.Verifier.Multilinear.SelectorPoint
 
 namespace Rv64mc.Table.Multilinear
 
@@ -59,6 +61,15 @@ theorem scalerMul (hsm : Spec.Field.Scaled.mulSpec env (liftProg fns) 95 Needs.V
     Spec.Multilinear.Scaler.mulSpec env (liftProg fns) 94 Needs.Verifier.Multilinear.Scaler.Mul :=
   Proof.Multilinear.ScalerMul.ok env _ 94 _ Verifier.Multilinear.Scaler.Mul.tmpl_eq Verifier.Multilinear.Scaler.Mul.wf
     (by decide) (by decide) hsm (Field.eMul env hd)
+
+omit hd in
+theorem selectorPoint
+    (hal : Spec.Runtime.AllocSpec env (liftProg fns) 6 Needs.VerifierRv64.Bump.AsGlobalAlloc.Alloc)
+    (hres : Spec.Runtime.ReserveSpec env 8 16 (liftProg fns) 38 Needs.Alloc.Vec.VecE.Reserve)
+    (hhe : Spec.Runtime.NoReturn env (liftProg fns) 8 Needs.Alloc.RawVec.HandleError) :
+    Spec.Multilinear.SelectorPoint.spec env (liftProg fns) 102 Needs.Verifier.Multilinear.SelectorPoint :=
+  Proof.Multilinear.SelectorPoint.ok env _ 102 _ Verifier.Multilinear.SelectorPoint.tmpl_eq
+    Verifier.Multilinear.SelectorPoint.wf (by decide) (by decide) (by decide) hal hres hhe
 
 end Rv64mc.Table.Multilinear
 
