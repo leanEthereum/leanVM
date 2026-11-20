@@ -108,14 +108,14 @@ ul.tight li { margin: 4px 0; }
 <div class="tiles">
   <div class="tile"><div class="k"><span class="sw ours"></span>Ours: re-check after each of 13 changes</div><div class="v">300 to 3,230 <span class="vs">CPU-s</span></div></div>
   <div class="tile"><div class="k"><span class="sw ours"></span>Ours: cold build</div><div class="v">4,333 <span class="vs">CPU-s (1.2 CPU-h)</span></div></div>
-  <div class="tile"><div class="k"><span class="sw pr"></span>#738: cold build, the bound on its rebuild</div><div class="v">about 23.4 <span class="vs">CPU-h</span></div></div>
-  <div class="tile"><div class="k"><span class="sw pr"></span>#738 proof files naming a moved address after C1</div><div class="v">225 to 228 <span class="vs">of 823</span></div></div>
+  <div class="tile"><div class="k"><span class="sw pr"></span>#738 after C1: rebuild only, before any repair</div><div class="v">3.71 <span class="vs">CPU-h; 735 modules failed or unchecked</span></div></div>
+  <div class="tile"><div class="k"><span class="sw pr"></span>#738 proof files naming a moved address after C1</div><div class="v">228 <span class="vs">of 823</span></div></div>
 </div>
 
 <h2>1. Summary</h2>
 <ul class="summary">
 <li><strong>Iteration.</strong> Across 13 measured changes to the Rust verifier, our pipeline re-checked everything in 300 to 3,230 CPU-s (4 to 13 minutes wall); our cold build is 4,333 CPU-s (1.2 CPU-hours). A change to a proved function's code never reached its callers, which import its contract, not its code: only its own proof broke, and the compiler set the repair cost, minutes when it reallocated registers, an estimated 1 to 2 hours when it turned unrolled code into a loop (left unrepaired, as was one 20-minute attempt, C5).</li>
-<li><strong>Against #738.</strong> After the same one-token change, 225 to 228 of #738's 823 proof files (a third) name an address or lemma that moved, a lower bound on what must be renamed; its rebuild was still running at the time of writing, bounded above by its cold build of about 23.4 CPU-hours. Order of magnitude: a fraction of a CPU-hour and minutes of repair, against renaming a third of the proofs plus up to about 23 CPU-hours. In a complete tree we estimate an edit to a widely imported mirror or contract at 1.5 to 3+ CPU-hours, narrowing that worst case to roughly 8 to 15 times; code-only changes would not grow.</li>
+<li><strong>Against #738.</strong> After the same one-token change, #738's rebuild alone cost 3.71 CPU-hours (57 minutes wall), before any repair, and left it broken: 28 modules failed and 707 more (701 proof files, 194,552 lines) went unchecked because they import a failed one, the final <code>soundness</code> theorem among them. The three failures sampled need only address renaming, but 228 of its 823 proof files (76,569 lines, a third) name a shifted address, no renaming script exists, and the slowest failing files take about 30 minutes per attempt before the kernel rejects them. On C1 itself: 2,751 CPU-s and a 3-minute repair for us, against 13,356 CPU-s and a tree that no longer builds. In a complete tree we estimate an edit to a widely imported mirror or contract at 1.5 to 3+ CPU-hours for us, comparable to #738's rebuild before repair; code-only changes would not grow.</li>
 <li><strong>Proved, standard axioms only:</strong> <code>rv64_sound</code>: every code word decodes, and a run of the binary that halts with "accept" read a proof that the trusted Lean verifier accepts, given <code>main</code>'s contract, its one hypothesis. 94 of 230 functions (15% of instructions) are proved and linked at the image. Real proofs run in the statement's own machine are accepted, mutated ones rejected.</li>
 <li><strong>Not proved:</strong> <code>main</code>'s contract and the 136 functions without proofs; absence of traps (the theorem is partial correctness). The decoder and ELF reader are trusted, and the binary is a <code>no_std</code> copy of the verifier with inserted inline attributes.</li>
 <li><strong>Frameworks.</strong> machine-checked's proved lift covered all 230 functions and its soundness theorem was reused unforked; we built relocatable templates, a link step, a symbolic executor (100 times cheaper on the one function measured) and a heap vocabulary around it. braid is very experimental: a nicer logic, but native axioms, absolute addresses and quadratic composition.</li>
@@ -178,7 +178,7 @@ ul.tight li { margin: 4px 0; }
 <figcaption>A proof imports only its own template and its callees' contracts, so it is rebuilt only when that function's code, or a contract, mirror or layout it imports, changes.</figcaption>
 </figure>
 
-<p><strong>#738</strong> (RV64IM: 64-bit RISC-V with multiply) is about 680k lines, 89 commits in one day by agents; every proof imports the image, so moving one function by 4 bytes renames everything after it. <strong>Ours</strong> treats the binary like position-independent code with a linker: each function is proved once against its template, with its callees' <strong>contracts</strong> (pre- and postconditions, stated with a <strong>Lean mirror</strong> of the Rust) as hypotheses. About 40 agent runs, several at a time, over about 10 hours wall built both the framework and the proofs.</p>
+<p><strong>#738</strong> (RV64IM: 64-bit RISC-V with multiply) is about 680k lines, 89 commits in one day by agents; every proof imports the image, so moving one function by 4 bytes renames everything after it. <strong>Ours</strong> treats the binary like position-independent code with a linker: each function is proved once against its template, with its callees' <strong>contracts</strong> (pre- and postconditions, stated with a <strong>Lean mirror</strong> of the Rust) as hypotheses. About 30 agent runs over roughly one day (about 20 hours wall) built both the framework and the proofs.</p>
 
 <h2>3. What was built</h2>
 
@@ -210,7 +210,7 @@ theorem rv64_sound_of_main (hmain : MainSpec Rv64mc.env (liftProg fns) Idx.Main 
 <figure>
 <svg viewBox="0 0 960 436" role="img" aria-labelledby="chT chD">
   <title id="chT">CPU-seconds per change, log scale</title>
-  <desc id="chD">C7 dot as index loop (same binary) 300; C8 duplex lanes (unrepaired) 1,073; C2 MerklePath::root, Rust only 1,245; C3 pure relocation 1,354; C5 real 5-function commit (so far) 1,461; C8b duplex counter moved 1,485; I2 contract framework change 2,212; C7b dot from the last index 2,627; C1 eq_eval, with spec and mirror 2,751; C4 struct fields swapped 2,792; I1 allocator alignment 2,948; C9 poly_eval contract change 3,054; C6 E::mul schoolbook 3,230; ours: cold build 4,333; #738: cold build 84,240; #738 after C1: rebuild in progress, bounded above by its cold build.</desc>
+  <desc id="chD">C7 dot as index loop (same binary) 300; C8 duplex lanes (unrepaired) 1,073; C2 MerklePath::root, Rust only 1,245; C3 pure relocation 1,354; C5 real 5-function commit (so far) 1,461; C8b duplex counter moved 1,485; I2 contract framework change 2,212; C7b dot from the last index 2,627; C1 eq_eval, with spec and mirror 2,751; C4 struct fields swapped 2,792; I1 allocator alignment 2,948; C9 poly_eval contract change 3,054; C6 E::mul schoolbook 3,230; ours: cold build 4,333; #738: cold build 84,240; #738 after C1, rebuild only, before any repair 13,356.</desc>
   <line class="grid" x1="270.0" y1="34" x2="270.0" y2="396"/>
   <line class="grid" x1="430.0" y1="34" x2="430.0" y2="396"/>
   <line class="grid" x1="590.0" y1="34" x2="590.0" y2="396"/>
@@ -268,15 +268,15 @@ theorem rv64_sound_of_main (hmain : MainSpec Rv64mc.env (liftProg fns) Idx.Main 
   <text x="260" y="359" font-size="12" text-anchor="end">#738: cold build</text>
   <rect class="bar-pr" x="270" y="348" width="468.1" height="14" rx="3"><title>#738: cold build: 84,240 CPU-s</title></rect>
   <text x="744.1" y="359" font-size="11" class="t2">84,240</text>
-  <text x="260" y="381" font-size="12" text-anchor="end">#738: after C1</text>
-  <rect class="bar-ph" x="270" y="370" width="468.1" height="14" rx="3"><title>#738 after C1: rebuild in progress (52 modules rebuilt, 0 failed, after 35 min); bounded above by the cold build</title></rect>
-  <text x="276" y="381" font-size="11" class="t2">in progress; at most the cold build</text>
+  <text x="260" y="381" font-size="12" text-anchor="end">#738 after C1</text>
+  <rect class="bar-pr" x="270" y="370" width="340.1" height="14" rx="3"><title>#738 after C1, rebuild only, before any repair: 13,356 CPU-s (3.71 CPU-h)</title></rect>
+  <text x="616.1" y="381" font-size="11" class="t2">13,356: rebuild only, before any repair</text>
   <g font-size="12">
     <rect x="790" y="40" width="10" height="10" rx="2" class="bar-ours"/><text x="806" y="50">ours</text>
     <rect x="790" y="60" width="10" height="10" rx="2" class="bar-pr"/><text x="806" y="70">#738</text>
   </g>
 </svg>
-<figcaption>Total CPU per change, including regeneration, rebuild and repair rebuilds; I1 includes 756 CPU-s of an unrelated module. The #738 rebuild after C1 was still running at the time of writing.</figcaption>
+<figcaption>Total CPU per change, including regeneration, rebuild and repair rebuilds; I1 includes 756 CPU-s of an unrelated module. The #738 bar after C1 is its rebuild alone, before any repair; 735 of its modules then failed or went unchecked.</figcaption>
 </figure>
 
 <h3>Changes to proved functions (round 2, tree of 104 proof files)</h3>
@@ -312,7 +312,7 @@ theorem rv64_sound_of_main (hmain : MainSpec Rv64mc.env (liftProg fns) Idx.Main 
 <thead><tr><th></th><th>ours</th><th>#738</th></tr></thead>
 <tbody>
 <tr><td>cold build</td><td>4,333 CPU-s (1.2 CPU-h), 516 s wall on 8 jobs</td><td>about 23.4 CPU-h, about 8 h wall (12 jobs, memory-capped to about 4.3 at once), peak 24.9 GB (13.3 GB for one module)</td></tr>
-<tr><td>after C1</td><td>2,751 CPU-s, a 3-minute repair</td><td>56 of 76 block files change (55 by addresses only); 225 to 228 of 823 proof files (about 75k lines) name a moved address or lemma, 2 for the semantic change; no renaming script (estimated half a day to a day to write); rebuild in progress (52 modules, 0 failed, after 35 min), bounded above by the cold build</td></tr>
+<tr><td>after C1</td><td>2,751 CPU-s, a 3-minute repair</td><td>13,356 CPU-s (3.71 CPU-h), 57 min wall, peak 22.6 GB, before any repair: 182 modules rebuilt, 28 failed (27 proof files, 13,486 lines), 707 unchecked as importers of a failed one (701 proof files, 194,552 lines, <code>soundness</code> among them); first errors: 10 hardcoded pc or word index in a kernel check, 10 renamed block lemma, 8 address literal in a statement; the 3 sampled are renaming only; 228 proof files (76,569 lines) name a shifted address; no renaming script (estimated half a day to a day to write)</td></tr>
 <tr><td>proof lines with a binary-specific token</td><td>8.8% of 14,432 (mid-campaign)</td><td>29% of 215,295</td></tr>
 <tr><td>absolute code addresses in proof text</td><td>1 line</td><td>6,962</td></tr>
 </tbody>
@@ -325,10 +325,10 @@ theorem rv64_sound_of_main (hmain : MainSpec Rv64mc.env (liftProg fns) Idx.Main 
   <div class="tile"><div class="k">Proved and linked at the image</div><div class="v">94 <span class="vs">of 230 functions (15% of instructions)</span></div></div>
   <div class="tile"><div class="k">With no open hypothesis</div><div class="v">47 <span class="vs">functions</span></div></div>
   <div class="tile"><div class="k">Contract only / nothing</div><div class="v">66 / 70 <span class="vs">functions</span></div></div>
-  <div class="tile"><div class="k">Hand-written lines</div><div class="v">31,331</div></div>
+  <div class="tile"><div class="k">Hand-written lines</div><div class="v">31,994</div></div>
 </div>
 <ul>
-<li><strong>Status.</strong> 94 of 230 functions (3,161 of 20,888 instructions, 15%) are proved and linked at the image, 47 of them with no open hypothesis; 66 (47% of instructions) have a contract only, including partial proofs of <code>main</code> and <code>counting_sort</code>; 70 (38%) have nothing. 31,331 hand-written lines, standard axioms, no <code>sorry</code>, build green. The Model layer is complete.</li>
+<li><strong>Status.</strong> 94 of 230 functions (3,161 of 20,888 instructions, 15%) are proved and linked at the image, 47 of them with no open hypothesis; 66 (47% of instructions) have a contract only, including partial proofs of <code>main</code> and <code>counting_sort</code>; 70 (38%) have nothing. 31,994 hand-written lines, standard axioms, no <code>sorry</code>, build green. The Model layer is complete.</li>
 <li><strong>Blockers</strong> are mostly framework features: frames for heap blocks and for caller-owned <code>sret</code> slots (the hidden pointer through which a function returns a large value), callees whose output is not such a slot (<code>memcpy</code>), predicates for nested types, closure layouts (rustc does not report them), and arithmetic goals that exhaust memory.</li>
 <li><strong>Two lessons.</strong> Contracts belong to machine instances, not Rust functions: LLVM specialised <code>try_allocate_in</code> for <code>main</code> without its <code>init</code> argument, so a contract written from the Rust signature was wrong. And a contract can be unprovable as written: <code>Sponge::new</code>'s first one let its inputs lie where it writes, and was fixed by a stronger precondition.</li>
 <li><strong>Extrapolation (estimate).</strong> The WHIR family estimated 1.5 to 2 agent-hours per function that allocates, grows a <code>Vec</code>, loops and returns through <code>sret</code>; the largest functions (<code>verify_bus_balance</code> 899 instructions, <code>verify_whir</code> 855 with 18 loops, <code>walk</code> 762 with 16) did not fit a 3-hour time box, and <code>keccak_f</code> was estimated at 4 to 6 hours. At that rate the 136 functions left are 200 to 270 agent-hours if each cost as much (many are smaller, a few larger), after the framework features.</li>
