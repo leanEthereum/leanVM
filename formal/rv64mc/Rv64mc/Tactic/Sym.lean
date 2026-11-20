@@ -34,17 +34,25 @@
   call without a contract, and where the function returns, which `finish` closes by the contract's continuation,
   leaving the postcondition to `closeSide`.
 
+  With `set_option rv_sym.heap true` (`heapOn`), comparisons of addresses that offsets do not decide go to `omega`
+  over the context's facts about numbers (`arithProve`), `NEXT` is read through stores (`nextNorm`), frames take
+  stores into what the function allocated and into `out`, and callees with an `out` (`Tactic/Heap.lean`), a
+  representation predicate of an earlier memory is carried by its `<P>.keep` lemma (`transport`) or built in place
+  field by field, and a branch on literals steps only the branch taken. Off, the goals left are those left before.
+
   ## Main results
 
   * `rv_sym hp stop [pcs] with [facts] using [contracts]`: step a goal `SafeN … ⟨⟨fn, pc, …⟩ :: …⟩`
   * `rv_auto hp …`: a contract `rvIsa.Contract p c fn Pre Post`, from the entry
   * `rv_intro h`, `rv_close`: a loop invariant's facts into the register file; the side goals' closer
+  * `rv_mem`: the goal's reads of registers, `NEXT` and memory resolved
 -/
 
 import Lean
 import Rv64mc.Tactic.Steps
 import Rv64mc.Tactic.Addr
 import Rv64mc.Tactic.Frame
+import Rv64mc.Tactic.Heap
 import Rv64mc.Core.ReprLemmas
 
 namespace Rv64mc.Tactic.Sym
@@ -53,6 +61,16 @@ open Lean Meta Elab Tactic
 open RiscvZkvm.Rv64 Lprog Lprog.RiscV
 
 initialize registerTraceClass `rv_sym
+
+register_option rv_sym.heap : Bool := {
+  defValue := false
+  descr := "rv_sym: reason about the heap and `out` (by omega), NEXT through stores, literal branches"
+}
+
+/-- `rv_sym.heap`: comparisons of addresses by `omega`, `NEXT` read through stores, frames with stores into what the
+    function allocated and into `out` and callees with an `out`, what such a callee keeps, branches on literals
+    folded, literal forms in the facts given. Off, `rv_sym` leaves the goals it left before them. -/
+def heapOn : MetaM Bool := return rv_sym.heap.get (← getOptions)
 
 /-! ## Terms -/
 
@@ -295,7 +313,7 @@ partial def evalE (R e : Expr) : MetaM (Expr × Expr) := do
 /-- A natural number the term reduces to (a literal, or a sum of literals and constants defined as such). -/
 def natVal? (e : Expr) : MetaM (Option Nat) := do
   if let some n ← evalNat e then return some n
-  evalNat (← whnf e)
+  evalNat (← withTransparency .default (whnf e))
 
 /-- A hypothesis `k + X ≤ need` or `k ≤ need`, `k` a numeral, for a `need` that is a parameter: the largest `k`, its
     proof, and `X` if any. -/
@@ -369,6 +387,360 @@ def leHyp (t x : Expr) : MetaM (Option Expr) := do
     if ty.isAppOfArity ``LE.le 4 && ty.appFn!.appArg! == t && ty.appArg! == x then return some d.toExpr
   return none
 
+/-- The function's own stack bound, `env.stackLimit.toNat + need ≤ top.toNat` (`Holds.pre`): its proof, `S`,
+    `top`, `need` and `need`'s value. -/
+def rawStack : MetaM (Option (Expr × Expr × Expr × Expr)) := do
+  for d in ← getLCtx do
+    if d.isImplementationDetail then continue
+    let ty := (← instantiateMVars d.type).consumeMData
+    if ty.isAppOfArity ``LE.le 4 then
+      let a := ty.appFn!.appArg!
+      let b := ty.appArg!
+      if b.isAppOfArity ``BitVec.toNat 2 && a.isAppOfArity ``HAdd.hAdd 6 then
+        let S := a.appFn!.appArg!
+        if S.isAppOfArity ``BitVec.toNat 2 && S.appArg!.isAppOf ``Rv64mc.Env.stackLimit then
+          return some (d.toExpr, S, b.appArg!, a.appArg!)
+  return none
+
+/-- The function's own stack bound as `S + k ≤ top.toNat`, `k` a numeral (`stackLit`): its proof, `S`, `top`, `k` and
+    its value. -/
+def ownStack : MetaM (Option (Expr × Expr × Expr × Expr × Nat)) := do
+  let some (h, S, t, need) ← rawStack | return none
+  let some (hk, k) ← stackLit h S t need | return none
+  return some (hk, S, t, mkNatLit k, k)
+
+/-- A hypothesis whose type is `t`, up to reducible unfolding. -/
+def hypOf (t : Expr) : MetaM (Option Expr) := do
+  for d in ← getLCtx do
+    if d.isImplementationDetail then continue
+    if ← withReducible (isDefEq (← instantiateMVars d.type) t) then return some d.toExpr
+  return none
+
+/-- A proof of `S + need ≤ (t + c).toNat` style facts about a slot `x` of the stack below `top`, from the stack
+    bound: `S ≤ x.toNat` and `x.toNat < top.toNat`, or `x.toNat ≤ top.toNat` (`le`). -/
+def slotFacts (x : Expr) : MetaM (Option (Expr × Expr × Expr)) := do
+  let some (h, S, top, need, nv) ← ownStack | return none
+  let (bx, cx) ← affine x
+  unless bx == some top && toInt64 cx < 0 && 0 ≤ (nv : Int) + toInt64 cx do return none
+  let args := [(`S, S), (`need, need), (`t, top), (`c, mkLit cx), (`h, h), (`hc, ← mkEqRefl (mkConst ``Bool.true))]
+  return some (← appN ``Rv64mc.Tactic.slot_ge args, ← appN ``Rv64mc.Tactic.slot_lt args,
+    ← appN ``Rv64mc.Tactic.slot_le args)
+
+/-! ## Linear facts over the words' numbers, by `omega`
+
+  Where offsets of one base do not decide a comparison of addresses (a slot against a block the function
+  allocated, `sret` against the stack, a store's address against `NEXT`), `omega` does, from the context's facts
+  about numbers (`arithFacts`: comparisons, words' comparisons and equations as their numbers', the bounds of a
+  frame on `NEXT`, definitions such as `InRange`, `Owned`, `Live` unfolded, the environment's layout) that share an
+  atom with the goal, and for each word `b + c` its number (`slot_eq` for a slot, `toNat_add_lit` else). -/
+
+/-- Definitions that say nothing about numbers, or too much, never unfolded for `omega`. -/
+def noArith : List Name := [``Lprog.Isa.Contract, ``Lprog.Isa.SafeN, ``Rv64mc.Holds, ``Rv64mc.Env.Static,
+  ``Rv64mc.Env.MayWrite, ``Rv64mc.Env.Frame, ``Rv64mc.DataRef.Words, ``MachineState.getMem, ``Rv64mc.Env.next]
+
+def isWordTy (T : Expr) : MetaM Bool := do
+  let T ← whnfR T
+  if T.isAppOfArity ``BitVec 1 then return (← evalNat T.appArg!) == some 64
+  return false
+
+/-- `e` with every constant of type `Nat` defined as a numeral replaced by it (a layout's sizes). -/
+def litConsts (e : Expr) : MetaM Expr :=
+  Meta.transform e (pre := fun x => do
+    if let .const n _ := x then
+      if let some (.defnInfo _) := (← getEnv).find? n then
+        if (← whnfR (← inferType x)).isConstOf ``Nat then
+          if let some v ← natVal? x then return .done (mkNatLit v)
+    -- a closed number other than arithmetic `omega` reads (`[].length`)
+    if x.isApp && !x.hasFVar && !x.hasMVar && !x.hasLooseBVars then
+      let some c := x.getAppFn.constName? | return .continue
+      unless [``HAdd.hAdd, ``HMul.hMul, ``HSub.hSub, ``HDiv.hDiv, ``HMod.hMod, ``HPow.hPow, ``OfNat.ofNat,
+          ``BitVec.toNat].contains c do
+        if (← whnfR (← inferType x)).isConstOf ``Nat then
+          if let some v ← natVal? x then return .done (mkNatLit v)
+    return .continue)
+
+/-- `ty` as a fact `omega` reads, up to unfolding: comparisons of numbers (of words as their numbers') under `∧`,
+    `∨`, `¬`, `↔`. -/
+partial def arithProp (ty : Expr) (fuel : Nat := 8) : MetaM (Option Expr) := do
+  let ty := (← instantiateMVars ty).consumeMData.headBeta
+  let n := ty.getAppNumArgs
+  match ty.getAppFn.constName? with
+  | some ``And | some ``Or | some ``Iff =>
+    unless n == 2 do return none
+    let some a ← arithProp ty.appFn!.appArg! fuel | return none
+    let some b ← arithProp ty.appArg! fuel | return none
+    return some (mkApp2 ty.appFn!.appFn! a b)
+  | some ``Not =>
+    let some a ← arithProp ty.appArg! fuel | return none
+    return some (mkNot a)
+  | some ``True | some ``False => return some ty
+  | some ``LE.le | some ``LT.lt =>
+    unless n == 4 do return none
+    let T := ty.getArg! 0
+    if (← whnfR T).isConstOf ``Nat then return some (← litConsts ty)
+    unless ← isWordTy T do return none
+    let x ← mkAppM ``BitVec.toNat #[ty.appFn!.appArg!]
+    let y ← mkAppM ``BitVec.toNat #[ty.appArg!]
+    return some (← mkAppM (if ty.isAppOf ``LE.le then ``LE.le else ``LT.lt) #[x, y])
+  | some ``Eq | some ``Ne =>
+    unless n == 3 do return none
+    if (← whnfR (ty.getArg! 0)).isConstOf ``Nat then return some (← litConsts ty)
+    return none
+  | some c =>
+    if noArith.contains c || fuel == 0 then return none
+    let some ty' ← unfoldDefinition? ty | return none
+    arithProp ty' (fuel - 1)
+  | none => return none
+
+/-- The facts about numbers a hypothesis `pf : ty` gives: its conjuncts', a frame's bounds on `NEXT`, a word
+    equation's numbers. -/
+partial def arithFacts (pf ty : Expr) (fuel : Nat := 8) : MetaM (Array (Expr × Expr)) := do
+  let ty := (← instantiateMVars ty).consumeMData.headBeta
+  if ty.isAppOfArity ``And 2 then
+    let a := ty.appFn!.appArg!
+    let b := ty.appArg!
+    return (← arithFacts (mkApp3 (mkConst ``And.left) a b pf) a fuel) ++
+      (← arithFacts (mkApp3 (mkConst ``And.right) a b pf) b fuel)
+  if ty.isAppOfArity ``Rv64mc.Env.Frame 5 then
+    let some ty' ← unfoldDefinition? ty | return #[]
+    let ty' := ty'.headBeta
+    unless ty'.isAppOfArity ``And 2 do return #[]
+    let a := ty'.appFn!.appArg!
+    let bc := ty'.appArg!
+    unless bc.isAppOfArity ``And 2 do return #[]
+    let b := bc.appFn!.appArg!
+    let c := bc.appArg!
+    return #[(mkApp3 (mkConst ``And.left) a bc pf, a),
+      (mkApp3 (mkConst ``And.left) b c (mkApp3 (mkConst ``And.right) a bc pf), b)]
+  if ty.isAppOfArity ``Eq 3 then
+    if ← isWordTy (ty.getArg! 0) then
+      let p ← mkAppM ``Rv64mc.Tactic.toNat_congr #[pf]
+      return #[(p, ← inferType p)]
+  if let some ty' ← arithProp ty fuel then return #[(← mkExpectedTypeHint pf ty', ty')]
+  if let some c := ty.getAppFn.constName? then
+    if !noArith.contains c && fuel > 0 then
+      if let some ty' ← unfoldDefinition? ty then return ← arithFacts pf ty' (fuel - 1)
+      -- a structure of facts (`VecAt`): its fields'
+      if isStructure (← getEnv) c then
+        let mut out := #[]
+        for fld in getStructureFields (← getEnv) c do
+          let some p ← (try some <$> mkProjection pf fld catch _ => pure none) | continue
+          out := out ++ (← arithFacts p (← inferType p) (fuel - 1))
+        return out
+  return #[]
+
+/-- The 64-bit words whose numbers `e` mentions. -/
+partial def natAtoms (e : Expr) (acc : Array Expr) : MetaM (Array Expr) := do
+  match e with
+  | .app f a =>
+    if e.isAppOfArity ``BitVec.toNat 2 && !a.hasLooseBVars then
+      if (← evalNat e.appFn!.appArg!) == some 64 then
+        return if acc.contains a then acc else acc.push a
+    natAtoms a (← natAtoms f acc)
+  | .mdata _ b => natAtoms b acc
+  | _ => return acc
+
+/-- The terms `(l.map f).length` of `e`. -/
+partial def lengthMaps (e : Expr) (acc : Array Expr) : Array Expr :=
+  if e.isAppOfArity ``List.length 2 && (e.appArg!).isAppOfArity ``List.map 4 && !e.hasLooseBVars then
+    if acc.contains e then acc else acc.push e
+  else match e with
+    | .app f a => lengthMaps a (lengthMaps f acc)
+    | .mdata _ b => lengthMaps b acc
+    | _ => acc
+
+/-- A register read through a register file the executor made (`normReads`), only where there is one. -/
+def normRegs (pf ty : Expr) : MetaM (Expr × Expr) := do
+  unless (ty.find? fun e => e.isAppOf ``Rv64mc.Tactic.rf || e.isAppOf ``Lprog.updReg).isSome do return (pf, ty)
+  let (ty', p) ← normReads ty
+  match p with
+  | some p => return (← mkEqMP p pf, ty')
+  | none => return (pf, ty')
+
+/-- `pf : goal` as an auxiliary theorem, where it can be one. -/
+def auxOr (goal pf : Expr) : MetaM Expr := do
+  try mkAuxTheorem goal pf (zetaDelta := true)
+  catch _ => pure pf
+
+/-- `goal`, a proposition about numbers, by `omega` from `facts`; the proof is an auxiliary theorem. -/
+def omegaOn (facts : Array Expr) (goal : Expr) : MetaM (Option Expr) := do
+  let saved ← saveState
+  -- `omega` may also run out of recursion depth or heartbeats: a failure like any other
+  tryCatchRuntimeEx (do
+    let g ← mkFreshExprSyntheticOpaqueMVar goal
+    let some g' ← g.mvarId!.falseOrByContra | return none
+    g'.withContext do
+      let last := (← getLCtx).lastDecl
+      let negated := if goal.consumeMData.isConstOf ``False then [] else
+        match last with
+        | some d => [d.toExpr]
+        | none => []
+      Lean.Elab.Tactic.Omega.omega (facts.toList ++ negated) g'
+    let pf ← instantiateMVars g
+    if pf.hasExprMVar then
+      saved.restore
+      return none
+    return some (← auxOr goal pf))
+    fun _ => do
+      saved.restore
+      return none
+
+mutual
+
+/-- `env.next X = env.next B` for the memory `B` that `X` stores into, through stores apart from `NEXT`. -/
+partial def nextNorm (env X : Expr) : MetaM (Expr × Option Expr) := do
+  let X := X.consumeMData
+  unless X.isAppOfArity ``MachineState.setMem 3 do return (X, none)
+  let N := X.appFn!.appFn!.appArg!
+  let a := X.appFn!.appArg!
+  let v := X.appArg!
+  let some hne ← neNext env a
+    | trace[rv_sym] "nextNorm stops at {a}"; return (X, none)
+  let p1 ← appN ``Rv64mc.Tactic.next_setMem [(`env, env), (`N, N), (`a, a), (`v, v), (`h, hne)]
+  let (B, p2) ← nextNorm env N
+  return (B, some (← transOpt p1 p2))
+
+/-- `a ≠ env.nextAddr`: a slot of the stack, or by `omega`. -/
+partial def neNext (env a : Expr) : MetaM (Option Expr) := do
+  if let some (hlo, _, _) ← slotFacts a then
+    return some (← appN ``Rv64mc.Tactic.next_ne_of_stack [(`env, env), (`a, a), (`h, hlo)])
+  arithProve (← mkAppM ``Ne #[a, ← mkAppM ``Rv64mc.Env.nextAddr #[env]]) true
+
+/-- **A proposition about numbers or words' numbers by `omega`**, from the facts of the context that share an atom
+    with it, each word `b + c` among their atoms given its number. `nested`: no `NEXT` read through stores. -/
+partial def arithProve (goal : Expr) (nested : Bool := false) : MetaM (Option Expr) := do
+  unless ← heapOn do return none
+  let goal := (← instantiateMVars goal).consumeMData
+  if goal.hasExprMVar then return none
+  if goal.isAppOfArity ``Ne 3 then
+    if ← isWordTy (goal.getArg! 0) then
+      let g' ← mkAppM ``Ne #[← mkAppM ``BitVec.toNat #[goal.appFn!.appArg!], ← mkAppM ``BitVec.toNat #[goal.appArg!]]
+      let some p ← arithProve g' nested | return none
+      return some (← mkAppM ``Rv64mc.Tactic.ne_of_toNat #[p])
+  let some g1 ← arithProp goal | return none
+  let hasRegs := (g1.find? fun e => e.isAppOf ``Rv64mc.Tactic.rf || e.isAppOf ``Lprog.updReg).isSome
+  let (g2, pe) ← if hasRegs then normReads g1 else pure (g1, none)
+  let mut facts : Array (Expr × Expr) := #[]
+  for d in ← getLCtx do
+    if d.isImplementationDetail then continue
+    let ty ← instantiateMVars d.type
+    if ty.consumeMData.isConstOf ``Rv64mc.Env then
+      let p ← mkAppM ``Rv64mc.Env.layout #[d.toExpr]
+      facts := facts ++ (← arithFacts p (← inferType p))
+      continue
+    unless ← isProp ty do continue
+    for (p, t) in ← arithFacts d.toExpr ty do
+      facts := facts.push (← normRegs p t)
+  -- each word's number (`extra`, by the word), and its key: a base, `NEXT` of the memory stored into
+  let mut extra : Array (Expr × Expr) := #[]
+  let mut canon : Array (Expr × Expr) := #[]
+  let mut seen : Array Expr := #[]
+  let mut todo := (← natAtoms g2 #[]).toList
+  for (_, t) in facts do
+    todo := todo ++ (← natAtoms t #[]).toList
+  while !todo.isEmpty do
+    let w := todo.head!
+    todo := todo.tail!
+    if seen.contains w then continue
+    seen := seen.push w
+    extra := extra.push (w, ← mkAppM ``BitVec.isLt #[w])
+    let (bw, cw) ← affine w
+    let some b := bw
+      | extra := extra.push (w, ← mkDecideProof (← mkEq (← mkAppM ``BitVec.toNat #[w]) (mkNatLit cw)))
+        continue
+    if cw != 0 then
+      let c := w.appArg!
+      let slot ← match ← ownStack with
+        | some (h, S, top, need, nv) =>
+          let k := 2 ^ 64 - cw
+          if b == top && 0 < k && k ≤ nv then
+            pure (some (← appN ``Rv64mc.Tactic.slot_eq [(`S, S), (`need, need), (`k, mkNatLit k), (`t, top),
+              (`c, c), (`h, h), (`hc, ← mkEqRefl (mkConst ``Bool.true))]))
+          else pure none
+        | none => pure none
+      match slot with
+      | some p => extra := extra.push (w, p)
+      | none =>
+        let hc ← mkDecideProof (← mkEq (← mkAppM ``BitVec.toNat #[c]) (mkNatLit cw))
+        extra := extra.push (w, ← appN ``Rv64mc.Tactic.toNat_add_lit [(`b, b), (`c, c), (`n, mkNatLit cw), (`h, hc)])
+      canon := canon.push (w, b)
+      todo := b :: todo
+    else if !nested && w.isAppOfArity ``Rv64mc.Env.next 2 then
+      let env := w.appFn!.appArg!
+      let (B, p?) ← nextNorm env w.appArg!
+      if let some p := p? then
+        extra := extra.push (w, ← mkAppM ``Rv64mc.Tactic.toNat_congr #[p])
+        let nb ← mkAppM ``Rv64mc.Env.next #[env, B]
+        canon := canon.push (w, nb)
+        todo := nb :: todo
+  let key (w : Expr) : Expr := ((canon.find? (·.1 == w)).map (·.2)).getD w
+  let keysOf (t : Expr) : MetaM (Array Expr) := do
+    let mut ks := (← natAtoms t #[]).map key
+    for fv in (collectFVars {} t).fvarIds do
+      if (← whnfR (← fv.getType)).isConstOf ``Nat then ks := ks.push (mkFVar fv)
+    return ks
+  -- the facts that share a key with the goal, closed under sharing
+  let mut keys ← keysOf g2
+  let factKeys ← facts.mapM fun (_, t) => keysOf t
+  -- a goal without atoms (`False`): every fact
+  let mut used := facts.map fun _ => keys.isEmpty
+  let mut changed := true
+  while changed do
+    changed := false
+    for i in [0:facts.size] do
+      if used[i]! then continue
+      let ks := factKeys[i]!
+      if ks.any keys.contains then
+        used := used.set! i true
+        changed := true
+        for k in ks do
+          unless keys.contains k do keys := keys.push k
+  let mut chosen : Array Expr := #[]
+  for i in [0:facts.size] do
+    if used[i]! then chosen := chosen.push facts[i]!.1
+  for (w, p) in extra do
+    if keys.isEmpty || keys.contains (key w) || keys.contains w then chosen := chosen.push p
+  -- `(l.map f).length = l.length`
+  let mut lens : Array Expr := #[]
+  for t in #[g2] ++ facts.map (·.2) do
+    lens := lengthMaps t lens
+  for e in lens do
+    let mp := e.appArg!
+    chosen := chosen.push (← mkAppOptM ``List.length_map #[none, none, some mp.appArg!, some mp.appFn!.appArg!])
+  let some p ← omegaOn chosen g2 | return none
+  let p ← match pe with
+    | some e => mkEqMPR e p
+    | none => pure p
+  return some (← mkExpectedTypeHint p goal)
+
+end
+
+/-- `NEXT` read through stores apart from it, as a simproc. -/
+def nextStep (e : Expr) : SimpM Simp.Step := do
+  if e.isAppOfArity ``Rv64mc.Env.next 2 && e.appArg!.consumeMData.isAppOfArity ``MachineState.setMem 3 then
+    let (B, p?) ← withTransparency .default (nextNorm e.appFn!.appArg! e.appArg!)
+    if let some p := p? then
+      return .done { expr := mkApp2 e.appFn!.appFn! e.appFn!.appArg! B, proof? := some p }
+  return .continue
+
+/-- `ty` with `NEXT` read through the stores apart from it (`nextNorm`), and a proof of `ty = ty'` where it changed. -/
+def nextTy (ty : Expr) : MetaM (Expr × Option Expr) := do
+  let ty ← instantiateMVars ty
+  let has := ty.find? fun e => e.isAppOfArity ``Rv64mc.Env.next 2 && e.appArg!.consumeMData.isAppOf ``MachineState.setMem
+  if has.isNone then return (ty, none)
+  let ctx ← Simp.mkContext (simpTheorems := #[]) (congrTheorems := ← getSimpCongrTheorems)
+  let (r, _) ← Simp.main ty ctx (methods := { pre := nextStep })
+  return (r.expr, r.proof?)
+
+/-- A fact `pf : ty` with `NEXT` read through stores (`nextTy`). -/
+def normNext (pf ty : Expr) : MetaM (Expr × Expr) := do
+  let (ty', p) ← nextTy ty
+  match p with
+  | some p => return (← mkEqMP p pf, ty')
+  | none => return (pf, ty)
+
+
+
 /-- A proof of `a ≠ b` from the offsets of one base, or a hypothesis. -/
 def neProof (a b : Expr) : MetaM (Option Expr) := do
   let (ba, ca) ← affine a
@@ -401,7 +773,7 @@ def neProof (a b : Expr) : MetaM (Option Expr) := do
       let y := ty.appArg!
       if x == a && y == b then return some d.toExpr
       if x == b && y == a then return some (← mkAppM ``Ne.symm #[d.toExpr])
-  return none
+  arithProve (← mkAppM ``Ne #[a, b])
 
 /-- A proof of `lo ≤ a` for offsets of one bounded base. -/
 def leProof (lo a : Expr) : MetaM (Option Expr) := do
@@ -480,6 +852,44 @@ def frames (M : Expr) : MetaM (Array (Expr × Expr × Expr)) := do
     out := out.push (d.toExpr, lo, rhs.appFn!.appArg!)
   return out
 
+/-- A hypothesis `∀ a, P₁ a → … → Pₖ a → M.getMem a = N.getMem a` (what a callee's frame keeps, `keep<k>_j`) whose
+    premises hold at `x`, by offsets (`leProof`) or by `omega` (`arithProve`) away from the function's own stack:
+    `M.getMem x = N.getMem x`, and `N`. -/
+def keepAt (M x : Expr) : MetaM (Option (Expr × Expr)) := do
+  let (bx, _) ← affine x
+  let own := match ← ownStack with
+    | some (_, _, top, _, _) => bx == some top
+    | none => false
+  for d in ← getLCtx do
+    if d.isImplementationDetail then continue
+    let ty := (← instantiateMVars d.type).consumeMData
+    let .forallE _ dom body _ := ty | continue
+    unless ← isWordTy dom do continue
+    let mut t := body.instantiate1 x
+    let mut prems := #[]
+    while t.isForall do
+      let .forallE _ P b _ := t | break
+      if b.hasLooseBVars then break
+      prems := prems.push P
+      t := b
+    let concl := t.consumeMData
+    unless concl.isAppOfArity ``Eq 3 && !prems.isEmpty do continue
+    let lhs := concl.appFn!.appArg!
+    let rhs := concl.appArg!
+    unless lhs.isAppOfArity ``MachineState.getMem 2 && rhs.isAppOfArity ``MachineState.getMem 2 do continue
+    unless lhs.appFn!.appArg! == M do continue
+    let mut pfs := #[]
+    for P in prems do
+      let P := (← instantiateMVars P).consumeMData
+      let le := P.isAppOfArity ``LE.le 4
+      let mut p? ← if le then leProof P.appFn!.appArg! P.appArg! else pure none
+      if p?.isNone && (!own || !le) then p? ← arithProve P
+      let some p := p? | break
+      pfs := pfs.push p
+    unless pfs.size == prems.size do continue
+    return some (mkAppN d.toExpr (#[x] ++ pfs), rhs.appFn!.appArg!)
+  return none
+
 /-- The doubleword `M` holds at `x`, read through its stores and its callees' frames, and a proof of
     `M.getMem x = v` where it is not `M.getMem x` itself. -/
 partial def readMem (M x : Expr) : MetaM (Expr × Option Expr) := do
@@ -497,11 +907,9 @@ partial def readMem (M x : Expr) : MetaM (Expr × Option Expr) := do
       let (v, p2) ← readMem N x
       return (v, some (← transOpt p1 p2))
     return (← mkAppM ``MachineState.getMem #[M, x], none)
-  for (F, lo, N) in ← frames M do
-    if let some hle ← leProof lo x then
-      let p1 := mkApp2 F x hle
-      let (v, p2) ← readMem N x
-      return (v, some (← transOpt p1 p2))
+  if let some (p1, N) ← keepAt M x then
+    let (v, p2) ← readMem N x
+    return (v, some (← transOpt p1 p2))
   return (← mkAppM ``MachineState.getMem #[M, x], none)
 
 /-! ## Goals -/
@@ -642,77 +1050,94 @@ def isF (out : Expr) : MetaM Bool := do
   | .lam _ _ b _ => return b.isConstOf ``False
   | _ => return false
 
-/-- The function's own stack bound, `env.stackLimit.toNat + need ≤ top.toNat` (`Holds.pre`): its proof, `S`,
-    `top`, `need` and `need`'s value. -/
-def rawStack : MetaM (Option (Expr × Expr × Expr × Expr)) := do
-  for d in ← getLCtx do
-    if d.isImplementationDetail then continue
-    let ty := (← instantiateMVars d.type).consumeMData
-    if ty.isAppOfArity ``LE.le 4 then
-      let a := ty.appFn!.appArg!
-      let b := ty.appArg!
-      if b.isAppOfArity ``BitVec.toNat 2 && a.isAppOfArity ``HAdd.hAdd 6 then
-        let S := a.appFn!.appArg!
-        if S.isAppOfArity ``BitVec.toNat 2 && S.appArg!.isAppOf ``Rv64mc.Env.stackLimit then
-          return some (d.toExpr, S, b.appArg!, a.appArg!)
+/-- `env.MayWrite top out m0 X a` for a word `a` of a callee's `out` (`ha`, in the context): in the stack below
+    `top`, allocated since `m0`, or in `out`, by `omega`. -/
+def mayWrite (env top out m0 X a : Expr) : MetaM (Option Expr) := do
+  let args := [(`env, env), (`top, top), (`out, out), (`m, m0), (`X, X), (`a, a)]
+  let num (e : Expr) : MetaM Expr := mkAppM ``BitVec.toNat #[e]
+  let stk ← mkAppM ``And #[← mkAppM ``LE.le #[← num (← mkAppM ``Rv64mc.Env.stackLimit #[env]), ← num a],
+    ← mkAppM ``LT.lt #[← num a, ← num top]]
+  if let some h ← arithProve stk then return some (← appN ``Rv64mc.Tactic.mw_stack (args ++ [(`h, h)]))
+  let frs ← mkAppM ``And #[← mkAppM ``LE.le #[← num (← mkAppM ``Rv64mc.Env.next #[env, m0]), ← num a],
+    ← mkAppM ``LT.lt #[← num a, ← num (← mkAppM ``Rv64mc.Env.next #[env, X])]]
+  if let some h ← arithProve frs then return some (← appN ``Rv64mc.Tactic.mw_fresh (args ++ [(`h, h)]))
+  unless ← isF out do
+    if let some h ← arithProve (mkApp out a).headBeta then
+      return some (← appN ``Rv64mc.Tactic.mw_out (args ++ [(`h, h)]))
   return none
 
-/-- The function's own stack bound as `S + k ≤ top.toNat`, `k` a numeral (`stackLit`): its proof, `S`, `top`, `k` and
-    its value. -/
-def ownStack : MetaM (Option (Expr × Expr × Expr × Expr × Nat)) := do
-  let some (h, S, t, need) ← rawStack | return none
-  let some (hk, k) ← stackLit h S t need | return none
-  return some (hk, S, t, mkNatLit k, k)
-
-/-- A hypothesis whose type is `t`, up to reducible unfolding. -/
-def hypOf (t : Expr) : MetaM (Option Expr) := do
-  for d in ← getLCtx do
-    if d.isImplementationDetail then continue
-    if ← withReducible (isDefEq (← instantiateMVars d.type) t) then return some d.toExpr
-  return none
-
-/-- A proof of `S + need ≤ (t + c).toNat` style facts about a slot `x` of the stack below `top`, from the stack
-    bound: `S ≤ x.toNat` and `x.toNat < top.toNat`, or `x.toNat ≤ top.toNat` (`le`). -/
-def slotFacts (x : Expr) : MetaM (Option (Expr × Expr × Expr)) := do
-  let some (h, S, top, need, nv) ← ownStack | return none
-  let (bx, cx) ← affine x
-  unless bx == some top && toInt64 cx < 0 && 0 ≤ (nv : Int) + toInt64 cx do return none
-  let args := [(`S, S), (`need, need), (`t, top), (`c, mkLit cx), (`h, h), (`hc, ← mkEqRefl (mkConst ``Bool.true))]
-  return some (← appN ``Rv64mc.Tactic.slot_ge args, ← appN ``Rv64mc.Tactic.slot_lt args,
-    ← appN ``Rv64mc.Tactic.slot_le args)
-
-/-- `env.Frame top F m0 X`, for `X` the memory the function made from `m0`: its stores into its stack, its callees'
-    frames (`Env.Frame … F N X` in the context). -/
-partial def frameWalk (env top m0 X : Expr) : MetaM (Option Expr) := do
+/-- `env.Frame top out m0 X`, for `X` the memory the function made from `m0`: its stores into its stack, into what
+    it allocated and into `out`, and its callees' frames (`Env.Frame … N X` in the context), each callee's `out`
+    among what the function may write (`mayWrite`). -/
+partial def frameWalk (env top out m0 X : Expr) : MetaM (Option Expr) := do
   let X := X.consumeMData
+  let base := [(`env, env), (`top, top), (`out, out), (`m, m0)]
   if X == m0 then
     let nx ← mkAppM ``Rv64mc.Env.next #[env, m0]
     let hnxT ← mkAppM ``LE.le #[← mkAppM ``BitVec.toNat #[nx], ← mkAppM ``BitVec.toNat #[← mkAppM ``Rv64mc.Env.heapEnd #[env]]]
     let some hnx ← hypOf hnxT | return none
-    return some (← appN ``Rv64mc.Tactic.frame_refl [(`env, env), (`top, top), (`m, m0), (`h, hnx)])
+    return some (← appN ``Rv64mc.Env.Frame.refl (base ++ [(`h, hnx)]))
   if X.isAppOfArity ``MachineState.setMem 3 then
     let N := X.appFn!.appFn!.appArg!
     let a := X.appFn!.appArg!
     let v := X.appArg!
-    let some h1 ← frameWalk env top m0 N | return none
-    let some (hlo, hhi, _) ← slotFacts a | return none
-    return some (← appN ``Rv64mc.Tactic.frame_store [(`env, env), (`top, top), (`a, a), (`v, v), (`m, m0), (`N, N),
-      (`h1, h1), (`hlo, hlo), (`hhi, hhi)])
+    let some h1 ← frameWalk env top out m0 N | return none
+    let st := base ++ [(`a, a), (`v, v), (`N, N), (`h1, h1)]
+    if let some (hlo, hhi, _) ← slotFacts a then
+      return some (← appN ``Rv64mc.Tactic.frame_slot (st ++ [(`hlo, hlo), (`hhi, hhi)]))
+    unless ← isF out do
+      if let some hb ← arithProve (mkApp out a).headBeta then
+        if let some hn ← neNext env a then
+          return some (← appN ``Rv64mc.Tactic.frame_out (st ++ [(`hb, hb), (`hn, hn)]))
+    let (B, hn?) ← nextNorm env N
+    let hn ← match hn? with
+      | some p => pure p
+      | none => mkEqRefl (← mkAppM ``Rv64mc.Env.next #[env, N])
+    let num (e : Expr) : MetaM Expr := mkAppM ``BitVec.toNat #[e]
+    let some hlo ← arithProve (← mkAppM ``LE.le #[← num (← mkAppM ``Rv64mc.Env.next #[env, m0]), ← num a])
+      | return none
+    let some hhi ← arithProve (← mkAppM ``LT.lt #[← num a, ← num (← mkAppM ``Rv64mc.Env.next #[env, B])]) | return none
+    return some (← appN ``Rv64mc.Tactic.frame_fresh (st ++ [(`B, B), (`hn, hn), (`hlo, hlo), (`hhi, hhi)]))
   for d in ← getLCtx do
     if d.isImplementationDetail then continue
     let ty := (← instantiateMVars d.type).consumeMData
     unless ty.isAppOfArity ``Rv64mc.Env.Frame 5 do continue
     let args := ty.getAppArgs
-    unless args[4]! == X && (← isF (args[2]!)) do continue
+    unless args[4]! == X do continue
     let top' := args[1]!
+    let out' := args[2]!
     let N := args[3]!
     let ht ← if top' == top then mkAppM ``Nat.le_refl #[← mkAppM ``BitVec.toNat #[top]] else do
       let some (_, _, hle) ← slotFacts top' | continue
       pure hle
-    let some h1 ← frameWalk env top m0 N | continue
-    return some (← appN ``Rv64mc.Tactic.frame_call [(`env, env), (`top, top), (`top', top'), (`m, m0), (`N, N),
-      (`X, X), (`h1, h1), (`h2, d.toExpr), (`ht, ht)])
+    let some h1 ← frameWalk env top out m0 N | continue
+    let call := base ++ [(`top', top'), (`N, N), (`X, X), (`h1, h1), (`h2, d.toExpr), (`ht, ht)]
+    if ← isF out' then return some (← appN ``Rv64mc.Tactic.frame_callF call)
+    -- each word of the callee's `out` is the function's to write
+    let hout? ← withLocalDeclD `a word fun a => do
+      withLocalDeclD `ha (mkApp out' a).headBeta fun ha => do
+        let some h ← mayWrite env top out m0 X a | return none
+        return some (← mkLambdaFVars #[a, ha] h)
+    let some hout := hout? | continue
+    return some (← appN ``Rv64mc.Tactic.frame_trans (call ++ [(`out', out'), (`hout, hout)]))
   return none
+
+/-- `env.Static X` for `X` the memory the function made: a hypothesis, or a store apart from the static data into a
+    memory where it holds. -/
+partial def staticWalk (env X : Expr) : MetaM (Option Expr) := do
+  let X := X.consumeMData
+  if let some h ← hypOf (← mkAppM ``Rv64mc.Env.Static #[env, X]) then return some h
+  unless X.isAppOfArity ``MachineState.setMem 3 do return none
+  let N := X.appFn!.appFn!.appArg!
+  let a := X.appFn!.appArg!
+  let v := X.appArg!
+  let some hs ← staticWalk env N | return none
+  let num (e : Expr) : MetaM Expr := mkAppM ``BitVec.toNat #[e]
+  let apart ← mkAppM ``Or #[← mkAppM ``LT.lt #[← num a, ← num (← mkAppM ``Rv64mc.Env.staticLo #[env])],
+    ← mkAppM ``LE.le #[← num (← mkAppM ``Rv64mc.Env.staticHi #[env]), ← num a]]
+  let some h ← arithProve apart | return none
+  return some (← appN ``Rv64mc.Tactic.static_store [(`env, env), (`N, N), (`a, a), (`v, v), (`hs, hs), (`h, h)])
+
 
 /-- The entry's memory: the one `env.Static` and `NEXT`'s bound are assumed of (`Holds.pre`). -/
 def entryMem (env : Expr) : MetaM (Option (Expr × Expr)) := do
@@ -745,6 +1170,10 @@ def roomParam (a b : Expr) : MetaM (Option Expr) := do
         return some (← appN ``Rv64mc.Tactic.room_hyp [(`S, S), (`need, need), (`need', need'), (`k, (← inferType hn).appFn!.appArg!.appFn!.appArg!),
           (`t, top), (`c, mkLit cx), (`h, h), (`hn, hn), (`hc, ← mkEqRefl (mkConst ``Bool.true))])
     | none => pure ()
+  -- `need' ≤ need`, the callee's stack top the function's
+  if cx == 0 && (← heapOn) then
+    if let some hn ← hypOf (← mkAppM ``LE.le #[need', need]) then
+      return some (← mkAppM ``Rv64mc.Tactic.room_hyp0 #[h, hn])
   return none
 
 /-- A goal of `Holds`'s: the frame of the function's memory, the static data or `NEXT`'s bound in a memory it made,
@@ -752,16 +1181,15 @@ def roomParam (a b : Expr) : MetaM (Option Expr) := do
 def holdsGoal (ty : Expr) : MetaM (Option Expr) := do
   if ty.isAppOfArity ``Rv64mc.Env.Frame 5 then
     let args := ty.getAppArgs
-    let some h ← frameWalk (args[0]!) (args[1]!) (args[3]!) (args[4]!) | return none
-    return some (← appN ``Rv64mc.Tactic.frame_weaken [(`env, args[0]!), (`top, args[1]!), (`out, args[2]!),
-      (`m, args[3]!), (`X, args[4]!), (`h, h)])
+    return ← frameWalk (args[0]!) (args[1]!) (args[2]!) (args[3]!) (args[4]!)
   let viaFrame (env X : Expr) : MetaM (Option (Expr × Expr)) := do
     let some (m0, hst) ← entryMem env | return none
     let some (_, _, top, _, _) ← ownStack | return none
-    let some h ← frameWalk env top m0 X | return none
+    let some h ← frameWalk env top (mkConst ``Rv64mc.Tactic.F) m0 X | return none
     return some (h, hst)
   if ty.isAppOfArity ``Rv64mc.Env.Static 2 then
-    let some (h, hst) ← viaFrame ty.appFn!.appArg! ty.appArg! | return none
+    let some (h, hst) ← viaFrame ty.appFn!.appArg! ty.appArg!
+      | if ← heapOn then return ← staticWalk ty.appFn!.appArg! ty.appArg! else return none
     return some (← mkAppM ``Rv64mc.Tactic.static_of_frame #[hst, h])
   if ty.isAppOfArity ``LE.le 4 then
     let a := ty.appFn!.appArg!
@@ -851,6 +1279,198 @@ partial def memKeep (X Y a lo ha : Expr) : MetaM (Option Expr) := do
     return some (← mkEqTrans (mkApp2 F a hle) p2)
   return none
 
+/-- An address `(t + c₁) + c₂` as `t + c` (`addV`), sizes of layouts as numerals, and a proof where it changed. -/
+partial def normAddr (x : Expr) : MetaM (Expr × Option Expr) := do
+  let x ← litConsts x
+  if x.isAppOfArity ``HAdd.hAdd 6 then
+    let q := x.appArg!
+    if (← lit? q).isSome then
+      let (p, pp) ← normAddr x.appFn!.appArg!
+      let (v, pv) ← addV p q
+      let p1 ← match pp with
+        | some e => some <$> mkCongrArg (← lam word (mkAdd · q)) e
+        | none => pure none
+      match p1, pv with
+      | none, none => return (v, none)
+      | some a, none => return (v, some a)
+      | none, some b => return (v, some b)
+      | some a, some b => return (v, some (← mkEqTrans a b))
+  return (x, none)
+
+/-- A read of memory, `M.getMem x`, through `M`'s stores and its callees' frames (`readMem`), its address normalized;
+    a word-valued accessor of memory (`vecPtr m a`) unfolded first. -/
+def memStep (e : Expr) : SimpM Simp.Step := do
+  -- a memory is left as it is: its stored values are what the executor wrote
+  if e.isAppOf ``MachineState.setMem then return .done { expr := e }
+  if e.isAppOfArity ``MachineState.getMem 2 then
+    let M := e.appFn!.appArg!
+    let x := e.appArg!
+    let (x', px) ← normAddr x
+    let (v, pv) ← readMem M x'
+    let getM := mkApp (mkConst ``MachineState.getMem) M
+    let p1 ← match px with
+      | some p => some <$> mkCongrArg getM p
+      | none => pure none
+    let p ← match p1, pv with
+      | none, none => pure none
+      | some a, none => pure (some a)
+      | none, some b => pure (some b)
+      | some a, some b => some <$> mkEqTrans a b
+    return .done { expr := v, proof? := p }
+  if let some c := e.getAppFn.constName? then
+    if c != ``MachineState.setMem && c != ``Rv64mc.Env.next && e.getAppArgs.any (fun a => a.isFVar || a.isApp) then
+      if let some (.defnInfo _) := (← getEnv).find? c then
+        if ← isWordTy (← inferType e) then
+          let mut mem := false
+          for a in e.getAppArgs do
+            if (← whnfR (← inferType a)).isConstOf ``MachineState then mem := true
+          if mem then
+            if let some e' ← withTransparency .default (unfoldDefinition? e) then return .visit { expr := e'.headBeta }
+  if e.isAppOf ``Rv64mc.Tactic.rf || e.isAppOf ``Lprog.updReg then return .done { expr := e }
+  return .continue
+
+/-- `ty` with its reads of memory resolved where they can be (`memStep`), and a proof where it changed. -/
+def memTy (ty : Expr) : MetaM (Expr × Option Expr) := do
+  let ty ← instantiateMVars ty
+  if (ty.find? fun e => e.isAppOfArity ``MachineState.getMem 2).isNone then
+    -- an accessor (`vecPtr m a`) may still read memory
+    if (ty.find? fun e => e.isFVar).isNone then return (ty, none)
+  let ctx ← Simp.mkContext (simpTheorems := #[]) (congrTheorems := ← getSimpCongrTheorems)
+  let (r, _) ← Simp.main ty ctx (methods := { pre := memStep })
+  return (r.expr, r.proof?)
+
+/-- A closed comparison of numbers or words, by evaluation. -/
+def decideClosed (ty : Expr) : MetaM (Option Expr) := do
+  if ty.hasFVar || ty.hasMVar then return none
+  unless ty.isAppOfArity ``Eq 3 || ty.isAppOfArity ``LE.le 4 || ty.isAppOfArity ``LT.lt 4 || ty.isAppOfArity ``Ne 3 do
+    return none
+  try
+    let d ← mkDecide ty
+    let r ← withTransparency .default (whnf d)
+    unless r.isConstOf ``Bool.true do return none
+    return some (← mkDecideProof ty)
+  catch _ => return none
+/-- `X.getMem b = Y.getMem b` for `X` a memory the function made from `Y`: through `X`'s stores apart from `b`
+    (`neProof`) and its callees' frames (`keepAt`), what the context says of `b` deciding each. -/
+partial def memWalk (X Y b : Expr) : MetaM (Option Expr) := do
+  let X := X.consumeMData
+  if X == Y then return some (← mkEqRefl (← mkAppM ``MachineState.getMem #[X, b]))
+  if X.isAppOfArity ``MachineState.setMem 3 then
+    let N := X.appFn!.appFn!.appArg!
+    let y := X.appFn!.appArg!
+    let w := X.appArg!
+    let some hne ← neProof b y | return none
+    let p1 ← mkAppOptM ``MachineState.getMem_setMem_ne #[N, y, b, w, hne]
+    let some p2 ← memWalk N Y b | return none
+    return some (← mkEqTrans p1 p2)
+  let some (p1, N) ← keepAt X b | return none
+  let some p2 ← memWalk N Y b | return none
+  return some (← mkEqTrans p1 p2)
+
+/-- A proposition that unfolds to `∀ b, … → X.getMem b = Y.getMem b` (`Keeps`, a family's `HeapKept`): its binders
+    introduced and `memWalk`. -/
+partial def memEqForall (ty : Expr) (fuel : Nat := 4) : MetaM (Option Expr) := do
+  let ty := (← whnfR (← instantiateMVars ty)).consumeMData
+  unless ty.isForall do
+    if fuel == 0 then return none
+    let some ty' ← withTransparency .default (unfoldDefinition? ty) | return none
+    return ← memEqForall ty' (fuel - 1)
+  forallTelescopeReducing ty fun xs concl => do
+    let concl := concl.consumeMData
+    unless concl.isAppOfArity ``Eq 3 && xs.size ≥ 1 do return none
+    let lhs := concl.appFn!.appArg!
+    let rhs := concl.appArg!
+    unless lhs.isAppOfArity ``MachineState.getMem 2 && rhs.isAppOfArity ``MachineState.getMem 2 do return none
+    let b := lhs.appArg!
+    unless rhs.appArg! == b do return none
+    let some p ← memWalk lhs.appFn!.appArg! rhs.appFn!.appArg! b | return none
+    return some (← mkLambdaFVars xs p)
+
+/-- **A representation predicate carried to a later memory**: the goal `T`, a predicate of memory `M`, from the
+    hypothesis `h : S`, the same predicate of an earlier memory, by its lemma `<P>.keep` (`WordsAt.keep`,
+    `VecAt.keep`, a family's own): the lemma's premises that its hypothesis does not give are a memory kept
+    (`memEqForall`), a fact about numbers (`arithProve`), or the same carried for a part (`Elems m p xs → Elems m' p
+    xs`, recursively). -/
+partial def transport (T h : Expr) (fuel : Nat := 3) : MetaM (Option Expr) := do
+  if fuel == 0 then return none
+  let T := (← instantiateMVars T).consumeMData
+  let some c := T.getAppFn.constName? | return none
+  let S ← instantiateMVars (← inferType h)
+  -- a definition without a lemma of its own: the one it unfolds to (`UsizesAt` to `WordsAt`)
+  unless (← getEnv).contains (c ++ `keep) || (← getEnv).contains (c ++ `keep') do
+    let some T' ← withTransparency .default (unfoldDefinition? T) | return none
+    let some S' ← withTransparency .default (unfoldDefinition? S) | return none
+    let some p ← transport T'.headBeta (← mkExpectedTypeHint h S'.headBeta) (fuel - 1) | return none
+    return some (← mkExpectedTypeHint p T)
+  for lem in [c ++ `keep, c ++ `keep'] do
+    unless (← getEnv).contains lem do continue
+    let saved ← saveState
+    let ok ← try
+        let lc ← mkConstWithFreshMVarLevels lem
+        let (xs, _, concl) ← forallMetaTelescopeReducing (← inferType lc)
+        unless ← isDefEq concl T do throwError "its conclusion is not the goal"
+        -- the hypothesis
+        let mut given := false
+        for x in xs do
+          if given then break
+          let xt ← instantiateMVars (← inferType x)
+          if (← isProp xt) && !(← x.mvarId!.isAssigned) then
+            if ← isDefEq xt S then
+              x.mvarId!.assign h
+              given := true
+        unless given do throwError "no premise is the hypothesis"
+        for x in xs do
+          if ← x.mvarId!.isAssigned then continue
+          let xt ← instantiateMVars (← inferType x)
+          unless ← isProp xt do throwError "an argument is not given: {xt}"
+          if xt.hasExprMVar then throwError "a premise is not determined: {xt}"
+          if let some p ← memEqForall xt then
+            x.mvarId!.assign p
+            continue
+          if let some p ← arithProve xt then
+            x.mvarId!.assign p
+            continue
+          -- a part carried: `A m … → A m' …`
+          let some p ← (forallTelescopeReducing xt fun ys concl' => do
+              unless ys.size == 1 do return none
+              let some q ← transport concl' ys[0]! (fuel - 1) | return none
+              return some (← mkLambdaFVars ys q))
+            | throwError "a premise is not closed: {xt}"
+          x.mvarId!.assign p
+        let pf ← instantiateMVars (mkAppN lc xs)
+        if pf.hasExprMVar then throwError "the proof is not determined"
+        pure (some pf)
+      catch e =>
+        trace[rv_sym] "transport by {lem}: {e.toMessageData}"
+        pure none
+    match ok with
+    | some pf => return some pf
+    | none => saved.restore
+  return none
+
+/-- A hypothesis of the goal's predicate at another memory, the other arguments the same, carried to the goal's
+    (`transport`). -/
+def transportGoal (T : Expr) : MetaM (Option Expr) := do
+  let T := (← instantiateMVars T).consumeMData
+  let some c := T.getAppFn.constName? | return none
+  unless (← getEnv).contains (c ++ `keep) || (← getEnv).contains (c ++ `keep') do return none
+  let args := T.getAppArgs
+  let mut memPos := #[]
+  for k in [0:args.size] do
+    if (← whnfR (← inferType args[k]!)).isConstOf ``MachineState then memPos := memPos.push k
+  if memPos.isEmpty then return none
+  for d in ← getLCtx do
+    if d.isImplementationDetail then continue
+    let dt := (← instantiateMVars d.type).consumeMData
+    unless dt.getAppFn.constName? == some c && dt.getAppNumArgs == args.size do continue
+    let dargs := dt.getAppArgs
+    let mut same := true
+    for k in [0:args.size] do
+      unless memPos.contains k || dargs[k]! == args[k]! do same := false
+    unless same do continue
+    if let some p ← transport T d.toExpr then return some p
+  return none
+
 /-- Close what is closed by reduction, by an address fact, or by a hypothesis; split conjunctions, unfold
     definitions; leave the rest, its reads reduced. -/
 partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
@@ -881,6 +1501,18 @@ partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
   let g ← match p with
     | some p => g.replaceTargetEq ty p
     | none => pure g
+  let (ty, pn) ← if ← heapOn then nextTy ty else pure (ty, none)
+  let g ← match pn with
+    | some p => g.replaceTargetEq ty p
+    | none => pure g
+  let (ty, pm) ← if ← heapOn then memTy ty else pure (ty, none)
+  let g ← match pm with
+    | some p => g.replaceTargetEq ty p
+    | none => pure g
+  if ← heapOn then
+    if let some p ← decideClosed ty then
+      g.assign p
+      return []
   if let .forallE _ _ (.forallE _ hle eq _) _ := ty then
     if hle.isAppOfArity ``LE.le 4 && eq.isAppOfArity ``Eq 3 then
       let saved ← saveState
@@ -918,6 +1550,55 @@ partial def closeSide (g : MVarId) : MetaM (List MVarId) := g.withContext do
     if (← instantiateMVars d.type).consumeMData == ty then
     g.assign d.toExpr
     return []
+  if let some p ← arithProve ty then
+    g.assign p
+    return []
+  if ← heapOn then
+    -- a representation predicate of an earlier memory, carried
+    if let some p ← transportGoal ty then
+      g.assign p
+      return []
+    -- a representation predicate built in place: every field, or its definition's every part, closed
+    if let some c := ty.getAppFn.constName? then
+      if keep.contains c && !noArith.contains c then
+        let saved ← saveState
+        let parts? ← try
+            if isStructure (← getEnv) c then pure (some (← g.constructor))
+            else match ← unfoldDefinition? ty with
+              | some ty' => pure (some [← g.replaceTargetDefEq ty'.headBeta])
+              | none => pure none
+          catch _ => pure none
+        if let some parts := parts? then
+          let mut rest := []
+          for p in parts do
+            unless ← p.isAssigned do rest := rest ++ (← closeSide p)
+          if rest.isEmpty then return []
+        saved.restore
+    -- a `∀` whose premises contradict the context, or whose conclusion closes
+    if ty.isForall then
+      let saved ← saveState
+      let (_, g') ← g.intros
+      let ok ← g'.withContext do
+        match ← arithProve (mkConst ``False) with
+        | some p =>
+          g'.assign (← mkFalseElim (← g'.getType) p)
+          pure true
+        | none => pure false
+      if ok then return []
+      if (← closeSide g').isEmpty then return []
+      saved.restore
+    -- a hypothesis of the same predicate, up to unfolding
+    if let some c := ty.getAppFn.constName? then
+      for d in ← getLCtx do
+        if d.isImplementationDetail then continue
+        let dt := (← instantiateMVars d.type).consumeMData
+        if dt.getAppFn.constName? == some c then
+          let saved ← saveState
+          let same ← try withTransparency .default (isDefEq dt ty) catch _ => pure false
+          if same then
+            g.assign d.toExpr
+            return []
+          saved.restore
   return [g]
 
 /-- A branch's hypothesis `hc` under a name of its own: the earlier ones are `hc_1`, `hc_2`, … in the order they were
@@ -975,8 +1656,15 @@ def labelIdx? (body : Array Expr) (l : Nat) : MetaM (Option Nat) := do
       if (← evalNat i.appArg!) == some l then return some k
   return none
 
+/-- `e` with every 64-bit literal in the form the executor writes (`mkLit`). -/
+def litForms (e : Expr) : MetaM Expr :=
+  Meta.transform e (pre := fun x => do
+    if let some v ← lit? x then return .done (mkLit v)
+    return .continue)
+
 /-- A fact among those given whose type is `lhs = ?` with `lhs` the given term, its right side and proof. -/
 def factEq (cfg : Cfg) (lhs : Expr) : MetaM (Option (Expr × Expr)) := do
+  let lhs ← if ← heapOn then litForms lhs else pure lhs
   for (pf, ty) in cfg.facts do
     let ty := ty.consumeMData
     if ty.isAppOfArity ``Eq 3 then
@@ -1049,6 +1737,7 @@ def afterCall (g : MVarId) (k : Nat) : MetaM (Option MVarId) := do
   g.withContext do
     let post := mkFVar (fvs[2]!)
     let facts ← splitFact post (← inferType post)
+    let facts ← if ← heapOn then facts.mapM fun (p, t) => normNext p t else pure facts
     let (g, hs) ← addFacts g (Name.mkSimple s!"hret{k}") facts
     for (h, (_, ty)) in hs.zip facts do
       if ty.isConstOf ``False then
@@ -1061,15 +1750,31 @@ def afterCall (g : MVarId) (k : Nat) : MetaM (Option MVarId) := do
         let ty := (← instantiateMVars (← h.getType)).consumeMData
         unless ty.isAppOfArity ``Rv64mc.Env.Frame 5 do continue
         let args := ty.getAppArgs
-        unless ← isF (args[2]!) do continue
+        let noOut ← isF (args[2]!)
+        let fr := [(`env, args[0]!), (`top, args[1]!), (`M, args[3]!), (`X, args[4]!), (`h, mkFVar h)]
         let some (hb, S, top, need, _) ← ownStack | continue
         let hlim ← if args[1]! == top then
             mkAppM ``Nat.le_trans #[← mkAppM ``Nat.le_add_right #[S, need], hb]
           else do
             let some (hlo, _, _) ← slotFacts (args[1]!) | continue
             pure hlo
-        let pf ← appN ``Rv64mc.Tactic.frame_above [(`env, args[0]!), (`top, args[1]!), (`M, args[3]!),
-          (`X, args[4]!), (`h, mkFVar h), (`hlim, hlim)]
+        unless noOut || (← heapOn) do continue
+        let pf ← if noOut then appN ``Rv64mc.Tactic.frame_above (fr ++ [(`hlim, hlim)])
+          else appN ``Rv64mc.Tactic.frame_above_out (fr ++ [(`out, args[2]!), (`hlim, hlim)])
+        above := above.push (pf, ← inferType pf)
+        -- the heap below `NEXT` at the call
+        unless ← heapOn do continue
+        let nx ← mkAppM ``Rv64mc.Env.next #[args[0]!, args[3]!]
+        let hnxT ← mkAppM ``LE.le #[← mkAppM ``BitVec.toNat #[nx],
+          ← mkAppM ``BitVec.toNat #[← mkAppM ``Rv64mc.Env.heapEnd #[args[0]!]]]
+        let hnx ← match ← hypOf hnxT with
+          | some h => pure (some h)
+          | none => match ← holdsGoal hnxT with
+            | some h => pure (some h)
+            | none => arithProve hnxT
+        let some hnx := hnx | continue
+        let pf ← if noOut then appN ``Rv64mc.Tactic.frame_keep (fr ++ [(`hlim, hlim), (`hnx, hnx)])
+          else appN ``Rv64mc.Tactic.frame_keep_out (fr ++ [(`out, args[2]!), (`hlim, hlim), (`hnx, hnx)])
         above := above.push (pf, ← inferType pf)
       if above.isEmpty then return g
       let (g, _) ← addFacts g (Name.mkSimple s!"keep{k}") above
@@ -1251,8 +1956,22 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
           (`hl, ← mkEqRefl (← mkAppM ``Option.some #[mkNatLit j])),
           (`ha, ← opndProof (cargs[2]!) x), (`hb, ← opndProof (cargs[3]!) y),
           (`hs, ← mkEqRefl tru), (`ht, gt), (`hn, gn)]))
-        let (_, gt') ← gt.mvarId!.intro `hc
-        let (_, gn') ← gn.mvarId!.intro `hc
+        let (hct, gt') ← gt.mvarId!.intro `hc
+        let (hcn, gn') ← gn.mvarId!.intro `hc
+        -- a comparison of literals: the branch not taken closed by its hypothesis' refutation
+        if let (true, some xv, some yv) := (← heapOn, ← lit? x, ← lit? y) then
+          let taken := match opStr with
+            | "eq" => xv == yv
+            | "ne" => xv != yv
+            | "ltu" => decide (xv < yv)
+            | "geu" => decide (yv ≤ xv)
+            | "lt" => decide (toInt64 xv < toInt64 yv)
+            | _ => decide (toInt64 yv ≤ toInt64 xv)
+          let (dead, hc, P, live) := if taken then (gn', hcn, pn, gt') else (gt', hct, pt, gn')
+          dead.withContext do
+            dead.assign (← mkAbsurd (← dead.getType) (mkFVar hc) (← mkDecideProof (mkNot P)))
+          pure (some [← nameApart live])
+        else
         pure (some [← nameApart gt', ← nameApart gn'])
       | some ``Lprog.LinstrR.Lcall =>
         let ret := (args[2]!)
@@ -1352,6 +2071,9 @@ def mkCfg (hp : Expr) (stops : List Nat) (facts specs : Array Expr) : MetaM Cfg 
   suffixes := suffixes.reverse
   let hbody ← mkExpectedTypeHint (← mkEqRefl (suffixes[0]!)) (← mkEq (← mkAppM ``Lprog.Lfundef.body #[fd]) (suffixes[0]!))
   let facts ← facts.foldlM (init := #[]) fun acc h => return acc ++ (← expandFact h)
+  let facts ← facts.mapM fun (pf, ty) => do
+    let ty' ← if ← heapOn then litForms ty else pure ty
+    return (← mkExpectedTypeHint pf ty', ty')
   let specs ← specs.mapM fun h => return (h, ← instantiateMVars (← inferType h))
   let mut heads := []
   for h : k in [0:body.size] do
@@ -1364,13 +2086,23 @@ def mkCfg (hp : Expr) (stops : List Nat) (facts specs : Array Expr) : MetaM Cfg 
           if j ≤ k then heads := j :: heads
   return { hp, fd, body, suffixes, hbody, facts, specs, stops, heads }
 
-syntax rvSymArgs := (" stop " "[" num,* "]")? (" with " "[" term,* "]")? (" using " "[" term,* "]")?
+syntax rvThrough := "*" <|> ("[" num,* "]")
+syntax rvSymArgs := (" stop " "[" num,* "]")? (" through " rvThrough)? (" with " "[" term,* "]")?
+  (" using " "[" term,* "]")?
 
-def elabArgs (hp : Syntax) (args : Syntax) : TacticM Cfg := do
+/-- The arguments, elaborated in the main goal's context (after `rv_auto` has opened the contract: its `regs`, `m`,
+    `top`, `ret` and `hpre_k` in scope). -/
+def elabArgs (hp : Syntax) (args : Syntax) : TacticM Cfg := withMainContext do
   let stops := if args[0].isNone then [] else args[0][2].getSepArgs.toList.filterMap (·.isNatLit?)
-  let facts ← if args[1].isNone then pure #[] else args[1][2].getSepArgs.mapM fun t => elabTerm t none
-  let specs ← if args[2].isNone then pure #[] else args[2][2].getSepArgs.mapM fun t => elabTerm t none
-  mkCfg (← elabTerm hp none) stops facts specs
+  let through : Option (List Nat) := if args[1].isNone then some [] else
+    let t := args[1][1]
+    if t[0].isToken "*" then none else some (t[1].getSepArgs.toList.filterMap (·.isNatLit?))
+  let facts ← if args[2].isNone then pure #[] else args[2][2].getSepArgs.mapM fun t => elabTerm t none
+  let specs ← if args[3].isNone then pure #[] else args[3][2].getSepArgs.mapM fun t => elabTerm t none
+  let cfg ← mkCfg (← elabTerm hp none) stops facts specs
+  match through with
+  | none => return { cfg with heads := [] }
+  | some ks => return { cfg with heads := cfg.heads.filter (!ks.contains ·) }
 
 /-- **`rv_sym hp stop [pcs] with [facts] using [contracts]`**: step the goal `SafeN … ⟨⟨fn, pc, …⟩ :: …⟩` through the
     body of the template `hp : p[fn]? = some fd` names. -/
@@ -1402,8 +2134,9 @@ def openContract (g : MVarId) : MetaM MVarId := do
 syntax (name := rvAuto) "rv_auto " term rvSymArgs : tactic
 
 @[tactic rvAuto] def evalRvAuto : Tactic := fun stx => do
-  let cfg ← elabArgs stx[1] stx[2]
   let g ← openContract (← getMainGoal)
+  replaceMainGoal [g]
+  let cfg ← elabArgs stx[1] stx[2]
   let left ← run cfg g
   replaceMainGoal left
 
@@ -1432,6 +2165,28 @@ syntax (name := rvClose) "rv_close" : tactic
     if ← g.isAssigned then continue
     left := left ++ (← closeSide g)
   setGoals left.toList
+
+/-- **`rv_mem`**: the goal's reads of registers, of `NEXT` and of memory resolved, as the executor reads them: through
+    the register file, the stores and the callees' frames (`rv_sym.heap` on). -/
+syntax (name := rvMem) "rv_mem" : tactic
+
+@[tactic rvMem] def evalRvMem : Tactic := fun _ => withOptions (rv_sym.heap.set · true) do
+  let g ← getMainGoal
+  let g ← g.withContext do
+    let ty ← instantiateMVars (← g.getType)
+    let (ty, p) ← normReads ty
+    let g ← match p with
+      | some p => g.replaceTargetEq ty p
+      | none => pure g
+    let (ty, p) ← nextTy ty
+    let g ← match p with
+      | some p => g.replaceTargetEq ty p
+      | none => pure g
+    let (ty, p) ← memTy ty
+    match p with
+      | some p => g.replaceTargetEq ty p
+      | none => pure g
+  replaceMainGoal [g]
 
 /-- **`rv_sweep hp …`**, a measure of coverage and cost: `rv_auto`, and besides it the body stepped from each loop
     head with nothing known of the state (`∀ … regs m, SafeN … ⟨⟨fn, head, …⟩ :: …, regs, m⟩`), each a hypothesis of
