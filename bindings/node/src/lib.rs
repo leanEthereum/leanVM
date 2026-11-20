@@ -10,8 +10,9 @@ use napi_derive::napi;
 
 /// Runs `task` on a thread of its own and returns its promise.
 ///
-/// A sidecar call or start holds a thread for seconds, and `AsyncTask`'s threads are libuv's
-/// pool, which Node's file, DNS and crypto work share.
+/// A sidecar call or start holds a thread for seconds, and building a VRF key over a range for up
+/// to minutes, while `AsyncTask`'s threads are libuv's pool, which Node's file, DNS and crypto work
+/// share.
 fn on_own_thread<T: Task + 'static>(env: &Env, mut task: T) -> Result<Object<'_>> {
     let (deferred, promise) = env.create_deferred()?;
     thread::spawn(
@@ -723,11 +724,14 @@ pub fn sphincs_verify(public_key: Buffer, message: Buffer, signature: Buffer) ->
 }
 
 #[napi(ts_return_type = "Promise<VrfKey>")]
-pub fn vrf_key_from_seed(seed: Buffer, start: f64, end: f64) -> AsyncTask<VrfKeyTask> {
-    AsyncTask::new(VrfKeyTask {
-        seed: seed.to_vec(),
-        source: VrfKeySource::Range { start, end },
-    })
+pub fn vrf_key_from_seed(env: &Env, seed: Buffer, start: f64, end: f64) -> Result<Object<'_>> {
+    on_own_thread(
+        env,
+        VrfKeyTask {
+            seed: seed.to_vec(),
+            source: VrfKeySource::Range { start, end },
+        },
+    )
 }
 
 #[napi(ts_return_type = "Promise<VrfKey>")]
