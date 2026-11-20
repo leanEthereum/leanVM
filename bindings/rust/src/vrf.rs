@@ -4,7 +4,8 @@
 //! tree has depth 31, one leaf per slot (`i` and `j` as 8 little-endian bytes, `h` as 1 byte):
 //!
 //! ```text
-//!     leaf i       Keccak-256(seed | i), for i in the range
+//!     secret i     Keccak-256("VRF_SECRET" | seed | i), for i in the range
+//!     leaf i       Keccak-256("VRF_LEAF" | secret i | i)
 //!     node         Keccak-256(left | right)
 //!     surrogate    Keccak-256(seed | j | h), for a subtree at height h, index j, with no slot of
 //!                  the range; nobody can open it
@@ -34,7 +35,7 @@ pub type Seed = [u8; SEED_LEN];
 /// A tree's root, the validator's VRF root.
 pub type Root = [u8; 32];
 
-/// A slot's leaf, then its 31 siblings: the specifications' `VRFProof`.
+/// A slot's secret, then its leaf's 31 siblings: the specifications' `VRFProof`.
 pub type Proof = [[u8; 32]; TREE_DEPTH + 1];
 
 // The sizes and types above are `lean_vrf`'s.
@@ -98,8 +99,7 @@ impl Key {
     }
 }
 
-/// Checks that `proof` opens `slot` under `root`, as the specifications' `is_valid_vrf_proof`:
-/// only the 31 low bits of `slot` count.
+/// Checks that `proof` opens `slot` under `root`, as the specifications' `is_valid_vrf_proof`.
 ///
 /// # Errors
 ///

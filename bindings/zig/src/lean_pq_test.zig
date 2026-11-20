@@ -49,7 +49,7 @@ test "VRF key opens its slots" {
     var key = try lpq.VrfKey.init(seed, 100, 200);
     defer key.deinit();
     var expected_root: lpq.VrfRoot = undefined;
-    _ = try std.fmt.hexToBytes(&expected_root, "577e9a2ce44365dce8e58c1c242bbe889986eea4918807e2c3cbaa362bcd07a6");
+    _ = try std.fmt.hexToBytes(&expected_root, "af45ef4aca47606c0e6722dc71af01e3f13df93253e6aec5805eb1e8ed3bb0fa");
 
     const root = try key.root();
     try std.testing.expectEqual(expected_root, root);
@@ -75,7 +75,7 @@ test "VRF key loads from its cache" {
     defer allocator.free(cache);
 
     var root: lpq.VrfRoot = undefined;
-    _ = try std.fmt.hexToBytes(&root, "577e9a2ce44365dce8e58c1c242bbe889986eea4918807e2c3cbaa362bcd07a6");
+    _ = try std.fmt.hexToBytes(&root, "af45ef4aca47606c0e6722dc71af01e3f13df93253e6aec5805eb1e8ed3bb0fa");
     var loaded = try lpq.VrfKey.fromCacheBytes(seed, cache, root);
     defer loaded.deinit();
     const reencoded = try loaded.cacheToBytes(allocator);

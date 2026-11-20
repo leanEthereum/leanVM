@@ -62,13 +62,13 @@ export declare class VrfKey {
   root(): Buffer
   /** Encodes the key's cache: its range and cached layer, no secret. */
   cacheToBytes(): Buffer
-  /** The 1024-byte proof of `slot`: its leaf, then its 31 siblings. Throws outside the range. */
+  /** The 1024-byte proof of `slot`: its secret, then its leaf's 31 siblings. Throws outside the range. */
   proof(slot: number): Buffer
 }
 
 /**
  * Throws if `proof` does not open `slot` under `root`. `slot` is an integer up to
- * `Number.MAX_SAFE_INTEGER`, and only its 31 low bits count.
+ * `Number.MAX_SAFE_INTEGER`.
  */
 export declare function vrfVerify(root: Buffer, slot: number, proof: Buffer): void
 

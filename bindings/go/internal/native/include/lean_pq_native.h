@@ -10,7 +10,7 @@
  * leanXMSS signatures are 2404 bytes and leanSPHINCS signatures are 7740 bytes.
  *
  * A VRF key is a 32-byte seed and slots [start, end), end <= 2^31. VRF roots are 32 bytes and
- * proofs 1024: the leaf, then its 31 siblings.
+ * proofs 1024: the slot's secret, then its leaf's 31 siblings.
  */
 #ifndef LEAN_PQ_NATIVE_H
 #define LEAN_PQ_NATIVE_H
@@ -100,7 +100,7 @@ int32_t lpq_vrf_key_root(lpq_vrf_key *key, lpq_buffer *out);
 /* Fails for a slot outside the range. */
 int32_t lpq_vrf_key_proof(lpq_vrf_key *key, uint32_t slot, lpq_buffer *out);
 void lpq_vrf_key_destroy(lpq_vrf_key *key);
-/* Returns 0 when the proof opens and 1, with lpq_last_error set, when not. Only the slot's 31 low bits count. */
+/* Returns 0 when the proof opens and 1, with lpq_last_error set, when not. */
 int32_t lpq_vrf_verify(const uint8_t *root, size_t root_len, uint64_t slot, const uint8_t *proof, size_t proof_len);
 
 #endif

@@ -34,7 +34,7 @@ type XmssSignature [2404]byte
 // SphincsSignature is an encoded leanSPHINCS signature.
 type SphincsSignature [7740]byte
 
-// VrfProof is a VRF proof: the leaf of a slot, then its 31 siblings, bottom-up.
+// VrfProof is a VRF proof: the secret of a slot, then its leaf's 31 siblings, bottom-up.
 type VrfProof [1024]byte
 
 // XmssSignedMessage is a leanXMSS signature over Message by PublicKey, as input to aggregation.
@@ -368,8 +368,8 @@ func (key *VrfKey) Close() {
 	}
 }
 
-// VrfVerify returns nil if proof opens slot under root. Only the 31 low bits of slot count, as in
-// the consensus specifications.
+// VrfVerify returns nil if proof opens slot under root, as is_valid_vrf_proof in the consensus
+// specifications.
 func VrfVerify(root [32]byte, slot uint64, proof VrfProof) error {
 	return call(func() C.int32_t {
 		return C.lpq_vrf_verify(

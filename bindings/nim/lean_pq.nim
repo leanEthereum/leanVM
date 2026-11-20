@@ -32,7 +32,7 @@ const
   SphincsSignatureLen* = 7740
   VrfRootLen* = 32
   VrfProofLen* = 1024
-    ## The leaf, then its 31 siblings.
+    ## The slot's secret, then its leaf's 31 siblings.
   MaxAggregateChildren* = 16
     ## The most child aggregates one `LeanPqSidecar.aggregate` call accepts.
 
@@ -406,7 +406,7 @@ proc close*(key: VrfKey) =
     key.handle = nil
 
 proc vrfVerify*(root: VrfRoot, slot: uint64, proof: VrfProof): bool =
-  ## Whether `proof` opens `slot` under `root`. Only the 31 low bits of `slot` count.
+  ## Whether `proof` opens `slot` under `root`.
   lpqVrfVerify(
     addr root[0], csize_t(root.len), slot, addr proof[0], csize_t(proof.len)) == LpqOk
 

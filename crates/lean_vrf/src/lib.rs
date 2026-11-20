@@ -4,11 +4,15 @@
 //! little-endian bytes, `h` as 1 byte):
 //!
 //! ```text
-//!     leaf i       Keccak-256(seed | i), for i in the range
+//!     secret i     Keccak-256("VRF_SECRET" | seed | i), for i in the range
+//!     leaf i       Keccak-256("VRF_LEAF" | secret i | i)
 //!     node         Keccak-256(left | right)
 //!     surrogate    Keccak-256(seed | j | h), for a subtree at height h, index j, with no slot of
 //!                  the range; nobody can open it
 //! ```
+//!
+//! A proof of slot `i` reveals secret `i`; its branch holds only leaves and nodes, which reveal no
+//! other secret.
 //!
 //! A [`VrfKey`] caches one layer of about `sqrt(R)` nodes for a range of `R` slots: building it
 //! hashes the range once, and a proof then costs about `3 sqrt(R)` hashes.
@@ -20,8 +24,11 @@ use keccak256::{Hash, hash_pair};
 /// Depth of the tree: `2^31` slots.
 pub const VRF_TREE_DEPTH: usize = 31;
 
-/// A slot's leaf, then its 31 siblings: the specifications' `VRFProof`.
+/// A slot's secret, then its leaf's 31 siblings: the specifications' `VRFProof`.
 pub type VrfProof = [Hash; VRF_TREE_DEPTH + 1];
+
+const VRF_SECRET_DOMAIN: &[u8] = b"VRF_SECRET";
+const VRF_LEAF_DOMAIN: &[u8] = b"VRF_LEAF";
 
 /// A seed, its range of slots, and one cached layer of its tree.
 #[derive(Clone)]
@@ -91,7 +98,7 @@ impl VrfKey {
     pub fn proof(&self, slot: u32) -> Option<VrfProof> {
         self.slots.contains(&slot).then(|| {
             std::array::from_fn(|i| match i {
-                0 => self.derive(slot.into(), &[]),
+                0 => self.secret(slot.into()),
                 _ => self.node(i - 1, u64::from(slot >> (i - 1)) ^ 1),
             })
         })
@@ -117,22 +124,30 @@ impl VrfKey {
     fn node(&self, level: usize, index: u64) -> Hash {
         let (start, end) = (u64::from(self.slots.start), u64::from(self.slots.end));
         if (index + 1) << level <= start || index << level >= end {
-            return self.derive(index, &[level as u8]);
+            return self.surrogate(level, index);
         }
         if level == self.level {
             return self.cache[(index - (start >> level)) as usize];
         }
         if level == 0 {
-            return self.derive(index, &[]);
+            return leaf(&self.secret(index), index);
         }
         hash_pair(&self.node(level - 1, 2 * index), &self.node(level - 1, 2 * index + 1))
     }
 
-    fn derive(&self, index: u64, suffix: &[u8]) -> Hash {
+    fn secret(&self, index: u64) -> Hash {
+        keccak256::Hasher::new()
+            .update(VRF_SECRET_DOMAIN)
+            .update(&self.seed)
+            .update(&index.to_le_bytes())
+            .finalize()
+    }
+
+    fn surrogate(&self, level: usize, index: u64) -> Hash {
         keccak256::Hasher::new()
             .update(&self.seed)
             .update(&index.to_le_bytes())
-            .update(suffix)
+            .update(&[level as u8])
             .finalize()
     }
 }
@@ -140,20 +155,29 @@ impl VrfKey {
 /// The cached layer's height and its first and last node index. `None` if the range is empty or
 /// ends past `2^31`.
 ///
-/// The height is half that of the range's subtree, and at least 1 so that no leaf is cached.
+/// The height is half that of the range's subtree.
 fn layer(slots: &Range<u32>) -> Option<(usize, u32, u32)> {
     if slots.is_empty() || slots.end > 1 << VRF_TREE_DEPTH {
         return None;
     }
-    let level = slots.len().next_power_of_two().ilog2().div_ceil(2).max(1) as usize;
+    let level = slots.len().next_power_of_two().ilog2().div_ceil(2) as usize;
     Some((level, slots.start >> level, (slots.end - 1) >> level))
 }
 
-/// Whether `proof` opens `slot` under `root`, as the specifications' `is_valid_vrf_proof`: only
-/// the 31 low bits of `slot` count.
+/// The leaf of `index`, which commits to `secret`: the specifications' `compute_vrf_leaf`.
+fn leaf(secret: &Hash, index: u64) -> Hash {
+    keccak256::Hasher::new()
+        .update(VRF_LEAF_DOMAIN)
+        .update(secret)
+        .update(&index.to_le_bytes())
+        .finalize()
+}
+
+/// Whether `proof` reveals the secret of `slot` under `root`, as the specifications'
+/// `is_valid_vrf_proof`: the leaf commits to all of `slot`, and its 31 low bits choose the path.
 pub fn verify_vrf_proof(root: &Hash, slot: u64, proof: &VrfProof) -> bool {
     keccak256::path_fold(
-        proof[0],
+        leaf(&proof[0], slot),
         slot as usize,
         &proof[1..],
         |_| {},

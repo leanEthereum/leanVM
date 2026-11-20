@@ -97,7 +97,7 @@ suite "lean_pq":
       vrfRoot = key.root().expect("root")
       vrfProof = key.proof(150).expect("proof")
     check:
-      @vrfRoot == fromHex("577e9a2ce44365dce8e58c1c242bbe889986eea4918807e2c3cbaa362bcd07a6")
+      @vrfRoot == fromHex("af45ef4aca47606c0e6722dc71af01e3f13df93253e6aec5805eb1e8ed3bb0fa")
       vrfVerify(vrfRoot, 150, vrfProof)
       not vrfVerify(vrfRoot, 151, vrfProof)
       vrfVerify(vrfRoot, 100, key.proof(100).expect("proof"))
@@ -115,7 +115,7 @@ suite "lean_pq":
       vrfRoot = key.root().expect("root")
       loaded = VrfKey.fromCacheBytes(seed, cache, vrfRoot).expect("loaded key")
     check:
-      @vrfRoot == fromHex("577e9a2ce44365dce8e58c1c242bbe889986eea4918807e2c3cbaa362bcd07a6")
+      @vrfRoot == fromHex("af45ef4aca47606c0e6722dc71af01e3f13df93253e6aec5805eb1e8ed3bb0fa")
       loaded.cacheToBytes().expect("cache") == cache
       vrfVerify(vrfRoot, 150, loaded.proof(150).expect("proof"))
       VrfKey.fromCacheBytes(seed, cache.toOpenArray(0, cache.len - 2), vrfRoot).isErr()

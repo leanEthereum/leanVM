@@ -24,7 +24,7 @@ public final class LeanPq {
 
     /**
      * Returns whether a 1024-byte VRF proof opens the slot under a 32-byte root, as
-     * {@code is_valid_vrf_proof}: only the slot's 31 low bits count.
+     * {@code is_valid_vrf_proof}.
      */
     public static boolean vrfVerify(byte[] root, long slot, byte[] proof) {
         return Native.vrfVerify(

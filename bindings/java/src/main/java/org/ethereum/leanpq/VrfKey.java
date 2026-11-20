@@ -43,7 +43,7 @@ public final class VrfKey implements AutoCloseable {
         }
     }
 
-    /** Returns the 1024-byte proof of a slot of the range: its leaf, then its 31 siblings. */
+    /** Returns the 1024-byte proof of a slot of the range: its secret, then its leaf's 31 siblings. */
     public byte[] proof(long slot) {
         try (NativeHandle.Borrow borrowed = handle.borrow()) {
             return Native.vrfProof(borrowed.pointer(), slot);

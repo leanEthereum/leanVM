@@ -20,7 +20,7 @@ pub const xmss_signature_len = 2404;
 pub const sphincs_secret_key_len = 32;
 pub const sphincs_signature_len = 7740;
 pub const vrf_root_len = 32;
-/// The leaf, then its 31 siblings.
+/// The slot's secret, then its leaf's 31 siblings.
 pub const vrf_proof_len = 1024;
 /// The most child aggregates one `Sidecar.aggregate` call accepts.
 pub const max_children = 16;
@@ -234,8 +234,7 @@ pub const VrfKey = struct {
     }
 };
 
-/// `error.InvalidSignature` if `proof` does not open `slot` under `root`. Only the 31 low bits of
-/// `slot` count.
+/// `error.InvalidSignature` if `proof` does not open `slot` under `root`.
 pub fn vrfVerify(root: VrfRoot, slot: u64, proof: *const VrfProof) Error!void {
     try checkVerification(c.lpq_vrf_verify(&root, root.len, slot, proof, proof.len));
 }
