@@ -53,7 +53,7 @@ RUSTFLAGS="-C target-cpu=native" cargo install --locked --git https://github.com
 ```
 <!-- x-release-please-end -->
 
-This installs `~/.cargo/bin/leanvm-sidecar`. Then either:
+This installs `~/.cargo/bin/leanvm-sidecar`; `leanvm-sidecar --version` prints its release. Then either:
 
 - **Run it** (for example as a service) and `Sidecar.connect("<home>/.leanvm/sidecar.sock")`:
   ```sh
