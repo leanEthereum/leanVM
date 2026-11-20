@@ -116,6 +116,23 @@ theorem SimR.gkrStep (layer : ℕ) (values point : List E) :
     rw [mapM_some_eq (fun _ _ h ↦ multilinearEvalRust_some h) _ _ hvs]
     exact SimR.pure ⟨rfl, by simp [hy, hx]⟩
 
+/-- `gkrLayers` peels the loop's first step, of `1` level when the depth is odd. -/
+private theorem gkrLayers_succ (n : ℕ) (values point : List E) :
+    gkrLayers (n + 1) ⟨values, point⟩ =
+      LeanVM.Protocol.Verifier.gkrStep (if (n + 1) % 2 = 1 then 1 else 2)
+        (n + 1 == if (n + 1) % 2 = 1 then 1 else 2)
+        ⟨values, point⟩ >>= gkrLayers (n + 1 - if (n + 1) % 2 = 1 then 1 else 2) := by
+  rcases n with _ | m
+  · rfl
+  · rw [gkrLayers]
+    rcases Nat.mod_two_eq_zero_or_one m with hm | hm
+    · rw [ite_eq_right (show ¬ m % 2 = 1 by omega),
+        ite_eq_right (show ¬ (m + 1 + 1) % 2 = 1 by omega),
+        show (m + 1 + 1 == 2) = decide (m = 0) by cases m <;> rfl,
+        show m + 1 + 1 - 2 = m by omega]
+    · rw [ite_eq_left hm, ite_eq_left (show (m + 1 + 1) % 2 = 1 by omega),
+        show (m + 1 + 1 == 1) = false by simp, show m + 1 + 1 - 1 = m + 1 by omega]
+
 theorem SimR.gkrLoop (layer : ℕ) : ∀ values point,
     SimR (gkrLoopRust layer values point)
       (gkrLayers layer ⟨values, point⟩ >>= fun s ↦ VerifierProgram.ret (s.values, s.point))
@@ -138,21 +155,7 @@ theorem SimR.gkrLoop (layer : ℕ) : ∀ values point,
           rw [hc, hl]
           split <;> omega
       rw [VerifierProgram.bind_assoc'] at h
-      have hlayers : gkrLayers (n + 1) ⟨values, point⟩ =
-          LeanVM.Protocol.Verifier.gkrStep (if (n + 1) % 2 = 1 then 1 else 2)
-            (n + 1 == if (n + 1) % 2 = 1 then 1 else 2)
-            ⟨values, point⟩ >>= gkrLayers (n + 1 - if (n + 1) % 2 = 1 then 1 else 2) := by
-        rcases n with _ | m
-        · rfl
-        · rw [gkrLayers]
-          rcases Nat.mod_two_eq_zero_or_one m with hm | hm
-          · rw [ite_eq_right (show ¬ m % 2 = 1 by omega),
-              ite_eq_right (show ¬ (m + 1 + 1) % 2 = 1 by omega),
-              show (m + 1 + 1 == 2) = decide (m = 0) by cases m <;> rfl,
-              show m + 1 + 1 - 2 = m by omega]
-          · rw [ite_eq_left hm, ite_eq_left (show (m + 1 + 1) % 2 = 1 by omega),
-              show (m + 1 + 1 == 1) = false by simp, show m + 1 + 1 - 1 = m + 1 by omega]
-      rw [hlayers, VerifierProgram.bind_assoc']
+      rw [gkrLayers_succ, VerifierProgram.bind_assoc']
       exact h
 
 theorem SimR.verifyGkr (depth : ℕ) :
@@ -165,6 +168,77 @@ theorem SimR.verifyGkr (depth : ℕ) :
     (Q := fun vp ↦ VerifierProgram.ret (count, vp.2, vp.1))
     (r' := fun a b ↦ a = b ∧ a.2.1.length = depth) fun a b ⟨hab, hl⟩ ↦
       SimR.pure ⟨by rw [hab], by simpa using hl⟩
+  rw [VerifierProgram.bind_assoc'] at h
+  exact h
+
+/-! ### The GKR returns wherever the statement's does -/
+
+theorem Comp.gkrStep (layer : ℕ) (values point : List E) :
+    Comp (gkrStepRust layer values point)
+      (gkrStep (if layer % 2 = 1 then 1 else 2) (layer == if layer % 2 = 1 then 1 else 2)
+        ⟨values, point⟩ >>= fun s ↦ VerifierProgram.ret (s.values, s.point)) := by
+  have hs : (if layer % 2 = 1 then 1 else 2) ≤ 2 := by split <;> omega
+  unfold gkrStepRust LeanVM.Protocol.Verifier.gkrStep
+  dsimp only
+  generalize (if layer % 2 = 1 then 1 else 2) = step at hs ⊢
+  simp only [VerifierProgram.bind_assoc', Nat.one_shiftLeft, polyEvalRust_eq,
+    grindingBitsRust_ofNat (show 3 - 1 < 2 ^ 64 by norm_num)]
+  refine Comp.bindEq (Comp.grindCheck _) (Sim.grindCheck _) fun _ ↦
+    Comp.bindEq Comp.sample Sim.sample fun combiner ↦ ?_
+  refine Comp.sumcheck_bind (count := 2 ^ step + 1) _
+    (by have := Nat.one_le_two_pow (n := step); omega)
+    (by have := Nat.pow_le_pow_right (show 0 < 2 by norm_num) hs; omega) _ fun x c hx ↦ ?_
+  refine Comp.bindPost (Comp.nextScalars _) (Sim.nextScalars _) (Returns.nextScalars _)
+    fun c0 h0 ↦ Comp.bindPost (Comp.nextScalars _) (Sim.nextScalars _) (Returns.nextScalars _)
+    fun c1 h1 ↦ Comp.bindPost (Comp.nextScalars _) (Sim.nextScalars _) (Returns.nextScalars _)
+    fun c2 h2 ↦ ?_
+  have hreq : c = polyEvalRust ([c0, c1, c2].map fun child ↦ child.foldl (· * ·) 1) combiner ↔
+      c = polyEval ([c0, c1, c2].map prodE) combiner := by
+    simp only [List.map_cons, List.map_nil, polyEvalRust_eq, prodE]
+  refine Comp.whenChecked_bind (Comp.bindEq (Comp.require_iff hreq) (Sim.require_iff hreq)
+    fun _ ↦ ?_)
+  have hg :
+      grindingBitsRust (BitVec.ofNat 128 (step <<< (if (layer == step) = true then 1 else 0)))
+      = grindingBits (if (layer == step) = true then 2 * step else step) := by
+    rw [grindingBitsRust_ofNat (by split <;> simp [Nat.shiftLeft_eq] <;> omega)]
+    congr 1
+    split <;> simp [Nat.shiftLeft_eq, mul_comm]
+  rw [hg]
+  refine Comp.bindEq (Comp.grindCheck _) (Sim.grindCheck _) fun _ ↦
+    Comp.bindPost (Comp.samples _) (Sim.samples _) (Returns.samples _) fun y hy ↦ ?_
+  refine Comp.ofOption_bind (mapM_eq_some_map _ (multilinearEval · y) _ fun child hc ↦
+    multilinearEvalRust_eq _ _ ⟨by omega, ?_⟩) (Comp.pure _ _)
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
+  rcases hc with rfl | rfl | rfl <;> rwa [hy]
+
+theorem Comp.gkrLoop (layer : ℕ) : ∀ values point,
+    Comp (gkrLoopRust layer values point)
+      (gkrLayers layer ⟨values, point⟩ >>= fun s ↦ VerifierProgram.ret (s.values, s.point)) := by
+  induction layer using Nat.strong_induction_on with
+  | _ layer ih =>
+    intro values point
+    rw [gkrLoopRust]
+    match layer with
+    | 0 => exact Comp.pure _ _
+    | n + 1 =>
+      simp only [Nat.zero_lt_succ, dite_true]
+      have h := Comp.bind (Comp.gkrStep (n + 1) values point) (SimR.gkrStep (n + 1) values point)
+        (Q := fun vp ↦ gkrLayers (n + 1 - if (n + 1) % 2 = 1 then 1 else 2)
+          ⟨vp.1, vp.2⟩ >>= fun s ↦ VerifierProgram.ret (s.values, s.point))
+        (k := fun vp ↦ gkrLoopRust (n + 1 - if (n + 1) % 2 = 1 then 1 else 2) vp.1 vp.2)
+        fun a b ⟨hab, _⟩ ↦ by subst hab; exact ih _ (by split <;> omega) a.1 a.2
+      rw [VerifierProgram.bind_assoc'] at h
+      rw [gkrLayers_succ, VerifierProgram.bind_assoc']
+      exact h
+
+theorem Comp.verifyGkr (depth : ℕ) : Comp (verifyGkrRust depth) (verifyGkrGrandProducts depth) := by
+  unfold verifyGkrRust verifyGkrGrandProducts
+  refine Comp.bindEq Comp.nextScalar Sim.nextScalar fun shared ↦
+    Comp.bindEq Comp.nextScalar Sim.nextScalar fun count ↦ ?_
+  have h := Comp.bind (Comp.gkrLoop depth [shared, shared, count] [])
+    (SimR.gkrLoop depth [shared, shared, count] [])
+    (k := fun vp ↦ (Pure.pure (count, vp.2, vp.1) : TM (E × List E × List E)))
+    (Q := fun vp ↦ VerifierProgram.ret (count, vp.2, vp.1)) fun _ _ _ ↦ Comp.pure _ _
   rw [VerifierProgram.bind_assoc'] at h
   exact h
 
@@ -635,6 +709,94 @@ theorem SimR.verifyBusBalance (l : LayoutRust) (L : Layout) (hl : l.Rel L) (word
     | [m0, m1], _ => rfl
   · rw [ite_eq_right hcond]
     exact SimR.fail_bind
+
+/-- **`verify_bus_balance` returns wherever the statement's does**, on a layout whose bytecode
+point fits the words: the words are `2^(log_bytecode + 4)` (`BUS_BITS = 4`), and the push side's
+cube has at least the bytecode's coordinates. -/
+theorem Comp.verifyBusBalance (l : LayoutRust) (L : Layout) (hl : l.Rel L) (words : List K)
+    (bc : BytecodeRust) (hbc : BytecodeOk words bc) (hw : L.bytecode = words)
+    (hm : l.logMemory ≤ 30) (hlb : l.logBytecode ≤ 30)
+    (hb : ∀ b ∈ l.push ++ l.pull ++ l.count, b.logRows ≤ 30 ∧ b.rows < 2 ^ 64)
+    (hn : l.push.length ≤ 1024 ∧ l.pull.length ≤ 1024 ∧ l.count.length ≤ 1024)
+    (hbw : words.length = 2 ^ (l.logBytecode + 4))
+    (hdepth : l.logBytecode ≤ (busLayoutRust [0, l.logMemory, l.logBytecode] l.push).depth) :
+    Comp (verifyBusBalanceRust l bc) (verifyBusBalance computedBytecodeValue L) := by
+  have hb' : ∀ b ∈ l.push ++ l.pull ++ l.count, b.logRows < 64 ∧ b.rows < 2 ^ 64 :=
+    fun b h ↦ ⟨by have := (hb b h).1; omega, (hb b h).2⟩
+  have hfw3 : ∀ x ∈ [0, l.logMemory, l.logBytecode], x ≤ 30 := by simp; omega
+  obtain ⟨hpd, hpf, hpt⟩ := busLayoutRust_side _ hfw3 (by simp) hl.push
+    (fun b h ↦ (hb b (by simp [h])).1) hn.1
+  obtain ⟨-, hlf, hlt⟩ := busLayoutRust_side _ hfw3 (by simp) hl.pull
+    (fun b h ↦ (hb b (by simp [h])).1) hn.2.1
+  obtain ⟨-, hcf, hct⟩ := busLayoutRust_side [] (by simp) (by simp) hl.count
+    (fun b h ↦ (hb b (by simp [h])).1) hn.2.2
+  unfold verifyBusBalanceRust LeanVM.Protocol.Verifier.verifyBusBalance
+    LeanVM.Protocol.Verifier.bytecodeShare computedBytecodeValue
+  rw [← hl.logMemory, ← hl.logBytecode, hw]
+  simp only [VerifierProgram.bind_assoc', pure_bind']
+  have hreq : (busLayoutRust [0, l.logMemory, l.logBytecode] l.push).depth < 64 ↔
+      (busLayout [0, l.logMemory, l.logBytecode] L.push).depth < 64 := by rw [hpd]
+  refine Comp.bindPost (Comp.require_iff hreq) (Sim.require_iff hreq) (Returns.require _)
+    fun _ hd ↦ ?_
+  rw [hpd] at hd hdepth ⊢
+  rw [busGrindingBitsRust_eq hd, show (1 <<< 4 : ℕ) = 2 ^ busBits from rfl]
+  refine Comp.bindEq (Comp.grindCheck _) (Sim.grindCheck _) fun _ ↦
+    Comp.bindPost (Comp.samples _) (Sim.samples _) (Returns.samples _) fun weights hw16 ↦
+    Comp.bindEq Comp.sample Sim.sample fun beta ↦ ?_
+  refine Comp.bind (Comp.verifyGkr _) (SimR.verifyGkr _) fun g g' ⟨hg, hgl⟩ ↦ ?_
+  subst hg
+  obtain ⟨countRoot, point, treeValues⟩ := g
+  have hgl' : point.length = _ := hgl
+  refine Comp.whenChecked_bind (Comp.bindEq (Comp.require_iff Iff.rfl) (Sim.require _) fun _ ↦ ?_)
+  refine Comp.bindPost (Comp.nextScalars 2) (Sim.nextScalars 2) (Returns.nextScalars 2)
+    fun memory hm2 ↦ Comp.bindEq Comp.nextScalar Sim.nextScalar fun memoryFinal ↦
+    Comp.bindEq Comp.nextScalar Sim.nextScalar fun bytecodeFinal ↦
+    Comp.bindEq Comp.nextScalar Sim.nextScalar fun share ↦ ?_
+  rw [show busBits = 4 from rfl]
+  refine Comp.sumcheck_bind (count := 3) _ (by norm_num) (by norm_num) _ fun sp claim hsp ↦ ?_
+  simp only [List.length_replicate] at hsp
+  refine Comp.bindEq Comp.nextScalar Sim.nextScalar fun value ↦ ?_
+  refine Comp.whenChecked_bind ?_
+  simp only [bind_assoc]
+  rw [eqKernelRust_eq _ (by omega), dotRust_eq (by rw [hw16, eqKernel_length, hsp]; rfl)]
+  simp only [TM.ofOption, pure_bind]
+  refine Comp.bindEq (Comp.require_iff Iff.rfl) (Sim.require _) fun _ ↦ ?_
+  have hcond : (List.take l.logBytecode point ++ sp).length < 64 ∧
+      words.length = 2 ^ (List.take l.logBytecode point ++ sp).length := by
+    rw [List.length_append, List.length_take, hsp, hgl', min_eq_left hdepth, hbw]
+    exact ⟨by omega, rfl⟩
+  rw [hbc.evaluate, ite_eq_left hcond]
+  simp only [pure_bind]
+  refine Comp.bindEq (Comp.require_iff Iff.rfl) (Sim.require _) fun _ ↦ ?_
+  rw [frameworkRust_eq _ _ hw16 hm2, frameworkRust_eq _ _ hw16 hm2]
+  simp only [pure_bind]
+  have hp : point.length ≤ 64 := by omega
+  have hf0 : formsDen (List.replicate l.tables.length (List.replicate 3 ({} : Form))) =
+      formsDen (tables.map fun _ ↦ [{}, {}, {}]) := by
+    rw [hl.tables, List.map_const']
+    rfl
+  rw [hl.tables]
+  rw [hl.tables] at hf0
+  obtain ⟨f1, t1, h1, hf1, -⟩ := sideRust_spec point treeValues hp hf0 0 hl.push
+    (fun b h ↦ hb' b (by simp [h])) hpf hpt (fingerprints weights memory
+      (List.take l.logMemory point) (List.take l.logBytecode point) share (gpowRust 0) 1 1)
+    weights beta
+    (by rw [← hpf, List.length_map, busLayoutRust_framework_length]; rfl)
+  rw [h1]
+  simp only [pure_bind]
+  obtain ⟨f2, t2, h2, hf2, -⟩ := sideRust_spec point treeValues hp hf1 1 hl.pull
+    (fun b h ↦ hb' b (by simp [h])) hlf hlt (fingerprints weights memory
+      (List.take l.logMemory point) (List.take l.logBytecode point) share
+      (gpowRust (1#64 <<< (l.logBytecode % 64) - 1#64)) memoryFinal bytecodeFinal) weights beta
+    (by rw [← hlf, List.length_map, busLayoutRust_framework_length]; rfl)
+  rw [h2]
+  simp only [pure_bind]
+  obtain ⟨f3, t3, h3, -, -⟩ := sideRust_spec point treeValues hp hf2 2 hl.count
+    (fun b h ↦ hb' b (by simp [h])) hcf hct [] [1] 0
+    (by rw [← hcf, List.length_map, busLayoutRust_framework_length]; rfl)
+  rw [h3]
+  exact Comp.pure _ _
+
 end BusBalance
 
 /-! ## `table_sumcheck` -/
@@ -836,6 +998,19 @@ private theorem rows_rel : ∀ {ts : List TableRust} {Ts : List Table},
   | _, _, .cons _ _, [], _, hl, _ => by simp at hl
   | _, _, .cons _ _, _ :: _, [], _, hr => by simp at hr
 
+private theorem tableWeights_length (heights : List ℕ) (hh : heights.length = 6)
+    (equalityPoint point : List E) : (tableWeights heights equalityPoint point).length = 6 := by
+  unfold tableWeights
+  generalize point.zipIdx = pts
+  have : ∀ (ws : List E), ws.length = 6 → (pts.foldl (fun weights (challenge, coord) ↦
+      let equality := 1 + equalityPoint.getD coord 0 + challenge
+      List.zipWith (fun weight height ↦ weight * if coord < height then equality else challenge)
+        weights heights) ws).length = 6 := by
+    induction pts with
+    | nil => intro ws h; exact h
+    | cons p pts ih => intro ws h; exact ih _ (by simp [h, hh])
+  exact this _ (by simp [hh])
+
 /-- **`table_sumcheck` runs `tableSumcheck`**, the bus's forms by value, a height and a form row
 per table. -/
 theorem SimR.tableSumcheck (heights : List ℕ) (hh : heights.length = 6)
@@ -852,17 +1027,7 @@ theorem SimR.tableSumcheck (heights : List ℕ) (hh : heights.length = 6)
   refine SimR.sumcheck_bind (count := 4) _ (by norm_num) (by norm_num) _ fun ch claim _ ↦ ?_
   simp only
   rw [show tablesRust.length = heights.length by rw [hh]; rfl, tableWeightsRust_eq]
-  have hw : (tableWeights heights equalityPoint ch.reverse).length = 6 := by
-    unfold tableWeights
-    generalize ch.reverse.zipIdx = pts
-    have : ∀ (ws : List E), ws.length = 6 → (pts.foldl (fun weights (challenge, coord) ↦
-        let equality := 1 + equalityPoint.getD coord 0 + challenge
-        List.zipWith (fun weight height ↦ weight * if coord < height then equality else challenge)
-          weights heights) ws).length = 6 := by
-      induction pts with
-      | nil => intro ws h; exact h
-      | cons p pts ih => intro ws h; exact ih _ (by simp [h, hh])
-    exact this _ (by simp [hh])
+  have hw := tableWeights_length heights hh equalityPoint ch.reverse
   have hrows := rows_rel tablesRust_rel heights
     (busForms'.zip (tableWeights heights equalityPoint ch.reverse)) (by rw [hh]; rfl)
     (by simp [hfl', hw]; rfl)
@@ -883,6 +1048,118 @@ theorem SimR.tableSumcheck (heights : List ℕ) (hh : heights.length = 6)
     (by rw [hh]; rfl) (0, 0) r hr
   rw [← h2] at this
   refine SimR.bindEq (Sim.require_iff (by rw [this])) fun _ ↦ SimR.pure rfl
+
+
+/-! ### `table_sumcheck` returns wherever the statement's does -/
+
+private theorem constraints_length : ∀ t ∈ tablesRust, ∀ columns : List E,
+    (t.constraints columns).length = t.nConstraints := by
+  have h : ∀ t ∈ tablesRust, (if t.opcode = 4 then 2 else 0) = t.nConstraints := by decide +kernel
+  intro t ht columns
+  rw [← h t ht, TableRust.constraints]
+  split <;> rfl
+
+/-- The checked terminal's dots have equal lengths: the constraint powers cover the tables', and
+each table has a form per tree. -/
+private theorem termsRust_some (constraintPowers formPowers : List E)
+    (hfp : formPowers.length = 3) :
+    ∀ (ts : List TableRust), (∀ t ∈ ts, t ∈ tablesRust) →
+      ∀ (rows : List (List E × List E)) (bf : List (List Form)) (ws : List E) (acc : E × ℕ),
+      (∀ f ∈ bf, f.length = 3) →
+      acc.2 + (ts.map TableRust.nConstraints).sum ≤ constraintPowers.length →
+      ∃ r, (((ts.zip rows).zip bf).zip ws).foldlM
+          (fun (acc : E × ℕ) (x : ((TableRust × (List E × List E)) × List Form) × E) ↦ do
+            let table := x.1.1.1
+            let evaluations := x.1.1.2.2
+            let n := table.nConstraints
+            let summand ← dotRust ((constraintPowers.drop acc.2).take n)
+              (table.constraints evaluations)
+            let values ← dotRust formPowers (x.1.2.map fun form ↦ formEvaluateRust form evaluations)
+            Pure.pure (acc.1 + x.2 * (summand + values), acc.2 + n)) acc = some r := by
+  intro ts
+  induction ts with
+  | nil => intro _ rows bf ws acc _ _; exact ⟨acc, by simp⟩
+  | cons t ts ih =>
+    intro hts rows bf ws acc hbf hc
+    cases rows with
+    | nil => exact ⟨acc, by simp⟩
+    | cons row rows =>
+    cases bf with
+    | nil => exact ⟨acc, by simp⟩
+    | cons f bf =>
+    cases ws with
+    | nil => exact ⟨acc, by simp⟩
+    | cons w ws =>
+    simp only [List.zip_cons_cons, List.foldlM_cons]
+    simp only [List.map_cons, List.sum_cons] at hc
+    rw [dotRust_eq (by
+        rw [constraints_length t (hts t (by simp)), List.length_take, List.length_drop]; omega),
+      dotRust_eq (by rw [List.length_map, hbf f (by simp), hfp])]
+    simp only [Option.bind_eq_bind, Option.bind_some, Option.pure_def]
+    exact ih (fun t' h ↦ hts t' (by simp [h])) rows bf ws _ (fun f' h ↦ hbf f' (by simp [h]))
+      (by dsimp only; omega)
+
+theorem Comp.tableRows (point constraintPowers formPowers : List E) :
+    ∀ {rowsR : List (TableRust × ℕ)} {rowsS : List (Table × ℕ × List Form × E)},
+      List.Forall₂ (fun r s ↦ TableRust.Rel r.1 s.1 ∧ r.2 = s.2.1) rowsR rowsS →
+      ∀ cursor final,
+      Comp (rowsR.mapM fun (table, height) ↦ do
+          let evaluations ← TM.nextScalars table.width
+          Pure.pure (point.take height, evaluations))
+        (tableTerms constraintPowers formPowers point rowsS cursor final)
+  | _, _, .nil, cursor, final => by
+    rw [List.mapM_nil]
+    exact Comp.pure _ _
+  | (t, h) :: rs, (T, h', forms, w) :: Ss, .cons ⟨hT, hh⟩ hrs, cursor, final => by
+    simp only at hh
+    subst hh
+    rw [List.mapM_cons, tableTerms]
+    simp only [bind_assoc, pure_bind]
+    rw [hT.width]
+    refine Comp.bindEq (Comp.nextScalars _) (Sim.nextScalars _) fun evaluations ↦ ?_
+    exact Comp.bind (Comp.tableRows point constraintPowers formPowers hrs _ _)
+      (SimR.tableRows point constraintPowers formPowers hrs _ _) fun _ _ _ ↦ Comp.pure _ _
+
+/-- **`table_sumcheck` returns wherever `tableSumcheck` does**, on the powers `tablePhase` hands
+it: two constraint powers, a form power per tree, and a form per tree in each table's row. -/
+theorem Comp.tableSumcheck (heights : List ℕ) (hh : heights.length = 6)
+    {busForms busForms' : List (List Form)} (hf : formsDen busForms = formsDen busForms')
+    (hfl : busForms.length = 6) (hrow : ∀ f ∈ busForms, f.length = 3)
+    (constraintPowers formPowers equalityPoint : List E) (hcp : constraintPowers.length = 2)
+    (hfp : formPowers.length = 3) (target : E) :
+    Comp (tableSumcheckRust tablesRust heights busForms constraintPowers formPowers equalityPoint
+        target)
+      (tableSumcheck heights busForms' constraintPowers formPowers equalityPoint target) := by
+  have hfl' : busForms'.length = 6 := by
+    have := congrArg List.length hf
+    simp only [formsDen, List.length_map] at this
+    omega
+  unfold tableSumcheckRust LeanVM.Protocol.Verifier.tableSumcheck
+  refine Comp.sumcheck_bind (count := 4) _ (by norm_num) (by norm_num) _ fun ch claim _ ↦ ?_
+  simp only
+  rw [show tablesRust.length = heights.length by rw [hh]; rfl, tableWeightsRust_eq]
+  have hw := tableWeights_length heights hh equalityPoint ch.reverse
+  have hrows := rows_rel tablesRust_rel heights
+    (busForms'.zip (tableWeights heights equalityPoint ch.reverse)) (by rw [hh]; rfl)
+    (by simp [hfl', hw]; rfl)
+  refine Comp.bind (Comp.tableRows ch.reverse constraintPowers formPowers hrows 0 0)
+    (SimR.and_returns (SimR.tableRows ch.reverse constraintPowers formPowers hrows 0 0)
+    (Returns.mapM_length _ _)) fun rows r ⟨⟨h1, h2⟩, hlen⟩ ↦ ?_
+  obtain ⟨final, evaluations⟩ := r
+  simp only at h1 h2
+  subst h1
+  refine Comp.whenChecked_bind ?_
+  simp only [bind_assoc]
+  obtain ⟨r, hr⟩ := termsRust_some constraintPowers formPowers hfp tablesRust (fun _ h ↦ h)
+    evaluations busForms (tableWeights heights equalityPoint ch.reverse) (0, 0) hrow
+    (by rw [hcp]; decide +kernel)
+  have := termsRust_spec constraintPowers formPowers tablesRust tables tablesRust_rel evaluations
+    busForms busForms' _ heights hf (by rw [hlen]; simp [hh]; rfl) (by rw [hfl]; rfl)
+    (by rw [hw]; rfl) (by rw [hh]; rfl) (0, 0) r hr
+  rw [← h2] at this
+  refine Comp.ofOption_bind (a := r.1) (by unfold termsRust; rw [hr]; rfl) ?_
+  exact Comp.bindEq (Comp.require_iff (by rw [this])) (Sim.require_iff (by rw [this]))
+    fun _ ↦ Comp.pure _ _
 
 end TableSumcheck
 

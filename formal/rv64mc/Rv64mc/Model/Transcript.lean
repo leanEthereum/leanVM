@@ -1258,7 +1258,8 @@ theorem runProof_of_simRoots {α β : Type} {m : TM α} {P : VerifierProgram β}
         rw [runK_bind, hr]
         rfl
       show (match runK (P >>= fun _ ↦ VerifierProgram.ret true)
-          ⟨⟨keccakF1600 (seedInput iv publicInput), [], none⟩, proof.stream, proof.openings, []⟩ with
+          ⟨⟨keccakF1600 (seedInput iv publicInput), [], none⟩, proof.stream, proof.openings,
+            []⟩ with
         | some (true, s) => s.stream.isEmpty && s.openings.isEmpty
         | _ => false) = true
       rw [hprog]
@@ -1401,6 +1402,11 @@ theorem Comp.bindEq {α γ δ : Type} {m : TM α} {P : VerifierProgram α} {k : 
     {Q : α → VerifierProgram δ} (hm : Comp m P) (hs : Sim m P) (hk : ∀ a, Comp (k a) (Q a)) :
     Comp (m >>= k) (P >>= Q) :=
   Comp.bind hm hs fun a _ h ↦ by subst h; exact hk a
+
+theorem Comp.bindPost {α γ δ : Type} {m : TM α} {P : VerifierProgram α} {k : α → TM γ}
+    {Q : α → VerifierProgram δ} {R : α → Prop} (hm : Comp m P) (hs : Sim m P) (hR : Returns m R)
+    (hk : ∀ a, R a → Comp (k a) (Q a)) : Comp (m >>= k) (P >>= Q) :=
+  Comp.bind hm (SimR.and_returns hs hR) fun a _ h ↦ by obtain ⟨rfl, hRa⟩ := h; exact hk a hRa
 
 private theorem drop_eq_cons {α : Type} {l : List α} {i : ℕ} {x : α} {xs : List α}
     (h : l.drop i = x :: xs) : ∃ hi : i < l.length, l[i] = x := by
