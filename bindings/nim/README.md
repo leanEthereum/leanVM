@@ -8,7 +8,7 @@ Needs Nim 2.2.12+. In your `.nimble`:
 
 <!-- x-release-please-start-version -->
 ```nim
-requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.13.1"
+requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.15.0"
 ```
 <!-- x-release-please-end -->
 
@@ -16,7 +16,7 @@ Or from the command line:
 
 <!-- x-release-please-start-version -->
 ```sh
-nimble install "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.13.1"
+nimble install "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.15.0"
 ```
 <!-- x-release-please-end -->
 
@@ -25,7 +25,7 @@ With [nimbus-build-system](https://github.com/status-im/nimbus-build-system), ve
 <!-- x-release-please-start-version -->
 ```sh
 git submodule add https://github.com/leanEthereum/leanVM vendor/leanVM
-git -C vendor/leanVM checkout bindings-v0.13.1
+git -C vendor/leanVM checkout bindings-v0.15.0
 ```
 <!-- x-release-please-end -->
 
@@ -119,6 +119,7 @@ Needs Rust and [Zig](https://ziglang.org/) 0.15.2. From the repository root, on 
 
 ```sh
 rustup target add x86_64-unknown-linux-gnu
+rustup component add llvm-tools
 cargo install cargo-zigbuild --locked
 sh bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu bindings/nim/native/x86_64-linux-gnu
 cd bindings/nim && nimble test

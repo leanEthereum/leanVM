@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.15.0](https://github.com/leanEthereum/leanVM/compare/bindings-v0.14.0...bindings-v0.15.0) (2026-11-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* leanXMSS keys store 2^8 nodes per tree and cache 4 bottom trees (at most 20 KiB of cache per key)
+
+### Features
+
+* leanXMSS keys store 2^8 nodes per tree and cache 4 bottom trees (at most 20 KiB of cache per key) ([3c48956](https://github.com/leanEthereum/leanVM/commit/3c48956771ac909669b7ee54110170dbb6f21339))
+
+## [0.14.0](https://github.com/leanEthereum/leanVM/compare/bindings-v0.13.1...bindings-v0.14.0) (2026-11-20)
+
+
+### Features
+
+* leanXMSS keys store 2^10 nodes per tree, and load from their tree cache ([#802](https://github.com/leanEthereum/leanVM/issues/802)) ([5b43139](https://github.com/leanEthereum/leanVM/commit/5b43139d50272f996ca884669b1d51555af1f35d))
+
 ## [0.13.1](https://github.com/leanEthereum/leanVM/compare/bindings-v0.13.0...bindings-v0.13.1) (2026-11-20)
 
 

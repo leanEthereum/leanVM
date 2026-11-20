@@ -8,7 +8,7 @@ Needs Zig 0.16+.
 
 <!-- x-release-please-start-version -->
 ```sh
-version=0.13.1
+version=0.15.0
 zig fetch --save=lean_pq "https://github.com/leanEthereum/leanVM/releases/download/bindings-v$version/lean-pq-zig-$version.tar.gz"
 ```
 <!-- x-release-please-end -->
@@ -107,6 +107,7 @@ Needs Rust, [Zig](https://ziglang.org/) 0.15.2 to stage the archive, and Zig 0.1
 
 ```sh
 rustup target add x86_64-unknown-linux-gnu
+rustup component add llvm-tools
 cargo install cargo-zigbuild --locked
 sh bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu bindings/zig/.native
 cd bindings/zig && zig build test -Dnative-dir=.native

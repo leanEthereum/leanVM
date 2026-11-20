@@ -6,7 +6,7 @@ Go bindings for leanXMSS and leanSPHINCS signatures, their recursive aggregation
 
 <!-- x-release-please-start-version -->
 ```sh
-go get leanvm.org/go@v0.13.1
+go get leanvm.org/go@v0.15.0
 ```
 <!-- x-release-please-end -->
 
@@ -149,6 +149,7 @@ Needs Rust and [Zig](https://ziglang.org/) 0.15.2. From the repository root, on 
 
 ```sh
 rustup target add x86_64-unknown-linux-gnu
+rustup component add llvm-tools
 cargo install cargo-zigbuild --locked
 sh bindings/native/scripts/stage-static.sh x86_64-unknown-linux-gnu bindings/go/internal/native/linux_amd64
 cd bindings/go && go test ./...

@@ -124,7 +124,7 @@ pub struct LeanXmssExpandedSecretKey {
 }
 
 /// How many recently used bottom trees a [`LeanXmssExpandedSecretKey`] caches.
-pub const MAX_CACHED_BOTTOM_TREES: usize = 8;
+pub const MAX_CACHED_BOTTOM_TREES: usize = 4;
 
 impl std::fmt::Debug for LeanXmssExpandedSecretKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -143,7 +143,7 @@ struct BottomTree {
 const CACHED_TREE_SIZE: usize = CACHED_NODES * N;
 /// A cached bottom tree, in bytes.
 const CACHED_BOTTOM_SIZE: usize = size_of::<u32>() + LAYER_SIG_SIZE + CACHED_TREE_SIZE;
-const _: () = assert!(CACHED_TREE_SIZE == 16384 && CACHED_BOTTOM_SIZE == 17588);
+const _: () = assert!(CACHED_TREE_SIZE == 4096 && CACHED_BOTTOM_SIZE == 5300);
 
 /// computes the expanded secret key (for fast signing), and the public key, from a given secret key
 pub fn key_gen(key_seed: &SecretKey) -> (LeanXmssExpandedSecretKey, LeanXmssPublicKey) {
