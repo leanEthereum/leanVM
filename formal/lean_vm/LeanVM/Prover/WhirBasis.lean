@@ -11,6 +11,10 @@ public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Prover.WhirTables
 public import LeanVM.Protocol.EndToEnd.Front.RingFidelity
 public import LeanVM.Protocol.RingVerifier
+import LeanVM.Protocol.EndToEnd.Complete.Gkr
+import LeanVM.Protocol.EndToEnd.Front.LayoutStack
+import LeanVM.Protocol.EndToEnd.Front.LayoutArith
+import LeanVM.Facts.Verifier
 
 /-!
 # The weight table of the stack claims

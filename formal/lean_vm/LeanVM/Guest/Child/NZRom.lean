@@ -13,6 +13,7 @@ public import LeanVM.Guest.Child.Refusing
 public import LeanVM.Protocol.EndToEnd.Complete.Rom
 public import LeanVM.Protocol.EndToEnd.Complete.Theorem
 public import LeanVM.Protocol.Verifier.Cost
+import LeanVM.Protocol.LeanIsa.Complete
 
 /-!
 # The refusing verifier, against the random oracles
