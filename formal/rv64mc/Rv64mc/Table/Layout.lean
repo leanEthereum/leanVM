@@ -11,11 +11,13 @@ import Rv64mc.Proof.Layout.IsOutputLane
 import Rv64mc.Proof.Layout.QkeccakSlot
 import Rv64mc.Proof.Layout.KeccakShape
 import Rv64mc.Proof.Layout.Table
+import Rv64mc.Proof.Layout.Committed
 import Rv64mc.Gen.Link.Verifier.Layout.IsOutputLane
 import Rv64mc.Gen.Link.Verifier.Layout.QkeccakSlot
 import Rv64mc.Gen.Link.Verifier.Layout.KeccakShape
 import Rv64mc.Gen.Link.Verifier.Layout.Table.NConstraints
 import Rv64mc.Gen.Link.Verifier.Layout.Table.CountColumns
+import Rv64mc.Gen.Link.Verifier.Layout.Layout.Committed
 
 namespace Rv64mc.Table.Layout
 
@@ -44,6 +46,9 @@ theorem countColumns (hpanic : Spec.Runtime.NoReturn env (liftProg fns) 16 0)
     Spec.Layout.Table.countColumnsSpec env (liftProg fns) 177 :=
   Proof.Layout.Table.countColumns env _ 177 _ Verifier.Layout.Table.CountColumns.tmpl_eq
     Verifier.Layout.Table.CountColumns.wf hpanic hdata
+
+theorem committed : Spec.Layout.Committed.spec env (liftProg fns) 57 :=
+  Proof.Layout.Committed.ok env _ 57 _ Verifier.Layout.Layout.Committed.tmpl_eq
 
 end Rv64mc.Table.Layout
 
