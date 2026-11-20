@@ -84,7 +84,7 @@ class LeanPqTest {
 
     @Test
     void vrfMatchesThePinnedVector() {
-        byte[] root = HexFormat.of().parseHex("af45ef4aca47606c0e6722dc71af01e3f13df93253e6aec5805eb1e8ed3bb0fa");
+        byte[] root = HexFormat.of().parseHex("c7e3eaa5a1af5e528e56beb589b4d1c579f5fb8939ddd7f6b1ce2141bc096b45");
         try (VrfKey key = VrfKey.fromSeed(bytes(9), 100, 200)) {
             assertArrayEquals(root, key.root());
             byte[] proof = key.proof(150);
@@ -100,7 +100,7 @@ class LeanPqTest {
 
     @Test
     void vrfKeyLoadsFromItsCache() {
-        byte[] root = HexFormat.of().parseHex("af45ef4aca47606c0e6722dc71af01e3f13df93253e6aec5805eb1e8ed3bb0fa");
+        byte[] root = HexFormat.of().parseHex("c7e3eaa5a1af5e528e56beb589b4d1c579f5fb8939ddd7f6b1ce2141bc096b45");
         try (VrfKey key = VrfKey.fromSeed(bytes(9), 100, 200)) {
             byte[] cache = key.cacheToBytes();
             try (VrfKey loaded = VrfKey.fromCacheBytes(bytes(9), root, cache)) {

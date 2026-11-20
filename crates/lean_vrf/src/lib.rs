@@ -7,8 +7,8 @@
 //!     secret i     Keccak-256("VRF_SECRET" | seed | i), for i in the range
 //!     leaf i       Keccak-256("VRF_LEAF" | secret i | i)
 //!     node         Keccak-256(left | right)
-//!     surrogate    Keccak-256(seed | j | h), for a subtree at height h, index j, with no slot of
-//!                  the range; nobody can open it
+//!     surrogate    Keccak-256("VRF_SURROGATE" | seed | j | h), for a subtree at height h,
+//!                  index j, with no slot of the range; nobody can open it
 //! ```
 //!
 //! A proof of slot `i` reveals secret `i`; its branch holds only leaves and nodes, which reveal no
@@ -29,6 +29,7 @@ pub type VrfProof = [Hash; VRF_TREE_DEPTH + 1];
 
 const VRF_SECRET_DOMAIN: &[u8] = b"VRF_SECRET";
 const VRF_LEAF_DOMAIN: &[u8] = b"VRF_LEAF";
+const VRF_SURROGATE_DOMAIN: &[u8] = b"VRF_SURROGATE";
 
 /// A seed, its range of slots, and one cached layer of its tree.
 #[derive(Clone)]
@@ -151,6 +152,7 @@ impl VrfKey {
 
     fn surrogate(&self, level: usize, index: u64) -> Hash {
         keccak256::Hasher::new()
+            .update(VRF_SURROGATE_DOMAIN)
             .update(&self.seed)
             .update(&index.to_le_bytes())
             .update(&[level as u8])

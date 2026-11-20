@@ -4,7 +4,7 @@ import py_lean_pq as lpq
 import pytest
 
 SEED = b"\x09" * 32
-ROOT = bytes.fromhex("af45ef4aca47606c0e6722dc71af01e3f13df93253e6aec5805eb1e8ed3bb0fa")
+ROOT = bytes.fromhex("c7e3eaa5a1af5e528e56beb589b4d1c579f5fb8939ddd7f6b1ce2141bc096b45")
 
 
 def test_reproduces_the_known_root():

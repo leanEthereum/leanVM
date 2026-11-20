@@ -30,7 +30,7 @@ fn shared_vector() {
     });
     assert_eq!(
         root,
-        "af45ef4aca47606c0e6722dc71af01e3f13df93253e6aec5805eb1e8ed3bb0fa"
+        "c7e3eaa5a1af5e528e56beb589b4d1c579f5fb8939ddd7f6b1ce2141bc096b45"
     );
 }
 

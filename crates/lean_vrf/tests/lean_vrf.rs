@@ -15,13 +15,13 @@ const HIGH: u32 = (1 << 31) - 3000;
 /// Ranges that do and do not start at zero or end at a power of two, low and high in the tree.
 const RANGES: [Range<u32>; 7] = [0..1, 0..1024, 5..6, 3..1000, 700..1701, 1023..1025, HIGH..HIGH + 2000];
 const ROOTS: [&str; 7] = [
-    "5d43cb6bf6e3b7e305053fa3a0ff56dd6d1c0eeac6e2b2ee59c3be2605028054",
-    "c90b187e2d1984a093092e92c7982419757473f602971cdf26a661d7bd724fb2",
-    "2b6899e17ab21595a51398deb188d6aac2a1da59c76cd232560176a36462817c",
-    "703c3ca172c5433067149861f1f411c1a00d5dea6ebdb721902027defc8c96bb",
-    "bbe357f5b683095456513e38b7dca8f7546383ea973bff7c8e17bb4bbb5babed",
-    "61a322fb9027ad56d3c46aeddb3d8a24e36c4eaa48842b0df1781050c0d972d8",
-    "46e50f866a7fe18e81b40ad87c0a06d79ba60e7fb82f7c86e12536ab97e6a546",
+    "a642d9ee60c7f8f63e57df2c93caf0a7644e611311e534f800254039c0a324c2",
+    "74f00d092cb667bd3ebc3ca8d1c32f902bdef39eb0bbaff2bc07e119142aedc1",
+    "d2b0026ddf95eebe4a37660ccd1f7d089b573dbe4e348b6addf08bde1bc886f6",
+    "6fd3d4c73573774044def0e5399b7c4340d43175a600f578a3042d17448100c0",
+    "e870a61f65ce148b9c46ed0694fee8c5c042a27b0e3d7234bfcca3ec5198142f",
+    "232652ab99dc9a5ab82bb1d8d36c0840d033c84b198f3725e01023e7dda1aee6",
+    "de9cb110436d10e78d34af89ab3e3bec5133e62f9104ab35746ff926d5254be9",
 ];
 
 /// Every slot of each range opens under the root, and no slot outside it has a proof.

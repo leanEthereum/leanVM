@@ -167,7 +167,7 @@ test('connecting where no sidecar listens fails', async () => {
 test('opens VRF proofs under the root', async () => {
   const key = await lpq.VrfKey.fromSeed(seed(9), 100, 200)
   const root = key.root()
-  assert.equal(root.toString('hex'), 'af45ef4aca47606c0e6722dc71af01e3f13df93253e6aec5805eb1e8ed3bb0fa')
+  assert.equal(root.toString('hex'), 'c7e3eaa5a1af5e528e56beb589b4d1c579f5fb8939ddd7f6b1ce2141bc096b45')
 
   const proof = key.proof(150)
   assert.equal(proof.length, 1024)
@@ -179,7 +179,7 @@ test('opens VRF proofs under the root', async () => {
 test('loads a VRF key from its cache', async () => {
   const cache = (await lpq.VrfKey.fromSeed(seed(9), 100, 200)).cacheToBytes()
 
-  const root = Buffer.from('af45ef4aca47606c0e6722dc71af01e3f13df93253e6aec5805eb1e8ed3bb0fa', 'hex')
+  const root = Buffer.from('c7e3eaa5a1af5e528e56beb589b4d1c579f5fb8939ddd7f6b1ce2141bc096b45', 'hex')
   const loaded = await lpq.VrfKey.fromCacheBytes(seed(9), root, cache)
   assert.deepEqual(loaded.cacheToBytes(), cache)
   lpq.vrfVerify(root, 150, loaded.proof(150))

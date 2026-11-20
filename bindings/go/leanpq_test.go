@@ -172,7 +172,7 @@ func TestVrf(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Pinned across the bindings.
-	if got, want := hex.EncodeToString(root[:]), "af45ef4aca47606c0e6722dc71af01e3f13df93253e6aec5805eb1e8ed3bb0fa"; got != want {
+	if got, want := hex.EncodeToString(root[:]), "c7e3eaa5a1af5e528e56beb589b4d1c579f5fb8939ddd7f6b1ce2141bc096b45"; got != want {
 		t.Fatalf("VRF root = %s, want %s", got, want)
 	}
 	proof, err := key.Proof(150)
@@ -227,7 +227,7 @@ func TestVrfKeyLoadsFromItsCache(t *testing.T) {
 		t.Fatal(err)
 	}
 	var root [32]byte
-	if _, err := hex.Decode(root[:], []byte("af45ef4aca47606c0e6722dc71af01e3f13df93253e6aec5805eb1e8ed3bb0fa")); err != nil {
+	if _, err := hex.Decode(root[:], []byte("c7e3eaa5a1af5e528e56beb589b4d1c579f5fb8939ddd7f6b1ce2141bc096b45")); err != nil {
 		t.Fatal(err)
 	}
 	loaded, err := VrfKeyFromCacheBytes(bytes32(9), root, cache)
