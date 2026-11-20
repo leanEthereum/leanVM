@@ -86,3 +86,7 @@ theorem caller_ok (j : Nat) (L : Link) (hp : p[j]? = some (callerTmpl L)) (hL : 
       simp [hpo]
 
 end Rv64mc.Example
+
+/-- info: 'Rv64mc.Example.caller_ok' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Example.caller_ok
