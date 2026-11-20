@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Tables.VtC.AWeight
 public import LeanVM.Guest.Exact.Ok
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # `verify_tables`' own computed hints, exact
@@ -41,7 +43,7 @@ def vtDigA (b w t : ℕ) : Atom :=
 def vtBitA (b : ℕ) : Atom := .hint (.bitsExp (.n (vtBoffV b)) 34 (.heap (.n (vtFwW b + 6)) 0 34))
 
 /-- The two limbs hints. -/
-def vtLimbA : List Atom := [.hint (.limbs (.n 6) [.n 5960]), .hint (.limbs (.n 7) [.n 5964])]
+def vtLimbA : List Atom := [.hint (.limbs (.n (val% «verify_tables» "pi_0")) [.n (val% «verify_tables» "lo[0]@1")]), .hint (.limbs (.n (val% «verify_tables» "pi_1")) [.n (val% «verify_tables» "lo[0]@2")])]
 
 /-- `verify_tables`' computed hints not pinned by the next atom. -/
 def vtSites : List Atom :=
@@ -110,8 +112,8 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **The limbs hints are exact** on the honest valuation: it evaluates them. -/
 theorem vt_limbs_exact (hl : args.length = 21) : ∀ a ∈ vtLimbA, a.Exact rd (vtσ rd w args) := by
-  have g1 := vt_goodL (rd := rd) (w := w) hl 5524 [.atom (.hint (.limbs (.n 6) [.n 5960]))] (by decide +kernel)
-  have g2 := vt_goodL (rd := rd) (w := w) hl 5529 [.atom (.hint (.limbs (.n 7) [.n 5964]))] (by decide +kernel)
+  have g1 := vt_goodL (rd := rd) (w := w) hl 5524 [.atom (.hint (.limbs (.n (val% «verify_tables» "pi_0")) [.n (val% «verify_tables» "lo[0]@1")]))] (by decide +kernel)
+  have g2 := vt_goodL (rd := rd) (w := w) hl 5529 [.atom (.hint (.limbs (.n (val% «verify_tables» "pi_1")) [.n (val% «verify_tables» "lo[0]@2")]))] (by decide +kernel)
   generalize vtσ rd w args = σ at g1 g2 ⊢
   simp only [GoodL, GoodS, fixNe, Good, and_true] at g1 g2
   intro a ha

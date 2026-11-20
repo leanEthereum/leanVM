@@ -251,3 +251,11 @@ LeanVM/Guest/B1/Eq/EqPrefix.lean eq_prefix_run__L
 LeanVM/Guest/B1/Eq/EqPrefixRev.lean eq_prefix_run_rev__L
 LeanVM/Guest/B1/Eq/FoldFinal.lean fold_final_msg__L
 LeanVM/Guest/B1/Eq/RsWords.lean rs_eq_run
+# Exact
+LeanVM/Guest/B1/Exact/ColumnSelector.lean column_selector__L
+LeanVM/Guest/B1/Exact/GPower.lean g_power_of_word
+LeanVM/Guest/B1/Exact/Padding.lean padding_weight__L
+LeanVM/Guest/B1/Exact/RsEqRun.lean rs_eq_run
+LeanVM/Guest/B1/Exact/SharedTables.lean shared_selector_tables
+LeanVM/Guest/B1/Exact/VkExact.lean verify_keccak
+LeanVM/Guest/B1/Exact/VtOwn.lean verify_tables

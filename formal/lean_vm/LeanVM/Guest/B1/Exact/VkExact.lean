@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.KeccakGkr.VkCA
 public import LeanVM.Guest.B1.KeccakGkr.VkCJ
 public import LeanVM.Guest.B1.KeccakGkr.VkBody
 public import LeanVM.Guest.B1.KeccakGkr.LayerCLift1
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # `verify_keccak`'s and `keccak_layer`'s own hints
@@ -40,7 +42,7 @@ theorem layer_pathExact {first : ℕ} (hf : first < 2) {fn : Fn} (hb : fn.body =
   pathExact_of_pinned (by rw [hb]; exact layer_pinned first hf)
 
 /-- `verify_keccak`'s one computed hint: the bits of `y = τ - 3`. -/
-def vkBitsA : Atom := .hint (.bitsExp (.n 21) 5 (.stack [.n 22, .n 23, .n 24, .n 25, .n 26]))
+def vkBitsA : Atom := .hint (.bitsExp (.n (val% «verify_keccak» "s5#1")) 5 (.stack [.n (val% «verify_keccak» "y_bits[0]"), .n (val% «verify_keccak» "y_bits[1]"), .n (val% «verify_keccak» "y_bits[2]"), .n (val% «verify_keccak» "y_bits[3]"), .n (val% «verify_keccak» "y_bits[4]")]))
 
 theorem vk_pinned : Stmt.blockNextOk (fun a => isComputed a && !decide (a ∈ [vkBitsA])) pinsInverse
     (fn% «verify_keccak»).body = true := by
@@ -94,7 +96,7 @@ theorem vk_pathExact : PathExactFn (fn% «verify_keccak») := by
     · exact s3.symm
     · exact s4.symm
   refine bitsExp_exact_of_prod (fun j => σ (.n (22 + j))) rfl hb ?_
-  have h20 : σ (.n 21) = σ (.n 53) := by
+  have h20 : σ (.n (val% «verify_keccak» "s5#1")) = σ (.n (val% «verify_keccak» "s11#3")) := by
     rw [m19, e_add_eq_zero_iff.mp q, m53, c18, c52]
   rw [h20, m51, m50, m49, m48]
   exact vkBits_prod (b := fun j => σ (.n (22 + j))) s3.symm s4.symm
