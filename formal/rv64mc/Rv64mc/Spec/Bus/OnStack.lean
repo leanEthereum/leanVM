@@ -15,9 +15,6 @@ namespace Rv64mc.Spec.Bus.OnStack
 
 open RiscvZkvm.Rv64 Lprog Lprog.RiscV LeanVM.Parameters LeanVM.Protocol.Verifier Rv64mc.Spec.Layout
 
-/-- The stack it needs: its frame (32 bytes) and `stack_point`'s `sp`. -/
-def need (sp : Nat) : Nat := 32 + sp
-
 /-- The placements `layout.placements` holds, as the elements of its `Vec`, live. -/
 def PlacementsAt (env : Env) (m : MachineState) (layout : Word) (ps : List (Option Model.PlacementRust)) : Prop :=
   ElemsAt Layouts.OptionPlacement.byteSize OptPlacementAt m
@@ -39,8 +36,9 @@ def Post (env : Env) (l : Model.LayoutRust) (c : ColumnClaim) (regs : Reg → Wo
     (_r' : Reg → Word) (m' : MachineState) : Prop :=
   OptStackClaimAt env m m' (regs .x10) (Model.onStackRust l c)
 
-/-- **The contract of `on_stack`**, function `i` of `p` with `need sp` bytes of stack, for every layout and claim. -/
-def spec (env : Env) (p : Lprog (Op Reg) Reg) (i sp : Nat) : Prop :=
-  ∀ l c, Holds env p i (need sp) (Pre env l c) (Post env l c) (Whir.SretOut Layouts.OptionStackClaim.byteSize)
+/-- **The contract of `on_stack`**, function `i` of `p` with `need` bytes of stack (its frame is 32 bytes; it calls
+    `stack_point` and the bounds check's panic), for every layout and claim. -/
+def spec (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=
+  ∀ l c, Holds env p i need (Pre env l c) (Post env l c) (Whir.SretOut Layouts.OptionStackClaim.byteSize)
 
 end Rv64mc.Spec.Bus.OnStack
