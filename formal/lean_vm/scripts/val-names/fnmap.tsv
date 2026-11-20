@@ -60,3 +60,19 @@ LeanVM/Guest/B1/VerifySub/ChildPops.lean@cpPop_honest certify_placement
 LeanVM/Guest/B1/VerifySub/ChildPops.lean@vtPops_honest verify_tables
 LeanVM/Guest/B1/VerifySub/CompleteBP.lean@cpσ_136 certify_placement
 LeanVM/Guest/B1/VerifySub/C/ValsB.lean@vs_maps verify_sub
+# Opening: the loop's parameters and guard, the main function's frame (every specialization names them alike)
+LeanVM/Guest/B1/Opening/QueriesMain.lean@oqLoopParams opening_queries__L_loop0
+LeanVM/Guest/B1/Opening/QueriesMain.lean@oqGuard_hc opening_queries__L_loop0
+LeanVM/Guest/B1/Opening/QueriesMain.lean@oqLoop1_hc opening_queries__L_loop0
+LeanVM/Guest/B1/Opening/QueriesMain.lean@oqLoop0_hc opening_queries__L_loop0
+LeanVM/Guest/B1/Opening/QueriesMain.lean@loop_params opening_queries__L_loop0
+LeanVM/Guest/B1/Opening/QueriesWalk.lean@oqGuard_next opening_queries__L_loop0
+LeanVM/Guest/B1/Opening/QueriesPlaced3.lean@OqIt1L opening_queries__L_loop0
+LeanVM/Guest/B1/Opening/QueriesPlaced3.lean@OqIt0L opening_queries__L_loop0
+LeanVM/Guest/B1/Opening/Witness.lean@oqIterOf opening_queries__L_loop0
+LeanVM/Guest/B1/Opening/Witness.lean@oqLoopArgs opening_queries__L
+LeanVM/Guest/B1/Opening/Witness.lean@oqsOf opening_queries__L
+LeanVM/Guest/B1/Opening/QueriesPlaced8.lean@OqMainL opening_queries__L
+LeanVM/Guest/B1/Opening/QueriesPlaced8.lean@oqAlloc opening_queries__L
+LeanVM/Guest/B1/Opening/QueriesPlaced9.lean@oqMainPost opening_queries__L
+LeanVM/Guest/B1/Opening/QueriesPlacedP3.lean@oqMainPost_walk opening_queries__L

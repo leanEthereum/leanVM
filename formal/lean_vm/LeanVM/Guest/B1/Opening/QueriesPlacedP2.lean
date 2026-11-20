@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesPlacedP
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«opening_queries__L_loop0»
 
 /-!
 # The deeper loop, placed with its pops
@@ -64,7 +66,7 @@ theorem oqIter0_relAtInP (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Str
     simp only [oqLoopParams] at this
     interval_cases i <;> simpa [hargs] using this
   set ca : Stmt := .callIf (.n (oqG0 s + 2)) loop
-    [.n (oqG0 s + 4), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] with hca
+    [.n (oqG0 s + 4), .n (valf% «opening_queries» «_loop0» "bound"), .n (valf% «opening_queries» «_loop0» "positions"), .n (valf% «opening_queries» «_loop0» "query_win_ptrs"), .n (valf% «opening_queries» «_loop0» "cap"), .n (valf% «opening_queries» «_loop0» "flags"), .n (valf% «opening_queries» «_loop0» "coefs"), .n (valf% «opening_queries» «_loop0» "hs"), .n (valf% «opening_queries» «_loop0» "chain"), .n (valf% «opening_queries» «_loop0» "lam_inv")] with hca
   set pre := oqLoop0A s wlk ++ [ca] with hpre
   have hok' := oqLoop0A_ok s wlk
   have hfm : pre.all Stmt.flatM = true := by
@@ -84,9 +86,9 @@ theorem oqIter0_relAtInP (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Str
     rw [hpre, List.filterMap_append, hok'.allocSz]; rfl
   have hallocs : allocs σ es = [] := by rw [i2, hal]; rfl
   set a1 : List V := [.n (oqOut s (oqKL s 14 true) (s.B - 1) 0), .n (oqOut s (oqKL s 14 true) (s.B - 1) 1),
-    .n 13, .n 4, .n 5] with ha1
+    .n 13, .n (valf% «opening_queries» «_loop0» "cap"), .n (valf% «opening_queries» «_loop0» "flags")] with ha1
   have hcalls : calls es = [⟨wlk, a1, [], true⟩] ++
-      [⟨loop, [.n (oqG0 s + 4), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9],
+      [⟨loop, [.n (oqG0 s + 4), .n (valf% «opening_queries» «_loop0» "bound"), .n (valf% «opening_queries» «_loop0» "positions"), .n (valf% «opening_queries» «_loop0» "query_win_ptrs"), .n (valf% «opening_queries» «_loop0» "cap"), .n (valf% «opening_queries» «_loop0» "flags"), .n (valf% «opening_queries» «_loop0» "coefs"), .n (valf% «opening_queries» «_loop0» "hs"), .n (valf% «opening_queries» «_loop0» "chain"), .n (valf% «opening_queries» «_loop0» "lam_inv")],
       [], decide (σ (.n (oqG0 s + 2)) ≠ 0)⟩] := by
     rw [i4, hpre, List.filterMap_append, oqLoop0A_callS]; rfl
   have hev : ∀ e ∈ es, e.Holds rd σ := by
@@ -119,7 +121,7 @@ theorem oqIter0_relAtInP (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Str
     simp [oqIt0Pops, evPops, hD1]
   have inR : ∀ A, OqIn R A → ∃ i, A = Parameters.addressOfIndex i ∧
       (ownData cert fp c loop (allocs σ es) es i ∨ R i ∨ False ∨
-        ((⟨loop, [.n (oqG0 s + 4), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9], [],
+        ((⟨loop, [.n (oqG0 s + 4), .n (valf% «opening_queries» «_loop0» "bound"), .n (valf% «opening_queries» «_loop0» "positions"), .n (valf% «opening_queries» «_loop0» "query_win_ptrs"), .n (valf% «opening_queries» «_loop0» "cap"), .n (valf% «opening_queries» «_loop0» "flags"), .n (valf% «opening_queries» «_loop0» "coefs"), .n (valf% «opening_queries» «_loop0» "hs"), .n (valf% «opening_queries» «_loop0» "chain"), .n (valf% «opening_queries» «_loop0» "lam_inv")], [],
           decide (σ (.n (oqG0 s + 2)) ≠ 0)⟩ : Call).taken = true ∧ False)) :=
     fun A ⟨i, hi, hr⟩ ↦ ⟨i, hi, Or.inr (Or.inl hr)⟩
   have h := relAtInP_of_walk_loop (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
@@ -131,7 +133,7 @@ theorem oqIter0_relAtInP (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Str
     (fun A hAl ↦ ?_) (fun _ h ↦ h.elim) hps
   · rw [hallocs, List.sum_nil, show 0 + (fs wlk + 0) + m = fs wlk + m by ring] at h; exact h
   · rw [hallocs, List.sum_nil, show c + 0 + (fs wlk + 0) = c + fs wlk by ring]
-    have hargs' : ([.n (oqG0 s + 4), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] :
+    have hargs' : ([.n (oqG0 s + 4), .n (valf% «opening_queries» «_loop0» "bound"), .n (valf% «opening_queries» «_loop0» "positions"), .n (valf% «opening_queries» «_loop0» "query_win_ptrs"), .n (valf% «opening_queries» «_loop0» "cap"), .n (valf% «opening_queries» «_loop0» "flags"), .n (valf% «opening_queries» «_loop0» "coefs"), .n (valf% «opening_queries» «_loop0» "hs"), .n (valf% «opening_queries» «_loop0» "chain"), .n (valf% «opening_queries» «_loop0» "lam_inv")] :
         List V).map σ = [gen ^ j * gen, N, positions, qptrs, cap, flags, coefs, hsp, ch, mu] := by
       simp only [List.map_cons, List.map_nil, eG4, eP 1 (by omega), eP 2 (by omega),
         eP 3 (by omega), eP 4 (by omega), eP 5 (by omega), eP 6 (by omega), eP 7 (by omega),
@@ -156,7 +158,7 @@ theorem oqIter0_relAtInP (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Str
     rw [hpre, List.filterMap_append] at hq
     rcases List.mem_append.mp hq with hq | hq
     · rcases hok'.load hq with hl | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨hf, rfl, rfl⟩ | ⟨hf, rfl, rfl⟩
-      · exact inR _ (oqQLoad_in (σ := σ) (coefs := .n 6) (hs := .n 7)
+      · exact inR _ (oqQLoad_in (σ := σ) (coefs := .n (valf% «opening_queries» «_loop0» "coefs")) (hs := .n (valf% «opening_queries» «_loop0» "hs"))
           (by rw [eP 6 (by omega), eP 7 (by omega)]; exact hR1) hl)
       · rw [e10]; exact inR _ hRp
       · rw [e12]; exact inR _ hRq
