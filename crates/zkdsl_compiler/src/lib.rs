@@ -38,6 +38,7 @@ mod field;
 mod ir;
 mod lower;
 mod opt;
+mod pair;
 mod parser;
 pub use ast::*;
 pub(crate) use ir::*;
@@ -101,6 +102,7 @@ pub fn compile(ast: &Ast) -> CompiledProgram {
     if std::env::var("DBG_NO_OPT").is_err() {
         opt::optimize(&mut lowered, &mut tables);
     }
+    pair::pair_derefs(&mut lowered, &mut tables);
     // The tables sit past `main`'s own cells. At pc 0, in `main`'s frame (`fp = g^0`),
     // one `SET` per slot writes them, then falls through into `main`.
     let tables_base = lowered[0].frame_size;
@@ -254,13 +256,25 @@ pub fn disassemble(prog: &[Op]) -> String {
             Op::Set { o, k } => format!("SET    fp[{o}] = {}", kfmt(*k)),
             Op::Xor { a, b, c } => format!("XOR    fp[{c}] = fp[{a}] ^ fp[{b}]"),
             Op::Mul { a, b, c } => format!("MUL    fp[{c}] = fp[{a}] * fp[{b}]"),
-            Op::Deref { o1, o2, o3, mode } => {
+            Op::Deref {
+                o1,
+                o2,
+                o3,
+                mode,
+                o2b,
+                o3b,
+            } => {
                 let src = match mode {
                     DerefMode::Cell => format!("fp[{o3}]"),
                     DerefMode::Pc => "g²·pc".to_string(),
                     DerefMode::Fp => "fp".to_string(),
                 };
-                format!("DEREF  *(fp[{o1}]·g^{o2}) = {src}  [{mode:?}]")
+                let second = if *mode == DerefMode::Cell && (o2b, o3b) != (o2, o3) {
+                    format!(", *(fp[{o1}]·g^{o2b}) = fp[{o3b}]")
+                } else {
+                    String::new()
+                };
+                format!("DEREF  *(fp[{o1}]·g^{o2}) = {src}{second}  [{mode:?}]")
             }
             Op::Jump { oc, od, of } => {
                 format!("JUMP   if fp[{oc}]≠0: pc=fp[{od}], fp=fp[{of}]")
@@ -318,17 +332,24 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, fram
         },
         LOp::Xor { a, b, c } => Op::Xor { a: *a, b: *b, c: *c },
         LOp::Mul { a, b, c } => Op::Mul { a: *a, b: *b, c: *c },
-        LOp::Deref { o1, o2, o3, mode } => Op::Deref {
-            o1: *o1,
-            o2: *o2,
-            o3: *o3,
-            mode: *mode,
-        },
+        LOp::Deref { o1, o2, o3, mode, pair } => {
+            let (o2b, o3b) = pair.unwrap_or((*o2, *o3));
+            Op::Deref {
+                o1: *o1,
+                o2: *o2,
+                o3: *o3,
+                mode: *mode,
+                o2b,
+                o3b,
+            }
+        }
         LOp::Slot { x, first, dst } => Op::Deref {
             o1: *x,
             o2: tables + first,
             o3: *dst,
             mode: DerefMode::Cell,
+            o2b: tables + first,
+            o3b: *dst,
         },
         LOp::Jump { oc, od, of } => Op::Jump {
             oc: *oc,

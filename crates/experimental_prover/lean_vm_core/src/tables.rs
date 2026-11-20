@@ -139,6 +139,19 @@ impl FlushBuilder {
         self.memory_pushing(counter, addr, count, vals);
     }
 
+    /// [`Self::memory_coords`] unless the column `a` or the column `b` is 1 (at most one is): the push's counter is
+    /// `count·(g + (a + b)·(g + 1))`.
+    pub(crate) fn memory_coords_unless(&mut self, a: usize, b: usize, addr: Coord, count: usize, vals: [Coord; 2]) {
+        let counter = Coord::Sum(vec![
+            GCol(count, 1),
+            Prod(a, count, 1),
+            Prod(a, count, 0),
+            Prod(b, count, 1),
+            Prod(b, count, 0),
+        ]);
+        self.memory_pushing(counter, addr, count, vals);
+    }
+
     fn memory_pushing(&mut self, counter: Coord, addr: Coord, count: usize, vals: [Coord; 2]) {
         let mut push = vec![Const(SEP_MEM), addr.clone(), counter];
         let mut pull = vec![Const(SEP_MEM), addr, Col(count)];
@@ -605,11 +618,18 @@ mod deref {
     // the two flags, `pc` and `fp`, so it is no column.
     pub const V3_LO: usize = 8;
     pub const V3_HI: usize = 9;
-    pub const R1: usize = 10;
-    pub const R2: usize = 11;
-    pub const R3: usize = 12;
-    pub const RBC: usize = 13;
-    pub const N: usize = 14;
+    // The second link through the same pointer: its offsets and the word it links.
+    pub const O2B: usize = 10;
+    pub const O3B: usize = 11;
+    pub const V4_LO: usize = 12;
+    pub const V4_HI: usize = 13;
+    pub const R1: usize = 14;
+    pub const R2: usize = 15;
+    pub const R3: usize = 16;
+    pub const RBC: usize = 17;
+    pub const R4: usize = 18;
+    pub const R5: usize = 19;
+    pub const N: usize = 20;
 }
 
 /// The stored word's two K-lanes as forms:
@@ -632,31 +652,43 @@ impl Table for DerefTable {
     }
     fn count_columns(&self) -> &'static [usize] {
         use deref::*;
-        &[R1, R2, R3, RBC]
+        &[R1, R2, R3, RBC, R4, R5]
     }
     fn flushes(&self, f: &mut FlushBuilder) {
         use deref::*;
         f.state_step(PC, FP);
-        f.bytecode(PC, RBC, OP_DEREF, &[Col(O1), Col(O2), Col(O3), Col(FPC), Col(FFP)]);
+        let operands = [Col(O1), Col(O2), Col(O3), Col(FPC), Col(FFP), Col(O2B), Col(O3B)];
+        f.bytecode(PC, RBC, OP_DEREF, &operands);
         // The pointer cell and the local cell are frame-relative; the store target
         // is pointer-relative, so its address is `p·obe`, and its value is the
         // flag-selected source rather than a column.
         f.memory_k(Prod(FP, O1, 0), R1, P);
         f.memory_coords(Prod(P, O2, 0), R2, deref_store());
         f.memory(Prod(FP, O3, 0), R3, V3_LO, V3_HI);
+        // The second link, in the cell mode only.
+        f.memory_coords_unless(FPC, FFP, Prod(P, O2B, 0), R4, [Col(V4_LO), Col(V4_HI)]);
+        f.memory_coords_unless(FPC, FFP, Prod(FP, O3B, 0), R5, [Col(V4_LO), Col(V4_HI)]);
     }
     fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
         let rows = &ctx.trace.deref;
         // Offsets and store mode are the instruction's. Neither the store target's
         // address nor its value is committed.
         ctx.cols(out, rows, |r| {
-            let (o1, o2, o3, mode) = match ctx.prog[r.pc as usize] {
-                Op::Deref { o1, o2, o3, mode } => (o1, o2, o3, mode),
+            let (o1, o2, o3, mode, o2b, o3b) = match ctx.prog[r.pc as usize] {
+                Op::Deref {
+                    o1,
+                    o2,
+                    o3,
+                    mode,
+                    o2b,
+                    o3b,
+                } => (o1, o2, o3, mode, o2b, o3b),
                 op => unreachable!("a DEREF row's pc {} holds {op:?}", r.pc),
             };
             let p = ctx.mem.word((r.fp + o1) as usize);
             debug_assert!(p.as_base().is_some(), "deref pointer must be K-valued");
             let v3 = ctx.limbs(r.fp + o3);
+            let v4 = ctx.limbs(r.fp + o3b);
             [
                 ctx.g_at(r.pc),
                 ctx.g_at(r.fp),
@@ -668,10 +700,16 @@ impl Table for DerefTable {
                 F64(p.c0),
                 v3[0],
                 v3[1],
+                ctx.g_at(o2b),
+                ctx.g_at(o3b),
+                v4[0],
+                v4[1],
                 ctx.g_at(r.r1),
                 ctx.g_at(r.r2),
                 ctx.g_at(r.r3),
                 ctx.g_at(r.bytecode_read),
+                ctx.g_at(r.r4),
+                ctx.g_at(r.r5),
             ]
         });
     }

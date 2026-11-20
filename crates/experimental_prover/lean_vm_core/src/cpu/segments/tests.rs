@@ -44,6 +44,8 @@ fn deref(o1: u32, o3: u32) -> Op {
         o2: 0,
         o3,
         mode: DerefMode::Cell,
+        o2b: 0,
+        o3b: o3,
     }
 }
 

@@ -40,6 +40,9 @@ pub(crate) struct Drow {
     pub(crate) r2: u32,
     pub(crate) r3: u32,
     pub(crate) bytecode_read: u32,
+    /// The second link's counts: its target, its local cell.
+    pub(crate) r4: u32,
+    pub(crate) r5: u32,
 }
 #[derive(Clone, Copy)]
 #[cfg_attr(test, derive(PartialEq))]
@@ -93,7 +96,7 @@ row!(Xrow, |r, i| [&mut r.ra, &mut r.rb, &mut r.rc]
     .nth(i)
     .unwrap());
 row!(Srow, |r, _i| &mut r.r);
-row!(Drow, |r, i| [&mut r.r1, &mut r.r2, &mut r.r3]
+row!(Drow, |r, i| [&mut r.r1, &mut r.r2, &mut r.r3, &mut r.r4, &mut r.r5]
     .into_iter()
     .nth(i)
     .unwrap());

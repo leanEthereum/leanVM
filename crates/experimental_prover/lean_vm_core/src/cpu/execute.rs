@@ -1325,7 +1325,14 @@ pub(super) fn walk<M: Machine>(
                 });
                 pc += 1;
             }
-            Op::Deref { o1, o2, o3, mode } => {
+            Op::Deref {
+                o1,
+                o2,
+                o3,
+                mode,
+                o2b,
+                o3b,
+            } => {
                 let a1 = at(fp, o1)?;
                 let (p, r1) = m.read(a1);
                 let p_addr = p.as_base().ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
@@ -1349,6 +1356,14 @@ pub(super) fn walk<M: Machine>(
                 }
                 let r2 = m.bump(a2);
                 let r3 = m.bump(a3);
+                // The second link, in the cell mode only.
+                let (r4, r5) = if mode == DerefMode::Cell {
+                    let (a4, a5) = (at(base, o2b)?, at(fp, o3b)?);
+                    m.deref_cell(a4, a5)?;
+                    (m.bump(a4), m.bump(a5))
+                } else {
+                    (0, 0)
+                };
                 m.row(Table::Deref, deref.len());
                 deref.push(Drow {
                     pc,
@@ -1357,6 +1372,8 @@ pub(super) fn walk<M: Machine>(
                     r2,
                     r3,
                     bytecode_read,
+                    r4,
+                    r5,
                 });
                 pc += 1;
             }

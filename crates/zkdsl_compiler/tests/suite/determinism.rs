@@ -32,22 +32,22 @@ use zkdsl_compiler::parse;
 /// without a digest.
 #[rustfmt::skip]
 const GOLDEN: &[(&str, &str)] = &[
-    ("conditionals", "d4f4126abc9ea51be42e477278b4ba53d17b161104cabff7deec50de43994292"),
-    ("const_params", "c88e2d1d861fa655b13567944f2829890ae658c2bbc0cabef82eacd4014ecb0d"),
-    ("fibonacci", "8a97e3a616df5671a158e8e87d90133c3815d52f31ff8073fa567b8836425691"),
-    ("hash_heap_chain", "95b378f997c069969c03cdc0976578d55dd03e8794779db9ec6ecf04b282c37e"),
-    ("hash_slices", "237e03d5e2a594fa019a49f704fa32fa5233afb1ac9ceeabd9df5de9e4616c11"),
-    ("heapbuf_dyn", "8e84360adbc674b70c24786ff14f5639291aed55279e27a1fa7a32982baca423"),
-    ("hint", "432788b9aca1b21d99e745770e5790d28ea3b35d6819db4f808fa149bdb61824"),
-    ("identities", "6e03baffeb9abbcc827722fa3c0c90a317b39eb3dcc016e063e4cbc180f3a8b7"),
-    ("inline", "3d4906a6e37672a9efe7f0ab3c8eee6033cfa867064b7aed444aceb53b7a5085"),
-    ("match", "cea7b8ac3bc4118004c6f554ac82c84c1df05e851ced181969736998cfa4b2b0"),
-    ("match_arms", "f2a91b915f7e6fafe11706a05eadf2ef8beb13be7ff394719a25461641e8c192"),
-    ("nested", "c68d71ca2e3ba7404eab8f32e692b8125907699f6081060e4867f6dca897080b"),
-    ("runtime_loop", "c08ab5953048e84eaaa7c19f8e4851c4f6ec710cd64d57e84831257ffec35aef"),
-    ("scoping", "c401b4dac92f26296e315f08e1229eb18609cb81005d1da1859f3b65d80571a0"),
-    ("unroll", "dcc038932d6f4bc49605e02d2369fb24ba1efefdc4d3333d7b1dbdd1eae693b0"),
-    ("wots_walk", "1eea84f92a301ad6cd298b1c46ea88f2af4d5dfb7af0d589f56b07876b23c718"),
+    ("conditionals", "ed72764098b40502c4e6c6fe6798ef83218a979e68ca5a34db13a36561860f78"),
+    ("const_params", "121c290d759b7f5911aad2d881387b31d2b7be5369478a5603aa121af14ee3a8"),
+    ("fibonacci", "0f5a9468d0e92b724c5798ba65d00ea9b5f8099ac8a98c0eafbe0df74d06187a"),
+    ("hash_heap_chain", "b8fbfaae945e16fb4eb673614240f85b7f4c401b773b360531f1c441a06db675"),
+    ("hash_slices", "90e83d6e531bf730f6509b98cd4554cdc48b6553ad606fe35eca2b2b85b85130"),
+    ("heapbuf_dyn", "9a2ae4898ed49d29df0f3d0a652247fc9976f192e768ba66d79d7d82fe45976a"),
+    ("hint", "52da44acea39cc7db396b3280519fa172fdbe684fcb4779ce07254e3a9da7c33"),
+    ("identities", "e0b1ec01996ec06a4de83c89da0796cab69149a1e542fc127098f5cdfcfa14e3"),
+    ("inline", "7e333e8df8f1d11d7eb47d3574e49c1a40eb939061975ae52ec548255251e88c"),
+    ("match", "f028efcf9532a46b6d8cde539d058a88bf522f2a5a8f70ef2611cbd8bc5263fc"),
+    ("match_arms", "5beb2e73c258f442bbf010b555460474b72a885682d19e08fe6005126267f419"),
+    ("nested", "a263e8066099e24ef21d45588579551eba0615e392dddfb0bdd94019ec9b6e84"),
+    ("runtime_loop", "b36d44ff76fd7d1bb482378949d198b5706a79b57ccaf68896bce7e503ba1f63"),
+    ("scoping", "7f170f9c6ec2893b693793a46aa424af61c087753a3468ef7377d4e28452dfd8"),
+    ("unroll", "b6fd198ff4247a9a36d21149b14743ba08a757a1c0e6de49d6acb977aa0ab2f9"),
+    ("wots_walk", "3a0f0552095d8874cfb8ffbbde41dc7fa80ef8986a59940ad6049f3a9e6d4d29"),
 ];
 
 fn digest(p: &Program) -> String {

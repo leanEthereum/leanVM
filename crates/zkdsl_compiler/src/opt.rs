@@ -41,10 +41,13 @@ fn visit(op: &mut LOp, f: &mut dyn FnMut(&mut Off, Role)) {
             f(b, Role::Use);
             f(c, Role::Dest);
         }
-        LOp::Deref { o1, o3, mode, .. } => {
+        LOp::Deref { o1, o3, mode, pair, .. } => {
             f(o1, Role::Use);
             if *mode == DerefMode::Cell {
                 f(o3, Role::DerefVal);
+                if let Some((_, o3b)) = pair {
+                    f(o3b, Role::DerefVal);
+                }
             }
         }
         LOp::Jump { oc, od, of } => {
@@ -339,6 +342,7 @@ fn optimize_fn(l: &mut Lowered, at_targets: &[u32]) -> Option<Vec<u32>> {
                 o2: c - fs,
                 o3: s,
                 mode: DerefMode::Cell,
+                pair: None,
             };
         }
     }

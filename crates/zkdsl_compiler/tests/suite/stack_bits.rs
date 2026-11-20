@@ -37,8 +37,8 @@ def main():
     let deref = |s: &str| crate::common::mix(s, want)[verifier::layout::OP_DEREF];
     assert_eq!(
         deref(&src("HeapBuf(GEN ** 8)", "GEN ** i")) - deref(&src("StackBuf(8)", "i")),
-        16,
-        "a frame bit buffer must drop both DEREFs per bit"
+        8,
+        "a frame bit buffer must drop the DEREF per bit (its load and its store, through one pointer, are one)"
     );
 }
 

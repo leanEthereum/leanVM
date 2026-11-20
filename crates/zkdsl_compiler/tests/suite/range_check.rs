@@ -36,8 +36,8 @@ def main():
     let program = compile(&parse(src).expect("parse"));
     let want = [F128::from(g_pow(12)), F128::from(g_pow(5))];
     let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    // 2 DEREFs per range check (4 checks) + 2 publishing stores.
-    assert_eq!(mix(src, want)[3], 10, "DEREF count");
+    // 2 DEREFs per range check (4 checks) + the 2 publishing stores, through one pointer, as one.
+    assert_eq!(mix(src, want)[3], 9, "DEREF count");
     verify(&program, &want, &proof).expect("range-checked program verifies");
 }
 

@@ -299,7 +299,13 @@ impl FnLower<'_> {
     }
 
     fn deref(&mut self, o1: Off, o2: u32, o3: Off, mode: DerefMode) {
-        self.emit(LOp::Deref { o1, o2, o3, mode });
+        self.emit(LOp::Deref {
+            o1,
+            o2,
+            o3,
+            mode,
+            pair: None,
+        });
         if mode == DerefMode::Cell {
             self.scope.load_cells.entry((o1, o2)).or_insert(o3);
         }
