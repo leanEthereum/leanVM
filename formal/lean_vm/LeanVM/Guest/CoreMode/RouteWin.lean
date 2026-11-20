@@ -26,19 +26,15 @@ open LeanVM.Guest.Bridge (stmtsOf)
 @[expose] public section
 
 /-- **A check over slices from `a`**, the last cut `e`. -/
-def BWins {α : Type} (F : List α → Bool) (l : List α) (e : ℕ) : ℕ → List ℕ → Prop
-  | a, [] => a = e
-  | a, b :: cs => a ≤ b ∧ F (slice l a b) = true ∧ BWins F l e b cs
+abbrev BWins {α : Type} (F : List α → Bool) (l : List α) (e : ℕ) : ℕ → List ℕ → Prop :=
+  Wins id (fun a b ↦ F (slice l a b) = true) e
 
 theorem bwins_spec {α : Type} {F : List α → Bool} (hF : ∀ x y, F x = true → F y = true → F (x ++ y) = true)
     (h0 : F [] = true) {l : List α} {e : ℕ} :
-    ∀ {a : ℕ} {cs : List ℕ}, BWins F l e a cs → a ≤ e ∧ F (slice l a e) = true
-  | a, [], h => by
-    subst h
-    exact ⟨le_rfl, by rw [slice_self]; exact h0⟩
-  | a, b :: cs, ⟨hab, hw, hr⟩ => by
-    obtain ⟨hbe, hr'⟩ := bwins_spec hF h0 hr
-    exact ⟨le_trans hab hbe, by rw [slice_split l hab hbe]; exact hF _ _ hw hr'⟩
+    ∀ {a : ℕ} {cs : List ℕ}, BWins F l e a cs → a ≤ e ∧ F (slice l a e) = true :=
+  wins_fold (Q := fun a _ ↦ F (slice l a e) = true) (by rw [slice_self]; exact h0) fun {a b _} hab hbe hw hq ↦ by
+    simp only [id] at hab hbe hw hq
+    rw [slice_split l hab hbe]; exact hF _ _ hw hq
 
 /-- The cells' checks and the top-level statements', over statements. -/
 noncomputable def cellsB (j : ℕ) (l : List Stmt) : Bool :=
@@ -97,10 +93,8 @@ theorem selGo_append (j : ℕ) (ps : List V) : ∀ (seen : List Atom) (x y : Lis
 
 /-- **The selectors' check over slices from `a`**, each with no top-level `ret`, from the top-level atoms
 before it. -/
-def SWins (j : ℕ) (ps : List V) (l : List Stmt) (e : ℕ) : ℕ → List ℕ → Prop
-  | a, [] => a = e
-  | a, b :: cs => a ≤ b ∧ (noRetTop (slice l a b) && selGo j ps (seenF [] (l.take a)) (slice l a b)) = true ∧
-      SWins j ps l e b cs
+abbrev SWins (j : ℕ) (ps : List V) (l : List Stmt) (e : ℕ) : ℕ → List ℕ → Prop :=
+  Wins id (fun a b ↦ (noRetTop (slice l a b) && selGo j ps (seenF [] (l.take a)) (slice l a b)) = true) e
 
 theorem take_slice {α : Type} (l : List α) {a b : ℕ} (hab : a ≤ b) : l.take b = l.take a ++ slice l a b := by
   unfold slice
@@ -109,17 +103,15 @@ theorem take_slice {α : Type} (l : List α) {a b : ℕ} (hab : a ≤ b) : l.tak
 
 theorem swins_spec {j : ℕ} {ps : List V} {l : List Stmt} {e : ℕ} :
     ∀ {a : ℕ} {cs : List ℕ}, SWins j ps l e a cs →
-      a ≤ e ∧ noRetTop (slice l a e) = true ∧ selGo j ps (seenF [] (l.take a)) (slice l a e) = true
-  | a, [], h => by
-    subst h
-    simp [slice_self, noRetTop, selGo]
-  | a, b :: cs, ⟨hab, hw, hr⟩ => by
-    obtain ⟨hbe, hn, hs⟩ := swins_spec hr
-    rw [Bool.and_eq_true] at hw
-    refine ⟨le_trans hab hbe, ?_, ?_⟩
-    · rw [slice_split l hab hbe]; exact noRetTop_append _ _ hw.1 hn
-    · rw [slice_split l hab hbe, selGo_append j ps _ _ _ hw.1, hw.2, ← seenF_append, ← take_slice l hab, hs]
-      rfl
+      a ≤ e ∧ noRetTop (slice l a e) = true ∧ selGo j ps (seenF [] (l.take a)) (slice l a e) = true := fun h ↦
+  wins_fold (Q := fun a _ ↦ noRetTop (slice l a e) = true ∧ selGo j ps (seenF [] (l.take a)) (slice l a e) = true)
+    (by simp [slice_self, noRetTop, selGo]) (fun {a b _} hab hbe hw hq ↦ by
+      simp only [id] at hab hbe hw hq
+      rw [Bool.and_eq_true] at hw
+      refine ⟨?_, ?_⟩
+      · rw [slice_split l hab hbe]; exact noRetTop_append _ _ hw.1 hq.1
+      · rw [slice_split l hab hbe, selGo_append j ps _ _ _ hw.1, hw.2, ← seenF_append, ← take_slice l hab, hq.2]
+        rfl) h
 
 /-! ## The core data's checks of a long body -/
 
