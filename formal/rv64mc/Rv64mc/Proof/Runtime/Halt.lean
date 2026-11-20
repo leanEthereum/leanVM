@@ -7,19 +7,12 @@
 
 import Rv64mc.Gen.Tmpl.VerifierRv64.Halt
 import Rv64mc.Spec.Runtime.Panic
+import Rv64mc.Core.Sp1
 
 namespace Rv64mc.Proof.Runtime.Halt
 
 open RiscvZkvm.Rv64 Lprog Lprog.RiscV Lprog.RiscV.Machine Rv64mc.Spec.Runtime
 open Rv64mc.Gen.VerifierRv64.Halt (Link tmpl)
-
-/-- SP1's `ecall` with `t0 = 0` (`HALT`) does not continue. -/
-theorem sp1Ecall_halt {u : MachineState} (hc : u.code u.pc = some .ECALL) (h5 : u.getReg .x5 = 0) :
-    sp1Ecall u = none := by
-  have hacc : Sp1.isAccelId 0#64 = false := by decide
-  have hhost : Sp1.isHostId 0#64 = true := by decide
-  simp [sp1Ecall, hc, h5, hacc, hhost, RiscvZkvm.Rv64.step, Sp1.HINT_LEN, Sp1.HINT_READ, Sp1.COMMIT,
-    Sp1.COMMIT_DEFERRED_PROOFS]
 
 /-- **`halt` never returns**, and needs no stack. -/
 theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) :

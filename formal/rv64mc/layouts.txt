@@ -47,6 +47,13 @@ dump Layout layout Layout<'static>
 dump Placement multilinear Placement
 dump OptionPlacement multilinear Option<Placement>
 
+dump Flushes layout Flushes
+dump KeccakShape keccak KeccakShape
+dump KeccakClaim keccak Claim
+dump KeccakOpenings keccak KeccakOpenings
+dump Scaled field Scaled
+dump Scaler multilinear Scaler
+
 # verdicts
 dump VerifierError lib VerifierError
 dump ResultUnit lib Result<(), VerifierError>

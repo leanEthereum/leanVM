@@ -95,6 +95,11 @@ theorem call (h : Holds env p f need Pre Post Out) {fn pc : Nat} {fd : Lfundef (
   SafeN.call_contract hf hi h hc ⟨⟨by simp [updReg_apply], by simp [updReg_apply]⟩, hstack, hst, hnext, hpre⟩
     fun r' m' ⟨ha, hfr, hs, hp⟩ => hk r' m' ha hfr hs hp
 
+/-- **More stack than a contract needs is enough.** -/
+theorem mono_need (h : Holds env p f need Pre Post Out) {need' : Nat} (hn : need ≤ need') :
+    Holds env p f need' Pre Post Out :=
+  fun G n Q ret top rest regs m ⟨he, hs, hrest⟩ hk => h G n Q ret top rest regs m ⟨he, by omega, hrest⟩ hk
+
 end Holds
 
 /-! ## A function's own stack -/

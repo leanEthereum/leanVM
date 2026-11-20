@@ -10,6 +10,7 @@
 
 import Rv64mc.Gen.Tmpl.Alloc.RawVec.RawVecInner.GrowAmortized
 import Rv64mc.Spec.Runtime.RawVec
+import Rv64mc.Core.ReprLemmas
 
 namespace Rv64mc.Proof.Runtime.GrowAmortized
 
@@ -32,73 +33,9 @@ theorem fgPtrAt_eq (a : Word) : fgPtrAt a = a + 8#64 := rfl
 
 variable {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link}
 
-/-- The frame's three saved words, below `top`. -/
-def saved (m : MachineState) (top ra s0 s1 : Word) : MachineState :=
-  ((m.setMem (top + 0xfffffffffffffff8#64) ra).setMem (top + 0xfffffffffffffff0#64) s0).setMem
-    (top + 0xffffffffffffffe8#64) s1
-
-section Saved
-
-variable {m : MachineState} {top ra s0 s1 : Word} (hlim : env.stackLimit.toNat + 48 ≤ top.toNat)
-include hlim
-
-theorem off {k : Nat} (hk : 0 < k) (hk' : k ≤ 48) :
+theorem off {top : Word} (hlim : env.stackLimit.toNat + 48 ≤ top.toNat) {k : Nat} (hk : 0 < k) (hk' : k ≤ 48) :
     (top + BitVec.ofNat 64 (2 ^ 64 - k)).toNat = top.toNat - k := by
   rw [BitVec.toNat_add, BitVec.toNat_ofNat]; have := top.isLt; have := env.layout; omega
-
-/-- A word not in the frame's three slots reads as before. -/
-theorem saved_getMem {b : Word} (hb : b.toNat < top.toNat - 24 ∨ top.toNat ≤ b.toNat) :
-    (saved m top ra s0 s1).getMem b = m.getMem b := by
-  have h8 : (top + 0xfffffffffffffff8#64).toNat = top.toNat - 8 := off hlim (k := 8) (by decide) (by decide)
-  have h16 : (top + 0xfffffffffffffff0#64).toNat = top.toNat - 16 := off hlim (k := 16) (by decide) (by decide)
-  have h24 : (top + 0xffffffffffffffe8#64).toNat = top.toNat - 24 := off hlim (k := 24) (by decide) (by decide)
-  have n8 : b ≠ top + 0xfffffffffffffff8#64 := fun h => by rw [h, h8] at hb; omega
-  have n16 : b ≠ top + 0xfffffffffffffff0#64 := fun h => by rw [h, h16] at hb; omega
-  have n24 : b ≠ top + 0xffffffffffffffe8#64 := fun h => by rw [h, h24] at hb; omega
-  simp only [saved, MachineState.getMem_setMem_ne n8, MachineState.getMem_setMem_ne n16,
-    MachineState.getMem_setMem_ne n24]
-
-theorem next_saved : env.next (saved m top ra s0 s1) = env.next m := by
-  have := env.layout
-  unfold Env.next
-  exact saved_getMem hlim (by omega)
-
-theorem frame_saved {out : Word → Prop} (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) :
-    env.Frame top out m (saved m top ra s0 s1) := by
-  refine ⟨by rw [next_saved hlim]; exact Nat.le_refl _, by rw [next_saved hlim]; exact hnx, fun b hb => ?_⟩
-  refine saved_getMem hlim ?_
-  rcases Nat.lt_or_ge b.toNat (top.toNat - 24) with h | h
-  · exact Or.inl h
-  · rcases Nat.lt_or_ge b.toNat top.toNat with h' | h'
-    · exact absurd (Or.inl ⟨by omega, h'⟩) hb
-    · exact Or.inr h'
-
-theorem static_saved (hs : env.Static m) : env.Static (saved m top ra s0 s1) :=
-  env.static_frame m _ (fun b _ hb => saved_getMem hlim (by have := env.layout; omega)) hs
-
-theorem saved_ra : (saved m top ra s0 s1).getMem (top + 0xfffffffffffffff8#64) = ra := by
-  have h8 : (top + 0xfffffffffffffff8#64).toNat = top.toNat - 8 := off hlim (k := 8) (by decide) (by decide)
-  have h16 : (top + 0xfffffffffffffff0#64).toNat = top.toNat - 16 := off hlim (k := 16) (by decide) (by decide)
-  have h24 : (top + 0xffffffffffffffe8#64).toNat = top.toNat - 24 := off hlim (k := 24) (by decide) (by decide)
-  have n16 : top + 0xfffffffffffffff8#64 ≠ top + 0xfffffffffffffff0#64 := fun h => by
-    have := congrArg BitVec.toNat h; rw [h8, h16] at this; omega
-  have n24 : top + 0xfffffffffffffff8#64 ≠ top + 0xffffffffffffffe8#64 := fun h => by
-    have := congrArg BitVec.toNat h; rw [h8, h24] at this; omega
-  simp only [saved, MachineState.getMem_setMem_ne n24, MachineState.getMem_setMem_ne n16,
-    MachineState.getMem_setMem_eq]
-
-theorem saved_s0 : (saved m top ra s0 s1).getMem (top + 0xfffffffffffffff0#64) = s0 := by
-  have h16 : (top + 0xfffffffffffffff0#64).toNat = top.toNat - 16 := off hlim (k := 16) (by decide) (by decide)
-  have h24 : (top + 0xffffffffffffffe8#64).toNat = top.toNat - 24 := off hlim (k := 24) (by decide) (by decide)
-  have n24 : top + 0xfffffffffffffff0#64 ≠ top + 0xffffffffffffffe8#64 := fun h => by
-    have := congrArg BitVec.toNat h; rw [h16, h24] at this; omega
-  simp only [saved, MachineState.getMem_setMem_ne n24, MachineState.getMem_setMem_eq]
-
-omit hlim in
-theorem saved_s1 : (saved m top ra s0 s1).getMem (top + 0xffffffffffffffe8#64) = s1 := by
-  simp only [saved, MachineState.getMem_setMem_eq]
-
-end Saved
 
 /-- **From the choice of the new capacity `nc` to the return.** -/
 theorem after (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {nfg : Nat}
@@ -115,7 +52,7 @@ theorem after (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {nfg : Nat}
     (hR15 : R .x15 = regs .x14)
     (hRs : R .x18 = regs .x18 ∧ R .x19 = regs .x19 ∧ R .x20 = regs .x20 ∧ R .x21 = regs .x21 ∧ R .x22 = regs .x22 ∧
       R .x23 = regs .x23 ∧ R .x24 = regs .x24 ∧ R .x25 = regs .x25 ∧ R .x26 = regs .x26 ∧ R .x27 = regs .x27) :
-    rvIsa.SafeN p sp1Ctx G n Q ⟨⟨i, 42, ret, top⟩ :: rest, R, saved m top ret (regs .x8) (regs .x9)⟩ := by
+    rvIsa.SafeN p sp1Ctx G n Q ⟨⟨i, 42, ret, top⟩ :: rest, R, saved3 m top ret (regs .x8) (regs .x9)⟩ := by
 
   lsym hp with [hR2, hR8, hR10, hR11, hR14, hR15, Lprog.Isa.addrAt, hL.finishGrow, hL.s0, Holds.post,
     AbiRegs] using [hfg.contract]
@@ -128,6 +65,7 @@ theorem after (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {nfg : Nat}
     rw [rvCapAt_eq] at hcs
     have hwr : (regs .x10).toNat + 16 < 2 ^ 64 := hown.2
     have hlim : env.stackLimit.toNat + 48 ≤ top.toNat := by omega
+    have hl24 : env.stackLimit.toNat + 24 ≤ top.toNat := by omega
     have h48 : (top + 0xffffffffffffffd0#64).toNat = top.toNat - 48 := off hlim (k := 48) (by decide) (by decide)
     have h40 : (top + 0xffffffffffffffd8#64).toNat = top.toNat - 40 := off hlim (k := 40) (by decide) (by decide)
     have h8 : (top + 0xfffffffffffffff8#64).toNat = top.toNat - 8 := off hlim (k := 8) (by decide) (by decide)
@@ -137,17 +75,17 @@ theorem after (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {nfg : Nat}
     -- the header's two words are not the frame's, nor `NEXT`, nor static
     have hin0 : InRange (regs .x10) 16 (regs .x10) := ⟨Nat.le_refl _, by omega⟩
     have hin8 : InRange (regs .x10) 16 (regs .x10 + 8#64) := ⟨by omega, by omega⟩
-    have hcapM : (saved m top ret (regs .x8) (regs .x9)).getMem (regs .x10) = m.getMem (regs .x10) :=
-      saved_getMem hlim (by rcases hown.1 with h | h <;> omega)
-    have hptrM : (saved m top ret (regs .x8) (regs .x9)).getMem (regs .x10 + 8#64) = m.getMem (regs .x10 + 8#64) :=
-      saved_getMem hlim (by rcases hown.1 with h | h <;> omega)
+    have hcapM : (saved3 m top ret (regs .x8) (regs .x9)).getMem (regs .x10) = m.getMem (regs .x10) :=
+      saved3_getMem hl24 (by rcases hown.1 with h | h <;> omega)
+    have hptrM : (saved3 m top ret (regs .x8) (regs .x9)).getMem (regs .x10 + 8#64) = m.getMem (regs .x10 + 8#64) :=
+      saved3_getMem hl24 (by rcases hown.1 with h | h <;> omega)
   -- `finish_grow(sp, cap, ptr, nc, align, size)`'s precondition
-  · refine Holds.pre_call (by show _ ≤ (R .x2).toNat; rw [hR2, h48]; omega) (static_saved hlim hst)
-      (by rw [next_saved hlim]; exact hnx) ?_
+  · refine Holds.pre_call (by show _ ≤ (R .x2).toNat; rw [hR2, h48]; omega) (static_saved3 hl24 hst)
+      (by rw [next_saved3 hl24]; exact hnx) ?_
     simp only [FinishGrowPre, updReg_apply, reduceCtorEq, ite_true, ite_false, hR2, hR11, hR14, hR15]
     refine ⟨⟨Or.inr (Nat.le_refl _), by simp only [Layouts.ResultBlockTryReserve.byteSize]; omega⟩, hal0, hal1,
       hnc2, Nat.mul_pos hnc3 hsz, ?_, hcs⟩
-    rw [hptrM]; unfold Env.Live; rw [next_saved hlim]; exact hlive
+    rw [hptrM]; unfold Env.Live; rw [next_saved3 hl24]; exact hlive
   -- after `finish_grow`: the frame's saved words are kept, and its result read
   all_goals
     obtain ⟨⟨hr2, hr8, hr9, hr18, hr19, hr20, hr21, hr22, hr23, hr24, hr25, hr26, hr27⟩, hfr, hst', hfg'⟩ := hret
@@ -158,7 +96,7 @@ theorem after (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {nfg : Nat}
       Layouts.ResultBlockTryReserve.byteSize] at hfr
     have hnx' := hfr.2.1
     have hkeep : ∀ b : Word, top.toNat - 24 ≤ b.toNat → b.toNat < top.toNat →
-        m'.getMem b = (saved m top ret (regs .x8) (regs .x9)).getMem b := fun b hb hb' => hfr.2.2 b fun hw => by
+        m'.getMem b = (saved3 m top ret (regs .x8) (regs .x9)).getMem b := fun b hb hb' => hfr.2.2 b fun hw => by
       unfold Env.MayWrite InRange at hw
       rcases hw with hw | hw | hw | hw
       · rw [h48] at hw; omega
@@ -166,13 +104,13 @@ theorem after (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {nfg : Nat}
       · rw [hw] at hb; omega
       · rw [h48] at hw; omega
     have hra' : m'.getMem (top + 0xfffffffffffffff8#64) = ret :=
-      (hkeep _ (by rw [h8]; omega) (by rw [h8]; omega)).trans (saved_ra hlim)
+      (hkeep _ (by rw [h8]; omega) (by rw [h8]; omega)).trans (saved3_ra hl24)
     have hs0' : m'.getMem (top + 0xfffffffffffffff0#64) = regs .x8 :=
-      (hkeep _ (by rw [h16]; omega) (by rw [h16]; omega)).trans (saved_s0 hlim)
+      (hkeep _ (by rw [h16]; omega) (by rw [h16]; omega)).trans (saved3_s0 hl24)
     have hs1' : m'.getMem (top + 0xffffffffffffffe8#64) = regs .x9 :=
-      (hkeep _ (by rw [h24]; omega) (by rw [h24]; omega)).trans saved_s1
+      (hkeep _ (by rw [h24]; omega) (by rw [h24]; omega)).trans saved3_s1
     have F1 : env.Frame top (GrowOut regs m) m m' :=
-      (frame_saved hlim hnx).trans hfr (by rw [h48]; omega) fun a h => Or.inl (by
+      (frame_saved3 hl24 hnx).trans hfr (by rw [h48]; omega) fun a h => Or.inl (by
         unfold InRange at h; rw [h48] at h; omega)
     have hRS : r' .x18 = regs .x18 ∧ r' .x19 = regs .x19 ∧ r' .x20 = regs .x20 ∧ r' .x21 = regs .x21 ∧
         r' .x22 = regs .x22 ∧ r' .x23 = regs .x23 ∧ r' .x24 = regs .x24 ∧ r' .x25 = regs .x25 ∧
@@ -217,7 +155,7 @@ theorem after (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {nfg : Nat}
           MachineState.getMem_setMem_ne n24.1, hs1', hRS.1, hRS.2.1, hRS.2.2.1, hRS.2.2.2.1, hRS.2.2.2.2.1,
           hRS.2.2.2.2.2.1, hRS.2.2.2.2.2.2.1, hRS.2.2.2.2.2.2.2.1, hRS.2.2.2.2.2.2.2.2.1, hRS.2.2.2.2.2.2.2.2.2]
     · simp only [Grown, rvCapAt_eq, rvPtrAt_eq, MachineState.getMem_setMem_eq, MachineState.getMem_setMem_ne h08]
-      refine ⟨hnc1, ⟨by rw [← next_saved hlim (ra := ret) (s0 := regs .x8) (s1 := regs .x9)]; exact hok.1.1,
+      refine ⟨hnc1, ⟨by rw [← next_saved3 hl24 (ra := ret) (s0 := regs .x8) (s1 := regs .x9)]; exact hok.1.1,
         by rw [hnext]; exact hok.1.2⟩, fun k hk => ?_⟩
       have hcap0 : (m.getMem (regs .x10)).toNat ≠ 0 := fun h => by rw [h] at hk; omega
       have hl := hlive.resolve_left hcap0
@@ -225,7 +163,7 @@ theorem after (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {nfg : Nat}
       have hk' : k < nc.toNat * (regs .x14).toNat := Nat.lt_of_lt_of_le hk (Nat.mul_le_mul_right _ hnc2)
       have hq1 := hok.1.1
       have hq2 := hok.1.2
-      rw [next_saved hlim] at hq1
+      rw [next_saved3 hl24] at hq1
       have hqk : (m'.getMem (top + 0xffffffffffffffd8#64) + BitVec.ofNat 64 k).toNat =
           (m'.getMem (top + 0xffffffffffffffd8#64)).toNat + k := toNat_add_ofNat (by omega)
       have hpk : (m.getMem (regs .x10 + 8#64) + BitVec.ofNat 64 k).toNat =
@@ -236,7 +174,7 @@ theorem after (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {nfg : Nat}
       rw [hpk] at a2
       rw [getByte_setMem_ne (fun h => by rw [← h, hs8] at a1; rcases hown.1 with h | h <;> omega),
         getByte_setMem_ne (fun h => by rw [← h] at a1; rcases hown.1 with h | h <;> omega), hok.2 k hk]
-      exact getByte_congr (saved_getMem hlim (Or.inl (by omega)))
+      exact getByte_congr (saved3_getMem hl24 (Or.inl (by omega)))
   -- `Err`: the payload returned, which is not `-1`, the header untouched
   · show (_ : Reg → Word) .x1 = ret
     simp only [updReg_apply, reduceCtorEq, ite_true, ite_false, hra']

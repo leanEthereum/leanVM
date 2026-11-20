@@ -46,4 +46,72 @@ theorem DataRef.Words.get0 {env : Env} {d : DataRef} {ws : List Word} {m : Machi
     (hs : env.Static m) (hk : 0 < ws.length) : m.getMem (d.hi + d.lo) = ws[0] := by
   simpa using hw m hs 0 hk
 
+/-- The frame's three saved3 words, below `top`. -/
+def saved3 (m : MachineState) (top ra s0 s1 : Word) : MachineState :=
+  ((m.setMem (top + 0xfffffffffffffff8#64) ra).setMem (top + 0xfffffffffffffff0#64) s0).setMem
+    (top + 0xffffffffffffffe8#64) s1
+
+section Saved3
+
+variable {env : Env} {m : MachineState} {top ra s0 s1 : Word} (hlim : env.stackLimit.toNat + 24 ≤ top.toNat)
+include hlim
+
+theorem saved3_off {k : Nat} (hk : 0 < k) (hk' : k ≤ 24) :
+    (top + BitVec.ofNat 64 (2 ^ 64 - k)).toNat = top.toNat - k := by
+  rw [BitVec.toNat_add, BitVec.toNat_ofNat]; have := top.isLt; have := env.layout; omega
+
+/-- A word not in the frame's three slots reads as before. -/
+theorem saved3_getMem {b : Word} (hb : b.toNat < top.toNat - 24 ∨ top.toNat ≤ b.toNat) :
+    (saved3 m top ra s0 s1).getMem b = m.getMem b := by
+  have h8 : (top + 0xfffffffffffffff8#64).toNat = top.toNat - 8 := saved3_off hlim (k := 8) (by decide) (by decide)
+  have h16 : (top + 0xfffffffffffffff0#64).toNat = top.toNat - 16 := saved3_off hlim (k := 16) (by decide) (by decide)
+  have h24 : (top + 0xffffffffffffffe8#64).toNat = top.toNat - 24 := saved3_off hlim (k := 24) (by decide) (by decide)
+  have n8 : b ≠ top + 0xfffffffffffffff8#64 := fun h => by rw [h, h8] at hb; omega
+  have n16 : b ≠ top + 0xfffffffffffffff0#64 := fun h => by rw [h, h16] at hb; omega
+  have n24 : b ≠ top + 0xffffffffffffffe8#64 := fun h => by rw [h, h24] at hb; omega
+  simp only [saved3, MachineState.getMem_setMem_ne n8, MachineState.getMem_setMem_ne n16,
+    MachineState.getMem_setMem_ne n24]
+
+theorem next_saved3 : env.next (saved3 m top ra s0 s1) = env.next m := by
+  have := env.layout
+  unfold Env.next
+  exact saved3_getMem hlim (by omega)
+
+theorem frame_saved3 {out : Word → Prop} (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) :
+    env.Frame top out m (saved3 m top ra s0 s1) := by
+  refine ⟨by rw [next_saved3 hlim]; exact Nat.le_refl _, by rw [next_saved3 hlim]; exact hnx, fun b hb => ?_⟩
+  refine saved3_getMem hlim ?_
+  rcases Nat.lt_or_ge b.toNat (top.toNat - 24) with h | h
+  · exact Or.inl h
+  · rcases Nat.lt_or_ge b.toNat top.toNat with h' | h'
+    · exact absurd (Or.inl ⟨by omega, h'⟩) hb
+    · exact Or.inr h'
+
+theorem static_saved3 (hs : env.Static m) : env.Static (saved3 m top ra s0 s1) :=
+  env.static_frame m _ (fun b _ hb => saved3_getMem hlim (by have := env.layout; omega)) hs
+
+theorem saved3_ra : (saved3 m top ra s0 s1).getMem (top + 0xfffffffffffffff8#64) = ra := by
+  have h8 : (top + 0xfffffffffffffff8#64).toNat = top.toNat - 8 := saved3_off hlim (k := 8) (by decide) (by decide)
+  have h16 : (top + 0xfffffffffffffff0#64).toNat = top.toNat - 16 := saved3_off hlim (k := 16) (by decide) (by decide)
+  have h24 : (top + 0xffffffffffffffe8#64).toNat = top.toNat - 24 := saved3_off hlim (k := 24) (by decide) (by decide)
+  have n16 : top + 0xfffffffffffffff8#64 ≠ top + 0xfffffffffffffff0#64 := fun h => by
+    have := congrArg BitVec.toNat h; rw [h8, h16] at this; omega
+  have n24 : top + 0xfffffffffffffff8#64 ≠ top + 0xffffffffffffffe8#64 := fun h => by
+    have := congrArg BitVec.toNat h; rw [h8, h24] at this; omega
+  simp only [saved3, MachineState.getMem_setMem_ne n24, MachineState.getMem_setMem_ne n16,
+    MachineState.getMem_setMem_eq]
+
+theorem saved3_s0 : (saved3 m top ra s0 s1).getMem (top + 0xfffffffffffffff0#64) = s0 := by
+  have h16 : (top + 0xfffffffffffffff0#64).toNat = top.toNat - 16 := saved3_off hlim (k := 16) (by decide) (by decide)
+  have h24 : (top + 0xffffffffffffffe8#64).toNat = top.toNat - 24 := saved3_off hlim (k := 24) (by decide) (by decide)
+  have n24 : top + 0xfffffffffffffff0#64 ≠ top + 0xffffffffffffffe8#64 := fun h => by
+    have := congrArg BitVec.toNat h; rw [h16, h24] at this; omega
+  simp only [saved3, MachineState.getMem_setMem_ne n24, MachineState.getMem_setMem_eq]
+
+omit hlim in
+theorem saved3_s1 : (saved3 m top ra s0 s1).getMem (top + 0xffffffffffffffe8#64) = s1 := by
+  simp only [saved3, MachineState.getMem_setMem_eq]
+
+end Saved3
+
 end Rv64mc
