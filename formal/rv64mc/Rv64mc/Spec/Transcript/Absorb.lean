@@ -4,7 +4,7 @@
   The contract of `Sponge::absorb(&mut self, value: E, tag: u64)`: the sponge at `a0`, in a caller's frame, the
   value's limbs in `a1`, `a2` and the tag in `a3`. It is the mirror's `Model.SpongeRust.absorb`: where that is
   `none` (a ground challenge waits) the Rust panics, so a return means the mirror succeeded, and the sponge is the
-  mirror's. It writes the sponge (`Out`).
+  mirror's (stated with `Option.getD`, a term a caller can name before the call). It writes the sponge (`Out`).
 -/
 
 import Rv64mc.Spec.Transcript.Repr
@@ -19,7 +19,7 @@ def Pre (r : Model.SpongeRust) (v : E) (regs : Reg → Word) (m : MachineState) 
 
 def Post (r : Model.SpongeRust) (v : E) (regs : Reg → Word) (_m : MachineState) (_r' : Reg → Word)
     (m' : MachineState) : Prop :=
-  ∃ r', r.absorb v (regs .x13) = some r' ∧ SpongeAt m' (regs .x10) r'
+  (r.absorb v (regs .x13)).isSome ∧ SpongeAt m' (regs .x10) ((r.absorb v (regs .x13)).getD r)
 
 /-- What it writes besides its stack: the sponge. -/
 def Out (regs : Reg → Word) (_m : MachineState) (b : Word) : Prop := InRange (regs .x10) Layouts.Sponge.byteSize b

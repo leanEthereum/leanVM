@@ -42,6 +42,10 @@ theorem ground_none {m : MachineState} {a : Word} {r : Model.SpongeRust} (h : Sp
     rw [show a + BitVec.ofNat 64 0 + BitVec.ofNat 64 0 = a by simp, h0] at hg
     exact absurd hg.1 (by decide)
 
+theorem ne_slot {a : Word} {n : Nat} (ha : a.toNat + 328 < 2 ^ 64) (hn : n ≤ 3) :
+    a + 320#64 ≠ a + BitVec.ofNat 64 (24 * n) + 224#64 := by
+  rw [add_ofNat_lit]; exact add_ne_add (n := 328) ha (by decide) (by omega) (by omega)
+
 theorem count_eq {m : MachineState} {a : Word} {r : Model.SpongeRust} (h : SpongeAt m a r) :
     m.getMem (a + 320#64) = BitVec.ofNat 64 r.nPending := by
   simpa [Layouts.Sponge.n_pending] using h.nPending
@@ -71,53 +75,59 @@ theorem ok_at (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
       fun c k hc hk => slot_below (K := 328) hS hc hpre_7 hpre_8 (by simp [hk])
     have hkP : ∀ b, InRange (regs .x10) 328 b → ∀ c, Tactic.slotOk 48 c = true → (top + c).toNat < b.toNat :=
       fun b hb c hc => Nat.lt_of_lt_of_le (hb0 c hc) hb.1
-  -- the queue not full (goals 0 to 7): the stores over the prologue's memory
+  -- each path's facts: the queue not full, or full and permuted first
   all_goals try
     have hn3 : r.nPending ≤ 3 := (ofNat_le_iff (by omega) (by decide)).1 hc
     have h4 : r.nPending ≠ 4 := fun h => hc_2 (by rw [h])
-    have hne : regs .x10 + 320#64 ≠ regs .x10 + BitVec.ofNat 64 (24 * r.nPending) + 224#64 := by
-      rw [add_ofNat_lit]; exact add_ne_add (n := 328) hpre_8 (by decide) (by omega) (by omega)
-    rw [slot24 (by omega), MachineState.getMem_setMem_ne hne]
-    simp (disch := first | exact hb0 _ rfl | exact hb _ _ rfl rfl) only [getMem_setMem_lt]
-    rw [count_eq hpre_6]
-  -- the queue full (goals 11 to 18): permuted first, the stores over `duplex`'s memory
   all_goals try
     have h4 : r.nPending = 4 := by simpa using (ofNat_inj (by omega) (by decide)).1 hc_2
     have hd := hret3_16
-    have hne : regs .x10 + 320#64 ≠ regs .x10 + BitVec.ofNat 64 (24 * r.duplex.nPending) + 224#64 := by
-      rw [add_ofNat_lit, Model.duplex_nPending]; exact add_ne_add (n := 328) hpre_8 (by decide) (by omega) (by omega)
-    rw [count_eq hd, slot24 (by simp), MachineState.getMem_setMem_ne hne, count_eq hd]
+  -- the slot's address and the count, as `pushMem` states them
+  all_goals try rw [count_eq hret3_16]
+  all_goals try rw [slot24 (by omega)]
+  all_goals try rw [slot24 (by simp)]
+  all_goals try rw [MachineState.getMem_setMem_ne (ne_slot hpre_8 (by omega))]
+  all_goals try rw [MachineState.getMem_setMem_ne (ne_slot hpre_8 (by simp))]
+  all_goals try simp (disch := first | exact hb0 _ rfl | exact hb _ _ rfl rfl) only [getMem_setMem_lt]
+  all_goals try rw [count_eq hpre_6]
+  all_goals try rw [count_eq hret3_16]
   all_goals try simp only [add_ofNat_lit]
-  -- the saved registers, past the slot's stores
-  iterate 5
-    · simp (disch := (refine hb' _ _ rfl ?_; omega)) only [getMem_setMem_gt]
-      simp (disch := decide) only [getMem_setMem_off, MachineState.getMem_setMem_eq]
-  · refine frame_store_obj (frame_store_obj (frame_store_obj (frame_store_obj ?_ hlim hpre_7 hpre_8 ?_ ?_)
-      hlim hpre_7 hpre_8 ?_ ?_) hlim hpre_7 hpre_8 ?_ ?_) hlim hpre_7 hpre_8 ?_ ?_
-    all_goals first | omega | (show InRange _ 328 _; exact inRange_add hpre_8 (by omega)) | rv_close
-  · refine static_store_obj (static_store_obj (static_store_obj (static_store_obj ?_ hlim hpre_7 hpre_8 ?_)
-      hlim hpre_7 hpre_8 ?_) hlim hpre_7 hpre_8 ?_) hlim hpre_7 hpre_8 ?_
-    all_goals first | omega | rv_close
-  · refine ⟨_, absorb_eq hg h4 v _, SpongeAt.push (hpre_6.keep hpre_8 fun b hb => ?_) hpre_8 (by omega) v _⟩
+  -- the result
+  all_goals try (rw [absorb_eq hg h4 v _]; rfl)
+  all_goals try (rw [absorb_eq4 hg h4 v _]; rfl)
+  all_goals try
+    rw [absorb_eq hg h4 v _]
+    refine SpongeAt.push (hpre_6.keep hpre_8 fun b hb => ?_) hpre_8 (by omega) v _
     simp (disch := exact hkP b hb _ rfl) only [getMem_setMem_lt]
+  all_goals try (rw [absorb_eq4 hg h4 v _]; exact SpongeAt.push hd hpre_8 (by simp) v _)
   -- `duplex`'s precondition
-  · exact hpre_6.keep hpre_8 fun b hb => by simp (disch := exact hkP b hb _ rfl) only [getMem_setMem_lt]
-  · exact Nat.le_trans (Tactic.slot_le hS rfl) hpre_7
-  · exact hret3_14.2.1
-  -- the queue full: the saved registers, past the slot's stores and `duplex`'s frame
-  iterate 5
-    · simp (disch := (refine hb' _ _ rfl ?_; simp)) only [getMem_setMem_gt]
-      rw [hret3_14.getMem_above (Tactic.slot_ge (c := 18446744073709551568#64) hS rfl)
-        (slot_mono hS rfl rfl rfl) fun h => absurd h.1 (Nat.not_le.2 (hb0 _ rfl))]
-      simp (disch := decide) only [getMem_setMem_off, MachineState.getMem_setMem_eq]
-  · refine frame_store_obj (frame_store_obj (frame_store_obj (frame_store_obj ?_ hlim hpre_7 hpre_8 ?_ ?_)
+  all_goals try (exact hpre_6.keep hpre_8 fun b hb => by simp (disch := exact hkP b hb _ rfl) only [getMem_setMem_lt])
+  all_goals try exact Nat.le_trans (Tactic.slot_le hS rfl) hpre_7
+  all_goals try exact hret3_14.2.1
+  -- the saved registers, past the slot's stores (and `duplex`'s frame)
+  all_goals try
+    simp (disch := (refine hb' _ _ rfl ?_; omega)) only [getMem_setMem_gt]
+    simp (disch := decide) only [getMem_setMem_off, MachineState.getMem_setMem_eq]
+  all_goals try
+    simp (disch := (refine hb' _ _ rfl ?_; simp)) only [getMem_setMem_gt]
+    rw [hret3_14.getMem_above (Tactic.slot_ge (c := 18446744073709551568#64) hS rfl)
+      (slot_mono hS rfl rfl rfl) fun h => absurd h.1 (Nat.not_le.2 (hb0 _ rfl))]
+    simp (disch := decide) only [getMem_setMem_off, MachineState.getMem_setMem_eq]
+  -- the frame and the static data
+  all_goals try
+    refine frame_store_obj (frame_store_obj (frame_store_obj (frame_store_obj ?_ hlim hpre_7 hpre_8 ?_ ?_)
       hlim hpre_7 hpre_8 ?_ ?_) hlim hpre_7 hpre_8 ?_ ?_) hlim hpre_7 hpre_8 ?_ ?_
-    · refine Env.Frame.trans ?_ hret3_14 (Tactic.slot_le hS rfl) fun b hb => Or.inr (Or.inr (Or.inr hb))
-      rv_close
-    all_goals first | (show InRange _ 328 _; exact inRange_add hpre_8 (by simp)) | simp
-  · exact static_store_obj (static_store_obj (static_store_obj (static_store_obj hret3_15 hlim hpre_7 hpre_8
-      (by simp)) hlim hpre_7 hpre_8 (by simp)) hlim hpre_7 hpre_8 (by simp)) hlim hpre_7 hpre_8 (by simp)
-  · exact ⟨_, absorb_eq4 hg h4 v _, SpongeAt.push hd hpre_8 (by simp) v _⟩
+    all_goals first
+      | (show InRange _ 328 _; exact inRange_add hpre_8 (by first | omega | simp))
+      | (refine Env.Frame.trans ?_ hret3_14 (Tactic.slot_le hS rfl) fun b hb => Or.inr (Or.inr (Or.inr hb))
+         rv_close)
+      | omega
+      | simp
+      | rv_close
+  all_goals
+    refine static_store_obj (static_store_obj (static_store_obj (static_store_obj ?_ hlim hpre_7 hpre_8 ?_)
+      hlim hpre_7 hpre_8 ?_) hlim hpre_7 hpre_8 ?_) hlim hpre_7 hpre_8 ?_
+    all_goals first | exact hret3_15 | omega | simp | rv_close
 
 /-- **`Sponge::absorb` keeps its contract.** -/
 theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L))
