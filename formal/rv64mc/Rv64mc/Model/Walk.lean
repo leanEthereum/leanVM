@@ -43,17 +43,8 @@ def announcedRust (bc : BytecodeRust) : TM (LayoutRust × List (BitVec 64) × Bi
   TM.require (16 ≤ layout.stackLog ∧ layout.stackLog ≤ 30)
   Pure.pure (layout, tableRows, logInverseRate)
 
-theorem limb1_eq_zero_iff (value : E) : (limbs value).2 = 0#64 ↔ value.limb 1 = 0 := by
-  constructor
-  · intro h
-    have : BF64.ofBitVec (value.limb 1).toBitVec = BF64.ofBitVec 0#64 := by
-      rw [show (limbs value).2 = (value.limb 1).toBitVec from rfl] at h
-      rw [h]
-    exact (by simpa using this : value.limb 1 = BF64.ofBitVec 0#64).trans rfl
-  · intro h
-    show (value.limb 1).toBitVec = 0#64
-    rw [h]
-    rfl
+theorem limb1_eq_zero_iff (value : E) : (limbs value).2 = 0#64 ↔ value.limb 1 = 0 :=
+  BF64.toBitVec_injective.eq_iff (b := 0)
 
 theorem kToNat_limb0 (value : E) : (limbs value).1.toNat = kToNat (value.limb 0) := rfl
 
@@ -80,10 +71,12 @@ theorem SimR.announced (words : List K) (bc : BytecodeRust) (hbc : BytecodeOk wo
   have hlast : announced.getLastD 0 = announced.getD (1 + 6) 0 := by
     rw [List.getLastD_eq_getLast?, List.getLast?_eq_getElem?, h8, List.getD_eq_getElem?_getD]
   have hhead : announced.headD 0 = announced.getD 0 0 := by cases announced <;> rfl
-  refine SimR.bindPost (Sim.require_iff (c' := 1 ≤ kToNat ((announced.getLastD 0).limb 0) ∧
-      kToNat ((announced.getLastD 0).limb 0) ≤ 4) (by
+  have hiff : (1#64 ≤ (limbs (announced.getD (1 + 6) 0)).1 ∧
+      (limbs (announced.getD (1 + 6) 0)).1 ≤ 4#64) ↔
+      1 ≤ kToNat ((announced.getLastD 0).limb 0) ∧ kToNat ((announced.getLastD 0).limb 0) ≤ 4 := by
     rw [hlast, BitVec.le_def, BitVec.le_def, kToNat_limb0]
-    simp)) (Returns.require _) fun _ hrate ↦ ?_
+    simp
+  refine SimR.bindPost (Sim.require_iff hiff) (Returns.require _) fun _ hrate ↦ ?_
   refine SimR.ofOption_bind fun l hl ↦ ?_
   have hrows : (((announced.drop 1).take 6).map fun value ↦ (limbs value).1).length = 6 := by
     simp [h8]
@@ -108,17 +101,8 @@ theorem SimR.announced (words : List K) (bc : BytecodeRust) (hbc : BytecodeOk wo
     cases hl
     refine SimR.bindPost (Sim.require_iff (c' := Whir.minLogStack ≤ L.stackLog ∧
       L.stackLog ≤ Whir.maxLogStack) (by rw [← hrel.stackLog]; rfl)) (Returns.require _)
-      fun _ hs ↦ SimR.pure ⟨hrel, ?_, by rw [hlast]; rfl, ?_, ?_, hs.1, hs.2, hrows,
-        ⟨_, hbc.len ▸ hl'⟩⟩
-    rotate_left
-    · show 1 ≤ kToNat ((announced.getLastD 0).limb 0)
-      rw [hlast, ← kToNat_limb0]
-      have := BitVec.le_def.mp hrate.1
-      simpa using this
-    · show kToNat ((announced.getLastD 0).limb 0) ≤ 4
-      rw [hlast, ← kToNat_limb0]
-      have := BitVec.le_def.mp hrate.2
-      simpa using this
+      fun _ hs ↦ SimR.pure ⟨hrel, ?_, by rw [hlast]; rfl, (hiff.mp hrate).1, (hiff.mp hrate).2,
+        hs.1, hs.2, hrows, ⟨_, hbc.len ▸ hl'⟩⟩
     unfold buildLayout at hb
     split at hb
     · cases hb

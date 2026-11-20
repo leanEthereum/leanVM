@@ -612,6 +612,30 @@ theorem accumulateSide_length (forms : List (List Form)) (side : ℕ) (blocks : 
   | nil => intro acc; rfl
   | cons z zs ih => intro acc; rw [List.foldl_cons, ih]; simp
 
+/-- The three sides' bus layouts are the statement's. -/
+private theorem busSides (l : LayoutRust) (L : Layout) (hl : l.Rel L) (hm : l.logMemory ≤ 30)
+    (hlb : l.logBytecode ≤ 30)
+    (hb : ∀ b ∈ l.push ++ l.pull ++ l.count, b.logRows ≤ 30 ∧ b.rows < 2 ^ 64)
+    (hn : l.push.length ≤ 1024 ∧ l.pull.length ≤ 1024 ∧ l.count.length ≤ 1024) :
+    let F := [0, l.logMemory, l.logBytecode]
+    (busLayoutRust F l.push).depth = (busLayout F L.push).depth ∧
+      (busLayoutRust F l.push).framework.map PlacementRust.toSpec = (busLayout F L.push).framework ∧
+      (busLayoutRust F l.push).tables.map PlacementRust.toSpec = (busLayout F L.push).tables ∧
+      (busLayoutRust F l.pull).framework.map PlacementRust.toSpec = (busLayout F L.pull).framework ∧
+      (busLayoutRust F l.pull).tables.map PlacementRust.toSpec = (busLayout F L.pull).tables ∧
+      (busLayoutRust [] l.count).framework.map PlacementRust.toSpec =
+        (busLayout [] L.count).framework ∧
+      (busLayoutRust [] l.count).tables.map PlacementRust.toSpec =
+        (busLayout [] L.count).tables := by
+  have hfw3 : ∀ x ∈ [0, l.logMemory, l.logBytecode], x ≤ 30 := by simp; omega
+  obtain ⟨hpd, hpf, hpt⟩ := busLayoutRust_side _ hfw3 (by simp) hl.push
+    (fun b h ↦ (hb b (by simp [h])).1) hn.1
+  obtain ⟨-, hlf, hlt⟩ := busLayoutRust_side _ hfw3 (by simp) hl.pull
+    (fun b h ↦ (hb b (by simp [h])).1) hn.2.1
+  obtain ⟨-, hcf, hct⟩ := busLayoutRust_side [] (by simp) (by simp) hl.count
+    (fun b h ↦ (hb b (by simp [h])).1) hn.2.2
+  exact ⟨hpd, hpf, hpt, hlf, hlt, hcf, hct⟩
+
 /-- **`verify_bus_balance` runs `verifyBusBalance`**, the deployed verifier's, on a layout
 `build_layout` returned (`LayoutRust.Rel`, its blocks at most `2^30` rows each and at most `1024`
 per side) and the prepared bytecode of the statement's words. -/
@@ -624,13 +648,7 @@ theorem SimR.verifyBusBalance (l : LayoutRust) (L : Layout) (hl : l.Rel L) (word
       BusResultRust.Rel := by
   have hb' : ∀ b ∈ l.push ++ l.pull ++ l.count, b.logRows < 64 ∧ b.rows < 2 ^ 64 :=
     fun b h ↦ ⟨by have := (hb b h).1; omega, (hb b h).2⟩
-  have hfw3 : ∀ x ∈ [0, l.logMemory, l.logBytecode], x ≤ 30 := by simp; omega
-  obtain ⟨hpd, hpf, hpt⟩ := busLayoutRust_side _ hfw3 (by simp) hl.push
-    (fun b h ↦ (hb b (by simp [h])).1) hn.1
-  obtain ⟨-, hlf, hlt⟩ := busLayoutRust_side _ hfw3 (by simp) hl.pull
-    (fun b h ↦ (hb b (by simp [h])).1) hn.2.1
-  obtain ⟨-, hcf, hct⟩ := busLayoutRust_side [] (by simp) (by simp) hl.count
-    (fun b h ↦ (hb b (by simp [h])).1) hn.2.2
+  obtain ⟨hpd, hpf, hpt, hlf, hlt, hcf, hct⟩ := busSides l L hl hm hlb hb hn
   unfold verifyBusBalanceRust LeanVM.Protocol.Verifier.verifyBusBalance
     LeanVM.Protocol.Verifier.bytecodeShare computedBytecodeValue
   rw [← hl.logMemory, ← hl.logBytecode, hw]
@@ -723,13 +741,7 @@ theorem Comp.verifyBusBalance (l : LayoutRust) (L : Layout) (hl : l.Rel L) (word
     Comp (verifyBusBalanceRust l bc) (verifyBusBalance computedBytecodeValue L) := by
   have hb' : ∀ b ∈ l.push ++ l.pull ++ l.count, b.logRows < 64 ∧ b.rows < 2 ^ 64 :=
     fun b h ↦ ⟨by have := (hb b h).1; omega, (hb b h).2⟩
-  have hfw3 : ∀ x ∈ [0, l.logMemory, l.logBytecode], x ≤ 30 := by simp; omega
-  obtain ⟨hpd, hpf, hpt⟩ := busLayoutRust_side _ hfw3 (by simp) hl.push
-    (fun b h ↦ (hb b (by simp [h])).1) hn.1
-  obtain ⟨-, hlf, hlt⟩ := busLayoutRust_side _ hfw3 (by simp) hl.pull
-    (fun b h ↦ (hb b (by simp [h])).1) hn.2.1
-  obtain ⟨-, hcf, hct⟩ := busLayoutRust_side [] (by simp) (by simp) hl.count
-    (fun b h ↦ (hb b (by simp [h])).1) hn.2.2
+  obtain ⟨hpd, hpf, hpt, hlf, hlt, hcf, hct⟩ := busSides l L hl hm hlb hb hn
   unfold verifyBusBalanceRust LeanVM.Protocol.Verifier.verifyBusBalance
     LeanVM.Protocol.Verifier.bytecodeShare computedBytecodeValue
   rw [← hl.logMemory, ← hl.logBytecode, hw]
