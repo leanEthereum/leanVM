@@ -106,8 +106,9 @@ def mask_comments(src):
     return "".join(out), doc
 
 
+# `idx% «f»` is a function's index (`idx% «f» + k` another's), not its body: no evidence
 BODY_FN = [r'fn%\s+«?([A-Za-z0-9_]+)»?', r'core%\s+«?([A-Za-z0-9_]+)»?', r'core_eq%\s+«?([A-Za-z0-9_]+)»?',
-           r'Fn\.«([A-Za-z0-9_]+)»\.core', r'idx%\s+«?([A-Za-z0-9_]+)»?', r'fn_idx%\s+«?([A-Za-z0-9_]+)»?']
+           r'Fn\.«([A-Za-z0-9_]+)»\.core']
 
 
 def functions(code, cnames):
@@ -135,6 +136,8 @@ def decls(code):
 
 
 BODIES = {}
+# the definitions that take a frame map
+FRAMEDEFS = set()
 # the templates that spell a value's number (`.n 12`) or are tied to a body directly: only they are in
 # one function's numbering; a builder of statements from a base it is given (`booleans b n`, `cst`),
 # tied only through the templates that use it, is in none
@@ -164,6 +167,9 @@ def global_ties(roots=("LeanVM",)):
                     if not n: continue
                     where.setdefault(n.split(".")[-1], set()).add(path)
                     text = code[a:b]
+                    if re.match(r'(?:@\[[^\]]*\]\s*)?(?:\w+\s+)*(?:def|abbrev)\b', text) and \
+                            re.search(r'\bFrameMap\b', text.split(":=", 1)[0]):
+                        FRAMEDEFS.add(n.split(".")[-1])
                     if re.search(r"rename(?!_i)", text): renamers.add(n.split(".")[-1])
                     head = text.split(":=", 1)[0]
                     # a template's result is statements and no parameter is one: a function of
@@ -285,8 +291,22 @@ def classify(path, src, overrides, vals, stmts, cnames, ties, families, where):
     filefs = functions(code, cnames)
     spans = decls(code)
 
+    # frame maps (`FrameMap`, a callee's frame by call): a declaration that reads one, by a variable
+    # of that type or a definition taking one (`dvBlobV σ Vm i (.n 4)`), may spell frame cells, not
+    # core values: its literals are flagged
+    fmvars = set(re.findall(r'[({]\s*((?:[\w\'.]+\s+)*[\w\'.]+)\s*:\s*FrameMap\b', code))
+    fmvars = {v for g in fmvars for v in g.split()} | FRAMEDEFS
+
+    def frame_ctx(i):
+        for a, b, n in spans:
+            if a <= i < b:
+                return re.search(r'\bFrameMap\b', code[a:b]) is not None or any(
+                    re.search(r'(?<![\w.\'])' + re.escape(v) + r'(?![\w\'])', code[a:b]) for v in fmvars)
+        return False
+
     def fn_at(i):
         """The function a literal at `i` reads: its declaration's, else the file's, if unique."""
+        if frame_ctx(i): return None, "frame-map context (frame cells, not core values)"
         def chosen(o): return (("family", o), None) if o in families else (o, None)
         fs = set()
         for a, b, n in spans:
