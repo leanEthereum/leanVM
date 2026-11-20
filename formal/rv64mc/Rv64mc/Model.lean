@@ -9,6 +9,7 @@ public import Rv64mc.Model.Sponge
 public import Rv64mc.Model.Transcript
 public import Rv64mc.Model.RingSwitch
 public import Rv64mc.Model.KeccakGkr
+public import Rv64mc.Model.Layout
 
 /-!
 # Mirrors of the Rust verifier
