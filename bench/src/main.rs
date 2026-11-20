@@ -1,4 +1,4 @@
-//! Benchmark CLI for signature and blob proofs, recursion, and the Fibonacci demo.
+//! Benchmark CLI for signature and blob proofs, recursion, ML-DSA verification, and the Fibonacci demo.
 
 #[global_allocator]
 static ALLOCATOR: allocator::Jemalloc = allocator::Jemalloc;
@@ -9,6 +9,7 @@ use stable_lean_vm_core::StableProver;
 
 mod benchmark;
 mod fibonacci;
+mod ml_dsa;
 mod report;
 
 /// Run the CLI's command on prover `P`.
@@ -42,6 +43,14 @@ fn run<P: isa::Prover>(cli: Cli) {
             );
         }
         Command::Fibonacci { n } => fibonacci::run_fibonacci::<P>(n, cli.log_inv_rate, plan),
+        Command::MlDsa { set, n } => {
+            let params = match set {
+                MlDsaSet::MlDsa44 => ml_dsa_guest::ML_DSA_44,
+                MlDsaSet::MlDsa65 => ml_dsa_guest::ML_DSA_65,
+                MlDsaSet::MlDsa87 => ml_dsa_guest::ML_DSA_87,
+            };
+            ml_dsa::run_ml_dsa::<P>(params, n, cli.log_inv_rate, plan);
+        }
     }
 }
 
@@ -145,6 +154,26 @@ enum Command {
         #[arg(long, default_value = "2000000")]
         n: usize,
     },
+    /// Prove and verify ML-DSA signature verifications (`guests/ml_dsa.py`), one run for all of them.
+    MlDsa {
+        /// The parameter set.
+        #[arg(long, value_enum, default_value = "44")]
+        set: MlDsaSet,
+        /// Signatures to verify, each under its own key.
+        #[arg(long, default_value = "1", value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..))]
+        n: usize,
+    },
+}
+
+/// An ML-DSA parameter set.
+#[derive(Clone, Copy, clap::ValueEnum)]
+enum MlDsaSet {
+    #[value(name = "44")]
+    MlDsa44,
+    #[value(name = "65")]
+    MlDsa65,
+    #[value(name = "87")]
+    MlDsa87,
 }
 
 fn main() {

@@ -1,0 +1,18 @@
+[package]
+name = "ml_dsa_guest"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+isa.workspace = true
+keccak256.workspace = true
+verifier.workspace = true
+zkdsl_compiler.workspace = true
+
+[dev-dependencies]
+ml-dsa = { version = "0.1.1", default-features = false, features = ["alloc"] }
+stable_lean_vm_core = { path = "../stable_prover/lean_vm_core" }

@@ -21,6 +21,8 @@ lean_da.workspace = true
 zkdsl_compiler.workspace = true
 lean_xmss.workspace = true
 lean_sphincs.workspace = true
+ml-dsa = { version = "0.1.1", default-features = false, features = ["alloc"] }
+ml_dsa_guest.workspace = true
 stable_lean_vm_core = { path = "../crates/stable_prover/lean_vm_core" }
 experimental_lean_vm_core = { path = "../crates/experimental_prover/lean_vm_core" }
 allocator.workspace = true
