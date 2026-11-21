@@ -9,7 +9,7 @@
 //! From `s` on, everything stays in the power basis of `s` ([`crate::power`]) until the tables
 //! are down to one row, which takes a pass over them per two rounds ([`Round::pass`]).
 
-use primitives::field::{F128, F128Unreduced};
+use primitives::field::{F128, F128x8, Prod8};
 use primitives::hash::positions::row_positions;
 use primitives::multilinear::{eq_table, interp, poly_eval};
 use primitives::transcript::ProverState;
@@ -268,12 +268,14 @@ impl Layer<'_> {
         let sums = parallel::map_reduce_with_state(
             self.n_tasks(),
             || kernel.scratch(),
-            || vec![F128Unreduced::ZERO; PAYLOAD_BITS],
+            || vec![Prod8::ZERO; PAYLOAD_BITS / 8],
             |scratch, sums, task| {
                 let (_, _, block) = self.block(task);
                 kernel.block_sums(scratch, block);
-                for (sum, v) in sums.iter_mut().zip(scratch.out.iter()) {
-                    *sum ^= weights[task].mul_unreduced(F128::from_limbs(*v));
+                let w = F128x8::splat(weights[task]);
+                for (sum, chunk) in sums.iter_mut().zip(scratch.out.as_chunks::<8>().0) {
+                    let v = F128x8::from_array(&chunk.map(F128::from_limbs));
+                    *sum ^= w.mul_unreduced(v);
                 }
             },
             |mut a, b| {
@@ -283,7 +285,7 @@ impl Layer<'_> {
                 a
             },
         );
-        let sums: Vec<F128> = sums.iter().map(|s| s.reduce()).collect();
+        let sums: Vec<F128> = sums.into_iter().flat_map(|s| s.reduce_lanes().to_array()).collect();
         crate::products_gfni::coefficients(&sums)
     }
 
@@ -304,7 +306,7 @@ impl Layer<'_> {
                     vec![[Part::ZERO; 128]; PACKS / PART],
                 )
             },
-            || vec![F128Unreduced::ZERO; PAYLOAD_BITS],
+            || vec![Prod8::ZERO; PAYLOAD_BITS / 8],
             |(payloads, rows), sums, task| {
                 let (_, _, block) = self.block(task);
                 for r in 0..5 {
@@ -324,17 +326,21 @@ impl Layer<'_> {
                 }
                 // Row `r` holds bit `r` of each payload bit's weighted sum: transposed, they are
                 // field elements, which the block's weight multiplies.
+                let w = F128x8::splat(weights[task]);
                 let mut columns = [[0u64; 64]; 2];
                 for m in 0..PAYLOAD_BITS / 64 {
-                    let (q, w) = (m / PART_WORDS, m % PART_WORDS);
+                    let (q, word_idx) = (m / PART_WORDS, m % PART_WORDS);
                     for (k, column) in columns.iter_mut().enumerate() {
                         for (b, word) in column.iter_mut().enumerate() {
-                            *word = rows[q][64 * k + b].0[w];
+                            *word = rows[q][64 * k + b].0[word_idx];
                         }
                         transpose64(column);
                     }
-                    for (t, sum) in sums[64 * m..][..64].iter_mut().enumerate() {
-                        *sum ^= weights[task].mul_unreduced(F128::new(columns[0][t], columns[1][t]));
+                    for g in 0..8 {
+                        let v = F128x8::from_array(&std::array::from_fn(|t| {
+                            F128::new(columns[0][8 * g + t], columns[1][8 * g + t])
+                        }));
+                        sums[8 * m + g] ^= w.mul_unreduced(v);
                     }
                 }
             },
@@ -345,8 +351,9 @@ impl Layer<'_> {
                 a
             },
         );
+        let sums: Vec<F128> = sums.into_iter().flat_map(|s| s.reduce_lanes().to_array()).collect();
         (0..PACKS)
-            .map(|q| std::array::from_fn(|c| sums[48 * q + c].reduce()))
+            .map(|q| sums[48 * q..][..PRODUCT_BITS].try_into().unwrap())
             .collect()
     }
 
@@ -574,30 +581,46 @@ impl<'a> Round<'a> {
         let eq = eq_table(if group == 4 { &point[1..] } else { point });
         // A task per group of rows written, the last of a segment filled with its padding row.
         let (tasks, groups) = (to.live.div_ceil(group), to.m / group);
+        let total_tasks = to.segments * tasks;
+        const STREAM_MIN_BYTES: usize = 4 << 20;
+        let use_stream = to.len() * ROW * size_of::<u64>() >= STREAM_MIN_BYTES;
         let ptr = parallel::SendPtr(dst[..to.len() * ROW].as_mut_ptr());
-        let mut sums = parallel::map_reduce_with_state(
-            to.segments * tasks,
-            || (scratch(), vec![0u64; group * ROW]),
-            Sums::default,
-            |(scratch, rows), sums, task| {
-                let (segment, t) = (task / tasks, task % tasks);
-                let n = (to.live - group * t).min(group);
-                write(scratch, &mut rows[..n * ROW], segment, group * t);
-                let row = |k: usize| {
-                    if k % group < n {
-                        &rows[k % group * ROW..][..ROW]
-                    } else {
-                        &pads[segment * ROW..][..ROW]
-                    }
-                };
-                self.add(sums, std::array::from_fn(row), eq[groups * segment + t]);
-                // SAFETY: each task owns its rows of `dst`, among the `to.len()` it holds.
-                let out = unsafe { ptr.slice((to.live * segment + group * t) * ROW, n * ROW) };
-                // Built in cache for the round values, then published: the next round reads them.
+        let run_task = |(scratch, rows): &mut (S, Vec<u64>), sums: &mut Sums, task: usize| {
+            let (segment, t) = (task / tasks, task % tasks);
+            let n = (to.live - group * t).min(group);
+            write(scratch, &mut rows[..n * ROW], segment, group * t);
+            let row = |k: usize| {
+                if k % group < n {
+                    &rows[k % group * ROW..][..ROW]
+                } else {
+                    &pads[segment * ROW..][..ROW]
+                }
+            };
+            self.add(sums, std::array::from_fn(row), eq[groups * segment + t]);
+            // SAFETY: each task owns its rows of `dst`, among the `to.len()` it holds.
+            let out = unsafe { ptr.slice((to.live * segment + group * t) * ROW, n * ROW) };
+            if use_stream {
                 primitives::stream::Stream::new().copy(out, &rows[..n * ROW]);
-            },
-            Sums::merge,
-        );
+            } else {
+                out.copy_from_slice(&rows[..n * ROW]);
+            }
+        };
+        let mut sums = if total_tasks <= 2 {
+            let mut state = (scratch(), vec![0u64; group * ROW]);
+            let mut sums = Sums::default();
+            for task in 0..total_tasks {
+                run_task(&mut state, &mut sums, task);
+            }
+            sums
+        } else {
+            parallel::map_reduce_with_state(
+                total_tasks,
+                || (scratch(), vec![0u64; group * ROW]),
+                Sums::default,
+                run_task,
+                Sums::merge,
+            )
+        };
         // The groups of padding rows alone: each segment's padding row, once, at the sum of their weights.
         if tasks < groups {
             for (pad, eq) in pads.as_chunks::<ROW>().0.iter().zip(eq.chunks_exact(groups)) {

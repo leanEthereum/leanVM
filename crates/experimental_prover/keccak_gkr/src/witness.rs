@@ -196,6 +196,27 @@ fn xor(a: Word, b: Word) -> Word {
     std::array::from_fn(|i| a[i] ^ b[i])
 }
 
+/// Reusable per-worker scratch for [`block_with_scratch`].
+struct BlockScratch {
+    state: Vec<Word>,
+    u: Vec<Word>,
+    inputs: Vec<[u64; STATE_LANES]>,
+}
+
+impl BlockScratch {
+    fn new(with_inputs: bool) -> Self {
+        Self {
+            state: vec![[0u64; BLOCK_WORDS]; BITS],
+            u: vec![[0u64; BLOCK_WORDS]; BITS],
+            inputs: if with_inputs {
+                vec![[0u64; STATE_LANES]; BLOCK]
+            } else {
+                Vec::new()
+            },
+        }
+    }
+}
+
 /// Run one block of instances, padded with all-zero inputs, and write its input state and the
 /// state each round applies `chi` to, all sliced, into `slot` if there is one.
 ///
@@ -209,11 +230,27 @@ pub unsafe fn block(
     depth: usize,
     inputs: &[[u64; STATE_LANES]],
     slot: Option<Slot>,
+    commit: impl FnMut(usize, usize, &[u64; 64]),
+) {
+    let mut scratch = BlockScratch::new(false);
+    // SAFETY: forwarded to the caller.
+    unsafe { block_with_scratch(&mut scratch.state, &mut scratch.u, depth, inputs, slot, commit) };
+}
+
+/// [`block`] reusing caller-provided `state` and `u` scratch tables.
+///
+/// # Safety
+/// As [`block`].
+unsafe fn block_with_scratch(
+    state: &mut [Word],
+    u: &mut [Word],
+    depth: usize,
+    inputs: &[[u64; STATE_LANES]],
+    slot: Option<Slot>,
     mut commit: impl FnMut(usize, usize, &[u64; 64]),
 ) {
     assert!(inputs.len() <= BLOCK);
-    let mut state = vec![[0u64; BLOCK_WORDS]; BITS];
-    let mut u = vec![[0u64; BLOCK_WORDS]; BITS];
+    debug_assert_eq!((state.len(), u.len()), (BITS, BITS));
     let mut rows = [0u64; 64];
     for lane in 0..STATE_LANES {
         for w in 0..BLOCK_WORDS {
@@ -247,11 +284,11 @@ pub unsafe fn block(
         }
     };
     let last = if slot.is_some() { ROUNDS } else { ROUNDS - depth };
-    store(0, &state);
-    lanes(0, &state);
+    store(0, state);
+    lanes(0, state);
     for round in 1..=last {
-        linear(&state, &mut u, xor);
-        store(round, &u);
+        linear(state, u, xor);
+        store(round, u);
         for lane in 0..STATE_LANES {
             let (a, b, c) = (64 * lane, along(64 * lane, 1), along(64 * lane, 2));
             // A lane's 64 positions are 512 consecutive words in each table: `chi` word by word
@@ -266,7 +303,7 @@ pub unsafe fn block(
             state[z] = state[z].map(|w| !w);
         }
         if round.is_multiple_of(depth) && round < ROUNDS {
-            lanes(round / depth, &state);
+            lanes(round / depth, state);
         }
     }
 }
@@ -367,20 +404,31 @@ impl Witness {
         let padding = padding(shape, written);
         let mut extent = Extent::new(0, written);
         let slots: Vec<Slot> = (0..written).map(|g| extent.slot(g)).collect();
-        parallel::for_each(shape.n_blocks(), |g| {
-            // SAFETY: block `g` owns its slot and its instances' words of every committed lane.
-            unsafe {
-                if g < written {
-                    let stream = Stream::new();
-                    let inputs = &inputs[g * BLOCK..((g + 1) * BLOCK).min(inputs.len())];
-                    block(shape.depth, inputs, Some(slots[g]), |slot, w, lanes| {
-                        column.write(&stream, slot, g, 64 * w, lanes)
-                    });
-                } else {
-                    column.write_block(g, &padding.as_ref().expect("a padding block").1);
+        parallel::map_reduce_with_state(
+            shape.n_blocks(),
+            || BlockScratch::new(false),
+            || (),
+            |scratch, (), g| {
+                // SAFETY: block `g` owns its slot and its instances' words of every committed lane.
+                unsafe {
+                    if g < written {
+                        let stream = Stream::new();
+                        let inputs = &inputs[g * BLOCK..((g + 1) * BLOCK).min(inputs.len())];
+                        block_with_scratch(
+                            &mut scratch.state,
+                            &mut scratch.u,
+                            shape.depth,
+                            inputs,
+                            Some(slots[g]),
+                            |slot, w, lanes| column.write(&stream, slot, g, 64 * w, lanes),
+                        );
+                    } else {
+                        column.write_block(g, &padding.as_ref().expect("a padding block").1);
+                    }
                 }
-            }
-        });
+            },
+            |(), ()| (),
+        );
         // SAFETY: the blocks below `written` were run into `extent` just above.
         unsafe { Self::from_extents(shape, vec![extent], written, padding.map(|(extent, _)| extent)) }
     }
@@ -411,19 +459,33 @@ impl Witness {
         let written = instances.div_ceil(BLOCK);
         let mut extent = Extent::new(0, written);
         let slots: Vec<Slot> = (0..written).map(|g| extent.slot(g)).collect();
-        parallel::for_each(written, |g| {
-            // Slot `l` holds lane `l` of every input, a word per instance. A step past the last
-            // input reads the all-zero input the block pads with. Read a slot at a time: the slots are
-            // `n` words apart, so an instance at a time their 25 streams share cache sets.
-            let mut inputs = vec![[0u64; STATE_LANES]; BLOCK];
-            for (lane, column) in committed[..STATE_LANES * n].chunks_exact(n).enumerate() {
-                for (input, word) in inputs.iter_mut().zip(&column[g * BLOCK..][..BLOCK]) {
-                    input[lane] = word.0;
+        parallel::map_reduce_with_state(
+            written,
+            || BlockScratch::new(true),
+            || (),
+            |scratch, (), g| {
+                // Slot `l` holds lane `l` of every input, a word per instance. A step past the last
+                // input reads the all-zero input the block pads with. Read a slot at a time: the slots are
+                // `n` words apart, so an instance at a time their 25 streams share cache sets.
+                for (lane, column) in committed[..STATE_LANES * n].chunks_exact(n).enumerate() {
+                    for (input, word) in scratch.inputs.iter_mut().zip(&column[g * BLOCK..][..BLOCK]) {
+                        input[lane] = word.0;
+                    }
                 }
-            }
-            // SAFETY: block `g` owns its slot.
-            unsafe { block(shape.depth, &inputs, Some(slots[g]), |_, _, _| {}) };
-        });
+                // SAFETY: block `g` owns its slot.
+                unsafe {
+                    block_with_scratch(
+                        &mut scratch.state,
+                        &mut scratch.u,
+                        shape.depth,
+                        &scratch.inputs,
+                        Some(slots[g]),
+                        |_, _, _| {},
+                    );
+                }
+            },
+            |(), ()| (),
+        );
         let padding = padding(shape, written).map(|(extent, _)| extent);
         // SAFETY: the blocks below `written` were run into `extent` just above, and the padding
         // block into its own.

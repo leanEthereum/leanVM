@@ -9,7 +9,7 @@
 
 use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim};
 use primitives::bit_fold::{BLOCK as ROWS, BitFold};
-use primitives::field::{F64, F128, F128Unreduced};
+use primitives::field::{F64, F128, F128Unreduced, F128x8, Prod8};
 use primitives::hash::STATE_LANES;
 use primitives::hash::positions::iota_bit;
 use primitives::multilinear::{eq_table, interp, mle_eval, poly_eval};
@@ -118,7 +118,7 @@ fn fold_packs(witness: &Witness, point: &[F128]) -> Vec<F128> {
         let lane = task / 16;
         let round = shape.depth * (lane / STATE_LANES);
         let j = 64 * (lane % STATE_LANES) + 4 * (task % 16);
-        let mut acc = [F128Unreduced::ZERO; ROWS];
+        let mut acc = [Prod8::ZERO; ROWS / 8];
         for (run, &scale) in runs.iter().enumerate().take(written.div_ceil(1 << run_vars)) {
             let mut cols = [[0u8; ROWS]; 32];
             for block in 0..(1 << run_vars).min(written - (run << run_vars)) {
@@ -134,14 +134,19 @@ fn fold_packs(witness: &Witness, point: &[F128]) -> Vec<F128> {
             }
             let mut sums = [F128::ZERO; ROWS];
             fold.fold_columns(&cols, &mut sums);
-            for (acc, sum) in acc.iter_mut().zip(sums) {
-                *acc ^= scale.mul_unreduced(sum);
+            let sv = F128x8::splat(scale);
+            for (acc, chunk) in acc.iter_mut().zip(sums.as_chunks::<8>().0) {
+                *acc ^= sv.mul_unreduced(F128x8::from_array(chunk));
             }
         }
         let pad: [bool; 4] = std::array::from_fn(|dz| {
             written < shape.n_blocks() && state_words(witness, round, written, j + dz)[0] & 1 == 1
         });
-        std::array::from_fn(|r| acc[r].reduce() + if pad[r / 16] { padding } else { F128::ZERO })
+        let mut out = [F128::ZERO; ROWS];
+        for (dst, a) in out.as_chunks_mut::<8>().0.iter_mut().zip(acc) {
+            *dst = a.reduce_lanes().to_array();
+        }
+        std::array::from_fn(|r| out[r] + if pad[r / 16] { padding } else { F128::ZERO })
     });
     let mut out = vec![F128::ZERO; (16 * 64) << shape.slot_log()];
     for (task, sums) in positions.iter().enumerate() {
@@ -221,9 +226,24 @@ fn word_weights(shape: Shape, claim: &Claim) -> Vec<F128> {
 /// [`Shape::slots`] carry other columns (§cpu), and the fold that follows must see them.
 pub fn output_claim(shape: Shape, committed: &[F64], instance: &[F128], claim: &Claim) -> (Vec<F128>, F128) {
     let n = shape.n();
-    let words = parallel::map_collect(1 << shape.slot_log(), |slot| {
-        mle_eval(&committed[slot * n..][..n], instance)
-    });
+    let low_vars = instance.len().min(10);
+    let words = if instance.len() < 3 {
+        parallel::map_collect(1 << shape.slot_log(), |slot| {
+            mle_eval(&committed[slot * n..][..n], instance)
+        })
+    } else {
+        let low = primitives::multilinear::packed_eq(&instance[..low_vars]);
+        let high = eq_table(&instance[low_vars..]);
+        let row_len = 1usize << low_vars;
+        parallel::map_collect(1 << shape.slot_log(), |slot| {
+            let col = &committed[slot * n..][..n];
+            let mut acc = F128Unreduced::ZERO;
+            for (&h, row) in high.iter().zip(col.chunks_exact(row_len)) {
+                acc ^= h.mul_unreduced(primitives::field::dot_base(&low, row).reduce());
+            }
+            acc.reduce()
+        })
+    };
     let value = dot(&words, &word_weights(shape, claim));
     (words, value)
 }
@@ -268,7 +288,7 @@ fn spare_slices(shape: Shape, committed: &[F64], instance: &[F128]) -> Vec<[F128
     // A task per chunk and slot: at small batches there are few of either.
     let slices = parallel::fold_reduce(
         (n >> CHUNK_VARS) * spare,
-        || vec![[F128Unreduced::ZERO; 64]; spare],
+        || vec![[Prod8::ZERO; 8]; spare],
         |acc, task| {
             let (chunk, slot) = (task / spare, task % spare);
             let steps = &slots[slot * n + (chunk << CHUNK_VARS)..][..1 << CHUNK_VARS];
@@ -279,8 +299,9 @@ fn spare_slices(shape: Shape, committed: &[F64], instance: &[F128]) -> Vec<[F128
             }
             let mut sums = [F128::ZERO; ROWS];
             fold.fold_columns(&cols, &mut sums);
-            for (acc, sum) in acc[slot].iter_mut().zip(sums) {
-                *acc ^= high[chunk].mul_unreduced(sum);
+            let hv = F128x8::splat(high[chunk]);
+            for (acc, s) in acc[slot].iter_mut().zip(sums.as_chunks::<8>().0) {
+                *acc ^= hv.mul_unreduced(F128x8::from_array(s));
             }
         },
         |mut a, b| {
@@ -290,7 +311,16 @@ fn spare_slices(shape: Shape, committed: &[F64], instance: &[F128]) -> Vec<[F128
             a
         },
     );
-    slices.iter().map(|slice| slice.map(F128Unreduced::reduce)).collect()
+    slices
+        .into_iter()
+        .map(|slice| {
+            let mut out = [F128::ZERO; 64];
+            for (dst, a) in out.as_chunks_mut::<8>().0.iter_mut().zip(slice) {
+                *dst = a.reduce_lanes().to_array();
+            }
+            out
+        })
+        .collect()
 }
 
 /// Open the claim on the inputs: the instances of a pack first, then the slot.
@@ -313,10 +343,16 @@ pub fn open_inputs(ps: &mut ProverState, witness: &Witness, committed: &[F64], c
     let mut at_instance = vec![F128::ZERO; 64 << shape.slot_log()];
     let low_eq = eq_table(&low);
     for (slot, out) in at_instance.as_chunks_mut::<64>().0.iter_mut().enumerate() {
-        for i in 0..16 {
-            for z in 0..64 {
-                out[z] += low_eq[i] * folded[(i + 16 * slot) * 64 + z];
+        let mut acc = [Prod8::ZERO; 8];
+        for (i, &w) in low_eq.iter().enumerate() {
+            let wv = F128x8::splat(w);
+            let src = &folded[(i + 16 * slot) * 64..][..64];
+            for (a, chunk) in acc.iter_mut().zip(src.as_chunks::<8>().0) {
+                *a ^= wv.mul_unreduced(F128x8::from_array(chunk));
             }
+        }
+        for (dst, a) in out.as_chunks_mut::<8>().0.iter_mut().zip(acc) {
+            *dst = a.reduce_lanes().to_array();
         }
     }
     for (slot, slices) in spare_slices(shape, committed, &[&low, pack].concat())

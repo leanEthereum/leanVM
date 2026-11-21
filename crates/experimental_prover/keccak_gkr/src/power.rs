@@ -482,7 +482,17 @@ mod neon {
         }
     }
 
-    const ALL: [(usize, usize); 4] = [(0, 0), (0, 1), (1, 0), (1, 1)];
+    /// Full 2x2 polynomial product by Karatsuba (three PMULL pairs instead of four), by word offset.
+    #[inline(always)]
+    unsafe fn partial_karatsuba(a: &[uint64x2_t; 2], b: &[uint64x2_t; 2]) -> [[uint64x2_t; 3]; 2] {
+        unsafe {
+            let prod = |x: uint64x2_t, y: uint64x2_t| [mul_lo(x, y), mul_hi(x, y)];
+            let p0 = prod(a[0], b[0]);
+            let p1 = prod(a[1], b[1]);
+            let m = prod(veorq_u64(a[0], a[1]), veorq_u64(b[0], b[1]));
+            std::array::from_fn(|h| [p0[h], veorq_u64(veorq_u64(m[h], p0[h]), p1[h]), p1[h]])
+        }
+    }
 
     /// Word `w` of each lane's product: the low half of its sum `w` and the high half of its
     /// sum `w - 1`.
@@ -566,7 +576,7 @@ mod neon {
                     let y = t.map(|t| load2(t, width, s2 + o));
                     let terms = quad_terms(b, y, load2(c, width, r + o), |a, b| xor2(&a, &b));
                     for (acc, (b, y)) in acc.iter_mut().zip(terms) {
-                        let p = partial(&b, &y, ALL);
+                        let p = partial_karatsuba(&b, &y);
                         for s in 0..3 {
                             acc[s] = veorq_u64(acc[s], veorq_u64(p[0][s], p[1][s]));
                         }

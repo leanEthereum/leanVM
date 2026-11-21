@@ -258,7 +258,10 @@ cfg_select! {
     all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni") => {
         pub(crate) use crate::skip_gfni::SkipBlock;
     }
-    all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq") => {
+    any(
+        all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq"),
+        all(target_arch = "aarch64", target_feature = "aes"),
+    ) => {
         pub(crate) use crate::skip_clmul::SkipBlock;
     }
     _ => {
