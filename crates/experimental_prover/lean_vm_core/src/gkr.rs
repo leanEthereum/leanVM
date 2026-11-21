@@ -7,7 +7,8 @@
 //! into `E` upstream, [`crate::leaf`]).
 //!
 //! With VPCLMULQDQ the large rounds run eight pairs of rows at a time in transposed form
-//! (`vertical`), and skip the runs of rows known to be the identity.
+//! (`vertical`), or two rounds per pass (`paired`) when enough threads amortize the extra products.
+//! Both skip runs of rows known to be the identity.
 
 use std::ops::Range;
 
@@ -17,6 +18,9 @@ use primitives::field::{F128, F128Unreduced, mul_unreduced4, mul2, mul4};
 use primitives::multilinear::{eq_table, interp};
 use primitives::stream::Stream;
 use verifier::N_BUS_TREES;
+
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
+mod paired;
 
 /// Rows per parallel window: enough tasks to keep every thread fed, but not so few
 /// rows per task that dispatch dominates.
@@ -262,6 +266,10 @@ pub(crate) const SKIP_IDENTITY: bool = cfg!(target_arch = "x86_64");
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
 const VERTICAL_ROWS: usize = 1 << 10;
 
+/// Fewer threads keep the single-round kernels, which perform fewer products.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
+const PAIRED_THREADS: usize = 8;
+
 /// Two binary product levels contracted into one degree-four layer.
 struct QuaternaryLayerState {
     /// Four child tables interleaved in their original order. This lets the
@@ -275,6 +283,10 @@ struct QuaternaryLayerState {
     groups: Vec<vertical::Group>,
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
     spare: Vec<vertical::Group>,
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
+    quads: Vec<paired::Quad>,
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
+    spare_quads: Vec<paired::Quad>,
     /// Runs of rows known to be the identity, sorted: the kernels skip them, and
     /// the vertical ones leave their groups unwritten.
     ones: Vec<Range<usize>>,
@@ -294,6 +306,10 @@ impl QuaternaryLayerState {
             groups: Vec::new(),
             #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
             spare: Vec::new(),
+            #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
+            quads: Vec::new(),
+            #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
+            spare_quads: Vec::new(),
             ones: Vec::new(),
         }
     }
@@ -331,6 +347,25 @@ impl QuaternaryLayerState {
             self.values = vertical::to_rows(&self.groups, &self.ones);
             self.groups = Vec::new();
             self.spare = Vec::new();
+        }
+    }
+
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
+    fn paired_input(&self) -> paired::Input<'_> {
+        let data = if self.quads.is_empty() {
+            paired::Data::Rows(&self.values)
+        } else {
+            paired::Data::Quads(&self.quads)
+        };
+        paired::Input { data, ones: &self.ones }
+    }
+
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
+    fn leave_quads(&mut self) {
+        if !self.quads.is_empty() {
+            self.values = paired::to_rows(&self.quads, &self.ones, self.logical_rows);
+            self.quads = Vec::new();
+            self.spare_quads = Vec::new();
         }
     }
 
@@ -530,6 +565,28 @@ fn fold_and_message(
     trees.each_mut().map(|tree| tree.fold_and_message_scalar(challenge, eq))
 }
 
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
+fn fold_pair(
+    trees: &mut [QuaternaryLayerState; N_BUS_TREES],
+    challenges: [F128; 2],
+    eq: Option<&SplitEq>,
+) -> Option<[paired::Grid; N_BUS_TREES]> {
+    let mut spares = trees.each_mut().map(|tree| std::mem::take(&mut tree.spare_quads));
+    let grids = paired::fold(
+        trees.each_ref().map(QuaternaryLayerState::paired_input),
+        challenges,
+        eq,
+        spares.each_mut(),
+    );
+    for (tree, spare) in trees.iter_mut().zip(spares) {
+        tree.spare_quads = std::mem::replace(&mut tree.quads, spare);
+        tree.values = Vec::new();
+        tree.logical_rows /= 4;
+        tree.ones = coarsen(&tree.ones, 2);
+    }
+    grids
+}
+
 /// The VPCLMULQDQ kernels: eight pairs of rows at a time, transposed so that every
 /// product is lane-wise (`primitives::field::x8` on AVX-512, `f128x8`'s two halves
 /// of `x4` lanes on AVX2). After its first fold a layer keeps its rows transposed,
@@ -554,7 +611,7 @@ mod vertical {
     use std::ops::Range;
 
     /// Whether `ones` covers `rows`.
-    fn covered(ones: &[Range<usize>], rows: Range<usize>) -> bool {
+    pub(super) fn covered(ones: &[Range<usize>], rows: Range<usize>) -> bool {
         let i = ones.partition_point(|r| r.start <= rows.start);
         i > 0 && ones[i - 1].end >= rows.end
     }
@@ -815,6 +872,19 @@ pub fn y_grind(step: usize, last: bool) -> u32 {
     fiat_shamir::grinding_bits((step << usize::from(last)) as u128)
 }
 
+/// Send the batched coefficients `c1..c4`, then grind and sample the round challenge.
+fn send(messages: [[F128; 4]; N_BUS_TREES], lambda: F128, ps: &mut ProverState) -> F128 {
+    let coeffs: [F128; 4] = std::array::from_fn(|k| {
+        messages
+            .iter()
+            .rev()
+            .fold(F128::ZERO, |acc, message| message[k] + lambda * acc)
+    });
+    ps.add_scalars(&coeffs);
+    ps.grind(ROUND_GRIND);
+    ps.sample()
+}
+
 /// Prove the bus's identity-padded grand products as one RLC-batched radix-four GKR: push, pull, then count. Push
 /// and pull have one product by construction, so one root is sent for both, then the count's.
 ///
@@ -875,28 +945,41 @@ pub(crate) fn prove_products(leaves: [Leaves; N_BUS_TREES], ps: &mut ProverState
             }
         }
         let mut round_point = Vec::with_capacity(round_count);
-        // Round `j` weights its pairs by `eq(point[1 + j..], ·)`.
-        let mut messages = if round_count > 0 {
-            let eq = SplitEq::new(&point[1..]);
+        // Paired rounds weight blocks by `eq(point[j + 2..], ·)`.
+        #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
+        if parallel::num_threads() >= PAIRED_THREADS {
+            let mut grids = (width >= VERTICAL_ROWS).then(|| {
+                paired::grid(
+                    trees.each_ref().map(QuaternaryLayerState::paired_input),
+                    &SplitEq::new(&point[2..]),
+                )
+            });
+            while let Some(grid) = grids {
+                let j = round_point.len();
+                let r0 = send(grid.each_ref().map(|g| g.first_round(point[j + 1])), lambda, ps);
+                let r1 = send(grid.each_ref().map(|g| g.second_round(r0)), lambda, ps);
+                round_point.extend([r0, r1]);
+                let next = (width >> (j + 2) >= VERTICAL_ROWS).then(|| SplitEq::new(&point[j + 4..]));
+                grids = fold_pair(&mut trees, [r0, r1], next.as_ref());
+            }
+            for tree in &mut trees {
+                tree.leave_quads();
+            }
+        }
+        let first = round_point.len();
+        let mut messages = if first < round_count {
+            let eq = SplitEq::new(&point[first + 1..]);
             trees.each_ref().map(|tree| tree.round_message(&eq))
         } else {
             [[F128::ZERO; 4]; N_BUS_TREES]
         };
-        for round in 0..round_count {
-            // `Σ_t λ^t message_t`, by Horner.
-            let mut coeffs = [0, 1, 2, 3].map(|coefficient| {
-                messages
-                    .iter()
-                    .rev()
-                    .fold(F128::ZERO, |acc, message| message[coefficient] + lambda * acc)
-            });
-            // The kernel accumulates `q(0) + q(1)`, the wire carries `c1`. This is
-            // `ProverState::add_round_poly(_, true)` bar its dropped `c0`, which the
-            // claim fixes and the prover therefore never forms.
-            coeffs[0] = coeffs[0] + coeffs[1] + coeffs[2] + coeffs[3];
-            ps.add_scalars(&coeffs);
-            ps.grind(ROUND_GRIND);
-            let challenge = ps.sample();
+        for round in first..round_count {
+            // The kernels give `q(0) + q(1)` rather than the wire's `c1`.
+            let challenge = send(
+                messages.map(|[sum, c2, c3, c4]| [sum + c2 + c3 + c4, c2, c3, c4]),
+                lambda,
+                ps,
+            );
             round_point.push(challenge);
             if round + 1 < round_count {
                 let eq = SplitEq::new(&point[2 + round..]);
@@ -950,7 +1033,7 @@ mod tests {
         folded[0]
     }
 
-    fn element(i: usize, salt: usize) -> F128 {
+    pub(super) fn element(i: usize, salt: usize) -> F128 {
         F128::new((17 * i + salt + 1) as u64, (i * i + 3) as u64)
     }
 
@@ -1041,7 +1124,7 @@ mod tests {
 
     #[test]
     fn radix_four_claims_are_true_at_even_and_odd_depths() {
-        for mu in 0..=10 {
+        for mu in 0..=14 {
             let mut leaves: [Vec<F128>; 3] = [0, 1, 2].map(|lane| {
                 (0..1usize << mu)
                     .map(|row| F128::new((1 + row + lane * 100_003) as u64, (row + lane) as u64))
@@ -1063,7 +1146,7 @@ mod tests {
 
     #[test]
     fn implicit_identity_suffix_matches_dense_padding() {
-        for mu in 3..=10 {
+        for mu in 3..=14 {
             let lengths = [(1usize << mu) - 3, (1usize << (mu - 1)) + 1, (1usize << (mu - 2)) + 3];
             let mut leaves: [Vec<F128>; 3] = std::array::from_fn(|lane| {
                 (0..lengths[lane])
