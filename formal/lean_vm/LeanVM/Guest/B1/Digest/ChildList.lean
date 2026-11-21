@@ -15,6 +15,9 @@ public import LeanVM.Guest.B1.Digest.ChildListAny2
 public import LeanVM.Guest.B1.Digest.ChildListAny3
 public import LeanVM.Guest.B1.Digest.ChildListLasts
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_any»
+import LeanVM.Guest.Data.ValNames.«child_claim_list_last__L»
 
 /-!
 # `child_claim_list_any`
@@ -270,7 +273,7 @@ theorem childLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {a
   simp only [cclOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   rw [hpar] at hp
-  refine ⟨σ (V.n 0), σ (V.n 1), σ (V.n 2), σ (V.n 3), σ (V.n 4), by rw [← hp]; rfl,
+  refine ⟨σ (V.n (valf% «child_claim_list_last» "state")), σ (V.n (valf% «child_claim_list_last» "entries_ptr")), σ (V.n (valf% «child_claim_list_last» "region")), σ (V.n (valf% «child_claim_list_last» "marks")), σ (V.n (valf% «child_claim_list_last» "last_g")), by rw [← hp]; rfl,
     fun n pre hpre hS => ?_⟩
   split at hok
   · rename_i atoms r0 r1 hsb
@@ -462,8 +465,8 @@ theorem childFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m o0 p
 noncomputable def anyFlat : List Stmt := (Fn.body fn% «child_claim_list_any»).dropLast
 
 set_option maxRecDepth 100000 in
-theorem child_claim_list_any_shape : Fn.body fn% «child_claim_list_any» = anyFlat ++ [.ret [.n 66,
-    .n 67]] :=
+theorem child_claim_list_any_shape : Fn.body fn% «child_claim_list_any» = anyFlat ++ [.ret [.n (val% «child_claim_list_any» "s11#0"),
+    .n (val% «child_claim_list_any» "s11#0[1]")]] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-- The body: `limit = last · g`, the zero state at `chain = .n 17`, the big frames' loop,
@@ -471,26 +474,26 @@ theorem child_claim_list_any_shape : Fn.body fn% «child_claim_list_any» = anyF
 the marks `mid_base · groups^17`, the dispatch on the rest. -/
 noncomputable def anyBodyOk : Bool :=
   anyFlat.all Stmt.flat &&
-  anyFlat.any (stmtEqb · (.callIf (.n 32) name% «child_claim_list_any_loop0» [.n 33, .n 4, .n 17,
-      .n 0, .n 1, .n 2, .n 8])) &&
-  anyFlat.any (stmtEqb · (.callIf (.n 50) name% «child_claim_list_any_loop1» [.n 51, .n 5, .n 39,
-      .n 0, .n 1, .n 48, .n 8])) &&
-  anyFlat.any (stmtEqb · (.dispatch (.n 6) cclNames [.n 57, .n 0, .n 1, .n 63, .n 8] [.n 64, .n 65])) &&
-  genMulOk (atomsIn anyFlat) (.n 3) (.n 8) &&
-  (atomsIn anyFlat).any (isConstAt (.n 33) 1 0) &&
-  (atomsIn anyFlat).any (isAddAt (.n 32) (.n 31) (.n 4)) &&
-  (atomsIn anyFlat).any (isConstAt (.n 31) 1 0) &&
-  (atomsIn anyFlat).any (isConstAt (.n 51) 1 0) &&
-  (atomsIn anyFlat).any (isAddAt (.n 50) (.n 49) (.n 5)) &&
-  (atomsIn anyFlat).any (isConstAt (.n 49) 1 0) &&
-  (List.range 13).all (fun c => (atomsIn anyFlat).any (isLoadAt (.n (18 + c)) (.n 17) c) &&
+  anyFlat.any (stmtEqb · (.callIf (.n (val% «child_claim_list_any» "s3#1")) name% «child_claim_list_any_loop0» [.n (val% «child_claim_list_any» "s3#2"), .n (val% «child_claim_list_any» "bigs"), .n (val% «child_claim_list_any» "chain"),
+      .n (val% «child_claim_list_any» "entries_ptr"), .n (val% «child_claim_list_any» "region"), .n (val% «child_claim_list_any» "base"), .n (val% «child_claim_list_any» "last_g")])) &&
+  anyFlat.any (stmtEqb · (.callIf (.n (val% «child_claim_list_any» "s6#1")) name% «child_claim_list_any_loop1» [.n (val% «child_claim_list_any» "s6#2"), .n (val% «child_claim_list_any» "groups"), .n (val% «child_claim_list_any» "mid"),
+      .n (val% «child_claim_list_any» "entries_ptr"), .n (val% «child_claim_list_any» "region"), .n (val% «child_claim_list_any» "mid_base"), .n (val% «child_claim_list_any» "last_g")])) &&
+  anyFlat.any (stmtEqb · (.dispatch (.n (val% «child_claim_list_any» "rest")) cclNames [.n (val% «child_claim_list_any» "last"), .n (val% «child_claim_list_any» "entries_ptr"), .n (val% «child_claim_list_any» "region"), .n (val% «child_claim_list_any» "d0~6"), .n (val% «child_claim_list_any» "last_g")] [.n (val% «child_claim_list_any» "d0"), .n (val% «child_claim_list_any» "d1")])) &&
+  genMulOk (atomsIn anyFlat) (.n (val% «child_claim_list_any» "limit_g")) (.n (val% «child_claim_list_any» "last_g")) &&
+  (atomsIn anyFlat).any (isConstAt (.n (val% «child_claim_list_any» "s3#2")) 1 0) &&
+  (atomsIn anyFlat).any (isAddAt (.n (val% «child_claim_list_any» "s3#1")) (.n (val% «child_claim_list_any» "s3#0")) (.n (val% «child_claim_list_any» "bigs"))) &&
+  (atomsIn anyFlat).any (isConstAt (.n (val% «child_claim_list_any» "s3#0")) 1 0) &&
+  (atomsIn anyFlat).any (isConstAt (.n (val% «child_claim_list_any» "s6#2")) 1 0) &&
+  (atomsIn anyFlat).any (isAddAt (.n (val% «child_claim_list_any» "s6#1")) (.n (val% «child_claim_list_any» "s6#0")) (.n (val% «child_claim_list_any» "groups"))) &&
+  (atomsIn anyFlat).any (isConstAt (.n (val% «child_claim_list_any» "s6#0")) 1 0) &&
+  (List.range 13).all (fun c => (atomsIn anyFlat).any (isLoadAt (.n (18 + c)) (.n (val% «child_claim_list_any» "chain")) c) &&
     (atomsIn anyFlat).any (isConstAt (.n (18 + c)) 0 0)) &&
-  monoIs (atomsIn anyFlat) (.n 39) (.n 17) (.n 4) 13 &&
-  monoIs (atomsIn anyFlat) (.n 48) (.n 2) (.n 4) 136 &&
-  mono2Is (atomsIn anyFlat) (.n 57) (.n 17) (.n 4) 13 (.n 5) 13 &&
-  mono2Is (atomsIn anyFlat) (.n 63) (.n 2) (.n 4) 136 (.n 5) 17 &&
-  (atomsIn anyFlat).any (isCopyAt (.n 66) (.n 64)) &&
-  (atomsIn anyFlat).any (isCopyAt (.n 67) (.n 65))
+  monoIs (atomsIn anyFlat) (.n (val% «child_claim_list_any» "mid")) (.n (val% «child_claim_list_any» "chain")) (.n (val% «child_claim_list_any» "bigs")) 13 &&
+  monoIs (atomsIn anyFlat) (.n (val% «child_claim_list_any» "mid_base")) (.n (val% «child_claim_list_any» "base")) (.n (val% «child_claim_list_any» "bigs")) 136 &&
+  mono2Is (atomsIn anyFlat) (.n (val% «child_claim_list_any» "last")) (.n (val% «child_claim_list_any» "chain")) (.n (val% «child_claim_list_any» "bigs")) 13 (.n (val% «child_claim_list_any» "groups")) 13 &&
+  mono2Is (atomsIn anyFlat) (.n (val% «child_claim_list_any» "d0~6")) (.n (val% «child_claim_list_any» "base")) (.n (val% «child_claim_list_any» "bigs")) 136 (.n (val% «child_claim_list_any» "groups")) 17 &&
+  (atomsIn anyFlat).any (isCopyAt (.n (val% «child_claim_list_any» "s11#0")) (.n (val% «child_claim_list_any» "d0"))) &&
+  (atomsIn anyFlat).any (isCopyAt (.n (val% «child_claim_list_any» "s11#0[1]")) (.n (val% «child_claim_list_any» "d1")))
 
 set_option maxRecDepth 100000 in
 theorem anyBody_ok : anyBodyOk = true := by decide +kernel
@@ -511,7 +514,7 @@ theorem child_claim_list_any_sound {rd : Reader} (hm : MemOk rd) {args rets : Li
           ClaimsAt rd region limit entries base (136 * a + 17 * b + c) os cells ∧
           rets = digestCells (keccak256 (cellsBytes cells)) := by
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_child_claim_list_any args rets).mp h
-  refine ⟨σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6),
+  refine ⟨σ (.n (val% «child_claim_list_any» "entries_ptr")), σ (.n (val% «child_claim_list_any» "region")), σ (.n (val% «child_claim_list_any» "base")), σ (.n (val% «child_claim_list_any» "limit_g")), σ (.n (val% «child_claim_list_any» "bigs")), σ (.n (val% «child_claim_list_any» "groups")), σ (.n (val% «child_claim_list_any» "rest")),
     by rw [← hp]; rfl, fun a b c ha hb' hc h4 h5 h6 => ?_⟩
   rw [child_claim_list_any_shape, holdsList_append] at hb
   have hok := anyBody_ok
@@ -521,9 +524,9 @@ theorem child_claim_list_any_sound {rd : Reader} (hm : MemOk rd) {args rets : Li
   obtain ⟨hall, hret⟩ := holdsList_flat _ (List.all_eq_true.mpr hfl) _ _ hb
   simp only [Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at hret
   have hat := atoms_of_flat hall
-  have hlim : σ (.n 3) = σ (.n 8) * gen := genMul_sound h3 hat
+  have hlim : σ (.n (val% «child_claim_list_any» "limit_g")) = σ (.n (val% «child_claim_list_any» "last_g")) * gen := genMul_sound h3 hat
   -- the zero state
-  have h0 : StateAt rd (σ (.n 17)) 0 (absorbChunks 0 zeroState []) := by
+  have h0 : StateAt rd (σ (.n (val% «child_claim_list_any» "chain"))) 0 (absorbChunks 0 zeroState []) := by
     intro c
     have hl := load_sound (hzs c c.isLt).1 hat
     rw [const_sound (hzs c c.isLt).2 hat, word_zero] at hl
@@ -531,21 +534,21 @@ theorem child_claim_list_any_sound {rd : Reader} (hm : MemOk rd) {args rets : Li
     exact hl
   -- the big frames
   have hbig := childFrames_of_loop hm any136_idx any136_ok any136_nb
-    (chain := σ (.n 17)) (entries := σ (.n 0)) (region := σ (.n 1)) (base := σ (.n 2))
-    (last := σ (.n 8)) (by omega) h4 (fun hne => by
+    (chain := σ (.n (val% «child_claim_list_any» "chain"))) (entries := σ (.n (val% «child_claim_list_any» "entries_ptr"))) (region := σ (.n (val% «child_claim_list_any» "region"))) (base := σ (.n (val% «child_claim_list_any» "base")))
+    (last := σ (.n (val% «child_claim_list_any» "last_g"))) (by omega) h4 (fun hne => by
       have := (callIf_of_flat hall hl17).2
         (by rw [add_sound h32 hat, const_sound h31 hat, word_one]; exact hne)
       simpa [const_sound h33 hat, word_one] using this)
   obtain ⟨osa, ca, hcla, hSa⟩ := childGroups_sound (by norm_num) (n0 := 0) (pre := []) rfl h0
     hbig a le_rfl
   -- the groups
-  have h39 : σ (.n 39) = σ (.n 17) * gen ^ (13 * a) := by
+  have h39 : σ (.n (val% «child_claim_list_any» "mid")) = σ (.n (val% «child_claim_list_any» "chain")) * gen ^ (13 * a) := by
     rw [monoIs_sound hm39 hat, h4, gen_pow_pow]
-  have h48 : σ (.n 48) = σ (.n 2) * gen ^ (136 * a) := by
+  have h48 : σ (.n (val% «child_claim_list_any» "mid_base")) = σ (.n (val% «child_claim_list_any» "base")) * gen ^ (136 * a) := by
     rw [monoIs_sound hm48 hat, h4, gen_pow_pow]
   have hgrp := childFrames_of_loop hm any17_idx any17_ok any17_nb
-    (chain := σ (.n 39)) (entries := σ (.n 0)) (region := σ (.n 1)) (base := σ (.n 48))
-    (last := σ (.n 8)) (by omega) h5 (fun hne => by
+    (chain := σ (.n (val% «child_claim_list_any» "mid"))) (entries := σ (.n (val% «child_claim_list_any» "entries_ptr"))) (region := σ (.n (val% «child_claim_list_any» "region"))) (base := σ (.n (val% «child_claim_list_any» "mid_base")))
+    (last := σ (.n (val% «child_claim_list_any» "last_g"))) (by omega) h5 (fun hne => by
       have := (callIf_of_flat hall hl18).2
         (by rw [add_sound h50 hat, const_sound h49 hat, word_one]; exact hne)
       simpa [const_sound h51 hat, word_one] using this)
@@ -567,9 +570,9 @@ theorem child_claim_list_any_sound {rd : Reader} (hm : MemOk rd) {args rets : Li
   obtain ⟨sp, ent, reg, mk, lst, hargs, hlast⟩ := childLast_sound hm hj17 hcall
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hargs
   obtain ⟨hsp, hent, hreg, hmk, hlst⟩ := hargs
-  have h57 : σ (.n 57) = σ (.n 39) * gen ^ (13 * b) := by
+  have h57 : σ (.n (val% «child_claim_list_any» "last")) = σ (.n (val% «child_claim_list_any» "mid")) * gen ^ (13 * b) := by
     rw [mono2Is_sound hm57 hat, h39, h4, h5]; simp only [gen_pow_pow]
-  have h63 : σ (.n 63) = σ (.n 48) * gen ^ (17 * b) := by
+  have h63 : σ (.n (val% «child_claim_list_any» "d0~6")) = σ (.n (val% «child_claim_list_any» "mid_base")) * gen ^ (17 * b) := by
     rw [mono2Is_sound hm63 hat, h48, h4, h5]; simp only [gen_pow_pow]
   have hpre : ([] ++ cellsBytes ca ++ cellsBytes cb).length = rate * (0 + 64 * a + 8 * b) := by
     rw [List.length_append, List.nil_append, length_cellsBytes, length_cellsBytes, hcla.2.1,

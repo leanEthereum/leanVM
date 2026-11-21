@@ -13,6 +13,8 @@ import LeanVM.Guest.B1.Sig.SphincsDigestData
 import LeanVM.Guest.B1.Sig.SphincsData0
 import LeanVM.Guest.B1.Sig.SphincsData1
 import LeanVM.Guest.B1.Sig.SphincsData2
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 namespace LeanVM.Guest.B1.Sig
 
@@ -22,7 +24,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 /-- After the digest block (`sDigestBlock_prefix`), `verify_sig_lean_sphincs`'s body is
 `sAfterDigest`, checked by the kernel in slices of 500 statements. -/
-theorem sAfterDigest_eq : (Fn.«verify_sig_lean_sphincs».core).body.drop 1358 = sAfterDigest := by
+theorem sAfterDigest_eq : (Fn.«verify_sig_lean_sphincs».core).body.drop (pos% «verify_sig_lean_sphincs» "s40#0") = sAfterDigest := by
   have h4000 := sAfterDigest_drop_4000
   have h3500 := drop_eq_of_take sAfterDigest_slice_3500 h4000
   have h3000 := drop_eq_of_take sAfterDigest_slice_3000 h3500

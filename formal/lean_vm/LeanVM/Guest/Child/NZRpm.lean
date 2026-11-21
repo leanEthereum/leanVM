@@ -6,10 +6,14 @@
   fuel)`, below `2^-100` at a fuel of `2^33`.
 -/
 
-import LeanVM.Guest.Child.NZRom
-import LeanVM.Protocol.LeanVMRpm
-import LeanVM.Protocol.WithHash
-import LeanVM.Guest.WithHash
+module
+
+public import LeanVM.Guest.Child.NZRom
+public import LeanVM.Protocol.LeanVMRpm
+public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.WithHash
+
+@[expose] public section
 
 /-!
 # The refusing verifier, in the random-permutation model
@@ -172,3 +176,5 @@ theorem rpmChild_le :
         exact Common.two_pow_mul_inv_pow 2 100
 
 end LeanVM.Guest.Child
+
+end

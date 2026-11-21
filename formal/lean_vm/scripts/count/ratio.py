@@ -83,7 +83,7 @@ def write(g, roots, opdef, CH=48, W=750, fam='RatioV', two=False):
     data, chks, fin = [], [], []
     for N, r in roots:
         J = sorted(g.by[n] for n in g.closure([r]))
-        assert g.xj not in J, '%s reaches __loop2' % r
+        assert g.xj not in J, '%s reaches main_loop2' % r
         A = [max(-(-1000 * g.pm[j + 1][k] // fsN(j + 1)) for j in J) for k in range(6)]
         def cost(j):
             return len(str(g.fns[j]['body'])) / 1000 + sum(g.by[c] for c in blk_callees(g.fns[j]['body'])) / 100

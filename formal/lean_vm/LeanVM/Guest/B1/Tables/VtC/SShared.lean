@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Tables.VtC.SBase
 public import LeanVM.Guest.B1.Selectors.SharedTablesComplete
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The index factors, `1 + ζ` and the shared tables
@@ -36,15 +38,15 @@ theorem vtIdxc_word {t : ℕ} (ht : t < 34) :
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **`idxc_tab`'s stores.** -/
-theorem idxc_ok (hl : args.length = 20) (h : TbReadsAt rd (vtσ rd w args (.n 664)) vtIdxcW) :
+theorem idxc_ok (hl : args.length = 21) (h : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "idxc_tab"))) vtIdxcW) :
     ∀ st ∈ vtIdxcT, VSH (coreProgram.Rel rd) rd (vtσ rd w args) st := by
   intro st hst
   have hst' := hst
   simp only [vtIdxcT, List.mem_flatten, List.mem_map, List.mem_range] at hst'
   obtain ⟨_, ⟨t, ht, rfl⟩, hm⟩ := hst'
-  have hc : vtσ rd w args (.n (665 + t)) = 1 + gen ^ 2 ^ t := by
+  have hc : vtσ rd w args (.n (666 + t)) = 1 + gen ^ 2 ^ t := by
     have := vt_goodS (rd := rd) (w := w) hl (vt_mem_slice (vtPre_drop 625 ▸ vtIdxc_check)
-      (show Stmt.atom (.const (.n (665 + t)) (word (tbGSquaresBits.getD t 0 ^^^ 1) 0)) ∈
+      (show Stmt.atom (.const (.n (666 + t)) (word (tbGSquaresBits.getD t 0 ^^^ 1) 0)) ∈
         vtIdxcT by
           simp only [vtIdxcT, List.mem_flatten, List.mem_map, List.mem_range]
           exact ⟨_, ⟨t, ht, rfl⟩, List.mem_cons_self⟩))
@@ -60,12 +62,12 @@ theorem idxc_ok (hl : args.length = 20) (h : TbReadsAt rd (vtσ rd w args (.n 66
     simpa [vtIdxcW] using this
 
 /-- **`zeta1`'s `plus_one_run`.** -/
-theorem zeta1_ok (hl : args.length = 20) {point : List E}
-    (h9 : vtσ rd w args (.n 9) = gen ^ point.length) (hμ : point.length ≤ 33)
-    (hz : TbReadsAt rd (vtσ rd w args (.n 8)) point)
-    (hz1 : TbReadsAt rd (vtσ rd w args (.n 699)) (point.map (1 + ·))) (hw : w 700 = 0) :
+theorem zeta1_ok (hl : args.length = 21) {point : List E}
+    (h9 : vtσ rd w args (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length) (hμ : point.length ≤ 33)
+    (hz : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "zeta"))) point)
+    (hz1 : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·))) (hw : w 701 = 0) :
     VSH (coreProgram.Rel rd) rd (vtσ rd w args)
-      (.dispatch (.n 9) plusOneRunNames [.n 699, .n 8] [.n 700]) := by
+      (.dispatch (.n (val% «verify_tables» "g_bus_mu")) plusOneRunNames [.n (val% «verify_tables» "zeta1"), .n (val% «verify_tables» "zeta")] [.n (val% «verify_tables» "zeta1_done")]) := by
   have hg := vt_goodS (rd := rd) (w := w) hl (vt_mem_slice (blk := [_]) (vtPre_drop 694 ▸ vtZeta1_check)
     List.mem_cons_self)
   simp only [fixNe, GoodS, List.mem_cons, List.not_mem_nil, or_false, forall_eq] at hg
@@ -82,11 +84,12 @@ theorem sh_call {μ τ : ℕ} {point : List E} (hμ : point.length = μ) (hμ33 
     (hzv : TbReadsAt rd z (point.drop τ)) (hz1v : TbReadsAt rd z1 ((point.map (1 + ·)).drop τ))
     (hsqv : TbReadsAt rd gsq ((gSquaresList.drop τ).take (μ - τ)))
     (hrun : RunTables rd eqt gt (μ - τ) (point.drop τ) ((point.map (1 + ·)).drop τ)
-      ((gSquaresList.drop τ).take (μ - τ))) :
+      ((gSquaresList.drop τ).take (μ - τ)))
+    (hpad : RunPads rd eqt gt (μ - τ) (point.drop τ)) :
     coreProgram.Rel rd "shared_selector_tables" [eqt, gt, z, z1, gsq, gen ^ (μ - τ)] [] := by
   have hsql : gSquaresList.length = 34 := by simp [gSquaresList]
   exact shared_selector_tables_complete_holds rd eqt gt z z1 gsq (μ - τ) _ _ _ (by omega)
-    (by simp; omega) (by simp; omega) (by simp [hsql]; omega) hzv hz1v hsqv hrun
+    (by simp; omega) (by simp; omega) (by simp [hsql]; omega) hzv hz1v hsqv hrun hpad
 
 end
 end LeanVM.Guest.B1.Tables

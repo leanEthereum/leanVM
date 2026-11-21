@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.KeccakGkr.VkCCK.Steps
 public import LeanVM.Guest.B1.KeccakGkr.VkHolds
 public import LeanVM.Guest.B1.Tables.FlatAt
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # The body, flat
@@ -32,7 +34,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 def vkFinPre : List Stmt := vkFinT.dropLast
 
 /-- The returned values. -/
-def vkVs : List V := [.n 3358, .n 3359, .n 3360, .n 3361, .n 3362, .n 3365, .n 3366]
+def vkVs : List V := [.n (val% «verify_keccak» "s82#0"), .n (val% «verify_keccak» "s82#0[1]"), .n (val% «verify_keccak» "s82#0[2]"), .n (val% «verify_keccak» "s82#0[3]"), .n (val% «verify_keccak» "s82#0[4]"), .n (val% «verify_keccak» "s82#0[5]"), .n (val% «verify_keccak» "s82#0[6]")]
 
 /-- The body but its return. -/
 def vkPre : List Stmt := vkHeadT ++ vkFirstT ++ vkStepsT ++ vkOutT ++ vkInT ++ vkFinPre
@@ -44,8 +46,8 @@ theorem vkT_pre : vkT = vkPre ++ [.ret vkVs] := by
 
 /-- The buffers. -/
 def vkAllocs : List (V × (ℕ ⊕ V)) :=
-  [(.n 61, .inr (.n 60)), (.n 86, .inl 5), (.n 155, .inl 286), (.n 157, .inl 30), (.n 228, .inl 62),
-    (.n 336, .inl 2), (.n 1204, .inl 30)]
+  [(.n (val% «verify_keccak» "point"), .inr (.n (val% «verify_keccak» "point~1"))), (.n (val% «verify_keccak» "r_lane"), .inl 5), (.n (val% «verify_keccak» "claims"), .inl 286), (.n (val% «verify_keccak» "mu_tree"), .inl 30), (.n (val% «verify_keccak» "lane_tree"), .inl 62),
+    (.n (val% «verify_keccak» "segment_tree"), .inl 2), (.n (val% «verify_keccak» "low_tree"), .inl 30)]
 
 /-- Not a dispatch. -/
 def vkNoDispB : Stmt → Bool
@@ -56,24 +58,24 @@ def vkNoDispB : Stmt → Bool
 def stepCall (s : ℕ) : Option V × String × List V × List V :=
   let T := stepT0 s (stepB s)
   if s = 0 then
-    (none, layerName 1, (stepCap s).map .n ++ [.n 153, .n 154, .n (T + 1), .n (T + 3), .n 34,
-      .n 48, .n 155, .n (T + 5), .n (T - 1), .n 11], (List.range 6).map fun j ↦ .n (T + 6 + j))
+    (none, layerName 1, (stepCap s).map .n ++ [.n (val% «verify_keccak» "value_rate[0]"), .n (val% «verify_keccak» "value_rate[1]"), .n (T + 1), .n (T + 3), .n (val% «verify_keccak» "step_g@2"),
+      .n (val% «verify_keccak» "rem_g@3"), .n (val% «verify_keccak» "claims"), .n (T + 5), .n (T - 1), .n (val% «verify_keccak» "tabs"), .n (val% «verify_keccak» "stream")], (List.range 6).map fun j ↦ .n (T + 6 + j))
   else
     (none, layerName 0, (stepCap s).map .n ++ [.n T, .n (T + 1), .n (stepCur s), .n (T + 3),
-      .n 34, .n 48, .n (T + 5), .n (T + 7), .n (T - 1), .n 11], (List.range 6).map fun j ↦ .n (T + 8 + j))
+      .n (val% «verify_keccak» "step_g@2"), .n (val% «verify_keccak» "rem_g@3"), .n (T + 5), .n (T + 7), .n (T - 1), .n (val% «verify_keccak» "tabs"), .n (val% «verify_keccak» "stream")], (List.range 6).map fun j ↦ .n (T + 8 + j))
 
 /-- **The calls.** -/
 def vkCalls : List (Option V × String × List V × List V) :=
-  [(some (.n 63), name% «verify_keccak_loop0», [.n 64, .n 18, .n 61, .n 66], [])] ++
+  [(some (.n (val% «verify_keccak» "s17#1")), name% «verify_keccak_loop0», [.n (val% «verify_keccak» "s17#2"), .n (val% «verify_keccak» "pack_g"), .n (val% «verify_keccak» "point"), .n (val% «verify_keccak» "s17#4")], [])] ++
     (List.range 12).map stepCall ++
-    [(none, "keccak_plain_rounds__L6_L0", [.n 909, .n 910, .n 911, .n 912, .n 913, .n 916,
-        .n 917, .n 914, .n 152, .n 915, .n 11], (List.range 7).map fun j ↦ .n (918 + j)),
-      (some (.n 1188), name% «verify_keccak_loop1», [.n 1189, .n 18, .n 1191, .n 61], []),
-      (none, "keccak_plain_rounds__L4_L1", [.n 918, .n 919, .n 920, .n 921, .n 922, .n 926,
-        .n 927, .n 1193, .n 1194, .n 1196, .n 11], (List.range 7).map fun j ↦ .n (1197 + j)),
-      (none, "keccak_plain_rounds__L6_L0", [.n 1197, .n 1198, .n 1199, .n 1200, .n 1201, .n 1325,
-        .n 1326, .n 1202, .n 1203, .n 1324, .n 11], (List.range 7).map fun j ↦ .n (1327 + j)),
-      (some (.n 3354), name% «verify_keccak_loop2», [.n 3355, .n 18, .n 3357, .n 1739], [])]
+    [(none, "keccak_plain_rounds__L6_L0", [.n (val% «verify_keccak» "fs0@13"), .n (val% «verify_keccak» "fs1@13"), .n (val% «verify_keccak» "fs2@13"), .n (val% «verify_keccak» "fs3@13"), .n (val% «verify_keccak» "fs4@13"), .n (val% «verify_keccak» "fs0@14~7"),
+        .n (val% «verify_keccak» "fs0@14~8"), .n (val% «verify_keccak» "cursor@13"), .n (val% «verify_keccak» "x@1"), .n (val% «verify_keccak» "out_slot"), .n (val% «verify_keccak» "tabs")], (List.range 7).map fun j ↦ .n (919 + j)),
+      (some (.n (val% «verify_keccak» "s57#1")), name% «verify_keccak_loop1», [.n (val% «verify_keccak» "s57#2"), .n (val% «verify_keccak» "pack_g"), .n (val% «verify_keccak» "s57#4"), .n (val% «verify_keccak» "point")], []),
+      (none, "keccak_plain_rounds__L4_L1", [.n (val% «verify_keccak» "fs0@14"), .n (val% «verify_keccak» "fs1@14"), .n (val% «verify_keccak» "fs2@14"), .n (val% «verify_keccak» "fs3@14"), .n (val% «verify_keccak» "fs4@14"), .n (val% «verify_keccak» "word_rate[0]"),
+        .n (val% «verify_keccak» "word_rate[1]"), .n (val% «verify_keccak» "fs0@15~8"), .n (val% «verify_keccak» "fs0@15~9"), .n (val% «verify_keccak» "fs0@15~11"), .n (val% «verify_keccak» "tabs")], (List.range 7).map fun j ↦ .n (1198 + j)),
+      (none, "keccak_plain_rounds__L6_L0", [.n (val% «verify_keccak» "fs0@15"), .n (val% «verify_keccak» "fs1@15"), .n (val% «verify_keccak» "fs2@15"), .n (val% «verify_keccak» "fs3@15"), .n (val% «verify_keccak» "fs4@15"), .n (val% «verify_keccak» "fs0@16~7"),
+        .n (val% «verify_keccak» "fs0@16~8"), .n (val% «verify_keccak» "cursor@15"), .n (val% «verify_keccak» "low_value"), .n (val% «verify_keccak» "in_slot"), .n (val% «verify_keccak» "tabs")], (List.range 7).map fun j ↦ .n (1328 + j)),
+      (some (.n (val% «verify_keccak» "s81#1")), name% «verify_keccak_loop2», [.n (val% «verify_keccak» "s81#2"), .n (val% «verify_keccak» "pack_g"), .n (val% «verify_keccak» "s81#4"), .n (val% «verify_keccak» "last_point")], [])]
 
 theorem vkPre_kernel :
     vkPre.all Stmt.flat = true ∧ vkPre.filterMap Main.Stmt.addrS = [] ∧

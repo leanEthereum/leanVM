@@ -417,7 +417,7 @@ fn a_program_names_what_it_means() {
     // Both bodies used to be lowered, and the last definition won.
     let dup = format!("def f(a):\n    return a\n\ndef f(a):\n    return a\n\ndef main():\n{tail}");
     assert!(parse(&dup).expect_err("duplicate def").contains("defined twice"));
-    // `f__L1` is what a `Const` specialization of `f` is called, and `__loopN`
+    // `f__L1` is what a `Const` specialization of `f` is called, and `__loopN_f`
     // what a loop helper is called, so a user function of that name took its
     // place and the call ran the wrong body.
     let reserved = format!("def f__L1(a):\n    return a\n\ndef main():\n{tail}");

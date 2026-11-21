@@ -39,16 +39,19 @@ for k, part in enumerate(parts):
         loop = gen.stable[d['loop']]
         loopT = ('oqLoop1T %s.oq %d (oqWalkOf %s.oq) name%% «%s»' % (sh, d['odd'], sh, loop)) if d['base'] == 1 else \
                 ('oqLoop0T %s.oq (oqWalkOf %s.oq) name%% «%s»' % (sh, sh, loop))
-        out.append('''set_option maxRecDepth 100000 in
-/-- `%s`. -/
-theorem oqBody_%d : (Fn.«%s».core).body = oqMainT %s.oq %d (oqWalkOf %s.oq) name%% «%s» :=
-  stmtsEqb_sound (by decide +kernel)
-
+        out.append('''set_option linter.style.nameCheck false in
 set_option maxRecDepth 100000 in
 /-- `%s`. -/
-theorem oqLoopBody_%d : (Fn.«%s».core).body = %s :=
+theorem oqBody_%s : (Fn.«%s».core).body = oqMainT %s.oq %d (oqWalkOf %s.oq) name%% «%s» :=
   stmtsEqb_sound (by decide +kernel)
-''' % (d['name'], d['idx'], gen.key_of(d['name']), sh, d['odd'], sh, loop, loop, d['idx'], loop, loopT))
+
+set_option linter.style.nameCheck false in
+set_option maxRecDepth 100000 in
+/-- `%s`. -/
+theorem oqLoopBody_%s : (Fn.«%s».core).body = %s :=
+  stmtsEqb_sound (by decide +kernel)
+''' % (d['name'], gen.key_of(d['name']), gen.key_of(d['name']), sh, d['odd'], sh, loop, loop, gen.key_of(d['name']), loop,
+       loopT))
     out.append('end\nend LeanVM.Guest.B1\n')
     open(D + 'QueriesBody%d.lean' % k, 'w').write(gen.wrap('\n'.join(out)))
 # QueriesFns.lean: from `MARK` on, each entry of `openingQueriesLoops` (in `gen.oq_specs`' order)
@@ -59,15 +62,16 @@ s = open(p).read()
 i = s.index(MARK)
 out = [s[:i] + MARK]
 for k, d in enumerate(sp):
-    out.append('''set_option maxRecDepth 100000 in
+    out.append('''set_option linter.style.nameCheck false in
+set_option maxRecDepth 100000 in
 /-- Entry %d, `%s`. -/
-theorem oqFns_%d : OqFns (openingQueriesLoops.getD %d oqNone) := by
+theorem oqFns_%s : OqFns (openingQueriesLoops.getD %d oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L%d_L%d, fn%% «%s», fn%% «%s»,
-    coreProgram_find?_at (j := idx%% «%s») rfl, rfl, oqBody_%d,
-    coreProgram_find?_at (j := idx%% «%s») rfl, rfl, oqLoopBody_%d⟩
-''' % (k, d['name'], d['idx'], k, d['depth'] - d['cd'], d['cd'], d['name'], gen.stable[d['loop']], d['name'],
-       d['idx'], gen.stable[d['loop']], d['idx']))
+    coreProgram_find?_at (j := idx%% «%s») rfl, rfl, oqBody_%s,
+    coreProgram_find?_at (j := idx%% «%s») rfl, rfl, oqLoopBody_%s⟩
+''' % (k, d['name'], gen.key_of(d['name']), k, d['depth'] - d['cd'], d['cd'], d['name'], gen.stable[d['loop']], d['name'],
+       gen.key_of(d['name']), gen.stable[d['loop']], gen.key_of(d['name'])))
 out.append('''/-- **Every entry's functions are found with the templates' bodies.** -/
 theorem oqFns_all : ∀ p ∈ openingQueriesLoops, OqFns p := by
   intro p hp
@@ -79,6 +83,6 @@ theorem oqFns_all : ∀ p ∈ openingQueriesLoops, OqFns p := by
 
 end
 end LeanVM.Guest.B1
-''' % (len(sp), ',\n    '.join(', '.join('oqFns_%d' % d['idx'] for d in sp[r:r + 7])
+''' % (len(sp), ',\n    '.join(', '.join('oqFns_%s' % gen.key_of(d['name']) for d in sp[r:r + 7])
                                   for r in range(0, len(sp), 7))))
 open(p, 'w').write(gen.wrap('\n'.join(out)))

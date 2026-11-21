@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B1.Da.CellChk
 public import LeanVM.Guest.B1.Da.CellCChk
 public import LeanVM.Guest.B1.Digest.PairComplete
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_verify_cell»
 
 /-!
 # `da_verify_cell`, completely
@@ -42,7 +44,7 @@ def da_verify_cell_complete_Spec : Prop :=
 def symOrc (syms : List E) (j : ℕ) : E := syms.getD (j - 1) 0
 
 theorem weightLoad_spec {a : Atom} (h : isWeightLoad a = true) :
-    ∃ d i, a = .load d (.n 0) i ∧ i < 128 := by
+    ∃ d i, a = .load d (.n (val% «da_verify_cell» "lvals")) i ∧ i < 128 := by
   unfold isWeightLoad at h
   split at h
   · rename_i d p i
@@ -51,9 +53,13 @@ theorem weightLoad_spec {a : Atom} (h : isWeightLoad a = true) :
   · exact absurd h (by simp)
 
 set_option maxRecDepth 10000 in
-/-- **`da_verify_cell` is complete.** -/
-theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
-  intro rd lv syms ws hsl hwl hreads
+/-- **`da_verify_cell` is complete, its hinted symbols exposed**: a valuation of its parameter `lv`
+holding the symbols at `.n 1 ..= .n 128`, on which its body holds under every call relation,
+returning `cellRets syms ws`. -/
+theorem da_verify_cell_complete_vals (rd : Reader) (lv : E) (syms : List E) (ws : List E)
+    (hsl : syms.length = LeanDa.cellSymbols) (hwl : ws.length = LeanDa.cellSymbols) (hreads : ReadsAt rd lv ws) :
+    ∃ σ : Val, σ (.n (val% «da_verify_cell» "lvals")) = lv ∧ (∀ j < 128, σ (.n (j + 1)) = syms.getD j 0) ∧ ∀ C : CallRel,
+      Stmt.HoldsList C rd σ (Fn.body fn% «da_verify_cell») False (fun rs => rs = cellRets syms ws) := by
   simp only [LeanDa.cellSymbols] at hsl hwl
   have hok := cell_ok
   have hcok := cellc_ok
@@ -62,7 +68,7 @@ theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
   simp only [Bool.and_eq_true, Option.isSome_iff_exists, List.isEmpty_iff, List.all_eq_true,
     Bool.or_eq_true, Bool.not_eq_true'] at hcok
-  obtain ⟨hparams, hok⟩ := hok
+  obtain ⟨-, hok⟩ := hok
   obtain ⟨⟨⟨⟨c', hchk⟩, hst⟩, hneedsT⟩, hcok⟩ := hcok
   split at hok
   · rename_i A vs hsp
@@ -78,7 +84,7 @@ theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
     rw [show [lv].length = 1 from rfl, hst, ← hσ] at hgs
     have hg : ∀ a ∈ A, Good rd [] w σ a := fun a ha =>
       hgs (.atom a) (by rw [hbody]; exact List.mem_append_left _ (List.mem_map_of_mem ha))
-    have e0 : σ (.n 0) = lv := by rw [hσ]; exact ev_params rd _ (l := [lv]) hchk (by simp)
+    have e0 : σ (.n (val% «da_verify_cell» "lvals")) = lv := by rw [hσ]; exact ev_params rd _ (l := [lv]) hchk (by simp)
     -- the split of the atoms
     have hA : A = A.take 1 ++ (A.drop 1).take 383 ++ A.drop 384 := by
       have h1 : (A.drop 1).drop 383 = A.drop 384 := by simp
@@ -101,9 +107,9 @@ theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
       · obtain ⟨d, i, ha', hi⟩ := weightLoad_spec h
         clear h
         subst ha'
-        rcases (hg _ (hmT _ ha) : Good rd [] w σ (.load d (.n 0) i)) with h | h
+        rcases (hg _ (hmT _ ha) : Good rd [] w σ (.load d (.n (val% «da_verify_cell» "lvals")) i)) with h | h
         · exact absurd h (by simp)
-        · show LoadHolds rd (σ (.n 0)) i (σ d)
+        · show LoadHolds rd (σ (.n (val% «da_verify_cell» "lvals"))) i (σ d)
           have hl := hreads i (by omega)
           rw [h, e0, rdAt_of_load hl]
           exact hl
@@ -122,7 +128,7 @@ theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
     have hd := straight_digest hchain rfl rfl hret hC
     have hsum := acc_sum htmpl 127 (by norm_num)
     rw [show accV 127 = 511 from rfl] at hsum
-    have hrets : [σ (.n 844), σ (.n 845), σ (.n 846)] = cellRets syms ws := by
+    have hrets : [σ (.n (val% «da_verify_cell» "s6#0")), σ (.n (val% «da_verify_cell» "s6#0[1]")), σ (.n (val% «da_verify_cell» "s6#0[2]"))] = cellRets syms ws := by
       rw [copy_sound hcp hC, hsum]
       have hv : ((cellSpec (A.drop 384)).vals σ).take ((cellSpec (A.drop 384)).len / 16) =
           (List.range 128).map fun j => σ (.n (j + 1)) := by
@@ -136,15 +142,27 @@ theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
       rw [hv, hsyms, cellsBytes_eq_eBytes] at hd
       have hl : ∀ a b c : E, [a, b, c] = [a, b] ++ [c] := fun _ _ _ => rfl
       rw [hl, cellRets, ← hd]
-      refine congrArg (fun x => [σ (.n 844), σ (.n 845)] ++ [x]) ?_
+      refine congrArg (fun x => [σ (.n (val% «da_verify_cell» "s6#0")), σ (.n (val% «da_verify_cell» "s6#0[1]"))] ++ [x]) ?_
       simp only [LeanDa.cellSymbols]
       refine congrArg List.sum (List.map_congr_left fun j hj => ?_)
       have hj' := List.mem_range.mp hj
       rw [e0, hsym j hj', memAt_of_load (hreads j (by omega)), List.getD_eq_getElem ws _ (by omega)]
-    refine (rel_iff_sem find_da_verify_cell _ _).mpr ⟨σ, by rw [hparams]; simp [e0], ?_⟩
+    refine ⟨σ, e0, hsym, fun C => ?_⟩
     rw [hbody, holdsList_atoms_ret]
     exact ⟨hat, hrets⟩
   · exact absurd hok (by simp)
+
+theorem da_verify_cell_params : (fn% «da_verify_cell»).params = [.n (val% «da_verify_cell» "lvals")] := by
+  have hok := cell_ok
+  unfold cellOk at hok
+  simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
+  exact hok.1
+
+/-- **`da_verify_cell` is complete.** -/
+theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
+  intro rd lv syms ws hsl hwl hreads
+  obtain ⟨σ, e0, -, h⟩ := da_verify_cell_complete_vals rd lv syms ws hsl hwl hreads
+  exact (rel_iff_sem find_da_verify_cell _ _).mpr ⟨σ, by rw [da_verify_cell_params]; simp [e0], h _⟩
 
 end
 end LeanVM.Guest.B1.Da

@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B1.VerifySub.C.Flat
 public import LeanVM.Guest.Hints
 public import LeanVM.Guest.AcceptableChild
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # The own buffers
@@ -38,7 +40,7 @@ def vsAllocVars : List ℕ := [6, 25, 26, 71, 83, 254, 303, 309, 334, 552, 553, 
 
 /-- **The allocations, by the kernel**: their values and sizes (the dynamic one by `253`). -/
 theorem vs_allocs : vsCPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz =
-    (vsAllocVars.zip [.inl 159, .inl 8192, .inl 6, .inl 7, .inl 8, .inr (.n 253), .inl 30, .inl 1,
+    (vsAllocVars.zip [.inl 159, .inl 8192, .inl 6, .inl 7, .inl 8, .inr (.n (val% «verify_sub» "g_bus_mu")), .inl 30, .inl 1,
       .inl 16, .inl 34, .inl 4, .inl 78, .inl 64, .inl 16, .inl 64]).map
       (fun x ↦ (V.n x.1, x.2)) := by decide +kernel
 

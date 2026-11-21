@@ -1,10 +1,10 @@
 import os, sys, re, ast
 # usage: python3 -I gendiff.py  writes Tables/Vt/FormsDiff.lean: each pull block's coordinates less
 # their push twin's (`COORD_DIFF_*`), from the guest's constants in
-# LeanVM/Guest/Data/Source.lean, and the kernel's check that pull = push + difference, term by term.
+# LeanVM/Guest/Data/Consts.lean, and the kernel's check that pull = push + difference, term by term.
 # Library: `DT[t]` (table t's difference terms per pull block), `blocks(sd, t)`.
 HERE = os.path.dirname(os.path.abspath(__file__))
-SRC = os.path.join(HERE, '..', '..', 'LeanVM', 'Guest', 'Data', 'Source.lean')
+SRC = os.path.join(HERE, '..', '..', 'LeanVM', 'Guest', 'Data', 'Consts.lean')
 VT_LEAN = os.path.join(HERE, '..', '..', 'LeanVM', 'Guest', 'B1', 'Tables', 'Vt')
 
 def load_arrays():

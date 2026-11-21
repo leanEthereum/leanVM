@@ -14,6 +14,8 @@ public import LeanVM.Guest.B1.Tables.VtC.BBc
 public import LeanVM.Guest.B1.Tables.VtC.InBuf
 public import LeanVM.Guest.B1.Tables.Vt.Fw
 public import LeanVM.Guest.B1.Selectors.IndexMleComplete
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The bus sides
@@ -65,14 +67,14 @@ structure VtBIn where
 
 /-- The buffers the bus sides read and write: the cursor (the framework's and the share's
 fourteen words), `fp_w`, `claim_pool`, `block_index_mle`, `gkr_leaves`, `bc_point`. -/
-def vtBufsBIdx : List (ℕ × ℕ) := [(5, 14), (13, 16), (15, 4), (777, 153), (17, 3), (19, 4)]
+def vtBufsBIdx : List (ℕ × ℕ) := [(5, 14), (13, 16), (15, 4), (778, 153), (17, 3), (19, 4)]
 
 /-- The buffers, as pointers and lengths. -/
 def vtBufsB (σ : Val) : List (E × ℕ) := vtBufsBIdx.map fun q ↦ (σ (.n q.1), q.2)
 
 /-- **What the bus sides need.** -/
 structure VtBHyp (rd : Reader) (wo : ℕ → E) (args : List E) (D : VtBIn) : Prop where
-  hl : args.length = 20
+  hl : args.length = 21
   hlow : LowDefB 14 rd
   hml : D.point.length < 33
   hlmμ : D.lm ≤ D.point.length
@@ -92,26 +94,26 @@ structure VtBHyp (rd : Reader) (wo : ℕ → E) (args : List E) (D : VtBIn) : Pr
   /-- `bc_point` holds the slot sumcheck's honest point. -/
   hpt : TbReadsAt rd (args.getD 19 0) (vtBcPoint (vtF0 args D.xs) D.w)
   /-- The earlier statements' values (`vtS_complete`). -/
-  ekb : ∀ i < 8, vtσ rd wo args (.n (25 + i)) = gen ^ ([0, D.lm] ++ vtTauList (vtHt D.rows)).getD i 0
+  ekb : ∀ i < 8, vtσ rd wo args (.n (26 + i)) = gen ^ ([0, D.lm] ++ vtTauList (vtHt D.rows)).getD i 0
   eoP : ∀ x < 54, vtσ rd wo args (.n (vtBoffV x)) =
     gen ^ (stackOffsets (vtSizesP D.lm (vtHt D.rows))).1.getD x 0
   eoC : ∀ x < 45, vtσ rd wo args (.n (vtBoffV (108 + x))) =
     gen ^ (stackOffsets (vtSizesC (vtHt D.rows))).1.getD x 0
   eSh : ∀ t < 6, vtσ rd wo args (.n (vtShLen t)) = gen ^ (D.point.length - vtHt D.rows t)
-  e664 : vtσ rd wo args (.n 664) = wo 664
-  e699 : vtσ rd wo args (.n 699) = wo 699
-  e701 : vtσ rd wo args (.n 701) = wo 701
-  e702 : vtσ rd wo args (.n 702) = wo 702
+  e664 : vtσ rd wo args (.n (val% «verify_tables» "idxc_tab")) = wo 665
+  e699 : vtσ rd wo args (.n (val% «verify_tables» "zeta1")) = wo 700
+  e701 : vtσ rd wo args (.n (val% «verify_tables» "shared_eq")) = wo 702
+  e702 : vtσ rd wo args (.n (val% «verify_tables» "shared_g")) = wo 703
   hpw : ∀ t < 6, vtσ rd wo args (.n (vtPadV t)) =
     paddingWeight (D.point.take (vtHt D.rows t)) (vtRw D.rows t)
   /-- The own buffers' words. -/
-  hidxc : TbReadsAt rd (wo 664) vtIdxcW
-  hz1 : TbReadsAt rd (wo 699) (D.point.map (1 + ·))
-  hrun : ∀ t < 6, RunTables rd (wo 701 * gen ^ (288 * t)) (wo 702 * gen ^ (144 * t))
+  hidxc : TbReadsAt rd (wo 665) vtIdxcW
+  hz1 : TbReadsAt rd (wo 700) (D.point.map (1 + ·))
+  hrun : ∀ t < 6, RunTables rd (wo 702 * gen ^ (288 * t)) (wo 703 * gen ^ (144 * t))
     (D.point.length - vtHt D.rows t) (D.point.drop (vtHt D.rows t))
     ((D.point.map (1 + ·)).drop (vtHt D.rows t))
     ((gSquaresList.drop (vtHt D.rows t)).take (D.point.length - vtHt D.rows t))
-  hidxB : TbReadsAt rd (wo 777) (vtIdxBufW D.point D.lm)
+  hidxB : TbReadsAt rd (wo 778) (vtIdxBufW D.point D.lm)
   /-- Each side's blocks fit in the bus cube. -/
   hfitP : ((vtSizesP D.lm (vtHt D.rows)).map (2 ^ ·)).sum ≤ 2 ^ D.point.length
   hfitC : ((vtSizesC (vtHt D.rows)).map (2 ^ ·)).sum ≤ 2 ^ D.point.length
@@ -137,15 +139,15 @@ structure VtBHyp (rd : Reader) (wo : ℕ → E) (args : List E) (D : VtBIn) : Pr
       blockSel (vtSizesC (vtHt D.rows)) D.point.length i D.point ∧
     wo (vtSelE (vtCountSel.getD i default).2.2.1 (vtCountSel.getD i default).2.2.2.1 + 1) =
       gen ^ (stackOffsets (vtSizesC (vtHt D.rows))).1.getD i 0
-  hwI : wo 809 = indexMle (D.point.take D.lm) ∧ wo 837 = indexMle (D.point.take 19)
+  hwI : wo 810 = indexMle (D.point.take D.lm) ∧ wo 838 = indexMle (D.point.take 19)
   /-- The tail rounds' returns: each round's capacity, cursor, claim and challenge. -/
-  hw1 : (List.range 8).map (fun i ↦ wo (1875 + i)) = (vtBcR1 (vtF0 args D.xs) D.w).1 ++
+  hw1 : (List.range 8).map (fun i ↦ wo (1876 + i)) = (vtBcR1 (vtF0 args D.xs) D.w).1 ++
     [args.getD 5 0 * gen ^ 7 * gen ^ 2, (vtBcR1 (vtF0 args D.xs) D.w).2.1,
       (vtBcR1 (vtF0 args D.xs) D.w).2.2]
-  hw2 : (List.range 8).map (fun i ↦ wo (1883 + i)) = (vtBcR2 (vtF0 args D.xs) D.w).1 ++
+  hw2 : (List.range 8).map (fun i ↦ wo (1884 + i)) = (vtBcR2 (vtF0 args D.xs) D.w).1 ++
     [args.getD 5 0 * gen ^ 7 * gen ^ 2 * gen ^ 2, (vtBcR2 (vtF0 args D.xs) D.w).2.1,
       (vtBcR2 (vtF0 args D.xs) D.w).2.2]
-  hw3 : (List.range 8).map (fun i ↦ wo (1891 + i)) = (vtBcR3 (vtF0 args D.xs) D.w).1 ++
+  hw3 : (List.range 8).map (fun i ↦ wo (1892 + i)) = (vtBcR3 (vtF0 args D.xs) D.w).1 ++
     [args.getD 5 0 * gen ^ 7 * gen ^ 2 * gen ^ 2 * gen ^ 2, (vtBcR3 (vtF0 args D.xs) D.w).2.1,
       (vtBcR3 (vtF0 args D.xs) D.w).2.2]
   /-- The slot sumcheck's last claim is accepted (`bytecodeShare`'s check). -/
@@ -155,14 +157,14 @@ structure VtBHyp (rd : Reader) (wo : ℕ → E) (args : List E) (D : VtBIn) : Pr
   hbc : D.bc.length = 2 ^ 23
 
 theorem vtB_loads_check : ((vtPre.drop 765).take 1827).all (fun s ↦ match s with
-    | .atom (.load _ p off) => decide (p = .n 1896) ||
+    | .atom (.load _ p off) => decide (p = .n (val% «verify_tables» "cursor@4")) ||
         vtBufsBIdx.any fun q ↦ decide (p = .n q.1) && decide (off < q.2)
     | _ => true) = true := by simp only [vtPre_drop]; decide +kernel
 
-theorem vtB_load1897 : ∀ d off, Stmt.atom (.load d (.n 1896) off) ∈ (vtPre.drop 765).take 1827 →
+theorem vtB_load1897 : ∀ d off, Stmt.atom (.load d (.n (val% «verify_tables» "cursor@4")) off) ∈ (vtPre.drop 765).take 1827 →
     off = 0 := by
   have h : ((vtPre.drop 765).take 1827).all (fun s ↦ match s with
-      | .atom (.load _ p off) => !decide (p = .n 1896) || decide (off = 0)
+      | .atom (.load _ p off) => !decide (p = .n (val% «verify_tables» "cursor@4")) || decide (off = 0)
       | _ => true) = true := by simp only [vtPre_drop]; decide +kernel
   intro d off hm
   have := List.all_eq_true.mp h _ hm
@@ -170,7 +172,7 @@ theorem vtB_load1897 : ∀ d off, Stmt.atom (.load d (.n 1896) off) ∈ (vtPre.d
 
 /-- **Every load of the bus sides reads inside `vtBufsB`**, the value's read through the cursor
 after the tail rounds (`g^13` words on) included. -/
-theorem vtB_loadsInBuf (σ : Val) (h1897 : σ (.n 1896) = σ (.n 5) * gen ^ 13) :
+theorem vtB_loadsInBuf (σ : Val) (h1897 : σ (.n (val% «verify_tables» "cursor@4")) = σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 13) :
     LoadsInBuf σ (vtBufsB σ) ((vtPre.drop 765).take 1827) := by
   intro d p off hm
   have := List.all_eq_true.mp vtB_loads_check _ hm
@@ -178,7 +180,7 @@ theorem vtB_loadsInBuf (σ : Val) (h1897 : σ (.n 1896) = σ (.n 5) * gen ^ 13) 
   rcases this with rfl | ⟨q, hq, rfl, hoff⟩
   · have h0 := vtB_load1897 d off hm
     subst h0
-    exact ⟨(σ (.n 5), 14), by simp [vtBufsB, vtBufsBIdx], 13, h1897, by norm_num⟩
+    exact ⟨(σ (.n (val% «verify_tables» "cursor@1")), 14), by simp [vtBufsB, vtBufsBIdx], 13, h1897, by norm_num⟩
   · exact vt_inBuf_direct (List.mem_map.mpr ⟨q, hq, rfl⟩) hoff
 
 end

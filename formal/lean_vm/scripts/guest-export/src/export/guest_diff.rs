@@ -15,7 +15,7 @@ use crate::aggregation::signers_cache::{get_lean_sphincs_signers, get_signers};
 use lean_da::BLOB_SYMBOLS;
 use isa::Prover;
 use lean_vm_core::StableProver;
-use lean_vm_core::cpu::{from_scalar, public_input_bytes};
+use lean_vm_core::cpu::{from_scalar, public_input_bytes, to_scalar};
 use primitives::field::F128;
 use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
@@ -280,7 +280,35 @@ fn export(
     let dir = std::path::Path::new(&dir);
     std::fs::create_dir_all(dir).unwrap();
     std::fs::write(dir.join(format!("{name}.txt")), out.0).unwrap();
+    if let Some(exec_dir) = std::env::var_os("LEANVM_GUEST_EXEC") {
+        let public_input = statement_digest(&claims, &defer);
+        export_execution(&std::path::Path::new(&exec_dir).join(name), &streams, public_input);
+    }
     (claims, node)
+}
+
+/// The node's run as `scripts/export-prover-traces-rust.sh` writes a case, for `lake exe leanvm-execute`:
+/// the guest's bytecode, the public input, the advice (the installed streams) and the Rust interpreter's
+/// execution.
+fn export_execution(dir: &std::path::Path, streams: &[(String, Vec<Vec<F128>>)], public_input: [F128; 2]) {
+    let program = unified_guest();
+    let exec = lean_vm_core::cpu::execute(program, streams, public_input).expect("the node executes");
+    std::fs::create_dir_all(dir).unwrap();
+    let table: Vec<u8> = program.stacked_bytecode().iter().flat_map(|w| w.to_le_bytes()).collect();
+    std::fs::write(dir.join("bytecode.bin"), table).unwrap();
+    std::fs::write(dir.join("public_input.bin"), public_input_bytes(&public_input)).unwrap();
+    let scalar_streams: Vec<(String, Vec<Vec<E>>)> = (streams.iter())
+        .map(|(name, entries)| (name.clone(), entries.iter().map(|e| e.iter().map(to_scalar).collect()).collect()))
+        .collect();
+    std::fs::write(dir.join("advice.txt"), program.advice_text(&scalar_streams)).unwrap();
+    let memory: Vec<u8> = (0..exec.mem.len())
+        .map(|i| exec.mem.word(i))
+        .flat_map(|w| [w.c0, w.c1])
+        .flat_map(u64::to_le_bytes)
+        .collect();
+    std::fs::write(dir.join("memory.bin"), memory).unwrap();
+    let log_mem = exec.mem.len().trailing_zeros();
+    std::fs::write(dir.join("trace.txt"), format!("{log_mem} {} {LOG_INV_RATE}\n", exec.cycles)).unwrap();
 }
 
 const LOG_INV_RATE: usize = lean_vm_core::pcs::TEST_LOG_INV_RATE;
@@ -313,6 +341,22 @@ fn guest_diff() {
     let raw = vec![xmss[1].clone(), xmss[wide + 1].clone()];
     export("node", vec![left.clone(), right.clone()], raw, vec![], &blob(2));
     export("pass", vec![right, left], vec![], vec![], &[]);
+}
+
+/// The benchmark's sizes (`cargo leanvm aggregate --xmss 900`, `recursion --n 2`): a leaf of 900 leanXMSS signatures and
+/// a node over two such leaves, for the Lean executor's speed. Only with `LEANVM_EXEC_BENCH` set, since the module's
+/// name puts it under the `guest_diff` filter.
+#[test]
+#[ignore]
+fn exec_bench() {
+    if std::env::var_os("LEANVM_EXEC_BENCH").is_none() {
+        return;
+    }
+    StableProver::init();
+    let xmss = get_signers::<StableProver>(1800);
+    let a = export("xmss900", vec![], xmss[..900].to_vec(), vec![], &[]);
+    let b = export("xmss900b", vec![], xmss[900..].to_vec(), vec![], &[]);
+    export("node2x900", vec![a, b], vec![], vec![], &[]);
 }
 
 /// The smallest case: a leaf of one leanXMSS signature.

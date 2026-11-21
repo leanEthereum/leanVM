@@ -10,6 +10,8 @@ public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
 public import LeanVM.Guest.B1.Bits.MeaningP
 public import LeanVM.Guest.B1.Whir.Flat
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«opening_round»
 
 /-!
 # `opening_round` (`lean_ethereum.py`, G below)
@@ -41,19 +43,19 @@ and their permutation, the grind's nonce and permutation, `α`, the squeeze of `
 the claim. -/
 def roundBody : List Stmt :=
   ((List.range 5).map fun i ↦ .atom (.copy (.n (10 + i)) (.n i))) ++
-  fsNextT (.n 5) 0 15 ++ fsNextT (.n 5) 1 18 ++ fsNextT (.n 5) 2 21 ++ fsNextT (.n 5) 3 24 ++
-  [keccakA (permIns 4 [.n 16, .n 17, .n 19, .n 20, .n 22, .n 23, .n 25, .n 26] 44 (osRun 10 5))
+  fsNextT (.n (val% «opening_round» "cursor")) 0 15 ++ fsNextT (.n (val% «opening_round» "cursor")) 1 18 ++ fsNextT (.n (val% «opening_round» "cursor")) 2 21 ++ fsNextT (.n (val% «opening_round» "cursor")) 3 24 ++
+  [keccakA (permIns 4 [.n (val% «opening_round» "msg[0]"), .n (val% «opening_round» "msg[1]"), .n (val% «opening_round» "msg[2]"), .n (val% «opening_round» "msg[3]"), .n (val% «opening_round» "msg[4]"), .n (val% «opening_round» "msg[5]"), .n (val% «opening_round» "msg[6]"), .n (val% «opening_round» "msg[7]")] 44 (osRun 10 5))
     (osRun 27 13)] ++
-  fsNonceT (.n 5) 4 40 ++ padRunT 43 ++
-  [keccakA (permIns 1 [.n 41, .n 42] 44 (osRun 35 5)) (osRun 48 13),
-    .call "grind_check__L7" [.n 49, .n 7] []] ++
+  fsNonceT (.n (val% «opening_round» "cursor")) 4 40 ++ padRunT 43 ++
+  [keccakA (permIns 1 [.n (val% «opening_round» "nonce_rate[0]"), .n (val% «opening_round» "nonce_rate[1]")] 44 (osRun 35 5)) (osRun 48 13),
+    .call "grind_check__L7" [.n (val% «opening_round» "nxt[1]@2"), .n (val% «opening_round» "tabs")] []] ++
   [keccakA (permIns 0 [] 44 (osRun 56 5)) (osRun 61 13)] ++
   [osLd 48 8 0, osLd 48 9 0, osLd 61 9 1,
     osMul 74 61 21, osAdd 75 15 74, osAdd 76 15 6, osMul 77 48 18, osAdd 78 76 77,
     osAdd 79 21 24, osMul 80 61 79, osAdd 81 78 80, osMul 82 48 81, osAdd 83 75 82] ++
   ((List.range 5).map fun i ↦ osCp (84 + i) (69 + i)) ++
   [osCst 89 (word 32 0), osMul 90 5 89, osCp 91 90, osCp 92 83,
-    .ret [.n 84, .n 85, .n 86, .n 87, .n 88, .n 91, .n 92]]
+    .ret [.n (val% «opening_round» "s13#0"), .n (val% «opening_round» "s13#0[1]"), .n (val% «opening_round» "s13#0[2]"), .n (val% «opening_round» "s13#0[3]"), .n (val% «opening_round» "s13#0[4]"), .n (val% «opening_round» "s13#0[5]"), .n (val% «opening_round» "s13#0[6]")]]
 
 /-! ## The meaning -/
 
@@ -95,12 +97,6 @@ theorem grindCheckName_seven : grindCheckName 7 = "grind_check__L7" := rfl
 theorem absorbAll_four (cap : List E) (a b c d : E) (t : ℕ) :
     (⟨cap, []⟩ : Fs).absorbAll [a, b, c, d] t = ⟨cap, [(a, t), (b, t), (c, t), (d, t)]⟩ := by
   simp [Fs.absorbAll, Fs.absorb, rateScalars]
-
-/-- An output cell of a permutation. -/
-theorem outCell {σ : Val} {k : ℕ} {f : Fin 13 → E} (h : cells13 ((osRun k 13).map σ) = f)
-    (i : Fin 13) : σ (.n (k + i.val)) = f i := by
-  have := outs_eq h i (by simp [osRun])
-  simpa [osRun] using this
 
 /-! ## The run -/
 

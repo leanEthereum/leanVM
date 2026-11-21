@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.PlainComplete41
 public import LeanVM.Guest.B1.KeccakGkr.RecIn
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_plain_rounds__L»
 
 /-!
 # `keccak_plain_rounds`' loads
@@ -28,7 +30,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- A load through the cursor below `2n` or through the point below `n`; no other load. -/
 def plainLoad (n : ℕ) : Atom → Bool
-  | .load _ p off => (decide (p = .n 7) && decide (off < 2 * n)) || (decide (p = .n 9) && decide (off < n))
+  | .load _ p off => (decide (p = .n (valf% «keccak_plain_rounds» "cursor")) && decide (off < 2 * n)) || (decide (p = .n (valf% «keccak_plain_rounds» "point")) && decide (off < n))
   | _ => true
 
 set_option maxRecDepth 100000 in
@@ -42,8 +44,8 @@ theorem plain41_leafOk : Stmt.leafOkList (plainLoad 4) (fn% «keccak_plain_round
   decide +kernel
 
 theorem plain_loads {n : ℕ} {σ : Val} {es : List Ev} (h : ∀ e ∈ es, EvLeafOk (plainLoad n) e) :
-    ∀ A ∈ loadAddrs σ es, (∃ off < 2 * n, A = (σ (.n 7)).limb 0 * Parameters.addressOfIndex off) ∨
-      (∃ off < n, A = (σ (.n 9)).limb 0 * Parameters.addressOfIndex off) := by
+    ∀ A ∈ loadAddrs σ es, (∃ off < 2 * n, A = (σ (.n (valf% «keccak_plain_rounds» "cursor"))).limb 0 * Parameters.addressOfIndex off) ∨
+      (∃ off < n, A = (σ (.n (valf% «keccak_plain_rounds» "point"))).limb 0 * Parameters.addressOfIndex off) := by
   intro A hA
   obtain ⟨e, he, hea⟩ := List.mem_filterMap.mp hA
   have hok := h e he
@@ -60,7 +62,7 @@ theorem plain_loads {n : ℕ} {σ : Val} {es : List Ev} (h : ∀ e ∈ es, EvLea
   | _ => simp [Ev.loadAddr?] at hea
 
 theorem plain_relIn_of {n : ℕ} {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
-    (hparams : fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10])
+    (hparams : fn.params = [.n (valf% «keccak_plain_rounds» "fs0"), .n (valf% «keccak_plain_rounds» "fs1"), .n (valf% «keccak_plain_rounds» "fs2"), .n (valf% «keccak_plain_rounds» "fs3"), .n (valf% «keccak_plain_rounds» "fs4"), .n (valf% «keccak_plain_rounds» "p0"), .n (valf% «keccak_plain_rounds» "p1"), .n (valf% «keccak_plain_rounds» "cursor"), .n (valf% «keccak_plain_rounds» "value@1"), .n (valf% «keccak_plain_rounds» "point"), .n (valf% «keccak_plain_rounds» "tabs")])
     (hleaf : Stmt.leafOkList (plainLoad n) fn.body = true) {rd : Reader} {R : ℕ → Prop}
     {args rets : List E} (hcur : ∀ k < 2 * n, InR R (args.getD 7 0) k)
     (hpt : ∀ k < n, InR R (args.getD 9 0) k) (h : coreProgram.Rel rd f args rets) :
@@ -70,8 +72,8 @@ theorem plain_relIn_of {n : ℕ} {f : String} {fn : Fn} (hf : coreProgram.find? 
       have := walk_leafOk (σ := σ) fn.body hleaf
       rwa [hw] at this
     rw [hparams] at hp
-    have h7 : σ (.n 7) = args.getD 7 0 := by rw [← hp]; rfl
-    have h9 : σ (.n 9) = args.getD 9 0 := by rw [← hp]; rfl
+    have h7 : σ (.n (valf% «keccak_plain_rounds» "cursor")) = args.getD 7 0 := by rw [← hp]; rfl
+    have h9 : σ (.n (valf% «keccak_plain_rounds» "point")) = args.getD 9 0 := by rw [← hp]; rfl
     rcases plain_loads hall A hA with ⟨off, ho, rfl⟩ | ⟨off, ho, rfl⟩
     · rw [h7]; exact hcur off ho
     · rw [h9]; exact hpt off ho) h

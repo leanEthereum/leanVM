@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Da.Cell
 public import LeanVM.Guest.B1.Fwd.Canon
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_verify_cell»
 
 namespace LeanVM.Guest.B1.Da
 
@@ -18,7 +20,7 @@ open LeanVM.Guest.Core LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest
 
 /-- A load of weight `i < 128` through the argument. -/
 def isWeightLoad : Atom → Bool
-  | .load _ p i => decide (p = .n 0) && decide (i < 128)
+  | .load _ p i => decide (p = .n (val% «da_verify_cell» "lvals")) && decide (i < 128)
   | _ => false
 
 /-- The symbols' hint. -/

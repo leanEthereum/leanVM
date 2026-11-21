@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Digest.ClaimListCBigDefs
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«claim_list_digest_loop0»
 
 namespace LeanVM.Guest.B1.Digest
 
@@ -16,9 +18,9 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.B1.Fwd
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem big_c5 : (stLoadsOk bigF (.n 9) (grpSt 565) 0 &&
-    monoIs ((loopAtoms bigFn).filter pureB) (.n 9) (.n 2) (.n 0) 13 &&
-    monoIs ((loopAtoms bigFn).filter pureB) (.n 20) (.n 3) (.n 0) (4 * 136)) = true := by
+theorem big_c5 : (stLoadsOk bigF (.n (val% «claim_list_digest_loop0» "st")) (grpSt 565) 0 &&
+    monoIs ((loopAtoms bigFn).filter pureB) (.n (val% «claim_list_digest_loop0» "st")) (.n (val% «claim_list_digest_loop0» "chain")) (.n (val% «claim_list_digest_loop0» "xq")) 13 &&
+    monoIs ((loopAtoms bigFn).filter pureB) (.n (val% «claim_list_digest_loop0» "blk")) (.n (val% «claim_list_digest_loop0» "entries_ptr")) (.n (val% «claim_list_digest_loop0» "xq")) (4 * 136)) = true := by
   decide +kernel
 
 end

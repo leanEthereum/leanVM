@@ -31,7 +31,7 @@ use std::sync::Arc;
 
 use field::{Base, Consts, F64, F128, as_base, g_pow};
 use isa::pretty_integer;
-use isa::{BitsDest, CompiledProgram, DerefMode, Op, OutCells, RHint};
+use isa::{BitsDest, BufSize, CompiledProgram, DerefMode, Op, OutCells, RHint};
 
 mod ast;
 mod field;
@@ -47,6 +47,29 @@ pub use parser::{f128_literal, parse, parse_const, parse_with_constants, parse_w
 /// Compile an [`Ast`] to a provable [`CompiledProgram`]. Panics on a malformed program
 /// (unbound variable, missing `main`, address overflow).
 pub fn compile(ast: &Ast) -> CompiledProgram {
+    let (lowered, tables) = lower_all(ast);
+    assemble(lowered, tables)
+}
+
+/// The witness stream of the `HeapBuf` sizes a function reserves before its first call although
+/// they are computed only after it, or a branch reaches them (`RHint::AllocAdvice`): one entry per
+/// such buffer of each call, the caller's before its callees', `[g^size]`, or `[]` where the run
+/// allocates none.
+pub const HEAP_SIZE_STREAM: &str = "heap_sizes";
+
+/// The functions that reserve a `HeapBuf` from [`HEAP_SIZE_STREAM`], so that the proof's memory
+/// model (`formal/lean_vm/LeanVM/Guest/Memory/Alloc.lean`) places it before the callees' subtrees.
+pub fn heap_size_advice(ast: &Ast) -> Vec<String> {
+    let (lowered, _) = lower_all(ast);
+    lowered
+        .into_iter()
+        .filter(|l| l.heap_size_advice)
+        .map(|l| l.name)
+        .collect()
+}
+
+/// Lower every function, `main` first.
+fn lower_all(ast: &Ast) -> (Vec<Lowered>, JumpTables) {
     // Lower main first (it follows the table writes at pc 0), then the rest, expanding loop helpers.
     let mut queue: Vec<Func> = Vec::new();
     let main = ast
@@ -70,10 +93,8 @@ pub fn compile(ast: &Ast) -> CompiledProgram {
         .iter()
         .map(|(name, values)| (name.as_str(), values.as_slice()))
         .collect();
-    let dbg_lower = std::env::var("DBG_LOWER").is_ok();
 
     let mut loop_bounds = HashMap::new();
-    let mut loop_ctr = 0usize;
     let mut lowered: Vec<Lowered> = Vec::new();
     let mut tables = JumpTables::default();
     let mut i = 0;
@@ -90,13 +111,17 @@ pub fn compile(ast: &Ast) -> CompiledProgram {
         lowered.push(lower_func(
             &f,
             &mut queue,
-            &mut loop_ctr,
             &defs,
             &const_arrays,
             &mut loop_bounds,
             &mut tables,
         ));
     }
+    (lowered, tables)
+}
+
+/// Lay out the lowered functions and the jump tables, and resolve them to a [`CompiledProgram`].
+fn assemble(mut lowered: Vec<Lowered>, tables: JumpTables) -> CompiledProgram {
     // The tables sit past `main`'s own cells. At pc 0, in `main`'s frame (`fp = g^0`),
     // one `SET` per slot writes them, then falls through into `main`.
     let tables_base = lowered[0].frame_size;
@@ -116,10 +141,11 @@ pub fn compile(ast: &Ast) -> CompiledProgram {
                 name: "__jump_tables".into(),
                 code,
                 frame_size,
+                heap_size_advice: false,
             },
         );
     }
-    if dbg_lower {
+    if std::env::var("DBG_LOWER").is_ok() {
         for low in &lowered {
             eprintln!("== fn {} (frame {}) ==", low.name, pretty_integer(low.frame_size));
             for (i, ins) in low.code.iter().enumerate() {
@@ -162,19 +188,14 @@ pub fn compile(ast: &Ast) -> CompiledProgram {
                     .drain(..)
                     .map(|h| match h {
                         Hint::NextFrameAddress => RHint::FrameAddress { offset: l.frame_size },
-                        Hint::AllocLoopFrames {
-                            ptr,
-                            callee,
-                            count,
-                            tail,
-                        } => {
+                        Hint::AllocLoopFrames { ptr, callee, count } => {
                             let size = frame_size[&callee];
                             match count {
                                 LoopCount::Constant(n) => RHint::Alloc {
                                     ptr,
-                                    size: size
-                                        .checked_mul(u32::try_from(n - 1).expect("loop range too large"))
-                                        .and_then(|frames| frames.checked_add(tail))
+                                    size: u32::try_from(n)
+                                        .ok()
+                                        .and_then(|n| size.checked_mul(n))
                                         .expect("loop frames overflow"),
                                 },
                                 LoopCount::Bound { cell, start } => RHint::AllocFrames {
@@ -182,7 +203,7 @@ pub fn compile(ast: &Ast) -> CompiledProgram {
                                     size,
                                     end: cell,
                                     start_inverse: F64::G.pow(u128::from(start)).inv(),
-                                    tail,
+                                    tail: size,
                                 },
                             }
                         }
@@ -190,9 +211,10 @@ pub fn compile(ast: &Ast) -> CompiledProgram {
                             ptr,
                             size: frame_size[&callee],
                         },
-                        Hint::AllocFrameMax { ptr, callees } => RHint::Alloc {
+                        Hint::AllocArm { ptr, sel, callees } => RHint::AllocArm {
                             ptr,
-                            size: callees.iter().map(|c| frame_size[c]).max().unwrap(),
+                            sel,
+                            sizes: callees.iter().map(|c| frame_size[c]).collect(),
                         },
                         Hint::AllocBuffer { ptr, size } => RHint::Alloc { ptr, size },
                         Hint::AllocBufferDyn { ptr, size } => RHint::AllocDyn { ptr, size },

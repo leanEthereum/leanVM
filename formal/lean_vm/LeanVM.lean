@@ -1,27 +1,38 @@
-import LeanVM.Protocol.LeanVM
-import LeanVM.Protocol.LeanVMRpm
-import LeanVM.Guest.Batch.Children
-import LeanVM.Guest.Batch.Rpm
-import LeanVM.Guest.EndRpm
-import LeanVM.Guest.Budget.ClosedN
-import LeanVM.Guest.Budget.Fits
-import LeanVM.Prover.End
-import LeanVM.Prover.EndChild
-import LeanVM.Guest.HonestChildren
-import XmssSecurity.Rpm
-import Sphincs.Security
-import LeanDa
-import Statement.Theorems
-import Statement.Corollaries
-import LeanVM.Protocol.WithHash
-import LeanVM.Guest.WithHash
-import LeanVM.Cost.KnowledgeExtractor
-import LeanVM.Guest.DecoderProgram
-import LeanVM.Cost.DecoderSpec
-import LeanVM.Cost.Bounds.Guest.Budget
-import LeanVM.Cost.GuestDecoding
-import LeanVM.Wire.OneEncoding
-import LeanVM.Wire.Honest
+module
+
+public import LeanVM.Protocol.LeanVM
+public import LeanVM.Protocol.LeanVMRpm
+public import LeanVM.Guest.Batch.Children
+public import LeanVM.Guest.Batch.Rpm
+public import LeanVM.Guest.EndRpm
+public import LeanVM.Guest.Budget.ClosedN
+public import LeanVM.Guest.Budget.Fits
+public import LeanVM.Prover.End
+public import LeanVM.Prover.EndChild
+public import LeanVM.Prover.ExecuteSound
+public import LeanVM.Prover.ExecuteComplete
+public import LeanVM.Prover.ExecuteCompleteX
+public import LeanVM.Guest.HonestChildren
+public import LeanVM.Guest.EndExecHonest
+public import LeanVM.Guest.EndExecFinal
+public import XmssSecurity.Rpm
+public import Sphincs.Security
+public import LeanDa.RpmComplete
+public import LeanDa.PiOnly
+public import LeanDa.RpmArg
+public import Statement.Theorems
+public import Statement.Corollaries
+public import LeanVM.Protocol.WithHash
+public import LeanVM.Guest.WithHash
+public import LeanVM.Cost.KnowledgeExtractor
+public import LeanVM.Guest.DecoderProgram
+public import LeanVM.Cost.DecoderSpec
+public import LeanVM.Cost.Bounds.Guest.Budget
+public import LeanVM.Cost.GuestDecoding
+public import LeanVM.Wire.OneEncoding
+public import LeanVM.Wire.Honest
+
+public section
 
 /-! # The end theorems of leanVM
 
@@ -88,7 +99,23 @@ random-permutation model where an adversary is involved, except the memory-decod
   with probability at most `2^-100` in the random-permutation model;
 * `LeanVM.Guest.Batch.batch_sound_holds : BatchingSound` (`Statement/LeanVmGuestCompleteness.lean`): the
   recursion step, the batching of the children's deferred claims run outside the circuit, sound in
-  the random-permutation model (from `batch_rpm`).
+  the random-permutation model (from `batch_rpm`);
+* `LeanVM.Guest.EndExec.guestExecution_complete_holds : GuestExecutionComplete`
+  (`Statement/LeanVmGuestCompleteness.lean`): the executor runs the guest program to completion on
+  the advice `Statement/Prover/Guest.lean` makes from the statement and the witness, on every node
+  `GuestCompleteOnHonestChildren` admits; with `completeness_holds` and `honest_proof_rarely_refused`
+  it gives `GuestProverComplete` (`Statement/Corollaries.lean`), the guest's prover's proof accepted.
+
+**The executor on the guest.** `LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children :
+ExecGaps Ks Km E0 X Pro → AdviceComplete guestAdvice` (`LeanVM/Guest/EndExecHonest.lean`): the
+executor `LeanVM.Prover.Exec.execute` runs the guest program to completion on the proofs' advice
+(`LeanVM.Guest.guestAdvice`, its streams `LeanVM.Guest.Hints.honestStreams`), within `2^30` committed
+cells, on every node `GuestCompleteOnHonestChildren` admits, given `ExecGaps`
+(`LeanVM/Guest/EndExec.lean`), which `execGaps` proves (`LeanVM/Guest/EndExecFinal.lean`: the core
+route's certificates, kernel-checked, the reference run and its alignment, the hint tracks, the residuals
+and the termination facts). `Statement/Prover/Guest.lean`'s advice is that advice
+(`LeanVM.Guest.ProverGuest.honestPushes_eq`, `EndExec.prover_guestAdvice_eq`), which gives
+`guestExecution_complete_holds`.
 
 The other theorems pinned below are steps or corollaries: the bounds' numbers (the soundness and
 completeness errors, and the compiled extractor's price, `LeanVM.Cost.Bounds.AS.extractL_cost`,
@@ -115,6 +142,8 @@ example : LeanVM.Guest.Completeness.GuestCompleteOnHonestChildren :=
   LeanVM.Guest.Completeness.guest_complete_on_honest_children
 example : LeanVM.Guest.Completeness.HonestProofRarelyRefused :=
   LeanVM.Guest.Completeness.honest_proof_rarely_refused
+example : LeanVM.Guest.Completeness.GuestExecutionComplete :=
+  LeanVM.Guest.EndExec.guestExecution_complete_holds
 example : LeanVM.Guest.Completeness.GuestCompleteOnAcceptableChildren :=
   LeanVM.Guest.Budget.guest_complete_on_acceptable_children
 example : LeanVM.Guest.Completeness.GuestChildComplete := LeanVM.Guest.Budget.guest_child_complete
@@ -216,6 +245,30 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 #guard_msgs in
 #print axioms LeanVM.Guest.Completeness.guest_complete_on_honest_children
 
+/-- info: 'LeanVM.Guest.EndExec.execute_guest_complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.EndExec.execute_guest_complete
+
+/-- info: 'LeanVM.Guest.EndExec.aggregate_complete_exec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.EndExec.aggregate_complete_exec
+
+/--
+info: 'LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children
+
+/-- info: 'LeanVM.Guest.EndExec.guest_prover_complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.EndExec.guest_prover_complete
+
+/-- info: 'LeanVM.Guest.EndExec.guestExecution_complete_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.EndExec.guestExecution_complete_holds
+
 /-- info: 'LeanVM.Guest.Completeness.honest_proof_rarely_refused' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Completeness.honest_proof_rarely_refused
@@ -261,6 +314,32 @@ The pruning idea and its formalization on leanerVM's main branch are scaraven's
 #guard_msgs in
 #print axioms LeanVM.Wire.oneEncoding
 
+/-! ## The executor
+
+`LeanVM.Prover.Exec.execute_sound`: an execution the executor `LeanVM.Prover.Exec.execute`
+(`Statement/Prover/Execute.lean`) returns is a valid execution of the program on the public input,
+whatever the hints and streams (`LeanVM/Prover/ExecuteSound.lean`). -/
+
+/-- info: 'LeanVM.Prover.Exec.execute_sound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Prover.Exec.execute_sound
+
+/-! `LeanVM.Prover.Exec.execute_complete`: the executor returns an execution of a program's valid
+execution's step count, its memory the reference's where written, given an invariant of its states
+that satisfies the invariant rule (`LeanVM/Prover/ExecuteComplete.lean`). -/
+
+/-- info: 'LeanVM.Prover.Exec.execute_complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Prover.Exec.execute_complete
+
+/-! `LeanVM.Prover.Exec.execute_completeX`: moreover, given an invariant keeping the cells the
+executor touches below `2^κ`, that execution is valid, runs the reference's instructions, and
+commits no more cells than the reference (`LeanVM/Prover/ExecuteCompleteX.lean`). -/
+
+/-- info: 'LeanVM.Prover.Exec.execute_completeX' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Prover.Exec.execute_completeX
+
 /-- **Every end theorem**, `Statement/Theorems.lean`, at the extractor
 `LeanVM.Cost.compiledKnowledgeExtractor` and any decoder program `decoderProgram` meeting its
 specification
@@ -282,6 +361,7 @@ theorem LeanVM.theorems_of_decoderSpec {decoderProgram : LeanVM.Cost.MachineProg
   guestKnowledgeSoundness := LeanVM.Guest.End.guestKnowledge_of_spec hspec hexplains
   statementDigestBinds := LeanVM.Guest.Binding.digest_binds
   guestCompleteOnHonestChildren := LeanVM.Guest.Completeness.guest_complete_on_honest_children
+  guestExecutionComplete := LeanVM.Guest.EndExec.guestExecution_complete_holds
   honestProofRarelyRefused := LeanVM.Guest.Completeness.honest_proof_rarely_refused
   batchingSound := LeanVM.Guest.Batch.batch_sound_holds
   leanXmssStronglyUnforgeable := XmssSecurity.leanXmss_rpm_security
@@ -341,7 +421,9 @@ open OracleComp in
 `leanVmKnowledgeSoundness`, `guestKnowledgeSoundness` and `statementDigestBinds` (an accepted proof
 whose extracted execution decodes, by `guestKnowledgeSoundness`, to a statement of the accepted
 digest, which `statementDigestBinds` identifies with the accepted statement or turns into a
-collision). -/
+collision); `guestProverComplete` from `guestExecutionComplete`, `leanVmCompleteness` and
+`honestProofRarelyRefused` (the guest's prover proves the execution the executor returns with the
+honest prover). -/
 theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM.Cost.MachineProgram}
     (h : Statement.Theorems (leanVmKnowledgeExtractor := extractorProgram)
       (guestWitnessDecoder := decoderProgram)) :
@@ -360,6 +442,10 @@ theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM
     rcases h.statementDigestBinds _ _ _ _ _ hrel.hasBytecodeShape hs.1 (hd.trans hpub) with ⟨h1, h2⟩ | hc
     · exact Or.inl ⟨h1, h2, h1 ▸ h2 ▸ hrel⟩
     · exact Or.inr hc
+  guestProverComplete s w hrel hlim hon ρ hρ :=
+    let ⟨_, he, hv, hsz⟩ := h.guestExecutionComplete s w hrel hlim hon
+    LeanVM.Guest.EndExec.guestProve_complete he hv hsz hρ h.leanVmCompleteness
+      h.honestProofRarelyRefused
 
 /-- info: 'LeanVM.corollaries_of_theorems' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -375,3 +461,5 @@ theorem LeanVM.corollaries_hold :
 /-- info: 'LeanVM.corollaries_hold' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.corollaries_hold
+
+end

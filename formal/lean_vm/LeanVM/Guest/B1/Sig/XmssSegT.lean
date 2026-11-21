@@ -12,6 +12,8 @@ public import LeanVM.Guest.B1.Sig.XmssT
 public import LeanVM.Guest.B1.Sig.XmssWindows
 public import LeanVM.Guest.B1.Sig.XmssGroups
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop2»
 
 /-!
 # The leanXMSS check in `main_loop2`, as a template
@@ -43,9 +45,18 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
 
 /-- The padding run of the check, set by the bottom layer's message digest. -/
 def sLxPad : Nat := 98
+
+/-- Where the top layer's values start: the bottom layer's end (`sLayer0_snd`). -/
+abbrev xTop : Nat := val% «main_loop2» "verify_lean_xmss.idx~0"
+/-- The bottom layer's root (`sLayer0_snd`). -/
+abbrev xRoot0 : Nat := val% «main_loop2» "out[0]@2"
+/-- Where the top layer ends: the signer's load (`sLayer1_snd`). -/
+abbrev xEnd : Nat := val% «main_loop2» "s3.i3:verify_lean_xmss.s8#0"
+/-- The top layer's root (`sLayer1_snd`). -/
+abbrev xRoot1 : Nat := val% «main_loop2» "out[0]@4"
 /-- The claim's pointer, `lx_table · idx^4`. -/
-def sSigner : V := .n 65
-def sLxPP : V := .n 66
+def sSigner : V := .n (val% «main_loop2» "s3#2")
+def sLxPP : V := .n (val% «main_loop2» "pp")
 /-- `his[w] = leaf_index >> 8w`, hinted. -/
 def sHis (w : Nat) : V := .n (67 + w)
 /-- Window `w` in the exponent, hinted. -/
@@ -127,7 +138,7 @@ hint, the range checks, the hoisted `2^63`, the `15` dispatches, the digits stor
 digest's first cell `d0` is and the target sum `g^T` asserted. The statements, the next base and
 the chains' tips. -/
 def sCodewordT (W : WotsT) (target : E) (d0 : V) (dg : Nat) : List Stmt × Nat × List V :=
-  let gs := sGroupsT W dg 15 0 (.n 0) (.n 0) (dg + 70)
+  let gs := sGroupsT W dg 15 0 (.n (val% «main_loop2» "xi")) (.n (val% «main_loop2» "xi")) (dg + 70)
   let c := gs.2.1 + 6
   ([hintW "lx_digits" (runV dg 15)] ++ sDigitChecks dg ++ [cst (dg + 75) closeLane] ++ gs.1 ++
     [copyS d0 gs.2.2.2.2, cst c target, .atom (.assertEq gs.2.2.2.1 (.n c))], c + 1, gs.2.2.1)
@@ -239,7 +250,7 @@ def sLayer (layer b : Nat) (root : V) : List Stmt × Nat × V :=
 
 /-- **The leanXMSS check in `main_loop2`** (statements `9` to `321` of its body). -/
 def xSeg : List Stmt :=
-  let l0 := sLayer 0 88 (.n 0)
+  let l0 := sLayer 0 88 (.n (val% «main_loop2» "xi"))
   let l1 := sLayer 1 l0.2.1 l0.2.2
   sPrologue ++ l0.1 ++ l1.1 ++
     [loadS (.n l1.2.1) sSigner 0, .atom (.assertEq l1.2.2 (.n l1.2.1))]
@@ -248,18 +259,18 @@ def xSeg : List Stmt :=
 range
 check, the cover word, the claim's pointer `lx_table · idx^4`. -/
 def l2Pre : List Stmt :=
-  [hintW "raw_index" [.n 56], cst 57 (word 9223372036854775821 0), mulS (.n 58) (.n 2) (.n 57),
-    .atom (.rangeCheck (.n 56) (.n 59) (.n 60) (.n 61) (.n 58)), mulS (.n 62) (.n 3) (.n 56),
-    loadS (.n 0) (.n 62) 0, mulS (.n 63) (.n 56) (.n 56), mulS (.n 64) (.n 63) (.n 63),
-    mulS (.n 65) (.n 4) (.n 64)]
+  [hintW "raw_index" [.n (val% «main_loop2» "idx@1")], cst 57 (word 9223372036854775821 0), mulS (.n (val% «main_loop2» "s1#1")) (.n (val% «main_loop2» "lx_slots_g")) (.n (val% «main_loop2» "s1#0")),
+    .atom (.rangeCheck (.n (val% «main_loop2» "idx@1")) (.n (val% «main_loop2» "s1#2")) (.n (val% «main_loop2» "s1#3")) (.n (val% «main_loop2» "s1#4")) (.n (val% «main_loop2» "s1#1"))), mulS (.n (val% «main_loop2» "s2#0")) (.n (val% «main_loop2» "cover")) (.n (val% «main_loop2» "idx@1")),
+    loadS (.n (val% «main_loop2» "xi")) (.n (val% «main_loop2» "s2#0")) 0, mulS (.n (val% «main_loop2» "s3#0")) (.n (val% «main_loop2» "idx@1")) (.n (val% «main_loop2» "idx@1")), mulS (.n (val% «main_loop2» "s3#1")) (.n (val% «main_loop2» "s3#0")) (.n (val% «main_loop2» "s3#0")),
+    mulS (.n (val% «main_loop2» "s3#2")) (.n (val% «main_loop2» "lx_table")) (.n (val% «main_loop2» "s3#1"))]
 
 /-- `main_loop2`'s statements after the check: the next counter and the self-call, the carried tags
 passed on unchanged. -/
 def l2Post : List Stmt :=
-  [cst 119742 (word 2 0), mulS (.n 119743) (.n 0) (.n 119742),
-    addS (.n 119744) (.n 119743) (.n 1), cst 119745 (word 2 0),
-    mulS (.n 119746) (.n 0) (.n 119745),
-    .callIf (.n 119744) name% «main_loop2» (.n 119746 :: (List.range 55).map fun j => V.n (j + 1)),
+  [cst (xEnd + 1) (word 2 0), mulS (.n (xEnd + 2)) (.n (val% «main_loop2» "xi")) (.n (xEnd + 1)),
+    addS (.n (xEnd + 3)) (.n (xEnd + 2)) (.n (val% «main_loop2» "bound")), cst (xEnd + 4) (word 2 0),
+    mulS (.n (xEnd + 5)) (.n (val% «main_loop2» "xi")) (.n (xEnd + 4)),
+    .callIf (.n (xEnd + 3)) name% «main_loop2» (.n (xEnd + 5) :: (List.range 55).map fun j => V.n (j + 1)),
         .ret []]
 
 end

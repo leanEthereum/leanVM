@@ -131,6 +131,16 @@ fn guest_compiles_reproducibly() {
     );
 }
 
+/// The guest functions that reserve a `HeapBuf` from advice (`zkdsl_compiler::heap_size_advice`), whose sizes
+/// `heap_sizes` in `node.rs` and `gen_verify` supply: a new one needs its sizes there.
+#[test]
+fn guest_allocates_late_only_where_known() {
+    let ast = parse_with_replacements(GUEST_SOURCE, &placeholder_map(20)).unwrap();
+    let mut late = zkdsl_compiler::heap_size_advice(&ast);
+    late.sort();
+    assert_eq!(late, ["claim_list_digest", "main", "verify_sub", "verify_tables"]);
+}
+
 /// The guest builds a leanXMSS address as its type's cell plus `lo`,
 /// `hi · 2^32` and `step · 2^61` in the low lane, and the top layer's flag, which
 /// must be the native address's bytes.
@@ -531,8 +541,8 @@ fn da_guest_checks_codeword_membership() {
             vec![from_scalar(verifier::da::membership_challenge(&commitment))],
         );
         hints.push("da_n_blobs", vec![count(rows.len())]);
-        for j in 0..CELLS_PER_ROW {
-            for row in rows {
+        for row in rows {
+            for j in 0..CELLS_PER_ROW {
                 let cell = &row.as_chunks::<CELL_SYMBOLS>().0[j];
                 hints.push("da_symbols", cell.iter().map(|&w| F128::from(w)).collect());
             }

@@ -18,7 +18,9 @@ the definitions a long body is split into live in the namespace `Fn.<key>.core`,
 `LeanVM/Guest/Data/Core.lean` lists the functions in the compiler's order (`coreFunctions`) and
 keeps `Data.core{j}` and `Data.core{j}.body` as abbreviations of function `j`. `lake exe guest-core --check` writes
 nothing and fails when the files differ; `lake exe guest-core --values f` prints the expansion's
-name of each value of the function `f`, and `--show f` the function, renumbered. Run it from `lean_vm`.
+name of each value of the function `f`, `--show f` the function, renumbered, and `--names` every
+function's value names and its top-level statements by the first value each names
+(`scripts/val-names`). Run it from `lean_vm`.
 -/
 
 open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Core
@@ -398,7 +400,7 @@ end LeanVM.Guest.Data
 /-! ## Stable names
 
 A proof names a core function by its name, not by its index, which an added function shifts; a
-loop helper (`__loop{n}`, numbered over the whole program by the compiler) by its caller and its
+loop helper (`__loop{k}_f`, the `k`-th loop the compiler lowers in `f`) by its caller and its
 place among the caller's loops: `{caller}_loop{k}`, the `k`-th loop the caller's body names. -/
 
 /-- The functions a block names, in order. -/
@@ -569,13 +571,71 @@ def main (args : List String) : IO UInt32 := do
     for (v, n) in f.numbering.2.toList.zipIdx do
       IO.println s!"{n}: {Interp.showV v}"
     return 0
+  if args == ["--names"] then
+    -- each function's values by number (`v`) and its top-level statements by the first value each
+    -- names first (`s`), for `scripts/val-names`
+    let st := stableNames P
+    let binds ← match Expand.expandProgramBinds Data.guest with
+      | .ok b => pure b
+      | .error e => do IO.eprintln s!"expansion failed: {e}"; return 1
+    for (f, j) in P.zipIdx do
+      let key := st.getD j ""
+      if (binds.getD j ("", #[])).1 != f.name then
+        IO.eprintln s!"names out of order at {f.name}"; return 1
+      let (_, t) := f.numbering
+      for (v, i) in t.toList.zipIdx do
+        IO.println s!"{key}\tv\t{i}\t{(Interp.showV v).drop 1}"
+      -- the source names: a value's first, plain when no other value has it first, else through
+      -- its innermost inlined callee (`g.x`) when that is unique, else by order (`x@k`, the `k`-th
+      -- value named `x` first)
+      let (m, _) := f.numbering
+      -- a loop's bound, which the compiler names after the loop (`__loop0_f__bound`): `bound`
+      let plain (n : String) : String :=
+        if n.startsWith "__loop" && n.endsWith "__bound" then "bound" else n
+      let binds := ((binds.getD j ("", #[])).2).toList.filterMap fun (n, v) => m[v]?.map (plain n, v, ·)
+      let callee (v : V) : String := (v.path.findSome? fun | .i g _ => some g | _ => none).getD ""
+      -- each value's first name; per name, its values in order and how many have each callee
+      let mut first : Std.HashMap Nat (String × V) := {}
+      for (n, v, i) in binds do
+        unless first.contains i do first := first.insert i (n, v)
+      let mut count : Std.HashMap String Nat := {}
+      let mut countG : Std.HashMap (String × String) Nat := {}
+      let mut ord : Std.HashMap Nat Nat := {}
+      for i in List.range t.size do
+        let some (n, v) := first[i]? | continue
+        let c := count.getD n 0
+        ord := ord.insert i (c + 1)
+        count := count.insert n (c + 1)
+        countG := countG.insert (n, callee v) (countG.getD (n, callee v) 0 + 1)
+      -- a value with no source name of its own, made by the statement that binds a name (the
+      -- temporaries of `acc = acc * (1 + b)`): that name, then `~` and its place in the statement
+      let mut atPath : Std.HashMap (List Seg) String := {}
+      for i in List.range t.size do
+        let some (n, v) := first[i]? | continue
+        let g := callee v
+        let shown :=
+          if count.getD n 0 == 1 then n
+          else if g != "" && countG.getD (n, g) 0 == 1 then s!"{g}.{n}"
+          else s!"{n}@{ord.getD i 0}"
+        IO.println s!"{key}\tn\t{i}\t{shown}"
+        unless atPath.contains v.path do atPath := atPath.insert v.path shown
+      for (v, i) in t.toList.zipIdx do
+        if first.contains i then continue
+        let some shown := atPath[v.path]? | continue
+        IO.println (s!"{key}\tn\t{i}\t{shown}~{v.tag}" ++ (if v.idx = 0 then "" else s!"[{v.idx}]"))
+      let mut seen : Std.HashSet V := f.params.foldl (·.insert ·) {}
+      for (s, i) in f.body.zipIdx do
+        let new := (Stmt.vals s).filter (!seen.contains ·)
+        if let some v := new.head? then IO.println s!"{key}\ts\t{i}\t{(Interp.showV v).drop 1}"
+        seen := (Stmt.vals s).foldl (·.insert ·) seen
+    return 0
   if let ["--show", name] := args then
     let some f := P.find? name | do IO.eprintln s!"no function {name}"; return 1
     IO.println (Interp.showFn f.renumber)
     return 0
   let check := args == ["--check"]
   unless args.isEmpty || check do
-    IO.eprintln "usage: guest-core [--check | --values FUNCTION | --show FUNCTION]"
+    IO.eprintln "usage: guest-core [--check | --values FUNCTION | --show FUNCTION | --names]"
     return 2
   unless ← dataDir.isDir do
     IO.eprintln s!"{dataDir} not found: run from lean_vm"

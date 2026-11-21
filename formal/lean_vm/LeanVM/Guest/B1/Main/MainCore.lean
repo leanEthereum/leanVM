@@ -12,6 +12,8 @@ public import LeanVM.Guest.B1.Digest.ChainFilter
 public import LeanVM.Guest.B1.Digest.PairComplete
 public import LeanVM.Guest.B1.Digest.Range
 public import LeanVM.Guest.B1.Digest.CoverComplete
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # `main`'s honest valuation
@@ -132,38 +134,38 @@ structure MVals (rd : Reader) (σ : Val) (m : MainIn) : Prop where
   agg : ∀ a ∈ atomsIn mAgg, a.Holds rd σ
   orc : ∀ j ∈ [0, 1, 2, 3, 4, 5, 6, 7, 26, 27, 28, 31, 34, 35, 36, 37, 38, 45, 47, 364, 369,
     370, 371, 383, 389, 395, 398, 405, 416, 419, 447, 448], σ (.n j) = mOrc m j
-  v40 : σ (.n 22) = gen ^ (m.nlx + m.nxd)
-  v41 : σ (.n 23) = gen ^ (m.nls + m.nsd)
-  v42 : σ (.n 24) = gen ^ m.total
-  v51 : σ (.n 30) = gen ^ (4 * (m.nlx + m.nxd))
-  v54 : σ (.n 33) = gen ^ (4 * (m.nls + m.nsd))
-  g61 : σ (.n 40) = 1 + gen ^ m.nxd
-  g62 : σ (.n 41) = 1
-  g64 : σ (.n 43) = 1 + gen ^ m.nsd
-  g65 : σ (.n 44) = 1
-  v67 : σ (.n 46) = m.a117 * gen ^ (m.nlx + m.nxd)
-  g377 : σ (.n 356) = 1 + gen ^ m.nrx
-  g378 : σ (.n 357) = 1
-  g380 : σ (.n 359) = 1 + gen ^ m.nrs
-  g381 : σ (.n 360) = 1
-  v384 : σ (.n 363) = gen ^ (2 * (m.nc + 1))
-  v387 : σ (.n 366) = m.aDa * gen ^ (2 * m.nc)
-  v389 : σ (.n 368) = gen ^ m.nd + gen
-  v415 : σ (.n 382) = gen ^ (2 * m.nc)
-  v421 : σ (.n 388) = gen ^ (24 * m.nc)
-  v427 : σ (.n 394) = gen ^ (24 * m.nc)
-  v430 : σ (.n 397) = gen ^ (m.nc + 1)
-  v432 : σ (.n 399) = gen ^ (m.nrx + m.nrs)
-  g434 : σ (.n 401) = 1 + gen ^ m.nc
-  g435 : σ (.n 402) = 1
-  v436 : σ (.n 403) = m.a409 * gen ^ m.nc
-  v448 : σ (.n 415) = m.aDa * gen ^ (2 * m.pick)
-  v451 : σ (.n 418) = gen ^ m.nc + 1
-  v465 : σ (.n 444) = m.et * word 133823759239872512 0
-  r476 : σ (.n 445) = (digestHalves m.dap).1
-  r477 : σ (.n 446) = (digestHalves m.dap).2
-  v480 : σ (.n 449) = 1
-  v484 : σ (.n 453) = gen
+  v40 : σ (.n (val% «main» "lx_slots_g")) = gen ^ (m.nlx + m.nxd)
+  v41 : σ (.n (val% «main» "lean_sphincs_slots_g")) = gen ^ (m.nls + m.nsd)
+  v42 : σ (.n (val% «main» "n_total_g")) = gen ^ m.total
+  v51 : σ (.n (val% «main» "lx_table~1")) = gen ^ (4 * (m.nlx + m.nxd))
+  v54 : σ (.n (val% «main» "lean_sphincs_table~1")) = gen ^ (4 * (m.nls + m.nsd))
+  g61 : σ (.n (val% «main» "s31#1")) = 1 + gen ^ m.nxd
+  g62 : σ (.n (val% «main» "s31#2")) = 1
+  g64 : σ (.n (val% «main» "s32#1")) = 1 + gen ^ m.nsd
+  g65 : σ (.n (val% «main» "s32#2")) = 1
+  v67 : σ (.n (val% «main» "sp_cover")) = m.a117 * gen ^ (m.nlx + m.nxd)
+  g377 : σ (.n (val% «main» "s39#1")) = 1 + gen ^ m.nrx
+  g378 : σ (.n (val% «main» "s39#2")) = 1
+  g380 : σ (.n (val% «main» "s40#1")) = 1 + gen ^ m.nrs
+  g381 : σ (.n (val% «main» "s40#2")) = 1
+  v384 : σ (.n (val% «main» "da_digests~2")) = gen ^ (2 * (m.nc + 1))
+  v387 : σ (.n (val% «main» "own_da")) = m.aDa * gen ^ (2 * m.nc)
+  v389 : σ (.n (val% «main» "s43#1")) = gen ^ m.nd + gen
+  v415 : σ (.n (val% «main» "child_pi~0")) = gen ^ (2 * m.nc)
+  v421 : σ (.n (val% «main» "child_fresh~4")) = gen ^ (24 * m.nc)
+  v427 : σ (.n (val% «main» "child_carried~4")) = gen ^ (24 * m.nc)
+  v430 : σ (.n (val% «main» "written~1")) = gen ^ (m.nc + 1)
+  v432 : σ (.n (val% «main» "s48#0")) = gen ^ (m.nrx + m.nrs)
+  g434 : σ (.n (val% «main» "s49#1")) = 1 + gen ^ m.nc
+  g435 : σ (.n (val% «main» "s49#2")) = 1
+  v436 : σ (.n (val% «main» "s50#0")) = m.a409 * gen ^ m.nc
+  v448 : σ (.n (val% «main» "da")) = m.aDa * gen ^ (2 * m.pick)
+  v451 : σ (.n (val% «main» "s56#1")) = gen ^ m.nc + 1
+  v465 : σ (.n (val% «main» "s56.e.s0#1")) = m.et * word 133823759239872512 0
+  r476 : σ (.n (val% «main» "own_0~2")) = (digestHalves m.dap).1
+  r477 : σ (.n (val% «main» "own_0~3")) = (digestHalves m.dap).2
+  v480 : σ (.n (val% «main» "s59#0")) = 1
+  v484 : σ (.n (val% «main» "s60#2")) = gen
   tags : lxTagsV.map σ = lxTagWords
 
 /-! ## Helpers -/

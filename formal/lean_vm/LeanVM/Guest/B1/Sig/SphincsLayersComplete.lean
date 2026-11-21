@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Sig.SphincsSoundLayer
   `N`'s four bytes (`sLayerEnc_sound`'s);
 * `call_complete`: a call returning one word, the call relation holding;
 * `sHtLayer_complete`: the layer, the call returning `leaf` at the encoding: its root is
-  `pFold (pNodeE …)` from `leaf`.
+  `pFold (pNodeE …)` from `leaf`; `sHtLayer_complete_vals` also the call's encoding and leaf.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -26,6 +26,8 @@ namespace LeanVM.Guest.B1.Sig
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier (eOfNat)
+
+open LeanVM.Guest.Memory (FallPops SplicePops)
 
 @[expose] public section
 
@@ -50,8 +52,9 @@ theorem call_complete {f : String} {args : List V} {d : Nat} (σ : Val) (w : E)
 
 /-- **A layer completes** from base `b`, its counter `ctr` the word `N < 2^32`, the call of
 `sp_wots` at the encoding returning `leaf`: its root is `pFold` of `pNodeE` from `leaf`, the
-siblings `sib`. -/
-theorem sHtLayer_complete {pad : Nat} {pp a0 : V} {ac : Option E} {key signed ctr : V}
+siblings `sib`; the call reads the encoding at `b + 9 + a0W ac` and returns `leaf` at
+`b + 10 + 2 * a0W ac`, its `A0` at `a0Cell a0 ac (b + 10 + a0W ac)`. -/
+theorem sHtLayer_complete_vals {pad : Nat} {pp a0 : V} {ac : Option E} {key signed ctr : V}
     {bit val : Nat → V} {off e height b N : Nat} (hh : height ≤ 16) (he : e < 2 ^ height)
     {sib : Nat → E} (σ : Val) (hpb : pad + 5 ≤ b) (hpp : NBv b pp)
     (ha0 : ac = none → NBv b a0) (hkey : NBv b key) (hsg : NBv b signed) (hct : NBv b ctr)
@@ -66,7 +69,11 @@ theorem sHtLayer_complete {pad : Nat} {pp a0 : V} {ac : Option E} {key signed ct
       (sHtLayer pad pp a0 ac key signed ctr bit val off height b).1 σ
       (fun σ' => AgreeBelow b σ σ' ∧
         σ' (sHtLayer pad pp a0 ac key signed ctr bit val off height b).2.2 =
-          pFold (pNodeE (σ pp) (a0Val σ a0 ac) e sib) height leaf) := by
+          pFold (pNodeE (σ pp) (a0Val σ a0 ac) e sib) height leaf ∧
+        (∀ k, SplicePops rd σ' (sHtLayer pad pp a0 ac key signed ctr bit val off height b).1 [k]
+          (k ++ climbPops "siblings" (pNodeE (σ pp) (a0Val σ a0 ac) e sib) e.testBit sib height 0 leaf)) ∧
+        σ' (.n (b + 9 + a0W ac)) = encOf (σ pp) (a0Val σ a0 ac) (σ key) (σ signed) N ∧
+        σ' (.n (b + 10 + 2 * a0W ac)) = leaf ∧ σ' (a0Cell a0 ac (b + 10 + a0W ac)) = a0Val σ a0 ac) := by
   rw [sHtLayer_split]
   simp only [List.append_assoc]
   have hcells : ∀ c ∈ [KC.cell pp, .cell (a0Cell a0 ac (b + 2)), .cell (.n (b + 1)), .cell signed,
@@ -140,7 +147,7 @@ theorem sHtLayer_complete {pad : Nat} {pp a0 : V} {ac : Option E} {key signed ct
   have hag2 : AgreeBelow (b + 10 + 2 * a0W ac) σ1 σ2 := he2.agree
   have t2 : ∀ v, NBv b v → σ2 v = σ v := fun v hv =>
     (hag2.apply (hv.mono' (by omega))).trans (t1 v hv)
-  have hpv := sPath_complete_val (C := C) (rd := rd) (pad := pad) (pp := pp) (a0 := a0) (ac := ac)
+  have hpv := sPath_complete_pops (C := C) (rd := rd) (pad := pad) (pp := pp) (a0 := a0) (ac := ac)
     (bit := bit) (val := val) (off := off) (sib := sib) hh he (cur := .n (b + 10 + 2 * a0W ac))
     (x := b + 10 + 2 * a0W ac + 1) σ2 (by omega)
     (hpp.mono' (by omega)) (fun h => (ha0 h).mono' (by omega)) (fun j hj => (hbn j hj).mono' (by omega))
@@ -148,9 +155,41 @@ theorem sHtLayer_complete {pad : Nat} {pp a0 : V} {ac : Option E} {key signed ct
     (hp.congr hpb fun j hj => by rw [t2 (.n j) ⟨j, hj, rfl⟩])
     (fun j hj => by rw [t2 _ (hbn j hj)]; exact hbit j hj)
     (fun j hj => by rw [t2 _ (hvn j hj)]; exact hval j hj)
-  refine hpv.mono le_rfl le_rfl (fun σ' ⟨hag', hr'⟩ => ⟨?_, ?_⟩)
+  refine hpv.mono le_rfl le_rfl (fun σ' ⟨hag', hr', hP'⟩ => ⟨?_, ?_, fun k => ?_,
+    (hag' (b + 9 + a0W ac) (by omega)).symm.trans ((hag2 (b + 9 + a0W ac) (by omega)).symm.trans henc),
+    (hag' (b + 10 + 2 * a0W ac) (by omega)).symm.trans hl2,
+    (hag'.apply (hcell.mono' (by omega))).trans ((hag2.apply hcell).trans ha01)⟩)
   · exact fun j hj => (t2 (.n j) ⟨j, hj, rfl⟩).symm.trans (hag' j (by omega))
   · rw [hr', t2 _ hpp, a0Val_agree ha0 t2, hl2]
+  · rw [t2 _ hpp, a0Val_agree ha0 t2, hl2] at hP'
+    have hq : quiet (layerPre pad pp a0 ac key signed ctr b) = true := by
+      simp only [layerPre, quiet_append, kMsg_quiet, a0Pre_quiet]; rfl
+    have h := (SplicePops.of_fallPops (fallPops_quiet (rd := rd) σ' hq)).append
+      ((SplicePops.call "sp_wots" [pp, a0Cell a0 ac (b + 10 + a0W ac), key, .n (b + 9 + a0W ac)]
+        [.n (b + 10 + 2 * a0W ac)] k).append (SplicePops.of_fallPops hP'))
+    simpa only [List.nil_append, List.append_nil] using h
+
+/-- **A layer completes** (`sHtLayer_complete_vals` without the call's values). -/
+theorem sHtLayer_complete {pad : Nat} {pp a0 : V} {ac : Option E} {key signed ctr : V}
+    {bit val : Nat → V} {off e height b N : Nat} (hh : height ≤ 16) (he : e < 2 ^ height)
+    {sib : Nat → E} (σ : Val) (hpb : pad + 5 ≤ b) (hpp : NBv b pp)
+    (ha0 : ac = none → NBv b a0) (hkey : NBv b key) (hsg : NBv b signed) (hct : NBv b ctr)
+    (hbn : ∀ j < height, NBv b (bit (off + j))) (hvn : ∀ j < height, NBv b (val (off + j)))
+    (hp : PadOK σ pad) (hN : N < 2 ^ 32)
+    (hctr : σ ctr = eOfNat N)
+    (hbit : ∀ j < height, σ (bit (off + j)) = if e.testBit j then 1 else 0)
+    (hval : ∀ j < height, σ (val (off + j)) = eOfNat (e >>> j)) {leaf : E}
+    (hcall : C "sp_wots" [σ pp, a0Val σ a0 ac, σ key,
+      encOf (σ pp) (a0Val σ a0 ac) (σ key) (σ signed) N] [leaf]) :
+    Completes C rd b (sHtLayer pad pp a0 ac key signed ctr bit val off height b).2.1
+      (sHtLayer pad pp a0 ac key signed ctr bit val off height b).1 σ
+      (fun σ' => AgreeBelow b σ σ' ∧
+        σ' (sHtLayer pad pp a0 ac key signed ctr bit val off height b).2.2 =
+          pFold (pNodeE (σ pp) (a0Val σ a0 ac) e sib) height leaf ∧
+        ∀ k, SplicePops rd σ' (sHtLayer pad pp a0 ac key signed ctr bit val off height b).1 [k]
+          (k ++ climbPops "siblings" (pNodeE (σ pp) (a0Val σ a0 ac) e sib) e.testBit sib height 0 leaf)) :=
+  (sHtLayer_complete_vals hh he σ hpb hpp ha0 hkey hsg hct hbn hvn hp hN hctr hbit hval hcall).mono le_rfl
+    le_rfl fun _ h => ⟨h.1, h.2.1, h.2.2.1⟩
 
 end
 end LeanVM.Guest.B1.Sig

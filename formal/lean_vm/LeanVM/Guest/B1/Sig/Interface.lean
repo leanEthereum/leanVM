@@ -11,6 +11,8 @@ public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.B1.Main.Frames
 public import LeanVM.Guest.B1.Sig.InterfaceP
 public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 namespace LeanVM.Guest.B1.Sig
 
@@ -24,7 +26,7 @@ def verify_sig_lean_sphincs_sound_Spec (sigOf : Val → FrameMap → Sphincs.Sig
 
 /-! ## The functions, found -/
 
-theorem verify_sig_lean_sphincs_params : (fn% «verify_sig_lean_sphincs»).params = [.n 0, .n 1] :=
+theorem verify_sig_lean_sphincs_params : (fn% «verify_sig_lean_sphincs»).params = [.n (val% «verify_sig_lean_sphincs» "signer"), .n (val% «verify_sig_lean_sphincs» "byte_bits")] :=
   rfl
 
 theorem find_sp_wots : coreProgram.find? "sp_wots" = some fn% «sp_wots» :=

@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 use std::mem::take;
 
-use super::hints::{BitsDest, GPow, MAX_CELLS, MAX_INDEX, RHint, bounded_dlog};
+use super::hints::{BitsDest, BufSize, GPow, MAX_CELLS, MAX_INDEX, RHint, bounded_dlog};
 use super::trace::{RowSet, Table};
 use super::*;
 use crate::keccak::Steps;
@@ -164,8 +164,8 @@ pub enum Fault {
         new: F128,
         hint: Option<&'static str>,
     },
-    /// A `DEREF` through a word that is no g-power below `MAX_CELLS`: a wild pointer, a
-    /// failed range check, or an address past any memory a stack can hold.
+    /// A `DEREF` whose address, the pointer times `g^o2`, is no g-power below `MAX_CELLS`: a wild
+    /// pointer, a failed range check, or an address past any memory a stack can hold.
     WildPointer { value: F128 },
     /// A word that has to be in `K` is not: a `JUMP` operand, or one a hint reads.
     NotInK { what: &'static str, value: F128 },
@@ -231,7 +231,7 @@ impl std::fmt::Display for Fault {
             }
             Self::WildPointer { value } => write!(
                 f,
-                "DEREF pointer is not a g-power below 2^{}: a wild pointer, a failed range check, or past any memory a stack can hold (value {})",
+                "DEREF address is not a g-power below 2^{}: a wild pointer, a failed range check, or past any memory a stack can hold (pointer {})",
                 MAX_CELLS.ilog2(),
                 word(*value)
             ),
@@ -265,7 +265,8 @@ pub(super) struct Stream<'a> {
 }
 
 impl<'a> Stream<'a> {
-    fn pop(&mut self, len: u32) -> Result<&'a [F128], Fault> {
+    /// The next entry, whatever its length.
+    fn next(&mut self) -> Result<&'a [F128], Fault> {
         let name = self.name;
         let entries = self
             .entries
@@ -277,14 +278,21 @@ impl<'a> Stream<'a> {
                 entries.len()
             ))
         })?;
+        self.next += 1;
+        Ok(entry)
+    }
+
+    /// The next entry, of `len` values.
+    fn pop(&mut self, len: u32) -> Result<&'a [F128], Fault> {
+        let entry = self.next()?;
         if entry.len() != len as usize {
             return Err(Fault::Witness(format!(
-                "witness `{name}` entry {} holds {} values, the destination {len}",
-                self.next,
+                "witness `{}` entry {} holds {} values, the destination {len}",
+                self.name,
+                self.next - 1,
                 entry.len()
             )));
         }
-        self.next += 1;
         Ok(entry)
     }
 
@@ -332,7 +340,9 @@ impl<'a> Plan<'a> {
                 .iter()
                 .flat_map(|&(hs, ..)| hs)
                 .map(|h| match h {
-                    RHint::WitnessStack { name, .. } | RHint::WitnessHeap { name, .. } => {
+                    RHint::WitnessStack { name, .. }
+                    | RHint::WitnessHeap { name, .. }
+                    | RHint::AllocAdvice { stream: name, .. } => {
                         let s = *index.entry(name).or_insert_with(|| {
                             names.push((name.as_str(), 0));
                             names.len() as u32 - 1
@@ -977,6 +987,10 @@ pub(super) fn walk<M: Machine>(
                     RHint::AllocFrames { .. } => "AllocFrames",
                     RHint::Alloc { .. } => "Alloc",
                     RHint::AllocDyn { .. } => "AllocDyn",
+                    RHint::AllocAdvice { .. } => "AllocAdvice",
+                    RHint::AllocArm { .. } => "AllocArm",
+                    RHint::AllocLate { .. } => "AllocLate",
+                    RHint::CellAddress { .. } => "CellAddress",
                     RHint::WitnessStack { .. } => "WitnessStack",
                     RHint::WitnessHeap { .. } => "WitnessHeap",
                     RHint::Log2Ceil { .. } => "Log2Ceil",
@@ -992,10 +1006,31 @@ pub(super) fn walk<M: Machine>(
                     RHint::FrameAddress { offset } => {
                         m.g_note(at(fp, *offset)? as usize);
                     }
+                    RHint::CellAddress { ptr, cell } => {
+                        let address = m.g_pow(at(fp, *cell)? as usize);
+                        m.put(at(fp, *ptr)?, F128::from(address))?;
+                    }
                     // A fresh region: write its base `g^{next_free}` into the
-                    // pointer cell (once) and reserve `size` cells. `AllocDyn`
-                    // reads the size from a cell at runtime.
-                    RHint::Alloc { .. } | RHint::AllocDyn { .. } | RHint::AllocFrames { .. } => {
+                    // pointer cell (once) and reserve `size` cells, the last below
+                    // `MAX_CELLS`. `AllocDyn` and `AllocArm` read the size from a cell
+                    // at runtime, `AllocAdvice` pops it from a stream. `AllocLate`
+                    // reserves nothing if its pointer is written.
+                    RHint::Alloc { .. }
+                    | RHint::AllocDyn { .. }
+                    | RHint::AllocAdvice { .. }
+                    | RHint::AllocFrames { .. }
+                    | RHint::AllocArm { .. }
+                    | RHint::AllocLate { .. } => {
+                        let dyn_size = |m: &mut M, size: u32| {
+                            let sz = in_k("HeapBuf size", m.get(at(fp, size)?)).map_err(fail)?;
+                            m.g_log(sz).ok_or_else(|| {
+                                fail(Fault::NotAGPower {
+                                    what: "HeapBuf size",
+                                    value: sz,
+                                })
+                            })
+                        };
+                        let late = matches!(h, RHint::AllocLate { .. });
                         let (ptr, size) = match *h {
                             RHint::Alloc { ptr, size } => (ptr, size),
                             RHint::AllocFrames {
@@ -1024,22 +1059,54 @@ pub(super) fn walk<M: Machine>(
                             }
                             // A runtime size is carried in the exponent:
                             // the cell holds g^k, allocate k cells.
-                            RHint::AllocDyn { ptr, size } => {
-                                let sz = in_k("HeapBuf size", m.get(at(fp, size)?)).map_err(fail)?;
+                            RHint::AllocDyn { ptr, size } => (ptr, dyn_size(m, size)?),
+                            RHint::AllocLate { ptr, size } => match size {
+                                BufSize::Cells(n) => (ptr, n),
+                                BufSize::Exp(size) => (ptr, dyn_size(m, size)?),
+                            },
+                            // An empty entry: the run allocates no buffer here.
+                            RHint::AllocAdvice { ptr, .. } => {
+                                let sz = match streams[stream as usize].next().map_err(fail)? {
+                                    [] => {
+                                        m.hint(None);
+                                        continue;
+                                    }
+                                    &[size] => in_k("HeapBuf size advice", size).map_err(fail)?,
+                                    entry => {
+                                        return Err(fail(Fault::Witness(format!(
+                                            "a HeapBuf size advice holds {} values, not 0 or 1",
+                                            entry.len()
+                                        ))));
+                                    }
+                                };
                                 let cells = m.g_log(sz).ok_or_else(|| {
                                     fail(Fault::NotAGPower {
-                                        what: "HeapBuf size",
+                                        what: "HeapBuf size advice",
                                         value: sz,
                                     })
                                 })?;
                                 (ptr, cells)
                             }
+                            RHint::AllocArm { ptr, sel, ref sizes } => {
+                                let x = in_k("dispatch selector", m.get(at(fp, sel)?)).map_err(fail)?;
+                                let bad = || {
+                                    fail(Fault::NotAGPower {
+                                        what: "dispatch selector",
+                                        value: x,
+                                    })
+                                };
+                                let k = m.g_log(x).ok_or_else(bad)?;
+                                (ptr, *sizes.get(k as usize).ok_or_else(bad)?)
+                            }
                             _ => unreachable!(),
                         };
                         let cell = at(fp, ptr)?;
-                        if !m.written(cell) {
+                        if !(late && m.written(cell)) {
                             let base = next_free;
-                            next_free = at(base, size)?;
+                            next_free = base
+                                .checked_add(size)
+                                .filter(|&next| next <= MAX_CELLS)
+                                .ok_or_else(|| fail(Fault::OutOfMemory))?;
                             m.g_grow(next_free as usize);
                             // The base is about to become a pointer in memory.
                             m.g_note(base as usize);
@@ -1180,8 +1247,8 @@ pub(super) fn walk<M: Machine>(
                             bits_base(m, fp, *dst, *ndigits, "hint_decompose_digits_exponent pointer").map_err(fail)?;
                         let mask = (1u128 << digit_bits) - 1;
                         for j in 0..*ndigits {
-                            let at = s + digit_bits * j;
-                            let d = if at >= 128 { 0 } else { (n >> at) & mask };
+                            let from = s + digit_bits * j;
+                            let d = if from >= 128 { 0 } else { (n >> from) & mask };
                             m.put(bb + j, F128::from(primitives::field::g_pow(d as usize)))?;
                         }
                     }
@@ -1280,8 +1347,15 @@ pub(super) fn walk<M: Machine>(
                 let a1 = at(fp, o1)?;
                 let (p, r1) = m.read(a1);
                 let p_addr = p.as_base().ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
-                let base = m.g_log(p_addr).ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
-                let a2 = at(base, o2)?;
+                // The AIR reads the cell at the product `p·g^o2`, so `p` need be no address:
+                // the pointer's log when it has one in range (an allocation notes it), else
+                // the product's.
+                let a2 = match m.g_log(p_addr).map(|b| u64::from(b) + u64::from(o2)) {
+                    Some(c) if c < u64::from(MAX_CELLS) => c as u32,
+                    _ => m
+                        .g_log(p_addr * F64::G.pow(u128::from(o2)))
+                        .ok_or_else(|| fail(Fault::WildPointer { value: p }))?,
+                };
                 let a3 = at(fp, o3)?;
                 match mode {
                     DerefMode::Cell => m.deref_cell(a2, a3)?,

@@ -10,6 +10,8 @@ public import LeanVM.Guest.B1.KeccakGkr.VkChecks
 public import LeanVM.Guest.B1.KeccakGkr.VkBody
 public import LeanVM.Guest.B1.KeccakGkr.VkChain
 public import LeanVM.Guest.B1.KeccakGkr.VkFirst
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # `verify_keccak`, assembled
@@ -42,9 +44,9 @@ theorem verify_keccak_holds_of (rd : Reader) (hK : keccak_layer_Spec rd) :
     verify_keccak_Spec rd := by
   intro args rets hrel
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_vk args rets).mp hrel
-  rw [show (fn% «verify_keccak»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8,
-      .n 9,
-    .n 10, .n 11] from rfl] at hpar
+  rw [show (fn% «verify_keccak»).params = [.n (val% «verify_keccak» "fs0@1"), .n (val% «verify_keccak» "fs1@1"), .n (val% «verify_keccak» "fs2@1"), .n (val% «verify_keccak» "fs3@1"), .n (val% «verify_keccak» "fs4@1"), .n (val% «verify_keccak» "cursor@1"), .n (val% «verify_keccak» "tau_g"), .n (val% «verify_keccak» "chi"), .n (val% «verify_keccak» "output_lanes"),
+      .n (val% «verify_keccak» "z_vals"),
+    .n (val% «verify_keccak» "slices"), .n (val% «verify_keccak» "tabs"), .n (val% «verify_keccak» "stream")] from rfl] at hpar
   simp only [List.map_cons, List.map_nil] at hpar
   subst hpar
   simp only [MeaningVerifyKeccak]
@@ -55,17 +57,17 @@ theorem verify_keccak_holds_of (rd : Reader) (hK : keccak_layer_Spec rd) :
   -- the head
   replace hb := vkHeadT_holds hτ1 hτ2 htg hb
   obtain ⟨h17, -, h33, h47, hzw, hloop11, h64, hsq1, hsq5, h89, hrl, ⟨l191, p191⟩, hb⟩ := hb
-  have hzv : ∀ i < 4, LoadHolds rd (σ (.n 9)) i (chis.getD i 0) := by
+  have hzv : ∀ i < 4, LoadHolds rd (σ (.n (val% «verify_keccak» "z_vals"))) i (chis.getD i 0) := by
     intro i hi
     obtain ⟨a, b⟩ := hzw i hi
     rw [List.getD_eq_getElem _ _ (by omega), ← loadHolds_unique a (hchi i (by omega))]
     exact b
-  have hne : 1 + σ (.n 18) ≠ 0 := by
+  have hne : 1 + σ (.n (val% «verify_keccak» "pack_g")) ≠ 0 := by
     rw [h17]; exact gen_pow_ne_one (by omega) (by unfold ordG; omega)
   have hcp := copyLoop_sound find_copyLoop11 copyLoop_body11 rfl h17 (by unfold ordG; omega)
     (hloop11 hne)
   have hlen4 : ((chis.take τ).drop 4).length = τ - 4 := by simp; omega
-  have hptR : ReadsAt rd (σ (.n 61)) ((chis.take τ).drop 4 ++ [σ (.n 73)]) := by
+  have hptR : ReadsAt rd (σ (.n (val% «verify_keccak» "point"))) ((chis.take τ).drop 4 ++ [σ (.n (val% «verify_keccak» "nxt[0]@1"))]) := by
     rw [readsAt_append]
     refine ⟨fun j hj ↦ ?_, ?_⟩
     · obtain ⟨v, hs, hd⟩ := hcp j (by omega)
@@ -75,9 +77,9 @@ theorem verify_keccak_holds_of (rd : Reader) (hK : keccak_layer_Spec rd) :
       simpa using hd
     · rw [hlen4, ← h17, ← h64]
       exact readsAt_single h89
-  generalize hrlE : (List.range 5).map (fun i ↦ σ (.n (87 + 13 * i))) = rl at hsq5
+  generalize hrlE : (List.range 5).map (fun i ↦ σ (.n (88 + 13 * i))) = rl at hsq5
   have hrlL : rl.length = 5 := by rw [← hrlE]; simp
-  have hrlLoad : ∀ i < 5, LoadHolds rd (σ (.n 86)) i (rl.getD i 0) := by
+  have hrlLoad : ∀ i < 5, LoadHolds rd (σ (.n (val% «verify_keccak» "r_lane"))) i (rl.getD i 0) := by
     intro i hi
     rw [← hrlE, List.getD_eq_getElem _ _ (by simpa using hi), List.getElem_map, List.getElem_range]
     exact hrl i hi
@@ -85,9 +87,9 @@ theorem verify_keccak_holds_of (rd : Reader) (hK : keccak_layer_Spec rd) :
   replace hb := vkFirstT_holds hτ1 hchiL hzv hrlL hrlLoad h89 hptR houtsL hol hb
   obtain ⟨hcr1, hlanes, hb⟩ := hb
   -- the layers
-  have hL0 : ∀ v, LoadHolds rd (σ (.n 228)) 30 v → v = (eqKernel rl).getD 0 0 :=
+  have hL0 : ∀ v, LoadHolds rd (σ (.n (val% «verify_keccak» "lane_tree"))) 30 v → v = (eqKernel rl).getD 0 0 :=
     fun v hv ↦ loadHolds_unique hv (by simpa using hlanes 0 (by norm_num))
-  have hw0 : ∀ z < 64, (vkFirst (chis.take τ) outs (σ (.n 152)) [σ (.n 73)] rl).weights.getD z 0 =
+  have hw0 : ∀ z < 64, (vkFirst (chis.take τ) outs (σ (.n (val% «verify_keccak» "x@1"))) [σ (.n (val% «verify_keccak» "nxt[0]@1"))] rl).weights.getD z 0 =
       (eqKernel rl).getD 0 0 * gen ^ z := by
     intro z hz
     rw [vkFirst_weights _ _ _ _ _ (by omega), Nat.div_eq_of_lt hz, Nat.mod_eq_of_lt hz,
@@ -99,8 +101,8 @@ theorem verify_keccak_holds_of (rd : Reader) (hK : keccak_layer_Spec rd) :
     (fun lane hl v hv ↦ loadHolds_unique hv (hlanes lane (by omega))) h64 h89 hb
   obtain ⟨mO, slotO, hmOL, hmOR, hO, hslotO, h3699, ⟨l3701, p3701⟩, hchk, hcpO, hb⟩ := hb
   have hslotOL : slotO.length = 6 := by
-    have := plainRun_length mO (σ (.n 152))
-      ⟨[σ (.n 909), σ (.n 910), σ (.n 911), σ (.n 912), σ (.n 913)], []⟩
+    have := plainRun_length mO (σ (.n (val% «verify_keccak» "x@1")))
+      ⟨[σ (.n (val% «verify_keccak» "fs0@13")), σ (.n (val% «verify_keccak» "fs1@13")), σ (.n (val% «verify_keccak» "fs2@13")), σ (.n (val% «verify_keccak» "fs3@13")), σ (.n (val% «verify_keccak» "fs4@13"))], []⟩
     rw [hO, hmOL] at this; exact this
   -- the inputs
   replace hb := vkInT_holds htg hcr' p3701 hb
@@ -108,33 +110,33 @@ theorem verify_keccak_holds_of (rd : Reader) (hK : keccak_layer_Spec rd) :
     h4115, hslR, hslL, hpl, hpc, h1251, hb⟩ := hb
   have hlowL : low.length = 4 := by
     have := plainRun_length mI c'.value
-      ((⟨[σ (.n 918), σ (.n 919), σ (.n 920), σ (.n 921), σ (.n 922)], []⟩ : Fs).absorb
-        (σ (.n 925)) dsObserve)
+      ((⟨[σ (.n (val% «verify_keccak» "fs0@14")), σ (.n (val% «verify_keccak» "fs1@14")), σ (.n (val% «verify_keccak» "fs2@14")), σ (.n (val% «verify_keccak» "fs3@14")), σ (.n (val% «verify_keccak» "fs4@14"))], []⟩ : Fs).absorb
+        (σ (.n (val% «verify_keccak» "x@2"))) dsObserve)
     rw [hI, hmIL] at this; exact this
   have hslotIL : slotI.length = 6 := by
-    have := plainRun_length mS (σ (.n 1203))
-      ⟨[σ (.n 1197), σ (.n 1198), σ (.n 1199), σ (.n 1200), σ (.n 1201)], []⟩
+    have := plainRun_length mS (σ (.n (val% «verify_keccak» "low_value")))
+      ⟨[σ (.n (val% «verify_keccak» "fs0@15")), σ (.n (val% «verify_keccak» "fs1@15")), σ (.n (val% «verify_keccak» "fs2@15")), σ (.n (val% «verify_keccak» "fs3@15")), σ (.n (val% «verify_keccak» "fs4@15"))], []⟩
     rw [hS, hmSL] at this; exact this
   -- the final check
   replace hb := vkFinT_holds hτ1 hτ2 h17 hcr' hslotIL hslotI hslL h1251 hb
   obtain ⟨lanes, loc, -, hlocL, hw, hform, hF, hSh, hpoint, hret⟩ := hb
-  generalize hslE : (List.range 64).map (fun z ↦ σ (.n (slB 1339 z))) = slices at hslR hpl hpc
+  generalize hslE : (List.range 64).map (fun z ↦ σ (.n (slB 1340 z))) = slices at hslR hpl hpc
   have hslices : slices.length = 64 := by rw [← hslE]; simp
   have hptL : c'.point.length = τ - 3 := hcr'.2.1
   have hfin : multilinearEval c'.mu low *
-      dot ((foldAll slotI (keccakSlotWeights τ c' 0 2)).headD []) slices = σ (.n 1333) := by
+      dot ((foldAll slotI (keccakSlotWeights τ c' 0 2)).headD []) slices = σ (.n (val% «verify_keccak» "in_value")) := by
     rw [← h4104]
     refine vk_in_check (by omega) hptL hlocL hw hslotIL hslices hF (fun r hr ↦ ?_) hform
     rw [hSh r hr]
     refine Finset.sum_congr rfl fun z hz ↦ ?_
     rw [← hslE, List.getD_eq_getElem _ _ (by simpa using hz), List.getElem_map,
       List.getElem_range]
-  have habs : (⟨(cap5 147).map σ, []⟩ : Fs).absorb (σ (.n 152)) dsObserve =
-      ⟨[σ (.n 147), σ (.n 148), σ (.n 149), σ (.n 150), σ (.n 151)], [(σ (.n 152), dsObserve)]⟩ := by
+  have habs : (⟨(cap5 148).map σ, []⟩ : Fs).absorb (σ (.n (val% «verify_keccak» "x@1"))) dsObserve =
+      ⟨[σ (.n (val% «verify_keccak» "nxt[8]@6")), σ (.n (val% «verify_keccak» "nxt[9]@6")), σ (.n (val% «verify_keccak» "nxt[10]@6")), σ (.n (val% «verify_keccak» "nxt[11]@6")), σ (.n (val% «verify_keccak» "nxt[12]@6"))], [(σ (.n (val% «verify_keccak» "x@1")), dsObserve)]⟩ := by
     simp [Fs.absorb, cap5, rateScalars]
   have hrun := vk_runsTo τ (chis.take τ) outs (by rw [keccakSegmentBits_eq]; exact hsq1)
     (by rw [show keccakLaneBits = 5 from rfl]; exact hsq5) (by rw [habs]; exact hrunL) hmOL hO
-    (vk_out_check (chis.take τ) outs (σ (.n 152)) (σ (.n 73)) rl hlen4 hslotOL hchk)
+    (vk_out_check (chis.take τ) outs (σ (.n (val% «verify_keccak» "x@1"))) (σ (.n (val% «verify_keccak» "nxt[0]@1"))) rl hlen4 hslotOL hchk)
     hmIL hI hmSL hS hslices hfin
   refine ⟨_, _, _, slices, _, _, ?_, hrun, hpl, ?_, ?_, ?_, ?_, ?_, hslices, ?_⟩
   · -- the words read at the cursor
@@ -176,7 +178,7 @@ theorem verify_keccak_holds_of (rd : Reader) (hK : keccak_layer_Spec rd) :
       rw [loadHolds_unique hpp hpp'] at hv
       rw [List.getElem_take, ← loadHolds_unique hv (hppR j (by omega)), mul_assoc, ← pow_add]
       exact h9
-    · have e : σ (.n 9) * gen ^ qkeccakVarsCap * gen ^ (4 + (τ - 4)) = σ (.n 1324) := by
+    · have e : σ (.n (val% «verify_keccak» "z_vals")) * gen ^ qkeccakVarsCap * gen ^ (4 + (τ - 4)) = σ (.n (val% «verify_keccak» "in_slot")) := by
         rw [h4107, show 4 + (τ - 4) = τ by omega]
       rw [e]; exact hslotI
   · -- the slices

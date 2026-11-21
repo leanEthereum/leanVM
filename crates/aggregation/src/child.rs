@@ -7,6 +7,7 @@ use fiat_shamir_prover::merkle::{hash_pair, hash_to_scalars, hash_words};
 use lean_vm_core::cpu::{block_kappa_sources, col_kappa_sources, from_scalar, layout_of};
 use lean_vm_core::leaf::{self, Block};
 use primitives::field::F128;
+use zkdsl_compiler::HEAP_SIZE_STREAM;
 
 /// The stacked WHIR opening of a `2^mu` stack at a rate: the verifier's config, then each level's message columns
 /// after its folds and its Merkle tree's depth. The hint builder needs it for the real opening and the placeholder map
@@ -96,10 +97,17 @@ pub(super) fn gen_verify(
 
     // The guest replays the proof off the same stream the native verifier reads: every transmitted scalar is already
     // there in protocol order.
+    let rounds = *taus.iter().max().unwrap();
     let mut hints: SubHints = vec![
+        // The `HeapBuf` sizes taken as advice: `verify_sub`'s `zeta`, the push side's mu coordinates;
+        // `verify_tables`' `zc_rounds`, `zc_cprod` and `zc_peq`, a record or a cell per round and one more.
+        (HEAP_SIZE_STREAM, vec![count(leaf::layout(&sides[0]).mu)]),
+        (HEAP_SIZE_STREAM, vec![count((rounds + 1) * ROUND_SLOTS)]),
+        (HEAP_SIZE_STREAM, vec![count(rounds + 1)]),
+        (HEAP_SIZE_STREAM, vec![count(rounds + 1)]),
         ("stream", stream),
         // The table sumcheck's round count, which the guest certifies is the largest of the taus.
-        ("zc_tau_max", vec![count(*taus.iter().max().unwrap())]),
+        ("zc_tau_max", vec![count(rounds)]),
         // Every table's log height, which the guest certifies against its row count.
         ("table_logs", taus.iter().map(|&t| count(t)).collect()),
         ("col_group_order", col_group_order(kbc, &column_offsets)),
@@ -154,6 +162,9 @@ fn block_group_order(kbc: usize, sides: &[Vec<Block>; 3]) -> Vec<F128> {
     assert_eq!(order.len(), groups.len(), "a block group's blocks are consecutive");
     order
 }
+
+/// The guest's `ROUND_SLOTS`: the cells of a table sumcheck round's record (`verify_tables`).
+const ROUND_SLOTS: usize = 7;
 
 /// The stacked WHIR opening's Merkle witness, per level: each query's leaf row and the children of every node it
 /// climbs through below the level's cap, then the cap, every node of the top [`merkle_cap_depth`] levels the queries

@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Whir.CHonBodyRun1
 /-!
 # `os_honest_Spec`
 
-`osHonest_run`: every accepting run (`HonRun`) has `OsHonestA` at the arm of `μ` and the rate `r`:
+`osHonest`, `osHonest_run`: every accepting run (`HonRun`) has `OsHonestA` at the arm of `μ` and the rate `r`:
 the buffers' honest words `own` (`Whir/CHonBuf`), the helpers' data `D` (`OsHD.D`), the stored
 positions, the hinted caps and flags (`capW`, `flW`), the levels' `opening_queries` data, the
 memory facts on every memory holding the buffers, and the body at values fixed before the callees
@@ -81,37 +81,37 @@ theorem fld_qs_eqA : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
   exact hR.fld_qs_eq l hl k hk
 
 /-- **The honest data of a run.** -/
-theorem osHonest_run {cur tabs : E} :
-    Nonempty (OsHonestA (osCfgR (μ - minOpenLog) (r - 1))
+noncomputable def osHonest {cur tabs : E} :
+    OsHonestA (osCfgR (μ - minOpenLog) (r - 1))
       (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs]) cur tabs xs
       w.target w.inner w.residual (w.point ++ List.replicate (pointCap - μ) 0)
-      (w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1)) :=
+      (w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1) :=
   by
-  refine ⟨{ own := (hdOf μ r Ls).own
-            own_len := ?_
-            own_pt := ?_
-            own_pt1 := ?_
-            D := (hdOf μ r Ls).D
-            capL_len := ?_
-            posW := ?_
-            lam_inv := ?_
-            capW := capW Ls μ r
-            flW := flW Ls μ r
-            rounds := fun l ↦ (Ls.getD l default).rounds
-            hsv := fun l ↦ if l = (osCfgR (μ - minOpenLog) (r - 1)).yrLevel then (hdOf μ r Ls).hsFC else []
-            qs := fun l k ↦ ((Ls.getD l default).qs μ).getD k 0
-            rows := fun l k ↦ ((Ls.getD l default).phase.map (·.leaf)).getD k []
-            sibs := fun l k ↦ ((Ls.getD l default).phase.map (fun o ↦
-              o.path.take (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default).depth -
-                ((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default).capDepth))).getD k []
-            rounds_len := ?_
-            hsv_len := ?_
-            static := ?_
-            qs_eq := ?_
-            batched_eq := ?_
-            caps := ?_
-            qMem := ?_
-            body := ?_ }⟩
+  refine { own := (hdOf μ r Ls).own
+           own_len := ?_
+           own_pt := ?_
+           own_pt1 := ?_
+           D := (hdOf μ r Ls).D
+           capL_len := ?_
+           posW := ?_
+           lam_inv := ?_
+           capW := capW Ls μ r
+           flW := flW Ls μ r
+           rounds := fun l ↦ (Ls.getD l default).rounds
+           hsv := fun l ↦ if l = (osCfgR (μ - minOpenLog) (r - 1)).yrLevel then (hdOf μ r Ls).hsFC else []
+           qs := fun l k ↦ ((Ls.getD l default).qs μ).getD k 0
+           rows := fun l k ↦ ((Ls.getD l default).phase.map (·.leaf)).getD k []
+           sibs := fun l k ↦ ((Ls.getD l default).phase.map (fun o ↦
+             o.path.take (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default).depth -
+               ((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default).capDepth))).getD k []
+           rounds_len := ?_
+           hsv_len := ?_
+           static := ?_
+           qs_eq := ?_
+           batched_eq := ?_
+           caps := ?_
+           qMem := ?_
+           body := ?_ }
   · exact (hdOf μ r Ls).own_len
   · exact hR.fld_own_pt
   · exact hR.fld_own_pt1
@@ -137,6 +137,27 @@ theorem osHonest_run {cur tabs : E} :
     rw [← hR.target_eq, ← hR.inner_eq] at key
     rw [hR.residual_eq]
     exact key
+
+/-- **The honest data's hints are the run's.** -/
+theorem osHonest_fields {cur tabs : E} :
+    (hR.osHonest (cur := cur) (tabs := tabs)).capW = capW Ls μ r ∧
+      (hR.osHonest (cur := cur) (tabs := tabs)).flW = flW Ls μ r ∧
+      (hR.osHonest (cur := cur) (tabs := tabs)).qs = (fun l k ↦ ((Ls.getD l default).qs μ).getD k 0) ∧
+      (hR.osHonest (cur := cur) (tabs := tabs)).rows =
+        (fun l k ↦ ((Ls.getD l default).phase.map (·.leaf)).getD k []) ∧
+      (hR.osHonest (cur := cur) (tabs := tabs)).sibs = (fun l k ↦ ((Ls.getD l default).phase.map (fun o ↦
+        o.path.take (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default).depth -
+          ((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default).capDepth))).getD k []) := by
+  unfold HonRun.osHonest
+  dsimp only
+  exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+
+theorem osHonest_run {cur tabs : E} :
+    Nonempty (OsHonestA (osCfgR (μ - minOpenLog) (r - 1))
+      (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs]) cur tabs xs
+      w.target w.inner w.residual (w.point ++ List.replicate (pointCap - μ) 0)
+      (w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1)) :=
+  ⟨hR.osHonest⟩
 
 end HonRun
 

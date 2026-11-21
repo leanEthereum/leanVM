@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Tables.VtC.FComplete
 public import LeanVM.Guest.B1.Tables.VtC.InBuf
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The window's loads, inside buffers
@@ -49,13 +51,13 @@ section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **The window's loads land in buffers.** -/
-theorem vtF_loadsInBuf (hl : args.length = 20) {bufs : List (E × ℕ)}
-    (h13 : BufWin (vtσ rd w args) bufs (.n 13) 16)
-    (hcur : BufWin (vtσ rd w args) bufs (.n 2645) 153)
-    {τs : ℕ → ℕ} (hkbt : ∀ t < 6, vtσ rd w args (.n (27 + t)) = gen ^ τs t)
-    {n : ℕ} (hgn : vtσ rd w args (.n 2543) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n)
-    (hcp : BufWin (vtσ rd w args) bufs (.n 2628) (n + 1))
-    (hpe : BufWin (vtσ rd w args) bufs (.n 2649) (n + 1)) :
+theorem vtF_loadsInBuf (hl : args.length = 21) {bufs : List (E × ℕ)}
+    (h13 : BufWin (vtσ rd w args) bufs (.n (val% «verify_tables» "fp_w")) 16)
+    (hcur : BufWin (vtσ rd w args) bufs (.n (val% «verify_tables» "cursor@5")) 153)
+    {τs : ℕ → ℕ} (hkbt : ∀ t < 6, vtσ rd w args (.n (28 + t)) = gen ^ τs t)
+    {n : ℕ} (hgn : vtσ rd w args (.n (val% «verify_tables» "g_zc_n")) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n)
+    (hcp : BufWin (vtσ rd w args) bufs (.n (val% «verify_tables» "zc_cprod")) (n + 1))
+    (hpe : BufWin (vtσ rd w args) bufs (.n (val% «verify_tables» "zc_peq")) (n + 1)) :
     LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 2683).take (5523 - 2683)) := by
   intro d p off hs
   rw [tbStmtsEqb_sound vtF_split] at hs
@@ -93,7 +95,7 @@ theorem vtF_loadsInBuf (hl : args.length = 20) {bufs : List (E × ℕ)}
       · exact hpe.shift (by have := hτn t ht; omega) e3
   · match p, hr with
     | .n 13, _ =>
-      have hm : Stmt.atom (.load d (.n 13) off) ∈ vtEvL :=
+      have hm : Stmt.atom (.load d (.n (val% «verify_tables» "fp_w")) off) ∈ vtEvL :=
         vtEvL_mem (vtF_mem hs) (fun _ _ _ h ↦ by cases h)
       have := List.all_eq_true.mp vtF_loadsBelow _ hm
       simp only at this

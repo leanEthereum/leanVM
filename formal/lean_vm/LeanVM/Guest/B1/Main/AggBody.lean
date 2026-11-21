@@ -11,6 +11,8 @@ public import LeanVM.Guest.Value.KeccakConst
 public import LeanVM.Guest.B1.Main.Body
 public import LeanVM.Guest.Batch.Def
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«aggregate_claims»
 
 /-!
 # `aggregate_claims`' body
@@ -55,68 +57,68 @@ def seedLo : List (ℕ × ℕ) :=
 
 /-- The permutation of the last absorbing row (`fs_perm_pending`): its rate cells (four copied),
 then its capacity. -/
-def aggKi : List V := [.n 45, .n 46, .n 47, .n 48, .n 53, .n 54, .n 55, .n 56, .n 40, .n 41, .n 42,
-  .n 43, .n 44]
+def aggKi : List V := [.n (val% «aggregate_claims» "s15.i0:fs_perm_pending.s1#0"), .n (val% «aggregate_claims» "s15.i0:fs_perm_pending.s1#1"), .n (val% «aggregate_claims» "s15.i0:fs_perm_pending.s1#2"), .n (val% «aggregate_claims» "s15.i0:fs_perm_pending.s1#3"), .n (val% «aggregate_claims» "s15.i0:fs_perm_pending.s1#8"), .n (val% «aggregate_claims» "s15.i0:fs_perm_pending.s1#8[1]"), .n (val% «aggregate_claims» "s15.i0:fs_perm_pending.s1#8[2]"), .n (val% «aggregate_claims» "s15.i0:fs_perm_pending.s1#8[3]"), .n (val% «aggregate_claims» "sp[0]"), .n (val% «aggregate_claims» "sp[1]"), .n (val% «aggregate_claims» "sp[2]"),
+  .n (val% «aggregate_claims» "sp[3]"), .n (val% «aggregate_claims» "sp[4]")]
 
 /-- The permutation's outputs. -/
 def aggKo : List V := (List.range 13).map fun i => .n (57 + i)
 
 /-- The nonce's permutation (`fs_absorb_nonce`): the nonce's two cells, the zero run, then the
 capacity of the last absorbing row's permutation. -/
-def aggNi : List V := permIns 1 [.n 71, .n 72] 74 [.n 65, .n 66, .n 67, .n 68, .n 69]
+def aggNi : List V := permIns 1 [.n (val% «aggregate_claims» "nonce_rate[0]"), .n (val% «aggregate_claims» "nonce_rate[1]")] 74 [.n (val% «aggregate_claims» "fs_perm_pending.nxt[8]"), .n (val% «aggregate_claims» "fs_perm_pending.nxt[9]"), .n (val% «aggregate_claims» "fs_perm_pending.nxt[10]"), .n (val% «aggregate_claims» "fs_perm_pending.nxt[11]"), .n (val% «aggregate_claims» "fs_perm_pending.nxt[12]")]
 
 /-- The nonce permutation's outputs. -/
 def aggNo : List V := (List.range 13).map fun i => .n (78 + i)
 
 /-- The nonce's `fs_pack` (`fsNonceT`) and the zero run (`padRunT`), as atoms. -/
 def aggNonceA : List Atom :=
-  [.load (.n 70) (.n 6) 0, .copy (.n 71) (.n 70), .const (.n 72) (word 0 dsPowNonce),
-    .const (.n 73) (word 1 0), .const (.n 74) (word 0 0), .const (.n 75) (word 0 0),
-    .const (.n 76) (word 0 0), .const (.n 77) (word 0 0)]
+  [.load (.n (val% «aggregate_claims» "s16.e.s1#0")) (.n (val% «aggregate_claims» "bc_msgs")) 0, .copy (.n (val% «aggregate_claims» "nonce_rate[0]")) (.n (val% «aggregate_claims» "s16.e.s1#0")), .const (.n (val% «aggregate_claims» "nonce_rate[1]")) (word 0 dsPowNonce),
+    .const (.n (val% «aggregate_claims» "s16.e.s1.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0")) (word 1 0), .const (.n (val% «aggregate_claims» "s16.e.s1.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[1]")) (word 0 0), .const (.n (val% «aggregate_claims» "s16.e.s1.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[2]")) (word 0 0),
+    .const (.n (val% «aggregate_claims» "s16.e.s1.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[3]")) (word 0 0), .const (.n (val% «aggregate_claims» "s16.e.s1.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[4]")) (word 0 0)]
 
-theorem aggNonceA_eq : aggNonceA.map Stmt.atom = fsNonceT (.n 6) 0 70 ++ padRunT 73 := rfl
+theorem aggNonceA_eq : aggNonceA.map Stmt.atom = fsNonceT (.n (val% «aggregate_claims» "bc_msgs")) 0 70 ++ padRunT 73 := rfl
 
 /-- **`aggregate_claims`' block, checked.** -/
 noncomputable def aggOk : Bool :=
   let P := aggP
   let A := atomsIn P
-  P.all Stmt.flat && decide ((fn% «aggregate_claims»).params = [.n 0, .n 1, .n 2, .n 3, .n 4,
-      .n 5]) &&
+  P.all Stmt.flat && decide ((fn% «aggregate_claims»).params = [.n (val% «aggregate_claims» "n_children_g"), .n (val% «aggregate_claims» "child_pi"), .n (val% «aggregate_claims» "child_fresh"), .n (val% «aggregate_claims» "child_carried"), .n (val% «aggregate_claims» "defer_stmt"),
+      .n (val% «aggregate_claims» "tabs")]) &&
   (List.range 5).all (fun i => A.any (isConstAt (.n (10 + i)) (seedLo.getD i (0, 0)).1
-    (seedLo.getD i (0, 0)).2) && A.any (isLoadAt (.n (10 + i)) (.n 30) i)) &&
-  packIn A (.n 0) 15 &&
+    (seedLo.getD i (0, 0)).2) && A.any (isLoadAt (.n (10 + i)) (.n (val% «aggregate_claims» "absorb")) i)) &&
+  packIn A (.n (val% «aggregate_claims» "n_children_g")) 15 &&
   (List.range 3).all (fun j => A.any (isConstAt (.n (17 + 2 * j)) 0 0) &&
     packIn A (.n (17 + 2 * j)) (17 + 2 * j)) &&
-  (List.range 4).all (fun j => A.any (isLoadAt (.n (15 + 2 * j)) (.n 30) (5 + 2 * j)) &&
-    A.any (isLoadAt (.n (16 + 2 * j)) (.n 30) (6 + 2 * j))) &&
-  guardOk P (.n 32) name% «aggregate_claims_loop0» (.n 33) (.n 0) [.n 30, .n 2, .n 8, .n 3, .n 9,
-      .n 1] &&
-  monoIs A (.n 39) (.n 30) (.n 0) 13 &&
-  A.any (isKeccakAt aggKi aggKo false false) && rowInOk A (.n 39) aggKi &&
+  (List.range 4).all (fun j => A.any (isLoadAt (.n (15 + 2 * j)) (.n (val% «aggregate_claims» "absorb")) (5 + 2 * j)) &&
+    A.any (isLoadAt (.n (16 + 2 * j)) (.n (val% «aggregate_claims» "absorb")) (6 + 2 * j))) &&
+  guardOk P (.n (val% «aggregate_claims» "s12#1")) name% «aggregate_claims_loop0» (.n (val% «aggregate_claims» "s12#2")) (.n (val% «aggregate_claims» "n_children_g")) [.n (val% «aggregate_claims» "absorb"), .n (val% «aggregate_claims» "child_fresh"), .n (val% «aggregate_claims» "fresh_row"), .n (val% «aggregate_claims» "child_carried"), .n (val% «aggregate_claims» "carried_row"),
+      .n (val% «aggregate_claims» "child_pi")] &&
+  monoIs A (.n (val% «aggregate_claims» "absorbed")) (.n (val% «aggregate_claims» "absorb")) (.n (val% «aggregate_claims» "n_children_g")) 13 &&
+  A.any (isKeccakAt aggKi aggKo false false) && rowInOk A (.n (val% «aggregate_claims» "absorbed")) aggKi &&
   allIn A aggNonceA &&
   A.any (isKeccakAt aggNi aggNo false false) &&
-  hasCall P "grind_check__L2" [.n 79, .n 5] [] &&
-  isMul A (.n 91) (.n 78) (.n 78) &&
-  A.any (isConstAt (.n 96) 1 0) && A.any (isLoadAt (.n 96) (.n 95) 0) &&
-  A.any (isConstAt (.n 97) 0 0) && A.any (isLoadAt (.n 97) (.n 95) 1) &&
-  guardOk P (.n 99) name% «aggregate_claims_loop1» (.n 100) (.n 0) [.n 95, .n 8, .n 9, .n 91,
-      .n 78] &&
-  monoIs A (.n 102) (.n 95) (.n 0) 2 && A.any (isLoadAt (.n 103) (.n 102) 1) &&
-  genMulOk A (.n 106) (.n 6) &&
-  hasCall P "batch_sumcheck__L23" [.n 86, .n 87, .n 88, .n 89, .n 90, .n 106, .n 103, .n 104, .n 5]
-    [.n 107, .n 108, .n 109, .n 110, .n 111, .n 112] &&
+  hasCall P "grind_check__L2" [.n (val% «aggregate_claims» "fs_perm.nxt[1]"), .n (val% «aggregate_claims» "tabs")] [] &&
+  isMul A (.n (val% «aggregate_claims» "lam_sq")) (.n (val% «aggregate_claims» "fs_perm.nxt[0]")) (.n (val% «aggregate_claims» "fs_perm.nxt[0]")) &&
+  A.any (isConstAt (.n (val% «aggregate_claims» "s20#0")) 1 0) && A.any (isLoadAt (.n (val% «aggregate_claims» "s20#0")) (.n (val% «aggregate_claims» "bc_chain")) 0) &&
+  A.any (isConstAt (.n (val% «aggregate_claims» "s21#0")) 0 0) && A.any (isLoadAt (.n (val% «aggregate_claims» "s21#0")) (.n (val% «aggregate_claims» "bc_chain")) 1) &&
+  guardOk P (.n (val% «aggregate_claims» "s22#1")) name% «aggregate_claims_loop1» (.n (val% «aggregate_claims» "s22#2")) (.n (val% «aggregate_claims» "n_children_g")) [.n (val% «aggregate_claims» "bc_chain"), .n (val% «aggregate_claims» "fresh_row"), .n (val% «aggregate_claims» "carried_row"), .n (val% «aggregate_claims» "lam_sq"),
+      .n (val% «aggregate_claims» "fs_perm.nxt[0]")] &&
+  monoIs A (.n (val% «aggregate_claims» "bc_end")) (.n (val% «aggregate_claims» "bc_chain")) (.n (val% «aggregate_claims» "n_children_g")) 2 && A.any (isLoadAt (.n (val% «aggregate_claims» "bc_running@1")) (.n (val% «aggregate_claims» "bc_end")) 1) &&
+  genMulOk A (.n (val% «aggregate_claims» "fs0~7")) (.n (val% «aggregate_claims» "bc_msgs")) &&
+  hasCall P "batch_sumcheck__L23" [.n (val% «aggregate_claims» "fs_perm.nxt[8]"), .n (val% «aggregate_claims» "fs_perm.nxt[9]"), .n (val% «aggregate_claims» "fs_perm.nxt[10]"), .n (val% «aggregate_claims» "fs_perm.nxt[11]"), .n (val% «aggregate_claims» "fs_perm.nxt[12]"), .n (val% «aggregate_claims» "fs0~7"), .n (val% «aggregate_claims» "bc_running@1"), .n (val% «aggregate_claims» "bc_point"), .n (val% «aggregate_claims» "tabs")]
+    [.n (val% «aggregate_claims» "fs0"), .n (val% «aggregate_claims» "fs1"), .n (val% «aggregate_claims» "fs2"), .n (val% «aggregate_claims» "fs3"), .n (val% «aggregate_claims» "fs4"), .n (val% «aggregate_claims» "bc_running@2")] &&
   (List.range 23).all (fun k => A.any (isConstAt (.n (114 + 3 * k)) 1 0) &&
-    A.any (isLoadAt (.n (115 + 3 * k)) (.n 104) k) &&
+    A.any (isLoadAt (.n (115 + 3 * k)) (.n (val% «aggregate_claims» "bc_point")) k) &&
     A.any (isAddAt (.n (116 + 3 * k)) (.n (114 + 3 * k)) (.n (115 + 3 * k))) &&
-    A.any (isLoadAt (.n (116 + 3 * k)) (.n 113) k)) &&
-  A.any (isConstAt (.n 186) 0 0) && A.any (isLoadAt (.n 186) (.n 185) 0) &&
-  guardOk P (.n 188) name% «aggregate_claims_loop2» (.n 189) (.n 0) [.n 8, .n 9, .n 113, .n 95,
-      .n 185, .n 78] &&
-  isMul A (.n 190) (.n 185) (.n 0) && A.any (isLoadAt (.n 191) (.n 190) 0) &&
-  isMul A (.n 192) (.n 7) (.n 191) && A.any (isAssertEqAt (.n 112) (.n 192)) &&
-  (List.range 23).all (fun k => A.any (isLoadAt (.n (193 + k)) (.n 104) k) &&
-    A.any (isLoadAt (.n (193 + k)) (.n 4) k)) &&
-  A.any (isLoadAt (.n 7) (.n 4) 23)
+    A.any (isLoadAt (.n (116 + 3 * k)) (.n (val% «aggregate_claims» "bc_point1")) k)) &&
+  A.any (isConstAt (.n (val% «aggregate_claims» "s30#0")) 0 0) && A.any (isLoadAt (.n (val% «aggregate_claims» "s30#0")) (.n (val% «aggregate_claims» "bc_wsum")) 0) &&
+  guardOk P (.n (val% «aggregate_claims» "s31#1")) name% «aggregate_claims_loop2» (.n (val% «aggregate_claims» "s31#2")) (.n (val% «aggregate_claims» "n_children_g")) [.n (val% «aggregate_claims» "fresh_row"), .n (val% «aggregate_claims» "carried_row"), .n (val% «aggregate_claims» "bc_point1"), .n (val% «aggregate_claims» "bc_chain"),
+      .n (val% «aggregate_claims» "bc_wsum"), .n (val% «aggregate_claims» "fs_perm.nxt[0]")] &&
+  isMul A (.n (val% «aggregate_claims» "s32#0")) (.n (val% «aggregate_claims» "bc_wsum")) (.n (val% «aggregate_claims» "n_children_g")) && A.any (isLoadAt (.n (val% «aggregate_claims» "s32#1")) (.n (val% «aggregate_claims» "s32#0")) 0) &&
+  isMul A (.n (val% «aggregate_claims» "s32#2")) (.n (val% «aggregate_claims» "bytecode_star")) (.n (val% «aggregate_claims» "s32#1")) && A.any (isAssertEqAt (.n (val% «aggregate_claims» "bc_running@2")) (.n (val% «aggregate_claims» "s32#2"))) &&
+  (List.range 23).all (fun k => A.any (isLoadAt (.n (193 + k)) (.n (val% «aggregate_claims» "bc_point")) k) &&
+    A.any (isLoadAt (.n (193 + k)) (.n (val% «aggregate_claims» "defer_stmt")) k)) &&
+  A.any (isLoadAt (.n (val% «aggregate_claims» "bytecode_star")) (.n (val% «aggregate_claims» "defer_stmt")) 23)
 
 set_option maxRecDepth 100000 in
 theorem agg_ok : aggOk = true := by decide +kernel

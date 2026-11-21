@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Main.MainGoalsHL5
 public import LeanVM.Guest.B1.Main.MainHonestT
 public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop4»
 
 /-!
 # The children loop's trees
@@ -32,9 +34,9 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd
 open LeanVM.Guest (GuestLimits)
 open LeanVM.Guest.B1.Da (SlOk slEvs_holds regionL_of_mem limb0_gen_pow_mul exists_of_length_succ
   fn_name_of_find)
-open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT Returns Kid OutsOk CallsMatch RegionsOk outRegion
-  DisjL Within disj_append disj_nil kidsFromIn_of_kidsD regionsOk_of within_append bufL bufL_within
-  bufL_disj bufL_region LowDef)
+open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT CompleteAtL completeAtL_tail Returns Kid OutsOk
+  CallsMatch RegionsOk outRegion DisjL Within disj_append disj_nil kidsFromIn_of_kidsD regionsOk_of
+  within_append bufL bufL_within bufL_disj bufL_region LowDef)
 
 @[expose] public section
 
@@ -44,25 +46,25 @@ noncomputable def l5Evs (σ : Val) : List Ev := (l5Pre ++ [l5Tail]).flatMap (Mai
 /-- **`main_loop4`'s calls at `σ`**, in order: the two claim lists' digests, the statement's digest,
 `verify_sub`, the tail call (taken when `v59 ≠ 0`). -/
 noncomputable def l5CallList (σ : Val) : List Call :=
-  [⟨"child_claim_list_digest", [.n 3, .n 4, .n 17, .n 5, .n 18], [.n 23, .n 24], true⟩,
-    ⟨"child_claim_list_digest", [.n 6, .n 7, .n 25, .n 8, .n 19], [.n 26, .n 27], true⟩,
-    ⟨"statement_digest", [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33],
-      [.n 38, .n 39], true⟩,
-    ⟨"verify_sub", [.n 38, .n 39, .n 11, .n 12, .n 14, .n 48], [], true⟩,
-    ⟨name% «main_loop4», [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11,
-      .n 12, .n 13, .n 14, .n 15], [], decide (σ (.n 53) ≠ 0)⟩]
+  [⟨"child_claim_list_digest", [.n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "base"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "child_meta[0]")], [.n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1")], true⟩,
+    ⟨"child_claim_list_digest", [.n (val% «main_loop4» "lean_sphincs_table"), .n (val% «main_loop4» "sp_cover"), .n (val% «main_loop4» "cs_0~2"), .n (val% «main_loop4» "lean_sphincs_slots_g"), .n (val% «main_loop4» "child_meta[1]")], [.n (val% «main_loop4» "cs_0"), .n (val% «main_loop4» "cs_1")], true⟩,
+    ⟨"statement_digest", [.n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1"), .n (val% «main_loop4» "cs_0"), .n (val% «main_loop4» "cs_1"), .n (val% «main_loop4» "pi_0~2"), .n (val% «main_loop4» "pi_0~3"), .n (val% «main_loop4» "carried")],
+      [.n (val% «main_loop4» "pi_0"), .n (val% «main_loop4» "pi_1")], true⟩,
+    ⟨"verify_sub", [.n (val% «main_loop4» "pi_0"), .n (val% «main_loop4» "pi_1"), .n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "s18#5")], [], true⟩,
+    ⟨name% «main_loop4», [.n (val% «main_loop4» "s21#4"), .n (val% «main_loop4» "bound"), .n (val% «main_loop4» "written"), .n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "lean_sphincs_table"), .n (val% «main_loop4» "sp_cover"), .n (val% «main_loop4» "lean_sphincs_slots_g"), .n (val% «main_loop4» "child_carried"), .n (val% «main_loop4» "da_digests"), .n (val% «main_loop4» "seed_0"),
+      .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "child_pi"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "child_fresh")], [], decide (σ (.n (val% «main_loop4» "s21#2")) ≠ 0)⟩]
 
 theorem l5_calls (σ : Val) : calls (l5Evs σ) = l5CallList σ := by
   obtain ⟨-, -, -, hpc⟩ := Main.straight_parts σ _ l5Pre_straight
   rw [l5Evs, hpc, show (l5Pre ++ [l5Tail]).filterMap Main.Stmt.callS =
-    [(none, "child_claim_list_digest", [.n 3, .n 4, .n 17, .n 5, .n 18], [.n 23, .n 24]),
-      (none, "child_claim_list_digest", [.n 6, .n 7, .n 25, .n 8, .n 19], [.n 26, .n 27]),
-      (none, "statement_digest", [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33],
-        [.n 38, .n 39]),
-      (none, "verify_sub", [.n 38, .n 39, .n 11, .n 12, .n 14, .n 48], []),
-      (some (.n 53), name% «main_loop4», [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8,
-          .n 9,
-        .n 10, .n 11, .n 12, .n 13, .n 14, .n 15], [])] from rfl]
+    [(none, "child_claim_list_digest", [.n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "base"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "child_meta[0]")], [.n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1")]),
+      (none, "child_claim_list_digest", [.n (val% «main_loop4» "lean_sphincs_table"), .n (val% «main_loop4» "sp_cover"), .n (val% «main_loop4» "cs_0~2"), .n (val% «main_loop4» "lean_sphincs_slots_g"), .n (val% «main_loop4» "child_meta[1]")], [.n (val% «main_loop4» "cs_0"), .n (val% «main_loop4» "cs_1")]),
+      (none, "statement_digest", [.n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1"), .n (val% «main_loop4» "cs_0"), .n (val% «main_loop4» "cs_1"), .n (val% «main_loop4» "pi_0~2"), .n (val% «main_loop4» "pi_0~3"), .n (val% «main_loop4» "carried")],
+        [.n (val% «main_loop4» "pi_0"), .n (val% «main_loop4» "pi_1")]),
+      (none, "verify_sub", [.n (val% «main_loop4» "pi_0"), .n (val% «main_loop4» "pi_1"), .n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "s18#5")], []),
+      (some (.n (val% «main_loop4» "s21#2")), name% «main_loop4», [.n (val% «main_loop4» "s21#4"), .n (val% «main_loop4» "bound"), .n (val% «main_loop4» "written"), .n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "lean_sphincs_table"), .n (val% «main_loop4» "sp_cover"), .n (val% «main_loop4» "lean_sphincs_slots_g"),
+          .n (val% «main_loop4» "child_carried"),
+        .n (val% «main_loop4» "da_digests"), .n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "child_pi"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "child_fresh")], [])] from rfl]
   rfl
 
 /-- The predicates on the block's four calls' trees: `Pv` on `verify_sub`'s. -/
@@ -78,8 +80,8 @@ def l5Ts (Px Ps Pv Tt : Tree → Prop) : List (Tree → Prop) := l5Ts4 Px Ps Pv 
 (`child_meta`'s `g^ex`, `g^es` at `v18`, `v19`), its walk's calls `l5CallList σ`, its children
 satisfying `KidsT (l5CallList σ) (l5Ts Px Ps Pv Tt)`. -/
 def L5Node (k : KidH) (Px Ps Pv Tt : Tree → Prop) (t : Tree) : Prop :=
-  ∃ σ bufs ks, t = .node name% «main_loop4» σ bufs ks ∧ σ (.n 18) = gen ^ k.ex ∧
-    σ (.n 19) = gen ^ k.es ∧ calls (l5Evs σ) = l5CallList σ ∧ KidsT (l5CallList σ) (l5Ts Px Ps Pv Tt) ks
+  ∃ σ bufs ks, t = .node name% «main_loop4» σ bufs ks ∧ σ (.n (val% «main_loop4» "child_meta[0]")) = gen ^ k.ex ∧
+    σ (.n (val% «main_loop4» "child_meta[1]")) = gen ^ k.es ∧ calls (l5Evs σ) = l5CallList σ ∧ KidsT (l5CallList σ) (l5Ts Px Ps Pv Tt) ks
 
 /-- **The `m` iterations from child `c`**: each a `main_loop4` node at a valuation holding its
 child's hinted counts (`ex c`, `es c`), its walk's calls `l5CallList σ`, its claim lists' and
@@ -87,8 +89,8 @@ child's hinted counts (`ex c`, `es c`), its walk's calls `l5CallList σ`, its cl
 iteration's. -/
 def L5From (ex es : ℕ → ℕ) (Pxs Pss Pvs : ℕ → Tree → Prop) : ℕ → ℕ → Tree → Prop
   | 0, _, _ => False
-  | m + 1, c, t => ∃ σ bufs ks, t = .node name% «main_loop4» σ bufs ks ∧ σ (.n 18) = gen ^ ex c ∧
-      σ (.n 19) = gen ^ es c ∧ calls (l5Evs σ) = l5CallList σ ∧
+  | m + 1, c, t => ∃ σ bufs ks, t = .node name% «main_loop4» σ bufs ks ∧ σ (.n (val% «main_loop4» "child_meta[0]")) = gen ^ ex c ∧
+      σ (.n (val% «main_loop4» "child_meta[1]")) = gen ^ es c ∧ calls (l5Evs σ) = l5CallList σ ∧
       KidsT (l5CallList σ) (l5Ts (Pxs c) (Pss c) (Pvs c) (L5From ex es Pxs Pss Pvs m (c + 1))) ks
 
 /-- **The honest children loop's trees**: iteration `c < nc` is a `main_loop4` node whose hinted
@@ -116,38 +118,22 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
     {lxt cover lxs lst spc lss s0 s1 gsq cfresh : E} {k : KidH} {Px Ps Pv Tt : Tree → Prop}
     (hnk : nk < 2 ^ 34) (hc : c + 1 ≤ nk)
     (hk : KidOkC fs cert Lin W D Pi Cr lxt cover lxs lst spc lss s0 s1 gsq cfresh c k)
-    (htail : c + 1 < nk → CompleteAtDT fs cert 23 name% «main_loop4» Lin
+    (htail : c + 1 < nk → CompleteAtL fs cert 23 name% «main_loop4» Lin
       [gen ^ (c + 1), gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
-        gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) Tt)
+        gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) Tt (fun _ => True))
     (hVT : CompleteAtDT fs cert 20 "verify_sub" Lin
       [(k.pi s0 s1).1, (k.pi s0 s1).2, s0, s1, gsq, cfresh * gen ^ (24 * c)] (Returns []) Pv)
     (hXT : CompleteAtDT fs cert 23 "child_claim_list_digest" Lin [lxt, cover, k.base, lxs, gen ^ k.ex]
       (Returns [k.cx.1, k.cx.2]) Px)
     (hST : CompleteAtDT fs cert 23 "child_claim_list_digest" Lin
       [lst, spc, k.base * gen ^ k.ex, lss, gen ^ k.es] (Returns [k.cs.1, k.cs.2]) Ps) :
-    CompleteAtDT fs cert 23 name% «main_loop4» Lin
+    CompleteAtL fs cert 23 name% «main_loop4» Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
-        gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) (L5Node k Px Ps Pv Tt) := by
-  intro fp
+        gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) (L5Node k Px Ps Pv Tt) (fun _ => True) := by
   -- the rest of the loop
-  obtain ⟨nt, Lt, hWt, hDt, hRt⟩ : ∃ nt Lt, Within Lt (fp + fs name% «main_loop4») nt ∧ DisjL Lt ∧
-      ∀ rd, LowDef 23 rd → MemL rd (Lt ++ Lin) →
-        if decide (c + 1 ≠ nk) = true then
-          RelAtInT coreProgram fs cert rd (RegionL Lin) (RegionL []) (fp + fs name% «main_loop4»)
-              nt name% «main_loop4»
-            [gen ^ (c + 1), gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
-              gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] [] Tt
-        else nt = fs name% «main_loop4» := by
-    by_cases hlast : c + 1 = nk
-    · exact ⟨fs name% «main_loop4», [], fun q hq => by simp at hq, List.Pairwise.nil,
-                                                         fun _ _ _ => by
-        simp [hlast]⟩
-    · obtain ⟨nt, Lt, rt, Lot, ⟨rfl, rfl⟩, hW, hD, hR⟩ := htail (by omega) (fp + fs
-                                                                      name% «main_loop4»)
-      refine ⟨nt, Lt, by simpa using hW, by simpa using hD, fun rd hl hm => ?_⟩
-      simp only [ne_eq, hlast, not_false_eq_true, decide_true, ↓reduceIte]
-      exact hR rd hl (by simpa using hm)
-  set P1 := fp + fs name% «main_loop4» + nt with hP1
+  obtain ⟨Bt, hRest⟩ := completeAtL_tail (fs := fs) (cert := cert) (g := name% «main_loop4»)
+    (last := c + 1 = nk) fun h => htail (by omega)
+  refine ⟨fs name% «main_loop4» + Bt, fun fp cur hcur => ?_⟩
   -- the callees
   let ks : List Kid :=
     [⟨"child_claim_list_digest", true, [lxt, cover, k.base, lxs, gen ^ k.ex], Lin,
@@ -173,7 +159,7 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
       fun ht => (hok _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self)) ht).toT,
       fun _ => hVT.lowMono (by norm_num), trivial⟩
   obtain ⟨Nk, Lk, outs, hoo, hW, hD, -, hKids⟩ :=
-    B1.kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 23 ks (l5Ts4 Px Ps Pv) hokT P1
+    B1.kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 23 ks (l5Ts4 Px Ps Pv) hokT cur
   have hl0 : outs.length = 4 := hoo.length
   obtain ⟨o1, t1, rfl, hl1⟩ := exists_of_length_succ hl0
   obtain ⟨o2, t2, rfl, hl2⟩ := exists_of_length_succ hl1
@@ -181,14 +167,15 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
   obtain ⟨o4, t4, rfl, hl4⟩ := exists_of_length_succ hl3
   obtain rfl := List.eq_nil_of_length_eq_zero hl4
   obtain ⟨h1, h2, h3, h4, -⟩ := hoo
+  obtain ⟨nt, Lt, -, -, hWt, hDt, hRt⟩ := hRest (fp + fs name% «main_loop4») (cur + Nk) (by omega)
   -- the layout
-  refine ⟨fs name% «main_loop4» + nt + Nk, Lt ++ Lk, [], [], ⟨rfl, rfl⟩, ?_,
-    by rw [List.nil_append]; exact disj_append hDt hD hWt hW (by omega), fun rd hlow hm => ?_⟩
+  refine ⟨Nk + nt, Lk ++ Lt, [], [], trivial, ⟨rfl, rfl⟩, ?_,
+    by rw [List.nil_append]; exact disj_append hD hDt hW hWt le_rfl, fun rd hlow hm => ?_⟩
   · rw [List.nil_append, within_append]
-    exact ⟨hWt.mono (by omega) (by omega), hW.mono (by omega) (by omega)⟩
+    exact ⟨hW.mono le_rfl (by omega), hWt.mono (by omega) (by omega)⟩
   simp only [List.nil_append] at hm
   obtain ⟨hm1, hLin⟩ := Main.memL_append.mp hm
-  obtain ⟨hmt, hLk⟩ := Main.memL_append.mp hm1
+  obtain ⟨hLk, hmt⟩ := Main.memL_append.mp hm1
   have ht := hRt rd hlow (Main.memL_append.mpr ⟨hmt, hLin⟩)
   obtain ⟨hb0, hb1, hd0, hd1, hpi0, hpi1, -⟩ := hk.mem rd hLin
   obtain ⟨rW0, rW1, rD0, rD1, rPi0, rPi1⟩ := hk.reg
@@ -217,29 +204,29 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
   obtain ⟨hpd, hpa, hpad, hpc⟩ := Main.straight_parts σ _ l5Pre_straight
   have hal : allocs σ ((l5Pre ++ [l5Tail]).flatMap (Main.slEvs σ)) = [] := by
     rw [hpa, show (l5Pre ++ [l5Tail]).filterMap Main.Stmt.allocSz = [] from rfl]; rfl
-  have h59 : decide (σ (.n 53) ≠ 0) = decide (c + 1 ≠ nk) := by
+  have h59 : decide (σ (.n (val% «main_loop4» "s21#2")) ≠ 0) = decide (c + 1 ≠ nk) := by
     rw [hV.v59]
     refine decide_eq_decide.mpr ⟨fun h he => h (by rw [he]; exact e_add_eq_zero_iff.mpr rfl),
       fun h he => h ?_⟩
     exact gen_pow_inj' (by omega) (by omega) (e_add_eq_zero_iff.mp he)
   have hcalls : calls ((l5Pre ++ [l5Tail]).flatMap (Main.slEvs σ)) =
-      [⟨"child_claim_list_digest", [.n 3, .n 4, .n 17, .n 5, .n 18], [.n 23, .n 24], true⟩,
-        ⟨"child_claim_list_digest", [.n 6, .n 7, .n 25, .n 8, .n 19], [.n 26, .n 27], true⟩,
-        ⟨"statement_digest", [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33],
-          [.n 38, .n 39], true⟩,
-        ⟨"verify_sub", [.n 38, .n 39, .n 11, .n 12, .n 14, .n 48], [], true⟩] ++
-      [⟨name% «main_loop4», [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10,
-          .n 11,
-        .n 12, .n 13, .n 14, .n 15], [], decide (c + 1 ≠ nk)⟩] := by
+      [⟨"child_claim_list_digest", [.n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "base"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "child_meta[0]")], [.n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1")], true⟩,
+        ⟨"child_claim_list_digest", [.n (val% «main_loop4» "lean_sphincs_table"), .n (val% «main_loop4» "sp_cover"), .n (val% «main_loop4» "cs_0~2"), .n (val% «main_loop4» "lean_sphincs_slots_g"), .n (val% «main_loop4» "child_meta[1]")], [.n (val% «main_loop4» "cs_0"), .n (val% «main_loop4» "cs_1")], true⟩,
+        ⟨"statement_digest", [.n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1"), .n (val% «main_loop4» "cs_0"), .n (val% «main_loop4» "cs_1"), .n (val% «main_loop4» "pi_0~2"), .n (val% «main_loop4» "pi_0~3"), .n (val% «main_loop4» "carried")],
+          [.n (val% «main_loop4» "pi_0"), .n (val% «main_loop4» "pi_1")], true⟩,
+        ⟨"verify_sub", [.n (val% «main_loop4» "pi_0"), .n (val% «main_loop4» "pi_1"), .n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "s18#5")], [], true⟩] ++
+      [⟨name% «main_loop4», [.n (val% «main_loop4» "s21#4"), .n (val% «main_loop4» "bound"), .n (val% «main_loop4» "written"), .n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "lean_sphincs_table"), .n (val% «main_loop4» "sp_cover"), .n (val% «main_loop4» "lean_sphincs_slots_g"), .n (val% «main_loop4» "child_carried"), .n (val% «main_loop4» "da_digests"),
+          .n (val% «main_loop4» "seed_0"),
+        .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "child_pi"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "child_fresh")], [], decide (c + 1 ≠ nk)⟩] := by
     rw [hpc, show (l5Pre ++ [l5Tail]).filterMap Main.Stmt.callS =
-      [(none, "child_claim_list_digest", [.n 3, .n 4, .n 17, .n 5, .n 18], [.n 23, .n 24]),
-        (none, "child_claim_list_digest", [.n 6, .n 7, .n 25, .n 8, .n 19], [.n 26, .n 27]),
-        (none, "statement_digest", [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33],
-          [.n 38, .n 39]),
-        (none, "verify_sub", [.n 38, .n 39, .n 11, .n 12, .n 14, .n 48], []),
-        (some (.n 53), name% «main_loop4», [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8,
-            .n 9,
-          .n 10, .n 11, .n 12, .n 13, .n 14, .n 15], [])] from rfl]
+      [(none, "child_claim_list_digest", [.n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "base"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "child_meta[0]")], [.n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1")]),
+        (none, "child_claim_list_digest", [.n (val% «main_loop4» "lean_sphincs_table"), .n (val% «main_loop4» "sp_cover"), .n (val% «main_loop4» "cs_0~2"), .n (val% «main_loop4» "lean_sphincs_slots_g"), .n (val% «main_loop4» "child_meta[1]")], [.n (val% «main_loop4» "cs_0"), .n (val% «main_loop4» "cs_1")]),
+        (none, "statement_digest", [.n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1"), .n (val% «main_loop4» "cs_0"), .n (val% «main_loop4» "cs_1"), .n (val% «main_loop4» "pi_0~2"), .n (val% «main_loop4» "pi_0~3"), .n (val% «main_loop4» "carried")],
+          [.n (val% «main_loop4» "pi_0"), .n (val% «main_loop4» "pi_1")]),
+        (none, "verify_sub", [.n (val% «main_loop4» "pi_0"), .n (val% «main_loop4» "pi_1"), .n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "s18#5")], []),
+        (some (.n (val% «main_loop4» "s21#2")), name% «main_loop4», [.n (val% «main_loop4» "s21#4"), .n (val% «main_loop4» "bound"), .n (val% «main_loop4» "written"), .n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "lean_sphincs_table"), .n (val% «main_loop4» "sp_cover"), .n (val% «main_loop4» "lean_sphincs_slots_g"),
+            .n (val% «main_loop4» "child_carried"),
+          .n (val% «main_loop4» "da_digests"), .n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "child_pi"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "child_fresh")], [])] from rfl]
     simp only [List.map_cons, List.map_nil, Main.mkCall, h59, List.cons_append, List.nil_append]
   have hev : ∀ e ∈ (l5Pre ++ [l5Tail]).flatMap (Main.slEvs σ), e.Holds rd σ := by
     refine slEvs_holds fun s hs => ?_
@@ -255,7 +242,7 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
       | .ret _, hk' => simp [l5Kind] at hk'
     · rw [List.mem_singleton] at hs
       subst hs
-      show IsInK (σ (.n 53))
+      show IsInK (σ (.n (val% «main_loop4» "s21#2")))
       rw [hV.v59]; exact gen_pow_add_isInK _ _
   have hparams : (coreProgram.getD idx% «main_loop4» default).params.map σ = args := by
     rw [l5_params]
@@ -264,17 +251,18 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
     rw [pr i (by simpa using h1), List.getD_eq_getElem _ _ h2]
   have h := relAtInWT_of_walk_loop (P := coreProgram) (Tt := Tt) (Ts := l5Ts4 Px Ps Pv) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
     (R := RegionL Lin) (D := RegionL []) (Rt := RegionL Lin) (Dt := RegionL []) (fp := fp)
-    (m := nt) (N := Nk) (args := args)
+    (c := cur) (Bt := Bt) (m := nt) (N := Nk) (args := args)
     (Dk := fun i => (fun _ => False) i ∨ outRegion ks [o1, o2, o3, o4] i)
     coreProgram_wf find_l5 l5_loop hparams hw' rfl hev hcalls
     (by
+      rw [hal, List.sum_nil, Nat.add_zero]
       by_cases hlast : c + 1 = nk
       · simpa [hlast] using ht
       · simp only [ne_eq, hlast, not_false_eq_true, decide_true, ↓reduceIte] at ht ⊢
-        rw [show [V.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11,
-          .n 12, .n 13, .n 14, .n 15].map σ = [σ (.n 55), σ (.n 1), σ (.n 2),
-          σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6), σ (.n 7), σ (.n 8), σ (.n 9), σ (.n 10),
-          σ (.n 11), σ (.n 12), σ (.n 13), σ (.n 14), σ (.n 15)] from rfl,
+        rw [show [V.n (val% «main_loop4» "s21#4"), .n (val% «main_loop4» "bound"), .n (val% «main_loop4» "written"), .n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "lean_sphincs_table"), .n (val% «main_loop4» "sp_cover"), .n (val% «main_loop4» "lean_sphincs_slots_g"), .n (val% «main_loop4» "child_carried"), .n (val% «main_loop4» "da_digests"), .n (val% «main_loop4» "seed_0"),
+          .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "child_pi"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "child_fresh")].map σ = [σ (.n (val% «main_loop4» "s21#4")), σ (.n (val% «main_loop4» "bound")), σ (.n (val% «main_loop4» "written")),
+          σ (.n (val% «main_loop4» "lx_table")), σ (.n (val% «main_loop4» "cover")), σ (.n (val% «main_loop4» "lx_slots_g")), σ (.n (val% «main_loop4» "lean_sphincs_table")), σ (.n (val% «main_loop4» "sp_cover")), σ (.n (val% «main_loop4» "lean_sphincs_slots_g")), σ (.n (val% «main_loop4» "child_carried")), σ (.n (val% «main_loop4» "da_digests")),
+          σ (.n (val% «main_loop4» "seed_0")), σ (.n (val% «main_loop4» "seed_1")), σ (.n (val% «main_loop4» "child_pi")), σ (.n (val% «main_loop4» "g_squares")), σ (.n (val% «main_loop4» "child_fresh"))] from rfl,
           hV.v61, pr 1 (by omega), pr 2 (by omega), pr 3 (by omega), pr 4 (by omega),
           pr 5 (by omega), pr 6 (by omega), pr 7 (by omega), pr 8 (by omega), pr 9 (by omega),
           pr 10 (by omega), pr 11 (by omega), pr 12 (by omega), pr 13 (by omega), pr 14 (by omega),
@@ -285,7 +273,7 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
       rw [hpad, show (l5Pre ++ [l5Tail]).filterMap Main.Stmt.addrS = [] from rfl] at hq
       simp at hq)
     rfl ?_ (fun i hi => Or.inl hi) ?_ (fun i hi => by obtain ⟨q, hq, -⟩ := hi; simp at hq)
-  · rw [hal] at h
+  · rw [hal, List.sum_nil, Nat.zero_add] at h
     obtain ⟨t, ht, ks', rfl, hk'⟩ := h
     refine ⟨_, ht, σ, _, ks', rfl, hV.v18, hV.v19, l5_calls σ, ?_⟩
     rw [← l5_calls σ]
@@ -294,20 +282,20 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
     refine hKids rd σ _ _ _ ?_ hlow hLk ?_ (regionsOk_of fun kd hkd _ i hi => ?_)
     · refine ⟨rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, rfl,
         fun _ => ⟨?_, ?_⟩, rfl, rfl, fun _ => ⟨?_, ?_⟩, trivial⟩
-      · show [σ (.n 3), σ (.n 4), σ (.n 17), σ (.n 5), σ (.n 18)] = _
+      · show [σ (.n (val% «main_loop4» "lx_table")), σ (.n (val% «main_loop4» "cover")), σ (.n (val% «main_loop4» "base")), σ (.n (val% «main_loop4» "lx_slots_g")), σ (.n (val% «main_loop4» "child_meta[0]"))] = _
         rw [pr 3 (by omega), pr 4 (by omega), hV.v17, pr 5 (by omega), hV.v18]; rfl
-      · rw [(h1 rfl).1]; show [σ (.n 23), σ (.n 24)] = _; rw [hV.v29, hV.v30]
-      · show [σ (.n 6), σ (.n 7), σ (.n 25), σ (.n 8), σ (.n 19)] = _
+      · rw [(h1 rfl).1]; show [σ (.n (val% «main_loop4» "cx_0")), σ (.n (val% «main_loop4» "cx_1"))] = _; rw [hV.v29, hV.v30]
+      · show [σ (.n (val% «main_loop4» "lean_sphincs_table")), σ (.n (val% «main_loop4» "sp_cover")), σ (.n (val% «main_loop4» "cs_0~2")), σ (.n (val% «main_loop4» "lean_sphincs_slots_g")), σ (.n (val% «main_loop4» "child_meta[1]"))] = _
         rw [pr 6 (by omega), pr 7 (by omega), hV.v31, pr 8 (by omega), hV.v19]
         rfl
-      · rw [(h2 rfl).1]; show [σ (.n 26), σ (.n 27)] = _; rw [hV.v32, hV.v33]
-      · show [σ (.n 11), σ (.n 12), σ (.n 23), σ (.n 24), σ (.n 26), σ (.n 27), σ (.n 36),
-          σ (.n 37), σ (.n 33)] = _
+      · rw [(h2 rfl).1]; show [σ (.n (val% «main_loop4» "cs_0")), σ (.n (val% «main_loop4» "cs_1"))] = _; rw [hV.v32, hV.v33]
+      · show [σ (.n (val% «main_loop4» "seed_0")), σ (.n (val% «main_loop4» "seed_1")), σ (.n (val% «main_loop4» "cx_0")), σ (.n (val% «main_loop4» "cx_1")), σ (.n (val% «main_loop4» "cs_0")), σ (.n (val% «main_loop4» "cs_1")), σ (.n (val% «main_loop4» "pi_0~2")),
+          σ (.n (val% «main_loop4» "pi_0~3")), σ (.n (val% «main_loop4» "carried"))] = _
         rw [pr 11 (by omega), pr 12 (by omega), hV.v29, hV.v30, hV.v32, hV.v33, hV.v42, hV.v43,
           hV.v39]
         rfl
-      · rw [(h3 rfl).1]; show [σ (.n 38), σ (.n 39)] = _; rw [hV.v44, hV.v45]
-      · show [σ (.n 38), σ (.n 39), σ (.n 11), σ (.n 12), σ (.n 14), σ (.n 48)] = _
+      · rw [(h3 rfl).1]; show [σ (.n (val% «main_loop4» "pi_0")), σ (.n (val% «main_loop4» "pi_1"))] = _; rw [hV.v44, hV.v45]
+      · show [σ (.n (val% «main_loop4» "pi_0")), σ (.n (val% «main_loop4» "pi_1")), σ (.n (val% «main_loop4» "seed_0")), σ (.n (val% «main_loop4» "seed_1")), σ (.n (val% «main_loop4» "g_squares")), σ (.n (val% «main_loop4» "s18#5"))] = _
         rw [hV.v44, hV.v45, pr 11 (by omega), pr 12 (by omega), pr 14 (by omega), hV.v54]
         rfl
       · rw [(h4 rfl).1]; rfl
@@ -322,7 +310,7 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
   · intro A hA
     rw [B1.loadAddrs_straight σ _ l5Pre_straight,
       show (l5Pre ++ [l5Tail]).filterMap B1.Stmt.loadS =
-        [(.n 16, 0), (.n 35, 0), (.n 35, 1), (.n 41, 0), (.n 42, 1), (.n 50, 1)] from rfl] at hA
+        [(.n (val% «main_loop4» "base~0"), 0), (.n (val% «main_loop4» "child_da"), 0), (.n (val% «main_loop4» "child_da"), 1), (.n (val% «main_loop4» "s16#0"), 0), (.n (val% «main_loop4» "s17#0"), 1), (.n (val% «main_loop4» "s19#1"), 1)] from rfl] at hA
     simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
     rw [hal]
     have hW' : ∀ e, (gen ^ W * gen ^ c).limb 0 * addressOfIndex e = addressOfIndex (W + c + e) :=
@@ -365,25 +353,25 @@ theorem l5_completeAtT {Lin : Layout} {W D Pi Cr nk : ℕ}
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns [])
       (L5From (fun c => (kid c).ex) (fun c => (kid c).es) Pxs Pss Pvs (nk - c) c) := by
-  have key : ∀ t c, c + 1 + t = nk → CompleteAtDT fs cert 23 name% «main_loop4» Lin
+  have key : ∀ t c, c + 1 + t = nk → CompleteAtL fs cert 23 name% «main_loop4» Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns [])
-      (L5From (fun c => (kid c).ex) (fun c => (kid c).es) Pxs Pss Pvs (t + 1) c) := by
+      (L5From (fun c => (kid c).ex) (fun c => (kid c).es) Pxs Pss Pvs (t + 1) c) (fun _ => True) := by
     intro t
     induction t with
     | zero =>
       intro c hc
-      exact completeAtDT_mono (l5_stepAtT fs cert (Tt := fun _ => False) hnk (by omega)
+      exact (l5_stepAtT fs cert (Tt := fun _ => False) hnk (by omega)
         (hk c (by omega)) (fun h => absurd h (by omega)) (hVT c (by omega)) (hXT c (by omega))
-        (hST c (by omega))) fun _ ht => ht
+        (hST c (by omega))).mono (fun _ h => h) fun _ ht => ht
     | succ t ih =>
       intro c hc
-      exact completeAtDT_mono (l5_stepAtT fs cert hnk (by omega) (hk c (by omega))
-        (fun _ => ih (c + 1) (by omega)) (hVT c (by omega)) (hXT c (by omega)) (hST c (by omega)))
-        fun _ ht => ht
+      exact (l5_stepAtT fs cert hnk (by omega) (hk c (by omega))
+        (fun _ => ih (c + 1) (by omega)) (hVT c (by omega)) (hXT c (by omega)) (hST c (by omega))).mono
+        (fun _ h => h) fun _ ht => ht
   intro c hc
   rw [show nk - c = nk - c - 1 + 1 by omega]
-  exact key (nk - c - 1) c (by omega)
+  exact (key (nk - c - 1) c (by omega)).toDT
 
 variable {fs cert}
 

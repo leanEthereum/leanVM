@@ -1,6 +1,6 @@
 # Per-function cones for the guest's proofs
 
-Goal: an edit of one function of `guests/lean_ethereum.py` rebuilds that function's generated data, certificates and proofs plus a small glue layer, not the whole guest. This is the plan; what is done and what remains are at the end.
+Goal: an edit of one function of `guests/lean_ethereum.py` rebuilds that function's generated data, certificates and proofs plus a small glue layer, not the whole guest. This was the plan; its firewall rule (below) is what `tools/deps.py` and `tools/firewall-canary.py` implement, and the steps done are listed at the end. The rest is not pursued: what an edit still rebuilds is the checks that read absolute positions, which only relocation would remove.
 
 ## Why an edit rebuilds nearly everything
 
@@ -60,7 +60,9 @@ Done:
 3. **Core IR in packs.** `guest-core` writes each function's core IR into its pack (`Pack/P{k}/Core.lean`, `Pack/<key>/Core*.lean`), and `Data/Core.lean` lists references to them.
 - **Steps 5, 6 and 8 for Checked and B2C.** The packs hold each function's code, certificate, signature, completeness and sharing data (`Bundle.lean`, `Sig.lean`) and its checks over its own data and view (`Checked*`, `Cplw*`, `Shared*`: `Check.checkWinCF`, `B2C.cplWinD`, `B2C.shareWinD`, defined in the data-free `CheckView`, `B2C/CplCheck`, `ShareCheck`, `ChainCheck`, guarded by `ViewFirewall.lean`); the completeness walk finds a callee among the function's callees (`calleeS`), the context restricted to them (`Glob.restrict`). The glue (`Checked/Link*`, `Checked/Fn*`, `B2C/Cplw/Fn*`, `B2C/Shared/Fn*`) links them to `WinOk`, `CplOk`, `ShareOk` (`Check.Link`, `cplOk_of_link`, `shareOk_of_link`). Still global: `main_loop2`'s split windows and chained `match`es (`Checked/X*`, `G*`, `B2C/Cplw/D*`, `B2C/Shared/H*`, `B2C/Chained/`).
 
-Remaining:
+Also done: `Statement/Data/`'s bodies hidden, the modules that evaluate them importing all (`formal/AGENTS.md`); the guest's constants in their own module (`Guest/Data/Consts.lean`), so what reads only constants does not rebuild on a body edit.
+
+Not pursued:
 
 4. **Untaint.** Data imports cut out of the generic modules (`Exec`, `ExecC`, `B1.Common.Basic`, `Pow`, `LimitsNZ`, ...); with the user's go, `guestProgram` moves in the statement.
 5. **The rest of the packs.** The Memory and Count data in the packs (Checked's and B2C's are).
@@ -69,9 +71,3 @@ Remaining:
 9. **Memory and Count local.**
 10. **B1 parametric**, directory by directory, old names kept as glue instantiations; can run beside 6 to 9 after 5.
 11. **Glue diet.** `SoundFacts` split, generators recomputing only changed functions, relative windows for `main_loop2`.
-
-## For the user
-
-- Moving `guestProgram` in the statement (step 4).
-- Loop names in the compiler (`<fn>__loop<k>`): the generators' stable keys (`{caller}_loop{k}`) serve the proofs meanwhile.
-- Splitting `main_loop2` in the compiler instead of relativizing its windows.

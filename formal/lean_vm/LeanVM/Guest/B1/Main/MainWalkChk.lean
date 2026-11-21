@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.Main.MainCChk
 public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # `main`'s path, checked
@@ -42,12 +44,12 @@ theorem mBlocks_kind : mPre.all (mKind [40, 43, 356, 359]) = true ∧ mDa.all (m
     mAgg.all (mKind []) = true ∧ mPost.all (mKind []) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mBlocks_allocs : mPre.filterMap Main.Stmt.allocSz = [(.n 31, .inr (.n 30)),
-      (.n 34, .inr (.n 33)), (.n 45, .inr (.n 24)), (.n 47, .inl 256),
-      (.n 364, .inr (.n 363))] ∧ mDa.filterMap Main.Stmt.allocSz = [] ∧
+theorem mBlocks_allocs : mPre.filterMap Main.Stmt.allocSz = [(.n (val% «main» "lx_table"), .inr (.n (val% «main» "lx_table~1"))),
+      (.n (val% «main» "lean_sphincs_table"), .inr (.n (val% «main» "lean_sphincs_table~1"))), (.n (val% «main» "cover"), .inr (.n (val% «main» "n_total_g"))), (.n (val% «main» "byte_bits"), .inl 256),
+      (.n (val% «main» "da_digests"), .inr (.n (val% «main» "da_digests~2")))] ∧ mDa.filterMap Main.Stmt.allocSz = [] ∧
     mDaZ.filterMap Main.Stmt.allocSz = [] ∧
-    mMid.filterMap Main.Stmt.allocSz = [(.n 383, .inr (.n 382)), (.n 389, .inr (.n 388)),
-      (.n 395, .inr (.n 394)), (.n 398, .inr (.n 397)), (.n 416, .inl 24)] ∧
+    mMid.filterMap Main.Stmt.allocSz = [(.n (val% «main» "child_pi"), .inr (.n (val% «main» "child_pi~0"))), (.n (val% «main» "child_fresh"), .inr (.n (val% «main» "child_fresh~4"))),
+      (.n (val% «main» "child_carried"), .inr (.n (val% «main» "child_carried~4"))), (.n (val% «main» "written"), .inr (.n (val% «main» "written~1"))), (.n (val% «main» "defer_stmt"), .inl 24)] ∧
     mLeaf.filterMap Main.Stmt.allocSz = [] ∧ mAgg.filterMap Main.Stmt.allocSz = [] ∧
     mPost.filterMap Main.Stmt.allocSz = [] := by decide +kernel
 
@@ -59,19 +61,19 @@ theorem mBlocks_addrs : mPre.filterMap Main.Stmt.addrS = [] ∧ mDa.filterMap Ma
 
 set_option maxRecDepth 100000 in
 theorem mPre_calls : mPre.filterMap Main.Stmt.callS =
-    [(none, "exponent_tables", [], [.n 28]),
-      (none, "claim_list_digest", [.n 31, .n 0], [.n 35, .n 36]),
-      (none, "claim_list_digest", [.n 34, .n 3], [.n 37, .n 38]),
-      (some (.n 40), name% «main_loop0», [.n 41, .n 1, .n 31, .n 0], []),
-      (some (.n 43), name% «main_loop1», [.n 44, .n 4, .n 34, .n 3], []),
-      (some (.n 356), name% «main_loop2», [.n 357, .n 2, .n 22, .n 45, .n 31] ++ lxTagsV, []),
-      (some (.n 359), name% «main_loop3», [.n 360, .n 5, .n 23, .n 46, .n 2, .n 34, .n 47],
+    [(none, "exponent_tables", [], [.n (val% «main» "g_squares")]),
+      (none, "claim_list_digest", [.n (val% «main» "lx_table"), .n (val% «main» "meta[0]")], [.n (val% «main» "xd_0"), .n (val% «main» "xd_1")]),
+      (none, "claim_list_digest", [.n (val% «main» "lean_sphincs_table"), .n (val% «main» "meta[3]")], [.n (val% «main» "sd_0"), .n (val% «main» "sd_1")]),
+      (some (.n (val% «main» "s31#1")), name% «main_loop0», [.n (val% «main» "s31#2"), .n (val% «main» "meta[1]"), .n (val% «main» "lx_table"), .n (val% «main» "meta[0]")], []),
+      (some (.n (val% «main» "s32#1")), name% «main_loop1», [.n (val% «main» "s32#2"), .n (val% «main» "meta[4]"), .n (val% «main» "lean_sphincs_table"), .n (val% «main» "meta[3]")], []),
+      (some (.n (val% «main» "s39#1")), name% «main_loop2», [.n (val% «main» "s39#2"), .n (val% «main» "meta[2]"), .n (val% «main» "lx_slots_g"), .n (val% «main» "cover"), .n (val% «main» "lx_table")] ++ lxTagsV, []),
+      (some (.n (val% «main» "s40#1")), name% «main_loop3», [.n (val% «main» "s40#2"), .n (val% «main» "meta[5]"), .n (val% «main» "lean_sphincs_slots_g"), .n (val% «main» "sp_cover"), .n (val% «main» "meta[2]"), .n (val% «main» "lean_sphincs_table"), .n (val% «main» "byte_bits")],
           [])] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mDa_calls : mDa.filterMap Main.Stmt.callS =
-    [(none, "da_verify", [.n 47], [.n 369, .n 370, .n 371])] := by
+    [(none, "da_verify", [.n (val% «main» "byte_bits")], [.n (val% «main» "root_0"), .n (val% «main» "root_1"), .n (val% «main» "z")])] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -79,31 +81,31 @@ theorem mDaZ_calls : mDaZ.filterMap Main.Stmt.callS = [] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mMid_calls : mMid.filterMap Main.Stmt.callS =
-    [(some (.n 401), name% «main_loop4», [.n 402, .n 6, .n 398, .n 31, .n 45, .n 22, .n 34, .n 46,
-        .n 23,
-      .n 395, .n 364, .n 26, .n 27, .n 383, .n 28, .n 389], [])] := by decide +kernel
+    [(some (.n (val% «main» "s49#1")), name% «main_loop4», [.n (val% «main» "s49#2"), .n (val% «main» "meta[6]"), .n (val% «main» "written"), .n (val% «main» "lx_table"), .n (val% «main» "cover"), .n (val% «main» "lx_slots_g"), .n (val% «main» "lean_sphincs_table"), .n (val% «main» "sp_cover"),
+        .n (val% «main» "lean_sphincs_slots_g"),
+      .n (val% «main» "child_carried"), .n (val% «main» "da_digests"), .n (val% «main» "fs_seed[0]"), .n (val% «main» "fs_seed[1]"), .n (val% «main» "child_pi"), .n (val% «main» "g_squares"), .n (val% «main» "child_fresh")], [])] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mLeaf_calls : mLeaf.filterMap Main.Stmt.callS = [] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mAgg_calls : mAgg.filterMap Main.Stmt.callS =
-    [(none, "aggregate_claims", [.n 6, .n 383, .n 389, .n 395, .n 416, .n 444], [])] := by decide +kernel
+    [(none, "aggregate_claims", [.n (val% «main» "meta[6]"), .n (val% «main» "child_pi"), .n (val% «main» "child_fresh"), .n (val% «main» "child_carried"), .n (val% «main» "defer_stmt"), .n (val% «main» "s56.e.s0#1")], [])] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mPost_calls : mPost.filterMap Main.Stmt.callS =
-    [(none, "statement_digest", [.n 26, .n 27, .n 35, .n 36, .n 37, .n 38, .n 445, .n 446, .n 416],
-      [.n 447, .n 448])] := by
+    [(none, "statement_digest", [.n (val% «main» "fs_seed[0]"), .n (val% «main» "fs_seed[1]"), .n (val% «main» "xd_0"), .n (val% «main» "xd_1"), .n (val% «main» "sd_0"), .n (val% «main» "sd_1"), .n (val% «main» "own_0~2"), .n (val% «main» "own_0~3"), .n (val% «main» "defer_stmt")],
+      [.n (val% «main» "own_0"), .n (val% «main» "own_1")])] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mBlocks_loads : mPre.filterMap B1.Stmt.loadS = (List.range 256).map (fun v => (.n 47, v)) ∧
-    mDa.filterMap B1.Stmt.loadS = [(.n 366, 0), (.n 366, 1)] ∧
-    mDaZ.filterMap B1.Stmt.loadS = [(.n 366, 0), (.n 366, 1)] ∧
-    mMid.filterMap B1.Stmt.loadS = [(.n 398, 0), (.n 403, 0)] ∧
-    mLeaf.filterMap B1.Stmt.loadS = (List.range 24).map (fun k => (.n 416, k)) ∧
+theorem mBlocks_loads : mPre.filterMap B1.Stmt.loadS = (List.range 256).map (fun v => (.n (val% «main» "byte_bits"), v)) ∧
+    mDa.filterMap B1.Stmt.loadS = [(.n (val% «main» "own_da"), 0), (.n (val% «main» "own_da"), 1)] ∧
+    mDaZ.filterMap B1.Stmt.loadS = [(.n (val% «main» "own_da"), 0), (.n (val% «main» "own_da"), 1)] ∧
+    mMid.filterMap B1.Stmt.loadS = [(.n (val% «main» "written"), 0), (.n (val% «main» "s50#0"), 0)] ∧
+    mLeaf.filterMap B1.Stmt.loadS = (List.range 24).map (fun k => (.n (val% «main» "defer_stmt"), k)) ∧
     mAgg.filterMap B1.Stmt.loadS = [] ∧
-    mPost.filterMap B1.Stmt.loadS = [(.n 415, 0), (.n 415, 1), (.n 449, 0), (.n 453, 0)] := by
+    mPost.filterMap B1.Stmt.loadS = [(.n (val% «main» "da"), 0), (.n (val% «main» "da"), 1), (.n (val% «main» "s59#0"), 0), (.n (val% «main» "s60#2"), 0)] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in

@@ -12,6 +12,8 @@ module
 public import LeanVM.Guest.B1.Sig.SpWotsGroups
 public import LeanVM.Guest.B1.Sig.SpWotsData
 public import LeanVM.Guest.B1.Sig.XmssCore
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«sp_wots»
 
 /-!
 # `sp_wots`, sound
@@ -50,7 +52,7 @@ def spLeafCell (pp a0 a1 : E) (d : Nat → Nat) (starts : Nat → E) : E :=
 /-! ## The template's parts -/
 
 /-- The copies `at = [a0, a1]`. -/
-def spCopies : List Stmt := [copyS (.n 4) (.n 1), copyS (.n 5) (.n 2)]
+def spCopies : List Stmt := [copyS (.n (val% «sp_wots» "at[0]")) (.n (val% «sp_wots» "a0")), copyS (.n (val% «sp_wots» "at[1]")) (.n (val% «sp_wots» "a1"))]
 
 /-- The powers `g^s` at `n(6 + s)`. -/
 def spPowers : List Stmt := (List.range 10).map fun s => cst (6 + s) (word (2 ^ s) 0)
@@ -68,7 +70,7 @@ theorem spLeafK_atoms : atomsOnly spLeafK.1 = true := kMsg_atoms ..
 /-- **The tips, the product and the encoding** of the codeword, its groups' atoms holding. -/
 theorem spCodeword_sound (hpow : ∀ s < 10, σ (.n (6 + s)) = gen ^ s) (hpad : PadOK σ spPad)
     (hg : ∀ p < 22, SpGroupOK rd σ p) :
-    (∀ i < 64, σ (spTip i) = chainT (spStepCell (σ (.n 0)) (σ (.n 4)) (σ (.n 5))) i
+    (∀ i < 64, σ (spTip i) = chainT (spStepCell (σ (.n (val% «sp_wots» "pp"))) (σ (.n (val% «sp_wots» "at[0]"))) (σ (.n (val% «sp_wots» "at[1]")))) i
       (3 - spDigit σ i) (spDigit σ i) (σ (spStart σ i))) ∧
     σ (.n (spProd false 1 (spState 21).2.2)) = gen ^ (∑ i ∈ Finset.range 64, spDigit σ i) ∧
     σ (.n (spEnc false 1 (spState 21).2.2)) = eOfNat128 (spX (spDigit σ) 64) := by
@@ -134,14 +136,14 @@ theorem spCodeword_sound (hpow : ∀ s < 10, σ (.n (6 + s)) = gen ^ s) (hpad : 
 theorem sp_wots_soundT {rets : List E}
     (h : Stmt.HoldsList C rd σ spBodyT False (fun rs => rs = rets)) :
     ∃ leaf, rets = [leaf] ∧ (∀ i, spDigit σ i < 4) ∧
-      ∑ i ∈ Finset.range 64, spDigit σ i = 128 ∧ σ (.n 3) = eOfNat128 (spX (spDigit σ) 64) ∧
-      leaf = spLeafCell (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) (spDigit σ) fun i => σ (spStart σ i) := by
+      ∑ i ∈ Finset.range 64, spDigit σ i = 128 ∧ σ (.n (val% «sp_wots» "encoding")) = eOfNat128 (spX (spDigit σ) 64) ∧
+      leaf = spLeafCell (σ (.n (val% «sp_wots» "pp"))) (σ (.n (val% «sp_wots» "a0"))) (σ (.n (val% «sp_wots» "a1"))) (spDigit σ) fun i => σ (spStart σ i) := by
   rw [spBodyT_parts] at h
   -- the copies
   have c0 := holdsList_split_atoms (xs := spCopies) rfl h
   have hcp := atomsHold_of_holdsList (ss := spCopies) rfl c0.1
-  have h4 : σ (.n 4) = σ (.n 1) := hcp.atom (a := .copy (.n 4) (.n 1)) (by simp [spCopies, copyS])
-  have h5 : σ (.n 5) = σ (.n 2) := hcp.atom (a := .copy (.n 5) (.n 2)) (by simp [spCopies, copyS])
+  have h4 : σ (.n (val% «sp_wots» "at[0]")) = σ (.n (val% «sp_wots» "a0")) := hcp.atom (a := .copy (.n (val% «sp_wots» "at[0]")) (.n (val% «sp_wots» "a0"))) (by simp [spCopies, copyS])
+  have h5 : σ (.n (val% «sp_wots» "at[1]")) = σ (.n (val% «sp_wots» "a1")) := hcp.atom (a := .copy (.n (val% «sp_wots» "at[1]")) (.n (val% «sp_wots» "a1"))) (by simp [spCopies, copyS])
   -- the powers
   have s0 := holdsList_split_atoms (xs := spPowers) rfl c0.2
   have hpw := atomsHold_of_holdsList (ss := spPowers) rfl s0.1
@@ -173,16 +175,16 @@ theorem sp_wots_soundT {rets : List E}
   have s4 := holdsList_split_atoms hca s3
   have hc := atomsHold_of_holdsList hca s4.1
   have hG : spGs.2.1 = (spState 21).2.2 := by rw [spGs_eq]
-  have e2 : σ (.n (spEnc false 1 (spState 21).2.2)) + σ (.n 3) = 0 :=
-    hc.atom (a := .assertEq (.n (spEnc false 1 (spState 21).2.2)) (.n 3)) (by simp [spChecks, hG])
+  have e2 : σ (.n (spEnc false 1 (spState 21).2.2)) + σ (.n (val% «sp_wots» "encoding")) = 0 :=
+    hc.atom (a := .assertEq (.n (spEnc false 1 (spState 21).2.2)) (.n (val% «sp_wots» "encoding"))) (by simp [spChecks, hG])
   have eC : σ (.n spC) = spTarget := hc.atom (a := .const (.n spC) _) (by simp [spChecks, cst])
   have eP : σ (.n (spProd false 1 (spState 21).2.2)) + σ (.n spC) = 0 :=
     hc.atom (a := .assertEq (.n (spProd false 1 (spState 21).2.2)) (.n spC)) (by simp [spChecks, hG])
   have eL1 : σ (.n (spC + 1)) = spPkC :=
     hc.atom (a := .const (.n (spC + 1)) _) (by simp [spChecks, cst])
-  have eL2 : σ (.n (spC + 2)) = σ (.n 2) + σ (.n (spC + 1)) :=
-    hc.atom (a := .add (.n (spC + 2)) (.n 2) (.n (spC + 1))) (by simp [spChecks, addS])
-  have henc3 : σ (.n 3) = eOfNat128 (spX (spDigit σ) 64) :=
+  have eL2 : σ (.n (spC + 2)) = σ (.n (val% «sp_wots» "a1")) + σ (.n (spC + 1)) :=
+    hc.atom (a := .add (.n (spC + 2)) (.n (val% «sp_wots» "a1")) (.n (spC + 1))) (by simp [spChecks, addS])
+  have henc3 : σ (.n (val% «sp_wots» "encoding")) = eOfNat128 (spX (spDigit σ) 64) :=
     ((Value.e_add_eq_zero_iff).mp e2).symm.trans henc
   have hdlt : ∀ j, spDigit σ j < 4 := fun j => Nat.mod_lt _ (by norm_num)
   have hsum : ∑ i ∈ Finset.range 64, spDigit σ i = 128 := by
@@ -216,8 +218,8 @@ theorem sp_wots_soundT {rets : List E}
   rw [hcp', hleaf, spLeafCells_eq, spLeafCell]
   simp only [List.map_cons, List.map_map]
   rw [eL2, eL1]
-  have hm : List.map (σ ∘ spTip) (List.range 64) = List.map (fun i => chainT (spStepCell (σ (.n 0))
-      (σ (.n 1)) (σ (.n 2))) i (3 - spDigit σ i) (spDigit σ i) (σ (spStart σ i))) (List.range 64) :=
+  have hm : List.map (σ ∘ spTip) (List.range 64) = List.map (fun i => chainT (spStepCell (σ (.n (val% «sp_wots» "pp")))
+      (σ (.n (val% «sp_wots» "a0"))) (σ (.n (val% «sp_wots» "a1")))) i (3 - spDigit σ i) (spDigit σ i) (σ (spStart σ i))) (List.range 64) :=
     List.map_congr_left (fun i hi => by
       rw [Function.comp_apply, htip i (List.mem_range.mp hi), h4, h5])
   rw [hm]
@@ -253,8 +255,8 @@ the digits `spDigitR σ` sum to `128`, the fourth argument is their encoding (`s
 theorem sp_wots_sound_cells {rets : List E}
     (h : Stmt.HoldsList C rd σ (Fn.«sp_wots».core).body False (fun rs => rs = rets)) :
     ∃ leaf, rets = [leaf] ∧ (∀ i, spDigitR σ i < 4) ∧
-      ∑ i ∈ Finset.range 64, spDigitR σ i = 128 ∧ σ (.n 3) = eOfNat128 (spX (spDigitR σ) 64) ∧
-      leaf = spLeafCell (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) (spDigitR σ) fun i => σ (spStartR σ i) := by
+      ∑ i ∈ Finset.range 64, spDigitR σ i = 128 ∧ σ (.n (val% «sp_wots» "encoding")) = eOfNat128 (spX (spDigitR σ) 64) ∧
+      leaf = spLeafCell (σ (.n (val% «sp_wots» "pp"))) (σ (.n (val% «sp_wots» "a0"))) (σ (.n (val% «sp_wots» "a1"))) (spDigitR σ) fun i => σ (spStartR σ i) := by
   rw [spBody_eq, spBody, Stmt.holdsList_rename] at h
   obtain ⟨leaf, h1, h3, h4, h5, h6⟩ := sp_wots_soundT h
   have e : ∀ i ≤ 28, (σ ∘ spRen) (.n i) = σ (.n i) := fun i hi => by

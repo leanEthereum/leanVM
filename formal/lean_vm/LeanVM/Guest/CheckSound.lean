@@ -1493,13 +1493,126 @@ theorem boundScaled_sound {F : Exec.Facts} (hF : F.pows.Ok) {ψ : Trie Sym} (hψ
     exact ⟨e + k, by omega, ofK_gpow_mul _ _⟩
   · exact absurd h Bool.false_ne_true
 
+/-! ### Words read from a table of constants -/
+
+theorem getF_node_left {α : Type} (v : Option α) (l r : Trie α) (o : ℕ) :
+    getF (.node v l r) (2 * o + 1) = getF l o := by
+  rw [getF_eq, getF_eq, Trie.get_node, ite_eq_right (by omega : 2 * o + 1 ≠ 0),
+    ite_eq_left (by omega : (2 * o + 1) % 2 = 1), show (2 * o + 1) / 2 = o by omega]
+
+theorem getF_node_right {α : Type} (v : Option α) (l r : Trie α) (o : ℕ) :
+    getF (.node v l r) (2 * o + 2) = getF r o := by
+  rw [getF_eq, getF_eq, Trie.get_node, ite_eq_right (by omega : 2 * o + 2 ≠ 0),
+    ite_eq_right (by omega : (2 * o + 2) % 2 ≠ 1), show (2 * o + 2) / 2 - 1 = o by omega]
+
+theorem bookAny_sound {p : Exec.Atom → Bool} :
+    ∀ {B : Book}, bookAny p B = true → ∃ o, ∃ a ∈ look B o, p a = true
+  | .nil, h => absurd h Bool.false_ne_true
+  | .node v l r, h => by
+    have h' : (∃ l0, v = some l0 ∧ l0.any p = true) ∨ bookAny p l = true ∨ bookAny p r = true := by
+      cases v with
+      | none =>
+        have h'' : (false || bookAny p l || bookAny p r) = true := h
+        simp only [Bool.or_eq_true, Bool.false_eq_true, false_or] at h''
+        exact Or.inr h''
+      | some l0 =>
+        have h'' : (l0.any p || bookAny p l || bookAny p r) = true := h
+        simp only [Bool.or_eq_true] at h''
+        rcases h'' with (h'' | h'') | h''
+        exacts [Or.inl ⟨l0, rfl, h''⟩, Or.inr (Or.inl h''), Or.inr (Or.inr h'')]
+    rcases h' with ⟨l0, rfl, hv⟩ | hl | hr
+    · obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp hv
+      exact ⟨0, a, ha, hp⟩
+    · obtain ⟨o, a, ha, hp⟩ := bookAny_sound hl
+      refine ⟨2 * o + 1, a, ?_, hp⟩
+      simpa only [look, getF_node_left] using ha
+    · obtain ⟨o, a, ha, hp⟩ := bookAny_sound hr
+      refine ⟨2 * o + 2, a, ?_, hp⟩
+      simpa only [look, getF_node_right] using ha
+
+theorem slotOk_sound {F : Exec.Facts} (hF : F.pows.Ok) (hB : BookHolds L fp B) {ψ : Trie Sym}
+    (hψ : EnvHolds L fp ψ) {w n i : ℕ} (h : slotOk F ψ B w n i = true) :
+    ∃ pw, L.read (fp * addressOfIndex w) = some pw ∧ IsInK pw ∧
+      ∃ e < n, L.read (pw.limb 0 * addressOfIndex i) = some (ofK (addressOfIndex e)) := by
+  obtain ⟨o, a, ha, hp⟩ := bookAny_sound h
+  have hh := hB o a ha
+  split at hp
+  · rename_i pc o1 o2 o3
+    simp only [Bool.and_eq_true, beq_iff_eq] at hp
+    obtain ⟨⟨rfl, rfl⟩, hp⟩ := hp
+    revert hp
+    cases hg : gpAt F B ψ o3 with
+    | none => exact fun hp ↦ absurd hp Bool.false_ne_true
+    | some e =>
+      intro hp
+      obtain ⟨p, v3, h1, hK, h3, h2⟩ := hh
+      simp only [derefSource] at h2
+      refine ⟨p, h1, hK, e, Nat.blt_eq.mp hp, ?_⟩
+      rw [h2, Option.some.inj (h3.symm.trans (gpAt_sound hF hB hψ hg))]
+  · simp at hp
+
+theorem tabAt_sound {F : Exec.Facts} (hF : F.pows.Ok) (hB : BookHolds L fp B) {ψ : Trie Sym}
+    (hψ : EnvHolds L fp ψ) {w x o n : ℕ} (h : tabAt F ψ B w x o n = true) :
+    ∃ d pw, L.read (fp * addressOfIndex x) = some (ofK (addressOfIndex d)) ∧
+      L.read (fp * addressOfIndex w) = some pw ∧ IsInK pw ∧
+      ∃ e < n, L.read (pw.limb 0 * addressOfIndex (d + o)) = some (ofK (addressOfIndex e)) := by
+  obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
+  have hh := hB x a ha
+  split at hp
+  · rename_i x' y k
+    simp only [Bool.and_eq_true, beq_iff_eq, List.all_eq_true, List.mem_range] at hp
+    obtain ⟨rfl, hall⟩ := hp
+    obtain ⟨d, d', hk, hx, -⟩ := hh
+    obtain ⟨pw, hw, hK, e, he, hr⟩ := slotOk_sound hF hB hψ (hall d (by omega))
+    exact ⟨d, pw, hx, hw, hK, e, he, hr⟩
+  · simp at hp
+
+/-- **A word read from a table of constants** is one of them. -/
+theorem tabRead_sound {F : Exec.Facts} (hF : F.pows.Ok) (hB : BookHolds L fp B) {ψ : Trie Sym}
+    (hψ : EnvHolds L fp ψ) {c n : ℕ} (h : tabRead F ψ B c n = true) :
+    ∃ e < n, L.read (fp * addressOfIndex c) = some (ofK (addressOfIndex e)) := by
+  obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
+  have hh := hB c a ha
+  split at hp
+  · rename_i pc p o c'
+    simp only [Bool.and_eq_true, beq_iff_eq] at hp
+    obtain ⟨rfl, hl⟩ := hp
+    obtain ⟨q, vc, hq, -, hc, hr⟩ := hh
+    simp only [derefSource] at hr
+    obtain ⟨b, hb, hm⟩ := List.any_eq_true.mp hl
+    have hh' := hB p b hb
+    split at hm
+    · rename_i pc' w x p'
+      simp only [Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq] at hm
+      obtain ⟨rfl, hor⟩ := hm
+      obtain ⟨vw, vx, hw, hx, hpm⟩ := hh'
+      have hqe : q = vw * vx := Option.some.inj (hq.symm.trans hpm)
+      have key : ∀ {t y : ℕ} {vt vy : E}, L.read (fp * addressOfIndex t) = some vt →
+          L.read (fp * addressOfIndex y) = some vy → q = vt * vy → tabAt F ψ B t y o n = true →
+          ∃ e < n, vc = ofK (addressOfIndex e) := by
+        intro t y vt vy ht hy hq' hta
+        obtain ⟨d, pw, hyd, hpw, hK, e, he, hre⟩ := tabAt_sound hF hB hψ hta
+        obtain rfl := Option.some.inj (ht.symm.trans hpw)
+        obtain rfl := Option.some.inj (hy.symm.trans hyd)
+        obtain ⟨a0, rfl⟩ := (isInK_iff _).mp hK
+        refine ⟨e, he, Option.some.inj (hr.symm.trans ?_)⟩
+        rw [hq', ← ofK_mul, limb_ofK0, mul_assoc, ← hre, limb_ofK0, addressOfIndex, addressOfIndex,
+          addressOfIndex, pow_add]
+      rcases hor with ht | ht
+      · obtain ⟨e, he, rfl⟩ := key hw hx hqe ht
+        exact ⟨e, he, hc⟩
+      · obtain ⟨e, he, rfl⟩ := key hx hw (hqe.trans (mul_comm _ _)) ht
+        exact ⟨e, he, hc⟩
+    · simp at hm
+  · simp at hp
+
 theorem boundOk0_sound {F : Exec.Facts} (hF : F.pows.Ok) {ψ : Trie Sym} (hψ : EnvHolds L fp ψ)
     {mem : List (ℕ × ℕ × ℕ)} (hm : MemIf L fp mem) (hB : BookHolds L fp B)
     {bnd : List (ℕ × ℕ)} (hb : BndHolds L fp bnd) {c n : ℕ}
     (h : boundOk0 F ψ mem B bnd c n = true) :
     ∃ e < n, L.read (fp * addressOfIndex c) = some (ofK (addressOfIndex e)) := by
   simp only [boundOk0, Bool.or_eq_true] at h
-  rcases h with (h | h) | h
+  rcases h with ((h | h) | h) | h
   · exact boundBase_sound hm hB hb h
   · revert h
     cases hk : gpAt F B ψ c with
@@ -1520,6 +1633,7 @@ theorem boundOk0_sound {F : Exec.Facts} (hF : F.pows.Ok) {ψ : Trie Sym} (hψ : 
       · obtain ⟨e, he, hr⟩ := boundScaled_sound hF hψ hm hB hb hp hy hx
         exact ⟨e, he, by rw [hc, mul_comm, hr]⟩
     · simp at hp
+  · exact tabRead_sound hF hB hψ h
 
 theorem boundOk_sound {F : Exec.Facts} (hF : F.pows.Ok) {ψ : Trie Sym} (hψ : EnvHolds L fp ψ)
     {mem : List (ℕ × ℕ × ℕ)} (hm : MemIf L fp mem) (hB : BookHolds L fp B)

@@ -14,6 +14,9 @@ public import LeanVM.Guest.Lift.Sig
 public import LeanVM.Guest.B1.Da.AtBase
 public import LeanVM.Guest.B1.Digest.CoverComplete
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop2»
+import LeanVM.Guest.Data.ValNames.«main_loop3»
 
 /-!
 # The raw-signature loops, placed
@@ -191,9 +194,9 @@ theorem l2Post_holds {C : CallRel} {rd : Reader} {i nrx X cv tb s : ℕ} (hnrx :
   have ht : List.map (l2σ rd i nrx X cv tb s) (List.map (fun j => V.n (j + 1)) (List.range 55)) =
       [gen ^ nrx, gen ^ X, gen ^ cv, gen ^ tb] ++ lxTagWords := by
     rw [List.map_map]; exact l2σ_tail rd i nrx X cv tb s
-  simp only [Sig.l2Post, Sig.cst, Sig.mulS, Sig.addS, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
+  simp only [Sig.l2Post, Sig.xEnd, Sig.cst, Sig.mulS, Sig.addS, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
     List.map_cons, List.map_nil, l2σ]
-  simp only [Nat.reduceLT, Nat.reduceLeDiff, Nat.reduceSub, ite_false, ite_true,
+  simp only [Nat.reduceAdd, Nat.reduceLT, Nat.reduceLeDiff, Nat.reduceSub, ite_false, ite_true,
     List.getD_cons_zero, List.getD_cons_succ, le_refl, true_and, and_true]
   refine ⟨by rw [word_gen, gen_pow_mul_gen]; exact gen_pow_add_isInK _ _, fun hne => ?_⟩
   have hne' := of_decide_eq_true ((guard_taken hnrx (by omega)).symm.trans (decide_eq_true hne))
@@ -217,13 +220,13 @@ theorem l2Pre_holds {C : CallRel} {nrx X cv tb : ℕ} {Lin : Layout} (D : RawXDa
   · rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact D.cover rd hl hL i hi
 
 /-- The loads of `main_loop2`'s body: the cover word (`.n 62`) and the claim (`.n 65`). -/
-theorem l2_loads {Lin : Layout} {σ : Val} {c p : ℕ} (h62 : σ (.n 62) = gen ^ c)
-    (h65 : σ (.n 65) = gen ^ p) (hc : RegionL Lin c) (hp : ∀ k < 4, RegionL Lin (p + k)) :
+theorem l2_loads {Lin : Layout} {σ : Val} {c p : ℕ} (h62 : σ (.n (val% «main_loop2» "s2#0")) = gen ^ c)
+    (h65 : σ (.n (val% «main_loop2» "s3#2")) = gen ^ p) (hc : RegionL Lin c) (hp : ∀ k < 4, RegionL Lin (p + k)) :
     (walk σ (fn% «main_loop2»).body).All fun e => ∀ A, e.loadAddr? σ = some A →
       ∃ k, A = addressOfIndex k ∧ RegionL Lin k := by
   rw [Sig.loop2_split, walk_append', walk_append']
   refine Out.all_seq (Out.all_seq ?_ ?_) ?_
-  · simp only [Sig.l2Post, Sig.cst, Sig.mulS, Sig.addS, walk, walk1, Out.seq, Out.pre]
+  · simp only [Sig.l2Post, Sig.xEnd, Sig.cst, Sig.mulS, Sig.addS, walk, walk1, Out.seq, Out.pre]
     split_ifs <;> simp [Out.All, Ev.loadAddr?]
   · have hw := Lift.walk_leafOk (σ := σ) Sig.xSeg Lift.xSeg_leafOk
     have hP : ∀ e, Lift.EvLeafOk Lift.segLoad e → ∀ A, e.loadAddr? σ = some A →
@@ -312,6 +315,7 @@ theorem rawX_step (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb : ℕ} 
     refine (hext v fun k h1 h2 e => ?_).symm
     subst e
     simp only [Bool.or_eq_true, decide_eq_true_eq] at this
+    simp only [Sig.xEnd] at h1 h2
     omega
   have hpar : (fn% «main_loop2»).params.map σ' = l2ArgsAt i nrx X cv tb := by
     rw [← l2σ_params rd i nrx X cv tb (D.slot i), show (fn% «main_loop2»).params = l2Fn.params from
@@ -429,15 +433,15 @@ theorem rawS_relIn (hc : Sig.SphincsCompleteSpecs)
           exact D.cover rd hl hL j (by omega)
         · rw [word_gen, gen_pow_mul_gen]; exact gen_pow_add_isInK _ _
       · rw [B1.loadAddrs_straight σ _ l4Pre_straight,
-          show l4Pre.filterMap B1.Stmt.loadS = [(.n 14, 0)] from rfl] at hA
+          show l4Pre.filterMap B1.Stmt.loadS = [(.n (val% «main_loop3» "s2#1"), 0)] from rfl] at hA
         simp only [List.map_cons, List.map_nil, List.mem_singleton] at hA
         subst hA
         refine ⟨cv + (X + s), ?_, D.regCover j (by omega)⟩
         show (gen ^ (cv + X) * gen ^ s).limb 0 * addressOfIndex 0 = _
         rw [← pow_add, Nat.add_assoc, limb0_gen_pow_mul]; rfl
       · rw [hpc, show l4Pre.filterMap Main.Stmt.callS =
-          [(none, "verify_sig_lean_sphincs", [.n 17, .n 6], []),
-          (some (.n 20), name% «main_loop3», [.n 22, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6], [])]
+          [(none, "verify_sig_lean_sphincs", [.n (val% «main_loop3» "s3#2"), .n (val% «main_loop3» "byte_bits")], []),
+          (some (.n (val% «main_loop3» "s5#2")), name% «main_loop3», [.n (val% «main_loop3» "s5#4"), .n (val% «main_loop3» "bound"), .n (val% «main_loop3» "lean_sphincs_slots_g"), .n (val% «main_loop3» "sp_cover"), .n (val% «main_loop3» "n_raw_x_g"), .n (val% «main_loop3» "lean_sphincs_table"), .n (val% «main_loop3» "byte_bits")], [])]
           from rfl] at hcm
         simp only [List.map_cons, List.map_nil, Main.mkCall, List.mem_cons, List.not_mem_nil,
           or_false] at hcm

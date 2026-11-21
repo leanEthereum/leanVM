@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Main.Kids
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # `main`'s coverage table, filled
@@ -65,7 +67,7 @@ theorem a_le (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K 
 
 /-- **The running counts**: `written[c] = g^(a c)`. -/
 theorem written_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) :
-    ∀ c ≤ lg σ 6, LoadHolds rd (σ (.n 398)) c (gen ^ (segsOf σ K).a c) := by
+    ∀ c ≤ lg σ 6, LoadHolds rd (σ (.n (val% «main» "written"))) c (gen ^ (segsOf σ K).a c) := by
   intro c
   induction c with
   | zero => intro _; rw [Segs.a.eq_1, segsOf_RX, segsOf_RS]; exact MF.written0
@@ -113,21 +115,21 @@ theorem slotBelow_lt {b : E} {e M : ℕ} (hM : M < 2 ^ 34) (hb : b = gen ^ M) (h
 
 /-- **The raw signatures' slots**: one slot of its region per raw signature, holding its mark. -/
 theorem raw_slots (MF : MainFacts C rd σ) :
-    ∃ rx rs : ℕ → ℕ, (∀ i < lg σ 2, rx i < LXS σ ∧ LoadHolds rd (σ (.n 45)) (rx i) (gen ^ i)) ∧
+    ∃ rx rs : ℕ → ℕ, (∀ i < lg σ 2, rx i < LXS σ ∧ LoadHolds rd (σ (.n (val% «main» "cover"))) (rx i) (gen ^ i)) ∧
       ∀ j < lg σ 5, rs j < LSS σ ∧
-        LoadHolds rd (σ (.n 45)) (LXS σ + rs j) (gen ^ (lg σ 2 + j)) := by
+        LoadHolds rd (σ (.n (val% «main» "cover"))) (LXS σ + rs j) (gen ^ (lg σ 2 + j)) := by
   have hT := MF.total
   have h40 := MF.lxs
   have h41 := MF.lss
   have hc2 := (MF.counts 2 (by simp)).1
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
   have eS : LSS σ = lg σ 3 + lg σ 4 := rfl
-  have hx : ∀ i, i < lg σ 2 → ∃ s, s < LXS σ ∧ LoadHolds rd (σ (.n 45)) s (gen ^ i) := by
+  have hx : ∀ i, i < lg σ 2 → ∃ s, s < LXS σ ∧ LoadHolds rd (σ (.n (val% «main» "cover"))) s (gen ^ i) := by
     intro i hi
     obtain ⟨-, s, hbl, hl⟩ := MF.rawx i hi
     exact ⟨s, belowLog_lt (by omega) h40 hbl, hl⟩
   have hs : ∀ j, j < lg σ 5 → ∃ s, s < LSS σ ∧
-      LoadHolds rd (σ (.n 45)) (LXS σ + s) (gen ^ (lg σ 2 + j)) := by
+      LoadHolds rd (σ (.n (val% «main» "cover"))) (LXS σ + s) (gen ^ (lg σ 2 + j)) := by
     intro j hj
     obtain ⟨s, hbl, hl, -⟩ := MF.raws j hj
     refine ⟨s, belowLog_lt (by omega) h41 hbl, ?_⟩
@@ -189,7 +191,7 @@ theorem kid_base (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c
 /-- **Child `c`'s leanXMSS claim `j`**: its slot below `LXS`, holding its writer's mark. -/
 theorem kid_wx (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) {c j : ℕ}
     (hc : c < lg σ 6) (hj : j < (K c).ex) :
-    (K c).ox j < LXS σ ∧ LoadHolds rd (σ (.n 45)) ((K c).ox j)
+    (K c).ox j < LXS σ ∧ LoadHolds rd (σ (.n (val% «main» "cover"))) ((K c).ox j)
       (gen ^ (segsOf σ K).wmark ((segsOf σ K).a c + j)) := by
   have hT := MF.total.2
   obtain ⟨hbl, hl, -⟩ := (hK c hc).xrec j hj
@@ -204,7 +206,7 @@ theorem kid_wx (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (
 mark. -/
 theorem kid_ws (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) {c j : ℕ}
     (hc : c < lg σ 6) (hj : j < (K c).es) :
-    (K c).os j < LSS σ ∧ LoadHolds rd (σ (.n 45)) (LXS σ + (K c).os j)
+    (K c).os j < LSS σ ∧ LoadHolds rd (σ (.n (val% «main» "cover"))) (LXS σ + (K c).os j)
       (gen ^ (segsOf σ K).wmark ((segsOf σ K).a c + (K c).ex + j)) := by
   have hT := MF.total.2
   obtain ⟨hbl, hl, -⟩ := (hK c hc).srec j hj
@@ -218,10 +220,10 @@ theorem kid_ws (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (
 set_option maxRecDepth 20000 in
 /-- **The writers of the coverage table.** -/
 theorem writers (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) {rx rs : ℕ → ℕ}
-    (hrx : ∀ i < lg σ 2, rx i < LXS σ ∧ LoadHolds rd (σ (.n 45)) (rx i) (gen ^ i))
+    (hrx : ∀ i < lg σ 2, rx i < LXS σ ∧ LoadHolds rd (σ (.n (val% «main» "cover"))) (rx i) (gen ^ i))
     (hrs : ∀ j < lg σ 5, rs j < LSS σ ∧
-      LoadHolds rd (σ (.n 45)) (LXS σ + rs j) (gen ^ (lg σ 2 + j))) :
-    Writers rd (σ (.n 45)) (segsOf σ K) (LXS σ) (LSS σ) (slOf σ K rx rs) := by
+      LoadHolds rd (σ (.n (val% «main» "cover"))) (LXS σ + rs j) (gen ^ (lg σ 2 + j))) :
+    Writers rd (σ (.n (val% «main» "cover"))) (segsOf σ K) (LXS σ) (LSS σ) (slOf σ K rx rs) := by
   have hT := MF.total
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
   have eS : LSS σ = lg σ 3 + lg σ 4 := rfl

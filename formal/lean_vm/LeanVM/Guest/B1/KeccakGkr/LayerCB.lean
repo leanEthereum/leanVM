@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerSecB
 public import LeanVM.Guest.B1.KeccakGkr.LayerCA
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
 /-!
 # The instance weights and the product at `s`, completely
@@ -52,8 +54,8 @@ theorem rmfePure_kernel {o : ℕ} (ho : LayOff o) :
 
 theorem rmfe_kernel {o : ℕ} (ho : LayOff o) : (rmfeBlockT o).all isAtom = true ∧
     resid (atomsL (rmfeBlockT o)) =
-      (List.range 16).map (fun i ↦ .load (.n (o + rmfeStores.getD i 0)) (.n 12) (6 + i)) ++
-        [.load (.n (o + 624)) (.n 12) 1] := by
+      (List.range 16).map (fun i ↦ .load (.n (o + rmfeStores.getD i 0)) (.n (valf% «keccak_layer» "out")) (6 + i)) ++
+        [.load (.n (o + 624)) (.n (valf% «keccak_layer» "out")) 1] := by
   rcases ho with rfl | rfl <;> exact ⟨by decide +kernel, by decide +kernel⟩
 
 /-- **The values the block stores**: the instance weights at `s`, and their sum. -/
@@ -86,9 +88,9 @@ theorem rmfe_vals {o : ℕ} (ho : LayOff o) (hσ : ∀ v, σ v = σ (.n v.idx))
 claim's record, the block holds. -/
 theorem rmfe_complete {o : ℕ} (ho : LayOff o) (hσ : ∀ v, σ v = σ (.n v.idx))
     (hg : ∀ s ∈ rmfeBlockT o, GoodS rd S w σ s)
-    (hmu : ∀ i < 16, LoadHolds rd (σ (.n 12)) (6 + i)
+    (hmu : ∀ i < 16, LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) (6 + i)
       ((keccakInstanceWeights (σ (.n (o + 531)))).getD i 0))
-    (hkap : LoadHolds rd (σ (.n 12)) 1 (sumE (keccakInstanceWeights (σ (.n (o + 531)))))) :
+    (hkap : LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 1 (sumE (keccakInstanceWeights (σ (.n (o + 531)))))) :
     ∀ {next : Prop} {kret : List E → Prop}, next →
       Stmt.HoldsList C rd σ (rmfeBlockT o) next kret := by
   obtain ⟨hall, hr⟩ := rmfe_kernel ho

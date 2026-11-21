@@ -5,13 +5,14 @@ import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from genforms import *
 from mk import write
 # `verify_tables`' `air_acc += zc_cprod[g_zc_n / tau_g] * zc_peq[tau_g] * constraint_eval`, tau_g = kb[2 + t]
-# (the kappa_base frame variable 27 + t): `g_zc_n = x·τ`.
-GZN, CPROD, PEQ, CLAIM = 2543, 2628, 2649, 2646
+# (the kappa_base frame variable 28 + t): `g_zc_n = x·τ`.
+from vtanchor import PEQ, CLAIM
+GZN, CPROD = 2544, 2629
 out=[]
 def at(p): return f'  have a{p} := h.atomAt {p} {RAW[p][len(".atom "):]} (by decide +kernel)'
 airs=[]
 for t in range(6):
-    tau=27+t
+    tau=28+t
     px=[q for q in range(WLO,WHI+1) if RAW[q]==f'.atom (.mul (.n {GZN}) (.n {RAW[q].split()[5].rstrip(")") if RAW[q].startswith(f".atom (.mul (.n {GZN})") else -1}) (.n {tau}))']
     assert len(px)==1,(t,px)
     pxx=px[0]; x=parse_atom(RAW[pxx])[1][1]

@@ -9,6 +9,8 @@
 module
 
 public import LeanVM.Guest.B1.Tables.VtC.SSort
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The block certification's statements, honestly
@@ -53,16 +55,16 @@ its ranks' facts, the groups' keys and sizes, the bases and steps, every block's
 `stackOffsets`'s. -/
 theorem vtc_side_offsets {rd : Reader} {σ : Val} {lm : ℕ} {τ : ℕ → ℕ}
     (hκ34 : ∀ k < 15, vtKap lm τ (vtB0 k) < 34)
-    (hG : ∀ k < 15, (∃ key, LoadHolds rd (σ (.n 33)) (vtGi k) key ∧
+    (hG : ∀ k < 15, (∃ key, LoadHolds rd (σ (.n (val% «verify_tables» "group_key"))) (vtGi k) key ∧
       key * gen ^ vtB0 k = gen ^ (vtKap lm τ (vtB0 k) * 247)) ∧
-      LoadHolds rd (σ (.n 34)) (vtGi k) (gen ^ (vtLen k * 2 ^ vtKap lm τ (vtB0 k))))
-    (hB : ∀ k < 15, LoadHolds rd (σ (.n 35)) (vtGi k)
+      LoadHolds rd (σ (.n (val% «verify_tables» "group_size"))) (vtGi k) (gen ^ (vtLen k * 2 ^ vtKap lm τ (vtB0 k))))
+    (hB : ∀ k < 15, LoadHolds rd (σ (.n (val% «verify_tables» "group_base"))) (vtGi k)
         (σ (.n (vtBoffData.getD k default).2.2.2)) ∧
       σ (.n ((vtBoffData.getD k default).2.2.2 - 1)) = gen ^ 2 ^ vtKap lm τ (vtB0 k) ∧
       ∀ i < vtLen k - 1, σ (.n ((vtBoffData.getD k default).2.2.2 + 1 + i)) =
         σ (.n ((vtBoffData.getD k default).2.2.2 + i)) *
           σ (.n ((vtBoffData.getD k default).2.2.2 - 1)))
-    (hsideT : ∀ e < 24, LoadHolds rd (σ (.n 12)) (212 + e) (word (vtGroupSide e) 0)) :
+    (hsideT : ∀ e < 24, LoadHolds rd (σ (.n (val% «verify_tables» "g_squares"))) (212 + e) (word (vtGroupSide e) 0)) :
     ∀ (base G0 kOff m n v0 s : ℕ), base + n ≤ 153 → s < 3 →
     (∀ r < m, VtRankFacts rd σ v0 s r) →
     (∀ e < 24, vtGroupSide e = s → G0 ≤ e ∧ e < G0 + m) →
@@ -152,16 +154,16 @@ theorem vt_kbList_getD {lm : ℕ} {τ : ℕ → ℕ} {i : ℕ} (hi : i < 7) :
 
 set_option maxRecDepth 100000 in
 /-- **`verify_tables`' statements `0 ..< 563`, honestly.** -/
-theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ : ℕ → ℕ}
+theorem vtS_sort (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} {τ : ℕ → ℕ}
     (hlm : lm ≤ 32) (hτ : ∀ t < 6, τ t < 33)
-    (hdims : TbReadsAt rd (σv (.n 10)) (gen ^ lm :: (vtTauList τ).map (gen ^ ·)))
-    (hE : ExpTablesAt rd (σv (.n 12)))
-    (hkeyW : TbReadsAt rd (w 33) (vtGKeyW lm τ)) (hszW : TbReadsAt rd (w 34) (vtGSizeW lm τ))
-    (hbaseW : TbReadsAt rd (w 35) (vtGBaseW lm τ)) (hordW : TbReadsAt rd (w 36) (vtGOrdW lm τ)) :
+    (hdims : TbReadsAt rd (σv (.n (val% «verify_tables» "dims_g"))) (gen ^ lm :: (vtTauList τ).map (gen ^ ·)))
+    (hE : ExpTablesAt rd (σv (.n (val% «verify_tables» "g_squares"))))
+    (hkeyW : TbReadsAt rd (w 34) (vtGKeyW lm τ)) (hszW : TbReadsAt rd (w 35) (vtGSizeW lm τ))
+    (hbaseW : TbReadsAt rd (w 36) (vtGBaseW lm τ)) (hordW : TbReadsAt rd (w 37) (vtGOrdW lm τ)) :
     (∀ s ∈ (vtPre.drop 0).take 563, VSH (coreProgram.Rel rd) rd σv s) ∧
-      (∀ i < 5, σv (.n (20 + i)) = σv (.n i)) ∧
-      (∀ i < 8, σv (.n (25 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) ∧
-      (∀ i < 4, σv (.n (33 + i)) = w (33 + i)) ∧
+      (∀ i < 5, σv (.n (21 + i)) = σv (.n i)) ∧
+      (∀ i < 8, σv (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) ∧
+      (∀ i < 4, σv (.n (34 + i)) = w (34 + i)) ∧
       (∀ x < 54, σv (.n (vtBoffV x)) =
         gen ^ (stackOffsets ((List.range 54).map (vtKap lm τ))).1.getD x 0) ∧
       (∀ x < 45, σv (.n (vtBoffV (108 + x))) =
@@ -170,7 +172,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
   -- the prologue
   have hgd : ∀ (n : ℕ) (s : Stmt), tbStmtsEqb [s] ((vtAt n).take 1) = true →
       GoodS rd vtSL w σv (fixNe s) := fun n s h ↦ vt_goodAt hl n s h
-  have hcp : ∀ i < 5, σv (.n (20 + i)) = σv (.n i) := by
+  have hcp : ∀ i < 5, σv (.n (21 + i)) = σv (.n i) := by
     intro i hi
     interval_cases i
     · exact vt_copyAt hl 0 (by decide +kernel)
@@ -178,7 +180,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     · exact vt_copyAt hl 2 (by decide +kernel)
     · exact vt_copyAt hl 3 (by decide +kernel)
     · exact vt_copyAt hl 4 (by decide +kernel)
-  have hal : ∀ i < 4, σv (.n (33 + i)) = w (33 + i) := by
+  have hal : ∀ i < 4, σv (.n (34 + i)) = w (34 + i) := by
     intro i hi
     interval_cases i
     · exact vt_allocAt hl 13 (k := 24) (by decide +kernel)
@@ -186,12 +188,12 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     · exact vt_allocAt hl 15 (k := 24) (by decide +kernel)
     · exact vt_allocAt hl 16 (k := 24) (by decide +kernel)
   -- `kappa_base`
-  have hdimsL : ∀ i < 7, LoadHolds rd (σv (.n 10)) i (gen ^ ([lm] ++ vtTauList τ).getD i 0) := by
+  have hdimsL : ∀ i < 7, LoadHolds rd (σv (.n (val% «verify_tables» "dims_g"))) i (gen ^ ([lm] ++ vtTauList τ).getD i 0) := by
     intro i hi
     have := hdims i (by simp [vtTauList]; omega)
     rwa [← List.getD_eq_getElem _ 0, vt_kbList_getD hi] at this
-  have hkbR : ∀ i < 7, σv (.n (26 + i)) = gen ^ ([lm] ++ vtTauList τ).getD i 0 ∧
-      VSH (coreProgram.Rel rd) rd σv (.atom (.load (.n (26 + i)) (.n 10) i)) := by
+  have hkbR : ∀ i < 7, σv (.n (27 + i)) = gen ^ ([lm] ++ vtTauList τ).getD i 0 ∧
+      VSH (coreProgram.Rel rd) rd σv (.atom (.load (.n (27 + i)) (.n (val% «verify_tables» "dims_g")) i)) := by
     intro i hi
     interval_cases i
     · exact vt_readAt hl 6 (by decide +kernel) (by decide +kernel) (hdimsL 0 (by norm_num))
@@ -201,18 +203,18 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     · exact vt_readAt hl 10 (by decide +kernel) (by decide +kernel) (hdimsL 4 (by norm_num))
     · exact vt_readAt hl 11 (by decide +kernel) (by decide +kernel) (hdimsL 5 (by norm_num))
     · exact vt_readAt hl 12 (by decide +kernel) (by decide +kernel) (hdimsL 6 (by norm_num))
-  have hkb : ∀ i < 8, σv (.n (25 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0 := by
+  have hkb : ∀ i < 8, σv (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0 := by
     intro i hi
     rcases i with _ | i
     · rw [vt_constAt hl 5 (e := word 1 0) (by decide +kernel), tb_word_one]; simp
     · have := (hkbR i (by omega)).1
-      rw [show 25 + (i + 1) = 26 + i by omega, this]
+      rw [show 26 + (i + 1) = 27 + i by omega, this]
       rfl
   have hpro : ∀ s ∈ (vtPre.drop 0).take 18, VSH (coreProgram.Rel rd) rd σv s := by
-    refine vt_blockR hl 0 18 [.atom (.load (.n 26) (.n 10) 0), .atom (.load (.n 27) (.n 10) 1),
-      .atom (.load (.n 28) (.n 10) 2), .atom (.load (.n 29) (.n 10) 3),
-      .atom (.load (.n 30) (.n 10) 4), .atom (.load (.n 31) (.n 10) 5),
-      .atom (.load (.n 32) (.n 10) 6)] (by decide +kernel) ?_
+    refine vt_blockR hl 0 18 [.atom (.load (.n (val% «verify_tables» "kb[1]")) (.n (val% «verify_tables» "dims_g")) 0), .atom (.load (.n (val% «verify_tables» "kb[2]")) (.n (val% «verify_tables» "dims_g")) 1),
+      .atom (.load (.n (val% «verify_tables» "kb[3]")) (.n (val% «verify_tables» "dims_g")) 2), .atom (.load (.n (val% «verify_tables» "kb[4]")) (.n (val% «verify_tables» "dims_g")) 3),
+      .atom (.load (.n (val% «verify_tables» "kb[5]")) (.n (val% «verify_tables» "dims_g")) 4), .atom (.load (.n (val% «verify_tables» "kb[6]")) (.n (val% «verify_tables» "dims_g")) 5),
+      .atom (.load (.n (val% «verify_tables» "kb[7]")) (.n (val% «verify_tables» "dims_g")) 6)] (by decide +kernel) ?_
     intro s hs _
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
     rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl
@@ -226,33 +228,33 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     rw [vtKv, hkb _ (hsrc k hk), ← pow_add, vtKap, vtAdj]
   have hb153 : ∀ k < 15, vtB0 k < 153 := by decide +kernel
   have hκ34 : ∀ k < 15, vtKap lm τ (vtB0 k) < 34 := fun k hk ↦ vt_kap_lt lm τ hlm hτ (hb153 k hk)
-  have hrkK : ∀ κ < 34, LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 247)) := by
+  have hrkK : ∀ κ < 34, LoadHolds rd (σv (.n (val% «verify_tables» "g_squares")) * gen ^ κ) 178 (gen ^ (κ * 247)) := by
     intro κ hκ
     have r1 := hrk κ (by simp [rankKeysList]; exact hκ)
     rw [tb_loadHolds_mul_gen_pow] at r1 ⊢
     rw [Nat.add_comm]
     simpa [rankKeysList] using r1
-  have hsqK : ∀ κ < 34, LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ) := by
+  have hsqK : ∀ κ < 34, LoadHolds rd (σv (.n (val% «verify_tables» "g_squares")) * gen ^ κ) 0 (gen ^ 2 ^ κ) := by
     intro κ hκ
     have s1 := hsq κ (by simp [gSquaresList]; exact hκ)
     rw [tb_loadHolds_mul_gen_pow, Nat.add_zero]
     simpa [gSquaresList] using s1
-  have e36 : σv (.n 33) = w 33 := hal 0 (by norm_num)
-  have e37 : σv (.n 34) = w 34 := hal 1 (by norm_num)
-  have e38 : σv (.n 35) = w 35 := hal 2 (by norm_num)
-  have e39 : σv (.n 36) = w 36 := hal 3 (by norm_num)
+  have e36 : σv (.n (val% «verify_tables» "group_key")) = w 34 := hal 0 (by norm_num)
+  have e37 : σv (.n (val% «verify_tables» "group_size")) = w 35 := hal 1 (by norm_num)
+  have e38 : σv (.n (val% «verify_tables» "group_base")) = w 36 := hal 2 (by norm_num)
+  have e39 : σv (.n (val% «verify_tables» "group_order")) = w 37 := hal 3 (by norm_num)
   rw [← e36] at hkeyW
   rw [← e37] at hszW
   rw [← e38] at hbaseW
   rw [← e39] at hordW
   have hgi24 : ∀ k < 15, vtGi k < 24 := by decide +kernel
-  have hkeyG : ∀ k < 15, LoadHolds rd (σv (.n 33)) (vtGi k)
+  have hkeyG : ∀ k < 15, LoadHolds rd (σv (.n (val% «verify_tables» "group_key"))) (vtGi k)
       (gen ^ (vtKap lm τ (vtB0 k) * 247) * (gen ^ vtB0 k)⁻¹) := by
     intro k hk
     have := hkeyW (vtGi k) (by simp [vtGKeyW]; exact hgi24 k hk)
     simp only [vtGKeyW, List.getElem_map, List.getElem_range] at this
     exact this
-  have hszG : ∀ k < 15, LoadHolds rd (σv (.n 34)) (vtGi k)
+  have hszG : ∀ k < 15, LoadHolds rd (σv (.n (val% «verify_tables» "group_size"))) (vtGi k)
       (gen ^ (vtLen k * 2 ^ vtKap lm τ (vtB0 k))) := by
     intro k hk
     have := hszW (vtGi k) (by simp [vtGSizeW]; exact hgi24 k hk)
@@ -270,7 +272,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     rwa [show vtGrpA (9 + 0) = 339 from rfl,
       show ∑ k ∈ range 6, vtGrpL (9 + k) = 64 by decide] at this
   -- the exponent tables' sides
-  have hsideT : ∀ e < 24, LoadHolds rd (σv (.n 12)) (212 + e) (word (vtGroupSide e) 0) := by
+  have hsideT : ∀ e < 24, LoadHolds rd (σv (.n (val% «verify_tables» "g_squares"))) (212 + e) (word (vtGroupSide e) 0) := by
     intro e he
     have := hsd e (by simp [sideTabList]; exact he)
     rw [tb_loadHolds_mul_gen_pow] at this
@@ -278,7 +280,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     exact this
   -- one side's ranks
   have hside : ∀ s0 ∈ [0, 2], ∀ r < vtGm s0,
-      LoadHolds rd (σv (.n 12) * gen ^ (vtG0 s0 + vtPi lm τ s0 r)) 212 (word s0 0) := by
+      LoadHolds rd (σv (.n (val% «verify_tables» "g_squares")) * gen ^ (vtG0 s0 + vtPi lm τ s0 r)) 212 (word s0 0) := by
     intro s0 hs0 r hr
     have hp := vtPi_lt (lm := lm) (τ := τ) hr
     rw [tb_loadHolds_mul_gen_pow, Nat.add_comm]
@@ -289,7 +291,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hs0
     rcases hs0 with rfl | rfl <;> simp [vtG0, vtGm, vtGroupSide] at hp ⊢ <;> omega
   have hkeyR : ∀ s0 ∈ [0, 2], ∀ r < vtGm s0, LoadHolds rd
-      (σv (.n 33) * gen ^ (vtG0 s0 + vtPi lm τ s0 r)) 0
+      (σv (.n (val% «verify_tables» "group_key")) * gen ^ (vtG0 s0 + vtPi lm τ s0 r)) 0
       (gen ^ (vtKg lm τ (vtG0 s0 + vtPi lm τ s0 r) * 247) *
         (gen ^ blockGroupStart.getD (vtG0 s0 + vtPi lm τ s0 r) 0)⁻¹) := by
     intro s0 hs0 r hr
@@ -302,7 +304,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     simp only [vtGKeyW, List.getElem_map, List.getElem_range] at this
     exact this
   have hszR : ∀ s0 ∈ [0, 2], ∀ r < vtGm s0, LoadHolds rd
-      (σv (.n 34) * gen ^ (vtG0 s0 + vtPi lm τ s0 r)) 0
+      (σv (.n (val% «verify_tables» "group_size")) * gen ^ (vtG0 s0 + vtPi lm τ s0 r)) 0
       (gen ^ vtGsz lm τ (vtG0 s0 + vtPi lm τ s0 r)) := by
     intro s0 hs0 r hr
     have hp := vtPi_lt (lm := lm) (τ := τ) hr
@@ -314,7 +316,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     simp only [vtGSizeW, List.getElem_map, List.getElem_range] at this
     exact this
   have hbaseR : ∀ s0 ∈ [0, 2], ∀ r < vtGm s0, LoadHolds rd
-      (σv (.n 35) * gen ^ (vtG0 s0 + vtPi lm τ s0 r)) 0
+      (σv (.n (val% «verify_tables» "group_base")) * gen ^ (vtG0 s0 + vtPi lm τ s0 r)) 0
       (gen ^ ∑ r' ∈ range r, vtGsz lm τ (vtG0 s0 + vtPi lm τ s0 r')) := by
     intro s0 hs0 r hr
     have hp := vtPi_lt (lm := lm) (τ := τ) hr
@@ -384,12 +386,12 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
         omega
   have hk0 : ∀ gi : ℕ, gen ^ (vtKg lm τ gi * 247) * (gen ^ blockGroupStart.getD gi 0)⁻¹ ≠ 0 :=
     fun gi ↦ mul_ne_zero (gen_pow_ne_zero _) (inv_ne_zero (gen_pow_ne_zero _))
-  have hordP : ∀ r < 9, LoadHolds rd (σv (.n 36)) (0 + r) (gen ^ (vtG0 0 + vtPi lm τ 0 r)) := by
+  have hordP : ∀ r < 9, LoadHolds rd (σv (.n (val% «verify_tables» "group_order"))) (0 + r) (gen ^ (vtG0 0 + vtPi lm τ 0 r)) := by
     intro r hr
     have := hordW r (by simp [vtGOrdW]; omega)
     simp only [vtGOrdW, List.getElem_map, List.getElem_range, hr, ↓reduceIte] at this
     simpa [vtG0] using this
-  have hordC : ∀ r < 6, LoadHolds rd (σv (.n 36)) (18 + r) (gen ^ (vtG0 2 + vtPi lm τ 2 r)) := by
+  have hordC : ∀ r < 6, LoadHolds rd (σv (.n (val% «verify_tables» "group_order"))) (18 + r) (gen ^ (vtG0 2 + vtPi lm τ 2 r)) := by
     intro r hr
     have := hordW (18 + r) (by simp [vtGOrdW]; omega)
     simp only [vtGOrdW, List.getElem_map, List.getElem_range,
@@ -420,13 +422,13 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
   -- the groups' block offsets
   have hsS : ∀ k < 15, Atom.load (.n ((vtBoffData.getD k default).2.2.2 - 1))
       (.n ((vtBoffData.getD k default).2.2.2 - 2)) (vtBoffData.getD k default).2.2.1 ∉ vtSL ∧
-      Atom.load (.n (vtBoffData.getD k default).2.2.2) (.n 35) (vtGi k) ∉ vtSL ∧
+      Atom.load (.n (vtBoffData.getD k default).2.2.2) (.n (val% «verify_tables» "group_base")) (vtGi k) ∉ vtSL ∧
       (vtBoffData.getD k default).2.1 + 2 < (vtBoffData.getD k default).2.2.2 ∧
       14 < (vtBoffData.getD k default).2.2.2 := by decide +kernel
   have hbo : ∀ k < 15, (∀ st ∈ vtBoffT (vtBoffData.getD k default).2.1
         (vtBoffData.getD k default).2.2.1 (vtGi k) (vtBoffData.getD k default).2.2.2 (vtLen k),
         VSH (coreProgram.Rel rd) rd σv st) ∧
-      LoadHolds rd (σv (.n 35)) (vtGi k) (σv (.n (vtBoffData.getD k default).2.2.2)) ∧
+      LoadHolds rd (σv (.n (val% «verify_tables» "group_base"))) (vtGi k) (σv (.n (vtBoffData.getD k default).2.2.2)) ∧
       σv (.n ((vtBoffData.getD k default).2.2.2 - 1)) = gen ^ 2 ^ vtKap lm τ (vtB0 k) ∧
       ∀ i < vtLen k - 1, σv (.n ((vtBoffData.getD k default).2.2.2 + 1 + i)) =
         σv (.n ((vtBoffData.getD k default).2.2.2 + i)) *
@@ -435,7 +437,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     obtain ⟨hkv, hoff, -⟩ := vtBoffData_kv k hk
     obtain ⟨s1, s2, h1, h2⟩ := hsS k hk
     have hg := vt_goodL (rd := rd) (w := w) hl _ _ (vtPre_drop _ ▸ vtBoff_check k hk)
-    have hst : LoadHolds rd (σv (.n 12) * σv (.n (vtBoffData.getD k default).2.1))
+    have hst : LoadHolds rd (σv (.n (val% «verify_tables» "g_squares")) * σv (.n (vtBoffData.getD k default).2.1))
         (vtBoffData.getD k default).2.2.1 (gen ^ 2 ^ vtKap lm τ (vtB0 k)) := by
       rw [hkv, hoff, vtKv, hkb _ (hsrc k hk), tb_loadHolds_mul_gen_pow]
       have := hsq _ (by simp [gSquaresList]; exact hκ34 k hk)
@@ -466,20 +468,20 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     rwa [show (vtBoffData.getD (9 + 0) default).1 = 506 from rfl,
       show ∑ k ∈ range 6, (vtLen (9 + k) + 2) = 57 by decide +kernel] at this
   -- the offsets
-  have hG : ∀ k < 15, (∃ key, LoadHolds rd (σv (.n 33)) (vtGi k) key ∧
+  have hG : ∀ k < 15, (∃ key, LoadHolds rd (σv (.n (val% «verify_tables» "group_key"))) (vtGi k) key ∧
       key * gen ^ vtB0 k = gen ^ (vtKap lm τ (vtB0 k) * 247)) ∧
-      LoadHolds rd (σv (.n 34)) (vtGi k) (gen ^ (vtLen k * 2 ^ vtKap lm τ (vtB0 k))) := fun k hk ↦
+      LoadHolds rd (σv (.n (val% «verify_tables» "group_size"))) (vtGi k) (gen ^ (vtLen k * 2 ^ vtKap lm τ (vtB0 k))) := fun k hk ↦
     ⟨⟨_, hkeyG k hk, by rw [mul_assoc, inv_mul_cancel₀ (gen_pow_ne_zero _), mul_one]⟩, hszG k hk⟩
-  have hB : ∀ k < 15, LoadHolds rd (σv (.n 35)) (vtGi k)
+  have hB : ∀ k < 15, LoadHolds rd (σv (.n (val% «verify_tables» "group_base"))) (vtGi k)
         (σv (.n (vtBoffData.getD k default).2.2.2)) ∧
       σv (.n ((vtBoffData.getD k default).2.2.2 - 1)) = gen ^ 2 ^ vtKap lm τ (vtB0 k) ∧
       ∀ i < vtLen k - 1, σv (.n ((vtBoffData.getD k default).2.2.2 + 1 + i)) =
         σv (.n ((vtBoffData.getD k default).2.2.2 + i)) *
           σv (.n ((vtBoffData.getD k default).2.2.2 - 1)) := fun k hk ↦ (hbo k hk).2
-  have hP := vtc_side_offsets hκ34 hG hB hsideT 0 0 0 9 54 111 0 (by norm_num) (by norm_num)
+  have hP := vtc_side_offsets hκ34 hG hB hsideT 0 0 0 9 54 112 0 (by norm_num) (by norm_num)
     (fun r hr ↦ (fP r hr).1) (by decide +kernel) (by decide +kernel) (by decide +kernel)
     (by decide +kernel)
-  have hC := vtc_side_offsets hκ34 hG hB hsideT 108 18 9 6 45 408 2 (by norm_num) (by norm_num)
+  have hC := vtc_side_offsets hκ34 hG hB hsideT 108 18 9 6 45 409 2 (by norm_num) (by norm_num)
     (fun r hr ↦ (fC r hr).1) (by decide +kernel) (by decide +kernel) (by decide +kernel)
     (by decide +kernel)
   simp only [Nat.zero_add] at hP

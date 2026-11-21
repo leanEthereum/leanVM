@@ -12,8 +12,10 @@ public import LeanVM.Guest.B1.VerifySub.Ood
 public import LeanVM.Guest.B1.VerifySub.Bus
 public import LeanVM.Guest.B1.VerifySub.Tail
 public import LeanVM.Guest.B1.Placement.Certify
-public import LeanVM.Guest.B1.Gkr.RoundsHolds
+public import LeanVM.Guest.B1.Gkr.Holds
 public import LeanVM.Guest.B1.Tables.Vt.VerifyTables
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # The front of `verify_sub`, assembled
@@ -40,14 +42,14 @@ abbrev vsBackT : List Stmt := vsMapsT ++ (vsCtabT ++ (vsLamT ++ vsTailT))
 structure VsFront (bytecode : List K) (C : CallRel) (rd : Reader) (σ : Val) : Type where
   seed : Digest
   pi : Digest
-  hseed : (σ (.n 2), σ (.n 3)) = digestHalves seed
-  hpi : (σ (.n 0), σ (.n 1)) = digestHalves pi
-  hcap0 : [σ (.n 20), σ (.n 21), σ (.n 22), σ (.n 23), σ (.n 24)] =
+  hseed : (σ (.n (val% «verify_sub» "seed_0")), σ (.n (val% «verify_sub» "seed_1"))) = digestHalves seed
+  hpi : (σ (.n (val% «verify_sub» "pi_0")), σ (.n (val% «verify_sub» "pi_1"))) = digestHalves pi
+  hcap0 : [σ (.n (val% «verify_sub» "sp[8]")), σ (.n (val% «verify_sub» "sp[9]")), σ (.n (val% «verify_sub» "sp[10]")), σ (.n (val% «verify_sub» "sp[11]")), σ (.n (val% «verify_sub» "sp[12]"))] =
     capOf (keccakF1600 (seedInput seed pi))
-  h8 : σ (.n 8) = 0
-  h9 : σ (.n 9) = 0
-  h10 : σ (.n 10) = 0
-  h11 : σ (.n 11) = 0
+  h8 : σ (.n (val% «verify_sub» "s3#0[1]")) = 0
+  h9 : σ (.n (val% «verify_sub» "s3#0[2]")) = 0
+  h10 : σ (.n (val% «verify_sub» "s3#0[3]")) = 0
+  h11 : σ (.n (val% «verify_sub» "s3#0[4]")) = 0
   -- the announced sizes
   logMem : ℕ
   lir : ℕ
@@ -58,104 +60,109 @@ structure VsFront (bytecode : List K) (C : CallRel) (rd : Reader) (σ : Val) : T
   hm30 : logMem ≤ 30
   hl1 : 1 ≤ lir
   hl4 : lir ≤ 4
-  h66 : σ (.n 66) = gen ^ (lir - 1)
-  h72 : σ (.n 72) = gen ^ logMem
+  h66 : σ (.n (val% «verify_sub» "rate_sel")) = gen ^ (lir - 1)
+  h72 : σ (.n (val% «verify_sub» "g_log_mem")) = gen ^ logMem
   hw : ∀ i < 8, WordAt rd σ i (vsX i)
   hwords : vsWords σ = eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat lir]
-  habs1 : (⟨[σ (.n 20), σ (.n 21), σ (.n 22), σ (.n 23), σ (.n 24)], []⟩ : Fs).absorbAll
+  habs1 : (⟨[σ (.n (val% «verify_sub» "sp[8]")), σ (.n (val% «verify_sub» "sp[9]")), σ (.n (val% «verify_sub» "sp[10]")), σ (.n (val% «verify_sub» "sp[11]")), σ (.n (val% «verify_sub» "sp[12]"))], []⟩ : Fs).absorbAll
       (vsWords σ) dsObserve =
-    ⟨[σ (.n 47), σ (.n 48), σ (.n 49), σ (.n 50), σ (.n 51)],
-      [(σ (.n 52), dsObserve), (σ (.n 55), dsObserve), (σ (.n 58), dsObserve),
-        (σ (.n 61), dsObserve)]⟩
-  habs2 : (((⟨[σ (.n 47), σ (.n 48), σ (.n 49), σ (.n 50), σ (.n 51)],
-      [(σ (.n 52), dsObserve), (σ (.n 55), dsObserve), (σ (.n 58), dsObserve),
-        (σ (.n 61), dsObserve)]⟩ : Fs).absorb (σ (.n 268)) dsObserve).absorb (σ (.n 271))
+    ⟨[σ (.n (val% «verify_sub» "nxt[8]@1")), σ (.n (val% «verify_sub» "nxt[9]@1")), σ (.n (val% «verify_sub» "nxt[10]@1")), σ (.n (val% «verify_sub» "nxt[11]@1")), σ (.n (val% «verify_sub» "nxt[12]@1"))],
+      [(σ (.n (val% «verify_sub» "x@5")), dsObserve), (σ (.n (val% «verify_sub» "x@6")), dsObserve), (σ (.n (val% «verify_sub» "x@7")), dsObserve),
+        (σ (.n (val% «verify_sub» "x@8")), dsObserve)]⟩
+  habs2 : (((⟨[σ (.n (val% «verify_sub» "nxt[8]@1")), σ (.n (val% «verify_sub» "nxt[9]@1")), σ (.n (val% «verify_sub» "nxt[10]@1")), σ (.n (val% «verify_sub» "nxt[11]@1")), σ (.n (val% «verify_sub» "nxt[12]@1"))],
+      [(σ (.n (val% «verify_sub» "x@5")), dsObserve), (σ (.n (val% «verify_sub» "x@6")), dsObserve), (σ (.n (val% «verify_sub» "x@7")), dsObserve),
+        (σ (.n (val% «verify_sub» "x@8")), dsObserve)]⟩ : Fs).absorb (σ (.n (val% «verify_sub» "x@9"))) dsObserve).absorb (σ (.n (val% «verify_sub» "x@10")))
         dsObserve) =
-    ⟨[σ (.n 263), σ (.n 264), σ (.n 265), σ (.n 266), σ (.n 267)],
-      [(σ (.n 268), dsObserve), (σ (.n 271), dsObserve)]⟩
+    ⟨[σ (.n (val% «verify_sub» "nxt[8]@2")), σ (.n (val% «verify_sub» "nxt[9]@2")), σ (.n (val% «verify_sub» "nxt[10]@2")), σ (.n (val% «verify_sub» "nxt[11]@2")), σ (.n (val% «verify_sub» "nxt[12]@2"))],
+      [(σ (.n (val% «verify_sub» "x@9")), dsObserve), (σ (.n (val% «verify_sub» "x@10")), dsObserve)]⟩
   w268 : WordAt rd σ 8 268
   w271 : WordAt rd σ 9 271
-  hkb : ReadsAt rd (σ (.n 83)) (1 :: gen ^ logMem :: (Tables.tableHeightsOf rowsN).map (gen ^ ·))
-  hdims : ReadsAt rd (σ (.n 71)) (gen ^ logMem :: (Tables.tableHeightsOf rowsN).map (gen ^ ·))
+  hkb : ReadsAt rd (σ (.n (val% «verify_sub» "kappa_base"))) (1 :: gen ^ logMem :: (Tables.tableHeightsOf rowsN).map (gen ^ ·))
+  hdims : ReadsAt rd (σ (.n (val% «verify_sub» "dims_g"))) (gen ^ logMem :: (Tables.tableHeightsOf rowsN).map (gen ^ ·))
   -- the placement and the stack's log
-  hP : Tables.PCtx rd (columnKappas logMem 19 (Tables.tableHeightsOf rowsN)) (σ (.n 275))
+  hP : Tables.PCtx rd (columnKappas logMem 19 (Tables.tableHeightsOf rowsN)) (σ (.n (val% «verify_sub» "col_offsets")))
   hKB : Tables.KappasBelow (columnKappas logMem 19 (Tables.tableHeightsOf rowsN))
   hst20 : 20 ≤ (Tables.layoutOf bytecode logMem rowsN).stackLog
   hst30 : (Tables.layoutOf bytecode logMem rowsN).stackLog ≤ 30
-  h276 : σ (.n 276) = gen ^ (Tables.layoutOf bytecode logMem rowsN).stackLog
-  h278 : σ (.n 278) = gen ^ ((Tables.layoutOf bytecode logMem rowsN).stackLog - 20)
+  h276 : σ (.n (val% «verify_sub» "gmv")) = gen ^ (Tables.layoutOf bytecode logMem rowsN).stackLog
+  h278 : σ (.n (val% «verify_sub» "size_sel")) = gen ^ ((Tables.layoutOf bytecode logMem rowsN).stackLog - 20)
   -- the out-of-domain sample
   z : List E
   v : E
   nn : E
   hO : RunsTo (readOod (Tables.layoutOf bytecode logMem rowsN).stackLog)
-    ⟨[σ (.n 263), σ (.n 264), σ (.n 265), σ (.n 266), σ (.n 267)],
-      [(σ (.n 268), dsObserve), (σ (.n 271), dsObserve)]⟩
-    [σ (.n 283), v] (fun x ↦ eqEval z x, v)
-    ⟨[σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308)], [(v, dsObserve)]⟩
+    ⟨[σ (.n (val% «verify_sub» "nxt[8]@2")), σ (.n (val% «verify_sub» "nxt[9]@2")), σ (.n (val% «verify_sub» "nxt[10]@2")), σ (.n (val% «verify_sub» "nxt[11]@2")), σ (.n (val% «verify_sub» "nxt[12]@2"))],
+      [(σ (.n (val% «verify_sub» "x@9")), dsObserve), (σ (.n (val% «verify_sub» "x@10")), dsObserve)]⟩
+    [σ (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")), v] (fun x ↦ eqEval z x, v)
+    ⟨[σ (.n (val% «verify_sub» "fs0@1")), σ (.n (val% «verify_sub» "fs1@1")), σ (.n (val% «verify_sub» "fs2@1")), σ (.n (val% «verify_sub» "fs3@1")), σ (.n (val% «verify_sub» "fs4@1"))], [(v, dsObserve)]⟩
   hzL : z.length = (Tables.layoutOf bytecode logMem rowsN).stackLog
-  hz : ReadsAt rd (σ (.n 303)) z
-  hv : ReadsAt rd (σ (.n 309)) [v]
-  hn283 : LoadHolds rd (σ (.n 25)) 10 (σ (.n 283))
-  h312 : σ (.n 311) = σ (.n 25) * gen ^ 11
-  hv312 : LoadHolds rd (σ (.n 311)) 0 v
-  hnn : LoadHolds rd (σ (.n 311)) 1 nn
-  h320 : σ (.n 319) = σ (.n 311) * gen ^ 2
+  hz : ReadsAt rd (σ (.n (val% «verify_sub» "ood_z"))) z
+  hv : ReadsAt rd (σ (.n (val% «verify_sub» "ood_value"))) [v]
+  hn283 : LoadHolds rd (σ (.n (val% «verify_sub» "stream"))) 10 (σ (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")))
+  h312 : σ (.n (val% «verify_sub» "word0~9")) = σ (.n (val% «verify_sub» "stream")) * gen ^ 11
+  hv312 : LoadHolds rd (σ (.n (val% «verify_sub» "word0~9"))) 0 v
+  hnn : LoadHolds rd (σ (.n (val% «verify_sub» "word0~9"))) 1 nn
+  h320 : σ (.n (val% «verify_sub» "cursor@1")) = σ (.n (val% «verify_sub» "word0~9")) * gen ^ 2
   -- the bus's challenges
   weights : List E
   hwL : weights.length = 16
   hB : RunsTo (busChallenges (busDepth (Tables.layoutOf bytecode logMem rowsN)))
-    ⟨[σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308)], [(v, dsObserve)]⟩ [nn]
-    (weights, σ (.n 530)) ⟨[σ (.n 538), σ (.n 539), σ (.n 540), σ (.n 541), σ (.n 542)], []⟩
+    ⟨[σ (.n (val% «verify_sub» "fs0@1")), σ (.n (val% «verify_sub» "fs1@1")), σ (.n (val% «verify_sub» "fs2@1")), σ (.n (val% «verify_sub» "fs3@1")), σ (.n (val% «verify_sub» "fs4@1"))], [(v, dsObserve)]⟩ [nn]
+    (weights, σ (.n (val% «verify_sub» "nxt[0]@19"))) ⟨[σ (.n (val% «verify_sub» "nxt[8]@19")), σ (.n (val% «verify_sub» "nxt[9]@19")), σ (.n (val% «verify_sub» "nxt[10]@19")), σ (.n (val% «verify_sub» "nxt[11]@19")), σ (.n (val% «verify_sub» "nxt[12]@19"))], []⟩
   hdep20 : 20 ≤ busDepth (Tables.layoutOf bytecode logMem rowsN)
   hdep34 : busDepth (Tables.layoutOf bytecode logMem rowsN) < 34
   hdep19 : 19 ≤ busDepth (Tables.layoutOf bytecode logMem rowsN)
-  h253 : σ (.n 253) = gen ^ busDepth (Tables.layoutOf bytecode logMem rowsN)
+  h253 : σ (.n (val% «verify_sub» "g_bus_mu")) = gen ^ busDepth (Tables.layoutOf bytecode logMem rowsN)
   -- the bus's GKR
   xsG : List E
   r : E × List E × List E
-  hxsG : ReadsAt rd (σ (.n 319)) xsG
+  hxsG : ReadsAt rd (σ (.n (val% «verify_sub» "cursor@1"))) xsG
   hG : RunsTo (Tables.gkrPhase (busDepth (Tables.layoutOf bytecode logMem rowsN)))
-    ⟨[σ (.n 538), σ (.n 539), σ (.n 540), σ (.n 541), σ (.n 542)], []⟩ xsG r
-    ⟨[σ (.n 545), σ (.n 546), σ (.n 547), σ (.n 548), σ (.n 549)], []⟩
+    ⟨[σ (.n (val% «verify_sub» "nxt[8]@19")), σ (.n (val% «verify_sub» "nxt[9]@19")), σ (.n (val% «verify_sub» "nxt[10]@19")), σ (.n (val% «verify_sub» "nxt[11]@19")), σ (.n (val% «verify_sub» "nxt[12]@19"))], []⟩ xsG r
+    ⟨[σ (.n (val% «verify_sub» "fs0@3")), σ (.n (val% «verify_sub» "fs1@3")), σ (.n (val% «verify_sub» "fs2@3")), σ (.n (val% «verify_sub» "fs3@3")), σ (.n (val% «verify_sub» "fs4@3"))], []⟩
   hrL : r.2.1.length = busDepth (Tables.layoutOf bytecode logMem rowsN)
-  hzeta : ReadsAt rd (σ (.n 254)) r.2.1
-  h567 : σ (.n 550) = σ (.n 319) * gen ^ xsG.length
+  hzeta : ReadsAt rd (σ (.n (val% «verify_sub» "zeta"))) r.2.1
+  h567 : σ (.n (val% «verify_sub» "cursor@2")) = σ (.n (val% «verify_sub» "cursor@1")) * gen ^ xsG.length
   -- the tables
   xsT : List E
   bus : BusResult
   claims : List ColumnClaim
   slots : List E
   hslL : slots.length = busBits
-  hsl : ReadsAt rd (σ (.n 553)) slots
+  hsl : ReadsAt rd (σ (.n (val% «verify_sub» "bc_point"))) slots
   hbp : bus.bytecodePoint = r.2.1.take 19 ++ slots
-  hxsT : ReadsAt rd (σ (.n 550)) xsT
-  hT : RunsTo (Tables.tablesSeg (claimedBytecodeValue ⟨bus.bytecodePoint, σ (.n 563)⟩)
-      (Tables.layoutOf bytecode logMem rowsN) pi weights (σ (.n 530)) r.2.1 r.2.2)
-    ⟨[σ (.n 545), σ (.n 546), σ (.n 547), σ (.n 548), σ (.n 549)], []⟩ xsT (bus, claims)
-    ⟨[σ (.n 556), σ (.n 557), σ (.n 558), σ (.n 559), σ (.n 560)], []⟩
+  hxsT : ReadsAt rd (σ (.n (val% «verify_sub» "cursor@2"))) xsT
+  hT : RunsTo (Tables.tablesSeg (claimedBytecodeValue ⟨bus.bytecodePoint, σ (.n (val% «verify_sub» "bc_value"))⟩)
+      (Tables.layoutOf bytecode logMem rowsN) pi weights (σ (.n (val% «verify_sub» "nxt[0]@19"))) r.2.1 r.2.2)
+    ⟨[σ (.n (val% «verify_sub» "fs0@3")), σ (.n (val% «verify_sub» "fs1@3")), σ (.n (val% «verify_sub» "fs2@3")), σ (.n (val% «verify_sub» "fs3@3")), σ (.n (val% «verify_sub» "fs4@3"))], []⟩ xsT (bus, claims)
+    ⟨[σ (.n (val% «verify_sub» "fs0@4")), σ (.n (val% «verify_sub» "fs1@4")), σ (.n (val% «verify_sub» "fs2@4")), σ (.n (val% «verify_sub» "fs3@4")), σ (.n (val% «verify_sub» "fs4@4"))], []⟩
   hcl : claims.length = 159
-  hpool : ReadsAt rd (σ (.n 6)) ((claims.take 4).map (·.value))
-  hcew : ReadsAt rd (σ (.n 565)) (((claims.drop 4).take 153).map (·.value))
-  hpiv : ReadsAt rd (σ (.n 6) * gen ^ 157) ((claims.drop 157).map (·.value))
+  hpool : ReadsAt rd (σ (.n (val% «verify_sub» "claim_pool"))) ((claims.take 4).map (·.value))
+  hcew : ReadsAt rd (σ (.n (val% «verify_sub» "col_eval_words"))) (((claims.drop 4).take 153).map (·.value))
+  hpiv : ReadsAt rd (σ (.n (val% «verify_sub» "claim_pool")) * gen ^ 157) ((claims.drop 157).map (·.value))
   hctx : Tables.TCtx rd (Tables.layoutOf bytecode logMem rowsN) bus claims
-    [σ (.n 254), σ (.n 552), σ (.n 564), σ (.n 253), σ (.n 562)]
-  h578 : σ (.n 561) = σ (.n 550) * gen ^ xsT.length
+    [σ (.n (val% «verify_sub» "zeta")), σ (.n (val% «verify_sub» "chi")), σ (.n (val% «verify_sub» "rm")), σ (.n (val% «verify_sub» "g_bus_mu")), σ (.n (val% «verify_sub» "g_zc_n"))]
+  h578 : σ (.n (val% «verify_sub» "cursor@3")) = σ (.n (val% «verify_sub» "cursor@2")) * gen ^ xsT.length
   -- `verify_keccak`'s call
-  h583 : σ (.n 566) = gen ^ (Tables.tableHeightsOf rowsN).getD 5 0
-  h587 : σ (.n 570) = σ (.n 565) * gen ^ 101
-  h589 : σ (.n 572) = σ (.n 4) * gen ^ winTabAt
-  hkc : C "verify_keccak" [σ (.n 556), σ (.n 557), σ (.n 558), σ (.n 559), σ (.n 560), σ (.n 561),
-    σ (.n 566), σ (.n 552), σ (.n 570), σ (.n 567), σ (.n 568), σ (.n 572)]
-    [σ (.n 573), σ (.n 574), σ (.n 575), σ (.n 576), σ (.n 577), σ (.n 578), σ (.n 579)]
+  h583 : σ (.n (val% «verify_sub» "tau_keccak_g")) = gen ^ (Tables.tableHeightsOf rowsN).getD 5 0
+  h587 : σ (.n (val% «verify_sub» "fs0@5~8")) = σ (.n (val% «verify_sub» "col_eval_words")) * gen ^ 101
+  h589 : σ (.n (val% «verify_sub» "fs0@5~10")) = σ (.n (val% «verify_sub» "g_squares")) * gen ^ winTabAt
+  hkc : C "verify_keccak" [σ (.n (val% «verify_sub» "fs0@4")), σ (.n (val% «verify_sub» "fs1@4")), σ (.n (val% «verify_sub» "fs2@4")), σ (.n (val% «verify_sub» "fs3@4")), σ (.n (val% «verify_sub» "fs4@4")), σ (.n (val% «verify_sub» "cursor@3")),
+    σ (.n (val% «verify_sub» "tau_keccak_g")), σ (.n (val% «verify_sub» "chi")), σ (.n (val% «verify_sub» "fs0@5~8")), σ (.n (val% «verify_sub» "z_vals")), σ (.n (val% «verify_sub» "slices")), σ (.n (val% «verify_sub» "fs0@5~10")), σ (.n (val% «verify_sub» "stream"))]
+    [σ (.n (val% «verify_sub» "fs0@5")), σ (.n (val% «verify_sub» "fs1@5")), σ (.n (val% «verify_sub» "fs2@5")), σ (.n (val% «verify_sub» "fs3@5")), σ (.n (val% «verify_sub» "fs4@5")), σ (.n (val% «verify_sub» "cursor@4")), σ (.n (val% «verify_sub» "keccak_word"))]
+  -- what `verify_tables` is called under
+  hTP : Tables.TablesPre pi logMem weights r.2.1 r.2.2 rd
+    [σ (.n (val% «verify_sub» "fs0@3")), σ (.n (val% «verify_sub» "fs1@3")), σ (.n (val% «verify_sub» "fs2@3")), σ (.n (val% «verify_sub» "fs3@3")), σ (.n (val% «verify_sub» "fs4@3")), σ (.n (val% «verify_sub» "cursor@2")), σ (.n (val% «verify_sub» "pi_0")), σ (.n (val% «verify_sub» "pi_1")),
+      σ (.n (val% «verify_sub» "zeta")), σ (.n (val% «verify_sub» "g_bus_mu")), σ (.n (val% «verify_sub» "dims_g")), σ (.n (val% «verify_sub» "table_rows")), σ (.n (val% «verify_sub» "g_squares")), σ (.n (val% «verify_sub» "fp_w")), σ (.n (val% «verify_sub» "nxt[0]@19")), σ (.n (val% «verify_sub» "claim_pool")),
+      σ (.n (val% «verify_sub» "chi")), σ (.n (val% «verify_sub» "gkr_leaves")), σ (.n (val% «verify_sub» "fs0@4~11")), σ (.n (val% «verify_sub» "bc_point")), σ (.n (val% «verify_sub» "stream"))]
 
 /-! ## Facts the assembly ties the sections with -/
 
 /-- The size selector: `g^m·g^-20` below `g^11` gives `20 ≤ m`, `size_sel = g^(m - 20)`. -/
 theorem vsPlaceT_size {κ : ℕ} (hκ : κ ≤ 32) (_hκ6 : 6 ≤ κ) (L : MemoryImage κ) {C : CallRel}
     {σ : Val} {next : Prop} {kret : List E → Prop} {m : ℕ} (hm : m ≤ 30)
-    (h276 : σ (.n 276) = gen ^ m) (h : Stmt.HoldsList C L.read σ vsPlaceT next kret) :
-    20 ≤ m ∧ σ (.n 278) = gen ^ (m - 20) := by
+    (h276 : σ (.n (val% «verify_sub» "gmv")) = gen ^ m) (h : Stmt.HoldsList C L.read σ vsPlaceT next kret) :
+    20 ≤ m ∧ σ (.n (val% «verify_sub» "size_sel")) = gen ^ (m - 20) := by
   simp only [vsPlaceT, Stmt.HoldsList, Stmt.Holds, vsCall, vsConst, vsMul, vsRange,
     List.map_cons, List.map_nil, Atom.Holds] at h
   obtain ⟨-, -, e277, m278, e279, r278, -⟩ := h
@@ -184,8 +191,8 @@ set_option maxHeartbeats 1000000 in
 /-- **`verify_sub`'s front.** -/
 theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : CallRel}
     (hC : CallRel.Le C (coreProgram.Rel L.read)) {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
-    {σ : Val} {rets : List E} (hexp : ExpTables L.read (σ (.n 4)))
-    (hwin : ExpWinTab L.read (σ (.n 4)))
+    {σ : Val} {rets : List E} (hexp : ExpTables L.read (σ (.n (val% «verify_sub» "g_squares"))))
+    (hwin : ExpWinTab L.read (σ (.n (val% «verify_sub» "g_squares"))))
     (hb : Stmt.HoldsList C L.read σ vsT False (fun rs ↦ rs = rets)) :
     Nonempty (VsFront bytecode C L.read σ) ∧
       Stmt.HoldsList C L.read σ vsBackT False (fun rs ↦ rs = rets) := by
@@ -211,13 +218,13 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : CallRel}
   -- the out-of-domain sample
   obtain ⟨z, v, nn, hO, hzL, hz, hv, hn283, h312, hv312, hnn, hom, hb⟩ :=
     vsOodT_holds hκ hκw L hC hwin hM22 hM30 h278 w268 w271 hb
-  have hS := (List.append_inj' (show [σ (.n 312), σ (.n 313), σ (.n 314), σ (.n 315), σ (.n 316),
-    σ (.n 317), σ (.n 318)] ++ [σ (.n 319)] = _ from hom) rfl)
+  have hS := (List.append_inj' (show [σ (.n (val% «verify_sub» "word0")), σ (.n (val% «verify_sub» "pow_word")), σ (.n (val% «verify_sub» "fs0@2")), σ (.n (val% «verify_sub» "fs1@2")), σ (.n (val% «verify_sub» "fs2@2")),
+    σ (.n (val% «verify_sub» "fs3@2")), σ (.n (val% «verify_sub» "fs4@2"))] ++ [σ (.n (val% «verify_sub» "cursor@1"))] = _ from hom) rfl)
   -- the bus's challenges
   rw [← holdsList_append] at hb
   obtain ⟨hμ16, weights, hwL, hw335, hBus, hb⟩ :=
     vsBusFpw_holds hκ hκw L hC hwin h8 h9 h10 h11 hμ34 h253
-      (s := ⟨[σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308)], [(v, dsObserve)]⟩)
+      (s := ⟨[σ (.n (val% «verify_sub» "fs0@1")), σ (.n (val% «verify_sub» "fs1@1")), σ (.n (val% «verify_sub» "fs2@1")), σ (.n (val% «verify_sub» "fs3@1")), σ (.n (val% «verify_sub» "fs4@1"))], [(v, dsObserve)]⟩)
       hS.1 hb
   -- the calls
   obtain ⟨h561, hgkr, h572, htab, h583l, h587, h589, hkc, hb⟩ := vsCallsT_holds hb
@@ -229,14 +236,14 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : CallRel}
       (hC _ _ _ hgkr)
   have hμd : μ = depth := gen_pow_inj (by omega) (by omega) (h253.symm.trans hgm)
   subst hμd
-  obtain ⟨hcapG, hcurG⟩ := List.append_inj' (show [σ (.n 545), σ (.n 546), σ (.n 547), σ (.n 548),
-    σ (.n 549)] ++ [σ (.n 550), σ (.n 551)] = _ from hretG) rfl
+  obtain ⟨hcapG, hcurG⟩ := List.append_inj' (show [σ (.n (val% «verify_sub» "fs0@3")), σ (.n (val% «verify_sub» "fs1@3")), σ (.n (val% «verify_sub» "fs2@3")), σ (.n (val% «verify_sub» "fs3@3")),
+    σ (.n (val% «verify_sub» "fs4@3"))] ++ [σ (.n (val% «verify_sub» "cursor@2")), σ (.n (val% «verify_sub» "gkr_leaves"))] = _ from hretG) rfl
   simp only [List.cons.injEq, and_true] at hcurG
   -- the tables
   have hTP : Tables.TablesPre pi logMem weights r.2.1 r.2.2 L.read
-      [σ (.n 545), σ (.n 546), σ (.n 547), σ (.n 548), σ (.n 549), σ (.n 550), σ (.n 0), σ (.n 1),
-        σ (.n 254), σ (.n 253), σ (.n 71), σ (.n 26), σ (.n 4), σ (.n 334), σ (.n 530), σ (.n 6),
-        σ (.n 552), σ (.n 551), σ (.n 555), σ (.n 553)] :=
+      [σ (.n (val% «verify_sub» "fs0@3")), σ (.n (val% «verify_sub» "fs1@3")), σ (.n (val% «verify_sub» "fs2@3")), σ (.n (val% «verify_sub» "fs3@3")), σ (.n (val% «verify_sub» "fs4@3")), σ (.n (val% «verify_sub» "cursor@2")), σ (.n (val% «verify_sub» "pi_0")), σ (.n (val% «verify_sub» "pi_1")),
+        σ (.n (val% «verify_sub» "zeta")), σ (.n (val% «verify_sub» "g_bus_mu")), σ (.n (val% «verify_sub» "dims_g")), σ (.n (val% «verify_sub» "table_rows")), σ (.n (val% «verify_sub» "g_squares")), σ (.n (val% «verify_sub» "fp_w")), σ (.n (val% «verify_sub» "nxt[0]@19")), σ (.n (val% «verify_sub» "claim_pool")),
+        σ (.n (val% «verify_sub» "chi")), σ (.n (val% «verify_sub» "gkr_leaves")), σ (.n (val% «verify_sub» "fs0@4~11")), σ (.n (val% «verify_sub» "bc_point")), σ (.n (val% «verify_sub» "stream"))] :=
     ⟨hpi, hzeta, by rw [h253, hrL], by omega, hm1, hm30.trans (by norm_num), ⟨ds, hdsL, hdims⟩,
       expTablesAt_of hexp hwin, h572, hwL, hw335, hvL, by rw [hcurG.2]; exact hleaves⟩
   obtain ⟨xsT, capT, rowsN, bus, claims, hrowsL, hrows, hdims', hh31, hxsT, ⟨slots, hslL, hsl, hbp⟩,
@@ -267,7 +274,7 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : CallRel}
     le_trans (le_max_right _ _) hM30
   -- the announced words
   have hwords : vsWords σ = eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat lir] := by
-    have hr : [σ (.n 30), σ (.n 33), σ (.n 36), σ (.n 52), σ (.n 55), σ (.n 58)] =
+    have hr : [σ (.n (val% «verify_sub» "x@2")), σ (.n (val% «verify_sub» "x@3")), σ (.n (val% «verify_sub» "x@4")), σ (.n (val% «verify_sub» "x@5")), σ (.n (val% «verify_sub» "x@6")), σ (.n (val% «verify_sub» "x@7"))] =
         rowsN.map eOfNat := by
       refine readsAt_ext (by simp [hrowsL]) (fun k hk ↦ ?_) hrows
       simp only [List.length_cons, List.length_nil] at hk
@@ -276,7 +283,7 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : CallRel}
     rw [vsWords, ← hr, ← h27, ← h61]
     rfl
   -- `verify_keccak`'s table height
-  have h583 : σ (.n 566) = gen ^ (Tables.tableHeightsOf rowsN).getD 5 0 := by
+  have h583 : σ (.n (val% «verify_sub» "tau_keccak_g")) = gen ^ (Tables.tableHeightsOf rowsN).getD 5 0 := by
     refine loadHolds_unique h583l ?_
     have h6 := hdims' 6 (by simp [hHL])
     rw [List.getD_eq_getElem _ _ (show 5 < (Tables.tableHeightsOf rowsN).length by omega)]
@@ -364,7 +371,8 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : CallRel}
       h583 := h583,
       h587 := h587,
       h589 := h589,
-      hkc := hkc }⟩, ?_⟩
+      hkc := hkc,
+      hTP := hTP }⟩, ?_⟩
   simpa only [vsBackT, holdsList_append] using hb
 
 end

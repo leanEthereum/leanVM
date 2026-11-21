@@ -11,14 +11,14 @@ written under `LeanVM/Guest/`. `CMD` is one of
 * `words`: `Memory/GuestWords/` and `Memory/GuestWords.lean`, the certificates counting words at
   the deployed frame sizes `B2C.fs`, over every function;
 * `cnt`: `Memory/GuestCnt/` and `Memory/GuestCnt.lean`, the certificates counting each opcode's
-  instructions at `B2C.ωArm B2C.xmssArmC op` (`pathMax`, and `__loop2`'s separately counted arms),
+  instructions at `B2C.ωArm B2C.xmssArmC op` (`pathMax`, and `main_loop2`'s separately counted arms),
   one vector certificate per function (`Memory/StaticVec`), over the closure of `ROOTS` (`main`'s
   statically bounded callees), `VROOTS` (`verify_sub`'s, each child's opening arm among them, and
   `child_claim_list_digest`'s callees) and `WROOTS` (`verify_tables`' and
   `check_opening_terminal`'s);
 * `ratiov`: `Count/RatioVData.lean`, `Count/RatioVChk*.lean`, `Count/RatioV.lean`, the counts of
   `RATIOV_ROOTS` (`verify_sub`'s callees with no static bound but `verify_tables` and the terminal,
-  and the terminal's `__loop14` and `ring_switch_weight`) within ratios of their words;
+  and the terminal's `ring_switch_target_loop0` and `ring_switch_weight`) within ratios of their words;
 * `vscount`: `Count/VsCountData.lean`, `Count/VsCountChk*.lean`, the `V` families' counts as tables
   (`vscount.py`, used by `Budget/VsCount.lean`, `Budget/L5Count.lean`), and
   `Count/MvCountData.lean`, `Count/MvCountChk*.lean`, those of `main`'s `claim_list_digest` and
@@ -34,13 +34,13 @@ The checker is `checker.py`, a mirror of `Memory/Static.lean`; `--cache` keeps t
 import sys, os, re, argparse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import core, checker, writelean, ratio, deployed, vscount, family
-from core import L
+from core import L, Lopt
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # (Lean opcode, family letter, index in `Opcode`'s order)
 OPS = [('xor', 'X', 0), ('mulNative', 'M', 1), ('setConstant', 'S', 2), ('deref', 'D', 3),
        ('jump', 'J', 4), ('keccak', 'K', 5)]
-XMSS = L('main_loop2')  # leanXMSS's check, inline in __loop2 (lean_ethereum.py)
+XMSS = L('main_loop2')  # leanXMSS's check, inline in main_loop2 (lean_ethereum.py)
 # `main`'s statically bounded callees: the exponent tables, the statement's digest, and its four
 # loops (the two duplicate-claim regions, the raw leanXMSS and leanSPHINCS signatures).
 CONST_ROOTS = [('Exp', 'exponent_tables'), ('Sd', 'statement_digest')]
@@ -53,23 +53,28 @@ ROOTS = [n for _, n in CONST_ROOTS] + [n for _, n in LOOP_ROOTS] + [AGG]
 def VROOTS(g):
     return (g.os_names() + vscount.vs_st(g) + ['list_split'] + g.family('log2_ceil_in_the_exponent__L') +
             vscount.CC_LP + vscount.CCL + vscount.CCM + vscount.MV_ST + vscount.MV_LP + [vscount.MV_DL] +
-            vscount.MV_CL + vscount.CL_LP)
+            [vscount.MV_CL] + vscount.CL_LP)
 # `verify_tables`' and `check_opening_terminal`'s statically bounded callees, `verify_tables`' rounds
-# loop, `shared_selector_tables`' callees and the terminal's `__loop14`, which bound those two
+# loop, `shared_selector_tables`' callees and the terminal's `ring_switch_target_loop0`, which bound those two
 # callees of `verify_sub` by their trees' shapes.
 def WROOTS(g):
-    return ([n for p in ['block_selector__L', 'block_selector_tab__L', 'eq_prefix_run__L', 'index_mle__L',
-                         'padding_weight__L', 'plus_one_run__L', 'sel_partial_nibble__L', 'column_selector__L']
+    # (a guest without `verify_tables`' copy loop `verify_tables_loop1` fills `chi` in `eq_prefix_chain_rev`)
+    return ([n for p in ['block_selector__L', 'block_selector_tab__L', 'eq_prefix_run__L', 'eq_prefix_run_rev__L',
+                         'index_mle__L', 'padding_weight__L', 'plus_one_run__L', 'sel_partial_nibble__L',
+                         'column_selector__L']
              for n in g.family(p)] +
-            ['eq_prefix_chain', 'sumcheck_round4', L('verify_tables_loop0'), L('shared_selector_tables_loop0'), L('check_opening_terminal_loop0'), 'selector_tables',
-             'opening_tail_round'])
-# `verify_sub`'s callees with no static bound, and the terminal's `__loop14` and
+            [f for f in ['eq_prefix_chain', 'eq_prefix_chain_rev'] if f in g.by] +
+            [f for f in ['sumcheck_round4', L('verify_tables_loop0'), Lopt('verify_tables_loop1'),
+                         L('shared_selector_tables_loop0'), L('check_opening_terminal_loop0'), 'selector_tables',
+                         'opening_tail_round'] if f])
+# `verify_sub`'s callees with no static bound, and the terminal's `ring_switch_target_loop0` and
 # `ring_switch_weight` (`verify_tables` and the terminal are bounded by their trees' shapes, the `W`
 # families), within ratios of their words (`Count/RatioV*`).
 RATIOV_ROOTS = [('Vbg', 'verify_bus_gkr'), ('Vk', 'verify_keccak'), ('Vl15', L('check_opening_terminal_loop0')),
                 ('Vrsw', 'ring_switch_weight')]
 # `verify_tables`' callees `Count/VsWords` bounds apart from the others (`vtPairs`).
-VT_APART = [L('verify_tables_loop0'), L('shared_selector_tables_loop0'), 'shared_selector_tables']
+VT_APART = [f for f in [L('verify_tables_loop0'), Lopt('verify_tables_loop1'), L('shared_selector_tables_loop0'),
+                        'shared_selector_tables'] if f]
 MAIN_CALLEES = ['exponent_tables', 'claim_list_digest', L('main_loop0'), L('main_loop1'), L('main_loop2'), L('main_loop3'),
                 'da_verify', L('main_loop4'), AGG, 'statement_digest']
 
@@ -89,7 +94,7 @@ class G:
         assert len(self.pm) == self.N and len(self.fsz) == self.N + 1, 'data out of step'
         self.xj = self.by[XMSS]
         for j, a in enumerate(self.arms):
-            assert not a or j == self.xj + 1, 'only __loop2 counts arms separately'
+            assert not a or j == self.xj + 1, 'only main_loop2 counts arms separately'
         self.C = [self.arm_max(k) for k in range(6)]
         lean = open(os.path.join(self.D, 'CplArms.lean'), encoding='utf-8').read()
         m = re.search(r'def armMax : List ℕ := \[([\d, ]*)\]', lean)
@@ -128,7 +133,7 @@ class G:
         return out
 
     def arm_max(self, k):
-        """`B2C.costMaxW` of `__loop2`'s body at opcode `k`."""
+        """`B2C.costMaxW` of `main_loop2`'s body at opcode `k`."""
         acs = self.arms[self.xj + 1] if self.xj + 1 < len(self.arms) else []
         def key(x):
             for p in acs:
@@ -298,7 +303,7 @@ def cmd_cnt(g):
                                    lambda i: fam_cost(g.fns, certs[0], i), RB=40, MB=120,
                                    doc='Every function of the guest\'s core IR passes its check counting instructions.', cut=cut)
     write_tpl(os.path.join(g.LD, 'GuestCnt.lean'),
-              tpl('GuestCnt.lean').replace('@XJ@', str(g.xj)).replace('@ARMS@', vec(g.C)))
+              tpl('GuestCnt.lean').replace('@XJ@', str(g.xj)).replace('@XN@', XMSS).replace('@ARMS@', vec(g.C)))
     print('cnt: certified %d; %d ranges, %d parts' % (len(S), len(rs), len(mods)))
     return S, fams
 
@@ -430,7 +435,7 @@ def show(c):
 
 def cmd_report(g):
     wcert = g.words_certs()
-    print('functions', g.N, '; __loop2 arms (B2C.xmssArmC):', g.C)
+    print('functions', g.N, '; main_loop2 arms (B2C.xmssArmC):', g.C)
     print('words: certified %d of %d; not: %s' % (len(wcert), g.N,
           [f['name'] for i, f in sorted(g.fns.items()) if f['name'] not in wcert]))
     allc = []

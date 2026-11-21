@@ -11,6 +11,8 @@ module
 public import LeanVM.Guest.B1.Sig.XmssSegCwC
 public import LeanVM.Guest.B1.Sig.XmssSegArms
 public import LeanVM.Guest.B1.Sig.XmssBound
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop2»
 
 /-!
 # The codeword in `main_loop2`, complete
@@ -574,10 +576,10 @@ theorem sCodewordT_fst (W : WotsT) (target : E) (d0 : V) (dg : Nat) :
           .atom (.assertEq (sSt W (dg + 70) 15).1 (.n ((sSt W (dg + 70) 15).2.2 + 6)))]))) := by
   have hgs := sGroupsT_eq W dg (dg + 70) 15 0
   simp only [Nat.zero_add] at hgs
-  have hgs' : (sGroupsT W dg 15 0 (.n 0) (.n 0) (dg + 70)).2 = _ := hgs
+  have hgs' : (sGroupsT W dg 15 0 (.n (val% «main_loop2» "xi")) (.n (val% «main_loop2» "xi")) (dg + 70)).2 = _ := hgs
   have hf := sGroupsT_fst W dg (dg + 70) 15 0
   simp only [Nat.zero_add] at hf
-  have hf' : (sGroupsT W dg 15 0 (.n 0) (.n 0) (dg + 70)).1 = _ := hf
+  have hf' : (sGroupsT W dg 15 0 (.n (val% «main_loop2» "xi")) (.n (val% «main_loop2» "xi")) (dg + 70)).1 = _ := hf
   unfold sCodewordT
   simp only [List.append_assoc]
   rw [hgs', hf']
@@ -586,7 +588,7 @@ theorem sCodewordT_snd (W : WotsT) (target : E) (d0 : V) (dg : Nat) :
     (sCodewordT W target d0 dg).2.1 = (sSt W (dg + 70) 15).2.2 + 6 + 1 := by
   have hgs := sGroupsT_eq W dg (dg + 70) 15 0
   simp only [Nat.zero_add] at hgs
-  have hgs' : (sGroupsT W dg 15 0 (.n 0) (.n 0) (dg + 70)).2 = _ := hgs
+  have hgs' : (sGroupsT W dg 15 0 (.n (val% «main_loop2» "xi")) (.n (val% «main_loop2» "xi")) (dg + 70)).2 = _ := hgs
   unfold sCodewordT
   simp only
   rw [hgs']

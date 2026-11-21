@@ -11,6 +11,8 @@ module
 
 public import LeanVM.Guest.B1.Tables.VtC.Hon
 public import LeanVM.Guest.B1.Tables.Vt.SelMath
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # Tools for the bus sides
@@ -34,7 +36,7 @@ open LeanVM.Guest.B1.Fwd LeanVM.Protocol.Verifier
 /-- The atoms `VtP` keeps: constants, sums, copies, products of older values, reads through
 `fp_w` (`.n 13`) below `16`. -/
 def okP : Atom → Bool
-  | .load _ p off => decide (p = .n 13) && decide (off < 16)
+  | .load _ p off => decide (p = .n (val% «verify_tables» "fp_w")) && decide (off < 16)
   | .const .. => true
   | .add .. => true
   | .copy .. => true
@@ -59,15 +61,15 @@ theorem VtP.atomAt {rd : Reader} {σ : Val} (h : VtP rd σ) (n : ℕ) (a : Atom)
 
 /-- No store goes through `fp_w`. -/
 theorem vtSL_no13 : vtSL.all (fun a ↦ match a with
-    | .load _ p _ => !decide (p = .n 13)
+    | .load _ p _ => !decide (p = .n (val% «verify_tables» "fp_w"))
     | _ => true) = true := by decide +kernel
 
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **The honest valuation satisfies `VtP`.** -/
-theorem vtP_honest (hl : args.length = 20) {W : List E} (hW16 : 16 ≤ W.length)
-    (hW : TbReadsAt rd (vtσ rd w args (.n 13)) W) : VtP rd (vtσ rd w args) := by
+theorem vtP_honest (hl : args.length = 21) {W : List E} (hW16 : 16 ≤ W.length)
+    (hW : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "fp_w"))) W) : VtP rd (vtσ rd w args) := by
   intro n a heq hok
   have hs : Stmt.atom a ∈ vtPre := vt_mem_slice (blk := [_]) heq List.mem_cons_self
   have hg := vt_goodS (rd := rd) (w := w) hl hs
@@ -76,7 +78,7 @@ theorem vtP_honest (hl : args.length = 20) {W : List E} (hW16 : 16 ≤ W.length)
   | load d p off =>
     simp only [okP, Bool.and_eq_true, decide_eq_true_eq] at hok
     obtain ⟨rfl, hoff⟩ := hok
-    have hS : Atom.load d (.n 13) off ∉ vtSL := by
+    have hS : Atom.load d (.n (val% «verify_tables» "fp_w")) off ∉ vtSL := by
       intro hm
       have := List.all_eq_true.mp vtSL_no13 _ hm
       simp at this
@@ -98,7 +100,7 @@ theorem vtP_honest (hl : args.length = 20) {W : List E} (hW16 : 16 ≤ W.length)
 /-! ## By membership -/
 
 /-- A read of a word the memory holds, the statement in `vtPre`. -/
-theorem vtB_readM (hl : args.length = 20) {d p : V} {off : ℕ}
+theorem vtB_readM (hl : args.length = 21) {d p : V} {off : ℕ}
     (hs : Stmt.atom (.load d p off) ∈ vtPre) (hS : Atom.load d p off ∉ vtSL) {v : E}
     (hm : LoadHolds rd (vtσ rd w args p) off v) :
     vtσ rd w args d = v ∧ VSH (coreProgram.Rel rd) rd (vtσ rd w args) (.atom (.load d p off)) := by
@@ -110,12 +112,12 @@ theorem vtB_readM (hl : args.length = 20) {d p : V} {off : ℕ}
   rw [e]; exact hm
 
 /-- The returns of a dispatch in `vtPre`: the oracle's. -/
-theorem vtB_retsM (hl : args.length = 20) {x : V} {fs : List String} {args' rets : List V}
+theorem vtB_retsM (hl : args.length = 21) {x : V} {fs : List String} {args' rets : List V}
     (hs : Stmt.dispatch x fs args' rets ∈ vtPre) : ∀ v ∈ rets, vtσ rd w args v = w v.idx :=
   vt_goodS (rd := rd) (w := w) hl hs
 
 /-- **A block's statements hold** when those evaluation alone does not settle do. -/
-theorem vtB_blockA (hl : args.length = 20) (n : ℕ) (blk : List Stmt)
+theorem vtB_blockA (hl : args.length = 21) (n : ℕ) (blk : List Stmt)
     (heq : tbStmtsEqb blk ((vtPre.drop n).take blk.length) = true)
     (h : ∀ s ∈ blk, autoB s = false → VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) :
     ∀ s ∈ blk, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by

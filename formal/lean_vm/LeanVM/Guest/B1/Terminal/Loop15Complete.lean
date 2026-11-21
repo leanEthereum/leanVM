@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Terminal.PiChain
 public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.B1.Common.Find
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«check_opening_terminal_loop0»
 
 /-!
 # `check_opening_terminal_loop0`, completely
@@ -33,13 +35,13 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 /-- `check_opening_terminal_loop0`'s statements before its `ret`. -/
 def l15Pre : List Stmt :=
-  [.atom (.mul (.n 4) (.n 2) (.n 0)), .atom (.load (.n 5) (.n 4) 0),
-    .atom (.mul (.n 6) (.n 3) (.n 0)), .atom (.load (.n 7) (.n 6) 0),
-    .atom (.mul (.n 8) (.n 5) (.n 7)), .atom (.mul (.n 9) (.n 2) (.n 0)),
-    .atom (.load (.n 8) (.n 9) 1), .atom (.const (.n 10) (word 2 0)),
-    .atom (.mul (.n 11) (.n 0) (.n 10)), .atom (.add (.n 12) (.n 11) (.n 1)),
-    .atom (.const (.n 13) (word 2 0)), .atom (.mul (.n 14) (.n 0) (.n 13)),
-    .callIf (.n 12) name% «check_opening_terminal_loop0» [.n 14, .n 1, .n 2, .n 3]]
+  [.atom (.mul (.n (val% «check_opening_terminal_loop0» "s0#0")) (.n (val% «check_opening_terminal_loop0» "pi_chain")) (.n (val% «check_opening_terminal_loop0» "xk"))), .atom (.load (.n (val% «check_opening_terminal_loop0» "s0#1")) (.n (val% «check_opening_terminal_loop0» "s0#0")) 0),
+    .atom (.mul (.n (val% «check_opening_terminal_loop0» "s0#2")) (.n (val% «check_opening_terminal_loop0» "point1")) (.n (val% «check_opening_terminal_loop0» "xk"))), .atom (.load (.n (val% «check_opening_terminal_loop0» "s0#3")) (.n (val% «check_opening_terminal_loop0» "s0#2")) 0),
+    .atom (.mul (.n (val% «check_opening_terminal_loop0» "s0#4")) (.n (val% «check_opening_terminal_loop0» "s0#1")) (.n (val% «check_opening_terminal_loop0» "s0#3"))), .atom (.mul (.n (val% «check_opening_terminal_loop0» "s0#5")) (.n (val% «check_opening_terminal_loop0» "pi_chain")) (.n (val% «check_opening_terminal_loop0» "xk"))),
+    .atom (.load (.n (val% «check_opening_terminal_loop0» "s0#4")) (.n (val% «check_opening_terminal_loop0» "s0#5")) 1), .atom (.const (.n (val% «check_opening_terminal_loop0» "s2#0")) (word 2 0)),
+    .atom (.mul (.n (val% «check_opening_terminal_loop0» "s2#1")) (.n (val% «check_opening_terminal_loop0» "xk")) (.n (val% «check_opening_terminal_loop0» "s2#0"))), .atom (.add (.n (val% «check_opening_terminal_loop0» "s2#2")) (.n (val% «check_opening_terminal_loop0» "s2#1")) (.n (val% «check_opening_terminal_loop0» "bound"))),
+    .atom (.const (.n (val% «check_opening_terminal_loop0» "s2#3")) (word 2 0)), .atom (.mul (.n (val% «check_opening_terminal_loop0» "s2#4")) (.n (val% «check_opening_terminal_loop0» "xk")) (.n (val% «check_opening_terminal_loop0» "s2#3"))),
+    .callIf (.n (val% «check_opening_terminal_loop0» "s2#2")) name% «check_opening_terminal_loop0» [.n (val% «check_opening_terminal_loop0» "s2#4"), .n (val% «check_opening_terminal_loop0» "bound"), .n (val% «check_opening_terminal_loop0» "pi_chain"), .n (val% «check_opening_terminal_loop0» "point1")]]
 
 theorem find_loop15 : coreProgram.find? name% «check_opening_terminal_loop0» = some
     fn% «check_opening_terminal_loop0» :=
@@ -53,11 +55,11 @@ theorem l15_body : Fn.body fn% «check_opening_terminal_loop0» = l15Pre ++ [.re
 
 theorem l15_straight : l15Pre.all Main.Stmt.straight = true := by decide +kernel
 
-theorem l15_loads : l15Pre.filterMap Stmt.loadS = [(.n 4, 0), (.n 6, 0), (.n 9, 1)] := by
+theorem l15_loads : l15Pre.filterMap Stmt.loadS = [(.n (val% «check_opening_terminal_loop0» "s0#0"), 0), (.n (val% «check_opening_terminal_loop0» "s0#2"), 0), (.n (val% «check_opening_terminal_loop0» "s0#5"), 1)] := by
   decide +kernel
 
 theorem l15_callS : l15Pre.filterMap Main.Stmt.callS =
-    [(some (.n 12), name% «check_opening_terminal_loop0», [.n 14, .n 1, .n 2, .n 3],
+    [(some (.n (val% «check_opening_terminal_loop0» "s2#2")), name% «check_opening_terminal_loop0», [.n (val% «check_opening_terminal_loop0» "s2#4"), .n (val% «check_opening_terminal_loop0» "bound"), .n (val% «check_opening_terminal_loop0» "pi_chain"), .n (val% «check_opening_terminal_loop0» "point1")],
         [])] := by decide +kernel
 
 /-- `check_opening_terminal_loop0`'s evident valuation at `x`, the chain's word `a` and the point's

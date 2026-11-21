@@ -36,7 +36,7 @@ def streams : Streams := honestStreams [] seed leaf witness
 
 /- The streams, in the order of their first push, and their entry counts. -/
 #guard streams.map (fun s ↦ (s.1, s.2.length)) ==
-  [("meta", 1), ("fs_seed", 1), ("signers_split", 1), ("claims", 1), ("raw_index", 1),
+  [("meta", 1), ("fs_seed", 1), ("heap_sizes", 9), ("signers_split", 1), ("claims", 1), ("raw_index", 1),
     ("lx_index", 1), ("lx_windows", 1), ("lx_path", 32), ("randomizer", 2), ("lx_digits", 2),
     ("chain_starts", 116), ("leaf_defer", 1), ("da_pick", 1)]
 
@@ -47,6 +47,10 @@ def get (n : String) : List Entry := (streams.lookup n).getD []
 #guard get "signers_split" == [[count 0, count 0, count 1]]
 #guard get "claims" == [claimCells key.root key.parameter message]
 #guard get "raw_index" == [[count 0]]
+/- The advised `HeapBuf` sizes: the coverage tables of one slot and none, `da_digests` of the node's
+own digest, no child's buffers but `written`'s one cell, the leanXMSS list's chain of one state,
+and an empty entry for the empty leanSPHINCS list, whose branch allocates nothing. -/
+#guard get "heap_sizes" == [4, 0, 2, 0, 0, 0, 1, 13].map (fun n ↦ [count n]) ++ [[]]
 #guard get "leaf_defer" == [[5]]
 /- No blob matrix and no child: the node publishes its own slot, zeros. -/
 #guard get "da_pick" == [[count 0]]

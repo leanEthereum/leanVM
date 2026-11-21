@@ -50,8 +50,8 @@ def MainComplete : Prop :=
       ∀ rd, LowDef (logMem N) rd → MemL rd L → rd 1 = some (hdrOf (statementDigest seed s)).1 →
         rd g = some (hdrOf (statementDigest seed s)).2 →
           ∃ t : Tree, t.name = "main" ∧ t.Valid coreProgram rd [] [] ∧ t.BufsOk coreProgram ∧
-            t.Placed coreProgram fs cert 0 ∧ t.total fs = N ∧
-            t.LoadsIn coreProgram fs cert (fun i => i < 2) 0 ∧
+            t.Placed coreProgram fs cert (0, t.block fs coreProgram.loop) ∧ t.total fs = N ∧
+            t.LoadsIn coreProgram fs cert (fun i => i < 2) (0, t.block fs coreProgram.loop) ∧
             ∀ op, cnt t op ≤ (b.instrs op).eval (work s w)
 
 /-- **The certificate's facts for every tree of `main`** (the checker). -/
@@ -60,7 +60,7 @@ def KFactsAll : Prop :=
 
 /-- **The instruction counts do not see the temporaries' values.** -/
 def CntRetemp : Prop :=
-  ∀ (ν : ℕ → String → Val → V → E) (t : Tree), cnt (t.retemp coreProgram fs ν 0) = cnt t
+  ∀ (ν : ℕ → String → Val → V → E) (t : Tree), cnt (t.retemp coreProgram fs ν (0, t.block fs coreProgram.loop)) = cnt t
 
 /-- **What completeness within the budget `b` rests on, in its owners' forms.** -/
 structure CompleteParts : Prop where

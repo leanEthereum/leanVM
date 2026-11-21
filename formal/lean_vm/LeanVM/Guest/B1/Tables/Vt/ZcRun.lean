@@ -9,8 +9,10 @@
 module
 
 public import LeanVM.Guest.B1.Tables.Vt.Rounds
-public import LeanVM.Guest.B1.Eq.EqPrefix
+public import LeanVM.Guest.B1.Eq.EqPrefixRev
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The table sumcheck
@@ -40,34 +42,34 @@ theorem vt_chi_index {n j : ℕ} {y : E} (hj : j < n) (hy : gen ^ n * vtWInvGen 
 
 /-- The sponge `ξ` is squeezed from: the bytecode sumcheck's last capacity, its value waiting. -/
 def vtXiFs (σ : Val) : Fs :=
-  (⟨(List.range 5).map fun k ↦ σ (.n (1891 + k)), []⟩ : Fs).absorb (σ (.n 1904)) dsObserve
+  (⟨(List.range 5).map fun k ↦ σ (.n (1892 + k)), []⟩ : Fs).absorb (σ (.n (val% «verify_tables» "x@8"))) dsObserve
 
 /-- **The batching challenge `ξ`** (`XI_GRIND_BITS = 0`: a plain squeeze, the bytecode's value
 waiting) and the capacity after it. -/
 theorem vt_xi {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    σ (.n 2596) = (vtXiFs σ).squeeze.1 ∧
-      (vtXiFs σ).squeeze.2 = ⟨(List.range 5).map fun k ↦ σ (.n (2604 + k)), []⟩ := by
-  have c0 := h.atomAt 1945 (.copy (.n 1899) (.n 1891)) (by decide +kernel)
-  have c1 := h.atomAt 1946 (.copy (.n 1900) (.n 1892)) (by decide +kernel)
-  have c2 := h.atomAt 1947 (.copy (.n 1901) (.n 1893)) (by decide +kernel)
-  have c3 := h.atomAt 1948 (.copy (.n 1902) (.n 1894)) (by decide +kernel)
-  have c4 := h.atomAt 1949 (.copy (.n 1903) (.n 1895)) (by decide +kernel)
-  have c6 := h.atomAt 1951 (.copy (.n 1905) (.n 1904)) (by decide +kernel)
-  have d7 := h.atomAt 1952 (.const (.n 1906) (word 0 1)) (by decide +kernel)
-  have z3 := h.atomAt 2626 (.const (.n 2592) (word 0 0)) (by decide +kernel)
-  have z4 := h.atomAt 2627 (.const (.n 2593) (word 0 0)) (by decide +kernel)
-  have z5 := h.atomAt 2628 (.const (.n 2594) (word 0 0)) (by decide +kernel)
-  have z6 := h.atomAt 2629 (.const (.n 2595) (word 0 0)) (by decide +kernel)
-  have k := h.atomAt 2630 (.keccak [.n 1905, .n 1906, .n 2592, .n 2592, .n 2592, .n 2593,
-    .n 2594, .n 2595, .n 1899, .n 1900, .n 1901, .n 1902, .n 1903] (vtOuts 2596) false false)
+    σ (.n (val% «verify_tables» "nxt[0]@3")) = (vtXiFs σ).squeeze.1 ∧
+      (vtXiFs σ).squeeze.2 = ⟨(List.range 5).map fun k ↦ σ (.n (2605 + k)), []⟩ := by
+  have c0 := h.atomAt 1945 (.copy (.n (val% «verify_tables» "sp[0]@2")) (.n (val% «verify_tables» "bfs0@3"))) (by decide +kernel)
+  have c1 := h.atomAt 1946 (.copy (.n (val% «verify_tables» "sp[1]@2")) (.n (val% «verify_tables» "bfs1@3"))) (by decide +kernel)
+  have c2 := h.atomAt 1947 (.copy (.n (val% «verify_tables» "sp[2]@2")) (.n (val% «verify_tables» "bfs2@3"))) (by decide +kernel)
+  have c3 := h.atomAt 1948 (.copy (.n (val% «verify_tables» "sp[3]@2")) (.n (val% «verify_tables» "bfs3@3"))) (by decide +kernel)
+  have c4 := h.atomAt 1949 (.copy (.n (val% «verify_tables» "sp[4]@2")) (.n (val% «verify_tables» "bfs4@3"))) (by decide +kernel)
+  have c6 := h.atomAt 1951 (.copy (.n (val% «verify_tables» "rate[0]@3")) (.n (val% «verify_tables» "x@8"))) (by decide +kernel)
+  have d7 := h.atomAt 1952 (.const (.n (val% «verify_tables» "rate[1]@3")) (word 0 1)) (by decide +kernel)
+  have z3 := h.atomAt 2626 (.const (.n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]")) (word 0 0)) (by decide +kernel)
+  have z4 := h.atomAt 2627 (.const (.n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]")) (word 0 0)) (by decide +kernel)
+  have z5 := h.atomAt 2628 (.const (.n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]")) (word 0 0)) (by decide +kernel)
+  have z6 := h.atomAt 2629 (.const (.n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]")) (word 0 0)) (by decide +kernel)
+  have k := h.atomAt 2630 (.keccak [.n (val% «verify_tables» "rate[0]@3"), .n (val% «verify_tables» "rate[1]@3"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"),
+    .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "sp[0]@2"), .n (val% «verify_tables» "sp[1]@2"), .n (val% «verify_tables» "sp[2]@2"), .n (val% «verify_tables» "sp[3]@2"), .n (val% «verify_tables» "sp[4]@2")] (vtOuts 2597) false false)
     (by decide +kernel)
   simp only [Atom.Holds, tb_word_zero] at c0 c1 c2 c3 c4 c6 d7 z3 z4 z5 z6
   obtain ⟨hP, hC⟩ := vt_keccak k
-  have hs : vtXiFs σ = ⟨(List.range 5).map fun k ↦ σ (.n (1891 + k)),
-      [(σ (.n 1904), dsObserve)]⟩ := by
+  have hs : vtXiFs σ = ⟨(List.range 5).map fun k ↦ σ (.n (1892 + k)),
+      [(σ (.n (val% «verify_tables» "x@8")), dsObserve)]⟩ := by
     simp [vtXiFs, Fs.absorb, rateScalars]
-  have hin : ([.n 1905, .n 1906, .n 2592, .n 2592, .n 2592, .n 2593, .n 2594, .n 2595, .n 1899,
-      .n 1900, .n 1901, .n 1902, .n 1903] : List V).map σ =
+  have hin : ([.n (val% «verify_tables» "rate[0]@3"), .n (val% «verify_tables» "rate[1]@3"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "sp[0]@2"),
+      .n (val% «verify_tables» "sp[1]@2"), .n (val% «verify_tables» "sp[2]@2"), .n (val% «verify_tables» "sp[3]@2"), .n (val% «verify_tables» "sp[4]@2")] : List V).map σ =
       rateOf (vtXiFs σ).pend ++ (vtXiFs σ).cap := by
     rw [hs, rateOf_eq_cells _ (by simp)]
     simp only [List.map_cons, List.map_nil, pendCells, List.flatMap_cons, List.flatMap_nil,
@@ -77,100 +79,103 @@ theorem vt_xi {rd : Reader} {σ : Val} (h : VtH rd σ) :
   rw [hin] at hP hC
   refine ⟨?_, ?_⟩
   · simp only [Fs.squeeze, Fs.perm]
-    exact challengeT_value (s0 := .n 2596) (b := 2596) rfl (hP 0 (by omega))
+    exact challengeT_value (s0 := .n (val% «verify_tables» "nxt[0]@3")) (b := 2597) rfl (hP 0 (by omega))
   · simp only [Fs.squeeze, Fs.perm]
-    have e : ∀ k, 2596 + 8 + k = 2604 + k := fun k => by omega
+    have e : ∀ k, 2597 + 8 + k = 2605 + k := fun k => by omega
     simp only [e] at hC
     rw [hC]
 
 /-- **The table sumcheck.** -/
-theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 33)
-    (hgn : σ (.n 2543) = gen ^ n) :
-    σ (.n 2618) = σ (.n 2596) ^ 2 * σ (.n 2441) + σ (.n 2596) ^ 3 * σ (.n 2487) +
-      σ (.n 2596) ^ 4 * σ (.n 2542) ∧
+theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 34)
+    (hgn : σ (.n (val% «verify_tables» "g_zc_n")) = gen ^ n) :
+    σ (.n (val% «verify_tables» "bus_target@3")) = σ (.n (val% «verify_tables» "nxt[0]@3")) ^ 2 * σ (.n (val% «verify_tables» "bus_table_total[0]")) + σ (.n (val% «verify_tables» "nxt[0]@3")) ^ 3 * σ (.n (val% «verify_tables» "bus_table_total[1]")) +
+      σ (.n (val% «verify_tables» "nxt[0]@3")) ^ 4 * σ (.n (val% «verify_tables» "bus_table_total[2]")) ∧
     ∃ (xs pts : List E) (claimN : E),
-      RunsTo (sumcheck (σ (.n 2618)) 4 (List.replicate n none))
-        ⟨(List.range 5).map fun k ↦ σ (.n (2604 + k)), []⟩ xs (pts, claimN)
-        ⟨(List.range 5).map fun k ↦ σ (.n (2640 + k)), []⟩ ∧
-      ReadsAt rd (σ (.n 1896) * gen) xs ∧ xs.length = 3 * n ∧ pts.length = n ∧
-      σ (.n 2645) = σ (.n 1896) * gen * gen ^ (3 * n) ∧ σ (.n 2646) = claimN ∧
-      (∀ i < n, LoadHolds rd (σ (.n 16)) (n - 1 - i) (pts.getD i 0)) ∧
-      (∀ j ≤ n, LoadHolds rd (σ (.n 2628)) j ((pts.take j).prod)) ∧
-      EqPrefix rd (σ (.n 2649)) 1 (σ (.n 16)) (σ (.n 699)) n := by
-  have a5207 := h.atomAt 2631 (.const (.n 2609) (word 1 0)) (by decide +kernel)
-  have a5208 := h.atomAt 2632 (.mul (.n 2610) (.n 2609) (.n 2596)) (by decide +kernel)
-  have a5209 := h.atomAt 2633 (.mul (.n 2611) (.n 2610) (.n 2596)) (by decide +kernel)
-  have a5210 := h.atomAt 2634 (.mul (.n 2612) (.n 2611) (.n 2596)) (by decide +kernel)
-  have a5211 := h.atomAt 2635 (.mul (.n 2613) (.n 2612) (.n 2596)) (by decide +kernel)
-  have a5212 := h.atomAt 2636 (.mul (.n 2614) (.n 2611) (.n 2441)) (by decide +kernel)
-  have a5213 := h.atomAt 2637 (.mul (.n 2615) (.n 2612) (.n 2487)) (by decide +kernel)
-  have a5214 := h.atomAt 2638 (.add (.n 2616) (.n 2614) (.n 2615)) (by decide +kernel)
-  have a5215 := h.atomAt 2639 (.mul (.n 2617) (.n 2613) (.n 2542)) (by decide +kernel)
-  have a5216 := h.atomAt 2640 (.add (.n 2618) (.n 2616) (.n 2617)) (by decide +kernel)
-  have a5217 := h.atomAt 2641 (.const (.n 2619) (word 2 0)) (by decide +kernel)
-  have a5218 := h.atomAt 2642 (.mul (.n 2620) (.n 2543) (.n 2619)) (by decide +kernel)
-  have a5219 := h.atomAt 2643 (.mul (.n 2621) (.n 2620) (.n 2620)) (by decide +kernel)
-  have a5220 := h.atomAt 2644 (.mul (.n 2622) (.n 2621) (.n 2620)) (by decide +kernel)
-  have a5221 := h.atomAt 2645 (.mul (.n 2623) (.n 2622) (.n 2622)) (by decide +kernel)
-  have a5222 := h.atomAt 2646 (.mul (.n 2624) (.n 2623) (.n 2620)) (by decide +kernel)
-  have a5224 := h.atomAt 2648 (.const (.n 2626) (word 2 0)) (by decide +kernel)
-  have a5225 := h.atomAt 2649 (.mul (.n 2627) (.n 2543) (.n 2626)) (by decide +kernel)
-  have a5227 := h.atomAt 2651 (.load (.n 2604) (.n 2625) 0) (by decide +kernel)
-  have a5228 := h.atomAt 2652 (.load (.n 2605) (.n 2625) 1) (by decide +kernel)
-  have a5229 := h.atomAt 2653 (.load (.n 2606) (.n 2625) 2) (by decide +kernel)
-  have a5230 := h.atomAt 2654 (.load (.n 2607) (.n 2625) 3) (by decide +kernel)
-  have a5231 := h.atomAt 2655 (.load (.n 2608) (.n 2625) 4) (by decide +kernel)
-  have a5232 := h.atomAt 2656 (.const (.n 2629) (word 2 0)) (by decide +kernel)
-  have a5233 := h.atomAt 2657 (.mul (.n 2630) (.n 1896) (.n 2629)) (by decide +kernel)
-  have a5234 := h.atomAt 2658 (.load (.n 2630) (.n 2625) 5) (by decide +kernel)
-  have a5235 := h.atomAt 2659 (.load (.n 2618) (.n 2625) 6) (by decide +kernel)
-  have a5236 := h.atomAt 2660 (.const (.n 2631) (word 1 0)) (by decide +kernel)
-  have a5237 := h.atomAt 2661 (.load (.n 2631) (.n 2628) 0) (by decide +kernel)
-  have a5238 := h.atomAt 2662 (.const (.n 2632) (word 1 0)) (by decide +kernel)
-  have a5239 := h.atomAt 2663 (.add (.n 2633) (.n 2632) (.n 2543)) (by decide +kernel)
-  have a5240 := h.atomAt 2664 (.const (.n 2634) (word 1 0)) (by decide +kernel)
-  have a5242 := h.atomAt 2666 (.mul (.n 2635) (.n 2543) (.n 2543)) (by decide +kernel)
-  have a5243 := h.atomAt 2667 (.mul (.n 2636) (.n 2635) (.n 2543)) (by decide +kernel)
-  have a5244 := h.atomAt 2668 (.mul (.n 2637) (.n 2636) (.n 2636)) (by decide +kernel)
-  have a5245 := h.atomAt 2669 (.mul (.n 2638) (.n 2637) (.n 2543)) (by decide +kernel)
-  have a5246 := h.atomAt 2670 (.mul (.n 2639) (.n 2625) (.n 2638)) (by decide +kernel)
-  have a5247 := h.atomAt 2671 (.load (.n 2640) (.n 2639) 0) (by decide +kernel)
-  have a5248 := h.atomAt 2672 (.load (.n 2641) (.n 2639) 1) (by decide +kernel)
-  have a5249 := h.atomAt 2673 (.load (.n 2642) (.n 2639) 2) (by decide +kernel)
-  have a5250 := h.atomAt 2674 (.load (.n 2643) (.n 2639) 3) (by decide +kernel)
-  have a5251 := h.atomAt 2675 (.load (.n 2644) (.n 2639) 4) (by decide +kernel)
-  have a5252 := h.atomAt 2676 (.load (.n 2645) (.n 2639) 5) (by decide +kernel)
-  have a5253 := h.atomAt 2677 (.load (.n 2646) (.n 2639) 6) (by decide +kernel)
-  have a5254 := h.atomAt 2678 (.const (.n 2647) (word 2 0)) (by decide +kernel)
-  have a5255 := h.atomAt 2679 (.mul (.n 2648) (.n 2543) (.n 2647)) (by decide +kernel)
-  have a5257 := h.atomAt 2681 (.const (.n 2650) (word 1 0)) (by decide +kernel)
-  have hloop := h.callIfAt 2665 (.n 2633) name% «verify_tables_loop0» [.n 2634, .n 2543, .n 2625,
-      .n 18,
-    .n 16, .n 2543, .n 2628] (by decide +kernel)
-  have hchain := h.callAt 2682 "eq_prefix_chain" [.n 2649, .n 2650, .n 16, .n 699, .n 2543] []
+      RunsTo (sumcheck (σ (.n (val% «verify_tables» "bus_target@3"))) 4 (List.replicate n none))
+        ⟨(List.range 5).map fun k ↦ σ (.n (2605 + k)), []⟩ xs (pts, claimN)
+        ⟨(List.range 5).map fun k ↦ σ (.n (2642 + k)), []⟩ ∧
+      ReadsAt rd (σ (.n (val% «verify_tables» "cursor@4")) * gen) xs ∧ xs.length = 3 * n ∧ pts.length = n ∧
+      σ (.n (val% «verify_tables» "cursor@5")) = σ (.n (val% «verify_tables» "cursor@4")) * gen * gen ^ (3 * n) ∧ σ (.n (val% «verify_tables» "claim")) = claimN ∧
+      (∀ i < n, LoadHolds rd (σ (.n (val% «verify_tables» "chi"))) (n - 1 - i) (pts.getD i 0)) ∧
+      (∀ j ≤ n, LoadHolds rd (σ (.n (val% «verify_tables» "zc_cprod"))) j ((pts.take j).prod)) ∧
+      EqPrefix rd (σ (.n (val% «verify_tables» "zc_peq"))) 1 (σ (.n (val% «verify_tables» "chi"))) (σ (.n (val% «verify_tables» "zeta1"))) n := by
+  have a5207 := h.atomAt 2631 (.const (.n (val% «verify_tables» "zc_xi_pows[0]")) (word 1 0)) (by decide +kernel)
+  have a5208 := h.atomAt 2632 (.mul (.n (val% «verify_tables» "zc_xi_pows[1]")) (.n (val% «verify_tables» "zc_xi_pows[0]")) (.n (val% «verify_tables» "nxt[0]@3"))) (by decide +kernel)
+  have a5209 := h.atomAt 2633 (.mul (.n (val% «verify_tables» "zc_xi_pows[2]")) (.n (val% «verify_tables» "zc_xi_pows[1]")) (.n (val% «verify_tables» "nxt[0]@3"))) (by decide +kernel)
+  have a5210 := h.atomAt 2634 (.mul (.n (val% «verify_tables» "zc_xi_pows[3]")) (.n (val% «verify_tables» "zc_xi_pows[2]")) (.n (val% «verify_tables» "nxt[0]@3"))) (by decide +kernel)
+  have a5211 := h.atomAt 2635 (.mul (.n (val% «verify_tables» "zc_xi_pows[4]")) (.n (val% «verify_tables» "zc_xi_pows[3]")) (.n (val% «verify_tables» "nxt[0]@3"))) (by decide +kernel)
+  have a5212 := h.atomAt 2636 (.mul (.n (val% «verify_tables» "bus_target@1")) (.n (val% «verify_tables» "zc_xi_pows[2]")) (.n (val% «verify_tables» "bus_table_total[0]"))) (by decide +kernel)
+  have a5213 := h.atomAt 2637 (.mul (.n (val% «verify_tables» "bus_target@2~0")) (.n (val% «verify_tables» "zc_xi_pows[3]")) (.n (val% «verify_tables» "bus_table_total[1]"))) (by decide +kernel)
+  have a5214 := h.atomAt 2638 (.add (.n (val% «verify_tables» "bus_target@2")) (.n (val% «verify_tables» "bus_target@1")) (.n (val% «verify_tables» "bus_target@2~0"))) (by decide +kernel)
+  have a5215 := h.atomAt 2639 (.mul (.n (val% «verify_tables» "bus_target@3~0")) (.n (val% «verify_tables» "zc_xi_pows[4]")) (.n (val% «verify_tables» "bus_table_total[2]"))) (by decide +kernel)
+  have a5216 := h.atomAt 2640 (.add (.n (val% «verify_tables» "bus_target@3")) (.n (val% «verify_tables» "bus_target@2")) (.n (val% «verify_tables» "bus_target@3~0"))) (by decide +kernel)
+  have a5217 := h.atomAt 2641 (.const (.n (val% «verify_tables» "zc_rounds~0")) (word 2 0)) (by decide +kernel)
+  have a5218 := h.atomAt 2642 (.mul (.n (val% «verify_tables» "zc_rounds~1")) (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "zc_rounds~0"))) (by decide +kernel)
+  have a5219 := h.atomAt 2643 (.mul (.n (val% «verify_tables» "zc_rounds~2")) (.n (val% «verify_tables» "zc_rounds~1")) (.n (val% «verify_tables» "zc_rounds~1"))) (by decide +kernel)
+  have a5220 := h.atomAt 2644 (.mul (.n (val% «verify_tables» "zc_rounds~3")) (.n (val% «verify_tables» "zc_rounds~2")) (.n (val% «verify_tables» "zc_rounds~1"))) (by decide +kernel)
+  have a5221 := h.atomAt 2645 (.mul (.n (val% «verify_tables» "zc_rounds~4")) (.n (val% «verify_tables» "zc_rounds~3")) (.n (val% «verify_tables» "zc_rounds~3"))) (by decide +kernel)
+  have a5222 := h.atomAt 2646 (.mul (.n (val% «verify_tables» "zc_rounds~5")) (.n (val% «verify_tables» "zc_rounds~4")) (.n (val% «verify_tables» "zc_rounds~1"))) (by decide +kernel)
+  have a5224 := h.atomAt 2648 (.const (.n (val% «verify_tables» "zc_cprod~0")) (word 2 0)) (by decide +kernel)
+  have a5225 := h.atomAt 2649 (.mul (.n (val% «verify_tables» "zc_cprod~1")) (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "zc_cprod~0"))) (by decide +kernel)
+  have a5227 := h.atomAt 2651 (.load (.n (val% «verify_tables» "nxt[8]@3")) (.n (val% «verify_tables» "zc_rounds")) 0) (by decide +kernel)
+  have a5228 := h.atomAt 2652 (.load (.n (val% «verify_tables» "nxt[9]@3")) (.n (val% «verify_tables» "zc_rounds")) 1) (by decide +kernel)
+  have a5229 := h.atomAt 2653 (.load (.n (val% «verify_tables» "nxt[10]@3")) (.n (val% «verify_tables» "zc_rounds")) 2) (by decide +kernel)
+  have a5230 := h.atomAt 2654 (.load (.n (val% «verify_tables» "nxt[11]@3")) (.n (val% «verify_tables» "zc_rounds")) 3) (by decide +kernel)
+  have a5231 := h.atomAt 2655 (.load (.n (val% «verify_tables» "nxt[12]@3")) (.n (val% «verify_tables» "zc_rounds")) 4) (by decide +kernel)
+  have a5232 := h.atomAt 2656 (.const (.n (val% «verify_tables» "s68#0")) (word 2 0)) (by decide +kernel)
+  have a5233 := h.atomAt 2657 (.mul (.n (val% «verify_tables» "s68#1")) (.n (val% «verify_tables» "cursor@4")) (.n (val% «verify_tables» "s68#0"))) (by decide +kernel)
+  have a5234 := h.atomAt 2658 (.load (.n (val% «verify_tables» "s68#1")) (.n (val% «verify_tables» "zc_rounds")) 5) (by decide +kernel)
+  have a5235 := h.atomAt 2659 (.load (.n (val% «verify_tables» "bus_target@3")) (.n (val% «verify_tables» "zc_rounds")) 6) (by decide +kernel)
+  have a5236 := h.atomAt 2660 (.const (.n (val% «verify_tables» "s70#0")) (word 1 0)) (by decide +kernel)
+  have a5237 := h.atomAt 2661 (.load (.n (val% «verify_tables» "s70#0")) (.n (val% «verify_tables» "zc_cprod")) 0) (by decide +kernel)
+  have a5238 := h.atomAt 2663 (.const (.n (val% «verify_tables» "s72#0")) (word 1 0)) (by decide +kernel)
+  have a5239 := h.atomAt 2664 (.add (.n (val% «verify_tables» "s72#1")) (.n (val% «verify_tables» "s72#0")) (.n (val% «verify_tables» "g_zc_n"))) (by decide +kernel)
+  have a5240 := h.atomAt 2665 (.const (.n (val% «verify_tables» "s72#2")) (word 1 0)) (by decide +kernel)
+  have a5242 := h.atomAt 2667 (.mul (.n (val% «verify_tables» "zc_last~0")) (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "g_zc_n"))) (by decide +kernel)
+  have a5243 := h.atomAt 2668 (.mul (.n (val% «verify_tables» "zc_last~1")) (.n (val% «verify_tables» "zc_last~0")) (.n (val% «verify_tables» "g_zc_n"))) (by decide +kernel)
+  have a5244 := h.atomAt 2669 (.mul (.n (val% «verify_tables» "zc_last~2")) (.n (val% «verify_tables» "zc_last~1")) (.n (val% «verify_tables» "zc_last~1"))) (by decide +kernel)
+  have a5245 := h.atomAt 2670 (.mul (.n (val% «verify_tables» "zc_last~3")) (.n (val% «verify_tables» "zc_last~2")) (.n (val% «verify_tables» "g_zc_n"))) (by decide +kernel)
+  have a5246 := h.atomAt 2671 (.mul (.n (val% «verify_tables» "zc_last")) (.n (val% «verify_tables» "zc_rounds")) (.n (val% «verify_tables» "zc_last~3"))) (by decide +kernel)
+  have a5247 := h.atomAt 2672 (.load (.n (val% «verify_tables» "fs_load.sp[0]")) (.n (val% «verify_tables» "zc_last")) 0) (by decide +kernel)
+  have a5248 := h.atomAt 2673 (.load (.n (val% «verify_tables» "fs_load.sp[1]")) (.n (val% «verify_tables» "zc_last")) 1) (by decide +kernel)
+  have a5249 := h.atomAt 2674 (.load (.n (val% «verify_tables» "fs_load.sp[2]")) (.n (val% «verify_tables» "zc_last")) 2) (by decide +kernel)
+  have a5250 := h.atomAt 2675 (.load (.n (val% «verify_tables» "fs_load.sp[3]")) (.n (val% «verify_tables» "zc_last")) 3) (by decide +kernel)
+  have a5251 := h.atomAt 2676 (.load (.n (val% «verify_tables» "fs_load.sp[4]")) (.n (val% «verify_tables» "zc_last")) 4) (by decide +kernel)
+  have a5252 := h.atomAt 2677 (.load (.n (val% «verify_tables» "cursor@5")) (.n (val% «verify_tables» "zc_last")) 5) (by decide +kernel)
+  have a5253 := h.atomAt 2678 (.load (.n (val% «verify_tables» "claim")) (.n (val% «verify_tables» "zc_last")) 6) (by decide +kernel)
+  have hloop := h.callIfAt 2666 (.n (val% «verify_tables» "s72#1")) name% «verify_tables_loop0» [.n (val% «verify_tables» "s72#2"), .n (val% «verify_tables» "g_zc_n"), .n (val% «verify_tables» "zc_rounds"),
+      .n (val% «verify_tables» "tabs"), .n (val% «verify_tables» "zc_rk"), .n (val% «verify_tables» "zc_cprod")] (by decide +kernel)
+  have hchain := h.callAt 2682 "eq_prefix_chain_rev" [.n (val% «verify_tables» "zc_peq"), .n (val% «verify_tables» "chi"), .n (val% «verify_tables» "zc_rk"), .n (val% «verify_tables» "zeta1"), .n (val% «verify_tables» "g_zc_n")] []
     (by decide +kernel)
   simp only [Atom.Holds] at a5207 a5208 a5209 a5210 a5211 a5212 a5213 a5214 a5215 a5216
   simp only [Atom.Holds] at a5217 a5218 a5219 a5220 a5221 a5222 a5224 a5225 a5227 a5228
   simp only [Atom.Holds] at a5229 a5230 a5231 a5232 a5233 a5234 a5235 a5236 a5237 a5238
   simp only [Atom.Holds] at a5239 a5240 a5242 a5243 a5244 a5245 a5246 a5247 a5248 a5249
-  simp only [Atom.Holds] at a5250 a5251 a5252 a5253 a5254 a5255 a5257
+  simp only [Atom.Holds] at a5250 a5251 a5252 a5253
   simp only [List.map_cons, List.map_nil] at hloop hchain
+  obtain ⟨hC, hep⟩ : EqPrefixRev rd (σ (.n (val% «verify_tables» "zc_peq"))) (σ (.n (val% «verify_tables» "chi"))) (σ (.n (val% «verify_tables» "zc_rk"))) (σ (.n (val% «verify_tables» "zeta1"))) n := by
+    have hm := (eq_prefix_chain_rev_holds rd _ _).mp hchain
+    simp only [MeaningEqPrefixChainRev] at hm
+    obtain ⟨-, -, n', hn', hn'v, hep⟩ := hm
+    rw [hgn] at hn'v
+    obtain rfl := gen_pow_inj (by omega) (by omega) hn'v
+    exact hep
   refine ⟨by rw [a5216, a5214, a5212, a5213, a5215, a5211, a5210, a5209, a5208, a5207,
     tb_word_one]; ring, ?_⟩
-  have hB : ∀ j < n, L10B rd (σ (.n 2625)) (σ (.n 18)) (σ (.n 16)) (gen ^ n) (σ (.n 2628)) (gen ^ j) := by
+  have hne : 0 < n → ∀ a b : E, a = 1 → b = a + gen ^ n → b ≠ 0 := by
+    intro hn0 a b ha hb h0
+    rw [hb, ha] at h0
+    have := gen_pow_inj (by omega) (by omega)
+      ((e_add_eq_zero_iff.mp h0).symm.trans (pow_zero gen).symm)
+    omega
+  have hB : ∀ j < n, L10B rd (σ (.n (val% «verify_tables» "zc_rounds"))) (σ (.n (val% «verify_tables» "tabs"))) (σ (.n (val% «verify_tables» "zc_rk"))) (σ (.n (val% «verify_tables» "zc_cprod"))) (gen ^ j) := by
     rcases Nat.eq_zero_or_pos n with rfl | hn0
     · intro j hj; omega
-    · have hne : σ (.n 2633) ≠ 0 := by
-        rw [a5239, a5238, tb_word_one, hgn]
-        intro h0
-        have := gen_pow_inj (by omega) (by omega)
-          ((e_add_eq_zero_iff.mp h0).symm.trans (pow_zero gen).symm)
-        omega
-      have hr := hloop.2 hne
+    · have hr := hloop.2 (hne hn0 (σ (.n (val% «verify_tables» "s72#0"))) _ (by rw [a5238, tb_word_one]) (by rw [a5239, hgn]))
       rw [a5240, tb_word_one, hgn] at hr
       exact l10_loop hn0 (by omega) hr
-  have hc0 : CapAt rd (σ (.n 2625) * gen ^ (7 * 0)) 0 1
-      ((List.range 5).map fun k ↦ σ (.n (2604 + k))) := by
+  have hc0 : CapAt rd (σ (.n (val% «verify_tables» "zc_rounds")) * gen ^ (7 * 0)) 0 1
+      ((List.range 5).map fun k ↦ σ (.n (2605 + k))) := by
     refine ⟨by simp, fun j hj => ?_⟩
     simp only [List.length_map, List.length_range] at hj
     simp only [Nat.mul_zero, pow_zero, mul_one, Nat.zero_add, List.getElem_map,
@@ -181,17 +186,17 @@ theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 3
     · exact a5229
     · exact a5230
     · exact a5231
-  have hcur0 : LoadHolds rd (σ (.n 2625) * gen ^ (7 * 0)) 5 (σ (.n 1896) * gen) := by
+  have hcur0 : LoadHolds rd (σ (.n (val% «verify_tables» "zc_rounds")) * gen ^ (7 * 0)) 5 (σ (.n (val% «verify_tables» "cursor@4")) * gen) := by
     rw [Nat.mul_zero, pow_zero, mul_one, ← tb_word_gen, ← a5232, ← a5233]
     exact a5234
-  have hcl0 : LoadHolds rd (σ (.n 2625) * gen ^ (7 * 0)) 6 (σ (.n 2618)) := by
+  have hcl0 : LoadHolds rd (σ (.n (val% «verify_tables» "zc_rounds")) * gen ^ (7 * 0)) 6 (σ (.n (val% «verify_tables» "bus_target@3"))) := by
     rw [Nat.mul_zero, pow_zero, mul_one]; exact a5235
   obtain ⟨xs, pts, claimN, capN, hrun, hxs, hxl, hpl, hcN, hcurN, hclN, hchi⟩ :=
     l10_chain (by omega) hB n le_rfl 0 (by omega) _ _ _ hc0 hcur0 hcl0
-  have e5926 : σ (.n 2639) = σ (.n 2625) * gen ^ (7 * n) := by
+  have e5926 : σ (.n (val% «verify_tables» "zc_last")) = σ (.n (val% «verify_tables» "zc_rounds")) * gen ^ (7 * n) := by
     rw [a5246, a5245, a5244, a5243, a5242, hgn]; ring
-  have hcF : CapAt rd (σ (.n 2625) * gen ^ (7 * n)) 0 1
-      ((List.range 5).map fun k ↦ σ (.n (2640 + k))) := by
+  have hcF : CapAt rd (σ (.n (val% «verify_tables» "zc_rounds")) * gen ^ (7 * n)) 0 1
+      ((List.range 5).map fun k ↦ σ (.n (2642 + k))) := by
     refine ⟨by simp, fun j hj => ?_⟩
     simp only [List.length_map, List.length_range] at hj
     simp only [Nat.zero_add, mul_one, List.getElem_map, List.getElem_range, ← e5926]
@@ -204,29 +209,26 @@ theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 3
   obtain rfl := capAt_unique' hcN hcF
   rw [← e5926] at hcurN hclN
   refine ⟨xs, pts, claimN, hrun, by simpa using hxs, hxl, hpl,
-    tb_loadHolds_unique a5252 hcurN, tb_loadHolds_unique a5253 hclN,
-    fun i hi => by simpa using hchi i hi, ?_, ?_⟩
+    tb_loadHolds_unique a5252 hcurN, tb_loadHolds_unique a5253 hclN, fun i hi => ?_, ?_, ?_⟩
+  · obtain ⟨v, hv, hcv⟩ := hC (n - 1 - i) (by omega)
+    rw [show n - 1 - (n - 1 - i) = i by omega] at hv
+    rw [tb_loadHolds_unique hv (by simpa using hchi i hi)] at hcv
+    exact hcv
   · intro j hj
     induction j with
     | zero =>
       rw [a5236, tb_word_one] at a5237
       simpa using a5237
     | succ j ih =>
-      obtain ⟨-, -, -, -, rk, -, -, -, -, -, ⟨y, hy, hrk⟩, cp, hcp, hcp1⟩ := hB j (by omega)
-      rw [vt_chi_index (by omega) hy, tb_loadHolds_mul_gen_pow, Nat.add_zero] at hrk
+      obtain ⟨-, -, -, -, rk, -, -, -, -, -, hrk, cp, hcp, hcp1⟩ := hB j (by omega)
+      rw [tb_loadHolds_mul_gen_pow, Nat.add_zero] at hrk
       have erk : rk = pts.getD j 0 := tb_loadHolds_unique hrk (by simpa using hchi j (by omega))
       rw [tb_loadHolds_mul_gen_pow, Nat.add_zero] at hcp
       rw [tb_loadHolds_mul_gen_pow] at hcp1
       rw [tb_loadHolds_unique hcp (ih (by omega)), erk] at hcp1
       rw [List.prod_take_succ _ _ (by omega), ← List.getD_eq_getElem _ 0 (by omega)]
       exact hcp1
-  · have hm := (eq_prefix_chain_holds rd _ _).mp hchain
-    simp only [MeaningEqPrefixChain] at hm
-    obtain ⟨-, -, n', hn', hn'v, hep⟩ := hm
-    rw [hgn] at hn'v
-    obtain rfl := gen_pow_inj (by omega) (by omega) hn'v
-    rw [a5257, tb_word_one] at hep
-    exact hep
+  · exact hep
 
 end
 end LeanVM.Guest.B1.Tables
