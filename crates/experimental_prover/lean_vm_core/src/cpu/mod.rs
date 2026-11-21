@@ -56,6 +56,9 @@ pub enum ProveError {
     /// The run read these cells before anything wrote them, so their values would be
     /// the prover's ([`Execution::unconstrained_reads`]).
     UnconstrainedReads(Vec<u32>),
+    /// The `KECCAK` at this pc wrote an output cell past the second into a cell an earlier step had already touched:
+    /// the table counts that access as the cell's first.
+    StaleKeccakOutput { pc: u32 },
     /// The committed witness is `2^log_committed` words, outside the
     /// `2^MIN_STACKED_LOG..=2^MAX_STACKED_LOG` every verifier accepts
     WitnessOutOfRange { log_committed: usize },
@@ -73,6 +76,7 @@ impl std::fmt::Display for ProveError {
                 cells.len(),
                 &cells[..cells.len().min(8)]
             ),
+            Self::StaleKeccakOutput { pc } => write!(f, "the KECCAK at pc {pc} writes a cell an earlier step touched"),
             Self::WitnessOutOfRange { log_committed } => write!(
                 f,
                 "the committed witness would be 2^{log_committed} words, outside the verifiable 2^{}..=2^{}",
@@ -206,6 +210,13 @@ pub fn prove(
     // path every proof takes, rather than left to whichever test happens to look.
     if !exec.unconstrained_reads.is_empty() {
         return Err(ProveError::UnconstrainedReads(exec.unconstrained_reads));
+    }
+    let keccak = &exec.trace.keccak;
+    if let Some(r) = (0..keccak.len())
+        .map(|i| keccak.get(i))
+        .find(|r| r.r[crate::keccak::STATE_CELLS + 2..].iter().any(|&k| k != 0))
+    {
+        return Err(ProveError::StaleKeccakOutput { pc: r.pc });
     }
     // The layout follows from the run's sizes alone: a run past the window is refused
     // before its witness is built.

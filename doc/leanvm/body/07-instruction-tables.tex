@@ -109,16 +109,16 @@ The store asserts that $v_2$ equals the source chosen by the mode $\dmode$ (\S\r
 
 \subsection{\texttt{KECCAK}}\label{sec:tab-keccak}
 
-One row is one permutation (\S\ref{sec:vm}), proved by the GKR of Annex~\ref{annex:keccak} rather than by constraints. A row has $92$ columns, in this order:
+One row is one permutation (\S\ref{sec:vm}), proved by the GKR of Annex~\ref{annex:keccak} rather than by constraints. A row has $81$ columns, in this order:
 \begin{itemize}
 \item $\pc$, $\fp$, the eight operand offsets $o_{m_0},\dots,o_{m_3},o_{\mathit{tail}},o_{\mathit{b8}},o_{\mathit{cap}},o_{\mathit{out}}$, the two layout flags $\mathit{odd}_{\mathit{in}},\mathit{odd}_{\mathit{out}}$, the two output flags $\mathit{out}_{\mathit{two}},\mathit{out}_{\mathit{all}}$, and $\mathit{free}$.
 \item $\kin{\ell}$, the $25$ lanes of the state the row reads from memory.
 \item $\kout{\ell}$, the $25$ lanes the row writes back. These are \emph{virtual}: the flushes read them, but nothing commits them, and the claims the table sumcheck leaves on them are deferred to the GKR, which reduces them to claims on $\kin{\ell}$ and $\kmid{\ell}$.
-\item $27$ read counts: $r_c$ for cell $c<13$ read, $r_{13+c}$ for cell $c$ written, then $r_{\mathrm{bc}}$ for the bytecode.
+\item $16$ read counts: $r_c$ for cell $c<13$ read, $r_{13}$ and $r_{14}$ for output cells $0$ and $1$, then $r_{\mathrm{bc}}$ for the bytecode. The other eleven output cells have no count column (output selection, below).
 \end{itemize}
 The $25$ lanes $\kmid{\ell}$ of the state after $12$ rounds are committed too, in $\qkeccak$ (Annex~\ref{annex:keccak}), but are not columns: no constraint or flush reads them, and the table sumcheck sends nothing for them. Committing them is an optimization and nothing more: it halves the depth of the reduction.
 
-The input lane $\kin{\ell}$ is slot $\ell$ of $\qkeccak$, and the first fourteen columns, $\pc$ to $\mathit{out}_{\mathit{all}}$, ride its spare slots $50$ to $63$ (\S\ref{keccak:segments}): none of these $39$ columns has a block of its own in the stack. The other $28$ committed columns, $\mathit{free}$ and the read counts, do.
+The input lane $\kin{\ell}$ is slot $\ell$ of $\qkeccak$, and the first fourteen columns, $\pc$ to $\mathit{out}_{\mathit{all}}$, ride its spare slots $50$ to $63$ (\S\ref{keccak:segments}): none of these $39$ columns has a block of its own in the stack. The other $17$ committed columns, $\mathit{free}$ and the read counts, do.
 
 A limb holding lane $a$ in the even layout and $b$ in the odd one is the degree-$2$ form $a+\mathit{odd}\,(a+b)$, a limb holding no lane being the column $\mathit{free}$ when read and $0$ when written. A cell is exactly its two limbs.
 \begin{itemize}
@@ -146,7 +146,7 @@ A limb holding lane $a$ in the even layout and $b$ in the odd one is the degree-
       &\rdf{\dsep{MEM},a_c,r_c,u_c,v_c} &&(c<9),\\
       &\rdf{\dsep{MEM},a_c,r_c,\kin{2c-1},\kin{2c}} &&(9\le c<13),
     \end{align*}
-    the writes the same with $\kout{\ell}$ and $r_{13+c}$, the thirteen reads in cell order before the thirteen writes. The rate cells take the forms $u_c,v_c$ above; the four capacity cells hold lanes $17$ to $24$ in either layout.
-  \item \textbf{Output selection:} cell $0$ is always written, cell $1$ when $\mathit{out}_{\mathit{two}}=1$, and cells $2$ to $12$ when $\mathit{out}_{\mathit{all}}=1$; the bytecode fixes both flags. Write $c\ge1$ with flag $f$ pushes the counter $r_{13+c}\,(1+f\,(\gen+1))$: $\gen\cdot r_{13+c}$ when $f=1$, and $r_{13+c}$ when $f=0$, so the pair cancels and memory is untouched.
+    the writes the same with $\kout{\ell}$ and the counts $r_{13}$, $r_{14}$ for cells $0$ and $1$, the thirteen reads in cell order before the thirteen writes. The rate cells take the forms $u_c,v_c$ above; the four capacity cells hold lanes $17$ to $24$ in either layout.
+  \item \textbf{Output selection:} cell $0$ is always written, cell $1$ when $\mathit{out}_{\mathit{two}}=1$, and cells $2$ to $12$ when $\mathit{out}_{\mathit{all}}=1$; the bytecode fixes both flags. Write $1$ pushes the counter $r_{14}\,(1+\mathit{out}_{\mathit{two}}\,(\gen+1))$: $\gen\cdot r_{14}$ when $\mathit{out}_{\mathit{two}}=1$, and $r_{14}$ when it is $0$, so the pair cancels and memory is untouched. Write $c\ge2$ is the cell's first access, so its count is the constant $1$: it pulls the count $1$ and pushes the counter $1+\mathit{out}_{\mathit{all}}\,(\gen+1)$, likewise $\gen$ or $1$. An honest prover therefore writes those cells only where no earlier step touched them, as a sponge state always is; the lookup's soundness (Theorem~\ref{thm:omc}) holds for any nonzero count.
   \end{itemize}
 \end{itemize}

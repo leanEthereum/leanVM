@@ -738,6 +738,12 @@ def memoryIf (f : Flushes) (flag : ℕ) (address : Form) (count : ℕ) (values :
   f.counted [Form.const sepMem, address]
     (Form.sum [Form.col count, Form.prod flag count 1, Form.prod flag count]) count values
 
+/-- `Flushes::fresh_if`: `memoryIf` at the cell's first access, whose count is the constant `1`. The
+push's counter `1 + flag·(g + 1)` is `g` at `1` and the pull's `1` at `0`. -/
+def freshIf (f : Flushes) (flag : ℕ) (address : Form) (values : List Form) : Flushes :=
+  let side := fun (counter : Form) ↦ [Form.const sepMem, address, counter] ++ values
+  f.pair (side (Form.sum [Form.const 1, Form.col flag 1, Form.col flag])) (side (Form.const 1))
+
 /-- `Flushes::memory_cols`: the columns, a missing high limb zero. -/
 def memoryCols (f : Flushes) (address : Form) (count : ℕ) (columns : List ℕ) : Flushes :=
   f.memory address count
@@ -783,13 +789,14 @@ def laneNames (namePrefix : String) : List String :=
 /-- `keccak_columns()` (`layout.rs`): the operands, the layout flags, the
 bytecode's flags for the output cells written (`out_two`: cell `1`; `out_all`: cells `2…12`), the
 read limb that holds no lane (`free`), the fifty value lanes (`in_l`, one of `q_keccak`'s slots
-each; `out_l`, claimed by the Keccak reduction, committed nowhere), then the read counts. The
+each; `out_l`, claimed by the Keccak reduction, committed nowhere), then the read counts of the
+thirteen cells read and of output cells `0` and `1`. The
 first `QKECCAK_SPARE` (`14`) committed columns, `pc` through `out_all`, ride `q_keccak`'s spare
 slots `50…63` (`keccakSlotOf`). -/
 def keccakColumns : List String :=
   ["pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in",
     "odd_out", "out_two", "out_all", "free"] ++ laneNames "in" ++ laneNames "out" ++
-    (List.range 26).map (fun c ↦ "cnt_" ++ decimalNumeral c) ++ ["cnt_bc"]
+    (List.range 15).map (fun c ↦ "cnt_" ++ decimalNumeral c) ++ ["cnt_bc"]
 
 /-- `KECCAK_IN` (`layout.rs`): the local column of input lane `0`. -/
 def keccakIn : ℕ := columnIndexByName keccakColumns "in_0"
@@ -923,7 +930,8 @@ thirteen cells read (four addressed ones, the tail run, `b8`, the cap run) and t
 written, each holding its lanes in the layout its flag names (`keccak_cell_lanes`,
 `layout.rs`, which is `cellLanes`, `LeanIsa.lean`): a read cell's free limb is the column
 `free`, a written one's zero. Output cell `0` is always written, cell `1` when `out_two` is `1`,
-and cells `2…12` when `out_all` is `1` (`memoryIf`). -/
+and cells `2…12` when `out_all` is `1` (`memoryIf`), those last at their first access, count `1`
+(`freshIf`). -/
 def flushesKeccak : Flushes :=
   let c := columnIndexByName keccakColumns
   let oM := ["o_m0", "o_m1", "o_m2", "o_m3"].map c
@@ -947,11 +955,10 @@ def flushesKeccak : Flushes :=
         let pick := fun (p : Option ℕ × Option ℕ) ↦ if h = 0 then p.1 else p.2
         layoutLimb (lane (pick (cellLanes false cell)))
           (lane (pick (cellLanes true cell))) flag missing)
-      let count := keccakCnt + 13 * side + cell
-      if side = 0 then f.memory (address cell) count values
-      else if cell = 0 then f.memory (Form.prod fp (c "o_out")) count values
-      else f.memoryIf (if cell = 1 then c "out_two" else c "out_all")
-        (Form.prod fp (c "o_out") cell) count values) f) f
+      if side = 0 then f.memory (address cell) (keccakCnt + cell) values
+      else if cell = 0 then f.memory (Form.prod fp (c "o_out")) (keccakCnt + 13) values
+      else if cell = 1 then f.memoryIf (c "out_two") (Form.prod fp (c "o_out") 1) (keccakCnt + 14) values
+      else f.freshIf (c "out_all") (Form.prod fp (c "o_out") cell) values) f) f
 
 /-- One instruction's table: its columns, its bus flushes, its constraints
 (`layout.rs`). -/
