@@ -1,4 +1,4 @@
-//! A program's advice as text, for the Lean executor.
+//! A program's hints and witness streams as text, for the Lean executor.
 
 use crate::{BitsDest, BufSize, CompiledProgram, RHint};
 use std::fmt::Write;
@@ -8,7 +8,7 @@ impl CompiledProgram {
     /// What an execution needs besides the bytecode, as text for the Lean executor
     /// (`formal/lean_vm/cli/LeanvmExecute.lean` reads it): `main`'s frame size, the hints by pc
     /// (`Print` left out), and the witness streams by name, each entry's words as hex limbs.
-    pub fn advice_text(&self, witness: &[(String, Vec<Vec<E>>)]) -> String {
+    pub fn export_hints(&self, witness: &[(String, Vec<Vec<E>>)]) -> String {
         let dest = |d: &BitsDest| match d {
             BitsDest::Stack(o) => format!("s {o}"),
             BitsDest::Heap(o) => format!("h {o}"),

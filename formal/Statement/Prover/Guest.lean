@@ -15,8 +15,8 @@ prover (`LeanVM.Prover.prove`). `guest` is the guest program, `guestProgram`; it
 that a run may pass an equal program whose instructions read faster.
 
 The advice is `main`'s frame size and the compiler's hints by `pc`, generated data
-(`Statement/Data/AdviceHints*.lean`, the compiler's `Program::advice_text`), and the witness streams
-(`guestStreams`): what the guest pops with `hint_witness`, each stream's entries in the order it pops
+(`Statement/Data/AdviceHints*.lean`, the compiler's `CompiledProgram::export_hints`,
+`crates/isa/src/export_hints.rs`), and the witness streams (`guestStreams`): what the guest pops with `hint_witness`, each stream's entries in the order it pops
 them. They are the pushes of `aggregate` (`crates/aggregation/src/`:
 `node.rs`, `hints.rs`, `child.rs`, `deferred.rs`), grouped by stream as `Hints::push` does
 (`honestPushes`, in the order the Rust makes them). Where the Rust replays a child's proof

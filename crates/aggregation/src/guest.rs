@@ -5,7 +5,7 @@ use fiat_shamir_prover::merkle::hash_to_scalars;
 use isa::{CompiledProgram, Program};
 use primitives::field::F128;
 use std::sync::OnceLock;
-use zkdsl_compiler::{compile, parse_with_replacements};
+use zkdsl_compiler::{compile, parse_with_constants, parse_with_replacements};
 
 /// The aggregation guest's zkDSL source.
 pub(super) const GUEST_SOURCE: &str =
@@ -38,6 +38,21 @@ pub fn unified_guest() -> &'static Program {
 /// The guest's Fiat-Shamir IV as the two words a statement carries it in.
 pub(super) fn fs_seed() -> [F128; 2] {
     hash_to_scalars(&unified_guest().bytecode().fiat_shamir_iv())
+}
+
+/// A global constant of the guest, at its deployed size, as the compiler substitutes it: what the host reads
+/// rather than restates.
+pub(super) fn guest_constant(name: &str) -> usize {
+    static CONSTANTS: OnceLock<Vec<(String, String)>> = OnceLock::new();
+    let constants = CONSTANTS.get_or_init(|| {
+        let kbc = unified_guest().prog.len().trailing_zeros() as usize;
+        let parsed = parse_with_constants(GUEST_SOURCE, &placeholder_map(kbc));
+        parsed.expect("the repository aggregation guest must parse").1
+    });
+    let (_, value) = (constants.iter().find(|(n, _)| n == name)).unwrap_or_else(|| panic!("no guest constant {name}"));
+    value
+        .parse()
+        .unwrap_or_else(|_| panic!("the guest constant {name} is no count"))
 }
 
 pub(super) fn compile_guest(kbc: usize) -> CompiledProgram {

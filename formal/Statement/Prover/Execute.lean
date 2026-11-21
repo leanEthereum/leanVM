@@ -15,12 +15,25 @@ links them, a later write to either reaching both. The hints a `pc` carries (`RH
 of `main`'s frame), pop witness streams, and compute advice the instructions go on to check.
 
 Nothing here is trusted: a run that halts gives a valid execution whatever the program, its hints
-and its streams (`lean_vm`, `LeanVM/Prover/ExecuteSound.lean`). One difference from the Rust: an
-instruction reading an unwritten cell fails here, where the Rust reads zero and records the read,
-an execution its prover then refuses (`unconstrained_reads`); so the two accept the same runs. Every
-cell a hint reads or writes is checked below `maxCells` (`cellAt`, `runAt`, a run's last cell too), as
-an instruction's are. A `DEREF` link is a class of cells sharing one value; the run ends by checking
-that every link's two cells agree.
+and its streams (`lean_vm`, `LeanVM/Prover/ExecuteSound.lean`). Every cell a hint reads or writes is
+checked below `maxCells` (`cellAt`, `runAt`, a run's last cell too), as an instruction's are. A
+`DEREF` link is a class of cells sharing one value; the run ends by checking that every link's two
+cells agree.
+
+Where it agrees with the Rust: on a program whose instructions all decode, with hints of the shapes
+the compiler emits (bit and digit counts within a word, one or two limbs) and streams of distinct
+names, both halt with the same execution or neither does, but for one difference: an instruction
+reading an unwritten cell fails here, where the Rust reads zero and records the read
+(`unconstrained_reads`), an execution its prover refuses. The compiler's programs and the guest are
+such programs, and the differential tests compare the two on them (`lake exe leanvm-execute`,
+`lake exe guest-run --rust`). Elsewhere they differ:
+* an instruction that does not decode (`decode`: an operand no `g^o` with `o < 2^28`) fails here
+  before the run, reached or not, where the Rust faults only on reaching it;
+* a stream given twice is a fault in the Rust, and here the last one counts;
+* a hint asking more bits or digits than a word holds, or more than two limbs, makes the Rust
+  panic;
+* a `Print` hint is none here (`CompiledProgram::export_hints` leaves it out), and in the Rust it
+  faults when its cell lies past `maxCells`.
 -/
 
 @[expose] public section

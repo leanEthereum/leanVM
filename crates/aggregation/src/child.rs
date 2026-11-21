@@ -2,6 +2,7 @@
 
 use super::cells::count;
 use super::error::AggregateError;
+use super::guest::guest_constant;
 use super::hints::SubHints;
 use fiat_shamir_prover::merkle::{hash_pair, hash_to_scalars, hash_words};
 use lean_vm_core::cpu::{block_kappa_sources, col_kappa_sources, from_scalar, layout_of};
@@ -102,7 +103,10 @@ pub(super) fn gen_verify(
         // The `HeapBuf` sizes taken as advice: `verify_sub`'s `zeta`, the push side's mu coordinates;
         // `verify_tables`' `zc_rounds`, `zc_cprod` and `zc_peq`, a record or a cell per round and one more.
         (HEAP_SIZE_STREAM, vec![count(leaf::layout(&sides[0]).mu)]),
-        (HEAP_SIZE_STREAM, vec![count((rounds + 1) * ROUND_SLOTS)]),
+        (
+            HEAP_SIZE_STREAM,
+            vec![count((rounds + 1) * guest_constant("ROUND_SLOTS"))],
+        ),
         (HEAP_SIZE_STREAM, vec![count(rounds + 1)]),
         (HEAP_SIZE_STREAM, vec![count(rounds + 1)]),
         ("stream", stream),
@@ -162,9 +166,6 @@ fn block_group_order(kbc: usize, sides: &[Vec<Block>; 3]) -> Vec<F128> {
     assert_eq!(order.len(), groups.len(), "a block group's blocks are consecutive");
     order
 }
-
-/// The guest's `ROUND_SLOTS`: the cells of a table sumcheck round's record (`verify_tables`).
-const ROUND_SLOTS: usize = 7;
 
 /// The stacked WHIR opening's Merkle witness, per level: each query's leaf row and the children of every node it
 /// climbs through below the level's cap, then the cap, every node of the top [`merkle_cap_depth`] levels the queries
