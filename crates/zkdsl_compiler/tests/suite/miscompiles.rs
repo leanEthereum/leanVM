@@ -81,6 +81,11 @@ fn ill_formed_calls_are_rejected_when_lowered() {
             "def main():\n    b = StackBuf(1)\n    hint_windows_exponent(b, GEN, 0, 1, 2, 4294967295)\n    return\n",
             "its StackBuf destination has 1",
         ),
+        // `cap=` absorbs with no padding, and ignored `pad_tail=1`.
+        (
+            "def main():\n    s = StackBuf(13)\n    keccak([0, 0], [0, 0], s)\n    t = StackBuf(4)\n    o = StackBuf(13)\n    keccak([0, 0], [0, 0], o, tail=t, cap=s, pad_tail=1)\n    return\n",
+            "takes no len= or pad_tail=",
+        ),
     ] {
         let ast = parse(src).unwrap();
         let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {

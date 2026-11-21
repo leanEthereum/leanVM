@@ -41,8 +41,8 @@ impl FnLower<'_> {
             cells.extend(self.keccak_operand(tail, 4));
         }
         if let Some(cap) = kwargs.get("cap") {
-            if kwargs.contains_key("len") {
-                self.fail("keccak cap= is an overwrite duplex step: it takes no len=")
+            if kwargs.contains_key("len") || kwargs.contains_key("pad_tail") {
+                self.fail("keccak cap= is an overwrite duplex step: it takes no len= or pad_tail=")
             }
             let cap = self.prev_state(cap, 5).unwrap_or_else(|| {
                 self.fail(format!(
