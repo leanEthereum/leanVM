@@ -26,7 +26,9 @@ use crate::merkle;
 use crate::ntt::{AdditiveNttF64, Codeword, Keep};
 use crate::stack_open::Terms;
 use fiat_shamir::merkle::{Hash, MerklePath};
-use primitives::field::{Acc8, F64, F128, F128Unreduced, F128x8, fold_pairs8_ext, msg_terms8_ext, powers};
+use primitives::field::{
+    Acc8, F64, F64x8, F128, F128Unreduced, F128x8, Prod8, fold_pairs8_ext, msg_terms8_ext, powers,
+};
 use primitives::multilinear::{eq_table, interp};
 use primitives::transcript::ProverState;
 
@@ -49,13 +51,29 @@ use crate::whir_ntt_ext::*;
 /// evaluation-claim `target` for a K-witness against an E-basis.
 pub fn inner_product_base_ext(witness: &[F64], b: &[F128]) -> F128 {
     assert_eq!(witness.len(), b.len());
+    let dot_slice = |w: &[F64], e: &[F128]| -> F128 {
+        let mut acc = Prod8::ZERO;
+        let (wc, wt) = w.as_chunks::<8>();
+        let (ec, et) = e.as_chunks::<8>();
+        for (wc, ec) in wc.iter().zip(ec) {
+            acc ^= F128x8::from_array(ec).mul_base_unreduced(F64x8::from_array(wc));
+        }
+        let mut tail = F128Unreduced::ZERO;
+        for (&w, &e) in wt.iter().zip(et) {
+            tail ^= e.mul_base_unreduced(w);
+        }
+        acc.reduce() + tail.reduce()
+    };
     if witness.len() < PAR_THRESHOLD {
-        return witness.iter().zip(b.iter()).map(|(&w, &e)| e.mul_base(w)).sum();
+        return dot_slice(witness, b);
     }
     parallel::map_reduce(
-        witness.len(),
+        witness.len().div_ceil(ROUND_CHUNK),
         || F128::ZERO,
-        |i| b[i].mul_base(witness[i]),
+        |t| {
+            let at = t * ROUND_CHUNK..((t + 1) * ROUND_CHUNK).min(witness.len());
+            dot_slice(&witness[at.clone()], &b[at])
+        },
         |a, v| a + v,
     )
 }
@@ -562,76 +580,120 @@ pub(crate) struct Dense {
 /// Elements per task of a dense fold round.
 const DENSE_CHUNK: usize = 1 << 12;
 
+/// Accumulate the four dense-round inner products over contiguous paired `f`, `w`, and `xf`.
+#[inline]
+fn dense_table_chunk(f: &[F128], w: &[F128], xf: &[F128]) -> [F128; 4] {
+    let mut acc8 = [Prod8::ZERO; 4];
+    let (fc, ft) = f.as_chunks::<16>();
+    let (wc, wt) = w.as_chunks::<16>();
+    let (xc, xt) = xf.as_chunks::<8>();
+    for ((fc, wc), xc) in fc.iter().zip(wc).zip(xc) {
+        let (f0, g0) = F128x8::even_odd(
+            F128x8::from_array(fc[..8].try_into().unwrap()),
+            F128x8::from_array(fc[8..].try_into().unwrap()),
+        );
+        let (w0, w1) = F128x8::even_odd(
+            F128x8::from_array(wc[..8].try_into().unwrap()),
+            F128x8::from_array(wc[8..].try_into().unwrap()),
+        );
+        let x0 = F128x8::from_array(xc);
+        acc8[0] ^= w0.mul_unreduced(g0);
+        acc8[1] ^= (w0 + w1).mul_unreduced(f0);
+        acc8[2] ^= w0.mul_unreduced(x0);
+        acc8[3] ^= w1.mul_unreduced(x0);
+    }
+    let mut tail = [F128Unreduced::ZERO; 4];
+    for ((fp, wp), &x0) in ft.as_chunks::<2>().0.iter().zip(wt.as_chunks::<2>().0).zip(xt) {
+        let (f0, g0, w0, w1) = (fp[0], fp[1], wp[0], wp[1]);
+        tail[0] ^= w0.mul_unreduced(g0);
+        tail[1] ^= (w0 + w1).mul_unreduced(f0);
+        tail[2] ^= w0.mul_unreduced(x0);
+        tail[3] ^= w1.mul_unreduced(x0);
+    }
+    std::array::from_fn(|i| acc8[i].reduce() + tail[i].reduce())
+}
+
+/// Update `xf` in place to `g + alpha * f + beta * xf` over contiguous paired `f` and `xf`.
+#[inline]
+fn dense_fold_chunk(f: &[F128], xf: &mut [F128], alpha: F128, beta: F128) {
+    let (av, bv) = (F128x8::splat(alpha), F128x8::splat(beta));
+    let (fc, ft) = f.as_chunks::<16>();
+    let (xc, xt) = xf.as_chunks_mut::<8>();
+    for (fc, xc) in fc.iter().zip(xc) {
+        let (f0, g0) = F128x8::even_odd(
+            F128x8::from_array(fc[..8].try_into().unwrap()),
+            F128x8::from_array(fc[8..].try_into().unwrap()),
+        );
+        let x0 = F128x8::from_array(xc);
+        *xc = (g0 + av * f0 + bv * x0).to_array();
+    }
+    for (fp, x0) in ft.as_chunks::<2>().0.iter().zip(xt) {
+        *x0 = fp[1] + alpha * fp[0] + beta * *x0;
+    }
+}
+
 impl Dense {
     /// Columns per task.
     fn cols_per_task(&self) -> usize {
         (DENSE_CHUNK / self.stride).max(1)
     }
 
-    /// The round's table.
-    pub(crate) fn table(&self) -> FoldTable {
+    /// The round's table, and `X F` across all `n_cols + 1` columns for [`Self::fold_with_xf`] to finish in place.
+    fn table_with_xf(&self) -> (FoldTable, Vec<F128>) {
         let (s, pairs) = (self.stride, self.stride / 2);
         assert!(s >= 2 && s.is_power_of_two());
         let (f, w) = (&self.f, &self.w);
+        let n_cols = f.len() / s;
         let low = w.len() / s;
         let per = self.cols_per_task();
+        // SAFETY: the fill writes every element of `xf` before anything reads it.
+        let mut xf = unsafe { primitives::uninit_vec::<F128>((n_cols + 1) * pairs) };
+        let xf_ptr = parallel::SendPtr(xf.as_mut_ptr());
+        let n_tasks = (n_cols + 1).div_ceil(per);
         let sums = parallel::map_reduce(
-            low.div_ceil(per),
-            || [F128Unreduced::ZERO; 4],
+            n_tasks,
+            || [F128::ZERO; 4],
             |t| {
-                let cols = t * per..((t + 1) * per).min(low);
-                // SAFETY: `mul_x` writes every element.
-                let mut xf = unsafe { primitives::uninit_vec(cols.len() * pairs) };
-                crate::xmul::mul_x(f, s, 2, cols.start, &mut xf);
-                let mut acc = [F128Unreduced::ZERO; 4];
-                for (i, xf) in xf.chunks_exact(pairs).enumerate() {
-                    let c = cols.start + i;
-                    let (lanes, w) = (&f[c * s..][..s], &w[c * s..][..s]);
-                    for m in 0..pairs {
-                        let (w0, w1, f, g, xf) = (w[2 * m], w[2 * m + 1], lanes[2 * m], lanes[2 * m + 1], xf[m]);
-                        acc[0] ^= w0.mul_unreduced(g);
-                        acc[1] ^= (w0 + w1).mul_unreduced(f);
-                        acc[2] ^= w0.mul_unreduced(xf);
-                        acc[3] ^= w1.mul_unreduced(xf);
-                    }
+                let first = t * per;
+                let end = (first + per).min(n_cols + 1);
+                // SAFETY: tasks own disjoint column ranges of `xf`.
+                let out = unsafe { xf_ptr.slice(first * pairs, (end - first) * pairs) };
+                crate::xmul::mul_x(f, s, 2, first, out);
+                let low_end = end.min(low);
+                if first >= low_end {
+                    return [F128::ZERO; 4];
                 }
-                acc
+                let n_pairs = (low_end - first) * pairs;
+                dense_table_chunk(&f[first * s..low_end * s], &w[first * s..low_end * s], &out[..n_pairs])
             },
             |mut a, b| {
-                a.iter_mut().zip(b).for_each(|(a, b)| *a ^= b);
+                a.iter_mut().zip(b).for_each(|(a, b)| *a += b);
                 a
             },
         );
-        sums.map(F128Unreduced::reduce)
+        (sums, xf)
     }
 
-    /// The round's fold: lanes `P = G + alpha F + beta X F`, one column longer, and the weight at `alpha`.
-    pub(crate) fn fold(&mut self, ch: &FoldChallenges) {
+    /// The round's table.
+    #[cfg(test)]
+    pub(crate) fn table(&self) -> FoldTable {
+        self.table_with_xf().0
+    }
+
+    /// The round's fold using precomputed `xf` from [`Self::table_with_xf`], updating `xf` in place.
+    fn fold_with_xf(&mut self, ch: &FoldChallenges, mut xf: Vec<F128>) {
         let (s, pairs) = (self.stride, self.stride / 2);
         let n_cols = self.f.len() / s;
         let per = self.cols_per_task();
         let FoldChallenges { alpha, beta } = *ch;
         let f = &self.f;
-        // SAFETY: the fill writes every element before it reads any.
-        let next = unsafe {
-            primitives::filled_vec((n_cols + 1) * pairs, |out| {
-                parallel::chunks_mut(out, per * pairs, |t, out| {
-                    let first = t * per;
-                    crate::xmul::mul_x(f, s, 2, first, out);
-                    for (i, out) in out.chunks_exact_mut(pairs).enumerate() {
-                        let c = first + i;
-                        if c == n_cols {
-                            out.iter_mut().for_each(|o| *o = beta * *o);
-                            continue;
-                        }
-                        let lanes = &f[c * s..][..s];
-                        for (m, o) in out.iter_mut().enumerate() {
-                            *o = lanes[2 * m + 1] + alpha * lanes[2 * m] + beta * *o;
-                        }
-                    }
-                })
-            })
-        };
+        parallel::chunks_mut(&mut xf[..n_cols * pairs], per * pairs, |t, out| {
+            let first = t * per;
+            dense_fold_chunk(&f[first * s..first * s + 2 * out.len()], out, alpha, beta);
+        });
+        for o in &mut xf[n_cols * pairs..] {
+            *o = beta * *o;
+        }
         let w = &self.w;
         // SAFETY: the fill writes every element before it reads any.
         let next_w = unsafe {
@@ -642,7 +704,25 @@ impl Dense {
                 })
             })
         };
-        (self.f, self.w, self.stride) = (next, next_w, pairs);
+        (self.f, self.w, self.stride) = (xf, next_w, pairs);
+    }
+
+    /// The round's fold: lanes `P = G + alpha F + beta X F`, one column longer, and the weight at `alpha`.
+    #[cfg(test)]
+    pub(crate) fn fold(&mut self, ch: &FoldChallenges) {
+        let (s, pairs) = (self.stride, self.stride / 2);
+        let n_cols = self.f.len() / s;
+        let per = self.cols_per_task();
+        let f = &self.f;
+        // SAFETY: `mul_x` writes every element of `xf`.
+        let xf = unsafe {
+            primitives::filled_vec((n_cols + 1) * pairs, |out| {
+                parallel::chunks_mut(out, per * pairs, |t, out| {
+                    crate::xmul::mul_x(f, s, 2, t * per, out);
+                })
+            })
+        };
+        self.fold_with_xf(ch, xf);
     }
 }
 
@@ -805,10 +885,10 @@ pub(crate) fn recursive_prover_with_prepared_basis(
             rounds.clear();
             for j in 0..config.level_ks[level - 1] {
                 let _span = tracing::info_span!("Fold round", level, round = j).entered();
-                let table = dense.table();
+                let (table, xf) = dense.table_with_xf();
                 let ch = fold_round(ps, &table);
                 claim = ch.next_claim(claim, &table);
-                dense.fold(&ch);
+                dense.fold_with_xf(&ch, xf);
                 rounds.push(ch);
             }
             (p, w) = (dense.f, dense.w);
@@ -859,7 +939,17 @@ pub(crate) fn recursive_prover_with_prepared_basis(
             || F128::ZERO,
             |t| {
                 let at = t * ROUND_CHUNK..((t + 1) * ROUND_CHUNK).min(p.len());
-                p[at.clone()].iter().zip(&eq[at]).map(|(&a, &b)| a * b).sum()
+                let (pc, pt) = p[at.clone()].as_chunks::<8>();
+                let (ec, et) = eq[at].as_chunks::<8>();
+                let mut acc = Prod8::ZERO;
+                for (pc, ec) in pc.iter().zip(ec) {
+                    acc ^= F128x8::from_array(pc).mul_unreduced(F128x8::from_array(ec));
+                }
+                let mut tail = F128Unreduced::ZERO;
+                for (&a, &b) in pt.iter().zip(et) {
+                    tail ^= a.mul_unreduced(b);
+                }
+                acc.reduce() + tail.reduce()
             },
             |a, b| a + b,
         );
