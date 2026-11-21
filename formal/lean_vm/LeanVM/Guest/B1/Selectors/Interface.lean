@@ -28,6 +28,12 @@ abbrev sel_partial_nibble_Spec : Prop := sel_partial_nibble_SpecP coreProgram
 /-- `sel_partial_nibble_complete_SpecP` at the guest's `coreProgram`. -/
 abbrev sel_partial_nibble_complete_Spec : Prop := sel_partial_nibble_complete_SpecP coreProgram
 
+/-- `selector_run_nibbles_SpecP` at the guest's `coreProgram`. -/
+abbrev selector_run_nibbles_Spec : Prop := selector_run_nibbles_SpecP coreProgram
+
+/-- `selector_run_nibbles_complete_SpecP` at the guest's `coreProgram`. -/
+abbrev selector_run_nibbles_complete_Spec : Prop := selector_run_nibbles_complete_SpecP coreProgram
+
 /-- `shared_selector_tables_SpecP` at the guest's `coreProgram`. -/
 abbrev shared_selector_tables_Spec : Prop := shared_selector_tables_SpecP coreProgram
 

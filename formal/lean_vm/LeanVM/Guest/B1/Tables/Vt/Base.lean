@@ -13,7 +13,7 @@ public import LeanVM.Guest.CoreData
 /-!
 # `verify_tables`' body (TRIAGE G #52)
 
-`verify_tables` is one function of 5197 statements, stored as 14 chunks
+`verify_tables` is one function of 5257 statements, stored as 14 chunks
 (`core% «verify_tables» c0 .. c13`, the last ending in its `ret`). Its soundness reads each fact it
 needs off a chunk, by position (`VtH.atom`, `VtH.slice`, …), the kernel checking each statement read
 against the chunk: a valuation satisfying every chunk is what `vt_unfold` gives.
@@ -40,11 +40,11 @@ noncomputable def vtChunk : ℕ → List Stmt
   | 10 => (core% «verify_tables» c10)
   | 11 => (core% «verify_tables» c11)
   | 12 => (core% «verify_tables» c12)
-  | _ => (core% «verify_tables» c13).take 400
+  | _ => (core% «verify_tables» c13).take 461
 
 /-- `verify_tables`' returned values. -/
-def vtRets : List V := [.n 5627, .n 5628, .n 5629, .n 5630, .n 5631, .n 5634, .n 5635,
-  .n 5636, .n 5637, .n 5638]
+def vtRets : List V := [.n 5675, .n 5676, .n 5677, .n 5678, .n 5679, .n 5682, .n 5683,
+  .n 5684, .n 5685, .n 5686]
 
 theorem vtChunk_noRet' : ∀ i < 14, Stmt.noRetList (vtChunk i) = true := by decide +kernel
 
@@ -58,7 +58,7 @@ theorem vtChunk_noRet (i : ℕ) : Stmt.noRetList (vtChunk i) = true := by
 
 theorem verify_tables_body :
     (core% «verify_tables» body) = ((List.range 14).map vtChunk).flatten ++ [.ret vtRets] := by
-  have h13 : (core% «verify_tables» c13) = (core% «verify_tables» c13).take 400 ++ [.ret vtRets] :=
+  have h13 : (core% «verify_tables» c13) = (core% «verify_tables» c13).take 461 ++ [.ret vtRets] :=
     tbStmtsEqb_sound (by decide +kernel)
   conv_lhs => rw [core_eq% «verify_tables» body, h13]
   simp only [List.range_succ, List.range_zero, List.map_append, List.map_cons,
@@ -92,7 +92,7 @@ theorem vtPre_noRet : Stmt.noRetList vtPre = true :=
 
 /-- The lengths of `verify_tables`' chunks. -/
 def vtLens : List ℕ :=
-  [576, 276, 113, 109, 230, 108, 108, 427, 566, 577, 557, 543, 606, 400]
+  [576, 324, 113, 109, 230, 108, 108, 375, 566, 573, 574, 533, 606, 461]
 
 theorem vtLens_eq : ((List.range 14).map vtChunk).map List.length = vtLens := by decide +kernel
 

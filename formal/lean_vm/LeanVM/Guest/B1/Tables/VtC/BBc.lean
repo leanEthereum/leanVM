@@ -160,43 +160,43 @@ theorem vtB_next (hl : args.length = 20) {pos off b : ℕ} {x : E}
 
 set_option maxRecDepth 10000 in
 /-- **The share's first words and its first challenge**, honestly: the four framework words and
-the share's three at the cursor are read; the first challenge (`1508`) and the capacity after it
-(`1516 .. 1520`) are `F0`'s. -/
+the share's three at the cursor are read; the first challenge (`1556`) and the capacity after it
+(`1564 .. 1568`) are `F0`'s. -/
 theorem vtB_fresh (hl : args.length = 20) {xs w : List E} (hxl : xs.length = 4)
     (hwl : w.length = 10) (hcur : TbReadsAt rd (args.getD 5 0) (xs ++ w)) :
-    [σv (.n 814), σv (.n 818), σv (.n 1120), σv (.n 1134)] = xs ∧
-      σv (.n 1494) = w.getD 0 0 ∧ σv (.n 1498) = w.getD 1 0 ∧ σv (.n 1502) = w.getD 2 0 ∧
-      σv (.n 1508) = vtBcR0 (vtF0 args xs) w ∧
-      [σv (.n 1516), σv (.n 1517), σv (.n 1518), σv (.n 1519), σv (.n 1520)] =
+    [σv (.n 862), σv (.n 866), σv (.n 1168), σv (.n 1182)] = xs ∧
+      σv (.n 1542) = w.getD 0 0 ∧ σv (.n 1546) = w.getD 1 0 ∧ σv (.n 1550) = w.getD 2 0 ∧
+      σv (.n 1556) = vtBcR0 (vtF0 args xs) w ∧
+      [σv (.n 1564), σv (.n 1565), σv (.n 1566), σv (.n 1567), σv (.n 1568)] =
         (vtBcF (vtF0 args xs) w).squeeze.2.cap ∧
-      σv (.n 1497) = σv (.n 1494) ∧ σv (.n 1501) = σv (.n 1498) ∧ σv (.n 1505) = σv (.n 1502) := by
+      σv (.n 1545) = σv (.n 1542) ∧ σv (.n 1549) = σv (.n 1546) ∧ σv (.n 1553) = σv (.n 1550) := by
   have hlen : (xs ++ w).length = 14 := by simp [hxl, hwl]
   have hc : ∀ k (hk : k < 14), LoadHolds rd (args.getD 5 0) k ((xs ++ w).getD k 0) := fun k hk ↦ by
     rw [List.getD_eq_getElem (xs ++ w) 0 (by rw [hlen]; exact hk)]
     exact hcur k (by rw [hlen]; exact hk)
-  obtain ⟨l0, p0⟩ := vtB_next (wo := wo) hl (pos := 789) (b := 814) (by decide +kernel) (by decide +kernel) (hc 0 (by norm_num))
-  obtain ⟨l1, p1⟩ := vtB_next (wo := wo) hl (pos := 794) (b := 818) (by decide +kernel) (by decide +kernel) (hc 1 (by norm_num))
-  obtain ⟨l2, p2⟩ := vtB_next (wo := wo) hl (pos := 1148) (b := 1120) (by decide +kernel) (by decide +kernel) (hc 2 (by norm_num))
-  obtain ⟨l3, p3⟩ := vtB_next (wo := wo) hl (pos := 1163) (b := 1134) (by decide +kernel) (by decide +kernel) (hc 3 (by norm_num))
-  obtain ⟨l4, p4⟩ := vtB_next (wo := wo) hl (pos := 1557) (b := 1494) (by decide +kernel) (by decide +kernel) (hc 4 (by norm_num))
-  obtain ⟨l5, p5⟩ := vtB_next (wo := wo) hl (pos := 1561) (b := 1498) (by decide +kernel) (by decide +kernel) (hc 5 (by norm_num))
-  obtain ⟨l6, p6⟩ := vtB_next (wo := wo) hl (pos := 1565) (b := 1502) (by decide +kernel) (by decide +kernel) (hc 6 (by norm_num))
+  obtain ⟨l0, p0⟩ := vtB_next (wo := wo) hl (pos := 849) (b := 862) (by decide +kernel) (by decide +kernel) (hc 0 (by norm_num))
+  obtain ⟨l1, p1⟩ := vtB_next (wo := wo) hl (pos := 854) (b := 866) (by decide +kernel) (by decide +kernel) (hc 1 (by norm_num))
+  obtain ⟨l2, p2⟩ := vtB_next (wo := wo) hl (pos := 1208) (b := 1168) (by decide +kernel) (by decide +kernel) (hc 2 (by norm_num))
+  obtain ⟨l3, p3⟩ := vtB_next (wo := wo) hl (pos := 1223) (b := 1182) (by decide +kernel) (by decide +kernel) (hc 3 (by norm_num))
+  obtain ⟨l4, p4⟩ := vtB_next (wo := wo) hl (pos := 1617) (b := 1542) (by decide +kernel) (by decide +kernel) (hc 4 (by norm_num))
+  obtain ⟨l5, p5⟩ := vtB_next (wo := wo) hl (pos := 1621) (b := 1546) (by decide +kernel) (by decide +kernel) (hc 5 (by norm_num))
+  obtain ⟨l6, p6⟩ := vtB_next (wo := wo) hl (pos := 1625) (b := 1550) (by decide +kernel) (by decide +kernel) (hc 6 (by norm_num))
   have c20 := vtB_pureAt (rd := rd) (wo := wo) hl 0 (.copy (.n 20) (.n 0)) (by decide +kernel)
   have c21 := vtB_pureAt (rd := rd) (wo := wo) hl 1 (.copy (.n 21) (.n 1)) (by decide +kernel)
   have c22 := vtB_pureAt (rd := rd) (wo := wo) hl 2 (.copy (.n 22) (.n 2)) (by decide +kernel)
   have c23 := vtB_pureAt (rd := rd) (wo := wo) hl 3 (.copy (.n 23) (.n 3)) (by decide +kernel)
   have c24 := vtB_pureAt (rd := rd) (wo := wo) hl 4 (.copy (.n 24) (.n 4)) (by decide +kernel)
-  have k1 : (Atom.keccak [.n 815, .n 816, .n 819, .n 820, .n 1121, .n 1122, .n 1135, .n 1136, .n 20,
-      .n 21, .n 22, .n 23, .n 24] (vtOuts 1481) false false).Holds rd σv :=
-    vtB_keccakAt (wo := wo) hl 1556 (by decide +kernel)
-  have z6 := vtB_pureAt (rd := rd) (wo := wo) hl 1569 (.const (.n 1506) (word 0 0)) (by decide +kernel)
-  have z7 := vtB_pureAt (rd := rd) (wo := wo) hl 1570 (.const (.n 1507) (word 0 0)) (by decide +kernel)
-  have k2 : (Atom.keccak [.n 1495, .n 1496, .n 1499, .n 1500, .n 1503, .n 1504, .n 1506, .n 1507,
-      .n 1489, .n 1490, .n 1491, .n 1492, .n 1493] (vtOuts 1508) false false).Holds rd σv :=
-    vtB_keccakAt (wo := wo) hl 1571 (by decide +kernel)
-  have d43 := vtB_pureAt (rd := rd) (wo := wo) hl 1560 (.copy (.n 1497) (.n 1494)) (by decide +kernel)
-  have d47 := vtB_pureAt (rd := rd) (wo := wo) hl 1564 (.copy (.n 1501) (.n 1498)) (by decide +kernel)
-  have d51 := vtB_pureAt (rd := rd) (wo := wo) hl 1568 (.copy (.n 1505) (.n 1502)) (by decide +kernel)
+  have k1 : (Atom.keccak [.n 863, .n 864, .n 867, .n 868, .n 1169, .n 1170, .n 1183, .n 1184, .n 20,
+      .n 21, .n 22, .n 23, .n 24] (vtOuts 1529) false false).Holds rd σv :=
+    vtB_keccakAt (wo := wo) hl 1616 (by decide +kernel)
+  have z6 := vtB_pureAt (rd := rd) (wo := wo) hl 1629 (.const (.n 1554) (word 0 0)) (by decide +kernel)
+  have z7 := vtB_pureAt (rd := rd) (wo := wo) hl 1630 (.const (.n 1555) (word 0 0)) (by decide +kernel)
+  have k2 : (Atom.keccak [.n 1543, .n 1544, .n 1547, .n 1548, .n 1551, .n 1552, .n 1554, .n 1555,
+      .n 1537, .n 1538, .n 1539, .n 1540, .n 1541] (vtOuts 1556) false false).Holds rd σv :=
+    vtB_keccakAt (wo := wo) hl 1631 (by decide +kernel)
+  have d43 := vtB_pureAt (rd := rd) (wo := wo) hl 1620 (.copy (.n 1545) (.n 1542)) (by decide +kernel)
+  have d47 := vtB_pureAt (rd := rd) (wo := wo) hl 1624 (.copy (.n 1549) (.n 1546)) (by decide +kernel)
+  have d51 := vtB_pureAt (rd := rd) (wo := wo) hl 1628 (.copy (.n 1553) (.n 1550)) (by decide +kernel)
   simp only [Atom.Holds, tb_word_zero] at c20 c21 c22 c23 c24 z6 z7 d43 d47 d51
   have p : ∀ i < 20, σv (.n i) = args.getD i 0 := fun i hi ↦ vt_param hl hi
   generalize vtσ rd wo args = σ at *
@@ -209,11 +209,11 @@ theorem vtB_fresh (hl : args.length = 20) {xs w : List E} (hxl : xs.length = 4)
   have e4 := fsPackT_cells p4
   have e5 := fsPackT_cells p5
   have e6 := fsPackT_cells p6
-  have hxs : xs = [σ (.n 814), σ (.n 818), σ (.n 1120), σ (.n 1134)] := by
+  have hxs : xs = [σ (.n 862), σ (.n 866), σ (.n 1168), σ (.n 1182)] := by
     rw [l0, l1, l2, l3]
     match xs, hxl with
     | [a, b, c, d], _ => rfl
-  have hw3 : w.take 3 = [σ (.n 1494), σ (.n 1498), σ (.n 1502)] := by
+  have hw3 : w.take 3 = [σ (.n 1542), σ (.n 1546), σ (.n 1550)] := by
     rw [l4, l5, l6, vt_list10 w hwl]
     simp [hxl]
   have hargs : [args.getD 0 0, args.getD 1 0, args.getD 2 0, args.getD 3 0, args.getD 4 0] =
@@ -222,11 +222,11 @@ theorem vtB_fresh (hl : args.length = 20) {xs w : List E} (hxl : xs.length = 4)
       p 4 (by norm_num)]
   -- the four framework words, and their permutation
   set S4 : Fs := ⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)],
-    [(σ (.n 814), dsObserve), (σ (.n 818), dsObserve), (σ (.n 1120), dsObserve),
-      (σ (.n 1134), dsObserve)]⟩ with hS4d
+    [(σ (.n 862), dsObserve), (σ (.n 866), dsObserve), (σ (.n 1168), dsObserve),
+      (σ (.n 1182), dsObserve)]⟩ with hS4d
   have hS4 : vtF0 args xs = S4 := by
     rw [vtF0, hargs, hxs, absorbAll_short _ _ _ (by simp)]; rfl
-  have hin1 : ([.n 815, .n 816, .n 819, .n 820, .n 1121, .n 1122, .n 1135, .n 1136, .n 20,
+  have hin1 : ([.n 863, .n 864, .n 867, .n 868, .n 1169, .n 1170, .n 1183, .n 1184, .n 20,
       .n 21, .n 22, .n 23, .n 24] : List V).map σ = rateOf S4.pend ++ S4.cap := by
     rw [rateOf_eq_cells _ (by simp [hS4d])]
     simp only [hS4d, List.map_cons, List.map_nil, pendCells, List.flatMap_cons, List.flatMap_nil,
@@ -234,22 +234,22 @@ theorem vtB_fresh (hl : args.length = 20) {xs w : List E} (hxl : xs.length = 4)
       ← e0, ← e1, ← e2, ← e3, c20, c21, c22, c23, c24]
     rfl
   rw [hin1] at hC1
-  have hcap : capOf S4.perm = [σ (.n 1489), σ (.n 1490), σ (.n 1491), σ (.n 1492),
-      σ (.n 1493)] := by
+  have hcap : capOf S4.perm = [σ (.n 1537), σ (.n 1538), σ (.n 1539), σ (.n 1540),
+      σ (.n 1541)] := by
     rw [Fs.perm, ← hC1]; rfl
   -- the share and the round's coefficients, after the permutation
-  set S7 : Fs := ⟨capOf S4.perm, [(σ (.n 1494), dsObserve), (σ (.n 1498), dsObserve),
-    (σ (.n 1502), dsObserve)]⟩ with hS7d
+  set S7 : Fs := ⟨capOf S4.perm, [(σ (.n 1542), dsObserve), (σ (.n 1546), dsObserve),
+    (σ (.n 1550), dsObserve)]⟩ with hS7d
   have hS7 : vtBcF (vtF0 args xs) w = S7 := by
-    have h1 : S4.absorb (σ (.n 1494)) dsObserve =
-        ⟨capOf S4.perm, [(σ (.n 1494), dsObserve)]⟩ := by
+    have h1 : S4.absorb (σ (.n 1542)) dsObserve =
+        ⟨capOf S4.perm, [(σ (.n 1542), dsObserve)]⟩ := by
       simp [Fs.absorb, hS4d, rateScalars]
     rw [vtBcF, hS4, hw3]
-    show (S4.absorb (σ (.n 1494)) dsObserve).absorbAll [σ (.n 1498), σ (.n 1502)] dsObserve = S7
+    show (S4.absorb (σ (.n 1542)) dsObserve).absorbAll [σ (.n 1546), σ (.n 1550)] dsObserve = S7
     rw [h1, absorbAll_short _ _ _ (by simp)]
     rfl
-  have hin2 : ([.n 1495, .n 1496, .n 1499, .n 1500, .n 1503, .n 1504, .n 1506, .n 1507, .n 1489,
-      .n 1490, .n 1491, .n 1492, .n 1493] : List V).map σ = rateOf S7.pend ++ S7.cap := by
+  have hin2 : ([.n 1543, .n 1544, .n 1547, .n 1548, .n 1551, .n 1552, .n 1554, .n 1555, .n 1537,
+      .n 1538, .n 1539, .n 1540, .n 1541] : List V).map σ = rateOf S7.pend ++ S7.cap := by
     rw [rateOf_eq_cells _ (by simp [hS7d])]
     simp only [hS7d, hcap, List.map_cons, List.map_nil, pendCells, List.flatMap_cons,
       List.flatMap_nil, List.length_cons, List.length_nil, List.cons_append, List.nil_append,
@@ -262,10 +262,10 @@ theorem vtB_fresh (hl : args.length = 20) {xs w : List E} (hxl : xs.length = 4)
   · rw [l6, List.getD_append_right _ _ _ _ (by omega)]; simp [hxl]
   · rw [vtBcR0, hS7]
     simp only [Fs.squeeze, Fs.perm]
-    exact challengeT_value (s0 := .n 1508) (b := 1508) rfl (hP2 0 (by omega))
+    exact challengeT_value (s0 := .n 1556) (b := 1556) rfl (hP2 0 (by omega))
   · rw [hS7]
     simp only [Fs.squeeze, Fs.perm]
-    have e : ∀ k, 1508 + 8 + k = 1516 + k := fun k => by omega
+    have e : ∀ k, 1556 + 8 + k = 1564 + k := fun k => by omega
     simp only [e] at hC2
     rw [← hC2]
     rfl
@@ -292,36 +292,36 @@ theorem vtB_bc (hl : args.length = 20) {xs w weights : List E} (hxl : xs.length 
     (hwl : w.length = 10) (hcur : TbReadsAt rd (args.getD 5 0) (xs ++ w))
     (hW16 : weights.length = 16) (hW : TbReadsAt rd (args.getD 13 0) weights)
     (hpt : TbReadsAt rd (args.getD 19 0) (vtBcPoint (vtF0 args xs) w))
-    (hw1 : (List.range 8).map (fun i ↦ wo (1529 + i)) = (vtBcR1 (vtF0 args xs) w).1 ++
+    (hw1 : (List.range 8).map (fun i ↦ wo (1577 + i)) = (vtBcR1 (vtF0 args xs) w).1 ++
       [args.getD 5 0 * gen ^ 7 * gen ^ 2, (vtBcR1 (vtF0 args xs) w).2.1,
         (vtBcR1 (vtF0 args xs) w).2.2])
-    (hw2 : (List.range 8).map (fun i ↦ wo (1537 + i)) = (vtBcR2 (vtF0 args xs) w).1 ++
+    (hw2 : (List.range 8).map (fun i ↦ wo (1585 + i)) = (vtBcR2 (vtF0 args xs) w).1 ++
       [args.getD 5 0 * gen ^ 7 * gen ^ 2 * gen ^ 2, (vtBcR2 (vtF0 args xs) w).2.1,
         (vtBcR2 (vtF0 args xs) w).2.2])
-    (hw3 : (List.range 8).map (fun i ↦ wo (1545 + i)) = (vtBcR3 (vtF0 args xs) w).1 ++
+    (hw3 : (List.range 8).map (fun i ↦ wo (1593 + i)) = (vtBcR3 (vtF0 args xs) w).1 ++
       [args.getD 5 0 * gen ^ 7 * gen ^ 2 * gen ^ 2 * gen ^ 2, (vtBcR3 (vtF0 args xs) w).2.1,
         (vtBcR3 (vtF0 args xs) w).2.2])
     (hacc : (vtBcR3 (vtF0 args xs) w).2.1 =
       dot (eqKernel (vtBcPoint (vtF0 args xs) w)) weights * w.getD 9 0) :
-    VSH (coreProgram.Rel rd) rd σv (.atom (.load (.n 1508) (.n 19) 0)) ∧
-    VSH (coreProgram.Rel rd) rd σv (.call "opening_tail_round" [.n 1516, .n 1517, .n 1518, .n 1519,
-      .n 1520, .n 1528, .n 1526, .n 18] [.n 1529, .n 1530, .n 1531, .n 1532, .n 1533, .n 1534,
-      .n 1535, .n 1536]) ∧
-    VSH (coreProgram.Rel rd) rd σv (.atom (.load (.n 1536) (.n 19) 1)) ∧
-    VSH (coreProgram.Rel rd) rd σv (.call "opening_tail_round" [.n 1529, .n 1530, .n 1531, .n 1532,
-      .n 1533, .n 1534, .n 1535, .n 18] [.n 1537, .n 1538, .n 1539, .n 1540, .n 1541, .n 1542,
-      .n 1543, .n 1544]) ∧
-    VSH (coreProgram.Rel rd) rd σv (.atom (.load (.n 1544) (.n 19) 2)) ∧
-    VSH (coreProgram.Rel rd) rd σv (.call "opening_tail_round" [.n 1537, .n 1538, .n 1539, .n 1540,
-      .n 1541, .n 1542, .n 1543, .n 18] [.n 1545, .n 1546, .n 1547, .n 1548, .n 1549, .n 1550,
-      .n 1551, .n 1552]) ∧
-    VSH (coreProgram.Rel rd) rd σv (.atom (.load (.n 1552) (.n 19) 3)) ∧
-    VSH (coreProgram.Rel rd) rd σv (.atom (.load (.n 1558) (.n 1550) 0)) ∧
-    VSH (coreProgram.Rel rd) rd σv (.atom (.assertEq (.n 1551) (.n 1626))) ∧
-    σv (.n 1494) = w.getD 0 0 ∧ σv (.n 1558) = w.getD 9 0 ∧
-    [σv (.n 1545), σv (.n 1546), σv (.n 1547), σv (.n 1548), σv (.n 1549)] =
+    VSH (coreProgram.Rel rd) rd σv (.atom (.load (.n 1556) (.n 19) 0)) ∧
+    VSH (coreProgram.Rel rd) rd σv (.call "opening_tail_round" [.n 1564, .n 1565, .n 1566, .n 1567,
+      .n 1568, .n 1576, .n 1574, .n 18] [.n 1577, .n 1578, .n 1579, .n 1580, .n 1581, .n 1582,
+      .n 1583, .n 1584]) ∧
+    VSH (coreProgram.Rel rd) rd σv (.atom (.load (.n 1584) (.n 19) 1)) ∧
+    VSH (coreProgram.Rel rd) rd σv (.call "opening_tail_round" [.n 1577, .n 1578, .n 1579, .n 1580,
+      .n 1581, .n 1582, .n 1583, .n 18] [.n 1585, .n 1586, .n 1587, .n 1588, .n 1589, .n 1590,
+      .n 1591, .n 1592]) ∧
+    VSH (coreProgram.Rel rd) rd σv (.atom (.load (.n 1592) (.n 19) 2)) ∧
+    VSH (coreProgram.Rel rd) rd σv (.call "opening_tail_round" [.n 1585, .n 1586, .n 1587, .n 1588,
+      .n 1589, .n 1590, .n 1591, .n 18] [.n 1593, .n 1594, .n 1595, .n 1596, .n 1597, .n 1598,
+      .n 1599, .n 1600]) ∧
+    VSH (coreProgram.Rel rd) rd σv (.atom (.load (.n 1600) (.n 19) 3)) ∧
+    VSH (coreProgram.Rel rd) rd σv (.atom (.load (.n 1606) (.n 1598) 0)) ∧
+    VSH (coreProgram.Rel rd) rd σv (.atom (.assertEq (.n 1599) (.n 1674))) ∧
+    σv (.n 1542) = w.getD 0 0 ∧ σv (.n 1606) = w.getD 9 0 ∧
+    [σv (.n 1593), σv (.n 1594), σv (.n 1595), σv (.n 1596), σv (.n 1597)] =
       (vtBcR3 (vtF0 args xs) w).1 ∧
-    σv (.n 1550) = args.getD 5 0 * gen ^ 13 := by
+    σv (.n 1598) = args.getD 5 0 * gen ^ 13 := by
   obtain ⟨-, e40, e44, e48, e67, ecap, d43, d47, d51⟩ := vtB_fresh (wo := wo) hl hxl hwl hcur
   have p : ∀ i < 20, σv (.n i) = args.getD i 0 := fun i hi ↦ vt_param hl hi
   have hlen : (xs ++ w).length = 14 := by simp [hxl, hwl]
@@ -338,17 +338,17 @@ theorem vtB_bc (hl : args.length = 20) {xs w weights : List E} (hxl : xs.length 
       rw [p 19 (by norm_num), List.getD_eq_getElem (vtBcPoint (vtF0 args xs) w) 0 (by omega)]
       exact hpt i (by omega)
   -- the calls' returns
-  have r1 := vtB_callRets (rd := rd) (wo := wo) hl 1581 (f := "opening_tail_round")
-    (as := [.n 1516, .n 1517, .n 1518, .n 1519, .n 1520, .n 1528, .n 1526, .n 18])
-    (rs := [.n 1529, .n 1530, .n 1531, .n 1532, .n 1533, .n 1534, .n 1535, .n 1536])
+  have r1 := vtB_callRets (rd := rd) (wo := wo) hl 1641 (f := "opening_tail_round")
+    (as := [.n 1564, .n 1565, .n 1566, .n 1567, .n 1568, .n 1576, .n 1574, .n 18])
+    (rs := [.n 1577, .n 1578, .n 1579, .n 1580, .n 1581, .n 1582, .n 1583, .n 1584])
     (by decide +kernel)
-  have r2 := vtB_callRets (rd := rd) (wo := wo) hl 1583 (f := "opening_tail_round")
-    (as := [.n 1529, .n 1530, .n 1531, .n 1532, .n 1533, .n 1534, .n 1535, .n 18])
-    (rs := [.n 1537, .n 1538, .n 1539, .n 1540, .n 1541, .n 1542, .n 1543, .n 1544])
+  have r2 := vtB_callRets (rd := rd) (wo := wo) hl 1643 (f := "opening_tail_round")
+    (as := [.n 1577, .n 1578, .n 1579, .n 1580, .n 1581, .n 1582, .n 1583, .n 18])
+    (rs := [.n 1585, .n 1586, .n 1587, .n 1588, .n 1589, .n 1590, .n 1591, .n 1592])
     (by decide +kernel)
-  have r3 := vtB_callRets (rd := rd) (wo := wo) hl 1585 (f := "opening_tail_round")
-    (as := [.n 1537, .n 1538, .n 1539, .n 1540, .n 1541, .n 1542, .n 1543, .n 18])
-    (rs := [.n 1545, .n 1546, .n 1547, .n 1548, .n 1549, .n 1550, .n 1551, .n 1552])
+  have r3 := vtB_callRets (rd := rd) (wo := wo) hl 1645 (f := "opening_tail_round")
+    (as := [.n 1585, .n 1586, .n 1587, .n 1588, .n 1589, .n 1590, .n 1591, .n 18])
+    (rs := [.n 1593, .n 1594, .n 1595, .n 1596, .n 1597, .n 1598, .n 1599, .n 1600])
     (by decide +kernel)
   simp only [List.map_cons, List.map_nil] at r1 r2 r3
   rw [vt_range8] at hw1 hw2 hw3
@@ -356,93 +356,93 @@ theorem vtB_bc (hl : args.length = 20) {xs w weights : List E} (hxl : xs.length 
   obtain ⟨q2, u2, v2, s2⟩ := vt_split8 (C := (vtBcR2 (vtF0 args xs) w).1) rfl (r2.trans hw2)
   obtain ⟨q3, u3, v3, s3⟩ := vt_split8 (C := (vtBcR3 (vtF0 args xs) w).1) rfl (r3.trans hw3)
   -- the value
-  have hm : LoadHolds rd (σv (.n 1550)) 0 (w.getD 9 0) := by
+  have hm : LoadHolds rd (σv (.n 1598)) 0 (w.getD 9 0) := by
     rw [u3, loadHolds_mul_gen_pow, loadHolds_mul_gen_pow, loadHolds_mul_gen_pow,
       loadHolds_mul_gen_pow]
     exact hc 9 (by norm_num)
-  obtain ⟨e1905, l1951⟩ := vt_readAt (rd := rd) (w := wo) hl 1592 (d := .n 1558) (p := .n 1550)
+  obtain ⟨e1905, l1951⟩ := vt_readAt (rd := rd) (w := wo) hl 1652 (d := .n 1606) (p := .n 1598)
     (off := 0) (by decide +kernel) (by decide +kernel) hm
   -- the round's arithmetic and the fold of `fp_w`
-  have a1932 := vtB_pureAt (rd := rd) (wo := wo) hl 1573 (.const (.n 1521) (word 1 0)) (by decide +kernel)
-  have a1933 := vtB_pureAt (rd := rd) (wo := wo) hl 1574 (.add (.n 1522) (.n 1521) (.n 1508)) (by decide +kernel)
-  have a1934 := vtB_pureAt (rd := rd) (wo := wo) hl 1575 (.mul (.n 1523) (.n 1522) (.n 1505)) (by decide +kernel)
-  have a1935 := vtB_pureAt (rd := rd) (wo := wo) hl 1576 (.add (.n 1524) (.n 1497) (.n 1523)) (by decide +kernel)
-  have a1936 := vtB_pureAt (rd := rd) (wo := wo) hl 1577 (.mul (.n 1525) (.n 1508) (.n 1524)) (by decide +kernel)
-  have a1937 := vtB_pureAt (rd := rd) (wo := wo) hl 1578 (.add (.n 1526) (.n 1501) (.n 1525)) (by decide +kernel)
-  have a1938 := vtB_pureAt (rd := rd) (wo := wo) hl 1579 (.const (.n 1527) (word 128 0)) (by decide +kernel)
-  have a1939 := vtB_pureAt (rd := rd) (wo := wo) hl 1580 (.mul (.n 1528) (.n 5) (.n 1527)) (by decide +kernel)
-  have c0 := vtB_pureAt (rd := rd) (wo := wo) hl 1587 (.copy (.n 1553) (.n 1545)) (by decide +kernel)
-  have c1 := vtB_pureAt (rd := rd) (wo := wo) hl 1588 (.copy (.n 1554) (.n 1546)) (by decide +kernel)
-  have c2 := vtB_pureAt (rd := rd) (wo := wo) hl 1589 (.copy (.n 1555) (.n 1547)) (by decide +kernel)
-  have c3 := vtB_pureAt (rd := rd) (wo := wo) hl 1590 (.copy (.n 1556) (.n 1548)) (by decide +kernel)
-  have c4 := vtB_pureAt (rd := rd) (wo := wo) hl 1591 (.copy (.n 1557) (.n 1549)) (by decide +kernel)
-  have cv := vtB_pureAt (rd := rd) (wo := wo) hl 1593 (.copy (.n 1559) (.n 1558)) (by decide +kernel)
-  have a1957 := vtB_pureAt (rd := rd) (wo := wo) hl 1598 (.add (.n 1564) (.n 1562) (.n 1563)) (by decide +kernel)
-  have a1958 := vtB_pureAt (rd := rd) (wo := wo) hl 1599 (.mul (.n 1565) (.n 1561) (.n 1564)) (by decide +kernel)
-  have a1959 := vtB_pureAt (rd := rd) (wo := wo) hl 1600 (.add (.n 1566) (.n 1562) (.n 1565)) (by decide +kernel)
-  have a1962 := vtB_pureAt (rd := rd) (wo := wo) hl 1603 (.add (.n 1569) (.n 1567) (.n 1568)) (by decide +kernel)
-  have a1963 := vtB_pureAt (rd := rd) (wo := wo) hl 1604 (.mul (.n 1570) (.n 1561) (.n 1569)) (by decide +kernel)
-  have a1964 := vtB_pureAt (rd := rd) (wo := wo) hl 1605 (.add (.n 1571) (.n 1567) (.n 1570)) (by decide +kernel)
-  have a1967 := vtB_pureAt (rd := rd) (wo := wo) hl 1608 (.add (.n 1574) (.n 1572) (.n 1573)) (by decide +kernel)
-  have a1968 := vtB_pureAt (rd := rd) (wo := wo) hl 1609 (.mul (.n 1575) (.n 1561) (.n 1574)) (by decide +kernel)
-  have a1969 := vtB_pureAt (rd := rd) (wo := wo) hl 1610 (.add (.n 1576) (.n 1572) (.n 1575)) (by decide +kernel)
-  have a1972 := vtB_pureAt (rd := rd) (wo := wo) hl 1613 (.add (.n 1579) (.n 1577) (.n 1578)) (by decide +kernel)
-  have a1973 := vtB_pureAt (rd := rd) (wo := wo) hl 1614 (.mul (.n 1580) (.n 1561) (.n 1579)) (by decide +kernel)
-  have a1974 := vtB_pureAt (rd := rd) (wo := wo) hl 1615 (.add (.n 1581) (.n 1577) (.n 1580)) (by decide +kernel)
-  have a1977 := vtB_pureAt (rd := rd) (wo := wo) hl 1618 (.add (.n 1584) (.n 1582) (.n 1583)) (by decide +kernel)
-  have a1978 := vtB_pureAt (rd := rd) (wo := wo) hl 1619 (.mul (.n 1585) (.n 1561) (.n 1584)) (by decide +kernel)
-  have a1979 := vtB_pureAt (rd := rd) (wo := wo) hl 1620 (.add (.n 1586) (.n 1582) (.n 1585)) (by decide +kernel)
-  have a1982 := vtB_pureAt (rd := rd) (wo := wo) hl 1623 (.add (.n 1589) (.n 1587) (.n 1588)) (by decide +kernel)
-  have a1983 := vtB_pureAt (rd := rd) (wo := wo) hl 1624 (.mul (.n 1590) (.n 1561) (.n 1589)) (by decide +kernel)
-  have a1984 := vtB_pureAt (rd := rd) (wo := wo) hl 1625 (.add (.n 1591) (.n 1587) (.n 1590)) (by decide +kernel)
-  have a1987 := vtB_pureAt (rd := rd) (wo := wo) hl 1628 (.add (.n 1594) (.n 1592) (.n 1593)) (by decide +kernel)
-  have a1988 := vtB_pureAt (rd := rd) (wo := wo) hl 1629 (.mul (.n 1595) (.n 1561) (.n 1594)) (by decide +kernel)
-  have a1989 := vtB_pureAt (rd := rd) (wo := wo) hl 1630 (.add (.n 1596) (.n 1592) (.n 1595)) (by decide +kernel)
-  have a1992 := vtB_pureAt (rd := rd) (wo := wo) hl 1633 (.add (.n 1599) (.n 1597) (.n 1598)) (by decide +kernel)
-  have a1993 := vtB_pureAt (rd := rd) (wo := wo) hl 1634 (.mul (.n 1600) (.n 1561) (.n 1599)) (by decide +kernel)
-  have a1994 := vtB_pureAt (rd := rd) (wo := wo) hl 1635 (.add (.n 1601) (.n 1597) (.n 1600)) (by decide +kernel)
-  have a1996 := vtB_pureAt (rd := rd) (wo := wo) hl 1637 (.add (.n 1603) (.n 1566) (.n 1571)) (by decide +kernel)
-  have a1997 := vtB_pureAt (rd := rd) (wo := wo) hl 1638 (.mul (.n 1604) (.n 1602) (.n 1603)) (by decide +kernel)
-  have a1998 := vtB_pureAt (rd := rd) (wo := wo) hl 1639 (.add (.n 1605) (.n 1566) (.n 1604)) (by decide +kernel)
-  have a1999 := vtB_pureAt (rd := rd) (wo := wo) hl 1640 (.add (.n 1606) (.n 1576) (.n 1581)) (by decide +kernel)
-  have a2000 := vtB_pureAt (rd := rd) (wo := wo) hl 1641 (.mul (.n 1607) (.n 1602) (.n 1606)) (by decide +kernel)
-  have a2001 := vtB_pureAt (rd := rd) (wo := wo) hl 1642 (.add (.n 1608) (.n 1576) (.n 1607)) (by decide +kernel)
-  have a2002 := vtB_pureAt (rd := rd) (wo := wo) hl 1643 (.add (.n 1609) (.n 1586) (.n 1591)) (by decide +kernel)
-  have a2003 := vtB_pureAt (rd := rd) (wo := wo) hl 1644 (.mul (.n 1610) (.n 1602) (.n 1609)) (by decide +kernel)
-  have a2004 := vtB_pureAt (rd := rd) (wo := wo) hl 1645 (.add (.n 1611) (.n 1586) (.n 1610)) (by decide +kernel)
-  have a2005 := vtB_pureAt (rd := rd) (wo := wo) hl 1646 (.add (.n 1612) (.n 1596) (.n 1601)) (by decide +kernel)
-  have a2006 := vtB_pureAt (rd := rd) (wo := wo) hl 1647 (.mul (.n 1613) (.n 1602) (.n 1612)) (by decide +kernel)
-  have a2007 := vtB_pureAt (rd := rd) (wo := wo) hl 1648 (.add (.n 1614) (.n 1596) (.n 1613)) (by decide +kernel)
-  have a2009 := vtB_pureAt (rd := rd) (wo := wo) hl 1650 (.add (.n 1616) (.n 1605) (.n 1608)) (by decide +kernel)
-  have a2010 := vtB_pureAt (rd := rd) (wo := wo) hl 1651 (.mul (.n 1617) (.n 1615) (.n 1616)) (by decide +kernel)
-  have a2011 := vtB_pureAt (rd := rd) (wo := wo) hl 1652 (.add (.n 1618) (.n 1605) (.n 1617)) (by decide +kernel)
-  have a2012 := vtB_pureAt (rd := rd) (wo := wo) hl 1653 (.add (.n 1619) (.n 1611) (.n 1614)) (by decide +kernel)
-  have a2013 := vtB_pureAt (rd := rd) (wo := wo) hl 1654 (.mul (.n 1620) (.n 1615) (.n 1619)) (by decide +kernel)
-  have a2014 := vtB_pureAt (rd := rd) (wo := wo) hl 1655 (.add (.n 1621) (.n 1611) (.n 1620)) (by decide +kernel)
-  have a2016 := vtB_pureAt (rd := rd) (wo := wo) hl 1657 (.add (.n 1623) (.n 1618) (.n 1621)) (by decide +kernel)
-  have a2017 := vtB_pureAt (rd := rd) (wo := wo) hl 1658 (.mul (.n 1624) (.n 1622) (.n 1623)) (by decide +kernel)
-  have a2018 := vtB_pureAt (rd := rd) (wo := wo) hl 1659 (.add (.n 1625) (.n 1618) (.n 1624)) (by decide +kernel)
-  have a2019 := vtB_pureAt (rd := rd) (wo := wo) hl 1660 (.mul (.n 1626) (.n 1625) (.n 1558)) (by decide +kernel)
-  have w0 := (vt_readAt (rd := rd) (w := wo) hl 1596 (d := (.n 1562)) (by decide +kernel) (by decide +kernel) (hw13 0 (by norm_num))).1
-  have w1 := (vt_readAt (rd := rd) (w := wo) hl 1597 (d := (.n 1563)) (by decide +kernel) (by decide +kernel) (hw13 1 (by norm_num))).1
-  have w2 := (vt_readAt (rd := rd) (w := wo) hl 1601 (d := (.n 1567)) (by decide +kernel) (by decide +kernel) (hw13 2 (by norm_num))).1
-  have w3 := (vt_readAt (rd := rd) (w := wo) hl 1602 (d := (.n 1568)) (by decide +kernel) (by decide +kernel) (hw13 3 (by norm_num))).1
-  have w4 := (vt_readAt (rd := rd) (w := wo) hl 1606 (d := (.n 1572)) (by decide +kernel) (by decide +kernel) (hw13 4 (by norm_num))).1
-  have w5 := (vt_readAt (rd := rd) (w := wo) hl 1607 (d := (.n 1573)) (by decide +kernel) (by decide +kernel) (hw13 5 (by norm_num))).1
-  have w6 := (vt_readAt (rd := rd) (w := wo) hl 1611 (d := (.n 1577)) (by decide +kernel) (by decide +kernel) (hw13 6 (by norm_num))).1
-  have w7 := (vt_readAt (rd := rd) (w := wo) hl 1612 (d := (.n 1578)) (by decide +kernel) (by decide +kernel) (hw13 7 (by norm_num))).1
-  have w8 := (vt_readAt (rd := rd) (w := wo) hl 1616 (d := (.n 1582)) (by decide +kernel) (by decide +kernel) (hw13 8 (by norm_num))).1
-  have w9 := (vt_readAt (rd := rd) (w := wo) hl 1617 (d := (.n 1583)) (by decide +kernel) (by decide +kernel) (hw13 9 (by norm_num))).1
-  have w10 := (vt_readAt (rd := rd) (w := wo) hl 1621 (d := (.n 1587)) (by decide +kernel) (by decide +kernel) (hw13 10 (by norm_num))).1
-  have w11 := (vt_readAt (rd := rd) (w := wo) hl 1622 (d := (.n 1588)) (by decide +kernel) (by decide +kernel) (hw13 11 (by norm_num))).1
-  have w12 := (vt_readAt (rd := rd) (w := wo) hl 1626 (d := (.n 1592)) (by decide +kernel) (by decide +kernel) (hw13 12 (by norm_num))).1
-  have w13 := (vt_readAt (rd := rd) (w := wo) hl 1627 (d := (.n 1593)) (by decide +kernel) (by decide +kernel) (hw13 13 (by norm_num))).1
-  have w14 := (vt_readAt (rd := rd) (w := wo) hl 1631 (d := (.n 1597)) (by decide +kernel) (by decide +kernel) (hw13 14 (by norm_num))).1
-  have w15 := (vt_readAt (rd := rd) (w := wo) hl 1632 (d := (.n 1598)) (by decide +kernel) (by decide +kernel) (hw13 15 (by norm_num))).1
-  have l0 := (vt_readAt (rd := rd) (w := wo) hl 1595 (d := (.n 1561)) (by decide +kernel) (by decide +kernel) (hpt19 0 (by norm_num))).1
-  have l1 := (vt_readAt (rd := rd) (w := wo) hl 1636 (d := (.n 1602)) (by decide +kernel) (by decide +kernel) (hpt19 1 (by norm_num))).1
-  have l2 := (vt_readAt (rd := rd) (w := wo) hl 1649 (d := (.n 1615)) (by decide +kernel) (by decide +kernel) (hpt19 2 (by norm_num))).1
-  have l3 := (vt_readAt (rd := rd) (w := wo) hl 1656 (d := (.n 1622)) (by decide +kernel) (by decide +kernel) (hpt19 3 (by norm_num))).1
+  have a1932 := vtB_pureAt (rd := rd) (wo := wo) hl 1633 (.const (.n 1569) (word 1 0)) (by decide +kernel)
+  have a1933 := vtB_pureAt (rd := rd) (wo := wo) hl 1634 (.add (.n 1570) (.n 1569) (.n 1556)) (by decide +kernel)
+  have a1934 := vtB_pureAt (rd := rd) (wo := wo) hl 1635 (.mul (.n 1571) (.n 1570) (.n 1553)) (by decide +kernel)
+  have a1935 := vtB_pureAt (rd := rd) (wo := wo) hl 1636 (.add (.n 1572) (.n 1545) (.n 1571)) (by decide +kernel)
+  have a1936 := vtB_pureAt (rd := rd) (wo := wo) hl 1637 (.mul (.n 1573) (.n 1556) (.n 1572)) (by decide +kernel)
+  have a1937 := vtB_pureAt (rd := rd) (wo := wo) hl 1638 (.add (.n 1574) (.n 1549) (.n 1573)) (by decide +kernel)
+  have a1938 := vtB_pureAt (rd := rd) (wo := wo) hl 1639 (.const (.n 1575) (word 128 0)) (by decide +kernel)
+  have a1939 := vtB_pureAt (rd := rd) (wo := wo) hl 1640 (.mul (.n 1576) (.n 5) (.n 1575)) (by decide +kernel)
+  have c0 := vtB_pureAt (rd := rd) (wo := wo) hl 1647 (.copy (.n 1601) (.n 1593)) (by decide +kernel)
+  have c1 := vtB_pureAt (rd := rd) (wo := wo) hl 1648 (.copy (.n 1602) (.n 1594)) (by decide +kernel)
+  have c2 := vtB_pureAt (rd := rd) (wo := wo) hl 1649 (.copy (.n 1603) (.n 1595)) (by decide +kernel)
+  have c3 := vtB_pureAt (rd := rd) (wo := wo) hl 1650 (.copy (.n 1604) (.n 1596)) (by decide +kernel)
+  have c4 := vtB_pureAt (rd := rd) (wo := wo) hl 1651 (.copy (.n 1605) (.n 1597)) (by decide +kernel)
+  have cv := vtB_pureAt (rd := rd) (wo := wo) hl 1653 (.copy (.n 1607) (.n 1606)) (by decide +kernel)
+  have a1957 := vtB_pureAt (rd := rd) (wo := wo) hl 1658 (.add (.n 1612) (.n 1610) (.n 1611)) (by decide +kernel)
+  have a1958 := vtB_pureAt (rd := rd) (wo := wo) hl 1659 (.mul (.n 1613) (.n 1609) (.n 1612)) (by decide +kernel)
+  have a1959 := vtB_pureAt (rd := rd) (wo := wo) hl 1660 (.add (.n 1614) (.n 1610) (.n 1613)) (by decide +kernel)
+  have a1962 := vtB_pureAt (rd := rd) (wo := wo) hl 1663 (.add (.n 1617) (.n 1615) (.n 1616)) (by decide +kernel)
+  have a1963 := vtB_pureAt (rd := rd) (wo := wo) hl 1664 (.mul (.n 1618) (.n 1609) (.n 1617)) (by decide +kernel)
+  have a1964 := vtB_pureAt (rd := rd) (wo := wo) hl 1665 (.add (.n 1619) (.n 1615) (.n 1618)) (by decide +kernel)
+  have a1967 := vtB_pureAt (rd := rd) (wo := wo) hl 1668 (.add (.n 1622) (.n 1620) (.n 1621)) (by decide +kernel)
+  have a1968 := vtB_pureAt (rd := rd) (wo := wo) hl 1669 (.mul (.n 1623) (.n 1609) (.n 1622)) (by decide +kernel)
+  have a1969 := vtB_pureAt (rd := rd) (wo := wo) hl 1670 (.add (.n 1624) (.n 1620) (.n 1623)) (by decide +kernel)
+  have a1972 := vtB_pureAt (rd := rd) (wo := wo) hl 1673 (.add (.n 1627) (.n 1625) (.n 1626)) (by decide +kernel)
+  have a1973 := vtB_pureAt (rd := rd) (wo := wo) hl 1674 (.mul (.n 1628) (.n 1609) (.n 1627)) (by decide +kernel)
+  have a1974 := vtB_pureAt (rd := rd) (wo := wo) hl 1675 (.add (.n 1629) (.n 1625) (.n 1628)) (by decide +kernel)
+  have a1977 := vtB_pureAt (rd := rd) (wo := wo) hl 1678 (.add (.n 1632) (.n 1630) (.n 1631)) (by decide +kernel)
+  have a1978 := vtB_pureAt (rd := rd) (wo := wo) hl 1679 (.mul (.n 1633) (.n 1609) (.n 1632)) (by decide +kernel)
+  have a1979 := vtB_pureAt (rd := rd) (wo := wo) hl 1680 (.add (.n 1634) (.n 1630) (.n 1633)) (by decide +kernel)
+  have a1982 := vtB_pureAt (rd := rd) (wo := wo) hl 1683 (.add (.n 1637) (.n 1635) (.n 1636)) (by decide +kernel)
+  have a1983 := vtB_pureAt (rd := rd) (wo := wo) hl 1684 (.mul (.n 1638) (.n 1609) (.n 1637)) (by decide +kernel)
+  have a1984 := vtB_pureAt (rd := rd) (wo := wo) hl 1685 (.add (.n 1639) (.n 1635) (.n 1638)) (by decide +kernel)
+  have a1987 := vtB_pureAt (rd := rd) (wo := wo) hl 1688 (.add (.n 1642) (.n 1640) (.n 1641)) (by decide +kernel)
+  have a1988 := vtB_pureAt (rd := rd) (wo := wo) hl 1689 (.mul (.n 1643) (.n 1609) (.n 1642)) (by decide +kernel)
+  have a1989 := vtB_pureAt (rd := rd) (wo := wo) hl 1690 (.add (.n 1644) (.n 1640) (.n 1643)) (by decide +kernel)
+  have a1992 := vtB_pureAt (rd := rd) (wo := wo) hl 1693 (.add (.n 1647) (.n 1645) (.n 1646)) (by decide +kernel)
+  have a1993 := vtB_pureAt (rd := rd) (wo := wo) hl 1694 (.mul (.n 1648) (.n 1609) (.n 1647)) (by decide +kernel)
+  have a1994 := vtB_pureAt (rd := rd) (wo := wo) hl 1695 (.add (.n 1649) (.n 1645) (.n 1648)) (by decide +kernel)
+  have a1996 := vtB_pureAt (rd := rd) (wo := wo) hl 1697 (.add (.n 1651) (.n 1614) (.n 1619)) (by decide +kernel)
+  have a1997 := vtB_pureAt (rd := rd) (wo := wo) hl 1698 (.mul (.n 1652) (.n 1650) (.n 1651)) (by decide +kernel)
+  have a1998 := vtB_pureAt (rd := rd) (wo := wo) hl 1699 (.add (.n 1653) (.n 1614) (.n 1652)) (by decide +kernel)
+  have a1999 := vtB_pureAt (rd := rd) (wo := wo) hl 1700 (.add (.n 1654) (.n 1624) (.n 1629)) (by decide +kernel)
+  have a2000 := vtB_pureAt (rd := rd) (wo := wo) hl 1701 (.mul (.n 1655) (.n 1650) (.n 1654)) (by decide +kernel)
+  have a2001 := vtB_pureAt (rd := rd) (wo := wo) hl 1702 (.add (.n 1656) (.n 1624) (.n 1655)) (by decide +kernel)
+  have a2002 := vtB_pureAt (rd := rd) (wo := wo) hl 1703 (.add (.n 1657) (.n 1634) (.n 1639)) (by decide +kernel)
+  have a2003 := vtB_pureAt (rd := rd) (wo := wo) hl 1704 (.mul (.n 1658) (.n 1650) (.n 1657)) (by decide +kernel)
+  have a2004 := vtB_pureAt (rd := rd) (wo := wo) hl 1705 (.add (.n 1659) (.n 1634) (.n 1658)) (by decide +kernel)
+  have a2005 := vtB_pureAt (rd := rd) (wo := wo) hl 1706 (.add (.n 1660) (.n 1644) (.n 1649)) (by decide +kernel)
+  have a2006 := vtB_pureAt (rd := rd) (wo := wo) hl 1707 (.mul (.n 1661) (.n 1650) (.n 1660)) (by decide +kernel)
+  have a2007 := vtB_pureAt (rd := rd) (wo := wo) hl 1708 (.add (.n 1662) (.n 1644) (.n 1661)) (by decide +kernel)
+  have a2009 := vtB_pureAt (rd := rd) (wo := wo) hl 1710 (.add (.n 1664) (.n 1653) (.n 1656)) (by decide +kernel)
+  have a2010 := vtB_pureAt (rd := rd) (wo := wo) hl 1711 (.mul (.n 1665) (.n 1663) (.n 1664)) (by decide +kernel)
+  have a2011 := vtB_pureAt (rd := rd) (wo := wo) hl 1712 (.add (.n 1666) (.n 1653) (.n 1665)) (by decide +kernel)
+  have a2012 := vtB_pureAt (rd := rd) (wo := wo) hl 1713 (.add (.n 1667) (.n 1659) (.n 1662)) (by decide +kernel)
+  have a2013 := vtB_pureAt (rd := rd) (wo := wo) hl 1714 (.mul (.n 1668) (.n 1663) (.n 1667)) (by decide +kernel)
+  have a2014 := vtB_pureAt (rd := rd) (wo := wo) hl 1715 (.add (.n 1669) (.n 1659) (.n 1668)) (by decide +kernel)
+  have a2016 := vtB_pureAt (rd := rd) (wo := wo) hl 1717 (.add (.n 1671) (.n 1666) (.n 1669)) (by decide +kernel)
+  have a2017 := vtB_pureAt (rd := rd) (wo := wo) hl 1718 (.mul (.n 1672) (.n 1670) (.n 1671)) (by decide +kernel)
+  have a2018 := vtB_pureAt (rd := rd) (wo := wo) hl 1719 (.add (.n 1673) (.n 1666) (.n 1672)) (by decide +kernel)
+  have a2019 := vtB_pureAt (rd := rd) (wo := wo) hl 1720 (.mul (.n 1674) (.n 1673) (.n 1606)) (by decide +kernel)
+  have w0 := (vt_readAt (rd := rd) (w := wo) hl 1656 (d := (.n 1610)) (by decide +kernel) (by decide +kernel) (hw13 0 (by norm_num))).1
+  have w1 := (vt_readAt (rd := rd) (w := wo) hl 1657 (d := (.n 1611)) (by decide +kernel) (by decide +kernel) (hw13 1 (by norm_num))).1
+  have w2 := (vt_readAt (rd := rd) (w := wo) hl 1661 (d := (.n 1615)) (by decide +kernel) (by decide +kernel) (hw13 2 (by norm_num))).1
+  have w3 := (vt_readAt (rd := rd) (w := wo) hl 1662 (d := (.n 1616)) (by decide +kernel) (by decide +kernel) (hw13 3 (by norm_num))).1
+  have w4 := (vt_readAt (rd := rd) (w := wo) hl 1666 (d := (.n 1620)) (by decide +kernel) (by decide +kernel) (hw13 4 (by norm_num))).1
+  have w5 := (vt_readAt (rd := rd) (w := wo) hl 1667 (d := (.n 1621)) (by decide +kernel) (by decide +kernel) (hw13 5 (by norm_num))).1
+  have w6 := (vt_readAt (rd := rd) (w := wo) hl 1671 (d := (.n 1625)) (by decide +kernel) (by decide +kernel) (hw13 6 (by norm_num))).1
+  have w7 := (vt_readAt (rd := rd) (w := wo) hl 1672 (d := (.n 1626)) (by decide +kernel) (by decide +kernel) (hw13 7 (by norm_num))).1
+  have w8 := (vt_readAt (rd := rd) (w := wo) hl 1676 (d := (.n 1630)) (by decide +kernel) (by decide +kernel) (hw13 8 (by norm_num))).1
+  have w9 := (vt_readAt (rd := rd) (w := wo) hl 1677 (d := (.n 1631)) (by decide +kernel) (by decide +kernel) (hw13 9 (by norm_num))).1
+  have w10 := (vt_readAt (rd := rd) (w := wo) hl 1681 (d := (.n 1635)) (by decide +kernel) (by decide +kernel) (hw13 10 (by norm_num))).1
+  have w11 := (vt_readAt (rd := rd) (w := wo) hl 1682 (d := (.n 1636)) (by decide +kernel) (by decide +kernel) (hw13 11 (by norm_num))).1
+  have w12 := (vt_readAt (rd := rd) (w := wo) hl 1686 (d := (.n 1640)) (by decide +kernel) (by decide +kernel) (hw13 12 (by norm_num))).1
+  have w13 := (vt_readAt (rd := rd) (w := wo) hl 1687 (d := (.n 1641)) (by decide +kernel) (by decide +kernel) (hw13 13 (by norm_num))).1
+  have w14 := (vt_readAt (rd := rd) (w := wo) hl 1691 (d := (.n 1645)) (by decide +kernel) (by decide +kernel) (hw13 14 (by norm_num))).1
+  have w15 := (vt_readAt (rd := rd) (w := wo) hl 1692 (d := (.n 1646)) (by decide +kernel) (by decide +kernel) (hw13 15 (by norm_num))).1
+  have l0 := (vt_readAt (rd := rd) (w := wo) hl 1655 (d := (.n 1609)) (by decide +kernel) (by decide +kernel) (hpt19 0 (by norm_num))).1
+  have l1 := (vt_readAt (rd := rd) (w := wo) hl 1696 (d := (.n 1650)) (by decide +kernel) (by decide +kernel) (hpt19 1 (by norm_num))).1
+  have l2 := (vt_readAt (rd := rd) (w := wo) hl 1709 (d := (.n 1663)) (by decide +kernel) (by decide +kernel) (hpt19 2 (by norm_num))).1
+  have l3 := (vt_readAt (rd := rd) (w := wo) hl 1716 (d := (.n 1670)) (by decide +kernel) (by decide +kernel) (hpt19 3 (by norm_num))).1
   simp only [Atom.Holds] at a1932 a1933 a1934 a1935 a1936 a1937 a1938 a1939 c0 c1 c2 c3
   simp only [Atom.Holds] at c4 cv a1957 a1958 a1959 a1962 a1963 a1964 a1967 a1968 a1969 a1972
   simp only [Atom.Holds] at a1973 a1974 a1977 a1978 a1979 a1982 a1983 a1984 a1987 a1988 a1989 a1992
@@ -451,12 +451,12 @@ theorem vtB_bc (hl : args.length = 20) {xs w weights : List E} (hxl : xs.length 
   simp only [vtBcPoint, List.getD_cons_zero, List.getD_cons_succ] at l0 l1 l2 l3
   have p5 := p 5 (by norm_num)
   generalize vtσ rd wo args = σ at *
-  have h1875 : σ (.n 1528) = args.getD 5 0 * gen ^ 7 := by
+  have h1875 : σ (.n 1576) = args.getD 5 0 * gen ^ 7 := by
     rw [a1939, a1938, p5, show (128 : ℕ) = 2 ^ 7 by norm_num, tb_word_two_pow (by norm_num)]
-  have h1873 : σ (.n 1526) = vtBcCl1 (vtF0 args xs) w := by
+  have h1873 : σ (.n 1574) = vtBcCl1 (vtF0 args xs) w := by
     rw [a1937, a1936, a1935, a1934, a1933, a1932, tb_word_one, d43, d47, d51, e40, e44, e48, e67,
       vtBcCl1]
-  have e1972 : σ (.n 1625) = multilinearEval ((List.range 16).map fun i ↦ weights.getD i 0)
+  have e1972 : σ (.n 1673) = multilinearEval ((List.range 16).map fun i ↦ weights.getD i 0)
       (vtBcPoint (vtF0 args xs) w) := by
     rw [a2018, a2017, a2016, a2011, a2010, a2009, a2014, a2013, a2012, a1998, a1997, a1996,
       a2001, a2000, a1999, a2004, a2003, a2002, a2007, a2006, a2005, a1959, a1958, a1957,
@@ -467,15 +467,15 @@ theorem vtB_bc (hl : args.length = 20) {xs w weights : List E} (hxl : xs.length 
       List.map_cons, List.map_nil, List.nil_append, List.cons_append, List.foldl_cons,
       List.foldl_nil, foldPairs, List.headD_cons]
     ring
-  have h1973 : σ (.n 1626) = dot (eqKernel (vtBcPoint (vtF0 args xs) w)) weights * w.getD 9 0 := by
+  have h1973 : σ (.n 1674) = dot (eqKernel (vtBcPoint (vtF0 args xs) w)) weights * w.getD 9 0 := by
     rw [a2019, e1972, e1905, ← vt_list16 weights hW16,
       multilinearEval_eq_dot weights _ hW16 (by simp [vtBcPoint])]
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, l1951, ?_, e40, e1905, q3, ?_⟩
-  · show LoadHolds rd (σ (.n 19)) 0 (σ (.n 1508))
+  · show LoadHolds rd (σ (.n 19)) 0 (σ (.n 1556))
     rw [e67]; exact hpt19 0 (by norm_num)
-  · show coreProgram.Rel rd "opening_tail_round" [σ (.n 1516), σ (.n 1517), σ (.n 1518),
-      σ (.n 1519), σ (.n 1520), σ (.n 1528), σ (.n 1526), σ (.n 18)] [σ (.n 1529), σ (.n 1530),
-      σ (.n 1531), σ (.n 1532), σ (.n 1533), σ (.n 1534), σ (.n 1535), σ (.n 1536)]
+  · show coreProgram.Rel rd "opening_tail_round" [σ (.n 1564), σ (.n 1565), σ (.n 1566),
+      σ (.n 1567), σ (.n 1568), σ (.n 1576), σ (.n 1574), σ (.n 18)] [σ (.n 1577), σ (.n 1578),
+      σ (.n 1579), σ (.n 1580), σ (.n 1581), σ (.n 1582), σ (.n 1583), σ (.n 1584)]
     rw [opening_tail_round_holds]
     refine ⟨w.getD 3 0, w.getD 4 0, fun k hk ↦ ?_, ?_⟩
     · simp only [List.length_cons, List.length_nil] at hk
@@ -485,11 +485,11 @@ theorem vtB_bc (hl : args.length = 20) {xs w weights : List E} (hxl : xs.length 
       · exact hc 4 (by norm_num)
     · rw [r1.trans hw1, ecap, h1875, h1873]
       rfl
-  · show LoadHolds rd (σ (.n 19)) 1 (σ (.n 1536))
+  · show LoadHolds rd (σ (.n 19)) 1 (σ (.n 1584))
     rw [s1]; exact hpt19 1 (by norm_num)
-  · show coreProgram.Rel rd "opening_tail_round" [σ (.n 1529), σ (.n 1530), σ (.n 1531),
-      σ (.n 1532), σ (.n 1533), σ (.n 1534), σ (.n 1535), σ (.n 18)] [σ (.n 1537), σ (.n 1538),
-      σ (.n 1539), σ (.n 1540), σ (.n 1541), σ (.n 1542), σ (.n 1543), σ (.n 1544)]
+  · show coreProgram.Rel rd "opening_tail_round" [σ (.n 1577), σ (.n 1578), σ (.n 1579),
+      σ (.n 1580), σ (.n 1581), σ (.n 1582), σ (.n 1583), σ (.n 18)] [σ (.n 1585), σ (.n 1586),
+      σ (.n 1587), σ (.n 1588), σ (.n 1589), σ (.n 1590), σ (.n 1591), σ (.n 1592)]
     rw [opening_tail_round_holds]
     refine ⟨w.getD 5 0, w.getD 6 0, fun k hk ↦ ?_, ?_⟩
     · simp only [List.length_cons, List.length_nil] at hk
@@ -499,11 +499,11 @@ theorem vtB_bc (hl : args.length = 20) {xs w weights : List E} (hxl : xs.length 
       · exact hc 6 (by norm_num)
     · rw [r2.trans hw2, q1, u1, v1]
       rfl
-  · show LoadHolds rd (σ (.n 19)) 2 (σ (.n 1544))
+  · show LoadHolds rd (σ (.n 19)) 2 (σ (.n 1592))
     rw [s2]; exact hpt19 2 (by norm_num)
-  · show coreProgram.Rel rd "opening_tail_round" [σ (.n 1537), σ (.n 1538), σ (.n 1539),
-      σ (.n 1540), σ (.n 1541), σ (.n 1542), σ (.n 1543), σ (.n 18)] [σ (.n 1545), σ (.n 1546),
-      σ (.n 1547), σ (.n 1548), σ (.n 1549), σ (.n 1550), σ (.n 1551), σ (.n 1552)]
+  · show coreProgram.Rel rd "opening_tail_round" [σ (.n 1585), σ (.n 1586), σ (.n 1587),
+      σ (.n 1588), σ (.n 1589), σ (.n 1590), σ (.n 1591), σ (.n 18)] [σ (.n 1593), σ (.n 1594),
+      σ (.n 1595), σ (.n 1596), σ (.n 1597), σ (.n 1598), σ (.n 1599), σ (.n 1600)]
     rw [opening_tail_round_holds]
     refine ⟨w.getD 7 0, w.getD 8 0, fun k hk ↦ ?_, ?_⟩
     · simp only [List.length_cons, List.length_nil] at hk
@@ -513,9 +513,9 @@ theorem vtB_bc (hl : args.length = 20) {xs w weights : List E} (hxl : xs.length 
       · exact hc 8 (by norm_num)
     · rw [r3.trans hw3, q2, u2, v2]
       rfl
-  · show LoadHolds rd (σ (.n 19)) 3 (σ (.n 1552))
+  · show LoadHolds rd (σ (.n 19)) 3 (σ (.n 1600))
     rw [s3]; exact hpt19 3 (by norm_num)
-  · show σ (.n 1551) + σ (.n 1626) = 0
+  · show σ (.n 1599) + σ (.n 1674) = 0
     rw [e_add_eq_zero_iff, v3, h1973, hacc]
   · rw [u3]; ring
 

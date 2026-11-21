@@ -342,84 +342,39 @@ theorem lp_chain {rd : Reader} {eqt z z1 gt gsq : E} {q : ℕ} {zs zs1 gs : List
 
 /-! ## The function -/
 
-/-- Bit `k` of `n` as a word. -/
-def ssB (n k : ℕ) : E := bitE (n.testBit k)
-
-/-- The factor of bit `k` of `n` at share `t`. -/
-def ssF (n k t : ℕ) : E := word 1 0 + ssB n k * word (imFactor t) 0
-
-/-- **Value `x` of `shared_selector_tables`.** -/
+/-- **Value `x` of `shared_selector_tables`** on a run of `n` coordinates. -/
 def ssVal (eqt gt z z1 gsq : E) (n x : ℕ) : E :=
-  let v20 := ssF n 0 0 * ssF n 1 1
-  let v39 := ssF n 2 0 * ssF n 3 1 * ssF n 4 2 * ssF n 5 3
-  let v41 := v39 * v39 * (v39 * v39)
-  let v47 := v41 * v41 * (v41 * v41)
-  [eqt, gt, z, z1, gsq, gen ^ n, ssB n 0, ssB n 1, ssB n 2, ssB n 3, ssB n 4, ssB n 5,
-    word 1 0, word (imFactor 0) 0, ssB n 0 * word (imFactor 0) 0, ssF n 0 0,
-    word 1 0, word (imFactor 1) 0, ssB n 1 * word (imFactor 1) 0, ssF n 1 1, v20,
-    word 1 0, word (imFactor 0) 0, ssB n 2 * word (imFactor 0) 0, ssF n 2 0,
-    word 1 0, word (imFactor 1) 0, ssB n 3 * word (imFactor 1) 0, ssF n 3 1,
-    ssF n 2 0 * ssF n 3 1,
-    word 1 0, word (imFactor 2) 0, ssB n 4 * word (imFactor 2) 0, ssF n 4 2,
-    ssF n 2 0 * ssF n 3 1 * ssF n 4 2,
-    word 1 0, word (imFactor 3) 0, ssB n 5 * word (imFactor 3) 0, ssF n 5 3, v39,
-    v39 * v39, v41, v41 * v20, word 1 0, word 1 0 + v39, word 1 0, v41 * v41, v47,
-    eqt * v47, eqt * v47 * v47, gt * v47, z * v41, z1 * v41, gsq * v41, 0].getD x 0
-
-theorem ssF_eq (n k t : ℕ) (ht : t < 34) :
-    ssF n k t = gen ^ (2 ^ t * (n.testBit k).toNat) := by
-  rw [ssF, ssB, imFactor_eq ht, tb_word_one]
-  cases n.testBit k
-  · simp [bitE]
-  · simp only [bitE, ↓reduceIte, one_mul, Bool.toNat_true, mul_one]
-    rw [← add_assoc, e_add_self, zero_add]
-
-theorem ss_bits {n : ℕ} (hn : n < 64) :
-    n % 4 = (n.testBit 0).toNat + 2 * (n.testBit 1).toNat ∧
-      n / 4 = (n.testBit 2).toNat + 2 * (n.testBit 3).toNat + 4 * (n.testBit 4).toNat +
-        8 * (n.testBit 5).toNat := by
-  have h := bitsVal_testBit (n := 6) hn
-  simp only [bitsVal, Nat.reducePow, one_mul, zero_add] at h
-  have b0 := Bool.toNat_le (n.testBit 0); have b1 := Bool.toNat_le (n.testBit 1)
-  have b2 := Bool.toNat_le (n.testBit 2); have b3 := Bool.toNat_le (n.testBit 3)
-  have b4 := Bool.toNat_le (n.testBit 4); have b5 := Bool.toNat_le (n.testBit 5)
-  omega
-
-theorem ssB_mul_self (n k : ℕ) : ssB n k = ssB n k * ssB n k := by rw [ssB, bitE_mul_self]
+  let v6 := gen ^ (n / 4)
+  let v8 := v6 * v6 * (v6 * v6)
+  let v14 := v8 * v8 * (v8 * v8)
+  [eqt, gt, z, z1, gsq, gen ^ n, v6, v6 * v6, v8, gen ^ (n % 4), word 1 0, word 1 0 + v6,
+    word 1 0, v8 * v8, v14, eqt * v14, eqt * v14 * v14, gt * v14, z * v8, z1 * v8, gsq * v8,
+    0].getD x 0
 
 /-- **`shared_selector_tables` is complete.** -/
 theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_Spec := by
   intro rd eqt gt z z1 gsq n zs zs1 gs hn hzl hz1l hgl hz hz1 hg hrt
   obtain ⟨fn, hf, hp, hb⟩ := ssFound
-  obtain ⟨hr, hq⟩ := ss_bits hn
-  have v20 : ssF n 0 0 * ssF n 1 1 = gen ^ (n % 4) := by
-    rw [ssF_eq n 0 0 (by norm_num), ssF_eq n 1 1 (by norm_num), ← pow_add, hr]; ring_nf
-  have v39 : ssF n 2 0 * ssF n 3 1 * ssF n 4 2 * ssF n 5 3 = gen ^ (n / 4) := by
-    rw [ssF_eq n 2 0 (by norm_num), ssF_eq n 3 1 (by norm_num), ssF_eq n 4 2 (by norm_num),
-      ssF_eq n 5 3 (by norm_num), ← pow_add, ← pow_add, ← pow_add, hq]; ring_nf
-  have hn4 : n = 4 * (n / 4) + n % 4 := by omega
   refine (tb_rel_pre hf hb ssPre_noRet _ _).mpr ⟨fun x ↦ ssVal eqt gt z z1 gsq n x.idx,
     by rw [hp]; rfl, ?_, rfl⟩
-  simp only [ssPre, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and, and_true, List.map_cons,
+  simp only [ssPre, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true, List.map_cons,
     List.map_nil]
   simp (config := { decide := true }) only [ssVal, List.getD_eq_getElem?_getD,
-    List.getElem?_cons_zero, List.getElem?_cons_succ, Option.getD_some, true_and, v20, v39]
+    List.getElem?_cons_zero, List.getElem?_cons_succ, Option.getD_some, true_and]
   set q := n / 4 with hqd
   have p4 : gen ^ q * gen ^ q * (gen ^ q * gen ^ q) = gen ^ (4 * q) := by
     simp only [← pow_add]; congr 1; omega
   have p16 : gen ^ (4 * q) * gen ^ (4 * q) * (gen ^ (4 * q) * gen ^ (4 * q)) = gen ^ (16 * q) := by
     simp only [← pow_add]; congr 1; omega
-  rw [p4, p16]
   have hlz : 4 * q ≤ zs.length := by omega
   have hlz1 : 4 * q ≤ zs1.length := by omega
   have hlg : 4 * q ≤ gs.length := by omega
-  refine ⟨ssB_mul_self n 0, ssB_mul_self n 1, ssB_mul_self n 2, ssB_mul_self n 3, ssB_mul_self n 4,
-    ssB_mul_self n 5, rfl, rfl, rfl, rfl, rfl, rfl, ?_, ?_, fun hne ↦ ?_, ?_⟩
-  · -- the assertion `q_g^4·r_g = len_g`
-    rw [← pow_add, show 4 * q + n % 4 = n by omega]
-    exact e_add_self _
+  and_intros
+  · -- `len_g = r_g·q_g^4`
+    rw [p4, ← pow_add, show n % 4 + 4 * q = n by omega]
   · rw [tb_word_one, ← pow_zero gen]; exact lp_isInK_add_pow 0 _
   · -- the loop over the full nibbles
+    intro hne
     have hq0 : 0 < q := by
       rcases Nat.eq_zero_or_pos q with h0 | h0
       · exfalso; apply hne; rw [h0, tb_word_one, pow_zero]; exact e_add_self 1
@@ -427,6 +382,7 @@ theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_
     rw [tb_word_one, ← pow_zero gen]
     exact lp_chain hlz hlz1 hlg hz hz1 hg (fun j hj ↦ hrt j (by omega)) 0 hq0
   · -- the partial nibble
+    rw [p4, p16]
     have hr4 : n % 4 < 4 := by omega
     refine ⟨n % 4, by simpa using hr4, gen_pow_eq_ofK _, ?_⟩
     rw [lName_sel_partial (n % 4) hr4, mul_assoc, ← pow_add, show 16 * q + 16 * q = 32 * q by omega]

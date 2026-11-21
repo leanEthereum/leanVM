@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.ZSetup
 
-  `verify_tables`' statements `2232 ..< 2325`, completely: the table sumcheck's round count, its
+  `verify_tables`' statements `2292 ..< 2385`, completely: the table sumcheck's round count, its
   batching challenge and target, its rounds and its equality prefix.
 -/
 
@@ -81,61 +81,61 @@ end Helpers
 
 /-- The bus target: `ξ²·T_0 + ξ³·T_1 + ξ⁴·T_2` on the sides' totals. -/
 def zTarget (σ : Val) (ξ : E) : E :=
-  ξ ^ 2 * σ (.n 2095) + ξ ^ 3 * σ (.n 2141) + ξ ^ 4 * σ (.n 2196)
+  ξ ^ 2 * σ (.n 2143) + ξ ^ 3 * σ (.n 2189) + ξ ^ 4 * σ (.n 2244)
 
-/-- What statements `2232 ..< 2325` give: `g^n`, `ξ` (the squeeze of `S`), the sponge after it,
+/-- What statements `2292 ..< 2385` give: `g^n`, `ξ` (the squeeze of `S`), the sponge after it,
 the target, the buffers' sizes and pointers, and the last record (the sponge, the cursor `3n`
 words on, the final claim). -/
 def ZOut (σ : Val) (w : ℕ → E) (S : Fs) (xs : List E) (n : ℕ) : Prop :=
-  σ (.n 2197) = gen ^ n ∧ σ (.n 2250) = S.squeeze.1 ∧
-    [σ (.n 2258), σ (.n 2259), σ (.n 2260), σ (.n 2261), σ (.n 2262)] = S.squeeze.2.cap ∧
-    σ (.n 2272) = zTarget σ S.squeeze.1 ∧ σ (.n 2278) = gen ^ (7 * (n + 1)) ∧
-    σ (.n 2281) = gen ^ (n + 1) ∧ σ (.n 2302) = gen ^ (n + 1) ∧ σ (.n 2279) = w 2279 ∧
-    σ (.n 2282) = w 2282 ∧ σ (.n 2303) = w 2303 ∧
-    [σ (.n 2294), σ (.n 2295), σ (.n 2296), σ (.n 2297), σ (.n 2298)] =
+  σ (.n 2245) = gen ^ n ∧ σ (.n 2298) = S.squeeze.1 ∧
+    [σ (.n 2306), σ (.n 2307), σ (.n 2308), σ (.n 2309), σ (.n 2310)] = S.squeeze.2.cap ∧
+    σ (.n 2320) = zTarget σ S.squeeze.1 ∧ σ (.n 2326) = gen ^ (7 * (n + 1)) ∧
+    σ (.n 2329) = gen ^ (n + 1) ∧ σ (.n 2350) = gen ^ (n + 1) ∧ σ (.n 2327) = w 2327 ∧
+    σ (.n 2330) = w 2330 ∧ σ (.n 2351) = w 2351 ∧
+    [σ (.n 2342), σ (.n 2343), σ (.n 2344), σ (.n 2345), σ (.n 2346)] =
       (zcRec S.squeeze.2.cap (zTarget σ S.squeeze.1) xs n).1 ∧
-    σ (.n 2299) = σ (.n 1550) * gen * gen ^ (3 * n) ∧
-    σ (.n 2300) = (zcRec S.squeeze.2.cap (zTarget σ S.squeeze.1) xs n).2
+    σ (.n 2347) = σ (.n 1598) * gen * gen ^ (3 * n) ∧
+    σ (.n 2348) = (zcRec S.squeeze.2.cap (zTarget σ S.squeeze.1) xs n).2
 
 /-- The statements evaluation alone does not settle. -/
 noncomputable def zRest : List Stmt := [
-    .atom (.mul (.n 2197) (.n 2199) (.n 27)),
-    .atom (.rangeCheck (.n 2199) (.n 2200) (.n 2201) (.n 2202) (.n 2198)),
-    .atom (.mul (.n 2197) (.n 2205) (.n 28)),
-    .atom (.rangeCheck (.n 2205) (.n 2206) (.n 2207) (.n 2208) (.n 2204)),
-    .atom (.mul (.n 2197) (.n 2212) (.n 29)),
-    .atom (.rangeCheck (.n 2212) (.n 2213) (.n 2214) (.n 2215) (.n 2211)),
-    .atom (.mul (.n 2197) (.n 2219) (.n 30)),
-    .atom (.rangeCheck (.n 2219) (.n 2220) (.n 2221) (.n 2222) (.n 2218)),
-    .atom (.mul (.n 2197) (.n 2226) (.n 31)),
-    .atom (.rangeCheck (.n 2226) (.n 2227) (.n 2228) (.n 2229) (.n 2225)),
-    .atom (.mul (.n 2197) (.n 2233) (.n 32)),
-    .atom (.rangeCheck (.n 2233) (.n 2234) (.n 2235) (.n 2236) (.n 2232)),
-    .atom (.assertEq (.n 2238) (.n 2239)),
-    .atom (.mul (.n 9) (.n 2241) (.n 2197)),
-    .atom (.rangeCheck (.n 2241) (.n 2242) (.n 2243) (.n 2244) (.n 2240)),
-    .atom (.keccak [.n 1559, .n 1560, .n 2246, .n 2246, .n 2246, .n 2247, .n 2248, .n 2249, .n 1553, .n 1554, .n 1555, .n 1556, .n 1557] [.n 2250, .n 2251, .n 2252, .n 2253, .n 2254, .n 2255, .n 2256, .n 2257, .n 2258, .n 2259, .n 2260, .n 2261, .n 2262] false false),
-    .atom (.load (.n 2258) (.n 2279) 0),
-    .atom (.load (.n 2259) (.n 2279) 1),
-    .atom (.load (.n 2260) (.n 2279) 2),
-    .atom (.load (.n 2261) (.n 2279) 3),
-    .atom (.load (.n 2262) (.n 2279) 4),
-    .atom (.load (.n 2284) (.n 2279) 5),
-    .atom (.load (.n 2272) (.n 2279) 6),
-    .atom (.load (.n 2285) (.n 2282) 0),
-    .callIf (.n 2287) name% «verify_tables_loop0» [.n 2288, .n 2197, .n 2279, .n 18, .n 16,
-        .n 2197, .n 2282],
-    .atom (.load (.n 2294) (.n 2293) 0),
-    .atom (.load (.n 2295) (.n 2293) 1),
-    .atom (.load (.n 2296) (.n 2293) 2),
-    .atom (.load (.n 2297) (.n 2293) 3),
-    .atom (.load (.n 2298) (.n 2293) 4),
-    .atom (.load (.n 2299) (.n 2293) 5),
-    .atom (.load (.n 2300) (.n 2293) 6),
-    .call "eq_prefix_chain" [.n 2303, .n 2304, .n 16, .n 699, .n 2197] []]
+    .atom (.mul (.n 2245) (.n 2247) (.n 27)),
+    .atom (.rangeCheck (.n 2247) (.n 2248) (.n 2249) (.n 2250) (.n 2246)),
+    .atom (.mul (.n 2245) (.n 2253) (.n 28)),
+    .atom (.rangeCheck (.n 2253) (.n 2254) (.n 2255) (.n 2256) (.n 2252)),
+    .atom (.mul (.n 2245) (.n 2260) (.n 29)),
+    .atom (.rangeCheck (.n 2260) (.n 2261) (.n 2262) (.n 2263) (.n 2259)),
+    .atom (.mul (.n 2245) (.n 2267) (.n 30)),
+    .atom (.rangeCheck (.n 2267) (.n 2268) (.n 2269) (.n 2270) (.n 2266)),
+    .atom (.mul (.n 2245) (.n 2274) (.n 31)),
+    .atom (.rangeCheck (.n 2274) (.n 2275) (.n 2276) (.n 2277) (.n 2273)),
+    .atom (.mul (.n 2245) (.n 2281) (.n 32)),
+    .atom (.rangeCheck (.n 2281) (.n 2282) (.n 2283) (.n 2284) (.n 2280)),
+    .atom (.assertEq (.n 2286) (.n 2287)),
+    .atom (.mul (.n 9) (.n 2289) (.n 2245)),
+    .atom (.rangeCheck (.n 2289) (.n 2290) (.n 2291) (.n 2292) (.n 2288)),
+    .atom (.keccak [.n 1607, .n 1608, .n 2294, .n 2294, .n 2294, .n 2295, .n 2296, .n 2297, .n 1601, .n 1602, .n 1603, .n 1604, .n 1605] [.n 2298, .n 2299, .n 2300, .n 2301, .n 2302, .n 2303, .n 2304, .n 2305, .n 2306, .n 2307, .n 2308, .n 2309, .n 2310] false false),
+    .atom (.load (.n 2306) (.n 2327) 0),
+    .atom (.load (.n 2307) (.n 2327) 1),
+    .atom (.load (.n 2308) (.n 2327) 2),
+    .atom (.load (.n 2309) (.n 2327) 3),
+    .atom (.load (.n 2310) (.n 2327) 4),
+    .atom (.load (.n 2332) (.n 2327) 5),
+    .atom (.load (.n 2320) (.n 2327) 6),
+    .atom (.load (.n 2333) (.n 2330) 0),
+    .callIf (.n 2335) name% «verify_tables_loop0» [.n 2336, .n 2245, .n 2327, .n 18, .n 16,
+        .n 2245, .n 2330],
+    .atom (.load (.n 2342) (.n 2341) 0),
+    .atom (.load (.n 2343) (.n 2341) 1),
+    .atom (.load (.n 2344) (.n 2341) 2),
+    .atom (.load (.n 2345) (.n 2341) 3),
+    .atom (.load (.n 2346) (.n 2341) 4),
+    .atom (.load (.n 2347) (.n 2341) 5),
+    .atom (.load (.n 2348) (.n 2341) 6),
+    .call "eq_prefix_chain" [.n 2351, .n 2352, .n 16, .n 699, .n 2245] []]
 
 set_option maxRecDepth 100000 in
-/-- **Statements `2232 ..< 2325`, completely**: the hinted `g^n` with `n` the
+/-- **Statements `2292 ..< 2385`, completely**: the hinted `g^n` with `n` the
 largest `τ_t` (at most `m = |point|`), the squeeze `ξ` (`XI_GRIND_BITS = 0`) of the sponge `S`
 with the bytecode's value waiting, the target, the first record, `verify_tables_loop0`'s rounds on
 the honest buffers (records, running products, `chi`) and words `xs` at the cursor one past the
@@ -145,36 +145,36 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
     {m n : ℕ} {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t ≤ n) (hτn : ∃ t < 6, τ t = n) (hnm : n ≤ m)
     (hm : m ≤ 32) (h9 : vtσ rd w args (.n 9) = gen ^ m)
     (hkb : ∀ t < 6, vtσ rd w args (.n (27 + t)) = gen ^ τ t)
-    (hlow : ∀ i < 64, (rd (Parameters.addressOfIndex i)).isSome) (hwn : w 2197 = gen ^ n) {S : Fs}
-    (hSr : rateOf S.pend = [vtσ rd w args (.n 1559), vtσ rd w args (.n 1560), 0, 0, 0, 0, 0, 0])
-    (hSc : S.cap = [vtσ rd w args (.n 1553), vtσ rd w args (.n 1554), vtσ rd w args (.n 1555),
-      vtσ rd w args (.n 1556), vtσ rd w args (.n 1557)])
+    (hlow : ∀ i < 64, (rd (Parameters.addressOfIndex i)).isSome) (hwn : w 2245 = gen ^ n) {S : Fs}
+    (hSr : rateOf S.pend = [vtσ rd w args (.n 1607), vtσ rd w args (.n 1608), 0, 0, 0, 0, 0, 0])
+    (hSc : S.cap = [vtσ rd w args (.n 1601), vtσ rd w args (.n 1602), vtσ rd w args (.n 1603),
+      vtσ rd w args (.n 1604), vtσ rd w args (.n 1605)])
     {xs : List E} (hxl : xs.length = 3 * n)
-    (hxs : TbReadsAt rd (vtσ rd w args (.n 1550) * gen) xs)
-    (hR : TbReadsAt rd (w 2279) (zcRoundsW S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1)
-      (vtσ rd w args (.n 1550) * gen) xs n))
-    (hC : TbReadsAt rd (w 2282)
+    (hxs : TbReadsAt rd (vtσ rd w args (.n 1598) * gen) xs)
+    (hR : TbReadsAt rd (w 2327) (zcRoundsW S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1)
+      (vtσ rd w args (.n 1598) * gen) xs n))
+    (hC : TbReadsAt rd (w 2330)
       (zcCprodW S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1) xs n))
     (hchi : TbReadsAt rd (vtσ rd w args (.n 16))
       (zcChis S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1) xs n))
     {zs1 : List E} (hz1 : TbReadsAt rd (vtσ rd w args (.n 699)) zs1) (hz1l : n ≤ zs1.length)
-    (hP : TbReadsAt rd (w 2303) ((List.range (n + 1)).map (prefixProd 1
+    (hP : TbReadsAt rd (w 2351) ((List.range (n + 1)).map (prefixProd 1
       (zcChis S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1) xs n) (zs1.take n)))) :
-    (∀ s ∈ (vtPre.drop 2232).take 93, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) ∧
+    (∀ s ∈ (vtPre.drop 2292).take 93, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) ∧
       ZOut (vtσ rd w args) w S xs n := by
-  have g : GoodL rd w (vtσ rd w args) zBlk := vt_goodL hl 2232 zBlk zBlk_at
-  have gk : Good rd vtSL w (vtσ rd w args) (.keccak [.n 1559, .n 1560, .n 2246, .n 2246, .n 2246, .n 2247, .n 2248, .n 2249, .n 1553,
-      .n 1554, .n 1555, .n 1556, .n 1557] (lyOuts 2250) false false) :=
-    (vt_goodL (rd := rd) (w := w) hl 2272 [.atom (.keccak [.n 1559, .n 1560, .n 2246, .n 2246, .n 2246, .n 2247, .n 2248, .n 2249, .n 1553,
-      .n 1554, .n 1555, .n 1556, .n 1557]
-      (lyOuts 2250) false false)] (by decide +kernel)).1
+  have g : GoodL rd w (vtσ rd w args) zBlk := vt_goodL hl 2292 zBlk zBlk_at
+  have gk : Good rd vtSL w (vtσ rd w args) (.keccak [.n 1607, .n 1608, .n 2294, .n 2294, .n 2294, .n 2295, .n 2296, .n 2297, .n 1601,
+      .n 1602, .n 1603, .n 1604, .n 1605] (lyOuts 2298) false false) :=
+    (vt_goodL (rd := rd) (w := w) hl 2332 [.atom (.keccak [.n 1607, .n 1608, .n 2294, .n 2294, .n 2294, .n 2295, .n 2296, .n 2297, .n 1601,
+      .n 1602, .n 1603, .n 1604, .n 1605]
+      (lyOuts 2298) false false)] (by decide +kernel)).1
   have e := tbStmtsEqb_sound zBlk_at
   have hlen : zBlk.length = 93 := rfl
   suffices H : (∀ s ∈ zRest, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) ∧
       ZOut (vtσ rd w args) w S xs n by
     refine ⟨fun s hs => ?_, H.2⟩
     rw [← hlen, ← e] at hs
-    exact vt_block hl 2232 zBlk zBlk_at zRest (by decide +kernel) H.1 s hs
+    exact vt_block hl 2292 zBlk zBlk_at zRest (by decide +kernel) H.1 s hs
   generalize vtσ rd w args = σ at *
   simp only [zBlk, GoodL, GoodS, Good, fixNe, List.forall_mem_cons, Nat.reduceLT, and_true,
     and_false, ↓reduceIte] at g
@@ -186,9 +186,9 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
     g2655, g2656, g2657, g2658, g2659, g2660, g2661, g2662, g2663, g2664, g2665, g2666, g2667,
     g2668, g2669, g2670, g2671, g2672, g2673, g2674, g2675, g2676, g2677, g2678, g2679, g2680,
     g2681, g2682⟩ := g
-  have vn : σ (.n 2197) = gen ^ n := g2590.1.trans hwn
+  have vn : σ (.n 2245) = gen ^ n := g2590.1.trans hwn
   -- n dominates every τ_t
-  have hx : ∀ {t d : ℕ}, t < 6 → σ (.n d) = σ (.n 2197) * (σ (.n (27 + t)))⁻¹ →
+  have hx : ∀ {t d : ℕ}, t < 6 → σ (.n d) = σ (.n 2245) * (σ (.n (27 + t)))⁻¹ →
       σ (.n d) = gen ^ (n - τ t) ∧ σ (.n (27 + t)) ≠ 0 := fun {t d} ht hg ↦ by
     rw [hkb t ht] at hg ⊢
     exact ⟨by rw [hg, vn, ← pow_sub₀ _ gen_ne_zero (hτ t ht)], pow_ne_zero _ gen_ne_zero⟩
@@ -217,40 +217,40 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
   have m2591 := z_div (rd := rd) g2611 n4
   have m2596 := z_div (rd := rd) g2616 n5
   -- n ≤ m
-  have x6 : σ (.n 2241) = gen ^ (m - n) := by
+  have x6 : σ (.n 2289) = gen ^ (m - n) := by
     rw [g2623, h9, vn, ← pow_sub₀ _ gen_ne_zero hnm]
   have rc2604 := z_rc (a := m - n) (K := 32) (by omega) x6 (g2622.trans z_w32) g2624
     (hlow _ (by omega)) (hlow _ (by omega))
   have m2603 := z_div (rd := rd) g2623 (by rw [vn]; exact pow_ne_zero _ gen_ne_zero)
   -- some τ_t is n
-  have hz : σ (.n 2238) = 0 := by
+  have hz : σ (.n 2286) = 0 := by
     rw [g2619, g2614, g2609, g2604, g2599, g2594, g2598, g2603, g2608, g2613, g2618, vn,
       hkb 0 (by norm_num), hkb 1 (by norm_num), hkb 2 (by norm_num), hkb 3 (by norm_num),
       hkb 4 (by norm_num), hkb 5 (by norm_num)]
     obtain ⟨t, ht, hte⟩ := hτn
     interval_cases t <;> simp [hte, CharTwo.add_self_eq_zero]
-  have a2601 : (Atom.assertEq (.n 2238) (.n 2239)).Holds rd σ := by
-    show σ (.n 2238) + σ (.n 2239) = 0
+  have a2601 : (Atom.assertEq (.n 2286) (.n 2287)).Holds rd σ := by
+    show σ (.n 2286) + σ (.n 2287) = 0
     rw [hz, g2620, tb_word_zero, add_zero]
   -- the squeeze
-  have hz0 : σ (.n 2246) = 0 := g2626.trans tb_word_zero
-  have hz1' : σ (.n 2247) = 0 := g2627.trans tb_word_zero
-  have hz2 : σ (.n 2248) = 0 := g2628.trans tb_word_zero
-  have hz3 : σ (.n 2249) = 0 := g2629.trans tb_word_zero
-  have hin : ([.n 1559, .n 1560, .n 2246, .n 2246, .n 2246, .n 2247, .n 2248, .n 2249, .n 1553,
-      .n 1554, .n 1555, .n 1556, .n 1557] : List V).map σ = rateOf S.pend ++ S.cap := by
+  have hz0 : σ (.n 2294) = 0 := g2626.trans tb_word_zero
+  have hz1' : σ (.n 2295) = 0 := g2627.trans tb_word_zero
+  have hz2 : σ (.n 2296) = 0 := g2628.trans tb_word_zero
+  have hz3 : σ (.n 2297) = 0 := g2629.trans tb_word_zero
+  have hin : ([.n 1607, .n 1608, .n 2294, .n 2294, .n 2294, .n 2295, .n 2296, .n 2297, .n 1601,
+      .n 1602, .n 1603, .n 1604, .n 1605] : List V).map σ = rateOf S.pend ++ S.cap := by
     rw [hSr, hSc]; simp [hz0, hz1', hz2, hz3]
-  have k2630 : (Atom.keccak [.n 1559, .n 1560, .n 2246, .n 2246, .n 2246, .n 2247, .n 2248, .n 2249, .n 1553,
-      .n 1554, .n 1555, .n 1556, .n 1557] (lyOuts 2250) false false).Holds rd σ := z_keccak gk
+  have k2630 : (Atom.keccak [.n 1607, .n 1608, .n 2294, .n 2294, .n 2294, .n 2295, .n 2296, .n 2297, .n 1601,
+      .n 1602, .n 1603, .n 1604, .n 1605] (lyOuts 2298) false false).Holds rd σ := z_keccak gk
   obtain ⟨hPk, -⟩ := ly_keccak k2630
   rw [hin] at hPk
-  have vξ : σ (.n 2250) = S.squeeze.1 := challengeT_value (s0 := .n 2250) (b := 2250) rfl (hPk 0 (by norm_num))
-  have hcap0 : [σ (.n 2258), σ (.n 2259), σ (.n 2260), σ (.n 2261), σ (.n 2262)] =
+  have vξ : σ (.n 2298) = S.squeeze.1 := challengeT_value (s0 := .n 2298) (b := 2298) rfl (hPk 0 (by norm_num))
+  have hcap0 : [σ (.n 2306), σ (.n 2307), σ (.n 2308), σ (.n 2309), σ (.n 2310)] =
       S.squeeze.2.cap := by
     rw [hPk 8 (by norm_num), hPk 9 (by norm_num), hPk 10 (by norm_num), hPk 11 (by norm_num),
       hPk 12 (by norm_num)]
     rfl
-  have vT : σ (.n 2272) = zTarget σ S.squeeze.1 := by
+  have vT : σ (.n 2320) = zTarget σ S.squeeze.1 := by
     rw [g2640, g2638, g2636, g2637, g2639, g2635, g2634, g2633, g2632, g2631, tb_word_one, vξ,
       zTarget]
     ring
@@ -258,23 +258,23 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
   set cap0 := S.squeeze.2.cap with hcap0d
   set cl0 := zTarget σ S.squeeze.1 with hcl0d
   have h5 : cap0.length = 5 := rfl
-  have v2588 : σ (.n 2279) = w 2279 := g2647
-  have v2591 : σ (.n 2282) = w 2282 := g2650
-  have v2612 : σ (.n 2303) = w 2303 := g2680
+  have v2588 : σ (.n 2327) = w 2327 := g2647
+  have v2591 : σ (.n 2330) = w 2330 := g2650
+  have v2612 : σ (.n 2351) = w 2351 := g2680
   have r0 := zcRoundsW_reads h5 hR 0 (by omega)
   rw [Nat.mul_zero, pow_zero, mul_one, zcRecW, ← v2588] at r0
   simp only [zcRec, Nat.mul_zero, pow_zero, mul_one, ← hcap0, ← vT] at r0
-  have v2593 : σ (.n 2284) = σ (.n 1550) * gen := by
+  have v2593 : σ (.n 2332) = σ (.n 1598) * gen := by
     rw [g2657, g2656, tb_word_gen]
-  have s2648 : (Atom.load (.n 2285) (.n 2282) 0).Holds rd σ := by
+  have s2648 : (Atom.load (.n 2333) (.n 2330) 0).Holds rd σ := by
     show LoadHolds rd _ _ _
     rw [g2660, tb_word_one, v2591]
     simpa [zcCprodW] using hC 0 (by simp [zcCprodW])
   -- the rounds
-  have v2596 : σ (.n 2287) = 1 + gen ^ n := by rw [g2663, g2662, tb_word_one, vn]
+  have v2596 : σ (.n 2335) = 1 + gen ^ n := by rw [g2663, g2662, tb_word_one, vn]
   have c2652 : VSH (coreProgram.Rel rd) rd σ
-      (.callIf (.n 2287) name% «verify_tables_loop0» [.n 2288, .n 2197, .n 2279, .n 18, .n 16,
-          .n 2197, .n 2282]) := by
+      (.callIf (.n 2335) name% «verify_tables_loop0» [.n 2336, .n 2245, .n 2327, .n 18, .n 16,
+          .n 2245, .n 2330]) := by
     refine ⟨by rw [v2596]; exact isInK_add (by simpa using gen_pow_isInK 0) (gen_pow_isInK n),
       fun hne => ?_⟩
     have hn0 : 0 < n := by
@@ -285,7 +285,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
     rw [g2664, tb_word_one, vn, v2588, v2591]
     exact l10_complete hn0 (zc_l10B h5 hR hC hchi hxs hxl)
   -- the last record
-  have v2602 : σ (.n 2293) = w 2279 * gen ^ (7 * n) := by
+  have v2602 : σ (.n 2341) = w 2327 * gen ^ (7 * n) := by
     rw [g2670, g2669, g2668, g2667, g2666, vn, v2588]; ring
   have rn := zcRoundsW_reads h5 hR n le_rfl
   rw [zcRecW, ← v2602] at rn
@@ -299,7 +299,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
   obtain ⟨e6, r2664⟩ := z_read g2677 (by decide +kernel) (rn 6 (by simp [hlen]))
   -- the equality prefix
   have c2669 : VSH (coreProgram.Rel rd) rd σ
-      (.call "eq_prefix_chain" [.n 2303, .n 2304, .n 16, .n 699, .n 2197] []) := by
+      (.call "eq_prefix_chain" [.n 2351, .n 2352, .n 16, .n 699, .n 2245] []) := by
     show coreProgram.Rel rd _ _ _
     simp only [List.map_cons, List.map_nil]
     rw [g2681, tb_word_one, vn, v2612]
@@ -309,14 +309,14 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
     have := hP j (by simp; omega)
     simpa using this
   -- the statements
-  have s2638 : (Atom.load (.n 2258) (.n 2279) 0).Holds rd σ := r0 0 (by simp)
-  have s2639 : (Atom.load (.n 2259) (.n 2279) 1).Holds rd σ := r0 1 (by simp)
-  have s2640 : (Atom.load (.n 2260) (.n 2279) 2).Holds rd σ := r0 2 (by simp)
-  have s2641 : (Atom.load (.n 2261) (.n 2279) 3).Holds rd σ := r0 3 (by simp)
-  have s2642 : (Atom.load (.n 2262) (.n 2279) 4).Holds rd σ := r0 4 (by simp)
-  have s2645 : (Atom.load (.n 2284) (.n 2279) 5).Holds rd σ := by
+  have s2638 : (Atom.load (.n 2306) (.n 2327) 0).Holds rd σ := r0 0 (by simp)
+  have s2639 : (Atom.load (.n 2307) (.n 2327) 1).Holds rd σ := r0 1 (by simp)
+  have s2640 : (Atom.load (.n 2308) (.n 2327) 2).Holds rd σ := r0 2 (by simp)
+  have s2641 : (Atom.load (.n 2309) (.n 2327) 3).Holds rd σ := r0 3 (by simp)
+  have s2642 : (Atom.load (.n 2310) (.n 2327) 4).Holds rd σ := r0 4 (by simp)
+  have s2645 : (Atom.load (.n 2332) (.n 2327) 5).Holds rd σ := by
     show LoadHolds rd _ _ _; rw [v2593]; exact r0 5 (by simp)
-  have s2646 : (Atom.load (.n 2272) (.n 2279) 6).Holds rd σ := r0 6 (by simp)
+  have s2646 : (Atom.load (.n 2320) (.n 2327) 6).Holds rd σ := r0 6 (by simp)
   have hrest : ∀ s ∈ zRest, VSH (coreProgram.Rel rd) rd σ s := by
     intro s hs
     simp only [zRest, List.mem_cons, List.not_mem_nil, or_false] at hs
@@ -360,7 +360,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
   · rw [g2646, g2645, g2644, g2643, g2642, g2641, tb_word_gen, vn]; ring
   · rw [g2649, g2648, tb_word_gen, vn]; ring
   · rw [g2679, g2678, tb_word_gen, vn]; ring
-  · change [σ (.n 2294), σ (.n 2295), σ (.n 2296), σ (.n 2297), σ (.n 2298)] =
+  · change [σ (.n 2342), σ (.n 2343), σ (.n 2344), σ (.n 2345), σ (.n 2346)] =
       (zcRec cap0 cl0 xs n).1
     apply List.ext_getElem (by simp [hlen])
     intro k h1 h2
@@ -375,7 +375,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
     · rw [List.getElem_cons_succ, List.getElem_cons_succ, List.getElem_cons_succ,
         List.getElem_cons_succ, List.getElem_cons_zero, e4, List.getElem_append_left]
   · rw [e5, List.getElem_append_right (by omega)]; simp [hlen]
-  · change σ (.n 2300) = (zcRec cap0 cl0 xs n).2
+  · change σ (.n 2348) = (zcRec cap0 cl0 xs n).2
     rw [e6, List.getElem_append_right (by omega)]; simp [hlen]
 
 end

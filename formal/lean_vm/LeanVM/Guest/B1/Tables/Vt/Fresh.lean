@@ -33,7 +33,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-- The seven words, in their stream order: the memory's two values, the final memory and
 bytecode counts, the bytecode share, its first round's `c0` and `c2`. -/
 def vtFreshWords (σ : Val) : List E :=
-  [σ (.n 814), σ (.n 818), σ (.n 1120), σ (.n 1134), σ (.n 1494), σ (.n 1498), σ (.n 1502)]
+  [σ (.n 862), σ (.n 866), σ (.n 1168), σ (.n 1182), σ (.n 1542), σ (.n 1546), σ (.n 1550)]
 
 /-- The carried sponge after them. -/
 def vtFreshFs (σ : Val) : Fs :=
@@ -62,21 +62,21 @@ theorem vt_keccak {rd : Reader} {σ : Val} {ins : List V} {b : ℕ}
   rfl
 
 set_option maxRecDepth 10000 in
-/-- **The bus's first stream words** and the bytecode sumcheck's first challenge (at `1508`),
-the sponge's capacity after it (`1516 .. 1520`), and the copies of the share and the first round's
+/-- **The bus's first stream words** and the bytecode sumcheck's first challenge (at `1556`),
+the sponge's capacity after it (`1564 .. 1568`), and the copies of the share and the first round's
 coefficients the round reads. -/
 theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
     TbReadsAt rd (σ (.n 5)) (vtFreshWords σ) ∧
-      σ (.n 1508) = (vtFreshFs σ).squeeze.1 ∧
-      ((List.range 5).map fun k ↦ σ (.n (1516 + k))) = (vtFreshFs σ).squeeze.2.cap ∧
-      σ (.n 1497) = σ (.n 1494) ∧ σ (.n 1501) = σ (.n 1498) ∧ σ (.n 1505) = σ (.n 1502) := by
-  obtain ⟨_, f0⟩ := h.sliceAt 789 (fsNextT (.n 5) 0 814) (by decide +kernel)
-  obtain ⟨_, f1⟩ := h.sliceAt 794 (fsNextT (.n 5) 1 818) (by decide +kernel)
-  obtain ⟨_, f2⟩ := h.sliceAt 1148 (fsNextT (.n 5) 2 1120) (by decide +kernel)
-  obtain ⟨_, f3⟩ := h.sliceAt 1163 (fsNextT (.n 5) 3 1134) (by decide +kernel)
-  obtain ⟨_, f4⟩ := h.sliceAt 1557 (fsNextT (.n 5) 4 1494) (by decide +kernel)
-  obtain ⟨_, f5⟩ := h.sliceAt 1561 (fsNextT (.n 5) 5 1498) (by decide +kernel)
-  obtain ⟨_, f6⟩ := h.sliceAt 1565 (fsNextT (.n 5) 6 1502) (by decide +kernel)
+      σ (.n 1556) = (vtFreshFs σ).squeeze.1 ∧
+      ((List.range 5).map fun k ↦ σ (.n (1564 + k))) = (vtFreshFs σ).squeeze.2.cap ∧
+      σ (.n 1545) = σ (.n 1542) ∧ σ (.n 1549) = σ (.n 1546) ∧ σ (.n 1553) = σ (.n 1550) := by
+  obtain ⟨_, f0⟩ := h.sliceAt 849 (fsNextT (.n 5) 0 862) (by decide +kernel)
+  obtain ⟨_, f1⟩ := h.sliceAt 854 (fsNextT (.n 5) 1 866) (by decide +kernel)
+  obtain ⟨_, f2⟩ := h.sliceAt 1208 (fsNextT (.n 5) 2 1168) (by decide +kernel)
+  obtain ⟨_, f3⟩ := h.sliceAt 1223 (fsNextT (.n 5) 3 1182) (by decide +kernel)
+  obtain ⟨_, f4⟩ := h.sliceAt 1617 (fsNextT (.n 5) 4 1542) (by decide +kernel)
+  obtain ⟨_, f5⟩ := h.sliceAt 1621 (fsNextT (.n 5) 5 1546) (by decide +kernel)
+  obtain ⟨_, f6⟩ := h.sliceAt 1625 (fsNextT (.n 5) 6 1550) (by decide +kernel)
   rw [holds_fsNextT] at f0 f1 f2 f3 f4 f5 f6
   obtain ⟨⟨l0, p0⟩, -⟩ := f0
   obtain ⟨⟨l1, p1⟩, -⟩ := f1
@@ -90,16 +90,16 @@ theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
   have c22 := h.atomAt 2 (.copy (.n 22) (.n 2)) (by decide +kernel)
   have c23 := h.atomAt 3 (.copy (.n 23) (.n 3)) (by decide +kernel)
   have c24 := h.atomAt 4 (.copy (.n 24) (.n 4)) (by decide +kernel)
-  have k1 := h.atomAt 1556 (.keccak [.n 815, .n 816, .n 819, .n 820, .n 1121, .n 1122, .n 1135,
-    .n 1136, .n 20, .n 21, .n 22, .n 23, .n 24] (vtOuts 1481) false false) (by decide +kernel)
-  have z6 := h.atomAt 1569 (.const (.n 1506) (word 0 0)) (by decide +kernel)
-  have z7 := h.atomAt 1570 (.const (.n 1507) (word 0 0)) (by decide +kernel)
-  have k2 := h.atomAt 1571 (.keccak [.n 1495, .n 1496, .n 1499, .n 1500, .n 1503, .n 1504,
-    .n 1506, .n 1507, .n 1489, .n 1490, .n 1491, .n 1492, .n 1493] (vtOuts 1508) false false)
+  have k1 := h.atomAt 1616 (.keccak [.n 863, .n 864, .n 867, .n 868, .n 1169, .n 1170, .n 1183,
+    .n 1184, .n 20, .n 21, .n 22, .n 23, .n 24] (vtOuts 1529) false false) (by decide +kernel)
+  have z6 := h.atomAt 1629 (.const (.n 1554) (word 0 0)) (by decide +kernel)
+  have z7 := h.atomAt 1630 (.const (.n 1555) (word 0 0)) (by decide +kernel)
+  have k2 := h.atomAt 1631 (.keccak [.n 1543, .n 1544, .n 1547, .n 1548, .n 1551, .n 1552,
+    .n 1554, .n 1555, .n 1537, .n 1538, .n 1539, .n 1540, .n 1541] (vtOuts 1556) false false)
     (by decide +kernel)
-  have d43 := h.atomAt 1560 (.copy (.n 1497) (.n 1494)) (by decide +kernel)
-  have d47 := h.atomAt 1564 (.copy (.n 1501) (.n 1498)) (by decide +kernel)
-  have d51 := h.atomAt 1568 (.copy (.n 1505) (.n 1502)) (by decide +kernel)
+  have d43 := h.atomAt 1620 (.copy (.n 1545) (.n 1542)) (by decide +kernel)
+  have d47 := h.atomAt 1624 (.copy (.n 1549) (.n 1546)) (by decide +kernel)
+  have d51 := h.atomAt 1628 (.copy (.n 1553) (.n 1550)) (by decide +kernel)
   simp only [Atom.Holds, tb_word_zero] at c20 c21 c22 c23 c24 z6 z7 d43 d47 d51
   obtain ⟨hP1, hC1⟩ := vt_keccak k1
   obtain ⟨hP2, hC2⟩ := vt_keccak k2
@@ -111,12 +111,12 @@ theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
   have e5 := fsPackT_cells p5
   have e6 := fsPackT_cells p6
   -- the four framework words, and their permutation
-  set S4 : Fs := ⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], [(σ (.n 814), dsObserve),
-    (σ (.n 818), dsObserve), (σ (.n 1120), dsObserve), (σ (.n 1134), dsObserve)]⟩ with hS4d
+  set S4 : Fs := ⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], [(σ (.n 862), dsObserve),
+    (σ (.n 866), dsObserve), (σ (.n 1168), dsObserve), (σ (.n 1182), dsObserve)]⟩ with hS4d
   have hS4 : (⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], []⟩ : Fs).absorbAll
-      [σ (.n 814), σ (.n 818), σ (.n 1120), σ (.n 1134)] dsObserve = S4 := by
+      [σ (.n 862), σ (.n 866), σ (.n 1168), σ (.n 1182)] dsObserve = S4 := by
     rw [absorbAll_short _ _ _ (by simp)]; rfl
-  have hin1 : ([.n 815, .n 816, .n 819, .n 820, .n 1121, .n 1122, .n 1135, .n 1136, .n 20,
+  have hin1 : ([.n 863, .n 864, .n 867, .n 868, .n 1169, .n 1170, .n 1183, .n 1184, .n 20,
       .n 21, .n 22, .n 23, .n 24] : List V).map σ = rateOf S4.pend ++ S4.cap := by
     rw [rateOf_eq_cells _ (by simp [hS4d])]
     simp only [hS4d, List.map_cons, List.map_nil, pendCells, List.flatMap_cons, List.flatMap_nil,
@@ -124,25 +124,25 @@ theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
       ← e0, ← e1, ← e2, ← e3, c20, c21, c22, c23, c24]
     rfl
   rw [hin1] at hC1
-  have hcap : capOf S4.perm = [σ (.n 1489), σ (.n 1490), σ (.n 1491), σ (.n 1492), σ (.n 1493)] := by
+  have hcap : capOf S4.perm = [σ (.n 1537), σ (.n 1538), σ (.n 1539), σ (.n 1540), σ (.n 1541)] := by
     rw [Fs.perm, ← hC1]; rfl
   -- the share and the round's coefficients, after the permutation
-  set S7 : Fs := ⟨capOf S4.perm, [(σ (.n 1494), dsObserve), (σ (.n 1498), dsObserve),
-    (σ (.n 1502), dsObserve)]⟩ with hS7d
+  set S7 : Fs := ⟨capOf S4.perm, [(σ (.n 1542), dsObserve), (σ (.n 1546), dsObserve),
+    (σ (.n 1550), dsObserve)]⟩ with hS7d
   have hS7 : vtFreshFs σ = S7 := by
-    have hsplit : vtFreshWords σ = [σ (.n 814), σ (.n 818), σ (.n 1120), σ (.n 1134)] ++
-        [σ (.n 1494), σ (.n 1498), σ (.n 1502)] := rfl
+    have hsplit : vtFreshWords σ = [σ (.n 862), σ (.n 866), σ (.n 1168), σ (.n 1182)] ++
+        [σ (.n 1542), σ (.n 1546), σ (.n 1550)] := rfl
     have happ : ∀ (s : Fs) (l1 l2 : List E) (t : ℕ),
         s.absorbAll (l1 ++ l2) t = (s.absorbAll l1 t).absorbAll l2 t := by
       intro s l1 l2 t; simp [Fs.absorbAll, List.foldl_append]
-    have h1 : S4.absorb (σ (.n 1494)) dsObserve = ⟨capOf S4.perm, [(σ (.n 1494), dsObserve)]⟩ := by
+    have h1 : S4.absorb (σ (.n 1542)) dsObserve = ⟨capOf S4.perm, [(σ (.n 1542), dsObserve)]⟩ := by
       simp [Fs.absorb, hS4d, rateScalars]
     rw [vtFreshFs, hsplit, happ, hS4]
-    show (S4.absorb (σ (.n 1494)) dsObserve).absorbAll [σ (.n 1498), σ (.n 1502)] dsObserve = S7
+    show (S4.absorb (σ (.n 1542)) dsObserve).absorbAll [σ (.n 1546), σ (.n 1550)] dsObserve = S7
     rw [h1, absorbAll_short _ _ _ (by simp)]
     rfl
-  have hin2 : ([.n 1495, .n 1496, .n 1499, .n 1500, .n 1503, .n 1504, .n 1506, .n 1507, .n 1489,
-      .n 1490, .n 1491, .n 1492, .n 1493] : List V).map σ = rateOf S7.pend ++ S7.cap := by
+  have hin2 : ([.n 1543, .n 1544, .n 1547, .n 1548, .n 1551, .n 1552, .n 1554, .n 1555, .n 1537,
+      .n 1538, .n 1539, .n 1540, .n 1541] : List V).map σ = rateOf S7.pend ++ S7.cap := by
     rw [rateOf_eq_cells _ (by simp [hS7d])]
     simp only [hS7d, hcap, List.map_cons, List.map_nil, pendCells, List.flatMap_cons,
       List.flatMap_nil, List.length_cons, List.length_nil, List.cons_append, List.nil_append,
@@ -161,10 +161,10 @@ theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
     · exact l6
   · rw [hS7]
     simp only [Fs.squeeze, Fs.perm]
-    exact challengeT_value (s0 := .n 1508) (b := 1508) rfl (hP2 0 (by omega))
+    exact challengeT_value (s0 := .n 1556) (b := 1556) rfl (hP2 0 (by omega))
   · rw [hS7]
     simp only [Fs.squeeze, Fs.perm]
-    have e : ∀ k, 1508 + 8 + k = 1516 + k := fun k => by omega
+    have e : ∀ k, 1556 + 8 + k = 1564 + k := fun k => by omega
     simp only [e] at hC2
     exact hC2
 

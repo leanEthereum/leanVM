@@ -40,8 +40,10 @@ Statements (`…_Spec`, proved as `…_holds`):
   words at `zeta`, `n < 34`;
 * `sel_partial_nibble_Spec`: `sel_partial_nibble__L{w}` writes the nibble tables of
   width `w < 4`;
+* `selector_run_nibbles_Spec`: `selector_run_nibbles(len_g)` returns `g^(n / 4)` for
+  `len_g = g^n`, `n < 64`;
 * `shared_selector_tables_Spec`: `shared_selector_tables` writes, for `len_g = g^n`
-  (`n < 64`), every nibble's tables of the run of `n` coordinates;
+  (`n < 64`) and `q_g = g^(n / 4)`, every nibble's tables of the run of `n` coordinates;
 * `block_selector_tab_Spec`: `block_selector_tab__L{n}` reads the `g`-power digits
   of `n` bits and, from those tables, returns their eq weight and `g`-power product;
 * `block_selector_Spec`: `block_selector__L{n}` does the same a bit at a time from
@@ -138,14 +140,28 @@ def RunTables (rd : Reader) (eqt gt : E) (n : ℕ) (zs zs1 gs : List E) : Prop :
   ∀ j < (n + 3) / 4, TbReadsAt rd (eqt * gen ^ (32 * j)) (eqLevels (nib zs j) (nib zs1 j)) ∧
     TbReadsAt rd (gt * gen ^ (16 * j)) (gTable (nib gs j))
 
-/-- `shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g)`: `len_g = g^n`,
-`n < 64`, and for the `n` coordinates, complements and shares read at `zeta_hi`, `zeta1_hi`,
-`gsq_hi`, their nibble tables are written. -/
+/-- `selector_run_nibbles(len_g)`, returning `q_g`: `len_g = g^n`, `n < 64`, and `q_g = g^(n / 4)`,
+the run's full nibbles. -/
+def RunNibblesOut : List E → List E → Prop
+  | [lenG], [qG] => ∃ n < 64, lenG = gen ^ n ∧ qG = gen ^ (n / 4)
+  | _, _ => False
+
+/-- **`selector_run_nibbles`** is sound. -/
+def selector_run_nibbles_SpecP (P : Program) : Prop :=
+  ∀ rd args rets, P.Rel rd "selector_run_nibbles" args rets → RunNibblesOut args rets
+
+/-- The converse, for completeness: every run length `g^n`, `n < 64`, gives the relation. -/
+def selector_run_nibbles_complete_SpecP (P : Program) : Prop :=
+  ∀ (rd : Reader) (n : ℕ), n < 64 → P.Rel rd "selector_run_nibbles" [gen ^ n] [gen ^ (n / 4)]
+
+/-- `shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g, q_g)`: for `len_g =
+g^n`, `n < 64`, and `q_g = g^(n / 4)` (`selector_run_nibbles`' split), and the `n` coordinates,
+complements and shares read at `zeta_hi`, `zeta1_hi`, `gsq_hi`, their nibble tables are written. -/
 def SharedSelOut (rd : Reader) : List E → List E → Prop
-  | [eqt, gt, z, z1, gsq, lenG], [] =>
-      ∃ n < 64, lenG = gen ^ n ∧ ∀ zs zs1 gs : List E, zs.length = n → zs1.length = n →
-        gs.length = n → TbReadsAt rd z zs → TbReadsAt rd z1 zs1 → TbReadsAt rd gsq gs →
-        RunTables rd eqt gt n zs zs1 gs
+  | [eqt, gt, z, z1, gsq, lenG, qG], [] =>
+      ∀ n < 64, lenG = gen ^ n → qG = gen ^ (n / 4) → ∀ zs zs1 gs : List E, zs.length = n →
+        zs1.length = n → gs.length = n → TbReadsAt rd z zs → TbReadsAt rd z1 zs1 →
+        TbReadsAt rd gsq gs → RunTables rd eqt gt n zs zs1 gs
   | _, _ => False
 
 /-- **`shared_selector_tables`** (TRIAGE #48) is sound. -/
@@ -159,7 +175,7 @@ def shared_selector_tables_complete_SpecP (P : Program) : Prop :=
     zs.length = n → zs1.length = n → gs.length = n →
     TbReadsAt rd z zs → TbReadsAt rd z1 zs1 → TbReadsAt rd gsq gs →
     RunTables rd eqt gt n zs zs1 gs →
-    P.Rel rd "shared_selector_tables" [eqt, gt, z, z1, gsq, gen ^ n] []
+    P.Rel rd "shared_selector_tables" [eqt, gt, z, z1, gsq, gen ^ n, gen ^ (n / 4)] []
 
 /-! ## The bus blocks' selectors -/
 
