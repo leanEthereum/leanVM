@@ -48,7 +48,7 @@ use field::{ZERO, powers};
 use hash::{ROUNDS, STATE_LANES};
 use keccak::{KeccakShape, verify_keccak};
 use layout::{GLOBAL_COLUMN_BASES, KECCAK_OUT, MEMORY_0, MEMORY_1, N_TABLES, OP_KECCAK, QKECCAK, build_layout};
-use multilinear::{dot, eq_eval, multilinear_eval};
+use multilinear::{Placement, dot, eq_eval, multilinear_eval};
 use ring_switch::ring_switch;
 use std::ops::Range;
 use transcript::Transcript;
@@ -71,6 +71,7 @@ pub enum VerifierError {
     GkrLayer(usize),
     BusCountZero,
     BytecodeShare,
+    RunEvaluations,
     BytecodeValue,
     TableSumcheckTerminal,
     AnnouncedTableSizes,
@@ -107,6 +108,7 @@ impl std::fmt::Display for VerifierError {
             Self::GkrLayer(layer) => return write!(f, "GKR layer {layer}: children do not match the sumcheck"),
             Self::BusCountZero => "a bus count is zero",
             Self::BytecodeShare => "bytecode sumcheck terminal mismatch",
+            Self::RunEvaluations => "a column's runs do not make up its claim",
             Self::BytecodeValue => "bytecode evaluation mismatch",
             Self::TableSumcheckTerminal => "table sumcheck terminal mismatch",
             Self::AnnouncedTableSizes => "invalid announced table sizes",
@@ -329,6 +331,28 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
         });
     }
 
+    // 5b] A column stacked as runs of its rows: the prover sends each run's evaluation at the claim's low coordinates,
+    // which must make up the claim, a run weighing the eq of its first row's bits above it. The rows past the runs are
+    // zero. Each value then rides the stack as a claim on its run's block.
+    let mut run_values = Vec::new();
+    for claim in &claims {
+        if let Some(runs) = &layout.runs[claim.column] {
+            let values = transcript.next_scalars(runs.len())?;
+            if transcript.checked() {
+                let weight = |&(start, block): &(u64, Placement)| {
+                    Placement {
+                        variables: block.variables,
+                        index: start,
+                    }
+                    .eq_above(&claim.point)
+                };
+                let total = E::sum(runs.iter().zip(&values).map(|(run, &value)| weight(run) * value));
+                require(total == claim.value, VerifierError::RunEvaluations)?;
+            }
+            run_values.push(values);
+        }
+    }
+
     // 6] KECCAK validity, by GKR over the rounds. The table's claims on its output lanes are the reduction's claim on
     // the permutation's output: they leave the batch, their columns having no placement.
     let (point, values) = &evaluations[OP_KECCAK];
@@ -359,7 +383,19 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
         ringswitch_target,
     );
     let mut stack_claims = vec![ringswitch];
-    stack_claims.extend(claims.iter().filter_map(|claim| claim.on_stack(&layout)));
+    let mut run_values = run_values.into_iter();
+    for claim in &claims {
+        match &layout.runs[claim.column] {
+            Some(runs) => {
+                let values = run_values.next().expect("a run claim's values");
+                for (&(_, block), value) in runs.iter().zip(values) {
+                    let point = block.stack_point(&claim.point[..block.variables], layout.stack_log);
+                    stack_claims.push((Box::new(move |x| eq_eval(&point, x)), value));
+                }
+            }
+            None => stack_claims.extend(claim.on_stack(&layout)),
+        }
+    }
     stack_claims.push(ood);
     verify_stacked_opening(
         &mut transcript,
