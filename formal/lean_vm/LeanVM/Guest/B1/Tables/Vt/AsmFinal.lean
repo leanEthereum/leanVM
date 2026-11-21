@@ -15,8 +15,8 @@ public import LeanVM.Guest.B1.Tables.Vt.Air
 
 `vt_weight_guest`: a table's weight at the reversed challenges is the guest's `cprod[g^n/τ]` times
 `peq[τ]`. `vt_xi_pow`: the batching challenge's powers. `vt_asm_final`: `termsPure`'s terminal
-value over the six tables — the weights times the `JUMP` constraints and the three forms, batched
-by `ξ⁰, ξ¹` and `ξ², ξ³, ξ⁴` — is `σ 2348`, the sumcheck's final claim the guest checks.
+value over the six tables (the weights times the `JUMP` constraints and the three forms, batched
+by `ξ⁰, ξ¹` and `ξ², ξ³, ξ⁴`) is `σ 2348`, the sumcheck's final claim the guest checks.
 -/
 
 namespace LeanVM.Guest.B1.Tables
