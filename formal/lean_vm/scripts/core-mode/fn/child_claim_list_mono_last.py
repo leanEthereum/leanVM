@@ -2,8 +2,9 @@
 import re
 from fnrules import I, lean_def
 
-# its reads' shape (`CoreMode.mlSub`), as its Lean data says: entry, first gap, the gaps' stride, the bound parameter
-ENT, GAP, STRIDE, LIMIT = lean_def('child_claim_list_mono_last', 'Data', 'mlShape')
+# its reads' shape (`CoreMode.mlSub`) and its links (`CoreMode.mlGl`), as its Lean data says: entry, first gap, the
+# gaps' stride, the bound parameter, the caller's cells linked `(d, slot, k)`
+ENT, GAP, STRIDE, LIMIT, GL = lean_def('child_claim_list_mono_last', 'Data', 'mlShape')
 
 
 def ml_k(k):
@@ -25,6 +26,11 @@ def sub(k, c):
 
 def ghost(k, r):
     return r[0] == 'sub' and sub(k, r[1]) == r
+
+
+def gl(k, np):
+    """`CFun.gl` (`CoreMode.mlGl`): its caller's cells linked, `{d: (slot, k)}`, or None."""
+    return {d: (b, c) for d, b, c in GL} if ml_k(k) is not None else None
 
 # its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
 # it alone may change, by hand

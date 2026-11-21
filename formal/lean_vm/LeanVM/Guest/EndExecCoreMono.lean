@@ -35,8 +35,8 @@ open LeanVM.Prover.Exec
 
 public section
 
-theorem mlK_spec {fn : Fn} {p : ℕ × ℕ × ℕ × ℕ × ℕ} (h : mlK fn = some p) :
-    ∃ k, p = (k, 5, 6, 10, 3) ∧ 1 ≤ k ∧ k < 17 ∧ mlNames.getD k "" = fn.name := by
+theorem mlK_spec {fn : Fn} {p : ℕ × ℕ × ℕ × ℕ × ℕ × List (ℕ × ℕ × ℕ)} (h : mlK fn = some p) :
+    ∃ k, p = (k, 5, 6, 10, 3, [(2, 4, 0), (5, 3, 0)]) ∧ 1 ≤ k ∧ k < 17 ∧ mlNames.getD k "" = fn.name := by
   have hm := CoreMode.lookup_memL h
   simp only [CoreMode.FnReg.mlLoops, CoreMode.Own.child_claim_list_mono_last.mlLoops, List.append_nil,
     List.mem_map, List.mem_range, Prod.mk.injEq] at hm
@@ -63,7 +63,7 @@ theorem setG_ghost0 (σ : Val) (w : E) : setG σ [w] (V.n CoreMode.GB) = w := by
 theorem ml_inst {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
     (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) {f : String} {σ : Val} {bufs : List ℕ}
     {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn} (hf : coreProgram.find? f = some fn)
-    {p : ℕ × ℕ × ℕ × ℕ × ℕ} (hk : mlK fn = some p) :
+    {p : ℕ × ℕ × ℕ × ℕ × ℕ × List (ℕ × ℕ × ℕ)} (hk : mlK fn = some p) :
     fn.params = [.n (valf% «child_claim_list_mono_last» "rec"), .n (valf% «child_claim_list_mono_last» "region"), .n (valf% «child_claim_list_mono_last» "mark"), .n (valf% «child_claim_list_mono_last» "limit_g")] ∧ ∃ a, I.hdr.2 = ofK (addressOfIndex a) ∧ a + 5 < maxCells ∧
       refMem r.img (a + 5) = σ (V.n (valf% «child_claim_list_mono_last» "limit_g")) ∧
       ∀ x, mlSub fn x = true → x.Holds (setG σ [refMem r.img (a + 2)]) := by
@@ -150,9 +150,9 @@ theorem ml_inst {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
 
 /-! ## The frame loops (`cm`) -/
 
-theorem cmK_spec {fn : Fn} {p : ℕ × ℕ × ℕ × ℕ} (h : CoreMode.cmK fn = some p) :
-    (fn.name = name% «child_claim_list_mono_loop0» ∧ p = (136, 12, 13, 10)) ∨
-      (fn.name = name% «child_claim_list_mono_loop1» ∧ p = (17, 12, 13, 10)) := by
+theorem cmK_spec {fn : Fn} {p : ℕ × ℕ × ℕ × ℕ × List ℕ} (h : CoreMode.cmK fn = some p) :
+    (fn.name = name% «child_claim_list_mono_loop0» ∧ p = (136, 12, 13, 10, [2, 5])) ∨
+      (fn.name = name% «child_claim_list_mono_loop1» ∧ p = (17, 12, 13, 10, [2, 5])) := by
   have hm := CoreMode.lookup_memL h
   simp only [CoreMode.FnReg.cmLoops, CoreMode.Own.child_claim_list_mono.cmLoops, List.append_nil, List.mem_cons,
     List.not_mem_nil, or_false] at hm
@@ -160,16 +160,16 @@ theorem cmK_spec {fn : Fn} {p : ℕ × ℕ × ℕ × ℕ} (h : CoreMode.cmK fn =
   · exact Or.inl ⟨congrArg Prod.fst hm, congrArg Prod.snd hm⟩
   · exact Or.inr ⟨congrArg Prod.fst hm, congrArg Prod.snd hm⟩
 
-theorem cmK_name {fn : Fn} {p : ℕ × ℕ × ℕ × ℕ} (h : CoreMode.cmK fn = some p) :
+theorem cmK_name {fn : Fn} {p : ℕ × ℕ × ℕ × ℕ × List ℕ} (h : CoreMode.cmK fn = some p) :
     fn.name = name% «child_claim_list_mono_loop0» ∨ fn.name = name% «child_claim_list_mono_loop1» :=
   (cmK_spec h).imp (·.1) (·.1)
 
 /-- **A frame loop is not of the families `ml`, `st`.** -/
-theorem cmK_mlK {fn : Fn} {p : ℕ × ℕ × ℕ × ℕ} (h : CoreMode.cmK fn = some p) : CoreMode.mlK fn = none := by
+theorem cmK_mlK {fn : Fn} {p : ℕ × ℕ × ℕ × ℕ × List ℕ} (h : CoreMode.cmK fn = some p) : CoreMode.mlK fn = none := by
   unfold CoreMode.mlK
   rcases cmK_name h with h | h <;> rw [h] <;> decide +kernel
 
-theorem cmK_stK {fn : Fn} {p : ℕ × ℕ × ℕ × ℕ} (h : CoreMode.cmK fn = some p) : CoreMode.stK fn = none := by
+theorem cmK_stK {fn : Fn} {p : ℕ × ℕ × ℕ × ℕ × List ℕ} (h : CoreMode.cmK fn = some p) : CoreMode.stK fn = none := by
   unfold CoreMode.stK
   rcases cmK_name h with h | h <;> rw [h] <;> decide +kernel
 
@@ -232,11 +232,11 @@ theorem cmRead {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
 theorem cm_inst {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
     (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) {f : String} {σ : Val} {bufs : List ℕ}
     {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn} (hf : coreProgram.find? f = some fn)
-    {p : ℕ × ℕ × ℕ × ℕ} (hk : CoreMode.cmK fn = some p) :
+    {p : ℕ × ℕ × ℕ × ℕ × List ℕ} (hk : CoreMode.cmK fn = some p) :
     ∃ a, I.hdr.2 = ofK (addressOfIndex a) ∧ a + 5 < maxCells ∧
       ∀ x, CoreMode.cmSub fn x = true →
         x.Holds (setG σ [refMem r.img (a + 2), refMem r.img (a + 5), ofK (Parameters.g ^ a)]) := by
-  obtain ⟨m, rfl, hcases⟩ : ∃ m, p = (m, 12, 13, 10) ∧ ((f = name% «child_claim_list_mono_loop0» ∧ m = 136) ∨
+  obtain ⟨m, rfl, hcases⟩ : ∃ m, p = (m, 12, 13, 10, [2, 5]) ∧ ((f = name% «child_claim_list_mono_loop0» ∧ m = 136) ∨
       (f = name% «child_claim_list_mono_loop1» ∧ m = 17)) := by
     rw [← find_name' hf]
     rcases cmK_spec hk with ⟨h0, rfl⟩ | ⟨h1, rfl⟩
@@ -321,12 +321,16 @@ theorem cm_inst {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
 
 /-- **A frame loop's linked cells** at its frame: the caller's cells `2` and `5` its first two ghost words, the
 caller's frame its third. -/
-theorem cmGlF {r : Ref} {Cf : CFun} {fp a : ℕ} {σ : Val} (hgl : Cf.gl = CoreMode.loopGl Cf.fn.params.length [2, 5])
+theorem cmGlF {r : Ref} {Cf : CFun} {fp a : ℕ} {σ : Val} {p : ℕ × ℕ × ℕ × ℕ × List ℕ}
+    (hk : CoreMode.cmK Cf.fn = some p) (hgl : Cf.gl = CoreMode.loopGl Cf.fn.params.length p.2.2.2.2)
     (hgh : Cf.H.sig.ghosts = 3) (hRd : CoreMode.Rd r.img fp 1 = some (ofK (Parameters.g ^ a)))
     (ha5 : a + 5 < maxCells) :
     GlF r.img Cf.gl fp (Cf.fn.params.map (setG σ [refMem r.img (a + 2), refMem r.img (a + 5),
       ofK (Parameters.g ^ a)]) ++ ownG Cf.H.sig (setG σ [refMem r.img (a + 2), refMem r.img (a + 5),
       ofK (Parameters.g ^ a)])) := by
+  obtain ⟨m, rfl⟩ : ∃ m, p = (m, 12, 13, 10, [2, 5]) := by
+    rcases cmK_spec hk with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> exact ⟨_, rfl⟩
+  dsimp only at hgl
   rw [ownG_setG (by rw [hgh]; rfl), hgl]
   intro d b k hm
   simp only [CoreMode.loopGl, List.mem_append, List.mem_map, List.mem_range, List.mem_singleton,
@@ -353,12 +357,15 @@ theorem cmGlF {r : Ref} {Cf : CFun} {fp a : ℕ} {σ : Val} (hgl : Cf.gl = CoreM
 
 /-- **The ghost family's linked cells** at its frame: the caller's cell `2` its ghost word, cell `5` its parameter
 `limit`. -/
-theorem mlGlF {r : Ref} {Cf : CFun} {fp a : ℕ} {σ : Val} (hgl : Cf.gl = [(2, 4, 0), (5, 3, 0)])
+theorem mlGlF {r : Ref} {Cf : CFun} {fp a : ℕ} {σ : Val} {p : ℕ × ℕ × ℕ × ℕ × ℕ × List (ℕ × ℕ × ℕ)}
+    (hk : mlK Cf.fn = some p) (hgl : Cf.gl = p.2.2.2.2.2)
     (hgh : Cf.H.sig.ghosts = 1) (hpar : Cf.fn.params = [.n (valf% «child_claim_list_mono_last» "rec"), .n (valf% «child_claim_list_mono_last» "region"), .n (valf% «child_claim_list_mono_last» "mark"), .n (valf% «child_claim_list_mono_last» "limit_g")])
     (hRd : CoreMode.Rd r.img fp 1 = some (ofK (Parameters.g ^ a))) (h5 : a + 5 < maxCells)
     (hm5 : refMem r.img (a + 5) = σ (V.n (valf% «child_claim_list_mono_last» "limit_g"))) :
     GlF r.img Cf.gl fp (Cf.fn.params.map (setG σ [refMem r.img (a + 2)]) ++
       ownG Cf.H.sig (setG σ [refMem r.img (a + 2)])) := by
+  obtain ⟨k, rfl, -⟩ := mlK_spec hk
+  dsimp only at hgl
   rw [ownG_setG (by rw [hgh]; rfl), hpar, hgl]
   intro d b k hm
   simp only [List.mem_cons, Prod.mk.injEq, List.not_mem_nil, or_false] at hm

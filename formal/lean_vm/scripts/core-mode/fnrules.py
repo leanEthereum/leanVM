@@ -34,7 +34,8 @@ Hooks (functions; each answers for its own core names only, else `None`/`False`)
                    parameter as a selector
   res_filter(k, r) whether the solver may state residual `r` (`emitc.RES_FILTER`); fact(EM, base): the solver's
                    exponent facts of the function's family
-  ml_k(k)          the ghost family `ml`'s index (`CoreMode.mlK`)
+  gl(k, np)        the caller's cells linked to a ghost family's or a frame loop's slots (`CoreMode.mlGl`, `cmGl`),
+                   `{d: (slot, k)}`, `np` its parameters' count
 Count hooks (`scripts/count`; a function's may name its callees, as its counts are made of theirs):
   count_arms(g)    the opening arms, by stack log (`gen.G.os_names`)
   count_static(n, kind, N, certs, OPS, opdef, hcf): `Count/Static.lean`'s text for its `STATIC` entry of another kind

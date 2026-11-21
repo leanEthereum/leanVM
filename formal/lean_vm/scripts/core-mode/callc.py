@@ -187,15 +187,12 @@ def gl_of(k):
         for f, e, b in re.findall(r'\(name% «([^»]+)», (\d+), (\d+)\)', t):
             _LINKS[f] = {2: (int(e), 0), 5: (int(b), 1)}
         _LINKS.setdefault(None, None)
-    if ml_k(k) is not None:
-        # the ghost family (`CoreMode.mlGl`): the caller's cell `2` the one ghost slot, cell `5` the parameter `3`
-        return {2: (len(CORE[k][0]), 0), 5: (3, 0)}
+    # a ghost family's or a frame loop's (`CoreMode.mlGl`, `cmGl`): its function's own (its rule file's `gl`)
+    import fnrules
+    g = fnrules.first('gl', k, len(CORE[k][0]))
+    if g is not None:
+        return g
     import callcres
-    if I.callee(k) in callcres.CM_LOOPS:
-        # a frame loop of the gap walk (`CoreMode.cmGl`, `loopGl`): the caller's cells `2` (entries) and `5` (`limit`) its
-        # first two ghost slots, the caller's frame address its third
-        np = len(CORE[k][0])
-        return {2: (np, 0), 5: (np + 1, 0), 0: (np + 2, 0)}
     if k in callcres.ST_LOOPS:
         # a stream-cursor loop (`CoreMode.stGl`, `loopGl`): the caller's cell `D` its first ghost slot, the caller's
         # frame address (`0`) its second
@@ -209,12 +206,6 @@ def gl_of(k):
         g[0] = (len(CORE[k][0]), 0)
         return g
     return dict(_LINKS.get(k) or {})
-
-
-def ml_k(k):
-    """`CoreMode.mlK`: the ghost family `ml`'s index of `k` (its rule file's `ml_k`), or None."""
-    import fnrules
-    return fnrules.first('ml_k', k)
 
 
 def gl_lean(k):

@@ -35,11 +35,10 @@ noncomputable def resFamG (fn : Fn) (xc : List ℕ) (gw : List (CCell × ℕ)) (
 /-- **Every residual of the function's heap certificate of a family.** -/
 noncomputable def resOk (Cf : CFun) : Bool := Cf.H.res.all (resFamG Cf.fn Cf.xc Cf.H.sig.gw)
 
-/-- **The ghost family's links** (`ml`): `child_claim_list_mono_last__L{k}`'s caller's cell `2` (its entries
-table) its one ghost slot, after its four parameters, and cell `5` its parameter `3` (`limit`); it names no
-ghost value. -/
+/-- **The ghost family's links** (`ml`): its caller's cells as its function's data says (`mlK`: the entries table
+its one ghost slot, the bound its parameter `limit`); it names no ghost value. -/
 noncomputable def mlGl (Cf : CFun) : Bool :=
-  (mlK Cf.fn).isSome && decide (Cf.gl = [(2, 4, 0), (5, 3, 0)]) && Nat.beq Cf.H.sig.ghosts 1 && ngB Cf.fn
+  (mlK Cf.fn).any (fun p ↦ decide (Cf.gl = p.2.2.2.2.2)) && Nat.beq Cf.H.sig.ghosts 1 && ngB Cf.fn
 
 /-- **A loop callee of `anyLink`'s links**: its caller's cell `2` its entries parameter, cell `5` its bound parameter
 times `g` (`anyLink`'s), its caller's frame address its one ghost slot, after its parameters; it names no ghost
@@ -86,8 +85,8 @@ theorem gwR_setG {κ : ℕ} {img : MemoryImage κ} {Cf : CFun} {σ : Val} (h : g
 /-- **The caller's cells linked** (`CFun.gl`), of a family: none, or those of a callee of `anyLink` (a read of
 its caller's entries table, `Res.LinkDefs`): the caller's cell `2` its entries parameter, cell `5` its bound
 parameter times `g`, with no ghost slot, or for a loop the same and its caller's frame address its one ghost slot
-(`alGl`); for `child_claim_list_mono_last__L{k}` the ghost family's (`mlGl`); for a stream-cursor loop its caller's
-stream and frame (`stGl`); for `child_claim_list_mono`'s frame loops its caller's entries, bound and frame (`cmGl`); or
+(`alGl`); for a ghost family specialization its function's (`mlGl`); for a stream-cursor loop its caller's
+stream and frame (`stGl`); for a frame loop over its caller's table its caller's entries, bound and frame (`cmGl`); or
 none, the ghost slots own parameter words (`gwSlots`). -/
 noncomputable def glOk (Cf : CFun) : Bool :=
   bif (cmK Cf.fn).isSome then cmGl Cf && Cf.H.sig.gw.isEmpty else

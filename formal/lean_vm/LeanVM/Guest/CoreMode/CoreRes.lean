@@ -322,15 +322,15 @@ theorem CRes.holds_congr {σ σ' : Val} : ∀ {r : CRes}, (∀ k ∈ r.vals, σ'
 
 /-! ## The ghost family -/
 
-/-- A ghost family specialization's `(k, ent, gap, stride, limit)` (`FnReg.mlLoops`). -/
-def mlK (fn : Fn) : Option (ℕ × ℕ × ℕ × ℕ × ℕ) := FnReg.mlLoops.lookup fn.name
+/-- A ghost family specialization's `(k, ent, gap, stride, limit, links)` (`FnReg.mlLoops`). -/
+def mlK (fn : Fn) : Option (ℕ × ℕ × ℕ × ℕ × ℕ × List (ℕ × ℕ × ℕ)) := FnReg.mlLoops.lookup fn.name
 
 /-- **A ghost family specialization's read of claim `jj`'s entry in its caller's table** (`ml`): the cell
 `[ent]·Π_{i ≤ jj}[gap + stride·i]^4·g^(4jj+d)`, `jj < k`, a cell of the run `[ghost₀]·g^(4j+d)`, `j` below the
 exponent of the parameter `limit`. -/
 def mlSub (fn : Fn) : CRes → Bool
   | .sub c q => (mlK fn).any fun p ↦ Nat.blt (c.off / 4) p.1 &&
-      decide (q = ⟨⟨[(GB, 1)], c.off % 4⟩, 4, .num 0, .val p.2.2.2.2⟩) &&
+      decide (q = ⟨⟨[(GB, 1)], c.off % 4⟩, 4, .num 0, .val p.2.2.2.2.1⟩) &&
       decide (c.bases = (p.2.1, 1) :: (List.range (c.off / 4 + 1)).map fun i ↦ (p.2.2.1 + p.2.2.2.1 * i, 4))
   | _ => false
 
@@ -359,9 +359,9 @@ def stGl (Cf : CFun) : Bool :=
 
 /-! ## The gap walk's frame loops -/
 
-/-- **The frame loops over a caller's table** (`cm`): their `(m, ent, gap, stride)`, `m` claims a frame
-(`FnReg.cmLoops`). -/
-def cmK (fn : Fn) : Option (ℕ × ℕ × ℕ × ℕ) := FnReg.cmLoops.lookup fn.name
+/-- **The frame loops over a caller's table** (`cm`): their `(m, ent, gap, stride, cells)`, `m` claims a frame, the
+caller's cells linked (`FnReg.cmLoops`). -/
+def cmK (fn : Fn) : Option (ℕ × ℕ × ℕ × ℕ × List ℕ) := FnReg.cmLoops.lookup fn.name
 
 /-- **A frame loop's read of claim `jj`'s entry in its caller's table** (`cm`): the cell
 `[ent]·Π_{i ≤ jj}[gap + stride·i]^4·g^(4jj+d)`, `jj < m`, a cell of the run `[ghost₀]·g^(4j+d)`, `j` below the
@@ -369,14 +369,14 @@ exponent of `ghost₁` (its caller's `limit`); and that exponent's existence. -/
 def cmSub (fn : Fn) : CRes → Bool
   | .sub c q => (cmK fn).any fun p ↦ Nat.blt (c.off / 4) p.1 &&
       decide (q = ⟨⟨[(GB, 1)], c.off % 4⟩, 4, .num 0, .val (GB + 1)⟩) &&
-      decide (c.bases = (p.2.1, 1) :: (List.range (c.off / 4 + 1)).map fun i ↦ (p.2.2.1 + p.2.2.2 * i, 4))
+      decide (c.bases = (p.2.1, 1) :: (List.range (c.off / 4 + 1)).map fun i ↦ (p.2.2.1 + p.2.2.2.1 * i, 4))
   | .lt a b => (cmK fn).isSome && decide (a = .num 0) && decide (b = .val (GB + 1))
   | _ => false
 
-/-- **A frame loop's links**: its caller's cells `2` (entries) and `5` (`limit`) to its first two ghost slots, the
+/-- **A frame loop's links**: its caller's cells (`cmK`: the entries, `limit`) to its first two ghost slots, the
 caller's frame address to its third (`loopGl`); it names no ghost value. -/
 def cmGl (Cf : CFun) : Bool :=
-  (cmK Cf.fn).isSome && decide (Cf.gl = loopGl Cf.fn.params.length [2, 5]) && Nat.beq Cf.H.sig.ghosts 3 &&
+  (cmK Cf.fn).any (fun p ↦ decide (Cf.gl = loopGl Cf.fn.params.length p.2.2.2.2)) && Nat.beq Cf.H.sig.ghosts 3 &&
     ngB Cf.fn
 
 theorem cmSub_none {fn : Fn} (h : cmK fn = none) (x : CRes) : cmSub fn x = false := by
