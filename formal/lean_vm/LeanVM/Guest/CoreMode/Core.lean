@@ -87,7 +87,7 @@ structure CFun where
 def CFun.sigOf (Cf : CFun) (f : String) : HSig :=
   bif f == Cf.fn.name then Cf.H.sig else (Cf.cs.lookup f).getD {}
 
-/-- The heap cells the function promises, over slots (parameters, then returned words): milestone 1's
+/-- The heap cells the function promises, over slots (parameters, then returned words): `heapOk`'s
 over parameters, the heap signature's. -/
 def CFun.posts (Cf : CFun) : List CCell :=
   (Cf.post.map (·.1)).filter (fun c ↦ preOver Cf.fn.params.length [c]) ++ Cf.H.sig.post
@@ -728,7 +728,7 @@ signature's (`main`'s also its entry cells, `mainPre`; over parameters; a run al
 slots, `rngLIs`, or a stride-one run the signature's runs make up, `runCov`);
 each heap cell and run it promises (over parameters and returned words) among the promised cells
 `Cf.posts` or the heap signature's runs, or (`postIn`, `postRIn`) over parameters, returned values and
-words a top-level `load` reads, among milestone 1's promised cells. -/
+words a top-level `load` reads, among `heapOk`'s promised cells. -/
 noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) (jt : Mode.Rng) : Bool :=
   G.self.isNone && G.term.isEmpty && G.postL.isEmpty &&
     (G.postP.all fun r ↦ monoR G np nr (rngM r.1) && expI G Cf.H.res np (np + nr) r.1.lo &&
@@ -1123,7 +1123,7 @@ def retMChk (Cf : CFun) (G : Mode.Sig) (np : ℕ) : Bool :=
     | none => false
 
 /-- **The returned products' check** (`retV`): none, each a returned value's monomial by the heap pass
-(milestone 1), or each named by the heap signature's `retM`. -/
+(`heapOk`), or each named by the heap signature's `retM`. -/
 noncomputable def retVOk (Cf : CFun) (G : Mode.Sig) : Bool :=
   G.retV.isEmpty || retMChk Cf G Cf.fn.params.length || Cf.H.readT.seq fun R ↦ (trieFrom Cf.H.sig.pre 0 .nil).seq fun P ↦
     retVGo Cf.X G Cf.fn.params.length ⟨Cf.pows, R, P⟩ Cf.fn.body ⟨.nil, .nil, 0⟩
@@ -1338,7 +1338,7 @@ noncomputable def faRetOk (Cf : CFun) (code : List OffsetInstruction) : Bool :=
       | none => false
     | _ => true
 
-/-- **The heap check of a function on the core route**: milestone 1's (`heapOk`, `postOk`, straight
+/-- **The heap check of a function on the core route**: the check without calls (`heapOk`, `postOk`, straight
 line, its promised cells over parameters), or the check with calls (`heapOkC`, at its callees'
 signatures `Cf.sigOf`, no termination fact, no callee's returned word's monomial; its residuals hold at
 the honest valuations, `HonF.res`). -/

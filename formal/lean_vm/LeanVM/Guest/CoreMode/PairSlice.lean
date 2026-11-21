@@ -17,7 +17,7 @@ public import LeanVM.Guest.Bridge.ProgAlSlice
 the kernel walks every time; for a long function the walk outweighs a late window. `winOkHS` hands it
 the slice of the code's chunks between two cuts (`Bridge.slice`, built from the chunks it touches),
 and a chain of such windows (`ChainHS`) from the chunks' start to their end is the whole pass
-(`pairOk_of_chainS`), by `Bridge.slice_rest` as `pairOk_of_chain` is by `List.drop`.
+(`pairOk_of_chainS`, by `Bridge.slice_rest` and `pairGo_append`).
 -/
 
 namespace LeanVM.Guest.CoreMode

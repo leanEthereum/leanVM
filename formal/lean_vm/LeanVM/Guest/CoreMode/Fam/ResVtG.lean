@@ -15,6 +15,8 @@ public import LeanVM.Guest.B1.Tables.Vt.Sort
 public import LeanVM.Guest.B1.Tables.Vt.Pads
 public import LeanVM.Guest.CoreMode.Fam.SubVt
 public import LeanVM.Guest.CoreMode.Fam.ResVtL
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # `verify_tables`' groups
@@ -45,10 +47,10 @@ public section
 /-- **A side's ranks name each of its groups**, given each group's key `g^KN`. -/
 theorem vtG_side {rd : Reader} {σ : Core.Val} {v0 s G0 m : ℕ} (KN : ℕ → ℕ)
     (hfacts : ∀ r < m, VtRankFacts rd σ v0 s r)
-    (hside : ∀ e < 24, LoadHolds rd (σ (.n 12)) (212 + e) (word (vtGroupSide e) 0))
+    (hside : ∀ e < 24, LoadHolds rd (σ (.n (val% «verify_tables» "g_squares"))) (212 + e) (word (vtGroupSide e) 0))
     (hsideS : ∀ e < 24, vtGroupSide e = s → G0 ≤ e ∧ e < G0 + m) (hs : s < 3)
     (hkey : ∀ e, G0 ≤ e → e < G0 + m → KN e < 2 ^ 62 ∧
-      ∃ key, LoadHolds rd (σ (.n 34)) e key ∧ key * gen ^ 153 = gen ^ KN e) :
+      ∃ key, LoadHolds rd (σ (.n (val% «verify_tables» "group_key"))) e key ∧ key * gen ^ 153 = gen ^ KN e) :
     (∀ r < m, ∃ e, G0 ≤ e ∧ e < G0 + m ∧ σ (.n (vtRv v0 r)) = gen ^ e ∧
       σ (.n (vtRv v0 r + 8)) * gen ^ 153 = gen ^ KN e) ∧
     ∀ g < m, ∃ r < m, σ (.n (vtRv v0 r)) = gen ^ (G0 + g) := by
@@ -120,9 +122,9 @@ include hμ
 /-- **`verify_tables`' groups**: each side's ranks name every group of the side, and rank `1`'s
 keys are nonzero. -/
 theorem vt_groups {σ : Core.Val} (h : VtH Lm.read σ) {lm : ℕ} (hlm : lm ≤ 32) {ds : List E}
-    (hds : TbReadsAt Lm.read (σ (.n 10)) (gen ^ lm :: ds)) (hE : ExpTablesAt Lm.read (σ (.n 12))) :
+    (hds : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "dims_g"))) (gen ^ lm :: ds)) (hE : ExpTablesAt Lm.read (σ (.n (val% «verify_tables» "g_squares")))) :
     (∀ g < 9, ∃ r < 9, σ (.n (vtRv 112 r)) = gen ^ g) ∧
-      (∀ g < 6, ∃ r < 6, σ (.n (vtRv 409 r)) = gen ^ (18 + g)) ∧ σ (.n 133) ≠ 0 ∧ σ (.n 430) ≠ 0 ∧
+      (∀ g < 6, ∃ r < 6, σ (.n (vtRv 409 r)) = gen ^ (18 + g)) ∧ σ (.n (val% «verify_tables» "key@2")) ≠ 0 ∧ σ (.n (val% «verify_tables» "key@11")) ≠ 0 ∧
       (∀ r < 9, ∃ e < 9, σ (.n (vtRv 112 r)) = gen ^ e) ∧
       (∀ r < 6, ∃ e, 18 ≤ e ∧ e < 24 ∧ σ (.n (vtRv 409 r)) = gen ^ e) := by
   obtain ⟨k0, kl⟩ := vt_kb h
@@ -157,7 +159,7 @@ theorem vt_groups {σ : Core.Val} (h : VtH Lm.read σ) {lm : ℕ} (hlm : lm ≤ 
   have hb153 : ∀ k < 15, vtB0 k < 153 := by decide +kernel
   have hκ34 : ∀ k < 15, vtKap lm τ (vtB0 k) < 34 := fun k hk ↦ vt_kap_lt lm τ hlm hτ33 (hb153 k hk)
   -- the groups' keys
-  have hG : ∀ k < 15, ∃ key, LoadHolds Lm.read (σ (.n 34)) (vtGi k) key ∧
+  have hG : ∀ k < 15, ∃ key, LoadHolds Lm.read (σ (.n (val% «verify_tables» "group_key"))) (vtGi k) key ∧
       key * gen ^ vtB0 k = gen ^ (vtKap lm τ (vtB0 k) * 247) := by
     intro k hk
     obtain ⟨key, rk, sz, sq, hk1, hrk1, hke, -⟩ := vt_grps h k hk
@@ -167,7 +169,7 @@ theorem vt_groups {σ : Core.Val} (h : VtH Lm.read σ) {lm : ℕ} (hlm : lm ≤ 
     have e1 := tb_loadHolds_unique hrk1 (by rw [Nat.add_comm]; exact r1)
     simp only [rankKeysList, List.getElem_map, List.getElem_range] at e1
     exact ⟨key, hk1, by rw [hke, e1]⟩
-  have hsideT : ∀ e < 24, LoadHolds Lm.read (σ (.n 12)) (212 + e) (word (vtGroupSide e) 0) :=
+  have hsideT : ∀ e < 24, LoadHolds Lm.read (σ (.n (val% «verify_tables» "g_squares"))) (212 + e) (word (vtGroupSide e) 0) :=
     fun e he ↦ by
       have := hsd e (by simp [sideTabList]; exact he)
       rw [tb_loadHolds_mul_gen_pow] at this
@@ -175,7 +177,7 @@ theorem vt_groups {σ : Core.Val} (h : VtH Lm.read σ) {lm : ℕ} (hlm : lm ≤ 
       exact this
   -- a group's key, past `g^153`
   have hkeyK : ∀ k < 15, vtKap lm τ (vtB0 k) * 247 + 153 - vtB0 k < 2 ^ 62 ∧
-      ∃ key, LoadHolds Lm.read (σ (.n 34)) (vtGi k) key ∧
+      ∃ key, LoadHolds Lm.read (σ (.n (val% «verify_tables» "group_key"))) (vtGi k) key ∧
         key * gen ^ 153 = gen ^ (vtKap lm τ (vtB0 k) * 247 + 153 - vtB0 k) := by
     intro k hk
     obtain ⟨key, h1, h2⟩ := hG k hk
@@ -240,23 +242,23 @@ theorem vt_inst (hr : r.Ok) {J : Inst} (hJ : J ∈ honestInsts coreProgram B2C.f
 theorem vt_groups_at (hr : r.Ok) {J : Inst} (hJ : J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {σ : Core.Val} {bufs : List ℕ} {kids : List Tree} (hJt : J.t = .node "verify_tables" σ bufs kids) :
     (∀ g < 9, ∃ r < 9, σ (.n (vtRv 112 r)) = gen ^ g) ∧
-      (∀ g < 6, ∃ r < 6, σ (.n (vtRv 409 r)) = gen ^ (18 + g)) ∧ σ (.n 133) ≠ 0 ∧ σ (.n 430) ≠ 0 ∧
+      (∀ g < 6, ∃ r < 6, σ (.n (vtRv 409 r)) = gen ^ (18 + g)) ∧ σ (.n (val% «verify_tables» "key@2")) ≠ 0 ∧ σ (.n (val% «verify_tables» "key@11")) ≠ 0 ∧
       (∀ r < 9, ∃ e < 9, σ (.n (vtRv 112 r)) = gen ^ e) ∧
       (∀ r < 6, ∃ e, 18 ≤ e ∧ e < 24 ∧ σ (.n (vtRv 409 r)) = gen ^ e) := by
   obtain ⟨hH, pi, lm, w, pt, vals, hP⟩ := vt_inst hr hJ hJt
-  rw [show (List.range 21).map (fun k ↦ σ (.n k)) = [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4),
-    σ (.n 5), σ (.n 6), σ (.n 7), σ (.n 8), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12), σ (.n 13),
-    σ (.n 14), σ (.n 15), σ (.n 16), σ (.n 17), σ (.n 18), σ (.n 19), σ (.n 20)] from rfl] at hP
+  rw [show (List.range 21).map (fun k ↦ σ (.n k)) = [σ (.n (val% «verify_tables» "fs0")), σ (.n (val% «verify_tables» "fs1")), σ (.n (val% «verify_tables» "fs2")), σ (.n (val% «verify_tables» "fs3")), σ (.n (val% «verify_tables» "fs4")),
+    σ (.n (val% «verify_tables» "cursor@1")), σ (.n (val% «verify_tables» "pi_0")), σ (.n (val% «verify_tables» "pi_1")), σ (.n (val% «verify_tables» "zeta")), σ (.n (val% «verify_tables» "g_bus_mu")), σ (.n (val% «verify_tables» "dims_g")), σ (.n (val% «verify_tables» "table_rows")), σ (.n (val% «verify_tables» "g_squares")), σ (.n (val% «verify_tables» "fp_w")),
+    σ (.n (val% «verify_tables» "beta")), σ (.n (val% «verify_tables» "claim_pool")), σ (.n (val% «verify_tables» "chi")), σ (.n (val% «verify_tables» "gkr_leaves")), σ (.n (val% «verify_tables» "tabs")), σ (.n (val% «verify_tables» "bc_point")), σ (.n (val% «verify_tables» "stream"))] from rfl] at hP
   obtain ⟨-, -, -, -, -, hlm, ⟨ds, -, hds⟩, hE, -⟩ := hP
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   exact vt_groups (by omega) r.img hH hlm hds hE
 
 /-- **Rank `1`'s push key is nonzero.** -/
-theorem nzVal_vt133 : NzVal "verify_tables" (.n 133) := fun _ hr _ hI _ _ _ hIt ↦
+theorem nzVal_vt133 : NzVal "verify_tables" (.n (val% «verify_tables» "key@2")) := fun _ hr _ hI _ _ _ hIt ↦
   (vt_groups_at hr hI hIt).2.2.1
 
 /-- **Rank `1`'s count key is nonzero.** -/
-theorem nzVal_vt430 : NzVal "verify_tables" (.n 430) := fun _ hr _ hI _ _ _ hIt ↦
+theorem nzVal_vt430 : NzVal "verify_tables" (.n (val% «verify_tables» "key@11")) := fun _ hr _ hI _ _ _ hIt ↦
   (vt_groups_at hr hI hIt).2.2.2.1
 
 /-! ## The families at the honest frames -/

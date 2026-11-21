@@ -12,6 +12,8 @@ public import LeanVM.Guest.CoreMode.Fam.ResA
 public import LeanVM.Guest.CoreMode.Fam.MonoReplay
 public import LeanVM.Guest.CoreMode.Fam.MonoDefs
 public import LeanVM.Guest.B1.Digest.ChildDigest
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_digest»
 
 /-!
 # The gap walk's records down the honest tree
@@ -64,7 +66,7 @@ def MonoQ (M : ℕ → E) (rd : Reader) (J : Inst) : Prop :=
 list's branch. -/
 noncomputable def monoDigestB : Bool :=
   Res.sitesB (fun f args _ => f != name% «child_claim_list_mono» ||
-      args == [.n 0, .n 1, .n 2, .n 3, .n 15, .n 16, .n 17]) (Fn.body fn% «child_claim_list_digest») &&
+      args == [.n (val% «child_claim_list_digest» "entries_ptr"), .n (val% «child_claim_list_digest» "region"), .n (val% «child_claim_list_digest» "base"), .n (val% «child_claim_list_digest» "limit_g"), .n (val% «child_claim_list_digest» "bigs"), .n (val% «child_claim_list_digest» "groups"), .n (val% «child_claim_list_digest» "rest")]) (Fn.body fn% «child_claim_list_digest») &&
     !(Stmt.blockCallees B1.Digest.cc25Zero).contains name% «child_claim_list_mono»
 
 /-- **The gap walk's checks.** -/
@@ -121,7 +123,7 @@ theorem monoLoop_facts {f : String} (hf : f = name% «child_claim_list_mono_loop
 /-- **The empty list's branch calls only its own callees**: on a path of
 `child_claim_list_digest` with `n_g = 1`. -/
 theorem digest_zero_calls {σ : Core.Val} {es : List Ev} {vs : List V}
-    (hw : Memory.walk σ (Fn.body fn% «child_claim_list_digest») = .ret es vs) (h6 : σ (.n 6) = 0) {c : Call}
+    (hw : Memory.walk σ (Fn.body fn% «child_claim_list_digest») = .ret es vs) (h6 : σ (.n (val% «child_claim_list_digest» "s1#1")) = 0) {c : Call}
     (hc : c ∈ calls es) : c.f ∈ Stmt.blockCallees B1.Digest.cc25Zero := by
   have hc' : c ∈ calls (Memory.walk σ (Fn.body fn% «child_claim_list_digest»)).evs := by rw [hw]; exact hc
   rw [B1.Digest.child_claim_list_digest_shape] at hc'

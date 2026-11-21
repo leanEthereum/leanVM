@@ -15,6 +15,10 @@ public import LeanVM.Guest.CoreMode.Fam.ParamRef
 public import LeanVM.Guest.CoreMode.Fam.EfDefs
 public import LeanVM.Guest.CoreMode.Gen.FnData
 import LeanVM.Guest.Data.Consts
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«rs_eq_run»
+import LeanVM.Guest.Data.ValNames.«shared_selector_tables»
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # The selectors' checks

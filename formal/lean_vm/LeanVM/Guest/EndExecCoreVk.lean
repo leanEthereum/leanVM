@@ -10,6 +10,8 @@ public import LeanVM.Guest.CoreMode.Fam.ResVk
 public import LeanVM.Guest.CoreMode.CoreRes
 public import LeanVM.Guest.CoreMode.Fn.verify_keccak.Fam
 public import LeanVM.Guest.EndExecCoreVt
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # `verify_keccak`'s family
@@ -46,48 +48,48 @@ theorem bit_factor {b : E} (hb : b * b = b) (k : ℕ) :
 /-- **`y`'s bits' factors**: `step_g`'s and `rem_g`'s factors are `g` to `y`'s bits (times their weights), and
 `INV_GEN^4` is `g⁻⁴` (`vkBits_holds`'s atoms). -/
 theorem vk_factors {C : CallRel} {rd : Reader} {σ : Val} {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28)
-    (htg : σ (.n 6) = gen ^ τ) {next : Prop} {kret : List E → Prop}
+    (htg : σ (.n (val% «verify_keccak» "tau_g")) = gen ^ τ) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ vkBitsT next kret) :
-    σ (.n 18) * gen ^ 4 = 1 ∧ σ (.n 30) = gen ^ ((τ - 3) / 8 % 2) ∧ σ (.n 34) = gen ^ (2 * ((τ - 3) / 16 % 2)) ∧
-      σ (.n 39) = gen ^ ((τ - 3) % 2) ∧ σ (.n 43) = gen ^ (2 * ((τ - 3) / 2 % 2)) ∧
-      σ (.n 48) = gen ^ (4 * ((τ - 3) / 4 % 2)) := by
+    σ (.n (val% «verify_keccak» "pack_g~0")) * gen ^ 4 = 1 ∧ σ (.n (val% «verify_keccak» "step_g@1")) = gen ^ ((τ - 3) / 8 % 2) ∧ σ (.n (val% «verify_keccak» "step_g@2~3")) = gen ^ (2 * ((τ - 3) / 16 % 2)) ∧
+      σ (.n (val% «verify_keccak» "rem_g@1")) = gen ^ ((τ - 3) % 2) ∧ σ (.n (val% «verify_keccak» "rem_g@2~3")) = gen ^ (2 * ((τ - 3) / 2 % 2)) ∧
+      σ (.n (val% «verify_keccak» "rem_g@3~3")) = gen ^ (4 * ((τ - 3) / 4 % 2)) := by
   obtain ⟨-, -, h35, h49, -⟩ := vkBits_holds hτ1 hτ2 htg h
   simp only [vkBitsT, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
   obtain ⟨e17, e18, e19, e20, -, b0, b1, b2, b3, b4, e26, e27, e28, e29, e30, e31, e32, e33, e34,
     e35, e36, e37, e38, e39, e40, e41, e42, e43, e44, e45, e46, e47, e48, -⟩ := h
-  have f30 : σ (.n 30) = gen ^ (2 ^ 0 * (decide (σ (.n 25) = 1)).toNat) := by
+  have f30 : σ (.n (val% «verify_keccak» "step_g@1")) = gen ^ (2 ^ 0 * (decide (σ (.n (val% «verify_keccak» "y_bits[3]")) = 1)).toNat) := by
     rw [← bit_factor b3.symm, e29, e28, e27, e26, word_one, word_3]
-  have f34 : σ (.n 34) = gen ^ (2 ^ 1 * (decide (σ (.n 26) = 1)).toNat) := by
+  have f34 : σ (.n (val% «verify_keccak» "step_g@2~3")) = gen ^ (2 ^ 1 * (decide (σ (.n (val% «verify_keccak» "y_bits[4]")) = 1)).toNat) := by
     rw [← bit_factor b4.symm, e33, e32, e31, e30, word_one, word_5]
-  have f39 : σ (.n 39) = gen ^ (2 ^ 0 * (decide (σ (.n 22) = 1)).toNat) := by
+  have f39 : σ (.n (val% «verify_keccak» "rem_g@1")) = gen ^ (2 ^ 0 * (decide (σ (.n (val% «verify_keccak» "y_bits[0]")) = 1)).toNat) := by
     rw [← bit_factor b0.symm, e38, e37, e36, e35, word_one, word_3]
-  have f43 : σ (.n 43) = gen ^ (2 ^ 1 * (decide (σ (.n 23) = 1)).toNat) := by
+  have f43 : σ (.n (val% «verify_keccak» "rem_g@2~3")) = gen ^ (2 ^ 1 * (decide (σ (.n (val% «verify_keccak» "y_bits[1]")) = 1)).toNat) := by
     rw [← bit_factor b1.symm, e42, e41, e40, e39, word_one, word_5]
-  have f48 : σ (.n 48) = gen ^ (2 ^ 2 * (decide (σ (.n 24) = 1)).toNat) := by
+  have f48 : σ (.n (val% «verify_keccak» "rem_g@3~3")) = gen ^ (2 ^ 2 * (decide (σ (.n (val% «verify_keccak» "y_bits[2]")) = 1)).toNat) := by
     rw [← bit_factor b2.symm, e47, e46, e45, e44, word_one, word_17]
-  have hq : (decide (σ (.n 25) = 1)).toNat + 2 * (decide (σ (.n 26) = 1)).toNat = (τ - 3) / krStep := by
-    have : σ (.n 35) = gen ^ ((decide (σ (.n 25) = 1)).toNat + 2 * (decide (σ (.n 26) = 1)).toNat) := by
+  have hq : (decide (σ (.n (val% «verify_keccak» "y_bits[3]")) = 1)).toNat + 2 * (decide (σ (.n (val% «verify_keccak» "y_bits[4]")) = 1)).toNat = (τ - 3) / krStep := by
+    have : σ (.n (val% «verify_keccak» "step_g@2")) = gen ^ ((decide (σ (.n (val% «verify_keccak» "y_bits[3]")) = 1)).toNat + 2 * (decide (σ (.n (val% «verify_keccak» "y_bits[4]")) = 1)).toNat) := by
       rw [e34, f30, f34, ← pow_add]; congr 1; simp
     rw [this] at h35
-    have h1 := Bool.toNat_le (decide (σ (.n 25) = 1))
-    have h2 := Bool.toNat_le (decide (σ (.n 26) = 1))
+    have h1 := Bool.toNat_le (decide (σ (.n (val% «verify_keccak» "y_bits[3]")) = 1))
+    have h2 := Bool.toNat_le (decide (σ (.n (val% «verify_keccak» "y_bits[4]")) = 1))
     exact gen_pow_inj (by omega) (by simp only [krStep]; omega) h35
-  have hr : (decide (σ (.n 22) = 1)).toNat + 2 * (decide (σ (.n 23) = 1)).toNat +
-      4 * (decide (σ (.n 24) = 1)).toNat = (τ - 3) % krStep := by
-    have : σ (.n 49) = gen ^ ((decide (σ (.n 22) = 1)).toNat + 2 * (decide (σ (.n 23) = 1)).toNat +
-        4 * (decide (σ (.n 24) = 1)).toNat) := by
+  have hr : (decide (σ (.n (val% «verify_keccak» "y_bits[0]")) = 1)).toNat + 2 * (decide (σ (.n (val% «verify_keccak» "y_bits[1]")) = 1)).toNat +
+      4 * (decide (σ (.n (val% «verify_keccak» "y_bits[2]")) = 1)).toNat = (τ - 3) % krStep := by
+    have : σ (.n (val% «verify_keccak» "rem_g@3")) = gen ^ ((decide (σ (.n (val% «verify_keccak» "y_bits[0]")) = 1)).toNat + 2 * (decide (σ (.n (val% «verify_keccak» "y_bits[1]")) = 1)).toNat +
+        4 * (decide (σ (.n (val% «verify_keccak» "y_bits[2]")) = 1)).toNat) := by
       rw [e48, e43, f39, f43, f48, ← pow_add, ← pow_add]; congr 1; simp
     rw [this] at h49
-    have h1 := Bool.toNat_le (decide (σ (.n 22) = 1))
-    have h2 := Bool.toNat_le (decide (σ (.n 23) = 1))
-    have h3 := Bool.toNat_le (decide (σ (.n 24) = 1))
+    have h1 := Bool.toNat_le (decide (σ (.n (val% «verify_keccak» "y_bits[0]")) = 1))
+    have h2 := Bool.toNat_le (decide (σ (.n (val% «verify_keccak» "y_bits[1]")) = 1))
+    have h3 := Bool.toNat_le (decide (σ (.n (val% «verify_keccak» "y_bits[2]")) = 1))
     exact gen_pow_inj (by omega) (by simp only [krStep]; omega) h49
   simp only [krStep] at hq hr
-  have h1 := Bool.toNat_le (decide (σ (.n 25) = 1))
-  have h2 := Bool.toNat_le (decide (σ (.n 26) = 1))
-  have h3 := Bool.toNat_le (decide (σ (.n 22) = 1))
-  have h4 := Bool.toNat_le (decide (σ (.n 23) = 1))
-  have h5 := Bool.toNat_le (decide (σ (.n 24) = 1))
+  have h1 := Bool.toNat_le (decide (σ (.n (val% «verify_keccak» "y_bits[3]")) = 1))
+  have h2 := Bool.toNat_le (decide (σ (.n (val% «verify_keccak» "y_bits[4]")) = 1))
+  have h3 := Bool.toNat_le (decide (σ (.n (val% «verify_keccak» "y_bits[0]")) = 1))
+  have h4 := Bool.toNat_le (decide (σ (.n (val% «verify_keccak» "y_bits[1]")) = 1))
+  have h5 := Bool.toNat_le (decide (σ (.n (val% «verify_keccak» "y_bits[2]")) = 1))
   refine ⟨by rw [e17]; exact word_ginv4_mul, ?_, ?_, ?_, ?_, ?_⟩
   · rw [f30]; congr 1; omega
   · rw [f34]; congr 1; omega
@@ -144,7 +146,7 @@ theorem vk_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePro
     · exact f43
     · exact f48
   · have := hrets s hs
-    have hv : (vkCall s).2.2.getD 5 (.n 0) = V.n (vkCurs.getD s 0) :=
+    have hv : (vkCall s).2.2.getD 5 (.n (val% «verify_keccak» "fs0@1")) = V.n (vkCurs.getD s 0) :=
       beq_iff_eq.mp (List.all_eq_true.mp vkCall_rets s (List.mem_range.mpr hs))
     rw [hv, e5] at this
     simp only [CoreMode.vw]

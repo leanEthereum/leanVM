@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.EndExecCoreFn
 public import LeanVM.Guest.CoreMode.Fn.log2_ceil_in_the_exponent.Data
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«log2_ceil_in_the_exponent__L»
 
 namespace LeanVM.Guest.EndExec
 
@@ -22,10 +24,10 @@ public section
 
 /-- `g_N ≠ 0` at an honest instance of a `log2_ceil_in_the_exponent` specialization. -/
 theorem nzVal_lce {name : String} {fl : ℕ} {f : Fn} (hfind : coreProgram.find? name = some f)
-    (hps : f.params = [.n 0, .n 1]) (hc : (name, 1, Kd.tab) ∈ carried)
-    (hspec : B1.log2_ceil_in_the_exponent_SpecP coreProgram name fl) : NzVal name (.n 0) := by
+    (hps : f.params = [.n (valf% «log2_ceil_in_the_exponent» "g_N"), .n (valf% «log2_ceil_in_the_exponent» "g_squares")]) (hc : (name, 1, Kd.tab) ∈ carried)
+    (hspec : B1.log2_ceil_in_the_exponent_SpecP coreProgram name fl) : NzVal name (.n (valf% «log2_ceil_in_the_exponent» "g_N")) := by
   intro r hr I hI σ bufs kids hIt
-  have ht := (carryQ_all hr I hI name σ bufs kids hIt f hfind _ hc rfl (.n 1) (by rw [hps]; rfl)).1
+  have ht := (carryQ_all hr I hI name σ bufs kids hIt f hfind _ hc rfl (.n (valf% «log2_ceil_in_the_exponent» "g_squares")) (by rw [hps]; rfl)).1
   obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
   have hrel := Tree.Valid.rel _ hv
   obtain ⟨fn', hf', hpar, -⟩ := hv
@@ -40,10 +42,10 @@ theorem nzVal_lce {name : String} {fl : ℕ} {f : Fn} (hfind : coreProgram.find?
   rw [h0, zero_mul] at he
   exact Value.gen_pow_ne_zero _ he
 
-theorem nzVal_lce0 : NzVal "log2_ceil_in_the_exponent__L0_L34" (.n 0) :=
+theorem nzVal_lce0 : NzVal "log2_ceil_in_the_exponent__L0_L34" (.n (valf% «log2_ceil_in_the_exponent» "g_N")) :=
   nzVal_lce B1.find_lce_L0 rfl (by decide) B1.log2_holds.1
 
-theorem nzVal_lce16 : NzVal "log2_ceil_in_the_exponent__L16_L34" (.n 0) :=
+theorem nzVal_lce16 : NzVal "log2_ceil_in_the_exponent__L16_L34" (.n (valf% «log2_ceil_in_the_exponent» "g_N")) :=
   nzVal_lce B1.find_lce_L16 rfl (by decide) B1.log2_holds.2
 
 end

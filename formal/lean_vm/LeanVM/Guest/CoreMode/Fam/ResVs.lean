@@ -20,6 +20,8 @@ public import LeanVM.Guest.CoreMode.Fam.ResStB
 public import LeanVM.Guest.B1.VerifySub.Lanes
 public import LeanVM.Guest.B1.KeccakGkr.VkHolds
 public import LeanVM.Guest.B1.Bits.Grind
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # `verify_sub`'s frame cells and values
@@ -54,19 +56,19 @@ theorem vs_valsI (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.
     {bufs : List ℕ} {kids : List Tree} (hIt : I.t = .node name% «verify_sub» σ bufs kids) :
     ∃ (hs : List ℕ) (lm sl d n gG gT gK : ℕ),
       hs.length = 6 ∧ (∀ h ∈ hs, h < 31) ∧ 9 ≤ hs.getD 5 0 ∧ hs.getD 5 0 ≤ 24 ∧
-      ReadsAt r.img.read (σ (.n 71)) (gen ^ lm :: hs.map (gen ^ ·)) ∧
-      20 ≤ sl ∧ sl ≤ 30 ∧ σ (.n 278) = gen ^ (sl - 20) ∧ σ (.n 276) = gen ^ sl ∧
-      20 ≤ d ∧ d < 34 ∧ σ (.n 253) = gen ^ d ∧
-      hs.getD 5 0 ≤ n ∧ n ≤ d ∧ σ (.n 562) = gen ^ n ∧
-      σ (.n 550) = σ (.n 25) * gen ^ gG ∧ σ (.n 561) = σ (.n 25) * gen ^ gT ∧
-      σ (.n 578) = σ (.n 25) * gen ^ gK ∧ gG ≤ gT ∧ gT ≤ gK ∧ gK + 207 ≤ 8192 := by
+      ReadsAt r.img.read (σ (.n (val% «verify_sub» "dims_g"))) (gen ^ lm :: hs.map (gen ^ ·)) ∧
+      20 ≤ sl ∧ sl ≤ 30 ∧ σ (.n (val% «verify_sub» "size_sel")) = gen ^ (sl - 20) ∧ σ (.n (val% «verify_sub» "gmv")) = gen ^ sl ∧
+      20 ≤ d ∧ d < 34 ∧ σ (.n (val% «verify_sub» "g_bus_mu")) = gen ^ d ∧
+      hs.getD 5 0 ≤ n ∧ n ≤ d ∧ σ (.n (val% «verify_sub» "g_zc_n")) = gen ^ n ∧
+      σ (.n (val% «verify_sub» "cursor@2")) = σ (.n (val% «verify_sub» "stream")) * gen ^ gG ∧ σ (.n (val% «verify_sub» "cursor@3")) = σ (.n (val% «verify_sub» "stream")) * gen ^ gT ∧
+      σ (.n (val% «verify_sub» "cursor@4")) = σ (.n (val% «verify_sub» "stream")) * gen ^ gK ∧ gG ≤ gT ∧ gT ≤ gK ∧ gK + 207 ≤ 8192 := by
   have hfj : coreProgram.find? name% «verify_sub» = some (fn% «verify_sub») := VerifySub.find_vs
   obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
   obtain ⟨-, hb⟩ := Res.holds_of_valid Res.fs_pos hv hfj
   rw [VerifySub.vs_body] at hb
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨hexp, hwin⟩ := carryQ_all hr I hI _ σ bufs kids hIt _ hfj (name% «verify_sub», 4, .tab)
-    (by decide) rfl (.n 4) (by rw [VerifySub.vs_params]; rfl)
+    (by decide) rfl (.n (val% «verify_sub» "g_squares")) (by rw [VerifySub.vs_params]; rfl)
   obtain ⟨⟨F⟩, -⟩ := VerifySub.vs_front (by omega) r.img (fun _ _ _ h ↦ Res.KidRel.rel h)
     (bytecode := List.replicate (2 ^ 23) 0) List.length_replicate hexp hwin hb
   have hκw := VerifySub.winTab_kappa (by omega) r.img hwin
@@ -79,9 +81,9 @@ theorem vs_valsI (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.
     intro h hh'
     have := F.hh31 h hh'
     omega
-  have hRT := reads_tablesSeg (claimedBytecodeValue ⟨F.bus.bytecodePoint, σ (.n 563)⟩)
-    (fun w p v ↦ Child.reads_claimedBytecodeValue ⟨F.bus.bytecodePoint, σ (.n 563)⟩ w p v) _ hhl F.pi F.weights
-    (σ (.n 530)) F.r.2.1 F.r.2.2
+  have hRT := reads_tablesSeg (claimedBytecodeValue ⟨F.bus.bytecodePoint, σ (.n (val% «verify_sub» "bc_value"))⟩)
+    (fun w p v ↦ Child.reads_claimedBytecodeValue ⟨F.bus.bytecodePoint, σ (.n (val% «verify_sub» "bc_value"))⟩ w p v) _ hhl F.pi F.weights
+    (σ (.n (val% «verify_sub» "nxt[0]@19"))) F.r.2.1 F.r.2.2
   obtain ⟨hlT, sp'', hsp''⟩ := runsTo_reads hRT F.hT hsp'
   generalize (List.replicate (2 ^ 23) 0 : List LeanVM.Parameters.K) = bc at F hhl
   -- the tables' context
@@ -115,8 +117,8 @@ theorem vs_valsI (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.
   obtain ⟨xsK, op, point, slices, word, s', -, hrunK, -, -, -, -, -, -, -, hretK⟩ :=
     hK (by rw [F.h589]; exact VerifySub.winTabs_of hwin) ((Tables.tableHeightsOf F.rowsN).getD 5 0) chis _ hτ9
       (by omega) F.h583 hτc hchi hl25 (by rw [F.h587]; exact hlR)
-  obtain ⟨-, hK2⟩ := List.append_inj' (show [σ (.n 573), σ (.n 574), σ (.n 575), σ (.n 576),
-    σ (.n 577)] ++ [σ (.n 578), σ (.n 579)] = _ from hretK) rfl
+  obtain ⟨-, hK2⟩ := List.append_inj' (show [σ (.n (val% «verify_sub» "fs0@5")), σ (.n (val% «verify_sub» "fs1@5")), σ (.n (val% «verify_sub» "fs2@5")), σ (.n (val% «verify_sub» "fs3@5")),
+    σ (.n (val% «verify_sub» "fs4@5"))] ++ [σ (.n (val% «verify_sub» "cursor@4")), σ (.n (val% «verify_sub» "keccak_word"))] = _ from hretK) rfl
   simp only [List.cons.injEq, and_true] at hK2
   obtain ⟨e595, -⟩ := hK2
   obtain ⟨hlK, -⟩ := runsTo_reads (Child.reads_verifyKeccak _ _ _ (by simp only [List.length_take]; omega)) hrunK hsp''

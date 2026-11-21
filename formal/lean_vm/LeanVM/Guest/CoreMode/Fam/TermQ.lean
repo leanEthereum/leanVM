@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.CoreMode.Fam.ResCs
 public import LeanVM.Guest.CoreMode.Gen.TermCallers
 public import LeanVM.Guest.B1.VerifySub.SoundOf
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # `TermFront` at the terminal's instances
@@ -35,7 +37,7 @@ open LeanVM.Protocol.Verifier (gen)
 
 /-- The terminal's call arguments in `verify_sub`. -/
 def termArgsV : List V :=
-  [4, 254, 552, 564, 253, 562, 72, 566, 83, 1329, 275, 567, 815, 1889, 1890, 1891, 1892, 1888, 303, 276].map .n
+  [val% «verify_sub» "g_squares", val% «verify_sub» "zeta", val% «verify_sub» "chi", val% «verify_sub» "rm", val% «verify_sub» "g_bus_mu", val% «verify_sub» "g_zc_n", val% «verify_sub» "g_log_mem", val% «verify_sub» "tau_keccak_g", val% «verify_sub» "kappa_base", val% «verify_sub» "nxt[0]@36", val% «verify_sub» "col_offsets", val% «verify_sub» "z_vals", val% «verify_sub» "c_table", val% «verify_sub» "point", val% «verify_sub» "point1", val% «verify_sub» "inner_total", val% «verify_sub» "yr_at_tail", val% «verify_sub» "sumcheck_target", val% «verify_sub» "ood_z", val% «verify_sub» "gmv"].map .n
 
 end
 

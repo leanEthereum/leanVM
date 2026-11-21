@@ -10,6 +10,9 @@ module
 public import LeanVM.Guest.CoreMode.Fam.ResVt
 public import LeanVM.Guest.CoreMode.Fam.ResStP
 public import LeanVM.Guest.B1.Tables.Vt.Loop10
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
+import LeanVM.Guest.Data.ValNames.«verify_tables_loop0»
 
 /-!
 # The table sumcheck's loops
@@ -37,12 +40,12 @@ open LeanVM.Prover.Exec
 /-- **The rounds loop's cursor in `verify_tables`' stream.** -/
 def VtLQ (r : Ref) (J : Inst) : Prop :=
   ∀ σ bufs kids, J.t = .node name% «verify_tables_loop0» σ bufs kids →
-    ∃ a j n q, J.hdr.2 = ofK (addressOfIndex a) ∧ a + 22 < maxCells ∧ σ (.n 0) = gen ^ j ∧
-      σ (.n 1) = gen ^ n ∧ j < n ∧ n < 34 ∧
-      LoadHolds r.img.read (σ (.n 2) * σ (.n 0) ^ 7) 5 (refMem r.img (a + 22) * gen ^ q) ∧
+    ∃ a j n q, J.hdr.2 = ofK (addressOfIndex a) ∧ a + 22 < maxCells ∧ σ (.n (val% «verify_tables_loop0» "xk")) = gen ^ j ∧
+      σ (.n (val% «verify_tables_loop0» "bound")) = gen ^ n ∧ j < n ∧ n < 34 ∧
+      LoadHolds r.img.read (σ (.n (val% «verify_tables_loop0» "zc_rounds")) * σ (.n (val% «verify_tables_loop0» "xk")) ^ 7) 5 (refMem r.img (a + 22) * gen ^ q) ∧
       q + 3 * (n - j) ≤ 8192
 
-def l10ArgsV : List V := [.n 2636, .n 2544, .n 2626, .n 18, .n 2633, .n 2629]
+def l10ArgsV : List V := [.n (val% «verify_tables» "s72#2"), .n (val% «verify_tables» "g_zc_n"), .n (val% «verify_tables» "zc_rounds"), .n (val% «verify_tables» "tabs"), .n (val% «verify_tables» "zc_rk"), .n (val% «verify_tables» "zc_cprod")]
 
 end
 
@@ -53,7 +56,7 @@ public section
 theorem find_l10 : coreProgram.find? name% «verify_tables_loop0» = some fn% «verify_tables_loop0» :=
   coreProgram_find?_at (j := idx% «verify_tables_loop0») rfl
 
-theorem l10_facts : (fn% «verify_tables_loop0»).params = .n 0 :: .n 1 :: [.n 2, .n 3, .n 4, .n 5] ∧
+theorem l10_facts : (fn% «verify_tables_loop0»).params = .n (val% «verify_tables_loop0» "xk") :: .n (val% «verify_tables_loop0» "bound") :: [.n (val% «verify_tables_loop0» "zc_rounds"), .n (val% «verify_tables_loop0» "tabs"), .n (val% «verify_tables_loop0» "zc_rk"), .n (val% «verify_tables_loop0» "zc_cprod")] ∧
     (fn% «verify_tables_loop0»).loop = true ∧ Res.endOfFn fn% «verify_tables_loop0» = some none ∧
     Stmt.blockCallees (loopBody fn% «verify_tables_loop0») = ["sumcheck_round4"] := by
   decide +kernel
@@ -97,7 +100,7 @@ theorem l10_next {x N rounds tabs rkb cprod cur : E} {rets : List E} {j : ℕ}
 theorem vt_idx : idxOf "verify_tables" = some (fn_idx% «verify_tables») := by decide +kernel
 
 theorem vt_facts : (coreOf (fn_idx% «verify_tables»)).loop = false ∧
-    V.n 20 ∈ (coreOf (fn_idx% «verify_tables»)).params ∧ cellJ (fn_idx% «verify_tables») (.n 20) = 22 ∧
+    V.n (val% «verify_tables» "stream") ∈ (coreOf (fn_idx% «verify_tables»)).params ∧ cellJ (fn_idx% «verify_tables») (.n (val% «verify_tables» "stream")) = 22 ∧
     22 < fsN (fn_idx% «verify_tables») := by
   decide +kernel
 

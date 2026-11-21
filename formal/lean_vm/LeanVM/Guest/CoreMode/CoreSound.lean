@@ -14,7 +14,7 @@ public import LeanVM.Guest.CoreMode.CoreJump
 `frameSpec_core`: a function passing the kernel's checks (`CoreOk`) meets `FrameSpec` for `CoreAt`
 on a reference image, at states on its run where its frames have honest valuations (`CoreHon`).
 
-* The heap facts (`heapK_sound`): milestone 1's check or the check with calls give every event's needs
+* The heap facts (`heapK_sound`): `heapOk` or the check with calls give every event's needs
   written before it (`ReadsOkC`) and the promised cells written by the end.
 * Entry: the frame walk's entry (`atF_entry`), the pairing at the body (`pairAt_zero`), the heap
   preconditions the signature's, written at entry (`hw_slot`).

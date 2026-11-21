@@ -19,7 +19,7 @@ facts (`EntryF`: its preconditions' runs' exponents, its termination facts) and 
 (`ResF`): every event's needs are written before it (`ReadsOkC`) and its guarantees at return are
 written (`PostOkC`).
 
-The proof follows milestone 1's (`HeapSound.lean`): the pass's state is valid on the path
+The proof follows `heapOk_sound`'s (`HeapSound.lean`): the pass's state is valid on the path
 (`StOk rd W`: the environment's monomials are the values' words, the scope's cells and runs written in
 `W`, the runs' exponents existing), `W` the preconditions and the writes so far; a witness of a cell
 or a run gives it written (`ptOk_ok`, `rnOk_ok`, by `ptRun_ok` and `runRun_ok` from the run's
@@ -1259,9 +1259,9 @@ theorem preSet_const {rd : Reader} {G : HSig} {ws : List E} {x : K} (hR : G.preR
   · rw [hP] at hp; cases hp
   · rw [hPR] at hp; cases hp
 
-/-! ## Milestone 1's statement -/
+/-! ## `heapOk`'s statement -/
 
-/-- **Milestone 1's statement, a special case**: on a path entering no call, of a function with no
+/-- **`heapOk`'s statement, a special case**: on a path entering no call, of a function with no
 precondition run or pointer fact, `ReadsOkC` is `ReadsWritten`. -/
 theorem readsWritten_of_C {sigOf : String → HSig} {H : HCert} {rd : Reader} {σ : Val} {f : Fn}
     (hpar : f.params = (List.range f.params.length).map V.n) (hpov : preOver f.params.length H.sig.pre = true)

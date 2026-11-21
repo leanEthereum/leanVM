@@ -10,6 +10,8 @@ public import LeanVM.Guest.EndExecCoreRes
 public import LeanVM.Guest.EndExecCoreSplit
 public import LeanVM.Guest.B1.Exact.RsEqRun
 public import LeanVM.Guest.CoreMode.Fn.rs_eq_run.Fam
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«rs_eq_run»
 
 namespace LeanVM.Guest.EndExec
 
@@ -36,17 +38,17 @@ theorem splitW_rs : SplitW (fn% «rs_eq_run») ⟨[(27, 1), (31, 1), (36, 1)], [
   have hhi : ∀ j < 3, σ (.n (7 + j)) * σ (.n (7 + j)) = σ (.n (7 + j)) := by
     intro j hj; interval_cases j
     exacts [b3.symm, b4.symm, b5.symm]
-  have rg : σ (.n 23) = ∏ j ∈ Finset.range 3, (1 + σ (.n (4 + j)) * (gen ^ 2 ^ j + 1)) := by
+  have rg : σ (.n (val% «rs_eq_run» "r_g@3")) = ∏ j ∈ Finset.range 3, (1 + σ (.n (4 + j)) * (gen ^ 2 ^ j + 1)) := by
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul]
     rw [h23, h18, h13, h17, h22, h12, h16, h21, h10, h14, h19, h11, h15, h20, w3, w5, w17, B1.word_one]
-  have qg : σ (.n 37) = ∏ j ∈ Finset.range 3, (1 + σ (.n (7 + j)) * (gen ^ 2 ^ j + 1)) := by
+  have qg : σ (.n (val% «rs_eq_run» "q_g@3")) = ∏ j ∈ Finset.range 3, (1 + σ (.n (7 + j)) * (gen ^ 2 ^ j + 1)) := by
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul]
     rw [h37, h32, h27, h31, h36, h26, h30, h35, h24, h28, h33, h25, h29, h34, w3, w5, w17, B1.word_one]
   obtain ⟨bb, hbb, hb⟩ := split_bits_gpow (b := fun j ↦ σ (.n (4 + j))) hlo
   obtain ⟨aa, haa, hab⟩ := split_bits_gpow (b := fun j ↦ σ (.n (7 + j))) hhi
   replace rg := rg.trans hb
   replace qg := qg.trans hab
-  have h3 : σ (.n 3) = gen ^ (8 * aa + bb) := by
+  have h3 : σ (.n (val% «rs_eq_run» "count_g")) = gen ^ (8 * aa + bb) := by
     rw [← Value.e_add_eq_zero_iff.mp ha, h41, h40, h39, h38, qg, rg, pow_add, pow_mul']
     ring
   have haa' : aa < 8 := by simpa using haa
