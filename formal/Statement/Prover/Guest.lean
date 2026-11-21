@@ -16,12 +16,16 @@ run may pass an equal program whose instructions read faster.
 
 It is the Rust's `aggregate` (`crates/aggregation/src/node.rs`) on its normal form, not all of it.
 What `aggregate` computes from its inputs is given here: the statement `s` (the claims it publishes
-and its deferred claim), the batching's hints (`w.batchingHints`, `aggregate_deferred_claims`) and a
-leaf's deferred value (`DeferredBytecodeClaim::leaf`); the children's fresh claims are not read. The
-raw signatures are taken in the witness's order, repeats included, where `aggregate` sorts them on
-their claims and keeps the first of each (`sorted_claims`). On the statement and witness an
-`aggregate` run builds, its raw signatures so sorted and deduplicated, the streams are the Rust's,
-entry for entry (`guest-diff` checks it on real aggregations).
+and its deferred claim), the children's fresh claims (`c.freshClaim`, which `aggregate` reads off
+its replay of the child's proof, `verifier::replay_unchecked`, and which this checks in its own
+replay, `childQueries`: a child whose fresh claim or proof the deferring verifier rejects gets no
+query hints), the batching's hints (`w.batchingHints`, `aggregate_deferred_claims`) and a leaf's
+deferred value (`DeferredBytecodeClaim::leaf`). The raw signatures are taken in the witness's
+order, repeats included, where `aggregate` sorts them on their claims and keeps the first of each
+(`sorted_claims`). On the statement and witness an `aggregate` run builds, its raw signatures so
+sorted and deduplicated, and of children whose proofs the deferring verifier accepts (the Rust's
+replay checks nothing), the streams are the Rust's, entry for entry (`guest-diff` checks it on real
+aggregations).
 
 The advice is `main`'s frame size and the compiler's hints by `pc`, generated data
 (`Statement/Data/AdviceHints*.lean`, the compiler's `CompiledProgram::export_hints`,
@@ -40,7 +44,8 @@ advice. Choices the witness does not fix are made as the Rust makes them:
   it is still free, else the next duplicate slot.
 * **A leaf's deferred value** (`leaf_defer`) is the statement's, which the guest does not check.
 * **The advised `HeapBuf` sizes** (`heap_sizes`) are those of the buffers the run allocates; a wrong
-  one only fails the run.
+  one at worst fails the run, and one advised for a buffer the run never reaches only reserves cells
+  it does not use.
 -/
 
 @[expose] public section
