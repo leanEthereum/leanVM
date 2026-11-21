@@ -158,7 +158,8 @@ inductive Hint where
   `fp + ptr`: a dispatched call's frame, sized by the arm it selects. -/
   | allocArm (ptr sel : ℕ) (sizes : List ℕ)
   /-- A `HeapBuf`'s own hint after the compiler reserved it from advice: nothing, once the advice
-  reserved its pointer's buffer with its size, `n` cells or the exponent of `[fp + cell]`. -/
+  reserved its pointer's buffer with its size, `n` cells or the exponent of `[fp + cell]`; else the
+  run fails (`checkLate`), its pointer unwritten or its buffer advised with another size. -/
   | allocLate (ptr : ℕ) (size : BufSize)
   /-- Write the address of `fp + cell` to `fp + ptr`. -/
   | cellAddress (ptr cell : ℕ)
