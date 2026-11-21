@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.CoreMode.Fam.ResMR
 public import LeanVM.Guest.EndExecCoreLink
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_last__L»
 
 /-!
 # The ghost family, sound
@@ -64,8 +66,8 @@ theorem ml_inst {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
     (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) {f : String} {σ : Val} {bufs : List ℕ}
     {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn} (hf : coreProgram.find? f = some fn) {k : ℕ}
     (hk : mlK fn = some k) :
-    fn.params = [.n 0, .n 1, .n 2, .n 3] ∧ ∃ a, I.hdr.2 = ofK (addressOfIndex a) ∧ a + 5 < maxCells ∧
-      refMem r.img (a + 5) = σ (V.n 3) ∧
+    fn.params = [.n (valf% «child_claim_list_mono_last» "rec"), .n (valf% «child_claim_list_mono_last» "region"), .n (valf% «child_claim_list_mono_last» "mark"), .n (valf% «child_claim_list_mono_last» "limit_g")] ∧ ∃ a, I.hdr.2 = ofK (addressOfIndex a) ∧ a + 5 < maxCells ∧
+      refMem r.img (a + 5) = σ (V.n (valf% «child_claim_list_mono_last» "limit_g")) ∧
       ∀ x, mlSub fn x = true → x.Holds (setG σ [refMem r.img (a + 2)]) := by
   obtain ⟨hk1, hk17, hkn⟩ := mlK_spec hk
   have hfn : f = mlNames.getD k "" := by rw [hkn, find_name' hf]
@@ -348,9 +350,9 @@ theorem cmGlF {r : Ref} {Cf : CFun} {fp a : ℕ} {σ : Val} (hgl : Cf.gl = CoreM
 /-- **The ghost family's linked cells** at its frame: the caller's cell `2` its ghost word, cell `5` its parameter
 `limit`. -/
 theorem mlGlF {r : Ref} {Cf : CFun} {fp a : ℕ} {σ : Val} (hgl : Cf.gl = [(2, 4, 0), (5, 3, 0)])
-    (hgh : Cf.H.sig.ghosts = 1) (hpar : Cf.fn.params = [.n 0, .n 1, .n 2, .n 3])
+    (hgh : Cf.H.sig.ghosts = 1) (hpar : Cf.fn.params = [.n (valf% «child_claim_list_mono_last» "rec"), .n (valf% «child_claim_list_mono_last» "region"), .n (valf% «child_claim_list_mono_last» "mark"), .n (valf% «child_claim_list_mono_last» "limit_g")])
     (hRd : CoreMode.Rd r.img fp 1 = some (ofK (Parameters.g ^ a))) (h5 : a + 5 < maxCells)
-    (hm5 : refMem r.img (a + 5) = σ (V.n 3)) :
+    (hm5 : refMem r.img (a + 5) = σ (V.n (valf% «child_claim_list_mono_last» "limit_g"))) :
     GlF r.img Cf.gl fp (Cf.fn.params.map (setG σ [refMem r.img (a + 2)]) ++
       ownG Cf.H.sig (setG σ [refMem r.img (a + 2)])) := by
   rw [ownG_setG (by rw [hgh]; rfl), hpar, hgl]
@@ -361,7 +363,7 @@ theorem mlGlF {r : Ref} {Cf : CFun} {fp a : ℕ} {σ : Val} (hgl : Cf.gl = [(2, 
     simp [CoreMode.LinkW, CoreMode.slotW]
   · refine ⟨a, hRd, h5, ?_⟩
     simp only [CoreMode.LinkW, show (5 : ℕ) ≠ 0 by omega, ↓reduceIte, CoreMode.slotW, List.map_cons, List.map_nil, List.cons_append, List.nil_append, pow_zero]
-    rw [hm5, setG_eq (show (V.n 3).idx < CoreMode.GB by show 3 < CoreMode.GB; unfold CoreMode.GB; omega)]
+    rw [hm5, setG_eq (show (V.n (valf% «child_claim_list_mono_last» "limit_g")).idx < CoreMode.GB by show 3 < CoreMode.GB; unfold CoreMode.GB; omega)]
     simp
 
 end

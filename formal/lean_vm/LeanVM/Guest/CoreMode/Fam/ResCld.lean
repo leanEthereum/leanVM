@@ -18,6 +18,8 @@ public import LeanVM.Guest.CoreMode.Fam.SubDefs
 public import LeanVM.Guest.CoreMode.Fam.ResVk
 public import LeanVM.Guest.CoreMode.Fam.TileDefs
 public import LeanVM.Guest.CoreMode.Fam.ResExp
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«claim_list_digest»
 namespace LeanVM.Guest.EndExec
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.Core LeanVM.Guest.Memory
@@ -50,8 +52,8 @@ theorem dispatch_call {σ : Core.Val} {bs : List Atom} {x : V} {fs : List String
 
 /-- The empty list's branch and what follows call nothing. -/
 theorem cl_zero_callees : Stmt.blockCallees (B1.Digest.cl23Zero ++
-    [.atom (.touch (.n 94) (.n 1)), .atom (.copy (.n 95) (.n 10)), .atom (.copy (.n 96) (.n 11)),
-      .ret [.n 95, .n 96]]) = [] := by
+    [.atom (.touch (.n (val% «claim_list_digest» "s2#0")) (.n (val% «claim_list_digest» "n_g"))), .atom (.copy (.n (val% «claim_list_digest» "s3#0")) (.n (val% «claim_list_digest» "digest[0]"))), .atom (.copy (.n (val% «claim_list_digest» "s3#0[1]")) (.n (val% «claim_list_digest» "digest[1]"))),
+      .ret [.n (val% «claim_list_digest» "s3#0"), .n (val% «claim_list_digest» "s3#0[1]")]]) = [] := by
   decide +kernel
 
 theorem walk_call_cons {σ : Core.Val} (f : String) (args rets : List V) (ps : List Stmt) :

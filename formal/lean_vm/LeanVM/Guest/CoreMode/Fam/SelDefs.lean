@@ -15,6 +15,10 @@ public import LeanVM.Guest.CoreMode.Fam.ParamRef
 public import LeanVM.Guest.CoreMode.Fam.EfDefs
 public import LeanVM.Guest.CoreMode.Gen.FnData
 import LeanVM.Guest.Data.Source
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«rs_eq_run»
+import LeanVM.Guest.Data.ValNames.«shared_selector_tables»
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # The selectors' checks
@@ -145,9 +149,11 @@ noncomputable def nzB (nzs : List (String × V)) (j o : ℕ) : Bool :=
 /-- **The frames' splits**: function `j`, values `s`, `r`, `n` and a stride `S` with `n = s^S·r`,
 `s` and `r` powers of `g` (each one's bits hinted and pinned, `bitsExp`). -/
 noncomputable def splits : List (ℕ × V × V × V × ℕ) := [
-  (fn_idx% «rs_eq_run», .n 37, .n 23, .n 3, 8),
-  (fn_idx% «shared_selector_tables», .n 39, .n 20, .n 5, 4),
-  (fn_idx% «verify_keccak», .n 35, .n 49, .n 21, 8)]
+  (fn_idx% «rs_eq_run», .n (val% «rs_eq_run» "q_g@3"), .n (val% «rs_eq_run» "r_g@3"), .n (val% «rs_eq_run» "count_g"), 8),
+  (fn_idx% «shared_selector_tables», .n (val% «shared_selector_tables» "q_g@4"), .n (val% «shared_selector_tables» "r_g"),
+    .n (val% «shared_selector_tables» "len_g"), 4),
+  (fn_idx% «verify_keccak», .n (val% «verify_keccak» "step_g@2"), .n (val% «verify_keccak» "rem_g@3"),
+    .n (val% «verify_keccak» "s5#1"), 8)]
 
 /-- Cell `o` is inside function `j`'s frame. -/
 noncomputable def inFr (j o : ℕ) : Bool := decide (2 ≤ o) && decide (o < fsN j)

@@ -11,6 +11,8 @@ public import LeanVM.Guest.EndExecW
 public import LeanVM.Guest.CoreMode.Fam.ResA
 public import LeanVM.Guest.CoreMode.Fam.MonoReplay
 public import LeanVM.Guest.B1.Placement.Certify
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«certify_placement»
 
 /-!
 # `certify_placement`'s residuals
@@ -46,17 +48,17 @@ public section
 exponent tables at `g_squares`: each group's key word nonzero at `group_key[g^gi]`, each rank's
 facts, and each rank's group read from `group_order[g^r]`. -/
 theorem cp_keys {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {C : CallRel} {σ : Core.Val} {kret : List E → Prop}
-    (hpre : Stmt.HoldsList C Lm.read σ cpPre True kret) (ht : B1.ExpTables Lm.read (σ (.n 1))) :
-    (∀ gi < 9, ∃ K, K ≠ 0 ∧ LoadHolds Lm.read (σ (.n 10)) gi K) ∧ (∀ r < 9, CpFacts Lm.read σ r) ∧
-      ∀ r < 9, LoadHolds Lm.read (σ (.n 136)) r (σ (.n (cpRB r))) := by
+    (hpre : Stmt.HoldsList C Lm.read σ cpPre True kret) (ht : B1.ExpTables Lm.read (σ (.n (val% «certify_placement» "g_squares")))) :
+    (∀ gi < 9, ∃ K, K ≠ 0 ∧ LoadHolds Lm.read (σ (.n (val% «certify_placement» "group_key"))) gi K) ∧ (∀ r < 9, CpFacts Lm.read σ r) ∧
+      ∀ r < 9, LoadHolds Lm.read (σ (.n (val% «certify_placement» "group_order"))) r (σ (.n (cpRB r))) := by
   simp only [cpPre, holdsList_append,
-    tb_holdsList_range_flatten 8 (fun i ↦ [Stmt.atom (.load (.n (2 + i)) (.n 0) i)]) (fun _ ↦ rfl),
+    tb_holdsList_range_flatten 8 (fun i ↦ [Stmt.atom (.load (.n (2 + i)) (.n (val% «certify_placement» "kappa_base")) i)]) (fun _ ↦ rfl),
     tb_holdsList_range_flatten 9 cpGroup cpGroup_noRet,
     tb_holdsList_range_flatten 8 (fun r ↦ cpRank (r + 1)) (fun _ ↦ rfl),
     tb_holdsList_range_flatten 9 cpCols cpCols_noRet, holds_cpRank, cpRank0,
     Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true, true_and] at hpre
   obtain ⟨-, hgroups, l138, c139, rc138, m143, l144, c145, m146, l145, m147, l148, hranks, -⟩ := hpre
-  have hrk : ∀ k < 34, LoadHolds Lm.read (σ (.n 1)) (178 + k) (gen ^ (k * 247)) := fun k hk ↦ by
+  have hrk : ∀ k < 34, LoadHolds Lm.read (σ (.n (val% «certify_placement» "g_squares"))) (178 + k) (gen ^ (k * 247)) := fun k hk ↦ by
     have := ht.2.2.1 k hk
     simpa only [B1.rankKeysAt, B1.rankStride] using this
   refine ⟨fun gi hgi ↦ ?_, fun r hr ↦ ?_, fun r hr ↦ ?_⟩
@@ -125,7 +127,7 @@ theorem cp_distinct {k : ℕ → E} (hnz : ∀ r < 9, k r ≠ 0)
 
 /-- **The ranks' groups are onto**: from distinct keys, each the word of its group's cell. -/
 theorem cp_onto {rd : Reader} {σ : Core.Val}
-    (hK : ∀ gi < 9, ∃ K, K ≠ 0 ∧ LoadHolds rd (σ (.n 10)) gi K) (hf : ∀ r < 9, CpFacts rd σ r) :
+    (hK : ∀ gi < 9, ∃ K, K ≠ 0 ∧ LoadHolds rd (σ (.n (val% «certify_placement» "group_key"))) gi K) (hf : ∀ r < 9, CpFacts rd σ r) :
     ∃ π : ℕ → ℕ, (∀ r < 9, σ (.n (cpRB r)) = gen ^ π r) ∧ ∀ g < 9, ∃ r < 9, π r = g := by
   obtain ⟨π, hπ⟩ := tb_exists_fun_of_forall (n := 9) fun r hr ↦ (hf r hr).1
   obtain ⟨Kf, hKf⟩ := tb_exists_fun_of_forall (n := 9) hK
@@ -147,15 +149,15 @@ theorem cp_onto {rd : Reader} {σ : Core.Val}
 
 
 /-- **Rank `1`'s key is nonzero** at every honest instance: the word at its group's cell (`cp_keys`). -/
-theorem nzVal_cp155 : NzVal "certify_placement" (.n 155) := by
+theorem nzVal_cp155 : NzVal "certify_placement" (.n (val% «certify_placement» "key@2")) := by
   intro r hr I hI σ bufs kids hIt
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨args0, rets0, hv⟩ := inst_valid' hr hI hIt
   obtain ⟨fn, hfn, hps, hbody⟩ := cpFound
   obtain ⟨-, hb⟩ := LeanVM.Guest.Res.holds_of_valid LeanVM.Guest.Res.fs_pos hv hfn
   rw [hbody, holdsList_append, holdsList_noRet _ cpPre_noRet] at hb
-  have htab : B1.ExpTables r.img.read (σ (.n 1)) :=
-    (carryQ_all hr I hI _ σ bufs kids hIt fn hfn ("certify_placement", 1, .tab) (by decide) rfl (.n 1)
+  have htab : B1.ExpTables r.img.read (σ (.n (val% «certify_placement» "g_squares"))) :=
+    (carryQ_all hr I hI _ σ bufs kids hIt fn hfn ("certify_placement", 1, .tab) (by decide) rfl (.n (val% «certify_placement» "g_squares"))
       (by rw [hps]; rfl)).1
   obtain ⟨hK, hf, -⟩ := cp_keys (by omega) r.img hb.1 htab
   obtain ⟨⟨gi, hgi, hg⟩, hld, -⟩ := hf 1 (by omega)

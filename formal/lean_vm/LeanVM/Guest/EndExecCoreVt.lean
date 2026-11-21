@@ -14,6 +14,8 @@ public import LeanVM.Guest.CoreMode.CoreRes
 public import LeanVM.Guest.CoreMode.Fn.verify_tables.Fam
 public import LeanVM.Guest.EndExecCoreFn
 public import LeanVM.Guest.CoreMode.HeapCSound
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # `verify_tables`' exponents
@@ -32,10 +34,10 @@ public section
 
 /-- **`verify_tables`' exponents.** -/
 structure VtExps (σ : Core.Val) (μ lm n : ℕ) (τ : ℕ → ℕ) : Prop where
-  mu : σ (.n 9) = gen ^ μ
-  lmw : σ (.n 27) = gen ^ lm
+  mu : σ (.n (val% «verify_tables» "g_bus_mu")) = gen ^ μ
+  lmw : σ (.n (val% «verify_tables» "kb[1]")) = gen ^ lm
   tau : ∀ t < 6, σ (.n (28 + t)) = gen ^ τ t
-  zc : σ (.n 2544) = gen ^ n
+  zc : σ (.n (val% «verify_tables» "g_zc_n")) = gen ^ n
   mu19 : 19 ≤ μ
   mu33 : μ < 33
   lmμ : lm ≤ μ
@@ -50,9 +52,9 @@ theorem vt_exps (hr : r.Ok) {J : Inst} (hJ : J ∈ honestInsts coreProgram B2C.f
     {σ : Core.Val} {bufs : List ℕ} {kids : List Tree} (hJt : J.t = .node "verify_tables" σ bufs kids) :
     ∃ μ lm n τ, VtExps σ μ lm n τ := by
   obtain ⟨h, pi, lm, w, pt, vals, hP⟩ := vt_inst hr hJ hJt
-  rw [show (List.range 21).map (fun k ↦ σ (.n k)) = [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4),
-    σ (.n 5), σ (.n 6), σ (.n 7), σ (.n 8), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12), σ (.n 13),
-    σ (.n 14), σ (.n 15), σ (.n 16), σ (.n 17), σ (.n 18), σ (.n 19), σ (.n 20)] from rfl] at hP
+  rw [show (List.range 21).map (fun k ↦ σ (.n k)) = [σ (.n (val% «verify_tables» "fs0")), σ (.n (val% «verify_tables» "fs1")), σ (.n (val% «verify_tables» "fs2")), σ (.n (val% «verify_tables» "fs3")), σ (.n (val% «verify_tables» "fs4")),
+    σ (.n (val% «verify_tables» "cursor@1")), σ (.n (val% «verify_tables» "pi_0")), σ (.n (val% «verify_tables» "pi_1")), σ (.n (val% «verify_tables» "zeta")), σ (.n (val% «verify_tables» "g_bus_mu")), σ (.n (val% «verify_tables» "dims_g")), σ (.n (val% «verify_tables» "table_rows")), σ (.n (val% «verify_tables» "g_squares")), σ (.n (val% «verify_tables» "fp_w")),
+    σ (.n (val% «verify_tables» "beta")), σ (.n (val% «verify_tables» "claim_pool")), σ (.n (val% «verify_tables» "chi")), σ (.n (val% «verify_tables» "gkr_leaves")), σ (.n (val% «verify_tables» "tabs")), σ (.n (val% «verify_tables» "bc_point")), σ (.n (val% «verify_tables» "stream"))] from rfl] at hP
   obtain ⟨-, hz, hmu, hml, -, hlm, ⟨ds, -, hds⟩, hE, -⟩ := hP
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   have hμ : r.κ ≤ 32 := by omega
@@ -65,7 +67,7 @@ theorem vt_exps (hr : r.Ok) {J : Inst} (hJ : J ∈ honestInsts coreProgram B2C.f
       have := kl (t + 1) (by omega)
       rw [show 27 + (t + 1) = 28 + t by omega] at this
       exact tb_loadHolds_unique this h2)
-  have k1 : σ (.n 27) = gen ^ lm := by
+  have k1 : σ (.n (val% «verify_tables» "kb[1]")) = gen ^ lm := by
     have := tb_loadHolds_unique (kl 0 (by omega)) (hds 0 (by simp))
     simpa using this
   have hkb : ∀ i < 8, σ (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0 := by
@@ -630,7 +632,7 @@ theorem vtExp_inst (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2
     simp only [CoreMode.vw] at e1
     rw [e1]
     simp only [CoreMode.CCell.addrW, CoreMode.CCell.valW, CoreMode.prodW, CoreMode.vw, pow_one, mul_one,
-      Mode.limb_mul_ofK, hag (V.n 10) (by unfold CoreMode.GB; norm_num), hrd, Option.getD_some]
+      Mode.limb_mul_ofK, hag (V.n (val% «verify_tables» "dims_g")) (by unfold CoreMode.GB; norm_num), hrd, Option.getD_some]
   have hb := vtS_box hE
   have hbase := fun x F (hx : vtBaseN x = some F) ↦ vtBaseN_sound hE hag hg hx
   exact vtExpR_sound hb (vtF_sound hall' hbase hb CoreMode.vtFuel) hbase x [] (by simp) h

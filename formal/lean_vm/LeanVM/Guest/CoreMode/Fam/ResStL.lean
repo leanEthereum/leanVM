@@ -9,6 +9,9 @@ module
 public import LeanVM.Guest.CoreMode.Fam.ResSt
 public import LeanVM.Guest.B1.KeccakGkr.LayerHolds
 public import LeanVM.Guest.B1.KeccakGkr.VkChain
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # `keccak_layer`'s cursor
@@ -44,7 +47,7 @@ def LayQ (J : Inst) : Prop :=
 
 /-- A layer's statements before its pack rounds' setup. -/
 def layA (first : ℕ) : List Stmt :=
-  headT first ++ prodT (.n 7) (muB first) (prodTab first) ++ checkT (accL first) ++
+  headT first ++ prodT (.n (valf% «keccak_layer» "cursor@1")) (muB first) (prodTab first) ++ checkT (accL first) ++
     sqT first ++ rmfeBlockT (layOff first) ++
     hornerT (fun k ↦ ((prodTab first).getD k default).a) (layOff first + 531) (layOff first + 625)
 
@@ -175,11 +178,11 @@ theorem layTail_split {first : ℕ} (hf : first < 2) : layTail first = layTailPr
 /-- **A layer's cursors**, on `y`'s facts alone: the last record's cursor `48 + 2y` words on, the
 returned cursor `84 + 2y`. -/
 theorem layer_cur {first : ℕ} (hf : first < 2) {C : CallRel} (hC : CallRel.Le C (coreProgram.Rel rd))
-    {σ : Val} {kret : List E → Prop} {y : ℕ} (hy : y < 32) (h9 : σ (.n 9) = gen ^ (y / krStep))
-    (h10 : σ (.n 10) = gen ^ (y % krStep)) {body : List Stmt} (hbd : body = layerT first)
+    {σ : Val} {kret : List E → Prop} {y : ℕ} (hy : y < 32) (h9 : σ (.n (valf% «keccak_layer» "step_g")) = gen ^ (y / krStep))
+    (h10 : σ (.n (valf% «keccak_layer» "rem_g")) = gen ^ (y % krStep)) {body : List Stmt} (hbd : body = layerT first)
     (h : Stmt.HoldsList C rd σ body False kret) :
-    σ (.n (layOff first + 743)) = σ (.n 7) * gen ^ (48 + 2 * y) ∧
-      ∃ ws, kret (ws ++ [σ (.n 7) * gen ^ (84 + 2 * y)]) := by
+    σ (.n (layOff first + 743)) = σ (.n (valf% «keccak_layer» "cursor@1")) * gen ^ (48 + 2 * y) ∧
+      ∃ ws, kret (ws ++ [σ (.n (valf% «keccak_layer» "cursor@1")) * gen ^ (84 + 2 * y)]) := by
   subst hbd
   rw [layerT_split, holdsList_append, holdsList_noRet _ (layA_noRet hf)] at h
   replace h := h.2
@@ -201,7 +204,7 @@ theorem layer_cur {first : ℕ} (hf : first < 2) {C : CallRel} (hC : CallRel.Le 
   rw [← h10, ← e727, ← e739] at hR
   have e745 := loadHolds_unique hlast.2.1 hR
   have hy' : 16 * (y / krStep) + 2 * (y % krStep) = 2 * y := by simp only [krStep]; omega
-  have hcur : σ (.n (layOff first + 743)) = σ (.n 7) * gen ^ (48 + 2 * y) := by
+  have hcur : σ (.n (layOff first + 743)) = σ (.n (valf% «keccak_layer» "cursor@1")) * gen ^ (48 + 2 * y) := by
     rw [e745, mul_assoc, mul_assoc, ← pow_add, ← pow_add, hy']
   rw [c312, m311, c310, word_g36, hcur, mul_assoc, ← pow_add,
     show 48 + 2 * y + 36 = 84 + 2 * y by ring] at hk
@@ -263,7 +266,7 @@ theorem stepCall_mem (s b : ℕ) (cap : List ℕ) (cur cb pn : ℕ) :
 
 theorem step0_atoms (b : ℕ) (cap : List ℕ) (cur cb pn : ℕ) :
     Stmt.atom (.const (.n (stepT0 0 b)) (word 2 0)) ∈ stepT 0 b cap cur cb pn ∧
-      Stmt.atom (.mul (.n (stepT0 0 b + 1)) (.n 5) (.n (stepT0 0 b))) ∈ stepT 0 b cap cur cb pn := by
+      Stmt.atom (.mul (.n (stepT0 0 b + 1)) (.n (val% «verify_keccak» "cursor@1")) (.n (stepT0 0 b))) ∈ stepT 0 b cap cur cb pn := by
   unfold stepT stepTailT stepT0
   simp
 
@@ -310,10 +313,10 @@ theorem vkStepsT_noRet : Stmt.noRetList vkStepsT = true := by decide +kernel
 /-- **`verify_keccak`'s cursors**: step `s` hands its layer the cursor `1 + s·(84 + 2(τ - 3))` words
 past its own; and the pack rounds' step and remainder are `τ - 3`'s. -/
 theorem vk_curs {C : CallRel} (hC : CallRel.Le C (coreProgram.Rel rd)) {σ : Val}
-    {kret : List E → Prop} {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ (.n 6) = gen ^ τ)
+    {kret : List E → Prop} {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ (.n (val% «verify_keccak» "tau_g")) = gen ^ τ)
     {body : List Stmt} (hbd : body = vkT) (hb : Stmt.HoldsList C rd σ body False kret) :
-    σ (.n 35) = gen ^ ((τ - 3) / krStep) ∧ σ (.n 49) = gen ^ ((τ - 3) % krStep) ∧
-      ∀ s < 12, σ (.n (vkCurV s)) = σ (.n 5) * gen ^ (1 + s * (84 + 2 * (τ - 3))) := by
+    σ (.n (val% «verify_keccak» "step_g@2")) = gen ^ ((τ - 3) / krStep) ∧ σ (.n (val% «verify_keccak» "rem_g@3")) = gen ^ ((τ - 3) % krStep) ∧
+      ∀ s < 12, σ (.n (vkCurV s)) = σ (.n (val% «verify_keccak» "cursor@1")) * gen ^ (1 + s * (84 + 2 * (τ - 3))) := by
   subst hbd
   rw [vkT, holdsList_append, holdsList_append, holdsList_append, holdsList_append, holdsList_append] at hb
   obtain ⟨-, -, h33, h47, -, -, -, -, -, -, -, -, hb⟩ := vkHeadT_holds hτ1 hτ2 htg hb

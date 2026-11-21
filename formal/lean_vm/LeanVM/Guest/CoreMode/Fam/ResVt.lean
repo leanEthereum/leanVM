@@ -11,6 +11,9 @@ public import LeanVM.Guest.CoreMode.Fam.ResSt
 public import LeanVM.Guest.B1.Tables.Vt.Pi
 public import LeanVM.Guest.B1.Tables.Vt.BcShare
 public import LeanVM.Guest.B1.VerifySub.NodePops
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # `verify_tables`' cursor
@@ -37,12 +40,12 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 `g_zc_n = g^n`, `n < 34`. -/
 def VtQ (J : Inst) : Prop :=
   ∀ σ bufs kids, J.t = .node "verify_tables" σ bufs kids →
-    ∃ p n, σ (.n 5) = σ (.n 20) * gen ^ p ∧ σ (.n 2544) = gen ^ n ∧ n < 34 ∧ p + 1009 ≤ 8192
+    ∃ p n, σ (.n (val% «verify_tables» "cursor@1")) = σ (.n (val% «verify_tables» "stream")) * gen ^ p ∧ σ (.n (val% «verify_tables» "g_zc_n")) = gen ^ n ∧ n < 34 ∧ p + 1009 ≤ 8192
 
 /-- `verify_tables`' call arguments and returns in `verify_sub`. -/
 def vtArgsV : List V :=
-  [545, 546, 547, 548, 549, 550, 0, 1, 254, 253, 71, 26, 4, 334, 530, 6, 552, 551, 555, 553, 25].map .n
-def vtRetsV : List V := (List.range 10).map fun k ↦ .n (556 + k)
+  [val% «verify_sub» "fs0@3", val% «verify_sub» "fs1@3", val% «verify_sub» "fs2@3", val% «verify_sub» "fs3@3", val% «verify_sub» "fs4@3", val% «verify_sub» "cursor@2", val% «verify_sub» "pi_0", val% «verify_sub» "pi_1", val% «verify_sub» "zeta", val% «verify_sub» "g_bus_mu", val% «verify_sub» "dims_g", val% «verify_sub» "table_rows", val% «verify_sub» "g_squares", val% «verify_sub» "fp_w", val% «verify_sub» "nxt[0]@19", val% «verify_sub» "claim_pool", val% «verify_sub» "chi", val% «verify_sub» "gkr_leaves", val% «verify_sub» "fs0@4~11", val% «verify_sub» "bc_point", val% «verify_sub» "stream"].map .n
+def vtRetsV : List V := (List.range 10).map fun k ↦ .n (val% «verify_sub» "fs0@4" + k)
 
 end
 
@@ -63,18 +66,18 @@ theorem vt_holds {rd : Reader} {C : CallRel} (hC : CallRel.Le C (coreProgram.Rel
   exact ⟨⟨_, holdsList_mono hC _ id (fun _ h ↦ h) h1⟩, h2⟩
 
 /-- **The bytecode share's cursor**: its three tail rounds leave the cursor `13` words on. -/
-theorem vt_cur13 {rd : Reader} {σ : Val} (h : Tables.VtH rd σ) : σ (.n 1897) = σ (.n 5) * gen ^ 13 := by
-  have a1938 := h.atomAt 1937 (.const (.n 1874) (word 128 0)) (by decide +kernel)
-  have a1939 := h.atomAt 1938 (.mul (.n 1875) (.n 5) (.n 1874)) (by decide +kernel)
-  have k1 := h.callAt 1939 "opening_tail_round" [.n 1863, .n 1864, .n 1865, .n 1866, .n 1867,
-    .n 1875, .n 1873, .n 18] [.n 1876, .n 1877, .n 1878, .n 1879, .n 1880, .n 1881, .n 1882,
-    .n 1883] (by decide +kernel)
-  have k2 := h.callAt 1941 "opening_tail_round" [.n 1876, .n 1877, .n 1878, .n 1879, .n 1880,
-    .n 1881, .n 1882, .n 18] [.n 1884, .n 1885, .n 1886, .n 1887, .n 1888, .n 1889, .n 1890,
-    .n 1891] (by decide +kernel)
-  have k3 := h.callAt 1943 "opening_tail_round" [.n 1884, .n 1885, .n 1886, .n 1887, .n 1888,
-    .n 1889, .n 1890, .n 18] [.n 1892, .n 1893, .n 1894, .n 1895, .n 1896, .n 1897, .n 1898,
-    .n 1899] (by decide +kernel)
+theorem vt_cur13 {rd : Reader} {σ : Val} (h : Tables.VtH rd σ) : σ (.n (val% «verify_tables» "cursor@4")) = σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 13 := by
+  have a1938 := h.atomAt (pos% «verify_tables» "s41.u1.s0#8") (.const (.n (val% «verify_tables» "bfs0@1~8")) (word 128 0)) (by decide +kernel)
+  have a1939 := h.atomAt (pos% «verify_tables» "s41.u1.s0#9") (.mul (.n (val% «verify_tables» "bfs0@1~9")) (.n (val% «verify_tables» "cursor@1")) (.n (val% «verify_tables» "bfs0@1~8"))) (by decide +kernel)
+  have k1 := h.callAt (pos% «verify_tables» "s41.u1.s0#0") "opening_tail_round" [.n (val% «verify_tables» "nxt[8]@2"), .n (val% «verify_tables» "nxt[9]@2"), .n (val% «verify_tables» "nxt[10]@2"), .n (val% «verify_tables» "nxt[11]@2"), .n (val% «verify_tables» "nxt[12]@2"),
+    .n (val% «verify_tables» "bfs0@1~9"), .n (val% «verify_tables» "bc_claim@1"), .n (val% «verify_tables» "tabs")] [.n (val% «verify_tables» "bfs0@1"), .n (val% «verify_tables» "bfs1@1"), .n (val% «verify_tables» "bfs2@1"), .n (val% «verify_tables» "bfs3@1"), .n (val% «verify_tables» "bfs4@1"), .n (val% «verify_tables» "cursor@2"), .n (val% «verify_tables» "bc_claim@2"),
+    .n (val% «verify_tables» "bc_r@1")] (by decide +kernel)
+  have k2 := h.callAt (pos% «verify_tables» "s41.u2.s0#0") "opening_tail_round" [.n (val% «verify_tables» "bfs0@1"), .n (val% «verify_tables» "bfs1@1"), .n (val% «verify_tables» "bfs2@1"), .n (val% «verify_tables» "bfs3@1"), .n (val% «verify_tables» "bfs4@1"),
+    .n (val% «verify_tables» "cursor@2"), .n (val% «verify_tables» "bc_claim@2"), .n (val% «verify_tables» "tabs")] [.n (val% «verify_tables» "bfs0@2"), .n (val% «verify_tables» "bfs1@2"), .n (val% «verify_tables» "bfs2@2"), .n (val% «verify_tables» "bfs3@2"), .n (val% «verify_tables» "bfs4@2"), .n (val% «verify_tables» "cursor@3"), .n (val% «verify_tables» "bc_claim@3"),
+    .n (val% «verify_tables» "bc_r@2")] (by decide +kernel)
+  have k3 := h.callAt (pos% «verify_tables» "s41.u3.s0#0") "opening_tail_round" [.n (val% «verify_tables» "bfs0@2"), .n (val% «verify_tables» "bfs1@2"), .n (val% «verify_tables» "bfs2@2"), .n (val% «verify_tables» "bfs3@2"), .n (val% «verify_tables» "bfs4@2"),
+    .n (val% «verify_tables» "cursor@3"), .n (val% «verify_tables» "bc_claim@3"), .n (val% «verify_tables» "tabs")] [.n (val% «verify_tables» "bfs0@3"), .n (val% «verify_tables» "bfs1@3"), .n (val% «verify_tables» "bfs2@3"), .n (val% «verify_tables» "bfs3@3"), .n (val% «verify_tables» "bfs4@3"), .n (val% «verify_tables» "cursor@4"), .n (val% «verify_tables» "bc_claim@4"),
+    .n (val% «verify_tables» "bc_r@3")] (by decide +kernel)
   simp only [Atom.Holds] at a1938 a1939
   simp only [List.map_cons, List.map_nil] at k1 k2 k3
   obtain ⟨_, _, -, e1⟩ := Tables.vt_otr k1
@@ -83,7 +86,7 @@ theorem vt_cur13 {rd : Reader} {σ : Val} (h : Tables.VtH rd σ) : σ (.n 1897) 
   obtain ⟨-, u1, -, -⟩ := Tables.vt_split8 (by rfl) e1
   obtain ⟨-, u2, -, -⟩ := Tables.vt_split8 (by rfl) e2
   obtain ⟨-, u3, -, -⟩ := Tables.vt_split8 (by rfl) e3
-  have hw128 : σ (.n 1874) = gen ^ 7 := by
+  have hw128 : σ (.n (val% «verify_tables» "bfs0@1~8")) = gen ^ 7 := by
     rw [a1938, show (128 : ℕ) = 2 ^ 7 by norm_num, Tables.tb_word_two_pow (by norm_num)]
   rw [u3, u2, u1, a1939, hw128]
   ring
@@ -91,15 +94,15 @@ theorem vt_cur13 {rd : Reader} {σ : Val} (h : Tables.VtH rd σ) : σ (.n 1897) 
 /-- **The table sumcheck's rounds loop's setup**: its counter starts at `1`, and the first round record holds the
 cursor `14` words past `verify_tables`' cursor. -/
 theorem vt_zc_front {rd : Reader} {σ : Val} (h : Tables.VtH rd σ) :
-    σ (.n 2636) = 1 ∧ LoadHolds rd (σ (.n 2626)) 5 (σ (.n 5) * gen ^ 14) := by
-  have c2638 := h.atomAt 2665 (.const (.n 2636) (word 1 0)) (by decide +kernel)
-  have c2632 := h.atomAt 2656 (.const (.n 2630) (word 2 0)) (by decide +kernel)
-  have m2633 := h.atomAt 2657 (.mul (.n 2631) (.n 1897) (.n 2630)) (by decide +kernel)
-  have l2633 := h.atomAt 2658 (.load (.n 2631) (.n 2626) 5) (by decide +kernel)
+    σ (.n (val% «verify_tables» "s72#2")) = 1 ∧ LoadHolds rd (σ (.n (val% «verify_tables» "zc_rounds"))) 5 (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 14) := by
+  have c2638 := h.atomAt (pos% «verify_tables» "s72#2") (.const (.n (val% «verify_tables» "s72#2")) (word 1 0)) (by decide +kernel)
+  have c2632 := h.atomAt (pos% «verify_tables» "s68#0") (.const (.n (val% «verify_tables» "s68#0")) (word 2 0)) (by decide +kernel)
+  have m2633 := h.atomAt (pos% «verify_tables» "s68#1") (.mul (.n (val% «verify_tables» "s68#1")) (.n (val% «verify_tables» "cursor@4")) (.n (val% «verify_tables» "s68#0"))) (by decide +kernel)
+  have l2633 := h.atomAt 2658 (.load (.n (val% «verify_tables» "s68#1")) (.n (val% «verify_tables» "zc_rounds")) 5) (by decide +kernel)
   simp only [Atom.Holds] at c2638 c2632 m2633 l2633
   refine ⟨by rw [c2638, Tables.tb_word_one], ?_⟩
   rw [m2633, c2632, Tables.tb_word_gen, vt_cur13 h] at l2633
-  rw [show σ (.n 5) * gen ^ 14 = σ (.n 5) * gen ^ 13 * gen by ring]
+  rw [show σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 14 = σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 13 * gen by ring]
   exact l2633
 
 /-! ## Down from `verify_sub` -/

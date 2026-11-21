@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.CoreMode.Fam.ResStL
 public import LeanVM.Guest.CoreMode.Fam.ResE
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # `verify_keccak`'s returned cursors
@@ -32,9 +34,9 @@ public section
 /-- **`verify_keccak`'s returned cursors**: step `s`'s layer returns the cursor
 `1 + (s + 1)·(84 + 2(τ - 3))` words past `verify_keccak`'s. -/
 theorem vk_rets {rd : Reader} {C : CallRel} (hC : CallRel.Le C (coreProgram.Rel rd)) {σ : Val}
-    {kret : List E → Prop} {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ (.n 6) = gen ^ τ)
+    {kret : List E → Prop} {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ (.n (val% «verify_keccak» "tau_g")) = gen ^ τ)
     {body : List Stmt} (hbd : body = vkT) (hb : Stmt.HoldsList C rd σ body False kret) :
-    ∀ s < 12, σ ((vkCall s).2.2.getD 5 (.n 0)) = σ (.n 5) * gen ^ (1 + (s + 1) * (84 + 2 * (τ - 3))) := by
+    ∀ s < 12, σ ((vkCall s).2.2.getD 5 (.n (val% «verify_keccak» "fs0@1"))) = σ (.n (val% «verify_keccak» "cursor@1")) * gen ^ (1 + (s + 1) * (84 + 2 * (τ - 3))) := by
   obtain ⟨h33, h47, hcur⟩ := vk_curs hC hτ1 hτ2 htg hbd hb
   subst hbd
   rw [vkT, holdsList_append, holdsList_append, holdsList_append, holdsList_append, holdsList_append] at hb

@@ -11,6 +11,8 @@ public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.Renumber
 public import LeanVM.Guest.CoreMode.Fam.ParamRef
 import LeanVM.Guest.Data.Source
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 namespace LeanVM.Guest.CoreMode.Own.verify_tables
 
@@ -34,7 +36,7 @@ def expVals : List (String × ℕ × ℕ) := [(name% «verify_tables», 2544, 34
 def stLoops : List (String × ℕ × ℕ × ℕ) := [(name% «verify_tables_loop0», 22, 11, 3)]
 
 /-- **Its divisors, nonzero** (`CoreMode.coreNzs`): its values `133` and `430`. -/
-def nzs : List (String × V) := [(name% «verify_tables», .n 133), (name% «verify_tables», .n 430)]
+def nzs : List (String × V) := [(name% «verify_tables», .n (val% «verify_tables» "key@2")), (name% «verify_tables», .n (val% «verify_tables» "key@11"))]
 
 /-- **Its callers and its rounds loop's** (`Res.callersG`): `verify_sub`, and itself. -/
 def stCallers : List (String × String) :=
