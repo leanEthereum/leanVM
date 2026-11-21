@@ -172,11 +172,11 @@ noncomputable def vsWords : B1.VerifySub.VsWords Deployed.fs where
   Beqc := 184
   K15 := 19
   Bcs := 157
-  Brs := 8142
+  Brs := 8529
   hEqc := B1.VerifySub.eqc_totalLe_fs
   hL15 := B1.VerifySub.l15_totalLeOn_fs
   hCsF := B1.VerifySub.cs_fs_le
-  hrs := B1.VerifySub.rs_totalLeOn_fs
+  hrs := B1.VerifySub.rs_words_fs
   ωv := fun op => Deployed.ωArm Deployed.xmssArmC op
   Kvw := kuSB
   Wss := fun op => Deployed.ωArm Deployed.xmssArmC op "shared_selector_tables" + 15 * kuSK op (name% shared_selector_tables_loop0) +

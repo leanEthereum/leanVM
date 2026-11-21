@@ -27,8 +27,8 @@ The hypotheses of `check_opening_terminal_completeAtB`, `rst_completeAtB` and `r
   356 + 356`;
 * `cs_totalLe_fs`, `cs_fs_le`: each `column_selector__L{κ}`, `κ < 31`, within `157` words, its frame
   at most `157` (its certificate is its frame);
-* `rs_totalLeOn_fs`: `rs_eq_run` on `c ≤ 34` coordinates within `8142` (`rs_totalLeOn34`:
-  `50 + (27 + 4 · 1644) + 1489`).
+* `rs_words_fs`: `rs_eq_run` on `c ≤ 34` coordinates within `8529`, its chain included
+  (`RswWords`: `57 + 384 + (27 + 4 · 1643 + 1489)`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -53,7 +53,7 @@ theorem fsB_idx {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = some
     rw [← h, ← hfn]
     exact wfs_eq hlt
 
-theorem fs_rs : Deployed.fs "rs_eq_run" = 49 := by
+theorem fs_rs : Deployed.fs "rs_eq_run" = 57 := by
   rw [fsB_idx (j := idx% «rs_eq_run») (by decide +kernel)]; decide +kernel
 
 theorem fs_l6 : Deployed.fs name% «rs_eq_run_loop0» = 27 := by
@@ -132,16 +132,20 @@ theorem certLe_spec {B : ℕ} {c : Cert} (h : certLe B c = true) :
   · exact ⟨_, _, rfl, of_decide_eq_true h⟩
   · cases h
 
-/-- The column selectors: core functions `274 + κ`, constant words certificates within `157`, frames
-within `157`. -/
+/-- The column selectors: core functions `column_selector__L0`'s index `+ κ`, constant words
+certificates within `157`, frames within `157`. -/
 theorem cs_ok : (List.range 31).all (fun κ =>
-    decide ((coreProgram[274 + κ]?).map Fn.name = some (Tables.lName "column_selector" κ)) &&
-      certLe 157 (Data.wcertJ (274 + κ)) && decide (wfsJ (274 + κ) ≤ 157)) = true := by
+    decide ((coreProgram[idx% «column_selector__L0» + κ]?).map Fn.name =
+        some (Tables.lName "column_selector" κ)) &&
+      certLe 157 (Data.wcertJ (idx% «column_selector__L0» + κ)) &&
+      decide (wfsJ (idx% «column_selector__L0» + κ) ≤ 157)) = true := by
   decide +kernel
 
 theorem cs_facts {κ : ℕ} (hκ : κ < 31) :
-    (coreProgram[274 + κ]?).map Fn.name = some (Tables.lName "column_selector" κ) ∧
-      certLe 157 (Data.wcertJ (274 + κ)) = true ∧ wfsJ (274 + κ) ≤ 157 := by
+    (coreProgram[idx% «column_selector__L0» + κ]?).map Fn.name =
+        some (Tables.lName "column_selector" κ) ∧
+      certLe 157 (Data.wcertJ (idx% «column_selector__L0» + κ)) = true ∧
+      wfsJ (idx% «column_selector__L0» + κ) ≤ 157 := by
   have h := List.all_eq_true.mp cs_ok κ (List.mem_range.mpr hκ)
   simp only [Bool.and_eq_true, decide_eq_true_eq] at h
   exact ⟨h.1.1, h.1.2, h.2⟩
@@ -161,11 +165,11 @@ theorem cs_fs_le : ∀ κ < 31, Deployed.fs (Tables.lName "column_selector" κ) 
   rw [fsB_idx hname]
   exact hF
 
-/-- The rows' specializations: core functions `81 + r`, constant words certificates within
-`1489`. -/
+/-- The rows' specializations: core functions `rs_eq_rows__L0`'s index `+ r`, constant words
+certificates within `1489`. -/
 theorem rsRows_ok : (List.range 8).all (fun r =>
-    decide ((coreProgram[81 + r]?).map Fn.name = some (rsEqRowsNames.getD r "")) &&
-      certLe 1489 (Data.wcertJ (81 + r))) = true := by
+    decide ((coreProgram[idx% «rs_eq_rows__L0» + r]?).map Fn.name = some (rsEqRowsNames.getD r "")) &&
+      certLe 1489 (Data.wcertJ (idx% «rs_eq_rows__L0» + r))) = true := by
   decide +kernel
 
 /-- **Each `rs_eq_rows__L{r}`, `r < 8`, within `1489` words.** -/
@@ -177,15 +181,10 @@ theorem rsRows_totalLe_fs : ∀ r < 8,
   obtain ⟨b, ks, hcb, hbB⟩ := certLe_spec h.2
   exact (fs_totalLe ((wcertOf_of_idx h.1).trans hcb) rd t args rets hn hv hb).trans hbB
 
-/-- **`rs_eq_run` on at most `34` coordinates within `8142` words** (`rs_totalLeOn34`:
-`49 + (27 + 4 · 1643) + 1489`). -/
-theorem rs_totalLeOn_fs : ∀ c ≤ 34,
-    TotalLeOn coreProgram Deployed.fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c) fun _ => 8142 := by
-  intro c hc rd t args rets hn hp hv hb
-  refine (rs_totalLeOn34 l6_totalLeOn_fs rsRows_totalLe_fs c hc rd t args rets hn hp hv hb).trans ?_
-  show Deployed.fs "rs_eq_run" + (Deployed.fs name% «rs_eq_run_loop0» + 4 * 1643) + 1489 ≤ 8142
-  rw [fs_rs, fs_l6]
-  decide
+/-- **`rs_eq_run` on at most `34` coordinates within `8529` words**, its chain included
+(`57 + 384 + (27 + 4 · 1643 + 1489)`). -/
+theorem rs_words_fs : RswWords Deployed.fs 8529 :=
+  ⟨1643, 1489, l6_totalLeOn_fs, rsRows_totalLe_fs, by have := fs_rs; have := fs_l6; omega⟩
 
 /-! ## At `Deployed.fs` -/
 
