@@ -32,7 +32,7 @@ open LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 /-- The tables' weight blocks: positions and first values. -/
 def vtAirD : List (ℕ × ℕ) :=
-  [(2563, 2579), (2816, 2868), (2965, 3041), (3227, 3339), (3508, 3668), (5156, 5592)]
+  [(2623, 2627), (2876, 2916), (3025, 3089), (3287, 3387), (3568, 3716), (5216, 5640)]
 
 /-- Table `t`'s `g^τ`: the `kappa_base` frame variable `27 + t`. -/
 def vtTauV (t : ℕ) : ℕ := 27 + t

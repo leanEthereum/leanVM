@@ -256,34 +256,34 @@ FW_NOTE = "The framework blocks' coordinate values are the first loop's (`coord_
 
 def gen_rest():
     # ---- PushFw: the push side's framework accumulator ----
-    fwP_leaves = {14, 792, 809, 837, 812, 817, 821, 840, 1111, 1497}
-    consts = [def_pos(v, 'const') for v in (793, 794, 795, 810, 813, 838, 841)]
+    fwP_leaves = {14, 840, 857, 885, 860, 865, 869, 888, 1159, 1545}
+    consts = [def_pos(v, 'const') for v in (841, 842, 843, 858, 861, 886, 889)]
     fwP = total_lemma('vt_push_fw', ("The push side's framework accumulator.",
-        f'σ (.n {fw0}) = σ (.n 792) * (σ (.n 14) + (W 0 + W 1 + W 2)) +\n'
-        '      σ (.n 809) * (σ (.n 14) + (W 0 * gen + W 1 * σ (.n 812) + W 2 + W 3 * σ (.n 817) +\n'
-        '        W 4 * σ (.n 821))) +\n'
-        '      σ (.n 837) * (σ (.n 14) + (W 0 * gen ^ 2 + W 1 * σ (.n 840) + W 2)) +\n'
-        '      σ (.n 1111) * σ (.n 1497)'), fw0, fwP_leaves, extra=consts,
+        f'σ (.n {fw0}) = σ (.n 840) * (σ (.n 14) + (W 0 + W 1 + W 2)) +\n'
+        '      σ (.n 857) * (σ (.n 14) + (W 0 * gen + W 1 * σ (.n 860) + W 2 + W 3 * σ (.n 865) +\n'
+        '        W 4 * σ (.n 869))) +\n'
+        '      σ (.n 885) * (σ (.n 14) + (W 0 * gen ^ 2 + W 1 * σ (.n 888) + W 2)) +\n'
+        '      σ (.n 1159) * σ (.n 1545)'), fw0, fwP_leaves, extra=consts,
         extra_rw='  simp only [tb_word_one, tb_word_gen, vt_word4]\n')
     write('PushFw', "`verify_tables`' push side's framework blocks: their fingerprints' accumulator and the\n  bytecode share's public term.",
           'LeanVM.Guest.B1.Tables.Vt.PushPad',
           "# The push side's framework blocks\n\n`vt_push_fw`: the accumulator after the state, memory and bytecode blocks is\n`Σ_f eq_f·(β + Σ_i w_i·coord_i)`, the bytecode block's public slots left out, plus\n`public_eq·S`. " + FW_NOTE,
           'theorem vt_word4 : word 4 0 = gen ^ 2 := by\n  rw [show (4 : ℕ) = 2 ^ 2 by norm_num, tb_word_two_pow (by norm_num)]\n\n' + fwP)
     # ---- PullTotal ----
-    fwQ_leaves = {14, 1112, 1117, 1131, 1119, 1123, 1125, 1127, 1133, 1137, 1254, 1497}
-    constsQ = [def_pos(v, 'const') for v in (1113, 1114, 1115, 1118, 1132)]
+    fwQ_leaves = {14, 1160, 1165, 1179, 1167, 1171, 1173, 1175, 1181, 1185, 1302, 1545}
+    constsQ = [def_pos(v, 'const') for v in (1161, 1162, 1163, 1166, 1180)]
     fwQ = total_lemma('vt_pull_fw', ("The pull side's framework accumulator.",
-        f'σ (.n {fw1}) = σ (.n 1112) * (σ (.n 14) + (W 0 + W 1 * vtWFinalPc + W 2)) +\n'
-        '      σ (.n 1117) * (σ (.n 14) + (W 0 * gen + W 1 * σ (.n 1119) + W 2 * σ (.n 1123) +\n'
-        '        W 3 * σ (.n 1125) + W 4 * σ (.n 1127))) +\n'
-        '      σ (.n 1131) * (σ (.n 14) + (W 0 * gen ^ 2 + W 1 * σ (.n 1133) + W 2 * σ (.n 1137))) +\n'
-        '      σ (.n 1254) * σ (.n 1497)'), fw1, fwQ_leaves, extra=constsQ,
+        f'σ (.n {fw1}) = σ (.n 1160) * (σ (.n 14) + (W 0 + W 1 * vtWFinalPc + W 2)) +\n'
+        '      σ (.n 1165) * (σ (.n 14) + (W 0 * gen + W 1 * σ (.n 1167) + W 2 * σ (.n 1171) +\n'
+        '        W 3 * σ (.n 1173) + W 4 * σ (.n 1175))) +\n'
+        '      σ (.n 1179) * (σ (.n 14) + (W 0 * gen ^ 2 + W 1 * σ (.n 1181) + W 2 * σ (.n 1185))) +\n'
+        '      σ (.n 1302) * σ (.n 1545)'), fw1, fwQ_leaves, extra=constsQ,
         extra_rw='  simp only [tb_word_one, tb_word_gen, vt_word4]\n')
     # the pull side's running selector sum, over the push side's copies
     D2 = defs(def_pos(sel1, 'copy') - 160, def_pos(sel1, 'copy'))
-    copies = [792, 809, 837] + [c for _, _, c, _ in push_data]
+    copies = [840, 857, 885] + [c for _, _, c, _ in push_data]
     sumQ = total_lemma('vt_pull_sel', ("The pull side's selector sum: the push blocks' copies.",
-        f'σ (.n {sel1}) = σ (.n 792) + σ (.n 809) + σ (.n 837) +\n'
+        f'σ (.n {sel1}) = σ (.n 840) + σ (.n 857) + σ (.n 885) +\n'
         '      (vtPushPadData.map fun x ↦ σ (.n x.2.2.1)).sum'), sel1, set(copies), d=D2,
         extra_rw='  simp only [vtPushPadData, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil]\n',
         hyp='{rd : Reader} {σ : Val} (h : VtH rd σ)')
