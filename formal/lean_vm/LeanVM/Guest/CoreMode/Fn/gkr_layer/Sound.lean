@@ -51,7 +51,7 @@ theorem glQC_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreP
     obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hfn')
     obtain ⟨m, q, h3, hm, h4, h5, hsl, hroom⟩ := glQ_all hr I hI p hp o ho σ bufs kids ht
     obtain ⟨args, rets, hv⟩ := inst_valid' hr hI ht
-    obtain ⟨-, hb⟩ := Res.holds_of_valid gkr_hfs hv hf
+    obtain ⟨-, hb⟩ := Res.holds_of_valid Res.fs_pos hv hf
     rw [hb'] at hb
     obtain ⟨e21, -, -, -, e77, -⟩ :=
       B1.Tables.gl_curs (fun _ _ _ h ↦ Res.KidRel.rel h) hp ho hb h3 h4 h5 (by omega) hsl
