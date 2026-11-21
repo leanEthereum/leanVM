@@ -13,10 +13,13 @@ public import LeanVM.Guest.CoreMode.LoopSigP
 /-!
 # A loop helper's pointer runs at a frame
 
-`CoreLoop`'s `retAll_of_wrk`, `postSet_of_retAll`, `preSet_of_entry`, `entry_of_pre` and
-`holds_entry` for a signature with pointer runs (`SigLP`): a mode pointer run (`PW`) and its heap
-pointer run, read through a reader consistent with the memory (`RdW`, mode to heap) or reading its
-written cells (`RdM`, heap to mode).
+A loop helper's mode signature against its heap signature at a frame, pointer runs included (`SigLP`): its
+termination facts are the heap check's entry facts (`termAt_entryFP`); its preconditions at entry are the heap
+signature's (`preSet_of_entryP`, and back, `entry_of_preP`); its guarantees at return follow from the heap
+signature's written (`retAll_of_wrkP`, and back, `postSet_of_retAllP`); the entry abstraction holds of a frame
+with its entry cells and preconditions written (`holds_entryP`). A mode pointer run (`PW`) and its heap pointer
+run are read through a reader consistent with the memory (`RdW`, mode to heap) or reading its written cells
+(`RdM`, heap to mode).
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -27,7 +30,7 @@ open LeanVM.Guest.Mode (IdxVal RW HW PW MonoVal LTF TermAt RetAll entryAbs stOf)
 
 @[expose] public section
 
-/-- **The termination facts are the heap check's entry facts** (`termAt_entryF` for `SigLP`). -/
+/-- **The termination facts are the heap check's entry facts**, for `SigLP`. -/
 theorem termAt_entryFP {G : Mode.Sig} {h : HSig} {np : ℕ} {ps : List ℕ} {gl : List (ℕ × ℕ × ℕ)} (hs : SigLP G h np ps gl) {s : St} {ws : List E}
     (hP : ParAt G np s ws) (hT : ∀ p ∈ G.term, LTF s p.1 p.2) : ∀ p ∈ h.term, LtF (slotW ws) (idxC p.1) (idxC p.2) := by
   obtain ⟨hi, ei, hG, hh, h2, hei⟩ := hs.term

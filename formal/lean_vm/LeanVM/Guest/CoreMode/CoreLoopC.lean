@@ -183,8 +183,10 @@ noncomputable def loopCodeC (Cf : CFun) (code : List OffsetInstruction) : Bool :
       pre.all (callJ Cf)
   | _ => false
 
-/-- **The shape around a loop helper with calls**: `loopShapeOk`'s, but for the frame walk's callee
-signatures and its residual divisors (`LoopOkC.nzrc`); no conditional call's condition at a nonzero constant's cell. -/
+/-- **The shape around a loop helper**: not `main`, frame cell `1` not its frame pointer, cell `0` no pc, the frame
+walk's callee signatures out of its own code, not `main`'s frame, its entry cells and self cell small, the header
+among the entry cells, its hints by increasing pc, and no conditional call's condition at a nonzero constant's
+cell. -/
 noncomputable def loopShapeOk0 (Cf : CFun) : Bool :=
   !Cf.X.main && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && sigsOut Cf.frame.sigs Cf.frame.entry Cf.frame.len &&
     !Cf.frame.F.fpOne &&

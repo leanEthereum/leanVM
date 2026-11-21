@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.CoreMode.FaRetSplit
 
-  `faRetOk` in chunks of offsets, each its own kernel evaluation, for a function whose frame run cells at
-  its returns cost one evaluation too much memory (`core.py`'s `FA_SPLIT`).
+  `faRetOk` in chunks of offsets, each its own kernel evaluation, for a function whose frame run at its
+  returns is longer than `core.py`'s `FA_RUN` values, checked `FA_B` values at a time.
 -/
 
 module

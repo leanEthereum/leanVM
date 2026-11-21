@@ -30,23 +30,18 @@ public import LeanVM.Guest.EndExecW
 /-!
 # The end theorem
 
-The certificates (`allCerts`) are the core route's (`CoreMode.coreCerts`, every function's, `main`'s
-among them), closed by `assemble` from what the core route gives (`CoreMode.coreFacts`), the program `Mode.guestE0`; the alignment
-the deployed one (`Bridge.alignA`), and the hint tracks' invariant `YFin`: the witness streams'
-cursor (`YCur`) and the bump pointer (`YAlloc`), each kept by a step given the other's premises
-(`KeepY.and`, `InitY.and`: `XOf` is monotone in its hint invariant).
-
-`execGaps : ExecGaps …` is `ExecGaps.ofR` with every proved part: the certificates
-(`assembled`, `CoreMode.mainOk_core`), `main`'s exactness
-(`Budget.mainExactHyp`), the alignment and its jumps (`Bridge.progAl`, `Bridge.alignA_main`,
-`alLayout_alignA`, `jumpCells_at`), the `DEREF` pointers (`derefPow_all`), the computed hints
-(`hintComputed_alignA`, `extraRef_alignA`), the witness hints (`hintWitness_alignA`,
-`witCells_alignA`, `pushShape`), the allocation hints (`hintAlloc_alignA`, on `allocGaps_guest`), the cells the hints use
-(`hintsUsed_alignA`), the tracks kept
-(`keepY_alignA`, `keepY_allocA_guest`) and started (`initY_cur`, `initY_alloc`), the residuals
-and the termination facts (`assembled`), and each frame an honest instance (`coreHonAll_X`).
-`guestExecution_complete_holds` is `Statement/`'s `GuestExecutionComplete`, the statement's
-witness generation (`Prover.guestExecution`) being `guestRun guestAdvice` (`prover_guestExecution_eq`).
+`execGaps : ExecGaps …` is `ExecGaps.ofR` with every proved part: the core route's certificates (`allCerts`, every
+function's `CoreMode.coreCerts`, closed by `assemble` from `CoreMode.coreFacts`: `assembled`, `CoreMode.mainOk_core`,
+with their residuals and termination facts), `main`'s exactness (`Budget.mainExactHyp`), the deployed alignment
+and its jumps (`Bridge.alignA`, `Bridge.progAl`, `Bridge.alignA_main`, `alLayout_alignA`, `jumpCells_at`), the
+`DEREF` pointers (`derefPow_all`), the computed, witness and allocation hints (`hintComputed_alignA`,
+`extraRef_alignA`, `hintWitness_alignA`, `witCells_alignA`, `pushShape`, `hintAlloc_alignA` on `allocGaps_guest`),
+the cells the hints use (`hintsUsed_alignA`), the hint tracks' invariant `YFin` (the witness streams' cursor
+`YCur` and the bump pointer `YAlloc`, kept, `keepY_alignA`, `keepY_allocA_guest`, and started, `initY_cur`,
+`initY_alloc`, each given the other's premises by `KeepY.and`, `InitY.and`), and each frame an honest instance
+(`coreHonAll_X`). From it `guestAdvice_complete`, and `guestExecution_complete_holds` is `Statement/`'s
+`GuestExecutionComplete`, the statement's witness generation (`Prover.guestExecution`) being `guestRun guestAdvice`
+(`prover_guestExecution_eq`).
 -/
 
 namespace LeanVM.Guest.EndExec

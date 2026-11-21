@@ -4,6 +4,8 @@ Lean 4 proofs, all in the random-permutation model, that leanVM is knowledge sou
 
 Key file: [Theorems.lean](./Statement/Theorems.lean)
 
+How to build, regenerate what is derived from the guest and change the spec or the guest: [AGENTS.md](./AGENTS.md). How the guest's executability is proved, function by function: [notes/core-mode.md](./notes/core-mode.md).
+
 ```sh
 cd formal
 ./check-all.sh lean      # build and kernel-check every Lean project: no sorry, axioms Lean's three (needs cargo: it first writes the files derived from the guest, which are not committed)
