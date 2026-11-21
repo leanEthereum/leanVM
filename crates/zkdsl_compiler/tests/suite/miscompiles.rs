@@ -130,3 +130,18 @@ fn nested_return_in_main_is_rejected() {
     let src = "def main():\n    x = 1\n    if x == 1:\n        return\n    assert x == 2\n    return\n";
     let _ = compile(&parse(src).expect("parse"));
 }
+
+/// `x ** 0` never evaluated `x`, dropping the assertion in `one()`.
+#[test]
+fn zero_power_evaluates_its_base() {
+    let src = "def one():\n    x = hint_witness(\"x\")\n    assert x == 1\n    return x\n\ndef main():\n    y = one() ** 0\n    return\n";
+    let run = |x: u64| {
+        execute(
+            &compile(&parse(src).unwrap()),
+            &[("x".into(), vec![vec![F128::from(F64(x))]])],
+            [F128::ZERO; 2],
+        )
+    };
+    run(1).unwrap();
+    assert!(run(2).is_err());
+}
