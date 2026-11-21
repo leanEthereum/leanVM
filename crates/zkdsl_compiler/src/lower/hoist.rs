@@ -6,7 +6,7 @@
 //! changes no instruction: every `HeapBuf` pointer is a fresh cell only its hint writes. A buffer
 //! whose size is not known there, or that not every run reaches, is reserved there from advice
 //! ([`RHint::AllocAdvice`] on [`HEAP_SIZE_STREAM`](crate::HEAP_SIZE_STREAM)), its own hint then
-//! marked late ([`RHint::AllocLate`]), finding its pointer written.
+//! marked late ([`RHint::AllocLate`]), which checks that the advice reserved it, at its size.
 
 use super::*;
 use std::collections::HashSet;
@@ -82,7 +82,7 @@ impl FnLower<'_> {
                     hoisted.push(Ok((i, j)));
                 }
                 _ => {
-                    // Its own hint stays, marked late: it finds its pointer written.
+                    // Its own hint stays, marked late: it checks the advised size.
                     self.code[i].hints[j] = late(&self.code[i].hints[j]);
                     if !hoisted.contains(&Err(ptr)) {
                         hoisted.push(Err(ptr));

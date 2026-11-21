@@ -174,7 +174,8 @@ pub enum Fault {
     /// A `MUL` asked to solve `a·x = c` for `x` with `a = 0`.
     BackSolveThroughZero,
     /// The advice does not fit the program: a witness stream is missing, given
-    /// twice or exhausted, or an entry has the wrong length.
+    /// twice or exhausted, an entry has the wrong length, or a `HeapBuf` the run
+    /// reaches was not reserved from advice at its size.
     Witness(String),
     /// The program allocates or accesses a cell past any memory a stack can hold (`MAX_CELLS`).
     OutOfMemory,
@@ -440,6 +441,8 @@ pub(super) struct Run<'w> {
     pub(super) next_free: u32,
     pub(super) steps: usize,
     pub(super) streams: Vec<Stream<'w>>,
+    /// Each `HeapBuf` reserved from advice: its pointer cell and cell count.
+    pub(super) advised: Vec<(u32, u32)>,
     /// Per-pc execution count, as an exponent of `g`.
     pub(super) bytecode_count: Vec<u32>,
     pub(super) rows: RowSet,
@@ -456,6 +459,7 @@ impl<'w> Run<'w> {
             next_free,
             steps: 0,
             streams,
+            advised: Vec::new(),
             bytecode_count: vec![0; pcs],
             rows: RowSet::new(),
             prof: None,
@@ -937,6 +941,7 @@ pub(super) fn walk<M: Machine>(
     let (mut pc, mut fp, mut next_free, mut steps) = (r.pc, r.fp, r.next_free, r.steps);
     let (mut streams, mut bytecode_count, mut prof) =
         (take(&mut r.streams), take(&mut r.bytecode_count), r.prof.take());
+    let mut advised = take(&mut r.advised);
     let RowSet {
         mut xor,
         mut mul,
@@ -1016,7 +1021,7 @@ pub(super) fn walk<M: Machine>(
                     // pointer cell (once) and reserve `size` cells, the last below
                     // `MAX_CELLS`. `AllocDyn` and `AllocArm` read the size from a cell
                     // at runtime, `AllocAdvice` pops it from a stream. `AllocLate`
-                    // reserves nothing if its pointer is written.
+                    // reserves nothing: its buffer was reserved from advice, at its size.
                     RHint::Alloc { .. }
                     | RHint::AllocDyn { .. }
                     | RHint::AllocAdvice { .. }
@@ -1103,7 +1108,18 @@ pub(super) fn walk<M: Machine>(
                             _ => unreachable!(),
                         };
                         let cell = at(fp, ptr)?;
-                        if !(late && m.written(cell)) {
+                        if late {
+                            if !m.written(cell) {
+                                return Err(fail(Fault::Witness(format!(
+                                    "the HeapBuf at cell {cell} was not reserved from advice"
+                                ))));
+                            }
+                            if !advised.contains(&(cell, size)) {
+                                return Err(fail(Fault::Witness(format!(
+                                    "the HeapBuf at cell {cell} has {size} cells, not its advised size"
+                                ))));
+                            }
+                        } else {
                             let base = next_free;
                             next_free = base
                                 .checked_add(size)
@@ -1117,6 +1133,9 @@ pub(super) fn walk<M: Machine>(
                             }
                             let p = m.g_pow(base as usize);
                             m.put(cell, F128::from(p))?;
+                            if matches!(h, RHint::AllocAdvice { .. }) {
+                                advised.push((cell, size));
+                            }
                         }
                     }
                     RHint::Print { label, cell } => {
@@ -1472,7 +1491,7 @@ pub(super) fn walk<M: Machine>(
         steps += 1;
     };
     (r.pc, r.fp, r.next_free, r.steps) = (pc, fp, next_free, steps);
-    (r.streams, r.bytecode_count, r.prof) = (streams, bytecode_count, prof);
+    (r.streams, r.bytecode_count, r.prof, r.advised) = (streams, bytecode_count, prof, advised);
     r.rows = RowSet {
         xor,
         mul,

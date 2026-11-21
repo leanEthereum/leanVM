@@ -122,7 +122,8 @@ pub enum Fault {
     /// A `MUL` asked to solve `a·x = c` for `x` with `a = 0`.
     BackSolveThroughZero,
     /// The advice does not fit the program: a witness stream is missing, given
-    /// twice or exhausted, or an entry has the wrong length.
+    /// twice or exhausted, an entry has the wrong length, or a `HeapBuf` the run
+    /// reaches was not reserved from advice at its size.
     Witness(String),
     /// The program allocates or accesses a cell past any memory a stack can hold (`MAX_CELLS`).
     OutOfMemory,
@@ -381,11 +382,13 @@ impl Mem {
     }
 }
 
-/// What the hints keep across the run: the next free cell, and each witness stream's next entry.
+/// What the hints keep across the run: the next free cell, each witness stream's next entry, and each `HeapBuf`
+/// reserved from advice, its pointer cell and cell count.
 struct Advice<'a> {
     next_free: u32,
     witness: &'a [(String, Vec<Vec<F128>>)],
     streams: QuickMap<&'a str, Stream<'a>>,
+    advised: Vec<(u32, u32)>,
 }
 
 impl<'a> Advice<'a> {
@@ -496,6 +499,7 @@ pub fn execute(
         next_free: program.main_frame,
         witness,
         streams: QuickMap::default(),
+        advised: Vec::new(),
     };
     // Each pc's hints, indexed by pc: a map lookup on every step costs more than most steps.
     let mut hints: Vec<&[RHint]> = vec![&[]; program.prog.len()];
@@ -749,7 +753,7 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
             let cells = dyn_size(m, g, size)?;
             alloc(m, g, &mut advice.next_free, cell_at(fp, ptr)?, cells)?;
         }
-        // A `HeapBuf` reserved early from advice ([`RHint::AllocAdvice`]) has its pointer written: nothing to do.
+        // A `HeapBuf` reserved early from advice ([`RHint::AllocAdvice`]): reserved, and of its size.
         RHint::AllocLate { ptr, size } => {
             let cells = match size {
                 BufSize::Cells(n) => n,
@@ -757,7 +761,14 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
             };
             let cell = cell_at(fp, ptr)?;
             if !m.written(cell) {
-                alloc(m, g, &mut advice.next_free, cell, cells)?;
+                return Err(Fault::Witness(format!(
+                    "the HeapBuf at cell {cell} was not reserved from advice"
+                )));
+            }
+            if !advice.advised.contains(&(cell, cells)) {
+                return Err(Fault::Witness(format!(
+                    "the HeapBuf at cell {cell} has {cells} cells, not its advised size"
+                )));
             }
         }
         // The size is the exponent of the stream's next entry; an empty entry allocates nothing.
@@ -774,7 +785,9 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
                 }
             };
             let cells = g.log(size).ok_or(not_a_g_power(WHAT, size))?;
-            alloc(m, g, &mut advice.next_free, cell_at(fp, ptr)?, cells)?;
+            let cell = cell_at(fp, ptr)?;
+            alloc(m, g, &mut advice.next_free, cell, cells)?;
+            advice.advised.push((cell, cells));
         }
         // A dispatched call's frame, sized by the arm `m[fp+sel] = g^k` selects.
         RHint::AllocArm { ptr, sel, ref sizes } => {

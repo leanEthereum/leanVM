@@ -123,15 +123,11 @@ theorem allocate_written {s s' : St} {ptr size : ℕ} (hs : s.Good) (h : allocat
     · exact put_written (hs.wf.ensure _) hm
     · exact put_written hs.wf hm
 
-theorem allocateLate_written {s s' : St} {ptr size : ℕ} (hs : s.Good) (h : allocateLate s ptr size = .ok s') :
+theorem checkLate_follows_written {s s' : St} {ptr size : ℕ} (hs : s.Good) (h : checkLate s ptr size = .ok s') :
     St.Follows s s' ∧ s'.mem.written (s.fp + ptr) = true := by
-  unfold allocateLate at h
-  rw [bind_ok] at h
-  obtain ⟨cell, hcell, h⟩ := h
-  obtain ⟨rfl, -⟩ := cellAt_ok hcell
-  split_ifs at h with hw
-  · simp only [pure_ok] at h; subst h; exact ⟨St.Follows.refl hs, hw⟩
-  · exact allocate_written hs h
+  have hw := (checkLate_written h).1
+  rw [checkLate_eq h]
+  exact ⟨St.Follows.refl hs, hw⟩
 
 /-! ## Runs -/
 
@@ -306,9 +302,9 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
       exact (hH.follows (f1.trans f2)).addW (show s'.mem.written (s'.fp + ptr) = true by
         rw [f2.fp]; exact hw2)
   | allocLate ptr size =>
-    have key : ∀ s1 n, St.Follows s s1 → allocateLate s1 ptr n = .ok s' → Holds s' (A.addW ptr) :=
+    have key : ∀ s1 n, St.Follows s s1 → checkLate s1 ptr n = .ok s' → Holds s' (A.addW ptr) :=
       fun s1 n f1 e ↦ by
-        obtain ⟨f2, hw2⟩ := allocateLate_written f1.good e
+        obtain ⟨f2, hw2⟩ := checkLate_follows_written f1.good e
         exact (hH.follows (f1.trans f2)).addW (show s'.mem.written (s'.fp + ptr) = true by
           rw [f2.fp]; exact hw2)
     cases size with

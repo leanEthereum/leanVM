@@ -152,13 +152,13 @@ inductive Hint where
   /-- Reserve the exponent of `[fp + size]` cells, its base written to `fp + ptr`. -/
   | allocDyn (ptr size : ℕ)
   /-- Reserve the exponent of `stream`'s next entry, one word, cells, its base written to
-  `fp + ptr`; nothing for an empty entry. -/
+  `fp + ptr`, and record them as advised; nothing for an empty entry. -/
   | allocAdvice (ptr : ℕ) (stream : String)
   /-- Reserve `sizes[k]` cells, `k` the exponent of `[fp + sel]`, its base written to
   `fp + ptr`: a dispatched call's frame, sized by the arm it selects. -/
   | allocArm (ptr sel : ℕ) (sizes : List ℕ)
-  /-- A `HeapBuf`'s own hint after the compiler reserved it from advice: as `alloc` or `allocDyn`,
-  but nothing if its pointer is written. -/
+  /-- A `HeapBuf`'s own hint after the compiler reserved it from advice: nothing, once the advice
+  reserved its pointer's buffer with its size, `n` cells or the exponent of `[fp + cell]`. -/
   | allocLate (ptr : ℕ) (size : BufSize)
   /-- Write the address of `fp + cell` to `fp + ptr`. -/
   | cellAddress (ptr cell : ℕ)
@@ -334,7 +334,8 @@ structure Ctx where
   hints : Array (List Hint)
   streams : Std.HashMap String (Array (List E))
 
-/-- The state of a run. -/
+/-- The state of a run; `advised`, each `HeapBuf` reserved from advice, its pointer cell and its cell
+count. -/
 structure St where
   mem : Mem
   dl : Dlog
@@ -343,6 +344,7 @@ structure St where
   nextFree : ℕ
   cursor : Std.HashMap String ℕ
   steps : ℕ
+  advised : List (ℕ × ℕ)
 
 /-- Cell `base + off`, if below `maxCells` (`cell_at`). -/
 def cellAt (base off : ℕ) : Except Fault ℕ :=
@@ -428,9 +430,18 @@ def allocate (s : St) (ptr size : ℕ) : Except Fault St := do
   let s := { s with dl := .empty }
   pure { s with nextFree := next, dl := (dl.grow next).note base }
 
-/-- `allocate`, but nothing if the pointer is written (a late hint). -/
-def allocateLate (s : St) (ptr size : ℕ) : Except Fault St := do
-  if s.mem.written (← cellAt s.fp ptr) then pure s else allocate s ptr size
+/-- `allocate`, the reservation recorded as advised. -/
+def allocateAdvised (s : St) (ptr size : ℕ) : Except Fault St := do
+  let s ← allocate s ptr size
+  pure { s with advised := (s.fp + ptr, size) :: s.advised }
+
+/-- A late hint's check: the advice reserved the buffer at `fp + ptr`, of `size` cells. -/
+def checkLate (s : St) (ptr size : ℕ) : Except Fault St := do
+  let c ← cellAt s.fp ptr
+  if s.mem.written c then
+    if s.advised.contains (c, size) then pure s
+    else throw (.witness s!"the HeapBuf at cell {c} has {size} cells, not its advised size")
+  else throw (.witness s!"the HeapBuf at cell {c} was not reserved from advice")
 
 /-- A `HeapBuf`'s cell count. -/
 def bufSize (s : St) : BufSize → Except Fault (ℕ × St)
@@ -477,7 +488,7 @@ def runHint (C : Ctx) (s : St) : Hint → Except Fault St
     | ([w], s) =>
       let sz ← inK "HeapBuf size advice" w
       let (n, s) ← s.logOr sz maxCells (.notAGPower "HeapBuf size advice" sz)
-      allocate s ptr n
+      allocateAdvised s ptr n
     | (v, _) => throw (.witness s!"a HeapBuf size advice holds {v.length} values, not 0 or 1")
   | .allocArm ptr sel sizes => do
     let x ← inK "dispatch selector" (s.mem.peek (← cellAt s.fp sel))
@@ -486,7 +497,7 @@ def runHint (C : Ctx) (s : St) : Hint → Except Fault St
     allocate s ptr n
   | .allocLate ptr size => do
     let (n, s) ← bufSize s size
-    allocateLate s ptr n
+    checkLate s ptr n
   | .cellAddress ptr cell => do
     let c ← cellAt s.fp cell
     let p ← cellAt s.fp ptr
@@ -646,7 +657,7 @@ def execute (prog : LeanIsaProgram) (input : PublicInput) (adv : Advice) :
   let mem : Mem := ⟨#[], #[], #[], #[], max adv.mainFrame 2⟩
   let mem ← ((mem.put 0 input.word0).bind (·.put 1 input.word1)).mapError (0, ·)
   let s ← loop C maxSteps ⟨mem, Dlog.empty.grow (max (C.ops.size + 2) adv.mainFrame), 0, 0,
-    adv.mainFrame, ∅, 0⟩
+    adv.mainFrame, ∅, 0, []⟩
   if maxCells < s.mem.used then throw (0, .outOfMemory)
   for (a, b) in s.mem.links do
     if s.mem.peek a ≠ s.mem.peek b then throw (0, .linkMismatch a b)

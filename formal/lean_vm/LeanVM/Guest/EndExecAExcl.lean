@@ -28,8 +28,8 @@ path allocates it exactly when it takes that branch (`cld_allocH`), and calls on
   nothing before.
 * `lateExcl_guest : LateExcl`: at offset `31` the alignment reaches a call past atoms
   (`cld_late_al`, `callsSure`), so the path calls, so it took the branch and allocates the buffer,
-  whose advice wrote the pointer cell (`AdvWr`); the size cell holds the atom's size value, a power
-  (`dynPow_guest`).
+  whose advice wrote the pointer cell and recorded its size (`AdvWr`); the size cell holds the atom's
+  size value, a power (`dynPow_guest`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -309,8 +309,8 @@ theorem exclReady_alignA : ExclReady alignA := by
     rw [hnfx]; exact hboundK
 
 /-- **`claim_list_digest`'s late hint** finds its buffer reserved: the path calls past its offset, so
-it took the branch, whose buffer the advice reserved; its size cell holds the buffer's size value, a
-power. -/
+it took the branch, whose buffer the advice reserved and recorded with its size; its size cell holds
+the buffer's size value, a power. -/
 theorem lateExcl_guest : LateExcl := by
   intro r C e s sx i p b j hat hj hex
   obtain ⟨hr, hC, ⟨done, st, htr, hch, -, -, hwr⟩, -, hfine, -, hget, hpre, hag⟩ := hat
@@ -347,11 +347,11 @@ theorem lateExcl_guest : LateExcl := by
   have hb1 : e.I.t.bufs = [n] := by rw [hbufs, hH, ite_eq_right h3]; rfl
   have hfol := hints_follows _ s sx ⟨hfine.agree.wf, hfine.dl⟩ hpre
   have hsxfp : sx.fp = e.I.fp := hfol.fp.trans htr.linked.top.1.symm
+  have hwa := hwr.1 0 0 33 Hints.heapSizeStream (by rw [hA2, cld_bufs]; rfl) (by rw [hoff]; norm_num) n
+    (by rw [hb1]; rfl)
   refine ⟨?_, fun hin ↦ ?_⟩
-  · have := hwr.1 0 0 33 Hints.heapSizeStream (by rw [hA2, cld_bufs]; rfl) (by rw [hoff]; norm_num)
-      (by rw [hb1]; simp)
-    rw [hsxfp]
-    exact Mode.written_mono hfol.le this
+  · rw [hsxfp]
+    exact Mode.written_mono hfol.le hwa.1
   -- the size cell holds the buffer's size value, a power
   have hin' : sx.mem.written (sx.fp + 32) = true := hin
   have hev := cld_atom hH h3
@@ -363,9 +363,11 @@ theorem lateExcl_guest : LateExcl := by
   have hval := cellRef hr htr hj ⟨_, hev, by simp [atomUses, hintUses]⟩ cld_cells.2.2.2
   have h32 : (ctxOf cldJ).locAt (V.n (val% «claim_list_digest» "chain~7")).idx = 32 := cld_cells.2.2.1
   rw [h32] at hval
-  refine ⟨n, ?_, by unfold maxCells at hbound ⊢; omega⟩
-  rw [peek_of_written hag hin', hsxfp, hval.2]
-  exact hpow
+  refine ⟨n, ⟨?_, by unfold maxCells at hbound ⊢; omega⟩, ?_⟩
+  · rw [peek_of_written hag hin', hsxfp, hval.2]
+    exact hpow
+  · rw [hsxfp]
+    exact hints_advised _ s sx hpre _ hwa.2
 
 end
 

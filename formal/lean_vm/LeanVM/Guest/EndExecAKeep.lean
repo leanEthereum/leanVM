@@ -124,31 +124,32 @@ def HeapArith (A : String → FnAl) : Prop :=
     StepOff coreProgram (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) r.img A e off st pc' fp' st'' →
     RefTrack A r pc' fp' (done', st'') → ChainH A (memOf r.img) (e :: st) → HeapNext A (memOf r.img) e st off pc' st''
 
-/-- **The hints at a frame's offset write its advised pointer cells there**, those whose buffers exist:
-at a state of the tree track as in `SizesAt`, past the offset's hints. -/
+/-- **The hints at a frame's offset write its advised pointer cells there** and record them with their
+buffers' sizes, those whose buffers exist: at a state of the tree track as in `SizesAt`, past the
+offset's hints. -/
 def AdvWrites (A : String → FnAl) : Prop :=
   ∀ r : Ref, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ done e st (s : St),
     RefTrack A r s.pc s.fp (done, e :: st) → ChainA A (memOf r.img) (e :: st) →
     NcTop A e (s.pc - entOf A e.I.t.name) → HeapAt A r s e st → Fine (refMem r.img) s → OnRef guestProgram r.img r.n s →
     s.pc < C.ops.size → ∀ s1, ((C.hints[s.pc]?).getD []).foldlM (runHint C) s = .ok s1 → Moves (refMem r.img) s s1 →
-    ∀ k p S, (bufsOf (A e.I.t.name).X (A e.I.t.name).d)[k]? = some (s.pc - entOf A e.I.t.name, .allocAdvice p S) →
-      k < e.I.t.bufs.length → s1.mem.written (e.I.fp + p) = true
+    ∀ (k p : ℕ) (S : String), (bufsOf (A e.I.t.name).X (A e.I.t.name).d)[k]? = some (s.pc - entOf A e.I.t.name, .allocAdvice p S) →
+      ∀ n, e.I.t.bufs[k]? = some n → s1.mem.written (e.I.fp + p) = true ∧ (e.I.fp + p, n) ∈ s1.advised
 
-/-- The advised pointer cells written at frames `st` whose top is at `pc`. -/
-def WrNext (A : String → FnAl) (m : Mem) (pc : ℕ) : List Ent → Prop
+/-- The advised pointer cells written and recorded at frames `st` whose top is at `pc`. -/
+def WrNext (A : String → FnAl) (m : Mem) (adv : List (ℕ × ℕ)) (pc : ℕ) : List Ent → Prop
   | [] => True
-  | e :: st => AdvWr A m (e :: st) (pc - entOf A e.I.t.name)
+  | e :: st => AdvWr A m adv (e :: st) (pc - entOf A e.I.t.name)
 
-/-- **The advised pointer cells stay written past each step of the tree track**, given those at the
-step's offset. -/
+/-- **The advised pointer cells stay written and recorded past each step of the tree track**, given those
+at the step's offset. -/
 def WrArith (A : String → FnAl) : Prop :=
-  ∀ r : Ref, r.Ok → ∀ pc fp done e st off pc' fp' st'' done' (m : Mem), RefTrack A r pc fp (done, e :: st) →
-    pc = entOf A e.I.t.name + off →
+  ∀ r : Ref, r.Ok → ∀ pc fp done e st off pc' fp' st'' done' (m : Mem) (adv : List (ℕ × ℕ)),
+    RefTrack A r pc fp (done, e :: st) → pc = entOf A e.I.t.name + off →
     StepOff coreProgram (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) r.img A e off st pc' fp' st'' →
-    RefTrack A r pc' fp' (done', st'') → AdvWr A m (e :: st) off →
-    (∀ k p S, (bufsOf (A e.I.t.name).X (A e.I.t.name).d)[k]? = some (off, .allocAdvice p S) →
-      k < e.I.t.bufs.length → m.written (e.I.fp + p) = true) →
-    WrNext A m pc' st''
+    RefTrack A r pc' fp' (done', st'') → AdvWr A m adv (e :: st) off →
+    (∀ (k p : ℕ) (S : String), (bufsOf (A e.I.t.name).X (A e.I.t.name).d)[k]? = some (off, .allocAdvice p S) →
+      ∀ n, e.I.t.bufs[k]? = some n → m.written (e.I.fp + p) = true ∧ (e.I.fp + p, n) ∈ adv) →
+    WrNext A m adv pc' st''
 
 /-- **The honest pushes of `heap_sizes` are the reference tree's advised sizes**, on alignment `A`. -/
 def HeapPopsA (A : String → FnAl) : Prop := ∀ r : Ref, r.Ok → heapStream r = r.T.heapPops fun f ↦ slotsOf (A f)
@@ -181,15 +182,16 @@ theorem hints_heap {adv : Advice} {C : Ctx} (hC : Ctx.of guestProgram adv = .ok 
     rw [Array.getElem?_eq_none (by omega)] at hh
     cases hh
 
-theorem advWrTop_mono {A : String → FnAl} {m m' : Mem} (h : m ≤ m') {e : Ent} {off : ℕ}
-    (hw : AdvWrTop A m e off) : AdvWrTop A m' e off :=
-  fun k o p S hk ho hb ↦ Mode.written_mono h (hw k o p S hk ho hb)
+theorem advWrTop_mono {A : String → FnAl} {m m' : Mem} {adv adv' : List (ℕ × ℕ)} (h : m ≤ m')
+    (ha : ∀ x ∈ adv, x ∈ adv') {e : Ent} {off : ℕ} (hw : AdvWrTop A m adv e off) : AdvWrTop A m' adv' e off :=
+  fun k o p S hk ho n hn ↦ ⟨Mode.written_mono h (hw k o p S hk ho n hn).1, ha _ (hw k o p S hk ho n hn).2⟩
 
-/-- **Memory growing keeps the advised pointer cells written.** -/
-theorem advWr_mono {A : String → FnAl} {m m' : Mem} (h : m ≤ m') :
-    ∀ {st : List Ent} {off : ℕ}, AdvWr A m st off → AdvWr A m' st off
+/-- **Memory and the advised reservations growing keep the advised pointer cells written and
+recorded.** -/
+theorem advWr_mono {A : String → FnAl} {m m' : Mem} {adv adv' : List (ℕ × ℕ)} (h : m ≤ m')
+    (ha : ∀ x ∈ adv, x ∈ adv') : ∀ {st : List Ent} {off : ℕ}, AdvWr A m adv st off → AdvWr A m' adv' st off
   | [], _, _ => trivial
-  | _ :: _, _, ⟨h1, h2⟩ => ⟨advWrTop_mono h h1, fun e' he' o ↦ advWrTop_mono h (h2 e' he' o)⟩
+  | _ :: _, _, ⟨h1, h2⟩ => ⟨advWrTop_mono h ha h1, fun e' he' o ↦ advWrTop_mono h ha (h2 e' he' o)⟩
 
 theorem filter_heap {l : List Hint} (h : ∀ x ∈ l, popsOn Hints.heapSizeStream x = isAdv x) :
     (l.filter (popsOn Hints.heapSizeStream)).length = l.countP isAdv := by
@@ -379,7 +381,7 @@ theorem keepY_alloc {A : String → FnAl} (hP : ProgAl guestProgram coreProgram 
       simp only [List.foldlM_nil, pure_ok] at e1
       rw [e1]
     refine ⟨[], e0, [], ?_, ?_, hch, by rw [h2]; exact hnc0, ?_, trivial,
-      ⟨fun _ _ _ _ _ ho _ ↦ absurd ho (by rw [h2, hoff0]; exact Nat.not_lt_zero _), fun _ h ↦ absurd h List.not_mem_nil⟩⟩
+      ⟨fun _ _ _ _ _ ho _ _ ↦ absurd ho (by rw [h2, hoff0]; exact Nat.not_lt_zero _), fun _ h ↦ absurd h List.not_mem_nil⟩⟩
     · rw [h2, hfp', hm.fp, hfp]; exact htr
     · rw [hnf', hnf1, (hYs.1 hpro).1, h2, hcur]
     · rw [hhc, hints_pro hC rfl (show s.pc < proLen by omega), (hYs.1 hpro).2, h2, hoff0, hHP r hr]
@@ -444,11 +446,13 @@ theorem keepY_alloc {A : String → FnAl} (hP : ProgAl guestProgram coreProgram 
     rw [e_pc, hcur', hnf', hs1, hcur]
   · rw [hhc, ← List.drop_drop, hha, hoff, hhs, e_pc, hrest]
   · have hle : s.mem ≤ s'.mem := Mem.le_trans hm.le hd.le
+    have ha1 : s'.advised = s1.advised := runOp_advised e
+    have hale : ∀ x ∈ s.advised, x ∈ s'.advised := fun x hx ↦ ha1 ▸ hints_advised _ s s1 e1 x hx
     have hw1 := hAW r hr C hC done e0 st0 s htr hch hnc ⟨hha, hchH, hwr⟩ hon.2.1 hon.2.2 hpcS s1 e1 hm
     rw [hoff] at hw1 hwr
     rw [e_pc]
-    exact hWA r hr _ _ _ _ _ _ _ _ _ _ _ htr hpc0 hk' hts' (advWr_mono hle hwr)
-      fun k p S hk hb ↦ Mode.written_mono hd.le (hw1 k p S hk hb)
+    exact hWA r hr _ _ _ _ _ _ _ _ _ _ _ _ htr hpc0 hk' hts' (advWr_mono hle hale hwr)
+      fun k p S hk n hn ↦ ⟨Mode.written_mono hd.le (hw1 k p S hk n hn).1, ha1 ▸ (hw1 k p S hk n hn).2⟩
 
 /-! ## The allocation hints -/
 

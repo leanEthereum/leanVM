@@ -107,6 +107,36 @@ def main():
     execute(&program, &witness, [F128::ZERO; 2]).unwrap();
 }
 
+/// A `HeapBuf` reserved from advice fails the run where it is allocated unless the advice reserved
+/// it at the size the program computes.
+#[test]
+fn heap_buf_advice_of_another_size_fails() {
+    let source = r#"
+def square(x):
+    return x * x
+
+def main():
+    public = 1
+    n = public[1]
+    if n != 1:
+        buf = HeapBuf(square(n))
+        buf[1] = 1
+    return
+"#;
+    let program = compile(&parse(source).unwrap());
+    let run = |entry: Vec<F128>| {
+        let witness = [(HEAP_SIZE_STREAM.to_string(), vec![entry])];
+        execute(&program, &witness, [F128::from(F64::G), F128::ZERO]).map(|_| ())
+    };
+    let size = |k| vec![F128::from(F64::G.pow(k))];
+    run(size(2)).unwrap();
+    for entry in [vec![], size(1), size(3)] {
+        let error = run(entry).unwrap_err().to_string();
+        assert!(error.contains("advice") || error.contains("advised size"), "{error}");
+        assert!(error.contains("main (line"), "{error}");
+    }
+}
+
 /// The compiler marks a `HeapBuf`'s hint late only where its function reserves it from advice
 /// before: in a branch, past a `return`, sized after a call, and in every program of
 /// `tests/programs/`.
