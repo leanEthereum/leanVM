@@ -46,19 +46,22 @@ theorem allocHintIn {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (ha : isAlloc
   cases h with
   | allocDyn p c =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨sz, hsz, ⟨n, s1⟩, h1, -⟩ := e
+    obtain ⟨c', hc', sz, hsz, ⟨n, s1⟩, h1, -⟩ := e
+    obtain ⟨rfl, -⟩ := cellAt_ok hc'
     obtain ⟨-, h2, h3⟩ := logOr_sm hs h1
     obtain ⟨v, hv, -⟩ := get_of_ptrAt (ptrAt_of hsz h2 h3)
     exact Mode.written_of_get hv
   | allocArm p sel sizes =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨x, hx, ⟨k, s1⟩, h1, -⟩ := e
+    obtain ⟨c', hc', x, hx, ⟨k, s1⟩, h1, -⟩ := e
+    obtain ⟨rfl, -⟩ := cellAt_ok hc'
     obtain ⟨-, h2, h3⟩ := logOr_sm hs h1
     obtain ⟨v, hv, -⟩ := get_of_ptrAt (ptrAt_of hx h2 h3)
     exact Mode.written_of_get hv
   | allocFrames p size stop si tail =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨sp, hsp, e⟩ := e
+    obtain ⟨c', hc', sp, hsp, e⟩ := e
+    obtain ⟨rfl, -⟩ := cellAt_ok hc'
     split_ifs at e with h0
     · simp [bind_ok] at e
     · refine written_of_peek fun hz ↦ h0 ?_

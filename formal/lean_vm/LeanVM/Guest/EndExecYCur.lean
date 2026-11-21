@@ -53,6 +53,8 @@ theorem cur_logOr {s s' : St} {x : K} {b k : ℕ} {f : Fault} (h : s.logOr x b f
 theorem cur_allocate {s s' : St} {ptr size : ℕ} (h : allocate s ptr size = .ok s') :
     s'.cursor = s.cursor := by
   unfold allocate at h
+  rw [bind_ok] at h
+  obtain ⟨cell, -, h⟩ := h
   dsimp only at h
   split at h
   · cases h
@@ -66,6 +68,8 @@ theorem cur_allocate {s s' : St} {ptr size : ℕ} (h : allocate s ptr size = .ok
 theorem cur_allocateLate {s s' : St} {ptr size : ℕ} (h : allocateLate s ptr size = .ok s') :
     s'.cursor = s.cursor := by
   unfold allocateLate at h
+  rw [bind_ok] at h
+  obtain ⟨cell, -, h⟩ := h
   split_ifs at h
   · simp only [pure_ok] at h; subst h; rfl
   · exact cur_allocate h
@@ -79,7 +83,7 @@ theorem cur_bufSize {s s' : St} {b : BufSize} {n : ℕ} (h : bufSize s b = .ok (
     rfl
   | exp c =>
     simp only [bufSize, bind_ok] at h
-    obtain ⟨sz, -, h⟩ := h
+    obtain ⟨c', -, sz, -, h⟩ := h
     exact cur_logOr h
 
 theorem cur_heapBase {s s' : St} {c b : ℕ} {what : String} (h : heapBase s c what = .ok (b, s')) :
@@ -89,14 +93,16 @@ theorem cur_heapBase {s s' : St} {c b : ℕ} {what : String} (h : heapBase s c w
   obtain ⟨p, -, h⟩ := h
   exact cur_logOr h
 
-theorem cur_bitsBase {s s' : St} {d : BitsDest} {what : String} {b : ℕ}
-    (h : bitsBase s d what = .ok (b, s')) : s'.cursor = s.cursor := by
+theorem cur_bitsBase {s s' : St} {d : BitsDest} {len : ℕ} {what : String} {b : ℕ}
+    (h : bitsBase s d len what = .ok (b, s')) : s'.cursor = s.cursor := by
   unfold bitsBase at h
   split at h
-  · simp only [pure_ok, Prod.mk.injEq] at h
-    obtain ⟨-, rfl⟩ := h
+  · simp only [bind_ok, pure_ok, Prod.mk.injEq] at h
+    obtain ⟨c, -, -, rfl⟩ := h
     rfl
-  · exact cur_heapBase h
+  · simp only [bind_ok, pure_ok, Prod.mk.injEq] at h
+    obtain ⟨c, -, ⟨b', s1⟩, h1, c2, -, -, rfl⟩ := h
+    exact cur_heapBase h1
 
 theorem cur_pop {C : Ctx} {s s' : St} {name : String} {len : ℕ} {v : List E}
     (h : pop C s name len = .ok (v, s')) :
@@ -147,7 +153,7 @@ theorem runHint_cursor {C : Ctx} {s s' : St} {hint : Hint} (h : runHint C s hint
   | alloc ptr size => exact keep (cur_allocate h)
   | allocDyn ptr size =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨sz, -, ⟨n, s1⟩, h1, h⟩ := h
+    obtain ⟨c, -, sz, -, ⟨n, s1⟩, h1, h⟩ := h
     exact keep ((cur_allocate h).trans (cur_logOr h1))
   | allocAdvice ptr stream =>
     simp only [runHint, bind_ok] at h
@@ -166,7 +172,7 @@ theorem runHint_cursor {C : Ctx} {s s' : St} {hint : Hint} (h : runHint C s hint
     rfl
   | allocArm ptr sel sizes =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨x, -, ⟨k, s1⟩, h1, h⟩ := h
+    obtain ⟨c, -, x, -, ⟨k, s1⟩, h1, h⟩ := h
     split at h
     · exact keep ((cur_allocate h).trans (cur_logOr h1))
     · simp at h
@@ -176,11 +182,11 @@ theorem runHint_cursor {C : Ctx} {s s' : St} {hint : Hint} (h : runHint C s hint
     exact keep ((cur_allocateLate h).trans (cur_bufSize h1))
   | cellAddress ptr cell =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨c, -, h⟩ := h
+    obtain ⟨c, -, p, -, h⟩ := h
     exact keep (cur_withMem h)
   | allocFrames ptr size stop startInverse tail =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨sp, -, h⟩ := h
+    obtain ⟨c, -, sp, -, h⟩ := h
     split_ifs at h
     · simp [bind_ok] at h
     · rw [bind_ok] at h
@@ -188,41 +194,47 @@ theorem runHint_cursor {C : Ctx} {s s' : St} {hint : Hint} (h : runHint C s hint
       exact keep ((cur_allocate h).trans (cur_logOr h1))
   | witnessStack name base len =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨⟨v, s1⟩, h1, h⟩ := h
+    obtain ⟨bs, -, ⟨v, s1⟩, h1, h⟩ := h
     rw [cur_withMem h, cur_pop h1, getD_insert_succ]
     rfl
   | witnessHeap name ptr lo len =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨⟨b, s1⟩, h1, ⟨v, s2⟩, h2, h⟩ := h
+    obtain ⟨c, -, ⟨b, s1⟩, h1, bl, -, ⟨v, s2⟩, h2, h⟩ := h
     rw [cur_withMem h, cur_pop h2, cur_heapBase h1, getD_insert_succ]
     rfl
   | log2Ceil bits dst nbits floor =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨⟨b, s1⟩, h1, h⟩ := h
+    obtain ⟨⟨b, s1⟩, h1, d, -, h⟩ := h
     exact keep ((cur_withMem h).trans (cur_bitsBase h1))
   | bitDecompose value bits nbits =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨⟨b, s1⟩, h1, h⟩ := h
+    obtain ⟨c, -, ⟨b, s1⟩, h1, h⟩ := h
     exact keep ((cur_withMem h).trans (cur_bitsBase h1))
   | bitDecomposeExp value bits nbits =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨n, -, ⟨b, s1⟩, h1, h⟩ := h
+    obtain ⟨c, -, n, -, ⟨b, s1⟩, h1, h⟩ := h
     exact keep ((cur_withMem h).trans (cur_bitsBase h1))
   | windowsExp value dest pos start width count =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨⟨b, s1⟩, h1, h⟩ := h
+    obtain ⟨c, -, ⟨b, s1⟩, h1, h⟩ := h
     exact keep ((cur_withMem h).trans (cur_bitsBase h1))
   | digitDecomposeExp value dst nbits ndigits digitBits start startCell =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨n, -, h⟩ := h
+    obtain ⟨c, -, n, -, h⟩ := h
     split at h
-    all_goals
-      simp only [bind_ok] at h
+    · simp only [bind_ok] at h
       obtain ⟨st, -, ⟨b, s1⟩, h1, h⟩ := h
       exact keep ((cur_withMem h).trans (cur_bitsBase h1))
-  | fieldLimbs value base len => exact keep (cur_withMem h)
+    · simp only [bind_ok] at h
+      obtain ⟨c', -, st, -, ⟨b, s1⟩, h1, h⟩ := h
+      exact keep ((cur_withMem h).trans (cur_bitsBase h1))
+  | fieldLimbs value base len =>
+    simp only [runHint, bind_ok] at h
+    obtain ⟨c, -, b, -, h⟩ := h
+    exact keep (cur_withMem h)
   | inverse value dst =>
-    simp only [runHint] at h
+    simp only [runHint, bind_ok] at h
+    obtain ⟨c, -, d, -, h⟩ := h
     exact keep (cur_withMem h)
 
 /-- **The hints at a pc move stream `S`'s cursor by the entries they pop of it.** -/

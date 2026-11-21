@@ -8,8 +8,9 @@ public import LeanVM.Prover.ExecuteCompleteMem
 `Fine M s`: the state's memory agrees with the reference `M`, its logarithm table is right and
 small, and its frame lies below `maxCells`. `HintOk C M s h` states what hint `h` needs from the
 state `s` it runs from: its pointers and exponents written as powers in range, the stream entry
-it pops of the right length, and the values it writes equal to `M` at their cells below
-`maxCells`; an allocation's `M` holding `g^nextFree` at its pointer with the reservation in range
+it pops of the right length, a run's length positive and the cells it reads below `maxCells` (a
+pointer's or an exponent's is, being written), and the values it writes equal to `M` at their cells
+below `maxCells`; an allocation's `M` holding `g^nextFree` at its pointer with the reservation in range
 (a late one's pointer written, or that). Then the hint succeeds, keeps `Fine` and the registers, and extends the
 memory (`runHint_complete`).
 -/
@@ -58,6 +59,35 @@ theorem cellAt_eq {base off : ℕ} (h : base + off < maxCells) :
     cellAt base off = .ok (base + off) := by
   unfold cellAt; rw [ite_eq_left h]; rfl
 
+theorem runAt_eq {base off len : ℕ} (h : base + off + len ≤ maxCells) :
+    runAt base off len = .ok (base + off) := by
+  unfold runAt; rw [ite_eq_left h]; rfl
+
+theorem ofK_gpow_ne (e : ℕ) : ofK (g ^ e) ≠ 0 :=
+  (map_ne_zero (algebraMap K E)).mpr (pow_ne_zero _ g_ne_zero)
+
+/-- A cell the state's memory holds a nonzero word at lies below `maxCells`. -/
+theorem Fine.lt_of_peek {M : ℕ → E} {s : St} (hs : Fine M s) {c : ℕ} (h : s.mem.peek c ≠ 0) :
+    c < maxCells := by
+  unfold Mem.peek at h
+  cases hg : s.mem.get c with
+  | none => simp [hg] at h
+  | some v => exact lt_of_lt_of_le (hs.agree.wf.get_lt hg) hs.agree.used
+
+/-- A written cell lies below `maxCells`. -/
+theorem Fine.lt_of_written {M : ℕ → E} {s : St} (hs : Fine M s) {c : ℕ} (h : s.mem.written c = true) :
+    c < maxCells := by
+  unfold Mem.written at h
+  cases hg : s.mem.get c with
+  | none => simp [hg] at h
+  | some v => exact lt_of_lt_of_le (hs.agree.wf.get_lt hg) hs.agree.used
+
+/-- A nonempty run of the reference's values ends below `maxCells`. -/
+theorem RunOk.end_le {M : ℕ → E} {b : ℕ} {vs : List E} (h : RunOk M b vs) (hl : 0 < vs.length) :
+    b + vs.length ≤ maxCells := by
+  have := (h (vs.length - 1) (by omega)).1
+  omega
+
 theorem inK_ofK (what : String) (a : K) : inK what (ofK a) = .ok a := by
   unfold inK
   rw [ite_eq_left (by simp [limb_ofK])]
@@ -72,6 +102,9 @@ theorem St.withMem_eq {s : St} {f : Mem → Except Fault Mem} {m : Mem} (h : f s
 
 /-- Cell `c` holds the pointer `g^b`, with `b < maxCells`. -/
 def PtrAt (s : St) (c b : ℕ) : Prop := s.mem.peek c = ofK (g ^ b) ∧ b < maxCells
+
+theorem PtrAt.lt {M : ℕ → E} {s : St} (hs : Fine M s) {c b : ℕ} (h : PtrAt s c b) : c < maxCells :=
+  hs.lt_of_peek (by rw [h.1]; exact ofK_gpow_ne b)
 
 theorem heapBase_complete {M : ℕ → E} {s : St} (hs : Fine M s) {c b : ℕ} {what : String}
     (h : PtrAt s c b) : ∃ s', heapBase s c what = .ok (b, s') ∧ Moves M s s' := by
@@ -88,15 +121,23 @@ def DestOk (s : St) (P : ℕ → Prop) : BitsDest → Prop
   | .heap ptr => ∃ b, PtrAt s (s.fp + ptr) b ∧ P b
 
 theorem bitsBase_complete {M : ℕ → E} {s : St} (hs : Fine M s) {P : ℕ → Prop} {d : BitsDest}
-    {what : String} (h : DestOk s P d) :
-    ∃ b s', bitsBase s d what = .ok (b, s') ∧ P b ∧ Moves M s s' ∧ s'.mem = s.mem := by
+    {len : ℕ} {what : String} (h : DestOk s P d) (hl : ∀ b, P b → b + len ≤ maxCells) :
+    ∃ b s', bitsBase s d len what = .ok (b, s') ∧ P b ∧ Moves M s s' ∧ s'.mem = s.mem := by
   cases d with
   | stack base =>
-    exact ⟨_, s, rfl, h, ⟨hs, Mem.le_refl _, rfl, rfl, rfl⟩, rfl⟩
+    refine ⟨_, s, ?_, h, ⟨hs, Mem.le_refl _, rfl, rfl, rfl⟩, rfl⟩
+    simp only [bitsBase]
+    rw [runAt_eq (hl _ h)]
+    rfl
   | heap ptr =>
     obtain ⟨b, hb, hP⟩ := h
     obtain ⟨s', e, hm⟩ := heapBase_complete hs (what := what) hb
-    refine ⟨b, s', e, hP, hm, ?_⟩
+    refine ⟨b, s', ?_, hP, hm, ?_⟩
+    · simp only [bitsBase]
+      rw [cellAt_eq (hb.lt hs), ok_bind, e, ok_bind]
+      dsimp only
+      rw [runAt_eq (by simpa using hl b hP)]
+      rfl
     unfold heapBase at e
     rw [hb.1, inK_ofK, ok_bind] at e
     obtain ⟨D', e', -, -⟩ := St.logOr_complete hs.dl hs.small
@@ -156,6 +197,7 @@ def BufOk (s : St) : BufSize → ℕ → Prop
 theorem allocate_complete {M : ℕ → E} {s : St} (hs : Fine M s) {ptr size : ℕ}
     (h : AllocOk M s ptr size) : ∃ s', allocate s ptr size = .ok s' ∧ Moves M s s' := by
   obtain ⟨hcu, hnu, hM⟩ := h
+  have hcell : cellAt s.fp ptr = .ok (s.fp + ptr) := cellAt_eq hcu
   have hm0 : Agree (if s.nextFree < s.nextFree + size then s.mem.ensure (s.nextFree + size - 1)
       else s.mem) M := by
     split_ifs
@@ -176,13 +218,19 @@ theorem allocate_complete {M : ℕ → E} {s : St} (hs : Fine M s) {ptr size : �
     ?_,
     ⟨⟨h', hD, hS, hs.fp⟩, Mem.le_trans hle0 le', rfl, rfl, rfl⟩⟩
   unfold allocate
+  rw [hcell, ok_bind]
   simp only [show ¬maxCells < s.nextFree + size by omega, ↓reduceIte]
   rw [St.withMem_eq e]
   rfl
 
 theorem allocateLate_complete {M : ℕ → E} {s : St} (hs : Fine M s) {ptr size : ℕ}
     (h : AllocLateOk M s ptr size) : ∃ s', allocateLate s ptr size = .ok s' ∧ Moves M s s' := by
+  have hc : s.fp + ptr < maxCells := by
+    rcases h with hw | ha
+    · exact hs.lt_of_written hw
+    · exact ha.1
   unfold allocateLate
+  rw [cellAt_eq hc, ok_bind]
   by_cases hw : s.mem.written (s.fp + ptr) = true
   · exact ⟨s, by simp only [hw, ↓reduceIte]; rfl, ⟨hs, Mem.le_refl _, rfl, rfl, rfl⟩⟩
   · simp only [hw, Bool.false_eq_true, ↓reduceIte]
@@ -198,7 +246,7 @@ theorem bufSize_complete {M : ℕ → E} {s : St} (hs : Fine M s) {b : BufSize} 
       (f := .notAGPower "HeapBuf size" (g ^ n)) hp.2 (by unfold maxCells; norm_num)
     refine ⟨{ s with dl := D' }, ?_, Moves.dl hs h1 h2, rfl, rfl⟩
     simp only [bufSize]
-    rw [hp.1, inK_ofK, ok_bind, e]
+    rw [cellAt_eq (hp.lt hs), ok_bind, hp.1, inK_ofK, ok_bind, e]
 
 /-! ## The hints -/
 
@@ -220,20 +268,22 @@ def HintOk (C : Ctx) (M : ℕ → E) (s : St) : Hint → Prop
     M (s.fp + ptr) = ofK (g ^ (s.fp + cell))
   | .allocFrames ptr size stop startInverse tail => ∃ v n, s.mem.peek (s.fp + stop) = ofK v ∧
     v * startInverse = g ^ n ∧ n < maxCells ∧ AllocOk M s ptr (size * n + tail)
-  | .witnessStack name base len => ∃ e, StreamNext C s name e ∧ e.length = len ∧
+  | .witnessStack name base len => ∃ e, StreamNext C s name e ∧ e.length = len ∧ 0 < len ∧
     RunOk M (s.fp + base) e
   | .witnessHeap name ptr lo len => ∃ b e, PtrAt s (s.fp + ptr) b ∧ StreamNext C s name e ∧
-    e.length = len ∧ RunOk M (b + lo) e
-  | .log2Ceil bits dst nbits floor => DestOk s (fun b ↦ s.fp + dst < maxCells ∧
+    e.length = len ∧ 0 < len ∧ RunOk M (b + lo) e
+  | .log2Ceil bits dst nbits floor => DestOk s (fun b ↦ b + nbits ≤ maxCells ∧ s.fp + dst < maxCells ∧
     M (s.fp + dst) = ofK (g ^ max (log2CeilOf s.mem b nbits) floor)) bits
-  | .bitDecompose value bits nbits => DestOk s (fun b ↦ RunOk M b ((List.range nbits).map
+  | .bitDecompose value bits nbits => s.fp + value < maxCells ∧ 0 < nbits ∧
+    DestOk s (fun b ↦ RunOk M b ((List.range nbits).map
     fun j ↦ bitWord ((wordNat (s.mem.peek (s.fp + value))).testBit j))) bits
-  | .bitDecomposeExp value bits nbits => nbits ≤ 62 ∧ ∃ n, ExpAt s (s.fp + value) n nbits ∧
+  | .bitDecomposeExp value bits nbits => nbits ≤ 62 ∧ 0 < nbits ∧ ∃ n, ExpAt s (s.fp + value) n nbits ∧
     DestOk s (fun b ↦ RunOk M b ((List.range nbits).map fun j ↦ bitWord (n.testBit j))) bits
-  | .windowsExp value dest pos start width count => DestOk s (fun b ↦ RunOk M (b + pos)
+  | .windowsExp value dest pos start width count => s.fp + value < maxCells ∧ 0 < count ∧
+    DestOk s (fun b ↦ RunOk M (b + pos)
     ((List.range count).map fun i ↦
       ofK (g ^ ((wordNat (s.mem.peek (s.fp + value)) >>> (start + i * width)) % 2 ^ width)))) dest
-  | .digitDecomposeExp value dst nbits ndigits digitBits start startCell => nbits ≤ 62 ∧
+  | .digitDecomposeExp value dst nbits ndigits digitBits start startCell => nbits ≤ 62 ∧ 0 < ndigits ∧
     ∃ n st, ExpAt s (s.fp + value) n nbits ∧
       (match startCell with
         | none => st = start
@@ -241,9 +291,10 @@ def HintOk (C : Ctx) (M : ℕ → E) (s : St) : Hint → Prop
       DestOk s (fun b ↦ RunOk M b ((List.range ndigits).map fun j ↦ ofK (g ^
         (if 128 ≤ st + digitBits * j then 0 else (n >>> (st + digitBits * j)) % 2 ^ digitBits))))
         dst
-  | .fieldLimbs value base len => RunOk M (s.fp + base) ((List.range len).map fun j ↦
+  | .fieldLimbs value base len => s.fp + value < maxCells ∧ 0 < len ∧
+    RunOk M (s.fp + base) ((List.range len).map fun j ↦
     ofK (if j = 0 then (s.mem.peek (s.fp + value)).limb 0 else (s.mem.peek (s.fp + value)).limb 1))
-  | .inverse value dst => s.fp + dst < maxCells ∧
+  | .inverse value dst => s.fp + value < maxCells ∧ s.fp + dst < maxCells ∧
     M (s.fp + dst) = if s.mem.peek (s.fp + value) = 0 then 0 else (s.mem.peek (s.fp + value))⁻¹
 
 theorem putRun_moves {M : ℕ → E} {s : St} (hs : Fine M s) {b : ℕ} {vs : List E}
@@ -276,7 +327,7 @@ theorem runHint_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {h :
     obtain ⟨s', e', hm⟩ := allocate_complete (Moves.dl hs h1 h2).fine (s := { s with dl := D' }) ha
     refine ⟨s', ?_, (Moves.dl hs h1 h2).trans hm⟩
     simp only [runHint]
-    rw [hp.1, inK_ofK, ok_bind, e, ok_bind]
+    rw [cellAt_eq (hp.lt hs), ok_bind, hp.1, inK_ofK, ok_bind, e, ok_bind]
     exact e'
   | allocAdvice ptr stream =>
     rcases hh with hn | ⟨n, hn, hlt, ha⟩
@@ -308,7 +359,7 @@ theorem runHint_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {h :
     obtain ⟨s', e', hm⟩ := allocate_complete (Moves.dl hs h1 h2).fine (s := { s with dl := D' }) ha
     refine ⟨s', ?_, (Moves.dl hs h1 h2).trans hm⟩
     simp only [runHint]
-    rw [hp.1, inK_ofK, ok_bind, e, ok_bind]
+    rw [cellAt_eq (hp.lt hs), ok_bind, hp.1, inK_ofK, ok_bind, e, ok_bind]
     simp only [hk]
     exact e'
   | allocLate ptr size =>
@@ -327,7 +378,7 @@ theorem runHint_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {h :
     obtain ⟨s', e, hm⟩ := put_moves hs hM hp
     refine ⟨s', ?_, hm⟩
     simp only [runHint]
-    rw [cellAt_eq hc, ok_bind]
+    rw [cellAt_eq hc, ok_bind, cellAt_eq hp, ok_bind]
     exact e
   | allocFrames ptr size stop startInverse tail =>
     obtain ⟨v, n, hv, hvn, hn, ha⟩ := hh
@@ -336,19 +387,28 @@ theorem runHint_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {h :
       hn (by unfold maxCells; norm_num)
     obtain ⟨s', e', hm⟩ := allocate_complete (Moves.dl hs h1 h2).fine (s := { s with dl := D' }) ha
     refine ⟨s', ?_, (Moves.dl hs h1 h2).trans hm⟩
+    have hv0 : v ≠ 0 := by
+      rintro rfl
+      rw [zero_mul] at hvn
+      exact pow_ne_zero n g_ne_zero hvn.symm
+    have hc : s.fp + stop < maxCells :=
+      hs.lt_of_peek (by rw [hv]; exact (map_ne_zero (algebraMap K E)).mpr hv0)
     simp only [runHint]
-    rw [hv, inK_ofK, ok_bind, hvn, ite_eq_right (pow_ne_zero n g_ne_zero), e, ok_bind]
+    rw [cellAt_eq hc, ok_bind, hv, inK_ofK, ok_bind, hvn, ite_eq_right (pow_ne_zero n g_ne_zero), e,
+      ok_bind]
     exact e'
   | witnessStack name base len =>
-    obtain ⟨e, hn, hl, hr⟩ := hh
+    obtain ⟨e, hn, hl, hpos, hr⟩ := hh
+    have hb : s.fp + base + len ≤ maxCells := hl ▸ hr.end_le (hl ▸ hpos)
     obtain ⟨s1, e1, m1, hmem⟩ := pop_complete hs hn hl
-    obtain ⟨s2, e2, m2⟩ := putRun_moves m1.fine (b := s1.fp + base) (by rw [m1.fp]; exact hr)
+    obtain ⟨s2, e2, m2⟩ := putRun_moves m1.fine (b := s.fp + base) hr
     refine ⟨s2, ?_, m1.trans m2⟩
     simp only [runHint]
-    rw [e1, ok_bind]
+    rw [runAt_eq hb, ok_bind, e1, ok_bind]
     exact e2
   | witnessHeap name ptr lo len =>
-    obtain ⟨b, e, hp, hn, hl, hr⟩ := hh
+    obtain ⟨b, e, hp, hn, hl, hpos, hr⟩ := hh
+    have hb : b + lo + len ≤ maxCells := hl ▸ hr.end_le (hl ▸ hpos)
     obtain ⟨s1, e1, m1⟩ := heapBase_complete hs (what := "hint_witness heap pointer") hp
     have hs1 : s1.mem = s.mem ∧ s1.cursor = s.cursor := by
       unfold heapBase at e1
@@ -363,61 +423,89 @@ theorem runHint_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {h :
     obtain ⟨s3, e3, m3⟩ := putRun_moves m2.fine hr
     refine ⟨s3, ?_, m1.trans (m2.trans m3)⟩
     simp only [runHint]
-    rw [e1, ok_bind, e2, ok_bind]
+    rw [cellAt_eq (hp.lt hs), ok_bind, e1, ok_bind]
+    dsimp only
+    rw [runAt_eq hb, ok_bind, e2, ok_bind]
     exact e3
   | log2Ceil bits dst nbits floor =>
     dsimp only [HintOk] at hh
-    obtain ⟨b, s1, e1, ⟨hd, hM⟩, m1, hmem⟩ := bitsBase_complete hs (what := "log2_ceil pointer") hh
+    obtain ⟨b, s1, e1, ⟨hbn, hd, hM⟩, m1, hmem⟩ :=
+      bitsBase_complete hs (len := nbits) (what := "log2_ceil pointer") hh fun _ h ↦ h.1
     obtain ⟨s2, e2, m2⟩ := put_moves m1.fine (c := s1.fp + dst)
       (v := ofK (g ^ max (log2CeilOf s1.mem b nbits) floor)) (by rw [m1.fp, hmem]; exact hM)
       (by rw [m1.fp]; exact hd)
     refine ⟨s2, ?_, m1.trans m2⟩
     simp only [runHint]
     rw [e1, ok_bind]
+    dsimp only
+    rw [cellAt_eq (show s1.fp + dst < maxCells by rw [m1.fp]; exact hd), ok_bind]
     exact e2
   | bitDecompose value bits nbits =>
-    dsimp only [HintOk] at hh
-    obtain ⟨b, s1, e1, hr, m1, hmem⟩ := bitsBase_complete hs (what := "decompose pointer") hh
+    obtain ⟨hv, hpos, hh⟩ := hh
+    obtain ⟨b, s1, e1, hr, m1, hmem⟩ := bitsBase_complete hs (len := nbits) (what := "decompose pointer") hh
+      fun _ h ↦ by simpa using h.end_le (by simpa using hpos)
     obtain ⟨s2, e2, m2⟩ := putRun_moves m1.fine hr
     refine ⟨s2, ?_, m1.trans m2⟩
     simp only [runHint]
-    rw [e1, ok_bind]
+    rw [cellAt_eq hv, ok_bind, e1, ok_bind]
     exact e2
   | bitDecomposeExp value bits nbits =>
-    obtain ⟨hn, n, he, hd⟩ := hh
+    obtain ⟨hn, hpos, n, he, hd⟩ := hh
     obtain ⟨b, s1, e1, hr, m1, hmem⟩ :=
-      bitsBase_complete hs (what := "hint_decompose_bits_exponent pointer") hd
+      bitsBase_complete hs (len := nbits) (what := "hint_decompose_bits_exponent pointer") hd
+        fun _ h ↦ by simpa using h.end_le (by simpa using hpos)
     obtain ⟨s2, e2, m2⟩ := putRun_moves m1.fine hr
     refine ⟨s2, ?_, m1.trans m2⟩
     simp only [runHint]
-    rw [expOf_complete he hn, ok_bind, e1, ok_bind]
+    rw [cellAt_eq (hs.lt_of_peek (by rw [he.1]; exact ofK_gpow_ne n)), ok_bind, expOf_complete he hn,
+      ok_bind, e1, ok_bind]
     exact e2
   | windowsExp value dest pos start width count =>
-    dsimp only [HintOk] at hh
-    obtain ⟨b, s1, e1, hr, m1, hmem⟩ := bitsBase_complete hs (what := "windows pointer") hh
+    obtain ⟨hv, hpos, hh⟩ := hh
+    obtain ⟨b, s1, e1, hr, m1, hmem⟩ :=
+      bitsBase_complete hs (len := pos + count) (what := "windows pointer") hh
+        fun _ h ↦ by have := h.end_le (by simpa using hpos); simp only [List.length_map,
+          List.length_range] at this; omega
     obtain ⟨s2, e2, m2⟩ := putRun_moves m1.fine hr
     refine ⟨s2, ?_, m1.trans m2⟩
     simp only [runHint]
-    rw [e1, ok_bind]
+    rw [cellAt_eq hv, ok_bind, e1, ok_bind]
     exact e2
   | digitDecomposeExp value dst nbits ndigits digitBits start startCell =>
-    obtain ⟨hn, n, st, he, hst, hd⟩ := hh
+    obtain ⟨hn, hpos, n, st, he, hst, hd⟩ := hh
     obtain ⟨b, s1, e1, hr, m1, hmem⟩ :=
-      bitsBase_complete hs (what := "hint_decompose_digits_exponent pointer") hd
+      bitsBase_complete hs (len := ndigits) (what := "hint_decompose_digits_exponent pointer") hd
+        fun _ h ↦ by simpa using h.end_le (by simpa using hpos)
     obtain ⟨s2, e2, m2⟩ := putRun_moves m1.fine hr
     refine ⟨s2, ?_, m1.trans m2⟩
+    have hvc := cellAt_eq (hs.lt_of_peek (by rw [he.1]; exact ofK_gpow_ne n))
     cases startCell with
     | none =>
       subst hst
       simp only [runHint]
-      rw [expOf_complete he hn, ok_bind, pure_bind', e1, ok_bind]
+      rw [hvc, ok_bind, expOf_complete he hn, ok_bind, pure_bind', e1, ok_bind]
       exact e2
     | some c =>
       simp only [runHint]
-      rw [expOf_complete he hn, ok_bind, expOf_complete hst (by norm_num), ok_bind, e1, ok_bind]
+      rw [hvc, ok_bind, expOf_complete he hn, ok_bind,
+        cellAt_eq (hs.lt_of_peek (by rw [hst.1]; exact ofK_gpow_ne st)), ok_bind,
+        expOf_complete hst (by norm_num), ok_bind, e1, ok_bind]
       exact e2
-  | fieldLimbs value base len => exact putRun_moves hs hh
-  | inverse value dst => exact put_moves hs hh.2 hh.1
+  | fieldLimbs value base len =>
+    obtain ⟨hv, hpos, hr⟩ := hh
+    have hb : s.fp + base + len ≤ maxCells := by simpa using hr.end_le (by simpa using hpos)
+    obtain ⟨s', e, hm⟩ := putRun_moves hs hr
+    refine ⟨s', ?_, hm⟩
+    simp only [runHint]
+    rw [cellAt_eq hv, ok_bind, runAt_eq hb, ok_bind]
+    exact e
+  | inverse value dst =>
+    obtain ⟨hv, hd, hM⟩ := hh
+    obtain ⟨s', e, hm⟩ := put_moves hs hM hd
+    refine ⟨s', ?_, hm⟩
+    simp only [runHint]
+    rw [cellAt_eq hv, ok_bind, cellAt_eq hd, ok_bind]
+    exact e
 
 end
 

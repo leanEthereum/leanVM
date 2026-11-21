@@ -17,9 +17,10 @@ of `main`'s frame), pop witness streams, and compute advice the instructions go 
 Nothing here is trusted: a run that halts gives a valid execution whatever the program, its hints
 and its streams (`lean_vm`, `LeanVM/Prover/ExecuteSound.lean`). One difference from the Rust: an
 instruction reading an unwritten cell fails here, where the Rust reads zero and records the read,
-an execution its prover then refuses (`unconstrained_reads`); so the two accept the same runs. A
-run whose hints write past `maxCells` fails at its end, its memory being no stack's. A `DEREF` link
-is a class of cells sharing one value; the run ends by checking that every link's two cells agree.
+an execution its prover then refuses (`unconstrained_reads`); so the two accept the same runs. Every
+cell a hint reads or writes is checked below `maxCells` (`cellAt`, `runAt`, a run's last cell too), as
+an instruction's are. A `DEREF` link is a class of cells sharing one value; the run ends by checking
+that every link's two cells agree.
 -/
 
 @[expose] public section
@@ -330,9 +331,13 @@ structure St where
   cursor : Std.HashMap String ℕ
   steps : ℕ
 
-/-- Cell `base + off`, if below `maxCells`. -/
+/-- Cell `base + off`, if below `maxCells` (`cell_at`). -/
 def cellAt (base off : ℕ) : Except Fault ℕ :=
   if base + off < maxCells then pure (base + off) else throw .outOfMemory
+
+/-- The first of the `len` cells from `base + off`, if they lie below `maxCells` (`run_at`). -/
+def runAt (base off len : ℕ) : Except Fault ℕ :=
+  if base + off + len ≤ maxCells then pure (base + off) else throw .outOfMemory
 
 /-- A word in `K`, or `NotInK`. -/
 def inK (what : String) (v : E) : Except Fault K :=
@@ -384,11 +389,13 @@ def heapBase (s : St) (c : ℕ) (what : String) : Except Fault (ℕ × St) := do
   let p ← inK what (s.mem.peek c)
   s.logOr p maxCells (.notAGPower what p)
 
-/-- Where a hint's run starts (`bits_base`). -/
-def bitsBase (s : St) (d : BitsDest) (what : String) : Except Fault (ℕ × St) :=
+/-- Where a hint's run of `len` cells starts (`bits_base`). -/
+def bitsBase (s : St) (d : BitsDest) (len : ℕ) (what : String) : Except Fault (ℕ × St) :=
   match d with
-  | .stack base => pure (s.fp + base, s)
-  | .heap ptr => heapBase s (s.fp + ptr) what
+  | .stack base => return (← runAt s.fp base len, s)
+  | .heap ptr => do
+    let (b, s) ← heapBase s (← cellAt s.fp ptr) what
+    return (← runAt b 0 len, s)
 
 /-- The exponent of a word below `2^nbits`, by a bounded discrete logarithm. -/
 def expOf (what : String) (v : E) (nbits : ℕ) : Except Fault ℕ := do
@@ -399,7 +406,7 @@ def expOf (what : String) (v : E) (nbits : ℕ) : Except Fault ℕ := do
 
 /-- Reserve `size` cells, their base written to `fp + ptr` once; the last below `maxCells`. -/
 def allocate (s : St) (ptr size : ℕ) : Except Fault St := do
-  let cell := s.fp + ptr
+  let cell ← cellAt s.fp ptr
   let base := s.nextFree
   let next := base + size
   if maxCells < next then throw .outOfMemory
@@ -409,14 +416,14 @@ def allocate (s : St) (ptr size : ℕ) : Except Fault St := do
   pure { s with nextFree := next, dl := (dl.grow next).note base }
 
 /-- `allocate`, but nothing if the pointer is written (a late hint). -/
-def allocateLate (s : St) (ptr size : ℕ) : Except Fault St :=
-  if s.mem.written (s.fp + ptr) then pure s else allocate s ptr size
+def allocateLate (s : St) (ptr size : ℕ) : Except Fault St := do
+  if s.mem.written (← cellAt s.fp ptr) then pure s else allocate s ptr size
 
 /-- A `HeapBuf`'s cell count. -/
 def bufSize (s : St) : BufSize → Except Fault (ℕ × St)
   | .cells n => pure (n, s)
   | .exp c => do
-    let sz ← inK "HeapBuf size" (s.mem.peek (s.fp + c))
+    let sz ← inK "HeapBuf size" (s.mem.peek (← cellAt s.fp c))
     s.logOr sz maxCells (.notAGPower "HeapBuf size" sz)
 
 /-- Pop stream `name`'s next entry, whatever its length (`Stream::next`). -/
@@ -448,7 +455,7 @@ def runHint (C : Ctx) (s : St) : Hint → Except Fault St
     pure { s with dl := dl.note c }
   | .alloc ptr size => allocate s ptr size
   | .allocDyn ptr size => do
-    let sz ← inK "HeapBuf size" (s.mem.peek (s.fp + size))
+    let sz ← inK "HeapBuf size" (s.mem.peek (← cellAt s.fp size))
     let (n, s) ← s.logOr sz maxCells (.notAGPower "HeapBuf size" sz)
     allocate s ptr n
   | .allocAdvice ptr stream => do
@@ -460,7 +467,7 @@ def runHint (C : Ctx) (s : St) : Hint → Except Fault St
       allocate s ptr n
     | (v, _) => throw (.witness s!"a HeapBuf size advice holds {v.length} values, not 0 or 1")
   | .allocArm ptr sel sizes => do
-    let x ← inK "dispatch selector" (s.mem.peek (s.fp + sel))
+    let x ← inK "dispatch selector" (s.mem.peek (← cellAt s.fp sel))
     let (k, s) ← s.logOr x maxCells (.notAGPower "dispatch selector" x)
     let some n := sizes[k]? | throw (.notAGPower "dispatch selector" x)
     allocate s ptr n
@@ -469,55 +476,60 @@ def runHint (C : Ctx) (s : St) : Hint → Except Fault St
     allocateLate s ptr n
   | .cellAddress ptr cell => do
     let c ← cellAt s.fp cell
-    s.withMem (·.put (s.fp + ptr) (ofK (g ^ c)))
+    let p ← cellAt s.fp ptr
+    s.withMem (·.put p (ofK (g ^ c)))
   | .allocFrames ptr size stop startInverse tail => do
-    let span := (← inK "loop bound" (s.mem.peek (s.fp + stop))) * startInverse
+    let span := (← inK "loop bound" (s.mem.peek (← cellAt s.fp stop))) * startInverse
     if span = 0 then throw (.notAGPower "loop bound" span)
     let (n, s) ← s.logOr span maxCells (.notAGPower "loop bound" span)
     allocate s ptr (size * n + tail)
   | .witnessStack name base len => do
+    let b ← runAt s.fp base len
     let (v, s) ← pop C s name len
-    s.withMem (putRun (s.fp + base) v)
+    s.withMem (putRun b v)
   | .witnessHeap name ptr lo len => do
-    let (b, s) ← heapBase s (s.fp + ptr) "hint_witness heap pointer"
+    let (h, s) ← heapBase s (← cellAt s.fp ptr) "hint_witness heap pointer"
+    let b ← runAt h lo len
     let (v, s) ← pop C s name len
-    s.withMem (putRun (b + lo) v)
+    s.withMem (putRun b v)
   | .log2Ceil bits dst nbits floor => do
-    let (b, s) ← bitsBase s bits "log2_ceil pointer"
+    let (b, s) ← bitsBase s bits nbits "log2_ceil pointer"
     let word := (List.range nbits).foldl
       (fun w j ↦ if s.mem.peek (b + j) = 0 then w else w + 2 ^ j) 0
     let cl := if word ≤ 1 then 0 else Nat.log2 (word - 1) + 1
-    s.withMem (·.put (s.fp + dst) (ofK (g ^ max cl floor)))
+    let d ← cellAt s.fp dst
+    s.withMem (·.put d (ofK (g ^ max cl floor)))
   | .bitDecompose value bits nbits => do
-    let v := wordNat (s.mem.peek (s.fp + value))
-    let (b, s) ← bitsBase s bits "decompose pointer"
+    let v := wordNat (s.mem.peek (← cellAt s.fp value))
+    let (b, s) ← bitsBase s bits nbits "decompose pointer"
     s.withMem (putRun b ((List.range nbits).map fun j ↦ bitWord (v.testBit j)))
   | .bitDecomposeExp value bits nbits => do
-    let n ← expOf "hint_decompose_bits_exponent value" (s.mem.peek (s.fp + value)) nbits
-    let (b, s) ← bitsBase s bits "hint_decompose_bits_exponent pointer"
+    let n ← expOf "hint_decompose_bits_exponent value" (s.mem.peek (← cellAt s.fp value)) nbits
+    let (b, s) ← bitsBase s bits nbits "hint_decompose_bits_exponent pointer"
     s.withMem (putRun b ((List.range nbits).map fun j ↦ bitWord (n.testBit j)))
   | .windowsExp value dest pos start width count => do
-    let v := wordNat (s.mem.peek (s.fp + value))
-    let (b, s) ← bitsBase s dest "windows pointer"
+    let v := wordNat (s.mem.peek (← cellAt s.fp value))
+    let (b, s) ← bitsBase s dest (pos + count) "windows pointer"
     let window (i : ℕ) : ℕ := (v >>> (start + i * width)) % 2 ^ width
     s.withMem (putRun (b + pos) ((List.range count).map fun i ↦ ofK (g ^ window i)))
   | .digitDecomposeExp value dst nbits ndigits digitBits start startCell => do
-    let n ← expOf "hint_decompose_digits_exponent value" (s.mem.peek (s.fp + value)) nbits
+    let n ← expOf "hint_decompose_digits_exponent value" (s.mem.peek (← cellAt s.fp value)) nbits
     let st ← match startCell with
       | none => pure start
-      | some c => expOf "hint_decompose_digits_exponent start" (s.mem.peek (s.fp + c)) 7
-    let (b, s) ← bitsBase s dst "hint_decompose_digits_exponent pointer"
+      | some c => expOf "hint_decompose_digits_exponent start" (s.mem.peek (← cellAt s.fp c)) 7
+    let (b, s) ← bitsBase s dst ndigits "hint_decompose_digits_exponent pointer"
     let digit (j : ℕ) : ℕ :=
       let at' := st + digitBits * j
       if 128 ≤ at' then 0 else (n >>> at') % 2 ^ digitBits
     s.withMem (putRun b ((List.range ndigits).map fun j ↦ ofK (g ^ digit j)))
   | .fieldLimbs value base len => do
-    let v := s.mem.peek (s.fp + value)
-    s.withMem (putRun (s.fp + base)
-      ((List.range len).map fun j ↦ ofK (if j = 0 then v.limb 0 else v.limb 1)))
+    let v := s.mem.peek (← cellAt s.fp value)
+    let b ← runAt s.fp base len
+    s.withMem (putRun b ((List.range len).map fun j ↦ ofK (if j = 0 then v.limb 0 else v.limb 1)))
   | .inverse value dst => do
-    let v := s.mem.peek (s.fp + value)
-    s.withMem (·.put (s.fp + dst) (if v = 0 then 0 else v⁻¹))
+    let v := s.mem.peek (← cellAt s.fp value)
+    let d ← cellAt s.fp dst
+    s.withMem (·.put d (if v = 0 then 0 else v⁻¹))
 
 /-- Execute an instruction (`execute.rs`'s opcode arms). -/
 def runOp (C : Ctx) (s : St) : Op → Except Fault St

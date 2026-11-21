@@ -93,6 +93,7 @@ theorem destOk_memR {loc : ℕ → ℕ} {d : Dest} {bd : Prover.Exec.BitsDest} {
 theorem hintOkR_limbs {loc : ℕ → ℕ} {x : V} {ds : List V} {x' base len : ℕ}
     (h : compiles loc (.limbs x ds) (.fieldLimbs x' base len) = true) {C : Ctx} {M : ℕ → E}
     {st : St} {rd : Reader} {σ : Val} (hx : st.mem.peek (st.fp + loc x.idx) = σ x)
+    (hxc : st.fp + loc x.idx < maxCells) (hpos : 0 < len)
     (hd : DestR loc M st rd σ (.stack ds)) (hex : (Core.Hint.limbs x ds).Exact rd σ) :
     HintOk C M st (.fieldLimbs x' base len) := by
   simp only [compiles, Bool.and_eq_true, beq_iff_eq] at h
@@ -100,7 +101,7 @@ theorem hintOkR_limbs {loc : ℕ → ℕ} {x : V} {ds : List V} {x' base len : �
   have hr := runOk_vals hc hd
   simp only [Core.Hint.Exact] at hex
   rw [hex, ← hx] at hr
-  exact hr
+  exact ⟨hxc, hpos, hr⟩
 
 /-- **`HintOk` of `bits`**: the input at its cell, the destination's words at theirs, the atom
 exact. -/
@@ -108,12 +109,13 @@ theorem hintOkR_bits {loc : ℕ → ℕ} {v : V} {start nbits : ℕ} {d : Dest} 
     {bd : Prover.Exec.BitsDest} {n : ℕ}
     (h : compiles loc (.bits v start nbits d) (.bitDecompose x bd n) = true) {C : Ctx} {M : ℕ → E}
     {st : St} {rd : Reader} {σ : Val} (hv : st.mem.peek (st.fp + loc v.idx) = σ v)
+    (hvc : st.fp + loc v.idx < maxCells) (hpos : 0 < n)
     (hd : DestR loc M st rd σ d) (hex : (Core.Hint.bits v start nbits d).Exact rd σ) :
     HintOk C M st (.bitDecompose x bd n) := by
   simp only [compiles, Bool.and_eq_true, beq_iff_eq] at h
   obtain ⟨⟨⟨rfl, rfl⟩, rfl⟩, hd'⟩ := h
   simp only [Core.Hint.Exact, Nat.zero_add] at hex
-  simp only [HintOk]
+  refine ⟨hvc, hpos, ?_⟩
   refine destOk_mono (fun b hb ↦ ?_) (destOk_runR hd' hd)
   rwa [Nat.add_zero, hex, ← hv] at hb
 
@@ -122,13 +124,13 @@ exact. -/
 theorem hintOkR_bitsExp {loc : ℕ → ℕ} {v : V} {nbits : ℕ} {d : Dest} {x : ℕ}
     {bd : Prover.Exec.BitsDest} {n : ℕ}
     (h : compiles loc (.bitsExp v nbits d) (.bitDecomposeExp x bd n) = true) {C : Ctx} {M : ℕ → E}
-    {st : St} {rd : Reader} {σ : Val} (hv : st.mem.peek (st.fp + loc v.idx) = σ v)
+    {st : St} {rd : Reader} {σ : Val} (hv : st.mem.peek (st.fp + loc v.idx) = σ v) (hpos : 0 < n)
     (hd : DestR loc M st rd σ d) (hex : (Core.Hint.bitsExp v nbits d).Exact rd σ) :
     HintOk C M st (.bitDecomposeExp x bd n) := by
   simp only [compiles, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
   obtain ⟨⟨⟨rfl, rfl⟩, h62⟩, hd'⟩ := h
   obtain ⟨m, hm, hσ, hw⟩ := hex
-  refine ⟨h62, m, ⟨by rw [hv, hσ], hm⟩, destOk_mono (fun b hb ↦ ?_) (destOk_runR hd' hd)⟩
+  refine ⟨h62, hpos, m, ⟨by rw [hv, hσ], hm⟩, destOk_mono (fun b hb ↦ ?_) (destOk_runR hd' hd)⟩
   rwa [Nat.add_zero, hw] at hb
 
 /-- **`HintOk` of `digitsExp`**: the input and the start cell at their cells, the destination's
@@ -139,13 +141,13 @@ theorem hintOkR_digitsExp {loc : ℕ → ℕ} {v : V} {nbits ndigits digitBits s
     (h : compiles loc (.digitsExp v nbits ndigits digitBits start sc d)
       (.digitDecomposeExp x bd nbits' ndigits' digitBits' start' sc') = true) {C : Ctx}
     {M : ℕ → E} {st : St} {rd : Reader} {σ : Val} (hv : st.mem.peek (st.fp + loc v.idx) = σ v)
-    (hs : ∀ c, sc = some c → st.mem.peek (st.fp + loc c.idx) = σ c)
+    (hs : ∀ c, sc = some c → st.mem.peek (st.fp + loc c.idx) = σ c) (hpos : 0 < ndigits')
     (hd : DestR loc M st rd σ d) (hex : (Core.Hint.digitsExp v nbits ndigits digitBits start sc d).Exact rd σ) :
     HintOk C M st (.digitDecomposeExp x bd nbits' ndigits' digitBits' start' sc') := by
   simp only [compiles, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
   obtain ⟨⟨⟨⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, rfl⟩, h62⟩, hsc⟩, hd'⟩ := h
   obtain ⟨m, s, hm, hσ, hst, hw⟩ := hex
-  refine ⟨h62, m, s, ⟨by rw [hv, hσ], hm⟩, ?_, destOk_mono (fun b hb ↦ ?_) (destOk_runR hd' hd)⟩
+  refine ⟨h62, hpos, m, s, ⟨by rw [hv, hσ], hm⟩, ?_, destOk_mono (fun b hb ↦ ?_) (destOk_runR hd' hd)⟩
   · cases sc with
     | none => cases sc' with
       | none => exact hst
@@ -164,13 +166,14 @@ theorem hintOkR_windowsExp {loc : ℕ → ℕ} {v : V} {start width count : ℕ}
     {bd : Prover.Exec.BitsDest} {pos start' width' count' : ℕ}
     (h : compiles loc (.windowsExp v start width count d) (.windowsExp x bd pos start' width' count') = true)
     {C : Ctx} {M : ℕ → E} {st : St} {rd : Reader} {σ : Val}
-    (hv : st.mem.peek (st.fp + loc v.idx) = σ v) (hd : DestR loc M st rd σ d)
+    (hv : st.mem.peek (st.fp + loc v.idx) = σ v) (hvc : st.fp + loc v.idx < maxCells) (hpos : 0 < count')
+    (hd : DestR loc M st rd σ d)
     (hex : (Core.Hint.windowsExp v start width count d).Exact rd σ) :
     HintOk C M st (.windowsExp x bd pos start' width' count') := by
   simp only [compiles, Bool.and_eq_true, beq_iff_eq] at h
   obtain ⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, hd'⟩ := h
   simp only [Core.Hint.Exact] at hex
-  simp only [HintOk]
+  refine ⟨hvc, hpos, ?_⟩
   refine destOk_mono (fun b hb ↦ ?_) (destOk_runR hd' hd)
   rwa [hex, ← hv] at hb
 
@@ -180,16 +183,24 @@ theorem hintOkR_log2Ceil {loc : ℕ → ℕ} {b : Dest} {nbits floor : ℕ} {dst
     {bd : Prover.Exec.BitsDest} {dst' nbits' floor' : ℕ}
     (h : compiles loc (.log2Ceil b nbits floor dst) (.log2Ceil bd dst' nbits' floor') = true)
     {C : Ctx} {M : ℕ → E} {st : St} {rd : Reader} {σ : Val} (hb : DestM loc st rd σ b)
+    (hbn : ∀ a, DestOk st (fun x ↦ x = a) bd → a + nbits' ≤ maxCells)
     (hdst : st.fp + loc dst.idx < maxCells) (hM : M (st.fp + loc dst.idx) = σ dst)
     (hex : (Core.Hint.log2Ceil b nbits floor dst).Exact rd σ) :
     HintOk C M st (.log2Ceil bd dst' nbits' floor') := by
   simp only [compiles, Bool.and_eq_true, beq_iff_eq] at h
   obtain ⟨⟨⟨hd', rfl⟩, rfl⟩, rfl⟩ := h
   simp only [Core.Hint.Exact] at hex
-  show DestOk st (fun a ↦ st.fp + loc dst.idx < maxCells ∧ M (st.fp + loc dst.idx) =
+  show DestOk st (fun a ↦ a + nbits ≤ maxCells ∧ st.fp + loc dst.idx < maxCells ∧ M (st.fp + loc dst.idx) =
     ofK (g ^ max (log2CeilOf st.mem a nbits) floor)) bd
-  refine destOk_mono (fun a ha ↦ ⟨hdst, ?_⟩) (destOk_memR hd' hb)
-  rw [hM, hex, log2CeilOf_eq (fun k hk ↦ by simpa using ha k hk)]
+  have key : ∀ a, (∀ k < nbits, st.mem.peek (a + 0 + k) = (b.words rd σ).getD k 0) →
+      M (st.fp + loc dst.idx) = ofK (g ^ max (log2CeilOf st.mem a nbits) floor) := fun a ha ↦ by
+    rw [hM, hex, log2CeilOf_eq (fun k hk ↦ by simpa using ha k hk)]
+  have hm := destOk_memR hd' hb
+  cases bd with
+  | stack base => exact ⟨hbn _ rfl, hdst, key _ hm⟩
+  | heap ptr =>
+    obtain ⟨a, hpa, ha⟩ := hm
+    exact ⟨a, hpa, hbn a ⟨a, hpa, rfl⟩, hdst, key a ha⟩
 
 end
 

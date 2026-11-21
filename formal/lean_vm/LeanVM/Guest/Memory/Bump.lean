@@ -48,6 +48,8 @@ public section
 theorem allocate_nextFree {s s' : St} {ptr size : ℕ} (h : allocate s ptr size = .ok s') :
     s'.nextFree = s.nextFree + size := by
   unfold allocate at h
+  rw [bind_ok] at h
+  obtain ⟨cell, -, h⟩ := h
   dsimp only at h
   split at h
   · cases h
@@ -60,6 +62,9 @@ theorem allocate_nextFree {s s' : St} {ptr size : ℕ} (h : allocate s ptr size 
 theorem allocateLate_nextFree {s s' : St} {ptr size : ℕ} (h : allocateLate s ptr size = .ok s') :
     s'.nextFree = s.nextFree + if s.mem.written (s.fp + ptr) then 0 else size := by
   unfold allocateLate at h
+  rw [bind_ok] at h
+  obtain ⟨cell, hcell, h⟩ := h
+  obtain ⟨rfl, -⟩ := cellAt_ok hcell
   by_cases hw : s.mem.written (s.fp + ptr) = true
   · rw [ite_eq_left hw] at h
     simp only [pure_ok] at h
@@ -126,14 +131,16 @@ theorem nf_heapBase {s s' : St} {c b : ℕ} {what : String} (hD : s.dl.Ok) (h : 
   obtain ⟨p, -, h⟩ := h
   exact (logOr_keep hD h).1
 
-theorem nf_bitsBase {s s' : St} {d : BitsDest} {what : String} {b : ℕ} (hD : s.dl.Ok)
-    (h : bitsBase s d what = .ok (b, s')) : s'.nextFree = s.nextFree := by
+theorem nf_bitsBase {s s' : St} {d : BitsDest} {len : ℕ} {what : String} {b : ℕ} (hD : s.dl.Ok)
+    (h : bitsBase s d len what = .ok (b, s')) : s'.nextFree = s.nextFree := by
   unfold bitsBase at h
   split at h
-  · simp only [pure_ok, Prod.mk.injEq] at h
-    obtain ⟨-, rfl⟩ := h
+  · simp only [bind_ok, pure_ok, Prod.mk.injEq] at h
+    obtain ⟨c, -, -, rfl⟩ := h
     rfl
-  · exact nf_heapBase hD h
+  · simp only [bind_ok, pure_ok, Prod.mk.injEq] at h
+    obtain ⟨c, -, ⟨b', s1⟩, h1, c2, -, -, rfl⟩ := h
+    exact nf_heapBase hD h1
 
 /-- **A word read as a power `g^k`**, `k < maxCells`, from a memory agreeing with `M`: `M`'s word. -/
 theorem peek_pow {m : Mem} {M : ℕ → E} (hm : ∀ c v, m.get c = some v → M c = v) {c k : ℕ} {what : String} {x : K}
@@ -166,7 +173,8 @@ theorem runHint_nextFree {C : Ctx} {M : ℕ → E} {s s' : St} (hM : ∀ c v, s.
   | alloc ptr size => exact allocate_nextFree e
   | allocDyn ptr size =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨sz, hsz, ⟨n, s1⟩, h1, e⟩ := e
+    obtain ⟨c, hc, sz, hsz, ⟨n, s1⟩, h1, e⟩ := e
+    obtain ⟨rfl, -⟩ := cellAt_ok hc
     obtain ⟨n1, -, hm1, -, hg, hlt⟩ := logOr_keep hD h1
     rw [allocate_nextFree e, n1, rsz, (peek_pow hM hsz hg hlt).2]
   | allocAdvice ptr stream =>
@@ -191,7 +199,8 @@ theorem runHint_nextFree {C : Ctx} {M : ℕ → E} {s s' : St} (hM : ∀ c v, s.
     · simp at e
   | allocArm ptr sel sizes =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨x, hx, ⟨k, s1⟩, h1, e⟩ := e
+    obtain ⟨c, hc, x, hx, ⟨k, s1⟩, h1, e⟩ := e
+    obtain ⟨rfl, -⟩ := cellAt_ok hc
     obtain ⟨n1, -, hm1, -, hg, hlt⟩ := logOr_keep hD h1
     split at e
     · rename_i n hn
@@ -200,7 +209,8 @@ theorem runHint_nextFree {C : Ctx} {M : ℕ → E} {s s' : St} (hM : ∀ c v, s.
     · simp at e
   | allocFrames ptr size stop startInverse tail =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨sp, hsp, e⟩ := e
+    obtain ⟨c, hc, sp, hsp, e⟩ := e
+    obtain ⟨rfl, -⟩ := cellAt_ok hc
     split_ifs at e with h0
     · simp [bind_ok] at e
     · rw [bind_ok] at e
@@ -225,55 +235,63 @@ theorem runHint_nextFree {C : Ctx} {M : ℕ → E} {s s' : St} (hM : ∀ c v, s.
       rfl
     | exp c =>
       simp only [bufSize, bind_ok] at h1
-      obtain ⟨sz, hsz, h1⟩ := h1
+      obtain ⟨c', hc', sz, hsz, h1⟩ := h1
+      obtain ⟨rfl, -⟩ := cellAt_ok hc'
       obtain ⟨n1, f1, m1, -, hg, hlt⟩ := logOr_keep hD h1
       rw [n1, f1, m1, rsz, (peek_pow hM hsz hg hlt).2]
   | cellAddress ptr cell =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨c, -, e⟩ := e
+    obtain ⟨c, -, p, -, e⟩ := e
     exact (withMem_nextFree e).1
   | witnessStack name base len =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨⟨v, s1⟩, h1, e⟩ := e
+    obtain ⟨bs, -, ⟨v, s1⟩, h1, e⟩ := e
     rw [(withMem_nextFree e).1, nf_pop h1]
     rfl
   | witnessHeap name ptr lo len =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨⟨b, s1⟩, h1, ⟨v, s2⟩, h2, e⟩ := e
+    obtain ⟨c, -, ⟨b, s1⟩, h1, bl, -, ⟨v, s2⟩, h2, e⟩ := e
     rw [(withMem_nextFree e).1, nf_pop h2, nf_heapBase hD h1]
     rfl
   | log2Ceil bits dst nbits floor =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨⟨b, s1⟩, h1, e⟩ := e
+    obtain ⟨⟨b, s1⟩, h1, d, -, e⟩ := e
     rw [(withMem_nextFree e).1, nf_bitsBase hD h1]
     rfl
   | bitDecompose value bits nbits =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨⟨b, s1⟩, h1, e⟩ := e
+    obtain ⟨c, -, ⟨b, s1⟩, h1, e⟩ := e
     rw [(withMem_nextFree e).1, nf_bitsBase hD h1]
     rfl
   | bitDecomposeExp value bits nbits =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨n, -, ⟨b, s1⟩, h1, e⟩ := e
+    obtain ⟨c, -, n, -, ⟨b, s1⟩, h1, e⟩ := e
     rw [(withMem_nextFree e).1, nf_bitsBase hD h1]
     rfl
   | windowsExp value dest pos start width count =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨⟨b, s1⟩, h1, e⟩ := e
+    obtain ⟨c, -, ⟨b, s1⟩, h1, e⟩ := e
     rw [(withMem_nextFree e).1, nf_bitsBase hD h1]
     rfl
   | digitDecomposeExp value dst nbits ndigits digitBits start startCell =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨n, -, e⟩ := e
+    obtain ⟨c, -, n, -, e⟩ := e
     split at e
-    all_goals
-      simp only [bind_ok] at e
+    · simp only [bind_ok] at e
       obtain ⟨st, -, ⟨b, s1⟩, h1, e⟩ := e
       rw [(withMem_nextFree e).1, nf_bitsBase hD h1]
       rfl
-  | fieldLimbs value base len => rw [(withMem_nextFree e).1]; rfl
+    · simp only [bind_ok] at e
+      obtain ⟨c', -, st, -, ⟨b, s1⟩, h1, e⟩ := e
+      rw [(withMem_nextFree e).1, nf_bitsBase hD h1]
+      rfl
+  | fieldLimbs value base len =>
+    simp only [runHint, bind_ok] at e
+    obtain ⟨c, -, b, -, e⟩ := e
+    rw [(withMem_nextFree e).1]; rfl
   | inverse value dst =>
-    simp only [runHint] at e
+    simp only [runHint, bind_ok] at e
+    obtain ⟨c, -, d, -, e⟩ := e
     rw [(withMem_nextFree e).1]
     rfl
 

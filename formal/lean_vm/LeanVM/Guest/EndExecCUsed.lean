@@ -168,16 +168,23 @@ theorem heapBase_sm {s s' : St} {c b : ℕ} {what : String} (hs : s.Good) (h : h
   obtain ⟨hsm, h2, h3⟩ := logOr_sm hs h
   exact ⟨hsm, ptrAt_of hp h2 h3⟩
 
-theorem bitsBase_sm {B : ℕ} {s s' : St} {d : BitsDest} {what : String} {b : ℕ} (hs : s.Good)
-    (h : bitsBase s d what = .ok (b, s')) : Sm s s' ∧ ∀ pos n, DstB B s d pos n → ∀ k < n, b + pos + k < B := by
+theorem bitsBase_sm {B : ℕ} {s s' : St} {d : BitsDest} {len : ℕ} {what : String} {b : ℕ} (hs : s.Good)
+    (h : bitsBase s d len what = .ok (b, s')) :
+    Sm s s' ∧ ∀ pos n, DstB B s d pos n → ∀ k < n, b + pos + k < B := by
   cases d with
   | stack base =>
-    simp only [bitsBase, pure_ok, Prod.mk.injEq] at h
-    obtain ⟨rfl, rfl⟩ := h
+    simp only [bitsBase, bind_ok, pure_ok, Prod.mk.injEq] at h
+    obtain ⟨c, hc, rfl, rfl⟩ := h
+    obtain ⟨rfl, -⟩ := runAt_ok hc
     exact ⟨Sm.refl _, fun _ _ hn ↦ hn⟩
   | heap ptr =>
-    obtain ⟨hsm, hp⟩ := heapBase_sm hs h
-    exact ⟨hsm, fun _ _ hn ↦ hn b hp⟩
+    simp only [bitsBase, bind_ok, pure_ok, Prod.mk.injEq] at h
+    obtain ⟨c, hc, ⟨b', s2⟩, h1, c2, hc2, hb, hs2⟩ := h
+    subst hb hs2
+    obtain ⟨rfl, -⟩ := cellAt_ok hc
+    obtain ⟨rfl, -⟩ := runAt_ok hc2
+    obtain ⟨hsm, hp⟩ := heapBase_sm hs h1
+    exact ⟨hsm, fun _ _ hn ↦ by simpa using hn _ hp⟩
 
 theorem bufSize_sm {s s' : St} {b : BufSize} {n : ℕ} (hs : s.Good) (h : bufSize s b = .ok (n, s')) :
     Sm s s' ∧ BufOk s b n := by
@@ -188,7 +195,8 @@ theorem bufSize_sm {s s' : St} {b : BufSize} {n : ℕ} (hs : s.Good) (h : bufSiz
     exact ⟨Sm.refl _, rfl⟩
   | exp c =>
     simp only [bufSize, bind_ok] at h
-    obtain ⟨p, hp, h⟩ := h
+    obtain ⟨c', hc', p, hp, h⟩ := h
+    obtain ⟨rfl, -⟩ := cellAt_ok hc'
     obtain ⟨hsm, h2, h3⟩ := logOr_sm hs h
     exact ⟨hsm, ptrAt_of hp h2 h3⟩
 
@@ -230,6 +238,9 @@ theorem withPut_used {B c : ℕ} {v : E} {s s' : St} (e : s.withMem (·.put c v)
 theorem allocate_used {B p n : ℕ} {s s' : St} (e : allocate s p n = .ok s') (h : s.mem.used ≤ B)
     (hp : s.fp + p < B) (hn : s.nextFree + n ≤ B) : s'.mem.used ≤ B := by
   unfold allocate at e
+  rw [bind_ok] at e
+  obtain ⟨cell, hcell, e⟩ := e
+  obtain ⟨rfl, -⟩ := cellAt_ok hcell
   dsimp only at e
   split at e
   · cases e
@@ -244,6 +255,9 @@ theorem allocate_used {B p n : ℕ} {s s' : St} (e : allocate s p n = .ok s') (h
 theorem allocateLate_used {B p n : ℕ} {s s' : St} (e : allocateLate s p n = .ok s') (h : s.mem.used ≤ B)
     (hp : s.fp + p < B) (hn : s.mem.written (s.fp + p) = false → s.nextFree + n ≤ B) : s'.mem.used ≤ B := by
   unfold allocateLate at e
+  rw [bind_ok] at e
+  obtain ⟨cell, hcell, e⟩ := e
+  obtain ⟨rfl, -⟩ := cellAt_ok hcell
   split_ifs at e with hw
   · simp only [pure_ok] at e; subst e; exact h
   · exact allocate_used e h hp (hn (by simpa using hw))
@@ -259,7 +273,8 @@ theorem usedOk_run {B : ℕ} {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e :
   | alloc p n => exact allocate_used e h0 hu.1 hu.2
   | allocDyn p c =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨sz, hsz, ⟨n, s1⟩, h1, e⟩ := e
+    obtain ⟨c, hc, sz, hsz, ⟨n, s1⟩, h1, e⟩ := e
+    obtain ⟨rfl, -⟩ := cellAt_ok hc
     obtain ⟨hsm, h2, h3⟩ := logOr_sm hs h1
     rw [← hsm.1] at h0
     exact allocate_used e h0 (by rw [hsm.2.1]; exact hu.1)
@@ -294,7 +309,8 @@ theorem usedOk_run {B : ℕ} {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e :
     · simp at e
   | allocArm p sel sizes =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨x, hx, ⟨k, s1⟩, h1, e⟩ := e
+    obtain ⟨c, hc, x, hx, ⟨k, s1⟩, h1, e⟩ := e
+    obtain ⟨rfl, -⟩ := cellAt_ok hc
     obtain ⟨hsm, h2, h3⟩ := logOr_sm hs h1
     split at e
     · rename_i n hn
@@ -311,11 +327,13 @@ theorem usedOk_run {B : ℕ} {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e :
       rw [hsm.2.2]; exact hu.2 (by rw [← hw]; exact hw') n hb)
   | cellAddress p c =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨c', -, e⟩ := e
+    obtain ⟨c', -, pc, hpc, e⟩ := e
+    obtain ⟨rfl, -⟩ := cellAt_ok hpc
     exact withPut_used e h0 hu
   | allocFrames p size stop si tail =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨sp, hsp, e⟩ := e
+    obtain ⟨c, hc, sp, hsp, e⟩ := e
+    obtain ⟨rfl, -⟩ := cellAt_ok hc
     split_ifs at e
     · simp [bind_ok] at e
     · rw [bind_ok] at e
@@ -328,45 +346,49 @@ theorem usedOk_run {B : ℕ} {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e :
       exact allocate_used e h0 (by rw [hsm.2.1]; exact hu.1) (by rw [hsm.2.2]; exact hu.2 _ n h3 hpk h2.symm)
   | witnessStack S base len =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨⟨v, s1⟩, h1, e⟩ := e
+    obtain ⟨bs, hbs, ⟨v, s1⟩, h1, e⟩ := e
+    obtain ⟨rfl, -⟩ := runAt_ok hbs
     obtain ⟨hsm, hl⟩ := pop_sm h1
     rw [← hsm.1] at h0
-    exact withRun_used e h0 (by rw [hsm.2.1, hl]; exact hu)
+    exact withRun_used e h0 (by rw [hl]; exact hu)
   | witnessHeap S ptr lo len =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨⟨b, s1⟩, h1, ⟨v, s2⟩, h2, e⟩ := e
+    obtain ⟨c, hc, ⟨b, s1⟩, h1, bl, hbl, ⟨v, s2⟩, h2, e⟩ := e
+    obtain ⟨rfl, -⟩ := cellAt_ok hc
+    obtain ⟨rfl, -⟩ := runAt_ok hbl
     obtain ⟨hsm1, hp⟩ := heapBase_sm hs h1
     obtain ⟨hsm2, hl⟩ := pop_sm h2
     rw [← (hsm1.trans hsm2).1] at h0
     exact withRun_used e h0 (by rw [hl]; exact hu b hp)
   | log2Ceil bits dst nbits floor =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨⟨b, s1⟩, h1, e⟩ := e
+    obtain ⟨⟨b, s1⟩, h1, dc, hdc, e⟩ := e
+    obtain ⟨rfl, -⟩ := cellAt_ok hdc
     obtain ⟨hsm, -⟩ := bitsBase_sm (B := B) hs h1
     rw [← hsm.1] at h0
     exact withPut_used e h0 (by rw [hsm.2.1]; exact hu)
   | bitDecompose value bits nbits =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨⟨b, s1⟩, h1, e⟩ := e
+    obtain ⟨c, -, ⟨b, s1⟩, h1, e⟩ := e
     obtain ⟨hsm, hd⟩ := bitsBase_sm (B := B) hs h1
     rw [← hsm.1] at h0
     exact withRun_used e h0 (by simpa using hd 0 nbits hu)
   | bitDecomposeExp value bits nbits =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨n, -, ⟨b, s1⟩, h1, e⟩ := e
+    obtain ⟨c, -, n, -, ⟨b, s1⟩, h1, e⟩ := e
     obtain ⟨hsm, hd⟩ := bitsBase_sm (B := B) hs h1
     rw [← hsm.1] at h0
     exact withRun_used e h0 (by simpa using hd 0 nbits hu)
   | windowsExp value dest pos start width count =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨⟨b, s1⟩, h1, e⟩ := e
+    obtain ⟨c, -, ⟨b, s1⟩, h1, e⟩ := e
     obtain ⟨hsm, hd⟩ := bitsBase_sm (B := B) hs h1
     rw [← hsm.1] at h0
     exact withRun_used e h0 (by simpa using hd pos count hu)
   | digitDecomposeExp value dst nbits ndigits digitBits start startCell =>
     simp only [runHint, bind_ok] at e
-    obtain ⟨n, -, e⟩ := e
-    obtain ⟨⟨b, s1⟩, h1, e⟩ : ∃ x : ℕ × St, bitsBase s dst "hint_decompose_digits_exponent pointer" = .ok x ∧
+    obtain ⟨c, -, n, -, e⟩ := e
+    obtain ⟨⟨b, s1⟩, h1, e⟩ : ∃ x : ℕ × St, bitsBase s dst ndigits "hint_decompose_digits_exponent pointer" = .ok x ∧
         ∃ st, x.2.withMem (putRun x.1 ((List.range ndigits).map fun j ↦ ofK (Parameters.g ^
           (if 128 ≤ st + digitBits * j then 0 else (n >>> (st + digitBits * j)) % 2 ^ digitBits)))) = .ok s' := by
       cases startCell with
@@ -377,6 +399,8 @@ theorem usedOk_run {B : ℕ} {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e :
         exact ⟨x, hx, start, e⟩
       | some c =>
         rw [bind_ok] at e
+        obtain ⟨l, -, e⟩ := e
+        rw [bind_ok] at e
         obtain ⟨st, -, e⟩ := e
         rw [bind_ok] at e
         obtain ⟨x, hx, e⟩ := e
@@ -386,10 +410,14 @@ theorem usedOk_run {B : ℕ} {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e :
     rw [← hsm.1] at h0
     exact withRun_used e h0 (by simpa using hd 0 ndigits hu)
   | fieldLimbs value base len =>
-    simp only [runHint] at e
+    simp only [runHint, bind_ok] at e
+    obtain ⟨c, -, bs, hbs, e⟩ := e
+    obtain ⟨rfl, -⟩ := runAt_ok hbs
     exact withRun_used e h0 (by simp only [List.length_map, List.length_range]; exact hu)
   | inverse value dst =>
-    simp only [runHint] at e
+    simp only [runHint, bind_ok] at e
+    obtain ⟨c, -, dc, hdc, e⟩ := e
+    obtain ⟨rfl, -⟩ := cellAt_ok hdc
     exact withPut_used e h0 hu
 
 /-! ## By parts -/

@@ -187,6 +187,7 @@ theorem witness_core {A : String → FnAl} (hP : ProgAl guestProgram coreProgram
   obtain ⟨hc, rfl, hcomp⟩ := ha
   have hadv : ∀ x ∈ pre, advHintOk x = true := fun x hx ↦ hints_adv hC rfl s.pc x (by rw [hL]; simp [hx])
   have hhadv : advHintOk h = true := hints_adv hC rfl s.pc h (by rw [hL]; simp)
+  have hhpos : posHintOk h = true := hints_pos hC rfl (pc_lt_of_hints hC hne) h (by rw [hL]; simp)
   obtain ⟨vs0, hwalk, hon1⟩ := atom_on_path hE1 hp1'
   rw [hσ1, hfn1] at hwalk
   have hfp1 : s1.fp = e.I.fp := hm.1.trans hfp.symm
@@ -199,7 +200,8 @@ theorem witness_core {A : String → FnAl} (hP : ProgAl guestProgram coreProgram
     obtain ⟨-, hnext⟩ := streamNext_of hC hSh hn
     obtain ⟨-, rfl, hloc⟩ := compiles_stack hcomp
     have hcells := hW r hr s.pc s.fp done e st' htr _ _ hwalk S (.stack vs) hon1
-    refine ⟨trivial, fun _ ↦ ⟨_, hnext, by simp [Dest.words], fun k hk ↦ ?_⟩⟩
+    refine ⟨trivial, fun _ ↦ ⟨_, hnext, by simp [Dest.words], by simpa [posHintOk] using hhpos,
+      fun k hk ↦ ?_⟩⟩
     simp only [Dest.words, List.length_map] at hk
     obtain ⟨h1, h2⟩ := hcells vs[k] (List.getElem_mem hk)
     rw [hloc k hk] at h1 h2
@@ -235,7 +237,7 @@ theorem witness_core {A : String → FnAl} (hP : ProgAl guestProgram coreProgram
       exact ⟨hc, by rw [hM, hv1]; rfl⟩
     have h2k : 2 ^ r.κ ≤ maxCells := Nat.pow_le_pow_right (by norm_num) hκ
     refine ⟨fun b' hpt k hk ↦ ?_, fun hin ↦ ⟨b, (Dest.heap pv lo len).words r.rd0 e1.σ, ⟨?_, hb⟩, hnext,
-      by rw [hwords]; simp, ?_⟩⟩
+      by rw [hwords]; simp, by simpa [posHintOk] using hhpos, ?_⟩⟩
     · obtain ⟨v, hv, rfl⟩ := get_of_ptrAt hpt
       have hMv := hm.2 _ _ hv
       rw [hfp1, hc2, hσp] at hMv

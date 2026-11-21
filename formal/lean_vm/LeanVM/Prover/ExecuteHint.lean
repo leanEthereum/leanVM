@@ -45,6 +45,12 @@ theorem cellAt_ok {base off c : ℕ} (h : cellAt base off = .ok c) :
   split_ifs at h with hc
   simp only [pure_ok] at h; exact ⟨h.symm, h ▸ hc⟩
 
+theorem runAt_ok {base off len c : ℕ} (h : runAt base off len = .ok c) :
+    c = base + off ∧ c + len ≤ maxCells := by
+  unfold runAt at h
+  split_ifs at h with hc
+  simp only [pure_ok] at h; exact ⟨h.symm, h ▸ hc⟩
+
 theorem Mem.read_ok {m : Mem} {c : ℕ} {v : E} (h : m.read c = .ok v) : m.get c = some v := by
   unfold Mem.read at h
   split at h
@@ -175,14 +181,16 @@ theorem heapBase_follows {s s' : St} {c b : ℕ} {what : String} (hs : s.Good)
   obtain ⟨p, -, h⟩ := h
   exact (St.logOr_ok hs h).1
 
-theorem bitsBase_follows {s s' : St} {d : BitsDest} {what : String} {b : ℕ} (hs : s.Good)
-    (h : bitsBase s d what = .ok (b, s')) : St.Follows s s' := by
+theorem bitsBase_follows {s s' : St} {d : BitsDest} {len : ℕ} {what : String} {b : ℕ} (hs : s.Good)
+    (h : bitsBase s d len what = .ok (b, s')) : St.Follows s s' := by
   unfold bitsBase at h
   split at h
-  · simp only [pure_ok, Prod.mk.injEq] at h
-    obtain ⟨-, rfl⟩ := h
+  · simp only [bind_ok, pure_ok, Prod.mk.injEq] at h
+    obtain ⟨c, -, -, rfl⟩ := h
     exact St.Follows.refl hs
-  · exact heapBase_follows hs h
+  · simp only [bind_ok, pure_ok, Prod.mk.injEq] at h
+    obtain ⟨c, -, ⟨b', s1⟩, h1, c2, -, -, rfl⟩ := h
+    exact heapBase_follows hs h1
 
 theorem put_le {m m' : Mem} {c : ℕ} {v : E} (hm : m.WF) (h : m.put c v = .ok m') : m ≤ m' ∧ m'.WF :=
   ⟨(Mem.put_ok hm h).1, (Mem.put_ok hm h).2.1⟩
@@ -191,6 +199,8 @@ theorem allocate_follows {s s' : St} {ptr size : ℕ} (hs : s.Good)
     (h : allocate s ptr size = .ok s') :
     St.Follows s s' := by
   unfold allocate at h
+  rw [bind_ok] at h
+  obtain ⟨cell, -, h⟩ := h
   dsimp only at h
   split at h
   · cases h
@@ -208,6 +218,8 @@ theorem allocate_follows {s s' : St} {ptr size : ℕ} (hs : s.Good)
 theorem allocateLate_follows {s s' : St} {ptr size : ℕ} (hs : s.Good)
     (h : allocateLate s ptr size = .ok s') : St.Follows s s' := by
   unfold allocateLate at h
+  rw [bind_ok] at h
+  obtain ⟨cell, -, h⟩ := h
   split_ifs at h
   · simp only [pure_ok] at h; subst h; exact St.Follows.refl hs
   · exact allocate_follows hs h
@@ -221,7 +233,7 @@ theorem bufSize_follows {s s' : St} {b : BufSize} {n : ℕ} (hs : s.Good)
     exact St.Follows.refl hs
   | exp c =>
     simp only [bufSize, bind_ok] at h
-    obtain ⟨sz, -, h⟩ := h
+    obtain ⟨c', -, sz, -, h⟩ := h
     exact (St.logOr_ok hs h).1
 
 theorem putRun_follows {s s' : St} {b : ℕ} {vs : List E} (hs : s.Good)
@@ -243,7 +255,7 @@ theorem runHint_follows {C : Ctx} {s s' : St} {hint : Hint} (hs : s.Good)
   | alloc ptr size => exact allocate_follows hs h
   | allocDyn ptr size =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨sz, -, ⟨n, s1⟩, h1, h⟩ := h
+    obtain ⟨c, -, sz, -, ⟨n, s1⟩, h1, h⟩ := h
     have f1 := (St.logOr_ok hs h1).1
     exact f1.trans (allocate_follows f1.good h)
   | allocAdvice ptr stream =>
@@ -261,7 +273,7 @@ theorem runHint_follows {C : Ctx} {s s' : St} {hint : Hint} (hs : s.Good)
     · simp at h
   | allocArm ptr sel sizes =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨x, -, ⟨k, s1⟩, h1, h⟩ := h
+    obtain ⟨c, -, x, -, ⟨k, s1⟩, h1, h⟩ := h
     have f1 := (St.logOr_ok hs h1).1
     split at h
     · exact f1.trans (allocate_follows f1.good h)
@@ -273,11 +285,11 @@ theorem runHint_follows {C : Ctx} {s s' : St} {hint : Hint} (hs : s.Good)
     exact f1.trans (allocateLate_follows f1.good h)
   | cellAddress ptr cell =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨c, -, h⟩ := h
+    obtain ⟨c, -, p, -, h⟩ := h
     exact put_follows hs h
   | allocFrames ptr size stop startInverse tail =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨sp, -, h⟩ := h
+    obtain ⟨c, -, sp, -, h⟩ := h
     split_ifs at h
     · simp [bind_ok] at h
     · rw [bind_ok] at h
@@ -286,45 +298,55 @@ theorem runHint_follows {C : Ctx} {s s' : St} {hint : Hint} (hs : s.Good)
       exact f1.trans (allocate_follows f1.good h)
   | witnessStack name base len =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨⟨v, s1⟩, h1, h⟩ := h
+    obtain ⟨b, -, ⟨v, s1⟩, h1, h⟩ := h
     have f1 := pop_follows hs h1
     exact f1.trans (putRun_follows f1.good h)
   | witnessHeap name ptr lo len =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨⟨b, s1⟩, h1, ⟨v, s2⟩, h2, h⟩ := h
+    obtain ⟨c, -, ⟨hb, s1⟩, h1, b, -, ⟨v, s2⟩, h2, h⟩ := h
     have f1 := heapBase_follows hs h1
     have f2 := pop_follows f1.good h2
     exact f1.trans (f2.trans (putRun_follows f2.good h))
   | log2Ceil bits dst nbits floor =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨⟨b, s1⟩, h1, h⟩ := h
+    obtain ⟨⟨b, s1⟩, h1, d, -, h⟩ := h
     have f1 := bitsBase_follows hs h1
     exact f1.trans (put_follows f1.good h)
   | bitDecompose value bits nbits =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨⟨b, s1⟩, h1, h⟩ := h
+    obtain ⟨c, -, ⟨b, s1⟩, h1, h⟩ := h
     have f1 := bitsBase_follows hs h1
     exact f1.trans (putRun_follows f1.good h)
   | bitDecomposeExp value bits nbits =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨n, -, ⟨b, s1⟩, h1, h⟩ := h
+    obtain ⟨c, -, n, -, ⟨b, s1⟩, h1, h⟩ := h
     have f1 := bitsBase_follows hs h1
     exact f1.trans (putRun_follows f1.good h)
   | windowsExp value dest pos start width count =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨⟨b, s1⟩, h1, h⟩ := h
+    obtain ⟨c, -, ⟨b, s1⟩, h1, h⟩ := h
     have f1 := bitsBase_follows hs h1
     exact f1.trans (putRun_follows f1.good h)
   | digitDecomposeExp value dst nbits ndigits digitBits start startCell =>
     simp only [runHint, bind_ok] at h
-    obtain ⟨n, -, h⟩ := h
-    split at h <;>
+    obtain ⟨c, -, n, -, h⟩ := h
+    split at h
     · simp only [bind_ok] at h
       obtain ⟨st, -, ⟨b, s1⟩, h1, h⟩ := h
       have f1 := bitsBase_follows hs h1
       exact f1.trans (putRun_follows f1.good h)
-  | fieldLimbs value base len => exact putRun_follows hs h
-  | inverse value dst => exact put_follows hs h
+    · simp only [bind_ok] at h
+      obtain ⟨c', -, st, -, ⟨b, s1⟩, h1, h⟩ := h
+      have f1 := bitsBase_follows hs h1
+      exact f1.trans (putRun_follows f1.good h)
+  | fieldLimbs value base len =>
+    simp only [runHint, bind_ok] at h
+    obtain ⟨c, -, b, -, h⟩ := h
+    exact putRun_follows hs h
+  | inverse value dst =>
+    simp only [runHint, bind_ok] at h
+    obtain ⟨c, -, d, -, h⟩ := h
+    exact put_follows hs h
 
 /-- The hints at a `pc`, in order. -/
 theorem hints_follows {C : Ctx} :

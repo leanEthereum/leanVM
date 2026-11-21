@@ -86,24 +86,32 @@ theorem heapBase_val {s s1 : St} {c b : ℕ} {what : String} (hs : s.Good)
   · simp [hg]
   · simpa using h1
 
-theorem bitsBase_val {s s1 : St} {d : BitsDest} {what : String} {b : ℕ} (hs : s.Good)
-    (h : bitsBase s d what = .ok (b, s1)) (hd : DestIn s d) :
+theorem bitsBase_val {s s1 : St} {d : BitsDest} {len : ℕ} {what : String} {b : ℕ} (hs : s.Good)
+    (h : bitsBase s d len what = .ok (b, s1)) (hd : DestIn s d) :
     St.Follows s s1 ∧ s1.mem = s.mem ∧
       (∀ base, d = .stack base → b = s.fp + base) ∧
       (∀ ptr, d = .heap ptr → ∃ p, s.mem.get (s.fp + ptr) = some p ∧ p = ofK (g ^ b) ∧ b < maxCells) := by
   cases d with
   | stack base =>
-    simp only [bitsBase, pure_ok, Prod.mk.injEq] at h
-    obtain ⟨rfl, rfl⟩ := h
-    exact ⟨St.Follows.refl hs, rfl, fun _ h ↦ by cases h; rfl, fun _ h ↦ nomatch h⟩
+    simp only [bitsBase, bind_ok, pure_ok, Prod.mk.injEq] at h
+    obtain ⟨c, hc, rfl, rfl⟩ := h
+    exact ⟨St.Follows.refl hs, rfl, fun _ h ↦ by cases h; exact (runAt_ok hc).1, fun _ h ↦ nomatch h⟩
   | heap ptr =>
-    obtain ⟨f, hm, hp⟩ := heapBase_val hs h hd
-    exact ⟨f, hm, fun _ h ↦ BitsDest.noConfusion h, fun _ h ↦ by cases h; exact hp⟩
+    simp only [bitsBase, bind_ok, pure_ok, Prod.mk.injEq] at h
+    obtain ⟨c, hc, ⟨b', s2⟩, h1, c2, hc2, hb, hs2⟩ := h
+    subst hb hs2
+    obtain ⟨rfl, -⟩ := cellAt_ok hc
+    obtain ⟨rfl, -⟩ := runAt_ok hc2
+    obtain ⟨f, hm, hp⟩ := heapBase_val hs h1 hd
+    exact ⟨f, hm, fun _ h ↦ BitsDest.noConfusion h, fun _ h ↦ by cases h; simpa using hp⟩
 
 theorem allocate_written {s s' : St} {ptr size : ℕ} (hs : s.Good) (h : allocate s ptr size = .ok s') :
     St.Follows s s' ∧ s'.mem.written (s.fp + ptr) = true := by
   refine ⟨allocate_follows hs h, ?_⟩
   unfold allocate at h
+  rw [bind_ok] at h
+  obtain ⟨cell, hcell, h⟩ := h
+  obtain ⟨rfl, -⟩ := cellAt_ok hcell
   dsimp only at h
   split at h
   · cases h
@@ -118,6 +126,9 @@ theorem allocate_written {s s' : St} {ptr size : ℕ} (hs : s.Good) (h : allocat
 theorem allocateLate_written {s s' : St} {ptr size : ℕ} (hs : s.Good) (h : allocateLate s ptr size = .ok s') :
     St.Follows s s' ∧ s'.mem.written (s.fp + ptr) = true := by
   unfold allocateLate at h
+  rw [bind_ok] at h
+  obtain ⟨cell, hcell, h⟩ := h
+  obtain ⟨rfl, -⟩ := cellAt_ok hcell
   split_ifs at h with hw
   · simp only [pure_ok] at h; subst h; exact ⟨St.Follows.refl hs, hw⟩
   · exact allocate_written hs h
@@ -258,7 +269,7 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
     cases hstep
     refine ⟨hH.written hw, fun e _ ↦ ?_⟩
     simp only [runHint, bind_ok] at e
-    obtain ⟨sz, -, ⟨n, s1⟩, h1, e⟩ := e
+    obtain ⟨c, -, sz, -, ⟨n, s1⟩, h1, e⟩ := e
     have f1 := (St.logOr_ok hs h1).1
     obtain ⟨f2, hw2⟩ := allocate_written f1.good e
     exact (hH.follows (f1.trans f2)).addW (show s'.mem.written (s'.fp + ptr) = true by
@@ -272,7 +283,7 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
     cases hstep
     refine ⟨hH.written hw, fun e _ ↦ ?_⟩
     simp only [runHint, bind_ok] at e
-    obtain ⟨x, -, ⟨k, s1⟩, h1, e⟩ := e
+    obtain ⟨c, -, x, -, ⟨k, s1⟩, h1, e⟩ := e
     have f1 := (St.logOr_ok hs h1).1
     split at e
     · obtain ⟨f2, hw2⟩ := allocate_written f1.good e
@@ -285,7 +296,7 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
     cases hstep
     refine ⟨hH.written hw, fun e _ ↦ ?_⟩
     simp only [runHint, bind_ok] at e
-    obtain ⟨sp, -, e⟩ := e
+    obtain ⟨c, -, sp, -, e⟩ := e
     split_ifs at e
     · simp [bind_ok] at e
     · rw [bind_ok] at e
@@ -318,8 +329,9 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
     cases hstep
     refine ⟨trivial, fun e _ ↦ ?_⟩
     simp only [runHint, bind_ok] at e
-    obtain ⟨c, hc, e⟩ := e
+    obtain ⟨c, hc, pc, hpc, e⟩ := e
     obtain ⟨rfl, -⟩ := cellAt_ok hc
+    obtain ⟨rfl, -⟩ := cellAt_ok hpc
     obtain ⟨m, hm, rfl⟩ := St.withMem_ok e
     obtain ⟨hle, -, hget⟩ := Mem.put_ok hs.wf hm
     have hH' : Holds { s with mem := m } A := hH.mono (s' := { s with mem := m }) hle rfl
@@ -329,7 +341,8 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
     cases hstep
     refine ⟨trivial, fun e hu ↦ ?_⟩
     simp only [runHint, bind_ok] at e
-    obtain ⟨⟨v, s1⟩, h1, e⟩ := e
+    obtain ⟨bs, hbs, ⟨v, s1⟩, h1, e⟩ := e
+    obtain ⟨rfl, -⟩ := runAt_ok hbs
     obtain ⟨hl, f1, -⟩ := pop_len hs h1
     obtain ⟨m, hm, rfl⟩ := St.withMem_ok e
     obtain ⟨hle, hv⟩ := putRun_vals f1.good.wf hm
@@ -338,14 +351,18 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
     refine writeRun_sound hH' (by rw [f1.fp]; exact hfp) hu (putRun_ok f1.good.wf hm).2
       (fun base' hb j hj ↦ ?_) (fun _ h ↦ by cases h)
     cases hb
-    exact ⟨v[j], by rw [Nat.add_zero, ← Nat.add_assoc]; exact hv j hj, fun _ h ↦ by cases h⟩
+    refine ⟨v[j], ?_, fun _ h ↦ by cases h⟩
+    show m.get (s1.fp + (base + 0 + j)) = _
+    rw [f1.fp, Nat.add_zero, ← Nat.add_assoc]; exact hv j hj
   | witnessHeap name ptr lo len =>
     simp only [stepHint] at hstep
     obtain ⟨d, hd, rfl⟩ := Option.map_eq_some_iff.mp hstep
     obtain ⟨hw, m, hm, rfl⟩ := destOf_heap hd
     refine ⟨hH.written hw, fun e hu ↦ ?_⟩
     simp only [runHint, bind_ok] at e
-    obtain ⟨⟨b, s1⟩, h1, ⟨v, s2⟩, h2, e⟩ := e
+    obtain ⟨c, hc, ⟨b, s1⟩, h1, bl, hbl0, ⟨v, s2⟩, h2, e⟩ := e
+    obtain ⟨rfl, -⟩ := cellAt_ok hc
+    obtain ⟨rfl, -⟩ := runAt_ok hbl0
     obtain ⟨f1, hm1, p, hp, hpb, hbl⟩ := heapBase_val hs h1 (hH.written hw)
     obtain ⟨hl, f2, hm2⟩ := pop_len f1.good h2
     obtain ⟨hle, hfp3, hv⟩ := withMem_putRun f2.good e
@@ -376,7 +393,8 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
       refine ⟨fun j hj ↦ ?_, fun e _ ↦ ?_⟩
       · rw [Nat.add_assoc]; exact hH.written (List.all_eq_true.mp hall j (List.mem_range.mpr hj))
       · simp only [runHint, bind_ok] at e
-        obtain ⟨⟨b, s1⟩, h1, e⟩ := e
+        obtain ⟨⟨b, s1⟩, h1, dc, hdc, e⟩ := e
+        obtain ⟨rfl, -⟩ := cellAt_ok hdc
         have f1 := bitsBase_follows hs h1
         obtain ⟨m, hm, rfl⟩ := St.withMem_ok e
         obtain ⟨hle, -, hget⟩ := Mem.put_ok f1.good.wf hm
@@ -399,7 +417,8 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
         exact Abs.covered_sound hH hs.wf hu (List.all_eq_true.mp hall j (List.mem_range.mpr hj))
           (hu2.shift j) hX
       · simp only [runHint, bind_ok] at e
-        obtain ⟨⟨b, s1⟩, h1, e⟩ := e
+        obtain ⟨⟨b, s1⟩, h1, dc, hdc, e⟩ := e
+        obtain ⟨rfl, -⟩ := cellAt_ok hdc
         have f1 := bitsBase_follows hs h1
         obtain ⟨m, hm, rfl⟩ := St.withMem_ok e
         obtain ⟨hle, -, hget⟩ := Mem.put_ok f1.good.wf hm
@@ -421,7 +440,7 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
       | heap ptr => exact hH.written (destOf_heap hd).1
     refine ⟨⟨hH.written hw, hdin⟩, fun e hu' ↦ ?_⟩
     simp only [runHint, bind_ok] at e
-    obtain ⟨⟨b, s1⟩, h1, e⟩ := e
+    obtain ⟨c, -, ⟨b, s1⟩, h1, e⟩ := e
     obtain ⟨f1, hm1, hb1, hb2⟩ := bitsBase_val hs h1 hdin
     obtain ⟨hle, hfp', hwf, hv⟩ := bits_run f1.good e
     have := runFrom_sound hH hfp hd hb1 hb2 (hm1 ▸ hle) (hfp'.trans f1.fp) hu' hwf hv
@@ -440,7 +459,7 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
       | heap ptr => exact hH.written (destOf_heap hd).1
     refine ⟨⟨hH.written hw, hdin⟩, fun e hu' ↦ ?_⟩
     simp only [runHint, bind_ok] at e
-    obtain ⟨n, -, ⟨b, s1⟩, h1, e⟩ := e
+    obtain ⟨c, -, n, -, ⟨b, s1⟩, h1, e⟩ := e
     obtain ⟨f1, hm1, hb1, hb2⟩ := bitsBase_val hs h1 hdin
     obtain ⟨hle, hfp', hwf, hv⟩ := bits_run f1.good e
     have := runFrom_sound hH hfp hd hb1 hb2 (hm1 ▸ hle) (hfp'.trans f1.fp) hu' hwf hv
@@ -459,7 +478,7 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
       | heap ptr => exact hH.written (destOf_heap hd).1
     refine ⟨⟨hH.written hw, hdin⟩, fun e hu' ↦ ?_⟩
     simp only [runHint, bind_ok] at e
-    obtain ⟨⟨b, s1⟩, h1, e⟩ := e
+    obtain ⟨c, -, ⟨b, s1⟩, h1, e⟩ := e
     obtain ⟨f1, hm1, hb1, hb2⟩ := bitsBase_val hs h1 hdin
     obtain ⟨hle, hfp', hwf, hv⟩ := bits_run f1.good e
     have := runFrom_sound hH hfp hd hb1 hb2 (pos := pos) (hm1 ▸ hle) (hfp'.trans f1.fp) hu' hwf
@@ -481,7 +500,7 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
     refine ⟨⟨hH.written hw.1, fun c hc ↦ by subst hc; exact hH.written (by simpa using hw.2), hdin⟩,
       fun e hu' ↦ ?_⟩
     simp only [runHint, bind_ok] at e
-    obtain ⟨n, -, e⟩ := e
+    obtain ⟨c, -, n, -, e⟩ := e
     split at e
     · simp only [pure_bind, bind_ok] at e
       obtain ⟨⟨b, s1⟩, h1, e⟩ := e
@@ -499,7 +518,7 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
       simpa using this
 
     · simp only [bind_ok] at e
-      obtain ⟨st, -, ⟨b, s1⟩, h1, e⟩ := e
+      obtain ⟨c', -, st, -, ⟨b, s1⟩, h1, e⟩ := e
       obtain ⟨f1, hm1, hb1, hb2⟩ := bitsBase_val hs h1 hdin
       obtain ⟨hle, hfp', hwf, hv⟩ := bits_run f1.good e
       have := runFrom_sound hH hfp hd hb1 hb2 (hm1 ▸ hle) (hfp'.trans f1.fp) hu' hwf hv
@@ -521,6 +540,9 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
     rw [ite_eq_left hw] at hstep
     obtain rfl := Option.some.inj hstep
     refine ⟨hH.written hw, fun e hu' ↦ ?_⟩
+    simp only [runHint, bind_ok] at e
+    obtain ⟨c, -, bs, hbs, e⟩ := e
+    obtain ⟨rfl, -⟩ := runAt_ok hbs
     obtain ⟨hle, hfp', hwf, hv⟩ := bits_run hs e
     have := runFrom_sound (bits := .stack base) (d := (some base, none)) hH hfp rfl
       (fun _ h ↦ by cases h; rfl) (fun _ h ↦ by cases h) hle hfp' hu' hwf hv (bb := none)
@@ -534,7 +556,10 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
     rw [ite_eq_left hw] at hstep
     obtain rfl := Option.some.inj hstep
     refine ⟨hH.written hw, fun e _ ↦ ?_⟩
-    simp only [runHint] at e
+    simp only [runHint, bind_ok] at e
+    obtain ⟨c, hc, dc, hdc, e⟩ := e
+    obtain ⟨rfl, -⟩ := cellAt_ok hc
+    obtain ⟨rfl, -⟩ := cellAt_ok hdc
     obtain ⟨m, hm, rfl⟩ := St.withMem_ok e
     obtain ⟨hle, -, hget⟩ := Mem.put_ok hs.wf hm
     have hH' : Holds { s with mem := m } A := hH.mono (s' := { s with mem := m }) hle rfl

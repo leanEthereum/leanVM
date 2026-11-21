@@ -12,6 +12,7 @@ public import LeanVM.Guest.Bridge.Pair
 public import LeanVM.Guest.Bridge.PairEvery
 public import LeanVM.Guest.Bridge.FrameMap
 public import LeanVM.Guest.Bridge.PairCells
+public import LeanVM.Guest.EndExecYAdv
 
 /-!
 # The computed hints on the reference
@@ -175,6 +176,7 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
     by_contra hc
     rw [Array.getElem?_eq_none (by omega)] at hmem
     cases hmem
+  have hposh : posHintOk h = true := hints_pos hC rfl hpc h hmem
   obtain ⟨done, e, st, hT⟩ := trackAt_X hP hmain hJ hL hr hon hge hpc
   have hE := hT.track.ents e List.mem_cons_self
   obtain ⟨hfp, hat⟩ := hT.linked.top
@@ -309,6 +311,7 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
       | heap ptr => exact hHeap d _ 0 nbits hd (fun q hq ↦ by simp [Bridge.hintBuf, hintDest?, hq]) ptr rfl
     obtain ⟨hwv, hdi⟩ := hin
     exact Bridge.hintOkR_bits hcomp (hIn v (by simp [Bridge.hintFrame]) hwv)
+      (hF v (by simp [Bridge.hintFrame])).1 (by simpa [posHintOk] using hposh)
       (hDest d bd 0 nbits hd (fun w hw ↦ by simp [Bridge.hintFrame, hw])
         (fun q hq ↦ by simp [Bridge.hintBuf, hintDest?, hq]) hdi) hxc
   | bitsExp v nbits d =>
@@ -324,6 +327,7 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
       | heap ptr => exact hHeap d _ 0 nbits hd (fun q hq ↦ by simp [Bridge.hintBuf, hintDest?, hq]) ptr rfl
     obtain ⟨hwv, hdi⟩ := hin
     exact Bridge.hintOkR_bitsExp hcomp (hIn v (by simp [Bridge.hintFrame]) hwv)
+      (by simpa [posHintOk] using hposh)
       (hDest d bd 0 nbits hd (fun w hw ↦ by simp [Bridge.hintFrame, hw])
         (fun q hq ↦ by simp [Bridge.hintBuf, hintDest?, hq]) hdi) hxc
   | digitsExp v nbits ndigits digitBits start sc d =>
@@ -339,6 +343,7 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
       | heap ptr => exact hHeap d _ 0 ndigits hd (fun q hq ↦ by simp [Bridge.hintBuf, hintDest?, hq]) ptr rfl
     obtain ⟨hwv, hws, hdi⟩ := hin
     refine Bridge.hintOkR_digitsExp hcomp (hIn v (by simp [Bridge.hintFrame]) hwv) (fun c hcs ↦ ?_)
+      (by simpa [posHintOk] using hposh)
       (hDest d bd 0 ndigits hd (fun w hw ↦ by simp [Bridge.hintFrame, hw])
         (fun q hq ↦ by simp [Bridge.hintBuf, hintDest?, hq]) hdi) hxc
     subst hcs
@@ -360,6 +365,7 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
       | heap ptr => exact hHeap d _ pos count hd (fun q hq ↦ by simp [Bridge.hintBuf, hintDest?, hq]) ptr rfl
     obtain ⟨hwv, hdi⟩ := hin
     exact Bridge.hintOkR_windowsExp hcomp (hIn v (by simp [Bridge.hintFrame]) hwv)
+      (hF v (by simp [Bridge.hintFrame])).1 (by simpa [posHintOk] using hposh)
       (hDest d bd pos count hd (fun w hw ↦ by simp [Bridge.hintFrame, hw])
         (fun q hq ↦ by simp [Bridge.hintBuf, hintDest?, hq]) hdi) hxc
   | limbs v ds =>
@@ -370,6 +376,7 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
     obtain ⟨⟨rfl, -⟩, -⟩ := hc'
     refine ⟨trivial, fun hin ↦ ?_⟩
     exact Bridge.hintOkR_limbs hcomp (hIn v (by simp [Bridge.hintFrame]) hin)
+      (hF v (by simp [Bridge.hintFrame])).1 (by simpa [posHintOk] using hposh)
       (fun w hw ↦ hF w (by simp [Bridge.hintFrame, hw])) hxc
   | log2Ceil b nbits floor dst =>
     cases h <;> simp only [compiles, Bool.false_eq_true] at hcomp
@@ -379,7 +386,39 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
     obtain ⟨⟨⟨hd, -⟩, rfl⟩, -⟩ := hc'
     refine ⟨trivial, fun hin ↦ ?_⟩
     have hdst := hF dst (by simp [Bridge.hintFrame])
-    refine Bridge.hintOkR_log2Ceil hcomp ?_ hdst.1 hdst.2 hxc
+    refine Bridge.hintOkR_log2Ceil hcomp ?_ ?_ hdst.1 hdst.2 hxc
+    swap
+    · -- the bits' run ends below `maxCells`: its last cell is a frame value's, or a buffer's word's
+      intro a ha
+      have hnp := hposh
+      simp only [posHintOk, Nat.blt_eq] at hnp
+      cases b with
+      | stack ws =>
+        cases bd with
+        | heap _ => simp [destOk] at hd
+        | stack base =>
+          simp only [destOk, Bool.and_eq_true, beq_iff_eq] at hd
+          obtain ⟨hlen, hcons⟩ := hd
+          have ha' : s1.fp + base = a := ha
+          subst ha'
+          have hk : ws.length - 1 < ws.length := by omega
+          have hv : ws[ws.length - 1] ∈ ws := List.getElem_mem hk
+          have h1 := (hF ws[ws.length - 1] (by simp [Bridge.hintFrame, Bridge.stackVals, hv])).1
+          rw [Bridge.consecutive_get hcons _ hk] at h1
+          omega
+      | heap p off len =>
+        cases bd with
+        | stack _ => simp [destOk] at hd
+        | heap ptr =>
+          simp only [destOk, Bool.and_eq_true, beq_iff_eq] at hd
+          obtain ⟨⟨hptr, -⟩, hlen⟩ := hd
+          obtain ⟨a', hpa, rfl⟩ := ha
+          obtain ⟨hwp, -⟩ := hin
+          rw [← hptr] at hwp hpa
+          obtain ⟨rfl, b0, hpt, hrun⟩ := hB p off len (by simp [Bridge.hintBuf, destHeap?]) hwp
+          obtain rfl := ptrAt_uniq hpa hpt
+          have := (hrun (len - 1) (by omega)).1
+          omega
     cases b with
     | stack ws =>
       cases bd with
@@ -416,7 +455,8 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
     obtain ⟨rfl, -⟩ := hc'
     refine ⟨trivial, fun hin ↦ ?_⟩
     have hd := hF d (by simp [Bridge.hintFrame])
-    exact Bridge.hintOk_inverse hcomp (hIn x (by simp [Bridge.hintFrame]) hin) hd.2 hd.1 hxc
+    exact Bridge.hintOk_inverse hcomp (hIn x (by simp [Bridge.hintFrame]) hin)
+      (hF x (by simp [Bridge.hintFrame])).1 hd.2 hd.1 hxc
 
 end
 

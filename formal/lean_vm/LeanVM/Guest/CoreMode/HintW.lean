@@ -52,11 +52,16 @@ theorem heapBase_ok {s s1 : St} {c b : ℕ} {what : String} (hs : s.Good) (h : h
   obtain ⟨f, hm, p, hp, rfl, -⟩ := heapBase_val hs h hw
   exact ⟨f, hm, hp⟩
 
-theorem bitsBase_heap {s s1 : St} {ptr b : ℕ} {what : String} (hs : s.Good)
-    (h : bitsBase s (.heap ptr) what = .ok (b, s1)) :
-    St.Follows s s1 ∧ s.mem.get (s.fp + ptr) = some (ofK (g ^ b)) :=
-  let ⟨f, _, hp⟩ := heapBase_ok hs h
-  ⟨f, hp⟩
+theorem bitsBase_heap {s s1 : St} {ptr len b : ℕ} {what : String} (hs : s.Good)
+    (h : bitsBase s (.heap ptr) len what = .ok (b, s1)) :
+    St.Follows s s1 ∧ s.mem.get (s.fp + ptr) = some (ofK (g ^ b)) := by
+  simp only [bitsBase, bind_ok, pure_ok, Prod.mk.injEq] at h
+  obtain ⟨c, hc, ⟨b', s2⟩, h1, c2, hc2, hb, hs2⟩ := h
+  subst hb hs2
+  obtain ⟨rfl, -⟩ := cellAt_ok hc
+  obtain ⟨rfl, -⟩ := runAt_ok hc2
+  obtain ⟨f, _, hp⟩ := heapBase_ok hs h1
+  exact ⟨f, by simpa using hp⟩
 
 /-- **One hint with a heap destination** wrote its cells. -/
 theorem runHint_heap {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e : runHint C s h = .ok s')
@@ -67,7 +72,9 @@ theorem runHint_heap {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e : runHint
     simp only [isaHeap, Option.some.injEq, Prod.mk.injEq] at hd
     obtain ⟨rfl, rfl, rfl⟩ := hd
     simp only [runHint, bind_ok] at e
-    obtain ⟨⟨b, s1⟩, h1, ⟨v, s2⟩, h2, e⟩ := e
+    obtain ⟨c, hc, ⟨b, s1⟩, h1, bl, hbl, ⟨v, s2⟩, h2, e⟩ := e
+    obtain ⟨rfl, -⟩ := cellAt_ok hc
+    obtain ⟨rfl, -⟩ := runAt_ok hbl
     obtain ⟨f1, -, hp⟩ := heapBase_ok hs h1
     obtain ⟨hl, f2, -⟩ := pop_len f1.good h2
     obtain ⟨-, -, hv⟩ := withMem_putRun f2.good e
@@ -80,7 +87,7 @@ theorem runHint_heap {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e : runHint
       simp only [isaHeap, Option.some.injEq, Prod.mk.injEq] at hd
       obtain ⟨rfl, rfl, rfl⟩ := hd
       simp only [runHint, bind_ok] at e
-      obtain ⟨⟨b, s1⟩, h1, e⟩ := e
+      obtain ⟨c, -, ⟨b, s1⟩, h1, e⟩ := e
       obtain ⟨f1, hp⟩ := bitsBase_heap hs h1
       obtain ⟨-, -, hv⟩ := withMem_putRun f1.good e
       exact ⟨b, hp, fun j hj ↦ written_of_get (by simpa using hv j (by simpa using hj))⟩
@@ -91,7 +98,7 @@ theorem runHint_heap {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e : runHint
       simp only [isaHeap, Option.some.injEq, Prod.mk.injEq] at hd
       obtain ⟨rfl, rfl, rfl⟩ := hd
       simp only [runHint, bind_ok] at e
-      obtain ⟨n, -, ⟨b, s1⟩, h1, e⟩ := e
+      obtain ⟨c, -, n, -, ⟨b, s1⟩, h1, e⟩ := e
       obtain ⟨f1, hp⟩ := bitsBase_heap hs h1
       obtain ⟨-, -, hv⟩ := withMem_putRun f1.good e
       exact ⟨b, hp, fun j hj ↦ written_of_get (by simpa using hv j (by simpa using hj))⟩
@@ -102,7 +109,7 @@ theorem runHint_heap {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e : runHint
       simp only [isaHeap, Option.some.injEq, Prod.mk.injEq] at hd
       obtain ⟨rfl, rfl, rfl⟩ := hd
       simp only [runHint, bind_ok] at e
-      obtain ⟨⟨b, s1⟩, h1, e⟩ := e
+      obtain ⟨c, -, ⟨b, s1⟩, h1, e⟩ := e
       obtain ⟨f1, hp⟩ := bitsBase_heap hs h1
       obtain ⟨-, -, hv⟩ := withMem_putRun f1.good e
       exact ⟨b, hp, fun j hj ↦ written_of_get (by simpa using hv j (by simpa using hj))⟩
@@ -113,9 +120,9 @@ theorem runHint_heap {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e : runHint
       simp only [isaHeap, Option.some.injEq, Prod.mk.injEq] at hd
       obtain ⟨rfl, rfl, rfl⟩ := hd
       simp only [runHint, bind_ok] at e
-      obtain ⟨n, -, e⟩ := e
+      obtain ⟨c, -, n, -, e⟩ := e
       have key : ∀ st, (do
-          let __x ← bitsBase s (BitsDest.heap ptr') "hint_decompose_digits_exponent pointer"
+          let __x ← bitsBase s (BitsDest.heap ptr') ndigits "hint_decompose_digits_exponent pointer"
           __x.2.withMem (putRun __x.1 ((List.range ndigits).map fun j ↦ ofK (g ^ if 128 ≤ st + digitBits * j then 0
             else n >>> (st + digitBits * j) % 2 ^ digitBits)))) = Except.ok s' →
           ∃ b, s.mem.get (s.fp + ptr') = some (ofK (g ^ b)) ∧ ∀ j < ndigits, s'.mem.written (b + 0 + j) = true := by
@@ -128,6 +135,8 @@ theorem runHint_heap {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e : runHint
       cases startCell with
       | none => simpa using key start e
       | some c =>
+        rw [bind_ok] at e
+        obtain ⟨l, -, e⟩ := e
         rw [bind_ok] at e
         obtain ⟨st, -, e⟩ := e
         exact key st e
