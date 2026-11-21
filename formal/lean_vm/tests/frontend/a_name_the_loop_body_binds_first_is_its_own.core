@@ -1,0 +1,49 @@
+def main []
+  hint alloc %0 8
+  const %1 1 0
+  const %2 2 0
+  const %3 5 0
+  call __loop0 [%1 %0 %2 %3] []
+  const %4 7 0
+  load %4 %0 5
+  load %5 %0 0
+  const %6 9 0
+  assert_eq %5 %6
+  load %7 %0 1
+  const %8 2 0
+  assert_eq %7 %8
+  load %9 %0 3
+  const %10 8 0
+  assert_eq %9 %10
+  load %11 %0 4
+  const %12 6 0
+  assert_eq %11 %12
+  load %13 %0 6
+  const %14 6 0
+  assert_eq %13 %14
+  ret []
+def __loop0 [%0 %1 %2 %3]
+  const %4 1 0
+  add %5 %0 %4
+  if_zero %5
+    const %6 9 0
+    mul %7 %1 %0
+    load %6 %7 0
+  else
+  end
+  const %8 2 0
+  mul %9 %0 %8
+  mul %10 %1 %0
+  load %9 %10 1
+  const %11 3 0
+  mul %12 %2 %11
+  mul %13 %1 %0
+  load %12 %13 4
+  const %14 2 0
+  mul %15 %9 %14
+  const %16 16 0
+  add %17 %15 %16
+  const %18 2 0
+  mul %19 %9 %18
+  call_if %17 __loop0 [%19 %1 %2 %3]
+  ret []

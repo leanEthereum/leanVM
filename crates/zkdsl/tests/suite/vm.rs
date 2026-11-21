@@ -251,3 +251,45 @@ fn a_failed_assert_names_its_source_line() {
         .expect("the assert cannot hold");
     assert!(err.site.contains("line 5"), "{err}");
 }
+
+/// A binding that never runs, in the other arm of a compile-time `if` or in an `unroll` over nothing, does not hide the
+/// outer value a loop body reads, a scalar or a `StackBuf`; and a name only such blocks use is not captured, since the
+/// copy of an unwritten `StackBuf` would pin its cells (`tests/vm/binding_never_runs_<k>.py`).
+#[test]
+fn a_binding_that_never_runs_does_not_hide_the_outer_binding() {
+    for k in 0..7 {
+        let name = format!("binding_never_runs_{k}");
+        execute(&compiled(&name), &[], [F128::ZERO; 2]).unwrap_or_else(|e| panic!("{name}: {e}"));
+    }
+}
+
+/// A name a loop body binds before it reads it is the body's own, however the binding folds: under an `unroll`ed
+/// `if`, in a runtime arm, in an `@inline` callee. So is the counter, and rebinding it moves the walk.
+#[test]
+fn a_name_the_loop_body_binds_first_is_its_own() {
+    let program = compiled("loop_body_binds_first");
+    execute(&program, &[], [F128::ZERO; 2]).expect("nothing is carried");
+}
+
+/// A constant array's element, as the whole heap index, is the field value it holds, so an array of g-powers indexes
+/// their cells.
+#[test]
+fn a_constant_array_of_g_powers_indexes_their_cells() {
+    let program = compiled("g_power_array_index");
+    execute(&program, &[], [F128::ZERO; 2]).expect("a g-power from a constant array indexes its cell");
+}
+
+/// `x ** 0` evaluates `x`: the assertion in the call `one()` holds for the witness 1 and fails for 2.
+#[test]
+fn a_zero_power_evaluates_its_base() {
+    let program = compiled("zero_power_base");
+    let run = |x: u64| {
+        execute(
+            &program,
+            &[("x".into(), vec![vec![F128::from(F64(x))]])],
+            [F128::ZERO; 2],
+        )
+    };
+    run(1).expect("the assertion holds");
+    assert!(run(2).is_err(), "the assertion in the base ran");
+}

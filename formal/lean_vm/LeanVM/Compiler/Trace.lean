@@ -136,7 +136,7 @@ bind the counter; its exit is a constant power of `g`, or the runtime bound. -/
 def loopSource (f : Func) : Bool × Option Nat :=
   let body := f.body.take (f.body.length - 3)
   let counter := (f.params.head?.map (·.name)).getD ""
-  let registered := !Stmt.hasRetList body && !(Stmt.bindsList body).contains counter
+  let registered := !Stmt.hasRetList body && !(Stmt.bindsList false body).contains counter
   let hi := match f.body[f.body.length - 2]? with
     | some (.mk _ (.callIfNe _ (.gpow h) _ _)) => some h
     | _ => none

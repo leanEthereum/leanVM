@@ -34,7 +34,7 @@ pub(super) fn eval_const_int(s: &str) -> Result<u128, String> {
 /// operators) to its value; `None` if any leaf is not a literal. Placeholders
 /// are substituted before parsing, so `GEN ** (K_SKIP + 1)`-style exponents
 /// fold here.
-pub(crate) fn const_int_expr(e: &Expr) -> Option<u128> {
+pub(super) fn const_int_expr(e: &Expr) -> Option<u128> {
     match e {
         Expr::Lit(k) => Some(*k),
         // `const(e)` asks for the integer reading, which is the only reading a

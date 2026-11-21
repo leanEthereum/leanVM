@@ -168,6 +168,16 @@ fn a_program_names_what_it_means() {
     // place and the call ran the wrong body.
     let reserved = format!("def f__L1(a):\n    return a\n\ndef main():\n{tail}");
     assert!(parse(&reserved).expect_err("reserved name").contains("reserved"));
+    // So is a variable's: a loop's counter and bound are `__nextN` and `__boundN`, and a program's `__next0`,
+    // read in a loop body, was the counter from the second iteration on.
+    // So is a call's, which would run the specialization or fail by lowering order, and a global constant's.
+    for reserved in [
+        format!("def main():\n    __next0 = 5\n{tail}"),
+        format!("def f(a, k: Const):\n    return a\n\ndef main():\n    x = f__L1(GEN)\n{tail}"),
+        format!("__A = 5\n\ndef main():\n{tail}"),
+    ] {
+        assert!(parse(&reserved).expect_err("reserved name").contains("reserved"));
+    }
 }
 
 /// A `def` may not take a builtin's name. The builtin wins at the call site, so

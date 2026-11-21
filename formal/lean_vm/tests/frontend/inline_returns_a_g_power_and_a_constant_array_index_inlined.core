@@ -1,1 +1,13 @@
-error: in main: heap index is a plain integer or a constant that is no g-power: write `buf[GEN ** k]`
+def main []
+  hint witness w [%0]
+  hint alloc %1 4
+  load %0 %1 2
+  load %2 %1 2
+  const %3 1 0
+  load %2 %3 0
+  load %4 %1 2
+  const %5 1 0
+  const %6 2 0
+  mul %7 %5 %6
+  load %4 %7 0
+  ret []

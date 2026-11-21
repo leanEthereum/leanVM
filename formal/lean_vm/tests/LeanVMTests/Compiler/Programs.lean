@@ -36,8 +36,8 @@ def shape (p : Source.Program) : Option (Nat × Nat × Nat) :=
 
 #guard LeanVMTests.Guest.Programs.all.map (fun t => shape t.program) ==
   [(64, 128, 27), (58, 64, 24), (42, 64, 14), (1048, 2048, 20), (49, 64, 13), (25, 32, 23),
-   (16, 32, 17), (18, 32, 17), (10, 16, 9), (25, 32, 20), (69, 128, 27), (134, 256, 33),
-   (82, 128, 16), (68, 128, 24), (37, 64, 30), (54, 64, 20), (118, 128, 36)].map some
+   (16, 32, 17), (18, 32, 17), (10, 16, 9), (25, 32, 20), (49, 64, 16), (69, 128, 27),
+   (134, 256, 33), (82, 128, 16), (68, 128, 24), (37, 64, 30), (54, 64, 20), (118, 128, 36)].map some
 
 /-- The code of a test program. -/
 def codeOf (name : String) : Option (List OffsetInstruction) :=

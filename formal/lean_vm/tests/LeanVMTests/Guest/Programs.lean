@@ -268,6 +268,38 @@ def prog_inline : TestProgram where
   publicInput := [(8, 0), (10, 0)]
   streams := [("x", [[(4, 0)]])]
 
+/-- `loop_scopes.py`. -/
+def prog_loop_scopes : TestProgram where
+  name := "loop_scopes"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 18 (.let_ "out" (.heapBuf 8)),
+        .mk 19 (.let_ "acc" (.lit 5)),
+        .mk 20 (.let_ "w" (.gpow 3)),
+        .mk 21 (.let_ "k" (.lit 7)),
+        .mk 22 (.for_ "i" 0 (.const 2) [
+          .mk 23 (.unroll "j" (.lit 0) (.lit 2) [
+            .mk 24 (.ite true (.var "j") (.lit 0) [
+              .mk 25 (.let_ "acc" (.var "i"))] [
+              .mk 27 (.let_ "acc" (.mul (.var "acc") .gen))] false)]),
+          .mk 28 (.ite true (.lit 1) (.lit 2) [
+            .mk 29 (.let_ "w" .gen)] [] true),
+          .mk 30 (.unroll "j" (.lit 0) (.lit 0) [
+            .mk 31 (.let_ "w" .gen)]),
+          .mk 32 (.unroll "k" (.lit 0) (.lit 1) [
+            .mk 33 (.store (.var "out") (.mul (.var "i") (.gpow 4)) (.var "k"))]),
+          .mk 34 (.store (.var "out") (.var "i") (.add (.mul (.var "acc") (.var "w")) (.var "k")))]),
+        .mk 35 (.store (.var "out") (.pow (.gpow 2) (.lit 3)) (.lit 9)),
+        .mk 36 (.let_ "p" (.gpow 0)),
+        .mk 37 (.store (.var "p") (.lit 1) (.index (.var "out") (.lit 1))),
+        .mk 38 (.store (.var "p") .gen (.add (.index (.var "out") .gen) (.index (.var "out") (.gpow 6)))),
+        .mk 39 (.ret [])] }],
+    []⟩
+  publicInput := [(23, 0), (46, 0)]
+  streams := []
+
 /-- `match.py`. -/
 def prog_match : TestProgram where
   name := "match"
@@ -635,6 +667,143 @@ def prog_chain16384 : TestProgram where
   publicInput := []
   streams := []
 
+/-- `tests/vm` as `binding_never_runs_0`. -/
+def prog_binding_never_runs_0 : TestProgram where
+  name := "binding_never_runs_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 2)),
+        .mk 3 (.let_ "w" (.gpow 3)),
+        .mk 4 (.for_ "i" 0 (.const 2) [
+          .mk 5 (.ite true (.lit 1) (.lit 2) [
+            .mk 6 (.let_ "w" .gen)] [] true),
+          .mk 7 (.store (.var "hb") (.var "i") (.var "w"))]),
+        .mk 8 (.assertEq (.index (.var "hb") .gen) (.gpow 3)),
+        .mk 9 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/vm` as `binding_never_runs_1`. -/
+def prog_binding_never_runs_1 : TestProgram where
+  name := "binding_never_runs_1"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 2)),
+        .mk 3 (.let_ "w" (.gpow 3)),
+        .mk 4 (.for_ "i" 0 (.const 2) [
+          .mk 5 (.ite true (.lit 1) (.lit 2) [
+            .mk 6 (.let_ "w" .gen)] [] false),
+          .mk 7 (.store (.var "hb") (.var "i") (.var "w"))]),
+        .mk 8 (.assertEq (.index (.var "hb") .gen) (.gpow 3)),
+        .mk 9 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/vm` as `binding_never_runs_2`. -/
+def prog_binding_never_runs_2 : TestProgram where
+  name := "binding_never_runs_2"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 2)),
+        .mk 3 (.let_ "w" (.gpow 3)),
+        .mk 4 (.for_ "i" 0 (.const 2) [
+          .mk 5 (.unroll "k" (.lit 0) (.lit 0) [
+            .mk 6 (.let_ "w" .gen)]),
+          .mk 7 (.store (.var "hb") (.var "i") (.var "w"))]),
+        .mk 8 (.assertEq (.index (.var "hb") .gen) (.gpow 3)),
+        .mk 9 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/vm` as `binding_never_runs_3`. -/
+def prog_binding_never_runs_3 : TestProgram where
+  name := "binding_never_runs_3"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 2)),
+        .mk 3 (.let_ "w" (.list [(.gpow 3), (.lit 7)])),
+        .mk 4 (.for_ "i" 0 (.const 2) [
+          .mk 5 (.ite true (.lit 1) (.lit 2) [
+            .mk 6 (.let_ "w" (.list [.gen, (.lit 9)]))] [] true),
+          .mk 7 (.store (.var "hb") (.var "i") (.index (.var "w") (.lit 0)))]),
+        .mk 8 (.assertEq (.index (.var "hb") .gen) (.gpow 3)),
+        .mk 9 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/vm` as `binding_never_runs_4`. -/
+def prog_binding_never_runs_4 : TestProgram where
+  name := "binding_never_runs_4"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 2)),
+        .mk 3 (.let_ "w" (.list [(.gpow 3), (.lit 7)])),
+        .mk 4 (.for_ "i" 0 (.const 2) [
+          .mk 5 (.ite true (.lit 1) (.lit 2) [
+            .mk 6 (.let_ "w" (.list [.gen, (.lit 9)]))] [] false),
+          .mk 7 (.store (.var "hb") (.var "i") (.index (.var "w") (.lit 0)))]),
+        .mk 8 (.assertEq (.index (.var "hb") .gen) (.gpow 3)),
+        .mk 9 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/vm` as `binding_never_runs_5`. -/
+def prog_binding_never_runs_5 : TestProgram where
+  name := "binding_never_runs_5"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 2)),
+        .mk 3 (.let_ "w" (.list [(.gpow 3), (.lit 7)])),
+        .mk 4 (.for_ "i" 0 (.const 2) [
+          .mk 5 (.unroll "k" (.lit 0) (.lit 0) [
+            .mk 6 (.let_ "w" (.list [.gen, (.lit 9)]))]),
+          .mk 7 (.store (.var "hb") (.var "i") (.index (.var "w") (.lit 0)))]),
+        .mk 8 (.assertEq (.index (.var "hb") .gen) (.gpow 3)),
+        .mk 9 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/vm` as `binding_never_runs_6`. -/
+def prog_binding_never_runs_6 : TestProgram where
+  name := "binding_never_runs_6"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "s" (.stackBuf 2)),
+        .mk 3 (.let_ "hb" (.heapBuf 2)),
+        .mk 4 (.for_ "i" 0 (.const 2) [
+          .mk 5 (.ite true (.lit 0) (.lit 1) [
+            .mk 6 (.ite true (.var "i") (.lit 1) [
+              .mk 7 (.let_ "s" (.stackBuf 2)),
+              .mk 8 (.call "keccak" [(.list [(.lit 1), (.lit 2)]), (.list [(.lit 3), (.lit 4)]), (.var "s")])] [] false)] [] true),
+          .mk 9 (.unroll "k" (.lit 0) (.lit 0) [
+            .mk 10 (.store (.var "hb") (.var "i") (.index (.var "s") (.lit 0)))]),
+          .mk 11 (.store (.var "hb") (.var "i") (.lit 5))]),
+        .mk 12 (.call "keccak" [(.list [(.lit 1), (.lit 2)]), (.list [(.lit 3), (.lit 4)]), (.var "s")]),
+        .mk 13 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
 /-- `tests/vm` as `duplex_step`. -/
 def prog_duplex_step : TestProgram where
   name := "duplex_step"
@@ -711,6 +880,23 @@ def prog_field_div : TestProgram where
         .mk 8 (.store (.var "p") .gen (.mul (.var "r") (.var "b"))),
         .mk 9 (.ret [])] }],
     []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/vm` as `g_power_array_index`. -/
+def prog_g_power_array_index : TestProgram where
+  name := "g_power_array_index"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 4 (.let_ "hb" (.heapBuf 8)),
+        .mk 5 (.unroll "k" (.lit 0) (.call "len" [(.var "OFFS")]) [
+          .mk 6 (.store (.var "hb") (.index (.var "OFFS") (.var "k")) (.add (.lit 7) (.var "k")))]),
+        .mk 7 (.assertEq (.index (.var "hb") (.gpow 2)) (.lit 7)),
+        .mk 8 (.assertEq (.index (.var "hb") (.gpow 5)) (.lit 6)),
+        .mk 9 (.ret [])] }],
+    [("OFFS", [(4, 0), (32, 0)])]⟩
   publicInput := []
   streams := []
 
@@ -1003,6 +1189,48 @@ def prog_log2_ceil_floor : TestProgram where
   publicInput := []
   streams := []
 
+/-- `tests/vm` as `loop_body_binds_first`. -/
+def prog_loop_body_binds_first : TestProgram where
+  name := "loop_body_binds_first"
+  program := ⟨[
+    { name := "scale", params := [⟨"a", (.runtime .scalar)⟩, ⟨"n", .const⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 3 (.ite true (.mul (.lit 2) (.var "n")) (.lit 2) [
+          .mk 4 (.let_ "t" (.mul (.var "a") (.lit 3)))] [] false),
+        .mk 5 (.ret [(.var "t")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 8 (.let_ "t" (.lit 2)),
+        .mk 9 (.let_ "acc" (.lit 5)),
+        .mk 10 (.let_ "out" (.heapBuf 8)),
+        .mk 11 (.for_ "i" 0 (.const 4) [
+          .mk 12 (.ite true (.var "i") (.lit 1) [
+            .mk 13 (.unroll "k" (.lit 0) (.lit 1) [
+              .mk 14 (.ite true (.var "k") (.lit 0) [
+                .mk 15 (.let_ "t" (.lit 9))] [] false)]),
+            .mk 16 (.store (.var "out") (.var "i") (.var "t"))] [] false),
+          .mk 17 (.unroll "k" (.lit 0) (.lit 2) [
+            .mk 18 (.ite true (.var "k") (.lit 0) [
+              .mk 19 (.let_ "acc" (.var "i"))] [
+              .mk 21 (.let_ "acc" (.mul (.var "acc") .gen))] false)]),
+          .mk 22 (.store (.var "out") (.mul (.var "i") .gen) (.var "acc")),
+          .mk 23 (.store (.var "out") (.mul (.var "i") (.gpow 4)) (.call "scale" [(.var "t"), (.lit 1)])),
+          .mk 24 (.unroll "k" (.lit 0) (.lit 1) [
+            .mk 25 (.ite true (.mul (.lit 2) (.var "k")) (.lit 0) [
+              .mk 26 (.let_ "i" (.mul (.var "i") .gen))] [] false)])]),
+        .mk 27 (.store (.var "out") (.gpow 5) (.lit 7)),
+        .mk 28 (.assertEq (.index (.var "out") (.lit 1)) (.lit 9)),
+        .mk 29 (.assertEq (.index (.var "out") .gen) .gen),
+        .mk 30 (.assertEq (.index (.var "out") (.gpow 3)) (.gpow 3)),
+        .mk 31 (.assertEq (.index (.var "out") (.gpow 4)) (.lit 6)),
+        .mk 32 (.assertEq (.index (.var "out") (.gpow 6)) (.lit 6)),
+        .mk 33 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
 /-- `tests/vm` as `print`. -/
 def prog_print : TestProgram where
   name := "print"
@@ -1108,6 +1336,162 @@ def prog_unwritten_heap_read : TestProgram where
         .mk 4 (.let_ "public" (.lit 1)),
         .mk 5 (.store (.var "public") (.lit 1) (.mul (.var "x") .gen)),
         .mk 6 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/vm` as `zero_power_base`. -/
+def prog_zero_power_base : TestProgram where
+  name := "zero_power_base"
+  program := ⟨[
+    { name := "one", params := [], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 2 (.letHintWitness "x" "x"),
+        .mk 3 (.assertEq (.var "x") (.lit 1)),
+        .mk 4 (.ret [(.var "x")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 7 (.let_ "y" (.pow (.call "one" []) (.lit 0))),
+        .mk 8 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_binding_that_never_runs_does_not_hide_the_outer_binding_0`. -/
+def prog_a_binding_that_never_runs_does_not_hide_the_outer_binding_0 : TestProgram where
+  name := "a_binding_that_never_runs_does_not_hide_the_outer_binding_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 2)),
+        .mk 3 (.let_ "w" (.gpow 3)),
+        .mk 4 (.for_ "i" 0 (.const 2) [
+          .mk 5 (.ite true (.lit 1) (.lit 2) [
+            .mk 6 (.let_ "w" .gen)] [] true),
+          .mk 7 (.store (.var "hb") (.var "i") (.var "w"))]),
+        .mk 8 (.assertEq (.index (.var "hb") .gen) (.gpow 3)),
+        .mk 9 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_binding_that_never_runs_does_not_hide_the_outer_binding_1`. -/
+def prog_a_binding_that_never_runs_does_not_hide_the_outer_binding_1 : TestProgram where
+  name := "a_binding_that_never_runs_does_not_hide_the_outer_binding_1"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 2)),
+        .mk 3 (.let_ "w" (.gpow 3)),
+        .mk 4 (.for_ "i" 0 (.const 2) [
+          .mk 5 (.ite true (.lit 1) (.lit 2) [
+            .mk 6 (.let_ "w" .gen)] [] false),
+          .mk 7 (.store (.var "hb") (.var "i") (.var "w"))]),
+        .mk 8 (.assertEq (.index (.var "hb") .gen) (.gpow 3)),
+        .mk 9 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_binding_that_never_runs_does_not_hide_the_outer_binding_2`. -/
+def prog_a_binding_that_never_runs_does_not_hide_the_outer_binding_2 : TestProgram where
+  name := "a_binding_that_never_runs_does_not_hide_the_outer_binding_2"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 2)),
+        .mk 3 (.let_ "w" (.gpow 3)),
+        .mk 4 (.for_ "i" 0 (.const 2) [
+          .mk 5 (.unroll "k" (.lit 0) (.lit 0) [
+            .mk 6 (.let_ "w" .gen)]),
+          .mk 7 (.store (.var "hb") (.var "i") (.var "w"))]),
+        .mk 8 (.assertEq (.index (.var "hb") .gen) (.gpow 3)),
+        .mk 9 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_binding_that_never_runs_does_not_hide_the_outer_binding_3`. -/
+def prog_a_binding_that_never_runs_does_not_hide_the_outer_binding_3 : TestProgram where
+  name := "a_binding_that_never_runs_does_not_hide_the_outer_binding_3"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 2)),
+        .mk 3 (.let_ "w" (.list [(.gpow 3), (.lit 7)])),
+        .mk 4 (.for_ "i" 0 (.const 2) [
+          .mk 5 (.ite true (.lit 1) (.lit 2) [
+            .mk 6 (.let_ "w" (.list [.gen, (.lit 9)]))] [] true),
+          .mk 7 (.store (.var "hb") (.var "i") (.index (.var "w") (.lit 0)))]),
+        .mk 8 (.assertEq (.index (.var "hb") .gen) (.gpow 3)),
+        .mk 9 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_binding_that_never_runs_does_not_hide_the_outer_binding_4`. -/
+def prog_a_binding_that_never_runs_does_not_hide_the_outer_binding_4 : TestProgram where
+  name := "a_binding_that_never_runs_does_not_hide_the_outer_binding_4"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 2)),
+        .mk 3 (.let_ "w" (.list [(.gpow 3), (.lit 7)])),
+        .mk 4 (.for_ "i" 0 (.const 2) [
+          .mk 5 (.ite true (.lit 1) (.lit 2) [
+            .mk 6 (.let_ "w" (.list [.gen, (.lit 9)]))] [] false),
+          .mk 7 (.store (.var "hb") (.var "i") (.index (.var "w") (.lit 0)))]),
+        .mk 8 (.assertEq (.index (.var "hb") .gen) (.gpow 3)),
+        .mk 9 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_binding_that_never_runs_does_not_hide_the_outer_binding_5`. -/
+def prog_a_binding_that_never_runs_does_not_hide_the_outer_binding_5 : TestProgram where
+  name := "a_binding_that_never_runs_does_not_hide_the_outer_binding_5"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 2)),
+        .mk 3 (.let_ "w" (.list [(.gpow 3), (.lit 7)])),
+        .mk 4 (.for_ "i" 0 (.const 2) [
+          .mk 5 (.unroll "k" (.lit 0) (.lit 0) [
+            .mk 6 (.let_ "w" (.list [.gen, (.lit 9)]))]),
+          .mk 7 (.store (.var "hb") (.var "i") (.index (.var "w") (.lit 0)))]),
+        .mk 8 (.assertEq (.index (.var "hb") .gen) (.gpow 3)),
+        .mk 9 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_binding_that_never_runs_does_not_hide_the_outer_binding_6`. -/
+def prog_a_binding_that_never_runs_does_not_hide_the_outer_binding_6 : TestProgram where
+  name := "a_binding_that_never_runs_does_not_hide_the_outer_binding_6"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "s" (.stackBuf 2)),
+        .mk 3 (.let_ "hb" (.heapBuf 2)),
+        .mk 4 (.for_ "i" 0 (.const 2) [
+          .mk 5 (.ite true (.lit 0) (.lit 1) [
+            .mk 6 (.ite true (.var "i") (.lit 1) [
+              .mk 7 (.let_ "s" (.stackBuf 2)),
+              .mk 8 (.call "keccak" [(.list [(.lit 1), (.lit 2)]), (.list [(.lit 3), (.lit 4)]), (.var "s")])] [] false)] [] true),
+          .mk 9 (.unroll "k" (.lit 0) (.lit 0) [
+            .mk 10 (.store (.var "hb") (.var "i") (.index (.var "s") (.lit 0)))]),
+          .mk 11 (.store (.var "hb") (.var "i") (.lit 5))]),
+        .mk 12 (.call "keccak" [(.list [(.lit 1), (.lit 2)]), (.list [(.lit 3), (.lit 4)]), (.var "s")]),
+        .mk 13 (.ret [])] }],
     []⟩
   publicInput := []
   streams := []
@@ -1232,6 +1616,23 @@ def prog_a_builtin_value_stored_into_a_cell_is_evaluated : TestProgram where
         .mk 4 (.store (.var "out") (.lit 0) (.call "hint_log2_ceil" [(.var "bits"), (.lit 4), (.lit 0)])),
         .mk 5 (.ret [])] }],
     []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_constant_array_of_g_powers_indexes_their_cells`. -/
+def prog_a_constant_array_of_g_powers_indexes_their_cells : TestProgram where
+  name := "a_constant_array_of_g_powers_indexes_their_cells"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 4 (.let_ "hb" (.heapBuf 8)),
+        .mk 5 (.unroll "k" (.lit 0) (.call "len" [(.var "OFFS")]) [
+          .mk 6 (.store (.var "hb") (.index (.var "OFFS") (.var "k")) (.add (.lit 7) (.var "k")))]),
+        .mk 7 (.assertEq (.index (.var "hb") (.gpow 2)) (.lit 7)),
+        .mk 8 (.assertEq (.index (.var "hb") (.gpow 5)) (.lit 6)),
+        .mk 9 (.ret [])] }],
+    [("OFFS", [(4, 0), (32, 0)])]⟩
   publicInput := []
   streams := []
 
@@ -1546,6 +1947,59 @@ def prog_a_loop_cannot_carry_a_value_0 : TestProgram where
   publicInput := []
   streams := []
 
+/-- `tests/frontend` as `a_loop_cannot_carry_a_value_1`. -/
+def prog_a_loop_cannot_carry_a_value_1 : TestProgram where
+  name := "a_loop_cannot_carry_a_value_1"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "p" (.gpow 0)),
+        .mk 3 (.let_ "t" (.lit 7)),
+        .mk 4 (.for_ "i" 0 (.const 3) [
+          .mk 5 (.store (.var "p") (.var "i") (.var "t")),
+          .mk 6 (.unroll "k" (.lit 0) (.lit 1) [
+            .mk 7 (.ite true (.var "k") (.lit 0) [
+              .mk 8 (.let_ "t" (.lit 9))] [] false)])]),
+        .mk 9 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_loop_cannot_carry_a_value_2`. -/
+def prog_a_loop_cannot_carry_a_value_2 : TestProgram where
+  name := "a_loop_cannot_carry_a_value_2"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "p" (.gpow 0)),
+        .mk 3 (.let_ "t" (.list [(.lit 1), (.lit 2)])),
+        .mk 4 (.for_ "i" 0 (.const 3) [
+          .mk 5 (.store (.var "p") (.var "i") (.index (.var "t") (.lit 0))),
+          .mk 6 (.let_ "t" (.list [(.lit 3), (.lit 4)]))]),
+        .mk 7 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_loop_cannot_carry_a_value_3`. -/
+def prog_a_loop_cannot_carry_a_value_3 : TestProgram where
+  name := "a_loop_cannot_carry_a_value_3"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "o" (.stackBuf 2)),
+        .mk 3 (.let_ "t" (.list [(.lit 1), (.lit 2)])),
+        .mk 4 (.for_ "i" 0 (.const 3) [
+          .mk 5 (.call "keccak" [(.var "t"), (.var "t"), (.var "o")]),
+          .mk 6 (.let_ "t" (.list [(.lit 3), (.lit 4)]))]),
+        .mk 7 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
 /-- `tests/frontend` as `a_match_of_builtin_arms_is_not_a_dispatch`. -/
 def prog_a_match_of_builtin_arms_is_not_a_dispatch : TestProgram where
   name := "a_match_of_builtin_arms_is_not_a_dispatch"
@@ -1682,6 +2136,48 @@ def prog_a_mixed_stack_buf_return_cannot_cross_a_match_join_0 : TestProgram wher
   publicInput := []
   streams := []
 
+/-- `tests/frontend` as `a_name_the_loop_body_binds_first_is_its_own`. -/
+def prog_a_name_the_loop_body_binds_first_is_its_own : TestProgram where
+  name := "a_name_the_loop_body_binds_first_is_its_own"
+  program := ⟨[
+    { name := "scale", params := [⟨"a", (.runtime .scalar)⟩, ⟨"n", .const⟩], returnShapes := [.scalar],
+      inline := true,
+      body := [
+        .mk 3 (.ite true (.mul (.lit 2) (.var "n")) (.lit 2) [
+          .mk 4 (.let_ "t" (.mul (.var "a") (.lit 3)))] [] false),
+        .mk 5 (.ret [(.var "t")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 8 (.let_ "t" (.lit 2)),
+        .mk 9 (.let_ "acc" (.lit 5)),
+        .mk 10 (.let_ "out" (.heapBuf 8)),
+        .mk 11 (.for_ "i" 0 (.const 4) [
+          .mk 12 (.ite true (.var "i") (.lit 1) [
+            .mk 13 (.unroll "k" (.lit 0) (.lit 1) [
+              .mk 14 (.ite true (.var "k") (.lit 0) [
+                .mk 15 (.let_ "t" (.lit 9))] [] false)]),
+            .mk 16 (.store (.var "out") (.var "i") (.var "t"))] [] false),
+          .mk 17 (.unroll "k" (.lit 0) (.lit 2) [
+            .mk 18 (.ite true (.var "k") (.lit 0) [
+              .mk 19 (.let_ "acc" (.var "i"))] [
+              .mk 21 (.let_ "acc" (.mul (.var "acc") .gen))] false)]),
+          .mk 22 (.store (.var "out") (.mul (.var "i") .gen) (.var "acc")),
+          .mk 23 (.store (.var "out") (.mul (.var "i") (.gpow 4)) (.call "scale" [(.var "t"), (.lit 1)])),
+          .mk 24 (.unroll "k" (.lit 0) (.lit 1) [
+            .mk 25 (.ite true (.mul (.lit 2) (.var "k")) (.lit 0) [
+              .mk 26 (.let_ "i" (.mul (.var "i") .gen))] [] false)])]),
+        .mk 27 (.store (.var "out") (.gpow 5) (.lit 7)),
+        .mk 28 (.assertEq (.index (.var "out") (.lit 1)) (.lit 9)),
+        .mk 29 (.assertEq (.index (.var "out") .gen) .gen),
+        .mk 30 (.assertEq (.index (.var "out") (.gpow 3)) (.gpow 3)),
+        .mk 31 (.assertEq (.index (.var "out") (.gpow 4)) (.lit 6)),
+        .mk 32 (.assertEq (.index (.var "out") (.gpow 6)) (.lit 6)),
+        .mk 33 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
 /-- `tests/frontend` as `a_power_of_two_literal_is_a_g_power_only_below_two_to_the_64_0`. -/
 def prog_a_power_of_two_literal_is_a_g_power_only_below_two_to_the_64_0 : TestProgram where
   name := "a_power_of_two_literal_is_a_g_power_only_below_two_to_the_64_0"
@@ -1808,6 +2304,23 @@ def prog_a_program_cannot_reach_a_cell_it_does_not_own_5 : TestProgram where
         .mk 3 (.hintWitness (.slice (.var "hb") (.gpow 1) (.add (.gpow 1) (.lit 2))) "w"),
         .mk 4 (.let_ "p" (.gpow 0)),
         .mk 5 (.store (.var "p") (.lit 1) (.index (.var "hb") .gen)),
+        .mk 6 (.store (.var "p") .gen (.gpow 0)),
+        .mk 7 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_program_cannot_reach_a_cell_it_does_not_own_6`. -/
+def prog_a_program_cannot_reach_a_cell_it_does_not_own_6 : TestProgram where
+  name := "a_program_cannot_reach_a_cell_it_does_not_own_6"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 8)),
+        .mk 3 (.hintWitness (.slice (.var "hb") (.pow (.gpow 2) (.lit 3)) (.add (.pow (.gpow 2) (.lit 3)) (.lit 4))) "w"),
+        .mk 4 (.let_ "p" (.gpow 0)),
+        .mk 5 (.store (.var "p") (.lit 1) (.gpow 0)),
         .mk 6 (.store (.var "p") .gen (.gpow 0)),
         .mk 7 (.ret [])] }],
     []⟩
@@ -2268,6 +2781,39 @@ def prog_a_value_may_ask_for_the_integer_regime_6 : TestProgram where
   publicInput := []
   streams := []
 
+/-- `tests/frontend` as `a_window_destination_bound_does_not_wrap`. -/
+def prog_a_window_destination_bound_does_not_wrap : TestProgram where
+  name := "a_window_destination_bound_does_not_wrap"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "b" (.stackBuf 1)),
+        .mk 3 (.call "hint_windows_exponent" [(.var "b"), .gen, (.lit 0), (.lit 1), (.lit 2), (.lit 4294967295)]),
+        .mk 4 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_zero_power_evaluates_its_base`. -/
+def prog_a_zero_power_evaluates_its_base : TestProgram where
+  name := "a_zero_power_evaluates_its_base"
+  program := ⟨[
+    { name := "one", params := [], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 2 (.letHintWitness "x" "x"),
+        .mk 3 (.assertEq (.var "x") (.lit 1)),
+        .mk 4 (.ret [(.var "x")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 7 (.let_ "y" (.pow (.call "one" []) (.lit 0))),
+        .mk 8 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
 /-- `tests/frontend` as `addr_names_the_frame_run_0`. -/
 def prog_addr_names_the_frame_run_0 : TestProgram where
   name := "addr_names_the_frame_run_0"
@@ -2707,6 +3253,21 @@ def prog_an_unbound_name_is_rejected_1 : TestProgram where
         .mk 6 (.let_ "p" (.gpow 0)),
         .mk 7 (.store (.var "p") (.lit 1) (.var "nope")),
         .mk 8 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `an_unbound_name_is_rejected_2`. -/
+def prog_an_unbound_name_is_rejected_2 : TestProgram where
+  name := "an_unbound_name_is_rejected_2"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "p" (.gpow 0)),
+        .mk 3 (.store (.var "p") (.lit 1) (.index (.var "nosuch") (.lit 0))),
+        .mk 4 (.store (.var "p") .gen (.gpow 0)),
+        .mk 5 (.ret [])] }],
     []⟩
   publicInput := []
   streams := []
@@ -4707,6 +5268,107 @@ def prog_integer_heap_index_is_rejected_0 : TestProgram where
   publicInput := []
   streams := []
 
+/-- `tests/frontend` as `integer_heap_index_is_rejected_1`. -/
+def prog_integer_heap_index_is_rejected_1 : TestProgram where
+  name := "integer_heap_index_is_rejected_1"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 4 (.let_ "hb" (.heapBuf 8)),
+        .mk 5 (.store (.var "hb") (.lit 4) (.lit 7)),
+        .mk 6 (.ret [])] }],
+    [("A", [(1, 0), (2, 0), (3, 0), (5, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `integer_heap_index_is_rejected_2`. -/
+def prog_integer_heap_index_is_rejected_2 : TestProgram where
+  name := "integer_heap_index_is_rejected_2"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 4 (.let_ "hb" (.heapBuf 8)),
+        .mk 5 (.store (.var "hb") (.mul (.lit 2) (.lit 2)) (.lit 7)),
+        .mk 6 (.ret [])] }],
+    [("A", [(1, 0), (2, 0), (3, 0), (5, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `integer_heap_index_is_rejected_3`. -/
+def prog_integer_heap_index_is_rejected_3 : TestProgram where
+  name := "integer_heap_index_is_rejected_3"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 4 (.let_ "hb" (.heapBuf 8)),
+        .mk 5 (.store (.var "hb") (.pow (.lit 2) (.lit 2)) (.lit 7)),
+        .mk 6 (.ret [])] }],
+    [("A", [(1, 0), (2, 0), (3, 0), (5, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `integer_heap_index_is_rejected_4`. -/
+def prog_integer_heap_index_is_rejected_4 : TestProgram where
+  name := "integer_heap_index_is_rejected_4"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 4 (.let_ "hb" (.heapBuf 8)),
+        .mk 5 (.store (.var "hb") (.call "const" [(.lit 4)]) (.lit 7)),
+        .mk 6 (.ret [])] }],
+    [("A", [(1, 0), (2, 0), (3, 0), (5, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `integer_heap_index_is_rejected_5`. -/
+def prog_integer_heap_index_is_rejected_5 : TestProgram where
+  name := "integer_heap_index_is_rejected_5"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 4 (.let_ "hb" (.heapBuf 8)),
+        .mk 5 (.store (.var "hb") (.call "len" [(.var "A")]) (.lit 7)),
+        .mk 6 (.ret [])] }],
+    [("A", [(1, 0), (2, 0), (3, 0), (5, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `integer_heap_index_is_rejected_6`. -/
+def prog_integer_heap_index_is_rejected_6 : TestProgram where
+  name := "integer_heap_index_is_rejected_6"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 4 (.let_ "hb" (.heapBuf 8)),
+        .mk 5 (.store (.var "hb") (.mul (.lit 2) (.index (.var "A") (.lit 1))) (.lit 7)),
+        .mk 6 (.ret [])] }],
+    [("A", [(1, 0), (2, 0), (3, 0), (5, 0)])]⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `keccak_cap_takes_no_pad_tail`. -/
+def prog_keccak_cap_takes_no_pad_tail : TestProgram where
+  name := "keccak_cap_takes_no_pad_tail"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "s" (.stackBuf 13)),
+        .mk 3 (.call "keccak" [(.list [(.lit 0), (.lit 0)]), (.list [(.lit 0), (.lit 0)]), (.var "s")]),
+        .mk 4 (.let_ "t" (.stackBuf 4)),
+        .mk 5 (.let_ "o" (.stackBuf 13)),
+        .mk 6 (.call "keccak" [(.list [(.lit 0), (.lit 0)]), (.list [(.lit 0), (.lit 0)]), (.var "o"), (.call "__kw_tail" [(.var "t")]), (.call "__kw_cap" [(.var "s")]), (.call "__kw_pad_tail" [(.lit 1)])]),
+        .mk 7 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
 /-- `tests/frontend` as `keccak_cell_past_len_is_rejected_0`. -/
 def prog_keccak_cell_past_len_is_rejected_0 : TestProgram where
   name := "keccak_cell_past_len_is_rejected_0"
@@ -5599,15 +6261,15 @@ def prog_unchainable_scrutinees_keep_their_meaning_2 : TestProgram where
   streams := []
 
 /-- Every test program. -/
-def all : List TestProgram := [prog_conditionals, prog_const_params, prog_fibonacci, prog_fibonacci_bench, prog_hash_heap_chain, prog_hash_slices, prog_heapbuf_dyn, prog_hint, prog_identities, prog_inline, prog_match, prog_match_arms, prog_nested, prog_runtime_loop, prog_scoping, prog_unroll, prog_wots_walk]
+def all : List TestProgram := [prog_conditionals, prog_const_params, prog_fibonacci, prog_fibonacci_bench, prog_hash_heap_chain, prog_hash_slices, prog_heapbuf_dyn, prog_hint, prog_identities, prog_inline, prog_loop_scopes, prog_match, prog_match_arms, prog_nested, prog_runtime_loop, prog_scoping, prog_unroll, prog_wots_walk]
 
 /-- The verifiers' fixture program (`crates/stable_prover/lean_vm_core/tests/verifiers/chain.py`) at each step count its users take. -/
 def chains : List TestProgram := [prog_chain4, prog_chain16, prog_chain300, prog_chain1000, prog_chain5000, prog_chain16384]
 
 /-- The programs of the VM's and the prover's tests (`crates/zkdsl/tests/vm/*.py`), a template at each of its counts. -/
-def vm : List TestProgram := [prog_duplex_step, prog_empty, prog_failed_assert, prog_field_div, prog_heap_buf_runtime_size, prog_hinted_gpow_past_the_run, prog_keccak_cells_run, prog_keccak_full_final_block, prog_keccak_self_hash, prog_keccak_state_heap, prog_keccak_steps0, prog_keccak_steps1, prog_keccak_steps3, prog_keccak_steps512, prog_keccak_steps513, prog_keccak_two_blocks, prog_log2_ceil, prog_log2_ceil_floor, prog_print, prog_range_check_complement_65536, prog_range_check_complement_runtime, prog_range_check_past_the_prover, prog_range_check_unwritten, prog_unwritten_heap_read]
+def vm : List TestProgram := [prog_binding_never_runs_0, prog_binding_never_runs_1, prog_binding_never_runs_2, prog_binding_never_runs_3, prog_binding_never_runs_4, prog_binding_never_runs_5, prog_binding_never_runs_6, prog_duplex_step, prog_empty, prog_failed_assert, prog_field_div, prog_g_power_array_index, prog_heap_buf_runtime_size, prog_hinted_gpow_past_the_run, prog_keccak_cells_run, prog_keccak_full_final_block, prog_keccak_self_hash, prog_keccak_state_heap, prog_keccak_steps0, prog_keccak_steps1, prog_keccak_steps3, prog_keccak_steps512, prog_keccak_steps513, prog_keccak_two_blocks, prog_log2_ceil, prog_log2_ceil_floor, prog_loop_body_binds_first, prog_print, prog_range_check_complement_65536, prog_range_check_complement_runtime, prog_range_check_past_the_prover, prog_range_check_unwritten, prog_unwritten_heap_read, prog_zero_power_base]
 
 /-- The front end's regression corpus (`tests/frontend/*.py`): `lake exe guest-backend core-text` compares the core IR `Expand` gives each with `tests/frontend/*.core`. -/
-def frontend : List TestProgram := [prog_a_bit_decomposition_cannot_overrun_its_heap_destination_0, prog_a_bit_decomposition_cannot_overrun_its_heap_destination_1, prog_a_bit_decomposition_cannot_overrun_its_heap_destination_2, prog_a_bit_decomposition_cannot_overrun_its_heap_destination_3, prog_a_bit_decomposition_writes_at_most_40_bits, prog_a_branch_local_rebinding_does_not_hide_the_outer_binding_0, prog_a_builtin_value_stored_into_a_cell_is_evaluated, prog_a_constant_name_inside_a_stream_name_is_not_substituted, prog_a_digit_decomposition_reads_at_most_40_bits, prog_a_failed_assert_names_its_line_0, prog_a_folded_branch_keeps_its_bindings_0, prog_a_folded_if_cannot_rebind_a_loop_capture, prog_a_frame_bit_buffer_costs_no_deref_0, prog_a_frame_bit_buffer_costs_no_deref_1, prog_a_global_constant_may_be_a_g_power_0, prog_a_global_constant_may_be_a_g_power_1, prog_a_global_constant_may_be_a_g_power_2, prog_a_global_constant_may_be_a_g_power_3, prog_a_global_constant_may_be_a_g_power_4, prog_a_heap_index_past_two_to_the_128_is_out_of_bounds_0, prog_a_heap_index_past_two_to_the_128_is_out_of_bounds_1, prog_a_literal_power_of_two_is_a_g_power_0, prog_a_load_before_its_store_sees_the_store_0, prog_a_loop_bound_must_be_reachable_0, prog_a_loop_cannot_carry_a_value_0, prog_a_match_of_builtin_arms_is_not_a_dispatch, prog_a_match_target_binds_and_every_field_is_walked_0, prog_a_match_target_binds_and_every_field_is_walked_1, prog_a_match_target_binds_and_every_field_is_walked_2, prog_a_match_target_binds_and_every_field_is_walked_3, prog_a_mixed_stack_buf_return_cannot_cross_a_match_join_0, prog_a_power_of_two_literal_is_a_g_power_only_below_two_to_the_64_0, prog_a_program_cannot_reach_a_cell_it_does_not_own_0, prog_a_program_cannot_reach_a_cell_it_does_not_own_1, prog_a_program_cannot_reach_a_cell_it_does_not_own_2, prog_a_program_cannot_reach_a_cell_it_does_not_own_3, prog_a_program_cannot_reach_a_cell_it_does_not_own_4, prog_a_program_cannot_reach_a_cell_it_does_not_own_5, prog_a_program_names_what_it_means_0, prog_a_program_names_what_it_means_1, prog_a_program_names_what_it_means_2, prog_a_range_check_bound_may_pass_two_to_the_16, prog_a_return_in_main_is_only_its_last_statement, prog_a_runtime_loop_bound_is_evaluated_once, prog_a_self_referential_stack_store_terminates_0, prog_a_self_referential_stack_store_terminates_1, prog_a_self_referential_stack_store_terminates_2, prog_a_shadowed_stack_buf_is_not_a_capture_0, prog_a_sponge_state_run_is_neither_rewritten_nor_dropped_0, prog_a_stack_bit_run_survives_cell_sharing_0, prog_a_stack_buf_can_be_passed_as_well_as_returned_0, prog_a_stack_buf_can_be_passed_as_well_as_returned_1, prog_a_stack_buf_can_be_passed_as_well_as_returned_2, prog_a_store_into_a_run_parameter_asserts_0, prog_a_string_literal_is_not_scanned_for_syntax_0, prog_a_value_may_ask_for_the_integer_regime_0, prog_a_value_may_ask_for_the_integer_regime_1, prog_a_value_may_ask_for_the_integer_regime_2, prog_a_value_may_ask_for_the_integer_regime_3, prog_a_value_may_ask_for_the_integer_regime_4, prog_a_value_may_ask_for_the_integer_regime_5, prog_a_value_may_ask_for_the_integer_regime_6, prog_addr_names_the_frame_run_0, prog_addr_pointers_are_bounds_checked_0, prog_an_ambiguous_compile_time_branch_must_be_declared_0, prog_an_ambiguous_compile_time_branch_must_be_declared_1, prog_an_ambiguous_compile_time_branch_must_be_declared_10, prog_an_ambiguous_compile_time_branch_must_be_declared_11, prog_an_ambiguous_compile_time_branch_must_be_declared_12, prog_an_ambiguous_compile_time_branch_must_be_declared_13, prog_an_ambiguous_compile_time_branch_must_be_declared_14, prog_an_ambiguous_compile_time_branch_must_be_declared_15, prog_an_ambiguous_compile_time_branch_must_be_declared_2, prog_an_ambiguous_compile_time_branch_must_be_declared_3, prog_an_ambiguous_compile_time_branch_must_be_declared_4, prog_an_ambiguous_compile_time_branch_must_be_declared_5, prog_an_ambiguous_compile_time_branch_must_be_declared_6, prog_an_ambiguous_compile_time_branch_must_be_declared_7, prog_an_ambiguous_compile_time_branch_must_be_declared_8, prog_an_ambiguous_compile_time_branch_must_be_declared_9, prog_an_if_folds_on_integers_of_any_size, prog_an_inline_call_does_not_steal_the_call_site_line_0, prog_an_inline_stack_buf_parameter_takes_only_its_own_size, prog_an_unbound_name_is_rejected_0, prog_an_unbound_name_is_rejected_1, prog_assert_ne_compile_time_equal_rejected_0, prog_assert_ne_emits_no_jump_0, prog_assert_ne_emits_no_jump_1, prog_assert_ne_end_to_end_0, prog_assert_ne_in_loop_0, prog_assert_survives_a_duplicated_comparison_0, prog_branch_writes_survive_unrolled_tuple_return_0, prog_cached_copies_see_later_stores_0, prog_cached_copies_see_later_stores_1, prog_cached_copies_see_later_stores_2, prog_cached_loads_do_not_cross_branches_or_erase_stores_0, prog_cached_loads_see_linked_equalities_before_use_0, prog_cached_loads_see_linked_equalities_before_use_1, prog_cached_loads_see_linked_equalities_before_use_2, prog_cached_loads_see_linked_equalities_before_use_3, prog_chained_matches_run_in_order_0, prog_chained_matches_run_in_order_1, prog_const_chains_0, prog_const_in_literal_only_positions_0, prog_const_inlines_like_literal_0, prog_const_integer_arithmetic_derivations_0, prog_const_is_transparent_where_the_reading_is_already_integer_0, prog_const_is_transparent_where_the_reading_is_already_integer_1, prog_const_is_transparent_where_the_reading_is_already_integer_2, prog_const_is_transparent_where_the_reading_is_already_integer_3, prog_const_is_transparent_where_the_reading_is_already_integer_4, prog_duplicate_argument_value_survives_0, prog_duplicate_constant_in_a_return_slot_survives_0, prog_duplicates_are_not_folded_across_a_branch_0, prog_early_return_does_not_reserve_the_unused_range_0, prog_field_div_vs_floordiv_0, prog_heap_alias_index_oob_rejected_0, prog_heap_hint_slice_oob_rejected_0, prog_heap_index_boundary_ok_0, prog_heap_index_exponent_overflow_rejected_0, prog_heap_index_oob_rejected_0, prog_heap_keccak_slice_oob_rejected_0, prog_inline_call_in_expression_positions_0, prog_inline_constant_arguments_and_destinations_call, prog_inline_constant_arguments_and_destinations_in_place, prog_inline_returns_a_constant_argument_called, prog_inline_returns_a_constant_argument_inlined, prog_inline_returns_a_constant_argument_takes_its_field_reading_called, prog_inline_returns_a_constant_argument_takes_its_field_reading_inlined, prog_inline_returns_a_constant_return_called, prog_inline_returns_a_constant_return_inlined, prog_inline_returns_a_g_power_and_a_constant_array_index_called, prog_inline_returns_a_g_power_and_a_constant_array_index_inlined, prog_inline_returns_a_nested_call_shadowing_its_argument_called, prog_inline_returns_a_nested_call_shadowing_its_argument_inlined, prog_inline_returns_a_product_the_caller_computes_too_called, prog_inline_returns_a_product_the_caller_computes_too_inlined, prog_inline_returns_a_returned_cell_is_still_write_once_called, prog_inline_returns_a_returned_cell_is_still_write_once_inlined, prog_inline_returns_advanced_cursor_0, prog_inline_returns_bind_as_lets_call, prog_inline_returns_bind_as_lets_in_place, prog_inline_returns_match_joins_called, prog_inline_returns_match_joins_inlined, prog_inline_returns_stackbuf_and_scalar_0, prog_integer_heap_index_is_rejected_0, prog_keccak_cell_past_len_is_rejected_0, prog_keccak_cells_non_final_len_is_rejected_0, prog_keccak_cells_of_a_comprehension_0, prog_keccak_len_past_the_cells_is_rejected_0, prog_keccak_pad_inside_a_word_0, prog_keccak_pad_run_after_runtime_branch_0, prog_keccak_pad_run_in_both_runtime_branches_0, prog_keccak_pad_tail_in_place_0, prog_keccak_pad_tail_of_a_list_is_rejected_0, prog_keccak_short_state_is_rejected_0, prog_loop_frames_preserve_escaped_cells_and_nested_allocations_0, prog_main_cannot_be_called, prog_naming_a_constant_does_not_change_which_heap_cell_it_names_0, prog_normal_function_returns_heapbuf_pointer_0, prog_normal_function_returns_stackbuf_0, prog_normal_function_returns_stackbuf_and_scalar_0, prog_one_hinted_value_needs_no_buffer_0, prog_one_hinted_value_needs_no_buffer_1, prog_one_hinted_value_needs_no_buffer_2, prog_pack64x2_proves_and_verifies_0, prog_placeholder_fills_constant_0, prog_range_check_bound_too_big_rejected_0, prog_range_check_empty_bound_rejected_0, prog_range_check_end_to_end_0, prog_range_check_in_loop_0, prog_range_check_runtime_bound_0, prog_rebound_counter_keeps_incremental_frames_0, prog_rebound_counter_keeps_incremental_frames_1, prog_runtime_frame_count_uses_the_distance_from_the_start_0, prog_stack_buf_index_overflow_rejected_0, prog_stack_buf_indexing_0, prog_stack_buf_list_literal_0, prog_stack_buf_list_literal_as_value_rejected_0, prog_stack_buf_loop_capture_0, prog_stack_buf_rebind_to_scalar_0, prog_the_scalar_hint_binds_like_any_other_binder_0, prog_the_scalar_hint_binds_like_any_other_binder_1, prog_the_scalar_hint_binds_like_any_other_binder_2, prog_the_supported_compound_assignments_desugar_0, prog_trailing_branch_hint_stays_in_its_branch_0, prog_unchainable_scrutinees_keep_their_meaning_0, prog_unchainable_scrutinees_keep_their_meaning_1, prog_unchainable_scrutinees_keep_their_meaning_2]
+def frontend : List TestProgram := [prog_a_binding_that_never_runs_does_not_hide_the_outer_binding_0, prog_a_binding_that_never_runs_does_not_hide_the_outer_binding_1, prog_a_binding_that_never_runs_does_not_hide_the_outer_binding_2, prog_a_binding_that_never_runs_does_not_hide_the_outer_binding_3, prog_a_binding_that_never_runs_does_not_hide_the_outer_binding_4, prog_a_binding_that_never_runs_does_not_hide_the_outer_binding_5, prog_a_binding_that_never_runs_does_not_hide_the_outer_binding_6, prog_a_bit_decomposition_cannot_overrun_its_heap_destination_0, prog_a_bit_decomposition_cannot_overrun_its_heap_destination_1, prog_a_bit_decomposition_cannot_overrun_its_heap_destination_2, prog_a_bit_decomposition_cannot_overrun_its_heap_destination_3, prog_a_bit_decomposition_writes_at_most_40_bits, prog_a_branch_local_rebinding_does_not_hide_the_outer_binding_0, prog_a_builtin_value_stored_into_a_cell_is_evaluated, prog_a_constant_array_of_g_powers_indexes_their_cells, prog_a_constant_name_inside_a_stream_name_is_not_substituted, prog_a_digit_decomposition_reads_at_most_40_bits, prog_a_failed_assert_names_its_line_0, prog_a_folded_branch_keeps_its_bindings_0, prog_a_folded_if_cannot_rebind_a_loop_capture, prog_a_frame_bit_buffer_costs_no_deref_0, prog_a_frame_bit_buffer_costs_no_deref_1, prog_a_global_constant_may_be_a_g_power_0, prog_a_global_constant_may_be_a_g_power_1, prog_a_global_constant_may_be_a_g_power_2, prog_a_global_constant_may_be_a_g_power_3, prog_a_global_constant_may_be_a_g_power_4, prog_a_heap_index_past_two_to_the_128_is_out_of_bounds_0, prog_a_heap_index_past_two_to_the_128_is_out_of_bounds_1, prog_a_literal_power_of_two_is_a_g_power_0, prog_a_load_before_its_store_sees_the_store_0, prog_a_loop_bound_must_be_reachable_0, prog_a_loop_cannot_carry_a_value_0, prog_a_loop_cannot_carry_a_value_1, prog_a_loop_cannot_carry_a_value_2, prog_a_loop_cannot_carry_a_value_3, prog_a_match_of_builtin_arms_is_not_a_dispatch, prog_a_match_target_binds_and_every_field_is_walked_0, prog_a_match_target_binds_and_every_field_is_walked_1, prog_a_match_target_binds_and_every_field_is_walked_2, prog_a_match_target_binds_and_every_field_is_walked_3, prog_a_mixed_stack_buf_return_cannot_cross_a_match_join_0, prog_a_name_the_loop_body_binds_first_is_its_own, prog_a_power_of_two_literal_is_a_g_power_only_below_two_to_the_64_0, prog_a_program_cannot_reach_a_cell_it_does_not_own_0, prog_a_program_cannot_reach_a_cell_it_does_not_own_1, prog_a_program_cannot_reach_a_cell_it_does_not_own_2, prog_a_program_cannot_reach_a_cell_it_does_not_own_3, prog_a_program_cannot_reach_a_cell_it_does_not_own_4, prog_a_program_cannot_reach_a_cell_it_does_not_own_5, prog_a_program_cannot_reach_a_cell_it_does_not_own_6, prog_a_program_names_what_it_means_0, prog_a_program_names_what_it_means_1, prog_a_program_names_what_it_means_2, prog_a_range_check_bound_may_pass_two_to_the_16, prog_a_return_in_main_is_only_its_last_statement, prog_a_runtime_loop_bound_is_evaluated_once, prog_a_self_referential_stack_store_terminates_0, prog_a_self_referential_stack_store_terminates_1, prog_a_self_referential_stack_store_terminates_2, prog_a_shadowed_stack_buf_is_not_a_capture_0, prog_a_sponge_state_run_is_neither_rewritten_nor_dropped_0, prog_a_stack_bit_run_survives_cell_sharing_0, prog_a_stack_buf_can_be_passed_as_well_as_returned_0, prog_a_stack_buf_can_be_passed_as_well_as_returned_1, prog_a_stack_buf_can_be_passed_as_well_as_returned_2, prog_a_store_into_a_run_parameter_asserts_0, prog_a_string_literal_is_not_scanned_for_syntax_0, prog_a_value_may_ask_for_the_integer_regime_0, prog_a_value_may_ask_for_the_integer_regime_1, prog_a_value_may_ask_for_the_integer_regime_2, prog_a_value_may_ask_for_the_integer_regime_3, prog_a_value_may_ask_for_the_integer_regime_4, prog_a_value_may_ask_for_the_integer_regime_5, prog_a_value_may_ask_for_the_integer_regime_6, prog_a_window_destination_bound_does_not_wrap, prog_a_zero_power_evaluates_its_base, prog_addr_names_the_frame_run_0, prog_addr_pointers_are_bounds_checked_0, prog_an_ambiguous_compile_time_branch_must_be_declared_0, prog_an_ambiguous_compile_time_branch_must_be_declared_1, prog_an_ambiguous_compile_time_branch_must_be_declared_10, prog_an_ambiguous_compile_time_branch_must_be_declared_11, prog_an_ambiguous_compile_time_branch_must_be_declared_12, prog_an_ambiguous_compile_time_branch_must_be_declared_13, prog_an_ambiguous_compile_time_branch_must_be_declared_14, prog_an_ambiguous_compile_time_branch_must_be_declared_15, prog_an_ambiguous_compile_time_branch_must_be_declared_2, prog_an_ambiguous_compile_time_branch_must_be_declared_3, prog_an_ambiguous_compile_time_branch_must_be_declared_4, prog_an_ambiguous_compile_time_branch_must_be_declared_5, prog_an_ambiguous_compile_time_branch_must_be_declared_6, prog_an_ambiguous_compile_time_branch_must_be_declared_7, prog_an_ambiguous_compile_time_branch_must_be_declared_8, prog_an_ambiguous_compile_time_branch_must_be_declared_9, prog_an_if_folds_on_integers_of_any_size, prog_an_inline_call_does_not_steal_the_call_site_line_0, prog_an_inline_stack_buf_parameter_takes_only_its_own_size, prog_an_unbound_name_is_rejected_0, prog_an_unbound_name_is_rejected_1, prog_an_unbound_name_is_rejected_2, prog_assert_ne_compile_time_equal_rejected_0, prog_assert_ne_emits_no_jump_0, prog_assert_ne_emits_no_jump_1, prog_assert_ne_end_to_end_0, prog_assert_ne_in_loop_0, prog_assert_survives_a_duplicated_comparison_0, prog_branch_writes_survive_unrolled_tuple_return_0, prog_cached_copies_see_later_stores_0, prog_cached_copies_see_later_stores_1, prog_cached_copies_see_later_stores_2, prog_cached_loads_do_not_cross_branches_or_erase_stores_0, prog_cached_loads_see_linked_equalities_before_use_0, prog_cached_loads_see_linked_equalities_before_use_1, prog_cached_loads_see_linked_equalities_before_use_2, prog_cached_loads_see_linked_equalities_before_use_3, prog_chained_matches_run_in_order_0, prog_chained_matches_run_in_order_1, prog_const_chains_0, prog_const_in_literal_only_positions_0, prog_const_inlines_like_literal_0, prog_const_integer_arithmetic_derivations_0, prog_const_is_transparent_where_the_reading_is_already_integer_0, prog_const_is_transparent_where_the_reading_is_already_integer_1, prog_const_is_transparent_where_the_reading_is_already_integer_2, prog_const_is_transparent_where_the_reading_is_already_integer_3, prog_const_is_transparent_where_the_reading_is_already_integer_4, prog_duplicate_argument_value_survives_0, prog_duplicate_constant_in_a_return_slot_survives_0, prog_duplicates_are_not_folded_across_a_branch_0, prog_early_return_does_not_reserve_the_unused_range_0, prog_field_div_vs_floordiv_0, prog_heap_alias_index_oob_rejected_0, prog_heap_hint_slice_oob_rejected_0, prog_heap_index_boundary_ok_0, prog_heap_index_exponent_overflow_rejected_0, prog_heap_index_oob_rejected_0, prog_heap_keccak_slice_oob_rejected_0, prog_inline_call_in_expression_positions_0, prog_inline_constant_arguments_and_destinations_call, prog_inline_constant_arguments_and_destinations_in_place, prog_inline_returns_a_constant_argument_called, prog_inline_returns_a_constant_argument_inlined, prog_inline_returns_a_constant_argument_takes_its_field_reading_called, prog_inline_returns_a_constant_argument_takes_its_field_reading_inlined, prog_inline_returns_a_constant_return_called, prog_inline_returns_a_constant_return_inlined, prog_inline_returns_a_g_power_and_a_constant_array_index_called, prog_inline_returns_a_g_power_and_a_constant_array_index_inlined, prog_inline_returns_a_nested_call_shadowing_its_argument_called, prog_inline_returns_a_nested_call_shadowing_its_argument_inlined, prog_inline_returns_a_product_the_caller_computes_too_called, prog_inline_returns_a_product_the_caller_computes_too_inlined, prog_inline_returns_a_returned_cell_is_still_write_once_called, prog_inline_returns_a_returned_cell_is_still_write_once_inlined, prog_inline_returns_advanced_cursor_0, prog_inline_returns_bind_as_lets_call, prog_inline_returns_bind_as_lets_in_place, prog_inline_returns_match_joins_called, prog_inline_returns_match_joins_inlined, prog_inline_returns_stackbuf_and_scalar_0, prog_integer_heap_index_is_rejected_0, prog_integer_heap_index_is_rejected_1, prog_integer_heap_index_is_rejected_2, prog_integer_heap_index_is_rejected_3, prog_integer_heap_index_is_rejected_4, prog_integer_heap_index_is_rejected_5, prog_integer_heap_index_is_rejected_6, prog_keccak_cap_takes_no_pad_tail, prog_keccak_cell_past_len_is_rejected_0, prog_keccak_cells_non_final_len_is_rejected_0, prog_keccak_cells_of_a_comprehension_0, prog_keccak_len_past_the_cells_is_rejected_0, prog_keccak_pad_inside_a_word_0, prog_keccak_pad_run_after_runtime_branch_0, prog_keccak_pad_run_in_both_runtime_branches_0, prog_keccak_pad_tail_in_place_0, prog_keccak_pad_tail_of_a_list_is_rejected_0, prog_keccak_short_state_is_rejected_0, prog_loop_frames_preserve_escaped_cells_and_nested_allocations_0, prog_main_cannot_be_called, prog_naming_a_constant_does_not_change_which_heap_cell_it_names_0, prog_normal_function_returns_heapbuf_pointer_0, prog_normal_function_returns_stackbuf_0, prog_normal_function_returns_stackbuf_and_scalar_0, prog_one_hinted_value_needs_no_buffer_0, prog_one_hinted_value_needs_no_buffer_1, prog_one_hinted_value_needs_no_buffer_2, prog_pack64x2_proves_and_verifies_0, prog_placeholder_fills_constant_0, prog_range_check_bound_too_big_rejected_0, prog_range_check_empty_bound_rejected_0, prog_range_check_end_to_end_0, prog_range_check_in_loop_0, prog_range_check_runtime_bound_0, prog_rebound_counter_keeps_incremental_frames_0, prog_rebound_counter_keeps_incremental_frames_1, prog_runtime_frame_count_uses_the_distance_from_the_start_0, prog_stack_buf_index_overflow_rejected_0, prog_stack_buf_indexing_0, prog_stack_buf_list_literal_0, prog_stack_buf_list_literal_as_value_rejected_0, prog_stack_buf_loop_capture_0, prog_stack_buf_rebind_to_scalar_0, prog_the_scalar_hint_binds_like_any_other_binder_0, prog_the_scalar_hint_binds_like_any_other_binder_1, prog_the_scalar_hint_binds_like_any_other_binder_2, prog_the_supported_compound_assignments_desugar_0, prog_trailing_branch_hint_stays_in_its_branch_0, prog_unchainable_scrutinees_keep_their_meaning_0, prog_unchainable_scrutinees_keep_their_meaning_1, prog_unchainable_scrutinees_keep_their_meaning_2]
 
 end LeanVMTests.Guest.Programs

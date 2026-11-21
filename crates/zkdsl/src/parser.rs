@@ -18,8 +18,7 @@ use std::collections::BTreeMap;
 mod consts;
 mod expr;
 mod subst;
-pub(crate) use consts::const_int_expr;
-use consts::{apply_replacements, eval_const_int, gpow_bound, is_int_arith, parse_gpow_bound};
+use consts::{apply_replacements, const_int_expr, eval_const_int, gpow_bound, is_int_arith, parse_gpow_bound};
 pub use consts::{f128_literal, parse_const};
 use expr::{
     binding_name, call_args, is_ident, not_reserved, parse_expr, split_assign, split_aug, split_once_top, split_top,

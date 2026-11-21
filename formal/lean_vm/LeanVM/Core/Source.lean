@@ -20,9 +20,10 @@ already `x = x OP (e)`; constant arrays stay named (`Program.constArrays`). A ke
 `key=value` is the call `__kw_key(value)`, as the parser writes it. The guest's AST is generated data
 (`LeanVM.Guest.Data.Source`), not trusted: a parser bug can only make a later proof fail.
 
-The passes below are those of `ast.rs` and `parser/subst.rs`, used by the expansion
-(`LeanVM.Core.Expand`): `Stmt.substList` (`subst_stmts`), `freeVarsStmt` (`free_vars_stmt`),
-`bindsAnywhere`, `containsReturn` and `splitTailReturn` (`split_tail_return`).
+The passes below are those of `ast.rs`, `parser/subst.rs` and `parser/consts.rs`, used by the
+expansion (`LeanVM.Core.Expand`): `Stmt.substList` (`subst_stmts`), `Expr.constInt`
+(`const_int_expr`), `freeVarsStmt` (`free_vars_stmt`), `bindsAnywhere`, `containsReturn` and
+`splitTailReturn` (`split_tail_return`).
 -/
 
 namespace LeanVM.Core.Source
@@ -280,7 +281,75 @@ end
 def substBody (body : List Stmt) (substs : List (String × Expr)) : List Stmt :=
   substs.foldl (fun b (x, r) => Stmt.substList x r b) body
 
+/-! ## Parse-time integers (`parser/consts.rs`) -/
+
+/-- `checked_pow` on `u128`. -/
+def checkedPow128 (b e : Nat) : Option Nat :=
+  if b ≤ 1 then some (b ^ e) else if 128 ≤ e then none
+  else if b ^ e < 2 ^ 128 then some (b ^ e) else none
+
+mutual
+/-- `const_int_expr`: the value of an integer expression over literals, each operation checked in
+`u128`; `none` when a leaf is no literal. -/
+def Expr.constInt : Expr → Option Nat
+  | .lit k => some k
+  | .call f args => if f == "const" then Expr.constIntArg args else none
+  | .add a b =>
+      match a.constInt, b.constInt with
+      | some x, some y => if x + y < 2 ^ 128 then some (x + y) else none
+      | _, _ => none
+  | .sub a b =>
+      match a.constInt, b.constInt with
+      | some x, some y => if y ≤ x then some (x - y) else none
+      | _, _ => none
+  | .mul a b =>
+      match a.constInt, b.constInt with
+      | some x, some y => if x * y < 2 ^ 128 then some (x * y) else none
+      | _, _ => none
+  | .div a b | .fdiv a b =>
+      match a.constInt, b.constInt with
+      | some x, some y => if y = 0 then none else some (x / y)
+      | _, _ => none
+  | .mod a b =>
+      match a.constInt, b.constInt with
+      | some x, some y => if y = 0 then none else some (x % y)
+      | _, _ => none
+  | .pow a b =>
+      match a.constInt, b.constInt with
+      | some x, some y => if y < 2 ^ 32 then checkedPow128 x y else none
+      | _, _ => none
+  | _ => none
+
+/-- The one argument of a `const(...)`. -/
+def Expr.constIntArg : List Expr → Option Nat
+  | [e] => e.constInt
+  | _ => none
+end
+
 /-! ## Free variables (`ast.rs`) -/
+
+mutual
+/-- `binds_through`: whether a statement binds `name` where the binding may outlive its block, at
+its own level, in an `if` arm or in an `unroll` body. -/
+def Stmt.bindsThrough (name : String) : Stmt → Bool
+  | .mk _ k => StmtKind.bindsThrough name k
+
+/-- `binds_through` on a kind. -/
+def StmtKind.bindsThrough (name : String) : StmtKind → Bool
+  | .let_ n _ | .letHintWitness n _ => n == name
+  | .letTuple ns _ _ => ns.contains name
+  | .match_ targets _ _ => targets.any fun
+      | .var n => n == name
+      | _ => false
+  | .ite _ _ _ thn els _ => Stmt.bindsThroughList name thn || Stmt.bindsThroughList name els
+  | .unroll _ _ _ body => Stmt.bindsThroughList name body
+  | _ => false
+
+/-- `binds_through` over a block. -/
+def Stmt.bindsThroughList (name : String) : List Stmt → Bool
+  | [] => false
+  | s :: ss => Stmt.bindsThrough name s || Stmt.bindsThroughList name ss
+end
 
 mutual
 /-- The variable references of `e`, in source order, appended to `acc` (`free_vars_expr`). -/
@@ -306,14 +375,31 @@ def bothLits : Expr → Expr → Bool
   | .lit _, .lit _ => true
   | _, _ => false
 
+/-- `taken_arm`: which arm of an `if` that folds as written runs, when literals on both sides
+decide it. -/
+def takenArm (eq : Bool) (lhs rhs : Expr) (forceConst : Bool) : Option Bool :=
+  if !forceConst && !bothLits lhs rhs then none
+  else
+    match lhs.constInt, rhs.constInt with
+    | some a, some b => some ((a == b) == eq)
+    | _, _ => none
+
+/-- `empty_unroll`: whether literals say an `unroll` runs no copy of its body. -/
+def emptyUnroll (lo hi : Expr) : Bool :=
+  match lo.constInt, hi.constInt with
+  | some a, some b => decide (b ≤ a)
+  | _, _ => false
+
 mutual
 /-- `free_vars_stmt`: the references of a statement appended to `refs`, and the names it binds
-added to the scoped set `bound`. -/
-def Stmt.freeVars : Stmt → List String × List String → List String × List String
-  | .mk _ k, st => StmtKind.freeVars k st
+added to the scoped set `bound`. With `live`, a block that never runs is left out, as in
+`Stmt.binds`. -/
+def Stmt.freeVars (live : Bool) : Stmt → List String × List String → List String × List String
+  | .mk _ k, st => StmtKind.freeVars live k st
 
 /-- `free_vars_stmt` on a kind. -/
-def StmtKind.freeVars : StmtKind → List String × List String → List String × List String
+def StmtKind.freeVars (live : Bool) :
+    StmtKind → List String × List String → List String × List String
   | .let_ n e, (refs, bound) => (e.freeVars refs, n :: bound)
   | .letTuple ns _ args, (refs, bound) => (Expr.freeVarsList args refs, ns ++ bound)
   | .assertEq a b, (refs, bound) | .assertNe a b, (refs, bound) =>
@@ -326,13 +412,15 @@ def StmtKind.freeVars : StmtKind → List String × List String → List String 
   | .hintWitness d _, (refs, bound) => (d.freeVars refs, bound)
   | .letHintWitness n _, (refs, bound) => (refs, n :: bound)
   | .print _ v, (refs, bound) => (v.freeVars refs, bound)
-  | .ite _ lhs rhs thn els fc, (refs, bound) =>
+  | .ite eq lhs rhs thn els fc, (refs, bound) =>
       let refs := rhs.freeVars (lhs.freeVars refs)
       if fc || bothLits lhs rhs then
-        Stmt.freeVarsList els (Stmt.freeVarsList thn (refs, bound))
+        let taken := if live then takenArm eq lhs rhs fc else none
+        let st := if taken == some false then (refs, bound) else Stmt.freeVarsList live thn (refs, bound)
+        if taken == some true then st else Stmt.freeVarsList live els st
       else
-        let refs := (Stmt.freeVarsList thn (refs, [])).1
-        let refs := (Stmt.freeVarsList els (refs, [])).1
+        let refs := (Stmt.freeVarsList live thn (refs, [])).1
+        let refs := (Stmt.freeVarsList live els (refs, [])).1
         (refs, bound)
   | .match_ targets x arms, (refs, bound) =>
       let refs := Expr.freeVarsList arms (x.freeVars refs)
@@ -349,36 +437,50 @@ def StmtKind.freeVars : StmtKind → List String × List String → List String 
       let refs := match hi with
         | .runtime b => b.freeVars refs
         | .const _ => refs
-      ((Stmt.freeVarsList body (refs, [])).1, bound)
+      ((Stmt.freeVarsList live body (refs, [])).1, bound)
   | .unroll v lo hi body, (refs, bound) =>
-      Stmt.freeVarsList body (hi.freeVars (lo.freeVars refs), v :: bound)
+      let refs := hi.freeVars (lo.freeVars refs)
+      if live && emptyUnroll lo hi then (refs, bound)
+      else
+        -- The counter is bound inside the body only, so unless the body rebinds it, a read of the
+        -- name after the loop is the enclosing one.
+        let fresh := !bound.contains v
+        let (refs, bound) := Stmt.freeVarsList live body (refs, v :: bound)
+        if fresh && !Stmt.bindsThroughList v body then (refs, bound.filter (· != v)) else (refs, bound)
 
 /-- `free_vars_stmt` over a block, sharing `bound`. -/
-def Stmt.freeVarsList : List Stmt → List String × List String → List String × List String
+def Stmt.freeVarsList (live : Bool) :
+    List Stmt → List String × List String → List String × List String
   | [], st => st
-  | s :: ss, st => Stmt.freeVarsList ss (Stmt.freeVars s st)
+  | s :: ss, st => Stmt.freeVarsList live ss (Stmt.freeVars live s st)
 end
 
 mutual
-/-- `binds_anywhere`: every name a statement binds, ignoring scope. -/
-def Stmt.binds : Stmt → List String
-  | .mk _ k => StmtKind.binds k
+/-- `binds_anywhere`: every name a statement binds, ignoring scope. With `live`, a block that
+never runs is left out: the other arm of a compile-time `if`, an `unroll` over nothing. -/
+def Stmt.binds (live : Bool) : Stmt → List String
+  | .mk _ k => StmtKind.binds live k
 
 /-- `binds_anywhere` on a kind. -/
-def StmtKind.binds : StmtKind → List String
+def StmtKind.binds (live : Bool) : StmtKind → List String
   | .let_ n _ | .letHintWitness n _ => [n]
   | .letTuple ns _ _ => ns
   | .match_ targets _ _ => targets.filterMap fun
       | .var n => some n
       | _ => none
-  | .ite _ _ _ thn els _ => Stmt.bindsList thn ++ Stmt.bindsList els
-  | .for_ v _ _ body | .unroll v _ _ body => v :: Stmt.bindsList body
+  | .ite eq lhs rhs thn els fc =>
+      let taken := if live then takenArm eq lhs rhs fc else none
+      (if taken == some false then [] else Stmt.bindsList live thn) ++
+        (if taken == some true then [] else Stmt.bindsList live els)
+  | .for_ v _ _ body => v :: Stmt.bindsList live body
+  | .unroll v lo hi body =>
+      if live && emptyUnroll lo hi then [] else v :: Stmt.bindsList live body
   | _ => []
 
 /-- `binds_anywhere` over a block. -/
-def Stmt.bindsList : List Stmt → List String
+def Stmt.bindsList (live : Bool) : List Stmt → List String
   | [] => []
-  | s :: ss => Stmt.binds s ++ Stmt.bindsList ss
+  | s :: ss => Stmt.binds live s ++ Stmt.bindsList live ss
 end
 
 mutual

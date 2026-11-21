@@ -1,1 +1,1 @@
-error: in __loop0: a folded `if` assigns to `t`, from outside the `for` loop: the loop cannot carry it
+error: in __loop0: unbound variable `t`

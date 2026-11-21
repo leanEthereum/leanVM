@@ -48,11 +48,11 @@ def opcodeCounts : List Nat :=
 #guard guest.constArrays.length = 78
 #guard guest.funcs.any (·.name == "main")
 
-/- The compiler's seventeen test programs, the verifiers' fixture program at six step counts, the VM's and the prover's
+/- The compiler's eighteen test programs, the verifiers' fixture program at six step counts, the VM's and the prover's
 test programs and the front-end corpus. -/
-#guard Programs.all.length = 17
+#guard Programs.all.length = 18
 #guard Programs.chains.length = 6
-#guard Programs.vm.length = 24
-#guard Programs.frontend.length = 189
+#guard Programs.vm.length = 34
+#guard Programs.frontend.length = 212
 
 end LeanVMTests.Guest.Data
