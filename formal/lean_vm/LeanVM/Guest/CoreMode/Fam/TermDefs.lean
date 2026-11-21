@@ -2,7 +2,7 @@
   LeanVM.Guest.CoreMode.Fam.TermDefs
 
   `check_opening_terminal`'s residual families: what `verify_sub` hands it (`TermFront`), and the
-  checks of its claims' low dimensions and `column_selector`'s lowest digit.
+  checks of its claims' low dimensions.
 -/
 
 module
@@ -29,10 +29,6 @@ selector's nibble shares; `verify_tables`' context (`TCtx`) on `[zeta, chi, rm, 
 sources and adjustments, its own data). `dimB j w`: the point `[T]·B·g^d` inside `[T]·g^i`, `i` below `[M]`'s exponent
 plus `t ≥ 1`, `B` the word at `[K]·g^k` (or a product of it and a constant `g^c` the code writes),
 `(k, c + d)` a pair of such a fact on `K`, `M`.
-
-`csRes κ s d`: `column_selector__L{κ}`'s read of its lowest digit `[d]`'s eq weight at
-`[s]·[d]·g^(64(κ/4) + 16(w - 1))`, inside the strided level-`w` table, `w` the digit's width; `csB j`
-names it at function `j`.
 -/
 
 namespace LeanVM.Guest.Res
@@ -111,27 +107,6 @@ abbrev termCallers : List (String × String) := CoreMode.FnReg.stCallers
 /-- **The callees whose facts are carried and their callers** (`Res.callersM`), each callee's own
 (`FnReg.glCallers`). -/
 abbrev glCallers : List (String × List String) := CoreMode.FnReg.glCallers
-
-/-! ## `column_selector`'s lowest digit -/
-
-/-- **`column_selector__L{κ}`'s read of its lowest digit's eq weight**: `[s]·[d]·g^off` inside
-`[s]·g^(2^(4 - w)·i + off)`, `i < 2^w`, `w` the digit's width, `off = 64(κ/4) + 16(w - 1)`. -/
-def csRes (κ s d : ℕ) : Mode.Res :=
-  let w := Tables.csW κ 0
-  let off := 64 * (κ / 4) + 16 * (w - 1)
-  .sub ⟨⟨0, off, Mode.insertBs (.fr d, 1) [(.fr s, 1)]⟩, .num 0, .num 1, 1, 0⟩
-    [⟨⟨0, 0, [(.fr s, 1)]⟩, .num 0, .num (2 ^ w), 2 ^ (4 - w), off⟩]
-
-/-- The `κ` whose `csRes` reads at offset `k`. -/
-def csKappa (k : ℕ) : ℕ := 4 * (k / 64) + 3 - k % 64 / 16
-
-/-- **The lowest digit's read at function `j`**: `j` is `column_selector__L{κ}`, its `sel_eq` and
-digit cells `s`, `d`, the digit's inside the frame. -/
-noncomputable def csB (j : ℕ) : Mode.Res → Bool
-  | .sub a [b] =>
-    decide (csKappa a.q.k < 31) && (coreOf j).name == Tables.lName "column_selector" (csKappa a.q.k) &&
-      inFr j (cellJ j (.n 3)) && decide (Mode.Res.sub a [b] = csRes (csKappa a.q.k) (cellJ j (.n 1)) (cellJ j (.n 3)))
-  | _ => false
 
 end
 

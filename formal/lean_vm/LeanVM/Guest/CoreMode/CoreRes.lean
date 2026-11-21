@@ -19,9 +19,6 @@ public import LeanVM.Guest.CoreMode.Fam.TermDefs
 public import LeanVM.Guest.CoreMode.Fam.ExpDefs
 public import LeanVM.Guest.CoreMode.Gen.FnData
 import LeanVM.Guest.Data.Consts
-import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_loop0»
-import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_loop1»
 
 /-!
 # Residual families on core names
@@ -58,9 +55,10 @@ function's own code whose soundness at its honest instances is proved once, in `
 
 These name no ghost value (`CRes.vals`, below `GB`), so they hold at an honest valuation whatever its
 ghost words (`CRes.holds_congr`). One family names a ghost:
-* `ml` (`mlSub`): `child_claim_list_mono_last__L{k}`'s read of claim `jj`'s entry `[ent]·Π[gap_i]^4·g^(4jj+d)`
-  lies in its caller's table, the run `[ghost₀]·g^(4j+d)` below the exponent of its parameter `limit` (its ghost
-  the caller's cell `2`, `glOk`), from the old route's gap walk (`EndExecCoreMono`).
+* `ml` (`mlSub`): a ghost family specialization's read of claim `jj`'s entry `[ent]·Π[gap_i]^4·g^(4jj+d)` lies in
+  its caller's table, the run `[ghost₀]·g^(4j+d)` below the exponent of its parameter `limit` (its ghost the caller's
+  cell `2`, `glOk`), its shape its function's own (`FnReg.mlLoops`), from the old route's gap walk
+  (`EndExecCoreMono`).
 * `st` (`stSub`): a loop's read `[cur]·g^c` past its cursor `cur` lies in its caller's proof stream, the run
   `[ghost₀]·[0, 8192)` (its ghosts the caller's stream and frame, `stGl`), from the old route's cursor invariants
   (`EndExecCoreSt`).
@@ -324,16 +322,16 @@ theorem CRes.holds_congr {σ σ' : Val} : ∀ {r : CRes}, (∀ k ∈ r.vals, σ'
 
 /-! ## The ghost family -/
 
-/-- `k` for `child_claim_list_mono_last__L{k}` (`FnReg.mlLoops`). -/
-def mlK (fn : Fn) : Option ℕ := FnReg.mlLoops.lookup fn.name
+/-- A ghost family specialization's `(k, ent, gap, stride, limit)` (`FnReg.mlLoops`). -/
+def mlK (fn : Fn) : Option (ℕ × ℕ × ℕ × ℕ × ℕ) := FnReg.mlLoops.lookup fn.name
 
-/-- **`child_claim_list_mono_last__L{k}`'s read of claim `jj`'s entry in its caller's table** (`ml`): the cell
-`[ent]·Π_{i ≤ jj}[gap_i]^4·g^(4jj+d)` (`ent` the value `5`, gap `i` the value `6 + 10i`) a cell of the run
-`[ghost₀]·g^(4j+d)`, `j` below the exponent of the parameter `3` (`limit`). -/
+/-- **A ghost family specialization's read of claim `jj`'s entry in its caller's table** (`ml`): the cell
+`[ent]·Π_{i ≤ jj}[gap + stride·i]^4·g^(4jj+d)`, `jj < k`, a cell of the run `[ghost₀]·g^(4j+d)`, `j` below the
+exponent of the parameter `limit`. -/
 def mlSub (fn : Fn) : CRes → Bool
-  | .sub c q => (mlK fn).any fun k ↦ Nat.blt (c.off / 4) k &&
-      decide (q = ⟨⟨[(GB, 1)], c.off % 4⟩, 4, .num 0, .val 3⟩) &&
-      decide (c.bases = (5, 1) :: (List.range (c.off / 4 + 1)).map fun i ↦ (6 + 10 * i, 4))
+  | .sub c q => (mlK fn).any fun p ↦ Nat.blt (c.off / 4) p.1 &&
+      decide (q = ⟨⟨[(GB, 1)], c.off % 4⟩, 4, .num 0, .val p.2.2.2.2⟩) &&
+      decide (c.bases = (p.2.1, 1) :: (List.range (c.off / 4 + 1)).map fun i ↦ (p.2.2.1 + p.2.2.2.1 * i, 4))
   | _ => false
 
 /-! ## The proof stream's cursor loops -/
@@ -361,18 +359,17 @@ def stGl (Cf : CFun) : Bool :=
 
 /-! ## The gap walk's frame loops -/
 
-/-- **`child_claim_list_mono`'s frame loops** (`cm`): their claims a frame (`FnReg.cmLoops`). -/
-def cmK (fn : Fn) : Option ℕ := FnReg.cmLoops.lookup fn.name
+/-- **The frame loops over a caller's table** (`cm`): their `(m, ent, gap, stride)`, `m` claims a frame
+(`FnReg.cmLoops`). -/
+def cmK (fn : Fn) : Option (ℕ × ℕ × ℕ × ℕ) := FnReg.cmLoops.lookup fn.name
 
 /-- **A frame loop's read of claim `jj`'s entry in its caller's table** (`cm`): the cell
-`[ent]·Π_{i ≤ jj}[gap_i]^4·g^(4jj+d)` (`ent` its entry `s4#1`, gap `i` the value `10i` after `gap@1`, each
-iteration's ten) a cell of the run
-`[ghost₀]·g^(4j+d)`, `j` below the exponent of `ghost₁` (its caller's `limit`); and that exponent's existence. -/
+`[ent]·Π_{i ≤ jj}[gap + stride·i]^4·g^(4jj+d)`, `jj < m`, a cell of the run `[ghost₀]·g^(4j+d)`, `j` below the
+exponent of `ghost₁` (its caller's `limit`); and that exponent's existence. -/
 def cmSub (fn : Fn) : CRes → Bool
-  | .sub c q => (cmK fn).any fun m ↦ Nat.blt (c.off / 4) m &&
+  | .sub c q => (cmK fn).any fun p ↦ Nat.blt (c.off / 4) p.1 &&
       decide (q = ⟨⟨[(GB, 1)], c.off % 4⟩, 4, .num 0, .val (GB + 1)⟩) &&
-      decide (c.bases = (val% «child_claim_list_mono_loop0» «child_claim_list_mono_loop1» "s4#1", 1) ::
-        (List.range (c.off / 4 + 1)).map fun i ↦ (val% «child_claim_list_mono_loop0» «child_claim_list_mono_loop1» "gap@1" + 10 * i, 4))
+      decide (c.bases = (p.2.1, 1) :: (List.range (c.off / 4 + 1)).map fun i ↦ (p.2.2.1 + p.2.2.2 * i, 4))
   | .lt a b => (cmK fn).isSome && decide (a = .num 0) && decide (b = .val (GB + 1))
   | _ => false
 

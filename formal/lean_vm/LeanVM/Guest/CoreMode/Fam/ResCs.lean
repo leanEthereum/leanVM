@@ -16,6 +16,10 @@ import LeanVM.Guest.Data.ValNames.«column_selector__L»
 /-!
 # `column_selector`'s lowest digit
 
+`csRes κ s d`: `column_selector__L{κ}`'s read of its lowest digit `[d]`'s eq weight at
+`[s]·[d]·g^(64(κ/4) + 16(w - 1))`, inside the strided level-`w` table, `w` the digit's width; `csB j`
+names it at function `j`.
+
 `CsQ r J`: at an instance of `column_selector__L{κ}`, its offset is `g^o`, `o < 2^32` a multiple of
 `2^κ`, and `sel_g` holds the nibble shares (`GTabsAt`), as `check_opening_terminal`'s dispatch hands
 them.
@@ -24,6 +28,38 @@ them.
 exponent `16^(κ/4)` times the digits' number (`csDig`), so the lowest digit `g^u`, `u < 16`, is a
 multiple of `2^(4 - w)` (`B1.Tables.cs_dvd`), `w` its width (`csW_sub`).
 -/
+
+namespace LeanVM.Guest.Res
+
+open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.B1
+open LeanVM.Guest.B2C (cellJ)
+
+@[expose] public section
+
+/-- **`column_selector__L{κ}`'s read of its lowest digit's eq weight**: `[s]·[d]·g^off` inside
+`[s]·g^(2^(4 - w)·i + off)`, `i < 2^w`, `w` the digit's width, `off = 64(κ/4) + 16(w - 1)`. -/
+def csRes (κ s d : ℕ) : Mode.Res :=
+  let w := Tables.csW κ 0
+  let off := 64 * (κ / 4) + 16 * (w - 1)
+  .sub ⟨⟨0, off, Mode.insertBs (.fr d, 1) [(.fr s, 1)]⟩, .num 0, .num 1, 1, 0⟩
+    [⟨⟨0, 0, [(.fr s, 1)]⟩, .num 0, .num (2 ^ w), 2 ^ (4 - w), off⟩]
+
+/-- The `κ` whose `csRes` reads at offset `k`. -/
+def csKappa (k : ℕ) : ℕ := 4 * (k / 64) + 3 - k % 64 / 16
+
+/-- **The lowest digit's read at function `j`**: `j` is `column_selector__L{κ}`, its `sel_eq` and
+digit cells `s`, `d`, the digit's inside the frame. -/
+noncomputable def csB (j : ℕ) : Mode.Res → Bool
+  | .sub a [b] =>
+    decide (csKappa a.q.k < 31) && (coreOf j).name == Tables.lName "column_selector" (csKappa a.q.k) &&
+      inFr j (cellJ j (.n (valf% «column_selector» "digits[0]"))) &&
+      decide (Mode.Res.sub a [b] = csRes (csKappa a.q.k) (cellJ j (.n (valf% «column_selector» "sel_eq")))
+        (cellJ j (.n (valf% «column_selector» "digits[0]"))))
+  | _ => false
+
+end
+
+end LeanVM.Guest.Res
 
 namespace LeanVM.Guest.EndExec
 

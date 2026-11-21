@@ -1,6 +1,9 @@
 """`child_claim_list_mono_last`'s rules: the ghost family `ml`."""
 import re
-from fnrules import I
+from fnrules import I, lean_def
+
+# its reads' shape (`CoreMode.mlSub`), as its Lean data says: entry, first gap, the gaps' stride, the bound parameter
+ENT, GAP, STRIDE, LIMIT = lean_def('child_claim_list_mono_last', 'Data', 'mlShape')
 
 
 def ml_k(k):
@@ -11,13 +14,13 @@ def ml_k(k):
 
 def sub(k, c):
     """`CoreMode.mlSub`: its read of claim `jj`'s entry `c`, the run of its caller's table (its ghost, stride 4, below
-    the exponent of its parameter `3`), or None."""
+    the exponent of its parameter `limit`), or None."""
     kk = ml_k(k)
     bs, off = c
     jj = off // 4
-    if kk is None or jj >= kk or tuple(bs) != ((5, 1),) + tuple((6 + 10 * i, 4) for i in range(jj + 1)):
+    if kk is None or jj >= kk or tuple(bs) != ((ENT, 1),) + tuple((GAP + STRIDE * i, 4) for i in range(jj + 1)):
         return None
-    return ('sub', c, ((((I.GB, 1),), off % 4), 4, ('num', 0), ('val', 3)))
+    return ('sub', c, ((((I.GB, 1),), off % 4), 4, ('num', 0), ('val', LIMIT)))
 
 
 def ghost(k, r):
