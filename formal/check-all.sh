@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Builds and checks the statement package and the five proof projects as .github/workflows/lean.yml
+# Builds and checks the statement package and the six proof projects as .github/workflows/lean.yml
 # does, one after another, each in its own directory with its own manifest, then lean_vm against
 # this repository's Rust (`leanvm`). The files derived from the guest are not committed: the first
 # build that reads them writes them (`regen-guest.sh`), so `statement`, `lean_vm`, `leanvm` and `lean`
 # need cargo. `lake build` at the root runs it.
 #
-#   ./check-all.sh [lean] [vectors] [statement] [common] [lean_xmss] [lean_sphincs] [lean_da] [lean_vm] [leanvm]
-#   (default: all seven; `lean` is the first six, built together first, `vectors` is `leanvm`)
+#   ./check-all.sh [lean] [vectors] [statement] [common] [lean_xmss] [lean_sphincs] [lean_da] [lean_vm] [quantum] [leanvm]
+#   (default: all eight; `lean` is the first seven, the first six built together first, `vectors` is `leanvm`)
 #
 # The compiled checks and `lean` run under a virtual-memory cap of LEAN_VMEM_KB (default 40 GB);
 # `lake` itself cannot, as it reserves about 1 GB of address space per job: every build runs in
@@ -185,6 +185,44 @@ lean_da() {
     LeanDa.leanDa_codeBinding_rpm_bound
 }
 
+# The quantum random-permutation model, on VCVio's quantum oracle programs, the statement's scheme
+# definitions, common's model facts and cost combinators, and leanXMSS's codeword lemmas; `together`
+# leaves it out.
+quantum() {
+  no_escapes quantum
+  cache_get quantum
+  build quantum 'Quantum'
+  axioms quantum Quantum Quantum.qrpmEvalDistMap_eq_spongePerm Quantum.Sponge.qrpm_sponge_collision_le \
+    Quantum.Sponge.qrpm_sponge_preimage_le Quantum.Sponge.keccak256_qrpm_collision_le \
+    Quantum.Sponge.keccak256_qrpm_preimage_le Quantum.qrpmEvalDistMap_toQuantumAt_qrpmImpl \
+    Quantum.SufCma.winProb_classicalAdversary Quantum.Xmss.Assembly.leanXmss_qrpm_security \
+    Quantum.Xmss.Assembly.qrpmBound_le Quantum.Xmss.Assembly.qrpmBound_two_pow_30_le \
+    Quantum.Xmss.Assembly.qrpmBound_two_pow_50_le Quantum.Sphincs.Assembly.leanSphincs_qrpm_security \
+    Quantum.Sphincs.Assembly.sphincsQrpmBound_le Quantum.Sphincs.Assembly.sphincsQrpmBound_two_pow_30_le \
+    Quantum.Sphincs.Assembly.sphincsQrpmBound_two_pow_40_le Quantum.Qrom.SufCma.winProb_classicalAdversary \
+    Quantum.Qrom.Xmss.leanXmss_qrom_security Quantum.Qrom.Xmss.xmssQromBound_le \
+    Quantum.Qrom.Xmss.xmssQromBound_two_pow_30_le Quantum.Qrom.Xmss.xmssQromBound_two_pow_50_le \
+    Quantum.Qrom.Sphincs.leanSphincs_qrom_security Quantum.Qrom.Sphincs.sphincsQromBound_le \
+    Quantum.Qrom.Sphincs.sphincsQromBound_two_pow_30_le Quantum.Qrom.Sphincs.sphincsQromBound_two_pow_40_le \
+    Quantum.Qrom.Xmss.Multi.leanXmss_qrom_mu_security Quantum.Qrom.Xmss.Multi.xmssQromMuBound_le \
+    Quantum.StdModel.Xmss.xmss_suf_le_props_keccak \
+    Quantum.Qrom.Xmss.leanXmss_qrom_depth_security Quantum.Qrom.Xmss.xmssQromDepthBound_le \
+    Quantum.StdModel.Sphincs.sphincs_suf_le_props_keccak \
+    Quantum.Cost.Qrom.leanXmss_qrom_gateDepth_closed Quantum.Cost.Nist.leanXmss_qrom_cat1_lowDepth \
+    Quantum.Cost.Nist.leanXmss_qrom_cat1_inPlace \
+    Quantum.Qrom.Sphincs.Multi.leanSphincs_qrom_mu_security \
+    Quantum.Qrom.Sphincs.Multi.sphincsQromMuBound_le Quantum.Qrom.Sphincs.Multi.rhoMaxQ_le \
+    Quantum.Qrom.Sphincs.leanSphincs_qrom_depth_security Quantum.Qrom.Sphincs.sphincsQromDepthBound_le \
+    Quantum.Cost.Nist.leanSphincs_qrom_cat1_lowDepth Quantum.Cost.Nist.leanSphincs_qrom_cat1_inPlace \
+    Quantum.Xmss.Assembly.leanXmss_qrpm_depth_security Quantum.Xmss.Assembly.qrpmDepthBound_le \
+    Quantum.Cost.Nist.leanXmss_qrpm_cat1_inPlace \
+    Quantum.StdModel.Sphincs.sphincs_suf_le_propsIn_keccak \
+    Quantum.Sphincs.Assembly.leanSphincs_qrpm_depth_security \
+    Quantum.Sphincs.Assembly.sphincsQrpmDepthBound_le Quantum.Cost.Nist.leanSphincs_qrpm_cat1_inPlace \
+    Quantum.StdModel.Xmss.leanXmss_qrom_security_props_closed \
+    Quantum.StdModel.Sphincs.leanSphincs_qrom_security_props_closed
+}
+
 # Every lean_vm executable, in one build.
 EXES=(node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove test-runs)
 
@@ -288,19 +326,19 @@ prover_diff() {
   rm -rf "$pd"
 }
 
-# `lean`: the six Lean projects; `vectors`: the checks against leanVM's Rust.
+# `lean`: the seven Lean projects; `vectors`: the checks against leanVM's Rust.
 projects=()
 for p in "$@"; do
   case $p in
-    lean) projects+=(together statement common lean_xmss lean_sphincs lean_da lean_vm) ;;
+    lean) projects+=(together statement common lean_xmss lean_sphincs lean_da lean_vm quantum) ;;
     vectors) projects+=(leanvm) ;;
     *) projects+=("$p") ;;
   esac
 done
-[ ${#projects[@]} -gt 0 ] || projects=(together statement common lean_xmss lean_sphincs lean_da lean_vm leanvm)
+[ ${#projects[@]} -gt 0 ] || projects=(together statement common lean_xmss lean_sphincs lean_da lean_vm quantum leanvm)
 for p in "${projects[@]}"; do
   case $p in
-    together | statement | common | lean_xmss | lean_sphincs | lean_da | lean_vm | leanvm) "$p" ;;
+    together | statement | common | lean_xmss | lean_sphincs | lean_da | lean_vm | quantum | leanvm) "$p" ;;
     *) fail "unknown project $p" ;;
   esac
 done
