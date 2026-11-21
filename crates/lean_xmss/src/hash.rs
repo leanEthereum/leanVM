@@ -99,12 +99,6 @@ pub(crate) fn th_digests(pp: &PublicParam, tw: &Tweak, values: &[Digest]) -> Dig
     th(pp, tw, values.as_flattened())
 }
 
-/// Two secrets for one hash: the two halves of the untruncated hash of the seed.
-pub(crate) fn th_pair(pp: &PublicParam, tw: &Tweak, seed: &SchemeSeed) -> [Digest; 2] {
-    let output = hasher(pp, tw).update(seed.as_bytes()).finalize();
-    [output[..N].try_into().unwrap(), output[N..].try_into().unwrap()]
-}
-
 /// The seed the scheme derives every secret from, [`scheme_seed`] of a key's seed:
 /// its own type, so that a key's seed cannot stand in for it.
 #[derive(Clone, Copy)]

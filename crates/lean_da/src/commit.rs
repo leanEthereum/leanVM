@@ -146,7 +146,8 @@ impl std::error::Error for BlobCountError {}
 
 /// The root of a padding blob, the zero codeword.
 pub fn root_of_padding_blob() -> Hash {
-    blob_merkle_nodes(&[[0; CODEWORD_SYMBOLS]])[BLOB_MERKLE_NODES - 1]
+    static ROOT: std::sync::OnceLock<Hash> = std::sync::OnceLock::new();
+    *ROOT.get_or_init(|| blob_merkle_nodes(&[[0; CODEWORD_SYMBOLS]])[BLOB_MERKLE_NODES - 1])
 }
 
 /// Each blob's flat Merkle tree, its leaves the cell digests.
@@ -190,8 +191,15 @@ fn fill_levels(tree: &mut [Hash]) {
 }
 
 /// Symbols as the bytes a digest takes: each little-endian.
-fn as_bytes(data: &[Symbol]) -> Vec<u8> {
-    data.iter().flat_map(|symbol| symbol.to_le_bytes()).collect()
+fn as_bytes(data: &[Symbol]) -> std::borrow::Cow<'_, [u8]> {
+    #[cfg(target_endian = "little")]
+    {
+        std::borrow::Cow::Borrowed(primitives::cast_slice(data))
+    }
+    #[cfg(not(target_endian = "little"))]
+    {
+        std::borrow::Cow::Owned(data.iter().flat_map(|symbol| symbol.to_le_bytes()).collect())
+    }
 }
 
 #[cfg(test)]

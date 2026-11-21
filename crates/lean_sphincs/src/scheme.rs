@@ -174,18 +174,37 @@ fn message_digest(pk: &LeanSphincsPublicKey, r: &Digest, m: &Message) -> (u64, [
     digest_fields(&h_msg(r, &pk.pk_seed, &pk.root, m))
 }
 
-/// The levels of a tree `height` levels over `leaves`, the leaves first,
-/// `node(level, j, children)` hashing node `j` on `level`.
-pub(crate) fn merkle_levels(
+/// The levels of a tree `height` levels over `leaves`, the leaves first, batching each level's
+/// `PK.seed | ADRS | left | right` hashes with [`keccak256::hash_many`].
+pub(crate) fn merkle_levels_batched(
+    pk_seed: &PkSeed,
     leaves: Vec<Digest>,
     height: usize,
-    node: impl Fn(usize, usize, &[Digest; 2]) -> Digest,
+    adrs: impl Fn(usize, usize) -> Adrs,
 ) -> Vec<Vec<Digest>> {
+    const INPUT_LEN: usize = PREFIX_LEN + 2 * N;
     let mut levels = vec![leaves];
+    let mut inputs = Vec::new();
+    let mut digests = Vec::new();
     for level in 1..=height {
-        let (pairs, _) = levels[level - 1].as_chunks::<2>();
-        let up = pairs.iter().enumerate().map(|(j, pair)| node(level, j, pair)).collect();
-        levels.push(up);
+        let pairs = levels[level - 1].as_chunks::<2>().0;
+        let width = pairs.len();
+        inputs.resize(width * INPUT_LEN, 0);
+        digests.resize(width * keccak256::OUT_LEN, 0);
+        for (j, (pair, input)) in pairs.iter().zip(inputs.as_chunks_mut::<INPUT_LEN>().0).enumerate() {
+            input[..N].copy_from_slice(pk_seed);
+            input[N..PREFIX_LEN].copy_from_slice(adrs(level, j).as_bytes());
+            input[PREFIX_LEN..].copy_from_slice(pair.as_flattened());
+        }
+        keccak256::hash_many(&inputs, INPUT_LEN, &mut digests);
+        levels.push(
+            digests
+                .as_chunks::<{ keccak256::OUT_LEN }>()
+                .0
+                .iter()
+                .map(|&d| keccak256::truncate(d))
+                .collect(),
+        );
     }
     levels
 }
@@ -206,7 +225,10 @@ fn tree_levels(sk: &ExpandedKey, key: &OtsKey) -> Vec<Vec<Digest>> {
     let leaves = (0..1 << height)
         .map(|leaf| wots_public_leaf(sk, &OtsKey { leaf, ..*key }))
         .collect();
-    merkle_levels(leaves, height, |z, j, pair| node(&sk.pk_seed, key, z, j, pair))
+    let base = key.tree_adrs().with_type(TREE);
+    merkle_levels_batched(&sk.pk_seed, leaves, height, |z, j| {
+        base.with_tree_height(z as u32).with_tree_index(j as u32)
+    })
 }
 
 /// Compute the public key, given the secret key.

@@ -14,10 +14,35 @@ pub fn node(pp: &PublicParam, layer: usize, level: usize, j: u32, children: &[Di
 
 /// Levels `from..=to` over `base`, level `from` from leaf `first` on.
 fn levels(pp: &PublicParam, layer: usize, first: u32, from: usize, to: usize, base: Vec<Digest>) -> Vec<Vec<Digest>> {
+    const INPUT_LEN: usize = PUBLIC_PARAM_LEN + ADDRESS_LEN + 2 * N;
     let mut levels = vec![base];
+    let mut inputs = Vec::new();
+    let mut digests = Vec::new();
     for level in from + 1..=to {
-        let up = levels.last().unwrap().as_chunks().0.iter().zip(first >> level..);
-        levels.push(up.map(|(children, j)| node(pp, layer, level, j, children)).collect());
+        let pairs = levels.last().unwrap().as_chunks::<2>().0;
+        let width = pairs.len();
+        inputs.resize(width * INPUT_LEN, 0);
+        digests.resize(width * keccak256::OUT_LEN, 0);
+        let hi = layer_hi(layer, level as u32);
+        let j0 = first >> level;
+        for (k, (children, input)) in pairs.iter().zip(inputs.as_chunks_mut::<INPUT_LEN>().0).enumerate() {
+            input[..PUBLIC_PARAM_LEN].copy_from_slice(pp);
+            input[PUBLIC_PARAM_LEN..PUBLIC_PARAM_LEN + ADDRESS_LEN].copy_from_slice(&address(&tweak(
+                TWEAK_NODE,
+                hi,
+                j0 + k as u32,
+            )));
+            input[PUBLIC_PARAM_LEN + ADDRESS_LEN..].copy_from_slice(children.as_flattened());
+        }
+        keccak256::hash_many(&inputs, INPUT_LEN, &mut digests);
+        levels.push(
+            digests
+                .as_chunks::<{ keccak256::OUT_LEN }>()
+                .0
+                .iter()
+                .map(|&d| keccak256::truncate(d))
+                .collect(),
+        );
     }
     levels
 }

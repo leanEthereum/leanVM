@@ -19,11 +19,60 @@ pub fn layer_index(leaf_index: LeafIndex, layer: usize) -> u32 {
 /// The starts of the `v` chains of key `e` on `layer`. One hash of the seed gives
 /// two of them: chains `2t` and `2t + 1` are its two halves.
 pub(crate) fn wots_secrets(pp: &PublicParam, seed: &SchemeSeed, layer: usize, e: u32) -> [Digest; V] {
-    let mut secrets = [[0u8; N]; V];
-    for (t, pair) in secrets.as_chunks_mut::<2>().0.iter_mut().enumerate() {
-        *pair = th_pair(pp, &tweak(TWEAK_PRF, layer_hi(layer, t as u32), e), seed);
+    const INPUT_LEN: usize = PUBLIC_PARAM_LEN + ADDRESS_LEN + SECRET_KEY_LEN;
+    let mut inputs = [[0u8; INPUT_LEN]; V / 2];
+    for (t, input) in inputs.iter_mut().enumerate() {
+        input[..PUBLIC_PARAM_LEN].copy_from_slice(pp);
+        input[PUBLIC_PARAM_LEN..PUBLIC_PARAM_LEN + ADDRESS_LEN].copy_from_slice(&address(&tweak(
+            TWEAK_PRF,
+            layer_hi(layer, t as u32),
+            e,
+        )));
+        input[PUBLIC_PARAM_LEN + ADDRESS_LEN..].copy_from_slice(seed.as_bytes());
     }
+    let mut secrets = [[0u8; N]; V];
+    keccak256::hash_many(inputs.as_flattened(), INPUT_LEN, secrets.as_flattened_mut());
     secrets
+}
+
+/// Advance every chain `i` whose step predicate `active(i, from)` holds across steps `0..CHAIN_LEN - 1`,
+/// batching all active chains at each step with [`keccak256::hash_many`].
+fn batch_chains(
+    pp: &PublicParam,
+    layer: usize,
+    e: u32,
+    values: &mut [Digest; V],
+    active: impl Fn(usize, usize) -> bool,
+) {
+    const INPUT_LEN: usize = PUBLIC_PARAM_LEN + ADDRESS_LEN + 2 * N;
+    let mut inputs = [[0u8; INPUT_LEN]; V];
+    let mut digests = [[0u8; keccak256::OUT_LEN]; V];
+    let mut indices = [0usize; V];
+    for from in 0..CHAIN_LEN - 1 {
+        let addr = address(&tweak(TWEAK_CHAIN, layer_hi(layer, 0), e).step(from));
+        let mut count = 0;
+        for i in 0..V {
+            if active(i, from) {
+                let input = &mut inputs[count];
+                input[..PUBLIC_PARAM_LEN].copy_from_slice(pp);
+                input[PUBLIC_PARAM_LEN..PUBLIC_PARAM_LEN + ADDRESS_LEN].copy_from_slice(&addr);
+                input[PUBLIC_PARAM_LEN + ADDRESS_LEN..PUBLIC_PARAM_LEN + ADDRESS_LEN + N].copy_from_slice(&values[i]);
+                input[PUBLIC_PARAM_LEN + ADDRESS_LEN + N..].copy_from_slice(&(i as u128).to_le_bytes());
+                indices[count] = i;
+                count += 1;
+            }
+        }
+        if count > 0 {
+            keccak256::hash_many(
+                inputs[..count].as_flattened(),
+                INPUT_LEN,
+                digests[..count].as_flattened_mut(),
+            );
+            for (k, &i) in indices[..count].iter().enumerate() {
+                values[i] = keccak256::truncate(digests[k]);
+            }
+        }
+    }
 }
 
 /// `steps` steps of chain `i` from position `start`. A step's address carries the
@@ -116,8 +165,8 @@ pub(crate) fn wots_sign(
     let input = [pp.as_slice(), &address, message, &[0; RANDOMIZER_LEN]].concat();
     let randomizer = base.wrapping_add(u128::from(least_trial(&input, base)?)).to_le_bytes();
     let x = codeword(&message_digest(pp, layer, e, &randomizer, message))?;
-    let secrets = wots_secrets(pp, seed, layer, e);
-    let values = std::array::from_fn(|i| chain(pp, layer, e, i, 0, x[i] as usize, secrets[i]));
+    let mut values = wots_secrets(pp, seed, layer, e);
+    batch_chains(pp, layer, e, &mut values, |i, from| from < x[i] as usize);
     Some((randomizer, values))
 }
 
@@ -132,17 +181,15 @@ pub fn wots_leaf(
     values: &[Digest; V],
 ) -> Option<([u8; V], Digest)> {
     let x = codeword(&message_digest(pp, layer, e, randomizer, message))?;
-    let ends = std::array::from_fn(|i| {
-        let start = x[i] as usize;
-        chain(pp, layer, e, i, start, CHAIN_LEN - 1 - start, values[i])
-    });
+    let mut ends = *values;
+    batch_chains(pp, layer, e, &mut ends, |i, from| from >= x[i] as usize);
     Some((x, wots_leaf_hash(pp, layer, e, &ends)))
 }
 
 /// The leaf of key `e` on `layer`, from the seed: what key generation spends its
 /// hashes on.
 pub(crate) fn wots_public_leaf(pp: &PublicParam, seed: &SchemeSeed, layer: usize, e: u32) -> Digest {
-    let secrets = wots_secrets(pp, seed, layer, e);
-    let ends = std::array::from_fn(|i| chain(pp, layer, e, i, 0, CHAIN_LEN - 1, secrets[i]));
+    let mut ends = wots_secrets(pp, seed, layer, e);
+    batch_chains(pp, layer, e, &mut ends, |_, _| true);
     wots_leaf_hash(pp, layer, e, &ends)
 }

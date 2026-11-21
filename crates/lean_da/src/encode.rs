@@ -1,5 +1,7 @@
 //! Systematic Reed-Solomon encoding at rate one half, by the stable prover's additive NTT (Annex D).
 
+use std::sync::OnceLock;
+
 use pcs::ntt::AdditiveNttF64;
 use primitives::cast_slice_mut;
 use primitives::field::F64;
@@ -10,8 +12,13 @@ use crate::{BLOB_SYMBOLS, Blob, CODEWORD_SYMBOLS, LOG_BLOB_SYMBOLS, LOG_CODEWORD
 /// on the payload's domain, evaluated on the domain twice its size. A symbol's words in memory are its limbs, low first,
 /// so its two limbs are the transforms' two lanes.
 pub(crate) fn encode_rows(blobs: &[Blob]) -> Vec<Symbol> {
-    let interpolation = AdditiveNttF64::standard(LOG_BLOB_SYMBOLS);
-    let ntt = AdditiveNttF64::standard(LOG_CODEWORD_SYMBOLS);
+    static NTTS: OnceLock<(AdditiveNttF64, AdditiveNttF64)> = OnceLock::new();
+    let (interpolation, ntt) = NTTS.get_or_init(|| {
+        (
+            AdditiveNttF64::standard(LOG_BLOB_SYMBOLS),
+            AdditiveNttF64::standard(LOG_CODEWORD_SYMBOLS),
+        )
+    });
     let mut codewords = vec![0; blobs.len() * CODEWORD_SYMBOLS];
     for (blob, codeword) in blobs.iter().zip(codewords.as_chunks_mut::<CODEWORD_SYMBOLS>().0) {
         codeword[..BLOB_SYMBOLS].copy_from_slice(blob);

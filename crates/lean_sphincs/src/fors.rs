@@ -37,12 +37,6 @@ fn fors_node_adrs(idx: u64, c: usize, z: usize, j: usize) -> Adrs {
         .with_tree_index(((c << (FORS_HEIGHT - z)) + j) as u32)
 }
 
-/// `fors_skGen`: the secret of leaf `s` of tree `c`.
-fn fors_secret(sk: &ExpandedKey, idx: u64, c: usize, s: usize) -> Digest {
-    let adrs = fors_adrs(idx, FORS_PRF).with_tree_index(((c << FORS_HEIGHT) + s) as u32);
-    prf(&sk.pk_seed, &sk.sk_seed, &adrs)
-}
-
 /// Leaf `s` of tree `c`: `F` of its secret.
 fn fors_leaf(pk_seed: &PkSeed, idx: u64, c: usize, s: usize, secret: &Digest) -> Digest {
     th(pk_seed, &fors_node_adrs(idx, c, 0, s), secret)
@@ -61,28 +55,58 @@ fn fors_key(pk_seed: &PkSeed, idx: u64, roots: &[Digest; FORS_TREES]) -> Digest 
 /// `fors_sign` and the public key it opens, each tree being built once: the key
 /// of instance `idx`, and its opening at `leaves`.
 pub(crate) fn fors_open(sk: &ExpandedKey, idx: u64, leaves: &[usize; FORS_TREES]) -> (Digest, ForsOpening) {
+    const LEAVES: usize = 1 << FORS_HEIGHT;
+    const SECRET_IN: usize = PREFIX_LEN + SECRET_KEY_LEN;
+    const LEAF_IN: usize = PREFIX_LEN + N;
     let pk_seed = &sk.pk_seed;
-    let trees: Vec<_> = (0..FORS_TREES)
-        .map(|c| {
-            let secrets: Vec<Digest> = (0..1 << FORS_HEIGHT).map(|s| fors_secret(sk, idx, c, s)).collect();
-            let leaf_hashes = secrets
-                .iter()
-                .enumerate()
-                .map(|(s, secret)| fors_leaf(pk_seed, idx, c, s, secret))
-                .collect();
-            let levels = merkle_levels(leaf_hashes, FORS_HEIGHT, |z, j, pair| {
-                fors_node(pk_seed, idx, c, z, j, pair)
-            });
-            let s = leaves[c];
-            let opening = ForsTreeOpening {
-                secret: secrets[s],
-                path: std::array::from_fn(|z| levels[z][(s >> z) ^ 1]),
-            };
-            (levels[FORS_HEIGHT][0], opening)
-        })
-        .collect();
-    let roots = std::array::from_fn(|c| trees[c].0);
-    (fors_key(pk_seed, idx, &roots), std::array::from_fn(|c| trees[c].1))
+    let prf_base = fors_adrs(idx, FORS_PRF);
+    let tree_base = fors_adrs(idx, FORS_TREE);
+    let mut secret_in = vec![0u8; LEAVES * SECRET_IN];
+    let mut leaf_in = vec![0u8; LEAVES * LEAF_IN];
+    let mut digests = vec![0u8; LEAVES * keccak256::OUT_LEN];
+    let mut roots = [[0u8; N]; FORS_TREES];
+    let mut openings = Vec::with_capacity(FORS_TREES);
+    for (c, root) in roots.iter_mut().enumerate() {
+        for (s, input) in secret_in.as_chunks_mut::<SECRET_IN>().0.iter_mut().enumerate() {
+            input[..N].copy_from_slice(pk_seed);
+            input[N..PREFIX_LEN].copy_from_slice(prf_base.with_tree_index(((c << FORS_HEIGHT) + s) as u32).as_bytes());
+            input[PREFIX_LEN..].copy_from_slice(&sk.sk_seed);
+        }
+        keccak256::hash_many(&secret_in, SECRET_IN, &mut digests);
+        let secrets: Vec<Digest> = digests
+            .as_chunks::<{ keccak256::OUT_LEN }>()
+            .0
+            .iter()
+            .map(|&d| keccak256::truncate(d))
+            .collect();
+
+        for (s, (secret, input)) in secrets.iter().zip(leaf_in.as_chunks_mut::<LEAF_IN>().0).enumerate() {
+            input[..N].copy_from_slice(pk_seed);
+            input[N..PREFIX_LEN].copy_from_slice(
+                tree_base
+                    .with_tree_height(0)
+                    .with_tree_index(((c << FORS_HEIGHT) + s) as u32)
+                    .as_bytes(),
+            );
+            input[PREFIX_LEN..].copy_from_slice(secret);
+        }
+        keccak256::hash_many(&leaf_in, LEAF_IN, &mut digests);
+        let leaf_hashes: Vec<Digest> = digests
+            .as_chunks::<{ keccak256::OUT_LEN }>()
+            .0
+            .iter()
+            .map(|&d| keccak256::truncate(d))
+            .collect();
+
+        let levels = merkle_levels_batched(pk_seed, leaf_hashes, FORS_HEIGHT, |z, j| fors_node_adrs(idx, c, z, j));
+        let s = leaves[c];
+        openings.push(ForsTreeOpening {
+            secret: secrets[s],
+            path: std::array::from_fn(|z| levels[z][(s >> z) ^ 1]),
+        });
+        *root = levels[FORS_HEIGHT][0];
+    }
+    (fors_key(pk_seed, idx, &roots), openings.try_into().unwrap())
 }
 
 /// `fors_pkFromSig`: the FORS public key an opening reaches at `leaves`, showing

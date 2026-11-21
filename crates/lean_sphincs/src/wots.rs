@@ -44,20 +44,52 @@ impl OtsKey {
     }
 }
 
-/// The starts of the `v` chains of a one-time key, one `PRF` each.
+/// The starts of the `v` chains of a one-time key, one `PRF` each, batched with [`keccak256::hash_many`].
 fn wots_secrets(sk: &ExpandedKey, key: &OtsKey) -> [Digest; V] {
-    let adrs = key.adrs(WOTS_PRF);
-    std::array::from_fn(|i| prf(&sk.pk_seed, &sk.sk_seed, &adrs.with_chain(i as u32)))
+    const INPUT_LEN: usize = PREFIX_LEN + SECRET_KEY_LEN;
+    let base = key.adrs(WOTS_PRF);
+    let mut inputs = [[0u8; INPUT_LEN]; V];
+    for (i, input) in inputs.iter_mut().enumerate() {
+        input[..N].copy_from_slice(&sk.pk_seed);
+        input[N..PREFIX_LEN].copy_from_slice(base.with_chain(i as u32).as_bytes());
+        input[PREFIX_LEN..].copy_from_slice(&sk.sk_seed);
+    }
+    let mut digests = [[0u8; keccak256::OUT_LEN]; V];
+    keccak256::hash_many(inputs.as_flattened(), INPUT_LEN, digests.as_flattened_mut());
+    std::array::from_fn(|i| keccak256::truncate(digests[i]))
 }
 
-/// `chain`: `steps` steps of chain `i` from position `start`; a step's hash
-/// address is the position it leaves.
-fn chain(pk_seed: &PkSeed, key: &OtsKey, i: usize, start: usize, steps: usize, value: Digest) -> Digest {
-    debug_assert!(start + steps < CHAIN_LEN);
-    let adrs = key.adrs(WOTS_HASH).with_chain(i as u32);
-    (start..start + steps).fold(value, |current, from| {
-        th(pk_seed, &adrs.with_hash(from as u32), &current)
-    })
+/// Advance every chain `i` whose predicate `active(i, from)` holds across steps `0..CHAIN_LEN - 1`,
+/// batching active chains at each step with [`keccak256::hash_many`].
+fn batch_chains(pk_seed: &PkSeed, key: &OtsKey, values: &mut [Digest; V], active: impl Fn(usize, usize) -> bool) {
+    const INPUT_LEN: usize = PREFIX_LEN + N;
+    let base = key.adrs(WOTS_HASH);
+    let mut inputs = [[0u8; INPUT_LEN]; V];
+    let mut digests = [[0u8; keccak256::OUT_LEN]; V];
+    let mut indices = [0usize; V];
+    for from in 0..CHAIN_LEN - 1 {
+        let mut count = 0;
+        for i in 0..V {
+            if active(i, from) {
+                let input = &mut inputs[count];
+                input[..N].copy_from_slice(pk_seed);
+                input[N..PREFIX_LEN].copy_from_slice(base.with_chain(i as u32).with_hash(from as u32).as_bytes());
+                input[PREFIX_LEN..].copy_from_slice(&values[i]);
+                indices[count] = i;
+                count += 1;
+            }
+        }
+        if count > 0 {
+            keccak256::hash_many(
+                inputs[..count].as_flattened(),
+                INPUT_LEN,
+                digests[..count].as_flattened_mut(),
+            );
+            for (k, &i) in indices[..count].iter().enumerate() {
+                values[i] = keccak256::truncate(digests[k]);
+            }
+        }
+    }
 }
 
 /// The Merkle leaf of a one-time key, its public key: `T_v` over its chain ends.
@@ -84,9 +116,15 @@ fn encode(encoder: &keccak256::Hasher, c: u32) -> Option<[u8; V]> {
 /// most significant first; a codeword if they sum to `T`.
 fn codeword(digest: &Digest) -> Option<[u8; V]> {
     let d = u128::from_be_bytes(*digest);
-    let x: [u8; V] = std::array::from_fn(|i| ((d >> (W * (V - 1 - i))) & (CHAIN_LEN as u128 - 1)) as u8);
-    (x.iter().map(|&chunk| chunk as usize).sum::<usize>() == TARGET_SUM).then_some(x)
+    const _: () = assert!(W == 2 && V == 64);
+    const LOW: u128 = u128::MAX / 3;
+    let sum = (d & LOW).count_ones() + 2 * (d & !LOW).count_ones();
+    (sum == TARGET_SUM as u32)
+        .then(|| std::array::from_fn(|i| ((d >> (W * (V - 1 - i))) & (CHAIN_LEN as u128 - 1)) as u8))
 }
+
+/// Counters tried per batched permutation call.
+const GRIND_BATCH: usize = 64;
 
 /// `Wots.sign`: the LEAST admissible counter, and the chain value each chunk
 /// opens. Deterministic in its inputs, which is what keeps one key to one
@@ -94,10 +132,29 @@ fn codeword(digest: &Digest) -> Option<[u8; V]> {
 /// incomparable codewords.
 pub(crate) fn wots_sign(sk: &ExpandedKey, key: &OtsKey, message: &Digest) -> Option<(u32, [Digest; V])> {
     let pk_seed = &sk.pk_seed;
-    let encoder = encoder(pk_seed, key, message);
-    let (c, x) = (0..MAX_ENCODING_ATTEMPTS).find_map(|c| encode(&encoder, c as u32).map(|x| (c as u32, x)))?;
-    let secrets = wots_secrets(sk, key);
-    let signature = std::array::from_fn(|i| chain(pk_seed, key, i, 0, x[i] as usize, secrets[i]));
+    // `PK.seed(16) | ADRS_enc(32) | M(16) | BE_32(c)(4)` = 68 bytes; counter sits in bytes 0..4 of lane 8.
+    const ENCODE_LEN: usize = PREFIX_LEN + N + COUNTER_LEN;
+    const _: () = assert!(PREFIX_LEN + N == 64 && ENCODE_LEN < keccak256::RATE);
+    let mut input = [0u8; ENCODE_LEN];
+    input[..N].copy_from_slice(pk_seed);
+    input[N..PREFIX_LEN].copy_from_slice(key.adrs(WOTS_ENC).as_bytes());
+    input[PREFIX_LEN..PREFIX_LEN + N].copy_from_slice(message);
+    let template = keccak256::final_state(&input);
+    let (mut values, mut digests) = ([0u128; GRIND_BATCH], [0u128; GRIND_BATCH]);
+    let (c, x) = (0..MAX_ENCODING_ATTEMPTS).step_by(GRIND_BATCH).find_map(|first| {
+        let n = (MAX_ENCODING_ATTEMPTS - first).min(GRIND_BATCH as u64) as usize;
+        for (k, val) in values[..n].iter_mut().enumerate() {
+            let c = (first + k as u64) as u32;
+            *val = u128::from(u32::from_le_bytes(c.to_be_bytes()));
+        }
+        keccak256::digest_halves_from(&template, 8, &values[..n], &mut digests[..n]);
+        digests[..n]
+            .iter()
+            .enumerate()
+            .find_map(|(k, &d)| codeword(&d.to_le_bytes()).map(|x| ((first + k as u64) as u32, x)))
+    })?;
+    let mut signature = wots_secrets(sk, key);
+    batch_chains(pk_seed, key, &mut signature, |i, from| from < x[i] as usize);
     Some((c, signature))
 }
 
@@ -111,17 +168,15 @@ pub fn wots_leaf(
     signature: &[Digest; V],
 ) -> Option<([u8; V], Digest)> {
     let x = encode(&encoder(pk_seed, key, message), c)?;
-    let ends = std::array::from_fn(|i| {
-        let start = x[i] as usize;
-        chain(pk_seed, key, i, start, CHAIN_LEN - 1 - start, signature[i])
-    });
+    let mut ends = *signature;
+    batch_chains(pk_seed, key, &mut ends, |i, from| from >= x[i] as usize);
     Some((x, wots_leaf_hash(pk_seed, key, &ends)))
 }
 
 /// `wots_pkGen`: the leaf of a one-time key, from the secret key, what building a
 /// tree spends its hashes on.
 pub(crate) fn wots_public_leaf(sk: &ExpandedKey, key: &OtsKey) -> Digest {
-    let secrets = wots_secrets(sk, key);
-    let ends = std::array::from_fn(|i| chain(&sk.pk_seed, key, i, 0, CHAIN_LEN - 1, secrets[i]));
+    let mut ends = wots_secrets(sk, key);
+    batch_chains(&sk.pk_seed, key, &mut ends, |_, _| true);
     wots_leaf_hash(&sk.pk_seed, key, &ends)
 }
