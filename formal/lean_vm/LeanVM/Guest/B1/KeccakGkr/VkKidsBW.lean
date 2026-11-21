@@ -55,7 +55,7 @@ theorem plain0_totalLe_fs :
       "keccak_plain_rounds__L6_L0") (by decide +kernel)
   rw [wSB_idx (j := idx% «keccak_plain_rounds__L6_L0») (f := "keccak_plain_rounds__L6_L0")
       (by decide +kernel)] at h1
-  have h2 : wSBJ 268 ≤ 201 := by decide +kernel
+  have h2 : wSBJ (idx% «keccak_plain_rounds__L6_L0») ≤ 201 := by decide +kernel
   exact fun rd t args rets hn hv hb ↦ (h1 rd t args rets hn hv hb).trans h2
 
 /-- **`keccak_plain_rounds__L4_L1`'s words at `Deployed.fs`**: at most `145`. -/
@@ -65,7 +65,7 @@ theorem plain1_totalLe_fs :
       "keccak_plain_rounds__L4_L1") (by decide +kernel)
   rw [wSB_idx (j := idx% «keccak_plain_rounds__L4_L1») (f := "keccak_plain_rounds__L4_L1")
       (by decide +kernel)] at h1
-  have h2 : wSBJ 270 ≤ 145 := by decide +kernel
+  have h2 : wSBJ (idx% «keccak_plain_rounds__L4_L1») ≤ 145 := by decide +kernel
   exact fun rd t args rets hn hv hb ↦ (h1 rd t args rets hn hv hb).trans h2
 
 namespace VkData
