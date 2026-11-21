@@ -28,8 +28,8 @@ open LeanVM.Protocol.Verifier (gen)
 /-- `shared_selector_tables`' dispatch of the partial nibble. -/
 def ssDisp : Stmt :=
   .dispatch (.n 9) ["sel_partial_nibble__L0", "sel_partial_nibble__L1",
-      "sel_partial_nibble__L2", "sel_partial_nibble__L3"] [.n 16, .n 17, .n 18, .n 19, .n 20]
-      [.n 21]
+      "sel_partial_nibble__L2", "sel_partial_nibble__L3"] [.n 20, .n 21, .n 22, .n 23, .n 24]
+      [.n 25]
 
 theorem ssPre_eq : ssPre = ssPre.dropLast ++ [ssDisp] := by
   simp [ssPre, ssDisp]
@@ -66,8 +66,8 @@ theorem shared_selector_tables_relIn {rd : Reader} {R : ℕ → Prop} {eqt gt z 
   rw [hb, holdsList_append, holdsList_noRet _ ssPre_noRet] at hh
   obtain ⟨hpre, -⟩ := hh
   simp only [ssPre, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hpre
-  obtain ⟨m7, m8, m5, c10, a11, c12, -, hloop, m13, m14, m15, m16, m17, m18, m19, m20, hdisp⟩ :=
-    hpre
+  obtain ⟨m7, m8, m5, c10, a11, c12, -, hloop, m13, m14, -, -, m15, m16, m17, m18, m19, m20,
+    hdisp⟩ := hpre
   set q := n / 4 with hqd
   set r := n % 4 with hrd
   have hr4 : r < 4 := Nat.mod_lt _ (by norm_num)

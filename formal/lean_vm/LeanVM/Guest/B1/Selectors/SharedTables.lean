@@ -19,8 +19,9 @@ public import LeanVM.Guest.CoreData
 `shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g, q_g)` takes the run's
 split from `selector_run_nibbles` (`q_g = g^q`, `len_g = g^n`, `n = 4q + r`), recovers `r_g = g^r`
 as `len_g / q_g^4`, runs its loop over `x = g^j`, `j < q` (`shared_selector_tables_loop0`: nibble
-`j`'s eq levels and `g` table by the inline `sel_eq_nibble`, `sel_g_nibble`), then dispatches the
-partial nibble `q` of width `r` to `sel_partial_nibble__L{r}`, into the tables its caller allocated.
+`j`'s eq levels and `g` table by the inline `sel_eq_nibble`, `sel_g_nibble`), range-checks `r_g`
+below `g^4` (for the back end's selector analysis), then dispatches the partial nibble `q` of width
+`r` to `sel_partial_nibble__L{r}`, into the tables its caller allocated.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -69,12 +70,14 @@ def ssPre : List Stmt :=
     .callIf (.n 11) name% «shared_selector_tables_loop0» [.n 12, .n 6, .n 0, .n 2, .n 3, .n 1,
         .n 4],
     .atom (.mul (.n 13) (.n 8) (.n 8)), .atom (.mul (.n 14) (.n 13) (.n 13)),
-    .atom (.mul (.n 15) (.n 0) (.n 14)), .atom (.mul (.n 16) (.n 15) (.n 14)),
-    .atom (.mul (.n 17) (.n 1) (.n 14)), .atom (.mul (.n 18) (.n 2) (.n 8)),
-    .atom (.mul (.n 19) (.n 3) (.n 8)), .atom (.mul (.n 20) (.n 4) (.n 8)),
+    .atom (.const (.n 15) (word 8 0)),
+    .atom (.rangeCheck (.n 9) (.n 16) (.n 17) (.n 18) (.n 15)),
+    .atom (.mul (.n 19) (.n 0) (.n 14)), .atom (.mul (.n 20) (.n 19) (.n 14)),
+    .atom (.mul (.n 21) (.n 1) (.n 14)), .atom (.mul (.n 22) (.n 2) (.n 8)),
+    .atom (.mul (.n 23) (.n 3) (.n 8)), .atom (.mul (.n 24) (.n 4) (.n 8)),
     .dispatch (.n 9) ["sel_partial_nibble__L0", "sel_partial_nibble__L1",
-      "sel_partial_nibble__L2", "sel_partial_nibble__L3"] [.n 16, .n 17, .n 18, .n 19, .n 20]
-      [.n 21]]
+      "sel_partial_nibble__L2", "sel_partial_nibble__L3"] [.n 20, .n 21, .n 22, .n 23, .n 24]
+      [.n 25]]
 
 noncomputable def ssCheck : Bool :=
   match coreProgram.find? "shared_selector_tables" with
@@ -199,8 +202,8 @@ theorem shared_selector_tables_holds : shared_selector_tables_Spec := by
   simp only [List.map_cons, List.map_nil] at hpar hret
   subst hpar hret
   simp only [ssPre, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hpre
-  obtain ⟨m7, m8, m5, c10, a11, c12, -, hloop, m13, m14, m15, m16, m17, m18, m19, m20, hdisp⟩ :=
-    hpre
+  obtain ⟨m7, m8, m5, c10, a11, c12, -, hloop, m13, m14, -, -, m15, m16, m17, m18, m19, m20,
+    hdisp⟩ := hpre
   intro n hn h5 h6 zs zs1 gs hz hz1 hg rz rz1 rg j hj
   set q := n / 4 with hqd
   set r := n % 4 with hrd

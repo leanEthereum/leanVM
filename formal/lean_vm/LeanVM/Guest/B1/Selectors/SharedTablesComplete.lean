@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Selectors.SharedTables
 public import LeanVM.Guest.B1.Selectors.SelPartialComplete
+public import LeanVM.Guest.B1.Selectors.ColumnSelectorComplete
 public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.CoreData
 
@@ -342,20 +343,22 @@ theorem lp_chain {rd : Reader} {eqt z z1 gt gsq : E} {q : ℕ} {zs zs1 gs : List
 
 /-! ## The function -/
 
-/-- **Value `x` of `shared_selector_tables`** on a run of `n` coordinates. -/
-def ssVal (eqt gt z z1 gsq : E) (n x : ℕ) : E :=
+/-- **Value `x` of `shared_selector_tables`** on a run of `n` coordinates, the range check's
+complement and touched words from the memory `rd` below `2^2`. -/
+noncomputable def ssVal (rd : Reader) (eqt gt z z1 gsq : E) (n x : ℕ) : E :=
   let v6 := gen ^ (n / 4)
   let v8 := v6 * v6 * (v6 * v6)
   let v14 := v8 * v8 * (v8 * v8)
   [eqt, gt, z, z1, gsq, gen ^ n, v6, v6 * v6, v8, gen ^ (n % 4), word 1 0, word 1 0 + v6,
-    word 1 0, v8 * v8, v14, eqt * v14, eqt * v14 * v14, gt * v14, z * v8, z1 * v8, gsq * v8,
+    word 1 0, v8 * v8, v14, word 8 0, gen ^ (3 - n % 4), cskRd rd (n % 4),
+    cskRd rd (3 - n % 4), eqt * v14, eqt * v14 * v14, gt * v14, z * v8, z1 * v8, gsq * v8,
     0].getD x 0
 
 /-- **`shared_selector_tables` is complete.** -/
 theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_Spec := by
-  intro rd eqt gt z z1 gsq n zs zs1 gs hn hzl hz1l hgl hz hz1 hg hrt
+  intro rd eqt gt z z1 gsq n zs zs1 gs hn hzl hz1l hgl hz hz1 hg hlow hrt
   obtain ⟨fn, hf, hp, hb⟩ := ssFound
-  refine (tb_rel_pre hf hb ssPre_noRet _ _).mpr ⟨fun x ↦ ssVal eqt gt z z1 gsq n x.idx,
+  refine (tb_rel_pre hf hb ssPre_noRet _ _).mpr ⟨fun x ↦ ssVal rd eqt gt z z1 gsq n x.idx,
     by rw [hp]; rfl, ?_, rfl⟩
   simp only [ssPre, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true, List.map_cons,
     List.map_nil]
@@ -381,6 +384,13 @@ theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_
       · exact h0
     rw [tb_word_one, ← pow_zero gen]
     exact lp_chain hlz hlz1 hlg hz hz1 hg (fun j hj ↦ hrt j (by omega)) 0 hq0
+  · -- the range check of `r_g = g^(n % 4)` against `g^3`
+    exact (csk_load hlow (a := n % 4) (by omega)).1
+  · exact (csk_load hlow (a := n % 4) (by omega)).2
+  · rw [← pow_add, Nat.add_sub_cancel' (by omega)]
+    exact tb_word_two_pow (a := 3) (by norm_num)
+  · exact (csk_load hlow (a := 3 - n % 4) (by omega)).1
+  · exact (csk_load hlow (a := 3 - n % 4) (by omega)).2
   · -- the partial nibble
     rw [p4, p16]
     have hr4 : n % 4 < 4 := by omega

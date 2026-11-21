@@ -75,9 +75,9 @@ theorem ss_weightLeOn (ω : String → ℕ) (K9 Ksp : ℕ) (h9 : Budget.LoopW ω
     (holdsList_of_atoms (C := fun _ _ _ ↦ True) ssA ssA_atoms hatoms) hσ5 e39
   -- the dispatch enters `sel_partial_nibble__L{n % 4}`
   have hdisp : walk σ [ssDispV, .ret []] =
-      .ret [.call (lName "sel_partial_nibble" (n % 4)) [.n 16, .n 17, .n 18, .n 19, .n 20]
-        [.n 21]] [] := by
-    have hpk := LeanVM.Guest.B1.pick_eq σ (.n 9) [.n 16, .n 17, .n 18, .n 19, .n 20] [.n 21]
+      .ret [.call (lName "sel_partial_nibble" (n % 4)) [.n 20, .n 21, .n 22, .n 23, .n 24]
+        [.n 25]] [] := by
+    have hpk := LeanVM.Guest.B1.pick_eq σ (.n 9) [.n 20, .n 21, .n 22, .n 23, .n 24] [.n 25]
       ["sel_partial_nibble__L0", "sel_partial_nibble__L1", "sel_partial_nibble__L2",
         "sel_partial_nibble__L3"] 0 (n % 4) (Nat.zero_le _) (by simp; omega) (by omega)
       (by rw [e20, gen_pow_eq_ofK])
@@ -85,7 +85,7 @@ theorem ss_weightLeOn (ω : String → ℕ) (K9 Ksp : ℕ) (h9 : Budget.LoopW ω
     rw [lName_sel_partial (n % 4) (by omega)] at hpk
     simp only [ssDispV, walk, walk1, hpk, Out.seq, Out.pre, List.append_nil]
   have hes : es = ssS.flatMap (Main.slEvs σ) ++
-      [.call (lName "sel_partial_nibble" (n % 4)) [.n 16, .n 17, .n 18, .n 19, .n 20] [.n 21]] := by
+      [.call (lName "sel_partial_nibble" (n % 4)) [.n 20, .n 21, .n 22, .n 23, .n 24] [.n 25]] := by
     rw [hws, hdisp, Out.pre, Out.ret.injEq] at hw
     exact hw.1.symm
   obtain ⟨-, i2, -, i4⟩ := Main.straight_parts σ ssS ssS_straight
@@ -93,7 +93,7 @@ theorem ss_weightLeOn (ω : String → ℕ) (K9 Ksp : ℕ) (h9 : Budget.LoopW ω
   let cs : List Call := [⟨name% «shared_selector_tables_loop0», [.n 12, .n 6, .n 0, .n 2, .n 3,
       .n 1, .n 4], [],
       decide (σ (.n 11) ≠ 0)⟩,
-    ⟨lName "sel_partial_nibble" (n % 4), [.n 16, .n 17, .n 18, .n 19, .n 20], [.n 21], true⟩]
+    ⟨lName "sel_partial_nibble" (n % 4), [.n 20, .n 21, .n 22, .n 23, .n 24], [.n 25], true⟩]
   have hcalls : calls es = cs := by
     rw [hes, calls, List.filterMap_append, ← calls, i4, ssS_callS]
     rfl
