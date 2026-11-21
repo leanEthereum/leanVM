@@ -1,46 +1,34 @@
-//! The coverage table: which slot each raw signature and child claim writes.
+//! Coverage: which slot each raw signature takes, and the multiset commitments the guest draws its challenges from.
 
+use super::cells::count;
 use super::error::AggregateError;
 use super::proof::AggregateProof;
+use super::statement::{claim_list_digest, lean_sphincs_claim_cells, lean_xmss_claim_cells};
 use super::{AggregateClaims, LeanSphincsClaim, LeanXmssClaim};
+use fiat_shamir_prover::{FiatShamirState, Sequential, grinding_bits};
+use primitives::field::F128;
 use std::collections::BTreeSet;
 
-/// The coverage slot each write in the guest's coverage walk targets, in walk
-/// order: the raw signatures first, then each child's claim lists.
+/// The coverage transcript's label (the guest's `CLAIMS_SEED`).
+pub(super) const CLAIMS_LABEL: &[u8] = b"leanvm/recursion-claims/v1";
+
+/// Each scheme's slots: its declared claims, then its duplicate slots, which the guest proves are, with multiplicity,
+/// the claims of the raw signatures and the children's lists (`main`'s multiset identity).
 ///
-/// The table is one contiguous region per scheme, each its declared claims followed
-/// by its own duplicate slots:
-///
-/// | slots | holds |
-/// | --- | --- |
-/// | `[0, n_lean_xmss)` | the declared leanXMSS claims |
-/// | `[n_lean_xmss, X)` | leanXMSS duplicate slots |
-/// | `[X, X + n_lean_sphincs)` | the declared leanSPHINCS claims |
-/// | `[X + n_lean_sphincs, n_total)` | leanSPHINCS duplicate slots |
-///
-/// A claim the declared set holds takes its slot there, one it does not takes a
-/// fresh duplicate slot in the same region, so the walk hits every one of the
-/// `n_total` slots exactly once. That bijection, enforced in-circuit by write-once
-/// memory plus the final count, is what makes every declared claim covered by a real
-/// signature or a verified child.
-///
-/// Keeping each region contiguous is what binds the scheme: the guest addresses
-/// every writer as an offset into one region, bounded by that region's size, one
-/// range check per write, so no signature can reach a claim of the other scheme.
+/// A claim the declared set holds takes its slot there, one it does not takes a fresh duplicate slot, so every slot
+/// is one source's. A raw signature names its slot, the slot it is verified against; a child's list is its own.
 pub(super) struct Coverage {
     pub(super) lean_xmss: Region<LeanXmssClaim>,
     pub(super) lean_sphincs: Region<LeanSphincsClaim>,
 }
 
-/// One scheme's region of the coverage table.
+/// One scheme's slots.
 pub(super) struct Region<K> {
     /// The declared claims, strictly sorted.
     pub(super) signers: Vec<K>,
     pub(super) dups: Vec<K>,
     /// The slot of each raw signature, in the order given.
     pub(super) raw: Vec<usize>,
-    /// Per child, the slot of each of its claims.
-    pub(super) children: Vec<Vec<usize>>,
 }
 
 impl<K: Ord + Clone> Region<K> {
@@ -75,20 +63,14 @@ impl<K: Ord + Clone> Region<K> {
             .iter()
             .map(|claim| take_slot(&signers, &mut claimed, &mut dups, claim))
             .collect();
-        let children = children
-            .map(|child| {
-                child
-                    .iter()
-                    .map(|claim| take_slot(&signers, &mut claimed, &mut dups, claim))
-                    .collect()
-            })
-            .collect();
-        Ok(Self {
-            signers,
-            dups,
-            raw,
-            children,
-        })
+        for claim in children.flatten() {
+            take_slot(&signers, &mut claimed, &mut dups, claim);
+        }
+        Ok(Self { signers, dups, raw })
+    }
+
+    fn slots(&self) -> usize {
+        self.signers.len() + self.dups.len()
     }
 }
 
@@ -105,6 +87,52 @@ fn take_slot<K: Ord + Clone>(claims: &[K], claimed: &mut [bool], duplicates: &mu
             claims.len() + duplicates.len() - 1
         }
     }
+}
+
+/// What the guest's coverage transcript observes, in groups of four cells: the two declared digests, the two
+/// duplicate digests, each child's two list digests, then each scheme's raw slots, padded with zeros to whole groups.
+/// Returns the groups, the raw slots' group counts, and the transcript's grinding nonce, if it grinds.
+pub(super) fn claim_commitments(
+    cover: &Coverage,
+    children: &[(AggregateClaims, AggregateProof)],
+) -> (Vec<[F128; 4]>, [usize; 2], Option<u64>) {
+    let x = &cover.lean_xmss;
+    let s = &cover.lean_sphincs;
+    let pair = |a: [F128; 2], b: [F128; 2]| [a[0], a[1], b[0], b[1]];
+    let mut groups = vec![
+        pair(
+            claim_list_digest(x.signers.iter().map(lean_xmss_claim_cells)),
+            claim_list_digest(s.signers.iter().map(lean_sphincs_claim_cells)),
+        ),
+        pair(
+            claim_list_digest(x.dups.iter().map(lean_xmss_claim_cells)),
+            claim_list_digest(s.dups.iter().map(lean_sphincs_claim_cells)),
+        ),
+    ];
+    for (claims, _) in children {
+        groups.push(pair(
+            claim_list_digest(claims.lean_xmss.iter().map(lean_xmss_claim_cells)),
+            claim_list_digest(claims.lean_sphincs.iter().map(lean_sphincs_claim_cells)),
+        ));
+    }
+    let raw_groups = [x.raw.len().div_ceil(4), s.raw.len().div_ceil(4)];
+    for raw in [&x.raw, &s.raw] {
+        for chunk in raw.chunks(4) {
+            let mut group = [F128::ZERO; 4];
+            for (cell, &slot) in group.iter_mut().zip(chunk) {
+                *cell = count(slot);
+            }
+            groups.push(group);
+        }
+    }
+    let mut transcript = FiatShamirState::<F128>::from_label(CLAIMS_LABEL);
+    for &cell in groups.iter().flatten() {
+        transcript.observe(cell);
+    }
+    // Both products have n_total factors, the slots of both schemes.
+    let factors = 2 * (x.slots() + s.slots()) as u128;
+    let nonce = transcript.grind::<Sequential>(grinding_bits(factors));
+    (groups, raw_groups, nonce)
 }
 
 pub(super) fn plan_coverage(

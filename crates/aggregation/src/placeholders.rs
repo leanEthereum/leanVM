@@ -3,9 +3,10 @@
 use super::MAX_RECURSIONS;
 use super::cells::pack_16_bytes;
 use super::child::{
-    MU_CAP, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, STREAM_CAP, block_groups, col_groups, merkle_cap_depth, whir_levels,
+    MU_CAP, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, block_groups, col_groups, merkle_cap_depth, whir_levels,
 };
 use super::claim_pool::{ClaimSite, claim_pool, coord_difference, coord_kind, coord_scale, push_coord_terms};
+use super::coverage::CLAIMS_LABEL;
 use super::deferred::{BATCH_LAM_GRIND_BITS, RECURSION_AGG_LABEL};
 use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
@@ -222,14 +223,12 @@ fn constants(ph: &mut Placeholders) {
     use lean_xmss::internals as lx;
     use verifier::N_BUS_TREES;
     use verifier::keccak::{EMBED_BITS, PACK, PRODUCT_BITS};
-    let nonces = |bits: u32| usize::from(bits > 0);
     // The F128 tower F64[Y]/(Y^2 + xY + 1): Y_TOWER embeds Y for AIR lane reassembly; Y_INV = Y + x splits a word
     // into its two K limbs.
     let y_tower = F128::new(0, 1);
     let shape = KECCAK_MIN_SHAPE;
     let constants: &[(&str, &dyn Literal)] = &[
         // Buffer caps and memory bounds.
-        ("STREAM_CAP", &STREAM_CAP),
         ("QW", &QUERY_WINDOW_BITS),
         ("QUERY_WINDOWS_CAP", &QUERY_WINDOWS_CAP),
         ("MU_CAP", &MU_CAP),
@@ -273,9 +272,6 @@ fn constants(ph: &mut Placeholders) {
         ("OOD_GRIND_BITS", &OOD_GRINDING_BITS),
         ("QUERY_GRIND_BITS", &QUERY_GRINDING_BITS),
         ("BATCH_GRIND_BITS", &BATCH_GRINDING_BITS),
-        // The batching hints: the challenge's nonce, if it grinds, then per round (g1, g_inf) and its nonce, if any.
-        ("BC_LAM_WORDS", &nonces(BATCH_LAM_GRIND_BITS)),
-        ("BC_ROUND_WORDS", &(2 + nonces(grinding_bits(2)))),
         // The Keccak reduction (`keccak_gkr`).
         ("KECCAK_DEPTH", &shape.depth()),
         ("KECCAK_SEGMENTS", &shape.segments()),
@@ -347,6 +343,13 @@ fn bus_placeholders(ph: &mut Placeholders, sides: &[Vec<Block>; 3], kbc: usize, 
     }
     ph.set("SIDE_BLOCK_START", &sblk);
     ph.set("N_BLOCKS", sblk[3]);
+    // One past the last push block with an Index coordinate: the guest keeps those blocks' index MLEs for their pull
+    // twins.
+    let index_blocks = sides[0]
+        .iter()
+        .rposition(|blk| blk.coords.iter().any(|c| matches!(c, Coord::Index)))
+        .map_or(0, |b| b + 1);
+    ph.set("N_INDEX_BLOCKS", index_blocks);
     ph.set("N_COORDS", coordinates.len());
     // Push and pull emit bus blocks in matched pairs, so their baked kappa-source
     // segments are identical; the guest computes only push's side total and
@@ -783,6 +786,7 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
     ph.set("YR_LOG_CAP", most(|c, _| c.yr_log_len()));
     // A row is its hinted words, one a lane: K at level 0, packed two to a cell, E deeper.
     ph.set("LIG_ROW_CAP", most(OpeningShape::row_words));
+    ph.set("LIG_FOLDS_CAP", most(|c, lv| c.folds[lv]));
     ph.set("LIG_PACKED_ROW_CAP", most(|c, _| c.row_words(0) / 2));
     ph.set("LIG_PATH_CAP", most(|c, lv| 2 * (c.tree_depths[lv] - c.cap_depth(lv))));
     ph.set("LIG_MAX_LEVELS", maxlev);
@@ -827,6 +831,10 @@ fn bytecode_placeholders(ph: &mut Placeholders, sides: &[Vec<Block>; 3], kbc: us
     let agg_seed = FiatShamirState::<F128>::from_label(RECURSION_AGG_LABEL).capacity_cells();
     for (c, cell) in agg_seed.iter().enumerate() {
         ph.set(&format!("AGG_SEED_{c}"), cell);
+    }
+    let claims_seed = FiatShamirState::<F128>::from_label(CLAIMS_LABEL).capacity_cells();
+    for (c, cell) in claims_seed.iter().enumerate() {
+        ph.set(&format!("CLAIMS_SEED_{c}"), cell);
     }
     // A child's words: its statement's two, its fresh claim, and its carried claim's cells.
     let child_words = 2 + 2 * defer_size;
