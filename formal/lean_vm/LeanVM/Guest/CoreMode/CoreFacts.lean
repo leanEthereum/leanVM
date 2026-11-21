@@ -85,15 +85,6 @@ theorem tgtIn_of_none {o : ℕ} (ho : o ≠ 0) : ∀ {t : Exec.Trie B2C.Site}, t
       | zero => exact absurd rfl ho
       | succ n => rfl
 
-/-- **No jump-table read** in a function with no `match` table and no dispatch site. -/
-theorem jtd_none {X : AlignCtx} (ha : trieNil X.arms = true) (hs : tgtNone X.sites = true) (o1 o2 o3 : ℕ) :
-    jtd X o1 o2 o3 = false := by
-  unfold jtd
-  rw [Check.getF_eq, trieNil_get ha]
-  by_cases h0 : o3 = 0
-  · simp [h0]
-  · simp only [tgtIn_of_none h0 hs, Bool.and_false]
-
 theorem has_hasP {t : Exec.Trie Unit} {i : ℕ} : has t i = hasP t i := by
   simp only [has, hasP, Check.getF_eq]
 

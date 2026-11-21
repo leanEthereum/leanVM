@@ -90,21 +90,6 @@ entry reads). -/
 def dsIn (G : Mode.Sig) (gl : List (ℕ × ℕ × ℕ)) : Bool :=
   (glDs gl).all fun d ↦ G.preR.any fun r ↦ decide (r.q.bs = [(.hp 1 d, 1)]) || decide (r.hi = .ex (.hp 1 d) 0)
 
-theorem rngTG_nil {G : Mode.Sig} {np : ℕ} (r : Mode.Rng) : rngTG G np [] r = rngT G np r := by
-  have : rngH [] r = none := by
-    unfold rngH
-    split
-    · simp
-    · rfl
-  simp [rngTG, this]
-
-theorem glDs_loopGl (np : ℕ) (ds : List ℕ) : glDs (loopGl np ds) = ds := by
-  unfold glDs loopGl
-  rw [List.dropLast_append_cons, List.dropLast_singleton, List.append_nil, List.map_map]
-  apply List.ext_getElem (by simp)
-  intro j h1 h2
-  simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h2]
-
 theorem lgOk_spec {np : ℕ} {gl : List (ℕ × ℕ × ℕ)} {ng : ℕ} (h : lgOk np gl ng = true) :
     (gl = [] ∧ ng = 0) ∨ (gl = gl.dropLast ++ [(0, glFs gl, 0)] ∧ (∀ d ∈ glDs gl, d ≠ 0) ∧ np ≤ glFs gl) := by
   simp only [lgOk, Bool.or_eq_true, Bool.and_eq_true, List.isEmpty_iff, Nat.beq_eq, decide_eq_true_eq,
@@ -115,15 +100,6 @@ theorem lgOk_spec {np : ℕ} {gl : List (ℕ × ℕ × ℕ)} {ng : ℕ} (h : lgO
     have := h2 d hd
     rw [h0] at this
     simp at this
-
-/-- The links of `loopGl np ds`: cell `ds[j]` to slot `np + j`, the frame address to slot `np + ds.length`. -/
-theorem mem_loopGl {np : ℕ} {ds : List ℕ} {d : ℕ} (hd : d ∈ ds) : ∃ j, (d, np + j, 0) ∈ loopGl np ds := by
-  obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hd
-  refine ⟨j, List.mem_append_left _ (List.mem_map.mpr ⟨j, List.mem_range.mpr hj, ?_⟩)⟩
-  simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj]
-
-theorem addr_mem_loopGl (np : ℕ) (ds : List ℕ) : (0, np + ds.length, 0) ∈ loopGl np ds :=
-  List.mem_append_right _ (List.mem_singleton_self _)
 
 /-- **A loop's link of a cell it names**, and its caller's frame address's. -/
 theorem lgOk_link {np : ℕ} {gl : List (ℕ × ℕ × ℕ)} {ng : ℕ} (h : lgOk np gl ng = true) {d : ℕ} (hd : d ∈ glDs gl) :

@@ -10,19 +10,21 @@ public import LeanVM.Guest.CoreMode.CoreLoop
 public import LeanVM.Guest.CoreMode.LoopBC
 public import LeanVM.Guest.CoreMode.PairLoopC
 public import LeanVM.Guest.CoreMode.LoopPtr
+public import LeanVM.Guest.Mode.InvCert
 
 /-!
-# The core route for a loop helper with calls
+# The core route for a loop helper
 
-A loop helper whose body has calls (`loopBC`): atoms and calls, its tail call `callIf c f args` to
+A loop helper (`loopBC`, a leaf one's body among them, `loopBC_of_loopB`): atoms and calls, its tail call `callIf c f args` to
 itself, `ret []`; compiled (`loopCodeC`) to code whose last two `JUMP`s are the tail call's (through
 a next-frame cell, to the function's entry) and the return, every other `JUMP` a call's (on a nonzero
-constant, `jumpCallOk`). `LoopOkC K Cf`: the kernel's checks, as `LoopOk`'s, with the callees' heap
-signatures (`callsBL`) and the frame walk told the environment's callee signatures, its own entry's
-among them.
+constant, `jumpCallOk`). `LoopOkC K Cf`: the kernel's checks, as `CoreOk`'s, with the heap check's
+loop rules (`heapOkC` at a termination fact), the loop's mode signature translated (`sigOkLP`), the
+callees' heap signatures (`callsBL`) and the frame walk told the environment's callee signatures, its own
+entry's among them.
 
-`frameSpec_loopC`: such a function meets `FrameSpec` for `CoreAt`: its steps are `frameSpec_loop`'s,
-its calls `frameSpec_core`'s. The tail `JUMP`, whichever way the frame walk hands it over (a tail
+`frameSpec_loopC`: such a function meets `FrameSpec` for `CoreAt`: its steps are the function route's
+(`heapRd_pair`, `fall_wrk`), its calls `frameSpec_core`'s (`entry_fitB`, `post_wrk`). The tail `JUMP`, whichever way the frame walk hands it over (a tail
 call, or a call into the function's own entry), is the loop's tail call (`tail_nextC`).
 -/
 
@@ -375,8 +377,8 @@ itself the own ghosts' (`ghostMs`). -/
 def tailG (Cf : CFun) : Bool :=
   Cf.H.gargs.all fun p ↦ !(p.1 == Cf.fn.name) || decide (p.2.2 = ghostMs Cf.H.sig.ghosts)
 
-/-- **The kernel's checks of a loop helper with calls on the core route**, and its ties to its mode
-certificate `K`, as `LoopOk`'s: its calls' callees' heap signatures (`callsBL`), the frame walk's callee
+/-- **The kernel's checks of a loop helper on the core route**, and its ties to its mode
+certificate `K`, as `CoreOk`'s: its calls' callees' heap signatures (`callsBL`), the frame walk's callee
 signatures the environment's. -/
 structure LoopOkC (K : Mode.Cert) (Cf : CFun) : Prop where
   heap : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true
@@ -1648,7 +1650,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
       · -- the tail call
         obtain ⟨pos, pre, es, vs, rd, rfl, hpos, hb, hwp, hh0, -, hW⟩ := hheap σ0 hσ0
         obtain ⟨c, f, args, pos', hcm, hloc, ⟨t0, ht0, hentT⟩, -, hrn, as, hpairs, hsplit⟩ :=
-          pair_tailL hok.pair hpos hci htz (fun _ _ _ _ ↦ htnz) htsf htnx htod hst
+          pair_tailL hok.pair hpos hci htz htnz htsf htnx htod hst
         have hrw0 := hrwOf σ0 pre es vs img.read hσ0 hb hh0
         have hrw0C := (loopC_heap hok hb hh0 (hσ0.res hxw) (hPs hσ0) hT).1
         obtain ⟨evs, cs, es', heq, hwp', hcs, -, -, hW'⟩ := hsplit hwp hrw0

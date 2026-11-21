@@ -223,8 +223,8 @@ def route(verbose=False):
         if any(p in pf['extra'] for p in ptr_vals(body)):
             # `CoreMode.ptrCellB`: a dereferenced pointer at its certificate cell, no hint-only value
             why['hint-only pointer'] += 1; continue
-        if pf.get('kind') in ('c', 'l', 'lc'):
-            # a body with calls (`callc.py`), a leaf loop helper (`loopc.py`) or one with calls (`loopcc.py`), its
+        if pf.get('kind') in ('c', 'lc'):
+            # a body with calls (`callc.py`) or a loop helper (`loopcc.py`), its
             # certificate by the check with calls
             out[k] = dict(post=[], pre=[], O=pf['O'], S=pf['S'], j=pf['j'], bpack=pf['bpack'], kind=pf['kind'])
             continue

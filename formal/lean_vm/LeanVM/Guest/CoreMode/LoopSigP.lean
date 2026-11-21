@@ -14,7 +14,7 @@ public import LeanVM.Guest.CoreMode.LoopLink
 /-!
 # A loop helper's signature with pointer runs
 
-`sigOkLP`: `sigOkL` with the loop's pointer runs, its preconditions `preP` and its loop's `postLP`, as
+`sigOkLP`: a loop helper's heap signature its mode signature's translation (`SigL`), with the loop's pointer runs, its preconditions `preP` and its loop's `postLP`, as
 the heap signature's `prePR` and `postPR` (`prT`: the run translated, the offsets kept), each run among
 the signature's runs.
 
@@ -98,7 +98,7 @@ def idxKX (G : Mode.Sig) (ps : List ℕ) (i : Mode.Idx) : Bool :=
 def rngKX (G : Mode.Sig) (ps : List ℕ) (r : Mode.Rng) : Bool := idxKX G ps r.lo && idxKX G ps r.hi
 
 /-- **A loop helper's heap signature is its mode signature's translation**, pointer runs included:
-`sigOkL`'s, its preconditions' pointer runs `preP` the heap signature's `prePR`, its loop's `postLP` its
+field by field (`SigL`), its preconditions' pointer runs `preP` the heap signature's `prePR`, its loop's `postLP` its
 `postPR`, each pointer run's run among the signature's runs, every bound a constant, the termination
 fact's or an entry run's bound cell's (`idxKX`; for the preconditions, one the tail call passes on, `ps`); its runs
 over its caller's cells (`.hp 1 d`) over the slots its links `gl` name (`rngTG`, `lgOk`, `dsIn`; a parameter's one the

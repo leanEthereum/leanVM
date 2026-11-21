@@ -832,10 +832,6 @@ def gl_q(k, r):
     return r[0] == 'sub' and gl_st_sub(k, r[1]) == r
 
 
-# leaf loop helpers whose residuals are of a family: on `loopcc.py`'s route, not `loopc.py`'s (which takes none)
-LEAF_FAM = set()
-
-
 def _guest_const(name):
     """The guest's constant `name`, as `guest-export` writes it to `Data/Source.lean` (`guest_const%`)."""
     import re

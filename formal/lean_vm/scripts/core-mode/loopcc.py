@@ -1,6 +1,6 @@
-"""The core route's loop helpers whose bodies have calls (`formal/notes/core-mode.md`, `CoreMode/CoreLoopC.lean`'s
+"""The core route's loop helpers (`formal/notes/core-mode.md`, `CoreMode/CoreLoopC.lean`'s
 `LoopOkC`): bodies of atoms and calls, their tail call to themselves and `ret []`, checked by `heapOkC`'s loop rules
-with the function's heap signature its mode signature's translated (`CoreMode.sigOkLP`: `loopc.py`'s, its pointer
+with the function's heap signature its mode signature's translated (`CoreMode.sigOkLP`: `loopc.py`'s helpers, its pointer
 runs `preP`/`postLP` as `prePR`/`postPR`) and each
 callee's its mode signature's (`CoreMode.fitB`, as `callc.py`). The certificate's witnesses come from the emitter's
 solver (`emitc.solve`) in `infer.py`'s pass at those signatures, which must not grow.
@@ -25,10 +25,8 @@ HELD = set()
 
 
 def candidates(S=None):
-    """Loop helpers: atoms and calls, the tail `callIf` to itself with a word per parameter, `ret []`; at least one
-    call, or (a leaf `loopc.py` leaves) pointer runs of its own (`preP`, `postLP`), runs over its caller's cells, or
-    residuals of a family; or (`CoreMode.loopBB`) a body with
-    branches and `match`es, its statements before the tail (nested ones included) atoms, calls, branches, `match`es."""
+    """Loop helpers: atoms and calls, the tail `callIf` to itself with a word per parameter, `ret []`; or
+    (`CoreMode.loopBB`) a body with branches and `match`es, its statements before the tail (nested ones included) atoms, calls, branches, `match`es."""
     out = []
     for k in sorted(I.IS_LOOP):
         params, body = CORE[k]
@@ -46,13 +44,8 @@ def candidates(S=None):
                 all(I.callee(s[2]) != k for s in I.stmts(body[:-2]) if s[0] == 'callIf'):
             out.append(k)
             continue
-        G = (S or {}).get(k)
-        own_ptr = G is not None and bool(G['preP'] or G['postLP'])
-        # a leaf of runs over its caller's cells (the stream-cursor loops, `callcres.ST_LOOPS`; `anyLink`'s loops)
-        import callcres
-        # or a leaf whose residuals are of a family (`callcres.LEAF_FAM`)
-        if kinds <= {'a', 'call'} and ('call' in kinds or own_ptr or k in callcres.ST_LOOPS or callc.gl_of(k) or
-                                       k in callcres.LEAF_FAM):
+        # atoms and calls, a leaf loop helper among them
+        if kinds <= {'a', 'call'}:
             out.append(k)
     return out
 
