@@ -11,8 +11,9 @@ public import LeanVM.Guest.B1.Tables.VtC.ADefs
 /-!
 # The honest oracle
 
-`vtWKeys`: the 331 values the oracle answers (the allocations, the padding weights' returns,
-`plus_one_run`'s, the bytecode value, `g^n`, the index MLEs, the selectors' returns), each at its position (`vtWKeys_alloc` …, by the kernel). `vtWVals H B`: their honest words, aligned. `vtW H B`: the
+`vtWKeys`: the 371 values the oracle answers (the allocations, the padding weights' returns,
+`plus_one_run`'s, the bytecode value, `g^n`, the index MLEs, the selectors' returns, the tail
+rounds', `selector_run_nibbles`'), each at its position (`vtWKeys_alloc` …, by the kernel). `vtWVals H B`: their honest words, aligned. `vtW H B`: the
 oracle, the word of a value's position in the table. `vtW_ok`: it answers `VtWOk`.
 -/
 
@@ -25,20 +26,19 @@ open LeanVM.Protocol.EndToEnd.Complete (blockSel)
 @[expose] public section
 
 /-- The push side's selector return values. -/
-def vtSelKP (i : ℕ) : ℕ := vtSelE (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).2.2.2.1
+def vtSelKP (i : ℕ) : ℕ := (vtPushSel.getD i default).2.2.1 + 1
 
 /-- The count side's selector return values. -/
-def vtSelKC (i : ℕ) : ℕ :=
-  vtSelE (vtCountSel.getD i default).2.2.1 (vtCountSel.getD i default).2.2.2.1
+def vtSelKC (i : ℕ) : ℕ := (vtCountSel.getD i default).2.2.1 + 1
 
 /-- **The values the oracle answers.** -/
 def vtWKeys : List ℕ :=
   vtAllocVars ++ ((List.range 6).flatMap fun t ↦ [vtPadV t, vtPadV t + 1, vtPadV t + 2]) ++
-    [700, 2543, 809, 837] ++
+    [700, 2245, 859, 887] ++
     ((List.range 3).flatMap fun b ↦ [vtFwW b + 10, vtFwW b + 11]) ++
     ((List.range 51).flatMap fun i ↦ [vtSelKP i, vtSelKP i + 1]) ++
     ((List.range 45).flatMap fun i ↦ [vtSelKC i, vtSelKC i + 1]) ++
-    (List.range 24).map (1875 + ·)
+    (List.range 24).map (1577 + ·) ++ (List.range 6).map vtShQ
 
 /-- The first tail round's returns: its capacity, cursor, claim and challenge. -/
 noncomputable def vtTail1 (H : VtHonest) (B : VtBases) : List E :=
@@ -62,6 +62,10 @@ noncomputable def vtTail3 (H : VtHonest) (B : VtBases) : List E :=
 noncomputable def vtTailW (H : VtHonest) (B : VtBases) : List E :=
   vtTail1 H B ++ (vtTail2 H B ++ vtTail3 H B)
 
+/-- `selector_run_nibbles`' returns. -/
+noncomputable def vtQW (H : VtHonest) : List E :=
+  (List.range 6).map fun t ↦ gen ^ ((H.μ - H.τ t) / 4)
+
 /-- **Their honest words.** -/
 noncomputable def vtWVals (H : VtHonest) (B : VtBases) : List E :=
   (H.ownB B).map (fun b ↦ ofK (addressOfIndex b)) ++
@@ -73,7 +77,7 @@ noncomputable def vtWVals (H : VtHonest) (B : VtBases) : List E :=
     ((List.range 51).flatMap fun i ↦ [blockSel (vtSizesP H.lm H.τ) H.μ (3 + i) H.point,
       gen ^ H.offP.getD (3 + i) 0]) ++
     ((List.range 45).flatMap fun i ↦ [blockSel (vtSizesC H.τ) H.μ i H.point,
-      gen ^ H.offC.getD i 0]) ++ vtTailW H B
+      gen ^ H.offC.getD i 0]) ++ vtTailW H B ++ vtQW H
 
 /-- **The honest oracle.** -/
 noncomputable def vtW (H : VtHonest) (B : VtBases) (i : ℕ) : E :=
@@ -109,21 +113,21 @@ theorem vtWVals_split :
       (((List.range 51).flatMap fun i ↦ [blockSel (vtSizesP H.lm H.τ) H.μ (3 + i) H.point,
       gen ^ H.offP.getD (3 + i) 0]) ++
       (((List.range 45).flatMap fun i ↦ [blockSel (vtSizesC H.τ) H.μ i H.point,
-      gen ^ H.offC.getD i 0]) ++ vtTailW H B))))) := by
+      gen ^ H.offC.getD i 0]) ++ (vtTailW H B ++ vtQW H)))))) := by
   simp only [vtWVals, List.append_assoc]
 
-theorem ownB_map_length : ((H.ownB B).map (fun b ↦ ofK (addressOfIndex b))).length = 111 := by
-  simp [VtHonest.ownB, VtHonest.sizes, LeanVM.Core.Memory.length_bases]
+theorem ownB_map_length : ((H.ownB B).map (fun b ↦ ofK (addressOfIndex b))).length = 121 := by
+  simp [VtHonest.ownB, VtHonest.sizes_length, LeanVM.Core.Memory.length_bases]
 
 set_option maxRecDepth 100000 in
-theorem vtWKeys_alloc : ∀ j < 111, vtWKeys.idxOf (vtAllocVars.getD j 0) = j := by decide +kernel
+theorem vtWKeys_alloc : ∀ j < 121, vtWKeys.idxOf (vtAllocVars.getD j 0) = j := by decide +kernel
 
-theorem vtW_alloc {j : ℕ} (hj : j < 111) :
+theorem vtW_alloc {j : ℕ} (hj : j < 121) :
     vtW H B (vtAllocVars.getD j 0) = ofK (addressOfIndex ((H.ownB B).getD j 0)) := by
   rw [vtW, vtWKeys_alloc j hj, vtWVals_split, List.getD_append _ _ _ _
     (by rw [ownB_map_length]; exact hj), List.getD_eq_getElem _ _ (by rw [ownB_map_length]; exact hj),
     List.getD_eq_getElem _ _ (by
-      simp [VtHonest.ownB, VtHonest.sizes, LeanVM.Core.Memory.length_bases]; omega)]
+      simp [VtHonest.ownB, VtHonest.sizes_length, LeanVM.Core.Memory.length_bases]; omega)]
   simp
 
 theorem getD_append_len {α : Type} {A rest : List α} {n k : ℕ} {d : α} (h : A.length = n) :
@@ -135,30 +139,28 @@ theorem flatMap_len {α : Type} {S : ℕ} (m : ℕ) (f : ℕ → List α) (hf : 
   rw [List.length_flatMap]; simp [hf, List.sum_replicate, Nat.mul_comm]
 
 set_option maxRecDepth 100000 in
-theorem vtWKeys_pads : ∀ t < 6, vtWKeys.idxOf (vtPadV t) = 111 + 3 * t ∧
-    vtWKeys.idxOf (vtPadV t + 1) = 111 + (3 * t + 1) ∧
-    vtWKeys.idxOf (vtPadV t + 2) = 111 + (3 * t + 2) := by decide +kernel
+theorem vtWKeys_pads : ∀ t < 6, vtWKeys.idxOf (vtPadV t) = 121 + 3 * t ∧
+    vtWKeys.idxOf (vtPadV t + 1) = 121 + (3 * t + 1) ∧
+    vtWKeys.idxOf (vtPadV t + 2) = 121 + (3 * t + 2) := by decide +kernel
 set_option maxRecDepth 100000 in
-theorem vtWKeys_misc : vtWKeys.idxOf 700 = 129 ∧ vtWKeys.idxOf 2543 = 130 ∧
-    vtWKeys.idxOf 809 = 131 ∧ vtWKeys.idxOf 837 = 132 := by
+theorem vtWKeys_misc : vtWKeys.idxOf 700 = 139 ∧ vtWKeys.idxOf 2245 = 140 ∧
+    vtWKeys.idxOf 859 = 141 ∧ vtWKeys.idxOf 887 = 142 := by
   decide +kernel
 set_option maxRecDepth 100000 in
-theorem vtWKeys_fw : ∀ b < 3, vtWKeys.idxOf (vtFwW b + 10) = 133 + 2 * b ∧
-    vtWKeys.idxOf (vtFwW b + 11) = 133 + (2 * b + 1) := by decide +kernel
+theorem vtWKeys_fw : ∀ b < 3, vtWKeys.idxOf (vtFwW b + 10) = 143 + 2 * b ∧
+    vtWKeys.idxOf (vtFwW b + 11) = 143 + (2 * b + 1) := by decide +kernel
 set_option maxRecDepth 100000 in
 theorem vtWKeys_push : ∀ i < 51,
-    vtWKeys.idxOf (vtSelE (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).2.2.2.1) =
-      139 + 2 * i ∧
-    vtWKeys.idxOf (vtSelE (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).2.2.2.1 + 1) =
-      139 + (2 * i + 1) := by decide +kernel
+    vtWKeys.idxOf ((vtPushSel.getD i default).2.2.1 + 1) = 149 + 2 * i ∧
+    vtWKeys.idxOf ((vtPushSel.getD i default).2.2.1 + 2) = 149 + (2 * i + 1) := by
+  decide +kernel
 set_option maxRecDepth 100000 in
 theorem vtWKeys_count : ∀ i < 45,
-    vtWKeys.idxOf (vtSelE (vtCountSel.getD i default).2.2.1 (vtCountSel.getD i default).2.2.2.1) =
-      241 + 2 * i ∧
-    vtWKeys.idxOf (vtSelE (vtCountSel.getD i default).2.2.1 (vtCountSel.getD i default).2.2.2.1 + 1) =
-      241 + (2 * i + 1) := by decide +kernel
+    vtWKeys.idxOf ((vtCountSel.getD i default).2.2.1 + 1) = 251 + 2 * i ∧
+    vtWKeys.idxOf ((vtCountSel.getD i default).2.2.1 + 2) = 251 + (2 * i + 1) := by
+  decide +kernel
 
-theorem vtWVals_pads {t c j : ℕ} (ht : t < 6) (hc : c < 3) (hj : j = 111 + (3 * t + c)) :
+theorem vtWVals_pads {t c j : ℕ} (ht : t < 6) (hc : c < 3) (hj : j = 121 + (3 * t + c)) :
     (vtWVals H B).getD j 0 =
       [paddingWeight (H.point.take (H.τ t)) (vtRw H.rows t), PadLead (H.τ t) (vtRw H.rows t),
         PadRest (H.τ t) (vtRw H.rows t)].getD c 0 := by
@@ -167,7 +169,7 @@ theorem vtWVals_pads {t c j : ℕ} (ht : t < 6) (hc : c < 3) (hj : j = 111 + (3 
     List.getD_append _ _ _ _ (by rw [flatMap_len (S := 3) _ _ (fun _ ↦ rfl)]; omega)]
   exact getD_flatMap_const' (S := 3) 0 _ (fun _ ↦ rfl) 6 t c ht hc
 
-theorem vtWVals_misc {k j : ℕ} (hk : k < 4) (hj : j = 111 + (18 + k)) :
+theorem vtWVals_misc {k j : ℕ} (hk : k < 4) (hj : j = 121 + (18 + k)) :
     (vtWVals H B).getD j 0 =
       [0, gen ^ H.n, indexMle (H.point.take H.lm), indexMle (H.point.take 19)].getD k 0 := by
   subst hj
@@ -175,7 +177,7 @@ theorem vtWVals_misc {k j : ℕ} (hk : k < 4) (hj : j = 111 + (18 + k)) :
     getD_append_len (flatMap_len (S := 3) _ _ (fun _ ↦ rfl)),
     List.getD_append _ _ _ _ (by simp; omega)]
 
-theorem vtWVals_fw {b c j : ℕ} (hb : b < 3) (hc : c < 2) (hj : j = 111 + (18 + (4 + (2 * b + c)))) :
+theorem vtWVals_fw {b c j : ℕ} (hb : b < 3) (hc : c < 2) (hj : j = 121 + (18 + (4 + (2 * b + c)))) :
     (vtWVals H B).getD j 0 =
       [blockSel (vtSizesP H.lm H.τ) H.μ b H.point, gen ^ H.offP.getD b 0].getD c 0 := by
   subst hj
@@ -185,7 +187,7 @@ theorem vtWVals_fw {b c j : ℕ} (hb : b < 3) (hc : c < 2) (hj : j = 111 + (18 +
   exact getD_flatMap_const' (S := 2) 0 _ (fun _ ↦ rfl) 3 b c hb hc
 
 theorem vtWVals_push {i c j : ℕ} (hi : i < 51) (hc : c < 2)
-    (hj : j = 111 + (18 + (4 + (6 + (2 * i + c))))) :
+    (hj : j = 121 + (18 + (4 + (6 + (2 * i + c))))) :
     (vtWVals H B).getD j 0 =
       [blockSel (vtSizesP H.lm H.τ) H.μ (3 + i) H.point, gen ^ H.offP.getD (3 + i) 0].getD c 0 := by
   subst hj
@@ -196,7 +198,7 @@ theorem vtWVals_push {i c j : ℕ} (hi : i < 51) (hc : c < 2)
   exact getD_flatMap_const' (S := 2) 0 _ (fun _ ↦ rfl) 51 i c hi hc
 
 theorem vtWVals_count {i c j : ℕ} (hi : i < 45) (hc : c < 2)
-    (hj : j = 111 + (18 + (4 + (6 + (102 + (2 * i + c)))))) :
+    (hj : j = 121 + (18 + (4 + (6 + (102 + (2 * i + c)))))) :
     (vtWVals H B).getD j 0 =
       [blockSel (vtSizesC H.τ) H.μ i H.point, gen ^ H.offC.getD i 0].getD c 0 := by
   subst hj
@@ -208,7 +210,10 @@ theorem vtWVals_count {i c j : ℕ} (hi : i < 45) (hc : c < 2)
   exact getD_flatMap_const' (S := 2) 0 _ (fun _ ↦ rfl) 45 i c hi hc
 
 set_option maxRecDepth 100000 in
-theorem vtWKeys_tail : ∀ i < 24, vtWKeys.idxOf (1875 + i) = 331 + i := by decide +kernel
+theorem vtWKeys_tail : ∀ i < 24, vtWKeys.idxOf (1577 + i) = 341 + i := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem vtWKeys_q : ∀ t < 6, vtWKeys.idxOf (vtShQ t) = 365 + t := by decide +kernel
 
 theorem vtTail1_length : (vtTail1 H B).length = 8 := by
   simp [vtTail1, vtBcR1, bcRound, Fs.squeeze, capOf]
@@ -222,21 +227,34 @@ theorem vtTail3_length : (vtTail3 H B).length = 8 := by
 theorem vtTailW_length : (vtTailW H B).length = 24 := by
   simp [vtTailW, vtTail1_length, vtTail2_length, vtTail3_length]
 
-theorem vtWVals_tail (i : ℕ) : (vtWVals H B).getD (331 + i) 0 = (vtTailW H B).getD i 0 := by
-  rw [vtWVals_split, show 331 + i = 111 + (18 + (4 + (6 + (102 + (90 + i))))) by omega,
+theorem vtWVals_tail {i : ℕ} (hi : i < 24) :
+    (vtWVals H B).getD (341 + i) 0 = (vtTailW H B).getD i 0 := by
+  rw [vtWVals_split, show 341 + i = 121 + (18 + (4 + (6 + (102 + (90 + i))))) by omega,
     getD_append_len (ownB_map_length H B),
     getD_append_len (flatMap_len (S := 3) _ _ (fun _ ↦ rfl)), getD_append_len (by rfl),
     getD_append_len (flatMap_len (S := 2) _ _ (fun _ ↦ rfl)),
     getD_append_len (flatMap_len (S := 2) _ _ (fun _ ↦ rfl)),
-    getD_append_len (flatMap_len (S := 2) _ _ (fun _ ↦ rfl))]
+    getD_append_len (flatMap_len (S := 2) _ _ (fun _ ↦ rfl)),
+    List.getD_append _ _ _ _ (by rw [vtTailW_length]; exact hi)]
+
+theorem vtWVals_q {t : ℕ} (ht : t < 6) :
+    (vtWVals H B).getD (365 + t) 0 = gen ^ ((H.μ - H.τ t) / 4) := by
+  rw [vtWVals_split, show 365 + t = 121 + (18 + (4 + (6 + (102 + (90 + (24 + t)))))) by omega,
+    getD_append_len (ownB_map_length H B),
+    getD_append_len (flatMap_len (S := 3) _ _ (fun _ ↦ rfl)), getD_append_len (by rfl),
+    getD_append_len (flatMap_len (S := 2) _ _ (fun _ ↦ rfl)),
+    getD_append_len (flatMap_len (S := 2) _ _ (fun _ ↦ rfl)),
+    getD_append_len (flatMap_len (S := 2) _ _ (fun _ ↦ rfl)),
+    getD_append_len (vtTailW_length H B), vtQW,
+    List.getD_eq_getElem _ _ (by simpa using ht), List.getElem_map, List.getElem_range]
 
 theorem vtW_tail (k : ℕ) (hk : k + 8 ≤ 24) :
-    (List.range 8).map (fun i ↦ vtW H B (1875 + k + i)) = ((vtTailW H B).drop k).take 8 := by
+    (List.range 8).map (fun i ↦ vtW H B (1577 + k + i)) = ((vtTailW H B).drop k).take 8 := by
   apply List.ext_getElem (by simp [vtTailW_length]; omega)
   intro i h1 h2
   simp only [List.length_map, List.length_range] at h1
-  rw [List.getElem_map, List.getElem_range, vtW, show 1875 + k + i = 1875 + (k + i) by omega,
-    vtWKeys_tail _ (by omega), vtWVals_tail H B, List.getElem_take, List.getElem_drop,
+  rw [List.getElem_map, List.getElem_range, vtW, show 1577 + k + i = 1577 + (k + i) by omega,
+    vtWKeys_tail _ (by omega), vtWVals_tail H B (by omega), List.getElem_take, List.getElem_drop,
     List.getD_eq_getElem _ _ (by rw [vtTailW_length]; omega)]
 
 /-- **The honest oracle answers.** -/
@@ -277,16 +295,17 @@ theorem vtW_ok : VtWOk H B (vtW H B) where
     rfl
   hw2 := by
     have := vtW_tail H B 8 (by norm_num)
-    rw [show 1875 + 8 = 1883 by rfl] at this
+    rw [show 1577 + 8 = 1585 by rfl] at this
     rw [this, vtTailW, List.drop_left' (vtTail1_length H B), List.take_left' (vtTail2_length H B)]
     rfl
   hw3 := by
     have := vtW_tail H B 16 (by norm_num)
-    rw [show 1875 + 16 = 1891 by rfl] at this
+    rw [show 1577 + 16 = 1593 by rfl] at this
     rw [this, vtTailW, ← List.append_assoc,
       List.drop_left' (by rw [List.length_append, vtTail1_length, vtTail2_length]),
       List.take_of_length_le (by rw [vtTail3_length])]
     rfl
+  hq t ht := by rw [vtW, vtWKeys_q t ht, vtWVals_q H B ht]
 
 end
 
