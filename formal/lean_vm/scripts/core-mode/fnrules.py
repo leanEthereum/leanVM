@@ -198,101 +198,195 @@ def pos(f, n):
 
 
 OWNDIR = os.path.join(HERE, '..', '..', 'LeanVM', 'Guest', 'CoreMode', 'Fn')
-_LTOK = re.compile(r'\s*(\+\+|↦|[\[\](),+*⟨⟩]|"[^"]*"|«[^»]*»|[A-Za-z_.%][A-Za-z_0-9.%]*|\d+)')
+# a token: an operator, a bracket, a string, a «name», an identifier (dotted, `%`-suffixed), a numeral
+_LTOK = re.compile(r"\+\+|↦|=>|[\[\](),+\-*/%^⟨⟩]|\"[^\"\n]*\"|«[^»\n]*»|[A-Za-z_.][A-Za-z_0-9.']*%?|0x[0-9A-Fa-f_]+|\d[\d_]*")
+# what ends a definition's body: a top-level command at column 0
+_LEND = re.compile(r"^(?:@\[|(?:(?:private|protected|noncomputable|public|meta|partial|unsafe) )*"
+                   r"(?:def|abbrev|theorem|lemma|instance|structure|inductive|class|end|namespace|section|open|"
+                   r"variable|set_option|example|attribute|#\w+)(?![\w'.]))", re.M)
 _LEAN = {}
+
+
+def _uncomment(t):
+    """`t` without its comments, nested block comments included (a string's text kept)."""
+    out, i, n = [], 0, len(t)
+    while i < n:
+        if t.startswith('/-', i):
+            d, i = 1, i + 2
+            while d:
+                if i >= n:
+                    raise SystemExit('fnrules: unterminated comment')
+                if t.startswith('/-', i):
+                    d, i = d + 1, i + 2
+                elif t.startswith('-/', i):
+                    d, i = d - 1, i + 2
+                else:
+                    i += 1
+            out.append(' ')
+        elif t.startswith('--', i):
+            while i < n and t[i] != '\n':
+                i += 1
+        elif t[i] == '"':
+            j = t.index('"', i + 1) + 1
+            out.append(t[i:j])
+            i = j
+        else:
+            out.append(t[i])
+            i += 1
+    return ''.join(out)
+
+
+def _tokens(body, where):
+    """`body`'s tokens, which must cover it but for whitespace."""
+    toks, i = [], 0
+    while True:
+        while i < len(body) and body[i].isspace():
+            i += 1
+        if i == len(body):
+            return toks
+        m = _LTOK.match(body, i)
+        if not m:
+            raise SystemExit('fnrules: %s: cannot read %r' % (where, body[i:i + 20]))
+        toks.append(m.group(0))
+        i = m.end()
 
 
 def lean_def(f, mod, name):
     """The literal of `def name` in `CoreMode/Fn/<f>/<mod>.lean`, read: what a rule file mirrors of its function's
-    Lean data, so the two never disagree. Lists, `++`, `l.map fun x ↦ e`, `(List.range n)`, tuples and `⟨…⟩`, numerals, `+`,
-    `*`, strings, `none`, `some x`, `name% «k»` (`k`), `val%`, `valf%`, `pos%`, `param%`, `guest_const%` (resolved as above),
-    `word a b` (`(a, b)`), `.n x` (`x`) and an atom `.op a ...` (`('op', a, ...)`)."""
+    Lean data, so the two never disagree. Lists, `++`, `l.map fun x ↦ e`, `(List.range n)`, tuples and `⟨…⟩`, natural
+    numerals and `+ - * / % ^` on them (Lean's precedence, `-` truncated), strings, `none`, `some x`, `name% «k»` (`k`),
+    `val%`, `valf%`, `pos%`, `param%`, `guest_const%` (resolved as above), `word a b` (`(a, b)`), `.n x` (`x`) and an
+    atom `.op a ...` (`('op', a, ...)`). Anything else, or a token left over, fails: the body is read whole or not at
+    all."""
     key = (f, mod)
+    where = '%s.%s.%s' % (f, mod, name)
     if key not in _LEAN:
-        t = open(os.path.join(OWNDIR, f, mod + '.lean'), encoding='utf-8').read()
-        _LEAN[key] = re.sub(r'--[^\n]*', '', re.sub(r'/-.*?-/', '', t, flags=re.S))
-    m = re.search(r'^(?:noncomputable )?def %s\b[^\n]*?:=(.*?)(?=^\S|\Z)' % re.escape(name), _LEAN[key], re.S | re.M)
-    if not m:
-        raise SystemExit('fnrules: no def %s in CoreMode/Fn/%s/%s.lean' % (name, f, mod))
-    toks = _LTOK.findall(m.group(1))
-    v, i = _Lean(toks).expr(0, {})
+        _LEAN[key] = _uncomment(open(os.path.join(OWNDIR, f, mod + '.lean'), encoding='utf-8').read())
+    t = _LEAN[key]
+    heads = list(re.finditer(r"^(?:(?:private|protected|noncomputable|public) )*(?:def|abbrev) %s(?![\w'.])"
+                             % re.escape(name), t, re.M))
+    if len(heads) != 1:
+        raise SystemExit('fnrules: %d defs %s in CoreMode/Fn/%s/%s.lean' % (len(heads), name, f, mod))
+    start = heads[0].end()
+    end = _LEND.search(t, start)
+    decl = t[start:end.start() if end else len(t)]
+    # the body: after the signature's `:=` (the signature has no `:=` of its own)
+    if ':=' not in decl:
+        raise SystemExit('fnrules: %s has no body' % where)
+    toks = _tokens(decl.split(':=', 1)[1], where)
+    v, i = _Lean(toks, where).expr(0, {})
     if i != len(toks):
-        raise SystemExit('fnrules: %s.%s.%s: cannot read %s' % (f, mod, name, ' '.join(toks[i:i + 8])))
+        raise SystemExit('fnrules: %s: cannot read %s' % (where, ' '.join(toks[i:i + 8])))
     return v
 
 
 class _Lean:
-    def __init__(self, t):
-        self.t = t
+    """A recursive descent over the tokens; every method returns its value and the next token's index."""
+    # binary operators: precedence (Lean's), right associative
+    OPS = {'++': (65, False), '+': (65, False), '-': (65, False), '*': (70, False), '/': (70, False),
+           '%': (70, False), '^': (75, True)}
+    CLOSE = {'[': ']', '(': ')', '⟨': '⟩'}
 
-    def expr(self, i, env):
-        v, i = self.prod(i, env)
-        while i < len(self.t) and self.t[i] in ('++', '+'):
-            w, i = self.prod(i + 1, env)
-            v = v + w
-        return v, i
+    def __init__(self, t, where):
+        self.t, self.where = t + [None], where
 
-    def prod(self, i, env):
+    def fail(self, i, what):
+        raise SystemExit('fnrules: %s: %s at %s' % (self.where, what, ' '.join(str(x) for x in self.t[i:i + 8]
+                                                                               if x is not None) or 'the end'))
+
+    def expr(self, i, env, prec=0):
         v, i = self.post(i, env)
-        while i < len(self.t) and self.t[i] == '*':
-            w, i = self.post(i + 1, env)
-            v = v * w
+        while self.t[i] in self.OPS and self.OPS[self.t[i]][0] >= prec:
+            op = self.t[i]
+            p, right = self.OPS[op]
+            w, i = self.expr(i + 1, env, p if right else p + 1)
+            v = self.apply(i, op, v, w)
         return v, i
+
+    def apply(self, i, op, v, w):
+        if op == '++':
+            if not (isinstance(v, list) and isinstance(w, list)):
+                self.fail(i, '`++` of non-lists')
+            return v + w
+        if not (isinstance(v, int) and isinstance(w, int)):
+            self.fail(i, '`%s` of non-numerals' % op)
+        return {'+': lambda: v + w, '-': lambda: max(v - w, 0), '*': lambda: v * w,
+                '/': lambda: v // w if w else 0, '%': lambda: v % w if w else v, '^': lambda: v ** w}[op]()
 
     def post(self, i, env):
         v, i = self.term(i, env)
-        while i < len(self.t) and self.t[i] == '.map':
-            assert self.t[i + 1] == 'fun' and self.t[i + 3] == '↦', self.t[i:i + 4]
+        while self.t[i] == '.map':
+            if not (self.t[i + 1] == 'fun' and self.t[i + 3] in ('↦', '=>')):
+                self.fail(i, 'a `.map` not of `fun x ↦ e`')
+            if not isinstance(v, list):
+                self.fail(i, '`.map` of a non-list')
             x, b = self.t[i + 2], i + 4
-            out, j = [], b
+            out, j = [], None
             for e in v:
                 w, j = self.expr(b, dict(env, **{x: e}))
                 out.append(w)
-            if not v:
+            if j is None:
                 j = self.skip(b)
             v, i = out, j
         return v, i
 
     def skip(self, i):
+        """Past an expression not evaluated (a `.map`'s body over no element)."""
         d = 0
-        while i < len(self.t) and not (d == 0 and self.t[i] in (',', ')', ']', '⟩')):
-            d += self.t[i] in ('(', '[', '⟨') and 1 or (self.t[i] in (')', ']', '⟩') and -1 or 0)
+        while self.t[i] is not None and not (d == 0 and self.t[i] in (',', ')', ']', '⟩')):
+            d += 1 if self.t[i] in self.CLOSE else -1 if self.t[i] in self.CLOSE.values() else 0
             i += 1
         return i
 
     def ident(self, i):
-        return self.t[i].strip('«»'), i + 1
+        x = self.t[i]
+        if x is None or not (x.startswith('«') or re.fullmatch(r"[A-Za-z_][\w']*", x)):
+            self.fail(i, 'a name expected')
+        return x.strip('«»'), i + 1
 
     def str(self, i):
-        assert self.t[i].startswith('"'), self.t[i]
+        if self.t[i] is None or not self.t[i].startswith('"'):
+            self.fail(i, 'a string expected')
         return self.t[i][1:-1], i + 1
 
     def term(self, i, env):
         t, x = self.t, self.t[i]
-        if x in ('[', '(', '⟨'):
-            close = {'[': ']', '(': ')', '⟨': '⟩'}[x]
+        if x is None:
+            self.fail(i, 'a term expected')
+        if x in self.CLOSE:
+            close = self.CLOSE[x]
             out, i = [], i + 1
             while t[i] != close:
                 v, i = self.expr(i, env)
                 out.append(v)
                 if t[i] == ',':
                     i += 1
+                    if t[i] == close:
+                        self.fail(i, 'a trailing `,`')
+                elif t[i] != close:
+                    self.fail(i, '`,` or `%s` expected' % close)
             i += 1
             if x == '[':
                 return out, i
+            if not out:
+                self.fail(i, 'an empty tuple')
             return (out[0] if len(out) == 1 and x == '(' else tuple(out)), i
-        if x.isdigit():
-            return int(x), i + 1
+        if re.fullmatch(r'\d[\d_]*', x):
+            return int(x.replace('_', '')), i + 1
+        if x.startswith('0x'):
+            return int(x[2:].replace('_', ''), 16), i + 1
         if x.startswith('"'):
             return self.str(i)
         if x in env:
             return env[x], i + 1
-        if x == 'none':
+        if x in ('none', '.none'):
             return None, i + 1
-        if x == 'some':
+        if x in ('some', '.some'):
             return self.term(i + 1, env)
         if x == 'List.range':
             n, i = self.term(i + 1, env)
+            if not isinstance(n, int):
+                self.fail(i, '`List.range` of a non-numeral')
             return list(range(n)), i
         if x == 'name%':
             return self.ident(i + 1)
@@ -300,13 +394,21 @@ class _Lean:
             n, i = self.ident(i + 1)
             return guest_const(n), i
         if x in ('val%', 'pos%', 'param%'):
-            f, i = self.ident(i + 1)
+            fs, i = [], i + 1
+            while t[i] is not None and not t[i].startswith('"'):
+                g, i = self.ident(i)
+                fs.append(g)
             n, i = self.str(i)
-            return {'val%': val, 'pos%': pos, 'param%': param}[x](f, n), i
+            if not fs or (x != 'val%' and len(fs) > 1):
+                self.fail(i, '`%s` of %d functions' % (x, len(fs)))
+            vs = {{'val%': val, 'pos%': pos, 'param%': param}[x](g, n) for g in fs}
+            if len(vs) != 1:
+                self.fail(i, '`%s` naming different values in %s' % (x, ' '.join(fs)))
+            return vs.pop(), i
         if x == 'valf%':
             f, i = self.ident(i + 1)
             sn = []
-            while not t[i].startswith('"'):
+            while t[i] is not None and not t[i].startswith('"'):
                 s, i = self.ident(i)
                 sn.append(s)
             n, i = self.str(i)
@@ -317,13 +419,13 @@ class _Lean:
             return (a, b), i
         if x == '.n':
             return self.term(i + 1, env)
-        if x.startswith('.') and x != '.map':
+        if re.fullmatch(r"\.[A-Za-z_][\w']*", x) and x != '.map':
             args, i = [], i + 1
-            while i < len(t) and t[i] not in (',', ')', ']', '⟩', '++', '+', '*', '.map'):
+            while t[i] is not None and t[i] not in (',', ')', ']', '⟩', '.map') and t[i] not in self.OPS:
                 a, i = self.term(i, env)
                 args.append(a)
             return (x[1:],) + tuple(args), i
-        raise SystemExit('fnrules: cannot read Lean token %s' % x)
+        self.fail(i, 'an unknown token')
 
 
 # last: a rule file may use the helpers above (`param`, `guest_const`, `val`, `valf`, `pos`)
