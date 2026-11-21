@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerT
 public import LeanVM.Guest.B1.KeccakGkr.LayerCBlock
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
 /-!
 # The honest valuation of a layer
@@ -30,8 +32,8 @@ open LeanVM.Guest.B1.Fwd
 /-- The stores of `layerT first`: the next claim's instance weights and `κ`, the pack rounds'
 first record, the local point, the next claim's value, point, local point, lanes and flips. -/
 def layerSt (first : ℕ) : List Atom :=
-  (List.range 16).map (fun i ↦ .load (.n (layOff first + rmfeStores.getD i 0)) (.n 12) (6 + i)) ++
-  [.load (.n (layOff first + 624)) (.n 12) 1,
+  (List.range 16).map (fun i ↦ .load (.n (layOff first + rmfeStores.getD i 0)) (.n (valf% «keccak_layer» "out")) (6 + i)) ++
+  [.load (.n (layOff first + 624)) (.n (valf% «keccak_layer» "out")) 1,
     .load (.n (layOff first + 539)) (.n (layOff first + 719)) 0,
     .load (.n (layOff first + 540)) (.n (layOff first + 719)) 16,
     .load (.n (layOff first + 541)) (.n (layOff first + 719)) 32,
@@ -40,14 +42,14 @@ def layerSt (first : ℕ) : List Atom :=
     .load (.n (layOff first + 721)) (.n (layOff first + 719)) 80,
     .load (.n (layOff first + 716)) (.n (layOff first + 719)) 96] ++
   (List.range 11).map (fun i ↦ .load (.n (layOff first + 757 + 32 * i)) (.n (layOff first + 745)) i) ++
-  [.load (.n (weightEnd first (layOff first) + 24)) (.n 12) 0,
-    .load (.n (layOff first + 718)) (.n 12) 2, .load (.n (layOff first + 745)) (.n 12) 4] ++
+  [.load (.n (weightEnd first (layOff first) + 24)) (.n (valf% «keccak_layer» "out")) 0,
+    .load (.n (layOff first + 718)) (.n (valf% «keccak_layer» "out")) 2, .load (.n (layOff first + 745)) (.n (valf% «keccak_layer» "out")) 4] ++
   (List.range 25).map (fun i ↦ .load (.n (weightEnd first (layOff first) + 29 + 4 * i))
     (.n (weightEnd first (layOff first) + 25)) i) ++
-  [.load (.n (weightEnd first (layOff first) + 25)) (.n 12) 3] ++
+  [.load (.n (weightEnd first (layOff first) + 25)) (.n (valf% «keccak_layer» "out")) 3] ++
   (List.range 7).map (fun i ↦ .load (.n (topV (weightEnd first (layOff first)) + 46 + 43 * i))
     (.n (topV (weightEnd first (layOff first)) + 3)) i) ++
-  [.load (.n (topV (weightEnd first (layOff first)) + 3)) (.n 12) 5]
+  [.load (.n (topV (weightEnd first (layOff first)) + 3)) (.n (valf% «keccak_layer» "out")) 5]
 
 /-- The checker's count after the body. -/
 def layerN (first : ℕ) : ℕ := if first = 1 then 1823 else 2152

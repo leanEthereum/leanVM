@@ -12,6 +12,8 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.FBase
 public import LeanVM.Guest.B1.Tables.Vt.EvalsT
 public import LeanVM.Guest.B1.Tables.VtC.FDataD
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The window's statements, by kind
@@ -39,10 +41,10 @@ def vtAirX (t : ℕ) : ℕ := (vtAirD.getD t (0, 0)).2
 
 /-- Table `t`'s weight block. -/
 def vtAirT (t : ℕ) : List Stmt :=
-  [.atom (.mul (.n 2544) (.n (vtAirX t)) (.n (vtTauV t))),
-    .atom (.mul (.n (vtAirX t + 1)) (.n 2629) (.n (vtAirX t))),
+  [.atom (.mul (.n (val% «verify_tables» "g_zc_n")) (.n (vtAirX t)) (.n (vtTauV t))),
+    .atom (.mul (.n (vtAirX t + 1)) (.n (val% «verify_tables» "zc_cprod")) (.n (vtAirX t))),
     .atom (.load (.n (vtAirX t + 2)) (.n (vtAirX t + 1)) 0),
-    .atom (.mul (.n (vtAirX t + 3)) (.n 2651) (.n (vtTauV t))),
+    .atom (.mul (.n (vtAirX t + 3)) (.n (val% «verify_tables» "zc_peq")) (.n (vtTauV t))),
     .atom (.load (.n (vtAirX t + 4)) (.n (vtAirX t + 3)) 0)]
 
 theorem vtAirT_check : ∀ t < 6,
@@ -51,7 +53,7 @@ theorem vtAirT_check : ∀ t < 6,
 
 /-- Evaluation `k`'s statements evaluation alone does not settle. -/
 def vtEvRest (k : ℕ) : List Stmt :=
-  [.atom (.load (.n (vtEvB k)) (.n 2647) k)]
+  [.atom (.load (.n (vtEvB k)) (.n (val% «verify_tables» "cursor@5")) k)]
 
 /-- A read of `fp_w`. -/
 def rdFpw : Stmt → Bool

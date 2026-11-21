@@ -12,6 +12,8 @@ public import LeanVM.Guest.B1.Sig.SphincsSoundFors
 public import LeanVM.Guest.B1.Sig.SphincsForsComplete
 public import LeanVM.Guest.B1.Sig.SphincsLayersComplete
 public import LeanVM.Guest.B1.Sig.SphincsCompleteBlocks
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # FORS's cells, two ways
@@ -87,14 +89,14 @@ theorem forsBlockCompletes : ForsBlockCompletes := by
     (key := sKeyB) (bit := sForsBit) (val := sVals) (b0 := 1382) (secret := secret) (sib := sib) hs σ hp
     (by unfold sPad; omega) ⟨2, by omega, rfl⟩ ⟨1379, by omega, rfl⟩ ⟨1381, by omega, rfl⟩
     (fun k hk => nbB_ok (sForsBit_nb k hk)) (fun k hk => nbB_ok (sVals_nb k hk)) hbit hval
-  obtain ⟨t1, t2⟩ := sForsTrees_shape sPad sPP sA0B (.n (1382 + 1)) sForsBit sVals 1382 24 0
+  obtain ⟨t1, t2⟩ := sForsTrees_shape sPad sPP sA0B (.n (val% «verify_sig_lean_sphincs» "fors_at")) sForsBit sVals 1382 24 0
   have e0 : forsTreeBase 1382 0 = 1382 + 2 := by simp [forsTreeBase]
   have e24 : forsTreeBase 1382 (0 + 24) = 1382 + 3802 := forsTreeBase_24 1382
   rw [e0, e24] at t1
   rw [e0] at t2
-  show Completes C rd 1382 5249 (sForsBlock sPad sPP sA0B sKeyB sForsBit sVals 1382).1 σ _
+  show Completes C rd (val% «verify_sig_lean_sphincs» "fors_at~0") (val% «verify_sig_lean_sphincs» "ctr[0]@1") (sForsBlock sPad sPP sA0B sKeyB sForsBit sVals 1382).1 σ _
   rw [sForsBlock_eq]
-  generalize sForsTrees sPad sPP sA0B (.n (1382 + 1)) sForsBit sVals 24 0 (1382 + 2) = tr at h t1 t2 ⊢
+  generalize sForsTrees sPad sPP sA0B (.n (val% «verify_sig_lean_sphincs» "fors_at")) sForsBit sVals 24 0 (1382 + 2) = tr at h t1 t2 ⊢
   rw [t1, t2] at h ⊢
   obtain ⟨σ', he, ⟨-, hk, hP⟩, hh⟩ := h
   rw [hkey, ha0, forsKey_eq _ _ kp s hs secret sib] at hk

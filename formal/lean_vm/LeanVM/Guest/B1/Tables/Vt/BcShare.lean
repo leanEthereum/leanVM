@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Tables.Vt.Fresh
 public import LeanVM.Guest.B1.Fs.TailRound
 public import LeanVM.Guest.B1.Gkr.Spec
 public import LeanVM.Protocol.EndToEnd.Complete.BusShare
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The bytecode share
@@ -77,117 +79,117 @@ theorem vt_list16 (w : List E) (hw : w.length = 16) :
 set_option maxRecDepth 10000 in
 /-- **The bytecode share.** -/
 theorem vt_bc {rd : Reader} {σ : Val} (h : VtH rd σ) {weights : List E}
-    (hwl : weights.length = 16) (hW : TbReadsAt rd (σ (.n 13)) weights) (low : List E) :
-    ∃ ys : List E, ys.length = 6 ∧ TbReadsAt rd (σ (.n 5) * gen ^ 7) (ys ++ [σ (.n 1905)]) ∧
-      TbReadsAt rd (σ (.n 19)) [σ (.n 1855), σ (.n 1883), σ (.n 1891), σ (.n 1899)] ∧
-      σ (.n 1897) = σ (.n 5) * gen ^ 7 * gen ^ 6 ∧
-      [σ (.n 1900), σ (.n 1901), σ (.n 1902), σ (.n 1903), σ (.n 1904)] =
-        [σ (.n 1892), σ (.n 1893), σ (.n 1894), σ (.n 1895), σ (.n 1896)] ∧
-      σ (.n 1906) = σ (.n 1905) ∧
+    (hwl : weights.length = 16) (hW : TbReadsAt rd (σ (.n (val% «verify_tables» "fp_w"))) weights) (low : List E) :
+    ∃ ys : List E, ys.length = 6 ∧ TbReadsAt rd (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7) (ys ++ [σ (.n (val% «verify_tables» "x@8"))]) ∧
+      TbReadsAt rd (σ (.n (val% «verify_tables» "bc_point"))) [σ (.n (val% «verify_tables» "nxt[0]@2")), σ (.n (val% «verify_tables» "bc_r@1")), σ (.n (val% «verify_tables» "bc_r@2")), σ (.n (val% «verify_tables» "bc_r@3"))] ∧
+      σ (.n (val% «verify_tables» "cursor@4")) = σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7 * gen ^ 6 ∧
+      [σ (.n (val% «verify_tables» "sp[0]@2")), σ (.n (val% «verify_tables» "sp[1]@2")), σ (.n (val% «verify_tables» "sp[2]@2")), σ (.n (val% «verify_tables» "sp[3]@2")), σ (.n (val% «verify_tables» "sp[4]@2"))] =
+        [σ (.n (val% «verify_tables» "bfs0@3")), σ (.n (val% «verify_tables» "bfs1@3")), σ (.n (val% «verify_tables» "bfs2@3")), σ (.n (val% «verify_tables» "bfs3@3")), σ (.n (val% «verify_tables» "bfs4@3"))] ∧
+      σ (.n (val% «verify_tables» "rate[0]@3")) = σ (.n (val% «verify_tables» "x@8")) ∧
       RunsTo (bytecodeShare weights low)
-        ((⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], []⟩ : Fs).absorbAll
-          [σ (.n 813), σ (.n 817), σ (.n 1303), σ (.n 1317)] dsObserve)
-        ([σ (.n 1841), σ (.n 1845), σ (.n 1849)] ++ ys ++ [σ (.n 1905)])
-        (σ (.n 1841), low ++ [σ (.n 1855), σ (.n 1883), σ (.n 1891), σ (.n 1899)], σ (.n 1905))
-        ((⟨[σ (.n 1892), σ (.n 1893), σ (.n 1894), σ (.n 1895), σ (.n 1896)], []⟩ : Fs).absorb
-          (σ (.n 1905)) dsObserve) := by
+        ((⟨[σ (.n (val% «verify_tables» "fs0")), σ (.n (val% «verify_tables» "fs1")), σ (.n (val% «verify_tables» "fs2")), σ (.n (val% «verify_tables» "fs3")), σ (.n (val% «verify_tables» "fs4"))], []⟩ : Fs).absorbAll
+          [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2")), σ (.n (val% «verify_tables» "x@3")), σ (.n (val% «verify_tables» "x@4"))] dsObserve)
+        ([σ (.n (val% «verify_tables» "x@5")), σ (.n (val% «verify_tables» "x@6")), σ (.n (val% «verify_tables» "x@7"))] ++ ys ++ [σ (.n (val% «verify_tables» "x@8"))])
+        (σ (.n (val% «verify_tables» "x@5")), low ++ [σ (.n (val% «verify_tables» "nxt[0]@2")), σ (.n (val% «verify_tables» "bc_r@1")), σ (.n (val% «verify_tables» "bc_r@2")), σ (.n (val% «verify_tables» "bc_r@3"))], σ (.n (val% «verify_tables» "x@8")))
+        ((⟨[σ (.n (val% «verify_tables» "bfs0@3")), σ (.n (val% «verify_tables» "bfs1@3")), σ (.n (val% «verify_tables» "bfs2@3")), σ (.n (val% «verify_tables» "bfs3@3")), σ (.n (val% «verify_tables» "bfs4@3"))], []⟩ : Fs).absorb
+          (σ (.n (val% «verify_tables» "x@8"))) dsObserve) := by
   obtain ⟨-, hr0, hcap0, d43, d47, d51⟩ := vt_fresh h
-  have s0 := h.atomAt 1930 (.load (.n 1855) (.n 19) 0) (by decide +kernel)
-  have a1932 := h.atomAt 1931 (.const (.n 1868) (word 1 0)) (by decide +kernel)
-  have a1933 := h.atomAt 1932 (.add (.n 1869) (.n 1868) (.n 1855)) (by decide +kernel)
-  have a1934 := h.atomAt 1933 (.mul (.n 1870) (.n 1869) (.n 1852)) (by decide +kernel)
-  have a1935 := h.atomAt 1934 (.add (.n 1871) (.n 1844) (.n 1870)) (by decide +kernel)
-  have a1936 := h.atomAt 1935 (.mul (.n 1872) (.n 1855) (.n 1871)) (by decide +kernel)
-  have a1937 := h.atomAt 1936 (.add (.n 1873) (.n 1848) (.n 1872)) (by decide +kernel)
-  have a1938 := h.atomAt 1937 (.const (.n 1874) (word 128 0)) (by decide +kernel)
-  have a1939 := h.atomAt 1938 (.mul (.n 1875) (.n 5) (.n 1874)) (by decide +kernel)
-  have k1 := h.callAt 1939 "opening_tail_round" [.n 1863, .n 1864, .n 1865, .n 1866, .n 1867,
-    .n 1875, .n 1873, .n 18] [.n 1876, .n 1877, .n 1878, .n 1879, .n 1880, .n 1881, .n 1882,
-    .n 1883] (by decide +kernel)
-  have s1 := h.atomAt 1940 (.load (.n 1883) (.n 19) 1) (by decide +kernel)
-  have k2 := h.callAt 1941 "opening_tail_round" [.n 1876, .n 1877, .n 1878, .n 1879, .n 1880,
-    .n 1881, .n 1882, .n 18] [.n 1884, .n 1885, .n 1886, .n 1887, .n 1888, .n 1889, .n 1890,
-    .n 1891] (by decide +kernel)
-  have s2 := h.atomAt 1942 (.load (.n 1891) (.n 19) 2) (by decide +kernel)
-  have k3 := h.callAt 1943 "opening_tail_round" [.n 1884, .n 1885, .n 1886, .n 1887, .n 1888,
-    .n 1889, .n 1890, .n 18] [.n 1892, .n 1893, .n 1894, .n 1895, .n 1896, .n 1897, .n 1898,
-    .n 1899] (by decide +kernel)
-  have s3 := h.atomAt 1944 (.load (.n 1899) (.n 19) 3) (by decide +kernel)
-  have c0 := h.atomAt 1945 (.copy (.n 1900) (.n 1892)) (by decide +kernel)
-  have c1 := h.atomAt 1946 (.copy (.n 1901) (.n 1893)) (by decide +kernel)
-  have c2 := h.atomAt 1947 (.copy (.n 1902) (.n 1894)) (by decide +kernel)
-  have c3 := h.atomAt 1948 (.copy (.n 1903) (.n 1895)) (by decide +kernel)
-  have c4 := h.atomAt 1949 (.copy (.n 1904) (.n 1896)) (by decide +kernel)
-  have lv := h.atomAt 1950 (.load (.n 1905) (.n 1897) 0) (by decide +kernel)
-  have cv := h.atomAt 1951 (.copy (.n 1906) (.n 1905)) (by decide +kernel)
+  have s0 := h.atomAt 1930 (.load (.n (val% «verify_tables» "nxt[0]@2")) (.n (val% «verify_tables» "bc_point")) 0) (by decide +kernel)
+  have a1932 := h.atomAt 1931 (.const (.n (val% «verify_tables» "bc_claim@1~0")) (word 1 0)) (by decide +kernel)
+  have a1933 := h.atomAt 1932 (.add (.n (val% «verify_tables» "bc_claim@1~1")) (.n (val% «verify_tables» "bc_claim@1~0")) (.n (val% «verify_tables» "nxt[0]@2"))) (by decide +kernel)
+  have a1934 := h.atomAt 1933 (.mul (.n (val% «verify_tables» "bc_claim@1~2")) (.n (val% «verify_tables» "bc_claim@1~1")) (.n (val% «verify_tables» "bc_msg[2]"))) (by decide +kernel)
+  have a1935 := h.atomAt 1934 (.add (.n (val% «verify_tables» "bc_claim@1~3")) (.n (val% «verify_tables» "bc_msg[0]")) (.n (val% «verify_tables» "bc_claim@1~2"))) (by decide +kernel)
+  have a1936 := h.atomAt 1935 (.mul (.n (val% «verify_tables» "bc_claim@1~4")) (.n (val% «verify_tables» "nxt[0]@2")) (.n (val% «verify_tables» "bc_claim@1~3"))) (by decide +kernel)
+  have a1937 := h.atomAt 1936 (.add (.n (val% «verify_tables» "bc_claim@1")) (.n (val% «verify_tables» "bc_msg[1]")) (.n (val% «verify_tables» "bc_claim@1~4"))) (by decide +kernel)
+  have a1938 := h.atomAt 1937 (.const (.n (val% «verify_tables» "bfs0@1~8")) (word 128 0)) (by decide +kernel)
+  have a1939 := h.atomAt 1938 (.mul (.n (val% «verify_tables» "bfs0@1~9")) (.n (val% «verify_tables» "cursor@1")) (.n (val% «verify_tables» "bfs0@1~8"))) (by decide +kernel)
+  have k1 := h.callAt 1939 "opening_tail_round" [.n (val% «verify_tables» "nxt[8]@2"), .n (val% «verify_tables» "nxt[9]@2"), .n (val% «verify_tables» "nxt[10]@2"), .n (val% «verify_tables» "nxt[11]@2"), .n (val% «verify_tables» "nxt[12]@2"),
+    .n (val% «verify_tables» "bfs0@1~9"), .n (val% «verify_tables» "bc_claim@1"), .n (val% «verify_tables» "tabs")] [.n (val% «verify_tables» "bfs0@1"), .n (val% «verify_tables» "bfs1@1"), .n (val% «verify_tables» "bfs2@1"), .n (val% «verify_tables» "bfs3@1"), .n (val% «verify_tables» "bfs4@1"), .n (val% «verify_tables» "cursor@2"), .n (val% «verify_tables» "bc_claim@2"),
+    .n (val% «verify_tables» "bc_r@1")] (by decide +kernel)
+  have s1 := h.atomAt 1940 (.load (.n (val% «verify_tables» "bc_r@1")) (.n (val% «verify_tables» "bc_point")) 1) (by decide +kernel)
+  have k2 := h.callAt 1941 "opening_tail_round" [.n (val% «verify_tables» "bfs0@1"), .n (val% «verify_tables» "bfs1@1"), .n (val% «verify_tables» "bfs2@1"), .n (val% «verify_tables» "bfs3@1"), .n (val% «verify_tables» "bfs4@1"),
+    .n (val% «verify_tables» "cursor@2"), .n (val% «verify_tables» "bc_claim@2"), .n (val% «verify_tables» "tabs")] [.n (val% «verify_tables» "bfs0@2"), .n (val% «verify_tables» "bfs1@2"), .n (val% «verify_tables» "bfs2@2"), .n (val% «verify_tables» "bfs3@2"), .n (val% «verify_tables» "bfs4@2"), .n (val% «verify_tables» "cursor@3"), .n (val% «verify_tables» "bc_claim@3"),
+    .n (val% «verify_tables» "bc_r@2")] (by decide +kernel)
+  have s2 := h.atomAt 1942 (.load (.n (val% «verify_tables» "bc_r@2")) (.n (val% «verify_tables» "bc_point")) 2) (by decide +kernel)
+  have k3 := h.callAt 1943 "opening_tail_round" [.n (val% «verify_tables» "bfs0@2"), .n (val% «verify_tables» "bfs1@2"), .n (val% «verify_tables» "bfs2@2"), .n (val% «verify_tables» "bfs3@2"), .n (val% «verify_tables» "bfs4@2"),
+    .n (val% «verify_tables» "cursor@3"), .n (val% «verify_tables» "bc_claim@3"), .n (val% «verify_tables» "tabs")] [.n (val% «verify_tables» "bfs0@3"), .n (val% «verify_tables» "bfs1@3"), .n (val% «verify_tables» "bfs2@3"), .n (val% «verify_tables» "bfs3@3"), .n (val% «verify_tables» "bfs4@3"), .n (val% «verify_tables» "cursor@4"), .n (val% «verify_tables» "bc_claim@4"),
+    .n (val% «verify_tables» "bc_r@3")] (by decide +kernel)
+  have s3 := h.atomAt 1944 (.load (.n (val% «verify_tables» "bc_r@3")) (.n (val% «verify_tables» "bc_point")) 3) (by decide +kernel)
+  have c0 := h.atomAt 1945 (.copy (.n (val% «verify_tables» "sp[0]@2")) (.n (val% «verify_tables» "bfs0@3"))) (by decide +kernel)
+  have c1 := h.atomAt 1946 (.copy (.n (val% «verify_tables» "sp[1]@2")) (.n (val% «verify_tables» "bfs1@3"))) (by decide +kernel)
+  have c2 := h.atomAt 1947 (.copy (.n (val% «verify_tables» "sp[2]@2")) (.n (val% «verify_tables» "bfs2@3"))) (by decide +kernel)
+  have c3 := h.atomAt 1948 (.copy (.n (val% «verify_tables» "sp[3]@2")) (.n (val% «verify_tables» "bfs3@3"))) (by decide +kernel)
+  have c4 := h.atomAt 1949 (.copy (.n (val% «verify_tables» "sp[4]@2")) (.n (val% «verify_tables» "bfs4@3"))) (by decide +kernel)
+  have lv := h.atomAt 1950 (.load (.n (val% «verify_tables» "x@8")) (.n (val% «verify_tables» "cursor@4")) 0) (by decide +kernel)
+  have cv := h.atomAt 1951 (.copy (.n (val% «verify_tables» "rate[0]@3")) (.n (val% «verify_tables» "x@8"))) (by decide +kernel)
   -- the fold of `fp_w`
-  have l0 := h.atomAt 1953 (.load (.n 1908) (.n 19) 0) (by decide +kernel)
-  have w0 := h.atomAt 1954 (.load (.n 1909) (.n 13) 0) (by decide +kernel)
-  have w1 := h.atomAt 1955 (.load (.n 1910) (.n 13) 1) (by decide +kernel)
-  have a1957 := h.atomAt 1956 (.add (.n 1911) (.n 1909) (.n 1910)) (by decide +kernel)
-  have a1958 := h.atomAt 1957 (.mul (.n 1912) (.n 1908) (.n 1911)) (by decide +kernel)
-  have a1959 := h.atomAt 1958 (.add (.n 1913) (.n 1909) (.n 1912)) (by decide +kernel)
-  have w2 := h.atomAt 1959 (.load (.n 1914) (.n 13) 2) (by decide +kernel)
-  have w3 := h.atomAt 1960 (.load (.n 1915) (.n 13) 3) (by decide +kernel)
-  have a1962 := h.atomAt 1961 (.add (.n 1916) (.n 1914) (.n 1915)) (by decide +kernel)
-  have a1963 := h.atomAt 1962 (.mul (.n 1917) (.n 1908) (.n 1916)) (by decide +kernel)
-  have a1964 := h.atomAt 1963 (.add (.n 1918) (.n 1914) (.n 1917)) (by decide +kernel)
-  have w4 := h.atomAt 1964 (.load (.n 1919) (.n 13) 4) (by decide +kernel)
-  have w5 := h.atomAt 1965 (.load (.n 1920) (.n 13) 5) (by decide +kernel)
-  have a1967 := h.atomAt 1966 (.add (.n 1921) (.n 1919) (.n 1920)) (by decide +kernel)
-  have a1968 := h.atomAt 1967 (.mul (.n 1922) (.n 1908) (.n 1921)) (by decide +kernel)
-  have a1969 := h.atomAt 1968 (.add (.n 1923) (.n 1919) (.n 1922)) (by decide +kernel)
-  have w6 := h.atomAt 1969 (.load (.n 1924) (.n 13) 6) (by decide +kernel)
-  have w7 := h.atomAt 1970 (.load (.n 1925) (.n 13) 7) (by decide +kernel)
-  have a1972 := h.atomAt 1971 (.add (.n 1926) (.n 1924) (.n 1925)) (by decide +kernel)
-  have a1973 := h.atomAt 1972 (.mul (.n 1927) (.n 1908) (.n 1926)) (by decide +kernel)
-  have a1974 := h.atomAt 1973 (.add (.n 1928) (.n 1924) (.n 1927)) (by decide +kernel)
-  have w8 := h.atomAt 1974 (.load (.n 1929) (.n 13) 8) (by decide +kernel)
-  have w9 := h.atomAt 1975 (.load (.n 1930) (.n 13) 9) (by decide +kernel)
-  have a1977 := h.atomAt 1976 (.add (.n 1931) (.n 1929) (.n 1930)) (by decide +kernel)
-  have a1978 := h.atomAt 1977 (.mul (.n 1932) (.n 1908) (.n 1931)) (by decide +kernel)
-  have a1979 := h.atomAt 1978 (.add (.n 1933) (.n 1929) (.n 1932)) (by decide +kernel)
-  have w10 := h.atomAt 1979 (.load (.n 1934) (.n 13) 10) (by decide +kernel)
-  have w11 := h.atomAt 1980 (.load (.n 1935) (.n 13) 11) (by decide +kernel)
-  have a1982 := h.atomAt 1981 (.add (.n 1936) (.n 1934) (.n 1935)) (by decide +kernel)
-  have a1983 := h.atomAt 1982 (.mul (.n 1937) (.n 1908) (.n 1936)) (by decide +kernel)
-  have a1984 := h.atomAt 1983 (.add (.n 1938) (.n 1934) (.n 1937)) (by decide +kernel)
-  have w12 := h.atomAt 1984 (.load (.n 1939) (.n 13) 12) (by decide +kernel)
-  have w13 := h.atomAt 1985 (.load (.n 1940) (.n 13) 13) (by decide +kernel)
-  have a1987 := h.atomAt 1986 (.add (.n 1941) (.n 1939) (.n 1940)) (by decide +kernel)
-  have a1988 := h.atomAt 1987 (.mul (.n 1942) (.n 1908) (.n 1941)) (by decide +kernel)
-  have a1989 := h.atomAt 1988 (.add (.n 1943) (.n 1939) (.n 1942)) (by decide +kernel)
-  have w14 := h.atomAt 1989 (.load (.n 1944) (.n 13) 14) (by decide +kernel)
-  have w15 := h.atomAt 1990 (.load (.n 1945) (.n 13) 15) (by decide +kernel)
-  have a1992 := h.atomAt 1991 (.add (.n 1946) (.n 1944) (.n 1945)) (by decide +kernel)
-  have a1993 := h.atomAt 1992 (.mul (.n 1947) (.n 1908) (.n 1946)) (by decide +kernel)
-  have a1994 := h.atomAt 1993 (.add (.n 1948) (.n 1944) (.n 1947)) (by decide +kernel)
-  have l1 := h.atomAt 1994 (.load (.n 1949) (.n 19) 1) (by decide +kernel)
-  have a1996 := h.atomAt 1995 (.add (.n 1950) (.n 1913) (.n 1918)) (by decide +kernel)
-  have a1997 := h.atomAt 1996 (.mul (.n 1951) (.n 1949) (.n 1950)) (by decide +kernel)
-  have a1998 := h.atomAt 1997 (.add (.n 1952) (.n 1913) (.n 1951)) (by decide +kernel)
-  have a1999 := h.atomAt 1998 (.add (.n 1953) (.n 1923) (.n 1928)) (by decide +kernel)
-  have a2000 := h.atomAt 1999 (.mul (.n 1954) (.n 1949) (.n 1953)) (by decide +kernel)
-  have a2001 := h.atomAt 2000 (.add (.n 1955) (.n 1923) (.n 1954)) (by decide +kernel)
-  have a2002 := h.atomAt 2001 (.add (.n 1956) (.n 1933) (.n 1938)) (by decide +kernel)
-  have a2003 := h.atomAt 2002 (.mul (.n 1957) (.n 1949) (.n 1956)) (by decide +kernel)
-  have a2004 := h.atomAt 2003 (.add (.n 1958) (.n 1933) (.n 1957)) (by decide +kernel)
-  have a2005 := h.atomAt 2004 (.add (.n 1959) (.n 1943) (.n 1948)) (by decide +kernel)
-  have a2006 := h.atomAt 2005 (.mul (.n 1960) (.n 1949) (.n 1959)) (by decide +kernel)
-  have a2007 := h.atomAt 2006 (.add (.n 1961) (.n 1943) (.n 1960)) (by decide +kernel)
-  have l2 := h.atomAt 2007 (.load (.n 1962) (.n 19) 2) (by decide +kernel)
-  have a2009 := h.atomAt 2008 (.add (.n 1963) (.n 1952) (.n 1955)) (by decide +kernel)
-  have a2010 := h.atomAt 2009 (.mul (.n 1964) (.n 1962) (.n 1963)) (by decide +kernel)
-  have a2011 := h.atomAt 2010 (.add (.n 1965) (.n 1952) (.n 1964)) (by decide +kernel)
-  have a2012 := h.atomAt 2011 (.add (.n 1966) (.n 1958) (.n 1961)) (by decide +kernel)
-  have a2013 := h.atomAt 2012 (.mul (.n 1967) (.n 1962) (.n 1966)) (by decide +kernel)
-  have a2014 := h.atomAt 2013 (.add (.n 1968) (.n 1958) (.n 1967)) (by decide +kernel)
-  have l3 := h.atomAt 2014 (.load (.n 1969) (.n 19) 3) (by decide +kernel)
-  have a2016 := h.atomAt 2015 (.add (.n 1970) (.n 1965) (.n 1968)) (by decide +kernel)
-  have a2017 := h.atomAt 2016 (.mul (.n 1971) (.n 1969) (.n 1970)) (by decide +kernel)
-  have a2018 := h.atomAt 2017 (.add (.n 1972) (.n 1965) (.n 1971)) (by decide +kernel)
-  have a2019 := h.atomAt 2018 (.mul (.n 1973) (.n 1972) (.n 1905)) (by decide +kernel)
-  have a2020 := h.atomAt 2019 (.assertEq (.n 1898) (.n 1973)) (by decide +kernel)
+  have l0 := h.atomAt 1953 (.load (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "bc_point")) 0) (by decide +kernel)
+  have w0 := h.atomAt 1954 (.load (.n (val% «verify_tables» "w_lo@1")) (.n (val% «verify_tables» "fp_w")) 0) (by decide +kernel)
+  have w1 := h.atomAt 1955 (.load (.n (val% «verify_tables» "s47.u0.s1#0")) (.n (val% «verify_tables» "fp_w")) 1) (by decide +kernel)
+  have a1957 := h.atomAt 1956 (.add (.n (val% «verify_tables» "s47.u0.s1#1")) (.n (val% «verify_tables» "w_lo@1")) (.n (val% «verify_tables» "s47.u0.s1#0"))) (by decide +kernel)
+  have a1958 := h.atomAt 1957 (.mul (.n (val% «verify_tables» "s47.u0.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s47.u0.s1#1"))) (by decide +kernel)
+  have a1959 := h.atomAt 1958 (.add (.n (val% «verify_tables» "w_fold[0]")) (.n (val% «verify_tables» "w_lo@1")) (.n (val% «verify_tables» "s47.u0.s1#2"))) (by decide +kernel)
+  have w2 := h.atomAt 1959 (.load (.n (val% «verify_tables» "w_lo@2")) (.n (val% «verify_tables» "fp_w")) 2) (by decide +kernel)
+  have w3 := h.atomAt 1960 (.load (.n (val% «verify_tables» "s47.u1.s1#0")) (.n (val% «verify_tables» "fp_w")) 3) (by decide +kernel)
+  have a1962 := h.atomAt 1961 (.add (.n (val% «verify_tables» "s47.u1.s1#1")) (.n (val% «verify_tables» "w_lo@2")) (.n (val% «verify_tables» "s47.u1.s1#0"))) (by decide +kernel)
+  have a1963 := h.atomAt 1962 (.mul (.n (val% «verify_tables» "s47.u1.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s47.u1.s1#1"))) (by decide +kernel)
+  have a1964 := h.atomAt 1963 (.add (.n (val% «verify_tables» "w_fold[1]")) (.n (val% «verify_tables» "w_lo@2")) (.n (val% «verify_tables» "s47.u1.s1#2"))) (by decide +kernel)
+  have w4 := h.atomAt 1964 (.load (.n (val% «verify_tables» "w_lo@3")) (.n (val% «verify_tables» "fp_w")) 4) (by decide +kernel)
+  have w5 := h.atomAt 1965 (.load (.n (val% «verify_tables» "s47.u2.s1#0")) (.n (val% «verify_tables» "fp_w")) 5) (by decide +kernel)
+  have a1967 := h.atomAt 1966 (.add (.n (val% «verify_tables» "s47.u2.s1#1")) (.n (val% «verify_tables» "w_lo@3")) (.n (val% «verify_tables» "s47.u2.s1#0"))) (by decide +kernel)
+  have a1968 := h.atomAt 1967 (.mul (.n (val% «verify_tables» "s47.u2.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s47.u2.s1#1"))) (by decide +kernel)
+  have a1969 := h.atomAt 1968 (.add (.n (val% «verify_tables» "w_fold[2]")) (.n (val% «verify_tables» "w_lo@3")) (.n (val% «verify_tables» "s47.u2.s1#2"))) (by decide +kernel)
+  have w6 := h.atomAt 1969 (.load (.n (val% «verify_tables» "w_lo@4")) (.n (val% «verify_tables» "fp_w")) 6) (by decide +kernel)
+  have w7 := h.atomAt 1970 (.load (.n (val% «verify_tables» "s47.u3.s1#0")) (.n (val% «verify_tables» "fp_w")) 7) (by decide +kernel)
+  have a1972 := h.atomAt 1971 (.add (.n (val% «verify_tables» "s47.u3.s1#1")) (.n (val% «verify_tables» "w_lo@4")) (.n (val% «verify_tables» "s47.u3.s1#0"))) (by decide +kernel)
+  have a1973 := h.atomAt 1972 (.mul (.n (val% «verify_tables» "s47.u3.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s47.u3.s1#1"))) (by decide +kernel)
+  have a1974 := h.atomAt 1973 (.add (.n (val% «verify_tables» "w_fold[3]")) (.n (val% «verify_tables» "w_lo@4")) (.n (val% «verify_tables» "s47.u3.s1#2"))) (by decide +kernel)
+  have w8 := h.atomAt 1974 (.load (.n (val% «verify_tables» "w_lo@5")) (.n (val% «verify_tables» "fp_w")) 8) (by decide +kernel)
+  have w9 := h.atomAt 1975 (.load (.n (val% «verify_tables» "s47.u4.s1#0")) (.n (val% «verify_tables» "fp_w")) 9) (by decide +kernel)
+  have a1977 := h.atomAt 1976 (.add (.n (val% «verify_tables» "s47.u4.s1#1")) (.n (val% «verify_tables» "w_lo@5")) (.n (val% «verify_tables» "s47.u4.s1#0"))) (by decide +kernel)
+  have a1978 := h.atomAt 1977 (.mul (.n (val% «verify_tables» "s47.u4.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s47.u4.s1#1"))) (by decide +kernel)
+  have a1979 := h.atomAt 1978 (.add (.n (val% «verify_tables» "w_fold[4]")) (.n (val% «verify_tables» "w_lo@5")) (.n (val% «verify_tables» "s47.u4.s1#2"))) (by decide +kernel)
+  have w10 := h.atomAt 1979 (.load (.n (val% «verify_tables» "w_lo@6")) (.n (val% «verify_tables» "fp_w")) 10) (by decide +kernel)
+  have w11 := h.atomAt 1980 (.load (.n (val% «verify_tables» "s47.u5.s1#0")) (.n (val% «verify_tables» "fp_w")) 11) (by decide +kernel)
+  have a1982 := h.atomAt 1981 (.add (.n (val% «verify_tables» "s47.u5.s1#1")) (.n (val% «verify_tables» "w_lo@6")) (.n (val% «verify_tables» "s47.u5.s1#0"))) (by decide +kernel)
+  have a1983 := h.atomAt 1982 (.mul (.n (val% «verify_tables» "s47.u5.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s47.u5.s1#1"))) (by decide +kernel)
+  have a1984 := h.atomAt 1983 (.add (.n (val% «verify_tables» "w_fold[5]")) (.n (val% «verify_tables» "w_lo@6")) (.n (val% «verify_tables» "s47.u5.s1#2"))) (by decide +kernel)
+  have w12 := h.atomAt 1984 (.load (.n (val% «verify_tables» "w_lo@7")) (.n (val% «verify_tables» "fp_w")) 12) (by decide +kernel)
+  have w13 := h.atomAt 1985 (.load (.n (val% «verify_tables» "s47.u6.s1#0")) (.n (val% «verify_tables» "fp_w")) 13) (by decide +kernel)
+  have a1987 := h.atomAt 1986 (.add (.n (val% «verify_tables» "s47.u6.s1#1")) (.n (val% «verify_tables» "w_lo@7")) (.n (val% «verify_tables» "s47.u6.s1#0"))) (by decide +kernel)
+  have a1988 := h.atomAt 1987 (.mul (.n (val% «verify_tables» "s47.u6.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s47.u6.s1#1"))) (by decide +kernel)
+  have a1989 := h.atomAt 1988 (.add (.n (val% «verify_tables» "w_fold[6]")) (.n (val% «verify_tables» "w_lo@7")) (.n (val% «verify_tables» "s47.u6.s1#2"))) (by decide +kernel)
+  have w14 := h.atomAt 1989 (.load (.n (val% «verify_tables» "w_lo@8")) (.n (val% «verify_tables» "fp_w")) 14) (by decide +kernel)
+  have w15 := h.atomAt 1990 (.load (.n (val% «verify_tables» "s47.u7.s1#0")) (.n (val% «verify_tables» "fp_w")) 15) (by decide +kernel)
+  have a1992 := h.atomAt 1991 (.add (.n (val% «verify_tables» "s47.u7.s1#1")) (.n (val% «verify_tables» "w_lo@8")) (.n (val% «verify_tables» "s47.u7.s1#0"))) (by decide +kernel)
+  have a1993 := h.atomAt 1992 (.mul (.n (val% «verify_tables» "s47.u7.s1#2")) (.n (val% «verify_tables» "r0")) (.n (val% «verify_tables» "s47.u7.s1#1"))) (by decide +kernel)
+  have a1994 := h.atomAt 1993 (.add (.n (val% «verify_tables» "w_fold[7]")) (.n (val% «verify_tables» "w_lo@8")) (.n (val% «verify_tables» "s47.u7.s1#2"))) (by decide +kernel)
+  have l1 := h.atomAt 1994 (.load (.n (val% «verify_tables» "rj@1")) (.n (val% «verify_tables» "bc_point")) 1) (by decide +kernel)
+  have a1996 := h.atomAt 1995 (.add (.n (val% «verify_tables» "s48.u1.s1.u0.s2#0")) (.n (val% «verify_tables» "w_fold[0]")) (.n (val% «verify_tables» "w_fold[1]"))) (by decide +kernel)
+  have a1997 := h.atomAt 1996 (.mul (.n (val% «verify_tables» "s48.u1.s1.u0.s2#1")) (.n (val% «verify_tables» "rj@1")) (.n (val% «verify_tables» "s48.u1.s1.u0.s2#0"))) (by decide +kernel)
+  have a1998 := h.atomAt 1997 (.add (.n (val% «verify_tables» "w_fold[8]")) (.n (val% «verify_tables» "w_fold[0]")) (.n (val% «verify_tables» "s48.u1.s1.u0.s2#1"))) (by decide +kernel)
+  have a1999 := h.atomAt 1998 (.add (.n (val% «verify_tables» "s48.u1.s1.u1.s2#0")) (.n (val% «verify_tables» "w_fold[2]")) (.n (val% «verify_tables» "w_fold[3]"))) (by decide +kernel)
+  have a2000 := h.atomAt 1999 (.mul (.n (val% «verify_tables» "s48.u1.s1.u1.s2#1")) (.n (val% «verify_tables» "rj@1")) (.n (val% «verify_tables» "s48.u1.s1.u1.s2#0"))) (by decide +kernel)
+  have a2001 := h.atomAt 2000 (.add (.n (val% «verify_tables» "w_fold[9]")) (.n (val% «verify_tables» "w_fold[2]")) (.n (val% «verify_tables» "s48.u1.s1.u1.s2#1"))) (by decide +kernel)
+  have a2002 := h.atomAt 2001 (.add (.n (val% «verify_tables» "s48.u1.s1.u2.s2#0")) (.n (val% «verify_tables» "w_fold[4]")) (.n (val% «verify_tables» "w_fold[5]"))) (by decide +kernel)
+  have a2003 := h.atomAt 2002 (.mul (.n (val% «verify_tables» "s48.u1.s1.u2.s2#1")) (.n (val% «verify_tables» "rj@1")) (.n (val% «verify_tables» "s48.u1.s1.u2.s2#0"))) (by decide +kernel)
+  have a2004 := h.atomAt 2003 (.add (.n (val% «verify_tables» "w_fold[10]")) (.n (val% «verify_tables» "w_fold[4]")) (.n (val% «verify_tables» "s48.u1.s1.u2.s2#1"))) (by decide +kernel)
+  have a2005 := h.atomAt 2004 (.add (.n (val% «verify_tables» "s48.u1.s1.u3.s2#0")) (.n (val% «verify_tables» "w_fold[6]")) (.n (val% «verify_tables» "w_fold[7]"))) (by decide +kernel)
+  have a2006 := h.atomAt 2005 (.mul (.n (val% «verify_tables» "s48.u1.s1.u3.s2#1")) (.n (val% «verify_tables» "rj@1")) (.n (val% «verify_tables» "s48.u1.s1.u3.s2#0"))) (by decide +kernel)
+  have a2007 := h.atomAt 2006 (.add (.n (val% «verify_tables» "w_fold[11]")) (.n (val% «verify_tables» "w_fold[6]")) (.n (val% «verify_tables» "s48.u1.s1.u3.s2#1"))) (by decide +kernel)
+  have l2 := h.atomAt 2007 (.load (.n (val% «verify_tables» "rj@2")) (.n (val% «verify_tables» "bc_point")) 2) (by decide +kernel)
+  have a2009 := h.atomAt 2008 (.add (.n (val% «verify_tables» "s48.u2.s1.u0.s2#0")) (.n (val% «verify_tables» "w_fold[8]")) (.n (val% «verify_tables» "w_fold[9]"))) (by decide +kernel)
+  have a2010 := h.atomAt 2009 (.mul (.n (val% «verify_tables» "s48.u2.s1.u0.s2#1")) (.n (val% «verify_tables» "rj@2")) (.n (val% «verify_tables» "s48.u2.s1.u0.s2#0"))) (by decide +kernel)
+  have a2011 := h.atomAt 2010 (.add (.n (val% «verify_tables» "w_fold[12]")) (.n (val% «verify_tables» "w_fold[8]")) (.n (val% «verify_tables» "s48.u2.s1.u0.s2#1"))) (by decide +kernel)
+  have a2012 := h.atomAt 2011 (.add (.n (val% «verify_tables» "s48.u2.s1.u1.s2#0")) (.n (val% «verify_tables» "w_fold[10]")) (.n (val% «verify_tables» "w_fold[11]"))) (by decide +kernel)
+  have a2013 := h.atomAt 2012 (.mul (.n (val% «verify_tables» "s48.u2.s1.u1.s2#1")) (.n (val% «verify_tables» "rj@2")) (.n (val% «verify_tables» "s48.u2.s1.u1.s2#0"))) (by decide +kernel)
+  have a2014 := h.atomAt 2013 (.add (.n (val% «verify_tables» "w_fold[13]")) (.n (val% «verify_tables» "w_fold[10]")) (.n (val% «verify_tables» "s48.u2.s1.u1.s2#1"))) (by decide +kernel)
+  have l3 := h.atomAt 2014 (.load (.n (val% «verify_tables» "rj@3")) (.n (val% «verify_tables» "bc_point")) 3) (by decide +kernel)
+  have a2016 := h.atomAt 2015 (.add (.n (val% «verify_tables» "s48.u3.s1.u0.s2#0")) (.n (val% «verify_tables» "w_fold[12]")) (.n (val% «verify_tables» "w_fold[13]"))) (by decide +kernel)
+  have a2017 := h.atomAt 2016 (.mul (.n (val% «verify_tables» "s48.u3.s1.u0.s2#1")) (.n (val% «verify_tables» "rj@3")) (.n (val% «verify_tables» "s48.u3.s1.u0.s2#0"))) (by decide +kernel)
+  have a2018 := h.atomAt 2017 (.add (.n (val% «verify_tables» "w_fold[14]")) (.n (val% «verify_tables» "w_fold[12]")) (.n (val% «verify_tables» "s48.u3.s1.u0.s2#1"))) (by decide +kernel)
+  have a2019 := h.atomAt 2018 (.mul (.n (val% «verify_tables» "s49#0")) (.n (val% «verify_tables» "w_fold[14]")) (.n (val% «verify_tables» "x@8"))) (by decide +kernel)
+  have a2020 := h.atomAt 2019 (.assertEq (.n (val% «verify_tables» "bc_claim@4")) (.n (val% «verify_tables» "s49#0"))) (by decide +kernel)
   simp only [Atom.Holds] at s0 a1932 a1933 a1934 a1935 a1936 a1937 a1938 a1939 s1 s2 s3
   simp only [Atom.Holds] at c0 c1 c2 c3 c4 lv cv l0 w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12
   simp only [Atom.Holds] at w13 w14 w15 l1 l2 l3 a2020
@@ -205,33 +207,33 @@ theorem vt_bc {rd : Reader} {σ : Val} (h : VtH rd σ) {weights : List E}
   obtain ⟨q2, u2, v2, r2⟩ := vt_split8 (by rfl) e2
   obtain ⟨q3, u3, v3, r3⟩ := vt_split8 (by rfl) e3
   -- the sponge before the share, and after its first round
-  set F0 : Fs := (⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], []⟩ : Fs).absorbAll
-    [σ (.n 813), σ (.n 817), σ (.n 1303), σ (.n 1317)] dsObserve with hF0
-  have hF : ((F0.absorb (σ (.n 1841)) dsObserve).absorb (σ (.n 1845)) dsObserve).absorbAll
-      [σ (.n 1849)] dsObserve = vtFreshFs σ := by
+  set F0 : Fs := (⟨[σ (.n (val% «verify_tables» "fs0")), σ (.n (val% «verify_tables» "fs1")), σ (.n (val% «verify_tables» "fs2")), σ (.n (val% «verify_tables» "fs3")), σ (.n (val% «verify_tables» "fs4"))], []⟩ : Fs).absorbAll
+    [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2")), σ (.n (val% «verify_tables» "x@3")), σ (.n (val% «verify_tables» "x@4"))] dsObserve with hF0
+  have hF : ((F0.absorb (σ (.n (val% «verify_tables» "x@5"))) dsObserve).absorb (σ (.n (val% «verify_tables» "x@6"))) dsObserve).absorbAll
+      [σ (.n (val% «verify_tables» "x@7"))] dsObserve = vtFreshFs σ := by
     simp only [hF0, vtFreshFs, vtFreshWords, Fs.absorbAll, List.foldl_cons, List.foldl_nil]
   have hF2 : (vtFreshFs σ).squeeze.2 =
-      ⟨[σ (.n 1863), σ (.n 1864), σ (.n 1865), σ (.n 1866), σ (.n 1867)], []⟩ := by
+      ⟨[σ (.n (val% «verify_tables» "nxt[8]@2")), σ (.n (val% «verify_tables» "nxt[9]@2")), σ (.n (val% «verify_tables» "nxt[10]@2")), σ (.n (val% «verify_tables» "nxt[11]@2")), σ (.n (val% «verify_tables» "nxt[12]@2"))], []⟩ := by
     rw [show (vtFreshFs σ).squeeze.2 = ⟨(vtFreshFs σ).squeeze.2.cap, []⟩ from rfl, ← hcap0]
     rfl
   -- the claims
-  have hw128 : σ (.n 1874) = gen ^ 7 := by
+  have hw128 : σ (.n (val% «verify_tables» "bfs0@1~8")) = gen ^ 7 := by
     rw [a1938, show (128 : ℕ) = 2 ^ 7 by norm_num, tb_word_two_pow (by norm_num)]
-  have hc1 : σ (.n 1873) = σ (.n 1845) + σ (.n 1855) * (σ (.n 1841) + (1 + σ (.n 1855)) *
-      σ (.n 1849)) := by
+  have hc1 : σ (.n (val% «verify_tables» "bc_claim@1")) = σ (.n (val% «verify_tables» "x@6")) + σ (.n (val% «verify_tables» "nxt[0]@2")) * (σ (.n (val% «verify_tables» "x@5")) + (1 + σ (.n (val% «verify_tables» "nxt[0]@2"))) *
+      σ (.n (val% «verify_tables» "x@7"))) := by
     rw [a1937, a1936, a1935, a1934, a1933, a1932, tb_word_one, d43, d47, d51]
-  have hfin : σ (.n 1898) = dot (eqKernel [σ (.n 1855), σ (.n 1883), σ (.n 1891), σ (.n 1899)])
-      weights * σ (.n 1905) := by
+  have hfin : σ (.n (val% «verify_tables» "bc_claim@4")) = dot (eqKernel [σ (.n (val% «verify_tables» "nxt[0]@2")), σ (.n (val% «verify_tables» "bc_r@1")), σ (.n (val% «verify_tables» "bc_r@2")), σ (.n (val% «verify_tables» "bc_r@3"))])
+      weights * σ (.n (val% «verify_tables» "x@8")) := by
     have hl0 := tb_loadHolds_unique l0 s0
     have hl1 := tb_loadHolds_unique l1 s1
     have hl2 := tb_loadHolds_unique l2 s2
     have hl3 := tb_loadHolds_unique l3 s3
-    have hw : ∀ i (hi : i < 16), LoadHolds rd (σ (.n 13)) i (weights.getD i 0) := fun i hi ↦ by
+    have hw : ∀ i (hi : i < 16), LoadHolds rd (σ (.n (val% «verify_tables» "fp_w"))) i (weights.getD i 0) := fun i hi ↦ by
       rw [List.getD_eq_getElem _ _ (by omega)]; exact hW i (by omega)
-    have ew := fun {i : ℕ} {v : E} (hi : i < 16) (hv : LoadHolds rd (σ (.n 13)) i v) ↦
+    have ew := fun {i : ℕ} {v : E} (hi : i < 16) (hv : LoadHolds rd (σ (.n (val% «verify_tables» "fp_w"))) i v) ↦
       tb_loadHolds_unique hv (hw i hi)
-    have e1972 : σ (.n 1972) = multilinearEval ((List.range 16).map fun i ↦ weights.getD i 0)
-        [σ (.n 1855), σ (.n 1883), σ (.n 1891), σ (.n 1899)] := by
+    have e1972 : σ (.n (val% «verify_tables» "w_fold[14]")) = multilinearEval ((List.range 16).map fun i ↦ weights.getD i 0)
+        [σ (.n (val% «verify_tables» "nxt[0]@2")), σ (.n (val% «verify_tables» "bc_r@1")), σ (.n (val% «verify_tables» "bc_r@2")), σ (.n (val% «verify_tables» "bc_r@3"))] := by
       rw [a2018, a2017, a2016, a2011, a2010, a2009, a2014, a2013, a2012, a1998, a1997, a1996,
         a2001, a2000, a1999, a2004, a2003, a2002, a2007, a2006, a2005, a1959, a1958, a1957,
         a1964, a1963, a1962, a1969, a1968, a1967, a1974, a1973, a1972, a1979, a1978, a1977,
@@ -249,39 +251,39 @@ theorem vt_bc {rd : Reader} {σ : Val} (h : VtH rd σ) {weights : List E}
   -- the run
   have sq : ∀ s : Fs, s.squeeze.2 = ⟨s.squeeze.2.cap, []⟩ := fun s ↦ rfl
   have hR4 := runsTo_sumcheck_nil
-    (⟨[σ (.n 1892), σ (.n 1893), σ (.n 1894), σ (.n 1895), σ (.n 1896)], []⟩ : Fs)
-    (σ (.n 1898)) 3
-  have hR3 := vt_tail_cons [σ (.n 1884), σ (.n 1885), σ (.n 1886), σ (.n 1887), σ (.n 1888)]
-    x4 x5 (σ (.n 1890)) (rest := []) (ys := []) (pt := []) (fin := σ (.n 1898))
-    (s2 := ⟨[σ (.n 1892), σ (.n 1893), σ (.n 1894), σ (.n 1895), σ (.n 1896)], []⟩)
+    (⟨[σ (.n (val% «verify_tables» "bfs0@3")), σ (.n (val% «verify_tables» "bfs1@3")), σ (.n (val% «verify_tables» "bfs2@3")), σ (.n (val% «verify_tables» "bfs3@3")), σ (.n (val% «verify_tables» "bfs4@3"))], []⟩ : Fs)
+    (σ (.n (val% «verify_tables» "bc_claim@4"))) 3
+  have hR3 := vt_tail_cons [σ (.n (val% «verify_tables» "bfs0@2")), σ (.n (val% «verify_tables» "bfs1@2")), σ (.n (val% «verify_tables» "bfs2@2")), σ (.n (val% «verify_tables» "bfs3@2")), σ (.n (val% «verify_tables» "bfs4@2"))]
+    x4 x5 (σ (.n (val% «verify_tables» "bc_claim@3"))) (rest := []) (ys := []) (pt := []) (fin := σ (.n (val% «verify_tables» "bc_claim@4")))
+    (s2 := ⟨[σ (.n (val% «verify_tables» "bfs0@3")), σ (.n (val% «verify_tables» "bfs1@3")), σ (.n (val% «verify_tables» "bfs2@3")), σ (.n (val% «verify_tables» "bfs3@3")), σ (.n (val% «verify_tables» "bfs4@3"))], []⟩)
     (by rw [← v3, sq, ← q3]; exact hR4)
-  have hR2 := vt_tail_cons [σ (.n 1876), σ (.n 1877), σ (.n 1878), σ (.n 1879), σ (.n 1880)]
-    x2 x3 (σ (.n 1882)) (by rw [← v2, sq, ← q2]; exact hR3)
-  have hR1 := vt_tail_cons [σ (.n 1863), σ (.n 1864), σ (.n 1865), σ (.n 1866), σ (.n 1867)]
-    x0 x1 (σ (.n 1873)) (by rw [← v1, sq, ← q1]; exact hR2)
+  have hR2 := vt_tail_cons [σ (.n (val% «verify_tables» "bfs0@1")), σ (.n (val% «verify_tables» "bfs1@1")), σ (.n (val% «verify_tables» "bfs2@1")), σ (.n (val% «verify_tables» "bfs3@1")), σ (.n (val% «verify_tables» "bfs4@1"))]
+    x2 x3 (σ (.n (val% «verify_tables» "bc_claim@2"))) (by rw [← v2, sq, ← q2]; exact hR3)
+  have hR1 := vt_tail_cons [σ (.n (val% «verify_tables» "nxt[8]@2")), σ (.n (val% «verify_tables» "nxt[9]@2")), σ (.n (val% «verify_tables» "nxt[10]@2")), σ (.n (val% «verify_tables» "nxt[11]@2")), σ (.n (val% «verify_tables» "nxt[12]@2"))]
+    x0 x1 (σ (.n (val% «verify_tables» "bc_claim@1"))) (by rw [← v1, sq, ← q1]; exact hR2)
   rw [← r1, ← r2, ← r3] at hR1
   have hR0 := runsTo_sumcheck_cons
-    (runsTo_roundPolyNone (F0.absorb (σ (.n 1841)) dsObserve) (σ (.n 1841)) (σ (.n 1845))
-      [σ (.n 1849)] 3 rfl (by decide))
+    (runsTo_roundPolyNone (F0.absorb (σ (.n (val% «verify_tables» "x@5"))) dsObserve) (σ (.n (val% «verify_tables» "x@5"))) (σ (.n (val% «verify_tables» "x@6")))
+      [σ (.n (val% «verify_tables» "x@7"))] 3 rfl (by decide))
     (by rw [hF, hF2, ← tail_eval, ← hr0, ← hc1]; exact hR1)
   rw [hF, ← hr0] at hR0
-  have hS := runsTo_readE F0 (σ (.n 1841))
+  have hS := runsTo_readE F0 (σ (.n (val% «verify_tables» "x@5")))
   have hv := runsTo_readE
-    (⟨[σ (.n 1892), σ (.n 1893), σ (.n 1894), σ (.n 1895), σ (.n 1896)], []⟩ : Fs) (σ (.n 1905))
+    (⟨[σ (.n (val% «verify_tables» "bfs0@3")), σ (.n (val% «verify_tables» "bfs1@3")), σ (.n (val% «verify_tables» "bfs2@3")), σ (.n (val% «verify_tables» "bfs3@3")), σ (.n (val% «verify_tables» "bfs4@3"))], []⟩ : Fs) (σ (.n (val% «verify_tables» "x@8")))
   have hq := tb_runsTo_require hfin
-    ((⟨[σ (.n 1892), σ (.n 1893), σ (.n 1894), σ (.n 1895), σ (.n 1896)], []⟩ : Fs).absorb
-      (σ (.n 1905)) dsObserve)
+    ((⟨[σ (.n (val% «verify_tables» "bfs0@3")), σ (.n (val% «verify_tables» "bfs1@3")), σ (.n (val% «verify_tables» "bfs2@3")), σ (.n (val% «verify_tables» "bfs3@3")), σ (.n (val% «verify_tables» "bfs4@3"))], []⟩ : Fs).absorb
+      (σ (.n (val% «verify_tables» "x@8"))) dsObserve)
   -- the reads
-  have hp1 : σ (.n 1875) = σ (.n 5) * gen ^ 7 := by rw [a1939, hw128]
-  have hrd : TbReadsAt rd (σ (.n 5) * gen ^ 7) ([x0, x1] ++ ([x2, x3] ++ ([x4, x5] ++
-      [σ (.n 1905)]))) := by
-    have r01 : TbReadsAt rd (σ (.n 5) * gen ^ 7) [x0, x1] := fun k hk ↦ by
+  have hp1 : σ (.n (val% «verify_tables» "bfs0@1~9")) = σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7 := by rw [a1939, hw128]
+  have hrd : TbReadsAt rd (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7) ([x0, x1] ++ ([x2, x3] ++ ([x4, x5] ++
+      [σ (.n (val% «verify_tables» "x@8"))]))) := by
+    have r01 : TbReadsAt rd (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7) [x0, x1] := fun k hk ↦ by
       have := hx01 k hk; rwa [hp1] at this
-    have r23 : TbReadsAt rd (σ (.n 5) * gen ^ 7 * gen ^ 2) [x2, x3] := fun k hk ↦ by
+    have r23 : TbReadsAt rd (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7 * gen ^ 2) [x2, x3] := fun k hk ↦ by
       have := hx23 k hk; rwa [u1, hp1] at this
-    have r45 : TbReadsAt rd (σ (.n 5) * gen ^ 7 * gen ^ 2 * gen ^ 2) [x4, x5] := fun k hk ↦ by
+    have r45 : TbReadsAt rd (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7 * gen ^ 2 * gen ^ 2) [x4, x5] := fun k hk ↦ by
       have := hx45 k hk; rwa [u2, u1, hp1] at this
-    have rv : TbReadsAt rd (σ (.n 5) * gen ^ 7 * gen ^ 2 * gen ^ 2 * gen ^ 2) [σ (.n 1905)] := by
+    have rv : TbReadsAt rd (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7 * gen ^ 2 * gen ^ 2 * gen ^ 2) [σ (.n (val% «verify_tables» "x@8"))] := by
       rw [tbReadsAt_singleton, ← hp1, ← u1, ← u2, ← u3]; exact lv
     exact tbReadsAt_append.mpr ⟨r01, tbReadsAt_append.mpr ⟨r23, tbReadsAt_append.mpr ⟨r45, rv⟩⟩⟩
   refine ⟨[x0, x1, x2, x3, x4, x5], rfl, by simpa using hrd, ?_, ?_, ?_, cv, ?_⟩
@@ -294,9 +296,9 @@ theorem vt_bc {rd : Reader} {σ : Val} (h : VtH rd σ) {weights : List E}
     · exact s3
   · rw [u3, u2, u1, hp1, mul_assoc, mul_assoc, ← pow_add, ← pow_add]
   · rw [c0, c1, c2, c3, c4]
-  · rw [show [σ (.n 1841), σ (.n 1845), σ (.n 1849)] ++ [x0, x1, x2, x3, x4, x5] ++ [σ (.n 1905)] =
-        [σ (.n 1841)] ++ (([σ (.n 1845), σ (.n 1849)] ++ ([x0, x1] ++ ([x2, x3] ++ ([x4, x5] ++
-          [])))) ++ ([σ (.n 1905)] ++ ([] ++ []))) by simp]
+  · rw [show [σ (.n (val% «verify_tables» "x@5")), σ (.n (val% «verify_tables» "x@6")), σ (.n (val% «verify_tables» "x@7"))] ++ [x0, x1, x2, x3, x4, x5] ++ [σ (.n (val% «verify_tables» "x@8"))] =
+        [σ (.n (val% «verify_tables» "x@5"))] ++ (([σ (.n (val% «verify_tables» "x@6")), σ (.n (val% «verify_tables» "x@7"))] ++ ([x0, x1] ++ ([x2, x3] ++ ([x4, x5] ++
+          [])))) ++ ([σ (.n (val% «verify_tables» "x@8"))] ++ ([] ++ []))) by simp]
     unfold bytecodeShare
     exact hS.bind (hR0.bind (hv.bind (hq.bind (runsTo_ret _ _))))
 

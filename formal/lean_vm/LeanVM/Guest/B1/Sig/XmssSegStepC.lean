@@ -11,6 +11,8 @@ module
 public import LeanVM.Guest.B1.Sig.XmssStep
 public import LeanVM.Guest.B1.Sig.XmssSegT
 public import LeanVM.Guest.B1.Sig.CompleteKit
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop2»
 
 /-!
 # The chain step in `main_loop2`, complete
@@ -54,7 +56,7 @@ theorem sW_power (layer b : Nat) {j : Nat} (hj : j ≤ 12) : (sW layer b).power 
 
 theorem sTag_nbB : ∀ i < 58, nbB 100 (sTag i) = true := by decide
 
-theorem sTag_nb (i : Nat) : NBv 100 (sTag (min i 57)) :=
+theorem sTag_nb (i : Nat) : NBv (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#6[2]") (sTag (min i 57)) :=
   nbB_ok (sTag_nbB _ (by have := Nat.min_le_right i 57; omega))
 
 /-- The values leanXMSS's chain step reads in layer `layer` from base `b` that its proofs need: the
@@ -91,7 +93,7 @@ theorem sWc_shape {layer b : Nat} (hB : 103 ≤ sA layer b) : StepShape (sWc lay
     · exact Or.inr (Or.inl ⟨_, by simp [sLxPad]; omega, rfl⟩)
     · exact Or.inr (Or.inr (Or.inr hx))
 
-theorem sPower_nb (j : Nat) : NBv 88 (sPower (min j 12)) :=
+theorem sPower_nb (j : Nat) : NBv (val% «main_loop2» "rho@1") (sPower (min j 12)) :=
   ⟨75 + min j 12, by have := Nat.min_le_right j 12; omega, rfl⟩
 
 theorem sGood_congr {layer b : Nat} (hB : 103 ≤ sA layer b) {σ σ' : Val}

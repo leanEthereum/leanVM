@@ -313,3 +313,125 @@ LeanVM/Guest/B1/Whir/Open.lean@osHead_roots open_stacked__L
 LeanVM/Guest/B1/Whir/Open.lean@open_generic open_stacked__L
 # Merkle
 LeanVM/Guest/B1/Merkle/CapPops.lean level_queries__L
+# B1/Tables: verify_tables' chunks (Vt/Base: core% «verify_tables» c0 ..), its body read by position and flattened (vtPre, vtAt, vtEvL), the generated slice templates checked against the chunks (Vt/*T, VtC/FData, FWin, ZBase, ZSetup, ZTail), the call statements of its body (VtC/ARelIn); its loop's, shared_selector_tables' and padding_weight's bodies
+tie vtChunk verify_tables
+tie vtPre verify_tables
+tie vtAt verify_tables
+tie vtEvL verify_tables
+tie vtAirRest verify_tables
+tie vtAirT verify_tables
+tie vtBoffT verify_tables
+tie vtEvRest verify_tables
+tie vtEvalT verify_tables
+tie vtFwSelT verify_tables
+tie vtIdxcT verify_tables
+tie vtPad5T verify_tables
+tie vtPadT verify_tables
+tie vtRank0T verify_tables
+tie vtRankT verify_tables
+tie vtSelT verify_tables
+tie zBlk verify_tables
+tie zRest verify_tables
+tie zTRest verify_tables
+tie zTail verify_tables
+tie epcCall verify_tables
+tie imCall verify_tables
+tie loopCall verify_tables
+tie otrCall verify_tables
+tie porCall verify_tables
+tie pwCall verify_tables
+tie shCall verify_tables
+tie l10Body verify_tables_loop0
+tie lpPreC shared_selector_tables_loop0
+tie ssDisp shared_selector_tables
+tie pwBody0 padding_weight__L0
+tie pwBody1 padding_weight__L1
+tie pwBody padding_weight__L
+# B1/Tables files about verify_tables' body and its valuations throughout (each header read), for the declarations that name no template
+LeanVM/Guest/B1/Tables/VtC/BBc.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/BcShare.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/BMain.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/ZcRun.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/FFinal.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/AGlue.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Fresh.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/AsmTotals.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/ZcCert.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Pi.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/VerifyTables.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/AsmFinal.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Fw.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/AsmClaims.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/AMain.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/FComplete.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/ZSetup.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/AsmForms.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Shared.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/ABound.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/ZTail.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/ARelIn.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/AWeight.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/BAll.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Base.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/SAll.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/FWin.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Sort.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/SShared.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/Calls.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/Pads.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/SelFw.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/SSortAll.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/BBase.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/SP2.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/SPads.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/SLoads.lean verify_tables
+LeanVM/Guest/B1/Tables/Vt/SelsAll.lean verify_tables
+LeanVM/Guest/B1/Tables/VtC/FData.lean verify_tables
+LeanVM/Guest/B1/Tables/Kids/Loop10.lean verify_tables_loop0
+LeanVM/Guest/B1/Tables/Kids/Shared.lean shared_selector_tables
+LeanVM/Guest/B1/Tables/Kids/BlockSelTab.lean block_selector_tab__L
+# B1/Sig: the xmss segment's pops (each declaration about main_loop2's segment)
+LeanVM/Guest/B1/Sig/XmssSegPops.lean main_loop2
+# files about one function's own numbering throughout (each header read), for the declarations that name no template; left out: canonically renumbered (Gkr Root, VbgOdd, GlTail, GlCTail, GlCLoop), mixed (GlCIn, GlCInLs, Holds, PackComplete*, PackLoop, CopyLoopIn), generic (Codeword*, Xmss{T,Layer,Core,Step}: verify_lean_xmss' own template)
+LeanVM/Guest/B1/Gkr/VbgLoads.lean verify_bus_gkr
+LeanVM/Guest/B1/Gkr/VbgAt.lean verify_bus_gkr
+LeanVM/Guest/B1/KeccakGkr/VkCJ.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkCU.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkChain.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkCDK.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkCR.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkCB.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkCT.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkCC.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkStep.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkCQ.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkCL.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/VkCCK/Steps.lean verify_keccak
+LeanVM/Guest/B1/KeccakGkr/LayerT.lean keccak_layer__L
+LeanVM/Guest/B1/KeccakGkr/LayerSecA.lean keccak_layer__L
+LeanVM/Guest/B1/KeccakGkr/LayerCF.lean keccak_layer__L
+LeanVM/Guest/B1/KeccakGkr/LayerCLift1.lean keccak_layer__L
+LeanVM/Guest/B1/KeccakGkr/LayerCSpec.lean keccak_layer__L
+LeanVM/Guest/B1/KeccakGkr/LayerCA.lean keccak_layer__L
+LeanVM/Guest/B1/KeccakGkr/LayerCG1.lean keccak_layer__L
+LeanVM/Guest/B1/KeccakGkr/LayerCE.lean keccak_layer__L
+LeanVM/Guest/B1/KeccakGkr/PlainCompleteIn.lean keccak_plain_rounds__L
+LeanVM/Guest/B1/Sig/SphincsSoundDigest.lean verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SphincsFieldsComplete.lean verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SphincsDigestT.lean verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SphincsT.lean verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SphincsDigestComplete.lean verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SphincsBottomComplete.lean verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SphincsCompleteConv.lean verify_sig_lean_sphincs
+LeanVM/Guest/B1/Sig/SpWotsComplete.lean sp_wots
+LeanVM/Guest/B1/Sig/SpWotsSound.lean sp_wots
+LeanVM/Guest/B1/Sig/SpWotsT.lean sp_wots
+LeanVM/Guest/B1/Sig/SpWotsLayout.lean sp_wots
+LeanVM/Guest/B1/Sig/SpWotsArms.lean sp_wots
+LeanVM/Guest/B1/Sig/SpWotsStepComplete.lean sp_wots
+LeanVM/Guest/B1/Sig/XmssSegDigestC.lean main_loop2
+LeanVM/Guest/B1/Sig/XmssSegSound.lean main_loop2
+LeanVM/Guest/B1/Sig/XmssSegPathC.lean main_loop2
+LeanVM/Guest/B1/Sig/XmssSegStepC.lean main_loop2
+LeanVM/Guest/B1/Sig/XmssSegCwC.lean main_loop2
+LeanVM/Guest/B1/Sig/XmssSegArms.lean main_loop2

@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Tables.Vt.Base
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # `verify_tables`' calls
@@ -57,8 +59,8 @@ def vtCallKindB : Stmt → Bool
       (f != "shared_selector_tables" || (a.length == 6 && r.isEmpty))
   | .dispatch _ fs' _ _ => fs'.all fun g ↦ g != name% «verify_tables_loop0» &&
       g != name% «shared_selector_tables_loop0» && g != "shared_selector_tables"
-  | .callIf c f a => f == name% «verify_tables_loop0» && c == .n 2635 &&
-      a == [.n 2636, .n 2544, .n 2626, .n 18, .n 2633, .n 2629]
+  | .callIf c f a => f == name% «verify_tables_loop0» && c == .n (val% «verify_tables» "s72#1") &&
+      a == [.n (val% «verify_tables» "s72#2"), .n (val% «verify_tables» "g_zc_n"), .n (val% «verify_tables» "zc_rounds"), .n (val% «verify_tables» "tabs"), .n (val% «verify_tables» "zc_rk"), .n (val% «verify_tables» "zc_cprod")]
   | _ => true
 
 theorem vt_callKinds : vtPre.all vtCallKindB = true := by decide +kernel

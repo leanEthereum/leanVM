@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.KeccakGkr.VkT
 public import LeanVM.Guest.B1.KeccakGkr.CopyLoop
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # `y` in the exponent
@@ -47,19 +49,19 @@ theorem word_17 : word 17 0 = gen ^ 2 ^ 2 + 1 := by
 
 /-- **`y` in the exponent**: `step_g = g^⌊y/8⌋` (value `34`) and
 `rem_g = g^(y % 8)` (value `48`), `y = τ - 3`. -/
-theorem vkBits_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ (.n 6) = gen ^ τ)
+theorem vkBits_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ (.n (val% «verify_keccak» "tau_g")) = gen ^ τ)
     {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ vkBitsT next kret) :
-    σ (.n 19) = gen ^ (τ - 4) ∧ σ (.n 21) = gen ^ (τ - 3) ∧
-      σ (.n 35) = gen ^ ((τ - 3) / krStep) ∧ σ (.n 49) = gen ^ ((τ - 3) % krStep) ∧ next := by
+    σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4) ∧ σ (.n (val% «verify_keccak» "s5#1")) = gen ^ (τ - 3) ∧
+      σ (.n (val% «verify_keccak» "step_g@2")) = gen ^ ((τ - 3) / krStep) ∧ σ (.n (val% «verify_keccak» "rem_g@3")) = gen ^ ((τ - 3) % krStep) ∧ next := by
   simp only [vkBitsT, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
   obtain ⟨e17, e18, e19, e20, -, b0, b1, b2, b3, b4, e26, e27, e28, e29, e30, e31, e32, e33, e34,
     e35, e36, e37, e38, e39, e40, e41, e42, e43, e44, e45, e46, e47, e48, e49, e50, e51, e52,
     e53, e54, heq, hn⟩ := h
-  have h18 : σ (.n 19) = gen ^ (τ - 4) := by
+  have h18 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4) := by
     rw [e18, htg, e17, show τ = τ - 4 + 4 by omega, pow_add, mul_assoc, mul_comm (gen ^ 4),
       word_ginv4_mul, mul_one]
     congr 1
-  have h20 : σ (.n 21) = gen ^ (τ - 3) := by
+  have h20 : σ (.n (val% «verify_keccak» "s5#1")) = gen ^ (τ - 3) := by
     rw [e20, h18, e19, word_gen, ← pow_succ]; congr 1; omega
   -- the step chain: bits 3 and 4
   set c : ℕ → E := fun k ↦ σ (.n (25 + k)) with hc
@@ -68,7 +70,7 @@ theorem vkBits_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ (
     interval_cases k
     · exact b3.symm
     · exact b4.symm
-  have h34 : σ (.n 35) = ∏ j ∈ Finset.range 2, (1 + c j * (gen ^ 2 ^ j + 1)) := by
+  have h34 : σ (.n (val% «verify_keccak» "step_g@2")) = ∏ j ∈ Finset.range 2, (1 + c j * (gen ^ 2 ^ j + 1)) := by
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul, hc]
     rw [e34, e33, e32, e31, e30, e29, e28, e27, e26]
     simp only [word_one, Nat.reduceAdd, word_3, word_5]
@@ -83,7 +85,7 @@ theorem vkBits_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ (
     · exact b0.symm
     · exact b1.symm
     · exact b2.symm
-  have h48 : σ (.n 49) = ∏ j ∈ Finset.range 3, (1 + r j * (gen ^ 2 ^ j + 1)) := by
+  have h48 : σ (.n (val% «verify_keccak» "rem_g@3")) = ∏ j ∈ Finset.range 3, (1 + r j * (gen ^ 2 ^ j + 1)) := by
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul, hr]
     rw [e48, e47, e46, e45, e44, e43, e42, e41, e40, e39, e38, e37, e36, e35]
     simp only [word_one, Nat.reduceAdd, word_3, word_5, word_17]
@@ -124,7 +126,7 @@ theorem sqZeroT_holds {capb o : ℕ} {cap : List E} (hcap : (cap5 capb).map σ =
   rw [sqZeroT] at h
   simp only [keccakA, Stmt.HoldsList, Stmt.Holds] at h
   obtain ⟨hk, hn⟩ := h
-  have hin : ([V.n 70, .n 70, .n 70, .n 70, .n 70, .n 71, .n 72, .n 73] ++ cap5 capb).map σ =
+  have hin : ([V.n (val% «verify_keccak» "s19.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (val% «verify_keccak» "s19.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (val% «verify_keccak» "s19.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (val% «verify_keccak» "s19.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (val% «verify_keccak» "s19.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (val% «verify_keccak» "s19.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[2]"), .n (val% «verify_keccak» "s19.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[3]"), .n (val% «verify_keccak» "s19.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[4]")] ++ cap5 capb).map σ =
       rateOf (⟨cap, []⟩ : Fs).pend ++ (⟨cap, []⟩ : Fs).cap := by
     rw [List.map_append, hcap, rateOf_nil]
     simp [hz 0 (by omega), hz 1 (by omega), hz 2 (by omega), hz 3 (by omega)]
@@ -137,11 +139,11 @@ theorem sqZeroT_holds {capb o : ℕ} {cap : List E} (hcap : (cap5 capb).map σ =
 theorem vkSqueezesT_holds {cap0 : List E} (hcap : (cap5 13).map σ = cap0)
     (hz : ∀ k < 4, σ (.n (70 + k)) = 0) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ vkSqueezesT next kret) :
-    (⟨cap0, []⟩ : Fs).squeezeN 1 = ([σ (.n 74)], ⟨(cap5 82).map σ, []⟩) ∧
+    (⟨cap0, []⟩ : Fs).squeezeN 1 = ([σ (.n (val% «verify_keccak» "nxt[0]@1"))], ⟨(cap5 82).map σ, []⟩) ∧
       (⟨(cap5 82).map σ, []⟩ : Fs).squeezeN 5 =
         ((List.range 5).map (fun i ↦ σ (.n (88 + 13 * i))), ⟨(cap5 148).map σ, []⟩) ∧
-      LoadHolds rd (σ (.n 68)) 0 (σ (.n 74)) ∧
-      (∀ i < 5, LoadHolds rd (σ (.n 87)) i (σ (.n (88 + 13 * i)))) ∧ next := by
+      LoadHolds rd (σ (.n (val% «verify_keccak» "segment"))) 0 (σ (.n (val% «verify_keccak» "nxt[0]@1"))) ∧
+      (∀ i < 5, LoadHolds rd (σ (.n (val% «verify_keccak» "r_lane"))) i (σ (.n (88 + 13 * i)))) ∧ next := by
   rw [vkSqueezesT, holdsList_append, holdsList_append, holdsList_range_flatten _ _
     (fun _ ↦ rfl)] at h
   obtain ⟨q0c, q0p, h⟩ := sqZeroT_holds hcap hz h
@@ -151,7 +153,7 @@ theorem vkSqueezesT_holds {cap0 : List E} (hcap : (cap5 13).map σ = cap0)
         (⟨(cap5 (if i = 0 then 82 else 83 + 13 * i)).map σ, []⟩ : Fs).squeeze.1 ∧
       (cap5 (96 + 13 * i)).map σ =
         (⟨(cap5 (if i = 0 then 82 else 83 + 13 * i)).map σ, []⟩ : Fs).squeeze.2.cap ∧
-      LoadHolds rd (σ (.n 87)) i (σ (.n (88 + 13 * i))) := by
+      LoadHolds rd (σ (.n (val% «verify_keccak» "r_lane"))) i (σ (.n (88 + 13 * i))) := by
     intro i hi
     have hb := hall i hi
     rw [holdsList_append] at hb
@@ -182,22 +184,22 @@ theorem vkSqueezesT_holds {cap0 : List E} (hcap : (cap5 13).map σ = cap0)
     rw [h0, h1, h2, h3, h4, ← s0.1, ← s1.1, ← s2.1, ← s3.1, ← s4.1]
 
 /-- **`verify_keccak`'s head**. -/
-theorem vkHeadT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ (.n 6) = gen ^ τ)
+theorem vkHeadT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ (.n (val% «verify_keccak» "tau_g")) = gen ^ τ)
     {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ vkHeadT next kret) :
-    σ (.n 19) = gen ^ (τ - 4) ∧ σ (.n 21) = gen ^ (τ - 3) ∧
-    σ (.n 35) = gen ^ ((τ - 3) / krStep) ∧ σ (.n 49) = gen ^ ((τ - 3) % krStep) ∧
-    (∀ i < 4, LoadHolds rd (σ (.n 7)) i (σ (.n (56 + i))) ∧
-      LoadHolds rd (σ (.n 9)) i (σ (.n (56 + i)))) ∧
-    (1 + σ (.n 19) ≠ 0 → C name% «verify_keccak_loop0» [1, σ (.n 19), σ (.n 62),
-        σ (.n 7) * gen ^ 4] []) ∧
-    σ (.n 68) = σ (.n 62) * σ (.n 19) ∧
-    (⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], []⟩ : Fs).squeezeN 1 =
-      ([σ (.n 74)], ⟨(cap5 82).map σ, []⟩) ∧
+    σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4) ∧ σ (.n (val% «verify_keccak» "s5#1")) = gen ^ (τ - 3) ∧
+    σ (.n (val% «verify_keccak» "step_g@2")) = gen ^ ((τ - 3) / krStep) ∧ σ (.n (val% «verify_keccak» "rem_g@3")) = gen ^ ((τ - 3) % krStep) ∧
+    (∀ i < 4, LoadHolds rd (σ (.n (val% «verify_keccak» "chi"))) i (σ (.n (56 + i))) ∧
+      LoadHolds rd (σ (.n (val% «verify_keccak» "z_vals"))) i (σ (.n (56 + i)))) ∧
+    (1 + σ (.n (val% «verify_keccak» "pack_g")) ≠ 0 → C name% «verify_keccak_loop0» [1, σ (.n (val% «verify_keccak» "pack_g")), σ (.n (val% «verify_keccak» "point")),
+        σ (.n (val% «verify_keccak» "chi")) * gen ^ 4] []) ∧
+    σ (.n (val% «verify_keccak» "segment")) = σ (.n (val% «verify_keccak» "point")) * σ (.n (val% «verify_keccak» "pack_g")) ∧
+    (⟨[σ (.n (val% «verify_keccak» "fs0@1")), σ (.n (val% «verify_keccak» "fs1@1")), σ (.n (val% «verify_keccak» "fs2@1")), σ (.n (val% «verify_keccak» "fs3@1")), σ (.n (val% «verify_keccak» "fs4@1"))], []⟩ : Fs).squeezeN 1 =
+      ([σ (.n (val% «verify_keccak» "nxt[0]@1"))], ⟨(cap5 82).map σ, []⟩) ∧
     (⟨(cap5 82).map σ, []⟩ : Fs).squeezeN 5 =
       ((List.range 5).map (fun i ↦ σ (.n (88 + 13 * i))), ⟨(cap5 148).map σ, []⟩) ∧
-    LoadHolds rd (σ (.n 68)) 0 (σ (.n 74)) ∧
-    (∀ i < 5, LoadHolds rd (σ (.n 87)) i (σ (.n (88 + 13 * i)))) ∧
-    (LoadHolds rd (σ (.n 5)) 0 (σ (.n 153)) ∧ FsPackOk σ (.n 153) (153 + 1) dsObserve) ∧
+    LoadHolds rd (σ (.n (val% «verify_keccak» "segment"))) 0 (σ (.n (val% «verify_keccak» "nxt[0]@1"))) ∧
+    (∀ i < 5, LoadHolds rd (σ (.n (val% «verify_keccak» "r_lane"))) i (σ (.n (88 + 13 * i)))) ∧
+    (LoadHolds rd (σ (.n (val% «verify_keccak» "cursor@1"))) 0 (σ (.n (val% «verify_keccak» "x@1"))) ∧ FsPackOk σ (.n (val% «verify_keccak» "x@1")) (153 + 1) dsObserve) ∧
     next := by
   rw [vkHeadT, holdsList_append, holdsList_append, holdsList_append, holdsList_append,
     holdsList_append, holdsList_map_atoms] at h
@@ -214,7 +216,7 @@ theorem vkHeadT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ 
     · rw [z70, word_zero]
     · rw [z71, word_zero]
     · rw [z72, word_zero]
-  have hcap : (cap5 13).map σ = [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] := by
+  have hcap : (cap5 13).map σ = [σ (.n (val% «verify_keccak» "fs0@1")), σ (.n (val% «verify_keccak» "fs1@1")), σ (.n (val% «verify_keccak» "fs2@1")), σ (.n (val% «verify_keccak» "fs3@1")), σ (.n (val% «verify_keccak» "fs4@1"))] := by
     simp only [cap5, List.map_cons, List.map_nil]
     rw [hcp 0 (by omega), hcp 1 (by omega), hcp 2 (by omega), hcp 3 (by omega), hcp 4 (by omega)]
   obtain ⟨q1, q5, l86, lr, h⟩ := vkSqueezesT_holds hcap hz h

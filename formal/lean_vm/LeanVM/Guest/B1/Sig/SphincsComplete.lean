@@ -11,6 +11,8 @@ module
 public import LeanVM.Guest.B1.Sig.SphincsTopComplete
 public import LeanVM.Guest.B1.Sig.SphincsData
 public import LeanVM.Guest.B1.Sig.SphincsLoads
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # `verify_sig_lean_sphincs`, complete
@@ -99,8 +101,8 @@ are the table's, and the three calls of `sp_wots` are the honest ones, and the b
 theorem sPre_complete_vals (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : MemOK rd 256)
     {bb : E} (hbb : ByteBits rd bb) (pk : Sphincs.PublicKey) (m : HashSig.Message)
     (sig : Sphincs.Signature) (hv : Sphincs.verifyWithKeccak pk m sig = true) (σ : Val)
-    (h1 : σ (.n 1) = bb)
-    (hat : ClaimAt rd (σ (.n 0)) (cellOf128 pk.publicSeed) (cellOf128 pk.root) (msgLo m) (msgHi m)) :
+    (h1 : σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb)
+    (hat : ClaimAt rd (σ (.n (val% «verify_sig_lean_sphincs» "signer"))) (cellOf128 pk.publicSeed) (cellOf128 pk.root) (msgLo m) (msgHi m)) :
     Completes C rd 2 sLayerT.2.1 sPre σ (fun σ' => σ' sLayerT.2.2 = cellOf128 pk.root ∧
       σ' sRoot = cellOf128 pk.root ∧ TablePtrs bb σ' sPre ∧
       (∀ k0 k1 k2, SplicePops rd σ' sPre [k0, k1, k2] (prePops pk m sig k0 k1 k2)) ∧ SpCallsAt pk m sig σ' ∧
@@ -109,21 +111,21 @@ theorem sPre_complete_vals (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm
   rw [sForsKeyOf_eq] at h0
   have hT8 := sLayerT_le
   unfold sPre
-  refine Completes.append (m := 5249) (by norm_num) (by omega) sBottom_nb
+  refine Completes.append (m := (val% «verify_sig_lean_sphincs» "ctr[0]@1")) (by norm_num) (by omega) sBottom_nb
     (sBottom_complete hB hm hbb pk m sig σ h1 hat) (fun σA heA ⟨hA, hAP, hAS⟩ => ?_)
-  have hA1 : σA (.n 1) = bb := by rw [heA.apply (Or.inl (by norm_num))]; exact h1
+  have hA1 : σA (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb := by rw [heA.apply (Or.inl (by norm_num))]; exact h1
   -- the bottom layer
   obtain ⟨hr0, hL0⟩ := layer_stage_vals hB hC hm hbb (l := 0) (by norm_num) h0
     σA hA1 hA hA.2.2.2.2.2.1 hA.2.2.2.2.2.2.1 hA.2.2.2.2.2.2.2
   set R0 := layerRootCell pk (digestIdx pk m sig) sig ⟨0, by decide⟩ (forsKeyCell pk m sig)
     with hR0d
-  refine Completes.append (m := 5398) (by norm_num) (by omega) sLayerB_nb hL0
+  refine Completes.append (m := (val% «verify_sig_lean_sphincs» "a0_m~0")) (by norm_num) (by omega) sLayerB_nb hL0
     (fun σB heB ⟨hB0, hBp, hBs, hBc⟩ => ?_)
-  have tB : ∀ k < 5249, σB (.n k) = σA (.n k) := fun k hk => heB.apply (Or.inl hk)
+  have tB : ∀ k < (val% «verify_sig_lean_sphincs» "ctr[0]@1"), σB (.n k) = σA (.n k) := fun k hk => heB.apply (Or.inl hk)
   -- the middle layer's address
   refine Completes.seq sMidAddrs_seq (by omega) (fun σC heC hAtC => ?_)
-  have tC : ∀ k < 5398, σC (.n k) = σB (.n k) := fun k hk => heC.apply (Or.inl hk)
-  have tCA : ∀ k < 5249, σC (.n k) = σA (.n k) := fun k hk => by rw [tC k (by omega), tB k hk]
+  have tC : ∀ k < (val% «verify_sig_lean_sphincs» "a0_m~0"), σC (.n k) = σB (.n k) := fun k hk => heC.apply (Or.inl hk)
+  have tCA : ∀ k < (val% «verify_sig_lean_sphincs» "ctr[0]@1"), σC (.n k) = σA (.n k) := fun k hk => by rw [tC k (by omega), tB k hk]
   have hAC := hA.congr tCA
   obtain ⟨ha0C, ha1C⟩ := sMidAddrs_vals hAC.2.2.2.1.2.2.2.1 hAC.2.2.2.1.2.2.2.2 hAtC
   have hsC : σC (sSignedOf 1) = R0 := by
@@ -135,14 +137,14 @@ theorem sPre_complete_vals (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm
   obtain ⟨hr1, hL1⟩ := layer_stage_vals hB hC hm hbb (l := 1) (by norm_num) h1'
     σC (by rw [tCA 1 (by norm_num)]; exact hA1) hAC ha0C ha1C hsC
   set R1 := layerRootCell pk (digestIdx pk m sig) sig ⟨1, by decide⟩ R0 with hR1d
-  refine Completes.append (m := 5556) (by norm_num) (by omega) sLayerM_nb hL1
+  refine Completes.append (m := (val% «verify_sig_lean_sphincs» "key_t~0")) (by norm_num) (by omega) sLayerM_nb hL1
     (fun σD heD ⟨hD1, hDp, hDs, hDc⟩ => ?_)
-  have tD : ∀ k < 5407, σD (.n k) = σC (.n k) := fun k hk => heD.apply (Or.inl hk)
+  have tD : ∀ k < (val% «verify_sig_lean_sphincs» "ctr[0]@2"), σD (.n k) = σC (.n k) := fun k hk => heD.apply (Or.inl hk)
   -- the top layer's address
   refine Completes.seq sTopAddrs_seq (by omega) (fun σE heE hAtE => ?_)
-  have tE : ∀ k < 5556, σE (.n k) = σD (.n k) := fun k hk => heE.apply (Or.inl hk)
-  have tEC : ∀ k < 5407, σE (.n k) = σC (.n k) := fun k hk => by rw [tE k (by omega), tD k hk]
-  have tEA : ∀ k < 5249, σE (.n k) = σA (.n k) := fun k hk => by rw [tEC k (by omega), tCA k hk]
+  have tE : ∀ k < (val% «verify_sig_lean_sphincs» "key_t~0"), σE (.n k) = σD (.n k) := fun k hk => heE.apply (Or.inl hk)
+  have tEC : ∀ k < (val% «verify_sig_lean_sphincs» "ctr[0]@2"), σE (.n k) = σC (.n k) := fun k hk => by rw [tE k (by omega), tD k hk]
+  have tEA : ∀ k < (val% «verify_sig_lean_sphincs» "ctr[0]@1"), σE (.n k) = σA (.n k) := fun k hk => by rw [tEC k (by omega), tCA k hk]
   have hAE := hA.congr tEA
   obtain ⟨ha0E, ha1E⟩ := sTopAddrs_vals hAE.2.2.2.1.2.2.2.1 hAE.2.2.2.1.2.2.2.2 hAtE
   have hsE : σE (sSignedOf 2) = R1 := by
@@ -156,13 +158,13 @@ theorem sPre_complete_vals (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm
   have hR2 : layerRootCell pk (digestIdx pk m sig) sig ⟨2, by decide⟩ R1 = cellOf128 pk.root := by
     rw [hr2, cellOf128_cellVal]
   obtain ⟨σF, heF, ⟨hF2, hFp, hFs, hFc⟩, hhF⟩ := hL2
-  have tF : ∀ k < 5561, σF (.n k) = σE (.n k) := fun k hk => heF.apply (Or.inl hk)
-  have tFA : ∀ k < 5249, σF (.n k) = σA (.n k) := fun k hk => by rw [tF k (by omega), tEA k hk]
-  have tFB : ∀ k < 5398, σF (.n k) = σB (.n k) := fun k hk => by
+  have tF : ∀ k < (val% «verify_sig_lean_sphincs» "ctr[0]@3"), σF (.n k) = σE (.n k) := fun k hk => heF.apply (Or.inl hk)
+  have tFA : ∀ k < (val% «verify_sig_lean_sphincs» "ctr[0]@1"), σF (.n k) = σA (.n k) := fun k hk => by rw [tF k (by omega), tEA k hk]
+  have tFB : ∀ k < (val% «verify_sig_lean_sphincs» "a0_m~0"), σF (.n k) = σB (.n k) := fun k hk => by
     rw [tF k (by omega), tE k (by omega), tD k (by omega), tC k hk]
-  have tFD : ∀ k < 5556, σF (.n k) = σD (.n k) := fun k hk => by rw [tF k (by omega), tE k hk]
+  have tFD : ∀ k < (val% «verify_sig_lean_sphincs» "key_t~0"), σF (.n k) = σD (.n k) := fun k hk => by rw [tF k (by omega), tE k hk]
   obtain ⟨-, -, hrA, -, hqA, -⟩ := hA
-  refine ⟨σF, heF, ⟨hF2.trans hR2, by rw [show sRoot = .n 3 from rfl, tFA 3 (by norm_num)]; exact hrA,
+  refine ⟨σF, heF, ⟨hF2.trans hR2, by rw [show sRoot = .n (val% «verify_sig_lean_sphincs» "pk_root") from rfl, tFA 3 (by norm_num)]; exact hrA,
     ?_, fun k0 k1 k2 => ?_, ⟨hBc.congr (by decide) tFB, hDc.congr (by decide) tFD, hFc⟩,
     hAS.congr fun k hk => tFA k (by omega)⟩, hhF⟩
   swap
@@ -183,8 +185,8 @@ theorem sPre_complete_vals (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm
 theorem sPre_complete (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : MemOK rd 256)
     {bb : E} (hbb : ByteBits rd bb) (pk : Sphincs.PublicKey) (m : HashSig.Message)
     (sig : Sphincs.Signature) (hv : Sphincs.verifyWithKeccak pk m sig = true) (σ : Val)
-    (h1 : σ (.n 1) = bb)
-    (hat : ClaimAt rd (σ (.n 0)) (cellOf128 pk.publicSeed) (cellOf128 pk.root) (msgLo m) (msgHi m)) :
+    (h1 : σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb)
+    (hat : ClaimAt rd (σ (.n (val% «verify_sig_lean_sphincs» "signer"))) (cellOf128 pk.publicSeed) (cellOf128 pk.root) (msgLo m) (msgHi m)) :
     Completes C rd 2 sLayerT.2.1 sPre σ (fun σ' => σ' sLayerT.2.2 = cellOf128 pk.root ∧
       σ' sRoot = cellOf128 pk.root ∧ TablePtrs bb σ' sPre ∧
       ∀ k0 k1 k2, SplicePops rd σ' sPre [k0, k1, k2] (prePops pk m sig k0 k1 k2)) :=
@@ -196,15 +198,15 @@ blocks' completeness. -/
 theorem verify_sig_lean_sphincs_complete_loads_of (hB : SphincsBlocksComplete) :
     verify_sig_lean_sphincs_complete_loads_Spec := by
   intro C rd p bb pk m sig hC hm hbb hat hv
-  let σ0 : Val := Function.update (Function.update (fun _ => (0 : E)) (.n 0) p) (.n 1) bb
-  have e0 : σ0 (.n 0) = p := by
+  let σ0 : Val := Function.update (Function.update (fun _ => (0 : E)) (.n (val% «verify_sig_lean_sphincs» "signer")) p) (.n (val% «verify_sig_lean_sphincs» "byte_bits")) bb
+  have e0 : σ0 (.n (val% «verify_sig_lean_sphincs» "signer")) = p := by
     simp only [σ0]
     rw [Function.update_of_ne (by simp), Function.update_self]
-  have e1 : σ0 (.n 1) = bb := Function.update_self ..
+  have e1 : σ0 (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb := Function.update_self ..
   obtain ⟨σf, hef, ⟨hroot, hrt, hptrs, -⟩, hhf⟩ :=
     sPre_complete hB hC hm hbb pk m sig hv σ0 e1 (by rw [e0]; exact hat)
-  have f0 : σf (.n 0) = p := by rw [hef.apply (Or.inl (by norm_num))]; exact e0
-  have f1 : σf (.n 1) = bb := by rw [hef.apply (Or.inl (by norm_num))]; exact e1
+  have f0 : σf (.n (val% «verify_sig_lean_sphincs» "signer")) = p := by rw [hef.apply (Or.inl (by norm_num))]; exact e0
+  have f1 : σf (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb := by rw [hef.apply (Or.inl (by norm_num))]; exact e1
   refine ⟨σf, f0, f1, ?_, ?_⟩
   · rw [sBody_eq, sBody_splitC, holdsList_append]
     refine hhf _ _ ⟨?_, rfl⟩

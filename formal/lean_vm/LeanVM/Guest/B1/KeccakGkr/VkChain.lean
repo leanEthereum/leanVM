@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkStep
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 namespace LeanVM.Guest.B1.VerifySub
 
@@ -52,22 +54,22 @@ theorem stepEnd_11 : stepEnd 11 876 = 916 := by decide +kernel
 
 /-- **The twelve steps**: each layer reads the claim at `claims·g^(22 s)` and writes
 the next one `KC_SIZE = 22` words on. -/
-theorem vkStepsT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ (.n 19) = gen ^ (τ - 4))
-    (h33 : σ (.n 35) = gen ^ ((τ - 3) / krStep)) (h47 : σ (.n 49) = gen ^ ((τ - 3) % krStep))
+theorem vkStepsT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4))
+    (h33 : σ (.n (val% «verify_keccak» "step_g@2")) = gen ^ ((τ - 3) / krStep)) (h47 : σ (.n (val% «verify_keccak» "rem_g@3")) = gen ^ ((τ - 3) % krStep))
     {c : KeccakClaim} {L0 : E}
-    (hcr : ClaimRec rd ((1 : ℕ) = 1) (σ (.n 156)) c (τ - 3))
-    (hL0 : ∀ v, LoadHolds rd (σ (.n 229)) 30 v → v = L0)
+    (hcr : ClaimRec rd ((1 : ℕ) = 1) (σ (.n (val% «verify_keccak» "claims"))) c (τ - 3))
+    (hL0 : ∀ v, LoadHolds rd (σ (.n (val% «verify_keccak» "lane_tree"))) 30 v → v = L0)
     (hw0 : ∀ z < 64, c.weights.getD z 0 = L0 * gen ^ z)
-    (hpk : FsPackOk σ (.n 153) (153 + 1) dsObserve)
-    (hK : keccak_layer_Spec rd) (htabs : WinTabs rd (σ (.n 11)))
+    (hpk : FsPackOk σ (.n (val% «verify_keccak» "x@1")) (153 + 1) dsObserve)
+    (hK : keccak_layer_Spec rd) (htabs : WinTabs rd (σ (.n (val% «verify_keccak» "tabs"))))
     {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ vkStepsT next kret) :
-    ∃ (xs : List E) (c' : KeccakClaim), ReadsAt rd (σ (.n 5) * gen) xs ∧
+    ∃ (xs : List E) (c' : KeccakClaim), ReadsAt rd (σ (.n (val% «verify_keccak» "cursor@1")) * gen) xs ∧
       RunsTo (keccakLayers τ (List.range keccakDepth) c)
-        ⟨[σ (.n 148), σ (.n 149), σ (.n 150), σ (.n 151), σ (.n 152)], [(σ (.n 153), dsObserve)]⟩
-        xs c' ⟨[σ (.n 910), σ (.n 911), σ (.n 912), σ (.n 913), σ (.n 914)], []⟩ ∧
-      ClaimRec rd ((0 : ℕ) = 1) (σ (.n 156) * gen ^ (22 * 12)) c' (τ - 3) ∧
-      σ (.n 915) = σ (.n 5) * gen * gen ^ xs.length ∧ next := by
+        ⟨[σ (.n (val% «verify_keccak» "nxt[8]@6")), σ (.n (val% «verify_keccak» "nxt[9]@6")), σ (.n (val% «verify_keccak» "nxt[10]@6")), σ (.n (val% «verify_keccak» "nxt[11]@6")), σ (.n (val% «verify_keccak» "nxt[12]@6"))], [(σ (.n (val% «verify_keccak» "x@1")), dsObserve)]⟩
+        xs c' ⟨[σ (.n (val% «verify_keccak» "fs0@13")), σ (.n (val% «verify_keccak» "fs1@13")), σ (.n (val% «verify_keccak» "fs2@13")), σ (.n (val% «verify_keccak» "fs3@13")), σ (.n (val% «verify_keccak» "fs4@13"))], []⟩ ∧
+      ClaimRec rd ((0 : ℕ) = 1) (σ (.n (val% «verify_keccak» "claims")) * gen ^ (22 * 12)) c' (τ - 3) ∧
+      σ (.n (val% «verify_keccak» "cursor@13")) = σ (.n (val% «verify_keccak» "cursor@1")) * gen * gen ^ xs.length ∧ next := by
   rw [vkStepsT] at h
   simp only [List.append_assoc] at h
   rw [holdsList_append] at h
@@ -156,28 +158,28 @@ theorem vkStepsT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ
     (runsTo_keccakLayers_cons r6 (runsTo_keccakLayers_cons r7 (runsTo_keccakLayers_cons r8
     (runsTo_keccakLayers_cons r9 (runsTo_keccakLayers_cons r10 (runsTo_keccakLayers_cons r11
     (runsTo_keccakLayers_nil τ c12 _))))))))))))
-  have R11 : ReadsAt rd (σ (.n 875)) (xs11 ++ []) := by simpa using hx11
-  have R10 : ReadsAt rd (σ (.n 834)) (xs10 ++ (xs11 ++ [])) :=
+  have R11 : ReadsAt rd (σ (.n (val% «verify_keccak» "cursor@12"))) (xs11 ++ []) := by simpa using hx11
+  have R10 : ReadsAt rd (σ (.n (val% «verify_keccak» "cursor@11"))) (xs10 ++ (xs11 ++ [])) :=
     readsAt_append.2 ⟨hx10, by rw [← u11]; exact R11⟩
-  have R9 : ReadsAt rd (σ (.n 791)) (xs9 ++ (xs10 ++ (xs11 ++ []))) :=
+  have R9 : ReadsAt rd (σ (.n (val% «verify_keccak» "cursor@10"))) (xs9 ++ (xs10 ++ (xs11 ++ []))) :=
     readsAt_append.2 ⟨hx9, by rw [← u10]; exact R10⟩
-  have R8 : ReadsAt rd (σ (.n 753)) (xs8 ++ (xs9 ++ (xs10 ++ (xs11 ++ [])))) :=
+  have R8 : ReadsAt rd (σ (.n (val% «verify_keccak» "cursor@9"))) (xs8 ++ (xs9 ++ (xs10 ++ (xs11 ++ [])))) :=
     readsAt_append.2 ⟨hx8, by rw [← u9]; exact R9⟩
-  have R7 : ReadsAt rd (σ (.n 712)) (xs7 ++ (xs8 ++ (xs9 ++ (xs10 ++ (xs11 ++ []))))) :=
+  have R7 : ReadsAt rd (σ (.n (val% «verify_keccak» "cursor@8"))) (xs7 ++ (xs8 ++ (xs9 ++ (xs10 ++ (xs11 ++ []))))) :=
     readsAt_append.2 ⟨hx7, by rw [← u8]; exact R8⟩
-  have R6 : ReadsAt rd (σ (.n 679)) (xs6 ++ (xs7 ++ (xs8 ++ (xs9 ++ (xs10 ++ (xs11 ++ [])))))) :=
+  have R6 : ReadsAt rd (σ (.n (val% «verify_keccak» "cursor@7"))) (xs6 ++ (xs7 ++ (xs8 ++ (xs9 ++ (xs10 ++ (xs11 ++ [])))))) :=
     readsAt_append.2 ⟨hx6, by rw [← u7]; exact R7⟩
-  have R5 : ReadsAt rd (σ (.n 636)) (xs5 ++ (xs6 ++ (xs7 ++ (xs8 ++ (xs9 ++ (xs10 ++ (xs11 ++ []))))))) :=
+  have R5 : ReadsAt rd (σ (.n (val% «verify_keccak» "cursor@6"))) (xs5 ++ (xs6 ++ (xs7 ++ (xs8 ++ (xs9 ++ (xs10 ++ (xs11 ++ []))))))) :=
     readsAt_append.2 ⟨hx5, by rw [← u6]; exact R6⟩
-  have R4 : ReadsAt rd (σ (.n 595)) (xs4 ++ (xs5 ++ (xs6 ++ (xs7 ++ (xs8 ++ (xs9 ++ (xs10 ++ (xs11 ++ [])))))))) :=
+  have R4 : ReadsAt rd (σ (.n (val% «verify_keccak» "cursor@5"))) (xs4 ++ (xs5 ++ (xs6 ++ (xs7 ++ (xs8 ++ (xs9 ++ (xs10 ++ (xs11 ++ [])))))))) :=
     readsAt_append.2 ⟨hx4, by rw [← u5]; exact R5⟩
-  have R3 : ReadsAt rd (σ (.n 552)) (xs3 ++ (xs4 ++ (xs5 ++ (xs6 ++ (xs7 ++ (xs8 ++ (xs9 ++ (xs10 ++ (xs11 ++ []))))))))) :=
+  have R3 : ReadsAt rd (σ (.n (val% «verify_keccak» "cursor@4"))) (xs3 ++ (xs4 ++ (xs5 ++ (xs6 ++ (xs7 ++ (xs8 ++ (xs9 ++ (xs10 ++ (xs11 ++ []))))))))) :=
     readsAt_append.2 ⟨hx3, by rw [← u4]; exact R4⟩
-  have R2 : ReadsAt rd (σ (.n 518)) (xs2 ++ (xs3 ++ (xs4 ++ (xs5 ++ (xs6 ++ (xs7 ++ (xs8 ++ (xs9 ++ (xs10 ++ (xs11 ++ [])))))))))) :=
+  have R2 : ReadsAt rd (σ (.n (val% «verify_keccak» "cursor@3"))) (xs2 ++ (xs3 ++ (xs4 ++ (xs5 ++ (xs6 ++ (xs7 ++ (xs8 ++ (xs9 ++ (xs10 ++ (xs11 ++ [])))))))))) :=
     readsAt_append.2 ⟨hx2, by rw [← u3]; exact R3⟩
-  have R1 : ReadsAt rd (σ (.n 483)) (xs1 ++ (xs2 ++ (xs3 ++ (xs4 ++ (xs5 ++ (xs6 ++ (xs7 ++ (xs8 ++ (xs9 ++ (xs10 ++ (xs11 ++ []))))))))))) :=
+  have R1 : ReadsAt rd (σ (.n (val% «verify_keccak» "cursor@2"))) (xs1 ++ (xs2 ++ (xs3 ++ (xs4 ++ (xs5 ++ (xs6 ++ (xs7 ++ (xs8 ++ (xs9 ++ (xs10 ++ (xs11 ++ []))))))))))) :=
     readsAt_append.2 ⟨hx1, by rw [← u2]; exact R2⟩
-  have R0 : ReadsAt rd (σ (.n 5) * gen) (xs0 ++ (xs1 ++ (xs2 ++ (xs3 ++ (xs4 ++ (xs5 ++ (xs6 ++ (xs7 ++ (xs8 ++ (xs9 ++ (xs10 ++ (xs11 ++ [])))))))))))) :=
+  have R0 : ReadsAt rd (σ (.n (val% «verify_keccak» "cursor@1")) * gen) (xs0 ++ (xs1 ++ (xs2 ++ (xs3 ++ (xs4 ++ (xs5 ++ (xs6 ++ (xs7 ++ (xs8 ++ (xs9 ++ (xs10 ++ (xs11 ++ [])))))))))))) :=
     readsAt_append.2 ⟨hx0, by rw [← u1]; exact R1⟩
   refine ⟨xs0 ++ (xs1 ++ (xs2 ++ (xs3 ++ (xs4 ++ (xs5 ++ (xs6 ++ (xs7 ++ (xs8 ++ (xs9 ++ (xs10 ++ (xs11 ++ []))))))))))), c12, R0, ?_, hc12, ?_, h⟩
   · rw [k12] at run

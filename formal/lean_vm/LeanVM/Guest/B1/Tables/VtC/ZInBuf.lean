@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Tables.VtC.ZTail
 public import LeanVM.Guest.B1.Tables.VtC.InBuf
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The loads, inside buffers
@@ -33,14 +35,14 @@ theorem vtZ_inBuf {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.lengt
     (bR : (w 2626, 7 * (n + 1)) ∈ bufs) (bC : (w 2629, n + 1) ∈ bufs) :
     LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 2590).take 93) := by
   have g0 := vt_goodL (rd := rd) (w := w) hl 2590
-    [.atom (.hint (.witness "zc_tau_max" (.stack [.n 2544])))] (by decide +kernel)
-  have g1 := vt_goodL (rd := rd) (w := w) hl 2647 [.atom (.hint (.allocDyn (.n 2626) (.n 2625)))]
+    [.atom (.hint (.witness "zc_tau_max" (.stack [.n (val% «verify_tables» "g_zc_n")])))] (by decide +kernel)
+  have g1 := vt_goodL (rd := rd) (w := w) hl 2647 [.atom (.hint (.allocDyn (.n (val% «verify_tables» "zc_rounds")) (.n (val% «verify_tables» "zc_rounds~5"))))]
     (by decide +kernel)
-  have g2 := vt_goodL (rd := rd) (w := w) hl 2650 [.atom (.hint (.allocDyn (.n 2629) (.n 2628)))]
+  have g2 := vt_goodL (rd := rd) (w := w) hl 2650 [.atom (.hint (.allocDyn (.n (val% «verify_tables» "zc_cprod")) (.n (val% «verify_tables» "zc_cprod~1"))))]
     (by decide +kernel)
-  have g3 := vt_goodL (rd := rd) (w := w) hl 2667 [.atom (.mul (.n 2637) (.n 2544) (.n 2544)),
-    .atom (.mul (.n 2638) (.n 2637) (.n 2544)), .atom (.mul (.n 2639) (.n 2638) (.n 2638)),
-    .atom (.mul (.n 2640) (.n 2639) (.n 2544)), .atom (.mul (.n 2641) (.n 2626) (.n 2640))]
+  have g3 := vt_goodL (rd := rd) (w := w) hl 2667 [.atom (.mul (.n (val% «verify_tables» "zc_last~0")) (.n (val% «verify_tables» "g_zc_n")) (.n (val% «verify_tables» "g_zc_n"))),
+    .atom (.mul (.n (val% «verify_tables» "zc_last~1")) (.n (val% «verify_tables» "zc_last~0")) (.n (val% «verify_tables» "g_zc_n"))), .atom (.mul (.n (val% «verify_tables» "zc_last~2")) (.n (val% «verify_tables» "zc_last~1")) (.n (val% «verify_tables» "zc_last~1"))),
+    .atom (.mul (.n (val% «verify_tables» "zc_last~3")) (.n (val% «verify_tables» "zc_last~2")) (.n (val% «verify_tables» "g_zc_n"))), .atom (.mul (.n (val% «verify_tables» "zc_last")) (.n (val% «verify_tables» "zc_rounds")) (.n (val% «verify_tables» "zc_last~3")))]
     (by decide +kernel)
   have e := tbStmtsEqb_sound zBlk_at
   have hlen : zBlk.length = 93 := rfl
@@ -49,15 +51,15 @@ theorem vtZ_inBuf {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.lengt
   simp only [GoodL, GoodS, Good, fixNe, List.forall_mem_cons, Nat.reduceLT, and_true,
     ↓reduceIte] at g0 g1 g2 g3
   obtain ⟨m22, m23, m24, m25, m26⟩ := g3
-  have v2589 : σ (.n 2626) = w 2626 := g1
-  have v2603 : σ (.n 2641) = w 2626 * gen ^ (7 * n) := by
+  have v2589 : σ (.n (val% «verify_tables» "zc_rounds")) = w 2626 := g1
+  have v2603 : σ (.n (val% «verify_tables» "zc_last")) = w 2626 * gen ^ (7 * n) := by
     rw [m26, m25, m24, m23, m22, g0.1, hwn, v2589]; ring
   intro d p off hm
   simp only [zBlk, List.mem_cons, Stmt.atom.injEq, Atom.load.injEq, reduceCtorEq, false_or,
     or_false, List.not_mem_nil] at hm
-  have hR : ∀ k < 7, InBuf σ bufs (.n 2626) k := fun k hk => ⟨_, bR, 0, by rw [v2589]; simp,
+  have hR : ∀ k < 7, InBuf σ bufs (.n (val% «verify_tables» "zc_rounds")) k := fun k hk => ⟨_, bR, 0, by rw [v2589]; simp,
     by omega⟩
-  have hN : ∀ k < 7, InBuf σ bufs (.n 2641) k := fun k hk => ⟨_, bR, 7 * n, v2603, by omega⟩
+  have hN : ∀ k < 7, InBuf σ bufs (.n (val% «verify_tables» "zc_last")) k := fun k hk => ⟨_, bR, 7 * n, v2603, by omega⟩
   rcases hm with ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ |
     ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ |
     ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ |
@@ -70,7 +72,7 @@ theorem vtZ_inBuf {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.lengt
 set_option maxRecDepth 100000 in
 /-- **The loads of `5523 ..< 5554`** read `claim_pool`. -/
 theorem vtZt_inBuf {rd : Reader} {w : ℕ → E} {args : List E} {bufs : List (E × ℕ)}
-    (b15 : (vtσ rd w args (.n 15), 159) ∈ bufs) :
+    (b15 : (vtσ rd w args (.n (val% «verify_tables» "claim_pool")), 159) ∈ bufs) :
     LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 5523).take 31) := by
   have e := tbStmtsEqb_sound zTail_at
   have hlen : zTail.length = 31 := rfl

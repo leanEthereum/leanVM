@@ -162,14 +162,14 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
   set σ : Val := B1.Val.ofArgs (ev rd (fun _ => 0) args (glcL p o)) with hσ
   set S := storesOf 9 (glcL p o) with hSd
   have hG : ∀ s ∈ glcL p o, GoodS rd S (fun _ => 0) σ s := (ev_spec rd _ (glcL p o) args hc9).2.2
-  have par : ∀ i < 9, σ (.n i) = args.getD i 0 := fun i hi =>
+  have par : ∀ i < (valf% «gkr_layer» "x_layer~0"), σ (.n i) = args.getD i 0 := fun i hi =>
     ev_params rd _ hc9 (by simpa [hargs] using hi)
-  have e0 : σ (.n 0) = layers := par 0 (by omega)
-  have e1 : σ (.n 1) = rounds := par 1 (by omega)
-  have e2 : σ (.n 2) = pts := par 2 (by omega)
-  have e3 : σ (.n 3) = gen ^ m := par 3 (by omega)
-  have e4 : σ (.n 4) = gen ^ j := par 4 (by omega)
-  have e5 : σ (.n 5) = gen ^ (2 - o) := par 5 (by omega)
+  have e0 : σ (.n (valf% «gkr_layer» "layers")) = layers := par 0 (by omega)
+  have e1 : σ (.n (valf% «gkr_layer» "rounds")) = rounds := par 1 (by omega)
+  have e2 : σ (.n (valf% «gkr_layer» "gkr_pts")) = pts := par 2 (by omega)
+  have e3 : σ (.n (valf% «gkr_layer» "x_m")) = gen ^ m := par 3 (by omega)
+  have e4 : σ (.n (valf% «gkr_layer» "x_j")) = gen ^ j := par 4 (by omega)
+  have e5 : σ (.n (valf% «gkr_layer» "start_g")) = gen ^ (2 - o) := par 5 (by omega)
   have hfr := glc_fresh hp ho
   -- the pieces' equations
   have mem : ∀ {X : List Stmt}, (∀ s ∈ X, s ∈ glcL p o) → ∀ s ∈ X, GoodS rd S (fun _ => 0) σ s :=
@@ -262,7 +262,7 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
   -- the head rounds
   have HR := glc_rounds (C := coreProgram.Rel rd) (kret := fun rs => rs = []) (rd := rd) (S := S)
     (w := fun _ => 0) (σ := σ) (B := 58) (cur := 21) (pt := 52) (npt := 52) (noff := 42)
-    (claimV := .n 57) (cap := glCap 35) (by simp [glCap]) (Cf := Cf) (ef := ef) h4' (2 * p)
+    (claimV := .n (valf% «gkr_layer» "claim@2")) (cap := glCap 35) (by simp [glCap]) (Cf := Cf) (ef := ef) h4' (2 * p)
     (fun s hs ↦ mem mHR s (by rw [glRounds_head]; exact hs))
     (fun q hq ↦ by
       obtain ⟨k0, k1, k2, k3, k4⟩ := glcRoundKeys_mem (B := 58) (cur := 21) (pt := 52) hq
@@ -293,8 +293,8 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
     (by have := (REC 0 (by omega)).2.2; simpa using this)
   -- the loop
   have R4 := glc_lcall (kret := fun rs => rs = []) hp (mem mLC) e3 e53
-    (fun hm0 ↦ glc_complete (rd := rd) hp ho (head := σ (.n 53)) (qrow := row * gen ^ (2 * p))
-      (tabs := σ (.n 7)) rfl hm0 (by omega) (fun y hy ↦ by
+    (fun hm0 ↦ glc_complete (rd := rd) hp ho (head := σ (.n (valf% «gkr_layer» "head"))) (qrow := row * gen ^ (2 * p))
+      (tabs := σ (.n (valf% «gkr_layer» "tabs"))) rfl hm0 (by omega) (fun y hy ↦ by
         have r0 := REC y (by omega)
         have r1 := REC (y + 1) (by omega)
         rw [← e54] at r0 r1
@@ -425,7 +425,7 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
     show ((D.sb s st).squeezeN 2).1 = _; rw [hsb, glc_squeezeN_two]
   have hs' : D.s' s st 2 = ⟨capOf (permOf (rateOf [] ++ capOf P3)), []⟩ := by
     show ((D.sb s st).squeezeN 2).2 = _; rw [hsb, glc_squeezeN_two]
-  have hrow' : pts * gen ^ (40 * (j + 2)) = τ (.n 52) * gen ^ 40 := by
+  have hrow' : pts * gen ^ (40 * (j + 2)) = τ (.n (valf% «gkr_layer» "point_row")) * gen ^ 40 := by
     rw [tlo 52 (by omega), e53, mul_assoc, ← pow_add]; ring_nf
   have y0 := hpt2.1 0 (by rw [hysl]; omega)
   have y1 := hpt2.1 1 (by rw [hysl]; omega)
@@ -442,8 +442,8 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
     (by rw [hc2]; exact y0) (by rw [hc2]; exact y1)
   rw [hc2, ← hP3] at e262 e276 ecap
   -- the next slot
-  have t15 : τ (.n 15) = layers * gen ^ (10 * L) := by rw [tlo 15 (by omega), e15]
-  have ldn : ∀ k v, LoadHolds rd layers (10 * (L + 2) + k) v → LoadHolds rd (τ (.n 15)) (20 + k) v :=
+  have t15 : τ (.n (valf% «gkr_layer» "layer")) = layers * gen ^ (10 * L) := by rw [tlo 15 (by omega), e15]
+  have ldn : ∀ k v, LoadHolds rd layers (10 * (L + 2) + k) v → LoadHolds rd (τ (.n (valf% «gkr_layer» "layer"))) (20 + k) v :=
     fun k v h ↦ by rw [t15, tb_loadHolds_mul_gen_pow, show 10 * L + (20 + k) = 10 * (L + 2) + k by ring]; exact h
   have hxl : D.xs.length = 4 * L + 12 := by
     simp [GkStepD.xs, hflen, hl0, hl1, hl2]

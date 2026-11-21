@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B1.Sig.XmssSegStepC
 public import LeanVM.Guest.B1.Sig.WotsGroupComplete
 public import LeanVM.Guest.B1.Sig.XmssSegArms
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop2»
 
 /-!
 # The codeword's dispatches, complete
@@ -132,7 +134,7 @@ theorem armsM_snd_ge (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (
 /-- Group `p`'s running product's and encoding's cells and its base (`sGroupsT`'s state), the
 first group's base `v0`. -/
 def sgState (W : WotsT) (v0 : Nat) : Nat → V × V × Nat
-  | 0 => (.n 0, .n 0, v0)
+  | 0 => (.n (val% «main_loop2» "xi"), .n (val% «main_loop2» "xi"), v0)
   | p + 1 =>
       let st := sgState W v0 p
       (prodT W (p == 0) (lxN p) st.2.2, encT W (p == 0) (lxN p) st.2.2,

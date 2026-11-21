@@ -10,6 +10,10 @@ module
 public import LeanVM.Guest.B1.Tables.Interface
 public import LeanVM.Guest.B1.Tables.Basic
 public import LeanVM.Guest.CoreData
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«padding_weight__L»
+import LeanVM.Guest.Data.ValNames.«padding_weight__L0»
+import LeanVM.Guest.Data.ValNames.«padding_weight__L1»
 
 /-!
 # `padding_weight` (TRIAGE G #51)
@@ -55,18 +59,18 @@ theorem tb_sum_bits_mod (N j : ℕ) (hj : j ≤ 64) :
 
 /-- The head: `W = rows + (2^τ - 1)` and its `τ + 1` hinted bits, at values `4 .. 4 + τ`. -/
 def pwHead (τ : ℕ) : List Stmt :=
-  [.atom (.const (.n 2) (word (2 ^ τ - 1) 0)), .atom (.add (.n 3) (.n 0) (.n 2)),
+  [.atom (.const (.n 2) (word (2 ^ τ - 1) 0)), .atom (.add (.n 3) (.n (valf% «padding_weight» "rows")) (.n 2)),
     .atom (.hint (.bits (.n 3) 0 (τ + 1) (.stack ((List.range (τ + 1)).map fun k => .n (4 + k)))))]
 
 /-- The fold's first step, its `pad = 1` folded. -/
 def pwStep0 (τ : ℕ) : List Stmt :=
-  [.atom (.mul (.n 4) (.n 4) (.n 4)), .atom (.load (.n (τ + 5)) (.n 1) 0),
+  [.atom (.mul (.n 4) (.n 4) (.n 4)), .atom (.load (.n (τ + 5)) (.n (valf% «padding_weight» "zeta")) 0),
     .atom (.mul (.n (τ + 6)) (.n 4) (.n (τ + 5))), .atom (.add (.n (τ + 7)) (.n 4) (.n (τ + 5))),
     .atom (.add (.n (τ + 8)) (.n (τ + 6)) (.n (τ + 7)))]
 
 /-- The fold's step `k ≥ 1`: `pad = c·z + (c + z)·pad`. -/
 def pwStep (τ k : ℕ) : List Stmt :=
-  [.atom (.mul (.n (4 + k)) (.n (4 + k)) (.n (4 + k))), .atom (.load (.n (τ + 4 + 5 * k)) (.n 1) k),
+  [.atom (.mul (.n (4 + k)) (.n (4 + k)) (.n (4 + k))), .atom (.load (.n (τ + 4 + 5 * k)) (.n (valf% «padding_weight» "zeta")) k),
     .atom (.mul (.n (τ + 5 + 5 * k)) (.n (4 + k)) (.n (τ + 4 + 5 * k))),
     .atom (.add (.n (τ + 6 + 5 * k)) (.n (4 + k)) (.n (τ + 4 + 5 * k))),
     .atom (.mul (.n (τ + 7 + 5 * k)) (.n (τ + 6 + 5 * k)) (.n (τ + 3 + 5 * k))),
@@ -375,11 +379,11 @@ theorem holds_pwTail (τ : ℕ) (next : Prop) (rets : List E) :
 
 /-- The function's body, simplified to its conditions. -/
 theorem pw_unfold {name : String} {f : Fn} (τ : ℕ) (hfind : coreProgram.find? name = some f)
-    (hparams : f.params = [.n 0, .n 1]) (hbody : f.body = pwBody τ) (rd : Reader)
+    (hparams : f.params = [.n (valf% «padding_weight» "rows"), .n (valf% «padding_weight» "zeta")]) (hbody : f.body = pwBody τ) (rd : Reader)
     (args rets : List E) :
-    coreProgram.Rel rd name args rets ↔ ∃ σ : Val, [σ (.n 0), σ (.n 1)] = args ∧
-      σ (.n 2) = word (2 ^ τ - 1) 0 ∧ σ (.n 3) = σ (.n 0) + σ (.n 2) ∧
-      σ (.n 4) = σ (.n 4) * σ (.n 4) ∧ LoadHolds rd (σ (.n 1)) 0 (σ (.n (τ + 5))) ∧
+    coreProgram.Rel rd name args rets ↔ ∃ σ : Val, [σ (.n (valf% «padding_weight» "rows")), σ (.n (valf% «padding_weight» "zeta"))] = args ∧
+      σ (.n 2) = word (2 ^ τ - 1) 0 ∧ σ (.n 3) = σ (.n (valf% «padding_weight» "rows")) + σ (.n 2) ∧
+      σ (.n 4) = σ (.n 4) * σ (.n 4) ∧ LoadHolds rd (σ (.n (valf% «padding_weight» "zeta"))) 0 (σ (.n (τ + 5))) ∧
       σ (.n (τ + 6)) = σ (.n 4) * σ (.n (τ + 5)) ∧ σ (.n (τ + 7)) = σ (.n 4) + σ (.n (τ + 5)) ∧
       σ (.n (τ + 8)) = σ (.n (τ + 6)) + σ (.n (τ + 7)) ∧
       (∀ i < τ - 1, PwStepOk rd σ τ (i + 1)) ∧
@@ -452,7 +456,7 @@ theorem pw_rets {τ n : ℕ} (h2 : 2 ≤ τ) (h32 : τ ≤ 32) {b z : ℕ → E}
   rw [add_assoc, one_add_bitE, Bool.not_not]
 
 theorem pw_sound {name : String} {f : Fn} (τ : ℕ) (h2 : 2 ≤ τ) (h32 : τ ≤ 32)
-    (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1])
+    (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n (valf% «padding_weight» "rows"), .n (valf% «padding_weight» "zeta")])
     (hbody : f.body = pwBody τ) (rd : Reader) (rows zeta : E) (rets : List E)
     (h : coreProgram.Rel rd name [rows, zeta] rets) :
     MeaningPaddingWeight τ rd [rows, zeta] rets := by
@@ -472,7 +476,7 @@ theorem pw_sound {name : String} {f : Fn} (τ : ℕ) (h2 : 2 ≤ τ) (h32 : τ �
       rw [show k - 1 + 1 = k by omega] at e
       exact e.symm
     · rw [show k = τ by omega]; exact htop.symm
-  have hz : ∀ k < τ, LoadHolds rd (σ (.n 1)) k (z k) := fun k hk => by
+  have hz : ∀ k < τ, LoadHolds rd (σ (.n (valf% «padding_weight» "zeta"))) k (z k) := fun k hk => by
     rcases Nat.eq_zero_or_pos k with rfl | hk0
     · exact s0l
     · obtain ⟨-, e, -⟩ := hsteps (k - 1) (by omega)
@@ -502,8 +506,8 @@ theorem pw_sound {name : String} {f : Fn} (τ : ℕ) (h2 : 2 ≤ τ) (h32 : τ �
     rw [t2, t1, t0, hbl _ le_rfl, pwBl_top b h2, tb_word_two_pow (by omega),
       show τ = τ - 1 + 1 by omega, Finset.sum_range_succ, show τ - 1 + 1 - 1 = τ - 1 by omega]
     simp only [b]; rw [show 3 + (τ - 1 + 1) = 4 + (τ - 1) by omega]
-  have hrec : ∑ k ∈ Finset.range (τ + 1), b k * gen ^ k = σ (.n 0) + eOfNat (2 ^ τ - 1) := by
-    rw [Finset.sum_range_succ, ← hlow, show σ (.n 0) + eOfNat (2 ^ τ - 1) = σ (.n 3) by
+  have hrec : ∑ k ∈ Finset.range (τ + 1), b k * gen ^ k = σ (.n (valf% «padding_weight» "rows")) + eOfNat (2 ^ τ - 1) := by
+    rw [Finset.sum_range_succ, ← hlow, show σ (.n (valf% «padding_weight» "rows")) + eOfNat (2 ^ τ - 1) = σ (.n 3) by
       rw [e3, e2, tb_word_eOfNat], ← e_add_eq_zero_iff.mp a11, t11, t10, t9, tb_word_two_pow (by omega)]
   have htop' : b τ * (∑ k ∈ Finset.range τ, b k * gen ^ k + eOfNat (2 ^ τ - 1)) = 0 := by
     rw [← hlow, ← tb_word_eOfNat, ← t12, ← t13, ← t14]
@@ -627,7 +631,7 @@ theorem pwF_bit' {τ : ℕ} {rows zeta : E} {b z : ℕ → E} {i k : ℕ} (hi : 
   subst hi; exact pwF_bit hk
 
 theorem pw_complete {name : String} {f : Fn} (τ : ℕ) (h2 : 2 ≤ τ) (h32 : τ ≤ 32)
-    (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1])
+    (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n (valf% «padding_weight» "rows"), .n (valf% «padding_weight» "zeta")])
     (hbody : f.body = pwBody τ) (rd : Reader) (rows zeta : E) (rets : List E)
     (h : MeaningPaddingWeight τ rd [rows, zeta] rets) :
     coreProgram.Rel rd name [rows, zeta] rets := by
@@ -730,31 +734,31 @@ theorem pw_complete {name : String} {f : Fn} (τ : ℕ) (h2 : 2 ≤ τ) (h32 : �
 
 /-- The expansion of `padding_weight` at `τ = 0`. -/
 def pwBody0 : List Stmt :=
-  [.atom (.hint (.bits (.n 0) 0 1 (.stack [.n 2]))), .atom (.mul (.n 2) (.n 2) (.n 2)),
-    .atom (.assertEq (.n 2) (.n 0)), .atom (.const (.n 3) (word 0 0)),
-    .atom (.mul (.n 4) (.n 2) (.n 3)), .atom (.const (.n 5) (word 0 0)),
-    .atom (.assertEq (.n 4) (.n 5)), .atom (.const (.n 6) (word 1 0)),
-    .atom (.add (.n 7) (.n 6) (.n 2)), .atom (.const (.n 8) (word 1 0)),
-    .atom (.const (.n 9) (word 1 0)), .ret [.n 7, .n 8, .n 9]]
+  [.atom (.hint (.bits (.n (val% «padding_weight__L0» "rows")) 0 1 (.stack [.n (val% «padding_weight__L0» "bits[0]")]))), .atom (.mul (.n (val% «padding_weight__L0» "bits[0]")) (.n (val% «padding_weight__L0» "bits[0]")) (.n (val% «padding_weight__L0» "bits[0]"))),
+    .atom (.assertEq (.n (val% «padding_weight__L0» "bits[0]")) (.n (val% «padding_weight__L0» "rows"))), .atom (.const (.n (val% «padding_weight__L0» "s9#0")) (word 0 0)),
+    .atom (.mul (.n (val% «padding_weight__L0» "s9#1")) (.n (val% «padding_weight__L0» "bits[0]")) (.n (val% «padding_weight__L0» "s9#0"))), .atom (.const (.n (val% «padding_weight__L0» "s9#2")) (word 0 0)),
+    .atom (.assertEq (.n (val% «padding_weight__L0» "s9#1")) (.n (val% «padding_weight__L0» "s9#2"))), .atom (.const (.n (val% «padding_weight__L0» "s10#1")) (word 1 0)),
+    .atom (.add (.n (val% «padding_weight__L0» "s10#0")) (.n (val% «padding_weight__L0» "s10#1")) (.n (val% «padding_weight__L0» "bits[0]"))), .atom (.const (.n (val% «padding_weight__L0» "s10#0[1]")) (word 1 0)),
+    .atom (.const (.n (val% «padding_weight__L0» "s10#0[2]")) (word 1 0)), .ret [.n (val% «padding_weight__L0» "s10#0"), .n (val% «padding_weight__L0» "s10#0[1]"), .n (val% «padding_weight__L0» "s10#0[2]")]]
 
 /-- The expansion of `padding_weight` at `τ = 1`. -/
 def pwBody1 : List Stmt :=
-  [.atom (.const (.n 2) (word 1 0)), .atom (.add (.n 3) (.n 0) (.n 2)),
-    .atom (.hint (.bits (.n 3) 0 2 (.stack [.n 4, .n 5]))), .atom (.mul (.n 4) (.n 4) (.n 4)),
-    .atom (.load (.n 6) (.n 1) 0), .atom (.mul (.n 7) (.n 4) (.n 6)),
-    .atom (.add (.n 8) (.n 4) (.n 6)), .atom (.add (.n 9) (.n 7) (.n 8)),
-    .atom (.mul (.n 5) (.n 5) (.n 5)), .atom (.const (.n 10) (word 1 0)),
-    .atom (.add (.n 11) (.n 5) (.n 10)), .atom (.add (.n 12) (.n 11) (.n 4)),
-    .atom (.const (.n 13) (word 2 0)), .atom (.mul (.n 14) (.n 5) (.n 13)),
-    .atom (.add (.n 15) (.n 4) (.n 14)), .atom (.assertEq (.n 15) (.n 3)),
-    .atom (.const (.n 16) (word 1 0)), .atom (.add (.n 17) (.n 4) (.n 16)),
-    .atom (.mul (.n 18) (.n 5) (.n 17)), .atom (.const (.n 19) (word 0 0)),
-    .atom (.assertEq (.n 18) (.n 19)), .atom (.const (.n 20) (word 1 0)),
-    .atom (.add (.n 21) (.n 20) (.n 5)), .atom (.mul (.n 22) (.n 21) (.n 9)),
-    .atom (.copy (.n 23) (.n 12)), .atom (.copy (.n 24) (.n 5)), .ret [.n 22, .n 23, .n 24]]
+  [.atom (.const (.n (val% «padding_weight__L1» "word~0")) (word 1 0)), .atom (.add (.n (val% «padding_weight__L1» "word")) (.n (val% «padding_weight__L1» "rows")) (.n (val% «padding_weight__L1» "word~0"))),
+    .atom (.hint (.bits (.n (val% «padding_weight__L1» "word")) 0 2 (.stack [.n (val% «padding_weight__L1» "bits[0]"), .n (val% «padding_weight__L1» "bits[1]")]))), .atom (.mul (.n (val% «padding_weight__L1» "bits[0]")) (.n (val% «padding_weight__L1» "bits[0]")) (.n (val% «padding_weight__L1» "bits[0]"))),
+    .atom (.load (.n (val% «padding_weight__L1» "z")) (.n (val% «padding_weight__L1» "zeta")) 0), .atom (.mul (.n (val% «padding_weight__L1» "pad~0")) (.n (val% «padding_weight__L1» "bits[0]")) (.n (val% «padding_weight__L1» "z"))),
+    .atom (.add (.n (val% «padding_weight__L1» "pad~1")) (.n (val% «padding_weight__L1» "bits[0]")) (.n (val% «padding_weight__L1» "z"))), .atom (.add (.n (val% «padding_weight__L1» "pad")) (.n (val% «padding_weight__L1» "pad~0")) (.n (val% «padding_weight__L1» "pad~1"))),
+    .atom (.mul (.n (val% «padding_weight__L1» "bits[1]")) (.n (val% «padding_weight__L1» "bits[1]")) (.n (val% «padding_weight__L1» "bits[1]"))), .atom (.const (.n (val% «padding_weight__L1» "lead~0")) (word 1 0)),
+    .atom (.add (.n (val% «padding_weight__L1» "lead~1")) (.n (val% «padding_weight__L1» "bits[1]")) (.n (val% «padding_weight__L1» "lead~0"))), .atom (.add (.n (val% «padding_weight__L1» "lead")) (.n (val% «padding_weight__L1» "lead~1")) (.n (val% «padding_weight__L1» "bits[0]"))),
+    .atom (.const (.n (val% «padding_weight__L1» "s8#0")) (word 2 0)), .atom (.mul (.n (val% «padding_weight__L1» "s8#1")) (.n (val% «padding_weight__L1» "bits[1]")) (.n (val% «padding_weight__L1» "s8#0"))),
+    .atom (.add (.n (val% «padding_weight__L1» "s8#2")) (.n (val% «padding_weight__L1» "bits[0]")) (.n (val% «padding_weight__L1» "s8#1"))), .atom (.assertEq (.n (val% «padding_weight__L1» "s8#2")) (.n (val% «padding_weight__L1» "word"))),
+    .atom (.const (.n (val% «padding_weight__L1» "s9#0")) (word 1 0)), .atom (.add (.n (val% «padding_weight__L1» "s9#1")) (.n (val% «padding_weight__L1» "bits[0]")) (.n (val% «padding_weight__L1» "s9#0"))),
+    .atom (.mul (.n (val% «padding_weight__L1» "s9#2")) (.n (val% «padding_weight__L1» "bits[1]")) (.n (val% «padding_weight__L1» "s9#1"))), .atom (.const (.n (val% «padding_weight__L1» "s9#3")) (word 0 0)),
+    .atom (.assertEq (.n (val% «padding_weight__L1» "s9#2")) (.n (val% «padding_weight__L1» "s9#3"))), .atom (.const (.n (val% «padding_weight__L1» "s10#1")) (word 1 0)),
+    .atom (.add (.n (val% «padding_weight__L1» "s10#2")) (.n (val% «padding_weight__L1» "s10#1")) (.n (val% «padding_weight__L1» "bits[1]"))), .atom (.mul (.n (val% «padding_weight__L1» "s10#0")) (.n (val% «padding_weight__L1» "s10#2")) (.n (val% «padding_weight__L1» "pad"))),
+    .atom (.copy (.n (val% «padding_weight__L1» "s10#0[1]")) (.n (val% «padding_weight__L1» "lead"))), .atom (.copy (.n (val% «padding_weight__L1» "s10#0[2]")) (.n (val% «padding_weight__L1» "bits[1]"))), .ret [.n (val% «padding_weight__L1» "s10#0"), .n (val% «padding_weight__L1» "s10#0[1]"), .n (val% «padding_weight__L1» "s10#0[2]")]]
 
 theorem pw0_iff {name : String} {f : Fn} (hfind : coreProgram.find? name = some f)
-    (hparams : f.params = [.n 0, .n 1]) (hbody : f.body = pwBody0) (rd : Reader)
+    (hparams : f.params = [.n (val% «padding_weight__L0» "rows"), .n (val% «padding_weight__L0» "zeta")]) (hbody : f.body = pwBody0) (rd : Reader)
     (rows zeta : E) (rets : List E) :
     coreProgram.Rel rd name [rows, zeta] rets ↔ MeaningPaddingWeight 0 rd [rows, zeta] rets := by
   rw [tb_rel_iff_sem hfind, hbody, hparams, pwBody0]
@@ -764,7 +768,7 @@ theorem pw0_iff {name : String} {f : Fn} (hfind : coreProgram.find? name = some 
     simp only [List.cons.injEq, and_true] at hp
     obtain ⟨h0, -⟩ := hp
     have hc := bitE_of_mul_self hb.symm
-    set c := decide (σ (.n 2) = 1)
+    set c := decide (σ (.n (val% «padding_weight__L0» "bits[0]")) = 1)
     refine ⟨c.toNat, [], by cases c <;> simp, ?_, rfl, tbReadsAt_nil _ _, ?_⟩
     · rw [← h0, ← e_add_eq_zero_iff.mp a2, hc]; cases c <;> simp [bitE, eOfNat_zero, eOfNat_one]
     · rw [← hret, h7, h6, h8, h9, hc, tb_word_one]
@@ -786,7 +790,7 @@ theorem pw0_iff {name : String} {f : Fn} (hfind : coreProgram.find? name = some 
       rcases Nat.le_one_iff_eq_zero_or_eq_one.mp hn with rfl | rfl <;> simp
 
 theorem pw1_iff {name : String} {f : Fn} (hfind : coreProgram.find? name = some f)
-    (hparams : f.params = [.n 0, .n 1]) (hbody : f.body = pwBody1) (rd : Reader)
+    (hparams : f.params = [.n (val% «padding_weight__L1» "rows"), .n (val% «padding_weight__L1» "zeta")]) (hbody : f.body = pwBody1) (rd : Reader)
     (rows zeta : E) (rets : List E) :
     coreProgram.Rel rd name [rows, zeta] rets ↔ MeaningPaddingWeight 1 rd [rows, zeta] rets := by
   rw [tb_rel_iff_sem hfind, hbody, hparams, pwBody1]
@@ -801,8 +805,8 @@ theorem pw1_iff {name : String} {f : Fn} (hfind : coreProgram.find? name = some 
       rcases Nat.le_one_iff_eq_zero_or_eq_one.mp hk with rfl | rfl
       · exact hb0.symm
       · exact hb1.symm
-    have hrec : ∑ k ∈ Finset.range (1 + 1), b k * gen ^ k = σ (.n 0) + eOfNat (2 ^ 1 - 1) := by
-      rw [show σ (.n 0) + eOfNat (2 ^ 1 - 1) = σ (.n 3) by rw [h3, h2, tb_word_one]; rfl,
+    have hrec : ∑ k ∈ Finset.range (1 + 1), b k * gen ^ k = σ (.n (val% «padding_weight__L1» "rows")) + eOfNat (2 ^ 1 - 1) := by
+      rw [show σ (.n (val% «padding_weight__L1» "rows")) + eOfNat (2 ^ 1 - 1) = σ (.n (val% «padding_weight__L1» "word")) by rw [h3, h2, tb_word_one]; rfl,
         ← e_add_eq_zero_iff.mp a15, h15, h14, h13, tb_word_gen]
       simp [Finset.sum_range_succ, b, mul_comm]
     have htop : b 1 * (∑ k ∈ Finset.range 1, b k * gen ^ k + eOfNat (2 ^ 1 - 1)) = 0 := by
@@ -810,13 +814,13 @@ theorem pw1_iff {name : String} {f : Fn} (hfind : coreProgram.find? name = some 
       simpa [b, eOfNat_one] using a18
     obtain ⟨n, hn, hrows, hbits⟩ := pw_bits (by omega) hb hrec htop
     rw [h0] at hrows
-    refine ⟨n, [σ (.n 6)], hn, hrows, rfl, fun k hk => ?_, ?_⟩
+    refine ⟨n, [σ (.n (val% «padding_weight__L1» "z"))], hn, hrows, rfl, fun k hk => ?_, ?_⟩
     · obtain rfl : k = 0 := by simpa using hk
       rw [← h1]; exact l6
-    have e0 : σ (.n 4) = bitE (!n.testBit 0) := by
-      rw [show σ (.n 4) = b 0 from rfl, hbits 0 (by omega), testBit_pwW]; simp
-    have e1 : σ (.n 5) = bitE (n.testBit 1) := by
-      rw [show σ (.n 5) = b 1 from rfl, hbits 1 le_rfl, testBit_pwW]; simp
+    have e0 : σ (.n (val% «padding_weight__L1» "bits[0]")) = bitE (!n.testBit 0) := by
+      rw [show σ (.n (val% «padding_weight__L1» "bits[0]")) = b 0 from rfl, hbits 0 (by omega), testBit_pwW]; simp
+    have e1 : σ (.n (val% «padding_weight__L1» "bits[1]")) = bitE (n.testBit 1) := by
+      rw [show σ (.n (val% «padding_weight__L1» "bits[1]")) = b 1 from rfl, hbits 1 le_rfl, testBit_pwW]; simp
     rw [← hret, h22, h21, h20, h9, h7, h8, h23, h12, h11, h10, h24, tb_word_one, e0, e1,
       paddingWeight_eq]
     simp only [pwLead, pwRest, PadLead, PadRest, Nat.one_ne_zero, ↓reduceIte, List.length_cons, List.length_nil,

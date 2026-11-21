@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.KeccakGkr.LayerCLift
 public import LeanVM.Guest.B1.Tables.VtC.Kids
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
 /-!
 # `keccak_layer`, complete and placed
@@ -169,8 +171,8 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
     (hout : OutsOk (layerKids D first CL bcur bout tbE b) outs) (rd : Reader) (hlow : LowDef κ rd)
     (hB : MemL rd (layerBufs D first (ptr bcur) b))
     (hLin : MemL rd (layerLin D first CL bcur bout tbE b)) :
-    ∃ σ : Val, [V.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12,
-        .n 13, .n 14, .n 15].map σ = D.cap ++ [p0, p1, ptr bcur, gen ^ D.y, gen ^ (D.y / 8),
+    ∃ σ : Val, [V.n (valf% «keccak_layer» "fs0"), .n (valf% «keccak_layer» "fs1"), .n (valf% «keccak_layer» "fs2"), .n (valf% «keccak_layer» "fs3"), .n (valf% «keccak_layer» "fs4"), .n (valf% «keccak_layer» "p0"), .n (valf% «keccak_layer» "p1"), .n (valf% «keccak_layer» "cursor@1"), .n (valf% «keccak_layer» "y_g"), .n (valf% «keccak_layer» "step_g"), .n (valf% «keccak_layer» "rem_g"), .n (valf% «keccak_layer» "claim"), .n (valf% «keccak_layer» "out"),
+        .n (valf% «keccak_layer» "iota"), .n (valf% «keccak_layer» "tabs"), .n (valf% «keccak_layer» "stream")].map σ = D.cap ++ [p0, p1, ptr bcur, gen ^ D.y, gen ^ (D.y / 8),
           gen ^ (D.y % 8), ptr CL.bclaim, ptr bout, iota, ptr tbE, st] ∧
       (∀ s ∈ layerPre first, DispOk σ s) ∧
       Stmt.HoldsList (coreProgram.Rel rd) rd σ (layerT first) False
@@ -247,13 +249,13 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
     fun s hs ↦ hG s (by simp [hs])
   obtain ⟨f0, f1, f2, f3, f4, hcapE⟩ := five_of_length' hcl
   rw [hcapE] at hpar
-  have a7 : σ (.n 7) = ptr bcur := hpar 7 (by norm_num)
-  have a8 : σ (.n 8) = gen ^ D.y := hpar 8 (by norm_num)
-  have a9 : σ (.n 9) = gen ^ (D.y / 8) := hpar 9 (by norm_num)
-  have a10 : σ (.n 10) = gen ^ (D.y % 8) := hpar 10 (by norm_num)
-  have a11 : σ (.n 11) = ptr CL.bclaim := hpar 11 (by norm_num)
-  have a12 : σ (.n 12) = ptr bout := hpar 12 (by norm_num)
-  have a14 : σ (.n 14) = ptr tbE := hpar 14 (by norm_num)
+  have a7 : σ (.n (valf% «keccak_layer» "cursor@1")) = ptr bcur := hpar 7 (by norm_num)
+  have a8 : σ (.n (valf% «keccak_layer» "y_g")) = gen ^ D.y := hpar 8 (by norm_num)
+  have a9 : σ (.n (valf% «keccak_layer» "step_g")) = gen ^ (D.y / 8) := hpar 9 (by norm_num)
+  have a10 : σ (.n (valf% «keccak_layer» "rem_g")) = gen ^ (D.y % 8) := hpar 10 (by norm_num)
+  have a11 : σ (.n (valf% «keccak_layer» "claim")) = ptr CL.bclaim := hpar 11 (by norm_num)
+  have a12 : σ (.n (valf% «keccak_layer» "out")) = ptr bout := hpar 12 (by norm_num)
+  have a14 : σ (.n (valf% «keccak_layer» "tabs")) = ptr tbE := hpar 14 (by norm_num)
   refine ⟨σ, ?_, layerPre_disp hf σ, ?_, ?_, ?_, ?_, ?_⟩
   pick_goal 2
   · -- the body, `layerT first` kept folded

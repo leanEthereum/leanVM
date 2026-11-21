@@ -196,7 +196,7 @@ theorem glc_tloads {p : ℕ} (hG : ∀ s ∈ glTailLoads p (glW p), GoodS rd S w
 `ntpt = row·g^(2p)·g^42·x_m^8`. -/
 theorem glc_tsetup {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glTailSetup p, GoodS rd S w σ s)
     (hk : ∀ k ∈ glTailKeys p, some k ∉ S.map loadKey) {head row : E} {m : ℕ}
-    (e54 : σ (.n 53) = head) (e3 : σ (.n 3) = gen ^ m) (e53 : σ (.n 52) = row)
+    (e54 : σ (.n (valf% «gkr_layer» "head")) = head) (e3 : σ (.n (valf% «gkr_layer» "x_m")) = gen ^ m) (e53 : σ (.n (valf% «gkr_layer» "point_row")) = row)
     {cur : E} {Cf : ℕ → List E} {ef : ℕ → E} {claim : E} {s : Fs} {a : ℕ}
     (hR : GlRecK rd (head * gen ^ m) cur Cf ef claim s a) :
     Stmt.HoldsList C rd σ (glTailSetup p) True kret ∧
@@ -211,19 +211,19 @@ theorem glc_tsetup {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glTailSetup p, GoodS r
   · subst h0
     have mem : ∀ a, Stmt.atom a ∈ glTailSetup0 → Stmt.atom a ∈ glTailSetup 0 := fun a ha ↦ by
       simpa [glTailSetup] using ha
-    have m64 := good_mul (g (.mul (.n 63) (.n 53) (.n 3)) (mem _ (by simp [glTailSetup0])))
+    have m64 := good_mul (g (.mul (.n 63) (.n (valf% «gkr_layer» "head")) (.n (valf% «gkr_layer» "x_m"))) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
-    have m65 := good_mul (g (.mul (.n 64) (.n 3) (.n 3)) (mem _ (by simp [glTailSetup0])))
+    have m65 := good_mul (g (.mul (.n 64) (.n (valf% «gkr_layer» "x_m")) (.n (valf% «gkr_layer» "x_m"))) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
     have m66 := good_mul (g (.mul (.n 65) (.n 64) (.n 64)) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
     have m67 := good_mul (g (.mul (.n 66) (.n 65) (.n 65)) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
-    have m68 := good_mul (g (.mul (.n 67) (.n 52) (.n 66)) (mem _ (by simp [glTailSetup0])))
+    have m68 := good_mul (g (.mul (.n 67) (.n (valf% «gkr_layer» "point_row")) (.n 66)) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
     have c69 : σ (.n 68) = word (2 ^ 42) 0 :=
       g (.const (.n 68) (word (2 ^ 42) 0)) (mem _ (by simp [glTailSetup0]))
-    have m70 := good_mul (g (.mul (.n 69) (.n 52) (.n 68)) (mem _ (by simp [glTailSetup0])))
+    have m70 := good_mul (g (.mul (.n 69) (.n (valf% «gkr_layer» "point_row")) (.n 68)) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
     have m71 := good_mul (g (.mul (.n 70) (.n 69) (.n 66)) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
@@ -245,9 +245,9 @@ theorem glc_tsetup {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glTailSetup p, GoodS r
   · have hp0 : p ≠ 0 := by omega
     have mem : ∀ a, Stmt.atom a ∈ glTailSetupP p → Stmt.atom a ∈ glTailSetup p := fun a ha ↦ by
       simpa [glTailSetup, hp0] using ha
-    have m1 := good_mul (g (.mul (.n (67 + 78 * p)) (.n 53) (.n 3)) (mem _ (by simp [glTailSetupP])))
+    have m1 := good_mul (g (.mul (.n (67 + 78 * p)) (.n (valf% «gkr_layer» "head")) (.n (valf% «gkr_layer» "x_m"))) (mem _ (by simp [glTailSetupP])))
       (by omega) (by omega)
-    have m2 := good_mul (g (.mul (.n (68 + 78 * p)) (.n 3) (.n 3)) (mem _ (by simp [glTailSetupP])))
+    have m2 := good_mul (g (.mul (.n (68 + 78 * p)) (.n (valf% «gkr_layer» "x_m")) (.n (valf% «gkr_layer» "x_m"))) (mem _ (by simp [glTailSetupP])))
       (by omega) (by omega)
     have m3 := good_mul (g (.mul (.n (69 + 78 * p)) (.n (68 + 78 * p)) (.n (68 + 78 * p)))
       (mem _ (by simp [glTailSetupP]))) (by omega) (by omega)
@@ -255,13 +255,13 @@ theorem glc_tsetup {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glTailSetup p, GoodS r
       (mem _ (by simp [glTailSetupP]))) (by omega) (by omega)
     have c5 : σ (.n (71 + 78 * p)) = word (2 ^ (2 * p)) 0 :=
       g (.const (.n (71 + 78 * p)) (word (2 ^ (2 * p)) 0)) (mem _ (by simp [glTailSetupP]))
-    have m6 := good_mul (g (.mul (.n (72 + 78 * p)) (.n 52) (.n (71 + 78 * p)))
+    have m6 := good_mul (g (.mul (.n (72 + 78 * p)) (.n (valf% «gkr_layer» "point_row")) (.n (71 + 78 * p)))
       (mem _ (by simp [glTailSetupP]))) (by omega) (by omega)
     have m7 := good_mul (g (.mul (.n (73 + 78 * p)) (.n (72 + 78 * p)) (.n (70 + 78 * p)))
       (mem _ (by simp [glTailSetupP]))) (by omega) (by omega)
     have c8 : σ (.n (74 + 78 * p)) = word (2 ^ (42 + 2 * p)) 0 :=
       g (.const (.n (74 + 78 * p)) (word (2 ^ (42 + 2 * p)) 0)) (mem _ (by simp [glTailSetupP]))
-    have m9 := good_mul (g (.mul (.n (75 + 78 * p)) (.n 52) (.n (74 + 78 * p)))
+    have m9 := good_mul (g (.mul (.n (75 + 78 * p)) (.n (valf% «gkr_layer» "point_row")) (.n (74 + 78 * p)))
       (mem _ (by simp [glTailSetupP]))) (by omega) (by omega)
     have m10 := good_mul (g (.mul (.n (76 + 78 * p)) (.n (75 + 78 * p)) (.n (70 + 78 * p)))
       (mem _ (by simp [glTailSetupP]))) (by omega) (by omega)

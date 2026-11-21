@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.ZSetup
 public import LeanVM.Guest.B1.Tables.VtC.FFinal
 public import LeanVM.Guest.B1.Tables.VtC.FData
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # Between the ranges
@@ -34,70 +36,70 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 set_option maxRecDepth 10000 in
 /-- **The pull side's selectors are the push side's**, honestly. -/
 theorem vt_pull_good (hl : args.length = 21) : VtPullSelsH (vtσ rd w args) := by
-  have g1334 := (vt_goodL (rd := rd) (w := w) hl 1376 [.atom (.copy (.n 1335) (.n 858))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1336 := (vt_goodL (rd := rd) (w := w) hl 1378 [.atom (.copy (.n 1337) (.n 863))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1338 := (vt_goodL (rd := rd) (w := w) hl 1380 [.atom (.copy (.n 1339) (.n 868))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1340 := (vt_goodL (rd := rd) (w := w) hl 1382 [.atom (.copy (.n 1341) (.n 873))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1342 := (vt_goodL (rd := rd) (w := w) hl 1384 [.atom (.copy (.n 1343) (.n 878))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1344 := (vt_goodL (rd := rd) (w := w) hl 1386 [.atom (.copy (.n 1345) (.n 887))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1346 := (vt_goodL (rd := rd) (w := w) hl 1388 [.atom (.copy (.n 1347) (.n 896))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1348 := (vt_goodL (rd := rd) (w := w) hl 1390 [.atom (.copy (.n 1349) (.n 905))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1350 := (vt_goodL (rd := rd) (w := w) hl 1392 [.atom (.copy (.n 1351) (.n 914))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1352 := (vt_goodL (rd := rd) (w := w) hl 1394 [.atom (.copy (.n 1353) (.n 923))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1354 := (vt_goodL (rd := rd) (w := w) hl 1396 [.atom (.copy (.n 1355) (.n 932))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1356 := (vt_goodL (rd := rd) (w := w) hl 1398 [.atom (.copy (.n 1357) (.n 941))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1358 := (vt_goodL (rd := rd) (w := w) hl 1400 [.atom (.copy (.n 1359) (.n 950))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1360 := (vt_goodL (rd := rd) (w := w) hl 1402 [.atom (.copy (.n 1361) (.n 959))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1362 := (vt_goodL (rd := rd) (w := w) hl 1404 [.atom (.copy (.n 1363) (.n 968))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1364 := (vt_goodL (rd := rd) (w := w) hl 1406 [.atom (.copy (.n 1365) (.n 977))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1366 := (vt_goodL (rd := rd) (w := w) hl 1408 [.atom (.copy (.n 1367) (.n 986))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1368 := (vt_goodL (rd := rd) (w := w) hl 1410 [.atom (.copy (.n 1369) (.n 995))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1370 := (vt_goodL (rd := rd) (w := w) hl 1412 [.atom (.copy (.n 1371) (.n 1004))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1372 := (vt_goodL (rd := rd) (w := w) hl 1414 [.atom (.copy (.n 1373) (.n 1013))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1374 := (vt_goodL (rd := rd) (w := w) hl 1416 [.atom (.copy (.n 1375) (.n 1022))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1376 := (vt_goodL (rd := rd) (w := w) hl 1418 [.atom (.copy (.n 1377) (.n 1031))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1378 := (vt_goodL (rd := rd) (w := w) hl 1420 [.atom (.copy (.n 1379) (.n 1040))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1380 := (vt_goodL (rd := rd) (w := w) hl 1422 [.atom (.copy (.n 1381) (.n 1049))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1382 := (vt_goodL (rd := rd) (w := w) hl 1424 [.atom (.copy (.n 1383) (.n 1058))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1384 := (vt_goodL (rd := rd) (w := w) hl 1426 [.atom (.copy (.n 1385) (.n 1067))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1386 := (vt_goodL (rd := rd) (w := w) hl 1428 [.atom (.copy (.n 1387) (.n 1076))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1388 := (vt_goodL (rd := rd) (w := w) hl 1430 [.atom (.copy (.n 1389) (.n 1085))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1390 := (vt_goodL (rd := rd) (w := w) hl 1432 [.atom (.copy (.n 1391) (.n 1094))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1392 := (vt_goodL (rd := rd) (w := w) hl 1434 [.atom (.copy (.n 1393) (.n 1103))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1394 := (vt_goodL (rd := rd) (w := w) hl 1436 [.atom (.copy (.n 1395) (.n 1112))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1396 := (vt_goodL (rd := rd) (w := w) hl 1438 [.atom (.copy (.n 1397) (.n 1121))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1398 := (vt_goodL (rd := rd) (w := w) hl 1440 [.atom (.copy (.n 1399) (.n 1130))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1400 := (vt_goodL (rd := rd) (w := w) hl 1442 [.atom (.copy (.n 1401) (.n 1139))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1402 := (vt_goodL (rd := rd) (w := w) hl 1444 [.atom (.copy (.n 1403) (.n 1148))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1404 := (vt_goodL (rd := rd) (w := w) hl 1446 [.atom (.copy (.n 1405) (.n 1157))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1406 := (vt_goodL (rd := rd) (w := w) hl 1448 [.atom (.copy (.n 1407) (.n 1166))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1408 := (vt_goodL (rd := rd) (w := w) hl 1450 [.atom (.copy (.n 1409) (.n 1175))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1410 := (vt_goodL (rd := rd) (w := w) hl 1452 [.atom (.copy (.n 1411) (.n 1184))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1412 := (vt_goodL (rd := rd) (w := w) hl 1454 [.atom (.copy (.n 1413) (.n 1193))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1414 := (vt_goodL (rd := rd) (w := w) hl 1456 [.atom (.copy (.n 1415) (.n 1202))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1416 := (vt_goodL (rd := rd) (w := w) hl 1458 [.atom (.copy (.n 1417) (.n 1211))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1418 := (vt_goodL (rd := rd) (w := w) hl 1460 [.atom (.copy (.n 1419) (.n 1220))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1420 := (vt_goodL (rd := rd) (w := w) hl 1462 [.atom (.copy (.n 1421) (.n 1229))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1422 := (vt_goodL (rd := rd) (w := w) hl 1464 [.atom (.copy (.n 1423) (.n 1238))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1424 := (vt_goodL (rd := rd) (w := w) hl 1466 [.atom (.copy (.n 1425) (.n 1247))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1426 := (vt_goodL (rd := rd) (w := w) hl 1468 [.atom (.copy (.n 1427) (.n 1256))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1428 := (vt_goodL (rd := rd) (w := w) hl 1470 [.atom (.copy (.n 1429) (.n 1265))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1430 := (vt_goodL (rd := rd) (w := w) hl 1472 [.atom (.copy (.n 1431) (.n 1274))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1432 := (vt_goodL (rd := rd) (w := w) hl 1474 [.atom (.copy (.n 1433) (.n 1283))] (by rw [vtPre_drop]; decide +kernel)).1
-  have g1434 := (vt_goodL (rd := rd) (w := w) hl 1476 [.atom (.copy (.n 1435) (.n 1292))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1334 := (vt_goodL (rd := rd) (w := w) hl 1376 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[57]")) (.n (val% «verify_tables» "block_eq_hi[3]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1336 := (vt_goodL (rd := rd) (w := w) hl 1378 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[58]")) (.n (val% «verify_tables» "block_eq_hi[4]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1338 := (vt_goodL (rd := rd) (w := w) hl 1380 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[59]")) (.n (val% «verify_tables» "block_eq_hi[5]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1340 := (vt_goodL (rd := rd) (w := w) hl 1382 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[60]")) (.n (val% «verify_tables» "block_eq_hi[6]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1342 := (vt_goodL (rd := rd) (w := w) hl 1384 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[61]")) (.n (val% «verify_tables» "block_eq_hi[7]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1344 := (vt_goodL (rd := rd) (w := w) hl 1386 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[62]")) (.n (val% «verify_tables» "block_eq_hi[8]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1346 := (vt_goodL (rd := rd) (w := w) hl 1388 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[63]")) (.n (val% «verify_tables» "block_eq_hi[9]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1348 := (vt_goodL (rd := rd) (w := w) hl 1390 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[64]")) (.n (val% «verify_tables» "block_eq_hi[10]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1350 := (vt_goodL (rd := rd) (w := w) hl 1392 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[65]")) (.n (val% «verify_tables» "block_eq_hi[11]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1352 := (vt_goodL (rd := rd) (w := w) hl 1394 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[66]")) (.n (val% «verify_tables» "block_eq_hi[12]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1354 := (vt_goodL (rd := rd) (w := w) hl 1396 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[67]")) (.n (val% «verify_tables» "block_eq_hi[13]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1356 := (vt_goodL (rd := rd) (w := w) hl 1398 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[68]")) (.n (val% «verify_tables» "block_eq_hi[14]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1358 := (vt_goodL (rd := rd) (w := w) hl 1400 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[69]")) (.n (val% «verify_tables» "block_eq_hi[15]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1360 := (vt_goodL (rd := rd) (w := w) hl 1402 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[70]")) (.n (val% «verify_tables» "block_eq_hi[16]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1362 := (vt_goodL (rd := rd) (w := w) hl 1404 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[71]")) (.n (val% «verify_tables» "block_eq_hi[17]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1364 := (vt_goodL (rd := rd) (w := w) hl 1406 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[72]")) (.n (val% «verify_tables» "block_eq_hi[18]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1366 := (vt_goodL (rd := rd) (w := w) hl 1408 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[73]")) (.n (val% «verify_tables» "block_eq_hi[19]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1368 := (vt_goodL (rd := rd) (w := w) hl 1410 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[74]")) (.n (val% «verify_tables» "block_eq_hi[20]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1370 := (vt_goodL (rd := rd) (w := w) hl 1412 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[75]")) (.n (val% «verify_tables» "block_eq_hi[21]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1372 := (vt_goodL (rd := rd) (w := w) hl 1414 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[76]")) (.n (val% «verify_tables» "block_eq_hi[22]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1374 := (vt_goodL (rd := rd) (w := w) hl 1416 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[77]")) (.n (val% «verify_tables» "block_eq_hi[23]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1376 := (vt_goodL (rd := rd) (w := w) hl 1418 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[78]")) (.n (val% «verify_tables» "block_eq_hi[24]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1378 := (vt_goodL (rd := rd) (w := w) hl 1420 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[79]")) (.n (val% «verify_tables» "block_eq_hi[25]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1380 := (vt_goodL (rd := rd) (w := w) hl 1422 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[80]")) (.n (val% «verify_tables» "block_eq_hi[26]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1382 := (vt_goodL (rd := rd) (w := w) hl 1424 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[81]")) (.n (val% «verify_tables» "block_eq_hi[27]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1384 := (vt_goodL (rd := rd) (w := w) hl 1426 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[82]")) (.n (val% «verify_tables» "block_eq_hi[28]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1386 := (vt_goodL (rd := rd) (w := w) hl 1428 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[83]")) (.n (val% «verify_tables» "block_eq_hi[29]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1388 := (vt_goodL (rd := rd) (w := w) hl 1430 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[84]")) (.n (val% «verify_tables» "block_eq_hi[30]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1390 := (vt_goodL (rd := rd) (w := w) hl 1432 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[85]")) (.n (val% «verify_tables» "block_eq_hi[31]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1392 := (vt_goodL (rd := rd) (w := w) hl 1434 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[86]")) (.n (val% «verify_tables» "block_eq_hi[32]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1394 := (vt_goodL (rd := rd) (w := w) hl 1436 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[87]")) (.n (val% «verify_tables» "block_eq_hi[33]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1396 := (vt_goodL (rd := rd) (w := w) hl 1438 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[88]")) (.n (val% «verify_tables» "block_eq_hi[34]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1398 := (vt_goodL (rd := rd) (w := w) hl 1440 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[89]")) (.n (val% «verify_tables» "block_eq_hi[35]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1400 := (vt_goodL (rd := rd) (w := w) hl 1442 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[90]")) (.n (val% «verify_tables» "block_eq_hi[36]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1402 := (vt_goodL (rd := rd) (w := w) hl 1444 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[91]")) (.n (val% «verify_tables» "block_eq_hi[37]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1404 := (vt_goodL (rd := rd) (w := w) hl 1446 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[92]")) (.n (val% «verify_tables» "block_eq_hi[38]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1406 := (vt_goodL (rd := rd) (w := w) hl 1448 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[93]")) (.n (val% «verify_tables» "block_eq_hi[39]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1408 := (vt_goodL (rd := rd) (w := w) hl 1450 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[94]")) (.n (val% «verify_tables» "block_eq_hi[40]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1410 := (vt_goodL (rd := rd) (w := w) hl 1452 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[95]")) (.n (val% «verify_tables» "block_eq_hi[41]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1412 := (vt_goodL (rd := rd) (w := w) hl 1454 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[96]")) (.n (val% «verify_tables» "block_eq_hi[42]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1414 := (vt_goodL (rd := rd) (w := w) hl 1456 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[97]")) (.n (val% «verify_tables» "block_eq_hi[43]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1416 := (vt_goodL (rd := rd) (w := w) hl 1458 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[98]")) (.n (val% «verify_tables» "block_eq_hi[44]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1418 := (vt_goodL (rd := rd) (w := w) hl 1460 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[99]")) (.n (val% «verify_tables» "block_eq_hi[45]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1420 := (vt_goodL (rd := rd) (w := w) hl 1462 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[100]")) (.n (val% «verify_tables» "block_eq_hi[46]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1422 := (vt_goodL (rd := rd) (w := w) hl 1464 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[101]")) (.n (val% «verify_tables» "block_eq_hi[47]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1424 := (vt_goodL (rd := rd) (w := w) hl 1466 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[102]")) (.n (val% «verify_tables» "block_eq_hi[48]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1426 := (vt_goodL (rd := rd) (w := w) hl 1468 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[103]")) (.n (val% «verify_tables» "block_eq_hi[49]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1428 := (vt_goodL (rd := rd) (w := w) hl 1470 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[104]")) (.n (val% «verify_tables» "block_eq_hi[50]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1430 := (vt_goodL (rd := rd) (w := w) hl 1472 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[105]")) (.n (val% «verify_tables» "block_eq_hi[51]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1432 := (vt_goodL (rd := rd) (w := w) hl 1474 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[106]")) (.n (val% «verify_tables» "block_eq_hi[52]")))] (by rw [vtPre_drop]; decide +kernel)).1
+  have g1434 := (vt_goodL (rd := rd) (w := w) hl 1476 [.atom (.copy (.n (val% «verify_tables» "block_eq_hi[107]")) (.n (val% «verify_tables» "block_eq_hi[53]")))] (by rw [vtPre_drop]; decide +kernel)).1
   generalize vtσ rd w args = σ at g1334 g1336 g1338 g1340 g1342 g1344 g1346 g1348 g1350 g1352 g1354 g1356 g1358 g1360 g1362 g1364 g1366 g1368 g1370 g1372 g1374 g1376 g1378 g1380 g1382 g1384 g1386 g1388 g1390 g1392 g1394 g1396 g1398 g1400 g1402 g1404 g1406 g1408 g1410 g1412 g1414 g1416 g1418 g1420 g1422 g1424 g1426 g1428 g1430 g1432 g1434 ⊢
   simp only [GoodS, fixNe, Good] at g1334 g1336 g1338 g1340 g1342 g1344 g1346 g1348 g1350 g1352 g1354 g1356 g1358 g1360 g1362 g1364 g1366 g1368 g1370 g1372 g1374 g1376 g1378 g1380 g1382 g1384 g1386 g1388 g1390 g1392 g1394 g1396 g1398 g1400 g1402 g1404 g1406 g1408 g1410 g1412 g1414 g1416 g1418 g1420 g1422 g1424 g1426 g1428 g1430 g1432 g1434
   simp only [VtPullSelsH, g1334, g1336, g1338, g1340, g1342, g1344, g1346, g1348, g1350, g1352, g1354, g1356, g1358, g1360, g1362, g1364, g1366, g1368, g1370, g1372, g1374, g1376, g1378, g1380, g1382, g1384, g1386, g1388, g1390, g1392, g1394, g1396, g1398, g1400, g1402, g1404, g1406, g1408, g1410, g1412, g1414, g1416, g1418, g1420, g1422, g1424, g1426, g1428, g1430, g1432, g1434, and_self]
 
 /-- **`ξ`'s powers**, honestly. -/
 theorem vt_xi_good (hl : args.length = 21) :
-    vtσ rd w args (.n 2610) = 1 ∧ vtσ rd w args (.n 2611) = vtσ rd w args (.n 2597) ∧
-      vtσ rd w args (.n 2612) = vtσ rd w args (.n 2597) ^ 2 ∧
-      vtσ rd w args (.n 2613) = vtσ rd w args (.n 2597) ^ 3 ∧
-      vtσ rd w args (.n 2614) = vtσ rd w args (.n 2597) ^ 4 := by
-  have g := vt_goodL (rd := rd) (w := w) hl 2631 [.atom (.const (.n 2610) (word 1 0)),
-    .atom (.mul (.n 2611) (.n 2610) (.n 2597)), .atom (.mul (.n 2612) (.n 2611) (.n 2597)),
-    .atom (.mul (.n 2613) (.n 2612) (.n 2597)), .atom (.mul (.n 2614) (.n 2613) (.n 2597))]
+    vtσ rd w args (.n (val% «verify_tables» "zc_xi_pows[0]")) = 1 ∧ vtσ rd w args (.n (val% «verify_tables» "zc_xi_pows[1]")) = vtσ rd w args (.n (val% «verify_tables» "nxt[0]@3")) ∧
+      vtσ rd w args (.n (val% «verify_tables» "zc_xi_pows[2]")) = vtσ rd w args (.n (val% «verify_tables» "nxt[0]@3")) ^ 2 ∧
+      vtσ rd w args (.n (val% «verify_tables» "zc_xi_pows[3]")) = vtσ rd w args (.n (val% «verify_tables» "nxt[0]@3")) ^ 3 ∧
+      vtσ rd w args (.n (val% «verify_tables» "zc_xi_pows[4]")) = vtσ rd w args (.n (val% «verify_tables» "nxt[0]@3")) ^ 4 := by
+  have g := vt_goodL (rd := rd) (w := w) hl 2631 [.atom (.const (.n (val% «verify_tables» "zc_xi_pows[0]")) (word 1 0)),
+    .atom (.mul (.n (val% «verify_tables» "zc_xi_pows[1]")) (.n (val% «verify_tables» "zc_xi_pows[0]")) (.n (val% «verify_tables» "nxt[0]@3"))), .atom (.mul (.n (val% «verify_tables» "zc_xi_pows[2]")) (.n (val% «verify_tables» "zc_xi_pows[1]")) (.n (val% «verify_tables» "nxt[0]@3"))),
+    .atom (.mul (.n (val% «verify_tables» "zc_xi_pows[3]")) (.n (val% «verify_tables» "zc_xi_pows[2]")) (.n (val% «verify_tables» "nxt[0]@3"))), .atom (.mul (.n (val% «verify_tables» "zc_xi_pows[4]")) (.n (val% «verify_tables» "zc_xi_pows[3]")) (.n (val% «verify_tables» "nxt[0]@3")))]
     (by rw [vtPre_drop]; decide +kernel)
   generalize vtσ rd w args = σ at g ⊢
   simp only [GoodL, GoodS, fixNe, Good, Nat.reduceLT, and_self, ↓reduceIte, and_true] at g
@@ -112,14 +114,14 @@ theorem vt_xi_good (hl : args.length = 21) :
 /-- **The GKR leaf values** are read from `gkr_leaves` (`args 17`). -/
 theorem vt_leaves_good (hl : args.length = 21) {leaves : List E} (hll : leaves.length = 3)
     (h : TbReadsAt rd (args.getD 17 0) leaves) :
-    vtσ rd w args (.n 2441) = leaves.getD 0 0 ∧ vtσ rd w args (.n 2487) = leaves.getD 1 0 ∧
-      vtσ rd w args (.n 2542) = leaves.getD 2 0 := by
-  have hp : vtσ rd w args (.n 17) = args.getD 17 0 := vt_param hl (by norm_num)
-  have rd0 := vt_read (rd := rd) (w := w) hl 2487 (d := .n 2441) (p := .n 17) (off := 0)
+    vtσ rd w args (.n (val% «verify_tables» "s52.u0.s5#0")) = leaves.getD 0 0 ∧ vtσ rd w args (.n (val% «verify_tables» "s52.u1.s5#0")) = leaves.getD 1 0 ∧
+      vtσ rd w args (.n (val% «verify_tables» "s52.u2.s5#0")) = leaves.getD 2 0 := by
+  have hp : vtσ rd w args (.n (val% «verify_tables» "gkr_leaves")) = args.getD 17 0 := vt_param hl (by norm_num)
+  have rd0 := vt_read (rd := rd) (w := w) hl 2487 (d := .n (val% «verify_tables» "s52.u0.s5#0")) (p := .n (val% «verify_tables» "gkr_leaves")) (off := 0)
     (by rw [vtPre_drop]; decide +kernel) (by decide)
-  have rd1 := vt_read (rd := rd) (w := w) hl 2533 (d := .n 2487) (p := .n 17) (off := 1)
+  have rd1 := vt_read (rd := rd) (w := w) hl 2533 (d := .n (val% «verify_tables» "s52.u1.s5#0")) (p := .n (val% «verify_tables» "gkr_leaves")) (off := 1)
     (by rw [vtPre_drop]; decide +kernel) (by decide)
-  have rd2 := vt_read (rd := rd) (w := w) hl 2588 (d := .n 2542) (p := .n 17) (off := 2)
+  have rd2 := vt_read (rd := rd) (w := w) hl 2588 (d := .n (val% «verify_tables» "s52.u2.s5#0")) (p := .n (val% «verify_tables» "gkr_leaves")) (off := 2)
     (by rw [vtPre_drop]; decide +kernel) (by decide)
   rw [hp] at rd0 rd1 rd2
   have l0 := h 0 (by omega)
@@ -130,7 +132,7 @@ theorem vt_leaves_good (hl : args.length = 21) {leaves : List E} (hll : leaves.l
   · rw [rd1, rdAt, l1.2, Option.getD_some, List.getD_eq_getElem _ _ (by omega)]
   · rw [rd2, rdAt, l2.2, Option.getD_some, List.getD_eq_getElem _ _ (by omega)]
 
-theorem vtPermCap_38 : vtPermCap 38 = [.n 4681, .n 4682, .n 4683, .n 4684, .n 4685] := by
+theorem vtPermCap_38 : vtPermCap 38 = [.n (val% «verify_tables» "nxt[8]@41"), .n (val% «verify_tables» "nxt[9]@41"), .n (val% «verify_tables» "nxt[10]@41"), .n (val% «verify_tables» "nxt[11]@41"), .n (val% «verify_tables» "nxt[12]@41")] := by
   decide +kernel
 
 theorem vtEvB_152 : vtEvB 152 = 4686 := by decide +kernel
@@ -145,11 +147,11 @@ theorem vt_evalFs_good (hl : args.length = 21)
       vtCapV (vtσ rd w args) (j + 1) = capOf (Fs.perm ⟨vtCapV (vtσ rd w args) j,
         (((vtEvs (vtσ rd w args)).drop (4 * j)).take 4).map (·, dsObserve)⟩)) :
     rateOf (vtEvalFs (vtσ rd w args)).pend =
-        [vtσ rd w args (.n 4687), vtσ rd w args (.n 4688), 0, 0, 0, 0, 0, 0] ∧
-      (vtEvalFs (vtσ rd w args)).cap = [vtσ rd w args (.n 4681), vtσ rd w args (.n 4682),
-        vtσ rd w args (.n 4683), vtσ rd w args (.n 4684), vtσ rd w args (.n 4685)] := by
-  have g := vt_goodL (rd := rd) (w := w) hl 4262 [.atom (.copy (.n 4687) (.n 4686)),
-    .atom (.const (.n 4688) (word 0 1))] (by rw [vtPre_drop]; decide +kernel)
+        [vtσ rd w args (.n (val% «verify_tables» "rate[0]@42")), vtσ rd w args (.n (val% «verify_tables» "rate[1]@42")), 0, 0, 0, 0, 0, 0] ∧
+      (vtEvalFs (vtσ rd w args)).cap = [vtσ rd w args (.n (val% «verify_tables» "nxt[8]@41")), vtσ rd w args (.n (val% «verify_tables» "nxt[9]@41")),
+        vtσ rd w args (.n (val% «verify_tables» "nxt[10]@41")), vtσ rd w args (.n (val% «verify_tables» "nxt[11]@41")), vtσ rd w args (.n (val% «verify_tables» "nxt[12]@41"))] := by
+  have g := vt_goodL (rd := rd) (w := w) hl 4262 [.atom (.copy (.n (val% «verify_tables» "rate[0]@42")) (.n (val% «verify_tables» "x@161"))),
+    .atom (.const (.n (val% «verify_tables» "rate[1]@42")) (word 0 1))] (by rw [vtPre_drop]; decide +kernel)
   generalize vtσ rd w args = σ at g hF ⊢
   simp only [GoodL, GoodS, fixNe, Good, and_true] at g
   obtain ⟨g0, g1⟩ := g

@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerCG
 public import LeanVM.Guest.B1.KeccakGkr.FlatF
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
 /-!
 # A layer's placement facts
@@ -46,8 +48,8 @@ theorem layerT_pre (first : ℕ) : layerT first = layerPre first ++ [.ret (layer
 
 theorem layer_fn {first : ℕ} (hf : first < 2) :
     ∃ fn, coreProgram.find? (layerName first) = some fn ∧ fn.body = layerT first ∧
-      fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12,
-        .n 13, .n 14, .n 15] := by
+      fn.params = [.n (valf% «keccak_layer» "fs0"), .n (valf% «keccak_layer» "fs1"), .n (valf% «keccak_layer» "fs2"), .n (valf% «keccak_layer» "fs3"), .n (valf% «keccak_layer» "fs4"), .n (valf% «keccak_layer» "p0"), .n (valf% «keccak_layer» "p1"), .n (valf% «keccak_layer» "cursor@1"), .n (valf% «keccak_layer» "y_g"), .n (valf% «keccak_layer» "step_g"), .n (valf% «keccak_layer» "rem_g"), .n (valf% «keccak_layer» "claim"), .n (valf% «keccak_layer» "out"),
+        .n (valf% «keccak_layer» "iota"), .n (valf% «keccak_layer» "tabs"), .n (valf% «keccak_layer» "stream")] := by
   interval_cases first
   · exact ⟨_, find_layer265, layer_body265, rfl⟩
   · exact ⟨_, find_layer264, layer_body264, rfl⟩
@@ -63,7 +65,7 @@ def dispB : Stmt → Bool
 
 /-- The pointers the body loads through, each with a bound on the offsets. -/
 def layerGroups (first : ℕ) : List (V × ℕ) :=
-  [(.n 7, 48), (.n 11, 22), (.n 12, 22), (.n (layOff first + 719), 112),
+  [(.n (valf% «keccak_layer» "cursor@1"), 48), (.n (valf% «keccak_layer» "claim"), 22), (.n (valf% «keccak_layer» "out"), 22), (.n (layOff first + 719), 112),
     (.n (layOff first + 737), 97), (.n (layOff first + 743), 36),
     (.n (layOff first + 1176), 25), (.n (layOff first + 745), 11), (.n (tW first + 25), 25),
     (.n (topV (tW first) + 3), 7)] ++
@@ -72,19 +74,19 @@ def layerGroups (first : ℕ) : List (V × ℕ) :=
 /-- The calls of the body: the grind's `grind_check`, the eight-round loop and the remainder
 loop. -/
 def layerCalls (first : ℕ) : List (Option V × String × List V × List V) :=
-  [(none, grindCheckName 3, [.n (layOff first + 532), .n 14], []),
+  [(none, grindCheckName 3, [.n (layOff first + 532), .n (valf% «keccak_layer» "tabs")], []),
     (some (.n (layOff first + 723)), packLoopName first,
-      [.n (layOff first + 724), .n 9, .n (layOff first + 719), .n (layOff first + 717),
-        .n (layOff first + 718), .n 14], []),
+      [.n (layOff first + 724), .n (valf% «keccak_layer» "step_g"), .n (layOff first + 719), .n (layOff first + 717),
+        .n (layOff first + 718), .n (valf% «keccak_layer» "tabs")], []),
     (some (.n (layOff first + 735)), remLoopName first,
-      [.n (layOff first + 736), .n 10, .n (layOff first + 725), .n (layOff first + 729), .n 14,
+      [.n (layOff first + 736), .n (valf% «keccak_layer» "rem_g"), .n (layOff first + 725), .n (layOff first + 729), .n (valf% «keccak_layer» "tabs"),
         .n (layOff first + 733)], [])]
 
 theorem layerPre_kernel {first : ℕ} (hf : first < 2) :
     (layerPre first).all Stmt.flat = true ∧
     (layerPre first).filterMap Main.Stmt.addrS = [] ∧
     (layerPre first).filterMap Main.Stmt.allocSz =
-      [(.n (layOff first + 718), .inr (.n 8)), (.n (layOff first + 719), .inl 112),
+      [(.n (layOff first + 718), .inr (.n (valf% «keccak_layer» "y_g"))), (.n (layOff first + 719), .inl 112),
         (.n (layOff first + 745), .inl 11), (.n (tW first + 25), .inl 25),
         (.n (topV (tW first) + 3), .inl 7)] ∧
     (layerPre first).all (fun s ↦ !dispB s) = true ∧

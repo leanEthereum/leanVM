@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerCG1
 public import LeanVM.Guest.B1.KeccakGkr.LayerCPack
 public import LeanVM.Guest.B1.KeccakGkr.LayerCD
 public import LeanVM.Guest.B1.KeccakGkr.LayerHolds
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
 /-!
 # A layer's body, completely
@@ -133,26 +135,26 @@ theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
   rw [eσ]
   clear eσ hσ'
   rw [hcapE] at hpar
-  have a0 : σ (.n 0) = f0 := hpar 0 (by norm_num)
-  have a1 : σ (.n 1) = f1 := hpar 1 (by norm_num)
-  have a2 : σ (.n 2) = f2 := hpar 2 (by norm_num)
-  have a3 : σ (.n 3) = f3 := hpar 3 (by norm_num)
-  have a4 : σ (.n 4) = f4 := hpar 4 (by norm_num)
-  have a5 : σ (.n 5) = p0 := hpar 5 (by norm_num)
-  have a6 : σ (.n 6) = p1 := hpar 6 (by norm_num)
-  have a7 : σ (.n 7) = cur := hpar 7 (by norm_num)
-  have a9 : σ (.n 9) = gen ^ (D.y / 8) := hpar 9 (by norm_num)
-  have a10 : σ (.n 10) = gen ^ (D.y % 8) := hpar 10 (by norm_num)
-  have a11 : σ (.n 11) = claim := hpar 11 (by norm_num)
-  have a12 : σ (.n 12) = out := hpar 12 (by norm_num)
-  have a13 : σ (.n 13) = iota := hpar 13 (by norm_num)
-  have a14 : σ (.n 14) = tb := hpar 14 (by norm_num)
+  have a0 : σ (.n (valf% «keccak_layer» "fs0")) = f0 := hpar 0 (by norm_num)
+  have a1 : σ (.n (valf% «keccak_layer» "fs1")) = f1 := hpar 1 (by norm_num)
+  have a2 : σ (.n (valf% «keccak_layer» "fs2")) = f2 := hpar 2 (by norm_num)
+  have a3 : σ (.n (valf% «keccak_layer» "fs3")) = f3 := hpar 3 (by norm_num)
+  have a4 : σ (.n (valf% «keccak_layer» "fs4")) = f4 := hpar 4 (by norm_num)
+  have a5 : σ (.n (valf% «keccak_layer» "p0")) = p0 := hpar 5 (by norm_num)
+  have a6 : σ (.n (valf% «keccak_layer» "p1")) = p1 := hpar 6 (by norm_num)
+  have a7 : σ (.n (valf% «keccak_layer» "cursor@1")) = cur := hpar 7 (by norm_num)
+  have a9 : σ (.n (valf% «keccak_layer» "step_g")) = gen ^ (D.y / 8) := hpar 9 (by norm_num)
+  have a10 : σ (.n (valf% «keccak_layer» "rem_g")) = gen ^ (D.y % 8) := hpar 10 (by norm_num)
+  have a11 : σ (.n (valf% «keccak_layer» "claim")) = claim := hpar 11 (by norm_num)
+  have a12 : σ (.n (valf% «keccak_layer» "out")) = out := hpar 12 (by norm_num)
+  have a13 : σ (.n (valf% «keccak_layer» "iota")) = iota := hpar 13 (by norm_num)
+  have a14 : σ (.n (valf% «keccak_layer» "tabs")) = tb := hpar 14 (by norm_num)
   clear hpar
   have ho := layOff_ok hf
   rw [layerT_sections] at hG ⊢
   have hNS := layer_noStore hf
-  have hS7 := not_mem_of_noStoreVia hNS (p := .n 7) (by simp)
-  have hS11 := not_mem_of_noStoreVia hNS (p := .n 11) (by simp)
+  have hS7 := not_mem_of_noStoreVia hNS (p := .n (valf% «keccak_layer» "cursor@1")) (by simp)
+  have hS11 := not_mem_of_noStoreVia hNS (p := .n (valf% «keccak_layer» "claim")) (by simp)
   have hS72 := not_mem_of_noStoreVia hNS (p := .n (layOff first + 737)) (by simp)
   have hS78 := not_mem_of_noStoreVia hNS (p := .n (layOff first + 743)) (by simp)
   obtain ⟨hRe, hRw, hRt, hRtop, hRf, hRfl⟩ := layer_residOk hf
@@ -186,7 +188,7 @@ theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
   have gTl : ∀ s ∈ tailT (layOff first) (tW first) (tV first),
       GoodS rd (layerSt first) w σ s := fun s hs ↦ hG s (by simp [hs])
   -- the product, the grind and `s`
-  have hs0 : plainStart first [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] D.w0 =
+  have hs0 : plainStart first [σ (.n (valf% «keccak_layer» "fs0")), σ (.n (valf% «keccak_layer» "fs1")), σ (.n (valf% «keccak_layer» "fs2")), σ (.n (valf% «keccak_layer» "fs3")), σ (.n (valf% «keccak_layer» "fs4"))] D.w0 =
       D.s0 first := by rw [a0, a1, a2, a3, a4, LayerData.s0, hcapE]
   obtain ⟨-, hprodE, h532, hsq, HA⟩ := layerA_complete (C := coreProgram.Rel rd) hf hσ gA
     (hS7 · ·) (hS11 · ·) (w0 := D.w0) (fun h1 ↦ by rw [a5, a6]; exact hw h1) (c := D.c) hmuL
@@ -224,9 +226,9 @@ theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
   have g720 : σ (.n (layOff first + 719)) = w (layOff first + 719) :=
     gP (.atom (.hint (.alloc (.n (layOff first + 719)) 112))) (by simp [packSetupT])
   have g719 : σ (.n (layOff first + 718)) = w (layOff first + 718) :=
-    gP (.atom (.hint (.allocDyn (.n (layOff first + 718)) (.n 8)))) (by simp [packSetupT])
+    gP (.atom (.hint (.allocDyn (.n (layOff first + 718)) (.n (valf% «keccak_layer» "y_g"))))) (by simp [packSetupT])
   have hrec0 : RoundRec rd (σ (.n (layOff first + 719))) 0 ((cap5 (layOff first + 539)).map σ)
-      (σ (.n 7) * gen ^ 48) (σ (.n (layOff first + 716))) := by
+      (σ (.n (valf% «keccak_layer» "cursor@1")) * gen ^ 48) (σ (.n (layOff first + 716))) := by
     have := LayerData.recWords_rec hrec (j := 0) (by norm_num) (by omega)
     rw [g720, ecapS, a7, e717]
     simpa [LayerData.recK, LayerData.run_zero, LayerData.recCur] using this
@@ -351,16 +353,16 @@ theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
   have gfl : σ (.n (topV (tW first) + 3)) = w (topV (tW first) + 3) :=
     gTP (.atom (.hint (.alloc (.n (topV (tW first) + 3)) 7))) (by
       simp [tailPre, tailA1, tailTop])
-  have ho' : ∀ k < 6, LoadHolds rd (σ (.n 12)) k ((D.outW first (w (layOff first + 718))
+  have ho' : ∀ k < 6, LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) k ((D.outW first (w (layOff first + 718))
       (w (tW first + 25)) (w (layOff first + 745)) (w (topV (tW first) + 3))).getD k 0) :=
     fun k hk ↦ by rw [a12]; exact kk_readsAt_getD hout (by simp [LayerData.outW]; omega)
   have e1190 : σ (.n (layOff first + 1176)) = cw.getD 3 0 := by
-    have g := gW (.atom (.load (.n (layOff first + 1176)) (.n 11) 3)) (by
+    have g := gW (.atom (.load (.n (layOff first + 1176)) (.n (valf% «keccak_layer» "claim")) 3)) (by
       unfold weightT; split <;> simp)
     exact load_val (w := w) g (hS11 _ _) (by rw [a11]; exact hcw' 3 (by norm_num))
   have e1191 : first = 0 → σ (.n (layOff first + 1177)) = cw.getD 4 0 := by
     intro h0
-    have g := gW (.atom (.load (.n (layOff first + 1177)) (.n 11) 4)) (by
+    have g := gW (.atom (.load (.n (layOff first + 1177)) (.n (valf% «keccak_layer» "claim")) 4)) (by
       unfold weightT; simp [h0])
     exact load_val (w := w) g (hS11 _ _) (by rw [a11]; exact hcw' 4 (by norm_num))
   refine ⟨⟨by rw [e739, e727, g720, a9, a10], h532, e745, e1190, e1191, e718⟩, ?_⟩

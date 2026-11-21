@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Tables.Vt.EvalsT
 public import LeanVM.Guest.B1.Gkr.Root
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # The table evaluations
@@ -39,7 +41,7 @@ theorem vtEvs_getD (σ : Val) {k : ℕ} (hk : k < 153) : (vtEvs σ).getD k 0 = �
 
 /-- **Evaluation `k`.** -/
 theorem vt_eval {rd : Reader} {σ : Val} (h : VtH rd σ) {k : ℕ} (hk : k < 153) :
-    LoadHolds rd (σ (.n 2647)) k (σ (.n (vtEvB k))) ∧
+    LoadHolds rd (σ (.n (val% «verify_tables» "cursor@5"))) k (σ (.n (vtEvB k))) ∧
       FsPackOk σ (.n (vtEvB k)) (vtEvB k + 1) dsObserve ∧
       σ (.n (vtEvB k + 3)) = σ (.n (vtEvB k)) := by
   obtain ⟨_, hs⟩ := h.sliceAt _ _ (vtEval_check k hk)

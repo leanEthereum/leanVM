@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B1.Tables.Kids.Loop9
 public import LeanVM.Guest.B1.Tables.Vt.Loop10
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables_loop0»
 
 /-!
 # `verify_tables_loop0`, loading from a region
@@ -44,8 +46,8 @@ def l10Tbl : List (ℕ × ℕ) := [(10, 14), (16, 1), (17, 1), (20, 2)]
 theorem l10_loads : l10Pre.all (loadsViaB l10Tbl) = true := by decide +kernel
 
 theorem l10_calls : l10Pre.filterMap Main.Stmt.callS =
-    [(none, "sumcheck_round4", [.n 10, .n 11, .n 12, .n 3], [.n 13, .n 14, .n 15]),
-      (some (.n 23), name% «verify_tables_loop0», [.n 25, .n 1, .n 2, .n 3, .n 4, .n 5], [])] := by
+    [(none, "sumcheck_round4", [.n (val% «verify_tables_loop0» "rd"), .n (val% «verify_tables_loop0» "ncur~3"), .n (val% «verify_tables_loop0» "ncur~4"), .n (val% «verify_tables_loop0» "tabs")], [.n (val% «verify_tables_loop0» "ncur"), .n (val% «verify_tables_loop0» "nclaim"), .n (val% «verify_tables_loop0» "rk")]),
+      (some (.n (val% «verify_tables_loop0» "s8#2")), name% «verify_tables_loop0», [.n (val% «verify_tables_loop0» "s8#4"), .n (val% «verify_tables_loop0» "bound"), .n (val% «verify_tables_loop0» "zc_rounds"), .n (val% «verify_tables_loop0» "tabs"), .n (val% «verify_tables_loop0» "zc_rk"), .n (val% «verify_tables_loop0» "zc_cprod")], [])] := by
   decide +kernel
 
 theorem gen_pow_pred_inv {K : ℕ} (hK : 0 < K) : gen ^ K * vtWInvGen = gen ^ (K - 1) := by
@@ -81,7 +83,7 @@ theorem loop10_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ}
     simp only [Atom.Holds] at m6 m7 m8 m9 m10 l11 l12 m16 l15 l13 l14 m17 l18 m19 m20 l19 c21 m22
     simp only [Atom.Holds] at a23 c24 m25
     rw [tb_word_gen] at c21 c24
-    have e10 : σ (.n 10) = rounds * gen ^ (7 * k) := by
+    have e10 : σ (.n (val% «verify_tables_loop0» "rd")) = rounds * gen ^ (7 * k) := by
       rw [m10, m9, m8, m7, m6, p0, p2]; ring
     refine ⟨fun s hs ↦ dispOk_of_noDisp (List.all_eq_true.mp l10_noDisp s hs),
       loads_via l10_loads fun pb hpb ↦ ?_, fun c hc' ht ↦ ?_⟩
@@ -101,8 +103,8 @@ theorem loop10_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ}
         · exact hcur k hk _ (by rw [← e10]; exact l11)
       · -- the next iteration
         simp only [Main.mkCall, decide_eq_true_eq] at ht ⊢
-        have e25 : σ (.n 25) = gen ^ (k + 1) := by rw [m25, c24, p0, pow_succ]
-        have e23 : σ (.n 23) = gen ^ (k + 1) + gen ^ K := by rw [a23, m22, c21, p0, p1, pow_succ]
+        have e25 : σ (.n (val% «verify_tables_loop0» "s8#4")) = gen ^ (k + 1) := by rw [m25, c24, p0, pow_succ]
+        have e23 : σ (.n (val% «verify_tables_loop0» "s8#2")) = gen ^ (k + 1) + gen ^ K := by rw [a23, m22, c21, p0, p1, pow_succ]
         have hk1 : k + 1 < K := by
           rcases Nat.lt_or_ge (k + 1) K with h' | h'
           · exact h'

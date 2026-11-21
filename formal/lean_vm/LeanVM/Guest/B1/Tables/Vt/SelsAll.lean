@@ -11,6 +11,8 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.Sels
 public import LeanVM.Guest.B1.Tables.Vt.SelFw
 public import LeanVM.Guest.B1.Tables.Vt.Shared
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # All the block selectors
@@ -130,8 +132,8 @@ theorem vt_running_sum (S : ℕ → E) (prev : ℕ → E) (x : ℕ → E) (s0 : 
 
 /-- The shared tables' pointers a table block `t > 0` steps from. -/
 theorem vt_ptr_step {rd : Reader} {σ : Val} (h : VtH rd σ) {t : ℕ} (ht : t < 6) (ht0 : 0 < t) :
-    σ (.n (vtEqV (t - 1))) * vtW288 = σ (.n 702) * gen ^ (288 * t) ∧
-      σ (.n (vtGV (t - 1))) * word 21299200 0 = σ (.n 703) * gen ^ (144 * t) := by
+    σ (.n (vtEqV (t - 1))) * vtW288 = σ (.n (val% «verify_tables» "shared_eq")) * gen ^ (288 * t) ∧
+      σ (.n (vtGV (t - 1))) * word 21299200 0 = σ (.n (val% «verify_tables» "shared_g")) * gen ^ (144 * t) := by
   obtain ⟨e1, e2⟩ := vt_ptrs h (t - 1) (by omega)
   obtain ⟨s, rfl⟩ : ∃ s, t = s + 1 := ⟨t - 1, by omega⟩
   simp only [Nat.add_sub_cancel] at e1 e2 ⊢
@@ -145,23 +147,23 @@ include hμ
 
 /-- **All the block selectors.** -/
 theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
-    (hz : TbReadsAt Lm.read (σ (.n 8)) point) (hmu : σ (.n 9) = gen ^ point.length)
-    (hml : point.length < 33) (hE : ExpTablesAt Lm.read (σ (.n 12))) {lm : ℕ}
+    (hz : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "zeta"))) point) (hmu : σ (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length)
+    (hml : point.length < 33) (hE : ExpTablesAt Lm.read (σ (.n (val% «verify_tables» "g_squares")))) {lm : ℕ}
     (hlm : lm ≤ 32) {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t < 33)
     (hkb : ∀ i < 8, σ (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) :
     lm ≤ point.length ∧ 19 ≤ point.length ∧
-      σ (.n 789) = blockSel (vtSizesP lm τ) point.length 0 point ∧
-      σ (.n 805) = blockSel (vtSizesP lm τ) point.length 1 point ∧
-      σ (.n 833) = blockSel (vtSizesP lm τ) point.length 2 point ∧
-      σ (.n 791) = σ (.n 789) ∧ σ (.n 808) = σ (.n 805) ∧ σ (.n 836) = σ (.n 833) ∧
+      σ (.n (val% «verify_tables» "eq_hi@1")) = blockSel (vtSizesP lm τ) point.length 0 point ∧
+      σ (.n (val% «verify_tables» "eq_hi@2")) = blockSel (vtSizesP lm τ) point.length 1 point ∧
+      σ (.n (val% «verify_tables» "eq_hi@3")) = blockSel (vtSizesP lm τ) point.length 2 point ∧
+      σ (.n (val% «verify_tables» "block_eq_hi[0]")) = σ (.n (val% «verify_tables» "eq_hi@1")) ∧ σ (.n (val% «verify_tables» "block_eq_hi[1]")) = σ (.n (val% «verify_tables» "eq_hi@2")) ∧ σ (.n (val% «verify_tables» "block_eq_hi[2]")) = σ (.n (val% «verify_tables» "eq_hi@3")) ∧
       (∀ i < 51, σ (.n (vtPushPadData.getD i default).2.2.1) =
         blockSel (vtSizesP lm τ) point.length (3 + i) point) ∧
-      σ (.n 1291) = σ (.n 789) + σ (.n 805) + σ (.n 833) +
+      σ (.n (val% «verify_tables» "selector_sum@53")) = σ (.n (val% «verify_tables» "eq_hi@1")) + σ (.n (val% «verify_tables» "eq_hi@2")) + σ (.n (val% «verify_tables» "eq_hi@3")) +
         (vtPushPadData.map fun x ↦ σ (.n x.2.2.1)).sum ∧
       (∀ i < 45, σ (.n (vtCountPadData.getD i default).2.2.1) =
         blockSel (vtSizesC τ) point.length i point) ∧
-      σ (.n 1824) = (vtCountPadData.map fun x ↦ σ (.n x.2.2.1)).sum := by
-  have hsq : TbReadsAt Lm.read (σ (.n 12)) gSquaresList := hE.1
+      σ (.n (val% «verify_tables» "selector_sum@150")) = (vtCountPadData.map fun x ↦ σ (.n x.2.2.1)).sum := by
+  have hsq : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "g_squares"))) gSquaresList := hE.1
   obtain ⟨hoP, hoC⟩ := vt_sort hμ Lm h hlm hτ hkb hE
   rw [vt_sizesP_eq] at hoP
   rw [vt_sizesC_eq] at hoC
@@ -175,10 +177,10 @@ theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
     have := hkb (2 + t) (by omega)
     rwa [show 26 + (2 + t) = 28 + t by omega, Nat.add_comm 2 t, vt_tau_getD lm τ ht] at this
   -- the framework blocks
-  have k0 : σ (.n 26) = gen ^ (vtSizesP lm τ).getD 0 0 := hkb 0 (by norm_num)
-  have k1 : σ (.n 27) = gen ^ (vtSizesP lm τ).getD 1 0 := hkb 1 (by norm_num)
-  have k2 : σ (.n 822) = gen ^ (vtSizesP lm τ).getD 2 0 := by
-    have e0 : σ (.n 26) = 1 := by simpa using hkb 0 (by norm_num)
+  have k0 : σ (.n (val% «verify_tables» "kb[0]")) = gen ^ (vtSizesP lm τ).getD 0 0 := hkb 0 (by norm_num)
+  have k1 : σ (.n (val% «verify_tables» "kb[1]")) = gen ^ (vtSizesP lm τ).getD 1 0 := hkb 1 (by norm_num)
+  have k2 : σ (.n (val% «verify_tables» "kappa_g@2")) = gen ^ (vtSizesP lm τ).getD 2 0 := by
+    have e0 : σ (.n (val% «verify_tables» "kb[0]")) = 1 := by simpa using hkb 0 (by norm_num)
     rw [vt_fw2_kappa h, e0, one_mul]; rfl
   have f0 := vt_fwblock hμ Lm h vtFw0_check hmu hml hz1 hidxc k0 (by simp [vtSizesP])
     (hoP 0 (by norm_num)) (hobP 0)
@@ -194,7 +196,7 @@ theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
   simp only [vtSizesP, List.cons_append, List.getD_cons_succ, List.getD_cons_zero] at l1 l2
   -- the shared tables
   have hsh : ∀ t < 6, ∃ d, σ (.n (vtShLen t)) = gen ^ d ∧ point.length = d + τ t ∧
-      RunTables Lm.read (σ (.n 702) * gen ^ (288 * t)) (σ (.n 703) * gen ^ (144 * t)) d
+      RunTables Lm.read (σ (.n (val% «verify_tables» "shared_eq")) * gen ^ (288 * t)) (σ (.n (val% «verify_tables» "shared_g")) * gen ^ (144 * t)) d
         (point.drop (τ t)) ((point.map (1 + ·)).drop (τ t)) ((gSquaresList.drop (τ t)).take d) :=
     fun t ht => vt_shared hμ Lm h hz hmu hml hz1 hsq ht (hτ t ht) (hkbt t ht)
   -- a table block's selector
@@ -211,8 +213,8 @@ theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
           σ (.n (vtSelE w t)) := by
     intro sizes b c w t prev pos es gs gw hc ht hd hsz hob hoff
     obtain ⟨d, hdv, hpl, hrun⟩ := hsh t ht
-    have hptr : 0 < t → σ (.n es) * vtW288 = σ (.n 702) * gen ^ (288 * t) ∧
-        σ (.n gs) * word gw 0 = σ (.n 703) * gen ^ (144 * t) := fun ht0 => by
+    have hptr : 0 < t → σ (.n es) * vtW288 = σ (.n (val% «verify_tables» "shared_eq")) * gen ^ (288 * t) ∧
+        σ (.n gs) * word gw 0 = σ (.n (val% «verify_tables» "shared_g")) * gen ^ (144 * t) := fun ht0 => by
       obtain ⟨rfl, hg⟩ := hd ht0
       refine ⟨(vt_ptr_step h ht ht0).1, ?_⟩
       rcases hg with ⟨rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩
@@ -277,7 +279,7 @@ theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
       (vtPushSel.getD i default).2.2.2.1 (vtPushSel.getD i default).2.2.2.2.1)))
     (fun i ↦ σ (.n (if i = 0 then 835 else vtSelSum (vtPushSel.getD (i - 1) default).2.2.1
       (vtPushSel.getD (i - 1) default).2.2.2.1 (vtPushSel.getD (i - 1) default).2.2.2.2.1)))
-    (fun i ↦ σ (.n (vtPushPadData.getD i default).2.2.1)) (σ (.n 835)) 51
+    (fun i ↦ σ (.n (vtPushPadData.getD i default).2.2.1)) (σ (.n (val% «verify_tables» "selector_sum@2"))) 51
     (fun i hi ↦ by rw [(hP i hi).2.2, (hP i hi).2.1]) (by simp)
     (fun i h0 _ ↦ by simp [show i ≠ 0 by omega]) 50 (by norm_num)
   have hsumC := vt_running_sum (fun i ↦ σ (.n (vtSelSum (vtCountSel.getD i default).2.2.1

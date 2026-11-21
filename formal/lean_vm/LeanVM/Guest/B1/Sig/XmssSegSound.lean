@@ -12,6 +12,8 @@ public import LeanVM.Guest.B1.Sig.XmssSegArms
 public import LeanVM.Guest.B1.Sig.XmssSegPath
 public import LeanVM.Guest.B1.Sig.XmssLayer
 public import LeanVM.Guest.B1.Sig.InterfaceP
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop2»
 
 /-!
 # The leanXMSS check of `main_loop2`, sound
@@ -66,7 +68,7 @@ noncomputable def sPart (layer b : Nat) (σ : Val) : LeanXmss.LayerSignature :=
 /-- **The leanXMSS signature the check of `main_loop2` verifies**, read off the loop's valuation. -/
 noncomputable def xmssSigOf (σ : Val) : LeanXmss.Signature :=
   ⟨⟨lxIndex (sKw σ), lxIndex_lt fun w _ => sKw_lt σ w⟩, fun lay =>
-    if lay = LeanXmss.bottomLayer then sPart 0 88 σ else sPart 1 (sLayer 0 88 (.n 0)).2.1 σ⟩
+    if lay = LeanXmss.bottomLayer then sPart 0 88 σ else sPart 1 (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1 σ⟩
 
 /-! ## Folds -/
 
@@ -149,28 +151,28 @@ theorem sDigest0_pad (b k : Nat) (hk : k < 5) :
 /-- **The bottom layer's digest**: the message's cells loaded, the padding run set, the digest of
 `P`, the message's address, the two cells and the randomizer. -/
 theorem sDigest0_sound (h : AtomsHold rd σ (sDigest0 88)) :
-    LoadHolds rd (σ sSigner) 2 (σ (.n 91)) ∧ LoadHolds rd (σ sSigner) 3 (σ (.n 92)) ∧
-      PadOK σ sLxPad ∧ σ (.n 90) = σ (sHis 0) + word (tw 12) 0 ∧
-      σ (.n 103) = (hcell [σ sLxPP, σ (.n 90), σ (.n 91), σ (.n 92), σ (.n 88)]).1 := by
-  have ld2 := h.atom (a := .load (.n 91) sSigner 2) (by simp [sDigest0, loadS])
-  have ld3 := h.atom (a := .load (.n 92) sSigner 3) (by simp [sDigest0, loadS])
-  have ad := h.atom (a := .add (.n 90) (sHis 0) (.n 89)) (by simp [sDigest0, addS])
-  have c89 := h.atom (a := .const (.n 89) (word (tw 12) 0)) (by simp [sDigest0, cst])
-  have cp := h.atom (a := .copy (.n 93) (.n 88)) (by simp [sDigest0, copyS])
-  have c94 := h.atom (a := .const (.n 94) (word 1 0)) (by simp [sDigest0, cst])
-  have c95 := h.atom (a := .const (.n 95) (word 0 0)) (by simp [sDigest0, cst])
-  have c96 := h.atom (a := .const (.n 96) (word 0 0)) (by simp [sDigest0, cst])
-  have c97 := h.atom (a := .const (.n 97) (word (2 ^ 63) 0)) (by simp [sDigest0, cst])
-  have p0 : σ (.n 98) = word (if 0 = 0 then 1 else 0) 0 := h.atom (sDigest0_pad 88 0 (by norm_num))
-  have p1 : σ (.n 99) = word (if 1 = 0 then 1 else 0) 0 := h.atom (sDigest0_pad 88 1 (by norm_num))
-  have p2 : σ (.n 100) = word (if 2 = 0 then 1 else 0) 0 := h.atom (sDigest0_pad 88 2 (by norm_num))
-  have p3 : σ (.n 101) = word (if 3 = 0 then 1 else 0) 0 := h.atom (sDigest0_pad 88 3 (by norm_num))
-  have p4 : σ (.n 102) = word (if 4 = 0 then 1 else 0) 0 := h.atom (sDigest0_pad 88 4 (by norm_num))
+    LoadHolds rd (σ sSigner) 2 (σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2"))) ∧ LoadHolds rd (σ sSigner) 3 (σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3"))) ∧
+      PadOK σ sLxPad ∧ σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#1")) = σ (sHis 0) + word (tw 12) 0 ∧
+      σ (.n (val% «main_loop2» "digest[0]@1")) = (hcell [σ sLxPP, σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#1")), σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2")), σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3")), σ (.n (val% «main_loop2» "rho@1"))]).1 := by
+  have ld2 := h.atom (a := .load (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2")) sSigner 2) (by simp [sDigest0, loadS])
+  have ld3 := h.atom (a := .load (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3")) sSigner 3) (by simp [sDigest0, loadS])
+  have ad := h.atom (a := .add (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#1")) (sHis 0) (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#0"))) (by simp [sDigest0, addS])
+  have c89 := h.atom (a := .const (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#0")) (word (tw 12) 0)) (by simp [sDigest0, cst])
+  have cp := h.atom (a := .copy (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#4")) (.n (val% «main_loop2» "rho@1"))) (by simp [sDigest0, copyS])
+  have c94 := h.atom (a := .const (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#4[1]")) (word 1 0)) (by simp [sDigest0, cst])
+  have c95 := h.atom (a := .const (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#4[2]")) (word 0 0)) (by simp [sDigest0, cst])
+  have c96 := h.atom (a := .const (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#4[3]")) (word 0 0)) (by simp [sDigest0, cst])
+  have c97 := h.atom (a := .const (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#5")) (word (2 ^ 63) 0)) (by simp [sDigest0, cst])
+  have p0 : σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#6")) = word (if 0 = 0 then 1 else 0) 0 := h.atom (sDigest0_pad 88 0 (by norm_num))
+  have p1 : σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#6[1]")) = word (if 1 = 0 then 1 else 0) 0 := h.atom (sDigest0_pad 88 1 (by norm_num))
+  have p2 : σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#6[2]")) = word (if 2 = 0 then 1 else 0) 0 := h.atom (sDigest0_pad 88 2 (by norm_num))
+  have p3 : σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#6[3]")) = word (if 3 = 0 then 1 else 0) 0 := h.atom (sDigest0_pad 88 3 (by norm_num))
+  have p4 : σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#6[4]")) = word (if 4 = 0 then 1 else 0) 0 := h.atom (sDigest0_pad 88 4 (by norm_num))
   simp only [Atom.Holds, word_zero] at ad c89 cp c94 c95 c96 c97
   simp only [↓reduceIte, word_zero, one_ne_zero, OfNat.ofNat_ne_zero] at p0 p1 p2 p3 p4
   refine ⟨ld2, ld3, ⟨p0, p1, p2, p3, p4⟩, by rw [ad, c89], ?_⟩
-  have hk : AtomsHold rd σ [kecS [sLxPP, .n 90, .n 91, .n 92, .n 93, .n 94, .n 95, .n 96, .n 97,
-      .n 99, .n 100, .n 101, .n 102] (runV 103 1) false false] :=
+  have hk : AtomsHold rd σ [kecS [sLxPP, .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#1"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#4"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#4[1]"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#4[2]"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#4[3]"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#5"),
+      .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#6[1]"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#6[2]"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#6[3]"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#6[4]")] (runV 103 1) false false] :=
     h.sub fun x hx => by
       simp only [List.mem_singleton] at hx
       subst hx
@@ -210,7 +212,7 @@ theorem sCodewordT_tips (W : WotsT) (target : E) (d0 : V) (dg : Nat) :
     (sCodewordT W target d0 dg).2.2 = (List.range 58).map (sTip W (dg + 70)) := by
   have hgs := sGroupsT_eq W dg (dg + 70) 15 0
   simp only [Nat.zero_add] at hgs
-  have hgs' : (sGroupsT W dg 15 0 (.n 0) (.n 0) (dg + 70)).2 = _ := hgs
+  have hgs' : (sGroupsT W dg 15 0 (.n (val% «main_loop2» "xi")) (.n (val% «main_loop2» "xi")) (dg + 70)).2 = _ := hgs
   unfold sCodewordT
   simp only
   rw [hgs']
@@ -399,22 +401,22 @@ theorem verify_lean_xmss_sound_holds : verify_lean_xmss_sound_Spec xmssSigOf := 
   obtain ⟨hld1, hpow⟩ := sPrologue_sound (atomsHold_of_holdsList sPrologue_atoms s0.1)
   -- the bottom layer
   have s1 := s0.2
-  rw [sLayer_split 0 88 (.n 0)] at s1
+  rw [sLayer_split 0 88 (.n (val% «main_loop2» "xi"))] at s1
   simp only [↓reduceIte, List.append_assoc] at s1
   have s2 := holdsList_split_atoms (sDigest0_atoms 88) s1
   obtain ⟨hld2, hld3, hpad, h90, h103⟩ := sDigest0_sound (atomsHold_of_holdsList (sDigest0_atoms 88) s2.1)
   have c0 := sLayerCore_sound (layer := 0) (b := 88) hpad hpow (by norm_num) s2.2
   -- the top layer
   have s3 := c0.1
-  rw [sLayer_split 1 (sLayer 0 88 (.n 0)).2.1 (sLayer 0 88 (.n 0)).2.2] at s3
+  rw [sLayer_split 1 (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1 (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.2] at s3
   simp only [one_ne_zero, ↓reduceIte, List.append_assoc] at s3
   have s4 := holdsList_split_atoms (sDigest1_atoms _ _) s3
   obtain ⟨h1, h4, h6⟩ := sDigest1_sound hpad (atomsHold_of_holdsList (sDigest1_atoms _ _) s4.1)
   have c1 := sLayerCore_sound (layer := 1) hpad hpow (by norm_num) s4.2
   -- the root
-  have s5 := holdsList_split_atoms (xs := [loadS (.n (sLayer 1 (sLayer 0 88 (.n 0)).2.1
-      (sLayer 0 88 (.n 0)).2.2).2.1) sSigner 0, .atom (.assertEq (sLayer 1 (sLayer 0 88 (.n 0)).2.1
-      (sLayer 0 88 (.n 0)).2.2).2.2 (.n (sLayer 1 (sLayer 0 88 (.n 0)).2.1 (sLayer 0 88 (.n 0)).2.2).2.1))])
+  have s5 := holdsList_split_atoms (xs := [loadS (.n (sLayer 1 (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1
+      (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.2).2.1) sSigner 0, .atom (.assertEq (sLayer 1 (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1
+      (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.2).2.2 (.n (sLayer 1 (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1 (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.2).2.1))])
     rfl c1.1
   refine ⟨s5.2, fun htags => ?_⟩
   have hend := atomsHold_of_holdsList (ss := [loadS _ sSigner 0, .atom (.assertEq _ _)]) rfl s5.1
@@ -446,34 +448,34 @@ theorem verify_lean_xmss_sound_holds : verify_lean_xmss_sound_Spec xmssSigOf := 
   have hidx0 : σ (sLxIdx 0 88) = eOfNat (xIdxNat 0 L) := by
     rw [xIdxNat_zero, show sLxIdx 0 88 = sHis 0 from rfl, hhis 0 (by norm_num)]
     rfl
-  have hM0 : HashSig.littleEndianBytes 32 (cellPairVal (σ (.n 91)) (σ (.n 92))) =
-      [σ (.n 91), σ (.n 92)].flatMap cellBytes := by
+  have hM0 : HashSig.littleEndianBytes 32 (cellPairVal (σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2"))) (σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3")))) =
+      [σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2")), σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3"))].flatMap cellBytes := by
     rw [bytesLE_cellPairVal]; simp
-  have haMsg0 : cellBytes (σ (.n 90)) = LeanXmss.tweakBytes
+  have haMsg0 : cellBytes (σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#1"))) = LeanXmss.tweakBytes
       (.message ⟨0, by decide⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨0, by decide⟩)) := by
     rw [h90, show σ (sHis 0) = eOfNat (xIdxNat 0 L) from hidx0]
     exact xMsgAdr_bytes hL (by norm_num)
   have r0 := c0.2.2.2 L hL hidx0 hhis hwk htag hM0 haMsg0 h103
   -- the top layer's root
-  have hidx1 : σ (sLxIdx 1 (sLayer 0 88 (.n 0)).2.1) = eOfNat (xIdxNat 1 L) := by
-    rw [show sLxIdx 1 (sLayer 0 88 (.n 0)).2.1 = .n ((sLayer 0 88 (.n 0)).2.1 + 1) from rfl, h1,
+  have hidx1 : σ (sLxIdx 1 (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1) = eOfNat (xIdxNat 1 L) := by
+    rw [show sLxIdx 1 (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1 = .n ((sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1 + 1) from rfl, h1,
       hhis 2 (by norm_num), xIdxNat_one hL]
-  have hM1 : HashSig.littleEndianBytes 16 (xv (σ (sLayer 0 88 (.n 0)).2.2)) =
-      [σ (sLayer 0 88 (.n 0)).2.2].flatMap cellBytes := by
+  have hM1 : HashSig.littleEndianBytes 16 (xv (σ (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.2)) =
+      [σ (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.2].flatMap cellBytes := by
     rw [bytesLE_xv]; simp
-  have haMsg1 : cellBytes (σ (.n ((sLayer 0 88 (.n 0)).2.1 + 4))) = LeanXmss.tweakBytes
+  have haMsg1 : cellBytes (σ (.n ((sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1 + 4))) = LeanXmss.tweakBytes
       (.message ⟨1, by decide⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨1, by decide⟩)) := by
-    rw [h4, show σ (.n ((sLayer 0 88 (.n 0)).2.1 + 1)) = eOfNat (xIdxNat 1 L) from hidx1]
+    rw [h4, show σ (.n ((sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1 + 1)) = eOfNat (xIdxNat 1 L) from hidx1]
     exact xMsgAdr_bytes hL (by norm_num)
   have r1 := c1.2.2.2 L hL hidx1 hhis hwk htag hM1 haMsg1 h6
   -- the claim
-  refine ⟨σ (.n (sWin1 1 (sLayer 0 88 (.n 0)).2.1).2.1), σ sLxPP, σ (.n 91), σ (.n 92),
+  refine ⟨σ (.n (sWin1 1 (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1).2.1), σ sLxPP, σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2")), σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3")),
     ⟨hld0, hld1, hld2, hld3⟩, ?_⟩
   have lb : (xmssSigOf σ).layers LeanXmss.bottomLayer = sPart 0 88 σ := by simp [xmssSigOf]
-  have lt : (xmssSigOf σ).layers LeanXmss.topLayer = sPart 1 (sLayer 0 88 (.n 0)).2.1 σ := by
+  have lt : (xmssSigOf σ).layers LeanXmss.topLayer = sPart 1 (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1 σ := by
     simp [xmssSigOf, LeanXmss.topLayer, LeanXmss.bottomLayer]
   rw [xmssVerify_iff]
-  refine ⟨xv (σ (sLayer 0 88 (.n 0)).2.2), ?_, ?_⟩
+  refine ⟨xv (σ (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.2), ?_, ?_⟩
   · rw [lb, sLayer_snd]
     exact r0
   · rw [lt, ← hroot]

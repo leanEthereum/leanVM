@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkCK
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # The head and the first record, on the layout
@@ -89,7 +91,7 @@ theorem alloc_goodP {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {pr
     | _ => simp [Main.Stmt.allocSz] at hsx
   | _ => simp [Main.Stmt.allocSz] at hsx
 
-theorem vk_ker2 : noStoreVia [.n 5, .n 7] vkSt = true ∧
+theorem vk_ker2 : noStoreVia [.n (val% «verify_keccak» "cursor@1"), .n (val% «verify_keccak» "chi")] vkSt = true ∧
     (vkFirstT ++ vkStepsT ++ vkOutT ++ vkInT ++ vkFinT).all (fun s ↦ !pinB s) = true := by
   decide +kernel
 
@@ -106,12 +108,12 @@ theorem val_good (h : D.Ok) :
   ⟨fun v ↦ vkσ_idx v, fun _ hs hp ↦ vk_good (args_length h) hs hp,
     fun _ hi ↦ vk_param (args_length h) hi⟩
 
-theorem val_tabs (h : D.Ok) : D.val rd B curE chiE olE zvE slE tbE stE (.n 11) = ptr tbE := by
+theorem val_tabs (h : D.Ok) : D.val rd B curE chiE olE zvE slE tbE stE (.n (val% «verify_keccak» "tabs")) = ptr tbE := by
   rw [(val_good h).2.2 11 (by norm_num), args,
     List.getD_append_right _ _ _ _ (by rw [h.2.2.2.2.1]; norm_num), h.2.2.2.2.1]
   rfl
 
-theorem val_stream (h : D.Ok) : D.val rd B curE chiE olE zvE slE tbE stE (.n 12) = ptr stE := by
+theorem val_stream (h : D.Ok) : D.val rd B curE chiE olE zvE slE tbE stE (.n (val% «verify_keccak» "stream")) = ptr stE := by
   rw [(val_good h).2.2 12 (by norm_num), args,
     List.getD_append_right _ _ _ _ (by rw [h.2.2.2.2.1]; norm_num), h.2.2.2.2.1]
   rfl

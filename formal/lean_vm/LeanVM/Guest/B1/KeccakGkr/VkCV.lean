@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkCU
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # `verify_keccak`, complete and placed
@@ -151,9 +153,9 @@ theorem vk_obl {D : VkData} (h : D.Ok) (curE chiE olE zvE slE tbE stE fp : ℕ) 
       (fun k hk j hkj x hx ↦ Or.inr (Or.inr ⟨k + 1, by omega, by omega, hkj,
         by rw [atAllG_getElem]; simp [kids_lay hk, layKid], by rw [hlay k hk]; exact hx⟩))
       i (by rw [hlenA] at hi; rw [hk]; exact hi) x hx
-  · rw [show (fn% «verify_keccak»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8,
-      .n 9,
-      .n 10, .n 11, .n 12] from rfl]
+  · rw [show (fn% «verify_keccak»).params = [.n (val% «verify_keccak» "fs0@1"), .n (val% «verify_keccak» "fs1@1"), .n (val% «verify_keccak» "fs2@1"), .n (val% «verify_keccak» "fs3@1"), .n (val% «verify_keccak» "fs4@1"), .n (val% «verify_keccak» "cursor@1"), .n (val% «verify_keccak» "tau_g"), .n (val% «verify_keccak» "chi"), .n (val% «verify_keccak» "output_lanes"),
+      .n (val% «verify_keccak» "z_vals"),
+      .n (val% «verify_keccak» "slices"), .n (val% «verify_keccak» "tabs"), .n (val% «verify_keccak» "stream")] from rfl]
     have hpar := (val_good (rd := rd) (B := B) (curE := curE) (chiE := chiE) (olE := olE)
       (zvE := zvE) (slE := slE) (tbE := tbE) (stE := stE) h).2.2
     apply List.ext_getElem (by simp [args_length h])

@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkCN
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # The openings, on the layout
@@ -91,14 +93,14 @@ theorem L_cap (h : D.Ok) (j : ℕ) :
 set_option maxRecDepth 20000 in
 /-- **The committed outputs' opening, on the layout.** -/
 theorem out_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : Val}
-    (hσd : σ = D.val rd B curE chiE olE zvE slE tbE stE) (h6 : σ (.n 6) = gen ^ D.τ)
-    (h9 : σ (.n 9) = ptr zvE) (h17 : σ (.n 19) = gen ^ (D.τ - 4)) (h58 : σ (.n 62) = ptr B)
-    (h274 : σ (.n 229) = ptr (B + D.o274)) :
-    (cap5 910).map σ = D.L.2.cap ∧ σ (.n 915) = D.cL curE ∧
-      σ (.n 916) = ptr zvE * gen ^ D.τ ∧ σ (.n 917) = 0 ∧ σ (.n 918) = 0 ∧
-      (∀ j < 7, σ (.n (919 + j)) = (D.oRets curE).getD j 0) ∧ σ (.n 926) = D.word ∧
-      (σ (.n 927), σ (.n 928)) = Keccak.scalarCells D.word dsObserve ∧
-      σ (.n 1189) = 1 + gen ^ (D.τ - 4) ∧ σ (.n 1190) = 1 ∧ σ (.n 1192) = ptr zvE * gen ^ 4 ∧
+    (hσd : σ = D.val rd B curE chiE olE zvE slE tbE stE) (h6 : σ (.n (val% «verify_keccak» "tau_g")) = gen ^ D.τ)
+    (h9 : σ (.n (val% «verify_keccak» "z_vals")) = ptr zvE) (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (D.τ - 4)) (h58 : σ (.n (val% «verify_keccak» "point")) = ptr B)
+    (h274 : σ (.n (val% «verify_keccak» "lane_tree")) = ptr (B + D.o274)) :
+    (cap5 910).map σ = D.L.2.cap ∧ σ (.n (val% «verify_keccak» "cursor@13")) = D.cL curE ∧
+      σ (.n (val% «verify_keccak» "out_slot")) = ptr zvE * gen ^ D.τ ∧ σ (.n (val% «verify_keccak» "fs0@14~7")) = 0 ∧ σ (.n (val% «verify_keccak» "fs0@14~8")) = 0 ∧
+      (∀ j < 7, σ (.n (919 + j)) = (D.oRets curE).getD j 0) ∧ σ (.n (val% «verify_keccak» "x@2")) = D.word ∧
+      (σ (.n (val% «verify_keccak» "word_rate[0]")), σ (.n (val% «verify_keccak» "word_rate[1]"))) = Keccak.scalarCells D.word dsObserve ∧
+      σ (.n (val% «verify_keccak» "s57#1")) = 1 + gen ^ (D.τ - 4) ∧ σ (.n (val% «verify_keccak» "s57#2")) = 1 ∧ σ (.n (val% «verify_keccak» "s57#4")) = ptr zvE * gen ^ 4 ∧
       ∀ {next : Prop} {kret : List E → Prop}, next →
         Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkOutT next kret := by
   have hτ1 := h.1
@@ -109,18 +111,18 @@ theorem out_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : V
   -- the calls' returns
   have hcg := calls_good h hσd
   have eO : ∀ j < 7, σ (.n (919 + j)) = (D.oRets curE).getD j 0 := fun j hj ↦ by
-    rw [hcg (none, "keccak_plain_rounds__L6_L0", [.n 910, .n 911, .n 912, .n 913, .n 914,
-      .n 917, .n 918, .n 915, .n 153, .n 916, .n 11], (List.range 7).map fun j ↦ .n (919 + j))
+    rw [hcg (none, "keccak_plain_rounds__L6_L0", [.n (val% «verify_keccak» "fs0@13"), .n (val% «verify_keccak» "fs1@13"), .n (val% «verify_keccak» "fs2@13"), .n (val% «verify_keccak» "fs3@13"), .n (val% «verify_keccak» "fs4@13"),
+      .n (val% «verify_keccak» "fs0@14~7"), .n (val% «verify_keccak» "fs0@14~8"), .n (val% «verify_keccak» "cursor@13"), .n (val% «verify_keccak» "x@1"), .n (val% «verify_keccak» "out_slot"), .n (val% «verify_keccak» "tabs")], (List.range 7).map fun j ↦ .n (919 + j))
       (by simp [vkCalls]) _ (List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩)]
     exact w_o hj
   have hcL : D.L.2.cap.length = 5 := (L_ok h).2
   have hoc : ∀ j < 5, (D.oRets curE).getD j 0 = D.O.2.2.cap.getD j 0 := fun j hj ↦ by
     rw [oRets, List.getD_append _ _ _ _ (by rw [(O_ok h).2]; exact hj)]
-  have e3699 : σ (.n 924) = ptr (curE + D.lcur 12 + 12) := by
+  have e3699 : σ (.n (val% «verify_keccak» "cursor@14")) = ptr (curE + D.lcur 12 + 12) := by
     have := eO 5 (by norm_num)
     rw [this, oRets, List.getD_append_right _ _ _ _ (by rw [(O_ok h).2]), (O_ok h).2]
     simp [cL, ptr_mul_gen]
-  have e3700 : σ (.n 925) = D.O.2.1 := by
+  have e3700 : σ (.n (val% «verify_keccak» "out_value")) = D.O.2.1 := by
     have := eO 6 (by norm_num)
     rw [this, oRets, List.getD_append_right _ _ _ _ (by rw [(O_ok h).2]; norm_num), (O_ok h).2]
     rfl
@@ -128,15 +130,15 @@ theorem out_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : V
   obtain ⟨m58, -, -, -, m274, -, -⟩ := own_mem (by omega) hm.own
   have mop := memL_entry hm.lin (b := zvE) (ws := D.op) (by simp [lin])
   obtain ⟨-, -, -, mword, -⟩ := xs_reads h (memL_entry hm.lin (b := curE) (ws := D.xs) (by simp [lin]))
-  have hslot : ReadsAt rd (σ (.n 9) * σ (.n 6)) D.O.1 := by
+  have hslot : ReadsAt rd (σ (.n (val% «verify_keccak» "z_vals")) * σ (.n (val% «verify_keccak» "tau_g"))) D.O.1 := by
     rw [h9, h6]
     rw [op_eq] at mop
     have := (readsAt_append.1 mop).2
     rwa [List.take_append_drop, inst_length h] at this
-  have hr0 : LoadHolds rd (σ (.n 62) * σ (.n 19)) 0 (D.seg.getD 0 0) := by
+  have hr0 : LoadHolds rd (σ (.n (val% «verify_keccak» "point")) * σ (.n (val% «verify_keccak» "pack_g"))) 0 (D.seg.getD 0 0) := by
     rw [h58, h17, loadHolds_mul_gen_pow, add_zero, ← c0_point_seg h]
     exact ClaimLay.getD_load m58 (by rw [c0_point_length h]; omega)
-  have hL : ∀ lane < 25, LoadHolds rd (σ (.n 229)) (30 + lane) ((eqKernel D.rl).getD lane 0) := by
+  have hL : ∀ lane < 25, LoadHolds rd (σ (.n (val% «verify_keccak» "lane_tree"))) (30 + lane) ((eqKernel D.rl).getD lane 0) := by
     intro lane hl
     have := lanes_first m274 lane (by simp [eqKernel_length, rl_length]; omega)
     rw [← ptr_mul_gen, loadHolds_mul_gen_pow] at this
@@ -144,7 +146,7 @@ theorem out_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : V
     simpa using this
   -- the check
   have hchk : (∑ lane ∈ range 25, (∑ m ∈ range 1, eqAt [D.seg.getD 0 0] m *
-      eqAt D.O.1 (25 * (1 + m) + lane)) * (eqKernel D.rl).getD lane 0) * D.word = σ (.n 925) := by
+      eqAt D.O.1 (25 * (1 + m) + lane)) * (eqKernel D.rl).getD lane 0) * D.word = σ (.n (val% «verify_keccak» "out_value")) := by
     have hspec := vk_out_check (τ := D.τ) D.inst D.outs D.committed (D.seg.getD 0 0) D.rl
       (by simp [inst_length h]) (O1_length h) (word := 1) (mul_one _)
     rw [mul_one] at hspec
@@ -155,10 +157,10 @@ theorem out_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : V
   obtain ⟨e3691, -, e3701, cells, -, e3971, e3972, e3974, H⟩ :=
     vkOut_complete hσ hg h17 (by rw [e3699]; exact mword) hslot (O1_length h) hr0 hL hchk
   have gA : ∀ a, Stmt.atom a ∈ vkOutT → Good rd vkSt (D.w B curE) σ a := fun a h ↦ hg _ h
-  have c3692 : σ (.n 917) = Guest.word 0 0 :=
-    gA (.const (.n 917) (Guest.word 0 0)) (by simp [vkOutT])
-  have c3693 : σ (.n 918) = Guest.word 0 0 :=
-    gA (.const (.n 918) (Guest.word 0 0)) (by simp [vkOutT])
+  have c3692 : σ (.n (val% «verify_keccak» "fs0@14~7")) = Guest.word 0 0 :=
+    gA (.const (.n (val% «verify_keccak» "fs0@14~7")) (Guest.word 0 0)) (by simp [vkOutT])
+  have c3693 : σ (.n (val% «verify_keccak» "fs0@14~8")) = Guest.word 0 0 :=
+    gA (.const (.n (val% «verify_keccak» "fs0@14~8")) (Guest.word 0 0)) (by simp [vkOutT])
   refine ⟨?_, ?_, by rw [e3691, h9, h6], by rw [c3692, word_zero], by rw [c3693, word_zero], eO,
     e3701, cells, by rw [e3971, h17], e3972, by rw [e3974, h9], H⟩
   · apply List.ext_getElem (by simp [cap5, hcL])

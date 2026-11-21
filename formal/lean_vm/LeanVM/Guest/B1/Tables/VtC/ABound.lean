@@ -12,6 +12,8 @@ public import LeanVM.Guest.B1.Tables.VtC.Calls
 public import LeanVM.Guest.B1.Tables.FlatLiftT
 public import LeanVM.Guest.Memory.LoopPre
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
 # `verify_tables`, placed, within its bound
@@ -74,20 +76,20 @@ theorem getElem?_filter_mem {l : List Stmt} {p : Stmt → Bool} {i : ℕ} {s : S
 /-- **The honest values around the rounds loop's call**: the round count `g^n`, the call's
 condition `1 + g^n` and its counter's start `1`. -/
 theorem vt_loopVals (H : VtHonest) (B B' : VtBases) (rd : Reader) :
-    vtσ rd (vtW H B') (H.args B) (.n 2544) = gen ^ H.n ∧
-      vtσ rd (vtW H B') (H.args B) (.n 2635) = 1 + gen ^ H.n ∧
-      vtσ rd (vtW H B') (H.args B) (.n 2636) = 1 := by
+    vtσ rd (vtW H B') (H.args B) (.n (val% «verify_tables» "g_zc_n")) = gen ^ H.n ∧
+      vtσ rd (vtW H B') (H.args B) (.n (val% «verify_tables» "s72#1")) = 1 + gen ^ H.n ∧
+      vtσ rd (vtW H B') (H.args B) (.n (val% «verify_tables» "s72#2")) = 1 := by
   have hl : (H.args B).length = 21 := rfl
   have g1 := vt_goodL (rd := rd) (w := vtW H B') hl 2590
-    [.atom (.hint (.witness "zc_tau_max" (.stack [.n 2544])))] (by decide +kernel)
+    [.atom (.hint (.witness "zc_tau_max" (.stack [.n (val% «verify_tables» "g_zc_n")])))] (by decide +kernel)
   have g2 := vt_goodL (rd := rd) (w := vtW H B') hl 2663
-    [.atom (.const (.n 2634) (word 1 0)), .atom (.add (.n 2635) (.n 2634) (.n 2544)),
-      .atom (.const (.n 2636) (word 1 0))] (by decide +kernel)
+    [.atom (.const (.n (val% «verify_tables» "s72#0")) (word 1 0)), .atom (.add (.n (val% «verify_tables» "s72#1")) (.n (val% «verify_tables» "s72#0")) (.n (val% «verify_tables» "g_zc_n"))),
+      .atom (.const (.n (val% «verify_tables» "s72#2")) (word 1 0))] (by decide +kernel)
   generalize vtσ rd (vtW H B') (H.args B) = σ' at g1 g2 ⊢
   simp only [GoodL, GoodS, fixNe, Good, List.mem_cons, List.not_mem_nil, or_false,
     forall_eq, and_true] at g1 g2
   obtain ⟨c0, a0, c1⟩ := g2
-  have w : σ' (.n 2544) = gen ^ H.n := by rw [g1]; exact (vtW_ok H B').w2544
+  have w : σ' (.n (val% «verify_tables» "g_zc_n")) = gen ^ H.n := by rw [g1]; exact (vtW_ok H B').w2544
   exact ⟨w, by rw [a0, c0, w, tb_word_one], by rw [c1, tb_word_one]⟩
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
@@ -133,7 +135,7 @@ theorem verify_tables_completeAtTB {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (
   have hvals : ∀ fp rd, LowDef κ rd →
       MemL rd (vtL (H.linL B) H.sizes (fun _ ↦ H.ownW B) fs fp) →
       let σ := vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B)
-      σ (.n 2544) = gen ^ H.n ∧ σ (.n 2635) = 1 + gen ^ H.n ∧ σ (.n 2636) = 1 :=
+      σ (.n (val% «verify_tables» "g_zc_n")) = gen ^ H.n ∧ σ (.n (val% «verify_tables» "s72#1")) = 1 + gen ^ H.n ∧ σ (.n (val% «verify_tables» "s72#2")) = 1 :=
     fun fp rd _ _ ↦ vt_loopVals H B (B.at (fp + fs "verify_tables")) rd
   have hn32 : H.n < 33 := by
     have := hs.hτ33
@@ -237,7 +239,7 @@ theorem verify_tables_completeAtTB {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (
       obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hkind
       rw [vtCallBnd_callIf]
       have hn0 := hn0 _ v20 ht
-      have hpre : LoopPre ([V.n 2636, V.n 2544, V.n 2626, V.n 18, V.n 2633, V.n 2629].map σ) := by
+      have hpre : LoopPre ([V.n (val% «verify_tables» "s72#2"), V.n (val% «verify_tables» "g_zc_n"), V.n (val% «verify_tables» "zc_rounds"), V.n (val% «verify_tables» "tabs"), V.n (val% «verify_tables» "zc_rk"), V.n (val% «verify_tables» "zc_cprod")].map σ) := by
         simp only [List.map_cons, List.map_nil, v21, v17]
         exact loopPre_gen hn0 (by omega) _
       have := h10 rd' t _ r hn hpre hv hbo

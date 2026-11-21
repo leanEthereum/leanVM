@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerSecA
 public import LeanVM.Guest.B1.KeccakGkr.LayerSecB
 public import LeanVM.Guest.B1.KeccakGkr.LayerSecC
 public import LeanVM.Guest.B1.KeccakGkr.LayerWeight1
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
 /-!
 # A layer, assembled
@@ -36,7 +38,7 @@ the local point's equality weights. -/
 def WeightOk (first o : ℕ) : Prop :=
   ∀ (C : CallRel) (rd : Reader) (σ : Val) (c : KeccakClaim) (y : ℕ) (locPt : List E)
     (next : Prop) (kret : List E → Prop),
-    ClaimRec rd (first = 1) (σ (.n 11)) c y → locPt.length = 11 →
+    ClaimRec rd (first = 1) (σ (.n (valf% «keccak_layer» "claim"))) c y → locPt.length = 11 →
     ReadsAt rd (σ (.n (o + 745))) locPt →
     (∀ i < 25, σ (.n (laneW o i)) = eqAt (locPt.drop 6) i) →
     Stmt.HoldsList C rd σ (weightT first o) next kret →
@@ -64,8 +66,8 @@ theorem fsNext_load {cur : V} {off b : ℕ} {next : Prop} {kret : List E → Pro
 theorem layer_sound {first : ℕ} (hf : first < 2) (hW : WeightOk first (layOff first))
     {fn : Fn} (hfind : coreProgram.find? (layerName first) = some fn)
     (hbody : fn.body = layerT first)
-    (hparams : fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10,
-      .n 11, .n 12, .n 13, .n 14, .n 15])
+    (hparams : fn.params = [.n (valf% «keccak_layer» "fs0"), .n (valf% «keccak_layer» "fs1"), .n (valf% «keccak_layer» "fs2"), .n (valf% «keccak_layer» "fs3"), .n (valf% «keccak_layer» "fs4"), .n (valf% «keccak_layer» "p0"), .n (valf% «keccak_layer» "p1"), .n (valf% «keccak_layer» "cursor@1"), .n (valf% «keccak_layer» "y_g"), .n (valf% «keccak_layer» "step_g"), .n (valf% «keccak_layer» "rem_g"),
+      .n (valf% «keccak_layer» "claim"), .n (valf% «keccak_layer» "out"), .n (valf% «keccak_layer» "iota"), .n (valf% «keccak_layer» "tabs"), .n (valf% «keccak_layer» "stream")])
     (rd : Reader)
     (hgr : ∀ w tabs : E, WinTabs rd tabs → coreProgram.Rel rd (grindCheckName 3) [w, tabs] [] →
       (w.limb 0).lane.toNat % 2 ^ 3 = 0)
@@ -152,8 +154,8 @@ theorem layer_sound {first : ℕ} (hf : first < 2) (hW : WeightOk first (layOff 
   have hk625 : σ (.n (o + 624)) = sumE (keccakInstanceWeights (σ (.n (o + 531)))) :=
     loadHolds_unique hkap hkapOut
   rw [e739, e727] at hlastR
-  have W : LayerW first rd (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) (σ (.n 3)) (σ (.n 4)) (σ (.n 7))
-      (σ (.n 9)) (σ (.n 10)) (σ (.n 11)) (σ (.n 12)) (σ (.n 13)) rets c w :=
+  have W : LayerW first rd (σ (.n (valf% «keccak_layer» "fs0"))) (σ (.n (valf% «keccak_layer» "fs1"))) (σ (.n (valf% «keccak_layer» "fs2"))) (σ (.n (valf% «keccak_layer» "fs3"))) (σ (.n (valf% «keccak_layer» "fs4"))) (σ (.n (valf% «keccak_layer» "cursor@1")))
+      (σ (.n (valf% «keccak_layer» "step_g"))) (σ (.n (valf% «keccak_layer» "rem_g"))) (σ (.n (valf% «keccak_layer» "claim"))) (σ (.n (valf% «keccak_layer» "out"))) (σ (.n (valf% «keccak_layer» "iota"))) rets c w :=
     { prod := prod
       hprodL := hprodL
       hprod := hrd
@@ -170,7 +172,7 @@ theorem layer_sound {first : ℕ} (hf : first < 2) (hW : WeightOk first (layOff 
       pt := σ (.n (o + 718))
       pp := σ (.n (o + 717))
       hpp := hpp
-      tb := σ (.n 14)
+      tb := σ (.n (valf% «keccak_layer» "tabs"))
       h0 := by rw [← e717, show productBits + 1 = 48 from rfl]; exact hrec0
       hloop := ⟨hik, hloopC⟩
       hrem := ⟨hik', hremC⟩

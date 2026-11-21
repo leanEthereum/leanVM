@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkCQ
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # The loads, on the layout
@@ -33,10 +35,10 @@ def stepGroups (s : ℕ) : List (V × ℕ × ℕ) :=
 
 /-- The pointers the body loads through, with their offsets' ranges. -/
 def vkGroups : List (V × ℕ × ℕ) :=
-  [(.n 5, 0, 1), (.n 7, 0, 4), (.n 8, 0, 25), (.n 9, 0, 4), (.n 9, 39, 43), (.n 10, 0, 64),
-    (.n 68, 0, 1), (.n 87, 0, 5), (.n 156, 0, 286), (.n 158, 0, 30), (.n 229, 0, 62),
-    (.n 337, 0, 2), (.n 916, 0, 6), (.n 924, 0, 1), (.n 929, 0, 1), (.n 1205, 0, 30),
-    (.n 1333, 0, 64), (.n 1325, 0, 6), (.n 1741, 0, 1), (.n 1975, 0, 6), (.n 3138, 0, 25)] ++
+  [(.n (val% «verify_keccak» "cursor@1"), 0, 1), (.n (val% «verify_keccak» "chi"), 0, 4), (.n (val% «verify_keccak» "output_lanes"), 0, 25), (.n (val% «verify_keccak» "z_vals"), 0, 4), (.n (val% «verify_keccak» "z_vals"), 39, 43), (.n (val% «verify_keccak» "slices"), 0, 64),
+    (.n (val% «verify_keccak» "segment"), 0, 1), (.n (val% «verify_keccak» "r_lane"), 0, 5), (.n (val% «verify_keccak» "claims"), 0, 286), (.n (val% «verify_keccak» "mu_tree"), 0, 30), (.n (val% «verify_keccak» "lane_tree"), 0, 62),
+    (.n (val% «verify_keccak» "segment_tree"), 0, 2), (.n (val% «verify_keccak» "out_slot"), 0, 6), (.n (val% «verify_keccak» "cursor@14"), 0, 1), (.n (val% «verify_keccak» "s52#0"), 0, 1), (.n (val% «verify_keccak» "low_tree"), 0, 30),
+    (.n (val% «verify_keccak» "cursor@16"), 0, 64), (.n (val% «verify_keccak» "in_slot"), 0, 6), (.n (val% «verify_keccak» "s72#0"), 0, 1), (.n (val% «verify_keccak» "last_local"), 0, 6), (.n (val% «verify_keccak» "last_lanes"), 0, 25)] ++
     (List.range 12).flatMap stepGroups
 
 /-- A load through one of `vkGroups`. -/
@@ -78,24 +80,24 @@ theorem loads_in (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ :
   obtain ⟨-, p5, p6, p7, p8, p9, p10, h17, -, -, a58, -, -, -, e64, -, a90, -, -, -, a201, a203,
     a274, a382, -⟩ := head_first h hm hσd
   obtain ⟨-, -, e3691, -, -, eO, -⟩ := out_on h hm hσd p6 p9 h17 a58 a274
-  have e3699 : σ (.n 924) = ptr (curE + D.lcur 12 + 12) := by
+  have e3699 : σ (.n (val% «verify_keccak» "cursor@14")) = ptr (curE + D.lcur 12 + 12) := by
     have := eO 5 (by norm_num)
     rw [this, oRets, List.getD_append_right _ _ _ _ (by rw [(O_ok h).2]), (O_ok h).2]
     simp [cL, ptr_mul_gen]
   obtain ⟨-, -, -, -, -, e4107, -, -, e4110, -⟩ := in_on h hm hσd p6 p9 p10 a201 e3699
-  have e4115 : σ (.n 1333) = ptr (curE + D.lcur 12 + 33) := by
+  have e4115 : σ (.n (val% «verify_keccak» "cursor@16")) = ptr (curE + D.lcur 12 + 33) := by
     rw [show (1333 : ℕ) = 1328 + 5 from rfl, e4110 5 (by norm_num), sRets,
       List.getD_append_right _ _ _ _ (by rw [(S_ok h).2]), (S_ok h).2]
     simp only [Nat.sub_self, List.getD_cons_zero, cL, ptr_mul_gen, ptr_mul_gen1]
   obtain ⟨e4978, e5212, e6363⟩ := fin_ptrs h hm hσd h17 a201
-  have e3711 : σ (.n 929) = ptr B * gen ^ (D.τ - 4) := by
-    have g : Good rd vkSt (D.w B curE) σ (.mul (.n 929) (.n 62) (.n 19)) := by
+  have e3711 : σ (.n (val% «verify_keccak» "s52#0")) = ptr B * gen ^ (D.τ - 4) := by
+    have g : Good rd vkSt (D.w B curE) σ (.mul (.n (val% «verify_keccak» "s52#0")) (.n (val% «verify_keccak» "point")) (.n (val% «verify_keccak» "pack_g"))) := by
       subst hσd
-      exact val_good' h (s := .atom (.mul (.n 929) (.n 62) (.n 19)))
+      exact val_good' h (s := .atom (.mul (.n (val% «verify_keccak» "s52#0")) (.n (val% «verify_keccak» "point")) (.n (val% «verify_keccak» "pack_g"))))
         (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _ (by simp [vkOutT]))))
     rw [mulG (by norm_num) (by norm_num) g, a58, h17]
-  have a3987 : σ (.n 1205) = ptr (B + D.τ + 382) := by
-    subst hσd; exact val_alloc h (.n 1205, .inl 30) (by simp [vkAllocs])
+  have a3987 : σ (.n (val% «verify_keccak» "low_tree")) = ptr (B + D.τ + 382) := by
+    subst hσd; exact val_alloc h (.n (val% «verify_keccak» "low_tree"), .inl 30) (by simp [vkAllocs])
   -- the entries
   have mLin : ∀ {b ws}, (b, ws) ∈ [(curE, D.xs), (chiE, D.chis), (olE, D.outs), (zvE, D.op),
       (zvE + qkeccakVarsCap, D.point), (slE, D.slices), (tbE, winTabWords)] →

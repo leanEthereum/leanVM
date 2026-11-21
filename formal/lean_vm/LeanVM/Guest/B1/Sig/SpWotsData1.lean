@@ -12,6 +12,8 @@ import LeanVM.Guest.B1.Sig.Decide
 public import LeanVM.Guest.B1.Common.Basic
 import LeanVM.Guest.Value.Tower
 import LeanVM.Guest.Value.FieldBits
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«sp_wots»
 
 namespace LeanVM.Guest.B1.Sig
 
@@ -24,37 +26,37 @@ compared by `stmtsEqb` in runs, each its own kernel evaluation to bound its memo
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_72 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop 72).take 8) ((spBody.drop 72).take 8) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u11.s0#0")).take 8) ((spBody.drop 72).take 8) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_80 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop 80).take 8) ((spBody.drop 80).take 8) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u12.s2#1")).take 8) ((spBody.drop 80).take 8) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_88 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop 88).take 8) ((spBody.drop 88).take 8) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u14.s1#0")).take 8) ((spBody.drop 88).take 8) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_96 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop 96).take 8) ((spBody.drop 96).take 8) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u15.s2.a0.i0:walk_group.s0.u0.s0.i0:walk.s1.e.s0#0")).take 8) ((spBody.drop 96).take 8) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_104 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop 104).take 8) ((spBody.drop 104).take 8) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u17.s1#1")).take 8) ((spBody.drop 104).take 8) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_112 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop 112).take 8) ((spBody.drop 112).take 8) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u19.s0#0")).take 8) ((spBody.drop 112).take 8) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_120 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop 120).take 7) ((spBody.drop 120).take 7) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u20.s2#1")).take 7) ((spBody.drop 120).take 7) = true := by
   decide +kernel
 
 /-! ## The tail

@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkCT
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 /-!
 # The frames
@@ -66,19 +68,19 @@ theorem calls_match (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE (D.lsO
     a274, -, -⟩ := head_first h hm hσd
   obtain ⟨eL, e3690, e3691, e3692, e3693, eO, -, cellsW, e3971, e3972, e3974, -⟩ :=
     out_on h hm hσd p6 p9 h17 a58 a274
-  have e3699 : σ (.n 924) = ptr (curE + D.lcur 12 + 12) := by
+  have e3699 : σ (.n (val% «verify_keccak» "cursor@14")) = ptr (curE + D.lcur 12 + 12) := by
     have := eO 5 (by norm_num)
     rw [this, oRets, List.getD_append_right _ _ _ _ (by rw [(O_ok h).2]), (O_ok h).2]
     simp [cL, ptr_mul_gen]
   obtain ⟨e3976, e3977, e3979, eI, e4104, e4107, e4108, e4109, eS, -, -, -⟩ :=
     in_on h hm hσd p6 p9 p10 a201 e3699
-  have e4116 : σ (.n 1334) = D.S.2.1 := by
+  have e4116 : σ (.n (val% «verify_keccak» "in_value")) = D.S.2.1 := by
     rw [show (1334 : ℕ) = 1328 + 6 from rfl, eS 6 (by norm_num), sRets,
       List.getD_append_right _ _ _ _ (by rw [(S_ok h).2]; norm_num), (S_ok h).2]
     rfl
   obtain ⟨e4977, e6580, e6581, e6583, -⟩ :=
     fin_on h hm hσd p9 p10 h17 a201 e4104 e4107 e4116 e3979
-  have p11 : σ (.n 11) = ptr tbE := by rw [hσd]; exact val_tabs h
+  have p11 : σ (.n (val% «verify_keccak» "tabs")) = ptr tbE := by rw [hσd]; exact val_tabs h
   rw [vkPre_callSF]
   obtain ⟨hol, hoi⟩ := outsOk_getElem hout
   have hk : (D.kids fs B curE chiE olE zvE slE tbE stE).length = 18 := kids_length
@@ -108,9 +110,9 @@ theorem calls_match (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE (D.lsO
   rw [List.getElem_map, atAllG_getElem]
   interval_cases i
   · refine ⟨rfl, ?_, fun _ ↦ ⟨?_, ?_⟩⟩
-    · show decide (σ (.n 64) ≠ 0) = true
+    · show decide (σ (.n (val% «verify_keccak» "s17#1")) ≠ 0) = true
       rw [e60]; exact decide_eq_true (gen_ne h)
-    · show [σ (.n 65), σ (.n 19), σ (.n 62), σ (.n 67)] = [1, gen ^ (D.τ - 4), ptr B, ptr chiE * gen ^ 4]
+    · show [σ (.n (val% «verify_keccak» "s17#2")), σ (.n (val% «verify_keccak» "pack_g")), σ (.n (val% «verify_keccak» "point")), σ (.n (val% «verify_keccak» "s17#4"))] = [1, gen ^ (D.τ - 4), ptr B, ptr chiE * gen ^ 4]
       rw [e61, h17, a58, e63]
     · exact ((hoi2 0 (by norm_num) ho rfl).1).symm
   · exact layer_match h hm hσd (s := 0) (by norm_num) (hoi2 1 (by omega) ho rfl)
@@ -126,31 +128,31 @@ theorem calls_match (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE (D.lsO
   · exact layer_match h hm hσd (s := 10) (by norm_num) (hoi2 11 (by omega) ho rfl)
   · exact layer_match h hm hσd (s := 11) (by norm_num) (hoi2 12 (by omega) ho rfl)
   · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, ?_⟩⟩
-    · show [σ (.n 910), σ (.n 911), σ (.n 912), σ (.n 913), σ (.n 914), σ (.n 917),
-        σ (.n 918), σ (.n 915), σ (.n 153), σ (.n 916), σ (.n 11)] = D.oArgs curE zvE tbE
+    · show [σ (.n (val% «verify_keccak» "fs0@13")), σ (.n (val% «verify_keccak» "fs1@13")), σ (.n (val% «verify_keccak» "fs2@13")), σ (.n (val% «verify_keccak» "fs3@13")), σ (.n (val% «verify_keccak» "fs4@13")), σ (.n (val% «verify_keccak» "fs0@14~7")),
+        σ (.n (val% «verify_keccak» "fs0@14~8")), σ (.n (val% «verify_keccak» "cursor@13")), σ (.n (val% «verify_keccak» "x@1")), σ (.n (val% «verify_keccak» "out_slot")), σ (.n (val% «verify_keccak» "tabs"))] = D.oArgs curE zvE tbE
       rw [oArgs, ← eL, e3692, e3693, e3690, e191, e3691, p11]; rfl
     · rw [(hoi2 13 (by norm_num) ho rfl).1]
       exact mr (by simp [oRets, (O_ok h).2]) eO
   · refine ⟨rfl, ?_, fun _ ↦ ⟨?_, ?_⟩⟩
-    · show decide (σ (.n 1189) ≠ 0) = true
+    · show decide (σ (.n (val% «verify_keccak» "s57#1")) ≠ 0) = true
       rw [e3971]; exact decide_eq_true (gen_ne h)
-    · show [σ (.n 1190), σ (.n 19), σ (.n 1192), σ (.n 62)] =
+    · show [σ (.n (val% «verify_keccak» "s57#2")), σ (.n (val% «verify_keccak» "pack_g")), σ (.n (val% «verify_keccak» "s57#4")), σ (.n (val% «verify_keccak» "point"))] =
         [1, gen ^ (D.τ - 4), ptr zvE * gen ^ 4, ptr B]
       rw [e3972, h17, e3974, a58]
     · exact ((hoi2 14 (by norm_num) ho rfl).1).symm
   · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, ?_⟩⟩
-    · show [σ (.n 919), σ (.n 920), σ (.n 921), σ (.n 922), σ (.n 923), σ (.n 927),
-        σ (.n 928), σ (.n 1194), σ (.n 1195), σ (.n 1197), σ (.n 11)] = D.iArgs curE zvE tbE
-      have hc5 : [σ (.n 919), σ (.n 920), σ (.n 921), σ (.n 922), σ (.n 923)] = D.O.2.2.cap :=
+    · show [σ (.n (val% «verify_keccak» "fs0@14")), σ (.n (val% «verify_keccak» "fs1@14")), σ (.n (val% «verify_keccak» "fs2@14")), σ (.n (val% «verify_keccak» "fs3@14")), σ (.n (val% «verify_keccak» "fs4@14")), σ (.n (val% «verify_keccak» "word_rate[0]")),
+        σ (.n (val% «verify_keccak» "word_rate[1]")), σ (.n (val% «verify_keccak» "fs0@15~8")), σ (.n (val% «verify_keccak» "fs0@15~9")), σ (.n (val% «verify_keccak» "fs0@15~11")), σ (.n (val% «verify_keccak» "tabs"))] = D.iArgs curE zvE tbE
+      have hc5 : [σ (.n (val% «verify_keccak» "fs0@14")), σ (.n (val% «verify_keccak» "fs1@14")), σ (.n (val% «verify_keccak» "fs2@14")), σ (.n (val% «verify_keccak» "fs3@14")), σ (.n (val% «verify_keccak» "fs4@14"))] = D.O.2.2.cap :=
         mr (b := 919) (n := 5) (O_ok h).2 hoc
       rw [iArgs, ← hc5, ← cellsW, e3976, e3977, e3979, cL, p11]
       simp only [ptr_mul_gen, ptr_mul_gen1, List.cons_append, List.nil_append]
     · rw [(hoi2 15 (by norm_num) ho rfl).1]
       exact mr (by simp [iRets, (I_ok h).2]) eI
   · refine ⟨rfl, rfl, fun _ ↦ ⟨?_, ?_⟩⟩
-    · show [σ (.n 1198), σ (.n 1199), σ (.n 1200), σ (.n 1201), σ (.n 1202), σ (.n 1326),
-        σ (.n 1327), σ (.n 1203), σ (.n 1204), σ (.n 1325), σ (.n 11)] = D.sArgs curE zvE tbE
-      have hc5 : [σ (.n 1198), σ (.n 1199), σ (.n 1200), σ (.n 1201), σ (.n 1202)] = D.I.2.2.cap :=
+    · show [σ (.n (val% «verify_keccak» "fs0@15")), σ (.n (val% «verify_keccak» "fs1@15")), σ (.n (val% «verify_keccak» "fs2@15")), σ (.n (val% «verify_keccak» "fs3@15")), σ (.n (val% «verify_keccak» "fs4@15")), σ (.n (val% «verify_keccak» "fs0@16~7")),
+        σ (.n (val% «verify_keccak» "fs0@16~8")), σ (.n (val% «verify_keccak» "cursor@15")), σ (.n (val% «verify_keccak» "low_value")), σ (.n (val% «verify_keccak» "in_slot")), σ (.n (val% «verify_keccak» "tabs"))] = D.sArgs curE zvE tbE
+      have hc5 : [σ (.n (val% «verify_keccak» "fs0@15")), σ (.n (val% «verify_keccak» "fs1@15")), σ (.n (val% «verify_keccak» "fs2@15")), σ (.n (val% «verify_keccak» "fs3@15")), σ (.n (val% «verify_keccak» "fs4@15"))] = D.I.2.2.cap :=
         mr (b := 1198) (n := 5) (I_ok h).2 hic
       have e5 := eI 5 (by norm_num)
       have e6 := eI 6 (by norm_num)
@@ -163,9 +165,9 @@ theorem calls_match (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE (D.lsO
     · rw [(hoi2 16 (by norm_num) ho rfl).1]
       exact mr (by simp [sRets, (S_ok h).2]) eS
   · refine ⟨rfl, ?_, fun _ ↦ ⟨?_, ?_⟩⟩
-    · show decide (σ (.n 3355) ≠ 0) = true
+    · show decide (σ (.n (val% «verify_keccak» "s81#1")) ≠ 0) = true
       rw [e6580]; exact decide_eq_true (gen_ne h)
-    · show [σ (.n 3356), σ (.n 19), σ (.n 3358), σ (.n 1740)] =
+    · show [σ (.n (val% «verify_keccak» "s81#2")), σ (.n (val% «verify_keccak» "pack_g")), σ (.n (val% «verify_keccak» "s81#4")), σ (.n (val% «verify_keccak» "last_point"))] =
         [1, gen ^ (D.τ - 4), ptr zvE * gen ^ 43, ptr (D.lsOf fs ([] ++ fps.take 17) 11)]
       rw [e6581, h17, e6583, e4977, List.nil_append, lsOf_take fs fps (by norm_num)]
     · exact ((hoi2 17 (by norm_num) ho rfl).1).symm
