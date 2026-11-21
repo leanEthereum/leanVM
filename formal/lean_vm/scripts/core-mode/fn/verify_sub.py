@@ -136,4 +136,8 @@ def count_parts(g, OPS):
 OWN = [
     'LeanVM/Guest/CoreMode/Fam/ResVs.lean',
     'LeanVM/Guest/CoreMode/Fn/verify_sub/*.lean',
+    'LeanVM/Guest/Budget/VsCount.lean',
+    'LeanVM/Guest/Count/VsBound.lean',
+    'LeanVM/Guest/Count/VsWords.lean',
+    'LeanVM/Guest/Count/VsWB.lean',
 ]

@@ -162,4 +162,22 @@ theorem deployedBudget_instrs (Bvf : ℕ → ℕ → ℕ) (op : Opcode) :
              items=[body])]
 
 # its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
-OWN = []
+OWN = [
+    'LeanVM/Guest/B1/Main/**',
+    'LeanVM/Guest/Budget/Main.lean',
+    'LeanVM/Guest/Budget/MainCount.lean',
+    'LeanVM/Guest/Budget/MainExact.lean',
+    'LeanVM/Guest/Budget/Instrs.lean',
+    'LeanVM/Guest/Budget/Closed.lean',
+    'LeanVM/Guest/Budget/ClosedN.lean',
+    'LeanVM/Guest/Budget/ClosedP.lean',
+    'LeanVM/Guest/Budget/ClosedPE.lean',
+    'LeanVM/Guest/Budget/Final.lean',
+    'LeanVM/Guest/Budget/FinalP.lean',
+    'LeanVM/Guest/Budget/FinalPE.lean',
+    'LeanVM/Guest/Budget/Deployed.lean',
+    'LeanVM/Guest/Budget/DeployedBudget.lean',
+    'LeanVM/Guest/Budget/End.lean',
+    'LeanVM/Guest/Budget/L5Count.lean',
+    'LeanVM/Guest/Count/Instances.lean',
+]

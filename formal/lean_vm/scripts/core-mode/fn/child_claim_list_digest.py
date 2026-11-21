@@ -120,4 +120,6 @@ def deployed_parts(W):
             sb=['list_split'])])]
 
 # its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
-OWN = []
+OWN = [
+    'LeanVM/Guest/Budget/L5Count.lean',
+]

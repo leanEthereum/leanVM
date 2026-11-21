@@ -154,4 +154,5 @@ def deployed_parts(W):
 OWN = [
     'LeanVM/Guest/EndExecCoreDa.lean',
     'LeanVM/Guest/CoreMode/Fn/da_verify/*.lean',
+    'LeanVM/Guest/Budget/MvCount.lean',
 ]
