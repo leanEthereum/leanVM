@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.FWin
 
-  The honest window `2683 ..< 5522`: on a memory holding the evaluations at the cursor, `fp_w`,
+  The honest window `x@9 ..< air_acc@6+1`: on a memory holding the evaluations at the cursor, `fp_w`,
   the challenges' products and the equality prefix, every statement of the window holds of the
   honest valuation.
 -/
@@ -173,7 +173,7 @@ theorem vtF_perm (hl : args.length = 21) {j : ℕ} (hj : j < 38) :
 /-- **The honest window**: on a memory holding the evaluations `evs` at the cursor, `fp_w`'s first
 16 words, the tables' `g^τ` in `kappa_base`'s frame variables, `n ≥ τ` with `g^n`, and the
 challenges' products `cp` and the equality prefix `pe` up to `n`, every statement of
-`2683 ..< 5522` holds. -/
+`x@9 ..< air_acc@6+1` holds. -/
 theorem vtF_window (hl : args.length = 21) {evs : List E} (hevl : 153 ≤ evs.length)
     (hcur : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "cursor@5"))) evs)
     {W : List E} (hW : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "fp_w"))) W) (hWl : 16 ≤ W.length)

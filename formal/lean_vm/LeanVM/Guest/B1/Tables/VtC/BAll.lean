@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.BAll
 
-  `verify_tables`' statements `765 ..< 2592` (the bus sides and the bytecode share)
+  `verify_tables`' statements `block_index_mle ..< s56.u0.s1#1` (the bus sides and the bytecode share)
   hold on the honest valuation.
 -/
 
@@ -26,7 +26,7 @@ ten at the cursor, the three GKR leaf values. `VtBHyp`: what the range needs of 
 oracle and the earlier statements (`vtS_complete` gives the latter), the slot sumcheck's honest
 point at `bc_point` and its last claim accepted.
 
-`vtB_complete`: every statement of `765 ..< 2592` holds; the block selectors, the framework
+`vtB_complete`: every statement of `block_index_mle ..< s56.u0.s1#1` holds; the block selectors, the framework
 words, the share's words and the three bus totals are the honest ones (`vtAcc0/1/2`, as
 `vt_asm_totals`); every load reads inside the buffers `vtBufsB`.
 -/

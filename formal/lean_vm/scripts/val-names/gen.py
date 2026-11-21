@@ -4,15 +4,15 @@
     python3 -I scripts/val-names/gen.py [--check] [--dump FILE]
 
 Scans the hand-written Lean files for `val% f "name"`, `pos% f "name"` and `span% f "a" "b"`
-(`Guest/ValRef.lean`), and the rule
-files `scripts/core-mode/fn/*.py` for `val('f', 'name')`, `valf('f', 'name')`, `pos('f', 'name')` (`fnrules`; a
-value's name is its source name, `acc`, `g.acc` or `acc@2`, or its expansion path, `s3.i3:g.s8#0`),
-looks each name up in `guest-core --names` (or `--dump`, its saved output) and writes, for each
-cited function `f`, the numerals of the names cited: `V.«f/name»` a value's number, `S.«f/name»`
-the position of the top-level statement that names it first (by that value's source name or path; `ret`,
-a body's final `ret`). A cited name the core IR no longer has
-fails, naming the proofs that cite it: the function changed, and those proofs follow it. `--check`
-writes nothing and fails when a file differs. Run from `lean_vm`.
+(`Guest/ValRef.lean`), and the rule files `scripts/core-mode/fn/*.py` for `val('f', 'name')`,
+`valf('f', 'name')`, `pos('f', 'name')` (`fnrules`; a value's name is its source name, `acc`,
+`g.acc` or `acc@2`, or its expansion path, `s3.i3:g.s8#0`), looks each name up in `guest-core
+--names` (or `--dump`, its saved output) and writes, for each cited function `f`, the numerals of
+the names cited: `V.«f/name»` a value's number, `S.«f/name»` the position of the top-level statement
+that names it first (by that value's source name or path; `ret`, a body's final `ret`; `NAME+d` the
+statement `d` past `NAME`'s, those between naming no new value). A cited name the core IR no longer
+has fails, naming the proofs that cite it: the function changed, and those proofs follow it.
+`--check` writes nothing and fails when a file differs. Run from `lean_vm`.
 """
 import os, re, subprocess, sys
 
@@ -69,6 +69,7 @@ def names(dump):
     for line in text.splitlines():
         f, kind, i, n = line.split("\t")
         t[(f, "S" if kind == "s" else "V", n)] = int(i)
+        if kind == "s": t[("#pos", f, int(i))] = True
         if kind == "v": path[(f, int(i))] = n
     # a statement by the source name of the first value it names
     for (f, k, n), i in list(t.items()):
@@ -111,6 +112,12 @@ def main():
                 rows[(k, n)] = i
                 continue
             i = t.get((f, k, n))
+            # `NAME+d`: the statement `d` past `NAME`'s, every one between naming no new value
+            pm = re.fullmatch(r'(.+)\+(\d+)', n) if k == "S" and i is None else None
+            if pm and (f, "S", pm.group(1)) in t:
+                b, d = t[(f, "S", pm.group(1))], int(pm.group(2))
+                if not any(t.get(("#pos", f, b + e)) for e in range(1, d + 1)):
+                    i = b + d
             if i is None:
                 bad.append(f"{f}: no {'value' if k == 'V' else 'statement'} {n}, cited in {', '.join(sorted(ps))}")
             else:

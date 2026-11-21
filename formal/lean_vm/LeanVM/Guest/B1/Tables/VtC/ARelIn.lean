@@ -92,16 +92,16 @@ theorem vsh_disp {C C' : CallRel} {rd : Reader} {σ : Val} {x : V} {fs : List St
 
 /-- Table `t`'s `padding_weight` dispatch. -/
 def pwCall (t : ℕ) : Stmt :=
-  .dispatch (.n (28 + t)) vtPadNames [.n (583 + 13 * t), .n (val% «verify_tables» "zeta")]
-    [.n (584 + 13 * t), .n (585 + 13 * t), .n (586 + 13 * t)]
+  .dispatch (.n (val% «verify_tables» "kb[2]" + t)) vtPadNames [.n (val% «verify_tables» "rows@1" + 13 * t), .n (val% «verify_tables» "zeta")]
+    [.n (val% «verify_tables» "pad_weight[0]" + 13 * t), .n (val% «verify_tables» "lead@1" + 13 * t), .n (val% «verify_tables» "rest@1" + 13 * t)]
 
 /-- The `plus_one_run` dispatch. -/
 def porCall : Stmt := .dispatch (.n (val% «verify_tables» "g_bus_mu")) plusOneRunNames [.n (val% «verify_tables» "zeta1"), .n (val% «verify_tables» "zeta")] [.n (val% «verify_tables» "zeta1_done")]
 
 /-- Table `t`'s `shared_selector_tables` call. -/
 def shCall (t : ℕ) : Stmt :=
-  .call "shared_selector_tables" [.n (vtEqV t), .n (vtGV t), .n (710 + 13 * t), .n (711 + 13 * t),
-    .n (712 + 13 * t), .n (vtShLen t)] []
+  .call "shared_selector_tables" [.n (vtEqV t), .n (vtGV t), .n (val% «verify_tables» "s23.u0.s3#0" + 13 * t), .n (val% «verify_tables» "s23.u0.s3#1" + 13 * t),
+    .n (val% «verify_tables» "s23.u0.s3#2" + 13 * t), .n (vtShLen t)] []
 
 /-- Framework block `b`'s `block_selector` dispatch. -/
 def fwCall (b : ℕ) : Stmt :=
@@ -114,8 +114,8 @@ def imCall (kv r : ℕ) : Stmt := .dispatch (.n kv) vtImNames [.n (val% «verify
 /-- A table block's `block_selector_tab` dispatch (`vtSelT`). -/
 def selCall (x : ℕ × ℕ × ℕ × ℕ × Option ℕ × ℕ × ℕ × ℕ) : Stmt :=
   .dispatch (.n (vtShLen x.2.2.2.1)) vtBstNames [.n x.2.2.1,
-      .n (if x.2.2.2.1 = 0 then 702 else x.2.2.1 + 2),
-      .n (if x.2.2.2.1 = 0 then 703 else x.2.2.1 + 4)]
+      .n (if x.2.2.2.1 = 0 then val% «verify_tables» "shared_eq" else x.2.2.1 + 2),
+      .n (if x.2.2.2.1 = 0 then val% «verify_tables» "shared_g" else x.2.2.1 + 4)]
     [.n (vtSelE x.2.2.1 x.2.2.2.1), .n (vtSelE x.2.2.1 x.2.2.2.1 + 1)]
 
 /-- The `verify_tables_loop0` call. -/
@@ -131,12 +131,12 @@ def otrCall (k : ℕ) : Stmt :=
     ([[.n (val% «verify_tables» "nxt[8]@2"), .n (val% «verify_tables» "nxt[9]@2"), .n (val% «verify_tables» "nxt[10]@2"), .n (val% «verify_tables» "nxt[11]@2"), .n (val% «verify_tables» "nxt[12]@2"), .n (val% «verify_tables» "bfs0@1~9"), .n (val% «verify_tables» "bc_claim@1")],
       [.n (val% «verify_tables» "bfs0@1"), .n (val% «verify_tables» "bfs1@1"), .n (val% «verify_tables» "bfs2@1"), .n (val% «verify_tables» "bfs3@1"), .n (val% «verify_tables» "bfs4@1"), .n (val% «verify_tables» "cursor@2"), .n (val% «verify_tables» "bc_claim@2")],
       [.n (val% «verify_tables» "bfs0@2"), .n (val% «verify_tables» "bfs1@2"), .n (val% «verify_tables» "bfs2@2"), .n (val% «verify_tables» "bfs3@2"), .n (val% «verify_tables» "bfs4@2"), .n (val% «verify_tables» "cursor@3"), .n (val% «verify_tables» "bc_claim@3")]].getD k [] ++ [.n (val% «verify_tables» "tabs")])
-    ((List.range 8).map fun i ↦ .n (1876 + 8 * k + i))
+    ((List.range 8).map fun i ↦ .n (val% «verify_tables» "bfs0@1" + 8 * k + i))
 
 /-- `verify_tables`' calls, in order. -/
 def vtCalls : List Stmt :=
   (List.range 6).map pwCall ++ [porCall] ++ (List.range 6).map shCall ++
-    [fwCall 0, fwCall 1, imCall 27 810, fwCall 2, imCall 822 838] ++
+    [fwCall 0, fwCall 1, imCall (val% «verify_tables» "kb[1]") (val% «verify_tables» "coord_val@1"), fwCall 2, imCall (val% «verify_tables» "kappa_g@2") (val% «verify_tables» "coord_val@2")] ++
     (List.range 51).map (fun i ↦ selCall (vtPushSel.getD i default)) ++
     (List.range 45).map (fun i ↦ selCall (vtCountSel.getD i default)) ++
     [otrCall 0, otrCall 1, otrCall 2, loopCall, epcCall]
@@ -152,27 +152,27 @@ theorem vt_call_mem {s : Stmt} (hs : s ∈ vtPre) (hp : plainStB s = false) : s 
 
 set_option maxRecDepth 100000 in
 /-- The shared tables' pointers: `zeta`, `zeta1` and the exponent table at `g^τ`. -/
-theorem vt_sh_muls : ∀ t < 6, tbStmtsEqb [.atom (.mul (.n (710 + 13 * t)) (.n (val% «verify_tables» "zeta")) (.n ((val% «verify_tables» "kb[2]") + t))),
-    .atom (.mul (.n (711 + 13 * t)) (.n (val% «verify_tables» "zeta1")) (.n ((val% «verify_tables» "kb[2]") + t))),
-    .atom (.mul (.n (712 + 13 * t)) (.n (val% «verify_tables» "g_squares")) (.n ((val% «verify_tables» "kb[2]") + t)))]
-    ((vtPre.drop (701 + 12 * t)).take 3) = true := by
+theorem vt_sh_muls : ∀ t < 6, tbStmtsEqb [.atom (.mul (.n (val% «verify_tables» "s23.u0.s3#0" + 13 * t)) (.n (val% «verify_tables» "zeta")) (.n ((val% «verify_tables» "kb[2]") + t))),
+    .atom (.mul (.n (val% «verify_tables» "s23.u0.s3#1" + 13 * t)) (.n (val% «verify_tables» "zeta1")) (.n ((val% «verify_tables» "kb[2]") + t))),
+    .atom (.mul (.n (val% «verify_tables» "s23.u0.s3#2" + 13 * t)) (.n (val% «verify_tables» "g_squares")) (.n ((val% «verify_tables» "kb[2]") + t)))]
+    ((vtPre.drop (pos% «verify_tables» "s23.u0.s3#0" + 12 * t)).take 3) = true := by
   simp only [vtPre_drop]; decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- A framework block's pointers. -/
-theorem vt_fw_muls : ∀ b < 3, tbStmtsEqb (vtFwSelT (vtFwW b) b ([26, 27, 822].getD b 0)
-    ([none, some 789, some 807].getD b none))
-    ((vtPre.drop ([766, 781, 811].getD b 0)).take
-      (vtFwSelT (vtFwW b) b ([26, 27, 822].getD b 0) ([none, some 789, some 807].getD b none)).length)
+theorem vt_fw_muls : ∀ b < 3, tbStmtsEqb (vtFwSelT (vtFwW b) b ([val% «verify_tables» "kb[0]", val% «verify_tables» "kb[1]", val% «verify_tables» "kappa_g@2"].getD b 0)
+    ([none, some (val% «verify_tables» "eq_hi@1"), some (val% «verify_tables» "selector_sum@1")].getD b none))
+    ((vtPre.drop ([pos% «verify_tables» "s29.u0.s2.u0.s3.e.s2.e.s0#0", pos% «verify_tables» "s29.u0.s2.u1.s3.e.s2.e.s0#0", pos% «verify_tables» "s29.u0.s2.u2.s3.e.s2.e.s0#0"].getD b 0)).take
+      (vtFwSelT (vtFwW b) b ([val% «verify_tables» "kb[0]", val% «verify_tables» "kb[1]", val% «verify_tables» "kappa_g@2"].getD b 0) ([none, some (val% «verify_tables» "eq_hi@1"), some (val% «verify_tables» "selector_sum@1")].getD b none)).length)
     = true := by
   simp only [vtPre_drop]; decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem vt_sel_shapes : (∀ i < 51, (vtPushSel.getD i default).2.2.2.1 < 6 ∧
-      778 < (vtPushSel.getD i default).2.2.1 ∧
+      val% «verify_tables» "block_index_mle" < (vtPushSel.getD i default).2.2.1 ∧
       (vtPushSel.getD i default).2.2.2.2.2.1 < (vtPushSel.getD i default).2.2.1 + 2 ∧
       (vtPushSel.getD i default).2.2.2.2.2.2.1 < (vtPushSel.getD i default).2.2.1 + 4) ∧
-    ∀ i < 45, (vtCountSel.getD i default).2.2.2.1 < 6 ∧ 778 < (vtCountSel.getD i default).2.2.1 ∧
+    ∀ i < 45, (vtCountSel.getD i default).2.2.2.1 < 6 ∧ val% «verify_tables» "block_index_mle" < (vtCountSel.getD i default).2.2.1 ∧
       (vtCountSel.getD i default).2.2.2.2.2.1 < (vtCountSel.getD i default).2.2.1 + 2 ∧
       (vtCountSel.getD i default).2.2.2.2.2.2.1 < (vtCountSel.getD i default).2.2.1 + 4 := by
   decide +kernel
@@ -280,7 +280,7 @@ theorem vt_mulB {d x y : ℕ} (hs : Stmt.atom (.mul (.n d) (.n x) (.n y)) ∈ vt
 theorem gen_div {a b : ℕ} (h : b ≤ a) : gen ^ a * (gen ^ b)⁻¹ = gen ^ (a - b) :=
   (pow_sub₀ _ gen_ne_zero h).symm
 
-theorem vt_kbt (I : VtIn H B w rd) {t : ℕ} (ht : t < 6) : σv (.n (28 + t)) = gen ^ H.τ t := by
+theorem vt_kbt (I : VtIn H B w rd) {t : ℕ} (ht : t < 6) : σv (.n (val% «verify_tables» "kb[2]" + t)) = gen ^ H.τ t := by
   have := I.kbsh.1 (2 + t) (by omega)
   rw [show 26 + (2 + t) = 28 + t by omega, show 2 + t = t + 1 + 1 by omega] at this
   rw [this]
@@ -299,7 +299,7 @@ theorem vt_nμ (I : VtIn H B w rd) : H.n ≤ H.μ := by
 theorem vt_e2500 (I : VtIn H B w rd) : σv (.n (val% «verify_tables» "g_zc_n")) = gen ^ H.n := by
   have g : GoodS rd vtSL w σv
       (fixNe (.atom (.hint (.witness "zc_tau_max" (.stack [.n (val% «verify_tables» "g_zc_n")]))))) :=
-    vt_goodS rfl (vt_mem_at 2590 _ (by decide +kernel))
+    vt_goodS rfl (vt_mem_at (pos% «verify_tables» "g_zc_n") _ (by decide +kernel))
   have := g (.n (val% «verify_tables» "g_zc_n")) (by simp)
   rw [this]; exact I.hw.w2544
 
@@ -341,16 +341,16 @@ theorem vt_sh_up (I : VtIn H B w rd) {t : ℕ} (ht : t < 6)
   have e705 : σv (.n (val% «verify_tables» "shared_eq")) = w 702 := vt_alloc' (by unfold vtAllocVars; simp)
   have e706 : σv (.n (val% «verify_tables» "shared_g")) = w 703 := vt_alloc' (by unfold vtAllocVars; simp)
   obtain ⟨ep, eg⟩ := vtc_shptr (rd := rd) (w := w) (args := H.args B) rfl t ht
-  have mem : ∀ s ∈ [Stmt.atom (.mul (.n (710 + 13 * t)) (.n (val% «verify_tables» "zeta")) (.n (28 + t))),
-      .atom (.mul (.n (711 + 13 * t)) (.n (val% «verify_tables» "zeta1")) (.n (28 + t))),
-      .atom (.mul (.n (712 + 13 * t)) (.n (val% «verify_tables» "g_squares")) (.n (28 + t)))], s ∈ vtPre :=
+  have mem : ∀ s ∈ [Stmt.atom (.mul (.n (val% «verify_tables» "s23.u0.s3#0" + 13 * t)) (.n (val% «verify_tables» "zeta")) (.n (val% «verify_tables» "kb[2]" + t))),
+      .atom (.mul (.n (val% «verify_tables» "s23.u0.s3#1" + 13 * t)) (.n (val% «verify_tables» "zeta1")) (.n (val% «verify_tables» "kb[2]" + t))),
+      .atom (.mul (.n (val% «verify_tables» "s23.u0.s3#2" + 13 * t)) (.n (val% «verify_tables» "g_squares")) (.n (val% «verify_tables» "kb[2]" + t)))], s ∈ vtPre :=
     fun s hs ↦ vt_mem_slice (vt_sh_muls t ht) hs
   have ez := vt_mulF (H := H) (B := B) (w := w) (rd := rd)
-    (mem (.atom (.mul (.n (710 + 13 * t)) (.n (val% «verify_tables» "zeta")) (.n (28 + t)))) (by simp)) (by omega) (by omega)
+    (mem (.atom (.mul (.n (val% «verify_tables» "s23.u0.s3#0" + 13 * t)) (.n (val% «verify_tables» "zeta")) (.n (val% «verify_tables» "kb[2]" + t)))) (by simp)) (by omega) (by omega)
   have ez1 := vt_mulF (H := H) (B := B) (w := w) (rd := rd)
-    (mem (.atom (.mul (.n (711 + 13 * t)) (.n (val% «verify_tables» "zeta1")) (.n (28 + t)))) (by simp)) (by omega) (by omega)
+    (mem (.atom (.mul (.n (val% «verify_tables» "s23.u0.s3#1" + 13 * t)) (.n (val% «verify_tables» "zeta1")) (.n (val% «verify_tables» "kb[2]" + t)))) (by simp)) (by omega) (by omega)
   have egs := vt_mulF (H := H) (B := B) (w := w) (rd := rd)
-    (mem (.atom (.mul (.n (712 + 13 * t)) (.n (val% «verify_tables» "g_squares")) (.n (28 + t)))) (by simp)) (by omega) (by omega)
+    (mem (.atom (.mul (.n (val% «verify_tables» "s23.u0.s3#2" + 13 * t)) (.n (val% «verify_tables» "g_squares")) (.n (val% «verify_tables» "kb[2]" + t)))) (by simp)) (by omega) (by omega)
   have kb := vt_kbt I ht
   simp only [shCall, vsh_call, List.map_cons, List.map_nil] at h ⊢
   rw [hlen] at h ⊢
@@ -373,7 +373,7 @@ theorem vt_sh_up (I : VtIn H B w rd) {t : ℕ} (ht : t < 6)
 
 /-- Framework block `b`'s `g^κ`. -/
 theorem vt_fw_kv (I : VtIn H B w rd) {b : ℕ} (hb : b < 3) :
-    σv (.n ([26, 27, 822].getD b 0)) = gen ^ ([0, H.lm, 19].getD b 0) := by
+    σv (.n ([val% «verify_tables» "kb[0]", val% «verify_tables» "kb[1]", val% «verify_tables» "kappa_g@2"].getD b 0)) = gen ^ ([0, H.lm, 19].getD b 0) := by
   interval_cases b
   · show σv (.n (val% «verify_tables» "kb[0]")) = gen ^ 0
     rw [vt_kb0 I, pow_zero]
@@ -393,12 +393,12 @@ theorem vt_fw_up (I : VtIn H B w rd) {b : ℕ} (hb : b < 3)
     have h1 : H.lm ≤ H.μ := I.hs.hlmμ
     have h2 : 19 ≤ H.μ := I.hs.h19
     interval_cases b <;> simp <;> omega
-  have hwv : [26, 27, 822].getD b 0 < vtFwW b ∧ 700 < vtFwW b := by
+  have hwv : [val% «verify_tables» "kb[0]", val% «verify_tables» "kb[1]", val% «verify_tables» "kappa_g@2"].getD b 0 < vtFwW b ∧ 700 < vtFwW b := by
     interval_cases b <;> simp [vtFwW]
   set κ := [0, H.lm, 19].getD b 0 with hκd
-  set kv := [26, 27, 822].getD b 0 with hkv
+  set kv := [val% «verify_tables» "kb[0]", val% «verify_tables» "kb[1]", val% «verify_tables» "kappa_g@2"].getD b 0 with hkv
   set v := vtFwW b with hv
-  have mem : ∀ s ∈ vtFwSelT v b kv ([none, some 789, some 807].getD b none), s ∈ vtPre :=
+  have mem : ∀ s ∈ vtFwSelT v b kv ([none, some (val% «verify_tables» "eq_hi@1"), some (val% «verify_tables» "selector_sum@1")].getD b none), s ∈ vtPre :=
     fun s hs ↦ vt_mem_slice (vt_fw_muls b hb) hs
   have e0 : σv (.n kv) = gen ^ κ := vt_fw_kv I hb
   have ew : σv (.n v) = gen ^ (H.μ - κ) := by
@@ -431,8 +431,8 @@ theorem vt_fw_up (I : VtIn H B w rd) {b : ℕ} (hb : b < 3)
       show κ + (H.μ - κ) ≤ 34; omega)
 
 theorem vt_im_up (I : VtIn H B w rd) {b r : ℕ} (hb : b = 1 ∨ b = 2)
-    (h : VSH (coreProgram.Rel rd) rd σv (imCall ([26, 27, 822].getD b 0) r)) :
-    VSH (coreProgram.RelIn rd (H.reg B)) rd σv (imCall ([26, 27, 822].getD b 0) r) := by
+    (h : VSH (coreProgram.Rel rd) rd σv (imCall ([val% «verify_tables» "kb[0]", val% «verify_tables» "kb[1]", val% «verify_tables» "kappa_g@2"].getD b 0) r)) :
+    VSH (coreProgram.RelIn rd (H.reg B)) rd σv (imCall ([val% «verify_tables» "kb[0]", val% «verify_tables» "kb[1]", val% «verify_tables» "kappa_g@2"].getD b 0) r) := by
   have hμ : H.μ < 33 := I.hs.hμ33
   have hκ : [0, H.lm, 19].getD b 0 ≤ H.μ := by
     have h1 : H.lm ≤ H.μ := I.hs.hlmμ
@@ -465,7 +465,7 @@ theorem vt_sel_up (I : VtIn H B w rd) {x : ℕ × ℕ × ℕ × ℕ × Option �
         x.2.2.2.2.2.2.2)
       ((vtAt x.2.1).take (vtSelT x.2.2.1 x.1 x.2.2.2.1 x.2.2.2.2.1 x.2.2.2.2.2.1
         x.2.2.2.2.2.2.1 x.2.2.2.2.2.2.2).length) = true)
-    (ht : x.2.2.2.1 < 6) (hw0 : 778 < x.2.2.1) (hes : x.2.2.2.2.2.1 < x.2.2.1 + 2)
+    (ht : x.2.2.2.1 < 6) (hw0 : val% «verify_tables» "block_index_mle" < x.2.2.1) (hes : x.2.2.2.2.2.1 < x.2.2.1 + 2)
     (hgs : x.2.2.2.2.2.2.1 < x.2.2.1 + 4)
     (hd : 0 < x.2.2.2.1 → x.2.2.2.2.2.1 = vtEqV (x.2.2.2.1 - 1) ∧
       ((x.2.2.2.2.2.2.1 = vtGV (x.2.2.2.1 - 1) ∧ x.2.2.2.2.2.2.2 = 21299200) ∨
@@ -485,7 +485,7 @@ theorem vt_sel_up (I : VtIn H B w rd) {x : ℕ × ℕ × ℕ × ℕ × Option �
   have a706 : σv (.n (val% «verify_tables» "shared_g")) = w 703 := vt_alloc' (by unfold vtAllocVars; simp)
   have av : σv (.n v) = w v := by
     rw [← hjv]; exact vt_alloc' (allocVars_mem (by omega))
-  have eqt : σv (.n (if t = 0 then 702 else v + 2)) = w 702 * gen ^ (288 * t) := by
+  have eqt : σv (.n (if t = 0 then val% «verify_tables» "shared_eq" else v + 2)) = w 702 * gen ^ (288 * t) := by
     rcases Nat.eq_zero_or_pos t with rfl | h0
     · simp [a705]
     · have ht0 : t ≠ 0 := by omega
@@ -497,7 +497,7 @@ theorem vt_sel_up (I : VtIn H B w rd) {x : ℕ × ℕ × ℕ × ℕ × Option �
         vt_const (mem (.atom (.const (.n (v + 1)) vtW288)) (by simp [vtSelT, ht0])), e1, a705,
         show vtW288 = gen ^ 288 from vtW288_eq, mul_assoc, ← pow_add,
         show 288 * (t - 1) + 288 = 288 * t by omega]
-  have egt : σv (.n (if t = 0 then 703 else v + 4)) = w 703 * gen ^ (144 * t) := by
+  have egt : σv (.n (if t = 0 then val% «verify_tables» "shared_g" else v + 4)) = w 703 * gen ^ (144 * t) := by
     rcases Nat.eq_zero_or_pos t with rfl | h0
     · simp [a706]
     · have ht0 : t ≠ 0 := by omega

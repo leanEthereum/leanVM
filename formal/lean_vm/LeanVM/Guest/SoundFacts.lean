@@ -255,7 +255,7 @@ theorem main_cut : (certOf 1).cuts.length = 1 ∧ ((certOf 1).cutAt 1).known = [
     ((certOf 1).cutAt 1).sems = [(0, [(certOf 1).locs.getD 28 0])] := by
   decide +kernel
 
-/-- `main`'s statement `16` is its call of `exponent_tables`, before its cut, after no `ret`. -/
+/-- `main`'s statement `g_squares` is its call of `exponent_tables`, before its cut, after no `ret`. -/
 theorem main_exp : (coreOf 1).body[16]? = some (.call "exponent_tables" [] [.n (val% «main» "g_squares")]) := rfl
 
 theorem main_exp_lt : 16 < ((certOf 1).cutAt 1).start := by decide +kernel

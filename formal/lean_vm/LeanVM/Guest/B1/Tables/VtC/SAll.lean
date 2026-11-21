@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.SAll
 
-  `verify_tables`' statements before the bus sides (`0 ..< 765`) hold on the honest valuation.
+  `verify_tables`' statements before the bus sides hold on the honest valuation.
 -/
 
 module
@@ -11,7 +11,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
-# Statements `0 ..< 765`
+# Statements `0 ..< block_index_mle`
 
 `vtS_complete`: for the memory's log-size `lm ≤ 32`, the bus point (`|point| < 33`) and the
 tables' heights `τ t = max (log2Ceil (n t)) floor < 31`, `τ t ≤ |point|`, on a memory defined
@@ -38,7 +38,7 @@ theorem vtTauList_getD {τ : ℕ → ℕ} {t : ℕ} (ht : t < 6) : (vtTauList τ
   rw [List.getD_eq_getElem _ _ (by simp [vtTauList]; exact ht)]
   simp [vtTauList]
 
-/-- **`verify_tables`' statements `0 ..< 765` complete.** -/
+/-- **`verify_tables`' statements `0 ..< block_index_mle` complete.** -/
 theorem vtS_complete (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} (hlm : lm ≤ 32)
     (point : List E) (hμ33 : point.length < 33) (τ n : ℕ → ℕ)
     (hτ : ∀ t < 6, τ t = max (log2Ceil (n t)) (tableLogFloors.getD t 0))

@@ -18,7 +18,7 @@ import LeanVM.Guest.Data.ValNames.«verify_tables»
 /-!
 # The selector tables
 
-* `vt_idxc`: `idxc_tab[g^t] = 1 + g^(2^t)`, `t < 34` (statements 625-692);
+* `vt_idxc`: `idxc_tab[g^t] = 1 + g^(2^t)`, `t < 34`;
 * `vt_zeta1`: `zeta1` holds `1 + ζ_k` for the bus point's `μ` coordinates (`plus_one_run`, 694);
 * `vt_shared`: table `t`'s run `μ - τ_t` long (`shared_len[t] = g^(μ - τ_t)`) has its nibble
   tables at `shared_eq·g^(288 t)`, `shared_g·g^(144 t)` (`vt_sh{t}`), over the coordinates above `τ_t`, their

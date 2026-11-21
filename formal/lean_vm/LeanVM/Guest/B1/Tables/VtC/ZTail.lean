@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.ZTail
 
-  `verify_tables`' statements `5523 ..< 5554`, completely: the public input's binding and the
+  `verify_tables`' statements `nxt[0]@42 ..< ret`, completely: the public input's binding and the
   return.
 -/
 
@@ -50,7 +50,7 @@ theorem vtW153C : word 10905190400 0 = gen ^ 153 := by
   rw [gen_pow_eq_ofK, show K.ofBits 10905190400 = Parameters.addressOfIndex 153 by decide +kernel]
 
 set_option maxRecDepth 100000 in
-/-- **Statements `5523 ..< 5554`, completely.** -/
+/-- **Statements `nxt[0]@42 ..< ret`, completely.** -/
 theorem vtZt_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 21) {S2 : Fs}
     (hSr : rateOf S2.pend =
       [vtσ rd w args (.n (val% «verify_tables» "rate[0]@42")), vtσ rd w args (.n (val% «verify_tables» "rate[1]@42")), 0, 0, 0, 0, 0, 0])

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.SP2
 
-  `verify_tables`' statements `563 ..< 765` hold on the honest valuation: the six
+  `verify_tables`' statements `s15.u0.s1#0 ..< block_index_mle` hold on the honest valuation: the six
   tables' heights and padding weights, `idxc_tab`, `zeta1` and the shared selector tables.
 -/
 
@@ -14,7 +14,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
-# Statements `563 ..< 765`
+# Statements `s15.u0.s1#0 ..< block_index_mle`
 
 `vtS_p2`: for the bus point (`|point| = μ < 33`), the tables' heights at `kappa_base[2 + t]`,
 `τ t = max (log2Ceil (n t)) floor < 31`, `τ t ≤ μ`, on a memory holding `table_rows`, the squares,
@@ -59,7 +59,7 @@ theorem vt_tmplSlice {P : Stmt → Prop} {n : ℕ} {blk : List Stmt}
   rw [vtPre_drop, ← tbStmtsEqb_sound heq]; exact h
 
 set_option maxRecDepth 10000 in
-/-- **Statements `563 ..< 765`.** -/
+/-- **Statements `s15.u0.s1#0 ..< block_index_mle`.** -/
 theorem vtS_p2 (hl : args.length = 21) (hlow : LowDefB 14 rd) (point : List E)
     (hμ33 : point.length < 33) (τ n : ℕ → ℕ)
     (hτ : ∀ t < 6, τ t = max (log2Ceil (n t)) (tableLogFloors.getD t 0))

@@ -24,7 +24,7 @@ import LeanVM.Guest.Data.ValNames.«verify_tables»
 What the soundness proof read outside the window becomes hypotheses: the push and count blocks'
 selectors (`vt_sels`'s), the pull blocks' copies of the push ones (`VtPullSelsH`, `vtPullSels*`'s),
 the tables' `g^τ` (`kappa_base`'s frame variables `σ (27 + t)`), `zeta1` (`vt_zeta1`'s) and the
-batching challenge's powers (`vt_xi_pow`'s, statements `2631 ..< 2636`).
+batching challenge's powers (`vt_xi_pow`'s, statements `zc_xi_pows[0] ..< bus_target@1`).
 -/
 
 namespace LeanVM.Guest.B1.Tables

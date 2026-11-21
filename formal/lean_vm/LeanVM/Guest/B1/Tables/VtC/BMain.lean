@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.BMain
 
-  **`verify_tables`' bus sides complete** (statements `765 ..< 2592`).
+  **`verify_tables`' bus sides complete**.
 -/
 
 module
@@ -13,7 +13,7 @@ import LeanVM.Guest.Data.ValNames.«verify_tables»
 /-!
 # The bus sides, complete
 
-`vtB_complete`: under `VtBHyp`, every statement of `765 ..< 2592` holds on the honest valuation,
+`vtB_complete`: under `VtBHyp`, every statement of `block_index_mle ..< s56.u0.s1#1` holds on the honest valuation,
 every load reads inside `vtBufsB`, the framework words and the bytecode share's are the cursor's,
 the share's last capacity and cursor are the honest ones (`vtBcR3`), the selectors are the blocks'
 `blockSel`, and the three bus totals are `vtAcc0/1/2`'s at the honest words and GKR leaves (as
@@ -122,7 +122,7 @@ theorem vtB_indexArm (hl : args.length = 21) {x r : V} {point : List E} {κ : �
     ⟨point.take κ, by simp; omega, tbReadsAt_take hz κ, rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- **`verify_tables`' bus sides complete** (statements `765 ..< 2592`). -/
+/-- **`verify_tables`' bus sides complete**. -/
 theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
     (∀ s ∈ (vtPre.drop (pos% «verify_tables» "block_index_mle")).take (span% «verify_tables» "block_index_mle" "s56.u0.s1#1"), VSH (coreProgram.Rel rd) rd σv s) ∧
       LoadsInBuf σv (vtBufsB σv) ((vtPre.drop (pos% «verify_tables» "block_index_mle")).take (span% «verify_tables» "block_index_mle" "s56.u0.s1#1")) ∧

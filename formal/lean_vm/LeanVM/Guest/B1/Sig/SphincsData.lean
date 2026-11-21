@@ -38,8 +38,8 @@ theorem sAfterDigest_eq : (Fn.«verify_sig_lean_sphincs».core).body.drop (pos% 
 
 /-- **`verify_sig_lean_sphincs`'s body is the template.** -/
 theorem sBody_eq : (Fn.«verify_sig_lean_sphincs».core).body = sBody := by
-  rw [← List.take_append_drop 1358 (Fn.«verify_sig_lean_sphincs».core).body, sDigestBlock_prefix,
-      sAfterDigest_eq]
+  rw [← List.take_append_drop (pos% «verify_sig_lean_sphincs» "a0_b~0") (Fn.«verify_sig_lean_sphincs».core).body,
+      sDigestBlock_prefix, sAfterDigest_eq]
   rfl
 
 end

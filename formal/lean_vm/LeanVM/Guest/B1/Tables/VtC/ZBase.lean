@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Tables.VtC.ZBase
 
   The table sumcheck's honest rounds (from the transcript words, the capacity and the target), the
-  buffers they fill, and `verify_tables`' statements `2590 ..< 2683` and `5523 ..< 5554`.
+  buffers they fill, and `verify_tables`' statements `g_zc_n ..< x@9` and `nxt[0]@42 ..< ret`.
 -/
 
 module
@@ -40,7 +40,7 @@ open LeanVM.Guest.B1.Fwd
 
 /-! ## The statements -/
 
-/-- `verify_tables`' statements `2590 ..< 2683` (G:2565-2619). -/
+/-- `verify_tables`' statements `g_zc_n ..< x@9` (G:2565-2619). -/
 noncomputable def zBlk : List Stmt := [
     .atom (.hint (.witness "zc_tau_max" (.stack [.n (val% «verify_tables» "g_zc_n")]))),
     .atom (.const (.n (val% «verify_tables» "s56.u0.s1#0")) (word 4294967296 0)),
@@ -137,7 +137,7 @@ noncomputable def zBlk : List Stmt := [
     .atom (.hint (.allocDyn (.n (val% «verify_tables» "zc_peq")) (.n (val% «verify_tables» "zc_peq~1")))),
     .call "eq_prefix_chain_rev" [.n (val% «verify_tables» "zc_peq"), .n (val% «verify_tables» "chi"), .n (val% «verify_tables» "zc_rk"), .n (val% «verify_tables» "zeta1"), .n (val% «verify_tables» "g_zc_n")] []]
 
-/-- `verify_tables`' statements `5523 ..< 5554` (G:2716-2723). -/
+/-- `verify_tables`' statements `nxt[0]@42 ..< ret` (G:2716-2723). -/
 noncomputable def zTail : List Stmt := [
     .atom (.keccak [.n (val% «verify_tables» "rate[0]@42"), .n (val% «verify_tables» "rate[1]@42"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "nxt[8]@41"), .n (val% «verify_tables» "nxt[9]@41"), .n (val% «verify_tables» "nxt[10]@41"), .n (val% «verify_tables» "nxt[11]@41"), .n (val% «verify_tables» "nxt[12]@41")] [.n (val% «verify_tables» "nxt[0]@42"), .n (val% «verify_tables» "nxt[1]@42"), .n (val% «verify_tables» "nxt[2]@42"), .n (val% «verify_tables» "nxt[3]@42"), .n (val% «verify_tables» "nxt[4]@42"), .n (val% «verify_tables» "nxt[5]@42"), .n (val% «verify_tables» "nxt[6]@42"), .n (val% «verify_tables» "nxt[7]@42"), .n (val% «verify_tables» "nxt[8]@42"), .n (val% «verify_tables» "nxt[9]@42"), .n (val% «verify_tables» "nxt[10]@42"), .n (val% «verify_tables» "nxt[11]@42"), .n (val% «verify_tables» "nxt[12]@42")] false false),
     .atom (.hint (.limbs (.n (val% «verify_tables» "pi_0")) [.n (val% «verify_tables» "lo[0]@1")])),

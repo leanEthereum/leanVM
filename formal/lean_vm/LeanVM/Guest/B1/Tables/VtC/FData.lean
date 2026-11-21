@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.FData
 
-  The statements of the window `2683 ..< 5522` that evaluation alone does not settle, by kind:
+  The statements of the window `x@9 ..< air_acc@6+1` that evaluation alone does not settle, by kind:
   each evaluation's read and limb check, the permutations, and each table's weight division and
   two weight reads; the kernel checks that they and the reads of `fp_w` cover the window.
   The data `vtAirD` and `vtFTags` are `VtC/FDataD.lean`'s (`scripts/b1c-vt/genfdata.py`).

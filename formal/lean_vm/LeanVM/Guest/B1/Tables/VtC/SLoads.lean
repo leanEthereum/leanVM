@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.SLoads
 
-  Where `verify_tables`' loads of statements `0 ..< 765` read: in `dims_g`, `table_rows`, the
+  Where `verify_tables`' loads of statements `0 ..< block_index_mle` read: in `dims_g`, `table_rows`, the
   exponent table, the four group buffers and `idxc_tab`, some through computed pointers.
 -/
 
@@ -13,14 +13,14 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 /-!
-# The loads of statements `0 ..< 765`
+# The loads of statements `0 ..< block_index_mle`
 
 A load through a computed pointer (`p = base · x`, `x = g^a` with `a` bounded) lands in `base`'s
 buffer when `a + off` is below its length. `ptrRun` tracks, statement by statement, what the
 holding statements say of the variables: `PF.pw e` (`σ v = g^a`, `a ≤ e`: a constant
 `word (2^k)`, a product of two such, a word read from a buffer whose words are such) and
 `PF.pt b e` (`σ v = σ b · g^a`, `a ≤ e`), and checks every load against the buffers
-(`ptrRun_sound`). `vtS_loads`: statements `0 ..< 765`, whose loads read `dims_g` (`7`),
+(`ptrRun_sound`). `vtS_loads`: statements `0 ..< block_index_mle`, whose loads read `dims_g` (`7`),
 `table_rows` (`6`), the exponent table (`236`, at `σ12 · g^κ` and `σ12 · g^gi`), the group buffers
 (`24` each, also at `σ(33+i) · g^gi`) and `idxc_tab` (`34`), from `dims_g`'s words (`g^` at most
 `32`) and the group order's (`g^` at most `23`).
@@ -270,9 +270,9 @@ theorem ptrRun_sound {bufs : List (E × ℕ)} {bs : List (ℕ × ℕ)} {pws : Li
 end
 
 
-/-! ## Statements `0 ..< 765` -/
+/-! ## Statements `0 ..< block_index_mle` -/
 
-/-- The buffers statements `0 ..< 765` load from: `dims_g`, `table_rows`, the exponent table, the
+/-- The buffers statements `0 ..< block_index_mle` load from: `dims_g`, `table_rows`, the exponent table, the
 group buffers, `idxc_tab`. -/
 def vtBufsSIdx : List (ℕ × ℕ) :=
   [(10, 7), (11, 6), (12, 236), (34, 24), (35, 24), (36, 24), (37, 24), (665, 34)]
@@ -295,7 +295,7 @@ theorem pw_of_reads {rd : Reader} {p : E} {ws : List E} (h : TbReadsAt rd p ws) 
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-/-- **Where statements `0 ..< 765` load**: in `dims_g`, `table_rows`, the exponent table, the
+/-- **Where statements `0 ..< block_index_mle` load**: in `dims_g`, `table_rows`, the exponent table, the
 group buffers and `idxc_tab`, on `dims_g`'s and the group order's honest words. -/
 theorem vtS_loads {bufs : List (E × ℕ)}
     (hV : ∀ s ∈ (vtPre.drop 0).take (pos% «verify_tables» "block_index_mle"), VSH (coreProgram.Rel rd) rd (vtσ rd w args) s)
