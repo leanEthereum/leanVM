@@ -450,10 +450,13 @@ theorem straight_rest_le (Q K : ℕ) (hK : K ≤ Q + 2 ^ 65) :
 
 /-- **The straight-line bound is below the forking route's** for every `Q`. -/
 theorem straight_le_fork (Q c k : ℕ) :
-    ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 10) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
+    ((Q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 10) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
         ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247 ≤
       ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 20) * (2 : ℝ≥0∞)⁻¹ ^ 56 +
         ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 158 := by
+  have hks : ((Q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k ≤
+      ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k :=
+    mul_le_mul_left le_self_add _
   have hlin : ((Q : ℝ≥0∞) + 2 ^ 10) * (2 : ℝ≥0∞)⁻¹ ^ 125 ≤
       ((Q : ℝ≥0∞) + 2 ^ 20) * (2 : ℝ≥0∞)⁻¹ ^ 56 :=
     mul_le_mul' (add_le_add le_rfl (show (2 : ℝ≥0∞) ^ 10 ≤ 2 ^ 20 from

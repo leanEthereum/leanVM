@@ -528,6 +528,15 @@ noncomputable def codeBindingGame (adversary : CodeBindingAdversary r Crs Proof)
 abbrev KnowledgeSoundnessAdversary (Crs Proof : Type) :=
   Crs → OracleComp RandomPermutationOracles (DigestBytes × Proof)
 
+/-- **The adversary and the argument's verification in the knowledge-soundness game**: the
+argument's setup, the adversary, and the argument's verification, excluding the relation's check
+(whose worst-case nonce search would otherwise charge all `2^64` nonces to `QueryCostAtMost`). -/
+def knowledgeSoundnessRun (adversary : KnowledgeSoundnessAdversary Crs Proof) :
+    OracleComp RandomPermutationOracles Bool := do
+  let crs ← liftM argument.setup
+  let (root, proof) ← adversary crs
+  argument.verify crs root proof
+
 /-- **The argument's knowledge-soundness game** (Wagner's, Foundations Definition 18, in the
 random-permutation model with a straight-line extractor): the argument's setup, the adversary with
 its queries logged, the argument's verification, then the relation's check on the cells the
@@ -591,17 +600,18 @@ it** (Benedikt Wagner's framework and games, moved to the random-permutation mod
 straight-line argument in place of his forking lemma). For `1 ≤ r ≤ maxRows` rows (the
 crate's bound), every argument `argument` (its prover and verifier querying the model's oracles) and
 straight-line extractor `extractor` (reading the adversary's transcript): if every adversary whose
-knowledge-soundness game (`knowledgeSoundnessGame`, the argument's verifier and the relation's check
-included) makes at most `q ≤ 2^128` permutation calls (`permutationCallCost`) wins it with
-probability at most `(q + c) · 2^-k`, then every adversary whose code-binding game, verifications
-included, makes at most `Q` calls breaks code binding with probability at most
+run with the argument's verification (`knowledgeSoundnessRun`) makes at most `q ≤ 2^128`
+permutation calls (`permutationCallCost`) wins the knowledge-soundness game
+(`knowledgeSoundnessGame`) with probability at most `(q + c) · 2^-k`, then every adversary whose
+code-binding game, verifications included, makes at most `Q` calls breaks code binding with
+probability at most
 
-`(Q + c + 2^65) · 2^-k + (Q + 2^10) · 2^-125 + (Q + 2^22)² · 2^-247`.
+`(Q + c) · 2^-k + (Q + 2^10) · 2^-125 + (Q + 2^22)² · 2^-247`.
 
 The first term is the argument's knowledge soundness against the code-binding adversary itself,
-its transcript handed to the extractor: its game makes at most `Q + 2^65` calls with the
-relation's check, the commitment's hashes (fewer than `2^22`) and, on the worst path, the nonce
-search's `2^64 + 2` (the label's hash, the seeded sponge and every `u64` nonce). The second is the
+its transcript handed to the extractor: the adversary and the argument's verification make at most
+`Q` permutation calls, avoiding charging the relation check's worst-case `2^64`-nonce search to
+`q`. The second is the
 membership test with its grind: the inner product of `L` with a row that is not a codeword is a
 nonzero polynomial in `z` of degree below `2^13` (Annex D, Proposition prop:rs-membership), so a challenge accepts it
 with probability at most `(2^13 - 1) / 2^128`; a permutation call of the adversary draws a valid
@@ -625,8 +635,7 @@ abbrev LeanDaCodeBinding : Prop :=
   ∀ (r : ℕ) {Crs Proof : Type} (argument : LeanDaArgument r Crs Proof)
     (extractor : StraightLineExtractor DigestBytes (Fin (r * 128) → Cell) Crs Proof) (c k : ℕ),
     (∀ (adversary : KnowledgeSoundnessAdversary Crs Proof) (q : ℕ),
-      QueryCostAtMost (knowledgeSoundnessGame r argument extractor adversary) permutationCallCost
-        q →
+      QueryCostAtMost (knowledgeSoundnessRun r argument adversary) permutationCallCost q →
       q ≤ 2 ^ 128 →
         Pr{let b ← runWithRandomPermutation
             (knowledgeSoundnessGame r argument extractor adversary)}[b = true] ≤
@@ -635,7 +644,7 @@ abbrev LeanDaCodeBinding : Prop :=
     ∀ (adversary : CodeBindingAdversary r Crs Proof) (Q : ℕ),
       QueryCostAtMost (codeBindingGame r argument adversary) permutationCallCost Q →
         Pr{let b ← runWithRandomPermutation (codeBindingGame r argument adversary)}[b = true] ≤
-          ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k +
+          ((Q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k +
             ((Q : ℝ≥0∞) + 2 ^ 10) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247
 

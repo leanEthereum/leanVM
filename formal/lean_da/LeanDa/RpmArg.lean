@@ -436,6 +436,33 @@ theorem codeBindingGame_le_G (A : CodeBindingAdvRpmH r Crs Proof) (Q : ℕ)
   exact duplex_le (D := daDuplex) daDuplex_cap _ Q hB (fun out ↦ out.1.1)
     (fun out l ↦ postV r (psV r ps) crs out l)
 
+/-- **The adversary and the argument's verification make at most `Q` calls**, as a prefix of the
+code-binding game. -/
+theorem isWeightBound_ksRunH_ksB (A : CodeBindingAdvRpmH r Crs Proof) (Q : ℕ)
+    (hQ : QueryCostAtMost (codeBindingGameH r ps A) permCallsH Q) :
+    QueryCostAtMost (ksRunH r ps (ksB r A)) permCallsH Q := by
+  have hcb : codeBindingGameH r ps A =
+      ((do
+        let crs ← liftM ps.setup
+        let (com, opened) ← A ((), crs)
+        let ok ← ps.verify crs com.1 com.2
+        pure (com, opened, ok)) >>= fun p ↦ do
+          let verdicts ← p.2.1.mapM fun o ↦ verifyCellMWithHash hK r p.1.1 o.1 o.2.1 o.2.2
+          pure (p.2.2 && verdicts.all id && !decide ((leanDaErasureCode r).Consistent
+            (p.2.1.map fun o ↦ (o.1, o.2.1))))) := by
+    simp [codeBindingGameH, bind_assoc]
+  rw [hcb] at hQ
+  have hpref := hQ.of_bind
+  have hrun : ksRunH r ps (ksB r A) =
+      (fun p ↦ p.2.2) <$> (do
+        let crs ← liftM ps.setup
+        let (com, opened) ← A ((), crs)
+        let ok ← ps.verify crs com.1 com.2
+        pure (com, opened, ok)) := by
+    simp only [ksRunH, ksB, bind_map_left, map_bind, map_pure, bind_pure]
+  rw [hrun, isWeightBound_map_iff]
+  exact hpref
+
 /-- **LeanDA is code binding in the random-permutation model, for an argument knowledge sound in
 it**, by the straight-line argument built on Benedikt Wagner's framework and games
 (`LeanDa.StraightBound`), for the virtual oracle-free argument that reads the verdict of the
@@ -446,12 +473,12 @@ statement's game of the code-binding adversary itself (`relabel_ksGame`, through
 with `H` and the draws lazily sampled (`codeBindingExpG_le`: the hash's bad events, a selected
 accepting draw among the adversary's, and the verifier's one fresh try). -/
 theorem leanDa_codeBinding_rpm_bound_at (c k : ℕ) (A : CodeBindingAdvRpmH r Crs Proof)
-    (hks : ∀ q : ℕ, QueryCostAtMost (ksGameH r ps ext (ksB r A)) permCallsH q → q ≤ 2 ^ 128 →
+    (hks : ∀ q : ℕ, QueryCostAtMost (ksRunH r ps (ksB r A)) permCallsH q → q ≤ 2 ^ 128 →
       Pr{let b ← runKH (ksGameH r ps ext (ksB r A))}[b = true] ≤
         ((q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k)
     (hrM : r ≤ maxRows) (Q : ℕ) (hQ : QueryCostAtMost (codeBindingGameH r ps A) permCallsH Q) :
     Pr{let b ← runKH (codeBindingGameH r ps A)}[b = true] ≤
-      ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 10) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
+      ((Q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 10) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
         ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247 := by
   rcases le_or_gt Q (2 ^ 127) with hQcap | hQcap
   swap
@@ -472,17 +499,12 @@ theorem leanDa_codeBinding_rpm_bound_at (c k : ℕ) (A : CodeBindingAdvRpmH r Cr
   have hε : prT (realGame2 keccakPadding KState.zero
       (rpmGame2 (liftM (psV r ps).setup) (fun crs ↦ relabelAdv (advV0 r ps A) ((), crs))
         (postKG r (psV r ps) (extV r ext)))) ≤
-      ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k := by
+      ((Q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k := by
     have e := relabel_ksGame r ps ext A
-    have hW : QueryCostAtMost (ksGameH r ps ext (ksB r A)) permCallsH (ksCalls r Q) := by
-      rw [← isWeightBound_relabel_iff, e, isWeightBound_toOne_iff]
-      exact isWeightBound_postKGGame r (psV r ps) (extV r ext) _ Q hQ0
-    have h := hks (ksCalls r Q) hW (by omega)
+    have hW := isWeightBound_ksRunH_ksB r ps A Q hQ
+    have h := hks Q hW (by omega)
     rw [(runK_relabel _).prEvent_eq, e] at h
-    refine h.trans (mul_le_mul_left ?_ _)
-    have : ((ksCalls r Q : ℕ) : ℝ≥0∞) ≤ (Q : ℝ≥0∞) + 2 ^ 65 := by exact_mod_cast hK
-    calc ((ksCalls r Q : ℕ) : ℝ≥0∞) + c ≤ (Q : ℝ≥0∞) + 2 ^ 65 + c := by gcongr
-      _ = (Q : ℝ≥0∞) + c + 2 ^ 65 := by ring
+    exact h
   have hG := codeBindingGame_le_G r ps A Q hQ
   have hA : ∀ crs ∈ support (psV r ps).setup,
       QueryCostAtMost (advSim r (relabelAdv (advV r ps A)) crs) hgCalls (2 * Q + 1) ∧
@@ -517,7 +539,7 @@ theorem leanDa_codeBinding_rpm_bound_at (c k : ℕ) (A : CodeBindingAdvRpmH r Cr
         refine (add_le_add (add_le_add (hS.trans (add_le_add hKS le_rfl)) le_rfl) le_rfl).trans
           (le_of_eq ?_)
         ring
-    _ ≤ ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k +
+    _ ≤ ((Q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k +
           (((Q : ℝ≥0∞) + 2 ^ 10) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247) := add_le_add hε hR
     _ = _ := by ring
