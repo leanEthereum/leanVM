@@ -1359,8 +1359,10 @@ pub(super) fn walk<M: Machine>(
             Op::Keccak { .. } => {
                 use crate::keccak::{ROW_CELLS, STATE_CELLS};
                 let k = crate::tables::KeccakOp::of(&op);
+                // Only the cells accessed need an address: the input and those `out` holds.
+                let written = STATE_CELLS + k.out_cells.cells();
                 let mut cells = [0; ROW_CELLS];
-                for (c, cell) in cells.iter_mut().enumerate() {
+                for (c, cell) in cells[..written].iter_mut().enumerate() {
                     let (offset, step) = k.cell_parts(c);
                     *cell = at(at(fp, offset)?, step)?;
                 }
@@ -1377,7 +1379,6 @@ pub(super) fn walk<M: Machine>(
                 let mut lanes = crate::keccak::state_of_cells(k.in_odd, |c| input[c]);
                 keccak_step.step(&lanes);
                 primitives::hash::keccak_f(&mut lanes);
-                let written = STATE_CELLS + k.out_cells.cells();
                 let output = crate::keccak::cells_of_state(&lanes, k.out_odd);
                 for c in STATE_CELLS..written {
                     r[c] = m.put_counted(cells[c], output[c - STATE_CELLS])?;

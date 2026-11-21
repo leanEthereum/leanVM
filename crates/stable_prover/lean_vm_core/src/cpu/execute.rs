@@ -642,8 +642,10 @@ pub fn execute(
             Op::Keccak { .. } => {
                 use crate::keccak::{ROW_CELLS, STATE_CELLS};
                 let k = crate::tables::KeccakOp::of(&op);
+                // Only the cells accessed need an address: the input and those `out` holds.
+                let written = STATE_CELLS + k.out_cells.cells();
                 let mut cells = [0; ROW_CELLS];
-                for (c, cell) in cells.iter_mut().enumerate() {
+                for (c, cell) in cells[..written].iter_mut().enumerate() {
                     let (offset, step) = k.cell_parts(c);
                     *cell = at(at(fp, offset)?, step)?;
                 }
@@ -651,7 +653,6 @@ pub fn execute(
                 let input: [F128; STATE_CELLS] = std::array::from_fn(|c| m.read(cells[c]));
                 let mut lanes = crate::keccak::state_of_cells(k.in_odd, |c| input[c]);
                 primitives::hash::keccak_f(&mut lanes);
-                let written = STATE_CELLS + k.out_cells.cells();
                 let output = crate::keccak::cells_of_state(&lanes, k.out_odd);
                 for (&cell, &v) in cells[STATE_CELLS..written].iter().zip(&output) {
                     m.put(cell, v).map_err(fail)?;
