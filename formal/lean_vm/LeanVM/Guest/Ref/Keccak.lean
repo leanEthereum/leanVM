@@ -202,14 +202,13 @@ theorem satList_sponge {rd : Reader} {ρ : X → E} (st : Nat → Nat → Tm X) 
     rw [ite_eq_left (show B - 1 + 1 = B by omega), cell (B - 1) (hst (B - 1) (by omega))] at this
     exact last.mp this
   · rintro ⟨hs, ho'⟩ b hb
-    have hc := cell b (by rcases Nat.eq_zero_or_pos b with h | h; exacts [.inl h, .inr (hs b h hb)])
-    rw [hc]
+    rw [cell b ((Nat.eq_zero_or_pos b).imp_right fun h => hs b h hb)]
     by_cases e : b + 1 = B
     · rw [ite_eq_left e]
       obtain rfl : b = B - 1 := by omega
       exact last.mpr ho'
     · rw [ite_eq_right e]
-      refine ⟨.all, by simp [KeccakOutputCells.cellCount], fun c _ => ?_⟩
+      refine ⟨.all, rfl, fun c _ => ?_⟩
       rw [cells13_map_range, hs (b + 1) (by omega) (by omega) c]
       rfl
 
