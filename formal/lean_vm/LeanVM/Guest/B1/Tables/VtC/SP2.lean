@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.SP2
 
-  `verify_tables`' statements `563 ..< 755` hold on the honest valuation: the six
+  `verify_tables`' statements `563 ..< 815` hold on the honest valuation: the six
   tables' heights and padding weights, `idxc_tab`, `zeta1` and the shared selector tables.
 -/
 
@@ -12,14 +12,14 @@ public import LeanVM.Guest.B1.Tables.VtC.SShT
 public import LeanVM.Guest.B1.Tables.VtC.SSortAll
 
 /-!
-# Statements `563 ..< 755`
+# Statements `563 ..< 815`
 
 `vtS_p2`: for the bus point (`|point| = μ < 33`), the tables' heights at `kappa_base[2 + t]`,
 `τ t = max (log2Ceil (n t)) floor < 31`, `τ t ≤ μ`, on a memory holding `table_rows`, the squares,
-`idxc_tab` and `zeta1`, the oracle returning `padding_weight`'s outcomes, `plus_one_run`'s `0` and
-each `shared_selector_tables` call's two tables holding their nibble tables, every statement
-holds; the padding weights and `shared_len` are the honest ones, the tables' copies the oracle's
-answers (`vtc_shptr`).
+`idxc_tab` and `zeta1`, the oracle returning `padding_weight`'s outcomes, `plus_one_run`'s `0`,
+`selector_run_nibbles`' `g^((μ - τ t) / 4)` and each table's two buffers holding its nibble
+tables, every statement holds; the padding weights and `shared_len` are the honest ones, the
+tables' sizes `g^(32 (q + 1))`, `g^(16 (q + 1))`, their copies the oracle's answers (`vtc_shptr`).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -58,7 +58,7 @@ theorem vt_tmplSlice {P : Stmt → Prop} {n : ℕ} {blk : List Stmt}
   rw [vtPre_drop, ← tbStmtsEqb_sound heq]; exact h
 
 set_option maxRecDepth 10000 in
-/-- **Statements `563 ..< 755`.** -/
+/-- **Statements `563 ..< 815`.** -/
 theorem vtS_p2 (hl : args.length = 20) (hlow : LowDefB 14 rd) (point : List E)
     (hμ33 : point.length < 33) (τ n : ℕ → ℕ)
     (hτ : ∀ t < 6, τ t = max (log2Ceil (n t)) (tableLogFloors.getD t 0))
@@ -71,14 +71,17 @@ theorem vtS_p2 (hl : args.length = 20) (hlow : LowDefB 14 rd) (point : List E)
       w (vtPadV t + 1) = PadLead (τ t) (n t) ∧ w (vtPadV t + 2) = PadRest (τ t) (n t))
     (hidxc : TbReadsAt rd (w 664) vtIdxcW) (hz1 : TbReadsAt rd (w 699) (point.map (1 + ·)))
     (hw704 : w 700 = 0)
-    (hrun : ∀ t < 6, RunTables rd (w (710 + 13 * t)) (w (711 + 13 * t))
+    (hq : ∀ t < 6, w (vtShQ t) = gen ^ ((point.length - τ t) / 4))
+    (hrun : ∀ t < 6, RunTables rd (w (715 + 21 * t)) (w (716 + 21 * t))
       (point.length - τ t) (point.drop (τ t)) ((point.map (1 + ·)).drop (τ t))
       ((gSquaresList.drop (τ t)).take (point.length - τ t))) :
-    (∀ s ∈ (vtPre.drop 563).take 192, VSH (coreProgram.Rel rd) rd σv s) ∧
+    (∀ s ∈ (vtPre.drop 563).take 252, VSH (coreProgram.Rel rd) rd σv s) ∧
       (∀ t < 6, σv (.n (vtPadV t)) = paddingWeight (point.take (τ t)) (n t)) ∧
       (∀ t < 6, σv (.n (vtShLen t)) = gen ^ (point.length - τ t)) ∧
       σv (.n 664) = w 664 ∧ σv (.n 699) = w 699 ∧
-      (∀ t < 6, σv (.n (vtEqV t)) = w (vtEqV t - 2) ∧ σv (.n (vtGV t)) = w (vtGV t - 2)) := by
+      (∀ t < 6, σv (.n (vtEqV t)) = w (vtEqV t - 5) ∧ σv (.n (vtGV t)) = w (vtGV t - 5)) ∧
+      (∀ t < 6, σv (.n (vtShQ t + 7)) = gen ^ (32 * ((point.length - τ t) / 4 + 1)) ∧
+        σv (.n (vtShQ t + 6)) = gen ^ (16 * ((point.length - τ t) / 4 + 1))) := by
   have e668 : σv (.n 664) = w 664 := vt_allocAt hl 624 (k := 34) (by decide +kernel)
   have e703 : σv (.n 699) = w 699 := vt_allocDynAt hl 693 (s := .n 9) (by decide +kernel)
   have hz1' : TbReadsAt rd (σv (.n 699)) (point.map (1 + ·)) := by rw [e703]; exact hz1
@@ -112,19 +115,22 @@ theorem vtS_p2 (hl : args.length = 20) (hlow : LowDefB 14 rd) (point : List E)
       (tbReadsAt_take hz (τ 5)) (by simp; exact hτμ 5 (by norm_num)) (hτ31 5 (by norm_num))
       (hτ 5 (by norm_num)) w5 w6 w7
   -- the shared tables
-  have hsh : ∀ t < 6, (∀ s ∈ (vtPre.drop (695 + 10 * t)).take 10,
+  have hsh : ∀ t < 6, (∀ s ∈ (vtPre.drop (695 + 20 * t)).take 20,
         VSH (coreProgram.Rel rd) rd σv s) ∧
-      σv (.n (vtShLen t)) = gen ^ (point.length - τ t) := by
+      σv (.n (vtShLen t)) = gen ^ (point.length - τ t) ∧
+      σv (.n (vtShQ t + 7)) = gen ^ (32 * ((point.length - τ t) / 4 + 1)) ∧
+      σv (.n (vtShQ t + 6)) = gen ^ (16 * ((point.length - τ t) / 4 + 1)) := by
     intro t ht
     have hr := hrun t ht
+    have hqt := hq t ht
     interval_cases t
-    · exact vtc_sh0 hl hlow (hkb 0 (by norm_num)) h9 rfl hμ33 (hτμ 0 (by norm_num)) hz hz1' hsq hr
-    · exact vtc_sh1 hl hlow (hkb 1 (by norm_num)) h9 rfl hμ33 (hτμ 1 (by norm_num)) hz hz1' hsq hr
-    · exact vtc_sh2 hl hlow (hkb 2 (by norm_num)) h9 rfl hμ33 (hτμ 2 (by norm_num)) hz hz1' hsq hr
-    · exact vtc_sh3 hl hlow (hkb 3 (by norm_num)) h9 rfl hμ33 (hτμ 3 (by norm_num)) hz hz1' hsq hr
-    · exact vtc_sh4 hl hlow (hkb 4 (by norm_num)) h9 rfl hμ33 (hτμ 4 (by norm_num)) hz hz1' hsq hr
-    · exact vtc_sh5 hl hlow (hkb 5 (by norm_num)) h9 rfl hμ33 (hτμ 5 (by norm_num)) hz hz1' hsq hr
-  refine ⟨?_, ?_, fun t ht ↦ (hsh t ht).2, e668, e703, vtc_shptr hl⟩
+    · exact vtc_sh0 hl hlow (hkb 0 (by norm_num)) h9 rfl hμ33 (hτμ 0 (by norm_num)) hz hz1' hsq hqt hr
+    · exact vtc_sh1 hl hlow (hkb 1 (by norm_num)) h9 rfl hμ33 (hτμ 1 (by norm_num)) hz hz1' hsq hqt hr
+    · exact vtc_sh2 hl hlow (hkb 2 (by norm_num)) h9 rfl hμ33 (hτμ 2 (by norm_num)) hz hz1' hsq hqt hr
+    · exact vtc_sh3 hl hlow (hkb 3 (by norm_num)) h9 rfl hμ33 (hτμ 3 (by norm_num)) hz hz1' hsq hqt hr
+    · exact vtc_sh4 hl hlow (hkb 4 (by norm_num)) h9 rfl hμ33 (hτμ 4 (by norm_num)) hz hz1' hsq hqt hr
+    · exact vtc_sh5 hl hlow (hkb 5 (by norm_num)) h9 rfl hμ33 (hτμ 5 (by norm_num)) hz hz1' hsq hqt hr
+  refine ⟨?_, ?_, fun t ht ↦ (hsh t ht).2.1, e668, e703, vtc_shptr hl, fun t ht ↦ (hsh t ht).2.2⟩
   · have s2 : ∀ s ∈ (vtPre.drop 563).take 50, VSH (coreProgram.Rel rd) rd σv s := by
       have := forall_slices (fun t ↦ 563 + 10 * t) (fun _ ↦ 10) 5 (by decide)
         (fun t ht ↦ by
@@ -146,8 +152,8 @@ theorem vtS_p2 (hl : args.length = 20) (hlow : LowDefB 14 rd) (point : List E)
         subst hs
         exact zeta1_ok hl h9 (by omega) hz hz1' hw704)
       exact h
-    have s10 : ∀ s ∈ (vtPre.drop 695).take 60, VSH (coreProgram.Rel rd) rd σv s := by
-      have := forall_slices (fun t ↦ 695 + 10 * t) (fun _ ↦ 10) 6 (by decide)
+    have s10 : ∀ s ∈ (vtPre.drop 695).take 120, VSH (coreProgram.Rel rd) rd σv s := by
+      have := forall_slices (fun t ↦ 695 + 20 * t) (fun _ ↦ 20) 6 (by decide)
         (fun t ht ↦ (hsh t ht).1)
       simpa using this
     have j2 := forall_slice_join (a := 563) (l1 := 50) (l2 := 11) s2 s3
@@ -155,7 +161,7 @@ theorem vtS_p2 (hl : args.length = 20) (hlow : LowDefB 14 rd) (point : List E)
     have j4 := forall_slice_join (a := 563) (l1 := 62) (l2 := 68) j3 s5
     have j5 := forall_slice_join (a := 563) (l1 := 130) (l2 := 1) j4 s6
     have j6 := forall_slice_join (a := 563) (l1 := 131) (l2 := 1) j5 s7
-    exact forall_slice_join (a := 563) (l1 := 132) (l2 := 60) j6 s10
+    exact forall_slice_join (a := 563) (l1 := 132) (l2 := 120) j6 s10
   · intro t ht
     rcases Nat.lt_or_ge t 5 with h5 | h5
     · rw [show vtPadV t = 578 + 13 * t + 5 by unfold vtPadV; ring]; exact (hpad t h5).2

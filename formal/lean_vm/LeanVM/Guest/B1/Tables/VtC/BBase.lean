@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.BBase
 
-  Tools for `verify_tables`' completeness on its bus sides (statements `759 ..< 2230`): the
+  Tools for `verify_tables`' completeness on its bus sides (statements `819 ..< 2290`): the
   equations of its pure atoms and its weight reads as a predicate the soundness's algebra can be
   replayed on (`VtP`), and the statements' relations from the honest valuation: reads, range
   checks, dispatches, equality checks.

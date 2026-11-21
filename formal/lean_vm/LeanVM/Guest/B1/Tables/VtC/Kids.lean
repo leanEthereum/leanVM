@@ -13,8 +13,8 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `verify_tables`' callees place nothing
 
-`vtKidS`: the 215 functions `verify_tables` calls, directly or not, but `shared_selector_tables`,
-which allocates its tables (`padding_weight`, `plus_one_run`, `sel_partial_nibble`,
+`vtKidS`: the 217 functions `verify_tables` calls, directly or not (`padding_weight`,
+`plus_one_run`, `selector_run_nibbles`, `shared_selector_tables`, `sel_partial_nibble`,
 `block_selector(_tab)`, `index_mle`, `verify_tables_loop0`, `shared_selector_tables_loop0`,
 `sumcheck_round4`, `opening_tail_round`, `eq_prefix_chain`, `eq_prefix_run`, their
 specializations). `vt_kids_pure`: no `HeapBuf` hint or `frameAddr` in their bodies, every callee
@@ -246,6 +246,8 @@ def vtKidS : List String := [
   "sel_partial_nibble__L1",
   "sel_partial_nibble__L2",
   "sel_partial_nibble__L3",
+  "selector_run_nibbles",
+  "shared_selector_tables",
   "sumcheck_round4"]
 
 theorem vt_kids_pure : coreProgram.PureIn vtKidS := pureIn_of_pureInB (by decide +kernel)

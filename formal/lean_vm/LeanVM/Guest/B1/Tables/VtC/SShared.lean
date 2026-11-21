@@ -8,15 +8,16 @@ module
 
 public import LeanVM.Guest.B1.Tables.VtC.SBase
 public import LeanVM.Guest.B1.Selectors.SharedTablesComplete
+public import LeanVM.Guest.B1.Selectors.RunNibbles
 
 /-!
 # The index factors, `1 + ζ` and the shared tables
 
 `vtIdxcW`: `idxc_tab`'s words `1 + g^(2^t)`; `idxc_ok`: its stores hold on a memory holding them.
-`zeta1_ok`: `plus_one_run` on `g^μ` holds when `zeta1` holds `1 + ζ_k`. `sh_call`: a table's
-`shared_selector_tables` call on a run of `μ - τ` coordinates, returning its two tables with its
-nibble tables in place (`RunTables`); `vtc_shRets`: a call's returns are the oracle's answers; the
-calls' statements are `SShT`'s.
+`zeta1_ok`: `plus_one_run` on `g^μ` holds when `zeta1` holds `1 + ζ_k`. `sr_call`: a table's
+`selector_run_nibbles` call on a run of `μ - τ` coordinates returns `g^((μ - τ) / 4)`; `sh_call`:
+its `shared_selector_tables` call holds with its nibble tables in place (`RunTables`);
+`vtc_ret1`: a call's one return is the oracle's answer; the calls' statements are `SShT`'s.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -78,14 +79,17 @@ theorem zeta1_ok (hl : args.length = 20) {point : List E}
   simp only [List.map_cons, List.map_nil, MeaningPlusOneRun]
   exact ⟨⟨point, rfl, hz, hz1⟩, by rw [hg]; simp [hw]⟩
 
-/-- **A `shared_selector_tables` call's returns are the oracle's answers.** -/
-theorem vtc_shRets (hl : args.length = 20) (n : ℕ) (a : List V) (er gr : ℕ)
-    (heq : tbStmtsEqb [.call "shared_selector_tables" a [.n er, .n gr]] ((vtAt n).take 1) = true) :
-    vtσ rd w args (.n er) = w er ∧ vtσ rd w args (.n gr) = w gr := by
+/-- **A call's one return is the oracle's answer.** -/
+theorem vtc_ret1 (hl : args.length = 20) (n : ℕ) (f : String) (a : List V) (r : ℕ)
+    (heq : tbStmtsEqb [.call f a [.n r]] ((vtAt n).take 1) = true) :
+    vtσ rd w args (.n r) = w r := by
   have h := vt_goodAt (rd := rd) (w := w) hl n _ heq
-  simp only [fixNe, GoodS, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp,
-    forall_eq] at h
+  simp only [fixNe, GoodS, List.mem_cons, List.not_mem_nil, or_false, forall_eq] at h
   exact h
+
+theorem sr_call {n : ℕ} (hn : n < 64) :
+    coreProgram.Rel rd "selector_run_nibbles" [gen ^ n] [gen ^ (n / 4)] :=
+  selector_run_nibbles_complete_holds rd n hn
 
 theorem sh_call {μ τ : ℕ} {point : List E} (hμ : point.length = μ) (hμ33 : μ < 33)
     (hτμ : τ ≤ μ) {eqt gt z z1 gsq : E}
@@ -93,7 +97,8 @@ theorem sh_call {μ τ : ℕ} {point : List E} (hμ : point.length = μ) (hμ33 
     (hsqv : TbReadsAt rd gsq ((gSquaresList.drop τ).take (μ - τ)))
     (hrun : RunTables rd eqt gt (μ - τ) (point.drop τ) ((point.map (1 + ·)).drop τ)
       ((gSquaresList.drop τ).take (μ - τ))) :
-    coreProgram.Rel rd "shared_selector_tables" [z, z1, gsq, gen ^ (μ - τ)] [eqt, gt] := by
+    coreProgram.Rel rd "shared_selector_tables" [eqt, gt, z, z1, gsq, gen ^ (μ - τ),
+      gen ^ ((μ - τ) / 4)] [] := by
   have hsql : gSquaresList.length = 34 := by simp [gSquaresList]
   exact shared_selector_tables_complete_holds rd eqt gt z z1 gsq (μ - τ) _ _ _ (by omega)
     (by simp; omega) (by simp; omega) (by simp [hsql]; omega) hzv hz1v hsqv hrun

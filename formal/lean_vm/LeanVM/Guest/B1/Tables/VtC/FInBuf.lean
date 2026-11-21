@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.FInBuf
 
-  Where the loads of statements `2325 ..< 5165` read: inside `fp_w`, the cursor's words, the
+  Where the loads of statements `2385 ..< 5225` read: inside `fp_w`, the cursor's words, the
   challenges' products and the equality prefix.
 -/
 
@@ -51,12 +51,12 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 /-- **The window's loads land in buffers.** -/
 theorem vtF_loadsInBuf (hl : args.length = 20) {bufs : List (E × ℕ)}
     (h13 : BufWin (vtσ rd w args) bufs (.n 13) 16)
-    (hcur : BufWin (vtσ rd w args) bufs (.n 2299) 153)
+    (hcur : BufWin (vtσ rd w args) bufs (.n 2347) 153)
     {τs : ℕ → ℕ} (hkbt : ∀ t < 6, vtσ rd w args (.n (27 + t)) = gen ^ τs t)
-    {n : ℕ} (hgn : vtσ rd w args (.n 2197) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n)
-    (hcp : BufWin (vtσ rd w args) bufs (.n 2282) (n + 1))
-    (hpe : BufWin (vtσ rd w args) bufs (.n 2303) (n + 1)) :
-    LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 2325).take (5165 - 2325)) := by
+    {n : ℕ} (hgn : vtσ rd w args (.n 2245) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n)
+    (hcp : BufWin (vtσ rd w args) bufs (.n 2330) (n + 1))
+    (hpe : BufWin (vtσ rd w args) bufs (.n 2351) (n + 1)) :
+    LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 2385).take (5225 - 2385)) := by
   intro d p off hs
   rw [tbStmtsEqb_sound vtF_split] at hs
   rcases List.mem_append.mp hs with hs | hs

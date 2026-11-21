@@ -1,8 +1,9 @@
 /-
   LeanVM.Guest.B1.Selectors.SharedTotal
 
-  Every valid tree of `shared_selector_tables` on a length `g^n`, `n < 64`, allocates at most its
-  frame, `shared_selector_tables_loop0`'s `n / 4` iterations' bound and the partial nibble's bound.
+  Every valid tree of `shared_selector_tables` on a length `g^n`, `n < 64`, split as `g^(n / 4)`,
+  allocates at most its frame, `shared_selector_tables_loop0`'s `n / 4` iterations' bound and the
+  partial nibble's bound.
 -/
 
 module
@@ -16,9 +17,10 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `shared_selector_tables` within its words
 
-On a valid tree at arguments whose length is `g^n`, `n < 64` (`TotalLeOn`): the body's atoms
-before its loop hold (they are events of its walk), so its loop runs to `g^(n / 4)` and its
-dispatch enters `sel_partial_nibble__L{n % 4}` (`ss_body_vals`); its walk's calls are those two
+On a valid tree at arguments whose length is `g^n`, `n < 64`, and whose split is `g^(n / 4)`
+(`TotalLeOn`): the body's atoms before its loop hold (they are events of its walk), so its loop runs
+to `g^(n / 4)` and its dispatch enters `sel_partial_nibble__L{n % 4}` (`ss_body_vals`); its walk's
+calls are those two
 (`ss_calls`). With `shared_selector_tables_loop0`'s run's bound (`TotalLeOn … LoopPre`: `K9` per
 iteration and its one phantom frame) and the partial nibbles' (`TotalLe`), as hypotheses over any
 frame sizes `fs`, `ss_totalLeOn` bounds the tree by `fs "shared_selector_tables" + (fs
@@ -36,7 +38,7 @@ open LeanVM.Protocol.Verifier (gen)
 theorem ssS_straight : ssS.all Main.Stmt.straight = true := by decide
 
 theorem ssS_callS : ssS.filterMap Main.Stmt.callS =
-    [(some (.n 44), name% «shared_selector_tables_loop0», [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1,
+    [(some (.n 11), name% «shared_selector_tables_loop0», [.n 12, .n 6, .n 0, .n 2, .n 3, .n 1,
         .n 4], [])] := rfl
 
 theorem ssS_allocSz : ssS.filterMap Main.Stmt.allocSz = [] := rfl
@@ -76,10 +78,11 @@ theorem ss_totalLeOn (K9 Ksp : ℕ)
     (h9 : TotalLeOn coreProgram fs name% «shared_selector_tables_loop0» LoopPre
       (fun a ↦ logG (a.getD 1 0) * K9 + fs name% «shared_selector_tables_loop0»))
     (hsp : ∀ j < 4, TotalLe coreProgram fs (lName "sel_partial_nibble" j) (fun _ ↦ Ksp)) :
-    TotalLeOn coreProgram fs "shared_selector_tables" (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n)
+    TotalLeOn coreProgram fs "shared_selector_tables"
+      (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n ∧ a.getD 6 0 = gen ^ (n / 4))
       (fun _ ↦ fs "shared_selector_tables" + (fs name% «shared_selector_tables_loop0» + 15 * K9) +
           Ksp) := by
-  intro rd t args rets hname ⟨n, hn, h5⟩ hv hb
+  intro rd t args rets hname ⟨n, hn, h5, h6⟩ hv hb
   cases t with
   | phantom => exact hv.elim
   | node f σ bufs ks =>
@@ -92,6 +95,8 @@ theorem ss_totalLeOn (K9 Ksp : ℕ)
   subst hf'
   have hσ5 : σ (.n 5) = gen ^ n := by
     rw [← h5, ← hpar, hp]; rfl
+  have e39 : σ (.n 6) = gen ^ (n / 4) := by
+    rw [← h6, ← hpar, hp]; rfl
   -- the walk: the straight statements, then the dispatch
   have hws : walk σ fn.body =
       (walk σ [ssDispV, .ret []]).pre (ssS.flatMap (Main.slEvs σ)) := by
@@ -111,13 +116,13 @@ theorem ss_totalLeOn (K9 Ksp : ℕ)
       exact hes _ (hw.1 ▸ List.mem_append_left _ hX)
     | fall _ => rw [hd, Out.pre] at hw; cases hw
     | stuck => rw [hd, Out.pre] at hw; cases hw
-  obtain ⟨e39, e20, e44, e45⟩ := ss_body_vals
-    (holdsList_of_atoms (C := fun _ _ _ ↦ True) ssA ssA_atoms hatoms) hn hσ5
+  obtain ⟨e20, e44, e45⟩ := ss_body_vals
+    (holdsList_of_atoms (C := fun _ _ _ ↦ True) ssA ssA_atoms hatoms) hσ5 e39
   -- the dispatch enters `sel_partial_nibble__L{n % 4}`
   have hdisp : walk σ [ssDispV, .ret []] =
-      .ret [.call (lName "sel_partial_nibble" (n % 4)) [.n 49, .n 50, .n 51, .n 52, .n 53]
-        [.n 54]] [] := by
-    have hpk := LeanVM.Guest.B1.pick_eq σ (.n 20) [.n 49, .n 50, .n 51, .n 52, .n 53] [.n 54]
+      .ret [.call (lName "sel_partial_nibble" (n % 4)) [.n 16, .n 17, .n 18, .n 19, .n 20]
+        [.n 21]] [] := by
+    have hpk := LeanVM.Guest.B1.pick_eq σ (.n 9) [.n 16, .n 17, .n 18, .n 19, .n 20] [.n 21]
       ["sel_partial_nibble__L0", "sel_partial_nibble__L1", "sel_partial_nibble__L2",
         "sel_partial_nibble__L3"] 0 (n % 4) (Nat.zero_le _) (by simp; omega) (by omega)
       (by rw [e20, gen_pow_eq_ofK])
@@ -125,15 +130,15 @@ theorem ss_totalLeOn (K9 Ksp : ℕ)
     rw [lName_sel_partial (n % 4) (by omega)] at hpk
     simp only [ssDispV, walk, walk1, hpk, Out.seq, Out.pre, List.append_nil]
   have hes : es = ssS.flatMap (Main.slEvs σ) ++
-      [.call (lName "sel_partial_nibble" (n % 4)) [.n 49, .n 50, .n 51, .n 52, .n 53] [.n 54]] := by
+      [.call (lName "sel_partial_nibble" (n % 4)) [.n 16, .n 17, .n 18, .n 19, .n 20] [.n 21]] := by
     rw [hws, hdisp, Out.pre, Out.ret.injEq] at hw
     exact hw.1.symm
   obtain ⟨-, i2, -, i4⟩ := Main.straight_parts σ ssS ssS_straight
   -- the calls
-  let cs : List Call := [⟨name% «shared_selector_tables_loop0», [.n 45, .n 39, .n 0, .n 2, .n 3,
+  let cs : List Call := [⟨name% «shared_selector_tables_loop0», [.n 12, .n 6, .n 0, .n 2, .n 3,
       .n 1, .n 4], [],
-      decide (σ (.n 44) ≠ 0)⟩,
-    ⟨lName "sel_partial_nibble" (n % 4), [.n 49, .n 50, .n 51, .n 52, .n 53], [.n 54], true⟩]
+      decide (σ (.n 11) ≠ 0)⟩,
+    ⟨lName "sel_partial_nibble" (n % 4), [.n 16, .n 17, .n 18, .n 19, .n 20], [.n 21], true⟩]
   have hcalls : calls es = cs := by
     rw [hes, calls, List.filterMap_append, ← calls, i4, ssS_callS]
     rfl
@@ -157,7 +162,7 @@ theorem ss_totalLeOn (K9 Ksp : ℕ)
   · refine htot.trans ?_
     simp only [Budget.callsT, cs, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil,
       lName_sel_ne (show n % 4 < 4 by omega), ↓reduceIte, add_zero]
-    have h1 : (if decide (σ (.n 44) ≠ 0) = true then n / 4 * K9 + fs
+    have h1 : (if decide (σ (.n 11) ≠ 0) = true then n / 4 * K9 + fs
         name% «shared_selector_tables_loop0» else fs name% «shared_selector_tables_loop0») ≤
         fs name% «shared_selector_tables_loop0» + 15 * K9 := by
       split

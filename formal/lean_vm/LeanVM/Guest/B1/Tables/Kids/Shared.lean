@@ -12,8 +12,8 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `shared_selector_tables`, loading from a region
 
-`shared_selector_tables_relIn`: a run of `n = 4q + r < 64` coordinates: its loop over the `q`
-full nibbles (`loop9_relIn`) and its partial nibble `sel_partial_nibble__L{r}` at `q`
+`shared_selector_tables_relIn`: a run of `n = 4q + r < 64` coordinates split as `g^q`: its loop
+over the `q` full nibbles (`loop9_relIn`) and its partial nibble `sel_partial_nibble__L{r}` at `q`
 (`sel_partial_nibble_relIn`), the runs `eqt` (`32⌈n/4⌉` words), `gt` (`16⌈n/4⌉`), `z`, `z1`,
 `gsq` (`n`) in `R`.
 -/
@@ -27,9 +27,9 @@ open LeanVM.Protocol.Verifier (gen)
 
 /-- `shared_selector_tables`' dispatch of the partial nibble. -/
 def ssDisp : Stmt :=
-  .dispatch (.n 20) ["sel_partial_nibble__L0", "sel_partial_nibble__L1",
-      "sel_partial_nibble__L2", "sel_partial_nibble__L3"] [.n 49, .n 50, .n 51, .n 52, .n 53]
-      [.n 54]
+  .dispatch (.n 9) ["sel_partial_nibble__L0", "sel_partial_nibble__L1",
+      "sel_partial_nibble__L2", "sel_partial_nibble__L3"] [.n 16, .n 17, .n 18, .n 19, .n 20]
+      [.n 21]
 
 theorem ssPre_eq : ssPre = ssPre.dropLast ++ [ssDisp] := by
   simp [ssPre, ssDisp]
@@ -41,7 +41,7 @@ theorem ss_noDisp : ssPre.dropLast.all noDispB = true := by decide +kernel
 theorem ss_noLoad : ssPre.filterMap Stmt.loadS = [] := by decide +kernel
 
 theorem ss_calls : ssPre.dropLast.filterMap Main.Stmt.callS =
-    [(some (.n 44), name% «shared_selector_tables_loop0», [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1,
+    [(some (.n 11), name% «shared_selector_tables_loop0», [.n 12, .n 6, .n 0, .n 2, .n 3, .n 1,
         .n 4], [])] := by
   decide +kernel
 
@@ -51,59 +51,39 @@ theorem ceil4 {n q r : ℕ} (hn : n = 4 * q + r) (hr : r < 4) :
 
 /-- **`shared_selector_tables` loads from `R`.** -/
 theorem shared_selector_tables_relIn {rd : Reader} {R : ℕ → Prop} {eqt gt z z1 gsq : E} {n : ℕ}
-    (hn : n < 64) {rets : List E} (he : PtrIn R eqt (32 * ((n + 3) / 4)))
+    {rets : List E} (he : PtrIn R eqt (32 * ((n + 3) / 4)))
     (hgt : PtrIn R gt (16 * ((n + 3) / 4))) (hz : PtrIn R z n) (hz1 : PtrIn R z1 n)
     (hgs : PtrIn R gsq n)
-    (h : coreProgram.Rel rd "shared_selector_tables" [eqt, gt, z, z1, gsq, gen ^ n] rets) :
-    coreProgram.RelIn rd R "shared_selector_tables" [eqt, gt, z, z1, gsq, gen ^ n] rets := by
+    (h : coreProgram.Rel rd "shared_selector_tables" [eqt, gt, z, z1, gsq, gen ^ n, gen ^ (n / 4)]
+      rets) :
+    coreProgram.RelIn rd R "shared_selector_tables" [eqt, gt, z, z1, gsq, gen ^ n, gen ^ (n / 4)]
+      rets := by
   obtain ⟨fn, hf, hp, hb⟩ := ssFound
   refine relIn_of_flatRel hf hb ss_flat h fun σ hpar hh ↦ ?_
   rw [hp] at hpar
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar
-  obtain ⟨p0, p1, p2, p3, p4, p5⟩ := hpar
+  obtain ⟨p0, p1, p2, p3, p4, p5, p6⟩ := hpar
   rw [hb, holdsList_append, holdsList_noRet _ ssPre_noRet] at hh
   obtain ⟨hpre, -⟩ := hh
-  simp only [ssPre, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and, and_true] at hpre
-  obtain ⟨p6, p7, p8, p9, p10, p11, c12, c13, m14, a15, c16, c17, m18, a19, m20, c21, c22, m23,
-    a24, c25, c26, m27, a28, m29, c30, c31, m32, a33, m34, c35, c36, m37, a38, m39, m40, m41, m42,
-    e42, c43, a44, c45, -, hloop, m46, m47, m48, m49, m50, m51, m52, m53, hdisp⟩ := hpre
-  let f : ℕ → Bool := fun k ↦ decide (σ (.n (6 + k)) = 1)
-  have pin : ∀ k < 6, σ (.n (6 + k)) * σ (.n (6 + k)) = σ (.n (6 + k)) := by
-    intro k hk
-    interval_cases k
-    · exact p6.symm
-    · exact p7.symm
-    · exact p8.symm
-    · exact p9.symm
-    · exact p10.symm
-    · exact p11.symm
-  set r := bitsVal f 2 with hrdef
-  set q := bitsVal (fun k ↦ f (k + 2)) 4 with hqdef
-  have hr4 : r < 4 := bitsVal_lt f 2
-  have hq16 : q < 16 := bitsVal_lt _ 4
-  have hrg : σ (.n 20) = gen ^ r := by
-    have := ss_prod (b := fun j ↦ σ (.n (6 + j))) (n := 2) (by norm_num)
-      (fun j hj => pin j (by omega))
-    simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul, Nat.reduceAdd] at this
-    rw [m20, a15, a19, c12, c16, m14, m18, c13, c17, tb_word_one, this]
-  have hqg : σ (.n 39) = gen ^ q := by
-    have := ss_prod (b := fun j ↦ σ (.n (6 + (j + 2)))) (n := 4) le_rfl
-      (fun j hj => pin (j + 2) (by omega))
-    simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul, Nat.reduceAdd] at this
-    rw [m39, m34, m29, a24, a28, a33, a38, c21, c25, c30, c35, m23, m27, m32, m37, c22, c26, c31,
-      c36, tb_word_one, this]
-  have hq4 : σ (.n 41) = gen ^ (4 * q) := by rw [m41, m40, hqg]; ring
-  have hq16' : σ (.n 47) = gen ^ (16 * q) := by rw [m47, m46, hq4]; ring
-  have hnqr : n = 4 * q + r := by
-    have h1 : gen ^ n = gen ^ (4 * q + r) := by
-      rw [← p5, ← e_add_eq_zero_iff.mp e42, m42, hq4, hrg, ← pow_add]
-    exact gen_pow_inj (by omega) (by omega) h1
+  simp only [ssPre, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hpre
+  obtain ⟨m7, m8, m5, c10, a11, c12, -, hloop, m13, m14, m15, m16, m17, m18, m19, m20, hdisp⟩ :=
+    hpre
+  set q := n / 4 with hqd
+  set r := n % 4 with hrd
+  have hr4 : r < 4 := Nat.mod_lt _ (by norm_num)
+  have hnqr : n = 4 * q + r := by omega
+  have hq4 : σ (.n 8) = gen ^ (4 * q) := by rw [m8, m7, p6]; ring
+  have hq16' : σ (.n 14) = gen ^ (16 * q) := by rw [m14, m13, hq4]; ring
+  have e9 : σ (.n 9) = gen ^ r := by
+    refine mul_right_cancel₀ (gen_pow_ne_zero (4 * q)) ?_
+    have e := m5
+    rw [p5, hq4] at e
+    rw [← e, ← pow_add, show r + 4 * q = n by omega]
   have hceil := ceil4 hnqr hr4
-  -- the dispatch: `σ 20 = g^r`
   obtain ⟨jd, hjd, hx, hcall⟩ := hdisp
   have hjd4 : jd < 4 := by simpa using hjd
   have hjr : jd = r := by
-    rw [hrg, gen_pow_eq_ofK] at hx
+    rw [e9, gen_pow_eq_ofK] at hx
     exact gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega)
       (ofK_injective hx.symm)
   rw [← hjr] at hnqr hceil
@@ -122,10 +102,10 @@ theorem shared_selector_tables_relIn {rd : Reader} {R : ℕ → Prop} {eqt gt z 
       have hq0 : 0 < q := by
         rcases Nat.eq_zero_or_pos q with h0 | h0
         · exfalso; apply ht
-          rw [a44, c43, tb_word_one, hqg, h0, pow_zero, e_add_eq_zero_iff]
+          rw [a11, c10, tb_word_one, p6, h0, pow_zero, e_add_eq_zero_iff]
         · exact h0
       have hrel := hloop ht
-      simp only [List.map_cons, List.map_nil, c45, tb_word_one, hqg, p0, p1, p2, p3, p4] at hrel ⊢
+      simp only [List.map_cons, List.map_nil, c12, tb_word_one, p6, p0, p1, p2, p3, p4] at hrel ⊢
       obtain ⟨d, hd⟩ := hrel
       have := loop9_relIn (R := R) (K := q)
         (ptrIn_mono he (by rw [hceil]; split <;> omega))
@@ -135,12 +115,12 @@ theorem shared_selector_tables_relIn {rd : Reader} {R : ℕ → Prop} {eqt gt z 
       rwa [pow_zero] at this
     · -- the partial nibble
       simp only [Main.mkCall]
-      have hlog : logG (σ (.n 20)) = jd := by rw [hx]; exact logG_spec (by omega)
+      have hlog : logG (σ (.n 9)) = jd := by rw [hx]; exact logG_spec (by omega)
       rw [hlog, List.getD_eq_getElem _ _ hjd, lName_sel_partial jd hjd4]
-      simp only [List.map_cons, List.map_nil, m49, m48, m50, m51, m52, m53, hq16', hq4, p0, p1, p2,
+      simp only [List.map_cons, List.map_nil, m16, m15, m17, m18, m19, m20, hq16', hq4, p0, p1, p2,
         p3, p4, mul_assoc, ← pow_add]
       rw [lName_sel_partial jd hjd4] at hcall
-      simp only [List.map_cons, List.map_nil, m49, m48, m50, m51, m52, m53, hq16', hq4, p0, p1, p2,
+      simp only [List.map_cons, List.map_nil, m16, m15, m17, m18, m19, m20, hq16', hq4, p0, p1, p2,
         p3, p4, mul_assoc, ← pow_add] at hcall
       refine sel_partial_nibble_relIn hjd4 (ptrIn_mul (ptrIn_mono he ?_))
         (fun hw ↦ ptrIn_mul (ptrIn_mono hgt ?_)) (ptrIn_mul (ptrIn_mono hz (by omega)))
