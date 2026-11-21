@@ -332,4 +332,29 @@ def gpowMain (v : Nat) : Source.Program :=
 #guard isOk (runMain (gpowMain 63) [gpowE 63, 0])
 #guard !isOk (runMain (gpowMain 5) [gpowE 6, 0])
 
+/-! ## Loop captures
+
+A `mul_range` helper takes its captured values in and never out. A name its body binds in its own
+scope is the body's own, also when an `if` that folds only once `unroll` has substituted its
+counter does the binding: bound first it is a local (`loop_scopes` among the test programs), and
+read first, from outside, it is unbound. -/
+
+/-- `t = 7`, then a loop that reads `t` and binds it afterwards, under an `unroll`ed `if` when
+`folded`. -/
+def carryMain (folded : Bool) : Source.Program :=
+  let bind := st (.let_ "t" (.lit 9))
+  let binds :=
+    if folded then
+      [st (.unroll "k" (.lit 0) (.lit 1) [st (.ite true (.var "k") (.lit 0) [bind] [] false)])]
+    else [bind]
+  ⟨[{ name := "main", params := [], returnShapes := [], inline := false,
+      body := [st (.let_ "p" (.gpow 0)), st (.let_ "t" (.lit 7)),
+        st (.for_ "i" 0 (.const 2) ([st (.store (.var "p") (.var "i") (.var "t"))] ++ binds))] }],
+    []⟩
+
+#guard [false, true].all fun folded =>
+  match Expand.expandProgram (carryMain folded) with
+  | .error e => e == "in __loop0: unbound variable `t`"
+  | .ok _ => false
+
 end LeanVMTests.Guest.Expand

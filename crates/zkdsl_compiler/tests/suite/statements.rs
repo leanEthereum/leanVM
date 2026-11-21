@@ -190,6 +190,41 @@ def main():
     verify(&program, &want, &proof).expect("the else arm reads the outer binding");
 }
 
+/// Nor does a binding that never runs: the other arm of a compile-time `if`, an `unroll` over nothing.
+/// `free_vars_stmt` counted both as the body's own, so the outer `w` the body reads was never captured, a scalar
+/// or a `StackBuf`.
+#[test]
+fn a_binding_that_never_runs_does_not_hide_the_outer_binding() {
+    for (outer, inner, read) in [("GEN ** 3", "GEN", "w"), ("[GEN ** 3, 7]", "[GEN, 9]", "w[0]")] {
+        for dead in ["if const(1 == 2):", "if 1 == 2:", "for k in unroll(0, 0):"] {
+            let src = format!(
+                "def main():\n    hb = HeapBuf(2)\n    w = {outer}\n    for i in mul_range(1, GEN ** 2):\n        {dead}\n            w = {inner}\n        hb[i] = {read}\n    assert hb[GEN] == GEN ** 3\n    return\n"
+            );
+            let program = compile(&parse(&src).expect("parses"));
+            execute(&program, &[], [F128::ZERO; 2]).expect("the body reads the outer binding");
+        }
+    }
+
+    // A name only such blocks use is not captured: the copy of an unwritten `StackBuf` would pin its cells.
+    let src = "\
+def main():
+    s = StackBuf(2)
+    hb = HeapBuf(2)
+    for i in mul_range(1, GEN ** 2):
+        if const(0 == 1):
+            if i == 1:
+                s = StackBuf(2)
+                keccak([1, 2], [3, 4], s)
+        for k in unroll(0, 0):
+            hb[i] = s[0]
+        hb[i] = 5
+    keccak([1, 2], [3, 4], s)
+    return
+";
+    let program = compile(&parse(src).expect("parses"));
+    execute(&program, &[], [F128::ZERO; 2]).expect("the outer run is still unwritten after the loop");
+}
+
 /// `g` is `x`, so a literal `2^k` is `g^k` ONLY while `k < 64`: at and above
 /// that the modulus folds the monomial back into the low limb while the
 /// literal's bit `k` lands in the next one, the tower coefficient of `y`. The
@@ -422,6 +457,16 @@ fn a_program_names_what_it_means() {
     // place and the call ran the wrong body.
     let reserved = format!("def f__L1(a):\n    return a\n\ndef main():\n{tail}");
     assert!(parse(&reserved).expect_err("reserved name").contains("reserved"));
+    // So is a variable's: a loop's counter and bound are `__nextN` and `__boundN`, and a program's `__next0`,
+    // read in a loop body, was the counter from the second iteration on.
+    // So is a call's, which would run the specialization or fail by lowering order, and a global constant's.
+    for reserved in [
+        format!("def main():\n    __next0 = 5\n{tail}"),
+        format!("def f(a, k: Const):\n    return a\n\ndef main():\n    x = f__L1(GEN)\n{tail}"),
+        format!("__A = 5\n\ndef main():\n{tail}"),
+    ] {
+        assert!(parse(&reserved).expect_err("reserved name").contains("reserved"));
+    }
 
     // A call to something that will never be lowered died in the assembler as a
     // bare `no entry found for key`, with no line.
@@ -505,6 +550,13 @@ fn a_program_cannot_reach_a_cell_it_does_not_own() {
         ),
         "heap slice 1:3 out of bounds",
     );
+    // So does one whose start folds as a field constant rather than as an address.
+    rejected(
+        &format!(
+            "def main():\n    hb = HeapBuf(8)\n    hint_witness(hb[(GEN ** 2) ** 3:(GEN ** 2) ** 3 + 4], \"w\")\n{tail}"
+        ),
+        "heap slice 6:10 out of bounds",
+    );
 
     // The in-bounds run of the same shape still compiles and proves.
     let ok = "\
@@ -550,28 +602,79 @@ def main():
     let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
     assert!(msg.contains("the loop cannot carry it"), "got `{msg}`");
 
-    // So is a folded `if` that assigns to a captured name: its bindings outlive it.
+    // So is a folded `if` that assigns to a name the body has read from outside, its bindings outliving it: one
+    // that folds as written, and one that folds once `unroll` has substituted its counter. So is a `StackBuf`
+    // read and then rebound, by a cell or whole. Each names the read, on line 5.
     let folded = "def main():\n    p = GEN ** 0\n    t = 7\n    for i in mul_range(1, 8):\n        p[i] = t\n        if 2 * 3 == 6:\n            t = 9\n    return\n";
-    let ast = parse(folded).expect("parses");
-    let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
-        panic!("a folded `if` carried a value to the next iteration");
-    };
-    assert!(
-        err.downcast_ref::<String>()
-            .is_some_and(|m| m.contains("the loop cannot carry it"))
-    );
+    let unrolled = "def main():\n    p = GEN ** 0\n    t = 7\n    for i in mul_range(1, 8):\n        p[i] = t\n        for k in unroll(0, 1):\n            if k == 0:\n                t = 9\n    return\n";
+    let run = "def main():\n    p = GEN ** 0\n    t = [1, 2]\n    for i in mul_range(1, 8):\n        p[i] = t[0]\n        t = [3, 4]\n    return\n";
+    let whole = "def main():\n    o = StackBuf(2)\n    t = [1, 2]\n    for i in mul_range(1, 8):\n        keccak(t, t, o)\n        t = [3, 4]\n    return\n";
+    for src in [folded, unrolled, run, whole] {
+        let ast = parse(src).expect("parses");
+        let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
+            panic!("a value was carried to the next iteration:\n{src}");
+        };
+        let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
+        assert!(
+            msg.starts_with("line 5 ") && msg.contains("unbound variable `t`") && msg.contains("cannot carry it"),
+            "got `{msg}`"
+        );
+    }
 
-    // A real typo, outside any loop, still gets the plain message.
-    let typo = "def main():\n    p = GEN ** 0\n    p[1] = nosuch\n    p[GEN] = GEN ** 0\n    return\n";
-    let ast = parse(typo).expect("parses");
-    let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
-        panic!("a typo was accepted");
-    };
-    let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
-    assert!(
-        msg.contains("unbound variable `nosuch`") && !msg.contains("loop"),
-        "got `{msg}`"
-    );
+    // A name the body binds before it reads it is the body's own, however the binding folds: `acc`, like `t` in
+    // a runtime arm, whose bindings end with the arm, and like an `@inline` callee's `t`. So is the counter, and
+    // rebinding it moves the walk, which leaves cell 5 to the store after the loop.
+    let own = "\
+@inline
+def scale(a, n: Const):
+    if 2 * n == 2:
+        t = a * 3
+    return t
+
+def main():
+    t = 2
+    acc = 5
+    out = HeapBuf(8)
+    for i in mul_range(1, GEN ** 4):
+        if i == 1:
+            for k in unroll(0, 1):
+                if k == 0:
+                    t = 9
+            out[i] = t
+        for k in unroll(0, 2):
+            if k == 0:
+                acc = i
+            else:
+                acc = acc * GEN
+        out[i * GEN] = acc
+        out[i * GEN ** 4] = scale(t, 1)
+        for k in unroll(0, 1):
+            if 2 * k == 0:
+                i = i * GEN
+    out[GEN ** 5] = 7
+    assert out[1] == 9
+    assert out[GEN] == GEN
+    assert out[GEN ** 3] == GEN ** 3
+    assert out[GEN ** 4] == 6
+    assert out[GEN ** 6] == 6
+    return
+";
+    let program = compile(&parse(own).expect("parses"));
+    execute(&program, &[], [F128::ZERO; 2]).expect("nothing is carried");
+
+    // A real typo, outside any loop, still gets the plain message, indexed or not.
+    for read in ["nosuch", "nosuch[0]"] {
+        let typo = format!("def main():\n    p = GEN ** 0\n    p[1] = {read}\n    p[GEN] = GEN ** 0\n    return\n");
+        let ast = parse(&typo).expect("parses");
+        let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
+            panic!("a typo was accepted");
+        };
+        let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
+        assert!(
+            msg.contains("unbound variable `nosuch`") && !msg.contains("loop"),
+            "got `{msg}`"
+        );
+    }
 }
 
 /// A `match` target is a BINDER, and every field of the statement is walked.

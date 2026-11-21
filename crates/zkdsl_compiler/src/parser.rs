@@ -18,11 +18,12 @@ use std::collections::BTreeMap;
 mod consts;
 mod expr;
 mod subst;
-use consts::{apply_replacements, const_int_expr, eval_const_int, gpow_bound, is_int_arith, parse_gpow_bound};
+pub(crate) use consts::const_int_expr;
+use consts::{apply_replacements, eval_const_int, gpow_bound, is_int_arith, parse_gpow_bound};
 pub use consts::{f128_literal, parse_const};
 use expr::{
-    binding_name, call_args, is_ident, parse_expr, split_assign, split_aug, split_once_top, split_top, string_lit,
-    strip_comment, strip_const_wrapper, top_level_cmp,
+    binding_name, call_args, is_ident, not_reserved, parse_expr, split_assign, split_aug, split_once_top, split_top,
+    string_lit, strip_comment, strip_const_wrapper, top_level_cmp,
 };
 pub(crate) use subst::{subst_all, subst_stmts, subst_var};
 /// Parse zkDSL source (the Python-shaped surface syntax of `zkDSL.md`) into an
@@ -128,6 +129,7 @@ pub fn parse_with_constants(
                 lhs.trim()
             )));
         }
+        not_reserved(&name).map_err(at)?;
         if consts.contains_key(&name) || const_arrays.iter().any(|(n, _)| n == &name) {
             return Err(at(format!("global constant `{name}` is declared twice")));
         }

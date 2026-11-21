@@ -541,6 +541,7 @@ impl FnLower<'_> {
                         args.len()
                     ))
                 };
+                self.check_bound(&args[0]);
                 let (base, len) = self.stack_of(&args[0]).unwrap_or_else(|| {
                     self.fail(format!(
                         "hint_f128_limbs writes 1..=2 frame cells, so its destination must be a \

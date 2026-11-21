@@ -189,6 +189,8 @@ Because the body runs in the *caller's* frame, a `Const` parameter whose `if`s f
 
 Bindings are **immutable**: `x = e` names a fresh cell. Re-binding a name is allowed (it's a new cell; the old value is unaffected), but there is no mutation. Compound assignment (`+=`, `-=`, `*=`, `//=`, `%=`) is sugar for a re-binding: `x += e` desugars to `x = x + e`.
 
+A name may not begin with `__`, nor a function's name contain it: those are the names the compiler generates (a loop's helper, counter and bound, a `Const` specialization).
+
 A name bound to an integer literal (`x = 2`) additionally acts as a **compile-time index constant**, usable in stack indexes and slice bounds (see below). Any other re-binding clears that role.
 
 Two families of binding are folded and carried **virtually**, costing no instruction until used as a value:
@@ -216,6 +218,8 @@ buf[i * GEN] = v      # the next cell along
 ```
 
 The index is a field element; cell `k` of the buffer lives at address `buf · g^k`. A read or store is one `DEREF`. A **runtime** index costs one extra `MUL` for the `buf·i` pointer, but a **compile-time g-power** offset (`buf[1]`, `buf[GEN ** k]`, or a cursor advanced by `× GEN ** m`) folds into the `DEREF`'s address immediate for free: no `MUL`, no `SET`, and the cursor arithmetic itself vanishes (so a `× GEN` walk over consecutive cells is zero instructions).
+
+An **integer** index is rejected, other than `1`: a literal, a name bound to one, `const(...)`, `len(...)`, or integer arithmetic of those (`buf[4]`, `buf[2 * 2]`). As a field element `4` is `g^2`, so it would name cell 2, while the slice `buf[4:5]` starts at cell 4. Write `buf[GEN ** k]` for cell `k`; an index built from `GEN` is a g-power however it is spelled (`buf[GEN * 2]` is cell 2), and a constant array's element, `buf[NAME[i]]`, is the field value it holds, so an array of g-powers indexes their cells. A global constant is substituted as its literal, so one defined as `GEN ** 2` is the integer `4` here.
 
 **Compile-time indices are bounds-checked.** When the whole index is a compile-time exponent and the pointer resolves to a declared `HeapBuf` (directly, or through shifted aliases like `row = buf * GEN ** k`), the compiler rejects `index >= size`, and the same for the spans of `hint_witness` and `keccak` slices. **Runtime** indices are not checked (their value is unknown at compile time): there the buffer remains a region convention, and a stray access surfaces at proving time as a write-once conflict or wild deref.
 
@@ -275,6 +279,8 @@ Lowering: the body becomes a tail-recursive helper function whose exit test is f
 The compiler reserves consecutive frames for a loop that has no early return and does not rebind its counter. Its back edge advances by the frame size and copies arguments directly into the next frame, while ordinary function calls and heap allocations remain disjoint from the reserved run. Each iteration still owns fresh write-once cells, so a pointer to an earlier iteration remains valid. Loops with an early return or counter rebinding keep incremental allocation.
 
 The body is a function of its own, returning nothing, so a bare `return` inside it ends the **loop**, not the enclosing function: execution continues after the `for`. The counter advances from its value at the end of the body, so rebinding it moves the walk.
+
+Apart from the counter, no name carries a value to the next iteration, and none carries one out of the loop. A name the body binds at its own level (an `unroll` body and a folded `if` included) is the body's own, unbound until the binding runs, so reading the enclosing value of that name first is rejected: carry state through memory, a `HeapBuf`. A binding in a runtime `if` arm ends with the arm, as everywhere, and the rest of the body still reads the enclosing value, unless that value is a `StackBuf`: one whose name the body binds anywhere it can run is not captured, since capturing it copies its cells each iteration.
 
 ### `for i in unroll(a, b)`: compile-time unrolling
 

@@ -415,7 +415,9 @@ included) wins the code-binding game with probability at most
 $2^{-61}$ and $2^{-119}$. The offset $2^{65}$ of the first term is the knowledge-soundness game's
 own calls beyond the adversary's: the relation's check hashes the extracted matrix (fewer than
 $2^{22}$ calls) and, on its worst path, runs the whole nonce search, $2^{64} + 2$ calls; the
-assumption is read at $q = Q + 2^{65}$.
+assumption is read at $q = Q + 2^{65}$. Note that because \lean{QueryCostAtMost} is worst-case over
+all paths, this $2^{65}$ offset imposes an additive floor of $2^{65 - k}$ on the first term even at
+$Q = 0$, $c = 0$ (i.e.\ $2^{-60}$ at $k = 125$, and vacuous for $k \le 65$).
 
 \emph{Why.} Run the extractor on the adversary; it returns cells $c^*$. One of three things holds.
 \begin{enumerate}
