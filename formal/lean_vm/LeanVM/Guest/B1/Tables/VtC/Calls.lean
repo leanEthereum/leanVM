@@ -12,9 +12,9 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `verify_tables`' calls
 
-`vtCallKindB`: a call is not the rounds loop, the shared tables' calls are of six arguments and no
-return, a dispatch's arms are neither, and the one conditional call is the rounds loop's
-(`vt_callKinds`); there are `119` calls (`vt_ncalls`). `vtBs`: each call's bound, by its kind
+`vtCallKindB`: a call is not the rounds loop, the shared tables' calls are of seven arguments and
+no return, a dispatch's arms are neither, and the one conditional call is the rounds loop's
+(`vt_callKinds`); there are `125` calls (`vt_ncalls`). `vtBs`: each call's bound, by its kind
 (`vtCallBnd`), what `vtWB` sums. Kept apart from the completeness proofs so that the budget reads
 them alone.
 -/
