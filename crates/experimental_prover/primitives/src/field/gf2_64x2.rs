@@ -418,7 +418,7 @@ impl F128Unreduced {
 
     /// Build from two 128-bit coefficients.
     #[inline]
-    fn from_wide(coeffs: [u128; 2]) -> Self {
+    pub fn from_wide(coeffs: [u128; 2]) -> Self {
         Self {
             coeffs: coeffs.map(|c| [c as u64, (c >> 64) as u64]),
         }

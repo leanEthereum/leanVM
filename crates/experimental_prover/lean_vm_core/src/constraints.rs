@@ -452,16 +452,62 @@ pub fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Vec<Claim
         }
     }
 
-    // Each column's evaluation at its table's point, one task per column: the columns were never folded.
+    // Each column's evaluation at its table's point, flattened into one dispatch and sharing `eq` tables across columns.
     crate::stage!("Constraint evals", || {
+        use primitives::field::{F128Unreduced, dot_base};
+        use primitives::multilinear::{eq_table, packed_eq};
+
+        const LOW_VARS: usize = 10;
+        let max_tau = tables.iter().map(|t| t.tau).max().unwrap_or(0);
+        let shared_low = (max_tau >= LOW_VARS).then(|| packed_eq(&chi[..LOW_VARS]));
+        let per_table: Vec<_> = tables
+            .iter()
+            .map(|t| {
+                let pt = &chi[..t.tau];
+                if t.tau < 3 {
+                    (None, None)
+                } else if t.tau < LOW_VARS {
+                    (Some(packed_eq(pt)), None)
+                } else {
+                    (None, Some(eq_table(&pt[LOW_VARS..])))
+                }
+            })
+            .collect();
+
+        let jobs: Vec<(usize, usize)> = tables
+            .iter()
+            .enumerate()
+            .flat_map(|(ti, t)| (0..t.cols.len()).map(move |c| (ti, c)))
+            .collect();
+        let flat_evals = parallel::map_collect(jobs.len(), |idx| {
+            let (ti, c) = jobs[idx];
+            let t = &tables[ti];
+            let col = t.cols[c];
+            if t.tau < 3 {
+                return mle_eval(col, &chi[..t.tau]);
+            }
+            if t.tau < LOW_VARS {
+                let low = per_table[ti].0.as_ref().unwrap();
+                return dot_base(low, col).reduce();
+            }
+            let low = shared_low.as_ref().unwrap();
+            let high = per_table[ti].1.as_ref().unwrap();
+            let mut acc = F128Unreduced::ZERO;
+            for (&h, row) in high.iter().zip(col.as_chunks::<{ 1 << LOW_VARS }>().0) {
+                acc ^= h.mul_unreduced(dot_base(low, row).reduce());
+            }
+            acc.reduce()
+        });
+
+        let mut offset = 0;
         tables
             .iter()
             .map(|t| {
-                let chi = &chi[..t.tau];
-                let evals = parallel::map_collect(t.cols.len(), |c| mle_eval(t.cols[c], chi));
+                let evals = flat_evals[offset..offset + t.cols.len()].to_vec();
+                offset += t.cols.len();
                 ps.add_scalars(&evals);
                 Claims {
-                    chi: chi.to_vec(),
+                    chi: chi[..t.tau].to_vec(),
                     evals,
                 }
             })
