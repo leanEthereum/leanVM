@@ -185,9 +185,9 @@ and the reservation's last cell below `maxCells`. -/
 def AllocOk (M : ℕ → E) (s : St) (ptr size : ℕ) : Prop :=
   s.fp + ptr < maxCells ∧ s.nextFree + size ≤ maxCells ∧ M (s.fp + ptr) = ofK (g ^ s.nextFree)
 
-/-- A late allocation: the pointer written, or an allocation. -/
-def AllocLateOk (M : ℕ → E) (s : St) (ptr size : ℕ) : Prop :=
-  s.mem.written (s.fp + ptr) = true ∨ AllocOk M s ptr size
+/-- A late hint's buffer: its pointer written, reserved from advice with `size` cells. -/
+def AllocLateOk (s : St) (ptr size : ℕ) : Prop :=
+  s.mem.written (s.fp + ptr) = true ∧ (s.fp + ptr, size) ∈ s.advised
 
 /-- A `HeapBuf`'s size is `n`: the constant, or the exponent of a pointer below `maxCells`. -/
 def BufOk (s : St) : BufSize → ℕ → Prop
@@ -223,18 +223,13 @@ theorem allocate_complete {M : ℕ → E} {s : St} (hs : Fine M s) {ptr size : �
   rw [St.withMem_eq e]
   rfl
 
-theorem allocateLate_complete {M : ℕ → E} {s : St} (hs : Fine M s) {ptr size : ℕ}
-    (h : AllocLateOk M s ptr size) : ∃ s', allocateLate s ptr size = .ok s' ∧ Moves M s s' := by
-  have hc : s.fp + ptr < maxCells := by
-    rcases h with hw | ha
-    · exact hs.lt_of_written hw
-    · exact ha.1
-  unfold allocateLate
-  rw [cellAt_eq hc, ok_bind]
-  by_cases hw : s.mem.written (s.fp + ptr) = true
-  · exact ⟨s, by simp only [hw, ↓reduceIte]; rfl, ⟨hs, Mem.le_refl _, rfl, rfl, rfl⟩⟩
-  · simp only [hw, Bool.false_eq_true, ↓reduceIte]
-    exact allocate_complete hs (h.resolve_left hw)
+theorem checkLate_complete {M : ℕ → E} {s : St} (hs : Fine M s) {ptr size : ℕ}
+    (h : AllocLateOk s ptr size) : checkLate s ptr size = .ok s := by
+  unfold checkLate
+  rw [cellAt_eq (hs.lt_of_written h.1), ok_bind]
+  have h2 : s.advised.contains (s.fp + ptr, size) = true := List.elem_iff.mpr h.2
+  simp only [h.1, h2, ↓reduceIte]
+  rfl
 
 theorem bufSize_complete {M : ℕ → E} {s : St} (hs : Fine M s) {b : BufSize} {n : ℕ} (h : BufOk s b n) :
     ∃ s', bufSize s b = .ok (n, s') ∧ Moves M s s' ∧ s'.mem = s.mem ∧ s'.nextFree = s.nextFree := by
@@ -263,7 +258,7 @@ def HintOk (C : Ctx) (M : ℕ → E) (s : St) : Hint → Prop
   | .allocAdvice ptr stream => StreamNext C s stream [] ∨
     ∃ n, StreamNext C s stream [ofK (g ^ n)] ∧ n < maxCells ∧ AllocOk M s ptr n
   | .allocArm ptr sel sizes => ∃ k n, PtrAt s (s.fp + sel) k ∧ sizes[k]? = some n ∧ AllocOk M s ptr n
-  | .allocLate ptr size => ∃ n, BufOk s size n ∧ AllocLateOk M s ptr n
+  | .allocLate ptr size => ∃ n, BufOk s size n ∧ AllocLateOk s ptr n
   | .cellAddress ptr cell => s.fp + cell < maxCells ∧ s.fp + ptr < maxCells ∧
     M (s.fp + ptr) = ofK (g ^ (s.fp + cell))
   | .allocFrames ptr size stop startInverse tail => ∃ v n, s.mem.peek (s.fp + stop) = ofK v ∧
@@ -345,12 +340,16 @@ theorem runHint_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {h :
         dsimp only
         rw [hnf, m1.fp]
         exact ha)
-    refine ⟨s', ?_, m1.trans ((Moves.dl m1.fine h1 h2).trans hm)⟩
+    refine ⟨{ s' with advised := (s'.fp + ptr, n) :: s'.advised }, ?_,
+      m1.trans ((Moves.dl m1.fine h1 h2).trans (hm.trans
+        ⟨⟨hm.fine.agree, hm.fine.dl, hm.fine.small, hm.fine.fp⟩, Mem.le_refl _, rfl, rfl, rfl⟩))⟩
     simp only [runHint]
     rw [e1, ok_bind]
     dsimp only
     rw [inK_ofK, ok_bind, e, ok_bind]
-    exact e'
+    unfold allocateAdvised
+    rw [e', ok_bind]
+    rfl
   | allocArm ptr sel sizes =>
     obtain ⟨k, n, hp, hk, ha⟩ := hh
     obtain ⟨D', e, h1, h2⟩ := St.logOr_complete hs.dl hs.small
@@ -364,12 +363,12 @@ theorem runHint_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {h :
     exact e'
   | allocLate ptr size =>
     obtain ⟨n, hb, ha⟩ := hh
-    obtain ⟨s1, e1, m1, hmem, hnf⟩ := bufSize_complete hs hb
-    obtain ⟨s', e', hm⟩ := allocateLate_complete m1.fine (s := s1) (by
-      unfold AllocLateOk AllocOk at ha ⊢
-      rw [hmem, hnf, m1.fp]
+    obtain ⟨s1, e1, m1, hmem, -⟩ := bufSize_complete hs hb
+    have e' := checkLate_complete m1.fine (s := s1) (by
+      unfold AllocLateOk at ha ⊢
+      rw [hmem, m1.fp, bufSize_advised e1]
       exact ha)
-    refine ⟨s', ?_, m1.trans hm⟩
+    refine ⟨s1, ?_, m1⟩
     simp only [runHint]
     rw [e1, ok_bind]
     exact e'

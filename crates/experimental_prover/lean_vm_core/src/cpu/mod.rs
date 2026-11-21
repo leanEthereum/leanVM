@@ -423,6 +423,38 @@ fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::StackClaim> {
 mod tests {
     use super::*;
 
+    /// A `HeapBuf` reserved from advice fails the run where it is allocated unless the advice reserved it at the size
+    /// the program computes, as in the stable interpreter (`zkdsl_compiler`'s `heap_buf_advice_of_another_size_fails`).
+    #[test]
+    fn heap_buf_advice_of_another_size_fails() {
+        let source = r#"
+def square(x):
+    return x * x
+
+def main():
+    public = 1
+    n = public[1]
+    if n != 1:
+        buf = HeapBuf(square(n))
+        buf[1] = 1
+    return
+"#;
+        let program = Program::from(zkdsl_compiler::compile(&zkdsl_compiler::parse(source).unwrap()));
+        let run = |entry: Vec<F128>| {
+            let witness = [(zkdsl_compiler::HEAP_SIZE_STREAM.to_string(), vec![entry])];
+            execute(&program, &witness, [F128::from(F64::G), F128::ZERO]).map(|_| ())
+        };
+        let size = |k| vec![F128::from(g_pow(k))];
+        assert!(run(size(2)).is_ok());
+        for entry in [vec![], size(1), size(3)] {
+            let error = run(entry).err().map(|e| e.to_string()).unwrap_or_default();
+            assert!(
+                error.contains("main (line") && (error.contains("advice") || error.contains("advised size")),
+                "{error}"
+            );
+        }
+    }
+
     /// `SET` of a prover word.
     fn set(o: u32, k: F128) -> Op {
         Op::Set { o, k: to_scalar(&k) }

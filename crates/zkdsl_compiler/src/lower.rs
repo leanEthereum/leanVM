@@ -210,8 +210,9 @@ struct FnLower<'a> {
     /// Where the frame and `HeapBuf` reservations sit, by pointer cell, and what
     /// moving one needs to know ([`Self::hoist_heap_bufs`]).
     reservations: HashMap<Off, hoist::Site>,
-    /// The branch nesting of the code being emitted: `0` where every run that
-    /// gets this far runs it.
+    /// The branch nesting of the code being emitted: `0` at a statement's top level, outside every branch's body.
+    /// A branch's exit jumps sit at `0` too (an `if`'s first arm's, a `match` arm's), though only the runs that took
+    /// that branch run them.
     depth: u32,
     /// The nesting of each instruction emitted.
     code_depth: Vec<u32>,

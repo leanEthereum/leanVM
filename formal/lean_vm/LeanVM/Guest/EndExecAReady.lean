@@ -42,8 +42,8 @@ block (`SizeOk`: a constant, a dispatch arm's by its selector, a loop chain's by
 pointer cell the next callee's frame (the next call, reached by the straight code to the call site's
 jump, `FrameHolds.site`); `AdvNext`, an `allocAdvice` pops the `heap_sizes` entry of its buffer's
 size, empty when the path allocates none (`advNext_alignA`, `EndExecAHeap.lean`, from the advised
-sizes' track `HeapAt`); `LateReady`, a late hint finds its buffer reserved, its size cell a power
-(`lateReady_alignA`, `EndExecALate.lean`); `ExclReady`, the buffer hints of the function the
+sizes' track `HeapAt`); `LateReady`, a late hint finds its buffer reserved, its size cell a power,
+the size it was advised (`lateReady_alignA`, `EndExecALate.lean`); `ExclReady`, the buffer hints of the function the
 allocation check excludes (`claim_list_digest`, its one buffer in a branch; `exclReady_alignA`,
 `EndExecAExcl.lean`).
 -/
@@ -91,11 +91,11 @@ def AdvNext (A : String → FnAl) : Prop :=
       | some n => [ofK (addressOfIndex n)]
       | none => [])
 
-/-- **A late hint finds its buffer reserved**, and its size a power below `maxCells` once its size cell
-is written. -/
+/-- **A late hint finds its buffer reserved**, and, once its size cell is written, its size a power below
+`maxCells` with which the advice reserved it. -/
 def LateReady (A : String → FnAl) : Prop :=
   ∀ r C e s sx i p b, HintAt A r C e s sx i (.allocLate p b) → sx.mem.written (sx.fp + p) = true ∧
-    (Mode.HintIn sx (.allocLate p b) → ∃ n, BufOk sx b n)
+    (Mode.HintIn sx (.allocLate p b) → ∃ n, BufOk sx b n ∧ (sx.fp + p, n) ∈ sx.advised)
 
 /-- **A callee frame's hint reserves the next callee's block**, and has what it needs where the tree
 puts the bump pointer, the cells it reads written. -/
@@ -395,8 +395,8 @@ theorem allocReady_alignA (hD : DynPow) (hA : AdvNext alignA) (hL : LateReady al
       · cases h <;> simp only [isLate, Bool.false_eq_true] at hlt
         rename_i p b
         obtain ⟨hwr, hbo⟩ := hL r C e s sx i p b hat
-        obtain ⟨n, hb⟩ := hbo hin
-        exact ⟨⟨n, hb, Or.inl hwr⟩, allocB_late hwr⟩
+        obtain ⟨n, hb, hadv⟩ := hbo hin
+        exact ⟨⟨n, hb, hwr, hadv⟩, allocB_late hwr⟩
       · have hb : isBuf (alignA e.I.t.name).X h = true := by
           unfold isBuf; simp only [hp, hfr, hlt, Bool.not_false, Bool.and_self]
         by_cases hex : i0 + 1 ∈ AllocChk.allocExcl

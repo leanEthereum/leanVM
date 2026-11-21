@@ -36,8 +36,8 @@ first jump, `Bridge.advChk`): `slotsOf F`, the buffer indices a function's advic
 still pop, the top frame at offset `off`: its own past `advBefore`, then each frame's callees not yet
 called (`Memory.Tree.heapPopsKids`); `ChainH`: each frame below resumes past its function's first
 jump, its advice all popped. `HeapAt A r s e st`: the stream (`heapStream`) past the executor's
-cursor is `restH`, the frames `ChainH`, and the advised pointer cells whose buffers exist written
-(`AdvWr`: the top frame's before its offset, every frame's below). `HeapPops`: the honest pushes of `heap_sizes` are the
+cursor is `restH`, the frames `ChainH`, and the advised pointer cells whose buffers exist written and
+recorded as advised with their sizes (`AdvWr`: the top frame's before its offset, every frame's below). `HeapPops`: the honest pushes of `heap_sizes` are the
 reference tree's advised sizes (`Memory.Tree.heapPops advSlots`).
 
 Proved here: the track holds initially (`initY_alloc`), and the reference holds a buffer's base at
@@ -100,22 +100,23 @@ def ChainH (A : String → FnAl) (M : ℕ → E) : List Ent → Prop
 noncomputable def heapStream (r : Ref) : List (List E) :=
   ((Hints.honestPushes End.bytecode r.seed r.s r.w).filter (·.1 == Hints.heapSizeStream)).map (·.2)
 
-/-- **Frame `e`'s advised pointer cells written** before offset `off`: each `allocAdvice` there whose
-buffer exists. -/
-def AdvWrTop (A : String → FnAl) (m : Mem) (e : Ent) (off : ℕ) : Prop :=
-  ∀ k o p S, (bufsOf (A e.I.t.name).X (A e.I.t.name).d)[k]? = some (o, .allocAdvice p S) → o < off →
-    k < e.I.t.bufs.length → m.written (e.I.fp + p) = true
+/-- **Frame `e`'s advised pointer cells written** before offset `off`, and recorded in `adv` with their
+buffers' sizes: each `allocAdvice` there whose buffer exists. -/
+def AdvWrTop (A : String → FnAl) (m : Mem) (adv : List (ℕ × ℕ)) (e : Ent) (off : ℕ) : Prop :=
+  ∀ (k o p : ℕ) (S : String), (bufsOf (A e.I.t.name).X (A e.I.t.name).d)[k]? = some (o, .allocAdvice p S) → o < off →
+    ∀ n, e.I.t.bufs[k]? = some n → m.written (e.I.fp + p) = true ∧ (e.I.fp + p, n) ∈ adv
 
-/-- **The advised pointer cells written**: the top frame's before offset `off`, every frame's below. -/
-def AdvWr (A : String → FnAl) (m : Mem) : List Ent → ℕ → Prop
+/-- **The advised pointer cells written** and recorded: the top frame's before offset `off`, every
+frame's below. -/
+def AdvWr (A : String → FnAl) (m : Mem) (adv : List (ℕ × ℕ)) : List Ent → ℕ → Prop
   | [], _ => True
-  | e :: st, off => AdvWrTop A m e off ∧ ∀ e' ∈ st, ∀ o, AdvWrTop A m e' o
+  | e :: st, off => AdvWrTop A m adv e off ∧ ∀ e' ∈ st, ∀ o, AdvWrTop A m adv e' o
 
 /-- **The advised sizes' track at a state**: the stream past the cursor is what the frames still pop,
-the frames below resume past their advice, whose pointer cells are written. -/
+the frames below resume past their advice, whose pointer cells are written and recorded. -/
 abbrev HeapAt (A : String → FnAl) (r : Ref) (s : St) (e : Ent) (st : List Ent) : Prop :=
   (heapStream r).drop (s.cursor.getD Hints.heapSizeStream 0) = restH A (e :: st) (s.pc - entOf A e.I.t.name) ∧
-    ChainH A (memOf r.img) (e :: st) ∧ AdvWr A s.mem (e :: st) (s.pc - entOf A e.I.t.name)
+    ChainH A (memOf r.img) (e :: st) ∧ AdvWr A s.mem s.advised (e :: st) (s.pc - entOf A e.I.t.name)
 
 /-- **The honest pushes of `heap_sizes` are the reference tree's advised sizes.** -/
 def HeapPops : Prop := ∀ r : Ref, r.Ok → heapStream r = r.T.heapPops advSlots

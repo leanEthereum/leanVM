@@ -29,7 +29,7 @@ open LeanVM.Prover.Exec
 @[expose] public section
 
 /-- The state with memory `m` and frame `fp`, for the facts that read only those. -/
-def stOf (m : Mem) (fp : ℕ) : St := ⟨m, Dlog.empty, 0, fp, 0, ∅, 0⟩
+def stOf (m : Mem) (fp : ℕ) : St := ⟨m, Dlog.empty, 0, fp, 0, ∅, 0, []⟩
 
 /-- The signature's termination facts hold at frame `fp`. -/
 def TermAt (m : Mem) (fp : ℕ) (G : Sig) : Prop := ∀ p ∈ G.term, LTF (stOf m fp) p.1 p.2

@@ -59,21 +59,15 @@ theorem allocate_nextFree {s s' : St} {ptr size : ℕ} (h : allocate s ptr size 
     subst h
     rfl
 
-theorem allocateLate_nextFree {s s' : St} {ptr size : ℕ} (h : allocateLate s ptr size = .ok s') :
+theorem allocateAdvised_nextFree {s s' : St} {ptr size : ℕ} (h : allocateAdvised s ptr size = .ok s') :
+    s'.nextFree = s.nextFree + size := by
+  obtain ⟨s1, h1, rfl⟩ := allocateAdvised_ok h
+  exact (allocate_nextFree h1 : s1.nextFree = s.nextFree + size)
+
+theorem checkLate_nextFree {s s' : St} {ptr size : ℕ} (h : checkLate s ptr size = .ok s') :
     s'.nextFree = s.nextFree + if s.mem.written (s.fp + ptr) then 0 else size := by
-  unfold allocateLate at h
-  rw [bind_ok] at h
-  obtain ⟨cell, hcell, h⟩ := h
-  obtain ⟨rfl, -⟩ := cellAt_ok hcell
-  by_cases hw : s.mem.written (s.fp + ptr) = true
-  · rw [ite_eq_left hw] at h
-    simp only [pure_ok] at h
-    subst h
-    rw [ite_eq_left hw]
-    rfl
-  · rw [ite_eq_right hw] at h
-    rw [ite_eq_right hw]
-    exact allocate_nextFree h
+  rw [ite_eq_left (checkLate_written h).1, checkLate_eq h]
+  rfl
 
 theorem withMem_nextFree {s s' : St} {f : Mem → Except Fault Mem} (h : s.withMem f = .ok s') :
     s'.nextFree = s.nextFree ∧ s'.fp = s.fp ∧ s'.cursor = s.cursor := by
@@ -188,7 +182,7 @@ theorem runHint_nextFree {C : Ctx} {M : ℕ → E} {s s' : St} (hM : ∀ c v, s.
       obtain ⟨sz, hsz, ⟨n, s2⟩, h2, e⟩ := e
       obtain ⟨n2, -, -, -, hg, hlt⟩ := logOr_keep (d1 ▸ hD) h2
       obtain ⟨hl1, rfl⟩ := inK_ok hsz
-      rw [allocate_nextFree e, n2, n1]
+      rw [allocateAdvised_nextFree e, n2, n1]
       congr 1
       have hw' : w = ofK (g ^ n) := E.ext fun i ↦ by
         fin_cases i
@@ -227,7 +221,7 @@ theorem runHint_nextFree {C : Ctx} {M : ℕ → E} {s s' : St} (hM : ∀ c v, s.
   | allocLate ptr size =>
     simp only [runHint, bind_ok] at e
     obtain ⟨⟨n, s1⟩, h1, e⟩ := e
-    rw [allocateLate_nextFree e]
+    rw [checkLate_nextFree e]
     cases size with
     | cells k =>
       simp only [bufSize, pure_ok, Prod.mk.injEq] at h1

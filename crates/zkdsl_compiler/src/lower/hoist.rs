@@ -6,7 +6,7 @@
 //! changes no instruction: every `HeapBuf` pointer is a fresh cell only its hint writes. A buffer
 //! whose size is not known there, or that not every run reaches, is reserved there from advice
 //! ([`RHint::AllocAdvice`] on [`HEAP_SIZE_STREAM`](crate::HEAP_SIZE_STREAM)), its own hint then
-//! marked late ([`RHint::AllocLate`]), finding its pointer written.
+//! marked late ([`RHint::AllocLate`]), which checks that the advice reserved it, at its size.
 
 use super::*;
 use std::collections::HashSet;
@@ -82,7 +82,7 @@ impl FnLower<'_> {
                     hoisted.push(Ok((i, j)));
                 }
                 _ => {
-                    // Its own hint stays, marked late: it finds its pointer written.
+                    // Its own hint stays, marked late: it checks the advised size.
                     self.code[i].hints[j] = late(&self.code[i].hints[j]);
                     if !hoisted.contains(&Err(ptr)) {
                         hoisted.push(Err(ptr));
@@ -160,16 +160,17 @@ fn hint_writes(h: &Hint) -> Vec<Off> {
 /// The frame cells written once an instruction has run: those it writes on every run, and those it
 /// reads, which both executors require written (an unwritten read fails in the Lean executor, and
 /// in the Rust one is a read of zero that writes it). A `MUL` back-solves at most one operand, so its
-/// three cells are written; a `JUMP` reads its three cells, taken or not. A `DEREF` of mode `Cell`
-/// writes its frame cell only if its other side is written, and a slot's destination is not counted
-/// for the same reason.
+/// three cells are written. A `DEREF` of mode `Cell` writes its frame cell only if its other side is
+/// written, and a slot's destination is not counted for the same reason. A `JUMP` at depth `0` may be
+/// a branch's exit, which not every run reaches, so its cells are not counted; they are written
+/// before it anyway, by the instructions that computed them.
 fn touched(op: &LOp) -> Vec<Off> {
     match *op {
         LOp::Set { o, .. } => vec![o],
         LOp::Xor { a, b, c } | LOp::Mul { a, b, c } => vec![a, b, c],
         LOp::MulNextFrame { a, b, .. } => vec![a, b],
         LOp::Deref { o1, .. } => vec![o1],
-        LOp::Jump { oc, od, of } => vec![oc, od, of],
+        LOp::Jump { .. } => Vec::new(),
         LOp::Slot { x, .. } => vec![x],
         LOp::Keccak { .. } => Vec::new(),
     }
