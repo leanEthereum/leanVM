@@ -149,6 +149,8 @@ Suppose that $(\agr^{(i,0)})^2>\blen_i\dgr^{(i)}$ for every level $i$, so that t
 the second query term being absent at the last level, $i=\nlev-1$. 
 \end{theorem}
 
+\paragraph{Deployed parameters and grinds.} In leanVM, the committed stack has $\nv_0\in\{16,\dots,30\}$ variables and initial rate exponent $\rexp_0\in\{1,\dots,4\}$. Level $0$ folds $\ell_0=6$ variables, and every subsequent level folds $\ell_i=\min(4,\nv_i)$ variables until at most $\nv_\nlev\le 5$ remain. The domain shrinks by $3$ bits after level $0$ and by $1$ bit after each later level (so $\rexp_{i+1}=\rexp_i+\ell_i-3$ for $i=0$ and $\rexp_{i+1}=\rexp_i+\ell_i-1$ for $i\ge 1$). Each verifier message is preceded by a fixed proof-of-work grind (\S\ref{sec:grinding}): $15$ bits before every OOD point $z_i$, $13$ bits before level $0$'s batching challenge $\lambda_0$ (drawn together with the ring-switching challenges, \S\ref{sec:e2e-unrolled}), $7$ bits before each fold round's $(\afa_{i,j},\afb_{i,j})$, and $17$ bits before each level's query message (which includes $\lambda_{i+1}$ for $i<\nlev-1$). The query counts $\nq_i$ are chosen for each $(\nv_0,\rexp_0)$ to hold every round-by-round error in Theorem~\ref{thm:rbr} to at most $2^{-125}$ after its grind.
+
 \subsubsection{Proximity tools}\label{sec:tools}
 
 The main tool is the \emph{mutual correlated agreement} (MCA)~\cite{ACFY25} of the affine combiner, with the finite error bound of~\cite[Thm.~4.10]{CWYZ26}.

@@ -147,6 +147,6 @@ A limb holding lane $a$ in the even layout and $b$ in the odd one is the degree-
       &\rdf{\dsep{MEM},a_c,r_c,\kin{2c-1},\kin{2c}} &&(9\le c<13),
     \end{align*}
     the writes the same with $\kout{\ell}$ and $r_{13+c}$, the thirteen reads in cell order before the thirteen writes. The rate cells take the forms $u_c,v_c$ above; the four capacity cells hold lanes $17$ to $24$ in either layout.
-  \item \textbf{Output selection:} cell $0$ is always written, cell $1$ when $\mathit{out}_{\mathit{two}}=1$, and cells $2$ to $12$ when $\mathit{out}_{\mathit{all}}=1$; the bytecode fixes both flags. Write $c\ge1$ with flag $f$ pushes the counter $r_{13+c}\,(1+f\,(\gen+1))$: $\gen\cdot r_{13+c}$ when $f=1$, and $r_{13+c}$ when $f=0$, so the pair cancels and memory is untouched.
+  \item \textbf{Output selection:} cell $0$ is always written, cell $1$ when $\mathit{out}_{\mathit{two}}=1$, and cells $2$ to $12$ when $\mathit{out}_{\mathit{all}}=1$; the bytecode fixes both flags to $(\mathit{out}_{\mathit{two}},\mathit{out}_{\mathit{all}})\in\{(0,0),(1,0),(1,1)\}$ (the pair $(0,1)$ is forbidden, \S\ref{sec:vm}). Write $c\ge1$ with flag $f$ pushes the counter $r_{13+c}\,(1+f\,(\gen+1))$: $\gen\cdot r_{13+c}$ when $f=1$, and $r_{13+c}$ when $f=0$, so the pair cancels and memory is untouched.
   \end{itemize}
 \end{itemize}

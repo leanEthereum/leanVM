@@ -19,7 +19,7 @@ The arithmetization is inspired by the M3 model (multi-multiset matching)~\cite{
 
 Both multisets (\emph{pulls} and \emph{pushes}) carry the same number of tuples, and padding each with factors of $1$, which change no product, makes that number a power of two, $2^{\mu}$.
 
-\emph{Fingerprint.} After a grind of $\mu-3$ bits, the verifier samples one weight per slot, $\alpha=(\alpha_\iota)_{\iota\in\cube{4}}\in\E^{16}$, and maps each tuple $\btup \in \K^{16}$ to a single $\E$-element:
+\emph{Fingerprint.} After a grind of $\max(0,\mu-3)$ bits, the verifier samples one weight per slot, $\alpha=(\alpha_\iota)_{\iota\in\cube{4}}\in\E^{16}$, and maps each tuple $\btup \in \K^{16}$ to a single $\E$-element:
 \[
 \pi_\alpha(\btup)\;=\;\sum_{\iota\in\cube{4}}\alpha_\iota\,\btup_\iota ,
 \]

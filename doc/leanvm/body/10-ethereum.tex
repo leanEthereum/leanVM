@@ -27,7 +27,7 @@ $(\kbc+5)\times16$ bytes & deferred bytecode point and value\\
 \end{center}
 The deferred claim lets recursion postpone an expensive polynomial evaluation until the final verification (\S\ref{sec:deferred-claims}).
 
-Each list digest is the hash of that scheme's sorted claims, $64$ bytes per $(\text{public key},\text{message})$ pair (\S\ref{sec:prog-hashing}). Every field above has a fixed width, so the preimage parses one way and the statement needs no length fields.
+Each list digest is the hash of that scheme's claim list, $64$ bytes per $(\text{public key},\text{message})$ pair (\S\ref{sec:prog-hashing}); the native verifier checks that the published lists are strictly sorted (deduplicated), while the guest checks coverage alone. Every field above has a fixed width, so the preimage parses one way and the statement needs no length fields.
 
 \subsubsection{Checking coverage}
 
@@ -41,7 +41,7 @@ The prover supplies the extra claims and assigns each supporting occurrence to a
 
 Verifying a child requires one evaluation of a fixed polynomial: the bytecode multilinear, in $\kbc+4$ variables (\S\ref{sec:e2e-bc}). Computing it inside the guest would be very expensive. Instead, the guest carries one evaluation claim in its statement, a point and a value. This expensive computation is moved `outside of the SNARK': only the root's claim is checked, natively, by the final verifier. Nothing else is deferred, the Keccak argument's weights being cheap to evaluate in the guest (Annex~\ref{annex:keccak}).
 
-A node with $n$ children combines the claim each child carries with the new claim produced while verifying it, $2n$ claims on the one polynomial. One sumcheck over its $\kbc+4$ variables reduces their random combination to a single evaluation, which is the claim the node carries. A node with no child carries the claim at the all-zeros point. The Fiat-Shamir for the batching and the sumcheck is seeded by every child's statement and both of its claims, the child count and each child's words padded with zeros to whole rates of the sponge (\S\ref{sec:e2e-fiat-shamir}).
+A node with $n$ children ($n\le16$) combines the claim each child carries with the new claim produced while verifying it, $2n$ claims on the one polynomial. After a $2$-bit grind (\S\ref{sec:grinding}; $\lceil\log_2(2\cdot16-1)\rceil-3=2$), the verifier samples the batching challenge whose powers weight the $2n$ claims, and one sumcheck over the $\kbc+4$ variables reduces their random combination to a single evaluation, which is the claim the node carries (each sumcheck round has degree $2$ and no grind). A node with no child carries the claim at the all-zeros point. The Fiat-Shamir for the batching and the sumcheck is seeded with the hash of \texttt{leanvm/recursion-aggregation/v1} as IV and zero public input, absorbing the child count and every child's statement and both of its claims, each padded with zeros to whole rates of the sponge (\S\ref{sec:e2e-fiat-shamir}).
 
 \subsection{Data availability: LeanDA}\label{sec:leanda}
 
