@@ -10,7 +10,6 @@ module
 public import LeanVM.Guest.Ref.Lang
 public import LeanVM.Guest.Value.KeccakSponge
 public import LeanVM.Guest.B1.Common.Basic
-import LeanVM.Guest.Vc
 
 /-!
 # The sponge, as commands
@@ -146,8 +145,17 @@ private theorem out_iff {vs : List E} (ho : vs.length = 1 ∨ vs.length = 2) {I 
       vs = [cellsOfState (keccakF1600 (stateOfCells I i)) o 0,
         cellsOfState (keccakF1600 (stateOfCells I i)) o 1].take vs.length := by
   match vs, ho with
-  | [_], _ => exact keccak_cells_one.trans (by simp)
-  | [_, _], _ => exact keccak_cells_two.trans (by simp)
+  | [_], _ =>
+    refine ⟨fun ⟨_, h, hk⟩ => by simpa [cells13] using hk 0 (by omega), fun h => ⟨.one, rfl, ?_⟩⟩
+    rintro ⟨_ | _, _⟩ hc
+    exacts [by simpa [cells13] using h, by simp [KeccakOutputCells.cellCount] at hc]
+  | [_, _], _ =>
+    refine ⟨fun ⟨_, h, hk⟩ => by simpa [cells13] using ⟨hk 0 (by simp [← h]), hk 1 (by simp [← h])⟩,
+      fun h => ⟨.two, rfl, ?_⟩⟩
+    simp at h
+    rintro ⟨_ | _ | _, _⟩ hc
+    exacts [by simpa [cells13] using h.1, by simpa [cells13] using h.2,
+      by simp [KeccakOutputCells.cellCount] at hc]
 
 /-- **The sponge's commands hold exactly when** its states are the absorbed blocks' and the one or
 two cells `out` are the first of the Keccak-256 digest of the message's bytes. -/

@@ -125,8 +125,8 @@ theorem cellRef_sem (rd : Reader) (args rets : List E) :
       | [lv], _ => exact ⟨lv, rfl⟩
     obtain ⟨syms, ws, hsl, hr, hwl, rfl⟩ := hm
     simp only [LeanDa.cellSymbols] at hsl hwl
-    have hs : ((List.range 128).map (Tm.v <| CellName.sym ·)).map (Tm.eval (cellVal lv syms ws)) =
-        syms :=
+    have hs : ((List.range (guest_const% DA_CELL)).map (Tm.v <| CellName.sym ·)).map
+        (Tm.eval (cellVal lv syms ws)) = syms :=
       List.ext_getElem (by simp [hsl]) fun i _ h => by
         simp [Tm.eval, cellVal, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h]
     refine ⟨cellVal lv syms ws, rfl, ?_, ?_⟩

@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Da.Padding
+public import LeanVM.Guest.B1.Da.Interface
 import LeanVM.Guest.B1.Da.CellLink
 
 /-!
