@@ -58,44 +58,6 @@ theorem Holds.addLt (h : Holds s A) {a b : Idx} (hl : LTF s a b) : Holds s (A.ad
       · exact hl
       · exact h.lt p hp }
 
-theorem Mono.ownCell_eq {k : Mono} {d : ℕ} (h : k.ownCell = some d) : k = .own d ∧ d < 2 ^ 62 := by
-  obtain ⟨fp, kk, bs⟩ := k
-  unfold Mono.ownCell at h
-  split_ifs at h with hc
-  cases h
-  simp only [Bool.and_eq_true, beq_iff_eq, List.isEmpty_iff, decide_eq_true_eq] at hc
-  obtain ⟨⟨rfl, rfl⟩, h2⟩ := hc
-  exact ⟨rfl, h2⟩
-
-theorem Holds.addH (h : Holds s A) {k : Mono} (hk : HW s k)
-    (hown : ∀ d, k.ownCell = some d → s.mem.written (s.fp + d) = true) : Holds s (A.addH k) := by
-  unfold Abs.addH
-  split
-  · rename_i d hd
-    exact h.addW (hown d hd)
-  · split
-    · exact h
-    · exact { h with
-        h := fun k' hk' ↦ by
-          rcases List.mem_cons.mp hk' with rfl | hk'
-          · exact hk
-          · exact h.h k' hk' }
-
-theorem Holds.addHv (h : Holds s A) {k : Mono} {x : Val} (hk : HVF s k x)
-    (hown : ∀ d, k.ownCell = some d → ∃ u, s.mem.get (s.fp + d) = some u ∧ ValOk s x u) :
-    Holds s (A.addHv k x) := by
-  unfold Abs.addHv
-  split
-  · rename_i d hd
-    exact h.addV (hown d hd)
-  · split
-    · exact h
-    · exact { h with
-        hv := fun p hp ↦ by
-          rcases List.mem_cons.mp hp with rfl | hp
-          · exact hk
-          · exact h.hv p hp }
-
 end add
 
 /-! ## Reading the state -/
@@ -130,36 +92,6 @@ theorem Holds.mono_val {s : St} {A : Abs} (h : Holds s A) {o : ℕ} {m : Mono}
   · cases hm
     obtain ⟨u, hu⟩ := Mem.get_of_written hw
     exact ⟨u, hu, MonoVal.root hu⟩
-
-theorem MonoVal.base1 {s : St} {k : ℕ} {b : Base} {u : E} :
-    MonoVal s ⟨0, k, [(b, 1)]⟩ u ↔ ∃ p, BaseVal s b p ∧ u = ofK (g ^ k) * p := by
-  constructor
-  · rintro ⟨w, ⟨p, w', hp, hw', rfl⟩, rfl⟩
-    exact ⟨p, hp, by rw [show w' = 1 from hw']; simp⟩
-  · rintro ⟨p, hp, rfl⟩
-    exact ⟨p, ⟨p, 1, hp, rfl, by simp⟩, by simp⟩
-
-theorem MonoVal.base1' {s : St} {b : Base} {u : E} : MonoVal s ⟨0, 0, [(b, 1)]⟩ u ↔ BaseVal s b u := by
-  constructor
-  · rintro ⟨w, ⟨p, w', hp, hw', rfl⟩, rfl⟩
-    rw [show w' = 1 from hw']; simpa using hp
-  · intro h
-    exact ⟨u, ⟨u, 1, h, rfl, by simp⟩, by simp⟩
-
-/-- A frame cell's exponent below `b`, and so its word's base's. -/
-theorem Holds.addLtC {s : St} {A : Abs} (h : Holds s A) {x : ℕ} {b : Idx} (hl : LTF s (.ex (.fr x) 0) b) :
-    Holds s (A.addLtC x b) := by
-  unfold Abs.addLtC
-  have h1 := h.addLt hl
-  split
-  · rename_i y hy
-    obtain ⟨xa, xb, ⟨u, ex, hu, hue, he, hxa⟩, hb, hlt⟩ := hl
-    have hu'' : s.mem.get (s.fp + x) = some u := hu
-    obtain ⟨u', hu', hm⟩ := h.mono_val hy (written_of_get hu'')
-    rw [hu''] at hu'
-    cases hu'
-    exact h1.addLt ⟨xa, xb, ⟨u, ex, MonoVal.base1'.mp hm, hue, he, hxa⟩, hb, hlt⟩
-  · exact h1
 
 /-! ## What instructions write -/
 

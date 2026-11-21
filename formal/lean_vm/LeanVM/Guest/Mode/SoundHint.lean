@@ -1,7 +1,6 @@
 module
 
-public import LeanVM.Guest.Mode.SoundDeref
-
+public import LeanVM.Guest.Mode.SoundOp
 /-!
 # One hint of the walk is sound
 

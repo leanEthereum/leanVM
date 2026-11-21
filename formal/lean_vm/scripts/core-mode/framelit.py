@@ -1,6 +1,5 @@
 """The `frame_fn%` commands of the frame walks' modules (`CoreMode/Pack/*/Frame*.lean`, `CoreMode/FrameLit.lean`),
-read back: each one's arguments and the literals it stands for (`envC`'s callees, `funC`, `frameFun`), for the
-generators that read those modules."""
+read back: each one's arguments (`envC`'s callees among them), for the generators that read those modules."""
 import re
 
 START = re.compile(r'^frame_fn% ', re.M)
@@ -53,23 +52,3 @@ def parse(text):
         out[d['name']] = d
     return out
 
-
-def fq(k): return 'Fn.«%s»' % k
-
-
-def funC(d):
-    """The `funC` literal the command stands for."""
-    k = fq(d['name'])
-    return '⟨%s.entry, %d, %s.csig, .nil, %s, .nil, %s, .nil⟩' % (
-        k, d['n'], k, d.get('fnz', '.nil'), 'true' if d.get('main') else 'false')
-
-
-def frameFun(d):
-    """The `frameFun` literal the command stands for."""
-    k = fq(d['name'])
-    ss = d.get('sigs', d['callees'])
-    sigs = '(CoreMode.sigTrie [%s])' % ', '.join('%s.csig' % fq(m) for m in ss) if ss else '.nil'
-    return '⟨{ env := %s, fpOne := %s, pows := fpows, scaled := %s }, %s.entry, %d, %s.csig, %s, 524287, advice.2.2, ' \
-        '%s, %s, %s, %s, %s.pairO, %s.pairS, .nil⟩' % (
-            d.get('env', '[]'), 'true' if d.get('fpOne') else 'false', d.get('scaled', '[]'), k, d['n'], k, sigs,
-            d.get('nzr', '.nil'), d.get('tidx', '.nil'), d.get('arms', '.nil'), d.get('calls', '.nil'), k, k)

@@ -2,7 +2,7 @@
 (`Res.carryG`: every call site passes the listed callees' carried facts, every heap witness pointer its spine does not
 pin is in `K` by the carried values) and the nonzero facts' check (`Res.carryNzG`: every call site passes its callees'
 nonzero parameters, every dynamic allocation's size is nonzero in `K`, every listed callee word is) over the whole
-program by ranges, and their conjunctions. The carried parameters of `carryG` are `Res.carried` (`Res/CarryDefs.lean`);
+program by ranges, and their conjunctions. The carried parameters of `carryG` are `Res.carried` (`CoreMode/Fam/CarryDefs.lean`);
 those of `carryNzG` (`Res.carriedNz`) and its callee words (`Res.nzUp`) are derived here, by mirroring the check over
 the core IR (`Pack/*/Core*.lean`) to a fixed point, and written to `CarryNzList.lean`. `--check` writes nothing and
 fails when a file differs.
@@ -28,70 +28,40 @@ NZ_DEPTH, K_DEPTH = 12, 8
 
 # ---- the core IR, as `Res.carryNzG` reads it -------------------------------------------------------------------------
 
-def atom(e, env):
-    h, a = bc.head(e)
-    v = bc.val
-    if h == '.const':
-        w = a[1]
-        return ('const', v(a[0]), (w[2][0], w[2][1]) if isinstance(w, tuple) and w[0] == 'app' and w[1] == ('id', 'word')
-                else None)
-    if h in ('.mul', '.add'):
-        return (h[1:], v(a[0]), v(a[1]), v(a[2]))
-    if h == '.copy':
-        return ('copy', v(a[0]), v(a[1]))
-    if h in ('.load', '.touch'):
-        return (h[1:], v(a[0]), v(a[1]))
-    if h == '.rangeCheck':
-        return ('rangeCheck', v(a[0]), v(a[1]))
-    if h == '.frameAddr':
-        return ('frameAddr', v(a[0]))
-    if h == '.assertInK':
-        return ('assertInK', v(a[0]), v(a[1]))
-    if h == '.hint':
-        hh, ha = bc.head(a[0])
-        if hh == '.allocDyn':
-            return ('allocDyn', v(ha[0]), v(ha[1]))
+def atom(a):
+    """An atom of the shared parse (`data.core_atom`) as the check reads it."""
+    k = a[0]
+    if k in ('const', 'mul', 'add', 'copy', 'touch', 'assertInK'):
+        return a
+    if k in ('load', 'rangeCheck'):
+        return a[:3]
+    if k == 'frameAddr':
+        return a[:2]
+    if k == 'hint' and a[1][0] == 'allocDyn':
+        return a[1]
     return ('other',)
 
 
-def stmt(e, env):
-    h, a = bc.head(e)
-    if h == '.atom':
-        return ('atom', atom(a[0], env))
-    if h == '.ite':
-        return ('ite', bc.val(a[0]), block(a[1], env), block(a[2], env))
-    if h == '.match_':
-        return ('match', bc.val(a[0]), [block(x, env) for x in bc.as_list(a[1], env)])
-    if h == '.call':
-        return ('call', a[0][1], bc.vals(a[1], env), bc.vals(a[2], env))
-    if h == '.callIf':
-        return ('callIf', bc.val(a[0]), a[1][1], bc.vals(a[2], env))
-    if h == '.dispatch':
-        return ('dispatch', bc.val(a[0]), [x[1] for x in bc.as_list(a[1], env)], bc.vals(a[2], env),
-                bc.vals(a[3], env))
-    if h == '.ret':
-        return ('ret', bc.vals(a[0], env))
-    raise ValueError(h)
-
-
-def block(e, env):
-    return [stmt(x, env) for x in bc.as_list(e, env)]
+def view(body):
+    out = []
+    for s in body:
+        if s[0] == 'a':
+            out.append(('atom', atom(s[1])))
+        elif s[0] == 'ite':
+            out.append(('ite', s[1], view(s[2]), view(s[3])))
+        elif s[0] == 'match':
+            out.append(('match', s[1], [view(x) for x in s[2]]))
+        else:
+            out.append(s)
+    return out
 
 
 def functions():
     """Each core function by name: its parameter count, loop flag (`Fn.loop`) and body."""
     F = {}
     for text in bc.core_texts().values():
-        name = re.search(r'name := "([^"]*)"', text).group(1)
-        ds = bc.defs(text[text.index('namespace core'):])
-        cache = {}
-
-        def env(n):
-            if n not in cache:
-                cache[n] = bc.parse(ds[n])
-            return cache[n]
-        body = block(env('body'), env)
-        params = [int(x) for x in re.findall(r'\.n (\d+)', re.search(r'params := ([^\n]*)', text).group(1))]
+        params, body, name = bc.core_fn(text)
+        body = view(body)
         assert params == list(range(len(params))), name
         loop = len(body) >= 2 and body[-1] == ('ret', []) and body[-2][0] == 'callIf' and body[-2][2] == name
         F[name] = dict(np=len(params), loop=loop, body=body)

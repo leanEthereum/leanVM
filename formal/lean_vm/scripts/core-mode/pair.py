@@ -1,4 +1,4 @@
-"""The order-aware pairing of the core route (`formal/notes/core-mode.md`, milestone 1, part D): inference and checks.
+"""The order-aware pairing of the core route (`formal/notes/core-mode.md`): inference and checks.
 
 The pass mirrors `CoreMode.pairOk` (`LeanVM/Guest/CoreMode/PairDefs.lean`), `Bridge.alignOk`'s pass with the heap events
 consumed in order: the normalization stops at every `load` atom besides the flow hints; a `DEREF` of mode `cell`
@@ -10,7 +10,7 @@ jumps skip the reads at the head first. Every other instruction leaves the posit
 
 usage (from formal/lean_vm): python3 -I scripts/core-mode/pair.py [--fn NAME] [--emit [--mods FILE]] [--check]
   [--oracle FILE.json] (compare O and S with `heap.py --oracle`'s export) [--all] (every function, reads by the def-use
-  designation: a measurement for the later milestones, nothing emitted)
+  designation: a measurement, nothing emitted)
 """
 import os, sys, glob, re, collections, json
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -28,35 +28,24 @@ import fnrules  # noqa: E402
 WINS = fnrules.table('PAIR_WIN') or {}
 
 
-def stmt(e, env):
-    h, a = data.head(e)
-    if h == '.atom':
-        ah, aa = data.head(a[0])
-        if ah == '.hint':
-            return ('hint', data.core_hint(aa[0], env))
-        if ah == '.load':
-            return ('load', data.val(aa[0]), data.val(aa[1]), aa[2])
-        return ('atom', ah[1:])
-    if h == '.ite':
-        return ('ite', data.val(a[0]), block(a[1], env), block(a[2], env))
-    if h == '.match_':
-        return ('match', data.val(a[0]), [block(x, env) for x in data.as_list(a[1], env)])
-    return AL.stmt(e, env)
-
-
-def block(e, env):
-    return [stmt(x, env) for x in data.as_list(e, env)]
+def view(body):
+    """The shared parse (`data.core_body`) as the pairing reads it: `align.view`'s, a `load` with its operands."""
+    out = []
+    for s in body:
+        if s[0] == 'a':
+            a = s[1]
+            out.append(('hint', a[1]) if a[0] == 'hint' else ('load',) + a[1:] if a[0] == 'load' else ('atom', a[0]))
+        elif s[0] == 'ite':
+            out.append(('ite', s[1], view(s[2]), view(s[3])))
+        elif s[0] == 'match':
+            out.append(('match', s[1], [view(x) for x in s[2]]))
+        else:
+            out.append(s)
+    return out
 
 
 def body_of(text):
-    ds = data.defs(text[text.index('namespace core'):])
-    cache = {}
-
-    def env(n):
-        if n not in cache:
-            cache[n] = data.parse(ds[n])
-        return cache[n]
-    return block(env('body'), env)
+    return view(data.core_body(text))
 
 
 def norm(z, stop):
@@ -376,7 +365,7 @@ def imports(ms):
 
 
 def data_mod(pack, f):
-    """The module of the function's heap certificate: milestone 1's, or the check with calls'."""
+    """The module of the function's heap certificate: the check without calls', or the check with calls'."""
     return f'LeanVM.Guest.CoreMode.Gen.«{pack}».' + {'c': 'DataC', 'l': 'DataL', 'lc': 'DataLC'}.get(f.get('kind'), 'Data')
 
 

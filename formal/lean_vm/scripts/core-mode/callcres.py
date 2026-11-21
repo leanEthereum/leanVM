@@ -1,6 +1,6 @@
 """The core route's functions whose heap certificates need residuals (`CoreMode/CoreRes.lean`): `callc.py`'s check
 with calls, on the bodies it does not close without residuals (its own candidates, and the straight-line bodies
-milestone 1's check leaves uncovered), with the inference's index rules (`idx`, `rules`) on, each certificate's
+the check without calls leaves uncovered), with the inference's index rules (`idx`, `rules`) on, each certificate's
 residuals of a family the honest instances make true (`CoreMode.resFam`, sound in `EndExecCoreRes.lean`).
 
 `extend(out, why, S)` adds them to `callc.results()`'s. Usage (a census): python3 -I scripts/core-mode/callcres.py"""
@@ -650,8 +650,8 @@ def straight(body):
 
 
 def leaf_candidates():
-    """Straight-line bodies without calls milestone 1's check leaves uncovered, or whose mode signature guarantees
-    pointer runs (`postP`), which milestone 1's does not state."""
+    """Straight-line bodies the check without calls leaves uncovered, or whose mode signature guarantees
+    pointer runs (`postP`), which that check does not state."""
     import heap, route
     S = route.sigs()
     import callc

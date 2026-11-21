@@ -5,8 +5,8 @@ public import LeanVM.Guest.Mode.SoundStep
 /-!
 # Words an instruction's immediates name
 
-`pow_val`, `immNz_ne`, `ofBits_ne_zero_of`: the powers of `g` and the nonzero words an instruction's
-immediates name; `Holds.quotC`: a quotient the domain records.
+`immNz_ne`, `ofBits_ne_zero_of`, `ofK_gpow_ne_zero`: the nonzero words an instruction's immediates
+name.
 -/
 
 namespace LeanVM.Guest.Mode
@@ -37,42 +37,8 @@ theorem imm_of_ofBits' {k : ℕ} {a : K} (h : K.ofBits k = a) :
   rw [OffsetInstruction.immediateWord, h, ofK_eq_ofLimbs]
   rfl
 
-theorem pow_val {s : St} {e : ℕ} {u : E} (h : MonoVal s ⟨0, e, []⟩ u) : u = ofK (g ^ e) := by
-  obtain ⟨w, hw, rfl⟩ := h
-  rw [show w = 1 from hw]; simp
-
 theorem ofK_gpow_ne_zero (e : ℕ) : ofK (g ^ e) ≠ 0 :=
   (map_ne_zero (algebraMap K E)).mpr (pow_ne_zero _ g_ne_zero)
-
-theorem Abs.zImp_sound {s : St} {A : Abs} (hH : Holds s A) {b x : ℕ} (h : A.zImp b x = true) {u w : E}
-    (hb : s.mem.get (s.fp + b) = some u) (hx : s.mem.get (s.fp + x) = some w) (hu : u = 0) : w = 0 := by
-  unfold Abs.zImp at h
-  rcases Bool.or_eq_true_iff.mp h with h | h
-  · obtain rfl := beq_iff_eq.mp h
-    obtain rfl := Option.some.inj (hb.symm.trans hx)
-    exact hu
-  · obtain ⟨⟨p, q, r⟩, hm, hc⟩ := List.any_eq_true.mp h
-    simp only [Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq] at hc
-    obtain ⟨vx, vy, h1, h2, h3⟩ := hH.pr _ hm
-    obtain ⟨rfl, hc⟩ := hc
-    obtain rfl := Option.some.inj (hb.symm.trans h3)
-    rcases hc with ⟨rfl, hq⟩ | ⟨rfl, hp⟩
-    · obtain ⟨u', hu', hne⟩ := hH.nzAt hq
-      obtain rfl := Option.some.inj (h2.symm.trans hu')
-      obtain rfl := Option.some.inj (h1.symm.trans hx)
-      exact (mul_eq_zero.mp hu).resolve_right hne
-    · obtain ⟨u', hu', hne⟩ := hH.nzAt hp
-      obtain rfl := Option.some.inj (h1.symm.trans hu')
-      obtain rfl := Option.some.inj (h2.symm.trans hx)
-      exact (mul_eq_zero.mp hu).resolve_left hne
-
-/-- A back-solved `MUL`'s divisor is nonzero after it. -/
-theorem ZNz.ne {s : St} {m' : Mem} {x c : ℕ} (hz : ZNz s x c) (hle : s.mem ≤ m') {vx vy : E}
-    (hx : m'.get (s.fp + x) = some vx) (hc : m'.get (s.fp + c) = some (vx * vy)) : vx ≠ 0 := by
-  obtain ⟨u, v, hu, hv, huv⟩ := hz
-  obtain rfl := Option.some.inj ((hle.get _ _ hu).symm.trans hx)
-  obtain rfl := Option.some.inj ((hle.get _ _ hv).symm.trans hc)
-  exact fun h0 ↦ huv h0 (by rw [h0, zero_mul])
 
 theorem ofBits_ne_zero_of {n : ℕ} (h0 : n ≠ 0) (hn : n < 2 ^ 64) : K.ofBits n ≠ 0 := fun h ↦ by
   have h' : K.ofBits n = K.ofBits 0 := h.trans (by decide +kernel)
@@ -90,49 +56,6 @@ theorem immNz_ne {k0 k1 : ℕ} (h : immNz k0 k1 = true) : OffsetInstruction.imme
   rcases h with ⟨a, b⟩ | ⟨a, b⟩
   · exact ofBits_ne_zero_of a b (by simpa using h0)
   · exact ofBits_ne_zero_of a b (by simpa using h1)
-
-/-- **A quotient's exponent**: `[u]` with `[c] = [k]·[u]` and `[c] = g^C`, under `k`'s exponent `j`, has
-exponent `C - j`. -/
-theorem Holds.quotC {s : St} {A : Abs} (hA : Holds s A) {k u c : ℕ} {vk vu : E}
-    (hk : s.mem.get (s.fp + k) = some vk) (hu : s.mem.get (s.fp + u) = some vu)
-    (hc : s.mem.get (s.fp + c) = some (vk * vu)) : Holds s (A.quotC k u c) := by
-  unfold Abs.quotC
-  split
-  · rename_i C b hv hb
-    split_ifs with hcb
-    · simp only [Bool.and_eq_true, decide_eq_true_eq] at hcb
-      obtain ⟨hC, hbC⟩ := hcb
-      unfold qMax at hC
-      obtain ⟨w, hw, hwv⟩ := hA.v c _ hv
-      rw [hc] at hw
-      cases hw
-      have hw' : vk * vu = ofK (g ^ C) := pow_val hwv
-      exact { hA with
-        c := fun q hq ↦ by
-          rcases List.mem_append.mp hq with hq | hq
-          · obtain ⟨j, hj, hq⟩ := List.mem_filterMap.mp hq
-            split_ifs at hq
-            cases hq
-            refine ⟨⟨vk, hk⟩, fun hix ↦ ?_⟩
-            obtain ⟨v, e, hv1, rfl, he, hje⟩ := hix
-            have hvk : vk = ofK (g ^ e) := Option.some.inj (hk.symm.trans hv1)
-            have hjb : j ≤ C := by have := List.mem_range.mp hj; omega
-            have hvu : vu = ofK (g ^ (C - j)) := by
-              refine mul_left_cancel₀ (ofK_gpow_ne_zero j) ?_
-              rw [← ofK_mul, ← pow_add, show j + (C - j) = C by omega, ← hw', hvk]
-              simp only [Nat.add_zero] at hje
-              rw [hje]
-            have hi0 : IdxVal s (.ex (.fr u) 0) (C - j) := ⟨vu, C - j, hu, hvu, by omega, rfl⟩
-            have hi1 : IdxVal s (.ex (.fr u) 1) (C - j + 1) := ⟨vu, C - j, hu, hvu, by omega, rfl⟩
-            refine ⟨fun _ h ↦ by simp at h, fun _ h ↦ by simp at h, fun _ h ↦ by simp at h, fun p hp ↦ ?_,
-              fun _ h ↦ by simp at h⟩
-            rcases List.mem_cons.mp hp with rfl | hp
-            · exact ⟨C - j, C - j + 1, hi0, rfl, by omega⟩
-            · rcases List.mem_singleton.mp hp with rfl
-              exact ⟨C - j, C - j + 1, rfl, hi1, by omega⟩
-          · exact hA.c q hq }
-    · exact hA
-  · exact hA
 
 end
 

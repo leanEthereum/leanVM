@@ -24,16 +24,9 @@ LONG = 20000
 def packs():
     """Each function's bundle pack, core pack and code length, by stable name."""
     out = {}
-    core = {}
-    for p in sorted(glob.glob(os.path.join(data.ROOT, 'Pack', '*', 'Core.lean'))):
-        for m in re.finditer(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', open(p, encoding='utf-8').read(), re.M):
-            core[m.group(1)] = p.split('/')[-2]
-    for p in sorted(glob.glob(os.path.join(data.ROOT, 'Pack', '*', 'Bundle.lean'))):
-        pk = p.split('/')[-2]
-        for blk in open(p, encoding='utf-8').read().split('\nnamespace LeanVM.Guest.Fn.')[1:]:
-            key = blk.split('\n', 1)[0].strip().strip('«»')
-            n = int(re.search(r'def code : CompiledFunction :=\s*⟨"[^"]*", \d+, (\d+),', blk).group(1))
-            out[key] = (pk, core.get(key, pk), n)
+    core = {k: pack for k, bs in data.core_blocks().items() for pack, mod, _ in bs if mod == 'Core'}
+    for key, (pk, blk) in data.bundle_blocks().items():
+        out[key] = (pk, core.get(key, pk), data.code_of(blk)[2])
     return out
 
 

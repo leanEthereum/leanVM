@@ -11,7 +11,11 @@ public import LeanVM.Guest.Mode.ResFam
 public import LeanVM.Guest.CoreMode.Fam.EfDefs
 public import LeanVM.Guest.Value.Bits
 public import LeanVM.Guest.CoreMode.Fam.ResSt
-public import LeanVM.Guest.CoreMode.Fam.ResVkSt
+public import LeanVM.Guest.CoreMode.Fam.ResVk
+public import LeanVM.Guest.CoreMode.Fam.Kid
+public import LeanVM.Guest.CoreMode.Fam.ResVtL
+public import LeanVM.Guest.CoreMode.Fam.ResCld
+public import LeanVM.Guest.CoreMode.Fam.SubDefs
 public import LeanVM.Guest.CoreMode.Fam.ResStB
 public import LeanVM.Guest.B1.VerifySub.Lanes
 public import LeanVM.Guest.B1.KeccakGkr.VkHolds
@@ -38,11 +42,6 @@ open LeanVM.Prover.Exec
 public section
 
 /-! ## The body's facts -/
-
-/-- The cells of the stream, the stack's log less `20` and the dims table, each named by an atom. -/
-theorem vs_cells : cellJ (fn_idx% «verify_sub») (.n 25) = 27 ∧ cellJ (fn_idx% «verify_sub») (.n 278) = 202 ∧
-    cellJ (fn_idx% «verify_sub») (.n 71) = 75 ∧ 202 < fsN (fn_idx% «verify_sub») := by
-  decide +kernel
 
 section
 

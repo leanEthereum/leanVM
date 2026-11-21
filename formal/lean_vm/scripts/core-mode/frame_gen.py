@@ -289,9 +289,8 @@ def fpowsDef(k):
     if FPOWS is None:
         import pows as PW
         G = PW.global_pows(); FPOWS = {}
-        for path in glob.glob(os.path.join(FD.ROOT, 'Pack', '*', 'Bundle*.lean')):
-            for m in PW.NS.finditer(open(path, encoding='utf-8').read()):
-                FPOWS.setdefault(m.group(1), set()).update(int(x) for x in PW.SET.findall(m.group(2)) if int(x) in G)
+        for key, (_, blk) in MG.bridge_data().bundle_blocks().items():
+            FPOWS.setdefault(key, set()).update(int(x) for x in PW.SET.findall(blk) if int(x) in G)
         FPOWS = {key: PW.tree(sorted((x, G[x]) for x in xs)) for key, xs in FPOWS.items()}
     return ('noncomputable def Fn.«%s».fpows : PowTree :=\n  %s\n'
             'theorem Fn.«%s».fpows_ok : fpows.OkW :=\n  PowTree.okW_of_okWB (by decide +kernel)\n' % (k, FPOWS.get(k, '.leaf'), k))
@@ -299,17 +298,13 @@ def fpowsDef(k):
 
 def chunk_lens(k):
     """The lengths of function `k`'s code chunks (`CompiledFunction.chunks`)."""
-    for path in glob.glob(os.path.join(FD.ROOT, 'Pack', '*', 'Bundle.lean')):
-        t = open(path, encoding='utf-8').read()
-        for head in ('\nnamespace LeanVM.Guest.Fn.«%s»\n' % k, '\nnamespace LeanVM.Guest.Fn.%s\n' % k):
-            i = t.find(head)
-            if i < 0: continue
-            blk = t[i:t.find('\nend LeanVM.Guest.Fn.', i)]
-            cm = re.search(r'def code : CompiledFunction :=\s*⟨"[^"]*", \d+, \d+, \[([^\]]*)\]⟩', blk)
-            ds = {m.group(1): m.group(2) for m in re.finditer(r'^def (c\d+) : List OffsetInstruction := \[\n(.*?)\]$', blk, re.S | re.M)}
-            # one instruction a line
-            return [ds[c.strip()].count('\n') + 1 for c in cm.group(1).split(',') if c.strip()]
-    raise SystemExit('frame_gen: no code of %s' % k)
+    BD = MG.bridge_data()
+    if k not in BD.bundle_blocks():
+        raise SystemExit('frame_gen: no code of %s' % k)
+    blk = BD.bundle_blocks()[k][1]
+    ds = {m.group(1): m.group(2) for m in re.finditer(r'^def (c\d+) : List OffsetInstruction := \[\n(.*?)\]$', blk, re.S | re.M)}
+    # one instruction a line
+    return [ds[c].count('\n') + 1 for c in BD.code_of(blk)[3]]
 
 
 def cut_of(clens, i):

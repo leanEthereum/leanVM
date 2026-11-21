@@ -209,22 +209,6 @@ section
 
 variable {A : String → FnAl} {K : Mode.Cert} {i : ℕ} {e : Bridge.Ent} {j : ℕ} {w : Wit}
 
-/-- The honest frame's instance, of function `j`. -/
-theorem TopAt.found (t : TopAt A r K i e j) : ∃ f bufs kids, e.I.t = .node f e.σ bufs kids ∧
-    coreProgram.find? f = some (coreOf j) ∧ (coreOf j).name = f := by
-  obtain ⟨f, bufs, kids, hn⟩ := t.node
-  obtain ⟨i', rfl, hi', hname, hfi, hc, -⟩ := fn_of_idx t.idx
-  rw [hn] at hfi hname
-  simp only [Tree.name] at hfi hname
-  exact ⟨f, bufs, kids, hn, by rw [hc]; exact hfi, by rw [hc]; exact hname⟩
-
-/-- A parameter's cell holds its word. -/
-theorem TopAt.param (t : TopAt A r K i e j) (hr : r.Ok) {p : V} (hp : p ∈ (coreOf j).params)
-    (hin : inFr j (cellJ j p) = true) : refMem r.img (e.I.fp + cellJ j p) = e.σ p := by
-  obtain ⟨vs, -, hF, -⟩ := t.events hr
-  simp only [inFr, Bool.and_eq_true, decide_eq_true_eq] at hin
-  exact t.cell hr hF (List.mem_append_left _ (List.mem_append_left _ hp)) hin.1 hin.2
-
 end
 
 section

@@ -21,95 +21,69 @@ from data import parse, as_list, head, defs
 
 OUT = os.path.join(data.ROOT, 'Bridge', 'Align')
 FUEL = 1 << 20
-HALT = (1 << 19) - 1
+HALT = data.HALT
 
 
-def stmt(e, env):
-    h, a = head(e)
-    if h == '.atom':
-        ah, aa = head(a[0])
-        return ('hint', data.core_hint(aa[0], env)) if ah == '.hint' else ('atom', ah[1:])
-    if h == '.ite':
-        return ('ite', data.val(a[0]), block(a[1], env), block(a[2], env))
-    if h == '.match_':
-        return ('match', data.val(a[0]), [block(x, env) for x in as_list(a[1], env)])
-    if h == '.call':
-        return ('call', a[0][1], data.vals(a[1], env), data.vals(a[2], env))
-    if h == '.callIf':
-        return ('callIf', data.val(a[0]), a[1][1], data.vals(a[2], env))
-    if h == '.dispatch':
-        return ('dispatch', data.val(a[0]), [x[1] for x in as_list(a[1], env)], data.vals(a[2], env),
-                data.vals(a[3], env))
-    if h == '.ret':
-        return ('ret', data.vals(a[0], env))
-    raise ValueError(h)
-
-
-def block(e, env):
-    return [stmt(x, env) for x in as_list(e, env)]
+def view(body):
+    """The shared parse (`data.core_body`) as the alignment reads it: an atom `('atom', kind)`, a hint
+    `('hint', core_hint)`, the rest as parsed."""
+    out = []
+    for s in body:
+        if s[0] == 'a':
+            out.append(('hint', s[1][1]) if s[1][0] == 'hint' else ('atom', s[1][0]))
+        elif s[0] == 'ite':
+            out.append(('ite', s[1], view(s[2]), view(s[3])))
+        elif s[0] == 'match':
+            out.append(('match', s[1], [view(x) for x in s[2]]))
+        else:
+            out.append(s)
+    return out
 
 
 def body_of(text):
-    ds = defs(text[text.index('namespace core'):])
-    cache = {}
-
-    def env(n):
-        if n not in cache:
-            cache[n] = parse(ds[n])
-        return cache[n]
-    return block(env('body'), env)
+    return view(data.core_body(text))
 
 
 def functions():
     """Each compiled function's name, entry, code with operands and plumbing, by stable name."""
     out = {}
-    for b in sorted(glob.glob(data.ROOT + '/Pack/*/Bundle.lean')):
-        t = open(b, encoding='utf-8').read()
-        for blk in t.split('\nnamespace LeanVM.Guest.Fn.')[1:]:
-            key = blk.split('\n', 1)[0].strip().strip('«»')
-            ds = defs(blk)
-            cache = {}
-
-            def env(n, ds=ds, cache=cache):
-                if n not in cache:
-                    cache[n] = parse(ds[n])
-                return cache[n]
-            cm = re.search(r'def code : CompiledFunction :=\s*⟨"([^"]*)", (\d+), (\d+), \[([^\]]*)\]⟩', blk)
-            chunks = [as_list(env(c.strip()), env) for c in cm.group(4).split(',') if c.strip()]
-            code = [head(x) for ch in chunks for x in ch]
-            stat, sites, arms, chains = {}, [], [], []
-            pl = re.search(r'noncomputable def plumb : B2C\.Plumb where\n(.*?)\n(?:/--|\Z)', blk, re.S)
-            if pl:
-                pt = pl.group(1)
-                st = re.search(r'^  stat := (.*)$', pt, re.M)
-                if st:
-                    for m in re.finditer(r'\((\d+), \(\.(k|fpg) (\d+)(?: (\d+))?\)\)', st.group(1)):
-                        stat[int(m.group(1))] = (m.group(2), int(m.group(3)), int(m.group(4) or 0))
-                si = re.search(r'^  sites := (.*)$', pt, re.M)
-                if si:
-                    for m in re.finditer(r'⟨\[([^\]]*)\], \[([^\]]*)\], (\d+), (\d+), (\d+)⟩', si.group(1)):
-                        nums = lambda s: [int(x) for x in s.split(',') if x.strip()]
-                        sites.append((nums(m.group(1)), nums(m.group(2)), int(m.group(3)), int(m.group(4)),
-                                      int(m.group(5))))
-                ar = re.search(r'^  arms := (.*)$', pt, re.M)
-                if ar:
-                    arms = [tuple(int(x) for x in m.groups()) for m in re.finditer(r'\((\d+), (\d+), (\d+)\)', ar.group(1))]
-                ch = re.search(r'^  chains := (.*)$', pt, re.M)
-                if ch:
-                    for m in re.finditer(r'\((\d+), (\d+), \[([^\]]*)\], (\d+), (\d+)\)', ch.group(1)):
-                        chains.append((int(m.group(1)), int(m.group(2)), [int(x) for x in m.group(3).split(',') if x.strip()],
-                                       int(m.group(4)), int(m.group(5))))
-            by_od = {}
-            for x, od, base in arms:
-                by_od[od] = (x, base)
-            for _, _, ts, y, b in chains:
-                for t in ts:
-                    by_od[t] = (y, b)
-            by_q = {}
-            for si in sites:
-                by_q[si[2]] = si
-            out[key] = dict(name=cm.group(1), entry=int(cm.group(2)), code=code, stat=stat, sites=by_q, arms=by_od,
-                            clens=[len(ch) for ch in chunks])
+    for key, (_, blk) in data.bundle_blocks().items():
+        name, entry, _, _ = data.code_of(blk)
+        chunks = data.chunks_of(blk)
+        code = [i for ch in chunks for i in ch]
+        stat, sites, arms, chains = {}, [], [], []
+        pl = re.search(r'noncomputable def plumb : B2C\.Plumb where\n(.*?)\n(?:/--|\Z)', blk, re.S)
+        if pl:
+            pt = pl.group(1)
+            st = re.search(r'^  stat := (.*)$', pt, re.M)
+            if st:
+                for m in re.finditer(r'\((\d+), \(\.(k|fpg) (\d+)(?: (\d+))?\)\)', st.group(1)):
+                    stat[int(m.group(1))] = (m.group(2), int(m.group(3)), int(m.group(4) or 0))
+            si = re.search(r'^  sites := (.*)$', pt, re.M)
+            if si:
+                for m in re.finditer(r'⟨\[([^\]]*)\], \[([^\]]*)\], (\d+), (\d+), (\d+)⟩', si.group(1)):
+                    nums = lambda s: [int(x) for x in s.split(',') if x.strip()]
+                    sites.append((nums(m.group(1)), nums(m.group(2)), int(m.group(3)), int(m.group(4)),
+                                  int(m.group(5))))
+            ar = re.search(r'^  arms := (.*)$', pt, re.M)
+            if ar:
+                arms = [tuple(int(x) for x in m.groups()) for m in re.finditer(r'\((\d+), (\d+), (\d+)\)', ar.group(1))]
+            ch = re.search(r'^  chains := (.*)$', pt, re.M)
+            if ch:
+                for m in re.finditer(r'\((\d+), (\d+), \[([^\]]*)\], (\d+), (\d+)\)', ch.group(1)):
+                    chains.append((int(m.group(1)), int(m.group(2)), [int(x) for x in m.group(3).split(',') if x.strip()],
+                                   int(m.group(4)), int(m.group(5))))
+        by_od = {}
+        for x, od, base in arms:
+            by_od[od] = (x, base)
+        for _, _, ts, y, b in chains:
+            for t in ts:
+                by_od[t] = (y, b)
+        by_q = {}
+        for si in sites:
+            by_q[si[2]] = si
+        out[key] = dict(name=name, entry=entry, code=code, stat=stat, sites=by_q, arms=by_od,
+                        clens=[len(ch) for ch in chunks])
     return out
 
 
@@ -363,7 +337,7 @@ def ctx_def(f):
     return cells, f'''/-- `{k}`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«{k}».cert.locs {cells} Fn.«{k}».code.entryPc {"true" if f["main"] else "false"}
-    Fn.«{k}».plumb Data.powTree Data.jtTrie {ents} {HALT} Fn.«{k}».code.instructionCount
+    Fn.«{k}».plumb Data.powTree Data.jtTrie {ents} CoreMode.haltPc Fn.«{k}».code.instructionCount
 '''
 
 
@@ -383,7 +357,7 @@ def ents_lit(f):
 
 
 def bases(f, pack):
-    return ['LeanVM.Guest.Bridge.AlignDefs', 'Statement.Data.AdviceHints', 'LeanVM.Guest.Data.Pows',
+    return ['LeanVM.Guest.Bridge.AlignDefs', 'Statement.Data.AdviceHints', 'LeanVM.Guest.Data.Pows', 'LeanVM.Guest.CoreMode.GlueG',
             f'LeanVM.Guest.Pack.«{pack}».Bundle',
             f'LeanVM.Guest.Pack.«{f["core_pack"]}».Core' if f['core_pack'] else data.core_module(f['key'])] + \
         [f'LeanVM.Guest.CoreMode.GlueE.«{q}»' for _, _, q in f['entk']]
@@ -396,9 +370,7 @@ def glue_a(k):
     """The glue module naming function `k`'s advice and index (`CoreMode/GlueA/<pack>.lean`, by the pack holding its
     core, as `scripts/core-mode/glue.py` writes it)."""
     if not HOME:
-        for p in sorted(glob.glob(os.path.join(data.ROOT, 'Pack', '*', 'Core*.lean'))):
-            for m in re.finditer(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', open(p, encoding='utf-8').read(), re.M):
-                HOME.setdefault(m.group(1), p.split(os.sep)[-2])
+        HOME.update((k, bs[0][0]) for k, bs in data.core_blocks().items())
     return f'LeanVM.Guest.CoreMode.GlueA.«{HOME[k]}»'
 
 
@@ -417,7 +389,7 @@ def ctx_line(f):
     cells = '[' + ', '.join(f'({v}, {c})' for v, c in f['extra']) + ']'
     ents = ents_lit(f)
     return cells, (f'noncomputable def Fn.«{k}».alignCtx : Bridge.AlignCtx := Bridge.AlignCtx.ofData cert.locs {cells} '
-                   f'code.entryPc {"true" if f["main"] else "false"} plumb Data.powTree Data.jtTrie {ents} {HALT} '
+                   f'code.entryPc {"true" if f["main"] else "false"} plumb Data.powTree Data.jtTrie {ents} CoreMode.haltPc '
                    f'code.instructionCount\n')
 
 
@@ -472,8 +444,7 @@ end
 
 def cell_wins(key, pack):
     """The certificate's cell lists of a function, by name, with their cells."""
-    t = open(os.path.join(data.ROOT, 'Pack', pack, 'Bundle.lean'), encoding='utf-8').read()
-    blk = t.split(f'\nnamespace LeanVM.Guest.Fn.«{key}»')[1]
+    blk = data.bundle_blocks()[key][1]
     text = blk + ''.join(open(p, encoding='utf-8').read()
                          for p in sorted(glob.glob(os.path.join(data.ROOT, 'Pack', key, 'Cells*.lean'))))
     ds = defs(text)
@@ -596,10 +567,8 @@ end
 
 def run(check):
     texts = data.core_texts()
-    core_pack = {}
-    for p in sorted(glob.glob(data.ROOT + '/Pack/P[0-9]*/Core.lean')):
-        for m in re.finditer(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', open(p, encoding='utf-8').read(), re.M):
-            core_pack[m.group(1)] = p.split('/')[-2]
+    own = data.own_packs()
+    core_pack = {k: bs[0][0] for k, bs in data.core_blocks().items() if bs[0][0] not in own and bs[0][1] == 'Core'}
     bundles = data.bundles()
     advice = data.advice()
     fns = functions()

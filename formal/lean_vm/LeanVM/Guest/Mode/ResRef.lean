@@ -181,13 +181,6 @@ theorem ref_mul {prog : LeanIsaProgram} {adv : Advice} {κ n : ℕ} {img : Memor
   rw [((refRd_img hκ img).at hs.fp ha hA).2, ((refRd_img hκ img).at hs.fp hb hB).2,
     ((refRd_img hκ img).at hs.fp hc hC').2]
 
-/-- A residual sits at a `MUL` as its divisor, if nonzero. -/
-def nzAt (ins : Option OffsetInstruction) : Res → Bool
-  | .nz o => match ins with
-    | some (.mul _ b _) => b == o
-    | _ => false
-  | _ => true
-
 end
 
 end LeanVM.Guest.Mode

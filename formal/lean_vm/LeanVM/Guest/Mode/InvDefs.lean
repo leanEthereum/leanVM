@@ -7,7 +7,7 @@ public import LeanVM.Prover.ExecuteComplete
 # The invariant's parts
 
 The executor's stack, read from the frame headers, for any frame predicate `Q K i s` (function `K`'s
-frame `s.fp` at offset `i`: the mode walk's `AtOff`, or the core route's) and any contracts `Ct` (by
+frame `s.fp` at offset `i`: the core route's `CoreAt`) and any contracts `Ct` (by
 entry pc: what a caller establishes at a function's entry, `PreAt`, and what it guarantees at its
 return, `PostAt`; `none`, the mode signature's entry facts and `RetAll`). An activation (`Act`) is a
 function's certificate with its frames: the top one, and below it a loop's earlier iterations (`Iter`:
@@ -148,8 +148,6 @@ def StartMain (Km : Cert) (E0 : Env) (s : St) : Prop :=
 structure CodeOk (C : Ctx) (K : Cert) : Prop where
   ops : ∀ i (hi : i < K.code.length), C.ops[K.F.entry + i]? = some (opOfOff K.code[i])
 
-theorem CertOk.code {C : Ctx} {K : Cert} (h : CertOk C K) : CodeOk C K := ⟨h.ops⟩
-
 /-- **The certificates**: each one's code the executor's, their entries distinct, the signatures each
 names its callee's, their program the same, `main` never returning or called. -/
 structure ProgOk (prog : LeanIsaProgram) (C : Ctx) (Ks : List Cert) (Km : Cert) (E0 : Env) :
@@ -170,16 +168,6 @@ structure ProgOk (prog : LeanIsaProgram) (C : Ctx) (Ks : List Cert) (Km : Cert) 
   mainTerm : Km.F.sig.term = []
 
 /-! ## Facts read off the memory and the frame -/
-
-theorem Cov.mono {s s' : St} (hle : s.mem ≤ s'.mem) (hfp : s'.fp = s.fp) {P : Pend} {j : ℕ}
-    (h : Cov s P j) : Cov s' P j :=
-  let ⟨G, hG, hj, B, hB, hH⟩ := h
-  ⟨G, hG, hj, B, hB, hH.mono hle hfp⟩
-
-theorem AtOff.mono {E : Env} {F : Fun} {code : List OffsetInstruction} {i : ℕ} {s s' : St}
-    (hle : s.mem ≤ s'.mem) (hfp : s'.fp = s.fp) (h : AtOff E F code i s) : AtOff E F code i s' := by
-  obtain ⟨cur, pend, h0, hh⟩ := h
-  exact ⟨cur, pend, h0, hh.imp (fun ⟨A, hA, hH⟩ ↦ ⟨A, hA, hH.mono hle hfp⟩) (Cov.mono hle hfp)⟩
 
 theorem LTF.mem {m m' : Mem} (hle : m ≤ m') {fp : ℕ} {a b : Idx} (h : LTF (stOf m fp) a b) :
     LTF (stOf m' fp) a b :=

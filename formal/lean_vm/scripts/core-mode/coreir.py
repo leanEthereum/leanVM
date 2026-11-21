@@ -24,95 +24,10 @@ def _by_path(name, rel):
     return m
 
 
-BD = _by_path('bridge_data', 'bridge-cert/data.py')
+# the bridge's data module, one instance a process (`compiled.bridge_data`)
+BD = sys.modules.get('bridge_data') or sys.modules.setdefault('bridge_data', _by_path('bridge_data', 'bridge-cert/data.py'))
 CACHE = os.environ.get('CORE_MODE_CACHE', os.path.join(HERE, '..', '..', '.lake', 'core-mode-cache.pkl'))
 sys.setrecursionlimit(1000000)
-
-
-def _val(e):
-    return BD.val(e)
-
-
-def _vals(e, env):
-    return [BD.val(x) for x in BD.as_list(e, env)]
-
-
-def _bool(e):
-    return e == ('id', 'true')
-
-
-def _word(e):
-    h, a = BD.head(e)
-    assert h == 'word', e
-    return (a[0], a[1])
-
-
-def atom(e, env):
-    h, a = BD.head(e)
-    k = h[1:]
-    if k == 'const':
-        return ('const', _val(a[0]), _word(a[1]))
-    if k in ('add', 'mul'):
-        return (k, _val(a[0]), _val(a[1]), _val(a[2]))
-    if k == 'copy':
-        return ('copy', _val(a[0]), _val(a[1]))
-    if k == 'load':
-        return ('load', _val(a[0]), _val(a[1]), a[2])
-    if k == 'assertEq':
-        return ('assertEq', _val(a[0]), _val(a[1]))
-    if k == 'assertNe':
-        return ('assertNe', _val(a[0]), _val(a[1]), _val(a[2]))
-    if k == 'rangeCheck':
-        return ('rangeCheck',) + tuple(_val(x) for x in a[:5])
-    if k == 'assertInK':
-        return ('assertInK', _val(a[0]), _val(a[1]))
-    if k == 'keccak':
-        return ('keccak', _vals(a[0], env), _vals(a[1], env), _bool(a[2]), _bool(a[3]))
-    if k == 'frameAddr':
-        return ('frameAddr', _val(a[0]), _vals(a[1], env))
-    if k == 'hint':
-        return ('hint', BD.core_hint(a[0], env))
-    if k == 'touch':
-        return ('touch', _val(a[0]), _val(a[1]))
-    raise ValueError(k)
-
-
-def stmt(e, env):
-    h, a = BD.head(e)
-    if h == '.atom':
-        return ('a', atom(a[0], env))
-    if h == '.ite':
-        return ('ite', _val(a[0]), block(a[1], env), block(a[2], env))
-    if h == '.match_':
-        return ('match', _val(a[0]), [block(x, env) for x in BD.as_list(a[1], env)])
-    if h == '.call':
-        return ('call', a[0][1], _vals(a[1], env), _vals(a[2], env))
-    if h == '.callIf':
-        return ('callIf', _val(a[0]), a[1][1], _vals(a[2], env))
-    if h == '.dispatch':
-        return ('dispatch', _val(a[0]), [s[1] for s in BD.as_list(a[1], env)], _vals(a[2], env), _vals(a[3], env))
-    if h == '.ret':
-        return ('ret', _vals(a[0], env))
-    raise ValueError(h)
-
-
-def block(e, env):
-    return [stmt(x, env) for x in BD.as_list(e, env)]
-
-
-def _fn(text):
-    i = text.index('namespace core')
-    ds = BD.defs(text[i:])
-    cache = {}
-
-    def env(n):
-        if n not in cache:
-            cache[n] = BD.parse(ds[n])
-        return cache[n]
-    pm = re.search(r'params := (.*)', text)
-    params = _vals(BD.parse(pm.group(1)), env)
-    nm = re.search(r'name := "([^"]*)"', text).group(1)
-    return params, block(env('body'), env), nm
 
 
 def _mode_data():
@@ -144,7 +59,7 @@ def load():
     texts = BD.core_texts()
     fns, names = {}, {}
     for k, t in texts.items():
-        params, body, nm = _fn(t)
+        params, body, nm = BD.core_fn(t)
         fns[k] = (params, body)
         names[nm] = k
     md = _mode_data()

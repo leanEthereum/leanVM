@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.CoreMode.Fam.SubVt
 
-  `verify_tables`' `sub` residuals' families of the old route (`Mode.Res`): its table sumcheck's reads, its reads past
-  its last record's cursor, its groups' bases.
+  `verify_tables`' `sub` residuals' families of the old route (`Mode.Res`): its reads past its table sumcheck's last
+  record's cursor, its groups' bases.
 -/
 
 module
@@ -16,16 +16,7 @@ open LeanVM.Guest.B2C (cellJ fsN)
 
 @[expose] public section
 
-/-! ## `verify_tables`' table sumcheck -/
-
-/-- **`verify_tables`' table sumcheck's reads** at function `j`: the rounds loop's reads of the stream
-`[[1]·g^22]` past its record's cursor (cell `17`) and past `sumcheck_round4`'s (`[[19]·g^3]`), below
-three words. -/
-noncomputable def vtB (j : ℕ) : Mode.Res → Bool
-  | .sub a bs => ((coreOf j).name == name% «verify_tables_loop0» && decide (a.q.k < 3) &&
-        (decide (Mode.Res.sub a bs = stResB (.fr 17) (.hp 1 22) a.q.k) ||
-          decide (Mode.Res.sub a bs = stResB (.hp 19 3) (.hp 1 22) a.q.k)))
-  | _ => false
+/-! ## `verify_tables`' reads past its table sumcheck -/
 
 /-- **`verify_tables`' reads past its table sumcheck's last record's cursor** (cell `2880`) inside its
 stream (`[22]`), below `153` words. -/

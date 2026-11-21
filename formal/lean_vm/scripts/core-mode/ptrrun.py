@@ -1,4 +1,4 @@
-"""Pointer runs for the core inference (`infer.py`, feature `pfr`): milestone 4's pointer tables filled in loops.
+"""Pointer runs for the core inference (`infer.py`, feature `pfr`): pointer tables filled in loops.
 
 `ptr`'s pointer facts (`preP`/`postP`: the word at a cell is a pointer whose given cells past it are written) as runs:
 `(⟨Q, S, lo, hi⟩, offs)`, every cell `Q·g^(S·j)`, `lo ≤ j < hi`, holds a pointer `p_j` with `p_j·g^o` written for
