@@ -5,6 +5,9 @@ on:
     branches: [ "main" ]
   pull_request:
   workflow_dispatch:
+  # Nightly, lean_vm's kernel check of every module, the record of what passed set aside (`--all`).
+  schedule:
+    - cron: "0 3 * * *"
 
 permissions:
   contents: read
@@ -72,6 +75,13 @@ jobs:
       - name: Build
         working-directory: formal/Statement
         run: python3 -I ../lake-build.py .
+      # Every module replayed by the kernel from its `.olean`: a declaration added without it
+      # (`debug.skipKernelTC`, meta code), which `#print axioms` cannot see, fails. A module unchanged
+      # since it passed (`.lake/kernel-check.tsv`, saved with the build) is skipped. Each job checks its
+      # own project's modules.
+      - name: Check every module again with the kernel (kernel-check)
+        working-directory: formal/Statement
+        run: python3 -I ../tools/kernel-check.py .
       - name: Save the Lake build
         if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
@@ -96,6 +106,9 @@ jobs:
         run: |
           lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
           ! grep -E '^warning: Common.*has been deprecated' "$RUNNER_TEMP/build.log"
+      - name: Check every module again with the kernel (kernel-check)
+        working-directory: formal/common
+        run: python3 -I ../tools/kernel-check.py .
       - name: Check the axiom footprint
         working-directory: formal/common
         run: |
@@ -130,6 +143,9 @@ jobs:
         run: |
           lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
           ! grep -E '^warning: (LeanXmss|XmssSecurity).*has been deprecated' "$RUNNER_TEMP/build.log"
+      - name: Check every module again with the kernel (kernel-check)
+        working-directory: formal/lean_xmss
+        run: python3 -I ../tools/kernel-check.py .
       # The root module guards its own footprint with `#guard_msgs`, which an
       # edit to the expected message would silence. This asks again from
       # outside, against the list written here.
@@ -185,6 +201,9 @@ jobs:
           python3 -I ../lake-build.py . 2>&1 | tee "$RUNNER_TEMP/build.log"
       - name: Forbid deprecated API
         run: "! grep -E '^warning: (Sphincs|FORS)/.*has been deprecated' \"$RUNNER_TEMP/build.log\""
+      - name: Check every module again with the kernel (kernel-check)
+        working-directory: formal/lean_sphincs
+        run: python3 -I ../tools/kernel-check.py .
       - name: Check the axiom footprint
         working-directory: formal/lean_sphincs
         run: |
@@ -241,6 +260,9 @@ jobs:
         run: |
           lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
           ! grep -E '^warning: (LeanDa|PqDas).*has been deprecated' "$RUNNER_TEMP/build.log"
+      - name: Check every module again with the kernel (kernel-check)
+        working-directory: formal/lean_da
+        run: python3 -I ../tools/kernel-check.py .
       # LeanDA's security is Benedikt Wagner's framework, theorems and proofs
       # (b-wagn/fv-pq-da), ported and instantiated with LeanDA.
       - name: Check the axiom footprint
@@ -282,7 +304,7 @@ jobs:
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
-          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]] || ! git fetch --quiet --depth=1 origin "$BASE"; then
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch || "$GITHUB_EVENT_NAME" == schedule ]] || ! git fetch --quiet --depth=1 origin "$BASE"; then
             echo changed=true >> "$GITHUB_OUTPUT"
           # `LeanVM.lean` proves `Statement.Theorems` with the other projects' end theorems, so it
           # builds all of them.
@@ -297,13 +319,16 @@ jobs:
     needs: lean-vm-changes
     if: needs.lean-vm-changes.outputs.changed == 'true'
     runs-on: ubuntu-latest
-    # A build from a cold cache is several CPU-hours of kernel checks, on the runner's cores.
+    # A build from a cold cache is several CPU-hours of kernel checks, on the runner's cores; the kernel
+    # check, last, stops at a deadline before the timeout.
     timeout-minutes: 360
     defaults:
       run:
         working-directory: formal/lean_vm
     steps:
       - uses: actions/checkout@v4
+      - name: Note when the job started
+        run: echo "JOB_START=$(date +%s)" >> "$GITHUB_ENV"
       # As for sphincs: only `main` saves, without Mathlib's build, which `lake exe cache get` fetches.
       - name: Restore the Lake build
         id: lake-cache
@@ -462,3 +487,45 @@ jobs:
           .lake/build/bin/leanvm-execute "$RUNNER_TEMP"/prover-cases/*/
           python3 -I scripts/prover-diff.py "$RUNNER_TEMP/prover-cases" --mutations 40 --jobs 4 \
             --identical --expected tests/fixtures/verifier
+      # The record of the modules that passed the kernel check (`.lake/kernel-check.tsv`), the latest
+      # this branch or `main` saved: an entry holds only for the build it was written for.
+      - name: Restore the kernel check's record
+        uses: actions/cache/restore@v4
+        with:
+          path: formal/lean_vm/.lake/kernel-check.tsv
+          key: kernel-check-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: kernel-check-${{ runner.os }}-
+      # Every module replayed by the kernel from its `.olean`, the executables' included: a declaration
+      # added without it (`debug.skipKernelTC`, meta code), which `#print axioms` cannot see, fails. A
+      # module unchanged since it passed is skipped, so a pull request checks what it rebuilds, which
+      # costs about its build's CPU time again. Last, within a deadline before the job's timeout: if
+      # modules are left unchecked (a cold cache, a pull request that rebuilds most of lean_vm), the
+      # step fails, and what passed is saved, with a pull request's build, so a rerun only checks the rest.
+      - name: Check every module again with the kernel (kernel-check)
+        id: kernel-check
+        run: |
+          status=0
+          python3 -I ../tools/kernel-check.py . --deadline $((JOB_START + 335 * 60)) \
+            ${{ github.event_name == 'schedule' && '--all' || '' }} || status=$?
+          if [ "$status" -eq 2 ]; then echo unchecked=true >> "$GITHUB_OUTPUT"; fi
+          exit "$status"
+      - name: Save the kernel check's record
+        if: always() && hashFiles('formal/lean_vm/.lake/kernel-check.tsv') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: formal/lean_vm/.lake/kernel-check.tsv
+          key: kernel-check-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+      # `main` saved its build above.
+      - name: Save the Lake build of a pull request left unchecked
+        if: always() && steps.kernel-check.outputs.unchecked == 'true' && github.ref != 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            formal/lean_vm/.lake
+            !formal/lean_vm/.lake/packages/mathlib/.lake
+            formal/common/.lake/build
+            formal/Statement/.lake/build
+            formal/lean_xmss/.lake/build
+            formal/lean_sphincs/.lake/build
+            formal/lean_da/.lake/build
+          key: ${{ steps.lake-cache.outputs.cache-primary-key }}
