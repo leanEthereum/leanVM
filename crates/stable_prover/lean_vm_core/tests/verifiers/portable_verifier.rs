@@ -51,19 +51,17 @@ fn tampers_fail_their_check() {
     // for it, a degree-3 one sending two scalars.
     let nonce = |numerator: u128| usize::from(grinding_bits(numerator) > 0);
     let round = 2 + nonce(2);
-    // The reduction's stream: a grind and the committed outputs' claim, then each layer opening on its product
-    // polynomial and ending on three evaluations and the grind before beta. The output opening follows (a slot
-    // sumcheck, then the word), then the input opening (a sumcheck over a pack's instances, one over the slot, then the
-    // slices).
-    const SEGMENT_AND_LANE_BITS: u128 = 1 + 5; // two segments, 25 lanes
+    // The reduction's stream: a grind, then each layer opening on its product polynomial and ending on three
+    // evaluations and the grind before beta, then the input opening (a sumcheck over a pack's instances, one over the
+    // slot, then the slices). One segment commits no output, so there is no output claim or opening.
+    const LANE_BITS: u128 = 5; // 25 lanes
     const PRODUCT_COEFFICIENTS: usize = 47; // a product of two degree-23 embeddings
     const PACK_BITS: usize = 4; // sixteen instances a pack
-    const SLOT_BITS: usize = 6; // 25 lanes of the 2 segments' states
+    const SLOT_BITS: usize = 5; // the input state's 25 lanes
     const SLICES: usize = 64;
     let keccak = fixture.summary.keccak_scalars.clone();
     let input_opening = round * (PACK_BITS + SLOT_BITS) + SLICES;
-    let output_opening = round * SLOT_BITS + 1;
-    let last_layer = keccak.end - input_opening - output_opening - nonce(2);
+    let last_layer = keccak.end - input_opening - nonce(2);
     // The WHIR opening ends the stream. Its final level, after its `k` rounds of four scalars and a nonce: the
     // `2^mu + k` coefficients of the folded lane, the query nonce, then the tail rounds. The level before ends on its
     // high part, the OOD nonce, the OOD value and the query nonce.
@@ -107,11 +105,10 @@ fn tampers_fail_their_check() {
         (end - tail - 1, VerifierError::GrindingNonce),
         (end - nonce(2) - 1, VerifierError::WhirTerminal),
         (
-            keccak.start + nonce(SEGMENT_AND_LANE_BITS) + PRODUCT_COEFFICIENTS,
+            keccak.start + nonce(LANE_BITS) + PRODUCT_COEFFICIENTS - 1,
             VerifierError::KeccakProduct,
         ),
         (last_layer - 1, VerifierError::KeccakLayer),
-        (keccak.end - input_opening - 1, VerifierError::KeccakOutputOpening),
         (keccak.end - 1, VerifierError::KeccakInputOpening),
     ];
     for (position, error) in cases {

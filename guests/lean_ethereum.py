@@ -2844,17 +2844,17 @@ def slice_weight(slices, top, top1, z: Const):
     return w
 
 
-def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, y_g, step_g, rem_g, claim, out, iota, tabs, first: Const):
+def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, y_g, step_g, rem_g, claim, out, iota, tabs, first: Const, pending: Const):
     # One layer (verifier::keccak::verify_layer): the claim on the states after
     # a round becomes one on the states before it. A claim's position weights are
     # never written out: they are the transpose of the linear layer applied to a
     # lane table times the eq table of six slice coordinates, which is all the
     # record keeps, and what `keccak_form` evaluates them from.
-    # The first layer starts with the committed outputs' value waiting in the sponge, its
-    # two rate cells p0 and p1.
+    # The first layer weighs its claim's lanes as words (`first`), and with a committed output it starts with that
+    # value waiting in the sponge, its two rate cells p0 and p1 (`pending`).
     sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
     rate = StackBuf(8)
-    if first == 1:
+    if pending == 1:
         rate[0] = p0
         rate[1] = p1
     # Each product coefficient's reader, a straight line of sums over the instance weights.
@@ -2866,21 +2866,21 @@ def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, y_g, step_g, rem_g, cl
     # The product polynomial carries the claim.
     product = StackBuf(KECCAK_PROD_BITS)
     projected = 0
-    for pos in unroll(first, first + KECCAK_PROD_BITS):
-        # fs_next, the word read straight into its cell, k = pos - first.
-        product[pos - first] = cursor[GEN ** (pos - first)]
-        coefficient = product[pos - first]
+    for pos in unroll(pending, pending + KECCAK_PROD_BITS):
+        # fs_next, the word read straight into its cell, k = pos - pending.
+        product[pos - pending] = cursor[GEN ** (pos - pending)]
+        coefficient = product[pos - pending]
         if pos % 4 == 0:
             if pos != 0:
                 sp = fs_perm(sp, rate, 4)
                 rate = StackBuf(8)
         fs_pack(rate, pos % 4, coefficient, DS_OBSERVE)
-        projected += readers[KECCAK_PROJ_OUT[pos - first]] * coefficient
+        projected += readers[KECCAK_PROJ_OUT[pos - pending]] * coefficient
     cursor = cursor * GEN ** KECCAK_PROD_BITS
     assert projected + iota * claim[GEN ** KC_KAPPA] == claim[GEN ** KC_VALUE]
     # At a random point a pack is one field element, after a grind: the polynomial has
     # degree KECCAK_PROD_BITS - 1.
-    sp, s, cursor = fs_grind_squeeze(sp, rate, (first + KECCAK_PROD_BITS + 3) % 4 + 1, cursor, tabs, KECCAK_S_GRIND_BITS)
+    sp, s, cursor = fs_grind_squeeze(sp, rate, (pending + KECCAK_PROD_BITS + 3) % 4 + 1, cursor, tabs, KECCAK_S_GRIND_BITS)
     # mu[i] = emb_i(s), each embedding a product of small irreducible factors.
     s_powers = StackBuf(KECCAK_FAC_DEG)
     s_powers[0] = 1
@@ -3057,13 +3057,17 @@ def keccak_slot_lanes(slot, segment_point, out, first: Const, count: Const):
     # first `count` segments.
     slot_weights = StackBuf(2 ** (QKECCAK_SLOT_LOG + 1) - 2)
     eqtree_frame(slot, slot_weights, QKECCAK_SLOT_LOG, KECCAK_LANES * KECCAK_SEGMENTS)
-    seg_weights = StackBuf(2 ** (KECCAK_SEG_LOG + 1) - 2)
-    eqtree_frame(segment_point, seg_weights, KECCAK_SEG_LOG, 2 ** KECCAK_SEG_LOG)
-    for lane in unroll(0, KECCAK_LANES):
-        lane_acc = 0
-        for m in unroll(0, count):
-            lane_acc += seg_weights[2 ** KECCAK_SEG_LOG - 2 + m] * slot_weights[2 ** QKECCAK_SLOT_LOG - 2 + KECCAK_LANES * (first + m) + lane]
-        out[lane] = lane_acc
+    if const(KECCAK_SEG_LOG == 0):
+        for lane in unroll(0, KECCAK_LANES):
+            out[lane] = slot_weights[2 ** QKECCAK_SLOT_LOG - 2 + KECCAK_LANES * first + lane]
+    else:
+        seg_weights = StackBuf(2 ** (KECCAK_SEG_LOG + 1) - 2)
+        eqtree_frame(segment_point, seg_weights, KECCAK_SEG_LOG, 2 ** KECCAK_SEG_LOG)
+        for lane in unroll(0, KECCAK_LANES):
+            lane_acc = 0
+            for m in unroll(0, count):
+                lane_acc += seg_weights[2 ** KECCAK_SEG_LOG - 2 + m] * slot_weights[2 ** QKECCAK_SLOT_LOG - 2 + KECCAK_LANES * (first + m) + lane]
+            out[lane] = lane_acc
     return
 
 
@@ -3110,17 +3114,26 @@ def verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_g, chi, output_lanes, z_v
     # multilinear in them.
     segment = point * pack_g
     sp, r, cursor = fs_grind_squeeze(sp, no_rate, 0, cursor, tabs, KECCAK_SEG_GRIND_BITS)
-    segment[GEN ** 0] = r
-    for i in unroll(1, KECCAK_SEG_LOG):
-        sp, r = squeeze(sp, no_rate, 0)
-        segment[GEN ** i] = r
     r_lane = HeapBuf(KECCAK_LANE_BITS)
-    for i in unroll(0, KECCAK_LANE_BITS):
-        sp, r = squeeze(sp, no_rate, 0)
-        r_lane[GEN ** i] = r
-    # The committed outputs' value waits in the sponge until the first layer's words.
+    if const(KECCAK_SEG_LOG == 0):
+        r_lane[GEN ** 0] = r
+        for i in unroll(1, KECCAK_LANE_BITS):
+            sp, r = squeeze(sp, no_rate, 0)
+            r_lane[GEN ** i] = r
+    else:
+        segment[GEN ** 0] = r
+        for i in unroll(1, KECCAK_SEG_LOG):
+            sp, r = squeeze(sp, no_rate, 0)
+            segment[GEN ** i] = r
+        for i in unroll(0, KECCAK_LANE_BITS):
+            sp, r = squeeze(sp, no_rate, 0)
+            r_lane[GEN ** i] = r
+    # The committed outputs' value waits in the sponge until the first layer's words. A single segment commits no
+    # output, so its claim is the table's alone.
     value_rate = StackBuf(8)
-    value, cursor = fs_next(value_rate, 0, cursor)
+    value = 0
+    if const(KECCAK_SEGMENTS != 1):
+        value, cursor = fs_next(value_rate, 0, cursor)
     fs0 = sp[8]
     fs1 = sp[9]
     fs2 = sp[10]
@@ -3141,19 +3154,23 @@ def verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_g, chi, output_lanes, z_v
     first_lanes = lane_tree * GEN ** (2 ** KECCAK_LANE_BITS - 2)
     claims[GEN ** KC_LANES] = first_lanes
     # `value` is the committed outputs' part; the last segment's is the table's.
-    segment_tree = HeapBuf(2 ** (KECCAK_SEG_LOG + 1) - 2)
-    eqtree(segment, segment_tree, KECCAK_SEG_LOG)
     output = 0
     for lane in unroll(0, KECCAK_LANES):
         output += first_lanes[GEN ** lane] * output_lanes[GEN ** lane]
-    claims[GEN ** KC_VALUE] = value + segment_tree[GEN ** (2 ** KECCAK_SEG_LOG - 2 + KECCAK_SEGMENTS - 1)] * output
+    if const(KECCAK_SEG_LOG == 0):
+        claims[GEN ** KC_VALUE] = output
+    else:
+        segment_tree = HeapBuf(2 ** (KECCAK_SEG_LOG + 1) - 2)
+        eqtree(segment, segment_tree, KECCAK_SEG_LOG)
+        claims[GEN ** KC_VALUE] = value + segment_tree[GEN ** (2 ** KECCAK_SEG_LOG - 2 + KECCAK_SEGMENTS - 1)] * output
 
     for step in unroll(0, KECCAK_DEPTH):
         claim = claims * GEN ** (step * KC_SIZE)
         # iota flips known positions of lane 0, per segment a different round's.
         claim_point = claim[GEN ** KC_POINT]
-        segment_tree = StackBuf(2 ** (KECCAK_SEG_LOG + 1) - 2)
-        eqtree_frame(claim_point * pack_g, segment_tree, KECCAK_SEG_LOG, 2 ** KECCAK_SEG_LOG)
+        if const(KECCAK_SEG_LOG != 0):
+            segment_tree = StackBuf(2 ** (KECCAK_SEG_LOG + 1) - 2)
+            eqtree_frame(claim_point * pack_g, segment_tree, KECCAK_SEG_LOG, 2 ** KECCAK_SEG_LOG)
         # The claim's weights where iota can flip, slice 2^i - 1 of lane 0, for the
         # i this step's round constants set: the first claim's are a word's,
         # x^(2^i - 1) on lane 0; a later claim's come from its lane and slice
@@ -3175,32 +3192,43 @@ def verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_g, chi, output_lanes, z_v
             flipped = 0
             for t in unroll(KECCAK_IOTA_START[KECCAK_SEGMENTS * step + m], KECCAK_IOTA_START[KECCAK_SEGMENTS * step + m + 1]):
                 flipped += flips[KECCAK_IOTA_IDX[t]]
-            iota += segment_tree[2 ** KECCAK_SEG_LOG - 2 + m] * flipped
-        if step == 0:
-            fs0, fs1, fs2, fs3, fs4, cursor = keccak_layer(fs0, fs1, fs2, fs3, fs4, value_rate[0], value_rate[1], cursor, y_g, step_g, rem_g, claim, claim * GEN ** KC_SIZE, iota, tabs, 1)
+            if const(KECCAK_SEG_LOG == 0):
+                iota += flipped
+            else:
+                iota += segment_tree[2 ** KECCAK_SEG_LOG - 2 + m] * flipped
+        if const(step == 0):
+            if const(KECCAK_SEGMENTS != 1):
+                fs0, fs1, fs2, fs3, fs4, cursor = keccak_layer(fs0, fs1, fs2, fs3, fs4, value_rate[0], value_rate[1], cursor, y_g, step_g, rem_g, claim, claim * GEN ** KC_SIZE, iota, tabs, 1, 1)
+            else:
+                fs0, fs1, fs2, fs3, fs4, cursor = keccak_layer(fs0, fs1, fs2, fs3, fs4, 0, 0, cursor, y_g, step_g, rem_g, claim, claim * GEN ** KC_SIZE, iota, tabs, 1, 0)
         else:
-            fs0, fs1, fs2, fs3, fs4, cursor = keccak_layer(fs0, fs1, fs2, fs3, fs4, 0, 0, cursor, y_g, step_g, rem_g, claim, claim * GEN ** KC_SIZE, iota, tabs, 0)
+            fs0, fs1, fs2, fs3, fs4, cursor = keccak_layer(fs0, fs1, fs2, fs3, fs4, 0, 0, cursor, y_g, step_g, rem_g, claim, claim * GEN ** KC_SIZE, iota, tabs, 0, 0)
 
     # ---- the outputs, whose instance weights are an eq already ----
     # Their position weights are a word's, so the 64 slices are only needed as
     # the word they add up to: q_keccak itself at the point.
-    out_slot = out_point * tau_g
-    fs0, fs1, fs2, fs3, fs4, cursor, out_value = keccak_plain_rounds(fs0, fs1, fs2, fs3, fs4, 0, 0, cursor, value, out_slot, tabs, QKECCAK_SLOT_LOG, 0)
     word_rate = StackBuf(8)
-    word, cursor = fs_next(word_rate, 0, cursor)
-    out_lanes = StackBuf(KECCAK_LANES)
-    keccak_slot_lanes(out_slot, point * pack_g, out_lanes, 1, KECCAK_SEGMENTS - 1)
-    lanes_sum = 0
-    for lane in unroll(0, KECCAK_LANES):
-        lanes_sum += out_lanes[lane] * first_lanes[GEN ** lane]
-    assert lanes_sum * word == out_value
-    out_pack = out_point * GEN ** KECCAK_PACK_LOG
-    for xt in mul_range(1, pack_g):
-        out_pack[xt] = point[xt]
+    word = 0
+    if const(KECCAK_SEGMENTS != 1):
+        out_slot = out_point * tau_g
+        fs0, fs1, fs2, fs3, fs4, cursor, out_value = keccak_plain_rounds(fs0, fs1, fs2, fs3, fs4, 0, 0, cursor, value, out_slot, tabs, QKECCAK_SLOT_LOG, 0)
+        word, cursor = fs_next(word_rate, 0, cursor)
+        out_lanes = StackBuf(KECCAK_LANES)
+        keccak_slot_lanes(out_slot, point * pack_g, out_lanes, 1, KECCAK_SEGMENTS - 1)
+        lanes_sum = 0
+        for lane in unroll(0, KECCAK_LANES):
+            lanes_sum += out_lanes[lane] * first_lanes[GEN ** lane]
+        assert lanes_sum * word == out_value
+        out_pack = out_point * GEN ** KECCAK_PACK_LOG
+        for xt in mul_range(1, pack_g):
+            out_pack[xt] = point[xt]
 
     # ---- the inputs: the instances of a pack first, then the slot ----
     last = claims * GEN ** (KECCAK_DEPTH * KC_SIZE)
-    fs0, fs1, fs2, fs3, fs4, cursor, low_value = keccak_plain_rounds(fs0, fs1, fs2, fs3, fs4, word_rate[0], word_rate[1], cursor, last[GEN ** KC_VALUE], in_point, tabs, KECCAK_PACK_LOG, 1)
+    if const(KECCAK_SEGMENTS != 1):
+        fs0, fs1, fs2, fs3, fs4, cursor, low_value = keccak_plain_rounds(fs0, fs1, fs2, fs3, fs4, word_rate[0], word_rate[1], cursor, last[GEN ** KC_VALUE], in_point, tabs, KECCAK_PACK_LOG, 1)
+    else:
+        fs0, fs1, fs2, fs3, fs4, cursor, low_value = keccak_plain_rounds(fs0, fs1, fs2, fs3, fs4, 0, 0, cursor, last[GEN ** KC_VALUE], in_point, tabs, KECCAK_PACK_LOG, 0)
     low_tree = HeapBuf(2 ** (KECCAK_PACK_LOG + 1) - 2)
     eqtree(in_point, low_tree, KECCAK_PACK_LOG)
     mu_at_low = 0
@@ -3476,13 +3504,17 @@ def check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem
     else:
         if const(COL_KAPPA_ADJ[QKECCAK_COMMITTED_COL] != QKECCAK_SLOT_LOG):
             assert qkeccakv_g == kb[COL_KAPPA_SRC[QKECCAK_COMMITTED_COL]] * GEN ** COL_KAPPA_ADJ[QKECCAK_COMMITTED_COL]
-    out_eq_chain = HeapBuf(SIZE_BITS + QKECCAK_SLOT_LOG + 1)
-    eq_prefix_chain(out_eq_chain, 1, z_vals, point1, qkeccakv_g)
     rs_weight = ring_switch_weight(z_vals * GEN ** QKECCAK_VARS_CAP, point1, c_table, qkeccakv_g)
-    inner_sum += (rs_weight + lam_out * out_eq_chain[qkeccakv_g]) * selectors[QKECCAK_COMMITTED_COL]
+    if const(KECCAK_SEGMENTS != 1):
+        out_eq_chain = HeapBuf(SIZE_BITS + QKECCAK_SLOT_LOG + 1)
+        eq_prefix_chain(out_eq_chain, 1, z_vals, point1, qkeccakv_g)
+        inner_sum += (rs_weight + lam_out * out_eq_chain[qkeccakv_g]) * selectors[QKECCAK_COMMITTED_COL]
+        lam_out *= lam_cl
+    else:
+        inner_sum += rs_weight * selectors[QKECCAK_COMMITTED_COL]
     # The OOD sample's claim, after the output word's: eq(z, .) over the stack's m variables.
     ood_chain = HeapBuf(MAX_STACK_LOG + 1)
-    eq_prefix_chain(ood_chain, lam_out * lam_cl, ood_z, point1, gmv)
+    eq_prefix_chain(ood_chain, lam_out, ood_z, point1, gmv)
     assert (inner_sum + ood_chain[gmv]) * yr_at_tail == sumcheck_target
 
 
@@ -3671,9 +3703,11 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
                 else:
                     target += lam_pow * claim_pool[GEN ** j]
             lam_pow *= lam_cl
-    target += lam_pow * keccak_word
+    if const(KECCAK_SEGMENTS != 1):
+        target += lam_pow * keccak_word
+        lam_pow *= lam_cl
     # The OOD sample's claim closes the batch.
-    target += lam_pow * lam_cl * ood_value[1]
+    target += lam_pow * ood_value[1]
     # One arm per size, the rate passed on. Both are transcript-bound and range-checked
     # above, so a single compiled guest dispatches independently for every inner proof
     # in a mixed-rate batch.

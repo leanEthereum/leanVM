@@ -580,8 +580,8 @@ def qkeccak : ℕ := 4
 /-- `K_BITS`: a `K` word's bits (`layout.rs`). -/
 def kBits : ℕ := 64
 
-/-- `KECCAK_DEPTH`: the reduction commits a step's state every `12` rounds (`layout.rs`). -/
-def keccakDepth : ℕ := 12
+/-- `KECCAK_DEPTH`: the reduction commits a step's input state only, `24` rounds a segment (`layout.rs`). -/
+def keccakDepth : ℕ := 24
 
 /-- `KeccakShape::segments`, `ROUNDS / depth` at `depth = KECCAK_DEPTH`, `ROUNDS = 24`
 (`keccak.rs`). -/
@@ -592,7 +592,7 @@ def keccakSegmentBits : ℕ := log2Ceil keccakSegments
 
 /-- `KeccakShape::slot_bits`, `log2_ceil(STATE_LANES * segments)`, `STATE_LANES = 25`
 (`keccak.rs`): lane `l` of the state after `KECCAK_DEPTH · m` rounds is slot `25m + l`; the
-`2^6 - 50` slots above the states carry `KECCAK` columns (`keccakSlot`). -/
+`2^5 - 25` slots above the states carry `KECCAK` columns (`keccakSlot`). -/
 def qkeccakSlotBits : ℕ := log2Ceil (25 * keccakSegments)
 
 /-- `KECCAK_MIN_STEPS_LOG`: the reduction is sized for at least one block of `512` steps
@@ -784,8 +784,8 @@ def laneNames (namePrefix : String) : List String :=
 bytecode's flags for the output cells written (`out_two`: cell `1`; `out_all`: cells `2…12`), the
 read limb that holds no lane (`free`), the fifty value lanes (`in_l`, one of `q_keccak`'s slots
 each; `out_l`, claimed by the Keccak reduction, committed nowhere), then the read counts. The
-first `QKECCAK_SPARE` (`14`) committed columns, `pc` through `out_all`, ride `q_keccak`'s spare
-slots `50…63` (`keccakSlotOf`). -/
+first `QKECCAK_SPARE` (`7`) committed columns, `pc` through `o_tail`, ride `q_keccak`'s spare
+slots `25…31` (`keccakSlotOf`). -/
 def keccakColumns : List String :=
   ["pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in",
     "odd_out", "out_two", "out_all", "free"] ++ laneNames "in" ++ laneNames "out" ++
