@@ -92,7 +92,8 @@ theorem sr_call {n : ℕ} (hn : n < 64) :
   selector_run_nibbles_complete_holds rd n hn
 
 theorem sh_call {μ τ : ℕ} {point : List E} (hμ : point.length = μ) (hμ33 : μ < 33)
-    (hτμ : τ ≤ μ) {eqt gt z z1 gsq : E}
+    (hτμ : τ ≤ μ) (hlow : ∀ i < 2 ^ 14, (rd (Parameters.addressOfIndex i)).isSome)
+    {eqt gt z z1 gsq : E}
     (hzv : TbReadsAt rd z (point.drop τ)) (hz1v : TbReadsAt rd z1 ((point.map (1 + ·)).drop τ))
     (hsqv : TbReadsAt rd gsq ((gSquaresList.drop τ).take (μ - τ)))
     (hrun : RunTables rd eqt gt (μ - τ) (point.drop τ) ((point.map (1 + ·)).drop τ)
@@ -101,7 +102,8 @@ theorem sh_call {μ τ : ℕ} {point : List E} (hμ : point.length = μ) (hμ33 
       gen ^ ((μ - τ) / 4)] [] := by
   have hsql : gSquaresList.length = 34 := by simp [gSquaresList]
   exact shared_selector_tables_complete_holds rd eqt gt z z1 gsq (μ - τ) _ _ _ (by omega)
-    (by simp; omega) (by simp; omega) (by simp [hsql]; omega) hzv hz1v hsqv hrun
+    (by simp; omega) (by simp; omega) (by simp [hsql]; omega) hzv hz1v hsqv
+    (fun i hi ↦ hlow i (by omega)) hrun
 
 end
 end LeanVM.Guest.B1.Tables

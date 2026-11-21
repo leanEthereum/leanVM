@@ -41,15 +41,17 @@ def ssS : List Stmt := ssA ++ [
         .n 4],
     .atom (.mul (.n 13) (.n 8) (.n 8)),
     .atom (.mul (.n 14) (.n 13) (.n 13)),
-    .atom (.mul (.n 15) (.n 0) (.n 14)),
-    .atom (.mul (.n 16) (.n 15) (.n 14)),
-    .atom (.mul (.n 17) (.n 1) (.n 14)),
-    .atom (.mul (.n 18) (.n 2) (.n 8)),
-    .atom (.mul (.n 19) (.n 3) (.n 8)),
-    .atom (.mul (.n 20) (.n 4) (.n 8))]
+    .atom (.const (.n 15) (word 8 0)),
+    .atom (.rangeCheck (.n 9) (.n 16) (.n 17) (.n 18) (.n 15)),
+    .atom (.mul (.n 19) (.n 0) (.n 14)),
+    .atom (.mul (.n 20) (.n 19) (.n 14)),
+    .atom (.mul (.n 21) (.n 1) (.n 14)),
+    .atom (.mul (.n 22) (.n 2) (.n 8)),
+    .atom (.mul (.n 23) (.n 3) (.n 8)),
+    .atom (.mul (.n 24) (.n 4) (.n 8))]
 
 /-- The body's dispatch. -/
-def ssDispV : Stmt := .dispatch (.n 9) ["sel_partial_nibble__L0", "sel_partial_nibble__L1", "sel_partial_nibble__L2", "sel_partial_nibble__L3"] [.n 16, .n 17, .n 18, .n 19, .n 20] [.n 21]
+def ssDispV : Stmt := .dispatch (.n 9) ["sel_partial_nibble__L0", "sel_partial_nibble__L1", "sel_partial_nibble__L2", "sel_partial_nibble__L3"] [.n 20, .n 21, .n 22, .n 23, .n 24] [.n 25]
 
 theorem ssPre_eq_disp : ssPre = ssS ++ [ssDispV] := rfl
 

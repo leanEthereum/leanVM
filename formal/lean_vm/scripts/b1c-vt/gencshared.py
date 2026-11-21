@@ -125,7 +125,7 @@ def gen():
                   f'  · show coreProgram.Rel rd _ _ _\n'
                   f'    simp only [List.map_cons, List.map_nil]\n'
                   f'    rw [ea, ega, ez, ez1, esq, ec, eq]\n'
-                  f'    exact sh_call hμ hμ33 hτμ (tbReadsAt_drop hz τ)\n'
+                  f'    exact sh_call hμ hμ33 hτμ hlow (tbReadsAt_drop hz τ)\n'
                   f'      (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun')
         head = (f'set_option maxRecDepth 100000 in\n'
                 f'/-- **Table `{t}`\'s shared selector tables** (`{p} ..< {q + 3}`). -/\n'

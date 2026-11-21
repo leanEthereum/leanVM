@@ -2156,6 +2156,9 @@ def shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g, q_g)
         sel_eq_nibble(eq_tab * x16 * x16, zeta_hi * x4, zeta1_hi * x4, 4)
         sel_g_nibble(g_tab * x16, gsq_hi * x4, 4)
     q16 = q4 ** 4
+    # r_g = g^r with r < 4 as a range check: the back end's selector analysis
+    # bounds the match's selector by it (it cannot bound a quotient).
+    assert log(r_g) < 4
     done = match(log(r_g), range(0, 4), lambda w: sel_partial_nibble(eq_tab * q16 * q16, g_tab * q16, zeta_hi * q4, zeta1_hi * q4, gsq_hi * q4, w))  # a match needs a target
     return
 

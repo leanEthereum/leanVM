@@ -169,12 +169,13 @@ def shared_selector_tables_SpecP (P : Program) : Prop :=
   ∀ rd args rets, P.Rel rd "shared_selector_tables" args rets → SharedSelOut rd args rets
 
 /-- The converse, for completeness: `n < 64` coordinates, complements and shares at `zeta_hi`,
-`zeta1_hi`, `gsq_hi`, with their nibble tables at `eq_tab`, `g_tab`, give the relation. -/
+`zeta1_hi`, `gsq_hi`, with their nibble tables at `eq_tab`, `g_tab`, and the memory defined below
+`2^4` (the partial nibble's range check) give the relation. -/
 def shared_selector_tables_complete_SpecP (P : Program) : Prop :=
   ∀ (rd : Reader) (eqt gt z z1 gsq : E) (n : ℕ) (zs zs1 gs : List E), n < 64 →
     zs.length = n → zs1.length = n → gs.length = n →
     TbReadsAt rd z zs → TbReadsAt rd z1 zs1 → TbReadsAt rd gsq gs →
-    RunTables rd eqt gt n zs zs1 gs →
+    (∀ i < 16, (rd (addressOfIndex i)).isSome) → RunTables rd eqt gt n zs zs1 gs →
     P.Rel rd "shared_selector_tables" [eqt, gt, z, z1, gsq, gen ^ n, gen ^ (n / 4)] []
 
 /-! ## The bus blocks' selectors -/
