@@ -7,7 +7,12 @@
 
 module
 
-public import LeanVM.Guest.B1.Place.ArmExactA
+public import LeanVM.Guest.B1.Place.ArmExact0
+public import LeanVM.Guest.B1.Place.ArmExact1
+public import LeanVM.Guest.B1.Place.ArmExact2
+public import LeanVM.Guest.B1.Place.ArmExact3
+public import LeanVM.Guest.B1.Place.ArmExact4
+public import LeanVM.Guest.B1.Place.ArmExact5
 public import LeanVM.Guest.B1.Place.ArmExactB
 public import LeanVM.Guest.B1.Place.ArmExactC
 public import LeanVM.Guest.B1.Place.OsPlace
@@ -16,7 +21,7 @@ public import LeanVM.Guest.B1.Whir.Sound
 /-!
 # The arms, exact at every node
 
-`armExact_all`: the arm of `μ` passes `armExactOk` (`ArmExactA`, `ArmExactB`, `ArmExactC`). `flatNodeT_every`: so a valid tree of
+`armExact_all`: the arm of `μ` passes `armExactOk` (`ArmExact0` to `ArmExact5`, `ArmExactB`, `ArmExactC`). `flatNodeT_every`: so a valid tree of
 it satisfying `FlatNodeT` is exact at every node, given that each entered `armExactS` callee's predicate (its
 `level_positions`, `opening_round`, grind checks) gives `Every` exact on its valid trees; every other callee is exact
 for free.
