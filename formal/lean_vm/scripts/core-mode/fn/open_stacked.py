@@ -9,5 +9,6 @@ def count_arms(g):
     assert sorted(out) == sorted(ns), ns
     return out
 
-# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
+# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
+# it alone may change, by hand
 OWN = []

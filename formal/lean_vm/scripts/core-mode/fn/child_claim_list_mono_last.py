@@ -26,7 +26,6 @@ def sub(k, c):
 def ghost(k, r):
     return r[0] == 'sub' and sub(k, r[1]) == r
 
-# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
-OWN = [
-    'LeanVM/Guest/CoreMode/Fn/child_claim_list_mono_last/*.lean',
-]
+# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
+# it alone may change, by hand
+OWN = []

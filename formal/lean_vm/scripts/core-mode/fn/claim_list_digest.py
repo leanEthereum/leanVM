@@ -87,7 +87,6 @@ def deployed_parts(W):
             dict(mod='DeployedC', key=3, items=[W.thm('clS_eq', 'clS B2C.fs wSK', W.v('clS'), 'clS B1.Main.iterK', [],
                                                       fs=lp, sk=lp)])]
 
-# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
-OWN = [
-    'LeanVM/Guest/Budget/MvCount.lean',
-]
+# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
+# it alone may change, by hand
+OWN = []

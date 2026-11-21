@@ -162,7 +162,8 @@ theorem deployedBudget_instrs (Bvf : ℕ → ℕ → ℕ) (op : Opcode) :
                    'public import LeanVM.Guest.Count.DeployedB\npublic import LeanVM.Guest.Count.DeployedC\n'),
              items=[body])]
 
-# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
+# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
+# it alone may change, by hand
 OWN = [
     'LeanVM/Guest/B1/Main/**',
     'LeanVM/Guest/Budget/Main.lean',
@@ -180,5 +181,6 @@ OWN = [
     'LeanVM/Guest/Budget/DeployedBudget.lean',
     'LeanVM/Guest/Budget/End.lean',
     'LeanVM/Guest/Budget/L5Count.lean',
+    'LeanVM/Guest/Budget/MvCount.lean',
     'LeanVM/Guest/Count/Instances.lean',
 ]

@@ -8,5 +8,6 @@ _WORDS = (lean_def_at('B1/Terminal/TermCompleteB.lean', 'termRswChain')
 RATIO_WORDS = {'ring_switch_weight': lambda C, n: C.fs(n) + _WORDS}
 RATIOV = {'ring_switch_weight': (3, 'Vrsw')}
 
-# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
+# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
+# it alone may change, by hand
 OWN = []

@@ -10,7 +10,8 @@ for _n in range(33):
         postR=[run(cell(0, [(2, 1)]), num(0), num(_n + 1), 1, 0)] +
         [run(cell(0, [(o, 1)]), num(0), num(_n), 1, 0) for o in (3, 4, 5) if _n])
 
-# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
+# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
+# it alone may change, by hand
 OWN = [
     'LeanVM/Guest/B1/Eq/EqPrefixRev*.lean',
 ]

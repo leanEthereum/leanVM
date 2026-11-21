@@ -76,7 +76,6 @@ for _o in range(2):
         CONTRACTS['gkr_layer__L%d_L%d' % (_p, _o)] = _layer(_p, _o)
         CONTRACTS['gkr_layer__L%d_L%d_loop0' % (_p, _o)] = _layer_loop()
 
-# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
-OWN = [
-    'LeanVM/Guest/CoreMode/Fn/gkr_layer/*.lean',
-]
+# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
+# it alone may change, by hand
+OWN = []

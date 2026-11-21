@@ -343,7 +343,8 @@ def count_parts(g, OPS):
         OPS, 'kcVtW', '`verify_tables`\' instructions (`B1.VerifySub.vtWB Count.vsWords`).',
         lambda k: C.weight(k, vscount.L('verify_tables')))])]
 
-# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
+# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
+# it alone may change, by hand
 OWN = [
     'LeanVM/Guest/B1/Tables/VtWords*.lean',
     'LeanVM/Guest/Count/Fn/verify_tables.lean',
@@ -356,5 +357,4 @@ OWN = [
     'LeanVM/Guest/CoreMode/Fam/ExpQv.lean',
     'LeanVM/Guest/CoreMode/Fam/SubVt.lean',
     'LeanVM/Guest/EndExecCoreVt.lean',
-    'LeanVM/Guest/CoreMode/Fn/verify_tables/*.lean',
 ]

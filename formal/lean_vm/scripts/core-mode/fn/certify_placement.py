@@ -15,8 +15,8 @@ def fam(k, r):
     return k == 'certify_placement' and r[0] == 'subP' and r[1][0] == ((CP_BASE, 1),) and r[1][1] < 9 and \
         tuple(r[2]) == tuple((((CP_BASE, 1), (v, 1)), 0) for v in CP_RANKS)
 
-# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
+# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
+# it alone may change, by hand
 OWN = [
     'LeanVM/Guest/CoreMode/Fam/ResCp.lean',
-    'LeanVM/Guest/CoreMode/Fn/certify_placement/*.lean',
 ]

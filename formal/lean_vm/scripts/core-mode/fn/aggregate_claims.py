@@ -61,5 +61,6 @@ def deployed_parts(W):
               sb=['grind_check__L2', 'batch_sumcheck__L23']),
         W.thm('agA1_eq', 'agA1 B2C.fs wSK', W.v('agA1'), 'agA1 B1.Main.iterK', [], fs=_lps(), sk=_lps())])]
 
-# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
+# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
+# it alone may change, by hand
 OWN = []

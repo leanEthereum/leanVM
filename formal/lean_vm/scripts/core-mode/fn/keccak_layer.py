@@ -31,10 +31,10 @@ def fam(k, r):
         return r[1][1] in PACK and 32 <= r[2][1] < CAPE
     return r[0] == 'sub' and sub(k, r[1]) == r
 
-# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
+# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
+# it alone may change, by hand
 OWN = [
     'LeanVM/Guest/CoreMode/Fam/ResStB.lean',
     'LeanVM/Guest/CoreMode/Fam/ResStL.lean',
     'LeanVM/Guest/CoreMode/Fam/ResStP.lean',
-    'LeanVM/Guest/CoreMode/Fn/keccak_layer/*.lean',
 ]

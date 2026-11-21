@@ -28,9 +28,9 @@ def fam(k, r):
     kap = cs_kappa(k)
     return kap is not None and r == cs_sub(kap)
 
-# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
+# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
+# it alone may change, by hand
 OWN = [
     'LeanVM/Guest/CoreMode/Fam/ResCs.lean',
     'LeanVM/Guest/CoreMode/Fam/CsQ.lean',
-    'LeanVM/Guest/CoreMode/Fn/column_selector/*.lean',
 ]

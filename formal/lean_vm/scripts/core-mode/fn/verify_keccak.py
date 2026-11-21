@@ -102,10 +102,10 @@ def arg_bound(k, x):
 RATIO_WORDS = {'verify_keccak': 56404}
 RATIOV = {'verify_keccak': (1, 'Vk')}
 
-# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
+# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
+# it alone may change, by hand
 OWN = [
     'LeanVM/Guest/CoreMode/Fam/ResVk*.lean',
     'LeanVM/Guest/CoreMode/Fam/ResSt.lean',
     'LeanVM/Guest/EndExecCoreVk.lean',
-    'LeanVM/Guest/CoreMode/Fn/verify_keccak/*.lean',
 ]
