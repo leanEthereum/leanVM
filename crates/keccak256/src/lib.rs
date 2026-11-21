@@ -91,7 +91,9 @@ pub const END_BIT: u64 = (PAD_LAST as u64) << 56;
 mod lanes;
 pub mod positions;
 
-pub use lanes::{LANES, digest_halves_from, first_nonce, hash_many, hash_many_from_state, keccak_f_many};
+pub use lanes::{
+    LANES, digest_halves_from, first_nonce, hash_many, hash_many_from_state, hash_many_from_state_offset, keccak_f_many,
+};
 
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
 mod single_avx512;
@@ -249,6 +251,29 @@ pub fn zero_prefix_state(n_blocks: usize) -> [u64; STATE_LANES] {
 }
 
 /// [`hash`] continued from a sponge state that has absorbed whole blocks (see [`zero_prefix_state`]): `data` is the
+/// rest of the message, preceded by `start_word` zero words (`start_word < RATE_LANES`) in the first block.
+fn hash_from_state_offset(data: &[u8], state: &[u64; STATE_LANES], start_word: usize) -> [u8; OUT_LEN] {
+    assert!(start_word < RATE_LANES, "offset stays within one rate block");
+    if start_word == 0 {
+        return hash_from_state(data, state);
+    }
+    let mut state = *state;
+    let first_bytes = RATE - 8 * start_word;
+    if data.len() < first_bytes {
+        let mut bytes = [0u8; RATE];
+        bytes[8 * start_word..8 * start_word + data.len()].copy_from_slice(data);
+        bytes[8 * start_word + data.len()] ^= PAD_FIRST;
+        bytes[RATE - 1] ^= PAD_LAST;
+        absorb(&mut state, &block_of(&bytes));
+        return digest_of(&state);
+    }
+    let mut bytes = [0u8; RATE];
+    bytes[8 * start_word..].copy_from_slice(&data[..first_bytes]);
+    absorb(&mut state, &block_of(&bytes));
+    hash_from_state(&data[first_bytes..], &state)
+}
+
+/// [`hash`] continued from a sponge state that has absorbed whole blocks (see [`zero_prefix_state`]): `data` is the
 /// rest of the message.
 fn hash_from_state(data: &[u8], state: &[u64; STATE_LANES]) -> [u8; OUT_LEN] {
     let mut state = *state;
@@ -328,6 +353,32 @@ mod tests {
                         let mut plain = vec![0u8; n * OUT_LEN];
                         hash_many(&data, len, &mut plain);
                         assert_eq!(plain, got);
+                    }
+                }
+            }
+        }
+    }
+
+    /// The offset batched hash matches zero-extending each input by `8 * start_word` leading bytes.
+    #[test]
+    fn batched_hash_offset_matches_one_shot() {
+        for zero_blocks in [0usize, 1] {
+            let state = zero_prefix_state(zero_blocks);
+            for start_word in [0usize, 1, 7, 8, 15, 16] {
+                for len in [0usize, 7, 8, 32, 64, 136 - 8 * start_word, 200, 320] {
+                    for n in [1, LANES, LANES + 2] {
+                        let data: Vec<u8> = (0..n * len).map(|i| (i * 19 + start_word) as u8).collect();
+                        let mut got = vec![0u8; n * OUT_LEN];
+                        hash_many_from_state_offset(&data, len, &state, start_word, &mut got);
+                        for i in 0..n {
+                            let mut whole = vec![0u8; zero_blocks * RATE + 8 * start_word];
+                            whole.extend_from_slice(&data[i * len..(i + 1) * len]);
+                            assert_eq!(
+                                &got[i * OUT_LEN..][..OUT_LEN],
+                                &hash(&whole)[..],
+                                "{zero_blocks} {start_word} {len} {n}"
+                            );
+                        }
                     }
                 }
             }

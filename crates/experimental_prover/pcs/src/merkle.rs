@@ -27,7 +27,9 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use fiat_shamir::merkle::{Hash, MerklePath};
 use parallel::SendPtr;
 use primitives::field::F64;
-use primitives::hash::{LANES, OUT_LEN, RATE, STATE_LANES, hash_many, hash_many_from_state, zero_prefix_state};
+use primitives::hash::{
+    LANES, OUT_LEN, RATE, STATE_LANES, hash_many, hash_many_from_state, hash_many_from_state_offset, zero_prefix_state,
+};
 use primitives::{cast_slice, cast_slice_mut};
 
 /// Nodes one climb takes at most: 32 KiB of digests, which stay in L1.
@@ -387,12 +389,13 @@ impl CutTree {
 ///
 /// Whole blocks of leading zeros are one sponge state, absorbed once for every leaf.
 enum LeafHasher {
-    /// Past the shared prefix, each row is its own image.
+    /// Past the shared prefix and `start_word` leading zero words in the first block, each row is hashed directly.
     Direct {
         row_bytes: usize,
+        start_word: usize,
         state: [u64; STATE_LANES],
     },
-    /// The rest of the padding does not fill a block, so rows are zero-extended in a tile first.
+    /// The rest of the padding is not word-aligned, so rows are zero-extended in a tile first.
     Staged {
         row_bytes: usize,
         image: usize,
@@ -406,8 +409,13 @@ impl LeafHasher {
         let zero_blocks = (leaf_bytes - row_bytes) / RATE;
         let state = zero_prefix_state(zero_blocks);
         let image = leaf_bytes - zero_blocks * RATE;
-        if image == row_bytes {
-            Self::Direct { row_bytes, state }
+        let leading_zero_bytes = image - row_bytes;
+        if leading_zero_bytes.is_multiple_of(8) {
+            Self::Direct {
+                row_bytes,
+                start_word: leading_zero_bytes / 8,
+                state,
+            }
         } else {
             assert!(image <= STAGE_TILE_BYTES, "a padded leaf fits the tile");
             Self::Staged {
@@ -427,8 +435,12 @@ impl LeafHasher {
     /// Hash one leaf per row into `out`.
     fn hash(&self, rows: &[u8], out: &mut [MaybeUninit<Hash>]) {
         match *self {
-            Self::Direct { row_bytes, state } => {
-                hash_many_from_state(rows, row_bytes, &state, digests_as_bytes(out));
+            Self::Direct {
+                row_bytes,
+                start_word,
+                state,
+            } => {
+                hash_many_from_state_offset(rows, row_bytes, &state, start_word, digests_as_bytes(out));
             }
             Self::Staged {
                 row_bytes,
