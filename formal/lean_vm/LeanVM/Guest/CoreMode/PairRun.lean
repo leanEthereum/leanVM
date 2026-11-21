@@ -3,7 +3,7 @@
 
   The pairing pass's invariants: every zipper it carries is its cursor's, its hints a suffix of the
   advice's, what it records apart from the rest; so a long function's pass, checked in windows from
-  named states, is the whole pass (`pairOk_of_chain`).
+  named states, is the whole pass (`pairOk_of_chainS`, `PairSlice.lean`).
 -/
 
 module
@@ -14,7 +14,7 @@ public import LeanVM.Guest.Bridge.AlignRun
 /-!
 # The pairing pass's invariants
 
-`Bridge/AlignRun.lean`'s for the heap-aware pass: each step keeps the zippers their cursors' (`Bridge.ZOk`: `normG_ok`, `hintsStepH_ok`, `scan_ok`, `plainStep_ok`, `jumpStepH_ok`), so each state of the pass is a `Bridge.StOk` (`stepIH_ok`), and the windows of a chain of named states (`ChainH`) compose to the whole pass (`pairOk_of_chain`).
+`Bridge/AlignRun.lean`'s for the heap-aware pass: each step keeps the zippers their cursors' (`Bridge.ZOk`: `normG_ok`, `hintsStepH_ok`, `scan_ok`, `plainStep_ok`, `jumpStepH_ok`), so each state of the pass is a `Bridge.StOk` (`stepIH_ok`), and the pass over code split in two is the pass over the first part, then over the rest from where it ended (`pairGo_append`), which `PairSlice.lean`'s windows compose by (`pairOk_of_chainS`).
 -/
 
 namespace LeanVM.Guest.CoreMode

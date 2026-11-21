@@ -210,7 +210,7 @@ theorem pushRL_ok : ∀ {W W' : K → Prop} {qs : List PRun} {st : CSt}, StOk rd
     exact pushRL_ok (pushR_stOk hs hw (hq q List.mem_cons_self)) (fun _ h ↦ h)
       fun q' h ↦ hq q' (List.mem_cons_of_mem _ h)
 
-/-- **What the pass reads, valid**: milestone 1's, the signatures, the parameters, the residuals,
+/-- **What the pass reads, valid**: `heapOk`'s, the signatures, the parameters, the residuals,
 and the facts true at the instance. -/
 structure XOk (sigOf : String → HSig) (H : HCert) (rd : Reader) (f : Fn) (σ : Val) (X : CX) : Prop where
   R : X.R = H.readT

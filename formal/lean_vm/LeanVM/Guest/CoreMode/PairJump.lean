@@ -23,8 +23,8 @@ public import LeanVM.Guest.Bridge.StepRule
 * the position at a jump (`pair_jump`): its hints' atoms, then the reads before the head statement,
   then the head's zipper, with the successors the pass records;
 * the side the run takes, by positions (`side_ite`, `side_arm`): the path's events from the head
-  statement to the side's normalized position are the branch's condition and atoms that write nothing
-  (`succ_norm`), so they add nothing to `Written`.
+  statement to the side's normalized position are the branch's condition and atoms that write nothing,
+  so they add nothing to `Written`.
 -/
 
 namespace LeanVM.Guest.CoreMode

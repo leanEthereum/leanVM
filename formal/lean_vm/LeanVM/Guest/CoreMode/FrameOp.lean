@@ -7,7 +7,7 @@ public import LeanVM.Prover.ExecuteComplete
 /-!
 # One instruction of the frame walk
 
-`stepF_sound`: a non-`JUMP` the frame walk accepts, at a state where the path's state holds and
+A non-`JUMP` the frame walk accepts (`stepF_val`, `stepF_wr`, `stepF_reads`, `stepF_deref`), at a state where the path's state holds and
 whose instruction holds of the reference image (the reference executes it there), reads written
 cells (`Mode.Reads`: a back-solve's divisor nonzero by `divOk_sound`); after it the new state's
 value facts hold of the image (`Exec`'s step by `Exec.nonJump_holds`) and, after the executor's

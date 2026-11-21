@@ -13,8 +13,9 @@ public import LeanVM.Guest.CoreMode.PairLoop
 
 For a body whose statements are atoms, calls, conditional calls and returns (`loopStmtC`), each
 conditional call's condition at no cell of a nonzero constant: at a `JUMP` on a nonzero constant
-(`pair_callLC`), the pairing takes it by a `call` (`pair_callC`'s conclusion, with the statement); the
-tail and return jumps are `PairLoop.lean`'s.
+(`pair_callLC`), the pairing takes it by a `call` statement of the body (its site, entry and return offset,
+the events up to it, the call event, atoms that write nothing, the position at the return offset); the tail
+and return jumps are `PairLoop.lean`'s.
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -27,8 +28,8 @@ open LeanVM.Guest.Check (getF)
 variable {H : HCert}
 
 /-- **At a call** (a `JUMP` on a nonzero constant, not forward, not a return) of a body of atoms,
-calls, conditional calls (on no cell of a nonzero constant) and returns: `pair_callC`'s conclusion,
-and the `call` among the body's statements. -/
+calls, conditional calls (on no cell of a nonzero constant) and returns: the pairing takes it by a `call`
+statement of the body, as `pair_callAny` does a call's `JUMP` of a function. -/
 theorem pair_callLC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     {code : List OffsetInstruction} {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)}
     (hok : pairOk X H O S body code d = true) {i : ℕ} {pos : List Stmt}

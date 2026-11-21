@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.CoreMode.HeapC
 
-  The core route's heap check with calls and loops: milestone 1's pass, a call meeting its
+  The core route's heap check with calls and loops: `heapOk`'s pass, a call meeting its
   callee's preconditions and gaining its guarantees, a return meeting the function's, runs, and a
   loop helper's tail.
 -/
@@ -13,13 +13,13 @@ public import LeanVM.Guest.CoreMode.HeapCSig
 /-!
 # The heap check with calls and loops
 
-`heapOkC pows sigOf f H`: milestones 2 and 3 of `formal/notes/core-mode.md`. Milestone 1's pass (`CoreMode/Heap.lean`) extended to every statement; the input format is in the handoff `m2-format.md` and below. The signatures, their words at a site and what a path writes and reads are in `HeapCSig.lean`; here the pass.
+`heapOkC pows sigOf f H`: the core route's heap check with calls and loops (`formal/notes/core-mode.md`): `heapOk`'s pass (`CoreMode/Heap.lean`) extended to every statement; its input format below. The signatures, their words at a site and what a path writes and reads are in `HeapCSig.lean`; here the pass.
 
 **Slots.** A signature (`HSig`) speaks of slots: slot `b` below the parameter count is parameter `b`, the next ones the returned words. Its cells (`pre`, `post`) are monomials over slots; its runs (`preR`, `postR`, `CRun`) are the cells `base · g^(stride · j)` for `j` from the exponent of `lo` to below that of `hi` (`CIdx`: a constant, or a slot's word read as `g^y`, `y < 2^62`, `rep`). A run also says that both exponents exist. At a site, slots are words (`slotW`): a call's arguments then its returned words, the function's own parameters then, at a `ret`, the words it returns.
 
 **Events.** A path's events (`walk`) write (`EvW`): an atom its `Writes`, an entered call its callee's `post` cells and `postR` runs at its words. `WrittenC` is what the own preconditions and the events so far write. A path is sound (`ReadsOkC`): each atom's reads, and each entered call's callee preconditions at its argument words (with the runs' exponents), are written before; and it returns sound (`PostOkC`): the own guarantees at the words it returns are written by its events.
 
-**The pass** (`chkC`). Milestone 1's state, plus a run scope (pass-level runs, `PRun`, bounds as monomials, by run serial: first the own `preR`, then each call's callee `postR`), and serials for calls and returns, which key the certificate's witnesses (`HCert.calls`, `HCert.rets`). A witness of a cell (`ptOk`): a write event, a precondition, or a run in scope holding it (`ptRun`: at its lower bound, the bounds a fact; or at a constant index, the bounds constants or a fact); of a run (`rnOk`): a run in scope containing it (`runRun`, the lower bound equal, a smaller constant, or one less with the bounds a fact; the upper equal, a larger constant, or past a fact's constant). A run in scope may also be rebased onto the needed run's base, `t` strides back (`shiftR`, `runRunS`: its constant lower bound plus `t` at most the needed one's), its cells from there being its own. Facts (`facts`): the own `term` and the residuals a witness lists, as exponents in order (`LtF`, both existing). A call checks its callee's `pre` and `preR` at its arguments and pushes its `post` cells and `postR` runs at its words; a `dispatch` checks every arm's and pushes what every arm guarantees; a `callIf c g args` checks and pushes only the runs whose bounds are the two operands of `c`'s sum (`c = lo + hi`: not entered, `lo = hi` and the run is empty); a `ret` checks the own `post`, `postR` at the parameters and its words. A run in scope asserts only that its cells are written for the exponents its bounds have (`RunF`); the exponents a coverage needs come from the facts and from constants below `2^62`. The parameters are their own bases from the start (`paramEnv`).
+**The pass** (`chkC`). `heapOk`'s state (`HSt`), plus a run scope (pass-level runs, `PRun`, bounds as monomials, by run serial: first the own `preR`, then each call's callee `postR`), and serials for calls and returns, which key the certificate's witnesses (`HCert.calls`, `HCert.rets`). A witness of a cell (`ptOk`): a write event, a precondition, or a run in scope holding it (`ptRun`: at its lower bound, the bounds a fact; or at a constant index, the bounds constants or a fact); of a run (`rnOk`): a run in scope containing it (`runRun`, the lower bound equal, a smaller constant, or one less with the bounds a fact; the upper equal, a larger constant, or past a fact's constant). A run in scope may also be rebased onto the needed run's base, `t` strides back (`shiftR`, `runRunS`: its constant lower bound plus `t` at most the needed one's), its cells from there being its own. Facts (`facts`): the own `term` and the residuals a witness lists, as exponents in order (`LtF`, both existing). A call checks its callee's `pre` and `preR` at its arguments and pushes its `post` cells and `postR` runs at its words; a `dispatch` checks every arm's and pushes what every arm guarantees; a `callIf c g args` checks and pushes only the runs whose bounds are the two operands of `c`'s sum (`c = lo + hi`: not entered, `lo = hi` and the run is empty); a `ret` checks the own `post`, `postR` at the parameters and its words. A run in scope asserts only that its cells are written for the exponents its bounds have (`RunF`); the exponents a coverage needs come from the facts and from constants below `2^62`. The parameters are their own bases from the start (`paramEnv`).
 
 **Values.** A call names its returned words by its callee's `retM` (monomials over the arguments; a `dispatch`, those every arm gives), which a `ret` checks of the words it returns (`retMC`, `RetMOk`); a read whose witness is a load event of its very cell takes the word stored there (`hvDef`: memory is written once, `SvOk`); a `mul d q b` listing `q` (`HCert.divs`) with `b` a constant `g^k` names `q = d / g^k` (`divOf`). A function may name the word stored at a `post` cell (`postV`, `RetVOk`: by the load event its witness is, `retVC`); a call stores it at that cell's point serial (`postVE`), so a read of the cell takes it as from a load event.
 
@@ -49,7 +49,7 @@ moves with the arm, `⟨q·x^a, S, g^0, hi·x^b⟩`, arm `j` writing `⟨q·g^(a
 
 **Loops.** A loop helper with `term = [(.val 0, end)]`: its shape (`loopShape`) checked, the pass over its body without the tail, the tail's `callIf` as a call, then its `ret []` (`tailC`): each guarantee written by the path, or, `end` being parameter `1` and the guarantee not over the counter, written by the path at the exit (`i' = end`, `i'` the next counter), the next iteration guaranteeing it otherwise; and a run `[counter, end)` over a base not over the counter is accumulated: the counter's point written by the path, the rest by the next iteration.
 
-Written for the kernel as milestone 1's: tries keyed by `ℕ`, states and cells handed on evaluated.
+Written for the kernel as `heapOk`: tries keyed by `ℕ`, states and cells handed on evaluated.
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -62,7 +62,7 @@ open LeanVM.Guest.Check (getF setF)
 
 /-! ## The pass -/
 
-/-- The pass's state: milestone 1's, a run scope, the sums seen (`ad`, a value number to the
+/-- The pass's state: `heapOk`'s, a run scope, the sums seen (`ad`, a value number to the
 monomials of its first `add`'s operands), the words stored (`sv`, a load event's serial to its cell
 and its word's monomial), the cells values were loaded from (`src`), the pointer facts (`pf`, by point
 serial) and pointer runs (`pr`, by run serial) in scope, the next run, call and ret serials, and the
@@ -99,10 +99,10 @@ theorem CSt.seq_eq {β : Type} (st : CSt) (k : CSt → β) : st.seq k = k st := 
 /-- `st`'s scope with `s`'s serials. -/
 def CSt.cnt (st s : CSt) : CSt := ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, s.n, s.nr, s.nc, s.nt, st.cd, st.eqs, st.dq⟩
 
-/-- Milestone 1's part of the state. -/
+/-- `heapOk`'s part of the state. -/
 def CSt.toH (st : CSt) : HSt := ⟨st.env, st.sc, st.n⟩
 
-/-- The state with milestone 1's part `h`. -/
+/-- The state with `heapOk`'s part `h`. -/
 def CSt.ofH (st : CSt) (h : HSt) : CSt :=
   ⟨h.env, h.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, h.n, st.nr, st.nc, st.nt, st.cd, st.eqs, st.dq⟩
 
@@ -190,7 +190,7 @@ structure CX where
   /-- The cells whose words are the values `DB + k` (`HCert.ders`). -/
   ders : List CCell
 
-/-- Milestone 1's part. -/
+/-- `heapOk`'s part. -/
 def CX.toH (X : CX) : HX := ⟨X.pows, X.R, X.pre⟩
 
 /-- The site under the further branch conditions `l`. -/
@@ -1156,7 +1156,7 @@ noncomputable def divOf (X : CX) (st : CSt) (d q b : V) : Option (ℕ × CCell) 
     | _, _ => none
   | none => none
 
-/-- **An atom**: milestone 1's, a read's witness any of `ptOk`'s, a read through a load event of its
+/-- **An atom**: `heapOk`'s, a read's witness any of `ptOk`'s, a read through a load event of its
 cell taking the word stored (`hvDef`), a `mul` dividing out a listed quotient (`divOf`). -/
 noncomputable def atomC0 (X : CX) (st : CSt) : Atom → Option CSt
   | .load d p off => match monoOf st.env p with

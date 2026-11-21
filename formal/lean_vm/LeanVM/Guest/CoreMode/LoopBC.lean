@@ -13,8 +13,8 @@ public import LeanVM.Guest.CoreMode.WalkS
 # A loop helper's body with calls
 
 `loopBC fn`: the body of atoms and calls, the tail call `callIf c fn.name args` with one word per
-parameter, and `ret []`; the events of its statements before the tail (`acEv`), its path
-(`walk_loopC`) and statements (`stmts_loopC`). A leaf loop helper's body is one (`loopBC_of_loopB`).
+parameter, and `ret []`; its statements (`stmts_loopC`). `loopBB fn`: the same with branches and `match`es
+before the tail, its path (`walk_loopB`) and statements (`stmts_loopB`).
 -/
 
 namespace LeanVM.Guest.CoreMode

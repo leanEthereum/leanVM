@@ -15,7 +15,7 @@ public import LeanVM.Guest.CoreMode.WalkS
 /-!
 # The heap facts and the body's values
 
-The first part of `frameSpec_core` (`CoreSound.lean`): the heap facts (`heapK_sound`: milestone 1's check or the check with calls give every event's needs written before it and the promised cells written by the end), the products promised at the return, and the guarantees over the body's values and its returned products.
+The first part of `frameSpec_core` (`CoreSound.lean`): the heap facts (`heapK_sound`: `heapOk` or the check with calls give every event's needs written before it and the promised cells written by the end), the products promised at the return, and the guarantees over the body's values and its returned products.
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -1225,7 +1225,7 @@ theorem retVGo_sound {X : AlignCtx} {G : Mode.Sig} {np : ℕ} {hx : HX} {H : HCe
   | .dispatch .. :: _, _, _, _, _, _, h, _, _, _, _ => by simp [retVGo] at h
 
 /-- **The returned products**: on a path that returns, each product of `retV` is a return cell whose
-monomial is a returned value's at its cell (milestone 1's pass), or returned word `p.1 - 2 - np`'s of
+monomial is a returned value's at its cell (`heapOk`'s pass), or returned word `p.1 - 2 - np`'s of
 the heap signature's `retM`. -/
 theorem retVOk_sound {Cf : CFun} {G : Mode.Sig} (hp : Cf.pows.Ok) (hok : retVOk Cf G = true) {σ : Val}
     {rd : Reader} {es : List Ev} {vs : List V} (hw : walk σ Cf.fn.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ) :

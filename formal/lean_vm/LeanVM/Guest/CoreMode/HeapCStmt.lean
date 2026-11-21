@@ -456,7 +456,7 @@ theorem instRM_ok {ms : List CCell} {ws : List E} (hms : MsOk (vw σ) ms (slotW 
     rw [List.getElem?_map, hr, Option.map_some, Option.some.injEq] at h1
     rw [h1, instC_ok hms hi]
 
-/-- A `mul`, not a division: milestone 1's. -/
+/-- A `mul`, not a division: `heapOk`'s. -/
 theorem atomH_part (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt} {st1 : HSt}
     {a : Atom} (h1 : atomH X.toH st.toH a = some st1) (hs : StOk rd W σ st) (ha : a.Holds rd σ) :
     (∀ x, Reads H σ a x → W x) ∧ StOk rd (fun x ↦ W x ∨ Writes σ a x) σ (st.ofH st1) := by

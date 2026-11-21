@@ -12,7 +12,7 @@ public import LeanVM.Guest.CoreMode.Defs
 /-!
 # The heap check
 
-`heapOk pows sigOf f H`: milestone 1 of `formal/notes/core-mode.md`, for a function with no call and no loop. One pass over the body in statement order (`chkL`), its state (`HSt`) three things:
+`heapOk pows sigOf f H`: the core route's heap check (`formal/notes/core-mode.md`) for a function with no call and no loop. One pass over the body in statement order (`chkL`), its state (`HSt`) three things:
 
 * the **environment**, a value number's monomial (`CCell`): the first of its defining atoms on the way, a constant power of `g` (`powOf`, by the powers' table `pows`), a product (`CCell.mul`, bases merged), a copy or an `assert ==` either way; a value without one is its own base (`baseC`);
 * the **scope**, the cells of the write events on the way by serial: every `load` (a store writes its cell, a read finds it written) and each cell of a heap hint's destination;
@@ -242,13 +242,13 @@ def paramsN : List V → ℕ → Bool
 def preOver (m : ℕ) (cs : List CCell) : Bool :=
   cs.all fun c ↦ c.bases.all fun b ↦ Nat.blt b.1 m
 
-/-- Milestone 1's signature: preconditions only. -/
+/-- `heapOk`'s signature: preconditions only. -/
 def HSig.pointsOnly (G : HSig) : Bool :=
   G.post.isEmpty && G.preR.isEmpty && G.postR.isEmpty && G.term.isEmpty
 
 /-- **The heap check** of a function with no call and no loop: its parameters `V.n i`, its
 preconditions over them and nothing else in its signature, and the pass over its body. Callees'
-signatures (`sigOf`) are for the milestones with calls. -/
+signatures (`sigOf`) are for the check with calls (`heapOkC`). -/
 noncomputable def heapOk (pows : PowTree) (_sigOf : String → HSig) (f : Fn) (H : HCert) : Bool :=
   paramsN f.params 0 && preOver f.params.length H.sig.pre && H.sig.pointsOnly &&
     H.readT.seq fun R ↦ (trieFrom H.sig.pre 0 .nil).seq fun P ↦

@@ -13,8 +13,8 @@ public import LeanVM.Guest.Memory.StaticCut
 /-!
 # The heap check in windows
 
-`heapOkC` is one kernel evaluation over the whole body; for `main_loop2` (35 `match`es of 256 arms) that
-evaluation alone runs past the build's memory cap. The pass is linear: over `ss₁ ++ ss₂`, `ss₁` without a
+`heapOkC` is one kernel evaluation over the whole body; for a body of many large `match`es
+(`main_loop2`'s) that evaluation alone runs past the build's memory cap. The pass is linear: over `ss₁ ++ ss₂`, `ss₁` without a
 top-level `ret`, it is the pass over `ss₁` then over `ss₂` from where it ended (`chkC_append`). So the body's
 pass splits at cut points `a₀ = 0 < a₁ < … < aₙ`, with the states `Sᵢ` the pass reaches there stated as
 literals: each window (`winOk`) decides that the pass over the statements `aᵢ` to `aᵢ₊₁ - 1` goes from `Sᵢ`
