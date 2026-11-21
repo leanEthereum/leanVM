@@ -216,6 +216,10 @@ struct FnLower<'a> {
     /// but direct or indirect recursion would otherwise recurse forever in
     /// the compiler.
     inline_calls: Vec<String>,
+    /// Nesting depth of runtime branch scopes ([`Self::scoped`]). A folded `if`
+    /// at depth 0 inside a `__loop` helper runs in the loop's top-level scope,
+    /// where rebinding a captured parameter would carry it into the self-call.
+    branch_depth: usize,
     /// Set by [`lower_func`] just before lowering a statement that sits in tail
     /// position; consumed by the next [`Self::stmt`] call, so nested lowering
     /// never inherits it.
@@ -476,7 +480,9 @@ impl FnLower<'_> {
     /// region must not be trusted outside it.
     fn scoped(&mut self, f: impl FnOnce(&mut Self)) {
         let saved_scope = self.scope.clone();
+        self.branch_depth += 1;
         f(self);
+        self.branch_depth -= 1;
         // A hint pending at the end of a branch (e.g. a trailing
         // `hint_witness`) must not attach to whatever instruction follows the
         // join, which would fire it unconditionally.
@@ -726,6 +732,26 @@ impl FnLower<'_> {
         }
     }
 
+    /// Reject a folded `if` arm at top level of a `for` loop helper when it rebinds a
+    /// captured parameter: `free_vars_stmt` runs before `unroll` substitutes its counter,
+    /// so an `if` that becomes two literals after unrolling still captured the outer name
+    /// and would silently carry the rebound value into the loop's self-call.
+    fn check_folded_loop_arm(&self, taken: &[Stmt]) {
+        if !self.fn_name.starts_with("__loop") || self.branch_depth != 0 {
+            return;
+        }
+        let mut bound = std::collections::HashSet::new();
+        taken
+            .iter()
+            .for_each(|s| free_vars_stmt(s, &mut Vec::new(), &mut bound));
+        if let Some(p) = self.params.iter().find(|p| bound.contains(p.name.as_str())) {
+            self.fail(format!(
+                "a folded `if` assigns to `{}`, from outside the `for` loop: the loop cannot carry it",
+                p.name
+            ))
+        }
+    }
+
     /// Lower `if` / `else`, arranging the blocks so the nonzero `XOR` result jumps to the correct arm.
     fn lower_if(&mut self, eq: bool, lhs: &Expr, rhs: &Expr, then: &[Stmt], els: &[Stmt], force_const: bool) {
         // A folded condition emits no test and no jump, so the taken arm is
@@ -758,21 +784,7 @@ impl FnLower<'_> {
                 }
             }
             let taken = if (ai == bi) == eq { then } else { els };
-            // `free_vars_stmt` knows only a `const(...)` or two-literal `if` folds: for any other it captured the
-            // names this arm rebinds, and the loop's self-call would pass the new value on.
-            if self.fn_name.starts_with("__loop") && !force_const && !matches!((lhs, rhs), (Expr::Lit(_), Expr::Lit(_)))
-            {
-                let mut bound = std::collections::HashSet::new();
-                taken
-                    .iter()
-                    .for_each(|s| free_vars_stmt(s, &mut Vec::new(), &mut bound));
-                if let Some(p) = self.params.iter().find(|p| bound.contains(p.name.as_str())) {
-                    self.fail(format!(
-                        "a folded `if` assigns to `{}`, from outside the `for` loop: the loop cannot carry it",
-                        p.name
-                    ))
-                }
-            }
+            self.check_folded_loop_arm(taken);
             for st in taken {
                 self.stmt(st);
             }
@@ -783,7 +795,9 @@ impl FnLower<'_> {
         // NOT: folding it would rescope the arm, whose bindings then outlive it.
         if force_const {
             if let (Some(fa), Some(fb)) = (a.field, b.field) {
-                for st in if (fa == fb) == eq { then } else { els } {
+                let taken = if (fa == fb) == eq { then } else { els };
+                self.check_folded_loop_arm(taken);
+                for st in taken {
                     self.stmt(st);
                 }
                 return;
@@ -1689,6 +1703,7 @@ pub(crate) fn lower_func(
         chain_next: None,
         chain_in: None,
         inline_calls: Vec::new(),
+        branch_depth: 0,
         loop_bounds,
         queue,
         loop_ctr,

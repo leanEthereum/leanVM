@@ -86,6 +86,11 @@ fn ill_formed_calls_are_rejected_when_lowered() {
             "def main():\n    s = StackBuf(13)\n    keccak([0, 0], [0, 0], s)\n    t = StackBuf(4)\n    o = StackBuf(13)\n    keccak([0, 0], [0, 0], o, tail=t, cap=s, pad_tail=1)\n    return\n",
             "takes no len= or pad_tail=",
         ),
+        // A slice start that folded via `small_gpow` (with `addr == None`) skipped checking the full slice length.
+        (
+            "def main():\n    b = HeapBuf(4)\n    out = StackBuf(2)\n    keccak_cells(b[GEN ** 3 + 0 : GEN ** 3 + 0 + 2], out)\n    return\n",
+            "heap slice 3:5 out of bounds for `b` (HeapBuf size 4)",
+        ),
     ] {
         let ast = parse(src).unwrap();
         let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
