@@ -1,0 +1,78 @@
+\section{Introduction}\label{sec:intro}
+
+\subsection{The question}
+
+In a FRI-like polynomial commitment such as WHIR \cite{ACFY25}, the proof size and the verifier's work are dominated by the Merkle openings of the queries, and the number of queries of a level is set by one number, the \emph{agreement threshold} $\agr$ at which the level is analysed: a level of block length $\blen$ needs about $\lambda/\log_2(\blen/\agr)$ queries for $\lambda$ bits of security. For a Reed-Solomon code of rate $\rate$ the analyses that exist prove soundness for $\agr$ down to the Johnson radius $\sqrt\rate\,\blen$. Capacity, $\agr\approx\rate\,\blen$, would halve the query counts.
+
+This paper is about the WHIR variant used in leanVM \cite{leanvm}: binary fields, an additive (subspace) evaluation domain, and the affine combiner of \cite{CWYZ26}. Its deployed query counts are already within a few queries of what the Johnson radius allows. We ask how far below the Johnson radius the thresholds can go, and what exactly would have to be proved.
+
+For the protocol as it stands the answer is: nowhere at rate $1/4$ on subspace domains, and at the other rates no further than the agreement of the first large list (\S\ref{sec:gap}). The proof of soundness needs two things at the threshold, a small list of close codewords and \emph{mutual correlated agreement} (the fold of two words is close to a codeword only if the two words are close to a pair of codewords). On subspace domains both fail below the Johnson radius in places: there are explicit words with lists of $2^{26}$ to $2^{77}$ codewords, and wherever lists are large correlated agreement fails with them. Worse, for today's protocol a large list is an attack, not only a hole in the proof (\S\ref{sec:limit}).
+
+\subsection{The idea}
+
+We change the fold so that its soundness depends on the list size alone. Right after a commitment the verifier sends a few random points outside the domain, and the prover answers with the value of the committed polynomial at each of them (one field element per point, the lanes being combined with powers of a second random scalar). In every fold round, before the challenge, the prover says how each of these values splits over the two halves being folded; both parties then update the value for the folded polynomial. These \emph{point claims} are carried through the level next to the usual running claim and are never batched with it. That is the whole change (Protocol~\ref{prot:D}). We call it a DEEP fold, after the out-of-domain sampling of DEEP-FRI \cite{BGKS20}; STIR and WHIR \cite{ACFY24,ACFY25} already use out-of-domain samples to single out one member of a list at commitment time, and here the samples are in addition carried through the fold rounds.
+
+Here is why it works. A fold challenge is a pair $(\afa,\afb)$, and the fold of a pair of polynomials $(F,G)$ is $G+(\afa+\afb X)F$.
+
+\emph{First picture: a wrong list member keeps a line per point, and lines of different points have different slopes.} Suppose $(F,G)$ is close to the two halves of the committed word, but its values at a point $\zeta$ differ from the split $(y^F,y^G)$ the prover announced, by $(\delta^F,\delta^G)\ne(0,0)$. Its fold is consistent with the updated point claim exactly when
+\[
+\delta^G+(\afa+\afb\,\zeta)\,\delta^F=0 .
+\]
+This is a line in the plane of challenges. The prover chooses where the line lies, through its answers; its slope is set by $\zeta$, which the verifier chose. A second point $\zeta'\ne\zeta$ at which the pair also misses the answers gives a second line of a different slope, and two such lines meet in one challenge. So a list member that misses the answers at two points survives for at most one challenge out of $|\E|^2$, where in today's protocol it survives on a whole curve of about $|\E|$ challenges. (A member that misses the answers at one point only keeps a line; \S\ref{sec:sharp} says what that costs.) Large lists stop being dangerous.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[scale=0.92,>=Stealth]
+\begin{scope}
+\draw[->] (0,0) to (4.2,0) node[right] {$\afa$};
+\draw[->] (0,0) to (0,3.4) node[above] {$\afb$};
+\draw[thick] (0.3,0.5) .. controls (1.5,3.2) and (2.8,0.2) .. (3.9,2.6);
+\draw[thick] (0.2,2.7) .. controls (1.4,0.3) and (2.6,3.0) .. (3.9,0.9);
+\draw[thick] (0.4,1.6) .. controls (1.6,1.0) and (2.6,2.4) .. (3.9,1.7);
+\node[align=center,font=\small] at (2.1,-0.75) {today: each wrong list member\\ wins a curve of about $|\E|$ challenges};
+\end{scope}
+\begin{scope}[xshift=7.2cm]
+\draw[->] (0,0) to (4.2,0) node[right] {$\afa$};
+\draw[->] (0,0) to (0,3.4) node[above] {$\afb$};
+\draw[thick] (0.3,3.0) to (3.6,0.3);
+\node[font=\small,anchor=west] at (3.0,1.25) {slope from $\zeta_1$};
+\draw[thick] (0.9,0.2) to (2.6,3.2) node[right,font=\small] {slope from $\zeta_2$};
+\fill (1.794,1.778) circle (2.2pt);
+\node[align=center,font=\small] at (2.1,-0.75) {DEEP fold: one line per point,\\ two points leave one challenge};
+\end{scope}
+\end{tikzpicture}
+\caption{The plane of fold challenges $(\afa,\afb)$ for one list member whose values disagree with the prover's answers.}\label{fig:lines}
+\end{figure}
+
+\emph{Second picture: three candidates consistent with one answer force a determinant to vanish.} The hard part of every fold analysis is the codewords close to the folded word that are \emph{not} folds of a close pair: ruling them out is what correlated agreement does, and below the Johnson radius it cannot be done. The point claims handle them without any such theorem. Take three polynomials $P_1,P_2,P_3$, close to the folded word at three different challenges $(\afa_k,\afb_k)$, all consistent with the same answers at a point: $P_k(\zeta)=y^G+(\afa_k+\afb_k\zeta)\,y^F$. Then the three rows $\bigl(P_k(\zeta),\,1,\,\afa_k+\afb_k\zeta\bigr)$ are orthogonal to the vector $(1,y^G,y^F)$, so
+\[
+\det\begin{pmatrix}P_1&1&\afa_1+\afb_1X\\P_2&1&\afa_2+\afb_2X\\P_3&1&\afa_3+\afb_3X\end{pmatrix}\ \text{vanishes at }X=\zeta .
+\]
+This determinant is a polynomial of degree at most one more than the code's; it depends on the three candidates and not on the answers; and it is the zero polynomial exactly when the three candidates are folds of one common pair. So three candidates that are \emph{not} folds of a common pair can all be consistent with one answer only if $\zeta$ is a root of a fixed nonzero polynomial, which a random $\zeta$ is with probability about $\text{degree}/|\E|\approx2^{-104}$, and $s$ independent points all are with probability $2^{-104s}$.
+
+\emph{Counting.} There are at most $L$ close codewords per challenge, so at most $(L|\E|^2)^3$ triples. With enough points, only a negligible fraction of them survive, and then among any $\Kz$ challenges that the prover could win with one message, for $\Kz$ a few hundred times $|\E|$, more than $2|\E|$ are folds of a single pair $(F,G)$. That pair is a list member of the unfolded word and it matches the carried claims, so by the invariant it violates the running claim; but a pair with a false claim wins at most $2|\E|$ challenges. So fewer than $\Kz$ challenges can be won, and the fold round's error is $\Kz/|\E|^2$, a few hundred over $|\E|$, with no list factor and no correlated agreement term. The list size appears only in the number of points: at level $0$ each point is worth about $104$ bits, and $3\log_2L$ bits of the total pay for the list.
+
+\subsection{Contributions and their status}\label{sec:contrib}
+
+Every numbered theorem, lemma, proposition, corollary and conjecture below carries one of three labels. \stmc: the statement is a theorem of the accompanying Lean~4 development, with the Lean name and file given; where the Lean statement is more abstract or covers only part of the text, the label says so. \stpr: a complete proof by hand is given in this paper or, where explicitly said, in the cited source. No numbered statement carries this label on the strength of the project's working notes alone. Those notes are unpublished and do not accompany this paper. Some results quoted in the running text, in the tables of \S\ref{sec:proved} and in the status lines of the conjectures are proved only there: each such place says so, and their proofs are not reproduced here, so the reader cannot check them from this paper and should take them as claims of the project. A second reader within the project refereed part of the notes, and the text says which results were not refereed. This paper has had no external review. \stcj: not proved, with the evidence stated. Definitions and the protocol carry no label.
+
+\begin{enumerate}[itemsep=2pt,topsep=3pt]
+\item \emph{Today's protocol is at its limit} (\S\ref{sec:limit}). A path-cost model for attacks under Fiat-Shamir with grinding (\stpr). Large lists are attacks on the protocol of Annex~B (\stpr). Explicit lists on every binary subspace domain: at least $\blen-1$ codewords at agreement $\blen/2-1$ at rate $1/4$ (\stmc), which with the previous item closes the gap between proof and attack there, and $56\blen-392$ polynomials at agreement $5\blen/8$ at rate $1/2$ (\stpr; the Lean development checks lower bounds linear in $\blen$, not this count). Correlated agreement fails wherever lists are large, for every polynomial combiner (\stmc, over a field large enough to separate the list). At rates other than $1/4$ a window between the known lists and the Johnson radius stays open for the protocol of Annex~B.
+\item \emph{The DEEP fold} (\S\ref{sec:deepfold}). The protocol, and the fold-round lemma: outside an exceptional set of points, defined from the committed word alone and of probability at most $L^3|\E|^6\epp^s/\thr$ with $\thr$ close to $\Kz^3$, fewer than $\Kz$ fold challenges let a doomed state escape (\stmc).
+\item \emph{Round-by-round and knowledge soundness} (\S\ref{sec:rbr}). Under one hypothesis on the code, $\Lb$ (every word has at most $L$ close codewords at the level's threshold), the modified protocol is round-by-round sound with every verifier message at most $2^{-125}$ after its grind, and knowledge sound with a straight-line extractor that never list-decodes (\stpr; \stmc{} for an abstract model of the protocol with one batch of points per level, interactive and before grinding: the per-message transitions, their composition into one round-by-round statement over a run, and the bound on every prover strategy; what the model leaves out is listed in \S\ref{sec:formal}).
+\item \emph{What is unconditional} (Corollary~\ref{cor:johnson}). At today's thresholds $\Lb$ is the Johnson bound, so the protocol is sound there with no hypothesis, with a proof that does not use the affine correlated agreement theorem (\stpr). This saves no queries: the thresholds, and so the query counts, are those of today up to one query per level.
+\item \emph{The hypothesis in its weakest form} (\S\ref{sec:interleave}). $\Lb$ for interleaved words over the large field follows from the same statement for single words over the small field, with a loss of a factor at most $2$ in the ranges of interest (\stmc). The statement for single words is itself open below the Johnson radius.
+\item \emph{The state of the list problem} (\S\ref{sec:lists}). A table of everything proved about lists below the Johnson radius on binary subspace domains, from the report of a referee internal to the project; theorems for all words that constrain large lists (\stpr); five conjectures with their evidence (\stcj); and where the known techniques break.
+\item \emph{Parameters and cost} (\S\ref{sec:params}). Points per level, a schedule that reuses points across rounds at the least cost, query counts and opening sizes as a function of the threshold that a future list bound would allow, and a re-tuning of today's protocol that needs no new theorem.
+\item \emph{A Lean~4 development} (\S\ref{sec:formal}, Appendix~\ref{app:lean}) of about $12{,}300$ lines in six libraries, covering the constructions of item 1 (as lower bounds), items 2 and 5, the lemmas, the transitions and the composition of item 3 for an abstract model of the protocol, and the parameter arithmetic at level $0$. It does not cover the link from the model to the concrete protocol, nor $\Lb$ outside the unique-decoding range.
+\end{enumerate}
+
+\subsection{What this paper does not show}
+
+It does not show that leanVM, or any WHIR, can use fewer queries. The query counts in \S\ref{sec:sizes} below the Johnson radius are conditional on $\Lb$ at thresholds where it is \emph{open}: no list bound below the Johnson radius is known for arbitrary words on any binary subspace domain, and the real domain is provably less well behaved than the idealized model in which most partial results live. What the paper does is change the question. Before, lowering a threshold needed a list bound of about $2^7$ \emph{and} a correlated agreement theorem, and the second is false where lists are large. After, it needs a list bound alone, the bound may be as large as $2^{100}$, and it is a statement about a Reed-Solomon code and nothing else (Open problem~\ref{prob:list}).
+
+Further limits, stated where they arise: at the thresholds where the hypothesis is a theorem today the protocol saves no queries (\S\ref{sec:sizes}); the machine-checked soundness theorem is about an abstract model of the protocol (committed words as functions, interactive, before any grind, one batch of points per level), and the identities that tie the model to the real encoder, completeness, the Fiat-Shamir compilation with grinding, the Merkle commitments, the outer protocol of leanVM and the extractor as an algorithm are by hand or inherited (\S\ref{sec:formal}); the proved number of points is far above what any known attack needs (\S\ref{sec:sharp}); sizes are model outputs for a transcript that is not implemented.
+
+\subsection{Related work}
+
+The base protocol is WHIR \cite{ACFY25} in the Ligerito style \cite{NA25} with the affine combiner of Chiesa, Weissenberg, Yogev and Zheng \cite{CWYZ26}, whose correlated agreement error is of order $1/|\E|$ up to the Johnson radius. Counterexamples to proximity gaps below the Johnson radius over binary fields are due to Dao, Kominers, Thaler and Zheng \cite{DKTZ26}; the $5\blen/8$ family of \S\ref{sec:five8} is the smallest case of their construction, turned into a list, and large lists for Reed-Solomon codes over binary extension fields are also the subject of \cite{Zhu26} and, earlier, of the subspace-polynomial constructions of \cite{BKR06}. The list-decoding and correlated-agreement questions behind WHIR-like protocols are surveyed in \cite{ABF26}. For evaluation points in general position Reed-Solomon codes are list decodable up to the generalized Singleton bound \cite{BGM}; \S\ref{sec:obstructions} explains why those proofs do not transfer to subspaces.

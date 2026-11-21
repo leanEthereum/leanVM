@@ -1,0 +1,345 @@
+% Generated from the Lean sources by copying each statement verbatim; do not edit by hand.
+\medskip\noindent\textbf{\texttt{lemmaF\_exc}}, \texttt{lean/DeepFold/Main.lean}: Lemma~\ref{lem:F}(1).\par\nopagebreak
+\begin{lstlisting}
+theorem lemmaF_exc (D : Finset K) (O₀ O₁ : K → ι → K) (d A : ℕ) {ex : ι → ℕ}
+    (hex : Function.Injective ex) {E : ℕ} (hE : ∀ u, ex u ≤ E) (Λ : ℕ)
+    (hΛ : ∀ c : K × K, ((fullT D O₀ O₁ d A).filter (fun e => e.1 = c)).card ≤ Λ)
+    (s : ℕ) {B : ℕ} (hB : 0 < B) :
+    ((ExcL (fullT D O₀ O₁ d A) ex s B).card : ℚ) / (Fintype.card (Fin s → K × K) : ℚ) ≤
+      (Λ : ℚ) ^ 3 * (Fintype.card K : ℚ) ^ 6 *
+        (((d + 1 + E : ℕ) : ℚ) / Fintype.card K) ^ s / B
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{lemmaF\_round}}, \texttt{lean/DeepFold/Main.lean}: Lemma~\ref{lem:F}(2).\par\nopagebreak
+\begin{lstlisting}
+theorem lemmaF_round [CharP K 2] (D : Finset K) (O₀ O₁ : K → ι → K) (d A : ℕ) (ex : ι → ℕ)
+    (w : ℕ) {s K₀ M : ℕ} (hMq : 2 * Fintype.card K ≤ M) (hMn : D.card.choose 2 ≤ M)
+    {z : Fin s → K × K}
+    (hz : z ∉ ExcL (fullT D O₀ O₁ d A) ex s (K₀ * (K₀ - 1) * (K₀ - M)))
+    (W₀ W₁ : (ι → K[X]) →ₗ[K] K) (σ : K) (v : Fin s → K)
+    (B : (ι → K[X]) → (ι → K[X]) → Prop)
+    (hyp : ∀ F₀ G₀ : ι → K[X], (∀ u, (F₀ u).degree < (d : WithBot ℕ)) →
+      (∀ u, (G₀ u).natDegree ≤ d) → A ≤ (agrPairL D O₀ O₁ F₀ G₀).card + 1 → B F₀ G₀ →
+      (∀ i, (z i).1 ^ w * evL ex (z i) F₀ + evL ex (z i) G₀ = v i) → W₀ F₀ + W₁ G₀ ≠ σ)
+    (vG vF σ₀ σ₁ : K) (φm : Fin s → K) :
+    (univ.filter (fun c : K × K => ∃ P : ι → K[X],
+      (∀ u, (P u).natDegree ≤ d) ∧ A ≤ (agrL D O₀ O₁ (c, P)).card ∧
+      (∀ i, evL ex (z i) P = v i + ((z i).1 ^ w + c.1 + c.2 * (z i).2) * φm i) ∧
+      ((1 + c.1) • W₀ + c.1 • W₁) P =
+        vG + c.1 * (vG + σ) + c.1 ^ 2 * vF + c.2 * σ₀ + c.1 * c.2 * (σ₀ + σ₁) ∧
+      (∀ F₀ G₀ : ι → K[X], (∀ u, (F₀ u).natDegree ≤ d) → (∀ u, (G₀ u).natDegree ≤ d) →
+        (agrL D O₀ O₁ (c, P) \ agrPairL D O₀ O₁ F₀ G₀).card ≤ 1 → B F₀ G₀))).card < K₀
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{lemmaP}}, \texttt{lean/Protocol/Pinning.lean}: Lemma~\ref{lem:P}.\par\nopagebreak
+\begin{lstlisting}
+theorem lemmaP (D : Finset K) (O : K → ι → K) (d A : ℕ) {ex : ι → ℕ}
+    (hex : Function.Injective ex) {E : ℕ} (hE : ∀ u, ex u ≤ E) {L : ℕ}
+    (hL : (listW D O d A).card ≤ L) (s : ℕ) :
+    dens (fun z : Fin s → K × K => z ∈ NonSep (listW D O d A) ex s) ≤
+      (L.choose 2 : ℚ) * (((d + E : ℕ) : ℚ) / Fintype.card K) ^ s
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{levelPot\_step}}, \texttt{lean/Protocol/Level.lean}: Lemma~\ref{lem:T}(b).\par\nopagebreak
+\begin{lstlisting}
+theorem levelPot_step (hτ : 0 < τ) {z : Fin s → K × K} {k r : ℕ} {O : Word K (r + 1)}
+    (h : levelPot τ D d thr s B z k (r + 1) O < 1) :
+    z ∉ ExcL (fullT D (half₀ O) (half₁ O) d (thr (k + 1))) (exL (k + 1) r) s B ∧
+      dens (fun c : K × K => 1 ≤ levelPot τ D d thr s B z (k + 1) r (foldW O c)) < τ
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{dens\_not\_good\_le}}, \texttt{lean/Protocol/Level.lean}: the point message of Theorem~\ref{thm:rbr-deep}, one batch.\par\nopagebreak
+\begin{lstlisting}
+theorem dens_not_good_le (hτ : 0 ≤ τ) (hB : 0 < B) {L ℓ : ℕ} (hℓ : 1 ≤ ℓ)
+    (hL : ∀ k r, k + r = ℓ → ∀ O' : Word K r, (listW D O' d (thr k)).card ≤ L)
+    (O : Word K ℓ) :
+    dens (fun z : Fin s → K × K => ¬ Good τ D d thr s B ℓ O z) ≤
+      ((L.choose 2 : ℚ) + (L : ℚ) ^ 3 * (Fintype.card K : ℚ) ^ 6 / B *
+          ∑ j ∈ range ℓ, τ⁻¹ ^ j) * (((d + 2 ^ ℓ - 1 : ℕ) : ℚ) / Fintype.card K) ^ s
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{dens\_not\_goodS\_le}}, \texttt{lean/Protocol/Ladder.lean}: the point message of Theorem~\ref{thm:rbr-deep}, any schedule.\par\nopagebreak
+\begin{lstlisting}
+theorem dens_not_goodS_le (hτ : 0 ≤ τ) {L ℓ : ℕ} (hℓ : 1 ≤ ℓ)
+    (hL : ∀ k r, k + r = ℓ → ∀ O' : Word K r, (listW D O' d (thr k)).card ≤ L)
+    (O : Word K ℓ) (n : ℕ) :
+    dens (fun p : Fin n → K × K => ¬ GoodS τ D d thr bt B ℓ O p) ≤
+      (L.choose 2 : ℚ) * (((d + 2 ^ ℓ - 1 : ℕ) : ℚ) / Fintype.card K) ^ n +
+        ∑ j ∈ range ℓ, τ⁻¹ ^ j * ((L : ℚ) ^ 3 * (Fintype.card K : ℚ) ^ 6 *
+          (((d + 2 ^ ℓ - 1 : ℕ) : ℚ) / Fintype.card K) ^ held bt 0 n j / B)
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{level0\_point\_error}}, \texttt{lean/Protocol/Params.lean}: Proposition~\ref{prop:params}, twelve points at level 0.\par\nopagebreak
+\begin{lstlisting}
+theorem level0_point_error (hq : Fintype.card K = 2 ^ 128) (D : Finset K) (thr : ℕ → ℕ)
+    (hL : ∀ k r, k + r = 6 → ∀ O' : Word K r,
+      (listW D O' (2 ^ 24 + 5) (thr k)).card ≤ 2 ^ 40) (O : Word K 6) :
+    dens (fun z : Fin 12 → K × K => ¬ Good (1 / 2 ^ 119) D (2 ^ 24 + 5) thr 12
+      (2 ^ 137 * (2 ^ 137 - 1) * (2 ^ 137 - 2 ^ 129)) 6 O z) ≤ 1 / 2 ^ 110
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{Doomed}}, \texttt{lean/Rounds/Basic.lean}: the state $(\mathrm{I}^{B}_{i,j})$.\par\nopagebreak
+\begin{lstlisting}
+def Doomed (D : Finset K) (O : K → ι → K) (d A : ℕ) (ex : ι → ℕ) {s : ℕ}
+    (z : Fin s → K × K) (v : Fin s → K) (W : (ι → K[X]) →ₗ[K] K) (σ : K)
+    (B : (ι → K[X]) → Prop) : Prop :=
+  ∀ U : ι → K[X], InList D O d A U → B U → (∀ m, evL ex (z m) U = v m) → W U ≠ σ
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{batch\_transition}}, \texttt{lean/Rounds/Batch.lean}: transition M1.\par\nopagebreak
+\begin{lstlisting}
+theorem batch_transition (D : Finset K) (O : K → ι → K) (d A : ℕ) (ex : ι → ℕ) {s : ℕ}
+    (z : Fin s → K × K) (y : Fin s → K) {J : ℕ} (Wk : Fin J → (ι → K[X]) →ₗ[K] K)
+    (ck : Fin J → K) (B : (ι → K[X]) → Prop)
+    (hsep : ∀ U U' : ι → K[X], InList D O d A U → InList D O d A U' →
+      (∀ m, evL ex (z m) U = y m) → (∀ m, evL ex (z m) U' = y m) → U = U')
+    (hfalse : ∀ U : ι → K[X], InList D O d A U → B U → (∀ m, evL ex (z m) U = y m) →
+      ∃ k, Wk k U ≠ ck k) :
+    (univ.filter (fun l : K =>
+      ¬ Doomed D O d A ex z y (batchW Wk l) (batchC ck l) B)).card ≤ J - 1
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{fold\_transition}}, \texttt{lean/Rounds/Fold.lean}: transition M2.\par\nopagebreak
+\begin{lstlisting}
+theorem fold_transition [CharP K 2] (D : Finset K) (O : K → ι ⊕ ι → K) (d A : ℕ) (ex : ι → ℕ)
+    (w : ℕ) {s K₀ M : ℕ} (hMq : 2 * Fintype.card K ≤ M) (hMn : D.card.choose 2 ≤ M)
+    {z : Fin s → K × K}
+    (hz : z ∉ ExcL (fullT D (half₀ O) (half₁ O) d A) ex s (K₀ * (K₀ - 1) * (K₀ - M)))
+    (W : (ι ⊕ ι → K[X]) →ₗ[K] K) (σ : K) (v : Fin s → K) (B : (ι ⊕ ι → K[X]) → Prop)
+    (hI : Doomed D O d (A - 1) (exHalves w ex) z v W σ B)
+    (vG vF σ₀ σ₁ : K) (φm : Fin s → K) :
+    (univ.filter (fun c : K × K =>
+      ¬ Doomed D (foldWord c O) d A ex z (foldVal w z v φm c) (foldWeight W c)
+        (foldClaim σ vG vF σ₀ σ₁ c) (pull D O d A c B))).card < K₀
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{query\_transition}}, \texttt{lean/Rounds/Query.lean}: transition M3.\par\nopagebreak
+\begin{lstlisting}
+theorem query_transition [CharP K 2] (D : Finset K) (w : K → K) (d A : ℕ) {s : ℕ}
+    (ζ v : Fin s → K) (W : K[X] →ₗ[K] K) (σ : K) (B : K[X] → Prop)
+    (hI : Doomed₁ D w d A ζ v W σ B)
+    (D' : Finset K) (O' : K → ι' → K) (d' A' : ℕ) (ex' : ι' → ℕ) {s' : ℕ}
+    (z' : Fin s' → K × K) (y' : Fin s' → K)
+    (hsep : ∀ U U' : ι' → K[X], InList D' O' d' A' U → InList D' O' d' A' U' →
+      (∀ m, evL ex' (z' m) U = y' m) → (∀ m, evL ex' (z' m) U' = y' m) → U = U')
+    (low : (ι' → K[X]) →ₗ[K] K[X]) (C : K[X])
+    (hdeg : ∀ U : ι' → K[X], InList D' O' d' A' U → (low U + C).natDegree ≤ d)
+    (hWC : W C = 0) (t : ℕ) :
+    (((Fintype.piFinset (fun _ : Fin t => D)) ×ˢ (univ : Finset K)).filter
+      (fun xl : (Fin t → K) × K =>
+        ¬ Doomed D' O' d' A' ex' z' y' (nextW W low ζ xl.1 xl.2) (nextC σ C w ζ v xl.1 xl.2)
+          (fun U => B (low U + C)))).card ≤
+      (A - 1) ^ t * Fintype.card K + D.card ^ t * (s + t)
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{final\_transition}}, \texttt{lean/Rounds/Final.lean}: transition M4.\par\nopagebreak
+\begin{lstlisting}
+theorem final_transition (D : Finset K) (w : K → K) (d A : ℕ) {s : ℕ} (ζ v : Fin s → K)
+    (W : K[X] →ₗ[K] K) (σ : K) (B : K[X] → Prop) (hI : Doomed₁ D w d A ζ v W σ B)
+    (P : K[X]) (hP : P.natDegree ≤ d) (t : ℕ) :
+    ((Fintype.piFinset (fun _ : Fin t => D)).filter (fun x =>
+      (∀ m, P.eval (ζ m) = v m) ∧ (∀ q, P.eval (x q) = w (x q)) ∧ W P = σ ∧
+        ¬ (A ≤ (D.filter (fun x => P.eval x = w x)).card ∧ ¬ B P))).card ≤ (A - 1) ^ t
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{descent\_step}}, \texttt{lean/Rounds/Extract.lean}: the descent step of Theorem~\ref{thm:K}.\par\nopagebreak
+\begin{lstlisting}
+theorem descent_step (D : Finset K) (O : K → ι ⊕ ι → K) (d A : ℕ) (c : K × K)
+    (B : (ι ⊕ ι → K[X]) → Prop) (hdA : d + 3 ≤ A) {P : ι → K[X]}
+    (hP : ∀ u, (P u).natDegree ≤ d) (hnb : ¬ pull D O d A c B P) :
+    InList D (foldWord c O) d A P ∧
+      ∃ T : ι ⊕ ι → K[X], NearT D O d (agr D (foldWord c O) P) T ∧ InList D O d (A - 1) T ∧
+        ¬ B T ∧ P = foldTuple c T ∧
+        ∀ T' : ι ⊕ ι → K[X], NearT D O d (agr D (foldWord c O) P) T' → T' = T
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{StateFunction}}, \texttt{lean/Soundness/RBR.lean}: the definition of a round-by-round state function, properties (i) to (iv).\par\nopagebreak
+\begin{lstlisting}
+structure StateFunction (Γ : PublicCoin.{u, v, w}) (start win : Γ.Pos → Prop) (err : Γ.Pos → ℚ)
+    (doomed : Γ.Pos → Prop) (doomedP : ∀ s, Γ.Msg s → Prop) : Prop where
+  /-- (i) -/
+  start_doomed : ∀ s, start s → doomed s
+  /-- (ii) -/
+  prover_doomed : ∀ s (p : Γ.Msg s), doomed s → doomedP s p
+  /-- (iii) -/
+  verifier_doomed : ∀ s (p : Γ.Msg s), doomedP s p →
+    dens (fun c : Γ.Chal s => ¬ doomed (Γ.next s p c)) ≤ err s
+  /-- (iv) -/
+  doomed_not_win : ∀ s, doomed s → ¬ win s
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{RBRSound}}, \texttt{lean/Soundness/RBR.lean}: round-by-round soundness.\par\nopagebreak
+\begin{lstlisting}
+def RBRSound (Γ : PublicCoin.{u, v, w}) (start win : Γ.Pos → Prop) (err : Γ.Pos → ℚ) : Prop :=
+  ∃ (doomed : Γ.Pos → Prop) (doomedP : ∀ s, Γ.Msg s → Prop),
+    StateFunction Γ start win err doomed doomedP
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{Level.OK}}, \texttt{lean/Soundness/ProtocolD.lean}: the standing assumptions and Hypothesis~\ref{hyp:LB} (diagonal form) for a level of the model.\par\nopagebreak
+\begin{lstlisting}
+structure Level.OK [Fintype K] (M : ℕ) (lv : Level K) : Prop where
+  /-- `ℓ ≥ 1`. -/
+  ell_pos : 1 ≤ lv.ℓ
+  /-- The domain is not empty. -/
+  nonempty : lv.D.Nonempty
+  /-- (S3). -/
+  choose_le : lv.D.card.choose 2 ≤ M
+  /-- `A^{(i,k)} + 1 ≤ A^{(i,k+1)}`. -/
+  thr_step : ∀ k, lv.thr k + 1 ≤ lv.thr (k + 1)
+  /-- `ListBound`. -/
+  listBound : ∀ k r, k + r = lv.ℓ → ∀ O' : Word K r, (listW lv.D O' lv.d (lv.thr k)).card ≤ lv.L
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{win}}, \texttt{lean/Soundness/ProtocolD.lean}: the winning condition.\par\nopagebreak
+\begin{lstlisting}
+def win : Pos K → Prop
+  | .done acc ext tru => acc ∧ ¬ (ext ∧ tru)
+  | _ => False
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{protocolD\_rbr}}, \texttt{lean/Soundness/ProtocolD.lean}: Theorem~\ref{thm:rbr-deep} for the abstract model, one batch per level.\par\nopagebreak
+\begin{lstlisting}
+theorem protocolD_rbr [CharP K 2] (hτ : 0 < τ) (hMq : 2 * Fintype.card K ≤ M)
+    (hΘ : 0 < tripleThr K₀ M) (J : ℕ) :
+    RBRSound (protocolD K T J) (start M) win (err τ K₀ M J)
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{protocolD\_sound}}, \texttt{lean/Soundness/Sound.lean}: every prover strategy wins with probability at most the sum of the errors.\par\nopagebreak
+\begin{lstlisting}
+theorem protocolD_sound [CharP K 2] (hτ : 0 < τ) (hMq : 2 * Fintype.card K ≤ M)
+    (hΘ : 0 < tripleThr K₀ M) (J : ℕ) (lv : Level K) (rest : List (Level K))
+    (hOK : ∀ l ∈ lv :: rest, l.OK M) (n : ℕ)
+    (σ : (protocolD K T J).Strategy n (Pos.commit lv rest)) :
+    (protocolD K T J).winProb win n (Pos.commit lv rest) σ ≤
+      budget T τ K₀ M J (Pos.commit lv rest)
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{protocolD\_sound\_extract}}, \texttt{lean/Soundness/Sound.lean}: Theorem~\ref{thm:K} composed, canonical predicate.\par\nopagebreak
+\begin{lstlisting}
+theorem protocolD_sound_extract [CharP K 2] (hτ : 0 < τ) (hMq : 2 * Fintype.card K ≤ M)
+    (hΘ : 0 < tripleThr K₀ M) (J : ℕ) (lv : Level K) (rest : List (Level K))
+    (hOK : ∀ l ∈ lv :: rest, l.OK M) (n : ℕ)
+    (σ : (protocolD K T J).Strategy n (Pos.commit lv rest)) :
+    (protocolD K T J).winProb winExtract n (Pos.commit lv rest) σ ≤
+      budget T τ K₀ M J (Pos.commit lv rest)
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{Terminal.AdmitsZero}}, \texttt{lean/Soundness/Sound.lean}: the condition on the tail under which the prover has a final message.\par\nopagebreak
+\begin{lstlisting}
+def Terminal.AdmitsZero : Prop :=
+  ∀ W : (Lane 0 → K[X]) →ₗ[K] K, ∑ x, T.wtab W 0 x * T.ftab W 0 x = 0
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{Level.Fits}}, \texttt{lean/Soundness/Sound.lean}: the condition on two consecutive levels under which the prover has a high part.\par\nopagebreak
+\begin{lstlisting}
+def Level.Fits (lv lv' : Level K) : Prop :=
+  ∀ U : Lane lv'.ℓ → K[X], (∀ u, (U u).natDegree ≤ lv'.d) → (lv'.low U).natDegree ≤ lv.d
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{ladderFits}}, \texttt{lean/Soundness/Sound.lean}: the same for a ladder.\par\nopagebreak
+\begin{lstlisting}
+def ladderFits : Level K → List (Level K) → Prop
+  | _, [] => True
+  | lv, lv' :: rest => lv.Fits lv' ∧ ladderFits lv' rest
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{strategy\_nonempty\_ladder}}, \texttt{lean/Soundness/Sound.lean}: prover strategies exist on every such ladder with every such tail.\par\nopagebreak
+\begin{lstlisting}
+theorem strategy_nonempty_ladder (hT : T.AdmitsZero) (J : ℕ) (lv : Level K)
+    (rest : List (Level K)) (h : ladderFits lv rest) (n : ℕ) :
+    Nonempty ((protocolD K T J).Strategy n (Pos.commit lv rest))
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{protocolD\_sound\_of\_HK}}, \texttt{lean/Soundness/Hypothesis.lean}: the same from Hypothesis~\ref{hyp:HK}.\par\nopagebreak
+\begin{lstlisting}
+theorem protocolD_sound_of_HK [Fintype F] [CharP K 2] (hτ : 0 < τ) (hMq : 2 * Fintype.card K ≤ M)
+    (hΘ : 0 < tripleThr K₀ M) (J : ℕ) (lv : Level K) (rest : List (Level K))
+    (hHK : ∀ l ∈ lv :: rest, l.HK F M) (n : ℕ)
+    (σ : (protocolD K T J).Strategy n (Pos.commit lv rest)) :
+    (protocolD K T J).winProb win n (Pos.commit lv rest) σ ≤
+      budget T τ K₀ M J (Pos.commit lv rest)
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{protocolD\_sound\_concrete\_unique\_le}}, \texttt{lean/Soundness/Hypothesis.lean}: a concrete instance with no hypothesis (one level, no tail; not a deployed parameter set).\par\nopagebreak
+\begin{lstlisting}
+theorem protocolD_sound_concrete_unique_le (n : ℕ)
+    (σ : (protocolD E128 (Terminal.direct E128) 512).Strategy n (Pos.commit levelConcrete [])) :
+    (protocolD E128 (Terminal.direct E128) 512).winProb win n (Pos.commit levelConcrete []) σ ≤
+      1 / 2 ^ 109
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{protocolD\_sound\_concrete\_ladder}}, \texttt{lean/Soundness/Hypothesis.lean}: a concrete instance with no hypothesis on two levels with a tail of two rounds (not a deployed parameter set).\par\nopagebreak
+\begin{lstlisting}
+theorem protocolD_sound_concrete_ladder (n : ℕ)
+    (σ : (protocolD E128 (Terminal.point E128 2) 512).Strategy n
+      (Pos.commit levelConcrete [levelConcrete₁])) :
+    (protocolD E128 (Terminal.point E128 2) 512).winProb win n
+        (Pos.commit levelConcrete [levelConcrete₁]) σ ≤
+      budget (Terminal.point E128 2) (1 / 2 ^ 119) (2 ^ 137) (2 ^ 129) 512
+        (Pos.commit levelConcrete [levelConcrete₁])
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{interleave\_listBound}}, \texttt{lean/Interleave/Tree.lean}: Theorem~\ref{thm:I}.\par\nopagebreak
+\begin{lstlisting}
+theorem interleave_listBound (hC : AgreeLE D C d) (hda : d < a) (hL : ListBound D C a L)
+    (m : Type*) [Finite m] :
+    ListBound D (interleave m C) a (treeN L (a - d) (D.card - d))
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{rs\_descent}\textsubscript{\texttt{1}}}, \texttt{lean/Interleave/ReedSolomon.lean}: Proposition~\ref{prop:R2} from $\HK$.\par\nopagebreak
+\begin{lstlisting}
+theorem rs_descent₁ (hL : RSListBound₁ D d a L) (h2 : 2 * L ≤ Fintype.card K)
+    (w : K → lanes → F) (S : Finset (lanes → F[X]))
+    (hS : ∀ P ∈ S, (∀ u, (P u).natDegree ≤ d) ∧
+      a ≤ (agr D w (fun x u => (P u).eval (algebraMap K F x))).card) :
+    S.card ≤ 2 * L - 1 ∧ S.card * (Fintype.card K - L) ≤ L * Fintype.card K
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{lemmaF\_exc\_of\_HK}}, \texttt{lean/Interleave/Bridge.lean}: Lemma~\ref{lem:F}(1) from $\HK$.\par\nopagebreak
+\begin{lstlisting}
+theorem lemmaF_exc_of_HK (D₀ : Finset K) (O₀ O₁ : E → ι → E) (d A : ℕ) {ex : ι → ℕ}
+    (hex : Function.Injective ex) {Eb : ℕ} (hE : ∀ u, ex u ≤ Eb) (L : ℕ)
+    (hL : RSListBound₁ D₀ d A L) (hda : d < A) (h4 : D₀.card + 3 * d < 4 * A) (s : ℕ) {B : ℕ}
+    (hB : 0 < B) :
+    ((DeepFold.ExcL (DeepFold.fullT (D₀.image (algebraMap K E)) O₀ O₁ d A) ex s B).card : ℚ) /
+        (Fintype.card (Fin s → E × E) : ℚ) ≤
+      ((2 * L - 1 : ℕ) : ℚ) ^ 3 * (Fintype.card E : ℚ) ^ 6 *
+        (((d + 1 + Eb : ℕ) : ℚ) / Fintype.card E) ^ s / B
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{flats\_quarter}}, \texttt{lean/Constructions/Flats.lean}: Proposition~\ref{prop:flats}, rate $1/4$.\par\nopagebreak
+\begin{lstlisting}
+theorem flats_quarter (D : AddSubgroup K) [Finite D] {s : ℕ} (hs : 1 ≤ s)
+    (hD : Nat.card D = 2 ^ (s + 1)) :
+    ((Nat.card D - 1 : ℕ) : ℕ∞) ≤
+      (RSList (pts D) (fun x => x ^ (2 ^ s - 1)) (2 ^ (s - 1)) (2 ^ s - 1)).encard
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{list\_gives\_bad\_challenges}}, \texttt{lean/Constructions/Pole.lean}: Proposition~\ref{prop:pole}.\par\nopagebreak
+\begin{lstlisting}
+theorem list_gives_bad_challenges [Fintype K] (D : Finset K) (w : K → K) {d T : ℕ}
+    (𝒞 : Finset K[X]) (h𝒞 : ∀ Ci ∈ 𝒞, Ci.natDegree ≤ d + 1 ∧ T ≤ (agree D w Ci).card)
+    (hK : (d + 1) * 𝒞.card.choose 2 + D.card < Fintype.card K) :
+    ∃ β₀ : K, β₀ ∉ D ∧
+      𝒞.card * Fintype.card K ≤
+        (univ.filter (fun c : K × K =>
+          Close D (affFold (poleWord β₀) (poleNum w β₀) c) d T)).card
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{five\_eighths\_slack}}, \texttt{lean/Constructions/Padded.lean}: Proposition~\ref{prop:five8}(c).\par\nopagebreak
+\begin{lstlisting}
+theorem five_eighths_slack (D H : AddSubgroup K) [Finite D] (hHD : H ≤ D)
+    (hH : 2 * Nat.card H = Nat.card D) {m : ℕ} (hD : Nat.card D = 8 * m) (P : Finset K)
+    (hP : ∀ x ∈ P, x ∈ H) (hPc : P.card = 3 * m) :
+    ((Nat.card D - 2 : ℕ) : ℕ∞) ≤
+      (RSList (pts D) (padWord P (2 * m)) (4 * m + 1) (5 * m)).encard
+\end{lstlisting}
+
+\medskip\noindent\textbf{\texttt{glued\_list\_card}}, \texttt{lean/Constructions/GluedCount.lean}: Proposition~\ref{prop:five8}(a), a lower bound on its count.\par\nopagebreak
+\begin{lstlisting}
+theorem glued_list_card (D U : AddSubgroup K) [Finite D] (hUD : U ≤ D)
+    (hD : Nat.card D = 8 * Nat.card U) :
+    ((Nat.card U - 1 : ℕ) : ℕ∞) ≤
+      (RSList (pts D) (fun x => (subPoly U).eval x ^ 5)
+        (4 * Nat.card U + 1) (5 * Nat.card U)).encard
+\end{lstlisting}

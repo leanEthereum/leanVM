@@ -1,0 +1,143 @@
+% Packages, notation and theorem environments.
+% Notation follows Annex B of the leanVM specification (doc/leanvm/preamble/macros.tex).
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{tabularx,booktabs,longtable,array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
+\usepackage{listings}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+
+\emergencystretch=1.5em
+
+% ragged-right table cells: narrow justified columns set badly
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+% fields, multilinears
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\Ftwo}{\mathbb{F}_2}
+\newcommand{\K}{K}
+\newcommand{\E}{E}
+\newcommand{\q}{q}
+\newcommand{\mle}[1]{\widetilde{#1}}
+\newcommand{\eq}{\operatorname{eq}}
+\newcommand{\cube}[1]{\{0,1\}^{#1}}
+\newcommand{\inner}[2]{\langle #1,\, #2 \rangle}
+\newcommand{\fc}{\chi}
+\newcommand{\qeq}{\stackrel{?}{=}}
+
+% codes and the PCS, as in Annex B
+\newcommand{\Enc}{\mathrm{Enc}}
+\newcommand{\RS}{\mathrm{RS}}
+\newcommand{\nv}{M}
+\newcommand{\nlev}{\Lambda}
+\newcommand{\rate}{\rho}
+\newcommand{\rexp}{\nu}
+\newcommand{\rc}[1]{c^{(#1)}}
+\newcommand{\nq}{\omega}
+\newcommand{\blen}{n}
+\newcommand{\dom}{\mathcal{D}}
+\newcommand{\orc}{Z}
+\newcommand{\lst}{\mathcal{L}}
+\newcommand{\aset}{\mathcal{A}}
+\newcommand{\agr}{t}
+\newcommand{\dgr}{\mathsf{d}}
+\newcommand{\jl}{\mathsf{L}}
+\newcommand{\afa}{\mathsf{a}}
+\newcommand{\afb}{\mathsf{b}}
+\newcommand{\tabx}[1]{v_{X,#1}}
+\newcommand{\phigh}{\mathbf{h}}
+\newcommand{\epsaff}{\varepsilon_{\mathrm{aff}}}
+\newcommand{\vansub}{\mathcal{V}}
+\newcommand{\Wn}[1]{\widehat{\vansub}_{#1}}
+\newcommand{\novel}{\mathcal{X}}
+\newcommand{\mpoly}{\mathcal{P}}
+
+% this paper
+\newcommand{\ev}{\operatorname{ev}}            % the point evaluation functional
+\newcommand{\cand}{\mathcal{T}}                % the set of candidates (challenge, list member of the fold)
+\newcommand{\cls}{\mathcal{C}}                 % a class of candidates
+\newcommand{\Exc}{\operatorname{Exc}}          % the exceptional set of point tuples
+\newcommand{\pot}{\Psi}                        % the potential of a level
+\newcommand{\thr}{\Theta}                      % the triple threshold K_0 (K_0 - 1)(K_0 - M)
+\newcommand{\Kz}{K_0}                          % an integer constant of the analysis
+\newcommand{\dsc}{\tau}                        % the discount of the potential
+\newcommand{\epp}{\epsilon}                    % the error of one point
+\newcommand{\Lb}{\mathrm{ListBound}}
+\newcommand{\HK}{\mathrm{H}_{\K}}
+\newcommand{\HE}{\mathrm{H}_{\E}}
+\newcommand{\pull}{\operatorname{pull}}
+\newcommand{\Bad}{\mathrm{Bad}}
+\newcommand{\treeN}{\mathsf{N}}
+\newcommand{\loc}{L}                           % a subspace polynomial L_V
+\newcommand{\Zs}{Z}                            % a locator Z_S (context separates it from the oracle)
+\newcommand{\Prob}{\Pr}
+\newcommand{\Ex}{\mathbb{E}}
+\newcommand{\bP}{\mathbf{P}}
+\newcommand{\bV}{\mathbf{V}}
+\DeclareMathOperator{\agrset}{agr}
+
+% Lean names and status labels
+\DeclareUrlCommand\leanurl{\urlstyle{tt}}
+\newcommand{\lean}[1]{\leanurl{#1}}
+\newcommand{\leanfile}[1]{\leanurl{lean/#1}}
+\newcommand{\leansub}[2]{\leanurl{#1}\textsubscript{\texttt{#2}}}
+\newcommand{\stmc}{\textsc{machine-checked}}
+\newcommand{\stpr}{\textsc{proved}}
+\newcommand{\stcj}{\textsc{conjectured}}
+\newcommand{\status}[1]{\par\smallskip\noindent{\small\sloppy\textbf{Status.} #1\par}\smallskip}
+
+% theorem environments
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{hypothesis}[theorem]{Hypothesis}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{protocol}[theorem]{Protocol}
+\newtheorem{problem}[theorem]{Open problem}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+% Lean listings
+\lstdefinelanguage{lean}{
+  morekeywords={theorem,lemma,def,noncomputable,by,fun,if,then,else,let,have,show,from,open,variable,abbrev},
+  sensitive=true,
+  morecomment=[l]{--},
+}
+\lstset{
+  language=lean,
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\bfseries,
+  columns=fullflexible,
+  keepspaces=true,
+  breaklines=true,
+  breakindent=2em,
+  frame=single,
+  framesep=4pt,
+  xleftmargin=6pt,
+  xrightmargin=6pt,
+  extendedchars=true,
+  literate=
+    {ℕ}{{$\mathbb{N}$}}1 {ℚ}{{$\mathbb{Q}$}}1 {∞}{{$\infty$}}1
+    {→}{{$\to$}}1 {↔}{{$\leftrightarrow$}}1 {∀}{{$\forall$}}1 {∃}{{$\exists$}}1
+    {≤}{{$\le$}}1 {≥}{{$\ge$}}1 {≠}{{$\ne$}}1 {¬}{{$\neg$}}1 {∧}{{$\wedge$}}1 {∨}{{$\vee$}}1
+    {∈}{{$\in$}}1 {∉}{{$\notin$}}1 {⊆}{{$\subseteq$}}1 {∑}{{$\sum$}}1 {∏}{{$\prod$}}1
+    {⊕}{{$\oplus$}}1 {×}{{$\times$}}1 {ˢ}{{$^{s}$}}1 {•}{{$\bullet$}}1 {∘}{{$\circ$}}1
+    {⁻}{{$^{-}$}}1 {¹}{{$^{1}$}}1
+    {₀}{{$_0$}}1 {₁}{{$_1$}}1 {₂}{{$_2$}}1 {₃}{{$_3$}}1 {ₗ}{{$_{l}$}}1
+    {α}{{$\alpha$}}1 {β}{{$\beta$}}1 {σ}{{$\sigma$}}1 {τ}{{$\tau$}}1 {ι}{{$\iota$}}1 {κ}{{$\kappa$}}1
+    {ζ}{{$\zeta$}}1 {φ}{{$\varphi$}}1 {Λ}{{$\Lambda$}}1 {ℓ}{{$\ell$}}1 {λ}{{$\lambda$}}1 {θ}{{$\theta$}}1
+    {Γ}{{$\Gamma$}}1 {𝒞}{{$\mathcal{C}$}}1 {𝒯}{{$\mathcal{T}$}}1 {ε}{{$\varepsilon$}}1 {π}{{$\pi$}}1 {Θ}{{$\Theta$}}1
+    {⟨}{{$\langle$}}1 {⟩}{{$\rangle$}}1 {↑}{{$\uparrow$}}1 {⊢}{{$\vdash$}}1 {∣}{{$\mid$}}1
+}

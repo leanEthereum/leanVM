@@ -1,0 +1,159 @@
+\section{Lean correspondence}\label{app:lean}
+
+The table lists, for each statement of the paper with machine-checked content, the Lean theorems and their files, relative to the directory \texttt{lean/} that accompanies the paper. A row marked ``by hand'' has no Lean counterpart. The notation of the Lean sources and of their comments differs from the paper's as follows (\texttt{lean/README.md} has the same list as a table). The field is \texttt{K}, with \texttt{q} elements, for $\E$ (except in \texttt{Interleave}, where \texttt{K} is the small field and \texttt{F} or \texttt{E} an extension, and in \lean{protocolD_sound_of_HK}, where the small field is \texttt{F}). A word is \texttt{O}, with halves \texttt{O}\textsubscript{\texttt{0}}, \texttt{O}\textsubscript{\texttt{1}} and fold \texttt{O}\textsubscript{\texttt{c}}, for $\orc$, $\orc_0$, $\orc_1$, $\orc_c$. The degree bound is \texttt{d} for $\dgr$. An agreement is \texttt{A} for $\agr$, and the thresholds are \texttt{thr k}, written $A^{(i,k)}$ in the comments, for $\agr^{(i,k)}$. A fold challenge is \texttt{c = (c.1, c.2)}, written $(\alpha,\beta)$ in the comments, for $(\afa,\afb)$. The running claim's value is $\sigma$ for $c$. The prover's scalars are \texttt{vG}, \texttt{vF}, $\sigma_0$, $\sigma_1$, $\varphi$\texttt{m} for $v_G,v_F,\tabx{0},\tabx{1},\varphi_m$. The number of queries is \texttt{t} for $\nq$. The discount is $\tau$ in both. The threshold of the triple count is \texttt{B} for $\thr=\Kz(\Kz-1)(\Kz-M)$. The bound on the lists of the folds is $\Lambda$ where the paper writes $L$; it appears in the verbatim listing of \lean{lemmaF_exc} below. And \texttt{dens p}, the fraction of the elements of a finite type that satisfy \texttt{p}, is a probability over a uniform verifier message.
+
+{\small
+\begin{longtable}{@{}L{0.25\textwidth}L{0.42\textwidth}L{0.27\textwidth}@{}}
+\toprule
+statement & Lean theorems & file under \texttt{lean/}\\
+\midrule
+\endhead
+Lemma~\ref{lem:paths} (paths), Lemma~\ref{lem:lines} & by hand & \\
+\addlinespace
+Proposition~\ref{prop:flats} (flats) & \lean{subPoly_isLinearized}, \lean{natDegree_subPoly_sub_le}, \lean{subPoly_adjoin} & \lean{Constructions/Subspace.lean}\\
+ & \lean{flatPoly_natDegree_le}, \lean{flatPoly_eval}, \lean{agree_flatPoly}, \lean{flatPoly_injective}, \lean{flats_list}, \lean{card_hyperplanes_ge}, \lean{flats_quarter} & \lean{Constructions/Flats.lean}\\
+ & \lean{flats_quarter_GF128} (an instance at $\blen=2^{26}$) & \lean{Constructions/Concrete.lean}\\
+\addlinespace
+Proposition~\ref{prop:five8}(a) (word $\loc_U^5$) & \lean{glued_list}, \lean{glued_five_eighths}, \lean{glued_eq_imp_invariant} & \lean{Constructions/Glued.lean}\\
+ & \lean{glued_list_card} (at least $\blen/8-1$ members; the count $56\blen-392$ is by hand) & \lean{Constructions/GluedCount.lean}\\
+Proposition~\ref{prop:five8}(b) & by hand & \\
+Proposition~\ref{prop:five8}(c) (padded word) & \lean{padded_flats_list}, \lean{five_eighths_slack}, \lean{five_eighths_genuine} & \lean{Constructions/Padded.lean}\\
+ & \lean{gap_lemma_locator}; \lean{flatUnion_five_eighths} (every union of flats of the family shares the top of its word) & \lean{Constructions/Gap.lean}, \lean{Constructions/UnionOfFlats.lean}\\
+\addlinespace
+Proposition~\ref{prop:pole} (pole collapse) & \lean{pole_collapse}, \lean{combiner_collapse}, \lean{affFold_pole_close_iff}, \lean{polyFold_pole_close_iff}, \lean{card_agree_poleWord_le}, \lean{lemmaA}, \lean{lemmaA_card}, \lean{list_gives_bad_challenges} & \lean{Constructions/Pole.lean}\\
+ & \lean{flats_break_mca}, \lean{flats_break_mca_GF128} & \lean{Constructions/Concrete.lean}\\
+\addlinespace
+Proposition~\ref{prop:complete} (completeness) & by hand; uses the identities of Lemma~\ref{lem:E} & \\
+\addlinespace
+Lemma~\ref{lem:E} (evaluation functional) & \lean{evL_add}, \lean{evL_mul}, \lean{evL_halves}, \lean{card_evL_zero_le} & \lean{DeepFold/Lanes.lean}\\
+ & \lean{exL_injective}, \lean{exL_add_le}, \lean{evL_exL_halves} & \lean{Protocol/Level.lean}\\
+\addlinespace
+Lemma~\ref{lem:L1} (determinant) & \lean{Delta_eq_det}, \lean{Delta_char_two}, \lean{Delta_eval_eq_zero}, \lean{Delta_natDegree_le} & \lean{DeepFold/Basic.lean}\\
+ & \lean{isFold_unique}, \lean{Delta_eq_zero_iff} & \lean{DeepFold/Class.lean}\\
+ & \lean{isFoldL_unique}, \lean{DeltaL_eq_zero_iff}, \lean{evL_DeltaL_eq_zero} & \lean{DeepFold/Lanes.lean}\\
+ & \lean{card_nondep_triples_ge} & \lean{DeepFold/Counting.lean}\\
+\addlinespace
+Lemma~\ref{lem:L2} (class trichotomy) & \lean{class_trichotomy}, \lean{class_poly_of_card_gt} & \lean{DeepFold/Class.lean}\\
+ & \lean{card_agr_outside_le}, \lean{agrPair_card_ge} & \lean{DeepFold/Agreement.lean}\\
+ & \lean{classL_poly_of_card_gt}, \lean{card_agrL_outside_le}, \lean{exists_nearL} & \lean{DeepFold/Lanes.lean}\\
+\addlinespace
+Theorem~\ref{thm:count} (counting) & \lean{card_Exc_mul_le}, \lean{density_Exc_le}, \lean{exists_big_class} & \lean{DeepFold/Counting.lean}\\
+ & \lean{card_ExcL_mul_le}, \lean{density_ExcL_le}, \lean{deepFoldL_theorem3} & \lean{DeepFold/Lanes.lean}\\
+\addlinespace
+Lemma~\ref{lem:F} (DEEP fold round) & \lean{lemmaF_exc}, \lean{lemmaF_round} & \lean{DeepFold/Main.lean}\\
+ & \lean{card_quadric_zeros_le}, \lean{deepFold_lemmaF} & \lean{DeepFold/Claim.lean}\\
+ & \lean{mem_fullT} (the set $\cand$) & \lean{DeepFold/Full.lean}\\
+\addlinespace
+Lemma~\ref{lem:P} (pinning) & \lean{lemmaP}, \lean{pinned_unique}, \lean{card_pinned_le_one} & \lean{Protocol/Pinning.lean}\\
+\addlinespace
+Lemma~\ref{lem:T} (potential) & \lean{pot_step}, \lean{potT_step}, \lean{potT_init} & \lean{Protocol/Potential.lean}\\
+ & \lean{levelPot_init}, \lean{levelPot_step} (one batch) & \lean{Protocol/Level.lean}\\
+ & \lean{ladderPot_init}, \lean{ladderPot_step} (a schedule) & \lean{Protocol/Ladder.lean}\\
+\addlinespace
+Theorem~\ref{thm:rbr-deep}, row M0 & \lean{listBound_level}, \lean{dens_not_good_le} & \lean{Protocol/Level.lean}\\
+ & \lean{dens_not_goodS_le} & \lean{Protocol/Ladder.lean}\\
+row M1 & \lean{batch_transition}, \lean{batch_transition_density} & \lean{Rounds/Batch.lean}\\
+row M2 & \lean{fold_transition}, \lean{fold_transition_plain}, \lean{fold_transition_density} & \lean{Rounds/Fold.lean}\\
+row M3 & \lean{query_transition}, \lean{query_transition_density} & \lean{Rounds/Query.lean}\\
+row M4, row M5 & \lean{final_transition}, \lean{final_transition_plain}, \lean{final_transition_density}, \lean{tail_round_transition}, \lean{tail_round_transition_density} & \lean{Rounds/Final.lean}\\
+M1, M3 from Lemma~\ref{lem:P} & \lean{batch_transition_pinned}, \lean{query_transition_pinned} & \lean{Rounds/Pinned.lean}\\
+the definition of round-by-round soundness (\S\ref{sec:annexb}) and the union bound over a run & \lean{PublicCoin}, \lean{StateFunction}, \lean{RBRSound}, \lean{StateFunction.winProb_le}, \lean{RBRSound.winProb_le} & \lean{Soundness/RBR.lean}\\
+the state of \S\ref{sec:state} with its potential, and each transition from that state & \lean{FullState}, \lean{points_full}, \lean{batch_full}, \lean{fold_full}, \lean{query_full}, \lean{final_full} & \lean{Soundness/State.lean}\\
+Protocol~\ref{prot:D} with one batch per level, as an abstract model; Theorem~\ref{thm:rbr-deep} for it (properties (i) to (iv), rows M0 to M5) & \lean{protocolD}, \lean{Level.OK}, \lean{doomed}, \lean{err}, \lean{win}, \lean{step_tail}, \lean{protocolD_stateFunction}, \lean{protocolD_rbr} & \lean{Soundness/ProtocolD.lean}\\
+Theorem~\ref{thm:rbr-deep} and Theorem~\ref{thm:K} over a run of the model: every strategy wins with probability at most the sum of the errors & \lean{budget}, \lean{protocolD_sound}, \lean{protocolD_sound_plain}, \lean{protocolD_sound_extract}, \lean{protocolD_sound_one_level} & \lean{Soundness/Sound.lean}\\
+prover strategies exist on every ladder and with every tail, under two conditions on the abstract maps (\S\ref{sec:composed}) & \lean{Terminal.AdmitsZero}, \lean{Level.Fits}, \lean{ladderFits}, \lean{strategy_nonempty_of_fits}, \lean{strategy_nonempty_ladder}, \lean{strategy_nonempty_one_level}; \lean{finalMsg_isEmpty}, \lean{handover_isEmpty} (without the conditions the prover can have no message) & \lean{Soundness/Sound.lean}\\
+the same from Hypothesis~\ref{hyp:HK}; with no list hypothesis in the unique-decoding range; two concrete instances with every hypothesis discharged (one level with no tail; two levels with a tail), neither a deployed parameter set; level-$0$ errors & \lean{Level.OK.of_rsListBound}, \lean{Level.HK}, \lean{protocolD_sound_of_HK}, \lean{Level.Unique}, \lean{protocolD_sound_unique}, \lean{protocolD_sound_concrete_unique_le}, \lean{protocolD_sound_concrete_ladder}, \lean{strategy_nonempty_concrete_ladder}, \lean{err_level0} & \lean{Soundness/Hypothesis.lean}\\
+Theorem~\ref{thm:rbr-deep} for a schedule with later batches; the link from the model to the concrete protocol & by hand (\S\ref{sec:rbr}, \S\ref{sec:formal}) & \\
+\addlinespace
+Lemma~\ref{lem:near}, Theorem~\ref{thm:K} (descent step) & \lean{nearT_unique}, \lean{NearT.inList}, \lean{NearT.fold_eq}, \lean{NearT.degree_lt}, \lean{descent_step}, \lean{existsUnique_nearT} & \lean{Rounds/Extract.lean}\\
+ & \lean{descend_iff_unique}, \lean{descend_step} (for one fold round and under (S2), the extraction predicate of the composed theorem is the statement about the unique near tuple) & \lean{Soundness/Extract.lean}\\
+Theorem~\ref{thm:K} (a general predicate over a run; the decoder as an algorithm) & by hand & \\
+Corollary~\ref{cor:K2} & \lean{k2_hfalse} (the predicate is admissible, given the pinned member); \lean{claimsHold_unique} (at most one such member); the rest by hand & \lean{Rounds/Batch.lean}, \lean{Soundness/Extract.lean}\\
+Corollary~\ref{cor:johnson} & by hand (not connected to the composed theorem in Lean) & \\
+\addlinespace
+Theorem~\ref{thm:I} (tree bound) & \lean{tree_core}, \lean{interleave_listBound}, \lean{interleave_listBound_one}, \lean{interleave_listBound_same}, \lean{interleave_listBound_two_mul}, \lean{interleave_listBound_sq} & \lean{Interleave/Tree.lean}\\
+ & \lean{interleave_listBound_closed}, \lean{interleave_listBound_choose} & \lean{Interleave/Closed.lean}\\
+Proposition~\ref{prop:R2} (projection) & \lean{descent}, \lean{descent_div} & \lean{Interleave/Projection.lean}\\
+ & \leansub{rs_descent}{1}, \leansub{rs_descent}{1}\lean{_div}, \lean{rs_descent} & \lean{Interleave/ReedSolomon.lean}\\
+Proposition~\ref{prop:two} (two lanes) & \lean{listBound_prod}, \lean{listBound_prod_self}, \lean{listBound_prod_two_mul} & \lean{Interleave/TwoLanes.lean}\\
+Hypothesis~\ref{hyp:HK} implies Hypothesis~\ref{hyp:LB} & \lean{rs_interleave}, \lean{rs_interleave_same}, \lean{rs_interleave_two_mul}, \lean{rs_listBound_min} & \lean{Interleave/ReedSolomon.lean}\\
+ & \lean{card_fullT_filter_le}, \lean{lemmaF_exc_of_rsListBound}, \lean{lemmaF_exc_of_HK} & \lean{Interleave/Bridge.lean}\\
+ & \lean{concrete_unique}, \lean{concrete_two_mul}, \lean{concrete_descent} (instances at a field of $2^{64}$ elements and a quadratic extension of it, with four lanes; not deployed parameters) & \lean{Interleave/Axioms.lean}\\
+\addlinespace
+Theorem~\ref{thm:quad}, Propositions~\ref{prop:affine}, \ref{prop:three}, \ref{prop:split} & by hand & \\
+all bounds of \S\ref{sec:proved} for restricted classes of words & by hand, in the project's unpublished working notes; the proofs are not reproduced in this paper & \\
+\addlinespace
+Proposition~\ref{prop:params} (parameters) & \lean{level0_point_error}, \lean{point_error_level0_arith_11}, \lean{level0_ladder_error}, \lean{fold_error_arith}, \lean{fold_error_last_arith} & \lean{Protocol/Params.lean}\\
+ & \lean{err_level0} (the same numbers as errors of the composed model) & \lean{Soundness/Hypothesis.lean}\\
+Proposition~\ref{prop:floor} (floor) & by hand & \\
+\bottomrule
+\end{longtable}}
+
+\subsection*{By file}
+
+Every Lean file of the six libraries, with the statements of the paper it formalizes, except the six root files, which only import the others, and the files named \texttt{Axioms.lean}, which contain the axiom checks and instantiations at the deployed field sizes.
+
+{\small
+\begin{longtable}{@{}L{0.34\textwidth}L{0.62\textwidth}@{}}
+\toprule
+file under \texttt{lean/} & formalizes\\
+\midrule
+\endhead
+\lean{DeepFold/Basic.lean} & Definition~\ref{def:cand} (the polynomial $\Delta$); Lemma~\ref{lem:L1}(c) and the degree of $\Delta$, one lane\\
+\lean{DeepFold/Class.lean} & Lemma~\ref{lem:L1}(a), (b); Lemma~\ref{lem:L2}(a), (b), one lane\\
+\lean{DeepFold/Agreement.lean} & Lemma~\ref{lem:L2}(c), one lane\\
+\lean{DeepFold/Counting.lean} & Lemma~\ref{lem:L1}(d); Definition~\ref{def:exc}; Theorem~\ref{thm:count} in abstract form\\
+\lean{DeepFold/Theorem.lean} & Theorem~\ref{thm:count} and the first half of Lemma~\ref{lem:F}(2) for a single lane\\
+\lean{DeepFold/Lanes.lean} & Definition~\ref{def:ev}; Lemma~\ref{lem:E}; Lemmas~\ref{lem:L1}, \ref{lem:L2} and Theorem~\ref{thm:count} with lanes\\
+\lean{DeepFold/Claim.lean} & Lemma~\ref{lem:F}(2) for any finite set of candidates\\
+\lean{DeepFold/Full.lean} & Definition~\ref{def:cand} (the set $\cand$ is finite)\\
+\lean{DeepFold/Main.lean} & Lemma~\ref{lem:F}\\
+\addlinespace
+\lean{Protocol/Potential.lean} & Lemma~\ref{lem:T} in abstract form (means, Markov, the potential of a process)\\
+\lean{Protocol/Lists.lean} & Definition~\ref{def:lists} (lists) and its link with Definition~\ref{def:cand}\\
+\lean{Protocol/Pinning.lean} & Lemma~\ref{lem:P}\\
+\lean{Protocol/Level.lean} & Definition~\ref{def:ev} (the exponents $e_j$); Lemma~\ref{lem:E} (E2) and the bound behind (E4) for $e_j$; Lemma~\ref{lem:T} for one batch; row M0 of Theorem~\ref{thm:rbr-deep} for one batch; Hypothesis~\ref{hyp:LB} in its stated and diagonal forms\\
+\lean{Protocol/Ladder.lean} & Lemma~\ref{lem:T} for a schedule; row M0 of Theorem~\ref{thm:rbr-deep} for a schedule\\
+\lean{Protocol/Params.lean} & Proposition~\ref{prop:params}\\
+\addlinespace
+\lean{Rounds/Basic.lean} & Definition~\ref{def:fold}; Definition~\ref{def:pull}; the conditions $(\mathrm I_{i,j})$ and $(\mathrm I^B_{i,j})$ of \S\ref{sec:state} and \S\ref{sec:ks}; the updates \eqref{eq:claim-update} and \eqref{eq:carry}\\
+\lean{Rounds/Batch.lean} & transition M1 of \S\ref{sec:transitions}; the predicate of Corollary~\ref{cor:K2}\\
+\lean{Rounds/Fold.lean} & transition M2\\
+\lean{Rounds/Query.lean} & transition M3, with the conversion \eqref{eq:convert}\\
+\lean{Rounds/Final.lean} & transitions M4 and M5\\
+\lean{Rounds/Extract.lean} & Lemma~\ref{lem:near}; the descent step of Theorem~\ref{thm:K}\\
+\lean{Rounds/Pinned.lean} & transitions M1 and M3 with the separation hypothesis taken from Lemma~\ref{lem:P}\\
+\addlinespace
+\lean{Soundness/RBR.lean} & the definition of round-by-round soundness recalled in \S\ref{sec:annexb}; the sum of the errors bounds every strategy\\
+\lean{Soundness/State.lean} & the state function of \S\ref{sec:state} and the transitions of \S\ref{sec:transitions} for the full state\\
+\lean{Soundness/ProtocolD.lean} & Protocol~\ref{prot:D} (one batch per level, abstract model); Theorem~\ref{thm:rbr-deep} for it, in the form of \S\ref{sec:state}, ``commitment and opening as one protocol''\\
+\lean{Soundness/Sound.lean} & Theorem~\ref{thm:rbr-deep} and Theorem~\ref{thm:K} as bounds on every prover strategy of the model; the existence of prover strategies (\S\ref{sec:composed})\\
+\lean{Soundness/Extract.lean} & the descent of Theorem~\ref{thm:K} as unique decoding; uniqueness in Corollary~\ref{cor:K2}\\
+\lean{Soundness/Hypothesis.lean} & Hypotheses~\ref{hyp:LB} and \ref{hyp:HK} as hypotheses of the composed theorem; the unique-decoding range with its two concrete instances; Proposition~\ref{prop:params} for the model\\
+\addlinespace
+\lean{Interleave/Basic.lean} & the setting of \S\ref{sec:interleave} (codes with an agreement bound, lists, interleaving)\\
+\lean{Interleave/Tree.lean} & Theorem~\ref{thm:I}\\
+\lean{Interleave/Closed.lean} & the closed forms of Theorem~\ref{thm:I}\\
+\lean{Interleave/Projection.lean} & Proposition~\ref{prop:R2}\\
+\lean{Interleave/Extension.lean} & Theorem~\ref{thm:I} for values in a finite-dimensional space (first paragraph of \S\ref{sec:interleave})\\
+\lean{Interleave/ReedSolomon.lean} & Hypothesis~\ref{hyp:HK}; Theorem~\ref{thm:I} and Proposition~\ref{prop:R2} for Reed-Solomon codes; Hypothesis~\ref{hyp:HK} implies Hypothesis~\ref{hyp:LB}\\
+\lean{Interleave/TwoLanes.lean} & Proposition~\ref{prop:two}\\
+\lean{Interleave/Bridge.lean} & Lemma~\ref{lem:F}(1) from Hypothesis~\ref{hyp:HK}\\
+\addlinespace
+\lean{Constructions/Subspace.lean} & Proposition~\ref{prop:flats} (subspace polynomials are linearized)\\
+\lean{Constructions/Flats.lean} & Proposition~\ref{prop:flats}\\
+\lean{Constructions/Pole.lean} & Proposition~\ref{prop:pole}\\
+\lean{Constructions/Padded.lean} & Proposition~\ref{prop:five8}(c)\\
+\lean{Constructions/Gap.lean} & the degree count in the proof of Proposition~\ref{prop:five8}(c) (products of locators with a common top)\\
+\lean{Constructions/UnionOfFlats.lean} & Proposition~\ref{prop:five8}(a) in its description by unions of flats (every member shares the top of the word)\\
+\lean{Constructions/Glued.lean} & Proposition~\ref{prop:five8}(a), one list member per label set\\
+\lean{Constructions/GluedCount.lean} & Proposition~\ref{prop:five8}(a), a lower bound on the count\\
+\lean{Constructions/Concrete.lean} & Propositions~\ref{prop:flats}, \ref{prop:five8}, \ref{prop:pole} at the deployed sizes; Proposition~\ref{prop:pole} with the flats\\
+\bottomrule
+\end{longtable}}
+
+\subsection*{The main statements, verbatim}
+
+The following are copied from the Lean sources without change (Unicode symbols are typeset by the listing, which also breaks the lines that are longer than the page). A listing ends where the proof begins, and it does not repeat the \texttt{variable} declarations of its file, so some implicit arguments (the field and its instances, for instance) do not show.
+
+\input{sections/lean-statements}

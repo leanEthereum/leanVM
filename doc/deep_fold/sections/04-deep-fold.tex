@@ -1,0 +1,252 @@
+\section{The DEEP fold}\label{sec:deepfold}
+
+\subsection{The protocol}\label{sec:protocol}
+
+A \emph{point} is a pair $z=(\theta,\zeta)\in\E^2$. Fix a level with $\ell$ lane variables $u_1,\dots,u_\ell$, where round $j$ folds $u_j$. After $j$ rounds a tuple $U=(U_u)$ is indexed by $u=(u_{j+1},\dots,u_\ell)\in\cube{\ell-j}$.
+
+\begin{definition}[Point evaluation]\label{def:ev}
+For a point $z=(\theta,\zeta)$, a round index $0\le j\le\ell$ and a tuple $U$ of rational functions over $\E$ without pole at $\zeta$, indexed by $\cube{\ell-j}$,
+\[
+\ev^{(j)}_z(U):=\sum_{u}\theta^{e_j(u)}\,U_u(\zeta),\qquad e_j(u):=\sum_{k=j+1}^{\ell}(1-u_k)\,2^{k-1}.
+\]
+For $j=\ell$ this is $U(\zeta)$. Whole polynomials are evaluated, the coefficients of index $2^\kappa$ and above included. A \emph{point claim} at round $j$ is a pair $(z,v)$ with $v\in\E$, and $U$ \emph{satisfies} it if $\ev^{(j)}_z(U)=v$.
+\end{definition}
+
+So a point evaluates all lanes at one $\zeta$ and combines them with distinct powers of one $\theta$: two scalars per point, whatever the number of lanes.
+
+\begin{protocol}[DEEP-fold WHIR]\label{prot:D}
+\emph{Parameters.} Those of the protocol of Annex~B (\S\ref{sec:annexb}) and, for each level $i$, a \emph{schedule} of integers $s^{(i)}_1\ge1$ and $s^{(i)}_2,\dots,s^{(i)}_{\ell_i}\ge0$, with $\bar s^{(i)}_j:=s^{(i)}_1+\dots+s^{(i)}_j$ the number of points \emph{held} at round $j$. Grinds: $15$ bits before the points of a commitment, $7$ before the first message of the opening, $7$ before a fold message, $17$ before a query message. Every scalar the prover sends is absorbed before the next challenge is drawn, and challenges drawn with no prover message between them form one verifier message. There is no multilinear out-of-domain claim.
+
+\smallskip\noindent\textbf{Commit.} $\bP$ sends the Merkle root of $\orc^{(0)}$, as in Annex~B. $\bV$ sends $s^{(0)}_1$ points $z_m=(\theta_m,\zeta_m)\leftarrow\E^2$ in one message. $\bP$ sends $y_m\in\E$, honestly $y_m=\ev^{(0)}_{z_m}(P^{(0,0)})$. The pairs $(z_m,y_m)$ are the first \emph{carried claims} of level $0$, with values $v_m:=y_m$. They are never batched into the weighted claims.
+
+\smallskip\noindent\textbf{Open}, for $J_0\le512$ weighted claims $(W_k,c_k)$. $\bV$ sends $\lambda_0\leftarrow\E$ (in leanVM's stacked opening, the sixteen ring-switching scalars and $\lambda_0$, in one message). The running claim is $(W^{(0,0)},\rc{0,0}):=(\sum_k\lambda_0^{k-1}W_k,\sum_k\lambda_0^{k-1}c_k)$. Then, for $i=0,\dots,\nlev-1$:
+\begin{enumerate}[itemsep=1pt,topsep=2pt]
+\item \emph{Fold round $j=1,\dots,\ell_i$.}
+\begin{enumerate}[itemsep=0pt,topsep=1pt,label=(\alph*)]
+\item If $j\ge2$ and $s^{(i)}_j>0$: $\bP$ answers the points of batch $j$, honestly $y=\ev^{(j-1)}_{z}(P^{(i,j-1)})$; they become carried claims with value $v:=y$.
+\item $\bP$ sends $v_G,v_F,\tabx{0},\tabx{1}$ as in Annex~B, and one scalar $\varphi_m\in\E$ for each of the $\bar s^{(i)}_j$ points held, honestly $\varphi_m=\ev^{(j)}_{z_m}(F^{(i,j)})$, the point evaluation of the first half.
+\item $\bV$ sends $(\afa,\afb)\leftarrow\E^2$ and, in the same message if $j<\ell_i$, the $s^{(i)}_{j+1}$ fresh points of batch $j+1$.
+\item Both update the running claim by \eqref{eq:claim-update} and every carried value by
+\begin{equation}\label{eq:carry}
+v_m\;\leftarrow\;v_m+\bigl(\theta_m^{2^{j-1}}+\afa+\afb\,\zeta_m\bigr)\,\varphi_m .
+\end{equation}
+$\bP$ folds its lanes, $P^{(i,j)}:=G^{(i,j)}+(\afa+\afb X)F^{(i,j)}$.
+\end{enumerate}
+\item \emph{Level boundary}, if $i<\nlev-1$. $\bP$ sends the root of $\orc^{(i+1)}$ and the high part $\phigh^{(i)}$. $\bV$ sends the $s^{(i+1)}_1$ points of the new commitment in one message and $\bP$ answers them, honestly with $\ev^{(0)}_z(P^{(i+1,0)})$; these are the first carried claims of level $i+1$. $\bV$ sends $\nq_i$ uniform query positions $x_{i,k}\in\dom_i$ and $\lambda_{i+1}\leftarrow\E$ in one message. It opens the queried columns, folds each to $w^{(i)}(x_{i,k})$ and removes the high part as in Annex~B, $c_{i,k}:=w^{(i)}(x_{i,k})+\Wn{\kappa_i}(x_{i,k})H^{(i)}(x_{i,k})$. It \emph{converts} every carried claim of level $i$,
+\begin{equation}\label{eq:convert}
+c'_{i,m}:=v_m+\Wn{\kappa_i}(\zeta_m)\,H^{(i)}(\zeta_m),
+\end{equation}
+into the weighted claim $(W_{\zeta_m},c'_{i,m})$ on the low part, and batches the $J_{i+1}:=1+\bar s^{(i)}_{\ell_i}+\nq_i$ claims (the residual running claim, the converted point claims, the query claims $(W_{x_{i,k}},c_{i,k})$) with the distinct powers $\lambda_{i+1}^0,\dots,\lambda_{i+1}^{J_{i+1}-1}$ into the running claim of level $i+1$.
+\item \emph{Last level}, $i=\nlev-1$. $\bP$ sends the $2^{\nv_\nlev}+\ell_i$ novel-basis coefficients of $P:=P^{(i,\ell_i)}$. $\bV$ checks $P(\zeta_m)\qeq v_m$ for every carried claim, samples $\nq_i$ query positions and checks $w^{(i)}(x_{i,k})\qeq P(x_{i,k})$, then runs the tail sumcheck and the terminal check of Annex~B; the terminal weight now contains the weights of the converted point claims.
+\end{enumerate}
+$\bV$ accepts if and only if every check passed.
+\end{protocol}
+
+The schedule with $s^{(i)}_2=\dots=s^{(i)}_{\ell_i}=0$ sends all points of a level right after its commitment; we call it \emph{one batch}. A schedule with later batches is a \emph{ladder}; it has the same total number of points and fewer prover scalars (\S\ref{sec:points}). Compared with Annex~B the prover sends $s^{(i)}_1$ answers per commitment in place of one OOD value, and one scalar per held point in each fold round. The verifier adds the update \eqref{eq:carry} (one squaring and two products per point and round), the conversions \eqref{eq:convert}, the evaluations of the final polynomial at the last level's points, and $O(\kappa)$ products per point at the terminal check.
+
+\begin{proposition}[Completeness]\label{prop:complete}
+Protocol~\ref{prot:D} is perfectly complete: the honest prover is accepted with probability one, with no division and no rejection sampling.
+\end{proposition}
+\status{\stpr{}. The identities (E1) to (E3) it rests on are \stmc{} (Lemma~\ref{lem:E}); completeness of the whole protocol is not formalized. It was also run on toy instances (honest runs accepted, altered prover values rejected); that code and its output are in the project's unpublished working notes and do not accompany this paper, and the label does not rest on them.}
+\begin{proof}
+Given Annex~B's completeness, only the carried claims are new. By induction on $j$, the carried value of a point $z=(\theta,\zeta)$ after round $j$ is $\ev^{(j)}_z(P^{(i,j)})$. This holds when the point is answered. If $v=\ev^{(j-1)}_z(P^{(i,j-1)})$ then by (E2) of Lemma~\ref{lem:E} below $v=\theta^{2^{j-1}}\varphi+\ev^{(j)}_z(G)$, and by (E1) and (E3) $\ev^{(j)}_z(G+(\afa+\afb X)F)=\ev^{(j)}_z(G)+(\afa+\afb\zeta)\varphi=v+(\theta^{2^{j-1}}+\afa+\afb\zeta)\varphi$ in characteristic two, which is \eqref{eq:carry}. After the last round the carried claim reads $P^{(i,\ell_i)}(\zeta)=v$. As polynomials $P^{(i,\ell_i)}=\mpoly_{f^{(i+1)}}+\Wn{\kappa_i}H^{(i)}$, so $\mpoly_{f^{(i+1)}}(\zeta)=v+\Wn{\kappa_i}(\zeta)H^{(i)}(\zeta)$, and $\mpoly_g(\zeta)=\inner{W_\zeta}{g}$ holds at every $\zeta\in\E$ (\S\ref{sec:fields}): the converted claim \eqref{eq:convert} is true. At the last level the check is the carried claim itself.
+\end{proof}
+
+\subsection{The evaluation functional}\label{sec:E}
+
+\begin{lemma}[Four facts]\label{lem:E}
+Let $z=(\theta,\zeta)$ be a point of a level with $\ell$ lane variables.
+\begin{enumerate}[itemsep=1pt,topsep=2pt,label=\textnormal{(E\arabic*)}]
+\item $\ev^{(j)}_z$ is $\E$-linear.
+\item If $F=U_{(0,\cdot)}$ and $G=U_{(1,\cdot)}$ are the halves of a tuple $U$ with lane variables $u_j,\dots,u_\ell$, then $\ev^{(j-1)}_z(U)=\theta^{2^{j-1}}\,\ev^{(j)}_z(F)+\ev^{(j)}_z(G)$.
+\item For a polynomial $a\in\E[X]$, $\ev^{(j)}_z(aU)=a(\zeta)\,\ev^{(j)}_z(U)$.
+\item If $U\ne0$ is a polynomial tuple of degree at most $\delta$ at round $j$, then for a uniform point $\Prob_{z\leftarrow\E^2}[\ev^{(j)}_z(U)=0]\le(\delta+2^\ell-2^j)/\q$.
+\end{enumerate}
+\end{lemma}
+\status{\stmc: \lean{evL_add}, \lean{evL_halves}, \lean{evL_mul}, \lean{card_evL_zero_le} in \leanfile{DeepFold/Lanes.lean}, for any injective exponent map bounded by $2^\ell-2^j$; that $e_j$ is such a map and satisfies the recursion behind (E2) is \lean{exL_injective}, \lean{exL_add_le}, \lean{evL_exL_halves} in \leanfile{Protocol/Level.lean}.}
+\begin{proof}
+(E1) and (E3) are immediate from the definition. (E2): $e_{j-1}(0,u')=2^{j-1}+e_j(u')$ and $e_{j-1}(1,u')=e_j(u')$. (E4): $\sum_u\theta^{e_j(u)}U_u(\zeta)$ is a polynomial in $(\theta,\zeta)$. The exponents $e_j(u)$ are pairwise distinct, being read off the binary digits of $u$, so the polynomial is nonzero as soon as some $U_u$ is. Its total degree is at most $\max_ue_j(u)+\delta=2^\ell-2^j+\delta$, and the Schwartz-Zippel lemma applies.
+\end{proof}
+
+Throughout, the error of one point of a level is
+\begin{equation}\label{eq:eps}
+\epp:=\frac{\dgr+2^\ell-1}{\q},
+\end{equation}
+which bounds both uses of (E4) below: tuples of degree at most $\dgr$ at $j=0$, and tuples of degree at most $\dgr+1$ at $j\ge1$. At level $0$ of a commitment of $2^{30}$ elements, $\epp\approx2^{-104}$.
+
+\subsection{Candidates, classes, and the determinant}\label{sec:L1}
+
+Fix a level (lane variables, degree bound $\dgr$, domain $\dom$ of size $\blen$), a round $j\in\{1,\dots,\ell\}$, and an interleaved word $\orc$ with lane variables $u_j,\dots,u_\ell$ and halves $\orc_0,\orc_1$. Fix an integer $\agr\le\blen$, and let $L$ be an upper bound on $|\lst(\orc_c;\agr,\dgr)|$ over all challenges $c$.
+
+\begin{definition}[Candidates and classes]\label{def:cand}
+The set of \emph{candidates} is $\cand:=\{(c,P):c\in\E^2,\ P\in\lst(\orc_c;\agr,\dgr)\}$. It depends on $\orc,\agr,\dgr$ only, and $|\cand|\le L\q^2$. For a pair $(F,G)$ of tuples of rational functions, its \emph{class} is $\cls(F,G):=\{(c,P)\in\cand:P=G+a_cF\}$; a class has at most one element per challenge. For three candidates $(c_k,P_k)$, $k=1,2,3$, with $a_k:=a_{c_k}$, put
+\[
+\Delta:=(a_2+a_3)\,P_1+(a_1+a_3)\,P_2+(a_1+a_2)\,P_3,
+\]
+a polynomial tuple of degree at most $\dgr+1$. In characteristic two it is, lane by lane, the determinant of the matrix with rows $(P_k,\,1,\,a_k)$.
+\end{definition}
+
+\begin{lemma}[Determinant lemma]\label{lem:L1}
+For candidates and classes as in Definition~\ref{def:cand}:
+\begin{enumerate}[itemsep=1pt,topsep=2pt,label=\textnormal{(\alph*)}]
+\item Two candidates with different challenges lie in exactly one class, that of $F=(P_1+P_2)/(a_1+a_2)$ and $G=P_1+a_1F$.
+\item Three candidates with pairwise different challenges lie in one class if and only if $\Delta=0$.
+\item If for a point $z=(\theta,\zeta)$ and two values $y^F,y^G\in\E$ the three candidates satisfy $\ev^{(j)}_z(P_k)=y^G+a_k(\zeta)\,y^F$, then $\ev^{(j)}_z(\Delta)=0$.
+\item Let $\mathcal W\subseteq\cand$ have $K$ elements with pairwise different challenges, and suppose every class contains at most $M$ elements of $\mathcal W$. Then at least $K(K-1)(K-M)$ ordered triples of distinct elements of $\mathcal W$ do not lie in one class.
+\end{enumerate}
+\end{lemma}
+\status{\stmc, over any field with the signs of the determinant: \lean{Delta_eq_det}, \lean{Delta_char_two}, \lean{Delta_eval_eq_zero}, \lean{Delta_natDegree_le} in \leanfile{DeepFold/Basic.lean}; \lean{isFold_unique}, \lean{Delta_eq_zero_iff} in \leanfile{DeepFold/Class.lean}; with lanes \lean{isFoldL_unique}, \lean{DeltaL_eq_zero_iff}, \lean{evL_DeltaL_eq_zero} in \leanfile{DeepFold/Lanes.lean}; (d) is \lean{card_nondep_triples_ge} in \leanfile{DeepFold/Counting.lean}.}
+\begin{proof}
+(a) As $c_1\ne c_2$, $a_1+a_2\ne0$, and $G+a_2F=P_1+(a_1+a_2)F=P_2$. If both lie in $\cls(F',G')$ then $P_1+P_2=(a_1+a_2)F'$, so $F'=F$ and $G'=G$.
+
+(b) With $(F,G)$ the pair of the first two candidates,
+\begin{align*}
+(a_2+a_3)(G+a_1F)+(a_1+a_3)(G+a_2F)&=(a_1+a_2)\,G+(a_1a_2+a_1a_3+a_1a_2+a_2a_3)\,F\\
+&=(a_1+a_2)(G+a_3F),
+\end{align*}
+so $\Delta=(a_1+a_2)(G+a_3F+P_3)$, which is zero exactly when $P_3=G+a_3F$.
+
+(c) Write $\lambda_1:=a_2+a_3$, $\lambda_2:=a_1+a_3$, $\lambda_3:=a_1+a_2$. By (E1) and (E3), $\ev_z(\Delta)=\sum_k\lambda_k(\zeta)\,\ev_z(P_k)=y^G\sum_k\lambda_k(\zeta)+y^F\sum_k\lambda_k(\zeta)a_k(\zeta)$, and $\sum_k\lambda_k=0$, $\sum_k\lambda_ka_k=2(a_1a_2+a_1a_3+a_2a_3)=0$ in characteristic two. (Equivalently: the three rows $(\ev_z(P_k),1,a_k(\zeta))$ are orthogonal to the nonzero vector $(1,y^G,y^F)$, so their determinant vanishes.)
+
+(d) By (a) every ordered pair of distinct elements of $\mathcal W$ lies in exactly one class, which holds at most $M-2$ further elements of $\mathcal W$. So at most $K(K-1)(M-2)$ ordered triples lie in one class, out of $K(K-1)(K-2)$.
+\end{proof}
+
+\subsection{The size of a class}\label{sec:L2}
+
+Three kinds of pairs $(F,G)$ can have a class with two or more elements: pairs with a pole, pairs whose degree is too high, and honest-looking polynomial pairs. Only the last kind can have a large class, and then it is a member of the list of the unfolded word.
+
+\begin{lemma}[Class trichotomy]\label{lem:L2}
+Let $\cls=\cls(F,G)$ have at least two elements.
+\begin{enumerate}[itemsep=1pt,topsep=2pt,label=\textnormal{(\alph*)}]
+\item If some component of $F$ is not a polynomial, all challenges of $\cls$ lie on one line $\afa+x_0\afb=\gamma$ of $\E^2$, so $|\cls|\le\q$.
+\item If $F$ is a polynomial tuple of degree at least $\dgr$, all challenges of $\cls$ share $\afb$, so $|\cls|\le\q$.
+\item Otherwise $F$ and $G$ are polynomial tuples with $\deg F\le\dgr-1$ and $\deg G\le\dgr$. Let $\aset_{F,G}:=\{x\in\dom:F(x)=\orc_0(x),\ G(x)=\orc_1(x)\}$. At most $\binom{\blen-|\aset_{F,G}|}{2}$ elements $(c,P)$ of $\cls$ have two or more agreement columns of $P$ with $\orc_c$ outside $\aset_{F,G}$. Hence, if $|\aset_{F,G}|\le\agr-2$ then $|\cls|\le\binom{\blen}{2}$; and if $|\aset_{F,G}|\ge\agr-1$ then $U:=(F,G)\in\lst(\orc;\agr-1,\dgr)$, and for all but at most $\binom{\blen}{2}$ elements $(c,P)$ of $\cls$, $U$ is a \emph{near tuple} of $P$: it agrees with $\orc$ on all but at most one column of the agreement set of $P$ with $\orc_c$.
+\end{enumerate}
+\end{lemma}
+\status{\stmc{} in the form the fold round uses, which for (a) and (b) is coarser than the text. For one lane, \lean{class_trichotomy} in \leanfile{DeepFold/Class.lean} states the three alternatives (a polynomial pair of degrees below $\dgr$ and at most $\dgr$, or all challenges on one line, or all with one $\afb$) without saying which case of $F$ gives which. With lanes only the consequence is checked: a class with more than $\q$ elements is a polynomial pair of those degrees (\lean{class_poly_of_card_gt}, and \lean{classL_poly_of_card_gt} in \leanfile{DeepFold/Lanes.lean}). The attributions in (a) and (b) are \stpr{} by hand below. (c) is checked as stated: the count is \lean{card_agr_outside_le} in \leanfile{DeepFold/Agreement.lean} and \lean{card_agrL_outside_le} in \leanfile{DeepFold/Lanes.lean}, its two consequences are \lean{agrPair_card_ge} and \lean{exists_nearL} (a class with more than $\binom\blen2$ elements has $|\aset_{F,G}|\ge\agr-1$ and an element of which $U$ is a near tuple).}
+\begin{proof}
+For two elements $(c,P_c),(c',P_{c'})$ of $\cls$, $P_c+P_{c'}=(a_c+a_{c'})F$ is a polynomial tuple of degree at most $\dgr$, and $a_c+a_{c'}\ne0$ has degree at most one.
+
+(a) Write the component in lowest terms with denominator $\Delta_0$, $\deg\Delta_0\ge1$. Then $\Delta_0$ divides every $a_c+a_{c'}$, so $\Delta_0=X+x_0$ for some $x_0\in\E$ and $a_c+a_{c'}=(\afb+\afb')(X+x_0)$, that is $\afa+x_0\afb=\afa'+x_0\afb'$.
+
+(b) $(a_c+a_{c'})F$ has degree at most $\dgr$ only if $a_c+a_{c'}$ is constant, that is $\afb=\afb'$.
+
+(c) The remaining case is a polynomial tuple $F$ of degree at most $\dgr-1$, and then $G=P_c+a_cF$ is a polynomial tuple of degree at most $\dgr$. Let $(c,P)\in\cls$ and let $x\in\dom\setminus\aset_{F,G}$ be a column with $P(x)=\orc_c(x)$. Then $(G+\orc_1)(x)=a_c(x)\,(F+\orc_0)(x)$ as vectors indexed by the lanes. If $(F+\orc_0)(x)=0$ then $(G+\orc_1)(x)=0$ and $x\in\aset_{F,G}$; so $(F+\orc_0)(x)\ne0$ and the scalar $a_c(x)=\afa+\afb x$ is determined by $F,G,\orc$ and $x$. Two such columns $x\ne x'$ determine $c$, because the linear system has determinant $x+x'\ne0$, and $c$ determines the element. So each pair of columns outside $\aset_{F,G}$ accounts for at most one element. If $|\aset_{F,G}|\le\agr-2$, every element has at least $\agr-|\aset_{F,G}|\ge2$ agreement columns outside $\aset_{F,G}$. If $|\aset_{F,G}|\ge\agr-1$, then $U$ has degree at most $\dgr$ and agrees with $\orc$ on $\aset_{F,G}$, and an element with at most one agreement column outside $\aset_{F,G}$ has $U$ as a near tuple.
+\end{proof}
+
+This is the only place where one column of agreement is lost per round, and the reason for the thresholds $\agr^{(i,j)}=\agr_i-(\ell_i-j)$.
+
+\subsection{Counting}\label{sec:counting}
+
+\begin{definition}[Exceptional points]\label{def:exc}
+Let $\Kz>M\ge2$ be integers and $\thr:=\Kz(\Kz-1)(\Kz-M)$. For a tuple of points $\mathbf z=(z_1,\dots,z_s)\in(\E^2)^s$ let $N(\mathbf z)$ be the number of ordered triples of candidates with pairwise different challenges and $\Delta\ne0$ such that $\ev^{(j)}_{z_m}(\Delta)=0$ for all $m$. The \emph{exceptional set} of $\orc$ at round $j$ is
+\[
+\Exc_j(\orc):=\{\mathbf z:N(\mathbf z)\ge\thr\}.
+\]
+\end{definition}
+
+The set is defined from the word alone: from $\orc$, $\agr$, $\dgr$, the constants, and nothing the prover sends later.
+
+\begin{theorem}[Counting]\label{thm:count}
+With the notation of Definition~\ref{def:exc}:
+\begin{enumerate}[itemsep=1pt,topsep=2pt,label=\textnormal{(\arabic*)}]
+\item For $s$ independent uniform points,
+\[
+\Prob\bigl[\mathbf z\in\Exc_j(\orc)\bigr]\;\le\;\frac{\Ex[N(\mathbf z)]}{\thr}\;\le\;\frac{L^3\,\q^6\,\epp^{s}}{\thr}.
+\]
+\item Let $\mathbf z\notin\Exc_j(\orc)$, let $(y^F_m,y^G_m)_{m\le s}$ be any values in $\E$, and let $\mathcal W\subseteq\cand$ have at least $\Kz$ elements with pairwise different challenges, each satisfying $\ev^{(j)}_{z_m}(P)=y^G_m+a_c(\zeta_m)\,y^F_m$ for all $m$. Then some class contains more than $M$ elements of $\mathcal W$.
+\end{enumerate}
+\end{theorem}
+\status{\stmc: (1) is \lean{lemmaF_exc} in \leanfile{DeepFold/Main.lean} (integer form \lean{card_ExcL_mul_le} in \leanfile{DeepFold/Lanes.lean}), with the error $(\dgr+1+\max_ue(u))/\q$ of one point for any exponent map, which is at most $\epp$ for the maps $e_j$, $j\ge1$; (2) is \lean{exists_big_class} in \leanfile{DeepFold/Counting.lean}, in an abstract form that uses of ``lying in one class'' only that every ordered pair has at most $M$ third elements; its instance for lanes is the first step of \lean{deepFoldL_theorem3} in \leanfile{DeepFold/Lanes.lean}.}
+\begin{proof}
+(1) The set $\cand$ is fixed by $\orc$ before the points. For a fixed triple with $\Delta\ne0$, $\Delta$ is a polynomial tuple of degree at most $\dgr+1$ at round $j\ge1$, so by (E4) and independence all $s$ evaluations vanish with probability at most $\bigl((\dgr+1+2^\ell-2^j)/\q\bigr)^s\le\epp^s$. Hence $\Ex[N]\le|\cand|^3\epp^s\le L^3\q^6\epp^s$, and Markov's inequality gives the claim.
+
+(2) Suppose every class contains at most $M$ elements of $\mathcal W$, and let $K:=|\mathcal W|\ge\Kz$. By Lemma~\ref{lem:L1}(d) at least $K(K-1)(K-M)\ge\thr$ ordered triples of $\mathcal W$ are not in one class (the function is increasing for $K\ge\Kz>M$). By Lemma~\ref{lem:L1}(b) each has $\Delta\ne0$, and by Lemma~\ref{lem:L1}(c) each has $\ev^{(j)}_{z_m}(\Delta)=0$ for all $m$. So $N(\mathbf z)\ge\thr$, contradicting $\mathbf z\notin\Exc_j(\orc)$.
+\end{proof}
+
+In words: unless the points are exceptional, which happens with probability about $L^3\q^6\epp^s/\Kz^3$, among any $\Kz$ challenges that can be won with one prover message more than $M$ are won through \emph{one} pair $(F,G)$. With $\Kz$ a constant multiple of $\q$ the probability is about $L^3\q^3\epp^s$. So the points of a level must supply about $3\cdot128+3\log_2L$ bits on top of the target, at $\log_2(1/\epp)$ bits per point (about $104$ at level $0$), plus the cost of reusing them across rounds (\S\ref{sec:potential}); the exact counts are in \S\ref{sec:points}.
+
+\subsection{The fold round with its claims}\label{sec:F}
+
+\begin{lemma}[DEEP fold round]\label{lem:F}
+Let $\Kz>M:=\max\bigl(2\q,\binom{\blen}{2}\bigr)$ be integers, and $\Exc_j(\orc)$ the exceptional set of Definition~\ref{def:exc} for these constants.
+\begin{enumerate}[itemsep=1pt,topsep=2pt,label=\textnormal{(\arabic*)}]
+\item For independent uniform points, $\Prob[\mathbf z\in\Exc_j(\orc)]\le L^3\q^6\epp^s/\thr$.
+\item Let $\mathbf z\notin\Exc_j(\orc)$. Let $(W,c^\circ)$ be a weighted claim on tuples with lane variables $u_j,\dots,u_\ell$, let $v_1,\dots,v_s\in\E$, and let $B$ be any predicate on such tuples. Suppose that every $U\in\lst(\orc;\agr-1,\dgr)$ with $B(U)$ and $\ev^{(j-1)}_{z_m}(U)=v_m$ for all $m$ has $\inner{W}{U}\ne c^\circ$. Then for every prover message $(v_G,v_F,\tabx{0},\tabx{1},\varphi_1,\dots,\varphi_s)\in\E^{4+s}$, fewer than $\Kz$ challenges $c=(\afa,\afb)$ admit a $P\in\lst(\orc_c;\agr,\dgr)$ with
+\begin{enumerate}[itemsep=0pt,topsep=1pt,label=\textnormal{(\alph*)}]
+\item[\textnormal{(p)}] $\ev^{(j)}_{z_m}(P)=v_m+(\theta_m^{2^{j-1}}+\afa+\afb\,\zeta_m)\,\varphi_m$ for all $m$;
+\item[\textnormal{(w)}] $\inner{\mle{W}(\afa,\cdot)}{P}=v_G+\afa\,(v_G+c^\circ)+\afa^2v_F+\afb\,\tabx{0}+\afa\afb\,(\tabx{0}+\tabx{1})$;
+\item[\textnormal{(b)}] every near tuple of $P$ (a tuple of degree at most $\dgr$ agreeing with $\orc$ on all but at most one column of the agreement set of $P$ with $\orc_c$) satisfies $B$.
+\end{enumerate}
+\end{enumerate}
+For plain soundness take $B$ true; then \textnormal{(b)} is void.
+\end{lemma}
+\status{\stmc: \lean{lemmaF_exc} and \lean{lemmaF_round} in \leanfile{DeepFold/Main.lean} (statements in Appendix~\ref{app:lean}). The Lean form takes any $M\ge\max(2\q,\binom\blen2)$, two arbitrary linear functionals for the weight, an arbitrary injective exponent map, and a hypothesis restricted to pairs with $\deg F<\dgr$, so it is slightly stronger. Characteristic two is used in one line.}
+\begin{proof}
+(1) is Theorem~\ref{thm:count}(1).
+
+(2) Put $y^F_m:=\varphi_m$ and $y^G_m:=v_m+\theta_m^{2^{j-1}}\varphi_m$, so that (p) reads $\ev^{(j)}_{z_m}(P)=y^G_m+a_c(\zeta_m)\,y^F_m$. Suppose at least $\Kz$ challenges are as stated and choose one $P_c$ for each: a set $\mathcal W\subseteq\cand$ of at least $\Kz$ candidates with pairwise different challenges, each satisfying (p), (w), (b). We show that every class contains at most $M$ elements of $\mathcal W$, which contradicts Theorem~\ref{thm:count}(2). Let $\cls=\cls(F,G)$ contain at least two elements of $\mathcal W$.
+\begin{itemize}[itemsep=1pt,topsep=2pt]
+\item If $F$ is not a polynomial tuple, or has degree at least $\dgr$: at most $\q$ elements, by Lemma~\ref{lem:L2}(a), (b).
+\item Otherwise $(F,G)$ is a polynomial pair of degrees $(\dgr-1,\dgr)$. If $|\aset_{F,G}|\le\agr-2$: at most $\binom\blen2$ elements, by Lemma~\ref{lem:L2}(c).
+\item Otherwise $U:=(F,G)\in\lst(\orc;\agr-1,\dgr)$. For each $m$ put $\delta^F_m:=\ev^{(j)}_{z_m}(F)+y^F_m$ and $\delta^G_m:=\ev^{(j)}_{z_m}(G)+y^G_m$. An element $(c,G+a_cF)$ of $\cls\cap\mathcal W$ satisfies (p), which by (E1) and (E3) reads
+\begin{equation}\label{eq:line}
+\delta^G_m+(\afa+\afb\,\zeta_m)\,\delta^F_m=0\qquad\text{for all }m.
+\end{equation}
+\begin{itemize}[itemsep=1pt,topsep=1pt]
+\item If $(\delta^F_m,\delta^G_m)\ne(0,0)$ for some $m$, then \eqref{eq:line} has no solution when $\delta^F_m=0$ and a line of solutions in $\E^2$ otherwise: at most $\q$ elements.
+\item If all $\delta$ vanish, then by (E2) $\ev^{(j-1)}_{z_m}(U)=\theta_m^{2^{j-1}}y^F_m+y^G_m=v_m$ for all $m$: the pair $U$ satisfies the carried point claims. If $|\cls\cap\mathcal W|\le\binom\blen2$ we are done. Otherwise, by Lemma~\ref{lem:L2}(c), some element of $\cls\cap\mathcal W$ has $U$ as a near tuple, and (b) for that element gives $B(U)$. The hypothesis then gives $c^\ast:=\inner{W}{U}\ne c^\circ$. For every challenge, by linearity of $\inner{W_\iota}{\cdot}$ and $\mle W(\afa,\cdot)=(1+\afa)W_0+\afa W_1$,
+\[
+\inner{\mle W(\afa,\cdot)}{G+\afa F+\afb XF}=v^\ast_G+\afa\,(v^\ast_G+c^\ast)+\afa^2v^\ast_F+\afb\,v^\ast_{X,0}+\afa\afb\,(v^\ast_{X,0}+v^\ast_{X,1}),
+\]
+with $v^\ast_G=\inner{W_0}{G}$, $v^\ast_F=\inner{W_0+W_1}{F}$, $v^\ast_{X,\iota}=\inner{W_\iota}{XF}$ and $c^\ast=\inner{W_0}{F}+\inner{W_1}{G}$ (expand; the coefficient of $\afa$ is $\inner{W_0}{G}+\inner{W_1}{G}+\inner{W_0}{F}$). The difference between this and the right side of (w) is a polynomial of total degree at most two in $(\afa,\afb)$ whose constant term is $\delta_G:=v^\ast_G+v_G$ and whose coefficient of $\afa$ is $\delta_G+c^\ast+c^\circ$; they do not both vanish. So it is nonzero and has at most $2\q$ zeros in $\E^2$, and (w) holds for at most $2\q$ elements of $\cls$.
+\end{itemize}
+\end{itemize}
+So every class holds at most $M=\max(2\q,\binom\blen2)$ elements of $\mathcal W$.
+\end{proof}
+
+Three remarks. First, the only input from the code is the list bound $L$: no correlated agreement theorem is used, and the pairs $(F,G)$ that correlated agreement would produce are obtained here, for the candidates that matter, from the class structure. Second, the weight enters only through the linear functionals $\inner{W_\iota}{\cdot}$; that they see only low parts is not used. Third, $\Kz>2\q$ is necessary for any statement of this kind, since one list member with a false claim wins exactly the up to $2\q$ challenges on its conic.
+
+\subsection{Pinning}\label{sec:P}
+
+The out-of-domain point of Annex~B separates the \emph{messages} of the list at one multilinear point. The points of Protocol~\ref{prot:D} separate the \emph{tuples} themselves, high parts included, so they also play the role of that OOD point.
+
+\begin{lemma}[Pinning]\label{lem:P}
+Let $\orc$ have $\ell$ lane variables and $|\lst(\orc;\agr,\dgr)|\le L$. For $s$ independent uniform points, except with probability at most $\binom{L}{2}\epp^s$, any two distinct members $U\ne U'$ of the list have $\ev^{(0)}_{z_m}(U)\ne\ev^{(0)}_{z_m}(U')$ for some $m$. Such points are called \emph{separating} for $\orc$; then, for every answer vector $(y_m)_m$, at most one member of the list satisfies all point claims $(z_m,y_m)$.
+\end{lemma}
+\status{\stmc: \lean{lemmaP}, \lean{pinned_unique}, \lean{card_pinned_le_one} in \leanfile{Protocol/Pinning.lean}.}
+\begin{proof}
+(E4) for the nonzero tuple $U+U'$ of degree at most $\dgr$, independence of the points, and a union bound over the pairs.
+\end{proof}
+
+\subsection{The potential: reusing points across the rounds of a level}\label{sec:potential}
+
+The points of a level are sampled once (or in a few batches) and used in all its fold rounds, but the word of round $j$ depends on the challenges $c_1,\dots,c_{j-1}$ drawn after the points. A cheating prover may therefore try to steer, by grinding early challenges, towards a folded word for which the points it already holds are exceptional. A potential function pays for this.
+
+Fix a level with committed word $\orc$ and a schedule $s_1\ge1$, $s_2,\dots,s_\ell\ge0$, and write $\orc^{(k)}$ for $\orc$ folded by $c_1,\dots,c_k$. The verifier messages of the level are $m_0$ (the points of batch $1$), $m_k=(c_k,\text{batch }k+1)$ for $1\le k<\ell$, and $m_\ell=c_\ell$. Let $N_j$ be the triple count of Definition~\ref{def:exc} for the word $\orc^{(j-1)}$, the round $j$ and the $\bar s_j$ points held at round $j$; it is a function of $\orc$ and $m_0,\dots,m_{j-1}$, and no prover message enters. For $0\le k\le\ell$ and a discount $0<\dsc<1$ define
+\begin{equation}\label{eq:pot}
+\pot_k:=\sum_{j=k+1}^{\ell}\dsc^{-(j-k-1)}\ \frac{\Ex\bigl[N_j\mid m_0,\dots,m_k\bigr]}{\thr},
+\end{equation}
+the expectation being over uniform $m_{k+1},\dots,m_{j-1}$. So $\pot_\ell=0$, and the first term of $\pot_k$ is $N_{k+1}/\thr$ itself.
+
+\begin{lemma}[Potential]\label{lem:T}
+Suppose that for every round $j$ and every word $\orc'$ of the shape of round $j$, the folds of $\orc'$ have lists of at most $L$ members at the agreement of round $j$. Then:
+\begin{enumerate}[itemsep=1pt,topsep=2pt,label=\textnormal{(\alph*)}]
+\item $\displaystyle\Prob_{m_0}\bigl[\pot_0\ge1\bigr]\;\le\;\frac{L^3\q^6}{\thr}\sum_{j=1}^{\ell}\dsc^{-(j-1)}\,\epp^{\bar s_j}$, which for one batch of $s$ points is $\dfrac{L^3\q^6\epp^{s}}{\thr}\sum_{j=0}^{\ell-1}\dsc^{-j}$.
+\item If $\pot_{k-1}<1$ for some $1\le k\le\ell$, then the points held at round $k$ are not in $\Exc_k(\orc^{(k-1)})$, and $\Prob_{m_k}[\pot_k\ge1]<\dsc$.
+\end{enumerate}
+\end{lemma}
+\status{\stmc: for one batch, with the indicator of $\Exc$ in place of $N_j/\thr$ (a smaller potential with the same two bounds), \lean{levelPot_init} and \lean{levelPot_step} in \leanfile{Protocol/Level.lean}; for a schedule, in the form \eqref{eq:pot}, \lean{ladderPot_init} and \lean{ladderPot_step} in \leanfile{Protocol/Ladder.lean}; the abstract statements are \lean{pot_step}, \lean{potT_step}, \lean{potT_init} in \leanfile{Protocol/Potential.lean}.}
+\begin{proof}
+(a) By the tower property $\Ex_{m_0}[\pot_0]=\sum_j\dsc^{-(j-1)}\Ex[N_j]/\thr$, the inner expectation over $m_0,\dots,m_{j-1}$. For each fixed $c_1,\dots,c_{j-1}$ the word $\orc^{(j-1)}$ is fixed and the $\bar s_j$ points held at round $j$ are uniform and independent of it, whatever message they were drawn in, so $\Ex[N_j]\le L^3\q^6\epp^{\bar s_j}$ as in Theorem~\ref{thm:count}(1). Markov's inequality concludes.
+
+(b) All terms of $\pot_{k-1}$ are nonnegative and its first term is $N_k/\thr$, so $N_k<\thr$: the points held are not exceptional for $\orc^{(k-1)}$. The message $m_k$ is one uniform draw independent of the past, and for $j>k$ the tower property gives $\Ex_{m_k}\bigl[\Ex[N_j\mid m_0..m_k]\bigr]=\Ex[N_j\mid m_0..m_{k-1}]$. Hence
+\[
+\Ex_{m_k}[\pot_k]=\sum_{j>k}\dsc^{-(j-k-1)}\frac{\Ex[N_j\mid m_0..m_{k-1}]}{\thr}=\dsc\,\Bigl(\pot_{k-1}-\frac{N_k}{\thr}\Bigr)<\dsc,
+\]
+and Markov's inequality concludes.
+\end{proof}
+
+For a level with one fold there is no discount at all: $\pot_0=N_1/\thr$. The potential is a function of the commitment, the points and the challenges only, a deterministic quantity that need not be efficiently computable, which the definition of round-by-round soundness allows. A prover that redraws $c_1$ until its points become exceptional for round $2$ is exactly what $\dsc$ pays for: the event ``$\pot_1\ge1$'' has probability below $\dsc$ per attempt.
+
+Why a later batch of a single point is enough, although it rides a message with only a $7$-bit grind: a fresh point is not asked to make the next round safe by itself. By (b) the points already held do that, with probability $1-\dsc$; the fresh points are what made the \emph{expectation} at the first message small, and that event is charged once, to the first point message.

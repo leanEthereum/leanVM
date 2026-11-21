@@ -1,0 +1,73 @@
+\section{Setting}\label{sec:setting}
+
+We work with the polynomial commitment scheme of Annex~B of the leanVM specification \cite{leanvm} (``Annex~B'' below), a WHIR/Ligerito scheme \cite{ACFY25,NA25} over binary fields with the affine combiner of \cite{CWYZ26}, and we keep its notation. This section recalls what the rest of the paper uses.
+
+\subsection{Fields, domains, codes}\label{sec:fields}
+
+The fields are $\K=\Ftwo[x]/(x^{64}+x^4+x^3+x+1)$ and $\E=\K[y]/(y^2+xy+1)$, and we write $\q:=|\E|=2^{128}$. For $\kappa,\rexp\ge0$ the domain $\dom=\dom_{\kappa,\rexp}\subseteq\K$ is the $\Ftwo$-span of $1,x,\dots,x^{\kappa+\rexp-1}$, an additive subgroup of $\blen=2^{\kappa+\rexp}$ points. The code is the Reed-Solomon code $\RS[\E,\dom,2^\kappa]$ of rate $\rate=2^{-\rexp}$: polynomials over $\E$ of degree less than $2^\kappa$, evaluated on $\dom$. Annex~B writes a message $g:\cube{\kappa}\to\E$ as the polynomial $\mpoly_g$ whose coefficients in the \emph{novel basis} $(\novel_j)_j$ are the values of $g$; all we need of this basis is that $\deg\novel_j=j$, that $\novel_{2^\kappa+r}=\Wn{\kappa}\novel_r$ for $r<2^\kappa$, where $\Wn{\kappa}$ is the normalized subspace polynomial of degree $2^\kappa$, and that for every $x\in\E$ the evaluation $\mpoly_g(x)=\inner{W_x}{g}$ is an inner product with a weight $W_x(u)=\prod_k\Wn{k}(x)^{u_k}$ whose multilinear extension the verifier evaluates in $O(\kappa)$ operations.
+
+A fold round raises degrees by one, so the analysis of a level with $\ell$ fold rounds works with polynomials of degree at most $\dgr=2^\kappa-1+\ell$. We call a polynomial of degree less than $2^\kappa$ \emph{genuine} and the $\ell$ extra coefficients the \emph{slack}.
+
+\begin{definition}[Interleaved words, lists, claims; Annex~B]\label{def:lists}
+An \emph{interleaved word} with $\ell$ lane variables is a matrix $\orc\in\E^{\cube{\ell}\times\dom}$ of $2^\ell$ \emph{lanes}; its \emph{columns} are indexed by $\dom$. A \emph{polynomial tuple} $U=(U_u)_{u\in\cube{\ell}}$ has degree at most $\dgr$ if every $U_u$ does, and \emph{agrees} with $\orc$ at the column $x$ if $U_u(x)=\orc[u,x]$ for all $u$. For an agreement $\agr$, the \emph{list} $\lst(\orc;\agr,\dgr)$ is the set of polynomial tuples of degree at most $\dgr$ agreeing with $\orc$ on at least $\agr$ columns. A tuple \emph{decodes} to the message $g_U:\cube{\ell+\kappa}\to\E$ formed by the coefficients of its lanes below $2^\kappa$, its \emph{low part}. For a weight $W:\cube{\ell}\times\cube{\kappa}\to\E$ put $\inner{W}{U}:=\inner{W}{g_U}=\sum_{u,x}W(u,x)\,g_U(u,x)$. A \emph{weighted claim} is a pair $(W,c)$, and $U$ \emph{satisfies} it if $\inner{W}{U}=c$; a weighted claim sees only the low part.
+\end{definition}
+
+\begin{definition}[Affine fold; Annex~B, \cite{CWYZ26}]\label{def:fold}
+Split a lane index as $(\iota,u')$ with $\iota\in\{0,1\}$ the variable folded first, and let $\orc_\iota:=\orc[(\iota,\cdot),\cdot]$ be the two \emph{halves}. For a challenge $c=(\afa,\afb)\in\E^2$ write $a_c:=\afa+\afb X$. The \emph{affine fold} of $\orc$ is the word $\orc_c:=\orc_1+a_c\,\orc_0$ with one lane variable fewer, whose column at $x$ is $\orc_1[\cdot,x]+(\afa+\afb x)\,\orc_0[\cdot,x]$. For a polynomial tuple $U$ with halves $F:=U_{(0,\cdot)}$ and $G:=U_{(1,\cdot)}$ the fold is $U_c:=G+a_cF$, of degree at most one more. Evaluation commutes with the fold: if $U$ agrees with $\orc$ at $x$ then $U_c$ agrees with $\orc_c$ at $x$.
+\end{definition}
+
+\begin{theorem}[Johnson bound for interleaved words; Annex~B]\label{thm:johnson}
+Let $\dgr<\blen$ and $\agr^2>\blen\dgr$. Every interleaved word $\orc$ on a domain of size $\blen$ has $|\lst(\orc;\agr,\dgr)|\le\jl(\agr,\dgr):=\lfloor\blen(\agr-\dgr)/(\agr^2-\blen\dgr)\rfloor$.
+\end{theorem}
+\status{\stpr{} in Annex~B (a double count and Cauchy-Schwarz; it uses only that two distinct tuples agree on at most $\dgr$ columns). It is also part of the Lean development of leanVM itself, outside this paper's.}
+
+The agreement $\sqrt{\rate}\,\blen$ at which this bound starts is the \emph{Johnson radius}. Below agreement $\rate\,\blen$, the \emph{capacity} radius, lists are necessarily enormous, so no threshold can go below it.
+
+\subsection{The protocol of Annex B and its theorem}\label{sec:annexb}
+
+The scheme commits to $f:\cube{\nv}\to\K$ across $\nlev$ \emph{levels} $i=0,\dots,\nlev-1$ with variable counts $\nv=\nv_0>\nv_1>\dots>\nv_\nlev\ge0$. Level $i$ has $\ell_i:=\nv_i-\nv_{i+1}$ fold rounds, message size $\kappa_i:=\nv_{i+1}$, rate $2^{-\rexp_i}$, a domain $\dom_i\subseteq\K$ of size $\blen_i=2^{\kappa_i+\rexp_i}$ and $\nq_i$ queries. In outline, with $\bP$ the prover and $\bV$ the verifier:
+\begin{itemize}[itemsep=1pt,topsep=2pt]
+\item \emph{Commit.} $\bP$ sends the Merkle root of the interleaved word $\orc^{(0)}$, whose $2^{\ell_0}$ lanes are the encodings of the rows of $f$. $\bV$ sends an out-of-domain point $z_0\leftarrow\E^{\nv}$ and $\bP$ answers with the multilinear evaluation $\mle f(z_0)$; this \emph{OOD claim} joins the claims to be opened.
+\item \emph{Open.} $\bV$ batches the $J_0\le512$ weighted claims with one scalar $\lambda_0$ into a \emph{running claim} $(W^{(0,0)},\rc{0,0})$.
+\item \emph{Fold round $j$ of level $i$.} With lanes $P^{(i,j-1)}$, halves $F,G$ and running claim $(W,c)=(W^{(i,j-1)},\rc{i,j-1})$, $W_\iota:=W(\iota,\cdot)$: $\bP$ sends four scalars, honestly $v_G=\inner{W_0}{G}$, $v_F=\inner{W_0+W_1}{F}$, $\tabx{\iota}=\inner{W_\iota}{XF}$. $\bV$ sends $(\afa,\afb)\leftarrow\E^2$. Both set $W^{(i,j)}:=\mle{W}(\afa,\cdot)=(1+\afa)W_0+\afa W_1$ and
+\begin{equation}\label{eq:claim-update}
+\rc{i,j}:=v_G+\afa\,(v_G+\rc{i,j-1})+\afa^2v_F+\afb\,\tabx{0}+\afa\afb\,(\tabx{0}+\tabx{1}),
+\end{equation}
+and $\bP$ folds its lanes, $P^{(i,j)}:=G+(\afa+\afb X)F$.
+\item \emph{Level boundary.} After $\ell_i$ rounds $P^{(i,\ell_i)}$ is one polynomial $\mpoly_{f^{(i+1)}}+\Wn{\kappa_i}H^{(i)}$ with $H^{(i)}:=\sum_{r<\ell_i}\phigh^{(i)}_r\novel_r$. $\bP$ commits to the encoding $\orc^{(i+1)}$ of the low part $f^{(i+1)}$ and sends the \emph{high part} $\phigh^{(i)}\in\E^{\ell_i}$; $\bV$ sends a new OOD point, then $\nq_i$ uniform query positions in $\dom_i$ and a scalar $\lambda_{i+1}$; it reads the queried columns of $\orc^{(i)}$, folds them with the round challenges into values $w^{(i)}(x)$ of the folded word $w^{(i)}$, removes the high part, and batches the residual claim, the OOD claim and the $\nq_i$ query claims into the running claim of level $i+1$.
+\item \emph{Last level.} $\bP$ sends the final polynomial in the clear, $\bV$ checks it at $\nq_{\nlev-1}$ queries and runs $\nv_\nlev$ rounds of a degree-two sumcheck on the last running claim.
+\end{itemize}
+
+\paragraph{Thresholds.} The analysis of level $i$ has one free integer, the \emph{threshold} $\agr_i\le\blen_i$, and sets
+\[
+\dgr^{(i)}:=2^{\kappa_i}-1+\ell_i,\qquad \agr^{(i,j)}:=\agr_i-(\ell_i-j)\quad(0\le j\le\ell_i).
+\]
+The honest lanes start at degree $2^{\kappa_i}-1$ and gain one per round; the threshold loses one column per round going back from $\agr^{(i,\ell_i)}=\agr_i$.
+
+\begin{theorem}[Round-by-round soundness of Annex~B]\label{thm:annexb}
+Suppose $(\agr^{(i,0)})^2>\blen_i\dgr^{(i)}$ for every level, and let $L_i:=\jl(\agr^{(i,0)},\dgr^{(i)})$. The protocol of Annex~B is round-by-round sound with errors $(J_0-1)L_0/\q$ for the batching, $\epsaff(\blen_i,\dgr^{(i)},\agr^{(i,j)})+2\,\jl(\agr^{(i,j)}-1,\dgr^{(i)})/\q$ for a fold challenge, $\binom{L_i}{2}\nv_i/\q$ for an OOD point, $\bigl((\agr_i-1)/\blen_i\bigr)^{\nq_i}+(\nq_i+1)L_{i+1}/\q$ for a query message (the second term being absent at the last level), and $2/\q$ for a tail round, where $\epsaff$ is the mutual correlated agreement error of the affine combiner \cite[Thm.~4.10]{CWYZ26}.
+\end{theorem}
+\status{\stpr{} in Annex~B, and machine-checked in leanVM's own Lean development, which is not part of this paper's.}
+
+Round-by-round soundness \cite{CCHLRR19,ACFY25} means: there is an invariant on partial transcripts (a ``doomed'' state) that (i) holds at the start on a false statement, (ii) survives every prover message, (iii) is escaped by a verifier message with probability at most that message's error, and (iv) implies rejection at the end. After the Fiat-Shamir transformation each message's error is an upper bound on the success probability of one hash evaluation at that message \cite{CCHLRR19,BCS16}.
+
+\paragraph{Grinding and the target.} Before a verifier message the prover finds a proof of work of $b$ bits, which divides that message's error by $2^b$. leanVM holds every message to $2^{-125}$ after its grind. The grinds of the PCS are $13$ bits for the level-$0$ batching, $7$ for a fold round, $15$ for an OOD point and $17$ for a query message; a message of error $N/\q$ outside the PCS grinds $\max(0,\lceil\log_2N\rceil-3)$ bits.
+
+\subsection{One number per level sets the query count}\label{sec:onenumber}
+
+The query message of a level has error $((\agr_i-1)/\blen_i)^{\nq_i}$ plus a term of order $1/\q$. With the $17$-bit grind and the $2^{-125}$ target a level therefore needs
+\begin{equation}\label{eq:queries}
+\nq_i=\Bigl\lceil\frac{108}{\log_2\bigl(\blen_i/(\agr_i-1)\bigr)}\Bigr\rceil
+\end{equation}
+queries, so the whole question is how small the threshold $\agr_i$ can be:
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+regime & threshold $\agr/\blen$ & bits per query\\
+\midrule
+Johnson (what Theorem~\ref{thm:annexb} allows) & $\sqrt\rate$ & $\tfrac12\log_2(1/\rate)$\\
+capacity (a hard limit) & $\rate$ & $\log_2(1/\rate)$\\
+\bottomrule
+\end{tabular}
+\end{center}
+Capacity at rate $\rate$ gives exactly what Johnson gives at rate $\rate^2$. In leanVM, level $0$ has $\ell_0=6$ and rate $2^{-\rexp}$ with $\rexp\in\{1,2,3,4\}$, and each later level has $\ell_i\le4$ and a rate $2^{-3}$ lower than the level before. Level $0$ dominates the proof: it has the most queries and $2^6$ lanes in every opened column. For a commitment of $2^{30}$ field elements the deployed level-$0$ query counts are $218$, $109$, $73$, $55$ at rates $1/2$, $1/4$, $1/8$, $1/16$, and over the whole opening the deployed counts are within one to seven queries of the Johnson limit, so nothing is left inside Theorem~\ref{thm:annexb}.

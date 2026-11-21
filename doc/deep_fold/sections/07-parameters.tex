@@ -1,0 +1,124 @@
+\section{Parameters and cost}\label{sec:params}
+
+All numbers in this section are for leanVM's parameters at a commitment of $2^{30}$ field elements unless said otherwise: six levels with $(\kappa_i,\ell_i)=(24,6),(20,4),(16,4),(12,4),(8,4),(4,4)$, deployed grinds, $\Kz=2^9\q$ and $\dsc=2^{-119}$. Counts of points and queries are exact evaluations of the formulas of Theorem~\ref{thm:rbr-deep}. Sizes are the output of a model of the opening, not measurements: the model reproduces the deployed query table of leanVM at all $60$ admitted shapes and its byte formulas were checked against measured proofs of today's protocol, but the transcript of Protocol~\ref{prot:D} is specified here and not implemented.
+
+\subsection{Points per level}\label{sec:points}
+
+The first row of Theorem~\ref{thm:rbr-deep} must be at most $2^{-110}$. For one batch and a list bound $L_i=2^b$ this reads, up to rounding,
+\[
+s_i\,\log_2(1/\epp_i)\;\ge\;3b+1062\quad(\ell_i=6),\qquad s_i\,\log_2(1/\epp_i)\;\ge\;3b+824\quad(\ell_i=4),
+\]
+with $\log_2(1/\epp_i)=104.0,108.0,112.0,116.0,119.9,122.9$ at the six levels. One more point pays for about $35$ more bits of list.
+\begin{center}
+\small
+\begin{tabular}{@{}cccl@{}}
+\toprule
+$\kappa$ & $\ell$ & $\log_2(1/\epp)$ & points $s$ for a list bound $2^b$, $b=7,\ 10,\ 40,\ 70,\ 100,\ 130,\ 340$\\
+\midrule
+$24$ & $6$ & $104.0$ & $11,\ 11,\ 12,\ 13,\ 14,\ 14,\ 21$\\
+$20$ & $4$ & $108.0$ & $8,\ 8,\ 9,\ 10,\ 11,\ 12,\ 18$\\
+$16$ & $4$ & $112.0$ & $8,\ 8,\ 9,\ 10,\ 11,\ 11,\ 17$\\
+$12$ & $4$ & $116.0$ & $8,\ 8,\ 9,\ 9,\ 10,\ 11,\ 16$\\
+$8$ & $4$ & $119.9$ & $8,\ 8,\ 8,\ 9,\ 10,\ 11,\ 16$\\
+$4$ & $4$ & $122.9$ & $7,\ 7,\ 8,\ 9,\ 10,\ 10,\ 16$\\
+\bottomrule
+\end{tabular}
+\end{center}
+At the Johnson threshold the lists have at most about $2^7$ members and the levels need $11,8,8,8,8,7$ points in one batch.
+
+\paragraph{The ladder.} In the potential \eqref{eq:pot} the term of round $j$ carries the factor $\dsc^{-(j-1)}$, so a late round needs more points than an early one: round $j$ needs what a level of $j$ rounds would. A ladder schedule gives each round exactly the points it needs, sending the increments with the fold challenges; it has the same total number of points as one batch, and a point of batch $b$ costs the prover $\ell-b+2$ scalars instead of $\ell+1$.
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}lllXl@{}}
+\toprule
+list bound at every level & one batch, $s_i$ & scalars & ladder, batches per level & scalars\\
+\midrule
+$2^{40}$ & $12,9,9,9,8,8$ & $299$ & $6{+}1{+}1{+}2{+}1{+}1$; then $6{+}1{+}1{+}1$ (three levels); $5{+}1{+}1{+}1$ (two levels) & $251$\\
+$2^{100}$ & $14,11,11,10,10,10$ & $358$ & $8{+}1{+}1{+}1{+}1{+}2$; $8{+}1{+}1{+}1$; $7{+}1{+}1{+}2$; $7{+}1{+}1{+}1$ (three levels) & $305$\\
+\bottomrule
+\end{tabularx}
+\end{center}
+Among schedules whose later batches ride the fold challenges the ladder is optimal for the scalars and for the prover's and verifier's work at once. Batches with a verifier message of their own are strictly worse, and fresh independent points in every round cost about three times as many points.
+
+\begin{proposition}[The parameter claims at level $0$]\label{prop:params}
+Over a field of $2^{128}$ elements, for a level with six lane variables and degree bound $2^{24}+5$ all of whose words have at most $2^{40}$ list members, with $\Kz=2^{137}$, $M=2^{129}$ and $\dsc=2^{-119}$: twelve independent uniform points fail to be good with probability at most $2^{-110}$, and the bound of Theorem~\ref{thm:rbr-deep} for eleven points exceeds $2^{-110}$; on the ladder $6{+}1{+}1{+}2{+}1{+}1$ the six first points fail to be good with probability at most $2^{-110}$; and the fold message has error at most $2^{-118}$, and $2^{-119}$ in the last round of a level.
+\end{proposition}
+\status{\stmc: \lean{level0_point_error}, \lean{point_error_level0_arith_11}, \lean{level0_ladder_error}, \lean{fold_error_arith}, \lean{fold_error_last_arith} in \leanfile{Protocol/Params.lean}; as errors of the composed model, \lean{err_level0} in \leanfile{Soundness/Hypothesis.lean}. In detail: for twelve points ``good'' is the one-batch notion of the Lean development, whose potential uses the indicator of the exceptional set (Lemma~\ref{lem:T}, status), under the diagonal form of the list hypothesis; the statement about eleven points is arithmetic on the bound and says nothing about the true probability; the two statements about the fold message are arithmetic on the expressions of row M2. The other entries of the tables above are exact rational arithmetic done by scripts, reproduced with independent code by the project's internal referee, and not machine-checked.}
+
+\subsection{Queries and opening size against the proved threshold}\label{sec:sizes}
+
+The table gives, for a level-$0$ agreement $\agr^{(0,0)}$ at which $\Lb_0$ is assumed and a list bound $2^{40}$ there, the level-$0$ query count and the size of the whole opening, the later levels staying at their Johnson thresholds (with the trivial counting bound of \S\ref{sec:hyp} at the last level, where it wins). The list size hardly matters (about $0.1$~KiB per $30$ bits of list); the threshold is everything.
+\begin{center}
+\small
+\begin{tabular}{@{}llccL{0.24\textwidth}@{}}
+\toprule
+rate & level-$0$ agreement $\agr^{(0,0)}/\blen$ & $\nq_0$ & opening, KiB (change) & needs\\
+\midrule
+$1/2$ & today (Annex~B, Johnson) & $218$ & $335.9$ & deployed\\
+ & Johnson, DEEP fold & $217$ & $332.0$ ($-1.2\%$) & nothing (Corollary~\ref{cor:johnson}, counting)\\
+ & $0.66$ & $181$ & $297.0$ ($-11.6\%$) & $\Lb$, open\\
+ & $0.64$ & $168$ & $284.3$ ($-15.4\%$) & $\Lb$, open\\
+ & $5/8$ & $160$ & $276.4$ ($-17.7\%$) & $\Lb$ with $b\ge31$, open\\
+ & $9/16$ & $131$ & $247.8$ ($-26.2\%$) & $\Lb$ with $b\ge72$ ($103$ if the count quoted from \cite{DKTZ26} holds), open\\
+\addlinespace
+$1/4$ & today (Annex~B, Johnson) & $109$ & $222.6$ & deployed\\
+ & Johnson, DEEP fold & $109$ & $220.0$ ($-1.2\%$) & nothing\\
+ & $7/16$ & $91$ & $201.5$ ($-9.5\%$) & $\Lb$ with $b\ge26$, open\\
+ & $3/8$ & $77$ & $186.9$ ($-16.0\%$) & $\Lb$ with $b\ge32$, open\\
+ & $5/16$ & $65$ & $174.3$ ($-21.7\%$) & $\Lb$ with $b\ge32$, open\\
+\addlinespace
+$1/8$ & today / Johnson, DEEP fold & $73$ / $73$ & $180.7$ / $178.6$ ($-1.2\%$) & deployed / nothing\\
+ & $5/16$,\quad$1/4$,\quad$3/16$ & $65$,\ $55$,\ $45$ & $170.1$,\ $159.2$,\ $148.2$ & $\Lb$, open ($b\ge52$ from $1/4$ down)\\
+\addlinespace
+$1/16$ & today / Johnson, DEEP fold & $55$ / $55$ & $158.7$ / $153.0$ ($-3.6\%$) & deployed / nothing\\
+ & $3/16$,\quad$1/8$,\quad$3/32$ & $45$,\ $37$,\ $32$ & $141.9$,\ $132.7$,\ $127.0$ & $\Lb$, open ($b\ge77$ from $1/8$ down)\\
+\bottomrule
+\end{tabular}
+\end{center}
+Every row marked ``open'' is conditional on a list bound that nobody has proved. The thresholds of the table are the agreements $\agr^{(0,0)}/\blen$ at which the hypothesis is assumed; the queries are counted with $\agr_0=\agr^{(0,0)}+\ell_0$ in \eqref{eq:queries}, which is why an exact power of two costs one query more than $108$ divided by the bits per query. The lower bounds on $b$ are necessary conditions read off the known lists of \S\ref{sec:limit} and \S\ref{sec:proved}, counted for genuine codewords or one unit of slack; they are not claimed to be tight, and where a row gives none the known lists are small. At rate $1/2$ the rows $0.66$ and $0.64$ are the ones a theorem could give without contradicting anything known. If the same exponent $\agr_i=\rate_i^{\gamma}\blen_i$ held at every level with lists $2^{40}$, the opening at rate $1/2$ would shrink by $21\%$ at $\gamma=0.644$ (level-$0$ threshold $0.64\,\blen$) and by $37\%$ at $\gamma=0.83$ ($9\blen/16$); level $0$ carries two thirds to three quarters of that, so a list bound at the level-$0$ rate alone is most of the prize.
+
+\paragraph{With no new theorem.} At the Johnson thresholds the protocol is unconditionally sound (Corollary~\ref{cor:johnson}) and saves one query on most levels, which does not pay for the points: the opening is within $+2.0$ and $-1.0$ percent of today's. Using the trivial counting bound at the last one or two levels, which then run far below the Johnson radius with up to $34$ points and about half the queries, the change is worth $1$ to $6$ percent of the opening (most at small commitments and low rates) and replaces a $13$-bit grind by a $7$-bit one. That is not a reason to deploy it. It is a complete, unconditional instance of the mechanism, including levels that run below the Johnson radius, with a soundness proof that does not use the affine correlated agreement theorem.
+
+\subsection{What the points cost}\label{sec:cost}
+
+\emph{Proof size.} A point is one answer and one scalar per remaining round: $299$ scalars of $16$ bytes over the whole opening in one batch and $251$ on the ladder for lists $2^{40}$, against one OOD value per commitment today.
+
+\emph{Prover.} At commit time a point is one pass over the committed message, of the kind the commitment's OOD evaluation already makes, and all points of a batch share one pass; the per-round scalars $\varphi_m$ are free if that pass returns the per-lane evaluations. By multiplication count twelve points at level $0$ equal the level-$0$ encoding at rate $1/2$, but the pass only accumulates products and does not write the message back. The project's unpublished working notes report an experiment with standalone kernels on one machine, not an integrated prover, which the reader cannot repeat from this paper: there the points were a small part of the prover's work, smaller at lower rates, and the ladder's advantage over one batch in prover work was smaller than its multiplication count suggests, while its saving in scalars stands. We quote no timings; the cost in an integrated prover is not known.
+
+\emph{Verifier.} At Johnson thresholds the points add about $5$ percent to the verifier's field multiplications and nothing to its Merkle work, which dominates (a formula count, not a measurement). For the recursive verifier the points are estimated to cost about as much as $27$ level-$0$ queries, so the change pays for itself in recursion only with a lowered threshold.
+
+\subsection{How sharp is the analysis?}\label{sec:sharp}
+
+Twelve points at level $0$ for a list of $2^{40}$ is far more than any attack justifies. Of the $1062$ bits that the points must supply, $357$ pay for the factor $\q^6/\thr\approx\q^3/2^{27}$ (unexplained candidates are counted by triples), $595$ for the discount $\dsc^{-5}$ of the potential (points reused across six rounds), and $110$ are the target. What is known about each loss:
+
+\paragraph{Lists are not attacks any more.} The list-switching path of \S\ref{sec:listattack} is dead for $s\ge2$: by \eqref{eq:line} a list member that misses the answers at two points with distinct $\zeta$ survives for at most one fold challenge, because the two lines of challenges it keeps have different slopes. With a single point the protocol is broken at rate $1/4$ below $\blen/2$, at a cost of about $2^{117}$: a point that falls in $\dom$ is in effect a query, which does not separate the flats, and then every flat through that column wins its own line. No path that costs less than $2^{125}$ is known with two points per level at any threshold of interest, and none at all at the proved counts.
+
+\begin{proposition}[A floor for this state function]\label{prop:floor}
+In the setting of Lemma~\ref{lem:F}, let $U_1,\dots,U_k\in\lst(\orc;\agr,\dgr)$ have halves $(F,G_a)$ with one common $F$ of degree at most $\dgr-1$. Let $\mathbf z$ and an index $i$ be such that $\ev^{(j)}_{z_m}(G_a)$ does not depend on $a$ for every $m\ne i$, while the values $\ev^{(j)}_{z_i}(G_a)$ are pairwise distinct, and suppose $|\lst(\orc;\agr-1,\dgr)|<\q$. Then there are a weighted claim, carried values and a prover message for which the hypothesis of Lemma~\ref{lem:F}(2) holds and at least $k\q$ challenges admit a $P$ with \textnormal{(p)} and \textnormal{(w)}. In particular $\mathbf z\in\Exc_j(\orc)$ whenever $k\q\ge\Kz$.
+\end{proposition}
+\status{\stpr. Not machine-checked; confirmed by exhaustive computation over all point pairs in a field of $64$ elements.}
+\begin{proof}
+Take the zero weight, the claim $0$ and $v_G=v_F=\tabx{0}=\tabx{1}=0$, so that (w) reads $0=0$. Write $\theta'_m:=\theta_m^{2^{j-1}}$. For $m\ne i$ put $\varphi_m:=\ev_{z_m}(F)$ and $v_m:=\theta'_m\ev_{z_m}(F)+\ev_{z_m}(G_a)$, the same for all $a$. Choose $v_i$ outside the fewer than $\q$ values $\ev^{(j-1)}_{z_i}(U)$, $U\in\lst(\orc;\agr-1,\dgr)$: then no tuple of that list satisfies the carried claims and the hypothesis of Lemma~\ref{lem:F}(2) holds vacuously. Put $e_a:=v_i+\theta'_i\ev_{z_i}(F)+\ev_{z_i}(G_a)$, nonzero and pairwise distinct, and $\varphi_i:=\ev_{z_i}(F)+\phi$ with any $\phi\ne0$. For every $c$ the fold $G_a+a_cF$ is in $\lst(\orc_c;\agr,\dgr)$; it satisfies (p) at every $m\ne i$, and at $m=i$ the two sides of (p) differ by $e_a+(\theta'_i+\afa+\afb\zeta_i)\phi$, which vanishes exactly on the line $\afa+\afb\zeta_i=\theta'_i+e_a/\phi$. The $k$ lines are parallel and distinct. The last sentence is the contrapositive of Lemma~\ref{lem:F}(2).
+\end{proof}
+
+Members $U_a=(F,G+RH_a)$ built from a common factor $R$ with $r$ roots share their answers at every point whose $\zeta$ is a root of $R$, so such tuples of points have probability about $s(r/\q)^{s-1}$: only $s-1$ of the $s$ points separate list members. This does not contradict Theorem~\ref{thm:count}: its exceptional set is \emph{defined} by the triple count and contains these tuples, and its probability bound exceeds $s\binom L2\epp^{s-1}$ by a factor of more than $2^{600}$ at every level. But it means that any proof with this state function and an explicit exceptional set needs $(s-1)\log_2(1/\epp)\gtrsim110$ plus the list term: three points at level $0$ for a list of $2^{40}$, where the theorem has twelve. It is not an attack on the protocol: after such a round the prover is honest for one member.
+
+\paragraph{The two losses.} The factor $\q^3$ could be removed by a weak bound on the number of unexplained candidates: if at most $2^{75}\q$ candidates are not folds of a near pair (a correlated agreement statement with error $2^{-53}$, where the analysis of Annex~B needs $2^{-118}$), a refinement of Lemma~\ref{lem:F} with an explicit exceptional set gives $9,7,6,6,6,6$ points at list $2^{40}$. That bound is conjectural below the Johnson radius. The discount is real for the exceptional set as defined: there are words for which grinding the first challenge onto a line makes the points exceptional for the second round, so the Markov step of Lemma~\ref{lem:T} cannot be improved in general; whether it is real for soundness is not known, and the ladder is the proved mitigation. In summary: \emph{proved, $12$ points at level $0$ for lists of $2^{40}$ ($6$ after the commitment on the ladder); floor of this state function, $3$; best known attack, breaks $1$ point and not $2$.} The gap is a cost, not a soundness question.
+
+\subsection{Retuning available today}\label{sec:retune}
+
+Independently of everything above, the same validated model shows what the present proof of Annex~B allows with no new theorem and no threshold below the Johnson radius. Configuration A changes constants only (a larger residual, a level-$0$ query grind that grows with the commitment size, one more bit on the batching and OOD grinds); B opens $32$ lanes instead of $64$ at level $0$, a shape change in both provers, the three verifiers and leanVM's formal development; C is both.
+\begin{center}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+opening at rate $1/2$, full commitment & $2^{24}$ elements & $2^{28}$ & $2^{30}$\\
+\midrule
+today & $260.4$ KiB & $313.7$ KiB & $335.9$ KiB\\
+A, constants only & $247.4$ ($-5.0\%$) & $293.0$ ($-6.6\%$) & $320.6$ ($-4.6\%$)\\
+B, $32$ lanes & $226.6$ ($-13.0\%$) & $283.7$ ($-9.6\%$) & $308.3$ ($-8.2\%$)\\
+C, both & $224.9$ ($-13.6\%$) & $276.1$ ($-12.0\%$) & $297.1$ ($-11.6\%$)\\
+\bottomrule
+\end{tabular}
+\end{center}
+A is paid in grinding work (about $2^{22}$ to $2^{24}$ hash evaluations per proof at the larger sizes instead of $2^{20}$) and B in a few percent more hashing for the verifier; on partly filled commitments the savings are smaller. These numbers are exact outputs of the model for today's protocol. They are of the same order as what a list bound at $0.66\,\blen$ would give at rate $1/2$, and they are available now.

@@ -1,0 +1,32 @@
+name = "deepfold"
+version = "0.1.0"
+defaultTargets = ["DeepFold", "Interleave", "Constructions", "Protocol", "Rounds", "Soundness"]
+
+[leanOptions]
+warningAsError = true
+autoImplicit = false
+relaxedAutoImplicit = false
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.36.0"
+
+[[lean_lib]]
+name = "DeepFold"
+
+[[lean_lib]]
+name = "Interleave"
+
+[[lean_lib]]
+name = "Constructions"
+
+[[lean_lib]]
+name = "Protocol"
+
+[[lean_lib]]
+name = "Rounds"
+
+[[lean_lib]]
+name = "Soundness"

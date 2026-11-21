@@ -1,0 +1,112 @@
+\section{Today's protocol is at its limit}\label{sec:limit}
+
+This section explains why a better analysis of the protocol of Annex~B has little or nothing to gain on the domains it uses: below the Johnson radius there are words with large lists, and for that protocol a large list above the threshold is an attack, not only a gap in a proof. At rate $1/4$ this leaves no room at all. At the other rates it leaves a window between the first large list and the Johnson radius (\S\ref{sec:gap}) in which nothing is proved in either direction, and in which an analysis of the same protocol would need both a list bound and a correlated agreement theorem.
+
+\subsection{Attacks are paths}\label{sec:paths}
+
+Model the Fiat-Shamir transformation by a random oracle with a grind of $g_m$ bits before verifier message $m$: a query for message $m$ fixes the whole prefix and returns a challenge that is uniform and passes the grind with probability $2^{-g_m}$.
+
+\begin{lemma}[Paths]\label{lem:paths}
+Suppose every accepting transcript has a \emph{type} $\pi$ in a finite set, and each type comes with pairs $(m,\mathcal E^\pi_m)$, where $\mathcal E^\pi_m$ is an event on the prefix before message $m$ and the challenge of $m$, such that an accepting transcript of type $\pi$ satisfies $\mathcal E^\pi_m$ at every $m$ of $\pi$ and, for every prefix, $\Prob[\mathcal E^\pi_m]\le p^\pi_m$ over the challenge. Then an adversary making $Q$ oracle queries outputs an accepting transcript with probability at most $Q\sum_\pi\min_{m\in\pi}2^{-g_m}p^\pi_m$, plus the usual term for challenges it never queried. Conversely the staged strategy ``at each $m$ of the path, redraw until $\mathcal E_m$'' succeeds with expected cost $\sum_{m\in\pi}2^{g_m}/p_m$ when it can realize each event with probability $p_m$.
+\end{lemma}
+\status{\stpr. Not machine-checked.}
+\begin{proof}
+Fix $\pi$ and let $m^\ast$ minimize $2^{-g_m}p^\pi_m$. An accepting transcript of type $\pi$ contains an answered query for $m^\ast$ whose answer passes the grind and satisfies $\mathcal E^\pi_{m^\ast}$; each query does so with probability at most $2^{-g_{m^\ast}}p^\pi_{m^\ast}$. Take a union over the queries and the types. The converse is the mean of a sum of geometric variables.
+\end{proof}
+
+So the cost of an attack is that of the most expensive event on its path, up to the number of events. Round-by-round soundness is the special case in which every type is a single event, ``the state leaves doom at $m$''. An attack is \emph{real} when one can name a path all of whose events are cheap. Every path ends with the query message of some level against a codeword that agrees with the committed word on some $\agr$ columns, which costs $2^{17}(\blen/\agr)^{\nq}$ hash evaluations. The honest-looking strategy ``commit to a word at agreement $\agr_i-1$ from a codeword that satisfies all claims'' costs $2^{17}(\blen_i/(\agr_i-1))^{\nq_i}\approx2^{125}$ and needs nothing else, which is why the query term is tight and why only lists \emph{at or above} the threshold matter: against a list below the threshold the query message alone already costs the full $2^{125}$.
+
+\subsection{Lists are attacks}\label{sec:listattack}
+
+In the protocol of Annex~B the claims are bound to the committed word by weighted claims only, and a list member that violates the running claim can be rescued by a fold challenge.
+
+\begin{lemma}[A list in one half gives one line per member]\label{lem:lines}
+In a fold round of Annex~B with running claim $(W,c)$, let $(F,G_i)$, $i\le L$, be tuples with a common first half and $c_i^\ast:=\inner{W_0}{F}+\inner{W_1}{G_i}\ne c$. If the prover sends $v_F,\tabx{0},\tabx{1}$ honestly for $F$ and any $v_G$, then for each $i$ the fold of $(F,G_i)$ satisfies the updated claim \eqref{eq:claim-update} exactly on the line $\afa=\afa_i:=\delta_i/(\delta_i+c_i^\ast+c)$ of $\E^2$, where $\delta_i:=\inner{W_0}{G_i}+v_G$ (no challenge if the denominator vanishes). The challenge escapes for some member with probability $\#\{\afa_i\}/\q$, and the prover recognises success by a table lookup.
+\end{lemma}
+\status{\stpr. Not machine-checked.}
+\begin{proof}
+By the expansion in the proof of Lemma~\ref{lem:F}, the difference between the true value of the folded claim for $(F,G_i)$ and the right side of \eqref{eq:claim-update} is $\delta_i+\afa(\delta_i+c_i^\ast+c)+\afa^2\delta_F+\afb\delta_0+\afa\afb(\delta_0+\delta_1)$, where $\delta_F,\delta_0,\delta_1$ are the errors of $v_F,\tabx{0},\tabx{1}$, here zero.
+\end{proof}
+
+Any single-lane list can be placed in the $G$ half of the first round. Consequently a list of $L$ usable codewords at agreement $\agr$ gives the path: escape the first fold round (cost about $2^{g}\q/L$ with $g=7$ grinding bits), then be honest for the member that escaped and pay the query message at agreement $\agr$:
+\begin{equation}\label{eq:listcost}
+\text{cost}\;\approx\;\frac{2^{7}\,\q}{L}+2^{17}\Bigl(\frac{\blen}{\agr}\Bigr)^{\nq}.
+\end{equation}
+So a list at agreement $\agr$ breaks the protocol of Annex~B as soon as the threshold is at or below $\agr$ and $L>2^{10}$. Conversely the proof of Theorem~\ref{thm:annexb} needs, at its threshold, a list budget of about $2^7$ (the binding terms are the level-$0$ batching and the OOD point) and, separately, a bound on the challenges whose fold has a close codeword not explained by a close pair, which is what mutual correlated agreement provides and what is known only down to the Johnson radius.
+
+\subsection{Flats: large lists at agreement \texorpdfstring{$2\rate\blen$}{2 rho n}}\label{sec:flats}
+
+For a finite $\Ftwo$-subspace $V$ of a field of characteristic two, write $\loc_V:=\prod_{v\in V}(X-v)$ for its subspace polynomial.
+
+\begin{proposition}[Flats]\label{prop:flats}
+Let $\dom$ be an $\Ftwo$-subspace of a field of characteristic two and $V\le\dom$ a subspace of size $2^s$, $s\ge1$. Then $\loc_V$ is linearized, $\loc_V=X^{2^s}+c_{s-1}X^{2^{s-1}}+\dots+c_0X$, so $Q_V:=(\loc_V-X^{2^s})/X$ is a polynomial of degree at most $2^{s-1}-1$, and $Q_V(x)=x^{2^s-1}$ exactly for $x\in V\setminus\{0\}$. Distinct $V$ give distinct $Q_V$. Hence, for the code of rate $\rate$ and dimension $k=\rate\blen$ on $\dom$, the single word $x\mapsto x^{2k-1}$ has at least as many genuine codewords at agreement $2\rate\blen-1$ as $\dom$ has subspaces of size $2k$. At rate $1/4$ this is at least $\blen-1$ codewords at agreement $\blen/2-1$.
+\end{proposition}
+\status{\stmc. Linearity and the degree are \lean{subPoly_isLinearized} and \lean{natDegree_subPoly_sub_le} in \leanfile{Constructions/Subspace.lean}; the rest is \lean{flatPoly_natDegree_le}, \lean{flatPoly_eval}, \lean{agree_flatPoly}, \lean{flatPoly_injective}, \lean{flats_list}, \lean{card_hyperplanes_ge}, \lean{flats_quarter} in \leanfile{Constructions/Flats.lean}. The number of subspaces of size $2k$ (a Gaussian binomial, about $2^{51}$ at rate $1/8$ and $2^{77}$ at rate $1/16$ at level $0$) is machine-checked only for hyperplanes.}
+\begin{proof}
+For $a\notin W$, $\loc_{W+\{0,a\}}=\loc_W(X)\,\loc_W(X+a)=\loc_W^2+\loc_W(a)\,\loc_W$, since $\loc_W$ is additive; by induction on the dimension $\loc_V$ is linearized. Then $\loc_V-X^{2^s}$ has degree at most $2^{s-1}$ and no constant term. For $x\ne0$, $Q_V(x)=x^{2^s-1}$ if and only if $\loc_V(x)=0$, that is $x\in V$. And $Q_V$ determines $\loc_V$, hence $V$.
+\end{proof}
+
+At rate $1/4$ the Johnson radius is $\blen/2$, and the flats sit at $\blen/2-1$: they are one point inside the range of the Johnson bound (which allows $\blen^2/4$ codewords there), so they do not contradict it; what they show is that the list just below the proven threshold is at least $\blen-1\approx2^{26}$. With \eqref{eq:listcost}: at level $0$ of a commitment of $2^{30}$ elements at rate $1/4$, the escape costs $2^{7}\cdot2^{102}=2^{109}$ and the queries $2^{17+\nq_0}$, so the protocol of Annex~B is broken as soon as $\nq_0\le107$, and it deploys $109$. \emph{At rate $1/4$ on subspace domains the gap between proof and attack is closed.} At other rates the flats sit at $2\rate\blen$, far below $\sqrt\rate\,\blen$ for $\rate<1/4$, and give nothing at rate $1/2$.
+
+\subsection{Rate \texorpdfstring{$1/2$}{1/2}: large lists at agreement \texorpdfstring{$5\blen/8$}{5n/8}}\label{sec:five8}
+
+\begin{proposition}[The $5\blen/8$ families]\label{prop:five8}
+Let $\dom$ be an $\Ftwo$-subspace of $\blen\ge16$ points of a field of characteristic two.
+\begin{enumerate}[itemsep=1pt,topsep=2pt,label=\textnormal{(\alph*)}]
+\item For every subspace $U\le\dom$ of size $\blen/8$, the word $\loc_U^5$ agrees on exactly $5\blen/8$ points with each of $56\blen-392$ distinct polynomials of degree at most $\blen/2$.
+\item For every $p\in\dom$, the $35\blen-245$ members through $p$ give genuine codewords (degree less than $\blen/2$) at agreement $5\blen/8-1$ with one word. With the analysis degree $\dgr=\blen/2-1+\ell$, lists of $7\blen-35$ polynomials exist up to agreement $5\blen/8+\ell-1$.
+\item For every hyperplane $H$ of $\dom$ and every set $P\subseteq H$ of $3\blen/8$ points, the word $x\mapsto\Zs_P(x)\,x^{\blen/4}$, with $\Zs_P$ the locator of $P$, has at least $\blen-2$ polynomials of degree at most $\blen/2$ at agreement $5\blen/8$; with $|P|=3\blen/8-1$, at least $\blen-2$ genuine codewords at agreement $5\blen/8-1$.
+\end{enumerate}
+\end{proposition}
+\status{(c) is \stmc: \lean{five_eighths_slack}, \lean{five_eighths_genuine} in \leanfile{Constructions/Padded.lean}. For (a), one list member per admissible label set of one hyperplane $W$ is \stmc{} (\lean{glued_list}, \lean{glued_five_eighths} in \leanfile{Constructions/Glued.lean}), as is a lower bound of $\blen/8-1$ members (\lean{glued_list_card} in \leanfile{Constructions/GluedCount.lean}), in both cases with agreement at least, not exactly, $5\blen/8$; the exact count $56\blen-392$ and (b) are \stpr{} by hand and were re-enumerated independently at $\blen=32,64,128$, but are \emph{not} machine-checked.}
+\begin{proof}
+(a) Let $W$ be a hyperplane of $U$ and $\eta$ the nonzero element of $\loc_W(U)$, so that $\loc_U=\loc_W^2+\eta\,\loc_W$. The image $\loc_W(\dom)$ is a set of $16$ labels, an $\Ftwo$-space of dimension $4$ containing $\eta$. For a set $Y$ of ten labels with $\sum_{y\in Y}y=\eta$ let $S:=\dom\cap\loc_W^{-1}(Y)$, of size $10|W|=5\blen/8$. Its locator is $\Zs_S=V_Y(\loc_W)$ with $V_Y(T)=\prod_{y\in Y}(T-y)=T^{10}+\eta\,T^9+\cdots$, and $\loc_U^5=(\loc_W^2+\eta\loc_W)^5=\loc_W^{10}+5\eta\,\loc_W^9+\cdots$ with $5\eta=\eta$. So $V_Y(T)-(T^2+\eta T)^5$ has degree at most $8$ in $T$, and $\loc_U^5-\Zs_S$ has degree at most $8|W|=\blen/2$: it is a list member, agreeing with the word exactly on $S$. Count: there are $504$ ten-subsets of the label space with sum $\eta$; $56$ of them are unions of five pairs $\{y,y+\eta\}$, that is, $S$ is a union of five cosets of $U$, and these arise from every $W$; sets from different hyperplanes that are not unions of cosets of $U$ are distinct (a set arising from $W\ne W'$ is invariant under $W+W'=U$). With $|U|-1=\blen/8-1$ hyperplanes this gives $56+448(\blen/8-1)=56\blen-392$.
+
+(b) Divide by $X-p$: the word $(\loc_U^5-\loc_U(p)^5)/(X-p)$ agrees on $S\setminus\{p\}$ with a polynomial of degree less than $\blen/2$ for each member through $p$, and a fraction $5/8$ of the members contain a given point. For the slack, enlarge the members that avoid one fixed coset of $U$ by a set of $j\le\ell-1$ points of that coset and multiply the word by the locator of that set.
+
+(c) A flat $a+V$ has locator $\loc_V(X)+\loc_V(a)=X^{|V|}+(\text{degree}\le|V|/2)$. For each of the $\blen-2$ flats $F$ of size $\blen/4$ contained in $\dom\setminus H$ (the affine hyperplanes of the other coset of $H$), $\Zs_{P\sqcup F}=\Zs_P\,X^{\blen/4}+C_F$ with $\deg C_F\le|P|+\blen/8=\blen/2$, so $C_F$ agrees with the word exactly on $P\cup F$, a set of $5\blen/8$ points, and distinct flats give distinct $C_F$.
+\end{proof}
+
+At level $0$ of a commitment of $2^{30}$ elements, (a) is a list of $2^{30.8}$ members at $5\blen/8$, found three times independently in the project's unpublished working notes (it is proved here, as Proposition~\ref{prop:five8}(a)); the same word is the height-two case of the decision-tree construction of \cite{DKTZ26}, which counts the members containing one fixed coset. By \eqref{eq:listcost} the protocol of Annex~B cannot have a threshold at or below $5\blen/8+\ell-1$, which is a floor of $160$ queries. Above $5\blen/8$ there is a family of multiset-top lists whose size decreases with the distance $\eta\blen$ to $5\blen/8$ like $1/(64\eta^2)$ (\S\ref{sec:proved}); its $4064$ genuine codewords at $0.627\,\blen$ raise the floor to $161$. This family is proved only in the project's unpublished working notes, and its proof is not reproduced in this paper. Nothing that grows with $\blen$ at a fixed fraction between $5/8$ and $1/\sqrt2$ is known on any binary domain, and no proof excludes it.
+
+\subsection{Pole pairs: correlated agreement fails where lists are large}\label{sec:pole}
+
+\begin{proposition}[Pole collapse]\label{prop:pole}
+Let $\dom$ be a finite subset of a field, $\beta_0\notin\dom$, and $f_0(x):=1/(x-\beta_0)$. For every $(\afa,\afb)$ and every $x\in\dom$, $(\afa+\afb x)f_0(x)=\afb+(\afa+\afb\beta_0)f_0(x)$, so for any second word $f_1$ the affine fold $f_1+(\afa+\afb x)f_0$ is, up to the constant codeword $\afb$, the scalar fold $f_1+\gamma f_0$ at $\gamma=\afa+\afb\beta_0$. The same holds for any polynomial combiner $C(x)$ in place of $\afa+\afb x$, with $\gamma=C(\beta_0)$ and a polynomial of degree $\deg C-1$ in place of $\afb$. Consequently, if a word $w$ has $L$ polynomials $C_i$ of degree at most $\dgr+1$ at agreement $\agr$ with distinct values $C_i(\beta_0)$, then the pair $(f_0,\,w/(x-\beta_0))$ has at least $L\q$ challenges whose fold agrees with a polynomial of degree at most $\dgr$ on $\agr$ points, although $f_0$ agrees with no polynomial of degree at most $\dgr$ on more than $\dgr+1$ points.
+\end{proposition}
+\status{\stmc, over any field: \lean{pole_collapse}, \lean{combiner_collapse}, \lean{affFold_pole_close_iff}, \lean{lemmaA}, \lean{lemmaA_card}, \lean{list_gives_bad_challenges} in \leanfile{Constructions/Pole.lean}; with the flats, \lean{flats_break_mca} in \leanfile{Constructions/Concrete.lean}; the last clause is \lean{card_agree_poleWord_le}. The count $L\q$ for a given pole that separates the list is \lean{lemmaA_card} and has no condition on the field; that such a pole exists (\lean{list_gives_bad_challenges}, \lean{flats_break_mca}) assumes the field large enough, $(\dgr+1)\binom L2+\blen<|\text{field}|$.}
+\begin{proof}
+The identity is $\afa+\afb x=\afb(x-\beta_0)+(\afa+\afb\beta_0)$. On the line $\afa+\afb\beta_0=-C_i(\beta_0)$ the fold of the pair equals $\afb+(w-C_i(\beta_0))/(x-\beta_0)$, which agrees with the polynomial $\afb+(C_i-C_i(\beta_0))/(X-\beta_0)$ of degree at most $\dgr$ wherever $C_i$ agrees with $w$. And $F(X)(X-\beta_0)-1$ is a nonzero polynomial of degree at most $\dgr+1$.
+\end{proof}
+
+So wherever lists are large, mutual correlated agreement fails with error about $L/\q$: pole pairs and lists are the same object. With the flats at rate $1/4$ this is a pair of words whose fold is close for at least $(\blen-1)\q$ challenges while the first word is far from every codeword. Pole pairs are not a real attack on the protocol (the prover who uses one wins a line, $1/\q$ per attempt, like one list member); they are a constraint on any analysis whose state is ``the fold is far, or explained by a close pair''. This is the reason for changing the protocol and not only the proof.
+
+\subsection{What does not help}\label{sec:nohelp}
+
+\paragraph{Grinding.} A list budget $2^b$ in the fold round needs $b-2$ grinding bits in each of the $26$ fold messages of an opening. With the smaller terms of the analysis repaired by small protocol changes, a budget of $2^{16}$ costs $1.24$ times today's grinding work, $2^{20}$ costs $8$ times, and $2^{26}$ about $450$ times; neutralising the flats at rate $1/4$ needs $23$ bits per fold round. The trade is linear in bits against exponential in work. (These are counts of hash evaluations from a model of the transcript, not measurements.)
+
+\paragraph{Higher-degree and multi-lane combiners.} By Proposition~\ref{prop:pole} every combiner that is a polynomial in $x$ with coefficients linear in the challenges collapses onto one scalar under a pole pair, so the term $L/\q$ is unchanged; a list member with a false claim still has a nonzero residual of degree two in the challenges, so the term $2L/\q$ is unchanged. Only the already negligible term of order $(\blen/\q)^2$ improves.
+
+\paragraph{A larger challenge field.} Challenges in a quadratic extension of $\E$ turn every $1/\q$ into $1/\q^2$, so lists of $2^{60}$ and more would fit the budgets of the present proof. But every later level's oracle and all arithmetic after the first challenge then live in the larger field, and it proves nothing below the Johnson radius: it only weakens what has to be proved about lists, while the correlated agreement term remains.
+
+\paragraph{Capacity-achieving codes.} Folded Reed-Solomon codes and other subspace-design codes have proximity gaps up to capacity that are proved today \cite{GG25,LXYYZ26}. As far as we can see the argument that makes folded Reed-Solomon codes subspace designs does not depend on the characteristic; this is our reading and not a statement of those papers, and the folding protocol of \cite{LXYYZ26} is for prime fields. They bundle $m$ evaluations into one symbol, and a level-$0$ leaf already carries $64$ lanes, so any alphabet blow-up is paid $64$ times over while the query count can drop by at most a factor two; in a model of the opening, every folding parameter that lowers the query count raises level $0$'s proof bytes and hash count by a large factor. The comparison that settles it: capacity at rate $\rate$ gives $\log_2(1/\rate)$ bits per query, exactly what the Johnson bound gives at rate $\rate^2$. Squaring the level-$0$ rate is available today, with a proof, at the price of a larger encoding, and dominates every capacity code with bundled symbols.
+
+\paragraph{A different domain.} For rates $1/4$ and below, the domain can be any union of $2^{\rexp}$ cosets of the message subspace: the encoding cost is the same, and Theorem~\ref{thm:annexb} holds verbatim, since the Johnson bound and the affine correlated agreement theorem are stated for any domain. If the coset representatives are additively independent (no four of them sum into the message subspace), the flats family at rate $1/4$ has $3$ members instead of $2^{26}$. This proves nothing, and the families of rate $1/2$ survive inside each union of two cosets, but it removes the one proven obstruction at rate $1/4$ and is the natural domain on which to look for a list bound there.
+
+\subsection{Where the gap stands}\label{sec:gap}
+
+At level $0$ of a commitment of $2^{30}$ elements, for the protocol of Annex~B:
+\begin{center}
+\small
+\begin{tabular}{@{}lcL{0.36\textwidth}cL{0.24\textwidth}@{}}
+\toprule
+rate & deployed & largest agreement with a list of at least $2^{10}$ & floor & status\\
+\midrule
+$1/2$ & $218$ & $5\blen/8$ ($2^{30.8}$ members); $0.627\,\blen$ ($4064$) & $160$; $161$ & open on the proof side\\
+$1/4$ & $109$ & $\blen/2-1$ (flats, $2^{26}$) & $108$ & closed on subspace domains\\
+$1/8$ & $73$ & $\blen/4-1$ (flats, $2^{51}$) & $54$ & open\\
+$1/16$ & $55$ & $\blen/8-1$ (flats, $2^{77}$); $0.152\,\blen$ ($2^{15.6}$, non-constructive) & $36$; $40$ & open\\
+\bottomrule
+\end{tabular}
+\end{center}
+The floor is the least level-$0$ query count at which the query message of the attack \eqref{eq:listcost}, against the lists of the third column, costs at least $2^{125}$, that is $\lceil108/\log_2(\blen/\agr)\rceil$; where two lists are given, the second floor counts the second list (at rate $1/2$ the family above $5\blen/8$ of \S\ref{sec:five8}; at rate $1/16$ a list whose existence is proved by a pigeonhole argument, which the referee of the notes read and did not recompute; both are proved only in the project's unpublished working notes, and neither proof is reproduced in this paper, so the floors $161$ and $40$ rest on those notes and the floors $160$, $108$, $54$ and $36$ do not). Between the floor and the deployed count nothing is proved in either direction, except at rate $1/4$. The attack floors are statements about the protocol of Annex~B. For Protocol~\ref{prot:D} lists are not attacks (\S\ref{sec:sharp}); they are only what has to be bounded, and counted in the number of points.

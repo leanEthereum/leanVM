@@ -1,0 +1,242 @@
+\section{The list hypothesis}\label{sec:lists}
+
+Theorem~\ref{thm:rbr-deep} needs one thing of the code: $\Lb_i(L_i)$. This section says what that hypothesis reduces to, what is proved about it, what is conjectured and on what evidence, and why the known proof techniques do not reach it. The summary is short and should be read before anything else:
+
+\begin{quote}
+\emph{On the real domain, for all words, the only proved list bounds are the Johnson bound and the trivial counting bound of \S\ref{sec:hyp}, together with the interleaving reductions of \S\ref{sec:interleave}. Every other upper bound below the Johnson radius is about a restricted class of words, or about a formal model of the domain, or both. Apart from the counting bound at the last, smallest levels, no instance of $\Lb$ below the Johnson radius with a list size the protocol could pay for is proved, on any binary subspace domain.}
+\end{quote}
+
+\subsection{Interleaving reductions}\label{sec:interleave}
+
+$\Lb_i$ quantifies over all lane counts and over $\E$-valued lanes. Since $\dom\subseteq\K$, evaluation at a point of $\dom$ is $\K$-linear in the coefficients, so an $h$-lane $\E$-valued word is a $2h$-lane $\K$-valued word with the same list. Two reductions, neither of which needs the other, bring the hypothesis down to single-lane words over $\K$.
+
+\begin{theorem}[Tree bound for interleaved codes]\label{thm:I}
+Let $\mathcal C\subseteq\Sigma^\blen$ be a code, over any alphabet, in which two distinct codewords agree on at most $\dgr$ coordinates. Let $\dgr<\agr\le\blen$, $g:=\agr-\dgr$, and suppose every word of $\Sigma^\blen$ has at most $L\ge1$ codewords agreeing with it on at least $\agr$ coordinates. Define $\treeN=\treeN_{L,g}$ on integers by
+\[
+\treeN(\Phi):=1\ \text{ for }\Phi<2g,\qquad \treeN(\Phi):=\treeN(\Phi-g)+(L-1)\,\treeN(\lfloor\Phi/2\rfloor)\ \text{ for }\Phi\ge2g.
+\]
+Then for every $m\ge1$, every word of the $m$-fold interleaved code has at most $\treeN(\blen-\dgr)$ tuples of codewords agreeing with it on at least $\agr$ columns. Moreover
+\[
+\treeN(\blen-\dgr)\;\le\;\sum_{k=0}^{\min(b,r)}\binom bk(L-1)^k\;\le\;\binom{b+r}{r}L^r,\qquad b:=\Bigl\lfloor\frac{\blen-\agr}{\agr-\dgr}\Bigr\rfloor,\quad r:=\Bigl\lfloor\log_2\frac{\blen-\dgr}{\agr-\dgr}\Bigr\rfloor.
+\]
+In particular the interleaved list has at most $1$ member for $\agr>(\blen+\dgr)/2$, at most $L$ for $\agr>(\blen+2\dgr)/3$, at most $2L-1$ for $\agr>(\blen+3\dgr)/4$, and at most $L^2+L-1$ for $\agr>(\blen+4\dgr)/5$.
+\end{theorem}
+\status{\stmc: \lean{interleave_listBound} with the special cases \lean{interleave_listBound_one}, \lean{interleave_listBound_same}, \lean{interleave_listBound_two_mul}, \lean{interleave_listBound_sq} in \leanfile{Interleave/Tree.lean}; the closed forms \lean{interleave_listBound_closed}, \lean{interleave_listBound_choose} in \leanfile{Interleave/Closed.lean}; for Reed-Solomon codes with lanes and values in an extension, \lean{rs_interleave} and its special cases in \leanfile{Interleave/ReedSolomon.lean}.}
+\begin{proof}
+Let $w=(w_1,\dots,w_m)$ be the word. Build a tree: a node of depth $i$ is a sequence $(a_1,\dots,a_i)$ of codewords such that $T:=\bigcap_{k\le i}\agrset(a_k,w_k)$ has at least $\agr$ elements (the root has $T=\{1,\dots,\blen\}$). The nodes of depth $m$ are exactly the list members, with $T$ their agreement set. For a node put $\Phi:=|T|-\dgr\ge g$. A child by $a$ has $T'=T\cap\agrset(a,w_{i+1})$ and \emph{shrink} $\sigma(a):=|T|-|T'|\le|T|-\agr$.
+
+\emph{Fact 1.} Two distinct children $a\ne a'$ of one node have $\sigma(a)+\sigma(a')\ge|T|-\dgr=\Phi$: a coordinate of $T$ where both agree with $w_{i+1}$ is one where $a=a'$, and there are at most $\dgr$ of those. \emph{Fact 2.} A node has at most $L$ children, each agreeing with $w_{i+1}$ on at least $\agr$ coordinates. \emph{Fact 3.} If a node has two or more children, every child has $\sigma(a)\ge g$, by Fact~1 and $\sigma(a')\le|T|-\agr$; so $\Phi'\le\Phi-g$ for every child, and $\Phi\ge2g$ since a child has $\Phi'\ge g$. \emph{Fact 4.} If a node has two or more children, fix one of least shrink, the \emph{heavy} child. Every other child has $2\sigma(a)\ge\Phi$ by Fact~1, so $\Phi'\le\lfloor\Phi/2\rfloor$.
+
+$\treeN$ is non-decreasing, by induction. Claim: the number of nodes of depth $m$ below a node is at most $\treeN(\Phi)$. This is proved by induction on $m$ minus the depth. At depth $m$ it is $1$. A node with at most one child: the child has $\Phi'\le\Phi$. A node with two or more children: $\Phi\ge2g$, the heavy child contributes at most $\treeN(\Phi-g)$, and each of the at most $L-1$ others at most $\treeN(\lfloor\Phi/2\rfloor)$. At the root $\Phi=\blen-\dgr$.
+
+\emph{Closed form.} In the recursion tree of $\treeN$ a node $\Phi\ge2g$ has one child $\Phi-g$ and $L-1$ children $\lfloor\Phi/2\rfloor\le\Phi-g$, a node $\Phi<2g$ is a leaf, and $\treeN(\Phi)$ is its number of leaves. Along a root-to-leaf path every branching costs at least $g$ of $\Phi$, which starts at $\blen-\dgr$ and stays at least $g$, so there are at most $b$ branchings; every non-heavy edge at least halves $\Phi$, so there are at most $r$ of them. A leaf is determined by its choices at the branchings of its path (heavy, or one of $L-1$ others), and padding these words with ``heavy'' to length $b$ is injective. The number of words of length $b$ with at most $r$ non-heavy letters is the sum. The last inequality is $\sum_{k\le r}\binom bk\le\binom{b+r}{r}$. For the special cases, $(\blen-\dgr)/g$ is below $2,3,4,5$ respectively, and $\treeN$ on $[g,2g),[2g,3g),[3g,4g),[4g,5g)$ is $1,L,2L-1,L^2+L-1$.
+\end{proof}
+
+The theorem uses nothing of the code but the agreement bound, like the Johnson bound. A bound of the form $\binom{b+r}{r}L^r$, with ceilings in place of floors, is stated in \cite[Lemma~2.10]{ABF26} (numbering of the April 2026 version) and attributed there to Gopalan, Guruswami and Raghavendra \cite{GGR11}; it follows from the theorem. We did not consult \cite{GGR11}: the proof above was derived independently, so we do not claim that it is their argument, and it is sharper where it matters here. At rate $1/2$ and $\agr=0.64\blen$ it gives $2L-1$. In exhaustive computations on Reed-Solomon codes over subspace domains with $\blen\le16$ the interleaved maximum equalled the single-lane maximum in every case; whether $2L-1$ is ever attained is not known.
+
+\begin{proposition}[Projection bound]\label{prop:R2}
+Let $\dom\subseteq\K$, $s\ge1$, and suppose every $s$-lane $\K$-valued word on $\dom$ has at most $L$ list members at $(\agr,\dgr)$, with $2L\le|\K|^s$. Then every word on $\dom$ with values in any finite-dimensional $\K$-vector space $V$ (any extension of $\K$, any number of lanes over $\K$ or $\E$) has at most $\min\bigl(2L-1,\ L/(1-L/|\K|^s)\bigr)$ list members at $(\agr,\dgr)$.
+\end{proposition}
+\status{\stmc: \lean{descent}, \lean{descent_div} in \leanfile{Interleave/Projection.lean}, for any code with a generator matrix over $\K$; for Reed-Solomon codes \leansub{rs_descent}{1} (from single-lane words, $s=1$) and \lean{rs_descent} in \leanfile{Interleave/ReedSolomon.lean}. The hand statement in the project's unpublished working notes assumed $4L\le|\K|^s$; the weaker hypothesis came out of the formalization.}
+\begin{proof}
+Take $L'$ list members $c_i\in V[X]$ of a word $w:\dom\to V$, with agreement sets $S_i$, and a uniformly random $\K$-linear map $\lambda:V\to\K^s$, applied coefficientwise. For $x\in\dom\subseteq\K$, $(\lambda c_i)(x)=\lambda(c_i(x))$, so $\lambda c_i$ has degree at most $\dgr$ and agrees with $\lambda\circ w$ on $S_i$. For $i\ne j$ some coefficient $\gamma$ of $c_i-c_j$ is nonzero, and $\Prob[\lambda\gamma=0]=|\K|^{-s}$. So some $\lambda$ identifies at most $\binom{L'}{2}/|\K|^s$ pairs, and the number of distinct $\lambda c_i$, all members of one list over $\K^s$, is at least $L'-\binom{L'}{2}/|\K|^s$. Applying this to sublists, $\ell'-\binom{\ell'}{2}|\K|^{-s}\le L$ for every $\ell'\le L'$. If $L'\ge2L$, take $\ell'=2L$: $2L-L(2L-1)|\K|^{-s}\le L$ forces $|\K|^s\le2L-1$, contradicting $2L\le|\K|^s$. So $L'\le2L-1$, and then $L'\,(1-L|\K|^{-s})\le L'\,(1-(L'-1)|\K|^{-s}/2)\le L$.
+\end{proof}
+
+So a bound $L\le2^{63}$ for single $\K$-valued words gives at most $L/(1-L/2^{64})$ for all lanes and extensions, with no loss in the exponent at any threshold, and a bound $L\le2^{127}$ for single $\E$-valued words gives $L/(1-L/2^{128})$.
+
+\begin{proposition}[Two lanes against one]\label{prop:two}
+Let $\Lambda_1(\agr)$ and $\Lambda_2(\agr)$ be the largest single-lane and two-lane lists of a code with agreement bound $\dgr$. Then $\Lambda_2(\agr)\le\Lambda_1(\agr)+\Lambda_1(2\agr-\dgr)\,(\Lambda_1(\agr)-1)$.
+\end{proposition}
+\status{\stmc: \lean{listBound_prod}, \lean{listBound_prod_self} in \leanfile{Interleave/TwoLanes.lean}.}
+\begin{proof}
+Group the pairs of the list by their first component, which is a list member of the first lane. If a first component $a$ is shared by two pairs $(a,b)\ne(a,b')$ with agreement sets $S,S'$, then $S,S'\subseteq\agrset(a,w_1)$ and $|S\cap S'|\le\dgr$, so $a$ agrees with $w_1$ on at least $2\agr-\dgr$ coordinates. So at most $\Lambda_1(2\agr-\dgr)$ first components are shared, each by at most $\Lambda_1(\agr)$ second components, and the others carry one pair each.
+\end{proof}
+
+\paragraph{The hypothesis in its weakest sufficient form.} For a level $i$ whose threshold is below the Johnson radius:
+
+\begin{hypothesis}[$\HK(i;L)$]\label{hyp:HK}
+Every word $\dom_i\to\K$ has at most $L$ polynomials of $\K[X]$ of degree at most $\dgr^{(i)}=2^{\kappa_i}-1+\ell_i$ agreeing with it on at least $\agr^{(i,0)}$ points.
+\end{hypothesis}
+\status{A hypothesis. Below the Johnson radius it is open for every useful $L$ (Open problem~\ref{prob:list}). That it implies Hypothesis~\ref{hyp:LB} with the constants below is \stmc, and so is the composed soundness statement of the abstract model with this as its only hypothesis on lists, in the two cases $\agr^{(i,0)}>(\blen_i+3\dgr^{(i)})/4$ or $2L\le|\K|$, with level list size $2L-1$ and $\dgr^{(i)}<\agr^{(i,0)}$ (\lean{protocolD_sound_of_HK} in \leanfile{Soundness/Hypothesis.lean}).}
+
+By Theorem~\ref{thm:I} and Proposition~\ref{prop:R2} it implies $\Lb_i(L')$ with $L'=L$ if $\agr^{(i,0)}>(\blen_i+2\dgr^{(i)})/3$, $L'=2L-1$ if $\agr^{(i,0)}>(\blen_i+3\dgr^{(i)})/4$, $L'=\lfloor L/(1-L/2^{64})\rfloor$ if $L\le2^{63}$, and $L'=\treeN_{L,g}(\blen_i-\dgr^{(i)})$ in general. In \leanfile{Interleave/ReedSolomon.lean} these are four theorems, \lean{rs_interleave_same}, \lean{rs_interleave_two_mul}, \leansub{rs_descent}{1} (the projection bound, as an inequality on every list, over any finite field in place of $\K$) and \lean{rs_interleave}; \lean{rs_listBound_min} combines the tree bound with $2L-1$ under $2L\le|\K|$. In \leanfile{Interleave/Bridge.lean}, \lean{lemmaF_exc_of_rsListBound} feeds any bound for interleaved words into Lemma~\ref{lem:F}(1), and \lean{lemmaF_exc_of_HK} feeds $\HK$ into it directly in the second case, $\agr^{(i,0)}>(\blen_i+3\dgr^{(i)})/4$, with $2L-1$. At rate $1/2$ the first two cases are $\agr>2\blen/3$ and $\agr>5\blen/8$ up to the slack: in the whole window between the known large lists and the Johnson radius, single $\K$-valued words suffice with a factor at most $2$ and no restriction on $L$. Only where both $\agr\le(\blen+3\dgr)/4$ and $L>2^{63}$ does the reduction to $\K$-valued words lose a power; there the hypothesis should be stated for single $\E$-valued words ($\HE$, with $L\le2^{127}$). The code in the hypothesis is the Reed-Solomon code of dimension $2^{\kappa_i}+\ell_i$ on $\dom_i$: the degree slack is part of it.
+
+\begin{problem}[The list problem]\label{prob:list}
+For the domains $\dom_{\kappa,\rexp}\subseteq\K$ of leanVM, find an agreement $\agr$ below the Johnson radius $\sqrt{\rate}\,\blen$ and a bound $L$ (anything up to about $2^{100}$ is useful; each factor $2^{35}$ costs one more point) such that every word $\dom\to\K$ has at most $L$ polynomials of degree at most $2^\kappa-1+\ell$ agreeing with it on at least $\agr$ points. At rate $1/2$ the first target is any $\agr<\blen/\sqrt2$ above $5\blen/8+\ell$, for instance $\agr=0.64\,\blen$.
+\end{problem}
+\status{Open. A lower certificate is a proof of $\HK$ at some agreement below the Johnson radius. An upper certificate is an explicit word with a list above the budget; \S\ref{sec:limit} and the tables below give the known ones.}
+
+\subsection{What is proved}\label{sec:proved}
+
+The tables of this subsection are those of a referee of the project's working notes, a second reader within the project and not an external reviewer, who re-derived each proof and re-verified the numerics with code written from scratch. Those notes are unpublished and do not accompany this paper. In the tables, ``proved'' therefore means proved by hand in those notes and refereed there, unless the entry says ``not refereed'' or names another source. Every upper bound other than the Johnson bound and the interleaving reductions is of this kind, and none of them is machine-checked. The lower bounds hold on every subspace domain: those of Propositions~\ref{prop:flats} and~\ref{prop:five8} are proved in \S\ref{sec:limit} and are in part \stmc{}, and the others are again proved only in the notes. We do not reproduce the proofs that are only in the notes (none of the restricted upper bounds is an instance of $\Lb$), so the reader cannot check those entries from this paper and should take them as claims of the project. No numbered statement of this paper depends on them; the floors $161$ and $40$ of \S\ref{sec:gap} do.
+
+\paragraph{Conventions.} $L$ is the number of polynomials of degree less than $k=\rate\blen$ agreeing with one word on at least $\agr$ points; with the analysis degree $\dgr=k-1+\ell$ replace $k$ by $k+\ell$, so that every dyadic point moves up by $\ell$. A lower bound at an agreement is a lower bound at every smaller agreement. Sizes are at level $0$ of a commitment of $2^{30}$ elements ($\log_2\blen=24+\rexp$). Three classes of words occur. A list is a \emph{strict common top} list if the word is a monic polynomial of degree $\agr$ and each error $w-c_i$ is exactly the locator $Z_{S_i}=\prod_{x\in S_i}(X-x)$ of an agreement set of size $\agr$; equivalently the locators share their top coefficients. It is a \emph{multiset top} list if $w-c_i$ is a scalar multiple of a locator of a multiset on $\dom$ whose support is the agreement set. A word has \emph{phantom degree} $r$ if it is a polynomial of degree $\agr+r$. ``All domains'' means every $\Ftwo$-subspace of every field of characteristic two, so it includes $\dom_{\kappa,\rexp}$. ``Generic'' means the formal model, in which a basis of $\dom$ is algebraically independent over $\Ftwo$: such a bound holds for families that share their top on \emph{every} domain, for any number of lanes, and says nothing about coincidences specific to a domain. No subspace of a finite field is generic. ``Per class'' means inside one class of a finer partition of the strict common top lists (a ``previous-level class''); the list of a word is then bounded only up to the number of such classes it meets, which nothing bounds on a concrete domain.
+
+\paragraph{All words on the real domain.}
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}L{0.34\textwidth}YL{0.2\textwidth}@{}}
+\toprule
+range & bound & status\\
+\midrule
+$\agr^2>\blen(k-1)$ (Johnson), any rate, any lanes & $\blen(\agr-k+1)/(\agr^2-\blen(k-1))$ & proved (classical)\\
+any $\agr$ below that, any rate & nothing useful: a pinning argument reaches a few points beyond the Johnson radius (unpublished working notes, not refereed, not reproduced here) & open\\
+any lanes or extension of $\K$, given a bound $L$ for single $\K$-valued words & $L$ if $\agr>(\blen+2\dgr)/3$; $2L-1$ if $\agr>(\blen+3\dgr)/4$; $L/(1-L/2^{64})$ if $L\le2^{63}$ & machine-checked (\S\ref{sec:interleave})\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\paragraph{Rate $1/2$.} Here $\eta:=\agr/\blen-5/8$.
+{\small
+\begin{longtable}{@{}L{0.15\textwidth}L{0.33\textwidth}L{0.27\textwidth}L{0.17\textwidth}@{}}
+\toprule
+agreement (genuine degree) & best proved upper bound: class of words, domains & best proved lower bound (all domains) & conjectured or measured\\
+\midrule
+\endhead
+$\agr>\blen/\sqrt2$ & Johnson, all words, all domains & & \\
+\addlinespace
+$11\blen/16\le\agr\le\blen/\sqrt2$ & Generic: strict tops $\le4$; multiset tops $\le\max(1/(16\eta^2),\,1+(2\agr/\blen-\frac12)/\eta)$; words of phantom degree at most $\blen/96$: a Johnson-type expression. All domains: strict tops, per class, $\le1/(2\agr/\blen-1)^2\le7$. All words: nothing. & $3$ (three hyperplanes plus a common set) & all words: $O(1/\eta^2)$ (Conjecture~\ref{conj:G}); measured $3$ for all words at $\blen=16$, $\agr=11$\\
+\addlinespace
+$5\blen/8<\agr<11\blen/16$ & Generic: as above. All domains: strict tops, per class, $<2^{32}$. All words: nothing. & multiset tops: $(4^{m'}-2^{m'})/4$ genuine codewords at $\agr/\blen=\frac58+2^{-m'-2}$ for every $m'\le\frac12\log_2\blen$: $2^{22.0}$ at $5\blen/8+2^{11}$, $4064$ at $0.6270\,\blen$, $1008$ at $0.6289\,\blen$ for $\blen=2^{25}$; on generic subspaces, $4$ at $11\blen/16-1$ (unpublished working notes, not refereed, not reproduced here); on the real domain, explicit pairs that the generic model does not have & as above; no family growing with $\blen$ at a fixed $\agr/\blen>5/8$ is known\\
+\addlinespace
+$\agr=5\blen/8$ (in the analysis degree, $5\blen/8+\ell$) & Generic strict tops: $\le7$ (attained). All domains: the class of $\loc_U^5$ contributes $\le3591$ to any word; strict tops per class $\le1{,}275{,}264{,}016$. Multiset tops, all words: nothing. & $7$ (strict); multiset tops: $2^{22.0}$ at $\blen=2^{25}$ (the line above) & growth at least $\blen/8$; measured $15$ at $\blen=16$, $28$ at $\blen=32$ for one word\\
+\addlinespace
+$\agr=5\blen/8$, degree $\le\blen/2$; and up to $5\blen/8+\ell-1$ in the analysis degree & Generic strict tops: $2\blen^5$. All words: nothing. & $56\blen-392=2^{30.81}$ at $5\blen/8$; $7\blen-35=2^{27.8}$ up to $5\blen/8+\ell-1$ & that this is the whole list of its word on the real domain\\
+\addlinespace
+$9\blen/16\le\agr<5\blen/8$ & Generic strict tops: $2\blen^5$. All words: nothing. & $105\blen-965=2^{31.71}$ at $9\blen/16$; $35\blen-245=2^{30.13}$ at $5\blen/8-1$ & $\le105\blen$ for strict tops\\
+\addlinespace
+$\agr=9\blen/16$, degree $\le\blen/2$ (genuine: $9\blen/16-1$) & Generic strict tops: $(2\blen-1)^{56}$ & $(\blen/2-2)^3=2^{72}$; $2^{102.7}$ quoted from \cite{DKTZ26}, not re-derived & \\
+\bottomrule
+\end{longtable}}
+
+\paragraph{Rate $1/4$.}
+{\small
+\begin{longtable}{@{}L{0.15\textwidth}L{0.33\textwidth}L{0.27\textwidth}L{0.17\textwidth}@{}}
+\toprule
+agreement & upper bound & lower bound & conjectured or measured\\
+\midrule
+\endhead
+$\agr\ge\blen/2-1$ & Johnson: $\blen^2/4$ at $\blen/2-1$, $\blen/4+1$ at $\blen/2$ & $\blen-1$ genuine at $\blen/2-1$ (flats); $2\blen-2$ in degree $\le k$ at $\blen/2$ & \\
+\addlinespace
+$7\blen/16\le\agr<\blen/2-1$ & Generic strict tops: $1+\agr(\blen-\agr)/(\blen/2-\agr)^2$. All domains, strict tops per class: $\blen^2/(\blen-2\agr)^2$. All words: nothing. & hyperplanes through a common set of $\blen/2-\agr$ points: about $\blen/(\blen/2-\agr)$ genuine codewords & families of about $2^{13.5}$ at $7\blen/16$ predicted on the real domain\\
+\addlinespace
+$3\blen/8\le\agr<7\blen/16$ & All domains, strict tops per class: $<2^{36}$. All words: nothing. & $56\blen-392$ in degree $\le\blen/4$ at $3\blen/8$ (complements) & $2^{30.5}$ to $2^{34.5}$ at $3\blen/8$ predicted on the real domain\\
+\bottomrule
+\end{longtable}}
+
+\paragraph{Rates $1/8$ and $1/16$.} Here $\eta:=\agr/\blen-1/4$ at rate $1/8$.
+{\small
+\begin{longtable}{@{}L{0.15\textwidth}L{0.33\textwidth}L{0.27\textwidth}L{0.17\textwidth}@{}}
+\toprule
+agreement & upper bound & lower bound & conjectured or measured\\
+\midrule
+\endhead
+\multicolumn{4}{@{}l}{\emph{Rate $1/8$}}\\
+$\agr>0.3536\,\blen$ & Johnson & & \\
+\addlinespace
+$5\blen/16\le\agr\le0.3536\,\blen$ & Generic: strict tops $\le4$; multiset tops $\le\max(15,\,1+(2\agr/\blen-\frac18)/\eta)$; phantom degree at most $\blen/96$: a Johnson-type expression. All domains: strict tops per class $\le11$. All words: nothing. & trivial lists $\lfloor(\blen-k+1)/(\agr-k+1)\rfloor$: $4$ to $3$ & all words $O(1/\eta)$ (Conjecture~\ref{conj:G}); measured at $\blen=16$: $6$ for all words against $3$ for multiset tops\\
+\addlinespace
+$\blen/4<\agr<5\blen/16$ & Generic: as above. All domains: strict tops per class $<2^{21}/\eta^2$. All words: nothing. & trivial lists: $6$ to $4$; explicit pairs on the real domain that the generic model does not have & \\
+\addlinespace
+$\agr\le\blen/4$ & none & $2^{51.4}$ genuine at $\blen/4-1$ (flats) & \\
+\addlinespace
+\multicolumn{4}{@{}l}{\emph{Rate $1/16$}}\\
+$\agr\ge\blen/4$ & Johnson & & \\
+\addlinespace
+$3\blen/16\le\agr<\blen/4$ & Generic: strict tops $=1$; multiset tops $\le\max(7,\,1+(2\agr/\blen-\frac1{16})/(\agr/\blen-\frac3{16}))$ for $\agr>3\blen/16$. All domains: strict tops per class $\le\frac{3}{16(3/4-\agr/\blen)(1/4-\agr/\blen)}$ ($5$ to $11$, and more near $\blen/4$). All words: nothing. & trivial lists: $7$ to $5$; on the real domain $2$ strict-top members where the generic value is $1$ & \\
+\addlinespace
+$\blen/8<\agr<3\blen/16$ & Generic strict tops: $\le7$. Nothing else. & trivial lists: $14$ to $7$; a pigeonhole list of about $2^{15.6}$ in degree $\le k$ at $0.152\,\blen$ for $\blen=2^{28}$ (existence proof read, not recomputed) & \\
+\addlinespace
+$\agr\le\blen/8$ & none & $2^{76.6}$ genuine at $\blen/8-1$ (flats) & \\
+\bottomrule
+\end{longtable}}
+
+\paragraph{Reading.} Everything on the proof side other than Johnson and the interleaving reductions is either about the formal model (three classes of words: strict tops, multiset tops, words of small phantom degree; constants $4$, $1/(16\eta^2)$, and a Johnson-type expression) or about strict tops inside one class on every domain (constants $7$, $2^{32}$, $2^{36}$, $11$, $5$ to $11$). The lower bounds $56\blen-392$, $35\blen-245$, $105\blen-965$, the flats, and $(4^{m'}-2^{m'})/4$ genuine codewords at $(5/8+2^{-m'-2})\blen$ are proved on every subspace domain: the first two and the flats in \S\ref{sec:limit}, the other two only in the unpublished notes. The count $2^{102.7}$ is quoted from \cite{DKTZ26}. No list that grows with $\blen$ is known at any fixed fraction above $5/8$ (rate $1/2$), $1/4$ (rate $1/8$) or $1/8$ (rate $1/16$), and no proof excludes one. Three cautions from the same referee apply to anything quoted from these tables: the bound $1/(2\agr/\blen-1)^2$ for strict tops starts at depth $\blen/8$, that is at $\agr=5\blen/8+\ell$ in the analysis degree, and for $5\blen/8\le\agr\le5\blen/8+\ell-1$ there are at least $7\blen-35$ members; the padding family has $1/(64\eta^2)-1/(16\eta)$ members at $\eta=2^{-m'-2}$, a factor $4$ below the bound $1/(16\eta^2)$ for multiset tops and not the factor $4/3$ that an earlier reading suggested; and the flats at rate $1/4$ are one point \emph{inside} the range of the Johnson bound, which gives $\blen^2/4$ there, so they show that the list at the radius is at least $\blen-1$ and are not a list beyond it.
+
+\paragraph{The real domain is not generic.} On $\dom_{\kappa,\rexp}$ with $\log_2\blen=25,\dots,28$ there are explicit pairs of subspaces of size $\blen/4$ whose locators share their first coefficient although the generic model says they should not, so the structure theorems of the generic model (``every pair of members is a hyperplane swap'', ``the list is $1$'' at rate $1/16$ on $[3\blen/16,\blen/4)$ for strict tops) are false on the real domain. This does not produce a list larger than $2$. At toy sizes the lists on the real shape exceed the generic ones by a small bounded factor, and a $64$-bit field is small enough for non-generic families by pigeonhole (about $2^{38}$ just above $9\blen/16$ at rate $1/2$, conditional on the count quoted from \cite{DKTZ26}; with the lists verified in the project's unpublished working notes the same pigeonhole gives only $2^{8}$).
+
+\paragraph{Exhaustive ground truth at small sizes.} For $\blen=16$ the largest list over \emph{all} words was computed exactly, by exhaustive search, at every parameter pair where this is feasible ($26$ pairs on a generic domain, $19$ of them also on the real shape $\langle1,x,x^2,x^3\rangle$ in $\K$ and in three small fields). At the one point of the rate-$1/2$ window, $(k,\agr)=(8,11)$, the maximum is $3$ on all five domains, the strict-top value. At $5\blen/8$, $(8,10)$, it is $15$, a multiset top. At the one point of the rate-$1/8$ window, $(2,5)$, it is $6$, and $6$ is proved for every set of $16$ points of every field. In every exhausted case the maximum is the multiset-top value or a \emph{polygon} of at most six lines; with one unit of slack a second kind of list appears, the \emph{orbit list} of a word invariant under all translations ($16$ members at $(9,11)$). Both kinds provably do not scale: a polygon is at most a constant times the trivial list at a fixed rate and agreement, and an orbit list has agreement $k+O(\log\blen)$. At $\blen=32$ full exhaustion is out of reach; over several linear families of words (all words invariant under a translation, all words of small phantom degree, all words whose list contains given members) the maximum at $\agr=22$ is $3$, and at $\agr=21$ it is at least $16$, attained by a multiset top. The searches of this paragraph, and the proofs of what it calls proved (the value $6$ for every set of $16$ points, and that polygons and orbit lists do not scale), are in the project's unpublished working notes and are not reproduced here. This is ground truth, not a theorem about large $\blen$, and it carries a warning for parameter choices: a list budget at $(5/8+\eta)\blen$ should be read off $1/(16\eta^2)$, the bound for multiset tops, so at level $0$ a threshold a few points above $5\blen/8$, where $\eta\approx2^{-22}$, is useless, and a threshold at a fixed $\eta$ such as $0.64\,\blen$ ($\eta=0.015$, bound $278$) is what the evidence supports.
+
+\subsection{Theorems for all words}\label{sec:allwords}
+
+A handful of statements do hold for all words on every domain. None is a list bound below the Johnson radius, but they constrain what a large list can look like, and the first two explain why the known growing families live exactly at the dyadic agreements $3/4,5/8,9/16,\dots$ at rate $1/2$.
+
+\begin{theorem}[No additive quadruples]\label{thm:quad}
+Let $\dom$ be any set of $\blen$ points of a field of characteristic two, and let a list at agreement $\agr$ for polynomials of degree at most $\dgr$ contain four distinct members with $c_1+c_2+c_3+c_4=0$. Then $4\agr\le\blen+3\dgr$.
+\end{theorem}
+\status{\stpr. Not machine-checked. The bound is attained: among the $504$ members of the $5\blen/8$ family at $\blen=16$ there are $14$ such quadruples, each with total agreement exactly $4\agr$.}
+\begin{proof}
+At a point $x$ the four values sum to zero, so if three of them equal $w(x)$ then so does the fourth: the number $\mu(x)$ of members agreeing with $w$ at $x$ is $0$, $1$, $2$ or $4$. If $\mu(x)=2$, say $c_i(x)=c_j(x)=w(x)$, then $x$ is a zero of $c_i+c_j$, which is one of the three polynomials $c_1+c_2=c_3+c_4$, $c_1+c_3=c_2+c_4$, $c_1+c_4=c_2+c_3$. If $\mu(x)=4$, $x$ is a zero of all three. So $\mu(x)\le1+\#\{\text{of the three polynomials vanishing at }x\}$, each of the three is nonzero of degree at most $\dgr$, and $4\agr\le\sum_x\mu(x)\le\blen+3\dgr$.
+\end{proof}
+
+So at rate $1/2$ with $\dgr=\blen/2-1+\ell$, a list at agreement above $5\blen/8+3(\ell-1)/4$ contains no four members with zero sum: it is a Sidon set in the additive group of polynomials.
+
+\begin{proposition}[No large affine families]\label{prop:affine}
+If a list at agreement $\agr$ and degree $\dgr$ contains $c_0+\sum_i\epsilon_ia_i$ for all $\epsilon\in\Ftwo^j$, with $a_1,\dots,a_j$ linearly independent over $\Ftwo$, then $2^j\agr\le\blen+(2^j-1)\dgr$, that is $\agr\le\dgr+(\blen-\dgr)/2^j$.
+\end{proposition}
+\status{\stpr. Not machine-checked.}
+\begin{proof}
+At a point $x$ the members agreeing with $w$ are the $\epsilon$ with $\sum_i\epsilon_ia_i(x)=w(x)+c_0(x)$: none, or a coset of $\ker_x:=\{\epsilon:\sum_i\epsilon_ia_i(x)=0\}$. A nonzero $\epsilon$ lies in $\ker_x$ for at most $\dgr$ points $x$, since $\sum_i\epsilon_ia_i$ is a nonzero polynomial of degree at most $\dgr$. So $2^j\agr\le\sum_x|\ker_x|\le\blen+(2^j-1)\dgr$.
+\end{proof}
+
+At rate $1/2$ these thresholds are $3/4,5/8,9/16,17/32$ for $j=1,2,3,4$: exactly where the known growing families live. Both proofs count zeros of differences and hold verbatim for interleaved words.
+
+\begin{proposition}[Three members]\label{prop:three}
+Let $c_0,c_1,c_2$ be three distinct polynomials of degree less than $k$ with agreement sets $S_0,S_1,S_2$ with one word on a set $\dom$ of $\blen$ points of any field. Let $G:=\gcd(c_0-c_1,c_1-c_2)$, let $u_0:=(c_1-c_2)/G$, $u_1:=(c_2-c_0)/G$, $u_2:=(c_0-c_1)/G$ and $\xi:=-u_0/u_1$ (which is $u_0/u_1$ in characteristic two). Then $u_0+u_1+u_2=0$, the $u_i$ are pairwise coprime, and
+\[
+|S_0|+|S_1|+|S_2|\;\le\;\blen+\nu(\xi)+2\,\#\{x\in\dom:G(x)=0\},\qquad \nu(\xi):=\#\{x\in\dom:\xi(x)\in\{0,1,\infty\}\}.
+\]
+\end{proposition}
+\status{\stpr. Not machine-checked.}
+\begin{proof}
+$\gcd(u_0,u_2)=1$ by the choice of $G$, and $u_1=-u_0-u_2$, so the three are pairwise coprime. If $G(x)\ne0$, at most one $u_i(x)$ is zero, so at most one pair of the values $c_0(x),c_1(x),c_2(x)$ coincides: $x$ lies in at most two of the $S_i$, and in two only if some $u_i(x)=0$, that is $\xi(x)\in\{0,1,\infty\}$ ($u_0(x)=0$ gives $0$, $u_1(x)=0$ gives $\infty$, and $u_2(x)=0$ gives $u_0(x)=-u_1(x)$, that is $1$). If $G(x)=0$ the three values coincide and $x$ lies in at most three. Sum over $x$.
+\end{proof}
+
+So three members at high agreement force a rational function $\xi$ of small degree that takes the three values $0,1,\infty$ very often on $\dom$. On algebraically independent points $\nu(\xi)\le2\deg\xi+1$, which is the case of three members of the theorem of Brakensiek, Gopi and Makam \cite{BGM}. On a subspace the trivial bound $3\deg\xi$ is attained by $\xi=\mu\circ\loc_U$, a function of a subspace polynomial, which is periodic under translation by $U$. Conjecture~\ref{conj:P} below says that on a generic subspace periods are the only way to beat $2\deg\xi+1$.
+
+\begin{proposition}[Split functions]\label{prop:split}
+Let $\dom$ be a generic subspace of a field $F$ and let $\xi=c\prod_{x\in\dom}(X-x)^{m(x)}$ with $c\in F^\times$ and $m:\dom\to\mathbb Z$ not identically zero, that is, all zeros and poles of $\xi$ lie in $\dom\cup\{\infty\}$. If $y_1\ne y_2$ are points of $\dom$ with $m(y_1)=m(y_2)=0$ and $\xi(y_1)=\xi(y_2)$, then $y_1+y_2$ is a period of $\xi$. Consequently every set $\{x\in\dom:\xi(x)=c'\}$ with $c'\ne0,\infty$ is empty or one coset of the group of periods $\Pi(\xi)$, and $\nu(\xi)\le2\deg\xi+|\Pi(\xi)|$.
+\end{proposition}
+\status{\stpr. Not machine-checked. The statement and its proof are from one of the project's unpublished working notes, which was not independently refereed; the proof is short and is given here in full, so nothing rests on the note.}
+\begin{proof}
+The equality $\prod_x(y_1+x)^{m(x)}=\prod_x(y_2+x)^{m(x)}$ is an identity between products of nonzero elements of $\dom$ (no factor vanishes because $m(y_1)=m(y_2)=0$). In the generic model the nonzero elements of $\dom$ are distinct nonzero $\Ftwo$-linear forms in the basis, hence pairwise non-associate primes of the polynomial ring $\Ftwo[b_1,b_2,\dots]$, whose only unit is $1$. By unique factorization the exponent of each prime $z\in\dom\setminus\{0\}$ is the same on both sides: $m(y_1+z)=m(y_2+z)$. With $a:=y_1+y_2$ this says $m(x+a)=m(x)$ for all $x\ne y_2$, and it holds at $x=y_2$ too. So the divisor of $\xi$ is invariant under $a$ and $\xi(X+a)=\xi(X)$. A set $\{\xi=c'\}$ is invariant under $\Pi(\xi)$ and any two of its points differ by a period. Finally $\xi$ takes the value $0$ at no more than $\deg\xi$ points, the value $\infty$ likewise, and the value $1$ on at most one coset of $\Pi(\xi)$.
+\end{proof}
+
+By the symmetry of the three values $0,1,\infty$, Conjecture~\ref{conj:P} therefore holds for every $\xi$ two of whose three fibres over $0,1,\infty$ lie in $\dom\cup\{\infty\}$. The proof uses genericity only through unique factorization, which is exactly what a subspace of a finite field does not have.
+
+\subsection{Conjectures and evidence}\label{sec:conj}
+
+\begin{conjecture}[C: lists on the real domain]\label{conj:C}
+On $\dom_{\kappa,\rexp}\subseteq\K$ at level-$0$ sizes, every word has at most $2^{10}$ genuine codewords at agreement $\agr\ge0.64\,\blen$ (rate $1/2$), $\agr\ge17\blen/64$ (rate $1/8$), $\agr\ge0.153\,\blen$ (rate $1/16$), and at most $2^{28}$ at $\agr>3\blen/8$ (rate $1/4$).
+\end{conjecture}
+\status{\stcj. Evidence: the bounds for strict and multiset tops in the generic model; the bounds per class on every domain; exhaustive computation at $\blen=16$ (below); a fitted law for coincidences on the real shape, tested on scaled-down fields up to $\log_2\blen=20$ and with no coincidence found in $16$ random trials at $\log_2\blen=25$. Against, or missing: nothing is proved for words with many phantom roots outside $\dom$ on any domain, and for those there is no construction, no bound and no experiment at real size; on the real shape the toy lists exceed the formal ones; non-generic families of size about $2^{30}$ are predicted at rate $1/4$.}
+
+\begin{conjecture}[G: all words on a generic domain]\label{conj:G}
+On a generic domain, for every word and hence every interleaved word, with absolute constants $C$: at rate $1/2$ and $\agr=(5/8+\eta)\blen$ the list has at most $C/\eta^2$ members; at rate $1/8$ and $\agr=(1/4+\eta)\blen$, and at rate $1/16$ and $\agr=(1/8+\eta)\blen$, at most $C/\eta$.
+\end{conjecture}
+\status{\stcj. Evidence: the theorems for strict tops, multiset tops and small phantom degree; the exact maxima over \emph{all} words at $\blen=16$, by exhaustive search on a generic domain and on the real shape, where in every exhausted case the maximum is the larger of the multiset-top value and of a bounded polygon configuration ($3$ at $(k,\agr)=(8,11)$, the one point of the rate-$1/2$ window at this size; $6$ at $(2,5)$); at $\blen=32$ the maximum is $3$ at $\agr=22$ over several large linear families of words, and no word that is not a top appears as an extremal word in any family searched. Missing: words of large phantom degree invariant under no translation at $\blen=32$ (the bulk of all words), and everything at $\blen\ge64$.}
+
+\begin{conjecture}[P: three members need a period]\label{conj:P}
+Let $\dom$ be a generic subspace of a field $F$ and $\xi\in F(X)$ nonconstant. Then $\nu(\xi)\le2\deg\xi+|\Pi(\xi)|$, where $\Pi(\xi):=\{a\in\dom:\xi(X+a)=\xi(X)\}$ is the group of periods of $\xi$.
+\end{conjecture}
+\status{\stcj, with partial results. \emph{Proved in this paper}: the conjecture holds when two of the three fibres of $\xi$ lie in $\dom\cup\{\infty\}$ (Proposition~\ref{prop:split}). \emph{Proved only in the project's unpublished working notes}, which were not independently refereed and whose proofs are not reproduced here, so that the reader cannot check these claims from this paper: as consequences of that case, the conjecture holds whenever $\nu(\xi)\ge3\deg\xi-1$ and for every $\xi$ of degree at most $3$ in every dimension; for each degree it is a finite problem, because a counterexample of least dimension lives on a subspace of dimension at most $\min(\deg\xi+2,\ \log_2(1+\binom{2\deg\xi+2}{2}+\binom{2\deg\xi+2}{4}))$, and with an exhaustive computation in dimensions $4$ to $6$ this gives the conjecture for degree at most $4$ in every dimension (computer-assisted). \emph{Evidence}: no violation in exhaustive searches on random subspaces of $\mathrm{GF}(2^{64})$: $1.2\cdot10^{10}$ configurations (complete at $\blen=8$ and $16$; degrees up to $7$ at $\blen=32$) and a further $5.4\cdot10^9$ at $\blen=32$ in degrees $12$ to $15$, every solution found being periodic; degrees $8$ to $11$ at $\blen=32$ are unchecked. \emph{Not proved}: the dense regime, where $\deg\xi$ is of order $\blen$ and the points with value in $\{0,1,\infty\}$ have positive density. That is exactly the regime of the conditional list bound, so nothing unconditional follows for lists. The conjecture is false on a concrete domain in general, and is confirmed false on the real shape at $\blen=16$. \emph{Conditionally on P} (a derivation that is again only in those notes), on a generic subspace every word has at most $\blen^{O(1)}$ codewords in part of the rate-$1/2$ window ($0.31\,\blen^3$ for $\agr/\blen\in(11/16,1/\sqrt2)$, and a higher power down to $\agr/\blen\approx0.668$); nothing is obtained, even conditionally, on $(5/8,2/3]$.}
+
+\begin{conjecture}[Q and H4: four members]\label{conj:Q}
+For a list of four members on a generic subspace there are eight rational functions attached to the four (four triple functions, a cross-ratio and three ratios of opposite differences). The excess of the four members over the bound for independent points is at most a constant multiple of the largest period group of these functions. In the form H4($C$): the excess plus $2$ is at most $C$ times the largest period group among the triple functions and the opposite ratios, with $C=4$.
+\end{conjecture}
+\status{\stcj, on evidence at $\blen=16$ only (all $4.05\cdot10^{10}$ four-member lists at five parameter points, no violation; conics at $\blen=32$). The direct analogue of Conjecture~\ref{conj:P} for four members is false already at $\blen=16$. Four-member lists do exist on generic subspaces in the whole rate-$1/2$ window $(5/8,2/3]$ and up to $11/16$, so a four-member theorem there must be a structure theorem and cannot be a non-existence theorem. Conditionally on H4($C$), by a derivation that is only in the project's unpublished working notes and is not reproduced here, every word on a generic subspace has at most $3+24\binom{\dim\dom}{c}_2\prod_{i\le\delta^\ast+1}\frac{\blen-k+i}{\agr-k+i}$ codewords for suitable $c,\delta^\ast$: between $2^{104}$ and $2^{105}$ on $(0.6407,0.6563]$ at $\blen=2^{25}$ with $C=2$. The hypothesis has no support beyond $\blen=16$.}
+
+\begin{conjecture}[S3: zero patterns on a generic subspace]\label{conj:S3}
+On a generic subspace, a three-set pattern with multiplicities (the linear-algebra form of the three-member problem) has a dependency only if it is degenerate for a trivial degree reason or is explained by a subspace $U\le\dom$, a power of two $q$ and a pattern on $\dom/U$: that is, only through periods and Frobenius powers.
+\end{conjecture}
+\status{\stcj. The converse is proved on every subspace domain, but only in the project's unpublished working notes: its proof is not reproduced here. Evidence: exhaustive at $\blen=16$ on a random basis in $\mathrm{GF}(2^{64})$: all $7.3\cdot10^7$ square set patterns and all $1.1\cdot10^9$ of their merges, no mismatch.}
+
+\subsection{Obstructions}\label{sec:obstructions}
+
+\paragraph{Why the generic-points proofs stop.} For algebraically independent evaluation points, Reed-Solomon codes are known to attain the generalized Singleton bound for list decoding \cite{BGM}, through the GM-MDS theorem \cite{Lovett,YH}, and randomly punctured codes attain it over smaller fields \cite{GZ,AGGLZ}. The chain is: a list gives an agreement hypergraph, which gives a zero pattern in the dual code, and GM-MDS says a generic code attains every zero pattern. Only the last step uses the points, and inside its proof the points are moved in one place: an induction that identifies \emph{two} points and leaves the others alone. On an $\Ftwo$-subspace no such specialization exists. Identifying $x$ and $y$ is the quotient by the linear form $a=x+y$, and it identifies $z$ with $z+a$ for \emph{every} $z$. What every such merge produces is squares: if a set $S$ is invariant under $a$, its locator reduces to a square, and the zero-pattern statement without a restriction on multiplicities is false in every positive characteristic, with a counterexample on three points. At $\blen=16$ there are tens of thousands of patterns that are independent and all of whose merges are dependent, so an induction through merges is not a matter of handling a thin exceptional set. The random-puncturing proofs give nothing either: on a subspace each of the $\log_2\blen$ basis variables occurs in the rows of half of the coordinates, and the union bound would need a field of about $2^{\blen/\log_2\blen}$ elements. This is read off from the arguments of the cited papers and is not itself a theorem.
+
+\paragraph{Where the attempts on Conjecture~\ref{conj:P} stop.} The natural induction on the dimension reduces $\xi$ along a direction $a$ and lifts a period of the reduction back. It works when some direction lies outside the fourfold sumset of the special points, which is what makes the conjecture a finite problem for each degree. In the dense regime that sumset is everything, and three things fail at once: the reduction can lose a component and carry no function at all (in the flats every direction outside the period group is of this kind); a period of the reduction has two lifts, and different points may use different ones; and the periodic function that the reduction provides has degree up to $2\deg\xi$, too large to be identified with $\xi$ by counting common points. A heuristic count is consistent with every direction being degenerate, so the dense case needs an exact tool, and none was found.
+
+\paragraph{What does not reach below the Johnson radius.} Counting with pairwise intersections only stops at Johnson. Guruswami-Sudan interpolation restricted to linearized monomials has a radius strictly worse than Johnson. Folded-code interpolation along translations fails because translations have order two, so there is no analogue of the bounded-dimension step of folded Reed-Solomon codes. Pinning a few points gives Johnson plus $O(\log L)$ points. Recursion through the quotient maps $\dom\to\loc_a(\dom)$ goes the wrong way: every natural reduction goes from the small domain to the large one, which is the direction of the attacks. Character sums over $\K$ are useless at these sizes because $\blen<\sqrt{|\K|}$. Mason-Stothers and unit-equation bounds are exponential in the number of points, and in characteristic two Frobenius produces genuine infinite families, which is what the flats are.
+
+\paragraph{What is specific to a finite field.} A finite field has no places, so the valuation arguments behind the generic theorems certify almost nothing on $\dom_{\kappa,\rexp}$: the binary code that controls common tops has dimension in the hundreds of thousands on the real domain where the generic model gives a few hundred. And the number of finer classes a real list can meet is not bounded by anything proved.

@@ -1,0 +1,38 @@
+% DEEP folds: WHIR soundness from list size alone.
+%
+%   build:  mkdir -p .build && pdflatex -interaction=nonstopmode -halt-on-error -output-directory=.build main.tex
+%           (then, for the bibliography: cd .build && BIBINPUTS=..: bibtex main, and pdflatex twice more)
+\documentclass[11pt]{article}
+\input{preamble}
+
+\title{\bf DEEP folds: WHIR soundness from list size alone}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The query counts of WHIR-like polynomial commitments are set by the agreement threshold at which each level is analysed, and the known analyses stop at the Johnson radius because they need mutual correlated agreement there. We study the variant used in leanVM (binary fields, subspace domains, affine folds). First we show how little room that protocol has below the Johnson radius, whatever the analysis: on every binary subspace domain there are explicit words with large lists of close codewords, correlated agreement fails wherever lists are large, and for that protocol a large list above the threshold is an attack. At rate $1/4$ this closes the gap between proof and attack; at the other rates it bounds how far any analysis of the same protocol could go. Then we modify the fold. After each commitment the verifier sends a few out-of-domain points, the prover answers with the committed polynomial's values there, and these claims are carried, unbatched, through the fold rounds. We prove that the modified protocol is round-by-round sound, and knowledge sound with a straight-line extractor that never list-decodes, with every verifier message at most $2^{-125}$ after its grind, under one hypothesis about the code: a bound on the number of codewords close to any word. No correlated agreement theorem is used, and the bound may be as large as $2^{100}$. At today's thresholds the hypothesis is the Johnson bound, so there the protocol is unconditionally sound, with essentially today's query counts: nothing is saved. Fewer queries need the hypothesis below the Johnson radius, and there it is open: no such bound is known for arbitrary words on any binary subspace domain. We state the problem, reduce it to single words over the small field (with a loss of at most a factor two in the ranges of interest), and collect what is proved, what is conjectured and why the known techniques fail. The fold-round lemma, the lemmas and per-message transitions of the soundness proof, the reductions of the hypothesis and the attack constructions (lower bounds on the lists, not their exact sizes) are machine-checked in Lean~4, and so is the composition of the transitions into a soundness theorem for an abstract model of the protocol, in which a committed word is a function as in the oracle model, the protocol is interactive with no grind, and each level has one batch of points. The link from that model to the concrete protocol (the encoder's identities, completeness, the Fiat-Shamir transformation with grinding, the Merkle commitments, the outer protocol, the extractor as an algorithm) is proved by hand or inherited, and the Lean development discharges the list hypothesis only in the unique-decoding range.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\input{sections/01-introduction}
+\input{sections/02-setting}
+\input{sections/03-limit}
+\input{sections/04-deep-fold}
+\input{sections/05-soundness}
+\input{sections/06-lists}
+\input{sections/07-parameters}
+\input{sections/08-formalization}
+\input{sections/09-open}
+
+\bibliographystyle{alphaurl}
+\bibliography{refs}
+
+\appendix
+\input{sections/a-lean}
+
+\end{document}
