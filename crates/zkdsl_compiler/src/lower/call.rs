@@ -96,6 +96,7 @@ impl FnLower<'_> {
             let base = Abi::arg(shapes.iter().copied(), i);
             match shapes.get(i).copied().unwrap_or(Shape::Scalar) {
                 Shape::StackBuf(n) => {
+                    self.check_bound(a);
                     let (src, len) = self.stack_of(a).unwrap_or_else(|| {
                         self.fail(format!(
                             "`{callee}` parameter {i} is a StackBuf({n}); pass one, got `{a:?}`"
@@ -348,6 +349,7 @@ impl FnLower<'_> {
             }
             // A declared run is checked as a real call checks it ([`Self::lower_call`]).
             if let Shape::StackBuf(n) = p.shape() {
+                self.check_bound(a);
                 match self.stack_of(a) {
                     Some((_, len)) if len == n => {}
                     Some((_, len)) => self.fail(format!(
