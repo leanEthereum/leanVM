@@ -190,3 +190,15 @@ def main():
     }
     assert!(advised >= 4, "the sources reserve from advice");
 }
+
+/// The stream of the advised `HeapBuf` sizes is not a program's to pop.
+#[test]
+fn heap_size_stream_is_reserved() {
+    for source in [
+        "def main():\n    k = hint_witness(\"heap_sizes\")\n    return\n",
+        "def main():\n    sb = StackBuf(1)\n    hint_witness(sb, \"heap_sizes\")\n    return\n",
+    ] {
+        let error = parse(source).unwrap_err();
+        assert!(error.contains("reserved"), "{error}");
+    }
+}

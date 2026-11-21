@@ -498,6 +498,12 @@ pub(super) trait Machine {
     fn abandoned(&self) -> bool {
         false
     }
+    /// A late `HeapBuf` hint whose advice this walk has not seen: a segment leaves it to its merge, which checks it
+    /// against the advice before the segment (whether it did).
+    #[inline(always)]
+    fn defer_late(&mut self, _cell: u32, _size: u32) -> bool {
+        false
+    }
     fn g_note(&mut self, k: usize);
     fn g_grow(&mut self, upto: usize);
     fn g_pow(&mut self, k: usize) -> F64;
@@ -1114,7 +1120,7 @@ pub(super) fn walk<M: Machine>(
                                     "the HeapBuf at cell {cell} was not reserved from advice"
                                 ))));
                             }
-                            if !advised.contains(&(cell, size)) {
+                            if !advised.contains(&(cell, size)) && !m.defer_late(cell, size) {
                                 return Err(fail(Fault::Witness(format!(
                                     "the HeapBuf at cell {cell} has {size} cells, not its advised size"
                                 ))));

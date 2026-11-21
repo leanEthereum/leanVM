@@ -306,6 +306,7 @@ fn dispatch(
                 used: 0,
                 counts: 0,
                 abandoned: false,
+                late: Vec::new(),
                 g: &g,
                 cache: HashMap::default(),
             };
@@ -356,6 +357,10 @@ fn merge(
     // A step limit the serial run would have reached inside the segments.
     run.steps += r.steps;
     if run.steps > MAX_STEPS || start_of(r) != end || seg.seeds.iter().any(|(&cell, seed)| m.cell(cell) != *seed) {
+        return None;
+    }
+    // Its late hints whose advice came before it: the runs before it reserved those buffers, of those sizes.
+    if seg.late.iter().any(|late| !run.advised.contains(late)) {
         return None;
     }
     // The next segment's first frame at and above `LOW` is that segment's own, already in memory: what this one wrote
@@ -491,6 +496,8 @@ struct Segment<'a> {
     /// One past the highest count on an own cell.
     counts: u32,
     abandoned: bool,
+    /// Its late `HeapBuf` hints whose advice came before it, pointer cell and size, which its merge checks.
+    late: Vec<(u32, u32)>,
     g: &'a GPow,
     /// Exponents this segment announced or resolved, which the shared table does not index.
     cache: HashMap<u64, u32>,
@@ -668,6 +675,10 @@ impl Machine for Segment<'_> {
     #[inline(always)]
     fn abandoned(&self) -> bool {
         self.abandoned
+    }
+    fn defer_late(&mut self, cell: u32, size: u32) -> bool {
+        self.late.push((cell, size));
+        true
     }
     fn g_note(&mut self, k: usize) {
         if self.g.covers(k) {
