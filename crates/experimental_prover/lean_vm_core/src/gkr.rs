@@ -272,9 +272,9 @@ struct QuaternaryLayerState {
     logical_rows: usize,
     /// Once folded by the vertical kernels, the rows live here instead of in `values`.
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
-    groups: Vec<vertical::Group>,
+    groups: Vec<std::mem::MaybeUninit<vertical::Group>>,
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
-    spare: Vec<vertical::Group>,
+    spare: Vec<std::mem::MaybeUninit<vertical::Group>>,
     /// Runs of rows known to be the identity, sorted: the kernels skip them, and
     /// the vertical ones leave their groups unwritten.
     ones: Vec<Range<usize>>,
@@ -315,7 +315,7 @@ impl QuaternaryLayerState {
 
     /// The vertical kernels' view of the rows, and the buffer the fold writes.
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
-    fn split(&mut self) -> (vertical::Input<'_>, &mut Vec<vertical::Group>) {
+    fn split(&mut self) -> (vertical::Input<'_>, &mut Vec<std::mem::MaybeUninit<vertical::Group>>) {
         let data = if self.groups.is_empty() {
             vertical::Data::Rows(&self.values)
         } else {
@@ -551,6 +551,7 @@ mod vertical {
         }
     }
     use primitives::stream::Stream;
+    use std::mem::MaybeUninit;
     use std::ops::Range;
 
     /// Whether `ones` covers `rows`.
@@ -680,7 +681,7 @@ mod vertical {
 
     pub(super) enum Data<'a> {
         Rows(&'a [F128]),
-        Groups(&'a [Group]),
+        Groups(&'a [MaybeUninit<Group>]),
     }
 
     /// A layer's rows as a fold reads them, with the runs known to be the identity.
@@ -706,7 +707,8 @@ mod vertical {
             }
             match self.data {
                 Data::Rows(values) => load(values, g),
-                Data::Groups(groups) => groups.get(g).copied().unwrap_or(ones),
+                // SAFETY: `fold` initialized every group not covered by `ones`.
+                Data::Groups(groups) => groups.get(g).map_or(ones, |group| unsafe { group.assume_init() }),
             }
         }
     }
@@ -717,22 +719,19 @@ mod vertical {
         inputs: [Input; N_BUS_TREES],
         challenge: F128,
         eq: &SplitEq,
-        outs: [&mut Vec<Group>; N_BUS_TREES],
+        outs: [&mut Vec<MaybeUninit<Group>>; N_BUS_TREES],
     ) -> [[F128; 4]; N_BUS_TREES] {
         /// Groups below which a dispatch costs more than it saves.
         const PARALLEL: usize = 8 * TASK;
         let n_out = inputs.each_ref().map(|input| input.len().div_ceil(2));
         let mut outs = outs;
-        let dst: [parallel::SendPtr<Group>; N_BUS_TREES] = std::array::from_fn(|t| {
+        let dst: [parallel::SendPtr<MaybeUninit<Group>>; N_BUS_TREES] = std::array::from_fn(|t| {
             let out = &mut *outs[t];
             if out.capacity() < n_out[t] {
-                *out = Vec::new();
-                // SAFETY: the tasks below write every group before anything reads it.
-                *out = unsafe { primitives::uninit_vec(n_out[t]) };
-            } else {
-                // SAFETY: as above; `Group` is plain data.
-                unsafe { out.set_len(n_out[t]) };
+                *out = Vec::with_capacity(n_out[t]);
             }
+            // SAFETY: `MaybeUninit<Group>` requires no initialization and capacity >= `n_out[t]`.
+            unsafe { out.set_len(n_out[t]) };
             parallel::SendPtr(out.as_mut_ptr())
         });
         let tasks: Vec<(usize, usize)> = (0..N_BUS_TREES)
@@ -753,8 +752,8 @@ mod vertical {
                 let pairs = fold_pairs(&inputs[t].get(2 * g), &inputs[t].get(2 * g + 1), r);
                 message.add(g, &pairs);
                 // The next round reads it, long after this round's pass evicted it.
-                // SAFETY: tasks own disjoint groups of the outputs.
-                unsafe { stream.copy(dst[t].slice(g, 1), std::slice::from_ref(&pairs)) };
+                // SAFETY: tasks own disjoint groups of the outputs, and `dst[t].add(g)` is valid for one `Group`.
+                unsafe { stream.copy_uninit(dst[t].add(g).cast::<Group>(), std::slice::from_ref(&pairs)) };
             }
             let mut messages = [[F128::ZERO; 4]; N_BUS_TREES];
             messages[t] = message.finish();
@@ -768,14 +767,15 @@ mod vertical {
         }
     }
 
-    pub(super) fn to_rows(groups: &[Group], ones: &[Range<usize>]) -> Vec<F128> {
+    pub(super) fn to_rows(groups: &[MaybeUninit<Group>], ones: &[Range<usize>]) -> Vec<F128> {
         let mut values = vec![F128::ZERO; 64 * groups.len()];
         for (g, group) in groups.iter().enumerate() {
             if covered(ones, 16 * g..16 * g + 16) {
                 values[64 * g..64 * g + 64].fill(F128::ONE);
                 continue;
             }
-            for (j, lanes) in group.iter().enumerate() {
+            // SAFETY: `fold` initialized every group not covered by `ones`.
+            for (j, lanes) in unsafe { group.assume_init_ref() }.iter().enumerate() {
                 for (p, e) in lanes.to_array().into_iter().enumerate() {
                     values[64 * g + 8 * p + j] = e;
                 }

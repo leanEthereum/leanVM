@@ -715,12 +715,22 @@ fn heap_base<M: Machine>(m: &mut M, cell: u32, what: &'static str) -> Result<u32
     m.g_log(p).ok_or(Fault::NotAGPower { what, value: p })
 }
 
+// Cell `base + offset`, if it lies in the address space.
+fn cell_at(base: u32, offset: u32) -> Result<u32, Fault> {
+    let cell = u64::from(base) + u64::from(offset);
+    if cell < u64::from(MAX_CELLS) {
+        Ok(cell as u32)
+    } else {
+        Err(Fault::OutOfMemory)
+    }
+}
+
 // Where a computed-advice bit buffer starts: a frame run needs no lookup
 // at all, which is the point of having one.
 fn bits_base<M: Machine>(m: &mut M, fp: u32, dest: BitsDest, what: &'static str) -> Result<u32, Fault> {
     match dest {
-        BitsDest::Stack(base) => Ok(fp + base),
-        BitsDest::Heap(ptr) => heap_base(m, fp + ptr, what),
+        BitsDest::Stack(base) => cell_at(fp, base),
+        BitsDest::Heap(ptr) => heap_base(m, cell_at(fp, ptr)?, what),
     }
 }
 
@@ -997,7 +1007,8 @@ pub(super) fn walk<M: Machine>(
                                 start_inverse,
                                 tail,
                             } => {
-                                let span = in_k("loop bound", m.get(fp + end)).map_err(fail)? * F64(start_inverse.0);
+                                let span =
+                                    in_k("loop bound", m.get(at(fp, end)?)).map_err(fail)? * F64(start_inverse.0);
                                 if span.is_zero() {
                                     return Err(fail(Fault::NotAGPower {
                                         what: "loop bound",
@@ -1016,7 +1027,7 @@ pub(super) fn walk<M: Machine>(
                             // A runtime size is carried in the exponent:
                             // the cell holds g^k, allocate k cells.
                             RHint::AllocDyn { ptr, size } => {
-                                let sz = in_k("HeapBuf size", m.get(fp + size)).map_err(fail)?;
+                                let sz = in_k("HeapBuf size", m.get(at(fp, size)?)).map_err(fail)?;
                                 let cells = m.g_log(sz).ok_or_else(|| {
                                     fail(Fault::NotAGPower {
                                         what: "HeapBuf size",
@@ -1027,7 +1038,7 @@ pub(super) fn walk<M: Machine>(
                             }
                             _ => unreachable!(),
                         };
-                        let cell = fp + ptr;
+                        let cell = at(fp, ptr)?;
                         if !m.written(cell) {
                             let base = next_free;
                             next_free = at(base, size)?;
@@ -1042,7 +1053,7 @@ pub(super) fn walk<M: Machine>(
                         }
                     }
                     RHint::Print { label, cell } => {
-                        let c = fp + cell;
+                        let c = at(fp, *cell)?;
                         if m.written(c) {
                             let v = m.get(c);
                             // Small integers and small g-powers overlap (8 = x^3
@@ -1070,16 +1081,24 @@ pub(super) fn walk<M: Machine>(
                         }
                     }
                     RHint::WitnessStack { base, len, .. } => {
+                        let dst = at(fp, *base)?;
+                        if *len > 0 {
+                            at(dst, *len - 1)?;
+                        }
                         let values = streams[stream as usize].pop(*len).map_err(fail)?;
                         for (k, &value) in values.iter().enumerate() {
-                            m.put(fp + base + k as u32, value)?;
+                            m.put(dst + k as u32, value)?;
                         }
                     }
                     RHint::WitnessHeap { ptr, lo, len, .. } => {
-                        let b = heap_base(m, fp + ptr, "hint_witness heap pointer").map_err(fail)?;
+                        let b = heap_base(m, at(fp, *ptr)?, "hint_witness heap pointer").map_err(fail)?;
+                        let dst = at(b, *lo)?;
+                        if *len > 0 {
+                            at(dst, *len - 1)?;
+                        }
                         let values = streams[stream as usize].pop(*len).map_err(fail)?;
                         for (k, &value) in values.iter().enumerate() {
-                            m.put(b + lo + k as u32, value)?;
+                            m.put(dst + k as u32, value)?;
                         }
                     }
                     RHint::Log2Ceil {
@@ -1089,6 +1108,9 @@ pub(super) fn walk<M: Machine>(
                         floor,
                     } => {
                         let b = bits_base(m, fp, *bits, "log2_ceil pointer").map_err(fail)?;
+                        if *nbits > 0 {
+                            at(b, *nbits - 1)?;
+                        }
                         let mut word: u128 = 0;
                         for j in 0..*nbits {
                             if !m.get(b + j).is_zero() {
@@ -1101,22 +1123,28 @@ pub(super) fn walk<M: Machine>(
                             u128::BITS - (word - 1).leading_zeros()
                         };
                         let mu = cl.max(*floor);
-                        m.put(fp + dst, F128::from(primitives::field::g_pow(mu as usize)))?;
+                        m.put(at(fp, *dst)?, F128::from(primitives::field::g_pow(mu as usize)))?;
                     }
                     RHint::BitDecompose { value, bits, nbits } => {
                         assert!(*nbits <= 128, "a machine word has 128 bits");
-                        let v = u128::from(m.get(fp + value));
+                        let v = u128::from(m.get(at(fp, *value)?));
                         let bb = bits_base(m, fp, *bits, "decompose pointer").map_err(fail)?;
+                        if *nbits > 0 {
+                            at(bb, *nbits - 1)?;
+                        }
                         for j in 0..*nbits {
                             m.put(bb + j, F128::from((v >> j) & 1))?;
                         }
                     }
                     RHint::BitDecomposeExp { value, bits, nbits } => {
                         const WHAT: &str = "hint_decompose_bits_exponent value";
-                        let x = in_k(WHAT, m.get(fp + value)).map_err(fail)?;
+                        let x = in_k(WHAT, m.get(at(fp, *value)?)).map_err(fail)?;
                         let n =
                             bounded_dlog(x, *nbits).ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: x }))?;
                         let bb = bits_base(m, fp, *bits, "hint_decompose_bits_exponent pointer").map_err(fail)?;
+                        if *nbits > 0 {
+                            at(bb, *nbits - 1)?;
+                        }
                         for j in 0..*nbits {
                             let bit = ((n >> j) & 1) as u64;
                             m.put(bb + j, F128::new(bit, 0))?;
@@ -1125,20 +1153,24 @@ pub(super) fn walk<M: Machine>(
                     RHint::WindowsExp {
                         value,
                         dest,
-                        at,
+                        at: off,
                         start,
                         width,
                         count,
                     } => {
                         assert!(start + width * count <= 128, "a machine word has 128 bits");
-                        let v = u128::from(m.get(fp + value));
+                        let v = u128::from(m.get(at(fp, *value)?));
                         let bb = bits_base(m, fp, *dest, "windows pointer").map_err(fail)?;
+                        let dst = at(bb, *off)?;
+                        if *count > 0 {
+                            at(dst, *count - 1)?;
+                        }
                         for i in 0..*count {
                             let mut n = 0usize;
                             for j in 0..*width {
                                 n |= (((v >> (start + i * width + j)) & 1) as usize) << j;
                             }
-                            m.put(bb + at + i, F128::from(primitives::field::g_pow(n)))?;
+                            m.put(dst + i, F128::from(primitives::field::g_pow(n)))?;
                         }
                     }
                     RHint::DigitDecomposeExp {
@@ -1151,37 +1183,42 @@ pub(super) fn walk<M: Machine>(
                         start_cell,
                     } => {
                         const WHAT: &str = "hint_decompose_digits_exponent value";
-                        let x = in_k(WHAT, m.get(fp + value)).map_err(fail)?;
+                        let x = in_k(WHAT, m.get(at(fp, *value)?)).map_err(fail)?;
                         let n =
                             bounded_dlog(x, *nbits).ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: x }))?;
                         let s = match start_cell {
                             None => *start,
                             Some(c) => {
                                 const WHAT: &str = "hint_decompose_digits_exponent start";
-                                let y = in_k(WHAT, m.get(fp + c)).map_err(fail)?;
+                                let y = in_k(WHAT, m.get(at(fp, *c)?)).map_err(fail)?;
                                 bounded_dlog(y, 7).ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: y }))?
                                     as u32
                             }
                         };
                         let bb = bits_base(m, fp, *dst, "hint_decompose_digits_exponent pointer").map_err(fail)?;
+                        if *ndigits > 0 {
+                            at(bb, *ndigits - 1)?;
+                        }
                         let mask = (1u128 << digit_bits) - 1;
                         for j in 0..*ndigits {
-                            let at = s + digit_bits * j;
-                            let d = if at >= 128 { 0 } else { (n >> at) & mask };
+                            let bit = s + digit_bits * j;
+                            let d = if bit >= 128 { 0 } else { (n >> bit) & mask };
                             m.put(bb + j, F128::from(primitives::field::g_pow(d as usize)))?;
                         }
                     }
                     RHint::FieldLimbs { value, base, len } => {
                         assert!((1..=2).contains(len), "an F128 value has two K limbs");
-                        let v = m.get(fp + value);
+                        let v = m.get(at(fp, *value)?);
                         let limbs = v.to_limbs();
+                        let dst = at(fp, *base)?;
+                        at(dst, *len - 1)?;
                         for j in 0..*len {
-                            m.put(fp + base + j, F128::new(limbs[j as usize], 0))?;
+                            m.put(dst + j, F128::new(limbs[j as usize], 0))?;
                         }
                     }
                     RHint::Inverse { value, dst } => {
-                        let v = m.get(fp + value);
-                        m.put(fp + dst, if v.is_zero() { F128::ZERO } else { v.inv() })?;
+                        let v = m.get(at(fp, *value)?);
+                        m.put(at(fp, *dst)?, if v.is_zero() { F128::ZERO } else { v.inv() })?;
                     }
                 }
                 m.hint(None);
@@ -1344,8 +1381,9 @@ pub(super) fn walk<M: Machine>(
             Op::Keccak { .. } => {
                 use crate::keccak::{ROW_CELLS, STATE_CELLS};
                 let k = crate::tables::KeccakOp::of(&op);
+                let written = STATE_CELLS + k.out_cells.cells();
                 let mut cells = [0; ROW_CELLS];
-                for (c, cell) in cells.iter_mut().enumerate() {
+                for (c, cell) in cells[..written].iter_mut().enumerate() {
                     let (offset, step) = k.cell_parts(c);
                     *cell = at(at(fp, offset)?, step)?;
                 }
@@ -1362,7 +1400,6 @@ pub(super) fn walk<M: Machine>(
                 let mut lanes = crate::keccak::state_of_cells(k.in_odd, |c| input[c]);
                 keccak_step.step(&lanes);
                 primitives::hash::keccak_f(&mut lanes);
-                let written = STATE_CELLS + k.out_cells.cells();
                 let output = crate::keccak::cells_of_state(&lanes, k.out_odd);
                 for c in STATE_CELLS..written {
                     r[c] = m.put_counted(cells[c], output[c - STATE_CELLS])?;
@@ -1390,4 +1427,49 @@ pub(super) fn walk<M: Machine>(
         keccak,
     };
     Ok(stopped)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use isa::{CompiledProgram, Op};
+    use std::collections::HashMap;
+
+    #[test]
+    fn hints_reject_addresses_past_max_cells() {
+        for hint in [
+            RHint::WitnessStack {
+                name: "w".into(),
+                base: MAX_CELLS - 1,
+                len: 2,
+            },
+            RHint::Inverse {
+                value: 0,
+                dst: MAX_CELLS,
+            },
+        ] {
+            let compiled = CompiledProgram {
+                prog: vec![
+                    Op::Set {
+                        o: 2,
+                        k: verifier::E::new(0, 0),
+                    },
+                    Op::Set {
+                        o: 0,
+                        k: verifier::E::new(0, 0),
+                    },
+                ],
+                hints: HashMap::from([(0, vec![hint])]),
+                main_frame: 3,
+                fn_ranges: vec![("main".into(), 0, 2)],
+                src_lines: Vec::new(),
+            };
+            let program = Program::from(compiled);
+            let witness = vec![("w".into(), vec![vec![F128::ZERO; 2]])];
+            let Err(err) = execute(&program, &witness, [F128::ZERO; 2]) else {
+                panic!("expected OutOfMemory");
+            };
+            assert!(matches!(err.fault, Fault::OutOfMemory), "got {:?}", err.fault);
+        }
+    }
 }

@@ -125,7 +125,7 @@ pub fn verify_cell(
 /// `H(tree_root ‖ n_blobs)`, the count a 32-byte little-endian word.
 fn mix_in_count(tree_root: &Hash, n_blobs: usize) -> Hash {
     let mut count = [0; OUT_LEN];
-    count[0] = n_blobs as u8;
+    count[..size_of::<usize>()].copy_from_slice(&n_blobs.to_le_bytes());
     hash_pair(tree_root, &count)
 }
 

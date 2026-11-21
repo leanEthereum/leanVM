@@ -76,6 +76,21 @@ fn ill_formed_calls_are_rejected_when_lowered() {
             "def main():\n    b = StackBuf(41)\n    hint_decompose_bits_exponent(b, GEN, 41)\n    return\n",
             "at most 40 bits",
         ),
+        // `width * count` wrapped u32 before the 128-bit bound check.
+        (
+            "def main():\n    b = StackBuf(1)\n    hint_windows_exponent(b, GEN, 0, 16, 268435456)\n    return\n",
+            "windows of 1..=16 bits inside a 128-bit word",
+        ),
+        // `at + count` wrapped u32 before the destination size check.
+        (
+            "def main():\n    b = StackBuf(1)\n    hint_windows_exponent(b, GEN, 0, 1, 2, 4294967295)\n    return\n",
+            "overflows u32",
+        ),
+        // `cap=` silently ignored `pad_tail=1`.
+        (
+            "def main():\n    a = StackBuf(2)\n    b = StackBuf(2)\n    t = StackBuf(4)\n    s = StackBuf(13)\n    a[0] = 0\n    a[1] = 0\n    b[0] = 0\n    b[1] = 0\n    t[0] = 0\n    t[1] = 0\n    t[2] = 0\n    t[3] = 0\n    keccak(a, b, s)\n    keccak(a, b, s, tail=t, cap=s, pad_tail=1)\n    return\n",
+            "takes no pad_tail=",
+        ),
     ] {
         let ast = parse(src).unwrap();
         let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
@@ -129,4 +144,15 @@ fn programs_compile_as_written() {
 fn nested_return_in_main_is_rejected() {
     let src = "def main():\n    x = 1\n    if x == 1:\n        return\n    assert x == 2\n    return\n";
     let _ = compile(&parse(src).expect("parse"));
+}
+
+/// Raising a runtime call to the zeroth power must still execute the call's assertions.
+#[test]
+fn zero_power_still_evaluates_runtime_base() {
+    let src = "def checked():\n    x = hint_witness(\"x\")\n    assert x == 1\n    return x\n\ndef main():\n    y = checked() ** 0\n    assert y == 1\n    return\n";
+    let prog = compile(&parse(src).expect("parse"));
+    let bad = vec![("x".to_string(), vec![vec![F128::from(F64(2))]])];
+    assert!(execute(&prog, &bad, [F128::ZERO; 2]).is_err());
+    let good = vec![("x".to_string(), vec![vec![F128::from(F64(1))]])];
+    execute(&prog, &good, [F128::ZERO; 2]).expect("valid witness");
 }

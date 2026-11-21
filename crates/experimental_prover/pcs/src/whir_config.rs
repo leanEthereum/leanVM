@@ -455,8 +455,12 @@ impl Big {
         Big(limbs)
     }
 
-    /// `self * m`, `m` nonzero.
+    /// `self * m`.
     fn mul_small(&mut self, m: u64) {
+        if m == 0 {
+            self.0.clear();
+            return;
+        }
         let mut carry = 0u128;
         for limb in &mut self.0 {
             let p = *limb as u128 * m as u128 + carry;
@@ -577,10 +581,10 @@ fn search_level(
     let (n, d) = (1u128 << (log_msg_cols + log_inv_rate), degree(log_msg_cols, k));
     let mu = log_msg_cols + k;
     let feasible = |t_end: u128| {
-        check_list_terms(n, d, t_end - k as u128, mu, position, g, target).ok()?;
+        check_list_terms(n, d, t_end.checked_sub(k as u128)?, mu, position, g, target).ok()?;
         fold_witnesses(n, d, k, t_end, g, target)
     };
-    let (mut lo, mut hi) = ((n * d).isqrt() + 1, n);
+    let (mut lo, mut hi) = (((n * d).isqrt() + 1).max(k as u128), n);
     if feasible(hi).is_none() {
         return Err(format!(
             "no threshold clears {target} bits at n = 2^{}",
@@ -653,8 +657,9 @@ impl WhirSecurityConfig {
                 None => 0,
             };
             let mut power = Big::new(1);
+            let step = u64::try_from(lv.agreement - 1).map_err(|_| at("agreement does not fit in u64".into()))?;
             for _ in 0..lv.queries {
-                power.mul_small(lv.agreement as u64 - 1);
+                power.mul_small(step);
             }
             let log_n = lv.log_msg_cols + lv.log_inv_rate;
             if !query_message_holds(&power, log_n, lv.queries, next_list, g.query, target) {
@@ -833,6 +838,15 @@ mod tests {
             fewer.levels[i].queries -= 1;
             assert!(fewer.validate().is_err(), "L{i}");
         }
+    }
+
+    /// Multiplying a `Big` by zero leaves canonical zero so comparisons stay exact.
+    #[test]
+    fn big_mul_small_zero_is_canonical() {
+        let mut x = Big::new(12345);
+        x.mul_small(0);
+        assert!(x.le(&Big::new(0)));
+        assert!(Big::new(0).le(&x));
     }
 
     /// Parameter-report helper:

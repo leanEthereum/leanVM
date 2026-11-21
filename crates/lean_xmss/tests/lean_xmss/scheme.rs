@@ -67,6 +67,16 @@ fn cache_round_trip() {
             "byte {at}"
         );
     }
+    // Duplicate bottom-tree entries and entries past MAX_CACHED_BOTTOM_TREES are refused.
+    let mut duplicated = bytes[..top_len].to_vec();
+    duplicated.extend_from_slice(&bytes[top_len..top_len + bottom_len]);
+    duplicated.extend_from_slice(&bytes[top_len..top_len + bottom_len]);
+    assert!(LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &pk, &duplicated).is_none());
+    let mut oversized = bytes[..top_len].to_vec();
+    for _ in 0..=MAX_CACHED_BOTTOM_TREES {
+        oversized.extend_from_slice(&bytes[top_len..top_len + bottom_len]);
+    }
+    assert!(LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &pk, &oversized).is_none());
     // So is another key's cache.
     let (_, other_pk) = key_gen(&[9; 32]);
     assert!(LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &other_pk, &bytes).is_none());

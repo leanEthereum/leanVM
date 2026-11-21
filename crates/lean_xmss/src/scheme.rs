@@ -212,14 +212,22 @@ impl LeanXmssExpandedSecretKey {
         let (bottoms, []) = bottoms.as_chunks::<CACHED_BOTTOM_SIZE>() else {
             return None;
         };
+        if bottoms.len() > MAX_CACHED_BOTTOM_TREES {
+            return None;
+        }
         let sk = Self::new(key_seed, LayerTree::from_bytes(1, 0, top));
         if sk.public_key != *public_key {
             return None;
         }
         let pp = &public_key.public_param;
+        let mut seen = Vec::with_capacity(bottoms.len());
         for bottom in bottoms {
             let mut rest = &bottom[..];
             let index = u32::from_le_bytes(take(&mut rest));
+            if seen.contains(&index) {
+                return None;
+            }
+            seen.push(index);
             let top_signature = LayerSignature::read(&mut rest);
             let tree = LayerTree::from_bytes(0, index, rest);
             let signed = index >> LAYER_HEIGHT == 0

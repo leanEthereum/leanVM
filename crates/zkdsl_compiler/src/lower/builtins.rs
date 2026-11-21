@@ -44,6 +44,9 @@ impl FnLower<'_> {
             if kwargs.contains_key("len") {
                 self.fail("keccak cap= is an overwrite duplex step: it takes no len=")
             }
+            if kwargs.contains_key("pad_tail") {
+                self.fail("keccak cap= is an overwrite duplex step: it takes no pad_tail=")
+            }
             let cap = self.prev_state(cap, 5).unwrap_or_else(|| {
                 self.fail(format!(
                     "keccak cap= must be a previous {STATE_CELLS}-cell output or its last five cells"
@@ -466,11 +469,14 @@ impl FnLower<'_> {
                 let start = self.const_index(&args[2]);
                 let width = self.const_index(&args[3]);
                 let count = self.const_index(&args[4]);
-                if !(1..=16).contains(&width) || u64::from(start) + u64::from(width * count) > 128 {
+                if !(1..=16).contains(&width) || u64::from(start) + u64::from(width) * u64::from(count) > 128 {
                     self.fail(format!("{f}: windows of 1..=16 bits inside a 128-bit word"))
                 };
                 let at = args.get(5).map_or(0, |at| self.const_index(at));
-                let dest = self.bits_dest(&args[0], at + count, f);
+                let end = at
+                    .checked_add(count)
+                    .unwrap_or_else(|| self.fail(format!("{f}: destination offset overflows u32")));
+                let dest = self.bits_dest(&args[0], end, f);
                 let value = self.expr(&args[1]);
                 self.pending.push(Hint::Resolved(RHint::WindowsExp {
                     value,

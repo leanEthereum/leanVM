@@ -177,10 +177,6 @@ pub(crate) fn combiner_within(n: u128, d: u128, a: u128, w: &AffineWitness, budg
         return Some(false);
     };
     let gap2 = (a - w.b) * (a - w.b);
-    // The right side is `(s (A - B)^2, 0)`: past 2^256 when its high half overflows, beyond any left side.
-    let Some(rhs_high) = slack.checked_mul(gap2) else {
-        return Some(true);
-    };
     let interp = [4, d, d, big_m, big_m, w.big_d, w.big_d, w.big_d]
         .into_iter()
         .try_fold(1u128, u128::checked_mul);
@@ -192,6 +188,10 @@ pub(crate) fn combiner_within(n: u128, d: u128, a: u128, w: &AffineWitness, budg
     let (lo, carry) = l1.overflowing_add(l2);
     let Some(hi) = h1.checked_add(h2).and_then(|h| h.checked_add(carry as u128)) else {
         return Some(false);
+    };
+    // The right side is `(s (A - B)^2, 0)`: past 2^256 when its high half overflows, beyond the 256-bit left side.
+    let Some(rhs_high) = slack.checked_mul(gap2) else {
+        return Some(true);
     };
     Some((hi, lo) <= (rhs_high, 0))
 }
@@ -243,6 +243,20 @@ mod tests {
         // The search does at least as well.
         let (_, found) = find_witness(n, d, a).unwrap();
         assert!(found <= err + 1e-9);
+    }
+
+    /// When `slack * (A - B)^2` overflows `u128`, an LHS that also overflows 256 bits must still be rejected.
+    #[test]
+    fn combiner_within_checks_lhs_before_rhs_overflow() {
+        let (n, d, a) = (1u128 << 60, 1u128 << 58, 3u128 << 58);
+        let w = AffineWitness {
+            m: 2,
+            big_d: 1000,
+            b: (1u128 << 59) + (1u128 << 57),
+        };
+        assert!(hypotheses(n, d, a, &w).is_some());
+        // `slack * (A - B)^2` overflows `u128`, while `4 d^2 M^2 D^3 n^2` also overflows 256 bits.
+        assert_eq!(combiner_within(n, d, a, &w, 1u128 << 40), Some(false));
     }
 
     #[test]

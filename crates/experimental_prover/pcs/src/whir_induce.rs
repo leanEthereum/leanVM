@@ -195,8 +195,9 @@ fn transpose_forward_ntt_sparse_ext(
     }
 
     // Window `r` of replica `j`, strip `c` is at `j * n_keep + (c * rows + r) * strip`: a strip's rows are contiguous.
-    // SAFETY: pass 1 writes every element of an occupied window, and pass 2 reads only those.
-    let mut stage = unsafe { primitives::uninit_vec::<F128>(1 << log_d) };
+    let mut stage: Vec<std::mem::MaybeUninit<F128>> = Vec::with_capacity(1 << log_d);
+    // SAFETY: `MaybeUninit<F128>` requires no initialization; pass 1 writes every occupied window and pass 2 reads only those.
+    unsafe { stage.set_len(1 << log_d) };
     let stage_ptr = parallel::SendPtr(stage.as_mut_ptr());
     parallel::for_each_chunk(occupied.len(), |first, end| {
         let mut data = vec![F128::ZERO; window];
@@ -208,7 +209,15 @@ fn transpose_forward_ntt_sparse_ext(
             let (replica, row) = (w / rows, w % rows);
             for (c, src) in data.chunks_exact(strip).enumerate() {
                 // SAFETY: each (window, strip) pair owns its `strip` elements.
-                unsafe { stage_ptr.slice(replica * n_keep + (c * rows + row) * strip, strip) }.copy_from_slice(src);
+                unsafe {
+                    std::ptr::copy_nonoverlapping(
+                        src.as_ptr(),
+                        stage_ptr
+                            .add(replica * n_keep + (c * rows + row) * strip)
+                            .cast::<F128>(),
+                        strip,
+                    );
+                }
             }
         }
     });
@@ -243,7 +252,10 @@ fn transpose_forward_ntt_sparse_ext(
             let run_replica = |tile: &mut [F128], replica: usize| {
                 for (r, row) in tile.chunks_exact_mut(strip).enumerate() {
                     if occupied[replica * rows + r] {
-                        row.copy_from_slice(&stage[replica * n_keep + (c * rows + r) * strip..][..strip]);
+                        let base = replica * n_keep + (c * rows + r) * strip;
+                        // SAFETY: pass 1 initialized every element of each occupied window.
+                        let src = unsafe { std::slice::from_raw_parts(stage[base..][..strip].as_ptr().cast(), strip) };
+                        row.copy_from_slice(src);
                     } else {
                         row.fill(F128::ZERO);
                     }
