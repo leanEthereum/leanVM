@@ -82,839 +82,839 @@ theorem oqSide_all : ∀ p ∈ openingQueriesLoops, OqSide p := by decide +kerne
 
 set_option maxRecDepth 100000 in
 /-- Entry 0, `opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0`. -/
-theorem oqFns_950 : OqFns (openingQueriesLoops.getD 0 oqNone) := by
+theorem oqFns_951 : OqFns (openingQueriesLoops.getD 0 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L3, fn% «opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_950,
+        oqBody_951,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_950⟩
+        rfl, rfl, oqLoopBody_951⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 1, `opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0`. -/
-theorem oqFns_952 : OqFns (openingQueriesLoops.getD 1 oqNone) := by
+theorem oqFns_953 : OqFns (openingQueriesLoops.getD 1 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L4, fn% «opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_952,
+        oqBody_953,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_952⟩
+        rfl, rfl, oqLoopBody_953⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 2, `opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0`. -/
-theorem oqFns_954 : OqFns (openingQueriesLoops.getD 2 oqNone) := by
+theorem oqFns_955 : OqFns (openingQueriesLoops.getD 2 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L5, fn% «opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_954,
+        oqBody_955,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_954⟩
+        rfl, rfl, oqLoopBody_955⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 3, `opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0`. -/
-theorem oqFns_956 : OqFns (openingQueriesLoops.getD 3 oqNone) := by
+theorem oqFns_957 : OqFns (openingQueriesLoops.getD 3 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L6, fn% «opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_956,
+        oqBody_957,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_956⟩
+        rfl, rfl, oqLoopBody_957⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 4, `opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0`. -/
-theorem oqFns_963 : OqFns (openingQueriesLoops.getD 4 oqNone) := by
+theorem oqFns_964 : OqFns (openingQueriesLoops.getD 4 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L2, fn% «opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_963,
+        oqBody_964,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_963⟩
+        rfl, rfl, oqLoopBody_964⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 5, `opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0`. -/
-theorem oqFns_964 : OqFns (openingQueriesLoops.getD 5 oqNone) := by
+theorem oqFns_965 : OqFns (openingQueriesLoops.getD 5 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L3, fn% «opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_964,
+        oqBody_965,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_964⟩
+        rfl, rfl, oqLoopBody_965⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 6, `opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0`. -/
-theorem oqFns_965 : OqFns (openingQueriesLoops.getD 6 oqNone) := by
+theorem oqFns_966 : OqFns (openingQueriesLoops.getD 6 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L4, fn% «opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_965,
+        oqBody_966,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_965⟩
+        rfl, rfl, oqLoopBody_966⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 7, `opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0`. -/
-theorem oqFns_966 : OqFns (openingQueriesLoops.getD 7 oqNone) := by
+theorem oqFns_967 : OqFns (openingQueriesLoops.getD 7 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L5, fn% «opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_966,
+        oqBody_967,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_966⟩
+        rfl, rfl, oqLoopBody_967⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 8, `opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0`. -/
-theorem oqFns_973 : OqFns (openingQueriesLoops.getD 8 oqNone) := by
+theorem oqFns_974 : OqFns (openingQueriesLoops.getD 8 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L6_L7, fn% «opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_973,
+        oqBody_974,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_973⟩
+        rfl, rfl, oqLoopBody_974⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 9, `opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1`. -/
-theorem oqFns_979 : OqFns (openingQueriesLoops.getD 9 oqNone) := by
+theorem oqFns_980 : OqFns (openingQueriesLoops.getD 9 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L6_L6, fn% «opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1») rfl, rfl,
-        oqBody_979,
+        oqBody_980,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1_loop0»)
-        rfl, rfl, oqLoopBody_979⟩
+        rfl, rfl, oqLoopBody_980⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 10, `opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1`. -/
-theorem oqFns_980 : OqFns (openingQueriesLoops.getD 10 oqNone) := by
+theorem oqFns_981 : OqFns (openingQueriesLoops.getD 10 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L6_L7, fn% «opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1») rfl, rfl,
-        oqBody_980,
+        oqBody_981,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1_loop0»)
-        rfl, rfl, oqLoopBody_980⟩
+        rfl, rfl, oqLoopBody_981⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 11, `opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1`. -/
-theorem oqFns_981 : OqFns (openingQueriesLoops.getD 11 oqNone) := by
+theorem oqFns_982 : OqFns (openingQueriesLoops.getD 11 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L2, fn% «opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1») rfl, rfl,
-        oqBody_981,
+        oqBody_982,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1_loop0»)
-        rfl, rfl, oqLoopBody_981⟩
+        rfl, rfl, oqLoopBody_982⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 12, `opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1`. -/
-theorem oqFns_982 : OqFns (openingQueriesLoops.getD 12 oqNone) := by
+theorem oqFns_983 : OqFns (openingQueriesLoops.getD 12 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L3, fn% «opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1») rfl, rfl,
-        oqBody_982,
+        oqBody_983,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1_loop0»)
-        rfl, rfl, oqLoopBody_982⟩
+        rfl, rfl, oqLoopBody_983⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 13, `opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1011 : OqFns (openingQueriesLoops.getD 13 oqNone) := by
+theorem oqFns_1012 : OqFns (openingQueriesLoops.getD 13 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L4, fn% «opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1011,
+        oqBody_1012,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1011⟩
+        rfl, rfl, oqLoopBody_1012⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 14, `opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1012 : OqFns (openingQueriesLoops.getD 14 oqNone) := by
+theorem oqFns_1013 : OqFns (openingQueriesLoops.getD 14 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L7, fn% «opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1012,
+        oqBody_1013,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1012⟩
+        rfl, rfl, oqLoopBody_1013⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 15, `opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1017 : OqFns (openingQueriesLoops.getD 15 oqNone) := by
+theorem oqFns_1018 : OqFns (openingQueriesLoops.getD 15 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L6, fn% «opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1017,
+        oqBody_1018,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1017⟩
+        rfl, rfl, oqLoopBody_1018⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 16, `opening_queries__L0_L0_L4_L16_L13_L7_L3_L6_L12_L4_L1`. -/
-theorem oqFns_1020 : OqFns (openingQueriesLoops.getD 16 oqNone) := by
+theorem oqFns_1021 : OqFns (openingQueriesLoops.getD 16 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L6_L7, fn% «opening_queries__L0_L0_L4_L16_L13_L7_L3_L6_L12_L4_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L13_L7_L3_L6_L12_L4_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L13_L7_L3_L6_L12_L4_L1») rfl,
-        rfl, oqBody_1020,
+        rfl, oqBody_1021,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L13_L7_L3_L6_L12_L4_L1_loop0»)
-        rfl, rfl, oqLoopBody_1020⟩
+        rfl, rfl, oqLoopBody_1021⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 17, `opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1`. -/
-theorem oqFns_1021 : OqFns (openingQueriesLoops.getD 17 oqNone) := by
+theorem oqFns_1022 : OqFns (openingQueriesLoops.getD 17 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L2, fn% «opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1») rfl,
-        rfl, oqBody_1021,
+        rfl, oqBody_1022,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1_loop0»)
-        rfl, rfl, oqLoopBody_1021⟩
+        rfl, rfl, oqLoopBody_1022⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 18, `opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1`. -/
-theorem oqFns_1022 : OqFns (openingQueriesLoops.getD 18 oqNone) := by
+theorem oqFns_1023 : OqFns (openingQueriesLoops.getD 18 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L3, fn% «opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1») rfl,
-        rfl, oqBody_1022,
+        rfl, oqBody_1023,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1_loop0»)
-        rfl, rfl, oqLoopBody_1022⟩
+        rfl, rfl, oqLoopBody_1023⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 19, `opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1`. -/
-theorem oqFns_1023 : OqFns (openingQueriesLoops.getD 19 oqNone) := by
+theorem oqFns_1024 : OqFns (openingQueriesLoops.getD 19 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L4, fn% «opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1») rfl,
-        rfl, oqBody_1023,
+        rfl, oqBody_1024,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1_loop0»)
-        rfl, rfl, oqLoopBody_1023⟩
+        rfl, rfl, oqLoopBody_1024⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 20, `opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1051 : OqFns (openingQueriesLoops.getD 20 oqNone) := by
+theorem oqFns_1052 : OqFns (openingQueriesLoops.getD 20 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L5, fn% «opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1051,
+        oqBody_1052,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1051⟩
+        rfl, rfl, oqLoopBody_1052⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 21, `opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1052 : OqFns (openingQueriesLoops.getD 21 oqNone) := by
+theorem oqFns_1053 : OqFns (openingQueriesLoops.getD 21 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L2, fn% «opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1052,
+        oqBody_1053,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1052⟩
+        rfl, rfl, oqLoopBody_1053⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 22, `opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1057 : OqFns (openingQueriesLoops.getD 22 oqNone) := by
+theorem oqFns_1058 : OqFns (openingQueriesLoops.getD 22 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L7, fn% «opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1057,
+        oqBody_1058,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1057⟩
+        rfl, rfl, oqLoopBody_1058⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 23, `opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1`. -/
-theorem oqFns_1060 : OqFns (openingQueriesLoops.getD 23 oqNone) := by
+theorem oqFns_1061 : OqFns (openingQueriesLoops.getD 23 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L2, fn% «opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1») rfl,
-        rfl, oqBody_1060,
+        rfl, oqBody_1061,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1_loop0»)
-        rfl, rfl, oqLoopBody_1060⟩
+        rfl, rfl, oqLoopBody_1061⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 24, `opening_queries__L0_L0_L4_L16_L15_L3_L4_L10_L20_L5_L1`. -/
-theorem oqFns_1061 : OqFns (openingQueriesLoops.getD 24 oqNone) := by
+theorem oqFns_1062 : OqFns (openingQueriesLoops.getD 24 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L3, fn% «opening_queries__L0_L0_L4_L16_L15_L3_L4_L10_L20_L5_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L15_L3_L4_L10_L20_L5_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L15_L3_L4_L10_L20_L5_L1») rfl,
-        rfl, oqBody_1061,
+        rfl, oqBody_1062,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L15_L3_L4_L10_L20_L5_L1_loop0»)
-        rfl, rfl, oqLoopBody_1061⟩
+        rfl, rfl, oqLoopBody_1062⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 25, `opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1`. -/
-theorem oqFns_1062 : OqFns (openingQueriesLoops.getD 25 oqNone) := by
+theorem oqFns_1063 : OqFns (openingQueriesLoops.getD 25 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L4, fn% «opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1») rfl,
-        rfl, oqBody_1062,
+        rfl, oqBody_1063,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0»)
-        rfl, rfl, oqLoopBody_1062⟩
+        rfl, rfl, oqLoopBody_1063⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 26, `opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1`. -/
-theorem oqFns_1063 : OqFns (openingQueriesLoops.getD 26 oqNone) := by
+theorem oqFns_1064 : OqFns (openingQueriesLoops.getD 26 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L5, fn% «opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1») rfl,
-        rfl, oqBody_1063,
+        rfl, oqBody_1064,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1_loop0»)
-        rfl, rfl, oqLoopBody_1063⟩
+        rfl, rfl, oqLoopBody_1064⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 27, `opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1091 : OqFns (openingQueriesLoops.getD 27 oqNone) := by
+theorem oqFns_1092 : OqFns (openingQueriesLoops.getD 27 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L6, fn% «opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1091,
+        oqBody_1092,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1091⟩
+        rfl, rfl, oqLoopBody_1092⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 28, `opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1092 : OqFns (openingQueriesLoops.getD 28 oqNone) := by
+theorem oqFns_1093 : OqFns (openingQueriesLoops.getD 28 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L3, fn% «opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1092,
+        oqBody_1093,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1092⟩
+        rfl, rfl, oqLoopBody_1093⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 29, `opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1097 : OqFns (openingQueriesLoops.getD 29 oqNone) := by
+theorem oqFns_1098 : OqFns (openingQueriesLoops.getD 29 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L2, fn% «opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1097,
+        oqBody_1098,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1097⟩
+        rfl, rfl, oqLoopBody_1098⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 30, `opening_queries__L0_L0_L4_L16_L15_L3_L5_L15_L36_L6_L1`. -/
-theorem oqFns_1100 : OqFns (openingQueriesLoops.getD 30 oqNone) := by
+theorem oqFns_1101 : OqFns (openingQueriesLoops.getD 30 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L3, fn% «opening_queries__L0_L0_L4_L16_L15_L3_L5_L15_L36_L6_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L15_L3_L5_L15_L36_L6_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L15_L3_L5_L15_L36_L6_L1») rfl,
-        rfl, oqBody_1100,
+        rfl, oqBody_1101,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L15_L3_L5_L15_L36_L6_L1_loop0»)
-        rfl, rfl, oqLoopBody_1100⟩
+        rfl, rfl, oqLoopBody_1101⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 31, `opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1`. -/
-theorem oqFns_1101 : OqFns (openingQueriesLoops.getD 31 oqNone) := by
+theorem oqFns_1102 : OqFns (openingQueriesLoops.getD 31 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L4, fn% «opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1») rfl,
-        rfl, oqBody_1101,
+        rfl, oqBody_1102,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1_loop0»)
-        rfl, rfl, oqLoopBody_1101⟩
+        rfl, rfl, oqLoopBody_1102⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 32, `opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1`. -/
-theorem oqFns_1102 : OqFns (openingQueriesLoops.getD 32 oqNone) := by
+theorem oqFns_1103 : OqFns (openingQueriesLoops.getD 32 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L5, fn% «opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1») rfl,
-        rfl, oqBody_1102,
+        rfl, oqBody_1103,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0»)
-        rfl, rfl, oqLoopBody_1102⟩
+        rfl, rfl, oqLoopBody_1103⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 33, `opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1`. -/
-theorem oqFns_1103 : OqFns (openingQueriesLoops.getD 33 oqNone) := by
+theorem oqFns_1104 : OqFns (openingQueriesLoops.getD 33 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L6, fn% «opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1») rfl,
-        rfl, oqBody_1103,
+        rfl, oqBody_1104,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L18_L6_L5_L15_L36_L6_L1_loop0»)
-        rfl, rfl, oqLoopBody_1103⟩
+        rfl, rfl, oqLoopBody_1104⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 34, `opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1131 : OqFns (openingQueriesLoops.getD 34 oqNone) := by
+theorem oqFns_1132 : OqFns (openingQueriesLoops.getD 34 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L7, fn% «opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1131,
+        oqBody_1132,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1131⟩
+        rfl, rfl, oqLoopBody_1132⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 35, `opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1132 : OqFns (openingQueriesLoops.getD 35 oqNone) := by
+theorem oqFns_1133 : OqFns (openingQueriesLoops.getD 35 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L4, fn% «opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1132,
+        oqBody_1133,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1132⟩
+        rfl, rfl, oqLoopBody_1133⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 36, `opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1136 : OqFns (openingQueriesLoops.getD 36 oqNone) := by
+theorem oqFns_1137 : OqFns (openingQueriesLoops.getD 36 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L3, fn% «opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1136,
+        oqBody_1137,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1136⟩
+        rfl, rfl, oqLoopBody_1137⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 37, `opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1`. -/
-theorem oqFns_1140 : OqFns (openingQueriesLoops.getD 37 oqNone) := by
+theorem oqFns_1141 : OqFns (openingQueriesLoops.getD 37 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L4, fn% «opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1») rfl, rfl,
-        oqBody_1140,
+        oqBody_1141,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1_loop0»)
-        rfl, rfl, oqLoopBody_1140⟩
+        rfl, rfl, oqLoopBody_1141⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 38, `opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1`. -/
-theorem oqFns_1141 : OqFns (openingQueriesLoops.getD 38 oqNone) := by
+theorem oqFns_1142 : OqFns (openingQueriesLoops.getD 38 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L5, fn% «opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1») rfl, rfl,
-        oqBody_1141,
+        oqBody_1142,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1_loop0»)
-        rfl, rfl, oqLoopBody_1141⟩
+        rfl, rfl, oqLoopBody_1142⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 39, `opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1`. -/
-theorem oqFns_1142 : OqFns (openingQueriesLoops.getD 39 oqNone) := by
+theorem oqFns_1143 : OqFns (openingQueriesLoops.getD 39 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L6, fn% «opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1») rfl, rfl,
-        oqBody_1142,
+        oqBody_1143,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1_loop0»)
-        rfl, rfl, oqLoopBody_1142⟩
+        rfl, rfl, oqLoopBody_1143⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 40, `opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1177 : OqFns (openingQueriesLoops.getD 40 oqNone) := by
+theorem oqFns_1178 : OqFns (openingQueriesLoops.getD 40 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L8, fn% «opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1177,
+        oqBody_1178,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1177⟩
+        rfl, rfl, oqLoopBody_1178⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 41, `opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1178 : OqFns (openingQueriesLoops.getD 41 oqNone) := by
+theorem oqFns_1179 : OqFns (openingQueriesLoops.getD 41 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L5, fn% «opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1178,
+        oqBody_1179,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1178⟩
+        rfl, rfl, oqLoopBody_1179⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 42, `opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1182 : OqFns (openingQueriesLoops.getD 42 oqNone) := by
+theorem oqFns_1183 : OqFns (openingQueriesLoops.getD 42 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L4, fn% «opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1182,
+        oqBody_1183,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1182⟩
+        rfl, rfl, oqLoopBody_1183⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 43, `opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1`. -/
-theorem oqFns_1186 : OqFns (openingQueriesLoops.getD 43 oqNone) := by
+theorem oqFns_1187 : OqFns (openingQueriesLoops.getD 43 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L5, fn% «opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1») rfl,
-        rfl, oqBody_1186,
+        rfl, oqBody_1187,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0»)
-        rfl, rfl, oqLoopBody_1186⟩
+        rfl, rfl, oqLoopBody_1187⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 44, `opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1`. -/
-theorem oqFns_1187 : OqFns (openingQueriesLoops.getD 44 oqNone) := by
+theorem oqFns_1188 : OqFns (openingQueriesLoops.getD 44 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L6, fn% «opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1») rfl,
-        rfl, oqBody_1187,
+        rfl, oqBody_1188,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0»)
-        rfl, rfl, oqLoopBody_1187⟩
+        rfl, rfl, oqLoopBody_1188⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 45, `opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1`. -/
-theorem oqFns_1188 : OqFns (openingQueriesLoops.getD 45 oqNone) := by
+theorem oqFns_1189 : OqFns (openingQueriesLoops.getD 45 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L7, fn% «opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1») rfl,
-        rfl, oqBody_1188,
+        rfl, oqBody_1189,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0»)
-        rfl, rfl, oqLoopBody_1188⟩
+        rfl, rfl, oqLoopBody_1189⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 46, `opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1221 : OqFns (openingQueriesLoops.getD 46 oqNone) := by
+theorem oqFns_1222 : OqFns (openingQueriesLoops.getD 46 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L3, fn% «opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1221,
+        oqBody_1222,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1221⟩
+        rfl, rfl, oqLoopBody_1222⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 47, `opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1222 : OqFns (openingQueriesLoops.getD 47 oqNone) := by
+theorem oqFns_1223 : OqFns (openingQueriesLoops.getD 47 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L6, fn% «opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1222,
+        oqBody_1223,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1222⟩
+        rfl, rfl, oqLoopBody_1223⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 48, `opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1226 : OqFns (openingQueriesLoops.getD 48 oqNone) := by
+theorem oqFns_1227 : OqFns (openingQueriesLoops.getD 48 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L5, fn% «opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1226,
+        oqBody_1227,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1226⟩
+        rfl, rfl, oqLoopBody_1227⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 49, `opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1`. -/
-theorem oqFns_1230 : OqFns (openingQueriesLoops.getD 49 oqNone) := by
+theorem oqFns_1231 : OqFns (openingQueriesLoops.getD 49 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L6, fn% «opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1») rfl,
-        rfl, oqBody_1230,
+        rfl, oqBody_1231,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0»)
-        rfl, rfl, oqLoopBody_1230⟩
+        rfl, rfl, oqLoopBody_1231⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 50, `opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1`. -/
-theorem oqFns_1231 : OqFns (openingQueriesLoops.getD 50 oqNone) := by
+theorem oqFns_1232 : OqFns (openingQueriesLoops.getD 50 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L7, fn% «opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1») rfl,
-        rfl, oqBody_1231,
+        rfl, oqBody_1232,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1_loop0»)
-        rfl, rfl, oqLoopBody_1231⟩
+        rfl, rfl, oqLoopBody_1232⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 51, `opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1`. -/
-theorem oqFns_1232 : OqFns (openingQueriesLoops.getD 51 oqNone) := by
+theorem oqFns_1233 : OqFns (openingQueriesLoops.getD 51 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L2, fn% «opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1») rfl,
-        rfl, oqBody_1232,
+        rfl, oqBody_1233,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1_loop0»)
-        rfl, rfl, oqLoopBody_1232⟩
+        rfl, rfl, oqLoopBody_1233⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 52, `opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1265 : OqFns (openingQueriesLoops.getD 52 oqNone) := by
+theorem oqFns_1266 : OqFns (openingQueriesLoops.getD 52 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L4, fn% «opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1265,
+        oqBody_1266,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1265⟩
+        rfl, rfl, oqLoopBody_1266⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 53, `opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1266 : OqFns (openingQueriesLoops.getD 53 oqNone) := by
+theorem oqFns_1267 : OqFns (openingQueriesLoops.getD 53 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L7, fn% «opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1266,
+        oqBody_1267,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1266⟩
+        rfl, rfl, oqLoopBody_1267⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 54, `opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1270 : OqFns (openingQueriesLoops.getD 54 oqNone) := by
+theorem oqFns_1271 : OqFns (openingQueriesLoops.getD 54 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L6, fn% «opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1270,
+        oqBody_1271,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1270⟩
+        rfl, rfl, oqLoopBody_1271⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 55, `opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1`. -/
-theorem oqFns_1273 : OqFns (openingQueriesLoops.getD 55 oqNone) := by
+theorem oqFns_1274 : OqFns (openingQueriesLoops.getD 55 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L7, fn% «opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1») rfl,
-        rfl, oqBody_1273,
+        rfl, oqBody_1274,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1_loop0»)
-        rfl, rfl, oqLoopBody_1273⟩
+        rfl, rfl, oqLoopBody_1274⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 56, `opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1`. -/
-theorem oqFns_1274 : OqFns (openingQueriesLoops.getD 56 oqNone) := by
+theorem oqFns_1275 : OqFns (openingQueriesLoops.getD 56 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L2, fn% «opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1») rfl,
-        rfl, oqBody_1274,
+        rfl, oqBody_1275,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1_loop0»)
-        rfl, rfl, oqLoopBody_1274⟩
+        rfl, rfl, oqLoopBody_1275⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 57, `opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1`. -/
-theorem oqFns_1275 : OqFns (openingQueriesLoops.getD 57 oqNone) := by
+theorem oqFns_1276 : OqFns (openingQueriesLoops.getD 57 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L3, fn% «opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1») rfl,
-        rfl, oqBody_1275,
+        rfl, oqBody_1276,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1_loop0»)
-        rfl, rfl, oqLoopBody_1275⟩
+        rfl, rfl, oqLoopBody_1276⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 58, `opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1308 : OqFns (openingQueriesLoops.getD 58 oqNone) := by
+theorem oqFns_1309 : OqFns (openingQueriesLoops.getD 58 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L5, fn% «opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1308,
+        oqBody_1309,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1308⟩
+        rfl, rfl, oqLoopBody_1309⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 59, `opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1309 : OqFns (openingQueriesLoops.getD 59 oqNone) := by
+theorem oqFns_1310 : OqFns (openingQueriesLoops.getD 59 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L24_L2, fn% «opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1309,
+        oqBody_1310,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1309⟩
+        rfl, rfl, oqLoopBody_1310⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 60, `opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1313 : OqFns (openingQueriesLoops.getD 60 oqNone) := by
+theorem oqFns_1314 : OqFns (openingQueriesLoops.getD 60 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L7, fn% «opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1313,
+        oqBody_1314,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1313⟩
+        rfl, rfl, oqLoopBody_1314⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 61, `opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1`. -/
-theorem oqFns_1318 : OqFns (openingQueriesLoops.getD 61 oqNone) := by
+theorem oqFns_1319 : OqFns (openingQueriesLoops.getD 61 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L12_L7, fn% «opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1») rfl, rfl,
-        oqBody_1318,
+        oqBody_1319,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0»)
-        rfl, rfl, oqLoopBody_1318⟩
+        rfl, rfl, oqLoopBody_1319⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 62, `opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1`. -/
-theorem oqFns_1319 : OqFns (openingQueriesLoops.getD 62 oqNone) := by
+theorem oqFns_1320 : OqFns (openingQueriesLoops.getD 62 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L2, fn% «opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1») rfl, rfl,
-        oqBody_1319,
+        oqBody_1320,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1_loop0»)
-        rfl, rfl, oqLoopBody_1319⟩
+        rfl, rfl, oqLoopBody_1320⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 63, `opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1`. -/
-theorem oqFns_1320 : OqFns (openingQueriesLoops.getD 63 oqNone) := by
+theorem oqFns_1321 : OqFns (openingQueriesLoops.getD 63 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L3, fn% «opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1») rfl, rfl,
-        oqBody_1320,
+        oqBody_1321,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1_loop0»)
-        rfl, rfl, oqLoopBody_1320⟩
+        rfl, rfl, oqLoopBody_1321⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 64, `opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1358 : OqFns (openingQueriesLoops.getD 64 oqNone) := by
+theorem oqFns_1359 : OqFns (openingQueriesLoops.getD 64 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L6, fn% «opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1358,
+        oqBody_1359,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1358⟩
+        rfl, rfl, oqLoopBody_1359⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 65, `opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1359 : OqFns (openingQueriesLoops.getD 65 oqNone) := by
+theorem oqFns_1360 : OqFns (openingQueriesLoops.getD 65 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L24_L3, fn% «opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1359,
+        oqBody_1360,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1359⟩
+        rfl, rfl, oqLoopBody_1360⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 66, `opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1363 : OqFns (openingQueriesLoops.getD 66 oqNone) := by
+theorem oqFns_1364 : OqFns (openingQueriesLoops.getD 66 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L24_L2, fn% «opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1363,
+        oqBody_1364,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1363⟩
+        rfl, rfl, oqLoopBody_1364⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 67, `opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1`. -/
-theorem oqFns_1367 : OqFns (openingQueriesLoops.getD 67 oqNone) := by
+theorem oqFns_1368 : OqFns (openingQueriesLoops.getD 67 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L2, fn% «opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1») rfl,
-        rfl, oqBody_1367,
+        rfl, oqBody_1368,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1_loop0»)
-        rfl, rfl, oqLoopBody_1367⟩
+        rfl, rfl, oqLoopBody_1368⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 68, `opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1`. -/
-theorem oqFns_1368 : OqFns (openingQueriesLoops.getD 68 oqNone) := by
+theorem oqFns_1369 : OqFns (openingQueriesLoops.getD 68 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L3, fn% «opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1») rfl,
-        rfl, oqBody_1368,
+        rfl, oqBody_1369,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1_loop0»)
-        rfl, rfl, oqLoopBody_1368⟩
+        rfl, rfl, oqLoopBody_1369⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 69, `opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1`. -/
-theorem oqFns_1369 : OqFns (openingQueriesLoops.getD 69 oqNone) := by
+theorem oqFns_1370 : OqFns (openingQueriesLoops.getD 69 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L4, fn% «opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1») rfl,
-        rfl, oqBody_1369,
+        rfl, oqBody_1370,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1_loop0»)
-        rfl, rfl, oqLoopBody_1369⟩
+        rfl, rfl, oqLoopBody_1370⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 70, `opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1405 : OqFns (openingQueriesLoops.getD 70 oqNone) := by
+theorem oqFns_1406 : OqFns (openingQueriesLoops.getD 70 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L7, fn% «opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1405,
+        oqBody_1406,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1405⟩
+        rfl, rfl, oqLoopBody_1406⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 71, `opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1406 : OqFns (openingQueriesLoops.getD 71 oqNone) := by
+theorem oqFns_1407 : OqFns (openingQueriesLoops.getD 71 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L24_L4, fn% «opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1406,
+        oqBody_1407,
     coreProgram_find?_at (j := idx% «opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1406⟩
+        rfl, rfl, oqLoopBody_1407⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 72, `opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0`. -/
-theorem oqFns_1410 : OqFns (openingQueriesLoops.getD 72 oqNone) := by
+theorem oqFns_1411 : OqFns (openingQueriesLoops.getD 72 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L24_L3, fn% «opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0»,
       fn% «opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0») rfl, rfl,
-        oqBody_1410,
+        oqBody_1411,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0»)
-        rfl, rfl, oqLoopBody_1410⟩
+        rfl, rfl, oqLoopBody_1411⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 73, `opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1`. -/
-theorem oqFns_1415 : OqFns (openingQueriesLoops.getD 73 oqNone) := by
+theorem oqFns_1416 : OqFns (openingQueriesLoops.getD 73 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L3, fn% «opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1») rfl,
-        rfl, oqBody_1415,
+        rfl, oqBody_1416,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0»)
-        rfl, rfl, oqLoopBody_1415⟩
+        rfl, rfl, oqLoopBody_1416⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 74, `opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1`. -/
-theorem oqFns_1416 : OqFns (openingQueriesLoops.getD 74 oqNone) := by
+theorem oqFns_1417 : OqFns (openingQueriesLoops.getD 74 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L4, fn% «opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1») rfl,
-        rfl, oqBody_1416,
+        rfl, oqBody_1417,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1_loop0»)
-        rfl, rfl, oqLoopBody_1416⟩
+        rfl, rfl, oqLoopBody_1417⟩
 
 set_option maxRecDepth 100000 in
 /-- Entry 75, `opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1`. -/
-theorem oqFns_1417 : OqFns (openingQueriesLoops.getD 75 oqNone) := by
+theorem oqFns_1418 : OqFns (openingQueriesLoops.getD 75 oqNone) := by
   unfold OqFns
   exact ⟨wpFn_L18_L5, fn% «opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1»,
       fn% «opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0»,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1») rfl,
-        rfl, oqBody_1417,
+        rfl, oqBody_1418,
     coreProgram_find?_at (j := idx% «opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0»)
-        rfl, rfl, oqLoopBody_1417⟩
+        rfl, rfl, oqLoopBody_1418⟩
 
 /-- **Every entry's functions are found with the templates' bodies.** -/
 theorem oqFns_all : ∀ p ∈ openingQueriesLoops, OqFns p := by
@@ -923,17 +923,17 @@ theorem oqFns_all : ∀ p ∈ openingQueriesLoops, OqFns p := by
   rw [List.getElem_eq_getD oqNone]
   have hi' : i < 76 := hi
   interval_cases i
-  exacts [oqFns_950, oqFns_952, oqFns_954, oqFns_956, oqFns_963, oqFns_964, oqFns_965,
-    oqFns_966, oqFns_973, oqFns_979, oqFns_980, oqFns_981, oqFns_982, oqFns_1011,
-    oqFns_1012, oqFns_1017, oqFns_1020, oqFns_1021, oqFns_1022, oqFns_1023, oqFns_1051,
-    oqFns_1052, oqFns_1057, oqFns_1060, oqFns_1061, oqFns_1062, oqFns_1063, oqFns_1091,
-    oqFns_1092, oqFns_1097, oqFns_1100, oqFns_1101, oqFns_1102, oqFns_1103, oqFns_1131,
-    oqFns_1132, oqFns_1136, oqFns_1140, oqFns_1141, oqFns_1142, oqFns_1177, oqFns_1178,
-    oqFns_1182, oqFns_1186, oqFns_1187, oqFns_1188, oqFns_1221, oqFns_1222, oqFns_1226,
-    oqFns_1230, oqFns_1231, oqFns_1232, oqFns_1265, oqFns_1266, oqFns_1270, oqFns_1273,
-    oqFns_1274, oqFns_1275, oqFns_1308, oqFns_1309, oqFns_1313, oqFns_1318, oqFns_1319,
-    oqFns_1320, oqFns_1358, oqFns_1359, oqFns_1363, oqFns_1367, oqFns_1368, oqFns_1369,
-    oqFns_1405, oqFns_1406, oqFns_1410, oqFns_1415, oqFns_1416, oqFns_1417]
+  exacts [oqFns_951, oqFns_953, oqFns_955, oqFns_957, oqFns_964, oqFns_965, oqFns_966,
+    oqFns_967, oqFns_974, oqFns_980, oqFns_981, oqFns_982, oqFns_983, oqFns_1012,
+    oqFns_1013, oqFns_1018, oqFns_1021, oqFns_1022, oqFns_1023, oqFns_1024, oqFns_1052,
+    oqFns_1053, oqFns_1058, oqFns_1061, oqFns_1062, oqFns_1063, oqFns_1064, oqFns_1092,
+    oqFns_1093, oqFns_1098, oqFns_1101, oqFns_1102, oqFns_1103, oqFns_1104, oqFns_1132,
+    oqFns_1133, oqFns_1137, oqFns_1141, oqFns_1142, oqFns_1143, oqFns_1178, oqFns_1179,
+    oqFns_1183, oqFns_1187, oqFns_1188, oqFns_1189, oqFns_1222, oqFns_1223, oqFns_1227,
+    oqFns_1231, oqFns_1232, oqFns_1233, oqFns_1266, oqFns_1267, oqFns_1271, oqFns_1274,
+    oqFns_1275, oqFns_1276, oqFns_1309, oqFns_1310, oqFns_1314, oqFns_1319, oqFns_1320,
+    oqFns_1321, oqFns_1359, oqFns_1360, oqFns_1364, oqFns_1368, oqFns_1369, oqFns_1370,
+    oqFns_1406, oqFns_1407, oqFns_1411, oqFns_1416, oqFns_1417, oqFns_1418]
 
 end
 end LeanVM.Guest.B1
