@@ -354,7 +354,7 @@ def carryMain (folded : Bool) : Source.Program :=
 
 #guard [false, true].all fun folded =>
   match Expand.expandProgram (carryMain folded) with
-  | .error e => e == "in __loop0: unbound variable `t`"
+  | .error e => e == "in __loop0_main: unbound variable `t`"
   | .ok _ => false
 
 end LeanVMTests.Guest.Expand
