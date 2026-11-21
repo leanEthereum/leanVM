@@ -15,6 +15,7 @@ public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main»
+import LeanVM.Guest.LitRef
 
 /-!
 # `main`, placed
@@ -166,24 +167,24 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
     (hb : MainBounds (2 ^ 23) (d.toIn fs fp))
     (Ts : Reader → List (Tree → Prop)) (Nk : ℕ) (Lk : B1.Main.Layout) (outs : List (List E × B1.Main.Layout))
     (hoo : OutsOk (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) outs)
-    (hW : Within Lk (etB fs (mK0 d fs fp) + 2284) Nk) (hD : DisjL Lk)
+    (hW : Within Lk (etB fs (mK0 d fs fp) + lit% B1.expTabN) Nk) (hD : DisjL Lk)
     (hKids : ∀ (rd : Reader) (σ : Val) (cs : List Call) (R Dacc : ℕ → Prop),
       CallsMatch σ cs (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) outs →
       LowDef 23 rd → B1.Main.MemL rd Lk →
       B1.Main.MemL rd (Kid.lins (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp))) →
       RegionsOk R Dacc (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) outs →
-      KidsFromInT coreProgram fs cert rd σ R Dacc cs (Ts rd) (etB fs (mK0 d fs fp) + 2284) Nk
+      KidsFromInT coreProgram fs cert rd σ R Dacc cs (Ts rd) (etB fs (mK0 d fs fp) + lit% B1.expTabN) Nk
         (fun i => Dacc i ∨ outRegion (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++
           etL d fs fp)) outs i))
     (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
       LoadHolds rd 1 0 (digestHalves d.sdg).1 → LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         MainMem rd (d.toIn fs fp)) :
     ∃ (L : B1.Main.Layout),
-      Within L fp (fs "main" + (mSizes d).sum + (fs "exponent_tables" + 2284 + Nk)) ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
+      Within L fp (fs "main" + (mSizes d).sum + (fs "exponent_tables" + lit% B1.expTabN + Nk)) ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
       ∀ rd, LowDef 23 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
         LoadHolds rd gen 0 (digestHalves d.sdg).2 →
-        RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp (fs "main" + (mSizes d).sum + (fs "exponent_tables" + 2284 + Nk)) "main"
+        RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp (fs "main" + (mSizes d).sum + (fs "exponent_tables" + lit% B1.expTabN + Nk)) "main"
           [] []
           (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (d.toIn fs fp) ∧
             KidsT (mCalls σ (d.toIn fs fp)) ((fun _ => True) :: Ts rd) ks ∧
@@ -194,19 +195,19 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
   set Lmain := Lown ++ etL d fs fp with hLmain
   have he : etB fs (mK0 d fs fp) = b0 + (mSizes d).sum + fs "exponent_tables" := rfl
   have hWo : Within Lown b0 (mSizes d).sum := bufL_within _ _ _ hfit
-  have hWe : Within (etL d fs fp) (etB fs (mK0 d fs fp)) 2284 := by
+  have hWe : Within (etL d fs fp) (etB fs (mK0 d fs fp)) lit% B1.expTabN := by
     intro q hq
     simp only [etL, List.mem_cons, List.not_mem_nil, or_false] at hq
     subst hq; simp [length_expTabAllWords]
   have hDe : DisjL (etL d fs fp) := List.pairwise_singleton _ _
-  have hWb : Within (Lmain ++ Lk) b0 ((mSizes d).sum + (fs "exponent_tables" + 2284 + Nk)) := by
+  have hWb : Within (Lmain ++ Lk) b0 ((mSizes d).sum + (fs "exponent_tables" + lit% B1.expTabN + Nk)) := by
     rw [within_append, within_append]
     exact ⟨⟨hWo.mono (by omega) (by omega), hWe.mono (by omega) (by omega)⟩,
       hW.mono (by omega) (by omega)⟩
   refine ⟨Lmain ++ Lk,
     hWb.mono (by omega) (by omega), fun q hq => (hWb q hq).1, ?_,
     fun q hq => List.mem_append_left _ hq, fun rd hlow hL h0 h1 => ?_⟩
-  · have hW1 : Within (Lown ++ etL d fs fp) b0 ((mSizes d).sum + fs "exponent_tables" + 2284) :=
+  · have hW1 : Within (Lown ++ etL d fs fp) b0 ((mSizes d).sum + fs "exponent_tables" + lit% B1.expTabN) :=
       within_append.mpr ⟨hWo.mono le_rfl (by omega), hWe.mono (by omega) (by omega)⟩
     exact disj_append (disj_append (bufL_disj _ _ _ hfit) hDe hWo hWe (by omega)) hD hW1 hW
       (by omega)
@@ -491,8 +492,8 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
       · rw [(r7 rfl).1]; show [σ (.n (val% «main» "own_0")), σ (.n (val% «main» "own_1"))] = _
         rw [hO (by decide), hO (by decide)]; rfl
   -- the placed relation
-  have hbase : fp + fs "main" + (mSizes d).sum + (fs "exponent_tables" + 2284) =
-      etB fs (mK0 d fs fp) + 2284 := by simp only [etB, mK0]; omega
+  have hbase : fp + fs "main" + (mSizes d).sum + (fs "exponent_tables" + lit% B1.expTabN) =
+      etB fs (mK0 d fs fp) + lit% B1.expTabN := by simp only [etB, mK0]; omega
   have hlins : B1.Main.MemL rd (B1.Kid.lins (mKids m Lmain)) := by
     intro q hq
     obtain ⟨k, hk, hq⟩ := List.mem_flatMap.mp hq
@@ -501,10 +502,10 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
     · exact hLo q hq
     · exact hLe q hq
   have h := relAtInWT_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
-    (R := fun i => i < 2) (D := fun _ => False) (fp := fp) (N := fs "exponent_tables" + 2284 + Nk)
+    (R := fun i => i < 2) (D := fun _ => False) (fp := fp) (N := fs "exponent_tables" + lit% B1.expTabN + Nk)
     (args := []) (rets := [])
     (Dk := fun i => ((fun _ => False) i ∨ ((⟨"exponent_tables", [], [.n (val% «main» "g_squares")], true⟩ : Call).taken
-      = true ∧ (etB fs (mK0 d fs fp) ≤ i ∧ i < etB fs (mK0 d fs fp) + 2284))) ∨
+      = true ∧ (etB fs (mK0 d fs fp) ≤ i ∧ i < etB fs (mK0 d fs fp) + lit% B1.expTabN))) ∨
       outRegion (mKids m Lmain) ([a1, a2, a3, a4, a5, a6] ++ oB ++ [c5] ++ oD ++ [e1]) i)
     coreProgram_wf find_main (Or.inl main_loop) rfl hw rfl hev (by rw [hal]; exact hbuf)
     (fun q hq => by
@@ -527,11 +528,11 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
     rw [hcalls] at hkT
     exact ⟨_, ht, σ, _, ks, rfl, hv, hkT, hes ▸ hcalls, rfl⟩
   · rw [hcalls, hal]
-    refine ⟨fs "exponent_tables" + 2284, Nk, fun _ => False,
-      fun i => etB fs (mK0 d fs fp) ≤ i ∧ i < etB fs (mK0 d fs fp) + 2284, rfl, fun i hi => hi.elim, ?_, ?_⟩
+    refine ⟨fs "exponent_tables" + lit% B1.expTabN, Nk, fun _ => False,
+      fun i => etB fs (mK0 d fs fp) ≤ i ∧ i < etB fs (mK0 d fs fp) + lit% B1.expTabN, rfl, fun i hi => hi.elim, ?_, ?_⟩
     · show RelAtInT coreProgram fs cert rd (fun _ => False)
-        (fun i => etB fs (mK0 d fs fp) ≤ i ∧ i < etB fs (mK0 d fs fp) + 2284) (mK0 d fs fp)
-        (fs "exponent_tables" + 2284) "exponent_tables" [] [σ (.n (val% «main» "g_squares"))] fun _ => True
+        (fun i => etB fs (mK0 d fs fp) ≤ i ∧ i < etB fs (mK0 d fs fp) + lit% B1.expTabN) (mK0 d fs fp)
+        (fs "exponent_tables" + lit% B1.expTabN) "exponent_tables" [] [σ (.n (val% «main» "g_squares"))] fun _ => True
       rw [o49]
       exact (et_at fs cert hExp).relAtInT
     · rw [hbase]
@@ -618,14 +619,14 @@ theorem main_relAtInT (fs : String → ℕ) (cert : String → V → ℕ) (fp : 
             KidsT (mCalls σ (d.toIn fs fp)) ((fun _ => True) :: Ts) ks ∧
             calls (mEvs σ) = mCalls σ (d.toIn fs fp) ∧ bufs = mSizes d) := by
   obtain ⟨Nk, Lk, outs, hoo, hW, hD, -, hKids⟩ :=
-    kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 23 _ Ts hok (etB fs (mK0 d fs fp) + 2284)
+    kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 23 _ Ts hok (etB fs (mK0 d fs fp) + lit% B1.expTabN)
   obtain ⟨L, h⟩ := main_relAtInT_core fs cert fp d own hfit hb (fun _ => Ts) Nk Lk outs hoo hW hD hKids hmm
   exact ⟨_, L, h⟩
 
 /-- **`main`'s words**: its frame, its buffers, `exponent_tables`' frame and tables, its other
 callees' bounds (`kidsBoundL`). -/
 def mainB (fs : String → ℕ) (d : MainData) (ks : List Kid) (Bs : List ℕ) : ℕ :=
-  fs "main" + (mSizes d).sum + (fs "exponent_tables" + 2284 + kidsBoundL fs ks Bs)
+  fs "main" + (mSizes d).sum + (fs "exponent_tables" + lit% B1.expTabN + kidsBoundL fs ks Bs)
 
 /-- **`main` at `fp` within its words**: `main_relAtInT`, its callees within the bounds `Bs`, its
 size at most `mainB`. -/
@@ -647,7 +648,7 @@ theorem main_relAtInTB (fs : String → ℕ) (cert : String → V → ℕ) (fp :
             KidsT (mCalls σ (d.toIn fs fp)) ((fun _ => True) :: Ts) ks ∧
             calls (mEvs σ) = mCalls σ (d.toIn fs fp) ∧ bufs = mSizes d) := by
   obtain ⟨Nk, Lk, outs, hNk, hoo, hW, hD, -, hKids⟩ :=
-    kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) 23 _ Ts Bs hok (etB fs (mK0 d fs fp) + 2284)
+    kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) 23 _ Ts Bs hok (etB fs (mK0 d fs fp) + lit% B1.expTabN)
   obtain ⟨L, h⟩ := main_relAtInT_core fs cert fp d own hfit hb (fun _ => Ts) Nk Lk outs hoo hW hD hKids hmm
   exact ⟨_, L, by unfold mainB; omega, h⟩
 

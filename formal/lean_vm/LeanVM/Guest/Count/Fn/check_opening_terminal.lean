@@ -13,6 +13,7 @@ public import LeanVM.Guest.Count.StaticW
 public import LeanVM.Guest.Count.RatioV
 public import LeanVM.Guest.B1.Lmax
 public import LeanVM.Guest.B1.Terminal.TermWeight
+import LeanVM.Guest.LitRef
 
 namespace LeanVM.Guest.Count
 
@@ -44,9 +45,13 @@ noncomputable def termWst (op : Opcode) : ℕ := kuSB op "selector_tables"
 noncomputable def termW15 (op : Opcode) : ℕ :=
   krVl15A op * max (B2C.fs (name% check_opening_terminal_loop0)) (32 * 38) / 1000
 
+/-- **A cap on `rs_eq_run`'s words under `ring_switch_weight`** (`Brs`), at which `ring_switch_weight`'s ratio
+bounds its weight: what its rule file reads. -/
+def rswBrsCap : ℕ := 16433
+
 /-- `ring_switch_weight`'s weight, by its ratio at its words. -/
 noncomputable def termWrsw (op : Opcode) : ℕ :=
-  krVrswA op * (B2C.fs "ring_switch_weight" + 2240 + 16433) / 1000
+  krVrswA op * (B2C.fs "ring_switch_weight" + lit% B1.VerifySub.termRswChain + lit% rswBrsCap) / 1000
 
 /-- **The terminal's weight bound as one closed form** in an opcode's frame weights `ω`, the `W`
 certificates' bounds `KB` (`kuSB` at the opcode), the frame sizes `fs` and the two ratios at the opcode:
@@ -56,7 +61,7 @@ noncomputable def termWForm (ω KB fs : String → ℕ) (r15 rrsw : ℕ) : ℕ :
     (fun _ => r15 * max (fs (name% check_opening_terminal_loop0)) (32 * 38) / 1000)
     (fun _ => KB "selector_tables")
     (fun _ => B1.lmax ((List.range 31).map fun κ => KB (B1.Tables.lName "column_selector" κ)))
-    (fun _ => rrsw * (fs "ring_switch_weight" + 2240 + 16433) / 1000) ()).sum
+    (fun _ => rrsw * (fs "ring_switch_weight" + lit% B1.VerifySub.termRswChain + lit% rswBrsCap) / 1000) ()).sum
 
 theorem termW_form (op : Opcode) : B2C.ωArm B2C.xmssArmC op "check_opening_terminal" +
     (B1.VerifySub.termWs termWeqc termW15 termWst kCsW termWrsw op).sum =

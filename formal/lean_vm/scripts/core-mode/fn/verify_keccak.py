@@ -11,20 +11,18 @@ CAPE = 2 ** 62
 # its layers' returned cursors, as its Lean data says, and its stream
 VK_CURS = lean_def('verify_keccak', 'Fam', 'vkCurs')
 VK_STREAM = val('verify_keccak', 'stream')
-VK_ORD = 2 ** 64 - 1
-_TAU, _P0, _P, _Y = val('verify_keccak', 'tau_g'), val('verify_keccak', 'pack_g~0'), val('verify_keccak', 'pack_g'), \
-    val('verify_keccak', 's5#1')
-_S2, _R3, _S1 = val('verify_keccak', 'step_g@2'), val('verify_keccak', 'rem_g@3'), val('verify_keccak', 'step_g@1')
-_S23, _R1, _R23, _R33 = val('verify_keccak', 'step_g@2~3'), val('verify_keccak', 'rem_g@1'), \
-    val('verify_keccak', 'rem_g@2~3'), val('verify_keccak', 'rem_g@3~3')
+# the order of `g`, and the exponents at `τ` (`CoreMode.vkTab`), as its Lean data says
+VK_ORD = lean_def('verify_keccak', 'Fam', 'gOrd')
+
+
+_VK_E = {}
 
 
 def vk_e(t):
     """`CoreMode.vkTab`: the exponents at `τ = t` (`pack_g~0` is `g^-4`, modulo the order `2^64 - 1`)."""
-    y = t - 3
-    b = [(y >> i) & 1 for i in range(5)]
-    return {_TAU: t, _P0: VK_ORD - 4, _P: t - 4, _Y: t - 3, _S2: y // 8, _R3: y % 8, _S1: b[3], _S23: 2 * b[4],
-            _R1: b[0], _R23: 2 * b[1], _R33: 4 * b[2]}
+    if t not in _VK_E:
+        _VK_E[t] = dict(lean_def('verify_keccak', 'Fam', 'vkTab', t))
+    return _VK_E[t]
 
 
 def vk_ev(E, c):

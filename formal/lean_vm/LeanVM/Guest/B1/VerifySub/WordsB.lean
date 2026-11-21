@@ -13,6 +13,7 @@ public import LeanVM.Guest.Budget.Static
 public import LeanVM.Guest.Memory.LoopPre
 public import LeanVM.Guest.B1.Terminal.TermWeight
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.LitRef
 
 /-!
 # `verify_sub`'s callees' words
@@ -105,7 +106,7 @@ structure VsWords (fs : String → ℕ) : Type where
     t.total fs ≤ (32 * K15 + fs name% «check_opening_terminal_loop0») → t.weight (ωv op) ≤ W15 op
   hrswW : ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "ring_switch_weight" →
     t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-    t.total fs ≤ fs "ring_switch_weight" + 2240 + Brs → t.weight (ωv op) ≤ Wrsw op
+    t.total fs ≤ fs "ring_switch_weight" + lit% termRswChain + Brs → t.weight (ωv op) ≤ Wrsw op
 
 /-! ## The bounds -/
 

@@ -8,14 +8,17 @@ module
 
 public import LeanVM.Guest.B1.Bits.Meaning
 public import LeanVM.Guest.B1.Common.Find
+public import LeanVM.Guest.GuestConst
 import LeanVM.Guest.ValRef
+import LeanVM.Guest.LitRef
+import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.Data.ValNames.«exponent_tables»
 
 /-!
 # `exponent_tables`
 
 `exponent_tables()` (`lean_ethereum.py`) fills a fresh `HeapBuf(236 + 2^11)` with constants the
-compiler folds: `2284` pairs `const`, `load`, the squares `0 .. 33` first, then the rank keys and
+compiler folds: `expTabN` pairs `const`, `load`, the squares `0 .. 33` first, then the rank keys and
 the groups' sides `178 .. 235`, then the nibble shares `34 .. 177`, then the bit windows
 `236 + n` (`etOff`). The first `236` words (`etWordsN`, by offset) are the honest values in `K`,
 decided by the kernel over `etListK`, which computes them as the source does, one product a word:
@@ -24,7 +27,7 @@ decided by the kernel over `etListK`, which computes them as the source does, on
 * `exponent_tables_holds`: its core IR is its meaning (`ExpTables` and `ExpWinTab`,
   `Guest/ExpTables.lean`).
 * `expTables_iff_words`: `ExpTables` is the `236` words `expTableWords` at the pointer;
-  `expTabAll_iff`: with `ExpWinTab`, the `2284` words `expTabAllWords`.
+  `expTabAll_iff`: with `ExpWinTab`, the `expTabN` words `expTabAllWords`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -273,18 +276,22 @@ theorem expTables_iff_words (rd : Reader) (q : E) :
 /-- The table's honest word at offset `o`: `expTableWords` below `236`, then window `o - 236`. -/
 def expTabWord (o : ℕ) : E := if o < 236 then expTableWords.getD o 0 else eOfNat (o - 236)
 
-/-- The whole table's `2284` honest words. -/
-def expTabAllWords : List E := (List.range 2284).map expTabWord
+/-- **The table's size**: its `236` words and the bit windows (`WIN_TAB_AT + WIN_TAB_LEN`), what `main`'s proofs
+restate as `lit% B1.expTabN`. -/
+def expTabN : ℕ := guest_const% WIN_TAB_AT + guest_const% WIN_TAB_LEN
 
-theorem length_expTabAllWords : expTabAllWords.length = 2284 := by simp [expTabAllWords]
+/-- The whole table's `expTabN` honest words. -/
+def expTabAllWords : List E := (List.range lit% expTabN).map expTabWord
+
+theorem length_expTabAllWords : expTabAllWords.length = lit% expTabN := by simp [expTabAllWords]
 
 theorem expTabAllWords_getD (o : ℕ) :
-    expTabAllWords.getD o 0 = if o < 2284 then expTabWord o else 0 := by
-  by_cases h : o < 2284 <;> simp [expTabAllWords, h]
+    expTabAllWords.getD o 0 = if o < lit% expTabN then expTabWord o else 0 := by
+  by_cases h : o < lit% expTabN <;> simp [expTabAllWords, h]
 
-/-- **The exponent table and its bit windows are its `2284` words.** -/
+/-- **The exponent table and its bit windows are its `expTabN` words.** -/
 theorem expTabAll_iff (rd : Reader) (q : E) :
-    ExpTables rd q ∧ ExpWinTab rd q ↔ ∀ o < 2284, LoadHolds rd q o (expTabWord o) := by
+    ExpTables rd q ∧ ExpWinTab rd q ↔ ∀ o < lit% expTabN, LoadHolds rd q o (expTabWord o) := by
   rw [expTables_iff_words]
   constructor
   · rintro ⟨h1, h2⟩ o ho
@@ -316,7 +323,7 @@ def etBlk (t : ℕ) : List Stmt :=
 
 /-- The expansion of `exponent_tables`. -/
 def etBody : List Stmt :=
-  [.atom (.hint (.alloc (.n (val% «exponent_tables» "g_squares")) 2284))] ++ ((List.range 2284).map etBlk).flatten ++
+  [.atom (.hint (.alloc (.n (val% «exponent_tables» "g_squares")) lit% expTabN))] ++ ((List.range lit% expTabN).map etBlk).flatten ++
   [.atom (.copy (.n (val% «exponent_tables» "s8#0")) (.n (val% «exponent_tables» "g_squares"))), .ret [.n (val% «exponent_tables» "s8#0")]]
 
 theorem exponent_tables_body : Fn.body fn% «exponent_tables» = etBody :=
@@ -325,7 +332,7 @@ theorem exponent_tables_body : Fn.body fn% «exponent_tables» = etBody :=
 theorem find_exponent_tables : coreProgram.find? "exponent_tables" = some fn% «exponent_tables» :=
   coreProgram_find?_at (j := idx% «exponent_tables») rfl
 
-theorem etOff_lt {t : ℕ} (ht : t < 2284) : etOff t < 2284 := by
+theorem etOff_lt {t : ℕ} (ht : t < lit% expTabN) : etOff t < lit% expTabN := by
   simp only [etOff]; split_ifs <;> omega
 
 /-- The word body position `t` writes is the honest word at its offset. -/
@@ -339,13 +346,13 @@ theorem word_etWord (t : ℕ) : word (etWord t) 0 = expTabWord (etOff t) := by
   · have e : etOff t = t := by simp only [etOff]; split_ifs <;> omega
     rw [ite_neg' a, e, ite_neg' a]
 
-/-- The offsets the body writes are every offset below `2284`, once. -/
+/-- The offsets the body writes are every offset below `expTabN`, once. -/
 theorem etOff_iff (rd : Reader) (q : E) :
-    (∀ t < 2284, LoadHolds rd q (etOff t) (expTabWord (etOff t))) ↔
-      ∀ o < 2284, LoadHolds rd q o (expTabWord o) := by
+    (∀ t < lit% expTabN, LoadHolds rd q (etOff t) (expTabWord (etOff t))) ↔
+      ∀ o < lit% expTabN, LoadHolds rd q o (expTabWord o) := by
   constructor
   · intro h o ho
-    obtain ⟨t, ht, rfl⟩ : ∃ t < 2284, etOff t = o := by
+    obtain ⟨t, ht, rfl⟩ : ∃ t < lit% expTabN, etOff t = o := by
       by_cases a : o < 34
       · exact ⟨o, by omega, by simp [etOff, a]⟩
       by_cases b : o < 178
@@ -363,7 +370,7 @@ theorem exponent_tables_holds : exponent_tables_Spec := by
   rw [rel_iff_sem find_exponent_tables, exponent_tables_body,
       show Fn.params fn% «exponent_tables» = [] from rfl, etBody]
   simp only [holdsList_append, Stmt.HoldsList]
-  simp only [holdsList_range_flatten 2284 etBlk (fun _ => rfl), etBlk]
+  simp only [holdsList_range_flatten lit% expTabN etBlk (fun _ => rfl), etBlk]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and,
     and_true]
   simp only [word_etWord]
@@ -380,7 +387,7 @@ theorem exponent_tables_holds : exponent_tables_Spec := by
       match args, rets, hm with
       | [], [q], h => exact ⟨rfl, q, rfl, h⟩
     have hl := (etOff_iff rd q).2 ((expTabAll_iff rd q).1 ht)
-    refine ⟨setl (setv (setl (Val.ofArgs []) 0 [q]) 1 2284 fun t ↦ expTabWord (etOff t))
+    refine ⟨setl (setv (setl (Val.ofArgs []) 0 [q]) 1 lit% expTabN fun t ↦ expTabWord (etOff t))
       2285 [q], rfl, fun t ht ↦ ?_, ?_, ?_⟩
     all_goals b1_look
     · exact ⟨by rw [Nat.add_sub_cancel], hl t ht⟩

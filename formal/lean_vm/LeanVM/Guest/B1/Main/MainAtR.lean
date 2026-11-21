@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Main.MainAt
 public import LeanVM.Guest.Budget.BoundedR
+import LeanVM.Guest.LitRef
 
 /-!
 # `main`, placed, its callees' predicates of the memory
@@ -42,7 +43,7 @@ theorem main_relAtInTBR (fs : String → ℕ) (cert : String → V → ℕ) (fp 
             KidsT (mCalls σ (d.toIn fs fp)) ((fun _ => True) :: Ts rd) ks ∧
             calls (mEvs σ) = mCalls σ (d.toIn fs fp) ∧ bufs = mSizes d) := by
   obtain ⟨Nk, Lk, outs, hNk, hoo, hW, hD, -, hKids⟩ :=
-    kidsFromInT_of_kidsDTBR (fs := fs) (cert := cert) 23 _ Ts Bs hok (etB fs (mK0 d fs fp) + 2284)
+    kidsFromInT_of_kidsDTBR (fs := fs) (cert := cert) 23 _ Ts Bs hok (etB fs (mK0 d fs fp) + lit% B1.expTabN)
   obtain ⟨L, h⟩ := main_relAtInT_core fs cert fp d own hfit hb Ts Nk Lk outs hoo hW hD hKids hmm
   exact ⟨_, L, by unfold mainB; omega, h⟩
 

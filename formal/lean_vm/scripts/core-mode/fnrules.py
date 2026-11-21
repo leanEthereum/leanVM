@@ -197,9 +197,10 @@ def pos(f, n):
     return _name(f, 'S', n)
 
 
-OWNDIR = os.path.join(HERE, '..', '..', 'LeanVM', 'Guest', 'CoreMode', 'Fn')
+GUEST = os.path.join(HERE, '..', '..', 'LeanVM', 'Guest')
+OWNDIR = os.path.join(GUEST, 'CoreMode', 'Fn')
 # a token: an operator, a bracket, a string, a «name», an identifier (dotted, `%`-suffixed), a numeral
-_LTOK = re.compile(r"\+\+|↦|=>|[\[\](),+\-*/%^⟨⟩]|\"[^\"\n]*\"|«[^»\n]*»|[A-Za-z_.][A-Za-z_0-9.']*%?|0x[0-9A-Fa-f_]+|\d[\d_]*")
+_LTOK = re.compile(r"\+\+|↦|=>|[\[\](),+\-*/%^⟨⟩]|\"[^\"\n]*\"|«[^»\n]*»|\.?[^\W\d][\w.']*%?|0x[0-9A-Fa-f_]+|\d[\d_]*")
 # what ends a definition's body: a top-level command at column 0
 _LEND = re.compile(r"^(?:@\[|(?:(?:private|protected|noncomputable|public|meta|partial|unsafe) )*"
                    r"(?:def|abbrev|theorem|lemma|instance|structure|inductive|class|end|namespace|section|open|"
@@ -251,30 +252,38 @@ def _tokens(body, where):
         i = m.end()
 
 
-def lean_def(f, mod, name):
+def lean_def(f, mod, name, *args):
     """The literal of `def name` in `CoreMode/Fn/<f>/<mod>.lean`, read: what a rule file mirrors of its function's
     Lean data, so the two never disagree. Lists, `++`, `l.map fun x ↦ e`, `(List.range n)`, tuples and `⟨…⟩`, natural
     numerals and `+ - * / % ^` on them (Lean's precedence, `-` truncated), strings, `none`, `some x`, `name% «k»` (`k`),
-    `val%`, `valf%`, `pos%`, `param%`, `guest_const%` (resolved as above), `word a b` (`(a, b)`), `.n x` (`x`) and an
-    atom `.op a ...` (`('op', a, ...)`). Anything else, or a token left over, fails: the body is read whole or not at
-    all."""
-    key = (f, mod)
-    where = '%s.%s.%s' % (f, mod, name)
-    if key not in _LEAN:
-        _LEAN[key] = _uncomment(open(os.path.join(OWNDIR, f, mod + '.lean'), encoding='utf-8').read())
-    t = _LEAN[key]
+    `val%`, `valf%`, `pos%`, `param%`, `guest_const%` (resolved as above), `word a b` (`(a, b)`), `.n x` (`x`), an
+    atom `.op a ...` (`('op', a, ...)`), the def's explicit parameters (bound to `args`) and another def of the same
+    module without parameters. Anything else, or a token left over, fails: the body is read whole or not at all."""
+    return lean_def_at(os.path.join(OWNDIR, f, mod + '.lean'), name, *args)
+
+
+def lean_def_at(path, name, *args):
+    """`lean_def` of the module at `path` under `LeanVM/Guest`: a function's data its owner's module holds."""
+    where = '%s:%s' % (os.path.relpath(os.path.join(GUEST, path), GUEST), name)
+    if path not in _LEAN:
+        _LEAN[path] = _uncomment(open(os.path.join(GUEST, path), encoding='utf-8').read())
+    t = _LEAN[path]
     heads = list(re.finditer(r"^(?:(?:private|protected|noncomputable|public) )*(?:def|abbrev) %s(?![\w'.])"
                              % re.escape(name), t, re.M))
     if len(heads) != 1:
-        raise SystemExit('fnrules: %d defs %s in CoreMode/Fn/%s/%s.lean' % (len(heads), name, f, mod))
+        raise SystemExit('fnrules: %d defs %s in %s' % (len(heads), name, where.rsplit(':', 1)[0]))
     start = heads[0].end()
     end = _LEND.search(t, start)
     decl = t[start:end.start() if end else len(t)]
-    # the body: after the signature's `:=` (the signature has no `:=` of its own)
+    # the signature (its explicit binders the parameters, no `:=` of its own), then the body
     if ':=' not in decl:
         raise SystemExit('fnrules: %s has no body' % where)
-    toks = _tokens(decl.split(':=', 1)[1], where)
-    v, i = _Lean(toks, where).expr(0, {})
+    sig, body = decl.split(':=', 1)
+    params = [x for g in re.findall(r'\(([^():]+):[^()]*\)', sig) for x in g.split()]
+    if re.search(r'[{\[⦃]', sig.split(':')[0]) or len(params) != len(args):
+        raise SystemExit('fnrules: %s takes %s, given %d arguments' % (where, params, len(args)))
+    toks = _tokens(body, where)
+    v, i = _Lean(toks, where, lambda n: lean_def_at(path, n)).expr(0, dict(zip(params, args)))
     if i != len(toks):
         raise SystemExit('fnrules: %s: cannot read %s' % (where, ' '.join(toks[i:i + 8])))
     return v
@@ -287,8 +296,8 @@ class _Lean:
            '%': (70, False), '^': (75, True)}
     CLOSE = {'[': ']', '(': ')', '⟨': '⟩'}
 
-    def __init__(self, t, where):
-        self.t, self.where = t + [None], where
+    def __init__(self, t, where, ref):
+        self.t, self.where, self.ref = t + [None], where, ref
 
     def fail(self, i, what):
         raise SystemExit('fnrules: %s: %s at %s' % (self.where, what, ' '.join(str(x) for x in self.t[i:i + 8]
@@ -340,7 +349,7 @@ class _Lean:
 
     def ident(self, i):
         x = self.t[i]
-        if x is None or not (x.startswith('«') or re.fullmatch(r"[A-Za-z_][\w']*", x)):
+        if x is None or not (x.startswith('«') or re.fullmatch(r"[^\W\d][\w']*", x)):
             self.fail(i, 'a name expected')
         return x.strip('«»'), i + 1
 
@@ -373,7 +382,7 @@ class _Lean:
             return (out[0] if len(out) == 1 and x == '(' else tuple(out)), i
         if re.fullmatch(r'\d[\d_]*', x):
             return int(x.replace('_', '')), i + 1
-        if x.startswith('0x'):
+        if x.startswith('0x') and re.fullmatch(r'0x[0-9A-Fa-f_]+', x):
             return int(x[2:].replace('_', ''), 16), i + 1
         if x.startswith('"'):
             return self.str(i)
@@ -419,12 +428,14 @@ class _Lean:
             return (a, b), i
         if x == '.n':
             return self.term(i + 1, env)
-        if re.fullmatch(r"\.[A-Za-z_][\w']*", x) and x != '.map':
+        if re.fullmatch(r"\.[^\W\d][\w']*", x) and x != '.map':
             args, i = [], i + 1
             while t[i] is not None and t[i] not in (',', ')', ']', '⟩', '.map') and t[i] not in self.OPS:
                 a, i = self.term(i, env)
                 args.append(a)
             return (x[1:],) + tuple(args), i
+        if re.fullmatch(r"[^\W\d][\w']*", x):
+            return self.ref(x), i + 1
         self.fail(i, 'an unknown token')
 
 

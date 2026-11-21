@@ -83,8 +83,9 @@ def _deployed(W):
     L, fs, SB, SKt, v = W.L, W.fs, W.SB, W.SKt, W.v
     lp = [L('main_loop%d' % i) for i in range(5)]
     # `main`'s frame and buffers (`283` words), `exponent_tables`' and each callee's frame and bound
-    base = (fs('main') + 283 + fs('exponent_tables') + 2284 + 2 * (v('clC') + fs('claim_list_digest'))
-            + fs(lp[0]) + fs(lp[1]) + fs(lp[2]) + fs(lp[3]) + 2 * v('l5A0') + (v('agA0') + fs('aggregate_claims'))
+    base = (fs('main') + 283 + fs('exponent_tables') + SB('exponent_tables')
+            + 2 * (v('clC') + fs('claim_list_digest')) + fs(lp[0]) + fs(lp[1]) + fs(lp[2]) + fs(lp[3])
+            + 2 * v('l5A0') + (v('agA0') + fs('aggregate_claims'))
             + SB('statement_digest') + fs('statement_digest'))
     # its own loops at `B1.Main.iterK`, their runs' phantoms in the base
     words = [base, v('clS'), 5 + SKt(lp[0]) + SKt(lp[1]), SKt(lp[2]), SKt(lp[3]), v('dvC') + fs('da_verify'),
