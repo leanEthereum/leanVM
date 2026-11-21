@@ -390,7 +390,14 @@ fn merge(
     for e in &seg.events {
         let ok = match *e {
             Event::Put(c, v) => skip(c) || m.put(c, v).is_ok(),
-            Event::Link(a2, a3) => !skip(a2) && !skip(a3) && m.deref_cell(a2, a3).is_ok(),
+            // A link into the next segment's first frame (a loop argument stored through the next frame's pointer):
+            // that cell already holds the argument predicted for it, which this segment was checked to agree with,
+            // so serially both ends end up written with one word.
+            Event::Link(a2, a3) => match (skip(a2), skip(a3)) {
+                (false, false) => m.deref_cell(a2, a3).is_ok(),
+                (true, true) => false,
+                _ => m.is_written(a2) && m.is_written(a3) && m.cell(a2).word == m.cell(a3).word,
+            },
             Event::Unwritten(c) => skip(c) || !m.is_written(c),
         };
         if !ok {
