@@ -3,7 +3,8 @@
 
     python3 -I scripts/val-names/gen.py [--check] [--dump FILE]
 
-Scans the hand-written Lean files for `val% f "name"` and `pos% f "name"` (`Guest/ValRef.lean`; a
+Scans the hand-written Lean files for `val% f "name"` and `pos% f "name"` (`Guest/ValRef.lean`), and the rule
+files `scripts/core-mode/fn/*.py` for `val('f', 'name')`, `valf('f', 'name')`, `pos('f', 'name')` (`fnrules`; a
 value's name is its source name, `acc`, `g.acc` or `acc@2`, or its expansion path, `s3.i3:g.s8#0`),
 looks each name up in `guest-core --names` (or `--dump`, its saved output) and writes, for each
 cited function `f`, the numerals of the names cited: `V.«f/name»` a value's number, `S.«f/name»`
@@ -20,6 +21,7 @@ ROOT = os.getcwd()
 OUT = os.path.join("LeanVM", "Guest", "Data", "ValNames")
 SKIP = (os.path.join("LeanVM", "Guest", "Data"), os.path.join("LeanVM", "Guest", "Pack"))
 CITE = re.compile(r'\b(valf|val|pos)%((?:\s+«?[A-Za-z0-9_]+»?)+)\s+"([^"]+)"')
+PYCITE = re.compile(r"\b(valf|val|pos)\(\s*'([A-Za-z0-9_]+)'\s*,\s*(?:'(_[A-Za-z0-9_]+)'\s*,\s*)?'([^']+)'\s*\)")
 
 
 def cited():
@@ -39,6 +41,17 @@ def cited():
                         keys = [ids[0] + "__L" + "".join(ids[1:])] if kind == "F" else ids
                         for key in keys:
                             out.setdefault(key, {}).setdefault((kind, m.group(3)), set()).add(p)
+    # the rule files cite them as `val('f', 'name')`, `valf('f', ['suffix',] 'name')`, `pos('f', 'name')` (`fnrules`)
+    rules = os.path.join("scripts", "core-mode", "fn")
+    for f in sorted(os.listdir(rules)) if os.path.isdir(rules) else []:
+        if f.endswith(".py"):
+            p = os.path.join(rules, f)
+            text = re.sub(r'#[^\n]*', '', open(p, encoding="utf-8").read())
+            for m in PYCITE.finditer(text):
+                kind = {"val": "V", "valf": "F", "pos": "S"}[m.group(1)]
+                ids = [m.group(2)] + ([m.group(3)] if m.group(3) else [])
+                key = ids[0] + "__L" + "".join(ids[1:]) if kind == "F" else ids[0]
+                out.setdefault(key, {}).setdefault((kind, m.group(4)), set()).add(p)
     return out
 
 

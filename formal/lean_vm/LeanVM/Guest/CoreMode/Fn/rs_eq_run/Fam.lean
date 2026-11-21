@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.CoreMode.CoreRes
 public meta import LeanVM.Guest.CoreRef
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«rs_eq_run»
 
 namespace LeanVM.Guest.CoreMode
 
@@ -15,8 +17,11 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-/-- `rs_eq_run`'s `count = q^8·r` (`EndExecCoreSplit`). -/
-def spRs : SplitC := ⟨[(27, 1), (31, 1), (36, 1)], [(13, 1), (17, 1), (22, 1)], 23, 3, 8, 8⟩
+/-- `rs_eq_run`'s `count = q^8·r`, `q = q_g@1·q_g@2~3·q_g@3~3` and `r = r_g@3 = r_g@1·r_g@2~3·r_g@3~3`
+(`EndExecCoreSplit`). -/
+def spRs : SplitC :=
+  ⟨[(val% «rs_eq_run» "q_g@1", 1), (val% «rs_eq_run» "q_g@2~3", 1), (val% «rs_eq_run» "q_g@3~3", 1)],
+    [(val% «rs_eq_run» "r_g@1", 1), (val% «rs_eq_run» "r_g@2~3", 1), (val% «rs_eq_run» "r_g@3~3", 1)], val% «rs_eq_run» "r_g@3", 3, 8, 8⟩
 
 end
 

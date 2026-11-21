@@ -21,10 +21,11 @@ open LeanVM.Protocol.Verifier (gen)
 
 public section
 
-/-- **`shared_selector_tables`' split**: `[5] = q^4·[20]`, `q = [24]·[28]·[33]·[38]` (its value `39`),
-`[20] = [15]·[19]`. -/
+/-- **`shared_selector_tables`' split** (`spSst`): its `len = q^4·r_g`, `q = q_g@1·q_g@2~3·q_g@3~3·q_g@4~3`,
+`r_g = r_g~3·r_g~7`. -/
 theorem splitW_sst : SplitW (fn% «shared_selector_tables»)
-    ⟨[(24, 1), (28, 1), (33, 1), (38, 1)], [(15, 1), (19, 1)], 20, 5, 4, 16⟩ := by
+    ⟨[(val% «shared_selector_tables» "q_g@1", 1), (val% «shared_selector_tables» "q_g@2~3", 1), (val% «shared_selector_tables» "q_g@3~3", 1),
+      (val% «shared_selector_tables» "q_g@4~3", 1)], [(val% «shared_selector_tables» "r_g~3", 1), (val% «shared_selector_tables» "r_g~7", 1)], val% «shared_selector_tables» "r_g", 5, 4, 16⟩ := by
   intro rd σ es vs hw hev
   have h : Stmt.HoldsList (fun _ _ _ => True) rd σ (fn% «shared_selector_tables»).body False (fun _ => True) :=
     holdsList_of_walk _ (by rw [hw]; exact ⟨fun e he => ⟨hev e he, fun _ _ _ _ => trivial⟩, trivial⟩)
@@ -37,21 +38,21 @@ theorem splitW_sst : SplitW (fn% «shared_selector_tables»)
   simp only [Fn.«shared_selector_tables».core.body, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and] at h
   obtain ⟨m6, m7, m8, m9, m10, m11, c12, c13, h14, h15, c16, c17, h18, h19, h20, c21, c22, h23, h24, c25, c26, h27,
     h28, h29, c30, c31, h32, h33, h34, c35, c36, h37, h38, h39, h40, h41, h42, ha, -⟩ := h
-  have hlo : ∀ j < 2, σ (.n (6 + j)) * σ (.n (6 + j)) = σ (.n (6 + j)) := by
+  have hlo : ∀ j < 2, σ (.n (val% «shared_selector_tables» "nb[0]" + j)) * σ (.n (val% «shared_selector_tables» "nb[0]" + j)) = σ (.n (val% «shared_selector_tables» "nb[0]" + j)) := by
     intro j hj; interval_cases j
     exacts [m6.symm, m7.symm]
-  have hhi : ∀ j < 4, σ (.n (8 + j)) * σ (.n (8 + j)) = σ (.n (8 + j)) := by
+  have hhi : ∀ j < 4, σ (.n (val% «shared_selector_tables» "nb[2]" + j)) * σ (.n (val% «shared_selector_tables» "nb[2]" + j)) = σ (.n (val% «shared_selector_tables» "nb[2]" + j)) := by
     intro j hj; interval_cases j
     exacts [m8.symm, m9.symm, m10.symm, m11.symm]
-  have rg : σ (.n (val% «shared_selector_tables» "r_g")) = ∏ j ∈ Finset.range 2, (1 + σ (.n (6 + j)) * (gen ^ 2 ^ j + 1)) := by
+  have rg : σ (.n (val% «shared_selector_tables» "r_g")) = ∏ j ∈ Finset.range 2, (1 + σ (.n (val% «shared_selector_tables» "nb[0]" + j)) * (gen ^ 2 ^ j + 1)) := by
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul]
     rw [h20, h15, h19, c12, h14, c13, c16, h18, c17, w3, w5, B1.word_one]
-  have qg : σ (.n (val% «shared_selector_tables» "q_g@4")) = ∏ j ∈ Finset.range 4, (1 + σ (.n (8 + j)) * (gen ^ 2 ^ j + 1)) := by
+  have qg : σ (.n (val% «shared_selector_tables» "q_g@4")) = ∏ j ∈ Finset.range 4, (1 + σ (.n (val% «shared_selector_tables» "nb[2]" + j)) * (gen ^ 2 ^ j + 1)) := by
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul]
     rw [h39, h34, h29, h24, h28, h33, h38, c21, h23, c22, c25, h27, c26, c30, h32, c31, c35, h37, c36, w3, w5, w17,
       w257, B1.word_one]
-  obtain ⟨bb, hbb, hb⟩ := split_bits_gpow (b := fun j ↦ σ (.n (6 + j))) hlo
-  obtain ⟨aa, haa, hab⟩ := split_bits_gpow (b := fun j ↦ σ (.n (8 + j))) hhi
+  obtain ⟨bb, hbb, hb⟩ := split_bits_gpow (b := fun j ↦ σ (.n (val% «shared_selector_tables» "nb[0]" + j))) hlo
+  obtain ⟨aa, haa, hab⟩ := split_bits_gpow (b := fun j ↦ σ (.n (val% «shared_selector_tables» "nb[2]" + j))) hhi
   replace rg := rg.trans hb
   replace qg := qg.trans hab
   have h5 : σ (.n (val% «shared_selector_tables» "len_g")) = gen ^ (4 * aa + bb) := by

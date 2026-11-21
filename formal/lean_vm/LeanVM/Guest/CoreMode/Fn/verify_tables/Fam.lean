@@ -25,12 +25,14 @@ def vtStC (fn : Fn) : CRes → Bool
       decide (q = ⟨⟨[(val% «verify_tables» "stream", 1)], 0⟩, 1, .num 0, .num 8192⟩)
   | _ => false
 
-/-- `verify_tables`' rank `r`'s group value from the side's first `v0` (`B1.Tables.vtRv`). -/
+/-- `verify_tables`' rank `r`'s group value from the side's first `v0`, by its sort's template (`B1.Tables.vtRv`). -/
 def vtRvC (v0 r : ℕ) : ℕ := if r = 0 then v0 else v0 + 13 + 20 * (r - 1)
 
-/-- **`verify_tables`' sides**: each side's ranks' group values and the side's groups `[lo, hi)`. -/
+/-- **`verify_tables`' sides**: each side's ranks' group values (from `gi@1`, `gi@10`) and the side's groups
+`[lo, hi)`. -/
 def vtSides : List (List ℕ × ℕ × ℕ) :=
-  [((List.range 9).map (vtRvC 112), 0, 9), ((List.range 6).map (vtRvC 409), 18, 24)]
+  [((List.range 9).map (vtRvC (val% «verify_tables» "gi@1")), 0, 9),
+    ((List.range 6).map (vtRvC (val% «verify_tables» "gi@10")), 18, 24)]
 
 /-- **`verify_tables`' buffers indexed by group, through its hinted order** (`vtPerm`, the old route's `vtGrpB` on
 core names): a cell `[B]·[v]` at a rank's group value `v` is one of `[B]·g^e` over the side's groups (each rank's group
@@ -78,15 +80,16 @@ def VtL.add (f g : VtL) (k : ℤ) : VtL := (f.1 + k * g.1, ladd k f.2 g.2)
 def VtL.minv (f : VtL) : ℤ := f.1 + lmin f.2 vtUB
 def VtL.maxv (f : VtL) : ℤ := f.1 + lmax f.2 vtUB
 
-/-- **The slacks' words** (`vtexp.base`): `g_bus_mu` (`9`) `19 + a`, `g_zc_n` (`2544`) `19 + a - b`, `dims_g[0]` (`27`)
-`19 + a - d`, `dims_g[1 + t]` (`28 + t`) `19 + a - b - c_t`; ghost `GB + j` as `27 + j`, `j < 7`. -/
+/-- **The slacks' words** (`vtexp.base`): `g_bus_mu` `19 + a`, `g_zc_n` `19 + a - b`, `dims_g[0]` (`kb[1]`)
+`19 + a - d`, `dims_g[1 + t]` (`kb[2 + t]`, the values after `kb[1]`) `19 + a - b - c_t`; ghost `GB + j` as
+`kb[1 + j]`, `j < 7`. -/
 def vtBaseN (x : ℕ) : Option VtL :=
-  let y := if GB ≤ x ∧ x < GB + 7 then x - GB + 27 else x
-  if y = 9 then some (19, [1, 0, 0, 0, 0, 0, 0, 0, 0])
-  else if y = 2544 then some (19, [1, -1, 0, 0, 0, 0, 0, 0, 0])
-  else if y = 27 then some (19, [1, 0, 0, 0, 0, 0, 0, 0, -1])
-  else if 28 ≤ y ∧ y < 34 then some (19, (List.range 9).map fun i ↦
-    if i = 0 then 1 else if i = 1 then -1 else if i = y - 26 then -1 else 0)
+  let y := if GB ≤ x ∧ x < GB + 7 then x - GB + val% «verify_tables» "kb[1]" else x
+  if y = val% «verify_tables» "g_bus_mu" then some (19, [1, 0, 0, 0, 0, 0, 0, 0, 0])
+  else if y = val% «verify_tables» "g_zc_n" then some (19, [1, -1, 0, 0, 0, 0, 0, 0, 0])
+  else if y = val% «verify_tables» "kb[1]" then some (19, [1, 0, 0, 0, 0, 0, 0, 0, -1])
+  else if val% «verify_tables» "kb[1]" + 1 ≤ y ∧ y < val% «verify_tables» "kb[1]" + 7 then some (19, (List.range 9).map fun i ↦
+    if i = 0 then 1 else if i = 1 then -1 else if i = y - val% «verify_tables» "kb[1]" + 1 then -1 else 0)
   else none
 
 /-- **A word's form** (`vtexp.form`): a slacks' word, or what a top-level atom makes it of others' (fuel `f`): a constant
@@ -139,7 +142,9 @@ noncomputable def vtArms (as : List Atom) : List (ℕ × ℕ) → VtL → VtL
     | none => f)
 
 /-- The slacks' words whose forms are nonnegative (`vtexp.NNB`). -/
-def vtNNB : List ℕ := [9, 27, 28, 29, 30, 31, 32, 33, 2544]
+def vtNNB : List ℕ := [val% «verify_tables» "g_bus_mu", val% «verify_tables» "kb[1]", val% «verify_tables» "kb[2]",
+  val% «verify_tables» "kb[3]", val% «verify_tables» "kb[4]", val% «verify_tables» "kb[5]", val% «verify_tables» "kb[6]",
+  val% «verify_tables» "kb[7]", val% «verify_tables» "g_zc_n"]
 
 /-- **Nonnegative** once the arms' equations are used: on the box, or less a slacks' word's form on it. -/
 noncomputable def vtNN (as : List Atom) (arms : List (ℕ × ℕ)) (f : VtL) : Bool :=
@@ -182,7 +187,7 @@ noncomputable def vtExpR (as : List Atom) (arms : List (ℕ × ℕ)) : CRes → 
   | _ => false
 
 /-- `verify_tables`' own parameter words as ghost slots: `dims_g[j]`, `j < 7` (`HSig.gw`). -/
-def vtGw : List (CCell × ℕ) := (List.range 7).map fun j ↦ (⟨[(10, 1)], j⟩, j)
+def vtGw : List (CCell × ℕ) := (List.range 7).map fun j ↦ (⟨[(val% «verify_tables» "dims_g", 1)], j⟩, j)
 
 /-- **The top-level atoms of `verify_tables` its exponent family reads** (`vtexp.ATOMS`; `EndExec.vtAtoms_top`). -/
 def vtAtoms : List Atom :=

@@ -14,6 +14,8 @@ public import LeanVM.Guest.CoreMode.Fn.gkr_layer.Data
 public import LeanVM.Guest.CoreMode.Fn.gkr_layer.Fam
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
+import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
+import LeanVM.Guest.Data.ValNames.«gkr_layer__L0_L0»
 
 namespace LeanVM.Guest.EndExec
 
@@ -23,7 +25,7 @@ open LeanVM.Guest.CoreMode (CFun CRes CIdx ResF LtF rep_of capE resFam idxC base
 public section
 
 /-- **`gkr_layer`'s family holds** at an honest instance (`glQC`): `GlQ` puts its slot's cursor `q` words into its
-stream with room for the layer's `4L + 12`; the head rounds read past the slot's cursor (value `21`), the tail past
+stream with room for the layer's `4L + 12`; the head rounds read past the slot's cursor (value `s4#0`), the tail past
 `8p + 32m` words on (`B1.Tables.gl_curs`). -/
 theorem glQC_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
@@ -39,7 +41,7 @@ theorem glQC_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreP
     simp only [Option.any_some] at hcs
     -- the layer
     obtain ⟨p, hp, o, ho, hn, rfl⟩ : ∃ p < 4, ∃ o < 2, fn.name = B1.Tables.glName p o ∧
-        cs = (if p = 0 then [] else [(21, 8 * p)]) ++ [(76 + B1.Tables.glD p, 20 - 4 * o)] := by
+        cs = (if p = 0 then [] else [(valf% «gkr_layer» "s4#0", 8 * p)]) ++ [(val% «gkr_layer__L0_L0» "tcur" + B1.Tables.glD p, 20 - 4 * o)] := by
       have hm := CoreMode.lookup_memL hl
       simp only [CoreMode.glCurs, List.mem_cons, Prod.mk.injEq, List.not_mem_nil, or_false] at hm
       rcases hm with ⟨h1, rfl⟩ | ⟨h1, rfl⟩ | ⟨h1, rfl⟩ | ⟨h1, rfl⟩ | ⟨h1, rfl⟩ | ⟨h1, rfl⟩ | ⟨h1, rfl⟩ | ⟨h1, rfl⟩
@@ -60,7 +62,7 @@ theorem glQC_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreP
     have hcap : (8192 : ℕ) < CoreMode.capE := by rw [CoreMode.capE_eq]; norm_num
     obtain ⟨cb, co⟩ := c
     have key : ∀ (v k : ℕ), σ (.n v) = σ (.n (valf% «gkr_layer» "stream")) * Protocol.Verifier.gen ^ q * Protocol.Verifier.gen ^ k →
-        q + k + co < 8192 → cb = [(v, 1)] → (CRes.sub ⟨cb, co⟩ ⟨⟨[(8, 1)], 0⟩, 1, .num 0, .num 8192⟩).Holds σ := by
+        q + k + co < 8192 → cb = [(v, 1)] → (CRes.sub ⟨cb, co⟩ ⟨⟨[(valf% «gkr_layer» "stream", 1)], 0⟩, 1, .num 0, .num 8192⟩).Holds σ := by
       intro v k hvk hk hcb
       subst hcb
       refine ⟨0, 8192, q + k + co, CoreMode.rep_const (by rw [CoreMode.capE_eq]; norm_num),
@@ -82,9 +84,9 @@ theorem glQC_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreP
         · simp only [List.mem_singleton] at he
           subst he
           have hco' : co < 8 * p := hco
-          exact key 21 0 (by rw [e21, pow_zero, mul_one]) (by omega) rfl
+          exact key (valf% «gkr_layer» "s4#0") 0 (by rw [e21, pow_zero, mul_one]) (by omega) rfl
       · have hco' : co < 20 - 4 * o := hco
-        exact key (76 + B1.Tables.glD p) (8 * p + 32 * m) e77 (by omega) rfl
+        exact key (val% «gkr_layer__L0_L0» "tcur" + B1.Tables.glD p) (8 * p + 32 * m) e77 (by omega) rfl
     · cases hcs
   | .lt _ _, h | .nz _, h | .subR _ _, h | .subP _ _, h => by simp [CoreMode.glQC] at h
 
@@ -109,8 +111,8 @@ public section
 theorem st_gl {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {p o : ℕ} (hp : p < 4) (ho : o < 2) {σ : Val} {bufs : List ℕ} {kids : List Tree}
     (ht : I.t = .node (B1.Tables.glLoopName p o) σ bufs kids) :
-    ∃ a q, I.hdr.2 = ofK (addressOfIndex a) ∧ a + 10 < maxCells ∧
-      σ (.n (valf% «gkr_layer» "sp[1]@1")) = refMem r.img (a + 10) * gen ^ q ∧ q + 32 ≤ 8192 := by
+    ∃ a q, I.hdr.2 = ofK (addressOfIndex a) ∧ a + (2 + valf% «gkr_layer» "stream") < maxCells ∧
+      σ (.n (valf% «gkr_layer» "sp[1]@1")) = refMem r.img (a + (2 + valf% «gkr_layer» "stream")) * gen ^ q ∧ q + 32 ≤ 8192 := by
   obtain ⟨a, k, m, q, hhd, ha10, -, -, hkm, -, hld, hroom⟩ := glLQ_all hr I hI p hp o ho σ bufs kids ht
   obtain ⟨args, rets, fn', hf', -, es0, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
   obtain ⟨fn, hf, -, hb⟩ := B1.Tables.glIs_sound (B1.Tables.glIs_loops p hp o ho)
@@ -149,14 +151,14 @@ theorem expFacts_ok : ∀ c ∈ expFacts, ExpOk c := by
 /-- **Its loop's cursor** (`st_gl`). -/
 theorem stLoops_ok : ∀ c ∈ stLoops, StLoopOk c := by
   intro c hc
-  obtain ⟨p, hp, o, ho, rfl⟩ : ∃ p < 4, ∃ o < 2, c = (B1.Tables.glLoopName p o, 10, 17, 32) := by
+  obtain ⟨p, hp, o, ho, rfl⟩ : ∃ p < 4, ∃ o < 2, c = (B1.Tables.glLoopName p o, 2 + valf% «gkr_layer» "stream", valf% «gkr_layer» «_loop0» "cur", 32) := by
     simp only [stLoops, List.mem_map, List.mem_cons, List.not_mem_nil, or_false] at hc
     obtain ⟨n, hn, rfl⟩ := hc
     rcases hn with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     exacts [⟨0, by omega, 0, by omega, rfl⟩, ⟨1, by omega, 0, by omega, rfl⟩, ⟨2, by omega, 0, by omega, rfl⟩,
       ⟨3, by omega, 0, by omega, rfl⟩, ⟨0, by omega, 1, by omega, rfl⟩, ⟨1, by omega, 1, by omega, rfl⟩,
       ⟨2, by omega, 1, by omega, rfl⟩, ⟨3, by omega, 1, by omega, rfl⟩]
-  exact ⟨show (10 : ℕ) ≠ 0 by decide, show (17 : ℕ) < CoreMode.GB by unfold CoreMode.GB; decide,
+  exact ⟨show 2 + valf% «gkr_layer» "stream" ≠ 0 by decide, show valf% «gkr_layer» «_loop0» "cur" < CoreMode.GB by unfold CoreMode.GB; decide,
     fun hr I hI σ bufs kids ht _ _ ↦ st_gl hr hI hp ho ht⟩
 
 /-- **Its family.** -/
