@@ -1004,7 +1004,7 @@ pub(super) fn walk<M: Machine>(
                         let (ptr, size) = match *h {
                             RHint::Alloc { ptr, size } => (ptr, size),
                             RHint::AllocSel { ptr, sel, ref sizes } => {
-                                let x = in_k("dispatch selector", m.get(fp + sel)).map_err(fail)?;
+                                let x = in_k("dispatch selector", m.get(at(fp, sel)?)).map_err(fail)?;
                                 let size = m.g_log(x).and_then(|j| sizes.get(j as usize)).ok_or_else(|| {
                                     fail(Fault::NotAGPower {
                                         what: "dispatch selector",
