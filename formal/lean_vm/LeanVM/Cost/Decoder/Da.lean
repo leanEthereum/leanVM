@@ -5,7 +5,7 @@ public import LeanVM.Guest.Fast.Da
 import LeanVM.Guest.Value.Bits
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 
 /-!
 # The guest decoder's compiled chain: the DA matrix

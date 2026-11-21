@@ -7,9 +7,9 @@ count certificates (`Count/StaticV.lean`) by `decide +kernel`, one module per op
 import os, re
 from core import L, Lopt
 
-# The guest's constants, as `guest-export` writes them to `Data/Source.lean` (`guest_const%`).
+# The guest's constants, as `guest-export` writes them to `Data/Consts.lean` (`guest_const%`).
 _SRC = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'LeanVM', 'Guest', 'Data',
-                         'Source.lean'), encoding='utf-8').read()
+                         'Consts.lean'), encoding='utf-8').read()
 def guest_const(name):
     return int(re.search(r'def const_%s : Nat := (\d+)' % name, _SRC).group(1))
 

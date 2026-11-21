@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Sumcheck.MeaningP
 public import LeanVM.Guest.B1.Tables.Base
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 
 /-!
 # The Keccak GKR reduction (TRIAGE G #53-63): the interface

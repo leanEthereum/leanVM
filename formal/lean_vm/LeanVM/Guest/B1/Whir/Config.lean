@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Data.Source
+public import LeanVM.Guest.Data.Consts
 public import LeanVM.Guest.B1.Whir.MatPlan
 public import LeanVM.Guest.GuestConst
 
@@ -21,7 +21,7 @@ time it reads the row `m_idx` of the per-size tables (`LIG_N_LEVELS`, `LIG_YR_LE
 `LIG_LOG_MSG_COLS`, …), and, through a `match` on the rate, the rows
 `(r · LIG_N_LOG_SIZES + m_idx) · LIG_MAX_LEVELS + lvl` of those a rate changes (`LIG_QUERIES`,
 `LIG_TREE_DEPTH`, `LIG_CAP_DEPTH`, `LIG_SQUEEZES`). The tables are the deployed placeholders, as
-the source data holds them (`Data.arr_LIG_*`, `Guest/Data/Source.lean`); nothing here is trusted:
+the source data holds them (`Data.arr_LIG_*`, `Guest/Data/Consts.lean`); nothing here is trusted:
 the template of the body built from them (`Whir/Template.lean`) is checked equal to the core IR,
 and their facts against the Spec are decided (`Whir/Facts.lean`).
 

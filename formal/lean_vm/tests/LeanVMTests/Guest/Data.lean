@@ -1,6 +1,6 @@
 import Statement.Data.Bytecode
 import LeanVM.Guest.Code
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 import LeanVMTests.Guest.Manifest
 import LeanVMTests.Guest.Programs
 
@@ -8,7 +8,7 @@ import LeanVMTests.Guest.Programs
 # The guest's generated data against the Rust's manifest
 
 `scripts/guest-export` writes the compiled guest (`Statement/Data/Bytecode*.lean`), its source
-AST (`Data/Source.lean`), the compiler's test programs (`Programs.lean`) and what the Rust reports
+AST (`Data/Source.lean`) and constants (`Data/Consts.lean`), the compiler's test programs (`Programs.lean`) and what the Rust reports
 of the deployed guest (`Manifest.lean`). Recomputed here from the Lean data: the log size, the code
 length, the function count, the instructions of each opcode, the source's functions and constant
 arrays, the source's placeholders' log size.

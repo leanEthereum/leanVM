@@ -14,7 +14,7 @@ public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 
 /-!
 # `main`'s words, linear in the work

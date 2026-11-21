@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Placement.InterfaceP
 public import LeanVM.Guest.B1.Selectors.InterfaceP
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 
 /-!
 # `verify_tables` (TRIAGE G #51, #52): the interface

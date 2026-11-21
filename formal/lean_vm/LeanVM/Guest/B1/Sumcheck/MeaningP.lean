@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Common.Sponge
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 
 /-!
 # Sumcheck rounds: meanings (TRIAGE G #30-32)

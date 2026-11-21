@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.CoreMode.CoreRes
 public meta import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.GuestConst
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 
 namespace LeanVM.Guest.CoreMode
 

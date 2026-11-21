@@ -3,7 +3,7 @@ module
 public import LeanVM.Cost.Bounds.Guest.Readers
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 public import LeanVM.Cost.Decoder.Da
 
 /-!

@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.VerifySub.NodePops
 public import LeanVM.Guest.B1.VerifySub.C.Own
 public import LeanVM.Guest.B1.VerifySub.GroupOrderCol
 -- Private: `guest_const%` inserts literals.
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«certify_placement»
 import LeanVM.Guest.Data.ValNames.«verify_sub»

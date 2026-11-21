@@ -14,7 +14,7 @@ public meta import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.CoreMode.Fam.ParamRef
 public import LeanVM.Guest.CoreMode.Fam.EfDefs
 public import LeanVM.Guest.CoreMode.Gen.FnData
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 
 /-!
 # The selectors' checks

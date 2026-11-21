@@ -30,6 +30,7 @@ import os, re, sys, glob, importlib.util
 HERE = os.path.dirname(os.path.abspath(__file__))
 FN = os.path.join(HERE, 'fn')
 SOURCE = os.path.join(HERE, '..', '..', 'LeanVM', 'Guest', 'Data', 'Source.lean')
+CONSTS = os.path.join(HERE, '..', '..', 'LeanVM', 'Guest', 'Data', 'Consts.lean')
 
 class _Infer:
     """`infer`, imported at first use: a rule file reads the inference's state (`I.callee`, `I.GB`, `I.F`) only in its
@@ -136,7 +137,7 @@ def param(f, p):
 
 def guest_const(name):
     """The guest's constant `name` (`guest_const%`)."""
-    t = open(SOURCE, encoding='utf-8').read()
+    t = open(CONSTS, encoding='utf-8').read()
     return int(re.search(r'def const_%s : Nat := (\d+)' % name, t).group(1))
 
 

@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.Digest.Steps
 public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_pad»
 

@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Terminal.InterfaceP
-public import LeanVM.Guest.Data.Source
+public import LeanVM.Guest.Data.Consts
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«check_opening_terminal»

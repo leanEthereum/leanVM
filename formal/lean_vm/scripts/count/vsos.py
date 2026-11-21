@@ -20,7 +20,7 @@ fs = lambda n: fsd.get(n, 2)
 def SB(n):
     c = w.get(n); assert c and c[0] == 'stat' and c[1] == [] and c[2][1] == [], n
     return c[2][0]
-src = open(os.path.join(LV, 'LeanVM', 'Guest', 'Data', 'Source.lean'), encoding='utf-8').read()
+src = open(os.path.join(LV, 'LeanVM', 'Guest', 'Data', 'Consts.lean'), encoding='utf-8').read()
 def arr(name):
     m = re.search(r'def arr_%s : List \(Nat × Nat\) :=\s*\[(.*?)\]\n' % name, src, re.S)
     return [int(x) for x in re.findall(r'\((\d+), \d+\)', m.group(1))]
@@ -31,7 +31,7 @@ def _whir(f):
     return open(os.path.join(LV, 'LeanVM', 'Guest', 'B1', 'Whir', f), encoding='utf-8').read()
 def _abbrev(src, name):
     return int(re.search(r'abbrev %s : (?:Nat|ℕ) := (\d+)' % name, src).group(1))
-# `Whir/Config.lean`'s caps read the guest's constants (`guest_const%`), exported to `Data/Source.lean`.
+# `Whir/Config.lean`'s caps read the guest's constants (`guest_const%`), exported to `Data/Consts.lean`.
 _src = src
 def _const(name):
     return int(re.search(r'def const_%s : Nat := (\d+)' % name, _src).group(1))

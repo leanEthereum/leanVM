@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.B1.Tables.Base
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 
 /-!
 # The selectors (TRIAGE G #44-50, #68, #69): the interface

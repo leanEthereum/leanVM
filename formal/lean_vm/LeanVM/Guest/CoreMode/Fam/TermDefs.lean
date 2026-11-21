@@ -12,7 +12,7 @@ public import LeanVM.Guest.CoreMode.Fam.ParamRef
 public import LeanVM.Guest.CoreMode.Gen.FnData
 public import LeanVM.Guest.B1.Terminal.InterfaceP
 public import LeanVM.Guest.B1.Selectors.ColumnSelector
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 
 /-!
 # `check_opening_terminal`'s families

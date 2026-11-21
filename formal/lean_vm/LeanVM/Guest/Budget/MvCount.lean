@@ -22,7 +22,7 @@ public import LeanVM.Guest.B1.Da.DvShape
 public import LeanVM.Guest.GuestConst
 public import LeanVM.Guest.B1.Main.MainGoalsClT
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 
 /-!
 # `da_verify`'s and the claim lists' instructions

@@ -8,7 +8,7 @@ module
 
 public import LeanVM.Guest.EndExecCoreRes
 public import LeanVM.Guest.EndExecCoreDa
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 public import LeanVM.Guest.CoreMode.Fn.da_verify.Fam
 
 namespace LeanVM.Guest.EndExec

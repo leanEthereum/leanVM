@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.Hints
 -- Private: `guest_const%` inserts literals.
-import LeanVM.Guest.Data.Source
+import LeanVM.Guest.Data.Consts
 
 /-!
 # A child's advised sizes
