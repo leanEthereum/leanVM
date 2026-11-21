@@ -46,8 +46,8 @@ def stStep (rem : Bool) : ℕ := if rem then 2 else 16
 
 /-- The loop's arguments at the layer's call, the layer's values from `o`. -/
 def stArgs (o : ℕ) (rem : Bool) : List V :=
-  if rem then [.n (o + 736), .n 10, .n (o + 725), .n (o + 729), .n 14, .n (o + 733)]
-  else [.n (o + 724), .n 9, .n (o + 719), .n (o + 717), .n (o + 718), .n 14]
+  if rem then [.n (o + 736), .n (valf% «keccak_layer» "rem_g"), .n (o + 725), .n (o + 729), .n (valf% «keccak_layer» "tabs"), .n (o + 733)]
+  else [.n (o + 724), .n (valf% «keccak_layer» "step_g"), .n (o + 719), .n (o + 717), .n (o + 718), .n (valf% «keccak_layer» "tabs")]
 
 /-- The layer's index. -/
 def layIdx (first : ℕ) : ℕ := if first = 1 then fn_idx% «keccak_layer__L1» else fn_idx% «keccak_layer__L0»
@@ -175,7 +175,7 @@ theorem layIdx_eq {first : ℕ} (hf : first < 2) : idxOf (layerName first) = som
   interval_cases first <;> decide +kernel
 
 theorem layIdx_facts {first : ℕ} (hf : first < 2) :
-    cellJ (layIdx first) (.n 15) = 17 ∧ 17 < fsN (layIdx first) ∧ (coreOf (layIdx first)).loop = false := by
+    cellJ (layIdx first) (.n (valf% «keccak_layer» "stream")) = 17 ∧ 17 < fsN (layIdx first) ∧ (coreOf (layIdx first)).loop = false := by
   interval_cases first <;> decide +kernel
 
 /-- **The layer calls its loops only at their sites.** -/

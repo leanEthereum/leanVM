@@ -67,9 +67,9 @@ theorem in_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : Va
     (h9 : σ (.n (val% «verify_keccak» "z_vals")) = ptr zvE) (h10 : σ (.n (val% «verify_keccak» "slices")) = ptr slE) (h201 : σ (.n (val% «verify_keccak» "claims")) = ptr (B + D.o201))
     (h3699 : σ (.n (val% «verify_keccak» "cursor@14")) = ptr (curE + D.lcur 12 + 12)) :
     σ (.n (val% «verify_keccak» "fs0@15~8")) = ptr (curE + D.lcur 12 + 12) * gen ∧ σ (.n (val% «verify_keccak» "fs0@15~9")) = D.L.1.value ∧
-      σ (.n (val% «verify_keccak» "fs0@15~11")) = ptr zvE * gen ^ 39 ∧ (∀ j < 7, σ (.n (1198 + j)) = (D.iRets curE).getD j 0) ∧
+      σ (.n (val% «verify_keccak» "fs0@15~11")) = ptr zvE * gen ^ 39 ∧ (∀ j < 7, σ (.n ((val% «verify_keccak» "fs0@15") + j)) = (D.iRets curE).getD j 0) ∧
       σ (.n (val% «verify_keccak» "mu_at_low@16")) = multilinearEval D.L.1.mu D.I.1 ∧ σ (.n (val% «verify_keccak» "in_slot")) = ptr zvE * gen ^ 39 * gen ^ D.τ ∧
-      σ (.n (val% «verify_keccak» "fs0@16~7")) = 0 ∧ σ (.n (val% «verify_keccak» "fs0@16~8")) = 0 ∧ (∀ j < 7, σ (.n (1328 + j)) = (D.sRets curE).getD j 0) ∧
+      σ (.n (val% «verify_keccak» "fs0@16~7")) = 0 ∧ σ (.n (val% «verify_keccak» "fs0@16~8")) = 0 ∧ (∀ j < 7, σ (.n ((val% «verify_keccak» "fs0@16") + j)) = (D.sRets curE).getD j 0) ∧
       D.sF.pend.length = rateScalars ∧ capOf D.sF.perm = (cap5 1735).map σ ∧
       ∀ {next : Prop} {kret : List E → Prop}, next →
         Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkInT next kret := by

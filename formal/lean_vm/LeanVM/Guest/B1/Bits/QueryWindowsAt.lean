@@ -162,7 +162,7 @@ theorem qwDecodeAtDE_of {name : String} {d cd : ℕ} (hfit : Lift.RunsFit fs cer
     have h := hfit name fn hfind (.n (valf% «decode_query_windows» "s5#0")) (.n (valf% «decode_query_windows» "wins[0]")) ((List.range 35).map fun i ↦ V.n (5 + (i + 1)))
       (by rw [← qwRun_eq]; exact hrunA)
     simpa using h
-  have hcell : ∀ x < 36, cert name (.n (5 + x)) = cert name (.n (valf% «decode_query_windows» "wins[0]")) + x := fun x hx ↦ by
+  have hcell : ∀ x < 36, cert name (.n ((valf% «decode_query_windows» "wins[0]") + x)) = cert name (.n (valf% «decode_query_windows» "wins[0]")) + x := fun x hx ↦ by
     have hx' : x < (V.n (valf% «decode_query_windows» "wins[0]") :: (List.range 35).map fun i ↦ V.n (5 + (i + 1))).length := by
       simpa using hx
     have h := hcons name fn hfind (.n (valf% «decode_query_windows» "s5#0")) (.n (valf% «decode_query_windows» "wins[0]")) ((List.range 35).map fun i ↦ V.n (5 + (i + 1)))

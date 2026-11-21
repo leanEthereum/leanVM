@@ -33,18 +33,18 @@ theorem vtB_flatP : tbStmtsEqb ((List.range 51).flatMap fun i ↦ vtSelT
     (vtPushSel.getD i default).2.2.2.1 (vtPushSel.getD i default).2.2.2.2.1
     (vtPushSel.getD i default).2.2.2.2.2.1 (vtPushSel.getD i default).2.2.2.2.2.2.1
     (vtPushSel.getD i default).2.2.2.2.2.2.2)
-    ((vtPre.drop 842).take 490) = true := by simp only [vtPre_drop]; decide +kernel
+    ((vtPre.drop (pos% «verify_tables» "digits@1")).take (span% «verify_tables» "digits@1" "selector_sums[0]")) = true := by simp only [vtPre_drop]; decide +kernel
 
 theorem vtB_flatC : tbStmtsEqb ((List.range 45).flatMap fun i ↦ vtSelT
     (vtCountSel.getD i default).2.2.1 (vtCountSel.getD i default).1
     (vtCountSel.getD i default).2.2.2.1 (vtCountSel.getD i default).2.2.2.2.1
     (vtCountSel.getD i default).2.2.2.2.2.1 (vtCountSel.getD i default).2.2.2.2.2.2.1
     (vtCountSel.getD i default).2.2.2.2.2.2.2)
-    ((vtPre.drop 1479).take 433) = true := by simp only [vtPre_drop]; decide +kernel
+    ((vtPre.drop (pos% «verify_tables» "digits@52")).take (span% «verify_tables» "digits@52" "selector_sums[2]")) = true := by simp only [vtPre_drop]; decide +kernel
 
 theorem vtB_index_stmts :
-    tbStmtsEqb [.dispatch (.n (val% «verify_tables» "kb[1]")) vtImNames [.n (val% «verify_tables» "zeta")] [.n (val% «verify_tables» "coord_val@1")]] ((vtPre.drop 795).take 1) = true ∧
-    tbStmtsEqb [.dispatch (.n (val% «verify_tables» "kappa_g@2")) vtImNames [.n (val% «verify_tables» "zeta")] [.n (val% «verify_tables» "coord_val@2")]] ((vtPre.drop 825).take 1) = true :=
+    tbStmtsEqb [.dispatch (.n (val% «verify_tables» "kb[1]")) vtImNames [.n (val% «verify_tables» "zeta")] [.n (val% «verify_tables» "coord_val@1")]] ((vtPre.drop (pos% «verify_tables» "coord_val@1")).take 1) = true ∧
+    tbStmtsEqb [.dispatch (.n (val% «verify_tables» "kappa_g@2")) vtImNames [.n (val% «verify_tables» "zeta")] [.n (val% «verify_tables» "coord_val@2")]] ((vtPre.drop (pos% «verify_tables» "coord_val@2")).take 1) = true :=
   by simp only [vtPre_drop]; decide +kernel
 
 /-- A slice is a checked block's statements. -/
@@ -124,8 +124,8 @@ theorem vtB_indexArm (hl : args.length = 21) {x r : V} {point : List E} {κ : �
 set_option maxRecDepth 100000 in
 /-- **`verify_tables`' bus sides complete** (statements `765 ..< 2592`). -/
 theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
-    (∀ s ∈ (vtPre.drop 765).take 1827, VSH (coreProgram.Rel rd) rd σv s) ∧
-      LoadsInBuf σv (vtBufsB σv) ((vtPre.drop 765).take 1827) ∧
+    (∀ s ∈ (vtPre.drop (pos% «verify_tables» "block_index_mle")).take (span% «verify_tables» "block_index_mle" "s56.u0.s1#1"), VSH (coreProgram.Rel rd) rd σv s) ∧
+      LoadsInBuf σv (vtBufsB σv) ((vtPre.drop (pos% «verify_tables» "block_index_mle")).take (span% «verify_tables» "block_index_mle" "s56.u0.s1#1")) ∧
       [σv (.n (val% «verify_tables» "x@1")), σv (.n (val% «verify_tables» "x@2")), σv (.n (val% «verify_tables» "x@3")), σv (.n (val% «verify_tables» "x@4"))] = D.xs ∧
       σv (.n (val% «verify_tables» "x@5")) = D.w.getD 0 0 ∧ σv (.n (val% «verify_tables» "x@8")) = D.w.getD 9 0 ∧
       [σv (.n (val% «verify_tables» "bfs0@3")), σv (.n (val% «verify_tables» "bfs1@3")), σv (.n (val% «verify_tables» "bfs2@3")), σv (.n (val% «verify_tables» "bfs3@3")), σv (.n (val% «verify_tables» "bfs4@3"))] =
@@ -195,7 +195,7 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
   obtain ⟨I2, i2⟩ := vtB_indexArm hl (vt_memAt 825 _ (vtAt_eqb vtB_index_stmts.2)) k2
     (by norm_num) h19 hz8 hwI.2
   -- the buffers
-  have e777 : σv (.n (val% «verify_tables» "block_index_mle")) = wo 778 := vt_allocAt hl 765 (k := 153) (by decide +kernel)
+  have e777 : σv (.n (val% «verify_tables» "block_index_mle")) = wo (val% «verify_tables» "block_index_mle") := vt_allocAt hl 765 (k := 153) (by decide +kernel)
   have hidxσ : ∀ i < 3, LoadHolds rd (σv (.n (val% «verify_tables» "block_index_mle"))) i ((vtIdxBufW D.point D.lm).getD i 0) :=
     fun i hi ↦ by
       rw [e777, List.getD_eq_getElem _ _ (by simp [vtIdxBufW]; omega)]
@@ -233,7 +233,7 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
   have g1926 := vtB_glue_1926 hl hw hptσ b1931 b1940 b1941 b1942 b1943 b1944 b1945 b1951 b2020
   have g2021 := vtB_glue_2020 hl hw hleavesσ
   -- every statement
-  have hall : ∀ s ∈ (vtPre.drop 765).take 1827, VSH (coreProgram.Rel rd) rd σv s := by
+  have hall : ∀ s ∈ (vtPre.drop (pos% «verify_tables» "block_index_mle")).take (span% «verify_tables» "block_index_mle" "s56.u0.s1#1"), VSH (coreProgram.Rel rd) rd σv s := by
     refine vtB_cover [1, 12, 3, 13, 17, 13, 18, 490, 147, 433, 14, 94, 572] 765 fun i hi ↦ ?_
     simp only [List.length_cons, List.length_nil] at hi
     interval_cases i
@@ -245,13 +245,13 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
     · exact vtB_tmplAt vtFw2_check vF2
     · exact g824
     · intro s hs
-      change s ∈ (vtPre.drop 842).take 490 at hs
+      change s ∈ (vtPre.drop (pos% «verify_tables» "digits@1")).take (span% «verify_tables» "digits@1" "selector_sums[0]") at hs
       rw [← tbStmtsEqb_sound vtB_flatP] at hs
       obtain ⟨j, hj, hs⟩ := List.mem_flatMap.mp hs
       exact vP j (List.mem_range.mp hj) s hs
     · exact g1332
     · intro s hs
-      change s ∈ (vtPre.drop 1479).take 433 at hs
+      change s ∈ (vtPre.drop (pos% «verify_tables» "digits@52")).take (span% «verify_tables» "digits@52" "selector_sums[2]") at hs
       rw [← tbStmtsEqb_sound vtB_flatC] at hs
       obtain ⟨j, hj, hs⟩ := List.mem_flatMap.mp hs
       exact vC j (List.mem_range.mp hj) s hs

@@ -42,7 +42,7 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 def rstPre : List Stmt :=
   [.atom (.hint (.alloc (.n (val% «ring_switch_target» "rs_chain")) 72))] ++
   ((List.range 8).map fun p ↦
-    [Stmt.atom (.const (.n (3 + p)) (word 0 0)), .atom (.load (.n (3 + p)) (.n (val% «ring_switch_target» "rs_chain")) p)]).flatten ++
+    [Stmt.atom (.const (.n ((val% «ring_switch_target» "s1.u0.s0#0") + p)) (word 0 0)), .atom (.load (.n ((val% «ring_switch_target» "s1.u0.s0#0") + p)) (.n (val% «ring_switch_target» "rs_chain")) p)]).flatten ++
   [.atom (.const (.n (val% «ring_switch_target» "s2#0")) (word 1 0)), .call name% «ring_switch_target_loop0» [.n (val% «ring_switch_target» "s2#0"), .n (val% «ring_switch_target» "map_challenges"), .n (val% «ring_switch_target» "slices"),
       .n (val% «ring_switch_target» "rs_chain")] [],
     .atom (.const (.n (val% «ring_switch_target» "sums~0")) (word 27 0)), .atom (.mul (.n (val% «ring_switch_target» "sums")) (.n (val% «ring_switch_target» "rs_chain")) (.n (val% «ring_switch_target» "sums~0"))),
@@ -71,7 +71,7 @@ theorem l13_pure : coreProgram.PureIn [name% «ring_switch_target_loop0»] :=
 theorem rst_chk : chk 2 rstT = some 271 := by decide +kernel
 
 /-- The zeros of the chain's row `0`. -/
-def rstS : List Atom := (List.range 8).map fun p => Atom.load (.n (3 + p)) (.n (val% «ring_switch_target» "rs_chain")) p
+def rstS : List Atom := (List.range 8).map fun p => Atom.load (.n ((val% «ring_switch_target» "s1.u0.s0#0") + p)) (.n (val% «ring_switch_target» "rs_chain")) p
 
 theorem rst_stores : storesOf 2 rstT = rstS := by decide +kernel
 

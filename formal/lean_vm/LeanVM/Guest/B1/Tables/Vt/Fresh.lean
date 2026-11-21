@@ -70,15 +70,15 @@ coefficients the round reads. -/
 theorem vt_fresh {rd : Reader} {σ : Val} (h : VtH rd σ) :
     TbReadsAt rd (σ (.n (val% «verify_tables» "cursor@1"))) (vtFreshWords σ) ∧
       σ (.n (val% «verify_tables» "nxt[0]@2")) = (vtFreshFs σ).squeeze.1 ∧
-      ((List.range 5).map fun k ↦ σ (.n (1863 + k))) = (vtFreshFs σ).squeeze.2.cap ∧
+      ((List.range 5).map fun k ↦ σ (.n ((val% «verify_tables» "nxt[8]@2") + k))) = (vtFreshFs σ).squeeze.2.cap ∧
       σ (.n (val% «verify_tables» "bc_msg[0]")) = σ (.n (val% «verify_tables» "x@5")) ∧ σ (.n (val% «verify_tables» "bc_msg[1]")) = σ (.n (val% «verify_tables» "x@6")) ∧ σ (.n (val% «verify_tables» "bc_msg[2]")) = σ (.n (val% «verify_tables» "x@7")) := by
-  obtain ⟨_, f0⟩ := h.sliceAt 799 (fsNextT (.n (val% «verify_tables» "cursor@1")) 0 813) (by decide +kernel)
-  obtain ⟨_, f1⟩ := h.sliceAt 804 (fsNextT (.n (val% «verify_tables» "cursor@1")) 1 817) (by decide +kernel)
-  obtain ⟨_, f2⟩ := h.sliceAt 1342 (fsNextT (.n (val% «verify_tables» "cursor@1")) 2 1303) (by decide +kernel)
-  obtain ⟨_, f3⟩ := h.sliceAt 1357 (fsNextT (.n (val% «verify_tables» "cursor@1")) 3 1317) (by decide +kernel)
-  obtain ⟨_, f4⟩ := h.sliceAt 1915 (fsNextT (.n (val% «verify_tables» "cursor@1")) 4 1841) (by decide +kernel)
-  obtain ⟨_, f5⟩ := h.sliceAt 1919 (fsNextT (.n (val% «verify_tables» "cursor@1")) 5 1845) (by decide +kernel)
-  obtain ⟨_, f6⟩ := h.sliceAt 1923 (fsNextT (.n (val% «verify_tables» "cursor@1")) 6 1849) (by decide +kernel)
+  obtain ⟨_, f0⟩ := h.sliceAt 799 (fsNextT (.n (val% «verify_tables» "cursor@1")) 0 (val% «verify_tables» "x@1")) (by decide +kernel)
+  obtain ⟨_, f1⟩ := h.sliceAt 804 (fsNextT (.n (val% «verify_tables» "cursor@1")) 1 (val% «verify_tables» "x@2")) (by decide +kernel)
+  obtain ⟨_, f2⟩ := h.sliceAt 1342 (fsNextT (.n (val% «verify_tables» "cursor@1")) 2 (val% «verify_tables» "x@3")) (by decide +kernel)
+  obtain ⟨_, f3⟩ := h.sliceAt 1357 (fsNextT (.n (val% «verify_tables» "cursor@1")) 3 (val% «verify_tables» "x@4")) (by decide +kernel)
+  obtain ⟨_, f4⟩ := h.sliceAt 1915 (fsNextT (.n (val% «verify_tables» "cursor@1")) 4 (val% «verify_tables» "x@5")) (by decide +kernel)
+  obtain ⟨_, f5⟩ := h.sliceAt 1919 (fsNextT (.n (val% «verify_tables» "cursor@1")) 5 (val% «verify_tables» "x@6")) (by decide +kernel)
+  obtain ⟨_, f6⟩ := h.sliceAt 1923 (fsNextT (.n (val% «verify_tables» "cursor@1")) 6 (val% «verify_tables» "x@7")) (by decide +kernel)
   rw [holds_fsNextT] at f0 f1 f2 f3 f4 f5 f6
   obtain ⟨⟨l0, p0⟩, -⟩ := f0
   obtain ⟨⟨l1, p1⟩, -⟩ := f1

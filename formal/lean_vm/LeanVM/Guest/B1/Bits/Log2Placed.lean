@@ -58,8 +58,8 @@ def lcMin : List Stmt :=
 
 /-- The expansion of `log2_ceil_in_the_exponent` at the floor `fl`, 34 bits. -/
 def lcBody (fl : ℕ) : List Stmt :=
-  [.atom (.hint (.bitsExp (.n (valf% «log2_ceil_in_the_exponent» "g_N")) 34 (.stack ((List.range 34).map fun k => .n (2 + k))))),
-    .atom (.hint (.log2Ceil (.stack ((List.range 34).map fun k => .n (2 + k))) 34 fl (.n (valf% «log2_ceil_in_the_exponent» "g_log")))),
+  [.atom (.hint (.bitsExp (.n (valf% «log2_ceil_in_the_exponent» "g_N")) 34 (.stack ((List.range 34).map fun k => .n ((valf% «log2_ceil_in_the_exponent» "bits[0]") + k))))),
+    .atom (.hint (.log2Ceil (.stack ((List.range 34).map fun k => .n ((valf% «log2_ceil_in_the_exponent» "bits[0]") + k))) 34 fl (.n (valf% «log2_ceil_in_the_exponent» "g_log")))),
     .atom (.const (.n (valf% «log2_ceil_in_the_exponent» "s3#0")) (word (2 ^ 33) 0)),
     .atom (.rangeCheck (.n (valf% «log2_ceil_in_the_exponent» "g_log")) (.n (valf% «log2_ceil_in_the_exponent» "s3#1")) (.n (valf% «log2_ceil_in_the_exponent» "s3#2")) (.n (valf% «log2_ceil_in_the_exponent» "s3#3")) (.n (valf% «log2_ceil_in_the_exponent» "s3#0"))),
     .atom (.const (.n (valf% «log2_ceil_in_the_exponent» "s4#0")) (word (2 ^ 33) 0)), .atom (.const (.n (valf% «log2_ceil_in_the_exponent» "s4#1")) (word (2 ^ fl) 0)),
@@ -169,10 +169,10 @@ theorem asg_noWit : Stmt.noWitList (Fn.body fn% «assert_small_g_power») = true
 
 /-- **The digits hint is exact** on a valuation holding `g^e`'s digits. -/
 theorem asgHint_exact {rd : Reader} {σ : Val} {e : ℕ} (he : e < 2 ^ 36) (e0 : σ (.n (val% «assert_small_g_power» "x")) = gen ^ e)
-    (ed : ∀ j < 9, σ (.n (j + 2)) = gen ^ (e / 16 ^ j % 16)) : asgHint.Exact rd σ := by
+    (ed : ∀ j < 9, σ (.n (j + (val% «assert_small_g_power» "digits[0]"))) = gen ^ (e / 16 ^ j % 16)) : asgHint.Exact rd σ := by
   refine ⟨e, 0, he, by rw [e0, gen_pow_eq_ofK], rfl, ?_⟩
   have hl : Dest.words rd σ (.stack [.n (val% «assert_small_g_power» "digits[0]"), .n (val% «assert_small_g_power» "digits[1]"), .n (val% «assert_small_g_power» "digits[2]"), .n (val% «assert_small_g_power» "digits[3]"), .n (val% «assert_small_g_power» "digits[4]"), .n (val% «assert_small_g_power» "digits[5]"), .n (val% «assert_small_g_power» "digits[6]"), .n (val% «assert_small_g_power» "digits[7]"), .n (val% «assert_small_g_power» "digits[8]")]) =
-      (List.range 9).map fun j => σ (.n (j + 2)) := rfl
+      (List.range 9).map fun j => σ (.n (j + (val% «assert_small_g_power» "digits[0]"))) := rfl
   rw [hl]
   refine List.map_congr_left fun j hj => ?_
   have hj : j < 9 := List.mem_range.mp hj

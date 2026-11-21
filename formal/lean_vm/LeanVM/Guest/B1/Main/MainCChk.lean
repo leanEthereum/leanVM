@@ -37,10 +37,10 @@ noncomputable def mFlatE : List Stmt := mFlat
 /-- `main`'s stores: the byte table, the own DA digest (both branches), the first running count,
 the leaf's deferred claim. -/
 def mStoresL : List Atom :=
-  (List.range 256).map (fun v => .load (.n (48 + v)) (.n (val% «main» "byte_bits")) v) ++
+  (List.range 256).map (fun v => .load (.n ((val% «main» "s36.u0.s0#0") + v)) (.n (val% «main» "byte_bits")) v) ++
     [.load (.n (val% «main» "s43.t.s1#0")) (.n (val% «main» "own_da")) 0, .load (.n (val% «main» "s43.t.s1#0[1]")) (.n (val% «main» "own_da")) 1, .load (.n (val% «main» "s43.e.s0#0")) (.n (val% «main» "own_da")) 0,
       .load (.n (val% «main» "s43.e.s1#0")) (.n (val% «main» "own_da")) 1, .load (.n (val% «main» "s48#0")) (.n (val% «main» "written")) 0] ++
-    (List.range 23).map (fun k => .load (.n (420 + k)) (.n (val% «main» "defer_stmt")) k) ++ [.load (.n (val% «main» "leaf_value")) (.n (val% «main» "defer_stmt")) 23]
+    (List.range 23).map (fun k => .load (.n ((val% «main» "s56.t.s1.u0.s0#0") + k)) (.n (val% «main» "defer_stmt")) k) ++ [.load (.n (val% «main» "leaf_value")) (.n (val% «main» "defer_stmt")) 23]
 
 /-- `main`'s loads, by their words' numbers: the five reads, then the stores. -/
 def mLoadOk (d p o : ℕ) : Bool :=
@@ -128,7 +128,7 @@ def mDefAtoms : List Atom :=
     .const (.n (val% «main» "s16#0")) (word 65536 0), .const (.n (val% «main» "s17#0")) (word 2 0),
     .load (.n (val% «main» "s50#1")) (.n (val% «main» "s50#0")) 0, .load (.n (val% «main» "own_0~2")) (.n (val% «main» "da")) 0, .load (.n (val% «main» "own_0~3")) (.n (val% «main» "da")) 1,
     .load (.n (val% «main» "s59#1")) (.n (val% «main» "s59#0")) 0, .load (.n (val% «main» "s60#3")) (.n (val% «main» "s60#2")) 0] ++
-  (List.range 51).map fun j => .const (.n (304 + j)) (word (lxTagVals.getD j 0) 0)
+  (List.range 51).map fun j => .const (.n ((val% «main» "lx_tags[0]") + j)) (word (lxTagVals.getD j 0) 0)
 
 end
 end LeanVM.Guest.B1.Main

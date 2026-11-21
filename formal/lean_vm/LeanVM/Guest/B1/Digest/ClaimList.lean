@@ -321,8 +321,8 @@ noncomputable def ceOk : Bool :=
   (atomsIn cl23Else).any (isConstAt (.n (val% «claim_list_digest» "s1.e.s6#2")) 1 0) &&
   (atomsIn cl23Else).any (isAddAt (.n (val% «claim_list_digest» "s1.e.s6#1")) (.n (val% «claim_list_digest» "s1.e.s6#0")) (.n (val% «claim_list_digest» "groups"))) &&
   (atomsIn cl23Else).any (isConstAt (.n (val% «claim_list_digest» "s1.e.s6#0")) 1 0) &&
-  (List.range 13).all (fun c => (atomsIn cl23Else).any (isLoadAt (.n (24 + c)) (.n (val% «claim_list_digest» "chain")) c) &&
-    (atomsIn cl23Else).any (isConstAt (.n (24 + c)) 0 0)) &&
+  (List.range 13).all (fun c => (atomsIn cl23Else).any (isLoadAt (.n ((val% «claim_list_digest» "s1.e.s2.i0:zero_state.s0.u0.s0#0") + c)) (.n (val% «claim_list_digest» "chain")) c) &&
+    (atomsIn cl23Else).any (isConstAt (.n ((val% «claim_list_digest» "s1.e.s2.i0:zero_state.s0.u0.s0#0") + c)) 0 0)) &&
   monoIs (atomsIn cl23Else) (.n (val% «claim_list_digest» "mid")) (.n (val% «claim_list_digest» "chain")) (.n (val% «claim_list_digest» "bigs")) 13 &&
   monoIs (atomsIn cl23Else) (.n (val% «claim_list_digest» "mid_entries")) (.n (val% «claim_list_digest» "entries_ptr")) (.n (val% «claim_list_digest» "bigs")) 544 &&
   mono2Is (atomsIn cl23Else) (.n (val% «claim_list_digest» "last")) (.n (val% «claim_list_digest» "chain")) (.n (val% «claim_list_digest» "bigs")) 13 (.n (val% «claim_list_digest» "groups")) 13 &&

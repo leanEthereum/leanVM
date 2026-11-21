@@ -112,7 +112,7 @@ def dvHead : List Stmt :=
 
 /-- `da_verify` starts with `dvHead`, then pops nothing itself. -/
 noncomputable def dvShapeOk : Bool :=
-  stmtsEqb ((Fn.body fn% «da_verify»).take 3) dvHead && Stmt.muteList (fun _ => true) ((Fn.body fn% «da_verify»).drop 3)
+  stmtsEqb ((Fn.body fn% «da_verify»).take (pos% «da_verify» "zs")) dvHead && Stmt.muteList (fun _ => true) ((Fn.body fn% «da_verify»).drop (pos% «da_verify» "zs"))
 
 theorem dv_shape_ok : dvShapeOk = true := by decide +kernel
 
@@ -151,7 +151,7 @@ theorem dv_pops {rd : Reader} {r L : ℕ} {z : E} {Tb : Memory.Tree → Prop} (h
   have e5 := kid_pops_mute v5 n5 (by rw [mkCall_f]; exact noWitS_of_callee (j := idx% «da_verify») (by decide +kernel))
   have h := dv_shape_ok
   simp only [dvShapeOk, Bool.and_eq_true] at h
-  have hb : Fn.body fn% «da_verify» = dvHead ++ (Fn.body fn% «da_verify»).drop 3 := by
+  have hb : Fn.body fn% «da_verify» = dvHead ++ (Fn.body fn% «da_verify»).drop (pos% «da_verify» "zs") := by
     rw [← stmtsEqb_sound h.1, List.take_append_drop]
   rw [ite_eq_left htk] at v3
   replace v3 : k3.Valid coreProgram rd _ _ := v3

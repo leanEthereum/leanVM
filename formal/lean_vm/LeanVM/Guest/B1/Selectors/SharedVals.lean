@@ -147,7 +147,7 @@ theorem ss_body_vals {C : CallRel} {rd : Reader} {σ : Val} {next : Prop}
     a24, c25, c26, m27, a28, m29, c30, c31, m32, a33, m34, c35, c36, m37, a38, m39, m40, m41, m42,
     e42, c43, a44, c45, -⟩ := h
   let f : ℕ → Bool := fun k ↦ decide (σ (.n (6 + k)) = 1)
-  have pin : ∀ k < 6, σ (.n (6 + k)) * σ (.n (6 + k)) = σ (.n (6 + k)) := by
+  have pin : ∀ k < 6, σ (.n ((val% «shared_selector_tables» "nb[0]") + k)) * σ (.n ((val% «shared_selector_tables» "nb[0]") + k)) = σ (.n ((val% «shared_selector_tables» "nb[0]") + k)) := by
     intro k hk
     interval_cases k
     · exact p6.symm

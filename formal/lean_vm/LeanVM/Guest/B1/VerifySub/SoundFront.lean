@@ -261,7 +261,7 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : CallRel}
       (hds.symm.trans eds)
   subst ehs
   -- the bus depth is the push side's
-  have hkbv' : ∀ s < 8, σ (.n (84 + s)) = gen ^ (([0, logMem] ++ Tables.tableHeightsOf rowsN).getD s 0) :=
+  have hkbv' : ∀ s < 8, σ (.n ((val% «verify_sub» "kb[0]") + s)) = gen ^ (([0, logMem] ++ Tables.tableHeightsOf rowsN).getD s 0) :=
     fun s hs ↦ by rw [hkbv s hs, eds, kbase_getD hHL hs]
   obtain ⟨hpd, hpd34, -⟩ := vsPushT_holds hκ hκ6 L hC hexp (fun x hx ↦ by have := hh31 x hx; omega)
     (hm30.trans (by norm_num)) hkbv' hpush

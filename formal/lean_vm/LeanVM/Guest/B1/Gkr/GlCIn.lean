@@ -44,15 +44,15 @@ theorem ptrIn_pow {R : ℕ → Prop} {p : E} {a B B' : ℕ} (h : PtrIn R p B) (h
 
 /-- The loop's next record and guard. -/
 def glLoopPostA : List Stmt :=
-  (List.range 5).map (fun k ↦ .atom (.load (.n (312 + k)) (.n 6) (1 + 862 * k))) ++
-  [.atom (.const (.n 331) (word (2 ^ 32) 0)), .atom (.mul (.n 332) (.n 17) (.n 331)),
-    .atom (.load (.n 332) (.n 6) 4311), .atom (.load (.n 330) (.n 6) 5173),
-    .atom (.const (.n 333) (word 2 0)), .atom (.mul (.n 334) (.n 0) (.n 333)),
-    .atom (.add (.n 335) (.n 334) (.n 1)), .atom (.const (.n 336) (word 2 0)),
-    .atom (.mul (.n 337) (.n 0) (.n 336))]
+  (List.range 5).map (fun k ↦ .atom (.load (.n ((valf% «gkr_layer» «_loop0» "nxt[8]@8") + k)) (.n (valf% «gkr_layer» «_loop0» "rd")) (1 + 862 * k))) ++
+  [.atom (.const (.n (valf% «gkr_layer» «_loop0» "s12#0")) (word (2 ^ 32) 0)), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "s12#1")) (.n (valf% «gkr_layer» «_loop0» "cur")) (.n (valf% «gkr_layer» «_loop0» "s12#0"))),
+    .atom (.load (.n (valf% «gkr_layer» «_loop0» "s12#1")) (.n (valf% «gkr_layer» «_loop0» "rd")) 4311), .atom (.load (.n (valf% «gkr_layer» «_loop0» "nclaim@8")) (.n (valf% «gkr_layer» «_loop0» "rd")) 5173),
+    .atom (.const (.n (valf% «gkr_layer» «_loop0» "s15#0")) (word 2 0)), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "s15#1")) (.n (valf% «gkr_layer» «_loop0» "y")) (.n (valf% «gkr_layer» «_loop0» "s15#0"))),
+    .atom (.add (.n (valf% «gkr_layer» «_loop0» "s15#2")) (.n (valf% «gkr_layer» «_loop0» "s15#1")) (.n (valf% «gkr_layer» «_loop0» "bound"))), .atom (.const (.n (valf% «gkr_layer» «_loop0» "s15#3")) (word 2 0)),
+    .atom (.mul (.n (valf% «gkr_layer» «_loop0» "s15#4")) (.n (valf% «gkr_layer» «_loop0» "y")) (.n (valf% «gkr_layer» «_loop0» "s15#3")))]
 
 /-- The loop's next call. -/
-def glLoopNext (nm : String) : Stmt := .callIf (.n 335) nm [.n 337, .n 1, .n 2, .n 3, .n 4, .n 5]
+def glLoopNext (nm : String) : Stmt := .callIf (.n (valf% «gkr_layer» «_loop0» "s15#2")) nm [.n (valf% «gkr_layer» «_loop0» "s15#4"), .n (valf% «gkr_layer» «_loop0» "bound"), .n (valf% «gkr_layer» «_loop0» "head"), .n (valf% «gkr_layer» «_loop0» "qrow"), .n (valf% «gkr_layer» «_loop0» "nqrow"), .n (valf% «gkr_layer» «_loop0» "tabs")]
 
 /-- The loop's statements before its `ret`. -/
 def glLoopPreK (nm : String) : List Stmt :=
@@ -157,8 +157,8 @@ def glG (p : ℕ) : ℕ := if p = 0 then 59 else 61 + 78 * p
 
 /-- The loop's arguments. -/
 def glLA (p : ℕ) : List V :=
-  if p = 0 then [.n 60, .n 3, .n 53, .n 52, .n 62, .n 7]
-  else [.n (62 + 78 * p), .n 3, .n 53, .n (64 + 78 * p), .n (66 + 78 * p), .n 7]
+  if p = 0 then [.n 60, .n (valf% «gkr_layer» "x_m"), .n (valf% «gkr_layer» "head"), .n (valf% «gkr_layer» "point_row"), .n 62, .n (valf% «gkr_layer» "tabs")]
+  else [.n (62 + 78 * p), .n (valf% «gkr_layer» "x_m"), .n (valf% «gkr_layer» "head"), .n (64 + 78 * p), .n (66 + 78 * p), .n (valf% «gkr_layer» "tabs")]
 
 /-- The layer's load pointers and their runs: the slot, the slot's cursor, the point row, the
 head record, the tail record, the tail's rows and its cursor. -/

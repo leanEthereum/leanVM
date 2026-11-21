@@ -61,10 +61,10 @@ theorem vtS_complete (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} (
     (hwp : ∀ t < 6, w (vtPadV t) = paddingWeight (point.take (τ t)) (n t) ∧
       w (vtPadV t + 1) = PadLead (τ t) (n t) ∧ w (vtPadV t + 2) = PadRest (τ t) (n t))
     (hw704 : w 701 = 0) :
-    (∀ s ∈ (vtPre.drop 0).take 765, VSH (coreProgram.Rel rd) rd σv s) ∧
-      (∀ i < 5, σv (.n (21 + i)) = σv (.n i)) ∧
-      (∀ i < 8, σv (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) ∧
-      (∀ i < 4, σv (.n (34 + i)) = w (34 + i)) ∧
+    (∀ s ∈ (vtPre.drop 0).take (pos% «verify_tables» "block_index_mle"), VSH (coreProgram.Rel rd) rd σv s) ∧
+      (∀ i < 5, σv (.n ((val% «verify_tables» "sp[0]@1") + i)) = σv (.n i)) ∧
+      (∀ i < 8, σv (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) ∧
+      (∀ i < 4, σv (.n ((val% «verify_tables» "group_key") + i)) = w (34 + i)) ∧
       (∀ x < 54, σv (.n (vtBoffV x)) =
         gen ^ (stackOffsets ((List.range 54).map (vtKap lm τ))).1.getD x 0) ∧
       (∀ x < 45, σv (.n (vtBoffV (108 + x))) =
@@ -76,7 +76,7 @@ theorem vtS_complete (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} (
   have hτ' : ∀ t < 6, τ t < 33 := fun t ht ↦ by have := hτ31 t ht; omega
   obtain ⟨h1, hcp, hkb, hal, hP, hC⟩ :=
     vtS_sort hl hlow hlm hτ' hdims hE hkeyW hszW hbaseW hordW
-  have hkbt : ∀ t < 6, σv (.n (28 + t)) = gen ^ τ t := by
+  have hkbt : ∀ t < 6, σv (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ τ t := by
     intro t ht
     have := hkb (2 + t) (by omega)
     rw [show 26 + (2 + t) = 28 + t by omega] at this

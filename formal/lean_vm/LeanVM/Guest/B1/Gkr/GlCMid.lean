@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Gkr.GlCHead
 public import LeanVM.Guest.B1.Gkr.GlCLoop
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
+import LeanVM.Guest.Data.ValNames.«gkr_layer__L0_L0»
 
 /-!
 # A radix-four layer's middle, completely
@@ -108,15 +109,15 @@ theorem glc_lcall {p : ℕ} (hp : p < 4) {nm : String}
     · exact h0
   rcases Nat.eq_zero_or_pos p with h0 | h0
   · subst h0
-    have c59 : σ (.n 58) = word 1 0 := g (.const (.n 58) (word 1 0)) (by simp [glLoopCall, glLoopCall0])
-    have a60 : σ (.n 59) = σ (.n 58) + σ (.n (valf% «gkr_layer» "x_m")) := g (.add (.n 59) (.n 58) (.n (valf% «gkr_layer» "x_m")))
+    have c59 : σ (.n (val% «gkr_layer__L0_L0» "s20#0")) = word 1 0 := g (.const (.n (val% «gkr_layer__L0_L0» "s20#0")) (word 1 0)) (by simp [glLoopCall, glLoopCall0])
+    have a60 : σ (.n (val% «gkr_layer__L0_L0» "s20#1")) = σ (.n (val% «gkr_layer__L0_L0» "s20#0")) + σ (.n (valf% «gkr_layer» "x_m")) := g (.add (.n (val% «gkr_layer__L0_L0» "s20#1")) (.n (val% «gkr_layer__L0_L0» "s20#0")) (.n (valf% «gkr_layer» "x_m")))
       (by simp [glLoopCall, glLoopCall0])
-    have c61 : σ (.n 60) = word 1 0 := g (.const (.n 60) (word 1 0)) (by simp [glLoopCall, glLoopCall0])
-    have c62 : σ (.n 61) = word (2 ^ 42) 0 := g (.const (.n 61) (word (2 ^ 42) 0))
+    have c61 : σ (.n (val% «gkr_layer__L0_L0» "s20#2")) = word 1 0 := g (.const (.n (val% «gkr_layer__L0_L0» "s20#2")) (word 1 0)) (by simp [glLoopCall, glLoopCall0])
+    have c62 : σ (.n (val% «gkr_layer__L0_L0» "s20#3")) = word (2 ^ 42) 0 := g (.const (.n (val% «gkr_layer__L0_L0» "s20#3")) (word (2 ^ 42) 0))
       (by simp [glLoopCall, glLoopCall0])
-    have m63 := good_mul (g (.mul (.n 62) (.n (valf% «gkr_layer» "point_row")) (.n 61)) (by simp [glLoopCall, glLoopCall0]))
+    have m63 := good_mul (g (.mul (.n (val% «gkr_layer__L0_L0» "s20#4")) (.n (valf% «gkr_layer» "point_row")) (.n (val% «gkr_layer__L0_L0» "s20#3"))) (by simp [glLoopCall, glLoopCall0]))
       (by omega) (by omega)
-    have e60 : σ (.n 59) = 1 + gen ^ m := by rw [a60, c59, tb_word_one, e3]
+    have e60 : σ (.n (val% «gkr_layer__L0_L0» "s20#1")) = 1 + gen ^ m := by rw [a60, c59, tb_word_one, e3]
     simp only [glLoopCall, ↓reduceIte, glLoopCall0, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
       List.map_cons, List.map_nil, and_true]
     refine ⟨c59, a60, c61, c62, m63, by rw [e60]; exact hK, fun hne ↦ ?_⟩
@@ -211,23 +212,23 @@ theorem glc_tsetup {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glTailSetup p, GoodS r
   · subst h0
     have mem : ∀ a, Stmt.atom a ∈ glTailSetup0 → Stmt.atom a ∈ glTailSetup 0 := fun a ha ↦ by
       simpa [glTailSetup] using ha
-    have m64 := good_mul (g (.mul (.n 63) (.n (valf% «gkr_layer» "head")) (.n (valf% «gkr_layer» "x_m"))) (mem _ (by simp [glTailSetup0])))
+    have m64 := good_mul (g (.mul (.n (val% «gkr_layer__L0_L0» "rd_last")) (.n (valf% «gkr_layer» "head")) (.n (valf% «gkr_layer» "x_m"))) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
-    have m65 := good_mul (g (.mul (.n 64) (.n (valf% «gkr_layer» "x_m")) (.n (valf% «gkr_layer» "x_m"))) (mem _ (by simp [glTailSetup0])))
+    have m65 := good_mul (g (.mul (.n (val% «gkr_layer__L0_L0» "m2")) (.n (valf% «gkr_layer» "x_m")) (.n (valf% «gkr_layer» "x_m"))) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
-    have m66 := good_mul (g (.mul (.n 65) (.n 64) (.n 64)) (mem _ (by simp [glTailSetup0])))
+    have m66 := good_mul (g (.mul (.n (val% «gkr_layer__L0_L0» "m4")) (.n (val% «gkr_layer__L0_L0» "m2")) (.n (val% «gkr_layer__L0_L0» "m2"))) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
-    have m67 := good_mul (g (.mul (.n 66) (.n 65) (.n 65)) (mem _ (by simp [glTailSetup0])))
+    have m67 := good_mul (g (.mul (.n (val% «gkr_layer__L0_L0» "m8")) (.n (val% «gkr_layer__L0_L0» "m4")) (.n (val% «gkr_layer__L0_L0» "m4"))) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
-    have m68 := good_mul (g (.mul (.n 67) (.n (valf% «gkr_layer» "point_row")) (.n 66)) (mem _ (by simp [glTailSetup0])))
+    have m68 := good_mul (g (.mul (.n (val% «gkr_layer__L0_L0» "tpt")) (.n (valf% «gkr_layer» "point_row")) (.n (val% «gkr_layer__L0_L0» "m8"))) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
-    have c69 : σ (.n 68) = word (2 ^ 42) 0 :=
-      g (.const (.n 68) (word (2 ^ 42) 0)) (mem _ (by simp [glTailSetup0]))
-    have m70 := good_mul (g (.mul (.n 69) (.n (valf% «gkr_layer» "point_row")) (.n 68)) (mem _ (by simp [glTailSetup0])))
+    have c69 : σ (.n (val% «gkr_layer__L0_L0» "ntpt~0")) = word (2 ^ 42) 0 :=
+      g (.const (.n (val% «gkr_layer__L0_L0» "ntpt~0")) (word (2 ^ 42) 0)) (mem _ (by simp [glTailSetup0]))
+    have m70 := good_mul (g (.mul (.n (val% «gkr_layer__L0_L0» "ntpt~1")) (.n (valf% «gkr_layer» "point_row")) (.n (val% «gkr_layer__L0_L0» "ntpt~0"))) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
-    have m71 := good_mul (g (.mul (.n 70) (.n 69) (.n 66)) (mem _ (by simp [glTailSetup0])))
+    have m71 := good_mul (g (.mul (.n (val% «gkr_layer__L0_L0» "ntpt")) (.n (val% «gkr_layer__L0_L0» "ntpt~1")) (.n (val% «gkr_layer__L0_L0» "m8"))) (mem _ (by simp [glTailSetup0])))
       (by omega) (by omega)
-    have e67 : σ (.n 66) = gen ^ (8 * m) := by rw [m67, m66, m65]; exact m8 _ e3
+    have e67 : σ (.n (val% «gkr_layer__L0_L0» "m8")) = gen ^ (8 * m) := by rw [m67, m66, m65]; exact m8 _ e3
     have hT0 : ∀ s ∈ glTailLoads 0 (glW 0), s ∈ glTailSetup 0 := fun s hs ↦ by
       simp only [glTailSetup, ↓reduceIte, glTailSetup0]
       exact List.mem_append_right _ (by simpa [glW] using hs)

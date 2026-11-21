@@ -119,7 +119,7 @@ theorem copyWordsT_holds {src dst : V} {sOff dOff b n : ℕ} {next : Prop} {kret
 
 /-- A squeeze with nothing waiting. -/
 theorem sqZeroT_holds {capb o : ℕ} {cap : List E} (hcap : (cap5 capb).map σ = cap)
-    (hz : ∀ k < 4, σ (.n (70 + k)) = 0) {next : Prop} {kret : List E → Prop}
+    (hz : ∀ k < 4, σ (.n ((val% «verify_keccak» "s19.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]") + k)) = 0) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (sqZeroT capb o) next kret) :
     σ (.n o) = (⟨cap, []⟩ : Fs).squeeze.1 ∧
       (cap5 (o + 8)).map σ = (⟨cap, []⟩ : Fs).squeeze.2.cap ∧ next := by
@@ -137,7 +137,7 @@ theorem sqZeroT_holds {capb o : ℕ} {cap : List E} (hcap : (cap5 capb).map σ =
 
 /-- **The six squeezes**: the segment coordinate, then the five lane coordinates. -/
 theorem vkSqueezesT_holds {cap0 : List E} (hcap : (cap5 13).map σ = cap0)
-    (hz : ∀ k < 4, σ (.n (70 + k)) = 0) {next : Prop} {kret : List E → Prop}
+    (hz : ∀ k < 4, σ (.n ((val% «verify_keccak» "s19.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]") + k)) = 0) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ vkSqueezesT next kret) :
     (⟨cap0, []⟩ : Fs).squeezeN 1 = ([σ (.n (val% «verify_keccak» "nxt[0]@1"))], ⟨(cap5 82).map σ, []⟩) ∧
       (⟨(cap5 82).map σ, []⟩ : Fs).squeezeN 5 =
@@ -188,8 +188,8 @@ theorem vkHeadT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ 
     {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ vkHeadT next kret) :
     σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4) ∧ σ (.n (val% «verify_keccak» "s5#1")) = gen ^ (τ - 3) ∧
     σ (.n (val% «verify_keccak» "step_g@2")) = gen ^ ((τ - 3) / krStep) ∧ σ (.n (val% «verify_keccak» "rem_g@3")) = gen ^ ((τ - 3) % krStep) ∧
-    (∀ i < 4, LoadHolds rd (σ (.n (val% «verify_keccak» "chi"))) i (σ (.n (56 + i))) ∧
-      LoadHolds rd (σ (.n (val% «verify_keccak» "z_vals"))) i (σ (.n (56 + i)))) ∧
+    (∀ i < 4, LoadHolds rd (σ (.n (val% «verify_keccak» "chi"))) i (σ (.n ((val% «verify_keccak» "s14.u0.s0#0") + i))) ∧
+      LoadHolds rd (σ (.n (val% «verify_keccak» "z_vals"))) i (σ (.n ((val% «verify_keccak» "s14.u0.s0#0") + i)))) ∧
     (1 + σ (.n (val% «verify_keccak» "pack_g")) ≠ 0 → C name% «verify_keccak_loop0» [1, σ (.n (val% «verify_keccak» "pack_g")), σ (.n (val% «verify_keccak» "point")),
         σ (.n (val% «verify_keccak» "chi")) * gen ^ 4] []) ∧
     σ (.n (val% «verify_keccak» "segment")) = σ (.n (val% «verify_keccak» "point")) * σ (.n (val% «verify_keccak» "pack_g")) ∧
@@ -209,7 +209,7 @@ theorem vkHeadT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ 
   obtain ⟨hcw, h⟩ := copyWordsT_holds h
   simp only [vkPointT, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
   obtain ⟨e57, e58, -, e60, e61, e62, e63, e64, -, hcall, e65, -, z69, z70, z71, z72, h⟩ := h
-  have hz : ∀ k < 4, σ (.n (70 + k)) = 0 := by
+  have hz : ∀ k < 4, σ (.n ((val% «verify_keccak» "s19.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]") + k)) = 0 := by
     intro k hk
     interval_cases k
     · rw [z69, word_zero]

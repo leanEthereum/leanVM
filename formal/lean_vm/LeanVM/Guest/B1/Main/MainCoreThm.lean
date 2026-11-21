@@ -263,13 +263,13 @@ theorem main_core {rd : Reader} {m : MainIn} {M : ℕ} (hl : Sig.MemOK rd M) (hM
       · rw [r485, hO (by decide)]; simp [mOrc]
     | _ => simp [mSideOk] at hok
   -- the stores' words
-  have hbyte : ∀ v < 256, σ (.n (48 + v)) = word v 0 := by
+  have hbyte : ∀ v < 256, σ (.n ((val% «main» "s36.u0.s0#0") + v)) = word v 0 := by
     intro v hv
     obtain ⟨b, hb', he⟩ := List.any_eq_true.mp (List.all_eq_true.mp mByte_ok v (List.mem_range.mpr hv))
     have := hG _ (atom_mem_of_atomsIn' hb')
     rw [← atomEqb_sound he] at this
     exact this
-  have hleafc : ∀ k < 23, σ (.n (420 + k)) = 0 := by
+  have hleafc : ∀ k < 23, σ (.n ((val% «main» "s56.t.s1.u0.s0#0") + k)) = 0 := by
     intro k hk
     obtain ⟨b, hb', he⟩ := List.any_eq_true.mp (List.all_eq_true.mp mLeafC_ok k (List.mem_range.mpr hk))
     have := hG _ (atom_mem_of_atomsIn' hb')

@@ -35,21 +35,21 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 /-! ## The shape -/
 
-noncomputable def mPre : List Stmt := (Fn.body fn% «main»).take 615
-noncomputable def mDa : List Stmt := match (Fn.body fn% «main»).getD 615 default with
+noncomputable def mPre : List Stmt := (Fn.body fn% «main»).take (pos% «main» "root_0")
+noncomputable def mDa : List Stmt := match (Fn.body fn% «main»).getD (pos% «main» "root_0") default with
   | .ite _ z _ => z
   | _ => []
-noncomputable def mDaZ : List Stmt := match (Fn.body fn% «main»).getD 615 default with
+noncomputable def mDaZ : List Stmt := match (Fn.body fn% «main»).getD (pos% «main» "root_0") default with
   | .ite _ _ n => n
   | _ => []
-noncomputable def mMid : List Stmt := ((Fn.body fn% «main»).drop 616).take 39
-noncomputable def mLeaf : List Stmt := match (Fn.body fn% «main»).getD 655 default with
+noncomputable def mMid : List Stmt := ((Fn.body fn% «main»).drop (pos% «main» "child_pi~0")).take (span% «main» "child_pi~0" "leaf_value")
+noncomputable def mLeaf : List Stmt := match (Fn.body fn% «main»).getD (pos% «main» "leaf_value") default with
   | .ite _ z _ => z
   | _ => []
-noncomputable def mAgg : List Stmt := match (Fn.body fn% «main»).getD 655 default with
+noncomputable def mAgg : List Stmt := match (Fn.body fn% «main»).getD (pos% «main» "leaf_value") default with
   | .ite _ _ n => n
   | _ => []
-noncomputable def mPost : List Stmt := ((Fn.body fn% «main»).drop 656).take 11
+noncomputable def mPost : List Stmt := ((Fn.body fn% «main»).drop (pos% «main» "own_0~2")).dropLast
 
 set_option maxRecDepth 100000 in
 theorem main_shape : Fn.body fn% «main» =
@@ -95,7 +95,7 @@ noncomputable def preOk : Bool :=
   let P := mPre
   let A := atomsIn mPre
   P.all Stmt.flat &&
-  ((List.range 6).all fun v => isTouch A (.n (8 + v)) (.n v)) &&
+  ((List.range 6).all fun v => isTouch A (.n ((val% «main» "s10#0") + v)) (.n v)) &&
   rcConstOk A (.n (val% «main» "meta[6]")) 65536 && rcConstOk A (.n (val% «main» "meta[7]")) 2 &&
   isTouch A (.n (val% «main» "s21#0")) (.n (val% «main» "n_total_g")) &&
   isMul A (.n (val% «main» "lx_slots_g")) (.n (val% «main» "meta[0]")) (.n (val% «main» "meta[1]")) && isMul A (.n (val% «main» "lean_sphincs_slots_g")) (.n (val% «main» "meta[3]")) (.n (val% «main» "meta[4]")) &&
@@ -103,8 +103,8 @@ noncomputable def preOk : Bool :=
   hasCall P "exponent_tables" [] [.n (val% «main» "g_squares")] &&
   hasCall P "claim_list_digest" [.n (val% «main» "lx_table"), .n (val% «main» "meta[0]")] [.n (val% «main» "xd_0"), .n (val% «main» "xd_1")] &&
   hasCall P "claim_list_digest" [.n (val% «main» "lean_sphincs_table"), .n (val% «main» "meta[3]")] [.n (val% «main» "sd_0"), .n (val% «main» "sd_1")] &&
-  ((List.range 256).all fun v => A.any (isConstAt (.n (48 + v)) v 0) &&
-    A.any (isLoadAt (.n (48 + v)) (.n (val% «main» "byte_bits")) v)) &&
+  ((List.range 256).all fun v => A.any (isConstAt (.n ((val% «main» "s36.u0.s0#0") + v)) v 0) &&
+    A.any (isLoadAt (.n ((val% «main» "s36.u0.s0#0") + v)) (.n (val% «main» "byte_bits")) v)) &&
   isMul A (.n (val% «main» "sp_cover")) (.n (val% «main» "cover")) (.n (val% «main» "lx_slots_g")) &&
   guardOk P (.n (val% «main» "s39#1")) name% «main_loop2» (.n (val% «main» "s39#2")) (.n (val% «main» "meta[2]")) ([.n (val% «main» "lx_slots_g"), .n (val% «main» "cover"), .n (val% «main» "lx_table")] ++ lxTagsV) &&
   ((List.range 58).all fun i => !Sig.lxTagCarried i ||
@@ -144,8 +144,8 @@ noncomputable def midOk : Bool :=
 
 noncomputable def leafOk : Bool :=
   mLeaf.all Stmt.flat &&
-  ((List.range 23).all fun k => (atomsIn mLeaf).any (isConstAt (.n (420 + k)) 0 0) &&
-    isLoad (atomsIn mLeaf) (.n (420 + k)) (.n (val% «main» "defer_stmt")) k) &&
+  ((List.range 23).all fun k => (atomsIn mLeaf).any (isConstAt (.n ((val% «main» "s56.t.s1.u0.s0#0") + k)) 0 0) &&
+    isLoad (atomsIn mLeaf) (.n ((val% «main» "s56.t.s1.u0.s0#0") + k)) (.n (val% «main» "defer_stmt")) k) &&
   isLoad (atomsIn mLeaf) (.n (val% «main» "leaf_value")) (.n (val% «main» "defer_stmt")) 23 &&
   mAgg.all Stmt.flat &&
   (atomsIn mAgg).any (isConstAt (.n (val% «main» "s56.e.s0#0")) 133823759239872512 0) &&

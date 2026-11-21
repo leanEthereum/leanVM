@@ -61,7 +61,7 @@ set_option maxRecDepth 20000 in
 /-- **`y` in the exponent, completely**: `step_g = g^(y/8)` (value 34), `rem_g = g^(y%8)` (48). -/
 theorem vkBits_complete {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28)
     (hg : ∀ s ∈ vkBitsT, pinB s = false → GoodS rd S w σ s) (h6 : σ (.n (val% «verify_keccak» "tau_g")) = gen ^ τ)
-    (hbits : ∀ j < 5, σ (.n (22 + j)) = bitE ((τ - 3).testBit j)) :
+    (hbits : ∀ j < 5, σ (.n ((val% «verify_keccak» "y_bits[0]") + j)) = bitE ((τ - 3).testBit j)) :
     σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4) ∧ σ (.n (val% «verify_keccak» "s5#1")) = gen ^ (τ - 3) ∧
       σ (.n (val% «verify_keccak» "step_g@2")) = gen ^ ((τ - 3) / krStep) ∧ σ (.n (val% «verify_keccak» "rem_g@3")) = gen ^ ((τ - 3) % krStep) ∧
       ∀ {next : Prop} {kret : List E → Prop}, next → Stmt.HoldsList C rd σ vkBitsT next kret := by
@@ -144,7 +144,7 @@ theorem vkBits_complete {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28)
 /-- **A squeeze with nothing waiting, completely.** -/
 theorem sqZero_complete {capb o : ℕ} (hσ : ∀ v, σ v = σ (.n v.idx))
     (hr : resid (atomsL (sqZeroT capb o)) = [])
-    (hg : ∀ s ∈ sqZeroT capb o, GoodS rd S w σ s) (hz : ∀ k < 4, σ (.n (70 + k)) = 0) :
+    (hg : ∀ s ∈ sqZeroT capb o, GoodS rd S w σ s) (hz : ∀ k < 4, σ (.n ((val% «verify_keccak» "s19.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]") + k)) = 0) :
     σ (.n o) = (⟨(cap5 capb).map σ, []⟩ : Fs).squeeze.1 ∧
       (cap5 (o + 8)).map σ = (⟨(cap5 capb).map σ, []⟩ : Fs).squeeze.2.cap ∧
       ∀ {next : Prop} {kret : List E → Prop}, next →
@@ -169,12 +169,12 @@ theorem vkHead_complete (hσ : ∀ v, σ v = σ (.n v.idx))
     (hg : ∀ s ∈ vkHeadT, pinB s = false → GoodS rd S w σ s)
     (hS7 : ∀ d off, Atom.load d (.n (val% «verify_keccak» "chi")) off ∉ S) (hS5 : ∀ d off, Atom.load d (.n (val% «verify_keccak» "cursor@1")) off ∉ S)
     {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h6 : σ (.n (val% «verify_keccak» "tau_g")) = gen ^ τ)
-    (hbits : ∀ j < 5, σ (.n (22 + j)) = bitE ((τ - 3).testBit j)) {chis : List E}
+    (hbits : ∀ j < 5, σ (.n ((val% «verify_keccak» "y_bits[0]") + j)) = bitE ((τ - 3).testBit j)) {chis : List E}
     (hchi : ReadsAt rd (σ (.n (val% «verify_keccak» "chi"))) chis) (h4 : 4 ≤ chis.length) {committed : E}
     (hcur : LoadHolds rd (σ (.n (val% «verify_keccak» "cursor@1"))) 0 committed) :
     σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4) ∧ σ (.n (val% «verify_keccak» "s5#1")) = gen ^ (τ - 3) ∧
     σ (.n (val% «verify_keccak» "step_g@2")) = gen ^ ((τ - 3) / krStep) ∧ σ (.n (val% «verify_keccak» "rem_g@3")) = gen ^ ((τ - 3) % krStep) ∧
-    (∀ i < 4, σ (.n (56 + i)) = chis.getD i 0) ∧
+    (∀ i < 4, σ (.n ((val% «verify_keccak» "s14.u0.s0#0") + i)) = chis.getD i 0) ∧
     σ (.n (val% «verify_keccak» "s17#1")) = 1 + σ (.n (val% «verify_keccak» "pack_g")) ∧ σ (.n (val% «verify_keccak» "s17#2")) = 1 ∧ σ (.n (val% «verify_keccak» "s17#4")) = σ (.n (val% «verify_keccak» "chi")) * gen ^ 4 ∧
     σ (.n (val% «verify_keccak» "segment")) = σ (.n (val% «verify_keccak» "point")) * σ (.n (val% «verify_keccak» "pack_g")) ∧
     (⟨[σ (.n (val% «verify_keccak» "fs0@1")), σ (.n (val% «verify_keccak» "fs1@1")), σ (.n (val% «verify_keccak» "fs2@1")), σ (.n (val% «verify_keccak» "fs3@1")), σ (.n (val% «verify_keccak» "fs4@1"))], []⟩ : Fs).squeezeN 1 =
@@ -184,18 +184,18 @@ theorem vkHead_complete (hσ : ∀ v, σ v = σ (.n v.idx))
     σ (.n (val% «verify_keccak» "x@1")) = committed ∧ FsPackOk σ (.n (val% «verify_keccak» "x@1")) (153 + 1) dsObserve ∧
     (σ (.n (val% «verify_keccak» "value_rate[0]")), σ (.n (val% «verify_keccak» "value_rate[1]"))) = Keccak.scalarCells committed dsObserve ∧
     ∀ {next : Prop} {kret : List E → Prop},
-      (∀ i < 4, LoadHolds rd (σ (.n (val% «verify_keccak» "z_vals"))) i (σ (.n (56 + i)))) →
+      (∀ i < 4, LoadHolds rd (σ (.n (val% «verify_keccak» "z_vals"))) i (σ (.n ((val% «verify_keccak» "s14.u0.s0#0") + i)))) →
       LoadHolds rd (σ (.n (val% «verify_keccak» "segment"))) 0 (σ (.n (val% «verify_keccak» "nxt[0]@1"))) →
       (∀ i < 5, LoadHolds rd (σ (.n (val% «verify_keccak» "r_lane"))) i (σ (.n (88 + 13 * i)))) → next →
       Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkHeadT next kret := by
   have hnp2 : (copyWordsT (.n (val% «verify_keccak» "chi")) (.n (val% «verify_keccak» "z_vals")) 0 0 56 4 ++ vkPointT ++ vkSqueezesT ++
-      fsNextT (.n (val% «verify_keccak» "cursor@1")) 0 153).all (fun s ↦ !pinB s) = true := by decide +kernel
+      fsNextT (.n (val% «verify_keccak» "cursor@1")) 0 (val% «verify_keccak» "x@1")).all (fun s ↦ !pinB s) = true := by decide +kernel
   have gx : ∀ s, s ∈ copyWordsT (.n (val% «verify_keccak» "chi")) (.n (val% «verify_keccak» "z_vals")) 0 0 56 4 ++ vkPointT ++ vkSqueezesT ++
-      fsNextT (.n (val% «verify_keccak» "cursor@1")) 0 153 → GoodS rd S w σ s := fun s hs ↦
+      fsNextT (.n (val% «verify_keccak» "cursor@1")) 0 (val% «verify_keccak» "x@1") → GoodS rd S w σ s := fun s hs ↦
     hg s (by simp only [vkHeadT, List.mem_append] at hs ⊢; tauto)
       (by have := List.all_eq_true.mp hnp2 s hs; simpa using this)
   -- the copies
-  have gcp : ∀ i < 5, σ (.n (13 + i)) = σ (.n i) := fun i hi ↦
+  have gcp : ∀ i < 5, σ (.n ((val% «verify_keccak» "sp[0]@1") + i)) = σ (.n i) := fun i hi ↦
     hg (.atom (.copy (.n (13 + i)) (.n i))) (by
       simp only [vkHeadT, List.mem_append, List.mem_map, List.mem_range]
       exact Or.inl (Or.inl (Or.inl (Or.inl (Or.inl ⟨i, hi, rfl⟩))))) rfl
@@ -205,7 +205,7 @@ theorem vkHead_complete (hσ : ∀ v, σ v = σ (.n v.idx))
   -- the copied words
   have gcw : ∀ s ∈ copyWordsT (.n (val% «verify_keccak» "chi")) (.n (val% «verify_keccak» "z_vals")) 0 0 56 4, GoodS rd S w σ s := fun s hs ↦
     gx s (by simp only [List.mem_append]; tauto)
-  have e55 : ∀ i < 4, σ (.n (56 + i)) = chis.getD i 0 := by
+  have e55 : ∀ i < 4, σ (.n ((val% «verify_keccak» "s14.u0.s0#0") + i)) = chis.getD i 0 := by
     intro i hi
     have g := gcw (.atom (.load (.n (56 + i)) (.n (val% «verify_keccak» "chi")) (0 + i))) (by
       simp only [copyWordsT, List.mem_flatten, List.mem_map, List.mem_range]
@@ -223,7 +223,7 @@ theorem vkHead_complete (hσ : ∀ v, σ v = σ (.n v.idx))
   have m66' := mulG (by norm_num) (by norm_num) m66
   have m67' := mulG (by norm_num) (by norm_num) m67
   simp only [Good] at c59 c62 a63 c64 c65 c68 z69 z70 z71 z72
-  have hz : ∀ k < 4, σ (.n (70 + k)) = 0 := by
+  have hz : ∀ k < 4, σ (.n ((val% «verify_keccak» "s19.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]") + k)) = 0 := by
     intro k hk
     interval_cases k
     · rw [z69, word_zero]
@@ -291,7 +291,7 @@ theorem vkHead_complete (hσ : ∀ v, σ v = σ (.n v.idx))
       List.map_nil, List.cons_append, Nat.reduceMul, Nat.reduceAdd]
     rw [h0, h1, h2, h3, h4, ← s0.1, ← s1.1, ← s2.1, ← s3.1, ← s4.1]
   -- the committed word
-  have gfs : ∀ s ∈ fsNextT (.n (val% «verify_keccak» "cursor@1")) 0 153, GoodS rd S w σ s := fun s hs ↦
+  have gfs : ∀ s ∈ fsNextT (.n (val% «verify_keccak» "cursor@1")) 0 (val% «verify_keccak» "x@1"), GoodS rd S w σ s := fun s hs ↦
     gx s (List.mem_append_right _ hs)
   obtain ⟨fv, fcells, FN⟩ := fsNext_complete (C := fun _ _ _ ↦ True) gfs (hS5 _ _) hcur
   have fpk : FsPackOk σ (.n (val% «verify_keccak» "x@1")) (153 + 1) dsObserve :=

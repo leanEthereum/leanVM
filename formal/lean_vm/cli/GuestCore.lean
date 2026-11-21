@@ -573,7 +573,7 @@ def main (args : List String) : IO UInt32 := do
     return 0
   if args == ["--names"] then
     -- each function's values by number (`v`) and its top-level statements by the first value each
-    -- names first (`s`), for `scripts/val-names`
+    -- names first, the final `ret` as `ret` (`s`), for `scripts/val-names`
     let st := stableNames P
     let binds ← match Expand.expandProgramBinds Data.guest with
       | .ok b => pure b
@@ -627,6 +627,9 @@ def main (args : List String) : IO UInt32 := do
       for (s, i) in f.body.zipIdx do
         let new := (Stmt.vals s).filter (!seen.contains ·)
         if let some v := new.head? then IO.println s!"{key}\ts\t{i}\t{(Interp.showV v).drop 1}"
+        -- the final `ret`, by that name
+        else if let .ret _ := s then
+          if i + 1 == f.body.length then IO.println s!"{key}\ts\t{i}\tret"
         seen := (Stmt.vals s).foldl (·.insert ·) seen
     return 0
   if let ["--show", name] := args then

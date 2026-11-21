@@ -575,7 +575,7 @@ theorem qwPr_complete {l : List E} {k : ℕ} (hl : l.length = k) {j base cut d :
 address and the words of the run where the memory holds them. -/
 def QwBase (rd : Reader) (Q : QwEnv) (σ : Val) : Prop :=
   σ (.n (valf% «decode_query_windows» "positions_out")) = Q.pos ∧ σ (.n (valf% «decode_query_windows» "win_ptrs_out")) = Q.ptrs ∧ σ (.n (valf% «decode_query_windows» "tabs")) = Q.tabs ∧ σ (.n (valf% «decode_query_windows» "s5#0")) = Q.run ∧ IsInK Q.run ∧
-    ∀ x < 36, ∀ v, rd (Q.run.limb 0 * Parameters.addressOfIndex x) = some v → v = σ (.n (5 + x))
+    ∀ x < 36, ∀ v, rd (Q.run.limb 0 * Parameters.addressOfIndex x) = some v → v = σ (.n ((valf% «decode_query_windows» "wins[0]") + x))
 
 omit hT hlow in
 theorem qwPtr_complete {l : List E} {k : ℕ} (hl : l.length = k) {j n : ℕ} (hn : 1 ≤ n)
@@ -807,7 +807,7 @@ theorem qw_holds {d cd : ℕ} (hs : QwShape d cd) {rd : Reader} {w pos ptrs tabs
       List.getD_eq_getElem _ _ (by simpa using hx)]
     simp
   have hfr : QwStab l0 fun σ ↦ ∀ x < 36, ∀ v, rd (run.limb 0 * Parameters.addressOfIndex x) = some v →
-      v = σ (.n (5 + x)) := fun t x hx v hv ↦ by
+      v = σ (.n ((valf% «decode_query_windows» "wins[0]") + x)) := fun t x hx v hv ↦ by
     rw [g t x hx]
     split_ifs with h
     · exact hrun.2 x h v hv

@@ -1,6 +1,10 @@
 module
 
 public import LeanVM.Cost.Bounds.Guest.Signatures
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«opening_queries__L»
+import LeanVM.Guest.Data.ValNames.«opening_queries__L_loop0»
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # Bounds on the guest decoder's prices: a child's proof
@@ -645,8 +649,8 @@ omit hrd hR in
 theorem oqLoopArgs_cost (hP : Includes P Decoder.oqLoopArgsC.costDeps) :
     machineCost P Decoder.oqLoopArgsC.costIdx [σV] ≤ 9 * S + 109 := by
   rw [Decoder.oqLoopArgsC.costEq P hP σ σV hσ]
-  have := hS (.n 7); have := hS (.n 5); have := hS (.n 6); have := hS (.n 0); have := hS (.n 1)
-  have := hS (.n 3); have := hS (.n 4); have := hS (.n 10); have := hS (.n 2)
+  have := hS (.n (valf% «opening_queries» "n_iters_g")); have := hS (.n (valf% «opening_queries» "positions")); have := hS (.n (valf% «opening_queries» "query_win_ptrs")); have := hS (.n (valf% «opening_queries» "cap")); have := hS (.n (valf% «opening_queries» "flags"))
+  have := hS (.n (valf% «opening_queries» "coefs")); have := hS (.n (valf% «opening_queries» "hs")); have := hS (.n (valf% «opening_queries» "chain")); have := hS (.n (valf% «opening_queries» "lam_inv"))
   omega
 
 end Val
@@ -754,13 +758,13 @@ theorem oqIterA_cost (hP : Includes P Decoder.oqIterAC.costDeps) (s : Oq) (hs : 
   rw [Decoder.oqIterAC.costEq P hP s lanes walk rd rdV hrd σ σV hσ Vn VnV hVn]
   have hE := oqE1_lt hs
   have q1 := oqQueryA_cost P hrd hR hVn hF hσ hS (by includes) s hs lanes hl walk hw (σ (.n 15))
-    (σ (.n 4)) (σ (.n 5)) 16 (by norm_num) true
+    (σ (.n (valf% «opening_queries» «_loop0» "cap"))) (σ (.n (valf% «opening_queries» «_loop0» "flags"))) 16 (by norm_num) true
   have q2 := oqQueryA_cost P hrd hR hVn hF hσ hS (by includes) s hs lanes hl walk hw
-    (σ (.n (oqE1 s + 1))) (σ (.n 4)) (σ (.n 5)) (oqE1 s + 2) (by omega) false
+    (σ (.n (oqE1 s + 1))) (σ (.n (valf% «opening_queries» «_loop0» "cap"))) (σ (.n (valf% «opening_queries» «_loop0» "flags"))) (oqE1 s + 2) (by omega) false
   have q3 := oqQueryA_cost P hrd hR hVn hF hσ hS (by includes) s hs lanes hl walk hw (σ (.n 13))
-    (σ (.n 4)) (σ (.n 5)) 14 (by norm_num) true
-  have := hS (.n 15); have := hS (.n 13); have := hS (.n (oqE1 s + 1)); have := hS (.n 4)
-  have := hS (.n 5)
+    (σ (.n (valf% «opening_queries» «_loop0» "cap"))) (σ (.n (valf% «opening_queries» «_loop0» "flags"))) 14 (by norm_num) true
+  have := hS (.n 15); have := hS (.n 13); have := hS (.n (oqE1 s + 1)); have := hS (.n (valf% «opening_queries» «_loop0» "cap"))
+  have := hS (.n (valf% «opening_queries» «_loop0» "flags"))
   have hb := hs.1
   unfold iterPrice
   limbs_one
@@ -822,8 +826,8 @@ theorem oqsOfA_cost (hP : Includes P Decoder.oqsOfNC.costDeps) (s : Oq) (hs : Oq
       encodeValue loop, encodeValue walk, encodeValue N, rdV, σV, VnV] ≤ oqsPrice R S F := by
   rw [Decoder.oqsOfNC.costEq P hP s lanes odd loop walk N rd rdV hrd σ σV hσ Vn VnV hVn]
   have q := oqQueryA_cost P hrd hR hVn hF hσ hS (by includes) s hs lanes hl walk hw (σ (.n 12))
-    (σ (.n 0)) (σ (.n 1)) 13 (by norm_num) true
-  have := hS (.n 12); have := hS (.n 0); have := hS (.n 1)
+    (σ (.n (valf% «opening_queries» "cap"))) (σ (.n (valf% «opening_queries» "flags"))) 13 (by norm_num) true
+  have := hS (.n 12); have := hS (.n (valf% «opening_queries» "cap")); have := hS (.n (valf% «opening_queries» "flags"))
   have := oqLoopArgs_cost P hσ hS (by includes)
   have hi := oqItersFrom_cost P hrd hR hVn hF (by includes) s hs lanes hl loop hloop walk hw
     (oqLoopArgs σ) (by simp [oqLoopArgs]) N 1 (by omega)
@@ -832,7 +836,7 @@ theorem oqsOfA_cost (hP : Includes P Decoder.oqsOfNC.costDeps) (s : Oq) (hs : Oq
   rw [limbs_of_lt (by omega : odd < 2 ^ 64)]
   split_ifs
   · have ha := append_cost P (by includes)
-      [oqQueryA s lanes walk rd (σ (.n 12)) (σ (.n 0)) (σ (.n 1)) 13 true σ Vn]
+      [oqQueryA s lanes walk rd (σ (.n 12)) (σ (.n (valf% «opening_queries» "cap"))) (σ (.n (valf% «opening_queries» "flags"))) 13 true σ Vn]
       (oqItersFrom s lanes loop walk rd Vn (oqLoopArgs σ) N 1)
     simp only [List.length_cons, List.length_nil] at ha
     omega
@@ -1301,14 +1305,14 @@ theorem vsPiOfS_cost (hP : Includes P Decoder.vsPiOfSC.costDeps) (T : WhirTabs)
     machineCost P Decoder.vsPiOfSC.costIdx [encodeValue T, rdV, σV, VnV, clV, encodeValue m] ≤
       vsSPrice R S F C L := by
   rw [Decoder.vsPiOfSC.costEq P hP T rd rdV hrd σ σV hσ Vn VnV hVn cl clV hcl m]
-  have := hS (.n 66)
-  have := logGTWith_cost P (by includes) T.lanes hT.lanes (σ (.n 66)) 4 (by norm_num)
-  have hr := logGTWith_le T.lanes (σ (.n 66)) 4
+  have := hS (.n (val% «verify_sub» "rate_sel"))
+  have := logGTWith_cost P (by includes) T.lanes hT.lanes (σ (.n (val% «verify_sub» "rate_sel"))) 4 (by norm_num)
+  have hr := logGTWith_le T.lanes (σ (.n (val% «verify_sub» "rate_sel"))) 4
   have := vsPiOfM_cost P hrd hR hσ hS hVn hF hcl hC hL hL32 (by includes) T hT m
-    (logGTWith T.lanes (σ (.n 66)) 4 * 11 + m) hm
-  rw [limbs_of_lt (by omega : logGTWith T.lanes (σ (.n 66)) 4 * 11 < 2 ^ 64),
-    limbs_of_lt (by omega : logGTWith T.lanes (σ (.n 66)) 4 < 2 ^ 64),
-    limbs_of_lt (by omega : logGTWith T.lanes (σ (.n 66)) 4 * 11 + m < 2 ^ 64),
+    (logGTWith T.lanes (σ (.n (val% «verify_sub» "rate_sel"))) 4 * 11 + m) hm
+  rw [limbs_of_lt (by omega : logGTWith T.lanes (σ (.n (val% «verify_sub» "rate_sel"))) 4 * 11 < 2 ^ 64),
+    limbs_of_lt (by omega : logGTWith T.lanes (σ (.n (val% «verify_sub» "rate_sel"))) 4 < 2 ^ 64),
+    limbs_of_lt (by omega : logGTWith T.lanes (σ (.n (val% «verify_sub» "rate_sel"))) 4 * 11 + m < 2 ^ 64),
     limbs_of_lt (by omega : m < 2 ^ 64)]
   unfold vsSPrice
   omega
@@ -1324,11 +1328,11 @@ theorem vsPiOfN_cost (hP : Includes P Decoder.vsPiOfNC.costDeps) (T : WhirTabs)
     machineCost P Decoder.vsPiOfNC.costIdx [encodeValue T, rdV, σV, VnV, clV] ≤
       vsPiPrice R S F C L := by
   rw [Decoder.vsPiOfNC.costEq P hP T rd rdV hrd σ σV hσ Vn VnV hVn cl clV hcl]
-  have := hS (.n 278)
-  have := logGTWith_cost P (by includes) T.lanes hT.lanes (σ (.n 278)) 11 (by norm_num)
-  have := logGTWith_le T.lanes (σ (.n 278)) 11
+  have := hS (.n (val% «verify_sub» "size_sel"))
+  have := logGTWith_cost P (by includes) T.lanes hT.lanes (σ (.n (val% «verify_sub» "size_sel"))) 11 (by norm_num)
+  have := logGTWith_le T.lanes (σ (.n (val% «verify_sub» "size_sel"))) 11
   have := vsPiOfS_cost P hrd hR hσ hS hVn hF hcl hC hL hL32 (by includes) T hT
-    (logGTWith T.lanes (σ (.n 278)) 11) (by omega)
+    (logGTWith T.lanes (σ (.n (val% «verify_sub» "size_sel"))) 11) (by omega)
   unfold vsPiPrice
   omega
 

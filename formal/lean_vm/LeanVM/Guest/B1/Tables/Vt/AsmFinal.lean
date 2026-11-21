@@ -17,8 +17,8 @@ import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 `vt_weight_guest`: a table's weight at the reversed challenges is the guest's `cprod[g^n/τ]` times
 `peq[τ]`. `vt_xi_pow`: the batching challenge's powers. `vt_asm_final`: `termsPure`'s terminal
-value over the six tables — the weights times the `JUMP` constraints and the three forms, batched
-by `ξ⁰, ξ¹` and `ξ², ξ³, ξ⁴` — is `σ 2609`, the sumcheck's final claim the guest checks.
+value over the six tables (the weights times the `JUMP` constraints and the three forms, batched
+by `ξ⁰, ξ¹` and `ξ², ξ³, ξ⁴`) is the guest's value `claim`, the sumcheck's final claim it checks.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -102,7 +102,7 @@ theorem vt_asm_final {σ : Val} (h : VtH Lm.read σ) (bc : List K) (hbc : bc.len
     (hmu : σ (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length) (hml : point.length < 33)
     (hE : ExpTablesAt Lm.read (σ (.n (val% «verify_tables» "g_squares")))) {lm : ℕ} (hlm : lm ≤ 32)
     {rows : List ℕ} (hr : rows.length = 6) (hτ : ∀ t < 6, vtHt rows t < 33)
-    (hkb : ∀ i < 8, σ (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0)
+    (hkb : ∀ i < 8, σ (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0)
     {weights : List E} (hwl : weights.length = 16)
     (hW : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "fp_w"))) weights) {n : ℕ}
     (hgn : σ (.n (val% «verify_tables» "g_zc_n")) = gen ^ n) (hhn : ∀ t < 6, vtHt rows t ≤ n) (hnp : n ≤ point.length)
@@ -130,12 +130,12 @@ theorem vt_asm_final {σ : Val} (h : VtH Lm.read σ) (bc : List K) (hbc : bc.len
   set Wt := tableWeights (tableHeightsOf rows) point pts.reverse with hWt
   have hW6 : Wt.length = 6 := by rw [hWt, length_tableWeights, hH6]
   -- the weights
-  have hkbt : ∀ t < 6, σ (.n (28 + t)) = gen ^ vtHt rows t := fun t ht => by
+  have hkbt : ∀ t < 6, σ (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ vtHt rows t := fun t ht => by
     have := hkb (2 + t) (by omega)
     rwa [show 26 + (2 + t) = 28 + t by omega, Nat.add_comm 2 t, vt_tau_getD lm _ ht] at this
-  have hwt : ∀ t < 6, ∀ {x cp pe : E}, σ (.n (val% «verify_tables» "g_zc_n")) = x * σ (.n (28 + t)) →
+  have hwt : ∀ t < 6, ∀ {x cp pe : E}, σ (.n (val% «verify_tables» "g_zc_n")) = x * σ (.n ((val% «verify_tables» "kb[2]") + t)) →
       LoadHolds Lm.read (σ (.n (val% «verify_tables» "zc_cprod")) * x) 0 cp →
-      LoadHolds Lm.read (σ (.n (val% «verify_tables» "zc_peq")) * σ (.n (28 + t))) 0 pe → Wt.getD t 0 = cp * pe := by
+      LoadHolds Lm.read (σ (.n (val% «verify_tables» "zc_peq")) * σ (.n ((val% «verify_tables» "kb[2]") + t))) 0 pe → Wt.getD t 0 = cp * pe := by
     intro t ht x cp pe hx hcpL hpeL
     exact vt_weight_guest hpl hnp hcp hpe hchi hz1 hgn (by rw [hH6]; exact ht) (hhn t ht) hx
       (hkbt t ht) hcpL hpeL

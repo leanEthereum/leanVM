@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Opening.QueriesComplete3
 public import LeanVM.Guest.B1.Sig.PopsKit
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«walk_path__L»
 
 /-!
 # `walk_path`'s pops
@@ -111,18 +113,18 @@ variable (w : WD)
 def wpPops : List Pop := [("merkle_children", (List.range (4 * w.pd)).map w.pc)]
 
 theorem win_fallPops (hv : w.Hv σ) {i : ℕ} (hi : i < oqNpw w.s) :
-    FallPops rd σ (oqWinT w.s (.n 2) (wpPr w.s) 0 wpCh i) [] := by
+    FallPops rd σ (oqWinT w.s (.n (valf% «walk_path» "wins")) (wpPr w.s) 0 wpCh i) [] := by
   have s0 : σ (.n (oqWk w.s wpCh i)) = ofK (addressOfIndex (w.wv i)) := by
     rw [show oqWk w.s wpCh i = oqWk w.s wpCh i + 0 from rfl, hv,
       val_win w hi (by unfold winSz; omega), winV, ite_eq_left rfl, gen_pow_ofK]
   have hlt : w.wv i < 2 ^ oqWw w.s i := (qwVal_path hi w.q).1
   have h6 : 2 ^ oqWw w.s i ≤ 2 ^ 6 := Nat.pow_le_pow_right (by omega) (oqWw_le w.s i)
-  have hpre : noWit ([.atom (.load (.n (oqWk w.s wpCh i)) (.n 2) i)] ++
+  have hpre : noWit ([.atom (.load (.n (oqWk w.s wpCh i)) (.n (valf% «walk_path» "wins")) i)] ++
       (if i = 0 then oqPadT (wpPr w.s) else []) ++
       [.atom (.const (.n (oqWk w.s wpCh i + 1 + oqWo i)) (word (2 ^ 63) 0))]) = true := by
     rw [noWit_append, noWit_append]
     split <;> rfl
-  have e : oqWinT w.s (.n 2) (wpPr w.s) 0 wpCh i = ([.atom (.load (.n (oqWk w.s wpCh i)) (.n 2) i)] ++
+  have e : oqWinT w.s (.n (valf% «walk_path» "wins")) (wpPr w.s) 0 wpCh i = ([.atom (.load (.n (oqWk w.s wpCh i)) (.n (valf% «walk_path» "wins")) i)] ++
       (if i = 0 then oqPadT (wpPr w.s) else []) ++
       [.atom (.const (.n (oqWk w.s wpCh i + 1 + oqWo i)) (word (2 ^ 63) 0))]) ++
       [.match_ (.n (oqWk w.s wpCh i)) ((List.range (2 ^ oqWw w.s i)).map (oqArmT w.s (wpPr w.s) 0 wpCh i))] := by
@@ -137,7 +139,7 @@ theorem win_fallPops (hv : w.Hv σ) {i : ℕ} (hi : i < oqNpw w.s) :
 
 /-- **The body before its return pops the children**, at the honest values. -/
 theorem wp_fallPops (hv : w.Hv σ) :
-    FallPops rd σ (oqPathT w.s (.n 2) (wpPr w.s) 0 wpCh ++ oqCapT w.s (.n 2) (.n 3) (.n 4) 0 wpCh)
+    FallPops rd σ (oqPathT w.s (.n (valf% «walk_path» "wins")) (wpPr w.s) 0 wpCh ++ oqCapT w.s (.n (valf% «walk_path» "wins")) (.n (valf% «walk_path» "cap")) (.n (valf% «walk_path» "flags")) 0 wpCh)
       w.wpPops := by
   have hh : FallPops rd σ [.atom (.hint (.witness "merkle_children"
       (.stack ((List.range (4 * w.s.pd)).map fun j ↦ .n (wpCh + j)))))] w.wpPops := by
@@ -146,7 +148,7 @@ theorem wp_fallPops (hv : w.Hv σ) :
     congr 2
     refine List.map_congr_left fun j hj => ?_
     rw [Function.comp_apply, hv, val_pc w (List.mem_range.mp hj)]
-  have hw : FallPops rd σ ((List.range (oqNpw w.s)).map (oqWinT w.s (.n 2) (wpPr w.s) 0 wpCh)).flatten [] :=
+  have hw : FallPops rd σ ((List.range (oqNpw w.s)).map (oqWinT w.s (.n (valf% «walk_path» "wins")) (wpPr w.s) 0 wpCh)).flatten [] :=
     fallPops_flatten_nil fun x hx => by
       obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hx
       exact w.win_fallPops hv (List.mem_range.mp hi)

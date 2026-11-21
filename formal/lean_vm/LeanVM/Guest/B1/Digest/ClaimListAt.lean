@@ -267,7 +267,7 @@ theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd cha
   have mH : ∀ s ∈ clHead, s ∈ clEEval := fun s hs => by unfold clEEval; simp [hs]
   have mP : ∀ s ∈ clElsePre, s ∈ clEEval := fun s hs => by unfold clEEval; simp [hs]
   have mT : ∀ s ∈ clTail, s ∈ clEEval := fun s hs => by unfold clEEval; simp [hs]
-  have mF : ∀ i < 8, Stmt.atom (.hint (.alloc (.n (4 + i)) 0)) ∈ clEEval := fun i hi => by
+  have mF : ∀ i < 8, Stmt.atom (.hint (.alloc (.n ((val% «claim_list_digest» "s1.t.s0#0") + i)) 0)) ∈ clEEval := fun i hi => by
     unfold clEEval
     exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _
       (List.mem_map.mpr ⟨i, List.mem_range.mpr (by omega), rfl⟩)))
@@ -288,7 +288,7 @@ theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd cha
         rw [hga', w34]
       | _ => simp at hp
     | _ => simp at hp
-  have v35 : ∀ c < 13, σ (.n (24 + c)) = 0 := by
+  have v35 : ∀ c < 13, σ (.n ((val% «claim_list_digest» "s1.e.s2.i0:zero_state.s0.u0.s0#0") + c)) = 0 := by
     intro c hc'
     obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp (List.all_eq_true.mp b11 c (List.mem_range.mpr hc'))
     have hga := hg a (cl_mem_atoms (mP _ (cl_atom_mem ha)))

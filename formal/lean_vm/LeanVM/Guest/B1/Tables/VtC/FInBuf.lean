@@ -54,11 +54,11 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 theorem vtF_loadsInBuf (hl : args.length = 21) {bufs : List (E × ℕ)}
     (h13 : BufWin (vtσ rd w args) bufs (.n (val% «verify_tables» "fp_w")) 16)
     (hcur : BufWin (vtσ rd w args) bufs (.n (val% «verify_tables» "cursor@5")) 153)
-    {τs : ℕ → ℕ} (hkbt : ∀ t < 6, vtσ rd w args (.n (28 + t)) = gen ^ τs t)
+    {τs : ℕ → ℕ} (hkbt : ∀ t < 6, vtσ rd w args (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ τs t)
     {n : ℕ} (hgn : vtσ rd w args (.n (val% «verify_tables» "g_zc_n")) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n)
     (hcp : BufWin (vtσ rd w args) bufs (.n (val% «verify_tables» "zc_cprod")) (n + 1))
     (hpe : BufWin (vtσ rd w args) bufs (.n (val% «verify_tables» "zc_peq")) (n + 1)) :
-    LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 2683).take (5523 - 2683)) := by
+    LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop (pos% «verify_tables» "x@9")).take (pos% «verify_tables» "nxt[0]@42" - pos% «verify_tables» "x@9")) := by
   intro d p off hs
   rw [tbStmtsEqb_sound vtF_split] at hs
   rcases List.mem_append.mp hs with hs | hs

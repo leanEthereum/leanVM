@@ -73,7 +73,7 @@ abbrev vkFinFA : List Stmt := (formAll (.n (val% «verify_keccak» "last_lanes")
 
 theorem vkFin_ker :
     noneIn ([.load (.n (val% «verify_keccak» "last_point")) (.n (val% «verify_keccak» "claims")) 266, .load (.n (val% «verify_keccak» "last_local")) (.n (val% «verify_keccak» "claims")) 268,
-      .load (.n (val% «verify_keccak» "last_lanes")) (.n (val% «verify_keccak» "claims")) 267] ++ (List.range 64).map fun z ↦ .load (.n (1976 + z)) (.n (val% «verify_keccak» "slices")) z)
+      .load (.n (val% «verify_keccak» "last_lanes")) (.n (val% «verify_keccak» "claims")) 267] ++ (List.range 64).map fun z ↦ .load (.n ((val% «verify_keccak» "level[0]") + z)) (.n (val% «verify_keccak» "slices")) z)
       vkSt = true ∧
     vkFinSL.all isAtom = true ∧
     (resid (atomsL vkFinSL)).all (ldR [(.n (val% «verify_keccak» "in_slot"), 0, 6), (.n (val% «verify_keccak» "s72#0"), 0, 1)]) = true ∧

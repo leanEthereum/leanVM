@@ -42,11 +42,11 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 and their permutation, the grind's nonce and permutation, `α`, the squeeze of `β`, the stores,
 the claim. -/
 def roundBody : List Stmt :=
-  ((List.range 5).map fun i ↦ .atom (.copy (.n (10 + i)) (.n i))) ++
-  fsNextT (.n (val% «opening_round» "cursor")) 0 15 ++ fsNextT (.n (val% «opening_round» "cursor")) 1 18 ++ fsNextT (.n (val% «opening_round» "cursor")) 2 21 ++ fsNextT (.n (val% «opening_round» "cursor")) 3 24 ++
+  ((List.range 5).map fun i ↦ .atom (.copy (.n ((val% «opening_round» "sp[0]") + i)) (.n i))) ++
+  fsNextT (.n (val% «opening_round» "cursor")) 0 (val% «opening_round» "x@1") ++ fsNextT (.n (val% «opening_round» "cursor")) 1 (val% «opening_round» "x@2") ++ fsNextT (.n (val% «opening_round» "cursor")) 2 (val% «opening_round» "x@3") ++ fsNextT (.n (val% «opening_round» "cursor")) 3 (val% «opening_round» "x@4") ++
   [keccakA (permIns 4 [.n (val% «opening_round» "msg[0]"), .n (val% «opening_round» "msg[1]"), .n (val% «opening_round» "msg[2]"), .n (val% «opening_round» "msg[3]"), .n (val% «opening_round» "msg[4]"), .n (val% «opening_round» "msg[5]"), .n (val% «opening_round» "msg[6]"), .n (val% «opening_round» "msg[7]")] 44 (osRun 10 5))
     (osRun 27 13)] ++
-  fsNonceT (.n (val% «opening_round» "cursor")) 4 40 ++ padRunT 43 ++
+  fsNonceT (.n (val% «opening_round» "cursor")) 4 (val% «opening_round» "s6.i0:fs_grind_squeeze.s0.e.s0.t.s2#0") ++ padRunT 43 ++
   [keccakA (permIns 1 [.n (val% «opening_round» "nonce_rate[0]"), .n (val% «opening_round» "nonce_rate[1]")] 44 (osRun 35 5)) (osRun 48 13),
     .call "grind_check__L7" [.n (val% «opening_round» "nxt[1]@2"), .n (val% «opening_round» "tabs")] []] ++
   [keccakA (permIns 0 [] 44 (osRun 56 5)) (osRun 61 13)] ++

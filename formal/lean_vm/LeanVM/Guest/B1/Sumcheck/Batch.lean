@@ -51,7 +51,7 @@ def bsFold (o c b : ℕ) (r : ℕ) : List Stmt :=
 
 /-- Round `0`. -/
 def bsRound0 : List Stmt :=
-  fsNextT (.n (val% «batch_sumcheck__L23» "msgs")) 0 14 ++ fsNextT (.n (val% «batch_sumcheck__L23» "msgs")) 1 17 ++ padRunT 20 ++
+  fsNextT (.n (val% «batch_sumcheck__L23» "msgs")) 0 (val% «batch_sumcheck__L23» "x@1") ++ fsNextT (.n (val% «batch_sumcheck__L23» "msgs")) 1 (val% «batch_sumcheck__L23» "x@2") ++ padRunT 20 ++
   [keccakA [.n (val% «batch_sumcheck__L23» "rate[0]@1"), .n (val% «batch_sumcheck__L23» "rate[1]@1"), .n (val% «batch_sumcheck__L23» "rate[2]@1"), .n (val% «batch_sumcheck__L23» "rate[3]@1"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (val% «batch_sumcheck__L23» "s1.u0.s3.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]"), .n (val% «batch_sumcheck__L23» "sp[0]"), .n (val% «batch_sumcheck__L23» "sp[1]"), .n (val% «batch_sumcheck__L23» "sp[2]"), .n (val% «batch_sumcheck__L23» "sp[3]"), .n (val% «batch_sumcheck__L23» "sp[4]")]
       (bsRun13 25)] ++
   bsFold 25 6 14 0

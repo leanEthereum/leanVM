@@ -152,9 +152,9 @@ theorem vt_call_mem {s : Stmt} (hs : s ∈ vtPre) (hp : plainStB s = false) : s 
 
 set_option maxRecDepth 100000 in
 /-- The shared tables' pointers: `zeta`, `zeta1` and the exponent table at `g^τ`. -/
-theorem vt_sh_muls : ∀ t < 6, tbStmtsEqb [.atom (.mul (.n (710 + 13 * t)) (.n (val% «verify_tables» "zeta")) (.n (28 + t))),
-    .atom (.mul (.n (711 + 13 * t)) (.n (val% «verify_tables» "zeta1")) (.n (28 + t))),
-    .atom (.mul (.n (712 + 13 * t)) (.n (val% «verify_tables» "g_squares")) (.n (28 + t)))]
+theorem vt_sh_muls : ∀ t < 6, tbStmtsEqb [.atom (.mul (.n (710 + 13 * t)) (.n (val% «verify_tables» "zeta")) (.n ((val% «verify_tables» "kb[2]") + t))),
+    .atom (.mul (.n (711 + 13 * t)) (.n (val% «verify_tables» "zeta1")) (.n ((val% «verify_tables» "kb[2]") + t))),
+    .atom (.mul (.n (712 + 13 * t)) (.n (val% «verify_tables» "g_squares")) (.n ((val% «verify_tables» "kb[2]") + t)))]
     ((vtPre.drop (701 + 12 * t)).take 3) = true := by
   simp only [vtPre_drop]; decide +kernel
 

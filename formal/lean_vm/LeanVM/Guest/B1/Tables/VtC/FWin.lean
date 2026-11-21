@@ -101,7 +101,7 @@ theorem vtF_airGood (hl : args.length = 21) {t : ℕ} (ht : t < 6) :
 
 /-- **Table `t`'s weight block**: `g^n = x·g^τ`, and `cprod`, `peq` read at `x`, `g^τ`. -/
 theorem vtF_air (hl : args.length = 21) {τs : ℕ → ℕ}
-    (hkbt : ∀ t < 6, vtσ rd w args (.n (28 + t)) = gen ^ τs t) {n : ℕ}
+    (hkbt : ∀ t < 6, vtσ rd w args (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ τs t) {n : ℕ}
     (hgn : vtσ rd w args (.n (val% «verify_tables» "g_zc_n")) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n) {cp pe : ℕ → E}
     (hcp : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n (val% «verify_tables» "zc_cprod"))) j (cp j))
     (hpe : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n (val% «verify_tables» "zc_peq"))) j (pe j)) {t : ℕ} (ht : t < 6) :
@@ -136,7 +136,7 @@ theorem vtF_air (hl : args.length = 21) {τs : ℕ → ℕ}
 
 /-- Table `t`'s weight pointers: `cprod·g^(n-τ)` and `peq·g^τ`. -/
 theorem vtF_airVals (hl : args.length = 21) {τs : ℕ → ℕ}
-    (hkbt : ∀ t < 6, vtσ rd w args (.n (28 + t)) = gen ^ τs t) {n : ℕ}
+    (hkbt : ∀ t < 6, vtσ rd w args (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ τs t) {n : ℕ}
     (hgn : vtσ rd w args (.n (val% «verify_tables» "g_zc_n")) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n) {t : ℕ} (ht : t < 6) :
     vtσ rd w args (.n (vtAirX t + 1)) = vtσ rd w args (.n (val% «verify_tables» "zc_cprod")) * gen ^ (n - τs t) ∧
       vtσ rd w args (.n (vtAirX t + 3)) = vtσ rd w args (.n (val% «verify_tables» "zc_peq")) * gen ^ τs t := by
@@ -177,7 +177,7 @@ challenges' products `cp` and the equality prefix `pe` up to `n`, every statemen
 theorem vtF_window (hl : args.length = 21) {evs : List E} (hevl : 153 ≤ evs.length)
     (hcur : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "cursor@5"))) evs)
     {W : List E} (hW : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "fp_w"))) W) (hWl : 16 ≤ W.length)
-    {τs : ℕ → ℕ} (hkbt : ∀ t < 6, vtσ rd w args (.n (28 + t)) = gen ^ τs t)
+    {τs : ℕ → ℕ} (hkbt : ∀ t < 6, vtσ rd w args (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ τs t)
     {n : ℕ} (hgn : vtσ rd w args (.n (val% «verify_tables» "g_zc_n")) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n)
     {cp pe : ℕ → E} (hcp : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n (val% «verify_tables» "zc_cprod"))) j (cp j))
     (hpe : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n (val% «verify_tables» "zc_peq"))) j (pe j)) :

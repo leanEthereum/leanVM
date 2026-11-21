@@ -42,7 +42,7 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 and the sponge after them. -/
 theorem vtF_complete (hl : args.length = 21) (bc : List K) (hbc : bc.length = 2 ^ 23)
     {point : List E} {lm : ℕ} {rows : List ℕ} (hr : rows.length = 6)
-    (hkbt : ∀ t < 6, vtσ rd w args (.n (28 + t)) = gen ^ vtHt rows t)
+    (hkbt : ∀ t < 6, vtσ rd w args (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ vtHt rows t)
     (hP : ∀ i < 51, vtσ rd w args (.n (vtPushPadData.getD i default).2.2.1) =
       blockSel (vtSizesP lm (vtHt rows)) point.length (3 + i) point)
     (hC : ∀ i < 45, vtσ rd w args (.n (vtCountPadData.getD i default).2.2.1) =
@@ -71,7 +71,7 @@ theorem vtF_complete (hl : args.length = 21) (bc : List K) (hbc : bc.length = 2 
           (vtσ rd w args (.n (val% «verify_tables» "x@3"))) (vtσ rd w args (.n (val% «verify_tables» "x@4"))) (vtσ rd w args (.n (val% «verify_tables» "x@5")))
           (vtσ rd w args (.n (val% «verify_tables» "s52.u0.s5#0"))) (vtσ rd w args (.n (val% «verify_tables» "s52.u1.s5#0"))) (vtσ rd w args (.n (val% «verify_tables» "s52.u2.s5#0")))).1
             point pts) (vtEvsT (vtσ rd w args))) 0 0 []).1 = vtσ rd w args (.n (val% «verify_tables» "claim"))) :
-    (∀ s ∈ (vtPre.drop 2683).take (5523 - 2683),
+    (∀ s ∈ (vtPre.drop (pos% «verify_tables» "x@9")).take (pos% «verify_tables» "nxt[0]@42" - pos% «verify_tables» "x@9"),
         VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) ∧
       VtF rd (vtσ rd w args) ∧ vtEvs (vtσ rd w args) = evs ∧
       (∀ j < 38, (⟨vtCapV (vtσ rd w args) 0, []⟩ : Fs).absorbAll

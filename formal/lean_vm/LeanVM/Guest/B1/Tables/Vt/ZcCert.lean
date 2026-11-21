@@ -39,7 +39,7 @@ include hμ
 
 /-- **The round count.** -/
 theorem vt_zc_n {σ : Val} (h : VtH Lm.read σ) {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t < 33)
-    (hkbt : ∀ t < 6, σ (.n (28 + t)) = gen ^ τ t) {m : ℕ} (hm : m < 33)
+    (hkbt : ∀ t < 6, σ (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ τ t) {m : ℕ} (hm : m < 33)
     (hmu : σ (.n (val% «verify_tables» "g_bus_mu")) = gen ^ m) :
     ∃ n, σ (.n (val% «verify_tables» "g_zc_n")) = gen ^ n ∧ (∀ t < 6, τ t ≤ n) ∧ (∃ t < 6, τ t = n) ∧ n ≤ m := by
   have a5154 := h.atomAt 2591 (.const (.n (val% «verify_tables» "s56.u0.s1#0")) (word 4294967296 0)) (by decide +kernel)

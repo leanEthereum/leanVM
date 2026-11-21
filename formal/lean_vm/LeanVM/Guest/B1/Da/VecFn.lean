@@ -72,10 +72,10 @@ noncomputable def vecOk : Bool :=
   stmtsEqb (Fn.body fn% «da_vector») (P ++ [.ret [.n (val% «da_vector» "s10#0"), .n (val% «da_vector» "s10#0[1]"), .n (val% «da_vector» "s10#0[2]"),
       .n (val% «da_vector» "s10#0[3]")]]) && P.all Stmt.flat &&
   (List.range 13).all (fun j ↦ A.any (isLoadAt (.n (vecPw j)) (.n (val% «da_vector» "zs")) j)) &&
-  (List.range 12).all (fun j ↦ isMul A (.n (j + 2)) (.n (vecPw j)) (.n (vecPw j))) &&
+  (List.range 12).all (fun j ↦ isMul A (.n (j + (val% «da_vector» "zj@1"))) (.n (vecPw j)) (.n (vecPw j))) &&
   A.any (isConstAt (.n (val% «da_vector» "s3#0")) 0 0) && A.any (isLoadAt (.n (val% «da_vector» "s3#0")) (.n (val% «da_vector» "zs")) 13) &&
-  (List.range 7).all (fun i ↦ A.any (isConstAt (.n (17 + i)) 0 0) &&
-    A.any (isLoadAt (.n (17 + i)) (.n (val% «da_vector» "above_top")) (7 + i))) &&
+  (List.range 7).all (fun i ↦ A.any (isConstAt (.n ((val% «da_vector» "s5.u7.s0#0") + i)) 0 0) &&
+    A.any (isLoadAt (.n ((val% «da_vector» "s5.u7.s0#0") + i)) (.n (val% «da_vector» "above_top")) (7 + i))) &&
   hasCall P "da_factors__L13_L7_L0" [.n (val% «da_vector» "zs")] [.n (val% «da_vector» "top_factors")] && A.any (isConstAt (.n (val% «da_vector» "top_leaves~1")) 1 0) &&
   hasCall P "da_expand__L13_L7" [.n (val% «da_vector» "top_leaves~1"), .n (val% «da_vector» "top_factors"), .n (val% «da_vector» "zs"), .n (val% «da_vector» "above_top")] [.n (val% «da_vector» "top_leaves")] &&
   hasCall P "da_factors__L6_L7_L128" [.n (val% «da_vector» "zs")] [.n (val% «da_vector» "cell_factors")] &&

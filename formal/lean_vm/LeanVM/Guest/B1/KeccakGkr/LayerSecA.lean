@@ -36,7 +36,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 theorem headT_holds {first : ℕ} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (headT first) next kret) :
-    (∀ i < 5 + 2 * first, σ (.n (16 + i)) = σ (.n i)) ∧
+    (∀ i < 5 + 2 * first, σ (.n ((valf% «keccak_layer» "fs_cap.sp[0]") + i)) = σ (.n i)) ∧
       (∀ i < 16, LoadHolds rd (σ (.n (valf% «keccak_layer» "claim"))) (6 + i) (σ (.n (muB first + i)))) ∧
       (∀ t < 111, σ (.n (muB first + 16 + t)) =
         σ (.n (muB first + projA.getD t 0)) + σ (.n (muB first + projB.getD t 0))) ∧ next := by

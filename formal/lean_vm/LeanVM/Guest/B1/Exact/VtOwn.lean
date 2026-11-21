@@ -168,7 +168,7 @@ theorem vt_sites_exact {H : VtHonest} (hs : VtShape H) (B : VtBases) {o : ℕ} {
       (Nat.pow_le_pow_right (by norm_num) (by omega))
   have hP' : ∀ x < 54, vtσ rd (vtW H B') (H.args B') (.n (vtBoffV x)) = gen ^ H.offP.getD x 0 := hP
   have hC' : ∀ x < 45, vtσ rd (vtW H B') (H.args B') (.n (vtBoffV (108 + x))) = gen ^ H.offC.getD x 0 := hC
-  have hkbt : ∀ t < 6, vtσ rd (vtW H B') (H.args B') (.n (28 + t)) = gen ^ H.τ t := fun t ht ↦ by
+  have hkbt : ∀ t < 6, vtσ rd (vtW H B') (H.args B') (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ H.τ t := fun t ht ↦ by
     have := hkb (2 + t) (by omega)
     rw [show 26 + (2 + t) = 28 + t by omega, Nat.add_comm 2 t, vt_tau_getD H.lm (vtHt H.rows) ht] at this
     exact this

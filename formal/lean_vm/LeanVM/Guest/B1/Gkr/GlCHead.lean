@@ -56,7 +56,7 @@ theorem glc_pre (hG : ∀ s ∈ glPre, GoodS rd S w σ s)
     (hS : GkSlot rd layers (2 * j + 2 - o) s cur st (pts * gen ^ (40 * (j + 1))) pos) :
     Stmt.HoldsList C rd σ glPre True kret ∧
       σ (.n (valf% «gkr_layer» "layer")) = layers * gen ^ (10 * (2 * j + 2 - o)) ∧ σ (.n (valf% «gkr_layer» "s4#0")) = cur ∧
-      σ (.n (valf% «gkr_layer» "nxt[0]@1")) = s.squeeze.1 ∧ (glCap 35).map σ = s.squeeze.2.cap ∧ σ (.n (valf% «gkr_layer» "round_pos")) = pos ∧
+      σ (.n (valf% «gkr_layer» "nxt[0]@1")) = s.squeeze.1 ∧ (glCap (valf% «gkr_layer» "nxt[8]@1")).map σ = s.squeeze.2.cap ∧ σ (.n (valf% «gkr_layer» "round_pos")) = pos ∧
       σ (.n (valf% «gkr_layer» "point_row")) = pts * gen ^ (40 * (j + 1)) ∧ σ (.n (valf% «gkr_layer» "head")) = rounds * pos ∧
       σ (.n (valf% «gkr_layer» "claim@2")) = polyEval st.values s.squeeze.1 ∧
       σ (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]")) = 0 ∧ σ (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[2]")) = 0 ∧ σ (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[3]")) = 0 ∧ σ (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[4]")) = 0 := by
@@ -78,8 +78,8 @@ theorem glc_pre (hG : ∀ s ∈ glPre, GoodS rd S w σ s)
   have ld : ∀ k v, LoadHolds rd layers (10 * L + k) v → LoadHolds rd (σ (.n (valf% «gkr_layer» "layer"))) k v := by
     intro k v h; rw [e15, tb_loadHolds_mul_gen_pow]; exact h
   have key : ∀ k ∈ glPreKeys, some k ∉ S.map loadKey := hk
-  have r16 : ∀ k < 5, σ (.n (16 + k)) = s.cap.getD k 0 ∧
-      LoadHolds rd (σ (.n (valf% «gkr_layer» "layer"))) k (σ (.n (16 + k))) := fun k hk' ↦
+  have r16 : ∀ k < 5, σ (.n ((valf% «gkr_layer» "sp[0]@1") + k)) = s.cap.getD k 0 ∧
+      LoadHolds rd (σ (.n (valf% «gkr_layer» "layer"))) k (σ (.n ((valf% «gkr_layer» "sp[0]@1") + k))) := fun k hk' ↦
     good_read (g (.load (.n (16 + k)) (.n (valf% «gkr_layer» "layer")) k) (by
         interval_cases k <;> simp [glPre]))
       (key _ (by simp [glPreKeys]; omega)) (ld k _ (hcap k hk'))
@@ -92,11 +92,11 @@ theorem glc_pre (hG : ∀ s ∈ glPre, GoodS rd S w σ s)
   have c26 : σ (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[4]")) = word 0 0 := g (.const (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[4]")) (word 0 0)) (by simp [glPre])
   rw [tb_word_zero] at c23 c24 c25 c26
   -- the combiner's permutation
-  have hcapE : ((List.range 5).map fun k ↦ V.n (16 + k)).map σ = s.cap := by
+  have hcapE : ((List.range 5).map fun k ↦ V.n ((valf% «gkr_layer» "sp[0]@1") + k)).map σ = s.cap := by
     rw [tb_eq_map_getD hcl, List.map_map]
     exact List.map_congr_left fun k hk' => (r16 k (List.mem_range.mp hk')).1
   obtain ⟨k27, -⟩ := keccak_good (rd := rd) (S := S) (w := w) (g (.keccak [.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"),
-    .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[2]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[3]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[4]"), .n (valf% «gkr_layer» "sp[0]@1"), .n (valf% «gkr_layer» "sp[1]@1"), .n (valf% «gkr_layer» "sp[2]@1"), .n (valf% «gkr_layer» "sp[3]@1"), .n (valf% «gkr_layer» "sp[4]@1")] (lyOuts 27) false false)
+    .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[2]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[3]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[4]"), .n (valf% «gkr_layer» "sp[0]@1"), .n (valf% «gkr_layer» "sp[1]@1"), .n (valf% «gkr_layer» "sp[2]@1"), .n (valf% «gkr_layer» "sp[3]@1"), .n (valf% «gkr_layer» "sp[4]@1")] (lyOuts (valf% «gkr_layer» "nxt[0]@1")) false false)
     (by simp [glPre, lyOuts, List.range_succ]))
   obtain ⟨hP, hQ⟩ := ly_keccak k27
   have hins : ([V.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[2]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[3]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[4]"), .n (valf% «gkr_layer» "sp[0]@1"), .n (valf% «gkr_layer» "sp[1]@1"), .n (valf% «gkr_layer» "sp[2]@1"),
@@ -106,7 +106,7 @@ theorem glc_pre (hG : ∀ s ∈ glPre, GoodS rd S w σ s)
   rw [hins] at hP hQ
   have e40 : σ (.n (valf% «gkr_layer» "nxt[0]@1")) = s.squeeze.1 := by
     exact challengeT_value (σ := σ) (s0 := .n (valf% «gkr_layer» "nxt[0]@1")) (b := 27) rfl (hP 0 (by omega))
-  have hcap35 : (glCap 35).map σ = s.squeeze.2.cap := by
+  have hcap35 : (glCap (valf% «gkr_layer» "nxt[8]@1")).map σ = s.squeeze.2.cap := by
     have := hQ
     simp only [lyCap, glCap] at this ⊢
     rw [show s.squeeze.2.cap = capOf (permOf (rateOf s.pend ++ s.cap)) from by
@@ -114,7 +114,7 @@ theorem glc_pre (hG : ∀ s ∈ glPre, GoodS rd S w σ s)
     rw [← this]
   -- the values and the position
   have rv : ∀ k < 4, ∀ v, LoadHolds rd layers (10 * L + (6 + k)) v →
-      σ (.n (40 + k)) = v ∧ LoadHolds rd (σ (.n (valf% «gkr_layer» "layer"))) (6 + k) (σ (.n (40 + k))) := fun k hk' v hv ↦
+      σ (.n ((valf% «gkr_layer» "layer_vals[0]") + k)) = v ∧ LoadHolds rd (σ (.n (valf% «gkr_layer» "layer"))) (6 + k) (σ (.n ((valf% «gkr_layer» "layer_vals[0]") + k))) := fun k hk' v hv ↦
     good_read (g (.load (.n (40 + k)) (.n (valf% «gkr_layer» "layer")) (6 + k)) (by interval_cases k <;> simp [glPre]))
       (key _ (by simp [glPreKeys]; omega)) (ld (6 + k) _ hv)
   obtain ⟨e41, l41⟩ := rv 0 (by omega) _ (by rw [← Nat.add_assoc]; exact hval 0 (by omega))

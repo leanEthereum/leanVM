@@ -3,12 +3,14 @@
 
     python3 -I scripts/val-names/gen.py [--check] [--dump FILE]
 
-Scans the hand-written Lean files for `val% f "name"` and `pos% f "name"` (`Guest/ValRef.lean`), and the rule
+Scans the hand-written Lean files for `val% f "name"`, `pos% f "name"` and `span% f "a" "b"`
+(`Guest/ValRef.lean`), and the rule
 files `scripts/core-mode/fn/*.py` for `val('f', 'name')`, `valf('f', 'name')`, `pos('f', 'name')` (`fnrules`; a
 value's name is its source name, `acc`, `g.acc` or `acc@2`, or its expansion path, `s3.i3:g.s8#0`),
 looks each name up in `guest-core --names` (or `--dump`, its saved output) and writes, for each
 cited function `f`, the numerals of the names cited: `V.«f/name»` a value's number, `S.«f/name»`
-the position of the top-level statement that names it first. A cited name the core IR no longer has
+the position of the top-level statement that names it first (by that value's source name or path; `ret`,
+a body's final `ret`). A cited name the core IR no longer has
 fails, naming the proofs that cite it: the function changed, and those proofs follow it. `--check`
 writes nothing and fails when a file differs. Run from `lean_vm`.
 """
@@ -21,6 +23,7 @@ ROOT = os.getcwd()
 OUT = os.path.join("LeanVM", "Guest", "Data", "ValNames")
 SKIP = (os.path.join("LeanVM", "Guest", "Data"), os.path.join("LeanVM", "Guest", "Pack"))
 CITE = re.compile(r'\b(valf|val|pos)%((?:\s+«?[A-Za-z0-9_]+»?)+)\s+"([^"]+)"')
+SPAN = re.compile(r'\bspan%\s+«?([A-Za-z0-9_]+)»?\s+"([^"]+)"\s+"([^"]+)"')
 PYCITE = re.compile(r"\b(valf|val|pos)\(\s*'([A-Za-z0-9_]+)'\s*,\s*(?:'(_[A-Za-z0-9_]+)'\s*,\s*)?'([^']+)'\s*\)")
 
 
@@ -41,6 +44,9 @@ def cited():
                         keys = [ids[0] + "__L" + "".join(ids[1:])] if kind == "F" else ids
                         for key in keys:
                             out.setdefault(key, {}).setdefault((kind, m.group(3)), set()).add(p)
+                    for m in SPAN.finditer(text):
+                        for n in m.group(2, 3):
+                            out.setdefault(m.group(1), {}).setdefault(("S", n), set()).add(p)
     # the rule files cite them as `val('f', 'name')`, `valf('f', ['suffix',] 'name')`, `pos('f', 'name')` (`fnrules`)
     rules = os.path.join("scripts", "core-mode", "fn")
     for f in sorted(os.listdir(rules)) if os.path.isdir(rules) else []:
@@ -59,10 +65,15 @@ def names(dump):
     text = open(dump, encoding="utf-8").read() if dump else subprocess.run(
         [os.path.join(".lake", "build", "bin", "guest-core"), "--names"], check=True,
         capture_output=True, text=True).stdout
-    t = {}
+    t, path = {}, {}
     for line in text.splitlines():
         f, kind, i, n = line.split("\t")
         t[(f, "S" if kind == "s" else "V", n)] = int(i)
+        if kind == "v": path[(f, int(i))] = n
+    # a statement by the source name of the first value it names
+    for (f, k, n), i in list(t.items()):
+        if k == "V" and (f, i) in path and (f, "S", path[(f, i)]) in t:
+            t.setdefault((f, "S", n), t[(f, "S", path[(f, i)])])
     return t
 
 

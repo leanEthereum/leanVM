@@ -90,7 +90,7 @@ theorem head_first (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ
     rw [vkT]
     exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_left _ hs))))
-  have hbits : ∀ j < 5, σ (.n (22 + j)) = Value.bitE ((D.τ - 3).testBit j) := by
+  have hbits : ∀ j < 5, σ (.n ((val% «verify_keccak» "y_bits[0]") + j)) = Value.bitE ((D.τ - 3).testBit j) := by
     intro j hj
     have g := hG (.atom (.hint (.bitsExp (.n (val% «verify_keccak» "s5#1")) 5 (.stack [.n (val% «verify_keccak» "y_bits[0]"), .n (val% «verify_keccak» "y_bits[1]"), .n (val% «verify_keccak» "y_bits[2]"), .n (val% «verify_keccak» "y_bits[3]"), .n (val% «verify_keccak» "y_bits[4]")]))))
       (mH _ (by
@@ -124,7 +124,7 @@ theorem head_first (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ
     rw [a90]
     rwa [hrl, List.getD_eq_getElem _ _ (by simpa using hi), List.getElem_map, List.getElem_range]
       at this
-  have l9 : ∀ i < 4, LoadHolds rd (σ (.n (val% «verify_keccak» "z_vals"))) i (σ (.n (56 + i))) := by
+  have l9 : ∀ i < 4, LoadHolds rd (σ (.n (val% «verify_keccak» "z_vals"))) i (σ (.n ((val% «verify_keccak» "s14.u0.s0#0") + i))) := by
     intro i hi
     rw [p9, e52 i hi, ← op_getD h (by omega)]
     exact ClaimLay.getD_load mop (by rw [op_length h]; omega)
@@ -170,7 +170,7 @@ theorem head_first (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ
       rw [claims, List.length_append]; simp [cw0, c0_mu h]; omega)
   have s1 : LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) 1 (σ (.n (val% «verify_keccak» "s32#0"))) := by rw [e202]; exact hcl 1 (by norm_num)
   have s2 : LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) 2 (σ (.n (val% «verify_keccak» "point"))) := by rw [a58]; exact hcl 2 (by norm_num)
-  have s6 : ∀ i < 16, LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) (6 + i) (σ (.n (213 + i))) := by
+  have s6 : ∀ i < 16, LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) (6 + i) (σ (.n ((val% «verify_keccak» "s36.u0.s0#0") + i))) := by
     intro i hi
     have := hcl (6 + i) (by omega)
     rw [e258 i hi]

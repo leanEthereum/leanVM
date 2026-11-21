@@ -91,7 +91,7 @@ theorem vt_asm_totals {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.le
     (hmu : σ (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length) (hml : point.length < 33)
     (hE : ExpTablesAt Lm.read (σ (.n (val% «verify_tables» "g_squares")))) {lm : ℕ} (hlm : lm ≤ 32)
     {rows : List ℕ} (hr : rows.length = 6) (hτ : ∀ t < 6, vtHt rows t < 33)
-    (hkb : ∀ i < 8, σ (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0)
+    (hkb : ∀ i < 8, σ (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0)
     {weights : List E} (hwl : weights.length = 16)
     (hW : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "fp_w"))) weights)
     (hpw : ∀ t < 6, σ (.n (vtPadV t)) = paddingWeight (point.take (vtHt rows t)) (vtRw rows t)) :

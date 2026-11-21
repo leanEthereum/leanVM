@@ -171,10 +171,10 @@ noncomputable def zTail : List Stmt := [
     .atom (.copy (.n (val% «verify_tables» "s91#0[8]")) (.n (val% «verify_tables» "nxt[0]@42"))),
     .atom (.copy (.n (val% «verify_tables» "s91#0[9]")) (.n (val% «verify_tables» "cursor@5")))]
 
-theorem zBlk_at : tbStmtsEqb zBlk ((vtPre.drop 2590).take zBlk.length) = true := by
+theorem zBlk_at : tbStmtsEqb zBlk ((vtPre.drop (pos% «verify_tables» "g_zc_n")).take zBlk.length) = true := by
   simp only [vtPre_drop]; decide +kernel
 
-theorem zTail_at : tbStmtsEqb zTail ((vtPre.drop 5523).take zTail.length) = true := by
+theorem zTail_at : tbStmtsEqb zTail ((vtPre.drop (pos% «verify_tables» "nxt[0]@42")).take zTail.length) = true := by
   simp only [vtPre_drop]; decide +kernel
 
 /-! ## The honest rounds -/

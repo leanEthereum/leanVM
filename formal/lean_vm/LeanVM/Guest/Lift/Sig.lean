@@ -12,6 +12,8 @@ public import LeanVM.Guest.Lift.SpWotsLeaf
 public import LeanVM.Guest.B1.Sig.Interface
 public import LeanVM.Guest.B1.Sig.XmssSegData
 public import LeanVM.Guest.Lift.XmssLeaf
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop2»
 
 /-!
 # The signature verifiers, placed
@@ -51,7 +53,7 @@ theorem xSeg_length : B1.Sig.xSeg.length = 313 := by
   have h7 : B1.Sig.l2Post.length = 7 := rfl
   omega
 
-theorem xSeg_eq_data : B1.Sig.xSeg = ((fn% «main_loop2»).body.drop 9).take 313 := by
+theorem xSeg_eq_data : B1.Sig.xSeg = ((fn% «main_loop2»).body.drop (pos% «main_loop2» "pp")).take (span% «main_loop2» "pp" "s5#0") := by
   rw [B1.Sig.loop2_split, List.drop_left' (show B1.Sig.l2Pre.length = 9 from rfl),
     List.take_left' xSeg_length]
 
@@ -61,7 +63,7 @@ theorem xSeg_leafOk : Stmt.leafOkList segLoad B1.Sig.xSeg = true := by
   rw [xSeg_eq_data]; exact loop2Seg_leafOk
 
 theorem loads_seg {σ : Val} {es : List Ev} (h : ∀ e ∈ es, EvLeafOk segLoad e) :
-    ∀ A ∈ loadAddrs σ es, ∃ off < 4, A = (σ (.n 65)).limb 0 * addressOfIndex off := by
+    ∀ A ∈ loadAddrs σ es, ∃ off < 4, A = (σ (.n (val% «main_loop2» "s3#2"))).limb 0 * addressOfIndex off := by
   intro A hA
   obtain ⟨e, he, hea⟩ := List.mem_filterMap.mp hA
   have hok := h e he

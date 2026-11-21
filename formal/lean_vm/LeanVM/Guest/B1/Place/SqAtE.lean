@@ -10,6 +10,8 @@ public import LeanVM.Guest.B1.Place.SqAt
 public import LeanVM.Guest.B1.Main.RelAtInE
 public import LeanVM.Guest.Exact.Free
 public import LeanVM.Guest.Memory.PopsNil
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«level_positions__L_loop0»
 
 /-!
 # The squeeze loop, placed and exact
@@ -171,7 +173,7 @@ theorem sqLoop_iterE (fs : String → ℕ) (cert : String → V → ℕ) {lv : O
     have hql := sqLoopPre_loads lv name _ hq'
     obtain ⟨i, hi, hR⟩ := hreg off hql.2
     refine ⟨i, ?_, Or.inr (Or.inl hR)⟩
-    have hp8 : p = .n 9 := hql.1
+    have hp8 : p = .n (valf% «level_positions» «_loop0» "row") := hql.1
     rw [hp8, h8]; exact hi
   · intro i hi
     rcases hi with hi | ⟨ht, hi⟩

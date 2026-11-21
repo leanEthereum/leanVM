@@ -58,10 +58,10 @@ def any18S : Stmt := .callIf (.n (val% «child_claim_list_any» "s6#1")) name% �
 def anyDispS : Stmt := .dispatch (.n (val% «child_claim_list_any» "rest")) cclNames [.n (val% «child_claim_list_any» "last"), .n (val% «child_claim_list_any» "entries_ptr"), .n (val% «child_claim_list_any» "region"), .n (val% «child_claim_list_any» "d0~6"), .n (val% «child_claim_list_any» "last_g")] [.n (val% «child_claim_list_any» "d0"), .n (val% «child_claim_list_any» "d1")]
 
 /-- The body before its dispatch. -/
-noncomputable def anyP1 : List Stmt := anyFlat.take 72
+noncomputable def anyP1 : List Stmt := anyFlat.take (pos% «child_claim_list_any» "d0")
 
 /-- The body after its dispatch. -/
-noncomputable def anyPost : List Stmt := anyFlat.drop 73
+noncomputable def anyPost : List Stmt := anyFlat.drop (pos% «child_claim_list_any» "s9#0")
 
 set_option maxRecDepth 100000 in
 theorem anyFlat_split : anyFlat = anyP1 ++ anyDispS :: anyPost :=
@@ -123,7 +123,7 @@ the chain buffer `.n 17`, every other atom needing a side condition the division
 noncomputable def anyCOk : Bool :=
   let SE := storesOf 7 anyFlat
   (chk 7 anyFlat).isSome &&
-  SE.all (fun a => (List.range 13).any fun c => atomEqb a (.load (.n (18 + c)) (.n (val% «child_claim_list_any» "chain")) c)) &&
+  SE.all (fun a => (List.range 13).any fun c => atomEqb a (.load (.n ((val% «child_claim_list_any» "s2.i0:zero_state.s0.u0.s0#0") + c)) (.n (val% «child_claim_list_any» "chain")) c)) &&
   (atomsIn anyFlat).all (fun a => !needsSide a || decide (a ∈ SE) ||
     atomEqb a (.mul (.n (val% «child_claim_list_any» "limit_g")) (.n (val% «child_claim_list_any» "last_g")) (.n (val% «child_claim_list_any» "last_g~0"))) || atomEqb a (.touch (.n (val% «child_claim_list_any» "s9#0")) (.n (val% «child_claim_list_any» "bigs"))) ||
     atomEqb a (.touch (.n (val% «child_claim_list_any» "s10#0")) (.n (val% «child_claim_list_any» "groups"))))
@@ -205,7 +205,7 @@ theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Di
   have v17 : σ (.n (val% «child_claim_list_any» "chain")) = chain := by
     have : σ (.n (val% «child_claim_list_any» "chain")) = w 17 := hg _ s17
     rw [this, hw]; simp [anyw]
-  have v18 : ∀ c < 13, σ (.n (18 + c)) = 0 := by
+  have v18 : ∀ c < 13, σ (.n ((val% «child_claim_list_any» "s2.i0:zero_state.s0.u0.s0#0") + c)) = 0 := by
     intro c hc'
     obtain ⟨x, hx, hp⟩ := List.any_eq_true.mp (hzs c hc').2
     have hgx := hg x hx

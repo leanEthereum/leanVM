@@ -270,7 +270,7 @@ def l2Post : List Stmt :=
   [cst (xEnd + 1) (word 2 0), mulS (.n (xEnd + 2)) (.n (val% «main_loop2» "xi")) (.n (xEnd + 1)),
     addS (.n (xEnd + 3)) (.n (xEnd + 2)) (.n (val% «main_loop2» "bound")), cst (xEnd + 4) (word 2 0),
     mulS (.n (xEnd + 5)) (.n (val% «main_loop2» "xi")) (.n (xEnd + 4)),
-    .callIf (.n (xEnd + 3)) name% «main_loop2» (.n (xEnd + 5) :: (List.range 55).map fun j => V.n (j + 1)),
+    .callIf (.n (xEnd + 3)) name% «main_loop2» (.n (xEnd + 5) :: (List.range 55).map fun j => V.n (j + (val% «main_loop2» "bound"))),
         .ret []]
 
 end

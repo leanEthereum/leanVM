@@ -30,9 +30,10 @@ compiler change renumbers them. A proof names a value instead:
 * `valf% f "name"`: the common number of `name` in every specialization `f__L…` of the source
   function `f`, `valf% f «_loop0» "name"` in their loops `f__L…_loop0` (written to
   `Data/ValNames/«f__L».lean`, `«f__L_loop0».lean`, only when they agree);
-* `pos% f "name"`: the position in `f`'s body of the top-level statement that names `name` first.
+* `pos% f "name"`: the position in `f`'s body of the top-level statement that names `name` first
+  (`ret`: the body's final `ret`); `span% f "a" "b"`, the number of statements from `a`'s to `b`'s.
 
-All three elaborate to the numeral the generated `Data/ValNames/«f».lean` gives them
+All four elaborate to the numeral the generated `Data/ValNames/«f».lean` gives them
 (`scripts/val-names/gen.py`, which writes the names the proofs cite, from `guest-core --names`), so
 a proof reads as one that spelled the numeral, and a renumbering changes no proof. A module that
 cites them imports `LeanVM.Guest.Data.ValNames.«f»`, privately: only its importers rebuild when
@@ -75,5 +76,13 @@ elab:max "valf% " f:ident s:(ident)? n:str : term => do
 /-- `pos% f "name"`: the position in the body of the core function of stable name `f` of the
 top-level statement that names the value `name` first. -/
 elab:max "pos% " f:ident n:str : term => lookup `S f n
+
+/-- `span% f "a" "b"`: the number of top-level statements of `f`'s body from the one `pos% f "a"`
+names up to the one `pos% f "b"` names, a numeral (a slice's length, as `take` reads it). -/
+elab:max "span% " f:ident a:str b:str : term => do
+  let some i := natOf (← lookup `S f a) | throwErrorAt a "not a numeral"
+  let some j := natOf (← lookup `S f b) | throwErrorAt b "not a numeral"
+  unless i ≤ j do throwErrorAt b "{b.getString} (statement {j}) is before {a.getString} (statement {i})"
+  return mkNatLit (j - i)
 
 end LeanVM.Guest.ValRef

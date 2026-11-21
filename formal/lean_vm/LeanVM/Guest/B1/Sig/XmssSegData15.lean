@@ -20,7 +20,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem xSeg_slice_84 : (((Fn.«main_loop2».core).body.drop (pos% «main_loop2» "s3.i3:verify_lean_xmss.s0#0")).drop 84).take 1 = ((xSeg ++
+theorem xSeg_slice_84 : (((Fn.«main_loop2».core).body.drop (pos% «main_loop2» "s3.i3:verify_lean_xmss.s0#0")).drop (span% «main_loop2» "pp" "value@10753")).take 1 = ((xSeg ++
     l2Post).drop
     84).take 1 :=
   stmtsEqb_sound (by decide +kernel)

@@ -176,7 +176,7 @@ theorem vsPushStep_memT {b : ℕ} (hb : b < 54) {s : Stmt} (hs : s ∈ vsPushSte
 /-- **A push block's square**: `g^(2^κ_b)` read from `g_squares`. -/
 theorem vs_pushVal (hl : args.length = 6) {sqE logMem : ℕ} {hs : List ℕ}
     (hh : ∀ x ∈ hs, x < 33) (hm : logMem ≤ 32)
-    (hkb : ∀ s < 8, ς (.n (84 + s)) = gen ^ (([0, logMem] ++ hs).getD s 0))
+    (hkb : ∀ s < 8, ς (.n ((val% «verify_sub» "kb[0]") + s)) = gen ^ (([0, logMem] ++ hs).getD s 0))
     (hp4 : ς (.n (val% «verify_sub» "g_squares")) = ptr sqE) (hsq : ReadsAt rd (ptr sqE) expTabAllWords) {b : ℕ} (hb : b < 54) :
     ς (.n (vsPushD b)) = gen ^ 2 ^ pushKappa logMem hs b := by
   have hsrc : Tables.blockKappaSrc.getD b 0 < 8 := blockKappaSrc_lt b (by show b < 153; omega)
@@ -190,7 +190,7 @@ theorem vs_pushVal (hl : args.length = 6) {sqE logMem : ℕ} {hs : List ℕ}
 /-- **The push blocks' total** `g^(Σ_b 2^κ_b)`, block by block. -/
 theorem vs_pushProd (hl : args.length = 6) {sqE logMem : ℕ} {hs : List ℕ}
     (hh : ∀ x ∈ hs, x < 33) (hm : logMem ≤ 32)
-    (hkb : ∀ s < 8, ς (.n (84 + s)) = gen ^ (([0, logMem] ++ hs).getD s 0))
+    (hkb : ∀ s < 8, ς (.n ((val% «verify_sub» "kb[0]") + s)) = gen ^ (([0, logMem] ++ hs).getD s 0))
     (hp4 : ς (.n (val% «verify_sub» "g_squares")) = ptr sqE) (hsq : ReadsAt rd (ptr sqE) expTabAllWords) :
     ∀ n < 54, ς (.n (vsPV n)) =
       gen ^ ((List.range (n + 1)).map fun b ↦ 2 ^ pushKappa logMem hs b).sum := by
@@ -355,7 +355,7 @@ theorem vs_honVals {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : 
     vs_sizesV (rd := rd) (w := w) (args := args) hl S.hr1 S.hlm1 h64 h72
   have hdims : ReadsAt rd (w 71) (vsDimsW S.logMem S.hs) := by
     rw [wa (i := 3) (a := 71) (by norm_num) rfl]; exact own 3 (by norm_num)
-  have hkb : ∀ s < 8, vsσ rd w args (.n (84 + s)) = gen ^ ([0, S.logMem] ++ S.hs).getD s 0 := by
+  have hkb : ∀ s < 8, vsσ rd w args (.n ((val% «verify_sub» "kb[0]") + s)) = gen ^ ([0, S.logMem] ++ S.hs).getD s 0 := by
     intro s hs
     rw [← S.kb_pow hbl hs]
     rcases s with _ | _ | t
@@ -516,7 +516,7 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
     obtain ⟨-, -, hc4, -, hpl, -⟩ := S.gkr_inv hbl
     refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets' hl bs outs (j := 10) (by norm_num) rfl
       (by rw [O.o10]; simp [Tables.VtHonest.retsH, Fs.squeeze, capOf])⟩⟩
-    have e9 : ∀ k < 5, σ (.n (545 + k)) = S.s4.cap.getD k 0 := fun k hk ↦ by
+    have e9 : ∀ k < 5, σ (.n ((val% «verify_sub» "fs0@3") + k)) = S.s4.cap.getD k 0 := fun k hk ↦ by
       rw [pr (j := 9) (k := k) (a := 545 + k) (by norm_num) (by simp [vsRetVars]; omega)
         (by interval_cases k <;> rfl), hr9, List.getD_append _ _ _ _ (by omega)]
     have e567 : σ (.n (val% «verify_sub» "cursor@2")) = ptr (S.cT bs) := by
@@ -557,7 +557,7 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
     have hxl := (S.H_run hbl).2.2.2
     refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets' hl bs outs (j := 11) (by norm_num) rfl
       (by rw [O.o11]; simp [capOf])⟩⟩
-    have eK : ∀ k < 6, σ (.n (556 + k)) = (S.H.retsH (S.vtB bs sqE (S.leavesB (outs.take 10)))).getD k 0 :=
+    have eK : ∀ k < 6, σ (.n ((val% «verify_sub» "fs0@4") + k)) = (S.H.retsH (S.vtB bs sqE (S.leavesB (outs.take 10)))).getD k 0 :=
       fun k hk ↦ by
         rw [pr (j := 10) (k := k) (a := 556 + k) (by norm_num) (by simp [vsRetVars]; omega)
           (by interval_cases k <;> rfl), O.o10]
@@ -608,11 +608,11 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
     obtain ⟨b14, b14', hr14, hL14⟩ := O.o14
     refine ⟨rfl, (@decide_eq_true _ (Classical.propDecidable _) O.term).symm, fun _ ↦ ⟨?_,
       vs_rets' hl bs outs (j := 15) (rs := []) (by norm_num) rfl (by rw [O.o15]; simp)⟩⟩
-    have r10 : ∀ k < 10, σ (.n (556 + k)) =
+    have r10 : ∀ k < 10, σ (.n ((val% «verify_sub» "fs0@4") + k)) =
         (S.H.retsH (S.vtB bs sqE (S.leavesB (outs.take 10)))).getD k 0 := fun k hk ↦ by
       rw [pr (j := 10) (k := k) (a := 556 + k) (by norm_num) (by simp [vsRetVars]; omega)
         (by interval_cases k <;> rfl), O.o10]
-    have r14 : ∀ k < 5, σ (.n (1888 + k)) = [S.w.target, ptr b14, ptr b14', S.w.inner,
+    have r14 : ∀ k < 5, σ (.n ((val% «verify_sub» "sumcheck_target") + k)) = [S.w.target, ptr b14, ptr b14', S.w.inner,
         S.w.residual].getD k 0 := fun k hk ↦ by
       rw [pr (j := 14) (k := k) (a := 1888 + k) (by norm_num) (by simp [vsRetVars]; omega)
         (by interval_cases k <;> rfl), hr14]

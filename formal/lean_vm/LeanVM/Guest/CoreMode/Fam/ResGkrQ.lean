@@ -184,7 +184,7 @@ theorem vbgQ_step (hr : r.Ok) :
   rw [VerifySub.vs_body] at hb
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨hexp, hwin⟩ := carryQ_all hr I hI _ σI bufsI kidsI hIt _ hfI (name% «verify_sub», 4, .tab)
-    (by decide) rfl (.n 4) (by rw [VerifySub.vs_params]; rfl)
+    (by decide) rfl (.n (val% «verify_sub» "g_squares")) (by rw [VerifySub.vs_params]; rfl)
   obtain ⟨⟨F⟩, -⟩ := VerifySub.vs_front (by omega) r.img (fun _ _ _ h ↦ Res.KidRel.rel h)
     (bytecode := List.replicate (2 ^ 23) 0) List.length_replicate hexp hwin hb
   rw [e5, e9, F.h320, F.h312, mul_assoc, ← pow_add]
@@ -271,8 +271,8 @@ theorem glsLQ_step (hr : r.Ok) :
   obtain ⟨hlp, hend, hnc⟩ := loop_of (gl_loopsB.1 o ho).2.1 hf'
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   -- the counter below the bound, at the callee
-  suffices H : ∃ m n q, σ (.n 0) = gen ^ m ∧ σ (.n 1) = gen ^ n ∧ m ≤ n ∧ n < 4 ∧ σ (.n 5) = gen ^ (2 - o) ∧
-      LoadHolds r.img.read (σ (.n 2)) (10 * (2 * (4 * m) + 2 - o) + 5) (σ (.n 8) * gen ^ q) ∧
+  suffices H : ∃ m n q, σ (.n (valf% «gkr_layers» «_loop0» "x_m")) = gen ^ m ∧ σ (.n (valf% «gkr_layers» «_loop0» "bound")) = gen ^ n ∧ m ≤ n ∧ n < 4 ∧ σ (.n (valf% «gkr_layers» «_loop0» "start_g")) = gen ^ (2 - o) ∧
+      LoadHolds r.img.read (σ (.n (valf% «gkr_layers» «_loop0» "layers"))) (10 * (2 * (4 * m) + 2 - o) + 5) (σ (.n (valf% «gkr_layers» «_loop0» "stream")) * gen ^ q) ∧
       q ≤ 27 + 560 * m by
     obtain ⟨m, n, q, h0, h1, hmn, hn, h5, hsl, hq⟩ := H
     obtain ⟨m', hm', h0'⟩ := loop_ctr_lt hr hJS hJt hfn hlp hend (hp'.trans glcPar9_eq) h1 (by omega)
@@ -310,8 +310,8 @@ theorem glsLQ_step (hr : r.Ok) :
     obtain ⟨m, n, q, h0I, h1I, hmn, hn, h5I, hslI, hqI⟩ := hQI o ho σI bufsI kidsI hIt
     rw [hb'] at hb
     obtain ⟨m10, -, hcalls⟩ := glsl_holds hb
-    have hR : ∀ p < 4, coreProgram.Rel r.img.read (glName p o) [σI (.n 2), σI (.n 3), σI (.n 4), gen ^ m,
-        gen ^ (4 * m + p), gen ^ (2 - o), σI (.n 6), σI (.n 7), σI (.n 8)] [] := fun p hp ↦ by
+    have hR : ∀ p < 4, coreProgram.Rel r.img.read (glName p o) [σI (.n (valf% «gkr_layers» «_loop0» "layers")), σI (.n (valf% «gkr_layers» «_loop0» "rounds")), σI (.n (valf% «gkr_layers» «_loop0» "gkr_pts")), gen ^ m,
+        gen ^ (4 * m + p), gen ^ (2 - o), σI (.n (valf% «gkr_layers» «_loop0» "g_bus_mu")), σI (.n (valf% «gkr_layers» «_loop0» "tabs")), σI (.n (valf% «gkr_layers» «_loop0» "stream"))] [] := fun p hp ↦ by
       have := Res.KidRel.rel (hcalls p hp)
       rwa [m10, h0I, h5I, gl_pow4] at this
     obtain ⟨q1, h1, hq1⟩ := gl_slots ho (by omega) 4 le_rfl hR hslI 4 le_rfl
@@ -358,11 +358,11 @@ theorem glastQ_step (hr : r.Ok) :
     obtain ⟨c11, a10, hloop, m13⟩ := gls_holds hb
     obtain ⟨n, rr0, q, h3, hn, -, -, h5, hsl, hq⟩ := glsQ_all hr I hI o ho σI bufsI kidsI hIt
     -- the slot of layer `4n`, past the loop's run
-    have hslot : ∃ q', LoadHolds r.img.read (σI (.n 0)) (10 * (2 * (4 * n) + 2 - o) + 5)
-        (σI (.n 8) * gen ^ q') ∧ q' ≤ 27 + 560 * n := by
+    have hslot : ∃ q', LoadHolds r.img.read (σI (.n (valf% «gkr_layers» "layers"))) (10 * (2 * (4 * n) + 2 - o) + 5)
+        (σI (.n (valf% «gkr_layers» "stream")) * gen ^ q') ∧ q' ≤ 27 + 560 * n := by
       rcases Nat.eq_zero_or_pos n with rfl | hn0
       · exact ⟨q, by simpa using hsl, by omega⟩
-      · have hne : σI (.n 10) ≠ 0 := by
+      · have hne : σI (.n (valf% «gkr_layers» "s0#1")) ≠ 0 := by
           rw [a10, h3]
           intro h0
           have := gen_pow_inj (by omega) (by omega) ((e_add_eq_zero_iff.mp h0).symm.trans (pow_zero gen).symm)

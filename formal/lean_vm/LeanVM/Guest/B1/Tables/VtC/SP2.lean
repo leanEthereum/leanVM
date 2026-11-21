@@ -64,7 +64,7 @@ theorem vtS_p2 (hl : args.length = 21) (hlow : LowDefB 14 rd) (point : List E)
     (hμ33 : point.length < 33) (τ n : ℕ → ℕ)
     (hτ : ∀ t < 6, τ t = max (log2Ceil (n t)) (tableLogFloors.getD t 0))
     (hτ31 : ∀ t < 6, τ t < 31) (hτμ : ∀ t < 6, τ t ≤ point.length)
-    (hkb : ∀ t < 6, σv (.n (28 + t)) = gen ^ τ t)
+    (hkb : ∀ t < 6, σv (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ τ t)
     (hz : TbReadsAt rd (σv (.n (val% «verify_tables» "zeta"))) point) (h9 : σv (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length)
     (hrows : ∀ t < 6, LoadHolds rd (σv (.n (val% «verify_tables» "table_rows"))) t (eOfNat (n t)))
     (hsq : TbReadsAt rd (σv (.n (val% «verify_tables» "g_squares"))) gSquaresList)
@@ -77,7 +77,7 @@ theorem vtS_p2 (hl : args.length = 21) (hlow : LowDefB 14 rd) (point : List E)
       ((gSquaresList.drop (τ t)).take (point.length - τ t)))
     (hrpad : ∀ t < 6, RunPads rd (w 702 * gen ^ (288 * t)) (w 703 * gen ^ (144 * t))
       (point.length - τ t) (point.drop (τ t))) :
-    (∀ s ∈ (vtPre.drop 563).take 202, VSH (coreProgram.Rel rd) rd σv s) ∧
+    (∀ s ∈ (vtPre.drop (pos% «verify_tables» "s15.u0.s1#0")).take (span% «verify_tables» "s15.u0.s1#0" "block_index_mle"), VSH (coreProgram.Rel rd) rd σv s) ∧
       (∀ t < 6, σv (.n (vtPadV t)) = paddingWeight (point.take (τ t)) (n t)) ∧
       (∀ t < 6, σv (.n (vtShLen t)) = gen ^ (point.length - τ t)) ∧
       σv (.n (val% «verify_tables» "idxc_tab")) = w 665 ∧ σv (.n (val% «verify_tables» "zeta1")) = w 700 ∧
@@ -133,21 +133,21 @@ theorem vtS_p2 (hl : args.length = 21) (hlow : LowDefB 14 rd) (point : List E)
     · exact vtc_sh4 hl hlow (hkb 4 (by norm_num)) h9 rfl hμ33 (hτμ 4 (by norm_num)) hz hz1' hsq hr hp
     · exact vtc_sh5 hl hlow (hkb 5 (by norm_num)) h9 rfl hμ33 (hτμ 5 (by norm_num)) hz hz1' hsq hr hp
   refine ⟨?_, ?_, fun t ht ↦ (hsh t ht).2, e668, e703, e705, e706⟩
-  · have s2 : ∀ s ∈ (vtPre.drop 563).take 50, VSH (coreProgram.Rel rd) rd σv s := by
+  · have s2 : ∀ s ∈ (vtPre.drop (pos% «verify_tables» "s15.u0.s1#0")).take (span% «verify_tables» "s15.u0.s1#0" "s15.u5.s1#0"), VSH (coreProgram.Rel rd) rd σv s := by
       have := forall_slices (fun t ↦ 563 + 10 * t) (fun _ ↦ 10) 5 (by decide)
         (fun t ht ↦ by
           have h := vt_tmplSlice (vtPad_check t ht) (hpad t ht).1
           rwa [show (vtPadT (579 + 13 * t) t).length = 10 from rfl] at h)
       simpa using this
-    have s3 : ∀ s ∈ (vtPre.drop 613).take 11, VSH (coreProgram.Rel rd) rd σv s :=
+    have s3 : ∀ s ∈ (vtPre.drop (pos% «verify_tables» "s15.u5.s1#0")).take (span% «verify_tables» "s15.u5.s1#0" "idxc_tab"), VSH (coreProgram.Rel rd) rd σv s :=
       vt_tmplSlice vtPad5_check hpad5.1
     have s4 := vt_hintSlice (rd := rd) (w := w) (args := args) 624 (h := .alloc (.n (val% «verify_tables» "idxc_tab")) 34) (by decide +kernel)
-    have s5 : ∀ s ∈ (vtPre.drop 625).take 68, VSH (coreProgram.Rel rd) rd σv s := by
+    have s5 : ∀ s ∈ (vtPre.drop (pos% «verify_tables» "s17.u0.s0#0")).take (span% «verify_tables» "s17.u0.s0#0" "zeta1"), VSH (coreProgram.Rel rd) rd σv s := by
       have h := vt_tmplSlice vtIdxc_check (idxc_ok hl (by rw [e668]; exact hidxc))
       rwa [show vtIdxcT.length = 68 by decide +kernel] at h
     have s6 := vt_hintSlice (rd := rd) (w := w) (args := args) 693 (h := .allocDyn (.n (val% «verify_tables» "zeta1")) (.n (val% «verify_tables» "g_bus_mu")))
       (by decide +kernel)
-    have s7 : ∀ s ∈ (vtPre.drop 694).take 1, VSH (coreProgram.Rel rd) rd σv s := by
+    have s7 : ∀ s ∈ (vtPre.drop (pos% «verify_tables» "zeta1_done")).take 1, VSH (coreProgram.Rel rd) rd σv s := by
       have h := vt_tmplSlice (P := VSH (coreProgram.Rel rd) rd σv) vtZeta1_check (by
         intro s hs
         simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
@@ -158,7 +158,7 @@ theorem vtS_p2 (hl : args.length = 21) (hlow : LowDefB 14 rd) (point : List E)
       (by decide +kernel)
     have s9 := vt_hintSlice (rd := rd) (w := w) (args := args) 696 (h := .alloc (.n (val% «verify_tables» "shared_g")) 864)
       (by decide +kernel)
-    have s10 : ∀ s ∈ (vtPre.drop 697).take 68, VSH (coreProgram.Rel rd) rd σv s := by
+    have s10 : ∀ s ∈ (vtPre.drop (pos% «verify_tables» "s23.u0.s1#0")).take (span% «verify_tables» "s23.u0.s1#0" "block_index_mle"), VSH (coreProgram.Rel rd) rd σv s := by
       have := forall_slices (fun t ↦ [697, 705, 717, 729, 741, 753].getD t 0)
         (fun t ↦ [8, 12, 12, 12, 12, 12].getD t 0) 6 (by decide)
         (fun t ht ↦ (hsh t ht).1)

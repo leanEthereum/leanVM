@@ -17,6 +17,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_last_layers__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L_loop0»
+import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
 
 /-!
 # The radix-four layers' words
@@ -220,14 +221,14 @@ def glOne (p : ℕ) : ℕ := if p = 0 then 58 else 60 + 78 * p
 
 /-- The loop's arguments past the start and end. -/
 def glLRest (p : ℕ) : List V :=
-  if p = 0 then [.n 53, .n 52, .n 62, .n 7] else [.n 53, .n (64 + 78 * p), .n (66 + 78 * p), .n 7]
+  if p = 0 then [.n (valf% «gkr_layer» "head"), .n (valf% «gkr_layer» "point_row"), .n 62, .n (valf% «gkr_layer» "tabs")] else [.n (valf% «gkr_layer» "head"), .n (64 + 78 * p), .n (66 + 78 * p), .n (valf% «gkr_layer» "tabs")]
 
 /-- `gkr_layer__L{p}_L{o}`'s checks: its loop call from `σ (glOne p + 2) = 1` below `x_m`, guarded
 by `σ (glOne p + 1) = 1 + x_m`. -/
 noncomputable def glChk (p o : ℕ) : Bool :=
   gwChk (glBody p o (glLoopName p o)) []
-    [(some (.n (glOne p + 1)), glLoopName p o, .n (glOne p + 2) :: .n 3 :: glLRest p, [])]
-    [.const (.n (glOne p)) (word 1 0), .add (.n (glOne p + 1)) (.n (glOne p)) (.n 3),
+    [(some (.n (glOne p + 1)), glLoopName p o, .n (glOne p + 2) :: .n (valf% «gkr_layer» "x_m") :: glLRest p, [])]
+    [.const (.n (glOne p)) (word 1 0), .add (.n (glOne p + 1)) (.n (glOne p)) (.n (valf% «gkr_layer» "x_m")),
       .const (.n (glOne p + 2)) (word 1 0)] &&
   (glBody p o (glLoopName p o)).dropLast.all gwNoDisp
 
@@ -258,11 +259,11 @@ theorem gl_totalLeOn {Kg : ℕ → ℕ → ℕ}
   have e2 := hat _ a2
   have e3 := hat _ a3
   simp only [Atom.Holds, tb_word_one] at e1 e2 e3
-  have h3' : σ (.n 3) = gen ^ m := by
+  have h3' : σ (.n (valf% «gkr_layer» "x_m")) = gen ^ m := by
     rw [← hpar, hps] at h3
     exact h3
   have hcalls : flatCalls (glBody p o (glLoopName p o)).dropLast σ =
-      [⟨glLoopName p o, .n (glOne p + 2) :: .n 3 :: glLRest p, [],
+      [⟨glLoopName p o, .n (glOne p + 2) :: .n (valf% «gkr_layer» "x_m") :: glLRest p, [],
         decide (σ (.n (glOne p + 1)) ≠ 0)⟩] := by
     rw [flatCalls, gw_callSF hnd, hcs]; rfl
   refine (htot [fs (glLoopName p o) + m * Kg p o] ?_).trans (by simp [glWB])
@@ -337,7 +338,7 @@ theorem glLast_totalLeOn {Kg : ℕ → ℕ → ℕ}
   obtain ⟨hsplit, hfl, hal, hcs, -⟩ := gwChk_sound hc.1
   have hnd := hc.2
   obtain ⟨hpar, -, htot⟩ := gw_node (fs := fs) hf (hbody.trans hsplit) hfl hal hv hb (gw_dispOk hnd)
-  have h3' : σ (.n 3) = gen ^ n := by
+  have h3' : σ (.n (valf% «gkr_last_layers» "n_four")) = gen ^ n := by
     rw [← hpar, hps] at h3
     exact h3
   refine (htot _ ?_).trans (le_of_eq (by rfl))
@@ -377,16 +378,16 @@ theorem glsl_total {Kg : ℕ → ℕ → ℕ}
   have e20 := hat _ a20
   have e21 := hat _ a21
   simp only [Atom.Holds, tb_word_gen] at e17 e18 e19 e20 e21
-  have h0' : σ (.n 0) = gen ^ c := by rw [← hpar, hps] at h0; exact h0
-  have h1' : σ (.n 1) = gen ^ n := by rw [← hpar, hps] at h1; exact h1
-  have e21' : σ (.n 21) = gen ^ (c + 1) := by rw [e21, e20, h0', pow_succ]
-  have e19' : σ (.n 19) = gen ^ (c + 1) + gen ^ n := by rw [e19, e18, e17, h0', h1', pow_succ]
+  have h0' : σ (.n (valf% «gkr_layers» «_loop0» "x_m")) = gen ^ c := by rw [← hpar, hps] at h0; exact h0
+  have h1' : σ (.n (valf% «gkr_layers» «_loop0» "bound")) = gen ^ n := by rw [← hpar, hps] at h1; exact h1
+  have e21' : σ (.n (valf% «gkr_layers» «_loop0» "s6#4")) = gen ^ (c + 1) := by rw [e21, e20, h0', pow_succ]
+  have e19' : σ (.n (valf% «gkr_layers» «_loop0» "s6#2")) = gen ^ (c + 1) + gen ^ n := by rw [e19, e18, e17, h0', h1', pow_succ]
   refine (htot ((List.range 4).map (fun p ↦ glWB fs Kg p o c) ++
     [Budget.iterSum (glsIter fs Kg o) (c + 1) k + fs (glcLsLN o)]) ?_).trans ?_
   · rw [flatCalls, gw_callSF hnd, hcs, List.map_append]
     refine List.rel_append (glc_calls_W hK ho le_rfl (by omega) h0' 10 11) (.cons ⟨?_, ?_⟩ .nil)
     · intro ht t' rets' htn htv htb
-      have ht' : σ (.n 19) ≠ 0 := by simpa [Main.mkCall] using ht
+      have ht' : σ (.n (valf% «gkr_layers» «_loop0» "s6#2")) ≠ 0 := by simpa [Main.mkCall] using ht
       have hc1 : c + 1 ≠ n := fun h ↦ ht' (by rw [e19', h]; exact e_add_self _)
       exact ih (c + 1) t' _ rets' (by omega) (by omega) htn (by simp [Main.mkCall, e21'])
         (by simp [Main.mkCall, h1']) htv htb

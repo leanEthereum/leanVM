@@ -2,6 +2,8 @@ module
 
 public import LeanVM.Cost.Decoder.Xmss
 import all LeanVM.Guest.B1.Main.Interface
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # The guest decoder's compiled chain: the raw signatures
@@ -24,9 +26,9 @@ open LeanVM.Protocol.Verifier LeanVM.Node LeanVM.Extraction.Fast LeanVM.Guest.Fa
 
 /-- The numbers of raw leanXMSS and leanSPHINCS signatures, of direct DA checks (`nRawX`,
 `nRawS`, `nDirect`), the logarithm's tables `D` given. -/
-def nRawXD (D : DiscreteLogTables) (σ : Val) : ℕ := gLogD D (σ (.n 2))
-def nRawSD (D : DiscreteLogTables) (σ : Val) : ℕ := gLogD D (σ (.n 5))
-def nDirectD (D : DiscreteLogTables) (σ : Val) : ℕ := gLogD D (σ (.n 7))
+def nRawXD (D : DiscreteLogTables) (σ : Val) : ℕ := gLogD D (σ (.n (val% «main» "meta[2]")))
+def nRawSD (D : DiscreteLogTables) (σ : Val) : ℕ := gLogD D (σ (.n (val% «main» "meta[5]")))
+def nDirectD (D : DiscreteLogTables) (σ : Val) : ℕ := gLogD D (σ (.n (val% «main» "meta[7]")))
 
 theorem nRawXD_tables : nRawXD discreteLogTables = nRawX := by
   funext σ; unfold nRawXD nRawX; rw [gLogD_tables]
@@ -39,13 +41,13 @@ theorem nDirectD_tables : nDirectD discreteLogTables = nDirect := by
 noncomputable def rawXmssD (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wX : List E → LeanXmss.Signature) (j : ℕ) : LeanXmssClaim × LeanXmss.Signature :=
   let s := slotOfD D rd σ 0 (lxSlotsD D σ) j
-  (xmssAt rd (σ (.n 31)) s, wX (gen ^ j :: l2Args σ))
+  (xmssAt rd (σ (.n (val% «main» "lx_table"))) s, wX (gen ^ j :: l2Args σ))
 
 /-- **The raw leanSPHINCS signature of mark `n_raw_x + j`** (`rawSphincs`). -/
 noncomputable def rawSphincsD (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wS : E → Sphincs.Signature) (j : ℕ) : LeanSphincsClaim × Sphincs.Signature :=
   let s := slotOfD D rd σ (lxSlotsD D σ) (lsSlotsD D σ) (nRawXD D σ + j)
-  (sphincsAt rd (σ (.n 34)) s, wS (σ (.n 34) * gen ^ (4 * s)))
+  (sphincsAt rd (σ (.n (val% «main» "lean_sphincs_table"))) s, wS (σ (.n (val% «main» "lean_sphincs_table")) * gen ^ (4 * s)))
 
 theorem rawXmssD_tables : rawXmssD discreteLogTables = rawXmss := by
   funext rd σ wX j; unfold rawXmssD rawXmss; rw [slotOfD_tables, lxSlotsD_tables]
@@ -58,19 +60,19 @@ noncomputable def daWitness (D : DiscreteLogTables) (σ : Val)
     (wD : List E → List E → LeanVM.Da.MatrixWitness) :
     Option (DaClaim × LeanVM.Da.MatrixWitness) :=
   if nDirectD D σ = 1 then
-    some (dvClaim σ, wD [σ (.n 47)] [σ (.n 369), σ (.n 370), σ (.n 371)])
+    some (dvClaim σ, wD [σ (.n (val% «main» "byte_bits"))] [σ (.n (val% «main» "root_0")), σ (.n (val% «main» "root_1")), σ (.n (val% «main» "z"))])
   else none
 
 /-- `main_loop2`'s arguments after the counter (`l2Args`), read one by one: `n_raw_x`, `lx_slots`,
 `cover`, `lx_table` and the `51` carried chain indices (`main`'s `.n 304` to `.n 354`). -/
 def l2ArgsD (σ : Val) : List E :=
-  [σ (.n 2), σ (.n 22), σ (.n 45), σ (.n 31), σ (.n 304), σ (.n 305), σ (.n 306), σ (.n 307),
-    σ (.n 308), σ (.n 309), σ (.n 310), σ (.n 311), σ (.n 312), σ (.n 313), σ (.n 314), σ (.n 315),
-    σ (.n 316), σ (.n 317), σ (.n 318), σ (.n 319), σ (.n 320), σ (.n 321), σ (.n 322), σ (.n 323),
-    σ (.n 324), σ (.n 325), σ (.n 326), σ (.n 327), σ (.n 328), σ (.n 329), σ (.n 330), σ (.n 331),
-    σ (.n 332), σ (.n 333), σ (.n 334), σ (.n 335), σ (.n 336), σ (.n 337), σ (.n 338), σ (.n 339),
-    σ (.n 340), σ (.n 341), σ (.n 342), σ (.n 343), σ (.n 344), σ (.n 345), σ (.n 346), σ (.n 347),
-    σ (.n 348), σ (.n 349), σ (.n 350), σ (.n 351), σ (.n 352), σ (.n 353), σ (.n 354)]
+  [σ (.n (val% «main» "meta[2]")), σ (.n (val% «main» "lx_slots_g")), σ (.n (val% «main» "cover")), σ (.n (val% «main» "lx_table")), σ (.n (val% «main» "lx_tags[0]")), σ (.n (val% «main» "lx_tags[1]")), σ (.n (val% «main» "lx_tags[2]")), σ (.n (val% «main» "lx_tags[3]")),
+    σ (.n (val% «main» "lx_tags[4]")), σ (.n (val% «main» "lx_tags[5]")), σ (.n (val% «main» "lx_tags[6]")), σ (.n (val% «main» "lx_tags[7]")), σ (.n (val% «main» "lx_tags[8]")), σ (.n (val% «main» "lx_tags[9]")), σ (.n (val% «main» "lx_tags[10]")), σ (.n (val% «main» "lx_tags[11]")),
+    σ (.n (val% «main» "lx_tags[12]")), σ (.n (val% «main» "lx_tags[13]")), σ (.n (val% «main» "lx_tags[14]")), σ (.n (val% «main» "lx_tags[15]")), σ (.n (val% «main» "lx_tags[16]")), σ (.n (val% «main» "lx_tags[17]")), σ (.n (val% «main» "lx_tags[18]")), σ (.n (val% «main» "lx_tags[19]")),
+    σ (.n (val% «main» "lx_tags[20]")), σ (.n (val% «main» "lx_tags[21]")), σ (.n (val% «main» "lx_tags[22]")), σ (.n (val% «main» "lx_tags[23]")), σ (.n (val% «main» "lx_tags[24]")), σ (.n (val% «main» "lx_tags[25]")), σ (.n (val% «main» "lx_tags[26]")), σ (.n (val% «main» "lx_tags[27]")),
+    σ (.n (val% «main» "lx_tags[28]")), σ (.n (val% «main» "lx_tags[29]")), σ (.n (val% «main» "lx_tags[30]")), σ (.n (val% «main» "lx_tags[31]")), σ (.n (val% «main» "lx_tags[32]")), σ (.n (val% «main» "lx_tags[33]")), σ (.n (val% «main» "lx_tags[34]")), σ (.n (val% «main» "lx_tags[35]")),
+    σ (.n (val% «main» "lx_tags[36]")), σ (.n (val% «main» "lx_tags[37]")), σ (.n (val% «main» "lx_tags[38]")), σ (.n (val% «main» "lx_tags[39]")), σ (.n (val% «main» "lx_tags[40]")), σ (.n (val% «main» "lx_tags[41]")), σ (.n (val% «main» "lx_tags[42]")), σ (.n (val% «main» "lx_tags[43]")),
+    σ (.n (val% «main» "lx_tags[44]")), σ (.n (val% «main» "lx_tags[45]")), σ (.n (val% «main» "lx_tags[46]")), σ (.n (val% «main» "lx_tags[47]")), σ (.n (val% «main» "lx_tags[48]")), σ (.n (val% «main» "lx_tags[49]")), σ (.n (val% «main» "lx_tags[50]"))]
 
 theorem l2ArgsD_eq : l2ArgsD = l2Args := by
   funext σ
@@ -78,7 +80,7 @@ theorem l2ArgsD_eq : l2ArgsD = l2Args := by
 
 /-- The words of `aggregate_claims`' call. -/
 def aggArgs (σ : Val) : List E :=
-  [σ (.n 6), σ (.n 383), σ (.n 389), σ (.n 395), σ (.n 416), σ (.n 444)]
+  [σ (.n (val% «main» "meta[6]")), σ (.n (val% «main» "child_pi")), σ (.n (val% «main» "child_fresh")), σ (.n (val% «main» "child_carried")), σ (.n (val% «main» "defer_stmt")), σ (.n (val% «main» "s56.e.s0#1"))]
 
 cost_compile nRawXC := nRawXD
 cost_compile nRawSC := nRawSD
@@ -119,14 +121,14 @@ noncomputable def sphincsRawT (rd : Reader) (p56 : E) (wS : E → Sphincs.Signat
 
 theorem xmssRawT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wX : List E → LeanXmss.Signature) (j : ℕ) :
-    xmssRawT rd (σ (.n 31)) wX (l2Args σ) (lxTable D rd σ).1 (lxTable D rd σ).2 j =
+    xmssRawT rd (σ (.n (val% «main» "lx_table"))) wX (l2Args σ) (lxTable D rd σ).1 (lxTable D rd σ).2 j =
       rawXmssD D rd σ wX j := by
   unfold xmssRawT xmssRawAt rawXmssD
   rw [slotIn_regionTable, ← xmssAt_eq_K, LeanVM.Guest.Value.gen_pow_eq_ofK]
 
 theorem sphincsRawT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wS : E → Sphincs.Signature) (j : ℕ) :
-    sphincsRawT rd (σ (.n 34)) wS (lsTable D rd σ).1 (lsTable D rd σ).2 (nRawXD D σ) j =
+    sphincsRawT rd (σ (.n (val% «main» "lean_sphincs_table"))) wS (lsTable D rd σ).1 (lsTable D rd σ).2 (nRawXD D σ) j =
       rawSphincsD D rd σ wS j := by
   unfold sphincsRawT sphincsRawAt rawSphincsD
   rw [slotIn_regionTable, mulK_gen_pow, ← sphincsAt_eq_K]

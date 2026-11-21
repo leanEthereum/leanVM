@@ -103,7 +103,7 @@ theorem vkFin_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkFi
     exact loadHolds_unique (hrs k h1) (hslot k h2)
   have hr' : r = point.getD (τ - 4) 0 := loadHolds_unique hr hseg
   -- the slices read
-  have eLD : ∀ z < 64, σ (.n (1976 + z)) = slices.getD z 0 := fun z hz ↦
+  have eLD : ∀ z < 64, σ (.n ((val% «verify_keccak» "level[0]") + z)) = slices.getD z 0 := fun z hz ↦
     load_val (gA _ (mLD _ (List.mem_map.mpr ⟨z, List.mem_range.mpr hz, rfl⟩)))
       (not_mem_of_noneIn k1 _ (List.mem_append_right _ (List.mem_map.mpr ⟨z, List.mem_range.mpr hz, rfl⟩)))
       (by rw [List.getD_eq_getElem _ _ (by omega)]; exact hsl z (by omega))
@@ -150,7 +150,7 @@ theorem vkFin_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkFi
     gA (.const (.n (val% «verify_keccak» "s81#3")) (word 16 0)) (by simp [vkFinT])
   have m6583 := mulG (by norm_num) (by norm_num)
     (gA (.mul (.n (val% «verify_keccak» "s81#4")) (.n (val% «verify_keccak» "fs0@15~11")) (.n (val% «verify_keccak» "s81#3"))) (by simp [vkFinT]))
-  have ecp : ∀ j < 5, σ (.n (3359 + j)) = σ (.n (1735 + j)) := fun j hj ↦
+  have ecp : ∀ j < 5, σ (.n ((val% «verify_keccak» "s82#0") + j)) = σ (.n ((val% «verify_keccak» "nxt[8]@22") + j)) := fun j hj ↦
     hg _ (mCP _ (List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩))
   have c6589 : σ (.n (val% «verify_keccak» "s82#1")) = word 27 0 := gA (.const (.n (val% «verify_keccak» "s82#1")) (word 27 0)) (by simp [vkFinT])
   have m6590 := mulG (by norm_num) (by norm_num)

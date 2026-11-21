@@ -148,7 +148,7 @@ weights against `zeta1`. -/
 theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 21)
     {m n : ℕ} {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t ≤ n) (hτn : ∃ t < 6, τ t = n) (hnm : n ≤ m)
     (hm : m ≤ 32) (h9 : vtσ rd w args (.n (val% «verify_tables» "g_bus_mu")) = gen ^ m)
-    (hkb : ∀ t < 6, vtσ rd w args (.n (28 + t)) = gen ^ τ t)
+    (hkb : ∀ t < 6, vtσ rd w args (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ τ t)
     (hlow : ∀ i < 64, (rd (Parameters.addressOfIndex i)).isSome) (hwn : w 2544 = gen ^ n) {S : Fs}
     (hSr : rateOf S.pend = [vtσ rd w args (.n (val% «verify_tables» "rate[0]@3")), vtσ rd w args (.n (val% «verify_tables» "rate[1]@3")), 0, 0, 0, 0, 0, 0])
     (hSc : S.cap = [vtσ rd w args (.n (val% «verify_tables» "sp[0]@2")), vtσ rd w args (.n (val% «verify_tables» "sp[1]@2")), vtσ rd w args (.n (val% «verify_tables» "sp[2]@2")),
@@ -165,14 +165,14 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
     {zs1 : List E} (hz1 : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "zeta1"))) zs1) (hz1l : n ≤ zs1.length)
     (hP : TbReadsAt rd (w 2651) ((List.range (n + 1)).map (prefixProd 1
       (zcChis S.squeeze.2.cap (zTarget (vtσ rd w args) S.squeeze.1) xs n) (zs1.take n)))) :
-    (∀ s ∈ (vtPre.drop 2590).take 93, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) ∧
+    (∀ s ∈ (vtPre.drop (pos% «verify_tables» "g_zc_n")).take (span% «verify_tables» "g_zc_n" "x@9"), VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) ∧
       ZOut (vtσ rd w args) w S xs n := by
   have g : GoodL rd w (vtσ rd w args) zBlk := vt_goodL hl 2590 zBlk zBlk_at
   have gk : Good rd vtSL w (vtσ rd w args) (.keccak [.n (val% «verify_tables» "rate[0]@3"), .n (val% «verify_tables» "rate[1]@3"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "sp[0]@2"),
-      .n (val% «verify_tables» "sp[1]@2"), .n (val% «verify_tables» "sp[2]@2"), .n (val% «verify_tables» "sp[3]@2"), .n (val% «verify_tables» "sp[4]@2")] (lyOuts 2597) false false) :=
+      .n (val% «verify_tables» "sp[1]@2"), .n (val% «verify_tables» "sp[2]@2"), .n (val% «verify_tables» "sp[3]@2"), .n (val% «verify_tables» "sp[4]@2")] (lyOuts (val% «verify_tables» "nxt[0]@3")) false false) :=
     (vt_goodL (rd := rd) (w := w) hl 2630 [.atom (.keccak [.n (val% «verify_tables» "rate[0]@3"), .n (val% «verify_tables» "rate[1]@3"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "sp[0]@2"),
       .n (val% «verify_tables» "sp[1]@2"), .n (val% «verify_tables» "sp[2]@2"), .n (val% «verify_tables» "sp[3]@2"), .n (val% «verify_tables» "sp[4]@2")]
-      (lyOuts 2597) false false)] (by decide +kernel)).1
+      (lyOuts (val% «verify_tables» "nxt[0]@3")) false false)] (by decide +kernel)).1
   have e := tbStmtsEqb_sound zBlk_at
   have hlen : zBlk.length = 93 := rfl
   suffices H : (∀ s ∈ zRest, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) ∧
@@ -246,7 +246,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
       .n (val% «verify_tables» "sp[1]@2"), .n (val% «verify_tables» "sp[2]@2"), .n (val% «verify_tables» "sp[3]@2"), .n (val% «verify_tables» "sp[4]@2")] : List V).map σ = rateOf S.pend ++ S.cap := by
     rw [hSr, hSc]; simp [hz0, hz1', hz2, hz3]
   have k2631 : (Atom.keccak [.n (val% «verify_tables» "rate[0]@3"), .n (val% «verify_tables» "rate[1]@3"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "sp[0]@2"),
-      .n (val% «verify_tables» "sp[1]@2"), .n (val% «verify_tables» "sp[2]@2"), .n (val% «verify_tables» "sp[3]@2"), .n (val% «verify_tables» "sp[4]@2")] (lyOuts 2597) false false).Holds rd σ := z_keccak gk
+      .n (val% «verify_tables» "sp[1]@2"), .n (val% «verify_tables» "sp[2]@2"), .n (val% «verify_tables» "sp[3]@2"), .n (val% «verify_tables» "sp[4]@2")] (lyOuts (val% «verify_tables» "nxt[0]@3")) false false).Holds rd σ := z_keccak gk
   obtain ⟨hPk, -⟩ := ly_keccak k2631
   rw [hin] at hPk
   have vξ : σ (.n (val% «verify_tables» "nxt[0]@3")) = S.squeeze.1 := challengeT_value (s0 := .n (val% «verify_tables» "nxt[0]@3")) (b := 2597) rfl (hPk 0 (by norm_num))

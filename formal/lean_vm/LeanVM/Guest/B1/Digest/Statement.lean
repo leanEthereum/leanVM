@@ -59,7 +59,7 @@ def sdHdr : List Atom :=
    .copy (.n (val% «statement_digest» "cells[4]")) (.n (val% «statement_digest» "sd_0")), .copy (.n (val% «statement_digest» "cells[5]")) (.n (val% «statement_digest» "sd_1")), .copy (.n (val% «statement_digest» "cells[6]")) (.n (val% «statement_digest» "da_0")), .copy (.n (val% «statement_digest» "cells[7]")) (.n (val% «statement_digest» "da_1"))]
 
 /-- The deferred cells, read at `defer`. -/
-def sdLoads : List Atom := (List.range 24).map fun i => .load (.n (17 + i)) (.n (val% «statement_digest» "defer")) i
+def sdLoads : List Atom := (List.range 24).map fun i => .load (.n ((val% «statement_digest» "cells[8]") + i)) (.n (val% «statement_digest» "defer")) i
 
 /-- The constants: the padding's `0x01` cell and the zero capacity of the first block. -/
 def sdConsts : List Atom :=
@@ -77,7 +77,7 @@ abbrev padWord : E := word 0 9223372036854775808
 /-- The last block: the message's last seven cells and the padding's `0x01` cell, the padding's
 `0x80` cell, its `KECCAK`. -/
 def sdBlk3 : List Atom :=
-  (List.range 8).map (fun c => .add (.n (103 + c)) (.n (sdOut 2 c)) (.n (sdCell (25 + c)))) ++
+  (List.range 8).map (fun c => .add (.n ((val% «statement_digest» "s11#16") + c)) (.n (sdOut 2 c)) (.n (sdCell (25 + c)))) ++
     [.const (.n (val% «statement_digest» "s11#21")) padWord, .add (.n (val% «statement_digest» "s11#22")) (.n (sdOut 2 8)) (.n (val% «statement_digest» "s11#21")), sdKeccak 3]
 
 /-- `statement_digest`'s atoms. -/
@@ -151,7 +151,7 @@ theorem statement_digest_sound : statement_digest_sound_Spec := by
     implies_true, and_true] at hC
   obtain ⟨c41, c42, c43, c44, c45⟩ := hC
   -- the loads
-  have hload : ∀ i < 24, LoadHolds rd (σ (.n (val% «statement_digest» "defer"))) i (σ (.n (17 + i))) := fun i hi =>
+  have hload : ∀ i < 24, LoadHolds rd (σ (.n (val% «statement_digest» "defer"))) i (σ (.n ((val% «statement_digest» "cells[8]") + i))) := fun i hi =>
     hL _ (List.mem_map.mpr ⟨i, List.mem_range.mpr hi, rfl⟩)
   -- the blocks
   have hadd : ∀ k, 1 ≤ k → k ≤ 2 → ∀ c < 9, σ (.n (59 + 22 * (k - 1) + c)) =
@@ -168,7 +168,7 @@ theorem statement_digest_sound : statement_digest_sound_Spec := by
   simp only [sdBlk3, List.forall_mem_append, List.forall_mem_cons, List.not_mem_nil,
     IsEmpty.forall_iff, implies_true, and_true] at hB3
   obtain ⟨hA3, c111, a112, hk3⟩ := hB3
-  have hadd3 : ∀ c < 8, σ (.n (103 + c)) = σ (.n (sdOut 2 c)) + σ (.n (sdCell (25 + c))) :=
+  have hadd3 : ∀ c < 8, σ (.n ((val% «statement_digest» "s11#16") + c)) = σ (.n (sdOut 2 c)) + σ (.n (sdCell (25 + c))) :=
     fun c hc => hA3 _ (List.mem_map.mpr ⟨c, List.mem_range.mpr hc, rfl⟩)
   -- the chain
   let C32 : List E := (List.range 32).map fun m => σ (.n (sdCell m))
@@ -247,7 +247,7 @@ theorem statement_digest_sound : statement_digest_sound_Spec := by
   have hdig := keccak_final_digest (pre := []) (n := 0) rfl (by rw [hC32]) hz h0 hrate' hcap' hK
   rw [hB4, List.nil_append, List.take_of_length_le (by rw [length_cellsBytes, hC32])] at hdig
   -- the deferred cells
-  let cells : List E := (List.range 24).map fun q => σ (.n (17 + q))
+  let cells : List E := (List.range 24).map fun q => σ (.n ((val% «statement_digest» "cells[8]") + q))
   have e1 : (List.range 8).map (fun m => σ (.n (sdCell m))) =
       [σ (.n (val% «statement_digest» "seed_0")), σ (.n (val% «statement_digest» "seed_1")), σ (.n (val% «statement_digest» "xd_0")), σ (.n (val% «statement_digest» "xd_1")), σ (.n (val% «statement_digest» "sd_0")), σ (.n (val% «statement_digest» "sd_1")), σ (.n (val% «statement_digest» "da_0")), σ (.n (val% «statement_digest» "da_1"))] := by
     rw [← h9, ← h10, ← h11, ← h12, ← h13, ← h14, ← h15, ← h16]; rfl

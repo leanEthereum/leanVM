@@ -44,7 +44,7 @@ theorem gpw_pathExact : PathExactFn fn% «g_power_of_word» := by
   obtain ⟨b0, e7, e8, e9, e10, b1, e11, e12, e13, e14, e15, e16, e17, e18, b2, e19, e20,
       e21, e22, e23, e24, e25, e26, b3, e27, e28, e29, e30, e31, e32, e33, e34, b4, e35, e36, e37,
       e38, e39, e40, e41, e42, b5, e43, e44, e45, e46, e47, e48, e49, e50, ha, -⟩ := h
-  have hb : ∀ j < 6, σ (.n (1 + j)) * σ (.n (1 + j)) = σ (.n (1 + j)) := by
+  have hb : ∀ j < 6, σ (.n ((val% «g_power_of_word» "bits[0]") + j)) * σ (.n ((val% «g_power_of_word» "bits[0]") + j)) = σ (.n ((val% «g_power_of_word» "bits[0]") + j)) := by
     intro j hj
     interval_cases j
     exacts [b0.symm, b1.symm, b2.symm, b3.symm, b4.symm, b5.symm]

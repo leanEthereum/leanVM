@@ -43,14 +43,14 @@ theorem vkOut_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkOu
     (hL : ∀ lane < 25, LoadHolds rd (σ (.n (val% «verify_keccak» "lane_tree"))) (30 + lane) (L lane))
     (hchk : (∑ lane ∈ range 25, (∑ m ∈ range 1, eqAt [r0] m * eqAt slotO (25 * (1 + m) + lane)) *
       L lane) * wd = σ (.n (val% «verify_keccak» "out_value"))) :
-    σ (.n (val% «verify_keccak» "out_slot")) = σ (.n (val% «verify_keccak» "z_vals")) * σ (.n (val% «verify_keccak» "tau_g")) ∧ (∀ j < 7, σ (.n (919 + j)) = w (919 + j)) ∧
+    σ (.n (val% «verify_keccak» "out_slot")) = σ (.n (val% «verify_keccak» "z_vals")) * σ (.n (val% «verify_keccak» "tau_g")) ∧ (∀ j < 7, σ (.n ((val% «verify_keccak» "fs0@14") + j)) = w (919 + j)) ∧
       σ (.n (val% «verify_keccak» "x@2")) = wd ∧ (σ (.n (val% «verify_keccak» "word_rate[0]")), σ (.n (val% «verify_keccak» "word_rate[1]"))) = Keccak.scalarCells wd dsObserve ∧
       σ (.n (val% «verify_keccak» "s52#0")) = σ (.n (val% «verify_keccak» "point")) * σ (.n (val% «verify_keccak» "pack_g")) ∧
       σ (.n (val% «verify_keccak» "s57#1")) = 1 + σ (.n (val% «verify_keccak» "pack_g")) ∧ σ (.n (val% «verify_keccak» "s57#2")) = 1 ∧ σ (.n (val% «verify_keccak» "s57#4")) = σ (.n (val% «verify_keccak» "z_vals")) * gen ^ 4 ∧
       ∀ {next : Prop} {kret : List E → Prop}, next →
         Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkOutT next kret := by
   obtain ⟨k1, k2, k4, k5, k6, k8, k9⟩ := vkOut_ker
-  have mFN : ∀ st ∈ fsNextT (.n (val% «verify_keccak» "cursor@14")) 0 926, st ∈ vkOutT := fun st h ↦ by
+  have mFN : ∀ st ∈ fsNextT (.n (val% «verify_keccak» "cursor@14")) 0 (val% «verify_keccak» "x@2"), st ∈ vkOutT := fun st h ↦ by
     rw [vkOutT]; exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_right _ h))))
   have mSL : ∀ st ∈ vkOutSL, st ∈ vkOutT := fun st h ↦ by
@@ -63,9 +63,9 @@ theorem vkOut_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkOu
   have c3692 : σ (.n (val% «verify_keccak» "fs0@14~7")) = word 0 0 := gA (.const (.n (val% «verify_keccak» "fs0@14~7")) (word 0 0)) (by simp [vkOutT])
   have c3693 : σ (.n (val% «verify_keccak» "fs0@14~8")) = word 0 0 := gA (.const (.n (val% «verify_keccak» "fs0@14~8")) (word 0 0)) (by simp [vkOutT])
   have gcall := hg (.call "keccak_plain_rounds__L6_L0" [.n (val% «verify_keccak» "fs0@13"), .n (val% «verify_keccak» "fs1@13"), .n (val% «verify_keccak» "fs2@13"), .n (val% «verify_keccak» "fs3@13"), .n (val% «verify_keccak» "fs4@13"),
-    .n (val% «verify_keccak» "fs0@14~7"), .n (val% «verify_keccak» "fs0@14~8"), .n (val% «verify_keccak» "cursor@13"), .n (val% «verify_keccak» "x@1"), .n (val% «verify_keccak» "out_slot"), .n (val% «verify_keccak» "tabs")] ((List.range 7).map fun j ↦ .n (919 + j)))
+    .n (val% «verify_keccak» "fs0@14~7"), .n (val% «verify_keccak» "fs0@14~8"), .n (val% «verify_keccak» "cursor@13"), .n (val% «verify_keccak» "x@1"), .n (val% «verify_keccak» "out_slot"), .n (val% «verify_keccak» "tabs")] ((List.range 7).map fun j ↦ .n ((val% «verify_keccak» "fs0@14") + j)))
     (by simp [vkOutT])
-  have e3694 : ∀ j < 7, σ (.n (919 + j)) = w (919 + j) := fun j hj ↦
+  have e3694 : ∀ j < 7, σ (.n ((val% «verify_keccak» "fs0@14") + j)) = w (919 + j) := fun j hj ↦
     gcall _ (List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩)
   have m3711 := mulG (by norm_num) (by norm_num)
     (gA (.mul (.n (val% «verify_keccak» "s52#0")) (.n (val% «verify_keccak» "point")) (.n (val% «verify_keccak» "pack_g"))) (by simp [vkOutT]))

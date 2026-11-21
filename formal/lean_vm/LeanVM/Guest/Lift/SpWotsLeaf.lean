@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.Memory.LiftPure
 public import LeanVM.Guest.B1.Sig.SphincsCompleteSpec
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«sp_wots»
 
 namespace LeanVM.Guest.Lift
 
@@ -22,15 +24,15 @@ def noLoad : Atom → Bool
   | _ => true
 
 set_option maxRecDepth 100000 in
-theorem spWotsLeaf_0 : Stmt.leafOkList noLoad (((fn% «sp_wots»).body.drop 0).take 60) = true := by
+theorem spWotsLeaf_0 : Stmt.leafOkList noLoad (((fn% «sp_wots»).body.drop (pos% «sp_wots» "at[0]")).take (pos% «sp_wots» "digit_product@9~1")) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem spWotsLeaf_60 : Stmt.leafOkList noLoad (((fn% «sp_wots»).body.drop 60).take 50) = true := by
+theorem spWotsLeaf_60 : Stmt.leafOkList noLoad (((fn% «sp_wots»).body.drop (pos% «sp_wots» "digit_product@9~1")).take (span% «sp_wots» "digit_product@9~1" "digit_product@19~1")) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem spWotsLeaf_110 : Stmt.leafOkList noLoad (((fn% «sp_wots»).body.drop 110).take 100) = true
+theorem spWotsLeaf_110 : Stmt.leafOkList noLoad (((fn% «sp_wots»).body.drop (pos% «sp_wots» "digit_product@19~1")).take 100) = true
     := by
   decide +kernel
 

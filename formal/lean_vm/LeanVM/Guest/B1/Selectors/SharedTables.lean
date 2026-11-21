@@ -231,7 +231,7 @@ theorem shared_selector_tables_holds : shared_selector_tables_Spec := by
     e42, c43, a44, c45, -, hloop, m46, m47, m48, m49, m50, m51, m52, m53, hdisp⟩ := hpre
   -- the bits
   let f : ℕ → Bool := fun k ↦ decide (σ (.n (6 + k)) = 1)
-  have pin : ∀ k < 6, σ (.n (6 + k)) * σ (.n (6 + k)) = σ (.n (6 + k)) := by
+  have pin : ∀ k < 6, σ (.n ((val% «shared_selector_tables» "nb[0]") + k)) * σ (.n ((val% «shared_selector_tables» "nb[0]") + k)) = σ (.n ((val% «shared_selector_tables» "nb[0]") + k)) := by
     intro k hk
     interval_cases k
     · exact p6.symm

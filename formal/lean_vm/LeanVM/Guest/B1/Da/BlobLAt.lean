@@ -41,7 +41,7 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL memL_append)
 
 /-- `da_verify_loop0`'s statements before its `ret`. -/
 def blobLP : List Stmt :=
-  blobLPre ++ [.callIf (.n (val% «da_verify_loop0» "s5#2")) name% «da_verify_loop0» (.n (val% «da_verify_loop0» "s5#4") :: (List.range 3).map fun k => V.n (k + 1))]
+  blobLPre ++ [.callIf (.n (val% «da_verify_loop0» "s5#2")) name% «da_verify_loop0» (.n (val% «da_verify_loop0» "s5#4") :: (List.range 3).map fun k => V.n (k + (val% «da_verify_loop0» "bound")))]
 
 theorem blobL_body_split : Fn.body (coreProgram.getD idx% «da_verify_loop0» default) = blobLP ++ [.ret []] := by
   rw [dv_loops_body.1, blobLP, List.append_assoc]
@@ -55,7 +55,7 @@ theorem blobL_loop : coreProgram.loop name% «da_verify_loop0» = true := by
 /-- An iteration's calls: the blob, then the tail call, taken unless `i + 1 = r`. -/
 def blobLCalls (i r : ℕ) : List Call :=
   [⟨"da_verify_blob", [.n (val% «da_verify_loop0» "weights")], [.n (val% «da_verify_loop0» "b0"), .n (val% «da_verify_loop0» "b1")], true⟩] ++
-    [⟨name% «da_verify_loop0», .n (val% «da_verify_loop0» "s5#4") :: (List.range 3).map fun k => V.n (k + 1), [], decide (i + 1 ≠ r)⟩]
+    [⟨name% «da_verify_loop0», .n (val% «da_verify_loop0» "s5#4") :: (List.range 3).map fun k => V.n (k + (val% «da_verify_loop0» "bound")), [], decide (i + 1 ≠ r)⟩]
 
 /-- **An iteration's honest shape.** -/
 def blobLNH (i r : ℕ) (Tb Tt : Tree → Prop) : Tree → Prop :=
@@ -129,7 +129,7 @@ theorem blobL_stepAtTB {Bb Bt : ℕ} {Tb Tt : Tree → Prop} {r L i bw bT : ℕ}
   have hcalls : calls (blobLP.flatMap (Main.slEvs σ)) = blobLCalls i r := by
     rw [hpc, show blobLP.filterMap Main.Stmt.callS =
       [(none, "da_verify_blob", [.n (val% «da_verify_loop0» "weights")], [.n (val% «da_verify_loop0» "b0"), .n (val% «da_verify_loop0» "b1")]),
-        (some (.n (val% «da_verify_loop0» "s5#2")), name% «da_verify_loop0», .n (val% «da_verify_loop0» "s5#4") :: (List.range 3).map fun k => V.n (k + 1), [])] from rfl]
+        (some (.n (val% «da_verify_loop0» "s5#2")), name% «da_verify_loop0», .n (val% «da_verify_loop0» "s5#4") :: (List.range 3).map fun k => V.n (k + (val% «da_verify_loop0» "bound")), [])] from rfl]
     simp only [List.map_cons, List.map_nil, Main.mkCall, htk, blobLCalls, List.cons_append, List.nil_append]
   have hal : allocs σ (blobLP.flatMap (Main.slEvs σ)) = [] := by
     rw [hpa, show blobLP.filterMap Main.Stmt.allocSz = [] from rfl]; rfl
@@ -140,7 +140,7 @@ theorem blobL_stepAtTB {Bb Bt : ℕ} {Tb Tt : Tree → Prop} {r L i bw bT : ℕ}
     rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     all_goals simp only [SlOk, Atom.Holds, hσ, ofArgs_n, List.getD_cons_succ, List.getD_cons_zero]
     exacts [h0, h1, by rw [word_gen, gen_pow_mul_gen]; exact gen_pow_add_isInK _ _]
-  have hargs : (.n (val% «da_verify_loop0» "s5#4") :: (List.range 3).map fun k => V.n (k + 1)).map σ =
+  have hargs : (.n (val% «da_verify_loop0» "s5#4") :: (List.range 3).map fun k => V.n (k + (val% «da_verify_loop0» "bound"))).map σ =
       [gen ^ (i + 1), gen ^ r, gen ^ bw, gen ^ bT] := by
     show [gen ^ i * word 2 0, gen ^ r, gen ^ bw, gen ^ bT] = _
     rw [word_gen, gen_pow_mul_gen]

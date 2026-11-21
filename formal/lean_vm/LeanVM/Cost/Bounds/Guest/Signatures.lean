@@ -2,6 +2,8 @@ module
 
 public import LeanVM.Cost.Bounds.Guest.Readers
 public import LeanVM.Cost.Decoder.Signatures
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # Bounds on the guest decoder's prices: the signatures
@@ -386,8 +388,8 @@ theorem sphincsSigOfA_cost (hP : Includes P Decoder.sphincsSigOfNC.costDeps) (T 
       1492 * S + 350800 := by
   rw [Decoder.sphincsSigOfNC.costEq P hP T σ σV hσ w0 w0V hw0 w1 w1V hw1 w2 w2V hw2,
     ofFnFrom_length]
-  have := hS (.n 6)
-  have := cellNat_cost P (by includes) (σ (.n 6))
+  have := hS (.n (val% «verify_sig_lean_sphincs» "rho"))
+  have := cellNat_cost P (by includes) (σ (.n (val% «verify_sig_lean_sphincs» "rho")))
   have m0 := ofFnFrom_cost P (by includes) (n := Sphincs.forsTreeCount) (by decide) _
     (.closure Decoder.sphincsSigOfNC.lam0.costIdx [encodeValue T, σV])
     (fun c ↦ RunsApp.of_spec (Decoder.sphincsSigOfNC.lam0.costSpec P (by includes) T σ σV hσ c))
@@ -415,7 +417,7 @@ theorem spWotsArgs_cost (hP : Includes P Decoder.spWotsArgsC.costDeps) (l : ℕ)
     Decoder.spA1C.costEq P (by includes), Decoder.spEncC.costEq P (by includes)]
   have := spLayerBase_cost P (by includes) l hl
   have := spLayerBase_lt l
-  have := hS (.n 2); have := hS (.n (spA0 l)); have := hS (.n (spA1 l)); have := hS (.n (spEnc l))
+  have := hS (.n (val% «verify_sig_lean_sphincs» "pp")); have := hS (.n (spA0 l)); have := hS (.n (spA1 l)); have := hS (.n (spEnc l))
   limbs_one
   split_ifs <;> omega
 

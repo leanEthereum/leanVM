@@ -44,10 +44,10 @@ def mono31S : Stmt := .callIf (.n (val% «child_claim_list_mono» "s4#1")) name%
 def mono41S : Stmt := .callIf (.n (val% «child_claim_list_mono» "s6#1")) name% «child_claim_list_mono_loop1» [.n (val% «child_claim_list_mono» "s6#2"), .n (val% «child_claim_list_mono» "groups"), .n (val% «child_claim_list_mono» "mid"), .n (val% «child_claim_list_mono» "base")]
 
 /-- The body before its dispatch. -/
-noncomputable def monoP1 : List Stmt := monoFlat.take 60
+noncomputable def monoP1 : List Stmt := monoFlat.take (pos% «child_claim_list_mono» "d0")
 
 /-- The body after its dispatch. -/
-noncomputable def monoPost : List Stmt := monoFlat.drop 61
+noncomputable def monoPost : List Stmt := monoFlat.drop (pos% «child_claim_list_mono» "s9#0")
 
 theorem monoFlat_split : monoFlat = monoP1 ++ monoDispS :: monoPost :=
   stmtsEqb_sound (by decide +kernel)
@@ -99,7 +99,7 @@ the buffer's size `(g^a g^b g)^15`. -/
 noncomputable def monoCOk : Bool :=
   let SE := storesOf 7 monoFlat
   (chk 7 monoFlat).isSome &&
-  SE.all (fun a => (List.range 13).any (fun c => atomEqb a (.load (.n (17 + c)) (.n (val% «child_claim_list_mono» "chain")) c)) ||
+  SE.all (fun a => (List.range 13).any (fun c => atomEqb a (.load (.n ((val% «child_claim_list_mono» "s1.i0:zero_state.s0.u0.s0#0") + c)) (.n (val% «child_claim_list_mono» "chain")) c)) ||
     atomEqb a (.load (.n (val% «child_claim_list_mono» "region")) (.n (val% «child_claim_list_mono» "chain")) 13) || atomEqb a (.load (.n (val% «child_claim_list_mono» "entries_ptr")) (.n (val% «child_claim_list_mono» "chain")) 14)) &&
   (atomsIn monoFlat).all (fun a => !needsSide a || decide (a ∈ SE) ||
     atomEqb a (.touch (.n (val% «child_claim_list_mono» "s9#0")) (.n (val% «child_claim_list_mono» "bigs"))) || atomEqb a (.touch (.n (val% «child_claim_list_mono» "s10#0")) (.n (val% «child_claim_list_mono» "groups")))) &&
@@ -174,7 +174,7 @@ theorem monoBody_core {entries region base limit chain : E} {a b c : ℕ} (D : D
     have : σ (.n (val% «child_claim_list_mono» "chain")) = w 16 := hg _ hx
     rw [this, hw]; simp [monow]
   have hF := pure_holds hg
-  have v17 : ∀ c < 13, σ (.n (17 + c)) = 0 := by
+  have v17 : ∀ c < 13, σ (.n ((val% «child_claim_list_mono» "s1.i0:zero_state.s0.u0.s0#0") + c)) = 0 := by
     intro c hc'
     have := (monoBody_ok)
     simp only [monoBodyOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at this

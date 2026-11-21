@@ -66,7 +66,7 @@ theorem vkFirst_kernel :
     noneIn (eqtreeReads (.n (val% «verify_keccak» "z_vals")) (.n (val% «verify_keccak» "mu_tree")) 0 159 4) vkSt = true ∧
     noneIn (eqtreeReads (.n (val% «verify_keccak» "r_lane")) (.n (val% «verify_keccak» "lane_tree")) 0 230 5) vkSt = true ∧
     noneIn (eqtreeReads (.n (val% «verify_keccak» "segment")) (.n (val% «verify_keccak» "segment_tree")) 0 338 1) vkSt = true ∧
-    noneIn ((List.range 16).map fun i ↦ .load (.n (213 + i)) (.n (val% «verify_keccak» "mu_tree")) (14 + i)) vkSt = true ∧
+    noneIn ((List.range 16).map fun i ↦ .load (.n ((val% «verify_keccak» "s36.u0.s0#0") + i)) (.n (val% «verify_keccak» "mu_tree")) (14 + i)) vkSt = true ∧
     vkFirstPD.all isAtom = true ∧
     (resid (atomsL vkFirstPD)).all (ldR [(.n (val% «verify_keccak» "lane_tree"), 30, 55), (.n (val% «verify_keccak» "output_lanes"), 0, 25)]) = true ∧
     noneIn (resid (atomsL vkFirstPD)) vkSt = true ∧
@@ -87,12 +87,12 @@ theorem vkFirst_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ s ∈ vkF
       LoadHolds rd (σ (.n (val% «verify_keccak» "lane_tree"))) (2 ^ t - 2 + i) ((eqKernel (rl.take t)).getD i 0))
     (hT382 : ∀ i < 2, LoadHolds rd (σ (.n (val% «verify_keccak» "segment_tree"))) i ((eqKernel [r0]).getD i 0)) :
     σ (.n (val% «verify_keccak» "s32#0")) = 1 ∧ σ (.n (val% «verify_keccak» "s40#1")) = σ (.n (val% «verify_keccak» "lane_tree")) * gen ^ 30 ∧
-    (∀ i < 16, σ (.n (213 + i)) = (eqKernel (chis.take 4)).getD i 0) ∧
+    (∀ i < 16, σ (.n ((val% «verify_keccak» "s36.u0.s0#0") + i)) = (eqKernel (chis.take 4)).getD i 0) ∧
     σ (.n (val% «verify_keccak» "s45#2")) = σ (.n (val% «verify_keccak» "x@1")) + (eqKernel [r0]).getD 1 0 *
       ∑ k ∈ range 25, (eqKernel rl).getD k 0 * outs.getD k 0 ∧
     ∀ {next : Prop} {kret : List E → Prop},
       LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) 1 (σ (.n (val% «verify_keccak» "s32#0"))) → LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) 2 (σ (.n (val% «verify_keccak» "point"))) →
-      (∀ i < 16, LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) (6 + i) (σ (.n (213 + i)))) →
+      (∀ i < 16, LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) (6 + i) (σ (.n ((val% «verify_keccak» "s36.u0.s0#0") + i)))) →
       LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) 3 (σ (.n (val% «verify_keccak» "s40#1"))) → LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) 0 (σ (.n (val% «verify_keccak» "s45#2"))) →
       next → Stmt.HoldsList C rd σ vkFirstT next kret := by
   obtain ⟨k1, k2, k3, k4, k5, k7, k8, k9⟩ := vkFirst_kernel
@@ -147,7 +147,7 @@ theorem vkFirst_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ s ∈ vkF
         obtain rfl : t = 1 := by omega
         simpa using hT382 i hi) hn
   -- the instance weights copied
-  have e258 : ∀ i < 16, σ (.n (213 + i)) = (eqKernel (chis.take 4)).getD i 0 := by
+  have e258 : ∀ i < 16, σ (.n ((val% «verify_keccak» "s36.u0.s0#0") + i)) = (eqKernel (chis.take 4)).getD i 0 := by
     intro i hi
     have g : Good rd vkSt w σ (.load (.n (213 + i)) (.n (val% «verify_keccak» "mu_tree")) (14 + i)) :=
       gA _ (mCW _ (by

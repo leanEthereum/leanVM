@@ -54,10 +54,10 @@ theorem vkFinT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ (
   obtain ⟨lc, sl, loc, hlc, hlocL, hloc, -, -, hw⟩ := hrest
   rw [vkFinT] at h
   generalize hSLT : slotLanesT 1325 1741 1742 0 2 = SLT at h
-  generalize hLD : (List.range 64).map (fun z ↦ Stmt.atom (.load (.n (1976 + z)) (.n (val% «verify_keccak» "slices")) z)) = LD at h
+  generalize hLD : (List.range 64).map (fun z ↦ Stmt.atom (.load (.n ((val% «verify_keccak» "level[0]") + z)) (.n (val% «verify_keccak» "slices")) z)) = LD at h
   generalize hFT : foldT (fun j ↦ 1976 + j) 2040 (.n (val% «verify_keccak» "last_local")) = FT at h
   generalize hFA : formAll (.n (val% «verify_keccak» "last_lanes")) vkSh (slotLaneV 1742 2) 3139 = FA at h
-  generalize hCP : (List.range 5).map (fun j ↦ Stmt.atom (.copy (.n (3359 + j)) (.n (1735 + j)))) = CP at h
+  generalize hCP : (List.range 5).map (fun j ↦ Stmt.atom (.copy (.n ((val% «verify_keccak» "s82#0") + j)) (.n ((val% «verify_keccak» "nxt[8]@22") + j)))) = CP at h
   simp only [holdsList_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons,
     List.map_nil] at h
   obtain ⟨l4977, e4978, h⟩ := h

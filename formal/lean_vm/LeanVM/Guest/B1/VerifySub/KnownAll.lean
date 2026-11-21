@@ -54,7 +54,7 @@ theorem vsKnown_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (
 (up to the call of `verify_tables`) put `dims_g[g^0] = g^logMem`, `logMem ≤ 32`, below `g^34`. -/
 theorem vsDimsKnown0_holds {κ : ℕ} (L : MemoryImage κ) (_hmin : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
     (σ : Val)
-    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body fn% «verify_sub»).take 316) True
+    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body fn% «verify_sub»).take (pos% «verify_sub» "fs0@4")) True
       (fun _ ↦ True)) :
     ∃ e < 34, LoadHolds L.read (σ (.n (val% «verify_sub» "dims_g"))) 0 (ofK (addressOfIndex e)) := by
   have hκ : κ ≤ 32 := h32.trans (by decide)

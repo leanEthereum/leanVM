@@ -11,6 +11,7 @@ public import LeanVM.Guest.Exact.Ok
 public import LeanVM.Guest.B1.Tables.Padding
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«padding_weight__L»
+import LeanVM.Guest.Data.ValNames.«padding_weight__L0»
 
 /-!
 # `padding_weight`, exact
@@ -100,7 +101,7 @@ theorem pw_pathExact {τ : ℕ} (hτ : τ < 31) {fn : Fn} (hb : fn.body = pwBody
     simp only [↓reduceIte, pwBody0, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and] at h
     obtain ⟨b0, a0, -⟩ := h
     simp only [pwHintA, ↓reduceIte]
-    exact bits_exact_of_sum (fun _ => σ (.n 2)) (by norm_num) rfl (fun _ _ => b0.symm)
+    exact bits_exact_of_sum (fun _ => σ (.n (val% «padding_weight__L0» "bits[0]"))) (by norm_num) rfl (fun _ _ => b0.symm)
       (by simp [(e_add_eq_zero_iff.mp a0).symm])
   by_cases h1 : τ = 1
   · subst h1

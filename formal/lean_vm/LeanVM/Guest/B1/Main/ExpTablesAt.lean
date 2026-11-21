@@ -30,7 +30,7 @@ open LeanVM.Guest.B1.Da (SlOk slEvs_holds limb0_gen_pow_mul)
 /-- `exponent_tables`' atoms: the table's words, then the returned pointer. -/
 def etAs : List Atom :=
   [.hint (.alloc (.n (val% «exponent_tables» "g_squares")) 2284)] ++ (List.range 2284).flatMap (fun t =>
-    [.const (.n (t + 1)) (word (etWord t) 0), .load (.n (t + 1)) (.n (val% «exponent_tables» "g_squares")) (etOff t)]) ++
+    [.const (.n (t + (val% «exponent_tables» "s2.u0.s0#0"))) (word (etWord t) 0), .load (.n (t + (val% «exponent_tables» "s2.u0.s0#0"))) (.n (val% «exponent_tables» "g_squares")) (etOff t)]) ++
   [.copy (.n (val% «exponent_tables» "s8#0")) (.n (val% «exponent_tables» "g_squares"))]
 
 theorem etBlks_eq : ∀ l : List ℕ, (l.map etBlk).flatten = (l.flatMap fun t =>

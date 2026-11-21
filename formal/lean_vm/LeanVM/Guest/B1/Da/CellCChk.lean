@@ -24,7 +24,7 @@ def isWeightLoad : Atom → Bool
   | _ => false
 
 /-- The symbols' hint. -/
-def symHint : Atom := .hint (.witness "da_symbols" (.stack ((List.range 128).map fun j => V.n (j + 1))))
+def symHint : Atom := .hint (.witness "da_symbols" (.stack ((List.range 128).map fun j => V.n (j + (val% «da_verify_cell» "sym[0]")))))
 
 /-- **`da_verify_cell`, evaluated.** -/
 def cellCOk (fn : Fn) : Bool :=

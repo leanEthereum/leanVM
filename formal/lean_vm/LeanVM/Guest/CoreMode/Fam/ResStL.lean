@@ -42,8 +42,8 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 `84 + 2y` words. -/
 def LayQ (J : Inst) : Prop :=
   ∀ f σ bufs kids, J.t = .node f σ bufs kids → ∀ first < 2, f = layerName first →
-    ∃ p y, σ (.n 7) = σ (.n 15) * gen ^ p ∧ y < 32 ∧ σ (.n 9) = gen ^ (y / krStep) ∧
-      σ (.n 10) = gen ^ (y % krStep) ∧ p + 84 + 2 * y ≤ 8192
+    ∃ p y, σ (.n (valf% «keccak_layer» "cursor@1")) = σ (.n (valf% «keccak_layer» "stream")) * gen ^ p ∧ y < 32 ∧ σ (.n (valf% «keccak_layer» "step_g")) = gen ^ (y / krStep) ∧
+      σ (.n (valf% «keccak_layer» "rem_g")) = gen ^ (y % krStep) ∧ p + 84 + 2 * y ≤ 8192
 
 /-- A layer's statements before its pack rounds' setup. -/
 def layA (first : ℕ) : List Stmt :=
@@ -215,8 +215,8 @@ theorem layer_cur {first : ℕ} (hf : first < 2) {C : CallRel} (hC : CallRel.Le 
 /-- `keccak_layer__L{first}`, found, its body the template and its parameters the first sixteen. -/
 theorem layer_found {first : ℕ} (hf : first < 2) :
     ∃ fn, coreProgram.find? (layerName first) = some fn ∧ fn.body = layerT first ∧
-      fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12,
-        .n 13, .n 14, .n 15] := by
+      fn.params = [.n (valf% «keccak_layer» "fs0"), .n (valf% «keccak_layer» "fs1"), .n (valf% «keccak_layer» "fs2"), .n (valf% «keccak_layer» "fs3"), .n (valf% «keccak_layer» "fs4"), .n (valf% «keccak_layer» "p0"), .n (valf% «keccak_layer» "p1"), .n (valf% «keccak_layer» "cursor@1"), .n (valf% «keccak_layer» "y_g"), .n (valf% «keccak_layer» "step_g"), .n (valf% «keccak_layer» "rem_g"), .n (valf% «keccak_layer» "claim"), .n (valf% «keccak_layer» "out"),
+        .n (valf% «keccak_layer» "iota"), .n (valf% «keccak_layer» "tabs"), .n (valf% «keccak_layer» "stream")] := by
   interval_cases first
   · exact ⟨fn% «keccak_layer__L0», find_layer265, layer_body265, rfl⟩
   · exact ⟨fn% «keccak_layer__L1», find_layer264, layer_body264, rfl⟩
@@ -252,11 +252,11 @@ def stepT0 (s b : ℕ) : ℕ := iotaSegEnd s (b + 6 + flipSz s * (iotaUsed s).le
 def stepCall (s b : ℕ) (cap : List ℕ) (cur _cb _pn : ℕ) : String × List V × List V :=
   let T := stepT0 s b
   if s = 0 then
-    ("keccak_layer__L1", cap.map .n ++ [.n 154, .n 155, .n (T + 1), .n (T + 3), .n 35, .n 49, .n 156,
-      .n (T + 5), .n (T - 1), .n 11, .n 12], (List.range 6).map fun j ↦ .n (T + 6 + j))
+    ("keccak_layer__L1", cap.map .n ++ [.n (val% «verify_keccak» "value_rate[0]"), .n (val% «verify_keccak» "value_rate[1]"), .n (T + 1), .n (T + 3), .n (val% «verify_keccak» "step_g@2"), .n (val% «verify_keccak» "rem_g@3"), .n (val% «verify_keccak» "claims"),
+      .n (T + 5), .n (T - 1), .n (val% «verify_keccak» "tabs"), .n (val% «verify_keccak» "stream")], (List.range 6).map fun j ↦ .n (T + 6 + j))
   else
-    ("keccak_layer__L0", cap.map .n ++ [.n T, .n (T + 1), .n cur, .n (T + 3), .n 35, .n 49, .n (T + 5),
-      .n (T + 7), .n (T - 1), .n 11, .n 12], (List.range 6).map fun j ↦ .n (T + 8 + j))
+    ("keccak_layer__L0", cap.map .n ++ [.n T, .n (T + 1), .n cur, .n (T + 3), .n (val% «verify_keccak» "step_g@2"), .n (val% «verify_keccak» "rem_g@3"), .n (T + 5),
+      .n (T + 7), .n (T - 1), .n (val% «verify_keccak» "tabs"), .n (val% «verify_keccak» "stream")], (List.range 6).map fun j ↦ .n (T + 8 + j))
 
 theorem stepCall_mem (s b : ℕ) (cap : List ℕ) (cur cb pn : ℕ) :
     Stmt.call (stepCall s b cap cur cb pn).1 (stepCall s b cap cur cb pn).2.1

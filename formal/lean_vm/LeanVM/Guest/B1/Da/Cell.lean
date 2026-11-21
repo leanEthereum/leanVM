@@ -106,7 +106,7 @@ theorem cellsBytes_eq_eBytes (cs : List E) : cellsBytes cs = cs.flatMap E.toByte
 
 /-- The digest's chain: the `128` symbols, `2048` bytes, from the zero state. -/
 def cellSpec (atoms : List Atom) : ChainSpec :=
-  ⟨(List.range 128).map fun e => some (.n (e + 1)), 2048, true, none, keccakBlocks atoms⟩
+  ⟨(List.range 128).map fun e => some (.n (e + (val% «da_verify_cell» "sym[0]"))), 2048, true, none, keccakBlocks atoms⟩
 
 /-- **`da_verify_cell`'s body, checked**: the hint, the template's atoms, then the chain, the
 copies and `ret`. -/

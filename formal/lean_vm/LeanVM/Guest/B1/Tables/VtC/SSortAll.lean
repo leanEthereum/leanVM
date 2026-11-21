@@ -160,10 +160,10 @@ theorem vtS_sort (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     (hE : ExpTablesAt rd (σv (.n (val% «verify_tables» "g_squares"))))
     (hkeyW : TbReadsAt rd (w 34) (vtGKeyW lm τ)) (hszW : TbReadsAt rd (w 35) (vtGSizeW lm τ))
     (hbaseW : TbReadsAt rd (w 36) (vtGBaseW lm τ)) (hordW : TbReadsAt rd (w 37) (vtGOrdW lm τ)) :
-    (∀ s ∈ (vtPre.drop 0).take 563, VSH (coreProgram.Rel rd) rd σv s) ∧
-      (∀ i < 5, σv (.n (21 + i)) = σv (.n i)) ∧
-      (∀ i < 8, σv (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) ∧
-      (∀ i < 4, σv (.n (34 + i)) = w (34 + i)) ∧
+    (∀ s ∈ (vtPre.drop 0).take (pos% «verify_tables» "s15.u0.s1#0"), VSH (coreProgram.Rel rd) rd σv s) ∧
+      (∀ i < 5, σv (.n ((val% «verify_tables» "sp[0]@1") + i)) = σv (.n i)) ∧
+      (∀ i < 8, σv (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) ∧
+      (∀ i < 4, σv (.n ((val% «verify_tables» "group_key") + i)) = w (34 + i)) ∧
       (∀ x < 54, σv (.n (vtBoffV x)) =
         gen ^ (stackOffsets ((List.range 54).map (vtKap lm τ))).1.getD x 0) ∧
       (∀ x < 45, σv (.n (vtBoffV (108 + x))) =
@@ -172,7 +172,7 @@ theorem vtS_sort (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
   -- the prologue
   have hgd : ∀ (n : ℕ) (s : Stmt), tbStmtsEqb [s] ((vtAt n).take 1) = true →
       GoodS rd vtSL w σv (fixNe s) := fun n s h ↦ vt_goodAt hl n s h
-  have hcp : ∀ i < 5, σv (.n (21 + i)) = σv (.n i) := by
+  have hcp : ∀ i < 5, σv (.n ((val% «verify_tables» "sp[0]@1") + i)) = σv (.n i) := by
     intro i hi
     interval_cases i
     · exact vt_copyAt hl 0 (by decide +kernel)
@@ -180,7 +180,7 @@ theorem vtS_sort (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     · exact vt_copyAt hl 2 (by decide +kernel)
     · exact vt_copyAt hl 3 (by decide +kernel)
     · exact vt_copyAt hl 4 (by decide +kernel)
-  have hal : ∀ i < 4, σv (.n (34 + i)) = w (34 + i) := by
+  have hal : ∀ i < 4, σv (.n ((val% «verify_tables» "group_key") + i)) = w (34 + i) := by
     intro i hi
     interval_cases i
     · exact vt_allocAt hl 13 (k := 24) (by decide +kernel)
@@ -192,8 +192,8 @@ theorem vtS_sort (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     intro i hi
     have := hdims i (by simp [vtTauList]; omega)
     rwa [← List.getD_eq_getElem _ 0, vt_kbList_getD hi] at this
-  have hkbR : ∀ i < 7, σv (.n (27 + i)) = gen ^ ([lm] ++ vtTauList τ).getD i 0 ∧
-      VSH (coreProgram.Rel rd) rd σv (.atom (.load (.n (27 + i)) (.n (val% «verify_tables» "dims_g")) i)) := by
+  have hkbR : ∀ i < 7, σv (.n ((val% «verify_tables» "kb[1]") + i)) = gen ^ ([lm] ++ vtTauList τ).getD i 0 ∧
+      VSH (coreProgram.Rel rd) rd σv (.atom (.load (.n ((val% «verify_tables» "kb[1]") + i)) (.n (val% «verify_tables» "dims_g")) i)) := by
     intro i hi
     interval_cases i
     · exact vt_readAt hl 6 (by decide +kernel) (by decide +kernel) (hdimsL 0 (by norm_num))
@@ -203,14 +203,14 @@ theorem vtS_sort (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     · exact vt_readAt hl 10 (by decide +kernel) (by decide +kernel) (hdimsL 4 (by norm_num))
     · exact vt_readAt hl 11 (by decide +kernel) (by decide +kernel) (hdimsL 5 (by norm_num))
     · exact vt_readAt hl 12 (by decide +kernel) (by decide +kernel) (hdimsL 6 (by norm_num))
-  have hkb : ∀ i < 8, σv (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0 := by
+  have hkb : ∀ i < 8, σv (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0 := by
     intro i hi
     rcases i with _ | i
     · rw [vt_constAt hl 5 (e := word 1 0) (by decide +kernel), tb_word_one]; simp
     · have := (hkbR i (by omega)).1
       rw [show 26 + (i + 1) = 27 + i by omega, this]
       rfl
-  have hpro : ∀ s ∈ (vtPre.drop 0).take 18, VSH (coreProgram.Rel rd) rd σv s := by
+  have hpro : ∀ s ∈ (vtPre.drop 0).take (pos% «verify_tables» "s13.u0.s1.u0.s2#0"), VSH (coreProgram.Rel rd) rd σv s := by
     refine vt_blockR hl 0 18 [.atom (.load (.n (val% «verify_tables» "kb[1]")) (.n (val% «verify_tables» "dims_g")) 0), .atom (.load (.n (val% «verify_tables» "kb[2]")) (.n (val% «verify_tables» "dims_g")) 1),
       .atom (.load (.n (val% «verify_tables» "kb[3]")) (.n (val% «verify_tables» "dims_g")) 2), .atom (.load (.n (val% «verify_tables» "kb[4]")) (.n (val% «verify_tables» "dims_g")) 3),
       .atom (.load (.n (val% «verify_tables» "kb[5]")) (.n (val% «verify_tables» "dims_g")) 4), .atom (.load (.n (val% «verify_tables» "kb[6]")) (.n (val% «verify_tables» "dims_g")) 5),
@@ -263,10 +263,10 @@ theorem vtS_sort (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
   have hgrp : ∀ k < 15, ∀ s ∈ (vtPre.drop (vtGrpA k)).take (vtGrpL k),
       VSH (coreProgram.Rel rd) rd σv s := fun k hk ↦
     vtc_grps hl hk (hkx k hk) (hrkK _ (hκ34 k hk)) (hsqK _ (hκ34 k hk)) (hkeyG k hk) (hszG k hk)
-  have hgP : ∀ s ∈ (vtPre.drop 18).take 92, VSH (coreProgram.Rel rd) rd σv s := by
+  have hgP : ∀ s ∈ (vtPre.drop (pos% «verify_tables» "s13.u0.s1.u0.s2#0")).take (span% «verify_tables» "s13.u0.s1.u0.s2#0" "gi@1"), VSH (coreProgram.Rel rd) rd σv s := by
     have := forall_slices vtGrpA vtGrpL 9 (by decide) (fun k hk ↦ hgrp k (by omega))
     rwa [show vtGrpA 0 = 18 from rfl, show ∑ k ∈ range 9, vtGrpL k = 92 by decide] at this
-  have hgC : ∀ s ∈ (vtPre.drop 339).take 64, VSH (coreProgram.Rel rd) rd σv s := by
+  have hgC : ∀ s ∈ (vtPre.drop (pos% «verify_tables» "s13.u1.s1.u18.s2#0")).take (span% «verify_tables» "s13.u1.s1.u18.s2#0" "gi@10"), VSH (coreProgram.Rel rd) rd σv s := by
     have := forall_slices (fun k ↦ vtGrpA (9 + k)) (fun k ↦ vtGrpL (9 + k)) 6 (by decide)
       (fun k hk ↦ hgrp (9 + k) (by omega))
     rwa [show vtGrpA (9 + 0) = 339 from rfl,
@@ -457,12 +457,12 @@ theorem vtS_sort (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
       simp [vtBoffT]; omega
     rw [hlen] at e
     exact (hbo k hk).1 s (by rw [e]; exact hs)
-  have hbP : ∀ s ∈ (vtPre.drop 267).take 72, VSH (coreProgram.Rel rd) rd σv s := by
+  have hbP : ∀ s ∈ (vtPre.drop (pos% «verify_tables» "step@1~0")).take (span% «verify_tables» "step@1~0" "s13.u1.s1.u18.s2#0"), VSH (coreProgram.Rel rd) rd σv s := by
     have := forall_slices (fun k ↦ (vtBoffData.getD k default).1) (fun k ↦ vtLen k + 2) 9
       (by decide +kernel) (fun k hk ↦ hboS k (by omega))
     rwa [show (vtBoffData.getD 0 default).1 = 267 from rfl,
       show ∑ k ∈ range 9, (vtLen k + 2) = 72 by decide +kernel] at this
-  have hbC : ∀ s ∈ (vtPre.drop 506).take 57, VSH (coreProgram.Rel rd) rd σv s := by
+  have hbC : ∀ s ∈ (vtPre.drop (pos% «verify_tables» "step@10~0")).take (span% «verify_tables» "step@10~0" "s15.u0.s1#0"), VSH (coreProgram.Rel rd) rd σv s := by
     have := forall_slices (fun k ↦ (vtBoffData.getD (9 + k) default).1) (fun k ↦ vtLen (9 + k) + 2) 6
       (by decide +kernel) (fun k hk ↦ hboS (9 + k) (by omega))
     rwa [show (vtBoffData.getD (9 + 0) default).1 = 506 from rfl,

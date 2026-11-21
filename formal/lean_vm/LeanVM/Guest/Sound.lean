@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.SoundFacts
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # B2 soundness
@@ -56,7 +58,7 @@ open LeanVM.Guest.Exec
 `g^e`, `e < vsKbBound c`, which `check_opening_terminal` dispatches on. -/
 def VsKbKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
-    B1.ExpTables L.read (σ (.n 4)) →
+    B1.ExpTables L.read (σ (.n (val% «verify_sub» "g_squares"))) →
     Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take vsKbAt) True (fun _ ↦ True) →
       ∀ c < 8, ∃ e < vsKbBound c, LoadHolds L.read (σ (.n vsKb)) c (ofK (addressOfIndex e))
 
@@ -65,7 +67,7 @@ of the exponent table at its argument `4`, its first `vsTabsAt` statements, up t
 the window table at `tabs` (the value `vsTabs`), which `open_stacked` assumes (`tagTabs`). -/
 def VsTabsKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
-    B1.ExpWinTab L.read (σ (.n 4)) →
+    B1.ExpWinTab L.read (σ (.n (val% «verify_sub» "g_squares"))) →
     Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take vsTabsAt) True (fun _ ↦ True) →
       B1.WinTabs L.read (σ (.n vsTabs))
 
@@ -121,8 +123,8 @@ theorem known_vs (hvd : VsDimsKnown) (hvs : VsKnown) {κ : ℕ} {L : MemoryImage
       ((coreOf (fn_idx% «verify_sub»)).body.take ((certOf (fn_idx% «verify_sub»)).cutAt i).start) True (fun _ ↦ True)) :
     MemKnown L fp ((certOf (fn_idx% «verify_sub»)).cutAt i).known ∧ MemIf L fp ((certOf (fn_idx% «verify_sub»)).cutAt i).knownIf ∧
       SemHolds glob L fp ((certOf (fn_idx% «verify_sub»)).cutAt i).sems := by
-  have ht : B1.ExpTables L.read (valG L fp (certOf (fn_idx% «verify_sub»)) (.n 4)) ∧
-      B1.ExpWinTab L.read (valG L fp (certOf (fn_idx% «verify_sub»)) (.n 4)) := by
+  have ht : B1.ExpTables L.read (valG L fp (certOf (fn_idx% «verify_sub»)) (.n (val% «verify_sub» "g_squares"))) ∧
+      B1.ExpWinTab L.read (valG L fp (certOf (fn_idx% «verify_sub»)) (.n (val% «verify_sub» "g_squares"))) := by
     have := (semRel_exp _ _).mp (hsem (0, [6]) (by rw [vs_sem]; exact List.mem_singleton_self _))
     simp only [valG, vs_cells]
     exact this

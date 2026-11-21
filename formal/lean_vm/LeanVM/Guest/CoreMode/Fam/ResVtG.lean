@@ -136,7 +136,7 @@ theorem vt_groups {σ : Core.Val} (h : VtH Lm.read σ) {lm : ℕ} (hlm : lm ≤ 
       have := kl (t + 1) (by omega)
       rw [show 27 + (t + 1) = 28 + t by omega] at this
       exact tb_loadHolds_unique this h2)
-  have hkb : ∀ i < 8, σ (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0 := by
+  have hkb : ∀ i < 8, σ (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0 := by
     intro i hi
     match i, hi with
     | 0, _ => simpa using k0

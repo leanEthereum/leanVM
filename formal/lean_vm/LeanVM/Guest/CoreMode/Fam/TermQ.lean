@@ -52,7 +52,7 @@ theorem term_not_loop' : (fn% «check_opening_terminal»).loop = false := by dec
 
 /-- **`TermFront` from `verify_sub`'s front.** -/
 theorem termFront_of_vs {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : CallRel} {bytecode : List K}
-    (hbl : bytecode.length = 2 ^ 23) {σ : Core.Val} (hexp : ExpTables L.read (σ (.n 4)))
+    (hbl : bytecode.length = 2 ^ 23) {σ : Core.Val} (hexp : ExpTables L.read (σ (.n (val% «verify_sub» "g_squares"))))
     (F : VerifySub.VsFront bytecode C L.read σ) : TermFront L.read (termArgsV.map σ) := by
   have hHL := VerifySub.tableHeights_length F.rowsN F.hrowsL
   have hctx := F.hctx

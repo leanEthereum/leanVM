@@ -202,7 +202,7 @@ def cpCols (gi : ℕ) : List Stmt :=
 
 /-- `certify_placement`'s statements before its `ret`. -/
 def cpPre : List Stmt :=
-  ((List.range 8).map fun i ↦ [Stmt.atom (.load (.n (2 + i)) (.n (val% «certify_placement» "kappa_base")) i)]).flatten ++
+  ((List.range 8).map fun i ↦ [Stmt.atom (.load (.n ((val% «certify_placement» "kb[0]") + i)) (.n (val% «certify_placement» "kappa_base")) i)]).flatten ++
     [.atom (.hint (.alloc (.n (val% «certify_placement» "group_key")) 9)), .atom (.hint (.alloc (.n (val% «certify_placement» "group_size")) 9))] ++
     ((List.range 9).map cpGroup).flatten ++
     [.atom (.hint (.alloc (.n (val% «certify_placement» "group_order")) 9)),
@@ -535,7 +535,7 @@ theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage �
   set ebL : List ℕ := 0 :: logMem :: hs with hebL
   have hebLlen : ebL.length = 8 := by simp [ebL, hl]
   have hkb' : TbReadsAt Lm.read kb (ebL.map (gen ^ ·)) := by simpa [ebL] using hkb
-  have heb : ∀ i < 8, σ (.n (2 + i)) = gen ^ ebL.getD i 0 ∧ ebL.getD i 0 ≤ 33 := fun i hi ↦ by
+  have heb : ∀ i < 8, σ (.n ((val% «certify_placement» "kb[0]") + i)) = gen ^ ebL.getD i 0 ∧ ebL.getD i 0 ≤ 33 := fun i hi ↦ by
     refine ⟨tb_loadHolds_unique (by rw [← h0]; exact hloads i hi)
       ((tbReadsAt_map_iff.mp hkb') i (by omega)), ?_⟩
     rcases i with _ | _ | i

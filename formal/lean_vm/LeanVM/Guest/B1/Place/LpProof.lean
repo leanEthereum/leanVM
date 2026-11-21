@@ -102,7 +102,7 @@ def lpPreB (S d cd : ℕ) (loop : String) : List Stmt :=
     ((List.range 5).map fun i ↦ osCp (23 + i) (18 + i))
 
 theorem lpBody_pre (S d cd : ℕ) (loop : String) :
-    lpBody S d cd loop = lpPreB S d cd loop ++ [.ret ((List.range 5).map fun i ↦ .n (23 + i))] :=
+    lpBody S d cd loop = lpPreB S d cd loop ++ [.ret ((List.range 5).map fun i ↦ .n ((valf% «level_positions» "s9#0") + i))] :=
   rfl
 
 theorem lpPreB_straight (S d cd : ℕ) (loop : String) :
@@ -265,7 +265,7 @@ theorem lp_placedE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ
   -- the walk
   have hst := lpPreB_straight S d cd loop
   have hwalk : walk σ fn.body = .ret ((lpPreB S d cd loop).flatMap (Main.slEvs σ))
-      ((List.range 5).map fun i ↦ .n (23 + i)) := by
+      ((List.range 5).map fun i ↦ .n ((valf% «level_positions» "s9#0") + i)) := by
     rw [hb, lpBody_pre]; exact Main.walk_straight σ _ _ hst
   set es := (lpPreB S d cd loop).flatMap (Main.slEvs σ) with hes_def
   obtain ⟨i1, i2, i3, i4⟩ := Main.straight_parts σ _ hst

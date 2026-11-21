@@ -54,7 +54,7 @@ def lpBody (sq d cd : ℕ) (loop : String) : List Stmt :=
     [osCst 16 (gw (sq * 5)), osMul 17 10 16] ++
     ((List.range 5).map fun i ↦ osLd (18 + i) 17 i) ++
     ((List.range 5).map fun i ↦ osCp (23 + i) (18 + i)) ++
-    [.ret ((List.range 5).map fun i ↦ .n (23 + i))]
+    [.ret ((List.range 5).map fun i ↦ .n ((valf% «level_positions» "s9#0") + i))]
 
 /-- A row of tree depth `d` and cap depth `cd`, its positions at offset `0`: the row
 `level_positions`' loop reads. -/

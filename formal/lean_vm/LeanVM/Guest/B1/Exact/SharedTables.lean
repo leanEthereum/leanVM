@@ -51,7 +51,7 @@ theorem sst_pathExact : PathExactFn fn% «shared_selector_tables» := by
     Fn.«shared_selector_tables».core.body, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and] at h
   obtain ⟨m6, m7, m8, m9, m10, m11, c12, c13, h14, h15, c16, c17, h18, h19, h20, c21, c22, h23, h24, c25, c26, h27,
     h28, h29, c30, c31, h32, h33, h34, c35, c36, h37, h38, h39, h40, h41, h42, ha, -⟩ := h
-  have hb : ∀ j < 6, σ (.n (6 + j)) * σ (.n (6 + j)) = σ (.n (6 + j)) := by
+  have hb : ∀ j < 6, σ (.n ((val% «shared_selector_tables» "nb[0]") + j)) * σ (.n ((val% «shared_selector_tables» "nb[0]") + j)) = σ (.n ((val% «shared_selector_tables» "nb[0]") + j)) := by
     intro j hj; interval_cases j
     exacts [m6.symm, m7.symm, m8.symm, m9.symm, m10.symm, m11.symm]
   have rg : σ (.n (val% «shared_selector_tables» "r_g")) = ∏ j ∈ Finset.range 2, (1 + σ (.n (6 + j)) * (gen ^ 2 ^ j + 1)) := by
