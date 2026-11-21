@@ -466,11 +466,11 @@ impl FnLower<'_> {
                 let start = self.const_index(&args[2]);
                 let width = self.const_index(&args[3]);
                 let count = self.const_index(&args[4]);
-                if !(1..=16).contains(&width) || u64::from(start) + u64::from(width * count) > 128 {
+                if !(1..=16).contains(&width) || u64::from(start) + u64::from(width) * u64::from(count) > 128 {
                     self.fail(format!("{f}: windows of 1..=16 bits inside a 128-bit word"))
                 };
                 let at = args.get(5).map_or(0, |at| self.const_index(at));
-                let dest = self.bits_dest(&args[0], at + count, f);
+                let dest = self.bits_dest(&args[0], at.saturating_add(count), f);
                 let value = self.expr(&args[1]);
                 self.pending.push(Hint::Resolved(RHint::WindowsExp {
                     value,

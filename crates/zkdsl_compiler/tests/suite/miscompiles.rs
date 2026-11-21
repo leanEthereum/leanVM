@@ -76,6 +76,11 @@ fn ill_formed_calls_are_rejected_when_lowered() {
             "def main():\n    b = StackBuf(41)\n    hint_decompose_bits_exponent(b, GEN, 41)\n    return\n",
             "at most 40 bits",
         ),
+        // `at + count` wrapped to 1, and the windows were written below the buffer.
+        (
+            "def main():\n    b = StackBuf(1)\n    hint_windows_exponent(b, GEN, 0, 1, 2, 4294967295)\n    return\n",
+            "its StackBuf destination has 1",
+        ),
     ] {
         let ast = parse(src).unwrap();
         let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
