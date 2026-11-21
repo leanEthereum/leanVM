@@ -1,10 +1,10 @@
 # usage: python3 -I genshared.py  — writes Tables/Vt/SharedT.lean (verify_tables' shared selector
-# tables: each table's `shared_len` and its `shared_selector_tables` call, the two tables it
-# returns copied) from vt_ir.txt (dump.py).
+# tables: each table's `shared_len`, its split by `selector_run_nibbles`, its two tables filled by
+# `shared_selector_tables` and copied) from vt_ir.txt (dump.py).
 import os, sys, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from symev import IR, parse_atom, VT_LEAN
-from anchors import SH_CALLS, SH_LEN, SH_EQ, SH_G
+from anchors import SH_CALLS, SH_RUN, SH_LEN, SH_Q, SH_EQA, SH_GA, SH_EQ, SH_G
 
 W33 = 8589934592
 
@@ -15,12 +15,12 @@ def atom(p): return parse_atom(IR[p])
 def main():
     out = []
     # table 0's statements start after `zeta1`'s `plus_one_run`
-    start = SH_CALLS[0] - 7
+    start = SH_RUN[0] - 4
     assert IR[start - 1].startswith('.dispatch (.n 9) plusOneRunNames'), IR[start - 1]
     for t, pc in enumerate(SH_CALLS):
-        zv, z1v, sqv, lenv, er, gr = [int(x) for x in re.findall(r'\.n (\d+)', IR[pc])]
-        assert lenv == SH_LEN[t]
-        seg = list(range(start, pc)) + [pc + 1, pc + 2]
+        eqa, ga_, zv, z1v, sqv, lenv, qv = [int(x) for x in re.findall(r'\.n (\d+)', IR[pc])]
+        assert (lenv, qv, eqa, ga_) == (SH_LEN[t], SH_Q[t], SH_EQA[t], SH_GA[t])
+        seg = [p for p in range(start, pc) if p != SH_RUN[t]] + [pc + 1, pc + 2]
         start = pc + 3
         hs = [(f'a{p}', p, atom(p)) for p in seg]
         assert all(a is not None for _, _, a in hs), seg
@@ -42,24 +42,29 @@ def main():
             assert a == ('mul', [v, src, 27 + t]), (v, a)
             nmof[v] = nm
         enm, ea = defs[SH_EQ[t]]; gnm, ga = defs[SH_G[t]]
-        assert ea == ('copy', [SH_EQ[t], er]) and ga == ('copy', [SH_G[t], gr])
+        assert ea == ('copy', [SH_EQ[t], eqa]) and ga == ('copy', [SH_G[t], ga_])
+        used = {mnm, cnm, rcnm, wnm, enm, gnm, *nmof.values()}
         lines = []
         for nm, p, a in hs:
+            if nm not in used: continue
             m = re.match(r'\.atom \((.*)\)$', IR[p])
             lines.append(f'  have {nm} := h.atomAt {p} ({m.group(1)}) (by decide +kernel)')
         body = '\n'.join(lines)
-        body += (f'\n  have hc := h.callAt {pc} "shared_selector_tables" [.n {zv}, .n {z1v}, .n {sqv}, '
-                 f'.n {lenv}]\n    [.n {er}, .n {gr}] (by decide +kernel)')
-        simpl = ' '.join(nm for nm, p, a in hs if a[0] in ('mul', 'copy', 'const'))
+        body += (f'\n  have hq := h.callAt {SH_RUN[t]} "selector_run_nibbles" [.n {lenv}] [.n {qv}] '
+                 f'(by decide +kernel)')
+        body += (f'\n  have hc := h.callAt {pc} "shared_selector_tables" [.n {eqa}, .n {ga_}, .n {zv}, '
+                 f'.n {z1v}, .n {sqv},\n    .n {lenv}, .n {qv}] [] (by decide +kernel)')
+        simpl = ' '.join(nm for nm, p, a in hs if nm in used and a[0] in ('mul', 'copy', 'const'))
         body += f'\n  simp only [Atom.Holds] at {simpl}'
         out.append(f'''theorem vt_sh{t} {{rd : Reader}} {{σ : Val}} (h : VtH rd σ) :
     σ (.n 9) = σ (.n {lenv}) * σ (.n {27 + t}) ∧ (Atom.rangeCheck {rc[0][2][1]}).Holds rd σ ∧
       σ (.n {wvar}) = vtW33 ∧
-      coreProgram.Rel rd "shared_selector_tables" [σ (.n 8) * σ (.n {27 + t}),
-        σ (.n 699) * σ (.n {27 + t}), σ (.n 12) * σ (.n {27 + t}), σ (.n {lenv})]
-        [σ (.n {SH_EQ[t]}), σ (.n {SH_G[t]})] := by
+      coreProgram.Rel rd "selector_run_nibbles" [σ (.n {lenv})] [σ (.n {qv})] ∧
+      coreProgram.Rel rd "shared_selector_tables" [σ (.n {SH_EQ[t]}), σ (.n {SH_G[t]}),
+        σ (.n 8) * σ (.n {27 + t}), σ (.n 699) * σ (.n {27 + t}), σ (.n 12) * σ (.n {27 + t}),
+        σ (.n {lenv}), σ (.n {qv})] [] := by
 {body}
-  refine ⟨by rw [{mnm}, ← {cnm}], {rcnm}, {wnm}, ?_⟩
+  refine ⟨by rw [{mnm}, ← {cnm}], {rcnm}, {wnm}, by simpa using hq, ?_⟩
   rw [{enm}, {gnm}, ← {nmof[zv]}, ← {nmof[z1v]}, ← {nmof[sqv]}]
   simpa using hc''')
     return out
@@ -81,8 +86,9 @@ public import LeanVM.Guest.CoreData
 # The shared tables' statements
 
 `vt_sh{t}`: table `t`'s `shared_len[t]` (`σ 9 = len · τ_g`, `τ_g = kb[2 + t]` the variable
-`27 + t`), its range check below `g^34`, and its `shared_selector_tables` call, returning the
-table's two nibble tables (their copies `shared_eq[t]`, `shared_g[t]`).
+`27 + t`), its range check below `g^34`, its `selector_run_nibbles` call returning `g^q`, and its
+`shared_selector_tables` call filling the two tables it allocated (their copies `shared_eq[t]`,
+`shared_g[t]`).
 -/
 
 namespace LeanVM.Guest.B1.Tables

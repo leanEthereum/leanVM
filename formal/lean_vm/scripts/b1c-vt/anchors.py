@@ -12,17 +12,24 @@ def _only(ps, what):
 
 _P = sorted(IR)
 
-# The six `shared_selector_tables` calls: table `t`'s run length `shared_len[t]` (`SH_LEN[t]`, the
-# copy the range check reads) and its two returned tables' copies (`SH_EQ[t]`, `SH_G[t]`).
+# The six tables' statements: table `t`'s run length `shared_len[t]` (`SH_LEN[t]`, the copy the
+# range check reads), its split by `selector_run_nibbles` (the call at `SH_RUN[t]`, returning
+# `g^q`, `SH_Q[t]`), its two tables allocated (`SH_EQA[t]`, `SH_GA[t]`) and filled by
+# `shared_selector_tables` (the call at `SH_CALLS[t]`), and their copies (`SH_EQ[t]`, `SH_G[t]`).
 SH_CALLS = [p for p in _P if IR[p].startswith('.call "shared_selector_tables"')]
 assert len(SH_CALLS) == 6, SH_CALLS
-SH_LEN = [nums(IR[p])[3] for p in SH_CALLS]
-SH_EQ, SH_G = [], []
-for _p in SH_CALLS:
-    _r = nums(IR[_p])[4:]
-    assert len(_r) == 2 and IR[_p + 1] == f'.atom (.copy (.n {_r[0] + 2}) (.n {_r[0]}))' \
-        and IR[_p + 2] == f'.atom (.copy (.n {_r[1] + 2}) (.n {_r[1]}))', (_p, IR[_p + 1], IR[_p + 2])
-    SH_EQ.append(_r[0] + 2); SH_G.append(_r[1] + 2)
+SH_RUN = [p - 13 for p in SH_CALLS]
+SH_LEN, SH_Q, SH_EQA, SH_GA, SH_EQ, SH_G = [], [], [], [], [], []
+for _p, _q in zip(SH_CALLS, SH_RUN):
+    _a = nums(IR[_p])
+    assert len(_a) == 7 and IR[_p].endswith('[]'), IR[_p]
+    assert IR[_q] == f'.call "selector_run_nibbles" [.n {_a[5]}] [.n {_a[6]}]', (_q, IR[_q])
+    assert IR[_q + 8] == f'.atom (.hint (.allocDyn (.n {_a[0]}) (.n {_a[6] + 7})))' \
+        and IR[_q + 9] == f'.atom (.hint (.allocDyn (.n {_a[1]}) (.n {_a[6] + 6})))', (_q, IR[_q + 8])
+    assert IR[_p + 1] == f'.atom (.copy (.n {_a[0] + 5}) (.n {_a[0]}))' \
+        and IR[_p + 2] == f'.atom (.copy (.n {_a[1] + 5}) (.n {_a[1]}))', (_p, IR[_p + 1], IR[_p + 2])
+    SH_LEN.append(_a[5]); SH_Q.append(_a[6]); SH_EQA.append(_a[0]); SH_GA.append(_a[1])
+    SH_EQ.append(_a[0] + 5); SH_G.append(_a[1] + 5)
 # The first statement after the shared tables (the index MLE's buffer).
 SH_END = SH_CALLS[-1] + 3
 IDX_BUF = nums(IR[SH_END])[0]

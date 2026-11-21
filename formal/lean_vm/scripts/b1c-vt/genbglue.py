@@ -1,5 +1,5 @@
 # usage: python3 -I genbglue.py > ../../LeanVM/Guest/B1/Tables/VtC/BGlueGen.lean
-# verify_tables' bus sides outside the selectors (statements 755 ..< 2234 of the guest): one
+# verify_tables' bus sides outside the selectors (statements 815 ..< 2294 of the guest): one
 # lemma per slice, the statements beyond evaluation by kind (reads of the cursor, fp_w, claim_pool,
 # block_index_mle, bc_point and gkr_leaves; the KECCAKs), the others (stores, dispatches, calls, the
 # bytecode share's value and its closing check) taken as hypotheses.
@@ -10,8 +10,8 @@ top, flat, ctr, cend = vtflat.load()
 tctr = {}
 for (k, s), c in zip(flat, ctr): tctr.setdefault(k, c)
 from anchors import SH_END, IDX_BUF, TOT_LO, GZN_POS
-SLICES = [(SH_END, SH_END + 1), (768, 771), (784, 801), (814, 832), (1138, 1285), (1554, 1568),
-          (1568, TOT_LO), (TOT_LO, GZN_POS + 2)]
+SLICES = [(SH_END, SH_END + 1), (828, 831), (844, 861), (874, 892), (1198, 1345), (1614, 1628),
+          (1628, TOT_LO), (TOT_LO, GZN_POS + 2)]
 READ = {13: ('hw', 16), 15: ('hpool', 4), IDX_BUF: ('hidx', 3), 5: ('hcur', 7), 19: ('hpt', 4),
         17: ('hleaves', 3)}
 HYP = {'hw': ('W', 13, 16), 'hpool': ('P', 15, 4), 'hidx': ('Q', IDX_BUF, 3), 'hcur': ('C', 5, 7),
