@@ -561,6 +561,48 @@ def main():
             .is_some_and(|m| m.contains("the loop cannot carry it"))
     );
 
+    // Same when `unroll` substitutes its counter into a plain `if` inside `mul_range`:
+    // `free_vars_stmt` ran before substitution and captured `t`, then `lower_if` sees `0 == 0`.
+    let unrolled = "\
+def main():
+    p = GEN ** 0
+    t = 7
+    for i in mul_range(1, GEN ** 2):
+        p[i] = t
+        for k in unroll(0, 1):
+            if k == 0:
+                t = t * 3
+    return
+";
+    let ast = parse(unrolled).expect("parses");
+    let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
+        panic!("an unrolled folded `if` carried a value to the next iteration");
+    };
+    assert!(
+        err.downcast_ref::<String>()
+            .is_some_and(|m| m.contains("the loop cannot carry it"))
+    );
+
+    // Inside a runtime `if` arm, a folded `if` rebinding stays branch-local and does not carry.
+    let scoped_folded = "\
+def main():
+    t = 2
+    out = HeapBuf(GEN ** 2)
+    for i in mul_range(1, GEN ** 2):
+        if i == 1:
+            for k in unroll(0, 1):
+                if k == 0:
+                    t = 9
+            out[i] = t
+        else:
+            out[i] = t
+    assert out[1] == 9
+    assert out[GEN] == 2
+    return
+";
+    let prog = compile(&parse(scoped_folded).expect("parses"));
+    execute(&prog, &[], [F128::ZERO; 2]).expect("branch-local rebinding does not carry");
+
     // A real typo, outside any loop, still gets the plain message.
     let typo = "def main():\n    p = GEN ** 0\n    p[1] = nosuch\n    p[GEN] = GEN ** 0\n    return\n";
     let ast = parse(typo).expect("parses");
