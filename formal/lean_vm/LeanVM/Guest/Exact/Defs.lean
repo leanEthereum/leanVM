@@ -24,8 +24,8 @@ exact (`pops` and the allocator speak for them). `Tree.Exact P rd t`: every hint
 path of every instance of `t` is exact.
 
 `inverse_exact`: the guest follows each `inverse` hint with `assertNe` on the same two values,
-which pins it. `Stmt.blockNextOk p q` is the syntactic form, decided per function by the kernel
-(`Exact/InverseCheck.lean`): every atom satisfying `p` is followed, in its block, by an atom `b`
+which pins it. `Stmt.blockNextOk p q` is the syntactic form, decided per function by the kernel:
+every atom satisfying `p` is followed, in its block, by an atom `b`
 with `q a b`. `walk_partnered`: then every such atom on a path has its partner on the path;
 `inverse_exact_of_walk`: so every `inverse` hint of a valid instance of such a function is exact,
 on every reader, with no hypothesis on the instance.
