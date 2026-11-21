@@ -93,7 +93,7 @@ def addLit {X : Type} (a : Tm X) (n : ℕ) : Tm X := if n = 0 then a else .add a
 def spWalk (i k a : ℕ) : List (Cmd SpName) :=
   unroll k 3 fun s => sponge (fun _ _ => .const 0)
     [.v .pp, .v .a0, addLit (.v .a1) (spStepC i s),
-      if s = k then .v (.start i a) else .v (.walks (3 * i + s - 1))] 4 (.v (.walks (3 * i + s)))
+      if s = k then .v (.start i a) else .v (.walks (3 * i + s - 1))] 4 [.v (.walks (3 * i + s))]
 
 /-- `walk_group(at, pp, walks, powers, 3p, n, k, 0, powers, digit_product, encoded)`, arm `k` of
 group `p`: its walks, then the product and the encoding into the next group's names. -/
@@ -117,7 +117,7 @@ def spWotsRef : Func SpName where
     sponge (fun b c => .v (.st b c))
       (.v .pp :: .v .a0 :: addLit (.v .a1) (2 ^ 24) ::
         (List.range 64).map fun i => .v (.walks (3 * i + 2)))
-      67 (.v .leaf)
+      67 [.v .leaf]
   rets := [.v .leaf]
 
 /-! ## The meaning -/
@@ -158,9 +158,9 @@ private theorem satList_spWalk {i k a : ℕ} :
         (ρ (if s = k then .start i a else .walks (3 * i + s - 1))) := by
   simp only [spWalk, Cmd.satList_unroll]
   refine forall₂_congr fun s _ => forall_congr' fun _ => ?_
-  rw [satList_sponge (m := 4) _ _ rfl]
+  rw [satList_sponge (m := 4) _ _ rfl _ (.inl rfl)]
   simp only [Tm.eval, List.map_cons, List.map_nil, eval_addLit, apply_ite (Tm.eval ρ), apply_ite ρ,
-    spStepCell, hcell, cellsBytes]
+    spStepCell, hcell, cellsBytes, List.length_singleton, List.take, List.cons.injEq, and_true]
   exact ⟨fun h => h.2, fun h => ⟨fun b h0 h1 => absurd h1 (by simp [blocks, rate]; omega), h⟩⟩
 
 /-- **A walk reaches its tip** from its start. -/
@@ -238,7 +238,8 @@ theorem spWotsRef_sat (h : Cmd.SatList rd ρ spWotsRef.body) :
       Nat.le_of_lt_succ (Nat.mod_lt _ (by norm_num))) (by norm_num)) (by norm_num)
       (hprod22.symm.trans (hprod.trans spTarget_eq))
   · exact henc.symm.trans henc22
-  · refine ((satList_sponge (m := 67) _ _ (by simp) _).mp hleaf).2.trans ?_
+  · refine (List.head_eq_of_cons_eq
+      ((satList_sponge (m := 67) _ _ (by simp) _ (.inl rfl)).mp hleaf).2).trans ?_
     rw [spLeafCell, hcell, cellsBytes]
     simp only [List.map_cons, List.map_map, Tm.eval, eval_addLit, Function.comp_def,
       show lit (2 ^ 24) = spPkC from rfl]
@@ -340,10 +341,10 @@ theorem spWotsRef_sem (args rets : List E) :
       exact congrArg (gen ^ ·)
         ((Finset.sum_congr rfl fun i hi => hdig i (Finset.mem_range.mp hi)).trans hsum)
     case leaf =>
-      rw [satList_sponge (m := 67) _ _ (by simp), hmsg]
+      rw [satList_sponge (m := 67) _ _ (by simp) _ (.inl rfl), hmsg]
       refine ⟨fun b _ _ c => by
         simp only [Tm.eval, ρ, spVal, c.isLt, dite_true, List.length_cons, List.length_map,
-          List.length_range], ?_⟩
+          List.length_range], congrArg ([·]) ?_⟩
       show spLeafCell pp a0 a1 d starts = _
       rw [spLeafCell, hcell, cellsBytes, show lit (2 ^ 24) = spPkC from rfl]
 

@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.Ref.Link
-public import LeanVM.Guest.Ref.KeccakCells
+public import LeanVM.Guest.Ref.Keccak
 public import LeanVM.Guest.B1.Da.Interface
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Source
@@ -18,7 +18,7 @@ import LeanVM.Guest.Data.Source
 `cellRef` is `da_verify_cell(lvals)` of `guests/lean_ethereum.py` read line by line
 (`LeanVM.Guest.Ref.Lang`): the hinted symbols are the names `sym e`; the loop's reads of the
 weights are commands and its arithmetic the returned term `dotTm`; `keccak_cells(sym, st)` into the
-two cells of `st` is `spongeTo`. `cellRef_sem` is its meaning; `CellLink.lean` ties the compiled
+two cells of `st` is `sponge`. `cellRef_sem` is its meaning; `CellLink.lean` ties the compiled
 function to it.
 -/
 
@@ -61,8 +61,8 @@ def dotTm : ℕ → Tm CellName
 def cellRef : Func CellName where
   params := [.lvals]
   body := unroll 0 (guest_const% DA_CELL) (fun e => [.load (.v (.w e)) (.v .lvals) e]) ++
-    spongeTo (fun b c => .v (.state b c)) ((List.range (guest_const% DA_CELL)).map (.v <| .sym ·))
-      (guest_const% DA_CELL) (.v (.out 0)) (.v (.out 1))
+    sponge (fun b c => .v (.state b c)) ((List.range (guest_const% DA_CELL)).map (.v <| .sym ·))
+      (guest_const% DA_CELL) [.v (.out 0), .v (.out 1)]
   rets := [.v (.out 0), .v (.out 1), dotTm (guest_const% DA_CELL)]
 
 theorem eval_dotTm (ρ : CellName → E) :
@@ -89,17 +89,16 @@ theorem cellRef_sat {rd : Reader} {ρ : CellName → E} (h : Cmd.SatList rd ρ c
       digestCells (keccak256 ((symsOf ρ).flatMap E.toBytes)) ++
         [((List.range LeanDa.cellSymbols).map fun e ↦
           (wsOf ρ).getD e 0 * (symsOf ρ).getD e 0).sum] := by
-  rw [cellRef, Cmd.satList_append, Cmd.satList_unroll, satList_spongeTo _ _ (by simp)] at h
+  rw [cellRef, Cmd.satList_append, Cmd.satList_unroll,
+    satList_sponge _ _ (by simp) _ (.inr rfl)] at h
   refine ⟨fun k hk => ?_, ?_⟩
   · simpa [Cmd.SatList, Cmd.Sat, Tm.eval, wsOf] using
       h.1 k (Nat.zero_le _) (by simpa [wsOf] using hk)
-  · have hd : (ρ (.out 0), ρ (.out 1)) =
-        digestHalves (keccak256 ((symsOf ρ).flatMap E.toBytes)) := by
-      have := h.2.2
-      simp only [List.map_map, Function.comp_def, Tm.eval] at this
-      exact this
-    simp only [cellRef, List.map_cons, List.map_nil, Tm.eval, eval_dotTm, digestCells, ← hd,
-      List.cons_append, List.nil_append, LeanDa.cellSymbols, List.cons.injEq, and_true, true_and]
+  · have hd : [ρ (.out 0), ρ (.out 1)] = digestCells (keccak256 ((symsOf ρ).flatMap E.toBytes)) :=
+      h.2.2
+    rw [← hd]
+    simp only [cellRef, List.map_cons, List.map_nil, Tm.eval, eval_dotTm, List.cons_append,
+      List.nil_append, LeanDa.cellSymbols, List.cons.injEq, and_true, true_and]
     refine congrArg List.sum (List.map_congr_left fun e he => ?_)
     simp [wsOf, symsOf, List.getD_eq_getElem?_getD, List.mem_range.mp he]
 
@@ -131,13 +130,13 @@ theorem cellRef_sem (rd : Reader) (args rets : List E) :
       List.ext_getElem (by simp [hsl]) fun i _ h => by
         simp [Tm.eval, cellVal, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h]
     refine ⟨cellVal lv syms ws, rfl, ?_, ?_⟩
-    · rw [cellRef, Cmd.satList_append, Cmd.satList_unroll, satList_spongeTo _ _ (by simp), hs]
+    · rw [cellRef, Cmd.satList_append, Cmd.satList_unroll,
+        satList_sponge _ _ (by simp) _ (.inr rfl), hs]
       refine ⟨fun i _ hi => ⟨?_, trivial⟩, fun b _ _ c => ?_, ?_⟩
       · simpa [Cmd.Sat, Tm.eval, cellVal, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem
           (show i < ws.length by omega)] using hr i (by omega)
       · simp [Tm.eval, cellVal, hsl, c.isLt]
-      · simp only [Tm.eval, cellVal, digestCells, List.getD_cons_zero, List.getD_cons_succ]
-        rfl
+      · rfl
     · simp [cellRef, Tm.eval, eval_dotTm, cellVal, digestCells, LeanDa.cellSymbols]
 
 end
