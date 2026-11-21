@@ -12,6 +12,8 @@ public import LeanVM.Guest.CoreMode.Fam.ResStP
 public import LeanVM.Guest.CoreMode.Fam.ResStL
 public import LeanVM.Guest.CoreMode.Fn.keccak_layer.Data
 public import LeanVM.Guest.CoreMode.Fn.keccak_layer.Fam
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
 namespace LeanVM.Guest.EndExec
 
@@ -27,9 +29,9 @@ cursor `p + 48 + 2y` words into its stream, with room for `84 + 2y` words. -/
 theorem layCur_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
     (hf : coreProgram.find? f = some fn) {v : ℕ} (hv : CoreMode.layCur fn = some v) :
-    ∃ p y, σ (.n 9) = Protocol.Verifier.gen ^ (y / B1.VerifySub.krStep) ∧
-      σ (.n 10) = Protocol.Verifier.gen ^ (y % B1.VerifySub.krStep) ∧ y < 32 ∧
-      σ (.n v) = σ (.n 15) * Protocol.Verifier.gen ^ (p + 48 + 2 * y) ∧ p + 84 + 2 * y ≤ 8192 := by
+    ∃ p y, σ (.n (valf% «keccak_layer» "step_g")) = Protocol.Verifier.gen ^ (y / B1.VerifySub.krStep) ∧
+      σ (.n (valf% «keccak_layer» "rem_g")) = Protocol.Verifier.gen ^ (y % B1.VerifySub.krStep) ∧ y < 32 ∧
+      σ (.n v) = σ (.n (valf% «keccak_layer» "stream")) * Protocol.Verifier.gen ^ (p + 48 + 2 * y) ∧ p + 84 + 2 * y ≤ 8192 := by
   have hn : ∃ first < 2, fn.name = B1.VerifySub.layerName first ∧ v = B1.VerifySub.layOff first + 743 := by
     simp only [CoreMode.layCur, Bool.cond_eq_ite, beq_iff_eq] at hv
     split_ifs at hv with h0 h1
@@ -114,9 +116,9 @@ theorem st_keccak {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreP
   obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
   rw [hn] at hf
   obtain ⟨tm, tl⟩ := loop_atoms_top hfi rem hf
-  have e6 : σ (.n 6) = σ (.n 2) * σ (.n 0) :=
+  have e6 : σ (.n (valf% «keccak_layer» "p1")) = σ (.n (valf% «keccak_layer» "fs2")) * σ (.n (valf% «keccak_layer» "fs0")) :=
     hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp tm))
-  have hl : LoadHolds r.img.read (σ (.n 6)) 80 (σ (loopCur rem)) :=
+  have hl : LoadHolds r.img.read (σ (.n (valf% «keccak_layer» "p1"))) 80 (σ (loopCur rem)) :=
     hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp tl))
   rw [e6] at hl
   exact ⟨a, q, hhd, ha17, loadHolds_unique hl hld, room_of hjn hroom⟩

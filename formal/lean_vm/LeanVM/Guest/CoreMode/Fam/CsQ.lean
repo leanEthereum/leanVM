@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.CoreMode.Fam.TermQ
 public import LeanVM.Guest.B1.Terminal.TermFacts
 public import LeanVM.Guest.CoreMode.Fam.RefAll
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«check_opening_terminal»
 
 /-!
 # `column_selector`'s arguments
@@ -75,13 +77,13 @@ theorem walk_flat_disp {σ : Val} {vs vs' : List V} : ∀ {pre : List Stmt} {es 
 theorem term_dispSmall : termPre.all dispSmall = true := by decide +kernel
 
 /-- The other calls of the terminal name no selector. -/
-theorem term_other_names : ([(none, "eq_prefix_chain", [.n 20, .n 21, .n 1, .n 14, .n 4], []),
-      (none, "eq_prefix_chain", [.n 22, .n 23, .n 2, .n 14, .n 5], []),
-      (some (.n 31), name% «check_opening_terminal_loop0», [.n 32, .n 6, .n 26, .n 14], []),
-      (none, "selector_tables", [.n 13, .n 14], [.n 43])] ++
-    [(none, "eq_prefix_chain", [.n 1694, .n 1695, .n 11, .n 14, .n 1697], []),
-      (none, "ring_switch_weight", [.n 1699, .n 14, .n 12, .n 1701], [.n 1702]),
-      (none, "eq_prefix_chain", [.n 1709, .n 1710, .n 18, .n 14, .n 19], [])] :
+theorem term_other_names : ([(none, "eq_prefix_chain", [.n (val% «check_opening_terminal» "zeta_eq_chain"), .n (val% «check_opening_terminal» "s1#0"), .n (val% «check_opening_terminal» "zeta"), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "g_bus_mu")], []),
+      (none, "eq_prefix_chain", [.n (val% «check_opening_terminal» "chi_eq_chain"), .n (val% «check_opening_terminal» "s3#0"), .n (val% «check_opening_terminal» "chi"), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "g_zc_n")], []),
+      (some (.n (val% «check_opening_terminal» "s9#1")), name% «check_opening_terminal_loop0», [.n (val% «check_opening_terminal» "s9#2"), .n (val% «check_opening_terminal» "g_log_mem"), .n (val% «check_opening_terminal» "pi_chain"), .n (val% «check_opening_terminal» "point1")], []),
+      (none, "selector_tables", [.n (val% «check_opening_terminal» "point"), .n (val% «check_opening_terminal» "point1")], [.n (val% «check_opening_terminal» "sel_eq")])] ++
+    [(none, "eq_prefix_chain", [.n (val% «check_opening_terminal» "out_eq_chain"), .n (val% «check_opening_terminal» "s24#0"), .n (val% «check_opening_terminal» "z_vals"), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "s24#2")], []),
+      (none, "ring_switch_weight", [.n (val% «check_opening_terminal» "rs_weight~2"), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "c_table"), .n (val% «check_opening_terminal» "rs_weight~4")], [.n (val% «check_opening_terminal» "rs_weight")]),
+      (none, "eq_prefix_chain", [.n (val% «check_opening_terminal» "ood_chain"), .n (val% «check_opening_terminal» "s28#0"), .n (val% «check_opening_terminal» "ood_z"), .n (val% «check_opening_terminal» "point1"), .n (val% «check_opening_terminal» "gmv")], [])] :
         List (Option V × String × List V × List V)).all
       (fun t ↦ (List.range 31).all fun κ ↦ t.2.1 != Tables.lName "column_selector" κ) = true := by
   decide +kernel
@@ -103,10 +105,10 @@ theorem cs_not_loop {κ : ℕ} (hκ : κ < 31) {fn : Fn}
 `sel_g = g_squares·g^34`. -/
 theorem sel_args {C : CallRel} {rd : Reader} {σ : Val} {c : ℕ} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (selBlockT c) True kret) :
-    LoadHolds rd (σ (.n 10)) c (σ (.n (selStart c))) ∧
+    LoadHolds rd (σ (.n (val% «check_opening_terminal» "col_offsets"))) c (σ (.n (selStart c))) ∧
       σ (.n (selKap c).2.1) = σ (.n (kbV (Tables.colKappaSrc c))) * gen ^ Tables.colKappaAdj c ∧
       (∃ j < 31, σ (.n (selKap c).2.1) = ofK (addressOfIndex j)) ∧
-      σ (.n ((selKap c).2.2 + 1)) = σ (.n 0) * gen ^ 34 := by
+      σ (.n ((selKap c).2.2 + 1)) = σ (.n (val% «check_opening_terminal» "g_squares")) * gen ^ 34 := by
   have hadj : Tables.colKappaAdj c < 64 := by unfold Tables.colKappaAdj; split_ifs <;> omega
   simp only [selBlockT, holdsList_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
   obtain ⟨loff, h⟩ := h
@@ -223,7 +225,7 @@ theorem csQ_step (hr : r.Ok) :
       simp only [selCall, Memory.mkCall, List.map_cons, List.map_nil, CsH]
       set o := (stackOffsets KC).1.getD c' 0 with ho
       have hlo : c' < (stackOffsets KC).1.length := by rw [VerifySub.stackOffsets_length, hKClen]; exact hc'n
-      have hoff : LoadHolds r.img.read (σI (.n 10)) c' (gen ^ o) := by
+      have hoff : LoadHolds r.img.read (σI (.n (val% «check_opening_terminal» "col_offsets"))) c' (gen ^ o) := by
         have := hP.2 c' (by simpa using hlo)
         rw [List.getElem_map] at this
         rw [ho, List.getD_eq_getElem _ _ hlo]; exact this

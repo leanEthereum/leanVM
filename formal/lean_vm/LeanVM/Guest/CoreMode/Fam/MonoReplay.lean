@@ -11,6 +11,10 @@ public import LeanVM.Guest.CoreMode.Fam.MonoChain
 public import LeanVM.Guest.B1.Digest.ChildMono
 public import LeanVM.Guest.CoreMode.Fam.ResT
 public import LeanVM.Guest.CoreMode.Fam.RefAll
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_mono»
+import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_loop0»
+import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_loop1»
 
 /-!
 # `child_claim_list_mono` at its own valuation
@@ -152,14 +156,14 @@ theorem loop_pos {rd : Reader} {f : String} {j : ℕ} (hidx : coreProgram.indexO
 
 theorem loop0_facts : (coreProgram.getD idx% «child_claim_list_mono_loop0» default).loop = true ∧
     endOfFn (coreProgram.getD idx% «child_claim_list_mono_loop0» default) = some none ∧
-    (coreProgram.getD idx% «child_claim_list_mono_loop0» default).params = [.n 0, .n 1, .n 2, .n 3] ∧
+    (coreProgram.getD idx% «child_claim_list_mono_loop0» default).params = [.n (val% «child_claim_list_mono_loop0» "xq"), .n (val% «child_claim_list_mono_loop0» "bound"), .n (val% «child_claim_list_mono_loop0» "chain"), .n (val% «child_claim_list_mono_loop0» "base")] ∧
     512 ≤ B2C.fs name% «child_claim_list_mono_loop0» := by
   rw [B2C.fs, mono136_idx]
   decide +kernel
 
 theorem loop1_facts : (coreProgram.getD idx% «child_claim_list_mono_loop1» default).loop = true ∧
     endOfFn (coreProgram.getD idx% «child_claim_list_mono_loop1» default) = some none ∧
-    (coreProgram.getD idx% «child_claim_list_mono_loop1» default).params = [.n 0, .n 1, .n 2, .n 3] ∧
+    (coreProgram.getD idx% «child_claim_list_mono_loop1» default).params = [.n (val% «child_claim_list_mono_loop1» "xq"), .n (val% «child_claim_list_mono_loop1» "bound"), .n (val% «child_claim_list_mono_loop1» "mid"), .n (val% «child_claim_list_mono_loop1» "base")] ∧
     64 ≤ B2C.fs name% «child_claim_list_mono_loop1» := by
   rw [B2C.fs, mono17_idx]
   decide +kernel
@@ -171,11 +175,11 @@ from `chain = .n 16` and of the groups from `.n 39` (the last record `.n 49`) at
 theorem mono_replay {rd : Reader} (hm : MemOk rd) {σ : Val} {T : ℕ} (hT : T ≤ 2 ^ 28) {rets : List E}
     (hb : Stmt.HoldsList (KidRel coreProgram rd B2C.fs T) rd σ (Fn.body fn% «child_claim_list_mono»)
       False (· = rets)) :
-    ∃ a b L, σ (.n 4) = gen ^ a ∧ σ (.n 5) = gen ^ b ∧ a < 2 ^ 32 ∧ b < 2 ^ 32 ∧ L < 2 ^ 33 ∧
-      σ (.n 3) = gen ^ L ∧ σ (.n 32) = 1 ∧ σ (.n 42) = 1 ∧ σ (.n 49) = σ (.n 39) * gen ^ (15 * b) ∧
-      (∀ q ≤ a, RecAt rd (σ (.n 16) * gen ^ (15 * q)) (σ (.n 1)) (σ (.n 0)) L) ∧
-      (∀ q ≤ b, RecAt rd (σ (.n 39) * gen ^ (15 * q)) (σ (.n 1)) (σ (.n 0)) L) ∧
-      (σ (.n 4) ≠ 1 ∨ σ (.n 5) ≠ 1 ∨ σ (.n 6) ≠ 1 → σ (.n 1) ≠ 0) := by
+    ∃ a b L, σ (.n (val% «child_claim_list_mono» "bigs")) = gen ^ a ∧ σ (.n (val% «child_claim_list_mono» "groups")) = gen ^ b ∧ a < 2 ^ 32 ∧ b < 2 ^ 32 ∧ L < 2 ^ 33 ∧
+      σ (.n (val% «child_claim_list_mono» "limit_g")) = gen ^ L ∧ σ (.n (val% «child_claim_list_mono» "s4#2")) = 1 ∧ σ (.n (val% «child_claim_list_mono» "s6#2")) = 1 ∧ σ (.n (val% «child_claim_list_mono» "last")) = σ (.n (val% «child_claim_list_mono» "mid")) * gen ^ (15 * b) ∧
+      (∀ q ≤ a, RecAt rd (σ (.n (val% «child_claim_list_mono» "chain")) * gen ^ (15 * q)) (σ (.n (val% «child_claim_list_mono» "region"))) (σ (.n (val% «child_claim_list_mono» "entries_ptr"))) L) ∧
+      (∀ q ≤ b, RecAt rd (σ (.n (val% «child_claim_list_mono» "mid")) * gen ^ (15 * q)) (σ (.n (val% «child_claim_list_mono» "region"))) (σ (.n (val% «child_claim_list_mono» "entries_ptr"))) L) ∧
+      (σ (.n (val% «child_claim_list_mono» "bigs")) ≠ 1 ∨ σ (.n (val% «child_claim_list_mono» "groups")) ≠ 1 ∨ σ (.n (val% «child_claim_list_mono» "rest")) ≠ 1 → σ (.n (val% «child_claim_list_mono» "region")) ≠ 0) := by
   rw [child_claim_list_mono_shape, holdsList_append] at hb
   have hok := monoBody_ok
   simp only [monoBodyOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hok
@@ -183,22 +187,22 @@ theorem mono_replay {rd : Reader} (hm : MemOk rd) {σ : Val} {T : ℕ} (hT : T �
     hl1⟩, hl0⟩, hm39⟩, hm49⟩, -⟩, -⟩ := hok
   obtain ⟨hall, -⟩ := holdsList_flat _ (List.all_eq_true.mpr hfl) _ _ hb
   have hat := atoms_of_flat hall
-  have hc32 : σ (.n 32) = 1 := by rw [const_sound h32 hat, word_one]
-  have hc42 : σ (.n 42) = 1 := by rw [const_sound h42 hat, word_one]
+  have hc32 : σ (.n (val% «child_claim_list_mono» "s4#2")) = 1 := by rw [const_sound h32 hat, word_one]
+  have hc42 : σ (.n (val% «child_claim_list_mono» "s6#2")) = 1 := by rw [const_sound h42 hat, word_one]
   -- the zero record
-  have h0 : StateAt rd (σ (.n 16)) 0 (absorbChunks 0 zeroState []) := by
+  have h0 : StateAt rd (σ (.n (val% «child_claim_list_mono» "chain"))) 0 (absorbChunks 0 zeroState []) := by
     intro c
     have hl := load_sound (hzs c c.isLt).1 hat
     rw [const_sound (hzs c c.isLt).2 hat, word_zero] at hl
     rw [Nat.zero_add, absorbChunks, cellsOfState_zero]
     exact hl
-  have hc0 : LoadHolds rd (σ (.n 16)) 13 (σ (.n 1) * gen ^ 0) := by
+  have hc0 : LoadHolds rd (σ (.n (val% «child_claim_list_mono» "chain"))) 13 (σ (.n (val% «child_claim_list_mono» "region")) * gen ^ 0) := by
     rw [pow_zero, mul_one]; exact load_sound hl1 hat
-  have he0 : LoadHolds rd (σ (.n 16)) 14 (σ (.n 0) * gen ^ (4 * 0)) := by
+  have he0 : LoadHolds rd (σ (.n (val% «child_claim_list_mono» "chain"))) 14 (σ (.n (val% «child_claim_list_mono» "entries_ptr")) * gen ^ (4 * 0)) := by
     rw [mul_zero, pow_zero, mul_one]; exact load_sound hl0 hat
   -- the big frames
-  have hcall19 : 1 + σ (.n 4) ≠ 0 → KidRel coreProgram rd B2C.fs T name% «child_claim_list_mono_loop0»
-      [1, σ (.n 4), σ (.n 16), σ (.n 2)] [] := fun hne ↦ by
+  have hcall19 : 1 + σ (.n (val% «child_claim_list_mono» "bigs")) ≠ 0 → KidRel coreProgram rd B2C.fs T name% «child_claim_list_mono_loop0»
+      [1, σ (.n (val% «child_claim_list_mono» "bigs")), σ (.n (val% «child_claim_list_mono» "chain")), σ (.n (val% «child_claim_list_mono» "base"))] [] := fun hne ↦ by
     have := (callIf_of_flat hall hl19).2
       (by rw [add_sound h31 hat, const_sound h30 hat, word_one]; exact hne)
     simpa [hc32] using this
@@ -208,14 +212,14 @@ theorem mono_replay {rd : Reader} (hm : MemOk rd) {σ : Val} {T : ℕ} (hT : T �
     have : a * 512 ≤ 2 ^ 28 := le_trans (Nat.mul_le_mul_left a f0) (le_trans haf hT)
     omega
   have hbig := monoFrames_of_loop hm mono136_idx mono136_ok word_g136 word_g544
-    mono136_nb (chain := σ (.n 16)) (mark := σ (.n 2)) (by omega) h4 fun hne ↦ (hcall19 hne).rel
+    mono136_nb (chain := σ (.n (val% «child_claim_list_mono» "chain"))) (mark := σ (.n (val% «child_claim_list_mono» "base"))) (by omega) h4 fun hne ↦ (hcall19 hne).rel
   obtain ⟨osa, ca, Oa, hla, hwa, hata, hSa, hca, hea, hreca⟩ :=
     monoFramesU (by norm_num) (n0 := 0) (pre := []) rfl h0 hc0 he0 hbig a le_rfl
   -- the groups
-  have h39 : σ (.n 39) = σ (.n 16) * gen ^ (15 * a) := by
+  have h39 : σ (.n (val% «child_claim_list_mono» "mid")) = σ (.n (val% «child_claim_list_mono» "chain")) * gen ^ (15 * a) := by
     rw [monoIs_sound hm39 hat, h4, gen_pow_pow]
-  have hcall20 : 1 + σ (.n 5) ≠ 0 → KidRel coreProgram rd B2C.fs T name% «child_claim_list_mono_loop1»
-      [1, σ (.n 5), σ (.n 39), σ (.n 2)] [] := fun hne ↦ by
+  have hcall20 : 1 + σ (.n (val% «child_claim_list_mono» "groups")) ≠ 0 → KidRel coreProgram rd B2C.fs T name% «child_claim_list_mono_loop1»
+      [1, σ (.n (val% «child_claim_list_mono» "groups")), σ (.n (val% «child_claim_list_mono» "mid")), σ (.n (val% «child_claim_list_mono» "base"))] [] := fun hne ↦ by
     have := (callIf_of_flat hall hl20).2
       (by rw [add_sound h41 hat, const_sound h40 hat, word_one]; exact hne)
     simpa [hc42] using this
@@ -225,7 +229,7 @@ theorem mono_replay {rd : Reader} (hm : MemOk rd) {σ : Val} {T : ℕ} (hT : T �
     have : b * 64 ≤ 2 ^ 28 := le_trans (Nat.mul_le_mul_left b f1) (le_trans hbf hT)
     omega
   have hgrp := monoFrames_of_loop hm mono17_idx mono17_ok word_g17 word_g68
-    mono17_nb (chain := σ (.n 39)) (mark := σ (.n 2)) (by omega) h5 fun hne ↦ (hcall20 hne).rel
+    mono17_nb (chain := σ (.n (val% «child_claim_list_mono» "mid"))) (mark := σ (.n (val% «child_claim_list_mono» "base"))) (by omega) h5 fun hne ↦ (hcall20 hne).rel
   have hpa : ([] ++ cellsBytes ca).length = rate * (0 + 64 * a) := by
     rw [List.nil_append, length_cellsBytes, hata.1, hla]
     show 16 * (4 * (136 * a)) = 136 * (0 + 64 * a)
@@ -241,7 +245,7 @@ theorem mono_replay {rd : Reader} (hm : MemOk rd) {σ : Val} {T : ℕ} (hT : T �
   obtain ⟨rec, reg, mk, lim, hargs, hlast⟩ := monoLast_sound hm hj17 (KidRel.rel hcall)
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hargs
   obtain ⟨hrec, hreg, hmk, hlim⟩ := hargs
-  have h49 : σ (.n 49) = σ (.n 39) * gen ^ (15 * b) := by
+  have h49 : σ (.n (val% «child_claim_list_mono» "last")) = σ (.n (val% «child_claim_list_mono» "mid")) * gen ^ (15 * b) := by
     rw [mono2Is_sound hm49 hat, h39, h4, h5]; simp only [gen_pow_pow]
   have hpre : ([] ++ cellsBytes ca ++ cellsBytes cb).length = rate * (0 + 64 * a + 8 * b) := by
     rw [List.length_append, List.nil_append, length_cellsBytes, length_cellsBytes, hata.1, hla,
@@ -249,7 +253,7 @@ theorem mono_replay {rd : Reader} (hm : MemOk rd) {σ : Val} {T : ℕ} (hT : T �
     show 16 * (4 * (136 * a)) + 16 * (4 * (17 * b)) = 136 * (0 + 64 * a + 8 * b)
     ring
   rw [← hreg, ← hmk] at hlast
-  obtain ⟨osc, cc, Oc, hlc, hwc, hatc, -, e, e', he, he', hOc, hL⟩ := hlast (σ (.n 0)) _ Ob _ hpre
+  obtain ⟨osc, cc, Oc, hlc, hwc, hatc, -, e, e', he, he', hOc, hL⟩ := hlast (σ (.n (val% «child_claim_list_mono» "entries_ptr"))) _ Ob _ hpre
     (by rw [← hrec, h49]; exact hSb) (by rw [← hrec, h49]; exact hcb)
     (by rw [← hrec, h49]; exact heb)
   -- the walk's end is the bound's exponent
@@ -269,7 +273,7 @@ theorem mono_replay {rd : Reader} (hm : MemOk rd) {σ : Val} {T : ℕ} (hT : T �
       exact (gen_pow_inj hOb (by omega) (mul_left_cancel₀ hr0 hOc)).le
   have hab : Oa ≤ Oc := le_trans hwb.2.2.1 hwc.2.2.1
   -- a claim marked: the region nonzero
-  have hreg : σ (.n 4) ≠ 1 ∨ σ (.n 5) ≠ 1 ∨ σ (.n 6) ≠ 1 → σ (.n 1) ≠ 0 := by
+  have hreg : σ (.n (val% «child_claim_list_mono» "bigs")) ≠ 1 ∨ σ (.n (val% «child_claim_list_mono» "groups")) ≠ 1 ∨ σ (.n (val% «child_claim_list_mono» "rest")) ≠ 1 → σ (.n (val% «child_claim_list_mono» "region")) ≠ 0 := by
     intro h
     have h0 : 0 < (osa ++ osb ++ osc).length := by
       rw [List.length_append, List.length_append, hla, hlb, hlc]

@@ -14,6 +14,9 @@ public import LeanVM.Guest.CoreMode.Fam.ResVtL
 public import LeanVM.Guest.CoreMode.Fam.ResVtG
 public import LeanVM.Guest.CoreMode.Fn.verify_tables.Data
 public import LeanVM.Guest.CoreMode.Fn.verify_tables.Fam
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_tables»
+import LeanVM.Guest.Data.ValNames.«verify_tables_loop0»
 
 namespace LeanVM.Guest.EndExec
 
@@ -23,7 +26,7 @@ open LeanVM.Guest.CoreMode (CFun CRes CIdx ResF LtF rep_of capE resFam idxC base
 public section
 
 /-- **`verify_tables`' reads past its table sumcheck** (`vtStC`) at an honest instance: the last record's cursor
-`σ 2647` is `14 + 3n` words past the frame's cursor (`Tables.vt_zc_run`, `vt_cur13`), which `VtQ` puts `p` words into
+`σ cursor@5` is `14 + 3n` words past the frame's cursor (`Tables.vt_zc_run`, `vt_cur13`), which `VtQ` puts `p` words into
 the stream with room for `1009`. -/
 theorem vtStC_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
@@ -42,7 +45,7 @@ theorem vtStC_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts core
     obtain ⟨-, hb⟩ := Res.holds_of_valid hfs hv hf
     obtain ⟨hH, -⟩ := vt_holds (fun _ _ _ h ↦ Res.KidRel.rel h) hf hb
     obtain ⟨-, xs, pts, cl, -, -, -, -, e2647, -⟩ := B1.Tables.vt_zc_run hH hn34 hgn
-    have hcur : σ (.n 2647) = σ (.n 20) * Protocol.Verifier.gen ^ (p + 14 + 3 * n) := by
+    have hcur : σ (.n (val% «verify_tables» "cursor@5")) = σ (.n (val% «verify_tables» "stream")) * Protocol.Verifier.gen ^ (p + 14 + 3 * n) := by
       rw [e2647, vt_cur13 hH, e5]; ring
     have hcap : (8192 : ℕ) < CoreMode.capE := by rw [CoreMode.capE_eq]; norm_num
     refine ⟨0, 8192, p + 14 + 3 * n + c.off, CoreMode.rep_const (by rw [CoreMode.capE_eq]; norm_num),
@@ -76,28 +79,28 @@ public section
 /-- The rounds loop's atoms, on its core function: the record `rounds·x^7` and its cursor's load. -/
 theorem l10_atoms_fn :
     let as := topAtoms (fn% «verify_tables_loop0»).body
-    as.contains (.mul (.n 6) (.n 0) (.n 0)) = true ∧ as.contains (.mul (.n 7) (.n 6) (.n 0)) = true ∧
-      as.contains (.mul (.n 8) (.n 7) (.n 7)) = true ∧ as.contains (.mul (.n 9) (.n 8) (.n 0)) = true ∧
-      as.contains (.mul (.n 10) (.n 2) (.n 9)) = true ∧ as.contains (.load (.n 11) (.n 10) 5) = true := by
+    as.contains (.mul (.n (val% «verify_tables_loop0» "rd~0")) (.n (val% «verify_tables_loop0» "xk")) (.n (val% «verify_tables_loop0» "xk"))) = true ∧ as.contains (.mul (.n (val% «verify_tables_loop0» "rd~1")) (.n (val% «verify_tables_loop0» "rd~0")) (.n (val% «verify_tables_loop0» "xk"))) = true ∧
+      as.contains (.mul (.n (val% «verify_tables_loop0» "rd~2")) (.n (val% «verify_tables_loop0» "rd~1")) (.n (val% «verify_tables_loop0» "rd~1"))) = true ∧ as.contains (.mul (.n (val% «verify_tables_loop0» "rd~3")) (.n (val% «verify_tables_loop0» "rd~2")) (.n (val% «verify_tables_loop0» "xk"))) = true ∧
+      as.contains (.mul (.n (val% «verify_tables_loop0» "rd")) (.n (val% «verify_tables_loop0» "zc_rounds")) (.n (val% «verify_tables_loop0» "rd~3"))) = true ∧ as.contains (.load (.n (val% «verify_tables_loop0» "ncur~3")) (.n (val% «verify_tables_loop0» "rd")) 5) = true := by
   decide +kernel
 
 /-- **`verify_tables`' rounds loop's cursor** in the stream: `VtLQ` and the iteration's record and load. -/
 theorem st_vt {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node name% «verify_tables_loop0» σ bufs kids) :
     ∃ a q, I.hdr.2 = ofK (addressOfIndex a) ∧ a + 22 < maxCells ∧
-      σ (.n 11) = refMem r.img (a + 22) * gen ^ q ∧ q + 3 ≤ 8192 := by
+      σ (.n (val% «verify_tables_loop0» "ncur~3")) = refMem r.img (a + 22) * gen ^ q ∧ q + 3 ≤ 8192 := by
   obtain ⟨a, jj, n, q, hhd, ha22, -, -, hjn, -, hld, hroom⟩ := vtLQ_all hr I hI σ bufs kids ht
   obtain ⟨args, rets, fn', hf', -, es0, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
   obtain rfl : fn' = fn% «verify_tables_loop0» := Option.some.inj (hf'.symm.trans find_l10)
   obtain ⟨t6, t7, t8, t9, t10, tl⟩ := l10_atoms_fn
-  have m6 : σ (.n 6) = σ (.n 0) * σ (.n 0) := hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp t6))
-  have m7 : σ (.n 7) = σ (.n 6) * σ (.n 0) := hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp t7))
-  have m8 : σ (.n 8) = σ (.n 7) * σ (.n 7) := hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp t8))
-  have m9 : σ (.n 9) = σ (.n 8) * σ (.n 0) := hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp t9))
-  have m10 : σ (.n 10) = σ (.n 2) * σ (.n 9) := hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp t10))
-  have l11 : LoadHolds r.img.read (σ (.n 10)) 5 (σ (.n 11)) :=
+  have m6 : σ (.n (val% «verify_tables_loop0» "rd~0")) = σ (.n (val% «verify_tables_loop0» "xk")) * σ (.n (val% «verify_tables_loop0» "xk")) := hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp t6))
+  have m7 : σ (.n (val% «verify_tables_loop0» "rd~1")) = σ (.n (val% «verify_tables_loop0» "rd~0")) * σ (.n (val% «verify_tables_loop0» "xk")) := hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp t7))
+  have m8 : σ (.n (val% «verify_tables_loop0» "rd~2")) = σ (.n (val% «verify_tables_loop0» "rd~1")) * σ (.n (val% «verify_tables_loop0» "rd~1")) := hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp t8))
+  have m9 : σ (.n (val% «verify_tables_loop0» "rd~3")) = σ (.n (val% «verify_tables_loop0» "rd~2")) * σ (.n (val% «verify_tables_loop0» "xk")) := hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp t9))
+  have m10 : σ (.n (val% «verify_tables_loop0» "rd")) = σ (.n (val% «verify_tables_loop0» "zc_rounds")) * σ (.n (val% «verify_tables_loop0» "rd~3")) := hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp t10))
+  have l11 : LoadHolds r.img.read (σ (.n (val% «verify_tables_loop0» "rd"))) 5 (σ (.n (val% «verify_tables_loop0» "ncur~3"))) :=
     hh _ (topAtoms_on_path hw (List.contains_iff_mem.mp tl))
-  have e10 : σ (.n 10) = σ (.n 2) * σ (.n 0) ^ 7 := by rw [m10, m9, m8, m7, m6]; ring
+  have e10 : σ (.n (val% «verify_tables_loop0» "rd")) = σ (.n (val% «verify_tables_loop0» "zc_rounds")) * σ (.n (val% «verify_tables_loop0» "xk")) ^ 7 := by rw [m10, m9, m8, m7, m6]; ring
   rw [e10] at l11
   exact ⟨a, q, hhd, ha22, loadHolds_unique l11 hld, room_of hjn hroom⟩
 
@@ -127,9 +130,9 @@ theorem expFacts_ok : ∀ c ∈ expFacts, ExpOk c := by
       List.getElem?_range (by decide : (10 : ℕ) < 21), Option.map_some, Option.some.injEq] at hv
     subst hv
     obtain ⟨pi, lm, w, pt, vals, hP⟩ := vtPQ_all hr J hJ σ bufs kids hJt
-    rw [show (List.range 21).map (fun k ↦ σ (.n k)) = [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4),
-      σ (.n 5), σ (.n 6), σ (.n 7), σ (.n 8), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12), σ (.n 13),
-      σ (.n 14), σ (.n 15), σ (.n 16), σ (.n 17), σ (.n 18), σ (.n 19), σ (.n 20)] from rfl] at hP
+    rw [show (List.range 21).map (fun k ↦ σ (.n k)) = [σ (.n (val% «verify_tables» "fs0")), σ (.n (val% «verify_tables» "fs1")), σ (.n (val% «verify_tables» "fs2")), σ (.n (val% «verify_tables» "fs3")), σ (.n (val% «verify_tables» "fs4")),
+      σ (.n (val% «verify_tables» "cursor@1")), σ (.n (val% «verify_tables» "pi_0")), σ (.n (val% «verify_tables» "pi_1")), σ (.n (val% «verify_tables» "zeta")), σ (.n (val% «verify_tables» "g_bus_mu")), σ (.n (val% «verify_tables» "dims_g")), σ (.n (val% «verify_tables» "table_rows")), σ (.n (val% «verify_tables» "g_squares")), σ (.n (val% «verify_tables» "fp_w")),
+      σ (.n (val% «verify_tables» "beta")), σ (.n (val% «verify_tables» "claim_pool")), σ (.n (val% «verify_tables» "chi")), σ (.n (val% «verify_tables» "gkr_leaves")), σ (.n (val% «verify_tables» "tabs")), σ (.n (val% «verify_tables» "bc_point")), σ (.n (val% «verify_tables» "stream"))] from rfl] at hP
     obtain ⟨-, -, hgmu, hlen, -, hlm, ⟨ds, -, hds⟩, -⟩ := hP
   · exact ⟨pt.length, hlen, hgmu⟩
   · exact ⟨lm, show lm < 33 by omega, hds 0 (by simp)⟩

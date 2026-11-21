@@ -11,6 +11,13 @@ module
 public import LeanVM.Guest.CoreMode.Fam.ResStP
 public import LeanVM.Guest.CoreMode.Fam.ResGkrS
 public import LeanVM.Guest.CoreMode.Fam.RefAll
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
+import LeanVM.Guest.Data.ValNames.«gkr_last_layers__L»
+import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
+import LeanVM.Guest.Data.ValNames.«gkr_layers__L»
+import LeanVM.Guest.Data.ValNames.«gkr_layers__L_loop0»
+import LeanVM.Guest.Data.ValNames.«verify_bus_gkr»
 
 /-!
 # `verify_bus_gkr`'s cursors
@@ -47,38 +54,38 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 /-- **`verify_bus_gkr`'s cursor**: `13` words into its stream. -/
 def VbgQ (J : Inst) : Prop :=
-  ∀ σ bufs kids, J.t = .node name% «verify_bus_gkr» σ bufs kids → σ (.n 5) = σ (.n 9) * gen ^ 13
+  ∀ σ bufs kids, J.t = .node name% «verify_bus_gkr» σ bufs kids → σ (.n (val% «verify_bus_gkr» "cursor@1")) = σ (.n (val% «verify_bus_gkr» "stream")) * gen ^ 13
 
 /-- `verify_bus_gkr`'s call arguments in `verify_sub`. -/
-def vbgArgsV : List V := [538, 539, 540, 541, 542, 319, 253, 254, 544, 25].map .n
+def vbgArgsV : List V := [val% «verify_sub» "nxt[8]@19", val% «verify_sub» "nxt[9]@19", val% «verify_sub» "nxt[10]@19", val% «verify_sub» "nxt[11]@19", val% «verify_sub» "nxt[12]@19", val% «verify_sub» "cursor@1", val% «verify_sub» "g_bus_mu", val% «verify_sub» "zeta", val% «verify_sub» "fs0@3~8", val% «verify_sub» "stream"].map .n
 
 /-- **`gkr_layers__L{o}`'s depth and root slot**: `n_four = g^n`, `rem_g = g^r`, `start_g = g^(2 - o)`,
 the root-most slot's cursor `q ≤ 27` words into the stream. -/
 def GlsQ (r : Ref) (J : Inst) : Prop :=
   ∀ o < 2, ∀ σ bufs kids, J.t = .node (glcLsN o) σ bufs kids →
-    ∃ n rr q, σ (.n 3) = gen ^ n ∧ n < 4 ∧ σ (.n 4) = gen ^ rr ∧ rr < 4 ∧ σ (.n 5) = gen ^ (2 - o) ∧
-      LoadHolds r.img.read (σ (.n 0)) (10 * (2 - o) + 5) (σ (.n 8) * gen ^ q) ∧ q ≤ 27
+    ∃ n rr q, σ (.n (valf% «gkr_layers» "n_four")) = gen ^ n ∧ n < 4 ∧ σ (.n (valf% «gkr_layers» "rem_g")) = gen ^ rr ∧ rr < 4 ∧ σ (.n (valf% «gkr_layers» "start_g")) = gen ^ (2 - o) ∧
+      LoadHolds r.img.read (σ (.n (valf% «gkr_layers» "layers"))) (10 * (2 - o) + 5) (σ (.n (valf% «gkr_layers» "stream")) * gen ^ q) ∧ q ≤ 27
 
 /-- **`gkr_layers__L{o}`'s loop at `x_m = g^m`**: the slot of radix-four layer `4m`. -/
 def GlsLQ (r : Ref) (J : Inst) : Prop :=
   ∀ o < 2, ∀ σ bufs kids, J.t = .node (glcLsLN o) σ bufs kids →
-    ∃ m n q, σ (.n 0) = gen ^ m ∧ σ (.n 1) = gen ^ n ∧ m < n ∧ n < 4 ∧ σ (.n 5) = gen ^ (2 - o) ∧
-      LoadHolds r.img.read (σ (.n 2)) (10 * (2 * (4 * m) + 2 - o) + 5) (σ (.n 8) * gen ^ q) ∧
+    ∃ m n q, σ (.n (valf% «gkr_layers» «_loop0» "x_m")) = gen ^ m ∧ σ (.n (valf% «gkr_layers» «_loop0» "bound")) = gen ^ n ∧ m < n ∧ n < 4 ∧ σ (.n (valf% «gkr_layers» «_loop0» "start_g")) = gen ^ (2 - o) ∧
+      LoadHolds r.img.read (σ (.n (valf% «gkr_layers» «_loop0» "layers"))) (10 * (2 * (4 * m) + 2 - o) + 5) (σ (.n (valf% «gkr_layers» «_loop0» "stream")) * gen ^ q) ∧
       q ≤ 27 + 560 * m
 
 /-- **`gkr_last_layers__L{r}_L{o}`**: the slot of radix-four layer `4n`. -/
 def GlastQ (r : Ref) (J : Inst) : Prop :=
   ∀ rr < 4, ∀ o < 2, ∀ σ bufs kids, J.t = .node (glcLastN rr o) σ bufs kids →
-    ∃ n q, σ (.n 3) = gen ^ n ∧ n < 4 ∧ σ (.n 4) = gen ^ (4 * n) ∧ σ (.n 5) = gen ^ (2 - o) ∧
-      LoadHolds r.img.read (σ (.n 0)) (10 * (2 * (4 * n) + 2 - o) + 5) (σ (.n 8) * gen ^ q) ∧
+    ∃ n q, σ (.n (valf% «gkr_last_layers» "n_four")) = gen ^ n ∧ n < 4 ∧ σ (.n (valf% «gkr_last_layers» "m4")) = gen ^ (4 * n) ∧ σ (.n (valf% «gkr_last_layers» "start_g")) = gen ^ (2 - o) ∧
+      LoadHolds r.img.read (σ (.n (valf% «gkr_last_layers» "layers"))) (10 * (2 * (4 * n) + 2 - o) + 5) (σ (.n (valf% «gkr_last_layers» "stream")) * gen ^ q) ∧
       q ≤ 27 + 560 * n
 
 /-- **`gkr_layer__L{p}_L{o}`'s slot**: at `x_m = g^m`, `x_j = g^(4m + p)`, the slot of
 `L = 2(4m + p) + 2 - o` holds `stream·g^q` with room for the layer's `4L + 12` words. -/
 def GlQ (r : Ref) (J : Inst) : Prop :=
   ∀ p < 4, ∀ o < 2, ∀ σ bufs kids, J.t = .node (glName p o) σ bufs kids →
-    ∃ m q, σ (.n 3) = gen ^ m ∧ m < 4 ∧ σ (.n 4) = gen ^ (4 * m + p) ∧ σ (.n 5) = gen ^ (2 - o) ∧
-      LoadHolds r.img.read (σ (.n 0)) (10 * (2 * (4 * m + p) + 2 - o) + 5) (σ (.n 8) * gen ^ q) ∧
+    ∃ m q, σ (.n (valf% «gkr_layer» "x_m")) = gen ^ m ∧ m < 4 ∧ σ (.n (valf% «gkr_layer» "x_j")) = gen ^ (4 * m + p) ∧ σ (.n (valf% «gkr_layer» "start_g")) = gen ^ (2 - o) ∧
+      LoadHolds r.img.read (σ (.n (valf% «gkr_layer» "layers"))) (10 * (2 * (4 * m + p) + 2 - o) + 5) (σ (.n (valf% «gkr_layer» "stream")) * gen ^ q) ∧
       q + 4 * (2 * (4 * m + p) + 2 - o) + 12 ≤ 8192
 
 end

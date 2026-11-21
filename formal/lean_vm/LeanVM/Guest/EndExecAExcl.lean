@@ -11,6 +11,8 @@ public import LeanVM.Guest.EndExecALate
 public import LeanVM.Guest.CoreMode.Fam.ResCld
 import all Statement.Data.Bytecode
 import all Statement.Data.AdviceHints
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«claim_list_digest»
 
 /-!
 # `claim_list_digest`'s buffer
@@ -48,8 +50,8 @@ def callsSure : List Stmt → Bool
   | _ => false
 
 /-- What follows `claim_list_digest`'s branch. -/
-abbrev cldTail : List Stmt := [.atom (.touch (.n 94) (.n 1)), .atom (.copy (.n 95) (.n 10)), .atom (.copy (.n 96) (.n 11)),
-  .ret [.n 95, .n 96]]
+abbrev cldTail : List Stmt := [.atom (.touch (.n (val% «claim_list_digest» "s2#0")) (.n (val% «claim_list_digest» "n_g"))), .atom (.copy (.n (val% «claim_list_digest» "s3#0")) (.n (val% «claim_list_digest» "digest[0]"))), .atom (.copy (.n (val% «claim_list_digest» "s3#0[1]")) (.n (val% «claim_list_digest» "digest[1]"))),
+  .ret [.n (val% «claim_list_digest» "s3#0"), .n (val% «claim_list_digest» "s3#0[1]")]]
 
 end
 
@@ -68,14 +70,14 @@ theorem cld_bufs : bufsOf (fnAl cldJ).X (fnAl cldJ).d = [(0, .allocAdvice 33 Hin
 theorem cld_lates : (allocHints (fnAl cldJ).d).filter (fun q ↦ isLate q.2) = [(31, .allocLate 33 (.exp 32))] := by
   decide +kernel
 
-theorem cld_cells : (ctxOf cldJ).locAt 23 = 33 ∧ allocCellOk (ctxOf cldJ) (B2C.fsN cldJ) (.n 23) = true ∧
-    (ctxOf cldJ).locAt 22 = 32 ∧ allocCellOk (ctxOf cldJ) (B2C.fsN cldJ) (.n 22) = true := by
+theorem cld_cells : (ctxOf cldJ).locAt 23 = 33 ∧ allocCellOk (ctxOf cldJ) (B2C.fsN cldJ) (.n (val% «claim_list_digest» "chain")) = true ∧
+    (ctxOf cldJ).locAt 22 = 32 ∧ allocCellOk (ctxOf cldJ) (B2C.fsN cldJ) (.n (val% «claim_list_digest» "chain~7")) = true := by
   decide +kernel
 
 theorem cld_late_al : (alOf alignA "claim_list_digest" 31).map callsSure = some true := by decide +kernel
 
 theorem cld_else_shape : allocShape (B1.Digest.cl23Else ++ cldTail) = true ∧
-    topAllocs (B1.Digest.cl23Else ++ cldTail) = [.allocDyn (.n 23) (.n 22)] := by
+    topAllocs (B1.Digest.cl23Else ++ cldTail) = [.allocDyn (.n (val% «claim_list_digest» "chain")) (.n (val% «claim_list_digest» "chain~7"))] := by
   decide +kernel
 
 theorem cld_zero_noA : Stmt.noAllocList (B1.Digest.cl23Zero ++ cldTail) = true := by decide +kernel
@@ -112,7 +114,7 @@ theorem callsSure_atoms : ∀ (as : List Atom) (ss : List Stmt), callsSure (as.m
 theorem cld_walk_split {σ : Core.Val} {es : List Ev} {vs : List V}
     (hw : walk σ (Fn.body fn% «claim_list_digest») = .ret es vs) :
     ∃ δ es', δ.filterMap Ev.allocH? = [] ∧ (∀ g args rets, Ev.call g args rets ∉ δ) ∧ es = δ ++ es' ∧
-      walk σ ((if σ (.n 3) = 0 then B1.Digest.cl23Zero else B1.Digest.cl23Else) ++ cldTail) = .ret es' vs := by
+      walk σ ((if σ (.n (val% «claim_list_digest» "s1#1")) = 0 then B1.Digest.cl23Zero else B1.Digest.cl23Else) ++ cldTail) = .ret es' vs := by
   rw [B1.Digest.claim_list_digest_shape, Bridge.walk_atom_cons, Bridge.walk_atom_cons, Bridge.walk_ite_cons,
     Bridge.out_pre_pre, Bridge.out_pre_pre] at hw
   obtain ⟨es', hw', rfl⟩ := Bridge.pre_eq_ret hw
@@ -121,10 +123,10 @@ theorem cld_walk_split {σ : Core.Val} {es : List Ev} {vs : List V}
 /-- **`claim_list_digest`'s path allocates its branch's buffer exactly when it takes the branch.** -/
 theorem cld_allocH {σ : Core.Val} {es : List Ev} {vs : List V}
     (hw : walk σ (Fn.body fn% «claim_list_digest») = .ret es vs) :
-    es.filterMap Ev.allocH? = if σ (.n 3) = 0 then [] else [.allocDyn (.n 23) (.n 22)] := by
+    es.filterMap Ev.allocH? = if σ (.n (val% «claim_list_digest» "s1#1")) = 0 then [] else [.allocDyn (.n (val% «claim_list_digest» "chain")) (.n (val% «claim_list_digest» "chain~7"))] := by
   obtain ⟨δ, es', hδ, -, rfl, hw'⟩ := cld_walk_split hw
   rw [List.filterMap_append, hδ, List.nil_append]
-  by_cases h3 : σ (.n 3) = 0
+  by_cases h3 : σ (.n (val% «claim_list_digest» "s1#1")) = 0
   · rw [ite_eq_left h3] at hw' ⊢
     refine filterMap_noA fun e he ↦ ?_
     have := walk_noA (σ := σ) _ cld_zero_noA
@@ -135,7 +137,7 @@ theorem cld_allocH {σ : Core.Val} {es : List Ev} {vs : List V}
 
 /-- **`claim_list_digest`'s empty list's path calls nothing.** -/
 theorem cld_zero_noCall {σ : Core.Val} {es : List Ev} {vs : List V}
-    (hw : walk σ (Fn.body fn% «claim_list_digest») = .ret es vs) (h3 : σ (.n 3) = 0) {g : String} {args rets : List V} :
+    (hw : walk σ (Fn.body fn% «claim_list_digest») = .ret es vs) (h3 : σ (.n (val% «claim_list_digest» "s1#1")) = 0) {g : String} {args rets : List V} :
     Ev.call g args rets ∉ es := by
   intro hg
   obtain ⟨δ, es', -, hδ, rfl, hw'⟩ := cld_walk_split hw
@@ -165,7 +167,7 @@ theorem cld_frame {r : Ref} (hr : r.Ok) {pc fp : ℕ} {done : List Pop} {e : Ent
     (hT : RefTrack alignA r pc fp (done, e :: st)) {j : ℕ} (hj : B2C.idxOf e.I.t.name = some j)
     (hex : j ∈ AllocChk.allocExcl) :
     j = cldJ ∧ e.I.t.name = "claim_list_digest" ∧ e.fn = fn% «claim_list_digest» ∧ alignA e.I.t.name = fnAl cldJ ∧
-      (e.pre ++ e.es).filterMap Ev.allocH? = (if e.σ (.n 3) = 0 then [] else [.allocDyn (.n 23) (.n 22)]) ∧
+      (e.pre ++ e.es).filterMap Ev.allocH? = (if e.σ (.n (val% «claim_list_digest» "s1#1")) = 0 then [] else [.allocDyn (.n (val% «claim_list_digest» "chain")) (.n (val% «claim_list_digest» "chain~7"))]) ∧
       e.I.t.bufs = ((e.pre ++ e.es).filterMap Ev.allocH?).map (allocSizeOf e.σ) := by
   have hjc : j = cldJ := by simpa [AllocChk.allocExcl] using hex
   subst hjc
@@ -216,10 +218,10 @@ theorem buf_bound {r : Ref} (hr : r.Ok) {pc fp : ℕ} {done : List Pop} {e : Ent
   unfold maxCells; unfold Ref.κ at he3 h2k; omega
 
 theorem cld_atom {e : Ent} {σ3 : Core.Val} (hH : (e.pre ++ e.es).filterMap Ev.allocH? =
-      (if σ3 (.n 3) = 0 then [] else [.allocDyn (.n 23) (.n 22)])) (h3 : σ3 (.n 3) ≠ 0) :
-    Ev.atom (.hint (.allocDyn (.n 23) (.n 22))) ∈ e.pre ++ e.es := by
+      (if σ3 (.n (val% «claim_list_digest» "s1#1")) = 0 then [] else [.allocDyn (.n (val% «claim_list_digest» "chain")) (.n (val% «claim_list_digest» "chain~7"))])) (h3 : σ3 (.n (val% «claim_list_digest» "s1#1")) ≠ 0) :
+    Ev.atom (.hint (.allocDyn (.n (val% «claim_list_digest» "chain")) (.n (val% «claim_list_digest» "chain~7")))) ∈ e.pre ++ e.es := by
   rw [ite_eq_right h3] at hH
-  obtain ⟨ev, hev, hev'⟩ := List.mem_filterMap.mp (show Core.Hint.allocDyn (.n 23) (.n 22) ∈ _ by
+  obtain ⟨ev, hev, hev'⟩ := List.mem_filterMap.mp (show Core.Hint.allocDyn (.n (val% «claim_list_digest» "chain")) (.n (val% «claim_list_digest» "chain~7")) ∈ _ by
     rw [hH]; exact List.mem_singleton_self _)
   rw [← allocH_eq hev']; exact hev
 
@@ -254,10 +256,10 @@ theorem exclReady_alignA : ExclReady alignA := by
   have hnx := advNext_alignA r C e s sx i 33 Hints.heapSizeStream hat
   rw [hoff, hk0] at hnx
   rw [hoff] at hnf hnc
-  by_cases h3 : e.σ (.n 3) = 0
+  by_cases h3 : e.σ (.n (val% «claim_list_digest» "s1#1")) = 0
   · rw [hbufs, hH, ite_eq_left h3] at hnx
     exact ⟨Or.inl hnx, allocB_adv hnx fun _ _ he ↦ by simp at he⟩
-  set n := allocSizeOf e.σ (.allocDyn (.n 23) (.n 22))
+  set n := allocSizeOf e.σ (.allocDyn (.n (val% «claim_list_digest» "chain")) (.n (val% «claim_list_digest» "chain~7")))
   have hb1 : e.I.t.bufs = [n] := by rw [hbufs, hH, ite_eq_right h3]; rfl
   rw [hb1] at hnx
   -- the bump pointer: the frame's cursor
@@ -280,7 +282,7 @@ theorem exclReady_alignA : ExclReady alignA := by
   obtain ⟨hcur2, hbound, hboundK⟩ := buf_bound hr htr hch (n := n) (by rw [hb1]; exact List.mem_singleton_self _)
   -- the pointer: the path's first allocation, at the frame's cursor
   have hev := cld_atom hH h3
-  have hdk : (allocDsts (e.pre ++ e.es))[0]? = some (.n 23) := by
+  have hdk : (allocDsts (e.pre ++ e.es))[0]? = some (.n (val% «claim_list_digest» "chain")) := by
     rw [allocDsts_eq, hH, ite_eq_right h3]; rfl
   obtain ⟨t, ν, hv, -, hpl, -, -, -, hTt⟩ := hr.tree
   have hTp : r.T.Placed coreProgram B2C.fs B2C.cert (0, r.T.block B2C.fs coreProgram.loop) := by
@@ -295,7 +297,7 @@ theorem exclReady_alignA : ExclReady alignA := by
     ⟨hE.mem, hE.node, hE.find, hE.path, hE.kids⟩
   obtain ⟨hσ, -⟩ := hE'.alloc_at (cert := B2C.cert) hIp hIP hdk
   obtain ⟨hc1, hc2⟩ := cellRef hr htr hj ⟨_, hev, by simp [atomUses, hintUses]⟩ cld_cells.2.1
-  have h33 : (ctxOf cldJ).locAt (V.n 23).idx = 33 := cld_cells.1
+  have h33 : (ctxOf cldJ).locAt (V.n (val% «claim_list_digest» "chain")).idx = 33 := cld_cells.1
   rw [h33] at hc1 hc2
   have hnlt : n < maxCells := by unfold maxCells at hbound ⊢; omega
   refine ⟨Or.inr ⟨n, hnx, hnlt, by rw [hsxfp]; exact hc1, by rw [hnfx]; exact hbound, ?_⟩,
@@ -340,8 +342,8 @@ theorem lateExcl_guest : LateExcl := by
   rw [hfn] at hwb
   rw [hpos] at hrest
   obtain ⟨g, args, rets, hg⟩ := callsSure_sound (by rw [callsSure_atoms]; exact Option.some.inj hq) hrest
-  have h3 : e.σ (.n 3) ≠ 0 := fun h3 ↦ cld_zero_noCall hwb h3 (List.mem_append_right _ hg)
-  set n := allocSizeOf e.σ (.allocDyn (.n 23) (.n 22))
+  have h3 : e.σ (.n (val% «claim_list_digest» "s1#1")) ≠ 0 := fun h3 ↦ cld_zero_noCall hwb h3 (List.mem_append_right _ hg)
+  set n := allocSizeOf e.σ (.allocDyn (.n (val% «claim_list_digest» "chain")) (.n (val% «claim_list_digest» "chain~7")))
   have hb1 : e.I.t.bufs = [n] := by rw [hbufs, hH, ite_eq_right h3]; rfl
   have hfol := hints_follows _ s sx ⟨hfine.agree.wf, hfine.dl⟩ hpre
   have hsxfp : sx.fp = e.I.fp := hfol.fp.trans htr.linked.top.1.symm
@@ -357,9 +359,9 @@ theorem lateExcl_guest : LateExcl := by
   obtain ⟨rd, hHon, hHX⟩ := hr.honest
   obtain ⟨hI, j', bufs, kids, vs', -, hIt, -, hw, -⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self
   have hevs : e.I.t.events coreProgram = e.pre ++ e.es := by rw [hIt]; exact events_node hE.find hw
-  have hpow := dynPow_guest r hr e.I hI _ _ _ _ hIt (.n 23) (.n 22) (by rw [hevs]; exact hev)
+  have hpow := dynPow_guest r hr e.I hI _ _ _ _ hIt (.n (val% «claim_list_digest» "chain")) (.n (val% «claim_list_digest» "chain~7")) (by rw [hevs]; exact hev)
   have hval := cellRef hr htr hj ⟨_, hev, by simp [atomUses, hintUses]⟩ cld_cells.2.2.2
-  have h32 : (ctxOf cldJ).locAt (V.n 22).idx = 32 := cld_cells.2.2.1
+  have h32 : (ctxOf cldJ).locAt (V.n (val% «claim_list_digest» "chain~7")).idx = 32 := cld_cells.2.2.1
   rw [h32] at hval
   refine ⟨n, ?_, by unfold maxCells at hbound ⊢; omega⟩
   rw [peek_of_written hag hin', hsxfp, hval.2]

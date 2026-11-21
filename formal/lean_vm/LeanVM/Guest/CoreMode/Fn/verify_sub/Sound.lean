@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.EndExecCoreRes
 public import LeanVM.Guest.CoreMode.Fam.ResVs
 public import LeanVM.Guest.CoreMode.Fn.verify_sub.Fam
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 namespace LeanVM.Guest.EndExec
 
@@ -39,21 +41,21 @@ theorem vs_exps {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePro
     ∃ E : ℕ → ℕ, (∀ v lo hi, (v, lo, hi) ∈ CoreMode.vsPows → lo ≤ E v ∧ E v ≤ hi ∧
         σ (V.n v) = Protocol.Verifier.gen ^ E v) ∧
       (∀ x y c, (x, y, c) ∈ CoreMode.vsLes → E x ≤ E y + c) ∧
-      ∃ gK, (∀ x ∈ CoreMode.vsCurs, ∃ gX ≤ gK, σ (V.n x) = σ (.n 25) * Protocol.Verifier.gen ^ gX) ∧
+      ∃ gK, (∀ x ∈ CoreMode.vsCurs, ∃ gX ≤ gK, σ (V.n x) = σ (.n (val% «verify_sub» "stream")) * Protocol.Verifier.gen ^ gX) ∧
         gK + 207 ≤ 8192 := by
   obtain ⟨hs, lm, sl, d, n, gG, gT, gK, hsL, hs31, hτ9, hτ24, hrd, hsl20, hsl30, e278, e276, hd20, hd34, e253,
     hτn, hnd, e579, e567, e578, e595, hGT, hTK, hroom⟩ := vs_valsI hr hI ht
   -- the dims' words, read at `71`'s cells by the top-level loads
-  have hld : ∀ v t, Atom.load (.n v) (.n 71) (t + 1) ∈ Res.topAtoms (fn% «verify_sub»).body → t < 6 →
+  have hld : ∀ v t, Atom.load (.n v) (.n (val% «verify_sub» "dims_g")) (t + 1) ∈ Res.topAtoms (fn% «verify_sub»).body → t < 6 →
       σ (.n v) = Protocol.Verifier.gen ^ hs.getD t 0 := by
     intro v t hm ht6
-    have hx : (Atom.load (.n v) (.n 71) (t + 1)).Holds r.img.read σ := hall _ hm
+    have hx : (Atom.load (.n v) (.n (val% «verify_sub» "dims_g")) (t + 1)).Holds r.img.read σ := hall _ hm
     have hy := hrd (t + 1) (by simp [hsL]; omega)
     have := loadHolds_det hx hy
     rw [this]
     simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (show t < hs.length by omega)]
   have hm : ([(86, 0), (87, 1), (88, 2), (89, 3), (90, 4), (91, 5), (566, 5)] : List (ℕ × ℕ)).all
-      (fun p ↦ (Res.topAtoms (fn% «verify_sub»).body).contains (Atom.load (.n p.1) (.n 71) (p.2 + 1))) = true := by
+      (fun p ↦ (Res.topAtoms (fn% «verify_sub»).body).contains (Atom.load (.n p.1) (.n (val% «verify_sub» "dims_g")) (p.2 + 1))) = true := by
     decide +kernel
   have hm' : ∀ v t, (v, t) ∈ ([(86, 0), (87, 1), (88, 2), (89, 3), (90, 4), (91, 5), (566, 5)] : List (ℕ × ℕ)) →
       t < 6 → σ (.n v) = Protocol.Verifier.gen ^ hs.getD t 0 := fun v t hvt ht6 ↦
@@ -92,7 +94,7 @@ theorem vs_exps {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePro
     · exact ⟨gK, le_rfl, e595⟩
 
 /-- `verify_sub`'s index as its value times `g^c` (`vsBase`): its word's exponent plus `c`. -/
-theorem vsBase_rep {σ : Val} (hM : σ (.n 278) = σ (.n 276) * σ (.n 277)) {i : CIdx} {x c : ℕ}
+theorem vsBase_rep {σ : Val} (hM : σ (.n (val% «verify_sub» "size_sel")) = σ (.n (val% «verify_sub» "gmv")) * σ (.n (val% «verify_sub» "size_sel~0"))) {i : CIdx} {x c : ℕ}
     (h : CoreMode.vsBase i = some (x, c)) {e : ℕ} (hσ : σ (V.n x) = Protocol.Verifier.gen ^ e) (hc : e + c < capE) :
     CoreMode.rep ((idxC i).valW (vw σ)) = some (e + c) := by
   cases i with
@@ -135,8 +137,8 @@ theorem vsExp_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts core
     have hall : ∀ a ∈ Res.topAtoms (fn% «verify_sub»).body, a.Holds r.img.read σ :=
       fun a ha ↦ hh _ (topAtoms_on_path hw ha)
     obtain ⟨E, hP, hL, -⟩ := vs_exps hr hI ht hall
-    have hM : σ (.n 278) = σ (.n 276) * σ (.n 277) :=
-      hall (.mul (.n 278) (.n 276) (.n 277)) (by decide +kernel)
+    have hM : σ (.n (val% «verify_sub» "size_sel")) = σ (.n (val% «verify_sub» "gmv")) * σ (.n (val% «verify_sub» "size_sel~0")) :=
+      hall (.mul (.n (val% «verify_sub» "size_sel")) (.n (val% «verify_sub» "gmv")) (.n (val% «verify_sub» "size_sel~0"))) (by decide +kernel)
     -- an index's exponent, within its bounds
     have hiv : ∀ i l h', CoreMode.vsIv i = some (l, h') → h' < capE → ∃ y, l ≤ y ∧ y ≤ h' ∧
         CoreMode.rep ((idxC i).valW (vw σ)) = some y ∧ ∀ x c, CoreMode.vsBase i = some (x, c) → y = E x + c := by

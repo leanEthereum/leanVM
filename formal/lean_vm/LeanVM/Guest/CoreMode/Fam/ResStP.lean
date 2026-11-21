@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.CoreMode.Fam.ResStL
 public import LeanVM.Guest.CoreMode.Fam.ResA
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
 /-!
 # The pack rounds' cursors
@@ -195,10 +197,10 @@ theorem packSetupT_noRet {first : ℕ} (hf : first < 2) : Stmt.noRetList (packSe
 eight-round loop's call, the remainder loop's record, the counters' `1`. -/
 theorem layer_setup {first : ℕ} (hf : first < 2) {C : CallRel} {σ : Val} {kret : List E → Prop}
     {body : List Stmt} (hbd : body = layerT first) (h : Stmt.HoldsList C rd σ body False kret) :
-    LoadHolds rd (σ (.n (layOff first + 719))) 80 (σ (.n 7) * gen ^ 48) ∧
-      (1 + σ (.n 9) ≠ 0 → C (packLoopName first) [1, σ (.n 9), σ (.n (layOff first + 719)),
-        σ (.n (layOff first + 717)), σ (.n (layOff first + 718)), σ (.n 14)] []) ∧
-      σ (.n (layOff first + 725)) = σ (.n (layOff first + 719)) * σ (.n 9) ∧
+    LoadHolds rd (σ (.n (layOff first + 719))) 80 (σ (.n (valf% «keccak_layer» "cursor@1")) * gen ^ 48) ∧
+      (1 + σ (.n (valf% «keccak_layer» "step_g")) ≠ 0 → C (packLoopName first) [1, σ (.n (valf% «keccak_layer» "step_g")), σ (.n (layOff first + 719)),
+        σ (.n (layOff first + 717)), σ (.n (layOff first + 718)), σ (.n (valf% «keccak_layer» "tabs"))] []) ∧
+      σ (.n (layOff first + 725)) = σ (.n (layOff first + 719)) * σ (.n (valf% «keccak_layer» "step_g")) ∧
       σ (.n (layOff first + 724)) = 1 ∧ σ (.n (layOff first + 736)) = 1 := by
   subst hbd
   rw [layerT_split, holdsList_append, holdsList_noRet _ (layA_noRet hf)] at h

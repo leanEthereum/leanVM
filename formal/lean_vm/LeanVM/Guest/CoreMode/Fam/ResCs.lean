@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.CoreMode.Fam.ResE
 public import LeanVM.Guest.CoreMode.Fam.MonoChain
 public import LeanVM.Guest.CoreMode.Fam.RefAll
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«column_selector__L»
 
 /-!
 # `column_selector`'s lowest digit
@@ -55,8 +57,8 @@ public section
 aligned. -/
 theorem cs_digit {κ : ℕ} (hκ : κ < 31) {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {C : CallRel}
     {σ : Core.Val} {kret : List E → Prop} (hpre : Stmt.HoldsList C Lm.read σ (csPre κ) True kret)
-    (hG : GTabsAt Lm.read (σ (.n 2))) {o : ℕ} (ho : o < 2 ^ 32) (hal : 2 ^ κ ∣ o)
-    (h0 : σ (.n 0) = gen ^ o) : ∃ u < 16, σ (.n 3) = gen ^ u ∧ 2 ^ (3 - (csW κ 0 - 1)) ∣ u := by
+    (hG : GTabsAt Lm.read (σ (.n (valf% «column_selector» "sel_g")))) {o : ℕ} (ho : o < 2 ^ 32) (hal : 2 ^ κ ∣ o)
+    (h0 : σ (.n (valf% «column_selector» "offset")) = gen ^ o) : ∃ u < 16, σ (.n (valf% «column_selector» "digits[0]")) = gen ^ u ∧ 2 ^ (3 - (csW κ 0 - 1)) ∣ u := by
   have h32 : κ ≠ 32 := by omega
   simp only [csPre, h32, ↓reduceIte, csHint, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and] at hpre
   rw [holdsList_append, holdsList_flatten _ (fun b hb => by
@@ -89,7 +91,7 @@ theorem cs_digit {κ : ℕ} (hκ : κ < 31) {μ : ℕ} (hμ : μ ≤ 32) (Lm : M
     rw [show u k hk + 16 * (b + k) = 16 * (b + k) + u k hk by omega] at h2
     simp only [xg', u', hk, ↓reduceDIte]
     exact B1.Tables.tb_loadHolds_unique h2 h1
-  have hreb : σ (.n 0) = gen ^ (16 ^ b * csDig u' N) := by
+  have hreb : σ (.n (valf% «column_selector» "offset")) = gen ^ (16 ^ b * csDig u' N) := by
     have e0 := Value.e_add_eq_zero_iff.mp hassert
     rw [← e0, hR (N - 1) (by omega), show N - 1 + 1 = N by omega,
       Finset.prod_congr rfl (fun k hk => hxg' k (Finset.mem_range.mp hk)), prod_gen_pow_csDig]

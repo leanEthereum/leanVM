@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.CoreMode.Fam.LinkDefs
 public import LeanVM.Guest.B1.Digest.MonoDefs
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_mono»
 
 /-!
 # The gap walk's table reads
@@ -50,16 +52,16 @@ noncomputable def callersM (R : List (String × List String)) (fn : Fn) : Bool :
 /-- A call site of `child_claim_list_mono`'s callees: the frame loops and the last claims at their
 arguments, each a site of its plumbing. -/
 noncomputable def monoSiteB (o : ℕ) (f : String) (args rets : List V) : Bool :=
-  (f != name% «child_claim_list_mono_loop0» || (args == [.n 32, .n 4, .n 16, .n 2] && siteB o args rets)) &&
-  (f != name% «child_claim_list_mono_loop1» || (args == [.n 42, .n 5, .n 39, .n 2] && siteB o args rets)) &&
-  (!mlNames.contains f || (args == [.n 49, .n 1, .n 2, .n 3] && siteB o args rets))
+  (f != name% «child_claim_list_mono_loop0» || (args == [.n (val% «child_claim_list_mono» "s4#2"), .n (val% «child_claim_list_mono» "bigs"), .n (val% «child_claim_list_mono» "chain"), .n (val% «child_claim_list_mono» "base")] && siteB o args rets)) &&
+  (f != name% «child_claim_list_mono_loop1» || (args == [.n (val% «child_claim_list_mono» "s6#2"), .n (val% «child_claim_list_mono» "groups"), .n (val% «child_claim_list_mono» "mid"), .n (val% «child_claim_list_mono» "base")] && siteB o args rets)) &&
+  (!mlNames.contains f || (args == [.n (val% «child_claim_list_mono» "last"), .n (val% «child_claim_list_mono» "region"), .n (val% «child_claim_list_mono» "base"), .n (val% «child_claim_list_mono» "limit_g")] && siteB o args rets))
 
 /-- **`child_claim_list_mono`'s check**: its cells `2`, `3`, `5` and its call sites. -/
 noncomputable def monoOriginB : Bool :=
   let o := fn_idx% «child_claim_list_mono»
   (coreOf o).name == name% «child_claim_list_mono» && !(coreOf o).loop &&
-  decide ((coreOf o).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]) &&
-  cellJ o (.n 0) == 2 && cellJ o (.n 1) == 3 && cellJ o (.n 3) == 5 && Nat.blt 5 (fsN o) &&
+  decide ((coreOf o).params = [.n (val% «child_claim_list_mono» "entries_ptr"), .n (val% «child_claim_list_mono» "region"), .n (val% «child_claim_list_mono» "base"), .n (val% «child_claim_list_mono» "limit_g"), .n (val% «child_claim_list_mono» "bigs"), .n (val% «child_claim_list_mono» "groups"), .n (val% «child_claim_list_mono» "rest")]) &&
+  cellJ o (.n (val% «child_claim_list_mono» "entries_ptr")) == 2 && cellJ o (.n (val% «child_claim_list_mono» "region")) == 3 && cellJ o (.n (val% «child_claim_list_mono» "limit_g")) == 5 && Nat.blt 5 (fsN o) &&
   sitesB (monoSiteB o) (coreOf o).body
 
 /-- A frame loop's check: no call of itself before its tail. -/

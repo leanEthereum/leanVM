@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.EndExecCoreRes
 public import LeanVM.Guest.CoreMode.Fam.ResGkrQ
 public import LeanVM.Guest.CoreMode.Fn.gkr_layers.Data
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«gkr_layers__L»
 
 namespace LeanVM.Guest.CoreMode.Own.gkr_layers
 
@@ -31,9 +33,9 @@ theorem expFacts_ok : ∀ c ∈ expFacts, ExpOk c := by
   rw [hp', glcPar9_eq] at hv
   obtain ⟨n, rr, q, h3, hn4, h4, hrr, -⟩ := glsQ_all hr J hJ o ho σ bufs kids hJt
   rcases hi with rfl | rfl
-  · obtain rfl : V.n 3 = v := Option.some.inj hv
+  · obtain rfl : V.n (valf% «gkr_layers» "n_four") = v := Option.some.inj hv
     exact ⟨n, hn4, h3⟩
-  · obtain rfl : V.n 4 = v := Option.some.inj hv
+  · obtain rfl : V.n (valf% «gkr_layers» "rem_g") = v := Option.some.inj hv
     exact ⟨rr, hrr, h4⟩
 
 end

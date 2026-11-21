@@ -11,6 +11,8 @@ public meta import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.Renumber
 public import LeanVM.Guest.B1.Digest.MonoDefs
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_last__L»
 
 namespace LeanVM.Guest.CoreMode.Own.child_claim_list_mono_last
 
@@ -19,7 +21,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 @[expose] public section
 
 /-- **Its divisor, nonzero** (`CoreMode.coreNzs`): `child_claim_list_mono_last__L0`'s parameter `1`. -/
-def nzs : List (String × V) := [(name% «child_claim_list_mono_last__L0», .n 1)]
+def nzs : List (String × V) := [(name% «child_claim_list_mono_last__L0», .n (valf% «child_claim_list_mono_last» "region"))]
 
 /-- **Its ghost family's specializations** (`CoreMode.mlK`): `child_claim_list_mono_last__L{k}`, `1 ≤ k < 17`. -/
 def mlLoops : List (String × ℕ) := (List.range 16).map fun j ↦ (B1.Digest.mlNames.getD (j + 1) "", j + 1)

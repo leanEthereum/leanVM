@@ -18,6 +18,8 @@ public import LeanVM.Guest.EndExecCoreVt
 public import LeanVM.Guest.CoreMode.Fam.ResVs
 public import LeanVM.Guest.CoreMode.Fam.ResCp
 public import LeanVM.Guest.CoreMode.Gen.TermCallers
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_verify»
 
 namespace LeanVM.Guest.EndExec
 
@@ -35,7 +37,7 @@ def DaPadQ (J : Inst) : Prop :=
 
 /-- `da_verify` calls `da_pad` at its rows' roots, its blob count and its gap. -/
 theorem dv_pad_sites : Res.sitesB (fun f args rets ↦ f != name% «da_pad» ||
-    (args == [.n 10, .n 1, .n 2] && rets == [])) (fn% «da_verify»).body = true := by
+    (args == [.n (val% «da_verify» "roots"), .n (val% «da_verify» "n_blob_g"), .n (val% «da_verify» "gap_g")] && rets == [])) (fn% «da_verify»).body = true := by
   decide +kernel
 
 theorem dv_shape : B1.stmtsEqb (fn% «da_verify»).body (B1.Da.dvP ++ [.ret [.n 26, .n 27, .n 28]]) = true ∧

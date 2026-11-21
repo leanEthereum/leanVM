@@ -12,6 +12,8 @@ public import LeanVM.Guest.CoreMode.Fam.ResGkrQ
 public import LeanVM.Guest.CoreMode.Fam.ResGkrL
 public import LeanVM.Guest.CoreMode.Fn.gkr_layer.Data
 public import LeanVM.Guest.CoreMode.Fn.gkr_layer.Fam
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
 
 namespace LeanVM.Guest.EndExec
 
@@ -57,7 +59,7 @@ theorem glQC_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreP
       B1.Tables.gl_curs (fun _ _ _ h ↦ Res.KidRel.rel h) hp ho hb h3 h4 h5 (by omega) hsl
     have hcap : (8192 : ℕ) < CoreMode.capE := by rw [CoreMode.capE_eq]; norm_num
     obtain ⟨cb, co⟩ := c
-    have key : ∀ (v k : ℕ), σ (.n v) = σ (.n 8) * Protocol.Verifier.gen ^ q * Protocol.Verifier.gen ^ k →
+    have key : ∀ (v k : ℕ), σ (.n v) = σ (.n (valf% «gkr_layer» "stream")) * Protocol.Verifier.gen ^ q * Protocol.Verifier.gen ^ k →
         q + k + co < 8192 → cb = [(v, 1)] → (CRes.sub ⟨cb, co⟩ ⟨⟨[(8, 1)], 0⟩, 1, .num 0, .num 8192⟩).Holds σ := by
       intro v k hvk hk hcb
       subst hcb
@@ -108,7 +110,7 @@ theorem st_gl {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgr
     {p o : ℕ} (hp : p < 4) (ho : o < 2) {σ : Val} {bufs : List ℕ} {kids : List Tree}
     (ht : I.t = .node (B1.Tables.glLoopName p o) σ bufs kids) :
     ∃ a q, I.hdr.2 = ofK (addressOfIndex a) ∧ a + 10 < maxCells ∧
-      σ (.n 17) = refMem r.img (a + 10) * gen ^ q ∧ q + 32 ≤ 8192 := by
+      σ (.n (valf% «gkr_layer» "sp[1]@1")) = refMem r.img (a + 10) * gen ^ q ∧ q + 32 ≤ 8192 := by
   obtain ⟨a, k, m, q, hhd, ha10, -, -, hkm, -, hld, hroom⟩ := glLQ_all hr I hI p hp o ho σ bufs kids ht
   obtain ⟨args, rets, fn', hf', -, es0, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
   obtain ⟨fn, hf, -, hb⟩ := B1.Tables.glIs_sound (B1.Tables.glIs_loops p hp o ho)
@@ -140,7 +142,7 @@ theorem expFacts_ok : ∀ c ∈ expFacts, ExpOk c := by
   obtain ⟨fn', hf', hp', -⟩ := B1.Tables.glIs_sound (B1.Tables.glIs_layers p hp o ho)
   obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
   rw [hp', glParams_eq] at hv
-  obtain rfl : V.n 3 = v := Option.some.inj hv
+  obtain rfl : V.n (valf% «gkr_layer» "x_m") = v := Option.some.inj hv
   obtain ⟨m, q, h3, hm, -⟩ := glQ_all hr J hJ p hp o ho σ bufs kids hJt
   exact ⟨m, hm, h3⟩
 

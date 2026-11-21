@@ -10,6 +10,8 @@ public import LeanVM.Guest.EndExecCoreRes
 public import LeanVM.Guest.CoreMode.Fam.ResCp
 public import LeanVM.Guest.CoreMode.Fn.certify_placement.Data
 public import LeanVM.Guest.CoreMode.Fn.certify_placement.Fam
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«certify_placement»
 
 namespace LeanVM.Guest.EndExec
 
@@ -35,8 +37,8 @@ theorem cpPerm_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     obtain rfl : fn = fn0 := Option.some.inj (hf.symm.trans hfn)
     obtain ⟨-, hb⟩ := LeanVM.Guest.Res.holds_of_valid LeanVM.Guest.Res.fs_pos hv hfn
     rw [hbody, holdsList_append, holdsList_noRet _ B1.Tables.cpPre_noRet] at hb
-    have htab : B1.ExpTables r.img.read (σ (.n 1)) :=
-      (carryQ_all hr I hI _ σ bufs kids ht fn hfn ("certify_placement", 1, .tab) (by decide) rfl (.n 1)
+    have htab : B1.ExpTables r.img.read (σ (.n (val% «certify_placement» "g_squares"))) :=
+      (carryQ_all hr I hI _ σ bufs kids ht fn hfn ("certify_placement", 1, .tab) (by decide) rfl (.n (val% «certify_placement» "g_squares"))
         (by rw [hps]; rfl)).1
     have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
     obtain ⟨hK, hfc, -⟩ := cp_keys (by omega) r.img hb.1 htab

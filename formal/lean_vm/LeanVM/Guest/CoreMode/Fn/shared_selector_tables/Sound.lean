@@ -10,6 +10,8 @@ public import LeanVM.Guest.EndExecCoreRes
 public import LeanVM.Guest.EndExecCoreSplit
 public import LeanVM.Guest.B1.Exact.SharedTables
 public import LeanVM.Guest.CoreMode.Fn.shared_selector_tables.Fam
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«shared_selector_tables»
 
 namespace LeanVM.Guest.EndExec
 
@@ -41,10 +43,10 @@ theorem splitW_sst : SplitW (fn% «shared_selector_tables»)
   have hhi : ∀ j < 4, σ (.n (8 + j)) * σ (.n (8 + j)) = σ (.n (8 + j)) := by
     intro j hj; interval_cases j
     exacts [m8.symm, m9.symm, m10.symm, m11.symm]
-  have rg : σ (.n 20) = ∏ j ∈ Finset.range 2, (1 + σ (.n (6 + j)) * (gen ^ 2 ^ j + 1)) := by
+  have rg : σ (.n (val% «shared_selector_tables» "r_g")) = ∏ j ∈ Finset.range 2, (1 + σ (.n (6 + j)) * (gen ^ 2 ^ j + 1)) := by
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul]
     rw [h20, h15, h19, c12, h14, c13, c16, h18, c17, w3, w5, B1.word_one]
-  have qg : σ (.n 39) = ∏ j ∈ Finset.range 4, (1 + σ (.n (8 + j)) * (gen ^ 2 ^ j + 1)) := by
+  have qg : σ (.n (val% «shared_selector_tables» "q_g@4")) = ∏ j ∈ Finset.range 4, (1 + σ (.n (8 + j)) * (gen ^ 2 ^ j + 1)) := by
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul]
     rw [h39, h34, h29, h24, h28, h33, h38, c21, h23, c22, c25, h27, c26, c30, h32, c31, c35, h37, c36, w3, w5, w17,
       w257, B1.word_one]
@@ -52,7 +54,7 @@ theorem splitW_sst : SplitW (fn% «shared_selector_tables»)
   obtain ⟨aa, haa, hab⟩ := split_bits_gpow (b := fun j ↦ σ (.n (8 + j))) hhi
   replace rg := rg.trans hb
   replace qg := qg.trans hab
-  have h5 : σ (.n 5) = gen ^ (4 * aa + bb) := by
+  have h5 : σ (.n (val% «shared_selector_tables» "len_g")) = gen ^ (4 * aa + bb) := by
     rw [← Value.e_add_eq_zero_iff.mp ha, h42, h41, h40, qg, rg, pow_add, pow_mul']
     ring
   have haa' : aa < 16 := by simpa using haa

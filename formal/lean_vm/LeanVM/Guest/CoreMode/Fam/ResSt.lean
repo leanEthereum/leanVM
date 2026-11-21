@@ -8,6 +8,9 @@ module
 
 public import LeanVM.Guest.CoreMode.Fam.TermQ
 public import LeanVM.Guest.Child.Reads
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # `verify_keccak`'s cursor
@@ -40,10 +43,10 @@ def vkNeed (τ : ℕ) : ℕ := 1 + 12 * (84 + 2 * (τ - 3)) + 97
 and room for its reads. -/
 def VkQ (J : Inst) : Prop :=
   ∀ σ bufs kids, J.t = .node "verify_keccak" σ bufs kids →
-    ∃ p τ, σ (.n 5) = σ (.n 12) * gen ^ p ∧ σ (.n 6) = gen ^ τ ∧ 9 ≤ τ ∧ τ ≤ 28 ∧ p + vkNeed τ ≤ 8192
+    ∃ p τ, σ (.n (val% «verify_keccak» "cursor@1")) = σ (.n (val% «verify_keccak» "stream")) * gen ^ p ∧ σ (.n (val% «verify_keccak» "tau_g")) = gen ^ τ ∧ 9 ≤ τ ∧ τ ≤ 28 ∧ p + vkNeed τ ≤ 8192
 
 /-- `verify_keccak`'s call arguments in `verify_sub`. -/
-def vkArgsV : List V := [556, 557, 558, 559, 560, 561, 566, 552, 570, 567, 568, 572, 25].map .n
+def vkArgsV : List V := [val% «verify_sub» "fs0@4", val% «verify_sub» "fs1@4", val% «verify_sub» "fs2@4", val% «verify_sub» "fs3@4", val% «verify_sub» "fs4@4", val% «verify_sub» "cursor@3", val% «verify_sub» "tau_keccak_g", val% «verify_sub» "chi", val% «verify_sub» "fs0@5~8", val% «verify_sub» "z_vals", val% «verify_sub» "slices", val% «verify_sub» "fs0@5~10", val% «verify_sub» "stream"].map .n
 
 /-- The words of the bus after its GKR walk: the memory's two, the two finals, the bytecode's share. -/
 def busRestReads : ℕ := 4 + (1 + busBits * Child.roundReads 3 + 1)
@@ -148,12 +151,12 @@ theorem params_get {σ σ' : Val} {n : ℕ} {as : List V} (h : ((List.range n).m
 one, and so does the tables' segment. -/
 theorem front_carried {bytecode : List K} {C : CallRel} {rd : Reader} {σ : Val}
     (F : VerifySub.VsFront bytecode C rd σ) :
-    ∃ sp, (⟨[σ (.n 538), σ (.n 539), σ (.n 540), σ (.n 541), σ (.n 542)], []⟩ : Fs).Carries sp := by
-  have h0 : (⟨[σ (.n 20), σ (.n 21), σ (.n 22), σ (.n 23), σ (.n 24)], []⟩ : Fs).Carries
+    ∃ sp, (⟨[σ (.n (val% «verify_sub» "nxt[8]@19")), σ (.n (val% «verify_sub» "nxt[9]@19")), σ (.n (val% «verify_sub» "nxt[10]@19")), σ (.n (val% «verify_sub» "nxt[11]@19")), σ (.n (val% «verify_sub» "nxt[12]@19"))], []⟩ : Fs).Carries sp := by
+  have h0 : (⟨[σ (.n (val% «verify_sub» "sp[8]")), σ (.n (val% «verify_sub» "sp[9]")), σ (.n (val% «verify_sub» "sp[10]")), σ (.n (val% «verify_sub» "sp[11]")), σ (.n (val% «verify_sub» "sp[12]"))], []⟩ : Fs).Carries
       ⟨keccakF1600 (seedInput F.seed F.pi), [], none⟩ := ⟨F.hcap0.symm, rfl, rfl⟩
   obtain ⟨sp1, h1⟩ := carries_absorbAll (VerifySub.vsWords σ) dsObserve h0
   rw [F.habs1] at h1
-  have h2 := carries_absorb (carries_absorb h1 (σ (.n 268)) dsObserve) (σ (.n 271)) dsObserve
+  have h2 := carries_absorb (carries_absorb h1 (σ (.n (val% «verify_sub» "x@9"))) dsObserve) (σ (.n (val% «verify_sub» "x@10"))) dsObserve
   rw [F.habs2] at h2
   obtain ⟨sp3, h3⟩ := carries_of_runsTo F.hO h2
   exact carries_of_runsTo F.hB h3
