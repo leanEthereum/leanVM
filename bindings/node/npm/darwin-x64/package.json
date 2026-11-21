@@ -8,12 +8,13 @@
   "files": [
     "lean_pq_node.darwin-x64.node"
   ],
-  "description": "Node.js bindings for leanXMSS and leanSPHINCS post-quantum signatures and their leanVM aggregation",
+  "description": "Node.js bindings for leanXMSS and leanSPHINCS post-quantum signatures, their leanVM aggregation, and the consensus VRF tree",
   "keywords": [
     "xmss",
     "sphincs",
     "leanxmss",
     "leansphincs",
+    "vrf",
     "post-quantum",
     "ethereum",
     "napi-rs"

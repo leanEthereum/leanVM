@@ -27,8 +27,9 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  # release-please cannot select entries in Cargo.lock, so bring the bindings workspace crates'
-  # locked versions in line with the release PR's bindings/Cargo.toml.
+  # release-please sets the bindings workspace crates' versions in bindings/Cargo.lock itself (its
+  # parser wraps each value, hence `@.name.value` in its config): this is a fallback, which finds
+  # the lock in sync.
   sync-cargo-lock:
     needs: release-please
     if: ${{ needs.release-please.outputs.pr_branch != '' }}

@@ -49,7 +49,7 @@ for pair in x86_64-linux-gnu:linux_amd64 aarch64-linux-gnu:linux_arm64 \
     destination="$tree/internal/native/${pair#*:}/liblean_pq_native.a"
     mkdir -p "$(dirname -- "$destination")"
     install -m 0644 "$source" "$destination"
-    sh "$repo_dir/bindings/native/scripts/strip-archive.sh" "$destination"
+    sh "$repo_dir/bindings/native/scripts/strip-archive.sh" --strip-debug "$destination"
     echo "staged ${pair#*:}: $(wc -c < "$source") bytes, $(wc -c < "$destination") stripped"
 done
 

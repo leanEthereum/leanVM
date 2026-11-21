@@ -14,7 +14,7 @@
 from std/os import parentDir, `/`, quoteShell, fileExists
 
 const
-  leanPqVersion = "0.13.0" # x-release-please-version
+  leanPqVersion = "0.16.0" # x-release-please-version
   leanPqNativeDir {.strdefine.} = ""
   leanPqNativeUrl {.strdefine, used.} =
     "https://github.com/leanEthereum/leanVM/releases/download/bindings-v" & leanPqVersion
@@ -74,13 +74,15 @@ type
   LpqSphincsSecretKey* {.importc: "lpq_sphincs_secret_key", header: lpqHeader,
     incompleteStruct.} = object
   LpqAggregate* {.importc: "lpq_aggregate", header: lpqHeader, incompleteStruct.} = object
+  LpqVrfKey* {.importc: "lpq_vrf_key", header: lpqHeader, incompleteStruct.} = object
   LpqSidecar* {.importc: "lpq_sidecar", header: lpqHeader, incompleteStruct.} = object
 
 const
   LpqOk* = 0'i32
     ## Success.
   LpqError* = 1'i32
-    ## A checked error, or a signature that does not verify; `lpqLastError` has the message.
+    ## A checked error, or a signature or VRF proof that does not verify; `lpqLastError` has the
+    ## message.
   LpqPanic* = 2'i32
     ## The bridge caught a Rust panic.
 
@@ -94,6 +96,12 @@ proc lpqXmssSecretKeyFromBytes*(
   importc: "lpq_xmss_secret_key_from_bytes", header: lpqHeader.}
 proc lpqXmssSecretKeyToBytes*(key: ptr LpqXmssSecretKey, output: ptr LpqBuffer): int32 {.
   importc: "lpq_xmss_secret_key_to_bytes", header: lpqHeader.}
+proc lpqXmssSecretKeyCacheToBytes*(key: ptr LpqXmssSecretKey, output: ptr LpqBuffer): int32 {.
+  importc: "lpq_xmss_secret_key_cache_to_bytes", header: lpqHeader.}
+proc lpqXmssSecretKeyFromCacheBytes*(
+  seed: ptr byte, seedLen: csize_t, publicKey: ptr byte, publicKeyLen: csize_t,
+  cache: ptr byte, cacheLen: csize_t, output: ptr ptr LpqXmssSecretKey): int32 {.
+  importc: "lpq_xmss_secret_key_from_cache_bytes", header: lpqHeader.}
 proc lpqXmssSecretKeyPublicKey*(key: ptr LpqXmssSecretKey, output: ptr LpqBuffer): int32 {.
   importc: "lpq_xmss_secret_key_public_key", header: lpqHeader.}
 proc lpqXmssSecretKeyPrepare*(key: ptr LpqXmssSecretKey, leafIndex: uint32): int32 {.
@@ -167,3 +175,22 @@ proc lpqAggregateSphincsClaims*(aggregate: ptr LpqAggregate, output: ptr LpqBuff
   importc: "lpq_aggregate_sphincs_claims", header: lpqHeader.}
 proc lpqAggregateDestroy*(aggregate: ptr LpqAggregate) {.
   importc: "lpq_aggregate_destroy", header: lpqHeader.}
+
+proc lpqVrfKeyNew*(
+  seed: ptr byte, seedLen: csize_t, start, stop: uint32, output: ptr ptr LpqVrfKey): int32 {.
+  importc: "lpq_vrf_key_new", header: lpqHeader.}
+proc lpqVrfKeyFromCacheBytes*(
+  seed: ptr byte, seedLen: csize_t, root: ptr byte, rootLen: csize_t, cache: ptr byte,
+  cacheLen: csize_t, output: ptr ptr LpqVrfKey): int32 {.
+  importc: "lpq_vrf_key_from_cache_bytes", header: lpqHeader.}
+proc lpqVrfKeyCacheToBytes*(key: ptr LpqVrfKey, output: ptr LpqBuffer): int32 {.
+  importc: "lpq_vrf_key_cache_to_bytes", header: lpqHeader.}
+proc lpqVrfKeyRoot*(key: ptr LpqVrfKey, output: ptr LpqBuffer): int32 {.
+  importc: "lpq_vrf_key_root", header: lpqHeader.}
+proc lpqVrfKeyProof*(key: ptr LpqVrfKey, slot: uint32, output: ptr LpqBuffer): int32 {.
+  importc: "lpq_vrf_key_proof", header: lpqHeader.}
+proc lpqVrfKeyDestroy*(key: ptr LpqVrfKey) {.
+  importc: "lpq_vrf_key_destroy", header: lpqHeader.}
+proc lpqVrfVerify*(
+  root: ptr byte, rootLen: csize_t, slot: uint64, proof: ptr byte, proofLen: csize_t): int32 {.
+  importc: "lpq_vrf_verify", header: lpqHeader.}

@@ -9,6 +9,7 @@ members = [
     "crates/zkdsl_compiler",
     "crates/lean_xmss",
     "crates/lean_sphincs",
+    "crates/lean_vrf",
     "crates/lean_da",
     "crates/claims",
     "crates/aggregation",
@@ -46,6 +47,7 @@ isa = { path = "crates/isa" }
 zkdsl_compiler = { path = "crates/zkdsl_compiler" }
 lean_xmss = { path = "crates/lean_xmss" }
 lean_sphincs = { path = "crates/lean_sphincs" }
+lean_vrf = { path = "crates/lean_vrf" }
 lean_da = { path = "crates/lean_da" }
 claims = { path = "crates/claims" }
 aggregation = { path = "crates/aggregation" }

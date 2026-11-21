@@ -1139,9 +1139,9 @@ impl FnLower<'_> {
             return self.const_cell(field_pow(bc, k));
         }
         if k == 0 {
-            let o = self.fresh();
-            self.set_const(o, F128::ONE);
-            return o;
+            // The base still runs: a call in it may assert or pop a witness.
+            self.expr(b);
+            return self.const_cell(F128::ONE);
         }
         // Runtime base: square-and-multiply over the compile-time exponent bits.
         let base = self.expr(b);

@@ -38,6 +38,28 @@ test('round trips secret keys through bytes', async () => {
   lpq.sphincsVerify(sphincsKey.publicKey, message, await sphincsRestored.sign(message))
 })
 
+test('loads a leanXMSS key from its tree cache', async () => {
+  const message = Buffer.alloc(32, 7)
+  const key = await lpq.XmssSecretKey.fromSeed(seed(7))
+  await key.prepare(3)
+  const cache = key.cacheToBytes()
+
+  const loaded = await lpq.XmssSecretKey.fromCacheBytes(seed(7), key.publicKey, cache)
+  assert.deepEqual(loaded.publicKey, key.publicKey)
+  assert.deepEqual(loaded.cacheToBytes(), cache)
+  const signature = await loaded.sign(message, 3)
+  assert.deepEqual(signature, await key.sign(message, 3))
+  lpq.xmssVerify(key.publicKey, message, signature)
+
+  // A truncated cache, a tampered one, or another key's is refused.
+  const tampered = Buffer.from(cache)
+  tampered[0] ^= 1
+  const other = (await lpq.XmssSecretKey.fromSeed(seed(8))).publicKey
+  for (const [publicKey, bytes] of [[key.publicKey, cache.subarray(1)], [key.publicKey, tampered], [other, cache]]) {
+    await assert.rejects(lpq.XmssSecretKey.fromCacheBytes(seed(7), publicKey, bytes), /not this leanXMSS key's tree cache/)
+  }
+})
+
 const unix = process.platform !== 'win32'
 const skip = unix ? false : 'the sidecar needs Unix sockets'
 
@@ -140,4 +162,40 @@ test('starts and stops its own sidecar', { skip }, async () => {
 
 test('connecting where no sidecar listens fails', async () => {
   await assert.rejects(lpq.Sidecar.connect('/nonexistent/sidecar.sock'), unix ? /leanVM sidecar/ : /Unix sockets/)
+})
+
+test('opens VRF proofs under the root', async () => {
+  const key = await lpq.VrfKey.fromSeed(seed(9), 100, 200)
+  const root = key.root()
+  assert.equal(root.toString('hex'), 'c7e3eaa5a1af5e528e56beb589b4d1c579f5fb8939ddd7f6b1ce2141bc096b45')
+
+  const proof = key.proof(150)
+  assert.equal(proof.length, 1024)
+  lpq.vrfVerify(root, 150, proof)
+  assert.throws(() => lpq.vrfVerify(root, 151, proof), /VRF proof for slot 151/)
+  for (const slot of [100, 151, 199]) lpq.vrfVerify(root, slot, key.proof(slot))
+})
+
+test('loads a VRF key from its cache', async () => {
+  const cache = (await lpq.VrfKey.fromSeed(seed(9), 100, 200)).cacheToBytes()
+
+  const root = Buffer.from('c7e3eaa5a1af5e528e56beb589b4d1c579f5fb8939ddd7f6b1ce2141bc096b45', 'hex')
+  const loaded = await lpq.VrfKey.fromCacheBytes(seed(9), root, cache)
+  assert.deepEqual(loaded.cacheToBytes(), cache)
+  lpq.vrfVerify(root, 150, loaded.proof(150))
+
+  await assert.rejects(lpq.VrfKey.fromCacheBytes(seed(9), root, cache.subarray(0, -1)), /not this VRF key's cache/)
+  await assert.rejects(lpq.VrfKey.fromCacheBytes(seed(9), Buffer.alloc(32), cache), /not this VRF key's cache/)
+  await assert.rejects(lpq.VrfKey.fromCacheBytes(Buffer.alloc(31), root, cache), /seed must be 32 bytes/)
+})
+
+test('rejects VRF slots outside the range and bad encodings', async () => {
+  await assert.rejects(lpq.VrfKey.fromSeed(seed(9), 5, 5), /VRF range 5\.\.5/)
+  await assert.rejects(lpq.VrfKey.fromSeed(seed(9), 0, 2 ** 31 + 1), /ends past 2\^31/)
+  await assert.rejects(lpq.VrfKey.fromSeed(Buffer.alloc(31), 0, 1), /seed must be 32 bytes/)
+
+  const key = await lpq.VrfKey.fromSeed(seed(9), 100, 200)
+  assert.throws(() => key.proof(99), /VRF slot 99/)
+  assert.throws(() => key.proof(200), /VRF slot 200/)
+  assert.throws(() => lpq.vrfVerify(key.root(), 150, key.proof(150).subarray(1)), /proof must be 1024 bytes/)
 })

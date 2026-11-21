@@ -14,7 +14,7 @@ type P = experimental_lean_vm_core::ExperimentalProver;
 type P = stable_lean_vm_core::StableProver;
 
 #[derive(Parser)]
-#[command(name = "leanvm-sidecar")]
+#[command(name = "leanvm-sidecar", version = env!("LEANVM_SIDECAR_VERSION"))]
 struct Cli {
     /// The Unix socket to listen on. It appears once the sidecar is ready.
     #[arg(long)]
