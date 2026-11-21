@@ -14,7 +14,7 @@ public import LeanVM.Guest.CoreMode.CoreLoopC
 `LoopOkC`'s passes over a body (`loopBB`, `callsBL`, `topOk`, `noPtrL`, `calleePtrOk`, `noFA`, the
 conditional calls' conditions, the `match`es' lengths) and over its code (`tgtOk`, `jtdOk`) are each one
 kernel evaluation; for `main_loop2` each takes past the memory a module may take. Every one of them is
-additive over a split of the body or of the code, so it is checked over consecutive slices, each its own
+additive over a split of the body or of the code, so it is checked over consecutive slices (`Wins`), each its own
 declaration: `LWins` (the body's statements before its tail call, one predicate `winL` per slice with
 the `match`es' lengths it has), `CWins` (the code, from each slice's offset), and the two last
 statements apart (`tailL`). `loopFields_of_wins` gives the fields.
@@ -47,6 +47,23 @@ theorem slice_length {α : Type} {l : List α} {a b : ℕ} (_hab : a ≤ b) (hb 
 theorem slice_self {α : Type} (l : List α) (a : ℕ) : slice l a a = [] := by simp [slice]
 
 theorem slice_all {α : Type} (l : List α) : slice l 0 l.length = l := by simp [slice]
+
+/-! ## Windows -/
+
+/-- **Windows from cut `a` to the last cut `e`**: each window, from a cut to the next (`cut x`), passing `P`.
+What the long passes are checked over, one declaration per window. -/
+def Wins {α : Type} (cut : α → ℕ) (P : ℕ → α → Prop) (e : ℕ) : ℕ → List α → Prop
+  | a, [] => a = e
+  | a, x :: cs => a ≤ cut x ∧ P a x ∧ Wins cut P e (cut x) cs
+
+/-- **Windows chained**: what holds at the last cut and is carried back over each window holds from the first. -/
+theorem wins_fold {α : Type} {cut : α → ℕ} {P : ℕ → α → Prop} {e : ℕ} {Q : ℕ → List α → Prop} (h0 : Q e [])
+    (hs : ∀ {a x cs}, a ≤ cut x → cut x ≤ e → P a x → Q (cut x) cs → Q a (x :: cs)) :
+    ∀ {a : ℕ} {cs : List α}, Wins cut P e a cs → a ≤ e ∧ Q a cs
+  | _, [], h => by subst h; exact ⟨le_rfl, h0⟩
+  | _, _ :: _, ⟨hab, hw, hr⟩ =>
+    have ⟨hbe, hq⟩ := wins_fold h0 hs hr
+    ⟨le_trans hab hbe, hs hab hbe hw hq⟩
 
 /-! ## The body's statements -/
 
@@ -91,22 +108,16 @@ theorem winL_append {Cf : CFun} {x y : List Stmt} {mx my : List (ℕ × ℕ)} (h
     · exact hy.1.2 s hs
 
 /-- **The body's slices from `a`**, each `winL` with its `match`es' lengths, the last cut `e`. -/
-def LWins (Cf : CFun) (l : List Stmt) (e : ℕ) : ℕ → List (ℕ × List (ℕ × ℕ)) → Prop
-  | a, [] => a = e
-  | a, (b, m) :: cs => a ≤ b ∧ winL Cf (slice l a b) m = true ∧ LWins Cf l e b cs
+abbrev LWins (Cf : CFun) (l : List Stmt) (e : ℕ) : ℕ → List (ℕ × List (ℕ × ℕ)) → Prop :=
+  Wins (·.1) (fun a x ↦ winL Cf (slice l a x.1) x.2 = true) e
 
 theorem lwins_spec {Cf : CFun} {l : List Stmt} {e : ℕ} :
     ∀ {a : ℕ} {cs : List (ℕ × List (ℕ × ℕ))}, LWins Cf l e a cs →
-      a ≤ e ∧ winL Cf (slice l a e) (cs.map (·.2)).flatten = true
-  | a, [], h => by
-    subst h
-    refine ⟨le_rfl, ?_⟩
-    simp [winL, slice_self, matchLens, stmtsOf]
-  | a, (b, m) :: cs, ⟨hab, hw, hr⟩ => by
-    obtain ⟨hbe, hr'⟩ := lwins_spec hr
-    refine ⟨le_trans hab hbe, ?_⟩
-    rw [slice_split l hab hbe, List.map_cons, List.flatten_cons]
-    exact winL_append hw hr'
+      a ≤ e ∧ winL Cf (slice l a e) (cs.map (·.2)).flatten = true := fun h ↦
+  wins_fold (Q := fun (a : ℕ) (cs : List (ℕ × List (ℕ × ℕ))) ↦ winL Cf (slice l a e) (cs.map (·.2)).flatten = true)
+    (by simp [winL, slice_self, matchLens, stmtsOf]) (fun {a x cs} hab hbe hw hq ↦ by
+      rw [slice_split l hab hbe, List.map_cons, List.flatten_cons]
+      exact winL_append hw hq) h
 
 /-! ## The code -/
 
@@ -142,27 +153,23 @@ theorem jtdGo_append {Cf : CFun} {E : Mode.Env} {ml : List (ℕ × ℕ)} {dl : L
 
 /-- **The code's slices from `a`**, each passing the frame walk's tables' check from its offset and the
 jump table's reads' check. -/
-def CWins (Cf : CFun) (E : Mode.Env) (ml : List (ℕ × ℕ)) (code : List OffsetInstruction) (e : ℕ) :
-    ℕ → List ℕ → Prop
-  | a, [] => a = e
-  | a, b :: cs => a ≤ b ∧ (tgtGo Cf ml a (slice code a b) && jtdGo Cf E ml [] (slice code a b)) = true ∧
-      CWins Cf E ml code e b cs
+abbrev CWins (Cf : CFun) (E : Mode.Env) (ml : List (ℕ × ℕ)) (code : List OffsetInstruction) (e : ℕ) :
+    ℕ → List ℕ → Prop :=
+  Wins id (fun a b ↦ (tgtGo Cf ml a (slice code a b) && jtdGo Cf E ml [] (slice code a b)) = true) e
 
 theorem cwins_spec {Cf : CFun} {E : Mode.Env} {ml : List (ℕ × ℕ)} {code : List OffsetInstruction} {e : ℕ}
     (he : e ≤ code.length) :
     ∀ {a : ℕ} {cs : List ℕ}, CWins Cf E ml code e a cs →
-      a ≤ e ∧ tgtGo Cf ml a (slice code a e) = true ∧ jtdGo Cf E ml [] (slice code a e) = true
-  | a, [], h => by
-    subst h
-    simp [slice_self, tgtGo, jtdGo]
-  | a, b :: cs, ⟨hab, hw, hr⟩ => by
-    obtain ⟨hbe, ht, hj⟩ := cwins_spec he hr
-    rw [Bool.and_eq_true] at hw
-    refine ⟨le_trans hab hbe, ?_, ?_⟩
-    · rw [slice_split code hab hbe, tgtGo_append, hw.1, slice_length hab (le_trans hbe he),
-        show a + (b - a) = b by omega, ht]
-      rfl
-    · rw [slice_split code hab hbe, jtdGo_append _ _ hw.2, hj]
+      a ≤ e ∧ tgtGo Cf ml a (slice code a e) = true ∧ jtdGo Cf E ml [] (slice code a e) = true := fun h ↦
+  wins_fold (Q := fun a _ ↦ tgtGo Cf ml a (slice code a e) = true ∧ jtdGo Cf E ml [] (slice code a e) = true)
+    (by simp [slice_self, tgtGo, jtdGo]) (fun {a b _} hab hbe hw hq ↦ by
+      simp only [id] at hab hbe hw hq
+      rw [Bool.and_eq_true] at hw
+      refine ⟨?_, ?_⟩
+      · rw [slice_split code hab hbe, tgtGo_append, hw.1, slice_length hab (le_trans hbe he),
+          show a + (b - a) = b by omega, hq.1]
+        rfl
+      · rw [slice_split code hab hbe, jtdGo_append _ _ hw.2, hq.2]) h
 
 /-! ## The fields -/
 

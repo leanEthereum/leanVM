@@ -480,7 +480,7 @@ theorem addS_adOk {σ : Val} {st : CSt} (had : AdOk σ st.ad) {k : ℕ} {a b : C
   | none =>
     simp only [Trie.seq_eq]
     intro k' p hp
-    rcases getF_setF hp with ⟨rfl, rfl⟩ | hp
+    rcases Check.getF_setF hp with ⟨rfl, rfl⟩ | hp
     · exact h
     · exact had k' p hp
 
@@ -846,7 +846,7 @@ theorem svPut_ok : ∀ {l : List (ℕ × CCell × CCell)} {st : CSt}, StOk rd W 
     refine svPut_ok ⟨hs.env, hs.sc, hs.rs, hs.ad, fun n q hq ↦ ?_, hs.src, hs.pf, hs.pr, hs.cd, hs.eqs, hs.dq⟩
       fun p' hp' ↦ hl p' (List.mem_cons_of_mem _ hp')
     change getF (setF p.2 Exec.indexDepth st.sv p.1) n = some q at hq
-    rcases getF_setF hq with ⟨-, rfl⟩ | hq
+    rcases Check.getF_setF hq with ⟨-, rfl⟩ | hq
     · exact hl p List.mem_cons_self
     · exact hs.sv n q hq
 

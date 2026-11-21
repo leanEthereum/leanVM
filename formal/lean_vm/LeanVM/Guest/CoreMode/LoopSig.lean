@@ -14,13 +14,12 @@ public import LeanVM.Guest.CoreMode.CoreSlot
 A loop helper's mode signature (`Mode.Sig`) speaks of runs whose bounds are exponents of its
 parameters' words (`.ex (.fr o) 0`, frame cell `o = 2 + b` holding parameter `b`) or constants, and of
 its termination fact (its counter's exponent below its bound's). `idxT` and `rngT` translate those to
-the heap check's indices (`CIdx.val b`, `CIdx.num n`) and runs (`CRun`); `sigOkL` says a heap
-signature is a mode signature's translation, field by field.
+the heap check's indices (`CIdx.val b`, `CIdx.num n`) and runs (`CRun`); `SigL` says a heap
+signature is a mode signature's translation, field by field (`sigOkLP` checks it, `LoopSigP.lean`).
 
 Over a frame whose parameter cells hold the slots' words (`ParAt`): a mode exponent's value is its
 translation's exponent (`idxVal_iff`), a mode run written is its heap run's cells written (`rw_slotT`)
-and conversely, both bounds' exponents existing (`slot_rwT`); the termination facts are the heap
-check's entry facts (`termAt_entryF`).
+and conversely, both bounds' exponents existing (`slot_rwT`).
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -76,23 +75,6 @@ def idxK (G : Mode.Sig) : Mode.Idx → Bool
 
 /-- A run whose bounds' values exist wherever the termination fact holds. -/
 def rngK (G : Mode.Sig) (r : Mode.Rng) : Bool := idxK G r.lo && idxK G r.hi
-
-/-- **A loop helper's heap signature is its mode signature's translation**: one termination fact,
-its counter parameter `0`'s exponent below its bound's; no return cell, pointer fact, returned
-product or order at return; preconditions and guarantees field by field (the loop's runs `postL`
-after the other runs among `postR`), every run's bounds constants or the termination fact's. -/
-def sigOkL (G : Mode.Sig) (h : HSig) (np : ℕ) : Bool :=
-  G.ret.isEmpty && G.postP.isEmpty && G.postLP.isEmpty && G.preP.isEmpty && G.retV.isEmpty &&
-    G.postT.isEmpty && G.postC.isEmpty &&
-    h.preP.isEmpty && h.prePR.isEmpty && h.postP.isEmpty && h.postPR.isEmpty && h.retM.isEmpty &&
-    (h.postV.isEmpty && h.postQ.isEmpty) && h.retEq.isEmpty && Nat.beq h.ghosts 0 &&
-    (match G.term, h.term with
-      | [(lo, hi)], [(.val 0, ei)] => decide (lo = .ex (.fr 2) 0) && parCell G np 2 && decide (idxT G np hi = some ei)
-      | _, _ => false) &&
-    decide (G.pre.mapM (monoT G np) = some h.pre) && decide (G.preR.mapM (rngT G np) = some h.preR) &&
-    decide (G.post.mapM (monoT G np) = some h.post) &&
-    decide ((G.postR ++ G.postL).mapM (rngT G np) = some h.postR) &&
-    G.preR.all (rngK G) && (G.postR ++ G.postL).all (rngK G)
 
 /-! ## Over a frame holding the parameters -/
 
@@ -254,7 +236,7 @@ theorem mapM_mem {α β : Type} {f : α → Option β} : ∀ {l : List α} {l' :
       · obtain ⟨b', hb', h'⟩ := h2 a' ha'
         exact ⟨b', List.mem_cons_of_mem _ hb', h'⟩
 
-/-- **What `sigOkL` says**, unfolded. -/
+/-- **A heap signature, a mode signature's translation**, field by field. -/
 structure SigL (G : Mode.Sig) (h : HSig) (np : ℕ) : Prop where
   ret : G.ret = []
   postP : G.postP = []
@@ -281,20 +263,6 @@ structure SigL (G : Mode.Sig) (h : HSig) (np : ℕ) : Prop where
   kpreR : ∀ r ∈ G.preR, rngK G r = true
   kpostR : ∀ r ∈ G.postR ++ G.postL, rngK G r = true
 
-theorem sigL_of {G : Mode.Sig} {h : HSig} {np : ℕ} (hs : sigOkL G h np = true) : SigL G h np := by
-  unfold sigOkL at hs
-  simp only [Bool.and_eq_true, List.isEmpty_iff, decide_eq_true_eq, List.all_eq_true] at hs
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩, h12⟩, h13⟩, h14⟩, h15⟩,
-    hterm⟩, hpre⟩, hpreR⟩, hpost⟩, hpostR⟩, hk1⟩, hk2⟩ := hs
-  refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13.1, h13.2, h14, by simpa using h15, ?_, hpre, hpreR, hpost,
-    hpostR, hk1, hk2⟩
-  split at hterm
-  · rename_i lo hi ei hG hh
-    simp only [Bool.and_eq_true, decide_eq_true_eq] at hterm
-    obtain ⟨⟨rfl, h2⟩, h3⟩ := hterm
-    exact ⟨hi, ei, hG, hh, h2, h3⟩
-  · cases hterm
-
 /-- An exponent of a run checked by `rngK` has its value where the termination facts hold. -/
 theorem idxK_val {G : Mode.Sig} {s : St} (hT : ∀ p ∈ G.term, LTF s p.1 p.2) {i : Mode.Idx}
     (h : idxK G i = true) : ∃ x, IdxVal s i x := by
@@ -306,18 +274,6 @@ theorem idxK_val {G : Mode.Sig} {s : St} (hT : ∀ p ∈ G.term, LTF s p.1 p.2) 
     rcases Bool.or_eq_true_iff.mp hpi with h1 | h1
     · rw [decide_eq_true_eq] at h1; rw [← h1]; exact ⟨xa, ha⟩
     · rw [decide_eq_true_eq] at h1; rw [← h1]; exact ⟨xb, hb⟩
-
-/-- **The termination facts are the heap check's entry facts**, over a frame holding the
-parameters. -/
-theorem termAt_entryF {G : Mode.Sig} {h : HSig} {np : ℕ} (hs : SigL G h np) {s : St} {ws : List E}
-    (hP : ParAt G np s ws) (hT : ∀ p ∈ G.term, LTF s p.1 p.2) : ∀ p ∈ h.term, LtF (slotW ws) (idxC p.1) (idxC p.2) := by
-  obtain ⟨hi, ei, hG, hh, h2, hei⟩ := hs.term
-  intro p hp
-  rw [hh, List.mem_singleton] at hp
-  subst hp
-  obtain ⟨xa, xb, ha, hb, hab⟩ := hT _ (by rw [hG]; exact List.mem_singleton_self _)
-  have h0 : idxT G np (.ex (.fr 2) 0) = some (.val 0) := by simp [idxT, h2]
-  exact ⟨xa, xb, (idxVal_iff hP h0).mp ha, (idxVal_iff hP hei).mp hb, hab⟩
 
 end
 

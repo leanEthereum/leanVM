@@ -134,7 +134,7 @@ theorem insL_ok {α : Type} {Q : α → Prop} : ∀ {l : List (ℕ × α)} {t : 
   | p :: l, t, ht, hl, k, a, h => by
     simp only [insL, Trie.seq_eq] at h
     refine insL_ok (fun k' a' h' ↦ ?_) (fun p' hp' ↦ hl p' (List.mem_cons_of_mem _ hp')) k a h
-    rcases getF_setF h' with ⟨-, rfl⟩ | h'
+    rcases Check.getF_setF h' with ⟨-, rfl⟩ | h'
     · exact hl p List.mem_cons_self
     · exact ht k' a' h'
 
@@ -831,7 +831,7 @@ theorem paramEnv_get : ∀ (m k : ℕ) (c : CCell), getF (paramEnv m) k = some c
   | 0, k, c, h => by simp [paramEnv, getF_nil] at h
   | m + 1, k, c, h => by
     simp only [paramEnv, Trie.seq_eq, id] at h
-    rcases getF_setF h with ⟨rfl, rfl⟩ | h
+    rcases Check.getF_setF h with ⟨rfl, rfl⟩ | h
     · rfl
     · exact paramEnv_get m k c h
 
@@ -946,7 +946,7 @@ theorem getF_keysT : ∀ (l : List ℕ) (t : Trie Unit) {k : ℕ}, (getF (keysT 
     rcases getF_keysT l _ h with h | h
     · exact Or.inl (List.mem_cons_of_mem _ h)
     · obtain ⟨u, hu⟩ := Option.isSome_iff_exists.mp h
-      rcases getF_setF hu with ⟨rfl, -⟩ | hu
+      rcases Check.getF_setF hu with ⟨rfl, -⟩ | hu
       · exact Or.inl List.mem_cons_self
       · exact Or.inr (by rw [hu]; rfl)
 

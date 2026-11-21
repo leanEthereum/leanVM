@@ -22,7 +22,7 @@ STEPS = [
     ["scripts/bridge-cert/pair.py"], ["scripts/bridge-cert/wit.py"], ["scripts/bridge-cert/alloc.py"],
     ["scripts/core-mode/fnreg.py"], ["scripts/core-mode/anylink.py"], ["scripts/core-mode/sigc.py"],
     ["scripts/core-mode/pows.py"], ["scripts/core-mode/glue.py"], ["scripts/core-mode/callc.py", "--emit"],
-    ["scripts/core-mode/loopc.py", "--emit"], ["scripts/core-mode/loopcc.py", "--emit"],
+    ["scripts/core-mode/loopcc.py", "--emit"],
     ["scripts/core-mode/heap.py", "--emit", "LeanVM/Guest/CoreMode/Gen"],
     ["scripts/core-mode/pair.py", "--emit"], ["scripts/core-mode/frame_gen.py"], ["scripts/core-mode/core.py"],
     ["scripts/core-mode/certs.py"], ["scripts/core-mode/monocall.py"], ["scripts/core-mode/carry.py"],

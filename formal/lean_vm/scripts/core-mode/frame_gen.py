@@ -163,11 +163,8 @@ def fnData(D, n, cuts):
     JT0[0] = jt0Of(D['fns'][n]['ns'])
     CALLEES.clear(); CALLEES.update(w.used); CALLEES.update(pc for ps in tgt[2].values() for pc in ps)
     sigs = {pc: byentry[pc] for pc in sorted(w.used)}
-    if rt and rt.get('kind') == 'l':
-        # a leaf loop helper on the core route: its walk is told no callee (`CoreMode.loopShapeOk`)
-        sigs = {}
     if rt and rt.get('kind') == 'lc':
-        # a loop helper with calls on the core route: its walk is told its environment's callees, its own entry
+        # a loop helper on the core route: its walk is told its environment's callees, its own entry
         # among them (`CoreMode.LoopOkC.fsigs`)
         sigs[entry] = n
     packs = {D['fns'][byentry[pc]]['pack'] for pc in w.used}

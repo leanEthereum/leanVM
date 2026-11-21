@@ -12,7 +12,6 @@ Tables (each a dict by core name, or a list of entries whose first field is a co
   ST_LOOPS     stream-cursor loops `(D, v, S)` (`CoreMode.stLoops`)
   CM_LOOPS     the gap walk's frame loops, claims a frame (`CoreMode.cmK`)
   SPLITS       `g`-power splits (`CoreMode.splitsC`)
-  LEAF_FAM     leaf loop helpers whose residuals are of a family (on `loopcc.py`'s route)
   CTR_PRE      loops whose run preconditions may be over the counter (`infer.py`)
   CONTRACTS    contracts given by hand (`sigc.py`), as `Mode.Sig` literal fields past the entry
   KERNEL_WIN, HEAP_WIN, CORE_WIN, PAIR_WIN, FRAME_WIN: functions checked in windows, and their window sizes

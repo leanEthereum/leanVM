@@ -257,19 +257,6 @@ def loop_tail(k, frame):
             f'flen := {DK}, xentry := {DK}, xlen := {DK}, dhints := rfl, {common(k)}, hc := rfl, hcs := rfl')
 
 
-def cfun_l(k, j, frame):
-    """A leaf loop helper: its core data, the kernel's checks (`CoreMode.LoopOk`: `heapOkC`'s loop rules, its
-    signature, code and shape)."""
-    return (cfun_def(k, j, '[], [], [], false, [], []'),
-            thm(k, 'heap_okC', 'CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true') +
-            thm(k, 'loop_sig', 'CoreMode.sigOkL funC.sig hcert.sig core.params.length = true') +
-            thm(k, 'loop_code', 'CoreMode.loopCode alignCtx code.chunks.flatten = true') +
-            thm(k, 'loop_shape', 'CoreMode.loopShapeOk cfun = true') +
-            thm(k, 'fnSpecC', f'Mode.FnSpecC {K} cfun',
-                f'CoreMode.fnSpecC_of_loop\n  {{ heap := heap_okC, ders := rfl, gw := rfl, nofa := {DK}, cs := rfl, '
-                f'body := {DK}, code := loop_code, {loop_tail(k, frame)} }}'))
-
-
 def cfun_lc(k, j, frame):
     """A loop helper with calls: its core data, the kernel's checks (`CoreMode.LoopOkC`: `heapOkC`'s loop rules at its
     callees' heap signatures `csigs`, its signature, code and shape)."""
@@ -537,16 +524,10 @@ def main(check=False):
             imps.add(quote(frames[k])); imps.add('LeanVM.Guest.CoreMode.GlueC.«%s»' % po[k][0])
             imps.add(quote(pair_mod(po[k][0], k)))
             imps.add('LeanVM.Guest.CoreMode.Pows.«%s»' % po[k][0])
-            if R[k].get('kind') not in ('l', 'lc') and fa_chunks(k) is not None:
+            if R[k].get('kind') != 'lc' and fa_chunks(k) is not None:
                 imps.add('LeanVM.Guest.CoreMode.FaRetSplit')
             if os.path.exists(os.path.join(GEN, po[k][0], 'Ok.lean')):
                 imps.add('LeanVM.Guest.CoreMode.Gen.«%s».Ok' % po[k][0])
-            if R[k].get('kind') == 'l':
-                imps.add('LeanVM.Guest.CoreMode.Gen.«%s».DataL' % p)
-                imps.add('LeanVM.Guest.CoreMode.CoreLoop')
-                imps.add('LeanVM.Guest.Pack.«%s».%s' % (p, po[k][1]))
-                body.append(cfun_l(k, j, frame_term(frames[k])))
-                continue
             if R[k].get('kind') == 'lc':
                 imps.add('LeanVM.Guest.CoreMode.Gen.«%s».DataLC' % po[k][0])
                 imps.add('LeanVM.Guest.CoreMode.CoreLoopC')

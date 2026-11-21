@@ -120,7 +120,7 @@ theorem pushV_stOk {st : CSt} (hs : StOk rd W σ st) (hw : ∀ x, W x → W' x) 
   have h := push_stOk hs hw hc
   refine ⟨h.env, h.sc, h.rs, h.ad, fun n p hp ↦ ?_, h.src, h.pf, h.pr, h.cd, h.eqs, h.dq⟩
   change getF (setF (c, m) Exec.indexDepth st.sv st.n) n = some p at hp
-  rcases getF_setF hp with ⟨-, rfl⟩ | hp
+  rcases Check.getF_setF hp with ⟨-, rfl⟩ | hp
   · exact hm
   · exact hs.sv n p hp
 
@@ -138,7 +138,7 @@ theorem srcPut_stOk {st : CSt} (hs : StOk rd W σ st) {d : V} {c : CCell} (hd : 
       rw [Trie.seq_eq]
       refine ⟨hs.env, hs.sc, hs.rs, hs.ad, hs.sv, fun k' c' hk' ↦ ?_, hs.pf, hs.pr, hs.cd, hs.eqs, hs.dq⟩
       change getF (setF c Exec.indexDepth st.src k) k' = some c' at hk'
-      rcases getF_setF hk' with ⟨rfl, rfl⟩ | hk'
+      rcases Check.getF_setF hk' with ⟨rfl, rfl⟩ | hk'
       · rw [hd, vnum_eq hk]
       · exact hs.src k' c' hk'
 
@@ -149,7 +149,7 @@ theorem pushP_stOk {st : CSt} (hs : StOk rd W σ st) (hw : ∀ x, W x → W' x) 
   have h := hs.mono hw
   refine ⟨h.env, h.sc, h.rs, h.ad, h.sv, h.src, fun n q hq ↦ ?_, h.pr, h.cd, h.eqs, h.dq⟩
   change getF (setF (p.1, p.2) Exec.indexDepth st.pf st.n) n = some q at hq
-  rcases getF_setF hq with ⟨-, rfl⟩ | hq
+  rcases Check.getF_setF hq with ⟨-, rfl⟩ | hq
   · exact hp
   · exact h.pf n q hq
 
@@ -161,7 +161,7 @@ theorem pushPR_stOk {st : CSt} (hs : StOk rd W σ st) (hw : ∀ x, W x → W' x)
   have h := hs.mono hw
   refine ⟨h.env, h.sc, h.rs, h.ad, h.sv, h.src, h.pf, fun n q hq ↦ ?_, h.cd, h.eqs, h.dq⟩
   change getF (setF (p.1, p.2) Exec.indexDepth st.pr st.nr) n = some q at hq
-  rcases getF_setF hq with ⟨-, rfl⟩ | hq
+  rcases Check.getF_setF hq with ⟨-, rfl⟩ | hq
   · exact hp
   · exact h.pr n q hq
 
@@ -198,7 +198,7 @@ theorem pushR_stOk {st : CSt} (hs : StOk rd W σ st) (hw : ∀ x, W x → W' x) 
   rw [Trie.seq_eq]
   refine ⟨h.env, h.sc, fun r R hr ↦ ?_, h.ad, h.sv, h.src, h.pf, h.pr, h.cd, h.eqs, h.dq⟩
   change getF (setF q Exec.indexDepth st.rs st.nr) r = some R at hr
-  rcases getF_setF hr with ⟨-, rfl⟩ | hr
+  rcases Check.getF_setF hr with ⟨-, rfl⟩ | hr
   · exact hq
   · exact h.rs r R hr
 
@@ -1370,7 +1370,7 @@ theorem setSrc_stOk {st : CSt} (hs : StOk rd W σ st) {k : ℕ} {c : CCell} (hd 
   rw [Trie.seq_eq]
   refine ⟨hs.env, hs.sc, hs.rs, hs.ad, hs.sv, fun k' c' hk' ↦ ?_, hs.pf, hs.pr, hs.cd, hs.eqs, hs.dq⟩
   change getF (setF c Exec.indexDepth st.src k) k' = some c' at hk'
-  rcases getF_setF hk' with ⟨rfl, rfl⟩ | hk'
+  rcases Check.getF_setF hk' with ⟨rfl, rfl⟩ | hk'
   · exact hd
   · exact hs.src k' c' hk'
 

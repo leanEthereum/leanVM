@@ -12,7 +12,7 @@ public import LeanVM.Guest.CoreMode.PairJumpC
 # The pairing at a loop helper's jumps
 
 For a body whose statements are atoms, calls, conditional calls, returns, branches and `match`es
-(`loopStmtC`; a leaf loop helper's, `loopStmt`, among them): at a `JUMP` through a next-frame cell
+(`loopStmtC`): at a `JUMP` through a next-frame cell
 (`pair_tailL`), the pairing takes it by a `callIf`, the next offset's position a closing `ret []`, the
 events to there its hints' atoms and reads, the condition, the call entered or skipped, atoms writing
 nothing; at a return jump (`pair_retL`), `pair_retC`'s conclusion.
@@ -25,32 +25,23 @@ open LeanVM.Guest.Check (getF)
 
 @[expose] public section
 
-/-- A statement of a leaf loop helper's body: an atom, a conditional call or a return. -/
-def loopStmt : Stmt → Bool
-  | .atom _ | .callIf .. | .ret _ => true
-  | _ => false
-
 /-- A statement of a loop helper's body with calls: an atom, a call, a conditional call, a return, a branch
 or a `match`. -/
 def loopStmtC : Stmt → Bool
   | .atom _ | .call .. | .callIf .. | .ret _ | .ite .. | .match_ .. => true
   | _ => false
 
-theorem loopStmtC_of_leaf {l : List Stmt} (h : ∀ s ∈ l, loopStmt s = true) : ∀ s ∈ l, loopStmtC s = true :=
-  fun s hs ↦ by have := h s hs; cases s <;> simp_all [loopStmt, loopStmtC]
-
 variable {H : HCert}
 
 /-- **At a loop's tail `JUMP`** (its condition no constant, through a next-frame cell, not to pc cell
-`0`), the body's statements atoms, calls, conditional calls, returns, branches and `match`es, a call's `JUMP` not on its
-condition's cell: the pairing takes it by a `callIf` of the body, the next offset's position the closing `ret []`,
+`0`), the body's statements atoms, calls, conditional calls, returns, branches and `match`es, its condition at no nonzero constant's
+cell: the pairing takes it by a `callIf` of the body, the next offset's position the closing `ret []`,
 the events to there its hints' atoms and reads, the condition, the call entered or skipped, atoms writing nothing. -/
 theorem pair_tailL {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     {code : List OffsetInstruction} {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)}
     (hok : pairOk X H O S body code d = true) {i : ℕ} {pos : List Stmt}
     (hat : pairAt (PairCtx.ofH X H O S) body code d i = some pos) {oc od of : ℕ}
-    (hci : code[i]? = some (.jump oc od of)) (hz : X.zeroAt oc = false)
-    (hnz : ∀ f args rets, Stmt.call f args rets ∈ stmtsOf body → X.nzAt oc = false)
+    (hci : code[i]? = some (.jump oc od of)) (hz : X.zeroAt oc = false) (hnz : X.nzAt oc = false)
     (hsf : X.selfAt of = false) (hnx : X.nextAt of = true) (hod : od ≠ 0)
     (hst : ∀ s ∈ stmtsOf body, loopStmtC s = true) :
     ∃ c f args pos', Stmt.callIf c f args ∈ stmtsOf body ∧ X.locAt c.idx = oc ∧
@@ -78,7 +69,7 @@ theorem pair_tailL {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     | call f args rets =>
       have h2 := (headH_call hh hcur).1
       simp only [PairCtx.ofH] at h2
-      rw [hnz f args rets hs] at h2; cases h2
+      rw [hnz] at h2; cases h2
     | ret vs' =>
       obtain ⟨-, -, h3⟩ := headH_ret hh hcur
       cases hmm : (PairCtx.ofH X H O S).X.main <;> simp only [hmm, Bool.false_eq_true, ↓reduceIte] at h3

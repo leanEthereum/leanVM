@@ -528,10 +528,6 @@ def sel_facts(EM):
     return base, fact
 
 
-# leaf loop helpers whose residuals are of a family: on `loopcc.py`'s route, not `loopc.py`'s (which takes none)
-LEAF_FAM = R.table('LEAF_FAM') or set()
-
-
 def tab_of(k, x):
     """`CoreMode.tabOf`: `x` loaded at offset `0` through a top-level product `T·J`, `J` range checked below `g^N`:
     `(T, J, N)`."""
