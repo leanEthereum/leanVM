@@ -10,6 +10,8 @@ public import LeanVM.Guest.B1.Opening.QueriesPlacedP3
 public import LeanVM.Guest.B1.Opening.QueriesPlacedD1
 public import LeanVM.Guest.B1.Main.CompleteP
 public import LeanVM.Guest.B1.Place.HelperAtP
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«opening_queries__L»
 
 /-!
 # `opening_queries`, `CompleteAtEP`
@@ -61,7 +63,7 @@ theorem oqMain1_completeAtEP (fs : String → ℕ) (cert : String → V → ℕ)
     (hcd : 2 ≤ s.cd) {odd : ℕ} (hodd : odd ≤ 1) {name wlk loop : String}
     (hW : WalkFn coreProgram wlk s.pd s.cd) {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
-    (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7])
+    (hpm : fm.params = [.n (valf% «opening_queries» "cap"), .n (valf% «opening_queries» "flags"), .n (valf% «opening_queries» "lam_inv"), .n (valf% «opening_queries» "coefs"), .n (valf% «opening_queries» "hs"), .n (valf% «opening_queries» "positions"), .n (valf% «opening_queries» "query_win_ptrs"), .n (valf% «opening_queries» "n_iters_g")])
     (hbm : fm.body = oqMainT s odd wlk loop)
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
     (hbl : fl.body = oqLoop1T s odd wlk loop) (hlp : coreProgram.loop loop = true)
@@ -164,7 +166,7 @@ theorem oqMain0_completeAtEP (fs : String → ℕ) (cert : String → V → ℕ)
     {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hb0 : s.base = 0) (hpd1 : 1 ≤ s.pd)
     (hcd : 2 ≤ s.cd) {name wlk loop : String} (hW : WalkFn coreProgram wlk s.pd s.cd) {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
-    (hpm : fm.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7])
+    (hpm : fm.params = [.n (valf% «opening_queries» "cap"), .n (valf% «opening_queries» "flags"), .n (valf% «opening_queries» "lam_inv"), .n (valf% «opening_queries» "coefs"), .n (valf% «opening_queries» "hs"), .n (valf% «opening_queries» "positions"), .n (valf% «opening_queries» "query_win_ptrs"), .n (valf% «opening_queries» "n_iters_g")])
     (hbm : fm.body = oqMainT s 0 wlk loop)
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
     (hbl : fl.body = oqLoop0T s wlk loop) (hlp : coreProgram.loop loop = true)

@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Digest.ChildListAtP
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_any»
 
 /-!
 # The walk by hinted indices, placed with its pops
@@ -182,20 +184,20 @@ theorem child_claim_list_any_completeAtTBP (fs : String → ℕ) (cert : String 
   have hpar := hV.par
   simp only [List.cons.injEq, and_true] at hpar
   obtain ⟨e0, e1, e2, e3, e4, e5, e6⟩ := hpar
-  have v8 : σ (.n 8) = last := by
-    calc σ (.n 8) = σ (.n 8) * gen * gen⁻¹ := by rw [mul_assoc, mul_inv_cancel₀ gen_ne_zero, mul_one]
+  have v8 : σ (.n (val% «child_claim_list_any» "last_g")) = last := by
+    calc σ (.n (val% «child_claim_list_any» "last_g")) = σ (.n (val% «child_claim_list_any» "last_g")) * gen * gen⁻¹ := by rw [mul_assoc, mul_inv_cancel₀ gen_ne_zero, mul_one]
       _ = last := by rw [hV.v8, e3]
   -- the path
-  have hx : σ (.n 6) = ofK (addressOfIndex r) := by rw [e6, gen_pow_eq_ofK]
+  have hx : σ (.n (val% «child_claim_list_any» "rest")) = ofK (addressOfIndex r) := by rw [e6, gen_pow_eq_ofK]
   have hw : walk σ (Fn.body fn% «child_claim_list_any») =
-      .ret (anyP1.flatMap (Main.slEvs σ) ++ .call cclNames[r]! [.n 57, .n 0, .n 1, .n 63, .n 8]
-        [.n 64, .n 65] :: anyPost.flatMap (Main.slEvs σ)) [.n 68, .n 69] := by
+      .ret (anyP1.flatMap (Main.slEvs σ) ++ .call cclNames[r]! [.n (val% «child_claim_list_any» "last"), .n (val% «child_claim_list_any» "entries_ptr"), .n (val% «child_claim_list_any» "region"), .n (val% «child_claim_list_any» "d0~6"), .n (val% «child_claim_list_any» "last_g")]
+        [.n (val% «child_claim_list_any» "d0"), .n (val% «child_claim_list_any» "d1")] :: anyPost.flatMap (Main.slEvs σ)) [.n (val% «child_claim_list_any» "s11#0"), .n (val% «child_claim_list_any» "s11#0[1]")] := by
     rw [any_body]
-    exact walk_dispatch σ anyP1 anyPost anyP1_straight anyPost_straight (.n 6) cclNames
-      [.n 57, .n 0, .n 1, .n 63, .n 8] [.n 64, .n 65] [.n 68, .n 69] (i := r)
+    exact walk_dispatch σ anyP1 anyPost anyP1_straight anyPost_straight (.n (val% «child_claim_list_any» "rest")) cclNames
+      [.n (val% «child_claim_list_any» "last"), .n (val% «child_claim_list_any» "entries_ptr"), .n (val% «child_claim_list_any» "region"), .n (val% «child_claim_list_any» "d0~6"), .n (val% «child_claim_list_any» "last_g")] [.n (val% «child_claim_list_any» "d0"), .n (val% «child_claim_list_any» "d1")] [.n (val% «child_claim_list_any» "s11#0"), .n (val% «child_claim_list_any» "s11#0[1]")] (i := r)
       (by simp [cclNames]; omega) (by simp [cclNames]) hx
-  set es := anyP1.flatMap (Main.slEvs σ) ++ .call cclNames[r]! [.n 57, .n 0, .n 1, .n 63, .n 8]
-    [.n 64, .n 65] :: anyPost.flatMap (Main.slEvs σ) with hes
+  set es := anyP1.flatMap (Main.slEvs σ) ++ .call cclNames[r]! [.n (val% «child_claim_list_any» "last"), .n (val% «child_claim_list_any» "entries_ptr"), .n (val% «child_claim_list_any» "region"), .n (val% «child_claim_list_any» "d0~6"), .n (val% «child_claim_list_any» "last_g")]
+    [.n (val% «child_claim_list_any» "d0"), .n (val% «child_claim_list_any» "d1")] :: anyPost.flatMap (Main.slEvs σ) with hes
   have hmE : ∀ s ∈ anyP1 ++ anyPost, ∀ x, s = .atom x → x.Holds rd σ := by
     intro s hs x rfl
     refine hV.atoms x (cl_mem_atoms ?_)
@@ -211,9 +213,9 @@ theorem child_claim_list_any_completeAtTBP (fs : String → ℕ) (cert : String 
       rcases hk with (hk | hk) | hk
       · exact slOk_atomS hk (hmE s (by simp [hs]))
       · rw [stmtEqb_sound hk]
-        show IsInK (σ (.n 32)); rw [hV.v32, ← pow_zero gen]; exact gen_pow_add_isInK _ _
+        show IsInK (σ (.n (val% «child_claim_list_any» "s3#1"))); rw [hV.v32, ← pow_zero gen]; exact gen_pow_add_isInK _ _
       · rw [stmtEqb_sound hk]
-        show IsInK (σ (.n 50)); rw [hV.v50, ← pow_zero gen]; exact gen_pow_add_isInK _ _
+        show IsInK (σ (.n (val% «child_claim_list_any» "s6#1"))); rw [hV.v50, ← pow_zero gen]; exact gen_pow_add_isInK _ _
     rcases List.mem_cons.mp he with rfl | he
     · trivial
     · refine slEvs_holds (fun s hs => ?_) e he
@@ -230,16 +232,16 @@ theorem child_claim_list_any_completeAtTBP (fs : String → ℕ) (cert : String 
     rw [hes, es3_allocs, hpa, hqa, anyP1_allocs, hpostA.1]
     simp only [List.map_cons, List.map_nil, Sum.elim_inr, hV.v16, List.append_nil]
     rw [logG_gen_pow (show 13 * (a + b + 1) < 2 ^ 64 - 1 by omega)]
-  have h32 : decide (σ (.n 32) ≠ 0) = decide (a ≠ 0) := by
+  have h32 : decide (σ (.n (val% «child_claim_list_any» "s3#1")) ≠ 0) = decide (a ≠ 0) := by
     rw [hV.v32]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
-  have h50 : decide (σ (.n 50) ≠ 0) = decide (b ≠ 0) := by
+  have h50 : decide (σ (.n (val% «child_claim_list_any» "s6#1")) ≠ 0) = decide (b ≠ 0) := by
     rw [hV.v50]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
-  have hcalls : calls es = [⟨name% «child_claim_list_any_loop0», [.n 33, .n 4, .n 17, .n 0, .n 1,
-      .n 2, .n 8], [],
+  have hcalls : calls es = [⟨name% «child_claim_list_any_loop0», [.n (val% «child_claim_list_any» "s3#2"), .n (val% «child_claim_list_any» "bigs"), .n (val% «child_claim_list_any» "chain"), .n (val% «child_claim_list_any» "entries_ptr"), .n (val% «child_claim_list_any» "region"),
+      .n (val% «child_claim_list_any» "base"), .n (val% «child_claim_list_any» "last_g")], [],
         decide (a ≠ 0)⟩,
-      ⟨name% «child_claim_list_any_loop1», [.n 51, .n 5, .n 39, .n 0, .n 1, .n 48, .n 8], [],
+      ⟨name% «child_claim_list_any_loop1», [.n (val% «child_claim_list_any» "s6#2"), .n (val% «child_claim_list_any» "groups"), .n (val% «child_claim_list_any» "mid"), .n (val% «child_claim_list_any» "entries_ptr"), .n (val% «child_claim_list_any» "region"), .n (val% «child_claim_list_any» "mid_base"), .n (val% «child_claim_list_any» "last_g")], [],
           decide (b ≠ 0)⟩,
-      ⟨cclNames[r]!, [.n 57, .n 0, .n 1, .n 63, .n 8], [.n 64, .n 65], true⟩] := by
+      ⟨cclNames[r]!, [.n (val% «child_claim_list_any» "last"), .n (val% «child_claim_list_any» "entries_ptr"), .n (val% «child_claim_list_any» "region"), .n (val% «child_claim_list_any» "d0~6"), .n (val% «child_claim_list_any» "last_g")], [.n (val% «child_claim_list_any» "d0"), .n (val% «child_claim_list_any» "d1")], true⟩] := by
     rw [hes, es3_calls, hpc, hqc, anyP1_calls, hpostA.2.2.1]
     simp only [List.map_cons, List.map_nil, Main.mkCall, h32, h50, List.cons_append,
       List.nil_append]
@@ -253,7 +255,7 @@ theorem child_claim_list_any_completeAtTBP (fs : String → ℕ) (cert : String 
     (Dk := fun i => (fun _ => False) i ∨ outRegion ks [o1, o2, o3] i)
     coreProgram_wf find_child_claim_list_any (Or.inl any_loop)
     (by rw [any_param, e0, e1, e2, e3, e4, e5, e6]) hw
-    (by show [σ (.n 68), σ (.n 69)] = _; rw [hV.v68, hV.v69]; rfl) hev
+    (by show [σ (.n (val% «child_claim_list_any» "s11#0")), σ (.n (val% «child_claim_list_any» "s11#0[1]"))] = _; rw [hV.v68, hV.v69]; rfl) hev
     (by
       rw [hal, hes, es3_allocDsts, hpd, hqd, anyP1_allocs, hpostA.1]
       simp only [List.map_cons, List.map_nil, List.append_nil, bases, hV.v17]
@@ -287,15 +289,15 @@ theorem child_claim_list_any_completeAtTBP (fs : String → ℕ) (cert : String 
     refine hKids rd σ _ _ _ ?_ hlow hLk ?_ (regionsOk_of fun k hk _ i hi => ?_)
     · refine ⟨rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, rfl, fun _ => ⟨?_, ?_⟩, rfl, rfl,
         fun _ => ⟨?_, ?_⟩, trivial⟩
-      · show [σ (.n 33), σ (.n 4), σ (.n 17), σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 8)] = _
+      · show [σ (.n (val% «child_claim_list_any» "s3#2")), σ (.n (val% «child_claim_list_any» "bigs")), σ (.n (val% «child_claim_list_any» "chain")), σ (.n (val% «child_claim_list_any» "entries_ptr")), σ (.n (val% «child_claim_list_any» "region")), σ (.n (val% «child_claim_list_any» "base")), σ (.n (val% «child_claim_list_any» "last_g"))] = _
         rw [hV.v33, e4, hV.v17, e0, e1, e2, v8]
       · rename_i ht; rw [(h1 ht).1]; rfl
-      · show [σ (.n 51), σ (.n 5), σ (.n 39), σ (.n 0), σ (.n 1), σ (.n 48), σ (.n 8)] = _
+      · show [σ (.n (val% «child_claim_list_any» "s6#2")), σ (.n (val% «child_claim_list_any» "groups")), σ (.n (val% «child_claim_list_any» "mid")), σ (.n (val% «child_claim_list_any» "entries_ptr")), σ (.n (val% «child_claim_list_any» "region")), σ (.n (val% «child_claim_list_any» "mid_base")), σ (.n (val% «child_claim_list_any» "last_g"))] = _
         rw [hV.v51, e5, hV.v39, e0, e1, hV.v48, e2, v8]
       · rename_i ht; rw [(h2 ht).1]; rfl
-      · show [σ (.n 57), σ (.n 0), σ (.n 1), σ (.n 63), σ (.n 8)] = _
+      · show [σ (.n (val% «child_claim_list_any» "last")), σ (.n (val% «child_claim_list_any» "entries_ptr")), σ (.n (val% «child_claim_list_any» "region")), σ (.n (val% «child_claim_list_any» "d0~6")), σ (.n (val% «child_claim_list_any» "last_g"))] = _
         rw [hV.v57, e0, e1, hV.v63, e2, v8]
-      · rw [(h3 rfl).1]; show [σ (.n 64), σ (.n 65)] = _; rw [hV.v64, hV.v65]; rfl
+      · rw [(h3 rfl).1]; show [σ (.n (val% «child_claim_list_any» "d0")), σ (.n (val% «child_claim_list_any» "d1"))] = _; rw [hV.v64, hV.v65]; rfl
     · intro q hq
       simp only [B1.Kid.lins, ks, List.flatMap_cons, List.flatMap_nil, List.append_nil,
         List.mem_append, or_assoc] at hq

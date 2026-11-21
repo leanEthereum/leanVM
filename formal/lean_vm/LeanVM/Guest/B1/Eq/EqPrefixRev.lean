@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Eq.EqPrefix
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«eq_prefix_chain_rev»
 import LeanVM.Guest.Data.ValNames.«eq_prefix_run_rev__L»
+import LeanVM.Guest.B1.Common.Vc
 
 /-!
 # `eq_prefix_run_rev`, `eq_prefix_chain_rev`
@@ -557,42 +558,27 @@ theorem eq_prefix_chain_rev_body : Fn.body fn% «eq_prefix_chain_rev» =
 /-- **`eq_prefix_chain_rev`'s core IR is its meaning.** -/
 theorem eq_prefix_chain_rev_holds : eq_prefix_chain_rev_Spec := by
   intro rd args rets
-  have hlen : eqPrefixRunRevNames.length = 33 := rfl
-  have hname : ∀ j (hj : j < eqPrefixRunRevNames.length),
-      eqPrefixRunRevNames[j] = eqPrefixRunRevNames.getD j "" :=
+  have hname : ∀ j (hj : j < eqPrefixRunRevNames.length), eqPrefixRunRevNames[j] = eqPrefixRunRevNames.getD j "" :=
     fun j hj => by rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj, Option.getD_some]
-  rw [rel_iff_sem find_eq_prefix_chain_rev,
-    show Fn.params fn% «eq_prefix_chain_rev» = [.n (val% «eq_prefix_chain_rev» "chain"), .n (val% «eq_prefix_chain_rev» "out"), .n (val% «eq_prefix_chain_rev» "src"), .n (val% «eq_prefix_chain_rev» "b1"), .n (val% «eq_prefix_chain_rev» "count_g")] from rfl,
-        eq_prefix_chain_rev_body]
-  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
-  rw [word_two_pow (by norm_num)]
+  rw [rel_iff_fnSem find_eq_prefix_chain_rev]
+  vc
+  rw [show (4294967296 : ℕ) = 2 ^ 32 by norm_num, word_two_pow (by norm_num)]
   constructor
-  · rintro ⟨σ, hp, h5, ⟨r1, r2, r3⟩, ⟨j, hj, hx, hcall⟩, hret⟩
-    subst hp
-    rw [hname j hj, eq_prefix_run_rev_holds j (by omega)] at hcall
-    obtain ⟨hep, h9⟩ := hcall
-    refine ⟨hret.symm, ⟨σ (.n (val% «eq_prefix_chain_rev» "s0#1")), σ (.n (val% «eq_prefix_chain_rev» "s0#2")), σ (.n (val% «eq_prefix_chain_rev» "s0#3")), r1, by rw [← h5]; exact r2, r3⟩, j,
-      by omega, by rw [hx, gen_pow_eq_ofK], hep⟩
+  · rintro ⟨chain, out, src, b1, cg, rfl, y, t1, r1, r2, t2, r3, x9, ⟨j, hx, hj, hcall⟩, rfl⟩
+    have hc : coreProgram.Rel rd (eqPrefixRunRevNames.getD j "") [chain, out, src, b1] [x9] := by
+      rw [← hname j hj]; exact hcall
+    rw [eq_prefix_run_rev_holds j (by omega)] at hc
+    exact ⟨rfl, ⟨y, t1, t2, r1, r2, r3⟩, j, hj, by rw [hx, gen_pow_eq_ofK], hc.1⟩
   · intro hm
-    obtain ⟨chain, out, src, b1, cg, rfl⟩ : ∃ chain out src b1 cg,
-        args = [chain, out, src, b1, cg] := by
+    obtain ⟨chain, out, src, b1, cg, rfl⟩ : ∃ chain out src b1 cg, args = [chain, out, src, b1, cg] := by
       match args, hm with
-      | [c, o, s, b, z], _ => exact ⟨c, o, s, b, z, rfl⟩
+      | [x0, x1, x2, x3, x4], _ => exact ⟨x0, x1, x2, x3, x4, rfl⟩
     obtain ⟨rfl, ⟨y, t1, t2, r1, r2, r3⟩, n, hn, rfl, hep⟩ := hm
-    refine ⟨setl (Val.ofArgs [chain, out, src, b1, gen ^ n]) 5 [gen ^ 32, y, t1, t2, 0], ?_, ?_,
-      ?_, ?_, ?_⟩
-    · b1_look
-    · b1_look
-    · refine ⟨?_, ?_, ?_⟩
-      all_goals b1_look
-      exacts [r1, r2, r3]
-    · refine ⟨n, by rw [hlen]; exact hn, ?_, ?_⟩
-      · b1_look
-        rw [gen_pow_eq_ofK]
-      · rw [hname n (by rw [hlen]; exact hn), eq_prefix_run_rev_holds n (by omega)]
-        b1_look
-        exact ⟨hep, rfl⟩
-    · b1_look
+    refine ⟨chain, out, src, b1, gen ^ n, rfl, y, t1, r1, r2, t2, r3, 0, ⟨n, by rw [gen_pow_eq_ofK], hn, ?_⟩, rfl⟩
+    have hc : coreProgram.Rel rd (eqPrefixRunRevNames.getD n "") [chain, out, src, b1] [0] :=
+      (eq_prefix_run_rev_holds n (by omega) _ _ _).mpr ⟨hep, rfl⟩
+    rw [← hname n hn] at hc
+    exact hc
 
 end
 end LeanVM.Guest.B1
