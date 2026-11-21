@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.CoreMode.CoreRes
 public meta import LeanVM.Guest.CoreRef
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 namespace LeanVM.Guest.CoreMode
 
@@ -16,20 +18,24 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 @[expose] public section
 
 /-- **`verify_sub`'s values' exponent bounds** `(v, lo, hi)` (`EndExec.VsQ`): the tables' log-heights `dims[1..6]`
-(values `86..91`, `566` the keccak table's again), the bus depth `253`, the table sumcheck's depth `562`, the stack's log
-`276` and less `20`, `278`. -/
+(`kb[2..7]`, `tau_keccak_g` the keccak table's again), the bus depth `g_bus_mu`, the table sumcheck's depth `g_zc_n`, the
+stack's log `gmv` and less `20`, `size_sel`. -/
 def vsPows : List (ℕ × ℕ × ℕ) :=
-  [(86, 0, 30), (87, 0, 30), (88, 0, 30), (89, 0, 30), (90, 0, 30), (91, 9, 24), (566, 9, 24), (253, 20, 33),
-    (562, 9, 33), (276, 20, 30), (278, 0, 10)]
+  [(val% «verify_sub» "kb[2]", 0, 30), (val% «verify_sub» "kb[3]", 0, 30), (val% «verify_sub» "kb[4]", 0, 30),
+    (val% «verify_sub» "kb[5]", 0, 30), (val% «verify_sub» "kb[6]", 0, 30), (val% «verify_sub» "kb[7]", 9, 24),
+    (val% «verify_sub» "tau_keccak_g", 9, 24), (val% «verify_sub» "g_bus_mu", 20, 33), (val% «verify_sub» "g_zc_n", 9, 33),
+    (val% «verify_sub» "gmv", 20, 30), (val% «verify_sub» "size_sel", 0, 10)]
 
-/-- `verify_sub`'s products naming one of its values: `278 = 276·277`. -/
-def vsMuls : List ((ℕ × ℕ) × ℕ) := [((276, 277), 278)]
+/-- `verify_sub`'s products naming one of its values: `size_sel = gmv·size_sel~0`. -/
+def vsMuls : List ((ℕ × ℕ) × ℕ) := [((val% «verify_sub» "gmv", val% «verify_sub» "size_sel~0"), val% «verify_sub» "size_sel")]
 
 /-- `verify_sub`'s orders `e(x) ≤ e(y) + c`. -/
-def vsLes : List (ℕ × ℕ × ℕ) := [(91, 562, 0), (566, 562, 0), (276, 278, 20)]
+def vsLes : List (ℕ × ℕ × ℕ) :=
+  [(val% «verify_sub» "kb[7]", val% «verify_sub» "g_zc_n", 0), (val% «verify_sub» "tau_keccak_g", val% «verify_sub» "g_zc_n", 0),
+    (val% «verify_sub» "gmv", val% «verify_sub» "size_sel", 20)]
 
-/-- `verify_sub`'s cursors in its stream `[25]·[0, 8192)`, each with room for `207` words. -/
-def vsCurs : List ℕ := [550, 561, 578]
+/-- `verify_sub`'s cursors in its stream `[stream]·[0, 8192)`, each with room for `207` words. -/
+def vsCurs : List ℕ := [val% «verify_sub» "cursor@2", val% «verify_sub» "cursor@3", val% «verify_sub» "cursor@4"]
 
 /-- **An index as `verify_sub`'s value times `g^c`**: the value (a product of `vsMuls` naming it) and `c`. -/
 def vsBase : CIdx → Option (ℕ × ℕ)
@@ -59,7 +65,7 @@ def vsLt (a b : CIdx) : Bool :=
 (`vsLt`), a read `c < 207` words past a cursor inside its stream, either under branch conditions (`EndExec.vsExp_inst`). -/
 def vsExp (fn : Fn) : CRes → Bool
   | .lt a b => fn.name == name% «verify_sub» && vsLt a b
-  | .sub c q => fn.name == name% «verify_sub» && decide (q = ⟨⟨[(25, 1)], 0⟩, 1, .num 0, .num 8192⟩) &&
+  | .sub c q => fn.name == name% «verify_sub» && decide (q = ⟨⟨[(val% «verify_sub» "stream", 1)], 0⟩, 1, .num 0, .num 8192⟩) &&
       (match c.bases with
         | [(x, 1)] => vsCurs.contains x
         | _ => false) && decide (c.off < 207)

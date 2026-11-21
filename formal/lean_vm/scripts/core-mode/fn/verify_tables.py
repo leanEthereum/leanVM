@@ -4,42 +4,40 @@
 Its exponent family:
 
 At an honest instance of `verify_tables` the exponents of its words are linear forms over nine slacks `s` (`a = mu - 19`,
-`b = mu - n`, `c_t = n - tau_t`, `d = mu - lm`), each in a box `[0, ub]` (`EndExec.vt_exps`): `g_bus_mu` (value `9`)
-`19 + a`, `g_zc_n` (`2544`) `19 + a - b`, `dims_g[1 + t]` (`28 + t`, ghost `GB + 1 + t`) `19 + a - b - c_t`,
-`dims_g[0]` (`27`, ghost `GB`) `19 + a - d`. A word the top-level atoms make of such words has the form they give
+`b = mu - n`, `c_t = n - tau_t`, `d = mu - lm`), each in a box `[0, ub]` (`EndExec.vt_exps`): `g_bus_mu`
+`19 + a`, `g_zc_n` `19 + a - b`, `dims_g[1 + t]` (its copy `kb[2 + t]`, ghost `GB + 1 + t`) `19 + a - b - c_t`,
+`dims_g[0]` (`kb[1]`, ghost `GB`) `19 + a - d`. A word the top-level atoms make of such words has the form they give
 (`vtF`): a constant `g^k`, a product, a copy, or a quotient (`a = x·b`) whose form is nonnegative on the box. A residual
 holds when, after each arm condition `x = g^j` is added as an equation (a multiple of `F_x - j` subtracted), the forms
 it needs nonnegative are on the whole box: `lt a b` (`F_b - F_a - 1`), `subR q r` (stride 1, `q`'s base `r`'s times a
 product `m`: `r`'s bounds hold `F_m + q.off - r.off + q`'s), under branch conditions (the arms used, the others
 dropped)."""
 import fnrules
-from fnrules import I
+from fnrules import I, val, lean_def
 
 
 # its arms' growing blocks, its buffers through its hinted order (`perm`), a run up to a bound over values before one up
 # to a constant (`vthi`), the bounds its exponent family proves stated (`lastres`)
 FEATURES = {'verify_tables': [{'armblock', 'perm', 'vthi', 'lastres'}]}
 
-# `g_bus_mu`'s exponent below `33`, `dims_g[0]`'s too and `dims_g[1..6]`'s below `31` (`Res.expFacts`, `EndExec.VtPQ`)
-EXP_FACTS = [('verify_tables', fnrules.param('verify_tables', 'g_bus_mu'), None, 33),
-             ('verify_tables', fnrules.param('verify_tables', 'dims_g'), 0, 33)] + \
-    [('verify_tables', fnrules.param('verify_tables', 'dims_g'), j + 1, 31) for j in range(6)]
+# `g_bus_mu`'s exponent below `33`, `dims_g[0]`'s too and `dims_g[1..6]`'s below `31` (`Res.expFacts`, `EndExec.VtPQ`), as
+# its Lean data says
+EXP_FACTS = lean_def('verify_tables', 'Data', 'expFacts')
 
-# its value `g_zc_n = g^n`, `n < 34` (`CoreMode.expVals`, `EndExec.VtQ`)
-VT_ZC = 2544
-EXP_VALS = [('verify_tables', VT_ZC, 34)]
+# its value `g_zc_n = g^n`, `n < 34` (`CoreMode.expVals`, `EndExec.VtQ`), as its Lean data says
+VT_ZC = val('verify_tables', 'g_zc_n')
+EXP_VALS = lean_def('verify_tables', 'Data', 'expVals')
 
-# its rounds loop reads the proof stream past the cursor `11`, its caller's cell `22` the stream, `3` words an iteration
-# (`CoreMode.stLoops`)
-ST_LOOPS = {'verify_tables_loop0': (22, 11, 3)}
+# its rounds loop reads the proof stream past its cursor (`CoreMode.stLoops`), as its Lean data says
+ST_LOOPS = {e[0]: e[1:] for e in lean_def('verify_tables', 'Data', 'stLoops')}
 
 # its last table sumcheck record's cursor and its stream parameter (`CoreMode.vtStC`)
-VT_ST, VT_STREAM = 2647, 20
+VT_ST, VT_STREAM = val('verify_tables', 'cursor@5'), val('verify_tables', 'stream')
 
 
 def vt_st_sub(k, c):
     """`CoreMode.vtStC`: a read `c` words past its table sumcheck's last cursor, `c < 153`, one of its stream's
-    `[20]·[0, 8192)`."""
+    `[stream]·[0, 8192)`."""
     if k == 'verify_tables' and c[0] == ((VT_ST, 1),) and c[1] < 153:
         return ('sub', c, ((((VT_STREAM, 1),), 0), 1, ('num', 0), ('num', 8192)))
     return None
@@ -104,21 +102,25 @@ def maxv(f):
     return f[0] + sum(max(0, x * u) for x, u in zip(f[1], UB))
 
 
+# `g_bus_mu`, and `dims_g`'s words' copies `kb[1 + j]`, `j < 7` (consecutive values)
+VT_MU, VT_KB = val('verify_tables', 'g_bus_mu'), val('verify_tables', 'kb[1]')
+
+
 def base(x):
-    """`CoreMode.vtBase`: the words of the slacks."""
+    """`CoreMode.vtBaseN`: the words of the slacks."""
     GB = I.GB
     if x >= GB:
-        x = x - GB + 27 if x - GB < 7 else None
+        x = x - GB + VT_KB if x - GB < 7 else None
         if x is None:
             return None
-    if x == 9:
+    if x == VT_MU:
         return lin(19, a=1)
     if x == VT_ZC:
         return lin(19, a=1, b=-1)
-    if x == 27:
+    if x == VT_KB:
         return lin(19, a=1, d=-1)
-    if 28 <= x < 34:
-        return lin(19, a=1, b=-1, **{'c%d' % (x - 28): -1})
+    if VT_KB + 1 <= x < VT_KB + 7:
+        return lin(19, a=1, b=-1, **{'c%d' % (x - VT_KB - 1): -1})
     return None
 
 
@@ -202,7 +204,7 @@ def apply_arms(atoms, arms, f):
     return f
 
 
-NNB = [9, 27, 28, 29, 30, 31, 32, 33, 2544]
+NNB = lean_def('verify_tables', 'Fam', 'vtNNB')
 
 
 def nonneg(atoms, arms, f):
@@ -251,25 +253,7 @@ def holds(atoms, arms, r):
 
 _AT = {}
 # the top-level atoms of `verify_tables` the family reads (`CoreMode.vtAtoms`, `EndExec.vtAtoms_top`)
-ATOMS = [('const', 26, (1, 0)),
-         ('mul', 9, 704, 28),
-         ('mul', 9, 713, 29),
-         ('mul', 9, 726, 30),
-         ('mul', 9, 739, 31),
-         ('mul', 9, 752, 32),
-         ('mul', 9, 765, 33),
-         ('mul', 9, 779, 26),
-         ('mul', 9, 795, 27),
-         ('const', 821, (524288, 0)),
-         ('mul', 822, 26, 821),
-         ('mul', 9, 823, 822),
-         ('mul', 2544, 2546, 28),
-         ('mul', 2544, 2926, 28),
-         ('mul', 2544, 3215, 29),
-         ('mul', 2544, 3388, 30),
-         ('mul', 2544, 3686, 31),
-         ('mul', 2544, 4015, 32),
-         ('mul', 2544, 5939, 33)]
+ATOMS = lean_def('verify_tables', 'Fam', 'vtAtoms')
 
 
 def vt_exp(k, r):
@@ -296,7 +280,8 @@ def rv(v0, r):
     return v0 if r == 0 else v0 + 13 + 20 * (r - 1)
 
 
-SIDES = [([rv(112, r) for r in range(9)], 0, 9), ([rv(409, r) for r in range(6)], 18, 24)]
+SIDES = [([rv(val('verify_tables', 'gi@1'), r) for r in range(9)], 0, 9),
+         ([rv(val('verify_tables', 'gi@10'), r) for r in range(6)], 18, 24)]
 
 
 def vt_perm(k, r):
@@ -316,6 +301,47 @@ def vt_perm(k, r):
             if lo <= c[1] < hi and all((((B, 1), (v, 1)), 0) in cs for v in vs):
                 return True
     return False
+
+
+# ---- its counts (`scripts/count`)
+
+# counted by its tree's shape in the `W` family (`kcVtW`)
+COUNT_SHAPE = {'verify_tables': 'W'}
+
+
+def count_walk(C, k, n):
+    """Its instructions (`B1.VerifySub.vtWB` at `Count.vsWords`): its body, its rounds or copy loop `32` times."""
+    import vscount
+    if n != vscount.L('verify_tables'):
+        return None
+    lps = (vscount.L('verify_tables_loop0'), vscount.Lopt('verify_tables_loop1'))
+
+    def call_if(f):
+        assert f in lps, f
+        return 32 * C.loop(k, f)
+    return C.walk(k, n, call_if)
+
+
+def count_words_by_name(g):
+    """`vtPairs` (`Count/Words.lean`): its callees, directly or not, but those `Count/VsWords` bounds apart."""
+    import vscount, ratio
+    L, Lopt = vscount.L, vscount.Lopt
+    VT_APART = [f for f in [L('verify_tables_loop0'), Lopt('verify_tables_loop1'), L('shared_selector_tables_loop0'),
+                            L('shared_selector_tables')] if f]
+    n = L('verify_tables')
+    vt = sorted(g.closure([n]) - {n} - set(VT_APART))
+    return ('/-- `verify_tables`\' callees, directly or not, with their core indices, but those\n'
+            '`Count/VsWords` bounds apart (`VT_APART`). -/\n'
+            + ratio.wrap('def vtPairs : List (String × ℕ) := [', ['("%s", %d)' % (m, g.by[m]) for m in vt]) + '\n')
+
+
+def count_parts(g, OPS):
+    """`VsCountData`'s `kcVtW`."""
+    import vscount
+    C = vscount.cnt(g, 'V')
+    return [dict(mod='VsCountData', key=3, tables=[vscount.opdef(
+        OPS, 'kcVtW', '`verify_tables`\' instructions (`B1.VerifySub.vtWB Count.vsWords`).',
+        lambda k: C.weight(k, vscount.L('verify_tables')))])]
 
 # its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
 OWN = [

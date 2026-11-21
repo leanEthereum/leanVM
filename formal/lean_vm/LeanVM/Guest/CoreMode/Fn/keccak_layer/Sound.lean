@@ -109,8 +109,8 @@ public section
 theorem st_keccak {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
     (hf : coreProgram.find? f = some fn) {first : ℕ} (hfi : first < 2) (rem : Bool) (hn : f = stLoop first rem) :
-    ∃ a q, I.hdr.2 = ofK (addressOfIndex a) ∧ a + 17 < maxCells ∧
-      σ (loopCur rem) = refMem r.img (a + 17) * gen ^ q ∧ q + stStep rem ≤ 8192 := by
+    ∃ a q, I.hdr.2 = ofK (addressOfIndex a) ∧ a + (2 + valf% «keccak_layer» "stream") < maxCells ∧
+      σ (loopCur rem) = refMem r.img (a + (2 + valf% «keccak_layer» "stream")) * gen ^ q ∧ q + stStep rem ≤ 8192 := by
   obtain ⟨a, j, n, q, hhd, ha17, -, -, hjn, -, hld, hroom⟩ := loopQ_all hr I hI f σ bufs kids ht first hfi rem hn
   obtain ⟨args, rets, fn', hf', -, es0, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
   obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')

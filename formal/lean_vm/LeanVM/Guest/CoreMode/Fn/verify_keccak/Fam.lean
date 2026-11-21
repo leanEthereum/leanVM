@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.CoreMode.CoreRes
 public meta import LeanVM.Guest.CoreRef
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 namespace LeanVM.Guest.CoreMode
 
@@ -16,7 +18,11 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 @[expose] public section
 
 /-- `verify_keccak`'s layers' returned cursors, step `s`'s at index `s` (`EndExec.vk_rets`). -/
-def vkCurs : List ℕ := [483, 518, 552, 595, 636, 679, 712, 753, 791, 834, 875, 915]
+def vkCurs : List ℕ :=
+  [val% «verify_keccak» "cursor@2", val% «verify_keccak» "cursor@3", val% «verify_keccak» "cursor@4",
+    val% «verify_keccak» "cursor@5", val% «verify_keccak» "cursor@6", val% «verify_keccak» "cursor@7",
+    val% «verify_keccak» "cursor@8", val% «verify_keccak» "cursor@9", val% «verify_keccak» "cursor@10",
+    val% «verify_keccak» "cursor@11", val% «verify_keccak» "cursor@12", val% «verify_keccak» "cursor@13"]
 
 /-- The order of `g`: exponents are taken modulo it. -/
 def gOrd : ℕ := 2 ^ 64 - 1
@@ -24,8 +30,11 @@ def gOrd : ℕ := 2 ^ 64 - 1
 /-- **`verify_keccak`'s values' exponents at `τ`** (`EndExec.vk_exps`), `y = τ - 3`: `tau_g`, `g^-4` (modulo the
 order), `pack_g`, `y_g`, the pack rounds' step `g^(y / 8)` and remainder `g^(y % 8)`, and their bits' factors. -/
 def vkTab (τ : ℕ) : List (ℕ × ℕ) :=
-  [(6, τ), (18, gOrd - 4), (19, τ - 4), (21, τ - 3), (35, (τ - 3) / 8), (49, (τ - 3) % 8), (30, (τ - 3) / 8 % 2),
-    (34, 2 * ((τ - 3) / 16 % 2)), (39, (τ - 3) % 2), (43, 2 * ((τ - 3) / 2 % 2)), (48, 4 * ((τ - 3) / 4 % 2))]
+  [(val% «verify_keccak» "tau_g", τ), (val% «verify_keccak» "pack_g~0", gOrd - 4), (val% «verify_keccak» "pack_g", τ - 4),
+    (val% «verify_keccak» "s5#1", τ - 3), (val% «verify_keccak» "step_g@2", (τ - 3) / 8), (val% «verify_keccak» "rem_g@3", (τ - 3) % 8),
+    (val% «verify_keccak» "step_g@1", (τ - 3) / 8 % 2), (val% «verify_keccak» "step_g@2~3", 2 * ((τ - 3) / 16 % 2)),
+    (val% «verify_keccak» "rem_g@1", (τ - 3) % 2), (val% «verify_keccak» "rem_g@2~3", 2 * ((τ - 3) / 2 % 2)),
+    (val% «verify_keccak» "rem_g@3~3", 4 * ((τ - 3) / 4 % 2))]
 
 /-- A value's exponent at `τ` (`vkTab`). -/
 def vkE (τ v : ℕ) : Option ℕ := (vkTab τ).lookup v
@@ -62,10 +71,10 @@ def vkAt (τ : ℕ) : CRes → Bool
   | _ => false
 
 /-- **`verify_keccak`'s family** (`EndExec.vkQC_inst`): a read `c < (11 - s)·96 + 97` words past step `s`'s returned
-cursor (`vkCurs`), one of its stream's, parameter `12`'s `[0, 8192)`; else a residual that holds at every `τ` of
+cursor (`vkCurs`), one of its stream's, parameter `stream`'s `[0, 8192)`; else a residual that holds at every `τ` of
 `[9, 28]` (`vkAt`); either under branch conditions. -/
 def vkQC (fn : Fn) : CRes → Bool
-  | .sub c q => fn.name == name% «verify_keccak» && decide (q = ⟨⟨[(12, 1)], 0⟩, 1, .num 0, .num 8192⟩) &&
+  | .sub c q => fn.name == name% «verify_keccak» && decide (q = ⟨⟨[(val% «verify_keccak» "stream", 1)], 0⟩, 1, .num 0, .num 8192⟩) &&
       match c.bases with
       | [(x, 1)] => (List.range 12).any fun s ↦ Nat.beq (vkCurs.getD s 0) x && decide (c.off < (11 - s) * 96 + 97)
       | _ => false

@@ -20,18 +20,12 @@ open LeanVM.Guest.CoreMode (CFun CRes CIdx ResF LtF rep_of capE resFam idxC base
 public section
 
 /-- `verify_sub`'s exponents by value, from its values (`vs_valsI`). -/
-def vsE (hs : List ℕ) (d n sl : ℕ) : ℕ → ℕ
-  | 86 => hs.getD 0 0
-  | 87 => hs.getD 1 0
-  | 88 => hs.getD 2 0
-  | 89 => hs.getD 3 0
-  | 90 => hs.getD 4 0
-  | 91 => hs.getD 5 0
-  | 566 => hs.getD 5 0
-  | 253 => d
-  | 562 => n
-  | 276 => sl
-  | _ => sl - 20
+def vsE (hs : List ℕ) (d n sl : ℕ) (v : ℕ) : ℕ :=
+  if v = val% «verify_sub» "kb[2]" then hs.getD 0 0 else if v = val% «verify_sub» "kb[3]" then hs.getD 1 0
+  else if v = val% «verify_sub» "kb[4]" then hs.getD 2 0 else if v = val% «verify_sub» "kb[5]" then hs.getD 3 0
+  else if v = val% «verify_sub» "kb[6]" then hs.getD 4 0 else if v = val% «verify_sub» "kb[7]" then hs.getD 5 0
+  else if v = val% «verify_sub» "tau_keccak_g" then hs.getD 5 0 else if v = val% «verify_sub» "g_bus_mu" then d
+  else if v = val% «verify_sub» "g_zc_n" then n else if v = val% «verify_sub» "gmv" then sl else sl - 20
 
 /-- **`verify_sub`'s exponents** (`vsPows`, `vsLes`): each listed value `g^(E v)` within its bounds, the orders, the
 cursors. -/
@@ -45,7 +39,7 @@ theorem vs_exps {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePro
         gK + 207 ≤ 8192 := by
   obtain ⟨hs, lm, sl, d, n, gG, gT, gK, hsL, hs31, hτ9, hτ24, hrd, hsl20, hsl30, e278, e276, hd20, hd34, e253,
     hτn, hnd, e579, e567, e578, e595, hGT, hTK, hroom⟩ := vs_valsI hr hI ht
-  -- the dims' words, read at `71`'s cells by the top-level loads
+  -- the dims' words, read at `dims_g`'s cells by the top-level loads
   have hld : ∀ v t, Atom.load (.n v) (.n (val% «verify_sub» "dims_g")) (t + 1) ∈ Res.topAtoms (fn% «verify_sub»).body → t < 6 →
       σ (.n v) = Protocol.Verifier.gen ^ hs.getD t 0 := by
     intro v t hm ht6
@@ -54,10 +48,12 @@ theorem vs_exps {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePro
     have := loadHolds_det hx hy
     rw [this]
     simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (show t < hs.length by omega)]
-  have hm : ([(86, 0), (87, 1), (88, 2), (89, 3), (90, 4), (91, 5), (566, 5)] : List (ℕ × ℕ)).all
+  have hm : ([(val% «verify_sub» "kb[2]", 0), (val% «verify_sub» "kb[3]", 1), (val% «verify_sub» "kb[4]", 2), (val% «verify_sub» "kb[5]", 3), (val% «verify_sub» "kb[6]", 4),
+      (val% «verify_sub» "kb[7]", 5), (val% «verify_sub» "tau_keccak_g", 5)] : List (ℕ × ℕ)).all
       (fun p ↦ (Res.topAtoms (fn% «verify_sub»).body).contains (Atom.load (.n p.1) (.n (val% «verify_sub» "dims_g")) (p.2 + 1))) = true := by
     decide +kernel
-  have hm' : ∀ v t, (v, t) ∈ ([(86, 0), (87, 1), (88, 2), (89, 3), (90, 4), (91, 5), (566, 5)] : List (ℕ × ℕ)) →
+  have hm' : ∀ v t, (v, t) ∈ ([(val% «verify_sub» "kb[2]", 0), (val% «verify_sub» "kb[3]", 1), (val% «verify_sub» "kb[4]", 2), (val% «verify_sub» "kb[5]", 3), (val% «verify_sub» "kb[6]", 4),
+      (val% «verify_sub» "kb[7]", 5), (val% «verify_sub» "tau_keccak_g", 5)] : List (ℕ × ℕ)) →
       t < 6 → σ (.n v) = Protocol.Verifier.gen ^ hs.getD t 0 := fun v t hvt ht6 ↦
     hld v t (List.contains_iff_mem.mp (List.all_eq_true.mp hm (v, t) hvt)) ht6
   have h31 : ∀ t < 6, hs.getD t 0 < 31 := fun t ht ↦
@@ -67,17 +63,17 @@ theorem vs_exps {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePro
     rcases hv with ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ |
       ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩
     · exact ⟨Nat.zero_le _, by have := h31 0 (by omega); show hs.getD 0 0 ≤ 30; omega,
-        hm' 86 0 (by simp) (by omega)⟩
+        hm' (val% «verify_sub» "kb[2]") 0 (by simp) (by omega)⟩
     · exact ⟨Nat.zero_le _, by have := h31 1 (by omega); show hs.getD 1 0 ≤ 30; omega,
-        hm' 87 1 (by simp) (by omega)⟩
+        hm' (val% «verify_sub» "kb[3]") 1 (by simp) (by omega)⟩
     · exact ⟨Nat.zero_le _, by have := h31 2 (by omega); show hs.getD 2 0 ≤ 30; omega,
-        hm' 88 2 (by simp) (by omega)⟩
+        hm' (val% «verify_sub» "kb[4]") 2 (by simp) (by omega)⟩
     · exact ⟨Nat.zero_le _, by have := h31 3 (by omega); show hs.getD 3 0 ≤ 30; omega,
-        hm' 89 3 (by simp) (by omega)⟩
+        hm' (val% «verify_sub» "kb[5]") 3 (by simp) (by omega)⟩
     · exact ⟨Nat.zero_le _, by have := h31 4 (by omega); show hs.getD 4 0 ≤ 30; omega,
-        hm' 90 4 (by simp) (by omega)⟩
-    · exact ⟨show 9 ≤ hs.getD 5 0 by omega, show hs.getD 5 0 ≤ 24 by omega, hm' 91 5 (by simp) (by omega)⟩
-    · exact ⟨show 9 ≤ hs.getD 5 0 by omega, show hs.getD 5 0 ≤ 24 by omega, hm' 566 5 (by simp) (by omega)⟩
+        hm' (val% «verify_sub» "kb[6]") 4 (by simp) (by omega)⟩
+    · exact ⟨show 9 ≤ hs.getD 5 0 by omega, show hs.getD 5 0 ≤ 24 by omega, hm' (val% «verify_sub» "kb[7]") 5 (by simp) (by omega)⟩
+    · exact ⟨show 9 ≤ hs.getD 5 0 by omega, show hs.getD 5 0 ≤ 24 by omega, hm' (val% «verify_sub» "tau_keccak_g") 5 (by simp) (by omega)⟩
     · exact ⟨show 20 ≤ d by omega, show d ≤ 33 by omega, e253⟩
     · exact ⟨show 9 ≤ n by omega, show n ≤ 33 by omega, e579⟩
     · exact ⟨show 20 ≤ sl by omega, show sl ≤ 30 by omega, e276⟩
@@ -117,7 +113,7 @@ theorem vsBase_rep {σ : Val} (hM : σ (.n (val% «verify_sub» "size_sel")) = �
       have hm := CoreMode.lookup_memL hx'
       simp only [CoreMode.vsMuls, List.mem_cons, Prod.mk.injEq, List.not_mem_nil, or_false] at hm
       obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hm
-      have := rep_mono_gen (c := o) (x := 278) hσ hc
+      have := rep_mono_gen (c := o) (x := val% «verify_sub» "size_sel") hσ hc
       simpa [idxC, CoreMode.CCell.valW, CoreMode.prodW, vw, hM, mul_assoc] using this
     · cases h
 
@@ -193,7 +189,7 @@ theorem vsExp_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts core
     split at hcx
     · rename_i x
       obtain ⟨gX, hgX, hσ⟩ := hC x (List.contains_iff_mem.mp hcx)
-      refine (CoreMode.runSet_const (q := ⟨⟨[(25, 1)], 0⟩, 1, .num 0, .num 8192⟩) rfl rfl (by norm_num)
+      refine (CoreMode.runSet_const (q := ⟨⟨[(val% «verify_sub» "stream", 1)], 0⟩, 1, .num 0, .num 8192⟩) rfl rfl (by norm_num)
         (by norm_num)).mpr ⟨gX + k, Nat.zero_le _, by omega, ?_⟩
       simp only [CoreMode.CCell.addrW, CoreMode.CCell.valW, CoreMode.prodW, vw, pow_one, mul_one, hσ,
         Value.gen_pow_eq_ofK, addressOfIndex, pow_zero, one_mul, pow_add, CoreMode.ofK_mul',

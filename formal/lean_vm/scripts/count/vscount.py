@@ -1,84 +1,18 @@
-"""`Count/VsCountData.lean`, `Count/VsCountChk{X,M,S,D,J,K}.lean`: the instruction counts, per
-opcode, of `verify_sub`'s statically bounded callees (each child's opening arm
-`open_stacked__L{c}` among them), of `child_claim_list_digest`'s callees, and the frame weights
-of `verify_sub`, `child_claim_list_digest` and `main_loop4`, as tables checked against the `V`
-count certificates (`Count/StaticV.lean`) by `decide +kernel`, one module per opcode; and
-`verify_tables`' and the terminal's bounds (`kcVtW`, `kcTermW`, from the `W` certificates)."""
-import os, re
-from core import L, Lopt
+"""The `V` and `W` families' counts (`gen.py vscount`), per opcode, read from the rule files
+(`scripts/core-mode/fn/<f>.py`, merged by `fnrules`), which name the functions; this module names none.
 
-# The guest's constants, as `guest-export` writes them to `Data/Consts.lean` (`guest_const%`).
-_SRC = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'LeanVM', 'Guest', 'Data',
-                         'Consts.lean'), encoding='utf-8').read()
-def guest_const(name):
-    return int(re.search(r'def const_%s : Nat := (\d+)' % name, _SRC).group(1))
-
-def vs_st(g):
-    """`verify_sub`'s statically bounded callees but its opening arm: its static calls, then the arms
-    of its other dispatches (`squeeze_point_from`'s by the stack log, `bus_grind_check`'s by the
-    grinding bits), each once, in order; not the ratio-bounded `RB`, `verify_tables`, the terminal."""
-    skip = {r for r, _ in RB} | {'verify_tables', 'check_opening_terminal'}
-    calls, arms = [], []
-    for st in g.fns[g.by['verify_sub']]['body']:
-        if st[0] == 'call' and st[1] not in skip and st[1] not in calls:
-            calls.append(st[1])
-        elif st[0] == 'dispatch' and not st[2][0].startswith('open_stacked__L'):
-            arms += [f for f in st[2] if f not in arms]
-    return calls + arms
-OM = ['verify_sub', 'child_claim_list_digest', L('main_loop4'), 'child_claim_list_any', 'child_claim_list_mono']
-# A list of `n = 136·bigs + 17·groups + rest` claims (`list_split`, `groups < 8`, `rest < 17`): the
-# claim lists' loops per `136` claims (`CLAIM_BIG`) and per `17` (`CLAIM_GROUP`), `claim_list_digest`'s,
-# and `child_claim_list_any`'s and `child_claim_list_mono`'s (the hinted gap walk), the prover's choice.
-CL_LP = [L('claim_list_digest_loop0'), L('claim_list_digest_loop1')]
-CC_LP = [L('child_claim_list_any_loop0'), L('child_claim_list_any_loop1'), L('child_claim_list_mono_loop0'), L('child_claim_list_mono_loop1')]
-CCL = ['child_claim_list_last__L%d' % k for k in range(17)]
-CCM = ['child_claim_list_mono_last__L%d' % k for k in range(17)]
-BIG, GROUP, GROUPS = 136, 17, 8
-# `verify_sub`'s callees with no static bound but `verify_tables` and the terminal, counted within a
-# ratio of these words.
-RB = [('verify_bus_gkr', 39767), ('verify_keccak', 56404)]
-
-
-def vt_term(g):
-    """`verify_tables`' and the terminal's weight bounds per opcode index (`B1.VerifySub.vtWB`,
-    `termWB` at `Count.vsWords`), from the `W` certificates and the ratios of `ring_switch_target_loop0` and
-    `ring_switch_weight`."""
-    import checker, gen
-    from ratio import blk_callees
-    S = g.closure(gen.WROOTS(g))
-    certs = [checker.gen(g.fns, g.omega_cnt(k), only=S)[1] for k in range(6)]
-    def stat(k, n):
-        c = certs[k][n]; assert c[0] == 'stat' and c[1] == [] and c[2][1] == [], (n, c); return c[2][0]
-    def loop(k, n):
-        c = certs[k][n]; assert c[0] == 'loop' and c[1] is None and c[2] == [] and c[3][1] == [], (n, c); return c[3][0]
-    om = [g.omega_cnt(k) for k in range(6)]
-    fsd = g.fs_words(); fs = lambda n: fsd.get(n, 2)
-    fsN = lambda j: g.main_frame if j == 1 else max(2, g.fsz[j])
-    def ratioA(r):
-        J = sorted(g.by[n] for n in g.closure([r]))
-        return [max(-(-1000 * g.pm[j + 1][k] // fsN(j + 1)) for j in J) for k in range(6)]
-    A15, Arsw = ratioA(L('check_opening_terminal_loop0')), ratioA('ring_switch_weight')
-    vtW, termW = [], []
-    for k in range(6):
-        wss = om[k]['shared_selector_tables'] + 15 * loop(k, L('shared_selector_tables_loop0')) + max(stat(k, 'sel_partial_nibble__L%d' % j) for j in range(4))
-        t = om[k]['verify_tables']
-        for st in g.fns[g.by['verify_tables']]['body']:
-            if st[0] == 'call': t += wss if st[1] == 'shared_selector_tables' else stat(k, st[1])
-            elif st[0] == 'callIf':
-                assert st[2] in (L('verify_tables_loop0'), Lopt('verify_tables_loop1')); t += 32 * loop(k, st[2])
-            elif st[0] == 'dispatch': t += max(stat(k, f) for f in st[2])
-            else: assert st[0] in ('atom', 'ret') or (st[0] == 'ite' and not blk_callees([st])), st[0]
-        vtW.append(t)
-        w15 = A15[k] * max(fs(L('check_opening_terminal_loop0')), 32 * 38) // 1000
-        wrsw = Arsw[k] * (fs('ring_switch_weight') + 2240 + 16433) // 1000
-        u = om[k]['check_opening_terminal']
-        for st in g.fns[g.by['check_opening_terminal']]['body']:
-            if st[0] == 'call': u += wrsw if st[1] == 'ring_switch_weight' else stat(k, st[1])
-            elif st[0] == 'callIf': assert st[2] == L('check_opening_terminal_loop0'); u += w15
-            elif st[0] == 'dispatch': u += max(stat(k, f) for f in st[2])
-            else: assert st[0] in ('atom', 'ret'), st[0]
-        termW.append(u)
-    return vtW, termW
+* `COUNT_SHAPE` (a function counted by its tree's shape, not a certificate, by family letter) and `RATIO_WORDS` (a
+  callee counted within a ratio of these words, a number or a function of the counts and its name): a family's
+  certificates cover the closure of its shaped functions' other callees (`roots`).
+* `Cnt`: a family's counts at the opcode index `k`: `stat`, `loop` (the certificates), `om` (the frame weights), `fs`,
+  `ratioA`, `weight` (a callee's bound: its ratio, its shape (`count_walk`) or its certificate) and `walk` (a body's).
+* `write`: the modules the rule files' `count_parts` contribute parts to, `Count/<M>CountData.lean` (each part's names,
+  then tables, then the conjuncts of the tables check, in the parts' order) and `Count/<M>CountChk{X,M,S,D,J,K}.lean`
+  (the check at each opcode, by `decide +kernel`)."""
+import os, sys
+from core import L, Lopt  # noqa: F401 (the rule files' hooks read `Lopt` here)
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'core-mode'))
+import fnrules  # noqa: E402
 
 HDR = '''/-
   LeanVM.Guest.Count.%s
@@ -100,250 +34,159 @@ set_option maxRecDepth 100000
 
 '''
 
+_T = {}
 
-def tables(g):
-    """The counts the tables hold, per opcode index `k`: `stat(k, n)`, `loop(k, n)`, the frame
-    weights `om[k]`, and `vsc(k, c)`, `verify_sub`'s instructions at the arm `c`."""
+
+def _table(name):
+    if name not in _T:
+        _T[name] = fnrules.table(name) or {}
+    return _T[name]
+
+
+def shaped():
+    """`COUNT_SHAPE` by core name."""
+    return {L(n): f for n, f in _table('COUNT_SHAPE').items()}
+
+
+def ratio_words():
+    """`RATIO_WORDS` by core name."""
+    return {L(n): w for n, w in _table('RATIO_WORDS').items()}
+
+
+def ordered(name):
+    """A table `{stable name: (order, ...)}` in its order, as `(core name, rest...)`."""
+    return [(L(n),) + tuple(v[1:]) for n, v in sorted(_table(name).items(), key=lambda e: e[1][0])]
+
+
+def om_names(M):
+    """The functions whose frame weights the module `M` holds (`COUNT_OM`), in order, as stable names."""
+    return [n for n, (m, _) in sorted(_table('COUNT_OM').items(), key=lambda e: e[1][1]) if m == M]
+
+
+def families():
+    return sorted(set(shaped().values()))
+
+
+def roots(g, fam):
+    """The family's certificates' roots: its shaped functions' callees neither shaped nor ratio-bounded."""
     import checker
-    S = g.closure(__import__('gen').VROOTS(g))
-    certs = [checker.gen(g.fns, g.omega_cnt(k), only=S)[1] for k in range(6)]
-    def stat(k, n):
-        c = certs[k][n]; assert c[0] == 'stat' and c[1] == [] and c[2][1] == [], (n, c); return c[2][0]
-    def loop(k, n):
-        c = certs[k][n]; assert c[0] == 'loop' and c[1] is None and c[2] == [] and c[3][1] == [], (n, c); return c[3][0]
-    om = [g.omega_cnt(k) for k in range(6)]
-    fsN = lambda j: g.main_frame if j == 1 else max(2, g.fsz[j])
-    def ratioA(r):
-        J = sorted(g.by[n] for n in g.closure([r]))
-        return [max(-(-1000 * g.pm[j + 1][k] // fsN(j + 1)) for j in J) for k in range(6)]
-    RA = [ratioA(r) for r, _ in RB]
-    vtW, termW = vt_term(g)
-    osN = g.os_names()
-    rbN = [r for r, _ in RB]
-    VS_ST = vs_st(g)
-    def vsc(k, c):
-        t = om[k]['verify_sub']
-        for st in g.fns[g.by['verify_sub']]['body']:
+    sh, out = shaped(), set(shaped()) | set(ratio_words())
+    return [c for n in sorted(sh) if sh[n] == fam
+            for c in sorted(checker.callees(g.fns[g.by[n]]['body'], set())) if c not in out]
+
+
+class Cnt:
+    """A family's counts, per opcode index `k`."""
+
+    def __init__(self, g, fam):
+        import checker
+        self.g, self.fam = g, fam
+        S = g.closure(roots(g, fam))
+        self.certs = [checker.gen(g.fns, g.omega_cnt(k), only=S)[1] for k in range(6)]
+        self.om = [g.omega_cnt(k) for k in range(6)]
+        self._fs = g.fs_words()
+        self._ratio = {}
+
+    def stat(self, k, n):
+        c = self.certs[k][n]; assert c[0] == 'stat' and c[1] == [] and c[2][1] == [], (n, c); return c[2][0]
+
+    def loop(self, k, n):
+        c = self.certs[k][n]; assert c[0] == 'loop' and c[1] is None and c[2] == [] and c[3][1] == [], (n, c)
+        return c[3][0]
+
+    def fs(self, n):
+        return self._fs.get(n, 2)
+
+    def ratioA(self, r):
+        """The largest `pathMax / fs` over `r`'s closure, in thousandths rounded up, per opcode index."""
+        if r not in self._ratio:
+            g = self.g
+            fsN = lambda j: g.main_frame if j == 1 else max(2, g.fsz[j])
+            J = sorted(g.by[n] for n in g.closure([r]))
+            self._ratio[r] = [max(-(-1000 * g.pm[j + 1][k] // fsN(j + 1)) for j in J) for k in range(6)]
+        return self._ratio[r]
+
+    def weight(self, k, n):
+        """A callee's instructions bound: within its ratio, by its shape in its family, or its certificate's."""
+        w = ratio_words().get(n)
+        if w is not None:
+            return self.ratioA(n)[k] * (w(self, n) if callable(w) else w) // 1000
+        f = shaped().get(n)
+        if f is not None:
+            r = fnrules.first('count_walk', cnt(self.g, f), k, n)
+            assert r is not None, 'no count_walk for %s' % n
+            return r
+        return self.stat(k, n)
+
+    def walk(self, k, n, call_if=None, dispatch=None):
+        """`n`'s frame weight, its calls' `weight`s, `call_if` of each conditional call's callee, and the largest
+        certificate of each dispatch's arms (or `dispatch` of them, unless `None`)."""
+        from ratio import blk_callees
+        t = self.om[k][n]
+        for st in self.g.fns[self.g.by[n]]['body']:
             if st[0] == 'call':
-                n = st[1]
-                if n in rbN: i = rbN.index(n); t += RA[i][k] * RB[i][1] // 1000
-                elif n == 'verify_tables': t += vtW[k]
-                elif n == 'check_opening_terminal': t += termW[k]
-                else: assert n in VS_ST, n; t += stat(k, n)
+                t += self.weight(k, st[1])
+            elif st[0] == 'callIf':
+                t += call_if(st[2])
             elif st[0] == 'dispatch':
-                if st[2] == osN: t += stat(k, osN[c])
-                else: assert all(n in VS_ST for n in st[2]), st[2]; t += max(stat(k, n) for n in st[2])
-            else: assert st[0] in ('atom', 'ret') or (st[0] == 'ite' and not __import__('ratio').blk_callees([st])), st[0]
+                d = dispatch(st[2]) if dispatch else None
+                t += max(self.stat(k, f) for f in st[2]) if d is None else d
+            else:
+                assert st[0] in ('atom', 'ret') or (st[0] == 'ite' and not blk_callees([st])), (n, st[0])
         return t
-    vsc.vtW, vsc.termW = vtW, termW
-    return stat, loop, om, vsc, osN
 
 
-def l5_parts(tbl, k):
-    """At the opcode index `k`: `main_loop4`'s frame weight, `Budget.ccA` and `Budget.ccS` (the
-    children's claim lists' digests' constant and per-claim slope on either walk, the larger of
-    `child_claim_list_any`'s and `child_claim_list_mono`'s (`B1.Main.ccHonest`): the loop per `136`
-    claims by the claims, the loop per `17` at most `7` times and the last digest in the constant) and `vsCountT`, from `tables`."""
-    stat, loop, om, vsc, _ = tbl
-    ccA = (om[k]['child_claim_list_digest'] + stat(k, 'list_split')
-           + max(om[k]['child_claim_list_any'], om[k]['child_claim_list_mono'])
-           + (GROUPS - 1) * max(loop(k, CC_LP[1]), loop(k, CC_LP[3]))
-           + max(max(stat(k, n) for n in CCL), max(stat(k, n) for n in CCM)))
-    ccS = -(-max(loop(k, CC_LP[0]), loop(k, CC_LP[2])) // BIG)
-    return om[k][L('main_loop4')], ccA, ccS, [vsc(k, c) for c in range(len(tbl[4]))]
+def cnt(g, fam):
+    """The family's `Cnt`, computed once."""
+    c = g.__dict__.setdefault('_cnt', {})
+    if fam not in c:
+        c[fam] = Cnt(g, fam)
+    return c[fam]
+
+
+def lst(xs):
+    return '[' + ', '.join(str(x) for x in xs) + ']'
+
+
+def names(xs):
+    return '[' + ', '.join('"%s"' % x for x in xs) + ']'
+
+
+def opdefl(OPS, name, doc, f):
+    s = '/-- %s -/\ndef %s : Opcode → List ℕ\n' % (doc, name)
+    for lop, _, k in OPS: s += '  | .%s => %s\n' % (lop, lst(f(k)))
+    return s
+
+
+def opdef(OPS, name, doc, f):
+    s = '/-- %s -/\ndef %s : Opcode → ℕ\n' % (doc, name)
+    for lop, _, k in OPS: s += '  | .%s => %d\n' % (lop, f(k))
+    return s
 
 
 def write(g, OPS):
+    """The modules of the rule files' `count_parts`: each a list of dicts `mod`, `key` (the order), and any of
+    `head` (`(order, doc, imports)`, the module's), `names`, `tables`, `check` (strings) and `out` (run once
+    written)."""
     D = os.path.join(g.lv, 'LeanVM', 'Guest', 'Count')
-    stat, loop, om, vsc, osN = tables(g)
-    VS_ST = vs_st(g)
-    A = len(osN)
-    cclN = ['child_claim_list_last__L%d' % k for k in range(17)]
-    def lst(xs): return '[' + ', '.join(str(x) for x in xs) + ']'
-    def opdefl(name, doc, f):
-        s = '/-- %s -/\ndef %s : Opcode → List ℕ\n' % (doc, name)
-        for lop, _, k in OPS: s += '  | .%s => %s\n' % (lop, lst(f(k)))
-        return s
-    def opdef(name, doc, f):
-        s = '/-- %s -/\ndef %s : Opcode → ℕ\n' % (doc, name)
-        for lop, _, k in OPS: s += '  | .%s => %d\n' % (lop, f(k))
-        return s
-    o = []
-    o.append('/-- The core indices of `open_stacked__L{c}`, `c < %d`. -/\ndef osJ : List ℕ := %s\n' % (A, lst(g.by[n] for n in osN)))
-    o.append('/-- `verify_sub`\'s statically bounded callees but its opening arm. -/\ndef vsStNames : List String := [%s]\n'
-             % ', '.join('"%s"' % n for n in VS_ST))
-    o.append('/-- Their core indices. -/\ndef vsStJ : List ℕ := %s\n' % lst(g.by[n] for n in VS_ST))
-    o.append('/-- The core indices of `child_claim_list_last__L{k}`, `k < 17`. -/\ndef cclJ : List ℕ := %s\n' % lst(g.by[n] for n in cclN))
-    o.append('/-- The core indices of `child_claim_list_mono_last__L{k}`, `k < 17`. -/\ndef ccmJ : List ℕ := %s\n' % lst(g.by[n] for n in CCM))
-    o.append('/-- The core index of `list_split`. -/\ndef lsJ : ℕ := %d\n' % g.by['list_split'])
-    o.append('/-- The children\'s claim lists\' loops: `child_claim_list_any`\'s per `136` and per `17` claims, '
-             '`child_claim_list_mono`\'s. -/\ndef ccLpNames : List String := [%s]\n' % ', '.join('"%s"' % n for n in CC_LP))
-    o.append('/-- Their core indices. -/\ndef ccLpJ : List ℕ := %s\n' % lst(g.by[n] for n in CC_LP))
-    o.append('/-- The core indices of `verify_sub`, `child_claim_list_digest`, `main_loop4`, `child_claim_list_any`, '
-             '`child_claim_list_mono`. -/\ndef omJ : List ℕ := %s\n'
-             % lst(g.by[n] for n in OM))
-    o.append('/-- Their names. -/\ndef omNames : List String := [%s]\n' % ', '.join('"%s"' % n for n in OM))
-    o.append(opdefl('kcOsT', '`open_stacked__L{c}`\'s instructions, by `c`.', lambda k: [stat(k, n) for n in osN]))
-    o.append(opdefl('kcVsStT', 'The instructions of `vsStNames`.', lambda k: [stat(k, n) for n in VS_ST]))
-    o.append(opdefl('kcCclT', '`child_claim_list_last__L{k}`\'s instructions, by `k`.', lambda k: [stat(k, n) for n in cclN]))
-    o.append(opdefl('kcCcmT', '`child_claim_list_mono_last__L{k}`\'s instructions, by `k`.', lambda k: [stat(k, n) for n in CCM]))
-    o.append(opdef('kcLs', '`list_split`\'s instructions.', lambda k: stat(k, 'list_split')))
-    o.append(opdefl('kcCcLpT', 'The instructions of `ccLpNames` per iteration.', lambda k: [loop(k, n) for n in CC_LP]))
-    o.append(opdefl('omT', 'The frame weights of `omNames`.', lambda k: [om[k][n] for n in OM]))
-    o.append(opdef('kcVtW', '`verify_tables`\' instructions (`B1.VerifySub.vtWB Count.vsWords`).', lambda k: vsc.vtW[k]))
-    o.append(opdef('kcTermW', 'The terminal\'s instructions (`B1.VerifySub.termWB Count.vsWords`).', lambda k: vsc.termW[k]))
-    o.append(opdefl('vsCountT', '`verify_sub`\'s instructions at the arm `c`, its two ratio-bounded callees '
-                    'within `%d`, `%d` words.' % (RB[0][1], RB[1][1]), lambda k: [vsc(k, c) for c in range(A)]))
-    o.append('''/-- **The tables check** against the `V` certificates and `B2C.plumbOf`. -/
-noncomputable def vsTabOk (op : Opcode) : Bool :=
-  (List.range @A@).all (fun c => kvOkB op (osJ.getD c 0) ("open_stacked__L" ++ B1.Whir.natStr c) &&
-    kvSBJ op (osJ.getD c 0) == (kcOsT op).getD c 0) &&
-  (List.range %d).all (fun i => kvOkB op (vsStJ.getD i 0) (vsStNames.getD i "") &&
-    kvSBJ op (vsStJ.getD i 0) == (kcVsStT op).getD i 0) &&
-  (List.range 17).all (fun k => kvOkB op (cclJ.getD k 0) ("child_claim_list_last__L" ++ B1.Whir.natStr k) &&
-    kvSBJ op (cclJ.getD k 0) == (kcCclT op).getD k 0) &&
-  (List.range 17).all (fun k => kvOkB op (ccmJ.getD k 0) ("child_claim_list_mono_last__L" ++ B1.Whir.natStr k) &&
-    kvSBJ op (ccmJ.getD k 0) == (kcCcmT op).getD k 0) &&
-  kvOkB op lsJ "list_split" && kvSBJ op lsJ == kcLs op &&
-  (List.range 4).all (fun i => kvOkK op (ccLpJ.getD i 0) (ccLpNames.getD i "") &&
-    kvSKJ op (ccLpJ.getD i 0) == (kcCcLpT op).getD i 0) &&
-  (List.range 5).all (fun i => decide ((coreProgram[omJ.getD i 0]?).map Fn.name = some (omNames.getD i "")) &&
-    (B2C.plumbOf (omJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 == (omT op).getD i 0)
-'''.replace('@A@', str(A)) % len(VS_ST))
-    open(os.path.join(D, 'VsCountData.lean'), 'w', encoding='utf-8').write(
-        HDR % ('VsCountData', 'The instruction counts of `verify_sub`\'s and `child_claim_list_digest`\'s static callees, per opcode.',
-               'public import LeanVM.Guest.Count.StaticV\npublic import LeanVM.Guest.B1.Whir.Names\n')
-        + '\n'.join(o) + '\nend\nend LeanVM.Guest.Count\n')
-    for lop, P, k in OPS:
-        nm = 'VsCountChk' + P
-        open(os.path.join(D, nm + '.lean'), 'w', encoding='utf-8').write(
-            HDR % (nm, 'The tables of `VsCountData` checked at `%s`.' % lop, 'public import LeanVM.Guest.Count.VsCountData\n')
-            + 'theorem vsTab_ok_%s : vsTabOk .%s = true := by\n  decide +kernel\n\nend\nend LeanVM.Guest.Count\n' % (P.lower(), lop))
-    for c in range(A): print('vscount: arm %d: %s' % (c, [vsc(k, c) for k in range(6)]))
-
-
-# `main`'s `da_verify` and `claim_list_digest`, counted by their trees' shapes (`Budget/MvCount.lean`)
-# from the `V` certificates: `da_verify`'s statically bounded callees (the weights among them), its
-# blob loop and the padding loop, the tree over the blob roots, the claim lists' last digests
-# (`claim_list_tail`, statically bounded), their loops (`CL_LP`); `da_verify` and `da_pad` by their frames.
-MV_ST = ['da_padding', 'da_vector', 'da_weights']
-MV_LP = [L('da_verify_loop0'), L('da_pad_loop0')]
-DA_ROWS = guest_const('DA_MAX_ROWS')  # the matrix's rows, padding included
-MV_DL = 'da_levels__L%d_L%d' % (DA_ROWS, guest_const('DA_LOG_MAX_ROWS'))  # the tree over the blob roots
-MV_CL = 'claim_list_tail'
-MV_OM = ['da_verify', 'da_pad', 'claim_list_digest']
-
-
-def main_tables(g):
-    """Per opcode index `k`: the tables of `MvCountData` and `dvW(k, r)`, `clW(k, n)`, the exact
-    counts `Budget/MvCount.lean` proves, with their affine bounds `(dvA, dvR, dvP)`, `(clA, clS)`."""
-    import checker
-    S = g.closure(__import__('gen').VROOTS(g))
-    certs = [checker.gen(g.fns, g.omega_cnt(k), only=S)[1] for k in range(6)]
-    def stat(k, n):
-        c = certs[k][n]; assert c[0] == 'stat' and c[1] == [] and c[2][1] == [], (n, c); return c[2][0]
-    def loop(k, n):
-        c = certs[k][n]; assert c[0] == 'loop' and c[1] is None and c[2] == [] and c[3][1] == [], (n, c); return c[3][0]
-    om = [g.omega_cnt(k) for k in range(6)]
-    T = {}
-    for k in range(6):
-        T[k] = dict(st=[stat(k, n) for n in MV_ST], lp=[loop(k, n) for n in MV_LP], dl=stat(k, MV_DL),
-                    cl=stat(k, MV_CL), clp=[loop(k, n) for n in CL_LP], ls=stat(k, 'list_split'),
-                    om=[om[k][n] for n in MV_OM])
-    def dvW(k, r):
-        t = T[k]
-        return (t['om'][0] + t['st'][0] + t['st'][1] + t['st'][2] + r * t['lp'][0]
-                + t['om'][1] + (DA_ROWS - r) * t['lp'][1] + t['dl'])
-    def dv_aff(k):
-        """`dvW` within `C + R · r + P · DA_MAX_ROWS` on `r ≤ DA_MAX_ROWS` rows: the constant, the
-        blob loop per row past the padding loop, the padding loop and `⌈levels / DA_MAX_ROWS⌉` per
-        row of the padded matrix."""
-        t = T[k]
-        C = t['om'][0] + t['st'][0] + t['st'][1] + t['st'][2] + t['om'][1]
-        # The padding loop runs `DA_MAX_ROWS - r` times: `r · (a - b) + DA_MAX_ROWS · b` charges it exactly.
-        R = max(0, t['lp'][0] - t['lp'][1])
-        P = t['lp'][1] + -(-t['dl'] // DA_ROWS)
-        return C, R, P
-    def clW(k, n):
-        t = T[k]
-        return t['om'][2] + (0 if n == 0 else t['ls'] + n // BIG * t['clp'][0] + n % BIG // GROUP * t['clp'][1]
-                             + t['cl'])
-    def cl_aff(k):
-        """`clW` within `A + S · n`: the loop per `17` claims at most `7` times and the last digest in
-        the constant, the loop per `136` claims by the claims."""
-        t = T[k]
-        return t['om'][2] + t['ls'] + (GROUPS - 1) * t['clp'][1] + t['cl'], -(-t['clp'][0] // BIG)
-    return T, dvW, clW, dv_aff, cl_aff
-
-
-def write_main(g, OPS):
-    D = os.path.join(g.lv, 'LeanVM', 'Guest', 'Count')
-    T, dvW, clW, dv_aff, cl_aff = main_tables(g)
-    def clog(r): return (r - 1).bit_length()
-    for k in range(6):
-        A, R, P = dv_aff(k)
-        assert all(dvW(k, r) <= A + R * r + P * DA_ROWS for r in range(1, DA_ROWS + 1))
-        A, S = cl_aff(k)
-        assert all(clW(k, n) <= A + S * n for n in range(0, 2 ** 17))
-    def lst(xs): return '[' + ', '.join(str(x) for x in xs) + ']'
-    def names(xs): return '[' + ', '.join('"%s"' % x for x in xs) + ']'
-    def opdefl(name, doc, f):
-        s = '/-- %s -/\ndef %s : Opcode → List ℕ\n' % (doc, name)
-        for lop, _, k in OPS: s += '  | .%s => %s\n' % (lop, lst(f(k)))
-        return s
-    def opdef(name, doc, f):
-        s = '/-- %s -/\ndef %s : Opcode → ℕ\n' % (doc, name)
-        for lop, _, k in OPS: s += '  | .%s => %d\n' % (lop, f(k))
-        return s
-    o = []
-    o.append('/-- `da_verify`\'s statically bounded callees but the tree over the blob roots. -/\ndef dvStNames : List String := %s\n' % names(MV_ST))
-    o.append('/-- Their core indices. -/\ndef dvStJ : List ℕ := %s\n' % lst(g.by[n] for n in MV_ST))
-    o.append('/-- `da_verify`\'s blob loop and the padding loop. -/\ndef dvLpNames : List String := %s\n' % names(MV_LP))
-    o.append('/-- Their core indices. -/\ndef dvLpJ : List ℕ := %s\n' % lst(g.by[n] for n in MV_LP))
-    o.append('/-- The core index of the tree over the blob roots, `B1.Da.dlTop`. -/\ndef dlJ : ℕ := %d\n' % g.by[MV_DL])
-    o.append('/-- The core index of `claim_list_tail`. -/\ndef clTJ : ℕ := %d\n' % g.by[MV_CL])
-    o.append('/-- `claim_list_digest`\'s loops, per `136` and per `17` claims. -/\ndef clLpNames : List String := %s\n' % names(CL_LP))
-    o.append('/-- Their core indices. -/\ndef clLpJ : List ℕ := %s\n' % lst(g.by[n] for n in CL_LP))
-    o.append('/-- The functions whose frames the counts weigh. -/\ndef mvOmNames : List String := %s\n' % names(MV_OM))
-    o.append('/-- Their core indices. -/\ndef mvOmJ : List ℕ := %s\n' % lst(g.by[n] for n in MV_OM))
-    o.append(opdefl('kcDvStT', 'The instructions of `dvStNames`.', lambda k: T[k]['st']))
-    o.append(opdefl('kcDvLpT', 'The instructions of `dvLpNames` per iteration.', lambda k: T[k]['lp']))
-    o.append(opdef('kcDl', 'The instructions of the tree over the blob roots.', lambda k: T[k]['dl']))
-    o.append(opdef('kcClT', '`claim_list_tail`\'s instructions.', lambda k: T[k]['cl']))
-    o.append(opdefl('kcClLpT', 'The instructions of `clLpNames` per iteration.', lambda k: T[k]['clp']))
-    o.append(opdefl('mvOmT', 'The frame weights of `mvOmNames`.', lambda k: T[k]['om']))
-    o.append(opdef('kcDvA', '`da_verify`\'s instructions on `r` rows padded to `DA_MAX_ROWS` within '
-                   '`kcDvA + kcDvR · r + kcDvP · DA_MAX_ROWS`: the constant.', lambda k: dv_aff(k)[0]))
-    o.append(opdef('kcDvR', '`da_verify`\'s instructions: per row.', lambda k: dv_aff(k)[1]))
-    o.append(opdef('kcDvP', '`da_verify`\'s instructions: per padded row.', lambda k: dv_aff(k)[2]))
-    o.append(opdef('kcClA', '`claim_list_digest`\'s instructions on `n` claims within `kcClA + kcClS · n`: the constant.',
-                   lambda k: cl_aff(k)[0]))
-    o.append(opdef('kcClS', '`claim_list_digest`\'s instructions: per claim.', lambda k: cl_aff(k)[1]))
-    o.append('''/-- **The tables check** against the `V` certificates and `B2C.plumbOf`. -/
-noncomputable def mvTabOk (op : Opcode) : Bool :=
-  (List.range 3).all (fun i => kvOkB op (dvStJ.getD i 0) (dvStNames.getD i "") &&
-    kvSBJ op (dvStJ.getD i 0) == (kcDvStT op).getD i 0) &&
-  (List.range 2).all (fun i => kvOkK op (dvLpJ.getD i 0) (dvLpNames.getD i "") &&
-    kvSKJ op (dvLpJ.getD i 0) == (kcDvLpT op).getD i 0) &&
-  (kvOkB op dlJ B1.Da.dlTop && kvSBJ op dlJ == kcDl op) &&
-  (kvOkB op clTJ "claim_list_tail" && kvSBJ op clTJ == kcClT op) &&
-  (List.range 2).all (fun i => kvOkK op (clLpJ.getD i 0) (clLpNames.getD i "") &&
-    kvSKJ op (clLpJ.getD i 0) == (kcClLpT op).getD i 0) &&
-  (List.range 3).all (fun i => decide ((coreProgram[mvOmJ.getD i 0]?).map Fn.name = some (mvOmNames.getD i "")) &&
-    (B2C.plumbOf (mvOmJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 == (mvOmT op).getD i 0)
-''')
-    open(os.path.join(D, 'MvCountData.lean'), 'w', encoding='utf-8').write(
-        HDR % ('MvCountData', 'The instruction counts of `main`\'s `da_verify`\'s and `claim_list_digest`\'s callees, per opcode.',
-               'public import LeanVM.Guest.Count.StaticV\npublic import LeanVM.Guest.B1.Da.VerifyDefs\n'
-               'public import LeanVM.Guest.B1.Digest.ClaimList\n')
-        + '\n'.join(o) + '\nend\nend LeanVM.Guest.Count\n')
-    for lop, P, k in OPS:
-        nm = 'MvCountChk' + P
-        open(os.path.join(D, nm + '.lean'), 'w', encoding='utf-8').write(
-            HDR % (nm, 'The tables of `MvCountData` checked at `%s`.' % lop, 'public import LeanVM.Guest.Count.MvCountData\n')
-            + 'theorem mvTab_ok_%s : mvTabOk .%s = true := by\n  decide +kernel\n\nend\nend LeanVM.Guest.Count\n' % (P.lower(), lop))
-    for lop, _, k in OPS:
-        A, R, P = dv_aff(k); cA, cS = cl_aff(k)
-        print('mvcount %s: da_verify %d + %d/row + %d/padded row (16 rows: %d of exact %d; 32: %d of %d); '
-              'claim list %d + %d/claim' % (lop, A, R, P, A + 16 * R + DA_ROWS * P, dvW(k, 16),
-                                           A + 32 * R + DA_ROWS * P, dvW(k, 32), cA, cS))
+    parts = [p for h in fnrules.hooks('count_parts') for p in h(g, OPS)]
+    for hp in sorted((p for p in parts if 'head' in p), key=lambda p: p['head'][0]):
+        M = hp['mod']
+        ps = sorted((p for p in parts if p['mod'] == M), key=lambda p: p['key'])
+        _, doc, imports = hp['head']
+        pre = M[:-len('CountData')].lower()
+        o = [s for p in ps for s in p.get('names', [])] + [s for p in ps for s in p.get('tables', [])]
+        o.append('/-- **The tables check** against the `V` certificates and `B2C.plumbOf`. -/\n'
+                 'noncomputable def %sTabOk (op : Opcode) : Bool :=\n%s\n'
+                 % (pre, ' &&\n'.join(c for p in ps for c in p.get('check', []))))
+        open(os.path.join(D, M + '.lean'), 'w', encoding='utf-8').write(
+            HDR % (M, doc, imports) + '\n'.join(o) + '\nend\nend LeanVM.Guest.Count\n')
+        for lop, P, k in OPS:
+            nm = M[:-len('Data')] + 'Chk' + P
+            open(os.path.join(D, nm + '.lean'), 'w', encoding='utf-8').write(
+                HDR % (nm, 'The tables of `%s` checked at `%s`.' % (M, lop), 'public import LeanVM.Guest.Count.%s\n' % M)
+                + 'theorem %sTab_ok_%s : %sTabOk .%s = true := by\n  decide +kernel\n\nend\nend LeanVM.Guest.Count\n'
+                % (pre, P.lower(), pre, lop))
+        for p in ps:
+            if 'out' in p:
+                p['out']()

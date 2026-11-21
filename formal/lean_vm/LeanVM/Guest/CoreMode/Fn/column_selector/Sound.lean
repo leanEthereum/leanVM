@@ -10,6 +10,8 @@ public import LeanVM.Guest.EndExecCoreRes
 public import LeanVM.Guest.CoreMode.Fam.ResCs
 public import LeanVM.Guest.CoreMode.Fam.CsQ
 public import LeanVM.Guest.CoreMode.Fn.column_selector.Fam
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«column_selector__L»
 
 /-!
 `cs_holds` (`cs`): at an honest instance of `column_selector__L{κ}`, its callers hand it an offset `g^o`, `2^κ ∣ o`, and the nibble shares (`csQ_all`), so its lowest digit is `g^(2^(4-w)·q)`, `q < 2^w` (`cs_digit`), the read `[sel_eq]·[digit₀]·g^off` the `q`-th cell of the strided table.
@@ -58,8 +60,8 @@ theorem cs_holds {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePr
   rw [csSub]
   show CoreMode.RunSet (vw σ) _ _ _ _ _
   refine ⟨0, 2 ^ w, q, CoreMode.rep_const hcap0, CoreMode.rep_const hcap, Nat.zero_le _, hq, ?_⟩
-  have key : ∀ off : ℕ, CoreMode.CCell.valW (vw σ) ⟨[(1, 1), (3, 1)], off⟩ =
-      CoreMode.CCell.valW (vw σ) ⟨[(1, 1)], off⟩ * ofK (addressOfIndex (2 ^ (4 - w) * q)) := fun off ↦ by
+  have key : ∀ off : ℕ, CoreMode.CCell.valW (vw σ) ⟨[(valf% «column_selector» "sel_eq", 1), (valf% «column_selector» "digits[0]", 1)], off⟩ =
+      CoreMode.CCell.valW (vw σ) ⟨[(valf% «column_selector» "sel_eq", 1)], off⟩ * ofK (addressOfIndex (2 ^ (4 - w) * q)) := fun off ↦ by
     simp only [CoreMode.CCell.valW, CoreMode.prodW, vw, hd, Value.gen_pow_eq_ofK, pow_one, mul_one]
     ring
   unfold CoreMode.CCell.addrW

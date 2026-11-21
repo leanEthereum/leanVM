@@ -9,6 +9,9 @@ module
 
 public import LeanVM.Guest.CoreMode.Fam.ResStP
 public import LeanVM.Guest.CoreMode.Fam.SubDefs
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L_loop0»
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L_loop1»
 
 /-!
 # The stream loops' cursors
@@ -29,8 +32,9 @@ open LeanVM.Prover.Exec
 
 @[expose] public section
 
-/-- A loop's cursor value, and its cell. -/
-def loopCur (rem : Bool) : V := if rem then .n 14 else .n 20
+/-- A loop's cursor value (`cur_i`), and its cell. -/
+def loopCur (rem : Bool) : V :=
+  if rem then .n (valf% «keccak_layer» «_loop1» "cur_i") else .n (valf% «keccak_layer» «_loop0» "cur_i")
 
 end
 

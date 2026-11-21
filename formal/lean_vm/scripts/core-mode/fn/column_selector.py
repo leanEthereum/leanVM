@@ -1,5 +1,9 @@
 """`column_selector`'s rules: its lowest digit's read in its strided table (`CoreMode.csSub`)."""
 import re
+from fnrules import valf
+
+# its parameter `sel_eq` and its lowest digit `digits[0]`
+SEL_EQ, DIGIT0 = valf('column_selector', 'sel_eq'), valf('column_selector', 'digits[0]')
 
 
 def cs_kappa(k):
@@ -12,7 +16,7 @@ def cs_sub(kap):
     """`CoreMode.csSub κ`: the lowest digit's read `[sel_eq]·[digit₀]·g^off` in its strided table."""
     w = 4 * (kap // 4) + 4 - kap
     off = 64 * (kap // 4) + 16 * (w - 1)
-    return ('sub', (((1, 1), (3, 1)), off), ((((1, 1),), off), 2 ** (4 - w), ('num', 0), ('num', 2 ** w)))
+    return ('sub', (((SEL_EQ, 1), (DIGIT0, 1)), off), ((((SEL_EQ, 1),), off), 2 ** (4 - w), ('num', 0), ('num', 2 ** w)))
 
 
 def sub(k, c):

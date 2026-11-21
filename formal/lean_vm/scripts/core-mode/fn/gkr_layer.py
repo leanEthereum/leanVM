@@ -1,26 +1,24 @@
 """`gkr_layer`'s rules: its specializations `gkr_layer__L{par}_L{odd}` and their loops."""
 from sigseed import sig, cell, num, ex, run, stream
 import fnrules
+from fnrules import valf, lean_def
 
 
-# `x_m`'s exponent below `4` (`Res.expFacts`, `EndExec.GlQ`)
-EXP_FACTS = [('gkr_layer__L%d_L%d' % (p, o), fnrules.param('gkr_layer', 'x_m'), None, 4) for p in range(4) for o in range(2)]
+# `x_m`'s exponent below `4` (`Res.expFacts`, `EndExec.GlQ`), as its Lean data says
+EXP_FACTS = lean_def('gkr_layer', 'Data', 'expFacts')
 
-# its loop reads the proof stream past the cursor `17`, its caller's cell `10` the stream, `32` words an iteration
-# (`CoreMode.stLoops`)
-ST_LOOPS = {'gkr_layer__L%d_L%d_loop0' % (p, o): (10, 17, 32) for p in range(4) for o in range(2)}
+# its loop reads the proof stream past its cursor (`CoreMode.stLoops`), as its Lean data says
+ST_LOOPS = {e[0]: e[1:] for e in lean_def('gkr_layer', 'Data', 'stLoops')}
 
-# its cursors (`CoreMode.glQC`, `EndExec.gl_curs`): the value its layer record's cursor is loaded to (`21`), read `8 par`
-# words past (its first `2 par` rounds), and its last record's (the tail), read `4 (2 - odd) + 12` words past (its last
-# rounds and the children), in its stream, parameter `8`
-GL_TAIL = (76, 160, 238, 316)
-GL_CURS = {'gkr_layer__L%d_L%d' % (p, o): dict(([(21, 8 * p)] if p else []) + [(GL_TAIL[p], 20 - 4 * o)])
-           for p in range(4) for o in range(2)}
-GL_STREAM = 8
+# its cursors and the words read past each (`CoreMode.glCurs`, `EndExec.gl_curs`), in its stream
+GL_CURS = {k: dict(v) for k, v in lean_def('gkr_layer', 'Fam', 'glCurs')}
+GL_STREAM = valf('gkr_layer', 'stream')
+# its round records' fields apart, its cursor the fifth (`ROUND` records)
+FIELD = fnrules.guest_const('GKR_ROUNDS_CAP')
 
 
 def sub(k, c):
-    """`CoreMode.glQC`: a read `c` words past one of its cursors, one of its stream's `[8]·[0, 8192)`."""
+    """`CoreMode.glQC`: a read `c` words past one of its cursors, one of its stream's `[stream]·[0, 8192)`."""
     import infer as I
     cs = GL_CURS.get(I.callee(k))
     if cs and len(c[0]) == 1 and c[0][0][1] == 1 and c[1] < cs.get(c[0][0][0], 0):
@@ -56,18 +54,18 @@ def _layer(p, o):
         postR=[run(cell(2 * ROW0, row), num(0), ex(5), 8, 2 * p + 2 + q) for q in range(8)])
 
 
-# `gkr_layer`'s loop (`y, x_m, head, qrow, nqrow, tabs`): `8` rounds from the record `head·y` (fields `862` apart, its
-# cursor at `4310`), the point `qrow·y^8`, the record `head·y·g` and the cells `nqrow·y^8·g^q` written; the stream is its
-# caller's cell `10` (`CoreMode.stLoops`).
+# `gkr_layer`'s loop (`y, x_m, head, qrow, nqrow, tabs`): `8` rounds from the record `head·y` (fields `FIELD` apart,
+# its cursor the fifth), the point `qrow·y^8`, the record `head·y·g` and the cells `nqrow·y^8·g^q` written; the stream
+# is its caller's cell `2 + stream` (`CoreMode.stLoops`).
 def _layer_loop():
     rd = [(2, 1), (4, 1)]
     return sig(
         range(8), 8, [],
-        pre=[cell(862 * f, rd) for f in range(7)],
+        pre=[cell(FIELD * f, rd) for f in range(7)],
         preR=[run(cell(0, [(5, 1)]), ex(2), ex(3), 8, q) for q in range(8)] +
-        ['⟨⟨0, 0, [((.hp 1 10), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩'],
+        ['⟨⟨0, 0, [((.hp 1 %d), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩' % (2 + GL_STREAM)],
         term=['(%s, %s)' % (ex(2), ex(3))],
-        postL=[run(cell(0, [(4, 1)]), ex(2), ex(3), 1, 862 * f + 1) for f in range(7)] +
+        postL=[run(cell(0, [(4, 1)]), ex(2), ex(3), 1, FIELD * f + 1) for f in range(7)] +
         [run(cell(0, [(6, 1)]), ex(2), ex(3), 8, q) for q in range(8)])
 
 

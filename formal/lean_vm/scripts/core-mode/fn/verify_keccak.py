@@ -5,18 +5,26 @@ the stream parameter, and the values whose exponents its `tau_g = g^τ`, `9 <= �
 # its callees' runs (`der`)
 FEATURES = {'verify_keccak': [{'postQ', 'hv', 'der'}]}
 
+from fnrules import val, lean_def
+
 CAPE = 2 ** 62
-VK_CURS = [483, 518, 552, 595, 636, 679, 712, 753, 791, 834, 875, 915]
-VK_STREAM = 12
+# its layers' returned cursors, as its Lean data says, and its stream
+VK_CURS = lean_def('verify_keccak', 'Fam', 'vkCurs')
+VK_STREAM = val('verify_keccak', 'stream')
 VK_ORD = 2 ** 64 - 1
+_TAU, _P0, _P, _Y = val('verify_keccak', 'tau_g'), val('verify_keccak', 'pack_g~0'), val('verify_keccak', 'pack_g'), \
+    val('verify_keccak', 's5#1')
+_S2, _R3, _S1 = val('verify_keccak', 'step_g@2'), val('verify_keccak', 'rem_g@3'), val('verify_keccak', 'step_g@1')
+_S23, _R1, _R23, _R33 = val('verify_keccak', 'step_g@2~3'), val('verify_keccak', 'rem_g@1'), \
+    val('verify_keccak', 'rem_g@2~3'), val('verify_keccak', 'rem_g@3~3')
 
 
 def vk_e(t):
-    """`CoreMode.vkE`: the exponents at `τ = t` (`18` is `g^-4`, modulo the order `2^64 - 1`)."""
+    """`CoreMode.vkTab`: the exponents at `τ = t` (`pack_g~0` is `g^-4`, modulo the order `2^64 - 1`)."""
     y = t - 3
     b = [(y >> i) & 1 for i in range(5)]
-    return {6: t, 18: VK_ORD - 4, 19: t - 4, 21: t - 3, 35: y // 8, 49: y % 8, 30: b[3], 34: 2 * b[4], 39: b[0],
-            43: 2 * b[1], 48: 4 * b[2]}
+    return {_TAU: t, _P0: VK_ORD - 4, _P: t - 4, _Y: t - 3, _S2: y // 8, _R3: y % 8, _S1: b[3], _S23: 2 * b[4],
+            _R1: b[0], _R23: 2 * b[1], _R33: 4 * b[2]}
 
 
 def vk_ev(E, c):
@@ -70,7 +78,7 @@ def vk_at(t, r):
 
 def fam(k, r):
     """`CoreMode.vkQC`: a read `c < (11 - s)·96 + 97` words past step `s`'s returned cursor, one of the stream's
-    `[12]·[0, 8192)`; else a residual true at every `τ` (`vk_at`)."""
+    `[stream]·[0, 8192)`; else a residual true at every `τ` (`vk_at`)."""
     if k != 'verify_keccak':
         return False
     rr = r[2] if r[0] == 'under' else r
@@ -87,6 +95,14 @@ def arg_bound(k, x):
         return None
     es = [vk_e(t).get(x) for t in range(9, 29)]
     return None if None in es or max(es) >= CAPE else max(es) + 1
+
+
+# ---- its counts (`scripts/count`)
+
+# counted within a ratio of these words (`verify_sub`'s `vsCountT`) and its ratios checked (`Count/RatioV`): order,
+# Lean name
+RATIO_WORDS = {'verify_keccak': 56404}
+RATIOV = {'verify_keccak': (1, 'Vk')}
 
 # its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
 OWN = [

@@ -37,7 +37,7 @@ public section
 structure VtExps (σ : Core.Val) (μ lm n : ℕ) (τ : ℕ → ℕ) : Prop where
   mu : σ (.n (val% «verify_tables» "g_bus_mu")) = gen ^ μ
   lmw : σ (.n (val% «verify_tables» "kb[1]")) = gen ^ lm
-  tau : ∀ t < 6, σ (.n (28 + t)) = gen ^ τ t
+  tau : ∀ t < 6, σ (.n ((val% «verify_tables» "kb[1]") + 1 + t)) = gen ^ τ t
   zc : σ (.n (val% «verify_tables» "g_zc_n")) = gen ^ n
   mu19 : 19 ≤ μ
   mu33 : μ < 33
@@ -62,23 +62,23 @@ theorem vt_exps (hr : r.Ok) {J : Inst} (hJ : J ∈ honestInsts coreProgram B2C.f
   obtain ⟨k0, kl⟩ := vt_kb h
   have hpads := vt_pads hμ r.img σ h
   obtain ⟨τ, hτ⟩ := tb_exists_fun_of_forall (α := ℕ) (n := 6)
-    (P := fun t τ ↦ τ < 31 ∧ σ (.n (28 + t)) = gen ^ τ) (fun t ht ↦ by
+    (P := fun t τ ↦ τ < 31 ∧ σ (.n ((val% «verify_tables» "kb[1]") + 1 + t)) = gen ^ τ) (fun t ht ↦ by
       obtain ⟨τ, n, zs, h1, h2, -⟩ := hpads t ht
       refine ⟨τ, h1, ?_⟩
       have := kl (t + 1) (by omega)
-      rw [show 27 + (t + 1) = 28 + t by omega] at this
+      rw [show (val% «verify_tables» "kb[1]") + 1 + t = (val% «verify_tables» "kb[1]") + (t + 1) by omega]
       exact tb_loadHolds_unique this h2)
   have k1 : σ (.n (val% «verify_tables» "kb[1]")) = gen ^ lm := by
     have := tb_loadHolds_unique (kl 0 (by omega)) (hds 0 (by simp))
     simpa using this
-  have hkb : ∀ i < 8, σ (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0 := by
+  have hkb : ∀ i < 8, σ (.n (val% «verify_tables» "kb[0]" + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0 := by
     intro i hi
     match i, hi with
     | 0, _ => simpa using k0
     | 1, _ => simpa using k1
     | t + 2, hi =>
       have ht : t < 6 := by omega
-      rw [show 26 + (t + 2) = 28 + t by omega, (hτ t ht).2]
+      rw [show val% «verify_tables» "kb[0]" + (t + 2) = (val% «verify_tables» "kb[1]") + 1 + t by omega, (hτ t ht).2]
       simp only [List.cons_append, List.nil_append, List.getD_cons_succ]
       rw [List.getD_eq_getElem _ _ (by simp [vtTauList]; omega)]
       simp [vtTauList]
@@ -226,12 +226,12 @@ theorem vtS_box {σ : Core.Val} {μ lm n : ℕ} {τ : ℕ → ℕ} (hE : VtExps 
 /-- **The slacks' words**, at a valuation whose ghost `GB + j` is `dims_g[j]`'s word. -/
 theorem vtBaseN_sound {σ : Core.Val} {μ lm n : ℕ} {τ : ℕ → ℕ} (hE : VtExps σ μ lm n τ)
     {σ' : Core.Val} (hag : ∀ v : V, v.idx < CoreMode.GB → σ' v = σ v)
-    (hg : ∀ j < 7, σ' (V.n (CoreMode.GB + j)) = σ (V.n (27 + j))) {x : ℕ} {F : VtL} (h : vtBaseN x = some F) :
+    (hg : ∀ j < 7, σ' (V.n (CoreMode.GB + j)) = σ (V.n ((val% «verify_tables» "kb[1]") + j))) {x : ℕ} {F : VtL} (h : vtBaseN x = some F) :
     VtV σ' (vtS μ lm n τ) (V.n x) F := by
   unfold vtBaseN at h
   dsimp only at h
   -- the word at `x`: its own, or for a ghost `dims_g[j]`'s
-  have hy : ∀ y, (if CoreMode.GB ≤ x ∧ x < CoreMode.GB + 7 then x - CoreMode.GB + 27 else x) = y →
+  have hy : ∀ y, (if CoreMode.GB ≤ x ∧ x < CoreMode.GB + 7 then x - CoreMode.GB + (val% «verify_tables» "kb[1]") else x) = y →
       y < CoreMode.GB → σ' (V.n x) = σ (V.n y) := by
     intro y hy hyG
     by_cases hx : CoreMode.GB ≤ x ∧ x < CoreMode.GB + 7
@@ -242,8 +242,10 @@ theorem vtBaseN_sound {σ : Core.Val} {μ lm n : ℕ} {τ : ℕ → ℕ} (hE : V
       rw [this, ← hy, Nat.add_comm]
     · simp only [hx, ↓reduceIte] at hy
       subst hy; exact hag _ hyG
-  generalize hY : (if CoreMode.GB ≤ x ∧ x < CoreMode.GB + 7 then x - CoreMode.GB + 27 else x) = y at h hy
-  have hGB : (2544 : ℕ) < CoreMode.GB := by unfold CoreMode.GB; norm_num
+  generalize hY : (if CoreMode.GB ≤ x ∧ x < CoreMode.GB + 7 then x - CoreMode.GB + (val% «verify_tables» "kb[1]") else x) = y at h hy
+  have hGmu : val% «verify_tables» "g_bus_mu" < CoreMode.GB := by unfold CoreMode.GB; decide
+  have hGzc : val% «verify_tables» "g_zc_n" < CoreMode.GB := by unfold CoreMode.GB; decide
+  have hGkb : (val% «verify_tables» "kb[1]") + 7 < CoreMode.GB := by unfold CoreMode.GB; decide
   have h0 := hE.taun 0 (by norm_num); have h1 := hE.taun 1 (by norm_num); have h2 := hE.taun 2 (by norm_num)
   have h3 := hE.taun 3 (by norm_num); have h4 := hE.taun 4 (by norm_num); have h5 := hE.taun 5 (by norm_num)
   have := hE.mu19; have := hE.lmμ; have := hE.nμ
@@ -253,25 +255,26 @@ theorem vtBaseN_sound {σ : Core.Val} {μ lm n : ℕ} {τ : ℕ → ℕ} (hE : V
     subst c9
     have e : vtEv (19, [1, 0, 0, 0, 0, 0, 0, 0, 0]) (vtS μ lm n τ) = (μ : ℤ) := by
       simp only [vtEv, ldot, vtS]; ring
-    rw [hy 9 rfl (by omega), hE.mu, e]
+    rw [hy _ rfl (by omega), hE.mu, e]
     exact ⟨by positivity, by simp⟩
   · obtain rfl := Option.some.inj h
     subst c25
     have e : vtEv (19, [1, -1, 0, 0, 0, 0, 0, 0, 0]) (vtS μ lm n τ) = (n : ℤ) := by
       simp only [vtEv, ldot, vtS]; ring
-    rw [hy 2544 rfl (by omega), hE.zc, e]
+    rw [hy _ rfl (by omega), hE.zc, e]
     exact ⟨by positivity, by simp⟩
   · obtain rfl := Option.some.inj h
     subst c27
     have e : vtEv (19, [1, 0, 0, 0, 0, 0, 0, 0, -1]) (vtS μ lm n τ) = (lm : ℤ) := by
       simp only [vtEv, ldot, vtS]; ring
-    rw [hy 27 rfl (by omega), hE.lmw, e]
+    rw [hy _ rfl (by omega), hE.lmw, e]
     exact ⟨by positivity, by simp⟩
   · obtain rfl := Option.some.inj h
-    obtain ⟨t, ht, rfl⟩ : ∃ t < 6, y = 28 + t := ⟨y - 28, by omega, by omega⟩
+    obtain ⟨t, ht, rfl⟩ : ∃ t < 6, y = (val% «verify_tables» "kb[1]") + 1 + t := ⟨y - ((val% «verify_tables» "kb[1]") + 1), by omega, by omega⟩
     rw [hy _ rfl (by omega), hE.tau t ht]
     have hev : vtEv (19, (List.range 9).map fun i ↦
-        if i = 0 then (1 : ℤ) else if i = 1 then -1 else if i = 28 + t - 26 then -1 else 0) (vtS μ lm n τ) =
+        if i = 0 then (1 : ℤ) else if i = 1 then -1 else if i = (val% «verify_tables» "kb[1]") + 1 + t - (val% «verify_tables» "kb[1]") + 1 then -1 else 0)
+        (vtS μ lm n τ) =
         (τ t : ℤ) := by
       interval_cases t <;> simp [vtEv, ldot, vtS, List.range_succ]
     rw [hev]
@@ -625,8 +628,8 @@ theorem vtExp_inst (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2
     exact (Memory.atom_holds_congr a fun v hv ↦ hag v (hng'.1.2 v (topAtoms_uses ha' v hv))).mpr (hall a ha')
   -- ghost `GB + j` is `dims_g[j]`'s word
   obtain ⟨-, hkl⟩ := vt_kb (vt_inst hr hI ht).1
-  have hg : ∀ j < 7, σ' (V.n (CoreMode.GB + j)) = σ (V.n (27 + j)) := fun j hj ↦ by
-    have hmem : ((⟨[(10, 1)], j⟩ : CoreMode.CCell), j) ∈ G.gw := by
+  have hg : ∀ j < 7, σ' (V.n (CoreMode.GB + j)) = σ (V.n ((val% «verify_tables» "kb[1]") + j)) := fun j hj ↦ by
+    have hmem : ((⟨[(val% «verify_tables» "dims_g", 1)], j⟩ : CoreMode.CCell), j) ∈ G.gw := by
       rw [hG]; exact List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩
     have e1 := hgw _ _ hmem
     obtain ⟨hK, hrd⟩ := hkl j hj
