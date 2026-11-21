@@ -20,6 +20,7 @@ import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L_loop0»
 import LeanVM.Guest.Data.ValNames.«verify_bus_gkr»
+import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
 
 /-!
 # The radix-four layers' code
@@ -48,10 +49,10 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 def vbgLsArgs : List V := [val% «verify_bus_gkr» "layers", val% «verify_bus_gkr» "rounds", val% «verify_bus_gkr» "gkr_pts", val% «verify_bus_gkr» "n_four", val% «verify_bus_gkr» "rem_g", val% «verify_bus_gkr» "start_g", val% «verify_bus_gkr» "g_bus_mu", val% «verify_bus_gkr» "tabs", val% «verify_bus_gkr» "stream"].map .n
 
 /-- `gkr_layers__L{o}`'s loop's arguments to `gkr_layer__L{p}_L{o}`. -/
-def glLsLArgs (p : ℕ) : List V := [.n 2, .n 3, .n 4, .n 0, .n (glcXj 10 11 p), .n 5, .n 6, .n 7, .n 8]
+def glLsLArgs (p : ℕ) : List V := [.n (valf% «gkr_layers» «_loop0» "layers"), .n (valf% «gkr_layers» «_loop0» "rounds"), .n (valf% «gkr_layers» «_loop0» "gkr_pts"), .n (valf% «gkr_layers» «_loop0» "x_m"), .n (glcXj 10 11 p), .n (valf% «gkr_layers» «_loop0» "start_g"), .n (valf% «gkr_layers» «_loop0» "g_bus_mu"), .n (valf% «gkr_layers» «_loop0» "tabs"), .n (valf% «gkr_layers» «_loop0» "stream")]
 
 /-- `gkr_last_layers`' arguments to `gkr_layer__L{p}_L{o}`. -/
-def glLastArgs (p : ℕ) : List V := [.n 0, .n 1, .n 2, .n 3, .n (glcXj 4 9 p), .n 5, .n 6, .n 7, .n 8]
+def glLastArgs (p : ℕ) : List V := [.n (valf% «gkr_last_layers» "layers"), .n (valf% «gkr_last_layers» "rounds"), .n (valf% «gkr_last_layers» "gkr_pts"), .n (valf% «gkr_last_layers» "n_four"), .n (glcXj 4 9 p), .n (valf% «gkr_last_layers» "start_g"), .n (valf% «gkr_last_layers» "g_bus_mu"), .n (valf% «gkr_last_layers» "tabs"), .n (valf% «gkr_last_layers» "stream")]
 
 /-- A function, if any, is no loop. -/
 noncomputable def notLoopB (f : String) : Bool := (coreProgram.find? f).all fun fn ↦ !fn.loop
@@ -66,8 +67,8 @@ def glA0 (p : ℕ) : ℕ := if p = 0 then 60 else 62 + 78 * p
 
 /-- The loop's call arguments in the layer. -/
 def glLoopArgs (p : ℕ) : List V :=
-  if p = 0 then [.n 60, .n 3, .n 53, .n 52, .n 62, .n 7]
-  else [.n (62 + 78 * p), .n 3, .n 53, .n (64 + 78 * p), .n (66 + 78 * p), .n 7]
+  if p = 0 then [.n 60, .n (valf% «gkr_layer» "x_m"), .n (valf% «gkr_layer» "head"), .n (valf% «gkr_layer» "point_row"), .n 62, .n (valf% «gkr_layer» "tabs")]
+  else [.n (62 + 78 * p), .n (valf% «gkr_layer» "x_m"), .n (valf% «gkr_layer» "head"), .n (64 + 78 * p), .n (66 + 78 * p), .n (valf% «gkr_layer» "tabs")]
 
 /-- `gkr_layer__L{p}_L{o}`'s index. -/
 def glIdx : ℕ → ℕ → ℕ
@@ -84,15 +85,15 @@ end
 
 public section
 
-theorem glLoopArgs_eq (p : ℕ) : ∃ rest, glLoopArgs p = .n (glA0 p) :: .n 3 :: .n 53 :: rest := by
+theorem glLoopArgs_eq (p : ℕ) : ∃ rest, glLoopArgs p = .n (glA0 p) :: .n (valf% «gkr_layer» "x_m") :: .n (valf% «gkr_layer» "head") :: rest := by
   by_cases h : p = 0
-  · exact ⟨[.n 52, .n 62, .n 7], by simp [glLoopArgs, glA0, h]⟩
-  · exact ⟨[.n (64 + 78 * p), .n (66 + 78 * p), .n 7], by simp [glLoopArgs, glA0, h]⟩
+  · exact ⟨[.n (valf% «gkr_layer» "point_row"), .n 62, .n (valf% «gkr_layer» "tabs")], by simp [glLoopArgs, glA0, h]⟩
+  · exact ⟨[.n (64 + 78 * p), .n (66 + 78 * p), .n (valf% «gkr_layer» "tabs")], by simp [glLoopArgs, glA0, h]⟩
 
-theorem glLoopParams_eq : glLoopParams = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] := rfl
+theorem glLoopParams_eq : glLoopParams = [.n (valf% «gkr_layer» «_loop0» "y"), .n (valf% «gkr_layer» «_loop0» "bound"), .n (valf% «gkr_layer» «_loop0» "head"), .n (valf% «gkr_layer» «_loop0» "qrow"), .n (valf% «gkr_layer» «_loop0» "nqrow"), .n (valf% «gkr_layer» «_loop0» "tabs")] := rfl
 
 /-- **The layer's index, its stream's cell and its loop's site.** -/
-theorem gl_idx : ∀ p < 4, ∀ o < 2, idxOf (glName p o) = some (glIdx p o) ∧ cellJ (glIdx p o) (.n 8) = 10 ∧
+theorem gl_idx : ∀ p < 4, ∀ o < 2, idxOf (glName p o) = some (glIdx p o) ∧ cellJ (glIdx p o) (.n (valf% «gkr_layer» "stream")) = 10 ∧
     10 < fsN (glIdx p o) ∧ (siteOf (glIdx p o) ⟨glLoopName p o, glLoopArgs p, [], true⟩).isSome = true := by
   decide +kernel
 
@@ -202,7 +203,7 @@ theorem gl_sites : ∀ o < 2,
 
 theorem glcPar9_eq : glcPar9 = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8] := rfl
 
-theorem glParams_eq : glParams = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8] := rfl
+theorem glParams_eq : glParams = [.n (valf% «gkr_layer» "layers"), .n (valf% «gkr_layer» "rounds"), .n (valf% «gkr_layer» "gkr_pts"), .n (valf% «gkr_layer» "x_m"), .n (valf% «gkr_layer» "x_j"), .n (valf% «gkr_layer» "start_g"), .n (valf% «gkr_layer» "g_bus_mu"), .n (valf% «gkr_layer» "tabs"), .n (valf% «gkr_layer» "stream")] := rfl
 
 theorem glcLs_sel {o : ℕ} (ho : o < 2) {i : ℕ} (h : [glcLsN 0, glcLsN 1][i]? = some (glcLsN o)) : i = o := by
   have hl : i < 2 := by

@@ -37,8 +37,8 @@ def aggHead : List Stmt :=
 
 /-- `aggregate_claims` starts with `aggHead`, then has no witness hint, nor its callees' subtrees. -/
 noncomputable def aggShapeOk : Bool :=
-  stmtsEqb ((Fn.body fn% «aggregate_claims»).take 3) aggHead &&
-    noWitBlock idx% «aggregate_claims» ((Fn.body fn% «aggregate_claims»).drop 3)
+  stmtsEqb ((Fn.body fn% «aggregate_claims»).take (pos% «aggregate_claims» "fresh_row")) aggHead &&
+    noWitBlock idx% «aggregate_claims» ((Fn.body fn% «aggregate_claims»).drop (pos% «aggregate_claims» "fresh_row"))
 
 theorem agg_shape_ok : aggShapeOk = true := by decide +kernel
 
@@ -82,7 +82,7 @@ theorem aggregate_claims_complete_pops {rd : Reader} {m : ℕ} {cpi cfresh ccarr
   refine ⟨hV, fun bufs kids args rets hv => ?_⟩
   have hs := agg_shape_ok
   simp only [aggShapeOk, Bool.and_eq_true] at hs
-  have hbody : Fn.body fn% «aggregate_claims» = aggHead ++ (Fn.body fn% «aggregate_claims»).drop 3 := by
+  have hbody : Fn.body fn% «aggregate_claims» = aggHead ++ (Fn.body fn% «aggregate_claims»).drop (pos% «aggregate_claims» "fresh_row") := by
     rw [← stmtsEqb_sound hs.1, List.take_append_drop]
   rw [Tree.pops_of_prefix_mute noWitS_mute hv find_aggregate_claims hbody (aggHead_pops rd _) (noWitBlock_mute hs.2),
     aggPops, hV.v6,

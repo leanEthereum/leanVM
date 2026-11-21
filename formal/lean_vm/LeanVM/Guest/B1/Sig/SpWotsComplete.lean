@@ -305,7 +305,7 @@ def spHead : List Stmt := (spCopies ++ spPowers) ++ (spGs.1 ++ spLast.1)
 theorem spCode_complete {d : Nat → Nat} (hd : ∀ i, d i < 4) (vals : Nat → E) (hm : MemOK rd 64)
     (σ : Val) :
     Completes C rd 4 spC spHead σ
-      (fun σ' => (∀ s < 10, σ' (.n (6 + s)) = gen ^ s) ∧ (∀ q < 22, SpGP d vals q σ') ∧
+      (fun σ' => (∀ s < 10, σ' (.n ((val% «sp_wots» "powers[0]") + s)) = gen ^ s) ∧ (∀ q < 22, SpGP d vals q σ') ∧
         SpGood spPad σ') ∧
     NumBelow spC (Stmt.valsList spHead) := by
   have _ := hd
@@ -316,7 +316,7 @@ theorem spCode_complete {d : Nat → Nat} (hd : ∀ i, d i < 4) (vals : Nat → 
   rw [← spGLEnd_full] at hC
   refine ⟨Completes.append (m := (val% «sp_wots» "group@1")) (by norm_num) (by omega) hseq.numBelow (seq_completes hseq σ)
     (fun σ1 he1 hp1 => ?_), ?_⟩
-  · have hpow : ∀ s < 10, σ1 (.n (6 + s)) = gen ^ s := by
+  · have hpow : ∀ s < 10, σ1 (.n ((val% «sp_wots» "powers[0]") + s)) = gen ^ s := by
       intro s hs
       have e : σ1 (.n (6 + s)) = word (2 ^ s) 0 := hp1.atom (a := .const (.n (6 + s)) _) (by
         simp only [spCopies, spPowers, cst, List.mem_append, List.mem_map, List.mem_range]
@@ -324,8 +324,8 @@ theorem spCode_complete {d : Nat → Nat} (hd : ∀ i, d i < 4) (vals : Nat → 
       rw [e, word_eq_eOfNat, Value.gen_pow_eq_eOfNat (by omega)]
     have hg := spGroupsC (C := C) d vals hm 22 0 (by norm_num) σ1 (fun h => absurd rfl h)
     rw [hst0] at hg
-    refine (hg.keep (Q := fun σ => ∀ s < 10, σ (.n (6 + s)) = gen ^ s)
-      (Q' := fun σ => ∀ s < 10, σ (.n (6 + s)) = gen ^ s) hpow
+    refine (hg.keep (Q := fun σ => ∀ s < 10, σ (.n ((val% «sp_wots» "powers[0]") + s)) = gen ^ s)
+      (Q' := fun σ => ∀ s < 10, σ (.n ((val% «sp_wots» "powers[0]") + s)) = gen ^ s) hpow
       (fun σ' he' hq s hs => by rw [he'.apply (Or.inl (by omega))]; exact hq s hs)).mono le_rfl le_rfl
       (fun σ' ⟨⟨hr, hb⟩, hq⟩ => ⟨hq, fun q hq' => hr q (Nat.zero_le _) (by omega),
         by simpa [SpBefore] using hb⟩)
@@ -340,7 +340,7 @@ theorem spN_mod (i : Nat) (hi : i < 64) : i % 3 < spN (i / 3) := by
 theorem spVals {d : Nat → Nat} (hd : ∀ i, d i < 4) (hsum : ∑ i ∈ Finset.range 64, d i = 128)
     {vals : Nat → E} {σ : Val} {rest : List Stmt} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (spGs.1 ++ (spLast.1 ++ rest)) next kret)
-    (hpow : ∀ s < 10, σ (.n (6 + s)) = gen ^ s) (hgp : ∀ q < 22, SpGP d vals q σ) :
+    (hpow : ∀ s < 10, σ (.n ((val% «sp_wots» "powers[0]") + s)) = gen ^ s) (hgp : ∀ q < 22, SpGP d vals q σ) :
     σ (.n (spEnc false 1 (spState 21).2.2)) = eOfNat128 (spX d 64) ∧
       σ (.n (spProd false 1 (spState 21).2.2)) = spTarget := by
   rw [spGs_fst] at h

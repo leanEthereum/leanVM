@@ -12,6 +12,8 @@ public import LeanVM.Guest.CoreMode.Fam.ResF
 public import LeanVM.Guest.CoreMode.Fam.TermDefs
 public import LeanVM.Guest.B1.Terminal.HoldsOf
 public import LeanVM.Guest.CoreMode.Fn.check_opening_terminal.Data
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«check_opening_terminal»
 
 /-!
 # `check_opening_terminal`'s facts and families
@@ -120,13 +122,13 @@ theorem expH_of_front (hT : TermFront rd (B1.VerifySub.termParams.map σ)) {c : 
   obtain ⟨lm, hs, layout, bus, claims, hl, h31, hm30, -, -, -, hkb, -, htau, -, -, -, -, -, sl, hsl, hgm⟩ := hT
   obtain ⟨-, ⟨hp, ho, hb⟩ | ⟨k, hk, hp, ho, hb⟩ | ⟨hp, ho, hb⟩⟩ := expFacts_cot hc
   · rw [hp] at hv
-    obtain rfl : v = .n 7 := by simpa [B1.VerifySub.termParams] using hv.symm
+    obtain rfl : v = .n (val% «check_opening_terminal» "tau_keccak_g") := by simpa [B1.VerifySub.termParams] using hv.symm
     rw [ho, hb]
     refine ⟨_, ?_, htau⟩
     rw [List.getD_eq_getElem _ _ (by omega)]
     exact h31 _ (List.getElem_mem _)
   · rw [hp] at hv
-    obtain rfl : v = .n 8 := by simpa [B1.VerifySub.termParams] using hv.symm
+    obtain rfl : v = .n (val% «check_opening_terminal» "kappa_base") := by simpa [B1.VerifySub.termParams] using hv.symm
     rw [ho, hb]
     refine ⟨_, ?_, kb_load hl hkb hk⟩
     rcases Nat.lt_or_ge k 2 with h2 | h2
@@ -136,7 +138,7 @@ theorem expH_of_front (hT : TermFront rd (B1.VerifySub.termParams.map σ)) {c : 
     · rw [show (if k = 0 then 1 else 31) = 31 by simp only [show ¬ k = 0 by omega, ↓reduceIte], List.getD_eq_getElem _ _ (by simp [hl]; omega), List.getElem_append_right (by simp; omega)]
       exact h31 _ (List.getElem_mem _)
   · rw [hp] at hv
-    obtain rfl : v = .n 19 := by simpa [B1.VerifySub.termParams] using hv.symm
+    obtain rfl : v = .n (val% «check_opening_terminal» "gmv") := by simpa [B1.VerifySub.termParams] using hv.symm
     rw [ho, hb]
     exact ⟨sl, by omega, hgm⟩
 
@@ -166,8 +168,8 @@ theorem dimH_of_front (hT : TermFront rd (B1.VerifySub.termParams.map σ)) {c : 
   obtain ⟨chis, hgmu, hgzc, hchL, hpair⟩ := pair_dim hlm hhs hctx
   obtain ⟨-, hk8, hcase⟩ := dimFacts_cot hc
   rw [hk8] at hvk
-  obtain rfl : vk = .n 8 := by simpa [B1.VerifySub.termParams] using hvk.symm
-  have hp : ∀ j < B1.Tables.nPooled, ∀ p, p = claimPairs[j]! → LoadHolds rd (σ (.n 8)) p.1
+  obtain rfl : vk = .n (val% «check_opening_terminal» "kappa_base") := by simpa [B1.VerifySub.termParams] using hvk.symm
+  have hp : ∀ j < B1.Tables.nPooled, ∀ p, p = claimPairs[j]! → LoadHolds rd (σ (.n (val% «check_opening_terminal» "kappa_base"))) p.1
       (gen ^ ([0, lm] ++ hs).getD p.1 0) := fun j hj p hp ↦ kb_load hl hkb (by
         rw [hp, getElem!_pos claimPairs j (by simpa [claimPairs] using hj)]
         simp only [claimPairs, List.getElem_map, List.getElem_range]
@@ -178,7 +180,7 @@ theorem dimH_of_front (hT : TermFront rd (B1.VerifySub.termParams.map σ)) {c : 
   have hcpl : claimPairs.length = B1.Tables.nPooled := by simp [claimPairs]
   rcases hcase with ⟨hb4, hps⟩ | ⟨hb5, hps⟩
   · rw [hb4] at hvb
-    obtain rfl : vb = .n 4 := by simpa [B1.VerifySub.termParams] using hvb.symm
+    obtain rfl : vb = .n (val% «check_opening_terminal» "g_bus_mu") := by simpa [B1.VerifySub.termParams] using hvb.symm
     refine ⟨_, by omega, hgmu, fun p hpm ↦ ?_⟩
     rw [hps] at hpm
     obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hpm
@@ -188,7 +190,7 @@ theorem dimH_of_front (hT : TermFront rd (B1.VerifySub.termParams.map σ)) {c : 
     simp only [busPairs, List.getElem_take, hcp i (by omega)]
     exact ⟨_, kb_load hl hkb (claimSrc_lt i), by have := hqb hi4; omega⟩
   · rw [hb5] at hvb
-    obtain rfl : vb = .n 5 := by simpa [B1.VerifySub.termParams] using hvb.symm
+    obtain rfl : vb = .n (val% «check_opening_terminal» "g_zc_n") := by simpa [B1.VerifySub.termParams] using hvb.symm
     refine ⟨_, by omega, hgzc, fun p hpm ↦ ?_⟩
     rw [hps] at hpm
     obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hpm

@@ -300,7 +300,7 @@ theorem vs_ood (hl : args.length = 6) {ws : List E}
   have hG := vsOodT_good (rd := rd) (w := w) hl
   have W8 := vs_word (rd := rd) (w := w) hl (k := 8) (by omega) (hws 8 (by omega))
   have W9 := vs_word (rd := rd) (w := w) hl (k := 9) (by omega) (hws 9 (by omega))
-  have hn : ∀ s ∈ fsNonceT (.n (val% «verify_sub» "stream")) 10 283, GoodS rd vsSL w ς s := fun s hs ↦ hG s (by
+  have hn : ∀ s ∈ fsNonceT (.n (val% «verify_sub» "stream")) 10 (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0"), GoodS rd vsSL w ς s := fun s hs ↦ hG s (by
     rw [vsOodT]; exact List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_left _ hs))))
   have e283 : ς (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0")) = ws.getD 10 0 :=
@@ -374,7 +374,7 @@ theorem vs_fpw_loop (hl : args.length = 6) : ∀ n ≤ 15,
   | zero =>
     intro _
     refine ⟨?_, fun i hi ↦ absurd hi (by omega)⟩
-    have c : ∀ i < 5, ς (.n (329 + i)) = w (314 + i) := fun i hi ↦ by
+    have c : ∀ i < 5, ς (.n ((val% «verify_sub» "sp[0]@2") + i)) = w (314 + i) := fun i hi ↦ by
       rw [vsg_copy (hG _ (by
         rw [vsFpwT]
         exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _

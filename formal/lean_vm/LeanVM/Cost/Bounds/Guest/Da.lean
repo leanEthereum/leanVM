@@ -5,6 +5,8 @@ public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Consts
 public import LeanVM.Cost.Decoder.Da
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_verify»
 
 /-!
 # Bounds on the guest decoder's prices: the DA matrix
@@ -101,8 +103,8 @@ theorem dvBlobLW_cost (hP : Includes P Decoder.dvBlobLWC.costDeps) (k i : ℕ) (
       F + 3 * S + 73 * k + 59 := by
   rw [Decoder.dvBlobLWC.costEq P hP σ σV hσ Vn VnV hVn]
   have := powSqK_cost_lt P (by includes) Parameters.g i k hk0 (by omega) hi
-  have := hS (.n 1); have := hS (.n 8); have := hS (.n 10)
-  have := hF (fn_idx% da_verify_loop0) [ofK (Parameters.g ^ i), σ (.n 1), σ (.n 8), σ (.n 10)] [] a
+  have := hS (.n (val% «da_verify» "n_blob_g")); have := hS (.n (val% «da_verify» "weights")); have := hS (.n (val% «da_verify» "roots"))
+  have := hF (fn_idx% da_verify_loop0) [ofK (Parameters.g ^ i), σ (.n (val% «da_verify» "n_blob_g")), σ (.n (val% «da_verify» "weights")), σ (.n (val% «da_verify» "roots"))] [] a
     (by norm_num) (by simp)
   omega
 
@@ -127,8 +129,8 @@ theorem dvCellVW_cost (hP : Includes P Decoder.dvCellVWC.costDeps) (base : E) (h
       [σV, VnV, encodeValue base, encodeValue h, encodeValue a] ≤ F + S + 550 := by
   rw [Decoder.dvCellVWC.costEq P hP σ σV hσ Vn VnV hVn]
   have := powSqK_cost_lt P (by includes) Parameters.g h 7 (by norm_num) (by norm_num) (by omega)
-  have := hS (.n 8)
-  have := hF (fn_idx% da_verify_blob_loop0) [ofK (Parameters.g ^ h), σ (.n 8), base] [] a
+  have := hS (.n (val% «da_verify» "weights"))
+  have := hF (fn_idx% da_verify_blob_loop0) [ofK (Parameters.g ^ h), σ (.n (val% «da_verify» "weights")), base] [] a
     (by norm_num) (by simp)
   omega
 
@@ -217,14 +219,14 @@ one logarithm, the count clamped to `DA_MAX_ROWS` (`daRowCount`), then the rows:
 `S + G + dvWitNRowsPrice k F S + 22`. -/
 theorem dvWitN_cost_of_le (D : LeanVM.Extraction.Fast.DiscreteLogTables)
     (hP : Includes P Decoder.dvWitNC.costDeps) (hG : GLogBound P D G) (k : ℕ) (hk0 : 0 < k)
-    (hk : k ≤ 34) (hr : Decoder.daRowCount (Decoder.gLogD D (σ (.n 1))) ≤ 2 ^ k) :
+    (hk : k ≤ 34) (hr : Decoder.daRowCount (Decoder.gLogD D (σ (.n (val% «da_verify» "n_blob_g")))) ≤ 2 ^ k) :
     machineCost P Decoder.dvWitNC.costIdx [encodeValue D, σV, VnV] ≤
       S + G + dvWitNRowsPrice k F S + 22 := by
   rw [Decoder.dvWitNC.costEq P hP D σ σV hσ Vn VnV hVn]
-  have := hG (σ (.n 1))
-  have := hS (.n 1)
-  have := daRowCount_cost P (by includes) (Decoder.gLogD D (σ (.n 1)))
-    (by have := gLogD_lt D (σ (.n 1)); omega)
+  have := hG (σ (.n (val% «da_verify» "n_blob_g")))
+  have := hS (.n (val% «da_verify» "n_blob_g"))
+  have := daRowCount_cost P (by includes) (Decoder.gLogD D (σ (.n (val% «da_verify» "n_blob_g"))))
+    (by have := gLogD_lt D (σ (.n (val% «da_verify» "n_blob_g"))); omega)
   have := dvWitNAt_cost P hVn hF hσ hS (by includes) k _ hk0 hk hr
   omega
 

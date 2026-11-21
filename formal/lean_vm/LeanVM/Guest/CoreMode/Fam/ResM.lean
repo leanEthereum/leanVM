@@ -14,6 +14,8 @@ public import LeanVM.Guest.CoreMode.Fam.MonoDefs
 public import LeanVM.Guest.B1.Digest.ChildDigest
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_digest»
+import LeanVM.Guest.Data.ValNames.«child_claim_list_mono»
+import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_last__L0»
 
 /-!
 # The gap walk's records down the honest tree
@@ -145,9 +147,9 @@ theorem digest_zero_calls {σ : Core.Val} {es : List Ev} {vs : List V}
 
 /-- A call site of the walk's callees: its arguments, a site of the caller's plumbing. -/
 theorem monoSite_of {o : ℕ} {f : String} {args rets : List V} (h : Res.monoSiteB o f args rets = true) :
-    (f = name% «child_claim_list_mono_loop0» → args = [.n 32, .n 4, .n 16, .n 2]) ∧
-    (f = name% «child_claim_list_mono_loop1» → args = [.n 42, .n 5, .n 39, .n 2]) ∧
-    (f ∈ mlNames → args = [.n 49, .n 1, .n 2, .n 3]) ∧
+    (f = name% «child_claim_list_mono_loop0» → args = [.n (val% «child_claim_list_mono» "s4#2"), .n (val% «child_claim_list_mono» "bigs"), .n (val% «child_claim_list_mono» "chain"), .n (val% «child_claim_list_mono» "base")]) ∧
+    (f = name% «child_claim_list_mono_loop1» → args = [.n (val% «child_claim_list_mono» "s6#2"), .n (val% «child_claim_list_mono» "groups"), .n (val% «child_claim_list_mono» "mid"), .n (val% «child_claim_list_mono» "base")]) ∧
+    (f ∈ mlNames → args = [.n (val% «child_claim_list_mono» "last"), .n (val% «child_claim_list_mono» "region"), .n (val% «child_claim_list_mono» "base"), .n (val% «child_claim_list_mono» "limit_g")]) ∧
     (f ∈ [name% «child_claim_list_mono_loop0», name% «child_claim_list_mono_loop1»] ++ mlNames →
       Res.siteB o args rets = true) := by
   simp only [Res.monoSiteB, Bool.and_eq_true, Bool.or_eq_true, bne_iff_ne, ne_eq, Bool.not_eq_true',
@@ -438,7 +440,7 @@ theorem monoQ_all (hO : MonoOk) (hr : r.Ok) :
 
 
 /-- **The last claims' region at every honest instance of the empty rest** is nonzero. -/
-theorem nzVal_ml0 (hO : MonoOk) : NzVal name% «child_claim_list_mono_last__L0» (.n 1) := by
+theorem nzVal_ml0 (hO : MonoOk) : NzVal name% «child_claim_list_mono_last__L0» (.n (val% «child_claim_list_mono_last__L0» "region")) := by
   intro r hr I hI σ bufs kids ht
   obtain ⟨-, -, -, -, -, h, -⟩ := (monoQ_all hO hr I hI _ σ bufs kids ht).2.1 (by decide)
   exact h

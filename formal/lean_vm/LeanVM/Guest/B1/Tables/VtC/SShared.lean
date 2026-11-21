@@ -45,7 +45,7 @@ theorem idxc_ok (hl : args.length = 21) (h : TbReadsAt rd (vtσ rd w args (.n (v
   simp only [vtIdxcT, List.mem_flatten, List.mem_map, List.mem_range] at hst'
   obtain ⟨_, ⟨t, ht, rfl⟩, hm⟩ := hst'
   have hc : vtσ rd w args (.n (666 + t)) = 1 + gen ^ 2 ^ t := by
-    have := vt_goodS (rd := rd) (w := w) hl (vt_mem_slice (vtPre_drop 625 ▸ vtIdxc_check)
+    have := vt_goodS (rd := rd) (w := w) hl (vt_mem_slice (vtPre_drop (pos% «verify_tables» "s17.u0.s0#0") ▸ vtIdxc_check)
       (show Stmt.atom (.const (.n (666 + t)) (word (tbGSquaresBits.getD t 0 ^^^ 1) 0)) ∈
         vtIdxcT by
           simp only [vtIdxcT, List.mem_flatten, List.mem_map, List.mem_range]
@@ -68,7 +68,7 @@ theorem zeta1_ok (hl : args.length = 21) {point : List E}
     (hz1 : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·))) (hw : w 701 = 0) :
     VSH (coreProgram.Rel rd) rd (vtσ rd w args)
       (.dispatch (.n (val% «verify_tables» "g_bus_mu")) plusOneRunNames [.n (val% «verify_tables» "zeta1"), .n (val% «verify_tables» "zeta")] [.n (val% «verify_tables» "zeta1_done")]) := by
-  have hg := vt_goodS (rd := rd) (w := w) hl (vt_mem_slice (blk := [_]) (vtPre_drop 694 ▸ vtZeta1_check)
+  have hg := vt_goodS (rd := rd) (w := w) hl (vt_mem_slice (blk := [_]) (vtPre_drop (pos% «verify_tables» "zeta1_done") ▸ vtZeta1_check)
     List.mem_cons_self)
   simp only [fixNe, GoodS, List.mem_cons, List.not_mem_nil, or_false, forall_eq] at hg
   rw [vsh_dispatch]

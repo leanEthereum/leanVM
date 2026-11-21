@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Bits.QueryWindowsAt
 public import LeanVM.Guest.B1.Whir.SqLoop
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«level_positions__L_loop0»
 
 /-!
 # The squeeze loop, placed
@@ -52,7 +54,7 @@ def sqP1 (lv : OsLv) : List Stmt × ℕ × ℕ := osMat 3 lv.posOff (33 + osPowL
 def sqP2 (lv : OsLv) : List Stmt × ℕ × ℕ := osMat 4 lv.posOff ((sqP1 lv).2.2 + 1)
 
 /-- The decoder call's arguments. -/
-def sqDecArgs (lv : OsLv) : List V := [.n 20, .n (sqP1 lv).2.2, .n (sqP2 lv).2.2, .n 5]
+def sqDecArgs (lv : OsLv) : List V := [.n (valf% «level_positions» «_loop0» "nxt[0]"), .n (sqP1 lv).2.2, .n (sqP2 lv).2.2, .n (valf% «level_positions» «_loop0» "tabs")]
 
 /-- The tail call's arguments. -/
 def sqTailArgs (lv : OsLv) : List V :=
@@ -156,7 +158,7 @@ theorem sqLoopPre_calls (lv : OsLv) (name : String) :
 
 theorem sqLoopPre_loadsEq (lv : OsLv) (name : String) :
     (sqLoopPre lv name).filterMap Stmt.loadS =
-      (List.range 10).map fun i => ((.n 9 : V), i) := by
+      (List.range 10).map fun i => ((.n (valf% «level_positions» «_loop0» "row") : V), i) := by
   simp only [sqLoopPre, sqLoopA, List.filterMap_append,
     fm_pow_nil Stmt.loadS (fun _ _ _ => rfl),
     fm_mat_nil Stmt.loadS (fun _ _ _ => rfl) (fun _ _ => rfl),
@@ -164,7 +166,7 @@ theorem sqLoopPre_loadsEq (lv : OsLv) (name : String) :
   rfl
 
 theorem sqLoopPre_loads (lv : OsLv) (name : String) :
-    ∀ q ∈ (sqLoopPre lv name).filterMap Stmt.loadS, q.1 = .n 9 ∧ q.2 < 10 := by
+    ∀ q ∈ (sqLoopPre lv name).filterMap Stmt.loadS, q.1 = .n (valf% «level_positions» «_loop0» "row") ∧ q.2 < 10 := by
   intro q hq
   rw [sqLoopPre_loadsEq] at hq
   obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hq
@@ -182,7 +184,7 @@ def SqIterC (lv : OsLv) : Prop :=
     (∀ i < 5, LoadHolds rd (sqz * X ^ 5) (5 + i) ((⟨cap, []⟩ : Fs).squeeze.2.cap.getD i 0)) →
     ∃ σ : Val, (osParams 6).map σ = [X, N, sqz, qpos, qbp, tabs] ∧
       AllOk (fun _ _ _ ↦ True) rd σ (sqLoopA lv ++ osLoopTailA (sqLoopE lv)) ∧
-      σ (.n 9) = sqz * X ^ 5 ∧
+      σ (.n (valf% «level_positions» «_loop0» "row")) = sqz * X ^ 5 ∧
       (sqDecArgs lv).map σ = [(⟨cap, []⟩ : Fs).squeeze.1,
         qpos * gen ^ lv.posOff * X ^ (128 / lv.depth), qbp * gen ^ lv.posOff * X ^ (128 / lv.depth),
         tabs] ∧
@@ -261,7 +263,7 @@ theorem sqLoop_iter (fs : String → ℕ) (cert : String → V → ℕ) {lv : Os
     have hql := sqLoopPre_loads lv name _ hq'
     obtain ⟨i, hi, hR⟩ := hreg off hql.2
     refine ⟨i, ?_, Or.inr (Or.inl hR)⟩
-    have hp8 : p = .n 9 := hql.1
+    have hp8 : p = .n (valf% «level_positions» «_loop0» "row") := hql.1
     rw [hp8, h8]; exact hi
   · intro i hi
     rcases hi with hi | ⟨ht, hi⟩

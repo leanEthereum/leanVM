@@ -26,32 +26,32 @@ compared by `stmtsEqb` in runs, each its own kernel evaluation to bound its memo
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_72 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u11.s0#0")).take 8) ((spBody.drop 72).take 8) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u11.s0#0")).take (span% «sp_wots» "group@12" "digit_product@13~1")) ((spBody.drop 72).take 8) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_80 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u12.s2#1")).take 8) ((spBody.drop 80).take 8) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u12.s2#1")).take (span% «sp_wots» "digit_product@13~1" "s6.u14.s1#0")) ((spBody.drop 80).take 8) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_88 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u14.s1#0")).take 8) ((spBody.drop 88).take 8) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u14.s1#0")).take (span% «sp_wots» "s6.u14.s1#0" "value@2161")) ((spBody.drop 88).take 8) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_96 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u15.s2.a0.i0:walk_group.s0.u0.s0.i0:walk.s1.e.s0#0")).take 8) ((spBody.drop 96).take 8) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u15.s2.a0.i0:walk_group.s0.u0.s0.i0:walk.s1.e.s0#0")).take (span% «sp_wots» "value@2161" "s6.u17.s1#1")) ((spBody.drop 96).take 8) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_104 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u17.s1#1")).take 8) ((spBody.drop 104).take 8) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u17.s1#1")).take (span% «sp_wots» "s6.u17.s1#1" "group@20")) ((spBody.drop 104).take 8) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_112 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u19.s0#0")).take 8) ((spBody.drop 112).take 8) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u19.s0#0")).take (span% «sp_wots» "group@20" "digit_product@21~1")) ((spBody.drop 112).take 8) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in

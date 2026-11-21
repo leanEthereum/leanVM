@@ -53,8 +53,8 @@ def vsSPrng : List Atom :=
     .rangeCheck (.n (val% «verify_sub» "bus_grind")) (.n (val% «verify_sub» "s44#1")) (.n (val% «verify_sub» "s44#2")) (.n (val% «verify_sub» "s44#3")) (.n (val% «verify_sub» "s44#0"))]
 def vsSPdims : List Atom :=
   .load (.n (val% «verify_sub» "g_log_mem")) (.n (val% «verify_sub» "dims_g")) 0 :: .load (.n (val% «verify_sub» "tau_keccak_g")) (.n (val% «verify_sub» "dims_g")) 6 ::
-    (List.range 6).map fun t ↦ .load (.n (86 + t)) (.n (val% «verify_sub» "dims_g")) (1 + t)
-def vsSPkb : List Atom := (List.range 8).map fun i ↦ .load (.n (84 + i)) (.n (val% «verify_sub» "kappa_base")) i
+    (List.range 6).map fun t ↦ .load (.n ((val% «verify_sub» "kb[2]") + t)) (.n (val% «verify_sub» "dims_g")) (1 + t)
+def vsSPkb : List Atom := (List.range 8).map fun i ↦ .load (.n ((val% «verify_sub» "kb[0]") + i)) (.n (val% «verify_sub» "kappa_base")) i
 def vsSPpush : List Atom :=
   (List.range 54).map fun b ↦ .load (.n (vsPushD b)) (.n (vsPushP b)) (Tables.blockKappaAdj b)
 def vsSPfpw : List Atom :=
@@ -67,10 +67,10 @@ def vsSPctab : List Atom :=
 def vsSPlam : List Atom :=
   .load (.n (val% «verify_sub» "target@136~1")) (.n (val% «verify_sub» "ood_value")) 0 :: (List.range 134).map fun i ↦
     .load (.n (1342 + 4 * i)) (.n (vsClaimAt (vsKept i)).1) (vsClaimAt (vsKept i)).2
-def vsSPz : List Atom := (List.range 19).map fun k ↦ .load (.n (1893 + k)) (.n (val% «verify_sub» "zeta")) k
-def vsSPzo : List Atom := (List.range 19).map fun k ↦ .load (.n (1893 + k)) (.n (val% «verify_sub» "defer_out")) k
-def vsSPal : List Atom := (List.range 4).map fun k ↦ .load (.n (1912 + k)) (.n (val% «verify_sub» "bc_point")) k
-def vsSPalo : List Atom := (List.range 4).map fun k ↦ .load (.n (1912 + k)) (.n (val% «verify_sub» "defer_out")) (19 + k)
+def vsSPz : List Atom := (List.range 19).map fun k ↦ .load (.n ((val% «verify_sub» "s79.u0.s0#0") + k)) (.n (val% «verify_sub» "zeta")) k
+def vsSPzo : List Atom := (List.range 19).map fun k ↦ .load (.n ((val% «verify_sub» "s79.u0.s0#0") + k)) (.n (val% «verify_sub» "defer_out")) k
+def vsSPal : List Atom := (List.range 4).map fun k ↦ .load (.n ((val% «verify_sub» "s80.u0.s0#0") + k)) (.n (val% «verify_sub» "bc_point")) k
+def vsSPalo : List Atom := (List.range 4).map fun k ↦ .load (.n ((val% «verify_sub» "s80.u0.s0#0") + k)) (.n (val% «verify_sub» "defer_out")) (19 + k)
 def vsSPlast : List Atom := [.load (.n (val% «verify_sub» "bc_value")) (.n (val% «verify_sub» "defer_out")) 23]
 
 /-- The atoms of the body needing a side condition, piece by piece. -/
@@ -165,7 +165,7 @@ theorem vs_rdAt_of_load {rd : Reader} {p : E} {k : ℕ} {v : E} (h : LoadHolds r
 
 theorem vsSPw_notS : ∀ k < 11, Atom.load (.n (vsWv11 k)) (.n (val% «verify_sub» "stream")) k ∉ vsSL := by decide +kernel
 
-theorem vsSPdims_notS : ∀ t < 6, Atom.load (.n (86 + t)) (.n (val% «verify_sub» "dims_g")) (1 + t) ∉ vsSL := by
+theorem vsSPdims_notS : ∀ t < 6, Atom.load (.n ((val% «verify_sub» "kb[2]") + t)) (.n (val% «verify_sub» "dims_g")) (1 + t) ∉ vsSL := by
   decide +kernel
 
 theorem vsSPpush_notS : ∀ b < 54,
@@ -239,7 +239,7 @@ theorem vs_param5 (hl : args.length = 6) : ς (.n (val% «verify_sub» "defer_ou
 
 /-- `kb` in the frame: `1`, `g^logMem`, `dims_g[1 .. 6]`. -/
 theorem vs_kbV (D : VsSecData rd w args) :
-    ∀ i < 8, ς (.n (84 + i)) = (1 :: w 72 :: D.hsW).getD i 0 := by
+    ∀ i < 8, ς (.n ((val% «verify_sub» "kb[0]") + i)) = (1 :: w 72 :: D.hsW).getD i 0 := by
   obtain ⟨h65, -, -, h72, -, -, -, -, h84, h85, h86⟩ :=
     vs_sizesV (rd := rd) (w := w) D.hl D.hr1 D.hlm1 D.h64 D.h72
   intro i hi
@@ -409,9 +409,9 @@ theorem vsSPlam_holds (D : VsSecData rd w args) :
     obtain ⟨v, hv⟩ := hex
     exact vs_ld_new (vs_goodS D.hl hs) (vsLamT_notS i hi) hv
 
-theorem vsSPz_notS : ∀ k < 19, Atom.load (.n (1893 + k)) (.n (val% «verify_sub» "zeta")) k ∉ vsSL := by decide +kernel
+theorem vsSPz_notS : ∀ k < 19, Atom.load (.n ((val% «verify_sub» "s79.u0.s0#0") + k)) (.n (val% «verify_sub» "zeta")) k ∉ vsSL := by decide +kernel
 
-theorem vsSPal_notS : ∀ k < 4, Atom.load (.n (1912 + k)) (.n (val% «verify_sub» "bc_point")) k ∉ vsSL := by decide +kernel
+theorem vsSPal_notS : ∀ k < 4, Atom.load (.n ((val% «verify_sub» "s80.u0.s0#0") + k)) (.n (val% «verify_sub» "bc_point")) k ∉ vsSL := by decide +kernel
 
 theorem vsSPz_holds (D : VsSecData rd w args) :
     ∀ a ∈ vsSPz, Stmt.atom a ∈ vsCPre → a.Holds rd ς := by

@@ -71,7 +71,7 @@ theorem vsSizesT_holds {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ)
       1 ≤ logMem ∧ logMem ≤ 30 ∧ σ (.n (val% «verify_sub» "x@1")) = eOfNat logMem ∧ σ (.n (val% «verify_sub» "g_log_mem")) = gen ^ logMem ∧
       ∃ ds : List E, ds.length = 6 ∧ ReadsAt L.read (σ (.n (val% «verify_sub» "dims_g"))) (gen ^ logMem :: ds) ∧
         ReadsAt L.read (σ (.n (val% «verify_sub» "kappa_base"))) (1 :: gen ^ logMem :: ds) ∧
-        (∀ s < 8, σ (.n (84 + s)) = (1 :: gen ^ logMem :: ds).getD s 0) ∧ next := by
+        (∀ s < 8, σ (.n ((val% «verify_sub» "kb[0]") + s)) = (1 :: gen ^ logMem :: ds).getD s 0) ∧ next := by
   rw [vsSizesT, show (List.range 6) = [0, 1, 2, 3, 4, 5] from rfl,
     show (List.range 8) = [0, 1, 2, 3, 4, 5, 6, 7] from rfl] at h
   simp only [List.map_cons, List.map_nil, List.cons_append, List.nil_append, Stmt.HoldsList,
@@ -176,7 +176,7 @@ theorem push_read {κ : ℕ} {L : MemoryImage κ} (hexp : B1.ExpTables L.read (�
 
 theorem push_block {κ : ℕ} {L : MemoryImage κ} (hexp : B1.ExpTables L.read (σ (.n (val% «verify_sub» "g_squares"))))
     {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 33) (hm : logMem ≤ 32)
-    (hkbv : ∀ s < 8, σ (.n (84 + s)) = gen ^ (([0, logMem] ++ hs).getD s 0))
+    (hkbv : ∀ s < 8, σ (.n ((val% «verify_sub» "kb[0]") + s)) = gen ^ (([0, logMem] ++ hs).getD s 0))
     {b : ℕ} (hb : b < 54) {q a : V}
     (ha : σ a = σ (.n (val% «verify_sub» "g_squares")) * σ (.n (84 + Tables.blockKappaSrc.getD b 0)))
     (hq : LoadHolds L.read (σ a) (Tables.blockKappaAdj b) (σ q)) :
@@ -185,7 +185,7 @@ theorem push_block {κ : ℕ} {L : MemoryImage κ} (hexp : B1.ExpTables L.read (
 
 theorem push_loop {κ : ℕ} {L : MemoryImage κ} (hexp : B1.ExpTables L.read (σ (.n (val% «verify_sub» "g_squares"))))
     {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 33) (hm : logMem ≤ 32)
-    (hkbv : ∀ s < 8, σ (.n (84 + s)) = gen ^ (([0, logMem] ++ hs).getD s 0)) :
+    (hkbv : ∀ s < 8, σ (.n ((val% «verify_sub» "kb[0]") + s)) = gen ^ (([0, logMem] ++ hs).getD s 0)) :
     ∀ n < 54, ∀ {nx : Prop},
       Stmt.HoldsList C L.read σ ((List.range (n + 1)).flatMap vsPushStep) nx kret →
       σ (.n (vsPV n)) = gen ^ ((List.range (n + 1)).map fun b ↦ 2 ^ pushKappa logMem hs b).sum ∧ nx := by
@@ -247,7 +247,7 @@ theorem vsPushT_depth {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : Memory
 theorem vsPushT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ)
     (hC : CallRel.Le C (coreProgram.Rel L.read)) (hexp : B1.ExpTables L.read (σ (.n (val% «verify_sub» "g_squares"))))
     {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 33) (hm : logMem ≤ 32)
-    (hkbv : ∀ s < 8, σ (.n (84 + s)) = gen ^ (([0, logMem] ++ hs).getD s 0))
+    (hkbv : ∀ s < 8, σ (.n ((val% «verify_sub» "kb[0]") + s)) = gen ^ (([0, logMem] ++ hs).getD s 0))
     (h : Stmt.HoldsList C L.read σ vsPushT next kret) :
     σ (.n (val% «verify_sub» "g_bus_mu")) = gen ^ log2Ceil ((List.range 54).map fun b ↦ 2 ^ pushKappa logMem hs b).sum ∧
       log2Ceil ((List.range 54).map fun b ↦ 2 ^ pushKappa logMem hs b).sum < 34 ∧ next := by

@@ -68,7 +68,7 @@ theorem spBodyT_parts : spBodyT = spCopies ++ (spPowers ++ (spGs.1 ++ (spLast.1 
 theorem spLeafK_atoms : atomsOnly spLeafK.1 = true := kMsg_atoms ..
 
 /-- **The tips, the product and the encoding** of the codeword, its groups' atoms holding. -/
-theorem spCodeword_sound (hpow : ∀ s < 10, σ (.n (6 + s)) = gen ^ s) (hpad : PadOK σ spPad)
+theorem spCodeword_sound (hpow : ∀ s < 10, σ (.n ((val% «sp_wots» "powers[0]") + s)) = gen ^ s) (hpad : PadOK σ spPad)
     (hg : ∀ p < 22, SpGroupOK rd σ p) :
     (∀ i < 64, σ (spTip i) = chainT (spStepCell (σ (.n (val% «sp_wots» "pp"))) (σ (.n (val% «sp_wots» "at[0]"))) (σ (.n (val% «sp_wots» "at[1]")))) i
       (3 - spDigit σ i) (spDigit σ i) (σ (spStart σ i))) ∧
@@ -147,7 +147,7 @@ theorem sp_wots_soundT {rets : List E}
   -- the powers
   have s0 := holdsList_split_atoms (xs := spPowers) rfl c0.2
   have hpw := atomsHold_of_holdsList (ss := spPowers) rfl s0.1
-  have hpow : ∀ s < 10, σ (.n (6 + s)) = gen ^ s := by
+  have hpow : ∀ s < 10, σ (.n ((val% «sp_wots» "powers[0]") + s)) = gen ^ s := by
     intro s hs
     have e : σ (.n (6 + s)) = word (2 ^ s) 0 := hpw.atom (a := .const (.n (6 + s)) _) (by
       simp only [spPowers, cst, List.mem_map, List.mem_range]

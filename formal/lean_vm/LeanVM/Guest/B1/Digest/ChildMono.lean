@@ -546,8 +546,8 @@ noncomputable def monoBodyOk : Bool :=
   (atomsIn monoFlat).any (isConstAt (.n (val% «child_claim_list_mono» "s6#2")) 1 0) &&
   (atomsIn monoFlat).any (isAddAt (.n (val% «child_claim_list_mono» "s6#1")) (.n (val% «child_claim_list_mono» "s6#0")) (.n (val% «child_claim_list_mono» "groups"))) &&
   (atomsIn monoFlat).any (isConstAt (.n (val% «child_claim_list_mono» "s6#0")) 1 0) &&
-  (List.range 13).all (fun c => (atomsIn monoFlat).any (isLoadAt (.n (17 + c)) (.n (val% «child_claim_list_mono» "chain")) c) &&
-    (atomsIn monoFlat).any (isConstAt (.n (17 + c)) 0 0)) &&
+  (List.range 13).all (fun c => (atomsIn monoFlat).any (isLoadAt (.n ((val% «child_claim_list_mono» "s1.i0:zero_state.s0.u0.s0#0") + c)) (.n (val% «child_claim_list_mono» "chain")) c) &&
+    (atomsIn monoFlat).any (isConstAt (.n ((val% «child_claim_list_mono» "s1.i0:zero_state.s0.u0.s0#0") + c)) 0 0)) &&
   (atomsIn monoFlat).any (isLoadAt (.n (val% «child_claim_list_mono» "region")) (.n (val% «child_claim_list_mono» "chain")) 13) &&
   (atomsIn monoFlat).any (isLoadAt (.n (val% «child_claim_list_mono» "entries_ptr")) (.n (val% «child_claim_list_mono» "chain")) 14) &&
   monoIs (atomsIn monoFlat) (.n (val% «child_claim_list_mono» "mid")) (.n (val% «child_claim_list_mono» "chain")) (.n (val% «child_claim_list_mono» "bigs")) 15 &&

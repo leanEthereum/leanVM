@@ -42,13 +42,13 @@ theorem vt_chi_index {n j : ℕ} {y : E} (hj : j < n) (hy : gen ^ n * vtWInvGen 
 
 /-- The sponge `ξ` is squeezed from: the bytecode sumcheck's last capacity, its value waiting. -/
 def vtXiFs (σ : Val) : Fs :=
-  (⟨(List.range 5).map fun k ↦ σ (.n (1892 + k)), []⟩ : Fs).absorb (σ (.n (val% «verify_tables» "x@8"))) dsObserve
+  (⟨(List.range 5).map fun k ↦ σ (.n ((val% «verify_tables» "bfs0@3") + k)), []⟩ : Fs).absorb (σ (.n (val% «verify_tables» "x@8"))) dsObserve
 
 /-- **The batching challenge `ξ`** (`XI_GRIND_BITS = 0`: a plain squeeze, the bytecode's value
 waiting) and the capacity after it. -/
 theorem vt_xi {rd : Reader} {σ : Val} (h : VtH rd σ) :
     σ (.n (val% «verify_tables» "nxt[0]@3")) = (vtXiFs σ).squeeze.1 ∧
-      (vtXiFs σ).squeeze.2 = ⟨(List.range 5).map fun k ↦ σ (.n (2605 + k)), []⟩ := by
+      (vtXiFs σ).squeeze.2 = ⟨(List.range 5).map fun k ↦ σ (.n ((val% «verify_tables» "nxt[8]@3") + k)), []⟩ := by
   have c0 := h.atomAt 1945 (.copy (.n (val% «verify_tables» "sp[0]@2")) (.n (val% «verify_tables» "bfs0@3"))) (by decide +kernel)
   have c1 := h.atomAt 1946 (.copy (.n (val% «verify_tables» "sp[1]@2")) (.n (val% «verify_tables» "bfs1@3"))) (by decide +kernel)
   have c2 := h.atomAt 1947 (.copy (.n (val% «verify_tables» "sp[2]@2")) (.n (val% «verify_tables» "bfs2@3"))) (by decide +kernel)
@@ -65,7 +65,7 @@ theorem vt_xi {rd : Reader} {σ : Val} (h : VtH rd σ) :
     (by decide +kernel)
   simp only [Atom.Holds, tb_word_zero] at c0 c1 c2 c3 c4 c6 d7 z3 z4 z5 z6
   obtain ⟨hP, hC⟩ := vt_keccak k
-  have hs : vtXiFs σ = ⟨(List.range 5).map fun k ↦ σ (.n (1892 + k)),
+  have hs : vtXiFs σ = ⟨(List.range 5).map fun k ↦ σ (.n ((val% «verify_tables» "bfs0@3") + k)),
       [(σ (.n (val% «verify_tables» "x@8")), dsObserve)]⟩ := by
     simp [vtXiFs, Fs.absorb, rateScalars]
   have hin : ([.n (val% «verify_tables» "rate[0]@3"), .n (val% «verify_tables» "rate[1]@3"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "sp[0]@2"),
@@ -92,8 +92,8 @@ theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 3
       σ (.n (val% «verify_tables» "nxt[0]@3")) ^ 4 * σ (.n (val% «verify_tables» "bus_table_total[2]")) ∧
     ∃ (xs pts : List E) (claimN : E),
       RunsTo (sumcheck (σ (.n (val% «verify_tables» "bus_target@3"))) 4 (List.replicate n none))
-        ⟨(List.range 5).map fun k ↦ σ (.n (2605 + k)), []⟩ xs (pts, claimN)
-        ⟨(List.range 5).map fun k ↦ σ (.n (2642 + k)), []⟩ ∧
+        ⟨(List.range 5).map fun k ↦ σ (.n ((val% «verify_tables» "nxt[8]@3") + k)), []⟩ xs (pts, claimN)
+        ⟨(List.range 5).map fun k ↦ σ (.n ((val% «verify_tables» "fs_load.sp[0]") + k)), []⟩ ∧
       ReadsAt rd (σ (.n (val% «verify_tables» "cursor@4")) * gen) xs ∧ xs.length = 3 * n ∧ pts.length = n ∧
       σ (.n (val% «verify_tables» "cursor@5")) = σ (.n (val% «verify_tables» "cursor@4")) * gen * gen ^ (3 * n) ∧ σ (.n (val% «verify_tables» "claim")) = claimN ∧
       (∀ i < n, LoadHolds rd (σ (.n (val% «verify_tables» "chi"))) (n - 1 - i) (pts.getD i 0)) ∧
@@ -175,7 +175,7 @@ theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 3
       rw [a5240, tb_word_one, hgn] at hr
       exact l10_loop hn0 (by omega) hr
   have hc0 : CapAt rd (σ (.n (val% «verify_tables» "zc_rounds")) * gen ^ (7 * 0)) 0 1
-      ((List.range 5).map fun k ↦ σ (.n (2605 + k))) := by
+      ((List.range 5).map fun k ↦ σ (.n ((val% «verify_tables» "nxt[8]@3") + k))) := by
     refine ⟨by simp, fun j hj => ?_⟩
     simp only [List.length_map, List.length_range] at hj
     simp only [Nat.mul_zero, pow_zero, mul_one, Nat.zero_add, List.getElem_map,
@@ -196,7 +196,7 @@ theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 3
   have e5926 : σ (.n (val% «verify_tables» "zc_last")) = σ (.n (val% «verify_tables» "zc_rounds")) * gen ^ (7 * n) := by
     rw [a5246, a5245, a5244, a5243, a5242, hgn]; ring
   have hcF : CapAt rd (σ (.n (val% «verify_tables» "zc_rounds")) * gen ^ (7 * n)) 0 1
-      ((List.range 5).map fun k ↦ σ (.n (2642 + k))) := by
+      ((List.range 5).map fun k ↦ σ (.n ((val% «verify_tables» "fs_load.sp[0]") + k))) := by
     refine ⟨by simp, fun j hj => ?_⟩
     simp only [List.length_map, List.length_range] at hj
     simp only [Nat.zero_add, mul_one, List.getElem_map, List.getElem_range, ← e5926]

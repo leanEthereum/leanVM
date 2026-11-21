@@ -57,7 +57,7 @@ theorem vs_flatMap_noSide {f : ℕ → List Stmt} (hf : ∀ i, (f i).all vsNoSid
   | i :: l => by rw [List.flatMap_cons, List.all_append, hf i, vs_flatMap_noSide hf l]; rfl
 
 theorem vsMapsT_split : vsMapsT =
-    (List.range 5).map (fun i ↦ vsCopy (580 + i) (573 + i)) ++ fsNonceT (.n (val% «verify_sub» "cursor@4")) 0 585 ++
+    (List.range 5).map (fun i ↦ vsCopy (580 + i) (573 + i)) ++ fsNonceT (.n (val% «verify_sub» "cursor@4")) 0 (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s0#0") ++
     [keccakA [.n (val% «verify_sub» "rate[0]@4"), .n (val% «verify_sub» "rate[1]@4"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[2]"), .n (val% «verify_sub» "s3#0[3]"), .n (val% «verify_sub» "s3#0[4]"), .n (val% «verify_sub» "sp[0]@3"), .n (val% «verify_sub» "sp[1]@3"), .n (val% «verify_sub» "sp[2]@3"),
       .n (val% «verify_sub» "sp[3]@3"), .n (val% «verify_sub» "sp[4]@3")] (vsRun 588 13)] ++ vsTabsT 601 602 ++
     [grindCallT 13 (.n (val% «verify_sub» "nxt[1]@20")) (.n (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s1#1")), vsCopy 603 588] ++
@@ -82,7 +82,7 @@ theorem vs_maps (hl : args.length = 6) {n : E} (hn : LoadHolds rd (w 578) 0 n) :
       GoodS rd vsSL w ς s := fun s hs ↦ hG s (List.mem_append_left _ (List.mem_append_left _
         (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
           (List.mem_append_left _ hs))))))
-  have mN : ∀ s ∈ fsNonceT (.n (val% «verify_sub» "cursor@4")) 0 585, GoodS rd vsSL w ς s :=
+  have mN : ∀ s ∈ fsNonceT (.n (val% «verify_sub» "cursor@4")) 0 (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s0#0"), GoodS rd vsSL w ς s :=
     fun s hs ↦ hG s (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _ hs))))))
   have mT : ∀ s ∈ vsTabsT 601 602, GoodS rd vsSL w ς s :=
@@ -94,7 +94,7 @@ theorem vs_maps (hl : args.length = 6) {n : E} (hn : LoadHolds rd (w 578) 0 n) :
       .n (val% «verify_sub» "sp[2]@3"), .n (val% «verify_sub» "sp[3]@3"), .n (val% «verify_sub» "sp[4]@3")] (vsRun 588 13) false false).Holds rd ς :=
     vsg_atom (hG _ (by simp [keccakA])) rfl
   have c603 : ς (.n (val% «verify_sub» "ch[0]")) = ς (.n (val% «verify_sub» "nxt[0]@20")) := vsg_copy (hG _ (by simp [vsCopy]))
-  have cA : ∀ i < 5, ς (.n (580 + i)) = w (573 + i) := fun i hi ↦ by
+  have cA : ∀ i < 5, ς (.n ((val% «verify_sub» "sp[0]@3") + i)) = w (573 + i) := fun i hi ↦ by
     rw [vsg_copy (mA _ (List.mem_map.2 ⟨i, List.mem_range.2 hi, rfl⟩)),
       vs_w hl (by interval_cases i <;> decide)]
   have c0 := cA 0 (by omega)
@@ -227,7 +227,7 @@ theorem vs_sizesV (hl : args.length = 6) {rate logMem : ℕ} (hr : 1 ≤ rate) (
       ς (.n (val% «verify_sub» "g_log_mem")) = gen ^ logMem ∧ ς (.n (val% «verify_sub» "s16#0")) = gen ^ 30 ∧ ς (.n (val% «verify_sub» "s17#1")) = gen ∧
       ς (.n (val% «verify_sub» "s17#2")) = gen ^ (logMem - 1) ∧ ς (.n (val% «verify_sub» "s17#0")) = gen ^ 32 ∧
       ς (.n (val% «verify_sub» "kb[0]")) = 1 ∧ ς (.n (val% «verify_sub» "kb[1]")) = gen ^ logMem ∧
-      ∀ t < 6, ς (.n (86 + t)) = rdAt rd (w 71) (1 + t) := by
+      ∀ t < 6, ς (.n ((val% «verify_sub» "kb[2]") + t)) = rdAt rd (w 71) (1 + t) := by
   have hG := vsSizesT_good (rd := rd) (w := w) hl
   have h65w : ς (.n (val% «verify_sub» "rate_sel~1")) = word 2 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
   have h65 : ς (.n (val% «verify_sub» "rate_sel~1")) = gen := by rw [h65w, vs_word_gen1]

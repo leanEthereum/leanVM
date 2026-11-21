@@ -109,7 +109,7 @@ theorem rs_rel {rd : Reader} {bb bz bp count : ℕ} {zs ps : List E} (hcount : c
 theorem rsw_chk : chk 4 rswT = some 334 := by decide +kernel
 
 theorem rsw_stores : storesOf 4 rswT =
-    (List.range 64).map fun k => Atom.load (.n (13 + k)) (.n (val% «ring_switch_weight» "prod_chains")) k := by decide +kernel
+    (List.range 64).map fun k => Atom.load (.n ((val% «ring_switch_weight» "s1.u0.s0#0") + k)) (.n (val% «ring_switch_weight» "prod_chains")) k := by decide +kernel
 
 /-- `ring_switch_weight`'s statements before its `ret`. -/
 def rswPre : List Stmt :=
@@ -206,7 +206,7 @@ theorem rsw_block {rd : Reader} {bz bp bc bb count : ℕ} {zs ps cs : List E} (h
       (addressOfIndex bc), gen ^ count] bb
       (rswH count) := ⟨_, rfl⟩
   rw [← hσdef]
-  set S : List Atom := (List.range 64).map fun k => Atom.load (.n (13 + k)) (.n (val% «ring_switch_weight» "prod_chains")) k with hS
+  set S : List Atom := (List.range 64).map fun k => Atom.load (.n ((val% «ring_switch_weight» "s1.u0.s0#0") + k)) (.n (val% «ring_switch_weight» "prod_chains")) k with hS
   obtain ⟨-, -, hgs⟩ := ev_spec rd (rswW bb (rswH count)) rswT
     [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK (addressOfIndex bc), gen ^ count] rsw_chk
   rw [show [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK (addressOfIndex bc), gen ^

@@ -13,6 +13,8 @@ public import LeanVM.Guest.CoreMode.Gen.FnData
 public import LeanVM.Guest.B1.Terminal.InterfaceP
 public import LeanVM.Guest.B1.Selectors.ColumnSelector
 import LeanVM.Guest.Data.Consts
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«column_selector__L»
 
 /-!
 # `check_opening_terminal`'s families
@@ -130,7 +132,7 @@ digit cells `s`, `d`, the digit's inside the frame. -/
 noncomputable def csB (j : ℕ) : Mode.Res → Bool
   | .sub a [b] =>
     decide (csKappa a.q.k < 31) && (coreOf j).name == Tables.lName "column_selector" (csKappa a.q.k) &&
-      inFr j (cellJ j (.n 3)) && decide (Mode.Res.sub a [b] = csRes (csKappa a.q.k) (cellJ j (.n 1)) (cellJ j (.n 3)))
+      inFr j (cellJ j (.n (valf% «column_selector» "digits[0]"))) && decide (Mode.Res.sub a [b] = csRes (csKappa a.q.k) (cellJ j (.n (valf% «column_selector» "sel_eq"))) (cellJ j (.n (valf% «column_selector» "digits[0]"))))
   | _ => false
 
 end

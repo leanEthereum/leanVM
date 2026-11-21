@@ -2,6 +2,8 @@ module
 
 public import LeanVM.Guest.Fast.FunctionNames
 public import LeanVM.Guest.B1.Da.Verify
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_verify»
 
 /-!
 # `da_verify`'s witness reader, its frames numbered
@@ -21,7 +23,7 @@ open LeanVM.Guest.B1.Main
 
 /-- Blob `i`'s iteration of the blob loop (`da_verify_loop0`), its valuation (`dvBlobV`). -/
 def dvBlobLVN (σ : Val) (Vn : NFrames) (i : ℕ) : Val :=
-  Vn (fn_idx% da_verify_loop0) [gen ^ i, σ (.n 1), σ (.n 8), σ (.n 10)] []
+  Vn (fn_idx% da_verify_loop0) [gen ^ i, σ (.n (val% «da_verify» "n_blob_g")), σ (.n (val% «da_verify» "weights")), σ (.n (val% «da_verify» "roots"))] []
 
 /-- Blob `i`'s valuation (`da_verify_blob`, `blobV`). -/
 def dvBlobVN (σ : Val) (Vn : NFrames) (i : ℕ) : Val :=

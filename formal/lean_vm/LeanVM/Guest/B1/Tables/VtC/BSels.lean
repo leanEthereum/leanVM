@@ -47,7 +47,7 @@ theorem vtc_sels (hl : args.length = 21) (hlow : LowDefB 14 rd) {point : List E}
     (hz1 : TbReadsAt rd (σv (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)))
     (hidxc : TbReadsAt rd (σv (.n (val% «verify_tables» "idxc_tab"))) vtIdxcW) {lm : ℕ} (hlmμ : lm ≤ point.length)
     (h19 : 19 ≤ point.length) {τ : ℕ → ℕ} (hτμ : ∀ t < 6, τ t ≤ point.length)
-    (hkb : ∀ i < 8, σv (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0)
+    (hkb : ∀ i < 8, σv (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0)
     (hfitP : ((vtSizesP lm τ).map (2 ^ ·)).sum ≤ 2 ^ point.length)
     (hfitC : ((vtSizesC τ).map (2 ^ ·)).sum ≤ 2 ^ point.length)
     (hoP : ∀ x < 54, σv (.n (vtBoffV x)) = gen ^ (stackOffsets (vtSizesP lm τ)).1.getD x 0)
@@ -97,7 +97,7 @@ theorem vtc_sels (hl : args.length = 21) (hlow : LowDefB 14 rd) {point : List E}
       σv (.n (val% «verify_tables» "selector_sum@150")) = (vtCountPadData.map fun x ↦ σv (.n x.2.2.1)).sum := by
   have hlow16 : ∀ i < 16, (rd (Parameters.addressOfIndex i)).isSome := fun i hi ↦
     hlow i (by norm_num; omega)
-  have hkbt : ∀ t < 6, σv (.n (28 + t)) = gen ^ τ t := fun t ht => by
+  have hkbt : ∀ t < 6, σv (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ τ t := fun t ht => by
     have := hkb (2 + t) (by omega)
     rwa [show 26 + (2 + t) = 28 + t by omega, Nat.add_comm 2 t, vt_tau_getD lm τ ht] at this
   have hlenP := vtSizesP_length lm τ

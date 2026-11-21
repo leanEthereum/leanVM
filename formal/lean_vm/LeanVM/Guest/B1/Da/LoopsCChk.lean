@@ -78,7 +78,7 @@ theorem dv_loops_shape :
       (coreProgram.getD idx% «da_verify_loop0» default).params.length = 4) ∧
     (loopShapeF (coreProgram.getD idx% «da_pad_loop0» default) name% «da_pad_loop0» = true ∧
       (coreProgram.getD idx% «da_pad_loop0» default).params.length = 4) ∧
-    (coreProgram.getD idx% «da_verify_blob_loop0» default).params = [.n 0, .n 1, .n 2] := by
+    (coreProgram.getD idx% «da_verify_blob_loop0» default).params = [.n (val% «da_verify_blob_loop0» "xb"), .n (val% «da_verify_blob_loop0» "weights"), .n (val% «da_verify_blob_loop0» "base")] := by
   decide +kernel
 
 end

@@ -47,7 +47,7 @@ theorem lpBody_split (S d cd : ℕ) (loop : String) :
         [osCst 16 (gw (S * 5)), osMul 17 10 16] ++
         ((List.range 5).map fun i ↦ osLd (18 + i) 17 i) ++
         ((List.range 5).map fun i ↦ osCp (23 + i) (18 + i))) ++
-      [.ret ((List.range 5).map fun i ↦ .n (23 + i))] := by
+      [.ret ((List.range 5).map fun i ↦ .n ((valf% «level_positions» "s9#0") + i))] := by
   simp only [lpBody, List.append_assoc]
 
 theorem lpBodyA_flat (S d cd : ℕ) (loop : String) :

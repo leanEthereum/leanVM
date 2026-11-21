@@ -841,7 +841,7 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
         ofK (addressOfIndex e293)]) := by
   have R := cp_reads hl hm
   set σ := cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd with hσ
-  have r0 : ∀ j < 11, σ (.n (138 + j)) = cpRank0V lm hs e10 e11 e137 rd j := fun j hj =>
+  have r0 : ∀ j < 11, σ (.n ((val% «certify_placement» "gi@1") + j)) = cpRank0V lm hs e10 e11 e137 rd j := fun j hj =>
     cpσ_rank0 lm hs ekb esq e10 e11 e136 e137 e293 rd hj
   have hp0 := cpPi_lt (lm := lm) (hs := hs) (r := 0) (by norm_num)
   obtain ⟨-, htot⟩ := cp_offsets (lm := lm) hl

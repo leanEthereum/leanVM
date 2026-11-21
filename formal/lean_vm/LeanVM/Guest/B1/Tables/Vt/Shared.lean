@@ -34,8 +34,8 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 /-- `idxc_tab`'s stores. -/
 def vtIdxcT : List Stmt :=
-  ((List.range 34).map fun t ↦ [.atom (.const (.n (666 + t))
-    (word (tbGSquaresBits.getD t 0 ^^^ 1) 0)), .atom (.load (.n (666 + t)) (.n (val% «verify_tables» "idxc_tab")) t)]).flatten
+  ((List.range 34).map fun t ↦ [.atom (.const (.n ((val% «verify_tables» "s17.u0.s0#0") + t))
+    (word (tbGSquaresBits.getD t 0 ^^^ 1) 0)), .atom (.load (.n ((val% «verify_tables» "s17.u0.s0#0") + t)) (.n (val% «verify_tables» "idxc_tab")) t)]).flatten
 
 theorem vtIdxc_check : tbStmtsEqb vtIdxcT ((vtAt 625).take vtIdxcT.length) = true := by
   decide +kernel

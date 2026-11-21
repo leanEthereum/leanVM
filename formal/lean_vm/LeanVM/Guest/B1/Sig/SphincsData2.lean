@@ -22,19 +22,19 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 set_option maxRecDepth 100000 in
 theorem sAfterDigest_slice_3000 :
-    (((Fn.«verify_sig_lean_sphincs».core).body.drop (pos% «verify_sig_lean_sphincs» "s40#0")).drop 3000).take 500 = (sAfterDigest.drop
+    (((Fn.«verify_sig_lean_sphincs».core).body.drop (pos% «verify_sig_lean_sphincs» "s40#0")).drop (span% «verify_sig_lean_sphincs» "a0_b~0" "at@462~0")).take (span% «verify_sig_lean_sphincs» "at@462~0" "check[0]@221") = (sAfterDigest.drop
         3000).take 500 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem sAfterDigest_slice_3500 :
-    (((Fn.«verify_sig_lean_sphincs».core).body.drop (pos% «verify_sig_lean_sphincs» "s40#0")).drop 3500).take 500 = (sAfterDigest.drop
+    (((Fn.«verify_sig_lean_sphincs».core).body.drop (pos% «verify_sig_lean_sphincs» "s40#0")).drop (span% «verify_sig_lean_sphincs» "a0_b~0" "check[0]@221")).take (span% «verify_sig_lean_sphincs» "check[0]@221" "s53.i0:sp_layer.s2.i0:sp_from_bytes.s0.u2.s1#0") = (sAfterDigest.drop
         3500).take 500 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem sAfterDigest_drop_4000 :
-    ((Fn.«verify_sig_lean_sphincs».core).body.drop (pos% «verify_sig_lean_sphincs» "s40#0")).drop 4000 = sAfterDigest.drop 4000 :=
+    ((Fn.«verify_sig_lean_sphincs».core).body.drop (pos% «verify_sig_lean_sphincs» "s40#0")).drop (span% «verify_sig_lean_sphincs» "a0_b~0" "s53.i0:sp_layer.s2.i0:sp_from_bytes.s0.u2.s1#0") = sAfterDigest.drop 4000 :=
   stmtsEqb_sound (by decide +kernel)
 
 end

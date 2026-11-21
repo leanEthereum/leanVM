@@ -197,7 +197,7 @@ theorem vt_asm_claims {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.le
     (hz : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "zeta"))) point) (hmu : σ (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length)
     (hml : point.length < 33) (hE : ExpTablesAt Lm.read (σ (.n (val% «verify_tables» "g_squares")))) {lm : ℕ}
     (hlm : lm ≤ 32) {rows : List ℕ} (hr : rows.length = 6) (hτ : ∀ t < 6, vtHt rows t < 33)
-    (hkb : ∀ i < 8, σ (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0)
+    (hkb : ∀ i < 8, σ (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0)
     {n : ℕ} (hgn : σ (.n (val% «verify_tables» "g_zc_n")) = gen ^ n) (hnm : n ≤ point.length)
     (hhn : ∀ t < 6, vtHt rows t ≤ n) {pts : List E} (hpl : pts.length = n)
     (hchi : ∀ i < n, LoadHolds Lm.read (σ (.n (val% «verify_tables» "chi"))) (n - 1 - i) (pts.getD i 0))

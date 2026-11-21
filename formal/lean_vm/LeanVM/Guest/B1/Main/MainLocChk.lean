@@ -62,13 +62,13 @@ set_option maxRecDepth 100000 in
 /-- Each block's stores. -/
 theorem mStoresIn :
     (atomsIn (mPre ++ mMid ++ mPost)).filter (fun a => decide (a ∈ mStoresL)) =
-      (List.range 256).map (fun v => .load (.n (48 + v)) (.n (val% «main» "byte_bits")) v) ++ [.load (.n (val% «main» "s48#0")) (.n (val% «main» "written")) 0] ∧
+      (List.range 256).map (fun v => .load (.n ((val% «main» "s36.u0.s0#0") + v)) (.n (val% «main» "byte_bits")) v) ++ [.load (.n (val% «main» "s48#0")) (.n (val% «main» "written")) 0] ∧
     (atomsIn mDa).filter (fun a => decide (a ∈ mStoresL)) =
       [.load (.n (val% «main» "s43.t.s1#0")) (.n (val% «main» "own_da")) 0, .load (.n (val% «main» "s43.t.s1#0[1]")) (.n (val% «main» "own_da")) 1] ∧
     (atomsIn mDaZ).filter (fun a => decide (a ∈ mStoresL)) =
       [.load (.n (val% «main» "s43.e.s0#0")) (.n (val% «main» "own_da")) 0, .load (.n (val% «main» "s43.e.s1#0")) (.n (val% «main» "own_da")) 1] ∧
     (atomsIn mLeaf).filter (fun a => decide (a ∈ mStoresL)) =
-      (List.range 23).map (fun k => .load (.n (420 + k)) (.n (val% «main» "defer_stmt")) k) ++
+      (List.range 23).map (fun k => .load (.n ((val% «main» "s56.t.s1.u0.s0#0") + k)) (.n (val% «main» "defer_stmt")) k) ++
         [.load (.n (val% «main» "leaf_value")) (.n (val% «main» "defer_stmt")) 23] ∧
     (atomsIn mAgg).filter (fun a => decide (a ∈ mStoresL)) = [] := by
   rw [mStoreB_eq]

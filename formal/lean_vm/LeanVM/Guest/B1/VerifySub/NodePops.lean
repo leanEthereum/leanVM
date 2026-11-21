@@ -90,10 +90,10 @@ theorem vs_pops (hv : (Memory.Tree.node "verify_sub" σ bufs kids).Valid corePro
       tvt.name = "verify_tables" ∧
       tvt.Valid coreProgram rd
         (([545, 546, 547, 548, 549, 550, 0, 1, 254, 253, 71, 26, 4, 334, 530, 6, 552, 551, 555, 553, 25].map V.n).map σ)
-        (((List.range 10).map fun k => V.n (556 + k)).map σ) ∧
+        (((List.range 10).map fun k => V.n ((val% «verify_sub» "fs0@4") + k)).map σ) ∧
       tos.name = vsOpen[i] ∧
       tos.Valid coreProgram rd (([66, 1337, 1338, 1339, 1340, 1341, 1883, 268, 271, 1885, 1887].map V.n).map σ)
-        (((List.range 5).map fun k => V.n (1888 + k)).map σ) ∧ tcp ∈ kids ∧ tvt ∈ kids ∧ tos ∈ kids ∧
+        (((List.range 5).map fun k => V.n ((val% «verify_sub» "sumcheck_target") + k)).map σ) ∧ tcp ∈ kids ∧ tvt ∈ kids ∧ tos ∈ kids ∧
       (Memory.Tree.node "verify_sub" σ bufs kids).pops coreProgram rd =
         vsPops rd σ ++ tcp.pops coreProgram rd ++ tvt.pops coreProgram rd ++ tos.pops coreProgram rd := by
   have h := vsShape_ok

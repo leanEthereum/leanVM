@@ -208,10 +208,10 @@ theorem oqLoop0T_wins {s : Oq} {walk name : String} {n : ℕ} (hn : 4 ≤ n)
 
 /-- The statements of a level-0 iteration up to its second query's window pointer. -/
 def oqLoop1Pre (s : Oq) (odd : ℕ) (walk : String) : List Stmt :=
-  [.atom (.mul (.n 10) (.n 2) (.n 0)), .atom (.mul (.n 11) (.n 10) (.n 0)),
-    .atom (.mul (.n 12) (.n 3) (.n 0)), .atom (.mul (.n 13) (.n 12) (.n 0)),
+  [.atom (.mul (.n 10) (.n (valf% «opening_queries» «_loop0» "positions")) (.n (valf% «opening_queries» «_loop0» "xi"))), .atom (.mul (.n 11) (.n 10) (.n (valf% «opening_queries» «_loop0» "xi"))),
+    .atom (.mul (.n 12) (.n (valf% «opening_queries» «_loop0» "query_win_ptrs")) (.n (valf% «opening_queries» «_loop0» "xi"))), .atom (.mul (.n 13) (.n 12) (.n (valf% «opening_queries» «_loop0» "xi"))),
     .atom (.load (.n 14) (.n 11) odd), .atom (.load (.n 15) (.n 13) odd)] ++
-    (oqQueryT s (.n 14) (.n 15) (.n 4) (.n 5) (.n 6) (.n 7) 16 true 0 walk ++
+    (oqQueryT s (.n 14) (.n 15) (.n (valf% «opening_queries» «_loop0» "cap")) (.n (valf% «opening_queries» «_loop0» "flags")) (.n (valf% «opening_queries» «_loop0» "coefs")) (.n (valf% «opening_queries» «_loop0» "hs")) 16 true 0 walk ++
     [.atom (.load (.n (oqE1 s)) (.n 11) (odd + 1)), .atom (.load (.n (oqE1 s + 1)) (.n 13) (odd + 1))])
 
 theorem oqLoop1T_prefix (s : Oq) (odd : ℕ) (walk name : String) :
@@ -227,7 +227,7 @@ theorem oqLoop1Pre_flatC (s : Oq) (odd : ℕ) (walk : String) : FlatC (oqLoop1Pr
 
 theorem oqLoop1Pre_length (s : Oq) (odd : ℕ) (walk : String) :
     (oqLoop1Pre s odd walk).length =
-      (oqQueryT s (.n 14) (.n 15) (.n 4) (.n 5) (.n 6) (.n 7) 16 true 0 walk).length + 8 := by
+      (oqQueryT s (.n 14) (.n 15) (.n (valf% «opening_queries» «_loop0» "cap")) (.n (valf% «opening_queries» «_loop0» "flags")) (.n (valf% «opening_queries» «_loop0» "coefs")) (.n (valf% «opening_queries» «_loop0» "hs")) 16 true 0 walk).length + 8 := by
   simp only [oqLoop1Pre, List.length_append, List.length_cons, List.length_nil]
   omega
 

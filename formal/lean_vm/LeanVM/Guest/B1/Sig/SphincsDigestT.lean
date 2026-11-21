@@ -135,8 +135,8 @@ def sBitsHint : List Stmt :=
 
 /-- The bits pinned Boolean: `bits0[b]`, `bits1[b]` in turn, then `bits2`. -/
 def sBooleans : List Stmt :=
-  ((List.range 128).flatMap fun b => [mulS (.n (28 + b)) (.n (28 + b)) (.n (28 + b)),
-    mulS (.n (156 + b)) (.n (156 + b)) (.n (156 + b))]) ++ booleans 284 16
+  ((List.range 128).flatMap fun b => [mulS (.n ((val% «verify_sig_lean_sphincs» "bits0[0]") + b)) (.n ((val% «verify_sig_lean_sphincs» "bits0[0]") + b)) (.n ((val% «verify_sig_lean_sphincs» "bits0[0]") + b)),
+    mulS (.n ((val% «verify_sig_lean_sphincs» "bits1[0]") + b)) (.n ((val% «verify_sig_lean_sphincs» "bits1[0]") + b)) (.n ((val% «verify_sig_lean_sphincs» "bits1[0]") + b))]) ++ booleans 284 16
 
 /-- **Bit `p` of the digest read most significant first** (`sp_md_bit`): bit `7 - p % 8` of byte
 `p / 8`, in the bit run of the first call's cells. -/

@@ -115,7 +115,7 @@ noncomputable def clBrOk : Bool :=
   let SE := storesOf 2 clEEval
   stmtsEqb cl23Else (clElsePre ++ [.atom (.copy (.n (val% «claim_list_digest» "digest[0]")) (.n (val% «claim_list_digest» "d0"))), .atom (.copy (.n (val% «claim_list_digest» "digest[1]")) (.n (val% «claim_list_digest» "d1")))]) &&
   (chk 2 clEEval).isSome &&
-  SE.all (fun a => (List.range 13).any fun c => atomEqb a (.load (.n (24 + c)) (.n (val% «claim_list_digest» "chain")) c)) &&
+  SE.all (fun a => (List.range 13).any fun c => atomEqb a (.load (.n ((val% «claim_list_digest» "s1.e.s2.i0:zero_state.s0.u0.s0#0") + c)) (.n (val% «claim_list_digest» "chain")) c)) &&
   (atomsIn clEEval).all (fun a => !needsSide a || decide (a ∈ SE) || atomEqb a (.touch (.n (val% «claim_list_digest» "s1.e.s9#0")) (.n (val% «claim_list_digest» "bigs"))) ||
     atomEqb a (.touch (.n (val% «claim_list_digest» "s1.e.s10#0")) (.n (val% «claim_list_digest» "groups"))) || atomEqb a (.touch (.n (val% «claim_list_digest» "s1.e.s11#0")) (.n (val% «claim_list_digest» "rest"))) || atomEqb a (.touch (.n (val% «claim_list_digest» "s2#0")) (.n (val% «claim_list_digest» "n_g"))) ||
     atomEqb a (.assertEq (.n (val% «claim_list_digest» "s1.e.s12#14")) (.n (val% «claim_list_digest» "n_g")))) &&
@@ -123,7 +123,7 @@ noncomputable def clBrOk : Bool :=
     stmtEqb s clDispS) &&
   clElsePre.any (stmtEqb · clSplitS) && clElsePre.any (stmtEqb · clBigS) &&
   clElsePre.any (stmtEqb · clGrpS) && clElsePre.any (stmtEqb · clDispS) &&
-  (List.range 13).all (fun c => (atomsIn clElsePre).any (isConstAt (.n (24 + c)) 0 0)) &&
+  (List.range 13).all (fun c => (atomsIn clElsePre).any (isConstAt (.n ((val% «claim_list_digest» "s1.e.s2.i0:zero_state.s0.u0.s0#0") + c)) 0 0)) &&
   (atomsIn clElsePre).any (fun a => match a with
     | .hint (.allocDyn d _) => decide (d = .n (val% «claim_list_digest» "chain"))
     | _ => false) &&

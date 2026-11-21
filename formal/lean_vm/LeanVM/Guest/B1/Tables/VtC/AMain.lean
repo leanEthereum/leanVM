@@ -304,16 +304,17 @@ theorem forall_slice_split {P : Stmt → Prop} (a l1 l2 : ℕ)
     (h1 : ∀ s ∈ (vtPre.drop a).take l1, P s) (h2 : ∀ s ∈ (vtPre.drop (a + l1)).take l2, P s) :
     ∀ s ∈ (vtPre.drop a).take (l1 + l2), P s := forall_slice_join h1 h2
 
-theorem forall_vtPre {P : Stmt → Prop} (h1 : ∀ s ∈ (vtPre.drop 0).take 765, P s)
-    (h2 : ∀ s ∈ (vtPre.drop 765).take 1827, P s) (h3 : ∀ s ∈ (vtPre.drop 2590).take 93, P s)
-    (h4 : ∀ s ∈ (vtPre.drop 2683).take (5523 - 2683), P s)
-    (h5 : ∀ s ∈ (vtPre.drop 5523).take 31, P s) : ∀ s ∈ vtPre, P s := by
-  have hlen : vtPre.length = 5554 := by decide +kernel
-  have h2' : ∀ s ∈ (vtPre.drop 765).take 1825, P s := fun s hs ↦ h2 s (by
-    rw [show (1827 : ℕ) = 1825 + 2 from rfl, List.take_add]; exact List.mem_append_left _ hs)
-  have h := forall_slice_split 0 765 (1825 + (93 + (2840 + 31))) h1
-    (forall_slice_split 765 1825 (93 + (2840 + 31)) h2'
-      (forall_slice_split 2590 93 (2840 + 31) h3 (forall_slice_split 2683 2840 31 h4 h5)))
+theorem forall_vtPre {P : Stmt → Prop} (h1 : ∀ s ∈ (vtPre.drop 0).take (pos% «verify_tables» "block_index_mle"), P s)
+    (h2 : ∀ s ∈ (vtPre.drop (pos% «verify_tables» "block_index_mle")).take (span% «verify_tables» "block_index_mle" "s56.u0.s1#1"), P s) (h3 : ∀ s ∈ (vtPre.drop (pos% «verify_tables» "g_zc_n")).take (span% «verify_tables» "g_zc_n" "x@9"), P s)
+    (h4 : ∀ s ∈ (vtPre.drop (pos% «verify_tables» "x@9")).take (pos% «verify_tables» "nxt[0]@42" - pos% «verify_tables» "x@9"), P s)
+    (h5 : ∀ s ∈ (vtPre.drop (pos% «verify_tables» "nxt[0]@42")).take (span% «verify_tables» "nxt[0]@42" "ret"), P s) : ∀ s ∈ vtPre, P s := by
+  have hlen : vtPre.length = pos% «verify_tables» "ret" := by decide +kernel
+  have h2' : ∀ s ∈ (vtPre.drop (pos% «verify_tables» "block_index_mle")).take (span% «verify_tables» "block_index_mle" "g_zc_n"), P s := fun s hs ↦ h2 s (by
+    rw [show span% «verify_tables» "block_index_mle" "s56.u0.s1#1" = span% «verify_tables» "block_index_mle" "g_zc_n" + span% «verify_tables» "g_zc_n" "s56.u0.s1#1" from rfl, List.take_add]; exact List.mem_append_left _ hs)
+  have h := forall_slice_split 0 (pos% «verify_tables» "block_index_mle") (span% «verify_tables» "block_index_mle" "g_zc_n" + (span% «verify_tables» "g_zc_n" "x@9" + (span% «verify_tables» "x@9" "nxt[0]@42" + span% «verify_tables» "nxt[0]@42" "ret"))) h1
+    (forall_slice_split (pos% «verify_tables» "block_index_mle") (span% «verify_tables» "block_index_mle" "g_zc_n") (span% «verify_tables» "g_zc_n" "x@9" + (span% «verify_tables» "x@9" "nxt[0]@42" + span% «verify_tables» "nxt[0]@42" "ret")) h2'
+      (forall_slice_split (pos% «verify_tables» "g_zc_n") (span% «verify_tables» "g_zc_n" "x@9") (span% «verify_tables» "x@9" "nxt[0]@42" + span% «verify_tables» "nxt[0]@42" "ret") h3
+        (forall_slice_split (pos% «verify_tables» "x@9") (span% «verify_tables» "x@9" "nxt[0]@42") (span% «verify_tables» "nxt[0]@42" "ret") h4 h5)))
   intro s hs
   apply h
   rw [List.drop_zero, List.take_of_length_le (by omega)]
@@ -327,9 +328,9 @@ theorem vt_allocSz : (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map (fun
 
 set_option maxRecDepth 100000 in
 theorem vt_bits_consts : tbStmtsEqb [.atom (.const (.n (val% «verify_tables» "offset_bits@1~0")) (word 17179869184 0))]
-      ((vtPre.drop 769).take 1) = true ∧
-    tbStmtsEqb [.atom (.const (.n (val% «verify_tables» "offset_bits@2~0")) (word 17179869184 0))] ((vtPre.drop 784).take 1) = true ∧
-    tbStmtsEqb [.atom (.const (.n (val% «verify_tables» "offset_bits@3~0")) (word 17179869184 0))] ((vtPre.drop 814).take 1) = true := by
+      ((vtPre.drop (pos% «verify_tables» "offset_bits@1~0")).take 1) = true ∧
+    tbStmtsEqb [.atom (.const (.n (val% «verify_tables» "offset_bits@2~0")) (word 17179869184 0))] ((vtPre.drop (pos% «verify_tables» "offset_bits@2~0")).take 1) = true ∧
+    tbStmtsEqb [.atom (.const (.n (val% «verify_tables» "offset_bits@3~0")) (word 17179869184 0))] ((vtPre.drop (pos% «verify_tables» "offset_bits@3~0")).take 1) = true := by
   simp only [vtPre_drop]; decide +kernel
 
 section
@@ -368,7 +369,7 @@ noncomputable def VtHonest.retsH (H : VtHonest) (B : VtBases) : List E :=
 
 /-- What the calls' placement reads of the valuation: `kappa_base` and the shared lengths. -/
 def VtKbSh (H : VtHonest) (σ : Val) : Prop :=
-  (∀ i < 8, σ (.n (26 + i)) = gen ^ ([0, H.lm] ++ vtTauList H.τ).getD i 0) ∧
+  (∀ i < 8, σ (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, H.lm] ++ vtTauList H.τ).getD i 0) ∧
     ∀ t < 6, σ (.n (vtShLen t)) = gen ^ (H.μ - H.τ t)
 
 /-- One scalar waiting with the observation tag: its two rate cells, then zeros. -/
@@ -562,7 +563,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
     obtain ⟨t, ht, e⟩ := hn; rw [← e]; exact hτμ t ht
   have hlow64 : ∀ i < 64, (rd (Parameters.addressOfIndex i)).isSome := fun i hi ↦ hlow i
     (by norm_num; omega)
-  have hkbt : ∀ t < 6, (vtσ rd w (H.args B)) (.n (28 + t)) = gen ^ H.τ t := by
+  have hkbt : ∀ t < 6, (vtσ rd w (H.args B)) (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ H.τ t := by
     intro t ht
     have := skb (2 + t) (by omega)
     rw [show 26 + (2 + t) = 28 + t by omega, show 2 + t = t + 1 + 1 by omega] at this
@@ -749,7 +750,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
     have mB := lin (B.bcp, H.slots) (by simp [VtHonest.linL])
     simp only [lD, lR, lS, lF, lP, lCu, lL, lB] at mD mR mS mF mP mCu mL mB
     have hd' := fun j (hj : j < 9) ↦ ownW_getD_head H B hj
-    have gb : ∀ i < 4, ((vtσ rd w (H.args B)) (.n (34 + i)), 24) ∈ H.bufs B := by
+    have gb : ∀ i < 4, ((vtσ rd w (H.args B)) (.n ((val% «verify_tables» "group_key") + i)), 24) ∈ H.bufs B := by
       intro i hi
       have e : vtAllocVars.getD i 0 = 34 + i := by interval_cases i <;> rfl
       have hlen : ((H.ownW B).getD i []).length = 24 := by
@@ -766,9 +767,9 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
       rw [show 34 + 3 = 37 from rfl] at e
       rw [e]; exact o36
     have LS0 : LoadsInBuf (vtσ rd w (H.args B))
-        (vtBufsSIdx.map fun q ↦ ((vtσ rd w (H.args B)) (.n q.1), q.2)) ((vtPre.drop 0).take 765) :=
+        (vtBufsSIdx.map fun q ↦ ((vtσ rd w (H.args B)) (.n q.1), q.2)) ((vtPre.drop 0).take (pos% «verify_tables» "block_index_mle")) :=
       vtS_loads sV (fun q hq ↦ List.mem_map_of_mem hq) hlm hτ33 hdimsS hordS
-    have LS : LoadsInBuf (vtσ rd w (H.args B)) (H.bufs B) ((vtPre.drop 0).take 765) := by
+    have LS : LoadsInBuf (vtσ rd w (H.args B)) (H.bufs B) ((vtPre.drop 0).take (pos% «verify_tables» "block_index_mle")) := by
       refine loadsInBuf_mono (fun q hq ↦ ?_) LS0
       simp only [vtBufsSIdx, List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil,
         or_false] at hq
@@ -781,7 +782,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
       · exact ⟨_, gb 2 (by norm_num), rfl, le_rfl⟩
       · exact ⟨_, gb 3 (by norm_num), rfl, le_rfl⟩
       · exact ⟨_, g664, rfl, le_rfl⟩
-    have LB : LoadsInBuf (vtσ rd w (H.args B)) (H.bufs B) ((vtPre.drop 765).take 1827) := by
+    have LB : LoadsInBuf (vtσ rd w (H.args B)) (H.bufs B) ((vtPre.drop (pos% «verify_tables» "block_index_mle")).take (span% «verify_tables» "block_index_mle" "s56.u0.s1#1")) := by
       refine loadsInBuf_mono (fun q hq ↦ ?_) bLd
       simp only [vtBufsB, vtBufsBIdx, List.map_cons, List.map_nil, List.mem_cons, List.mem_nil_iff,
         or_false] at hq

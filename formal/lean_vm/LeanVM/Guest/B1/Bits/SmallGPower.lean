@@ -216,7 +216,7 @@ theorem asg_holds_ofD {C : CallRel} {rd : Reader} {q : E} {e : ℕ} (he : e < 16
       (gen ^ (e / 16 ^ j % 16 * 16 ^ j))) :
     ∃ σ : Val, σ (.n (val% «assert_small_g_power» "x")) = gen ^ e ∧ σ (.n (val% «assert_small_g_power» "g_squares")) = q ∧
       (∀ j < 9, σ (.n (asgPtr j)) = q * gen ^ (e / 16 ^ j % 16)) ∧
-      (∀ j < 9, σ (.n (j + 2)) = gen ^ (e / 16 ^ j % 16)) ∧
+      (∀ j < 9, σ (.n (j + (val% «assert_small_g_power» "digits[0]"))) = gen ^ (e / 16 ^ j % 16)) ∧
       Stmt.HoldsList C rd σ asgBody False (fun rs ↦ rs = []) := by
   choose y t1 t2 hrc using hrc
   let σ : Val := fun v ↦ asgVals (gen ^ e) q e y t1 t2 v.idx
@@ -224,9 +224,9 @@ theorem asg_holds_ofD {C : CallRel} {rd : Reader} {q : E} {e : ℕ} (he : e < 16
   have eb : ∀ j i, i < 7 → σ (.n (17 + 7 * j + i)) = _ := fun j i hi ↦
     (ev _).trans (asgVals_blk (gen ^ e) q e y t1 t2 j i hi)
   have w15 : word (2 ^ (16 - 1)) 0 = word 32768 0 := rfl
-  have ed : ∀ j < 9, σ (.n (j + 2)) = gen ^ (e / 16 ^ j % 16) := fun j hj ↦
+  have ed : ∀ j < 9, σ (.n (j + (val% «assert_small_g_power» "digits[0]"))) = gen ^ (e / 16 ^ j % 16) := fun j hj ↦
     (ev _).trans (asgVals_d _ q e y t1 t2 j hj)
-  have eh : ∀ i < 6, σ (.n (11 + i)) = _ := fun i hi ↦
+  have eh : ∀ i < 6, σ (.n ((val% «assert_small_g_power» "s3.u0.s1#0") + i)) = _ := fun i hi ↦
     (ev _).trans (asgVals_head (gen ^ e) q e y t1 t2 i hi)
   have e1 : σ (.n (val% «assert_small_g_power» "g_squares")) = q := rfl
   have e0 : σ (.n (val% «assert_small_g_power» "x")) = gen ^ e := rfl

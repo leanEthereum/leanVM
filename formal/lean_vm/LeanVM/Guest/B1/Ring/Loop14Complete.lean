@@ -118,7 +118,7 @@ theorem rt_readsAt_unique {rd : Reader} {p : E} {xs ys : List E} (hl : xs.length
 /-! ## The body's parts -/
 
 /-- The challenges' loads. -/
-def l13G : List Stmt := ((List.range 8).map fun b ↦ [.atom (.load (.n (4 + b)) (.n (val% «ring_switch_target_loop0» "map_challenges")) (8 + b))]).flatten
+def l13G : List Stmt := ((List.range 8).map fun b ↦ [.atom (.load (.n ((val% «ring_switch_target_loop0» "g[0]") + b)) (.n (val% «ring_switch_target_loop0» "map_challenges")) (8 + b))]).flatten
 /-- The slices' pointer. -/
 def l13M1 : List Stmt :=
   [.atom (.mul (.n (val% «ring_switch_target_loop0» "rows~0")) (.n (val% «ring_switch_target_loop0» "x_round")) (.n (val% «ring_switch_target_loop0» "x_round"))), .atom (.mul (.n (val% «ring_switch_target_loop0» "rows~1")) (.n (val% «ring_switch_target_loop0» "rows~0")) (.n (val% «ring_switch_target_loop0» "rows~0"))),

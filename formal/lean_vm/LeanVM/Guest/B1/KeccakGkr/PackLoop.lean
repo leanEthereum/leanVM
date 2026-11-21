@@ -230,7 +230,7 @@ def pkPre (q : ℕ) : List Stmt :=
   else []
 
 /-- The zero cells. -/
-def pkZs : List V := [.n 30, .n 31, .n 32, .n 33]
+def pkZs : List V := [.n (valf% «keccak_layer» «_loop0» "s6.u0.s4.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (valf% «keccak_layer» «_loop0» "s6.u0.s4.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (valf% «keccak_layer» «_loop0» "s6.u0.s4.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (valf% «keccak_layer» «_loop0» "s6.u0.s4.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")]
 
 /-- Round `q` of the eight-round loop. -/
 def pkRound (q : ℕ) : List Stmt :=

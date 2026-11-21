@@ -37,7 +37,7 @@ def l25Last (j : ℕ) : ℕ := [362, 365, 367, 369].getD j 0
 cells. -/
 def l25Stores : List Atom :=
   [.load (.n (val% «aggregate_claims_loop0» "fresh")) (.n (val% «aggregate_claims_loop0» "s6#0")) 0, .load (.n (val% «aggregate_claims_loop0» "carried")) (.n (val% «aggregate_claims_loop0» "s8#0")) 0] ++
-    (List.range 5).map (fun i => .load (.n (356 + i)) (.n (val% «aggregate_claims_loop0» "row")) (13 + i)) ++
+    (List.range 5).map (fun i => .load (.n ((val% «aggregate_claims_loop0» "nxt[8]@13") + i)) (.n (val% «aggregate_claims_loop0» "row")) (13 + i)) ++
     (List.range 4).flatMap fun j =>
       [.load (.n (l25Last j)) (.n (val% «aggregate_claims_loop0» "row")) (18 + 2 * j), .load (.n (l25Last j + 1)) (.n (val% «aggregate_claims_loop0» "row")) (19 + 2 * j)]
 
@@ -66,7 +66,7 @@ noncomputable def l25COk : Bool :=
   let fn := coreProgram.getD idx% «aggregate_claims_loop0» default
   (chk 8 fn.body).isSome && (loopPre fn).all (fun s => match s with | .atom _ => true | _ => false) &&
   l25A.all (fun a => !needsSide a || isL25RowLoad a || isL25WordLoad a) &&
-  (List.range 13).all (fun o => decide (Atom.load (.n (14 + o)) (.n (val% «aggregate_claims_loop0» "row")) o ∈ l25A))
+  (List.range 13).all (fun o => decide (Atom.load (.n ((val% «aggregate_claims_loop0» "sp[0]") + o)) (.n (val% «aggregate_claims_loop0» "row")) o ∈ l25A))
 
 /-- **`aggregate_claims_loop0`'s chain, on its atoms but its stores.** -/
 noncomputable def l25DOk : Bool :=
@@ -74,7 +74,7 @@ noncomputable def l25DOk : Bool :=
   let P := (atomsIn (loopPre (coreProgram.getD idx% «aggregate_claims_loop0» default))).filter pureB
   (packsOf A).all (fun p => packIn A p.1 p.2) &&
   l25S.check A && decide (l25S.nb = 13) && rowInOk A (.n (val% «aggregate_claims_loop0» "row")) (l25S.ins 0) &&
-  (List.range 5).all (fun i => decide ((l25S.outs 12).getD (8 + i) default = .n (356 + i))) &&
+  (List.range 5).all (fun i => decide ((l25S.outs 12).getD (8 + i) default = .n ((val% «aggregate_claims_loop0» "nxt[8]@13") + i))) &&
   (List.range 4).all (fun j => decide (l25S.wB (48 + j) = l25Last j) &&
     decide (l25S.wB (48 + j) + 1 = l25Last j + 1)) &&
   (List.range 52).all (fun w => srcOk A (l25S.wV w) (l25Src w)) &&

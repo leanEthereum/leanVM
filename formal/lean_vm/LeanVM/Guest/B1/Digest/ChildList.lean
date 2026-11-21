@@ -486,8 +486,8 @@ noncomputable def anyBodyOk : Bool :=
   (atomsIn anyFlat).any (isConstAt (.n (val% «child_claim_list_any» "s6#2")) 1 0) &&
   (atomsIn anyFlat).any (isAddAt (.n (val% «child_claim_list_any» "s6#1")) (.n (val% «child_claim_list_any» "s6#0")) (.n (val% «child_claim_list_any» "groups"))) &&
   (atomsIn anyFlat).any (isConstAt (.n (val% «child_claim_list_any» "s6#0")) 1 0) &&
-  (List.range 13).all (fun c => (atomsIn anyFlat).any (isLoadAt (.n (18 + c)) (.n (val% «child_claim_list_any» "chain")) c) &&
-    (atomsIn anyFlat).any (isConstAt (.n (18 + c)) 0 0)) &&
+  (List.range 13).all (fun c => (atomsIn anyFlat).any (isLoadAt (.n ((val% «child_claim_list_any» "s2.i0:zero_state.s0.u0.s0#0") + c)) (.n (val% «child_claim_list_any» "chain")) c) &&
+    (atomsIn anyFlat).any (isConstAt (.n ((val% «child_claim_list_any» "s2.i0:zero_state.s0.u0.s0#0") + c)) 0 0)) &&
   monoIs (atomsIn anyFlat) (.n (val% «child_claim_list_any» "mid")) (.n (val% «child_claim_list_any» "chain")) (.n (val% «child_claim_list_any» "bigs")) 13 &&
   monoIs (atomsIn anyFlat) (.n (val% «child_claim_list_any» "mid_base")) (.n (val% «child_claim_list_any» "base")) (.n (val% «child_claim_list_any» "bigs")) 136 &&
   mono2Is (atomsIn anyFlat) (.n (val% «child_claim_list_any» "last")) (.n (val% «child_claim_list_any» "chain")) (.n (val% «child_claim_list_any» "bigs")) 13 (.n (val% «child_claim_list_any» "groups")) 13 &&

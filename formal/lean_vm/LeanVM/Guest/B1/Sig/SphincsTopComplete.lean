@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Sig.SphincsBottomComplete
 public import LeanVM.Guest.B1.Sig.SphincsHtComplete
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # A layer of an honest signature, complete
@@ -85,7 +87,7 @@ theorem layer_stage_vals (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm :
     (hbb : ByteBits rd bb) {pk : Sphincs.PublicKey} {m : HashSig.Message} {sig : Sphincs.Signature}
     {l : Nat} (hl : l < 3) {S : E} {r : HashSig.Digest}
     (hr : LayerReaches pk.publicSeed (digestIdx pk m sig) sig ⟨l, hl⟩ (cellVal S) r)
-    (σ : Val) (h1 : σ (.n 1) = bb) (hbot : BottomPost bb pk m sig σ)
+    (σ : Val) (h1 : σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb) (hbot : BottomPost bb pk m sig σ)
     (ha0 : a0Val σ (sA0Of l) (sAcOf l) = adrsCell0 l (layerTreeN (digestT pk m sig) l))
     (ha1 : σ (sA1Of l) = adrsCell1 0 (layerLeafN (digestT pk m sig) l) 0 0)
     (hsg : σ (sSignedOf l) = S) :
@@ -139,7 +141,7 @@ theorem layer_stage (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : MemO
     (hbb : ByteBits rd bb) {pk : Sphincs.PublicKey} {m : HashSig.Message} {sig : Sphincs.Signature}
     {l : Nat} (hl : l < 3) {S : E} {r : HashSig.Digest}
     (hr : LayerReaches pk.publicSeed (digestIdx pk m sig) sig ⟨l, hl⟩ (cellVal S) r)
-    (σ : Val) (h1 : σ (.n 1) = bb) (hbot : BottomPost bb pk m sig σ)
+    (σ : Val) (h1 : σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb) (hbot : BottomPost bb pk m sig σ)
     (ha0 : a0Val σ (sA0Of l) (sAcOf l) = adrsCell0 l (layerTreeN (digestT pk m sig) l))
     (ha1 : σ (sA1Of l) = adrsCell1 0 (layerLeafN (digestT pk m sig) l) 0 0)
     (hsg : σ (sSignedOf l) = S) :

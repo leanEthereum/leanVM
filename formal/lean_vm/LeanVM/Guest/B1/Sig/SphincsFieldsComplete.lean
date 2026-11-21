@@ -130,7 +130,7 @@ theorem sFieldsCheck_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb
     Completes C rd (val% «verify_sig_lean_sphincs» "bits0[0]") (val% «verify_sig_lean_sphincs» "a0_b~0") (sBitsHint ++ sBooleans ++ sForsFields ++ sLeafShifts ++ sMdBytes ++ sCheck) σ
       (fun σ' => DigestAt σ' (digestNatOf (σ sHm0) (σ sHm0b) (σ sHm1)) ∧
         (∀ k ≤ 5, BytePtr bb (σ' (.n (fbPtr 1312 k)))) ∧
-        (∀ j < 6, σ' (.n (1306 + j)) = ofK (addressOfIndex (unusedOf (σ sHm1) / 256 ^ j % 256))) ∧ SBits σ') := by
+        (∀ j < 6, σ' (.n ((val% «verify_sig_lean_sphincs» "unused_bytes[0]") + j)) = ofK (addressOfIndex (unusedOf (σ sHm1) / 256 ^ j % 256))) ∧ SBits σ') := by
   set T := digestNatOf (σ sHm0) (σ sHm0b) (σ sHm1) with hT
   have hTlt : T < 2 ^ 272 := digestNatOf_lt _ _ _
   have n0 := cellNat_lt (σ sHm0)
@@ -297,7 +297,7 @@ theorem sDigestBlock_complete (hm : MemOK rd 256) {bb p : E} (hbb : ByteBits rd 
       σ' sRoot = cellOf128 pk.root ∧ σ' sRand = cellOf128 R ∧ PadOK σ' sPad ∧
       DigestAt σ' (Id.run (Sphincs.Verification.messageDigest (m := Id) LeanVM.Semantics.keccakF1600 pk R
         msg)).toNat ∧ DigestPtrs σ' bb ∧
-      (∀ j < 6, σ' (.n (1306 + j)) = ofK (addressOfIndex (unusedOf (digestHalves (keccak256
+      (∀ j < 6, σ' (.n ((val% «verify_sig_lean_sphincs» "unused_bytes[0]") + j)) = ofK (addressOfIndex (unusedOf (digestHalves (keccak256
         (hmsgBytes (cellOf128 R) (cellOf128 pk.publicSeed) (cellOf128 pk.root) msg.toNat 1))).1 / 256 ^ j % 256))) ∧
       SBits σ') := by
   set M := msg.toNat with hMdef

@@ -101,9 +101,9 @@ theorem calls_match (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE (D.lsO
     simp only [List.length_map, List.length_range] at h1
     simp only [List.getElem_map, List.getElem_range]
     rw [hj j h1, List.getD_eq_getElem _ _ h2]
-  have hoc : ∀ j < 5, σ (.n (919 + j)) = D.O.2.2.cap.getD j 0 := fun j hj ↦ by
+  have hoc : ∀ j < 5, σ (.n ((val% «verify_keccak» "fs0@14") + j)) = D.O.2.2.cap.getD j 0 := fun j hj ↦ by
     rw [eO j (by omega), oRets, List.getD_append _ _ _ _ (by rw [(O_ok h).2]; exact hj)]
-  have hic : ∀ j < 5, σ (.n (1198 + j)) = D.I.2.2.cap.getD j 0 := fun j hj ↦ by
+  have hic : ∀ j < 5, σ (.n ((val% «verify_keccak» "fs0@15") + j)) = D.I.2.2.cap.getD j 0 := fun j hj ↦ by
     rw [eI j (by omega), iRets, List.getD_append _ _ _ _ (by rw [(I_ok h).2]; exact hj)]
   apply callsMatch_ofI (by rw [hlen]; simp [vkCalls]) hol (fun i hi hc ho ↦ ?_)
   rw [hlen] at hi

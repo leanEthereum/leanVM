@@ -69,12 +69,12 @@ def vkCalls : List (Option V × String × List V × List V) :=
   [(some (.n (val% «verify_keccak» "s17#1")), name% «verify_keccak_loop0», [.n (val% «verify_keccak» "s17#2"), .n (val% «verify_keccak» "pack_g"), .n (val% «verify_keccak» "point"), .n (val% «verify_keccak» "s17#4")], [])] ++
     (List.range 12).map stepCall ++
     [(none, "keccak_plain_rounds__L6_L0", [.n (val% «verify_keccak» "fs0@13"), .n (val% «verify_keccak» "fs1@13"), .n (val% «verify_keccak» "fs2@13"), .n (val% «verify_keccak» "fs3@13"), .n (val% «verify_keccak» "fs4@13"), .n (val% «verify_keccak» "fs0@14~7"),
-        .n (val% «verify_keccak» "fs0@14~8"), .n (val% «verify_keccak» "cursor@13"), .n (val% «verify_keccak» "x@1"), .n (val% «verify_keccak» "out_slot"), .n (val% «verify_keccak» "tabs")], (List.range 7).map fun j ↦ .n (919 + j)),
+        .n (val% «verify_keccak» "fs0@14~8"), .n (val% «verify_keccak» "cursor@13"), .n (val% «verify_keccak» "x@1"), .n (val% «verify_keccak» "out_slot"), .n (val% «verify_keccak» "tabs")], (List.range 7).map fun j ↦ .n ((val% «verify_keccak» "fs0@14") + j)),
       (some (.n (val% «verify_keccak» "s57#1")), name% «verify_keccak_loop1», [.n (val% «verify_keccak» "s57#2"), .n (val% «verify_keccak» "pack_g"), .n (val% «verify_keccak» "s57#4"), .n (val% «verify_keccak» "point")], []),
       (none, "keccak_plain_rounds__L4_L1", [.n (val% «verify_keccak» "fs0@14"), .n (val% «verify_keccak» "fs1@14"), .n (val% «verify_keccak» "fs2@14"), .n (val% «verify_keccak» "fs3@14"), .n (val% «verify_keccak» "fs4@14"), .n (val% «verify_keccak» "word_rate[0]"),
-        .n (val% «verify_keccak» "word_rate[1]"), .n (val% «verify_keccak» "fs0@15~8"), .n (val% «verify_keccak» "fs0@15~9"), .n (val% «verify_keccak» "fs0@15~11"), .n (val% «verify_keccak» "tabs")], (List.range 7).map fun j ↦ .n (1198 + j)),
+        .n (val% «verify_keccak» "word_rate[1]"), .n (val% «verify_keccak» "fs0@15~8"), .n (val% «verify_keccak» "fs0@15~9"), .n (val% «verify_keccak» "fs0@15~11"), .n (val% «verify_keccak» "tabs")], (List.range 7).map fun j ↦ .n ((val% «verify_keccak» "fs0@15") + j)),
       (none, "keccak_plain_rounds__L6_L0", [.n (val% «verify_keccak» "fs0@15"), .n (val% «verify_keccak» "fs1@15"), .n (val% «verify_keccak» "fs2@15"), .n (val% «verify_keccak» "fs3@15"), .n (val% «verify_keccak» "fs4@15"), .n (val% «verify_keccak» "fs0@16~7"),
-        .n (val% «verify_keccak» "fs0@16~8"), .n (val% «verify_keccak» "cursor@15"), .n (val% «verify_keccak» "low_value"), .n (val% «verify_keccak» "in_slot"), .n (val% «verify_keccak» "tabs")], (List.range 7).map fun j ↦ .n (1328 + j)),
+        .n (val% «verify_keccak» "fs0@16~8"), .n (val% «verify_keccak» "cursor@15"), .n (val% «verify_keccak» "low_value"), .n (val% «verify_keccak» "in_slot"), .n (val% «verify_keccak» "tabs")], (List.range 7).map fun j ↦ .n ((val% «verify_keccak» "fs0@16") + j)),
       (some (.n (val% «verify_keccak» "s81#1")), name% «verify_keccak_loop2», [.n (val% «verify_keccak» "s81#2"), .n (val% «verify_keccak» "pack_g"), .n (val% «verify_keccak» "s81#4"), .n (val% «verify_keccak» "last_point")], [])]
 
 theorem vkPre_kernel :

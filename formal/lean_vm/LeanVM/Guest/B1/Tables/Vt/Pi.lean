@@ -55,7 +55,7 @@ set_option maxRecDepth 10000 in
 /-- **The public input's binding and the return.** -/
 theorem vt_pi {rd : Reader} {σ : Val} (h : VtH rd σ) :
     σ (.n (val% «verify_tables» "nxt[0]@42")) = (vtEvalFs σ).squeeze.1 ∧
-      ((List.range 5).map fun k ↦ σ (.n (5974 + k))) = (vtEvalFs σ).squeeze.2.cap ∧
+      ((List.range 5).map fun k ↦ σ (.n ((val% «verify_tables» "s91#0") + k))) = (vtEvalFs σ).squeeze.2.cap ∧
       σ (.n (val% «verify_tables» "s91#0[5]")) = σ (.n (val% «verify_tables» "cursor@5")) * gen ^ 153 ∧ σ (.n (val% «verify_tables» "s91#0[6]")) = σ (.n (val% «verify_tables» "g_zc_n")) ∧
       σ (.n (val% «verify_tables» "s91#0[7]")) = σ (.n (val% «verify_tables» "x@8")) ∧ σ (.n (val% «verify_tables» "s91#0[8]")) = σ (.n (val% «verify_tables» "nxt[0]@42")) ∧ σ (.n (val% «verify_tables» "s91#0[9]")) = σ (.n (val% «verify_tables» "cursor@5")) ∧
       LoadHolds rd (σ (.n (val% «verify_tables» "claim_pool"))) 157 (multilinearEval [ofK ((σ (.n (val% «verify_tables» "pi_0"))).limb 0),
@@ -67,7 +67,7 @@ theorem vt_pi {rd : Reader} {σ : Val} (h : VtH rd σ) :
   have z5 := h.atomAt 2628 (.const (.n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]")) (word 0 0)) (by decide +kernel)
   have z6 := h.atomAt 2629 (.const (.n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]")) (word 0 0)) (by decide +kernel)
   have k := h.atomAt 5523 (.keccak [.n (val% «verify_tables» "rate[0]@42"), .n (val% «verify_tables» "rate[1]@42"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"),
-    .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "nxt[8]@41"), .n (val% «verify_tables» "nxt[9]@41"), .n (val% «verify_tables» "nxt[10]@41"), .n (val% «verify_tables» "nxt[11]@41"), .n (val% «verify_tables» "nxt[12]@41")] (lyOuts 5947) false false)
+    .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "nxt[8]@41"), .n (val% «verify_tables» "nxt[9]@41"), .n (val% «verify_tables» "nxt[10]@41"), .n (val% «verify_tables» "nxt[11]@41"), .n (val% «verify_tables» "nxt[12]@41")] (lyOuts (val% «verify_tables» "nxt[0]@42")) false false)
     (by decide +kernel)
   obtain ⟨_, s6⟩ := h.sliceAt 5524 (splitLimbsT (.n (val% «verify_tables» "pi_0")) 5960) (by decide +kernel)
   obtain ⟨_, s7⟩ := h.sliceAt 5529 (splitLimbsT (.n (val% «verify_tables» "pi_1")) 5964) (by decide +kernel)

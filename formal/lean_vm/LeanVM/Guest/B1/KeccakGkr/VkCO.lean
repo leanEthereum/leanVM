@@ -98,7 +98,7 @@ theorem out_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : V
     (h274 : σ (.n (val% «verify_keccak» "lane_tree")) = ptr (B + D.o274)) :
     (cap5 910).map σ = D.L.2.cap ∧ σ (.n (val% «verify_keccak» "cursor@13")) = D.cL curE ∧
       σ (.n (val% «verify_keccak» "out_slot")) = ptr zvE * gen ^ D.τ ∧ σ (.n (val% «verify_keccak» "fs0@14~7")) = 0 ∧ σ (.n (val% «verify_keccak» "fs0@14~8")) = 0 ∧
-      (∀ j < 7, σ (.n (919 + j)) = (D.oRets curE).getD j 0) ∧ σ (.n (val% «verify_keccak» "x@2")) = D.word ∧
+      (∀ j < 7, σ (.n ((val% «verify_keccak» "fs0@14") + j)) = (D.oRets curE).getD j 0) ∧ σ (.n (val% «verify_keccak» "x@2")) = D.word ∧
       (σ (.n (val% «verify_keccak» "word_rate[0]")), σ (.n (val% «verify_keccak» "word_rate[1]"))) = Keccak.scalarCells D.word dsObserve ∧
       σ (.n (val% «verify_keccak» "s57#1")) = 1 + gen ^ (D.τ - 4) ∧ σ (.n (val% «verify_keccak» "s57#2")) = 1 ∧ σ (.n (val% «verify_keccak» "s57#4")) = ptr zvE * gen ^ 4 ∧
       ∀ {next : Prop} {kret : List E → Prop}, next →
@@ -110,9 +110,9 @@ theorem out_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : V
     exact val_good' h (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _ hst)))
   -- the calls' returns
   have hcg := calls_good h hσd
-  have eO : ∀ j < 7, σ (.n (919 + j)) = (D.oRets curE).getD j 0 := fun j hj ↦ by
+  have eO : ∀ j < 7, σ (.n ((val% «verify_keccak» "fs0@14") + j)) = (D.oRets curE).getD j 0 := fun j hj ↦ by
     rw [hcg (none, "keccak_plain_rounds__L6_L0", [.n (val% «verify_keccak» "fs0@13"), .n (val% «verify_keccak» "fs1@13"), .n (val% «verify_keccak» "fs2@13"), .n (val% «verify_keccak» "fs3@13"), .n (val% «verify_keccak» "fs4@13"),
-      .n (val% «verify_keccak» "fs0@14~7"), .n (val% «verify_keccak» "fs0@14~8"), .n (val% «verify_keccak» "cursor@13"), .n (val% «verify_keccak» "x@1"), .n (val% «verify_keccak» "out_slot"), .n (val% «verify_keccak» "tabs")], (List.range 7).map fun j ↦ .n (919 + j))
+      .n (val% «verify_keccak» "fs0@14~7"), .n (val% «verify_keccak» "fs0@14~8"), .n (val% «verify_keccak» "cursor@13"), .n (val% «verify_keccak» "x@1"), .n (val% «verify_keccak» "out_slot"), .n (val% «verify_keccak» "tabs")], (List.range 7).map fun j ↦ .n ((val% «verify_keccak» "fs0@14") + j))
       (by simp [vkCalls]) _ (List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩)]
     exact w_o hj
   have hcL : D.L.2.cap.length = 5 := (L_ok h).2

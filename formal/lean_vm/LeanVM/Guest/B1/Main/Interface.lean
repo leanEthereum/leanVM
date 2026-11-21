@@ -291,7 +291,7 @@ noncomputable def dvClaim (σ : Val) : DaClaim :=
 /-- `main_loop2`'s arguments after its counter: `n_raw_x`, `lx_slots`, `cover`, `lx_table`, then
 the `51` carried tags `lx_tags` (`.n 304 ..< .n 355`; lean_ethereum.py). -/
 def l2Args (σ : Val) : List E :=
-  [σ (.n (val% «main» "meta[2]")), σ (.n (val% «main» "lx_slots_g")), σ (.n (val% «main» "cover")), σ (.n (val% «main» "lx_table"))] ++ (List.range 51).map fun j => σ (.n (304 + j))
+  [σ (.n (val% «main» "meta[2]")), σ (.n (val% «main» "lx_slots_g")), σ (.n (val% «main» "cover")), σ (.n (val% «main» "lx_table"))] ++ (List.range 51).map fun j => σ (.n ((val% «main» "lx_tags[0]") + j))
 
 /-- The raw leanXMSS signature of mark `j`: the claim of the slot holding the mark, with the
 signature `wX` of `main_loop2`'s iteration `j` (its arguments `g^j :: l2Args σ`). -/

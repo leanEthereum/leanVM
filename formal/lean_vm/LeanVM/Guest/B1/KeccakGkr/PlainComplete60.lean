@@ -123,7 +123,7 @@ theorem plain60_complete (rd : Reader) (args rets : List E)
     rcases hs with rfl | rfl | rfl | rfl | rfl <;> exact ⟨_, _, rfl⟩
   have hnil : ∀ s ∈ ([] : List Stmt), ∃ d c, s = .atom (.const d c) :=
     fun s hs ↦ absurd hs (by simp)
-  have pF : ∀ j < 5, σ (.n (11 + j)) = [f0, f1, f2, f3, f4].getD j 0 := by
+  have pF : ∀ j < 5, σ (.n ((val% «keccak_plain_rounds__L6_L0» "sp[0]") + j)) = [f0, f1, f2, f3, f4].getD j 0 := by
     intro j hj
     interval_cases j
     · rw [c11]; exact pp 0 (by norm_num)

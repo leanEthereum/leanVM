@@ -334,7 +334,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 /-- What the fold's step `k ≥ 1` asks of a valuation. -/
 def PwStepOk (rd : Reader) (σ : Val) (τ k : ℕ) : Prop :=
   σ (.n (4 + k)) = σ (.n (4 + k)) * σ (.n (4 + k)) ∧
-    LoadHolds rd (σ (.n 1)) k (σ (.n (τ + 4 + 5 * k))) ∧
+    LoadHolds rd (σ (.n (valf% «padding_weight» "zeta"))) k (σ (.n (τ + 4 + 5 * k))) ∧
     σ (.n (τ + 5 + 5 * k)) = σ (.n (4 + k)) * σ (.n (τ + 4 + 5 * k)) ∧
     σ (.n (τ + 6 + 5 * k)) = σ (.n (4 + k)) + σ (.n (τ + 4 + 5 * k)) ∧
     σ (.n (τ + 7 + 5 * k)) = σ (.n (τ + 6 + 5 * k)) * σ (.n (τ + 3 + 5 * k)) ∧
@@ -869,7 +869,7 @@ theorem pw1_iff {name : String} {f : Fn} (hfind : coreProgram.find? name = some 
 /-- **`padding_weight` at every `τ ≤ 32`**, for a compiled function whose body is the
 expansion at `τ`. -/
 theorem padding_weight_iff {name : String} {f : Fn} (τ : ℕ) (h32 : τ ≤ 32)
-    (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1])
+    (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n (valf% «padding_weight» "rows"), .n (valf% «padding_weight» "zeta")])
     (hbody : f.body = if τ = 0 then pwBody0 else if τ = 1 then pwBody1 else pwBody τ)
     (rd : Reader) (rows zeta : E) (rets : List E) :
     coreProgram.Rel rd name [rows, zeta] rets ↔ MeaningPaddingWeight τ rd [rows, zeta] rets := by
@@ -891,13 +891,13 @@ def pwBodyOf (τ : ℕ) : List Stmt := if τ = 0 then pwBody0 else if τ = 1 the
 /-- The function found by name is the expansion. -/
 noncomputable def pwCheck (τ : ℕ) : Bool :=
   match coreProgram.find? (lName "padding_weight" τ) with
-  | some fn => decide (fn.params = [.n 0, .n 1]) && tbStmtsEqb fn.body (pwBodyOf τ)
+  | some fn => decide (fn.params = [.n (valf% «padding_weight» "rows"), .n (valf% «padding_weight» "zeta")]) && tbStmtsEqb fn.body (pwBodyOf τ)
   | none => false
 
 theorem pwCheck_all : (List.range 31).all pwCheck = true := by decide +kernel
 
 theorem pwFound {τ : ℕ} (hτ : τ < 31) : ∃ fn : Fn,
-    coreProgram.find? (lName "padding_weight" τ) = some fn ∧ fn.params = [.n 0, .n 1] ∧
+    coreProgram.find? (lName "padding_weight" τ) = some fn ∧ fn.params = [.n (valf% «padding_weight» "rows"), .n (valf% «padding_weight» "zeta")] ∧
       fn.body = pwBodyOf τ := by
   have h := List.all_eq_true.mp pwCheck_all τ (List.mem_range.mpr hτ)
   unfold pwCheck at h

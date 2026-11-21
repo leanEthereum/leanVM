@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Gkr.RecsC
 public import LeanVM.Guest.B1.Gkr.SpecInv
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
+import LeanVM.Guest.Data.ValNames.«gkr_layer__L0_L0»
 
 /-!
 # A radix-four layer, completely
@@ -36,9 +37,9 @@ open LeanVM.Guest.B1 LeanVM.Guest.B1.Fwd
 @[expose] public section
 
 theorem glKids_load {off : ℕ} {d q : V} {o' : ℕ} (h : Stmt.atom (.load d q o') ∈ glKids off) :
-    ∃ i < 12, d = .n (chB 156 i) ∧ q = .n 76 ∧ o' = off + i := by
-  have hc : ∀ i, Stmt.atom (.load d q o') ∈ chT (.n 76) off 156 i →
-      d = .n (chB 156 i) ∧ q = .n 76 ∧ o' = off + i := fun i hi ↦ by
+    ∃ i < 12, d = .n (chB 156 i) ∧ q = .n (val% «gkr_layer__L0_L0» "tcur") ∧ o' = off + i := by
+  have hc : ∀ i, Stmt.atom (.load d q o') ∈ chT (.n (val% «gkr_layer__L0_L0» "tcur")) off (val% «gkr_layer__L0_L0» "x@9") i →
+      d = .n (chB 156 i) ∧ q = .n (val% «gkr_layer__L0_L0» "tcur") ∧ o' = off + i := fun i hi ↦ by
     simp only [chT, fsNextT, fsPackT, List.cons_append, List.nil_append, List.mem_cons,
       List.not_mem_nil, or_false, Stmt.atom.injEq, reduceCtorEq] at hi
     simp only [Atom.load.injEq] at hi
@@ -88,7 +89,7 @@ theorem glc_chw {τ : Val} {ch0 ch1 ch2 : List E} (h0 : ch0.length = 4) (h1 : ch
     rw [hv _ (by norm_num), hv _ (by norm_num), hv _ (by norm_num), hv _ (by norm_num)] <;> rfl
 
 theorem glRounds_head (p : ℕ) : glHeadRounds p =
-    glRounds 58 (2 * p) (.n (valf% «gkr_layer» "s4#0")) (.n (valf% «gkr_layer» "point_row")) (.n (valf% «gkr_layer» "point_row")) 42 (.n (valf% «gkr_layer» "claim@2")) (glCap 35) := rfl
+    glRounds 58 (2 * p) (.n (valf% «gkr_layer» "s4#0")) (.n (valf% «gkr_layer» "point_row")) (.n (valf% «gkr_layer» "point_row")) 42 (.n (valf% «gkr_layer» "claim@2")) (glCap (valf% «gkr_layer» "nxt[8]@1")) := rfl
 
 theorem glBodyA_noRet (p o : ℕ) (nm : String) :
     Stmt.noRetList glPre = true ∧ Stmt.noRetList (glHeadRounds p) = true ∧
@@ -262,7 +263,7 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
   -- the head rounds
   have HR := glc_rounds (C := coreProgram.Rel rd) (kret := fun rs => rs = []) (rd := rd) (S := S)
     (w := fun _ => 0) (σ := σ) (B := 58) (cur := 21) (pt := 52) (npt := 52) (noff := 42)
-    (claimV := .n (valf% «gkr_layer» "claim@2")) (cap := glCap 35) (by simp [glCap]) (Cf := Cf) (ef := ef) h4' (2 * p)
+    (claimV := .n (valf% «gkr_layer» "claim@2")) (cap := glCap (val% «gkr_layer__L0_L0» "nxt[8]@1")) (by simp [glCap]) (Cf := Cf) (ef := ef) h4' (2 * p)
     (fun s hs ↦ mem mHR s (by rw [glRounds_head]; exact hs))
     (fun q hq ↦ by
       obtain ⟨k0, k1, k2, k3, k4⟩ := glcRoundKeys_mem (B := 58) (cur := 21) (pt := 52) hq
@@ -351,13 +352,13 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
   set τ : Val := σ ∘ glRho p o with hτ
   have tlo : ∀ k, k < 58 → τ (.n k) = σ (.n k) := fun k hk ↦ by
     simp only [hτ, Function.comp_apply, glcRho_lo p o k hk]
-  have t77 : τ (.n 76) = cur * gen ^ (4 * a) := by
+  have t77 : τ (.n (val% «gkr_layer__L0_L0» "tcur")) = cur * gen ^ (4 * a) := by
     simp only [hτ, Function.comp_apply, glcRho_mid p o 76 (by omega) (by omega), Nat.add_comm 76]
     rw [Nat.add_comm]; exact e77
-  have t158 : τ (.n 155) = (St L).1 := by
+  have t158 : τ (.n (val% «gkr_layer__L0_L0» "nclaim@2")) = (St L).1 := by
     simp only [hτ, Function.comp_apply, glcRho_hi p o 155 (by omega) (by omega)]
     rw [← hTRL.1, show 155 + glD p - 39 * o = 78 + glD p + 39 * (2 - o) - 1 by omega]
-  have tcap : (glCap 137).map τ = (St L).2.cap := by
+  have tcap : (glCap (val% «gkr_layer__L0_L0» "nxt[8]@3")).map τ = (St L).2.cap := by
     rw [← hTRL.2]
     simp only [glCap, List.map_map]
     refine List.map_congr_left fun k hk ↦ ?_
@@ -383,10 +384,10 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
     subst h
     obtain ⟨i, hi, rfl, rfl, rfl⟩ := glKids_load hs
     refine fK _ ?_
-    have h1 : (glRho p o (.n (chB 156 i))).idx = chB 156 i + glD p - 38 * o := by
-      have hidx : (V.n (chB 156 i)).idx = chB 156 i := rfl
+    have h1 : (glRho p o (.n (chB 156 i))).idx = chB (val% «gkr_layer__L0_L0» "x@9") i + glD p - 38 * o := by
+      have hidx : (V.n (chB 156 i)).idx = chB (val% «gkr_layer__L0_L0» "x@9") i := rfl
       rw [glRho_idx, hidx]
-      have : 156 ≤ chB 156 i := by simp only [chB]; omega
+      have : 156 ≤ chB (val% «gkr_layer__L0_L0» "x@9") i := by simp only [chB]; omega
       split_ifs <;> omega
     rw [h1, glcRho_mid p o 76 (by omega) (by omega)]
     simp only [glcKidKeys, List.mem_map, List.mem_range]
@@ -467,7 +468,7 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
       have := ldn (6 + t) _ (by rw [← Nat.add_assoc]; exact hval' t ht)
       rw [show 20 + (6 + t) = 26 + t by ring] at this
       have hv : (D.st' s st 2).values.getD t 0 =
-          multilinearEval (chWords τ 156 t) [τ (.n 246), τ (.n 259)] := by
+          multilinearEval (chWords τ (val% «gkr_layer__L0_L0» "x@9") t) [τ (.n (val% «gkr_layer__L0_L0» "nxt[0]@6")), τ (.n (val% «gkr_layer__L0_L0» "nxt[0]@7"))] := by
         show ([D.ch0, D.ch1, D.ch2].map (multilinearEval · (D.ys s st 2))).getD t 0 = _
         rw [hys, e262, e276]
         interval_cases t

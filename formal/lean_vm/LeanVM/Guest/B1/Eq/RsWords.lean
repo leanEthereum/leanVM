@@ -190,10 +190,10 @@ theorem rsA_vals {rd : Reader} {σ : Val}
   obtain ⟨b0, h10, h11, h12, h13, b1, h14, h15, h16, h17, h18, b2, h19, h20, h21, h22, h23,
     b3, h24, h25, h26, h27, b4, h28, h29, h30, h31, h32, b5, h33, h34, h35, h36, h37, h38, h39,
     h40, h41, ha, h42, h43, h44⟩ := h
-  have hbr : ∀ j < 3, σ (.n (4 + j)) * σ (.n (4 + j)) = σ (.n (4 + j)) := by
+  have hbr : ∀ j < 3, σ (.n ((val% «rs_eq_run» "bits[0]") + j)) * σ (.n ((val% «rs_eq_run» "bits[0]") + j)) = σ (.n ((val% «rs_eq_run» "bits[0]") + j)) := by
     intro j hj; interval_cases j
     exacts [b0.symm, b1.symm, b2.symm]
-  have hbq : ∀ j < 3, σ (.n (7 + j)) * σ (.n (7 + j)) = σ (.n (7 + j)) := by
+  have hbq : ∀ j < 3, σ (.n ((val% «rs_eq_run» "bits[3]") + j)) * σ (.n ((val% «rs_eq_run» "bits[3]") + j)) = σ (.n ((val% «rs_eq_run» "bits[3]") + j)) := by
     intro j hj; interval_cases j
     exacts [b3.symm, b4.symm, b5.symm]
   have rg : σ (.n (val% «rs_eq_run» "r_g@3")) = ∏ j ∈ Finset.range 3, (1 + σ (.n (4 + j)) * (gen ^ 2 ^ j + 1)) := by

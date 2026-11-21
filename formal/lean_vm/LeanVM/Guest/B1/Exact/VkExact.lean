@@ -87,7 +87,7 @@ theorem vk_pathExact : PathExactFn (fn% «verify_keccak») := by
     forall_eq, Atom.Holds] at H
   obtain ⟨-, -, c18, m19, -, s0, s1, s2, s3, s4, c25, c26, m27, a28, c29, c30, m31, a32, m33, c34, c35, m36, a37,
     c38, c39, m40, a41, m42, c43, c44, m45, a46, m47, m48, m49, m50, m51, c52, m53, q⟩ := H
-  have hb : ∀ j < 5, σ (.n (22 + j)) * σ (.n (22 + j)) = σ (.n (22 + j)) := by
+  have hb : ∀ j < 5, σ (.n ((val% «verify_keccak» "y_bits[0]") + j)) * σ (.n ((val% «verify_keccak» "y_bits[0]") + j)) = σ (.n ((val% «verify_keccak» "y_bits[0]") + j)) := by
     intro j hj
     interval_cases j
     · exact s0.symm

@@ -282,7 +282,7 @@ at the push and the pull side's slots (`g^` at most `23`). -/
 def vtPwsS : List (ℕ × ℕ × List ℕ) :=
   [(10, 32, List.range 7), (37, 23, List.range 9 ++ (List.range 6).map (18 + ·))]
 
-theorem vtS_ptr_check : ptrRun vtBufsSIdx vtPwsS [0, 19] [] ((vtPre.drop 0).take 765) = true := by
+theorem vtS_ptr_check : ptrRun vtBufsSIdx vtPwsS [0, 19] [] ((vtPre.drop 0).take (pos% «verify_tables» "block_index_mle")) = true := by
   simp only [vtPre_drop]; decide +kernel
 
 theorem pw_of_reads {rd : Reader} {p : E} {ws : List E} (h : TbReadsAt rd p ws) {c : ℕ} {j : ℕ}
@@ -298,12 +298,12 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 /-- **Where statements `0 ..< 765` load**: in `dims_g`, `table_rows`, the exponent table, the
 group buffers and `idxc_tab`, on `dims_g`'s and the group order's honest words. -/
 theorem vtS_loads {bufs : List (E × ℕ)}
-    (hV : ∀ s ∈ (vtPre.drop 0).take 765, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s)
+    (hV : ∀ s ∈ (vtPre.drop 0).take (pos% «verify_tables» "block_index_mle"), VSH (coreProgram.Rel rd) rd (vtσ rd w args) s)
     (hb : ∀ q ∈ vtBufsSIdx, (vtσ rd w args (.n q.1), q.2) ∈ bufs) {lm : ℕ} (hlm : lm ≤ 32)
     {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t < 33)
     (hdims : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "dims_g"))) (gen ^ lm :: (vtTauList τ).map (gen ^ ·)))
     (hord : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "group_order"))) (vtGOrdW lm τ)) :
-    LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 0).take 765) := by
+    LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 0).take (pos% «verify_tables» "block_index_mle")) := by
   refine ptrRun_sound hb (fun q hq j hj v hl ↦ ?_) _ [] (by simp) hV vtS_ptr_check
   simp only [vtPwsS, List.mem_cons, List.not_mem_nil, or_false] at hq
   rcases hq with rfl | rfl <;> dsimp only at hj hl ⊢

@@ -30,7 +30,7 @@ def offAtoms : List Atom := offP.filterMap atomOfS
 
 /-- Its stores: the seven zeros, then each bit's steps. -/
 def offStores : List Atom :=
-  (List.range 7).map (fun j => .load (.n (2 + j)) (.n (val% «da_column_offsets» "offsets")) j) ++
+  (List.range 7).map (fun j => .load (.n ((val% «da_column_offsets» "s1.u0.s0#0") + j)) (.n (val% «da_column_offsets» "offsets")) j) ++
     (List.range 7).flatMap fun b => (List.range 7).map fun j =>
       .load (.n (offB b + 1 + 3 * j + 2)) (.n (offB b)) j
 

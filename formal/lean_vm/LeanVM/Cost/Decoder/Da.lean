@@ -6,6 +6,8 @@ import LeanVM.Guest.Value.Bits
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Consts
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_verify»
 
 /-!
 # The guest decoder's compiled chain: the DA matrix
@@ -44,7 +46,7 @@ def dvSymsPNAt (r : ℕ) (σ : Val) (Vn : NFrames) (i h : ℕ) : List E :=
 
 /-- Blob `i`'s iteration of the blob loop (`dvBlobLVN`), the power of `g` in `K`. -/
 def dvBlobLW (σ : Val) (Vn : NFrames) (i : ℕ) : Val :=
-  Vn (fn_idx% da_verify_loop0) [ofK (Parameters.g ^ i), σ (.n 1), σ (.n 8), σ (.n 10)] []
+  Vn (fn_idx% da_verify_loop0) [ofK (Parameters.g ^ i), σ (.n (val% «da_verify» "n_blob_g")), σ (.n (val% «da_verify» "weights")), σ (.n (val% «da_verify» "roots"))] []
 
 /-- Blob `i`'s region base (`dvBlobVN σ Vn i (.n 1)`). -/
 def dvBlobBase (σ : Val) (Vn : NFrames) (i : ℕ) : E :=
@@ -52,7 +54,7 @@ def dvBlobBase (σ : Val) (Vn : NFrames) (i : ℕ) : E :=
 
 /-- Cell `h`'s iteration of a blob's cell loop (`dvCellVN`), the blob's base given. -/
 def dvCellVW (σ : Val) (Vn : NFrames) (base : E) (h : ℕ) : Val :=
-  Vn (fn_idx% da_verify_blob_loop0) [ofK (Parameters.g ^ h), σ (.n 8), base] []
+  Vn (fn_idx% da_verify_blob_loop0) [ofK (Parameters.g ^ h), σ (.n (val% «da_verify» "weights")), base] []
 
 /-- A cell's symbols off `da_verify_cell`'s frame, the cell loop's valuation given. -/
 def cellSymsAt (Vn : NFrames) (cell : Val) : List E :=
@@ -106,7 +108,7 @@ theorem daRowCount_le (r : ℕ) : daRowCount r ≤ guest_const% DA_MAX_ROWS := b
 /-- **`da_verify`'s witness** (`dvWitN`), the logarithm's tables `D` given: its rows counted
 once, at most `DA_MAX_ROWS` (`daRowCount`). -/
 def dvWitND (D : DiscreteLogTables) (σ : Val) (Vn : NFrames) : LeanVM.Da.MatrixWitness :=
-  dvWitNAt (daRowCount (gLogD D (σ (.n 1)))) σ Vn
+  dvWitNAt (daRowCount (gLogD D (σ (.n (val% «da_verify» "n_blob_g"))))) σ Vn
 
 theorem dvWitND_tables : dvWitND discreteLogTables = dvWitN := by
   funext σ Vn

@@ -83,7 +83,7 @@ theorem l10_next {x N rounds tabs rkb cprod cur : E} {rets : List E} {j : ℕ}
     simp only [Tables.l10Body, Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at hbody
     obtain ⟨m6, m7, m8, m9, m10, l11, -, hcall, -, -, l13, -⟩ := hbody
     simp only [Atom.Holds] at m6 m7 m8 m9 m10 l11 l13
-    have e10 : σ (.n 10) = σ (.n 2) * σ (.n 0) ^ 7 := by rw [m10, m9, m8, m7, m6]; ring
+    have e10 : σ (.n (val% «verify_tables_loop0» "rd")) = σ (.n (val% «verify_tables_loop0» "zc_rounds")) * σ (.n (val% «verify_tables_loop0» "xk")) ^ 7 := by rw [m10, m9, m8, m7, m6]; ring
     have hm := (sumcheck_round4_holds rd _ _).mp (relN_le_rel coreProgram d _ _ _ hcall)
     simp only [MeaningSumcheckRound4] at hm
     obtain ⟨_, _, _, _, -, -, -, hrets⟩ := hm

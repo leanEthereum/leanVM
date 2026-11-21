@@ -287,7 +287,7 @@ and the tables' heights and the exponent tables in place, the push side's `54` b
 count side's `45` hold `g^` the `stackOffsets` offsets of their side's log-sizes in `block_off`. -/
 theorem vt_sort {σ : Val} (h : VtH Lm.read σ) {lm : ℕ} {τ : ℕ → ℕ} (hlm : lm ≤ 32)
     (hτ : ∀ t < 6, τ t < 33)
-    (hkb : ∀ i < 8, σ (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0)
+    (hkb : ∀ i < 8, σ (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0)
     (hE : ExpTablesAt Lm.read (σ (.n (val% «verify_tables» "g_squares")))) :
     (∀ x < 54, σ (.n (vtBoffV x)) =
       gen ^ (stackOffsets ((List.range 54).map (vtKap lm τ))).1.getD x 0) ∧

@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B1.Opening.QueriesMain
 public import LeanVM.Guest.Memory.Straight
 public import LeanVM.Guest.B1.Opening.WalkMatch
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«walk_path__L»
 
 /-!
 # The statements of `opening_queries`, by kind
@@ -273,8 +275,8 @@ theorem oqQuery_atoms_ok {s : Oq} (x bp cap flags coefs hs : V) (b : ℕ) (emit 
 
 /-- **Every statement of `walk_path`'s body but its return is an atom of its kind** or a `match`. -/
 theorem wp_atoms_ok (s : Oq) :
-    AtomsOk (OqWAtomOk s (.n 2) wpCh) (oqPathT s (.n 2) (wpPr s) 0 wpCh ++
-      oqCapT s (.n 2) (.n 3) (.n 4) 0 wpCh) :=
+    AtomsOk (OqWAtomOk s (.n (valf% «walk_path» "wins")) wpCh) (oqPathT s (.n (valf% «walk_path» "wins")) (wpPr s) 0 wpCh ++
+      oqCapT s (.n (valf% «walk_path» "wins")) (.n (valf% «walk_path» "cap")) (.n (valf% «walk_path» "flags")) 0 wpCh) :=
   atomsOk_append (ok_pathT _ _ _ _ _) (ok_capT _ _ _ _ _ _)
 
 end

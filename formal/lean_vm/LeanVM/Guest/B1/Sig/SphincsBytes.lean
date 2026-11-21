@@ -133,7 +133,7 @@ theorem sFromBytes_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} (hbb 
 theorem sMarks_length (b n : Nat) : (sMarks b n).2.length = n - 1 := by simp [sMarks]
 
 /-- **`sp_from_bytes` of `n ≤ 8` hinted bytes, sound**: a word below `2^(8 n)`. -/
-theorem sFromMarks_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} (hbb : ByteBits L.read (σ (.n 1)))
+theorem sFromMarks_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ} (hbb : ByteBits L.read (σ (.n (val% «verify_sig_lean_sphincs» "byte_bits"))))
     {b n x : Nat} (hn : 1 ≤ n) (hn8 : n ≤ 8) (h : AtomsHold L.read σ (sFromMarks b n x).1) :
     ∃ N, σ (sFromMarks b n x).2.2 = eOfNat N ∧ N < 2 ^ (8 * n) := by
   have hl : (sMarks b n).2.length + 1 = n := by rw [sMarks_length]; omega

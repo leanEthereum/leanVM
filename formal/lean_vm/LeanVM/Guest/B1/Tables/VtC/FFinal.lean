@@ -96,7 +96,7 @@ theorem vt_forms_valF {rd : Reader} {σ : Val} (hF : VtF rd σ) (bc : List K)
 `air_acc`. -/
 theorem vt_asm_finalF {rd : Reader} {σ : Val} (hV : VtF rd σ) (bc : List K)
     (hbc : bc.length = 2 ^ 23) {point : List E} {lm : ℕ} {rows : List ℕ} (hr : rows.length = 6)
-    (hkbt : ∀ t < 6, σ (.n (28 + t)) = gen ^ vtHt rows t)
+    (hkbt : ∀ t < 6, σ (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ vtHt rows t)
     (hP : ∀ i < 51, σ (.n (vtPushPadData.getD i default).2.2.1) =
       blockSel (vtSizesP lm (vtHt rows)) point.length (3 + i) point)
     (hC : ∀ i < 45, σ (.n (vtCountPadData.getD i default).2.2.1) =
@@ -131,9 +131,9 @@ theorem vt_asm_finalF {rd : Reader} {σ : Val} (hV : VtF rd σ) (bc : List K)
   set Wt := tableWeights (tableHeightsOf rows) point pts.reverse with hWt
   have hW6 : Wt.length = 6 := by rw [hWt, length_tableWeights, hH6]
   -- the weights
-  have hwt : ∀ t < 6, ∀ {x cp pe : E}, σ (.n (val% «verify_tables» "g_zc_n")) = x * σ (.n (28 + t)) →
+  have hwt : ∀ t < 6, ∀ {x cp pe : E}, σ (.n (val% «verify_tables» "g_zc_n")) = x * σ (.n ((val% «verify_tables» "kb[2]") + t)) →
       LoadHolds rd (σ (.n (val% «verify_tables» "zc_cprod")) * x) 0 cp →
-      LoadHolds rd (σ (.n (val% «verify_tables» "zc_peq")) * σ (.n (28 + t))) 0 pe → Wt.getD t 0 = cp * pe := by
+      LoadHolds rd (σ (.n (val% «verify_tables» "zc_peq")) * σ (.n ((val% «verify_tables» "kb[2]") + t))) 0 pe → Wt.getD t 0 = cp * pe := by
     intro t ht x cp pe hx hcpL hpeL
     exact vt_weight_guest hpl hnp hcp hpe hchi hz1 hgn (by rw [hH6]; exact ht) (hhn t ht) hx
       (hkbt t ht) hcpL hpeL

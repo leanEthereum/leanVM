@@ -93,7 +93,7 @@ theorem vs_loads {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
   rw [← hσ] at h84 h85 h86
   have hdims : ReadsAt rd (w 71) (vsDimsW S.logMem S.hs) := by
     rw [hw, vsW_a (i := 3) (a := 71) (by norm_num) rfl]; exact (hB _ (vs_own_mem S b (i := 3) (by norm_num)))
-  have hkb : ∀ s < 8, σ (.n (84 + s)) = gen ^ ([0, S.logMem] ++ S.hs).getD s 0 := by
+  have hkb : ∀ s < 8, σ (.n ((val% «verify_sub» "kb[0]") + s)) = gen ^ ([0, S.logMem] ++ S.hs).getD s 0 := by
     intro s hs
     rw [← S.kb_pow hbl hs]
     rcases s with _ | _ | t

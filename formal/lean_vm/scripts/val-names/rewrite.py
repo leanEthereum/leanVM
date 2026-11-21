@@ -8,8 +8,9 @@ For each file it finds the one core function whose body the file reads (`fn% «f
 `Fn.«f».core`, `idx% «f»`, `find? "name"`, and the templates tied to a body anywhere; `--fn F` or the
 map (`--fn-map`, by default `scripts/val-names/fnmap.tsv`) names it when the source does not, a
 person's decision: `FILE F`, `FILE@decl F`, or
-`tie T F` for a template the source ties by a check the tool cannot read, `F` a function or a family
-`f__L` (every specialization of `f`) or `f__L_loop0` (their loops); `--suggest` lists the candidates
+`tie T F` for a template the source ties by a check the tool cannot read, `F` a function, a family
+`f__L` (every specialization of `f`) or `f__L_loop0` (their loops), or functions `f,g` one template
+serves (named where their names agree); `align NAME F` for a list whose positions are `F`'s body's; `--suggest` lists the candidates
 and their evidence) and
 classifies
 every integer literal outside comments:
@@ -27,8 +28,14 @@ every integer literal outside comments:
   named argument elsewhere (`(b := 88)`, `(m := 8)`) is a bare literal, flagged;
 * `value (family)` over every specialization of one source function `f__L…` a template is tied to:
   `valf% «f» "name"` (their common number);
-* `position`: `drop`/`take` of a body (`(fn% «f»).body.drop k`, `Fn.body … |>.drop`): written
-  `pos% «f» "name"`, by the first value the statement at `k` names;
+* `position`: `drop`/`take`/`getD` of a body (`(fn% «f»).body.drop k`) or of a list the map aligns
+  with one (`align vtPre verify_tables`, also `vtPre_drop k`): written `pos% «f» "name"`, by the
+  first value the statement at `k` names (its source name where it has one; `ret`, the final
+  `ret`); a `take` or `drop` after a `drop` by a known position, a number of statements:
+  `span% «f» "a" "b"` (`take (b - a)` keeps its shape, `pos% «f» "b" - pos% «f» "a"`);
+* `argument value`: also a builder's value argument (`lyCap 46`, `chT cur off 156 i`, `BUILDERS`);
+* `base value`: the numeral of `.n (304 + j)` where `j`'s innermost binder runs it from zero
+  (`(List.range n).map fun j`, `∀ j < n`): the value at zero, named;
 * `flagged`: a value or position the tool cannot name for certain (no single function, a
   parametric index `.n (b + 6)`, a position relative to another, a statement naming no new value, a
   number past the function's values), and every other literal of 3 digits or more outside a word, a
@@ -45,6 +52,7 @@ Run from `lean_vm`; then `scripts/val-names/gen.py` writes the names' data.
 import os, re, subprocess, sys
 
 DUMP = None
+SPATH = {}
 
 
 def load_names(dump):
@@ -55,6 +63,13 @@ def load_names(dump):
     for line in text.splitlines():
         f, kind, i, n = line.split("\t")
         {"v": vals, "n": src, "s": stmts}[kind].setdefault(f, {})[int(i)] = n
+    # a statement by the source name of the first value it names, where that has one (its path kept,
+    # for the citations that spell it)
+    for f, t in stmts.items():
+        SPATH[f] = {n: k for k, n in t.items()}
+        idx = {n: i for i, n in vals.get(f, {}).items()}
+        for k, n in t.items():
+            if n in idx and src.get(f, {}).get(idx[n], "ret") != "ret": t[k] = src[f][idx[n]]
     # a value's source name where it has one, else its expansion path
     for f, t in src.items():
         for i, n in t.items():
@@ -262,10 +277,41 @@ ARGS = [re.compile(r'\bCompletes\w*\s+[^\s()]+\s+[^\s()]+\s+(\d+)\s+(\d+)\b'),
         re.compile(r'\bCompletes\w*\.append\s+\(m\s*:=\s*(\d+)\)'),
         re.compile(r'∀\s*(\w+)\s*<\s*(\d+)\s*,\s*σ\w*\s*\(\.n\s+\1\)')]
 
+# builders whose arguments at these places are value numbers (a block's first value, `lyOuts b`)
+BUILDERS = {"lyCap": [0], "lyOuts": [0], "glCap": [0], "chB": [0], "chRate": [0], "chWords": [1],
+            "chT": [2], "chValT": [0, 1, 2, 3, 5], "fsNextT": [2], "fsNonceT": [2],
+            # a valuation by value number, `wo k` (`verify_tables`' `vtσ rd wo args (.n k) = wo k`)
+            "wo": [0]}
+BUILDER = re.compile(r'(?<![\w.\'])(' + "|".join(BUILDERS) + r')(?![\w\'])')
+
+
+def builder_args(code, i, n):
+    """The first `n` arguments after position `i`: (start, end, text)."""
+    out = []
+    while len(out) < n:
+        j = i
+        while j < len(code) and code[j] in " \t\n": j += 1
+        if j >= len(code) or code[j] in ",)]}⟩|:=" or code.startswith(("++", "with", "by", "then", "else"), j): break
+        if code[j] == "(":
+            e = paren_span(code, j)
+            if e < 0: break
+            out.append((j, e + 1, code[j:e + 1])); i = e + 1
+        else:
+            m = re.match(r'[^\s()\[\],]+', code[j:])
+            if not m: break
+            out.append((j, j + m.end(), m.group(0))); i = j + m.end()
+    return out
+
+
 NUM = re.compile(r'(?<![\w.\'])(\d+)(?![\w.])')
 VAL1 = re.compile(r'(?<![\w])(V\.n|\.n)\s+(\d+)(?![\w.])')
 VALP = re.compile(r'(?<![\w])(V\.n|\.n)\s+\(')
 POS = re.compile(r'(\.drop|\.take|\bdrop|\btake)\s+(\d+)(?![\w.])')
+# a position or a length spelled as a difference of positions: `take (5523 - 2683)`
+POSD = re.compile(r'(\.take)\s+\((\d+)\s*-\s*(\d+)\)')
+# a position on a body or an aligned list (`getD k`), or a lemma's position argument (`vtPre_drop k`)
+POSG = re.compile(r'(\.getD)\s+(\d+)(?![\w.])')
+PCITE = re.compile(r'\(pos%\s+«([A-Za-z0-9_]+)»\s+"([^"]+)"\)')
 
 
 def paren_span(s, i):
@@ -286,7 +332,7 @@ def family_key(g):
     return m.group(1) + "__L" + m.group(2) if m else None
 
 
-def classify(path, src, overrides, vals, stmts, cnames, ties, families, where):
+def classify(path, src, overrides, vals, stmts, cnames, ties, families, where, aligned=None):
     code, doc = mask_comments(src)
     filefs = functions(code, cnames)
     spans = decls(code)
@@ -351,6 +397,23 @@ def classify(path, src, overrides, vals, stmts, cnames, ties, families, where):
             if len(fs) > 1 and set(fs) <= families.get(k, set()): return ("family", k), None
         return None, ("no function" if not fs else f"{len(fs)} functions " + ",".join(sorted(fs)[:3]) + ",…")
 
+    def from_zero(i, v):
+        """Whether the innermost binder of `v` before `i` in its declaration makes it run from zero:
+        `(List.range n).map fun v`, `∀ v < n`, `∀ v ∈ List.range n`, `(v : Fin n)`."""
+        for a, b, n in spans:
+            if a <= i < b:
+                t, e = code[a:i], re.escape(v)
+                binders = [m.start() for m in re.finditer(r'(?:\b(?:fun|intro|rintro|obtain|rcases|let|have|set)\b|λ|∀|∃)[^,=↦:]*?(?<![\w.\'])' + e + r'(?![\w\'])|\(\s*' + e + r'\s*:', t)]
+                if not binders: return False
+                k = binders[-1]
+                w = t[max(0, k - 40):k + 60]
+                q = k - max(0, k - 40)
+                pats = [r'List\.range\s+[^\s()]+\)\s*\.(?:map|flatMap|forall|all|any)\s+\(?\s*(?:fun|λ)\s+' + e + r'\b',
+                        r'∀\s*' + e + r'\s*<', r'∀\s*\(' + e + r'\s*:\s*ℕ\)\s*,\s*' + e + r'\s*<',
+                        r'∀\s*' + e + r'\s*∈\s*List\.range\b', r'\(' + e + r'\s*:\s*Fin\b']
+                return any(m.start() <= q + 2 and m.end() > q for pat in pats for m in re.finditer(pat, w))
+        return False
+
     def name_of(f, k, kind="value"):
         """The name of value `k` of `f` (or of every function of a family), or why there is none."""
         fs = tuple(sorted(families[f[1]])) if f[0:1] == ("family",) else f if isinstance(f, tuple) else (f,)
@@ -379,6 +442,9 @@ def classify(path, src, overrides, vals, stmts, cnames, ties, families, where):
     for m in VAL1.finditer(code):
         k, a, b = int(m.group(2)), m.start(2), m.end(2)
         claimed.add(a)
+        # a default (`l.getD i (.n 0)`), no value
+        if re.search(r'getD\s+(?:[^\s()]+|\([^()]*\))\s*\(\s*$', code[max(0, m.start() - 60):m.start()]):
+            rows.append((line(a), "other", m.group(2), "a default")); continue
         f, why_f = fn_at(a)
         if not f:
             rows.append((line(a), "flagged", m.group(2), "value; " + why_f)); continue
@@ -411,6 +477,18 @@ def classify(path, src, overrides, vals, stmts, cnames, ties, families, where):
         # base the tool cannot name
         terms = [t.strip() for t in re.split(r'\+(?![^()]*\))', inner)]
         strided = all(re.fullmatch(r'\d+', t) or re.fullmatch(r'\d+\s*\*\s*[\w\'.]+|[\w\'.]+\s*\*\s*\d+', t) for t in terms)
+        # a base and a variable that runs from zero (`.n (304 + j)` under `(List.range 51).map fun j`,
+        # `∀ k < 5`): the base is the value at zero, named
+        bm = re.fullmatch(r'\s*(\d+)\s*\+\s*([a-z][\w\']*)\s*|\s*([a-z][\w\']*)\s*\+\s*(\d+)\s*', inner)
+        if bm and f:
+            x, v = (bm.group(1), bm.group(2)) if bm.group(1) else (bm.group(4), bm.group(3))
+            if from_zero(o, v):
+                a = o + 1 + inner.index(x)
+                name, why = name_of(f, int(x), "base value")
+                if name:
+                    rows.append((line(a), "base value", x, name))
+                    edits.append((a, a + len(x), "(" + cite(f, name) + ")"))
+                    continue
         for a, x in lits:
             j = a - (o + 1)
             left, right = inner[:j].rstrip(), inner[j + len(x):].lstrip()
@@ -421,6 +499,19 @@ def classify(path, src, overrides, vals, stmts, cnames, ties, families, where):
             # the numeral is the index at zero only if zero is in the template's range, which the
             # text does not say (`4 * k + 76` serves `k ≥ 1`): flagged, never named
             rows.append((line(a), "flagged", x, "strided base " + inner.strip()))
+    # a builder's value arguments (`lyCap 46`, `chT cur off 156 i`)
+    for m in BUILDER.finditer(code):
+        for gi, (a, b, t) in enumerate(builder_args(code, m.end(), max(BUILDERS[m.group(1)]) + 1)):
+            if gi not in BUILDERS[m.group(1)] or not t.isdigit() or a in claimed: continue
+            claimed.add(a)
+            f, why_f = fn_at(a)
+            if not f:
+                rows.append((line(a), "flagged", t, "argument value; " + why_f)); continue
+            name, why = name_of(f, int(t), "argument value")
+            if not name:
+                rows.append((line(a), "flagged", t, why)); continue
+            rows.append((line(a), "argument value", t, name))
+            edits.append((a, b, "(" + cite(f, name) + ")"))
     # literals in argument places that hold a value's number (`Completes C rd lo hi`, `AgreeBelow k`,
     # a template's base `(b := k)`, `NBv k`, `∀ k < n, σ …`)
     for pat in ARGS:
@@ -437,6 +528,98 @@ def classify(path, src, overrides, vals, stmts, cnames, ties, families, where):
                     rows.append((line(a), "flagged", m.group(gi), why)); continue
                 rows.append((line(a), "argument value", m.group(gi), name))
                 edits.append((a, b, "(" + cite(f, name) + ")"))
+    aligned = aligned or {}
+    spos = {f: {**SPATH.get(f, {}), **{n: k for k, n in t.items()}} for f, t in stmts.items()}
+
+    def receiver(i):
+        """The list a `.drop`/`.take`/`.getD` at `i` is applied to, as (function, start): a body or an
+        aligned list (`align NAME F`: positions in `NAME` are `F`'s, `vtPre`), start `0`, or a `drop`
+        of one by a known position, its start that position; else None."""
+        # the source, not the masked code: a citation's name is a string
+        t = src[:i].rstrip()
+        if t.endswith(")"):
+            d, j = 0, len(t) - 1
+            while j >= 0:
+                d += {")": 1, "(": -1}.get(t[j], 0)
+                if d == 0: break
+                j -= 1
+            r = t[j + 1:-1]
+        else:
+            r = re.search(r'[\w.\'«»%]*$', t).group(0)
+        return rec(r)
+
+    def rec(r):
+        r = r.strip()
+        while r.startswith("(") and r.endswith(")") and paren_span(r, 0) == len(r) - 1: r = r[1:-1].strip()
+        if r in aligned: return aligned[r], 0
+        m = re.fullmatch(r'(?:Fn\.body\s+)?\(?\s*(?:fn%|core%)\s+«([A-Za-z0-9_]+)»\s*\)?(?:\s*\.body|\s+body)?', r) or \
+            re.fullmatch(r'\(?Fn\.«([A-Za-z0-9_]+)»\.core\)?\.body', r)
+        if m: return m.group(1), 0
+        m = re.fullmatch(r'(.*?)\s*\.drop\s+(\d+|\(.*\))', r, re.S)
+        if not m: return None
+        base = rec(m.group(1))
+        if not base: return None
+        f, st = base
+        k = m.group(2)
+        if k.isdigit(): return f, st + int(k)
+        c = re.findall(r'pos%\s+«([A-Za-z0-9_]+)»\s+"([^"]+)"', k)
+        if any(g != f for g, _ in c): return None
+        ps = [spos.get(f, {}).get(n) for _, n in c]
+        if None in ps: return None
+        if len(ps) == 1 and st == 0 and re.fullmatch(r'\(\s*pos%[^()]*\)', k): return f, ps[0]
+        if len(ps) == 2 and ps[1] == st and re.fullmatch(r'\(\s*pos%[^()-]*-\s*pos%[^()]*\)', k): return f, ps[0]
+        s2 = re.fullmatch(r'\(\s*span%\s+«([A-Za-z0-9_]+)»\s+"([^"]+)"\s+"([^"]+)"\s*\)', k)
+        if s2 and s2.group(1) == f and spos.get(f, {}).get(s2.group(2)) == st and s2.group(3) in spos.get(f, {}):
+            return f, spos[f][s2.group(3)]
+        return None
+
+    def pos_name(f, k):
+        return stmts.get(f, {}).get(k)
+
+    # positions on an aligned list or a body: `drop k`, `getD k`, `take k`, and a `take` after a
+    # `drop` (a length: `take (pos% B - pos% A)`), `take (B - A)`, `NAME_drop k`
+    for m in POSD.finditer(code):
+        a, b = m.start(2), m.end(3)
+        rc = receiver(m.start())
+        if not rc: continue
+        f, st = rc
+        claimed.add(m.start(2)); claimed.add(m.start(3))
+        hi, lo = int(m.group(2)), int(m.group(3))
+        nh, nl = pos_name(f, hi), pos_name(f, lo)
+        if nh is None or nl is None:
+            rows.append((line(a), "flagged", f"{hi} - {lo}", f"statement {hi if nh is None else lo} of {f} names no new value")); continue
+        rows.append((line(a), "position", f"{hi} - {lo}", f"{nh} - {nl}"))
+        # kept a difference, as the source wrote it: a proof may rewrite with that shape
+        edits.append((m.start(2) - 1, m.end(3) + 1, f'(pos% «{f}» "{nh}" - pos% «{f}» "{nl}")')); used.add(f)
+    alias = [x for x in aligned]
+    lemma = re.compile(r'\b(' + "|".join(map(re.escape, alias)) + r')_drop\s+(\d+)(?![\w.])') if alias else None
+    for m in (list(POS.finditer(code)) + list(POSG.finditer(code)) + (list(lemma.finditer(code)) if lemma else [])):
+        a, b = m.start(2), m.end(2)
+        if a in claimed or not m.group(1).startswith(".") and not m.group(1) in aligned: continue
+        if m.group(1) in aligned: rc = (aligned[m.group(1)], 0)
+        else: rc = receiver(m.start())
+        if not rc: continue
+        f, st = rc
+        k = int(m.group(2))
+        claimed.add(a)
+        # the start, and one statement, are no position a renumbering moves
+        if k == 0 or m.group(1) == ".take" and st and k == 1:
+            rows.append((line(a), "other", m.group(2), "small")); continue
+        if m.group(1) in (".take", ".drop") and st:
+            hi, lo = st + k, st
+            nh, nl = pos_name(f, hi), pos_name(f, lo)
+            if nh is None or nl is None:
+                rows.append((line(a), "flagged", m.group(2), f"length: statement {hi if nh is None else lo} of {f} names no new value")); continue
+            rows.append((line(a), "position", m.group(2), f"{nh} - {nl}"))
+            edits.append((a, b, f'(span% «{f}» "{nl}" "{nh}")')); used.add(f)
+            continue
+        if st:
+            rows.append((line(a), "flagged", m.group(2), "position relative to a drop")); continue
+        name = pos_name(f, k)
+        if name is None:
+            rows.append((line(a), "flagged", m.group(2), f"statement {k} of {f} names no new value")); continue
+        rows.append((line(a), "position", m.group(2), name))
+        edits.append((a, b, f'(pos% «{f}» "{name}")')); used.add(f)
     # positions: `drop k` / `take k`
     for m in POS.finditer(code):
         a, b = m.start(2), m.end(2)
@@ -539,18 +722,22 @@ def main():
     ties, where = global_ties()
     # the map: `FILE F` (the file's function), `FILE@decl F` (a declaration's), `tie T F` (a
     # template the source ties by a check the tool cannot read); `F` a function or a family `f__L…`
-    fnmap = {}
+    fnmap, aligned = {}, {}
     mp = args[args.index("--fn-map") + 1] if "--fn-map" in args else os.path.join(os.path.dirname(__file__), "fnmap.tsv")
     if os.path.exists(mp):
         for l in open(mp, encoding="utf-8"):
             if not l.strip() or l.startswith("#"): continue
             w = l.split()
+            if w[0] == "align":
+                aligned[w[1]] = w[2]
+                continue
             if w[0] == "tie":
                 if w[1] in where: ties[w[1]] = set(families.get(w[2], {w[2]}))
                 else: print(f"tie {w[1]}: no definition of that name in one file", file=sys.stderr)
                 continue
             f, _, d = w[0].partition("@")
-            fnmap.setdefault(f, {})[d] = w[1]
+            # `f,g`: one template of the functions `f`, `g` (`val% «f» «g» "name"`, where their names agree)
+            fnmap.setdefault(f, {})[d] = tuple(w[1].split(",")) if "," in w[1] else w[1]
     if fn:
         for p in files: fnmap.setdefault(p, {}).setdefault("", fn)
     # the ties the map adds reach the templates they name
@@ -565,7 +752,7 @@ def main():
     out = open(report, "a", encoding="utf-8") if report else None
     for p in files:
         src = open(p, encoding="utf-8").read()
-        f, rows, edits = classify(p, src, fnmap.get(p, {}), vals, stmts, cnames, ties, families, where)
+        f, rows, edits = classify(p, src, fnmap.get(p, {}), vals, stmts, cnames, ties, families, where, aligned)
         if suggest and any("no function" in r[3] for r in rows):
             print(f"{p}: candidates " + "; ".join(f"{g} ({why})" for g, why in candidates(p, src, vals, cnames)))
         c = {}

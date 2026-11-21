@@ -291,7 +291,7 @@ theorem lq_placedEP (fs : String → ℕ) (cert : String → V → ℕ) {κ : �
   have hpl : PV.length = L := by rw [hPV, lqPowVals_length, hL, osPowLen]
   have hvA : ∀ i < (valf% «level_queries» "s7#1"), σ (.n i) = A.getD i 0 := fun i hi ↦ by
     rw [hv, hvals, List.getD_append _ _ _ _ (by rw [hAl]; exact hi)]
-  have hv17 : ∀ j < L, σ (.n (17 + j)) = PV.getD j 0 := by
+  have hv17 : ∀ j < L, σ (.n ((valf% «level_queries» "s7#1") + j)) = PV.getD j 0 := by
     intro j hj
     rw [hv, hvals, List.getD_append_right _ _ _ _ (by rw [hAl]; omega), hAl,
       show 17 + j - 17 = j by omega, List.getD_append _ _ _ _ (by rw [hpl]; exact hj)]

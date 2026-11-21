@@ -76,7 +76,7 @@ theorem holds_psRowAt {b r : ℕ} {kret : List E → Prop}
   obtain ⟨l0, e1, e2, e3, e4, h⟩ := h
   obtain ⟨hs, -⟩ := (holdsList_range_flatten 6 (psStage b) (psStage_noRet b) _ _).mp h
   have st : ∀ k < 6, σ (.n (b + 5 + 3 * k)) = σ (.n (b + 2 + 3 * k)) * σ (.n (b + 2 + 3 * k)) ∧
-      σ (.n (b + 6 + 3 * k)) = σ (.n (6 + k)) * σ (.n (b + 5 + 3 * k)) ∧
+      σ (.n (b + 6 + 3 * k)) = σ (.n ((val% «ring_switch_target_loop0» "g[2]") + k)) * σ (.n (b + 5 + 3 * k)) ∧
       σ (.n (b + 7 + 3 * k)) = σ (.n (b + 4 + 3 * k)) + σ (.n (b + 6 + 3 * k)) := by
     intro k hk
     have := hs k hk
@@ -177,7 +177,7 @@ theorem holds_hzRowAt {a p : ℕ} (hp : p < 8) {kret : List E → Prop}
 
 /-- `ring_switch_target_loop0`'s body. -/
 def loop13T : List Stmt :=
-  ((List.range 8).map fun b ↦ [.atom (.load (.n (4 + b)) (.n (val% «ring_switch_target_loop0» "map_challenges")) (8 + b))]).flatten ++
+  ((List.range 8).map fun b ↦ [.atom (.load (.n ((val% «ring_switch_target_loop0» "g[0]") + b)) (.n (val% «ring_switch_target_loop0» "map_challenges")) (8 + b))]).flatten ++
   [.atom (.mul (.n (val% «ring_switch_target_loop0» "rows~0")) (.n (val% «ring_switch_target_loop0» "x_round")) (.n (val% «ring_switch_target_loop0» "x_round"))), .atom (.mul (.n (val% «ring_switch_target_loop0» "rows~1")) (.n (val% «ring_switch_target_loop0» "rows~0")) (.n (val% «ring_switch_target_loop0» "rows~0"))),
     .atom (.mul (.n (val% «ring_switch_target_loop0» "rows~2")) (.n (val% «ring_switch_target_loop0» "rows~1")) (.n (val% «ring_switch_target_loop0» "rows~1"))), .atom (.mul (.n (val% «ring_switch_target_loop0» "rows")) (.n (val% «ring_switch_target_loop0» "slices")) (.n (val% «ring_switch_target_loop0» "rows~2")))] ++
   ((List.range 8).map psRow).flatten ++
@@ -316,7 +316,7 @@ theorem holds_tbBlock {p : ℕ} {kret : List E → Prop}
 def rstT : List Stmt :=
   [.atom (.hint (.alloc (.n (val% «ring_switch_target» "rs_chain")) 72))] ++
   ((List.range 8).map fun p ↦
-    [Stmt.atom (.const (.n (3 + p)) (word 0 0)), .atom (.load (.n (3 + p)) (.n (val% «ring_switch_target» "rs_chain")) p)]).flatten ++
+    [Stmt.atom (.const (.n ((val% «ring_switch_target» "s1.u0.s0#0") + p)) (word 0 0)), .atom (.load (.n ((val% «ring_switch_target» "s1.u0.s0#0") + p)) (.n (val% «ring_switch_target» "rs_chain")) p)]).flatten ++
   [.atom (.const (.n (val% «ring_switch_target» "s2#0")) (word 1 0)), .call name% «ring_switch_target_loop0» [.n (val% «ring_switch_target» "s2#0"), .n (val% «ring_switch_target» "map_challenges"), .n (val% «ring_switch_target» "slices"),
       .n (val% «ring_switch_target» "rs_chain")] [],
     .atom (.const (.n (val% «ring_switch_target» "sums~0")) (word 27 0)), .atom (.mul (.n (val% «ring_switch_target» "sums")) (.n (val% «ring_switch_target» "rs_chain")) (.n (val% «ring_switch_target» "sums~0"))),

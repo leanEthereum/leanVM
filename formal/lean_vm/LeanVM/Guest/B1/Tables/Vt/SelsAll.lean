@@ -150,7 +150,7 @@ theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
     (hz : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "zeta"))) point) (hmu : σ (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length)
     (hml : point.length < 33) (hE : ExpTablesAt Lm.read (σ (.n (val% «verify_tables» "g_squares")))) {lm : ℕ}
     (hlm : lm ≤ 32) {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t < 33)
-    (hkb : ∀ i < 8, σ (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) :
+    (hkb : ∀ i < 8, σ (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) :
     lm ≤ point.length ∧ 19 ≤ point.length ∧
       σ (.n (val% «verify_tables» "eq_hi@1")) = blockSel (vtSizesP lm τ) point.length 0 point ∧
       σ (.n (val% «verify_tables» "eq_hi@2")) = blockSel (vtSizesP lm τ) point.length 1 point ∧
@@ -173,7 +173,7 @@ theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
     vt_stackOffsets_lt _ (by rw [vtSizesC_length]; norm_num) (vtSizesC_le lm τ hlm hτ)
   have hz1 := vt_zeta1 h hz hmu (by omega)
   have hidxc := vt_idxc h
-  have hkbt : ∀ t < 6, σ (.n (28 + t)) = gen ^ τ t := fun t ht => by
+  have hkbt : ∀ t < 6, σ (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ τ t := fun t ht => by
     have := hkb (2 + t) (by omega)
     rwa [show 26 + (2 + t) = 28 + t by omega, Nat.add_comm 2 t, vt_tau_getD lm τ ht] at this
   -- the framework blocks

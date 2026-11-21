@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Opening.QueriesPops
 public import LeanVM.Guest.B1.Main.RelAtInP
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«opening_queries__L_loop0»
+import LeanVM.Guest.Data.ValNames.«walk_path__L»
 
 /-!
 # The opening's walks and level-0 loop, placed with their pops
@@ -50,7 +51,7 @@ theorem wp_relAtInP (hP : coreProgram.Wf) (fs : String → ℕ) (cert : String �
   obtain ⟨fn, hf, hp, hb⟩ := hW
   set σ : Val := fun v ↦ w.val v.idx with hσ
   have hv : w.Hv σ := fun _ ↦ rfl
-  set pre := oqPathT w.s (.n 2) (wpPr w.s) 0 wpCh ++ oqCapT w.s (.n 2) (.n 3) (.n 4) 0 wpCh with hpre
+  set pre := oqPathT w.s (.n (valf% «walk_path» "wins")) (wpPr w.s) 0 wpCh ++ oqCapT w.s (.n (valf% «walk_path» "wins")) (.n (valf% «walk_path» "cap")) (.n (valf% «walk_path» "flags")) 0 wpCh with hpre
   have hok := wp_atoms_ok w.s
   have hA : BlockOkC anyCall rd σ pre :=
     blockOkC_of_blockOk (w.walk_block hpd hcd hsl hq hv hm)

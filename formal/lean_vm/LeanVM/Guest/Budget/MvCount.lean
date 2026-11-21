@@ -23,6 +23,8 @@ public import LeanVM.Guest.GuestConst
 public import LeanVM.Guest.B1.Main.MainGoalsClT
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Consts
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_pad»
 
 /-!
 # `da_verify`'s and the claim lists' instructions
@@ -134,7 +136,7 @@ theorem loop_at {ω : String → ℕ} {f : String} {K : ℕ} (hL : LoopWeightLe 
 /-! ## The padding -/
 
 theorem pad_calls (σ : Val) : B1.flatCalls B1.Da.dpadBody.dropLast σ =
-    [Memory.mkCall σ (some (.n 4), name% «da_pad_loop0», [.n 5, .n 2, .n 0, .n 1], [])] := rfl
+    [Memory.mkCall σ (some (.n (val% «da_pad» "s0#1")), name% «da_pad_loop0», [.n (val% «da_pad» "s0#2"), .n (val% «da_pad» "gap_g"), .n (val% «da_pad» "roots"), .n (val% «da_pad» "n_blob_g")], [])] := rfl
 
 /-- The padding loop's instructions per iteration. -/
 def kcPad : ℕ := (kcDvLpT op).getD 1 0

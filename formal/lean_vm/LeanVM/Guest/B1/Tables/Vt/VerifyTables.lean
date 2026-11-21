@@ -86,7 +86,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     rw [this]
     simp [vtTauList]
   rw [hds] at hdims
-  have hkb : ∀ i < 8, σ (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0 := by
+  have hkb : ∀ i < 8, σ (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0 := by
     obtain ⟨k0, kl⟩ := vt_kb h
     intro i hi
     rcases i with _ | i
@@ -99,7 +99,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
         simp only [List.getElem_cons_succ, List.getElem_map, List.cons_append, List.nil_append,
           List.getD_cons_succ]
         rw [List.getD_eq_getElem _ _ (by simp [vtTauList]; omega)]
-  have hkbt : ∀ t < 6, σ (.n (28 + t)) = gen ^ vtHt rows t := fun t ht => by
+  have hkbt : ∀ t < 6, σ (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ vtHt rows t := fun t ht => by
     have := hkb (2 + t) (by omega)
     rwa [show 26 + (2 + t) = 28 + t by omega, Nat.add_comm 2 t, vt_tau_getD lm _ ht] at this
   -- the round count and the table sumcheck
@@ -168,7 +168,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     simp only [dot, List.drop_succ_cons, List.drop_zero, List.zipWith_cons_cons,
       List.zipWith_nil_left, List.foldl_cons, List.foldl_nil]
     ring
-  have hs1 : (⟨(List.range 5).map fun k ↦ σ (.n (2642 + k)), []⟩ : Fs) = ⟨vtCapV σ 0, []⟩ := rfl
+  have hs1 : (⟨(List.range 5).map fun k ↦ σ (.n ((val% «verify_tables» "fs_load.sp[0]") + k)), []⟩ : Fs) = ⟨vtCapV σ 0, []⟩ := rfl
   have hn : L.tableLogHeights.foldl max 0 = n := vt_foldl_max hr hτn hτex
   have hsc : RunsTo (sumcheck (dot ((powers s0.squeeze.1 ((tables.map Table.nConstraints).sum +
       3)).drop (tables.map Table.nConstraints).sum) bus.totals) 4 (List.replicate n none))

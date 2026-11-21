@@ -59,7 +59,7 @@ theorem vkInT_holds {τ : ℕ} (h6 : σ (.n (val% «verify_keccak» "tau_g")) = 
   generalize hEQ : eqtreeT (.n (val% «verify_keccak» "z_vals")) (.n (val% «verify_keccak» "low_tree")) 39 1206 4 = EQ at h
   generalize hPD : pairsDotT (.n (val% «verify_keccak» "low_tree")) (.n (val% «verify_keccak» "claims")) (consecOffs 14 270 16) 1260 = PD at h
   generalize hSL : slicesT (.n (val% «verify_keccak» "cursor@16")) 1335 1340 = SL at h
-  generalize hCP : (List.range 5).map (fun j ↦ Stmt.atom (.copy (.n (1335 + j)) (.n (1328 + j)))) = CP at h
+  generalize hCP : (List.range 5).map (fun j ↦ Stmt.atom (.copy (.n ((val% «verify_keccak» "sp[0]@2") + j)) (.n ((val% «verify_keccak» "fs0@16") + j)))) = CP at h
   simp only [holdsList_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons,
     List.map_nil] at h
   obtain ⟨e75, e76, l77, e78, e79, hcall1, -, h⟩ := h

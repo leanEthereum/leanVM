@@ -61,14 +61,14 @@ def aggKi : List V := [.n (val% «aggregate_claims» "s15.i0:fs_perm_pending.s1#
   .n (val% «aggregate_claims» "sp[3]"), .n (val% «aggregate_claims» "sp[4]")]
 
 /-- The permutation's outputs. -/
-def aggKo : List V := (List.range 13).map fun i => .n (57 + i)
+def aggKo : List V := (List.range 13).map fun i => .n ((val% «aggregate_claims» "fs_perm_pending.nxt[0]") + i)
 
 /-- The nonce's permutation (`fs_absorb_nonce`): the nonce's two cells, the zero run, then the
 capacity of the last absorbing row's permutation. -/
 def aggNi : List V := permIns 1 [.n (val% «aggregate_claims» "nonce_rate[0]"), .n (val% «aggregate_claims» "nonce_rate[1]")] 74 [.n (val% «aggregate_claims» "fs_perm_pending.nxt[8]"), .n (val% «aggregate_claims» "fs_perm_pending.nxt[9]"), .n (val% «aggregate_claims» "fs_perm_pending.nxt[10]"), .n (val% «aggregate_claims» "fs_perm_pending.nxt[11]"), .n (val% «aggregate_claims» "fs_perm_pending.nxt[12]")]
 
 /-- The nonce permutation's outputs. -/
-def aggNo : List V := (List.range 13).map fun i => .n (78 + i)
+def aggNo : List V := (List.range 13).map fun i => .n ((val% «aggregate_claims» "fs_perm.nxt[0]") + i)
 
 /-- The nonce's `fs_pack` (`fsNonceT`) and the zero run (`padRunT`), as atoms. -/
 def aggNonceA : List Atom :=
@@ -76,7 +76,7 @@ def aggNonceA : List Atom :=
     .const (.n (val% «aggregate_claims» "s16.e.s1.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0")) (word 1 0), .const (.n (val% «aggregate_claims» "s16.e.s1.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[1]")) (word 0 0), .const (.n (val% «aggregate_claims» "s16.e.s1.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[2]")) (word 0 0),
     .const (.n (val% «aggregate_claims» "s16.e.s1.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[3]")) (word 0 0), .const (.n (val% «aggregate_claims» "s16.e.s1.i1:fs_absorb_nonce.s1.i0:fs_perm.s2.t.s0#0[4]")) (word 0 0)]
 
-theorem aggNonceA_eq : aggNonceA.map Stmt.atom = fsNonceT (.n (val% «aggregate_claims» "bc_msgs")) 0 70 ++ padRunT 73 := rfl
+theorem aggNonceA_eq : aggNonceA.map Stmt.atom = fsNonceT (.n (val% «aggregate_claims» "bc_msgs")) 0 (val% «aggregate_claims» "s16.e.s1#0") ++ padRunT 73 := rfl
 
 /-- **`aggregate_claims`' block, checked.** -/
 noncomputable def aggOk : Bool :=
@@ -84,8 +84,8 @@ noncomputable def aggOk : Bool :=
   let A := atomsIn P
   P.all Stmt.flat && decide ((fn% «aggregate_claims»).params = [.n (val% «aggregate_claims» "n_children_g"), .n (val% «aggregate_claims» "child_pi"), .n (val% «aggregate_claims» "child_fresh"), .n (val% «aggregate_claims» "child_carried"), .n (val% «aggregate_claims» "defer_stmt"),
       .n (val% «aggregate_claims» "tabs")]) &&
-  (List.range 5).all (fun i => A.any (isConstAt (.n (10 + i)) (seedLo.getD i (0, 0)).1
-    (seedLo.getD i (0, 0)).2) && A.any (isLoadAt (.n (10 + i)) (.n (val% «aggregate_claims» "absorb")) i)) &&
+  (List.range 5).all (fun i => A.any (isConstAt (.n ((val% «aggregate_claims» "seed[0]") + i)) (seedLo.getD i (0, 0)).1
+    (seedLo.getD i (0, 0)).2) && A.any (isLoadAt (.n ((val% «aggregate_claims» "seed[0]") + i)) (.n (val% «aggregate_claims» "absorb")) i)) &&
   packIn A (.n (val% «aggregate_claims» "n_children_g")) 15 &&
   (List.range 3).all (fun j => A.any (isConstAt (.n (17 + 2 * j)) 0 0) &&
     packIn A (.n (17 + 2 * j)) (17 + 2 * j)) &&
@@ -116,8 +116,8 @@ noncomputable def aggOk : Bool :=
       .n (val% «aggregate_claims» "bc_wsum"), .n (val% «aggregate_claims» "fs_perm.nxt[0]")] &&
   isMul A (.n (val% «aggregate_claims» "s32#0")) (.n (val% «aggregate_claims» "bc_wsum")) (.n (val% «aggregate_claims» "n_children_g")) && A.any (isLoadAt (.n (val% «aggregate_claims» "s32#1")) (.n (val% «aggregate_claims» "s32#0")) 0) &&
   isMul A (.n (val% «aggregate_claims» "s32#2")) (.n (val% «aggregate_claims» "bytecode_star")) (.n (val% «aggregate_claims» "s32#1")) && A.any (isAssertEqAt (.n (val% «aggregate_claims» "bc_running@2")) (.n (val% «aggregate_claims» "s32#2"))) &&
-  (List.range 23).all (fun k => A.any (isLoadAt (.n (193 + k)) (.n (val% «aggregate_claims» "bc_point")) k) &&
-    A.any (isLoadAt (.n (193 + k)) (.n (val% «aggregate_claims» "defer_stmt")) k)) &&
+  (List.range 23).all (fun k => A.any (isLoadAt (.n ((val% «aggregate_claims» "s33.u0.s0#0") + k)) (.n (val% «aggregate_claims» "bc_point")) k) &&
+    A.any (isLoadAt (.n ((val% «aggregate_claims» "s33.u0.s0#0") + k)) (.n (val% «aggregate_claims» "defer_stmt")) k)) &&
   A.any (isLoadAt (.n (val% «aggregate_claims» "bytecode_star")) (.n (val% «aggregate_claims» "defer_stmt")) 23)
 
 set_option maxRecDepth 100000 in

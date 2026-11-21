@@ -35,13 +35,13 @@ open LeanVM.Guest.B1.Da (limb0_gen_pow_mul)
 
 /-- `main_loop0`'s and `main_loop1`'s atoms. -/
 def mfA : List Stmt :=
-  [.atom (.mul (.n 4) (.n 3) (.n 0)), .atom (.mul (.n 5) (.n 4) (.n 4)), .atom (.mul (.n 6) (.n 5) (.n 5)),
-    .atom (.mul (.n 7) (.n 2) (.n 6)), .atom (.hint (.witness "dup_claims" (.heap (.n 7) 0 4))),
-    .atom (.const (.n 8) (word 2 0)), .atom (.mul (.n 9) (.n 0) (.n 8)), .atom (.add (.n 10) (.n 9) (.n 1)),
-    .atom (.const (.n 11) (word 2 0)), .atom (.mul (.n 12) (.n 0) (.n 11))]
+  [.atom (.mul (.n (val% «main_loop0» «main_loop1» "dup~0")) (.n 3) (.n (val% «main_loop0» «main_loop1» "xd"))), .atom (.mul (.n (val% «main_loop0» «main_loop1» "dup~1")) (.n (val% «main_loop0» «main_loop1» "dup~0")) (.n (val% «main_loop0» «main_loop1» "dup~0"))), .atom (.mul (.n (val% «main_loop0» «main_loop1» "dup~2")) (.n (val% «main_loop0» «main_loop1» "dup~1")) (.n (val% «main_loop0» «main_loop1» "dup~1"))),
+    .atom (.mul (.n (val% «main_loop0» «main_loop1» "dup")) (.n 2) (.n (val% «main_loop0» «main_loop1» "dup~2"))), .atom (.hint (.witness "dup_claims" (.heap (.n (val% «main_loop0» «main_loop1» "dup")) 0 4))),
+    .atom (.const (.n (val% «main_loop0» «main_loop1» "s3#0")) (word 2 0)), .atom (.mul (.n (val% «main_loop0» «main_loop1» "s3#1")) (.n (val% «main_loop0» «main_loop1» "xd")) (.n (val% «main_loop0» «main_loop1» "s3#0"))), .atom (.add (.n (val% «main_loop0» «main_loop1» "s3#2")) (.n (val% «main_loop0» «main_loop1» "s3#1")) (.n (val% «main_loop0» «main_loop1» "bound"))),
+    .atom (.const (.n (val% «main_loop0» «main_loop1» "s3#3")) (word 2 0)), .atom (.mul (.n (val% «main_loop0» «main_loop1» "s3#4")) (.n (val% «main_loop0» «main_loop1» "xd")) (.n (val% «main_loop0» «main_loop1» "s3#3")))]
 
 /-- The body of `main_loop0` (`f` its name) before its return. -/
-def mfPre (f : String) : List Stmt := mfA ++ [.callIf (.n 10) f [.n 12, .n 1, .n 2, .n 3]]
+def mfPre (f : String) : List Stmt := mfA ++ [.callIf (.n (val% «main_loop0» «main_loop1» "s3#2")) f [.n (val% «main_loop0» «main_loop1» "s3#4"), .n (val% «main_loop0» «main_loop1» "bound"), .n 2, .n 3]]
 
 theorem mfL1_body : (coreProgram.getD idx% «main_loop0» default).body = mfPre name% «main_loop0» ++ [.ret []] := by
   rw [show (coreProgram.getD idx% «main_loop0» default).body = core% «main_loop0» body from rfl,
@@ -67,7 +67,7 @@ theorem mfA_atoms : Sig.atomsOnly mfA = true := rfl
 /-- **A valid tree of a function of `main_loop0`'s body**, from the counter `g^j` below `n`, pops iterations
 `j ..< n`' entries. -/
 theorem mf_pops {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
-    (hp : fn.params = [.n 0, .n 1, .n 2, .n 3]) (hb : fn.body = mfPre f ++ [.ret []]) {n : ℕ} (hn : n < 2 ^ 34)
+    (hp : fn.params = [.n (val% «main_loop0» «main_loop1» "xd"), .n (val% «main_loop0» «main_loop1» "bound"), .n 2, .n 3]) (hb : fn.body = mfPre f ++ [.ret []]) {n : ℕ} (hn : n < 2 ^ 34)
     (rd : Reader) (a b : E) :
     ∀ m j, j + m = n → 0 < m → ∀ (t : Tree) rets, t.name = f → t.Valid coreProgram rd [gen ^ j, gen ^ n, a, b] rets →
       t.pops coreProgram rd = (List.range' j m).map (mfPop rd a b) := by
@@ -93,17 +93,17 @@ theorem mf_pops {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     obtain ⟨rfl, -⟩ := Out.ret.inj hws
     have hA : ∀ x, Stmt.atom x ∈ mfA → x.Holds rd σ := fun x hx =>
       hev (.atom x) (List.mem_flatMap.mpr ⟨.atom x, List.mem_append_left _ hx, List.mem_singleton_self _⟩)
-    have h4 : σ (.n 4) = σ (.n 3) * σ (.n 0) := hA (.mul (.n 4) (.n 3) (.n 0)) (by simp [mfA])
-    have h5 : σ (.n 5) = σ (.n 4) * σ (.n 4) := hA (.mul (.n 5) (.n 4) (.n 4)) (by simp [mfA])
-    have h6 : σ (.n 6) = σ (.n 5) * σ (.n 5) := hA (.mul (.n 6) (.n 5) (.n 5)) (by simp [mfA])
-    have h7 : σ (.n 7) = σ (.n 2) * σ (.n 6) := hA (.mul (.n 7) (.n 2) (.n 6)) (by simp [mfA])
-    have h8 : σ (.n 8) = word 2 0 := hA (.const (.n 8) (word 2 0)) (by simp [mfA])
-    have h9 : σ (.n 9) = σ (.n 0) * σ (.n 8) := hA (.mul (.n 9) (.n 0) (.n 8)) (by simp [mfA])
-    have h10 : σ (.n 10) = σ (.n 9) + σ (.n 1) := hA (.add (.n 10) (.n 9) (.n 1)) (by simp [mfA])
-    have h11 : σ (.n 11) = word 2 0 := hA (.const (.n 11) (word 2 0)) (by simp [mfA])
-    have h12 : σ (.n 12) = σ (.n 0) * σ (.n 11) := hA (.mul (.n 12) (.n 0) (.n 11)) (by simp [mfA])
+    have h4 : σ (.n (val% «main_loop0» «main_loop1» "dup~0")) = σ (.n 3) * σ (.n (val% «main_loop0» «main_loop1» "xd")) := hA (.mul (.n (val% «main_loop0» «main_loop1» "dup~0")) (.n 3) (.n (val% «main_loop0» «main_loop1» "xd"))) (by simp [mfA])
+    have h5 : σ (.n (val% «main_loop0» «main_loop1» "dup~1")) = σ (.n (val% «main_loop0» «main_loop1» "dup~0")) * σ (.n (val% «main_loop0» «main_loop1» "dup~0")) := hA (.mul (.n (val% «main_loop0» «main_loop1» "dup~1")) (.n (val% «main_loop0» «main_loop1» "dup~0")) (.n (val% «main_loop0» «main_loop1» "dup~0"))) (by simp [mfA])
+    have h6 : σ (.n (val% «main_loop0» «main_loop1» "dup~2")) = σ (.n (val% «main_loop0» «main_loop1» "dup~1")) * σ (.n (val% «main_loop0» «main_loop1» "dup~1")) := hA (.mul (.n (val% «main_loop0» «main_loop1» "dup~2")) (.n (val% «main_loop0» «main_loop1» "dup~1")) (.n (val% «main_loop0» «main_loop1» "dup~1"))) (by simp [mfA])
+    have h7 : σ (.n (val% «main_loop0» «main_loop1» "dup")) = σ (.n 2) * σ (.n (val% «main_loop0» «main_loop1» "dup~2")) := hA (.mul (.n (val% «main_loop0» «main_loop1» "dup")) (.n 2) (.n (val% «main_loop0» «main_loop1» "dup~2"))) (by simp [mfA])
+    have h8 : σ (.n (val% «main_loop0» «main_loop1» "s3#0")) = word 2 0 := hA (.const (.n (val% «main_loop0» «main_loop1» "s3#0")) (word 2 0)) (by simp [mfA])
+    have h9 : σ (.n (val% «main_loop0» «main_loop1» "s3#1")) = σ (.n (val% «main_loop0» «main_loop1» "xd")) * σ (.n (val% «main_loop0» «main_loop1» "s3#0")) := hA (.mul (.n (val% «main_loop0» «main_loop1» "s3#1")) (.n (val% «main_loop0» «main_loop1» "xd")) (.n (val% «main_loop0» «main_loop1» "s3#0"))) (by simp [mfA])
+    have h10 : σ (.n (val% «main_loop0» «main_loop1» "s3#2")) = σ (.n (val% «main_loop0» «main_loop1» "s3#1")) + σ (.n (val% «main_loop0» «main_loop1» "bound")) := hA (.add (.n (val% «main_loop0» «main_loop1» "s3#2")) (.n (val% «main_loop0» «main_loop1» "s3#1")) (.n (val% «main_loop0» «main_loop1» "bound"))) (by simp [mfA])
+    have h11 : σ (.n (val% «main_loop0» «main_loop1» "s3#3")) = word 2 0 := hA (.const (.n (val% «main_loop0» «main_loop1» "s3#3")) (word 2 0)) (by simp [mfA])
+    have h12 : σ (.n (val% «main_loop0» «main_loop1» "s3#4")) = σ (.n (val% «main_loop0» «main_loop1» "xd")) * σ (.n (val% «main_loop0» «main_loop1» "s3#3")) := hA (.mul (.n (val% «main_loop0» «main_loop1» "s3#4")) (.n (val% «main_loop0» «main_loop1» "xd")) (.n (val% «main_loop0» «main_loop1» "s3#3"))) (by simp [mfA])
     have hcalls : calls ((mfPre f).flatMap (slEvs σ)) =
-        [⟨f, [.n 12, .n 1, .n 2, .n 3], [], decide (σ (.n 10) ≠ 0)⟩] := by
+        [⟨f, [.n (val% «main_loop0» «main_loop1» "s3#4"), .n (val% «main_loop0» «main_loop1» "bound"), .n 2, .n 3], [], decide (σ (.n (val% «main_loop0» «main_loop1» "s3#2")) ≠ 0)⟩] := by
       rw [(Main.straight_parts σ _ (mfPre_straight f)).2.2.2]
       rfl
     rw [hcalls] at hkv
@@ -117,15 +117,15 @@ theorem mf_pops {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     have e := Tree.pops_of_prefix (ks' := []) hv hf hb hsp rfl (by rw [Tree.popsKids, Tree.popsKids]; rfl)
     rw [List.flatten_nil, List.append_nil] at e
     rw [e, List.range'_succ, List.map_cons]
-    have hσ7 : σ (.n 7) = a * (b * gen ^ j * (b * gen ^ j) * (b * gen ^ j * (b * gen ^ j))) := by
+    have hσ7 : σ (.n (val% «main_loop0» «main_loop1» "dup")) = a * (b * gen ^ j * (b * gen ^ j) * (b * gen ^ j * (b * gen ^ j))) := by
       rw [h7, h6, h5, h4, h0, h2, h3]
     have hpop : Sig.atomsPops rd σ mfA = [mfPop rd a b j] := by
-      show [("dup_claims", (List.range 4).map fun k => (rd ((σ (.n 7)).limb 0 * addressOfIndex (0 + k))).getD 0)] = _
+      show [("dup_claims", (List.range 4).map fun k => (rd ((σ (.n (val% «main_loop0» «main_loop1» "dup"))).limb 0 * addressOfIndex (0 + k))).getD 0)] = _
       rw [hσ7]
       rfl
     rw [hpop, List.singleton_append]
     refine congrArg (mfPop rd a b j :: ·) ?_
-    have htk : decide (σ (.n 10) ≠ 0) = decide (j + 1 ≠ n) := by
+    have htk : decide (σ (.n (val% «main_loop0» «main_loop1» "s3#2")) ≠ 0) = decide (j + 1 ≠ n) := by
       rw [h10, h9, h8, h0, h1]
       exact guard_taken hn (by omega)
     rw [htk] at hk
@@ -137,7 +137,7 @@ theorem mf_pops {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
       rfl
     · have hn' : j + 1 ≠ n := by omega
       simp only [hn', ne_eq, not_false_eq_true, decide_true, ↓reduceIte] at hk
-      have ha : ([.n 12, .n 1, .n 2, .n 3] : List V).map σ = [gen ^ (j + 1), gen ^ n, a, b] := by
+      have ha : ([.n (val% «main_loop0» «main_loop1» "s3#4"), .n (val% «main_loop0» «main_loop1» "bound"), .n 2, .n 3] : List V).map σ = [gen ^ (j + 1), gen ^ n, a, b] := by
         simp only [List.map_cons, List.map_nil, h12, h11, h0, h1, h2, h3, word_gen, gen_pow_mul_gen]
       rw [ha] at hk
       exact ih (j + 1) (by omega) (by omega) k _ hkn hk

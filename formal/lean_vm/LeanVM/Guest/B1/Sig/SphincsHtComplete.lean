@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Sig.SphincsCompleteBlocks
 public import LeanVM.Guest.B1.Sig.KMsgComplete
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # A layer, complete
@@ -107,7 +109,7 @@ bits and shifts, any siblings: the layer's root is `pFold` of `pNodeE` from
 and returns `lv` at `sLayerBase l + 47 + 2 * a0W (sAcOf l)`, its `A0` the cell `sA0Of l`. -/
 theorem sLayerBlk_complete_vals (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : E}
     (hbb : ByteBits rd bb) {l : Nat} (hl : l < 3) {N : Nat} (hN : N < 2 ^ 32) {lv : E} {e : Nat}
-    {sib : Nat → E} (σ : Val) (h1 : σ (.n 1) = bb) (hp : PadOK σ sPad)
+    {sib : Nat → E} (σ : Val) (h1 : σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb) (hp : PadOK σ sPad)
     (hcall : C "sp_wots" [σ sPP, a0Val σ (sA0Of l) (sAcOf l), σ (sA1Of l),
       encDigestCell (σ sPP) (a0Val σ (sA0Of l) (sAcOf l)) (σ (sA1Of l) + lit (7 * 2 ^ 24))
         (σ (sSignedOf l)) (eOfNat (beWordAt 0 N))] [lv])
@@ -196,7 +198,7 @@ theorem sLayerBlk_complete_vals (hB : SphincsBlocksComplete) (hm : MemOK rd 256)
 /-- **Layer `l` completes** (`sLayerBlk_complete_vals` without the call's values). -/
 theorem sLayerBlk_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : E}
     (hbb : ByteBits rd bb) {l : Nat} (hl : l < 3) {N : Nat} (hN : N < 2 ^ 32) {lv : E} {e : Nat}
-    {sib : Nat → E} (σ : Val) (h1 : σ (.n 1) = bb) (hp : PadOK σ sPad)
+    {sib : Nat → E} (σ : Val) (h1 : σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")) = bb) (hp : PadOK σ sPad)
     (hcall : C "sp_wots" [σ sPP, a0Val σ (sA0Of l) (sAcOf l), σ (sA1Of l),
       encDigestCell (σ sPP) (a0Val σ (sA0Of l) (sAcOf l)) (σ (sA1Of l) + lit (7 * 2 ^ 24))
         (σ (sSignedOf l)) (eOfNat (beWordAt 0 N))] [lv])

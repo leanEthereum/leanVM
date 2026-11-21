@@ -107,12 +107,12 @@ def vsHeadT : List Stmt :=
 /-- The eight announced words: `x_i` at `27 + 3 i` (`i < 4`) and `52 + 3 (i - 4)`, rows `1 .. 6`
 stored in `table_rows`, the first four absorbed after the fourth. -/
 def vsReadsT : List Stmt :=
-  fsNextT (.n (val% «verify_sub» "stream")) 0 27 ++ fsNextT (.n (val% «verify_sub» "stream")) 1 30 ++ [vsLd 30 26 0] ++ fsNextT (.n (val% «verify_sub» "stream")) 2 33 ++
-    [vsLd 33 26 1] ++ fsNextT (.n (val% «verify_sub» "stream")) 3 36 ++ [vsLd 36 26 2] ++
+  fsNextT (.n (val% «verify_sub» "stream")) 0 (val% «verify_sub» "x@1") ++ fsNextT (.n (val% «verify_sub» "stream")) 1 (val% «verify_sub» "x@2") ++ [vsLd 30 26 0] ++ fsNextT (.n (val% «verify_sub» "stream")) 2 (val% «verify_sub» "x@3") ++
+    [vsLd 33 26 1] ++ fsNextT (.n (val% «verify_sub» "stream")) 3 (val% «verify_sub» "x@4") ++ [vsLd 36 26 2] ++
     [keccakA [.n (val% «verify_sub» "rate[0]@1"), .n (val% «verify_sub» "rate[1]@1"), .n (val% «verify_sub» "rate[2]@1"), .n (val% «verify_sub» "rate[3]@1"), .n (val% «verify_sub» "rate[4]@1"), .n (val% «verify_sub» "rate[5]@1"), .n (val% «verify_sub» "rate[6]@1"), .n (val% «verify_sub» "rate[7]@1"), .n (val% «verify_sub» "sp[8]"), .n (val% «verify_sub» "sp[9]"), .n (val% «verify_sub» "sp[10]"), .n (val% «verify_sub» "sp[11]"),
       .n (val% «verify_sub» "sp[12]")] (vsRun 39 13)] ++
-    fsNextT (.n (val% «verify_sub» "stream")) 4 52 ++ [vsLd 52 26 3] ++ fsNextT (.n (val% «verify_sub» "stream")) 5 55 ++ [vsLd 55 26 4] ++
-    fsNextT (.n (val% «verify_sub» "stream")) 6 58 ++ [vsLd 58 26 5] ++ fsNextT (.n (val% «verify_sub» "stream")) 7 61
+    fsNextT (.n (val% «verify_sub» "stream")) 4 (val% «verify_sub» "x@5") ++ [vsLd 52 26 3] ++ fsNextT (.n (val% «verify_sub» "stream")) 5 (val% «verify_sub» "x@6") ++ [vsLd 55 26 4] ++
+    fsNextT (.n (val% «verify_sub» "stream")) 6 (val% «verify_sub» "x@7") ++ [vsLd 58 26 5] ++ fsNextT (.n (val% «verify_sub» "stream")) 7 (val% «verify_sub» "x@8")
 
 /-- The rate and the memory's log as `g`-powers, `dims_g`, `kb` in the frame and `kappa_base`
 . -/
@@ -147,7 +147,7 @@ def vsPushT : List Stmt :=
 def vsRootsT : List Stmt :=
   [keccakA [.n (val% «verify_sub» "rate[0]@2"), .n (val% «verify_sub» "rate[1]@2"), .n (val% «verify_sub» "rate[2]@2"), .n (val% «verify_sub» "rate[3]@2"), .n (val% «verify_sub» "rate[4]@2"), .n (val% «verify_sub» "rate[5]@2"), .n (val% «verify_sub» "rate[6]@2"), .n (val% «verify_sub» "rate[7]@2"), .n (val% «verify_sub» "nxt[8]@1"), .n (val% «verify_sub» "nxt[9]@1"), .n (val% «verify_sub» "nxt[10]@1"),
     .n (val% «verify_sub» "nxt[11]@1"), .n (val% «verify_sub» "nxt[12]@1")] (vsRun 255 13)] ++
-  fsNextT (.n (val% «verify_sub» "stream")) 8 268 ++ fsNextT (.n (val% «verify_sub» "stream")) 9 271
+  fsNextT (.n (val% «verify_sub» "stream")) 8 (val% «verify_sub» "x@9") ++ fsNextT (.n (val% «verify_sub» "stream")) 9 (val% «verify_sub» "x@10")
 
 /-- `LIG_MIN_SHIFT_INV = g^-20`. -/
 def vsGinv20 : E := word 14347465658197868555 0
@@ -169,7 +169,7 @@ def vsSqpNames : List String :=
 grind, the point at `ood_z` from its challenge, the value and the bus grind's nonce
 (`opening_message`). -/
 def vsOodT : List Stmt :=
-  fsNonceT (.n (val% «verify_sub» "stream")) 10 283 ++ zero2T 286 ++
+  fsNonceT (.n (val% «verify_sub» "stream")) 10 (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0") ++ zero2T 286 ++
   [keccakA [.n (val% «verify_sub» "rate[0]@3"), .n (val% «verify_sub» "rate[1]@3"), .n (val% «verify_sub» "rate[2]@3"), .n (val% «verify_sub» "rate[3]@3"), .n (val% «verify_sub» "rate[4]@3"), .n (val% «verify_sub» "rate[5]@3"), .n (val% «verify_sub» "rate[6]@3"), .n (val% «verify_sub» "rate[7]@3"), .n (val% «verify_sub» "nxt[8]@2"), .n (val% «verify_sub» "nxt[9]@2"),
     .n (val% «verify_sub» "nxt[10]@2"), .n (val% «verify_sub» "nxt[11]@2"), .n (val% «verify_sub» "nxt[12]@2")] (vsRun 288 13)] ++ vsTabsT 301 302 ++
   [grindCallT 15 (.n (val% «verify_sub» "nxt[1]@3")) (.n (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s1#1")), vsAlloc 303 30,
@@ -225,7 +225,7 @@ def vsChCap (i : ℕ) : ℕ := if i = 0 then 596 else 598 + 14 * i
 /-- The ring map's sixteen challenges: a grind's nonce absorbed, the first drawn by its
 permutation, fifteen squeezed, then stored in `map_challenges`. -/
 def vsMapsT : List Stmt :=
-  (List.range 5).map (fun i ↦ vsCopy (580 + i) (573 + i)) ++ fsNonceT (.n (val% «verify_sub» "cursor@4")) 0 585 ++
+  (List.range 5).map (fun i ↦ vsCopy (580 + i) (573 + i)) ++ fsNonceT (.n (val% «verify_sub» "cursor@4")) 0 (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s0#0") ++
   [keccakA [.n (val% «verify_sub» "rate[0]@4"), .n (val% «verify_sub» "rate[1]@4"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[2]"), .n (val% «verify_sub» "s3#0[3]"), .n (val% «verify_sub» "s3#0[4]"), .n (val% «verify_sub» "sp[0]@3"), .n (val% «verify_sub» "sp[1]@3"), .n (val% «verify_sub» "sp[2]@3"), .n (val% «verify_sub» "sp[3]@3"),
     .n (val% «verify_sub» "sp[4]@3")] (vsRun 588 13)] ++ vsTabsT 601 602 ++
   [grindCallT 13 (.n (val% «verify_sub» "nxt[1]@20")) (.n (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s1#1")), vsCopy 603 588] ++

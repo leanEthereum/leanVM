@@ -271,7 +271,7 @@ theorem sqIterC'_holds (lv : OsLv) (hpw : digitsVal (osPowDigits (128 / lv.depth
   have hp2e : (osMat 4 lv.posOff (sqM1 lv + 1)).2.2 = sqM2 lv := by
     rw [osMat_end, e2]
   have hg1 : gw 1 = gen := by rw [gw_eq (by decide), pow_one]
-  have hn : ∀ i < 5, LoadHolds rd (sqz * X ^ 5) (5 + i) (σ (.n (28 + i))) := fun i hi ↦ by
+  have hn : ∀ i < 5, LoadHolds rd (sqz * X ^ 5) (5 + i) (σ (.n ((valf% «level_positions» «_loop0» "nxt[8]") + i))) := fun i hi ↦ by
     have hx := hnext i hi
     have hc := hcell ⟨8 + i, by omega⟩
     rw [show 20 + (8 + i) = 28 + i by omega] at hc

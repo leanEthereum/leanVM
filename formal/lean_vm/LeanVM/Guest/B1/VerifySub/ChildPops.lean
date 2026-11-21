@@ -143,10 +143,10 @@ theorem vs_child_pops {bytecode : List K} {seed : Digest} {c : Child} {layout : 
       tvt.name = "verify_tables" ∧
       tvt.Valid coreProgram rd
         (([545, 546, 547, 548, 549, 550, 0, 1, 254, 253, 71, 26, 4, 334, 530, 6, 552, 551, 555, 553, 25].map V.n).map σ)
-        (((List.range 10).map fun k => V.n (556 + k)).map σ) ∧
+        (((List.range 10).map fun k => V.n ((val% «verify_sub» "fs0@4") + k)).map σ) ∧
       tos.name = vsOpen[i] ∧
       tos.Valid coreProgram rd (([66, 1337, 1338, 1339, 1340, 1341, 1883, 268, 271, 1885, 1887].map V.n).map σ)
-        (((List.range 5).map fun k => V.n (1888 + k)).map σ) ∧ tcp ∈ kids ∧ tvt ∈ kids ∧ tos ∈ kids ∧
+        (((List.range 5).map fun k => V.n ((val% «verify_sub» "sumcheck_target") + k)).map σ) ∧ tcp ∈ kids ∧ tvt ∈ kids ∧ tos ∈ kids ∧
       (tcp.pops coreProgram rd = [("col_group_order", Hints.colGroupOrder layout)] →
         tvt.pops coreProgram rd = [("block_group_order", Hints.blockGroupOrder layout),
           ("zc_tau_max", [Hints.count (layout.tableLogHeights.foldl max 0)])] →

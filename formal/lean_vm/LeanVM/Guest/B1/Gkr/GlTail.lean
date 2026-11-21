@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Gkr.GlT
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«gkr_layer__L0_L0»
 
 /-!
 # A layer's tail, soundly
@@ -32,17 +34,17 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- The children of tree `m` (canonical numbering). -/
-abbrev glCh (τ : Val) (m : ℕ) : List E := chWords τ 156 m
+abbrev glCh (τ : Val) (m : ℕ) : List E := chWords τ (val% «gkr_layer__L0_L0» "x@9") m
 
 /-- The sponge after the twelve children, from the last round's capacity `137 ..`. -/
 def glSponge (τ : Val) : Fs :=
-  (((⟨(glCap 137).map τ, []⟩ : Fs).absorbAll (glCh τ 0) dsObserve).absorbAll (glCh τ 1)
+  (((⟨(glCap (val% «gkr_layer__L0_L0» "nxt[8]@3")).map τ, []⟩ : Fs).absorbAll (glCh τ 0) dsObserve).absorbAll (glCh τ 1)
     dsObserve).absorbAll (glCh τ 2) dsObserve
 
 theorem chT_noRet (cur : V) (o b0 i : ℕ) : Stmt.noRetList (chT cur o b0 i) = true := rfl
 
 theorem glChs_noRet (off a : ℕ) :
-    Stmt.noRetList ((List.range 4).map fun i ↦ chT (.n 76) off 156 (a + i)).flatten = true :=
+    Stmt.noRetList ((List.range 4).map fun i ↦ chT (.n (val% «gkr_layer__L0_L0» "tcur")) off (val% «gkr_layer__L0_L0» "x@9") (a + i)).flatten = true :=
   tb_noRetList_flatten_range 4 _ fun _ => chT_noRet _ _ _ _
 
 theorem glKids_noRet (off : ℕ) : Stmt.noRetList (glKids off) = true := by
@@ -62,9 +64,9 @@ theorem gl_flat4 {f : ℕ → List Stmt} (hf : ∀ i, Stmt.noRetList (f i) = tru
 
 /-- **The children's reads** and the permutations of the first eight. -/
 theorem gl_kids {off : ℕ} (h : Stmt.HoldsList C rd τ (glKids off) True kret) :
-    (∀ i < 12, Stmt.HoldsList C rd τ (chT (.n 76) off 156 i) True kret) ∧
-      (Atom.keccak (chRate 156 0 ++ glCap 137) (lyOuts 172) false false).Holds rd τ ∧
-      (Atom.keccak (chRate 156 1 ++ lyCap 172) (lyOuts 201) false false).Holds rd τ := by
+    (∀ i < 12, Stmt.HoldsList C rd τ (chT (.n (val% «gkr_layer__L0_L0» "tcur")) off (val% «gkr_layer__L0_L0» "x@9") i) True kret) ∧
+      (Atom.keccak (chRate (val% «gkr_layer__L0_L0» "x@9") 0 ++ glCap (val% «gkr_layer__L0_L0» "nxt[8]@3")) (lyOuts (val% «gkr_layer__L0_L0» "nxt[0]@4")) false false).Holds rd τ ∧
+      (Atom.keccak (chRate (val% «gkr_layer__L0_L0» "x@9") 1 ++ lyCap (val% «gkr_layer__L0_L0» "nxt[0]@4")) (lyOuts (val% «gkr_layer__L0_L0» "nxt[0]@5")) false false).Holds rd τ := by
   unfold glKids at h
   simp only [List.append_assoc] at h
   have n0 := glChs_noRet off 0
@@ -74,8 +76,8 @@ theorem gl_kids {off : ℕ} (h : Stmt.HoldsList C rd τ (glKids off) True kret) 
   obtain ⟨h0, k1, h1, k2, h2⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, and_true] at k1 k2
   have e0 := gl_flat4 (fun i => chT_noRet _ _ _ _) h0
-  have e1 := gl_flat4 (f := fun i ↦ chT (.n 76) off 156 (4 + i)) (fun i => chT_noRet _ _ _ _) h1
-  have e2 := gl_flat4 (f := fun i ↦ chT (.n 76) off 156 (8 + i)) (fun i => chT_noRet _ _ _ _) h2
+  have e1 := gl_flat4 (f := fun i ↦ chT (.n (val% «gkr_layer__L0_L0» "tcur")) off (val% «gkr_layer__L0_L0» "x@9") (4 + i)) (fun i => chT_noRet _ _ _ _) h1
+  have e2 := gl_flat4 (f := fun i ↦ chT (.n (val% «gkr_layer__L0_L0» "tcur")) off (val% «gkr_layer__L0_L0» "x@9") (8 + i)) (fun i => chT_noRet _ _ _ _) h2
   refine ⟨fun i hi => ?_, k1, k2⟩
   rcases (by omega : i < 4 ∨ (4 ≤ i ∧ i < 8) ∨ 8 ≤ i) with hi4 | ⟨hi4, hi8⟩ | hi8
   · exact e0 i hi4
@@ -89,17 +91,17 @@ theorem glY_noRet : Stmt.noRetList glY = true := by decide
 /-- **A layer's tail.** -/
 theorem gl_tail {off : ℕ} (hoff : off ≤ 8)
     (h : Stmt.HoldsList C rd τ (glKids off ++ glCheck ++ glY ++ glNext (off + 12)) True kret)
-    (z23 : τ (.n 23) = 0) (z24 : τ (.n 24) = 0) (z25 : τ (.n 25) = 0) (z26 : τ (.n 26) = 0) :
-    TbReadsAt rd (τ (.n 76) * gen ^ off) (glCh τ 0 ++ (glCh τ 1 ++ glCh τ 2)) ∧
-      τ (.n 155) = polyEval [prodE (glCh τ 0), prodE (glCh τ 1), prodE (glCh τ 2)] (τ (.n 27)) ∧
-      ((glSponge τ).squeezeN 2).1 = [τ (.n 246), τ (.n 259)] ∧
-      ((glSponge τ).squeezeN 2).2 = ⟨(glCap 267).map τ, []⟩ ∧
-      (∀ t < 3, LoadHolds rd (τ (.n 15)) (26 + t)
-        (multilinearEval (glCh τ t) [τ (.n 246), τ (.n 259)])) ∧
-      (∀ k < 5, LoadHolds rd (τ (.n 15)) (20 + k) (τ (.n (267 + k)))) ∧
-      LoadHolds rd (τ (.n 15)) 25 (τ (.n 76) * gen ^ (off + 12)) ∧
-      LoadHolds rd (τ (.n 52)) 40 (τ (.n 246)) ∧ LoadHolds rd (τ (.n 52)) 41 (τ (.n 259)) ∧
-      LoadHolds rd (τ (.n 15)) 29 (τ (.n 43) * τ (.n 3) * gen) := by
+    (z23 : τ (.n (val% «gkr_layer__L0_L0» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]")) = 0) (z24 : τ (.n (val% «gkr_layer__L0_L0» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[2]")) = 0) (z25 : τ (.n (val% «gkr_layer__L0_L0» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[3]")) = 0) (z26 : τ (.n (val% «gkr_layer__L0_L0» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[4]")) = 0) :
+    TbReadsAt rd (τ (.n (val% «gkr_layer__L0_L0» "tcur")) * gen ^ off) (glCh τ 0 ++ (glCh τ 1 ++ glCh τ 2)) ∧
+      τ (.n (val% «gkr_layer__L0_L0» "nclaim@2")) = polyEval [prodE (glCh τ 0), prodE (glCh τ 1), prodE (glCh τ 2)] (τ (.n (val% «gkr_layer__L0_L0» "nxt[0]@1"))) ∧
+      ((glSponge τ).squeezeN 2).1 = [τ (.n (val% «gkr_layer__L0_L0» "nxt[0]@6")), τ (.n (val% «gkr_layer__L0_L0» "nxt[0]@7"))] ∧
+      ((glSponge τ).squeezeN 2).2 = ⟨(glCap (val% «gkr_layer__L0_L0» "nxt[8]@7")).map τ, []⟩ ∧
+      (∀ t < 3, LoadHolds rd (τ (.n (val% «gkr_layer__L0_L0» "layer"))) (26 + t)
+        (multilinearEval (glCh τ t) [τ (.n (val% «gkr_layer__L0_L0» "nxt[0]@6")), τ (.n (val% «gkr_layer__L0_L0» "nxt[0]@7"))])) ∧
+      (∀ k < 5, LoadHolds rd (τ (.n (val% «gkr_layer__L0_L0» "layer"))) (20 + k) (τ (.n ((val% «gkr_layer__L0_L0» "nxt[8]@7") + k)))) ∧
+      LoadHolds rd (τ (.n (val% «gkr_layer__L0_L0» "layer"))) 25 (τ (.n (val% «gkr_layer__L0_L0» "tcur")) * gen ^ (off + 12)) ∧
+      LoadHolds rd (τ (.n (val% «gkr_layer__L0_L0» "point_row"))) 40 (τ (.n (val% «gkr_layer__L0_L0» "nxt[0]@6"))) ∧ LoadHolds rd (τ (.n (val% «gkr_layer__L0_L0» "point_row"))) 41 (τ (.n (val% «gkr_layer__L0_L0» "nxt[0]@7"))) ∧
+      LoadHolds rd (τ (.n (val% «gkr_layer__L0_L0» "layer"))) 29 (τ (.n (val% «gkr_layer__L0_L0» "round_pos")) * τ (.n (val% «gkr_layer__L0_L0» "x_m")) * gen) := by
   simp only [List.append_assoc] at h
   rw [tb_holdsList_append_noRet (glKids_noRet off), tb_holdsList_append_noRet glCheck_noRet,
     tb_holdsList_append_noRet glY_noRet] at h
@@ -108,10 +110,10 @@ theorem gl_tail {off : ℕ} (hoff : off ≤ 8)
   have EV : ∀ i < 12, _ := fun i hi => ch_ev (EVh i hi)
   have cp : ∀ i < 12, τ (.n (chB 156 i + 3)) = τ (.n (chB 156 i)) := fun i hi => (EV i hi).2.2
   have hp : ∀ m < 3, ∀ i < 4,
-      FsPackOk τ (.n (chB 156 (4 * m + i))) (chB 156 (4 * m + i) + 1) dsObserve :=
+      FsPackOk τ (.n (chB 156 (4 * m + i))) (chB (val% «gkr_layer__L0_L0» "x@9") (4 * m + i) + 1) dsObserve :=
     fun m hm i hi => (EV (4 * m + i) (by omega)).2.1
   -- the reads
-  have hreads : TbReadsAt rd (τ (.n 76) * gen ^ off) (glCh τ 0 ++ (glCh τ 1 ++ glCh τ 2)) := by
+  have hreads : TbReadsAt rd (τ (.n (val% «gkr_layer__L0_L0» "tcur")) * gen ^ off) (glCh τ 0 ++ (glCh τ 1 ++ glCh τ 2)) := by
     intro k hk
     have hk12 : k < 12 := by simpa [chWords_length] using hk
     rw [tb_loadHolds_mul_gen_pow]
@@ -119,8 +121,8 @@ theorem gl_tail {off : ℕ} (hoff : off ≤ 8)
     simp only [chWords_eq]
     interval_cases k <;> rfl
   -- the sponge
-  have A0 : (⟨(glCap 137).map τ, []⟩ : Fs).absorbAll (glCh τ 0) dsObserve =
-      ⟨(glCap 137).map τ, (glCh τ 0).map (·, dsObserve)⟩ := by
+  have A0 : (⟨(glCap (val% «gkr_layer__L0_L0» "nxt[8]@3")).map τ, []⟩ : Fs).absorbAll (glCh τ 0) dsObserve =
+      ⟨(glCap (val% «gkr_layer__L0_L0» "nxt[8]@3")).map τ, (glCh τ 0).map (·, dsObserve)⟩ := by
     rw [absorbAll_short _ _ _ (by simp [chWords_length])]
     simp
   obtain ⟨-, B0⟩ := ch_perm_block (hp 0 (by omega)) k1
@@ -129,19 +131,19 @@ theorem gl_tail {off : ℕ} (hoff : off ≤ 8)
   simp only [glY, Stmt.HoldsList, Stmt.Holds, and_true] at hY'
   obtain ⟨k3, k4, l262, l276⟩ := hY'
   obtain ⟨P2, B2⟩ := ch_perm_block (hp 2 (by omega)) k3
-  have hA : glSponge τ = ⟨(lyCap 201).map τ, (glCh τ 2).map (·, dsObserve)⟩ := by
+  have hA : glSponge τ = ⟨(lyCap (val% «gkr_layer__L0_L0» "nxt[0]@5")).map τ, (glCh τ 2).map (·, dsObserve)⟩ := by
     unfold glSponge
     rw [A0, tb_absorbAll_full _ (by simp [chWords_length]) _ (chWords_length τ 156 1), ← B0,
       tb_absorbAll_full _ (by simp [chWords_length]) _ (chWords_length τ 156 2), ← B1]
   rw [← hA] at P2 B2
   simp only [Atom.Holds] at l262 l276
-  have e262 : τ (.n 246) = challengeOf (glSponge τ).perm := by
+  have e262 : τ (.n (val% «gkr_layer__L0_L0» "nxt[0]@6")) = challengeOf (glSponge τ).perm := by
     rw [P2 0 (by omega)]; exact (Keccak.challengeOf_cells _).symm
   obtain ⟨P3, B3⟩ := ly_keccak k4
   rw [ly_zero_rate z23 z24 z25 z26, B2] at P3 B3
-  have e276 : τ (.n 259) = challengeOf (permOf (rateOf [] ++ capOf (glSponge τ).perm)) := by
+  have e276 : τ (.n (val% «gkr_layer__L0_L0» "nxt[0]@7")) = challengeOf (permOf (rateOf [] ++ capOf (glSponge τ).perm)) := by
     rw [P3 0 (by omega)]; exact (Keccak.challengeOf_cells _).symm
-  have hsq : ((glSponge τ).squeezeN 2).1 = [τ (.n 246), τ (.n 259)] := by
+  have hsq : ((glSponge τ).squeezeN 2).1 = [τ (.n (val% «gkr_layer__L0_L0» "nxt[0]@6")), τ (.n (val% «gkr_layer__L0_L0» "nxt[0]@7"))] := by
     rw [e262, e276]; rfl
   -- the next slot
   have hN' := hN

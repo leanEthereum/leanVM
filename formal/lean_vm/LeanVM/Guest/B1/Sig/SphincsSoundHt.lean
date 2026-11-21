@@ -13,6 +13,8 @@ public import LeanVM.Guest.B1.Sig.SphincsSoundPath
 public import LeanVM.Guest.B1.Sig.SphincsSoundBlocks
 public import LeanVM.Guest.B1.Sig.SphincsSoundDigest
 public import LeanVM.Guest.B1.Sig.SphincsBridge
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # A layer, sound
@@ -139,7 +141,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 `sCtrOf l`, `enc_at` is `a1 + WOTS_ENC`, and the encoding digest at `sEncOf l` is the hash of the 68
 bytes of `[P, a0, enc_at, signed, counter]`. -/
 theorem sLayerPre_cells {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
-    (hbb : ByteBits L.read (σ (.n 1))) (hp : PadOK σ sPad) {l : Nat} {a0 a1 signed : V}
+    (hbb : ByteBits L.read (σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")))) (hp : PadOK σ sPad) {l : Nat} {a0 a1 signed : V}
     (h : AtomsHold L.read σ (sLayerPre l a0 a1 signed)) :
     ∃ N < 2 ^ 32, σ (sCtrOf l) = eOfNat N ∧
       σ (sEncOf l) = (digestHalves (keccak256 ((cellsBytes [σ sPP, a0Val σ a0 (sAcOf l),
@@ -186,7 +188,7 @@ the encoding digest at `sEncOf l` is the statement's encoding hash of the messag
 counter `beWordAt 0 N` (`BE_32` of it is the bytes hinted), at the one-time key whose address cells
 are `a0`, `a1`. -/
 theorem sLayerPre_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
-    (hbb : ByteBits L.read (σ (.n 1))) (hp : PadOK σ sPad) {l : Nat} {a0 a1 signed : V}
+    (hbb : ByteBits L.read (σ (.n (val% «verify_sig_lean_sphincs» "byte_bits")))) (hp : PadOK σ sPad) {l : Nat} {a0 a1 signed : V}
     (h : AtomsHold L.read σ (sLayerPre l a0 a1 signed)) {layer : Layer} {tree : TreeIndex}
     {lf : TreeLeafIndex} (hl : layer.val = l) (ha0 : a0Val σ a0 (sAcOf l) = adrsCell0 l tree.val)
     (ha1 : σ a1 = adrsCell1 0 lf.val 0 0) :

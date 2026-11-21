@@ -58,7 +58,7 @@ holding the symbols at `.n 1 ..= .n 128`, on which its body holds under every ca
 returning `cellRets syms ws`. -/
 theorem da_verify_cell_complete_vals (rd : Reader) (lv : E) (syms : List E) (ws : List E)
     (hsl : syms.length = LeanDa.cellSymbols) (hwl : ws.length = LeanDa.cellSymbols) (hreads : ReadsAt rd lv ws) :
-    ∃ σ : Val, σ (.n (val% «da_verify_cell» "lvals")) = lv ∧ (∀ j < 128, σ (.n (j + 1)) = syms.getD j 0) ∧ ∀ C : CallRel,
+    ∃ σ : Val, σ (.n (val% «da_verify_cell» "lvals")) = lv ∧ (∀ j < 128, σ (.n (j + (val% «da_verify_cell» "sym[0]"))) = syms.getD j 0) ∧ ∀ C : CallRel,
       Stmt.HoldsList C rd σ (Fn.body fn% «da_verify_cell») False (fun rs => rs = cellRets syms ws) := by
   simp only [LeanDa.cellSymbols] at hsl hwl
   have hok := cell_ok
@@ -93,7 +93,7 @@ theorem da_verify_cell_complete_vals (rd : Reader) (lv : E) (syms : List E) (ws 
     have hmT : ∀ a ∈ tmplA, a ∈ A := fun a ha => by rw [hA]; simp [ha]
     have hmC : ∀ a ∈ A.drop 384, a ∈ A := fun a ha => List.mem_of_mem_drop ha
     -- the symbols
-    have hsym : ∀ j < 128, σ (.n (j + 1)) = syms.getD j 0 := by
+    have hsym : ∀ j < 128, σ (.n (j + (val% «da_verify_cell» "sym[0]"))) = syms.getD j 0 := by
       intro j hj
       have h := hg symHint (by rw [hA]; exact List.mem_append_left _ (List.mem_append_left _ (List.mem_singleton_self _)))
       have := h (.n (j + 1)) (by simp; omega)
@@ -131,11 +131,11 @@ theorem da_verify_cell_complete_vals (rd : Reader) (lv : E) (syms : List E) (ws 
     have hrets : [σ (.n (val% «da_verify_cell» "s6#0")), σ (.n (val% «da_verify_cell» "s6#0[1]")), σ (.n (val% «da_verify_cell» "s6#0[2]"))] = cellRets syms ws := by
       rw [copy_sound hcp hC, hsum]
       have hv : ((cellSpec (A.drop 384)).vals σ).take ((cellSpec (A.drop 384)).len / 16) =
-          (List.range 128).map fun j => σ (.n (j + 1)) := by
+          (List.range 128).map fun j => σ (.n (j + (val% «da_verify_cell» "sym[0]"))) := by
         simp only [cellSpec, ChainSpec.vals, List.map_map]
         rw [List.take_of_length_le (by simp)]
         rfl
-      have hsyms : (List.range 128).map (fun j => σ (.n (j + 1))) = syms := by
+      have hsyms : (List.range 128).map (fun j => σ (.n (j + (val% «da_verify_cell» "sym[0]")))) = syms := by
         refine List.ext_getElem (by rw [List.length_map, List.length_range, hsl]) fun j h1 h2 => ?_
         simp only [List.getElem_map, List.getElem_range]
         rw [hsym j (by simpa using h1), List.getD_eq_getElem _ _ (by omega)]

@@ -75,9 +75,9 @@ theorem vtPad5_check :
 
 /-- `kappa_base` in the frame: `kb[0] = 1`, `kb[1 + t] = dims_g[t]`. -/
 theorem vt_kb {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    σ (.n (val% «verify_tables» "kb[0]")) = 1 ∧ ∀ i < 7, LoadHolds rd (σ (.n (val% «verify_tables» "dims_g"))) i (σ (.n (27 + i))) := by
+    σ (.n (val% «verify_tables» "kb[0]")) = 1 ∧ ∀ i < 7, LoadHolds rd (σ (.n (val% «verify_tables» "dims_g"))) i (σ (.n ((val% «verify_tables» "kb[1]") + i))) := by
   have c := h.atomAt 5 (.const (.n (val% «verify_tables» "kb[0]")) (word 1 0)) (by decide +kernel)
-  have hl : ∀ i < 7, Atom.Holds rd σ (.load (.n (27 + i)) (.n (val% «verify_tables» "dims_g")) i) := by
+  have hl : ∀ i < 7, Atom.Holds rd σ (.load (.n ((val% «verify_tables» "kb[1]") + i)) (.n (val% «verify_tables» "dims_g")) i) := by
     intro i hi
     exact h.atomAt (6 + i) _ (by revert i; decide +kernel)
   refine ⟨by simpa [Atom.Holds, tb_word_one] using c, fun i hi => ?_⟩

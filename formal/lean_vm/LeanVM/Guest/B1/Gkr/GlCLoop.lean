@@ -13,6 +13,8 @@ public import LeanVM.Guest.B1.Sumcheck.Gkr
 public import LeanVM.Guest.B1.Common.Loops
 public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.CoreData
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
 
 /-!
 # `gkr_layer__L{p}_L{o}_loop0`, completely
@@ -52,25 +54,25 @@ def glcMap : Stmt → Stmt
 
 /-- The iteration's pointers: the record, `y^8`, the rows. -/
 def glcPre : List Stmt :=
-  [.atom (.mul (.n 6) (.n 2) (.n 0)), .atom (.mul (.n 7) (.n 0) (.n 0)),
-    .atom (.mul (.n 8) (.n 7) (.n 7)), .atom (.mul (.n 9) (.n 8) (.n 8)),
-    .atom (.mul (.n 10) (.n 3) (.n 9)), .atom (.mul (.n 11) (.n 4) (.n 9))]
+  [.atom (.mul (.n (valf% «gkr_layer» «_loop0» "rd")) (.n (valf% «gkr_layer» «_loop0» "head")) (.n (valf% «gkr_layer» «_loop0» "y"))), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "y2")) (.n (valf% «gkr_layer» «_loop0» "y")) (.n (valf% «gkr_layer» «_loop0» "y"))),
+    .atom (.mul (.n (valf% «gkr_layer» «_loop0» "y4")) (.n (valf% «gkr_layer» «_loop0» "y2")) (.n (valf% «gkr_layer» «_loop0» "y2"))), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "y8")) (.n (valf% «gkr_layer» «_loop0» "y4")) (.n (valf% «gkr_layer» «_loop0» "y4"))),
+    .atom (.mul (.n (valf% «gkr_layer» «_loop0» "pt")) (.n (valf% «gkr_layer» «_loop0» "qrow")) (.n (valf% «gkr_layer» «_loop0» "y8"))), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "npt")) (.n (valf% «gkr_layer» «_loop0» "nqrow")) (.n (valf% «gkr_layer» «_loop0» "y8")))]
 
 /-- The guard and the next call's argument. -/
 def glcPost : List Stmt :=
-  [.atom (.const (.n 333) (word 2 0)), .atom (.mul (.n 334) (.n 0) (.n 333)),
-    .atom (.add (.n 335) (.n 334) (.n 1)), .atom (.const (.n 336) (word 2 0)),
-    .atom (.mul (.n 337) (.n 0) (.n 336))]
+  [.atom (.const (.n (valf% «gkr_layer» «_loop0» "s15#0")) (word 2 0)), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "s15#1")) (.n (valf% «gkr_layer» «_loop0» "y")) (.n (valf% «gkr_layer» «_loop0» "s15#0"))),
+    .atom (.add (.n (valf% «gkr_layer» «_loop0» "s15#2")) (.n (valf% «gkr_layer» «_loop0» "s15#1")) (.n (valf% «gkr_layer» «_loop0» "bound"))), .atom (.const (.n (valf% «gkr_layer» «_loop0» "s15#3")) (word 2 0)),
+    .atom (.mul (.n (valf% «gkr_layer» «_loop0» "s15#4")) (.n (valf% «gkr_layer» «_loop0» "y")) (.n (valf% «gkr_layer» «_loop0» "s15#3")))]
 
 /-- The iteration's atoms. -/
 def glcA : List Stmt := glcPre ++ (gkPre true 8).map glcMap ++ glcPost
 
 /-- The loop's body, calling `nm`. -/
 def glcBody (nm : String) : List Stmt :=
-  glcA ++ [.callIf (.n 335) nm [.n 337, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []]
+  glcA ++ [.callIf (.n (valf% «gkr_layer» «_loop0» "s15#2")) nm [.n (valf% «gkr_layer» «_loop0» "s15#4"), .n (valf% «gkr_layer» «_loop0» "bound"), .n (valf% «gkr_layer» «_loop0» "head"), .n (valf% «gkr_layer» «_loop0» "qrow"), .n (valf% «gkr_layer» «_loop0» "nqrow"), .n (valf% «gkr_layer» «_loop0» "tabs")], .ret []]
 
 /-- The loop's parameters. -/
-def glcPar6 : List V := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5]
+def glcPar6 : List V := [.n (valf% «gkr_layer» «_loop0» "y"), .n (valf% «gkr_layer» «_loop0» "bound"), .n (valf% «gkr_layer» «_loop0» "head"), .n (valf% «gkr_layer» «_loop0» "qrow"), .n (valf% «gkr_layer» «_loop0» "nqrow"), .n (valf% «gkr_layer» «_loop0» "tabs")]
 
 noncomputable def glcCheck (p o : ℕ) : Bool :=
   match coreProgram.find? (glLoopName p o) with

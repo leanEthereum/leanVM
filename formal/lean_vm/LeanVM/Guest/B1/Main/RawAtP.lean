@@ -45,7 +45,7 @@ def l2PostA : List Stmt := Sig.l2Post.take 5
 
 /-- `main_loop2`'s self-call. -/
 def l2Call : Stmt :=
-  .callIf (.n (val% «main_loop2» "s5#2")) name% «main_loop2» (.n (val% «main_loop2» "s5#4") :: (List.range 55).map fun j => V.n (j + 1))
+  .callIf (.n (val% «main_loop2» "s5#2")) name% «main_loop2» (.n (val% «main_loop2» "s5#4") :: (List.range 55).map fun j => V.n (j + (val% «main_loop2» "bound")))
 
 theorem l2_body_split : (fn% «main_loop2»).body = (Sig.l2Pre ++ Sig.xSeg ++ l2PostA) ++ [l2Call, .ret []] := by
   rw [Sig.loop2_split, List.append_assoc, List.append_assoc]
@@ -122,8 +122,8 @@ theorem rawX_stepP (fs : String → ℕ) (cert : String → V → ℕ) {nrx X cv
     exact ((Sig.fallPops_atoms σ' l2Pre_atoms).append (hpops σ' fun _ _ => rfl).1).append
       (Sig.fallPops_atoms σ' l2PostA_atoms)
   obtain ⟨es1, hw1, hc1, hp1⟩ := hF
-  set ct : Ev := if σ' (.n (val% «main_loop2» "s5#2")) = 0 then .skip name% «main_loop2» (.n (val% «main_loop2» "s5#4") :: (List.range 55).map fun j => V.n (j + 1))
-    else .call name% «main_loop2» (.n (val% «main_loop2» "s5#4") :: (List.range 55).map fun j => V.n (j + 1)) [] with hct
+  set ct : Ev := if σ' (.n (val% «main_loop2» "s5#2")) = 0 then .skip name% «main_loop2» (.n (val% «main_loop2» "s5#4") :: (List.range 55).map fun j => V.n (j + (val% «main_loop2» "bound")))
+    else .call name% «main_loop2» (.n (val% «main_loop2» "s5#4") :: (List.range 55).map fun j => V.n (j + (val% «main_loop2» "bound"))) [] with hct
   have hw : walk σ' (fn% «main_loop2»).body = .ret (es1 ++ [.inK (.n (val% «main_loop2» "s5#2")), ct]) [] := by
     rw [l2_body_split, walk_append_fall' _ hw1]
     simp [walk, walk1, Out.seq, Out.pre, l2Call, hct]
@@ -140,13 +140,13 @@ theorem rawX_stepP (fs : String → ℕ) (cert : String → V → ℕ) {nrx X cv
   have htk : decide (σ' (.n (val% «main_loop2» "s5#2")) ≠ 0) = decide (i + 1 < nrx) := by
     rw [e66, guard_taken hnrx (by omega)]
     exact decide_eq_decide.mpr (by omega)
-  have hcalls : calls es = [] ++ [⟨name% «main_loop2», .n (val% «main_loop2» "s5#4") :: (List.range 55).map fun j => V.n (j + 1), [],
+  have hcalls : calls es = [] ++ [⟨name% «main_loop2», .n (val% «main_loop2» "s5#4") :: (List.range 55).map fun j => V.n (j + (val% «main_loop2» "bound")), [],
       decide (i + 1 < nrx)⟩] := by
     rw [hes, calls_append', hc1, ← htk, hct]
     by_cases h0 : σ' (.n (val% «main_loop2» "s5#2")) = 0
     · rw [ite_eq_left h0, decide_eq_false (not_not.mpr h0)]; rfl
     · rw [ite_eq_right h0, decide_eq_true h0]; rfl
-  have hargs : (V.n (val% «main_loop2» "s5#4") :: (List.range 55).map fun j => V.n (j + 1)).map σ' = l2ArgsAt (i + 1) nrx X cv tb := by
+  have hargs : (V.n (val% «main_loop2» "s5#4") :: (List.range 55).map fun j => V.n (j + (val% «main_loop2» "bound"))).map σ' = l2ArgsAt (i + 1) nrx X cv tb := by
     have e68 : σ' (.n (val% «main_loop2» "s5#4")) = gen ^ (i + 1) := by
       rw [hext.apply (by simp only [Sig.xEnd]; omega)]
       show gen ^ i * word 2 0 = _

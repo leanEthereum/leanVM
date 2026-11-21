@@ -106,17 +106,17 @@ end Loop
 `x` of the table at parameter `2`, `4` words at `g^(4·(a + x))` past it, `a` the exponent of
 parameter `3`. -/
 def dupPre (f : String) : List Stmt := [
-  .atom (.mul (.n 4) (.n 3) (.n 0)),
-  .atom (.mul (.n 5) (.n 4) (.n 4)),
-  .atom (.mul (.n 6) (.n 5) (.n 5)),
-  .atom (.mul (.n 7) (.n 2) (.n 6)),
-  .atom (.hint (.witness "dup_claims" (.heap (.n 7) 0 4))),
-  .atom (.const (.n 8) (word 2 0)),
-  .atom (.mul (.n 9) (.n 0) (.n 8)),
-  .atom (.add (.n 10) (.n 9) (.n 1)),
-  .atom (.const (.n 11) (word 2 0)),
-  .atom (.mul (.n 12) (.n 0) (.n 11)),
-  .callIf (.n 10) f [.n 12, .n 1, .n 2, .n 3]]
+  .atom (.mul (.n (val% «main_loop0» «main_loop1» "dup~0")) (.n 3) (.n (val% «main_loop0» «main_loop1» "xd"))),
+  .atom (.mul (.n (val% «main_loop0» «main_loop1» "dup~1")) (.n (val% «main_loop0» «main_loop1» "dup~0")) (.n (val% «main_loop0» «main_loop1» "dup~0"))),
+  .atom (.mul (.n (val% «main_loop0» «main_loop1» "dup~2")) (.n (val% «main_loop0» «main_loop1» "dup~1")) (.n (val% «main_loop0» «main_loop1» "dup~1"))),
+  .atom (.mul (.n (val% «main_loop0» «main_loop1» "dup")) (.n 2) (.n (val% «main_loop0» «main_loop1» "dup~2"))),
+  .atom (.hint (.witness "dup_claims" (.heap (.n (val% «main_loop0» «main_loop1» "dup")) 0 4))),
+  .atom (.const (.n (val% «main_loop0» «main_loop1» "s3#0")) (word 2 0)),
+  .atom (.mul (.n (val% «main_loop0» «main_loop1» "s3#1")) (.n (val% «main_loop0» «main_loop1» "xd")) (.n (val% «main_loop0» «main_loop1» "s3#0"))),
+  .atom (.add (.n (val% «main_loop0» «main_loop1» "s3#2")) (.n (val% «main_loop0» «main_loop1» "s3#1")) (.n (val% «main_loop0» «main_loop1» "bound"))),
+  .atom (.const (.n (val% «main_loop0» «main_loop1» "s3#3")) (word 2 0)),
+  .atom (.mul (.n (val% «main_loop0» «main_loop1» "s3#4")) (.n (val% «main_loop0» «main_loop1» "xd")) (.n (val% «main_loop0» «main_loop1» "s3#3"))),
+  .callIf (.n (val% «main_loop0» «main_loop1» "s3#2")) f [.n (val% «main_loop0» «main_loop1» "s3#4"), .n (val% «main_loop0» «main_loop1» "bound"), .n 2, .n 3]]
 
 theorem loop0_found : coreProgram.find? (name% «main_loop0») = some fn% «main_loop0» ∧
     (fn% «main_loop0»).params = [.n (val% «main_loop0» "xd"), .n (val% «main_loop0» "bound"), .n (val% «main_loop0» "lx_table"), .n (val% «main_loop0» "n_lx_g")] ∧
@@ -144,7 +144,7 @@ theorem gen_succ_add_ne {x b : ℕ} (h : gen ^ x * gen + gen ^ b ≠ 0) : x + 1 
 `4·(a + b)` words, and its tail call is the next slot's, below `b`. -/
 theorem dupStep {rd : Reader} {f : String} {σ : Val} {es : List Ev} {vs : List V}
     (hw : walk σ (dupPre f ++ [.ret []]) = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ)
-    {x b β a : ℕ} (h0 : σ (.n 0) = gen ^ x) (h1 : σ (.n 1) = gen ^ b) (h2 : σ (.n 2) = gen ^ β)
+    {x b β a : ℕ} (h0 : σ (.n (val% «main_loop0» «main_loop1» "xd")) = gen ^ x) (h1 : σ (.n (val% «main_loop0» «main_loop1» "bound")) = gen ^ b) (h2 : σ (.n 2) = gen ^ β)
     (h3 : σ (.n 3) = gen ^ a) (hxb : x < b) :
     (∀ A ∈ heapHintAddrs σ es, ∃ i, A = addressOfIndex i ∧ β ≤ i ∧ i < β + 4 * (a + b)) ∧
       ∀ c ∈ calls es, c.taken = true →
@@ -157,7 +157,7 @@ theorem dupStep {rd : Reader} {f : String} {σ : Val} {es : List Ev} {vs : List 
     List.nil_append, List.forall_mem_cons, Ev.Holds, Atom.Holds] at hh
   obtain ⟨e4, e5, e6, e7, -, e8, e9, e10, e11, e12, -, -⟩ := hh
   rw [word_gen] at e8 e11
-  have v7 : σ (.n 7) = gen ^ (β + 4 * (a + x)) := by
+  have v7 : σ (.n (val% «main_loop0» «main_loop1» "dup")) = gen ^ (β + 4 * (a + x)) := by
     rw [e7, e6, e5, e4, h2, h3, h0, ← pow_add, ← pow_add, ← pow_add, ← pow_add]
     congr 1; ring
   refine ⟨fun A hA => ?_, fun c hcm ht => ?_⟩
@@ -308,7 +308,7 @@ def DupInv (Q : ℕ → Prop) (args : List E) : Prop :=
     ∀ i, β ≤ i → i < β + 4 * (a + b) → Q i
 
 theorem dupLoopStep {rd : Reader} {Q : ℕ → Prop} {f : String} {fn : Fn}
-    (hfn : fn.params = [.n 0, .n 1, .n 2, .n 3] ∧ fn.body = dupPre f ++ [.ret []]) :
+    (hfn : fn.params = [.n (val% «main_loop0» «main_loop1» "xd"), .n (val% «main_loop0» «main_loop1» "bound"), .n 2, .n 3] ∧ fn.body = dupPre f ++ [.ret []]) :
     LoopStep rd Q f fn (DupInv Q) := by
   intro σ es vs hw hh hI
   rw [hfn.2] at hw

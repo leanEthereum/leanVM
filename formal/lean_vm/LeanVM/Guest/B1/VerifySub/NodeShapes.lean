@@ -64,7 +64,7 @@ def vsVtS : Stmt :=
 /-- `verify_sub`'s dispatch to `open_stacked`. -/
 def vsOsS : Stmt :=
   .dispatch (.n (val% «verify_sub» "size_sel")) vsOpen ([66, 1337, 1338, 1339, 1340, 1341, 1883, 268, 271, 1885, 1887].map .n)
-    ((List.range 5).map fun k => .n (1888 + k))
+    ((List.range 5).map fun k => .n ((val% «verify_sub» "sumcheck_target") + k))
 
 /-- `verify_sub`'s shape. -/
 noncomputable def vsShapeOk : Bool :=

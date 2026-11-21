@@ -40,7 +40,7 @@ theorem vbz_noDisp : vbzPre.all noDispB = true := by decide +kernel
 theorem vbz_loads : vbzPre.all (loadsViaB [(4, 1), (6, 1)]) = true := by decide +kernel
 
 theorem vbz_calls : vbzPre.filterMap Main.Stmt.callS =
-    [(some (.n 9), name% «verify_bus_gkr_loop0», [.n 11, .n 1, .n 2, .n 3],
+    [(some (.n (val% «verify_bus_gkr_loop0» "s2#2")), name% «verify_bus_gkr_loop0», [.n (val% «verify_bus_gkr_loop0» "s2#4"), .n (val% «verify_bus_gkr_loop0» "bound"), .n (val% «verify_bus_gkr_loop0» "zeta"), .n (val% «verify_bus_gkr_loop0» "final_point_row")],
         [])] := by decide +kernel
 
 /-- **`verify_bus_gkr_loop0` loads from `R`**, every iteration `k < K`. -/
