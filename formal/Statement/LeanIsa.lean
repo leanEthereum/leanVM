@@ -353,12 +353,11 @@ def Registers.final (program : LeanIsaProgram) : Registers K := ⟨program.pcFin
 
 /-- `n` steps from `r`, halting in the final state: `none` if a step fails or the machine halts
 first. The machine halts when both registers are the final state's, checked before each step, as
-the Rust's loop does (`crates/lean_vm_core/src/cpu/execute.rs`): the last slot reached in
-another frame executes like any other slot, and a step that falls through it, to
-`g^(2^logSize)`, which is no bytecode address, fails. The specification's loop
-(`doc/leanvm/body/02-vm-specification.tex`, §2) executes an instruction before it checks for the
-final state; the two differ only at `logSize = 0`, where the initial and final states coincide
-and this `run` and the Rust's accept a run of zero steps. -/
+the specification's loop (`doc/leanvm/body/02-vm-specification.tex`, §2) and the Rust's
+(`crates/lean_vm_core/src/cpu/execute.rs`) do: the last slot reached in another frame executes
+like any other slot, and a step that falls through it, to `g^(2^logSize)`, which is no bytecode
+address, fails. At `logSize = 0` the initial and final states coincide, and the only run is of
+zero steps. -/
 noncomputable def run {κ : ℕ} (program : LeanIsaProgram) (memory : MemoryImage κ) :
     ℕ → Registers K → Option (Registers K)
   | 0, r => some r
