@@ -15,12 +15,11 @@ public import LeanVM.Guest.Bridge.AlignJump
 /-!
 # The pairing over `WrittenC`
 
-`PairHeap.lean`'s `written_extend`, `atoms_written`, `pair_read`, `pair_fall` for a path whose events'
-needs are written before them in the sense of the check with calls (`ReadsOkC`), the written cells
-`WrittenC` (a call's callee guarantees count). And at a `JUMP` the pairing takes by a `call` head
-statement (`pair_call`): the callee's site, entry and return offset, the events up to the call (its
-hints' atoms and reads), the call event, atoms that write nothing, and the position at the return
-offset.
+`pairAt_step`'s cases (`PairHeap.lean`) for a path whose events' needs are written before them in the sense
+of the check with calls (`ReadsOkC`), the written cells `WrittenC` (a call's callee guarantees count): atoms
+that are no stores add only what is written already (`written_extendC`, `atoms_writtenC`), a `DEREF` at an
+offset of the oracle reads a cell written before it (`pair_readC`), a fall-through's next split
+(`pair_fallC`), the return (`pair_retC`).
 -/
 
 namespace LeanVM.Guest.CoreMode

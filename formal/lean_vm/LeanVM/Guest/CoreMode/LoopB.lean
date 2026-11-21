@@ -14,7 +14,7 @@ public import LeanVM.Guest.Bridge.Prefix
 # A leaf loop helper's body
 
 `loopB fn`: the body of atoms, the tail call `callIf c fn.name args` with one word per parameter, and
-`ret []`, a loop helper's body with calls among them (`loopBC_of_loopB`).
+`ret []`.
 -/
 
 namespace LeanVM.Guest.CoreMode

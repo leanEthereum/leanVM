@@ -20,12 +20,7 @@ public import LeanVM.Guest.Bridge.Track
 * another instruction, the next offset at the same position, the offset in neither `O` nor `S`;
 * a jump from the position past its reads, the offset in neither, its successors recorded as `Bridge.alignAt_step`'s.
 
-What it gives the heap facts (`formal/notes/core-mode.md`, `CoreAt`), on a path whose reads are written before them (`ReadsWritten`, `heapOk_sound`), the frame's events split at the position (`walk σ pos = .ret es vs`, the events before it `pre`):
-
-* `written_extend`: atoms that are no stores (`stopS`) add no address to `Written` but those written already (a read's cell is);
-* `pair_read`: at an offset in `O`, its `DEREF` reads the cell of a read `load` at its cells, written by the events before the offset or by a flow hint atom its hints consume (the hints run first);
-* `pair_fall`: past an instruction other than a jump, the next offset's split is the events of this one's hints, its `load` and atoms that write nothing, and they write only what the hints write, a read's cell (already written) and, for a store (`S`), its cell;
-* `pair_jump`: at a jump, the events up to the position it jumps from are its hints' and reads.
+What it gives the heap facts (`formal/notes/core-mode.md`, `CoreAt`), the frame's events split at the position (`walk σ pos = .ret es vs`, the events before it `pre`), is `PairC.lean`'s: atoms that are no stores (`stopS`) add no address to what is written but those written already (`written_extendC`); at an offset in `O`, its `DEREF` reads the cell of a read `load` at its cells (`pair_readC`); past an instruction other than a jump, the next offset's split is the events of this one's hints, its `load` and atoms that write nothing (`pair_fallC`); and at a jump, the events up to the position it jumps from are its hints' and reads (`pair_jump`, `PairJump.lean`).
 -/
 
 namespace LeanVM.Guest.CoreMode

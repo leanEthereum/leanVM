@@ -12,8 +12,7 @@ public import LeanVM.Guest.CoreMode.PairJumpC
 # The pairing at a call or a conditional call
 
 `pair_callAny`: at a `JUMP` never zero, not forward, not a return, through a cell that is neither the
-own frame's nor a next frame's, the pairing takes it by its head statement, a `call` (`pair_callC`'s
-conclusion) or a `callIf` at a site returning to the next offset: the rest at the next offset, the
+own frame's nor a next frame's, the pairing takes it by its head statement, a `call` or a `callIf` at a site returning to the next offset: the rest at the next offset, the
 events up to the call its hints' atoms and reads, then the condition, the call entered or skipped,
 atoms writing nothing.
 -/

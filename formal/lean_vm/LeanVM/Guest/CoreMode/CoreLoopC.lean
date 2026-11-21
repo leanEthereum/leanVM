@@ -15,7 +15,7 @@ public import LeanVM.Guest.Mode.InvCert
 /-!
 # The core route for a loop helper
 
-A loop helper (`loopBC`, a leaf one's body among them, `loopBC_of_loopB`): atoms and calls, its tail call `callIf c f args` to
+A loop helper (`loopBC`, a leaf one's body among them): atoms and calls, its tail call `callIf c f args` to
 itself, `ret []`; compiled (`loopCodeC`) to code whose last two `JUMP`s are the tail call's (through
 a next-frame cell, to the function's entry) and the return, every other `JUMP` a call's (on a nonzero
 constant, `jumpCallOk`). `LoopOkC K Cf`: the kernel's checks, as `CoreOk`'s, with the heap check's
