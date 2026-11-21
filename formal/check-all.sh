@@ -120,7 +120,8 @@ axioms_of() {
   done
 }
 
-# The statement: definitions and end statements only, importing Mathlib, VCVio, CompPoly and itself.
+# The statement: definitions and end statements only, importing Mathlib, VCVio, CompPoly and itself, and
+# `import all` only of its own generated data (`Statement.Data`).
 # Its generated guest data is heavy, so its modules are admitted by memory.
 lakefiles() {
   once lakefiles || return 0
@@ -134,9 +135,9 @@ statement() {
   no_escapes Statement
   lakefiles
   step "Statement: imports only Mathlib, VCVio, CompPoly and itself"
-  if grep -rnE '^(public )?(meta )?import ' --include='*.lean' --exclude-dir=.lake Statement \
-      | grep -vE ':[0-9]+:(public )?(meta )?import (all )?(Mathlib|VCVio|CompPoly|Statement)\.'; then
-    fail "Statement imports more than Mathlib, VCVio, CompPoly and itself"
+  if grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake Statement \
+      | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|Statement)\.|all[[:space:]]+Statement\.Data\.)'; then
+    fail "Statement imports more than Mathlib, VCVio, CompPoly and itself, or \`import all\` beyond Statement.Data"
   fi
   cache_get Statement
   export_guest

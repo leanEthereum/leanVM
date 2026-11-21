@@ -43,11 +43,12 @@ jobs:
       - name: Forbid kernel-skipping options in the lakefiles
         run: |
           ! grep -nE 'skipKernelTC|debug\.' $(ls formal/lakefile.lean formal/*/lakefile.toml formal/*/lakefile.lean 2>/dev/null)
-      # The statement imports Mathlib, VCVio, CompPoly and itself, nothing of the proofs.
+      # The statement imports Mathlib, VCVio, CompPoly and itself, nothing of the proofs, and `import all`
+      # only of its own generated data (`Statement.Data`); an indented import line counts too.
       - name: Keep the statement apart from the proofs
         run: |
-          ! grep -rnE '^(public )?(meta )?import ' --include='*.lean' --exclude-dir=.lake formal/Statement \
-              | grep -vE ':[0-9]+:(public )?(meta )?import (all )?(Mathlib|VCVio|CompPoly|Statement)\.'
+          ! grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake formal/Statement \
+              | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|Statement)\.|all[[:space:]]+Statement\.Data\.)'
       - name: Restore the Lake build
         id: lake-cache
         uses: actions/cache/restore@v4
