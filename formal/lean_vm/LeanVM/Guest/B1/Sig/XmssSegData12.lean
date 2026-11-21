@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegData12
 
-  `main_loop2`'s body agrees with the template `xSeg` on segment statement 81 (a dispatch).
+  `main_loop2`'s body agrees with the template `xSeg` on one segment statement (a dispatch).
 -/
 
 module

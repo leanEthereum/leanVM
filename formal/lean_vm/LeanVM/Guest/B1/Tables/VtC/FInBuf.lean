@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.FInBuf
 
-  Where the loads of statements `2683 ..< 5523` read: inside `fp_w`, the cursor's words, the
+  Where the loads of statements `x@9 ..< nxt[0]@42` read: inside `fp_w`, the cursor's words, the
   challenges' products and the equality prefix.
 -/
 

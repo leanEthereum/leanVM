@@ -514,6 +514,8 @@ align vecP da_vector
 align wsP da_weights
 align dvP da_verify
 align aggP aggregate_claims
+align spBody sp_wots
+align sBody verify_sig_lean_sphincs
 # B1/Gkr: the layer's tail in the canonical numbering (`glRho 0 0`, `gkr_layer__L0_L0`'s), and the templates and lemmas at `p = 0` named by it
 LeanVM/Guest/B1/Gkr/GlTail.lean gkr_layer__L0_L0
 LeanVM/Guest/B1/Gkr/GlCTail.lean gkr_layer__L0_L0

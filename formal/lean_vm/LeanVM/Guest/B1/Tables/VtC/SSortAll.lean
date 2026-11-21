@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.SSortAll
 
-  `verify_tables`' statements `0 ..< 563` hold on the honest valuation: the capacity and claims
+  `verify_tables`' statements `0 ..< s15.u0.s1#0` hold on the honest valuation: the capacity and claims
   copied, `kappa_base` read, the groups' keys and sizes stored, both sides' ranks certified, every
   push and count block's offset its side's `stackOffsets` offset.
 -/
@@ -17,7 +17,7 @@ import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 `vtS_sort`: on a memory holding `dims_g`'s `g^log_mem` and heights, the exponent tables at
 `g_squares` and the four group buffers' honest words (`vtGKeyW`, `vtGSizeW`, `vtGBaseW`, `vtGOrdW`),
-defined below `2^14`, statements `0 ..< 563` hold; the copies and `kappa_base` are the arguments'
+defined below `2^14`, statements `0 ..< s15.u0.s1#0` hold; the copies and `kappa_base` are the arguments'
 and `dims_g`'s, the group buffers the allocator's, and the blocks' offsets `g^stackOffsets`
 (`vtc_side_offsets`: the soundness's side argument, from the ranks' facts).
 -/
@@ -153,7 +153,7 @@ theorem vt_kbList_getD {lm : ℕ} {τ : ℕ → ℕ} {i : ℕ} (hi : i < 7) :
     simp
 
 set_option maxRecDepth 100000 in
-/-- **`verify_tables`' statements `0 ..< 563`, honestly.** -/
+/-- **`verify_tables`' statements `0 ..< s15.u0.s1#0`, honestly.** -/
 theorem vtS_sort (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} {τ : ℕ → ℕ}
     (hlm : lm ≤ 32) (hτ : ∀ t < 6, τ t < 33)
     (hdims : TbReadsAt rd (σv (.n (val% «verify_tables» "dims_g"))) (gen ^ lm :: (vtTauList τ).map (gen ^ ·)))

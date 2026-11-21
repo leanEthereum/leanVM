@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Exact.SpWots.C0a
 
-  `sp_wots`'s chunk `c0`, statements 0 to 50: no computed hint and no call, by the kernel.
+  `sp_wots`'s chunk `c0`, the statements before `value@865`'s: no computed hint and no call, by the kernel.
 -/
 
 module

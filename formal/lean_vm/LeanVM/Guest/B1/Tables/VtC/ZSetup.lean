@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.ZSetup
 
-  `verify_tables`' statements `2590 ..< 2683`, completely: the table sumcheck's round count, its
+  `verify_tables`' statements `g_zc_n ..< x@9`, completely: the table sumcheck's round count, its
   batching challenge and target, its rounds and its equality prefix.
 -/
 
@@ -86,7 +86,7 @@ end Helpers
 def zTarget (σ : Val) (ξ : E) : E :=
   ξ ^ 2 * σ (.n (val% «verify_tables» "bus_table_total[0]")) + ξ ^ 3 * σ (.n (val% «verify_tables» "bus_table_total[1]")) + ξ ^ 4 * σ (.n (val% «verify_tables» "bus_table_total[2]"))
 
-/-- What statements `2590 ..< 2683` give: `g^n`, `ξ` (the squeeze of `S`), the sponge after it,
+/-- What statements `g_zc_n ..< x@9` give: `g^n`, `ξ` (the squeeze of `S`), the sponge after it,
 the target, the buffers' sizes and pointers, and the last record (the sponge, the cursor `3n`
 words on, the final claim). -/
 def ZOut (σ : Val) (w : ℕ → E) (S : Fs) (xs : List E) (n : ℕ) : Prop :=
@@ -138,7 +138,7 @@ noncomputable def zRest : List Stmt := [
     .call "eq_prefix_chain_rev" [.n (val% «verify_tables» "zc_peq"), .n (val% «verify_tables» "chi"), .n (val% «verify_tables» "zc_rk"), .n (val% «verify_tables» "zeta1"), .n (val% «verify_tables» "g_zc_n")] []]
 
 set_option maxRecDepth 100000 in
-/-- **Statements `2590 ..< 2683`, completely** (G:2565-2619): the hinted `g^n` with `n` the
+/-- **Statements `g_zc_n ..< x@9`, completely** (G:2565-2619): the hinted `g^n` with `n` the
 largest `τ_t` (at most `m = |point|`), the squeeze `ξ` (`XI_GRIND_BITS = 0`) of the sponge `S`
 with the bytecode's value waiting, the target, the first record, `verify_tables_loop0`'s rounds on
 the honest buffers (records, running products, `chi`) and words `xs` at the cursor one past the

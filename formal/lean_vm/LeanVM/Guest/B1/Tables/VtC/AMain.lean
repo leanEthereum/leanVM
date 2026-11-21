@@ -27,8 +27,8 @@ import LeanVM.Guest.Data.ValNames.«verify_tables»
 accepting run (`VtHonest.Ok`), on a memory defined below `2^14` (the rank keys' range check
 against `g^8397`) holding the caller's buffers (`linL`) and the own buffers at the allocator's
 positions (`ownL`), with the oracle's answers (`VtWOk`), the honest valuation satisfies every
-statement of `verify_tables` (`vtS_complete` `0 ..< 765`, `vtB_complete` `765 ..< 2592`,
-`vtZ_complete` `2590 ..< 2683`, `vtF_complete` `2683 ..< 5523`, `vtZt_complete` `5523 ..< 5554`),
+statement of `verify_tables` (`vtS_complete`, `vtB_complete`,
+`vtZ_complete`, `vtF_complete`, `vtZt_complete`),
 its loads read inside the layout, and it returns the honest words. The bus sides' slot sumcheck
 takes its honest rounds from the specification's run (`vt_bc_honest`, `vt_spec`).
 `vt_rel_complete_vtW`: the same with the explicit oracle `vtW`.
@@ -470,7 +470,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
   have hpad : ∀ t < 6, RunPads rd (w 702 * gen ^ (288 * t)) (w 703 * gen ^ (144 * t))
       (H.point.length - H.τ t) (H.point.drop (H.τ t)) :=
     fun t ht ↦ vt_runPads hμ33 o701 o702 ht
-  -- statements `0 ..< 765`
+  -- statements `0 ..< block_index_mle`
   obtain ⟨sV, -, skb, s33, sP, sC, sPad, sSh, s664, s699, s701, s702⟩ :=
     vtS_complete (rd := rd) (w := w) (args := H.args B) hl hlow hlm H.point hμ33 H.τ (vtRw H.rows)
       (fun t ht ↦ vtHt_eq hr ht) hτ31 hτμ (by rw [p 8 (by norm_num)]; exact mZeta)
@@ -493,7 +493,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
     exact this
   obtain ⟨eSl, eCl, eEnd⟩ := vt_bc_honest hc1 hbcW
   have hreq := (vt_spec h).1
-  -- statements `765 ..< 2592`
+  -- statements `block_index_mle ..< s56.u0.s1#1`
   have hcurs := mCur
   rw [VtHonest.curW, tbReadsAt_append, tbReadsAt_append] at hcurs
   obtain ⟨⟨mXB, mXR⟩, mEv⟩ := hcurs
@@ -557,7 +557,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
       (vtσ rd w (H.args B)) (.n (val% «verify_tables» "sp[2]@2")), (vtσ rd w (H.args B)) (.n (val% «verify_tables» "sp[3]@2")),
       (vtσ rd w (H.args B)) (.n (val% «verify_tables» "sp[4]@2"))] := by
     rw [hSB, c0, c1, c2, c3, c4, b1892]
-  -- statements `2590 ..< 2683`
+  -- statements `g_zc_n ..< x@9`
   have hn := vt_n_ex (H := H) hr
   have hnμ : H.n ≤ H.point.length := by
     obtain ⟨t, ht, e⟩ := hn; rw [← e]; exact hτμ t ht
@@ -598,7 +598,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
   rw [show H.sB.squeeze.1 = H.ξ from rfl, hzt] at zRec z2648
   change _ = (zcRec H.cap0 H.target H.xsR H.n).1 at zRec
   change _ = (zcRec H.cap0 H.target H.xsR H.n).2 at z2648
-  -- statements `2683 ..< 5523`
+  -- statements `x@9 ..< nxt[0]@42`
   obtain ⟨hevT6, hevTw⟩ := vt_evsT_shape h hr
   have hev153 := vt_evsT_flat_length h hr
   have hevC : TbReadsAt rd ((vtσ rd w (H.args B)) (.n (val% «verify_tables» "cursor@5"))) H.evsT.flatten := by
@@ -656,7 +656,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
       unfold VtHonest.terms VtHonest.nC at hf'
       rw [vt_nConstraints] at hf'
       exact hf')
-  -- statements `5523 ..< 5554`
+  -- statements `nxt[0]@42 ..< ret`
   have hcv : vtCapV (vtσ rd w (H.args B)) 0 = (zcRec H.cap0 H.target H.xsR H.n).1 := by
     rw [← zRec]; simp [vtCapV, vtPermCap, List.range_succ]
   have hS3 : vtEvalFs (vtσ rd w (H.args B)) = H.s3 := by

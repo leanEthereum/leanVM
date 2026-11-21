@@ -22,7 +22,7 @@ log-size, `vtGsz`: its size in the exponent): `vtGKeyW` (`group_key`: `g^(247 κ
 the prefix sums of the sizes in that order, `vtGP`).
 
 `rank0_ok`, `rank_ok`: a rank's statements hold from its equations and the memory; `boff_ok`: a
-group's block offsets. `vtS_sort`: statements `0 ..< 563` hold and every push and count block's
+group's block offsets. `vtS_sort`: statements `0 ..< s15.u0.s1#0` hold and every push and count block's
 offset is its side's `stackOffsets` offset.
 -/
 

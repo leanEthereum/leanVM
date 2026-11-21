@@ -252,6 +252,7 @@ lean_vm() {
   executables
   kernel_check lean_vm
   bg "lean_vm: the private-import firewall holds (firewall-canary)" python3 -I tools/firewall-canary.py
+  bg "lean_vm: no new raw value number or position in a hand proof (val-names/ratchet.py)" in_lean_vm python3 -I scripts/val-names/ratchet.py
   bg "lean_vm: the Rust vectors' costly checks (node-vectors)" in_lean_vm .lake/build/bin/node-vectors
   # The tests' runs too slow for the interpreter (`tests/LeanVMTests/Runs.lean`), compiled; `lake env`
   # for the `.olean` it reads.

@@ -5,19 +5,17 @@
         [--report TSV] FILE...
 
 For each file it finds the one core function whose body the file reads (`fn% «f»`, `core% «f» …`,
-`Fn.«f».core`, `idx% «f»`, `find? "name"`, and the templates tied to a body anywhere; `--fn F` or the
-map (`--fn-map`, by default `scripts/val-names/fnmap.tsv`) names it when the source does not, a
-person's decision: `FILE F`, `FILE@decl F`, or
-`tie T F` for a template the source ties by a check the tool cannot read, `F` a function, a family
-`f__L` (every specialization of `f`) or `f__L_loop0` (their loops), or functions `f,g` one template
-serves (named where their names agree); `align NAME F` for a list whose positions are `F`'s body's; `--suggest` lists the candidates
-and their evidence) and
-classifies
-every integer literal outside comments:
+`Fn.«f».core`, `idx% «f»`, `find? "name"`, and the templates tied to a body anywhere; `--fn F` or
+the map (`--fn-map`, by default `scripts/val-names/fnmap.tsv`) names it when the source does not, a
+person's decision: `FILE F`, `FILE@decl F`, or `tie T F` for a template the source ties by a check
+the tool cannot read, `F` a function, a family `f__L` (every specialization of `f`) or `f__L_loop0`
+(their loops), or functions `f,g` one template serves (named where their names agree); `align NAME
+F` for a list whose positions are `F`'s body's; `--suggest` lists the candidates and their evidence)
+and classifies every integer literal outside comments:
 
-* `value`: the argument of `.n`/`V.n`, a numeral or a sum of numerals: written
-  `val% «f» "name"`, the value's source name (`acc`; `g.acc` through the inlined callee `g`; `acc@2`
-  the second value named `acc`) or, without one, its expansion path (`guest-core --names`); `value (family)`: in a
+* `value`: the argument of `.n`/`V.n`, a numeral or a sum of numerals: written `val% «f» "name"`,
+  the value's source name (`acc`; `g.acc` through the inlined callee `g`; `acc@2` the second value
+  named `acc`) or, without one, its expansion path (`guest-core --names`); `value (family)`: in a
   template tied to up to six specializations of one source function (`f__L…`) that all name the
   value alike, `val% «f__L0» «f__L1» "name"`;
 * `stride`: a numeral next to `*` in a parametric index `.n (17 + 7 * j)`, left as it is (the
@@ -30,24 +28,25 @@ every integer literal outside comments:
   `valf% «f» "name"` (their common number);
 * `position`: `drop`/`take`/`getD` of a body (`(fn% «f»).body.drop k`) or of a list the map aligns
   with one (`align vtPre verify_tables`, also `vtPre_drop k`): written `pos% «f» "name"`, by the
-  first value the statement at `k` names (its source name where it has one; `ret`, the final
-  `ret`); a `take` or `drop` after a `drop` by a known position, a number of statements:
-  `span% «f» "a" "b"` (`take (b - a)` keeps its shape, `pos% «f» "b" - pos% «f» "a"`);
+  first value the statement at `k` names (its source name where it has one; `ret`, the final `ret`;
+  `name+d`, `d` statements past a named one, for a statement that names no new value); a `take` or
+  `drop` after a `drop` by a known position, a number of statements: `span% «f» "a" "b"` (`take (b -
+  a)` keeps its shape, `pos% «f» "b" - pos% «f» "a"`);
 * `argument value`: also a builder's value argument (`lyCap 46`, `chT cur off 156 i`, `BUILDERS`);
 * `base value`: the numeral of `.n (304 + j)` where `j`'s innermost binder runs it from zero
   (`(List.range n).map fun j`, `∀ j < n`): the value at zero, named;
-* `flagged`: a value or position the tool cannot name for certain (no single function, a
-  parametric index `.n (b + 6)`, a position relative to another, a statement naming no new value, a
-  number past the function's values), and every other literal of 3 digits or more outside a word, a
-  power or a doc comment, which might be an index spelled bare (`(b := 62094)`, `Completes … 66
-  119742`, `∀ k < 62094`);
+* `flagged`: a value or position the tool cannot name for certain (no single function, a parametric
+  index `.n (b + 6)`, a position relative to another, a statement naming no new value, a number past
+  the function's values), and every other literal of 3 digits or more outside a word, a power or a
+  doc comment, which might be an index spelled bare (`(b := 62094)`, `Completes … 66 119742`, `∀ k <
+  62094`);
 * `other`: smaller literals and literals in words (`word 32768 0`), exponents and doc comments.
 
-Nothing is guessed: a literal is rewritten only in the two forms above and only when the function is
+Nothing is guessed: a literal is rewritten only in the forms above and only when the function is
 unique. Without `--write` it only reports. With `--write` it rewrites, adds the imports
 (`LeanVM.Guest.ValRef`, `LeanVM.Guest.Data.ValNames.«f»`, private), and leaves the flagged literals
-as they are. `--report` appends one row per literal: file, line, class, literal, reason or name.
-Run from `lean_vm`; then `scripts/val-names/gen.py` writes the names' data.
+as they are. `--report` appends one row per literal: file, line, class, literal, reason or name. Run
+from `lean_vm`; then `scripts/val-names/gen.py` writes the names' data.
 """
 import os, re, subprocess, sys
 
@@ -530,6 +529,12 @@ def classify(path, src, overrides, vals, stmts, cnames, ties, families, where, a
                 edits.append((a, b, "(" + cite(f, name) + ")"))
     aligned = aligned or {}
     spos = {f: {**SPATH.get(f, {}), **{n: k for k, n in t.items()}} for f, t in stmts.items()}
+    for f, t in stmts.items():
+        ks = sorted(t)
+        for i, k in enumerate(ks):
+            nxt = ks[i + 1] if i + 1 < len(ks) else k + 9
+            for d in range(1, min(9, nxt - k)):
+                spos[f][f"{t[k]}+{d}"] = k + d
 
     def receiver(i):
         """The list a `.drop`/`.take`/`.getD` at `i` is applied to, as (function, start): a body or an
@@ -574,7 +579,12 @@ def classify(path, src, overrides, vals, stmts, cnames, ties, families, where, a
         return None
 
     def pos_name(f, k):
-        return stmts.get(f, {}).get(k)
+        """Statement `k`'s name; one that names no new value, `NAME+d`: `d` statements past the last
+        named one (`gen.py` checks the ones between name none)."""
+        t = stmts.get(f, {})
+        if k in t: return t[k]
+        j = max((i for i in t if i < k), default=None)
+        return f"{t[j]}+{k - j}" if j is not None and k - j <= 8 else None
 
     # positions on an aligned list or a body: `drop k`, `getD k`, `take k`, and a `take` after a
     # `drop` (a length: `take (pos% B - pos% A)`), `take (B - A)`, `NAME_drop k`
@@ -635,7 +645,7 @@ def classify(path, src, overrides, vals, stmts, cnames, ties, families, where, a
             continue
         if not f or not isinstance(f, str):
             rows.append((line(a), "flagged", m.group(2), "position; " + (why_f or "a family"))); continue
-        name = stmts.get(f, {}).get(k)
+        name = pos_name(f, k)
         if name is None:
             rows.append((line(a), "flagged", m.group(2), f"statement {k} of {f} names no new value")); continue
         rows.append((line(a), "position", m.group(2), name))

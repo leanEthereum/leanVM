@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsData0
 
   `verify_sig_lean_sphincs` in the guest's core IR agrees with the template `sAfterDigest` after
-  the digest block, on statements 1358 to 2857.
+  the digest block, on statements `a0_b~0 ..< parent[0]@86`.
 -/
 
 module

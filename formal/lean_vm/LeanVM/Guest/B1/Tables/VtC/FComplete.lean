@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Tables.VtC.FComplete
 
   `verify_tables`' table evaluations, forms, air terms and final check (statements
-  `2683 ..< 5523`) complete: on the honest memory, every one holds of the honest valuation.
+  `x@9 ..< nxt[0]@42`) complete: on the honest memory, every one holds of the honest valuation.
 -/
 
 module
@@ -38,7 +38,7 @@ theorem vtF_split : tbStmtsEqb ((vtPre.drop vtFLo).take (5523 - vtFLo))
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-/-- **Statements `2683 ..< 5523` complete**, and what they leave: `VtF`, the evaluations' values
+/-- **Statements `x@9 ..< nxt[0]@42` complete**, and what they leave: `VtF`, the evaluations' values
 and the sponge after them. -/
 theorem vtF_complete (hl : args.length = 21) (bc : List K) (hbc : bc.length = 2 ^ 23)
     {point : List E} {lm : ℕ} {rows : List ℕ} (hr : rows.length = 6)

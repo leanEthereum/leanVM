@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.ZInBuf
 
-  Where `verify_tables`' statements `2590 ..< 2683` and `5523 ..< 5554` load: the rounds'
+  Where `verify_tables`' statements `g_zc_n ..< x@9` and `nxt[0]@42 ..< ret` load: the rounds'
   records, the running products, `claim_pool`.
 -/
 
@@ -15,9 +15,9 @@ import LeanVM.Guest.Data.ValNames.«verify_tables»
 /-!
 # The loads, inside buffers
 
-`vtZ_inBuf`: the loads of `2590 ..< 2683` read the records (`7(n + 1)` words at `w 2626`, the
+`vtZ_inBuf`: the loads of `g_zc_n ..< x@9` read the records (`7(n + 1)` words at `w 2626`, the
 last one `7n` on) and the running products (`n + 1` at `w 2629`).
-`vtZt_inBuf`: those of `5523 ..< 5554` read `claim_pool` (`159` words).
+`vtZt_inBuf`: those of `nxt[0]@42 ..< ret` read `claim_pool` (`159` words).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -29,7 +29,7 @@ open LeanVM.Guest.B1.Fwd
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- **The loads of `2590 ..< 2683`** read the records and the running products. -/
+/-- **The loads of `g_zc_n ..< x@9`** read the records and the running products. -/
 theorem vtZ_inBuf {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 21) {n : ℕ}
     (hwn : w 2544 = gen ^ n) {bufs : List (E × ℕ)}
     (bR : (w 2626, 7 * (n + 1)) ∈ bufs) (bC : (w 2629, n + 1) ∈ bufs) :
@@ -70,7 +70,7 @@ theorem vtZ_inBuf {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.lengt
     | exact ⟨_, bC, 0, by rw [g2]; simp, by omega⟩
 
 set_option maxRecDepth 100000 in
-/-- **The loads of `5523 ..< 5554`** read `claim_pool`. -/
+/-- **The loads of `nxt[0]@42 ..< ret`** read `claim_pool`. -/
 theorem vtZt_inBuf {rd : Reader} {w : ℕ → E} {args : List E} {bufs : List (E × ℕ)}
     (b15 : (vtσ rd w args (.n (val% «verify_tables» "claim_pool")), 159) ∈ bufs) :
     LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop (pos% «verify_tables» "nxt[0]@42")).take (span% «verify_tables» "nxt[0]@42" "ret")) := by

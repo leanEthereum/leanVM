@@ -389,6 +389,10 @@ jobs:
       - name: Forbid proof escapes
         run: |
           python3 -I ../tools/escape-scan.py .
+      # Hand proofs name core values and statement positions (`val%`, `pos%`): no raw numeral above
+      # a file's row in `scripts/val-names/ratchet.tsv`.
+      - name: No new raw value number or position
+        run: python3 -I scripts/val-names/ratchet.py
       # `lake build` fails on any warning (`warningAsError`) and on an axiom footprint beyond
       # Lean's three (`LeanVM.lean`'s `#guard_msgs`). Lake has no job limit, and its parallel build
       # of the generated kernel-checked families exceeds the runner's memory, so `lake-build.py`

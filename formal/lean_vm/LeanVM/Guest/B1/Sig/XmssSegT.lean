@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.XmssSegT
 
   `verify_lean_xmss` (`lean_ethereum.py`), inline in `main`'s raw-leanXMSS loop
-  `main_loop2`, as a template: statements 9 to 321 of `main_loop2`'s body, with the values numbered
+  `main_loop2`, as a template: statements `pp ..< s5#0` of `main_loop2`'s body, with the values numbered
   as the renumbered expansion numbers them.
 -/
 
@@ -21,7 +21,7 @@ import LeanVM.Guest.Data.ValNames.«main_loop2»
 `main_loop2`'s parameters are the counter, `n`, `lx_slots`, `cover`, `lx_table` and the `51` carried
 chain indices (`lx_tags`, `.n 5` to `.n 55`); its body checks the raw index and its cover word
 (statements `0` to `8`, the claim's pointer `.n 65`), then the leanXMSS check (`xSeg`, statements
-`9` to `321`), then steps the counter and calls itself (statements `322` to `328`).
+`pp ..< s5#0`), then steps the counter and calls itself (statements `s5#0` to `ret`).
 
 * `sPrologue`: `pp`, the index's shifts (`sHis`) and windows (`sWin`) hinted, the powers `g^s`
   (`sPower`, `s < 13`);
@@ -248,7 +248,7 @@ def sLayer (layer b : Nat) (root : V) : List Stmt × Nat × V :=
     (sLeafK layer b).1 ++ (sWin0 layer b).1 ++ (sWin1 layer b).1, (sWin1 layer b).2.1,
     .n (sWin1 layer b).2.2)
 
-/-- **The leanXMSS check in `main_loop2`** (statements `9` to `321` of its body). -/
+/-- **The leanXMSS check in `main_loop2`** (statements `pp ..< s5#0` of its body). -/
 def xSeg : List Stmt :=
   let l0 := sLayer 0 88 (.n (val% «main_loop2» "xi"))
   let l1 := sLayer 1 l0.2.1 l0.2.2

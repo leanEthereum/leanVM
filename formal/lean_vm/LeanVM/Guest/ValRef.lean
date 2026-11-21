@@ -31,7 +31,8 @@ compiler change renumbers them. A proof names a value instead:
   function `f`, `valf% f «_loop0» "name"` in their loops `f__L…_loop0` (written to
   `Data/ValNames/«f__L».lean`, `«f__L_loop0».lean`, only when they agree);
 * `pos% f "name"`: the position in `f`'s body of the top-level statement that names `name` first
-  (`ret`: the body's final `ret`); `span% f "a" "b"`, the number of statements from `a`'s to `b`'s.
+  (`ret`: the body's final `ret`; `name+d`: the statement `d` past `name`'s, a statement that names
+  no new value); `span% f "a" "b"`, the number of statements from `a`'s to `b`'s.
 
 All four elaborate to the numeral the generated `Data/ValNames/«f».lean` gives them
 (`scripts/val-names/gen.py`, which writes the names the proofs cite, from `guest-core --names`), so
