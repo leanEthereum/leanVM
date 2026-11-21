@@ -62,7 +62,7 @@ def WROOTS(g):
                          'padding_weight__L', 'plus_one_run__L', 'sel_partial_nibble__L', 'column_selector__L']
              for n in g.family(p)] +
             ['eq_prefix_chain', 'sumcheck_round4', L('verify_tables_loop0'), L('shared_selector_tables_loop0'), L('check_opening_terminal_loop0'), 'selector_tables',
-             'opening_tail_round'])
+             'opening_tail_round', 'selector_run_nibbles'])
 # `verify_sub`'s callees with no static bound, and the terminal's `__loop14` and
 # `ring_switch_weight` (`verify_tables` and the terminal are bounded by their trees' shapes, the `W`
 # families), within ratios of their words (`Count/RatioV*`).

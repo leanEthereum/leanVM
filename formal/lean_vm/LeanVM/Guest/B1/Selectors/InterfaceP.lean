@@ -41,7 +41,7 @@ Statements (`…_Spec`, proved as `…_holds`):
 * `sel_partial_nibble_Spec`: `sel_partial_nibble__L{w}` writes the nibble tables of
   width `w < 4`;
 * `shared_selector_tables_Spec`: `shared_selector_tables` writes, for `len_g = g^n`
-  (`n < 64`), every nibble's tables of the run of `n` coordinates, at the two pointers it returns;
+  (`n < 64`), every nibble's tables of the run of `n` coordinates;
 * `block_selector_tab_Spec`: `block_selector_tab__L{n}` reads the `g`-power digits
   of `n` bits and, from those tables, returns their eq weight and `g`-power product;
 * `block_selector_Spec`: `block_selector__L{n}` does the same a bit at a time from
@@ -138,11 +138,11 @@ def RunTables (rd : Reader) (eqt gt : E) (n : ℕ) (zs zs1 gs : List E) : Prop :
   ∀ j < (n + 3) / 4, TbReadsAt rd (eqt * gen ^ (32 * j)) (eqLevels (nib zs j) (nib zs1 j)) ∧
     TbReadsAt rd (gt * gen ^ (16 * j)) (gTable (nib gs j))
 
-/-- `shared_selector_tables(zeta_hi, zeta1_hi, gsq_hi, len_g)`, returning `eq_tab, g_tab`:
-`len_g = g^n`, `n < 64`, and for the `n` coordinates, complements and shares read at `zeta_hi`,
-`zeta1_hi`, `gsq_hi`, their nibble tables are written at `eq_tab`, `g_tab`. -/
+/-- `shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g)`: `len_g = g^n`,
+`n < 64`, and for the `n` coordinates, complements and shares read at `zeta_hi`, `zeta1_hi`,
+`gsq_hi`, their nibble tables are written. -/
 def SharedSelOut (rd : Reader) : List E → List E → Prop
-  | [z, z1, gsq, lenG], [eqt, gt] =>
+  | [eqt, gt, z, z1, gsq, lenG], [] =>
       ∃ n < 64, lenG = gen ^ n ∧ ∀ zs zs1 gs : List E, zs.length = n → zs1.length = n →
         gs.length = n → TbReadsAt rd z zs → TbReadsAt rd z1 zs1 → TbReadsAt rd gsq gs →
         RunTables rd eqt gt n zs zs1 gs
@@ -153,14 +153,13 @@ def shared_selector_tables_SpecP (P : Program) : Prop :=
   ∀ rd args rets, P.Rel rd "shared_selector_tables" args rets → SharedSelOut rd args rets
 
 /-- The converse, for completeness: `n < 64` coordinates, complements and shares at `zeta_hi`,
-`zeta1_hi`, `gsq_hi`, with their nibble tables at `eq_tab`, `g_tab`, give the relation returning
-`eq_tab`, `g_tab`. -/
+`zeta1_hi`, `gsq_hi`, with their nibble tables at `eq_tab`, `g_tab`, give the relation. -/
 def shared_selector_tables_complete_SpecP (P : Program) : Prop :=
   ∀ (rd : Reader) (eqt gt z z1 gsq : E) (n : ℕ) (zs zs1 gs : List E), n < 64 →
     zs.length = n → zs1.length = n → gs.length = n →
     TbReadsAt rd z zs → TbReadsAt rd z1 zs1 → TbReadsAt rd gsq gs →
     RunTables rd eqt gt n zs zs1 gs →
-    P.Rel rd "shared_selector_tables" [z, z1, gsq, gen ^ n] [eqt, gt]
+    P.Rel rd "shared_selector_tables" [eqt, gt, z, z1, gsq, gen ^ n] []
 
 /-! ## The bus blocks' selectors -/
 
