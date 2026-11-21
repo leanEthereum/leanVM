@@ -545,7 +545,7 @@ theorem log_query {t : List UInt8} {z : BitVec 256 × List (List UInt8)}
     z.2 = [t] := by
   have h0 : (logImpl t).run = (fun u ↦ (u, [t])) <$>
       (liftM (SchemeHashSpec.query t) : OracleComp SchemeHashSpec _) := by
-    simp [logImpl, run_liftM_query_writer]
+    simp [Common.SufCma.MultiKey.logImpl, run_liftM_query_writer]
   rw [simulateQ_spec_query, h0, support_map] at hz
   obtain ⟨u, -, rfl⟩ := hz
   rfl
@@ -644,7 +644,7 @@ theorem run_log_oracleHash (x : List UInt8) :
   show (simulateQ logImpl
     (liftM (SchemeHashSpec.query x) : OracleComp SchemeHashSpec (BitVec 256))).run = _
   rw [simulateQ_spec_query]
-  simp [logImpl, run_liftM_query_writer]
+  simp [Common.SufCma.MultiKey.logImpl, run_liftM_query_writer]
 
 /-- **The model's key generation, logged, after its first query** (the parameter's derivation)
 answered `u`: the parameter is `truncateHash u`. -/

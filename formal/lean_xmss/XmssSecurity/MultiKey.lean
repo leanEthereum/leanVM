@@ -405,7 +405,7 @@ theorem loggedRun_query_bind {α : Type} (x : HashInput)
         (fun p ↦ (p.1, x :: p.2)) <$> (simulateQ logImpl (k u)).run := by
   have h0 : (logImpl x).run = (fun u ↦ (u, [x])) <$>
       (liftM (SchemeHashSpec.query x) : OracleComp SchemeHashSpec _) := by
-    simp [logImpl, run_liftM_query_writer]
+    simp [Common.SufCma.MultiKey.logImpl, run_liftM_query_writer]
   simp only [simulateQ_bind, simulateQ_query, OracleQuery.input_query, OracleQuery.cont_query,
     id_map, WriterT.run_bind', h0, bind_map_left]
   rfl

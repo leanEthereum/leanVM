@@ -436,7 +436,8 @@ theorem Stmt.wp_iff (C : CallRel) (rd : Reader) (kret : List E → Prop) :
       (by simp only [Stmt.Holds])
     have hz := Stmt.wpList_iff C rd kret z (hQ.mono l1)
     have hn := Stmt.wpList_iff C rd kret n (hQ.mono l1)
-    by_cases hx0 : x = 0 <;> simp [hx0, hz, hn, and_left_comm]
+    by_cases hx0 : x = 0 <;> simp [hx0, hz, hn] <;>
+      exact ⟨fun ⟨hk, σ, ha, h⟩ => ⟨σ, ha, hk, h⟩, fun ⟨σ, ha, hk, h⟩ => ⟨hk, σ, ha, h⟩⟩
   | .match_ x arms, ρ, Q, N, hQ => by
     rw [wp_match]
     refine (getv_iff (G := fun _ σ => Stmt.HoldsArms C rd σ x 0 arms (N σ) kret)
