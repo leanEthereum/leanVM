@@ -3,7 +3,9 @@
 `fn/<f>.py` holds what the core route knows of the source function `f` alone: its specializations' and loops' rules
 (`src(k)` maps a core name to its source function, and a rule file names only its own), as module-level tables and
 hooks. The generators read them through this module, merged; none of them names a function. A guest edit to one
-function changes that function's rule file at most (`formal/notes/core-mode.md`).
+function changes that function's rule file at most (`formal/notes/core-mode.md`); an edit to an inlined helper is an
+edit to every function that inlines it, and a positional name (an expansion path, `@k`, `~k`) can shift on an
+insertion before it, which the Lean side then reports.
 
 Tables (each a dict by core name, or a list of entries whose first field is a core name):
   FEATURES     inference feature sets tried after the generic ones (`callcres.py`), a list of extra sets
