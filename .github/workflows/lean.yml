@@ -5,17 +5,18 @@ on:
     branches: [ "main" ]
   pull_request:
   workflow_dispatch:
-  # Nightly, lean_vm's kernel check of every module, the record of what passed set aside (`--all`).
+  # Nightly, every job on main, lean_vm's kernel check of every module whatever its record says (`--all`).
   schedule:
     - cron: "0 3 * * *"
 
 permissions:
   contents: read
 
-# A new push cancels a pull request's run, never main's: each push to main checks its own diff, so a
-# cancelled run could leave a change to `crates/` unchecked, and main's runs save the caches.
+# A new push cancels a pull request's running run, never main's, whose runs save the caches. GitHub still
+# keeps one pending run per group, so a push to main while one run is running and another waits replaces
+# the waiting one, whose diff is then checked only by the nightly run. That runs in a group of its own.
 concurrency:
-  group: lean-${{ github.ref }}
+  group: lean-${{ github.event_name == 'schedule' && 'nightly' || github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 # Pin the ISA, overriding `target-cpu=native` from the cargo configs, so a cached build (its proc
@@ -46,12 +47,6 @@ jobs:
       - name: Forbid kernel-skipping options in the lakefiles
         run: |
           ! grep -nE 'skipKernelTC|debug\.' $(ls formal/lakefile.lean formal/*/lakefile.toml formal/*/lakefile.lean 2>/dev/null)
-      # The statement imports Mathlib, VCVio, CompPoly and itself, nothing of the proofs, and `import all`
-      # only of its own generated data (`Statement.Data`); an indented import line counts too.
-      - name: Keep the statement apart from the proofs
-        run: |
-          ! grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake formal/Statement \
-              | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|Statement)\.|all[[:space:]]+Statement\.Data\.)'
       - name: Restore the Lake build
         id: lake-cache
         uses: actions/cache/restore@v4
@@ -70,6 +65,11 @@ jobs:
           lint: false
           use-github-cache: false
           use-mathlib-cache: auto
+      # The statement imports Mathlib, VCVio, CompPoly and itself, nothing of the proofs, and `import all`
+      # only of its own generated data (`Statement.Data`), each file's header parsed by Lean
+      # (`lean --deps-json`).
+      - name: Keep the statement apart from the proofs
+        run: python3 -I formal/tools/statement-imports.py formal/Statement
       # The generated guest data's modules are heavy: `lake-build.py` admits them by memory. Fails on
       # any warning.
       - name: Build
@@ -77,11 +77,13 @@ jobs:
         run: python3 -I ../lake-build.py .
       # Every module replayed by the kernel from its `.olean`: a declaration added without it
       # (`debug.skipKernelTC`, meta code), which `#print axioms` cannot see, fails. A module unchanged
-      # since it passed (`.lake/kernel-check.tsv`, saved with the build) is skipped. Each job checks its
-      # own project's modules.
+      # since it passed (`.lake/kernel-check.tsv`, saved with the build) is skipped, and so is one whose
+      # source is gone (a restored cache's), which nothing built imports. Each job checks its own
+      # project's modules, lean_vm's all six. Only `main`'s runs, which restore only what `main` saved,
+      # are the gate: a pull request's run trusts caches the pull request's earlier pushes wrote.
       - name: Check every module again with the kernel (kernel-check)
         working-directory: formal/Statement
-        run: python3 -I ../tools/kernel-check.py .
+        run: python3 -I ../tools/kernel-check.py . . --allow-stale
       - name: Save the Lake build
         if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
@@ -108,7 +110,7 @@ jobs:
           ! grep -E '^warning: Common.*has been deprecated' "$RUNNER_TEMP/build.log"
       - name: Check every module again with the kernel (kernel-check)
         working-directory: formal/common
-        run: python3 -I ../tools/kernel-check.py .
+        run: python3 -I ../tools/kernel-check.py . . --allow-stale
       - name: Check the axiom footprint
         working-directory: formal/common
         run: |
@@ -145,7 +147,7 @@ jobs:
           ! grep -E '^warning: (LeanXmss|XmssSecurity).*has been deprecated' "$RUNNER_TEMP/build.log"
       - name: Check every module again with the kernel (kernel-check)
         working-directory: formal/lean_xmss
-        run: python3 -I ../tools/kernel-check.py .
+        run: python3 -I ../tools/kernel-check.py . . --allow-stale
       # The root module guards its own footprint with `#guard_msgs`, which an
       # edit to the expected message would silence. This asks again from
       # outside, against the list written here.
@@ -203,7 +205,7 @@ jobs:
         run: "! grep -E '^warning: (Sphincs|FORS)/.*has been deprecated' \"$RUNNER_TEMP/build.log\""
       - name: Check every module again with the kernel (kernel-check)
         working-directory: formal/lean_sphincs
-        run: python3 -I ../tools/kernel-check.py .
+        run: python3 -I ../tools/kernel-check.py . . --allow-stale
       - name: Check the axiom footprint
         working-directory: formal/lean_sphincs
         run: |
@@ -262,7 +264,7 @@ jobs:
           ! grep -E '^warning: (LeanDa|PqDas).*has been deprecated' "$RUNNER_TEMP/build.log"
       - name: Check every module again with the kernel (kernel-check)
         working-directory: formal/lean_da
-        run: python3 -I ../tools/kernel-check.py .
+        run: python3 -I ../tools/kernel-check.py . . --allow-stale
       # LeanDA's security is Benedikt Wagner's framework, theorems and proofs
       # (b-wagn/fv-pq-da), ported and instantiated with LeanDA.
       - name: Check the axiom footprint
@@ -463,7 +465,7 @@ jobs:
           .lake/build/bin/guest-run --rust "$RUNNER_TEMP/guest-exec" --prove "$RUNNER_TEMP"/guest-diff/leaf.txt
           n1="$RUNNER_TEMP/node1-prove"
           (set +e; .lake/build/bin/guest-run --rust "$RUNNER_TEMP/guest-exec" --prove "$RUNNER_TEMP"/guest-diff/node1.txt \
-            > "$n1.log" 2>&1; echo $? > "$n1.code"; mv "$n1.code" "$n1.status") < /dev/null &
+            > "$n1.log" 2>&1; echo $? > "$n1.code"; mv "$n1.code" "$n1.status") < /dev/null > /dev/null 2>&1 &
       # A manual run also proves the node of two children end to end with the statement's guest prover.
       - name: The guest prover's proof of a node of two children is accepted (manual runs)
         if: github.event_name == 'workflow_dispatch'
@@ -510,37 +512,21 @@ jobs:
           path: formal/lean_vm/.lake/kernel-check.tsv
           key: kernel-check-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: kernel-check-${{ runner.os }}-
-      # Every module replayed by the kernel from its `.olean`, the executables' included: a declaration
-      # added without it (`debug.skipKernelTC`, meta code), which `#print axioms` cannot see, fails. A
-      # module unchanged since it passed is skipped, so a pull request checks what it rebuilds, which
-      # costs about its build's CPU time again. Last, within a deadline before the job's timeout: if
-      # modules are left unchecked (a cold cache, a pull request that rebuilds most of lean_vm), the
-      # step fails, and what passed is saved, with a pull request's build, so a rerun only checks the rest.
+      # Every module of the six projects built here replayed by the kernel from its `.olean`, the
+      # executables' included: a declaration added without it (`debug.skipKernelTC`, meta code), which
+      # `#print axioms` cannot see, fails. A module unchanged since it passed is skipped, so a run checks
+      # what it rebuilds, which costs about its build's CPU time again. Last, within a deadline before
+      # the job's timeout: if modules are left unchecked (a cold cache, a change that rebuilds most of
+      # lean_vm), the step fails, and what passed is saved, so a rerun goes on from there. A pull
+      # request's build is not saved: it would take a large share of the repository's cache. `main`'s
+      # run is the gate: a pull request's restores what its earlier pushes saved, so it is advisory.
       - name: Check every module again with the kernel (kernel-check)
-        id: kernel-check
         run: |
-          status=0
-          python3 -I ../tools/kernel-check.py . --deadline $((JOB_START + 335 * 60)) \
-            ${{ github.event_name == 'schedule' && '--all' || '' }} || status=$?
-          if [ "$status" -eq 2 ]; then echo unchecked=true >> "$GITHUB_OUTPUT"; fi
-          exit "$status"
+          python3 -I ../tools/kernel-check.py . --allow-stale --deadline $((JOB_START + 335 * 60)) \
+            ${{ github.event_name == 'schedule' && '--all' || '' }}
       - name: Save the kernel check's record
         if: always() && hashFiles('formal/lean_vm/.lake/kernel-check.tsv') != ''
         uses: actions/cache/save@v4
         with:
           path: formal/lean_vm/.lake/kernel-check.tsv
           key: kernel-check-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
-      # `main` saved its build above.
-      - name: Save the Lake build of a pull request left unchecked
-        if: always() && steps.kernel-check.outputs.unchecked == 'true' && github.ref != 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            formal/lean_vm/.lake
-            !formal/lean_vm/.lake/packages/mathlib/.lake
-            formal/common/.lake/build
-            formal/Statement/.lake/build
-            formal/lean_xmss/.lake/build
-            formal/lean_sphincs/.lake/build
-            formal/lean_da/.lake/build
-          key: ${{ steps.lake-cache.outputs.cache-primary-key }}
