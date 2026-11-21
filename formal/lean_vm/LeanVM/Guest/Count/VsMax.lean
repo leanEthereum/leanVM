@@ -19,14 +19,14 @@ namespace LeanVM.Guest.Count
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem vbgMax_eq : B1.VerifySub.vbgMax Deployed.fs vsWords.K29 vsWords.R vsWords.K8 = 29669 := by
+theorem vbgMax_eq : B1.VerifySub.vbgMax Deployed.fs vsWords.K29 vsWords.R vsWords.K8 = 24554 := by
   unfold B1.VerifySub.vbgMax
   dsimp only [vsWords, kGr]
   rw [← fsFast_eq, ← wSBFast_eq, ← wSKFast_eq]
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem vtMax_eq : B1.VerifySub.vtMax Deployed.fs vsWords.Kf vsWords.Ksh vsWords.K10 = 31245 := by
+theorem vtMax_eq : B1.VerifySub.vtMax Deployed.fs vsWords.Kf vsWords.Ksh vsWords.K10 = 31081 := by
   unfold B1.VerifySub.vtMax
   dsimp only [vsWords]
   rw [← fsFast_eq, ← wSBFast_eq, ← wSKFast_eq]
@@ -38,9 +38,9 @@ theorem vkBound_eq : B1.VerifySub.vkBound = 55936 := by
   rw [← fsFast_eq]; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem termBound_eq : B1.VerifySub.termBound Deployed.fs vsWords.Beqc vsWords.K15 vsWords.Bcs vsWords.Brs = 28991 := by
+theorem termBound_eq : B1.VerifySub.termBound Deployed.fs vsWords.Beqc vsWords.K15 vsWords.Bcs vsWords.Brs = 27129 := by
   show Deployed.fs "check_opening_terminal" + 177 + 4 * 184 + (32 * 19 + Deployed.fs (name% check_opening_terminal_loop0)) +
-    (Deployed.fs "selector_tables" + 512) + 94 * 157 + (Deployed.fs "ring_switch_weight" + 2240 + 8142) = 28991
+    (Deployed.fs "selector_tables" + 512) + 94 * 157 + (Deployed.fs "ring_switch_weight" + 8529) = 27129
   rw [← fsFast_eq]; decide +kernel
 
 end

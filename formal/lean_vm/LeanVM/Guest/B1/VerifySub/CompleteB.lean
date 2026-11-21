@@ -172,12 +172,6 @@ namespace ChildSegs
 
 variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
 
-/-- `verify_tables`' own buffers. -/
-theorem vt_sizes_sum : S.H.sizes.sum = 3841 + S.H.μ + 9 * (S.H.n + 1) := by
-  simp only [Tables.VtHonest.sizes, List.sum_append, List.sum_cons, List.sum_nil,
-    List.sum_replicate, smul_eq_mul]
-  omega
-
 theorem vt_bound_le (hbl : bytecode.length = 2 ^ 23) (W : VsWordsOs fs) :
     fs "verify_tables" + S.H.sizes.sum + ((Tables.vtBs W.Kf W.Ksh
       (Tables.vtRunB fs W.K10 S.H.n)).sum + Tables.ifFrames fs Tables.vtPre) ≤
@@ -186,8 +180,9 @@ theorem vt_bound_le (hbl : bytecode.length = 2 ^ 23) (W : VsWordsOs fs) :
   obtain ⟨-, -, -, -, hpl, -⟩ := S.gkr_inv hbl
   have hHμ : S.H.μ < 32 := by show S.rG.2.1.length < 32; omega
   have hn : S.H.n < 31 := by have := S.nT_le hbl; show S.nT < 31; omega
-  rw [S.vt_sizes_sum]
   unfold vtMax
+  refine le_trans (Nat.add_le_add_right (Nat.add_le_add_left
+    (Tables.vt_sizes_sum_le S.H hHμ) _) _) ?_
   exact le_lmax2 (vtBnd fs W.Kf W.Ksh W.K10) hHμ hn
 
 /-- **`verify_tables` on an honest child, within `vtMax`.** -/

@@ -71,7 +71,7 @@ theorem term_weight_le {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wc
       t.total fs ≤ (32 * K15 + fs name% «check_opening_terminal_loop0») → t.weight (ω i) ≤ W15 i)
     (hrswW : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "ring_switch_weight" →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-      t.total fs ≤ fs "ring_switch_weight" + 2240 + Brs → t.weight (ω i) ≤ Wrsw i)
+      t.total fs ≤ fs "ring_switch_weight" + Brs → t.weight (ω i) ≤ Wrsw i)
     {D : TermData} (hKC : ∀ c < Tables.nCommittedCols, D.KC.getD c 0 < 31) {t : Tree}
     (h : Budget.FlatShape coreProgram "check_opening_terminal"
       (List.zipWith (Budget.NamedWithin fs) (termNames D) (termBs fs Beqc K15 Bcs Brs)) t)
@@ -136,8 +136,7 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
     (hL15 : TotalLeOn coreProgram fs name% «check_opening_terminal_loop0» LoopPre
       fun a => logG (a.getD 1 0) * K15 + fs name% «check_opening_terminal_loop0»)
     (hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs)
-    (hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c)
-      fun _ => Brs)
+    (hrs : RswWords fs Brs)
     {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wcs Wrsw : ι → ℕ)
     (hEqcW : ∀ i, WeightLe coreProgram (ω i) "eq_prefix_chain" fun _ => Weqc i)
     (hStW : ∀ i, WeightLe coreProgram (ω i) "selector_tables" fun _ => Wst i)
@@ -149,14 +148,14 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
       t.total fs ≤ (32 * K15 + fs name% «check_opening_terminal_loop0») → t.weight (ω i) ≤ W15 i)
     (hrswW : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "ring_switch_weight" →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-      t.total fs ≤ fs "ring_switch_weight" + 2240 + Brs → t.weight (ω i) ≤ Wrsw i) :
+      t.total fs ≤ fs "ring_switch_weight" + Brs → t.weight (ω i) ≤ Wrsw i) :
     CompleteAtDTB fs cert κ "check_opening_terminal" Lin
       (termArgs B rm gmu gzcn glm gtau lamCl inner yr target gm) (Returns [])
       (fun t => ∀ i, Budget.WeighsLe coreProgram (ω i)
         (ω i "check_opening_terminal" + (termWs Weqc W15 Wst Wcs Wrsw i).sum) t)
       (fs "check_opening_terminal" + 177 + 4 * Beqc + (32 * K15 + fs
           name% «check_opening_terminal_loop0») +
-        (fs "selector_tables" + 512) + 94 * Bcs + (fs "ring_switch_weight" + 2240 + Brs)) := by
+        (fs "selector_tables" + 512) + 94 * Bcs + (fs "ring_switch_weight" + Brs)) := by
   by_cases hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 Lin
   swap
   · intro fp

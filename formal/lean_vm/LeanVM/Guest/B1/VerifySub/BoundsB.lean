@@ -50,7 +50,7 @@ open LeanVM.Node LeanVM.Core.Memory
 
 /-- `verify_tables`' bound at the bus depth `m` and the largest height `n`. -/
 noncomputable def vtBnd (fs : String → ℕ) (Kf : String → ℕ) (Ksh K10 m n : ℕ) : ℕ :=
-  fs "verify_tables" + (3841 + m + 9 * (n + 1)) +
+  fs "verify_tables" + (3553 + m + 9 * (n + 1)) +
     ((Tables.vtBs Kf Ksh (Tables.vtRunB fs K10 n)).sum + Tables.ifFrames fs Tables.vtPre)
 
 /-- `verify_tables`' bound over the depths below `32` and the heights below `31`. -/
