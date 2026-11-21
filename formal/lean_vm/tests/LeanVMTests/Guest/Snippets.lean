@@ -21,15 +21,15 @@ def main_child_walk : Func :=
   { name := "main", params := [], returnShapes := [],
     inline := false,
     body := [
-      .mk 4693 (.letHintWitness "n_c" "n"),
-      .mk 4694 (.let_ "table" (.heapBufDyn (.gpow 8))),
-      .mk 4695 (.hintWitness (.slice (.var "table") (.lit 0) (.lit 8)) "claims"),
-      .mk 4696 (.let_ "cover" (.heapBufDyn (.gpow 2))),
-      .mk 4697 (.letTuple ["d0", "d1"] "child_claim_list_digest" [(.var "table"), (.var "cover"), (.gpow 3), (.gpow 2), (.var "n_c")]),
-      .mk 4698 (.let_ "public" (.gpow 0)),
-      .mk 4699 (.assertEq (.index (.var "public") (.lit 1)) (.var "d0")),
-      .mk 4700 (.assertEq (.index (.var "public") .gen) (.var "d1")),
-      .mk 4701 (.ret [])] }
+      .mk 4702 (.letHintWitness "n_c" "n"),
+      .mk 4703 (.let_ "table" (.heapBufDyn (.gpow 8))),
+      .mk 4704 (.hintWitness (.slice (.var "table") (.lit 0) (.lit 8)) "claims"),
+      .mk 4705 (.let_ "cover" (.heapBufDyn (.gpow 2))),
+      .mk 4706 (.letTuple ["d0", "d1"] "child_claim_list_digest" [(.var "table"), (.var "cover"), (.gpow 3), (.gpow 2), (.var "n_c")]),
+      .mk 4707 (.let_ "public" (.gpow 0)),
+      .mk 4708 (.assertEq (.index (.var "public") (.lit 1)) (.var "d0")),
+      .mk 4709 (.assertEq (.index (.var "public") .gen) (.var "d1")),
+      .mk 4710 (.ret [])] }
 
 /-- The functions `child_walk.py` reaches. -/
 def keep_child_walk : List String := ["zero_state", "list_split", "child_claims", "child_claim_list_digest", "child_claim_list_any", "child_claims_mono", "child_claim_list_mono", "child_claim_list_mono_last", "child_claim_list_last"]
@@ -39,22 +39,22 @@ def main_column_selectors : Func :=
   { name := "main", params := [], returnShapes := [],
     inline := false,
     body := [
-      .mk 4694 (.let_ "point" (.heapBuf 32)),
-      .mk 4695 (.hintWitness (.slice (.var "point") (.lit 0) (.lit 30)) "point"),
-      .mk 4696 (.unroll "k" (.lit 30) (.mul (.lit 4) (.lit 8)) [
-        .mk 4697 (.store (.var "point") (.genPow (.var "k")) (.lit 0))]),
-      .mk 4698 (.let_ "point1" (.heapBuf 32)),
-      .mk 4699 (.unroll "k" (.lit 0) (.mul (.lit 4) (.lit 8)) [
-        .mk 4700 (.store (.var "point1") (.genPow (.var "k")) (.add (.lit 1) (.index (.var "point") (.genPow (.var "k")))))]),
-      .mk 4701 (.let_ "sel_eq" (.call "selector_tables" [(.var "point"), (.var "point1")])),
-      .mk 4702 (.let_ "g_squares" (.call "exponent_tables" [])),
-      .mk 4703 (.let_ "sel_g" (.mul (.var "g_squares") (.gpow 34))),
-      .mk 4704 (.letHintWitness "offset" "offset"),
-      .mk 4705 (.letHintWitness "kappa_g" "kappa"),
-      .mk 4706 (.match_ [(.var "weight")] (.var "kappa_g") [(.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 0)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 1)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 2)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 3)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 4)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 5)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 6)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 7)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 8)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 9)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 10)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 11)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 12)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 13)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 14)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 15)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 16)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 17)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 18)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 19)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 20)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 21)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 22)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 23)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 24)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 25)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 26)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 27)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 28)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 29)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 30)])]),
-      .mk 4707 (.let_ "public" (.gpow 0)),
-      .mk 4708 (.assertEq (.index (.var "public") (.lit 1)) (.var "weight")),
-      .mk 4709 (.ret [])] }
+      .mk 4703 (.let_ "point" (.heapBuf 32)),
+      .mk 4704 (.hintWitness (.slice (.var "point") (.lit 0) (.lit 30)) "point"),
+      .mk 4705 (.unroll "k" (.lit 30) (.mul (.lit 4) (.lit 8)) [
+        .mk 4706 (.store (.var "point") (.genPow (.var "k")) (.lit 0))]),
+      .mk 4707 (.let_ "point1" (.heapBuf 32)),
+      .mk 4708 (.unroll "k" (.lit 0) (.mul (.lit 4) (.lit 8)) [
+        .mk 4709 (.store (.var "point1") (.genPow (.var "k")) (.add (.lit 1) (.index (.var "point") (.genPow (.var "k")))))]),
+      .mk 4710 (.let_ "sel_eq" (.call "selector_tables" [(.var "point"), (.var "point1")])),
+      .mk 4711 (.let_ "g_squares" (.call "exponent_tables" [])),
+      .mk 4712 (.let_ "sel_g" (.mul (.var "g_squares") (.gpow 34))),
+      .mk 4713 (.letHintWitness "offset" "offset"),
+      .mk 4714 (.letHintWitness "kappa_g" "kappa"),
+      .mk 4715 (.match_ [(.var "weight")] (.var "kappa_g") [(.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 0)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 1)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 2)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 3)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 4)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 5)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 6)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 7)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 8)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 9)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 10)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 11)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 12)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 13)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 14)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 15)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 16)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 17)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 18)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 19)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 20)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 21)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 22)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 23)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 24)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 25)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 26)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 27)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 28)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 29)]), (.call "column_selector" [(.var "offset"), (.var "sel_eq"), (.var "sel_g"), (.lit 30)])]),
+      .mk 4716 (.let_ "public" (.gpow 0)),
+      .mk 4717 (.assertEq (.index (.var "public") (.lit 1)) (.var "weight")),
+      .mk 4718 (.ret [])] }
 
 /-- The functions `column_selectors.py` reaches. -/
 def keep_column_selectors : List String := ["exponent_tables", "column_selector", "selector_tables"]
@@ -64,16 +64,16 @@ def main_da_membership : Func :=
   { name := "main", params := [], returnShapes := [],
     inline := false,
     body := [
-      .mk 4693 (.let_ "byte_bits" (.heapBuf 256)),
-      .mk 4694 (.unroll "v" (.lit 0) (.lit 256) [
-        .mk 4695 (.store (.var "byte_bits") (.genPow (.var "v")) (.var "v"))]),
-      .mk 4696 (.letTuple ["r0", "r1", "z"] "da_verify" [(.var "byte_bits")]),
-      .mk 4697 (.let_ "digest" (.stackBuf 2)),
-      .mk 4698 (.call "keccak" [(.list [(.var "r0"), (.var "r1")]), (.list [(.var "z"), (.lit 0)]), (.var "digest")]),
-      .mk 4699 (.let_ "public" (.gpow 0)),
-      .mk 4700 (.assertEq (.index (.var "public") (.lit 1)) (.index (.var "digest") (.lit 0))),
-      .mk 4701 (.assertEq (.index (.var "public") .gen) (.index (.var "digest") (.lit 1))),
-      .mk 4702 (.ret [])] }
+      .mk 4702 (.let_ "byte_bits" (.heapBuf 256)),
+      .mk 4703 (.unroll "v" (.lit 0) (.lit 256) [
+        .mk 4704 (.store (.var "byte_bits") (.genPow (.var "v")) (.var "v"))]),
+      .mk 4705 (.letTuple ["r0", "r1", "z"] "da_verify" [(.var "byte_bits")]),
+      .mk 4706 (.let_ "digest" (.stackBuf 2)),
+      .mk 4707 (.call "keccak" [(.list [(.var "r0"), (.var "r1")]), (.list [(.var "z"), (.lit 0)]), (.var "digest")]),
+      .mk 4708 (.let_ "public" (.gpow 0)),
+      .mk 4709 (.assertEq (.index (.var "public") (.lit 1)) (.index (.var "digest") (.lit 0))),
+      .mk 4710 (.assertEq (.index (.var "public") .gen) (.index (.var "digest") (.lit 1))),
+      .mk 4711 (.ret [])] }
 
 /-- The functions `da_membership.py` reaches. -/
 def keep_da_membership : List String := ["da_verify", "da_padding", "da_verify_column", "da_verify_cell", "da_levels", "da_vector", "da_factors", "da_expand", "da_column_offsets"]
@@ -83,9 +83,9 @@ def main_grind_check : Func :=
   { name := "main", params := [], returnShapes := [],
     inline := false,
     body := [
-      .mk 4693 (.letHintWitness "word" "w"),
-      .mk 4694 (.call "grind_check" [(.var "word"), (.mul (.call "exponent_tables" []) (.gpow 236)), (.lit 3)]),
-      .mk 4695 (.ret [])] }
+      .mk 4702 (.letHintWitness "word" "w"),
+      .mk 4703 (.call "grind_check" [(.var "word"), (.mul (.call "exponent_tables" []) (.gpow 236)), (.lit 3)]),
+      .mk 4704 (.ret [])] }
 
 /-- The functions `grind_check.py` reaches. -/
 def keep_grind_check : List String := ["exponent_tables", "assert_window", "grind_check"]
@@ -95,12 +95,12 @@ def main_list_split : Func :=
   { name := "main", params := [], returnShapes := [],
     inline := false,
     body := [
-      .mk 4693 (.letHintWitness "n_g" "n"),
-      .mk 4694 (.letTuple ["bigs", "body", "rest"] "list_split" [(.var "n_g")]),
-      .mk 4695 (.let_ "public" (.gpow 0)),
-      .mk 4696 (.assertEq (.index (.var "public") (.lit 1)) (.var "body")),
-      .mk 4697 (.assertEq (.index (.var "public") .gen) (.var "rest")),
-      .mk 4698 (.ret [])] }
+      .mk 4702 (.letHintWitness "n_g" "n"),
+      .mk 4703 (.letTuple ["bigs", "body", "rest"] "list_split" [(.var "n_g")]),
+      .mk 4704 (.let_ "public" (.gpow 0)),
+      .mk 4705 (.assertEq (.index (.var "public") (.lit 1)) (.var "body")),
+      .mk 4706 (.assertEq (.index (.var "public") .gen) (.var "rest")),
+      .mk 4707 (.ret [])] }
 
 /-- The functions `list_split.py` reaches. -/
 def keep_list_split : List String := ["list_split"]
