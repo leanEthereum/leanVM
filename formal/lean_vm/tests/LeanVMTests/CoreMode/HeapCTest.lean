@@ -1,14 +1,12 @@
 /-
-  LeanVM.Guest.CoreMode.HeapCTest
+  LeanVMTests.CoreMode.HeapCTest
 
   The heap check with calls and loops on hand-written certificates: two loop helpers and a caller
   as the guest had them (frozen), and small functions for returned words, runs consumed and a dispatch.
 -/
 
-module
-
-public import LeanVM.Guest.CoreMode.HeapC
-public import LeanVM.Guest.Data.Pows
+import LeanVM.Guest.CoreMode.HeapC
+import LeanVM.Guest.Data.Pows
 
 /-!
 # Tests of `heapOkC`
@@ -55,7 +53,7 @@ namespace LeanVM.Guest.CoreMode.Test
 
 open LeanVM.Guest LeanVM.Guest.Core
 
-@[expose] public section
+section
 
 /-! ## Loop helpers of the guest -/
 
