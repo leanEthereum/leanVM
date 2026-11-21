@@ -82,8 +82,9 @@ def _deployed(W):
     import fnrules
     L, fs, SB, SKt, v = W.L, W.fs, W.SB, W.SKt, W.v
     lp = [L('main_loop%d' % i) for i in range(5)]
-    # `main`'s frame and buffers (`283` words), `exponent_tables`' and each callee's frame and bound
-    base = (fs('main') + 283 + fs('exponent_tables') + SB('exponent_tables')
+    # `main`'s frame and buffers (`283` words), `exponent_tables`' (its table's size its own, `B1.expTabN`) and each
+    # callee's frame and bound
+    base = (fs('main') + 283 + fs('exponent_tables') + fnrules.lean_def_at('B1/Bits/Tables.lean', 'expTabN')
             + 2 * (v('clC') + fs('claim_list_digest')) + fs(lp[0]) + fs(lp[1]) + fs(lp[2]) + fs(lp[3])
             + 2 * v('l5A0') + (v('agA0') + fs('aggregate_claims'))
             + SB('statement_digest') + fs('statement_digest'))
