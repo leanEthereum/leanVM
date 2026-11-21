@@ -14,7 +14,7 @@ Tables (each a dict by core name, or a list of entries whose first field is a co
   SPLITS       `g`-power splits (`CoreMode.splitsC`)
   CTR_PRE      loops whose run preconditions may be over the counter (`infer.py`)
   CONTRACTS    contracts given by hand (`sigc.py`), as `Mode.Sig` literal fields past the entry
-  KERNEL_WIN, HEAP_WIN, CORE_WIN, PAIR_WIN, FRAME_WIN: functions checked in windows, and their window sizes
+  CORE_WIN, PAIR_WIN, FRAME_WIN: functions checked in windows of their own sizes, and the sizes (`windows.py`)
 Hooks (functions; each answers for its own core names only, else `None`/`False`):
   fam(k, r)        a ghost-free residual of the function's family (`CoreMode.resFamG`'s own families)
   ghost(k, r)      a residual of its ghost family (no bound on its values)

@@ -28,30 +28,22 @@ its first top-level `ret`. Per function, in `GenW/<fn>/` (`callc.py`) or `GenWL/
 import sys, os, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+sys.path.append(os.path.join(HERE, '..'))
 import infer as I
 import heapc as C
 import emitc as E
+import windows
 
-# atoms per window: the kernel's memory grows with the atoms a window's pass and ghost check go through; the default
-# keeps a window of `main_loop2` within the memory a module may take
-ATOMS = 15000
+# the windows' sizes (`windows.py`)
+BUDGET, WIN, ATOMS, FIXW = windows.HEAP_BUDGET, windows.HEAP_WIN, windows.HEAP_ATOMS, windows.HEAP_FIXW
+CXPART, CXDEC, SPART = windows.HEAP_CXPART, windows.HEAP_CXDEC, windows.HEAP_SPART
 # The kernel's work, in thousands of heartbeats (the heartbeat limit's unit), estimated from `heapc.py`'s pass: per
 # line it executes (`Meter`), per atom (the ghost check), per character of the certificate (the context's tries), per
 # frame run cell and top-level statement (`faOk`), per trie entry or list element of a window's states (comparing the
-# end state). Fitted to the measured heartbeats of the one-piece checks and of the windows.
+# end state), fitted to the kernel's heartbeats of the one-piece checks and of the windows.
 W_LINE, W_ATOM, W_CERT, W_FA, W_ENT = 0.2, 15, 0.02, 0.4, 0.5
-# a check estimated above `BUDGET` is windowed, each window estimated at most `WIN` (the default limit is 200000)
-BUDGET, WIN = 90000, 100000
-# a window reads the context's tries from literals (`Cx.lean`): its statements' share is kept at most `WIN - FIXW`
-FIXW = 40000
-# characters of a context literal's definitions in one module (`Cx<field>D<j>`): elaborating them takes memory
-CXPART = 250000
-# characters of the certificate's lists the equations of one module read (`fl_cost`, `CxH<j>`)
-CXDEC = 150000
 # entries a context trie's reference walks at most (`lrefs`)
 BLK = 32
-# characters of state literals in one module (`S<j>`)
-SPART = 250000
 DEPTH = 20                      # `Exec.indexDepth`: keys past it are dropped by `setF`
 KEYMAX = 2 ** DEPTH - 1
 
