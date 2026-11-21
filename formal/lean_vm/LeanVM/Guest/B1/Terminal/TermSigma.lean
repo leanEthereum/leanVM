@@ -24,10 +24,10 @@ so the honest terminal equation passes it.
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.B1
 open LeanVM.Protocol
 open LeanVM.Protocol.Verifier hiding gpow
-open LeanVM.Guest.Memory LeanVM.Guest.B1.Fwd
+open LeanVM.Core.Memory LeanVM.Guest.B1.Fwd
 open LeanVM.Guest.B1.Main (MemL RegionL)
 open Finset
 

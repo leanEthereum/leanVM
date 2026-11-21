@@ -20,7 +20,7 @@ public import LeanVM.Guest.B1.Whir.CBlk
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
 open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -30,16 +30,14 @@ variable {H : CallRel → Reader → Prop}
 /-- The fixed buffers' sizes, in allocation order (`osSizesL c`'s first eleven). -/
 def headSizes (c : OsCfg) : List ℕ :=
   [c.yrLen + (c.levels.getD c.yrLevel default).folds, 2 * c.levels.length, c.nFolds, 2 * c.nFolds,
-    c.levels.length, c.levels.length, c.levels.length * hsStride, c.levels.length * ligColsCap,
-    c.levels.length, c.levels.length * ligPosCap, c.levels.length * ligPosCap]
+    c.levels.length, c.levels.length, c.nFolds, c.colsTotal, c.levels.length, c.posTotal, c.posTotal]
 
 /-- The head's values from `11`: each buffer's size word, then its pointer. -/
 def headVals (c : OsCfg) (P : ℕ → E) : List E :=
   [gw (c.yrLen + (c.levels.getD c.yrLevel default).folds), P 0, gw (2 * c.levels.length), P 1,
     gw c.nFolds, P 2, gw (2 * c.nFolds), P 3, gw c.levels.length, P 4, gw c.levels.length, P 5,
-    gw (c.levels.length * hsStride), P 6, gw (c.levels.length * ligColsCap), P 7,
-    gw c.levels.length, P 8, gw (c.levels.length * ligPosCap), P 9,
-    gw (c.levels.length * ligPosCap), P 10]
+    gw c.nFolds, P 6, gw c.colsTotal, P 7, gw c.levels.length, P 8, gw c.posTotal, P 9,
+    gw c.posTotal, P 10]
 
 theorem headVals_length (c : OsCfg) (P : ℕ → E) : (headVals c P).length = 22 := rfl
 

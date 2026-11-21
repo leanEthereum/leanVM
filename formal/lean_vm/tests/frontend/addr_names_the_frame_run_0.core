@@ -1,0 +1,93 @@
+def main []
+  hint witness v [%0]
+  call probe [%0] [%1]
+  const %2 1 0
+  load %1 %2 0
+  const %3 1 0
+  const %4 1 0
+  const %5 2 0
+  mul %6 %4 %5
+  load %3 %6 0
+  ret []
+def probe [%0]
+  hint bits %0 [%1 %2 %3 %4 %5 %6 %7 %8] 0 8
+  addr %9 [%1 %2 %3 %4 %5 %6 %7 %8]
+  mul %1 %1 %1
+  mul %2 %2 %2
+  const %10 2 0
+  mul %11 %2 %10
+  add %12 %1 %11
+  mul %3 %3 %3
+  const %13 4 0
+  mul %14 %3 %13
+  add %15 %12 %14
+  mul %4 %4 %4
+  const %16 8 0
+  mul %17 %4 %16
+  add %18 %15 %17
+  mul %5 %5 %5
+  const %19 16 0
+  mul %20 %5 %19
+  add %21 %18 %20
+  mul %6 %6 %6
+  const %22 32 0
+  mul %23 %6 %22
+  add %24 %21 %23
+  mul %7 %7 %7
+  const %25 64 0
+  mul %26 %7 %25
+  add %27 %24 %26
+  mul %8 %8 %8
+  const %28 128 0
+  mul %29 %8 %28
+  add %30 %27 %29
+  assert_eq %30 %0
+  load %31 %9 0
+  load %32 %9 1
+  const %33 2 0
+  mul %34 %32 %33
+  add %35 %31 %34
+  load %36 %9 2
+  const %37 4 0
+  mul %38 %36 %37
+  add %39 %35 %38
+  load %40 %9 3
+  const %41 8 0
+  mul %42 %40 %41
+  add %43 %39 %42
+  load %44 %9 4
+  const %45 16 0
+  mul %46 %44 %45
+  add %47 %43 %46
+  load %48 %9 5
+  const %49 32 0
+  mul %50 %48 %49
+  add %51 %47 %50
+  load %52 %9 6
+  const %53 64 0
+  mul %54 %52 %53
+  add %55 %51 %54
+  load %56 %9 7
+  const %57 128 0
+  mul %58 %56 %57
+  add %59 %55 %58
+  assert_eq %59 %0
+  const %60 1 0
+  call __loop0 [%60 %9] []
+  addr %61 [%1 %2 %3 %4 %5 %6 %7 %8]
+  assert_eq %61 %9
+  copy %62 %59
+  ret [%62]
+def __loop0 [%0 %1]
+  mul %2 %1 %0
+  load %3 %2 0
+  mul %4 %3 %3
+  assert_eq %4 %3
+  const %5 2 0
+  mul %6 %0 %5
+  const %7 256 0
+  add %8 %6 %7
+  const %9 2 0
+  mul %10 %0 %9
+  call_if %8 __loop0 [%10 %1]
+  ret []

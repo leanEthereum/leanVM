@@ -1,0 +1,1 @@
+error: in main: hint_decompose_digits_exponent: nbits <= 40 and 1 <= digit_bits <= 16

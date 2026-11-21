@@ -8,7 +8,7 @@ POWS = {}
 
 
 def set_pows(p):
-    """The powers of `g` the constants name (`core.load_pows`), for `word_exp`."""
+    """The powers of `g` below `2^20` (`core.pows`), for `word_exp`."""
     POWS.clear(); POWS.update(p)
 
 

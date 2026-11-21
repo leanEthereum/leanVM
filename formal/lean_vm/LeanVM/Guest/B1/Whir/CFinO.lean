@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Whir.OodW
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest LeanVM.Guest.B1
 open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -51,10 +51,10 @@ theorem osOodWeight_ssa (c : OsCfg) (tch prevCols ol : ℕ) (lv : OsLv) (k : ℕ
       (osOodWeight c tch prevCols ol lv k).2.1 < (osOodWeight c tch prevCols ol lv k).2.2 ∧
       (∀ p o, (p, o) ∈ loadsOf (osOodWeight c tch prevCols ol lv k).1 →
         (p = osOodSc ∧ o = ol) ∨
-        (p = osOodz ∧ ∃ x ∈ oodCoords c tch prevCols ol lv, o = x.1) ∨
-        (∃ x ∈ oodCoords c tch prevCols ol lv, (p, o) = x.2)) := by
+        (p = osOodz ∧ ∃ x ∈ oodCoords c tch prevCols lv, o = x.1) ∨
+        (∃ x ∈ oodCoords c tch prevCols lv, (p, o) = x.2)) := by
   rw [osOodWeight_eq]
-  obtain ⟨r1, r2, r3⟩ := osOodFacs_ssa (oodCoords c tch prevCols ol lv) k (k + 1) (by omega)
+  obtain ⟨r1, r2, r3⟩ := osOodFacs_ssa (oodCoords c tch prevCols lv) k (k + 1) (by omega)
     (by omega) (fun x hx ↦ by
       simp only [oodCoords, List.mem_map, List.mem_range] at hx
       obtain ⟨t, -, rfl⟩ := hx
@@ -81,8 +81,8 @@ def OodLoads (c : OsCfg) (tch : ℕ) : ℕ → ℕ → List OsLv → ℕ → ℕ
   | _, _, [], _, _ => False
   | prevCols, ol, lv :: rest, p, o =>
     ((p = osOodSc ∧ o = ol) ∨
-      (p = osOodz ∧ ∃ x ∈ oodCoords c tch prevCols ol lv, o = x.1) ∨
-      (∃ x ∈ oodCoords c tch prevCols ol lv, (p, o) = x.2)) ∨
+      (p = osOodz ∧ ∃ x ∈ oodCoords c tch prevCols lv, o = x.1) ∨
+      (∃ x ∈ oodCoords c tch prevCols lv, (p, o) = x.2)) ∨
     OodLoads c tch lv.logCols (ol + 1) rest p o
 
 theorem osOodWeights_ssa (c : OsCfg) (tch : ℕ) :

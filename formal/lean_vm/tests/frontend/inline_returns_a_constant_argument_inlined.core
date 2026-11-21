@@ -1,0 +1,13 @@
+def main []
+  hint witness w [%0]
+  copy %1 %0
+  const %2 1 0
+  load %0 %2 0
+  const %3 2 0
+  mul %4 %0 %3
+  mul %5 %1 %4
+  const %6 1 0
+  const %7 2 0
+  mul %8 %6 %7
+  load %5 %8 0
+  ret []

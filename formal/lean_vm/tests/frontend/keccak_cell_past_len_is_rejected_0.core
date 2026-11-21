@@ -1,0 +1,1 @@
+error: in main: keccak len= 40 ends before message cell 3, which is not a literal 0

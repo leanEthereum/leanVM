@@ -22,7 +22,7 @@ the `LevelsChk*` modules evaluate it, and `dl_sound` turns a checked entry into
 
 namespace LeanVM.Guest.B1.Da
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 
@@ -31,10 +31,10 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 /-- The specializations, one per depth of `DlDepth`: `k`, the name, the core function, the level
 loops. -/
 def dlTab : List (ℕ × String × ℕ × List String) :=
-  [(5, "da_levels__L32_L5", 407, [name% «da_levels__L32_L5_loop0»,
+  [(5, "da_levels__L32_L5", idx% «da_levels__L32_L5», [name% «da_levels__L32_L5_loop0»,
         name% «da_levels__L32_L5_loop1», name% «da_levels__L32_L5_loop2»,
         name% «da_levels__L32_L5_loop3», name% «da_levels__L32_L5_loop4»]),
-    (7, "da_levels__L128_L7", 935, [name% «da_levels__L128_L7_loop0»,
+    (7, "da_levels__L128_L7", idx% «da_levels__L128_L7», [name% «da_levels__L128_L7_loop0»,
         name% «da_levels__L128_L7_loop1», name% «da_levels__L128_L7_loop2»,
         name% «da_levels__L128_L7_loop3», name% «da_levels__L128_L7_loop4»,
         name% «da_levels__L128_L7_loop5», name% «da_levels__L128_L7_loop6»])]
@@ -43,7 +43,8 @@ def dlTab : List (ℕ × String × ℕ × List String) :=
 def dlEntry (k : ℕ) : ℕ × String × ℕ × List String := (dlTab.find? (·.1 == k)).getD (0, "", 0, [])
 
 /-- Entry `k`'s first level loop's core function, by depth; the others follow it. -/
-def dlLoop0 : List (ℕ × ℕ) := [(5, 936), (7, 1448)]
+def dlLoop0 : List (ℕ × ℕ) :=
+  [(5, idx% «da_levels__L32_L5_loop0»), (7, idx% «da_levels__L128_L7_loop0»)]
 
 /-- Entry `k`'s level loop `lvl`'s core function. -/
 def dlLoopAt (k lvl : ℕ) : ℕ := ((dlLoop0.find? (·.1 == k)).map (·.2)).getD 0 + lvl

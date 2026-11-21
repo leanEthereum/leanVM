@@ -27,7 +27,7 @@ bits disjoint, so the cells are sums of their numbers):
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol.Verifier (eOfNat)
 
 @[expose] public section

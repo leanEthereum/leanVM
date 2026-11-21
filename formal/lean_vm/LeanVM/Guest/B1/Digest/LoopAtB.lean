@@ -19,8 +19,8 @@ iteration from `g^k`, one for the call not entered at the end.
 
 namespace LeanVM.Guest.B1.Digest
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
-open LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
+open LeanVM.Core.Memory
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Guest.B1 (LowDef CompleteAtD CompleteAtDTB Returns DisjL Within disj_append within_append)
 open LeanVM.Guest.B1.Main (Layout MemL RegionL memL_append)

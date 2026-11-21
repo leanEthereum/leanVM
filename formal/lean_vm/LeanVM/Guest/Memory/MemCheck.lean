@@ -9,9 +9,9 @@
 module
 
 public import LeanVM.Guest.Memory.CalleeIdx
-public import LeanVM.Guest.Memory.Fresh
-public import LeanVM.Guest.Memory.Tree
-public import LeanVM.Guest.Memory.SizeTotal
+public import LeanVM.Core.Memory.Fresh
+public import LeanVM.Core.Memory.Tree
+public import LeanVM.Core.Memory.SizeTotal
 public import LeanVM.Guest.CoreNames
 
 /-!
@@ -30,7 +30,9 @@ kernel check is checked by ranges of its statements (`memB_drop`, `memF_of`).
 
 namespace LeanVM.Guest.Memory
 
-open LeanVM.Guest.Core LeanVM.Guest
+open LeanVM.Core.Memory
+
+open LeanVM.Core
 
 @[expose] public section
 

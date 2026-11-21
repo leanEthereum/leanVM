@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.KeccakGkr.FlatF
 # A layer's placement facts
 
 `layerPre first odd`: the body but its return (`layerT_pre`); it is flat (`layerPre_flat`), places
-no run (`layerPre_addrs`), allocates the pack challenges (`y` words), the round records (`112`),
+no run (`layerPre_addrs`), allocates the pack challenges (`y` words), the round records (`77`),
 the local point (`11`), the next claim's lanes (`25`) and flips (`7`) (`layerPre_alloc`), calls
 the grind's `grind_check` and the two pack loops (`layerPre_calls`), and loads only through the
 pointers `layerGroups` below their bounds (`layerPre_loads`).
@@ -22,7 +22,7 @@ pointers `layerGroups` below their bounds (`layerPre_loads`).
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Guest.Memory
 
 @[expose] public section
@@ -63,8 +63,8 @@ def dispB : Stmt → Bool
 
 /-- The pointers the body loads through, each with a bound on the offsets. -/
 def layerGroups (first : ℕ) : List (V × ℕ) :=
-  [(.n 7, 48), (.n 11, 22), (.n 12, 22), (.n (layOff first + 719), 112),
-    (.n (layOff first + 737), 97), (.n (layOff first + 743), 36),
+  [(.n 7, 48), (.n 11, 22), (.n 12, 22), (.n (layOff first + 719), 77),
+    (.n (layOff first + 737), 67), (.n (layOff first + 743), 36),
     (.n (layOff first + 1176), 25), (.n (layOff first + 745), 11), (.n (tW first + 25), 25),
     (.n (topV (tW first) + 3), 7)] ++
     if first = 1 then [] else [(.n (layOff first + 1177), 11)]
@@ -84,7 +84,7 @@ theorem layerPre_kernel {first : ℕ} (hf : first < 2) :
     (layerPre first).all Stmt.flat = true ∧
     (layerPre first).filterMap Main.Stmt.addrS = [] ∧
     (layerPre first).filterMap Main.Stmt.allocSz =
-      [(.n (layOff first + 718), .inr (.n 8)), (.n (layOff first + 719), .inl 112),
+      [(.n (layOff first + 718), .inr (.n 8)), (.n (layOff first + 719), .inl 77),
         (.n (layOff first + 745), .inl 11), (.n (tW first + 25), .inl 25),
         (.n (topV (tW first) + 3), .inl 7)] ∧
     (layerPre first).all (fun s ↦ !dispB s) = true ∧

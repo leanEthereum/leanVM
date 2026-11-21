@@ -22,7 +22,7 @@ seven (`12 + y + k`).
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -91,14 +91,14 @@ theorem ylog : c.yrLog ≤ yrLogCap := hS.2.2.1
 theorem pos : ∀ l < c.levels.length, (c.levels.getD l default).posOff +
     (c.levels.getD l default).squeezes * sqPer (c.levels.getD l default) ≤
     (if l + 1 < c.levels.length then (c.levels.getD (l + 1) default).posOff
-      else c.levels.length * ligPosCap) := hS.2.2.2.1
+      else c.posTotal) := hS.2.2.2.1
 
 theorem per {l : ℕ} (hl : l < c.levels.length) : 1 ≤ sqPer (c.levels.getD l default) :=
   hS.2.2.2.2.1 l hl
 
-theorem mid {l : ℕ} (hl : l < c.yrLevel) :
-    (c.levels.getD l default).logCols ≤ ligColsCap ∧ (c.levels.getD l default).folds ≤ hsStride :=
-  hS.2.2.2.2.2.1 l hl
+theorem cols : ∀ l < c.yrLevel, (c.levels.getD l default).colsOff + (c.levels.getD l default).logCols ≤
+    (if l + 1 < c.yrLevel then (c.levels.getD (l + 1) default).colsOff else c.colsTotal) :=
+  hS.2.2.2.2.2.1
 
 theorem fo0 : (c.levels.getD 0 default).foldsOff = 0 := hS.2.2.2.2.2.2.1
 
@@ -123,7 +123,7 @@ theorem lane : (osSizesL c).getD (11 + c.yrLevel) 0 = c.yrLen + (c.levels.getD c
   hS.2.2.2.2.2.2.2.2.2.2.2.2.1
 
 theorem fin {k : ℕ} (hk : k < 7) : (osSizesL c).getD (12 + c.yrLevel + k) 0 =
-    [yrLogCap, pointCap, pointCap, c.levels.length * ligColsCap, c.levels.length, c.levels.length,
+    [yrLogCap, pointCap, pointCap, c.colsTotal, c.levels.length, c.levels.length,
       2 * c.levels.length].getD k 0 :=
   hS.2.2.2.2.2.2.2.2.2.2.2.2.2 k hk
 
@@ -134,6 +134,17 @@ theorem sentLt {l : ℕ} (hl : l ≤ c.yrLevel) : 11 + l < (osSizesL c).length :
 
 theorem finLt {k : ℕ} (hk : k < 7) : 12 + c.yrLevel + k < (osSizesL c).length := by
   rw [hS.len]; omega
+
+/-- The non-final levels' high parts in order within `level_hs`. -/
+theorem hsChain : ∀ l < c.yrLevel, (c.levels.getD l default).foldsOff + (c.levels.getD l default).folds ≤
+    (if l + 1 < c.yrLevel then (c.levels.getD (l + 1) default).foldsOff else c.nFolds) := fun l hl ↦ by
+  have hy := hS.yr
+  have e := hS.fo (l := l) (by omega)
+  split_ifs with h1
+  · omega
+  · have := hS.foT
+    rw [show l + 1 = c.yrLevel by omega] at e
+    omega
 
 end HonStatic
 

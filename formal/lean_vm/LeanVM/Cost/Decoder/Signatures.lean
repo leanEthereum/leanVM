@@ -41,10 +41,9 @@ The literals and helpers the readers call, each under a name of its own (stable 
 chain's reallocations of on-demand indices), compiled before their callers. -/
 
 cost_compile gLanesC := gLanes
-cost_compile spSelC := spSel
+cost_compile spBaseC := spBase
 cost_compile spFirstC := spFirst
 cost_compile spRestC := spRest
-cost_compile spLastC := spLast
 cost_compile spForsKidsC := spForsKids
 cost_compile spForsBitsC := spForsBits
 cost_compile spPathKidsC := spPathKids
@@ -62,6 +61,7 @@ cost_compile whirTabsC := whirTabs
 /-! ## A sibling, a chain's start -/
 
 cost_compile sibNC := sibN
+cost_compile spLastOffC := spLastOff
 cost_compile cwCellC := cwCellA
 
 /-! ## leanSPHINCS -/
@@ -91,7 +91,7 @@ def nvEnd : ℕ → ℕ → ℕ → ℕ
   | 0, _, k => k
   | c + 1, n, k => nvEnd c ((n + 1) / 2) (k + n)
 
-theorem nvLevelT_end (w : LeanVM.Guest.Core.V) : ∀ (ins : List ℕ) (k : ℕ),
+theorem nvLevelT_end (w : LeanVM.Core.V) : ∀ (ins : List ℕ) (k : ℕ),
     (nvLevelT w ins k).2.2 = k + ins.length ∧
       (nvLevelT w ins k).2.1.length = (ins.length + 1) / 2
   | lo :: hi :: rest, k => by

@@ -26,7 +26,7 @@ specializations.
 
 namespace LeanVM.Guest.B1.Da
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Core.Memory
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest
 open LeanVM.Guest.B1 (CompleteAtDTB completeAt_flatOutDTB flatCalls flatMap_loadsEv noLoadIte)

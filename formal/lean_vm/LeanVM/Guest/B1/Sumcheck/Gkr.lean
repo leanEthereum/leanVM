@@ -26,7 +26,7 @@ claim stored. The window table `.n 2` is not read.
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -67,19 +67,19 @@ def gkRound (q : ℕ) : List Stmt :=
 
 /-- The expansion of `gkr_rounds` at `n ≥ 1` rounds. -/
 def gkBody (n : ℕ) : List Stmt :=
-  [.atom (.load (.n 3) (.n 0) 0), .atom (.load (.n 4) (.n 0) 862), .atom (.load (.n 5) (.n 0) 1724),
-    .atom (.load (.n 6) (.n 0) 2586), .atom (.load (.n 7) (.n 0) 3448),
-    .atom (.load (.n 8) (.n 0) 4310), .atom (.load (.n 9) (.n 0) 5172)] ++
+  [.atom (.load (.n 3) (.n 0) 0), .atom (.load (.n 4) (.n 0) 1), .atom (.load (.n 5) (.n 0) 2),
+    .atom (.load (.n 6) (.n 0) 3), .atom (.load (.n 7) (.n 0) 4),
+    .atom (.load (.n 8) (.n 0) 5), .atom (.load (.n 9) (.n 0) 6)] ++
   ((List.range n).map gkRound).flatten ++
-  [.atom (.load (.n (30 + 39 * (n - 1))) (.n 0) n),
-    .atom (.load (.n (31 + 39 * (n - 1))) (.n 0) (n + 862)),
-    .atom (.load (.n (32 + 39 * (n - 1))) (.n 0) (n + 1724)),
-    .atom (.load (.n (33 + 39 * (n - 1))) (.n 0) (n + 2586)),
-    .atom (.load (.n (34 + 39 * (n - 1))) (.n 0) (n + 3448)),
+  [.atom (.load (.n (30 + 39 * (n - 1))) (.n 0) (7 * n)),
+    .atom (.load (.n (31 + 39 * (n - 1))) (.n 0) (7 * n + 1)),
+    .atom (.load (.n (32 + 39 * (n - 1))) (.n 0) (7 * n + 2)),
+    .atom (.load (.n (33 + 39 * (n - 1))) (.n 0) (7 * n + 3)),
+    .atom (.load (.n (34 + 39 * (n - 1))) (.n 0) (7 * n + 4)),
     .atom (.const (.n (10 + 39 * n)) (word (2 ^ (4 * n)) 0)),
     .atom (.mul (.n (11 + 39 * n)) (.n 8) (.n (10 + 39 * n))),
-    .atom (.load (.n (11 + 39 * n)) (.n 0) (n + 4310)),
-    .atom (.load (.n (48 + 39 * (n - 1))) (.n 0) (n + 5172)),
+    .atom (.load (.n (11 + 39 * n)) (.n 0) (7 * n + 5)),
+    .atom (.load (.n (48 + 39 * (n - 1))) (.n 0) (7 * n + 6)),
     .atom (.const (.n (12 + 39 * n)) (word 0 0)),
     .ret [.n (12 + 39 * n)]]
 
@@ -388,7 +388,7 @@ theorem gk_sound {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n ≤ 
       rw [loadHolds_mul_gen_pow, ← hr]
       exact hst
     · simp only [gkSt, Fs.squeeze, capOf, List.length_cons, List.length_nil] at hj
-      have st : ∀ i (hi : i < 5), LoadHolds rd (σ (.n 0)) (m' + 1 + i * 862)
+      have st : ∀ i (hi : i < 5), LoadHolds rd (σ (.n 0)) (7 * (m' + 1) + i * 1)
           (cellsOfState (P m') false ⟨8 + i, by omega⟩) := by
         intro i hi
         have e := hBm ⟨8 + i, by omega⟩
@@ -396,16 +396,16 @@ theorem gk_sound {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n ≤ 
         interval_cases i
         · exact s0
         · rw [idx (30 + 39 * (m' + 1 - 1) + 1) (31 + 39 * (m' + 1 - 1)) (by ring),
-            show m' + 1 + 1 * 862 = m' + 1 + 862 by ring]
+            show 7 * (m' + 1) + 1 * 1 = 7 * (m' + 1) + 1 by ring]
           exact s1
         · rw [idx (30 + 39 * (m' + 1 - 1) + 2) (32 + 39 * (m' + 1 - 1)) (by ring),
-            show m' + 1 + 2 * 862 = m' + 1 + 1724 by ring]
+            show 7 * (m' + 1) + 2 * 1 = 7 * (m' + 1) + 2 by ring]
           exact s2
         · rw [idx (30 + 39 * (m' + 1 - 1) + 3) (33 + 39 * (m' + 1 - 1)) (by ring),
-            show m' + 1 + 3 * 862 = m' + 1 + 2586 by ring]
+            show 7 * (m' + 1) + 3 * 1 = 7 * (m' + 1) + 3 by ring]
           exact s3
         · rw [idx (30 + 39 * (m' + 1 - 1) + 4) (34 + 39 * (m' + 1 - 1)) (by ring),
-            show m' + 1 + 4 * 862 = m' + 1 + 3448 by ring]
+            show 7 * (m' + 1) + 4 * 1 = 7 * (m' + 1) + 4 by ring]
           exact s4
       interval_cases j
       · exact st 0 (by omega)
@@ -415,10 +415,10 @@ theorem gk_sound {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n ≤ 
       · exact st 4 (by omega)
     · have k : σ (.n (10 + 39 * (m' + 1))) = word (2 ^ (4 * (m' + 1))) 0 := k
       have m : σ (.n (11 + 39 * (m' + 1))) = σ (.n 8) * σ (.n (10 + 39 * (m' + 1))) := m
-      have sc : LoadHolds rd (σ (.n 0)) (m' + 1 + 4310) (σ (.n (11 + 39 * (m' + 1)))) := sc
+      have sc : LoadHolds rd (σ (.n 0)) (7 * (m' + 1) + 5) (σ (.n (11 + 39 * (m' + 1)))) := sc
       rw [m, k, word_two_pow (by omega)] at sc
       exact sc
-    · have sl : LoadHolds rd (σ (.n 0)) (m' + 1 + 5172) (σ (.n (48 + 39 * (m' + 1 - 1)))) := sl
+    · have sl : LoadHolds rd (σ (.n 0)) (7 * (m' + 1) + 6) (σ (.n (48 + 39 * (m' + 1 - 1)))) := sl
       rw [show m' + 1 - 1 = m' by omega, hAn] at sl
       exact sl
 
@@ -638,20 +638,20 @@ theorem gk_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n �
   · show LoadHolds rd (σ (.n 0)) 0 (σ (.n 3))
     rw [e0, show σ (.n 3) = a3 by simp [ev, gkVals, cap]]
     exact hcap 0 (by simp)
-  · show LoadHolds rd (σ (.n 0)) 862 (σ (.n 4))
+  · show LoadHolds rd (σ (.n 0)) 1 (σ (.n 4))
     rw [e0, show σ (.n 4) = a4 by simp [ev, gkVals, cap]]
     exact hcap 1 (by simp)
-  · show LoadHolds rd (σ (.n 0)) 1724 (σ (.n 5))
+  · show LoadHolds rd (σ (.n 0)) 2 (σ (.n 5))
     rw [e0, show σ (.n 5) = a5 by simp [ev, gkVals, cap]]
     exact hcap 2 (by simp)
-  · show LoadHolds rd (σ (.n 0)) 2586 (σ (.n 6))
+  · show LoadHolds rd (σ (.n 0)) 3 (σ (.n 6))
     rw [e0, show σ (.n 6) = a6 by simp [ev, gkVals, cap]]
     exact hcap 3 (by simp)
-  · show LoadHolds rd (σ (.n 0)) 3448 (σ (.n 7))
+  · show LoadHolds rd (σ (.n 0)) 4 (σ (.n 7))
     rw [e0, show σ (.n 7) = a7 by simp [ev, gkVals, cap]]
     exact hcap 4 (by simp)
-  · show LoadHolds rd (σ (.n 0)) 4310 (σ (.n 8)); rw [e0, e8]; exact hcur
-  · show LoadHolds rd (σ (.n 0)) 5172 (σ (.n 9))
+  · show LoadHolds rd (σ (.n 0)) 5 (σ (.n 8)); rw [e0, e8]; exact hcur
+  · show LoadHolds rd (σ (.n 0)) 6 (σ (.n 9))
     rw [e0, idx 9 (9 + 39 * 0) (by ring), hcl 0 (by omega)]; exact hclaim
   · have w : ∀ t, t < 4 → σ (.n (10 + 39 * q + 3 * t)) = (Cf q).getD t 0 := fun t ht ↦ by
       rw [idx _ (10 + 39 * q + 3 * t + 0) (by ring), vw q t 0 hq ht (by omega)]; rfl
@@ -732,29 +732,29 @@ theorem gk_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n �
       · rw [a10, w0, a9]
       · rw [a11, hr, a10]
       · rw [a12, a4, a11]
-  · show LoadHolds rd (σ (.n 0)) (m' + 1) (σ (.n (30 + 39 * (m' + 1 - 1))))
+  · show LoadHolds rd (σ (.n 0)) (7 * (m' + 1)) (σ (.n (30 + 39 * (m' + 1 - 1))))
     rw [e0, idx _ (22 + 39 * m' + (8 : Fin 13).val) (by simp; omega), vc m' (by omega)]
     exact hres2 0 (by simp [gkSt, Fs.squeeze, capOf])
-  · show LoadHolds rd (σ (.n 0)) (m' + 1 + 862) (σ (.n (31 + 39 * (m' + 1 - 1))))
+  · show LoadHolds rd (σ (.n 0)) (7 * (m' + 1) + 1) (σ (.n (31 + 39 * (m' + 1 - 1))))
     rw [e0, idx _ (22 + 39 * m' + (9 : Fin 13).val) (by simp; omega), vc m' (by omega)]
     exact hres2 1 (by simp [gkSt, Fs.squeeze, capOf])
-  · show LoadHolds rd (σ (.n 0)) (m' + 1 + 1724) (σ (.n (32 + 39 * (m' + 1 - 1))))
+  · show LoadHolds rd (σ (.n 0)) (7 * (m' + 1) + 2) (σ (.n (32 + 39 * (m' + 1 - 1))))
     rw [e0, idx _ (22 + 39 * m' + (10 : Fin 13).val) (by simp; omega), vc m' (by omega)]
     exact hres2 2 (by simp [gkSt, Fs.squeeze, capOf])
-  · show LoadHolds rd (σ (.n 0)) (m' + 1 + 2586) (σ (.n (33 + 39 * (m' + 1 - 1))))
+  · show LoadHolds rd (σ (.n 0)) (7 * (m' + 1) + 3) (σ (.n (33 + 39 * (m' + 1 - 1))))
     rw [e0, idx _ (22 + 39 * m' + (11 : Fin 13).val) (by simp; omega), vc m' (by omega)]
     exact hres2 3 (by simp [gkSt, Fs.squeeze, capOf])
-  · show LoadHolds rd (σ (.n 0)) (m' + 1 + 3448) (σ (.n (34 + 39 * (m' + 1 - 1))))
+  · show LoadHolds rd (σ (.n 0)) (7 * (m' + 1) + 4) (σ (.n (34 + 39 * (m' + 1 - 1))))
     rw [e0, idx _ (22 + 39 * m' + (12 : Fin 13).val) (by simp; omega), vc m' (by omega)]
     exact hres2 4 (by simp [gkSt, Fs.squeeze, capOf])
   · show σ (.n (10 + 39 * (m' + 1))) = word (2 ^ (4 * (m' + 1))) 0
     exact gkVals_tail0 _ _ _ _ _ _ _
   · show σ (.n (11 + 39 * (m' + 1))) = σ (.n 8) * σ (.n (10 + 39 * (m' + 1)))
     rw [ev, gkVals_tail1, e8, ev, gkVals_tail0]
-  · show LoadHolds rd (σ (.n 0)) (m' + 1 + 4310) (σ (.n (11 + 39 * (m' + 1))))
+  · show LoadHolds rd (σ (.n 0)) (7 * (m' + 1) + 5) (σ (.n (11 + 39 * (m' + 1))))
     rw [e0, ev, gkVals_tail1, word_two_pow (by omega)]
     exact hres3
-  · show LoadHolds rd (σ (.n 0)) (m' + 1 + 5172) (σ (.n (48 + 39 * (m' + 1 - 1))))
+  · show LoadHolds rd (σ (.n 0)) (7 * (m' + 1) + 6) (σ (.n (48 + 39 * (m' + 1 - 1))))
     rw [e0, show m' + 1 - 1 = m' by omega, idx _ (9 + 39 * (m' + 1)) (by ring),
       hcl (m' + 1) (by omega)]
     exact hres4

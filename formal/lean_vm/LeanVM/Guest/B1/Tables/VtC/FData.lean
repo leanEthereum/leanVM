@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.FData
 
-  The statements of the window `2683 ..< 5522` that evaluation alone does not settle, by kind:
+  The statements of the window `2385 ..< 5225` that evaluation alone does not settle, by kind:
   each evaluation's read and limb check, the permutations, and each table's weight division and
   two weight reads; the kernel checks that they and the reads of `fp_w` cover the window.
   `scripts/b1c-vt/all.py` writes the data `vtAirD` and `vtFTags` (`regen-guest.sh`, step `vt`).
@@ -25,14 +25,14 @@ by `scripts/b1c-vt/genfdata.py`). `noStoreB p`: no store goes through the pointe
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
 
 /-- The tables' weight blocks: positions and first values. -/
 def vtAirD : List (ℕ × ℕ) :=
-  [(2921, 2925), (3174, 3214), (3323, 3387), (3585, 3685), (3866, 4014), (5514, 5938)]
+  [(2623, 2627), (2876, 2916), (3025, 3089), (3287, 3387), (3568, 3716), (5216, 5640)]
 
 /-- Table `t`'s `g^τ`: the `kappa_base` frame variable `27 + t`. -/
 def vtTauV (t : ℕ) : ℕ := 27 + t
@@ -42,10 +42,10 @@ def vtAirX (t : ℕ) : ℕ := (vtAirD.getD t (0, 0)).2
 
 /-- Table `t`'s weight block. -/
 def vtAirT (t : ℕ) : List Stmt :=
-  [.atom (.mul (.n 2543) (.n (vtAirX t)) (.n (vtTauV t))),
-    .atom (.mul (.n (vtAirX t + 1)) (.n 2628) (.n (vtAirX t))),
+  [.atom (.mul (.n 2245) (.n (vtAirX t)) (.n (vtTauV t))),
+    .atom (.mul (.n (vtAirX t + 1)) (.n 2330) (.n (vtAirX t))),
     .atom (.load (.n (vtAirX t + 2)) (.n (vtAirX t + 1)) 0),
-    .atom (.mul (.n (vtAirX t + 3)) (.n 2649) (.n (vtTauV t))),
+    .atom (.mul (.n (vtAirX t + 3)) (.n 2351) (.n (vtTauV t))),
     .atom (.load (.n (vtAirX t + 4)) (.n (vtAirX t + 3)) 0)]
 
 theorem vtAirT_check : ∀ t < 6,
@@ -54,7 +54,7 @@ theorem vtAirT_check : ∀ t < 6,
 
 /-- Evaluation `k`'s statements evaluation alone does not settle. -/
 def vtEvRest (k : ℕ) : List Stmt :=
-  [.atom (.load (.n (vtEvB k)) (.n 2645) k)]
+  [.atom (.load (.n (vtEvB k)) (.n 2347) k)]
 
 /-- A read of `fp_w`. -/
 def rdFpw : Stmt → Bool
@@ -110,11 +110,11 @@ theorem not_mem_vtSL {p : ℕ} (h : noStoreB p = true) (d : V) (off : ℕ) :
   have := List.all_eq_true.mp h _ hm
   simp at this
 
-theorem vtF_noStore : noStoreB 13 = true ∧ noStoreB 2645 = true ∧
+theorem vtF_noStore : noStoreB 13 = true ∧ noStoreB 2347 = true ∧
     ∀ t < 6, noStoreB (vtAirX t + 1) = true ∧ noStoreB (vtAirX t + 3) = true := by
   decide +kernel
 
-theorem vtF_loadsBelow : loadsBelow [(13, 16), (2645, 153)] = true := by decide +kernel
+theorem vtF_loadsBelow : loadsBelow [(13, 16), (2347, 153)] = true := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Tables

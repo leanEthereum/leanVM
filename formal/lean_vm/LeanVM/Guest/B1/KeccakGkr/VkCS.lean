@@ -18,7 +18,7 @@ layers' buffers.
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Guest.Memory LeanVM.Guest.B1.Fwd
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Protocol.KeccakGkr Finset
@@ -143,7 +143,7 @@ theorem layKid_lin_region (h : D.Ok) {s : ℕ} (hs : s < 12) (hl : s + 2 ≤ fps
           (by simp [layerBufs_eq]) le_rfl le_rfl x hx'
       · exact lay (by simp [layerBufs_eq]) le_rfl le_rfl x hx'
       · exact lay (by simp [layerBufs_eq]) le_rfl le_rfl x hx'
-      · exact lay (b := D.lsOf fs fps k + (D.layer k).y + 148)
+      · exact lay (b := D.lsOf fs fps k + (D.layer k).y + 113)
           (ws := flipsOf (laterWeights (lanesOut ((D.layer k).locPt (firstOf k))
             ((D.layer k).beta (firstOf k)).1) (eqKernel (((D.layer k).locPt (firstOf k)).take 6))))
           (by simp [layerBufs_eq]) le_rfl (by simp [flipsOf]) x hx'

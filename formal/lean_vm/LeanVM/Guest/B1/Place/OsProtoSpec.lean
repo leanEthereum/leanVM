@@ -53,7 +53,7 @@ challenge and openings agreeing in the caps has `OsHonestA` at the arm of `μ` a
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Core.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier hiding Layout
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
@@ -92,14 +92,14 @@ def osPtrA (c : OsCfg) (b j : ℕ) : E := ofK (addressOfIndex ((bases b (osSizes
 /-- Buffer `j`'s words. -/
 def osOwnA (own : List (List E)) (j : ℕ) : List E := own.getD j []
 
-/-- The high part level `l`'s queries read: the final lane, or the level's row of `level_hs`. -/
-def osHsPtrA (c : OsCfg) (b l : ℕ) : E :=
-  if l = c.yrLevel then osPtrA c b (osIxLaneA c) else osPtrA c b osIxHsA * gen ^ (l * hsStride)
-
-/-! ## The helpers' dispatches -/
-
 /-- Level `l`'s row. -/
 abbrev osLvA (c : OsCfg) (l : ℕ) : OsLv := c.levels.getD l default
+
+/-- The high part level `l`'s queries read: the final lane, or the level's row of `level_hs`. -/
+def osHsPtrA (c : OsCfg) (b l : ℕ) : E :=
+  if l = c.yrLevel then osPtrA c b (osIxLaneA c) else osPtrA c b osIxHsA * gen ^ (osLvA c l).foldsOff
+
+/-! ## The helpers' dispatches -/
 
 /-- The state entering level `l`. -/
 def osLvSt (c : OsCfg) (l : ℕ) : OsSt := (osLevels c 0 (c.levels.take l) (osHead c).2).2
@@ -129,9 +129,9 @@ def osResCallsL (c : OsCfg) (ich bd ls la : ℕ) : ℕ → List OsLv → List Os
   | lvl, lv :: rest, mats, k =>
     let qp := osMatP c.plan mats osQpos lv.posOff k
     let m1 := osMatsAfter c.plan mats osQpos lv.posOff k
-    let bp := osMatP c.plan m1 bd (lvl * ligColsCap) qp.2.2
-    let m2 := osMatsAfter c.plan m1 bd (lvl * ligColsCap) qp.2.2
-    let hp := osMatP c.plan m2 osHs (lvl * hsStride) bp.2.2
+    let bp := osMatP c.plan m1 bd lv.colsOff qp.2.2
+    let m2 := osMatsAfter c.plan m1 bd lv.colsOff qp.2.2
+    let hp := osMatP c.plan m2 osHs lv.foldsOff bp.2.2
     ([.n qp.2.1, .n bp.2.1, .n hp.2.1, .n hp.2.2], osRun (hp.2.2 + 1) 2) ::
       osResCallsL c ich bd ls la (lvl + 1) rest (osResidual c ich bd ls la lvl lv mats k).2.1
         (osResidual c ich bd ls la lvl lv mats k).2.2
@@ -167,9 +167,9 @@ positions from the level's offset of `query_positions`, its row of `basis_d`, it
 `level_hs`. -/
 def osLrRetA (c : OsCfg) (own : List (List E)) (l : ℕ) (mu : E) : E × E :=
   let lv := osLvA c l
-  resFold (lrP lv.logCols fun s ↦ (osOwnA own (osIxBdA c)).getD (l * ligColsCap + s) 0)
+  resFold (lrP lv.logCols fun s ↦ (osOwnA own (osIxBdA c)).getD (lv.colsOff + s) 0)
     (lrH lv.logCols lv.folds lv.highBits
-      ((List.range lv.folds).map fun i ↦ (osOwnA own osIxHsA).getD (l * hsStride + i) 0))
+      ((List.range lv.folds).map fun i ↦ (osOwnA own osIxHsA).getD (lv.foldsOff + i) 0))
     mu (0, 0) ((List.range lv.queries).map fun k ↦ (osOwnA own osIxQposA).getD (lv.posOff + k) 0)
 
 /-- **The memory holds the buffers** at the base `b`, but `query_win_ptrs`. -/
@@ -217,8 +217,8 @@ def OsHelperVals (c : OsCfg) (b : ℕ) (tabs : E) (own : List (List E)) (D : ℕ
     (l < c.yrLevel →
       ((osLrCalls c).getD l ([], [])).1.map σ' =
         [osPtrA c b osIxQposA * gen ^ (osLvA c l).posOff,
-          osPtrA c b (osIxBdA c) * gen ^ (l * ligColsCap),
-          osPtrA c b osIxHsA * gen ^ (l * hsStride), (D l).mu] ∧
+          osPtrA c b (osIxBdA c) * gen ^ (osLvA c l).colsOff,
+          osPtrA c b osIxHsA * gen ^ (osLvA c l).foldsOff, (D l).mu] ∧
       ((osLrCalls c).getD l ([], [])).2.map σ' =
         [(osLrRetA c own l (D l).mu).1, (osLrRetA c own l (D l).mu).2])
 

@@ -28,6 +28,8 @@ values before the outputs, `size = 3`).
   hoists above an all-`@inline` `match` (`closeLane`, unread: each arm sets its own) and the
   `match`; `groupT` has its digit word at its base and sets nothing before; `fold` marks the first
   group, each of whose arms sets its product to its power and its encoding to its literal;
+* `armM`, `armsM`: the arms of a chained dispatch, whose table may be wider than its digits: arm `k`
+  is `armT`'s at `k`'s own `n` digits, its encoding theirs (`k % 4^n`);
 * `groupsT`, `codewordT`: `G` groups of three and the last chain's, the digits stored where the
   digest's first cell is, and the target sum asserted;
 * `merkleT`: `merkle_path`, the children hinted, the child checked, each parent hashed.
@@ -35,7 +37,7 @@ values before the outputs, `size = 3`).
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
+open LeanVM.Core LeanVM.Parameters
 
 @[expose] public section
 
@@ -91,6 +93,28 @@ def armsT (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool
   | m + 1, k, b =>
       let a := armT W slots first n fold prodIn encIn prodOut encOut k b
       let rest := armsT W slots first n fold prodIn encIn prodOut encOut m (k + 1)
+        (if k = 0 then a.2 + 2 else a.2)
+      (a.1 :: rest.1, rest.2)
+
+/-- Arm `k` of a group of `n` digits from base `b` (`walk_group`, `lean_ethereum.py`):
+`armT` with the encoding of `k`'s own `n` digits, `k % 4^n` (`W.enc`, leanXMSS's default). -/
+def armM (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
+    (prodIn encIn prodOut encOut : V) (k b : Nat) : List Stmt × Nat :=
+  let ws := walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 b
+  if fold then
+    (ws.1 ++ [copyS prodOut (W.power (digitSum k n)),
+      .atom (.const encOut (lit (W.enc first n (k % 4 ^ n))))], ws.2)
+  else if k % 4 ^ n = 0 then (ws.1 ++ [mulS prodOut prodIn (W.power (digitSum k n)), copyS encOut encIn], ws.2)
+  else (ws.1 ++ [mulS prodOut prodIn (W.power (digitSum k n)), cst ws.2 (lit (W.enc first n (k % 4 ^ n))),
+    addS encOut encIn (.n ws.2)], ws.2 + 1)
+
+/-- Arms `k ..< k + m` from base `b`; arm `0` allocates the outputs after its walks. -/
+def armsM (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
+    (prodIn encIn prodOut encOut : V) : Nat → Nat → Nat → List (List Stmt) × Nat
+  | 0, _, b => ([], b)
+  | m + 1, k, b =>
+      let a := armM W slots first n fold prodIn encIn prodOut encOut k b
+      let rest := armsM W slots first n fold prodIn encIn prodOut encOut m (k + 1)
         (if k = 0 then a.2 + 2 else a.2)
       (a.1 :: rest.1, rest.2)
 

@@ -21,8 +21,8 @@ the value and the query nonce read and permuted (`commitS`), the zero run alloca
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
-open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
+open LeanVM.Core.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
 
@@ -62,7 +62,7 @@ theorem commitS_eq (cp : List E) (y0 nq : E) :
 /-- **A non-final level's message, honestly**. -/
 theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (x0 x1 : E) (high : List E) (n1 y0 nq pS : E)
-    (hoff : (lvl + 1) * ligColsCap < u128Bound)
+    (hoff : lv.colsOff < u128Bound)
     (hom : ∀ C rd, H C rd → C ("opening_message__L" ++ natStr (2 + lv.folds) ++ "_L1")
       (st.fsv σ ++ [st.cur σ, pS])
       (omRets (st.fsv σ) (x0 :: x1 :: high) (some n1) (st.cur σ) (2 + lv.folds + 1)))
@@ -73,7 +73,7 @@ theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : 
     (hspf : ∀ C rd, H C rd → C ("squeeze_point_from__L" ++ natStr lv.logCols)
       (capOf (omState (st.fsv σ) (x0 :: x1 :: high) (some n1)) ++
         [cellsOfState (omState (st.fsv σ) (x0 :: x1 :: high) (some n1)) false 0,
-          σ (.n osOodz) * gen ^ ((lvl + 1) * ligColsCap)])
+          σ (.n osOodz) * gen ^ lv.colsOff])
       (spfRets (st.fsv σ) (x0 :: x1 :: high) n1 lv.logCols))
     (hys : ∀ C rd, H C rd → ReadsAt rd (st.cur σ * gen ^ (2 + lv.folds + 1)) [y0, nq]) :
     BlkA H σ st.k (osCommit c lvl lv st).2.k (osCommit c lvl lv st).1 (fun σ' ↦
@@ -97,7 +97,7 @@ theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : 
   set cu := osCurS s0 with hcu
   set r := cu.2.2.k with hr
   set s1 : OsSt := { cu.2.2 with k := r + 10 } with hs1
-  set row0 := (lvl + 1) * ligColsCap with hrow0
+  set row0 := lv.colsOff with hrow0
   set o0 := osMatS c.plan osOodz row0 s1 with ho0
   set q := o0.2.2.k with hq
   set b := q + 10 with hbd

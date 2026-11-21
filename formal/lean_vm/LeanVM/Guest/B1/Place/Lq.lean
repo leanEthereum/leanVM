@@ -35,7 +35,7 @@ pointer `g^(eb k)` at `win_ptrs` and its windows there (`LqReg`, `LqMem`); then 
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 open LeanVM.Guest.B1.Whir
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash

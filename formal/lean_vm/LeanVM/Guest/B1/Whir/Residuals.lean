@@ -22,7 +22,7 @@ level's sums go into `inner_chain`: `ich[2l + 2] = ich[2l] + scale_l·h_l` and
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
 open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -37,10 +37,10 @@ structure ResIn (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (bd lvl : ℕ
   call : ∀ a r, C (osResidualName lv) a r →
     MeaningLevelResidual lv.queries lv.logCols lv.folds lv.highBits rd a r
   van : lv.vanish = lv.logCols * (lv.logCols + 1) / 2
-  read : ResRead rd lvl lv (σ (.n bd)) (σ (.n osHs)) D hsv
+  read : ResRead rd lv (σ (.n bd)) (σ (.n osHs)) D hsv
   posOff : lv.posOff < u128Bound
-  rowOff : lvl * ligColsCap < u128Bound
-  hsOff : lvl * hsStride < u128Bound
+  rowOff : lv.colsOff < u128Bound
+  hsOff : lv.foldsOff < u128Bound
   pos : ∀ k < lv.queries, LoadHolds rd (σ (.n osQpos)) (lv.posOff + k) (Pos k)
   mus : LoadHolds rd (σ (.n osMus)) lvl mu
 

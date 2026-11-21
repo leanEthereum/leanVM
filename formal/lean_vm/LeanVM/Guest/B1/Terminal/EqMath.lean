@@ -23,7 +23,7 @@ lane's `τ` (`selProd_lane`). The prefix chains are the points' weights (`prefix
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.Verifier Finset
 
 @[expose] public section

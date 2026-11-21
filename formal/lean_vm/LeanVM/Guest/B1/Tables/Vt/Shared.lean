@@ -11,21 +11,22 @@ public import LeanVM.Guest.B1.Tables.Vt.Pads
 public import LeanVM.Guest.B1.Tables.Vt.SharedT
 public import LeanVM.Guest.B1.Tables.Squares
 public import LeanVM.Guest.B1.Eq.PlusOne
-public import LeanVM.Guest.B1.Selectors.SharedTables
+public import LeanVM.Guest.B1.Selectors.RunNibbles
 
 /-!
 # The selector tables
 
 * `vt_idxc`: `idxc_tab[g^t] = 1 + g^(2^t)`, `t < 34` (statements 625-692);
 * `vt_zeta1`: `zeta1` holds `1 + ζ_k` for the bus point's `μ` coordinates (`plus_one_run`, 694);
-* `vt_shared`: table `t`'s run `μ - τ_t` long (`shared_len[t] = g^(μ - τ_t)`) has its nibble
-  tables at `shared_eq·g^(288 t)`, `shared_g·g^(144 t)` (`vt_sh{t}`), over the coordinates above `τ_t`, their
-  complements and their shares (`shared_selector_tables`, 697-764).
+* `vt_shared`: table `t`'s run `μ - τ_t` long (`shared_len[t] = g^(μ - τ_t)`), split by
+  `selector_run_nibbles`, has its nibble tables in the two buffers `verify_tables` allocated for it
+  and `shared_selector_tables` filled (`vt_sh{t}`; their copies `vtEqV t`, `vtGV t`), over the
+  coordinates above `τ_t`, their complements and their shares (695-814).
 -/
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -43,7 +44,14 @@ theorem vtZeta1_check : tbStmtsEqb [.dispatch (.n 9) plusOneRunNames [.n 699, .n
   decide +kernel
 
 /-- Table `t`'s `shared_len` value. -/
-def vtShLen (t : ℕ) : ℕ := [704, 713, 726, 739, 752, 765].getD t 0
+def vtShLen (t : ℕ) : ℕ := 702 + 21 * t
+
+/-- Table `t`'s `g^q`, `selector_run_nibbles`' return. -/
+def vtShQ (t : ℕ) : ℕ := 707 + 21 * t
+
+/-- Table `t`'s shared tables' pointers: the copies of the two buffers allocated for it. -/
+def vtEqV (t : ℕ) : ℕ := 720 + 21 * t
+def vtGV (t : ℕ) : ℕ := 721 + 21 * t
 
 theorem vt_word_g33 : vtW33 = ofK (Parameters.addressOfIndex 33) := by
   rw [vtW33, show (8589934592 : ℕ) = 2 ^ 33 by norm_num, tb_word_two_pow (by norm_num),
@@ -91,35 +99,21 @@ theorem tbReadsAt_take {rd : Reader} {p : E} {l : List E} (h : TbReadsAt rd p l)
 theorem vt_shared_raw {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {σ : Val} (h : VtH Lm.read σ)
     {t : ℕ} (ht : t < 6) :
     σ (.n 9) = σ (.n (vtShLen t)) * σ (.n (27 + t)) ∧ (∃ d < 34, σ (.n (vtShLen t)) = gen ^ d) ∧
+      coreProgram.Rel Lm.read "selector_run_nibbles" [σ (.n (vtShLen t))] [σ (.n (vtShQ t))] ∧
       coreProgram.Rel Lm.read "shared_selector_tables"
-        [σ (.n 701) * gen ^ (288 * t), σ (.n 702) * gen ^ (144 * t), σ (.n 8) * σ (.n (27 + t)),
-          σ (.n 699) * σ (.n (27 + t)), σ (.n 12) * σ (.n (27 + t)), σ (.n (vtShLen t))] [] := by
+        [σ (.n (vtEqV t)), σ (.n (vtGV t)), σ (.n 8) * σ (.n (27 + t)),
+          σ (.n 699) * σ (.n (27 + t)), σ (.n 12) * σ (.n (27 + t)), σ (.n (vtShLen t)),
+          σ (.n (vtShQ t))] [] := by
   have rc : ∀ {x y t1 t2 k : V}, σ k = vtW33 → (Atom.rangeCheck x y t1 t2 k).Holds Lm.read σ →
       ∃ d < 34, σ x = gen ^ d := fun hk hr =>
     vt_rc hμ Lm (K := 34) (by omega) (by norm_num) (by rw [hk]; exact vt_word_g33) hr
   interval_cases t
-  · obtain ⟨a, b, c, d, -⟩ := vt_sh0 h; exact ⟨a, rc c b, d⟩
-  · obtain ⟨a, b, c, d, -⟩ := vt_sh1 h; exact ⟨a, rc c b, d⟩
-  · obtain ⟨a, b, c, d, -⟩ := vt_sh2 h; exact ⟨a, rc c b, d⟩
-  · obtain ⟨a, b, c, d, -⟩ := vt_sh3 h; exact ⟨a, rc c b, d⟩
-  · obtain ⟨a, b, c, d, -⟩ := vt_sh4 h; exact ⟨a, rc c b, d⟩
-  · obtain ⟨a, b, c, d, -⟩ := vt_sh5 h; exact ⟨a, rc c b, d⟩
-
-/-- Table `t`'s shared tables' pointers, as the shared tables' statements step them. -/
-def vtEqV (t : ℕ) : ℕ := [701, 719, 732, 745, 758, 771].getD t 0
-def vtGV (t : ℕ) : ℕ := [702, 721, 734, 747, 760, 773].getD t 0
-
-theorem vt_ptrs {rd : Reader} {σ : Val} (h : VtH rd σ) : ∀ t < 6,
-    σ (.n (vtEqV t)) = σ (.n 701) * gen ^ (288 * t) ∧
-      σ (.n (vtGV t)) = σ (.n 702) * gen ^ (144 * t) := by
-  intro t ht
-  interval_cases t
-  · exact (vt_sh0 h).2.2.2.2
-  · exact (vt_sh1 h).2.2.2.2
-  · exact (vt_sh2 h).2.2.2.2
-  · exact (vt_sh3 h).2.2.2.2
-  · exact (vt_sh4 h).2.2.2.2
-  · exact (vt_sh5 h).2.2.2.2
+  · obtain ⟨a, b, c, d, e⟩ := vt_sh0 h; exact ⟨a, rc c b, d, e⟩
+  · obtain ⟨a, b, c, d, e⟩ := vt_sh1 h; exact ⟨a, rc c b, d, e⟩
+  · obtain ⟨a, b, c, d, e⟩ := vt_sh2 h; exact ⟨a, rc c b, d, e⟩
+  · obtain ⟨a, b, c, d, e⟩ := vt_sh3 h; exact ⟨a, rc c b, d, e⟩
+  · obtain ⟨a, b, c, d, e⟩ := vt_sh4 h; exact ⟨a, rc c b, d, e⟩
+  · obtain ⟨a, b, c, d, e⟩ := vt_sh5 h; exact ⟨a, rc c b, d, e⟩
 
 /-- **Table `t`'s shared tables.** -/
 theorem vt_shared {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {σ : Val} (h : VtH Lm.read σ)
@@ -129,18 +123,22 @@ theorem vt_shared {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {σ : Val} 
     (hsq : TbReadsAt Lm.read (σ (.n 12)) gSquaresList)
     {t τ : ℕ} (ht : t < 6) (hτ : τ < 33) (hkbt : σ (.n (27 + t)) = gen ^ τ) :
     ∃ d, σ (.n (vtShLen t)) = gen ^ d ∧ point.length = d + τ ∧
-      RunTables Lm.read (σ (.n 701) * gen ^ (288 * t)) (σ (.n 702) * gen ^ (144 * t)) d
+      RunTables Lm.read (σ (.n (vtEqV t))) (σ (.n (vtGV t))) d
         (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take d) := by
-  obtain ⟨m1, ⟨d, hd, hdv⟩, hcall⟩ := vt_shared_raw hμ Lm h ht
+  obtain ⟨m1, ⟨d, hd, hdv⟩, hq, hcall⟩ := vt_shared_raw hμ Lm h ht
   have ev := hkbt
   rw [hmu, hdv, ev, ← pow_add] at m1
   have hμd := gen_pow_inj (by omega) (by omega) m1
   refine ⟨d, hdv, hμd, ?_⟩
+  have hn := selector_run_nibbles_holds _ _ _ hq
+  simp only [RunNibblesOut] at hn
+  obtain ⟨n, hn, hnv, hqv⟩ := hn
+  rw [hdv] at hnv
+  have hdn : d = n := gen_pow_inj (by omega) (by omega) hnv
+  rw [← hdn] at hn hqv
   have hs := shared_selector_tables_holds _ _ _ hcall
   simp only [SharedSelOut] at hs
-  obtain ⟨n, hn, hnv, hrun⟩ := hs
-  rw [hdv] at hnv
-  obtain rfl := gen_pow_inj (by omega) (by omega) hnv
+  have hrun := hs d hn hdv hqv
   rw [ev] at hrun
   have hsql : gSquaresList.length = 34 := by simp [gSquaresList]
   exact hrun _ _ _ (by simp; omega) (by simp; omega) (by simp [hsql]; omega)

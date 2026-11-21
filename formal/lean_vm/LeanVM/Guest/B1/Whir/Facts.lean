@@ -32,7 +32,7 @@ module.
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 open scoped TableMem
 
@@ -160,7 +160,7 @@ def MidOk (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level next : Whir.Level) (lv
   digitsVal (osPowDigits (128 / lv.depth)) 1 = 128 / lv.depth ∧
   digitsVal (osPowDigits lv.queries) 1 = lv.queries ∧ lv.posOff < u128Bound ∧ 1 ≤ lv.squeezes ∧
   lv.squeezes < ordG ∧ lv.squeezes * 5 < u128Bound ∧ 2 * (lv.foldsOff + lv.folds) < u128Bound ∧
-  (lvl + 1) * ligColsCap < u128Bound ∧ lvl * hsStride < u128Bound ∧
+  lv.colsOff < u128Bound ∧ lv.foldsOff < u128Bound ∧
   levelShape lv.logCols next (2 * 2 ^ next.fold) = (lv'.depth, lvWidth (lvl + 1) lv') ∧
   lv'.foldsOff = lv.foldsOff + lv.folds ∧ QshOk c lvl lv 0 ∧
   lv.queries / (1 + if lvl = 0 then 1 else 0) < ordG ∧ lv.queries / (1 + lvBase lvl) < u128Bound ∧
@@ -188,7 +188,7 @@ def FinOkF (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level : Whir.Level) : Prop 
   lv.squeezes = sqCount (128 / lv.depth) lv.queries ∧
   digitsVal (osPowDigits (128 / lv.depth)) 1 = 128 / lv.depth ∧ lv.posOff < u128Bound ∧
   1 ≤ lv.squeezes ∧ lv.squeezes < ordG ∧ lv.squeezes * 5 < u128Bound ∧
-  2 * (lv.foldsOff + lv.folds) < u128Bound ∧ lvl * hsStride < u128Bound ∧
+  2 * (lv.foldsOff + lv.folds) < u128Bound ∧ lv.foldsOff < u128Bound ∧
   lv.queries / (1 + if lvl = 0 then 1 else 0) < ordG ∧ lv.queries / (1 + lvBase lvl) < u128Bound ∧
   digitsVal (osPowDigits lv.queries) 1 = lv.queries ∧
   QshOk c lvl lv 1 ∧ (oqShapeOf (osOqName c lvl lv)).nHs = c.yrLen + lv.folds ∧

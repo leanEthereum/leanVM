@@ -22,7 +22,7 @@ calls, places nothing (kernel evaluation). `pureOk`, `pureIn_of_ok`: a pure set 
 
 namespace LeanVM.Guest.B1.Main
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Core.Memory
 open LeanVM.Guest.B1.Digest
 
 @[expose] public section

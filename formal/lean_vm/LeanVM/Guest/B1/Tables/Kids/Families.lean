@@ -30,7 +30,7 @@ Each family's specializations pass `dloadCheck` with its per-parameter bounds (t
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 
 @[expose] public section
 

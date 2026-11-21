@@ -30,8 +30,8 @@ layout (`layer_kids`), placed by `completeAtD_of_relIn`; `completeAt_flatOutF` p
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
-open LeanVM.Guest.Memory LeanVM.Guest.Lift LeanVM.Guest.B1.Fwd
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.B1
+open LeanVM.Core.Memory LeanVM.Guest.Lift LeanVM.Guest.B1.Fwd
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Guest.B1.Main (MemL RegionL)
 open LeanVM.Protocol.KeccakGkr
@@ -41,9 +41,9 @@ open LeanVM.Protocol.KeccakGkr
 /-- The oracle: the bases of the layer's buffers from `b`. -/
 noncomputable def layerW (D : LayerData) (first b : ℕ) (i : ℕ) : E :=
   if i = layOff first + 718 then ptr b else if i = layOff first + 719 then ptr (b + D.y)
-  else if i = layOff first + 745 then ptr (b + D.y + 112)
-  else if i = tW first + 25 then ptr (b + D.y + 123)
-  else if i = topV (tW first) + 3 then ptr (b + D.y + 148) else 0
+  else if i = layOff first + 745 then ptr (b + D.y + 77)
+  else if i = tW first + 25 then ptr (b + D.y + 88)
+  else if i = topV (tW first) + 3 then ptr (b + D.y + 113) else 0
 
 theorem weightEnd_big {first : ℕ} (hf : first < 2) :
     layOff first ≤ 20 ∧ 1100 < tW first ∧ tW first + 25 < topV (tW first) := by
@@ -52,9 +52,9 @@ theorem weightEnd_big {first : ℕ} (hf : first < 2) :
 theorem layerW_vals {first : ℕ} (hf : first < 2) (D : LayerData) (b : ℕ) :
     layerW D first b (layOff first + 718) = ptr b ∧
       layerW D first b (layOff first + 719) = ptr (b + D.y) ∧
-      layerW D first b (layOff first + 745) = ptr (b + D.y + 112) ∧
-      layerW D first b (tW first + 25) = ptr (b + D.y + 123) ∧
-      layerW D first b (topV (tW first) + 3) = ptr (b + D.y + 148) := by
+      layerW D first b (layOff first + 745) = ptr (b + D.y + 77) ∧
+      layerW D first b (tW first + 25) = ptr (b + D.y + 88) ∧
+      layerW D first b (topV (tW first) + 3) = ptr (b + D.y + 113) := by
   obtain ⟨hO, hW, hT⟩ := weightEnd_big hf
   refine ⟨by simp [layerW], by simp [layerW], by simp [layerW], ?_, ?_⟩
   · simp only [layerW, show ¬ (tW first + 25 = layOff first + 718) by omega,
@@ -319,8 +319,8 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
     · rw [a7]; exact fin0 (bb := bcur) (ws := D.xs) (by simp [layerLin]) (by simp only at hg2; omega)
     · rw [a11]; exact fin0 (bb := CL.bclaim) (ws := CL.cw) (by simp [layerLin, ClaimLay.L])
         (by simp only at hg2; omega)
-    · rw [a12]; exact fin0 (bb := bout) (ws := D.outW first (ptr b) (ptr (b + D.y + 123))
-        (ptr (b + D.y + 112)) (ptr (b + D.y + 148))) (by simp [layerLin])
+    · rw [a12]; exact fin0 (bb := bout) (ws := D.outW first (ptr b) (ptr (b + D.y + 88))
+        (ptr (b + D.y + 77)) (ptr (b + D.y + 113))) (by simp [layerLin])
         (by simp [LayerData.outW, LayerData.next, layerClaim, keccakInstanceWeights_length]; omega)
     · rw [a720]; exact fin0 (bb := b + D.y) (ws := D.recWords first (ptr bcur))
         (by simp [layerBufs_eq]) (by rw [recWords_length]; omega)
@@ -330,11 +330,11 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
     · rw [e745]; exact fin (bb := bcur) (ws := D.xs) (by simp [layerLin]) (by simp only at hg2; omega)
     · rw [e1190, h3]; exact fin0 (bb := CL.blp) (ws := CL.lanes) (by simp [layerLin, ClaimLay.L])
         (by have := hCL.2.2.2.2.2.2.2.2.1; simp only at hg2; omega)
-    · rw [a748]; exact fin0 (bb := b + D.y + 112) (ws := D.locPt first) (by simp [layerBufs_eq])
+    · rw [a748]; exact fin0 (bb := b + D.y + 77) (ws := D.locPt first) (by simp [layerBufs_eq])
         (by simp only at hg2; omega)
-    · rw [a27]; exact fin0 (bb := b + D.y + 123) (ws := lanesOut (D.locPt first) (D.beta first).1)
+    · rw [a27]; exact fin0 (bb := b + D.y + 88) (ws := lanesOut (D.locPt first) (D.beta first).1)
         (by simp [layerBufs_eq]) (by rw [lanesOut_length]; simp only at hg2; omega)
-    · rw [afl]; exact fin0 (bb := b + D.y + 148) (ws := flipsOf (laterWeights
+    · rw [afl]; exact fin0 (bb := b + D.y + 113) (ws := flipsOf (laterWeights
         (lanesOut (D.locPt first) (D.beta first).1) (eqKernel ((D.locPt first).take 6))))
         (by simp [layerBufs_eq]) (by simp [flipsOf]; simp only at hg2; omega)
     · split at hgm

@@ -25,8 +25,8 @@ the returns (`holdsList_flat_ret`). `AllOk σ ss` is that conjunction over a blo
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
-open LeanVM.Guest.Value LeanVM.Protocol.Verifier
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
+open LeanVM.Core.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
 

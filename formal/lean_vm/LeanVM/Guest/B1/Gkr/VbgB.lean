@@ -26,7 +26,7 @@ public import LeanVM.Guest.Data.NameStrings
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Core.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Guest.B1.Main (MemL RegionL)
 
@@ -37,8 +37,8 @@ variable {fs : String → ℕ}
 /-- **`verify_bus_gkr_loop0`'s bounds' words on the honest buffers.** -/
 theorem vbg_ly7Mem {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E} {r : E × List E × List E}
     {cap' : List E} (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
-    (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {ec eL eR eP eK eB eO eV : ℕ} {rd : Reader}
-    (hm : MemLay rd (vbgLay depth cap0 xs (ofK (addressOfIndex ec)) eL eR eP eK eB eO eV)) :
+    (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {ec eL eR eP eK eB eO eN eV : ℕ} {rd : Reader}
+    (hm : MemLay rd (vbgLay depth cap0 xs (ofK (addressOfIndex ec)) eL eR eP eK eB eO eN eV)) :
     Ly7Mem rd (ofK (addressOfIndex eL)) (depth % 2) ((depth - 1) / 2) := by
   obtain ⟨-, -, -, hsteps, -, -, -, -⟩ := gk_walk hrun hc
   obtain ⟨sp, hsp⟩ := hc
@@ -60,17 +60,19 @@ theorem vbg_ly7Mem {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E} {r : E �
   have hS := hmS _ (List.mem_map.mpr ⟨k + sh - 1, List.mem_range.mpr hi, rfl⟩)
   have hP := hmP _ (List.mem_map.mpr ⟨k + sh - 1, List.mem_range.mpr hi, rfl⟩)
   simp only [hik] at hS hP
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, hhalf, hpar⟩ := gkSlot_of (inv k).1 ((inv k).2.2 (by omega))
-    (inv k).2.1 (hpl k (by omega)) (by rw [tb_ofK_gpow_mul]; exact hP) hS
-  rw [show 2 * j + 2 - sh = 2 * k + sh by omega]
+  rw [← tb_ofK_gpow_mul] at hP
+  rw [← show (2 * k + sh - 1) / 2 = k + sh - 1 by omega] at hS
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, hhalf, hpar⟩ := gkSlot_of (inv k).1
+    ((inv k).2.2 (by omega)) (inv k).2.1 (hpl k (by omega)) hP hS
+  rw [show (2 * k + sh - 1) / 2 = j by omega] at hhalf hpar
   exact ⟨hhalf, hpar⟩
 
 /-- **`verify_bus_gkr_loop0`'s words on the honest buffers.** -/
 theorem vbg_loop7_total {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     {r : E × List E × List E} {cap' : List E}
     (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
-    (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {ec eL eR eP eK eB eO eV : ℕ} {rd : Reader}
-    (hm : MemLay rd (vbgLay depth cap0 xs (ofK (addressOfIndex ec)) eL eR eP eK eB eO eV))
+    (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {ec eL eR eP eK eB eO eN eV : ℕ} {rd : Reader}
+    (hm : MemLay rd (vbgLay depth cap0 xs (ofK (addressOfIndex ec)) eL eR eP eK eB eO eN eV))
     {K29 R : ℕ}
     (h29 : TotalLeOn coreProgram fs name% «verify_bus_gkr_loop0_loop0» LoopPre
       (fun a ↦ logG (a.getD 1 0) * K29 + fs name% «verify_bus_gkr_loop0_loop0»))
@@ -90,19 +92,18 @@ theorem vbg_loop7_total {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
 theorem vbg_noDisp : vbgPre.all noDispB = true := by decide +kernel
 
 theorem vbg_callS : vbgPre.filterMap Main.Stmt.callS =
-    [(some (.n 375), name% «verify_bus_gkr_loop0», [.n 376, .n 378, .n 371, .n 16, .n 8, .n 17,
-        .n 62, .n 141, .n 6,
-        .n 63], []),
-      (some (.n 388), name% «verify_bus_gkr_loop1», [.n 389, .n 6, .n 7, .n 386],
+    [(some (.n 419), name% «verify_bus_gkr_loop0», [.n 420, .n 165, .n 417, .n 173, .n 8, .n 176,
+        .n 52, .n 187, .n 6, .n 53], []),
+      (some (.n 430), name% «verify_bus_gkr_loop1», [.n 431, .n 6, .n 7, .n 428],
           [])] := by decide +kernel
 
 /-- `verify_bus_gkr`'s frames: `verify_bus_gkr_loop0`'s, then `verify_bus_gkr_loop1`'s. -/
 theorem vbg_flatCalls (σ : Val) : flatCalls vbgPre σ =
-    [⟨name% «verify_bus_gkr_loop0», [.n 376, .n 378, .n 371, .n 16, .n 8, .n 17, .n 62, .n 141,
-        .n 6, .n 63], [],
-        decide (σ (.n 375) ≠ 0)⟩,
-      ⟨name% «verify_bus_gkr_loop1», [.n 389, .n 6, .n 7, .n 386], [],
-          decide (σ (.n 388) ≠ 0)⟩] := by
+    [⟨name% «verify_bus_gkr_loop0», [.n 420, .n 165, .n 417, .n 173, .n 8, .n 176, .n 52, .n 187,
+        .n 6, .n 53], [],
+        decide (σ (.n 419) ≠ 0)⟩,
+      ⟨name% «verify_bus_gkr_loop1», [.n 431, .n 6, .n 7, .n 428], [],
+          decide (σ (.n 430) ≠ 0)⟩] := by
   have e : vbgPre.filterMap (Stmt.callSF σ) = vbgPre.filterMap Main.Stmt.callS := by
     refine List.filterMap_congr fun s hs ↦ ?_
     have := List.all_eq_true.mp vbg_noDisp s hs
@@ -148,9 +149,9 @@ theorem verify_bus_gkr_completeAtTB {κ depth : ℕ} (hd2 : 2 ≤ depth) (hd : d
       rw [show fp + fs vbgFlat.name = fp + fs "verify_bus_gkr" from rfl, vbg_bufL, ← hvals]
       simp⟩)
     (fun fp ↦ vbgW (ofK (addressOfIndex (vbgEL fs fp))) (ofK (addressOfIndex (vbgER fs depth fp)))
-      (ofK (addressOfIndex (vbgEP fs depth fp))) (ofK (addressOfIndex (vbgEK fs depth fp)))
-      (ofK (addressOfIndex (vbgEB fs depth fp))) (ofK (addressOfIndex (vbgEO fs depth fp)))
-      (ofK (addressOfIndex (vbgEV fs depth fp))))
+      (ofK (addressOfIndex (vbgEP fs depth fp))) (ofK (addressOfIndex (vbgEK fs fp)))
+      (ofK (addressOfIndex (vbgEB fs fp))) (ofK (addressOfIndex (vbgEO fs fp)))
+      (ofK (addressOfIndex (vbgEN fs fp))) (ofK (addressOfIndex (vbgEV fs depth fp))))
     (vbgBufs fs depth xs ec) hbufs (fun fp rd hlow hL ↦ (hfacts fp rd hlow hL).1)
     (fun _ ↦ True) [fun _ ↦ True, fun _ ↦ True] (fun _ _ _ _ ↦ trivial)
     (by show (vbgPre.filter callB).length ≤ 2; decide +kernel)
@@ -161,11 +162,12 @@ theorem verify_bus_gkr_completeAtTB {κ depth : ℕ} (hd2 : 2 ≤ depth) (hd : d
   obtain ⟨-, hV, -⟩ := hfacts fp rd hlow hL
   have hV' : VbgVals (vbgFlat.σ rd (vbgW (ofK (addressOfIndex (vbgEL fs fp)))
       (ofK (addressOfIndex (vbgER fs depth fp))) (ofK (addressOfIndex (vbgEP fs depth fp)))
-      (ofK (addressOfIndex (vbgEK fs depth fp))) (ofK (addressOfIndex (vbgEB fs depth fp)))
-      (ofK (addressOfIndex (vbgEO fs depth fp))) (ofK (addressOfIndex (vbgEV fs depth fp))))
+      (ofK (addressOfIndex (vbgEK fs fp))) (ofK (addressOfIndex (vbgEB fs fp)))
+      (ofK (addressOfIndex (vbgEO fs fp))) (ofK (addressOfIndex (vbgEN fs fp)))
+      (ofK (addressOfIndex (vbgEV fs depth fp))))
       (cap0 ++ [ofK (addressOfIndex ec), gen ^ depth, ofK (addressOfIndex ez), tabs])) depth
-      (vbgEL fs fp) (vbgER fs depth fp) (vbgEK fs depth fp) tabs := hV
-  obtain ⟨v380, v382, v375, v393, v6, v16, v17, v64, v8, v142, v379⟩ := hV'
+      (vbgEL fs fp) (vbgER fs depth fp) (vbgEK fs fp) tabs := hV
+  obtain ⟨v420, v165, v417, v431, v6, v173, v176, v53, v8, v187, v419⟩ := hV'
   obtain ⟨-, -, hm'⟩ := hfacts fp rd' hlow' hL'
   have hc' := hci
   rw [show vbgFlat.pre = vbgPre from rfl, vbg_flatCalls] at hc'
@@ -176,15 +178,15 @@ theorem verify_bus_gkr_completeAtTB {κ depth : ℕ} (hd2 : 2 ≤ depth) (hd : d
     have hm0 : 0 < (depth - 1) / 2 := by
       rcases Nat.eq_zero_or_pos ((depth - 1) / 2) with h0 | h0
       · exfalso; apply ht
-        rw [v379, h0, pow_zero, e_add_self]
+        rw [v419, h0, pow_zero, e_add_self]
       · exact h0
     simp only [List.map_cons, List.map_nil] at hv
-    rw [v380, v382, v375, v16, v8, v17, v142, v6, v64] at hv
+    rw [v420, v165, v417, v173, v8, v176, v187, v6, v53] at hv
     exact vbg_loop7_total hd hrun hc hm' h29 hR hm0 hn hv hb
   · simp only [List.getElem?_cons_succ, List.getElem?_cons_zero, Option.some.injEq] at hc'
     subst hc'
     simp only [List.map_cons, List.map_nil] at hv
-    rw [v393, v6] at hv
+    rw [v431, v6] at hv
     have hb' := h8 rd' t _ rr hn (loopPre_gen (by omega) (by omega) _) hv hb
     simp only [List.getD_cons_succ, List.getD_cons_zero, gen_pow_eq_ofK,
       logG_spec (show depth < 2 ^ 64 - 1 by omega)] at hb'

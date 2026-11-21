@@ -7,6 +7,7 @@
 mod pretty;
 mod program;
 mod prover;
+mod text;
 
 pub use pretty::{pretty_f64, pretty_integer};
 pub use program::{Program, g_pow};
@@ -195,6 +196,8 @@ pub enum RHint {
     /// `Alloc` with the cell count read at runtime as the g-power exponent of
     /// `m[fp+size]`.
     AllocDyn { ptr: Off, size: Off },
+    /// `Alloc` of `sizes[j]` cells, where `m[fp+sel] = g^j`: the frame of the callee a dispatch selects.
+    AllocSel { ptr: Off, sel: Off, sizes: Vec<u32> },
     /// Pop stream `name`'s next entry (`len` values) into frame cells `fp+base+k`.
     WitnessStack { name: String, base: Off, len: u32 },
     /// Pop stream `name`'s next entry (`len` values) into heap cells `m[fp+ptr]·g^{lo+k}`.

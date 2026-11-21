@@ -1,0 +1,17 @@
+def main []
+  const %0 2 0
+  const %1 4 0
+  call swap [%0 %1] [%2 %3]
+  const %4 1 0
+  load %2 %4 0
+  const %5 1 0
+  const %6 2 0
+  mul %7 %5 %6
+  load %3 %7 0
+  ret []
+def swap [%0 %1]
+  copy %2 %1
+  copy %3 %0
+  copy %4 %2
+  copy %5 %3
+  ret [%4 %5]

@@ -19,7 +19,7 @@ levels (`osOodWeights_val`).
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
 open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -54,21 +54,21 @@ theorem osOodFacs_val : ∀ (cs : List (ℕ × ℕ × ℕ)) (sc k : ℕ) (z p : 
     ring
 
 /-- A weight's coordinates `(z slot, source)`. -/
-def oodCoords (c : OsCfg) (tch prevCols ol : ℕ) (lv : OsLv) : List (ℕ × ℕ × ℕ) :=
+def oodCoords (c : OsCfg) (tch prevCols : ℕ) (lv : OsLv) : List (ℕ × ℕ × ℕ) :=
   (List.range (prevCols - c.yrLog + c.yrLog)).map fun t ↦
-    (ol * ligColsCap + t,
+    (lv.colsOff - prevCols + t,
       if t < prevCols - c.yrLog then (osFch, lv.foldsOff + t) else (tch, t - (prevCols - c.yrLog)))
 
 theorem osOodWeight_eq (c : OsCfg) (tch prevCols ol : ℕ) (lv : OsLv) (k : ℕ) :
     osOodWeight c tch prevCols ol lv k =
-      (osLd k osOodSc ol :: (osOodFacs k (oodCoords c tch prevCols ol lv) (k + 1)).1,
-        (osOodFacs k (oodCoords c tch prevCols ol lv) (k + 1)).2) := rfl
+      (osLd k osOodSc ol :: (osOodFacs k (oodCoords c tch prevCols lv) (k + 1)).1,
+        (osOodFacs k (oodCoords c tch prevCols lv) (k + 1)).2) := rfl
 
 /-- **A weight**: its scalar `λ`, its point `z` and the terminal coordinates `p`. -/
 theorem osOodWeight_val {c : OsCfg} {tch prevCols ol : ℕ} {lv : OsLv} {k : ℕ} {lam : E}
     {z p : ℕ → E} (hl : LoadHolds rd (σ (.n osOodSc)) ol lam)
     (hz : ∀ t < prevCols - c.yrLog + c.yrLog,
-      LoadHolds rd (σ (.n osOodz)) (ol * ligColsCap + t) (z t))
+      LoadHolds rd (σ (.n osOodz)) (lv.colsOff - prevCols + t) (z t))
     (hp : ∀ t < prevCols - c.yrLog + c.yrLog,
       LoadHolds rd (σ (.n (if t < prevCols - c.yrLog then osFch else tch)))
         (if t < prevCols - c.yrLog then lv.foldsOff + t else t - (prevCols - c.yrLog)) (p t))
@@ -79,12 +79,12 @@ theorem osOodWeight_val {c : OsCfg} {tch prevCols ol : ℕ} {lv : OsLv} {k : ℕ
   rw [allOk_cons] at hok
   obtain ⟨h0, hr⟩ := hok
   simp only [stmtOk_atom, holds_load, osLd] at h0
-  have hlen : (oodCoords c tch prevCols ol lv).length = prevCols - c.yrLog + c.yrLog := by
+  have hlen : (oodCoords c tch prevCols lv).length = prevCols - c.yrLog + c.yrLog := by
     simp [oodCoords]
   rw [osOodFacs_val _ k (k + 1) z p (fun t ht ↦ by
     rw [hlen] at ht
-    have hg : (oodCoords c tch prevCols ol lv).getD t (0, 0, 0) =
-        (ol * ligColsCap + t,
+    have hg : (oodCoords c tch prevCols lv).getD t (0, 0, 0) =
+        (lv.colsOff - prevCols + t,
           if t < prevCols - c.yrLog then (osFch, lv.foldsOff + t) else (tch, t - (prevCols - c.yrLog))) := by
       simp [oodCoords, List.getD_eq_getElem?_getD, ht]
     rw [hg]

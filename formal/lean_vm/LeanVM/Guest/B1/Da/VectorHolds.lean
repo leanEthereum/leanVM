@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Da.VecFnChk
 
 namespace LeanVM.Guest.B1.Da
 
-open LeanVM.Guest.Core
+open LeanVM.Core
 
 @[expose] public section
 

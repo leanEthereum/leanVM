@@ -20,7 +20,8 @@ For weights `ω i` (one per index `i`, an opcode's instructions per frame): `vtK
 callee's tree, if `shared_selector_tables`', within `Wss i`, if `verify_tables_loop0`'s, within `W10
 i`, on every valid run (`Budget.WeighsLe`). `verify_tables_completeAtTBW`:
 `verify_tables_completeAtTB` by a node of honest shape (`Budget.NodeHonest`) whose entered callees
-are `vtKidW`, the shared tables' within `Wss` on every run length `g^n`, `n < 64`, the rounds loop
+are `vtKidW`, the shared tables' within `Wss` on every run length `g^n`, `n < 64`, with its split
+`g^(n/4)` (`vt_sh_pre`), the rounds loop
 `K10w` an iteration (`Budget.LoopW`) at the honest round count `H.n ≤ 32`. `vt_weight_le`: such a
 node, valid, weighs at most its frame's weight and `vtBs (Kw i) (Wss i) (32 · K10w i)`, its other
 callees within their certificates' `Kw i`. `verify_tables_completeAtTBW'`: by a tree within those
@@ -29,7 +30,7 @@ weights.
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Core.Memory
 open LeanVM.Guest.B1.Fwd
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 open LeanVM.Protocol.Verifier (gen)
@@ -53,17 +54,18 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} 
         → g ≠ "shared_selector_tables" →
       TotalLe coreProgram fs g (fun _ ↦ Kf g))
     (hsh : TotalLeOn coreProgram fs "shared_selector_tables"
-      (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh))
+      (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n ∧ a.getD 6 0 = gen ^ (n / 4)) (fun _ ↦ Ksh))
     (h10 : TotalLeOn coreProgram fs name% «verify_tables_loop0» LoopPre
       (fun a ↦ logG (a.getD 1 0) * K10 + fs name% «verify_tables_loop0»))
     {ι : Type} (ω : ι → String → ℕ) (Wss K10w : ι → ℕ)
     (hssw : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "shared_selector_tables" →
-      (∃ n < 64, args.getD 5 0 = gen ^ n) → t.Valid coreProgram rd args rets →
+      (∃ n < 64, args.getD 5 0 = gen ^ n ∧ args.getD 6 0 = gen ^ (n / 4)) →
+      t.Valid coreProgram rd args rets →
       t.BufsOk coreProgram → t.weight (ω i) ≤ Wss i)
     (h10w : ∀ i, Budget.LoopW (ω i) name% «verify_tables_loop0» (K10w i)) :
     CompleteAtDTB fs cert κ "verify_tables" (H.linL B) (H.args B) (Returns (H.retsH B))
       (Budget.NodeHonest coreProgram "verify_tables" (fun σ ↦ ∀ s ∈ vtPre, DispOk σ s)
-        (flatCalls vtPre) (fun _ ↦ H.sizes) (List.replicate 119 (vtKidW ω Wss fun i ↦ 32 * K10w i)))
+        (flatCalls vtPre) (fun _ ↦ H.sizes) (List.replicate 125 (vtKidW ω Wss fun i ↦ 32 * K10w i)))
       (fs "verify_tables" + H.sizes.sum + ((vtBs Kf Ksh (vtRunB fs K10 H.n)).sum + ifFrames fs vtPre)) := by
   have hrun : ∀ fp rd, LowDef κ rd → MemL rd (vtL (H.linL B) H.sizes (fun _ ↦ H.ownW B) fs fp) →
       (∀ s ∈ vtPre, VSH (coreProgram.RelIn rd (RegionL (vtL (H.linL B) H.sizes
@@ -84,27 +86,7 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} 
     obtain ⟨-, h2, h3, h4, h5⟩ :=
       vt_rel_complete_vtW h hs (B.at (fp + fs "verify_tables")) hlow14 hm
     exact ⟨vt_relIn_complete h hs _ (vtW_ok H _) hlow14 hm, h2, h3, h4, h5⟩
-  -- the honest values around the rounds loop's call
-  have hvals : ∀ fp rd, LowDef κ rd →
-      MemL rd (vtL (H.linL B) H.sizes (fun _ ↦ H.ownW B) fs fp) →
-      let σ := vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B)
-      σ (.n 2543) = gen ^ H.n ∧ σ (.n 2633) = 1 + gen ^ H.n ∧ σ (.n 2634) = 1 := by
-    intro fp rd _ _
-    have hl : (H.args B).length = 20 := rfl
-    have g1 := vt_goodL (rd := rd) (w := vtW H (B.at (fp + fs "verify_tables"))) hl 2590
-      [.atom (.hint (.witness "zc_tau_max" (.stack [.n 2543])))] (by decide +kernel)
-    have g2 := vt_goodL (rd := rd) (w := vtW H (B.at (fp + fs "verify_tables"))) hl 2662
-      [.atom (.const (.n 2632) (word 1 0)), .atom (.add (.n 2633) (.n 2632) (.n 2543)),
-        .atom (.const (.n 2634) (word 1 0))] (by decide +kernel)
-    generalize vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B) = σ at g1 g2 ⊢
-    simp only [GoodL, GoodS, fixNe, Good, List.mem_cons, List.not_mem_nil, or_false,
-      forall_eq, and_true] at g1 g2
-    obtain ⟨c19, a20, c21⟩ := g2
-    have w17 : σ (.n 2543) = gen ^ H.n := by
-      rw [g1]; exact (vtW_ok H (B.at (fp + fs "verify_tables"))).w2544
-    refine ⟨w17, ?_, ?_⟩
-    · rw [a20, c19, w17, tb_word_one]
-    · rw [c21, tb_word_one]
+  have hμ33 : H.μ < 33 := hs.hμ33
   have hn32 : H.n < 33 := by
     have := hs.hτ33
     unfold VtHonest.n
@@ -138,8 +120,8 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} 
           (H.args B))) r → t.BufsOk coreProgram → vtKidW ω Wss (fun i ↦ 32 * K10w i) t := by
     intro fp rd hlow hL i c hc ht t r hn hv hbo j
     obtain ⟨hvsh, -⟩ := hrun fp rd hlow hL
-    obtain ⟨v17, v20, v21⟩ := hvals fp rd hlow hL
-    generalize vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B) = σ at hvsh v17 v20 v21 hc hv
+    obtain ⟨v17, v20, v21, vsh⟩ := vt_honest_vals hκ h hs B (fp + fs "verify_tables") hlow hL
+    generalize vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B) = σ at hvsh v17 v20 v21 vsh hc hv
     obtain ⟨s, hs', tup, hst, rfl⟩ := flatCalls_getElem vtPre i c hc
     obtain ⟨hsm, -⟩ := getElem?_filter_mem hs'
     have hkind := List.all_eq_true.mp vt_callKinds s hsm
@@ -155,17 +137,9 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} 
       refine ⟨fun hfs ↦ ?_, fun hfs ↦ absurd (hn.symm.trans hfs) h10'⟩
       have hf : f = "shared_selector_tables" := hn.symm.trans hfs
       subst hf
-      obtain ⟨ha6, hr0⟩ := hsh'.resolve_left (by simp)
+      obtain ⟨-, hr0⟩ := hsh'.resolve_left (by simp)
       subst hr0
-      have hrel : coreProgram.Rel rd "shared_selector_tables" (a.map σ) [] :=
-        Program.RelIn.rel hvs
-      have hout := shared_selector_tables_holds rd _ _ hrel
-      obtain ⟨a0, a1, a2, a3, a4, a5, rfl⟩ : ∃ a0 a1 a2 a3 a4 a5, a = [a0, a1, a2, a3, a4, a5] := by
-        match a, ha6 with
-        | [a0, a1, a2, a3, a4, a5], _ => exact ⟨a0, a1, a2, a3, a4, a5, rfl⟩
-      simp only [List.map_cons, List.map_nil, SharedSelOut] at hout
-      obtain ⟨m, hm, hlen, -⟩ := hout
-      exact Budget.weighsLe_of_on (hssw j) hn hv ⟨m, hm, by simpa using hlen⟩
+      exact Budget.weighsLe_of_on (hssw j) hn hv (vt_sh_pre hμ33 vsh hsm)
     | callIf cnd f a =>
       simp only [Stmt.callSF, Main.Stmt.callS, Option.some.injEq] at hst
       subst hst
@@ -196,7 +170,7 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} 
     (fun _ ↦ H.ownW B) (fun _ ↦ by rw [← ownW_lengths H B]; exact forall₂_length_le _)
     (fun fp ↦ vtW H (B.at (fp + fs "verify_tables")))
     (fun fp ↦ H.bufs (B.at (fp + fs "verify_tables"))) ?hbufs ?hrun (fun σ ↦ ∀ s ∈ vtPre, DispOk σ s)
-    (List.replicate 119 (vtKidW ω Wss fun i ↦ 32 * K10w i)) ?hQ
+    (List.replicate 125 (vtKidW ω Wss fun i ↦ 32 * K10w i)) ?hQ
     (by change (vtPre.filter callB).length ≤ _; rw [vt_ncalls]; simp)
     (fun fp rd hlow hL i c hc ht t r hn hv hbo ↦ by
       have hk := hkw fp rd hlow hL i c hc ht t r hn hv hbo
@@ -225,12 +199,12 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} 
   case hB =>
     intro fp rd hlow hL i c hc ht rd' hlow' hL' t r hn hv hbo
     obtain ⟨hvsh, -⟩ := hrun fp rd hlow hL
-    obtain ⟨v17, v20, v21⟩ := hvals fp rd hlow hL
+    obtain ⟨v17, v20, v21, vsh⟩ := vt_honest_vals hκ h hs B (fp + fs "verify_tables") hlow hL
     change (flatCalls vtPre (vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B)))[i]? =
       some c at hc
     change t.Valid coreProgram rd'
       (c.args.map (vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B))) r at hv
-    generalize vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B) = σ at hvsh v17 v20 v21 hc hv
+    generalize vtσ rd (vtW H (B.at (fp + fs "verify_tables"))) (H.args B) = σ at hvsh v17 v20 v21 vsh hc hv
     obtain ⟨s, hs, tup, hst, rfl⟩ := flatCalls_getElem vtPre i c hc
     obtain ⟨hsm, -⟩ := getElem?_filter_mem hs
     have hbi : (vtBs Kf Ksh (vtRunB fs K10 H.n)).getD i 0 = vtCallBnd Kf Ksh (vtRunB fs K10 H.n) s := by
@@ -252,17 +226,9 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} 
       split
       · rename_i hfs
         subst hfs
-        obtain ⟨ha6, hr0⟩ := hsh'.resolve_left (by simp)
+        obtain ⟨-, hr0⟩ := hsh'.resolve_left (by simp)
         subst hr0
-        have hrel : coreProgram.Rel rd "shared_selector_tables" (a.map σ) [] :=
-          Program.RelIn.rel hvs
-        have hout := shared_selector_tables_holds rd _ _ hrel
-        obtain ⟨a0, a1, a2, a3, a4, a5, rfl⟩ : ∃ a0 a1 a2 a3 a4 a5, a = [a0, a1, a2, a3, a4, a5] := by
-          match a, ha6 with
-          | [a0, a1, a2, a3, a4, a5], _ => exact ⟨a0, a1, a2, a3, a4, a5, rfl⟩
-        simp only [List.map_cons, List.map_nil, SharedSelOut] at hout
-        obtain ⟨m, hm, hlen, -⟩ := hout
-        exact hsh rd' t _ r hn ⟨m, hm, by simpa using hlen⟩ hv hbo
+        exact hsh rd' t _ r hn (vt_sh_pre hμ33 vsh hsm) hv hbo
       · rename_i hfs
         exact hKf f hok h10' h9' hfs rd' t _ r hn hv hbo
     | callIf cnd f a =>
@@ -276,7 +242,7 @@ theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} 
         rcases Nat.eq_zero_or_pos H.n with h0 | h0
         · exfalso; apply ht; rw [v20, h0, pow_zero]; exact e_add_eq_zero_iff.mpr rfl
         · exact h0
-      have hpre : LoopPre ([V.n 2634, V.n 2543, V.n 2625, V.n 18, V.n 16, V.n 2543, V.n 2628].map σ) := by
+      have hpre : LoopPre ([V.n 2336, V.n 2245, V.n 2327, V.n 18, V.n 16, V.n 2245, V.n 2330].map σ) := by
         simp only [List.map_cons, List.map_nil, v21, v17]
         exact loopPre_gen hn0 (by omega) _
       have := h10 rd' t _ r hn hpre hv hbo
@@ -336,11 +302,11 @@ theorem vt_weight_le {ι : Type} (ω : ι → String → ℕ) (Kw : ι → Strin
       WeightLe coreProgram (ω i) g (fun _ ↦ Kw i g))
     {sizes : List ℕ} {t : Tree} {rd : Reader} {args rets : List E}
     (h : Budget.NodeHonest coreProgram "verify_tables" (fun σ ↦ ∀ s ∈ vtPre, DispOk σ s)
-      (flatCalls vtPre) (fun _ ↦ sizes) (List.replicate 119 (vtKidW ω Wss fun i ↦ 32 * K10w i)) t)
+      (flatCalls vtPre) (fun _ ↦ sizes) (List.replicate 125 (vtKidW ω Wss fun i ↦ 32 * K10w i)) t)
     (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) (i : ι) :
     t.weight (ω i) ≤ ω i "verify_tables" + (vtBs (Kw i) (Wss i) (32 * K10w i)).sum := by
   have hB : ∀ σ', (∀ s ∈ vtPre, DispOk σ' s) → ∀ c T,
-      (c, T) ∈ (flatCalls vtPre σ').zip (List.replicate 119 (vtKidW ω Wss fun i ↦ 32 * K10w i)) →
+      (c, T) ∈ (flatCalls vtPre σ').zip (List.replicate 125 (vtKidW ω Wss fun i ↦ 32 * K10w i)) →
       c.taken = true → ∀ (t' : Tree) (rets' : List E), t'.name = c.f →
       t'.Valid coreProgram rd (c.args.map σ') rets' → t'.BufsOk coreProgram → T t' →
       t'.weight (ω i) ≤ vtCallW (Kw i) (Wss i) (32 * K10w i) c.f := by
@@ -432,7 +398,7 @@ theorem verify_tables_completeAtTBW' {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest}
         → g ≠ "shared_selector_tables" →
       TotalLe coreProgram fs g (fun _ ↦ Kf g))
     (hsh : TotalLeOn coreProgram fs "shared_selector_tables"
-      (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh))
+      (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n ∧ a.getD 6 0 = gen ^ (n / 4)) (fun _ ↦ Ksh))
     (h10 : TotalLeOn coreProgram fs name% «verify_tables_loop0» LoopPre
       (fun a ↦ logG (a.getD 1 0) * K10 + fs name% «verify_tables_loop0»))
     {ι : Type} (ω : ι → String → ℕ) (Kw : ι → String → ℕ) (Wss K10w : ι → ℕ)
@@ -440,7 +406,8 @@ theorem verify_tables_completeAtTBW' {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest}
         name% «shared_selector_tables_loop0» → g ≠ "shared_selector_tables" →
       WeightLe coreProgram (ω i) g (fun _ ↦ Kw i g))
     (hssw : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "shared_selector_tables" →
-      (∃ n < 64, args.getD 5 0 = gen ^ n) → t.Valid coreProgram rd args rets →
+      (∃ n < 64, args.getD 5 0 = gen ^ n ∧ args.getD 6 0 = gen ^ (n / 4)) →
+      t.Valid coreProgram rd args rets →
       t.BufsOk coreProgram → t.weight (ω i) ≤ Wss i)
     (h10w : ∀ i, Budget.LoopW (ω i) name% «verify_tables_loop0» (K10w i)) :
     CompleteAtDTB fs cert κ "verify_tables" (H.linL B) (H.args B) (Returns (H.retsH B))

@@ -36,7 +36,7 @@ frame once (`vsPiOfM`, `vsPiOfAt`); `vsPiOfA_tabs`: at `whirTabs` it is `vsPiOfN
 
 namespace LeanVM.Guest.Fast
 
-open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Whir
+open LeanVM.Parameters LeanVM.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Whir
 open LeanVM.Guest.B1.VerifySub LeanVM.Guest.B1.Sig LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -231,7 +231,7 @@ theorem gLog7_eq_logGT (x : E) : gLog7 x = logGT x 128 := by
   unfold gLog7 logG
   congr 2
   funext n
-  rw [LeanVM.Guest.Value.gen_pow_eq_ofK]
+  rw [LeanVM.Core.Value.gen_pow_eq_ofK]
   simp only [eq_comm]
 
 /-- The windows' exponents, off `gLanes`, are `gLog7`'s. -/
@@ -259,10 +259,10 @@ theorem bitsB_append (l : List Bool) (b : Bool) :
     ring
 
 theorem bitsVal_eq_bitsB (f : ℕ → Bool) : ∀ n,
-    LeanVM.Guest.Value.bitsVal f n = bitsB ((List.range n).map f)
+    LeanVM.Core.Value.bitsVal f n = bitsB ((List.range n).map f)
   | 0 => rfl
   | n + 1 => by
-    rw [LeanVM.Guest.Value.bitsVal, bitsVal_eq_bitsB f n, List.range_succ, List.map_append,
+    rw [LeanVM.Core.Value.bitsVal, bitsVal_eq_bitsB f n, List.range_succ, List.map_append,
       List.map_singleton, bitsB_append, List.length_map, List.length_range]
     cases f n <;> rfl
 
@@ -369,7 +369,7 @@ def oqCallArgs (fr : Val) (A : List E) (N : ℕ) : List E :=
     ofK (Parameters.g ^ N)]
 
 theorem oqCallArgs_eq (fr : Val) (A : List E) (N : ℕ) : oqCallArgs fr A N = osOqArgs fr A N := by
-  rw [oqCallArgs, osOqArgs, LeanVM.Guest.Value.gen_pow_eq_ofK]
+  rw [oqCallArgs, osOqArgs, LeanVM.Core.Value.gen_pow_eq_ofK]
 
 /-- A level's openings, the `level_queries` dispatch's argument words `A` and the callee's frame
 `fr` given: the `opening_queries` call's argument words read once. -/

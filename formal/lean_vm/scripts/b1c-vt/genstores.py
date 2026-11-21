@@ -4,7 +4,9 @@ import re, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import vtflat
 top, flat, ctr, cend = vtflat.load()
-assert cend == 5985, cend
+# the counter runs to just past the returned values, the body's last
+ret = open(os.environ.get('VT_IR', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'vt_ir.txt'))).read()
+assert max(vtflat.vs(ret.rstrip('\n').rsplit('\n', 1)[1])) == cend - 1, cend
 st = []
 for (k, s), c in zip(flat, ctr):
     m = re.match(r'\.atom \(\.load \(\.n (\d+)\) \(\.n (\d+)\) (\d+)\)$', s)
@@ -22,7 +24,7 @@ public import LeanVM.Guest.B1.Tables.VtC.Flat
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Guest.B1.Fwd
 
 @[expose] public section

@@ -22,7 +22,7 @@ Everything else exists once, leaves first:
 | `keccak256` | Keccak-256 and its multi-way permutation |
 | `fiat_shamir_prover` | the prover's transcript, for both trees |
 | `isa` | the instruction set, `Program`, the `Prover` trait |
-| `zkdsl_compiler` | zkDSL to ISA (`zkDSL.md`); its tests run the stable prover |
+| `zkdsl` | the zkDSL (`zkDSL.md`): the parser the guest's source goes through, its AST and the disassembler; its tests run the Lean-compiled test programs on the stable prover |
 | `lean_xmss`, `lean_sphincs`, `lean_vrf` | the signature schemes and the VRF tree |
 | `allocator`, `bench_harness` | jemalloc and the benchmark harness; never linked by a library |
 | `lean_da` | Reed-Solomon blob encoding, commitments, membership vectors |
@@ -51,8 +51,8 @@ Rules:
 
 - **A protocol change**: both prover trees, the three verifiers, `formal/`. An optimization: experimental alone.
 - **Rust that `formal/` transcribes** (the verifier, the guest, the schemes' hash inputs, the wire encoding in `formal/lean_vm/LeanVM/Wire/Encoding.lean`): its Lean, in the same PR. CI's `lean-vm-formalization` fails until then.
-- **The zkDSL compiler's accepted language or output**: its Lean front end, `formal/lean_vm/LeanVM/Guest/Source.lean` and `Expand.lean`. If the guest's bytecode changes, see "Changing the spec" in `formal/AGENTS.md`.
-- **A new program in `crates/zkdsl_compiler/tests/programs/`**: its digest in `tests/suite/determinism.rs` (`GOLDEN`), the regenerated `formal/lean_vm/tests/LeanVMTests/Guest/Programs.lean` (`formal/lean_vm/scripts/regen-guest.sh`), the count in `tests/LeanVMTests/Guest/Data.lean`.
+- **The zkDSL's accepted language or its compilation**: the parser in `crates/zkdsl` and the Lean front end, `formal/lean_vm/LeanVM/Core/Source.lean` and `Expand.lean`, whose core IR on each program of `formal/lean_vm/tests/frontend/` is pinned by a golden file. If the guest's bytecode changes, see "Changing the spec" in `formal/AGENTS.md`.
+- **A new program in `crates/zkdsl/tests/programs/` or `tests/vm/`, or in `formal/lean_vm/tests/frontend/`**: its Lean compilation (`crates/zkdsl/tests/compiled/`) or golden core IR, and the regenerated `formal/lean_vm/tests/LeanVMTests/Guest/Programs.lean`, all written by `formal/lean_vm/scripts/regen-guest.sh`; the count in `tests/LeanVMTests/Guest/Data.lean`.
 - **The layout** (`placements_of`, the schema): both provers and all three verifiers (`crates/verifier`'s `layout.rs`). `col_kappas` stays derived from `col_kappa_sources`.
 - **A rename in the leanVM document**: both provers, `crates/verifier`, the Lean verifier and the guest.
 - **The sidecar's protocol** (`crates/sidecar`'s `wire.rs`, `server.rs`) or the claims' byte form (`AggregateClaims::to_bytes`): `bins/leanvm-sidecar/README.md`.
@@ -70,7 +70,7 @@ cargo machete --with-metadata     # unused dependencies
 ```
 
 - Run anything touching the VM in `--release`.
-- One test binary per crate: a new `zkdsl_compiler` integration test is a module of `tests/suite/main.rs`.
+- One test binary per crate: a new `zkdsl` integration test is a module of `tests/suite/main.rs`.
 - `aggregate_two_to_one` is the fast end-to-end check.
 - Slow checks are `#[ignore]`d, run with `-- --ignored --nocapture`: `print_whir_query_counts`, `print_whir_query_table`, `encoding_grinding_bits`.
 - Heavy benches: `cargo bench -p <package> --bench <name>`, with `hash_batch` (`*_keccak_gkr`), `throughput` (`*_pcs`), `hash_throughput` (`keccak256`).
@@ -83,7 +83,7 @@ RUSTFLAGS="-C target-cpu=znver4" \
   cargo check --release --workspace --exclude leanvm-bench --exclude leanvm-sidecar --exclude allocator --target x86_64-unknown-linux-gnu
 ```
 
-Use `RUSTFLAGS`, not `CARGO_TARGET_*_RUSTFLAGS`, which would merge with `target-cpu=native`. A `compile_error!` in the arm confirms it is reached.
+Use `RUSTFLAGS`, not `CARGO_TARGET_*_RUSTFLAGS`, which would merge with `target-cpu=native`. A `compile_error!` in the arm confirms it is reached. The guest is compiled by Lean on the host, as for any build.
 
 ## Benchmarking
 
@@ -133,7 +133,8 @@ The Rust verifier:
 The guest:
 
 - Hints are untrusted: every hinted value must be pinned by a constraint.
-- It verifies proofs of itself: `unified_guest` compiles it to a fixed point on its own size.
+- It verifies proofs of itself, so it is compiled to a fixed point on its own size, by the verified compiler written in Lean (`formal/lean_vm/LeanVM/Compiler`; the core IR, its semantics and the front end in `formal/lean_vm/LeanVM/Core`; its proofs about the guest in `formal/lean_vm/LeanVM/Guest/Compiled`).
+- Its output, `guests/lean_ethereum.compiled`, is not committed: `crates/aggregation/build.rs` writes it with `formal/lean_vm/scripts/guest-artifact` when the guest, its placeholders or the compiler changed, so building `aggregation` needs elan unless `LEANVM_GUEST_ARTIFACT` names an artefact that script wrote from the same tree. `unified_guest` refuses one not compiled from the current source and placeholders at its own size.
 - The stacked-bytecode claim is not verified in-circuit. Each node batches its children's, and `AggregateProof::verify` discharges the root's.
 - It accepts exactly what the native verifier does: every stack from `2^min_execution_stacked_log(kbc)` to `2^MAX_STACKED_LOG`, at every rate. One opening arm per size, the rate dispatched inside, so a rate's shape goes in a helper specialized on it.
 - Every verifier rotates the opening's terminal point left by `INITIAL_FOLDING_FACTOR` before evaluating the basis (`whir::commit` documents the layout). Every other read of the point stays in round order.
@@ -169,4 +170,4 @@ The guest:
 | `KECCAK_N_LOG`, `KECCAK_DEPTH` | keccak_gkr batch size, rounds between committed states |
 | `PCS_LOG_N`, `PCS_LOG_INV_RATE`, `PCS_POINT_CLAIMS`, `PCS_RING_CLAIMS` | PCS throughput bench: size, rate, claims |
 | `WHIR_NUM_VARS`, `WHIR_LOG_INV_RATE` | `print_whir_query_counts`'s shape |
-| `DBG_PROF{,_DUMP}`, `DBG_LOOPS`, `DBG_DISASM`, `DBG_LOWER`, `DBG_PLACEHOLDERS` | compiler and guest-cycle attribution |
+| `DBG_PROF{,_DUMP}`, `DBG_DISASM`, `DBG_PLACEHOLDERS` | guest-cycle attribution |

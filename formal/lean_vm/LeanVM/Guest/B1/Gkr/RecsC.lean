@@ -12,27 +12,27 @@ public import LeanVM.Guest.B1.Gkr.Rounds
 /-!
 # Round records, completely
 
-`RecsAt rd rec cur cs es claim s`: record `r ≤ n` at `rec·g^r` carries the capacity, the cursor
+`RecsAt rd rec cur cs es claim s`: record `r ≤ n` at `rec·g^(7r)` carries the capacity, the cursor
 `4r` words on and the claim after the first `r` rounds of `gkrRun cs es claim s`. `recs_rounds`:
 with the rounds' words at the cursor, the eq factors at `pt` and the challenges at `pt[42 ..]`,
-any `k` consecutive rounds from round `a` are `TbGkrRoundsOut k` at `rec·g^a`, `pt·g^a`.
+any `k` consecutive rounds from round `a` are `TbGkrRoundsOut k` at `rec·g^(7a)`, `pt·g^a`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-/-- **The round records**: record `r ≤ n` carries the sponge's capacity, the cursor and the claim
-after the first `r` rounds. -/
+/-- **The round records**: record `r ≤ n`, seven words at `rec·g^(7r)`, carries the sponge's
+capacity, the cursor and the claim after the first `r` rounds. -/
 def RecsAt (rd : Reader) (rec cur : E) (cs : List (List E)) (es : List E) (claim : E) (s : Fs) :
     Prop :=
   ∀ r ≤ cs.length,
-    TbCapAt rd (rec * gen ^ r) 0 gkCap (gkrRun (cs.take r) (es.take r) claim s).2.2.cap ∧
-      LoadHolds rd (rec * gen ^ r) (5 * gkCap) (cur * gen ^ (4 * r)) ∧
-      LoadHolds rd (rec * gen ^ r) (6 * gkCap) (gkrRun (cs.take r) (es.take r) claim s).2.1
+    TbCapAt rd (rec * gen ^ (7 * r)) 0 1 (gkrRun (cs.take r) (es.take r) claim s).2.2.cap ∧
+      LoadHolds rd (rec * gen ^ (7 * r)) 5 (cur * gen ^ (4 * r)) ∧
+      LoadHolds rd (rec * gen ^ (7 * r)) 6 (gkrRun (cs.take r) (es.take r) claim s).2.1
 
 theorem tb_gkrRun_take_add (cs : List (List E)) (es : List E) (claim : E) (s : Fs) (a k : ℕ)
     (hl : cs.length = es.length) :
@@ -64,7 +64,7 @@ theorem recs_rounds {rd : Reader} {rec cur pt claim : E} {cs : List (List E)} {e
     (hl : cs.length = es.length) (h4 : ∀ c ∈ cs, c.length = 4) (hx : TbReadsAt rd cur cs.flatten)
     (he : TbReadsAt rd pt es) (hch : TbReadsAt rd (pt * gen ^ 42) (gkrRun cs es claim s).1)
     {a k : ℕ} (hak : a + k ≤ cs.length) :
-    TbGkrRoundsOut k rd (rec * gen ^ a) (pt * gen ^ a) := by
+    TbGkrRoundsOut k rd (rec * gen ^ (7 * a)) (pt * gen ^ a) := by
   set r1 := gkrRun (cs.take a) (es.take a) claim s with hr1
   have hp1 : r1.2.2 = ⟨r1.2.2.cap, []⟩ := by
     have := tb_gkrRun_pend (cs.take a) (es.take a) claim s hp
@@ -113,15 +113,15 @@ theorem recs_rounds {rd : Reader} {rec cur pt claim : E} {cs : List (List E)} {e
     rw [hl1, show pt * gen ^ 42 * gen ^ a = pt * gen ^ a * gen ^ 42 by ring] at hch
     exact hch.2.1
   · rw [← hp1, tbCapAt_mul_gen_pow]
-    rw [tbCapAt_mul_gen_pow, Nat.add_zero] at c1
+    rw [tbCapAt_mul_gen_pow, Nat.add_zero, show 7 * (a + k) = 7 * a + 7 * k by ring] at c1
     exact c1
   · rw [tb_loadHolds_mul_gen_pow] at u1 ⊢
-    rw [show a + (k + 5 * gkCap) = a + k + 5 * gkCap by ring,
+    rw [show 7 * a + (7 * k + 5) = 7 * (a + k) + 5 by ring,
       show cur * gen ^ (4 * a) * gen ^ (4 * k) = cur * gen ^ (4 * (a + k)) by ring]
     exact u1
   · rw [← hp1, tb_loadHolds_mul_gen_pow]
     rw [tb_loadHolds_mul_gen_pow] at l1
-    rw [show a + (k + 6 * gkCap) = a + k + 6 * gkCap by ring]
+    rw [show 7 * a + (7 * k + 6) = 7 * (a + k) + 6 by ring]
     exact l1
 
 end

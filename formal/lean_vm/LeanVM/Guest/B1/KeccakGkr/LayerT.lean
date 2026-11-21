@@ -39,7 +39,7 @@ weight section; from the nonce's permutation on, `__L1`'s values are `__L0`'s pl
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -263,13 +263,13 @@ product and the nonce, the product at `s`), the eight-round loop on `step_g`, an
 the remainder loop on `rem_g` from `rounds·step_g`, `prev_point·step_g⁸`, `point·step_g⁸`. -/
 def packSetupT (o first : ℕ) : List Stmt :=
   [.atom (.load (.n (o + 717)) (.n 11) 2), .atom (.hint (.allocDyn (.n (o + 718)) (.n 8))),
-    .atom (.hint (.alloc (.n (o + 719)) 112)),
-    .atom (.load (.n (o + 539)) (.n (o + 719)) 0), .atom (.load (.n (o + 540)) (.n (o + 719)) 16),
-    .atom (.load (.n (o + 541)) (.n (o + 719)) 32), .atom (.load (.n (o + 542)) (.n (o + 719)) 48),
-    .atom (.load (.n (o + 543)) (.n (o + 719)) 64),
+    .atom (.hint (.alloc (.n (o + 719)) 77)),
+    .atom (.load (.n (o + 539)) (.n (o + 719)) 0), .atom (.load (.n (o + 540)) (.n (o + 719)) 11),
+    .atom (.load (.n (o + 541)) (.n (o + 719)) 22), .atom (.load (.n (o + 542)) (.n (o + 719)) 33),
+    .atom (.load (.n (o + 543)) (.n (o + 719)) 44),
     .atom (.const (.n (o + 720)) (word 281474976710656 0)),
     .atom (.mul (.n (o + 721)) (.n 7) (.n (o + 720))),
-    .atom (.load (.n (o + 721)) (.n (o + 719)) 80), .atom (.load (.n (o + 716)) (.n (o + 719)) 96),
+    .atom (.load (.n (o + 721)) (.n (o + 719)) 55), .atom (.load (.n (o + 716)) (.n (o + 719)) 66),
     .atom (.const (.n (o + 722)) (word 1 0)), .atom (.add (.n (o + 723)) (.n (o + 722)) (.n 9)),
     .atom (.const (.n (o + 724)) (word 1 0)),
     .callIf (.n (o + 723)) (packLoopName first)
@@ -290,7 +290,7 @@ def packSetupT (o first : ℕ) : List Stmt :=
 /-- The last record (`rounds·step_g·rem_g`) read, the local point allocated. -/
 def lastT (o : ℕ) : List Stmt :=
   [.atom (.mul (.n (o + 737)) (.n (o + 725)) (.n 10))] ++
-    (List.range 7).map (fun j ↦ .atom (.load (.n (o + 738 + j)) (.n (o + 737)) (16 * j))) ++
+    (List.range 7).map (fun j ↦ .atom (.load (.n (o + 738 + j)) (.n (o + 737)) (11 * j))) ++
     [.atom (.hint (.alloc (.n (o + 745)) 11))]
 
 /-- `t`'s three words. -/

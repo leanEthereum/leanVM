@@ -36,7 +36,7 @@ writes `his[w + 1] · g^8 + k` (the top window `k`) where the hinted `his[w]` is
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Value LeanVM.Protocol.Verifier
+open LeanVM.Parameters LeanVM.Core LeanVM.Core.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
 

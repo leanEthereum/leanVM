@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Common.Basic
-public import LeanVM.Guest.Renumber
+public import LeanVM.Core.Renumber
 
 /-!
 # Forward evaluation
@@ -29,7 +29,7 @@ condition `Side` (a pointer in `K` with a defined word, a nonzero divisor, an as
 
 namespace LeanVM.Guest.B1.Fwd
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Guest.Value.Keccak
 
 @[expose] public section

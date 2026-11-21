@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SpWotsRen3
 
-  The guest's numbering of `sp_wots`'s template is undone by `spUn` on the values of statements 96 to 126, the checks and the leaf, in runs of 8:
+  The guest's numbering of `sp_wots`'s template is undone by `spUn` on the values of statements 98 to 105 (dispatches 14 to 21), one a run, and the tail:
   no value the template names is one its steps without an address constant leave unused.
 -/
 
@@ -12,24 +12,40 @@ public import LeanVM.Guest.B1.Sig.SpWotsData1
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
+open LeanVM.Core LeanVM.Parameters
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem spRen_run_96 : (Stmt.valsList ((spBodyT.drop 96).take 8)).all spUnOK = true := by
+theorem spRen_run_98 : (Stmt.valsList ((spBodyT.drop 98).take 1)).all spUnOK = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem spRen_run_104 : (Stmt.valsList ((spBodyT.drop 104).take 8)).all spUnOK = true := by
+theorem spRen_run_99 : (Stmt.valsList ((spBodyT.drop 99).take 1)).all spUnOK = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem spRen_run_112 : (Stmt.valsList ((spBodyT.drop 112).take 8)).all spUnOK = true := by
+theorem spRen_run_100 : (Stmt.valsList ((spBodyT.drop 100).take 1)).all spUnOK = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem spRen_run_120 : (Stmt.valsList ((spBodyT.drop 120).take 7)).all spUnOK = true := by
+theorem spRen_run_101 : (Stmt.valsList ((spBodyT.drop 101).take 1)).all spUnOK = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem spRen_run_102 : (Stmt.valsList ((spBodyT.drop 102).take 1)).all spUnOK = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem spRen_run_103 : (Stmt.valsList ((spBodyT.drop 103).take 1)).all spUnOK = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem spRen_run_104 : (Stmt.valsList ((spBodyT.drop 104).take 1)).all spUnOK = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem spRen_run_105 : (Stmt.valsList ((spBodyT.drop 105).take 1)).all spUnOK = true := by
   decide +kernel
 
 theorem spRen_tail : (Stmt.valsList (spTailOf (spLeafKOf (word 1 (2 ^ 63))))).all spUnOK = true := by

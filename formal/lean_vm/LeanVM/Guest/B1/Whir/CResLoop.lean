@@ -23,7 +23,7 @@ arguments, entered behind its guard (`loop_complete`).
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
 open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -83,17 +83,17 @@ theorem osBatchPow_ssaP (k : ℕ) (hk : 0 < k) :
 theorem osBatchPow_loads (k : ℕ) : loadsOf (osBatchPow k).1 = [] := osPowSteps_loads 0 _ 0 k
 
 /-- **One iteration of the residual loop, honestly**, at `x = g^j`. -/
-theorem resLoop_iter {lvl : ℕ} {lv : OsLv} {hsv : List E} (hst : ResStatic lv hsv)
+theorem resLoop_iter {lv : OsLv} {hsv : List E} (hst : ResStatic lv hsv)
     (hpo : lv.posOff < u128Bound) {rd : Reader} {qpos bd hs chain mu N : E} {D Pos : ℕ → E} {j : ℕ}
     (hj : j < lv.queries / resBatch)
     (hpos : ∀ k < lv.queries, LoadHolds rd qpos (lv.posOff + k) (Pos k))
-    (hD : ∀ t < lv.logCols, LoadHolds rd bd (lvl * ligColsCap + t) (D t))
-    (hhs : ∀ c < lv.folds, LoadHolds rd hs (lvl * hsStride + c) (hsv.getD c 0))
+    (hD : ∀ t < lv.logCols, LoadHolds rd bd (lv.colsOff + t) (D t))
+    (hhs : ∀ c < lv.folds, LoadHolds rd hs (lv.foldsOff + c) (hsv.getD c 0))
     (hrc : ReadsAt rd chain (rcC lv D hsv Pos mu)) :
     ∃ σ : Val, (osParams 7).map σ = [gen ^ j, N, qpos, bd, hs, chain, mu] ∧
-      AllOk (coreProgram.Rel rd) rd σ (resLoopA lvl lv ++ osLoopTailA (resLoopR lvl lv)) ∧
-      σ (.n (resLoopR lvl lv + 2)) = gen ^ j * gen + N ∧
-      (.n (resLoopR lvl lv + 4) :: (List.range (7 - 1)).map fun i ↦ V.n (i + 1)).map σ =
+      AllOk (coreProgram.Rel rd) rd σ (resLoopA lv ++ osLoopTailA (resLoopR lv)) ∧
+      σ (.n (resLoopR lv + 2)) = gen ^ j * gen + N ∧
+      (.n (resLoopR lv + 4) :: (List.range (7 - 1)).map fun i ↦ V.n (i + 1)).map σ =
         gen ^ j * gen :: [N, qpos, bd, hs, chain, mu] := by
   unfold resLoopA resLoopR
   dsimp only
@@ -111,16 +111,16 @@ theorem resLoop_iter {lvl : ℕ} {lv : OsLv} {hsv : List E} (hst : ResStatic lv 
   generalize hx : pp.2.2 = x at hx7 hp2 hS0 hL0 hmv ⊢
   obtain ⟨hB, hBl⟩ := osBatchPow_ssaP x (by omega)
   generalize hy : x + batchLen = y at hB hBl ⊢
-  obtain ⟨t1, t2, t3, t4⟩ := osResSteps_ssa y 3 (lvl * ligColsCap) 4 (lvl * hsStride) lv.vanish
+  obtain ⟨t1, t2, t3, t4⟩ := osResSteps_ssa y 3 lv.colsOff 4 lv.foldsOff lv.vanish
     lv.logCols lv.folds lv.highBits 6 (by have := hst.nhs; omega) (by have := hst.cols; omega)
     js (y + 3) (y + 4) (y + 5) (by omega) (by omega) (by omega) (by omega) (by omega) (by omega)
   have hval := fun (σ : Val) (C : CallRel)
-      (hD' : ∀ s < lv.logCols, LoadHolds rd (σ (.n 3)) (lvl * ligColsCap + s) (D s))
-      (hH' : ∀ c < lv.folds, LoadHolds rd (σ (.n 4)) (lvl * hsStride + c) (hsv.getD c 0)) ↦
-    osResSteps_val (C := C) (σ := σ) (pp := y) (bd := 3) (ro := lvl * ligColsCap) (hp := 4)
-      (ho := lvl * hsStride) (vo := lv.vanish) (mu := 6) hst.cols hst.nhs hst.b3 hst.bn hD' hst.len hH'
+      (hD' : ∀ s < lv.logCols, LoadHolds rd (σ (.n 3)) (lv.colsOff + s) (D s))
+      (hH' : ∀ c < lv.folds, LoadHolds rd (σ (.n 4)) (lv.foldsOff + c) (hsv.getD c 0)) ↦
+    osResSteps_val (C := C) (σ := σ) (pp := y) (bd := 3) (ro := lv.colsOff) (hp := 4)
+      (ho := lv.foldsOff) (vo := lv.vanish) (mu := 6) hst.cols hst.nhs hst.b3 hst.bn hD' hst.len hH'
       js (y + 3) (y + 4) (y + 5)
-  generalize hstd : osResSteps y 3 (lvl * ligColsCap) 4 (lvl * hsStride) lv.vanish lv.logCols
+  generalize hstd : osResSteps y 3 lv.colsOff 4 lv.foldsOff lv.vanish lv.logCols
     lv.folds lv.highBits 6 js (y + 3) (y + 4) (y + 5) = st at t1 t2 t3 t4 hval ⊢
   generalize hr : st.2.2.2 = r at t1 t2 t3 ⊢
   -- the statements in order
@@ -272,19 +272,19 @@ theorem resLoop_iter {lvl : ℕ} {lv : OsLv} {hsv : List E} (hst : ResStatic lv 
 the bound `g^(Q/resBatch)`, on memory holding the positions at `qpos·g^posOff`, the basis row at
 `bd`,
 the high part at `hs` and the chains' buffer (`rcC`) at `chain`. -/
-theorem resLoop_complete {name : String} {lvl : ℕ} {lv : OsLv} {hsv : List E}
-    (hfn : FnIs name (osParams 7) (resLoopBody lvl lv name))
+theorem resLoop_complete {name : String} {lv : OsLv} {hsv : List E}
+    (hfn : FnIs name (osParams 7) (resLoopBody lv name))
     (hst : ResStatic lv hsv) (hpo : lv.posOff < u128Bound) (hn0 : 0 < lv.queries / resBatch)
     {rd : Reader} {qpos bd hs chain mu : E} {D Pos : ℕ → E}
     (hpos : ∀ k < lv.queries, LoadHolds rd qpos (lv.posOff + k) (Pos k))
-    (hD : ∀ t < lv.logCols, LoadHolds rd bd (lvl * ligColsCap + t) (D t))
-    (hhs : ∀ c < lv.folds, LoadHolds rd hs (lvl * hsStride + c) (hsv.getD c 0))
+    (hD : ∀ t < lv.logCols, LoadHolds rd bd (lv.colsOff + t) (D t))
+    (hhs : ∀ c < lv.folds, LoadHolds rd hs (lv.foldsOff + c) (hsv.getD c 0))
     (hrc : ReadsAt rd chain (rcC lv D hsv Pos mu)) :
     1 + gen ^ (lv.queries / resBatch) ≠ 0 →
       coreProgram.Rel rd name [1, gen ^ (lv.queries / resBatch), qpos, bd, hs, chain, mu] [] := by
   obtain ⟨fn, hf, hps, hb⟩ := hfn
   rw [resLoopBody_split] at hb
-  have h := loop_complete (rd := rd) hf (resLoopA_flat lvl lv) hb (N := gen ^ (lv.queries / resBatch))
+  have h := loop_complete (rd := rd) hf (resLoopA_flat lv) hb (N := gen ^ (lv.queries / resBatch))
     (rest := [qpos, bd, hs, chain, mu]) hn0 rfl fun j hj ↦ by
       obtain ⟨σ, h1, h2, h3, h4⟩ := resLoop_iter (N := gen ^ (lv.queries / resBatch)) hst hpo hj hpos hD
         hhs hrc

@@ -20,7 +20,7 @@ is a run, compiled (`lake exe test-runs`).
 
 namespace LeanVMTests.Cost.DecoderReaders
 
-open LeanVM.Cost LeanVM.Cost.Decoder LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.Fast
+open LeanVM.Cost LeanVM.Cost.Decoder LeanVM.Parameters LeanVM.Core LeanVM.Guest.Fast
 open LeanVM.Protocol.Verifier
 
 /-- A compiled function's value and price on `vs`, in the program of the bodies `deps`. -/

@@ -1,0 +1,13 @@
+def main []
+  const %0 5 0
+  const %1 7 0
+  assert_in_k %0 %1
+  const %2 5 7
+  const %3 1 0
+  load %2 %3 0
+  const %4 5 7
+  const %5 1 0
+  const %6 2 0
+  mul %7 %5 %6
+  load %4 %7 0
+  ret []

@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerCB
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Guest.B1.Fwd
 
@@ -27,10 +27,10 @@ open LeanVM.Guest.B1.Fwd
 variable {C : CallRel} {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val}
 
 theorem capAt_get {rec : E} {k : ℕ} {cap : List E} (h : CapAt rd rec k krCap cap) {j : ℕ}
-    (hj : j < 5) : LoadHolds rd rec (k + 16 * j) (cap.getD j 0) := by
+    (hj : j < 5) : LoadHolds rd rec (k + 11 * j) (cap.getD j 0) := by
   obtain ⟨hl, h⟩ := h
   have := h j (by omega)
-  rw [List.getD_eq_getElem _ _ (by omega), show k + 16 * j = k + j * krCap by simp [krCap]; ring]
+  rw [List.getD_eq_getElem _ _ (by omega), show k + 11 * j = k + j * krCap by simp [krCap]; ring]
   exact this
 
 theorem goodS_mul_lt {d x y : ℕ} (hx : x < d) (hy : y < d)
@@ -96,7 +96,7 @@ theorem packSetup_complete {o first : ℕ} (ho : LayOff o) (hg : ∀ s ∈ packS
     e734, e735, e736, e737, e738⟩ := packSetup_goods ho hg
   have epp := load_val (w := w) g718 hS hpp
   obtain ⟨hcap, lcur, lcl⟩ := hrec
-  have c : ∀ j < 5, LoadHolds rd (σ (.n (o + 719))) (16 * j) (σ (.n (o + 539 + j))) := by
+  have c : ∀ j < 5, LoadHolds rd (σ (.n (o + 719))) (11 * j) (σ (.n (o + 539 + j))) := by
     intro j hj
     have := capAt_get hcap hj
     rw [zero_add] at this
@@ -122,7 +122,7 @@ theorem packSetup_complete {o first : ℕ} (ho : LayOff o) (hg : ∀ s ∈ packS
 theorem last_kernel {o : ℕ} (ho : LayOff o) :
     (lastT o).all isAtom = true ∧
       resid (atomsL (lastT o)) =
-        (List.range 7).map (fun j ↦ .load (.n (o + 738 + j)) (.n (o + 737)) (16 * j)) := by
+        (List.range 7).map (fun j ↦ .load (.n (o + 738 + j)) (.n (o + 737)) (11 * j)) := by
   rcases ho with rfl | rfl <;> exact ⟨by decide +kernel, by decide +kernel⟩
 
 set_option maxRecDepth 20000 in
@@ -141,20 +141,20 @@ theorem last_complete {o : ℕ} (ho : LayOff o) (hσ : ∀ v, σ v = σ (.n v.id
       hg (.atom (.mul (.n (o + 737)) (.n (o + 725)) (.n 10))) (by simp [lastT]))
   obtain ⟨⟨hcl, hcap⟩, lcur, lv⟩ := hrec
   rw [← g72] at hcap lcur lv
-  have gl : ∀ j < 7, Good rd S w σ (.load (.n (o + 738 + j)) (.n (o + 737)) (16 * j)) :=
+  have gl : ∀ j < 7, Good rd S w σ (.load (.n (o + 738 + j)) (.n (o + 737)) (11 * j)) :=
     fun j hj ↦ hg (.atom (.load _ _ _))
       (by
         unfold lastT
         exact List.mem_append_left _ (List.mem_append_right _
           (List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩)))
-  have hcapj : ∀ j (hj : j < 5), LoadHolds rd (σ (.n (o + 737))) (16 * j)
+  have hcapj : ∀ j (hj : j < 5), LoadHolds rd (σ (.n (o + 737))) (11 * j)
       (capL[j]'(by omega)) := fun j hj ↦ by
     have := hcap j (by omega)
-    rwa [zero_add, show j * krCap = 16 * j by simp [krCap]; ring] at this
+    rwa [zero_add, show j * krCap = 11 * j by simp [krCap]; ring] at this
   have ecap : ∀ j (hj : j < 5), σ (.n (o + 738 + j)) = capL[j]'(by omega) :=
     fun j hj ↦ load_val (w := w) (gl j (by omega)) (hS _ _) (hcapj j hj)
-  have lcur' : LoadHolds rd (σ (.n (o + 737))) (16 * 5) curL := by simpa [krCap] using lcur
-  have lv' : LoadHolds rd (σ (.n (o + 737))) (16 * 6) vL := by simpa [krCap] using lv
+  have lcur' : LoadHolds rd (σ (.n (o + 737))) (11 * 5) curL := by simpa [krCap] using lcur
+  have lv' : LoadHolds rd (σ (.n (o + 737))) (11 * 6) vL := by simpa [krCap] using lv
   refine ⟨g72, ?_, load_val (gl 5 (by norm_num)) (hS _ _) lcur',
     load_val (w := w) (gl 6 (by norm_num)) (hS _ _) lv', ?_⟩
   · obtain ⟨c0, c1, c2, c3, c4, rfl⟩ : ∃ c0 c1 c2 c3 c4, capL = [c0, c1, c2, c3, c4] := by

@@ -17,7 +17,7 @@ public import LeanVM.Guest.Data.NameStrings
 
 G6's knowledge statement names the witnesses as functions of the execution's frames, so `main`'s
 soundness is stated for any call relation `C` that **unfolds** (`Unfolds`: a call holds only when
-the callee's body does at some valuation, its calls in `C`; `Check.RL` by `relL_iff`,
+the callee's body does at some valuation, its calls in `C`; `Program.RelL` by `relL_iff`,
 `coreProgram.Rel` by `rel_iff`) and lies below `coreProgram.Rel` (the deterministic callees'
 statements then apply). `loop_stepC`, `loop_soundC`, `guard_soundC` are `loop_stepF`,
 `loop_sound`, `guard_sound` under `C`; `RawXStepC`, `RawSStepC`, `KidStepC` keep the signature
@@ -26,7 +26,7 @@ checks and the child proof's check in `C`, the other calls in `coreProgram.Rel`.
 
 namespace LeanVM.Guest.B1.Main
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.Value.Keccak
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Guest.B1.Digest LeanVM.Node
 

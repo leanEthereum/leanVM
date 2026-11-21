@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Main.MainAt
 
 namespace LeanVM.Guest.Budget
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Memory LeanVM.Core.Memory
 open LeanVM.Guest.B1.Main (mEvs mCalls MainIn walk_main find_main)
 
 @[expose] public section

@@ -22,7 +22,7 @@ coordinates. `vt_asm_claims`: there are `159`, their values are `claim_pool`'s (
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Protocol.EndToEnd.Complete (termsPure termsPure_snd length_tableWeights)
 
@@ -63,11 +63,11 @@ def vtPubClaims (L : Layout) (pi : Digest) (rm : E) : List ColumnClaim :=
 /-- **All the claims** `tablesSeg` returns. -/
 def vtAllClaims (bc : List K) (lm : ℕ) (rows : List ℕ) (pi : Digest) (point pts cp fp : List E)
     (forms3 : List (List Form)) (σ : Val) : List ColumnClaim :=
-  vtBusClaims (layoutOf bc lm rows) point [σ (.n 812), σ (.n 816)] (σ (.n 1302))
-      (σ (.n 1316)) ++
+  vtBusClaims (layoutOf bc lm rows) point [σ (.n 862), σ (.n 866)] (σ (.n 1168))
+      (σ (.n 1182)) ++
     (termsPure cp fp pts.reverse (List.zip (vtRows (tableHeightsOf rows) forms3 point pts)
       (vtEvsC σ)) 0 0 []).2 ++
-    vtPubClaims (layoutOf bc lm rows) pi (σ (.n 5946))
+    vtPubClaims (layoutOf bc lm rows) pi (σ (.n 5648))
 
 theorem vt_rows_length {rows : List ℕ} (hr : rows.length = 6) {forms3 : List (List Form)}
     (hf : forms3.length = 6) (e pts : List E) :
@@ -196,7 +196,7 @@ theorem vt_asm_claims {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.le
     (hml : point.length < 33) (hE : ExpTablesAt Lm.read (σ (.n 12))) {lm : ℕ}
     (hlm : lm ≤ 32) {rows : List ℕ} (hr : rows.length = 6) (hτ : ∀ t < 6, vtHt rows t < 33)
     (hkb : ∀ i < 8, σ (.n (25 + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0)
-    {n : ℕ} (hgn : σ (.n 2543) = gen ^ n) (hnm : n ≤ point.length)
+    {n : ℕ} (hgn : σ (.n 2245) = gen ^ n) (hnm : n ≤ point.length)
     (hhn : ∀ t < 6, vtHt rows t ≤ n) {pts : List E} (hpl : pts.length = n)
     (hchi : ∀ i < n, LoadHolds Lm.read (σ (.n 16)) (n - 1 - i) (pts.getD i 0))
     (bus : BusResult) (hbp : bus.point = point) (cp fp : List E) (forms3 : List (List Form))
@@ -204,34 +204,34 @@ theorem vt_asm_claims {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.le
     (vtAllClaims bc lm rows pi point pts cp fp forms3 σ).length = nClaims ∧
       TbReadsAt Lm.read (σ (.n 15))
         (((vtAllClaims bc lm rows pi point pts cp fp forms3 σ).take nBusClaims).map (·.value)) ∧
-      TbReadsAt Lm.read (σ (.n 2645))
+      TbReadsAt Lm.read (σ (.n 2347))
         ((((vtAllClaims bc lm rows pi point pts cp fp forms3 σ).drop nBusClaims).take
           nColEvals).map (·.value)) ∧
       TbReadsAt Lm.read (σ (.n 15) * gen ^ nPooled)
         (((vtAllClaims bc lm rows pi point pts cp fp forms3 σ).drop nPooled).map (·.value)) ∧
       TCtx Lm.read (layoutOf bc lm rows) bus (vtAllClaims bc lm rows pi point pts cp fp forms3 σ)
-        [σ (.n 8), σ (.n 16), σ (.n 5946), σ (.n 9), σ (.n 2543)] := by
+        [σ (.n 8), σ (.n 16), σ (.n 5648), σ (.n 9), σ (.n 2245)] := by
   obtain ⟨hl1, hl2, -⟩ := vt_sels hμ Lm h hz hmu hml hE hlm hτ hkb
   have hk1 : σ (.n 26) = gen ^ lm := by simpa using hkb 1 (by norm_num)
-  have hk2 : σ (.n 821) = gen ^ 19 := by
+  have hk2 : σ (.n 871) = gen ^ 19 := by
     have e0 : σ (.n 25) = 1 := by simpa using hkb 0 (by norm_num)
     rw [vt_fw2_kappa h, e0, one_mul]
   obtain ⟨-, -, -, -, -, -, p0, p1, p2, p3⟩ := vt_fw h hz hl1 (by omega) hl2 hk1 hk2
   obtain ⟨-, -, -, -, -, -, -, l157, l158⟩ := vt_pi h
   have hpi' : digestHalves pi = (σ (.n 6), σ (.n 7)) := hpi.symm
   -- the claims, explicitly
-  have hB : vtBusClaims (layoutOf bc lm rows) point [σ (.n 812), σ (.n 816)]
-      (σ (.n 1302)) (σ (.n 1316)) =
-      [⟨memory0, point.take lm, σ (.n 812)⟩, ⟨memory1, point.take lm, σ (.n 816)⟩,
-        ⟨memoryFinalCounters, point.take lm, σ (.n 1302)⟩,
-        ⟨bytecodeFinalCounters, point.take 19, σ (.n 1316)⟩] := by
+  have hB : vtBusClaims (layoutOf bc lm rows) point [σ (.n 862), σ (.n 866)]
+      (σ (.n 1168)) (σ (.n 1182)) =
+      [⟨memory0, point.take lm, σ (.n 862)⟩, ⟨memory1, point.take lm, σ (.n 866)⟩,
+        ⟨memoryFinalCounters, point.take lm, σ (.n 1168)⟩,
+        ⟨bytecodeFinalCounters, point.take 19, σ (.n 1182)⟩] := by
     simp only [vtBusClaims, vt_layout_logMemory, vt_layout_logBytecode bc lm rows hbc]
     rfl
-  have hP : vtPubClaims (layoutOf bc lm rows) pi (σ (.n 5946)) =
-      [⟨memory0, σ (.n 5946) :: List.replicate (((layoutOf bc lm rows).placement memory0).variableCount - 1) 0,
-          multilinearEval [ofK ((σ (.n 6)).limb 0), ofK ((σ (.n 7)).limb 0)] [σ (.n 5946)]⟩,
-        ⟨memory1, σ (.n 5946) :: List.replicate (((layoutOf bc lm rows).placement memory0).variableCount - 1) 0,
-          multilinearEval [ofK ((σ (.n 6)).limb 1), ofK ((σ (.n 7)).limb 1)] [σ (.n 5946)]⟩] := by
+  have hP : vtPubClaims (layoutOf bc lm rows) pi (σ (.n 5648)) =
+      [⟨memory0, σ (.n 5648) :: List.replicate (((layoutOf bc lm rows).placement memory0).variableCount - 1) 0,
+          multilinearEval [ofK ((σ (.n 6)).limb 0), ofK ((σ (.n 7)).limb 0)] [σ (.n 5648)]⟩,
+        ⟨memory1, σ (.n 5648) :: List.replicate (((layoutOf bc lm rows).placement memory0).variableCount - 1) 0,
+          multilinearEval [ofK ((σ (.n 6)).limb 1), ofK ((σ (.n 7)).limb 1)] [σ (.n 5648)]⟩] := by
     rw [vtPubClaims, hpi']
     simp only [List.map_cons, List.map_nil, List.zipWith_cons_cons, List.zipWith_nil_left]
   have hT := vt_tab_claims hr hf cp fp point pts σ

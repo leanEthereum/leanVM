@@ -8,12 +8,12 @@
 
 module
 
-public import LeanVM.Guest.CoreFind
-public import LeanVM.Guest.Renumber
-public import LeanVM.Guest.Word
-public import LeanVM.Guest.CoreLemmas
+public import LeanVM.Core.Find
+public import LeanVM.Core.Renumber
+public import LeanVM.Core.Word
+public import LeanVM.Core.Lemmas
 public import LeanVM.Guest.Value.Keccak
-public import LeanVM.Guest.Value.Bits
+public import LeanVM.Core.Value.Bits
 public import LeanVM.Guest.ExpTables
 
 /-!
@@ -44,7 +44,7 @@ Ported from the BLAKE2s-era `B1/Basic.lean` (its hash-chain runs dropped; the du
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 

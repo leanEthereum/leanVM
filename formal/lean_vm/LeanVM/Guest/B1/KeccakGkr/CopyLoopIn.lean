@@ -20,8 +20,8 @@ runs loading from `R` (`copyLoop_relIn`): per iteration the valuation is written
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
-open LeanVM.Guest.Memory LeanVM.Guest.Lift
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.B1
+open LeanVM.Core.Memory LeanVM.Guest.Lift
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section

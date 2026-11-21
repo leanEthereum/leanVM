@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Terminal.KidsDep
 
 namespace LeanVM.Guest.B1.Da
 
-open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B1.Digest
+open LeanVM.Core LeanVM.Core.Memory LeanVM.Guest.B1.Digest
 
 @[expose] public section
 

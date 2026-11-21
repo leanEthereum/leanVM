@@ -27,7 +27,7 @@ around the three calls, then `return`; each block is atoms only (`sBlockA_atoms`
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
+open LeanVM.Core LeanVM.Parameters
 
 @[expose] public section
 

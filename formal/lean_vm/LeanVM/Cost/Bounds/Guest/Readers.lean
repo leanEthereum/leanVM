@@ -20,7 +20,7 @@ valuation `σ`, at positions below `2^40` (the decoder's counts are below `2^34`
 namespace LeanVM.Cost.Bounds.Guest
 
 open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Library LeanVM.Parameters
-open LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main
+open LeanVM.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main
 
 public section
 

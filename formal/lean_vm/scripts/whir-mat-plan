@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Write `LeanVM/Guest/B1/Whir/MatPlan.lean`: the compiler's choice of source for each shifted
-pointer `open_stacked__L{m}` materializes from an earlier one (`materialize`, Guest/Expand.lean:
+pointer `open_stacked__L{m}` materializes from an earlier one (`materialize`, Core/Expand.lean:
 from the nearest earlier materialization whose distance is a constant already set). Read from the
 core IR (`guest-core --show`), run from `lean_vm` after `lake build guest-core`:
 
@@ -95,7 +95,7 @@ module
 `osMatPlan m`: the triples `(base, exp, src)` of size `m`: the compiler materializes the
 pointer `base·g^exp` (the value `base` one of the buffers the body allocates) from its
 materialization `base·g^src`
-(`materialize`, `Guest/Expand.lean`: from the nearest earlier one whose distance is a constant
+(`materialize`, `Core/Expand.lean`: from the nearest earlier one whose distance is a constant
 already set). The template (`osMatP`) follows it; `Whir/Data*.lean` check the result.
 -/
 

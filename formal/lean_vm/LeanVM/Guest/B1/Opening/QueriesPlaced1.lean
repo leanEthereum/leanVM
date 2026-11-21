@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesMain
-public import LeanVM.Guest.Memory.Straight
+public import LeanVM.Core.Memory.Straight
 public import LeanVM.Guest.B1.Opening.WalkMatch
 
 /-!
@@ -28,7 +28,7 @@ but its return.
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 
 @[expose] public section
 

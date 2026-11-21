@@ -23,8 +23,8 @@ With those words in a region `R` at every counter, each loop's relation loads fr
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
-open LeanVM.Guest.Memory LeanVM.Guest.Lift
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.B1
+open LeanVM.Core.Memory LeanVM.Guest.Lift
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -137,7 +137,7 @@ theorem loop6_relIn_guard {name : String} {rd : Reader} {R : ℕ → Prop} {a2 a
 def Pack8Regions (R : ℕ → Prop) (rd : Reader) (rec pp pt x : E) : Prop :=
   (∀ k ∈ roundRecOffs, InR R (rec * x) k) ∧ (∀ q < 8, InR R (pp * x ^ 8) q) ∧
     (∀ q < 8, InR R (pt * x ^ 8) q) ∧
-    ∀ cur, LoadHolds rd (rec * x) 80 cur → ∀ k < 16, InR R cur k
+    ∀ cur, LoadHolds rd (rec * x) 55 cur → ∀ k < 16, InR R cur k
 
 /-- The eight-round loop's loads: the record, the coordinates, the stream words, the slots. -/
 def pack8LoadOk (q : V × ℕ) : Bool :=
@@ -175,7 +175,7 @@ theorem pack8Loop_relIn {first : ℕ} (hfirst : first < 2) {rd : Reader} {R : �
 /-- The words an iteration of the remainder loop at `x` loads lie in `R`. -/
 def PackRemRegions (R : ℕ → Prop) (rd : Reader) (rec pp pt x : E) : Prop :=
   (∀ k ∈ roundRecOffs, InR R (rec * x) k) ∧ InR R (pp * x) 0 ∧ InR R (pt * x) 0 ∧
-    ∀ cur, LoadHolds rd (rec * x) 80 cur → ∀ k < 2, InR R cur k
+    ∀ cur, LoadHolds rd (rec * x) 55 cur → ∀ k < 2, InR R cur k
 
 /-- The remainder loop's loads. -/
 def packRemLoadOk (q : V × ℕ) : Bool :=

@@ -37,7 +37,7 @@ rev = "v4.36.0"
 [[lean_lib]]
 name = "Statement"
 srcDir = ".."
-globs = ["Statement.Keccak", "Statement.RandomPermutation", "Statement.SufCma", "Statement.HashSignatures", "Statement.LeanXmss", "Statement.LeanSphincs",
+globs = ["Statement.Keccak", "Statement.RandomPermutation", "Statement.SufCma", "Statement.HashSignatures", "Statement.LeanXmss", "Statement.LeanSphincs", "Statement.MultiKey",
   "Statement.Field", "Statement.LeanDa", "Statement.LeanIsa", "Statement.LeanVmVerifier",
   "Statement.LeanVm", "Statement.LeanVmGuestBatching", "Statement.LeanVmGuest",
   "Statement.LeanVmGuestCompleteness", "Statement.CostMachine",

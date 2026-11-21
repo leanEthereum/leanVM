@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.WalkTags
 
-  The tags of the guest's semantic relations (`Glob.sem`), and the relations of the windowed
+  The tags of the guest's semantic relations, and the relations of the windowed
   Merkle walk's tags.
 -/
 
@@ -12,10 +12,10 @@ public import LeanVM.Guest.WalkWindows
 /-!
 # The tags of the semantic relations
 
-A function's precondition names tuples of its frame cells in relations by tag (`Check.Sig.sem`):
+A function's precondition names tuples of its frame cells in relations by tag:
 
 * `0`: the exponent table (`B1.ExpTables`) at the tuple's one word (`verify_sub`, `main_loop4`);
-* `1` (`Check.tagNe`): the two words differ, the checker's own (a loop's `x ≠ N`);
+* `1`: the two words differ (a loop's `x ≠ N`);
 * `walkTag kind odd d cd`: the windows `opening_queries`' walk dispatches on, specialization
   `(odd, base, depth d, cap_depth cd)` (`lean_ethereum.py`): `kind` `0`
   `WinWalk` on `[t, x, N]` (a deeper loop, `odd = 0`), `1` `WinWalk2` on `[t, x, N]` (a level-0 loop),
@@ -26,20 +26,20 @@ A function's precondition names tuples of its frame cells in relations by tag (`
 * `tagTabs = 2^21`: `WinTabs` on `[tabs]`, the window table `open_stacked__L{m}` takes as an
   argument (`lean_ethereum.py`), which its decodes and grinds read.
 
-* `tagGkr = 2^20`: `GkrPar` on `[layers, x, start_g, k_mod_next]`, `verify_bus_gkr`'s
+* `tagGkr = 2^20`: `GkrPar` on `[layers, x, k_mod_next]`, `verify_bus_gkr`'s
   radix-four layer loop `verify_bus_gkr_loop0` (`lean_ethereum.py`): the parity word
   `layer[g^LAYER_PARITY]` of layer `x` it dispatches on, and the table `k_mod_next` that steps it.
 * `lqTag n odd base d cd`, from `2^21`: `OqMainWins` on `[win_ptrs]` at `n_iters_g = g^n`, the
   windows `level_queries` hands `opening_queries` (`lean_ethereum.py`, `level_queries`), which
-  `open_stacked` assumes at the rate's arm of its dispatch (`Check.selTag`, below `2^26`).
+  `open_stacked` assumes at the rate's arm of its dispatch (below `2^26`).
 
 `walkSem t` is the relation of a walk tag `2 ≤ t < tagGkr`, decoded by `walkKind`, `walkOdd`, `walkD`,
-`walkCd`. The certificates' generator (`cli/GuestCert.lean`) writes the tags.
+`walkCd`.
 -/
 
 namespace LeanVM.Guest
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Protocol LeanVM.Protocol.Verifier
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
@@ -94,13 +94,13 @@ def lqSem (t : ℕ) (rd : Reader) (ws : List E) : Prop :=
 `open_stacked`'s window table `tabs`, which `verify_sub` hands it. -/
 def tagTabs : ℕ := 2 ^ 21
 
-/-- **`verify_bus_gkr_loop0`'s parity obligation** on `layers`, the iteration `x`, `start_g` and `k_mod_next`:
+/-- **`verify_bus_gkr_loop0`'s parity obligation** on `layers`, the iteration `x` and `k_mod_next`:
 `k_mod_next[g^r]`, `r < 4`, if read, is `g^e`, `e < 4`; and the parity word `layer[g^12]` of
-layer `x`, `layer = layers·(x²·start_g)^13` (`LAYER_SLOTS = 13`, `LAYER_PARITY = 12`), if read,
-is `g^e`, `e < 4`. -/
-def GkrPar (rd : Reader) (layers x startG kmn : E) : Prop :=
+layer `x`, `layer = layers·x^13` (a record of `LAYER_SLOTS = 13` words per radix-four layer,
+`LAYER_PARITY = 12`), if read, is `g^e`, `e < 4`. -/
+def GkrPar (rd : Reader) (layers x kmn : E) : Prop :=
   (∀ r < 4, ∀ v, LoadHolds rd kmn r v → ∃ e < 4, v = ofK (addressOfIndex e)) ∧
-    ∀ p, LoadHolds rd (layers * (x * x * startG) ^ 13) 12 p → ∃ e < 4, p = ofK (addressOfIndex e)
+    ∀ p, LoadHolds rd (layers * x ^ 13) 12 p → ∃ e < 4, p = ofK (addressOfIndex e)
 
 theorem walkTag_lt {kind odd d cd : ℕ} (hk : kind < 4) (ho : odd < 2) (hc : cd < 64) (hd : d < 64) :
     walkTag kind odd d cd < 2 ^ 16 := by

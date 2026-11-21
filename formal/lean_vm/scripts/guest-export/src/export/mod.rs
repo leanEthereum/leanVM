@@ -24,7 +24,7 @@ pub struct File {
     pub text: String,
 }
 
-/// The compiled guest at its self-consistent size.
+/// The compiled guest at its self-consistent size: the artefact the Lean back end wrote (`guests/lean_ethereum.compiled`).
 pub fn guest() -> &'static isa::CompiledProgram {
     unified_guest()
 }
@@ -40,7 +40,7 @@ pub const GUEST_SOURCE: &str = include_str!(concat!(env!("OUT_DIR"), "/aggregati
 /// Every file this crate writes.
 pub fn all_files() -> Vec<File> {
     let mut files = bytecode::files(guest());
-    files.extend(source::files());
+    files.extend(source::files(guest().prog.len().trailing_zeros() as usize));
     files.push(manifest::file());
     files.push(node_vectors::file());
     files

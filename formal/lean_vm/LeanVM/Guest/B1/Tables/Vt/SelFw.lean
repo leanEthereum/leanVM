@@ -19,7 +19,7 @@ The push side's framework blocks `0, 1, 2` (state, memory, bytecode) take their 
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -51,23 +51,23 @@ def vtFwSelT (w b kv : ℕ) (prev : Option ℕ) : List Stmt :=
     .atom (.assertEq (.n (w + 11)) (.n (vtBoffV b)))] ++
   vtFwTail w prev
 
-theorem vtFw0_check : tbStmtsEqb (vtFwSelT 778 0 25 none)
-    ((vtAt 766).take (vtFwSelT 778 0 25 none).length) = true := by
+theorem vtFw0_check : tbStmtsEqb (vtFwSelT 828 0 25 none)
+    ((vtAt 816).take (vtFwSelT 828 0 25 none).length) = true := by
   decide +kernel
 
-theorem vtFw1_check : tbStmtsEqb (vtFwSelT 794 1 26 (some 788))
-    ((vtAt 781).take (vtFwSelT 794 1 26 (some 788)).length) = true := by
+theorem vtFw1_check : tbStmtsEqb (vtFwSelT 844 1 26 (some 838))
+    ((vtAt 831).take (vtFwSelT 844 1 26 (some 838)).length) = true := by
   decide +kernel
 
-theorem vtFw2_check : tbStmtsEqb (vtFwSelT 822 2 821 (some 806))
-    ((vtAt 811).take (vtFwSelT 822 2 821 (some 806)).length) = true := by
+theorem vtFw2_check : tbStmtsEqb (vtFwSelT 872 2 871 (some 856))
+    ((vtAt 861).take (vtFwSelT 872 2 871 (some 856)).length) = true := by
   decide +kernel
 
 /-- Block `2`'s `kappa_g = kb[0]·g^19`. -/
 theorem vt_fw2_kappa {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    σ (.n 821) = σ (.n 25) * gen ^ 19 := by
-  have c := h.atomAt 809 (.const (.n 820) (word 524288 0)) (by decide +kernel)
-  have m := h.atomAt 810 (.mul (.n 821) (.n 25) (.n 820)) (by decide +kernel)
+    σ (.n 871) = σ (.n 25) * gen ^ 19 := by
+  have c := h.atomAt 859 (.const (.n 870) (word 524288 0)) (by decide +kernel)
+  have m := h.atomAt 860 (.mul (.n 871) (.n 25) (.n 870)) (by decide +kernel)
   simp only [Atom.Holds] at c m
   rw [m, c, show (524288 : ℕ) = 2 ^ 19 by norm_num, tb_word_two_pow (by norm_num)]
 

@@ -28,7 +28,7 @@ assembly's `ForsBlockCompletes` (`forsBlockCompletes`); the encoding's cell two 
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Protocol.Verifier (eOfNat)
 
 @[expose] public section

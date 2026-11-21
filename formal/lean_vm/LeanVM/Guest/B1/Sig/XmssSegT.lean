@@ -24,9 +24,9 @@ chain indices (`lx_tags`, `.n 5` to `.n 55`); its body checks the raw index and 
 * `sPrologue`: `pp`, the index's shifts (`sHis`) and windows (`sWin`) hinted, the powers `g^s`
   (`sPower`, `s < 13`);
 * `sWots`: the chain step, its chain index the zero cell, a power or a carried tag (`sTag`);
-* `armM`, `armsM`: a codeword arm as `armT`, its encoding the group's own digits `k % 4^n` (the last
-  group's table is `4^4` wide over two digits); `sGroupsT`, `sCodewordT`: the `15` hints, their range
-  checks, the hoisted `2^63` and the `15` dispatches back to back;
+* `sGroupArms`, `sGroupsT`, `sCodewordT`: a group's `256` arms (`armsM`, `WotsT`: the last group's
+  table is `4^4` wide over two digits), the `15` hints, their range checks, the hoisted `2^63` and
+  the `15` dispatches back to back;
 * `lxLevelT`, `lxArmT`, `lxWindowT`: a window of the path, arm `k`'s eight levels (`at`, the hinted
   sibling, the `KECCAK` in the order of `k`'s bit) and its pin `his[w] = his[w + 1] · g^8 + k`
   (`his[3] = k` at the top);
@@ -35,7 +35,7 @@ chain indices (`lx_tags`, `.n 5` to `.n 55`); its body checks the raw index and 
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
+open LeanVM.Core LeanVM.Parameters
 
 @[expose] public section
 
@@ -76,28 +76,6 @@ def sPrologue : List Stmt :=
     (List.range 13).map (fun s => cst (75 + s) (word (2 ^ s) 0))
 
 /-! ## The codeword -/
-
-/-- Arm `k` of a group of `n` digits from base `b` (`walk_group`, `lean_ethereum.py`):
-`armT` with the encoding of `k`'s own `n` digits, `k % 4^n` (`W.enc`, leanXMSS's default). -/
-def armM (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
-    (prodIn encIn prodOut encOut : V) (k b : Nat) : List Stmt × Nat :=
-  let ws := walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0 b
-  if fold then
-    (ws.1 ++ [copyS prodOut (W.power (digitSum k n)),
-      .atom (.const encOut (lit (W.enc first n (k % 4 ^ n))))], ws.2)
-  else if k % 4 ^ n = 0 then (ws.1 ++ [mulS prodOut prodIn (W.power (digitSum k n)), copyS encOut encIn], ws.2)
-  else (ws.1 ++ [mulS prodOut prodIn (W.power (digitSum k n)), cst ws.2 (lit (W.enc first n (k % 4 ^ n))),
-    addS encOut encIn (.n ws.2)], ws.2 + 1)
-
-/-- Arms `k ..< k + m` from base `b`; arm `0` allocates the outputs after its walks. -/
-def armsM (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
-    (prodIn encIn prodOut encOut : V) : Nat → Nat → Nat → List (List Stmt) × Nat
-  | 0, _, b => ([], b)
-  | m + 1, k, b =>
-      let a := armM W slots first n fold prodIn encIn prodOut encOut k b
-      let rest := armsM W slots first n fold prodIn encIn prodOut encOut m (k + 1)
-        (if k = 0 then a.2 + 2 else a.2)
-      (a.1 :: rest.1, rest.2)
 
 /-- The `256` arms of group `p`'s dispatch, from `vb + 6` (`vb` its base in `slotsT`'s sense). -/
 def sGroupArms (W : WotsT) (p : Nat) (prodIn encIn : V) (vb : Nat) : List (List Stmt) × Nat :=

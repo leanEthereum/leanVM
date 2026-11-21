@@ -26,7 +26,7 @@ cost does not grow with its place in the body (`blocksOk_of_from`, `loadsWin_of_
 
 namespace LeanVM.Guest.B1.Digest
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 
 open scoped VDec
 

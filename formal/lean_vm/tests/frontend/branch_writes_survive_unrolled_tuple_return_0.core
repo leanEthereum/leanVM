@@ -1,0 +1,27 @@
+def main []
+  const %0 1 0
+  load %1 %0 0
+  const %2 5 0
+  const %3 7 0
+  const %4 13 0
+  const %5 17 0
+  if_zero %1
+    copy %6 %2
+    copy %7 %3
+    copy %8 %4
+    copy %9 %5
+  else
+    copy %6 %4
+    copy %7 %5
+    copy %8 %2
+    copy %9 %3
+  end
+  const %10 13 0
+  assert_eq %6 %10
+  const %11 17 0
+  assert_eq %7 %11
+  const %12 5 0
+  assert_eq %8 %12
+  const %13 7 0
+  assert_eq %9 %13
+  ret []

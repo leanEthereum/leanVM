@@ -1,0 +1,21 @@
+size 16
+main_frame 7
+F main 0 8
+F one 8 3
+S 5 1 0
+S 4 256 0
+D 3 1 0 2
+D 3 0 0 1
+J 5 4 3
+D 3 2 2 0
+S 6 32768 0
+J 5 6 5
+S 3 1 0
+M 2 3 3
+J 3 0 1
+H 2 alloc 3 4
+H 8 wstack x 2 1
+L 0 7
+L 6 8
+L 8 3
+L 10 4

@@ -24,7 +24,7 @@ public import LeanVM.Guest.B1.Bits.QueryWindowsT
 %s
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest
+open LeanVM.Parameters LeanVM.Core
 
 @[expose] public section
 ''' % (k, CHUNKS, k, gen.pack_imports(n for _, n, _ in part))]
@@ -57,7 +57,7 @@ one kernel evaluation each).
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest
+open LeanVM.Parameters LeanVM.Core
 
 @[expose] public section
 

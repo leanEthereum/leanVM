@@ -1,0 +1,75 @@
+def main []
+  const %0 1 0
+  const %1 2 0
+  const %2 3 0
+  const %3 4 0
+  const %4 5 0
+  const %5 6 0
+  const %6 7 0
+  const %7 8 0
+  const %8 9 0
+  const %9 10 0
+  const %10 11 0
+  const %11 12 0
+  const %12 13 0
+  const %13 14 0
+  const %14 15 0
+  const %15 16 0
+  const %16 17 0
+  const %17 18 0
+  const %18 19 0
+  const %19 20 0
+  const %20 21 0
+  const %21 22 0
+  const %22 23 0
+  const %23 24 0
+  const %24 25 0
+  const %25 26 0
+  const %26 27 0
+  const %27 28 0
+  const %28 29 0
+  const %29 30 0
+  const %30 31 0
+  const %31 32 0
+  const %32 33 0
+  const %33 34 0
+  const %34 35 0
+  const %35 36 0
+  const %36 37 0
+  const %37 38 0
+  const %38 39 0
+  const %39 40 0
+  copy %40 %8
+  copy %41 %10
+  copy %42 %12
+  copy %43 %14
+  const %44 1 0
+  const %45 0 0
+  const %46 0 0
+  const %47 0 0
+  const %48 0 0
+  keccak [%0 %2 %4 %6 %40 %41 %42 %43 %16 %45 %46 %47 %48] [%49 %50 %51 %52 %53 %54 %55 %56 %57 %58 %59 %60 %61] 0 1
+  add %62 %49 %16
+  add %63 %50 %18
+  add %64 %51 %20
+  add %65 %52 %22
+  add %66 %53 %24
+  add %67 %54 %26
+  add %68 %55 %28
+  add %69 %56 %30
+  add %70 %57 %32
+  keccak [%62 %63 %64 %65 %66 %67 %68 %69 %70 %58 %59 %60 %61] [%71 %72 %73 %74 %75 %76 %77 %78 %79 %80 %81 %82 %83] 1 0
+  add %84 %71 %34
+  add %85 %72 %36
+  add %86 %73 %38
+  add %87 %74 %44
+  const %88 9223372036854775808 0
+  add %89 %79 %88
+  keccak [%84 %85 %86 %87 %75 %76 %77 %78 %89 %80 %81 %82 %83] [%90 %91] 0 0
+  const %92 1 0
+  load %90 %92 0
+  const %93 1 0
+  const %94 2 0
+  mul %95 %93 %94
+  load %91 %95 0
+  ret []

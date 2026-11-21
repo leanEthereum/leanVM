@@ -27,6 +27,8 @@ With `NovelEval.residual_high_eq` and `NovelEval.novelSum_eq_novelEval` these tu
 
 namespace LeanVM.Guest.B1.Whir
 
+open LeanVM.Core
+
 open LeanVM.Parameters LeanVM.Protocol LeanVM.Guest.B1
 
 @[expose] public section

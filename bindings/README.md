@@ -45,7 +45,7 @@ lean_vm = { git = "https://github.com/leanEthereum/leanVM.git", features = ["exp
 
 ## Sidecar
 
-`leanvm-sidecar` proves and verifies aggregates; the bindings reach it over a Unix socket. Proving is performance critical, so build it from source for the machine that runs it, at the same release as the bindings (a sidecar of another release is not detected, and its proofs are rejected). It needs a recent stable Rust, a C compiler and `make`:
+`leanvm-sidecar` proves and verifies aggregates; the bindings reach it over a Unix socket. Proving is performance critical, so build it from source for the machine that runs it, at the same release as the bindings (a sidecar of another release is not detected, and its proofs are rejected). It needs a recent stable Rust, a C compiler, `make`, python3 and the Lean toolchain ([elan](https://github.com/leanprover/elan)): its build compiles the guest with the Lean back end, unless `LEANVM_GUEST_ARTIFACT` names a compiled guest (see the repository's `AGENTS.md`):
 
 <!-- x-release-please-start-version -->
 ```sh
@@ -68,7 +68,7 @@ This installs `~/.cargo/bin/leanvm-sidecar`; `leanvm-sidecar --version` prints i
 
 ## Build and test
 
-Needs Rust. Aggregation tests read a running sidecar's socket from `LEANVM_SIDECAR_SOCKET` and its binary from `LEANVM_SIDECAR_BIN`; from the repository root, this builds and starts one and sets both:
+Needs Rust, and for the sidecar what [Sidecar](#sidecar) lists. Aggregation tests read a running sidecar's socket from `LEANVM_SIDECAR_SOCKET` and its binary from `LEANVM_SIDECAR_BIN`; from the repository root, this builds and starts one and sets both:
 
 ```sh
 cargo build --release -p leanvm-sidecar --features experimental_prover

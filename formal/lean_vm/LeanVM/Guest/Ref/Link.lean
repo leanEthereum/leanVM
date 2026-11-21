@@ -9,9 +9,9 @@ module
 
 public import LeanVM.Guest.Ref.Lang
 public import LeanVM.Guest.B1.Common.Basic
-public import LeanVM.Guest.CoreLemmas
-public import LeanVM.Guest.Value.KeccakSponge
-public import LeanVM.Guest.Renumber
+public import LeanVM.Core.Lemmas
+public import LeanVM.Core.Value.KeccakSponge
+public import LeanVM.Core.Renumber
 
 /-!
 # Linking a core function to a reference function
@@ -52,8 +52,8 @@ statement fails the check.
 
 namespace LeanVM.Guest.Ref
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
-open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Guest.Value.Keccak
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.B1
+open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Core.Value.Keccak
 
 @[expose] public section
 

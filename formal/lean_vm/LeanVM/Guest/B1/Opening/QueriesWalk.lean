@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Opening.WalkDefs
 `w = wins[g^i]`; `opening_queries` calls it on the window pointer `wins` loaded from
 `query_win_ptrs` at the iteration's index (`query_win_ptrs[xi]` deeper, `(query_win_ptrs·xi²)[g^odd]`,
 `[g^(odd+1)]` at level 0). A window's bound comes from `decode_query_windows`' range checks, in
-another function, through the pointer table: the checker of the certificates takes it as an
+another function, through the pointer table: the soundness proof takes it as an
 obligation on the loop's arguments, carried by the loop, and hands `WinsAt` of the loaded pointer to
 each call of `walk_path` (whose precondition it is: `winsTag`).
 
@@ -44,7 +44,7 @@ The walk is unbounded in `c`: a bound `c < B` on its own does not survive the ta
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section

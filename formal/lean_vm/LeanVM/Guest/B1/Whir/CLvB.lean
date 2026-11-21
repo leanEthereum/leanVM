@@ -22,7 +22,7 @@ public import LeanVM.Guest.B1.Whir.Witness
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
 open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -102,21 +102,21 @@ theorem osHsCoefs_complete (src dst : ℕ) (sc : ℕ → ℕ) (si di : ℕ) (xs 
     exact h.mono fun _ _ ↦ trivial
 
 /-- **A non-final level's high part, honestly**: word `2 + j` of `sent`, scaled,
-into `level_hs[lvl·8 + j]`. -/
-theorem osHsMid_complete {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
+into `level_hs` at the level's folds' offset. -/
+theorem osHsMid_complete {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (hsent : st.sent < st.k) (high : ℕ → E)
     (hmem : ∀ C rd, H C rd → ∀ j < lv.folds, LoadHolds rd (σ (.n st.sent)) (2 + j) (high j) ∧
-      LoadHolds rd (σ (.n osHs)) (lvl * hsStride + j) (high j *
+      LoadHolds rd (σ (.n osHs)) (lv.foldsOff + j) (high j *
         word (hsScale lv.vanish lv.highBits j (vanishInv (lv.vanish + lv.logCols))) 0)) :
-    BlkA H σ st.k (osHsMid lvl lv st).2.k (osHsMid lvl lv st).1
-      (fun σ' ↦ OsStep σ σ' st (osHsMid lvl lv st).2) := by
+    BlkA H σ st.k (osHsMid lv st).2.k (osHsMid lv st).1
+      (fun σ' ↦ OsStep σ σ' st (osHsMid lv st).2) := by
   have k36 : 33 ≤ st.k := hsf.k
   set K := (osHsCoefs st.sent osHs
-    (fun c ↦ hsScale lv.vanish lv.highBits c (vanishInv (lv.vanish + lv.logCols))) 2 (lvl * hsStride)
+    (fun c ↦ hsScale lv.vanish lv.highBits c (vanishInv (lv.vanish + lv.logCols))) 2 lv.foldsOff
     lv.folds 0 st.k).2 with hK
   have kk : st.k ≤ K := osHsCoefs_k _ _ _ _ _ _ _ _
   have h := osHsCoefs_complete (H := H) st.sent osHs
-    (fun c ↦ hsScale lv.vanish lv.highBits c (vanishInv (lv.vanish + lv.logCols))) 2 (lvl * hsStride)
+    (fun c ↦ hsScale lv.vanish lv.highBits c (vanishInv (lv.vanish + lv.logCols))) 2 lv.foldsOff
     high lv.folds 0 st.k σ hsent (show 24 < st.k by omega)
     fun C rd hH j _ h2 ↦ hmem C rd hH j (by omega)
   refine BlkA.monoH h.agree fun C rd hH σ' _ ⟨_, hag⟩ ↦ ?_
@@ -175,7 +175,7 @@ coefficients, the high part, the positions and windows. -/
 def osQArgsV (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) : List E :=
   [if lvl = c.yrLevel then 0 else σ (.n st.lam), if lvl = c.yrLevel then 0 else σ (.n st.lamInv),
     σ (.n osCoefs) * gen ^ (2 * lv.foldsOff),
-    if lvl = c.yrLevel then σ (.n st.hs) else σ (.n osHs) * gen ^ (lvl * hsStride),
+    if lvl = c.yrLevel then σ (.n st.hs) else σ (.n osHs) * gen ^ lv.foldsOff,
     σ (.n osQpos) * gen ^ lv.posOff, σ (.n osQbp) * gen ^ lv.posOff]
 
 /-- **The level's queries, honestly**: the dispatch into `level_queries` at its honest arguments
@@ -184,7 +184,7 @@ def osQArgsV (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) : List E
 theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (r0 r1 batched lamPow : E)
     (h3 : 2 * lv.foldsOff < u128Bound) (hpo : lv.posOff < u128Bound)
-    (hh8 : lvl * hsStride < u128Bound)
+    (hh8 : lv.foldsOff < u128Bound)
     (hli : lvl ≠ c.yrLevel → st.lam < st.k ∧ st.lamInv < st.k) (hhs : lvl = c.yrLevel → st.hs < st.k)
     (hrate : ∀ C rd, H C rd → LvRate σ c lvl lv)
     (hq : ∀ C rd, H C rd → C (osQueriesName c lvl lv) (osQArgsV σ c lvl lv st) [r0, r1, batched, lamPow])
@@ -202,7 +202,7 @@ theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ :
     else ([], st.lam, st.lamInv, st) with hliD
   set cf := osMatS c.plan osCoefs (2 * lv.foldsOff) li.2.2.2 with hcf
   set hp : List Stmt × ℕ × OsSt := if lvl = c.yrLevel then ([], st.hs, cf.2.2)
-    else osMatS c.plan osHs (lvl * hsStride) cf.2.2 with hhpD
+    else osMatS c.plan osHs lv.foldsOff cf.2.2 with hhpD
   set qp := osMatS c.plan osQpos lv.posOff hp.2.2 with hqp
   set wp := osMatS c.plan osQbp lv.posOff qp.2.2 with hwp
   set g := wp.2.2.k with hg
@@ -265,7 +265,7 @@ theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ :
   -- the high part
   have b5 := BlkA.seq (H := H) (le_trans k3 k4) k5 b4 (B := hp.1)
     (OutB := fun σ' ↦ σ' (.n hp.2.1) =
-      (if lvl = c.yrLevel then σ (.n st.hs) else σ (.n osHs) * gen ^ (lvl * hsStride)) ∧
+      (if lvl = c.yrLevel then σ (.n st.hs) else σ (.n osHs) * gen ^ lv.foldsOff) ∧
       MatsOk σ' hp.2.2.mats) fun σ1 ha1 ho1 ↦ by
       rw [hhpD]
       split_ifs with hf
@@ -274,7 +274,7 @@ theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ :
         have := hhs hf
         refine ⟨by rw [ha _ (show st.hs < cf.2.2.k by omega), ha1 _ this], ?_⟩
         exact matsOk_agree (ho1 C rd hH).2.2.1 mb4 fun i hi ↦ ha i hi
-      · have h := osMatS_blkA (H := H) (P := c.plan) (base := osHs) (off := lvl * hsStride)
+      · have h := osMatS_blkA (H := H) (P := c.plan) (base := osHs) (off := lv.foldsOff)
           (s := cf.2.2) σ1 (show 24 < cf.2.2.k by omega) mb4 (fun C rd hH ↦ (ho1 C rd hH).2.2.1) hh8
         rw [ha1 osHs (by show 24 < k; omega)] at h
         exact h.mono fun σ' h' ↦ ⟨h'.1, h'.2.1⟩
@@ -299,7 +299,7 @@ theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ :
         σ1 (.n li.2.2.1) = (if lvl = c.yrLevel then 0 else σ (.n st.lamInv))) ∧
         σ1 (.n cf.2.1) = σ (.n osCoefs) * gen ^ (2 * lv.foldsOff) ∧ MatsOk σ1 cf.2.2.mats ∧
           MatsBelow cf.2.2.k cf.2.2.mats) ∧
-        σ1 (.n hp.2.1) = (if lvl = c.yrLevel then σ (.n st.hs) else σ (.n osHs) * gen ^ (lvl * hsStride)) ∧
+        σ1 (.n hp.2.1) = (if lvl = c.yrLevel then σ (.n st.hs) else σ (.n osHs) * gen ^ lv.foldsOff) ∧
           MatsOk σ1 hp.2.2.mats) ∧
         σ1 (.n qp.2.1) = σ (.n osQpos) * gen ^ lv.posOff ∧ MatsOk σ1 qp.2.2.mats ∧
           MatsBelow qp.2.2.k qp.2.2.mats) ∧

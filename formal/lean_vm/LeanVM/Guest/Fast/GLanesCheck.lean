@@ -1,16 +1,18 @@
 module
 
 public import LeanVM.Guest.Fast.GLanes
-public import LeanVM.Guest.Word
+public import LeanVM.Core.Word
 
 /-!
 # `gLanes`, checked
 
 `gLanes_eq`: `gLanes[k]` is the lane of `g^k` (`gpowK`), by kernel evaluation of the successive
-powers (`lanesFrom`), a product each. This module imports the table and `Guest/Word.lean` alone (`Fast/Firewall.lean`).
+powers (`lanesFrom`), a product each. This module imports the table and `Core/Word.lean` alone (`Fast/Firewall.lean`).
 -/
 
 namespace LeanVM.Guest.Fast
+
+open LeanVM.Core
 
 open LeanVM.Parameters
 

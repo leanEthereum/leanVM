@@ -26,7 +26,7 @@ challenges do not depend on the claim (`tailRun_add`).
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -39,6 +39,9 @@ theorem osCfgR_getD {m ri l : ℕ} (hl : l < osNLevels m) :
   simp [osCfgR, osLevelsR, List.getD_eq_getElem?_getD, hl]
 
 theorem osNLevels_le : ∀ m < 11, osNLevels m ≤ 6 := by decide +kernel
+
+/-- `ood_z` and `basis_d` fit an allocation at every size. -/
+theorem osCfg_colsTotal_lt : ∀ m < 11, (osCfg m).colsTotal < 2 ^ 64 - 1 := by decide +kernel
 
 /-- A level's rate-free columns are every rate's. -/
 theorem osLvR_rateFree (m ri l : ℕ) : (osLvR m ri l).folds = (osLv m l).folds ∧
@@ -144,10 +147,17 @@ theorem lvFin {i : ℕ} (hi : i < (osCfgR (μ - minOpenLog) (r - 1)).yrLevel) :
     rw [e2, e3, e4]
     exact hsScale_mid hm hn hc
   have e : finLv (osCfgR (μ - minOpenLog) (r - 1)) i = osLvR (μ - minOpenLog) (r - 1) i := osCfgR_getD hn
-  obtain ⟨-, -, -, h1, -, -, -, -, -, -, -, -, h2, -, -, -, -, -, -, -, h3, -, -, -, -, -, -, -, -, -, -,
+  have hn1 : i + 1 < osNLevels (μ - minOpenLog) := by rw [← osCfgR_len _ (r - 1)]; omega
+  have e1 : finLv (osCfgR (μ - minOpenLog) (r - 1)) (i + 1) = osLvR (μ - minOpenLog) (r - 1) (i + 1) :=
+    osCfgR_getD hn1
+  have hnc : (finLv (osCfgR (μ - minOpenLog) (r - 1)) (i + 1)).colsOff =
+      (finLv (osCfgR (μ - minOpenLog) (r - 1)) i).colsOff + (finLv (osCfgR (μ - minOpenLog) (r - 1)) i).logCols := by
+    rw [e, e1]; exact osLvR_colsOff_succ _ _ _
+  obtain ⟨-, -, -, h1, -, -, -, -, -, -, -, -, h2, -, -, -, -, hc, hh, -, h3, -, -, -, -, -, -, -, -, -, -,
     -, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩ := hR.mid hi
   rw [← e] at hv hs
-  exact ⟨h4, h5, h6, h7, h3, h1, h8, h9, h10, h11, h12, h2, h13, vanish_val hv, vanish_inv hv, hs⟩
+  exact ⟨h4, h5, h6, h7, h3, h1, h8, h9, h10, h11, h12, h2, h13, vanish_val hv, vanish_inv hv, hs, hc, hh,
+    hnc⟩
 
 /-- **The finish's static facts.** -/
 theorem finStatic_run :
@@ -162,7 +172,6 @@ theorem finStatic_run :
   rw [← hrw] at hrok hok
   have hs1 := hR.fin_s1
   have hm11 : μ - minOpenLog < 11 := hR.m11
-  have hHS := honStatic_all _ _ hm11 hR.r4
   -- the tail challenges, at the Spec's claim
   set Lf := Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default with hLf
   have hT : (hdOf μ r Ls).T = (W.tail Lf.F (Lf.dp μ) Lf.level.queries Lf.s1.claim).1 := by
@@ -175,7 +184,8 @@ theorem finStatic_run :
     congr 3
     unfold LvAt.F3; rw [hd]
   refine ⟨cn2, by rw [osCfgR_len]; exact osNLevels_le _ hm11, cyr, cyl, ?_, fun i hi ↦ hR.lvFin hi,
-    hs1, ?_, clane, cmu, ?_, ?_, fun i hi ↦ ?_, fun i hi ↦ (hHS.mid hi).1⟩
+    hs1, ?_, clane, cmu, ?_, ?_, fun i hi ↦ ?_, osCfgR_colsTotal (by omega),
+    osCfg_colsTotal_lt _ hm11⟩
   · show (lvsRecs μ Ls (osCfgR (μ - minOpenLog) (r - 1)).yrLevel).length = _
     simp only [lvsRecs, List.length_map, List.length_take]; omega
   · show (tailRun Lf.fw.pairs (Lf.F3 μ).cap (hdOf μ r Ls).cl1F).1.length = _

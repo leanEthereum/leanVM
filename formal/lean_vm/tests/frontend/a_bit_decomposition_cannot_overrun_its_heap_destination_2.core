@@ -1,0 +1,13 @@
+def main []
+  hint alloc %0 8
+  const %1 32 0
+  hint bits_exp %1 heap(%0 0 8) 8
+  load %2 %0 0
+  const %3 1 0
+  load %2 %3 0
+  const %4 1 0
+  const %5 1 0
+  const %6 2 0
+  mul %7 %5 %6
+  load %4 %7 0
+  ret []

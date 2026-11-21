@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Place.Lp
 * `baseA c b j`: buffer `j`'s base, the buffers from `b` (`osSizesL`); `osLkA`: the callees'
   words, the buffers but `query_win_ptrs` and the caller's. `osMemA_of_lk`, `osHA_of_lk`: a memory
   holding them holds the buffers (`OsMemA`) and the dispatch relation satisfies `OsHA`.
-* `qbpA c ws`: `query_win_ptrs`' words, level `l`'s window pointers `ws l` at `l·ligPosCap`;
+* `qbpA c ws`: `query_win_ptrs`' words, level `l`'s window pointers `ws l` at its `posOff`;
   `winW … l p`: level `l`'s slice of them, its `level_positions` at `p`; `memL_winW`.
 * `os_calls_of_allOkF`, `os_kid_namedO`: a named frame of a flat body proved at `osCR` on every
   memory holding `Lk` is complete placed on `Lk`, at an optional bound.
@@ -26,7 +26,7 @@ public import LeanVM.Guest.B1.Place.Lp
 
 namespace LeanVM.Guest.B1.Arm
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Core.Memory
 open LeanVM.Guest.B1 LeanVM.Guest.B1.Whir
 open LeanVM.Protocol.Verifier hiding Layout
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
@@ -162,33 +162,31 @@ theorem osMemA_load_mul {rd : Reader} {c : OsCfg} {b : ℕ} {own : List (List E)
 
 /-! ## `query_win_ptrs` -/
 
-/-- `query_win_ptrs`' words: level `l`'s window pointers `ws l` at `l·ligPosCap`. -/
+/-- `query_win_ptrs`' words: level `l`'s window pointers `ws l` at its `posOff`. -/
 def qbpA (c : OsCfg) (ws : ℕ → List E) : List E :=
-  (List.range (c.levels.length * ligPosCap)).map fun t ↦ (ws (t / ligPosCap)).getD (t % ligPosCap) 0
+  (List.range c.posTotal).map
+    (segAt c.levels.length (fun l ↦ (osLvA c l).posOff) (fun l ↦ (ws l).length) fun l t ↦ (ws l).getD t 0)
 
 theorem qbpA_length (c : OsCfg) (ws : ℕ → List E) :
-    (qbpA c ws).length = c.levels.length * ligPosCap := by simp [qbpA]
+    (qbpA c ws).length = c.posTotal := by simp [qbpA]
 
-/-- Level `l`'s slice of `query_win_ptrs`, its `ligPosCap`-word window pointers `w`. -/
+/-- Level `l`'s slice of `query_win_ptrs`, its window pointers `w`, the levels' slices in order. -/
 theorem memL_qbp_slice {rd : Reader} {c : OsCfg} {ws : ℕ → List E} {e : ℕ}
-    (hm : ReadsAt rd (ofK (addressOfIndex e)) (qbpA c ws)) {l : ℕ} (hl : l < c.levels.length)
-    (hlen : (ws l).length ≤ ligPosCap) : MemL rd [(e + l * ligPosCap, ws l)] := by
+    (hm : ReadsAt rd (ofK (addressOfIndex e)) (qbpA c ws))
+    (hd : ∀ l l', l < c.levels.length → l' < c.levels.length → l < l' →
+      (osLvA c l).posOff + (ws l).length ≤ (osLvA c l').posOff)
+    {l : ℕ} (hl : l < c.levels.length) (hlen : (osLvA c l).posOff + (ws l).length ≤ c.posTotal) :
+    MemL rd [(e + (osLvA c l).posOff, ws l)] := by
   intro q hq
   rw [List.mem_singleton] at hq
   subst hq
   intro k hk
-  have hk' : l * ligPosCap + k < c.levels.length * ligPosCap := by
-    have : (l + 1) * ligPosCap ≤ c.levels.length * ligPosCap := Nat.mul_le_mul_right _ hl
-    simp only at hk; rw [Nat.add_mul, one_mul] at this; omega
-  have h := hm (l * ligPosCap + k) (by rw [qbpA_length]; exact hk')
-  have hv : (qbpA c ws)[l * ligPosCap + k]'(by rw [qbpA_length]; exact hk') = (ws l)[k] := by
+  simp only at hk
+  have hk' : (osLvA c l).posOff + k < c.posTotal := by omega
+  have h := hm ((osLvA c l).posOff + k) (by rw [qbpA_length]; exact hk')
+  have hv : (qbpA c ws)[(osLvA c l).posOff + k]'(by rw [qbpA_length]; exact hk') = (ws l)[k] := by
     simp only [qbpA, List.getElem_map, List.getElem_range]
-    have hk2 : k < ligPosCap := by simp only at hk; omega
-    rw [show (l * ligPosCap + k) / ligPosCap = l by
-        rw [Nat.add_comm, Nat.add_mul_div_right _ _ (by decide), Nat.div_eq_of_lt hk2, Nat.zero_add],
-      show (l * ligPosCap + k) % ligPosCap = k by
-        rw [Nat.add_comm, Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hk2],
-      List.getD_eq_getElem _ _ hk]
+    rw [segAt_at (val := fun l t ↦ (ws l).getD t 0) hd hl hk, List.getD_eq_getElem _ _ hk]
   rw [hv] at h
   exact (loadHolds_ofK_iff (by ring)).mp h
 

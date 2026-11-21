@@ -19,7 +19,7 @@ thus runs `chain_final` on a block without its stores, whose relations it knows 
 
 namespace LeanVM.Guest.B1.Digest
 
-open LeanVM.Guest.Core
+open LeanVM.Core
 
 @[expose] public section
 

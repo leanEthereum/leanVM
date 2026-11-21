@@ -48,7 +48,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 @[expose] public section
 
-open Limits
+open Protocol
 
 /-! ## The deployed limits and the coverage table -/
 

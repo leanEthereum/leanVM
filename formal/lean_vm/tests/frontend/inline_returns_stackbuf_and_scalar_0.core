@@ -1,0 +1,23 @@
+def main []
+  const %0 5 0
+  const %1 7 0
+  const %2 9 0
+  const %3 3 0
+  const %4 1 0
+  const %5 0 0
+  const %6 0 0
+  const %7 0 0
+  const %8 0 0
+  const %9 9223372036854775808 0
+  keccak [%0 %1 %2 %3 %4 %5 %6 %7 %9 %5 %6 %7 %8] [%10 %11] 0 0
+  const %12 9 0
+  const %13 3 0
+  const %14 9223372036854775808 0
+  keccak [%10 %11 %12 %13 %4 %5 %6 %7 %14 %5 %6 %7 %8] [%15 %16] 0 0
+  const %17 1 0
+  load %15 %17 0
+  const %18 1 0
+  const %19 2 0
+  mul %20 %18 %19
+  load %16 %20 0
+  ret []

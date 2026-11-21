@@ -24,7 +24,7 @@ On a memory holding the honest buffers at `b`:
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -43,29 +43,27 @@ namespace OsHD
 
 variable (h : OsHD) {rd : Reader} {b : ℕ}
 
+theorem oodz_seg (hS : HonStatic h.c) {i t : ℕ} (hi : i < h.c.yrLevel)
+    (ht : t < (h.c.levels.getD i default).logCols) :
+    h.oodzC.getD ((h.c.levels.getD i default).colsOff + t) 0 = ((h.L i).osRec h.logN).z0.getD t 0 := by
+  obtain ⟨hd, htop⟩ := chain_disj hS.cols
+  have := htop i hi
+  rw [oodzC, getD_mapRange _ (by omega)]
+  exact segAt_at hd hi ht
+
 /-- **A non-final level's out-of-domain point** in `ood_z`. -/
 theorem ood_rows (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) {i : ℕ} (hi : i < h.c.yrLevel)
     (hz0 : ((h.L i).osRec h.logN).z0.length = ((h.c.levels.getD i default)).logCols) :
-    ReadsAt rd (osPtrA h.c b 7 * gen ^ ((i + 1) * ligColsCap)) ((h.L i).osRec h.logN).z0 := by
-  have hyr := hS.yr
-  have hc := (hS.mid hi).1
-  have h7 : (osSizesL h.c).getD 7 0 = h.c.levels.length * 24 := by
+    ReadsAt rd (osPtrA h.c b 7 * gen ^ (h.c.levels.getD i default).colsOff) ((h.L i).osRec h.logN).z0 := by
+  have hT := (chain_disj hS.cols).2 i hi
+  have h7 : (osSizesL h.c).getD 7 0 = h.c.colsTotal := by
     rw [hS.head (j := 7) (by omega)]; rfl
-  have hc' : ((h.c.levels.getD i default)).logCols ≤ 24 := hc
-  unfold ligColsCap
-  have hn : (i + 1) * 24 + 24 ≤ h.c.levels.length * 24 := by
-    have : i + 1 + 1 ≤ h.c.levels.length := by omega
-    have := Nat.mul_le_mul_right 24 this
-    rw [Nat.add_mul] at this; omega
   intro t ht
   rw [← List.getD_eq_getElem _ 0 ht, loadHolds_mul_gen_pow]
+  rw [hz0] at ht
   have a := h.load hm (hS.headLt (j := 7) (by omega)) (by unfold osIxQbpA; omega)
-    (e := (i + 1) * 24 + t) (by rw [h7]; omega)
-  rw [ownW_oodz, oodzC, getD_mapRange _ (by show _ < h.c.levels.length * 24; omega)] at a
-  have e1 : ((i + 1) * 24 + t) / 24 = i + 1 := by omega
-  have e2 : ((i + 1) * 24 + t) % 24 = t := by omega
-  simp only [e1, e2, Nat.add_sub_cancel, show 1 ≤ i + 1 by omega, hi, and_self, ↓reduceIte] at a
-  exact a
+    (e := (h.c.levels.getD i default).colsOff + t) (by rw [h7]; omega)
+  rwa [ownW_oodz, h.oodz_seg hS hi ht] at a
 
 /-- **A non-final level's record in memory** (`RecStored`), at a valuation holding the head's
 pointers. -/
@@ -115,7 +113,7 @@ theorem fch_all (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) (hG : h.G.leng
 
 theorem fin_reads (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) {k : ℕ} (hk : k < 7)
     (hl : (h.ownW (12 + h.c.yrLevel + k)).length ≤
-      [yrLogCap, pointCap, pointCap, h.c.levels.length * ligColsCap, h.c.levels.length, h.c.levels.length,
+      [yrLogCap, pointCap, pointCap, h.c.colsTotal, h.c.levels.length, h.c.levels.length,
         2 * h.c.levels.length].getD k 0) :
     ReadsAt rd (osPtrA h.c b (12 + h.c.yrLevel + k)) (h.ownW (12 + h.c.yrLevel + k)) :=
   h.reads hm (hS.finLt hk) (by unfold osIxQbpA; omega) (by rw [hS.fin hk]; exact hl)

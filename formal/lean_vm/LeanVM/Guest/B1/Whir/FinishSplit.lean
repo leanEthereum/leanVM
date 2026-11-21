@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Whir.Template
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Protocol
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Protocol
 
 @[expose] public section
 
@@ -38,7 +38,7 @@ def osFinishA (c : OsCfg) (st : OsSt) (tch : ℕ) : List Stmt × List V :=
   let k := od.2.2
   ([.call ("fold_final_msg__L" ++ natStr c.yrLog) [.n osFmsg, .n tch] [.n yat],
     .atom (.hint (.alloc (.n pt) pointCap)), .atom (.hint (.alloc (.n (pt + 1)) pointCap))] ++
-    pts.1 ++ osHeap (n * ligColsCap) pts.2 ++ osHeap n (pts.2 + 2) ++ osHeap n (pts.2 + 4) ++ bs.1 ++
+    pts.1 ++ osHeap c.colsTotal pts.2 ++ osHeap n (pts.2 + 2) ++ osHeap n (pts.2 + 4) ++ bs.1 ++
     osHeap (2 * n) bs.2 ++ [osCst (bs.2 + 2) (word 0 0), osLd (bs.2 + 2) ich 0, osLd st.claim ich 1] ++
     rs.1 ++ od.1 ++
     [osLd k ich (2 * c.yrLevel + 1), osCp (k + 1) pt, osCp (k + 2) (pt + 1), osLd (k + 3) ich (2 * c.yrLevel),

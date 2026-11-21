@@ -16,17 +16,17 @@ public import LeanVM.Guest.CoreData
 /-!
 # `shared_selector_tables` (TRIAGE G #48)
 
-`shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g)` hints the
-six bits of `len_g`'s exponent, pins them Boolean, rebuilds `r_g = g^r` from the low two and
-`q_g = g^q` from the high four, asserts `q_g^4·r_g = len_g` (so `len_g = g^n`, `n = 4q + r < 64`),
-runs its loop over `x = g^j`, `j < q` (`shared_selector_tables_loop0`: nibble `j`'s eq levels and
-`g` table by the inline `sel_eq_nibble`, `sel_g_nibble`), then dispatches the partial nibble `q` of
-width `r` to `sel_partial_nibble__L{r}`.
+`shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g, q_g)` takes the run's
+split from `selector_run_nibbles` (`q_g = g^q`, `len_g = g^n`, `n = 4q + r`), recovers `r_g = g^r`
+as `len_g / q_g^4`, runs its loop over `x = g^j`, `j < q` (`shared_selector_tables_loop0`: nibble
+`j`'s eq levels and `g` table by the inline `sel_eq_nibble`, `sel_g_nibble`), range-checks `r_g`
+below `g^4` (for the back end's selector analysis), then dispatches the partial nibble `q` of width
+`r` to `sel_partial_nibble__L{r}`, into the tables its caller allocated.
 -/
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -63,43 +63,25 @@ theorem lpCheck_eq : lpCheck = true := by decide +kernel
 
 /-- `shared_selector_tables`'s statements before its dispatch. -/
 def ssPre : List Stmt :=
-  [.atom (.hint (.bitsExp (.n 5) 6 (.stack [.n 6, .n 7, .n 8, .n 9, .n 10, .n 11]))),
-    .atom (.mul (.n 6) (.n 6) (.n 6)), .atom (.mul (.n 7) (.n 7) (.n 7)),
-    .atom (.mul (.n 8) (.n 8) (.n 8)), .atom (.mul (.n 9) (.n 9) (.n 9)),
-    .atom (.mul (.n 10) (.n 10) (.n 10)), .atom (.mul (.n 11) (.n 11) (.n 11)),
-    .atom (.const (.n 12) (word 1 0)), .atom (.const (.n 13) (word (imFactor 0) 0)),
-    .atom (.mul (.n 14) (.n 6) (.n 13)), .atom (.add (.n 15) (.n 12) (.n 14)),
-    .atom (.const (.n 16) (word 1 0)), .atom (.const (.n 17) (word (imFactor 1) 0)),
-    .atom (.mul (.n 18) (.n 7) (.n 17)), .atom (.add (.n 19) (.n 16) (.n 18)),
-    .atom (.mul (.n 20) (.n 15) (.n 19)),
-    .atom (.const (.n 21) (word 1 0)), .atom (.const (.n 22) (word (imFactor 0) 0)),
-    .atom (.mul (.n 23) (.n 8) (.n 22)), .atom (.add (.n 24) (.n 21) (.n 23)),
-    .atom (.const (.n 25) (word 1 0)), .atom (.const (.n 26) (word (imFactor 1) 0)),
-    .atom (.mul (.n 27) (.n 9) (.n 26)), .atom (.add (.n 28) (.n 25) (.n 27)),
-    .atom (.mul (.n 29) (.n 24) (.n 28)),
-    .atom (.const (.n 30) (word 1 0)), .atom (.const (.n 31) (word (imFactor 2) 0)),
-    .atom (.mul (.n 32) (.n 10) (.n 31)), .atom (.add (.n 33) (.n 30) (.n 32)),
-    .atom (.mul (.n 34) (.n 29) (.n 33)),
-    .atom (.const (.n 35) (word 1 0)), .atom (.const (.n 36) (word (imFactor 3) 0)),
-    .atom (.mul (.n 37) (.n 11) (.n 36)), .atom (.add (.n 38) (.n 35) (.n 37)),
-    .atom (.mul (.n 39) (.n 34) (.n 38)),
-    .atom (.mul (.n 40) (.n 39) (.n 39)), .atom (.mul (.n 41) (.n 40) (.n 40)),
-    .atom (.mul (.n 42) (.n 41) (.n 20)), .atom (.assertEq (.n 42) (.n 5)),
-    .atom (.const (.n 43) (word 1 0)), .atom (.add (.n 44) (.n 43) (.n 39)),
-    .atom (.const (.n 45) (word 1 0)),
-    .callIf (.n 44) name% «shared_selector_tables_loop0» [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1,
+  [.atom (.mul (.n 7) (.n 6) (.n 6)), .atom (.mul (.n 8) (.n 7) (.n 7)),
+    .atom (.mul (.n 5) (.n 9) (.n 8)),
+    .atom (.const (.n 10) (word 1 0)), .atom (.add (.n 11) (.n 10) (.n 6)),
+    .atom (.const (.n 12) (word 1 0)),
+    .callIf (.n 11) name% «shared_selector_tables_loop0» [.n 12, .n 6, .n 0, .n 2, .n 3, .n 1,
         .n 4],
-    .atom (.mul (.n 46) (.n 41) (.n 41)), .atom (.mul (.n 47) (.n 46) (.n 46)),
-    .atom (.mul (.n 48) (.n 0) (.n 47)), .atom (.mul (.n 49) (.n 48) (.n 47)),
-    .atom (.mul (.n 50) (.n 1) (.n 47)), .atom (.mul (.n 51) (.n 2) (.n 41)),
-    .atom (.mul (.n 52) (.n 3) (.n 41)), .atom (.mul (.n 53) (.n 4) (.n 41)),
-    .dispatch (.n 20) ["sel_partial_nibble__L0", "sel_partial_nibble__L1",
-      "sel_partial_nibble__L2", "sel_partial_nibble__L3"] [.n 49, .n 50, .n 51, .n 52, .n 53]
-      [.n 54]]
+    .atom (.mul (.n 13) (.n 8) (.n 8)), .atom (.mul (.n 14) (.n 13) (.n 13)),
+    .atom (.const (.n 15) (word 8 0)),
+    .atom (.rangeCheck (.n 9) (.n 16) (.n 17) (.n 18) (.n 15)),
+    .atom (.mul (.n 19) (.n 0) (.n 14)), .atom (.mul (.n 20) (.n 19) (.n 14)),
+    .atom (.mul (.n 21) (.n 1) (.n 14)), .atom (.mul (.n 22) (.n 2) (.n 8)),
+    .atom (.mul (.n 23) (.n 3) (.n 8)), .atom (.mul (.n 24) (.n 4) (.n 8)),
+    .dispatch (.n 9) ["sel_partial_nibble__L0", "sel_partial_nibble__L1",
+      "sel_partial_nibble__L2", "sel_partial_nibble__L3"] [.n 20, .n 21, .n 22, .n 23, .n 24]
+      [.n 25]]
 
 noncomputable def ssCheck : Bool :=
   match coreProgram.find? "shared_selector_tables" with
-  | some fn => decide (fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5]) &&
+  | some fn => decide (fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]) &&
       tbStmtsEqb fn.body (ssPre ++ [.ret []])
   | none => false
 
@@ -116,7 +98,7 @@ theorem lpFound : ∃ fn : Fn, coreProgram.find? name% «shared_selector_tables_
   · exact absurd h (by simp)
 
 theorem ssFound : ∃ fn : Fn, coreProgram.find? "shared_selector_tables" = some fn ∧
-    fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ fn.body = ssPre ++ [.ret []] := by
+    fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧ fn.body = ssPre ++ [.ret []] := by
   have h := ssCheck_eq
   unfold ssCheck at h
   split at h
@@ -219,58 +201,41 @@ theorem shared_selector_tables_holds : shared_selector_tables_Spec := by
   rw [hp] at hpar
   simp only [List.map_cons, List.map_nil] at hpar hret
   subst hpar hret
-  simp only [ssPre, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and, and_true] at hpre
-  obtain ⟨p6, p7, p8, p9, p10, p11, c12, c13, m14, a15, c16, c17, m18, a19, m20, c21, c22, m23,
-    a24, c25, c26, m27, a28, m29, c30, c31, m32, a33, m34, c35, c36, m37, a38, m39, m40, m41, m42,
-    e42, c43, a44, c45, -, hloop, m46, m47, m48, m49, m50, m51, m52, m53, hdisp⟩ := hpre
-  -- the bits
-  let f : ℕ → Bool := fun k ↦ decide (σ (.n (6 + k)) = 1)
-  have pin : ∀ k < 6, σ (.n (6 + k)) * σ (.n (6 + k)) = σ (.n (6 + k)) := by
-    intro k hk
-    interval_cases k
-    · exact p6.symm
-    · exact p7.symm
-    · exact p8.symm
-    · exact p9.symm
-    · exact p10.symm
-    · exact p11.symm
-  let r := bitsVal f 2
-  let q := bitsVal (fun k ↦ f (k + 2)) 4
-  have hr4 : r < 4 := bitsVal_lt f 2
-  have hq16 : q < 16 := bitsVal_lt _ 4
-  have hrg : σ (.n 20) = gen ^ r := by
-    have := ss_prod (b := fun j ↦ σ (.n (6 + j))) (n := 2) (by norm_num)
-      (fun j hj => pin j (by omega))
-    simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul, Nat.reduceAdd] at this
-    rw [m20, a15, a19, c12, c16, m14, m18, c13, c17, tb_word_one, this]
-  have hqg : σ (.n 39) = gen ^ q := by
-    have := ss_prod (b := fun j ↦ σ (.n (6 + (j + 2)))) (n := 4) le_rfl
-      (fun j hj => pin (j + 2) (by omega))
-    simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul, Nat.reduceAdd] at this
-    rw [m39, m34, m29, a24, a28, a33, a38, c21, c25, c30, c35, m23, m27, m32, m37, c22, c26, c31,
-      c36, tb_word_one, this]
-  have hq4 : σ (.n 41) = gen ^ (4 * q) := by rw [m41, m40, hqg]; ring
-  have hq16' : σ (.n 47) = gen ^ (16 * q) := by rw [m47, m46, hq4]; ring
-  refine ⟨4 * q + r, by omega, ?_, fun zs zs1 gs hz hz1 hg rz rz1 rg j hj => ?_⟩
-  · rw [← e_add_eq_zero_iff.mp e42, m42, hq4, hrg, ← pow_add]
+  simp only [ssPre, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hpre
+  obtain ⟨m7, m8, m5, c10, a11, c12, -, hloop, m13, m14, -, -, m15, m16, m17, m18, m19, m20,
+    hdisp⟩ := hpre
+  intro n hn h5 h6 zs zs1 gs hz hz1 hg rz rz1 rg j hj
+  set q := n / 4 with hqd
+  set r := n % 4 with hrd
+  have hr4 : r < 4 := Nat.mod_lt _ (by norm_num)
+  have hq16 : q < 16 := by omega
+  have hq4 : σ (.n 8) = gen ^ (4 * q) := by rw [m8, m7, h6]; ring
+  have hrg : σ (.n 9) = gen ^ r := by
+    refine mul_right_cancel₀ (gen_pow_ne_zero (4 * q)) ?_
+    have e := m5
+    rw [h5, hq4] at e
+    rw [← e, ← pow_add, show r + 4 * q = n by omega]
+  have hq16' : σ (.n 14) = gen ^ (16 * q) := by rw [m14, m13, hq4]; ring
   -- the full nibbles, by the loop
   have hfull : ∀ j < q, LpB rd (σ (.n 0)) (σ (.n 2)) (σ (.n 3)) (σ (.n 1)) (σ (.n 4)) (gen ^ j) := by
     intro j hj'
-    have hne : σ (.n 44) ≠ 0 := by
-      rw [a44, c43, tb_word_one, hqg]
+    have hne : σ (.n 11) ≠ 0 := by
+      rw [a11, c10, tb_word_one, h6]
       intro h0
       have := gen_pow_inj (by omega) (by decide) ((e_add_eq_zero_iff.mp h0).symm.trans
         (pow_zero gen).symm)
       omega
     have hrun := hloop hne
     simp only [List.map_cons, List.map_nil] at hrun
-    rw [c45, tb_word_one, ← pow_zero gen] at hrun
+    rw [c12, tb_word_one, ← pow_zero gen] at hrun
     obtain ⟨m, hm0, hN, hall⟩ := tb_loop_sound (fun d x hx => lp_step d x hx) 0 hrun
     have hmq : q ≤ m := by
       by_contra hc
-      have := gen_pow_inj (by omega) (by omega) (hqg.symm.trans hN)
+      have := gen_pow_inj (by omega) (by omega) (h6.symm.trans hN)
       omega
     exact hall j (by omega) (by omega)
+  have hn4 : n = 4 * q + r := by omega
+  rw [hn4] at hz hz1 hg
   rcases Nat.lt_or_ge j q with hjq | hjq
   · -- a full nibble
     have hlen : ∀ l : List E, l.length = 4 * q + r → (nib l j).length = 4 := fun l hl => by
@@ -299,11 +264,11 @@ theorem shared_selector_tables_holds : shared_selector_tables_Spec := by
     rw [hjr] at hl hl1 hlg rgs
     have hlen : ∀ l : List E, l.length = 4 * q + r → (nib l q).length = r := fun l hl => by
       simp [nib, hl]; omega
-    rw [m51, hq4] at rz'
-    rw [m52, hq4] at rz1'
-    rw [m53, hq4] at rg'
-    rw [m49, m48, hq16', mul_assoc, ← pow_add, show 16 * q + 16 * q = 32 * q by ring] at reqs
-    rw [m50, hq16', tb_ite_neg'' (show ¬ r = 0 by omega)] at rgs
+    rw [m18, hq4] at rz'
+    rw [m19, hq4] at rz1'
+    rw [m20, hq4] at rg'
+    rw [m16, m15, hq16', mul_assoc, ← pow_add, show 16 * q + 16 * q = 32 * q by ring] at reqs
+    rw [m17, hq16', tb_ite_neg'' (show ¬ r = 0 by omega)] at rgs
     rw [tbReadsAt_unique (tbReadsAt_nib rz q) rz' (by rw [hlen zs hz, hl]),
       tbReadsAt_unique (tbReadsAt_nib rz1 q) rz1' (by rw [hlen zs1 hz1, hl1]),
       tbReadsAt_unique (tbReadsAt_nib rg q) rg' (by rw [hlen gs hg, hlg])]

@@ -14,7 +14,7 @@ reads the same frames by the functions' indices (`fn_idx%`, `Guest/CoreRef.lean`
 
 namespace LeanVM.Guest.Fast
 
-open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Da LeanVM.Protocol.Verifier
+open LeanVM.Parameters LeanVM.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Da LeanVM.Protocol.Verifier
 open LeanVM.Guest.B1.Main
 
 @[expose] public section

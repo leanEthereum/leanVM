@@ -1,13 +1,13 @@
 /-
   LeanVM.Guest.WalkWindows
 
-  The windows `opening_queries`' Merkle walk dispatches on, for the checker's semantic relations
-  (`Glob.sem`, `WalkTags.lean`): definitions only, apart from B1's proofs.
+  The windows `opening_queries`' Merkle walk dispatches on, for the guest's semantic relations
+  (`WalkTags.lean`): definitions only, apart from B1's proofs.
 -/
 
 module
 
-public import LeanVM.Guest.Core
+public import LeanVM.Core
 public import Statement.Field
 
 /-!
@@ -15,15 +15,14 @@ public import Statement.Field
 
 A position of shape `(d, cd)` is hinted in `qwN d cd` windows (`qwWin`: offset and width; the
 path's six bits at a time, the last the remainder, the cap child bit, the cap parent index).
-`WinsAt`, `WinWalk`, `WinWalk2`, `OqMainWins` are the walk's obligations, defined here so that the
-check context (`Glob`), and with it the kernel-checked certificates and the decoder's table checks,
-do not import B1 (`B1/Bits/QueryWindowsT.lean`, `B1/Opening/WalkDefs.lean` re-export them; their
+`WinsAt`, `WinWalk`, `WinWalk2`, `OqMainWins` are the walk's obligations, defined here apart from
+B1's proofs (`B1/Bits/QueryWindowsT.lean`, `B1/Opening/WalkDefs.lean` re-export them; their
 facts are `B1/Opening/QueriesWalk.lean`'s).
 -/
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Protocol LeanVM.Protocol.Verifier
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 

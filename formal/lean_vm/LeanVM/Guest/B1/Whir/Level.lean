@@ -31,7 +31,7 @@ level's record appended, whose values the finish rereads (`RecStored`).
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
 open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier
 
@@ -53,7 +53,7 @@ theorem osLq_sound {V : FrameMap} (hU : UnfoldsV rd C V) {c : OsCfg} {lvl : ℕ}
     (hit : lv.queries / (1 + lvBase lvl) < u128Bound)
     (hpwQ : digitsVal (osPowDigits lv.queries) 1 = lv.queries)
     (hm : MatsOk σ st.mats) (hf : 2 * lv.foldsOff < u128Bound)
-    (hh : lvl * hsStride < u128Bound) (hp : lv.posOff < u128Bound)
+    (hh : lv.foldsOff < u128Bound) (hp : lv.posOff < u128Bound)
     (hok : AllOk C rd σ (osQueries c lvl lv st).1) :
     let A := osQArgs σ c lvl lv st
     let Vq := V (osQueriesName c lvl lv) A ((osQCallOf c lvl lv st).2.map σ)
@@ -247,10 +247,10 @@ structure RecStored (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (r : OsRec)
   hlen : r.high.length = lv.folds
   lam1 : LoadHolds rd (σ (.n osOodSc)) (lvl + 1) r.lam
   z0len : r.z0.length = lv.logCols
-  z0 : ReadsAt rd (σ (.n osOodz) * gen ^ ((lvl + 1) * ligColsCap)) r.z0
+  z0 : ReadsAt rd (σ (.n osOodz) * gen ^ lv.colsOff) r.z0
   beta : LoadHolds rd (σ (.n osBetas)) lvl (r.lam ^ 2 * r.lam ^ lv.queries)
   mus : ∃ li, LoadHolds rd (σ (.n osMus)) lvl li ∧ r.lam * li = 1
-  hs : ∀ c < lv.folds, LoadHolds rd (σ (.n osHs)) (lvl * hsStride + c)
+  hs : ∀ c < lv.folds, LoadHolds rd (σ (.n osHs)) (lv.foldsOff + c)
     (r.high.getD c 0 * word (hsScale lv.vanish lv.highBits c (vanishInv (lv.vanish + lv.logCols))) 0)
   pos : ∀ k < lv.queries, LoadHolds rd (σ (.n osQpos)) (lv.posOff + k) (eOfNat (r.qs.getD k 0))
 
@@ -285,8 +285,8 @@ structure MidFacts (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level next : Whir.L
   sqo : lv.squeezes < ordG
   sq5 : lv.squeezes * 5 < u128Bound
   r3 : 2 * (lv.foldsOff + lv.folds) < u128Bound
-  ood : (lvl + 1) * ligColsCap < u128Bound
-  hs8 : lvl * hsStride < u128Bound
+  ood : lv.colsOff < u128Bound
+  hs8 : lv.foldsOff < u128Bound
   shape : levelShape lv.logCols next (2 * 2 ^ next.fold) = (lv'.depth, lvWidth (lvl + 1) lv')
   off' : lv'.foldsOff = lv.foldsOff + lv.folds
   qsh : ∃ loop sh, QShapeOk c lvl lv 0 loop sh

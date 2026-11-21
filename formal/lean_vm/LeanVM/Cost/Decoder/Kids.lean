@@ -30,7 +30,7 @@ tables built once by the caller (`Staged.lean`) answer them, on every input
 
 namespace LeanVM.Cost.Decoder
 
-open LeanVM.Cost LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main
+open LeanVM.Cost LeanVM.Parameters LeanVM.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main
 open LeanVM.Protocol.Verifier LeanVM.Node LeanVM.Extraction.Fast LeanVM.Guest.Fast
 
 @[expose] public section

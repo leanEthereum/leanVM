@@ -35,7 +35,7 @@ The positions are the template's (`sBody`, `SphincsT`, `SphincsForsT`).
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 
@@ -57,11 +57,10 @@ def sPathKid (l j : Nat) : Nat :=
 /-! ## Reading the values -/
 
 /-- **The chain values `sp_wots`'s frame `σ` holds**: chain `i`'s start, hinted in the arm its
-group's dispatch takes, the group's digit word the exponent of its selector (`spState`, `spN`,
+group's dispatch takes, the arm the exponent of the group's digit word below `64` (`spDg`,
 `spStartAt`), in the guest's numbering (`spRen`). -/
 noncomputable def sChainValuesOf (σ : Val) : Sphincs.ChainIndex → HashSig.Digest :=
-  fun i => cellVal (σ (spRen (spStartAt (fun p => logG (σ (spRen (.n (spState p).2.2))) (4 ^ spN p))
-    i.val)))
+  fun i => cellVal (σ (spRen (spStartAt (fun p => logG (σ (spRen (.n (spDg + p)))) 64) i.val)))
 
 /-- **FORS tree `c`'s opening**: its secret, and the sibling at each height. -/
 def sForsOpeningOf (σ : Val) (c : Nat) : Sphincs.ForsTreeOpening where

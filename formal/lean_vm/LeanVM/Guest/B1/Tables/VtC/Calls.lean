@@ -12,16 +12,16 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `verify_tables`' calls
 
-`vtCallKindB`: a call is not the rounds loop, the shared tables' calls are of six arguments and no
-return, a dispatch's arms are neither, and the one conditional call is the rounds loop's
-(`vt_callKinds`); there are `119` calls (`vt_ncalls`). `vtBs`: each call's bound, by its kind
+`vtCallKindB`: a call is not the rounds loop, the shared tables' calls are of seven arguments and
+no return, a dispatch's arms are neither, and the one conditional call is the rounds loop's
+(`vt_callKinds`); there are `125` calls (`vt_ncalls`). `vtBs`: each call's bound, by its kind
 (`vtCallBnd`), what `vtWB` sums. Kept apart from the completeness proofs so that the budget reads
 them alone.
 -/
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 
 @[expose] public section
 
@@ -46,20 +46,20 @@ def vtRunB (fs : String → ℕ) (K10 n : ℕ) : ℕ := n * K10 + if n = 0 then 
 noncomputable def vtBs (Kf : String → ℕ) (Ksh K10n : ℕ) : List ℕ :=
   (vtPre.filter callB).map (vtCallBnd Kf Ksh K10n)
 
-/-- The calls' kinds: a call is not the rounds loop, the shared tables' are of six arguments and
+/-- The calls' kinds: a call is not the rounds loop, the shared tables' are of seven arguments and
 no return, a dispatch's arms neither, the only conditional call the rounds loop's. -/
 def vtCallKindB : Stmt → Bool
   | .call f a r => f != name% «verify_tables_loop0» && f != name% «shared_selector_tables_loop0» &&
-      (f != "shared_selector_tables" || (a.length == 6 && r.isEmpty))
+      (f != "shared_selector_tables" || (a.length == 7 && r.isEmpty))
   | .dispatch _ fs' _ _ => fs'.all fun g ↦ g != name% «verify_tables_loop0» && g != name% «shared_selector_tables_loop0» &&
       g != "shared_selector_tables"
-  | .callIf c f a => f == name% «verify_tables_loop0» && c == .n 2633 &&
-      a == [.n 2634, .n 2543, .n 2625, .n 18, .n 16, .n 2543, .n 2628]
+  | .callIf c f a => f == name% «verify_tables_loop0» && c == .n 2335 &&
+      a == [.n 2336, .n 2245, .n 2327, .n 18, .n 16, .n 2245, .n 2330]
   | _ => true
 
 theorem vt_callKinds : vtPre.all vtCallKindB = true := by decide +kernel
 
-theorem vt_ncalls : (vtPre.filter callB).length = 119 := by decide +kernel
+theorem vt_ncalls : (vtPre.filter callB).length = 125 := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Tables

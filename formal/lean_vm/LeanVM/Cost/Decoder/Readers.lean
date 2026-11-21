@@ -57,7 +57,7 @@ theorem cellPairVal_eq (lo hi : E) : Sig.cellPairVal lo hi =
       have := cellNat_lt lo; have := cellNat_lt hi; omega⟩ := by
   apply BitVec.eq_of_toNat_eq
   rw [Sig.cellPairVal, BitVec.toNat_append, Sig.toNat_cellVal, Sig.toNat_cellVal,
-    Nat.shiftLeft_eq, mul_comm, LeanVM.Guest.Value.two_pow_mul_or (cellNat_lt lo)]
+    Nat.shiftLeft_eq, mul_comm, LeanVM.Core.Value.two_pow_mul_or (cellNat_lt lo)]
   simp only [BitVec.toNat_ofFin]; omega
 cost_rewrite cellPairVal_eq
 
@@ -90,7 +90,7 @@ three limbs (three exponentiations); here the power is taken once, in `K`:
 * `xmssRun rd step x n`: the claims of `n` consecutive slots, the address advanced by `step = g^4`
   (one multiplication per slot; `xmssRun_eq`). -/
 
-open LeanVM.Guest.Core LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
+open LeanVM.Core LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier LeanVM.Guest.B1.Digest LeanVM.Node
 
 /-- `p · x`, `x ∈ K`, limb by limb. -/

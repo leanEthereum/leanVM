@@ -1,0 +1,21 @@
+def main []
+  call stop [] [%0]
+  const %1 1 0
+  add %2 %1 %0
+  const %3 1 0
+  call_if %2 __loop0 [%3 %0]
+  ret []
+def stop []
+  hint witness stop [%0]
+  const %1 128 0
+  range_check %0 %2 %3 %4 %1
+  copy %5 %0
+  ret [%5]
+def __loop0 [%0 %1]
+  const %2 2 0
+  mul %3 %0 %2
+  add %4 %3 %1
+  const %5 2 0
+  mul %6 %0 %5
+  call_if %4 __loop0 [%6 %1]
+  ret []

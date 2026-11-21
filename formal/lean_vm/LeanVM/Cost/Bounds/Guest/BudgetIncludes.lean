@@ -25,15 +25,11 @@ theorem includes_budget_discreteLogWith : Includes compiledGuestWitnessDecoder D
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_powBelow : Includes compiledGuestWitnessDecoder powBelowC.costDeps := by
+theorem includes_budget_selfTestLam : Includes compiledGuestWitnessDecoder Decoder.decTopStatesC.lam1.costDeps := by
   have := decoderProgram_includes
   includes
 
-theorem includes_budget_preTestLam : Includes compiledGuestWitnessDecoder Decoder.decTopStatesC.lam1.costDeps := by
-  have := decoderProgram_includes
-  includes
-
-theorem includes_budget_preTestAt : Includes compiledGuestWitnessDecoder preTestAtC.costDeps := by
+theorem includes_budget_selfTest : Includes compiledGuestWitnessDecoder selfTestC.costDeps := by
   have := decoderProgram_includes
   includes
 
@@ -93,11 +89,6 @@ theorem includes_budget_gLogD : Includes compiledGuestWitnessDecoder Decoder.gLo
 
 theorem includes_budget_cursorLength : Includes compiledGuestWitnessDecoder
     cursorLengthC.costDeps := by
-  have := decoderProgram_includes
-  includes
-
-theorem includes_budget_preTable : Includes compiledGuestWitnessDecoder
-    Decoder.preTableC.costDeps := by
   have := decoderProgram_includes
   includes
 

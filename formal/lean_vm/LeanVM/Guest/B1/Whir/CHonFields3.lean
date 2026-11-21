@@ -23,7 +23,7 @@ are its `opening_queries`' folds (`fld_rounds_len`), the final lane is its coeff
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -113,7 +113,7 @@ theorem fld_own_pt :
   have hw : (hdOf μ r Ls).ownW (12 + (osCfgR (μ - minOpenLog) (r - 1)).yrLevel + 1) =
       finPtC (osCfgR (μ - minOpenLog) (r - 1)) (hdOf μ r Ls).G (hdOf μ r Ls).T :=
     OsHD.ownW_fin (hdOf μ r Ls) (k := 1) (by omega)
-  have e1 : ([yrLogCap, pointCap, pointCap, (osCfgR (μ - minOpenLog) (r - 1)).levels.length * ligColsCap,
+  have e1 : ([yrLogCap, pointCap, pointCap, (osCfgR (μ - minOpenLog) (r - 1)).colsTotal,
       (osCfgR (μ - minOpenLog) (r - 1)).levels.length, (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
       2 * (osCfgR (μ - minOpenLog) (r - 1)).levels.length] : List ℕ).getD 1 0 = pointCap := rfl
   rw [e1] at hsz
@@ -141,7 +141,7 @@ theorem fld_own_pt1 :
   have hw : (hdOf μ r Ls).ownW (12 + (osCfgR (μ - minOpenLog) (r - 1)).yrLevel + 2) =
       finPt1C (osCfgR (μ - minOpenLog) (r - 1)) (hdOf μ r Ls).G (hdOf μ r Ls).T :=
     OsHD.ownW_fin (hdOf μ r Ls) (k := 2) (by omega)
-  have e1 : ([yrLogCap, pointCap, pointCap, (osCfgR (μ - minOpenLog) (r - 1)).levels.length * ligColsCap,
+  have e1 : ([yrLogCap, pointCap, pointCap, (osCfgR (μ - minOpenLog) (r - 1)).colsTotal,
       (osCfgR (μ - minOpenLog) (r - 1)).levels.length, (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
       2 * (osCfgR (μ - minOpenLog) (r - 1)).levels.length] : List ℕ).getD 2 0 = pointCap := rfl
   rw [e1] at hsz

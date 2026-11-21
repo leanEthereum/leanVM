@@ -1,0 +1,69 @@
+name: Guest artifact
+
+# The guest the prover loads (`guests/lean_ethereum.compiled`) is not committed: the Lean back end compiles it
+# (`crates/aggregation/build.rs` runs `formal/lean_vm/scripts/guest-artifact`). Every workflow that builds
+# `aggregation` calls this one first and hands the upload `guest-artifact` to its jobs (`LEANVM_GUEST_ARTIFACT`),
+# which then run no Lean.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+# Pin the ISA, overriding `target-cpu=native` from the cargo configs, so a cached build (its proc
+# macros included) runs on any runner.
+env:
+  RUSTFLAGS: -C target-cpu=haswell
+
+jobs:
+  guest-artifact:
+    name: The compiled guest (Lean)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install elan
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      # The Lean build `guest-artifact` needs, Mathlib's fetched by the script (`lake exe cache get`); only `main` saves.
+      - name: Restore the Lean build
+        id: lean-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            formal/lean_vm/.lake
+            !formal/lean_vm/.lake/packages/mathlib/.lake
+            formal/Statement/.lake/build
+          key: guest-artifact-lean-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_vm/LeanVM/Compiler/**', 'formal/lean_vm/LeanVM/Core/**', 'formal/lean_vm/cli/GuestArtifact.lean', 'formal/Statement/**/*.lean', 'guests/lean_ethereum.py', 'crates/aggregation/src/**') }}
+          restore-keys: guest-artifact-lean-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: formal/lean_vm/scripts/guest-export
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # The compiler's build (its C compiled by clang beside the Lean modules) exceeds the runner's memory at
+      # its peak; the swap goes on the runner's scratch disk, as in lean.yml.
+      - name: Add swap
+        run: |
+          dir=/mnt; [ -d /mnt ] || dir=/
+          sudo fallocate -l 16G "$dir/swapfile.lean"
+          sudo chmod 600 "$dir/swapfile.lean"
+          sudo mkswap "$dir/swapfile.lean"
+          sudo swapon "$dir/swapfile.lean"
+          free -g
+      - name: Compile the guest (guest-artifact)
+        run: formal/lean_vm/scripts/guest-artifact
+      - name: Save the Lean build
+        if: github.ref == 'refs/heads/main' && steps.lean-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            formal/lean_vm/.lake
+            !formal/lean_vm/.lake/packages/mathlib/.lake
+            formal/Statement/.lake/build
+          key: ${{ steps.lean-cache.outputs.cache-primary-key }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: guest-artifact
+          path: guests/lean_ethereum.compiled
+          retention-days: 3

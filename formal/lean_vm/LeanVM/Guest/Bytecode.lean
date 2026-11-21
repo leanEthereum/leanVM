@@ -8,7 +8,7 @@
 module
 
 public import Statement.Data.Bytecode
-public import LeanVM.Guest.Code
+public import LeanVM.Core.Code
 public import LeanVM.Guest.FunctionTable
 public import Statement.LeanVmGuest
 
@@ -27,6 +27,8 @@ evaluating that one instruction, never the program.
 -/
 
 namespace LeanVM.Guest
+
+open LeanVM.Core
 
 open LeanVM.Parameters LeanVM.Semantics
 

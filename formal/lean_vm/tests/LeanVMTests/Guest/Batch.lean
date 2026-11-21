@@ -21,7 +21,7 @@ namespace LeanVMTests.Guest.Batch
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
-open LeanVM.Guest.Batch
+open LeanVM.Guest.Batch LeanVM.Protocol
 
 /-- info: 'LeanVM.Guest.Batch.rounds_sound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

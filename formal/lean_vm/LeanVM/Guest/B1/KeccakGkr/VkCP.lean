@@ -18,7 +18,7 @@ run's, and the body returns the honest words.
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Guest.Memory LeanVM.Guest.B1.Fwd
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Protocol.KeccakGkr Finset
@@ -35,8 +35,8 @@ theorem L_next (h : D.Ok) : D.L.1 = (D.layer 11).next (firstOf 11) := by
 
 /-- The last claim's record. -/
 theorem outWs_last (h : D.Ok) : D.outWs ls 11 = [D.L.1.value, sumE D.L.1.mu, ptr (ls 11),
-    ptr (ls 11 + (D.layer 11).y + 123), ptr (ls 11 + (D.layer 11).y + 112),
-    ptr (ls 11 + (D.layer 11).y + 148)] ++ D.L.1.mu := by
+    ptr (ls 11 + (D.layer 11).y + 88), ptr (ls 11 + (D.layer 11).y + 77),
+    ptr (ls 11 + (D.layer 11).y + 113)] ++ D.L.1.mu := by
   rw [outWs, LayerData.outW, L_next h]
 
 /-- The last claim's record, in memory. -/
@@ -121,10 +121,10 @@ theorem in_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : Va
     vkIn_complete hσ hg hv (I1_length h) hlow hT hmuL hmu h.2.2.2.2.2.2.2.2.2.1 hcur
       (by rw [h10]; exact msl')
   have gA : ∀ a, Stmt.atom a ∈ vkInT → Good rd vkSt (D.w B curE) σ a := fun a h ↦ hg _ h
-  have c4108 : σ (.n 1325) = Guest.word 0 0 :=
-    gA (.const (.n 1325) (Guest.word 0 0)) (by simp [vkInT])
-  have c4109 : σ (.n 1326) = Guest.word 0 0 :=
-    gA (.const (.n 1326) (Guest.word 0 0)) (by simp [vkInT])
+  have c4108 : σ (.n 1325) = Core.word 0 0 :=
+    gA (.const (.n 1325) (Core.word 0 0)) (by simp [vkInT])
+  have c4109 : σ (.n 1326) = Core.word 0 0 :=
+    gA (.const (.n 1326) (Core.word 0 0)) (by simp [vkInT])
   refine ⟨by rw [e3976, h3699], e3977, by rw [e3979, h9], fun j hj ↦ (e3980 j hj).trans (w_i hj),
     e4104, by rw [e4107, h9, h6], by rw [c4108, word_zero], by rw [c4109, word_zero],
     fun j hj ↦ (e4110 j hj).trans (hw j hj), ?_, ?_, H⟩
@@ -160,15 +160,15 @@ theorem fin_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : V
   have msl := memL_entry hm.lin (b := slE) (ws := D.slices) (by simp [lin])
   have hpp : LoadHolds rd (σ (.n 155)) 266 (ptr (ls 11)) := by
     rw [h201]; simpa using hrec 2 (by norm_num)
-  have hlc : LoadHolds rd (σ (.n 155)) 268 (ptr (ls 11 + (D.layer 11).y + 112)) := by
+  have hlc : LoadHolds rd (σ (.n 155)) 268 (ptr (ls 11 + (D.layer 11).y + 77)) := by
     rw [h201]; simpa using hrec 4 (by norm_num)
-  have hlp : LoadHolds rd (σ (.n 155)) 267 (ptr (ls 11 + (D.layer 11).y + 123)) := by
+  have hlp : LoadHolds rd (σ (.n 155)) 267 (ptr (ls 11 + (D.layer 11).y + 88)) := by
     rw [h201]; simpa using hrec 3 (by norm_num)
   have hpt : ReadsAt rd (ptr (ls 11)) D.L.1.point := by
     rw [L1_point h]; exact memL_entry hL (by simp)
-  have hloc : ReadsAt rd (ptr (ls 11 + (D.layer 11).y + 112)) ((D.layer 11).locPt (firstOf 11)) :=
+  have hloc : ReadsAt rd (ptr (ls 11 + (D.layer 11).y + 77)) ((D.layer 11).locPt (firstOf 11)) :=
     memL_entry hL (by simp)
-  have hlanes : ReadsAt rd (ptr (ls 11 + (D.layer 11).y + 123))
+  have hlanes : ReadsAt rd (ptr (ls 11 + (D.layer 11).y + 88))
       (lanesOut ((D.layer 11).locPt (firstOf 11)) ((D.layer 11).beta (firstOf 11)).1) :=
     memL_entry hL (by simp)
   have hslot : ReadsAt rd (σ (.n 1324)) D.S.1 := by

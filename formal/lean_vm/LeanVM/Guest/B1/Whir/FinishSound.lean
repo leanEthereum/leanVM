@@ -20,7 +20,7 @@ and the final lane's low part at the tail challenges.
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
 open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -214,12 +214,8 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ}
     rw [e, Nat.zero_add]
     have hL := hLF i hi
     have hS := hRS i hi
-    have hn : i < c.levels.length := by have := hF.yr; omega
-    have h64 := hF.nlen
     refine ⟨hF.rate i hi, hF.res i hi, hL.van, ⟨hL.ml1, hL.nhs, hL.b3, hL.bn, fun s hs ↦ ?_,
-      by simp [hsv, hsvOf], fun c' hc ↦ ?_⟩, hL.posOff,
-      lt_of_le_of_lt (Nat.mul_le_mul_right ligColsCap (show i ≤ 64 by omega)) (by decide),
-      lt_of_le_of_lt (Nat.mul_le_mul_right hsStride (show i ≤ 64 by omega)) (by decide),
+      by simp [hsv, hsvOf], fun c' hc ↦ ?_⟩, hL.posOff, hL.colsB, hL.hsB,
       fun k hk ↦ hS.pos k hk, hli1 i hi⟩
     · have := ((hBo i hi).1 s (by rw [hL.pre]; exact hs)).2
       exact this
@@ -271,8 +267,8 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ}
         have := hS.z0 t (by rw [hS.z0len]; exact ht)
         rw [loadHolds_mul_gen_pow] at this
         simp only [List.getD_eq_getElem _ _ (show t < (r i).z0.length by rw [hS.z0len]; exact ht)]
-        convert this using 2
-        ring
+        rw [hL.nextC, Nat.add_sub_cancel]
+        exact this
       · intro t ht
         rw [hcl] at ht
         have hx := hXsrc i hi t (by rw [hL.pre]; exact ht)

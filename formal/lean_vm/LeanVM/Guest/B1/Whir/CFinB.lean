@@ -20,7 +20,7 @@ product stored in `level_scale` and `level_after`.
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
 open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -300,7 +300,7 @@ theorem osBases_complete {c : OsCfg} {tch bd ls la : ℕ} (β : ℕ → E) (X : 
     simp only [Nat.add_zero, List.getElem_cons_zero] at hm0
     have hne0 := hne 0 (by simp)
     simp only [Nat.add_zero, List.getElem_cons_zero] at hne0
-    have hlen : (osBasisCoords c tch lvl lv).length = lv.prefixLen + c.yrLog := by
+    have hlen : (osBasisCoords c tch lv).length = lv.prefixLen + c.yrLog := by
       simp [osBasisCoords]
     -- β, then the row from the scale `k`
     have hL : BlkA H σ k (k + 1) [osLd k osBetas lvl] (fun σ' ↦ σ' (.n k) = β lvl) := by
@@ -312,10 +312,10 @@ theorem osBases_complete {c : OsCfg} {tch bd ls la : ℕ} (β : ℕ → E) (X : 
       · simp only [SidesOk, Side, V.n, le_refl, ↓reduceIte, and_true]
         rw [ha _ (by show 20 < k; omega), memOf_eq (fun C rd hH ↦ (hm0 C rd hH).1.1) hH]
         exact (hm0 C rd hH).1.1
-    set r := osBasisRow bd (osBasisCoords c tch lvl lv) k none (k + 1) with hr
-    have hrn : k + 1 ≤ r.2.2.2 := osBasisRow_next bd (osBasisCoords c tch lvl lv) k none (k + 1)
+    set r := osBasisRow bd (osBasisCoords c tch lv) k none (k + 1) with hr
+    have hrn : k + 1 ≤ r.2.2.2 := osBasisRow_next bd (osBasisCoords c tch lv) k none (k + 1)
     have hR := BlkA.seq (H := H) (by omega) hrn hL.agree fun σ1 ha1 _ ↦
-      osBasisRow_complete (H := H) (X lvl) (osBasisCoords c tch lvl lv) k none (k + 1) σ1 (by omega)
+      osBasisRow_complete (H := H) (X lvl) (osBasisCoords c tch lv) k none (k + 1) σ1 (by omega)
         (by omega) (by simp) fun t ht ↦ by
           rw [hlen] at ht
           rw [osBasisCoords_getD ht]
@@ -327,7 +327,7 @@ theorem osBases_complete {c : OsCfg} {tch bd ls la : ℕ} (β : ℕ → E) (X : 
           rw [← ha1 _ hbd] at hd'
           exact ⟨hs, hd'⟩
     -- the scale and the product stored
-    have hne' : osBasisCoords c tch lvl lv ≠ [] := by
+    have hne' : osBasisCoords c tch lv ≠ [] := by
       intro h0; have := hpos lv; rw [← hlen, h0] at this; simp at this
     have hsl : r.2.1 < r.2.2.2 ∧ r.2.2.1 < r.2.2.2 := osBasisRow_lt bd _ hne' k none (k + 1)
     have hS2 := BlkA.seq (H := H) (by omega) (le_refl (r.2.2.2))

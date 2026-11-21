@@ -48,18 +48,8 @@ abbrev ligNSizes : Nat := guest_const% LIG_N_LOG_SIZES
 /-- `LIG_N_RATES`. -/
 abbrev ligNRates : Nat := guest_const% LIG_N_RATES
 
-/-- `LIG_LEVEL_POSITIONS_CAP`: a level's slots in `query_positions` and `query_win_ptrs`. -/
-abbrev ligPosCap : Nat := guest_const% LIG_LEVEL_POSITIONS_CAP
-
-/-- `LIG_LOG_MSG_COLS_CAP`: the stride of a sample's row in `ood_z` and of a level's in
-`basis_d`. -/
-abbrev ligColsCap : Nat := guest_const% LIG_LOG_MSG_COLS_CAP
-
 /-- `YR_LOG_CAP`: the length of `tail_challenges`. -/
 abbrev yrLogCap : Nat := guest_const% YR_LOG_CAP
-
-/-- `2 ^ HIGH_BITS_CAP`: the stride of a level's high part in `level_hs`. -/
-abbrev hsStride : Nat := 2 ^ guest_const% HIGH_BITS_CAP
 
 /-- One level's row of the tables. -/
 structure OsLv where
@@ -73,7 +63,8 @@ structure OsLv where
   depth : Nat
   /-- `LIG_LEAF_CELLS`: the cells a leaf hashes. -/
   leafCells : Nat
-  /-- The level's first slot in `query_positions`, `lvl · LIG_LEVEL_POSITIONS_CAP`. -/
+  /-- `LIG_POS_OFF`: the level's first slot in `query_positions`, the most any rate draws at the
+  size in the levels before it. -/
   posOff : Nat
   /-- `LIG_CAP_DEPTH`, at the rate. -/
   capDepth : Nat
@@ -89,6 +80,8 @@ structure OsLv where
   resFoldOff : Nat
   /-- The level's first entry in the vanishing tables, `n(n+1)/2` for `n` message columns. -/
   vanish : Nat
+  /-- The message columns of the levels before it: its row's first slot in `ood_z` and `basis_d`. -/
+  colsOff : Nat
   deriving Repr, Inhabited, DecidableEq
 
 /-- The row of level `lvl` of size `m` at rate `r` in the tables a rate changes. -/
@@ -101,11 +94,18 @@ def osLvR (m r lvl : Nat) : OsLv :=
   let cols := lig Data.arr_LIG_LOG_MSG_COLS i
   { folds := lig Data.arr_LIG_FOLDS i, foldsOff := lig Data.arr_LIG_FOLDS_OFF i,
     queries := lig Data.arr_LIG_QUERIES j, depth := lig Data.arr_LIG_TREE_DEPTH j,
-    leafCells := lig Data.arr_LIG_LEAF_CELLS i, posOff := lvl * ligPosCap,
+    leafCells := lig Data.arr_LIG_LEAF_CELLS i, posOff := lig Data.arr_LIG_POS_OFF i,
     capDepth := lig Data.arr_LIG_CAP_DEPTH j, squeezes := lig Data.arr_LIG_SQUEEZES j,
     logCols := cols, highBits := lig Data.arr_LIG_HIGH_BITS i,
     prefixLen := lig Data.arr_LIG_RESIDUAL_PREFIX_LEN i,
-    resFoldOff := lig Data.arr_LIG_RESIDUAL_FOLD_OFF i, vanish := cols * (cols + 1) / 2 }
+    resFoldOff := lig Data.arr_LIG_RESIDUAL_FOLD_OFF i, vanish := cols * (cols + 1) / 2,
+    colsOff := ((List.range lvl).map fun l ↦ lig Data.arr_LIG_LOG_MSG_COLS (m * ligMaxLevels + l)).sum }
+
+/-- The next level's row of `ood_z` and `basis_d` follows this level's message columns. -/
+theorem osLvR_colsOff_succ (m r l : Nat) :
+    (osLvR m r (l + 1)).colsOff = (osLvR m r l).colsOff + (osLvR m r l).logCols := by
+  simp only [osLvR, List.range_succ, List.map_append, List.sum_append, List.map_cons, List.map_nil,
+    List.sum_cons, List.sum_nil, Nat.add_zero]
 
 /-- Level `lvl`'s row of size `m` at the first rate: its rate-free columns are every rate's. -/
 abbrev osLv (m lvl : Nat) : OsLv := osLvR m 0 lvl
@@ -126,6 +126,10 @@ structure OsCfg where
   yrLen : Nat
   /-- `LIG_TOTAL_FOLDS`. -/
   nFolds : Nat
+  /-- `LIG_POS_TOTAL`: the slots of `query_positions` and `query_win_ptrs`. -/
+  posTotal : Nat
+  /-- The non-final levels' message columns: the words of `ood_z` and `basis_d`. -/
+  colsTotal : Nat
   /-- The compiler's choices of a shifted pointer's source (`osMatPlan`). -/
   plan : List (Nat × Nat × Nat)
   deriving Repr, Inhabited
@@ -141,6 +145,9 @@ def osCfg (m : Nat) : OsCfg :=
   { m, levels := osLevelsR m 0, levelsAt := (List.range ligNRates).map (osLevelsR m),
     yrLevel := lig Data.arr_LIG_YR_LEVEL m, yrLog := lig Data.arr_LIG_YR_LOG_LEN m,
     yrLen := lig Data.arr_LIG_YR_LEN m, nFolds := lig Data.arr_LIG_TOTAL_FOLDS m,
+    posTotal := lig Data.arr_LIG_POS_TOTAL m,
+    colsTotal := ((List.range (lig Data.arr_LIG_YR_LEVEL m)).map fun l ↦
+      lig Data.arr_LIG_LOG_MSG_COLS (m * ligMaxLevels + l)).sum,
     plan := osMatPlan m }
 
 /-- The configuration with the levels `L`. -/
@@ -148,6 +155,25 @@ abbrev OsCfg.withLevels (c : OsCfg) (L : List OsLv) : OsCfg := { c with levels :
 
 /-- Size `m`'s configuration with its levels at rate `ri`. -/
 def osCfgR (m ri : Nat) : OsCfg := (osCfg m).withLevels (osLevelsR m ri)
+
+theorem osCfgR_getD_lv {m ri l : Nat} (hl : l < (osCfgR m ri).levels.length) :
+    (osCfgR m ri).levels.getD l default = osLvR m ri l := by
+  have hn : (osCfgR m ri).levels.length = osNLevels m := by simp [osCfgR, osLevelsR]
+  rw [hn] at hl
+  simp [osCfgR, osLevelsR, List.getD_eq_getElem?_getD, hl]
+
+/-- A size's next level's row of `ood_z` and `basis_d` follows the level's message columns. -/
+theorem osCfgR_colsOff_succ {m ri l : Nat} (hl : l + 1 < (osCfgR m ri).levels.length) :
+    ((osCfgR m ri).levels.getD (l + 1) default).colsOff =
+      ((osCfgR m ri).levels.getD l default).colsOff + ((osCfgR m ri).levels.getD l default).logCols := by
+  rw [osCfgR_getD_lv hl, osCfgR_getD_lv (by omega)]
+  exact osLvR_colsOff_succ m ri l
+
+/-- The words of `ood_z` and `basis_d` are the final level's row offset. -/
+theorem osCfgR_colsTotal {m ri : Nat} (hl : (osCfgR m ri).yrLevel < (osCfgR m ri).levels.length) :
+    (osCfgR m ri).colsTotal = ((osCfgR m ri).levels.getD (osCfgR m ri).yrLevel default).colsOff := by
+  rw [osCfgR_getD_lv hl]
+  rfl
 
 /-- Level `lvl` at every rate, by rate: the rows the dispatches' arms specialize on. -/
 def OsCfg.lvAt (c : OsCfg) (lvl : Nat) : List OsLv :=

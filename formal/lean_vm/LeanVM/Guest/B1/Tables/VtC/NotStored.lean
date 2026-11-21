@@ -18,14 +18,14 @@ public import LeanVM.Guest.B1.Fwd.NotStored
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Guest.Core LeanVM.Guest.B1.Fwd
+open LeanVM.Core LeanVM.Guest.B1.Fwd
 
 @[expose] public section
 
 /-- The pointers of `verify_tables`' stores (`vtSL_ptrs`). -/
 def vtStorePtrs : List ℕ :=
   [15, 19, 33, 34, 117, 121, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260,
-    270, 280, 414, 418, 427, 437, 447, 457, 467, 477, 487, 497, 507, 517, 664, 777, 2625, 2628]
+    270, 280, 414, 418, 427, 437, 447, 457, 467, 477, 487, 497, 507, 517, 664, 827, 2327, 2330]
 
 theorem vtSL_ptrs : vtSL.all (ptrInB vtStorePtrs) = true := by decide +kernel
 

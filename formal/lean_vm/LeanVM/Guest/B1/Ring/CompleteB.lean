@@ -1,32 +1,35 @@
 /-
   LeanVM.Guest.B1.Ring.CompleteB
 
-  `ring_switch_target` and `ring_switch_weight` complete, placed, within a bound (`CompleteAtB`):
-  their frame, their chain and their loop's or `rs_eq_run`'s words.
+  `ring_switch_target`, `rs_eq_run` and `ring_switch_weight` complete, placed, within a bound
+  (`CompleteAtB`): their frame, their chain and their callees' words.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Ring.WeightComplete
 public import LeanVM.Guest.B1.Tables.FlatAtT
-public import LeanVM.Guest.Memory.SizeTotal
+public import LeanVM.Guest.B1.Terminal.KidsDepB
+public import LeanVM.Core.Memory.SizeTotal
 public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The ring switch, placed, within a bound
 
-`rst_completeAtB`, `rsw_completeAtB`: `rst_completeAt`, `rsw_completeAt` with the size bounded
-before the memory (B1-c's `completeAt_flatDTB`, forgetting the tree's shape). Their only callee is
-a pure loop (`ring_switch_target_loop0`) or a pure function (`rs_eq_run`) whose words are a
-hypothesis (`TotalLeOn`, fs-generic): `ring_switch_target_loop0` called from `1` (its end the
-constant `g^8`), `rs_eq_run` on `count` coordinates (its last argument `g^count`).
+`rst_completeAtB`, `rs_completeAtB`, `rsw_completeAtB`: `rst_completeAt`, `rs_completeAt`,
+`rsw_completeAt` with the size bounded before the memory (B1-c's `completeAt_flatDTB`,
+`completeAt_flatOutDTB` and `completeAt_flatDepRB`, forgetting the tree's shape).
+`ring_switch_target`'s only callee is a pure loop (`ring_switch_target_loop0`, called from `1`, its
+end the constant `g^8`); `rs_eq_run`'s are the pure `rs_eq_run_loop0` and `rs_eq_rows__L{r}`,
+whose words are hypotheses (`TotalLeOn`, `TotalLe`, fs-generic); `ring_switch_weight`'s is
+`rs_eq_run`, which returns its chain.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Guest.Memory LeanVM.Guest.B1.Fwd
+open LeanVM.Core.Memory LeanVM.Guest.B1.Fwd
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
@@ -92,135 +95,100 @@ theorem rst_completeAtB (κ : ℕ) {bs bm : ℕ} {s chs : List E} (hs : s.length
     exact ⟨σ, h1, h2, h3, h4, h5, h6, h7, trivial⟩
 
 
-/-- **`ring_switch_weight` is complete, placed, within
-`fs "ring_switch_weight" + 64 · (count + 1) + Brs`**: its frame, its chain (`allocDyn`, at most
-`64 · (count + 1)` words) and `rs_eq_run`'s words, at most `Brs` on `count` coordinates (`hrs`). -/
+/-- **`rs_eq_run` is complete, placed, within `fs "rs_eq_run" + 64 · (count / 8 + 2) +
+(fs "rs_eq_run_loop0" + count / 8 · K6 + R)`**: its frame, its chain and its callees' words,
+`rs_eq_run_loop0`'s run within `K6` an iteration and its one phantom frame (`h6`), the remainder's
+`rs_eq_rows__L{r}` within `R` (`hR`). -/
+theorem rs_completeAtB (κ : ℕ) {bz bp count : ℕ} {zs ps : List E} (hcount : count < 64)
+    (hz : zs.length = count) (hp : ps.length = count) {K6 R : ℕ}
+    (h6 : TotalLeOn coreProgram fs name% «rs_eq_run_loop0» LoopPre
+      fun a ↦ logG (a.getD 1 0) * K6 + fs name% «rs_eq_run_loop0»)
+    (hR : ∀ r < 8, TotalLe coreProgram fs (rsEqRowsNames.getD r "") fun _ ↦ R) :
+    CompleteAtB fs cert κ "rs_eq_run" [(bz, zs), (bp, ps)]
+      [ofK (addressOfIndex bz), ofK (addressOfIndex bp), gen ^ count] (RsOut zs ps count)
+      (fs "rs_eq_run" + rsSize count + (fs name% «rs_eq_run_loop0» + count / 8 * K6 + R)) := by
+  have e : fs "rs_eq_run" + rsSize count + (fs name% «rs_eq_run_loop0» + count / 8 * K6 + R) =
+      fs "rs_eq_run" + [rsSize count].sum + (fs name% «rs_eq_run_loop0» + count / 8 * K6 + R) := by
+    simp
+  rw [e]
+  refine B1.CompleteAtDTB.toCompleteAtB (completeAt_flatOutDTB (fs := fs) (cert := cert)
+    find_rs_eq_run rs_not_loop κ _ _
+    (fun fp ↦ [ofK (addressOfIndex (fp + fs "rs_eq_run")) * gen ^ (64 * rswH count)]) _ rs_body'
+    rs_flat rs_addrs [rsSize count] (fun _ ↦ [rswChain zs ps count])
+    (fun _ ↦ by simpa using rswChain_le_size zs ps count)
+    (fun fp ↦ ⟨_, rfl, bufL_rs _ _ _ _⟩)
+    (fun fp ↦ rsKids (fp + fs "rs_eq_run") bz bp count zs ps) (fun _ => True)
+    [fun _ => True, fun _ => True] [fs name% «rs_eq_run_loop0» + count / 8 * K6, R]
+    (fs name% «rs_eq_run_loop0» + count / 8 * K6 + R) (fun fp ↦ ?_) (fun fp ↦ ?_)
+    (fun _ ↦ le_rfl) ?_ ?_ ?_)
+  · -- the callees, within their bounds
+    refine ⟨fun ht ↦ ?_, fun _ ↦ ?_, trivial⟩
+    · simp only [decide_eq_true_eq] at ht
+      have hq0 : 0 < count / 8 := by
+        rcases Nat.eq_zero_or_pos (count / 8) with h0 | h0
+        · exfalso; apply ht; rw [h0, pow_zero]; exact Core.Value.e_add_self 1
+        · exact h0
+      exact (completeAt_of_rel_pureBat rs_pure (by simp [rsPureNames])
+        (fun rd hL ↦ (rs_kids_rel hcount (rsMem_of hz hp hL)).1.2 ht) κ
+        fun rd t hn hv hb ↦ by
+          have := h6 rd t _ [] hn (loopPre_gen hq0 (by omega) _) hv hb
+          simp only [List.getD_cons_succ, List.getD_cons_zero] at this
+          rw [Core.Value.gen_pow_eq_ofK, logG_spec (show count / 8 < 2 ^ 64 - 1 by omega)] at this
+          simpa [Nat.add_comm] using this).toDTB
+    · exact (completeAt_of_rel_pureBat rs_pure (rows_mem_pure _ (by omega))
+        (fun rd hL ↦ (rs_kids_rel hcount (rsMem_of hz hp hL)).2) κ
+        fun rd t hn hv hb ↦ hR (count % 8) (by omega) rd t _ _ hn hv hb).toDTB
+  · -- the callees' words
+    simp only [kidsBoundL, rsKids, List.headD_cons, List.tail_cons, add_zero, ↓reduceIte]
+    split <;> omega
+  · intro fp k hk _ i hi
+    rw [bufL_rs]
+    exact rs_kids_region ⟨by simp, by simp⟩ k hk i hi
+  · intro fp rd hB hLin
+    rw [bufL_rs] at hB
+    exact rs_kids_mem ⟨by simp, by simp⟩ hB hLin
+  · intro fp outs ho rd _ hB hLin
+    rw [bufL_rs] at hB ⊢
+    have hL : MemL rd (rsLin (fp + fs "rs_eq_run") bz bp count zs ps) := by
+      intro q hq
+      simp only [rsLin, List.mem_cons, List.not_mem_nil, or_false] at hq
+      rcases hq with rfl | rfl | rfl
+      exacts [hB _ (by simp), hLin _ (by simp), hLin _ (by simp)]
+    obtain ⟨σ, h1, h2, h3, h4, h5, h6, h7⟩ := rs_hσ hcount hz hp ho hL
+    refine ⟨σ, h1, h2, h3, h4, by rw [h5]; simp [bases], h6, fun q hq ↦ ?_, trivial⟩
+    obtain ⟨i, hi, hr⟩ := h7 q hq
+    exact ⟨i, hi, Or.inr hr⟩
+
+/-- **`ring_switch_weight` is complete, placed, within `fs "ring_switch_weight" + Brs`**: its frame
+and `rs_eq_run`'s words, its chain included, at most `Brs` on `count` coordinates (`rs_completeAtB`:
+`Brs = fs "rs_eq_run" + 64 · (count / 8 + 2) + (fs "rs_eq_run_loop0" + count / 8 · K6 + R)`). -/
 theorem rsw_completeAtB (κ : ℕ) {bz bp bc count : ℕ} {zs ps cs : List E} (hcount : count < 64)
-    (hz : zs.length = count) (hp : ps.length = count) (hc : cs.length = 64) {Brs : ℕ}
-    (hrs : TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ count) fun _ => Brs) :
+    (hz : zs.length = count) (hp : ps.length = count) (hc : cs.length = 64) {K6 R : ℕ}
+    (h6 : TotalLeOn coreProgram fs name% «rs_eq_run_loop0» LoopPre
+      fun a ↦ logG (a.getD 1 0) * K6 + fs name% «rs_eq_run_loop0»)
+    (hR : ∀ r < 8, TotalLe coreProgram fs (rsEqRowsNames.getD r "") fun _ ↦ R) :
     CompleteAtB fs cert κ "ring_switch_weight" [(bz, zs), (bp, ps), (bc, cs)]
       [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK (addressOfIndex bc), gen ^ count]
       (Returns [ringWeight zs (ps.map (1 + ·)) cs])
-      (fs "ring_switch_weight" + 64 * (count + 1) + Brs) := by
-  have e : fs "ring_switch_weight" + 64 * (count + 1) + Brs =
-      fs "ring_switch_weight" + [64 * (count + 1)].sum + Brs := by simp
+      (fs "ring_switch_weight" + (fs "rs_eq_run" + rsSize count +
+        (fs name% «rs_eq_run_loop0» + count / 8 * K6 + R))) := by
+  have e : fs "ring_switch_weight" + (fs "rs_eq_run" + rsSize count +
+      (fs name% «rs_eq_run_loop0» + count / 8 * K6 + R)) =
+      fs "ring_switch_weight" + ([] : List ℕ).sum + [fs "rs_eq_run" + rsSize count +
+        (fs name% «rs_eq_run_loop0» + count / 8 * K6 + R)].sum := by simp
   rw [e]
-  refine B1.CompleteAtDTB.toCompleteAtB (completeAt_flatDTB (fs := fs) (cert := cert) find_rsw
-    rsw_not_loop κ _ _ _ rsw_body' rsw_flat rsw_addrs [64 * (count + 1)] (fun _ ↦ [rswChain zs ps count])
-    (fun _ ↦ by simpa using rswChain_le zs ps count)
-    (fun fp ↦ [⟨"rs_eq_run", true, [ofK (addressOfIndex (fp + fs "ring_switch_weight")), ofK
-        (addressOfIndex bz),
-      ofK (addressOfIndex bp), gen ^ count], rsLin (fp + fs "ring_switch_weight") bz bp count zs ps,
-      Returns [ofK (addressOfIndex (fp + fs "ring_switch_weight")) * gen ^ (64 * rswH count)]⟩])
-    (fun _ => True) [fun _ => True] [Brs] Brs ?_ (fun _ => by simp [kidsBoundL]) (fun _ => le_rfl)
-    ?_ ?_ ?_)
-  · intro fp
-    refine ⟨fun _ => ?_, trivial⟩
-    exact (completeAt_of_rel_pureBat rs_pure (by simp [rsPureNames]) (fun rd hL ↦ rs_rel hcount hz hp hL) κ
-      fun rd t hn hv hb => hrs rd t _ _ hn rfl hv hb).toDTB
-  · intro fp k hk _ i hi
-    rw [List.mem_singleton] at hk
-    subst hk
-    obtain ⟨q, hq, hi⟩ := hi
-    simp only [rsLin, List.mem_cons, List.not_mem_nil, or_false] at hq
-    rcases hq with rfl | rfl | rfl
-    · exact Or.inr ⟨_, by simp [bufL, bases], hi⟩
-    · exact Or.inl ⟨_, by simp, hi⟩
-    · exact Or.inl ⟨_, by simp, hi⟩
-  · intro fp rd hB hLin k hk
-    rw [List.mem_singleton] at hk
-    subst hk
-    intro q hq
-    simp only [rsLin, List.mem_cons, List.not_mem_nil, or_false] at hq
-    rcases hq with rfl | rfl | rfl
-    · exact hB (fp + fs "ring_switch_weight", rswChain zs ps count) (by simp [bufL, bases])
-    · exact hLin (bz, zs) (by simp)
-    · exact hLin (bp, ps) (by simp)
-  · intro fp outs ho rd _ hB hLin
-    have hzs : ReadsAt rd (ofK (addressOfIndex bz)) zs := hLin (bz, zs) (by simp)
-    have hps : ReadsAt rd (ofK (addressOfIndex bp)) ps := hLin (bp, ps) (by simp)
-    have hcs : ReadsAt rd (ofK (addressOfIndex bc)) cs := hLin (bc, cs) (by simp)
-    have hch : ReadsAt rd (ofK (addressOfIndex (fp + fs "ring_switch_weight"))) (rswChain zs ps
-        count) :=
-      hB (fp + fs "ring_switch_weight", rswChain zs ps count) (by simp [bufL, bases])
-    rcases outs with _ | ⟨o, _ | ⟨o', os⟩⟩
-    · exact absurd ho (by simp [OutsOk])
-    swap
-    · exact absurd ho.2 (by simp [OutsOk])
-    obtain ⟨ho', -⟩ := ho
-    obtain ⟨ho1, -⟩ := ho' rfl
-    obtain ⟨σ, hσdef⟩ : ∃ σ, σ = rswσ rd [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK
-        (addressOfIndex bc), gen ^ count]
-        (fp + fs "ring_switch_weight") (rswH count) := ⟨_, rfl⟩
-    obtain ⟨hat, h11, e12, e77, e333⟩ := rsw_block hcount hz hp hc hzs hps hcs hch
-    rw [← hσdef] at hat h11 e12 e77 e333
-    have hpar : ∀ i (hi : i < 4), σ (.n i) =
-        [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK (addressOfIndex bc), gen ^
-            count].getD i 0 := by
-      intro i hi
-      rw [hσdef]
-      exact ev_params rd _ (l := [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK
-          (addressOfIndex bc), gen ^ count]) rsw_chk
-        (by simpa using hi)
-    have e0 := hpar 0 (by omega)
-    have e1 := hpar 1 (by omega)
-    have e2 := hpar 2 (by omega)
-    have e3 := hpar 3 (by omega)
-    simp only [List.getD_cons_zero, List.getD_cons_succ] at e0 e1 e2 e3
-    refine ⟨σ, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩
-    · show [Core.V.n 0, .n 1, .n 2, .n 3].map σ = _
-      simp only [List.map_cons, List.map_nil, e0, e1, e2, e3]
-    · intro s hs
-      have := List.all_eq_true.mp rsw_noDisp s hs
-      cases s <;> simp_all [DispOk]
-    · rw [rsw_body']
-      refine Fwd.holdsList_straight _ _ _ _ (fun s hs ↦ ?_) (by simp [e333])
-      have hnd := List.all_eq_true.mp rsw_kinds s hs
-      cases s with
-      | atom a => exact hat a (rsw_atom_mem hs)
-      | call f args rets =>
-        have : Stmt.call f args rets = .call "rs_eq_run" [.n 12, .n 0, .n 1, .n 3] [.n 77] := by
-          have h := rsw_callSF σ
-          have hm : (Option.none, f, args, rets) ∈ rswPre.filterMap (Stmt.callSF σ) :=
-            List.mem_filterMap.mpr ⟨_, hs, rfl⟩
-          rw [h, List.mem_singleton] at hm
-          simp only [Prod.mk.injEq] at hm
-          obtain ⟨-, rfl, rfl, rfl⟩ := hm
-          rfl
-        rw [this]
-        show coreProgram.Rel rd "rs_eq_run" [σ (.n 12), σ (.n 0), σ (.n 1), σ (.n 3)] [σ (.n 77)]
-        rw [e12, e0, e1, e3, e77]
-        exact rs_rel hcount hz hp (fun q hq ↦ by
-          simp only [rsLin, List.mem_cons, List.not_mem_nil, or_false] at hq
-          rcases hq with rfl | rfl | rfl
-          · exact hch
-          · exact hzs
-          · exact hps)
-      | _ => simp [atomOrCall] at hnd
-    · rw [rsw_allocs]
-      simp only [List.map_cons, List.map_nil, Sum.elim_inr, h11, List.cons.injEq, and_true]
-      exact logG_spec (by omega)
-    · rw [rsw_allocs]
-      simp [bases, e12]
-    · unfold flatCalls
-      rw [rsw_callSF]
-      refine ⟨rfl, rfl, fun _ ↦ ⟨?_, ?_⟩, trivial⟩
-      · show [σ (.n 12), σ (.n 0), σ (.n 1), σ (.n 3)] = _
-        rw [e12, e0, e1, e3]
-      · show [σ (.n 77)] = o.1
-        rw [ho1, e77]
-    · intro q hq
-      obtain ⟨hoff, hp'⟩ := rsw_loads_ok (rt_filterMap_of_loadsEv (by decide +kernel) hq)
-      rcases hp' with h | h | h <;> rw [h]
-      · rw [e2, Main.addr_ofK]
-        exact ⟨_, rfl, Or.inl ⟨(bc, cs), by simp, by simp [hc]; omega⟩⟩
-      · rw [e77, rt_addr_mul]
-        exact ⟨_, rfl, Or.inr ⟨(fp + fs "ring_switch_weight", rswChain zs ps count),
-          by simp [bufL, bases], by simp only [rswChain_length]; omega⟩⟩
-      · rw [e12, Main.addr_ofK]
-        exact ⟨_, rfl, Or.inr ⟨(fp + fs "ring_switch_weight", rswChain zs ps count),
-          by simp [bufL, bases], by simp only [rswChain_length]; omega⟩⟩
-
+  refine completeAt_flatDepRB (fs := fs) (cert := cert) find_rsw rsw_not_loop κ _ _ _ rsw_body'
+    rsw_flat rsw_addrs rsw_notIte [] (fun _ ↦ []) (fun _ ↦ List.Forall₂.nil)
+    (fun _ ↦ [rswKid bz bp count zs ps]) _ (fun _ ↦ ⟨fun _ ↦ ⟨fun _ ↦
+      rs_completeAtB κ hcount hz hp h6 hR, fun h ↦ absurd h (by simp [rswKid])⟩, trivial⟩)
+    (fun _ outs _ ↦ rsw_regions (fun i h ↦ Or.inl h) outs)
+    (fun _ outs _ rd _ _ hLin _ ↦ rsw_lins hLin outs)
+    (fun _ outs hl ho rd _ _ hLin hLo ↦ ?_)
+  obtain ⟨σ, h1, h2, h3, h4, h5, h6, h7⟩ := rsw_hσ hcount hz hp hc outs hl ho hLin hLo
+  refine ⟨σ, h1, h2, h3, h4, h5, h6, fun q hq ↦ ?_⟩
+  obtain ⟨i, hi, h | h⟩ := h7 q hq
+  · exact ⟨i, hi, Or.inl h⟩
+  · exact ⟨i, hi, Or.inr (Or.inr h)⟩
 
 end
 end LeanVM.Guest.B1.VerifySub

@@ -3,8 +3,11 @@
 # position, `x`) and `vtFTags` (the window's statements evaluation does not settle, besides the
 # reads of `fp_w`: evaluations (0, k), permutations (1, j), weight blocks (3, t)), from vt_ir.txt.
 import re, os, textwrap
+import sys
 here = os.path.dirname(os.path.abspath(__file__))
-LO, HI, FPW, CUR = 2683, 5522, 13, 2645
+sys.path.insert(0, here)
+from anchors import WLO as LO, WHI as HI, CUR, GZN
+FPW = 13
 ir = {}
 for line in open(os.path.join(here, 'vt_ir.txt')):
     k, _, s = line.partition(': ')
@@ -21,7 +24,7 @@ def auto(s):
     return False
 air = []
 for p in range(LO, HI):
-    m = re.match(r'\.atom \(\.mul \(\.n 2543\) \(\.n (\d+)\) \(\.n (2[7-9]|3[0-2])\)\)$', ir[p])
+    m = re.match(r'\.atom \(\.mul \(\.n %d\) \(\.n (\d+)\) \(\.n (2[7-9]|3[0-2])\)\)$' % GZN, ir[p])
     if m: air.append((p, int(m.group(1)), int(m.group(2)) - 27))
 assert [a[2] for a in air] == list(range(6))
 evs = {}  # cursor read position -> k

@@ -23,7 +23,7 @@ accepts it from its `20` parameters.
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Guest.B1.Fwd
 
 @[expose] public section
@@ -31,7 +31,7 @@ open LeanVM.Guest.B1.Fwd
 /-- **`verify_tables`' evaluation list.** -/
 noncomputable def vtEvL : List Stmt := (flatIte vtPre).map fixNe
 
-theorem vt_chk : chk 20 vtEvL = some 5985 := by decide +kernel
+theorem vt_chk : chk 20 vtEvL = some 5687 := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Tables

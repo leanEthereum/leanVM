@@ -26,7 +26,7 @@ Everything goes through `leBytes n k`, the `k` low little-endian bytes of `n`.
 namespace LeanVM.Guest.B1.Sig
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
-open LeanVM.Protocol.Verifier LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
+open LeanVM.Protocol.Verifier LeanVM.Core.Value LeanVM.Core.Value.Keccak
 
 @[expose] public section
 

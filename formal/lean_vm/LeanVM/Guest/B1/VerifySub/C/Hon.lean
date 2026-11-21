@@ -26,7 +26,7 @@ parameters are the arguments (`vsC_param`), an allocation's or a callee's value 
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Tables
 
 @[expose] public section

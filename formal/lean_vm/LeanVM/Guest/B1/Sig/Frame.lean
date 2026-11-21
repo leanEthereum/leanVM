@@ -7,8 +7,8 @@
 
 module
 
-public import LeanVM.Guest.CoreLemmas
-public import LeanVM.Guest.Renumber
+public import LeanVM.Core.Lemmas
+public import LeanVM.Core.Renumber
 
 /-!
 # Frames
@@ -21,7 +21,7 @@ block of the guest names first form a range `lo ..< hi`, and every value it name
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Guest.Core LeanVM.Parameters
+open LeanVM.Core LeanVM.Parameters
 
 @[expose] public section
 

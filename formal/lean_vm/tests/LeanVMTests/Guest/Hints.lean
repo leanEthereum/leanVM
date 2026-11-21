@@ -15,7 +15,7 @@ aggregations.
 
 namespace LeanVMTests.Guest.Hints
 
-open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Node LeanVM.Guest
+open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Node LeanVM.Core
 open LeanVM.Guest.Hints LeanVM.Guest.Coverage
 
 def key : HashSig.PublicKey := ⟨BitVec.ofNat 128 0x1234, BitVec.ofNat 128 0x5678⟩

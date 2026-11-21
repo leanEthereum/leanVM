@@ -31,7 +31,7 @@ bits: `tabs` is passed along, never read.
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -240,20 +240,20 @@ def pk8Head : List Stmt :=
     .atom (.mul (.n 10) (.n 3) (.n 9)), .atom (.mul (.n 11) (.n 0) (.n 0)),
     .atom (.mul (.n 12) (.n 11) (.n 11)), .atom (.mul (.n 13) (.n 12) (.n 12)),
     .atom (.mul (.n 14) (.n 4) (.n 13)),
-    .atom (.load (.n 15) (.n 6) 0), .atom (.load (.n 16) (.n 6) 16), .atom (.load (.n 17) (.n 6) 32),
-    .atom (.load (.n 18) (.n 6) 48), .atom (.load (.n 19) (.n 6) 64), .atom (.load (.n 20) (.n 6) 80),
-    .atom (.load (.n 21) (.n 6) 96)]
+    .atom (.load (.n 15) (.n 6) 0), .atom (.load (.n 16) (.n 6) 11), .atom (.load (.n 17) (.n 6) 22),
+    .atom (.load (.n 18) (.n 6) 33), .atom (.load (.n 19) (.n 6) 44), .atom (.load (.n 20) (.n 6) 55),
+    .atom (.load (.n 21) (.n 6) 66)]
 
 /-- The eight rounds. -/
 def pk8Rounds : List Stmt := ((List.range 8).map pkRound).flatten
 
 /-- The next record written, the counter's step. -/
 def pk8Tail : List Stmt :=
-  [.atom (.load (.n 231) (.n 6) 1), .atom (.load (.n 232) (.n 6) 17),
-    .atom (.load (.n 233) (.n 6) 33), .atom (.load (.n 234) (.n 6) 49),
-    .atom (.load (.n 235) (.n 6) 65),
+  [.atom (.load (.n 231) (.n 6) 1), .atom (.load (.n 232) (.n 6) 12),
+    .atom (.load (.n 233) (.n 6) 23), .atom (.load (.n 234) (.n 6) 34),
+    .atom (.load (.n 235) (.n 6) 45),
     .atom (.const (.n 243) (word 65536 0)), .atom (.mul (.n 244) (.n 20) (.n 243)),
-    .atom (.load (.n 244) (.n 6) 81), .atom (.load (.n 242) (.n 6) 97),
+    .atom (.load (.n 244) (.n 6) 56), .atom (.load (.n 242) (.n 6) 67),
     .atom (.const (.n 245) (word 2 0)), .atom (.mul (.n 246) (.n 0) (.n 245)),
     .atom (.add (.n 247) (.n 246) (.n 1)), .atom (.const (.n 248) (word 2 0)),
     .atom (.mul (.n 249) (.n 0) (.n 248))]
@@ -273,11 +273,11 @@ def packRemPre : List Stmt :=
     .atom (.mul (.n 7) (.n 3) (.n 0)),
     .atom (.load (.n 8) (.n 7) 0),
     .atom (.load (.n 9) (.n 6) 0),
-    .atom (.load (.n 10) (.n 6) 16),
-    .atom (.load (.n 11) (.n 6) 32),
-    .atom (.load (.n 12) (.n 6) 48),
-    .atom (.load (.n 13) (.n 6) 64),
-    .atom (.load (.n 14) (.n 6) 80),
+    .atom (.load (.n 10) (.n 6) 11),
+    .atom (.load (.n 11) (.n 6) 22),
+    .atom (.load (.n 12) (.n 6) 33),
+    .atom (.load (.n 13) (.n 6) 44),
+    .atom (.load (.n 14) (.n 6) 55),
     .atom (.load (.n 15) (.n 14) 0),
     .atom (.copy (.n 16) (.n 15)),
     .atom (.const (.n 17) (word 0 1)),
@@ -294,21 +294,21 @@ def packRemPre : List Stmt :=
     .atom (.load (.n 26) (.n 39) 0),
     .atom (.add (.n 40) (.n 8) (.n 26)),
     .atom (.load (.n 34) (.n 6) 1),
-    .atom (.load (.n 35) (.n 6) 17),
-    .atom (.load (.n 36) (.n 6) 33),
-    .atom (.load (.n 37) (.n 6) 49),
-    .atom (.load (.n 38) (.n 6) 65),
+    .atom (.load (.n 35) (.n 6) 12),
+    .atom (.load (.n 36) (.n 6) 23),
+    .atom (.load (.n 37) (.n 6) 34),
+    .atom (.load (.n 38) (.n 6) 45),
     .atom (.const (.n 41) (word 4 0)),
     .atom (.mul (.n 42) (.n 14) (.n 41)),
-    .atom (.load (.n 42) (.n 6) 81),
-    .atom (.load (.n 43) (.n 6) 96),
+    .atom (.load (.n 42) (.n 6) 56),
+    .atom (.load (.n 43) (.n 6) 66),
     .atom (.mul (.n 44) (.n 40) (.n 15)),
     .atom (.add (.n 45) (.n 43) (.n 44)),
     .atom (.mul (.n 46) (.n 26) (.n 26)),
     .atom (.add (.n 47) (.n 8) (.n 46)),
     .atom (.mul (.n 48) (.n 47) (.n 18)),
     .atom (.add (.n 49) (.n 45) (.n 48)),
-    .atom (.load (.n 49) (.n 6) 97),
+    .atom (.load (.n 49) (.n 6) 67),
     .atom (.const (.n 50) (word 2 0)),
     .atom (.mul (.n 51) (.n 0) (.n 50)),
     .atom (.add (.n 52) (.n 51) (.n 1)),

@@ -18,7 +18,7 @@ public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import LeanVM.Facts.Verifier
 public import LeanVM.Protocol.Verifier
-public import LeanVM.Guest.Word
+public import LeanVM.Core.Word
 public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Protocol.KeccakHash
 public import LeanVM.Guest.GuestConst
@@ -62,6 +62,8 @@ What the bump allocator hands out is not a hint: the interpreter's allocator cho
 -/
 
 namespace LeanVM.Guest.Hints
+
+open LeanVM.Core
 
 open LeanVM.Guest.Coverage
 

@@ -124,13 +124,6 @@ name = "guest-core"
 root = "GuestCore"
 srcDir = "cli"
 
-# Writes the certificates of the guest's compiled functions (`LeanVM/Guest/Data/Cert*.lean`,
-# `Pows.lean`) and the kernel's checks of them; `--check` fails when they are stale, as CI runs it.
-[[lean_exe]]
-name = "guest-cert"
-root = "GuestCert"
-srcDir = "cli"
-
 # The guest's mirror and honest hint generator against real aggregations (cli/GuestDiff.lean): on
 # the cases the exporter's ignored test `guest_diff` writes; not a default target.
 [[lean_exe]]
@@ -159,4 +152,73 @@ srcDir = "cli"
 [[lean_exe]]
 name = "test-runs"
 root = "TestRuns"
+srcDir = "cli"
+
+# The guest's back end in Lean (`LeanVM/Compiler/`), compiled (cli/GuestBackend.lean): the
+# guest's source through `Expand` and the back end to leanISA bytecode and prover hints, compared
+# with `Statement/Data/` or written out for the Rust comparison; not a default target.
+[[lean_exe]]
+name = "guest-backend"
+root = "GuestBackend"
+srcDir = "cli"
+
+# The guest the Rust prover loads (cli/GuestArtifact.lean): the back end's compilation of the guest's
+# source at the fixed point on its own size, with its Fiat-Shamir IV, written to or checked against
+# `guests/lean_ethereum.compiled` (`scripts/guest-artifact` drives it); not a default target.
+[[lean_exe]]
+name = "guest-artifact"
+root = "GuestArtifact"
+srcDir = "cli"
+
+# The guest as the back end's input with `coreProgram`'s functions (cli/GuestTraced.lean): writes the
+# traces of `LeanVM/Guest/Compiled/`, or checks them and the back end's output on them; not a
+# default target.
+[[lean_exe]]
+name = "guest-traced"
+root = "GuestTraced"
+srcDir = "cli"
+
+# The kernel-checked pieces of the guest's compilation by the back end (cli/GuestPieces.lean):
+# writes `LeanVM/Guest/Compiled/Piece/` and `Compiled.lean`, or checks them; not a default
+# target.
+[[lean_exe]]
+name = "guest-pieces"
+root = "GuestPieces"
+srcDir = "cli"
+
+# The placement-side completeness hypotheses on the guest (cli/GuestCplFrame.lean); not a default
+# target.
+[[lean_exe]]
+name = "guest-cplframe"
+root = "GuestCplFrame"
+srcDir = "cli"
+
+# The kernel's per-function completeness checks of the guest: writes Guest/Compiled/Cpl/Eval/
+# (`--check` compares). Not a default target.
+[[lean_exe]]
+name = "guest-cpleval"
+root = "GuestCplEval"
+srcDir = "cli"
+
+# The back end's tables of the guest (cli/GuestTables.lean): writes LeanVM/Guest/Deployed/Data.lean
+# (`--check` compares) and the input of `scripts/decoder-tables` (`--decoder-inputs FILE`). Not a
+# default target.
+[[lean_exe]]
+name = "guest-tables"
+root = "GuestTables"
+srcDir = "cli"
+
+# The guest's data of the back end's soundness obligations (cli/GuestOblGen.lean): writes
+# `Obl/GuestXTab.lean`, `Obl/Eval/`, and `xTab`, `guestXIdx`, `vsIdx` in `Obl/GuestX.lean` and
+# `Obl/GuestTab.lean` (`--check` compares); run under `lake env`. Not a default target.
+[[lean_exe]]
+name = "guest-oblgen"
+root = "GuestOblGen"
+srcDir = "cli"
+
+# The pointer discipline and the load shapes of the guest's core functions
+# (cli/GuestPtrCheck.lean); not a default target.
+[[lean_exe]]
+name = "guest-ptrcheck"
+root = "GuestPtrCheck"
 srcDir = "cli"

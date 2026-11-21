@@ -1,7 +1,7 @@
 import LeanVM.Guest.Data.Source
-import LeanVM.Guest.Expand
-import LeanVM.Guest.Code
-import LeanVM.Guest.Renumber
+import LeanVM.Core.Expand
+import LeanVM.Core.Code
+import LeanVM.Core.Renumber
 import Statement.Data.Bytecode
 
 /-!
@@ -18,7 +18,7 @@ it; `Guest/CoreData.lean` checks access to it.
 
 namespace LeanVMTests.Guest.CoreData
 
-open Lean LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Core
+open Lean LeanVM.Parameters LeanVM.Guest LeanVM.Core
 
 /-- Reading a term back, its constants unfolded to their definitions. -/
 abbrev R := ReaderT Environment (Except String)
@@ -160,21 +160,21 @@ of the instructions (`keccakIns`, `keccakOuts`) throughout the function, each co
 
 mutual
 /-- The atoms of a statement, every branch and arm. -/
-def atomsOf : Core.Stmt → List Core.Atom
+def atomsOf : LeanVM.Core.Stmt → List LeanVM.Core.Atom
   | .atom a => [a]
   | .ite _ z n => atomsList z ++ atomsList n
   | .match_ _ arms => atomsArms arms
   | _ => []
-def atomsList : List Core.Stmt → List Core.Atom
+def atomsList : List LeanVM.Core.Stmt → List LeanVM.Core.Atom
   | [] => []
   | s :: ss => atomsOf s ++ atomsList ss
-def atomsArms : List (List Core.Stmt) → List Core.Atom
+def atomsArms : List (List LeanVM.Core.Stmt) → List LeanVM.Core.Atom
   | [] => []
   | a :: as => atomsList a ++ atomsArms as
 end
 
 /-- The `KECCAK` atoms of a core function: their read and written values and layouts. -/
-def keccakAtoms (f : Core.Fn) : List (List Core.V × List Core.V × Bool × Bool) :=
+def keccakAtoms (f : LeanVM.Core.Fn) : List (List LeanVM.Core.V × List LeanVM.Core.V × Bool × Bool) :=
   (atomsList f.body).filterMap fun
     | .keccak ins outs i o => some (ins, outs, i, o)
     | _ => none
@@ -188,11 +188,11 @@ def keccakInstrs (c : CompiledFunction) : List (List Nat × List Nat × Bool × 
     | _ => none
 
 /-- Whether a core function's `KECCAK` atoms are a compiled function's `KECCAK` instructions. -/
-def keccakAgree (f : Core.Fn) (c : CompiledFunction) : Bool := Id.run do
+def keccakAgree (f : LeanVM.Core.Fn) (c : CompiledFunction) : Bool := Id.run do
   let as := keccakAtoms f
   let is := keccakInstrs c
   if as.length != is.length then return false
-  let mut off : Std.HashMap Core.V Nat := {}
+  let mut off : Std.HashMap LeanVM.Core.V Nat := {}
   for ((ins, outs, i, o), (ci, co, i', o')) in as.zip is do
     if i != i' || o != o' || ins.length != 13 || outs.length != co.length then return false
     for (v, k) in (ins ++ outs).zip (ci ++ co) do

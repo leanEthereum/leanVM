@@ -15,15 +15,15 @@ public import LeanVM.Guest.B1.Eq.RsEqRun
 # `ring_switch_weight` (TRIAGE G #66)
 
 `ring_switch_weight(z_vals, point1, c_table, qkeccakv_g)` (`fn% «ring_switch_weight»`)
-writes a row of `64` ones (`rswInit`), calls `rs_eq_run` on it, whose last row holds `ringRow 1 r p
-k` (`Π (r_n^(2^k) + p_n)`, B1-a's `MeaningRsEqRun`), and sums `c_table[k] · row[k]` (`rswTerm`).
+calls `rs_eq_run`, whose chain starts with a row of ones and whose last row holds `ringRow 1 r p k`
+(`Π (r_n^(2^k) + p_n)`, B1-a's `MeaningRsEqRun`), and sums `c_table[k] · row[k]` (`rswTerm`).
 With `p = 1 + r'` the factor is `1 + r_n^(2^k) + r'_n`, so the sum is
 `ringWeight r r' c_table` (`ringWeight_eq`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -112,41 +112,30 @@ theorem rwProd_eq_ringRow (k : ℕ) :
 
 /-! ## The body -/
 
-/-- Row `0`'s entry `k`: `1` (`prod_chains[k] = 1`). -/
-def rswInit (k : ℕ) : List Stmt :=
-  [.atom (.const (.n (13 + k)) (word 1 0)), .atom (.load (.n (13 + k)) (.n 12) k)]
-
 /-- The value of `c_table[k]`, of the last row's entry `k`, of their product. -/
-def rswC (k : ℕ) : ℕ := if k = 0 then 78 else 4 * k + 77
-def rswP (k : ℕ) : ℕ := if k = 0 then 79 else 4 * k + 78
-def rswM (k : ℕ) : ℕ := if k = 0 then 80 else 4 * k + 79
+def rswC (k : ℕ) : ℕ := if k = 0 then 5 else 4 * k + 4
+def rswP (k : ℕ) : ℕ := if k = 0 then 6 else 4 * k + 5
+def rswM (k : ℕ) : ℕ := if k = 0 then 7 else 4 * k + 6
 
-/-- Term `k` of the sum: `c_table[k]·row[k]`, added to the running sum (`4k + 80`). -/
+/-- Term `k` of the sum: `c_table[k]·row[k]`, added to the running sum (`4k + 7`). -/
 def rswTerm (k : ℕ) : List Stmt :=
   if k = 0 then
-    [.atom (.load (.n 78) (.n 2) 0), .atom (.load (.n 79) (.n 77) 0),
-      .atom (.mul (.n 80) (.n 78) (.n 79))]
+    [.atom (.load (.n 5) (.n 2) 0), .atom (.load (.n 6) (.n 4) 0),
+      .atom (.mul (.n 7) (.n 5) (.n 6))]
   else
-    [.atom (.load (.n (4 * k + 77)) (.n 2) k), .atom (.load (.n (4 * k + 78)) (.n 77) k),
-      .atom (.mul (.n (4 * k + 79)) (.n (4 * k + 77)) (.n (4 * k + 78))),
-      .atom (.add (.n (4 * k + 80)) (.n (4 * k + 76)) (.n (4 * k + 79)))]
+    [.atom (.load (.n (4 * k + 4)) (.n 2) k), .atom (.load (.n (4 * k + 5)) (.n 4) k),
+      .atom (.mul (.n (4 * k + 6)) (.n (4 * k + 4)) (.n (4 * k + 5))),
+      .atom (.add (.n (4 * k + 7)) (.n (4 * k + 3)) (.n (4 * k + 6)))]
 
 /-- `ring_switch_weight`'s body. -/
 def rswT : List Stmt :=
-  [.atom (.const (.n 4) (word 2 0)), .atom (.mul (.n 5) (.n 3) (.n 4)),
-    .atom (.mul (.n 6) (.n 5) (.n 5)), .atom (.mul (.n 7) (.n 6) (.n 6)),
-    .atom (.mul (.n 8) (.n 7) (.n 7)), .atom (.mul (.n 9) (.n 8) (.n 8)),
-    .atom (.mul (.n 10) (.n 9) (.n 9)), .atom (.mul (.n 11) (.n 10) (.n 10)),
-    .atom (.hint (.allocDyn (.n 12) (.n 11)))] ++
-  ((List.range 64).map rswInit).flatten ++ [.call "rs_eq_run" [.n 12, .n 0, .n 1, .n 3] [.n 77]] ++
-  ((List.range 64).map rswTerm).flatten ++ [.atom (.copy (.n 333) (.n 332)), .ret [.n 333]]
+  [.call "rs_eq_run" [.n 0, .n 1, .n 3] [.n 4]] ++
+  ((List.range 64).map rswTerm).flatten ++ [.atom (.copy (.n 260) (.n 259)), .ret [.n 260]]
 
 theorem rsw_body : (fn% «ring_switch_weight»).body = rswT := stmtsEqb_sound (by decide +kernel)
 
 theorem find_rsw : coreProgram.find? "ring_switch_weight" = some fn% «ring_switch_weight» :=
   coreProgram_find?_at (j := idx% «ring_switch_weight») rfl
-
-theorem rswInit_noRet (k : ℕ) : Stmt.noRetList (rswInit k) = true := rfl
 
 theorem rswTerm_noRet (k : ℕ) : Stmt.noRetList (rswTerm k) = true := by
   unfold rswTerm; split <;> rfl
@@ -154,9 +143,9 @@ theorem rswTerm_noRet (k : ℕ) : Stmt.noRetList (rswTerm k) = true := by
 /-- What term `k` asks of a valuation. -/
 theorem holds_rswTerm {k : ℕ} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (rswTerm k) True kret) :
-    LoadHolds rd (σ (.n 2)) k (σ (.n (rswC k))) ∧ LoadHolds rd (σ (.n 77)) k (σ (.n (rswP k))) ∧
+    LoadHolds rd (σ (.n 2)) k (σ (.n (rswC k))) ∧ LoadHolds rd (σ (.n 4)) k (σ (.n (rswP k))) ∧
       σ (.n (rswM k)) = σ (.n (rswC k)) * σ (.n (rswP k)) ∧
-      (k ≠ 0 → σ (.n (4 * k + 80)) = σ (.n (4 * (k - 1) + 80)) + σ (.n (rswM k))) := by
+      (k ≠ 0 → σ (.n (4 * k + 7)) = σ (.n (4 * (k - 1) + 7)) + σ (.n (rswM k))) := by
   unfold rswTerm at h
   split at h
   · subst_vars
@@ -166,12 +155,12 @@ theorem holds_rswTerm {k : ℕ} {kret : List E → Prop}
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h
     simp only [rswC, rswP, rswM, hk, ↓reduceIte]
     refine ⟨h.1, h.2.1, h.2.2.1, fun _ => ?_⟩
-    rw [h.2.2.2, show 4 * (k - 1) + 80 = 4 * k + 76 by omega]
+    rw [h.2.2.2, show 4 * (k - 1) + 7 = 4 * k + 3 by omega]
 
-/-- The running sum: `4k + 80` holds `Σ_{j ≤ k} c_table[j]·row[j]`. -/
-theorem rsw_acc (hm : ∀ k < 64, (k ≠ 0 → σ (.n (4 * k + 80)) = σ (.n (4 * (k - 1) + 80)) +
+/-- The running sum: `4k + 7` holds `Σ_{j ≤ k} c_table[j]·row[j]`. -/
+theorem rsw_acc (hm : ∀ k < 64, (k ≠ 0 → σ (.n (4 * k + 7)) = σ (.n (4 * (k - 1) + 7)) +
       σ (.n (rswM k)))) :
-    ∀ k < 64, σ (.n (4 * k + 80)) = gsum (fun j ↦ σ (.n (rswM j))) (k + 1)
+    ∀ k < 64, σ (.n (4 * k + 7)) = gsum (fun j ↦ σ (.n (rswM j))) (k + 1)
   | 0, _ => by rw [gsum_one]; rfl
   | k + 1, hk => by
     rw [hm (k + 1) hk (by omega), Nat.add_sub_cancel, rsw_acc hm k (by omega), gsum_succ (n := k + 1)]
@@ -185,41 +174,31 @@ theorem ring_switch_weight_holds : ring_switch_weight_Spec := by
   subst hpar
   simp only [rswT, holdsList_append] at hb
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hb
-  obtain ⟨-, -, -, -, -, -, -, -, -, hb⟩ := hb
-  obtain ⟨hinit, hb⟩ := (holdsList_range_flatten 64 rswInit rswInit_noRet _ _).mp hb
   obtain ⟨hcall, hb⟩ := hb
-  obtain ⟨hterm, e333, hret⟩ := (holdsList_range_flatten 64 rswTerm rswTerm_noRet _ _).mp hb
-  have hrow0 : ∀ k < 64, LoadHolds rd (σ (.n 12)) k 1 := by
-    intro k hk
-    have := hinit k hk
-    simp only [rswInit, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at this
-    rw [← word_one, ← this.1]; exact this.2
+  obtain ⟨hterm, e260, hret⟩ := (holdsList_range_flatten 64 rswTerm rswTerm_noRet _ _).mp hb
   have ht := fun k hk => holds_rswTerm (hterm k hk)
   have hrsm := rs_eq_run_sound rd _ _ hcall
   simp only [List.map_cons, List.map_nil, MeaningRsEqRun] at hrsm
-  obtain ⟨count, hcount, hcg, zs, ps, c, hzl, hpl, hcl, hz, hp, hc, hrows, hret77⟩ := hrsm
-  simp only [List.cons.injEq, and_true] at hret77
+  obtain ⟨count, hcount, hcg, zs, ps, hzl, hpl, hz, hp, chain, hones, hrows, hret4⟩ := hrsm
+  simp only [List.cons.injEq, and_true] at hret4
   have hpk : ∀ k < 64, σ (.n (rswP k)) = ringRow 1 zs ps k := by
     intro k hk
     have l := (ht k hk).2.1
-    rw [hret77, loadHolds_mul_gen_pow] at l
+    rw [hret4, loadHolds_mul_gen_pow] at l
     rcases Nat.eq_zero_or_pos count with h0 | hpos
     · subst h0
       have hz0 : zs = [] := List.length_eq_zero_iff.mp hzl
       have hp0 : ps = [] := List.length_eq_zero_iff.mp hpl
       subst hz0 hp0
       simp only [Nat.zero_add, Nat.reduceDiv, mul_zero] at l
-      rw [loadHolds_unique l (hrow0 k hk)]
+      have o := readsAt_getD hones (i := k) (by simp; omega)
+      rw [List.getD_eq_getElem _ _ (by simp; omega), List.getElem_replicate] at o
+      rw [loadHolds_unique l o]
       rfl
     · have hH : 1 ≤ (count + 7) / 8 := by omega
       have r := hrows _ hH le_rfl k hk
       have hmin : min (8 * ((count + 7) / 8)) count = count := by omega
       rw [hmin, List.take_of_length_le (by omega), List.take_of_length_le (by omega)] at r
-      have hck : c.getD k 0 = 1 := by
-        have := hc hpos k (by rw [hcl]; exact hk)
-        rw [List.getD_eq_getElem _ _ (by rw [hcl]; exact hk)]
-        exact loadHolds_unique this (hrow0 k hk)
-      rw [hck] at r
       exact loadHolds_unique l r
   refine ⟨count, hcount, hcg, zs, ps, (List.range 64).map (fun k ↦ σ (.n (rswC k))), hzl, hpl,
     by simp [kBits], hz, hp, ?_, ?_⟩
@@ -229,7 +208,7 @@ theorem ring_switch_weight_holds : ring_switch_weight_Spec := by
     exact (ht k hk).1
   · rw [← hret]
     simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true]
-    rw [e333, show (332 : ℕ) = 4 * 63 + 80 from rfl,
+    rw [e260, show (259 : ℕ) = 4 * 63 + 7 from rfl,
       rsw_acc (fun k hk => (ht k hk).2.2.2) 63 (by decide), ringWeight_eq]
     simp only [List.length_map, List.length_range]
     refine gsum_congr fun k hk => ?_

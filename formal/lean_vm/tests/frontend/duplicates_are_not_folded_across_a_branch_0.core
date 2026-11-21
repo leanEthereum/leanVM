@@ -1,0 +1,21 @@
+def main []
+  hint alloc %0 2
+  const %1 8 0
+  const %2 32 0
+  add %3 %1 %2
+  if_zero %3
+    const %4 16 0
+    load %4 %0 0
+  else
+    const %5 16 0
+    load %5 %0 0
+  end
+  load %6 %0 0
+  const %7 1 0
+  load %6 %7 0
+  const %8 8 0
+  const %9 1 0
+  const %10 2 0
+  mul %11 %9 %10
+  load %8 %11 0
+  ret []

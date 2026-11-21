@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.Renumber
+public import LeanVM.Core.Renumber
 import Mathlib.Data.List.GetD
 
 /-!
@@ -20,7 +20,7 @@ which `Core` derives only as `BEq`, is written out (`stmtDecEq`).
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
+open LeanVM.Core LeanVM.Parameters
 
 @[expose] public section
 

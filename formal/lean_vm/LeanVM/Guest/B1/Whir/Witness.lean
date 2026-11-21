@@ -32,7 +32,7 @@ and the frame map `V`, reading words only.
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -60,7 +60,7 @@ def osPreQ (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : OsSt :=
   let m := if fin then osFinalMsg c lv f.2 else osCommit c lvl lv f.2
   let sq := osPositions c lvl lv m.2
   let la := if fin then (([] : List Stmt), sq.2) else osLam sq.2
-  let h := if fin then osHsFinal c lv la.2 else osHsMid lvl lv la.2
+  let h := if fin then osHsFinal c lv la.2 else osHsMid lv la.2
   h.2
 
 /-- The arguments and returns of `osQueries c lvl lv s`'s dispatch into `level_queries`. -/
@@ -71,7 +71,7 @@ def osQCallOf (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List V × List V 
     else ([], s.lam, s.lamInv, s)
   let cf := osMatS c.plan osCoefs (2 * lv.foldsOff) li.2.2.2
   let hp : List Stmt × ℕ × OsSt :=
-    if fin then ([], s.hs, cf.2.2) else osMatS c.plan osHs (lvl * hsStride) cf.2.2
+    if fin then ([], s.hs, cf.2.2) else osMatS c.plan osHs lv.foldsOff cf.2.2
   let qp := osMatS c.plan osQpos lv.posOff hp.2.2
   let wp := osMatS c.plan osQbp lv.posOff qp.2.2
   ([li.2.1, li.2.2.1, cf.2.1, hp.2.1, qp.2.1, wp.2.1].map V.n, osRun wp.2.2.k 4)

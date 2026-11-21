@@ -4,7 +4,7 @@ public import LeanVM.Cost.Bounds.Guest.Basic
 public import LeanVM.Cost.Bounds.FieldLib
 public import LeanVM.Cost.Bounds.ListLib
 public import LeanVM.Cost.Bounds.Step
-public import LeanVM.Cost.Bounds.Decoder.PreTest
+public import LeanVM.Cost.Bounds.Decoder.SelfTest
 public import LeanVM.Cost.Decoder.Readers
 
 /-!
@@ -21,7 +21,7 @@ decoder's top level builds once, then `gLogAt` (below `2^34`, else `0`):
   hypothesis every bound of the decoder takes; **`gLog_bound`**: `GLogBound P discreteLogTables
   gLogPrice`, `gLogPrice = 122435 ≈ 2^16.90` (the exponents' bits priced at `64`);
 * `gLogD_lt`: every count the decoder reads is below `2^34`;
-* `powSqE_cost_lt`: `a^n` in `E` by squaring (`powSqEC`, `Bounds/Decoder/PreTest.lean`'s
+* `powSqE_cost_lt`: `a^n` in `E` by squaring (`powSqEC`, `Bounds/Decoder/SelfTest.lean`'s
   `powSqE_cost`), `n < 2^k`: `11 + 606·k`; `powSqK_cost_lt`: `5 + 73·k`.
 -/
 

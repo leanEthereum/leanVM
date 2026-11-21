@@ -14,7 +14,6 @@ public import LeanVM.Guest.WalkWindows
 # The walk obligations, definitions (lean_ethereum.py at 40f877dc)
 
 `WinsAt`, `WinWalk`, `WinWalk2`, `OqMainWins`, over the windows' shape `qwN`, `qwWin`, are
-defined in `Guest/WalkWindows.lean`, apart from B1, since the certificates' checker (`Glob`) and
-the decoder's table checks read them; this module re-exports them with `QueryWindowsT`. Their
-facts are `QueriesWalk`'s.
+defined in `Guest/WalkWindows.lean`, apart from B1; this module re-exports them with
+`QueryWindowsT`. Their facts are `QueriesWalk`'s.
 -/

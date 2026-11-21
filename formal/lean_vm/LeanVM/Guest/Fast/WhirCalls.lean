@@ -27,7 +27,7 @@ public import LeanVM.Guest.CoreNames
 
 namespace LeanVM.Guest.Fast
 
-open LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Whir
+open LeanVM.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Whir
 
 @[expose] public section
 

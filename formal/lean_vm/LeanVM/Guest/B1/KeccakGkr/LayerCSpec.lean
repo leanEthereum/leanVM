@@ -22,7 +22,7 @@ equations (`layer_good`), and the parameters are the arguments (`layer_param`).
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Guest.B1.Fwd
 
 @[expose] public section
@@ -33,12 +33,12 @@ def layerSt (first : ℕ) : List Atom :=
   (List.range 16).map (fun i ↦ .load (.n (layOff first + rmfeStores.getD i 0)) (.n 12) (6 + i)) ++
   [.load (.n (layOff first + 624)) (.n 12) 1,
     .load (.n (layOff first + 539)) (.n (layOff first + 719)) 0,
-    .load (.n (layOff first + 540)) (.n (layOff first + 719)) 16,
-    .load (.n (layOff first + 541)) (.n (layOff first + 719)) 32,
-    .load (.n (layOff first + 542)) (.n (layOff first + 719)) 48,
-    .load (.n (layOff first + 543)) (.n (layOff first + 719)) 64,
-    .load (.n (layOff first + 721)) (.n (layOff first + 719)) 80,
-    .load (.n (layOff first + 716)) (.n (layOff first + 719)) 96] ++
+    .load (.n (layOff first + 540)) (.n (layOff first + 719)) 11,
+    .load (.n (layOff first + 541)) (.n (layOff first + 719)) 22,
+    .load (.n (layOff first + 542)) (.n (layOff first + 719)) 33,
+    .load (.n (layOff first + 543)) (.n (layOff first + 719)) 44,
+    .load (.n (layOff first + 721)) (.n (layOff first + 719)) 55,
+    .load (.n (layOff first + 716)) (.n (layOff first + 719)) 66] ++
   (List.range 11).map (fun i ↦ .load (.n (layOff first + 757 + 32 * i)) (.n (layOff first + 745)) i) ++
   [.load (.n (weightEnd first (layOff first) + 24)) (.n 12) 0,
     .load (.n (layOff first + 718)) (.n 12) 2, .load (.n (layOff first + 745)) (.n 12) 4] ++

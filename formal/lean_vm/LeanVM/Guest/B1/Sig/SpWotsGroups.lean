@@ -14,11 +14,11 @@ public import LeanVM.Guest.B1.Sig.Codeword
 /-!
 # `sp_wots`'s codeword, sound
 
-* `spGroupT_sound`, `spGroupsT_sound`: a group's dispatch runs one arm `k < 4^n`, its selector
-  `g^k`; the 21 groups of three digits each do (`SpGroupOK`);
-* `spDigitWord σ p` (`logG`, the unique exponent below the arm count), `spDigit σ i`, `spStart σ i`:
-  the digits the dispatches take, chain `i`'s digit and the cell its start is hinted in
-  (`spStartAt`, `SpWotsLayout`);
+* `spMatches_sound`: each of the 22 dispatches runs one arm `k < 64`, its selector `g^k`
+  (`SpGroupOK`);
+* `spArmAt σ p` (`logG`, the unique exponent below the arm count), `spDigitWord σ p` (its own
+  `spN p` digits), `spDigit σ i`, `spStart σ i`: the arm a dispatch takes, the digits it walks,
+  chain `i`'s digit and the cell its start is hinted in (`spStartAt`, `SpWotsLayout`);
 * `spCodeword_prod`, `spCodeword_enc`: the arithmetic: the running product is `g` to the digits'
   sum; the running encoding is the `XOR` of the digits' fields (`spX`), whose field at
   `spDigitPos i` is digit `i` (`spX_digit`).
@@ -26,7 +26,7 @@ public import LeanVM.Guest.B1.Sig.Codeword
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -48,23 +48,12 @@ theorem spW_atoms : StepAtoms spW := by
   simp only [spW, spWp]
   split <;> rfl
 
-theorem spPre_atoms (fold : Bool) (B : Nat) : atomsOnly (spPre fold B) = true := by
-  cases fold <;> rfl
+/-! ## The dispatches -/
 
-/-! ## The groups -/
-
-/-- **A group's dispatch takes one arm**: what it sets before holds, and some `k < 4^n` is the
-selector's exponent, and arm `k`'s atoms hold, from its base. -/
-theorem spGroupT_sound {first n : Nat} {fold : Bool} {prodIn encIn : V} {B : Nat} {rest : List Stmt}
-    {next : Prop} (h : Stmt.HoldsList C rd σ ((spGroupT first n fold prodIn encIn B).1 ++ rest) next kret) :
-    Stmt.HoldsList C rd σ rest next kret ∧ AtomsHold rd σ (spPre fold B) ∧ ∃ k < 4 ^ n,
-      σ (.n B) = ofK (addressOfIndex k) ∧
-      AtomsHold rd σ (spArmK first n fold B prodIn encIn k (spArmB first n fold B prodIn encIn k)).1 :=
-  groupD_sound spW_atoms (spPre_atoms fold B) h
-
-/-- **What group `p` establishes**: its digit word `k < 4^n` and its arm's atoms. -/
+/-- **What group `p`'s dispatch establishes**: its digit word `g^k`, `k < 64`, and arm `k`'s
+atoms. -/
 def SpGroupOK (rd : Reader) (σ : Val) (p : Nat) : Prop :=
-  ∃ k < 4 ^ spN p, σ (.n (spState p).2.2) = ofK (addressOfIndex k) ∧
+  ∃ k < 64, σ (.n (spDg + p)) = ofK (addressOfIndex k) ∧
     AtomsHold rd σ (spArmK (3 * p) (spN p) (p == 0) (spState p).2.2 (spState p).1 (spState p).2.1 k
       (spArmB (3 * p) (spN p) (p == 0) (spState p).2.2 (spState p).1 (spState p).2.1 k)).1
 
@@ -72,43 +61,74 @@ theorem spN_of_lt {p : Nat} (hp : p < 21) : spN p = 3 := by simp [spN, hp]
 
 theorem spN_le (p : Nat) : spN p ≤ 3 := by unfold spN; split <;> omega
 
-/-- **The groups of three digits, sound.** -/
-theorem spGroupsT_sound {rest : List Stmt} {next : Prop} : ∀ (m p : Nat), p + m ≤ 21 →
-    Stmt.HoldsList C rd σ ((spGroupsT m p (spState p).1 (spState p).2.1 (spState p).2.2).1 ++ rest)
-      next kret →
-      Stmt.HoldsList C rd σ rest next kret ∧ (p = 0 → 0 < m → PadOK σ spPad) ∧
-        ∀ j < m, SpGroupOK rd σ (p + j)
-  | 0, p, _, h => ⟨by simpa [spGroupsT] using h, fun _ h => absurd h (by omega),
-      fun j hj => absurd hj (by omega)⟩
-  | m + 1, p, hm, h => by
-      rw [spGroupsT_succ, List.append_assoc] at h
-      obtain ⟨h1, hpre, k, hk, hx, ha⟩ := spGroupT_sound h
-      have ih := spGroupsT_sound m (p + 1) (by omega) (by rw [spState_succ]; exact h1)
-      refine ⟨ih.1, fun hp _ => ?_, fun j hj => ?_⟩
-      · subst hp
-        exact padRun_ok (P := 16 + 5) (by simpa [spPre, spState_zero] using hpre)
-      rcases j with _ | j
-      · refine ⟨k, by rw [Nat.add_zero, spN_of_lt (by omega)]; exact hk, by simpa using hx, ?_⟩
-        rw [Nat.add_zero, spN_of_lt (by omega)]
-        exact ha
-      · have := ih.2.2 j (by omega)
-        rwa [show p + 1 + j = p + (j + 1) by omega] at this
+theorem spArmK_atoms (first n : Nat) (fold : Bool) (vb : Nat) (prodIn encIn : V) (k b : Nat) :
+    atomsOnly (spArmK first n fold vb prodIn encIn k b).1 = true :=
+  armM_atoms spW_atoms _ _ _ _ _ _ _ _ _ _
+
+/-- **The dispatches `p ..< p + m`, sound**: each takes an arm. -/
+theorem spMatches_sound {rest : List Stmt} {next : Prop} : ∀ (m p : Nat),
+    Stmt.HoldsList C rd σ ((List.range m).map (fun q => spMatch (p + q)) ++ rest) next kret →
+      Stmt.HoldsList C rd σ rest next kret ∧ ∀ j < m, SpGroupOK rd σ (p + j)
+  | 0, p, h => ⟨by simpa using h, fun j hj => absurd hj (by omega)⟩
+  | m + 1, p, h => by
+      rw [List.range_succ_eq_map, List.map_cons, List.map_map, List.cons_append] at h
+      simp only [Stmt.HoldsList, spMatch, Nat.add_zero] at h
+      rw [holds_match_iff] at h
+      obtain ⟨j, hj, hx, ha⟩ := h
+      simp only [spGroupArms_eq, spArmsT] at hj ha
+      rw [armsM_length] at hj
+      rw [armsM_getElem] at ha
+      simp only [Nat.zero_add] at ha
+      have ha' := (holdsList_noRet _ (noRetList_of_atomsOnly (spArmK_atoms (3 * p) (spN p) (p == 0)
+        (spState p).2.2 (spState p).1 (spState p).2.1 j _)) _ _).mp ha
+      have e : (List.range m).map ((fun q => spMatch (p + q)) ∘ Nat.succ) =
+          (List.range m).map (fun q => spMatch (p + 1 + q)) :=
+        List.map_congr_left fun q _ => by
+          simp only [Function.comp_apply, show p + q.succ = p + 1 + q by omega]
+      have ih := spMatches_sound m (p + 1) (by rw [← e]; exact ha'.2)
+      refine ⟨ih.1, fun i hi => ?_⟩
+      rcases i with _ | i
+      · exact ⟨j, hj, by simpa using hx, atomsHold_of_holdsList (spArmK_atoms ..) ha'.1⟩
+      · have := ih.2 i (by omega)
+        rwa [show p + 1 + i = p + (i + 1) by omega] at this
 
 /-! ## The digits and the starts -/
 
-/-- **The digit word group `p`'s dispatch takes**: its selector's exponent. -/
-noncomputable def spDigitWord (σ : Val) (p : Nat) : Nat :=
-  logG (σ (.n (spState p).2.2)) (4 ^ spN p)
+/-- **The arm group `p`'s dispatch takes**: its selector's exponent. -/
+noncomputable def spArmAt (σ : Val) (p : Nat) : Nat := logG (σ (.n (spDg + p))) 64
+
+/-- **The digits group `p` walks**: its arm's own `spN p` digits. -/
+noncomputable def spDigitWord (σ : Val) (p : Nat) : Nat := spArmAt σ p % 4 ^ spN p
 
 /-- **The digit of chain `i`.** -/
 noncomputable def spDigit (σ : Val) (i : Nat) : Nat := spDigitWord σ (i / 3) / 4 ^ (i % 3) % 4
 
 /-- **Chain `i`'s start**: the value its walk hints, in the arm its group's dispatch takes. -/
-noncomputable def spStart (σ : Val) (i : Nat) : V := spStartAt (spDigitWord σ) i
+noncomputable def spStart (σ : Val) (i : Nat) : V := spStartAt (spArmAt σ) i
 
-theorem spDigitWord_eq {p k : Nat} (hk : k < 4 ^ spN p)
-    (hx : σ (.n (spState p).2.2) = ofK (addressOfIndex k)) : spDigitWord σ p = k :=
-  logG_eq hk (by unfold spN; split <;> norm_num) hx
+theorem spArmAt_eq {p k : Nat} (hk : k < 64) (hx : σ (.n (spDg + p)) = ofK (addressOfIndex k)) :
+    spArmAt σ p = k :=
+  logG_eq hk (by norm_num) hx
+
+theorem spDigitWord_lt (σ : Val) (p : Nat) : spDigitWord σ p < 4 ^ spN p :=
+  Nat.mod_lt _ (by positivity)
+
+/-- A digit below `n` of `k`'s own `n` digits is `k`'s. -/
+theorem mod_four_pow_digit (k : Nat) {n r : Nat} (hr : r < n) : k % 4 ^ n / 4 ^ r % 4 = k / 4 ^ r % 4 := by
+  obtain ⟨m, rfl⟩ : ∃ m, n = r + (m + 1) := ⟨n - r - 1, by omega⟩
+  rw [pow_add, Nat.mod_mul_right_div_self, pow_succ, Nat.mod_mul_left_mod]
+
+/-- A digit sum over `n` digits reads `k`'s own `n` digits. -/
+theorem digitSum_mod_pow (k : Nat) (n : Nat) : digitSum (k % 4 ^ n) n = digitSum k n := by
+  suffices h : ∀ t ≤ n, digitSum (k % 4 ^ n) t = digitSum k t from h n le_rfl
+  intro t ht
+  induction t with
+  | zero => rfl
+  | succ t ih => simp only [digitSum, ih (by omega), mod_four_pow_digit k (show t < n by omega)]
+
+theorem spDigit_eq (σ : Val) {i : Nat} (hr : i % 3 < spN (i / 3)) :
+    spDigit σ i = spArmAt σ (i / 3) / 4 ^ (i % 3) % 4 :=
+  mod_four_pow_digit _ hr
 
 /-! ## The values -/
 

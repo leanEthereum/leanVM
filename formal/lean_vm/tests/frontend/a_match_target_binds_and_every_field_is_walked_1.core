@@ -1,0 +1,23 @@
+def main []
+  call pick__L1 [] [%0]
+  const %1 1 0
+  load %0 %1 0
+  const %2 1 0
+  const %3 1 0
+  const %4 2 0
+  mul %5 %3 %4
+  load %2 %5 0
+  ret []
+def pick__L1 []
+  const %0 2 0
+  dispatch %0 [two__L1 two__L2] [] [%1 %2]
+  add %3 %1 %2
+  ret [%3]
+def two__L1 []
+  const %0 2 0
+  const %1 2 0
+  ret [%0 %1]
+def two__L2 []
+  const %0 4 0
+  const %1 4 0
+  ret [%0 %1]

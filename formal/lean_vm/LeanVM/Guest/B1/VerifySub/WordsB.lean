@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.Calls
 public import LeanVM.Guest.B1.Tables.VtC.Kids
 public import LeanVM.Guest.Budget.Static
-public import LeanVM.Guest.Memory.LoopPre
+public import LeanVM.Core.Memory.LoopPre
 public import LeanVM.Guest.B1.Terminal.TermWeight
 public import LeanVM.Guest.Data.NameStrings
 
@@ -30,9 +30,9 @@ and the bounds over the sixteen callees.
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Node LeanVM.Guest.Memory
+open LeanVM.Node LeanVM.Core.Memory
 
 @[expose] public section
 
@@ -108,7 +108,7 @@ structure VsWords (fs : String → ℕ) : Type where
       name% «shared_selector_tables_loop0» → g ≠ "shared_selector_tables" →
     TotalLe coreProgram fs g (fun _ ↦ Kf g)
   hsh : TotalLeOn coreProgram fs "shared_selector_tables"
-    (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh)
+    (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n ∧ a.getD 6 0 = gen ^ (n / 4)) (fun _ ↦ Ksh)
   h10 : TotalLeOn coreProgram fs name% «verify_tables_loop0» LoopPre (fun a ↦ logG (a.getD 1 0) *
       K10 + fs name% «verify_tables_loop0»)
   B14 : ℕ
@@ -122,8 +122,7 @@ structure VsWords (fs : String → ℕ) : Type where
   hL15 : TotalLeOn coreProgram fs name% «check_opening_terminal_loop0» LoopPre
     fun a ↦ logG (a.getD 1 0) * K15 + fs name% «check_opening_terminal_loop0»
   hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs
-  hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a ↦ a.getD 3 0 = gen ^ c)
-    fun _ ↦ Brs
+  hrs : RswWords fs Brs
   ωv : Opcode → String → ℕ
   Kvw : Opcode → String → ℕ
   Wss : Opcode → ℕ
@@ -132,7 +131,8 @@ structure VsWords (fs : String → ℕ) : Type where
       name% «shared_selector_tables_loop0» → g ≠ "shared_selector_tables" →
     WeightLe coreProgram (ωv op) g (fun _ ↦ Kvw op g)
   hssw : ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "shared_selector_tables" →
-    (∃ n < 64, args.getD 5 0 = gen ^ n) → t.Valid coreProgram rd args rets →
+    (∃ n < 64, args.getD 5 0 = gen ^ n ∧ args.getD 6 0 = gen ^ (n / 4)) →
+    t.Valid coreProgram rd args rets →
     t.BufsOk coreProgram → t.weight (ωv op) ≤ Wss op
   h10w : ∀ op, Budget.LoopW (ωv op) name% «verify_tables_loop0» (Kw10 op)
   Weqc : Opcode → ℕ
@@ -150,7 +150,7 @@ structure VsWords (fs : String → ℕ) : Type where
     t.total fs ≤ (32 * K15 + fs name% «check_opening_terminal_loop0») → t.weight (ωv op) ≤ W15 op
   hrswW : ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "ring_switch_weight" →
     t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-    t.total fs ≤ fs "ring_switch_weight" + 2240 + Brs → t.weight (ωv op) ≤ Wrsw op
+    t.total fs ≤ fs "ring_switch_weight" + Brs → t.weight (ωv op) ≤ Wrsw op
 
 /-! ## The bounds -/
 

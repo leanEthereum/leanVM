@@ -13,8 +13,7 @@ evvar={}   # copy var -> k
 for (p,b,k) in EV: evvar[b+3]=k
 BASE=[0,13,26,33,47,61]; WIDTH=[13,13,7,14,14,92]
 # The forms' window, the ξ powers multiplying the push/pull/count forms, W's and β's variables.
-WLO, WHI = 2683, 5522
-XI = (2611, 2612, 2613)
+from anchors import WLO, WHI, XI
 WV, BV = 13, 14
 # Each table's form values per side: the operands of its `ξ²·F0`, `ξ³·F1`, `ξ⁴·F2`, in table order.
 def _formvals():
@@ -197,7 +196,7 @@ public import %(imp)s
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section

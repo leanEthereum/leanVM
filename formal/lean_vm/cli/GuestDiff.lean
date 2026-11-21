@@ -1,11 +1,11 @@
 import LeanVM.Guest.Hints
 import LeanVM.Guest.Limits
-import LeanVM.Guest.Interp
-import LeanVM.Guest.Renumber
-import LeanVM.Guest.Expand
+import LeanVM.Core.Interp
+import LeanVM.Core.Renumber
+import LeanVM.Core.Expand
 import LeanVM.Guest.Data.Source
 import Statement.Data.Bytecode
-import LeanVM.Guest.Code
+import LeanVM.Core.Code
 import LeanVM.Guest.B1.Da.DualMath
 import LeanVM.Cli.Common
 
@@ -33,8 +33,8 @@ It prints the first divergence of each check and exits with `1` if any check fai
 -/
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
-open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node LeanVM.Guest
-open LeanVM.Guest.Hints LeanVM.Guest.Coverage LeanVM.Guest.Interp LeanVM.Cli
+open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node LeanVM.Guest LeanVM.Core
+open LeanVM.Guest.Hints LeanVM.Guest.Coverage LeanVM.Core.Interp LeanVM.Cli
 
 namespace GuestDiff
 
@@ -327,7 +327,7 @@ def smallLogs : Std.HashMap Nat Nat := Id.run do
   return m
 
 /-- (ii): run `main` of the core IR; the error, or the streams left unread. -/
-def runGuest (program : Core.Program) (c : Case) (streams : Streams) (pi : List E) :
+def runGuest (program : LeanVM.Core.Program) (c : Case) (streams : Streams) (pi : List E) :
     Option String :=
   let tables := DlogTables.build
   let small := smallLogs
@@ -362,7 +362,7 @@ def main (args : List String) : IO UInt32 := do
     IO.eprintln "usage: guest-diff [--no-rel] [--no-run] <case>..."
     return 2
   let program ← match Expand.expandProgram Data.guest with
-    | .ok fns => pure (fns.map Core.Fn.renumber)
+    | .ok fns => pure (fns.map LeanVM.Core.Fn.renumber)
     | .error e => throw (IO.userError s!"expansion: {e}")
   let mut failed := false
   for path in paths do

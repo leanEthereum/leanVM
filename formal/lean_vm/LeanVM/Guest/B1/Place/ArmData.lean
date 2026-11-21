@@ -20,14 +20,14 @@ public import LeanVM.Guest.B1.Whir.TableKeys
 `BodyOk c`: every call statement of the body names a callee of `osKindOf`, every dispatch is on
 the rate's selector over four names, and the body takes no frame address. `LvFacts c l`: level
 `l`'s helpers are entries of their tables (`level_positions` with its loop `lpLoopA c l`), its
-positions' slices fit `ligPosCap`, its `opening_queries` shape matches its row, and its words fit
-their buffers. `armBody_ok`, `armLv_ok`: both at every arm `m < 11` and rate `ri < 4`, by the
-kernel.
+positions' slice within `query_positions` and before the next level's, its `opening_queries` shape
+matches its row, and its words fit their buffers. `armBody_ok`, `armLv_ok`: both at every arm
+`m < 11` and rate `ri < 4`, by the kernel.
 -/
 
 namespace LeanVM.Guest.B1.Arm
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Guest.B1 LeanVM.Guest.B1.Whir
 
 @[expose] public section
@@ -89,15 +89,17 @@ def LvFacts (c : OsCfg) (l : ℕ) : Prop :=
     (if l = c.yrLevel then c.yrLog + 1 else 0), (if l = c.yrLevel then 1 else 0)) ∈ lqTable ∧
   (l < c.yrLevel → (osResidualName (osLvA c l), (osLvA c l).queries, (osLvA c l).logCols,
     (osLvA c l).folds, (osLvA c l).highBits, (lrLoopsA c l).1, (lrLoopsA c l).2) ∈ lrTable) ∧
-  (osLvA c l).posOff = l * ligPosCap ∧
-  (osLvA c l).squeezes * (128 / (osLvA c l).depth) ≤ ligPosCap ∧
+  (osLvA c l).posOff + (osLvA c l).squeezes * (128 / (osLvA c l).depth) ≤
+    (if l + 1 < c.levels.length then (osLvA c (l + 1)).posOff else c.posTotal) ∧
+  (osLvA c l).posOff + (osLvA c l).squeezes * (128 / (osLvA c l).depth) ≤ c.posTotal ∧
   (osLvA c l).queries ≤ (osLvA c l).squeezes * (128 / (osLvA c l).depth) ∧
   0 < 128 / (osLvA c l).depth ∧ 1 ≤ (osLvA c l).squeezes ∧
   (oqSA c l).pd + (oqSA c l).cd = (osLvA c l).depth ∧ (oqSA c l).cd = (osLvA c l).capDepth ∧
   ((oqSA c l).final = 1 ↔ l = c.yrLevel) ∧
   2 * (osLvA c l).foldsOff + 2 * (oqSA c l).folds ≤ 2 * c.nFolds ∧
   (l = c.yrLevel → (oqSA c l).nHs ≤ c.yrLen + (osLvA c l).folds) ∧
-  (osLvA c l).logCols ≤ ligColsCap ∧ (osLvA c l).folds ≤ hsStride ∧
+  (l < c.yrLevel → (osLvA c l).colsOff + (osLvA c l).logCols ≤ c.colsTotal) ∧
+  (osLvA c l).foldsOff + (osLvA c l).folds ≤ c.nFolds ∧
   oqQA c l = (osLvA c l).queries
 
 /-- `LvFacts` by numbers, at the `opening_queries` shape `S`: `LvFacts c l` is it at the shape of
@@ -111,15 +113,17 @@ def LvFactsS (S : OqShape) (c : OsCfg) (l : ℕ) : Prop :=
     (if l = c.yrLevel then c.yrLog + 1 else 0), (if l = c.yrLevel then 1 else 0)) ∈ lqTable.map (·.2) ∧
   (l < c.yrLevel → ((osLvA c l).queries, (osLvA c l).logCols, (osLvA c l).folds,
     (osLvA c l).highBits, (lrLoopsA c l).1, (lrLoopsA c l).2) ∈ lrTable.map (·.2)) ∧
-  (osLvA c l).posOff = l * ligPosCap ∧
-  (osLvA c l).squeezes * (128 / (osLvA c l).depth) ≤ ligPosCap ∧
+  (osLvA c l).posOff + (osLvA c l).squeezes * (128 / (osLvA c l).depth) ≤
+    (if l + 1 < c.levels.length then (osLvA c (l + 1)).posOff else c.posTotal) ∧
+  (osLvA c l).posOff + (osLvA c l).squeezes * (128 / (osLvA c l).depth) ≤ c.posTotal ∧
   (osLvA c l).queries ≤ (osLvA c l).squeezes * (128 / (osLvA c l).depth) ∧
   0 < 128 / (osLvA c l).depth ∧ 1 ≤ (osLvA c l).squeezes ∧
   S.oq.pd + S.oq.cd = (osLvA c l).depth ∧ S.oq.cd = (osLvA c l).capDepth ∧
   (S.oq.final = 1 ↔ l = c.yrLevel) ∧
   2 * (osLvA c l).foldsOff + 2 * S.oq.folds ≤ 2 * c.nFolds ∧
   (l = c.yrLevel → S.oq.nHs ≤ c.yrLen + (osLvA c l).folds) ∧
-  (osLvA c l).logCols ≤ ligColsCap ∧ (osLvA c l).folds ≤ hsStride ∧
+  (l < c.yrLevel → (osLvA c l).colsOff + (osLvA c l).logCols ≤ c.colsTotal) ∧
+  (osLvA c l).foldsOff + (osLvA c l).folds ≤ c.nFolds ∧
   oqCount S.odd S.oq.base (oqNA c l) = (osLvA c l).queries
 
 theorem lvFacts_iff (c : OsCfg) (l : ℕ) :

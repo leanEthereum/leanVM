@@ -1,0 +1,49 @@
+def main []
+  hint alloc %0 7
+  const %1 1 0
+  const %2 1 0
+  const %3 2 0
+  mul %4 %2 %3
+  load %5 %4 0
+  add %6 %1 %5
+  const %7 1 0
+  const %8 1 0
+  const %9 2 0
+  mul %10 %8 %9
+  load %11 %10 0
+  call_if %6 __loop0 [%7 %11 %0]
+  load %12 %0 6
+  const %13 64 0
+  assert_eq %12 %13
+  load %14 %0 1
+  const %15 2 0
+  assert_eq %14 %15
+  ret []
+def bump [%0]
+  const %1 1 0
+  add %2 %0 %1
+  if_zero %2
+    const %3 32 0
+    ret [%3]
+  else
+  end
+  const %4 64 0
+  add %5 %0 %4
+  if_zero %5
+    const %6 1 0
+    ret [%6]
+  else
+  end
+  copy %7 %0
+  ret [%7]
+def __loop0 [%0 %1 %2]
+  mul %3 %2 %0
+  load %0 %3 0
+  call bump [%0] [%4]
+  const %5 2 0
+  mul %6 %4 %5
+  add %7 %6 %1
+  const %8 2 0
+  mul %9 %4 %8
+  call_if %7 __loop0 [%9 %1 %2]
+  ret []

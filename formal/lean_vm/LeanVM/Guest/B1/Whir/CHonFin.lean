@@ -24,7 +24,7 @@ lane at the tail challenges, and dispatches into `level_residual` at its honest 
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest LeanVM.Guest.B1
 open LeanVM.Guest.Value LeanVM.Guest.Memory LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -97,7 +97,7 @@ theorem bufsAt_fin {c : OsCfg} (hHS : HonStatic c) (b : ℕ) :
   set y := c.yrLevel with hy
   set n := c.levels.length with hn
   have sz : ∀ k < 6, (osSizesL c).getD (13 + y + k) 0 =
-      [pointCap, pointCap, n * ligColsCap, n, n, 2 * n].getD k 0 := fun k hk ↦ by
+      [pointCap, pointCap, c.colsTotal, n, n, 2 * n].getD k 0 := fun k hk ↦ by
     have := hHS.fin (k := k + 1) (by omega)
     rw [show 12 + c.yrLevel + (k + 1) = 13 + y + k by omega] at this
     rw [this]
@@ -137,8 +137,8 @@ theorem fin_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {D : ℕ → Os
           ∀ l < h.c.yrLevel,
             ((osLrCalls h.c).getD l ([], [])).1.map σ' =
               [osPtrA h.c b osIxQposA * gen ^ (osLvA h.c l).posOff,
-                osPtrA h.c b (osIxBdA h.c) * gen ^ (l * ligColsCap),
-                osPtrA h.c b osIxHsA * gen ^ (l * hsStride), (D l).mu] ∧
+                osPtrA h.c b (osIxBdA h.c) * gen ^ (osLvA h.c l).colsOff,
+                osPtrA h.c b osIxHsA * gen ^ (osLvA h.c l).foldsOff, (D l).mu] ∧
             ((osLrCalls h.c).getD l ([], [])).2.map σ' =
               [(osLrRetA h.c h.own l (D l).mu).1, (osLrRetA h.c h.own l (D l).mu).2]) := by
   intro σ hsf hok hrt hp ht htch hcl

@@ -4,7 +4,7 @@
 #
 #   scripts/regen-guest.sh                 # write
 #   scripts/regen-guest.sh --check         # write nothing, fail if any file is stale
-#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt cert memory whir count tables decoder
+#   scripts/regen-guest.sh --from STEP     # resume at STEP: export programs core changes vt memory deployed whir count tables decoder backend traced pieces cpleval
 #   scripts/regen-guest.sh --jobs N        # the Lean builds' job cap (lake-build.py's --jobs)
 #
 # Run from anywhere; it works in lean_vm. Each step's generator reads only what the steps before it
@@ -16,7 +16,16 @@
 # were removed since the last export, with the hand-written modules that read them: the proofs to
 # adapt. Not regenerated here: the verifier fixtures (`scripts/export-verifier-fixtures-rust.sh`,
 # before the differential tests) and the fold rounds' table (`scripts/whir-fold-table`, after a change to
-# WHIR's folding).
+# WHIR's folding). The `programs` step writes the Lean back end's compilation of the zkDSL test programs, of
+# the verifiers' fixture program, of the VM's and the prover's test programs (`crates/zkdsl/tests/vm/`, a
+# template at each of its counts) and of the aggregation tests' snippets, which the Rust tests, the Fibonacci
+# benchmark and the fixtures load, and the core IR `Expand` gives each program of the front end's regression
+# corpus (`tests/frontend/*.core`, from `tests/frontend/*.py`). The `backend`
+# step writes the Lean back end's guest data: the soundness obligations' tables and evaluation modules
+# (`guest-oblgen`); the `traced`, `pieces` and `cpleval` steps its kernel-checked compilation of the
+# guest (`guest-traced`, `guest-pieces`, `guest-pieces test`) and the completeness checks' evaluation
+# modules (`guest-cpleval`). What the steps write whole is not committed (`formal/.gitignore`): on a
+# fresh checkout this script writes it before the first build that reads it.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 check=() from=export jobs=()
@@ -29,7 +38,7 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-steps=(export core changes vt cert memory whir count tables decoder)
+steps=(export programs core changes vt memory deployed whir count tables decoder backend traced pieces cpleval)
 case " ${steps[*]} " in *" $from "*) ;; *) echo "unknown step $from: one of ${steps[*]}" >&2; exit 2 ;; esac
 step() { printf '\n==> [%dm%02ds] %s\n' $((SECONDS / 60)) $((SECONDS % 60)) "$*"; }
 capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
@@ -54,19 +63,25 @@ in_place() {
 
 # Each step's parts, and the Lean targets they run.
 parts_export=(export) targets_export=()
-parts_core=(core_ir core_names core_vsat) targets_core=(guest-core)
+parts_programs=(programs) targets_programs=(guest-backend)
+parts_core=(core_ir core_names) targets_core=(guest-core)
 parts_changes=(changes) targets_changes=()
 parts_vt=(vt) targets_vt=()
-parts_cert=(cert) targets_cert=(guest-cert)
-parts_memory=(memory) targets_memory=(guest-memory)
-parts_whir=(whir_data whir_mat_plan walk_known whir_queries) targets_whir=(guest-core)
+parts_deployed=(deployed) targets_deployed=(guest-tables)
+parts_memory=(count_callees memory) targets_memory=(guest-memory)
+parts_whir=(whir_data whir_mat_plan whir_queries) targets_whir=(guest-core)
 parts_count=(count_gen count_vsos) targets_count=()
 parts_tables=(tables) targets_tables=(LeanVM.Guest.Fast.WhirTemplate LeanVM.Guest.B1.Opening.QueriesT
   LeanVM.Guest.Memory.GuestCallees)
-parts_decoder=(decoder) targets_decoder=(LeanVM.Guest.Glob LeanVM.Cost.Decoder.GuestTables)
+parts_decoder=(decoder) targets_decoder=(LeanVM.Guest.CoreData LeanVM.Cost.Decoder.GuestPlaces guest-tables)
+parts_backend=(backend_obl) targets_backend=(guest-oblgen LeanVM.Guest.CoreData
+  LeanVM.Guest.B1.Opening.Interface)
+parts_traced=(traced) targets_traced=(guest-traced)
+parts_pieces=(pieces pieces_test) targets_pieces=(guest-pieces)
+parts_cpleval=(cpleval) targets_cpleval=(guest-cpleval)
 
 part_export() {
-  step "export: bytecode, source, programs (guest-export, from leanVM's sources)"
+  step "export: the compiled guest (guest-artifact), then bytecode, source, programs (guest-export, from leanVM's sources)"
   # The core IR before the change, for the `changes` step.
   # None on a fresh checkout, where the generated files are not there yet.
   if [ ${#check[@]} -eq 0 ]; then
@@ -77,8 +92,22 @@ part_export() {
       if [ -d LeanVM/Guest/Pack ]; then cp -R LeanVM/Guest/Pack .lake/guest-before/Pack; fi
     fi
   fi
+  # The Lean back end compiles the guest at its fixed point (`guests/lean_ethereum.compiled`), which guest-export then
+  # reads as the statement's program.
+  scripts/guest-artifact "${check[@]}" "${jobs[@]}"
+  # guest-export embeds the artefact (`include_str!`): built again, so that it reads the one just written.
   cargo build --release --manifest-path scripts/guest-export/Cargo.toml
   capped scripts/guest-export/target/release/guest-export . "${check[@]}"
+}
+
+part_programs() {
+  # The test programs and the verifiers' fixture program, as the Rust tests, the benchmark and the fixtures load them;
+  # the front end's corpus, expanded.
+  step "programs: the zkDSL test programs compiled (guest-backend export programs), the corpus expanded (core-text)"
+  lakebuild guest-backend
+  capped .lake/build/bin/guest-backend export programs ../../crates/zkdsl/tests/compiled "${check[@]}"
+  capped .lake/build/bin/guest-backend core-text tests/frontend "${check[@]}"
+  capped .lake/build/bin/guest-backend export snippets ../../crates/aggregation/snippets "${check[@]}"
 }
 
 part_core_ir() {
@@ -89,11 +118,6 @@ part_core_ir() {
 part_core_names() {
   step "core: the names' modulus (CoreNames)"
   python3 -I scripts/core-names-modulus "${check[@]}"
-}
-
-part_core_vsat() {
-  step "core: where verify_sub's obligations sit (VsAt)"
-  python3 -I scripts/vs-at "${check[@]}"
 }
 
 part_changes() {
@@ -107,14 +131,20 @@ part_vt() {
   python3 -I scripts/b1c-vt/all.py "${check[@]}"
 }
 
-part_cert() {
-  step "cert: the certificates (guest-cert)"
-  gen guest-cert
+part_deployed() {
+  step "deployed: the back end's tables of the guest (guest-tables)"
+  gen guest-tables
 }
 
 part_memory() {
   step "memory: the memory layer's checks (guest-memory)"
   gen guest-memory
+}
+
+part_count_callees() {
+  # Before the back end's tables: `guest-tables` imports the callees' check.
+  step "memory: every function's callees (scripts/count/gen.py callees)"
+  in_place count/gen.py python3 -I scripts/count/gen.py . callees
 }
 
 part_whir_data() {
@@ -125,11 +155,6 @@ part_whir_data() {
 part_whir_mat_plan() {
   step "whir: the matrices' plan (whir-mat-plan)"
   python3 -I scripts/whir-mat-plan "${check[@]}"
-}
-
-part_walk_known() {
-  step "whir: the walks' obligations (walk-known-all)"
-  python3 -I scripts/walk-known-all "${check[@]}"
 }
 
 part_whir_queries() {
@@ -154,17 +179,47 @@ part_tables() {
 }
 
 part_decoder() {
-  # The tables are written from the guest's entries, and their chunks from the tables just written.
+  # The tables are written from the guest's entries and the back end's places, and their chunks from
+  # the tables just written.
   step "decoder tables and their chunks"
   local d=$tmp/decoder
   mkdir -p "$d"
-  lakebuild LeanVM.Guest.Glob
+  lakebuild LeanVM.Guest.CoreData guest-tables
   capped lake env lean scripts/decoder-tables-entries.lean | sed -n "s/^entries: //p" > "$d/entries.txt"
-  python3 -I scripts/decoder-tables --entries "$d/entries.txt" "${check[@]}"
-  lakebuild LeanVM.Cost.Decoder.GuestTables
+  capped .lake/build/bin/guest-tables --decoder-inputs "$d/backend.txt"
+  python3 -I scripts/decoder-tables --entries "$d/entries.txt" --backend "$d/backend.txt" "${check[@]}"
+  lakebuild LeanVM.Cost.Decoder.GuestTables LeanVM.Cost.Decoder.GuestPlaces
   capped lake env lean scripts/decoder-tables-inputs.lean > "$d/in.txt"
   for k in rows split; do sed -n "s/^$k: //p" "$d/in.txt" > "$d/$k.txt"; done
   python3 -I scripts/decoder-table-chunks --row-lengths "$d/rows.txt" --split-lengths "$d/split.txt" "${check[@]}"
+}
+
+part_backend_obl() {
+  # Reads the core data and B1's `openingQueriesShapes` from their `.olean`s, so under `lake env`.
+  step "backend: the soundness obligations' guest tables and evaluation modules (guest-oblgen)"
+  lakebuild "${targets_backend[@]}"
+  capped lake env .lake/build/bin/guest-oblgen "${check[@]}"
+}
+
+part_traced() {
+  step "traced: the guest's traced input to the back end (guest-traced)"
+  gen guest-traced
+}
+
+part_pieces() {
+  step "pieces: the kernel's checks of the guest's compilation (guest-pieces)"
+  gen guest-pieces
+}
+
+part_pieces_test() {
+  step "pieces: the compiled test program from its pieces (guest-pieces test)"
+  lakebuild guest-pieces
+  capped .lake/build/bin/guest-pieces test "${check[@]}"
+}
+
+part_cpleval() {
+  step "cpleval: the completeness checks' evaluation modules (guest-cpleval)"
+  gen guest-cpleval
 }
 
 selected=() started=

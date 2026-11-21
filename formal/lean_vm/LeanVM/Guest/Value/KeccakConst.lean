@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Value.KeccakSponge
+public import LeanVM.Core.Value.KeccakSponge
 public import Statement.LeanVmGuest
 public import LeanXmss.Scheme
 public import Statement.LeanSphincs
@@ -47,8 +47,10 @@ Keccak-256 of the 2048-byte zero cell (16 permutations) about 6 s and 2 GB over 
 
 namespace LeanVM.Guest.Value.Keccak
 
+open LeanVM.Core.Value.Keccak
+
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
-open LeanVM.Guest.Value.KeccakEval
+open LeanVM.Core.Value.KeccakEval
 
 @[expose] public section
 
@@ -118,7 +120,7 @@ def aggSeed : List ℕ :=
 `seed = [AGG_SEED_0, …, AGG_SEED_4]` (`aggregate_claims`, `lean_ethereum.py`) is the
 capacity a `cap=seed` duplex step reads. -/
 theorem aggSeed_cells (c : Fin 5) :
-    LeanVM.Guest.litField (aggSeed.getD c 0) =
+    LeanVM.Core.litField (aggSeed.getD c 0) =
       cellsOfState Node.batchSeed false ⟨8 + c, by omega⟩ := by
   rw [batchSeed_eq]
   apply E.ext
@@ -188,10 +190,10 @@ theorem paddingBlobRoot_eq :
 /-- **`DA_PAD_BLOB_0`, `DA_PAD_BLOB_1`** (`crates/aggregation/src/placeholders.rs`,
 `lean_ethereum.py`) are the padding blob root's two cells. -/
 theorem daPadBlob_cells :
-    (LeanVM.Guest.word 8002054802297438051 4108169256045952147,
-      LeanVM.Guest.word 12830724869163462953 1721925254677230945) =
+    (LeanVM.Core.word 8002054802297438051 4108169256045952147,
+      LeanVM.Core.word 12830724869163462953 1721925254677230945) =
       digestHalves daPadBlobDigest := by
-  simp only [digestHalves, daPadBlobDigest, LeanVM.Guest.word]; rfl
+  simp only [digestHalves, daPadBlobDigest, LeanVM.Core.word]; rfl
 
 end
 end LeanVM.Guest.Value.Keccak

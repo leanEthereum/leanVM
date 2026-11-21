@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.VcTactic
+public import LeanVM.Core.VcTactic
 public import LeanVM.Guest.B1.Common.Sponge
 
 /-!
@@ -22,7 +22,7 @@ on the arguments the meaning matches on, `vc [rules]`, and rewriting the meaning
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

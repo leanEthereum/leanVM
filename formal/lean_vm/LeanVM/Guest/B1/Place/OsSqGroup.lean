@@ -27,7 +27,7 @@ in `fs D + sqTot` words; `os_sq_groupD`, `os_sq_groupB` the group forms.
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Core.Memory
 open LeanVM.Protocol.Verifier hiding Layout
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 open LeanVM.Guest.B1.Whir

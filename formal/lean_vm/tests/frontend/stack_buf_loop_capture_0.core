@@ -1,0 +1,21 @@
+def main []
+  const %0 5 0
+  const %1 7 0
+  const %2 1 0
+  call __loop0 [%2 %0 %1] []
+  ret []
+def __loop0 [%0 %1 %2]
+  const %3 1 0
+  load %1 %3 0
+  const %4 1 0
+  const %5 2 0
+  mul %6 %4 %5
+  load %2 %6 0
+  const %7 2 0
+  mul %8 %0 %7
+  const %9 16 0
+  add %10 %8 %9
+  const %11 2 0
+  mul %12 %0 %11
+  call_if %10 __loop0 [%12 %1 %2]
+  ret []

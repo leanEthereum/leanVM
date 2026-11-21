@@ -1,0 +1,28 @@
+def main []
+  hint alloc %0 2
+  const %1 1 0
+  call __loop0 [%1 %0] []
+  const %2 1 0
+  const %3 2 0
+  const %4 3 0
+  const %5 4 0
+  const %6 1 0
+  const %7 0 0
+  const %8 0 0
+  const %9 0 0
+  const %10 0 0
+  const %11 9223372036854775808 0
+  keccak [%2 %3 %4 %5 %6 %7 %8 %9 %11 %7 %8 %9 %10] [%12 %13] 0 0
+  ret []
+def __loop0 [%0 %1]
+  const %2 5 0
+  mul %3 %1 %0
+  load %2 %3 0
+  const %4 2 0
+  mul %5 %0 %4
+  const %6 4 0
+  add %7 %5 %6
+  const %8 2 0
+  mul %9 %0 %8
+  call_if %7 __loop0 [%9 %1]
+  ret []

@@ -1,0 +1,13 @@
+def main []
+  hint alloc %0 8
+  const %1 7 0
+  load %1 %0 2
+  const %2 6 0
+  load %2 %0 5
+  load %3 %0 2
+  const %4 7 0
+  assert_eq %3 %4
+  load %5 %0 5
+  const %6 6 0
+  assert_eq %5 %6
+  ret []

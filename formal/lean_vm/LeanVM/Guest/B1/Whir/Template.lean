@@ -11,8 +11,8 @@ module
 
 public import LeanVM.Guest.B1.Whir.Config
 public import LeanVM.Guest.B1.Whir.Split
-public import LeanVM.Guest.Word
-public import LeanVM.Guest.Renumber
+public import LeanVM.Core.Word
+public import LeanVM.Core.Renumber
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Source
@@ -36,7 +36,7 @@ into a helper specialized on that rate's row (`level_positions`, `level_queries`
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Protocol
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Protocol
 
 @[expose] public section
 
@@ -91,7 +91,7 @@ def hsScale (v bits c init : ℕ) : ℕ :=
 
 /-! ## Materialized pointers -/
 
-/-- A shifted pointer the body materialized (`Mat`, `Guest/Expand.lean`): `out = base·g^exp`,
+/-- A shifted pointer the body materialized (`Mat`, `Core/Expand.lean`): `out = base·g^exp`,
 made as `src·g^dist`. -/
 structure OsMat where
   base : ℕ
@@ -340,8 +340,8 @@ def osHead (c : OsCfg) : List Stmt × OsSt :=
   let lastFolds := (c.levels.getD c.yrLevel default).folds
   (osHeap (c.yrLen + lastFolds) 11 ++ osHeap (2 * n) 13 ++ [osLd 7 osRoots 0, osLd 8 osRoots 1] ++
     osHeap c.nFolds 15 ++ osHeap (2 * c.nFolds) 17 ++ osHeap n 19 ++ osHeap n 21 ++
-    osHeap (n * hsStride) 23 ++ osHeap (n * ligColsCap) 25 ++ osHeap n 27 ++
-    osHeap (n * ligPosCap) 29 ++ osHeap (n * ligPosCap) 31,
+    osHeap c.nFolds 23 ++ osHeap c.colsTotal 25 ++ osHeap n 27 ++
+    osHeap c.posTotal 29 ++ osHeap c.posTotal 31,
    { k := 33, fs := [1, 2, 3, 4, 5], cb := 9, co := 0, claim := 6, pad := none, mats := [] })
 
 /-- One fold round (`opening_round`): the cursor, the round's `α` slot and its
@@ -387,7 +387,7 @@ def osCommit (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt 
   let cu := osCurS { s with k := k + 2 }
   let r := cu.2.2.k
   let s1 : OsSt := { cu.2.2 with k := r + 10 }
-  let o0 := osMatS c.plan osOodz ((lvl + 1) * ligColsCap) s1
+  let o0 := osMatS c.plan osOodz lv.colsOff s1
   let q := o0.2.2.k
   let b := q + 10
   let cb := r + 7
@@ -458,9 +458,9 @@ def osHsCoefs (src dst : ℕ) (sc : ℕ → ℕ) (si di : ℕ) : ℕ → ℕ →
     (r.1 ++ t.1, t.2)
 
 /-- A non-final level's high part, normalized, into `level_hs`. -/
-def osHsMid (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt :=
+def osHsMid (lv : OsLv) (s : OsSt) : List Stmt × OsSt :=
   let r := osHsCoefs s.sent osHs
-    (fun c ↦ hsScale lv.vanish lv.highBits c (vanishInv (lv.vanish + lv.logCols))) 2 (lvl * hsStride)
+    (fun c ↦ hsScale lv.vanish lv.highBits c (vanishInv (lv.vanish + lv.logCols))) 2 lv.foldsOff
     lv.folds 0 s.k
   (r.1, { s with k := r.2 })
 
@@ -493,7 +493,7 @@ def osQueries (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt
     else ([], s.lam, s.lamInv, s)
   let cf := osMatS c.plan osCoefs (2 * lv.foldsOff) li.2.2.2
   let hp : List Stmt × ℕ × OsSt :=
-    if fin then ([], s.hs, cf.2.2) else osMatS c.plan osHs (lvl * hsStride) cf.2.2
+    if fin then ([], s.hs, cf.2.2) else osMatS c.plan osHs lv.foldsOff cf.2.2
   let qp := osMatS c.plan osQpos lv.posOff hp.2.2
   let wp := osMatS c.plan osQbp lv.posOff qp.2.2
   let r := wp.2.2.k
@@ -523,7 +523,7 @@ def osLevel (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt :
   let gr : List Stmt := [.call ("grind_check__L" ++ natStr queryGrind) [.n m.2.pow0, .n osTabs] []]
   let sq := osPositions c lvl lv m.2
   let la := if fin then (([] : List Stmt), sq.2) else osLam sq.2
-  let h := if fin then osHsFinal c lv la.2 else osHsMid lvl lv la.2
+  let h := if fin then osHsFinal c lv la.2 else osHsMid lv la.2
   let q := osQueries c lvl lv h.2
   let g := if fin then (([] : List Stmt), q.2) else osGlue lvl q.2
   (f.1 ++ m.1 ++ gr ++ sq.1 ++ la.1 ++ h.1 ++ q.1 ++ g.1, g.2)
@@ -609,9 +609,9 @@ def osBasisBlk (bd slot : ℕ) (src : ℕ × ℕ) (inv sc : ℕ) (after : Option
 
 /-- A level's basis coordinates `(slot, source, inverse)`: the fold challenges after its folds,
 then the tail challenges. -/
-def osBasisCoords (c : OsCfg) (tch lvl : ℕ) (lv : OsLv) : List (ℕ × (ℕ × ℕ) × ℕ) :=
+def osBasisCoords (c : OsCfg) (tch : ℕ) (lv : OsLv) : List (ℕ × (ℕ × ℕ) × ℕ) :=
   (List.range (lv.prefixLen + c.yrLog)).map fun t ↦
-    (lvl * ligColsCap + t,
+    (lv.colsOff + t,
       (if t < lv.prefixLen then (osFch, lv.resFoldOff + t) else (tch, t - lv.prefixLen)),
       vanishInv (lv.vanish + t))
 
@@ -627,7 +627,7 @@ def osBasisRow (bd : ℕ) : List (ℕ × (ℕ × ℕ) × ℕ) → ℕ → Option
 def osBases (c : OsCfg) (tch bd ls la : ℕ) : ℕ → List OsLv → ℕ → List Stmt × ℕ
   | _, [], k => ([], k)
   | lvl, lv :: rest, k =>
-    let r := osBasisRow bd (osBasisCoords c tch lvl lv) k none (k + 1)
+    let r := osBasisRow bd (osBasisCoords c tch lv) k none (k + 1)
     let t := osBases c tch bd ls la (lvl + 1) rest r.2.2.2
     (osLd k osBetas lvl :: r.1 ++ [osLd r.2.1 ls lvl, osLd r.2.2.1 la lvl] ++ t.1, t.2)
 
@@ -656,10 +656,10 @@ def osResidual (c : OsCfg) (ich bd ls la lvl : ℕ) (lv : OsLv) (mats : List OsM
   let P := c.plan
   let qp := osMatP P mats osQpos lv.posOff k
   let m1 := osMatsAfter P mats osQpos lv.posOff k
-  let bp := osMatP P m1 bd (lvl * ligColsCap) qp.2.2
-  let m2 := osMatsAfter P m1 bd (lvl * ligColsCap) qp.2.2
-  let hp := osMatP P m2 osHs (lvl * hsStride) bp.2.2
-  let m3 := osMatsAfter P m2 osHs (lvl * hsStride) bp.2.2
+  let bp := osMatP P m1 bd lv.colsOff qp.2.2
+  let m2 := osMatsAfter P m1 bd lv.colsOff qp.2.2
+  let hp := osMatP P m2 osHs lv.foldsOff bp.2.2
+  let m3 := osMatsAfter P m2 osHs lv.foldsOff bp.2.2
   let j := hp.2.2
   let a := j + 3
   (qp.1 ++ bp.1 ++ hp.1 ++
@@ -693,7 +693,7 @@ def osOodFacs (sc : ℕ) : List (ℕ × ℕ × ℕ) → ℕ → List Stmt × ℕ
 `prevCols` message coordinates, from `k`: its scalar, then the factors. -/
 def osOodWeight (c : OsCfg) (tch prevCols ol : ℕ) (lv : OsLv) (k : ℕ) : List Stmt × ℕ × ℕ :=
   let zf := prevCols - c.yrLog
-  let row := ol * ligColsCap
+  let row := lv.colsOff - prevCols
   let r := osOodFacs k ((List.range (zf + c.yrLog)).map fun t ↦
     (row + t, if t < zf then (osFch, lv.foldsOff + t) else (tch, t - zf))) (k + 1)
   (osLd k osOodSc ol :: r.1, r.2)
@@ -734,7 +734,7 @@ def osFinish (c : OsCfg) (st : OsSt) (tch : ℕ) : List Stmt :=
   let k := od.2.2
   [.call ("fold_final_msg__L" ++ natStr c.yrLog) [.n osFmsg, .n tch] [.n yat],
     .atom (.hint (.alloc (.n pt) pointCap)), .atom (.hint (.alloc (.n (pt + 1)) pointCap))] ++
-    pts.1 ++ osHeap (n * ligColsCap) pts.2 ++ osHeap n (pts.2 + 2) ++ osHeap n (pts.2 + 4) ++ bs.1 ++
+    pts.1 ++ osHeap c.colsTotal pts.2 ++ osHeap n (pts.2 + 2) ++ osHeap n (pts.2 + 4) ++ bs.1 ++
     osHeap (2 * n) bs.2 ++ [osCst (bs.2 + 2) (word 0 0), osLd (bs.2 + 2) ich 0, osLd st.claim ich 1] ++
     rs.1 ++ od.1 ++
     [osLd k ich (2 * c.yrLevel + 1), osCp (k + 1) pt, osCp (k + 2) (pt + 1), osLd (k + 3) ich (2 * c.yrLevel),
@@ -776,11 +776,11 @@ def sqLoopBody (lv : OsLv) (name : String) : List Stmt :=
 /-- The residual loop's body, at `xr, N, qpos, basis_d, level_hs, chain, μ` (values
 `0 .. 6`): `xr^resBatch` (`osBatchPow`), the batch's positions at `qpos·g^posOff·xr^resBatch`,
 `h, hh = chain[xr]`, `resBatch` steps, `chain[xr·g] = h, hh`, then the loop's tail. -/
-def resLoopBody (lvl : ℕ) (lv : OsLv) (name : String) : List Stmt :=
+def resLoopBody (lv : OsLv) (name : String) : List Stmt :=
   let pp := osMat 2 lv.posOff 7
   let x := pp.2.2
   let y := x + batchLen
-  let st := osResSteps y 3 (lvl * ligColsCap) 4 (lvl * hsStride) lv.vanish lv.logCols lv.folds
+  let st := osResSteps y 3 lv.colsOff 4 lv.foldsOff lv.vanish lv.logCols lv.folds
     lv.highBits 6 (List.range resBatch) (y + 3) (y + 4) (y + 5)
   pp.1 ++ (osBatchPow x).1 ++ [osMul y pp.2.1 (osBatchPow x).2, osMul (y + 1) 5 0,
     osMul (y + 2) (y + 1) 0, osLd (y + 3) (y + 2) 0, osLd (y + 4) (y + 2) 1] ++ st.1 ++

@@ -32,7 +32,7 @@ bottom first, are byte 33, byte 32 and byte 31 below the low two bits of byte 30
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol.Verifier (eOfNat gen)
 
 @[expose] public section

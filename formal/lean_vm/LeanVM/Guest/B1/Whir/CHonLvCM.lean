@@ -24,7 +24,7 @@ any returns.
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -137,9 +137,9 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
     simp only [LvAt.qs, hd, LvAt.F, LvAt.mu, LvAt.dp, LvAt.s1, hLrw]
   have hph : (h.L l).phase = W'.phase := by simp only [LvAt.phase, hd]
   -- sizes
-  have h9 : (osSizesL h.c).getD 7 0 = h.c.levels.length * 24 := by
+  have h9 : (osSizesL h.c).getD 7 0 = h.c.colsTotal := by
     rw [hS.head (j := 7) (by omega)]; rfl
-  have hmid := hS.mid hl
+  have hcT := (chain_disj hS.cols).2 l hl
   have hsz0 := hS.sent hl
   have hfe := h.foldsEnd_le hS hln
   have h4 : (osSizesL h.c).getD 2 0 = h.c.nFolds := by rw [hS.head (j := 2) (by omega)]; rfl
@@ -221,9 +221,8 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
       subst hq
       dsimp only
       rw [(getD_five2 (capOf_length _) _ _).2]
-      have hc24 : ((h.c.levels.getD l default)).logCols ≤ 24 := hmid.1
       exact h.fixedAt_own (hS.headLt (j := 7) (by omega)) (by unfold osIxQbpA; omega)
-        (by rw [h9]; show (l + 1) * 24 + _ ≤ _; omega)
+        (by rw [h9]; omega)
   case f_ys =>
     simp only [LvAt.midW, hLnw, MidW.cur1, mul_gen_pow_add, Nat.add_assoc]
     exact r2

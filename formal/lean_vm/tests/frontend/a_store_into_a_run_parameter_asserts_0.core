@@ -1,0 +1,15 @@
+def main []
+  hint witness adv [%0 %1]
+  call pin [%0 %1] [%2]
+  const %3 1 0
+  load %0 %3 0
+  const %4 1 0
+  const %5 2 0
+  mul %6 %4 %5
+  load %1 %6 0
+  ret []
+def pin [%0 %1]
+  const %0 32 0
+  const %1 64 0
+  const %2 1 0
+  ret [%2]

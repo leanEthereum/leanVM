@@ -27,7 +27,7 @@ weights `eqEval_prod`) and the lane's low part at the tail challenges (`fold_fin
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
 open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -96,6 +96,9 @@ structure LvFin (c : OsCfg) (lv lv' : OsLv) : Prop where
   hsm : ∀ c' < lv.folds,
     K.ofBits (hsScale lv.vanish lv.highBits c' (vanishInv (lv.vanish + lv.logCols))) =
       ((subspaceRoots lv.logCols).getD lv.logCols 0)⁻¹ * hsNorm lv.logCols lv.highBits c'
+  colsB : lv.colsOff < u128Bound
+  hsB : lv.foldsOff < u128Bound
+  nextC : lv'.colsOff = lv.colsOff + lv.logCols
 
 /-- The terminal point from a level's folds on: `(G ++ T).drop F`. -/
 abbrev ptFrom (G T : List E) (F : ℕ) : List E := (G ++ T).drop F

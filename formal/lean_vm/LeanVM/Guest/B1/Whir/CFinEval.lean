@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.CBlk
-public import LeanVM.Guest.Memory.Straight
+public import LeanVM.Core.Memory.Straight
 
 /-!
 # Straight-line blocks, evaluated
@@ -27,7 +27,7 @@ is that word.
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
 open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section

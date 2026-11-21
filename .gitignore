@@ -5,3 +5,5 @@ __pycache__/
 # Never committed: papers and previews kept beside the repo, LaTeX scratch.
 /*.pdf
 *.tex.tex
+# The compiled guest the prover loads: `crates/aggregation/build.rs` writes it with `formal/lean_vm/scripts/guest-artifact`.
+/guests/lean_ethereum.compiled
