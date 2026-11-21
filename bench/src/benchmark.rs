@@ -149,15 +149,17 @@ pub fn run_aggregation<P: Prover>(
     );
 }
 
-/// Prove `n` leaves with signatures and distinct blob payloads at `leaf_log_inv_rate`, then
-/// aggregate them in one recursion step at `log_inv_rate` and verify the result. The leaves are
-/// built once, in a process of their own; only the recursion step is measured.
+/// Prove `n` leaves with signatures and distinct blob payloads at `leaf_log_inv_rate`, each
+/// wrapped in a 1→1 recursion at `wrap_log_inv_rate` if given, then aggregate them in one
+/// recursion step at `log_inv_rate` and verify the result. The leaves are built once, in a
+/// process of their own; only the recursion step is measured.
 pub fn run_recursion<P: Prover>(
     n: usize,
     per_leaf: usize,
     lean_sphincs_per_leaf: usize,
     blobs_per_leaf: usize,
     leaf_log_inv_rate: usize,
+    wrap_log_inv_rate: Option<usize>,
     log_inv_rate: usize,
     enable_tracing: bool,
     plan: Plan,
@@ -177,6 +179,7 @@ pub fn run_recursion<P: Prover>(
             lean_sphincs_per_leaf,
             blobs_per_leaf,
             leaf_log_inv_rate,
+            wrap_log_inv_rate,
             out.as_ref(),
         );
     }
@@ -214,6 +217,9 @@ pub fn run_recursion<P: Prover>(
             2usize.pow(log_inv_rate as u32)
         ));
     }
+    if let Some(wrap) = wrap_log_inv_rate {
+        inputs.push(format!("each wrapped 1\u{2192}1 at rate 1/{}", 2usize.pow(wrap as u32)));
+    }
     report(
         &format!("\nrecursion {n}\u{2192}1, over leaves of {}", inputs.join(", ")),
         &stats,
@@ -232,14 +238,15 @@ pub fn run_recursion<P: Prover>(
     );
 }
 
-/// Prove a recursion step's `n` leaves and write them to `out`: each leaf's claims and its proof's bytes, each after
-/// its length.
+/// Prove a recursion step's `n` leaves, each wrapped in a 1→1 recursion at `wrap_log_inv_rate` if given, and write
+/// them to `out`: each leaf's claims and its proof's bytes, each after its length.
 fn write_leaves<P: Prover>(
     n: usize,
     per_leaf: usize,
     lean_sphincs_per_leaf: usize,
     blobs_per_leaf: usize,
     log_inv_rate: usize,
+    wrap_log_inv_rate: Option<usize>,
     out: &std::path::Path,
 ) {
     let all = signers::<P>(0, n * per_leaf);
@@ -257,7 +264,11 @@ fn write_leaves<P: Prover>(
         .expect("leaf aggregates");
         // The proof carries no claims; the parent trusts its subprocess for them, standing in for a receiver that
         // knows them.
-        let (claims, leaf, _) = leaf;
+        let (mut claims, mut leaf, _) = leaf;
+        if let Some(wrap) = wrap_log_inv_rate {
+            (claims, leaf, _) = aggregate::<P>(&[(claims, leaf)], vec![], vec![], None, OutputClaims::All, wrap)
+                .expect("the wrap aggregates");
+        }
         for part in [claims.to_bytes(), leaf.to_bytes()] {
             bytes.extend((part.len() as u64).to_le_bytes());
             bytes.extend(part);
