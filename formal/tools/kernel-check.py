@@ -20,7 +20,8 @@ at `LEAN_VMEM_KB` of virtual memory (default 40 GB), aborting on a panic, at mos
 and within `--mem` (default: the machine's available memory less 4 GB), each counted at its build's peak anonymous
 memory from the `lake-build.tsv` tables (`lake-build.py`) plus 1 GB; the slowest builds go first, and a module waits
 until the modules before it are admitted. A process that dies of a signal is run again once (the kernel's sporadic
-crash that `lake-build.py` also retries); a module the kernel rejects fails the run, and nothing more is started.
+crash that `lake-build.py` also retries), and one that runs out of memory is run again alone; a module the kernel
+rejects fails the run, and nothing more is started.
 
 A module that passes is recorded in `DIR/.lake/kernel-check.tsv` under its trace's dependency hash (which Lake computes
 over its source, its options, the toolchain and every artifact of its imports that it reads), the SHA-256 of its
@@ -178,7 +179,11 @@ def main() -> int:
                           *(p / ".lake" / "lake-build.tsv" for p in projects), work / ".lake" / "lake-build.tsv"])
     todo.sort(key=lambda m: -tables.get(m, (0.0, 0.0))[0])
 
+    alone: set[str] = set()
+
     def need(name: str) -> int:
+        if name in alone:
+            return budget
         return min(budget, int(tables[name][1]) + EXTRA if name in tables else DEFAULT_NEED)
 
     def limit() -> None:
@@ -225,6 +230,10 @@ def main() -> int:
             out.flush()
             if done % 500 == 0:
                 log(f"{done}/{len(todo)} checked, {time.monotonic() - start:.0f} s")
+        elif attempt == 0 and any(s in output for s in ("out of memory", "bad_alloc")):
+            log(f"{name}: out of memory beside the others, run again alone")
+            alone.add(name)
+            queue.insert(0, (name, 1))
         elif code < 0 and attempt == 0:
             log(f"{name}: killed by {signal.Signals(-code).name}, run again")
             queue.insert(0, (name, 1))
