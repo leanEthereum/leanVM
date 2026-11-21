@@ -734,7 +734,13 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
     }
     // A level's query positions take the most any rate draws at the size, the levels' runs one after another.
     let pos_most = |s: usize, lv: usize| {
-        cands.iter().skip(s).step_by(n_log_sizes).map(|c| c.squeezes(lv) * c.positions(lv)).max().unwrap()
+        cands
+            .iter()
+            .skip(s)
+            .step_by(n_log_sizes)
+            .map(|c| c.squeezes(lv) * c.positions(lv))
+            .max()
+            .unwrap()
     };
     let (mut pos_off, mut pos_total) = (Vec::new(), Vec::new());
     for (i, c) in cands.iter().enumerate() {
