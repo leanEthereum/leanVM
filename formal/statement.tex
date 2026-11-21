@@ -473,7 +473,7 @@ meaning ``$pk$ signed $m$'';
 \item a \emph{DA digest} $\mathit{da}$ (\lean{NodeClaims.daDigest}): either $H(\rho \,\|\, z)$ of one
 data-availability claim (\lean{DaClaim}, \lean{daClaimDigest}), a matrix root $\rho$
 (\lean{daRoot}) and a membership challenge $z \in \mathbb{E}$ (\lean{membershipChallenge}, as its
-two limbs and two zero words), or $32$ zero bytes without one (\lean{zeroDigest};
+two limbs and two zero lanes), or $32$ zero bytes without one (\lean{zeroDigest};
 \texttt{verifier::da::digest}, \texttt{crates/verifier/src/da.rs}). The claim: some matrix of
 $1$ to \lean{LeanDa.maxRows} encoded blobs with root $\rho$ has every row orthogonal to the dual codeword $L$ of $z$
 (\lean{Da.MatrixWitness.Opens}), which the guest program builds from $z$. The outer verifier holds

@@ -131,7 +131,7 @@ def claimListDigest {PublicKey : Type} (publicKeyBytes : PublicKey → List UInt
   keccak256 (claimListPreimage publicKeyBytes claims)
 
 /-- A DA claim's digest, which a statement carries: Keccak-256 of the root, then the challenge as
-its two limbs and two zero words, little-endian (`digest`, `crates/verifier/src/da.rs`; the
+its two limbs and two zero lanes, little-endian (`digest`, `crates/verifier/src/da.rs`; the
 guest program's `keccak([root_0, root_1], [z, 0])`, `lean_ethereum.py`). -/
 def daClaimDigest (claim : DaClaim) : Digest :=
   keccak256 (digestBytes claim.daRoot ++ E.toBytes claim.membershipChallenge ++ List.replicate 16 0)

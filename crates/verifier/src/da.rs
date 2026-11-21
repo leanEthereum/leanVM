@@ -34,7 +34,7 @@ pub fn membership_challenge(root: &[u8; 32]) -> E {
 }
 
 /// What the statement of an aggregate carries for its DA root: `H(root ‖ z)`, `z` as its two little-endian limbs
-/// and two zero words, or zeros without a root.
+/// and two zero lanes, or zeros without a root.
 pub fn digest(root: Option<[u8; 32]>) -> [u8; 32] {
     root.map_or([0; 32], |root| {
         let z = membership_challenge(&root);
