@@ -271,7 +271,7 @@ guest_diff() {
   in_lean_vm .lake/build/bin/guest-diff "$gd"/diff/*.txt
   in_lean_vm .lake/build/bin/leanvm-execute "$gd"/exec/*/
   in_lean_vm .lake/build/bin/guest-run --rust "$gd/exec" "$gd"/diff/*.txt
-  in_lean_vm .lake/build/bin/guest-run --rust "$gd/exec" --prove "$gd"/diff/leaf.txt
+  in_lean_vm .lake/build/bin/guest-run --rust "$gd/exec" --prove "$gd"/diff/leaf.txt "$gd"/diff/node1.txt
   rm -rf "$gd"
 }
 fuzz_verifier() {
