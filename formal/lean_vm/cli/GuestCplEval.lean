@@ -11,10 +11,10 @@ and writes the modules in which the kernel decides `Cpl.cplOkAt i` for every ent
 
 * `R{k}.lean`: runs of entries, each run of at most `maxDecl` instructions in one declaration;
   an entry larger than that by two declarations, each a group of the test's conjuncts
-  (`CplEval.partsOk`); the entries `cutEntries`, which the pieces place in parts, on the placed
+  (`CplEval.partsOk`); the entries of `cutNames`, which the pieces place in parts, on the placed
   function their walk's last state gives (`placedOf … cut{j}_end`, `CplEval.placedAt_cut`), with
   no placement run;
-* `B{j}.lean`, `B{j}P{m}.lean`, `B{j}Pl{m}.lean`, `B{j}Ok.lean` for the entries `bigEntries`: the
+* `B{j}.lean`, `B{j}P{m}.lean`, `B{j}Pl{m}.lean`, `B{j}Ok.lean` for the entries of `bigNames`: the
   temporaries of each run of top-level statements, the scope walk's state after each run and the
   counts of the temporaries' cells after each chunk of instructions written out (`B{j}`), the run
   checks (`CplEval.segOk`), the walk's and the counts' steps (`B{j}P{m}`), the places conjunct by
@@ -32,10 +32,14 @@ namespace GuestCplEval
 
 def maxDecl : Nat := 1000
 def maxModule : Nat := 9000
-/-- Entries the pieces place in parts, tested on the last state of their walk. -/
-def cutEntries : List Nat := [11, 19, 20, 36]
-/-- Entries of `cutEntries` tested by runs of top-level statements. -/
-def bigEntries : List Nat := [19, 36]
+/-- The functions the pieces place in parts (`guest-pieces`' `cutNames`), tested on the last state
+of their walk. -/
+def cutNames : List String := ["verify_tables", "verify_sig_lean_sphincs", "sp_wots", "__loop2"]
+/-- The functions of `cutNames` tested by runs of top-level statements. -/
+def bigNames : List String := ["sp_wots", "__loop2"]
+/-- The entries of the functions named in `ns`, in order. -/
+def entriesOf (names : Array String) (ns : List String) : List Nat :=
+  (List.range names.size).filter fun j => ns.contains names[j]!
 /-- A run's budget: values named, atoms and events, summed. -/
 def maxSeg : Nat := 60000
 /-- Instructions per counts step. -/
@@ -500,7 +504,7 @@ def bigFiles (j : Nat) (tf : TracedFn) (pf : Placed) : Except String (List (Stri
   return files ++ nsLeafMods ++ plFiles ++ [(s!"B{j}Ns", nsMod), (s!"B{j}Ok", okMod)]
 
 /-- Runs of entries `(a, b)`, each at most `maxDecl` instructions; cut and large entries alone. -/
-def runsOf (sizes : Array Nat) : List (Nat × Nat) := Id.run do
+def runsOf (cutEntries : List Nat) (sizes : Array Nat) : List (Nat × Nat) := Id.run do
   let mut out : Array (Nat × Nat) := #[]
   let mut a : Option Nat := none
   let mut acc := 0
@@ -521,7 +525,8 @@ def runsOf (sizes : Array Nat) : List (Nat × Nat) := Id.run do
   if let some a' := a then out := out.push (a', sizes.size)
   return out.toList
 
-def runThm (pls : List Placed) (sizes : Array Nat) (names : Array String) (a b : Nat) : String :=
+def runThm (cutEntries : List Nat) (pls : List Placed) (sizes : Array Nat) (names : Array String)
+    (a b : Nat) : String :=
   let n := (List.range' a (b - a)).foldl (fun s i => s + sizes[i]!) 0
   let what := if b = a + 1 then s!"`{names[a]!}`" else s!"`{names[a]!}` to `{names[b - 1]!}`"
   let doc := s!"\n/-- The test of entries {a} to {b - 1} ({what}, {n} instructions). -/\n"
@@ -555,7 +560,12 @@ def main (args : List String) : IO UInt32 := do
   let (pls, _) ← orThrow (placeProgram P)
   let sizes := (pls.map fun pf => blockSize pf.fn.body).toArray
   let names := (P.map (·.core.name)).toArray
-  let runs := runsOf sizes
+  let cutEntries := entriesOf names cutNames
+  let bigEntries := entriesOf names bigNames
+  if cutEntries.length != cutNames.length || bigEntries.length != bigNames.length then
+    IO.eprintln s!"cut entries {cutEntries}, big entries {bigEntries}: a name is missing"
+    return 1
+  let runs := runsOf cutEntries sizes
   -- modules of runs
   let mut files : List (String × String) := []
   let mut mods : Array (List (Nat × Nat)) := #[]
@@ -580,7 +590,7 @@ def main (args : List String) : IO UInt32 := do
     let cut := ms.any (cutEntries.contains ·.1)
     let imp := s!"public import {modBase}.Split\npublic import LeanVM.Compiler.StateLit\npublic import LeanVM.Compiler.KernelLit\npublic meta import LeanVM.Compiler.DataLit\n" ++
       (if cut then "public import LeanVM.Guest.Compiled.Compiled\n" else "")
-    let body := String.join (ms.map fun (a, b) => runThm pls sizes names a b)
+    let body := String.join (ms.map fun (a, b) => runThm cutEntries pls sizes names a b)
     files := files ++ [(s!"R{k}", header s!"R{k}" "The kernel's per-function completeness test, by runs of entries." ++
       imp ++ opening ++ body ++ closing)]
   for j in bigEntries do

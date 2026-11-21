@@ -155,7 +155,7 @@ theorem valid_cursor {input : PublicInput} {t : Execution guestProgram}
     let σ := mainVal rd
     let fr := frameAtA (entryArrayT pcTableT (Located.selfTest rd)
       (replayStatesOf (powTable t.logMemorySize) (powTable guestProgram.logSize) guestProgram
-        (memoryVector t.memory)) rd) rd 19 (subArgsK rd σ c) []
+        (memoryVector t.memory)) rd) rd (fn_idx% verify_sub) (subArgsK rd σ c) []
     cursorLength discreteLogTables (fr (.n 25)) (fr (.n 1885)) ≤ 8192 := by
   intro rd σ fr
   have hk : Node.ExplainsPublicInput guestProgram input (End.decode t.memory) := End.guest_knowledge input t hv
