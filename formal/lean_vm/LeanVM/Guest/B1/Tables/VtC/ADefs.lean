@@ -21,10 +21,11 @@ public import LeanVM.Guest.B1.Bits.Tables
 `VtBases`: the caller's buffers' addresses (the cursor, `zeta`, `dims_g`, `table_rows`,
 `g_squares` (the exponent table), `fp_w`, `claim_pool`, `chi`, `gkr_leaves`, `bc_point`; `tabs` is `g_squares`' window section)
 and the first word of `verify_tables`' own buffers. `VtHonest.args`: the 20 arguments. `VtHonest.linL`: the caller's
-buffers' honest words. `vtAllocVars`: the 111 allocations' values, in order (`vt_allocs`, by the
-kernel); `VtHonest.sizes`, `VtHonest.ownW`: their sizes and honest words; `VtHonest.ownL`: them
-at the bump allocator's positions. `VtWOk`: what the oracle answers (the allocations' pointers,
-the witnesses, the callees' returns).
+buffers' honest words. `vtAllocVars`: the 121 allocations' values, in order (`vt_allocs`, by the
+kernel); `VtHonest.sizes`, `VtHonest.ownW`: their sizes and honest words (each table's two shared
+selector tables at `ssEqW`, `ssGW` words); `VtHonest.ownL`: them at the bump allocator's positions;
+`vt_sizes_sum_le`: their total. `VtWOk`: what the oracle answers (the allocations' pointers, the
+witnesses, the callees' returns).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -90,13 +91,16 @@ structure VtBases where
   bcp : ℕ
   own : ℕ
 
-/-- The allocations' values, in order. -/
+/-- The allocations' values, in order: the group buffers, `idxc_tab`, `zeta1`, each table's two
+shared selector tables, `block_index_mle`, the framework blocks' bits, the table blocks' digits,
+the zero check's three. -/
 def vtAllocVars : List ℕ :=
-  [33, 34, 35, 36, 664, 699, 701, 702, 777] ++ (List.range 3).map (fun b ↦ vtFwW b + 6) ++
+  [33, 34, 35, 36, 664, 699] ++ ((List.range 6).flatMap fun t ↦ [715 + 21 * t, 716 + 21 * t]) ++
+    [827] ++ (List.range 3).map (fun b ↦ vtFwW b + 6) ++
     (List.range 51).map (fun i ↦ (vtPushSel.getD i default).2.2.1) ++
-    (List.range 45).map (fun i ↦ (vtCountSel.getD i default).2.2.1) ++ [2625, 2628, 2649]
+    (List.range 45).map (fun i ↦ (vtCountSel.getD i default).2.2.1) ++ [2327, 2330, 2351]
 
-theorem vtAllocVars_length : vtAllocVars.length = 111 := by decide
+theorem vtAllocVars_length : vtAllocVars.length = 121 := by decide
 
 /-- **The allocations, by the kernel.** -/
 theorem vt_allocs : (vtPre.filterMap LeanVM.Core.Memory.Stmt.allocSz).map (fun x ↦ x.1) =
@@ -151,15 +155,27 @@ noncomputable def linL : TLay :=
     (B.sq, expTableWordsW), (B.fpw, H.weights), (B.pool, H.poolW), (B.chi, H.chiW),
     (B.leaves, H.values), (B.bcp, H.slots)]
 
+/-- Table `t`'s two shared selector tables' sizes. -/
+def shSizes (t : ℕ) : List ℕ := [ssEqW (H.μ - H.τ t), ssGW (H.μ - H.τ t)]
+
 /-- The own buffers' sizes, in allocation order. -/
 def sizes : List ℕ :=
-  [24, 24, 24, 24, 34, H.μ, 1728, 864, 153, 34, 34, 34] ++ List.replicate 96 9 ++
-    [7 * (H.n + 1), H.n + 1, H.n + 1]
+  [24, 24, 24, 24, 34, H.μ] ++ (List.range 6).flatMap H.shSizes ++ [153, 34, 34, 34] ++
+    List.replicate 96 9 ++ [7 * (H.n + 1), H.n + 1, H.n + 1]
+
+theorem sizes_length : H.sizes.length = 121 := by
+  simp only [sizes, List.length_append, List.length_cons, List.length_nil, List.length_replicate]
+  rw [show List.range 6 = [0, 1, 2, 3, 4, 5] from rfl]
+  simp [shSizes]
+
+/-- Table `t`'s two shared selector tables' honest words. -/
+noncomputable def shW (t : ℕ) : List (List E) :=
+  [vtShEqW H.point (H.τ t), vtShGW H.point (H.τ t)]
 
 /-- **The own buffers' honest words**, in allocation order. -/
 noncomputable def ownW : List (List E) :=
   [vtGKeyW H.lm H.τ, vtGSizeW H.lm H.τ, vtGBaseW H.lm H.τ, vtGOrdW H.lm H.τ, vtIdxcW,
-    H.point.map (1 + ·), vtShEqW H.point H.τ, vtShGW H.point H.τ, vtIdxBufW H.point H.lm] ++
+    H.point.map (1 + ·)] ++ (List.range 6).flatMap H.shW ++ [vtIdxBufW H.point H.lm] ++
     (List.range 3).map (fun b ↦ offBits (H.offP.getD b 0)) ++
     (List.range 51).map (fun i ↦ offDigits (H.offP.getD (3 + i) 0)
       (H.τ (vtPushSel.getD i default).2.2.2.1)) ++
@@ -177,35 +193,56 @@ noncomputable def ownL : TLay := (H.ownB B).zip (H.ownW B)
 
 end VtHonest
 
+theorem ssEqW_ssGW_le {n : ℕ} (hn : n < 32) : ssEqW n + ssGW n ≤ 384 := by
+  simp only [ssEqW, ssGW]; omega
+
+/-- **The own buffers' total size**, on a bus point of fewer than `32` coordinates. -/
+theorem vt_sizes_sum_le (H : VtHonest) (hμ : H.μ < 32) :
+    H.sizes.sum ≤ 3553 + H.μ + 9 * (H.n + 1) := by
+  have hsh : ((List.range 6).flatMap H.shSizes).sum ≤ 2304 := by
+    rw [show List.range 6 = [0, 1, 2, 3, 4, 5] from rfl]
+    simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil, List.sum_append,
+      VtHonest.shSizes, List.sum_cons, List.sum_nil]
+    have h0 := ssEqW_ssGW_le (n := H.μ - H.τ 0) (by omega)
+    have h1 := ssEqW_ssGW_le (n := H.μ - H.τ 1) (by omega)
+    have h2 := ssEqW_ssGW_le (n := H.μ - H.τ 2) (by omega)
+    have h3 := ssEqW_ssGW_le (n := H.μ - H.τ 3) (by omega)
+    have h4 := ssEqW_ssGW_le (n := H.μ - H.τ 4) (by omega)
+    have h5 := ssEqW_ssGW_le (n := H.μ - H.τ 5) (by omega)
+    omega
+  simp only [VtHonest.sizes, List.sum_append, List.sum_cons, List.sum_nil, List.sum_replicate,
+    smul_eq_mul]
+  omega
+
 /-- **What the oracle answers**: the allocations' pointers, the witnesses, the callees'
 returns. -/
 structure VtWOk (H : VtHonest) (B : VtBases) (w : ℕ → E) : Prop where
-  alloc : ∀ j < 111, w (vtAllocVars.getD j 0) = ofK (addressOfIndex ((H.ownB B).getD j 0))
+  alloc : ∀ j < 121, w (vtAllocVars.getD j 0) = ofK (addressOfIndex ((H.ownB B).getD j 0))
   pads : ∀ t < 6, w (vtPadV t) = paddingWeight (H.point.take (H.τ t)) (vtRw H.rows t) ∧
     w (vtPadV t + 1) = PadLead (H.τ t) (vtRw H.rows t) ∧
     w (vtPadV t + 2) = PadRest (H.τ t) (vtRw H.rows t)
   w700 : w 700 = 0
-  w2544 : w 2543 = gen ^ H.n
-  hwI : w 809 = indexMle (H.point.take H.lm) ∧ w 837 = indexMle (H.point.take 19)
+  w2544 : w 2245 = gen ^ H.n
+  hwI : w 859 = indexMle (H.point.take H.lm) ∧ w 887 = indexMle (H.point.take 19)
   hwF : ∀ b < 3, w (vtFwW b + 10) = blockSel (vtSizesP H.lm H.τ) H.μ b H.point ∧
     w (vtFwW b + 11) = gen ^ H.offP.getD b 0
-  hwP : ∀ i < 51, w (vtSelE (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).2.2.2.1) =
+  hwP : ∀ i < 51, w ((vtPushSel.getD i default).2.2.1 + 1) =
       blockSel (vtSizesP H.lm H.τ) H.μ (3 + i) H.point ∧
-    w (vtSelE (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).2.2.2.1 + 1) =
-      gen ^ H.offP.getD (3 + i) 0
-  hw1 : (List.range 8).map (fun i ↦ w (1875 + i)) = (vtBcR1 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
+    w ((vtPushSel.getD i default).2.2.1 + 2) = gen ^ H.offP.getD (3 + i) 0
+  hw1 : (List.range 8).map (fun i ↦ w (1577 + i)) = (vtBcR1 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
     [(H.args B).getD 5 0 * gen ^ 7 * gen ^ 2, (vtBcR1 (vtF0 (H.args B) H.xs4) H.bcW).2.1,
       (vtBcR1 (vtF0 (H.args B) H.xs4) H.bcW).2.2]
-  hw2 : (List.range 8).map (fun i ↦ w (1883 + i)) = (vtBcR2 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
+  hw2 : (List.range 8).map (fun i ↦ w (1585 + i)) = (vtBcR2 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
     [(H.args B).getD 5 0 * gen ^ 7 * gen ^ 2 * gen ^ 2, (vtBcR2 (vtF0 (H.args B) H.xs4) H.bcW).2.1,
       (vtBcR2 (vtF0 (H.args B) H.xs4) H.bcW).2.2]
-  hw3 : (List.range 8).map (fun i ↦ w (1891 + i)) = (vtBcR3 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
+  hw3 : (List.range 8).map (fun i ↦ w (1593 + i)) = (vtBcR3 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
     [(H.args B).getD 5 0 * gen ^ 7 * gen ^ 2 * gen ^ 2 * gen ^ 2,
       (vtBcR3 (vtF0 (H.args B) H.xs4) H.bcW).2.1, (vtBcR3 (vtF0 (H.args B) H.xs4) H.bcW).2.2]
-  hwC : ∀ i < 45, w (vtSelE (vtCountSel.getD i default).2.2.1
-      (vtCountSel.getD i default).2.2.2.1) = blockSel (vtSizesC H.τ) H.μ i H.point ∧
-    w (vtSelE (vtCountSel.getD i default).2.2.1 (vtCountSel.getD i default).2.2.2.1 + 1) =
-      gen ^ H.offC.getD i 0
+  hwC : ∀ i < 45, w ((vtCountSel.getD i default).2.2.1 + 1) =
+      blockSel (vtSizesC H.τ) H.μ i H.point ∧
+    w ((vtCountSel.getD i default).2.2.1 + 2) = gen ^ H.offC.getD i 0
+  /-- `selector_run_nibbles`' returns: `g^(n/4)` of each table's run length `n`. -/
+  hq : ∀ t < 6, w (vtShQ t) = gen ^ ((H.μ - H.τ t) / 4)
 
 end
 end LeanVM.Guest.B1.Tables
