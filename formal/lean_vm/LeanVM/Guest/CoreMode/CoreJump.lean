@@ -57,42 +57,14 @@ theorem compiles_heap {loc : ℕ → ℕ} {hc : Core.Hint} {h : Prover.Exec.Hint
       simp only [Bool.and_eq_true, beq_iff_eq] at hco
       obtain ⟨⟨⟨-, rfl⟩, rfl⟩, rfl⟩ := hco
       rfl
-  | bits v start nbits d =>
+  | bits _ _ _ d | bitsExp _ _ d | digitsExp _ _ _ _ _ _ d | windowsExp _ _ _ _ d =>
     cases d with
     | stack => simp [hintHeap] at hd
     | heap p' off' len' =>
       simp only [hintHeap, Option.some.injEq, Prod.mk.injEq] at hd
       obtain ⟨rfl, rfl, rfl⟩ := hd
       cases h <;> simp only [Bridge.compiles, Bool.false_eq_true] at hco
-      rename_i x bd n
-      cases bd <;> simp_all [Bridge.destOk, isaHeap]
-  | bitsExp v nbits d =>
-    cases d with
-    | stack => simp [hintHeap] at hd
-    | heap p' off' len' =>
-      simp only [hintHeap, Option.some.injEq, Prod.mk.injEq] at hd
-      obtain ⟨rfl, rfl, rfl⟩ := hd
-      cases h <;> simp only [Bridge.compiles, Bool.false_eq_true] at hco
-      rename_i x bd n
-      cases bd <;> simp_all [Bridge.destOk, isaHeap]
-  | digitsExp v nbits ndigits digitBits start sc d =>
-    cases d with
-    | stack => simp [hintHeap] at hd
-    | heap p' off' len' =>
-      simp only [hintHeap, Option.some.injEq, Prod.mk.injEq] at hd
-      obtain ⟨rfl, rfl, rfl⟩ := hd
-      cases h <;> simp only [Bridge.compiles, Bool.false_eq_true] at hco
-      rename_i x bd nb nd db st sc'
-      cases bd <;> simp_all [Bridge.destOk, isaHeap]
-  | windowsExp v start width count d =>
-    cases d with
-    | stack => simp [hintHeap] at hd
-    | heap p' off' len' =>
-      simp only [hintHeap, Option.some.injEq, Prod.mk.injEq] at hd
-      obtain ⟨rfl, rfl, rfl⟩ := hd
-      cases h <;> simp only [Bridge.compiles, Bool.false_eq_true] at hco
-      rename_i x bd pos st w c
-      cases bd <;> simp_all [Bridge.destOk, isaHeap]
+      cases ‹Prover.Exec.BitsDest› <;> simp_all [Bridge.destOk, isaHeap]
   | _ => simp [hintHeap] at hd
 
 /-- **A flow hint's atom wrote its cells** once the hints at the pc ran: the ISA hint it pairs with
@@ -1913,6 +1885,73 @@ theorem entry_fitB {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {G : Mod
       rw [← hpq, ← hos, hrd]
       exact ⟨ha, hpa⟩
     · cases hrq
+
+/-- **A call's split, and the callee frame**: the path's events at a call's position are the events up to the
+call (`evs`), the call, atoms writing nothing and the rest (`hk`, the pairing's); the call's preconditions
+are written by the events before it (`hrw`); the callee frame holds the header and the call's words. -/
+theorem call_split {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {s s1 s' : St} {f : String} {args rets : List V}
+    {st : B2C.Site} {of : ℕ} {pos' : List Stmt} {as : List Atom} {σ : Val} {pre es : List Ev} {vs : List V}
+    {rd : Reader} (hm : Moves (refMem img) s s1) (sof : of < 2 ^ 28)
+    (h1 : s1.mem.get (s1.fp + of) = some (ofK (g ^ s'.fp))) (hsite : Cf.X.siteAt of args rets = some st)
+    (hσ : HonF img Cf s.fp σ) (hb : walk σ Cf.fn.body = .ret (pre ++ es) vs)
+    (hrw : ReadsAt Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre es)
+    (hk : ∃ (evs : List Ev) (cs : List Atom) (es' : List Ev), es = evs ++ Ev.call f args rets :: (cs.map Ev.atom ++ es') ∧
+      walk σ pos' = .ret es' vs ∧ (∀ a ∈ cs, stopL a = false) ∧ (∀ a ∈ as, Ev.atom a ∈ evs) ∧
+      (∀ e ∈ evs, EvM Cf.sigOf rd σ e) ∧ ∀ x, WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ evs) x →
+        WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre x ∨
+        ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ evs ∧ Writes σ a x) :
+    ∃ (evs : List Ev) (cs : List Atom) (es' : List Ev), es = evs ++ Ev.call f args rets :: (cs.map Ev.atom ++ es') ∧
+      walk σ pos' = .ret es' vs ∧ (∀ a ∈ cs, stopL a = false) ∧ (∀ a ∈ as, Ev.atom a ∈ evs) ∧
+      (∀ e ∈ evs, EvM Cf.sigOf rd σ e) ∧ (∀ x, WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ evs) x →
+        WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre x ∨
+        ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ evs ∧ Writes σ a x) ∧
+      ReqOk Cf.sigOf Cf.H rd σ (WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ evs))
+        (.call f args rets) ∧
+      ∃ kfp, (g : Parameters.K) ^ s'.fp = g ^ kfp ∧
+        (∀ b < args.length + rets.length, Rd img s'.fp (2 + b) = some (slotW ((args ++ rets).map σ) b)) ∧
+        Rd img s'.fp 0 = some (ofK (g ^ st.r)) ∧ Rd img s'.fp 1 = some (ofK (g ^ s.fp)) := by
+  obtain ⟨evs, cs, es', rfl, hwp', hcs, hasin, hevM, hW'⟩ := hk
+  have hreq := hrw evs (.call f args rets) (cs.map Ev.atom ++ es') rfl hevM
+  obtain ⟨kfp, hq, hk0, hk1, hargs, hrets⟩ := hσ.kid _ _ hb ((calls (pre ++ evs)).length)
+    ⟨f, args, rets, true⟩ of st (by rw [← List.append_assoc]; exact calls_mid) rfl hsite
+  have hfpE : (g : Parameters.K) ^ s'.fp = g ^ kfp :=
+    (pow_of_ofK (rd_get hκ hm.fine sof (by rw [hm.fp]; exact hq) h1)).symm.symm
+  refine ⟨evs, cs, es', rfl, hwp', hcs, hasin, hevM, hW', hreq, kfp, hfpE, fun b hb' ↦ ?_,
+    by rw [rd_pow hfpE]; exact hk0, by rw [rd_pow hfpE]; exact hk1⟩
+  rw [rd_pow hfpE, List.map_append]
+  by_cases hb1 : b < args.length
+  · rw [slotW_lt (by simpa using hb1), slotW_get (by simpa using hb1)]
+    simpa using hargs b hb1
+  · rw [slotW_append]
+    simp only [List.length_map, hb1, ↓reduceIte]
+    rw [slotW_get (by simp; omega)]
+    have := hrets (b - args.length) (by show b - args.length < rets.length; omega)
+    rw [show 2 + args.length + (b - args.length) = 2 + b by omega] at this
+    simpa using this
+
+/-- **The caller's writes once a call returns**: what its events up to the call wrote (`hW`, `hW'`: or a hint's
+flow), the callee's guarantees (`hcall`), atoms after the call writing nothing. -/
+theorem resume_wrk {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {C : Ctx} {hl : List Prover.Exec.Hint}
+    {s s1 : St} {m' : Mem} {σ : Val} {rd : Reader} {pre evs es' : List Ev} {cs as : List Atom} {vs : List V}
+    {f : String} {args rets : List V} {y : K} (hs : Fine (refMem img) s) (hm : Moves (refMem img) s s1)
+    (hle0 : s.mem ≤ m') (hle1 : s1.mem ≤ m') (e1 : hl.foldlM (Prover.Exec.runHint C) s = .ok s1)
+    (hpairs : List.Forall₂ (Pairs Cf.X) (as.filter flowAtom) (hl.filter isaFlowHint)) (hσ : HonF img Cf s.fp σ)
+    (hb : walk σ Cf.fn.body = .ret (pre ++ (evs ++ Ev.call f args rets :: (cs.map Ev.atom ++ es'))) vs)
+    (hW : ∀ x, WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre x → WrK s.mem x)
+    (hW' : ∀ x, WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ evs) x →
+      WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre x ∨ ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ evs ∧ Writes σ a x)
+    (hcs : ∀ a ∈ cs, stopL a = false) (hcall : EvW Cf.sigOf rd σ (.call f args rets) y → WrK m' y)
+    (hy : WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ evs ++ Ev.call f args rets :: cs.map Ev.atom) y) :
+    WrK m' y := by
+  rcases writtenC_append hy with h | ⟨e, he, hwe⟩
+  · rcases hW' y h with h | ⟨a, ha, hfa, hma, hwa⟩
+    · exact (hW y h).mono hle0
+    · exact (flow_wrk hκ e1 hs hm hpairs ha hfa (fun q hq ↦ hσ.ptr _ _ hb a q
+        (List.mem_append_right _ (List.mem_append_left _ hma)) hq) hwa).mono hle1
+  rcases List.mem_cons.mp he with rfl | he
+  · exact hcall hwe
+  · obtain ⟨a, ha, rfl⟩ := List.mem_map.mp he
+    exact absurd hwe (no_writes_of_stopL (hcs a ha))
 
 end
 
