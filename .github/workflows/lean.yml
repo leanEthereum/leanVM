@@ -47,7 +47,7 @@ jobs:
       - name: Keep the statement apart from the proofs
         run: |
           ! grep -rnE '^(public )?(meta )?import ' --include='*.lean' --exclude-dir=.lake formal/Statement \
-              | grep -vE ':[0-9]+:(public )?(meta )?import (Mathlib|VCVio|CompPoly|Statement)\.'
+              | grep -vE ':[0-9]+:(public )?(meta )?import (all )?(Mathlib|VCVio|CompPoly|Statement)\.'
       - name: Restore the Lake build
         id: lake-cache
         uses: actions/cache/restore@v4

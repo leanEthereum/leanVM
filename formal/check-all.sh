@@ -135,7 +135,7 @@ statement() {
   lakefiles
   step "Statement: imports only Mathlib, VCVio, CompPoly and itself"
   if grep -rnE '^(public )?(meta )?import ' --include='*.lean' --exclude-dir=.lake Statement \
-      | grep -vE ':[0-9]+:(public )?(meta )?import (Mathlib|VCVio|CompPoly|Statement)\.'; then
+      | grep -vE ':[0-9]+:(public )?(meta )?import (all )?(Mathlib|VCVio|CompPoly|Statement)\.'; then
     fail "Statement imports more than Mathlib, VCVio, CompPoly and itself"
   fi
   cache_get Statement
