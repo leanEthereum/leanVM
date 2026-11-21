@@ -5,7 +5,7 @@ import LeanVMTests.Cost.DecoderChain
 
 `selfTestC` run on two small memories, its output the Lean function's value (`Located.selfTest`):
 function `0` and `1` (no callee) fail; function `2` (not a registered loop helper) holds whatever
-the frame; function `35` (a registered loop helper) holds when the cell past its arguments holds
+the frame; function `36` (a registered loop helper) holds when the cell past its arguments holds
 the frame pointer (every word `1`, at the frame `1`) and fails otherwise (`DecoderChain`'s reader,
 the word at `g^i` is `g^(i+1)`). Runs, compiled (`lake exe test-runs`).
 
@@ -35,10 +35,10 @@ test_runs runs := [
   ("j = 1: fails", fun _ ↦ !selfTest oneReader 1 1 && check oneReader oneReaderC.costIdx oneReaderC.costDeps 1 1),
   ("j = 2: holds", fun _ ↦ selfTest DecoderChain.smallReader 2 1 &&
     check DecoderChain.smallReader DecoderChain.smallReaderC.costIdx DecoderChain.smallReaderC.costDeps 2 1),
-  ("j = 35, its pointer: holds", fun _ ↦
-    selfTest oneReader 35 1 && check oneReader oneReaderC.costIdx oneReaderC.costDeps 35 1),
-  ("j = 35, another word: fails", fun _ ↦
-    !selfTest DecoderChain.smallReader 35 1 &&
-      check DecoderChain.smallReader DecoderChain.smallReaderC.costIdx DecoderChain.smallReaderC.costDeps 35 1)]
+  ("j = 36, its pointer: holds", fun _ ↦
+    selfTest oneReader 36 1 && check oneReader oneReaderC.costIdx oneReaderC.costDeps 36 1),
+  ("j = 36, another word: fails", fun _ ↦
+    !selfTest DecoderChain.smallReader 36 1 &&
+      check DecoderChain.smallReader DecoderChain.smallReaderC.costIdx DecoderChain.smallReaderC.costDeps 36 1)]
 
 end LeanVMTests.Cost.DecoderSelfTest
