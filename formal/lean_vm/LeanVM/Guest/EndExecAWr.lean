@@ -2,7 +2,7 @@
   LeanVM.Guest.EndExecAWr
 
   The advised pointer cells along the run: each `allocAdvice` whose buffer exists writes its
-  pointer cell, which stays written.
+  pointer cell and records it as advised with its size, which stay so.
 -/
 
 module
@@ -13,11 +13,13 @@ public import LeanVM.Guest.EndExecAHeap
 # The advised pointer cells written
 
 * `advWrites_alignA : AdvWrites alignA`: an `allocAdvice` whose buffer exists pops its size
-  (`advNext_alignA`) and allocates it, writing its pointer cell (`adv_written`); the advised buffer
-  hints at an offset are its hints of their buffer index (`bufsOf_inv`).
-* `wrArith_alignA : WrArith alignA`: past a step of the tree track the cells stay written: within the
-  frame, those before the offset and at it; at a jump, every advised cell of the frame, all its
-  advice being before its first jump (`Bridge.advChk`); a callee entered has written none.
+  (`advNext_alignA`) and allocates it, writing its pointer cell and recording it as advised with that
+  size (`adv_written`); the advised buffer hints at an offset are its hints of their buffer index
+  (`bufsOf_inv`).
+* `wrArith_alignA : WrArith alignA`: past a step of the tree track the cells stay written and
+  recorded: within the frame, those before the offset and at it; at a jump, every advised cell of the
+  frame, all its advice being before its first jump (`Bridge.advChk`); a callee entered has written
+  none.
 * `keepY_allocA_of`: each step keeps `YAlloc alignA`, from `SizesAt` and `HeapPops`.
 -/
 
@@ -39,20 +41,41 @@ theorem popEntry_val {C : Ctx} {s s' : St} {name : String} {v e : List E}
   simp only [h1, h2, pure_ok, Prod.mk.injEq] at h
   exact h.1.symm
 
-/-- **An `allocAdvice` popping a size writes its pointer cell.** -/
-theorem adv_written {C : Ctx} {s s' : St} {p : ℕ} {S : String} {w : E} (hs : s.Good)
-    (h : runHint C s (.allocAdvice p S) = .ok s') (hn : StreamNext C s S [w]) :
-    s'.mem.written (s.fp + p) = true := by
+/-- **An `allocAdvice` popping a size writes its pointer cell**, and records it as advised with that
+size. -/
+theorem adv_written {C : Ctx} {s s' : St} {p : ℕ} {S : String} {n : ℕ} (hs : s.Good)
+    (h : runHint C s (.allocAdvice p S) = .ok s') (hn : StreamNext C s S [ofK (addressOfIndex n)])
+    (hlt : n < 2 ^ 63) : s'.mem.written (s.fp + p) = true ∧ (s.fp + p, n) ∈ s'.advised := by
   simp only [runHint, bind_ok] at h
   obtain ⟨⟨v, s1⟩, h1, h⟩ := h
   have f1 := popEntry_follows hs h1
   obtain rfl := popEntry_val h1 hn
   dsimp only at h
   simp only [bind_ok] at h
-  obtain ⟨sz, -, ⟨n, s2⟩, h2, h⟩ := h
-  have f2 := (St.logOr_ok f1.good h2).1
-  obtain ⟨-, hw⟩ := Mode.allocate_written f2.good h
-  rwa [f2.fp, f1.fp] at hw
+  obtain ⟨sz, hsz, ⟨n', s2⟩, h2, h⟩ := h
+  obtain ⟨f2, hg, hlt'⟩ := St.logOr_ok f1.good h2
+  obtain ⟨s3, h3, rfl⟩ := allocateAdvised_ok h
+  obtain ⟨f3, hw⟩ := Mode.allocate_written f2.good h3
+  obtain ⟨-, rfl⟩ := inK_ok hsz
+  obtain rfl : n' = n := gpow_inj (by unfold maxCells at hlt'; omega) hlt (hg.trans (by simp))
+  refine ⟨by rwa [f2.fp, f1.fp] at hw, ?_⟩
+  show (s.fp + p, n') ∈ (s3.fp + p, n') :: s3.advised
+  rw [f3.fp, f2.fp, f1.fp]
+  exact List.mem_cons_self
+
+/-- **A buffer of a frame of the tree track is smaller than `2^63` cells.** -/
+theorem buf_lt {r : Ref} (hr : r.Ok) {pc fp : ℕ} {done : List Pop} {e : Ent} {st : List Ent}
+    (htr : RefTrack alignA r pc fp (done, e :: st)) (hch : ChainA alignA (memOf r.img) (e :: st)) {k n : ℕ}
+    (hbk : e.I.t.bufs[k]? = some n) : n < 2 ^ 63 := by
+  obtain ⟨rd, hHon, hHX⟩ := hr.honest
+  obtain ⟨-, j, bufs, kids, vs, -, hIt, -⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self
+  have hle : n ≤ e.I.t.bufs.sum := List.le_sum_of_mem (List.mem_of_getElem? hbk)
+  have hn : ∃ f σ bufs kids, e.I.t = .node f σ bufs kids := ⟨_, _, _, _, hIt⟩
+  have he1 := curAt_le_endCur (fs := B2C.fs) (lp := coreProgram.loop) hn e.I.t.bufs.length 0
+  simp only [Inst.curAt, List.take_length, List.take_zero, List.map_nil, List.sum_nil, Nat.add_zero] at he1
+  have he2 := endCur_chain (A := alignA) hr st e pc fp htr.track.ents htr.linked hch
+  have := hHon.size
+  omega
 
 theorem lookupN_of_mem : ∀ {l : List (ℕ × List Hint)}, pcsUp l = true → ∀ {q}, q ∈ l → l.lookup q.1 = some q.2
   | [], _, _, hq => by simp at hq
@@ -163,7 +186,7 @@ theorem foldlM_split {C : Ctx} {l : List Hint} {s s1 : St} {i : ℕ} {h : Hint} 
 /-- **The hints at a frame's offset write its advised pointer cells there**, those whose buffers
 exist. -/
 theorem advWrites_alignA : AdvWrites alignA := by
-  intro r hr C hC done e st s htr hch hnc hha hfine hon hpcS s1 e1 hm k p S hk hb
+  intro r hr C hC done e st s htr hch hnc hha hfine hon hpcS s1 e1 hm k p S hk n hn
   have hE := htr.track.ents e List.mem_cons_self
   have hU := hintsUp_frame hE.find
   obtain ⟨-, hat⟩ := htr.linked.top
@@ -194,36 +217,35 @@ theorem advWrites_alignA : AdvWrites alignA := by
   have hbi : bufIdx alignA e (s.pc - entOf alignA e.I.t.name) i = k := by
     rw [hoff]; unfold bufIdx; rw [hintsAtOff_eq]; exact hik
   rw [hbi] at hnx
-  obtain ⟨n, hn⟩ : ∃ n, e.I.t.bufs[k]? = some n := ⟨_, List.getElem?_eq_getElem hb⟩
   rw [hn] at hnx
-  have hw := adv_written hfx.good h2 hnx
-  rw [hfx.fp, ← htr.linked.top.1] at hw
-  exact Mode.written_mono hf1.le hw
+  obtain ⟨hw, ha⟩ := adv_written hfx.good h2 hnx (buf_lt hr htr hch hn)
+  rw [hfx.fp, ← htr.linked.top.1] at hw ha
+  exact ⟨Mode.written_mono hf1.le hw, hints_advised _ s2 s1 hrest _ ha⟩
 
 /-! ## The step -/
 
-/-- **The advised pointer cells stay written past each step of the tree track.** -/
+/-- **The advised pointer cells stay written and recorded past each step of the tree track.** -/
 theorem wrArith_alignA : WrArith alignA := by
-  intro r hr pc fp done e st off pc' fp' st'' done' m htr hpc hk hts hW hnew
+  intro r hr pc fp done e st off pc' fp' st'' done' m adv htr hpc hk hts hW hnew
   have hA := advChk_alignA e.I.t.name
   have hall : ∀ {oc od of}, (alignA e.I.t.name).code[off]? = some (.jump oc od of) → ∀ o',
-      AdvWrTop alignA m e o' := fun h o' k o p S hk _ hb ↦
-    hW.1 k o p S hk (lt_of_lt_of_le (adv_lt hA hk) (nextJump_le h rfl (Nat.zero_le _))) hb
-  have htop : ∀ {e' : Ent}, e'.I = e.I → ∀ o', AdvWrTop alignA m e o' → AdvWrTop alignA m e' o' :=
-    fun hI o' h k o p S hk ho hb ↦ by
-      rw [hI] at hk hb ⊢; exact h k o p S hk ho hb
-  have hnil : ∀ (J : Inst) (fn : Fn), AdvWrTop alignA m (Ent.enter coreProgram J fn)
-      (entOf alignA J.t.name - entOf alignA J.t.name) := fun _ _ _ _ _ _ _ ho _ ↦
+      AdvWrTop alignA m adv e o' := fun h o' k o p S hk _ n hn ↦
+    hW.1 k o p S hk (lt_of_lt_of_le (adv_lt hA hk) (nextJump_le h rfl (Nat.zero_le _))) n hn
+  have htop : ∀ {e' : Ent}, e'.I = e.I → ∀ o', AdvWrTop alignA m adv e o' → AdvWrTop alignA m adv e' o' :=
+    fun hI o' h k o p S hk ho n hn ↦ by
+      rw [hI] at hk hn ⊢; exact h k o p S hk ho n hn
+  have hnil : ∀ (J : Inst) (fn : Fn), AdvWrTop alignA m adv (Ent.enter coreProgram J fn)
+      (entOf alignA J.t.name - entOf alignA J.t.name) := fun _ _ _ _ _ _ _ ho _ _ ↦
     absurd ho (by rw [Nat.sub_self]; exact Nat.not_lt_zero _)
   cases hk with
   | @fall e' ins hI' hnc' hins hjk =>
-    show AdvWr alignA m (e' :: st) _
+    show AdvWr alignA m adv (e' :: st) _
     rw [hI', show entOf alignA e.I.t.name + off + 1 - entOf alignA e.I.t.name = off + 1 by omega]
-    refine ⟨htop hI' _ fun k o p S hk ho hb ↦ ?_, hW.2⟩
+    refine ⟨htop hI' _ fun k o p S hk ho n hn ↦ ?_, hW.2⟩
     rcases Nat.lt_or_ge o off with hlt | hge
-    · exact hW.1 k o p S hk hlt hb
+    · exact hW.1 k o p S hk hlt n hn
     · obtain rfl : o = off := by omega
-      exact hnew k p S hk hb
+      exact hnew k p S hk n hn
   | @fwd e' oc od of t hI' hnc' hins hz0 hself htgt hlt =>
     exact ⟨htop hI' _ (hall hins _), hW.2⟩
   | @skip e' oc od of c f σ' hI' hnc' hins hc hkp hwhy =>

@@ -15,10 +15,10 @@ public import LeanVM.Guest.Bridge.AllocLate
 
 `lateReady_alignA : LateExcl → LateReady alignA`. A late hint of a function the allocation check
 admits sizes the `k`-th buffer, an advised one at an earlier offset whose atom is an `allocDyn`
-(`Bridge.lateChk_all`): every path allocates it (`topAtom`), so its advice wrote the pointer cell
-(`AdvWr`, the advised sizes' track), and its size cell holds the atom's size value, a power
-(`dynPow_guest`) of the buffer's size, below `maxCells`. `LateExcl`, named: the late hints of the
-function the allocation check excludes (`claim_list_digest`, its buffer in a branch).
+(`Bridge.lateChk_all`): every path allocates it (`topAtom`), so its advice wrote the pointer cell and
+recorded the buffer's size (`AdvWr`, the advised sizes' track), and its size cell holds the atom's size
+value, a power (`dynPow_guest`) of the buffer's size, below `maxCells`. `LateExcl`, named: the late
+hints of the function the allocation check excludes (`claim_list_digest`, its buffer in a branch).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -31,11 +31,11 @@ open LeanVM.Prover.Exec
 @[expose] public section
 
 /-- **The late hints of the functions the allocation check excludes** find their buffers reserved, and
-their sizes powers below `maxCells` once their size cells are written. -/
+their sizes powers below `maxCells`, advised, once their size cells are written. -/
 def LateExcl : Prop :=
   ∀ r C e s sx i p b j, HintAt alignA r C e s sx i (.allocLate p b) → B2C.idxOf e.I.t.name = some j →
     j ∈ AllocChk.allocExcl → sx.mem.written (sx.fp + p) = true ∧
-      (Mode.HintIn sx (.allocLate p b) → ∃ n, BufOk sx b n)
+      (Mode.HintIn sx (.allocLate p b) → ∃ n, BufOk sx b n ∧ (sx.fp + p, n) ∈ sx.advised)
 
 end
 
@@ -101,10 +101,10 @@ theorem lateReady_alignA (hX : LateExcl) : LateReady alignA := by
   have hklt : k < e.I.t.bufs.length := (List.getElem?_eq_some_iff.mp hbk).1
   have hfol := hints_follows _ s sx ⟨hfine.agree.wf, hfine.dl⟩ hpre
   have hsxfp : sx.fp = e.I.fp := hfol.fp.trans htr.linked.top.1.symm
+  have hwa := hwr.1 k o p S (by rw [hA2]; exact hkb) (by rw [hoff]; exact ho) _ hbk
   refine ⟨?_, fun hin ↦ ?_⟩
-  · have := hwr.1 k o p S (by rw [hA2]; exact hkb) (by rw [hoff]; exact ho) hklt
-    rw [hsxfp]
-    exact Mode.written_mono hfol.le this
+  · rw [hsxfp]
+    exact Mode.written_mono hfol.le hwa.1
   -- the size cell holds the atom's size value, a power of the buffer's size
   have hin' : sx.mem.written (sx.fp + c) = true := hin
   have hval := cellRef hr htr hj ⟨_, hev, by simp [atomUses, hintUses]⟩ hcell
@@ -124,12 +124,14 @@ theorem lateReady_alignA (hX : LateExcl) : LateReady alignA := by
     have := hIP.2.2
     omega
   have hle : allocSizeOf e.σ (.allocDyn d nv) ≤ e.I.t.bufs.sum := List.le_sum_of_mem (List.mem_of_getElem? hbk)
-  refine ⟨allocSizeOf e.σ (.allocDyn d nv), ?_, ?_⟩
+  refine ⟨allocSizeOf e.σ (.allocDyn d nv), ⟨?_, ?_⟩, ?_⟩
   · rw [peek_of_written hag hin', hsxfp, ← hc]
     show refMem r.img (e.I.fp + (ctxOf (i0 + 1)).locAt nv.idx) = _
     rw [hval.2]
     exact hpow
   · unfold maxCells; unfold Ref.κ at he3 h2k; omega
+  · rw [hsxfp]
+    exact hints_advised _ s sx hpre _ hwa.2
 
 end
 

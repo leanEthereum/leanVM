@@ -406,6 +406,7 @@ fn merge(
     }
     m.counts = m.counts.max(seg.counts);
     (run.fp, run.next_free) = (end.fp, end.next_free);
+    run.advised.extend_from_slice(&r.advised);
     for (s, &next) in run.streams.iter_mut().zip(&end.cursors) {
         s.next = next;
     }

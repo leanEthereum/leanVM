@@ -252,15 +252,10 @@ theorem allocate_used {B p n : ℕ} {s s' : St} (e : allocate s p n = .ok s') (h
     rw [hm1, put_used hm]
     split_ifs <;> simp <;> omega
 
-theorem allocateLate_used {B p n : ℕ} {s s' : St} (e : allocateLate s p n = .ok s') (h : s.mem.used ≤ B)
-    (hp : s.fp + p < B) (hn : s.mem.written (s.fp + p) = false → s.nextFree + n ≤ B) : s'.mem.used ≤ B := by
-  unfold allocateLate at e
-  rw [bind_ok] at e
-  obtain ⟨cell, hcell, e⟩ := e
-  obtain ⟨rfl, -⟩ := cellAt_ok hcell
-  split_ifs at e with hw
-  · simp only [pure_ok] at e; subst e; exact h
-  · exact allocate_used e h hp (hn (by simpa using hw))
+theorem checkLate_used {B p n : ℕ} {s s' : St} (e : checkLate s p n = .ok s') (h : s.mem.used ≤ B) :
+    s'.mem.used ≤ B := by
+  rw [checkLate_eq e]
+  exact h
 
 /-- **A hint whose writes are below `B` keeps the memory's cells used below `B`.** -/
 theorem usedOk_run {B : ℕ} {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e : runHint C s h = .ok s')
@@ -305,7 +300,9 @@ theorem usedOk_run {B : ℕ} {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e :
             exact ⟨entries, hent, by rw [he', hw]⟩
           · simp at h1
         · simp at h1
-      exact allocate_used e h0 (by rw [hsm.2.1]; exact hu.1) (by rw [hsm.2.2]; exact hu.2 n hlt hsn)
+      obtain ⟨s3, e3, rfl⟩ := allocateAdvised_ok e
+      have := allocate_used e3 h0 (by rw [hsm.2.1]; exact hu.1) (by rw [hsm.2.2]; exact hu.2 n hlt hsn)
+      exact this
     · simp at e
   | allocArm p sel sizes =>
     simp only [runHint, bind_ok] at e
@@ -320,11 +317,9 @@ theorem usedOk_run {B : ℕ} {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (e :
   | allocLate p b =>
     simp only [runHint, bind_ok] at e
     obtain ⟨⟨n, s1⟩, h1, e⟩ := e
-    obtain ⟨hsm, hb⟩ := bufSize_sm hs h1
-    have hw : s1.mem.written (s1.fp + p) = s.mem.written (s.fp + p) := by rw [hsm.1, hsm.2.1]
+    obtain ⟨hsm, -⟩ := bufSize_sm hs h1
     rw [← hsm.1] at h0
-    exact allocateLate_used e h0 (by rw [hsm.2.1]; exact hu.1) (fun hw' ↦ by
-      rw [hsm.2.2]; exact hu.2 (by rw [← hw]; exact hw') n hb)
+    exact checkLate_used e h0
   | cellAddress p c =>
     simp only [runHint, bind_ok] at e
     obtain ⟨c', -, pc, hpc, e⟩ := e

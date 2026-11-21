@@ -207,15 +207,16 @@ pub enum RHint {
     AllocDyn { ptr: Off, size: Off },
     /// `Alloc` with the cell count advice: the exponent of stream `stream`'s next entry, one word
     /// `g^size`, or nothing for an empty entry, the pointer left unwritten. A `HeapBuf` the
-    /// compiler reserves before its size is computed or a branch reaches it; a wrong size only
-    /// makes the run fail.
+    /// compiler reserves before its size is computed or a branch reaches it; its
+    /// [`RHint::AllocLate`] checks the size.
     AllocAdvice { ptr: Off, stream: String },
     /// `Alloc` of `sizes[k]` cells, where `m[fp+sel] = g^k`: a dispatched call's frame, sized
     /// by the arm it selects.
     AllocArm { ptr: Off, sel: Off, sizes: Vec<u32> },
     /// A `HeapBuf`'s own hint after the compiler reserved it from advice ([`RHint::AllocAdvice`]):
-    /// `Alloc` or `AllocDyn`, but nothing if its pointer is written. Every other reservation
-    /// writes its pointer once, a second value being a conflict.
+    /// it reserves nothing, and the run fails unless that advice reserved this pointer's buffer
+    /// with `size` cells (an empty entry reserves none). Every other reservation writes its
+    /// pointer once, a second value being a conflict.
     AllocLate { ptr: Off, size: BufSize },
     /// Write the address of frame cell `cell`, `g^{fp+cell}`, to `fp+ptr`.
     CellAddress { ptr: Off, cell: Off },

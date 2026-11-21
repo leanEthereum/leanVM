@@ -54,7 +54,7 @@ pub fn compile(ast: &Ast) -> CompiledProgram {
 /// The witness stream of the `HeapBuf` sizes a function reserves before its first call although
 /// they are computed only after it, or a branch reaches them (`RHint::AllocAdvice`): one entry per
 /// such buffer of each call, the caller's before its callees', `[g^size]`, or `[]` where the run
-/// allocates none.
+/// allocates none. The buffer's own hint (`RHint::AllocLate`) fails the run on any other.
 pub const HEAP_SIZE_STREAM: &str = "heap_sizes";
 
 /// Each function's `HeapBuf`s reserved from advice ([`RHint::AllocAdvice`] on [`HEAP_SIZE_STREAM`]), in the
