@@ -337,6 +337,7 @@ import LeanVM.Guest.B1.Common.Sponge
 import LeanVM.Guest.B1.Bits.Templates
 import LeanVM.Guest.Ref.Elab
 import LeanVM.Guest.Ref.Keccak
+import LeanVM.Guest.Ref.KeccakCells
 import LeanVM.Guest.Ref.Link
 
 /-! **B1's per-function proofs read their own function's core module alone.** A proof stated for
@@ -544,6 +545,7 @@ open Lean Elab Command in
     (`LeanVM.Guest.B1.Bits.Templates, []),
     (`LeanVM.Guest.Ref.Elab, []),
     (`LeanVM.Guest.Ref.Keccak, []),
+    (`LeanVM.Guest.Ref.KeccakCells, []),
     (`LeanVM.Guest.Ref.Lang, []),
     (`LeanVM.Guest.Ref.Link, [])]
   let families : List (Name × Option (List Name) × List Name) := [

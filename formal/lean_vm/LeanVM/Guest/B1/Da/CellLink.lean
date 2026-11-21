@@ -10,6 +10,8 @@ module
 public import LeanVM.Guest.B1.Da.CellRef
 -- Read by the check; it also keeps `lake-build.py --dev`'s kernel on this module (`CORE_READ`).
 public import LeanVM.Guest.Pack.P7.Core
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 meta import LeanVM.Guest.Ref.Elab
 meta import LeanVM.Guest.B1.Da.CellRef
 
@@ -38,8 +40,9 @@ syntax (name := cellMapStx) "cell_map%" : term
 open Lean Elab Term in
 def elabCellMap : TermElab := fun _ _ => do
   let f ← Ref.Elab.decFn ``Fn.«da_verify_cell».core
-  let a := (⟨[], 0, 0⟩ : Acc CellName).names (f.params ++ (List.range 128).map (V.n <| · + 1))
-    (cellRef.params.map .v ++ (List.range 128).map (Tm.v <| .sym ·))
+  let a := (⟨[], 0, 0⟩ : Acc CellName).names
+    (f.params ++ (List.range (guest_const% DA_CELL)).map (V.n <| · + 1))
+    (cellRef.params.map .v ++ (List.range (guest_const% DA_CELL)).map (Tm.v <| .sym ·))
   match a.stmts f.body cellRef.body with
   | (⟨rev, _, _⟩, _) => return Ref.Elab.mapE ⟨rev.reverse.map (·.getD (.const 0, false))⟩
 
@@ -56,7 +59,8 @@ noncomputable def cellMap : Map CellName := cell_map%
 theorem cell_linked : cellMap.check Fn.«da_verify_cell».core cellRef = true := by decide +kernel
 
 /-- The hinted values own the names of the symbols. -/
-theorem cell_owners : ownersAt cellMap ((List.range 128).map fun j => (j + 1, .sym j)) = true := by
+theorem cell_owners :
+    ownersAt cellMap ((List.range (guest_const% DA_CELL)).map fun j => (j + 1, .sym j)) = true := by
   decide +kernel
 
 end

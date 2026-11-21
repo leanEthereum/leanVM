@@ -31,13 +31,14 @@ open LeanVM.Protocol.KeccakHash LeanVM.Guest.Value.Keccak LeanVM.Guest.B1.Digest
 
 /-- The names of `da_verify_cell`. -/
 inductive CellName where
+  /-- The argument, the weights' pointer. -/
   | lvals
   /-- `sym[e]`, hinted. -/
   | sym (e : ℕ)
   /-- `lvals[GEN ** e]`. -/
   | w (e : ℕ)
   /-- Cell `c` of the hash's state before block `b`. -/
-  | st (b c : ℕ)
+  | state (b c : ℕ)
   /-- `st[j]`. -/
   | out (j : ℕ)
   deriving DecidableEq
@@ -47,7 +48,7 @@ instance : Coded CellName where
     | .lvals => 0
     | .sym e => 4 * e + 1
     | .w e => 4 * e + 2
-    | .st b c => 4 * (13 * b + c) + 3
+    | .state b c => 4 * (13 * b + c) + 3
     | .out j => 4 * j + 4
 
 /-- `s` after `n` symbols; the compiler folds `0 + x`. -/
@@ -60,7 +61,7 @@ def dotTm : ℕ → Tm CellName
 def cellRef : Func CellName where
   params := [.lvals]
   body := unroll 0 (guest_const% DA_CELL) (fun e => [.load (.v (.w e)) (.v .lvals) e]) ++
-    spongeTo (fun b c => .v (.st b c)) ((List.range (guest_const% DA_CELL)).map (.v <| .sym ·))
+    spongeTo (fun b c => .v (.state b c)) ((List.range (guest_const% DA_CELL)).map (.v <| .sym ·))
       (guest_const% DA_CELL) (.v (.out 0)) (.v (.out 1))
   rets := [.v (.out 0), .v (.out 1), dotTm (guest_const% DA_CELL)]
 
@@ -74,21 +75,26 @@ theorem eval_dotTm (ρ : CellName → E) :
     simp [Tm.eval]
 
 /-- The symbols, on the names. -/
-def symsOf (ρ : CellName → E) : List E := (List.range 128).map fun e => ρ (.sym e)
+def symsOf (ρ : CellName → E) : List E :=
+  (List.range (guest_const% DA_CELL)).map fun e => ρ (.sym e)
 
 /-- The weights, on the names. -/
-def wsOf (ρ : CellName → E) : List E := (List.range 128).map fun e => ρ (.w e)
+def wsOf (ρ : CellName → E) : List E :=
+  (List.range (guest_const% DA_CELL)).map fun e => ρ (.w e)
 
 /-- **What the commands give**, on the names: the weights read at `lvals`, and the returned words
 are the symbols' digest and their dot product with the weights. -/
 theorem cellRef_sat {rd : Reader} {ρ : CellName → E} (h : Cmd.SatList rd ρ cellRef.body) :
     ReadsAt rd (ρ .lvals) (wsOf ρ) ∧ cellRef.rets.map (Tm.eval ρ) =
       digestCells (keccak256 ((symsOf ρ).flatMap E.toBytes)) ++
-        [((List.range LeanDa.cellSymbols).map fun e ↦ (wsOf ρ).getD e 0 * (symsOf ρ).getD e 0).sum] := by
+        [((List.range LeanDa.cellSymbols).map fun e ↦
+          (wsOf ρ).getD e 0 * (symsOf ρ).getD e 0).sum] := by
   rw [cellRef, Cmd.satList_append, Cmd.satList_unroll, satList_spongeTo _ _ (by simp)] at h
   refine ⟨fun k hk => ?_, ?_⟩
-  · simpa [Cmd.SatList, Cmd.Sat, Tm.eval, wsOf] using h.1 k (Nat.zero_le _) (by simpa [wsOf] using hk)
-  · have hd : (ρ (.out 0), ρ (.out 1)) = digestHalves (keccak256 ((symsOf ρ).flatMap E.toBytes)) := by
+  · simpa [Cmd.SatList, Cmd.Sat, Tm.eval, wsOf] using
+      h.1 k (Nat.zero_le _) (by simpa [wsOf] using hk)
+  · have hd : (ρ (.out 0), ρ (.out 1)) =
+        digestHalves (keccak256 ((symsOf ρ).flatMap E.toBytes)) := by
       have := h.2.2
       simp only [List.map_map, Function.comp_def, Tm.eval] at this
       exact this
@@ -102,7 +108,7 @@ private def cellVal (lv : E) (syms ws : List E) : CellName → E
   | .lvals => lv
   | .sym e => syms.getD e 0
   | .w e => ws.getD e 0
-  | .st b c => if h : c < 13 then
+  | .state b c => if h : c < 13 then
       spongeSt (padCells syms (16 * syms.length)) (blocks syms.length) b ⟨c, h⟩ else 0
   | .out j => (digestCells (keccak256 (syms.flatMap E.toBytes))).getD j 0
 
@@ -121,15 +127,14 @@ theorem cellRef_sem (rd : Reader) (args rets : List E) :
     obtain ⟨syms, ws, hsl, hr, hwl, rfl⟩ := hm
     simp only [LeanDa.cellSymbols] at hsl hwl
     have hs : ((List.range 128).map (Tm.v <| CellName.sym ·)).map (Tm.eval (cellVal lv syms ws)) =
-        syms := by
-      exact List.ext_getElem (by simp [hsl]) fun i _ h => by
+        syms :=
+      List.ext_getElem (by simp [hsl]) fun i _ h => by
         simp [Tm.eval, cellVal, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h]
     refine ⟨cellVal lv syms ws, rfl, ?_, ?_⟩
     · rw [cellRef, Cmd.satList_append, Cmd.satList_unroll, satList_spongeTo _ _ (by simp), hs]
       refine ⟨fun i _ hi => ⟨?_, trivial⟩, fun b _ _ c => ?_, ?_⟩
-      · have := hr i (by omega)
-        simpa [Cmd.Sat, Tm.eval, cellVal, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem
-          (show i < ws.length by omega)] using this
+      · simpa [Cmd.Sat, Tm.eval, cellVal, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem
+          (show i < ws.length by omega)] using hr i (by omega)
       · simp [Tm.eval, cellVal, hsl, c.isLt]
       · simp only [Tm.eval, cellVal, digestCells, List.getD_cons_zero, List.getD_cons_succ]
         rfl

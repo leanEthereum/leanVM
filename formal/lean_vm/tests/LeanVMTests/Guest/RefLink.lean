@@ -16,9 +16,9 @@ operands, the assertion dropped or changed, a `KECCAK`'s layout flags, read cell
 wrong map, two owners of one name, a core assignment added, a value read after the join that
 defines it in one arm or block, a value not `V.n k`), a name pinned at a value that does not own
 it, the changes the check accepts, and the check in pieces with wrong cuts and boundaries.
-`keccak_cells` of nine cells into two (`spongeTo`) is linked to its compiled form, whose second
-block reads the state's cells where the padding is zero, and not to that form with a zero cell
-added or its outputs swapped.
+`keccak_cells` of nine cells into two (`spongeTo`) is linked to a function lowered as the compiler
+lowers it, whose second block reads the state's cells where the padding is zero, and not to that
+function with a zero cell added or its outputs swapped.
 `sp_wots`'s meaning (`MeaningSpWots`) rejects arguments of the wrong shape and a fourth word whose
 digits do not sum to `128`, and its completeness contract's hypotheses are satisfiable.
 -/
@@ -272,8 +272,9 @@ instance : Coded SN where
   code n := match n with
     | .a => 0 | .msg i => 3 * i + 1 | .st b c => 3 * (13 * b + c) + 2 | .o j => 3 * j + 3
 
-/-- `keccak_cells(msg, out)`, nine hinted cells into two, compiled: block `1` XORs cells `0`, `1`
-and `8` (the message's last cell, the padding's `0x01` and `0x80`) and reads cells `2` to `7`. -/
+/-- `keccak_cells(msg, out)`, nine hinted cells into two, lowered as the compiler lowers it: block
+`1` XORs cells `0`, `1` and `8` (the message's last cell, the padding's `0x01` and `0x80`) and reads
+cells `2` to `7`. -/
 def f (zero : List Stmt := []) (c2 : V := .n 14) : Fn where
   name := "sponge"
   params := [.n 0]
@@ -294,12 +295,13 @@ def r (o0 : Tm SN := .v (.o 0)) (o1 : Tm SN := .v (.o 1)) : Func SN where
   body := spongeTo (fun b c => .v (.st b c)) ((List.range 9).map (.v <| .msg ·)) 9 o0 o1
   rets := [.v (.o 0), .v (.o 1)]
 
-example : Linked (f) r = true := by decide +kernel
+example : Linked f r = true := by decide +kernel
 
 /-- Cell `2` of block `1` XORed with the zero padding cell. -/
 example : Linked (f [.atom (.add (.n 31) (.n 14) (.n 11))] (.n 31)) r = false := by decide +kernel
 
-example : Linked (f) (r (.v (.o 1)) (.v (.o 0))) = false := by decide +kernel
+/-- The outputs swapped. -/
+example : Linked f (r (.v (.o 1)) (.v (.o 0))) = false := by decide +kernel
 
 end Sponge
 

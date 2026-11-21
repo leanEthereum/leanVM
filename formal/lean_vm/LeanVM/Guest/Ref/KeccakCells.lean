@@ -15,8 +15,9 @@ public import LeanVM.Guest.B1.Common.Basic
 
 `emit_keccak_message` (`crates/zkdsl_compiler/src/lower/builtins.rs`) XORs a block's rate cell into
 the state only where the padded cell is not a literal zero; where it is, the `KECCAK` reads the
-state cell itself. `sponge` (`LeanVM.Guest.Ref.Keccak`) adds every padded cell, which matches the
-compiled code only when no later block reads a zero padding cell. Here:
+state cell itself or a copy of it (`sponge_xor`), the same word. `sponge`
+(`LeanVM.Guest.Ref.Keccak`) adds every padded cell, which matches the compiled code only when no
+later block reads a zero padding cell. Here:
 
 * `addCell a P`: `a + P`, or `a` where `P` is the constant zero;
 * `spongeTo st msg m o0 o1`: `sponge`'s chain with the zero cells folded, the last block writing
@@ -129,7 +130,8 @@ theorem satList_spongeTo {rd : Reader} {ρ : X → E} (st : Nat → Nat → Tm X
       (o0.eval ρ, o1.eval ρ) = (spongeSt P B B 0, spongeSt P B B 1) := by
     rw [show spongeSt P B B = spongeSt P B (B - 1 + 1) by rw [Nat.sub_add_cancel hB]]
     refine ⟨fun ⟨oc, hoc, h⟩ => ?_, fun h => ⟨.two, rfl, fun c hc => ?_⟩⟩
-    · obtain rfl : oc = .two := by cases oc <;> first | rfl | simp [KeccakOutputCells.cellCount] at hoc
+    · obtain rfl : oc = .two := by
+        cases oc <;> first | rfl | simp [KeccakOutputCells.cellCount] at hoc
       exact Prod.ext (h 0 (by decide)) (h 1 (by decide))
     · obtain rfl | rfl : c = 0 ∨ c = 1 := by
         rcases c with ⟨_ | _ | _, _⟩ <;> simp_all [KeccakOutputCells.cellCount]

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.CellSound
 
-  `da_verify_cell`'s core IR gives its meaning (TRIAGE G #92).
+  `da_verify_cell`'s core IR gives its meaning.
 -/
 
 module
@@ -12,9 +12,10 @@ import LeanVM.Guest.B1.Da.CellLink
 /-!
 # `da_verify_cell`, sound
 
-A valuation `σ` of `da_verify_cell`'s body is one of its reference function's names, the hinted
-values owning the symbols' names (`cell_linked`, `cell_owners`, through `Map.pieces_fwd_at`), and
-on the names the commands give the weights read and the returned words (`cellRef_sat`).
+A valuation `σ` of `da_verify_cell`'s body gives one of its reference function's names
+(`cellMap.rho σ`), the hinted values owning the symbols' names (`cell_linked`, `cell_owners`,
+through `Map.pieces_fwd_at`), and on the names the commands give the weights read and the returned
+words (`cellRef_sat`).
 -/
 
 namespace LeanVM.Guest.B1.Da
