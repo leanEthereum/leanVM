@@ -379,7 +379,19 @@ pub fn dot_base(w: &[Weights8], k: &[F64]) -> F128Unreduced {
     ))]
     // SAFETY: both features are enabled at compile time; the lengths match.
     return unsafe { x86_64::dot_base_ymm(w, k) };
-    #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "pclmulqdq",
+        not(all(target_feature = "vpclmulqdq", target_feature = "avx2"))
+    ))]
+    // SAFETY: pclmulqdq is enabled at compile time; the lengths match.
+    return unsafe { x86_64::dot_base_xmm(w, k) };
+    #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+    return aarch64::dot_base(w, k);
+    #[cfg(not(any(
+        all(target_arch = "x86_64", target_feature = "pclmulqdq"),
+        all(target_arch = "aarch64", target_feature = "aes"),
+    )))]
     w.iter()
         .zip(k.as_chunks::<8>().0)
         .fold(F128Unreduced::ZERO, |acc, (w, k)| {
@@ -638,6 +650,28 @@ pub mod aarch64 {
     pub fn reduce(u: F128Unreduced) -> F128 {
         // SAFETY: a `[u64; 2]` and a 128-bit register hold the same bits.
         reduce2(u.coeffs.map(|c| unsafe { transmute::<[u64; 2], uint64x2_t>(c) }))
+    }
+
+    /// The mixed inner product over packed weights, keeping both unreduced accumulators in NEON registers.
+    #[inline]
+    pub fn dot_base(w: &[super::Weights8], k: &[F64]) -> F128Unreduced {
+        // SAFETY: NEON is in the aarch64 baseline, `aes` is checked by the module cfg, and lengths match.
+        unsafe {
+            let mut acc0 = vdupq_n_u64(0);
+            let mut acc1 = vdupq_n_u64(0);
+            for (w, k) in w.iter().zip(k.as_chunks::<8>().0) {
+                for j in 0..4 {
+                    let kv = vld1q_u64(k.as_ptr().add(2 * j).cast());
+                    let ke = vdupq_laneq_u64::<0>(kv);
+                    let ko = vdupq_laneq_u64::<1>(kv);
+                    let w_lo = vld1q_u64(w.lo.as_ptr().add(2 * j));
+                    let w_hi = vld1q_u64(w.hi.as_ptr().add(2 * j));
+                    acc0 = xor3(acc0, lo(w_lo, ke), lo(w_hi, ko));
+                    acc1 = xor3(acc1, hi(w_lo, ke), hi(w_hi, ko));
+                }
+            }
+            unreduced([acc0, acc1])
+        }
     }
 }
 
@@ -1080,6 +1114,35 @@ pub mod x86_64 {
             bits::<__m128i, [u64; 2]>(q)
         });
         F128Unreduced { coeffs: lanes }
+    }
+
+    /// [`super::dot_base`] in 128-bit XMM registers, for machines with PCLMULQDQ but no VPCLMULQDQ.
+    ///
+    /// # Safety
+    ///
+    /// Callable only where pclmulqdq is enabled.
+    #[cfg(not(all(target_feature = "vpclmulqdq", target_feature = "avx2")))]
+    #[inline]
+    #[target_feature(enable = "pclmulqdq")]
+    pub fn dot_base_xmm(w: &[super::Weights8], k: &[F64]) -> F128Unreduced {
+        let mut acc0 = _mm_setzero_si128();
+        let mut acc1 = _mm_setzero_si128();
+        for (w, k) in w.iter().zip(k.as_chunks::<8>().0) {
+            for j in 0..4 {
+                let kv = bits::<[F64; 2], __m128i>([k[2 * j], k[2 * j + 1]]);
+                let lo = bits::<[u64; 2], __m128i>([w.lo[2 * j], w.lo[2 * j + 1]]);
+                let hi = bits::<[u64; 2], __m128i>([w.hi[2 * j], w.hi[2 * j + 1]]);
+                let e0 = _mm_clmulepi64_si128::<0x00>(lo, kv);
+                let e1 = _mm_clmulepi64_si128::<0x01>(lo, kv);
+                let o0 = _mm_clmulepi64_si128::<0x10>(hi, kv);
+                let o1 = _mm_clmulepi64_si128::<0x11>(hi, kv);
+                acc0 = _mm_xor_si128(acc0, _mm_xor_si128(e0, o0));
+                acc1 = _mm_xor_si128(acc1, _mm_xor_si128(e1, o1));
+            }
+        }
+        F128Unreduced {
+            coeffs: [bits::<__m128i, [u64; 2]>(acc0), bits::<__m128i, [u64; 2]>(acc1)],
+        }
     }
 }
 

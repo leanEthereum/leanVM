@@ -189,26 +189,43 @@ fn transpose_forward_ntt_sparse_ext(
     let rows = 1usize << k;
     let mut nonzeros: Vec<(usize, F128)> = positions.iter().copied().zip(values.iter().copied()).collect();
     nonzeros.sort_unstable_by_key(|&(p, _)| p);
-    let mut occupied = vec![false; 1 << (log_d - log_window)];
+    let mut window_id = vec![u32::MAX; 1 << (log_d - log_window)];
+    let mut occupied_windows = Vec::new();
     for &(p, _) in &nonzeros {
-        occupied[p >> log_window] = true;
+        let w = p >> log_window;
+        if window_id[w] == u32::MAX {
+            window_id[w] = occupied_windows.len() as u32;
+            occupied_windows.push(w);
+        }
     }
+    let n_occupied = occupied_windows.len();
 
-    // Window `r` of replica `j`, strip `c` is at `j * n_keep + (c * rows + r) * strip`: a strip's rows are contiguous.
-    // SAFETY: pass 1 writes every element of an occupied window, and pass 2 reads only those.
-    let mut stage = unsafe { primitives::uninit_vec::<F128>(1 << log_d) };
+    // Compact stage over occupied windows only: strip `c` of dense window `id` sits at `(c * n_occupied + id) * strip`,
+    // so pass 2 reads each strip's occupied rows contiguously.
+    // SAFETY: pass 1 writes every element of every occupied window.
+    let mut stage = unsafe { primitives::uninit_vec::<F128>(n_occupied * window) };
     let stage_ptr = parallel::SendPtr(stage.as_mut_ptr());
-    parallel::for_each_chunk(occupied.len(), |first, end| {
+    parallel::for_each_chunk(n_occupied, |first, end| {
         let mut data = vec![F128::ZERO; window];
-        for w in (first..end).filter(|&w| occupied[w]) {
+        let mut local = Vec::new();
+        let mut blocks = Vec::new();
+        for id in first..end {
+            let w = occupied_windows[id];
             let range = nonzeros.partition_point(|&(p, _)| p < w << log_window)
                 ..nonzeros.partition_point(|&(p, _)| p < (w + 1) << log_window);
             data.fill(F128::ZERO);
-            transpose_window(ntt, &nonzeros[range], &mut data, w << log_window, log_d);
-            let (replica, row) = (w / rows, w % rows);
+            transpose_window(
+                ntt,
+                &nonzeros[range],
+                &mut data,
+                w << log_window,
+                log_d,
+                &mut local,
+                &mut blocks,
+            );
             for (c, src) in data.chunks_exact(strip).enumerate() {
-                // SAFETY: each (window, strip) pair owns its `strip` elements.
-                unsafe { stage_ptr.slice(replica * n_keep + (c * rows + row) * strip, strip) }.copy_from_slice(src);
+                // SAFETY: each (id, strip) pair owns its `strip` elements.
+                unsafe { stage_ptr.slice((c * n_occupied + id) * strip, strip) }.copy_from_slice(src);
             }
         }
     });
@@ -217,7 +234,9 @@ fn transpose_forward_ntt_sparse_ext(
     // Layer `i = replica * k + j` is `plan[ends[i]..ends[i + 1]]`.
     let (mut plan, mut ends, mut live) = (Vec::new(), vec![0], vec![false; rows]);
     for replica in 0..n_replicas {
-        live.copy_from_slice(&occupied[replica * rows..(replica + 1) * rows]);
+        for (l, &id) in live.iter_mut().zip(&window_id[replica * rows..(replica + 1) * rows]) {
+            *l = id != u32::MAX;
+        }
         for j in 0..k {
             let len = 2 << j;
             let layer = log_d - log_window - 1 - j;
@@ -240,10 +259,12 @@ fn transpose_forward_ntt_sparse_ext(
         let (mut sum, mut tile) = (vec![F128::ZERO; rows * strip], vec![F128::ZERO; rows * strip]);
         let stream = primitives::stream::Stream::new();
         for c in first..end {
+            let strip_base = c * n_occupied * strip;
             let run_replica = |tile: &mut [F128], replica: usize| {
                 for (r, row) in tile.chunks_exact_mut(strip).enumerate() {
-                    if occupied[replica * rows + r] {
-                        row.copy_from_slice(&stage[replica * n_keep + (c * rows + r) * strip..][..strip]);
+                    let id = window_id[replica * rows + r];
+                    if id != u32::MAX {
+                        row.copy_from_slice(&stage[strip_base + id as usize * strip..][..strip]);
                     } else {
                         row.fill(F128::ZERO);
                     }
@@ -266,14 +287,21 @@ fn transpose_forward_ntt_sparse_ext(
 
 /// The steps of [`transpose_forward_ntt_sparse_ext`] that act within one window `data` of the
 /// domain, at `offset`: it holds zeros but for the `nonzeros`, whose positions are in the window.
-fn transpose_window(ntt: &AdditiveNttF64, nonzeros: &[(usize, F128)], data: &mut [F128], offset: usize, log_d: usize) {
+fn transpose_window(
+    ntt: &AdditiveNttF64,
+    nonzeros: &[(usize, F128)],
+    data: &mut [F128],
+    offset: usize,
+    log_d: usize,
+    local: &mut Vec<usize>,
+    blocks: &mut Vec<usize>,
+) {
     let log_window = data.len().ilog2() as usize;
-    let mut local = Vec::with_capacity(nonzeros.len());
+    local.clear();
     for &(p, v) in nonzeros {
         data[p - offset] += v;
         local.push(p - offset);
     }
-    let mut blocks: Vec<usize> = Vec::with_capacity(local.len());
     let mut s = 0;
     while s < log_window {
         blocks.clear();
@@ -284,7 +312,7 @@ fn transpose_window(ntt: &AdditiveNttF64, nonzeros: &[(usize, F128)], data: &mut
             break;
         }
         let (layer, half) = (log_d - 1 - s, 1usize << s);
-        for &b in &blocks {
+        for &b in &*blocks {
             let (top, bot) = data[2 * b * half..2 * (b + 1) * half].split_at_mut(half);
             transpose_butterfly_ext(ntt.twiddle(layer, (offset >> (s + 1)) + b), top, bot);
         }
