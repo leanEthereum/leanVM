@@ -200,7 +200,12 @@ fn merkle_hints(queries: &[usize], depth: &[usize], proof: &verifier::Proof) -> 
             nodes[1] = node;
             hints.push(("merkle_children", path_children));
         }
-        hints.push(("merkle_caps", nodes.iter().flat_map(hash_to_scalars).collect()));
+        // Each node's first halves, then its second halves (`verify_merkle_cap`).
+        let halves: Vec<[F128; 2]> = nodes.iter().map(hash_to_scalars).collect();
+        hints.push((
+            "merkle_caps",
+            halves.iter().map(|h| h[0]).chain(halves.iter().map(|h| h[1])).collect(),
+        ));
         hints.push(("merkle_cap_active", active));
     }
     hints

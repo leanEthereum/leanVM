@@ -303,6 +303,10 @@ SIDE_TAB_AT = RANK_KEYS_AT + SIZE_BITS
 WIN_TAB_AT = SIDE_TAB_AT + N_BLOCK_GROUPS  # a bit window's pattern by its g-power: [g^n] = n
 WIN_TAB_BITS = 11
 WIN_TAB_LEN = 2 ** WIN_TAB_BITS
+# Past it, a query position's window pattern shifted into place: for each shift s from 1 to the deepest path
+# plus one, the cap index window's, [g^n] = n COORD_BASIS[s] for n < 2^SHIFT_TAB_BITS, the widest such window.
+SHIFT_TAB_BITS = 7
+SHIFT_TAB_LEN = 2 ** SHIFT_TAB_BITS
 LIG_N_LEVELS = LIG_N_LEVELS_PLACEHOLDER
 LIG_YR_LEVEL = LIG_YR_LEVEL_PLACEHOLDER
 LIG_YR_LOG_LEN = LIG_YR_LOG_LEN_PLACEHOLDER
@@ -320,6 +324,7 @@ LIG_PACKED_ROW_CAP = LIG_PACKED_ROW_CAP_PLACEHOLDER
 LIG_ROW_CAP = LIG_ROW_CAP_PLACEHOLDER
 LIG_FOLDS_CAP = LIG_FOLDS_CAP_PLACEHOLDER
 LIG_PATH_CAP = LIG_PATH_CAP_PLACEHOLDER
+SHIFT_TABS = LIG_PATH_CAP // 2 + 1  # the shifted window tables (`exponent_tables`)
 LIG_TREE_DEPTH = LIG_TREE_DEPTH_PLACEHOLDER
 LIG_SQUEEZES = LIG_SQUEEZES_PLACEHOLDER
 LIG_LOG_MSG_COLS = LIG_LOG_MSG_COLS_PLACEHOLDER
@@ -707,7 +712,7 @@ def exponent_tables():
     # powers of two into field products. It spans SIZE_BITS because
     # `log2_ceil_in_the_exponent` bounds its result there and indexes it at g^L.
     # Past them, the opening selector's nibble shares: g^(u 2^(4j)) at SIZE_BITS + 16j + u.
-    g_squares = HeapBuf(WIN_TAB_AT + WIN_TAB_LEN)
+    g_squares = HeapBuf(WIN_TAB_AT + WIN_TAB_LEN + SHIFT_TABS * SHIFT_TAB_LEN)
     sq_run = GEN
     for j in unroll(0, SIZE_BITS):
         g_squares[GEN ** j] = sq_run
@@ -729,6 +734,10 @@ def exponent_tables():
     # Last, a bit window's pattern by its g-power, for `query_window`.
     for n in unroll(0, WIN_TAB_LEN):
         g_squares[GEN ** (WIN_TAB_AT + n)] = const(n)
+    # Then the shifted patterns, for `query_window`.
+    for sh in unroll(1, SHIFT_TABS + 1):
+        for n in unroll(0, SHIFT_TAB_LEN):
+            g_squares[GEN ** (WIN_TAB_AT + WIN_TAB_LEN + (sh - 1) * SHIFT_TAB_LEN + n)] = const(n) * COORD_BASIS[sh]
     return g_squares
 
 
@@ -816,19 +825,31 @@ def assert_window(w, width: Const):
 
 
 @inline
-def query_window(word, wins, tabs, at: Const, start: Const, width: Const):
+def query_window(word, wins, tabs, at: Const, start: Const, width: Const, shift: Const):
     # Bits start..start+width of `word` into wins[at] as g^n, n the integer they spell, range checked below
-    # 2^width. Returns n's bit pattern, `tabs[g^n]` (`query_tables`).
+    # 2^width. Returns n's bit pattern times COORD_BASIS[shift], read off `exponent_tables`' windows.
     hint_windows_exponent(wins, word, start, width, 1, at)
     w = wins[at]
     assert_window(w, width)
-    return tabs[w]
+    return shifted_pattern(tabs, w, shift)
 
 
 @inline
-def query_window_split(word, wins, tabs, parts, at: Const, start: Const, width: Const, cut: Const):
+def shifted_pattern(tabs, w, shift: Const):
+    # n COORD_BASIS[shift] for w = g^n, n below the shifted tables' length when shift is not zero.
+    entry = tabs * w
+    if const(shift == 0):
+        pattern = entry[GEN ** 0]
+    else:
+        pattern = entry[GEN ** (WIN_TAB_LEN + (shift - 1) * SHIFT_TAB_LEN)]
+    return pattern
+
+
+@inline
+def query_window_split(word, wins, tabs, parts, at: Const, start: Const, width: Const, cut: Const, shift: Const):
     # A window whose bits cross a limb boundary `cut` bits in: its two runs hinted and range checked apart,
-    # each read as its bit pattern into parts[0], parts[1], and joined in the exponent into wins[at].
+    # each read as its bit pattern, the low one times COORD_BASIS[shift], into parts[0], parts[1], and joined
+    # in the exponent into wins[at].
     hint_windows_exponent(parts, word, start, cut, 1, 2)
     hint_windows_exponent(parts, word, start + cut, width - cut, 1, 3)
     lo = parts[2]
@@ -839,7 +860,7 @@ def query_window_split(word, wins, tabs, parts, at: Const, start: Const, width: 
     for s in unroll(0, cut):
         hp = hp * hp
     wins[at] = lo * hp
-    parts[0] = tabs[lo]
+    parts[0] = shifted_pattern(tabs, lo, shift)
     parts[1] = tabs[hi]
     return
 
@@ -882,14 +903,14 @@ def decode_query_windows(squeezed_word, positions_out, win_ptrs_out, tabs, depth
                 off = QW * i
                 width = QW
             if const((off + width) // (cut + 1) == 0):
-                p_lo += query_window(squeezed_word, wins, tabs, at0 + i, base + off, width) * COORD_BASIS[off]
+                p_lo += query_window(squeezed_word, wins, tabs, at0 + i, base + off, width, off)
             elif const(off // cut == 0):
                 parts = StackBuf(4)
-                query_window_split(squeezed_word, wins, tabs, parts, at0 + i, base + off, width, cut - off)
-                p_lo += parts[0] * COORD_BASIS[off]
+                query_window_split(squeezed_word, wins, tabs, parts, at0 + i, base + off, width, cut - off, off)
+                p_lo += parts[0]
                 p_hi += parts[1]
             else:
-                p_hi += query_window(squeezed_word, wins, tabs, at0 + i, base + off, width) * COORD_BASIS[off - cut]
+                p_hi += query_window(squeezed_word, wins, tabs, at0 + i, base + off, width, off - cut)
         if const(cut // depth == 0):
             positions_out[GEN ** j] = p_lo + COORD_BASIS[cut] * p_hi
             reconstructed += COORD_BASIS[base] * p_lo + COORD_BASIS[base + cut] * p_hi
@@ -904,7 +925,7 @@ def decode_query_windows(squeezed_word, positions_out, win_ptrs_out, tabs, depth
             width = 7
         else:
             width = FIELD_BITS - start
-        reconstructed += query_window(squeezed_word, rest, tabs, i, start, width) * COORD_BASIS[start]
+        reconstructed += query_window(squeezed_word, rest, tabs, i, start, width, 0) * COORD_BASIS[start]
     assert reconstructed == squeezed_word
     return
 
@@ -1193,7 +1214,8 @@ def batch_sumcheck(fs0, fs1, fs2, fs3, fs4, running, point, tabs, n_rounds: Cons
 
 def verify_merkle_cap(cap, flags, depth: Const):
     # Unrolled over the cap's nodes, so every address is an immediate. Every node's
-    # hinted digest (node k at heap cells 2k, 2k+1) is read once into a frame run,
+    # hinted digest (node k's halves at heap cells k and NODES + k, NODES = 2^(depth + 1))
+    # is read once into a frame run,
     # node k at cells 2(k - 1) and 2k - 1, where an internal node's hash writes its
     # digest, landing on (and so asserting) the hinted value. An active (flagged)
     # node is hashed; an inactive one pins its children's flags to zero, so every
@@ -1214,8 +1236,8 @@ def verify_merkle_cap(cap, flags, depth: Const):
             runs = StackBuf(4 * 256 - 2)
         for node in unroll(1, 2 * n_leaves):
             at = 2 * (node - 1)
-            runs[at] = cap[GEN ** (2 * node)]
-            runs[at + 1] = cap[GEN ** (2 * node + 1)]
+            runs[at] = cap[GEN ** node]
+            runs[at + 1] = cap[GEN ** (2 * n_leaves + node)]
         for node in unroll(1, n_leaves):
             left = 2 * (2 * node - 1)
             right = left + 2
@@ -1232,7 +1254,7 @@ def verify_merkle_cap(cap, flags, depth: Const):
         root_0 = runs[0]
         root_1 = runs[1]
     else:
-        root_0 = cap[GEN ** 2]
+        root_0 = cap[GEN ** 1]
         root_1 = cap[GEN ** 3]
     return root_0, root_1
 
@@ -1376,18 +1398,17 @@ def walk_path(n0, n1, wins, cap, flags, path_depth: Const, cap_depth: Const):
             n0, n1 = match(log(w), range(0, 4), lambda k: walk_window(n0, n1, path, QW * i, 2, k))
         else:
             n0, n1 = match(log(w), range(0, 2), lambda k: walk_window(n0, n1, path, QW * i, 1, k))
-    # The reached cap leaf is node 2*parent + bit at cells 2*node, 2*node + 1, where
-    # parent = 2^(cap_depth-1) + q: the child bit and q are the last two windows, g^bit
-    # and g^q, the constant parts folded into the address immediates. Every cap is at
+    # The reached cap leaf is node 2*parent + bit, its halves at cells node and NODES + node
+    # (`verify_merkle_cap`), where parent = 2^(cap_depth-1) + q: the child bit and q are the
+    # last two windows, g^bit and g^q, the constant parts folded into the address immediates. Every cap is at
     # least two levels deep (`decode_query_windows` gives q cap_depth - 1 bits).
     wb = wins[GEN ** ((path_depth + QW - 1) // QW)]
     q = wins[GEN ** ((path_depth + QW - 1) // QW + 1)]
     flags_q = flags * q
     flags_q[GEN ** (2 ** (cap_depth - 1))] = 1  # the cap check propagates this obligation to the root
-    q2 = q * q
-    leaf = cap * q2 * q2 * (wb * wb)
-    leaf[GEN ** (2 ** (cap_depth + 1))] = n0
-    leaf[GEN ** (2 ** (cap_depth + 1) + 1)] = n1
+    leaf = cap * (q * q) * wb
+    leaf[GEN ** (2 ** cap_depth)] = n0
+    leaf[GEN ** (2 ** cap_depth + 2 ** (cap_depth + 1))] = n1
     return
 
 
@@ -4539,18 +4560,33 @@ def claim_list_hash(table, n_g, ch, in_table: Const, factors: Const):
             rec = chain * xq ** CLAIM_REC
             nxt = rec * GEN ** CLAIM_REC
             blk = StackBuf(4 * CLAIM_BIG)
-            nxt[GEN ** KECCAK_STATE] = claim_block(blk, table * xq ** (4 * CLAIM_BIG), ch, rec[GEN ** KECCAK_STATE], CLAIM_BIG, in_table, factors)
+            if const(in_table == 1):
+                blk_table = table * xq ** (4 * CLAIM_BIG)
+            else:
+                blk_table = 0
+            nxt[GEN ** KECCAK_STATE] = claim_block(blk, blk_table, ch, rec[GEN ** KECCAK_STATE], CLAIM_BIG, in_table, factors)
             keccak_cells(blk, nxt[0:KECCAK_STATE], state=rec[0:KECCAK_STATE], final=0)
         mid = chain * bigs ** CLAIM_REC
-        mid_table = table * bigs ** (4 * CLAIM_BIG)
+        if const(in_table == 1):
+            mid_table = table * bigs ** (4 * CLAIM_BIG)
+        else:
+            mid_table = 0
         for xq in mul_range(1, groups):
             rec = mid * xq ** CLAIM_REC
             nxt = rec * GEN ** CLAIM_REC
             blk = StackBuf(4 * CLAIM_GROUP)
-            nxt[GEN ** KECCAK_STATE] = claim_block(blk, mid_table * xq ** (4 * CLAIM_GROUP), ch, rec[GEN ** KECCAK_STATE], CLAIM_GROUP, in_table, factors)
+            if const(in_table == 1):
+                blk_table = mid_table * xq ** (4 * CLAIM_GROUP)
+            else:
+                blk_table = 0
+            nxt[GEN ** KECCAK_STATE] = claim_block(blk, blk_table, ch, rec[GEN ** KECCAK_STATE], CLAIM_GROUP, in_table, factors)
             keccak_cells(blk, nxt[0:KECCAK_STATE], state=rec[0:KECCAK_STATE], final=0)
         last = mid * groups ** CLAIM_REC
-        d0, d1, p = match(log(rest), range(0, CLAIM_GROUP), lambda k: claim_list_hash_last(last, mid_table * groups ** (4 * CLAIM_GROUP), ch, in_table, factors, k))
+        if const(in_table == 1):
+            last_table = mid_table * groups ** (4 * CLAIM_GROUP)
+        else:
+            last_table = 0
+        d0, d1, p = match(log(rest), range(0, CLAIM_GROUP), lambda k: claim_list_hash_last(last, last_table, ch, in_table, factors, k))
         out[0] = d0
         out[1] = d1
         out[2] = p
