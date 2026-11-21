@@ -348,28 +348,23 @@ def ssB (n k : ℕ) : E := bitE (n.testBit k)
 /-- The factor of bit `k` of `n` at share `t`. -/
 def ssF (n k t : ℕ) : E := word 1 0 + ssB n k * word (imFactor t) 0
 
-/-- **Value `x` of `shared_selector_tables`**, returning the tables `eqt`, `gt`. -/
+/-- **Value `x` of `shared_selector_tables`.** -/
 def ssVal (eqt gt z z1 gsq : E) (n x : ℕ) : E :=
-  let v18 := ssF n 0 0 * ssF n 1 1
-  let v37 := ssF n 2 0 * ssF n 3 1 * ssF n 4 2 * ssF n 5 3
-  let v39 := v37 * v37 * (v37 * v37)
-  let v54 := v39 * v39 * (v39 * v39)
-  let v42 := v37 * word 2 0
-  let v45 := v42 * v42 * (v42 * v42) * (v42 * v42 * (v42 * v42))
-  let v46 := v45 * v45
-  [z, z1, gsq, gen ^ n, ssB n 0, ssB n 1, ssB n 2, ssB n 3, ssB n 4, ssB n 5,
+  let v20 := ssF n 0 0 * ssF n 1 1
+  let v39 := ssF n 2 0 * ssF n 3 1 * ssF n 4 2 * ssF n 5 3
+  let v41 := v39 * v39 * (v39 * v39)
+  let v47 := v41 * v41 * (v41 * v41)
+  [eqt, gt, z, z1, gsq, gen ^ n, ssB n 0, ssB n 1, ssB n 2, ssB n 3, ssB n 4, ssB n 5,
     word 1 0, word (imFactor 0) 0, ssB n 0 * word (imFactor 0) 0, ssF n 0 0,
-    word 1 0, word (imFactor 1) 0, ssB n 1 * word (imFactor 1) 0, ssF n 1 1, v18,
+    word 1 0, word (imFactor 1) 0, ssB n 1 * word (imFactor 1) 0, ssF n 1 1, v20,
     word 1 0, word (imFactor 0) 0, ssB n 2 * word (imFactor 0) 0, ssF n 2 0,
     word 1 0, word (imFactor 1) 0, ssB n 3 * word (imFactor 1) 0, ssF n 3 1,
     ssF n 2 0 * ssF n 3 1,
     word 1 0, word (imFactor 2) 0, ssB n 4 * word (imFactor 2) 0, ssF n 4 2,
     ssF n 2 0 * ssF n 3 1 * ssF n 4 2,
-    word 1 0, word (imFactor 3) 0, ssB n 5 * word (imFactor 3) 0, ssF n 5 3, v37,
-    v37 * v37, v39, v39 * v18, word 2 0, v42, v42 * v42, v42 * v42 * (v42 * v42), v45, v46,
-    v46 * v46, eqt, gt,
-    word 1 0, word 1 0 + v37, word 1 0, v39 * v39, v54,
-    eqt * v54, eqt * v54 * v54, gt * v54, z * v39, z1 * v39, gsq * v39, 0, eqt, gt].getD x 0
+    word 1 0, word (imFactor 3) 0, ssB n 5 * word (imFactor 3) 0, ssF n 5 3, v39,
+    v39 * v39, v41, v41 * v20, word 1 0, word 1 0 + v39, word 1 0, v41 * v41, v47,
+    eqt * v47, eqt * v47 * v47, gt * v47, z * v41, z1 * v41, gsq * v41, 0].getD x 0
 
 theorem ssF_eq (n k t : ℕ) (ht : t < 34) :
     ssF n k t = gen ^ (2 ^ t * (n.testBit k).toNat) := by
@@ -392,24 +387,23 @@ theorem ss_bits {n : ℕ} (hn : n < 64) :
 
 theorem ssB_mul_self (n k : ℕ) : ssB n k = ssB n k * ssB n k := by rw [ssB, bitE_mul_self]
 
-/-- **The honest valuation satisfies `shared_selector_tables`' body** on its words, returning the
-tables `eqt`, `gt`. -/
-theorem ss_holds (rd : Reader) {eqt gt z z1 gsq : E} {n : ℕ} {zs zs1 gs : List E} (hn : n < 64)
-    (hzl : zs.length = n) (hz1l : zs1.length = n) (hgl : gs.length = n) (hz : TbReadsAt rd z zs)
-    (hz1 : TbReadsAt rd z1 zs1) (hg : TbReadsAt rd gsq gs) (hrt : RunTables rd eqt gt n zs zs1 gs) :
-    Stmt.HoldsList (coreProgram.Rel rd) rd (fun x ↦ ssVal eqt gt z z1 gsq n x.idx) ssPre True
-      (fun rs ↦ rs = [eqt, gt]) := by
+/-- **`shared_selector_tables` is complete.** -/
+theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_Spec := by
+  intro rd eqt gt z z1 gsq n zs zs1 gs hn hzl hz1l hgl hz hz1 hg hrt
+  obtain ⟨fn, hf, hp, hb⟩ := ssFound
   obtain ⟨hr, hq⟩ := ss_bits hn
-  have v18 : ssF n 0 0 * ssF n 1 1 = gen ^ (n % 4) := by
+  have v20 : ssF n 0 0 * ssF n 1 1 = gen ^ (n % 4) := by
     rw [ssF_eq n 0 0 (by norm_num), ssF_eq n 1 1 (by norm_num), ← pow_add, hr]; ring_nf
-  have v37 : ssF n 2 0 * ssF n 3 1 * ssF n 4 2 * ssF n 5 3 = gen ^ (n / 4) := by
+  have v39 : ssF n 2 0 * ssF n 3 1 * ssF n 4 2 * ssF n 5 3 = gen ^ (n / 4) := by
     rw [ssF_eq n 2 0 (by norm_num), ssF_eq n 3 1 (by norm_num), ssF_eq n 4 2 (by norm_num),
       ssF_eq n 5 3 (by norm_num), ← pow_add, ← pow_add, ← pow_add, hq]; ring_nf
   have hn4 : n = 4 * (n / 4) + n % 4 := by omega
+  refine (tb_rel_pre hf hb ssPre_noRet _ _).mpr ⟨fun x ↦ ssVal eqt gt z z1 gsq n x.idx,
+    by rw [hp]; rfl, ?_, rfl⟩
   simp only [ssPre, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and, and_true, List.map_cons,
     List.map_nil]
   simp (config := { decide := true }) only [ssVal, List.getD_eq_getElem?_getD,
-    List.getElem?_cons_zero, List.getElem?_cons_succ, Option.getD_some, true_and, v18, v37]
+    List.getElem?_cons_zero, List.getElem?_cons_succ, Option.getD_some, true_and, v20, v39]
   set q := n / 4 with hqd
   have p4 : gen ^ q * gen ^ q * (gen ^ q * gen ^ q) = gen ^ (4 * q) := by
     simp only [← pow_add]; congr 1; omega
@@ -434,7 +428,7 @@ theorem ss_holds (rd : Reader) {eqt gt z z1 gsq : E} {n : ℕ} {zs zs1 gs : List
     exact lp_chain hlz hlz1 hlg hz hz1 hg (fun j hj ↦ hrt j (by omega)) 0 hq0
   · -- the partial nibble
     have hr4 : n % 4 < 4 := by omega
-    refine ⟨⟨n % 4, by simpa using hr4, gen_pow_eq_ofK _, ?_⟩, trivial⟩
+    refine ⟨n % 4, by simpa using hr4, gen_pow_eq_ofK _, ?_⟩
     rw [lName_sel_partial (n % 4) hr4, mul_assoc, ← pow_add, show 16 * q + 16 * q = 32 * q by omega]
     have hlen : ∀ l : List E, l.length = n → (nib l q).length = n % 4 := fun l hl ↦ by
       simp [nib, hl]; omega
@@ -450,13 +444,6 @@ theorem ss_holds (rd : Reader) {eqt gt z z1 gsq : E} {n : ℕ} {zs zs1 gs : List
     · rcases Nat.eq_zero_or_pos (n % 4) with h0 | h0
       · rw [h0]; exact tbReadsAt_nil _ _
       · rw [tb_ite_neg'' (show ¬ n % 4 = 0 by omega)]; exact (hrt q (by omega)).2
-
-/-- **`shared_selector_tables` is complete.** -/
-theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_Spec := by
-  intro rd eqt gt z z1 gsq n zs zs1 gs hn hzl hz1l hgl hz hz1 hg hrt
-  obtain ⟨fn, hf, hp, hb⟩ := ssFound
-  exact (tb_rel_pre hf hb ssPre_noRet _ _).mpr ⟨fun x ↦ ssVal eqt gt z z1 gsq n x.idx,
-    by rw [hp]; rfl, ss_holds rd hn hzl hz1l hgl hz hz1 hg hrt, rfl⟩
 
 end
 end LeanVM.Guest.B1.Tables
