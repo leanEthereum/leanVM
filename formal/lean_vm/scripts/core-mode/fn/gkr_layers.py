@@ -1,14 +1,14 @@
 """`gkr_layers`' rules: its specializations `gkr_layers__L{odd}` and their loops."""
 from sigseed import sig, cell, num, ex, run, stream
 import fnrules
+from fnrules import lean_def
 
 
 # a loop's runs where it is not entered (`join`), its own guarantees over its dispatch's selector (`armsub`)
 FEATURES = {'gkr_layers__L%d' % o: [{'join', 'armsub'}] for o in range(2)}
 
-# `n_four`'s and `rem_g`'s exponents below `4` (`Res.expFacts`, `EndExec.GlsQ`)
-EXP_FACTS = [('gkr_layers__L%d' % o, fnrules.param('gkr_layers', p), None, 4) for o in range(2)
-             for p in ('n_four', 'rem_g')]
+# `n_four`'s and `rem_g`'s exponents below `4` (`Res.expFacts`, `EndExec.GlsQ`), as its Lean data says
+EXP_FACTS = lean_def('gkr_layers', 'Data', 'expFacts')
 
 REC, ROW0 = 10, 40
 

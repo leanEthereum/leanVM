@@ -3,9 +3,9 @@
 use super::cells::count;
 use super::child::gen_verify;
 use super::coverage::plan_coverage;
-use super::deferred::{DeferredBytecodeClaim, aggregate_deferred_claims, bytecode_sums, bytecode_vars};
+use super::deferred::{DeferredBytecodeClaim, aggregate_deferred_claims, bytecode_sums};
 use super::error::AggregateError;
-use super::guest::{fs_seed, unified_guest};
+use super::guest::{fs_seed, guest_constant, unified_guest};
 #[cfg(test)]
 use super::hints::FORGE;
 use super::hints::{Hints, lean_sphincs_hints, lean_xmss_hints};
@@ -302,18 +302,20 @@ fn sorted_claims<K: Ord + Copy, S>(raw: &mut Vec<(K, [u8; 32], S)>) -> Vec<(K, [
 }
 
 /// The `HeapBuf` sizes the guest takes as advice ([`HEAP_SIZE_STREAM`]) before a child's, in the order it pops them:
-/// `main`'s two coverage tables (each scheme's declared claims and duplicates, four cells a slot), `da_digests`,
-/// `child_pi`, `child_fresh`, `child_carried` and `written`; then each claim list's chain (`claim_list_digest`), `None`
-/// for an empty list, whose branch allocates none. A child's follow in [`gen_verify`].
+/// `main`'s two coverage tables (each scheme's declared claims and duplicates, a claim's four cells a slot),
+/// `da_digests` (a digest's two cells per child and the node's own), `child_pi` (a statement digest per child), `child_fresh`, `child_carried` and
+/// `written`; then each claim list's chain (`claim_list_digest`), `None` for an empty list, whose branch allocates
+/// none. A child's follow in [`gen_verify`]. `guest_allocates_late_only_where_known` pins the buffers and their order.
 fn heap_sizes(lists: [(usize, usize); 2], children: usize) -> Vec<Option<usize>> {
-    let defer = bytecode_vars() + 1;
+    const CLAIM_CELLS: usize = 4;
+    const DIGEST_CELLS: usize = 2;
     let main = [
-        4 * (lists[0].0 + lists[0].1),
-        4 * (lists[1].0 + lists[1].1),
-        2 * (children + 1),
-        2 * children,
-        defer * children,
-        defer * children,
+        CLAIM_CELLS * (lists[0].0 + lists[0].1),
+        CLAIM_CELLS * (lists[1].0 + lists[1].1),
+        DIGEST_CELLS * (children + 1),
+        DIGEST_CELLS * children,
+        guest_constant("DEFER_SIZE") * children,
+        guest_constant("DEFER_STMT_CELLS") * children,
         children + 1,
     ];
     let chains = lists.map(|(declared, _)| list_chain_cells(declared));

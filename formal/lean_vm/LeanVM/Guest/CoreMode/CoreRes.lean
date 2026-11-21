@@ -19,6 +19,9 @@ public import LeanVM.Guest.CoreMode.Fam.TermDefs
 public import LeanVM.Guest.CoreMode.Fam.ExpDefs
 public import LeanVM.Guest.CoreMode.Gen.FnData
 import LeanVM.Guest.Data.Consts
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_loop0»
+import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_loop1»
 
 /-!
 # Residual families on core names
@@ -362,12 +365,14 @@ def stGl (Cf : CFun) : Bool :=
 def cmK (fn : Fn) : Option ℕ := FnReg.cmLoops.lookup fn.name
 
 /-- **A frame loop's read of claim `jj`'s entry in its caller's table** (`cm`): the cell
-`[ent]·Π_{i ≤ jj}[gap_i]^4·g^(4jj+d)` (`ent` the value `12`, gap `i` the value `13 + 10i`) a cell of the run
+`[ent]·Π_{i ≤ jj}[gap_i]^4·g^(4jj+d)` (`ent` its entry `s4#1`, gap `i` the value `10i` after `gap@1`, each
+iteration's ten) a cell of the run
 `[ghost₀]·g^(4j+d)`, `j` below the exponent of `ghost₁` (its caller's `limit`); and that exponent's existence. -/
 def cmSub (fn : Fn) : CRes → Bool
   | .sub c q => (cmK fn).any fun m ↦ Nat.blt (c.off / 4) m &&
       decide (q = ⟨⟨[(GB, 1)], c.off % 4⟩, 4, .num 0, .val (GB + 1)⟩) &&
-      decide (c.bases = (12, 1) :: (List.range (c.off / 4 + 1)).map fun i ↦ (13 + 10 * i, 4))
+      decide (c.bases = (val% «child_claim_list_mono_loop0» «child_claim_list_mono_loop1» "s4#1", 1) ::
+        (List.range (c.off / 4 + 1)).map fun i ↦ (val% «child_claim_list_mono_loop0» «child_claim_list_mono_loop1» "gap@1" + 10 * i, 4))
   | .lt a b => (cmK fn).isSome && decide (a = .num 0) && decide (b = .val (GB + 1))
   | _ => false
 

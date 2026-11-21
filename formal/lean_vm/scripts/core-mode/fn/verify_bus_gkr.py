@@ -14,6 +14,14 @@ CONTRACTS = {'verify_bus_gkr_loop0': sig(
     preR=[run(cell(0, [(5, 1)]), ex(2), ex(3), 1, 0)], term=['(%s, %s)' % (ex(2), ex(3))],
     postL=[run(cell(0, [(4, 1)]), ex(2), ex(3), 1, 0)])}
 
+
+# ---- its counts (`scripts/count`)
+
+# counted within a ratio of these words (`verify_sub`'s `vsCountT`) and its ratios checked (`Count/RatioV`): order,
+# Lean name
+RATIO_WORDS = {'verify_bus_gkr': 39767}
+RATIOV = {'verify_bus_gkr': (0, 'Vbg')}
+
 # its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
 OWN = [
     'LeanVM/Guest/Count/Fn/verify_bus_gkr.lean',

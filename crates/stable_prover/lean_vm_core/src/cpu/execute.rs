@@ -738,7 +738,9 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
     match *h {
         RHint::FrameAddress { offset } => g.note(cell_at(fp, offset)? as usize),
         RHint::CellAddress { ptr, cell } => {
-            let address = g.pow(cell_at(fp, cell)? as usize);
+            let cell = cell_at(fp, cell)? as usize;
+            g.grow_to(cell);
+            let address = g.pow(cell);
             m.put(cell_at(fp, ptr)?, F128::from(address))?;
         }
         // A fresh region: write its base `g^{next_free}` into the pointer cell (once) and reserve `size` cells.

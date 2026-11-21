@@ -45,7 +45,7 @@ theorem cpPerm_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
     obtain ⟨π, hπ, hon⟩ := cp_onto hK hfc
     obtain ⟨r0, hr0, hπr⟩ := hon k hco
     have hranks : CoreMode.cpRanks = (List.range 9).map B1.Tables.cpRB := by decide
-    refine ⟨⟨[(137, 1), (B1.Tables.cpRB r0, 1)], 0⟩, ?_, ?_⟩
+    refine ⟨⟨[(val% «certify_placement» "group_base", 1), (B1.Tables.cpRB r0, 1)], 0⟩, ?_, ?_⟩
     · rw [hranks, List.map_map]
       exact List.mem_map.mpr ⟨r0, List.mem_range.mpr hr0, rfl⟩
     · simp only [CoreMode.CCell.addrW, CoreMode.CCell.valW, CoreMode.prodW, vw, pow_one, mul_one, hπ r0 hr0, hπr,

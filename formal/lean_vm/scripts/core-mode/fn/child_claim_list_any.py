@@ -3,6 +3,13 @@
 
 ANY_ORIGIN = {'child_claim_list_any'}
 
+
+# ---- its counts (`scripts/count`)
+
+# counted by its tree's shape in the `V` family (`child_claim_list_digest`'s); its frame weight in `VsCountData`
+COUNT_SHAPE = {'child_claim_list_any': 'V'}
+COUNT_OM = {'child_claim_list_any': ('VsCountData', 3)}
+
 # its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
 OWN = [
     'LeanVM/Guest/CoreMode/Fam/ResA.lean',

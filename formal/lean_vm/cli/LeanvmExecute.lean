@@ -8,8 +8,8 @@ import LeanVM.Prover.Advice
 
 `lake exe leanvm-execute <case dir>...` reads, from each case directory
 (`scripts/export-prover-traces-rust.sh` writes them), `bytecode.bin`, `public_input.bin` and
-`advice.txt` (`Program::advice_text`), runs `LeanVM.Prover.Exec.execute`, and compares its
-execution with the Rust interpreter's, `memory.bin` and `trace.txt`: the memory's size, every cell
+`advice.txt` (`CompiledProgram::export_hints`, `crates/isa/src/export_hints.rs`), runs
+`LeanVM.Prover.Exec.execute`, and compares its execution with the Rust interpreter's, `memory.bin` and `trace.txt`: the memory's size, every cell
 and the step count. It prints each case's time and exits with `1` if a case differs or fails.
 -/
 

@@ -87,8 +87,8 @@ theorem l10_atoms_fn :
 /-- **`verify_tables`' rounds loop's cursor** in the stream: `VtLQ` and the iteration's record and load. -/
 theorem st_vt {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node name% «verify_tables_loop0» σ bufs kids) :
-    ∃ a q, I.hdr.2 = ofK (addressOfIndex a) ∧ a + 22 < maxCells ∧
-      σ (.n (val% «verify_tables_loop0» "ncur~3")) = refMem r.img (a + 22) * gen ^ q ∧ q + 3 ≤ 8192 := by
+    ∃ a q, I.hdr.2 = ofK (addressOfIndex a) ∧ a + (2 + val% «verify_tables» "stream") < maxCells ∧
+      σ (.n (val% «verify_tables_loop0» "ncur~3")) = refMem r.img (a + (2 + val% «verify_tables» "stream")) * gen ^ q ∧ q + 3 ≤ 8192 := by
   obtain ⟨a, jj, n, q, hhd, ha22, -, -, hjn, -, hld, hroom⟩ := vtLQ_all hr I hI σ bufs kids ht
   obtain ⟨args, rets, fn', hf', -, es0, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
   obtain rfl : fn' = fn% «verify_tables_loop0» := Option.some.inj (hf'.symm.trans find_l10)
@@ -126,8 +126,8 @@ theorem expFacts_ok : ∀ c ∈ expFacts, ExpOk c := by
     dsimp only at hJt hf hv ⊢
     obtain rfl : fn = fn% «verify_tables» := Option.some.inj (hf.symm.trans B1.VerifySub.find_vt)
     rw [vt_params] at hv
-    simp only [List.getElem?_map, List.getElem?_range (by decide : (9 : ℕ) < 21),
-      List.getElem?_range (by decide : (10 : ℕ) < 21), Option.map_some, Option.some.injEq] at hv
+    simp only [List.getElem?_map, List.getElem?_range (by decide : val% «verify_tables» "g_bus_mu" < 21),
+      List.getElem?_range (by decide : val% «verify_tables» "dims_g" < 21), Option.map_some, Option.some.injEq] at hv
     subst hv
     obtain ⟨pi, lm, w, pt, vals, hP⟩ := vtPQ_all hr J hJ σ bufs kids hJt
     rw [show (List.range 21).map (fun k ↦ σ (.n k)) = [σ (.n (val% «verify_tables» "fs0")), σ (.n (val% «verify_tables» "fs1")), σ (.n (val% «verify_tables» "fs2")), σ (.n (val% «verify_tables» "fs3")), σ (.n (val% «verify_tables» "fs4")),

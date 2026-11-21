@@ -131,14 +131,41 @@ fn guest_compiles_reproducibly() {
     );
 }
 
-/// The guest functions that reserve a `HeapBuf` from advice (`zkdsl_compiler::heap_size_advice`), whose sizes
-/// `heap_sizes` in `node.rs` and `gen_verify` supply: a new one needs its sizes there.
+/// The guest's `HeapBuf`s reserved from advice (`zkdsl_compiler::advised_heap_bufs`), by function in the order a call
+/// pops their sizes, whose sizes `heap_sizes` in `node.rs` and `gen_verify` supply in that order: a change needs its
+/// sizes there. Each late hint has its advice before it.
 #[test]
 fn guest_allocates_late_only_where_known() {
     let ast = parse_with_replacements(GUEST_SOURCE, &placeholder_map(20)).unwrap();
-    let mut late = zkdsl_compiler::heap_size_advice(&ast);
-    late.sort();
-    assert_eq!(late, ["claim_list_digest", "main", "verify_sub", "verify_tables"]);
+    zkdsl_compiler::check_heap_advice(&compile(&ast)).unwrap();
+    let lines: Vec<&str> = GUEST_SOURCE.lines().collect();
+    let mut advised: Vec<(String, Vec<&str>)> = zkdsl_compiler::advised_heap_bufs(&ast)
+        .into_iter()
+        .map(|(f, at)| {
+            let name = |l: u32| lines[l as usize - 1].split(" = HeapBuf(").next().unwrap().trim();
+            (f, at.into_iter().map(name).collect())
+        })
+        .collect();
+    advised.sort();
+    let expected = [
+        ("claim_list_digest", vec!["chain"]),
+        (
+            "main",
+            vec![
+                "lx_table",
+                "lean_sphincs_table",
+                "da_digests",
+                "child_pi",
+                "child_fresh",
+                "child_carried",
+                "written",
+            ],
+        ),
+        ("verify_sub", vec!["zeta"]),
+        ("verify_tables", vec!["zc_rounds", "zc_cprod", "zc_peq"]),
+    ];
+    let expected: Vec<(String, Vec<&str>)> = expected.into_iter().map(|(f, b)| (f.to_string(), b)).collect();
+    assert_eq!(advised, expected);
 }
 
 /// The guest builds a leanXMSS address as its type's cell plus `lo`,

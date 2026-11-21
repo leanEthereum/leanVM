@@ -1,17 +1,13 @@
-"""`Count/Deployed*.lean`: the numbers of `Budget.deployedBudget Bv`, computed here from the data as
+"""`Count/Deployed*.lean`: the numbers of `Budget.deployedBudget Bv`, computed from the data as
 `B1.Main.mainWords` and `Budget.mainInstrs` define them, and proved by `decide +kernel` (each closed
-part in its own module, the kernel's string lookups being its cost)."""
-import os, re
-from core import L
-import vscount
+part in its own module, the kernel's string lookups being its cost), and `Count/Fast.lean`.
 
-DL = vscount.MV_DL
-DA_ROWS = vscount.DA_ROWS
-CL = ['claim_list_tail']
-CCL = ['child_claim_list_last__L%d' % k for k in range(17)]
-KS = 13  # `KECCAK_STATE`: a claim list's chain record
-FIELDS = ['base', 'declared', 'coverage', 'rawXmss', 'rawSphincs', 'rawDa', 'rawDaRows', 'rawDaPad', 'children',
-          'childClaims', 'childShape']
+The rule files (`scripts/core-mode/fn/<f>.py`, `fnrules`) name the functions and give the numbers: each
+answers `deployed_value(W, name)` for its own values (`W.v`), and contributes `deployed_parts(W)`, each
+part a dict `mod`, `key` (its order in the module), and any of `head` (`(order, doc, imports)`, the
+module's), `items` (theorem texts) and `out` (run once written); this module names none."""
+import os, re
+import vscount
 
 HDR = '''/-
   LeanVM.Guest.Count.%s
@@ -37,202 +33,82 @@ end LeanVM.Guest.Count
 
 
 def jt_sets(lv):
-    """`B2C.jtSets .setConstant`: `main`'s jump table's `SET`s (`Data.jtSlots`, `Data/FrameSizes.lean`)."""
-    import re
+    """`B2C.jtSets .setConstant`: the entry function's jump table's `SET`s (`Data.jtSlots`, `Data/FrameSizes.lean`)."""
     t = open(os.path.join(lv, 'LeanVM', 'Guest', 'Data', 'FrameSizes.lean'), encoding='utf-8').read()
     m = re.search(r'abbrev jtSlots : ℕ := (\d+)', t)
     assert m, 'Data.jtSlots not found'
     return int(m.group(1))
 
 
-def numbers(g, certs):
-    fsd = g.fs_words()
-    w = g.words_certs()
-    def fs(n): return fsd.get(n, 2)
-    def SB(n):
-        c = w.get(n); return c[2][0] if c and c[0] == 'stat' else 0
-    def SKt(n):
+class W:
+    """What the rule files' hooks read: the words (`fs`, `SB`, `SKt`, `SK`), the instruction certificates by
+    opcode letter (`certs`), the `V` counts (`C`), the opcodes (`OPS`), the values (`v`) and `thm`."""
+
+    def __init__(self, g, certs, ops):
+        self.g, self.certs, self.OPS = g, certs, ops
+        self.C = vscount.cnt(g, 'V')
+        self.L = vscount.L
+        self._fs = g.fs_words()
+        self._w = g.words_certs()
+        self._v = {}
+        self.jt_sets = jt_sets(g.lv)
+        assert self.jt_sets == g.jt_sets, (self.jt_sets, g.jt_sets)
+
+    def fs(self, n):
+        return self._fs.get(n, 2)
+
+    def SB(self, n):
+        c = self._w.get(n); return c[2][0] if c and c[0] == 'stat' else 0
+
+    def SKt(self, n):
         """`wSKt`: a loop's words per iteration, its run's phantom frame apart."""
-        c = w.get(n); return c[3][0] if c and c[0] == 'loop' else 0
-    def SK(n):
+        c = self._w.get(n); return c[3][0] if c and c[0] == 'loop' else 0
+
+    def SK(self, n):
         """`wSK`: the run's phantom frame charged to each iteration (`SKt` and `fs` once at a call
-        site, `B1.Main.iterK`, but for `aggregate_claims`' loops)."""
-        c = w.get(n); return c[3][0] + fs(n) if c and c[0] == 'loop' else 0
-    for n in [DL] + CL + CCL: assert n in g.by, n
-    v = {}
-    v['dlK'] = -(-SB(DL) // DA_ROWS)
-    v['cl'] = sum(SB(n) for n in CL)
-    v['ccl'] = sum(fs(n) for n in CCL)
-    # A list of `n = 136·bigs + 17·groups + rest` claims (`groups < 8`), as `B1.Main.clC`/`clS`: the
-    # loops' frames (a run's phantom or an untaken call's) and the last digests in the constant; per
-    # claim `13` words and a `check_opening_terminal_loop0` iteration per `136` claims, `13` and a `claim_list_digest_loop0` iteration
-    # per `17`.
-    v['clC'] = (fs('claim_list_digest') + KS + SB('list_split') + fs(L('claim_list_digest_loop0')) + fs(L('claim_list_digest_loop1')) + v['cl'])
-    # `da_verify`: its frame, `da_padding`'s frame, `da_vector`'s and `da_weights`' words, the
-    # blob loop's phantom, `da_pad`'s and its loop's phantom (its frame when it does not run); per
-    # blob the blob loop's iteration past the padding loop's; per row of the padded matrix the
-    # roots (4), the padding loop and the tree over the roots: each static loop's iteration at
-    # `SKt`, its run's phantom in the constant.
-    v['dvC'] = (fs('da_verify') + fs('da_padding') + SB('da_vector') + SB('da_weights')
-                + fs(L('da_verify_loop0')) + fs('da_pad') + fs(L('da_pad_loop0')))
-    v['dvS'] = max(0, SKt(L('da_verify_loop0')) - SKt(L('da_pad_loop0')))
-    v['dvP'] = 4 + SKt(L('da_pad_loop0')) + v['dlK']
-    # A child's claim list (`B1.Main.ccC`, `ccS`), on either walk (the honest prover takes the gap
-    # walk when the list's slots increase): the larger walk's frame, its chain's first record (`15`
-    # words at most), the larger loops' frames twice and the larger last digests' frames in the
-    # constant; per claim a record and the larger loops' frames per `136` and per `17` claims.
-    v['ccm'] = sum(fs('child_claim_list_mono_last__L%d' % k) for k in range(17))
-    v['ccC'] = (fs('child_claim_list_digest') + 15 + SB('list_split')
-                + max(fs('child_claim_list_any'), fs('child_claim_list_mono'))
-                + 2 * max(fs(L('child_claim_list_any_loop0')), fs(L('child_claim_list_mono_loop0')))
-                + 2 * max(fs(L('child_claim_list_any_loop1')), fs(L('child_claim_list_mono_loop1')))
-                + max(v['ccl'], v['ccm']))
-    v['clS'] = 1 + -(-SKt(L('claim_list_digest_loop0')) // 136) + -(-SKt(L('claim_list_digest_loop1')) // 17)
-    v['ccS'] = (1 + -(-max(fs(L('child_claim_list_any_loop0')), fs(L('child_claim_list_mono_loop0'))) // 136)
-                + -(-max(fs(L('child_claim_list_any_loop1')), fs(L('child_claim_list_mono_loop1'))) // 17))
-    v['l5A0'] = fs(L('main_loop4'))
-    v['l5A1'] = fs(L('main_loop4')) + 2 * v['ccC'] + SB('statement_digest')
-    v['l5A2'] = v['ccS']
-    v['agA0'] = fs('aggregate_claims') + 109 + SB('grind_check__L2') + SB('batch_sumcheck__L23')
-    # `aggregate_claims`' loops: their phantoms per child (`SKt + fs`), as the base is charged
-    # without a child.
-    v['agA1'] = 18 + SK(L('aggregate_claims_loop0')) + SK(L('aggregate_claims_loop1')) + SK(L('aggregate_claims_loop2'))
-    base = (fs('main') + 283 + fs('exponent_tables') + 2284 + 2 * (v['clC'] + fs('claim_list_digest'))
-            + fs(L('main_loop0')) + fs(L('main_loop1'))
-            + fs(L('main_loop2')) + fs(L('main_loop3')) + 2 * v['l5A0'] + (v['agA0'] + fs('aggregate_claims'))
-            + SB('statement_digest') + fs('statement_digest'))
-    # `main`'s own loops at `B1.Main.iterK`, their runs' phantoms in the base.
-    words = [base, v['clS'], 5 + SKt(L('main_loop0')) + SKt(L('main_loop1')), SKt(L('main_loop2')),
-             SKt(L('main_loop3')), v['dvC'] + fs('da_verify'), v['dvS'], v['dvP'], 53 + v['l5A1'] + v['agA1'], v['l5A2']]
-    instrs = {}
-    JT_SETS = jt_sets(g.lv)
-    assert JT_SETS == g.jt_sets, (JT_SETS, g.jt_sets)
-    tbl = vscount.tables(g)
-    _, _, _, dv_aff, cl_aff = vscount.main_tables(g)
-    for lop, P, k in OPS_:
-        c = certs[P]
-        st = lambda n: c[n][2][0]
-        lp = lambda n: c[n][3][0]
-        agg = c['aggregate_claims']
-        aggC, aggD = agg[2][0], sum(a for _, a in agg[2][1])
-        jt = JT_SETS if lop == 'setConstant' else 0
-        clA, clS = cl_aff(k)
-        dvA, dvR, dvP = dv_aff(k)
-        om5, ccA, ccS, vst = vscount.l5_parts(tbl, k)
-        # `Budget.l5C`: `main_loop4`'s frame, two claim lists' constants, the statement's digest.
-        l5C = om5 + 2 * ccA + st('statement_digest')
-        instrs[lop] = ([g.pm[1][k] + st('exponent_tables') + st('statement_digest') + jt + 2 * clA,
-                        clS,
-                        lp(L('main_loop0')) + lp(L('main_loop1')), lp(L('main_loop2')), lp(L('main_loop3')),
-                        dvA, dvR, dvP,
-                        l5C + aggC + aggD, ccS], vst)
-    return v, words, instrs
+        site, `B1.Main.iterK`)."""
+        c = self._w.get(n); return c[3][0] + self.fs(n) if c and c[0] == 'loop' else 0
 
+    def v(self, name):
+        """The value `name` (`deployed_value`), computed once."""
+        if name not in self._v:
+            r = vscount.fnrules.first('deployed_value', self, name)
+            assert r is not None, 'no deployed_value %s' % name
+            self._v[name] = r
+        return self._v[name]
 
-OPS_ = None
+    def idx_rw(self, fs=(), sb=(), sk=()):
+        """Rewrites of `B2C.fs`, `wSB`, `wSK` at the named functions by their core indices."""
+        g = self.g
+        out = ['fs_idx (j := %d) (f := "%s") (by decide +kernel)' % (g.by[n], n) for n in dict.fromkeys(fs)]
+        out += ['wSB_idx (j := %d) (f := "%s") (by decide +kernel)' % (g.by[n], n) for n in dict.fromkeys(sb)]
+        out += ['wSK_idx (j := %d) (f := "%s") (by decide +kernel)' % (g.by[n], n) for n in dict.fromkeys(sk)]
+        return ',\n    '.join(out)
 
-
-def idx_rw(g, fs=(), sb=(), sk=()):
-    """Rewrites of `B2C.fs`, `wSB`, `wSK` at the named functions by their core indices."""
-    out = ['fs_idx (j := %d) (f := "%s") (by decide +kernel)' % (g.by[n], n) for n in dict.fromkeys(fs)]
-    out += ['wSB_idx (j := %d) (f := "%s") (by decide +kernel)' % (g.by[n], n) for n in dict.fromkeys(sb)]
-    out += ['wSK_idx (j := %d) (f := "%s") (by decide +kernel)' % (g.by[n], n) for n in dict.fromkeys(sk)]
-    return ',\n    '.join(out)
-
-
-def write(g, certs, ops):
-    global OPS_
-    OPS_ = ops
-    v, words, instrs = numbers(g, certs)
-    D = os.path.join(g.lv, 'LeanVM', 'Guest', 'Count')
-    def mod(name, doc, imports, body):
-        open(os.path.join(D, name + '.lean'), 'w', encoding='utf-8').write(HDR % (name, doc, imports, body))
-    imp0 = 'public import LeanVM.Guest.Budget.DeployedBudget\n'
-    mod('DeployedA', 'The tree over the blob roots\' words per padded row (`B1.Main.dlK`).', imp0, '''
-/-- The words of the tree over the blob roots, per row of the padded matrix. -/
-theorem dlK_eq : dlK wSB = %d := by decide +kernel
-''' % v['dlK'])
-    mod('DeployedA2', 'The children\'s claim lists\' last digests\' words over the name lists of `B1.Main.ccC`.',
-        imp0, '''
-/-- The children's claim lists' last digests' frames. -/
-theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by decide +kernel
-
-/-- The gap walk's last digests' frames. -/
-theorem ccm_sum : nameSum (fun g => B2C.fs g) B1.Digest.mlNames 17 = %d := by decide +kernel
-''' % (v['ccl'], v['ccm']))
-    def thm(name, lhs, val, unf, rws, fs=(), sb=(), sk=()):
-        r = idx_rw(g, fs, sb, sk)
+    def thm(self, name, lhs, val, unf, rws, fs=(), sb=(), sk=()):
+        """`theorem name : lhs = val`, by unfolding `unf`, rewriting `rws` and the names' indices, and the kernel."""
+        r = self.idx_rw(fs, sb, sk)
         steps = ', '.join(rws) + (',\n    ' if rws and r else '') + r
         return ('theorem %s : %s = %d := by\n  unfold %s\n  rw [%s]\n  decide +kernel\n'
                 % (name, lhs, val, unf, steps))
-    dvc = thm('dvC_eq', 'dvC B2C.fs wSB', v['dvC'], 'dvC', [],
-              fs=['da_verify', 'da_padding', L('da_verify_loop0'), 'da_pad', L('da_pad_loop0')],
-              sb=['da_vector', 'da_weights'])
-    dvs = thm('dvS_eq', 'dvS B2C.fs wSK', v['dvS'], 'dvS B1.Main.iterK', [],
-              fs=[L('da_verify_loop0'), L('da_pad_loop0')], sk=[L('da_verify_loop0'), L('da_pad_loop0')])
-    dvp = thm('dvP_eq', 'dvP B2C.fs wSB wSK', v['dvP'], 'dvP B1.Main.iterK', ['dlK_eq'], fs=[L('da_pad_loop0')],
-              sk=[L('da_pad_loop0')])
-    mod('DeployedB', '`da_verify`\'s words: its constant, per row and per padded row.',
-        'public import LeanVM.Guest.Count.DeployedA\n',
-        '\n/-- **`da_verify`\'s constant words.** -/\n' + dvc
-        + '\n/-- **`da_verify`\'s words per row.** -/\n' + dvs
-        + '\n/-- **`da_verify`\'s words per padded row.** -/\n' + dvp)
-    body = '\n'.join([
-        thm('clC_eq', 'clC B2C.fs wSB', v['clC'], 'clC', [], fs=['claim_list_digest', L('claim_list_digest_loop0'), L('claim_list_digest_loop1')],
-            sb=['list_split', 'claim_list_tail']),
-        thm('ccC_eq', 'ccC B2C.fs wSB', v['ccC'], 'ccC', ['ccl_sum', 'ccm_sum'],
-            fs=['child_claim_list_digest', 'child_claim_list_any', 'child_claim_list_mono', L('child_claim_list_any_loop0'),
-                L('child_claim_list_mono_loop0'), L('child_claim_list_any_loop1'), L('child_claim_list_mono_loop1')],
-            sb=['list_split']),
-        thm('l5A0_eq', 'l5A0 B2C.fs', v['l5A0'], 'l5A0', [], fs=[L('main_loop4')]),
-        thm('clS_eq', 'clS B2C.fs wSK', v['clS'], 'clS B1.Main.iterK', [], fs=[L('claim_list_digest_loop0'), L('claim_list_digest_loop1')],
-            sk=[L('claim_list_digest_loop0'), L('claim_list_digest_loop1')]),
-        thm('l5A1_eq', 'l5A1 B2C.fs wSB', v['l5A1'], 'l5A1', ['ccC_eq'],
-            fs=[L('main_loop4')], sb=['statement_digest']),
-        thm('l5A2_eq', 'l5A2 B2C.fs', v['l5A2'], 'l5A2 ccS', [], fs=[L('child_claim_list_any_loop0'), L('child_claim_list_mono_loop0'),
-            L('child_claim_list_any_loop1'), L('child_claim_list_mono_loop1')]),
-        thm('agA0_eq', 'agA0 B2C.fs wSB', v['agA0'], 'agA0', [], fs=['aggregate_claims'],
-            sb=['grind_check__L2', 'batch_sumcheck__L23']),
-        thm('agA1_eq', 'agA1 B2C.fs wSK', v['agA1'], 'agA1 B1.Main.iterK', [],
-            fs=[L('aggregate_claims_loop0'), L('aggregate_claims_loop1'), L('aggregate_claims_loop2')], sk=[L('aggregate_claims_loop0'), L('aggregate_claims_loop1'), L('aggregate_claims_loop2')])])
-    mod('DeployedC', 'The claim lists\', the children\'s loop\'s and `aggregate_claims`\' words.',
-        'public import LeanVM.Guest.Count.DeployedA2\n', '\n' + body)
-    wlit = '⟨%s, Bvf⟩' % ', '.join(str(x) for x in words)
-    body = '''
-/-- **The deployed budget's words**, `Bvf μ r` for `verify_sub` on a child of announced stack log
-`μ` and rate `r`. -/
-def deployedWords (Bvf : ℕ → ℕ → ℕ) : End.Linear := %s
 
-/-- **The deployed budget's instructions of each opcode**, `verify_sub`'s on a child of announced
-stack log `μ` at its arm `μ - %d` (`Budget.vsCnt`). -/
-def deployedInstrs : Opcode → End.Linear
-''' % (wlit, g.min_open_log())
-    for lop, P, k in ops:
-        f, vst = instrs[lop]
-        body += '  | .%s => ⟨%s,\n    fun μ _ => [%s].getD (μ - %d) 0⟩\n' % (
-            lop, ', '.join(str(x) for x in f), ', '.join(str(x) for x in vst), g.min_open_log())
-    body += '''
-set_option maxRecDepth 100000 in
-/-- **`deployedBudget`'s words.** -/
-theorem deployedBudget_words (Bvf : ℕ → ℕ → ℕ) :
-    (Budget.deployedBudget Bvf).words = deployedWords Bvf := by
-  simp only [Budget.deployedBudget, Budget.mainBudget, mainWords, B1.Main.iterK, deployedWords]
-  rw [clC_eq, clS_eq, dvC_eq, dvS_eq, dvP_eq, l5A0_eq, l5A1_eq, l5A2_eq, agA0_eq, agA1_eq]
-  congr 1
 
-set_option maxRecDepth 100000 in
-/-- **`deployedBudget`'s instructions.** -/
-theorem deployedBudget_instrs (Bvf : ℕ → ℕ → ℕ) (op : Opcode) :
-    (Budget.deployedBudget Bvf).instrs op = deployedInstrs op := by
-  simp only [Budget.deployedBudget, Budget.mainBudget, Budget.mainInstrs]
-  cases op <;> simp only [deployedInstrs, mainCounts, kcExp, kcSd, kcL1, kcL2, kcL3, kcL4, kcAggC, kcAggD, kcClA, kcClS, kcDvA, kcDvR, kcDvP, B2C.jtSets] <;> congr 1
-'''
-    mod('Deployed', 'The numbers of the deployed budget: `deployedBudget_words`, `deployedBudget_instrs`.',
-        'public import LeanVM.Guest.Count.DeployedB\npublic import LeanVM.Guest.Count.DeployedC\n', body)
+def write(g, certs, ops):
+    w = W(g, certs, ops)
+    D = os.path.join(g.lv, 'LeanVM', 'Guest', 'Count')
+    parts = [p for h in vscount.fnrules.hooks('deployed_parts') for p in h(w)]
+    heads = sorted((p for p in parts if 'head' in p), key=lambda p: p['head'][0])
+    for hp in heads:
+        M = hp['mod']
+        _, doc, imports = hp['head']
+        ps = sorted((p for p in parts if p['mod'] == M), key=lambda p: p['key'])
+        body = ''.join('\n' + x for p in ps for x in p.get('items', []))
+        open(os.path.join(D, M + '.lean'), 'w', encoding='utf-8').write(HDR % (M, doc, imports, body))
     write_fast(g)
-    print('deployed: words', words, 'l5A1', v['l5A1'])
-    for lop, _, _ in ops: print('  ', lop, instrs[lop])
-    return v, words, instrs
+    for hp in heads:
+        for p in sorted((p for p in parts if p['mod'] == hp['mod']), key=lambda p: p['key']):
+            if 'out' in p:
+                p['out']()
 
 
 FAST = '''/-

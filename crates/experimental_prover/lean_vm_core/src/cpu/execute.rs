@@ -1007,7 +1007,9 @@ pub(super) fn walk<M: Machine>(
                         m.g_note(at(fp, *offset)? as usize);
                     }
                     RHint::CellAddress { ptr, cell } => {
-                        let address = m.g_pow(at(fp, *cell)? as usize);
+                        let cell = at(fp, *cell)? as usize;
+                        m.g_grow(cell);
+                        let address = m.g_pow(cell);
                         m.put(at(fp, *ptr)?, F128::from(address))?;
                     }
                     // A fresh region: write its base `g^{next_free}` into the
