@@ -179,7 +179,6 @@ noncomputable def glInCheck (p o : ℕ) : Bool :=
         (x.1.getD (.n 0)) x.2.1 x.2.2.1) [.callIf (.n (glG p)) (glLoopName p o) (glLA p)] &&
     ((glPreK p o).filterMap Main.Stmt.callS).all fun x ↦ x.1.isSome && x.2.2.2.isEmpty
 
-set_option maxRecDepth 100000 in
 theorem gl_inCheck : ∀ p < 4, ∀ o < 2, glInCheck p o = true := by decide +kernel
 
 theorem gl_inFacts {p o : ℕ} (hp : p < 4) (ho : o < 2) :

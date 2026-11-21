@@ -66,13 +66,10 @@ theorem clPost_eq :
     clPost = clChk ++ [.atom (.copy (.n (val% «claim_list_digest» "digest[0]")) (.n (val% «claim_list_digest» "d0"))), .atom (.copy (.n (val% «claim_list_digest» "digest[1]")) (.n (val% «claim_list_digest» "d1")))] :=
   stmtsEqb_sound (by decide +kernel)
 
-set_option maxRecDepth 100000 in
 theorem clChk_atoms : clChk.all isAtomS = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem clPost_straight : clPost.all Main.Stmt.straight = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem clPost_parts : clPost.filterMap Main.Stmt.allocSz = [] ∧ clPost.filterMap Main.Stmt.addrS = [] ∧
     clPost.filterMap Main.Stmt.callS = [] ∧ clPost.filterMap B1.Stmt.loadS = [] := by
   decide +kernel
@@ -227,12 +224,10 @@ theorem cl_size_atoms : ∀ a ∈ [Atom.mul (.n (val% «claim_list_digest» "cha
   decide +kernel
 
 set_option maxRecDepth 20000 in
-set_option maxRecDepth 100000 in
 /-- The nonempty branch's check of `list_split`'s identity, over its products: `[93] = [14]·[12]^136·[13]^17`. -/
 theorem cl_id_ok : mono2Is ((atomsIn clEEval).filter pureB) (.n (val% «claim_list_digest» "s1.e.s12#14")) (.n (val% «claim_list_digest» "rest")) (.n (val% «claim_list_digest» "bigs")) 136 (.n (val% «claim_list_digest» "groups")) 17 = true := by
   decide +kernel
 
-set_option maxRecDepth 20000 in
 /-- **The nonempty list's valuation**: on a memory holding the zero state at the chain buffer and defined below
 `2^23`, where its checks of `g^a`, `g^b`, `g^c` and `g^n`, `n < 2^23`, read. -/
 theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd chain 0 zeroState)
@@ -471,7 +466,6 @@ theorem grp_pure : coreProgram.PureIn [name% «claim_list_digest_loop1»] :=
 theorem one_add_gen_ne {a : ℕ} (ha : a < 2 ^ 64 - 1) : ((1 : E) + gen ^ a ≠ 0) ↔ a ≠ 0 := by
   rw [Ne, e_add_eq_zero_iff, eq_comm, gen_pow_eq_one_iff ha]
 
-set_option maxRecDepth 100000 in
 theorem clElsePre_eq : clElsePre = clP1 ++ clDispS :: clChk :=
   stmtsEqb_sound (by decide +kernel)
 

@@ -80,7 +80,6 @@ def cellLFrom (Tc : ℕ → Tree → Prop) : ℕ → ℕ → Tree → Prop
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-set_option maxRecDepth 20000 in
 /-- **One iteration of the cell loop, placed, its cell check holding the cell's symbols**: blob `i`'s cell `k`. -/
 theorem cellL_stepLF {i k bb bw : ℕ} {q : ℕ → ℕ} {syms : ℕ → ℕ → List E} {z : E} {Lin : Layout} (hk : k < 128)
     (hsl : (syms i k).length = 128) (hBm : (bb, regionCells syms z i) ∈ Lin) (hWm : (bw, wtsCells q) ∈ Lin)

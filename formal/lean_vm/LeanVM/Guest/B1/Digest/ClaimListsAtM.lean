@@ -100,7 +100,6 @@ def ccKidsM (Lin : Main.Layout) (eP rg L n : ℕ) (base : E) (D : Digest) (mono 
 /-- The arm a hint takes. -/
 def ccArm (mono : Bool) : List Stmt := if mono then ccMonoArm else ccAnyArm
 
-set_option maxRecDepth 20000 in
 /-- **The nonempty list, placed, on either walk**, given its callees complete at their running
 offsets: the hint `g` takes the gap walk, a hint `h` with `h + g` nonzero in `K` the other. -/
 theorem cc_nonemptyM (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} {Lin : Main.Layout}

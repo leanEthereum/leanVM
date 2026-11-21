@@ -65,7 +65,6 @@ def ccTsP (mono : Bool) (n : ℕ) (rd : Reader) (ls wp : List Pop) : List (Tree 
   [fun t => t.pops coreProgram rd = ls,
     fun t => (if mono then monoHonest n else anyHonest n) t ∧ t.pops coreProgram rd = wp]
 
-set_option maxRecDepth 20000 in
 /-- **`cc_nonemptyM` with its pops**: its callees' trees popping `ls`, `wp` on each memory, its tree pops `ls`, the
 hint, `wp`. -/
 theorem cc_nonemptyMP (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} {Lin : Main.Layout}
@@ -221,7 +220,6 @@ theorem list_split_nBP (fs : String → ℕ) (cert : String → V → ℕ) {κ n
       (fun rd t => t.pops coreProgram rd = lsPops n) Bls :=
   (list_split_nB fs cert hκ hn hT).toR.monoRet fun _ _ hn hv _ => list_split_pops hn hv
 
-set_option maxRecDepth 20000 in
 /-- **The empty list, placed**: a leaf within its frame. -/
 theorem cc_emptyP (fs : String → ℕ) (cert : String → V → ℕ) {Lin : Main.Layout}
     {eP rg L : ℕ} {base : E} (fp : ℕ) (rd : Reader) :

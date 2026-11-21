@@ -102,13 +102,11 @@ theorem gapPops_flatMap (o : ℕ → ℕ) (s0 m : ℕ) : ∀ M : ℕ,
     simp only [Nat.zero_add, List.range'_one, List.flatMap_cons, List.flatMap_nil, List.append_nil]
     rw [gapPops_append, Nat.mul_succ]
 
-set_option maxRecDepth 100000 in
 theorem mono136_wits : (loopPre (coreProgram.getD idx% «child_claim_list_mono_loop0» default)).filterMap
     Main.Stmt.popS = ((List.range 136).map fun i => ("child_claim_gap", [V.n (13 + 10 * i)])).map
       fun x => some (x.1, .stack x.2) := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem mono17_wits : (loopPre (coreProgram.getD idx% «child_claim_list_mono_loop1» default)).filterMap
     Main.Stmt.popS = ((List.range 17).map fun i => ("child_claim_gap", [V.n (13 + 10 * i)])).map
       fun x => some (x.1, .stack x.2) := by
@@ -119,14 +117,12 @@ noncomputable def mlWitOk (k : ℕ) : Bool :=
   decide ((mlAtoms k).flatMap atomWit = ((List.range k).map fun i => ("child_claim_gap", [V.n (6 + 10 * i)])).map
     fun x => (x.1, .stack x.2))
 
-set_option maxRecDepth 100000 in
 theorem ml_wits_all : ∀ k < 17, mlWitOk k = true := by decide +kernel
 
 theorem ml_wits (k : ℕ) (hk : k < 17) : (mlAtoms k).flatMap atomWit =
     ((List.range k).map fun i => ("child_claim_gap", [V.n (6 + 10 * i)])).map fun x => (x.1, .stack x.2) :=
   of_decide_eq_true (ml_wits_all k hk)
 
-set_option maxRecDepth 20000 in
 /-- **A frame loop of the gap walk, its frames, with their pops**: `monoLoop_blocks`, frame `q` popping its claims'
 gaps. -/
 theorem monoLoop_blocksP {j : ℕ} {f : String} {m p0 st0 cw ew nb : ℕ}

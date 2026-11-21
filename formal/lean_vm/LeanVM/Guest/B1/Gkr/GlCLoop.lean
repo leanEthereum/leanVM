@@ -77,7 +77,6 @@ noncomputable def glcCheck (p o : ℕ) : Bool :=
   | some fn => decide (fn.params = glcPar6) && tbStmtsEqb fn.body (glcBody (glLoopName p o))
   | none => false
 
-set_option maxRecDepth 100000 in
 theorem glc_check : ∀ p < 4, ∀ o < 2, glcCheck p o = true := by decide +kernel
 
 theorem glcFound {p o : ℕ} (hp : p < 4) (ho : o < 2) : ∃ fn : Fn, coreProgram.find? (glLoopName p o) =
@@ -97,7 +96,6 @@ def gk8Ok : Stmt → Bool
       decide (v.idx ≠ 3) && decide (v.idx ≠ 4)
   | _ => false
 
-set_option maxRecDepth 100000 in
 theorem gk8_ok : (gkPre true 8).all gk8Ok = true := by decide +kernel
 
 theorem glc_atom_congr {rd : Reader} {σ σ' : Val} {a : Atom} (h : ∀ v ∈ a.vals, σ v = σ' v) :
@@ -179,7 +177,6 @@ theorem glc_out_of_tb {rd : Reader} {rec pt : E} (h : TbGkrRoundsOut 8 1 rd rec 
   exact ⟨cur, ⟨cap, claim, cs, es, h1, h3, h4, h5, h6, h7, h8, h9, fun h ↦ absurd h (by decide),
     h10, h11, h12⟩, hc⟩
 
-set_option maxRecDepth 10000 in
 /-- **An iteration of `gkr_layer__L{p}_L{o}_loop0`, completely.** -/
 theorem glc_iter {rd : Reader} (x N head qrow nqrow tabs : E) (hnq : nqrow = qrow * gen ^ 42)
     (hT : TbGkrRoundsOut 8 1 rd (head * x) (qrow * x ^ 8)) :
@@ -257,7 +254,6 @@ theorem glc_iter {rd : Reader} (x N head qrow nqrow tabs : E) (hnq : nqrow = qro
   · simp only [glcPost, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
     rcases ha with rfl | rfl | rfl | rfl | rfl <;> simp [Atom.Holds, σ, glcVal, tb_word_gen]
 
-set_option maxRecDepth 10000 in
 /-- **`gkr_layer__L{p}_L{o}_loop0`, completely**: eight rounds from the record at `head·g^y`, the
 row at `qrow·g^(8y)`, at every iteration `y < m` give the loop from `1` below `g^m`. -/
 theorem glc_complete {rd : Reader} {p o : ℕ} (hp : p < 4) (ho : o < 2) {head qrow nqrow tabs : E}

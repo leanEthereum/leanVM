@@ -78,7 +78,6 @@ theorem mRecLd_load {stp : ℕ} {outs : List V} {o28 o29 : ℕ} {a : Atom}
   cases a <;> simp [mRecLd] at h
   exact ⟨_, _, _, rfl⟩
 
-set_option maxRecDepth 20000 in
 /-- **A frame of the gap walk's honest valuation** (a frame loop's block at `x = g^xj`), with
 where its loads read: the record's thirty words at `chain · x^15`, a claim's coverage slot at
 `region · g^(o (s + i))`, a claim's cells at `entries · g^(4 o (s + i))`. -/
@@ -334,12 +333,10 @@ theorem mRec_drop {region entries mark : E} {L n : ℕ} {o : ℕ → ℕ} {cells
   rw [e]
   exact h3 c hc
 
-set_option maxRecDepth 100000 in
 theorem mono136_unplaced :
     (atomsIn (loopPre (coreProgram.getD idx% «child_claim_list_mono_loop0» default))).all
         atomUnplaced = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem mono17_unplaced :
     (atomsIn (loopPre (coreProgram.getD idx% «child_claim_list_mono_loop1» default))).all
         atomUnplaced = true := by decide +kernel
@@ -354,7 +351,6 @@ theorem mc136_ok : mcOk (coreProgram.getD idx% «child_claim_list_mono_loop0» d
   simp only [mcOk, mc136_head, mc136_edge, Bool.true_and]
   exact mRecs_of_wins (w := 9) (W := 16) (by norm_num) fun i hi => hw i hi
 
-set_option maxRecDepth 20000 in
 /-- **A frame loop of the gap walk, its frames**: at every frame `q < M`, the block's valuation
 holds its atoms and reads the chain buffer's records and the claims among the caller's words. -/
 theorem monoLoop_blocks {j : ℕ} {f : String} {m p0 st0 cw ew nb : ℕ}

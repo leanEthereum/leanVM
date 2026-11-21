@@ -30,7 +30,6 @@ noncomputable def slotOk (i : ℕ) : OffsetInstruction → Bool
       | none => false
   | _ => false
 
-set_option maxRecDepth 100000 in
 /-- **`__jump_tables` writes the jump table, slot by slot.** -/
 theorem jtSlots : walkOk slotOk 0 Data.f0.code = true := by decide +kernel
 

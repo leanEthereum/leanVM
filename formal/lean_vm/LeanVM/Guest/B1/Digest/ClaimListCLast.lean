@@ -304,7 +304,6 @@ theorem tail_rel_of {k : ℕ} (hk : k < 17) {sp blk d0 d1 : E}
     coreProgram.Rel rd "claim_list_tail" [sp, blk, gen ^ k] [d0, d1] :=
   (tail_iff rd _ _).mpr ⟨sp, blk, k, d0, d1, by rw [gen_pow_eq_ofK], hk, rfl, h⟩
 
-set_option maxRecDepth 100000 in
 /-- `claim_list_tail` and the last groups place nothing and call among themselves. -/
 theorem tail_pure : coreProgram.PureIn ("claim_list_tail" :: clNames) :=
   Tables.pureIn_of_pureInB (by decide +kernel)

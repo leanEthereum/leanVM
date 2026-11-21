@@ -134,27 +134,22 @@ def mlcOk (k : ℕ) (f : Fn) : Bool :=
 /-- Window `i` of `child_claim_list_mono_loop0`'s claims: `9i … 9i + 8`. -/
 noncomputable def mcWin (i : ℕ) : Bool := mRecsC mono136Atoms 9 13 11 12 (.n (val% «child_claim_list_mono_loop0» "base")) 136 (9 * i) 9
 
-set_option maxRecDepth 100000 in
 theorem mlc_lo : ∀ k < 9, mlcOk k (coreProgram.getD (idx% «child_claim_list_mono_last__L0» + k)
     default) = true := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem mlc_hi : ∀ k < 8, mlcOk (9 + k) (coreProgram.getD (idx% «child_claim_list_mono_last__L0» + (9 + k))
     default) = true := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem mc17_ok : mcOk (coreProgram.getD idx% «child_claim_list_mono_loop1» default)
     name% «child_claim_list_mono_loop1» 17 9 187 131072 432 = true := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem mc136_head : mcHead (coreProgram.getD idx% «child_claim_list_mono_loop0» default)
     name% «child_claim_list_mono_loop0» = true := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem mc136_edge : mcEdge (coreProgram.getD idx% «child_claim_list_mono_loop0» default) 136 9 1377
     83200 72058697844523035 = true := by
   decide +kernel

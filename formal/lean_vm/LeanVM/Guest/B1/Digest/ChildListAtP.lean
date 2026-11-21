@@ -53,13 +53,11 @@ theorem idxPops_flatMap (o : ℕ → ℕ) (m : ℕ) : ∀ M : ℕ,
     rw [Nat.zero_add] at e
     rw [e, Nat.mul_succ]
 
-set_option maxRecDepth 100000 in
 theorem any136_wits : (loopPre (coreProgram.getD idx% «child_claim_list_any_loop0» default)).filterMap
     Main.Stmt.popS = ((List.range 136).map fun i => ("child_claim_index", [V.n (ccOV 22 i)])).map
       fun x => some (x.1, .stack x.2) := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem any17_wits : (loopPre (coreProgram.getD idx% «child_claim_list_any_loop1» default)).filterMap
     Main.Stmt.popS = ((List.range 17).map fun i => ("child_claim_index", [V.n (ccOV 19 i)])).map
       fun x => some (x.1, .stack x.2) := by
@@ -70,14 +68,12 @@ noncomputable def cclWitOk (k : ℕ) : Bool :=
   decide ((cclAtoms k).flatMap atomWit = ((List.range k).map fun i => ("child_claim_index", [V.n (ccOV 5 i)])).map
     fun x => (x.1, .stack x.2))
 
-set_option maxRecDepth 100000 in
 theorem ccl_wits_all : ∀ k < 17, cclWitOk k = true := by decide +kernel
 
 theorem ccl_wits (k : ℕ) (hk : k < 17) : (cclAtoms k).flatMap atomWit =
     ((List.range k).map fun i => ("child_claim_index", [V.n (ccOV 5 i)])).map fun x => (x.1, .stack x.2) :=
   of_decide_eq_true (ccl_wits_all k hk)
 
-set_option maxRecDepth 20000 in
 /-- **A frame loop of child claims, its frames, with their pops**: `anyLoop_blocks`, frame `q` popping its claims'
 indices. -/
 theorem anyLoop_blocksP {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}

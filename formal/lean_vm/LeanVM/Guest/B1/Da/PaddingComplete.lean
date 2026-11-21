@@ -45,7 +45,7 @@ theorem da_padding_body : Fn.body fn% «da_padding» = [
     .atom (.mul (.n (val% «da_padding» "s2#1")) (.n (val% «da_padding» "s2#2")) (.n (val% «da_padding» "n_blob_g"))), .atom (.copy (.n (val% «da_padding» "s2#0")) (.n (val% «da_padding» "s2#2"))), .ret [.n (val% «da_padding» "s2#0")]] :=
   stmtsEqb_sound (by decide +kernel)
 
-set_option maxRecDepth 10000 in
+set_option maxRecDepth 1000 in
 /-- **`da_padding` is complete** on a memory defined below `2^16`. -/
 theorem da_padding_complete : da_padding_complete_Spec := by
   intro rd hm r hr1 hr

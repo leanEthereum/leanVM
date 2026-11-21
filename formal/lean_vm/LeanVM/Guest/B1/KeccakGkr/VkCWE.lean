@@ -75,7 +75,6 @@ end VkData
 variable {cert : String → V → ℕ}
 
 open VkData in
-set_option maxRecDepth 20000 in
 /-- **`verify_keccak` is complete, placed, within `vkBound` words at `B2C.fs`, by a tree exact at every node.** -/
 theorem verify_keccak_completeAtBE_fs {κ : ℕ} (hκ : 11 ≤ κ) :
     VkCompleteAtBKE LeanVM.Guest.B2C.fs cert κ vkBound := by
