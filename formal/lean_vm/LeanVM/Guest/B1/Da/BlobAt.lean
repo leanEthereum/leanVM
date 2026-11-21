@@ -79,7 +79,6 @@ def blobNH (SB SK : String → ℕ) (syms : ℕ → ℕ → List E) (i : ℕ) : 
     (namedP fs [name% «da_verify_blob_loop0», "da_levels__L128_L7"]
       [cellB fs SK, SB "da_levels__L128_L7"] (blobTs syms i))
 
-set_option maxRecDepth 20000 in
 /-- **`da_verify_blob` is complete, placed, by a tree of its honest shape, within its frame, its region and its
 callees' static bounds**: blob `i < r` of cells `syms i` orthogonal to the dual codeword of `z`, the weights at
 `g^bw`; it returns the blob's root. -/

@@ -40,7 +40,6 @@ noncomputable def mlAtoms (k : ℕ) : List Atom :=
   ((splitBody (coreProgram.getD (idx% «child_claim_list_mono_last__L0» + k) default).body).map
       (·.1)).getD []
 
-set_option maxRecDepth 100000 in
 theorem ml_shape_all : ∀ k < 17, ((mlAtoms k).all (fun a => !Memory.atomAllocB a &&
     (Memory.atomAddr? a).isNone) && ((coreProgram.getD (idx% «child_claim_list_mono_last__L0» + k)
         default).loop == false)) = true := by
@@ -120,7 +119,6 @@ theorem mlcSide_load {k : ℕ} {t : Option V} {d p : V} {off : ℕ}
     (h : mlcSide k t (.load d p off) = true) : p = .n (valf% «child_claim_list_mono_last» "rec") ∧ off < 15 := by
   simpa [mlcSide] using h
 
-set_option maxRecDepth 20000 in
 /-- **The walk's last claims' honest valuation** (`[rec, region, mark, limit]`), with where its
 loads read. -/
 theorem mlc_core {k : ℕ} (hk : k < 17) {rec region mark limit entries : E} {rP eP rg L s : ℕ}

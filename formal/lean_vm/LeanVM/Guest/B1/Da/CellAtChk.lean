@@ -31,7 +31,6 @@ noncomputable def cellPOk : Bool :=
   decide (cellPre.filterMap Main.Stmt.callS = []) &&
   decide (cellPre.filterMap Stmt.loadS = (List.range 128).map fun i => (V.n (val% «da_verify_cell» "lvals"), i))
 
-set_option maxRecDepth 100000 in
 theorem cellp_ok : cellPOk = true := by decide +kernel
 
 end

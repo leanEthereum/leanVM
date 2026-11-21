@@ -144,7 +144,6 @@ theorem mStart_le {o : ℕ → ℕ} {s K : ℕ} (hinc : ∀ j < K, mStart o (s +
     rw [← Nat.add_assoc]
     omega
 
-set_option maxRecDepth 20000 in
 /-- **The claims of a block, evaluated, hold**: with the honest gaps hinted and the pointers from
 `region · g^(mStart o s)`, `entries · g^(4 mStart o s)`, claim `j`'s pointers stand at
 `o (s + j) - j`, its cells are the honest ones, and its side atoms hold. -/

@@ -231,7 +231,6 @@ noncomputable def glChk (p o : ℕ) : Bool :=
       .const (.n (glOne p + 2)) (word 1 0)] &&
   (glBody p o (glLoopName p o)).dropLast.all gwNoDisp
 
-set_option maxRecDepth 100000 in
 theorem gl_chk : ∀ p < 4, ∀ o < 2, glChk p o = true := by decide +kernel
 
 /-- **`gkr_layer__L{p}_L{o}` within `glWB` at `x_m = g^m`.** -/
@@ -303,7 +302,6 @@ noncomputable def glslChk (o : ℕ) : Bool :=
       .const (.n (valf% «gkr_layers» «_loop0» "s6#3")) (word 2 0), .mul (.n (valf% «gkr_layers» «_loop0» "s6#4")) (.n (valf% «gkr_layers» «_loop0» "x_m")) (.n (valf% «gkr_layers» «_loop0» "s6#3"))] &&
     (glcLsLBody o).dropLast.all gwNoDisp
 
-set_option maxRecDepth 100000 in
 theorem gl_last_chk : ∀ o < 2, (∀ r < 4, glLastChk r o = true) ∧ glslChk o = true := by
   decide +kernel
 

@@ -91,7 +91,6 @@ theorem claimLast_sound {k : ℕ} (hk : k < 17) {rd : Reader} {args rets : List 
 theorem find_claim_list_tail : coreProgram.find? "claim_list_tail" = some fn% «claim_list_tail» :=
   coreProgram_find?_at (j := idx% «claim_list_tail») rfl
 
-set_option maxRecDepth 100000 in
 theorem claim_list_tail_shape : Fn.body fn% «claim_list_tail» =
     [.dispatch (.n (val% «claim_list_tail» "rest")) clNames [.n (val% «claim_list_tail» "state"), .n (val% «claim_list_tail» "blk")] [.n (val% «claim_list_tail» "d0"), .n (val% «claim_list_tail» "d1")], .atom (.copy (.n (val% «claim_list_tail» "s1#0")) (.n (val% «claim_list_tail» "d0"))),
       .atom (.copy (.n (val% «claim_list_tail» "s1#0[1]")) (.n (val% «claim_list_tail» "d1"))), .ret [.n (val% «claim_list_tail» "s1#0"), .n (val% «claim_list_tail» "s1#0[1]")]] :=

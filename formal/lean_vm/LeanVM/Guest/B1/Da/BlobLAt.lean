@@ -69,7 +69,6 @@ def blobLFrom (r : ℕ) (Tb : ℕ → Tree → Prop) : ℕ → ℕ → Tree → 
 
 variable (fs : String → ℕ) (cert : String → V → ℕ)
 
-set_option maxRecDepth 20000 in
 /-- **One iteration of the blob loop, placed, by a tree of its honest shape**: blob `i`, its root among the roots'
 leaves. -/
 theorem blobL_stepAtTB {Bb Bt : ℕ} {Tb Tt : Tree → Prop} {r L i bw bT : ℕ} {syms : ℕ → ℕ → List E}

@@ -74,7 +74,6 @@ theorem mono_noWit : Stmt.noWitList (Fn.body fn% «child_claim_list_mono») = tr
 noncomputable def monoPss (o : ℕ → ℕ) (a b r : ℕ) : List (List Pop) :=
   [gapPops o 0 (136 * a), gapPops o (136 * a) (17 * b), gapPops o (136 * a + 17 * b) r]
 
-set_option maxRecDepth 20000 in
 /-- **`child_claim_list_mono_completeAtTB` with its pops**: its tree pops its claims' gaps in order. -/
 theorem child_claim_list_mono_completeAtTBP (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 20 ≤ κ)
     {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}

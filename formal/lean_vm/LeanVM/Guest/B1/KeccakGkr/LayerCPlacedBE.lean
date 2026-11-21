@@ -42,7 +42,6 @@ theorem remLoop_exactOk (first : ℕ) : ExactOk (remLoopName first) := by
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-set_option maxRecDepth 20000 in
 /-- **`layer_completeAtFB` by a tree exact at every node.** -/
 theorem layer_completeAtFBE {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D : LayerData)
     (CL : ClaimLay) (bcur bout tbE : ℕ) {p0 p1 iota st : E} {KP KR : ℕ}

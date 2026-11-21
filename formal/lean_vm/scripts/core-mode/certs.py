@@ -5,8 +5,9 @@
   `envC`, `funC` and code), its callees' signatures (`modeSigs`), the pack's list (`CorePack.«p».certs`)
   and each one's static facts, frame interface (`fnSpec_core` of its `fnSpecC`), code, termination
   facts (`termOk_of` at its index) and residuals (`NzOnly CoreMode.coreNzs`);
-* `CoreMode/Gen/Certs/List.lean`: the list `coreCerts`, pack by pack, each one's membership, no entry
-  twice and the core data `coreTable`;
+* `CoreMode/Gen/Certs/List.lean`: the list `coreCerts`, pack by pack, and the core data `coreTable`;
+* `CoreMode/Gen/Certs/Nodup.lean`: no entry twice;
+* `CoreMode/Gen/Certs/In<k>.lean`: each certificate's membership in `coreCerts`;
 * `CoreMode/Gen/Certs/Sig<k>.lean`: each certificate's callee signatures among `coreCerts`;
 * `CoreMode/Gen/Certs.lean`: `coreFacts : CoreFacts …` and `main`'s start (`mainOk_core`).
 
@@ -23,7 +24,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
 CM = os.path.join(ROOT, 'CoreMode')
 OUT = os.path.join(CM, 'Gen')
-# packs per `Sig<k>` module
+# packs per `In<k>` and `Sig<k>` module
 SIGPACKS = 8
 
 
@@ -111,7 +112,7 @@ def render():
         files[os.path.join(OUT, p, 'Cert.lean')] = ''.join(t)
     # the list
     mod = 'LeanVM.Guest.CoreMode.Gen.Certs.List'
-    t = [header(mod, 'The core route\'s certificates, no entry twice and its core data.')]
+    t = [header(mod, 'The core route\'s certificates and its core data.')]
     t.append(imports({'LeanVM.Guest.CoreMode.Gen.«%s».Cert' % p for p in pk}))
     t.append('\nset_option Elab.async false\nset_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest.CoreMode\n\n'
              'open LeanVM.Guest LeanVM.Guest.Mode\n\n@[expose] public section\n\n')
@@ -119,22 +120,36 @@ def render():
              'noncomputable def corePacks : List (List (%s)) :=\n  %s\n\n' % (CE, wrap(['CorePack.«%s».ces' % p for p in pk])))
     t.append('/-- **The core route\'s certificates.** -/\nnoncomputable def coreCerts : List Mode.Cert := corePacks.flatten.map (·.K)\n\n')
     t.append('/-- **The core route\'s data**, pack by pack. -/\nnoncomputable def coreTable : List CoreMode.CFun := corePacks.flatten.map (·.cf)\n\n')
-    t.append('end\n\npublic section\n\n')
-    t.append('/-- No entry twice. -/\ntheorem coreCerts_nodup : nodupB (coreCerts.map (·.F.entry)) 0 = true := by decide +kernel\n\n')
-    t.append('end\n\nend LeanVM.Guest.CoreMode\n\n/-! Each certificate is among them (`modeCert_in`). -/\n\n'
-             'namespace LeanVM.Guest.Fn\n\npublic section\n\n')
-    for j, p in enumerate(pk):
-        for i, f in enumerate(packs[p]):
-            t.append('cert_in%% «%s» %d %d\n' % (f, j, i))
-    t.append('\nend\n\nend LeanVM.Guest.Fn\n')
+    t.append('end\n\nend LeanVM.Guest.CoreMode\n')
     files[os.path.join(OUT, 'Certs', 'List.lean')] = ''.join(t)
-    # the callee signatures
+    mod = 'LeanVM.Guest.CoreMode.Gen.Certs.Nodup'
+    t = [header(mod, 'The core route\'s certificates: no entry twice.')]
+    t.append(imports({'LeanVM.Guest.CoreMode.Gen.Certs.List'}))
+    t.append('\nset_option Elab.async false\n\nnamespace LeanVM.Guest.CoreMode\n\nopen LeanVM.Guest LeanVM.Guest.Mode\n\n'
+             'public section\n\n')
+    t.append('/-- No entry twice. -/\ntheorem coreCerts_nodup : nodupB (coreCerts.map (·.F.entry)) 0 = true := by decide +kernel\n\n')
+    t.append('end\n\nend LeanVM.Guest.CoreMode\n')
+    files[os.path.join(OUT, 'Certs', 'Nodup.lean')] = ''.join(t)
     # a fixed number of packs a module, so that a function added to or removed from a pack changes only its own
     chunks = [pk[i:i + SIGPACKS] for i in range(0, len(pk), SIGPACKS)]
+    # each certificate's membership
+    for c, ps in enumerate(chunks):
+        mod = 'LeanVM.Guest.CoreMode.Gen.Certs.In%d' % c
+        t = [header(mod, 'The core route\'s certificates, each among them (`modeCert_in`), pack by pack.')]
+        t.append(imports({'LeanVM.Guest.CoreMode.Gen.Certs.List'}))
+        t.append('\nset_option Elab.async false\nset_option linter.style.nameCheck false\n\n'
+                 'namespace LeanVM.Guest.Fn\n\npublic section\n\n')
+        for p in ps:
+            j = pk.index(p)
+            for i, f in enumerate(packs[p]):
+                t.append('cert_in%% «%s» %d %d\n' % (f, j, i))
+        t.append('\nend\n\nend LeanVM.Guest.Fn\n')
+        files[os.path.join(OUT, 'Certs', 'In%d.lean' % c)] = ''.join(t)
+    # the callee signatures
     for c, ps in enumerate(chunks):
         mod = 'LeanVM.Guest.CoreMode.Gen.Certs.Sig%d' % c
         t = [header(mod, 'The core route\'s certificates\' callee signatures, pack by pack.')]
-        t.append(imports({'LeanVM.Guest.CoreMode.Gen.Certs.List'}))
+        t.append(imports({'LeanVM.Guest.CoreMode.Gen.Certs.In%d' % d for d in range(len(chunks))}))
         t.append('\nset_option Elab.async false\n')
         for p in ps:
             sp = []
@@ -148,7 +163,7 @@ def render():
     mod = 'LeanVM.Guest.CoreMode.Gen.Certs'
     t = [header(mod, 'What the core route\'s data gives of the end theorem\'s assembly (`EndExec.CoreFacts`).')]
     t.append(imports({'LeanVM.Guest.CoreMode.Gen.Certs.Sig%d' % c for c in range(len(chunks))} |
-                     {'LeanVM.Guest.CoreMode.NzsOk'}))
+                     {'LeanVM.Guest.CoreMode.Gen.Certs.Nodup', 'LeanVM.Guest.CoreMode.NzsOk'}))
     t.append('\nset_option Elab.async false\n\nnamespace LeanVM.Guest.CoreMode\n\nopen LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.EndExec\n\n'
              'public section\n\n')
     t.append('theorem coreCerts_sigs : ∀ K ∈ coreCerts, SigsIn coreCerts K :=\n  CertE.fa (ls := corePacks) fa%%%s\n\n' % (

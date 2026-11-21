@@ -39,7 +39,6 @@ def mStoreB : Atom → Bool
   | .load d p o => mStoresL.any (atomEqb (.load d p o))
   | _ => false
 
-set_option maxRecDepth 100000 in
 theorem mStoresL_loads : mStoresL.all (fun a => match a with | .load .. => true | _ => false) = true := by
   decide +kernel
 

@@ -114,7 +114,6 @@ theorem glcFnCheck_sound {f : String} {b : List Stmt} (h : glcFnCheck f b = true
     exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
-set_option maxRecDepth 100000 in
 theorem glc_layers_check : ∀ o < 2, glcFnCheck (glcLsN o) (glcLsBody o) = true ∧
     glcFnCheck (glcLsLN o) (glcLsLBody o) = true ∧
     ∀ r < 4, glcFnCheck (glcLastN r o) (glcLastBody r o) = true := by decide +kernel

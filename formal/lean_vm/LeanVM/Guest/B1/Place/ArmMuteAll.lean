@@ -7,13 +7,17 @@
 module
 
 public import LeanVM.Guest.B1.Place.ArmMuteA
-public import LeanVM.Guest.B1.Place.ArmMuteB
+public import LeanVM.Guest.B1.Place.ArmMute6
+public import LeanVM.Guest.B1.Place.ArmMute7
+public import LeanVM.Guest.B1.Place.ArmMute8
+public import LeanVM.Guest.B1.Place.ArmMute9
+public import LeanVM.Guest.B1.Place.ArmMute10
 public import LeanVM.Guest.B1.Place.OsMean
 
 /-!
 # The arms' callees
 
-* `armMute_all`: the arm `m`'s body is mute in `armS` (`ArmMuteA`, `ArmMuteB`);
+* `armMute_all`: the arm `m`'s body is mute in `armS` (`ArmMuteA`, `ArmMute6` to `ArmMute10`);
 * `lqNameB_of_kind`, `lqNameB_of_lp`, `lqNameB_of_lr`: a named callee's, a `level_positions`' and a `level_residual`'s names are not `level_queries`' (by the kernel, over the tables).
 -/
 

@@ -41,7 +41,6 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 variable (fs cert)
 
-set_option maxRecDepth 20000 in
 /-- **One child of `main_loop4` within its bound, placed, its tree exposed**: `l5_stepAtTB` (same proof), its
 callees' and tail call's trees satisfying predicates of the memory. -/
 theorem l5_stepAtTBR (SB : String → ℕ)

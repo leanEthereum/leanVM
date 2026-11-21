@@ -37,7 +37,6 @@ noncomputable def anyPss (o : ℕ → ℕ) (a b r : ℕ) : List (List Pop) :=
   [idxPops o 0 (136 * a), idxPops (fun i => o (136 * a + i)) 0 (17 * b),
     idxPops (fun j => o (136 * a + 17 * b + j)) 0 r]
 
-set_option maxRecDepth 20000 in
 /-- **`child_claim_list_any` is complete, placed, by a tree of honest shape, within its bound**:
 `n < 136 · 2^20` honest records among the caller's words, its chain buffer after its frame
 holding the states after each frame; it returns their cells' digest. -/

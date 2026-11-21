@@ -45,7 +45,6 @@ def glcFresh (p o : ℕ) : List (ℕ × ℕ × ℕ) :=
   glPreKeys ++ glcRoundKeys 58 21 52 (2 * p) ++ glTailKeys p ++
     glcRoundKeys (78 + glD p) (76 + glD p) (67 + glD p) (2 - o) ++ glcKidKeys p o
 
-set_option maxRecDepth 100000 in
 theorem glc_layer_check : ∀ p < 4, ∀ o < 2, (chk 9 (glcL p o)).isSome = true ∧
     (glcFresh p o).all (fun k ↦ !((storesOf 9 (glcL p o)).map loadKey).contains (some k)) = true := by
   decide +kernel

@@ -87,7 +87,6 @@ theorem mono17_find : coreProgram.find? name% «child_claim_list_mono_loop1» =
 
 /-! ## Placed -/
 
-set_option maxRecDepth 20000 in
 /-- **`child_claim_list_mono` is complete, placed, by a tree of honest shape, within its
 bound**: `n < 136 · 2^20` honest claims at strictly increasing slots among the caller's words,
 its chain buffer after its frame holding the records after each frame; it returns their cells'

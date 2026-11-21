@@ -49,43 +49,34 @@ noncomputable def monoP1 : List Stmt := monoFlat.take 60
 /-- The body after its dispatch. -/
 noncomputable def monoPost : List Stmt := monoFlat.drop 61
 
-set_option maxRecDepth 100000 in
 theorem monoFlat_split : monoFlat = monoP1 ++ monoDispS :: monoPost :=
   stmtsEqb_sound (by decide +kernel)
 
-set_option maxRecDepth 100000 in
 theorem monoPost_eq : monoPost = [.atom (.touch (.n (val% «child_claim_list_mono» "s9#0")) (.n (val% «child_claim_list_mono» "bigs"))), .atom (.touch (.n (val% «child_claim_list_mono» "s10#0")) (.n (val% «child_claim_list_mono» "groups"))),
     .atom (.copy (.n (val% «child_claim_list_mono» "s11#0")) (.n (val% «child_claim_list_mono» "d0"))), .atom (.copy (.n (val% «child_claim_list_mono» "s11#0[1]")) (.n (val% «child_claim_list_mono» "d1")))] :=
   stmtsEqb_sound (by decide +kernel)
 
 theorem monoPost_straight : monoPost.all Main.Stmt.straight = true := by rw [monoPost_eq]; rfl
 
-set_option maxRecDepth 100000 in
 theorem monoP1_straight : monoP1.all Main.Stmt.straight = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem monoP1_allocs : monoP1.filterMap Main.Stmt.allocSz = [(.n (val% «child_claim_list_mono» "chain"), .inr (.n (val% «child_claim_list_mono» "chain~8")))] := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem monoP1_addrs : monoP1.filterMap Main.Stmt.addrS = [] := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem monoP1_calls : monoP1.filterMap Main.Stmt.callS =
     [(some (.n (val% «child_claim_list_mono» "s4#1")), name% «child_claim_list_mono_loop0», [.n (val% «child_claim_list_mono» "s4#2"), .n (val% «child_claim_list_mono» "bigs"), .n (val% «child_claim_list_mono» "chain"), .n (val% «child_claim_list_mono» "base")], []),
       (some (.n (val% «child_claim_list_mono» "s6#1")), name% «child_claim_list_mono_loop1», [.n (val% «child_claim_list_mono» "s6#2"), .n (val% «child_claim_list_mono» "groups"), .n (val% «child_claim_list_mono» "mid"), .n (val% «child_claim_list_mono» "base")], [])] := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem monoP1_loads : monoP1.filterMap B1.Stmt.loadS =
     (List.range 15).map fun c => (.n (val% «child_claim_list_mono» "chain"), c) := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem monoP1_kinds : monoP1.all (fun s => isAtomS s || stmtEqb s mono31S || stmtEqb s mono41S) =
     true := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem mono_loop : coreProgram.loop "child_claim_list_mono" = false := by
   rw [Program.loop_of_find? find_child_claim_list_mono]; decide +kernel
 
@@ -117,7 +108,6 @@ noncomputable def monoCOk : Bool :=
     (List.replicate 15 (.n (val% «child_claim_list_mono» "bigs")) ++ List.replicate 15 (.n (val% «child_claim_list_mono» "groups")) ++ List.replicate 15 (.n (val% «child_claim_list_mono» "chain~1"))) &&
   (atomsIn monoFlat).any (fun a => atomEqb a (.hint (.allocDyn (.n (val% «child_claim_list_mono» "chain")) (.n (val% «child_claim_list_mono» "chain~8")))))
 
-set_option maxRecDepth 100000 in
 theorem monoc_ok : monoCOk = true := by decide +kernel
 
 /-- The oracle of `child_claim_list_mono`'s valuation: the chain buffer, the digest. -/
@@ -149,7 +139,6 @@ structure MonoVals (rd : Reader) (σ : Val) (args : List E) (a b : ℕ) (chain :
 
 variable {rd : Reader}
 
-set_option maxRecDepth 20000 in
 /-- **`child_claim_list_mono`'s valuation**: on a memory holding the first record at the chain
 buffer and defined below `2^20`, where its checks of `g^a` and `g^b` read. -/
 theorem monoBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Digest)

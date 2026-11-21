@@ -46,7 +46,6 @@ theorem length_expRunVals {root : E} {F Z S : ℕ → E} {top D : ℕ} :
     (expRunVals root F Z S top D).length = 256 := by
   simp [expRunVals]
 
-set_option maxRecDepth 8000 in
 theorem length_topRun (z : E) : (topRun z).length = 256 := length_expRunVals
 
 /-- Column `h`'s shifts: the offsets of the cell `h`. -/
@@ -67,7 +66,6 @@ theorem topRun_leaf (z : E) {h : ℕ} (hh : h < 128) :
     show Nat.log 2 (128 + h) = 7 from log_two_pow_add (k := 7) hh,
     show (2 : ℕ) ^ 7 = 128 by norm_num, Nat.add_sub_cancel_left, topLeaf_eq z hh]
 
-set_option maxRecDepth 8000 in
 theorem colRun_leaf (z : E) (h : ℕ) {e : ℕ} (he : e < 128) :
     (colRun z h).getD (128 + e) 0 = dualAt z (128 * h + e) := by
   have hk : 128 + e < 256 := by omega
@@ -118,7 +116,6 @@ noncomputable def wsXOk : Bool :=
   decide (wsPre.filterMap Main.Stmt.callS = (List.range 128).map wsCallS) &&
   decide (wsPre.filterMap Stmt.loadS = (List.range 128).flatMap fun h => [(.n (val% «da_weights» "top_leaves"), h), (.n (val% «da_weights» "weights"), h)])
 
-set_option maxRecDepth 100000 in
 theorem ws_xok : wsXOk = true := by decide +kernel
 
 /-! ## The valuation -/
@@ -331,7 +328,7 @@ theorem ws_kLin_sub {z : E} {bz bt bc bo : ℕ} {q : ℕ × List E} (hq : q ∈ 
   simp only [wsKLin, wsLin, List.mem_cons, List.not_mem_nil, or_false] at hq ⊢
   tauto
 
-set_option maxRecDepth 20000 in
+set_option maxRecDepth 2000 in
 /-- **`da_weights` is complete, placed, within its frame, its buffer and its expansions'
 frames.** -/
 theorem ws_completeAtB (hrf : Lift.RunsFit fs cert) (z : E) (bz bt bc bo : ℕ) :

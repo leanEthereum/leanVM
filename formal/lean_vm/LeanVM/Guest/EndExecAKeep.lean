@@ -266,7 +266,7 @@ theorem block_main {r : Ref} (hr : r.Ok) : r.T.block B2C.fs coreProgram.loop = r
     subst hn
     rw [Tree.block, ite_eq_right (by rw [B2C.main_not_loop]; decide), Nat.add_zero, B2C.fs_main]
     show B2C.mainFrame = Data.adviceMainFrame
-    simp [B2C.mainFrame, Data.mainCells, Data.jtSlots, Data.adviceMainFrame]
+    decide
   · rw [hT] at hv; exact hv.elim
 
 /-- **The track at `main`'s entry, its cursor past `main`'s frame**: `main`'s frame at its body, at

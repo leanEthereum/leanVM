@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Whir.HelperTables
 
 * `lqNameB g`: `g` names an entry of `lqTable`;
 * `armS g`: `g` is such a name or passes `noWitness`;
-* `armMuteOk name j`: function `j` is named `name`, has no witness hint in its body, and each of its callees is an entry of `lqTable` or has no witness hint in its subtree (`noWitCallee j`), decided by the kernel per arm (`ArmMuteA`, `ArmMuteB`);
+* `armMuteOk name j`: function `j` is named `name`, has no witness hint in its body, and each of its callees is an entry of `lqTable` or has no witness hint in its subtree (`noWitCallee j`), decided by the kernel per arm (`ArmMuteA`, `ArmMute6` to `ArmMute10`);
 * `armMute_find`: such a function's body is mute in `armS`.
 -/
 

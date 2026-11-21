@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Bits.MeaningP
 * `armExactS g`: `g` is `opening_round`, a deployed grind check or an entry of `lpTable`: the callees whose exactness
   the arm's composition carries;
 * `armExactOk name j`: function `j` is named `name`, its computed hints are pinned by the next atom, and each of its
-  callees is `armExactS` or exact for free (`exactCallee j`), decided by the kernel per arm (`ArmExactA`; `ArmExactB`, `ArmExactC` by its parts, `armExactOk_of`);
+  callees is `armExactS` or exact for free (`exactCallee j`), decided by the kernel per arm (`ArmExact0` to `ArmExact5`; `ArmExactB`, `ArmExactC` by its parts, `armExactOk_of`);
 * `armExact_find`: such a function's paths that hold are exact, and its callees not `armExactS` exact for free;
   `armExact_every`: so a valid node of it whose `armExactS` callees' predicates give `Every` exact is exact at every
   node.
