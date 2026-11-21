@@ -61,8 +61,6 @@ class _Infer:
 
 I = _Infer()
 
-_SRC = re.compile(r'^(.*?)((__L\d+)(_L\d+)*)?((_loop\d+)*)$')
-
 
 def src(k):
     """The source function a core function belongs to: its name less its specialization (`__L…`) and loop
