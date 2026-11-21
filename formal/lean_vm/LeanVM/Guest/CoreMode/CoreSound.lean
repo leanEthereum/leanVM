@@ -817,41 +817,13 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
             have hf := FitB.of_ok hfit.1
             exact ⟨List.contains_iff_mem.mp hf.ent0, List.contains_iff_mem.mp hf.ent1⟩
         -- the walk's split at the call, the callee frame
-        have hsplit : ∀ {σ : Val} {pre es : List Ev} {vs : List V} {rd : Reader}, HonF img Cf s.fp σ → rd = img.read →
-            pairAt Cf.P Cf.fn.body K.code Cf.d i = some pos → walk σ Cf.fn.body = .ret (pre ++ es) vs →
-            walk σ pos = .ret es vs → (∀ e ∈ pre ++ es, e.Holds rd σ) → (∀ e ∈ pre, EvM Cf.sigOf rd σ e) →
-            ∃ (evs : List Ev) (cs : List Atom) (es' : List Ev), es = evs ++ Ev.call f args rets :: (cs.map Ev.atom ++ es') ∧
-              walk σ pos' = .ret es' vs ∧ (∀ a ∈ cs, stopL a = false) ∧ (∀ a ∈ as, Ev.atom a ∈ evs) ∧
-              (∀ e ∈ evs, EvM Cf.sigOf rd σ e) ∧ (∀ x, WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ evs) x →
-                WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) pre x ∨
-                ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ evs ∧ Writes σ a x) ∧
-              ReqOk Cf.sigOf Cf.H rd σ (WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) (pre ++ evs))
-                (.call f args rets) ∧
-              ∃ kfp, (g : Parameters.K) ^ s'.fp = g ^ kfp ∧
-                (∀ b < args.length + rets.length, Rd img s'.fp (2 + b) = some (slotW ((args ++ rets).map σ) b)) ∧
-                Rd img s'.fp 0 = some (ofK (g ^ st.r)) ∧ Rd img s'.fp 1 = some (ofK (g ^ s.fp)) := by
-          intro σ pre es vs rd hσ hrd hp hb hwp hh0 hM0
-          obtain ⟨evs, cs, es', rfl, hwp', hcs, hasin, hevM, hW'⟩ := hkC hσ hb hwp (hrwOf σ pre _ vs rd hb hh0 (hσ.res hxw) (hrd ▸ hσ.gw.ok) hM0)
-          have hreq := hrwOf σ pre _ vs rd hb hh0 (hσ.res hxw) (hrd ▸ hσ.gw.ok) hM0 evs (.call f args rets) (cs.map Ev.atom ++ es')
-            rfl hevM
-          obtain ⟨kfp, hq, hk0, hk1, hargs, hrets⟩ := hσ.kid _ _ hb ((calls (pre ++ evs)).length)
-            ⟨f, args, rets, true⟩ of st (by rw [← List.append_assoc]; exact calls_mid) rfl hsite
-          have hfpE : (g : Parameters.K) ^ s'.fp = g ^ kfp :=
-            (pow_of_ofK (rd_get hκ hm.fine sof (by rw [hm.fp]; exact hq) h1)).symm.symm
-          refine ⟨evs, cs, es', rfl, hwp', hcs, hasin, hevM, hW', hreq, kfp, hfpE, fun b hb' ↦ ?_,
-            by rw [rd_pow hfpE]; exact hk0, by rw [rd_pow hfpE]; exact hk1⟩
-          rw [rd_pow hfpE, List.map_append]
-          by_cases hb1 : b < args.length
-          · rw [slotW_lt (by simpa using hb1), slotW_get (by simpa using hb1)]
-            simpa using hargs b hb1
-          · rw [slotW_append]
-            simp only [List.length_map, hb1, ↓reduceIte]
-            rw [slotW_get (by simp; omega)]
-            have := hrets (b - args.length) (by show b - args.length < rets.length; omega)
-            rw [show 2 + args.length + (b - args.length) = 2 + b by omega] at this
-            simpa using this
+        have hsplit {σ : Val} {pre es : List Ev} {vs : List V} {rd : Reader} (hσ : HonF img Cf s.fp σ)
+            (hrd : rd = img.read) (hb : walk σ Cf.fn.body = .ret (pre ++ es) vs) (hwp : walk σ pos = .ret es vs)
+            (hh0 : ∀ e ∈ pre ++ es, e.Holds rd σ) (hM0 : ∀ e ∈ pre, EvM Cf.sigOf rd σ e) :=
+          have hrw := hrwOf σ pre _ vs rd hb hh0 (hσ.res hxw) (hrd ▸ hσ.gw.ok) hM0
+          call_split hκ hm sof h1 hsite hσ hb hrw (hkC hσ hb hwp hrw)
         obtain ⟨evs, cs, es', heq, hwp', hcs, hasin, hevM, hW', hreq, kfp, hfpE, hwsE, hk0, hk1⟩ :=
-          hsplit hσ0 hrd hpos hb hwp hh0 hM0
+          hsplit hσ0 hrd hb hwp hh0 hM0
         have hcallE : Ev.call f args rets ∈ pre ++ es := by rw [heq]; simp
         obtain ⟨hpwR, hpwPR⟩ := callsB_spec (callsB_of hok.heap hbody hb hcallE) (body_callS hbody hb hcallE)
         have htop : Cf.fn.body.all topOk = true := (Bool.and_eq_true_iff.mp hbody).2
@@ -959,7 +931,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
                 rw [hpos, Option.some.injEq] at hpos2
                 subst hpos2
                 obtain ⟨evs2, cs2, es2', rfl, hwp2', hcs2, hasin2, hevM2, hW2', -, kfp2, hfpE2, hwsE2, -, -⟩ :=
-                  hsplit hσ hrd2 hpos hb2 hwp2 hh2 hM2
+                  hsplit hσ hrd2 hb2 hwp2 hh2 hM2
                 -- the callee's returned words, its contract's
                 have hEv : EvM Cf.sigOf rd2 σ (.call f args rets) := by
                   have hwF : wsAt img s'.fp (args.length + rets.length) = (args ++ rets).map σ :=
@@ -976,20 +948,13 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
                 · rcases List.mem_cons.mp he with rfl | he
                   · exact hEv
                   · exact evM_atoms _ e he
-                rcases writtenC_append hy with h | ⟨e, he, hwe⟩
-                · rcases hW2' y h with h | ⟨a, ha, hfa, hma, hwa⟩
-                  · exact (hW2 y h).mono hle0
-                  · exact ((flow_wrk hκ e1 hs hm hpairs ha hfa (fun q hq ↦ hσ.ptr _ _ hb2 a q
-                      (List.mem_append_right _ (List.mem_append_left _ hma)) hq) hwa).mono
-                      (Mem.le_trans hle' (Mem.le_trans hm0 hm')))
-                rcases List.mem_cons.mp he with rfl | he
-                · -- the callee's guarantees, its contract's
-                  subst hrd2
-                  refine (hPost y ?_).mono hm'
-                  rw [wsAt_eq (by simp) hwsE2]
-                  exact hwe
-                · obtain ⟨a, ha, rfl⟩ := List.mem_map.mp he
-                  exact absurd hwe (no_writes_of_stopL (hcs2 a ha))
+                refine resume_wrk hκ hs hm hle0 (Mem.le_trans hle' (Mem.le_trans hm0 hm')) e1 hpairs hσ hb2
+                  hW2 hW2' hcs2 (fun hwe ↦ ?_) hy
+                -- the callee's guarantees, its contract's
+                subst hrd2
+                refine (hPost y ?_).mono hm'
+                rw [wsAt_eq (by simp) hwsE2]
+                exact hwe
           -- a callee of a mode contract, through `fitB`
           have hCn : Ct s'.pc = none := by rw [hCtt]; simp [hcAt, hl]
           simp only [callOkC, hl, Bool.and_eq_true] at hfit
@@ -1047,7 +1012,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
               rw [hpos, Option.some.injEq] at hpos2
               subst hpos2
               obtain ⟨evs2, cs2, es2', rfl, hwp2', hcs2, hasin2, hevM2, hW2', -, kfp2, hfpE2, hwsE2, -, -⟩ :=
-                hsplit hσ hrd2 hpos hb2 hwp2 hh2 hM2
+                hsplit hσ hrd2 hb2 hwp2 hh2 hM2
               have hEv : EvM Cf.sigOf rd2 σ (.call f args rets) :=
                 evM_mode hκ (callsB_chk (callsB_of' hok.heap) (body_callS (r := rets) hbody hb2 (by simp))) hl
                   hhretM (Mode.RetHolds.mono (s := Mode.stOf m s'.fp) (s' := Mode.stOf m' s'.fp) hm' rfl hR) ham'
@@ -1058,18 +1023,11 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
               · rcases List.mem_cons.mp he with rfl | he
                 · exact hEv
                 · exact evM_atoms _ e he
-              rcases writtenC_append hy with h | ⟨e, he, hwe⟩
-              · rcases hW2' y h with h | ⟨a, ha, hfa, hma, hwa⟩
-                · exact (hW2 y h).mono hle0
-                · exact ((flow_wrk hκ e1 hs hm hpairs ha hfa (fun q hq ↦ hσ.ptr _ _ hb2 a q
-                    (List.mem_append_right _ (List.mem_append_left _ hma)) hq) hwa).mono
-                    (Mem.le_trans hle' (Mem.le_trans hm0 hm')))
-              rcases List.mem_cons.mp he with rfl | he
-              · -- the callee's guarantees
-                exact post_wrk hκ ham' hm' hf'.fp hwsE2 hrd2 hR hL hLP hhpost
-                  (fun q hq ↦ Bool.or_eq_true_iff.mpr (.inl (hhpostR q hq))) hhpostP hhpostPR hhpostQ hwe
-              · obtain ⟨a, ha, rfl⟩ := List.mem_map.mp he
-                exact absurd hwe (no_writes_of_stopL (hcs2 a ha))
+              refine resume_wrk hκ hs hm hle0 (Mem.le_trans hle' (Mem.le_trans hm0 hm')) e1 hpairs hσ hb2
+                hW2 hW2' hcs2 (fun hwe ↦ ?_) hy
+              -- the callee's guarantees
+              exact post_wrk hκ ham' hm' hf'.fp hwsE2 hrd2 hR hL hLP hhpost
+                (fun q hq ↦ Bool.or_eq_true_iff.mpr (.inl (hhpostR q hq))) hhpostP hhpostPR hhpostQ hwe
 
 end
 

@@ -200,9 +200,6 @@ theorem pair_fallC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
 /-- Not a conditional call or a dispatch. -/
 @[expose] def NoCD (s : Stmt) : Prop := (∀ c f a, s ≠ .callIf c f a) ∧ ∀ x fs a r, s ≠ .dispatch x fs a r
 
-/-- Not a dispatch. -/
-@[expose] def NoD (s : Stmt) : Prop := ∀ x fs a r, s ≠ .dispatch x fs a r
-
 /-- **Atoms, calls and returns.** -/
 @[expose] def straightC (body : List Stmt) : Bool :=
   body.all fun s ↦ match s with
