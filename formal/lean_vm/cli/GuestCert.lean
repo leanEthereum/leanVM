@@ -3688,9 +3688,8 @@ def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ 
     (glue : List String) (key : ℕ → String) : List (System.FilePath × String) := Id.run do
   -- the checks, in modules of consecutive parts
   -- a heavy part (a costly one, or one of `heavyFns`) has a module of its own
-  -- a window of more than `bigWin` instructions (`__loop2_main`'s chained `match`es, 2816: ~170 s,
-  -- ~35 GB each in the kernel) is checked in a module of its own at 1M heartbeats, as its
-  -- soundness check (`Checked`)
+  -- a window of more than 2000 instructions (`bigWin`: `__loop2_main`'s chained `match`es) is checked
+  -- in a module of its own at 1M heartbeats, as its soundness check (`Checked`)
   let bigSet : Std.HashSet (ℕ × ℕ) := fps.foldl (fun h fp =>
     fp.sizes.zipIdx.foldl (fun h (sz, i) => if sz > 2000 then h.insert (fp.j, i) else h) h) {}
   let bigWin (j i : ℕ) : Bool := bigSet.contains (j, i)
