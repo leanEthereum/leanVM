@@ -31,4 +31,5 @@ OWN = [
     'LeanVM/Guest/CoreMode/Fam/MonoChain.lean',
     'LeanVM/Guest/CoreMode/Fam/MonoDefs.lean',
     'LeanVM/Guest/EndExecCoreMono.lean',
+    'LeanVM/Guest/CoreMode/Fn/child_claim_list_mono/*.lean',
 ]

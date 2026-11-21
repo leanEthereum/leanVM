@@ -34,14 +34,11 @@ open LeanVM.Prover.Exec
 public section
 
 theorem mlK_spec {fn : Fn} {k : ℕ} (h : mlK fn = some k) : 1 ≤ k ∧ k < 17 ∧ mlNames.getD k "" = fn.name := by
-  unfold mlK at h
-  obtain ⟨k', hk', hb⟩ := Option.bind_eq_some_iff.mp h
-  simp only [Bool.cond_eq_ite, Nat.ble_eq] at hb
-  split_ifs at hb with h1
-  cases hb
-  have := List.find?_some hk'
-  simp only [beq_iff_eq] at this
-  exact ⟨h1, List.mem_range.mp (List.mem_of_find?_eq_some hk'), this⟩
+  have hm := CoreMode.lookup_memL h
+  simp only [CoreMode.FnReg.mlLoops, CoreMode.Own.child_claim_list_mono_last.mlLoops, List.append_nil,
+    List.mem_map, List.mem_range, Prod.mk.injEq] at hm
+  obtain ⟨j, hj, he, rfl⟩ := hm
+  exact ⟨by omega, by omega, he⟩
 
 theorem prodW_gaps (w : ℕ → E) : ∀ n : ℕ,
     prodW w ((List.range n).map fun i ↦ (6 + 10 * i, 4)) = ((List.range n).map fun i ↦ w (6 + 10 * i) ^ 4).prod
@@ -152,8 +149,10 @@ theorem ml_inst {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
 
 theorem cmK_name {fn : Fn} {m : ℕ} (h : CoreMode.cmK fn = some m) :
     fn.name = name% «child_claim_list_mono_loop0» ∨ fn.name = name% «child_claim_list_mono_loop1» := by
-  simp only [CoreMode.cmK, Bool.cond_eq_ite, beq_iff_eq] at h
-  split_ifs at h with h0 h1
+  have hm := CoreMode.lookup_memL h
+  simp only [CoreMode.FnReg.cmLoops, CoreMode.Own.child_claim_list_mono.cmLoops, List.append_nil, List.mem_cons,
+    Prod.mk.injEq, List.not_mem_nil, or_false] at hm
+  rcases hm with ⟨h0, -⟩ | ⟨h1, -⟩
   · exact Or.inl h0
   · exact Or.inr h1
 
@@ -231,11 +230,11 @@ theorem cm_inst {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
         x.Holds (setG σ [refMem r.img (a + 2), refMem r.img (a + 5), ofK (Parameters.g ^ a)]) := by
   have hcases : (f = name% «child_claim_list_mono_loop0» ∧ m = 136) ∨
       (f = name% «child_claim_list_mono_loop1» ∧ m = 17) := by
-    have hn := find_name' hf
-    simp only [CoreMode.cmK, Bool.cond_eq_ite, beq_iff_eq] at hk
-    split_ifs at hk with h0 h1
-    · exact Or.inl ⟨by rw [← hn, h0], (Option.some.inj hk).symm⟩
-    · exact Or.inr ⟨by rw [← hn, h1], (Option.some.inj hk).symm⟩
+    have hm := CoreMode.lookup_memL hk
+    simp only [CoreMode.FnReg.cmLoops, CoreMode.Own.child_claim_list_mono.cmLoops, List.append_nil, List.mem_cons,
+      Prod.mk.injEq, List.not_mem_nil, or_false] at hm
+    rw [← find_name' hf]
+    exact hm
   obtain ⟨aP, L, hh2, ha5, hm5, hL, hrd⟩ : ∃ aP L, I.hdr.2 = ofK (addressOfIndex aP) ∧ aP + 5 < maxCells ∧
       refMem r.img (aP + 5) = gen ^ L ∧ L < 2 ^ 33 ∧ ∀ jj < m, ∃ o < L, σ (.n 12) *
         ((List.range (jj + 1)).map fun i ↦ σ (.n (13 + 10 * i)) ^ 4).prod * gen ^ (4 * jj) =

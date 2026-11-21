@@ -18,7 +18,7 @@ public import LeanVM.Guest.CoreMode.Fn.verify_tables.Fam
 namespace LeanVM.Guest.EndExec
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
-open LeanVM.Guest.CoreMode (CFun CRes CIdx ResF LtF rep_of capE resFam idxC baseC vw csSub)
+open LeanVM.Guest.CoreMode (CFun CRes CIdx ResF LtF rep_of capE resFam idxC baseC vw)
 
 public section
 

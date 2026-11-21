@@ -71,11 +71,8 @@ theorem room_of {q S n j : ℕ} (hjn : j < n) (h : q + S * (n - j) ≤ 8192) : q
 theorem stK_mlK {fn : Fn} {p : ℕ × ℕ × ℕ} (hk : stK fn = some p) : CoreMode.mlK fn = none := by
   obtain ⟨D, v, S⟩ := p
   have hmk : ∀ n ∈ CoreMode.stLoops.map (·.1),
-      ((List.range 17).find? fun k ↦ B1.Digest.mlNames.getD k "" == n) = none := by decide +kernel
-  have hm := List.mem_map_of_mem (f := (·.1)) (CoreMode.lookup_memL hk)
-  unfold CoreMode.mlK
-  rw [hmk _ hm]
-  rfl
+      CoreMode.FnReg.mlLoops.lookup n = none := by decide +kernel
+  exact hmk _ (List.mem_map_of_mem (f := (·.1)) (CoreMode.lookup_memL hk))
 
 /-- **A stream-cursor loop's linked cells** at its frame: the caller's cell `D` its first ghost word, the caller's
 frame its second. -/

@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.Count.VsMax
 
-  `verify_bus_gkr`'s and `verify_tables`' largest bounds over their depths and heights,
-  `verify_keccak`'s and the terminal's bounds, written out by the kernel (`kernel_lit`) through the
+  `verify_bus_gkr`'s and `verify_tables`' largest bounds at `vsWords` (their count modules' `vbgMaxV`,
+  `vtMaxV`), `verify_keccak`'s and the terminal's bounds, written out by the kernel (`kernel_lit`) through the
   search tree's lookups (`Count.Fast`), so that no number here changes with the guest.
 -/
 
@@ -19,24 +19,9 @@ namespace LeanVM.Guest.Count
 
 @[expose] public section
 
-/-- `verify_bus_gkr`'s largest bound, at the search tree's lookups. -/
-kernel_lit vbgMaxV : ℕ := B1.VerifySub.vbgMax fsFast
-  (B1.VerifySub.glsKL fsFast fun p o => wSKFast (B1.Tables.glLoopName p o) - fsFast (B1.Tables.glLoopName p o))
-  (wSKFast (name% verify_bus_gkr_loop0) - fsFast (name% verify_bus_gkr_loop0))
+theorem vbgMax_eq : B1.Tables.vbgMax B2C.fs vsWords.vbg = vbgMaxV := vbgWordsMax_eq
 
-theorem vbgMax_eq : B1.VerifySub.vbgMax B2C.fs vsWords.KL vsWords.K8 = vbgMaxV := by
-  rw [← vbgMaxV_eq, fsFast_eq, wSKFast_eq]; rfl
-
-/-- `verify_tables`' largest bound, at the search tree's lookups. -/
-kernel_lit vtMaxV : ℕ := B1.VerifySub.vtMax fsFast wSBFast
-  (fsFast "shared_selector_tables" + (fsFast (name% shared_selector_tables_loop0) +
-    15 * (wSKFast (name% shared_selector_tables_loop0) - fsFast (name% shared_selector_tables_loop0))) +
-    max (max (wSBFast "sel_partial_nibble__L0") (wSBFast "sel_partial_nibble__L1"))
-      (max (wSBFast "sel_partial_nibble__L2") (wSBFast "sel_partial_nibble__L3")))
-  (wSKFast (name% verify_tables_loop0) - fsFast (name% verify_tables_loop0))
-
-theorem vtMax_eq : B1.VerifySub.vtMax B2C.fs vsWords.Kf vsWords.Ksh vsWords.K10 = vtMaxV := by
-  rw [← vtMaxV_eq, fsFast_eq, wSBFast_eq, wSKFast_eq]; dsimp only [vsWords, kSp]
+theorem vtMax_eq : B1.Tables.vtMax B2C.fs vsWords.vt = vtMaxV := vtWordsMax_eq
 
 /-- `verify_keccak`'s bound. -/
 kernel_lit vkBoundV : ℕ := B1.VerifySub.vkBound

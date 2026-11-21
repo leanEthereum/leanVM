@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.B1.VerifySub.GlsWords
+  LeanVM.Guest.B1.Gkr.GlsWords
 
   `gkr_layers__L{o}`'s words, by hand (it has no words certificate: its loop's iterations cost
   with the counter): on `n_four = g^n`, `n ≤ 3`, and `rem_g = g^r`, `r < 4`, at most `glsKL`.
@@ -34,11 +34,10 @@ frame, as `Count.wSKt_totalLeOn` gives them):
 * `gls_totalLeOn`: `gkr_layers__L{o}` at `g^n`, `g^r` (`n ≤ 3`, `r < 4`) within `glsKL`.
 -/
 
-namespace LeanVM.Guest.B1.VerifySub
+namespace LeanVM.Guest.B1.Tables
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol.Verifier (gen)
-open LeanVM.Guest.B1.Tables
 
 @[expose] public section
 
@@ -479,4 +478,4 @@ theorem gls_totalLeOn {Kg : ℕ → ℕ → ℕ}
     exact glLast_totalLeOn hK hr ho (by omega) rd t' _ rets' htn' (by simp [h3']) htv htb
 
 end
-end LeanVM.Guest.B1.VerifySub
+end LeanVM.Guest.B1.Tables

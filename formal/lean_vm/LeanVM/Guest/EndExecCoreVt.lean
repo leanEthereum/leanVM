@@ -25,7 +25,8 @@ g^τ_t` (`τ_t < 31`), `g_zc_n = g^n` (`τ_t ≤ n ≤ μ`): `TablesPre` (`vt_in
 namespace LeanVM.Guest.EndExec
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
-open LeanVM.Guest.B1 LeanVM.Guest.B1.Tables
+open LeanVM.Guest.B1 hiding lmax
+open LeanVM.Guest.B1.Tables
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 public section
