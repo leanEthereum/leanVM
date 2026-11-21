@@ -360,7 +360,7 @@ end LeanVM.Node
 namespace LeanVM.Guest
 
 /-- **The deployed leanISA guest program**, assembled from the generated `Statement/Data/`. -/
-def guestProgram : LeanVM.Semantics.LeanIsaProgram := assemble Data.functions 19 (by decide)
+def guestProgram : LeanVM.Semantics.LeanIsaProgram := assemble Data.functions Data.logSize (by decide)
 
 end LeanVM.Guest
 

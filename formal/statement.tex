@@ -399,20 +399,21 @@ positions (each with a cell and an opening). It wins if
 \emph{The assumption.} Code binding can only be as good as the argument, so the theorem assumes the
 argument is \emph{knowledge sound}. That means there is an extractor that, reading only the proof
 and the adversary's queries (\lean{StraightLineExtractor}; it does not rewind), finds cells satisfying the
-relation whenever the verifier accepts. Precisely: in the game \lean{knowledgeSoundnessGame}, an adversary making
-$q \le 2^{128}$ calls makes the verifier accept while the extracted cells fail the relation with
+relation whenever the verifier accepts. Precisely: if an adversary and the argument's verification
+(\lean{knowledgeSoundnessRun}) make at most $q \le 2^{128}$ calls, then in \lean{knowledgeSoundnessGame}
+the adversary makes the verifier accept while the extracted cells fail the relation with
 probability at most $(q + c)\cdot 2^{-k}$, for some constants $c$ and $k$.
 
 \emph{The theorem.} Under this assumption, an adversary making $Q$ calls (any $Q$, verifications
 included) wins the code-binding game with probability at most
 \[
-\boxed{\ (Q + c + 2^{65})\cdot 2^{-k} + (Q + 2^{10})\cdot 2^{-125} + (Q + 2^{22})^2\cdot 2^{-247}\ }
+\boxed{\ (Q + c)\cdot 2^{-k} + (Q + 2^{10})\cdot 2^{-125} + (Q + 2^{22})^2\cdot 2^{-247}\ }
 \]
 (\lean{LeanDa.leanDa_codeBinding_rpm_bound}). At $Q = 2^{64}$ the last two terms are about
-$2^{-61}$ and $2^{-119}$. The offset $2^{65}$ of the first term is the knowledge-soundness game's
-own calls beyond the adversary's: the relation's check hashes the extracted matrix (fewer than
-$2^{22}$ calls) and, on its worst path, runs the whole nonce search, $2^{64} + 2$ calls; the
-assumption is read at $q = Q + 2^{65}$.
+$2^{-61}$ and $2^{-119}$. Bounding $q$ on \lean{knowledgeSoundnessRun} (the adversary and the
+argument's verification) lets the reduction read the assumption directly at $q = Q$, avoiding
+charging the relation check's worst-case $2^{64}$-nonce search to $q$ (which would otherwise add
+$2^{65}\cdot 2^{-k}$ to the first term).
 
 \emph{Why.} Run the extractor on the adversary; it returns cells $c^*$. One of three things holds.
 \begin{enumerate}

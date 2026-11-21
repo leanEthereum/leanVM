@@ -172,6 +172,13 @@ theorem codeBindingGame_eq_expand (A : CodeBindingAdversary r Crs Proof) :
     (fun _ _ ↦ simulateQ_bind _ _ _)]
   simp only [expand_verifyCellM]
 
+/-- **The adversary and the argument's verification in the knowledge-soundness game**,
+expanded. -/
+theorem ksRun_eq_expand (B : KnowledgeSoundnessAdversary Crs Proof) :
+    knowledgeSoundnessRun r ps B = simulateQ expand (ksRunH r (liftArg ps) (liftAdv B)) := by
+  simp only [knowledgeSoundnessRun, ksRunH, simulateQ_bind, expand_liftM_setup, liftAdv,
+    simulateQ_expand_embed, liftArg]
+
 /-- **The knowledge-soundness game is the game with the hash oracle, expanded**, against the
 adversary embedded, the extractor reading the transcript in the statement's model. -/
 theorem ksGame_eq_expand (B : KnowledgeSoundnessAdversary Crs Proof) :
@@ -224,7 +231,7 @@ theorem leanDa_codeBinding_rpm_boundWithHash : CodeBindingRpmWithHash := by
   have e : ksB r (liftAdv A) = liftAdv (fun crs ↦ (fun out ↦ (out.1.1, out.1.2)) <$> A ((), crs)) := by
     funext crs
     simp [ksB, liftAdv, simulateQ_map]
-  rw [e, ← isWeightBound_expand_iff, ← ksGame_eq_expand] at hq
+  rw [e, ← isWeightBound_expand_iff, ← ksRun_eq_expand] at hq
   rw [e, ← runK_expand, ← ksGame_eq_expand]
   exact hks _ q hq hq128
 

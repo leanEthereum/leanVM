@@ -257,7 +257,7 @@ theorem codeBindingRpm_of_withHash (h : CodeBindingRpmWithHash) : LeanDaCodeBind
   intro r Crs Proof ps ext c k hks hr hrmax A Q hQ
   rw [codeBindingGame_eq_withHash] at hQ ⊢
   refine h r ps ext c k (fun B q hq hq' ↦ ?_) hr hrmax A Q hQ
-  rw [← knowledgeSoundnessGame_eq_withHash] at hq ⊢
+  rw [← knowledgeSoundnessGame_eq_withHash]
   exact hks B q hq hq'
 
 end LeanDa

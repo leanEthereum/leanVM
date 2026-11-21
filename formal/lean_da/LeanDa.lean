@@ -294,7 +294,7 @@ before the straight-line proof. -/
 abbrev CodeBindingRpmFork : Prop :=
   ∀ (r : ℕ) {Crs Proof : Type} (ps : LeanDaArgument r Crs Proof)
     (ext : StraightLineExtractor Common.DigestBytes (Fin (r * 128) → Cell) Crs Proof) (c k : ℕ),
-    (∀ (B : KnowledgeSoundnessAdversary Crs Proof) (q : ℕ), QueryCostAtMost (knowledgeSoundnessGameWithHash r ps ext B) permutationCallCost q →
+    (∀ (B : KnowledgeSoundnessAdversary Crs Proof) (q : ℕ), QueryCostAtMost (knowledgeSoundnessRun r ps B) permutationCallCost q →
       q ≤ 2 ^ 128 → Pr{let b ← runWithRandomPermutation (knowledgeSoundnessGameWithHash r ps ext B)}[b = true] ≤
         ((q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k) →
     1 ≤ r → r ≤ maxRows →

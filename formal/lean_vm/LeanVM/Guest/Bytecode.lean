@@ -35,7 +35,7 @@ open LeanVM.Parameters LeanVM.Semantics
 theorem guest_logSize : guestProgram.logSize = 19 := rfl
 
 /-- `guest` with its slots computed once (`assembleArray`), for compiled code reading them all. -/
-def guestArray : LeanIsaProgram := assembleArray Data.functions 19 (by decide)
+def guestArray : LeanIsaProgram := assembleArray Data.functions Data.logSize (by decide)
 
 theorem guestArray_eq : guestArray = guestProgram := assembleArray_eq _ _ _
 
@@ -43,7 +43,7 @@ theorem guestArray_eq : guestArray = guestProgram := assembleArray_eq _ _ _
 theorem functions_consecutive : consecutive 0 Data.functions Data.codeLen = true := by
   decide +kernel
 
-theorem codeLen_lt : Data.codeLen < 2 ^ 19 - 1 := by decide
+theorem codeLen_lt : Data.codeLen < 2 ^ Data.logSize - 1 := by decide
 
 theorem CompiledFunction.wellChunked_of_mem {f : CompiledFunction} (hf : f ∈ Data.functions) :
     f.WellChunked :=
@@ -78,7 +78,7 @@ theorem guest_pc_lt {f : CompiledFunction} (hf : f ∈ Data.functions) {i : ℕ}
 /-- Past the functions, the guest holds the padding. -/
 theorem guest_fetch_pad {pc : ℕ} (hpc : Data.codeLen ≤ pc) (hpc' : pc < 2 ^ 19) :
     guestProgram.fetch (addressOfIndex pc) = some OffsetInstruction.padding.toLeanIsaInstruction :=
-  assemble_fetch_pad functions_consecutive hpc hpc'
+  assemble_fetch_pad functions_consecutive hpc (by simpa [Data.logSize] using hpc')
 
 end
 end LeanVM.Guest

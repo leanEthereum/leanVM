@@ -125,6 +125,13 @@ def loggedKH : QueryImpl KSpecH (StateT TranscriptH (OracleComp KSpecH)) := fun 
 /-- A knowledge-soundness adversary: from the crs, a root and a proof. -/
 abbrev KsAdvRpmH (Crs Proof : Type) := Crs → OracleComp KSpecH (DigestBytes × Proof)
 
+/-- **The adversary and the argument's verification in the knowledge-soundness game**, with the
+hash oracle. -/
+def ksRunH (B : KsAdvRpmH Crs Proof) : OracleComp KSpecH Bool := do
+  let crs ← liftM ps.setup
+  let (root, proof) ← B crs
+  ps.verify crs root proof
+
 /-- **The argument's knowledge-soundness game** (Wagner's, Foundations Definition 18, in the
 random-permutation model with a straight-line extractor): the argument's setup, the adversary with
 its queries logged, the argument's verification, then the relation's check on the cells the
@@ -185,16 +192,16 @@ it** (Benedikt Wagner's framework and games, moved to the random-permutation mod
 straight-line argument in place of his forking lemma). For `1 ≤ r ≤ maxRows` rows (the crate's
 bound), every argument `ps` (its prover and verifier querying the model's oracles) and
 straight-line extractor `ext` (reading the adversary's transcript): if every adversary whose
-knowledge-soundness game (`ksGameH`, the argument's verifier and the relation's check included)
-makes at most `q ≤ 2^128` permutation calls (`permCallsH`) wins it with probability at most
+run with the argument's verification (`ksRunH`) makes at most `q ≤ 2^128` permutation calls
+(`permCallsH`) wins the knowledge-soundness game (`ksGameH`) with probability at most
 `(q + c) · 2^-k`, then every adversary whose code-binding game, verifications included, makes at
 most `Q` calls breaks code binding with probability at most
 
-`(Q + c + 2^65) · 2^-k + (Q + 2^10) · 2^-125 + (Q + 2^22)² · 2^-247`.
+`(Q + c) · 2^-k + (Q + 2^10) · 2^-125 + (Q + 2^22)² · 2^-247`.
 
 The first term is the argument's knowledge soundness against the code-binding adversary itself,
-its transcript handed to the extractor (at most `Q + 2^65` calls with the relation's check, the
-nonce search's `2^64 + 2` on the worst path among them). The second is the membership test with its
+its transcript handed to the extractor (at most `Q` calls for the adversary and the argument's
+verification). The second is the membership test with its
 grind: `2^-10 · (2^13 - 1) / 2^128 ≤ 2^-125` for each of the adversary's calls, and
 `(2^13 - 1) / 2^128` for the verifier's one search. The third gathers the transfer to the
 two-oracle model and the duplex lemma, of the two games, and the hash's bad events among at most
@@ -209,14 +216,14 @@ be perfectly complete for every permutation (`PerfectlyCompleteRpmH`). Proved by
 abbrev CodeBindingRpmH : Prop :=
   ∀ (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpmH r Crs Proof)
     (ext : ExtractorRpmH DigestBytes (Fin (r * 128) → Cell) Crs Proof) (c k : ℕ),
-    (∀ (B : KsAdvRpmH Crs Proof) (q : ℕ), QueryCostAtMost (ksGameH r ps ext B) permCallsH q →
+    (∀ (B : KsAdvRpmH Crs Proof) (q : ℕ), QueryCostAtMost (ksRunH r ps B) permCallsH q →
       q ≤ 2 ^ 128 → Pr{let b ← runKH (ksGameH r ps ext B)}[b = true] ≤
         ((q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k) →
     1 ≤ r → r ≤ maxRows →
     ∀ (A : CodeBindingAdvRpmH r Crs Proof) (Q : ℕ),
       QueryCostAtMost (codeBindingGameH r ps A) permCallsH Q →
         Pr{let b ← runKH (codeBindingGameH r ps A)}[b = true] ≤
-          ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 10) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
+          ((Q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 10) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247
 
 end LeanDa

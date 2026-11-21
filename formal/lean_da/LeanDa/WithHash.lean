@@ -375,16 +375,17 @@ it** (Benedikt Wagner's framework and games, moved to the random-permutation mod
 straight-line argument in place of his forking lemma). For `1 ≤ r ≤ maxRows` rows (the crate's
 bound), every argument `ps` (its prover and verifier querying the model's oracles) and
 straight-line extractor `ext` (reading the adversary's transcript): if every adversary whose
-knowledge-soundness game (`knowledgeSoundnessGame`, the argument's verifier and the relation's check
-included) makes at most `q ≤ 2^128` permutation calls (`permutationCallCost`) wins it with
-probability at most `(q + c) · 2^-k`, then every adversary whose code-binding game, verifications
-included, makes at most `Q` calls breaks code binding with probability at most
+run with the argument's verification (`knowledgeSoundnessRun`) makes at most `q ≤ 2^128`
+permutation calls (`permutationCallCost`) wins the knowledge-soundness game
+(`knowledgeSoundnessGameWithHash`) with probability at most `(q + c) · 2^-k`, then every adversary
+whose code-binding game, verifications included, makes at most `Q` calls breaks code binding with
+probability at most
 
-`(Q + c + 2^65) · 2^-k + (Q + 2^10) · 2^-125 + (Q + 2^22)² · 2^-247`.
+`(Q + c) · 2^-k + (Q + 2^10) · 2^-125 + (Q + 2^22)² · 2^-247`.
 
 The first term is the argument's knowledge soundness against the code-binding adversary itself,
-its transcript handed to the extractor (at most `Q + 2^65` calls with the relation's check, the
-nonce search's `2^64 + 2` on the worst path among them). The second is the membership test with its
+its transcript handed to the extractor (at most `Q` calls for the adversary and the argument's
+verification). The second is the membership test with its
 grind: `2^-10 · (2^13 - 1) / 2^128 ≤ 2^-125` for each of the adversary's calls, and
 `(2^13 - 1) / 2^128` for the verifier's one search. The third gathers the transfer to the
 two-oracle model and the duplex lemma, of the two games, and the hash's bad events among at most
@@ -400,7 +401,7 @@ abbrev CodeBindingRpmWithHash : Prop :=
   ∀ (r : ℕ) {Crs Proof : Type} (ps : LeanDaArgument r Crs Proof)
     (ext : StraightLineExtractor DigestBytes (Fin (r * 128) → Cell) Crs Proof) (c k : ℕ),
     (∀ (B : KnowledgeSoundnessAdversary Crs Proof) (q : ℕ),
-      QueryCostAtMost (knowledgeSoundnessGameWithHash r ps ext B) permutationCallCost q →
+      QueryCostAtMost (knowledgeSoundnessRun r ps B) permutationCallCost q →
       q ≤ 2 ^ 128 →
         Pr{let b ← runWithRandomPermutation (knowledgeSoundnessGameWithHash r ps ext B)}[b = true] ≤
         ((q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k) →
@@ -408,7 +409,7 @@ abbrev CodeBindingRpmWithHash : Prop :=
     ∀ (A : CodeBindingAdversary r Crs Proof) (Q : ℕ),
       QueryCostAtMost (codeBindingGameWithHash r ps A) permutationCallCost Q →
         Pr{let b ← runWithRandomPermutation (codeBindingGameWithHash r ps A)}[b = true] ≤
-          ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 10) *
+          ((Q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 10) *
             (2 : ℝ≥0∞)⁻¹ ^ 125 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247
 
