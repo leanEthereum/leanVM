@@ -3,7 +3,8 @@
 
   `verify_tables`' words interface at the deployed frame sizes and weights (`vtWords`, `vtWeights`), from the words
   certificates (`wSB`, `wSK`), the `W` count certificates (`kuSB`, `kuSK`) and B1-c's `shared_selector_tables`
-  bounds (`ss_totalLeOn`, `ss_weightLeOn`), and its bound written out by the kernel (`vtMaxV`).
+  bounds (`ss_totalLeOn`, `ss_weightLeOn`), its bound written out by the kernel (`vtMaxV`) and its weight bound
+  as one closed form (`vtWForm`, `vtWeightB_form`).
 -/
 
 module
@@ -123,6 +124,20 @@ noncomputable def vtWeights : B1.Tables.VtWeights fun op => B2C.ωArm B2C.xmssAr
   hssw := fun op => B1.Tables.ss_weightLeOn _ _ _
     (loopW_of (kuSK_loop (j := idx% shared_selector_tables_loop0) (by cases op <;> decide +kernel))) (sp_weightLe op)
   h10w := fun op => loopW_of (kuSK_loop (j := idx% verify_tables_loop0) (by cases op <;> decide +kernel))
+
+/-- **`verify_tables`' weight bound as one closed form** in an opcode's frame weights `ω` and the `W`
+certificates' bounds `KB`, `KK` (`kuSB`, `kuSK` at the opcode): what `Count/VsWB` instantiates. -/
+noncomputable def vtWForm (ω KB KK : String → ℕ) : ℕ :=
+  ω "verify_tables" + (B1.Tables.vtBs KB
+    (ω "shared_selector_tables" + 15 * KK (name% shared_selector_tables_loop0) +
+      max (max (KB "sel_partial_nibble__L0") (KB "sel_partial_nibble__L1"))
+        (max (KB "sel_partial_nibble__L2") (KB "sel_partial_nibble__L3")))
+    (32 * KK (name% verify_tables_loop0))).sum
+
+theorem vtWeightB_form (op : Opcode) :
+    B1.Tables.vtWeightB vtWeights op = vtWForm (B2C.ωArm B2C.xmssArmC op) (kuSB op) (kuSK op) := by
+  unfold B1.Tables.vtWeightB vtWForm
+  dsimp only [vtWeights, kSpW]
 
 /-- `verify_tables`' largest bound, at the search tree's lookups. -/
 kernel_lit vtMaxV : ℕ := B1.Tables.vtMaxOf fsFast wSBFast

@@ -19,4 +19,5 @@ OWN = [
     'LeanVM/Guest/CoreMode/Fam/TermQ.lean',
     'LeanVM/Guest/CoreMode/Fam/TermDefs.lean',
     'LeanVM/Guest/CoreMode/Fn/check_opening_terminal/*.lean',
+    'LeanVM/Guest/Count/Fn/check_opening_terminal.lean',
 ]

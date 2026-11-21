@@ -3,9 +3,8 @@
 
   `verify_sub`'s callees' words at the deployed frame sizes (`VsWords B2C.fs`), from the words
   certificates (`wSB`, `wSK`), B1-d's terminal words (`TermWordsFs`) and `verify_bus_gkr`'s and
-  `verify_tables`' words interfaces (`Count/Fn/verify_bus_gkr`, `Count/Fn/verify_tables`); the terminal's
-  callees' weights from the `W` count certificates (`kuSB`, `kuSK`) and the ratios of
-  `check_opening_terminal_loop0` and `ring_switch_weight` (`Count/RatioV`).
+  `verify_tables`' words interfaces (`Count/Fn/verify_bus_gkr`, `Count/Fn/verify_tables`), and the terminal's
+  callees' weights (`Count/Fn/check_opening_terminal`).
 -/
 
 module
@@ -15,6 +14,7 @@ public import LeanVM.Guest.Count.StaticW
 public import LeanVM.Guest.B1.VerifySub.WordsB
 public import LeanVM.Guest.Count.Fn.verify_tables
 public import LeanVM.Guest.Count.Fn.verify_bus_gkr
+public import LeanVM.Guest.Count.Fn.check_opening_terminal
 public import LeanVM.Guest.B1.Terminal.TermWordsFs
 public import LeanVM.Guest.B1.Selectors.SharedWeight
 public import LeanVM.Guest.Count.RatioV
@@ -24,22 +24,6 @@ namespace LeanVM.Guest.Count
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest
 
 @[expose] public section
-
-/-! ## The terminal's callees' weights -/
-
-/-- The column selectors' weights, at most. -/
-noncomputable def kCsW (op : Opcode) : ℕ :=
-  B1.lmax ((List.range 31).map fun κ => kuSB op (B1.Tables.lName "column_selector" κ))
-
-theorem cs_okW (op : Opcode) : (List.range 31).all (fun κ =>
-    kuOkB op (idx% column_selector__L0 + κ) (B1.Tables.lName "column_selector" κ)) = true := by
-  cases op <;> decide +kernel
-
-theorem cs_weightLe (op : Opcode) : ∀ κ < 31, WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op)
-    (B1.Tables.lName "column_selector" κ) (fun _ => kCsW op) := by
-  intro κ hκ
-  refine weightLe_mono (kuSB_weightLe (List.all_eq_true.mp (cs_okW op) κ (List.mem_range.mpr hκ))) ?_
-  exact B1.le_lmax (List.mem_map.mpr ⟨κ, List.mem_range.mpr hκ, rfl⟩)
 
 theorem ratio_le {w A t B : ℕ} (h : 1000 * w ≤ A * t) (ht : t ≤ B) : w ≤ A * B / 1000 :=
   (Nat.le_div_iff_mul_le (by norm_num)).mpr (by
@@ -71,11 +55,11 @@ noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
   hrs := B1.VerifySub.rs_totalLeOn_fs
   ωv := fun op => B2C.ωArm B2C.xmssArmC op
   vtW := vtWeights
-  Weqc := fun op => kuSB op "eq_prefix_chain"
-  W15 := fun op => krVl15A op * max (B2C.fs (name% check_opening_terminal_loop0)) (32 * 38) / 1000
-  Wst := fun op => kuSB op "selector_tables"
+  Weqc := termWeqc
+  W15 := termW15
+  Wst := termWst
   Wcs := kCsW
-  Wrsw := fun op => krVrswA op * (B2C.fs "ring_switch_weight" + 2240 + 16433) / 1000
+  Wrsw := termWrsw
   hEqcW := fun op => kuSB_weightLe (j := wIdx "eq_prefix_chain") (by cases op <;> decide +kernel)
   hStW := fun op => kuSB_weightLe (j := wIdx "selector_tables") (by cases op <;> decide +kernel)
   hCsW := cs_weightLe
