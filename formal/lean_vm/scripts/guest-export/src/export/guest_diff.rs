@@ -300,7 +300,7 @@ fn export_execution(dir: &std::path::Path, streams: &[(String, Vec<Vec<F128>>)],
     let scalar_streams: Vec<(String, Vec<Vec<E>>)> = (streams.iter())
         .map(|(name, entries)| (name.clone(), entries.iter().map(|e| e.iter().map(to_scalar).collect()).collect()))
         .collect();
-    std::fs::write(dir.join("advice.txt"), program.advice_text(&scalar_streams)).unwrap();
+    std::fs::write(dir.join("advice.txt"), program.export_hints(&scalar_streams)).unwrap();
     let memory: Vec<u8> = (0..exec.mem.len())
         .map(|i| exec.mem.word(i))
         .flat_map(|w| [w.c0, w.c1])

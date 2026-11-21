@@ -1,7 +1,7 @@
 /-
   LeanVM.Prover.Advice
 
-  The text form of a run's advice (`Program::advice_text`), parsed.
+  The text form of a run's advice (`CompiledProgram::export_hints`), parsed.
 -/
 
 module
@@ -11,8 +11,8 @@ public import Statement.Prover.Execute
 /-!
 # The advice's text
 
-`parseAdvice` reads the advice the Rust writes (`Program::advice_text`, `crates/leanvm_core/src/cpu/hints.rs`):
-whitespace-separated tokens, `leanvm-advice 1`, `main_frame n`, `hints` and per pc its hints (a tag and
+`parseAdvice` reads the advice the Rust writes (`CompiledProgram::export_hints`,
+`crates/isa/src/export_hints.rs`): whitespace-separated tokens, `leanvm-advice 1`, `main_frame n`, `hints` and per pc its hints (a tag and
 its fields, a field element as two hexadecimal limbs), `streams` and per stream its entries. The guest's
 own (`LeanVM/Guest/Data/Advice.lean`) has no stream. Nothing is proved about it: the executor trusts no
 advice.

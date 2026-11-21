@@ -18,6 +18,8 @@ pub(super) struct Site {
     depth: u32,
     /// Where the statement at depth `0` holding it starts.
     stmt_start: usize,
+    /// The source line of its statement.
+    line: u32,
 }
 
 impl FnLower<'_> {
@@ -26,6 +28,7 @@ impl FnLower<'_> {
         let site = Site {
             depth: self.depth,
             stmt_start: self.stmt_start,
+            line: self.cur_line,
         };
         let (ptr, _) = reservation(&hint).expect("a frame or `HeapBuf` reservation");
         self.reservations.insert(ptr, site);
@@ -35,15 +38,15 @@ impl FnLower<'_> {
     /// Move the `HeapBuf` reservations that follow this function's first call to just before it,
     /// keeping their order. One that cannot move, being in a branch, past a `return`, or sized by a
     /// cell not written by then, is reserved there from advice instead, once per pointer cell.
-    /// Whether any is.
-    pub(super) fn hoist_heap_bufs(&mut self) -> bool {
+    /// The source lines of those, in order.
+    pub(super) fn hoist_heap_bufs(&mut self) -> Vec<u32> {
         // Each reservation in code order: where it is, whether a callee's frame, its site.
         let sites: Vec<(usize, usize, bool, Site)> = (self.code.iter().enumerate())
             .flat_map(|(i, ins)| ins.hints.iter().enumerate().map(move |(j, h)| (i, j, h)))
             .filter_map(|(i, j, h)| reservation(h).map(|(ptr, frame)| (i, j, frame, self.reservations[&ptr])))
             .collect();
         let Some(&(i, j, _, first)) = sites.iter().find(|s| s.2) else {
-            return false;
+            return Vec::new();
         };
         // The first call's reservation, or the start of the statement whose branch holds it.
         let at = if first.depth == 0 {
@@ -52,8 +55,8 @@ impl FnLower<'_> {
             (first.stmt_start, 0)
         };
         assert_eq!(self.code_depth[at.0], 0, "a statement at depth 0 starts at depth 0");
-        // The cells every run reaching `at` has written: the arguments, and what the
-        // instructions before it at depth `0` touch.
+        // The cells every run reaching `at` has written: the arguments, what the hints before it
+        // at depth `0` write, and what the instructions there surely write or read.
         let mut written: HashSet<Off> = (2..2 + self.arg_cells).collect();
         for (ins, _) in self.code[..at.0].iter().zip(&self.code_depth).filter(|(_, d)| **d == 0) {
             written.extend(ins.hints.iter().flat_map(hint_writes));
@@ -62,6 +65,7 @@ impl FnLower<'_> {
         written.extend(self.code[at.0].hints[..at.1].iter().flat_map(hint_writes));
         // The hints that go to `at`, in order: a moved one by where it was, or advice.
         let mut hoisted: Vec<Result<(usize, usize), Off>> = Vec::new();
+        let mut advised = Vec::new();
         for &(i, j, _, site) in sites.iter().filter(|s| !s.2 && (s.0, s.1) >= at) {
             let (ptr, _) = reservation(&self.code[i].hints[j]).expect("a reservation");
             let reached = site.depth == 0 && !self.returns.iter().any(|&r| at.0 <= r && r < i);
@@ -82,6 +86,7 @@ impl FnLower<'_> {
                     self.code[i].hints[j] = late(&self.code[i].hints[j]);
                     if !hoisted.contains(&Err(ptr)) {
                         hoisted.push(Err(ptr));
+                        advised.push(site.line);
                     }
                 }
             }
@@ -98,7 +103,6 @@ impl FnLower<'_> {
         // Removed last first, so that `pop` yields them in order.
         let moved = hoisted.iter().filter_map(|h| h.ok());
         let mut taken: Vec<Hint> = moved.rev().map(|(i, j)| self.code[i].hints.remove(j)).collect();
-        let advised = hoisted.iter().any(Result::is_err);
         let hints = hoisted.into_iter().map(|h| match h {
             Ok(_) => taken.pop().expect("a moved hint"),
             Err(ptr) => Hint::Resolved(RHint::AllocAdvice {
@@ -153,18 +157,20 @@ fn hint_writes(h: &Hint) -> Vec<Off> {
     }
 }
 
-/// The frame cells an instruction reads or writes: each is written once it has run.
+/// The frame cells written once an instruction has run: those it writes on every run, and those it
+/// reads, which both executors require written (an unwritten read fails in the Lean executor, and
+/// in the Rust one is a read of zero that writes it). A `MUL` back-solves at most one operand, so its
+/// three cells are written; a `JUMP` reads its three cells, taken or not. A `DEREF` of mode `Cell`
+/// writes its frame cell only if its other side is written, and a slot's destination is not counted
+/// for the same reason.
 fn touched(op: &LOp) -> Vec<Off> {
     match *op {
         LOp::Set { o, .. } => vec![o],
         LOp::Xor { a, b, c } | LOp::Mul { a, b, c } => vec![a, b, c],
         LOp::MulNextFrame { a, b, .. } => vec![a, b],
-        LOp::Deref { o1, o3, mode, .. } => match mode {
-            DerefMode::Cell => vec![o1, o3],
-            DerefMode::Fp | DerefMode::Pc => vec![o1],
-        },
+        LOp::Deref { o1, .. } => vec![o1],
         LOp::Jump { oc, od, of } => vec![oc, od, of],
-        LOp::Slot { x, dst, .. } => vec![x, dst],
+        LOp::Slot { x, .. } => vec![x],
         LOp::Keccak { .. } => Vec::new(),
     }
 }
