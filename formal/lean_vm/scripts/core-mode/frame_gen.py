@@ -21,10 +21,9 @@ import compiled as MG  # noqa: E402
 
 OUT = os.path.join(FD.ROOT, 'CoreMode', 'Pack')
 OUT_GLUE = os.path.join(FD.ROOT, 'CoreMode', 'GlueA')
-# a module's checks: at most this many instructions
-CHUNK = int(os.environ.get('FRAME_CHUNK', 12000))
-# a function longer than this is checked in windows of about this many instructions
-WIN = int(os.environ.get("FRAME_WIN", 7000))
+import windows  # noqa: E402
+# a module's checks: at most this many instructions; a function longer than `WIN` is checked in windows of about it
+CHUNK, WIN = windows.FRAME_CHUNK, windows.FRAME_WIN
 
 
 def wrap(text, width=100):
@@ -123,10 +122,8 @@ def fstLit(A):
 ROUTE = {}
 
 
-# a function whose windows at `WIN` instructions take past 6.5 GB a module: its own size (its rule file's
-# `FRAME_WIN`, by stable name)
-import fnrules  # noqa: E402
-WINS = fnrules.table('FRAME_WIN') or {}
+# a function's own window size (`windows.py`)
+WINS = windows.own('FRAME_WIN')
 
 
 def cutsFor(D, n):

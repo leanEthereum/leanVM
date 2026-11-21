@@ -22,10 +22,10 @@ import data
 import align as AL
 import heap
 
-WIN = AL.WIN
-# a function whose pairing windows at `WIN` instructions take past 6.5 GB a module: its own size (its rule file's)
-import fnrules  # noqa: E402
-WINS = fnrules.table('PAIR_WIN') or {}
+import windows  # noqa: E402
+WIN = windows.ALIGN_WIN
+# a function's own pairing window size (`windows.py`)
+WINS = windows.own('PAIR_WIN')
 
 
 def view(body):

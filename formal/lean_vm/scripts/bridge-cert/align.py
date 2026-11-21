@@ -319,7 +319,8 @@ def data_flow():
     return data.FLOW
 
 
-WIN = 4096
+import windows  # noqa: E402
+WIN = windows.ALIGN_WIN
 SLICE = 1 << 16
 PIECE = 20000
 # a long function's alignment context (its pass is checked in windows from the core route's pairing states,

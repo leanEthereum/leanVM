@@ -1,5 +1,4 @@
-"""`main`'s rules: its long loop `main_loop2` checked in windows of its own sizes, each module within the 7.5 GB a module
-may take (measured: `m2-heap.md`)."""
+"""`main`'s rules: its long loop `main_loop2` checked in windows of its own sizes (`windows.py`)."""
 
 # instructions per code window (`core.py`), per pairing window (`pair.py`), per frame walk window (`frame_gen.py`)
 CORE_WIN = {'main_loop2': 6144}

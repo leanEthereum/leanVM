@@ -15,7 +15,8 @@ import compiled as C  # noqa: E402
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
 OUT = os.path.join(ROOT, 'CoreMode', 'Gen')
 # a range's core IR, at most this many bytes (the kernel's memory grows with it)
-BUDGET = 800000
+import windows  # noqa: E402
+BUDGET = windows.RANGE_BUDGET
 # a range, at most this many functions
 MAXN = 150
 # ranges per module
