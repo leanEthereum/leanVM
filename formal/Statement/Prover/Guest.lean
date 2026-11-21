@@ -8,11 +8,20 @@ public import Statement.Data.AdviceHints
 /-!
 # The guest's prover, from a node's statement and witness
 
-`guestProve π guest s w ρ fuel` is the prover a node runs: it makes the advice of the guest
-program's run on the statement `s` from the witness `w` (`guestAdvice`), runs the guest on it with
-the executor (`guestExecution`, `Prover/Execute.lean`), then proves the execution with the honest
-prover (`LeanVM.Prover.prove`). `guest` is the guest program, `guestProgram`; it is an argument so
-that a run may pass an equal program whose instructions read faster.
+`guestProve π guest s w ρ fuel` proves the guest program's run on the statement `s` from the
+witness `w`: it makes the run's advice (`guestAdvice`), runs the guest on it with the executor
+(`guestExecution`, `Prover/Execute.lean`), then proves the execution with the honest prover
+(`LeanVM.Prover.prove`). `guest` is the guest program, `guestProgram`; it is an argument so that a
+run may pass an equal program whose instructions read faster.
+
+It is the Rust's `aggregate` (`crates/aggregation/src/node.rs`) on its normal form, not all of it.
+What `aggregate` computes from its inputs is given here: the statement `s` (the claims it publishes
+and its deferred claim), the batching's hints (`w.batchingHints`, `aggregate_deferred_claims`) and a
+leaf's deferred value (`DeferredBytecodeClaim::leaf`); the children's fresh claims are not read. The
+raw signatures are taken in the witness's order, repeats included, where `aggregate` sorts them on
+their claims and keeps the first of each (`sorted_claims`). On the statement and witness an
+`aggregate` run builds, its raw signatures so sorted and deduplicated, the streams are the Rust's,
+entry for entry (`guest-diff` checks it on real aggregations).
 
 The advice is `main`'s frame size and the compiler's hints by `pc`, generated data
 (`Statement/Data/AdviceHints*.lean`, the compiler's `CompiledProgram::export_hints`,
