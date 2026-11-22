@@ -10,6 +10,8 @@ public import LeanVM.Guest.B1.VerifySub.Template
 public import LeanVM.Guest.B1.VerifySub.Sizes
 public import LeanVM.Guest.B1.Bits.GPower
 public import LeanVM.Guest.B1.Bits.Log2
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # The sizes, `kappa_base`, the push total
@@ -65,11 +67,11 @@ frame (`84 .. 91`) and `kappa_base`. -/
 theorem vsSizesT_holds {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ)
     (hC : CallRel.Le C (coreProgram.Rel L.read))
     (h : Stmt.HoldsList C L.read σ vsSizesT next kret) :
-    ∃ lir logMem : ℕ, 1 ≤ lir ∧ lir ≤ 4 ∧ σ (.n 61) = eOfNat lir ∧ σ (.n 66) = gen ^ (lir - 1) ∧
-      1 ≤ logMem ∧ logMem ≤ 30 ∧ σ (.n 27) = eOfNat logMem ∧ σ (.n 72) = gen ^ logMem ∧
-      ∃ ds : List E, ds.length = 6 ∧ ReadsAt L.read (σ (.n 71)) (gen ^ logMem :: ds) ∧
-        ReadsAt L.read (σ (.n 83)) (1 :: gen ^ logMem :: ds) ∧
-        (∀ s < 8, σ (.n (84 + s)) = (1 :: gen ^ logMem :: ds).getD s 0) ∧ next := by
+    ∃ lir logMem : ℕ, 1 ≤ lir ∧ lir ≤ 4 ∧ σ (.n (val% «verify_sub» "x@8")) = eOfNat lir ∧ σ (.n (val% «verify_sub» "rate_sel")) = gen ^ (lir - 1) ∧
+      1 ≤ logMem ∧ logMem ≤ 30 ∧ σ (.n (val% «verify_sub» "x@1")) = eOfNat logMem ∧ σ (.n (val% «verify_sub» "g_log_mem")) = gen ^ logMem ∧
+      ∃ ds : List E, ds.length = 6 ∧ ReadsAt L.read (σ (.n (val% «verify_sub» "dims_g"))) (gen ^ logMem :: ds) ∧
+        ReadsAt L.read (σ (.n (val% «verify_sub» "kappa_base"))) (1 :: gen ^ logMem :: ds) ∧
+        (∀ s < 8, σ (.n ((val% «verify_sub» "kb[0]") + s)) = (1 :: gen ^ logMem :: ds).getD s 0) ∧ next := by
   rw [vsSizesT, show (List.range 6) = [0, 1, 2, 3, 4, 5] from rfl,
     show (List.range 8) = [0, 1, 2, 3, 4, 5, 6, 7] from rfl] at h
   simp only [List.map_cons, List.map_nil, List.cons_append, List.nil_append, Stmt.HoldsList,
@@ -96,10 +98,10 @@ theorem vsSizesT_holds {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ)
     rw [hr72, h79, e78, show (2 : ℕ) = 2 ^ 1 from rfl, word_pow2 (by norm_num),
       ← pow_add] at m72
     exact gen_pow_eq_iff (by omega) (by omega) m72
-  have h84 : σ (.n 84) = 1 := by rw [e84, word_one]
-  have h85 : σ (.n 85) = gen ^ m := by rw [cp85, hr72]
+  have h84 : σ (.n (val% «verify_sub» "kb[0]")) = 1 := by rw [e84, word_one]
+  have h85 : σ (.n (val% «verify_sub» "kb[1]")) = gen ^ m := by rw [cp85, hr72]
   refine ⟨n, m, by omega, by omega, h61, by rw [h66, hne]; rfl, by omega, by omega, h27, hr72,
-    [σ (.n 86), σ (.n 87), σ (.n 88), σ (.n 89), σ (.n 90), σ (.n 91)], rfl, ?_, ?_,
+    [σ (.n (val% «verify_sub» "kb[2]")), σ (.n (val% «verify_sub» "kb[3]")), σ (.n (val% «verify_sub» "kb[4]")), σ (.n (val% «verify_sub» "kb[5]")), σ (.n (val% «verify_sub» "kb[6]")), σ (.n (val% «verify_sub» "kb[7]"))], rfl, ?_, ?_,
     fun s hs ↦ ?_, hn⟩
   · intro k hk
     simp only [List.length_cons, List.length_nil] at hk
@@ -165,25 +167,25 @@ theorem pushKappa_lt {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 33) 
 
 /-- One push block: `g_squares[kb[src]·g^adj] = g^(2^(κ + adj))` read at `g_squares·kb[src]`,
 offset `adj`. -/
-theorem push_read {κ : ℕ} {L : MemoryImage κ} (hexp : B1.ExpTables L.read (σ (.n 4)))
+theorem push_read {κ : ℕ} {L : MemoryImage κ} (hexp : B1.ExpTables L.read (σ (.n (val% «verify_sub» "g_squares"))))
     {kb q a : V} {k adj : ℕ} (hk : k + adj < 34) (hkb : σ kb = gen ^ k)
-    (ha : σ a = σ (.n 4) * σ kb) (hq : LoadHolds L.read (σ a) adj (σ q)) :
+    (ha : σ a = σ (.n (val% «verify_sub» "g_squares")) * σ kb) (hq : LoadHolds L.read (σ a) adj (σ q)) :
     σ q = gen ^ 2 ^ (k + adj) := by
   rw [ha, hkb, loadHolds_mul_gen_pow] at hq
   exact loadHolds_unique hq (hexp.1 _ hk)
 
-theorem push_block {κ : ℕ} {L : MemoryImage κ} (hexp : B1.ExpTables L.read (σ (.n 4)))
+theorem push_block {κ : ℕ} {L : MemoryImage κ} (hexp : B1.ExpTables L.read (σ (.n (val% «verify_sub» "g_squares"))))
     {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 33) (hm : logMem ≤ 32)
-    (hkbv : ∀ s < 8, σ (.n (84 + s)) = gen ^ (([0, logMem] ++ hs).getD s 0))
+    (hkbv : ∀ s < 8, σ (.n ((val% «verify_sub» "kb[0]") + s)) = gen ^ (([0, logMem] ++ hs).getD s 0))
     {b : ℕ} (hb : b < 54) {q a : V}
-    (ha : σ a = σ (.n 4) * σ (.n (84 + Tables.blockKappaSrc.getD b 0)))
+    (ha : σ a = σ (.n (val% «verify_sub» "g_squares")) * σ (.n (84 + Tables.blockKappaSrc.getD b 0)))
     (hq : LoadHolds L.read (σ a) (Tables.blockKappaAdj b) (σ q)) :
     σ q = gen ^ 2 ^ pushKappa logMem hs b :=
   push_read hexp (pushKappa_lt hh hm hb) (hkbv _ (blockKappaSrc_lt b (by show b < 153; omega))) ha hq
 
-theorem push_loop {κ : ℕ} {L : MemoryImage κ} (hexp : B1.ExpTables L.read (σ (.n 4)))
+theorem push_loop {κ : ℕ} {L : MemoryImage κ} (hexp : B1.ExpTables L.read (σ (.n (val% «verify_sub» "g_squares"))))
     {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 33) (hm : logMem ≤ 32)
-    (hkbv : ∀ s < 8, σ (.n (84 + s)) = gen ^ (([0, logMem] ++ hs).getD s 0)) :
+    (hkbv : ∀ s < 8, σ (.n ((val% «verify_sub» "kb[0]") + s)) = gen ^ (([0, logMem] ++ hs).getD s 0)) :
     ∀ n < 54, ∀ {nx : Prop},
       Stmt.HoldsList C L.read σ ((List.range (n + 1)).flatMap vsPushStep) nx kret →
       σ (.n (vsPV n)) = gen ^ ((List.range (n + 1)).map fun b ↦ 2 ^ pushKappa logMem hs b).sum ∧ nx := by
@@ -226,13 +228,13 @@ theorem vsPushStep_noRet : Stmt.noRetList ((List.range 54).flatMap vsPushStep) =
 
 /-- **The bus depth**: `g^L`, `L < 34`, whatever the push blocks' product. -/
 theorem vsPushT_depth {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ)
-    (hC : CallRel.Le C (coreProgram.Rel L.read)) (hexp : B1.ExpTables L.read (σ (.n 4)))
+    (hC : CallRel.Le C (coreProgram.Rel L.read)) (hexp : B1.ExpTables L.read (σ (.n (val% «verify_sub» "g_squares"))))
     (h : Stmt.HoldsList C L.read σ vsPushT next kret) :
-    ∃ μ < 34, σ (.n 253) = gen ^ μ ∧ next := by
+    ∃ μ < 34, σ (.n (val% «verify_sub» "g_bus_mu")) = gen ^ μ ∧ next := by
   unfold vsPushT at h
   rw [holdsList_append] at h
   have h := ((holdsList_noRet _ vsPushStep_noRet _ _).1 h).2
-  simp only [Stmt.HoldsList, Stmt.Holds, vsCall, List.map_cons, List.map_nil, Atom.Holds,
+  simp only [Stmt.HoldsList, Stmt.Holds, vsCall, vsAlloc, List.map_cons, List.map_nil, Atom.Holds,
     true_and] at h
   obtain ⟨hc, hn⟩ := h
   have hr := (log2_holds.1 hκ hκ6 L _ _ hexp _).1 (hC _ _ _ hc)
@@ -243,20 +245,20 @@ theorem vsPushT_depth {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : Memory
 /-- **The push total**: the bus depth `g^(log2Ceil Σ)` over the push blocks'
 `Σ 2^κ_b`. -/
 theorem vsPushT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ)
-    (hC : CallRel.Le C (coreProgram.Rel L.read)) (hexp : B1.ExpTables L.read (σ (.n 4)))
+    (hC : CallRel.Le C (coreProgram.Rel L.read)) (hexp : B1.ExpTables L.read (σ (.n (val% «verify_sub» "g_squares"))))
     {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 33) (hm : logMem ≤ 32)
-    (hkbv : ∀ s < 8, σ (.n (84 + s)) = gen ^ (([0, logMem] ++ hs).getD s 0))
+    (hkbv : ∀ s < 8, σ (.n ((val% «verify_sub» "kb[0]") + s)) = gen ^ (([0, logMem] ++ hs).getD s 0))
     (h : Stmt.HoldsList C L.read σ vsPushT next kret) :
-    σ (.n 253) = gen ^ log2Ceil ((List.range 54).map fun b ↦ 2 ^ pushKappa logMem hs b).sum ∧
+    σ (.n (val% «verify_sub» "g_bus_mu")) = gen ^ log2Ceil ((List.range 54).map fun b ↦ 2 ^ pushKappa logMem hs b).sum ∧
       log2Ceil ((List.range 54).map fun b ↦ 2 ^ pushKappa logMem hs b).sum < 34 ∧ next := by
   unfold vsPushT at h
   rw [holdsList_append] at h
   obtain ⟨hp, h⟩ := push_loop hexp hh hm hkbv 53 (by norm_num) h
-  simp only [Stmt.HoldsList, Stmt.Holds, vsCall, List.map_cons, List.map_nil, Atom.Holds,
+  simp only [Stmt.HoldsList, Stmt.Holds, vsCall, vsAlloc, List.map_cons, List.map_nil, Atom.Holds,
     true_and] at h
   obtain ⟨hc, hn⟩ := h
   rw [show vsPV 53 = 252 from rfl] at hp
-  replace hp : σ (.n 252) = gen ^ ((List.range 54).map fun b ↦ 2 ^ pushKappa logMem hs b).sum := hp
+  replace hp : σ (.n (val% «verify_sub» "push_total@54")) = gen ^ ((List.range 54).map fun b ↦ 2 ^ pushKappa logMem hs b).sum := hp
   have hr := (log2_holds.1 hκ hκ6 L _ _ hexp _).1 (hC _ _ _ hc)
   rw [hp, meaningLog2CeilExp_pow (by norm_num) (by have := push_sum_lt hh hm; omega)] at hr
   simp only [List.cons.injEq, and_true, Nat.zero_max] at hr

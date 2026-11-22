@@ -12,6 +12,8 @@ public import LeanVM.Guest.B1.Da.FactorsChk
 public import LeanVM.Guest.B1.Da.HonestDefs
 public import LeanVM.Guest.B1.Da.Interface
 public import LeanVM.Guest.B1.Tables.FlatAtT
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_factors__L»
 
 /-!
 # `da_factors`, placed
@@ -36,8 +38,8 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 /-- The atoms of `facT`: the `HeapBuf`, the returned copy, a depth's power, a node's atoms. -/
 theorem mem_facT {top D : ℕ} {a : Atom} (h : a ∈ facT top D) :
-    a = .hint (.alloc (.n 1) 128) ∨ a = .copy (.n (facB D)) (.n 1) ∨
-    (∃ d < D, a = .load (.n (facB d)) (.n 0) (top - d)) ∨
+    a = .hint (.alloc (.n (valf% «da_factors» "factors")) 128) ∨ a = .copy (.n (facB D)) (.n (valf% «da_factors» "factors")) ∨
+    (∃ d < D, a = .load (.n (facB d)) (.n (valf% «da_factors» "zs")) (top - d)) ∨
     ∃ d < D, ∃ y < 2 ^ d, a ∈ facNodeA top d y := by
   simp only [facT, facDepthA, List.cons_append, List.mem_cons, List.mem_append, List.mem_flatMap,
     List.mem_range, List.not_mem_nil, or_false] at h
@@ -62,7 +64,7 @@ theorem fac_node_good {S : List Atom} {w : ℕ → E} {σ : Val} {top d y : ℕ}
   rw [show facB d + 4 + 4 * y = facB d + 1 + 4 * y + 3 by omega, a, m, c, c1, facC_word, word_one]
 
 theorem fac_store_not_mem {D d : ℕ} {top : ℕ} :
-    Atom.load (.n (facB d)) (.n 0) (top - d) ∉ facStores D := by
+    Atom.load (.n (facB d)) (.n (valf% «da_factors» "zs")) (top - d) ∉ facStores D := by
   simp [facStores]
 
 theorem facCells_get {Z : ℕ → E} {top D n : ℕ} (h1 : 1 ≤ n) (h2 : n < 2 ^ D) (hD : 2 ^ D ≤ 128) :
@@ -112,16 +114,16 @@ theorem fac_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
     rw [show [gen ^ c].length = 1 from rfl, hS, ← hσ] at hgs
     have hg : ∀ a ∈ facT top D, Good rd (facStores D) w σ a := fun a ha =>
       hgs (.atom a) (by rw [hb]; exact List.mem_append_left _ (List.mem_map_of_mem ha))
-    have e0 : σ (.n 0) = gen ^ c := by rw [hσ]; exact ev_params rd w (l := [gen ^ c]) hchk (by simp)
-    have e1 : σ (.n 1) = gen ^ b := by
+    have e0 : σ (.n (valf% «da_factors» "zs")) = gen ^ c := by rw [hσ]; exact ev_params rd w (l := [gen ^ c]) hchk (by simp)
+    have e1 : σ (.n (valf% «da_factors» "factors")) = gen ^ b := by
       have := hg _ (List.mem_cons_self ..)
       simp only [Good] at this
       rw [this, gen_pow_eq_ofK]
-    have hcopy : σ (.n (facB D)) = σ (.n 1) :=
+    have hcopy : σ (.n (facB D)) = σ (.n (valf% «da_factors» "factors")) :=
       hg _ (List.mem_append_right _ (List.mem_singleton_self _))
     have hz : ∀ d < D, σ (.n (facB d)) = Z (top - d) := by
       intro d hd
-      have h := hg (.load (.n (facB d)) (.n 0) (top - d)) (List.mem_cons_of_mem _
+      have h := hg (.load (.n (facB d)) (.n (valf% «da_factors» "zs")) (top - d)) (List.mem_cons_of_mem _
         (List.mem_append_left _ (List.mem_flatMap.mpr ⟨d, List.mem_range.mpr hd,
           List.mem_cons_self ..⟩)))
       simp only [Good] at h
@@ -139,7 +141,7 @@ theorem fac_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
       · simp [needsSide] at hns
       · simp [needsSide] at hns
       · left
-        show LoadHolds rd (σ (.n 0)) (top - d) (σ (.n (facB d)))
+        show LoadHolds rd (σ (.n (valf% «da_factors» "zs"))) (top - d) (σ (.n (facB d)))
         rw [e0, hz d hd]
         exact hzs rd hLin d hd
       · have hgn : ∀ a ∈ facNodeA top d y, Good rd (facStores D) w σ a := fun a' ha'' =>
@@ -160,7 +162,7 @@ theorem fac_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
             calc 2 ^ d + y < 2 ^ d + 2 ^ d := by omega
               _ = 2 ^ (d + 1) := by rw [pow_succ]; ring
               _ ≤ 2 ^ D := Nat.pow_le_pow_right (by norm_num) hd
-          show LoadHolds rd (σ (.n 1)) (2 ^ d + y) (σ (.n (facB d + 1 + 4 * y + 3)))
+          show LoadHolds rd (σ (.n (valf% «da_factors» "factors"))) (2 ^ d + y) (σ (.n (facB d + 1 + 4 * y + 3)))
           rw [show facB d + 1 + 4 * y + 3 = facB d + 4 + 4 * y by omega, fac_node_good hgn,
             hz d hd, ← factorAt_node Z hy, e1, ← facCells_get hn1 hn2 h2D]
           exact hbuf _ _

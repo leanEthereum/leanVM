@@ -6,6 +6,8 @@ public import LeanVM.Guest.Fast.Whir
 public import LeanVM.Guest.Fast.Da
 public import LeanVM.Guest.B1.Main.Interface
 public import LeanVM.Guest.B1.Main.Aggregate
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # `main`'s witness, its frames numbered
@@ -30,7 +32,7 @@ open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main Le
 /-- **`main`'s witness** (`decWitV`), its frames numbered. -/
 noncomputable def decWitN (σ : Val) (rd : Reader) (Vn : NFrames) (cl : E → E → ℕ) : NodeWitness :=
   decWit σ rd (fun args ↦ xmssSigOfN (Vn (fn_idx% main_loop2) args []))
-    (fun p ↦ sphincsSigOfN (Vn (fn_idx% verify_sig_lean_sphincs) [p, σ (.n 47)] []) Vn)
+    (fun p ↦ sphincsSigOfN (Vn (fn_idx% verify_sig_lean_sphincs) [p, σ (.n (val% «main» "byte_bits"))] []) Vn)
     (fun args rets ↦ dvWitN (Vn (fn_idx% da_verify) args rets) Vn)
     (fun args ↦ vsPiOfN rd (Vn (fn_idx% verify_sub) args []) Vn cl)
     (fun args ↦ aggHints rd (Vn (fn_idx% aggregate_claims) args []))

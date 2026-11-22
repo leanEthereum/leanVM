@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Tables.Kids.Walk
 public import LeanVM.Guest.B1.Selectors.BlockSelectorTab
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«block_selector_tab__L»
 
 /-!
 # `block_selector_tab`, loading from a region
@@ -50,8 +52,8 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
 
 /-- **A nibble's pointers**: the eq weight's and the share's, each the table's times its digit. -/
 theorem btNib_ptr {n k : ℕ} (h : Stmt.HoldsList C rd σ (btNibT n k) True kret) :
-    LoadHolds rd (σ (.n 0)) k (σ (.n (btC k))) ∧ σ (.n (btPe k)) = σ (.n 1) * σ (.n (btC k)) ∧
-      σ (.n (btPg k)) = σ (.n 2) * σ (.n (btC k)) := by
+    LoadHolds rd (σ (.n (valf% «block_selector_tab» "digits"))) k (σ (.n (btC k))) ∧ σ (.n (btPe k)) = σ (.n (valf% «block_selector_tab» "eq_tab")) * σ (.n (btC k)) ∧
+      σ (.n (btPg k)) = σ (.n (valf% «block_selector_tab» "g_tab")) * σ (.n (btC k)) := by
   unfold btNibT at h
   rw [tb_holdsList_append_noRet rfl] at h
   obtain ⟨h1, h2⟩ := h

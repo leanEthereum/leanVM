@@ -24,6 +24,7 @@ use super::*;
 mod builtins;
 mod call;
 mod eval;
+mod hoist;
 mod mem;
 use eval::{Known, field_pow, small_gpow};
 
@@ -206,6 +207,24 @@ struct FnLower<'a> {
     cur_line: u32,
     /// Hints queued to attach to the next emitted instruction.
     pending: Vec<Hint>,
+    /// Where the frame and `HeapBuf` reservations sit, by pointer cell, and what
+    /// moving one needs to know ([`Self::hoist_heap_bufs`]).
+    reservations: HashMap<Off, hoist::Site>,
+    /// The name the statement being lowered binds, for a `HeapBuf`'s diagnostics.
+    let_name: Option<String>,
+    /// The arms holding the code being emitted, outermost first: each a branch (an `if` or a `match`, numbered in
+    /// order) and which of its arms. Empty, "depth `0`", at a statement's top level, outside every branch's body.
+    /// A branch's exit jumps sit at depth `0` too (an `if`'s first arm's, a `match` arm's), though only the runs
+    /// that took that arm run them.
+    path: Vec<(u32, u32)>,
+    /// The path of each instruction emitted.
+    code_path: Vec<Vec<(u32, u32)>>,
+    /// The number of arms of each branch, an `if`'s two (one may be empty).
+    branches: Vec<u32>,
+    /// Where the statement being lowered at depth `0` starts, or the chain of `match`es it ends.
+    stmt_start: usize,
+    /// The index of each `return` jump.
+    returns: Vec<usize>,
     /// The `match` the one being lowered enters directly, its arms ending in the next
     /// one's dispatch rather than a join ([`Self::lower_match_dispatch`]).
     chain_next: Option<ChainNext>,
@@ -227,7 +246,8 @@ struct FnLower<'a> {
     /// Generated loops that can reserve their complete run of frames.
     loop_bounds: &'a mut HashMap<String, (u64, Option<u64>)>,
     queue: &'a mut Vec<Func>,
-    loop_ctr: &'a mut usize,
+    /// Loops lowered so far in this function: the next helper is `__loop{loop_ctr}_{fn_name}`.
+    loop_ctr: usize,
     /// Function name for diagnostics and generated-loop handling.
     fn_name: &'a str,
     params: &'a [Param],
@@ -263,7 +283,7 @@ impl FnLower<'_> {
     fn fail(&self, msg: impl std::fmt::Display) -> ! {
         // The line alone is not the site when the function being lowered is one
         // the author never wrote: `hash_pair__L1` exists because of a `Const`
-        // call site, `__loop3` because of a `for` header, and an `@inline` body
+        // call site, `__loop3_f` because of a `for` header, and an `@inline` body
         // is lowered through the CALLER, so its statements report the caller's
         // line. Naming the function, and the inline chain when there is one, is
         // what turns "line 19" back into somewhere to look.
@@ -285,6 +305,7 @@ impl FnLower<'_> {
 
     fn emit(&mut self, op: LOp) {
         let hints = std::mem::take(&mut self.pending);
+        self.code_path.push(self.path.clone());
         self.code.push(LInstr {
             op,
             line: self.cur_line,
@@ -446,9 +467,10 @@ impl FnLower<'_> {
     /// A frame cell holding this function's own `fp` (the g-power element),
     /// materialized lazily once: a taken `JUMP` reloads the frame pointer
     /// from a cell, so local (`if`/`else`) jumps must name it. The ISA has no
-    /// fp-read, so bounce it through a fresh 1-cell heap buffer: a
-    /// `DEREF`-fp writes it there and a `DEREF`-cell copies it back. In `main`, `fp = g^0 = 1`, which is
-    /// the [`Self::one`] cell.
+    /// fp-read, so a `DEREF`-fp writes it through a hinted address, that of the cell
+    /// itself, and a `DEREF`-cell reads it back through the same address into the cell,
+    /// which pins the cell to `fp` whatever address the hint gave. In `main`, `fp = g^0 = 1`,
+    /// which is the [`Self::one`] cell.
     fn self_fp(&mut self) -> Off {
         if self.is_main {
             return self.one();
@@ -457,10 +479,12 @@ impl FnLower<'_> {
             return o;
         }
         let q = self.fresh();
-        self.pending.push(Hint::AllocBuffer { ptr: q, size: 1 });
-        self.deref(q, 0, 0, DerefMode::Fp); // m[q] := fp
         let o = self.fresh();
-        self.deref(q, 0, o, DerefMode::Cell); // m[fp·g^o] := m[q]
+        // `q` holds the address of `o`.
+        self.pending
+            .push(Hint::Resolved(RHint::CellAddress { ptr: q, cell: o }));
+        self.deref(q, 0, 0, DerefMode::Fp); // m[m[fp·g^q]] := fp
+        self.deref(q, 0, o, DerefMode::Cell); // m[fp·g^o] = m[m[fp·g^q]]
         self.scope.self_fp_off = Some(o);
         o
     }
@@ -478,8 +502,9 @@ impl FnLower<'_> {
     /// (`one`, `self_fp`, range-check bounds, the `keccak` padding run) revert
     /// afterwards, since a cell whose `SET` sits inside a conditionally-executed
     /// region must not be trusted outside it.
-    fn scoped(&mut self, f: impl FnOnce(&mut Self)) {
+    fn scoped(&mut self, arm: (u32, u32), f: impl FnOnce(&mut Self)) {
         let saved_scope = self.scope.clone();
+        self.path.push(arm);
         f(self);
         // A hint pending at the end of a branch (e.g. a trailing
         // `hint_witness`) must not attach to whatever instruction follows the
@@ -487,12 +512,19 @@ impl FnLower<'_> {
         if !self.pending.is_empty() {
             self.anchor();
         }
+        self.path.pop();
         self.scope = saved_scope;
     }
 
+    /// Number a new branch of `arms` arms, for [`Self::scoped`].
+    fn new_branch(&mut self, arms: usize) -> u32 {
+        self.branches.push(arms as u32);
+        (self.branches.len() - 1) as u32
+    }
+
     /// Lower a branch body with branch-local scope ([`Self::scoped`]).
-    fn branch(&mut self, body: &[Stmt]) {
-        self.scoped(|s| {
+    fn branch(&mut self, arm: (u32, u32), body: &[Stmt]) {
+        self.scoped(arm, |s| {
             for st in body {
                 s.stmt(st);
             }
@@ -597,8 +629,9 @@ impl FnLower<'_> {
             "a chained match emitted code above its arms"
         );
         (self.chain_next, self.chain_in) = (chain_next, chain_in);
+        let branch = self.new_branch(arms.len());
         self.lower_match_dispatch(xo, arms.len(), |s, j| {
-            s.scoped(|s| {
+            s.scoped((branch, j as u32), |s| {
                 if let [rcell] = rcells.as_slice() {
                     s.expr_into(&arms[j], *rcell);
                 } else {
@@ -654,6 +687,11 @@ impl FnLower<'_> {
     /// of the slot, then a `JUMP` to what it holds, with frame `of`.
     pub(super) fn table_jump(&mut self, xo: Off, first: usize, one: Off, of: Off) {
         let entry = self.fresh();
+        self.table_jump_via(entry, xo, first, one, of);
+    }
+
+    /// [`Self::table_jump`] through the given `entry` cell.
+    fn table_jump_via(&mut self, entry: Off, xo: Off, first: usize, one: Off, of: Off) {
         self.emit(LOp::Slot {
             x: xo,
             first: first as u32,
@@ -706,15 +744,17 @@ impl FnLower<'_> {
             first
         });
         // The arm blocks, each exiting to the join (the last falls through), or into the
-        // next match's dispatch.
+        // next match's dispatch, every arm through one entry cell (one arm runs, so it is
+        // written once).
+        let next_entry = next.as_ref().map(|_| self.fresh());
         let arms_base = self.next;
         let mut arms_end = arms_base;
         for j in 0..n {
             self.next = arms_base;
             self.tables.slots[first + j] = KVal::At(name.clone(), self.code.len() as u32);
             body(self, j);
-            if let (Some(nx), Some(nf)) = (&next, next_first) {
-                self.table_jump(nx.xo, nf, one, sfp);
+            if let (Some(nx), Some(nf), Some(entry)) = (&next, next_first, next_entry) {
+                self.table_jump_via(entry, nx.xo, nf, one, sfp);
             } else if j + 1 != n {
                 self.emit(LOp::Jump {
                     oc: one,
@@ -803,7 +843,8 @@ impl FnLower<'_> {
             od: bdest,
             of: sfp,
         });
-        self.branch(a_block);
+        let branch = self.new_branch(2);
+        self.branch((branch, 0), a_block);
         if b_block.is_empty() {
             self.patch_local(bset, self.code.len());
         } else {
@@ -816,7 +857,7 @@ impl FnLower<'_> {
                 of: sfp,
             });
             self.patch_local(bset, self.code.len());
-            self.branch(b_block);
+            self.branch((branch, 1), b_block);
             self.patch_local(eset, self.code.len());
         }
     }
@@ -1058,15 +1099,17 @@ impl FnLower<'_> {
                 let arr = self.fresh();
                 self.heap_sizes.insert(arr, u128::from(*n));
                 // Allocate before the next instruction reads the pointer.
-                self.pending.push(Hint::AllocBuffer { ptr: arr, size: *n });
+                self.reserve(Hint::AllocBuffer { ptr: arr, size: *n });
                 arr
             }
             Expr::HeapBufDyn(e) => {
                 // Evaluate the size first (its cell must be written when the
                 // alloc hint fires), then allocate before the pointer is read.
+                let name = self.let_name.clone();
                 let size = self.expr(e);
+                self.let_name = name;
                 let arr = self.fresh();
-                self.pending.push(Hint::AllocBufferDyn { ptr: arr, size });
+                self.reserve(Hint::AllocBufferDyn { ptr: arr, size });
                 arr
             }
             Expr::StackBuf(_) => self.fail("StackBuf(n) must be bound to a name: `x = StackBuf(n)`"),
@@ -1222,10 +1265,18 @@ impl FnLower<'_> {
     }
 
     fn stmt(&mut self, s: &Stmt) {
+        // A chained `match`, entered from the arms of the one before, starts where its chain does.
+        if self.path.is_empty() && self.chain_in.is_none() {
+            self.stmt_start = self.code.len();
+        }
         let tail = std::mem::take(&mut self.tail_call);
         // Every diagnostic raised while lowering this statement, and every
         // instruction it emits, is attributed to this line.
         self.cur_line = s.line;
+        self.let_name = match &s.kind {
+            StmtKind::Let(name, _) => Some(name.clone()),
+            _ => None,
+        };
         match &s.kind {
             StmtKind::Let(name, e) => match e {
                 // `x = StackBuf(n)`: bind a run of `n` consecutive frame cells.
@@ -1441,9 +1492,9 @@ impl FnLower<'_> {
     /// captured by value as extra helper parameters (e.g. a `HeapBuf` pointer
     /// threaded through the loop).
     fn lower_for(&mut self, var: &str, lo: u64, hi: &ForBound, body: &[Stmt]) {
-        let id = *self.loop_ctr;
-        *self.loop_ctr += 1;
-        let loop_name = format!("__loop{id}");
+        let id = self.loop_ctr;
+        self.loop_ctr += 1;
+        let loop_name = format!("__loop{id}_{}", self.fn_name);
         let mut shadowed = std::collections::HashSet::new();
         binds_anywhere(body, false, &mut shadowed);
         // Returns and counter rebinding can change the number of iterations.
@@ -1472,7 +1523,7 @@ impl FnLower<'_> {
         // A runtime stop bound is evaluated once here and threaded through the
         // helper as an extra leading parameter (the exit test compares the
         // advanced counter against it each iteration).
-        let bound_var = format!("__bound{id}");
+        let bound_var = format!("{loop_name}__bound");
         let (exit, entry_bound): (Expr, Expr) = match hi {
             ForBound::Const(hi) => (Expr::GPow(*hi as u128), Expr::GPow(*hi as u128)),
             ForBound::Runtime(e) => (Expr::Var(bound_var.clone()), e.clone()),
@@ -1559,7 +1610,7 @@ impl FnLower<'_> {
         // own condition (`JUMP`'s nonzero check on j − stop): no is-zero
         // gadget, no inverse hint, and no extra call beyond the one a loop
         // iteration already makes.
-        let next_var = format!("__next{id}");
+        let next_var = format!("{loop_name}__next");
         let next = Expr::Mul(Arc::new(Expr::Var(var.to_string())), Arc::new(Expr::Gen));
         let mut loop_body: Vec<Stmt> = body.to_vec();
         // The counter advance and the self-call belong to the `for` header.
@@ -1603,7 +1654,7 @@ impl FnLower<'_> {
                 // The entry test and the first call's argument both read the bound,
                 // so one with a call or an allocation in it is bound once first.
                 let entry_bound = if calls_or_allocates(&entry_bound) {
-                    let name = format!("__entry{id}");
+                    let name = format!("{loop_name}__entry");
                     self.stmt(&Stmt::new(self.cur_line, StmtKind::Let(name.clone(), entry_bound)));
                     Expr::Var(name)
                 } else {
@@ -1695,7 +1746,6 @@ fn param_binding(params: &[Param], i: usize) -> Binding {
 pub(crate) fn lower_func(
     f: &Func,
     queue: &mut Vec<Func>,
-    loop_ctr: &mut usize,
     defs: &HashMap<&str, &Func>,
     const_arrays: &HashMap<&str, &[F128]>,
     loop_bounds: &mut HashMap<String, (u64, Option<u64>)>,
@@ -1705,7 +1755,7 @@ pub(crate) fn lower_func(
     // that finds one lowers the helper again with it unbound, its cell still passed along and never read.
     let mut own: Vec<String> = Vec::new();
     loop {
-        let (queued, loops, slots) = (queue.len(), *loop_ctr, tables.slots.len());
+        let (queued, slots) = (queue.len(), tables.slots.len());
         let mut names: HashMap<String, Bound> = HashMap::new();
         for (i, p) in f.params.iter().enumerate() {
             assert!(
@@ -1748,12 +1798,19 @@ pub(crate) fn lower_func(
             heap_sizes: HashMap::new(),
 
             pending: Vec::new(),
+            reservations: HashMap::new(),
+            let_name: None,
+            path: Vec::new(),
+            code_path: Vec::new(),
+            branches: Vec::new(),
+            stmt_start: 0,
+            returns: Vec::new(),
             chain_next: None,
             chain_in: None,
             inline_calls: Vec::new(),
             loop_bounds: &mut *loop_bounds,
             queue: &mut *queue,
-            loop_ctr: &mut *loop_ctr,
+            loop_ctr: 0,
             defs,
             const_arrays,
             tables: &mut *tables,
@@ -1788,6 +1845,7 @@ pub(crate) fn lower_func(
             let last = f.body.last().map_or(0, |s| s.line);
             lowerer.stmt(&Stmt::new(last, StmtKind::Return(vec![])));
         }
+        let hoisted = lowerer.hoist_heap_bufs();
         let (rebound, dbg_loops, code, frame_size) = (lowerer.rebound, lowerer.dbg_loops, lowerer.code, lowerer.next);
         let settled = own.len();
         for name in rebound {
@@ -1796,6 +1854,9 @@ pub(crate) fn lower_func(
             }
         }
         if own.len() == settled {
+            if let Err(e) = hoisted {
+                panic!("{e}");
+            }
             dbg_loops.iter().for_each(|line| eprintln!("{line}"));
             return Lowered {
                 name: f.name.clone(),
@@ -1804,11 +1865,10 @@ pub(crate) fn lower_func(
             };
         }
         // The pass is abandoned, so everything it left for later goes with it: the helpers and specializations
-        // it queued, their reserved frames, its loop numbers and its jump tables.
+        // it queued, their reserved frames and its jump tables (its loop numbers are its own).
         for left in queue.drain(queued..) {
             loop_bounds.remove(&left.name);
         }
-        *loop_ctr = loops;
         tables.slots.truncate(slots);
         tables.shared.retain(|_, first| *first < slots);
     }

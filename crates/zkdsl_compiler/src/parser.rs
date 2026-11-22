@@ -210,7 +210,7 @@ pub fn parse_with_constants(
     // Two names that used to be accepted and then silently picked a winner.
     // A repeated `def` lowered both bodies and kept the last, and a name
     // beginning with `__` can collide with a compiler-generated one: a loop
-    // helper is `__loopN`, and a `Const` specialization of `f` is `f__L1`, so a
+    // helper of `f` is `__loopN_f`, and a `Const` specialization of `f` is `f__L1`, so a
     // user function called `f__L1` took the specialization's place and the call
     // ran the wrong body.
     for (i, f) in funcs.iter().enumerate() {
@@ -672,10 +672,9 @@ impl Parser<'_> {
             let [dest, name] = parts.as_slice() else {
                 return Err("hint_witness(dest, \"name\") takes two arguments".into());
             };
-            let name = string_lit(name).ok_or("hint_witness's second argument is a string literal: \"name\"")?;
             return Ok(StmtKind::HintWitness {
                 dest: parse_expr(dest)?,
-                name: name.to_string(),
+                name: stream_name(name)?,
             });
         }
         if let Some(rest) = line.strip_prefix("assert ") {
@@ -744,10 +743,9 @@ impl Parser<'_> {
                             .into(),
                     );
                 };
-                let stream = string_lit(stream).ok_or("hint_witness's argument is a string literal: \"stream\"")?;
                 return Ok(StmtKind::LetHintWitness {
                     name: binding_name(lhs, "binding name")?,
-                    stream: stream.to_string(),
+                    stream: stream_name(stream)?,
                 });
             }
             let rhs_expr = parse_expr(rhs)?;
@@ -868,6 +866,18 @@ impl Parser<'_> {
 }
 
 type Aug<'a> = Option<(&'a str, &'static str, &'a str)>;
+
+/// A `hint_witness` stream name: a string literal, not empty and with no whitespace, since the
+/// hints' text form ([`isa::CompiledProgram::export_hints`]) separates its fields with spaces.
+fn stream_name(s: &str) -> Result<String, String> {
+    let name = string_lit(s).ok_or("hint_witness's stream name is a string literal: \"name\"")?;
+    if name.is_empty() || name.contains(char::is_whitespace) {
+        return Err(format!(
+            "hint_witness's stream name {s} must be non-empty, with no whitespace"
+        ));
+    }
+    Ok(name.to_string())
+}
 
 /// Strip a leading `log` token (`log x`, `log(x)`), if present. The token must
 /// end at a boundary, so a variable named `logx` is not a log of `x`. A bare

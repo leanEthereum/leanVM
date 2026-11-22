@@ -10,6 +10,8 @@ module
 
 public import LeanVM.Guest.WalkLq
 public import LeanVM.Guest.WalkOsPre
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«open_stacked__L»
 
 /-!
 # `open_stacked`'s walk obligations
@@ -47,7 +49,7 @@ theorem getD_mapV {σ : Val} {l : List V} {i : ℕ} (h : i < l.length) :
 decodes on the dispatch's window pointers, in the tuple's cell. -/
 theorem os_tup {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) {fp : K} {C : Cert} {body : List Stmt}
     {start : ℕ} (hall : ∀ s ∈ body.take start, StmtOkD (coreProgram.Rel L.read) L.read (valG L fp C) s)
-    (hwt : WinTabs L.read (valG L fp C (.n 10))) {w : ℕ × ℕ} {t : ℕ × List ℕ}
+    (hwt : WinTabs L.read (valG L fp C (.n (valf% «open_stacked» "tabs")))) {w : ℕ × ℕ} {t : ℕ × List ℕ}
     (hw' : osTupOk C body start w t = true) : SemRel glob t.1 L.read (t.2.map (wd L fp)) := by
   obtain ⟨pP, wv⟩ := w
   obtain ⟨tg, cells⟩ := t
@@ -100,7 +102,7 @@ theorem os_cutsKnown {j : ℕ} {W : List (ℕ × ℕ)} (hok : osOk j W = true) :
   intro κ L _ h32 fp _ hsem i hi h0 hl
   simp only [osOk, Bool.and_eq_true, beq_iff_eq] at hok
   obtain ⟨hs, hcuts⟩ := hok
-  have hwt : WinTabs L.read (valG L fp (certOf j) (.n 10)) := by
+  have hwt : WinTabs L.read (valG L fp (certOf j) (.n (valf% «open_stacked» "tabs"))) := by
     rw [hs] at hsem
     exact (semRel_tabs _ _).mp (hsem _ (List.mem_singleton_self _))
   have hc := List.all_eq_true.mp hcuts _ (cutAt_mem hi h0)

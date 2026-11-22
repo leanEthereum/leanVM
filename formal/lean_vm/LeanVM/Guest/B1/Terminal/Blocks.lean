@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Terminal.Template
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«check_opening_terminal»
 
 /-!
 # The claims' blocks
@@ -53,11 +55,11 @@ length, the public input's chain value (`34`), or the slot factor over the slot 
 and the table chain's value, and the column's selector. -/
 noncomputable def claimTerm (rd : Reader) (σ : Val) (e : ℕ → ℕ) (L : E) (j : ℕ) : E :=
   match termKind j with
-  | 0 => L * valOf rd (σ (.n 20)) (cLow e j) * σ (.n (selV (termCol j)))
-  | 1 => L * valOf rd (σ (.n 22)) (cLow e j) * σ (.n (selV (termCol j)))
-  | 2 => L * σ (.n 34) * σ (.n (selV (termCol j)))
-  | 3 => L * (slotProd (valOf rd (σ (.n 24))) (valOf rd (σ (.n 25))) (termSlot j) *
-      valOf rd (σ (.n 22)) (cLow e j)) * σ (.n (selV 4))
+  | 0 => L * valOf rd (σ (.n (val% «check_opening_terminal» "zeta_eq_chain"))) (cLow e j) * σ (.n (selV (termCol j)))
+  | 1 => L * valOf rd (σ (.n (val% «check_opening_terminal» "chi_eq_chain"))) (cLow e j) * σ (.n (selV (termCol j)))
+  | 2 => L * σ (.n (val% «check_opening_terminal» "pi_eq")) * σ (.n (selV (termCol j)))
+  | 3 => L * (slotProd (valOf rd (σ (.n (val% «check_opening_terminal» "slot_point")))) (valOf rd (σ (.n (val% «check_opening_terminal» "slot_point1")))) (termSlot j) *
+      valOf rd (σ (.n (val% «check_opening_terminal» "chi_eq_chain"))) (cLow e j)) * σ (.n (selV 4))
   | _ => 0
 
 /-- **A low length**: `kb[src]·g^adj`. -/
@@ -79,14 +81,14 @@ theorem zrT_sound {ch kr sel lr r acc n : ℕ} {L : E} (hkr : σ (.n kr) = gen ^
     (hl : σ (.n lr) = L) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (zrT ch kr sel lr r acc) next kret) :
     σ (.n (r + 4)) = σ (.n acc) + L * valOf rd (σ (.n ch)) n * σ (.n sel) ∧
-      σ (.n (r + 5)) = L * σ (.n 9) ∧ next := by
+      σ (.n (r + 5)) = L * σ (.n (val% «check_opening_terminal» "lam_cl")) ∧ next := by
   simp only [zrT, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
   obtain ⟨e0, l1, e2, e3, e4, e5, hn⟩ := h
   rw [e0, hkr, loadHolds_mul_gen_pow, Nat.add_zero] at l1
   exact ⟨by rw [e4, e3, e2, hl, valOf_eq l1], by rw [e5, hl], hn⟩
 
 theorem slotPt_load {s k : ℕ} {v : E} (h : LoadHolds rd (σ (.n (slotPt s k))) k v) :
-    v = if s.testBit k then valOf rd (σ (.n 24)) k else valOf rd (σ (.n 25)) k := by
+    v = if s.testBit k then valOf rd (σ (.n (val% «check_opening_terminal» "slot_point"))) k else valOf rd (σ (.n (val% «check_opening_terminal» "slot_point1"))) k := by
   unfold slotPt at h
   by_cases hb : s.testBit k
   · simp only [hb, ↓reduceIte] at h ⊢; exact eq_valOf h
@@ -95,8 +97,8 @@ theorem slotPt_load {s k : ℕ} {v : E} (h : LoadHolds rd (σ (.n (slotPt s k)))
 theorem qT_sound {s kr lr r acc n : ℕ} {L : E} (hkr : σ (.n kr) = gen ^ n)
     (hl : σ (.n lr) = L) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (qT s kr lr r acc) next kret) :
-    σ (.n (r + 16)) = σ (.n acc) + L * (slotProd (valOf rd (σ (.n 24))) (valOf rd (σ (.n 25))) s *
-      valOf rd (σ (.n 22)) n) * σ (.n (selV 4)) ∧ σ (.n (r + 17)) = L * σ (.n 9) ∧ next := by
+    σ (.n (r + 16)) = σ (.n acc) + L * (slotProd (valOf rd (σ (.n (val% «check_opening_terminal» "slot_point")))) (valOf rd (σ (.n (val% «check_opening_terminal» "slot_point1")))) s *
+      valOf rd (σ (.n (val% «check_opening_terminal» "chi_eq_chain"))) n) * σ (.n (selV 4)) ∧ σ (.n (r + 17)) = L * σ (.n (val% «check_opening_terminal» "lam_cl")) ∧ next := by
   simp only [qT, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
   obtain ⟨l0, l1, e2, l3, e4, l5, e6, l7, e8, l9, e10, e11, l12, e13, e14, e15, e16, e17, hn⟩ := h
   rw [e11, hkr, loadHolds_mul_gen_pow, Nat.add_zero] at l12
@@ -107,8 +109,8 @@ theorem qT_sound {s kr lr r acc n : ℕ} {L : E} (hkr : σ (.n kr) = gen ^ n)
 
 theorem pT_sound {sel lr r acc : ℕ} {L : E} (hl : σ (.n lr) = L) {next : Prop}
     {kret : List E → Prop} (h : Stmt.HoldsList C rd σ (pT sel lr r acc) next kret) :
-    σ (.n (r + 2)) = σ (.n acc) + L * σ (.n 34) * σ (.n sel) ∧
-      σ (.n (r + 3)) = L * σ (.n 9) ∧ next := by
+    σ (.n (r + 2)) = σ (.n acc) + L * σ (.n (val% «check_opening_terminal» "pi_eq")) * σ (.n sel) ∧
+      σ (.n (r + 3)) = L * σ (.n (val% «check_opening_terminal» "lam_cl")) ∧ next := by
   simp only [pT, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
   obtain ⟨e0, e1, e2, e3, hn⟩ := h
   exact ⟨by rw [e2, e1, e0, hl], by rw [e3, hl], hn⟩
@@ -143,7 +145,7 @@ theorem claimT_sound {e : ℕ → ℕ} (he : ∀ i < 8, σ (.n (kbV i)) = gen ^ 
     {L : E} (hl : σ (.n lr) = L) {rest : List Stmt} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ ((claimT j r acc lr).1 ++ rest) next kret) :
     σ (.n (claimT j r acc lr).2.2.1) = σ (.n acc) + claimTerm rd σ e L j ∧
-      σ (.n (claimT j r acc lr).2.2.2) = (if termKind j < 4 then L * σ (.n 9) else L) ∧
+      σ (.n (claimT j r acc lr).2.2.2) = (if termKind j < 4 then L * σ (.n (val% «check_opening_terminal» "lam_cl")) else L) ∧
       Stmt.HoldsList C rd σ rest next kret := by
   rcases hk : termKind j with _ | _ | _ | _ | k
   · simp only [claimT, claimTerm, hk, List.append_assoc] at h ⊢
@@ -172,7 +174,7 @@ theorem claimT_sound {e : ℕ → ℕ} (he : ∀ i < 8, σ (.n (kbV i)) = gen ^ 
 and `rk` counting the kept claims, the sum's value is the start plus every claim's term at its
 power, and the final power is `λ^(1 + rk (s + n))`. -/
 theorem claimsT_sound {e : ℕ → ℕ} (he : ∀ i < 8, σ (.n (kbV i)) = gen ^ e i) {rk : ℕ → ℕ}
-    {lam : E} (h9 : σ (.n 9) = lam) :
+    {lam : E} (h9 : σ (.n (val% «check_opening_terminal» "lam_cl")) = lam) :
     ∀ (n s r acc lr : ℕ) {next : Prop} {kret : List E → Prop},
       (∀ j < s + n, rk (j + 1) = rk j + if termKind j < 4 then 1 else 0) →
       σ (.n lr) = lam ^ (1 + rk s) →

@@ -37,8 +37,8 @@ open LeanVM.Node LeanVM.Guest.Memory
 /-- `z_vals`' words: the committed outputs' point, the ring switch's at `qkeccakVarsCap`. -/
 def zvW (op kpt : List E) : List E := op ++ List.replicate (qkeccakVarsCap - op.length) 0 ++ kpt
 
-theorem vs_count_eq_gen {n : ℕ} (h : n < 2 ^ 64) : Hints.count n = gen ^ n := by
-  rw [Hints.count, gpowE, gpowK_eq (by unfold u128Bound; omega), gen_pow_eq_ofK]
+theorem vs_count_eq_gen {n : ℕ} (_h : n < 2 ^ 64) : Hints.count n = gen ^ n := by
+  rw [Hints.count, LeanVM.Protocol.Verifier.gpow]
 
 namespace ChildSegs
 
@@ -73,8 +73,8 @@ theorem bases_length : ∀ (b : ℕ) (sizes : List ℕ), (bases b sizes).length 
 /-- **The own buffers at the bump allocator's positions.** -/
 theorem vs_own_mem {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
     (b : ℕ) {i : ℕ} (hi : i < 15) :
-    ((bases b (vsSizes S.d)).getD i 0, S.ownW.getD i []) ∈ bufL b (vsSizes S.d) S.ownW := by
-  have hl : (bases b (vsSizes S.d)).length = 15 := by rw [bases_length]; rfl
+    ((bases b (vsSizes)).getD i 0, S.ownW.getD i []) ∈ bufL b (vsSizes) S.ownW := by
+  have hl : (bases b (vsSizes)).length = 15 := by rw [bases_length]; rfl
   rw [bufL, List.mem_iff_getElem]
   refine ⟨i, by simp [hl, S.ownW_length, hi], ?_⟩
   rw [List.getElem_zip, List.getD_eq_getElem _ _ (by omega),

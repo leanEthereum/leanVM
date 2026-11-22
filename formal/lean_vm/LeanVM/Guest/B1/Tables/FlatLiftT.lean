@@ -18,7 +18,7 @@ public import LeanVM.Guest.Budget.LiftB
 (fun _ ↦ sizes) Ts` when the honest valuation satisfies `Q` on every memory holding the layout,
 `Ts` covers the body's calls, and the predicate `Ts[i]` holds of every valid tree of call `i`'s
 callee at its honest arguments, on every memory defined below `2^κ` holding the layout
-(`CompleteAtD.toT_on` on the callee's `Lift.completeAtD_of_relIn`).
+(`CompleteAtD.toT_on` on the callee's `Lift.completeAtD_of_relIn`). `flat_completeAtTBR`: `Q` a property of the memory too (`CompleteAtDTBR`).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -125,9 +125,9 @@ theorem completeAtDTB_of_relIn_on {S : List String} (hS : coreProgram.PureIn S) 
     t rets hn hv hb, ⟨rfl, rfl⟩, by simp [Within], disj_nil, fun rd hl hL => ?_⟩
   have hL' : MemL rd Lin := by simpa using hL
   have hr := relAtIn_transfer (fs := fs) (cert := cert) (D := fun _ => False) (fp := fp)
-    coreProgram_fresh hn hv hb (placed_of_pure hS t hv hb (hn ▸ hg) fp)
-    (loadsIn_of_loadsR t _ fp hlr) (fun _ h => h.elim) rd
-    (fun i hi => hi.elim (fun hi => ?_) fun hd => (not_data_of_pure hS t hv hb (hn ▸ hg) fp i hd).elim)
+    coreProgram_fresh hn hv hb (placed_of_pure hS t hv hb (hn ▸ hg) _)
+    (loadsIn_of_loadsR t _ _ hlr) (fun _ h => h.elim) rd
+    (fun i hi => hi.elim (fun hi => ?_) fun hd => (not_data_of_pure hS t hv hb (hn ▸ hg) _ i hd).elim)
     (fun A hA => ?_)
   · refine (relAtIn_dmono hr fun i hi => ?_).relAtInT
     obtain ⟨q, hq, _⟩ := hi; simp at hq
@@ -141,8 +141,8 @@ theorem completeAtDTB_of_relIn_on {S : List String} (hS : coreProgram.PureIn S) 
 
 set_option maxRecDepth 20000 in
 /-- **A flat function is complete, placed, by a tree of honest shape, within its frame, its
-buffers and its callees' bounds.** -/
-theorem flat_completeAtTB (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : List E)
+buffers and its callees' bounds**, its valuation satisfying `Q rd` on each memory `rd`. -/
+theorem flat_completeAtTBR (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : List E)
     (hl : args.length = F.k)
     (sizes : List ℕ) (own : ℕ → List (List E))
     (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
@@ -158,9 +158,9 @@ theorem flat_completeAtTB (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : Li
       ((F.pre.filterMap Main.Stmt.allocSz).map Prod.fst).map (F.σ rd (w fp) args) =
         (bases (fp + fs F.name) sizes).map (fun b => ofK (addressOfIndex b)) ∧
       F.rets.map (F.σ rd (w fp) args) = rets)
-    (Q : Val → Prop) (Ts : List (Tree → Prop))
+    (Q : Reader → Val → Prop) (Ts : List (Tree → Prop))
     (hQ : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) →
-      Q (F.σ rd (w fp) args))
+      Q rd (F.σ rd (w fp) args))
     (hTl : (F.pre.filter callB).length ≤ Ts.length)
     (hT : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) → ∀ i (c : Call),
       (flatCalls F.pre (F.σ rd (w fp) args))[i]? = some c → c.taken = true →
@@ -174,8 +174,8 @@ theorem flat_completeAtTB (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : Li
         t.Valid coreProgram rd' (c.args.map (F.σ rd (w fp) args)) r → t.BufsOk coreProgram →
         t.total fs ≤ Bs.getD i 0)
     (hKB : ∀ σ, callsBound fs (flatCalls F.pre σ) Bs ≤ KB) :
-    CompleteAtDTB fs cert κ F.name Lin args (Returns rets)
-      (Budget.NodeHonest coreProgram F.name Q (flatCalls F.pre) (fun _ ↦ sizes) Ts)
+    CompleteAtDTBR fs cert κ F.name Lin args (Returns rets)
+      (fun rd ↦ Budget.NodeHonest coreProgram F.name (Q rd) (flatCalls F.pre) (fun _ ↦ sizes) Ts)
       (fs F.name + sizes.sum + KB) := by
   have hf := F.hf
   have hp := F.hp
@@ -291,7 +291,7 @@ theorem flat_completeAtTB (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : Li
       rwa [hmap fp rd hlow hL _ hs rfl a (fun v hv ↦ by simp [Stmt.vals, hv]),
         hmap fp rd hlow hL _ hs rfl r (fun v hv ↦ by simp [Stmt.vals, hv])] at h
     | _ => simp [Stmt.callSF, Main.Stmt.callS] at hst
-  refine completeAt_flatDTB (fs := fs) (cert := cert) hf F.hloop κ Lin args rets hb' F.hflat
+  refine completeAt_flatDTBR (fs := fs) (cert := cert) hf F.hloop κ Lin args rets hb' F.hflat
     F.haddrs sizes own hown
     (fun fp ↦ (flatCalls F.pre (σS fp)).map (kidOf (σS fp) (flatL F.name Lin sizes own fs fp)))
     Q Ts Bs KB ?hkc ?hKB ?hkl ?hkr ?hkm ?hσ
@@ -365,6 +365,47 @@ theorem flat_completeAtTB (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : Li
       obtain ⟨d, hd⟩ := F.loadsEv_mem hq
       obtain ⟨i, hi, hr⟩ := inBuf_region (hbufs fp) (hld d q.1 q.2 hd)
       exact ⟨i, hi, regionL_append hr⟩
+
+
+/-- **A flat function is complete, placed, by a tree of honest shape, within its frame, its
+buffers and its callees' bounds.** -/
+theorem flat_completeAtTB (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : List E)
+    (hl : args.length = F.k)
+    (sizes : List ℕ) (own : ℕ → List (List E))
+    (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
+    (w : ℕ → ℕ → E) (bufs : ℕ → List (E × ℕ))
+    (hbufs : ∀ fp, ∀ q ∈ bufs fp, ∃ b, q.1 = ofK (addressOfIndex b) ∧
+      ∀ i < q.2, RegionL (flatL F.name Lin sizes own fs fp) (b + i))
+    (hrun : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) →
+      (∀ s ∈ F.pre, VSH (coreProgram.RelIn rd (RegionL (flatL F.name Lin sizes own fs fp))) rd
+        (F.σ rd (w fp) args) s) ∧
+      LoadsInBuf (F.σ rd (w fp) args) (bufs fp) F.evL ∧
+      (F.pre.filterMap Main.Stmt.allocSz).map
+        (fun x => x.2.elim id fun s => logG (F.σ rd (w fp) args s)) = sizes ∧
+      ((F.pre.filterMap Main.Stmt.allocSz).map Prod.fst).map (F.σ rd (w fp) args) =
+        (bases (fp + fs F.name) sizes).map (fun b => ofK (addressOfIndex b)) ∧
+      F.rets.map (F.σ rd (w fp) args) = rets)
+    (Q : Val → Prop) (Ts : List (Tree → Prop))
+    (hQ : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) →
+      Q (F.σ rd (w fp) args))
+    (hTl : (F.pre.filter callB).length ≤ Ts.length)
+    (hT : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) → ∀ i (c : Call),
+      (flatCalls F.pre (F.σ rd (w fp) args))[i]? = some c → c.taken = true →
+      ∀ (t : Tree) (r : List E), t.name = c.f →
+        t.Valid coreProgram rd (c.args.map (F.σ rd (w fp) args)) r → t.BufsOk coreProgram →
+        (Ts.getD i fun _ ↦ True) t)
+    (Bs : List ℕ) (KB : ℕ)
+    (hB : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) → ∀ i (c : Call),
+      (flatCalls F.pre (F.σ rd (w fp) args))[i]? = some c → c.taken = true →
+      ∀ rd', LowDef κ rd' → MemL rd' (flatL F.name Lin sizes own fs fp) → ∀ (t : Tree) (r : List E), t.name = c.f →
+        t.Valid coreProgram rd' (c.args.map (F.σ rd (w fp) args)) r → t.BufsOk coreProgram →
+        t.total fs ≤ Bs.getD i 0)
+    (hKB : ∀ σ, callsBound fs (flatCalls F.pre σ) Bs ≤ KB) :
+    CompleteAtDTB fs cert κ F.name Lin args (Returns rets)
+      (Budget.NodeHonest coreProgram F.name Q (flatCalls F.pre) (fun _ ↦ sizes) Ts)
+      (fs F.name + sizes.sum + KB) :=
+  (flat_completeAtTBR F Lin args rets hl sizes own hown w bufs hbufs hrun (fun _ ↦ Q) Ts hQ hTl hT Bs KB hB
+    hKB).toDTB fun _ _ h ↦ h
 
 end
 end LeanVM.Guest.B1.Tables

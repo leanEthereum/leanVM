@@ -21,8 +21,8 @@ Each family's specializations pass `dloadCheck` with its per-parameter bounds (t
 * `block_selector__L{n}` (`n < 34`), `[sel_bits, zeta1_hi, idxc_hi]`: `n` words each;
 * `eq_prefix_run__L{n}` (`n ≤ 40`), `[chain, seed, a, b1]`: the chain's `n + 1`, `a`'s and
   `b1`'s `n`;
-* `sel_partial_nibble__L{w}` (`w < 4`), `[eq_out, g_out, z, z1, gs]`: `2^(w+1) - 2`, `2^w` (none
-  at `w = 0`), and `w` each;
+* `sel_partial_nibble__L{w}` (`w < 4`), `[eq_out, g_out, z, z1, gs]`: the padded tables' `8w` and
+  `4w`, and `w` each;
 * `sumcheck_round4`, `[rec, cur, claim, tabs]`: the record's `12` words and the cursor's `3`
   (`tabs` is not read: its grind is of `0` bits);
 * `opening_tail_round`, `[f0, f1, f2, f3, f4, cur, claim, tabs]`: the cursor's `2` words.
@@ -48,9 +48,9 @@ theorem bs_dload : ∀ n < 34, dloadCheck (lName "block_selector" n) [n, n, n] =
 theorem epr_dload : ∀ n < 41, dloadCheck (eqPrefixRunNames.getD n "") [n + 1, 0, n, n] = true := by
   decide +kernel
 
-/-- `sel_partial_nibble__L{w}`'s runs: the eq levels, the `g` table, the `w` coordinates,
-complements and shares. -/
-def spnB (w : ℕ) : List ℕ := [2 ^ (w + 1) - 2, if w = 0 then 0 else 2 ^ w, w, w, w]
+/-- `sel_partial_nibble__L{w}`'s runs: the eq levels and the `g` table, padded to `8w` and `4w`, the
+`w` coordinates, complements and shares. -/
+def spnB (w : ℕ) : List ℕ := [8 * w, 4 * w, w, w, w]
 
 theorem spn_dload : ∀ w < 4, dloadCheck (lName "sel_partial_nibble" w) (spnB w) = true := by
   decide +kernel
@@ -114,7 +114,7 @@ theorem eq_prefix_run_relIn {n : ℕ} (hn : n ≤ 40) {chain seed a b1 : E} {ret
     · exact fun _ ↦ hb) h
 
 theorem sel_partial_nibble_relIn {w : ℕ} (hw : w < 4) {eqo go z z1 gs : E} {rets : List E}
-    (he : PtrIn R eqo (2 ^ (w + 1) - 2)) (hg : 0 < w → PtrIn R go (2 ^ w)) (hz : PtrIn R z w)
+    (he : PtrIn R eqo (8 * w)) (hg : 0 < w → PtrIn R go (4 * w)) (hz : PtrIn R z w)
     (hz1 : PtrIn R z1 w) (hgs : PtrIn R gs w)
     (h : coreProgram.Rel rd (lName "sel_partial_nibble" w) [eqo, go, z, z1, gs] rets) :
     coreProgram.RelIn rd R (lName "sel_partial_nibble" w) [eqo, go, z, z1, gs] rets :=
@@ -123,8 +123,8 @@ theorem sel_partial_nibble_relIn {w : ℕ} (hw : w < 4) {eqo go z z1 gs : E} {re
     interval_cases p
     · exact fun _ ↦ he
     · by_cases h0 : w = 0
-      · simp only [spnB, h0, ↓reduceIte]; exact fun h ↦ absurd h (by simp)
-      · simp only [spnB, h0, ↓reduceIte]; exact fun _ ↦ hg (by omega)
+      · simp only [spnB, h0]; exact fun h ↦ absurd h (by simp)
+      · simp only [spnB]; exact fun _ ↦ hg (by omega)
     · exact fun _ ↦ hz
     · exact fun _ ↦ hz1
     · exact fun _ ↦ hgs) h

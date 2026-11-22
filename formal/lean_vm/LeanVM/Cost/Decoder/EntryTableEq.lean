@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Cost.Decoder.EntryTable
 public import LeanVM.Cost.Decoder.GuestTablesCheck
+public import LeanVM.Cost.Decoder.LanesCheck
 import all LeanVM.Protocol.Extraction.Fast.SortedMap
 
 /-!
@@ -77,10 +78,9 @@ theorem frameAt_eq (pre : ℕ → K → Bool) (states : List (Registers K)) (rd 
   cases (entryTable pre states rd).get? (callKey (canonIndex j) args rets) with
   | none => rfl
   | some fp =>
-    show wordWith rd fp ((guestLocs.getD (canonIndex j) #[]).getD v.idx 0) = _
-    have h (a : Array ℕ) (i : ℕ) : a.getD i 0 = a.toList.getD i 0 := by
-      simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]
-    rw [h, guestLocs_eq (canonIndex_lt j)]
+    show wordWith rd fp (locAt (canonIndex j) v.idx) = _
+    rw [locAt_eq (by rw [guestLocsList_length]; exact canonIndex_lt j),
+      guestLocsList_eq _ (canonIndex_lt j)]
 
 /-! ## The entry table as one sorted array -/
 

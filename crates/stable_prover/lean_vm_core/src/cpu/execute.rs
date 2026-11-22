@@ -1,5 +1,5 @@
 //! The write-once interpreter: run the program, with its hints, to the final memory image and the per-opcode
-//! [`Trace`].
+//! [`Trace`]. Its Lean transcription is `formal/Statement/Prover/Execute.lean`: a change here lands there too.
 
 use super::hints::{BitsDest, GPow, MAX_CELLS, MAX_INDEX, QuickMap, RHint, bounded_dlog};
 use super::*;
@@ -112,8 +112,8 @@ pub enum Fault {
         new: F128,
         hint: Option<&'static str>,
     },
-    /// A `DEREF` through a word that is no g-power below `MAX_CELLS`: a wild pointer, a
-    /// failed range check, or an address past any memory a stack can hold.
+    /// A `DEREF` whose address, the pointer times `g^o2`, is no g-power below `MAX_CELLS`: a wild
+    /// pointer, a failed range check, or an address past any memory a stack can hold.
     WildPointer { value: F128 },
     /// A word that has to be in `K` is not: a `JUMP` operand, or one a hint reads.
     NotInK { what: &'static str, value: F128 },
@@ -179,7 +179,7 @@ impl std::fmt::Display for Fault {
             }
             Self::WildPointer { value } => write!(
                 f,
-                "DEREF pointer is not a g-power below 2^{}: a wild pointer, a failed range check, or past any memory a stack can hold (value {})",
+                "DEREF address is not a g-power below 2^{}: a wild pointer, a failed range check, or past any memory a stack can hold (pointer {})",
                 MAX_CELLS.ilog2(),
                 word(*value)
             ),
@@ -223,6 +223,7 @@ impl<'a> Stream<'a> {
         }
     }
 
+    /// The next entry, of `len` values.
     fn pop(&mut self, len: u32) -> Result<&'a [F128], Fault> {
         let name = self.name;
         let entries = self
@@ -373,21 +374,26 @@ impl Mem {
     }
 }
 
-/// What the hints keep across the run: the next free cell, and each witness stream's next entry.
+/// What the hints keep across the run: the next free cell and each witness stream's next entry.
 struct Advice<'a> {
     next_free: u32,
     witness: &'a [(String, Vec<Vec<F128>>)],
     streams: QuickMap<&'a str, Stream<'a>>,
 }
 
-/// Reserve `size` fresh cells for the region whose pointer is `cell`, unless it already points somewhere: write the
-/// region's base `g^{next_free}` there.
-fn alloc(m: &mut Mem, g: &mut GPow, next_free: &mut u32, cell: u32, size: u32) -> Result<(), Fault> {
-    if m.written(cell) {
-        return Ok(());
+impl<'a> Advice<'a> {
+    /// Stream `name`, at its next entry.
+    fn stream(&mut self, name: &'a str) -> &mut Stream<'a> {
+        let witness = self.witness;
+        (self.streams.entry(name)).or_insert_with(|| Stream::new(witness, name))
     }
+}
+
+/// Reserve `size` fresh cells, the last below `MAX_CELLS`, for the region whose pointer is `cell`: write the region's
+/// base `g^{next_free}` there, once, a second value being a conflict.
+fn alloc(m: &mut Mem, g: &mut GPow, next_free: &mut u32, cell: u32, size: u32) -> Result<(), Fault> {
     let base = *next_free;
-    *next_free = cell_at(base, size)?;
+    *next_free = run_at(base, size, 0)?;
     g.grow_to(*next_free as usize);
     // The base is about to become a pointer in memory.
     g.note(base as usize);
@@ -436,6 +442,8 @@ fn hint_name(h: &RHint) -> &'static str {
         RHint::AllocFrames { .. } => "AllocFrames",
         RHint::Alloc { .. } => "Alloc",
         RHint::AllocDyn { .. } => "AllocDyn",
+        RHint::AllocArm { .. } => "AllocArm",
+        RHint::CellAddress { .. } => "CellAddress",
         RHint::WitnessStack { .. } => "WitnessStack",
         RHint::WitnessHeap { .. } => "WitnessHeap",
         RHint::Log2Ceil { .. } => "Log2Ceil",
@@ -580,8 +588,14 @@ pub fn execute(
                 let a1 = at(fp, o1)?;
                 let p = m.read(a1);
                 let p_addr = p.as_base().ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
-                let base = g.log(p_addr).ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
-                let (a2, a3) = (at(base, o2)?, at(fp, o3)?);
+                // The AIR reads the cell at the product `p·g^o2`, so `p` need be no address: the pointer's log when it
+                // has one in range (an allocation notes it), else the product's.
+                let a2 = match g.log(p_addr).map(|b| u64::from(b) + u64::from(o2)) {
+                    Some(c) if c < u64::from(MAX_CELLS) => c as u32,
+                    _ => (g.log(p_addr * F64::G.pow(u128::from(o2))))
+                        .ok_or_else(|| fail(Fault::WildPointer { value: p }))?,
+                };
+                let a3 = at(fp, o3)?;
                 match mode {
                     // `m[a2] = m[a3]`: carry a written side to the other (`put` checks it when both are), or
                     // link two unwritten sides until either is written. A range-check touch may leave both
@@ -705,19 +719,31 @@ pub fn execute(
 /// Apply a hint scheduled before an instruction at frame `fp`.
 fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut Advice<'a>) -> Result<(), Fault> {
     let not_a_g_power = |what, value| Fault::NotAGPower { what, value };
-    let witness = advice.witness;
-    let mut pop = |name: &'a str, len: u32| {
-        let stream = (advice.streams.entry(name)).or_insert_with(|| Stream::new(witness, name));
-        stream.pop(len)
+    // A runtime size is carried in the exponent: the cell holds `g^k`, allocate `k` cells.
+    let dyn_size = |m: &Mem, g: &mut GPow, size: u32| {
+        let size = in_k("HeapBuf size", m.get(cell_at(fp, size)?))?;
+        g.log(size).ok_or(not_a_g_power("HeapBuf size", size))
     };
     match *h {
         RHint::FrameAddress { offset } => g.note(cell_at(fp, offset)? as usize),
+        RHint::CellAddress { ptr, cell } => {
+            let cell = cell_at(fp, cell)? as usize;
+            g.grow_to(cell);
+            let address = g.pow(cell);
+            m.put(cell_at(fp, ptr)?, F128::from(address))?;
+        }
         // A fresh region: write its base `g^{next_free}` into the pointer cell (once) and reserve `size` cells.
         RHint::Alloc { ptr, size } => alloc(m, g, &mut advice.next_free, cell_at(fp, ptr)?, size)?,
-        // A runtime size is carried in the exponent: the cell holds `g^k`, allocate `k` cells.
         RHint::AllocDyn { ptr, size } => {
-            let size = in_k("HeapBuf size", m.get(cell_at(fp, size)?))?;
-            let cells = g.log(size).ok_or(not_a_g_power("HeapBuf size", size))?;
+            let cells = dyn_size(m, g, size)?;
+            alloc(m, g, &mut advice.next_free, cell_at(fp, ptr)?, cells)?;
+        }
+        // A dispatched call's frame, sized by the arm `m[fp+sel] = g^k` selects.
+        RHint::AllocArm { ptr, sel, ref sizes } => {
+            const WHAT: &str = "dispatch selector";
+            let x = in_k(WHAT, m.get(cell_at(fp, sel)?))?;
+            let k = g.log(x).ok_or(not_a_g_power(WHAT, x))?;
+            let cells = *sizes.get(k as usize).ok_or(not_a_g_power(WHAT, x))?;
             alloc(m, g, &mut advice.next_free, cell_at(fp, ptr)?, cells)?;
         }
         RHint::AllocFrames {
@@ -725,28 +751,27 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
             size,
             end,
             start_inverse,
-            tail,
         } => {
             let span = in_k("loop bound", m.get(cell_at(fp, end)?))? * F64(start_inverse.0);
             let n = (!span.is_zero())
                 .then(|| g.log(span))
                 .flatten()
                 .ok_or(not_a_g_power("loop bound", span))?;
-            let cells = size.checked_mul(n).and_then(|frames| frames.checked_add(tail));
+            let cells = n.checked_add(1).and_then(|frames| size.checked_mul(frames));
             let cells = cells.ok_or(Fault::OutOfMemory)?;
             alloc(m, g, &mut advice.next_free, cell_at(fp, ptr)?, cells)?;
         }
         RHint::Print { ref label, cell } => print(label, m, cell_at(fp, cell)?),
         RHint::WitnessStack { ref name, base, len } => {
             let base = run_at(fp, base, len)?;
-            for (k, &value) in pop(name, len)?.iter().enumerate() {
+            for (k, &value) in advice.stream(name).pop(len)?.iter().enumerate() {
                 m.put(base + k as u32, value)?;
             }
         }
         RHint::WitnessHeap { ref name, ptr, lo, len } => {
             let heap = heap_base(m, g, cell_at(fp, ptr)?, "hint_witness heap pointer")?;
             let base = run_at(heap, lo, len)?;
-            for (k, &value) in pop(name, len)?.iter().enumerate() {
+            for (k, &value) in advice.stream(name).pop(len)?.iter().enumerate() {
                 m.put(base + k as u32, value)?;
             }
         }

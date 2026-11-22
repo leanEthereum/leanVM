@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Place.OsMean
 public import LeanVM.Guest.B1.Place.SqAt
 public import LeanVM.Guest.Budget.LiftB
 public import LeanVM.Guest.Budget.Bounded
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«opening_round»
 
 /-!
 # The named callees within their bounds
@@ -144,7 +146,7 @@ theorem round_relIn (hκ : 11 ≤ κ) {args rets : List E} {Lin : Layout}
   set σ : Val := fun v ↦ Whir.rdVals args xs v.idx with hσ
   have hst : roundPre.all Main.Stmt.straight = true := by decide
   have hbody := Whir.opening_round_body.trans roundBody_eq
-  have hw := Main.walk_straight σ [.n 84, .n 85, .n 86, .n 87, .n 88, .n 91, .n 92] roundPre hst
+  have hw := Main.walk_straight σ [.n (val% «opening_round» "s13#0"), .n (val% «opening_round» "s13#0[1]"), .n (val% «opening_round» "s13#0[2]"), .n (val% «opening_round» "s13#0[3]"), .n (val% «opening_round» "s13#0[4]"), .n (val% «opening_round» "s13#0[5]"), .n (val% «opening_round» "s13#0[6]")] roundPre hst
   rw [← hbody] at hw
   rw [← Whir.opening_round_body] at hh
   have hsat := walk_sat (P := coreProgram) _
@@ -159,9 +161,9 @@ theorem round_relIn (hκ : 11 ≤ κ) {args rets : List E} {Lin : Layout}
   have r8 := hreg (8, 1) (by simp [roundSpec])
   have r9 := hreg (9, 2) (by simp [roundSpec])
   simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
-  have e5 : σ (.n 5) = args.getD 5 0 := hv 5 (by decide)
-  have e8 : σ (.n 8) = args.getD 8 0 := hv 8 (by decide)
-  have e9 : σ (.n 9) = args.getD 9 0 := hv 9 (by decide)
+  have e5 : σ (.n (val% «opening_round» "cursor")) = args.getD 5 0 := hv 5 (by decide)
+  have e8 : σ (.n (val% «opening_round» "alphas")) = args.getD 8 0 := hv 8 (by decide)
+  have e9 : σ (.n (val% «opening_round» "coefs")) = args.getD 9 0 := hv 9 (by decide)
   rcases hA with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
     simp only [e5, e8, e9]
   · obtain ⟨i, h, r⟩ := r5 0 (by decide); exact ⟨i, h, r⟩

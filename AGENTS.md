@@ -50,7 +50,7 @@ Rules:
 ## What must change together
 
 - **A protocol change**: both prover trees, the three verifiers, `formal/`. An optimization: experimental alone.
-- **Rust that `formal/` transcribes** (the verifier, the guest, the schemes' hash inputs, the wire encoding in `formal/lean_vm/LeanVM/Wire/Encoding.lean`): its Lean, in the same PR. CI's `lean-vm-formalization` fails until then.
+- **Rust that `formal/` transcribes** (the verifier, the guest, the schemes' hash inputs, the executor (both trees' `cpu/execute.rs`, in `formal/Statement/Prover/Execute.lean`), the compiler's hint format (`isa::export_hints`), `aggregation`'s witness streams (`node.rs`, `hints.rs`, `child.rs`, `deferred.rs`, in `formal/Statement/LeanVmGuestProver.lean`'s `honestPushes`), the wire encoding in `formal/lean_vm/LeanVM/Wire/Encoding.lean`): its Lean, in the same PR. CI's `lean-vm-formalization` fails until then.
 - **The zkDSL compiler's accepted language or output**: its Lean front end, `formal/lean_vm/LeanVM/Guest/Source.lean` and `Expand.lean`. If the guest's bytecode changes, see "Changing the spec" in `formal/AGENTS.md`.
 - **A new program in `crates/zkdsl_compiler/tests/programs/`**: its digest in `tests/suite/determinism.rs` (`GOLDEN`), the regenerated `formal/lean_vm/tests/LeanVMTests/Guest/Programs.lean` (`formal/lean_vm/scripts/regen-guest.sh`), the count in `tests/LeanVMTests/Guest/Data.lean`.
 - **The layout** (`placements_of`, the schema): both provers and all three verifiers (`crates/verifier`'s `layout.rs`). `col_kappas` stays derived from `col_kappa_sources`.
@@ -75,7 +75,7 @@ cargo machete --with-metadata     # unused dependencies
 - Slow checks are `#[ignore]`d, run with `-- --ignored --nocapture`: `print_whir_query_counts`, `print_whir_query_table`, `encoding_grinding_bits`.
 - Heavy benches: `cargo bench -p <package> --bench <name>`, with `hash_batch` (`*_keccak_gkr`), `throughput` (`*_pcs`), `hash_throughput` (`keccak256`).
 - Timing is the `tracing` span tree only: `--tracing` on the CLI, `BENCH_TRACING=1` on the benches. A new stage gets an `info_span!` (`stage!` in `lean_vm_core`), never an `Instant` behind an env var.
-- Every pull request takes a conventional-commit title (`pr-title.yml`).
+- Every pull request takes a conventional-commit title (`pr-title.yml`). A breaking change takes `!` (`feat!:`, `fix!:`): a change to a public API or a stored format (keys), and any change to what a proof is checked against, so that proofs made before it no longer verify or aggregate as children: the protocol, the proof's bytes, or the guest's compiled bytecode (the guest, its constants, or a `zkdsl_compiler` change to its output).
 - An x86-only `cfg` arm never compiles on an Apple machine. Type-check it before pushing (`rustup target add x86_64-unknown-linux-gnu`):
 
 ```bash

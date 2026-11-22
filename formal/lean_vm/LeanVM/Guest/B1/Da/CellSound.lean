@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Da.CellChk
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_verify_cell»
 
 namespace LeanVM.Guest.B1.Da
 
@@ -48,12 +50,12 @@ theorem da_verify_cell_val {C : CallRel} {rd : Reader} {σ : Val} {args rets : L
     have hd := straight_digest hchk rfl rfl hret hC
     have hsum := acc_sum htmpl 127 (by norm_num)
     rw [show accV 127 = 511 from rfl] at hsum
-    refine ⟨σ (.n 0), rfl, by simp [LeanDa.cellSymbols, cellSymsOf], fun j hj => ?_,
+    refine ⟨σ (.n (val% «da_verify_cell» "lvals")), rfl, by simp [LeanDa.cellSymbols, cellSymsOf], fun j hj => ?_,
       by simp [LeanDa.cellSymbols], ?_⟩
     · simp only [length_memRun] at hj
       simp only [memRun, List.getElem_map, List.getElem_range]
       exact (blk_sound hj htmpl).1
-    · have hr : [σ (.n 844), σ (.n 845), σ (.n 846)] = rets := hrets
+    · have hr : [σ (.n (val% «da_verify_cell» "s6#0")), σ (.n (val% «da_verify_cell» "s6#0[1]")), σ (.n (val% «da_verify_cell» "s6#0[2]"))] = rets := hrets
       rw [← hr, copy_sound hcp hC, hsum]
       have hv : ((cellSpec (A.drop 384)).vals σ).take ((cellSpec (A.drop 384)).len / 16) =
           cellSymsOf σ := by
@@ -63,11 +65,11 @@ theorem da_verify_cell_val {C : CallRel} {rd : Reader} {σ : Val} {args rets : L
       rw [hv, cellsBytes_eq_eBytes] at hd
       have hl : ∀ a b c : E, [a, b, c] = [a, b] ++ [c] := fun _ _ _ => rfl
       rw [hl, ← hd]
-      refine congrArg (fun x => [σ (.n 844), σ (.n 845)] ++ [x]) ?_
+      refine congrArg (fun x => [σ (.n (val% «da_verify_cell» "s6#0")), σ (.n (val% «da_verify_cell» "s6#0[1]"))] ++ [x]) ?_
       simp only [LeanDa.cellSymbols]
       refine congrArg List.sum (List.map_congr_left fun j hj => ?_)
       have hj' := List.mem_range.mp hj
-      have h1 : j < (memRun rd (σ (.n 0)) 128).length := by rw [length_memRun]; exact hj'
+      have h1 : j < (memRun rd (σ (.n (val% «da_verify_cell» "lvals"))) 128).length := by rw [length_memRun]; exact hj'
       have h2 : j < (cellSymsOf σ).length := by
         rw [cellSymsOf, List.length_map, List.length_range]; exact hj'
       rw [List.getD_eq_getElem _ _ h1, List.getD_eq_getElem _ _ h2]

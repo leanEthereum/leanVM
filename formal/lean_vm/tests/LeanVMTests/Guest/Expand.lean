@@ -63,7 +63,7 @@ def showProgram (p : Source.Program) : String :=
   %s2#0 = 2
   %s2#0 = mem[%s0#0 g^1]
   %s3#0 = 1
-  [] = __loop0(%s3#0, %s0#0)
+  [] = __loop0_main(%s3#0, %s0#0)
   %s4#0 = mem[%s0#0 g^11]
   %s5#0 = 905969664
   assert %s4#0 == %s5#0
@@ -76,7 +76,7 @@ def showProgram (p : Source.Program) : String :=
   %s9#2 = %s9#0 * %s9#1
   %s4#0 = mem[%s9#2 g^0]
   return
-def __loop0(%#0, %#0[1]):
+def __loop0_main(%#0, %#0[1]):
   %s0#0 = %#0[1] * %#0
   %s0#1 = mem[%s0#0 g^0]
   %s0#2 = %#0[1] * %#0
@@ -90,7 +90,7 @@ def __loop0(%#0, %#0[1]):
   %s2#3 = %s2#1 + %s2#2
   %s2#4 = 2
   %s2#5 = %#0 * %s2#4
-  if %s2#3 != 0: __loop0(%s2#5, %#0[1])
+  if %s2#3 != 0: __loop0_main(%s2#5, %#0[1])
   return -/
 #guard_msgs in
 #eval IO.println (showProgram prog_fibonacci.program)
@@ -354,7 +354,7 @@ def carryMain (folded : Bool) : Source.Program :=
 
 #guard [false, true].all fun folded =>
   match Expand.expandProgram (carryMain folded) with
-  | .error e => e == "in __loop0: unbound variable `t`"
+  | .error e => e == "in __loop0_main: unbound variable `t`"
   | .ok _ => false
 
 end LeanVMTests.Guest.Expand

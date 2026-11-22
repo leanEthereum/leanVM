@@ -223,6 +223,8 @@ An **integer** index is rejected, other than `1`: a literal, a name bound to one
 
 **Compile-time indices are bounds-checked.** When the whole index is a compile-time exponent and the pointer resolves to a declared `HeapBuf` (directly, or through shifted aliases like `row = buf * GEN ** k`), the compiler rejects `index >= size`, and the same for the spans of `hint_witness` and `keccak` slices. **Runtime** indices are not checked (their value is unknown at compile time): there the buffer remains a region convention, and a stray access surfaces at proving time as a write-once conflict or wild deref.
 
+**Where a buffer is reserved.** The executor reserves memory with a bump pointer, and the proof's memory model (`formal/lean_vm/LeanVM/Guest/Memory/Alloc.lean`) places each call's frame, then its `HeapBuf`s in the order it allocates them, then its callees' subtrees. So a `HeapBuf` that some run allocates after a call has its allocation hint moved to just before the function's first call (before the statement holding it, or the chain of `match`es, when the call is in a branch); no instruction changes, since the pointer is a fresh cell only the hint writes. One that no run allocates after a call stays where it is, such as one in a branch arm before the call, or in another arm of the call's branch. A buffer that moves must be allocated on every run that reaches it (not in an `if` or `match` arm, nor past a `return`), and its size must be a literal, a constant `GEN ** k`, or a cell written on every path to the call (an argument, a value a hint writes to the frame, or the result of an instruction there or in every arm of a branch there; a cell a `DEREF` only linked does not count): compute a size before the first call, or move the buffer and the code after it into a function of its own. Nor may a buffer that moves pass one that stays and that some run allocates before it, such as one before the call in its arm, or in another arm of the call's branch: the moved one would come first, so allocate the other before that statement too. Any other buffer is a compile error naming it.
+
 ### `StackBuf(n)`: frame-cell runs, indexed by compile-time integers
 
 ```python
@@ -314,7 +316,7 @@ Two write-once-flavored rules:
 - **bindings made inside a branch are local to it**: the compile-time scope reverts at the join. Branches communicate through memory: only one branch executes, so both may write the *same* cell (`r[1]` above), and the join reads it.
 - a cell nobody wrote (e.g. skipped-branch territory) stays unconstrained, the same rule as everywhere else in write-once memory.
 
-Local jumps must carry the frame pointer, which the ISA cannot read directly; each branching function materializes its own `fp` once (2 `DEREF`s through a 1-cell heap bounce; free in `main`, where `fp = g^0 = 1`).
+Local jumps must carry the frame pointer, which the ISA cannot read directly; each branching function materializes its own `fp` once (2 `DEREF`s through a hinted address of its own cell; free in `main`, where `fp = g^0 = 1`).
 
 ### `match`
 
@@ -488,7 +490,7 @@ assert log m < 8             # still unconstrained: pin it
 
 which is the one-line form of allocating a `StackBuf(1)`, filling a slice of it, and reading the cell back out, and costs exactly the same (nothing). Everything below about a stream's entries applies to it: each such binding pops one entry, whose length must be 1.
 
-Prover-supplied data (leanVM's `hint_witness`): a stream is a sequence of **entries**, one slice of values per `hint_witness` call, and the same symbol may be hinted many times. Each call pops the stream's next entry (whose length must match the destination run) and writes it into `dest` through the hint mechanism, at **zero cycles**. The values are completely unconstrained; the program must constrain them itself (asserts, range checks, hashes): an unconstrained hint consumed by anything security-relevant is a critical vulnerability. Runtime-start heap slices (`buf[i:i + k]`, `k` a literal) work too.
+Prover-supplied data (leanVM's `hint_witness`): a stream is a sequence of **entries**, one slice of values per `hint_witness` call, and the same symbol may be hinted many times. Each call pops the stream's next entry (whose length must match the destination run) and writes it into `dest` through the hint mechanism, at **zero cycles**. The values are completely unconstrained; the program must constrain them itself (asserts, range checks, hashes): an unconstrained hint consumed by anything security-relevant is a critical vulnerability. Runtime-start heap slices (`buf[i:i + k]`, `k` a literal) work too. A stream's name is a non-empty string with no whitespace.
 
 The prover takes the streams beside the program, as its `witness` argument of `(name, entries)` pairs (`entries: Vec<Vec<extension-field>>`); test programs declare them as annotations, one line per entry, and repeated lines with the same name are its successive entries:
 

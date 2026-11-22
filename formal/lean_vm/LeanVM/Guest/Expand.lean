@@ -31,7 +31,7 @@ same way, from the same readings:
   arguments, chained `match`es (back to back in an `unroll`, all arms `@inline`, the next
   scrutinee a free frame cell: the entered one sets nothing above its arms; a chain is the
   sequence of its `match`es in the core IR, which only the bytecode's jumps tell apart),
-  `mul_range` lifted to a tail-recursive helper `__loopN` taking its captured values, a captured
+  `mul_range` lifted to a tail-recursive helper `__loopN_f` taking its captured values, a captured
   `StackBuf` as a `StackBuf(n)` parameter, a capture the body binds in its own scope being the
   body's own name (`settle_loop_captures`: the helper is expanded again with it unbound);
 * `StackBuf` runs, slices, list literals and `addr`, heap addressing, and the hints;
@@ -51,8 +51,8 @@ What the compiler shares (pure results, pooled constants, repeated loads) is not
 second occurrence is a second atom with a fresh name, on the same relation. A value's name is its
 position (`Core.Seg`): statement index, `unroll` counter, branch, arm, inline call site.
 
-The loop counter `__loopN` is the compiler's: one counter over the whole compilation, advanced
-in lowering order, which `expandProgram` reproduces and `expandFn` takes as `loopBase`.
+A loop helper is named by the loops lowered before it in the function it is lowered in, and that
+function: `__loopN_f`, as the compiler names it.
 
 Three places do not reproduce the compiler exactly; none changes a relation. An `addr` pointer
 is a value of its own (`Atom.frameAddr`), where the compiler folds the frame offset into it, so
@@ -159,7 +159,11 @@ structure St where
   chainIn : Option V := none
   /-- Every function queued so far, originals first. -/
   queue : Array Func
-  loopCtr : Nat
+  /-- The loops lowered so far in this function. -/
+  loopCtr : Nat := 0
+  /-- Each source name bound to a value, in order (`rebind`): a value's name for the proofs
+  (`guest-core --names`), not read by the lowering. -/
+  binds : Array (String × V) := #[]
   /-- The captures a loop helper's body bound in its own scope (`settleLoopCaptures`). -/
   rebound : List String := []
   deriving Inhabited
@@ -262,7 +266,12 @@ def checkNotReserved (n : String) : M Unit := do
 /-- Bind a name, clearing its integer reading (`rebind`). -/
 def rebind (n : String) (b : Binding) : M Unit := do
   checkNotReserved n
-  modify fun st => { st with names := (n, ⟨b, none⟩) :: st.names.filter (·.1 != n) }
+  let named : List (String × V) := match b with
+    | .scalar v => [(n, v)]
+    | .stack cells => cells.zipIdx.map fun (c, k) => (s!"{n}[{k}]", c)
+    | _ => []
+  modify fun st => { st with names := (n, ⟨b, none⟩) :: st.names.filter (·.1 != n),
+                             binds := st.binds ++ named.toArray }
 
 /-- Attach an integer reading to a name's binding (`set_int`). -/
 def setInt (n : String) (k : Nat) : M Unit :=
@@ -1509,14 +1518,14 @@ def lowerDispatchedCall : Nat → List Expr → Expr → List String → List Ex
     emit (.dispatch xo callees argCells rcells)
     bindTargets binds
 
-/-- `for var in mul_range(GEN ** lo, hi)`, lifted to `__loopN` (`lower_for`). -/
+/-- `for var in mul_range(GEN ** lo, hi)`, lifted to `__loopN_f` (`lower_for`). -/
 def lowerFor : Nat → Nat → String → Nat → ForBound → List Source.Stmt → M Unit
   | 0, _, _, _, _, _ => fail "expansion fuel exhausted"
   | n + 1, line, var, lo, hi, body => do
     let id := (← get).loopCtr
     modify fun st => { st with loopCtr := st.loopCtr + 1 }
-    let loopName := s!"__loop{id}"
-    let boundVar := s!"__bound{id}"
+    let loopName := s!"__loop{id}_{(← get).ctx.fnName}"
+    let boundVar := s!"{loopName}__bound"
     let (exit, entryBound) := match hi with
       | .const h => (Expr.gpow h, Expr.gpow h)
       | .runtime e => (Expr.var boundVar, e)
@@ -1545,7 +1554,7 @@ def lowerFor : Nat → Nat → String → Nat → ForBound → List Source.Stmt 
       captures.toList
     let capArgs : Expr → Expr → List Expr := fun first b =>
       [first] ++ (if runtime then [b] else []) ++ captures.toList.map (.var ·.1)
-    let nextVar := s!"__next{id}"
+    let nextVar := s!"{loopName}__next"
     let loopBody := body ++ [
       .mk line (.let_ nextVar (.mul (.var var) .gen)),
       .mk line (.callIfNe (.var nextVar) exit loopName (capArgs (.var nextVar) (.var boundVar))),
@@ -1935,15 +1944,13 @@ def paramBindings (f : Func) : List (String × Bound) × List V := Id.run do
 
 /-- The state lowering `f` starts in, the parameters `own` unbound: the captures of a loop helper
 that are its body's own names. -/
-def initState (p : Program) (f : Func) (queue : Array Func) (loopBase : Nat)
-    (own : List String := []) : St :=
+def initState (p : Program) (f : Func) (queue : Array Func) (own : List String := []) : St :=
   { ctx := { defs := p.funcs, arrays := p.constArrays, fnName := f.name, isMain := f.name == "main",
              returnShapes := f.returnShapes, params := (paramBindings f).1.reverse },
     names := (paramBindings f).1.filter fun q => !own.contains q.1,
     heapSizes := [], path := [], tag := 0, out := #[],
     pending := false, inlineCalls := [],
-    keccakPad := none, queue,
-    loopCtr := loopBase }
+    keccakPad := none, queue }
 
 /-- Lower a function's body (`lower_func`). -/
 def lowerFunc (f : Func) : M Unit := do
@@ -1958,26 +1965,25 @@ def lowerFunc (f : Func) : M Unit := do
         withSeg (.s f.body.length) (stmtKind fuel line (.ret []))
 
 /-- `lower_func`'s passes: lower `f` with the parameters `own` unbound, and again with one more
-for each capture its body turned out to bind in its own scope, from the same queue and loop
-counter, so nothing of an abandoned pass remains. Its cell is still passed along, never read. -/
-def expandFnOwn (p : Program) (f : Func) (queue : Array Func) (loopBase : Nat) :
-    Nat → List String → Except String (Core.Fn × Array Func × Nat)
+for each capture its body turned out to bind in its own scope, from the same queue, so nothing of
+an abandoned pass remains; the state the last pass ends in. Its cell is still passed along, never
+read. -/
+def lowerFnOwn (p : Program) (f : Func) (queue : Array Func) : Nat → List String → Except String St
   | 0, _ => throw s!"in {f.name}: internal: the loop's captures do not settle"
   | passes + 1, own => do
-      let ((), st) ← (lowerFunc f).run (initState p f queue loopBase own)
+      let ((), st) ← (lowerFunc f).run (initState p f queue own)
       let new := st.rebound.filter fun x => !own.contains x
-      if new.isEmpty then
-        return (⟨f.name, (paramBindings f).2, st.out.toList⟩, st.queue, st.loopCtr)
-      expandFnOwn p f queue loopBase passes (own ++ new)
+      if new.isEmpty then return st
+      lowerFnOwn p f queue passes (own ++ new)
 
-/-- The core function of `f`, the queue after it, and the loop counter after it: `queue` is
-every function queued before (it decides which specializations are new) and `loopBase` the
-number of loops lowered before. -/
-def expandFn (p : Program) (f : Func) (queue : Array Func := #[]) (loopBase : Nat := 0) :
-    Except String (Core.Fn × Array Func × Nat) := do
+/-- The core function of `f` and the queue after it: `queue` is every function queued before (it
+decides which specializations are new). -/
+def expandFn (p : Program) (f : Func) (queue : Array Func := #[]) :
+    Except String (Core.Fn × Array Func) := do
   if let some q := f.params.find? (fun q => p.constArrays.any (·.1 == q.name)) then
     throw s!"`{f.name}`: parameter `{q.name}` collides with a top-level constant array"
-  expandFnOwn p f queue loopBase (f.params.length + 1) []
+  let st ← lowerFnOwn p f queue (f.params.length + 1) []
+  return (⟨f.name, (paramBindings f).2, st.out.toList⟩, st.queue)
 
 /-- The specialization of `f` at these `Const` arguments, as the compiler queues it. -/
 def specializeFn (f : Func) (constArgs : List Expr) : Except String Func := do
@@ -1988,17 +1994,43 @@ def specializeFn (f : Func) (constArgs : List Expr) : Except String Func := do
            returnShapes := f.returnShapes, body := substBody f.body substs, inline := false }
 
 /-- The compiler's queue (`compile`), at most `fuel` functions. -/
-def expandQueue (p : Program) : Nat → Nat → Array Func → Nat → Array Core.Fn →
+def expandQueue (p : Program) : Nat → Nat → Array Func → Array Core.Fn →
     Except String (Array Core.Fn)
-  | 0, _, _, _, _ => throw "too many functions"
-  | budget + 1, i, queue, loopCtr, out =>
+  | 0, _, _, _ => throw "too many functions"
+  | budget + 1, i, queue, out =>
       match queue[i]? with
       | none => return out
       | some f =>
-          if f.hasConstParams || f.inline then expandQueue p budget (i + 1) queue loopCtr out
+          if f.hasConstParams || f.inline then expandQueue p budget (i + 1) queue out
           else do
-            let (fn, queue, loopCtr) ← expandFn p f queue loopCtr
-            expandQueue p budget (i + 1) queue loopCtr (out.push fn)
+            let (fn, queue) ← expandFn p f queue
+            expandQueue p budget (i + 1) queue (out.push fn)
+
+/-- Each lowered function's source names, as `expandQueue` lowers them: its parameters', then
+each `rebind`'s, in order (`guest-core --names`). -/
+def expandBinds (p : Program) : Nat → Nat → Array Func → Array (String × Array (String × V)) →
+    Except String (Array (String × Array (String × V)))
+  | 0, _, _, _ => throw "too many functions"
+  | budget + 1, i, queue, out =>
+      match queue[i]? with
+      | none => return out
+      | some f =>
+          if f.hasConstParams || f.inline then expandBinds p budget (i + 1) queue out
+          else do
+            if let some q := f.params.find? (fun q => p.constArrays.any (·.1 == q.name)) then
+              throw s!"`{f.name}`: parameter `{q.name}` collides with a top-level constant array"
+            let st ← lowerFnOwn p f queue (f.params.length + 1) []
+            let params := (paramBindings f).1.reverse.flatMap fun (n, b) => match b.val with
+              | .scalar v => [(n, v)]
+              | .stack cells => cells.zipIdx.map fun (c, k) => (s!"{n}[{k}]", c)
+              | _ => []
+            expandBinds p budget (i + 1) st.queue (out.push (f.name, params.toArray ++ st.binds))
+
+/-- The source names of every function the compiler lowers, in its order (`expandBinds`). -/
+def expandProgramBinds (p : Program) : Except String (Array (String × Array (String × V))) := do
+  let some main := p.funcs.find? (·.name == "main") | throw "program needs a `main`"
+  let queue := #[main] ++ (p.funcs.filter (·.name != "main")).toArray
+  expandBinds p 1000000 0 queue #[]
 
 /-- Every function the compiler lowers, in its order: `main` first. -/
 def expandProgram (p : Program) : Except String Core.Program := do
@@ -2006,7 +2038,7 @@ def expandProgram (p : Program) : Except String Core.Program := do
   if main.hasConstParams then throw "main cannot take Const parameters"
   if main.inline then throw "main cannot be `@inline`"
   let queue := #[main] ++ (p.funcs.filter (·.name != "main")).toArray
-  return (← expandQueue p 1000000 0 queue 0 #[]).toList
+  return (← expandQueue p 1000000 0 queue #[]).toList
 
 end
 end LeanVM.Guest.Expand

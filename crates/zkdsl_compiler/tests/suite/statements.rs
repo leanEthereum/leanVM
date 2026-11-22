@@ -352,6 +352,18 @@ def main():
     }
 }
 
+/// A stream name is one word of the hints' text form (`isa::CompiledProgram::export_hints`).
+#[test]
+fn a_stream_name_has_no_whitespace() {
+    for src in [
+        "def main():\n    x = hint_witness(\"a b\")\n    return\n",
+        "def main():\n    rb = StackBuf(1)\n    hint_witness(rb[0:1], \"\")\n    return\n",
+    ] {
+        let err = parse(src).expect_err("a stream name must be one word");
+        assert!(err.contains("no whitespace"), "{err}");
+    }
+}
+
 /// The scalar hint binds like any other statement that binds.
 ///
 /// Three `StmtKind` walkers have a catch-all arm, and each silently swallowed
@@ -452,7 +464,7 @@ fn a_program_names_what_it_means() {
     // Both bodies used to be lowered, and the last definition won.
     let dup = format!("def f(a):\n    return a\n\ndef f(a):\n    return a\n\ndef main():\n{tail}");
     assert!(parse(&dup).expect_err("duplicate def").contains("defined twice"));
-    // `f__L1` is what a `Const` specialization of `f` is called, and `__loopN`
+    // `f__L1` is what a `Const` specialization of `f` is called, and `__loopN_f`
     // what a loop helper is called, so a user function of that name took its
     // place and the call ran the wrong body.
     let reserved = format!("def f__L1(a):\n    return a\n\ndef main():\n{tail}");

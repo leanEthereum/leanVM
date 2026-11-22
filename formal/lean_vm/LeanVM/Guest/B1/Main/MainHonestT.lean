@@ -68,10 +68,10 @@ theorem MainGoalL5T.goal {T5 : Tree → Prop} (h : MainGoalL5T fs cert fp seed s
 `aggregate_claims`, the children's loop. -/
 structure MainGoalsT (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) (p : MainPreds) : Prop where
-  clx : CompleteAtDT fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
+  clx : CompleteAtDT fs cert 23 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).xd)) p.Px
-  cls : CompleteAtDT fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
+  cls : CompleteAtDT fs cert 23 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).sd)) p.Ps
   dv : (hm fs fp seed s w).nd = 1 →

@@ -11,6 +11,8 @@ module
 public import LeanVM.Guest.B1.Selectors.SelectorTables
 public import LeanVM.Guest.B1.Selectors.LayoutBasic
 public import LeanVM.Guest.CoreData
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«selector_tables»
 
 /-!
 # `selector_tables`, completely (TRIAGE G #69)
@@ -81,14 +83,14 @@ def stStoreOk : Atom → Bool
 
 theorem st_stores : (storesOf 2 stPre).all stStoreOk = true := by decide +kernel
 
-theorem st_alloc_mem : Stmt.atom (.hint (.alloc (.n 2) 512)) ∈ stPre := by
+theorem st_alloc_mem : Stmt.atom (.hint (.alloc (.n (val% «selector_tables» "sel_eq")) 512)) ∈ stPre := by
   unfold stPre; simp
 
 /-- The kinds of the body's statements. -/
 theorem stKind_cases {s : Stmt} (h : stKind s = true) :
     (∃ hn, s = .atom (.hint hn)) ∨
-    (∃ d o, (s = .atom (.load (.n d) (.n 0) o) ∨ s = .atom (.load (.n d) (.n 1) o)) ∧ o < 32) ∨
-    (∃ o, s = .atom (.load (.n (stD o)) (.n 2) o) ∧ o < 512 ∧ stStored o = true) ∨
+    (∃ d o, (s = .atom (.load (.n d) (.n (val% «selector_tables» "point")) o) ∨ s = .atom (.load (.n d) (.n (val% «selector_tables» "point1")) o)) ∧ o < 32) ∨
+    (∃ o, s = .atom (.load (.n (stD o)) (.n (val% «selector_tables» "sel_eq")) o) ∧ o < 512 ∧ stStored o = true) ∨
     (∃ a, s = .atom a ∧ pureB a = true) := by
   unfold stKind at h
   split at h
@@ -115,22 +117,22 @@ theorem st_rdAt {rd : Reader} {L : TLay} (hm : MemLay rd L) {q : ℕ × List E} 
   rfl
 
 theorem stVal_param (ept ept1 ese : ℕ) (p p1 : List E) :
-    stVal ept ept1 ese p p1 (.n 0) = ofK (addressOfIndex ept) ∧
-      stVal ept ept1 ese p p1 (.n 1) = ofK (addressOfIndex ept1) :=
+    stVal ept ept1 ese p p1 (.n (val% «selector_tables» "point")) = ofK (addressOfIndex ept) ∧
+      stVal ept ept1 ese p p1 (.n (val% «selector_tables» "point1")) = ofK (addressOfIndex ept1) :=
   ⟨ev_params _ _ (l := [ofK (addressOfIndex ept), ofK (addressOfIndex ept1)]) st_chk (by norm_num),
     ev_params _ _ (l := [ofK (addressOfIndex ept), ofK (addressOfIndex ept1)]) st_chk (by norm_num)⟩
 
 /-- The buffer's pointer, allocated and returned. -/
 theorem stVal_bufs (ept ept1 ese : ℕ) (p p1 : List E) :
-    stVal ept ept1 ese p p1 (.n 2) = ofK (addressOfIndex ese) ∧
-      stVal ept ept1 ese p p1 (.n 291) = ofK (addressOfIndex ese) := by
+    stVal ept ept1 ese p p1 (.n (val% «selector_tables» "sel_eq")) = ofK (addressOfIndex ese) ∧
+      stVal ept ept1 ese p p1 (.n (val% «selector_tables» "s2#0")) = ofK (addressOfIndex ese) := by
   have hg : ∀ s ∈ stPre, GoodS (layRd (stLin ept ept1 p p1)) (storesOf 2 stPre) (stW ese)
       (stVal ept ept1 ese p p1) s :=
     (ev_spec (layRd (stLin ept ept1 p p1)) (stW ese) stPre
       [ofK (addressOfIndex ept), ofK (addressOfIndex ept1)] st_chk).2.2
-  have e2 : stVal ept ept1 ese p p1 (.n 2) = ofK (addressOfIndex ese) := by
+  have e2 : stVal ept ept1 ese p p1 (.n (val% «selector_tables» "sel_eq")) = ofK (addressOfIndex ese) := by
     simpa [GoodS, Good, stW] using hg _ st_alloc_mem
-  have c1 := hg _ (show Stmt.atom (.copy (.n 291) (.n 2)) ∈ stPre by simp [stPre])
+  have c1 := hg _ (show Stmt.atom (.copy (.n (val% «selector_tables» "s2#0")) (.n (val% «selector_tables» "sel_eq"))) ∈ stPre by simp [stPre])
   simp only [GoodS, Good] at c1
   exact ⟨e2, by rw [c1, e2]⟩
 
@@ -161,15 +163,15 @@ theorem st_sholds (ept ept1 ese : ℕ) (p p1 : List E) (hl : p.length = 32)
       rcases hgs with hgs | hgs
       · exact absurd (hS _ hgs) (by simp [stStoreOk])
       · have := st_rdAt hmi (q := (ept, p)) (by simp [stLin]) (o := o) (by simp [hl, ho])
-        show LoadHolds rd (σ (.n 0)) o (σ (.n d))
+        show LoadHolds rd (σ (.n (val% «selector_tables» "point"))) o (σ (.n d))
         rw [hgs, e0, this.1]; exact this.2
     · simp only [GoodS, Good] at hgs
       rcases hgs with hgs | hgs
       · exact absurd (hS _ hgs) (by simp [stStoreOk])
       · have := st_rdAt hmi (q := (ept1, p1)) (by simp [stLin]) (o := o) (by simp [hl1, ho])
-        show LoadHolds rd (σ (.n 1)) o (σ (.n d))
+        show LoadHolds rd (σ (.n (val% «selector_tables» "point1"))) o (σ (.n d))
         rw [hgs, e1, this.1]; exact this.2
-  · show LoadHolds rd (σ (.n 2)) o (σ (.n (stD o)))
+  · show LoadHolds rd (σ (.n (val% «selector_tables» "sel_eq"))) o (σ (.n (stD o)))
     have h := hmo (ese, stEqWords σ) (by unfold stOwn; exact List.mem_cons_self) o
       (by simp [stEqWords, ho])
     rw [e2]

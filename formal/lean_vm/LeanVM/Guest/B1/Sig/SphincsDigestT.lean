@@ -9,6 +9,8 @@
 module
 
 public import LeanVM.Guest.B1.Sig.SpWotsT
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # The message digest as a template
@@ -45,18 +47,18 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
 /-! ## Values and constants -/
 
 /-- `PK.seed`, `signer[1]` (offset `0`). -/
-def sPP : V := .n 2
+def sPP : V := .n (val% «verify_sig_lean_sphincs» "pp")
 /-- `PK.root`, `signer[GEN]` (offset `1`). -/
-def sRoot : V := .n 3
+def sRoot : V := .n (val% «verify_sig_lean_sphincs» "pk_root")
 /-- The padding run of `verify_sig_lean_sphincs`, set by `H_msg`'s first call. -/
 def sPad : Nat := 12
 /-- `R`, the randomizer. -/
-def sRand : V := .n 6
+def sRand : V := .n (val% «verify_sig_lean_sphincs» "rho")
 /-- The first call's two output cells, the digest's (`d0`, a two-cell `out`). -/
-def sHm0 : V := .n 17
-def sHm0b : V := .n 18
+def sHm0 : V := .n (val% «verify_sig_lean_sphincs» "d0[0]")
+def sHm0b : V := .n (val% «verify_sig_lean_sphincs» "d0[1]")
 /-- The second call's one output cell (`d1`). -/
-def sHm1 : V := .n 27
+def sHm1 : V := .n (val% «verify_sig_lean_sphincs» "d1[0]")
 
 /-- `g^255`, as the compiler writes it: the bound of a byte's range check. -/
 def g255W : E := word 9223372036854810629 0
@@ -68,7 +70,7 @@ def pw (s : Nat) : E := if s < 64 then word (2 ^ s) 0 else word 0 (2 ^ (s - 64))
 
 /-- One byte from base `b`: its range check below `256`, the table's address and value at `b + 5`. -/
 def sByte (mark : V) (b : Nat) : List Stmt :=
-  rangeS mark g255W b ++ [mulS (.n (b + 4)) (.n 1) mark, loadS (.n (b + 5)) (.n (b + 4)) 0]
+  rangeS mark g255W b ++ [mulS (.n (b + 4)) (.n (val% «verify_sig_lean_sphincs» "byte_bits")) mark, loadS (.n (b + 5)) (.n (b + 4)) 0]
 
 /-- The bytes after the top one, folding `val`. -/
 def sFromBytesRest : List V → Nat → V → List Stmt × Nat × V
@@ -95,12 +97,12 @@ def sFromMarks (b n x : Nat) : List Stmt × Nat × V := sFromBytes (sMarks b n).
 
 /-- `m0`, `m1`: the message `M`'s two cells, `signer[GEN^2]`, `signer[GEN^3]` (offsets `2`, `3`),
 which `H_msg` hashes as they are. -/
-def sM0 : V := .n 4
-def sM1 : V := .n 5
+def sM0 : V := .n (val% «verify_sig_lean_sphincs» "m0")
+def sM1 : V := .n (val% «verify_sig_lean_sphincs» "m1")
 
 /-- The claim's four cells loaded: `PK.seed`, `PK.root`, `m0`, `m1`. -/
 def sMsg : List Stmt :=
-  [loadS sPP (.n 0) 0, loadS sRoot (.n 0) 1, loadS sM0 (.n 0) 2, loadS sM1 (.n 0) 3]
+  [loadS sPP (.n (val% «verify_sig_lean_sphincs» "signer")) 0, loadS sRoot (.n (val% «verify_sig_lean_sphincs» "signer")) 1, loadS sM0 (.n (val% «verify_sig_lean_sphincs» "signer")) 2, loadS sM1 (.n (val% «verify_sig_lean_sphincs» "signer")) 3]
 
 /-! ## `H_msg` -/
 
@@ -115,11 +117,11 @@ def sHIns (t : Nat) : List V :=
 padding run after its inputs, its counter cell the `0x01` byte at bit `32`; the second (`i = 1`)
 with its counter `SP_COUNTER_ONE = 2^24` (byte `3`) added to it. -/
 def sDigests : List Stmt :=
-  [hintW "sp_rand" [sRand], copyS (.n 7) sM1, cst 8 (word (2 ^ 32) 0), cst 9 (word 0 0),
+  [hintW "sp_rand" [sRand], copyS (.n (val% «verify_sig_lean_sphincs» "s7#0")) sM1, cst 8 (word (2 ^ 32) 0), cst 9 (word 0 0),
     cst 10 (word 0 0), cst 11 (word (2 ^ 63) 0)] ++ padRun sPad ++
   [kecS (sHIns 7) (runV 17 2) false false,
-    cst 19 (word (2 ^ 24) 0), cst 20 (word (2 ^ 32) 0), addS (.n 21) (.n 19) (.n 20),
-    copyS (.n 22) sM1, copyS (.n 23) (.n 21), cst 24 (word 0 0), cst 25 (word 0 0),
+    cst 19 (word (2 ^ 24) 0), cst 20 (word (2 ^ 32) 0), addS (.n (val% «verify_sig_lean_sphincs» "s8#2")) (.n (val% «verify_sig_lean_sphincs» "s8#0")) (.n (val% «verify_sig_lean_sphincs» "s8#1")),
+    copyS (.n (val% «verify_sig_lean_sphincs» "s8#3")) sM1, copyS (.n (val% «verify_sig_lean_sphincs» "s8#3[1]")) (.n (val% «verify_sig_lean_sphincs» "s8#2")), cst 24 (word 0 0), cst 25 (word 0 0),
     cst 26 (word (2 ^ 63) 0), kecS (sHIns 22) (runV 27 1) false false]
 
 /-! ## The digest's bits -/
@@ -133,8 +135,8 @@ def sBitsHint : List Stmt :=
 
 /-- The bits pinned Boolean: `bits0[b]`, `bits1[b]` in turn, then `bits2`. -/
 def sBooleans : List Stmt :=
-  ((List.range 128).flatMap fun b => [mulS (.n (28 + b)) (.n (28 + b)) (.n (28 + b)),
-    mulS (.n (156 + b)) (.n (156 + b)) (.n (156 + b))]) ++ booleans 284 16
+  ((List.range 128).flatMap fun b => [mulS (.n ((val% «verify_sig_lean_sphincs» "bits0[0]") + b)) (.n ((val% «verify_sig_lean_sphincs» "bits0[0]") + b)) (.n ((val% «verify_sig_lean_sphincs» "bits0[0]") + b)),
+    mulS (.n ((val% «verify_sig_lean_sphincs» "bits1[0]") + b)) (.n ((val% «verify_sig_lean_sphincs» "bits1[0]") + b)) (.n ((val% «verify_sig_lean_sphincs» "bits1[0]") + b))]) ++ booleans 284 16
 
 /-- **Bit `p` of the digest read most significant first** (`sp_md_bit`): bit `7 - p % 8` of byte
 `p / 8`, in the bit run of the first call's cells. -/
@@ -164,7 +166,7 @@ def sFVal (c z : Nat) : V := .n (300 + 29 * c + 3 * (9 - z))
 /-- `sp_fors_field` of tree `c`: its top bit plus the place `const(2 c)` (a copy for
 `c = 0`, the constant at `299 + 29 c` otherwise), then the shifts. -/
 def sForsField (c : Nat) : List Stmt :=
-  (if c = 0 then [copyS (.n 300) (sMdBit 0)]
+  (if c = 0 then [copyS (.n (val% «verify_sig_lean_sphincs» "vals[9]")) (sMdBit 0)]
     else [cst (299 + 29 * c) (word (2 * c) 0),
       addS (.n (300 + 29 * c)) (sMdBit (10 * c)) (.n (299 + 29 * c))]) ++
   (shiftsG (fun r => sMdBit (10 * c + r)) 10 (300 + 29 * c)).tail
@@ -245,7 +247,7 @@ def sMdBytes : List Stmt := (sMdByte 0 1067).1 ++ sMd0.1 ++ sMd1.1
 /-! ## The check -/
 
 /-- The tree index's middle byte, the top leaf's low byte. -/
-def sTreeMid : V := .n 1279
+def sTreeMid : V := .n (val% «verify_sig_lean_sphincs» "tree_mid")
 
 /-- The six unused bits of the tree index's high byte, most significant first. -/
 def sPadBits : List Stmt :=
@@ -266,18 +268,18 @@ def corr1W : E := word 5558655801016247104 401131962368
 corr0`, `d0[1] = md1 + corr1 + (lvals[24] + pad · g^2) · 2^112 + tree_mid · 2^120`, the unused
 bytes, and `(d1[0] + lvals[8] + lvals[0] · g^8 + unused · g^16) · y⁻¹` in `K`. -/
 def sCheck : List Stmt :=
-  [cst 1277 (word 256 0), mulS (.n 1278) (sLVal 24) (.n 1277), addS sTreeMid (sLVal 16) (.n 1278)] ++
+  [cst 1277 (word 256 0), mulS (.n (val% «verify_sig_lean_sphincs» "tree_mid~1")) (sLVal 24) (.n (val% «verify_sig_lean_sphincs» "tree_mid~0")), addS sTreeMid (sLVal 16) (.n (val% «verify_sig_lean_sphincs» "tree_mid~1"))] ++
     sPadBits ++
-  [cst 1295 corr0W, addS sHm0 sMd0.2.2 (.n 1295), cst 1296 corr1W,
-    addS (.n 1297) sMd1.2.2 (.n 1296), cst 1298 (word 4 0), mulS (.n 1299) (.n 1294) (.n 1298),
-    addS (.n 1300) (sLVal 24) (.n 1299), cst 1301 (pw 112), mulS (.n 1302) (.n 1300) (.n 1301),
-    addS (.n 1303) (.n 1297) (.n 1302), cst 1304 (pw 120), mulS (.n 1305) sTreeMid (.n 1304),
-    addS sHm0b (.n 1303) (.n 1305), hintW "sp_unused" (runV 1306 6)] ++ sUnused.1 ++
-  [addS (.n 1363) sHm1 (sLVal 8), cst 1364 (word 256 0), mulS (.n 1365) (sLVal 0) (.n 1364),
-    addS (.n 1366) (.n 1363) (.n 1365), cst 1367 (word 65536 0),
-    mulS (.n 1368) sUnused.2.2 (.n 1367), addS (.n 1369) (.n 1366) (.n 1368),
-    cst 1370 (word 2 1), mulS (.n 1371) (.n 1369) (.n 1370),
-    .atom (.assertInK (.n 1371) sUnused.2.2)]
+  [cst 1295 corr0W, addS sHm0 sMd0.2.2 (.n (val% «verify_sig_lean_sphincs» "s33#0")), cst 1296 corr1W,
+    addS (.n (val% «verify_sig_lean_sphincs» "s34#1")) sMd1.2.2 (.n (val% «verify_sig_lean_sphincs» "s34#0")), cst 1298 (word 4 0), mulS (.n (val% «verify_sig_lean_sphincs» "s34#3")) (.n (val% «verify_sig_lean_sphincs» "pad@5")) (.n (val% «verify_sig_lean_sphincs» "s34#2")),
+    addS (.n (val% «verify_sig_lean_sphincs» "s34#4")) (sLVal 24) (.n (val% «verify_sig_lean_sphincs» "s34#3")), cst 1301 (pw 112), mulS (.n (val% «verify_sig_lean_sphincs» "s34#6")) (.n (val% «verify_sig_lean_sphincs» "s34#4")) (.n (val% «verify_sig_lean_sphincs» "s34#5")),
+    addS (.n (val% «verify_sig_lean_sphincs» "s34#7")) (.n (val% «verify_sig_lean_sphincs» "s34#1")) (.n (val% «verify_sig_lean_sphincs» "s34#6")), cst 1304 (pw 120), mulS (.n (val% «verify_sig_lean_sphincs» "s34#9")) sTreeMid (.n (val% «verify_sig_lean_sphincs» "s34#8")),
+    addS sHm0b (.n (val% «verify_sig_lean_sphincs» "s34#7")) (.n (val% «verify_sig_lean_sphincs» "s34#9")), hintW "sp_unused" (runV 1306 6)] ++ sUnused.1 ++
+  [addS (.n (val% «verify_sig_lean_sphincs» "high~0")) sHm1 (sLVal 8), cst 1364 (word 256 0), mulS (.n (val% «verify_sig_lean_sphincs» "high~2")) (sLVal 0) (.n (val% «verify_sig_lean_sphincs» "high~1")),
+    addS (.n (val% «verify_sig_lean_sphincs» "high~3")) (.n (val% «verify_sig_lean_sphincs» "high~0")) (.n (val% «verify_sig_lean_sphincs» "high~2")), cst 1367 (word 65536 0),
+    mulS (.n (val% «verify_sig_lean_sphincs» "high~5")) sUnused.2.2 (.n (val% «verify_sig_lean_sphincs» "high~4")), addS (.n (val% «verify_sig_lean_sphincs» "high~6")) (.n (val% «verify_sig_lean_sphincs» "high~3")) (.n (val% «verify_sig_lean_sphincs» "high~5")),
+    cst 1370 (word 2 1), mulS (.n (val% «verify_sig_lean_sphincs» "high")) (.n (val% «verify_sig_lean_sphincs» "high~6")) (.n (val% «verify_sig_lean_sphincs» "high~7")),
+    .atom (.assertInK (.n (val% «verify_sig_lean_sphincs» "high")) sUnused.2.2)]
 
 /-- **The message digest's block**: `verify_sig_lean_sphincs`'s statements up to the digest's
 check; the next value is `n1372`. -/

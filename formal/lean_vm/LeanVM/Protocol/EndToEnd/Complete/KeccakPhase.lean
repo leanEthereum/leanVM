@@ -81,7 +81,7 @@ theorem follows_retOK {α β : Type} {R : Commits → α → β → Prop} {Q : �
     cases P <;> simp only [Follows] at h ⊢
     exact fun c ↦ ih c _ _ (h c) fun l a hl ↦ hq (Ev.sample c :: l) a
       (by simpa [VerifierProgram.after] using hl)
-  | grind k ih =>
+  | grind o k ih =>
     intro P cs h hq
     cases P with
     | grind b k' =>

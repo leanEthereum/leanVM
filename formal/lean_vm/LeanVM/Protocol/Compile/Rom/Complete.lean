@@ -28,9 +28,11 @@ sampled random oracles.
 `romComplete`: if every proof of work of `P` asks for at most `bits ≤ 64` bits (and is followed at
 once by a challenge, `GrindThenSample`), the verifier rejects with probability at most
 
-  `Q · (1 - 2^-bits)^fuel`,
+  `Q · (1 - 2^-bits (1 - 2^-64))^fuel`,
 
-`Q` the queries of the prover and the verifier together.
+`Q` the queries of the prover and the verifier together; the `1 - 2^-64` is the chance that a
+passing nonce's challenge lies outside `K`, which the strategy's proof of work may ask
+(`Strategy.outsideK`).
 
 ## The proof
 
@@ -43,11 +45,13 @@ The prover fails only at a proof-of-work search, at a sponge whose capacity `c` 
 scalars `ps` (all of tag `1`, at most three) fix the inputs of the nonces, `nonceInput c ps n`,
 and whose `fuel` nonces all fail. A potential on the log (`powPot`) sums, over the positions
 `(c, ps)` some of whose nonce inputs below `fuel` the log holds (`keys`), the probability
-`(1 - 2^-bits)^(untried)` that the nonces not yet in the log all fail a `bits`-bit proof of work, or
-`0` once one passed (`powTerm`); a nonce that fails a narrower grind fails it too (`powOk_mono`). It is `1` on a log in which the prover failed (`one_le_powPot`). A fresh permutation
-query keeps a position's term a martingale (a nonce fails with probability exactly
-`1 - 2^-bits`, `avg_miss_eq`), and a position new to the log starts with its first nonce, its
-term averaging to `(1 - 2^-bits)^fuel` (`powPot_stepF`); hash queries change nothing. The
+`missK bits ^ untried` that the nonces not yet in the log all fail `passK` (a `bits`-bit proof of
+work with a challenge outside `K`), or `0` once one passed (`powTerm`); a nonce that fails the
+prover's search, of a narrower grind, outside `K` or not, fails `passK` too (`nonceOk_of_passK`).
+It is `1` on a log in which the prover failed (`one_le_powPot`). A fresh permutation query keeps a
+position's term a martingale (a nonce fails with probability exactly `missK bits`,
+`avg_missK_eq`), and a position new to the log starts with its first nonce, its term averaging to
+`missK bits ^ fuel` (`powPot_stepF`); hash queries change nothing. The
 potential engine of `LeanVM.Protocol.ToVCVio.Rom` turns this into the bound. No collision term
 is needed: a position's term counts the nonce inputs in the log, whoever queried them.
 -/
@@ -87,10 +91,77 @@ theorem avg_miss_eq {b : ℕ} (hb : b ≤ 64) :
   simp only [ENNReal.add_div, ENNReal.div_self hc hct, sum_powOk_div_eq hb] at hdiv
   exact ENNReal.eq_sub_of_add_eq (by simp) hdiv
 
+/-- `1 - 2^-64`: the probability that a uniform challenge lies outside `K`. -/
+noncomputable def qK : ℝ≥0∞ := 1 - 2⁻¹ ^ 64
+
+/-- **A uniform challenge lies outside `K` with probability `1 - 2^-64`.** -/
+theorem sum_usable_div :
+    (∑ c : E, ind (LeanVM.Prover.nonceUsable true c = true)) / Fintype.card E = qK := by
+  have hc : (Fintype.card E : ℝ≥0∞) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
+  have hct : (Fintype.card E : ℝ≥0∞) ≠ ⊤ := ENNReal.natCast_ne_top _
+  have hadd : (∑ c : E, ind (LeanVM.Prover.nonceUsable true c = true)) +
+      (∑ c : E, ind (c.limb 1 = 0)) = Fintype.card E := by
+    rw [← Finset.sum_add_distrib]
+    calc ∑ c : E, (ind (LeanVM.Prover.nonceUsable true c = true) + ind (c.limb 1 = 0))
+        = ∑ _c : E, (1 : ℝ≥0∞) := Finset.sum_congr rfl fun c _ ↦ by
+          by_cases h : c.limb 1 = 0 <;> simp [ind, LeanVM.Prover.nonceUsable, h]
+      _ = _ := by rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one]
+  have hdiv := congrArg (· / (Fintype.card E : ℝ≥0∞)) hadd
+  simp only [ENNReal.add_div, ENNReal.div_self hc hct, sum_limb_one_eq_zero_div] at hdiv
+  exact ENNReal.eq_sub_of_add_eq (by simp) hdiv
+
+/-- The probability that one nonce fails a proof of work of `b` bits that also asks its challenge
+to lie outside `K`: `1 - 2^-b (1 - 2^-64)`. -/
+noncomputable def missK (b : ℕ) : ℝ≥0∞ := 1 - 2⁻¹ ^ b * qK
+
+/-- A nonce's permutation answer passes a `bits`-bit proof of work and draws a challenge outside
+`K`. -/
+def passK (bits : ℕ) (u : KeccakState) : Bool :=
+  powOk bits (Keccak.lane u 2) && LeanVM.Prover.nonceUsable true (challengeOf u)
+
+/-- **A nonce fails `passK` with probability exactly `1 - 2^-b (1 - 2^-64)`.** -/
+theorem avg_missK_eq {b : ℕ} (hb : b ≤ 64) :
+    (∑ u : KeccakState, ind (passK b u = false)) / Fintype.card KeccakState = missK b := by
+  have hc : (Fintype.card KeccakState : ℝ≥0∞) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
+  have hct : (Fintype.card KeccakState : ℝ≥0∞) ≠ ⊤ := ENNReal.natCast_ne_top _
+  have hpass : (∑ u : KeccakState, ind (passK b u = true)) / Fintype.card KeccakState =
+      2⁻¹ ^ b * qK := by
+    have h := sum_powOk_mul_challengeOf_div b
+      fun c ↦ ind (LeanVM.Prover.nonceUsable true c = true)
+    rw [sum_powOk_lane_div_eq hb, sum_usable_div] at h
+    rw [← h]
+    congr 1
+    refine Finset.sum_congr rfl fun u _ ↦ ?_
+    simp only [passK, ind, Bool.and_eq_true]
+    split_ifs <;> simp_all
+  have hadd : (∑ u : KeccakState, ind (passK b u = false)) +
+      (∑ u : KeccakState, ind (passK b u = true)) = Fintype.card KeccakState := by
+    rw [← Finset.sum_add_distrib]
+    calc ∑ u : KeccakState, (ind (passK b u = false) + ind (passK b u = true))
+        = ∑ _u : KeccakState, (1 : ℝ≥0∞) := Finset.sum_congr rfl fun u _ ↦ by
+          cases passK b u <;> simp [ind]
+      _ = _ := by rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one]
+  have hdiv := congrArg (· / (Fintype.card KeccakState : ℝ≥0∞)) hadd
+  simp only [ENNReal.add_div, ENNReal.div_self hc hct, hpass] at hdiv
+  exact ENNReal.eq_sub_of_add_eq (ENNReal.mul_ne_top (ENNReal.pow_ne_top
+    (ENNReal.inv_ne_top.2 two_ne_zero)) (ne_top_of_le_ne_top ENNReal.one_ne_top tsub_le_self)) hdiv
+
 theorem missProb_eq_ofReal (b : ℕ) : missProb b = ENNReal.ofReal (1 - (1 / 2 : ℝ) ^ b) := by
   rw [ENNReal.ofReal_sub _ (by positivity), ENNReal.ofReal_one, ENNReal.ofReal_pow (by norm_num)]
   rw [missProb, one_div, ENNReal.ofReal_inv_of_pos (by norm_num)]
   norm_num
+
+/-- A `27`-bit proof of work that also asks its challenge to lie outside `K` misses at most as
+often as two of `28` bits: `1 - 2^-27 (1 - 2^-64) ≤ (1 - 2^-28)^2`. -/
+theorem missK_le_sq : missK 27 ≤ missProb 28 ^ 2 := by
+  have h1 : missK 27 = ENNReal.ofReal (1 - (1 / 2 : ℝ) ^ 27 * (1 - (1 / 2 : ℝ) ^ 64)) := by
+    rw [ENNReal.ofReal_sub _ (by norm_num), ENNReal.ofReal_one,
+      ENNReal.ofReal_mul (by norm_num), ENNReal.ofReal_sub _ (by norm_num), ENNReal.ofReal_one,
+      ENNReal.ofReal_pow (by norm_num), ENNReal.ofReal_pow (by norm_num), missK, qK, one_div,
+      ENNReal.ofReal_inv_of_pos (by norm_num)]
+    norm_num
+  rw [h1, missProb_eq_ofReal, ← ENNReal.ofReal_pow (by norm_num)]
+  exact ENNReal.ofReal_le_ofReal (by norm_num)
 
 /-- `(1 - 2^-b)^(2^b) ≤ e^-1 < 3/8`, over the reals. -/
 theorem one_sub_pow_le_three_eighths (b : ℕ) : (1 - (1 / 2 : ℝ) ^ b) ^ (2 ^ b) ≤ 3 / 8 := by
@@ -130,6 +201,16 @@ theorem powOk_mono {b B : ℕ} (hbB : b ≤ B) {w : UInt64} (h : powOk B w = tru
     powOk b w = true := by
   simp only [powOk, decide_eq_true_eq] at h ⊢
   exact Nat.mod_eq_zero_of_dvd ((Nat.pow_dvd_pow 2 hbB).trans (Nat.dvd_of_mod_eq_zero h))
+
+/-- A nonce that passes `passK` at `bits` passes a proof of work of `b ≤ bits` bits, its
+challenge usable whatever the strategy asks. -/
+theorem nonceOk_of_passK {b bits : ℕ} (hb : b ≤ bits) (o : Bool) {u : KeccakState}
+    (h : passK bits u = true) :
+    (powOk b (Keccak.lane u 2) && LeanVM.Prover.nonceUsable o (challengeOf u)) = true := by
+  simp only [passK, Bool.and_eq_true] at h ⊢
+  refine ⟨powOk_mono hb h.1, ?_⟩
+  have := h.2
+  cases o <;> simp_all [LeanVM.Prover.nonceUsable]
 
 /-! ## Proof-of-work positions -/
 
@@ -191,16 +272,16 @@ open Classical in
 noncomputable def tried (ℓ : Log) (κ : PowKey) : Finset ℕ :=
   (Finset.range fuel).filter fun n ↦ lookF ℓ (nonceInput κ.1 κ.2 n) ≠ none
 
-/-- Some nonce below `fuel` passes at a position, in the log. -/
+/-- Some nonce below `fuel` passes at a position, in the log, its challenge outside `K`
+(`passK`). -/
 def Solved (ℓ : Log) (κ : PowKey) : Prop :=
-  ∃ n < fuel, ∃ v, lookF ℓ (nonceInput κ.1 κ.2 n) = some v ∧
-    powOk bits (Keccak.lane v 2) = true
+  ∃ n < fuel, ∃ v, lookF ℓ (nonceInput κ.1 κ.2 n) = some v ∧ passK bits v = true
 
 open Classical in
 /-- The term of a position: `0` once a nonce below `fuel` passed, otherwise the probability that
 the nonces below `fuel` not yet tried all fail. -/
 noncomputable def powTerm (ℓ : Log) (κ : PowKey) : ℝ≥0∞ :=
-  if Solved bits fuel ℓ κ then 0 else missProb bits ^ (fuel - (tried fuel ℓ κ).card)
+  if Solved bits fuel ℓ κ then 0 else missK bits ^ (fuel - (tried fuel ℓ κ).card)
 
 /-- **The proof-of-work potential**: the terms of the positions the log holds. -/
 noncomputable def powPot (ℓ : Log) : ℝ≥0∞ := ∑ κ ∈ keys fuel ℓ, powTerm bits fuel ℓ κ
@@ -295,11 +376,10 @@ theorem powTerm_step (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64) {ℓ : Log}
       rw [Finset.card_insert_of_notMem hn0T, Finset.card_range] at this
       omega
     have hpt : ∀ u, powTerm bits fuel (ℓ ++ [.inr (t, u)]) κ =
-        ind (powOk bits (Keccak.lane u 2) = false) *
-          missProb bits ^ (fuel - ((tried fuel ℓ κ).card + 1)) := by
+        ind (passK bits u = false) *
+          missK bits ^ (fuel - ((tried fuel ℓ κ).card + 1)) := by
       intro u
-      have hS : Solved bits fuel (ℓ ++ [.inr (t, u)]) κ ↔
-          powOk bits (Keccak.lane u 2) = true := by
+      have hS : Solved bits fuel (ℓ ++ [.inr (t, u)]) κ ↔ passK bits u = true := by
         constructor
         · rintro ⟨n, hn, d, hd, hp⟩
           by_cases hnn : n = n0
@@ -311,24 +391,24 @@ theorem powTerm_step (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64) {ℓ : Log}
           exact ⟨n0, hn0, u, lookF_append_inr_self ht u, hp⟩
       unfold powTerm
       rw [hT u, Finset.card_insert_of_notMem hn0T]
-      by_cases hp : powOk bits (Keccak.lane u 2) = true
+      by_cases hp : passK bits u = true
       · simp [hS.mpr hp, hp, ind]
-      · have hf : powOk bits (Keccak.lane u 2) = false := by simpa using hp
+      · have hf : passK bits u = false := by simpa using hp
         simp [mt hS.mp hp, hf, ind]
     simp only [hpt]
     rw [← Finset.sum_mul, ENNReal.div_eq_inv_mul, ← mul_assoc, ← ENNReal.div_eq_inv_mul,
-      avg_miss_eq hb]
+      avg_missK_eq hb]
     unfold powTerm
     simp only [hs, ↓reduceIte]
     rw [← pow_succ']
     exact le_of_eq (by congr 1; omega)
 
 /-- **The potential's step at the permutation**: a fresh query raises it by at most
-`(1 - 2^-bits)^fuel` in expectation. -/
+`(1 - 2^-bits (1 - 2^-64))^fuel` in expectation. -/
 theorem powPot_stepF (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64) {ℓ : Log}
     {t : KeccakState} (ht : lookF ℓ t = none) :
     (∑ u, powPot bits fuel (ℓ ++ [.inr (t, u)])) / Fintype.card KeccakState ≤
-      powPot bits fuel ℓ + missProb bits ^ fuel := by
+      powPot bits fuel ℓ + missK bits ^ fuel := by
   classical
   -- the terms of the positions other than `t`'s do not move
   have hother : ∀ u κ, (∀ n < fuel, nonceInput κ.1 κ.2 n ≠ t) →
@@ -388,7 +468,7 @@ theorem powPot_stepF (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64) {ℓ : Log}
         rw [← Finset.sum_add_distrib]
         exact Finset.sum_congr rfl fun u _ ↦ Finset.sum_insert hmem
       rw [e1, ENNReal.add_div, havg _ fun κ hκ ↦ hne κ hκ fun h ↦ hmem (h ▸ hκ)]
-      have hnew : powTerm bits fuel ℓ κ0 ≤ missProb bits ^ fuel := by
+      have hnew : powTerm bits fuel ℓ κ0 ≤ missK bits ^ fuel := by
         have hT : tried fuel ℓ κ0 = ∅ := by
           refine Finset.filter_false_of_mem fun n hn hl ↦ hmem ?_
           obtain ⟨v, hv⟩ := Option.ne_none_iff_exists'.mp hl
@@ -423,7 +503,8 @@ variable {F : KeccakState → Option KeccakState}
 input. -/
 theorem absorbNonce_option' {sp : Sponge} {n : ℕ} {r : UInt64 × Sponge}
     (h : absorbNonce F sp (nonceOf n) = some r) :
-    ∃ c ps u, F (nonceInput c ps n) = some u ∧ r.1 = Keccak.lane u 2 ∧ r.2.pending = [] ∧
+    ∃ c ps u, F (nonceInput c ps n) = some u ∧ r.1 = Keccak.lane u 2 ∧ r.2.state = u ∧
+      r.2.pending = [] ∧
       (if sp.pending.length = 4 then ps = [] ∧ ∃ v, F (duplexInput sp) = some v ∧ c = capOf v
         else ps = sp.pending ∧ c = capOf sp.state) := by
   obtain ⟨sp', ha, u, hu, rfl⟩ := (absorbNonce_option _ _ _ _).mp h
@@ -431,19 +512,20 @@ theorem absorbNonce_option' {sp : Sponge} {n : ℕ} {r : UInt64 × Sponge}
   split at ha
   · rename_i h4
     obtain ⟨v, hv, rfl⟩ := ha
-    refine ⟨capOf v, [], u, ?_, rfl, rfl, by simp [h4, hv]⟩
+    refine ⟨capOf v, [], u, ?_, rfl, rfl, rfl, by simp [h4, hv]⟩
     rw [duplexInput_eq] at hu
     exact hu
   · rename_i h4
     subst ha
-    refine ⟨capOf sp.state, sp.pending, u, ?_, rfl, rfl, by simp [h4]⟩
+    refine ⟨capOf sp.state, sp.pending, u, ?_, rfl, rfl, rfl, by simp [h4]⟩
     rw [duplexInput_eq] at hu
     exact hu
 
-theorem searchM_eq_some_none {bits : ℕ} {sp : Sponge} :
-    ∀ (count n : ℕ), searchM F bits sp n count = some none →
+theorem searchM_eq_some_none {bits : ℕ} {o : Bool} {sp : Sponge} :
+    ∀ (count n : ℕ), searchM F bits o sp n count = some none →
       ∀ j, n ≤ j → j < n + count →
-        ∃ r, absorbNonce F sp (nonceOf j) = some r ∧ powOk bits r.1 = false
+        ∃ r, absorbNonce F sp (nonceOf j) = some r ∧
+          (powOk bits r.1 && LeanVM.Prover.nonceUsable o (challengeOf r.2.state)) = false
   | 0, _, _ => fun _ h1 h2 ↦ by omega
   | count + 1, n, h => by
     change (absorbNonce F sp (LeanVM.Prover.nonceOf n)).bind _ = _ at h
@@ -453,12 +535,13 @@ theorem searchM_eq_some_none {bits : ℕ} {sp : Sponge} :
     · rename_i hp
       intro j hj1 hj2
       rcases Nat.eq_or_lt_of_le hj1 with rfl | hlt
-      · exact ⟨r, hr, by simpa using hp⟩
+      · exact ⟨r, hr, Bool.eq_false_iff.mpr hp⟩
       · exact searchM_eq_some_none count (n + 1) h j hlt (by omega)
 
-theorem findNonceM_eq_some_none {bits : ℕ} {sp : Sponge} {fuel : ℕ}
-    (h : findNonceM F bits sp fuel = some none) :
-    ∀ n < fuel, ∃ r, absorbNonce F sp (nonceOf n) = some r ∧ powOk bits r.1 = false := by
+theorem findNonceM_eq_some_none {bits : ℕ} {o : Bool} {sp : Sponge} {fuel : ℕ}
+    (h : findNonceM F bits o sp fuel = some none) :
+    ∀ n < fuel, ∃ r, absorbNonce F sp (nonceOf n) = some r ∧
+      (powOk bits r.1 && LeanVM.Prover.nonceUsable o (challengeOf r.2.state)) = false := by
   unfold findNonceM at h
   exact fun n hn ↦ searchM_eq_some_none fuel 0 h n (Nat.zero_le n) (by omega)
 
@@ -521,7 +604,7 @@ theorem proveFromM_eq_some_none {H : Bytes → Option Digest} (S : Strategy) (fu
     ∀ (p : VerifierProgram Bool) (sp : Sponge) (h : List Ev) (cs : List Tree), P.after h = some p →
       ProverSp sp → S.Follows h → proveFromM H F S fuel p sp h cs = some none →
       ∃ h' bits k sp', P.after h' = some (.grind bits k) ∧ S.Follows h' ∧ ProverSp sp' ∧
-        findNonceM F bits sp' fuel = some none
+        findNonceM F bits (S.outsideK h') sp' fuel = some none
   | .ret _, _, _, _, _, _, _, hp => by cases hp
   | .fail, _, _, _, _, _, _, hp => by cases hp
   | .read k, sp, h, cs, ha, hsp, hfo, hp => by
@@ -540,7 +623,7 @@ theorem proveFromM_eq_some_none {H : Bytes → Option Digest} (S : Strategy) (fu
       (proverSp_squeeze hsp hr) (hfo.snoc (fun _ hx ↦ by cases hx) (fun _ _ _ hx ↦ by cases hx)) hp
   | .grind bits k, sp, h, cs, ha, hsp, hfo, hp => by
     have ha' := after_grind_step ha
-    change (findNonceM F bits sp fuel).bind _ = _ at hp
+    change (findNonceM F bits (S.outsideK h) sp fuel).bind _ = _ at hp
     obtain ⟨o, ho, hp⟩ := Option.bind_eq_some_iff.mp hp
     rcases o with _ | n
     · exact ⟨h, bits, k, sp, ha, hfo, hsp, ho⟩
@@ -667,36 +750,38 @@ theorem one_le_powPot {σ : Seed} {P : VerifierProgram Bool} {S : Strategy} {bit
     have hbB := hg h' b' k ha hfo
     have hall' := findNonceM_eq_some_none hf
     have hall : ∀ n < fuel, ∃ r, absorbNonce (lookF ℓ) sp (nonceOf n) = some r ∧
-        powOk bits r.1 = false := fun n hn ↦ by
+        passK bits r.2.state = false ∧ r.1 = Keccak.lane r.2.state 2 := fun n hn ↦ by
       obtain ⟨r, hr, hp⟩ := hall' n hn
-      refine ⟨r, hr, ?_⟩
+      obtain ⟨-, -, u, -, hru, hsu, -⟩ := absorbNonce_option' hr
+      refine ⟨r, hr, ?_, by rw [hru, hsu]⟩
       by_contra hB
-      have := powOk_mono hbB (by simpa using hB)
-      rw [hp] at this
+      have := nonceOk_of_passK hbB (S.outsideK h') (by simpa using hB)
+      rw [hru, hsu] at hp
+      rw [hsu, hp] at this
       cases this
     -- The position of the search, the same for every nonce.
     obtain ⟨κ, hκ, hnon⟩ : ∃ κ : PowKey, KeyOk κ ∧ ∀ n < fuel, ∃ u,
-        lookF ℓ (nonceInput κ.1 κ.2 n) = some u ∧ powOk bits (Keccak.lane u 2) = false := by
+        lookF ℓ (nonceInput κ.1 κ.2 n) = some u ∧ passK bits u = false := by
       by_cases h4 : sp.pending.length = 4
       · obtain ⟨r0, hr0, -⟩ := hall 0 (Nat.pos_of_ne_zero hfuel0)
-        obtain ⟨c0, ps0, u0, -, -, -, hif⟩ := absorbNonce_option' hr0
+        obtain ⟨c0, ps0, u0, -, -, -, -, hif⟩ := absorbNonce_option' hr0
         simp only [h4, ↓reduceIte] at hif
         obtain ⟨-, v, hv, -⟩ := hif
         refine ⟨(capOf v, []), ⟨by simp, by simp⟩, fun n hn ↦ ?_⟩
-        obtain ⟨r, hr, hp⟩ := hall n hn
-        obtain ⟨c, ps, u, hu, hru, -, hif⟩ := absorbNonce_option' hr
+        obtain ⟨r, hr, hp, -⟩ := hall n hn
+        obtain ⟨c, ps, u, hu, -, hsu, -, hif⟩ := absorbNonce_option' hr
         simp only [h4, ↓reduceIte] at hif
         obtain ⟨rfl, v', hv', rfl⟩ := hif
         rw [hv] at hv'
         cases hv'
-        exact ⟨u, hu, by rw [← hru]; exact hp⟩
+        exact ⟨u, hu, by rw [← hsu]; exact hp⟩
       · refine ⟨(capOf sp.state, sp.pending), ⟨by dsimp only; have := hsp.1; omega, hsp.2⟩,
           fun n hn ↦ ?_⟩
-        obtain ⟨r, hr, hp⟩ := hall n hn
-        obtain ⟨c, ps, u, hu, hru, -, hif⟩ := absorbNonce_option' hr
+        obtain ⟨r, hr, hp, -⟩ := hall n hn
+        obtain ⟨c, ps, u, hu, -, hsu, -, hif⟩ := absorbNonce_option' hr
         simp only [h4, ↓reduceIte] at hif
         obtain ⟨rfl, rfl⟩ := hif
-        exact ⟨u, hu, by rw [← hru]; exact hp⟩
+        exact ⟨u, hu, by rw [← hsu]; exact hp⟩
     -- Its term is `1`.
     have hS : ¬ Solved bits fuel ℓ κ := by
       rintro ⟨n, hn, d, hd, hp⟩
@@ -726,7 +811,8 @@ are each followed at once by a challenge and ask for at most `bits ≤ 64` bits 
 has made the strategy's moves (`Strategy.Follows`), a strategy `S` that wins every interactive run of `P` with
 well-shaped words, the seeding `σ`, and a fuel of at most `2^64` nonces: with `Q` the queries of
 the honest prover and the verifier together, the verifier rejects the honest prover's proof with
-probability at most `Q · (1 - 2^-bits)^fuel`. -/
+probability at most `Q · (1 - 2^-bits (1 - 2^-64))^fuel`: the strategy's proofs of work may ask
+their challenge to lie outside `K` (`Strategy.outsideK`). -/
 theorem romComplete (P : VerifierProgram Bool) (S : Strategy) (σ : Seed) {bits fuel height n : ℕ}
     (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64) (hPg : GrindThenSample P)
     (hg : ∀ h b k, P.after h = some (.grind b k) → S.Follows h → b ≤ bits)
@@ -734,7 +820,7 @@ theorem romComplete (P : VerifierProgram Bool) (S : Strategy) (σ : Seed) {bits 
     (hP : P.CostLE height n) :
     Pr{let z ← romExperiment (honestComp σ P S fuel) (verifierComp σ P)}[z.1.2 = false] ≤
       ((σ.hs.length + 1 + n * proverFactor height fuel + (σ.hs.length + 1 + n / 4) : ℕ) :
-        ℝ≥0∞) * missProb bits ^ fuel := by
+        ℝ≥0∞) * missK bits ^ fuel := by
   set QA := σ.hs.length + 1 + n * proverFactor height fuel
   set QV := σ.hs.length + 1 + n / 4
   by_cases hfuel0 : fuel = 0
@@ -747,7 +833,7 @@ theorem romComplete (P : VerifierProgram Bool) (S : Strategy) (σ : Seed) {bits 
   have hV : ∀ π, IsTotalQueryBound (verifierComp σ P π) QV :=
     isTotalQueryBound_verifierComp hP σ
   rw [prEvent_romExperiment_eq_logExperiment _ _ fun r _ ↦ r.2 = false]
-  have hstep : LogFreshStepBound (powPot bits fuel) (missProb bits ^ fuel) := by
+  have hstep : LogFreshStepBound (powPot bits fuel) (missK bits ^ fuel) := by
     rw [logFreshStepBound_iff]
     refine ⟨fun ℓ x _ ↦ ?_, fun ℓ s hs' ↦ ?_⟩
     · simp only [powPot_append_inl]
