@@ -480,7 +480,7 @@ fn list_split_rejects_a_negative_rest() {
 fn grind_check_reads_the_low_bits() {
     let guest = guest_snippet(
         r#"    word = hint_witness("w")
-    grind_check(word, exponent_tables() * GEN ** WIN_TAB_AT, 3)
+    grind_check(word, 3)
     return
 "#,
         20,

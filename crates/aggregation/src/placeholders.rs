@@ -571,6 +571,8 @@ fn field_placeholders(ph: &mut Placeholders) {
     // Coordinate basis e_i of F128 over F2 (spans the whole field): the 64 binary
     // basis vectors in each of the two tower limbs. The guest uses these vectors to
     // reconstruct a word from its 128 coordinate bits.
+    // A bit window's pattern by its value, n for n below 2^11 (`query_window`, `grind_check`).
+    ph.list("WIN_PATTERNS", (0..1u64 << 11).map(|n| F128::new(n, 0)));
     ph.list(
         "COORD_BASIS",
         (0..128).map(|i| match i / 64 {
@@ -788,7 +790,14 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
     ph.set("LIG_ROW_CAP", most(OpeningShape::row_words));
     ph.set("LIG_FOLDS_CAP", most(|c, lv| c.folds[lv]));
     ph.set("LIG_PACKED_ROW_CAP", most(|c, _| c.row_words(0) / 2));
-    ph.set("LIG_PATH_CAP", most(|c, lv| 2 * (c.tree_depths[lv] - c.cap_depth(lv))));
+    let path_cap = most(|c, lv| 2 * (c.tree_depths[lv] - c.cap_depth(lv)));
+    ph.set("LIG_PATH_CAP", path_cap);
+    // A query position's window patterns shifted into place (`shifted_pattern`): for each shift s from 1 to the
+    // deepest path plus one, n x^s for n below 2^7, the widest such window.
+    ph.list(
+        "SHIFT_PATTERNS",
+        (1..=path_cap / 2 + 1).flat_map(|s| (0..1u64 << 7).map(move |n| F128::new(n << s, 0))),
+    );
     ph.set("LIG_MAX_LEVELS", maxlev);
     ph.set("LIG_MIN_LOG_SIZE", minm);
     ph.set("LIG_N_LOG_SIZES", n_log_sizes);
