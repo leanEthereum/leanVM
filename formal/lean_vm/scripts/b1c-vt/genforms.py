@@ -64,6 +64,7 @@ FV = _formvals()
 RAW={}
 for line in open(IRF).read().splitlines():
     k,_,s=line.partition(': ')
+    if k == 'params': continue
     s=s.strip()
     if s.endswith(' ::'): s=s[:-3]
     RAW[int(k)]=s

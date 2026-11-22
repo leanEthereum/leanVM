@@ -3,7 +3,7 @@
 import re, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import vtflat
-top, flat, ctr, cend = vtflat.load()
+top, flat, ctr, cend, nparams = vtflat.load()
 # the checker's counter at the end past every value the body names
 assert all(v < cend for _, s in flat for v in vtflat.vs(s)), cend
 st = []
@@ -35,7 +35,7 @@ def vtSL : List Atom := [
 set_option maxRecDepth 100000 in
 /-- The counter `storesOf` carries stays unevaluated over long runs without loads: the kernel's
 recursion goes deep (as `CoreNames`' checks). -/
-theorem vt_stores : storesOf {vtflat.NPARAMS} vtEvL = vtSL := by decide +kernel
+theorem vt_stores : storesOf {nparams} vtEvL = vtSL := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Tables''')

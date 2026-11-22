@@ -20,7 +20,7 @@ OUT = os.path.join(ROOT, 'CoreMode', 'Gen')
 # the caller: its stable name, its entries and bound parameters
 import fnrules  # noqa: E402
 ORIGIN, = fnrules.table('ANY_ORIGIN')
-UE, UL = 0, 3
+UE, UL = (fnrules.param(ORIGIN, p) for p in fnrules.table('ANY_PARAMS')[ORIGIN])
 RANGES = resgen.RANGES
 
 
