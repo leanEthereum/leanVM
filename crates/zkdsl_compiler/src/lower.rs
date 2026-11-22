@@ -212,13 +212,16 @@ struct FnLower<'a> {
     reservations: HashMap<Off, hoist::Site>,
     /// The name the statement being lowered binds, for a `HeapBuf`'s diagnostics.
     let_name: Option<String>,
-    /// The branch nesting of the code being emitted: `0` at a statement's top level, outside every branch's body.
-    /// A branch's exit jumps sit at `0` too (an `if`'s first arm's, a `match` arm's), though only the runs that took
-    /// that branch run them.
-    depth: u32,
-    /// The nesting of each instruction emitted.
-    code_depth: Vec<u32>,
-    /// Where the statement being lowered at depth `0` starts.
+    /// The arms holding the code being emitted, outermost first: each a branch (an `if` or a `match`, numbered in
+    /// order) and which of its arms. Empty, "depth `0`", at a statement's top level, outside every branch's body.
+    /// A branch's exit jumps sit at depth `0` too (an `if`'s first arm's, a `match` arm's), though only the runs
+    /// that took that arm run them.
+    path: Vec<(u32, u32)>,
+    /// The path of each instruction emitted.
+    code_path: Vec<Vec<(u32, u32)>>,
+    /// The number of arms of each branch, an `if`'s two (one may be empty).
+    branches: Vec<u32>,
+    /// Where the statement being lowered at depth `0` starts, or the chain of `match`es it ends.
     stmt_start: usize,
     /// The index of each `return` jump.
     returns: Vec<usize>,
@@ -302,7 +305,7 @@ impl FnLower<'_> {
 
     fn emit(&mut self, op: LOp) {
         let hints = std::mem::take(&mut self.pending);
-        self.code_depth.push(self.depth);
+        self.code_path.push(self.path.clone());
         self.code.push(LInstr {
             op,
             line: self.cur_line,
@@ -464,9 +467,10 @@ impl FnLower<'_> {
     /// A frame cell holding this function's own `fp` (the g-power element),
     /// materialized lazily once: a taken `JUMP` reloads the frame pointer
     /// from a cell, so local (`if`/`else`) jumps must name it. The ISA has no
-    /// fp-read, so bounce it through a fresh 1-cell heap buffer: a
-    /// `DEREF`-fp writes it there and a `DEREF`-cell copies it back. In `main`, `fp = g^0 = 1`, which is
-    /// the [`Self::one`] cell.
+    /// fp-read, so a `DEREF`-fp writes it through a hinted address, that of the cell
+    /// itself, and a `DEREF`-cell reads it back through the same address into the cell,
+    /// which pins the cell to `fp` whatever address the hint gave. In `main`, `fp = g^0 = 1`,
+    /// which is the [`Self::one`] cell.
     fn self_fp(&mut self) -> Off {
         if self.is_main {
             return self.one();
@@ -476,11 +480,11 @@ impl FnLower<'_> {
         }
         let q = self.fresh();
         let o = self.fresh();
-        // The bounce is `o` itself: `q` holds its address.
+        // `q` holds the address of `o`.
         self.pending
             .push(Hint::Resolved(RHint::CellAddress { ptr: q, cell: o }));
-        self.deref(q, 0, 0, DerefMode::Fp); // m[q] := fp
-        self.deref(q, 0, o, DerefMode::Cell); // m[fp·g^o] := m[q]
+        self.deref(q, 0, 0, DerefMode::Fp); // m[m[fp·g^q]] := fp
+        self.deref(q, 0, o, DerefMode::Cell); // m[fp·g^o] = m[m[fp·g^q]]
         self.scope.self_fp_off = Some(o);
         o
     }
@@ -498,9 +502,9 @@ impl FnLower<'_> {
     /// (`one`, `self_fp`, range-check bounds, the `keccak` padding run) revert
     /// afterwards, since a cell whose `SET` sits inside a conditionally-executed
     /// region must not be trusted outside it.
-    fn scoped(&mut self, f: impl FnOnce(&mut Self)) {
+    fn scoped(&mut self, arm: (u32, u32), f: impl FnOnce(&mut Self)) {
         let saved_scope = self.scope.clone();
-        self.depth += 1;
+        self.path.push(arm);
         f(self);
         // A hint pending at the end of a branch (e.g. a trailing
         // `hint_witness`) must not attach to whatever instruction follows the
@@ -508,13 +512,19 @@ impl FnLower<'_> {
         if !self.pending.is_empty() {
             self.anchor();
         }
-        self.depth -= 1;
+        self.path.pop();
         self.scope = saved_scope;
     }
 
+    /// Number a new branch of `arms` arms, for [`Self::scoped`].
+    fn new_branch(&mut self, arms: usize) -> u32 {
+        self.branches.push(arms as u32);
+        (self.branches.len() - 1) as u32
+    }
+
     /// Lower a branch body with branch-local scope ([`Self::scoped`]).
-    fn branch(&mut self, body: &[Stmt]) {
-        self.scoped(|s| {
+    fn branch(&mut self, arm: (u32, u32), body: &[Stmt]) {
+        self.scoped(arm, |s| {
             for st in body {
                 s.stmt(st);
             }
@@ -619,8 +629,9 @@ impl FnLower<'_> {
             "a chained match emitted code above its arms"
         );
         (self.chain_next, self.chain_in) = (chain_next, chain_in);
+        let branch = self.new_branch(arms.len());
         self.lower_match_dispatch(xo, arms.len(), |s, j| {
-            s.scoped(|s| {
+            s.scoped((branch, j as u32), |s| {
                 if let [rcell] = rcells.as_slice() {
                     s.expr_into(&arms[j], *rcell);
                 } else {
@@ -832,7 +843,8 @@ impl FnLower<'_> {
             od: bdest,
             of: sfp,
         });
-        self.branch(a_block);
+        let branch = self.new_branch(2);
+        self.branch((branch, 0), a_block);
         if b_block.is_empty() {
             self.patch_local(bset, self.code.len());
         } else {
@@ -845,7 +857,7 @@ impl FnLower<'_> {
                 of: sfp,
             });
             self.patch_local(bset, self.code.len());
-            self.branch(b_block);
+            self.branch((branch, 1), b_block);
             self.patch_local(eset, self.code.len());
         }
     }
@@ -1253,7 +1265,8 @@ impl FnLower<'_> {
     }
 
     fn stmt(&mut self, s: &Stmt) {
-        if self.depth == 0 {
+        // A chained `match`, entered from the arms of the one before, starts where its chain does.
+        if self.path.is_empty() && self.chain_in.is_none() {
             self.stmt_start = self.code.len();
         }
         let tail = std::mem::take(&mut self.tail_call);
@@ -1787,8 +1800,9 @@ pub(crate) fn lower_func(
             pending: Vec::new(),
             reservations: HashMap::new(),
             let_name: None,
-            depth: 0,
-            code_depth: Vec::new(),
+            path: Vec::new(),
+            code_path: Vec::new(),
+            branches: Vec::new(),
             stmt_start: 0,
             returns: Vec::new(),
             chain_next: None,
