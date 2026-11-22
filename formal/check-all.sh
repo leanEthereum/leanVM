@@ -10,7 +10,8 @@
 #
 # The compiled checks and `lean` run under a virtual-memory cap of LEAN_VMEM_KB (default 40 GB);
 # `lake` itself cannot, as it reserves about 1 GB of address space per job: every build runs in
-# `lake-build.py`, which admits its modules by memory within a systemd scope.
+# `lake-build.py`, which admits its modules by memory within a systemd scope. macOS has neither the
+# cap nor the scope: `lake-build.py`'s budget is the only guard there.
 #
 # The checks after a build read it and write nothing, so they run at once (`bg`), each one's output
 # printed, in order, when all are done (`wait_bg`).
@@ -21,7 +22,7 @@ trap 'kill $(jobs -p) 2> /dev/null || true; rm -rf "$log"' EXIT
 
 step() { printf '\n==> [%dm%02ds] %s\n' $((SECONDS / 60)) $((SECONDS % 60)) "$*"; }
 fail() { echo "error: $*" >&2; exit 1; }
-capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
+capped() { ([ "$(uname)" = Darwin ] || ulimit -v "${LEAN_VMEM_KB:-40000000}" || exit; exec "$@"); }
 cores=$(nproc 2>/dev/null || sysctl -n hw.ncpu)
 par=$((cores / 4 > 4 ? cores / 4 : 4))  # the differential tests' Lean processes, each
 
