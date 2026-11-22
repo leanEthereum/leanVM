@@ -8,7 +8,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Fam.ResS
 public import LeanVM.Guest.CoreMode.Gen.AnyLink
-public import LeanVM.Guest.CoreMode.Fam.MonoDefs
+public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.MonoDefs
 public import LeanVM.Guest.CoreMode.Fam.FamDefs
 public import LeanVM.Guest.CoreMode.Fam.TermDefs
 public import LeanVM.Guest.CoreMode.Fam.ExpDefs

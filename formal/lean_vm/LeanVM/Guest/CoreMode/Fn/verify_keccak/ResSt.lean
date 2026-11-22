@@ -1,12 +1,12 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.ResSt
+  LeanVM.Guest.CoreMode.Fn.verify_keccak.ResSt
 
   `verify_keccak`'s cursor in the proof stream (`VkQ`), carried down from `verify_sub`'s front.
 -/
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.TermQ
+public import LeanVM.Guest.CoreMode.Fn.check_opening_terminal.TermQ
 public import LeanVM.Guest.Child.Reads
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_keccak»

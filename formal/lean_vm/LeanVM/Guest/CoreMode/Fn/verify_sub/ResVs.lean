@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.ResVs
+  LeanVM.Guest.CoreMode.Fn.verify_sub.ResVs
 
   `verify_sub`'s exponent facts (`Res.vsFacts`) at its honest frames, and its residuals in their
   families (`Res.vsB`).
@@ -10,13 +10,13 @@ module
 public import LeanVM.Guest.Mode.ResFam
 public import LeanVM.Guest.CoreMode.Fam.EfDefs
 public import LeanVM.Guest.Value.Bits
-public import LeanVM.Guest.CoreMode.Fam.ResSt
-public import LeanVM.Guest.CoreMode.Fam.ResVk
+public import LeanVM.Guest.CoreMode.Fn.verify_keccak.ResSt
+public import LeanVM.Guest.CoreMode.Fn.verify_keccak.ResVk
 public import LeanVM.Guest.CoreMode.Fam.Kid
-public import LeanVM.Guest.CoreMode.Fam.ResVtL
+public import LeanVM.Guest.CoreMode.Fn.verify_tables.ResVtL
 public import LeanVM.Guest.CoreMode.Fam.ResCld
 public import LeanVM.Guest.CoreMode.Fam.SubDefs
-public import LeanVM.Guest.CoreMode.Fam.ResStB
+public import LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStB
 public import LeanVM.Guest.B1.VerifySub.Lanes
 public import LeanVM.Guest.B1.KeccakGkr.VkHolds
 public import LeanVM.Guest.B1.Bits.Grind

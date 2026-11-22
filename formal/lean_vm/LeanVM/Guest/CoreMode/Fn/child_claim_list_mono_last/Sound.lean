@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.EndExecCoreFn
-public import LeanVM.Guest.CoreMode.Fam.ResM
+public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.ResM
 public import LeanVM.Guest.CoreMode.Gen.MonoWalkOk
 public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono_last.Data
 

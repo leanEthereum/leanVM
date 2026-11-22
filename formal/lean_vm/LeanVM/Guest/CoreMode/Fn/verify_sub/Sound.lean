@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.EndExecCoreRes
-public import LeanVM.Guest.CoreMode.Fam.ResVs
+public import LeanVM.Guest.CoreMode.Fn.verify_sub.ResVs
 public import LeanVM.Guest.CoreMode.Fn.verify_sub.Fam
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sub»

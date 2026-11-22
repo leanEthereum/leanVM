@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.EndExecCoreDa
+  LeanVM.Guest.CoreMode.Fn.da_pad.EndExecCoreDa
 
   `da_pad`'s gap at its honest instances (`DaPadQ`): the `g^(DA_MAX_ROWS - n)` `da_verify` hands it, `n ≥ 1` by
   `da_padding`'s meaning, carried down the honest tree from its one caller.
@@ -8,15 +8,15 @@
 module
 
 public import LeanVM.Guest.CoreMode.Fam.ResF
-public import LeanVM.Guest.CoreMode.Fam.ResCs
-public import LeanVM.Guest.CoreMode.Fam.CsQ
+public import LeanVM.Guest.CoreMode.Fn.column_selector.ResCs
+public import LeanVM.Guest.CoreMode.Fn.column_selector.CsQ
 public import LeanVM.Guest.CoreMode.CoreRes
 public import LeanVM.Guest.CoreMode.HeapCSound
-public import LeanVM.Guest.CoreMode.Fam.ExpQv
+public import LeanVM.Guest.CoreMode.Fn.verify_tables.ExpQv
 public import LeanVM.Guest.EndExecCoreSplit
-public import LeanVM.Guest.EndExecCoreVt
-public import LeanVM.Guest.CoreMode.Fam.ResVs
-public import LeanVM.Guest.CoreMode.Fam.ResCp
+public import LeanVM.Guest.CoreMode.Fn.verify_tables.EndExecCoreVt
+public import LeanVM.Guest.CoreMode.Fn.verify_sub.ResVs
+public import LeanVM.Guest.CoreMode.Fn.certify_placement.ResCp
 public import LeanVM.Guest.CoreMode.Gen.TermCallers
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_verify»

@@ -7,8 +7,8 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResStB
-public import LeanVM.Guest.EndExecCoreMono
+public import LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStB
+public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.EndExecCoreMono
 
 /-!
 # The stream-cursor family, sound

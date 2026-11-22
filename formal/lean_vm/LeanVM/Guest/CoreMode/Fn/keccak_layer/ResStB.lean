@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.ResStB
+  LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStB
 
   The proof stream's reads (`Res.stB`), sound at the honest frames: `keccak_layer`'s and its two
   loops' reads past their cursors lie inside the stream.
@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResStP
+public import LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStP
 public import LeanVM.Guest.CoreMode.Fam.SubDefs
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L_loop0»

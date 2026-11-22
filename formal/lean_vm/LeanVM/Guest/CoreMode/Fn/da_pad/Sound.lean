@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.EndExecCoreRes
-public import LeanVM.Guest.EndExecCoreDa
+public import LeanVM.Guest.CoreMode.Fn.da_pad.EndExecCoreDa
 public import LeanVM.Guest.CoreMode.Fn.da_pad.Fam
 
 namespace LeanVM.Guest.EndExec

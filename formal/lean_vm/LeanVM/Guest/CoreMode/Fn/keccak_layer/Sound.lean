@@ -8,8 +8,8 @@ module
 
 public import LeanVM.Guest.EndExecCoreRes
 public import LeanVM.Guest.EndExecCoreSt
-public import LeanVM.Guest.CoreMode.Fam.ResStP
-public import LeanVM.Guest.CoreMode.Fam.ResStL
+public import LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStP
+public import LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStL
 public import LeanVM.Guest.CoreMode.Fn.keccak_layer.Data
 public import LeanVM.Guest.CoreMode.Fn.keccak_layer.Fam
 import LeanVM.Guest.ValRef

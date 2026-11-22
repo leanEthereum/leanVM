@@ -353,8 +353,4 @@ OWN = [
     'LeanVM/Guest/B1/Tables/Kids/**',
     'LeanVM/Guest/B1/Exact/VerifyTables.lean',
     'LeanVM/Guest/B1/Exact/VtOwn.lean',
-    'LeanVM/Guest/CoreMode/Fam/ResVt*.lean',
-    'LeanVM/Guest/CoreMode/Fam/ExpQv.lean',
-    'LeanVM/Guest/CoreMode/Fam/SubVt.lean',
-    'LeanVM/Guest/EndExecCoreVt.lean',
 ]

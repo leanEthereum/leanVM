@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.ResVtL
+  LeanVM.Guest.CoreMode.Fn.verify_tables.ResVtL
 
   `verify_tables`' table sumcheck's rounds loop at its honest instances: its cursor in the proof stream
   (`VtLQ`).
@@ -7,8 +7,8 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResVt
-public import LeanVM.Guest.CoreMode.Fam.ResStP
+public import LeanVM.Guest.CoreMode.Fn.verify_tables.ResVt
+public import LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStP
 public import LeanVM.Guest.B1.Tables.Vt.Loop10
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_tables»

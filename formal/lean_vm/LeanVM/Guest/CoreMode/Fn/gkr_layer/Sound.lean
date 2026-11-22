@@ -8,8 +8,8 @@ module
 
 public import LeanVM.Guest.EndExecCoreRes
 public import LeanVM.Guest.EndExecCoreSt
-public import LeanVM.Guest.CoreMode.Fam.ResGkrQ
-public import LeanVM.Guest.CoreMode.Fam.ResGkrL
+public import LeanVM.Guest.CoreMode.Fn.verify_bus_gkr.ResGkrQ
+public import LeanVM.Guest.CoreMode.Fn.verify_bus_gkr.ResGkrL
 public import LeanVM.Guest.CoreMode.Fn.gkr_layer.Data
 public import LeanVM.Guest.CoreMode.Fn.gkr_layer.Fam
 import LeanVM.Guest.ValRef

@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.MonoDefs
+  LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.MonoDefs
 
   The checks behind the gap walk's table reads: `child_claim_list_mono`'s cells and call sites,
   its callees' callers, and the residual a read of the walk leaves.

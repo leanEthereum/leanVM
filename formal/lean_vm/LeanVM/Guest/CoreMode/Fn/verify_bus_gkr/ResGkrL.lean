@@ -1,12 +1,12 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.ResGkrL
+  LeanVM.Guest.CoreMode.Fn.verify_bus_gkr.ResGkrL
 
   The cursor of `gkr_layer__L{p}_L{o}`'s loop in the proof stream (`GlLQ`), carried down from the layer.
 -/
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResGkrQ
+public import LeanVM.Guest.CoreMode.Fn.verify_bus_gkr.ResGkrQ
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
 

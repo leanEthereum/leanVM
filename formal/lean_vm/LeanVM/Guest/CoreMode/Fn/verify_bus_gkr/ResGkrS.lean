@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.ResGkrS
+  LeanVM.Guest.CoreMode.Fn.verify_bus_gkr.ResGkrS
 
   The facts about `verify_bus_gkr`'s radix-four layers' code that the core route's cursor families
   (`ResGkrQ`, `ResGkrL`) carry down: their callers and call sites, the dispatch on the depth's parity,

@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.ResE
+  LeanVM.Guest.CoreMode.Fn.check_opening_terminal.ResE
 
   `check_opening_terminal`'s exponent and dimension facts, read off what `verify_sub` hands it
   (`Res.TermFront`), and the families on them sound at the honest frames: its order residuals

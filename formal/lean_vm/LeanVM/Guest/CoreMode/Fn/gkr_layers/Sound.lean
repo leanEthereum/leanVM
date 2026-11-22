@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.EndExecCoreRes
-public import LeanVM.Guest.CoreMode.Fam.ResGkrQ
+public import LeanVM.Guest.CoreMode.Fn.verify_bus_gkr.ResGkrQ
 public import LeanVM.Guest.CoreMode.Fn.gkr_layers.Data
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L»

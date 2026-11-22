@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.ResVk
+  LeanVM.Guest.CoreMode.Fn.verify_keccak.ResVk
 
   `verify_keccak`'s values at an honest frame: its table's log-height, its cursor, the pack rounds'
   split, and its layers' returned cursors.
@@ -7,8 +7,8 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResStL
-public import LeanVM.Guest.CoreMode.Fam.ResE
+public import LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStL
+public import LeanVM.Guest.CoreMode.Fn.check_opening_terminal.ResE
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_keccak»
 

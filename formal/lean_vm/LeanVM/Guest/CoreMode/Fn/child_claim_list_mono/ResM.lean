@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.ResM
+  LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.ResM
 
   The gap walk's records at the honest instances: each frame loop and last claims of
   `child_claim_list_mono` linked to its caller's frame and to the records of the walk, carried down
@@ -9,8 +9,8 @@
 module
 
 public import LeanVM.Guest.CoreMode.Fam.ResA
-public import LeanVM.Guest.CoreMode.Fam.MonoReplay
-public import LeanVM.Guest.CoreMode.Fam.MonoDefs
+public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.MonoReplay
+public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.MonoDefs
 public import LeanVM.Guest.B1.Digest.ChildDigest
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_digest»

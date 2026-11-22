@@ -8,10 +8,10 @@ module
 
 public import LeanVM.Guest.EndExecCoreRes
 public import LeanVM.Guest.EndExecCoreSt
-public import LeanVM.Guest.EndExecCoreVt
-public import LeanVM.Guest.CoreMode.Fam.ExpQv
-public import LeanVM.Guest.CoreMode.Fam.ResVtL
-public import LeanVM.Guest.CoreMode.Fam.ResVtG
+public import LeanVM.Guest.CoreMode.Fn.verify_tables.EndExecCoreVt
+public import LeanVM.Guest.CoreMode.Fn.verify_tables.ExpQv
+public import LeanVM.Guest.CoreMode.Fn.verify_tables.ResVtL
+public import LeanVM.Guest.CoreMode.Fn.verify_tables.ResVtG
 public import LeanVM.Guest.CoreMode.Fn.verify_tables.Data
 public import LeanVM.Guest.CoreMode.Fn.verify_tables.Fam
 import LeanVM.Guest.ValRef

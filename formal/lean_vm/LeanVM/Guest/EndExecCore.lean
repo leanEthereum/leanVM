@@ -16,7 +16,7 @@ public import LeanVM.Guest.Bridge.ProgAlKeys
 public import LeanVM.Guest.EndExecLoop
 public import LeanVM.Guest.EndExecChain
 public import LeanVM.Guest.EndExecCoreResAll
-public import LeanVM.Guest.EndExecCoreMono
+public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.EndExecCoreMono
 public import LeanVM.Guest.EndExecCoreSt
 
 /-!

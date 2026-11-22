@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.SubVt
+  LeanVM.Guest.CoreMode.Fn.verify_tables.SubVt
 
   `verify_tables`' `sub` residuals' families of the old route (`Mode.Res`): its reads past its table sumcheck's last
   record's cursor, its groups' bases.

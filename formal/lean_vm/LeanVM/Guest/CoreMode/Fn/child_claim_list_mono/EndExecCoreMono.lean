@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.EndExecCoreMono
+  LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.EndExecCoreMono
 
   The core route's ghost family at the honest instances: `child_claim_list_mono_last__L{k}`, its ghost
   word its caller's entries table, its reads in that table (the old route's gap walk on names).
@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResMR
+public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.ResMR
 public import LeanVM.Guest.EndExecCoreLink
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_last__L»

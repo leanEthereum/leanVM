@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.EndExecW
-public import LeanVM.Guest.CoreMode.Fam.ResE
+public import LeanVM.Guest.CoreMode.Fn.check_opening_terminal.ResE
 public import LeanVM.Guest.CoreMode.Fam.ResS
 public import LeanVM.Guest.CoreMode.CoreRes
 

@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.ResVt
+  LeanVM.Guest.CoreMode.Fn.verify_tables.ResVt
 
   `verify_tables`' cursor in the proof stream and its table sumcheck's round count (`VtQ`), carried
   down from `verify_sub`'s front.
@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResSt
+public import LeanVM.Guest.CoreMode.Fn.verify_keccak.ResSt
 public import LeanVM.Guest.B1.Tables.Vt.Pi
 public import LeanVM.Guest.B1.Tables.Vt.BcShare
 public import LeanVM.Guest.B1.VerifySub.NodePops
