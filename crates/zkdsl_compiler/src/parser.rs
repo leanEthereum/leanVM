@@ -253,6 +253,7 @@ const BUILTINS: &[&str] = &[
     "unroll",
     "mul_range",
     "addr",
+    "lookup",
     "assert_in_k",
     "assert_gpow",
     "keccak",

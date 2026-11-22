@@ -150,6 +150,8 @@ pub(crate) struct JumpTables {
     pub(crate) slots: Vec<KVal>,
     /// The table of each dispatched call's callees, shared by every call to the same ones.
     pub(crate) shared: HashMap<Vec<String>, usize>,
+    /// Where each top-level constant array a `lookup` reads sits among the slots, one copy each.
+    pub(crate) statics: HashMap<String, usize>,
 }
 
 /// A resolved run of consecutive cells (`FnLower::cell_run`): a
