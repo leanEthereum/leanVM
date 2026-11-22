@@ -259,11 +259,7 @@ info: 'LeanVM.Guest.EndExec.honestExecution_complete_on_accepted_children' depen
 #guard_msgs in
 #print axioms LeanVM.Guest.Child.acceptableChildren_of_accepted
 
-/--
-info: 'LeanVM.Guest.EndExec.honestExecution_ok_on_honest_children' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
+/-- info: 'LeanVM.Guest.EndExec.honestExecution_ok_on_honest_children' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.EndExec.honestExecution_ok_on_honest_children
 
