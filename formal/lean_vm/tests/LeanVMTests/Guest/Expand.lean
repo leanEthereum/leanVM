@@ -166,7 +166,7 @@ def publish (a b : Expr) : List Source.Stmt :=
 /-- A `main` beside these guest functions. -/
 def withGuest (fs : List String) (body : List Source.Stmt) : Source.Program :=
   ⟨{ name := "main", params := [], returnShapes := [], body, inline := false } :: fs.map guestFn,
-    Data.guest.constArrays⟩
+    Data.guest.constArrays, Data.guest.lookupCells⟩
 
 /-- `r = pack64x2(a, b)`, published. -/
 def packMain (a b : Expr) : Source.Program :=
@@ -214,7 +214,7 @@ def lits (ns : List Nat) : List E := ns.map litField
 def hashMain (stmts : List Source.Stmt) : Source.Program :=
   ⟨[{ name := "main", params := [], returnShapes := [], inline := false,
       body := [st (.let_ "h" (.stackBuf 2))] ++ stmts ++
-        publish (.index (.var "h") (.lit 0)) (.index (.var "h") (.lit 1)) }], []⟩
+        publish (.index (.var "h") (.lit 0)) (.index (.var "h") (.lit 1)) }], [], []⟩
 
 /-- A keyword argument. -/
 def kw (k : String) (v : Expr) : Expr := .call s!"__kw_{k}" [v]

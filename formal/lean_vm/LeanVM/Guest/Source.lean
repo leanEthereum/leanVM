@@ -190,6 +190,9 @@ two limbs of a word. -/
 structure Program where
   funcs : List Func
   constArrays : List (String × List (Nat × Nat))
+  /-- The cell of `main`'s frame (`fp = g^0`) where each constant array a `lookup` reads starts
+  (`compile_parts`). -/
+  lookupCells : List (String × Nat)
   deriving Repr, Inhabited
 
 /-! ## Substitution (`parser/subst.rs`) -/

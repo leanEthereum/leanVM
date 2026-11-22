@@ -48,6 +48,12 @@ pub use parser::{f128_literal, parse, parse_const, parse_with_constants, parse_w
 /// Compile an [`Ast`] to a provable [`CompiledProgram`]. Panics on a malformed program
 /// (unbound variable, missing `main`, address overflow).
 pub fn compile(ast: &Ast) -> CompiledProgram {
+    compile_parts(ast).0
+}
+
+/// [`compile`], with the cell of `main`'s frame (`fp = g^0`) where each constant array a `lookup` reads starts, by
+/// name: what the formalization's front end lowers a `lookup` to a load at.
+pub fn compile_parts(ast: &Ast) -> (CompiledProgram, Vec<(String, u32)>) {
     // Lower main first (it follows the table writes at pc 0), then the rest, expanding loop helpers.
     let mut queue: Vec<Func> = Vec::new();
     let main = ast
@@ -218,7 +224,11 @@ pub fn compile(ast: &Ast) -> CompiledProgram {
 
     // Pad the bytecode to `B` (the sentinel slot g^{B-1} must exist for execution).
     prog.resize(bytecode_size, Op::Set { o: 0, k: F128::ZERO });
-    CompiledProgram {
+    let mut lookups: Vec<(String, u32)> = (tables.statics.iter())
+        .map(|(name, &first)| (name.clone(), tables_base + first as u32))
+        .collect();
+    lookups.sort();
+    let program = CompiledProgram {
         prog,
         hints,
         main_frame: frame_size["main"],
@@ -227,7 +237,8 @@ pub fn compile(ast: &Ast) -> CompiledProgram {
             .map(|l| (l.name.clone(), entry[&l.name], l.code.len() as u32))
             .collect(),
         src_lines,
-    }
+    };
+    (program, lookups)
 }
 
 /// Render compiled bytecode as a human-readable disassembly. `fp[k]` is the cell
