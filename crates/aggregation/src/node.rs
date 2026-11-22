@@ -1,4 +1,5 @@
-//! The entry point that proves one node of an aggregation tree.
+//! The entry point that proves one node of an aggregation tree. The witness streams it pushes, and their order, are
+//! transcribed in Lean as `formal/Statement/Prover/Guest.lean`'s `honestPushes`: a change here lands there too.
 
 use super::cells::count;
 use super::child::gen_verify;

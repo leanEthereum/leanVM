@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Common.Find
 /-!
 # GKR rounds between records
 
-The body of a rounds function at `n` rounds (`gkBody false n`; its parameters the record, the point, the cursor, the
+The rounds of a radix-four GKR layer's loop iteration at `n` rounds (`gkPre lc n`; its values `0 .. 4` the record, the point, the cursor, the
 window table and the stream): the record's capacity and claim loaded into `5 .. 10`; round `q`
 (`gkRound q`, from `B = 11 + 39 q`): four stream words read and packed (`B + 3 t`, its cells
 `B + 3 t + 1`, `B + 3 t + 2`), the permutation of the four waiting with the previous capacity
@@ -23,11 +23,10 @@ into `B + 12` (`fs_grind_squeeze` at zero bits), its challenge the permutation's
 `B + 12`, the previous coordinate `pt[q]` (at `B + 25`), the derived `c0`, the challenge stored at
 `pt[42 + q]`, the claim at the challenge (at `B + 38`); at an odd `n` a zero stored at `pt[42 + n]` (`gkPad`); the
 next record's capacity, cursor and claim stored. The window table and the stream are not read.
-`gkBody true n` also loads the cursor from the record (`gkCurLoad`), as a loop iteration of a
-radix-four GKR layer does.
+`gkPre true n` also loads the cursor from the record (`gkCurLoad`), as the loop iteration does.
 
-`gk_body_holds`: the honest valuation (`gkVals`) satisfies `gkBody lc n` over any call relation;
-`gk_sound`, `gk_complete`: a function whose body is `gkBody false n` is its meaning.
+`gk_pre_holds`: the honest valuation (`gkVals`) satisfies `gkPre lc n` over any call relation
+(`B1/Gkr/GlCLoop.lean` renames it into the loop's iteration).
 -/
 
 namespace LeanVM.Guest.B1
@@ -100,11 +99,6 @@ def gkPre (lc : Bool) (n : ℕ) : List Stmt :=
     .atom (.mul (.n (12 + 39 * n + n % 2)) (.n 2) (.n (11 + 39 * n + n % 2))),
     .atom (.load (.n (12 + 39 * n + n % 2)) (.n 0) 4311),
     .atom (.load (.n (49 + 39 * (n - 1))) (.n 0) 5173)]
-
-/-- The expansion of `gkr_rounds` at `n ≥ 1` rounds (`lc = false`). -/
-def gkBody (lc : Bool) (n : ℕ) : List Stmt :=
-  gkPre lc n ++
-    [.atom (.const (.n (13 + 39 * n + n % 2)) (word 0 0)), .ret [.n (13 + 39 * n + n % 2)]]
 
 /-! ## The rounds as a sequence -/
 
@@ -179,7 +173,7 @@ theorem gk_eval (claim e c1 c2 c3 c4 r : E) :
   simp only [polyEval, List.foldr, sumE, List.foldl, zero_add, zero_mul]
   ring
 
-/-! ## Soundness -/
+/-! ## What each part asks -/
 
 /-- What the arithmetic of round `q` asks. -/
 def GkFoldOk (rd : Reader) (σ : Val) (q : ℕ) : Prop :=
@@ -247,233 +241,10 @@ theorem cells13_gkRun13 (σ : Val) (b : ℕ) (c : Fin 13) :
     cells13 ((gkRun13 b).map σ) c = σ (.n (b + c.val)) := by
   simp [cells13, gkRun13, List.getD_eq_getElem?_getD]
 
-theorem keccak_gkRun13 {ins : List V} {b : ℕ}
-    (h : (Atom.keccak ins (gkRun13 b) false false).Holds rd σ) :
-    ∀ c : Fin 13, σ (.n (b + c.val)) = cellsOfState (permOf (ins.map σ)) false c := by
-  obtain ⟨-, -, hout⟩ := keccakA_perm h
-  intro c
-  have := outs_eq hout c (by simp [gkRun13])
-  simpa [gkRun13] using this
-
 /-- The rate cells of a round's four words. -/
 theorem gk_pend (a b c d : E) :
     pendCells [(a, dsObserve), (b, dsObserve), (c, dsObserve), (d, dsObserve)] =
       [a, word 0 dsObserve, b, word 0 dsObserve, c, word 0 dsObserve, d, word 0 dsObserve] := rfl
-
-theorem readsAt_flatten4 {p : E} (Cf : ℕ → List E) (h4 : ∀ q, (Cf q).length = 4) :
-    ∀ n, (∀ q < n, ∀ t < 4, LoadHolds rd p (4 * q + t) ((Cf q).getD t 0)) →
-      ReadsAt rd p ((List.range n).map Cf).flatten
-  | 0, _ => readsAt_nil rd p
-  | n + 1, h => by
-    intro k hk
-    have hlen : ((List.range n).map Cf).flatten.length = 4 * n := by
-      clear hk h
-      induction n with
-      | zero => rfl
-      | succ n ih => simp [List.range_succ, h4, ih]; ring
-    simp only [List.range_succ, List.map_append, List.flatten_append, List.map_cons, List.map_nil,
-      List.flatten_cons, List.flatten_nil, List.append_nil] at hk ⊢
-    rw [List.getElem_append]
-    split_ifs with hkn
-    · exact readsAt_flatten4 Cf h4 n (fun q hq t ht ↦ h q (by omega) t ht) k hkn
-    · have hk' : k < 4 * n + 4 := by simpa [hlen, h4] using hk
-      rw [hlen] at hkn
-      have := h n (by omega) (k - 4 * n) (by omega)
-      rw [show 4 * n + (k - 4 * n) = k by omega] at this
-      convert this using 1
-      simp [List.getD_eq_getElem?_getD, hlen, List.getElem?_eq_getElem (show k - 4 * n < (Cf n).length by rw [h4]; omega)]
-
-/-- The five parameters. -/
-abbrev gkParams : List V := [.n 0, .n 1, .n 2, .n 3, .n 4]
-
-/-- **The rounds, soundly**: a valuation satisfying `gkPre lc n` runs the rounds from the record
-`σ 0` at the point `σ 1` and the cursor `σ 2` (loaded from the record when `lc`). -/
-theorem gk_pre_sound (lc : Bool) (n : ℕ) (hn : 1 ≤ n) (hn2 : n < 16) {next : Prop} {kret : List E → Prop}
-    (h : Stmt.HoldsList C rd σ (gkPre lc n) next kret) :
-    GkrRoundsOut n rd (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) ∧
-      (lc = true → LoadHolds rd (σ (.n 0)) 4310 (σ (.n 2))) ∧ next := by
-  rw [gkPre, gkHead] at h
-  simp only [holdsList_append, holdsList_range_flatten n gkRound (fun _ => rfl), holds_gkRound,
-    holds_gkCurLoad, holds_gkPad, Stmt.HoldsList, Stmt.Holds] at h
-  obtain ⟨l5, l6, l7, l8, l9, hcur, l10, hrounds, hpad, s0, s1, s2, s3, s4, k, m, sc, sl,
-    hnext⟩ := h
-  have idx : ∀ a b, a = b → σ (.n a) = σ (.n b) := fun a b h ↦ by rw [h]
-  set Cf : ℕ → List E := fun q ↦ [σ (.n (11 + 39 * q)), σ (.n (14 + 39 * q)),
-    σ (.n (17 + 39 * q)), σ (.n (20 + 39 * q))] with hCf
-  set ef : ℕ → E := fun q ↦ σ (.n (36 + 39 * q)) with hef
-  set cap := [σ (.n 5), σ (.n 6), σ (.n 7), σ (.n 8), σ (.n 9)] with hcap
-  set St := gkSt Cf ef (σ (.n 10)) ⟨cap, []⟩ with hSt
-  set P := gkP Cf ef (σ (.n 10)) ⟨cap, []⟩ with hP
-  have cells : ∀ q, q < n → ∀ t < 4,
-      σ (.n (11 + 39 * q + 3 * t + 1)) = σ (.n (11 + 39 * q + 3 * t)) ∧
-      σ (.n (11 + 39 * q + 3 * t + 1 + 1)) = word 0 dsObserve ∧
-      LoadHolds rd (σ (.n 2)) (4 * q + t) (σ (.n (11 + 39 * q + 3 * t))) := by
-    intro q hq t ht
-    obtain ⟨hn, -, -⟩ := hrounds q hq
-    obtain ⟨hl, hpk⟩ := hn t ht
-    exact ⟨hpk.1, hpk.2, hl⟩
-  -- the permutation input of round `q`, given its previous capacity
-  have hins : ∀ q, q < n → ([.n (12 + 39 * q), .n (13 + 39 * q), .n (15 + 39 * q),
-      .n (16 + 39 * q), .n (18 + 39 * q), .n (19 + 39 * q), .n (21 + 39 * q), .n (22 + 39 * q),
-      .n (gkCapPrev q), .n (gkCapPrev q + 1), .n (gkCapPrev q + 2), .n (gkCapPrev q + 3),
-      .n (gkCapPrev q + 4)] : List V).map σ =
-      pendCells [(σ (.n (11 + 39 * q)), dsObserve), (σ (.n (14 + 39 * q)), dsObserve),
-        (σ (.n (17 + 39 * q)), dsObserve), (σ (.n (20 + 39 * q)), dsObserve)] ++
-      [σ (.n (gkCapPrev q)), σ (.n (gkCapPrev q + 1)), σ (.n (gkCapPrev q + 2)),
-        σ (.n (gkCapPrev q + 3)), σ (.n (gkCapPrev q + 4))] := by
-    intro q hq
-    obtain ⟨a1, a2, -⟩ := cells q hq 0 (by omega)
-    obtain ⟨b1, b2, -⟩ := cells q hq 1 (by omega)
-    obtain ⟨c1, c2, -⟩ := cells q hq 2 (by omega)
-    obtain ⟨d1, d2, -⟩ := cells q hq 3 (by omega)
-    rw [gk_pend]
-    simp only [List.map_cons, List.map_nil, List.cons_append, List.nil_append]
-    rw [idx (12 + 39 * q) _ (show _ = 11 + 39 * q + 3 * 0 + 1 by ring), a1,
-      idx (13 + 39 * q) _ (show _ = 11 + 39 * q + 3 * 0 + 1 + 1 by ring), a2,
-      idx (15 + 39 * q) _ (show _ = 11 + 39 * q + 3 * 1 + 1 by ring), b1,
-      idx (16 + 39 * q) _ (show _ = 11 + 39 * q + 3 * 1 + 1 + 1 by ring), b2,
-      idx (18 + 39 * q) _ (show _ = 11 + 39 * q + 3 * 2 + 1 by ring), c1,
-      idx (19 + 39 * q) _ (show _ = 11 + 39 * q + 3 * 2 + 1 + 1 by ring), c2,
-      idx (21 + 39 * q) _ (show _ = 11 + 39 * q + 3 * 3 + 1 by ring), d1,
-      idx (22 + 39 * q) _ (show _ = 11 + 39 * q + 3 * 3 + 1 + 1 by ring), d2,
-      idx (11 + 39 * q + 3 * 0) (11 + 39 * q) (by ring),
-      idx (11 + 39 * q + 3 * 1) (14 + 39 * q) (by ring),
-      idx (11 + 39 * q + 3 * 2) (17 + 39 * q) (by ring),
-      idx (11 + 39 * q + 3 * 3) (20 + 39 * q) (by ring)]
-  have hAB : ∀ q, q < n → σ (.n (10 + 39 * q)) = (St q).1 ∧
-      ∀ c : Fin 13, σ (.n (23 + 39 * q + c.val)) = cellsOfState (P q) false c := by
-    intro q
-    induction q with
-    | zero =>
-      intro hq
-      refine ⟨rfl, fun c ↦ ?_⟩
-      obtain ⟨-, hk, -⟩ := hrounds 0 hq
-      rw [keccak_gkRun13 hk c, hins 0 hq]
-      refine congrArg (fun S ↦ cellsOfState S false c) ?_
-      rw [hP, gkP_eq Cf ef _ cap 0 rfl]
-      rfl
-    | succ q ih =>
-      intro hq
-      obtain ⟨hA, hB⟩ := ih (by omega)
-      obtain ⟨-, -, hf⟩ := hrounds q (by omega)
-      have b0 : σ (.n (23 + 39 * q)) = cellsOfState (P q) false 0 := hB 0
-      have hr : σ (.n (23 + 39 * q)) = challengeOf (P q) :=
-        challengeT_value (s0 := .n (23 + 39 * q)) (b := 23 + 39 * q) rfl b0
-      obtain ⟨-, f38, f39, f40, f41, f42, -, f43, f44, f45, f46, f47, f48, f49, f50⟩ := hf
-      refine ⟨?_, fun c ↦ ?_⟩
-      · rw [idx _ (49 + 39 * q) (by ring), f50, f49, f48, f47, f46, f45, f44, f43, f42, f41, f40,
-          f39, f38, hA, hr]
-        show _ = polyEval (((St q).1 + ef q * sumE (Cf q)) :: Cf q) (challengeOf (P q))
-        rw [← gk_eval]
-      · obtain ⟨-, hk, -⟩ := hrounds (q + 1) hq
-        rw [keccak_gkRun13 hk c, hins (q + 1) hq]
-        refine congrArg (fun S ↦ cellsOfState S false c) ?_
-        rw [hP, gkP_eq Cf ef _ cap (q + 1) rfl]
-        have i8 : σ (.n (23 + 39 * q + 8)) = cellsOfState (P q) false 8 := hB 8
-        have i9 : σ (.n (23 + 39 * q + 9)) = cellsOfState (P q) false 9 := hB 9
-        have i10 : σ (.n (23 + 39 * q + 10)) = cellsOfState (P q) false 10 := hB 10
-        have i11 : σ (.n (23 + 39 * q + 11)) = cellsOfState (P q) false 11 := hB 11
-        have i12 : σ (.n (23 + 39 * q + 12)) = cellsOfState (P q) false 12 := hB 12
-        simp only [gkCapPrev]
-        rw [idx (31 + 39 * q) _ (show _ = 23 + 39 * q + 8 by ring), i8,
-          idx (31 + 39 * q + 1) _ (show _ = 23 + 39 * q + 9 by ring), i9,
-          idx (31 + 39 * q + 2) _ (show _ = 23 + 39 * q + 10 by ring), i10,
-          idx (31 + 39 * q + 3) _ (show _ = 23 + 39 * q + 11 by ring), i11,
-          idx (31 + 39 * q + 4) _ (show _ = 23 + 39 * q + 12 by ring), i12]
-        rfl
-  have hR : ∀ q, q < n → σ (.n (23 + 39 * q)) = challengeOf (P q) ∧ GkFoldOk rd σ q := by
-    intro q hq
-    obtain ⟨-, hB⟩ := hAB q hq
-    obtain ⟨-, -, hf⟩ := hrounds q hq
-    have b0 : σ (.n (23 + 39 * q)) = cellsOfState (P q) false 0 := hB 0
-    exact ⟨challengeT_value (s0 := .n (23 + 39 * q)) (b := 23 + 39 * q) rfl b0, hf⟩
-  obtain ⟨m', rfl⟩ : ∃ m', n = m' + 1 := ⟨n - 1, by omega⟩
-  have hAn : σ (.n (49 + 39 * m')) = (St (m' + 1)).1 := by
-    obtain ⟨hA, -⟩ := hAB m' (by omega)
-    obtain ⟨hr, hf⟩ := hR m' (by omega)
-    obtain ⟨-, f38, f39, f40, f41, f42, -, f43, f44, f45, f46, f47, f48, f49, f50⟩ := hf
-    rw [f50, f49, f48, f47, f46, f45, f44, f43, f42, f41, f40, f39, f38, hA, hr]
-    show _ = polyEval (((St m').1 + ef m' * sumE (Cf m')) :: Cf m') (challengeOf (P m'))
-    rw [← gk_eval]
-  obtain ⟨-, hBm⟩ := hAB m' (by omega)
-  refine ⟨⟨cap, σ (.n 10), (List.range (m' + 1)).map Cf,
-    (List.range (m' + 1)).map ef, ⟨rfl, fun j hj ↦ ?_⟩, l10, by simp, ?_, ?_, by simp, ?_, ?_⟩,
-    hcur, hnext⟩
-  · simp only [hcap, List.length_cons, List.length_nil] at hj
-    interval_cases j
-    · exact l5
-    · exact l6
-    · exact l7
-    · exact l8
-    · exact l9
-  · intro c hc
-    obtain ⟨q, -, rfl⟩ := List.mem_map.mp hc
-    rfl
-  · refine readsAt_flatten4 Cf (fun _ ↦ rfl) (m' + 1) fun q hq t ht ↦ ?_
-    have := (cells q hq t ht).2.2
-    interval_cases t
-    · simpa [hCf] using this
-    · simpa [hCf, show 11 + 39 * q + 3 * 1 = 14 + 39 * q by ring] using this
-    · simpa [hCf, show 11 + 39 * q + 3 * 2 = 17 + 39 * q by ring] using this
-    · simpa [hCf, show 11 + 39 * q + 3 * 3 = 20 + 39 * q by ring] using this
-  · intro q hq
-    simp only [List.length_map, List.length_range] at hq
-    simp only [List.getElem_map, List.getElem_range, hef]
-    exact (hR q hq).2.1
-  · simp only
-    rw [gkrRun_range1, gkrRun_range2]
-    refine ⟨fun q hq ↦ ?_, fun hodd ↦ ?_, ⟨rfl, fun j hj ↦ ?_⟩, ?_, ?_⟩
-    · simp only [List.length_map, List.length_range] at hq
-      simp only [List.getElem_map, List.getElem_range]
-      obtain ⟨hr, -, -, -, -, -, -, hst, -⟩ := hR q hq
-      rw [loadHolds_mul_gen_pow, ← hr]
-      exact hst
-    · obtain ⟨h0, hl⟩ := hpad hodd
-      rw [h0, word_zero] at hl
-      exact hl
-    · simp only [gkSt, Fs.squeeze, capOf, List.length_cons, List.length_nil] at hj
-      have st : ∀ i (hi : i < 5), LoadHolds rd (σ (.n 0)) (1 + i * 862)
-          (cellsOfState (P m') false ⟨8 + i, by omega⟩) := by
-        intro i hi
-        have e := hBm ⟨8 + i, by omega⟩
-        rw [← e, idx (23 + 39 * m' + (8 + i)) (31 + 39 * (m' + 1 - 1) + i) (by simp; ring)]
-        interval_cases i
-        · exact s0
-        · rw [idx (31 + 39 * (m' + 1 - 1) + 1) (32 + 39 * (m' + 1 - 1)) (by ring)]; exact s1
-        · rw [idx (31 + 39 * (m' + 1 - 1) + 2) (33 + 39 * (m' + 1 - 1)) (by ring)]; exact s2
-        · rw [idx (31 + 39 * (m' + 1 - 1) + 3) (34 + 39 * (m' + 1 - 1)) (by ring)]; exact s3
-        · rw [idx (31 + 39 * (m' + 1 - 1) + 4) (35 + 39 * (m' + 1 - 1)) (by ring)]; exact s4
-      interval_cases j
-      · exact st 0 (by omega)
-      · exact st 1 (by omega)
-      · exact st 2 (by omega)
-      · exact st 3 (by omega)
-      · exact st 4 (by omega)
-    · have k : σ (.n (11 + 39 * (m' + 1) + (m' + 1) % 2)) = word (2 ^ (4 * (m' + 1))) 0 := k
-      have m : σ (.n (12 + 39 * (m' + 1) + (m' + 1) % 2)) =
-          σ (.n 2) * σ (.n (11 + 39 * (m' + 1) + (m' + 1) % 2)) := m
-      have sc : LoadHolds rd (σ (.n 0)) 4311 (σ (.n (12 + 39 * (m' + 1) + (m' + 1) % 2))) := sc
-      rw [m, k, word_two_pow (by omega)] at sc
-      exact sc
-    · have sl : LoadHolds rd (σ (.n 0)) 5173 (σ (.n (49 + 39 * (m' + 1 - 1)))) := sl
-      rw [show m' + 1 - 1 = m' by omega, hAn] at sl
-      exact sl
-
-theorem gk_sound {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n < 16)
-    (hfind : coreProgram.find? name = some f) (hparams : f.params = gkParams)
-    (hbody : f.body = gkBody false n) (rd : Reader) (args rets : List E)
-    (h : coreProgram.Rel rd name args rets) : MeaningGkrRounds n rd args rets := by
-  rw [rel_iff_sem hfind, hbody, hparams, gkBody] at h
-  obtain ⟨σ, hp, h⟩ := h
-  subst hp
-  rw [holdsList_append] at h
-  obtain ⟨hout, -, hnext⟩ := gk_pre_sound false n hn hn2 h
-  simp only [Stmt.HoldsList, Stmt.Holds] at hnext
-  obtain ⟨z, hret⟩ := hnext
-  have z : σ (.n (13 + 39 * n + n % 2)) = word 0 0 := z
-  refine ⟨?_, hout⟩
-  simp only [List.map_cons, List.map_nil, z, word_zero] at hret
-  exact hret.symm
 
 /-! ## Completeness -/
 
@@ -498,7 +269,7 @@ def gkArith (c e : E) (C : List E) (r : E) : List E :=
 def gkWordVal (C : List E) (i : ℕ) : E :=
   if i % 3 = 2 then word 0 dsObserve else C.getD (i / 3) 0
 
-/-- The honest values of `gkBody lc n`, by index (the pad's zero is the default). -/
+/-- The honest values of `gkPre lc n`, by index (the pad's zero is the default). -/
 def gkVals (as cap : List E) (cur : E) (Cf : ℕ → List E) (ef cl : ℕ → E) (P : ℕ → KeccakState)
     (n k : ℕ) : E :=
   if k < 5 then as.getD k 0
@@ -825,37 +596,6 @@ theorem gk_pre_holds (lc : Bool) (n : ℕ) (hn : 1 ≤ n) (hn2 : n < 16) (C : Ca
     rw [e0, show m' + 1 - 1 = m' by omega, idx _ (10 + 39 * (m' + 1)) (by ring),
       hcl (m' + 1) (by omega)]
     exact hres4
-
-/-- **The rounds' body, completely**: from `MeaningGkrRounds n` (and, `lc`, the cursor in the
-record), the honest valuation satisfies `gkBody lc n` with its returns. -/
-theorem gk_body_holds (lc : Bool) (n : ℕ) (hn : 1 ≤ n) (hn2 : n < 16) (C : CallRel) (rd : Reader)
-    (rec pt cur tabs stream : E) {rets : List E}
-    (h : MeaningGkrRounds n rd [rec, pt, cur, tabs, stream] rets)
-    (hlc : lc = true → LoadHolds rd rec 4310 cur) :
-    ∃ σ : Val, (∀ v, σ v = σ (.n v.idx)) ∧ σ (.n 0) = rec ∧ σ (.n 1) = pt ∧ σ (.n 2) = cur ∧
-      σ (.n 3) = tabs ∧ σ (.n 4) = stream ∧
-      Stmt.HoldsList C rd σ (gkBody lc n) False (fun rs => rs = rets) := by
-  obtain ⟨hr0, h⟩ := h
-  obtain ⟨σ, hv, e0, e1, e2, e3, e4, hz, hh⟩ :=
-    gk_pre_holds lc n hn hn2 C rd rec pt cur tabs stream h hlc
-  refine ⟨σ, hv, e0, e1, e2, e3, e4, ?_⟩
-  rw [gkBody, holdsList_append]
-  refine hh _ _ ?_
-  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
-  exact ⟨by rw [hz, word_zero], by rw [hr0, hz]⟩
-
-theorem gk_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n < 16)
-    (hfind : coreProgram.find? name = some f) (hparams : f.params = gkParams)
-    (hbody : f.body = gkBody false n) (rd : Reader) (args rets : List E)
-    (h : MeaningGkrRounds n rd args rets) : coreProgram.Rel rd name args rets := by
-  obtain ⟨rec, pt, cur, tabs, stream, rfl⟩ : ∃ rec pt cur tabs stream,
-      args = [rec, pt, cur, tabs, stream] := by
-    match args, h with
-    | [rec, pt, cur, tabs, stream], _ => exact ⟨rec, pt, cur, tabs, stream, rfl⟩
-  obtain ⟨σ, -, e0, e1, e2, e3, e4, hh⟩ :=
-    gk_body_holds false n hn hn2 (coreProgram.Rel rd) rd rec pt cur tabs stream h (by simp)
-  rw [rel_iff_sem hfind, hbody, hparams]
-  exact ⟨σ, by simp [e0, e1, e2, e3, e4], hh⟩
 
 end
 end LeanVM.Guest.B1

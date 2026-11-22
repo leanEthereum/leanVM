@@ -7,7 +7,7 @@ Goal: an edit of one function of `guests/lean_ethereum.py` rebuilds that functio
 1. **Data at the root.** Every check is stated over a global index (`WinOk j i` unfolds `glob`, `fnOf j`, `coreOf j`, `certOf j`; `cplWin` also `plumbOf`, `fsN`, `sigT`, a trie of every signature; the Memory families walk ranges of `coreProgram`), so every check module imports the aggregated data through `Glob`, and B1 through `CoreData`.
 2. **Generic modules carry data.** `Exec` imports `Guest.Bytecode`, `ExecC` imports `Glob`, and `Statement/LeanVmGuest.lean` holds both the generic node statement and `guestProgram`, so whatever needs a claim or a child imports the bytecode.
 3. **Absolute positions.** Branch and call targets are `SET`s of `g^pc` (decoded through `Data.powTree`, which lists every pc), return addresses `DEREF .pc`, the jump table holds pcs, `Sig.entry` is compared with call targets. A length change moves every later function, so import isolation alone leaves most of the cone of a typical edit.
-4. **Unstable keys.** The generated data names functions by global index (`Data.core{j}`, `certOf j`, `Cert.callees`) and the compiler names loops by a global counter (`__loop{id}`).
+4. **Unstable keys.** The generated data names functions by global index (`Data.core{j}`, `certOf j`, `Cert.callees`). The compiler once numbered loops by a global counter; it now names them per function (`__loop{k}_{caller}`), and the proofs cite stable names (`{caller}_loop{k}`, `Guest/CoreRef.lean`), so a loop added elsewhere renames none.
 5. **Totals in certificates.** Count and Memory certificates hold call-tree totals, so a cheaper function changes its ancestors'.
 
 ## Firewalls

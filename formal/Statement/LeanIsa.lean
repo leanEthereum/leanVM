@@ -281,8 +281,8 @@ return the next registers; `none` if a read or a check fails. A taken `JUMP` mov
 be powers `g^k`, the target's `k` inside the bytecode and the frame's below `MAX_CELLS = 2^28`, its
 own address space: it finds `k` in its table of powers or by a discrete logarithm bounded below the
 bound (`crates/lean_vm_core/src/cpu/execute.rs`, `cpu/hints.rs`), and
-stops after `MAX_STEPS` (`2^27`, the most steps a committed size of `2^30` holds, `execute.rs`)
-steps, which nothing here bounds: those are the executor's limits, not the statement's. -/
+stops after `MAX_STEPS` (`2^30 / 7`: `2^30` committed words over the narrowest table's `7` columns,
+`execute.rs`) steps, which nothing here bounds: those are the executor's limits, not the statement's. -/
 def executeWith (read : K → Option E) (registers : Registers K) :
     LeanIsaInstruction → Option (Registers K)
   | .xor oA oB oC => do

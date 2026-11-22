@@ -108,8 +108,6 @@ LeanVM/Guest/B1/Main/MainCChk.lean main
 LeanVM/Guest/B1/Main/MainAt.lean main
 LeanVM/Guest/B1/Main/MainCore.lean main
 LeanVM/Guest/B1/Main/MainCoreThm.lean main
-LeanVM/Guest/B1/Main/MainHeap.lean main
-LeanVM/Guest/B1/Main/MainHeap.lean@l5From_heap main_loop4
 LeanVM/Guest/B1/Main/MainPops.lean main
 LeanVM/Guest/B1/Main/HintsX.lean main
 LeanVM/Guest/B1/Main/Facts.lean main
@@ -439,7 +437,6 @@ LeanVM/Guest/CoreMode/Fn/column_selector/CsQ.lean check_opening_terminal
 LeanVM/Guest/CoreMode/Fn/child_claim_list_mono/MonoDefs.lean child_claim_list_mono
 LeanVM/Guest/CoreMode/Fn/child_claim_list_mono/MonoReplay.lean@loop0_facts child_claim_list_mono_loop0
 LeanVM/Guest/CoreMode/Fn/child_claim_list_mono/MonoReplay.lean@loop1_facts child_claim_list_mono_loop1
-LeanVM/Guest/EndExecAExcl.lean claim_list_digest
 LeanVM/Guest/CoreMode/Fn/certify_placement/ResCp.lean certify_placement
 LeanVM/Guest/CoreMode/Fn/column_selector/ResCs.lean column_selector__L
 LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrL.lean@GlLQ gkr_layer__L_loop0

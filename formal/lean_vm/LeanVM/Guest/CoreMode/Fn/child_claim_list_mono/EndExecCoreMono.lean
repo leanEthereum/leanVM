@@ -2,7 +2,7 @@
   LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.EndExecCoreMono
 
   The core route's ghost family at the honest instances: `child_claim_list_mono_last__L{k}`, its ghost
-  word its caller's entries table, its reads in that table (the old route's gap walk on names).
+  word its caller's entries table, its reads in that table.
 -/
 
 module

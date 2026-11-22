@@ -3,8 +3,8 @@
 caller's entries parameter and bound quotient among its call's arguments), the callers' check over the whole
 program by ranges, and the link's checks (`EndExec.LinkOk`, `anyLink_ok`). The callees are those every call
 site of the caller passes both its entries parameter and its bound's quotient, read off its core IR
-(`Pack/*/Core.lean`) alone: the core route's `glOk` links their caller's cells, and the old route's
-`Res.anyResB` reads the same list. `--check` writes nothing and fails when a file differs.
+(`Pack/*/Core.lean`) alone: the core route's `glOk` links their caller's cells.
+`--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/core-mode/anylink.py [--check]"""
 import sys, os, re, glob
 

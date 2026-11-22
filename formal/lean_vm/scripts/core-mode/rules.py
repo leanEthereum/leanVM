@@ -1,5 +1,4 @@
-"""Residual rules of the core inference (`infer.py`): the bytecode walk's `rules_fix.py` and `rules_da.py` on core
-names. Each hook returns a witness whose residuals (`P.addres`) are closed statements on core names, or `None`.
+"""Residual rules of the core inference (`infer.py`), on core names. Each hook returns a witness whose residuals (`P.addres`) are closed statements on core names, or `None`.
 
 * `tabIdx`: a read `P·x^S·g^o` of a table over the parameters at a word `x` of known bound `e(x) < N` (a hint's range,
   a range check, a selector): the run `P·g^o`, stride `S`, `[0, N)` a precondition, the read inside it.

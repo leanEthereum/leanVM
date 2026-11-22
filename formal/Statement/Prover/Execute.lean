@@ -14,16 +14,19 @@ links them, a later write to either reaching both. The hints a `pc` carries (`RH
 `crates/isa/src/lib.rs`) run before its instruction: they allocate (`next_free`, a bump pointer from the end
 of `main`'s frame), pop witness streams, and compute advice the instructions go on to check.
 
-Nothing here is trusted: a run that halts gives a valid execution whatever the program, its hints
-and its streams (`lean_vm`, `LeanVM/Prover/ExecuteSound.lean`). Every cell a hint reads or writes is
-checked below `maxCells` (`cellAt`, `runAt`, a run's last cell too), as an instruction's are. A
-`DEREF` link is a class of cells sharing one value; the run ends by checking that every link's two
-cells agree.
+Nothing here is trusted for soundness: a run that halts gives a valid execution whatever the
+program, its hints and its streams (`lean_vm`, `LeanVM/Prover/ExecuteSound.lean`). For completeness
+it is: `GuestExecutionComplete` says this executor runs the guest to completion, which is about the
+Rust only as far as this executor is read as a faithful copy of the Rust's. Every cell a hint reads
+or writes is checked below `maxCells` (`cellAt`, `runAt`, a run's last cell too), as an
+instruction's are. A `DEREF` link is a class of cells sharing one value; the run ends by checking
+that every link's two cells agree.
 
-Where it agrees with the Rust: on a program whose instructions all decode, with hints of the shapes
-the compiler emits (bit and digit counts within a word, one or two limbs) and streams of distinct
-names, both halt with the same execution or neither does, but for one difference: an instruction
-reading an unwritten cell fails here, where the Rust reads zero and records the read
+Where it agrees with the Rust: on a program of fewer than `2^30` instructions (`logSize < 30`) whose
+instructions all decode, with hints of the shapes the compiler emits (bit and digit counts at most
+`64`, one or two limbs) at `pc`s inside the program, one hint list a `pc` at most, and streams of
+distinct names, both halt with the same execution or neither does, but for one difference: an
+instruction reading an unwritten cell fails here, where the Rust reads zero and records the read
 (`unconstrained_reads`), an execution its prover refuses. The compiler's programs and the guest are
 such programs, and the differential tests compare the two on them (`lake exe leanvm-execute`,
 `lake exe guest-run --rust`). Elsewhere they differ:
@@ -31,7 +34,12 @@ such programs, and the differential tests compare the two on them (`lake exe lea
   before the run, reached or not, where the Rust faults only on reaching it;
 * a stream given twice is a fault in the Rust, and here the last one counts;
 * a hint asking more bits or digits than a word holds, or more than two limbs, makes the Rust
-  panic;
+  panic; between `65` and `128` the two can differ: `bounded_dlog`'s giant steps
+  (`1u64 << (nbits - 17)`) wrap in the Rust for `nbits` from `81`, `2^(nbits - 81)` of them where
+  this takes `2^(nbits - 17)`, and `DigitDecomposeExp`'s mask wraps to `0` at `digit_bits = 128`;
+* hints at a `pc` outside the program are dropped here, where the Rust panics, and two lists at one
+  `pc`, which the Rust cannot represent, keep the last here;
+* a program of `2^30` instructions makes the Rust's table of powers assert (`grow_to`);
 * a `Print` hint is none here (`CompiledProgram::export_hints` leaves it out), and in the Rust it
   faults when its cell lies past `maxCells`.
 -/

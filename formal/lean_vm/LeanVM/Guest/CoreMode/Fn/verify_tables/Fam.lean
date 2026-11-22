@@ -17,7 +17,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-/-- **`verify_tables`' reads past its table sumcheck's last record's cursor** (`vtSt`, the old route's `Res.vtStB` on
+/-- **`verify_tables`' reads past its table sumcheck's last record's cursor** (`vtSt`, `Res.vtStB` on
 core names): the cell `c` words past the cursor, the value `cursor@5`, `c < 153`, one of its stream's, parameter `stream`'s
 `[0, 8192)` (`EndExec.vtStC_inst`). -/
 def vtStC (fn : Fn) : CRes → Bool
@@ -34,7 +34,7 @@ def vtSides : List (List ℕ × ℕ × ℕ) :=
   [((List.range 9).map (vtRvC (val% «verify_tables» "gi@1")), 0, 9),
     ((List.range 6).map (vtRvC (val% «verify_tables» "gi@10")), 18, 24)]
 
-/-- **`verify_tables`' buffers indexed by group, through its hinted order** (`vtPerm`, the old route's `vtGrpB` on
+/-- **`verify_tables`' buffers indexed by group, through its hinted order** (`vtPerm`, `Res.vtGrpB` on
 core names): a cell `[B]·[v]` at a rank's group value `v` is one of `[B]·g^e` over the side's groups (each rank's group
 is one of the side's), and a cell `[B]·g^e` at a group of the side is one of `[B]·[v]` over its ranks' values (the
 ranks name every group of the side) (`EndExec.vtPerm_inst`). -/
