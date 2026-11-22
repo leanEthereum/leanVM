@@ -89,8 +89,9 @@ fn take_slot<K: Ord + Clone>(claims: &[K], claimed: &mut [bool], duplicates: &mu
     }
 }
 
-/// What the guest's coverage transcript observes, in groups of four cells: the two declared digests, the two
-/// duplicate digests, each child's two list digests, then each scheme's raw slots, padded with zeros to whole groups.
+/// What the guest's coverage transcript observes, in groups of four cells: the counts the two sides' layout depends on
+/// (the children's, then each scheme's raw signatures', then a zero), the two declared digests, the two duplicate
+/// digests, each child's two list digests, then each scheme's raw slots, padded with zeros to whole groups.
 /// Returns the groups, the raw slots' group counts, and the transcript's grinding nonce, if it grinds.
 pub(super) fn claim_commitments(
     cover: &Coverage,
@@ -100,6 +101,12 @@ pub(super) fn claim_commitments(
     let s = &cover.lean_sphincs;
     let pair = |a: [F128; 2], b: [F128; 2]| [a[0], a[1], b[0], b[1]];
     let mut groups = vec![
+        [
+            count(children.len()),
+            count(x.raw.len()),
+            count(s.raw.len()),
+            F128::ZERO,
+        ],
         pair(
             claim_list_digest(x.signers.iter().map(lean_xmss_claim_cells)),
             claim_list_digest(s.signers.iter().map(lean_sphincs_claim_cells)),

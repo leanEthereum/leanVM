@@ -98,9 +98,7 @@ pub fn compile(ast: &Ast) -> CompiledProgram {
             &mut tables,
         ));
     }
-    if std::env::var("DBG_NO_OPT").is_err() {
-        opt::optimize(&mut lowered, &mut tables);
-    }
+    opt::optimize(&mut lowered, &mut tables);
     // The tables sit past `main`'s own cells. At pc 0, in `main`'s frame (`fp = g^0`),
     // one `SET` per slot writes them, then falls through into `main`.
     let tables_base = lowered[0].frame_size;
@@ -196,11 +194,16 @@ pub fn compile(ast: &Ast) -> CompiledProgram {
                             ptr,
                             size: frame_size[&callee],
                         },
-                        Hint::AllocFrameSwitch { ptr, x, callees } => RHint::AllocSwitch {
-                            ptr,
-                            x,
-                            sizes: callees.iter().map(|c| frame_size[c]).collect(),
-                        },
+                        // Inside a loop body every arm reserves the largest arm's frame, so that each iteration
+                        // grows the heap alike, which the executor's parallel segments predict from.
+                        Hint::AllocFrameSwitch { ptr, x, callees } => {
+                            let mut sizes: Vec<u32> = callees.iter().map(|c| frame_size[c]).collect();
+                            if l.name.starts_with("__loop") {
+                                let most = sizes.iter().copied().max().unwrap_or(0);
+                                sizes.fill(most);
+                            }
+                            RHint::AllocSwitch { ptr, x, sizes }
+                        }
                         Hint::AllocBuffer { ptr, size } => RHint::Alloc { ptr, size },
                         Hint::AllocBufferDyn { ptr, size } => RHint::AllocDyn { ptr, size },
                         Hint::Resolved(r) => r,

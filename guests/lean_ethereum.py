@@ -47,7 +47,7 @@ RS_COUNT_BITS = 6  # a ring-switch coordinate count is below 2^RS_COUNT_BITS
 # raised to a g-power by g_power_of_word, is below SIZE_BITS, so LOG_WORD_BITS bits
 # make the reconstruction the bound (a larger log cannot reproduce itself from them).
 COUNT_BITS = 33
-SIZE_BITS = 34
+SIZE_BITS = SIZE_BITS_PLACEHOLDER
 LOG_WORD_BITS = 6
 
 # ------------------------------------------------------------------- Fiat-Shamir
@@ -314,7 +314,7 @@ WIN_TAB_LEN = 2 ** WIN_TAB_BITS
 # the deepest path plus one, the cap index window's, n COORD_BASIS[s] for n below 2^SHIFT_TAB_BITS.
 WIN_PATTERNS = WIN_PATTERNS_PLACEHOLDER
 SHIFT_PATTERNS = SHIFT_PATTERNS_PLACEHOLDER
-SHIFT_TAB_BITS = 7
+SHIFT_TAB_BITS = SHIFT_TAB_BITS_PLACEHOLDER
 SHIFT_TAB_LEN = 2 ** SHIFT_TAB_BITS
 LIG_N_LEVELS = LIG_N_LEVELS_PLACEHOLDER
 LIG_YR_LEVEL = LIG_YR_LEVEL_PLACEHOLDER
@@ -4392,22 +4392,27 @@ def coverage_committed(n_lx_g, n_xdup_g, n_raw_x_g, n_sp_g, n_sdup_g, n_raw_s_g,
     # per scheme. Returns the declared digests, each scheme's slot product, the tables
     # (`raw_signatures`), the children's commitments and the raw signatures' indices.
     #
-    # The commitments, in groups of four cells: the two declared digests, the two
-    # duplicate digests, each child's two list digests, then the raw indices of each
-    # scheme, padded to whole groups.
+    # The commitments, in groups of four cells: the counts the two sides' layout depends on
+    # (the children's, then each scheme's raw signatures', then a zero), the two declared
+    # digests, the two duplicate digests, each child's two list digests, then the raw
+    # indices of each scheme, padded to whole groups.
     lx_slots_g = n_lx_g * n_xdup_g
     sp_slots_g = n_sp_g * n_sdup_g
     rx_groups = hint_witness("raw_groups")
     rs_groups = hint_witness("raw_groups")
     assert log(rx_groups ** 4 / n_raw_x_g) < 4
     assert log(rs_groups ** 4 / n_raw_s_g) < 4
-    n_groups = GEN ** 2 * n_children_g * rx_groups * rs_groups
+    n_groups = GEN ** 3 * n_children_g * rx_groups * rs_groups
     commits = HeapBuf(n_groups ** 4)
     hint_witness(commits[0:4], "claim_commits")
     for xg in mul_range(GEN, n_groups):
         group = commits * xg ** 4
         hint_witness(group[0:4], "claim_commits")
-    child_commits = commits * GEN ** 8
+    assert commits[GEN ** 0] == n_children_g
+    assert commits[GEN ** 1] == n_raw_x_g
+    assert commits[GEN ** 2] == n_raw_s_g
+    assert commits[GEN ** 3] == 0
+    child_commits = commits * GEN ** 12
     raw_x_idx = child_commits * n_children_g ** 4
     raw_s_idx = raw_x_idx * rx_groups ** 4
     absorbed = observe_groups(commits, n_groups)
@@ -4419,8 +4424,8 @@ def coverage_committed(n_lx_g, n_xdup_g, n_raw_x_g, n_sp_g, n_sdup_g, n_raw_s_g,
     if n_raw_x_g == 1:
         fx_0, fx_1, fx_p = claim_list_hash(0, n_lx_g, ch, 0, 1)
         fdx_0, fdx_1, fdx_p = claim_list_hash(0, n_xdup_g, ch, 0, 1)
-        assert fdx_0 == commits[GEN ** 4]
-        assert fdx_1 == commits[GEN ** 5]
+        assert fdx_0 == commits[GEN ** 8]
+        assert fdx_1 == commits[GEN ** 9]
         lx_list[0] = fx_0
         lx_list[1] = fx_1
         lx_list[2] = fx_p * fdx_p
@@ -4429,8 +4434,8 @@ def coverage_committed(n_lx_g, n_xdup_g, n_raw_x_g, n_sp_g, n_sdup_g, n_raw_s_g,
         tx = HeapBuf(lx_slots_g ** 4)
         hx_0, hx_1, hx_p = claim_list_hash(tx, n_lx_g, ch, 1, 1)
         hdx_0, hdx_1, hdx_p = claim_list_hash(tx * n_lx_g ** 4, n_xdup_g, ch, 1, 1)
-        assert hdx_0 == commits[GEN ** 4]
-        assert hdx_1 == commits[GEN ** 5]
+        assert hdx_0 == commits[GEN ** 8]
+        assert hdx_1 == commits[GEN ** 9]
         lx_list[0] = hx_0
         lx_list[1] = hx_1
         lx_list[2] = hx_p * hdx_p
@@ -4439,8 +4444,8 @@ def coverage_committed(n_lx_g, n_xdup_g, n_raw_x_g, n_sp_g, n_sdup_g, n_raw_s_g,
     if n_raw_s_g == 1:
         fs_0, fs_1, fs_p = claim_list_hash(0, n_sp_g, ch, 0, 1)
         fds_0, fds_1, fds_p = claim_list_hash(0, n_sdup_g, ch, 0, 1)
-        assert fds_0 == commits[GEN ** 6]
-        assert fds_1 == commits[GEN ** 7]
+        assert fds_0 == commits[GEN ** 10]
+        assert fds_1 == commits[GEN ** 11]
         sp_list[0] = fs_0
         sp_list[1] = fs_1
         sp_list[2] = fs_p * fds_p
@@ -4449,16 +4454,16 @@ def coverage_committed(n_lx_g, n_xdup_g, n_raw_x_g, n_sp_g, n_sdup_g, n_raw_s_g,
         ts = HeapBuf(sp_slots_g ** 4)
         hs_0, hs_1, hs_p = claim_list_hash(ts, n_sp_g, ch, 1, 1)
         hds_0, hds_1, hds_p = claim_list_hash(ts * n_sp_g ** 4, n_sdup_g, ch, 1, 1)
-        assert hds_0 == commits[GEN ** 6]
-        assert hds_1 == commits[GEN ** 7]
+        assert hds_0 == commits[GEN ** 10]
+        assert hds_1 == commits[GEN ** 11]
         sp_list[0] = hs_0
         sp_list[1] = hs_1
         sp_list[2] = hs_p * hds_p
         sp_list[3] = ts
-    assert lx_list[0] == commits[GEN ** 0]
-    assert lx_list[1] == commits[GEN ** 1]
-    assert sp_list[0] == commits[GEN ** 2]
-    assert sp_list[1] == commits[GEN ** 3]
+    assert lx_list[0] == commits[GEN ** 4]
+    assert lx_list[1] == commits[GEN ** 5]
+    assert sp_list[0] == commits[GEN ** 6]
+    assert sp_list[1] == commits[GEN ** 7]
     return lx_list[0], lx_list[1], sp_list[0], sp_list[1], lx_list[2], sp_list[2], lx_list[3], sp_list[3], child_commits, raw_x_idx, raw_s_idx
 
 

@@ -566,15 +566,19 @@ fn keccak_placeholders(ph: &mut Placeholders) {
     ph.set("KECCAK_SHIFT_USED", used);
 }
 
+/// The guest's `SIZE_BITS`: the bits a structural size (sums of `2^kappa`, packing offsets) fits in.
+const SIZE_BITS: usize = 34;
+
+/// The widest query window `SHIFT_PATTERNS` holds a row of patterns for, the guest's `SHIFT_TAB_BITS`.
+const SHIFT_TAB_BITS: usize = 7;
+
 /// The F128 coordinate basis and the ring switch's points.
 fn field_placeholders(ph: &mut Placeholders) {
-    // Coordinate basis e_i of F128 over F2 (spans the whole field): the 64 binary
-    // basis vectors in each of the two tower limbs. The guest uses these vectors to
-    // reconstruct a word from its 128 coordinate bits.
-    // A nibble's share of a g-power, g^(u 16^j) at 16 j + u, for the guest's SIZE_BITS = 34 (`column_selector`).
+    ph.set("SIZE_BITS", SIZE_BITS);
+    // A nibble's share of a g-power, g^(u 16^j) at 16 j + u, for every nibble of SIZE_BITS (`column_selector`).
     let mut shares = Vec::new();
     let mut base = F128::from(g_pow(1));
-    for _ in 0..34usize.div_ceil(4) {
+    for _ in 0..SIZE_BITS.div_ceil(4) {
         let mut share = F128::ONE;
         for _ in 0..16 {
             shares.push(share);
@@ -585,6 +589,9 @@ fn field_placeholders(ph: &mut Placeholders) {
     ph.list("SEL_SHARES", shares);
     // A bit window's pattern by its value, n for n below 2^11 (`query_window`, `grind_check`).
     ph.list("WIN_PATTERNS", (0..1u64 << 11).map(|n| F128::new(n, 0)));
+    // Coordinate basis e_i of F128 over F2 (spans the whole field): the 64 binary
+    // basis vectors in each of the two tower limbs. The guest uses these vectors to
+    // reconstruct a word from its 128 coordinate bits.
     ph.list(
         "COORD_BASIS",
         (0..128).map(|i| match i / 64 {
@@ -789,6 +796,12 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
     let windows = most(|c, lv| {
         let (depth, cap) = (c.tree_depths[lv], c.cap_depth(lv));
         assert!((2..=8).contains(&cap), "a cap of {cap} levels");
+        // Every shifted window, a path window or the cap index's cap - 1 bits, fits a `SHIFT_PATTERNS` row: a wider one
+        // would read the next shift's row, two of its values then spelling one pattern.
+        assert!(
+            QUERY_WINDOW_BITS.max(cap - 1) <= SHIFT_TAB_BITS,
+            "a query window wider than SHIFT_TAB_BITS"
+        );
         c.positions(lv) * ((depth - cap).div_ceil(QUERY_WINDOW_BITS) + 2)
     });
     assert!(
@@ -804,11 +817,12 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
     ph.set("LIG_PACKED_ROW_CAP", most(|c, _| c.row_words(0) / 2));
     let path_cap = most(|c, lv| 2 * (c.tree_depths[lv] - c.cap_depth(lv)));
     ph.set("LIG_PATH_CAP", path_cap);
+    ph.set("SHIFT_TAB_BITS", SHIFT_TAB_BITS);
     // A query position's window patterns shifted into place (`shifted_pattern`): for each shift s from 1 to the
     // deepest path plus one, n x^s for n below 2^7, the widest such window.
     ph.list(
         "SHIFT_PATTERNS",
-        (1..=path_cap / 2 + 1).flat_map(|s| (0..1u64 << 7).map(move |n| F128::new(n << s, 0))),
+        (1..=path_cap / 2 + 1).flat_map(|s| (0..1u64 << SHIFT_TAB_BITS).map(move |n| F128::new(n << s, 0))),
     );
     ph.set("LIG_MAX_LEVELS", maxlev);
     ph.set("LIG_MIN_LOG_SIZE", minm);

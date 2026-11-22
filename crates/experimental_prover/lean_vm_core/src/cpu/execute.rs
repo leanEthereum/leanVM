@@ -171,6 +171,8 @@ pub enum Fault {
     NotInK { what: &'static str, value: F128 },
     /// A word that has to be an address or a count is not a g-power in its range.
     NotAGPower { what: &'static str, value: F64 },
+    /// A fused dispatch's selector `g^arm` names an arm past its `arms`.
+    ArmOutOfRange { arm: u32, arms: usize },
     /// A `MUL` asked to solve `a·x = c` for `x` with `a = 0`.
     BackSolveThroughZero,
     /// The advice does not fit the program: a witness stream is missing, given
@@ -237,6 +239,7 @@ impl std::fmt::Display for Fault {
             ),
             Self::NotInK { what, value } => write!(f, "{what} is not a K-valued word ({})", word(*value)),
             Self::NotAGPower { what, value } => write!(f, "{what} is not a g-power in range (0x{:016x})", value.0),
+            Self::ArmOutOfRange { arm, arms } => write!(f, "dispatch selector g^{arm} is past its {arms} arms"),
             Self::BackSolveThroughZero => write!(f, "cannot back-solve MUL through a zero operand"),
             Self::Witness(problem) => write!(f, "{problem}"),
             Self::OutOfMemory => write!(
@@ -1043,13 +1046,16 @@ pub(super) fn walk<M: Machine>(
                         let (ptr, size) = match *h {
                             RHint::AllocSwitch { ptr, x, ref sizes } => {
                                 let sel = in_k("dispatch selector", m.get(fp + x)).map_err(fail)?;
-                                let size = m.g_log(sel).and_then(|j| sizes.get(j as usize).copied());
-                                let size = size.ok_or_else(|| {
+                                let arm = m.g_log(sel).ok_or_else(|| {
                                     fail(Fault::NotAGPower {
                                         what: "dispatch selector",
                                         value: sel,
                                     })
                                 })?;
+                                let size = sizes
+                                    .get(arm as usize)
+                                    .copied()
+                                    .ok_or_else(|| fail(Fault::ArmOutOfRange { arm, arms: sizes.len() }))?;
                                 (ptr, size)
                             }
                             RHint::Alloc { ptr, size } => (ptr, size),

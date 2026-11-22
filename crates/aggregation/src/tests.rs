@@ -674,17 +674,20 @@ fn aggregate_two_messages() {
 }
 
 /// Coverage rides on hints the transcript commits: a child's claim other than the one its list digest commits, a
-/// commitment the lists do not hash to, or a raw signature named to another slot fails the guest's run.
+/// commitment the lists do not hash to, counts other than the node's, or a raw signature named to another slot fails
+/// the guest's run. The groups: the counts, the declared digests, the duplicate digests, the child's, the raw slots.
 #[test]
 fn forged_coverage_hints_are_rejected() {
     let signers = get_signers::<StableProver>(SMALL_LEAF_SIZE + 1);
     let child = prove(&[], &signers[..SMALL_LEAF_SIZE], &[]);
     // The node's declared list, then the child's: its last claim is the last entry.
     let child_claim = 2 * SMALL_LEAF_SIZE;
-    let forgeries: [Forgery; 3] = [
+    let forgeries: [Forgery; 5] = [
         Box::new(move |hints: &mut Hints| hints.entry_mut("claims", child_claim)[0] += F128::ONE),
-        Box::new(|hints: &mut Hints| hints.entry_mut("claim_commits", 2)[1] += F128::ONE),
-        Box::new(|hints: &mut Hints| hints.entry_mut("claim_commits", 3)[0] *= count(1)),
+        Box::new(|hints: &mut Hints| hints.entry_mut("claim_commits", 3)[1] += F128::ONE),
+        Box::new(|hints: &mut Hints| hints.entry_mut("claim_commits", 0)[1] *= count(1)),
+        Box::new(|hints: &mut Hints| hints.entry_mut("claim_commits", 4)[0] *= count(1)),
+        Box::new(|hints: &mut Hints| hints.entry_mut("raw_index", 0)[0] *= count(1)),
     ];
     for forgery in forgeries {
         assert_forgery_rejected(
