@@ -105,7 +105,7 @@ theorem execGaps :
 
 /-- **The executor runs the guest program to completion on the guest's advice.** -/
 theorem honestAdvice_complete : AdviceComplete honestAdvice :=
-  honestExecution_complete_on_honest_children execGaps
+  honestExecution_complete_on_accepted_children execGaps
 
 /-! ## The statement's witness generation -/
 

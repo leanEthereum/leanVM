@@ -80,7 +80,7 @@ open LeanVM.Protocol.Compile LeanVM.Node
 open OracleComp OracleSpec in
 /-- **The guest's prover makes a proof the verifier accepts.** On every node
 `GuestExecutionComplete` covers (`NodeRelation` under the deployed seed, `DeployedLimits`,
-every child a `HonestChild`), in the random-permutation model, at an inverse rate `2^ρ`,
+every child `ChildWithoutCollisionOrZero`), in the random-permutation model, at an inverse rate `2^ρ`,
 `1 ≤ ρ ≤ 4`, with `2^35` nonces per proof of work: the guest's prover (`LeanVM.Guest.guestProve`,
 `LeanVmGuestProver.lean`: the advice from the statement and the witness, the executor, then the honest
 prover) makes no proof, or the verifier rejects it, with probability at most `2^-256`; and makes no
@@ -91,7 +91,8 @@ def GuestProverComplete : Prop :=
   ∀ (statement : NodeStatement) (witness : NodeWitness),
     NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
     DeployedLimits statement witness →
-    (∀ child ∈ witness.children, HonestChild child) →
+    (∀ child ∈ witness.children,
+      ChildWithoutCollisionOrZero (bytecodeWords guestProgram) (deployedSeed guestProgram) child) →
     ∀ ρ : ℕ, 1 ≤ ρ ∧ ρ ≤ 4 →
       let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)
       Pr{let accepted ← Common.runWithRandomPermutation (do

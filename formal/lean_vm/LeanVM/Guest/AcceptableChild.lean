@@ -19,13 +19,17 @@ import LeanVM.Guest.Data.Consts
 /-!
 # A child the guest program accepts
 
-`Statement/LeanVmGuestCompleteness.lean` states the guest program's completeness for children
-carrying honest proofs (`HonestChild`). The proofs go through what the guest program checks of a
-child, defined here: `ChildrenProven`'s two conditions, a stack log at least `20`, a proof
-stream of at most `STREAM_CAP = 8192` scalars, its openings agreeing in the guest program's Merkle
-caps, and no zero challenge (`AcceptableChild`). `GuestCompleteOnAcceptableChildren` is the guest
-program's completeness on nodes within the deployed limits whose children are acceptable, for every seed, and
-`GuestChildComplete` says that an honest proof is an acceptable child.
+`Statement/LeanVmGuestCompleteness.lean` states the guest program's completeness for children the
+verifier accepts, free of a collision in the caps and of a zero challenge
+(`ChildWithoutCollisionOrZero`). The proofs go through what the guest program checks of a child,
+defined here: `ChildrenProven`'s two conditions, a stack log at least `20`, a proof stream of at
+most `STREAM_CAP = 8192` scalars, its openings agreeing in the guest program's Merkle caps at every
+query step of its verifier's run, and no zero challenge (`AcceptableChild`).
+`GuestCompleteOnAcceptableChildren` is the guest program's completeness on nodes within the
+deployed limits whose children are acceptable, for every seed; `Child/Accepted.lean` shows that
+`ChildWithoutCollisionOrZero` makes a child `NodeRelation` admits acceptable. A child carrying the
+honest prover's proof (`HonestChild`) is acceptable too (`GuestChildComplete`,
+`HonestChildren.lean`).
 -/
 
 @[expose] public section
@@ -55,15 +59,6 @@ def childVerifierStart (seed : Digest) (child : Child) : VerifierProgramState :=
 end Coverage
 
 namespace Limits
-
-/-- **The deployed deferring verifier refusing a zero challenge**
-(`VerifierProgram.refusingZeroChallenge`):
-`verifyDeferred` with every sampled challenge `0` a failure. -/
-def verifyDeferredRefusingZero (bytecode : List K) (iv publicInput : Digest)
-    (claim : BytecodeClaim) (proof : Proof) : Bool :=
-  Id.run (runProof (m := Id) keccakF1600
-    (deferringVerifierProgram claim bytecode publicInput).refusingZeroChallenge
-    (keccakF1600 (seedInput iv publicInput)) proof)
 
 /-- **The query steps of a run** of the compiled verifier (Keccak-256, Keccak-f[1600]): each
 `query` step as its tree's height and its positions, each with its opening in the phase it
@@ -100,40 +95,6 @@ def queryStepsOf {α : Type} : VerifierProgram α → VerifierProgramState → L
       | some rows => (height, ps.zip phase) :: queryStepsOf (k rows) { state with openings := rest }
       | none => []
     | _, _ => []
-
-/-- The heap index of the node at `level` (the leaves at `0`) above the leaf `leafPosition` of a
-tree of height `depth`. -/
-def merkleHeapIndex (depth leafPosition level : ℕ) : ℕ :=
-  2 ^ (depth - level) + leafPosition / 2 ^ level
-
-/-- The heap index of the sibling of the node at `level < depth` above the leaf `leafPosition`. -/
-def siblingHeapIndex (depth leafPosition level : ℕ) : ℕ :=
-  2 * merkleHeapIndex depth leafPosition (level + 1) + (!leafPosition.testBit level).toNat
-
-/-- The digest of a Merkle leaf: Keccak-256 of its words as bytes (`hash_leaf`,
-`crates/verifier/src/merkle.rs`), the leaf an opening's climb starts from. -/
-def _root_.LeanVM.Protocol.KeccakHash.merkleLeafDigest (words : List K) : Digest :=
-  keccak256 (words.flatMap K.toBytes)
-
-/-- The digest an opening's climb reaches from `node` at `leafPosition` over `path`. -/
-def climbTo (node : Digest) (leafPosition : ℕ) (path : List Digest) : Digest :=
-  Id.run (climb (m := Id) keccakF1600 node leafPosition path)
-
-/-- **The opening `queryOpening` gives the heap node `heapNode` the digest `digest`**: the node is
-on its climb, with the climb's digest there, or is the sibling it carries at a level. -/
-def OpeningGivesNode (depth : ℕ) (queryOpening : ℕ × Opening) (heapNode : ℕ) (digest : Digest) :
-    Prop :=
-  (∃ level ≤ depth, heapNode = merkleHeapIndex depth queryOpening.1 level ∧
-    digest = climbTo (merkleLeafDigest queryOpening.2.leaf) queryOpening.1
-      (queryOpening.2.path.take level)) ∨
-  ∃ level < depth, heapNode = siblingHeapIndex depth queryOpening.1 level ∧
-    digest = queryOpening.2.path.getD level default
-
-/-- The openings of one query step agree wherever they meet. -/
-def OpeningsAgree (depth : ℕ) (queryOpenings : List (ℕ × Opening)) : Prop :=
-  ∀ a ∈ queryOpenings, ∀ b ∈ queryOpenings, ∀ heapNode digest digest',
-    OpeningGivesNode depth a heapNode digest → OpeningGivesNode depth b heapNode digest' →
-      digest = digest'
 
 end Limits
 
@@ -189,8 +150,21 @@ abbrev GuestCompleteOnAcceptableChildren : Prop :=
         execution ∧
       execution.committedSize ≤ 2 ^ 30
 
+/-- **A child carrying an honest proof**: its fresh claim on the bytecode is true, and its proof
+is the honest prover's, with the deployed Keccak, of an execution of the guest program on its
+statement's digest under the deployed seed, and the leanVM verifier refusing a zero challenge
+accepts it. Every such child that `NodeRelation` admits is acceptable
+(`acceptableChildren_of_honest`). -/
+def HonestChild (child : Child) : Prop :=
+  let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) child.statement)
+  child.freshClaim.Holds (bytecodeWords guestProgram) ∧
+    ∃ (execution : Execution guestProgram) (ρ : ℕ),
+      LeanVM.leanVmHonestProver (m := Id) keccakF1600 guestProgram input execution ρ (2 ^ 35) =
+        some child.proof ∧
+      verifierRefusingZero (m := Id) keccakF1600 guestProgram input child.proof = true
+
 /-- **An honest prover's proof over the deployed Keccak-f[1600]**, the hash Keccak-256, if it
-makes one (`HonestChild`'s, `Statement/LeanVmGuestCompleteness.lean`, written out). -/
+makes one (`HonestChild`'s, written out). -/
 def honestProofWithDeployedKeccak (honestProver : HonestProver) (program : LeanIsaProgram)
     (input : PublicInput) (execution : Execution program) (ρ nonceAttemptsPerProofOfWork : ℕ) :
     Option Proof :=

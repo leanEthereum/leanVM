@@ -387,7 +387,8 @@ def AdviceComplete (advice : Digest → NodeStatement → NodeWitness → Advice
   ∀ statement witness,
     NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
     DeployedLimits statement witness →
-    (∀ child ∈ witness.children, Completeness.HonestChild child) →
+    (∀ child ∈ witness.children, Completeness.ChildWithoutCollisionOrZero (bytecodeWords guestProgram)
+      (deployedSeed guestProgram) child) →
     ∃ execution, guestRun advice statement witness = .ok execution ∧
       ValidExecution guestProgram
         (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) execution ∧

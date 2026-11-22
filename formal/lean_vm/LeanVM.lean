@@ -97,10 +97,11 @@ random-permutation model where an adversary is involved, except the memory-decod
 * `LeanVM.Guest.EndExec.guestExecution_complete_holds : GuestExecutionComplete`
   (`Statement/LeanVmGuestCompleteness.lean`): the executor runs the guest program to completion on
   the advice `Statement/LeanVmGuestProver.lean` makes from the statement and the witness, on every node
-  within the deployed limits whose children carry honest proofs; with `completeness_holds` and `honest_proof_rarely_refused`
-  it gives `GuestProverComplete` (`Statement/Corollaries.lean`), the guest's prover's proof accepted.
+  within the deployed limits whose children the verifier accepts, free of a collision in the caps
+  and of a zero challenge; with `completeness_holds` and `honest_proof_rarely_refused` it gives
+  `GuestProverComplete` (`Statement/Corollaries.lean`), the guest's prover's proof accepted.
 
-**The executor on the guest.** `LeanVM.Guest.EndExec.honestExecution_complete_on_honest_children :
+**The executor on the guest.** `LeanVM.Guest.EndExec.honestExecution_complete_on_accepted_children :
 ExecGaps Ks Km E0 X Pro → AdviceComplete honestAdvice` (`LeanVM/Guest/EndExecHonest.lean`): the
 executor `LeanVM.Prover.Exec.execute` runs the guest program to completion on the proofs' advice
 (`LeanVM.Guest.honestAdvice`, its streams `LeanVM.Guest.Hints.honestStreams`), within `2^30` committed
@@ -118,8 +119,10 @@ of its children's deferred claims (`LeanVM.Guest.Batch.children_sound`, and in t
 random-permutation model `batch_rpm`, `batch_rpm_bits`), `decode_binds`, `guest_sound`,
 `aggregate_knowledge`, the guest's completeness on the children it accepts
 (`LeanVM.Guest.Budget.guest_complete_on_acceptable_children`, `AcceptableChild`,
-`LeanVM/Guest/AcceptableChild.lean`; an honest proof is such a child by `guest_child_complete` and
-`LeanVM.Guest.Child.freshClaim_unique`), and the guest's completeness within its deployed budget
+`LeanVM/Guest/AcceptableChild.lean`; a child `NodeRelation` admits, free of a collision in the caps
+and of a zero challenge, is such a child by `LeanVM.Guest.Child.acceptableChildren_of_accepted`, and
+an honest proof by `guest_child_complete` and `LeanVM.Guest.Child.freshClaim_unique`), the executor
+on honest children (`LeanVM.Guest.EndExec.honestExecution_ok_on_honest_children`), and the guest's completeness within its deployed budget
 (`LeanVM.Guest.Budget.guest_complete`, `guest_complete_numeric`).
 The two-oracle random-oracle model the proofs pass through (`LeanVM/Protocol/Rom/Statement.lean`:
 `LeanVM.knowledgeSoundnessRomAS`, `LeanVM.completenessRom_holds`; the batching's
@@ -245,12 +248,24 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 #print axioms LeanVM.Guest.EndExec.aggregate_complete_exec
 
 /--
-info: 'LeanVM.Guest.EndExec.honestExecution_complete_on_honest_children' depends on axioms: [propext,
+info: 'LeanVM.Guest.EndExec.honestExecution_complete_on_accepted_children' depends on axioms: [propext,
  Classical.choice,
  Quot.sound]
 -/
 #guard_msgs in
-#print axioms LeanVM.Guest.EndExec.honestExecution_complete_on_honest_children
+#print axioms LeanVM.Guest.EndExec.honestExecution_complete_on_accepted_children
+
+/-- info: 'LeanVM.Guest.Child.acceptableChildren_of_accepted' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Child.acceptableChildren_of_accepted
+
+/--
+info: 'LeanVM.Guest.EndExec.honestExecution_ok_on_honest_children' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms LeanVM.Guest.EndExec.honestExecution_ok_on_honest_children
 
 /-- info: 'LeanVM.Guest.EndExec.guest_prover_complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
