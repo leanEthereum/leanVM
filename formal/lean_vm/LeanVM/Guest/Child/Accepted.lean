@@ -44,45 +44,56 @@ open LeanVM.Guest.Completeness LeanVM.Protocol.Verifier.Claims
 theorem run_of_allRet {α : Type} {P : α → Prop} (π : KeccakState → Id KeccakState)
     {p : VerifierProgram α} (hp : AllRet p P) :
     ∀ {s : VerifierProgramState} {a : α} {s' : VerifierProgramState},
-      run (m := Id) π p s = some (a, s') → P a := by
+      Compile.run (m := Id) π p s = some (a, s') → P a := by
   induction hp with
   | ret h =>
     intro s a s' e
-    simp only [run, pure, Option.some.injEq, Prod.mk.injEq] at e
-    exact e.1 ▸ h
+    simp only [Compile.run, pure] at e
+    cases e
+    exact h
   | fail =>
     intro s a s' e
     cases e
   | read _ ih =>
     intro s a s' e
-    simp only [run] at e
+    simp only [Compile.run] at e
     split at e
     · exact ih _ e
     · cases e
-  | sample _ ih =>
+  | @sample k _ ih =>
     intro s a s' e
+    have e2 : Compile.run (m := Id) π (VerifierProgram.sample k) s =
+        Compile.run π (k (Id.run (squeeze π s.sponge)).1)
+          { s with sponge := (Id.run (squeeze π s.sponge)).2 } := rfl
+    rw [e2] at e
     exact ih _ e
   | grind _ ih =>
     intro s a s' e
-    simp only [run] at e
+    simp only [Compile.run] at e
     split at e
-    · split at e
+    · rename_i _ _ n _ _ _
+      generalize absorbNonce π s.sponge n = N at e
+      obtain ⟨pw, sp'⟩ := N
+      change (if powOk _ pw = true then _ else _) = _ at e
+      split at e
       · exact ih e
       · cases e
     · cases e
   | commit _ ih =>
     intro s a s' e
-    simp only [run] at e
+    simp only [Compile.run] at e
     split at e
     · exact ih e
     · cases e
   | query _ ih =>
     intro s a s' e
-    simp only [run] at e
+    simp only [Compile.run] at e
     split at e
-    · split at e
-      · exact ih _ e
-      · cases e
+    · rename_i root height width phase rest _ _
+      generalize openPhase π root height width _ phase = O at e
+      cases O with
+      | some rows => exact ih rows e
+      | none => cases e
     · cases e
 
 /-- Every value `readAnnouncedSizes` returns has a layout `buildLayout` gives. -/
@@ -169,50 +180,67 @@ theorem openPhase_some {root : Digest} {height width : ℕ} {positions : List �
 
 /-- **Every query step opens a phase of the state's openings**, each opening at its leaf's
 position, every path the step's height. -/
-theorem queryStepsOf_phase {α : Type} (p : VerifierProgram α) :
-    ∀ (state : VerifierProgramState), ∀ step ∈ Limits.queryStepsOf p state,
+theorem queryStepsOf_phase {α : Type} : ∀ (p : VerifierProgram α) (state : VerifierProgramState),
+    ∀ step ∈ Limits.queryStepsOf p state,
       ∃ phase ∈ state.openings, (∀ opening ∈ phase, opening.path.length = step.1) ∧
-        step.2 = phase.map fun opening ↦ (opening.leafIndex, opening) := by
-  induction p with
-  | ret _ => intro state step h; simp [Limits.queryStepsOf] at h
-  | fail => intro state step h; simp [Limits.queryStepsOf] at h
-  | read k ih =>
-    intro state step h
-    simp only [Limits.queryStepsOf] at h
-    split at h
-    · exact ih _ _ step h
-    · simp at h
-  | sample k ih =>
-    intro state step h
-    exact ih _ _ step h
-  | grind bits k ih =>
-    intro state step h
-    simp only [Limits.queryStepsOf] at h
-    split at h
-    · split at h
-      · exact ih _ step h
-      · simp at h
-    · simp at h
-  | commit height width k ih =>
-    intro state step h
-    simp only [Limits.queryStepsOf] at h
-    split at h
-    · exact ih _ step h
-    · simp at h
-  | query i ps k ih =>
-    intro state step h
-    simp only [Limits.queryStepsOf] at h
-    split at h
-    · rename_i root height width phase rest hroot hopen
+        step.2 = phase.map fun opening ↦ (opening.leafIndex, opening)
+  | .ret _, _, _, h => by simp [Limits.queryStepsOf] at h
+  | .fail, _, _, h => by simp [Limits.queryStepsOf] at h
+  | .read k, ⟨⟨S0, P0, g⟩, stream, os, R⟩, step, h => by
+    match stream, g, h with
+    | [], _, h => simp [Limits.queryStepsOf] at h
+    | _ :: _, some _, h => simp [Limits.queryStepsOf] at h
+    | x :: xs, none, h =>
+      obtain ⟨phase, hp, h'⟩ := queryStepsOf_phase (k x) _ step h
+      exact ⟨phase, hp, h'⟩
+  | .sample k, state, step, h => by
+    have e : Limits.queryStepsOf (VerifierProgram.sample k) state =
+        Limits.queryStepsOf (k (Id.run (squeeze keccakF1600 state.sponge)).1)
+          { state with sponge := (Id.run (squeeze keccakF1600 state.sponge)).2 } := rfl
+    rw [e] at h
+    obtain ⟨phase, hp, h'⟩ := queryStepsOf_phase _ _ step h
+    exact ⟨phase, hp, h'⟩
+  | .grind bits k, ⟨⟨S0, P0, g⟩, stream, os, R⟩, step, h => by
+    match stream, g, h with
+    | [], _, h => simp [Limits.queryStepsOf] at h
+    | _ :: _, some _, h => simp [Limits.queryStepsOf] at h
+    | n :: xs, none, h =>
+      simp only [Limits.queryStepsOf] at h
+      generalize absorbNonce (m := Id) keccakF1600 ⟨S0, P0, none⟩ n = N at h
+      obtain ⟨pw, sp'⟩ := N
+      change step ∈ (if powOk bits pw = true then _ else _) at h
       split at h
-      · rename_i rows hrows
-        obtain ⟨hlen, hzip⟩ := openPhase_some hrows
-        rcases List.mem_cons.mp h with rfl | h
-        · exact ⟨phase, by rw [hopen]; exact List.mem_cons_self .., hlen, hzip⟩
-        · obtain ⟨phase', hmem, h'⟩ := ih rows _ step h
-          exact ⟨phase', by rw [hopen]; exact List.mem_cons_of_mem _ hmem, h'⟩
+      · obtain ⟨phase, hp, h'⟩ := queryStepsOf_phase k _ step h
+        exact ⟨phase, hp, h'⟩
       · simp at h
-    · simp at h
+  | .commit height width k, ⟨⟨S0, P0, g⟩, stream, os, R⟩, step, h => by
+    match stream, g, h with
+    | [], _, h => simp [Limits.queryStepsOf] at h
+    | [_], _, h => simp [Limits.queryStepsOf] at h
+    | _ :: _ :: _, some _, h => simp [Limits.queryStepsOf] at h
+    | x0 :: x1 :: xs, none, h =>
+      obtain ⟨phase, hp, h'⟩ := queryStepsOf_phase k _ step h
+      exact ⟨phase, hp, h'⟩
+  | .query i ps k, ⟨sp, stream, os, R⟩, step, h => by
+    simp only [Limits.queryStepsOf] at h
+    cases hr : R[i]? with
+    | none => simp [hr] at h
+    | some t =>
+      obtain ⟨root, height, width⟩ := t
+      cases os with
+      | nil => simp [hr] at h
+      | cons phase rest =>
+        simp only [hr] at h
+        generalize ho : Id.run (openPhase (m := Id) keccakF1600 root height width ps phase) = o at h
+        cases o with
+        | none => simp at h
+        | some rows =>
+          simp only at h
+          have hop := openPhase_some ho
+          rcases List.mem_cons.mp h with rfl | h
+          · exact ⟨phase, List.mem_cons_self .., hop.1, hop.2⟩
+          · obtain ⟨phase', hp, h'⟩ := queryStepsOf_phase (k rows) _ step h
+            exact ⟨phase', List.mem_cons_of_mem _ hp, h'⟩
 
 /-! ## Acceptable children -/
 
