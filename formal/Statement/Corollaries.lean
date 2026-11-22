@@ -79,7 +79,7 @@ open LeanVM.Protocol.Compile LeanVM.Node
 
 open OracleComp OracleSpec in
 /-- **The guest's prover makes a proof the verifier accepts.** On every node
-`GuestCompleteOnHonestChildren` covers (`NodeRelation` under the deployed seed, `DeployedLimits`,
+`GuestExecutionComplete` covers (`NodeRelation` under the deployed seed, `DeployedLimits`,
 every child a `HonestChild`), in the random-permutation model, at an inverse rate `2^ρ`,
 `1 ≤ ρ ≤ 4`, with `2^35` nonces per proof of work: the guest's prover (`LeanVM.Guest.guestProve`,
 `LeanVmGuestProver.lean`: the advice from the statement and the witness, the executor, then the honest
@@ -124,7 +124,7 @@ structure Corollaries
   aggregateSound : LeanVM.Node.AggregateSound LeanVM.Guest.guestProgram guestWitnessDecoder
     (LeanVM.extractorComputedBy leanVmKnowledgeExtractor)
   /-- The guest's prover (`LeanVM.Guest.guestProve`), run on the statement and the witness of a
-  node `guestCompleteOnHonestChildren` covers, makes a proof the verifier rejects, or none, with
+  node `guestExecutionComplete` covers, makes a proof the verifier rejects, or none, with
   probability at most `2^-256`, and that the verifier refusing every zero challenge rejects, or
   none, with probability at most `2^-100`, in the random-permutation model: from
   `guestExecutionComplete`, `leanVmCompleteness` and `honestProofRarelyRefused`

@@ -1,9 +1,8 @@
 /-
   LeanVM.Guest.HonestChildren
 
-  The guest program's completeness on children carrying honest proofs (`Statement`'s
-  `GuestCompleteOnHonestChildren`) and the honest proof rarely refused (`HonestProofRarelyRefused`), from the completeness on
-  children the guest program accepts and the honest proof being such a child.
+  Children carrying honest proofs are children the guest program accepts, and the honest proof
+  rarely refused (`HonestProofRarelyRefused`), from the honest proof being such a child.
 -/
 
 module
@@ -22,8 +21,8 @@ A child carrying an honest proof (`HonestChild`) is one the guest program accept
 the honest proof is an acceptable child, and `NodeRelation`'s `ChildrenProven` has the deferring
 verifier accept the proof with the witness's fresh claim, which is true; the deferring verifier
 accepts a proof with at most one true claim (`Child.freshClaim_unique`), so the two claims are one
-(`acceptableChild_of_honestChild`). The completeness on acceptable children
-(`guest_complete_on_acceptable_children`, every seed) then gives `GuestCompleteOnHonestChildren`.
+(`acceptableChild_of_honestChild`). `EndExecHonest.lean` uses it to run the guest program on
+honest children.
 -/
 
 namespace LeanVM.Guest.Completeness
@@ -64,14 +63,6 @@ theorem acceptableChildren_of_honest {statement : NodeStatement} {witness : Node
       AcceptableChild (bytecodeWords guestProgram) (deployedSeed guestProgram) child :=
   fun child hc ↦ acceptableChild_of_honestChild (childrenProven_of_nodeRelation hRelation) hc
     (hHonest child hc)
-
-/-- **Every node within the deployed limits whose children carry honest proofs has a valid execution of the
-guest program** (`GuestCompleteOnHonestChildren`): `guest_complete_on_acceptable_children`'s
-execution, of committed size at most `2^30`. -/
-theorem guest_complete_on_honest_children : GuestCompleteOnHonestChildren := by
-  intro statement witness hRelation hLimits hHonest
-  exact Budget.guest_complete_on_acceptable_children (deployedSeed guestProgram) statement witness
-    hRelation hLimits (acceptableChildren_of_honest hRelation hHonest)
 
 /-- **The honest proof is rarely refused** (`HonestProofRarelyRefused`): `guest_child_complete`'s
 first part. -/

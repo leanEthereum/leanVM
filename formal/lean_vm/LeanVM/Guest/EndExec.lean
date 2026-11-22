@@ -382,7 +382,7 @@ def guestRun (advice : Digest → NodeStatement → NodeWitness → Advice) (sta
     (advice (deployedSeed guestProgram) statement witness)
 
 /-- **The executor runs the guest program to completion on the advice**, within `2^30` committed
-cells, on every node `GuestCompleteOnHonestChildren` admits. -/
+cells, on every node `GuestExecutionComplete` covers. -/
 def AdviceComplete (advice : Digest → NodeStatement → NodeWitness → Advice) : Prop :=
   ∀ statement witness,
     NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
@@ -392,13 +392,6 @@ def AdviceComplete (advice : Digest → NodeStatement → NodeWitness → Advice
       ValidExecution guestProgram
         (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) execution ∧
       execution.committedSize ≤ 2 ^ 30
-
-/-- **`AdviceComplete` gives `GuestCompleteOnHonestChildren`**, for any advice. -/
-theorem guestCompleteOnHonestChildren_of_exec {advice : Digest → NodeStatement → NodeWitness → Advice}
-    (h : AdviceComplete advice) : Completeness.GuestCompleteOnHonestChildren :=
-  fun statement witness hrel hlim hon ↦
-    let ⟨t, _, hv, hsz⟩ := h statement witness hrel hlim hon
-    ⟨t, hv, hsz⟩
 
 end
 

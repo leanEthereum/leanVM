@@ -2,8 +2,8 @@
   LeanVM.Guest.AcceptableChild
 
   What the guest program checks of a child (`AcceptableChild`), and the guest program's
-  completeness stated with it (`GuestCompleteOnAcceptableChildren`, `GuestChildComplete`): the statement's
-  completeness on honest children (`GuestCompleteOnHonestChildren`) follows from them.
+  completeness stated with it (`GuestCompleteOnAcceptableChildren`, `GuestChildComplete`): an honest
+  child is an acceptable one (`HonestChildren.lean`).
 -/
 
 module

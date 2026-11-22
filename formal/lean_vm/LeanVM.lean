@@ -88,12 +88,6 @@ random-permutation model where an adversary is involved, except the memory-decod
   for a decoder program `D` that computes it within its size bound and budget
   (`LeanVM.Guest.End.guestKnowledge_of_decode`), the compiled
   `LeanVM.Cost.compiledGuestWitnessDecoder`;
-* `LeanVM.Guest.Completeness.guest_complete_on_honest_children : GuestCompleteOnHonestChildren`
-  (`Statement/LeanVmGuestCompleteness.lean`): the guest program's completeness on the nodes within
-  the deployed limits whose children carry honest proofs, from
-  `LeanVM.Guest.Budget.guest_complete_on_acceptable_children` (children the guest accepts,
-  `AcceptableChild`, `LeanVM/Guest/AcceptableChild.lean`), `guest_child_complete` (an honest proof
-  is such a child) and `LeanVM.Guest.Child.freshClaim_unique`;
 * `LeanVM.Guest.Completeness.honest_proof_rarely_refused : HonestProofRarelyRefused`
   (`Statement/LeanVmGuestCompleteness.lean`): the honest proof of a guest execution is rejected
   with probability at most `2^-100` in the random-permutation model;
@@ -103,14 +97,14 @@ random-permutation model where an adversary is involved, except the memory-decod
 * `LeanVM.Guest.EndExec.guestExecution_complete_holds : GuestExecutionComplete`
   (`Statement/LeanVmGuestCompleteness.lean`): the executor runs the guest program to completion on
   the advice `Statement/LeanVmGuestProver.lean` makes from the statement and the witness, on every node
-  `GuestCompleteOnHonestChildren` admits; with `completeness_holds` and `honest_proof_rarely_refused`
+  within the deployed limits whose children carry honest proofs; with `completeness_holds` and `honest_proof_rarely_refused`
   it gives `GuestProverComplete` (`Statement/Corollaries.lean`), the guest's prover's proof accepted.
 
 **The executor on the guest.** `LeanVM.Guest.EndExec.honestExecution_complete_on_honest_children :
 ExecGaps Ks Km E0 X Pro → AdviceComplete honestAdvice` (`LeanVM/Guest/EndExecHonest.lean`): the
 executor `LeanVM.Prover.Exec.execute` runs the guest program to completion on the proofs' advice
 (`LeanVM.Guest.honestAdvice`, its streams `LeanVM.Guest.Hints.honestStreams`), within `2^30` committed
-cells, on every node `GuestCompleteOnHonestChildren` admits, given `ExecGaps`
+cells, on every node `GuestExecutionComplete` covers, given `ExecGaps`
 (`LeanVM/Guest/EndExec.lean`), which `execGaps` proves (`LeanVM/Guest/EndExecFinal.lean`: the core
 route's certificates, kernel-checked, the reference run and its alignment, the hint tracks, the residuals
 and the termination facts). `Statement/LeanVmGuestProver.lean`'s advice is that advice
@@ -122,7 +116,10 @@ completeness errors, and the compiled extractor's price, `LeanVM.Cost.Bounds.AS.
 `LeanVM.Cost.Bounds.AS.asPrice_le`, `LeanVM.Cost.AS.asPrice_within`), the guest's batching
 of its children's deferred claims (`LeanVM.Guest.Batch.children_sound`, and in the
 random-permutation model `batch_rpm`, `batch_rpm_bits`), `decode_binds`, `guest_sound`,
-`aggregate_knowledge`, and the guest's completeness within its deployed budget
+`aggregate_knowledge`, the guest's completeness on the children it accepts
+(`LeanVM.Guest.Budget.guest_complete_on_acceptable_children`, `AcceptableChild`,
+`LeanVM/Guest/AcceptableChild.lean`; an honest proof is such a child by `guest_child_complete` and
+`LeanVM.Guest.Child.freshClaim_unique`), and the guest's completeness within its deployed budget
 (`LeanVM.Guest.Budget.guest_complete`, `guest_complete_numeric`).
 The two-oracle random-oracle model the proofs pass through (`LeanVM/Protocol/Rom/Statement.lean`:
 `LeanVM.knowledgeSoundnessRomAS`, `LeanVM.completenessRom_holds`; the batching's
@@ -138,8 +135,6 @@ example : LeanVM.Node.StatementDigestBinds := LeanVM.Guest.Binding.digest_binds
 example : LeanVM.Node.MemoryAggregateSound LeanVM.Guest.guestProgram LeanVM.Guest.End.decode
     LeanVM.transcriptExtractor :=
   LeanVM.Guest.End.aggregate_sound_outer
-example : LeanVM.Guest.Completeness.GuestCompleteOnHonestChildren :=
-  LeanVM.Guest.Completeness.guest_complete_on_honest_children
 example : LeanVM.Guest.Completeness.HonestProofRarelyRefused :=
   LeanVM.Guest.Completeness.honest_proof_rarely_refused
 example : LeanVM.Guest.Completeness.GuestExecutionComplete :=
@@ -240,10 +235,6 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 /-- info: 'LeanVM.Guest.Budget.guest_complete_numeric' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Budget.guest_complete_numeric
-
-/-- info: 'LeanVM.Guest.Completeness.guest_complete_on_honest_children' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Guest.Completeness.guest_complete_on_honest_children
 
 /-- info: 'LeanVM.Guest.EndExec.execute_guest_complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -360,7 +351,6 @@ theorem LeanVM.theorems_of_decoderSpec {decoderProgram : LeanVM.Cost.MachineProg
   leanVmCompleteness := LeanVM.completeness_holds
   guestKnowledgeSoundness := LeanVM.Guest.End.guestKnowledge_of_spec hspec hexplains
   statementDigestBinds := LeanVM.Guest.Binding.digest_binds
-  guestCompleteOnHonestChildren := LeanVM.Guest.Completeness.guest_complete_on_honest_children
   guestExecutionComplete := LeanVM.Guest.EndExec.guestExecution_complete_holds
   honestProofRarelyRefused := LeanVM.Guest.Completeness.honest_proof_rarely_refused
   batchingSound := LeanVM.Guest.Batch.batch_sound_holds

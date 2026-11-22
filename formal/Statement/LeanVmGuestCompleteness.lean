@@ -7,9 +7,8 @@ public import Statement.LeanVmGuestProver
 # The leanISA guest program: completeness, and the batching's soundness
 
 The guest program's completeness on the nodes within the deployed limits (`DeployedLimits`) whose
-children carry honest proofs (`GuestCompleteOnHonestChildren`), its execution made from the
-statement and the witness (`GuestExecutionComplete`), the honest proof
-rarely refused (`HonestProofRarelyRefused`), and the recursion step, the batching of the
+children carry honest proofs, its execution made from the statement and the witness
+(`GuestExecutionComplete`), the honest proof rarely refused (`HonestProofRarelyRefused`), and the recursion step, the batching of the
 children's deferred claims, sound in the random-permutation model (`BatchingSound`). The
 soundness side, what a node proves, is `LeanVmGuest.lean`. `lean_ethereum.py` is
 `guests/lean_ethereum.py` and `aggregation/<module>.rs` is
@@ -134,31 +133,16 @@ def HonestChild (child : Child) : Prop :=
         some child.proof ∧
       verifierRefusingZero (m := Id) keccakF1600 guestProgram input child.proof = true
 
-/-- **Every node within the deployed limits whose children carry honest proofs has a valid execution
-of the guest program**: for every statement and witness with `NodeRelation` under the deployed seed,
-within the deployed limits (`DeployedLimits`), every child carrying an honest proof (`HonestChild`),
-there is a valid execution of the guest program on the statement's digest of
-committed size at most `2^30`, the sizes the honest prover proves and `HonestProofRarelyRefused`
-covers. Reading `HonestProofRarelyRefused` for the deployed Keccak,
-so that the honest proof is a `HonestChild`, is the heuristic that the deployed Keccak-f[1600]
-behaves as a random permutation, applied to this prover. Proved by
-`LeanVM.Guest.Completeness.guest_complete_on_honest_children`. -/
-def GuestCompleteOnHonestChildren : Prop :=
-  ∀ (statement : NodeStatement) (witness : NodeWitness),
-    NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
-    DeployedLimits statement witness →
-    (∀ child ∈ witness.children, HonestChild child) →
-    ∃ execution : Execution guestProgram,
-      ValidExecution guestProgram
-        (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) execution ∧
-      execution.committedSize ≤ 2 ^ 30
-
-/-- **The guest's execution, made from the statement and the witness**: on every node
-`GuestCompleteOnHonestChildren` covers, the executor's run of the guest program on the advice made
+/-- **The guest's execution, made from the statement and the witness, on every node within the
+deployed limits whose children carry honest proofs**: for every statement and witness with
+`NodeRelation` under the deployed seed, within the deployed limits (`DeployedLimits`), every child
+carrying an honest proof (`HonestChild`), the executor's run of the guest program on the advice made
 from the statement and the witness (`LeanVM.Guest.guestExecution`, `LeanVmGuestProver.lean`) returns
-a valid execution of the guest program on the statement's digest, of committed size at most
-`2^30`. `GuestCompleteOnHonestChildren` says that one exists; this, that the guest's witness
-generation finds it. -/
+a valid execution of the guest program on the statement's digest, of committed size at most `2^30`,
+the sizes the honest prover proves and `HonestProofRarelyRefused` covers. Reading
+`HonestProofRarelyRefused` for the deployed Keccak, so that the honest proof is a `HonestChild`, is
+the heuristic that the deployed Keccak-f[1600] behaves as a random permutation, applied to this
+prover. Proved by `LeanVM.Guest.EndExec.guestExecution_complete_holds`. -/
 def GuestExecutionComplete : Prop :=
   ∀ (statement : NodeStatement) (witness : NodeWitness),
     NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
