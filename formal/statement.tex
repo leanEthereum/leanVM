@@ -527,8 +527,8 @@ point is all-zero (its value is left to the outer verifier); otherwise $\mathrm{
 \lean{runBatching}; \lean{batch} in \lean{lean_vm}), with $c_i$ the deferred claim of $s_i$. The
 batching is a Fiat-Shamir transcript on Keccak-f[1600], seeded from the hash of the label
 \texttt{leanvm/recursion-aggregation/v1}: it absorbs the number of children, then each child's
-digest and two claims; checks a proof of work of $2$ bits (\lean{batchLambdaGrindBits}) and squeezes one challenge $\lambda \in \mathbb{E}$, whose powers batch the
-claims (\lean{lambdaPowers}); and runs one degree-$2$ sumcheck reducing
+digest and two claims; checks a proof of work of \lean{batchLambdaGrindBits} bits, $\mathrm{grinding\_bits}(2 \cdot 16 - 1) = 2$ for at most \lean{maxRecursions} $= 16$ children (the hints carry its nonce only when it is of nonzero bits, \lean{lambdaGrindNonceCells}), and squeezes one challenge $\lambda \in \mathbb{E}$, whose powers batch the
+claims (\lean{lambdaPowers}); and runs one degree-$2$ sumcheck, whose rounds grind $\mathrm{grinding\_bits}(2) = 0$ bits and so send no nonce (\lean{sumcheckRoundCells}), reducing
 $\sum_i (\lambda^{2i} v_i + \lambda^{2i+1} v'_i)$, with $v_i$
 the value of $f_i$ and $v'_i$ that of $c_i$, to one claim on $\widehat{B}$ at a new point.
 Either way $s$'s deferred claim has the bytecode's shape: its point has $23$ coordinates
@@ -707,7 +707,7 @@ $\mathrm{NodeRel}(B, iv_G, s, w)$, under the deployed seed:
 \begin{enumerate}
 \item \lean{DeployedLimits}, the node's limits: each declared list
 is a sub-multiset of the raw signatures' claims and the children's lists (a claim declared $n$ times
-is held $n$ times, each raw signature or child's entry used once); and the node's fixed capacities: at most $16$ children holding at most $2^{17}$ claims in their lists in all, at most $2048$ leanXMSS and $512$ leanSPHINCS signatures held directly, and a blob matrix held directly of at most \lean{LeanDa.maxRows} rows. Every node of a tree aggregating $2^{17}$ signatures of one scheme is within them: $64$ leaves of $2048$ leanXMSS signatures (or $256$ of $512$ leanSPHINCS), nodes of $16$ leaves each, and a root over those. The guest program enforces the sub-multisets, the $16$ children and the blob matrix's rows, not the other capacities: a node past one of them is still accepted, and the prover may still prove it, but the theorems below do not cover it.
+is held $n$ times, each raw signature or child's entry used once); and the node's fixed capacities: at most \lean{maxRecursions} $= 16$ children holding at most $2^{17}$ claims in their lists in all, at most $2048$ leanXMSS and $512$ leanSPHINCS signatures held directly, and a blob matrix held directly of at most \lean{LeanDa.maxRows} rows. Every node of a tree aggregating $2^{17}$ signatures of one scheme is within them: $64$ leaves of $2048$ leanXMSS signatures (or $256$ of $512$ leanSPHINCS), nodes of $16$ leaves each, and a root over those. The guest program enforces the sub-multisets, the $16$ children and the blob matrix's rows, not the other capacities: a node past one of them is still accepted, and the prover may still prove it, but the theorems below do not cover it.
 \item Every child carries an honest proof (\lean{HonestChild}): its fresh claim is true of the
 bytecode (\lean{BytecodeClaim.Holds}); its proof is the one the named honest prover
 \lean{LeanVM.leanVmHonestProver} makes with the deployed Keccak
