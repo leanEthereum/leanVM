@@ -336,7 +336,8 @@ fn guest_diff() {
     let wide = CLAIM_GROUP + 3;
     let xmss = get_signers::<StableProver>(wide + 2);
     let sphincs = get_lean_sphincs_signers::<StableProver>(3);
-    let left = export("left", vec![], xmss[..2].to_vec(), sphincs[..2].to_vec(), &[blob(1), blob(3)].concat());
+    let blobs = [blob(1), blob(3)].concat();
+    let left = export("left", vec![], xmss[..2].to_vec(), sphincs[..2].to_vec(), &blobs);
     let right = export("right", vec![], xmss[1..wide + 1].to_vec(), sphincs[1..].to_vec(), &[]);
     let raw = vec![xmss[1].clone(), xmss[wide + 1].clone()];
     export("node", vec![left.clone(), right.clone()], raw, vec![], &blob(2));
