@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Prover.ExecuteKeccak
+public import LeanVM.Prover.ExecuteLinked
 import all Init.Data.Nat.Power2.Basic
 
 /-!
@@ -10,9 +10,9 @@ import all Init.Data.Nat.Power2.Basic
 public input, whatever the program, its hints and its streams. A step's hints keep its registers
 and only extend the memory, and its instruction is a step of the ISA on every final memory
 extending the state after it (`step_spec`); by induction on the loop's fuel, the run from the
-initial state reaches the final state on the final image (`loop_spec`), whose links agree by the
-executor's last check. The image's size is the least power of two covering `used`, between `2` and
-`maxCells`.
+initial state reaches the final state on the final image (`loop_spec`). The memory stays sound
+(`step_sound`), so the final memory's links agree and its `used` is at most `maxCells`: the image's
+size is the least power of two covering `used`, between `2` and `maxCells`.
 -/
 
 namespace LeanVM.Prover.Exec
@@ -73,32 +73,32 @@ memory extending the loop's last state. -/
 theorem loop_spec {prog : LeanIsaProgram} {C : Ctx} (hsize : C.ops.size = 2 ^ prog.logSize)
     (hdec : ∀ (i : ℕ) (hi : i < 2 ^ prog.logSize) (hi' : i < C.ops.size),
       OpOf (prog.instructions ⟨i, hi⟩) C.ops[i]) (n : ℕ) :
-    ∀ (s sf : St), s.Good → s.fp < maxCells → s.pc ≤ C.ops.size → loop C n s = .ok sf →
-      sf.Good ∧ s.mem ≤ sf.mem ∧ ∃ k, sf.steps = s.steps + k ∧
+    ∀ (s sf : St), s.Good → s.mem.Sound → s.fp < maxCells → s.pc ≤ C.ops.size → loop C n s = .ok sf →
+      sf.Good ∧ sf.mem.Sound ∧ s.mem ≤ sf.mem ∧ ∃ k, sf.steps = s.steps + k ∧
         ∀ (M : Mem) {κ : ℕ} (img : MemoryImage κ), sf.mem ≤ M → Final M img.read →
           run prog img k ⟨g ^ s.pc, g ^ s.fp⟩ = some (Registers.final prog) := by
   have hsz : C.ops.size ≤ 2 ^ 30 := hsize ▸ Nat.pow_le_pow_right (by norm_num) prog.logSize_le
-  have halt : ∀ s : St, s.Good → s.pc = C.ops.size - 1 ∧ s.fp = 0 →
-      s.Good ∧ s.mem ≤ s.mem ∧ ∃ k, s.steps = s.steps + k ∧
+  have halt : ∀ s : St, s.Good → s.mem.Sound → s.pc = C.ops.size - 1 ∧ s.fp = 0 →
+      s.Good ∧ s.mem.Sound ∧ s.mem ≤ s.mem ∧ ∃ k, s.steps = s.steps + k ∧
         ∀ (M : Mem) {κ : ℕ} (img : MemoryImage κ), s.mem ≤ M → Final M img.read →
           run prog img k ⟨g ^ s.pc, g ^ s.fp⟩ = some (Registers.final prog) := by
-    intro s hs hh
-    refine ⟨hs, Mem.le_refl _, 0, rfl, fun M κ img _ _ ↦ ?_⟩
+    intro s hs hS hh
+    refine ⟨hs, hS, Mem.le_refl _, 0, rfl, fun M κ img _ _ ↦ ?_⟩
     rw [run_zero, hh.1, hh.2, hsize, pow_zero]
     rfl
   induction n with
   | zero =>
-    intro s sf hs hfp hpc e
+    intro s sf hs hS hfp hpc e
     rw [loop.eq_def] at e
     dsimp only at e
     split_ifs at e with hh
-    · simp only [pure_ok] at e; subst e; exact halt s hs hh
+    · simp only [pure_ok] at e; subst e; exact halt s hs hS hh
   | succ n ih =>
-    intro s sf hs hfp hpc e
+    intro s sf hs hS hfp hpc e
     rw [loop.eq_def] at e
     dsimp only at e
     split_ifs at e with hh hout
-    · simp only [pure_ok] at e; subst e; exact halt s hs hh
+    · simp only [pure_ok] at e; subst e; exact halt s hs hS hh
     rw [bind_ok] at e
     obtain ⟨s1, h1, e⟩ := e
     have hpc' : s.pc < C.ops.size := by
@@ -108,8 +108,8 @@ theorem loop_spec {prog : LeanIsaProgram} {C : Ctx} (hsize : C.ops.size = 2 ^ pr
     have sp := step_spec (ins := prog.instructions ⟨s.pc, hpc2⟩) hs hfp hpc' (fun op hop ↦ by
       obtain ⟨h, rfl⟩ := Array.getElem?_eq_some_iff.mp hop
       exact hdec s.pc hpc2 h) h1
-    obtain ⟨g1, le1, k, hk, hrun⟩ := ih s1 sf sp.good sp.fp sp.pc e
-    refine ⟨g1, Mem.le_trans sp.le le1, k + 1, by rw [hk, sp.steps]; omega,
+    obtain ⟨g1, S1, le1, k, hk, hrun⟩ := ih s1 sf sp.good (step_sound hs hS h1) sp.fp sp.pc e
+    refine ⟨g1, S1, Mem.le_trans sp.le le1, k + 1, by rw [hk, sp.steps]; omega,
       fun M κ img hM hF ↦ ?_⟩
     have hne : (⟨g ^ s.pc, g ^ s.fp⟩ : Registers K) ≠ Registers.final prog := by
       intro hr
@@ -152,19 +152,6 @@ theorem ctx_of_spec {prog : LeanIsaProgram} {adv : Advice} {C : Ctx} (h : Ctx.of
 theorem exbind_ok {ε α β : Type} {x : Except ε α} {f : α → Except ε β} {b : β} :
     x.bind f = .ok b ↔ ∃ a, x = .ok a ∧ f a = .ok b := bind_ok
 
-theorem forIn_ok {ε : Type} {P : ℕ × ℕ → Prop}
-    {f : ℕ × ℕ → PUnit.{1} → Except ε (ForInStep PUnit.{1})}
-    (hf : ∀ x r y, f x r = .ok y → P x ∧ y = .yield PUnit.unit) :
-    ∀ (l : List (ℕ × ℕ)) (r y : PUnit.{1}), forIn l r f = .ok y → ∀ x ∈ l, P x
-  | [], _, _, _, _, hx => nomatch hx
-  | x :: l, r, y, h, z, hz => by
-    rw [List.forIn_cons, bind_ok] at h
-    obtain ⟨st, h1, h⟩ := h
-    obtain ⟨hp, rfl⟩ := hf x r st h1
-    rcases List.mem_cons.mp hz with rfl | hz
-    · exact hp
-    · exact forIn_ok hf l _ y h z hz
-
 theorem image_log {u : ℕ} (h2 : 2 ≤ u) (hu : u ≤ maxCells) :
     2 ^ Nat.log2 u.nextPowerOfTwo = u.nextPowerOfTwo ∧ u ≤ 2 ^ Nat.log2 u.nextPowerOfTwo ∧
       1 ≤ Nat.log2 u.nextPowerOfTwo ∧ Nat.log2 u.nextPowerOfTwo ≤ 28 := by
@@ -205,32 +192,25 @@ theorem execute_sound {prog : LeanIsaProgram} {input : PublicInput} {adv : Advic
   · simp [bind_ok] at h
   simp only [bind_ok] at h
   obtain ⟨mem, hmem, s, hloop, h⟩ := h
-  split_ifs at h with hused
-  · simp [bind_ok] at h
-  rw [bind_ok] at h
-  obtain ⟨u, hfor, h⟩ := h
   simp only [pure_ok] at h; subst h
   rw [mapError_ok, exbind_ok] at hmem
   obtain ⟨m1, hm1, hmem⟩ := hmem
-  have hm0 : Mem.WF ⟨#[], #[], #[], #[], max adv.mainFrame 2⟩ :=
-    ⟨fun c k h ↦ by simp [Mem.cellOf] at h, fun c h ↦ by simp [Mem.cellOf] at h⟩
-  obtain ⟨le1, wf1, g1⟩ := Mem.put_ok hm0 hm1
-  obtain ⟨le2, wf2, g2⟩ := Mem.put_ok wf1 hmem
-  obtain ⟨gs, les, k, hk, hrun⟩ := loop_spec hsize hdec maxSteps _ s ⟨wf2, Dlog.ok_empty.grow _⟩
-    (by unfold maxCells; norm_num) (Nat.zero_le _) hloop
+  have hA0 : Agree ⟨#[], #[], #[], #[], max adv.mainFrame 2⟩ (fun _ ↦ 0) :=
+    ⟨⟨⟨fun c k h ↦ by simp [Mem.cellOf] at h, fun c h ↦ by simp [Mem.cellOf] at h⟩,
+      fun c v h ↦ by simp [Mem.get] at h, fun c d k h ↦ by simp [Mem.cellOf] at h,
+      fun c k h ↦ by simp [Mem.cellOf] at h, rfl,
+      show max adv.mainFrame 2 ≤ maxCells by unfold maxCells at hmf ⊢; omega⟩,
+      fun p hp ↦ by simp at hp⟩
+  have hS1 := hA0.self.put (by unfold maxCells; norm_num) hm1
+  have hS2 := hS1.put (by unfold maxCells; norm_num) hmem
+  obtain ⟨le1, -, g1⟩ := Mem.put_ok hA0.wf hm1
+  obtain ⟨le2, -, g2⟩ := Mem.put_ok hS1.wf hmem
+  obtain ⟨gs, hSf, les, k, hk, hrun⟩ := loop_spec hsize hdec maxSteps _ s
+    ⟨hS2.wf, Dlog.ok_empty.grow _⟩ hS2 (by unfold maxCells; norm_num) (Nat.zero_le _) hloop
   have hu2 : 2 ≤ s.mem.used :=
     le_trans (le_max_right _ _) (le_trans le1.used (le_trans le2.used les.used))
-  obtain ⟨-, -, hκ1, hκ28⟩ := image_log hu2 (not_lt.mp hused)
-  have hlinks : ∀ p ∈ s.mem.links, s.mem.peek p.1 = s.mem.peek p.2 := by
-    rw [← Array.forIn_toList] at hfor
-    intro p hp
-    refine forIn_ok (P := fun p ↦ s.mem.peek p.1 = s.mem.peek p.2) (fun x r y hy ↦ ?_) _ _ _ hfor p
-      (Array.mem_toList_iff.mpr hp)
-    split_ifs at hy with hne
-    · cases hy
-    · simp only [pure_ok] at hy
-      exact ⟨not_not.mp hne, hy.symm⟩
-  have hF := final_image gs.wf hu2 (not_lt.mp hused) hlinks
+  obtain ⟨-, -, hκ1, hκ28⟩ := image_log hu2 hSf.used
+  have hF := final_image gs.wf hu2 hSf.used fun p hp ↦ (hSf.links p hp).1
   refine ⟨⟨hκ1, le_trans hκ28 (by decide), ?_, ?_⟩, ?_⟩
   · exact hF.get (Mem.le_trans le2 les) g1
   · exact hF.get les g2

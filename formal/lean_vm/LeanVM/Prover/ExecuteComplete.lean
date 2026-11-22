@@ -236,14 +236,6 @@ theorem ctx_small {prog : LeanIsaProgram} {adv : Advice} {C : Ctx} (h : Ctx.of p
     simp only [Option.elim, pure_ok] at h1
     simpa [← h1] using decode_small hd
 
-theorem forIn_yield {ε : Type} :
-    ∀ (l : List (ℕ × ℕ)) (f : ℕ × ℕ → PUnit.{1} → Except ε (ForInStep PUnit.{1})),
-      (∀ x ∈ l, f x PUnit.unit = .ok (.yield PUnit.unit)) → forIn l PUnit.unit f = .ok PUnit.unit
-  | [], _, _ => rfl
-  | x :: l, f, h => by
-    rw [List.forIn_cons, h x (List.mem_cons_self ..), ok_bind]
-    exact forIn_yield l f fun y hy ↦ h y (List.mem_cons_of_mem _ hy)
-
 /-- **The executor is complete** against a valid execution, given an invariant satisfying the
 invariant rule: it runs the reference's instructions, and its memory is the least power of two
 covering `used` at a state of the invariant. -/
@@ -296,13 +288,8 @@ theorem execute_complete_inv {prog : LeanIsaProgram} {input : PublicInput} {adv 
     dsimp only
     rw [ite_eq_right (not_le.mpr hmain), e1]
     change (Except.mapError _ (m1.put 1 input.word1) >>= _) = _
-    rw [mapError_eq e2, ok_bind, ef', ok_bind, ite_eq_right (not_lt.mpr hf.agree.used),
-      ← Array.forIn_toList, forIn_yield _ _ ?_, ok_bind]
-    · rfl
-    · rintro ⟨a, b⟩ hp
-      dsimp only
-      rw [ite_eq_right (not_not.mpr (hlinks _ (Array.mem_toList_iff.mp hp)))]
-      rfl
+    rw [mapError_eq e2, ok_bind, ef', ok_bind]
+    rfl
   · show sf.mem.peek i.val = 0 ∨ sf.mem.peek i.val = refMem img i.val
     unfold Mem.peek
     cases h : sf.mem.get i.val with
