@@ -23,7 +23,7 @@ def drive {α β : Type} (chal : ℕ → E) : VerifierProgram α → Script β �
   | .ret a, _, _ => some a
   | .read k, .send x s, n => drive chal (k x) s n
   | .sample k, .sample s, n => drive chal (k (chal n)) (s (chal n)) (n + 1)
-  | .grind _ k, .grind s, n => drive chal k s n
+  | .grind _ k, .grind _ s, n => drive chal k s n
   | _, _, _ => none
 
 /-- A pseudo-random element of `E`. -/
