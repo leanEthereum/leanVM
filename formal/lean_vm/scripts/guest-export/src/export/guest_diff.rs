@@ -324,7 +324,7 @@ fn blob(seed: u64) -> Vec<lean_da::Blob> {
     symbols.as_chunks().0.to_vec()
 }
 
-/// Two leaves, one of both schemes with a blob, one whose leanXMSS list is longer than a group of its digest
+/// Two leaves, one of both schemes with two blobs (the DA hints blob by blob), one whose leanXMSS list is longer than a group of its digest
 /// (`CLAIM_GROUP` claims), and a node over them with a blob and raw signatures, one of a claim both leaves make: the
 /// leaves overlap in a claim of each scheme, so every coverage region of the node has duplicate slots, and its claims
 /// are held directly and through each child. Then a node over the same leaves the other way round, with no blob and no
@@ -336,7 +336,7 @@ fn guest_diff() {
     let wide = CLAIM_GROUP + 3;
     let xmss = get_signers::<StableProver>(wide + 2);
     let sphincs = get_lean_sphincs_signers::<StableProver>(3);
-    let left = export("left", vec![], xmss[..2].to_vec(), sphincs[..2].to_vec(), &blob(1));
+    let left = export("left", vec![], xmss[..2].to_vec(), sphincs[..2].to_vec(), &[blob(1), blob(3)].concat());
     let right = export("right", vec![], xmss[1..wide + 1].to_vec(), sphincs[1..].to_vec(), &[]);
     let raw = vec![xmss[1].clone(), xmss[wide + 1].clone()];
     export("node", vec![left.clone(), right.clone()], raw, vec![], &blob(2));

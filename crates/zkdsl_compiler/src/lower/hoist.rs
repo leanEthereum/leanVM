@@ -4,7 +4,8 @@
 //! reserves in execution order, so a `HeapBuf` some run allocates after a call would land past
 //! that callee's subtree. Here its hint moves to just before the function's first call, which
 //! changes no instruction: every `HeapBuf` pointer is a fresh cell only its hint writes. A buffer
-//! whose size is not known there, or that not every run reaches, is a compile error.
+//! whose size is not known there, that not every run reaches, or that would pass one some run
+//! allocates before it (in the branch holding the call), is a compile error.
 //!
 //! Control flow inside a function only runs forward (a loop is a function of its own), so code
 //! order is execution order, and two instructions in different arms of one branch never run together.
@@ -40,7 +41,7 @@ impl FnLower<'_> {
 
     /// Move the `HeapBuf` reservations that some run reaches after a call to just before this
     /// function's first call, keeping their order. `Err` names one that cannot move, being in a
-    /// branch, past a `return`, or sized by a cell not written by then.
+    /// branch, past a `return`, sized by a cell not written by then, or passing one that stays.
     pub(super) fn hoist_heap_bufs(&mut self) -> Result<(), String> {
         // Each reservation in code order: where it is, whether a callee's frame, its site.
         let sites: Vec<(usize, usize, bool, Site)> = (self.code.iter().enumerate())
@@ -69,6 +70,27 @@ impl FnLower<'_> {
             self.code_path[at.0].is_empty(),
             "a statement at depth 0 starts at depth 0"
         );
+        // A `HeapBuf` that stays between `at` and one that moves would follow it on a run reaching both.
+        for &&(i, j, _, ref site) in &late {
+            let stays = |&&(k, l, frame, _): &&(usize, usize, bool, Site)| {
+                !frame && at <= (k, l) && (k, l) < (i, j) && !late.iter().any(|m| (m.0, m.1) == (k, l))
+            };
+            if let Some((_, _, _, stay)) = sites.iter().filter(stays).find(|s| self.runs_on_to(s.0, i)) {
+                return Err(format!(
+                    "line {}: `HeapBuf` `{}` in `{}` follows the function's first call (line {}), so it is \
+                     allocated before the statement holding that call, which would put it ahead of `HeapBuf` `{}` \
+                     (line {}): allocate `{}` before that statement, or move the code from it on into a function \
+                     of its own",
+                    site.line,
+                    site.name.as_deref().unwrap_or("?"),
+                    self.fn_name,
+                    first.line,
+                    stay.name.as_deref().unwrap_or("?"),
+                    stay.line,
+                    stay.name.as_deref().unwrap_or("?"),
+                ));
+            }
+        }
         // The cells every run reaching `at` has written: the arguments, then what the code before it
         // surely writes.
         let mut written = self.written_in(0..at.0, 0);

@@ -1,4 +1,5 @@
 use crate::common::compile;
+use isa::RHint;
 use lean_vm_core::cpu::execute;
 use primitives::field::{F64, F128};
 use zkdsl_compiler::parse;
@@ -44,6 +45,57 @@ fn heap_buf_around_a_call_in_a_branch() {
         for (a, s) in [(1, 1), (3, 2)] {
             execute(&program, &[], [F128::from(F64(a)), F128::from(F64(s))]).unwrap();
         }
+    }
+}
+
+/// The reservations of `f`, in code order, keep the order of the proof's memory model: its `HeapBuf`s as its body
+/// allocates them, then its callee's frame, whether the call is at depth 0 or in a branch.
+#[test]
+fn heap_bufs_keep_their_order_before_the_callee_frame() {
+    let head = "def sq(x):\n    return x * x\n\n";
+    let main = "def main():\n    public = 1\n    f(public[1])\n    return\n";
+    for body in [
+        "def f(a):\n    x = HeapBuf(11)\n    x[1] = a\n    b = sq(a)\n    y = HeapBuf(13)\n    y[1] = b\n    return\n",
+        "def f(a):\n    x = HeapBuf(11)\n    x[1] = a\n    if a == 1:\n        b = sq(a)\n    y = HeapBuf(13)\n    y[1] = a\n    return\n",
+    ] {
+        let program = compile(&parse(&format!("{head}{body}\n{main}")).unwrap());
+        let &(_, entry, len) = program.fn_ranges.iter().find(|(name, ..)| name == "f").unwrap();
+        let sizes: Vec<u32> = (entry..entry + len)
+            .flat_map(|pc| program.hints.get(&pc).into_iter().flatten())
+            .filter_map(|h| match *h {
+                RHint::Alloc { size, .. } => Some(size),
+                _ => None,
+            })
+            .collect();
+        assert!(
+            matches!(sizes[..], [11, 13, frame] if frame != 11 && frame != 13),
+            "{sizes:?} in\n{body}"
+        );
+        for a in [1, 3] {
+            execute(&program, &[], [F128::from(F64(a)), F128::ONE]).unwrap();
+        }
+    }
+}
+
+/// A `HeapBuf` that would move ahead of one some run allocates before it, in the branch holding the first call, in
+/// another arm of it, or between it and a later call, is a compile error naming both.
+#[test]
+fn heap_buf_passing_one_that_stays_fails() {
+    let head = "def sq(x):\n    return x * x\n\n";
+    let main = "def main():\n    public = 1\n    f(public[1])\n    return\n";
+    let late = "    late = HeapBuf(2)\n    late[1] = a\n    return\n";
+    for body in [
+        "def f(a):\n    if a == 1:\n        early = HeapBuf(2)\n        early[1] = a\n        b = sq(a)\n",
+        "def f(a):\n    if a == 1:\n        b = sq(a)\n    else:\n        early = HeapBuf(2)\n        early[1] = a\n",
+        "def f(a):\n    if a == 1:\n        b = sq(a)\n        return\n    early = HeapBuf(2)\n    early[1] = a\n    c = sq(a)\n",
+    ] {
+        let ast = parse(&format!("{head}{body}{late}\n{main}")).unwrap();
+        let error = std::panic::catch_unwind(|| zkdsl_compiler::compile(&ast)).unwrap_err();
+        let error = error.downcast_ref::<String>().unwrap();
+        assert!(
+            error.contains("`late`") && error.contains("ahead of `HeapBuf` `early`"),
+            "{error}"
+        );
     }
 }
 
