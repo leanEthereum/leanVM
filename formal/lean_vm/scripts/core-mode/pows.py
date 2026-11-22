@@ -40,7 +40,7 @@ def tree(pairs):
 def main(check=False):
     G = global_pows()
     consts, home = {}, {}
-    for k, bs in C.bridge_data().core_blocks().items():
+    for k, bs in C.BD.core_blocks().items():
         # the function's pack: the one holding its core, as `heap.pack_of`
         home[k] = bs[0][0]
         consts[k] = {int(x) for _, _, text in bs for x in WORD.findall(text)}

@@ -271,8 +271,13 @@ def _cell(c):
 
 
 def route_sub():
-    """`route()` in a fresh interpreter (the generators' own `data` modules clash with the pairing's), its reads
-    recorded as the caller's (`memo.follow`)."""
+    """`route()` in a fresh interpreter, which leaves the caller's state as it was, its reads recorded as the caller's
+    (`memo.follow`); computed once while what it reads is unchanged (`memo.py`)."""
+    import memo
+    return memo.cached('route', _route_sub)
+
+
+def _route_sub():
     import subprocess
     r = subprocess.run([sys.executable, '-I', os.path.abspath(__file__), '--dump'], check=True, stdout=subprocess.PIPE,
                        text=True)

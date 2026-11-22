@@ -20,8 +20,8 @@ def sym(s):
 def facts():
     """`Check.Cert.facts` of each function: env, fpOne, arms, scaled."""
     out = {}
-    for nsn, (_, blk) in C.bridge_data().bundle_blocks().items():
-        name = C.bridge_data().code_of(blk)[0]
+    for nsn, (_, blk) in C.BD.bundle_blocks().items():
+        name = C.BD.code_of(blk)[0]
         fm = re.search(r'facts := \{ env := \[(.*?)\], fpOne := (\w+), arms := \[(.*?)\],(?: armsT := \w+,)? '
                        r'scaled := \[(.*?)\] \}', blk)
         env = {int(o): sym(v) for o, v in re.findall(r'\((\d+), (\([^()]*\)|\.zero)\)', fm.group(1))}

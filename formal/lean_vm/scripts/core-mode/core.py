@@ -351,7 +351,6 @@ def chain(items, final):
 def long_loop(k, j, hp, frame_mod, gl):
     """A long loop helper's own modules (`Gen/<hp>/`): its core data (`Cfun`), its body's windows (`LW<i>`), its code's
     (`CW<i>`), its core data checks' (`RW<i>`, `SW<i>`): `({path: text}, Core imports, Route imports)`."""
-    sys.path.insert(0, os.path.join(HERE, '..', 'bridge-cert'))
     import align as AL
     params, body = heap.CORE[k]
     code = AL.functions()[k]['code']

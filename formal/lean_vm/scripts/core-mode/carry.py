@@ -7,7 +7,7 @@ those of `carryNzG` (`Res.carriedNz`) and its callee words (`Res.nzUp`) are deri
 the core IR (`Pack/*/Core*.lean`) to a fixed point, and written to `CarryNzList.lean`. `--check` writes nothing and
 fails when a file differs.
 Usage: python3 -I scripts/core-mode/carry.py [--check]"""
-import sys, os, glob, re, importlib.util
+import sys, os, glob, re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -15,9 +15,7 @@ import resgen
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import genfiles  # noqa: E402
 
-_spec = importlib.util.spec_from_file_location('bcdata', os.path.join(HERE, '..', 'bridge-cert', 'data.py'))
-bc = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(bc)
+from compiled import BD  # noqa: E402
 
 OUT = resgen.OUT
 # by ranges of functions, each a kernel check; `main` (function 0) alone
@@ -59,8 +57,8 @@ def view(body):
 def functions():
     """Each core function by name: its parameter count, loop flag (`Fn.loop`) and body."""
     F = {}
-    for text in bc.core_texts().values():
-        params, body, name = bc.core_fn(text)
+    for text in BD.core_texts().values():
+        params, body, name = BD.core_fn(text)
         body = view(body)
         assert params == list(range(len(params))), name
         loop = len(body) >= 2 and body[-1] == ('ret', []) and body[-2][0] == 'callIf' and body[-2][2] == name

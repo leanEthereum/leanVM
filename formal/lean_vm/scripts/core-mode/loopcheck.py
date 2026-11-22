@@ -34,7 +34,7 @@ def names():
 def sizes():
     """Each function's bytes of core IR; a function whose body a pack of its own splits over
     `Core*.lean`, all of them."""
-    BD = C.bridge_data()
+    BD = C.BD
     sz = {}
     for p in BD.core_paths():
         t = BD.read_text(p)
@@ -51,7 +51,7 @@ def sizes():
 
 def alone():
     """The functions with a pack of their own (the heavy ones), each checked as a range of its own."""
-    BD = C.bridge_data()
+    BD = C.BD
     blocks = BD.bundle_blocks()
     # a pack of its own holding its bundle too
     return {BD.code_of(blocks[key][1])[0] for key in BD.own_packs() if key in blocks and blocks[key][0] == key}

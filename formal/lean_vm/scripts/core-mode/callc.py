@@ -404,23 +404,16 @@ def const_pow(body, v, k=0):
     return False
 
 
-JT_RUN = [None]
-
-
 def jt_run():
     """The jump table's cells `[jtLo, jtHi)` as a run (`Mode.jtRng`; `sigOk` takes it among the own preconditions)."""
-    import importlib.util
-    spec = importlib.util.spec_from_file_location('compiled', os.path.join(HERE, 'compiled.py'))
-    md = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(md)
-    jt = md.load()['jt']
+    jt = I.D['jt']
     return (((), 0), 1, ((), min(jt)), ((), max(jt) + 1))
 
 
 def jt_sym(files):
     """The jump table's end in the printed certificates as the glue's `CoreMode.jtHi` (`GlueG`), not its value: a
     function whose run it is changes with the table's length only through the glue."""
-    _, _, (_, lo), (_, hi) = JT_RUN[0] or jt_run()
+    _, _, (_, lo), (_, hi) = jt_run()
     pats = [(f'(.num {lo}), (.num {hi})⟩', f'(.num {lo}), (.num CoreMode.jtHi)⟩'),
             (f'⟨[], {lo}⟩, ⟨[], {hi}⟩⟩', f'⟨[], {lo}⟩, ⟨[], CoreMode.jtHi⟩⟩')]
     for path, text in list(files.items()):
@@ -670,9 +663,7 @@ def own_sig(G, np, nr, gl=None):
         h.pre = list(h.pre) + [((), o) for o in G['entry'] if ((), o) not in h.pre]
     if 'jt' in I.F:
         # the jump table's cells, which every frame's entry has written (`entryAbs`)
-        if JT_RUN[0] is None:
-            JT_RUN[0] = jt_run()
-        h.preR = list(h.preR) + [JT_RUN[0]]
+        h.preR = list(h.preR) + [jt_run()]
     return h
 
 
@@ -913,24 +904,35 @@ def infer_one(k, S, allow=None, hcsig=None):
 FA_PAST = {}
 
 
+def fa_past_all(ks):
+    """`fa_past` of each of `ks` not yet known, their walks in one interpreter (`fa_past.py`): before the workers fork
+    (`pmap.py`), whose own results would be lost."""
+    import subprocess, json, heapc
+    req = {}
+    for k in ks:
+        if k in FA_PAST or k not in I.D['comp']:
+            continue
+        FA_PAST[k] = []
+        locs = I.D['comp'][k]['locs']
+        fas = []
+        for s in CORE[k][1]:
+            if not heapc._noret(s):
+                break
+            if s[0] == 'a' and s[1][0] == 'frameAddr' and s[1][2] and s[1][2][0] < len(locs):
+                fas.append([s[1][1], locs[s[1][2][0]], len(s[1][2])])
+        if fas:
+            req[k] = fas
+    if req:
+        r = subprocess.run([sys.executable, '-I', os.path.join(HERE, 'fa_past.py')], input=json.dumps(req),
+                           capture_output=True, text=True, check=True)
+        got = json.loads(r.stdout)
+        for k in req:
+            FA_PAST[k] = [tuple(p) for p in got.get(k, [])]
+
+
 def fa_past(k):
     """The frame walk's cells past `k`'s top-level frame runs written at every return (`fa_past.py`), as `(kp, i)`."""
-    if k in FA_PAST:
-        return FA_PAST[k]
-    FA_PAST[k] = []
-    import subprocess, json, heapc
-    body = CORE[k][1]
-    locs = I.D['comp'][k]['locs']
-    fas = []
-    for s in body:
-        if not heapc._noret(s):
-            break
-        if s[0] == 'a' and s[1][0] == 'frameAddr' and s[1][2] and s[1][2][0] < len(locs):
-            fas.append([s[1][1], locs[s[1][2][0]], len(s[1][2])])
-    if fas:
-        r = subprocess.run([sys.executable, '-I', os.path.join(HERE, 'fa_past.py')], input=json.dumps({k: fas}),
-                           capture_output=True, text=True, check=True)
-        FA_PAST[k] = [tuple(p) for p in json.loads(r.stdout).get(k, [])]
+    fa_past_all([k])
     return FA_PAST[k]
 
 
@@ -947,20 +949,14 @@ def has_fa(body):
     return False
 
 
-_FNS = {}
-
-
 def dsp_of(k, body):
     """`CFun.dsp`: each dispatch's callees by its call site's callee frame cell (`callsB`: every site of a dispatch's
     arguments and returns lists that dispatch's callees)."""
     ds = [s for s in body if s[0] == 'dispatch']
     if not ds:
         return []
-    if not _FNS:
-        sys.path.insert(0, os.path.join(HERE, '..', 'bridge-cert'))
-        import align
-        _FNS.update(align.functions())
-    sites = _FNS[k]['sites']
+    import align
+    sites = align.functions()[k]['sites']
     out = {}
     for s in ds:
         qs = [q for q, si in sites.items() if si[0] == list(s[3]) and si[1] == list(s[4]) and si[4] != 0]
@@ -997,6 +993,11 @@ def _results(verbose=False):
         except No as e:
             return None, e
     cs = candidates()
+    # what the workers read, computed before they fork: the frame walks' cells (`fa_past`) and the dispatches' sites
+    # (`dsp_of`)
+    fa_past_all(cs)
+    import align
+    align.functions()
     # each candidate on its own, in worker processes (`pmap.py`)
     for k, (r, e) in zip(cs, pmap(one, cs)):
         if e is None:

@@ -689,6 +689,7 @@ def extend(out, why, S, verbose=False):
         return r, err
     try:
         cands = [k for k in callc.candidates() if k not in out] + [k for k in leaf_candidates() if k not in out]
+        callc.fa_past_all(cands)
         # each candidate on its own, in worker processes (`pmap.py`)
         for k, (r, err) in zip(cands, pmap(one, cands)):
             if r is None:

@@ -12,8 +12,9 @@ cells packed ahead in pieces (`Bridge.packSt`), so no module walks its whole cod
 
     python3 -I scripts/bridge-cert/align.py [--check]
 """
-import os, sys, glob, re
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import os, sys, glob, re, functools
+if os.path.dirname(os.path.abspath(__file__)) not in sys.path:
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import genfiles  # noqa: E402
 import data
@@ -43,6 +44,7 @@ def body_of(text):
     return view(data.core_body(text))
 
 
+@functools.cache
 def functions():
     """Each compiled function's name, entry, code with operands and plumbing, by stable name."""
     out = {}

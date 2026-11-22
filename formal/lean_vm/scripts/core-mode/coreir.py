@@ -7,31 +7,18 @@ generators (`formal/notes/core-mode.md`).
   ('dispatch', x, fs, args, rets) ('ret', vs);
 `comp`, each compiled function's code `[(op, [operands])]`, entry, instruction count and certificate cells
 (`Cert.locs`, by value number); `stable`, the stable name of each compiler name; `pows`, the powers of `g`
-by their `K` bits. Parsed once and cached at `$CORE_MODE_CACHE` (default this tree's `.lake/core-mode-cache.pkl`), with
-the digest of what the parse reads (`_inputs`): a cache of other inputs is parsed again.
+by their `K` bits; `jt`, the jump table's targets by cell. Parsed once and cached at `$CORE_MODE_CACHE` (default
+this tree's `.lake/core-mode-cache.pkl`), with the digest of what the parse reads (`_inputs`): a cache of other inputs
+is parsed again.
 """
 import os, sys, re, pickle, glob, hashlib
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import memo  # noqa: E402,F401  (first: it records what the process reads, `memo.py`)
-import importlib.util
-
-
-def _by_path(name, rel):
-    spec = importlib.util.spec_from_file_location(name, os.path.join(HERE, '..', rel))
-    m = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(m)
-    return m
-
-
-# the bridge's data module, one instance a process (`compiled.bridge_data`)
-BD = sys.modules.get('bridge_data') or sys.modules.setdefault('bridge_data', _by_path('bridge_data', 'bridge-cert/data.py'))
+import compiled  # noqa: E402
+BD = compiled.BD
 CACHE = os.environ.get('CORE_MODE_CACHE', os.path.join(HERE, '..', '..', '.lake', 'core-mode-cache.pkl'))
 sys.setrecursionlimit(1000000)
-
-
-def _mode_data():
-    return _by_path('compiled', 'core-mode/compiled.py').load()
 
 
 def _inputs():
@@ -62,7 +49,7 @@ def load():
         params, body, nm = BD.core_fn(t)
         fns[k] = (params, body)
         names[nm] = k
-    md = _mode_data()
+    md = compiled.load()
     bund = BD.bundles()
     comp = {}
     byns = {m['ns']: m for m in md['fns'].values()}
@@ -71,7 +58,8 @@ def load():
         comp[k] = dict(entry=b['entry'], count=b['count'], locs=b['locs'], plumb=b['plumb'],
                        code=[(op, [int(x) if x.isdigit() else x for x in args]) for op, args in m['code']] if m else None,
                        nargs=m.get('nargs') if m else None)
-    out = dict(key=key, core=fns, stable=names, comp=comp, pows=md['pows'], hints=md['hints'], core_text_lines={k: t.count('\n') for k, t in texts.items()})
+    out = dict(key=key, core=fns, stable=names, comp=comp, pows=md['pows'], hints=md['hints'], jt=md['jt'],
+               core_text_lines={k: t.count('\n') for k, t in texts.items()})
     # written whole, then renamed: generators running at once read a complete cache or none
     tmp = '%s.%d' % (CACHE, os.getpid())
     os.makedirs(os.path.dirname(os.path.abspath(CACHE)), exist_ok=True)

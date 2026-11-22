@@ -379,7 +379,7 @@ def emit(out_dir, res, check=False):
     packs = collections.defaultdict(list)
     po = pack_of()
     import route
-    R = route.route()
+    R = route.route_sub()
     for k in sorted(res):
         if res[k].fail is None:
             packs[po[k]].append(k)

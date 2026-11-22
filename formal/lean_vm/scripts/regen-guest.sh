@@ -65,7 +65,8 @@ parts_core=(core_ir core_names core_vsat core_valnames) targets_core=(guest-core
 parts_changes=(changes) targets_changes=()
 parts_vt=(vt) targets_vt=()
 parts_cert=(cert) targets_cert=(guest-cert)
-parts_core_mode=(core_mode) targets_core_mode=()
+parts_core_mode=(core_mode_fnreg core_mode_anylink core_mode_sigc core_mode_pows core_mode_glue core_mode)
+targets_core_mode=()
 parts_bridge=(bridge_align bridge_checks) targets_bridge=()
 parts_memory=(memory) targets_memory=(guest-memory)
 parts_res=(res) targets_res=()
@@ -131,18 +132,34 @@ part_cert() {
 # walks and route data. Every function keeps its signature (its contract, by hand in its rule file
 # `scripts/core-mode/fn/<f>.py`, or as written) and its frame walk takes its facts from the frame layout and its own
 # walk. A function's own routing rules are in its rule file (`scripts/core-mode/fnrules.py`).
-# After `bridge`: the route data reads the bridge's alignment links (`Bridge/ProgAl/Link*`).
-part_core_mode() {
+# After `bridge`: the route data reads the bridge's alignment links (`Bridge/ProgAl/Link*`). The first five read only
+# the core IR, the compiled data, the alignment and the rule files, and write apart: they run at once, the rest after.
+part_core_mode_fnreg() {
   step "core-mode: each function's own routing facts and families registered (scripts/core-mode/fnreg.py)"
   python3 -I scripts/core-mode/fnreg.py "${check[@]}"
+}
+
+part_core_mode_anylink() {
   step "core-mode: the claim list's callees linked to its table (scripts/core-mode/anylink.py)"
   python3 -I scripts/core-mode/anylink.py "${check[@]}"
+}
+
+part_core_mode_sigc() {
   step "core-mode: each function's signature (scripts/core-mode/sigc.py)"
   python3 -I scripts/core-mode/sigc.py "${check[@]}"
+}
+
+part_core_mode_pows() {
   step "core-mode: each function's powers of g (scripts/core-mode/pows.py)"
   python3 -I scripts/core-mode/pows.py "${check[@]}"
+}
+
+part_core_mode_glue() {
   step "core-mode: the functions' ties to their global index (scripts/core-mode/glue.py)"
   python3 -I scripts/core-mode/glue.py "${check[@]}"
+}
+
+part_core_mode() {
   step "core-mode: bodies with calls (scripts/core-mode/callc.py)"
   python3 -I scripts/core-mode/callc.py --emit "${check[@]}"
   step "core-mode: loop helpers (scripts/core-mode/loopcc.py)"
@@ -260,7 +277,10 @@ done
 after_exes=(export) after_core_ir=(exes) after_core_names=(core_ir) after_core_vsat=(core_ir) after_core_valnames=(core_ir)
 after_changes=(core_ir)
 after_vt=(core_ir) after_cert=(core_names core_vsat core_valnames changes vt) after_memory=(core_ir core_valnames)
-after_bridge_align=(cert) after_bridge_checks=(bridge_align) after_core_mode=(bridge_align)
+after_bridge_align=(cert) after_bridge_checks=(bridge_align)
+after_core_mode_fnreg=(bridge_align) after_core_mode_anylink=(bridge_align) after_core_mode_sigc=(bridge_align)
+after_core_mode_pows=(bridge_align) after_core_mode_glue=(bridge_align)
+after_core_mode=(core_mode_fnreg core_mode_anylink core_mode_sigc core_mode_pows core_mode_glue)
 after_res=(core_mode bridge_checks) after_whir_data=(cert) after_whir_mat_plan=(whir_data)
 after_walk_known=(whir_mat_plan) after_whir_queries=(walk_known) after_count_gen=(whir_queries memory cert)
 after_count_vsos=(count_gen) after_count_loops=(count_vsos core_mode) after_tables=(count_vsos) after_decoder=(cert)

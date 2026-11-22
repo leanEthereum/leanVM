@@ -276,7 +276,7 @@ def fpowsDef(k):
     if FPOWS is None:
         import pows as PW
         G = PW.global_pows(); FPOWS = {}
-        for key, (_, blk) in MG.bridge_data().bundle_blocks().items():
+        for key, (_, blk) in MG.BD.bundle_blocks().items():
             FPOWS.setdefault(key, set()).update(int(x) for x in PW.SET.findall(blk) if int(x) in G)
         FPOWS = {key: PW.tree(sorted((x, G[x]) for x in xs)) for key, xs in FPOWS.items()}
     return ('noncomputable def Fn.«%s».fpows : PowTree :=\n  %s\n'
@@ -285,7 +285,7 @@ def fpowsDef(k):
 
 def chunk_lens(k):
     """The lengths of function `k`'s code chunks (`CompiledFunction.chunks`)."""
-    BD = MG.bridge_data()
+    BD = MG.BD
     if k not in BD.bundle_blocks():
         raise SystemExit('frame_gen: no code of %s' % k)
     blk = BD.bundle_blocks()[k][1]

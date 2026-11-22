@@ -2,28 +2,22 @@
 arguments and returned words (`Pack/*/{Bundle,Sig}.lean`), the advice's hints, the powers of `g`, the jump table;
 from them (`derive`) each function's operations, table jumps, callees, loop helpers and frame signature (its entry and
 return cells by the frame layout, a loop's self cell); and the Lean literals the core route's generators print."""
-import re, glob, os, collections
+import re, glob, os, sys, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 LEAN_VM = os.path.normpath(os.path.join(HERE, '..', '..'))
 ROOT = os.path.join(LEAN_VM, 'LeanVM', 'Guest')
 STATEMENT = os.path.normpath(os.path.join(LEAN_VM, '..', 'Statement'))
-
-
-def bridge_data():
-    """`scripts/bridge-cert/data.py`, the packs' one reader, one instance a process."""
-    import sys, importlib.util
-    if 'bridge_data' not in sys.modules:
-        spec = importlib.util.spec_from_file_location('bridge_data', os.path.join(HERE, '..', 'bridge-cert', 'data.py'))
-        m = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(m)
-        sys.modules['bridge_data'] = m
-    return sys.modules['bridge_data']
+# the bridge's readers (`scripts/bridge-cert/`: `data`, the packs' one reader, and `align`) after this directory's
+# modules, whose `pair.py` is not the bridge's
+BRIDGE = os.path.join(os.path.dirname(HERE), 'bridge-cert')
+if BRIDGE not in sys.path:
+    sys.path.append(BRIDGE)
+import data as BD  # noqa: E402
 
 
 def load():
     ins_re=re.compile(r'\(\.(\w+) ([^()]*)\)')
     fns={}
-    BD = bridge_data()
     for name, (pack, blk) in BD.bundle_blocks().items():
         chunks={}
         for m in re.finditer(r'def (c\d+) : List OffsetInstruction := \[(.*?)\]\n', blk, re.S):
@@ -95,7 +89,7 @@ def _jt_lo():
     return int(re.search(r'abbrev mainCells : ℕ := (\d+)', t).group(1))
 
 
-JT_LO, HALT = _jt_lo(), bridge_data().HALT
+JT_LO, HALT = _jt_lo(), BD.HALT
 
 
 def conv(op, a):

@@ -53,10 +53,10 @@ def main(check=False):
     tied = lambda j: j in link and j in plumb and j in tab
     # each function in the pack holding its core (as `heap.pack_of`), its code in its bundle's pack
     home, bpack = {}, {}
-    home = {k: bs[0][0] for k, bs in C.bridge_data().core_blocks().items()}
+    home = {k: bs[0][0] for k, bs in C.BD.core_blocks().items()}
     # each function's first jump-table slot: its plumbing's table jumps' least (`armsOf`'s)
     jt0 = {}
-    for k, (pack, blk) in C.bridge_data().bundle_blocks().items():
+    for k, (pack, blk) in C.BD.bundle_blocks().items():
         bpack[k] = pack
         bs = [int(m.group(1)) for m in re.finditer(r'\(\d+, \d+, (\d+)\)', (re.findall(r'^  arms := (.*)$', blk, re.M) or [''])[0])]
         bs += [int(m.group(1)) for m in re.finditer(r'\(\d+, \d+, \[[^\]]*\], \d+, (\d+)\)',

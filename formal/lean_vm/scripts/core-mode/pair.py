@@ -15,9 +15,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.append(os.path.join(HERE, '..'))
 import genfiles  # noqa: E402
-sys.path.insert(0, os.path.join(HERE, '..', 'bridge-cert'))
-import data
-import align as AL
+from compiled import BD as data  # noqa: E402
+import align as AL  # noqa: E402
 import heap
 
 import windows  # noqa: E402
