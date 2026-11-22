@@ -85,7 +85,8 @@ LAYER_SLOTS = 13
 # ---------------------------------------------------- the bus: sides and blocks
 # Bus sides, whose blocks the layout gives, and the GKR's trees, one a side: push and
 # pull under the fingerprint (fp_w, beta), then count, whose tuples weigh the count
-# alone, at beta = 0. A point row is MU_CAP cells wide.
+# alone, at beta = 0. A layer's point row follows the previous layer's, whose width is
+# the layer's round count.
 PUSH_SIDE = 0
 PULL_SIDE = 1
 COUNT_SIDE = 2
@@ -1110,12 +1111,12 @@ def sumcheck_round4(rd, msg_cursor, claim, tabs):
     return msg_cursor, c0 + y * (claim + y1 * (c2 + y1 * c3)), y
 
 
-def gkr_rounds(rd, pt, tabs, n: Const):
+def gkr_rounds(rd, pt, npt, tabs, n: Const):
     # n GKR rounds, from the round record at `rd` (ROUND_SLOTS consecutive fields) to
-    # the one (n + 1) // 2 further: a record per pair of rounds, or for the odd one. The prover sends every coefficient but c0, which the round's
-    # pulled-out eq factor leaves fixed: c0 + r (c1 + ... + c4) == claim, r being the
-    # previous point's coordinate pt[q], then the round's grind; the challenge goes to
-    # pt[MU_CAP + 2 + q].
+    # the one (n + 1) // 2 further: a record per pair of rounds, or for the odd one.
+    # The prover sends every coefficient but c0, which the round's pulled-out eq factor
+    # leaves fixed: c0 + r (c1 + ... + c4) == claim, r being the previous point's
+    # coordinate pt[q], then the round's grind; the challenge goes to npt[2 + q].
     if const(n != 0):
         sp = fs_load(rd, ROUND_FS, 1)
         cur = rd[GEN ** ROUND_CURSOR]
@@ -1128,7 +1129,7 @@ def gkr_rounds(rd, pt, tabs, n: Const):
             c4, cur = fs_next(rate, 3, cur)
             sp, rk, cur = fs_grind_squeeze(sp, rate, 4, cur, tabs, ROUND5_GRIND_BITS)
             c0 = claim + pt[GEN ** q] * (c1 + c2 + c3 + c4)
-            pt[GEN ** (MU_CAP + 2 + q)] = rk
+            npt[GEN ** (2 + q)] = rk
             claim = c0 + rk * (c1 + rk * (c2 + rk * (c3 + rk * c4)))
         rd_next = rd * GEN ** (ROUND_SLOTS * ((n + 1) // 2))
         fs_store(rd_next, ROUND_FS, 1, sp)
@@ -1892,13 +1893,12 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
     # cursor. The root-most layer, which has no rounds and finds the roots waiting in
     # the sponge, runs on its own: a binary layer for an odd depth, else a radix-four
     # one. It is never the last, the depth being at least BUS_MIN_MU (`verify_sub`).
-    layers = HeapBuf((g_bus_mu * GEN ** 2) ** LAYER_SLOTS)
     # The round records and point rows a depth's layers reach, P = depth // 2 bounding
-    # its radix-four layers: GKR_RECORDS records, P + 2 rows.
+    # its radix-four layers: GKR_RECORDS records, rows of 2, 4, ..., 2P + 2 cells.
     gkr_sizes = HeapBuf(2 * COUNT_BITS)
     for depth in unroll(0, COUNT_BITS):
         gkr_sizes[GEN ** depth] = GEN ** (ROUND_SLOTS * GKR_RECORDS[depth])
-        gkr_sizes[GEN ** (COUNT_BITS + depth)] = GEN ** (MU_CAP * (depth // 2 + 3))
+        gkr_sizes[GEN ** (COUNT_BITS + depth)] = GEN ** ((depth // 2 + 2) * (depth // 2 + 4))
     assert log(g_bus_mu) < COUNT_BITS
     rounds = HeapBuf(gkr_sizes[g_bus_mu])
     gkr_pts = HeapBuf(gkr_sizes[g_bus_mu * GEN ** COUNT_BITS])
@@ -1929,6 +1929,8 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
         loop_bounds[GEN ** depth] = GEN ** ((depth - 1) // 2)
         depth_odd[GEN ** depth] = GEN ** (depth % 2)
     odd_g = depth_odd[g_bus_mu]
+    # Layer record p + 1 for radix-four layer p, record 1 the root-most layer's output.
+    layers = HeapBuf((loop_bounds[g_bus_mu] * GEN ** 2) ** LAYER_SLOTS)
     if const(GKR_Y_GRIND_BITS != GKR_Y_LAST_GRIND_BITS):
         # g^1 at the last layer, whose start leaves two binary levels, else g^0.
         last_layer = HeapBuf(COUNT_BITS)
@@ -1937,7 +1939,7 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
                 last_layer[GEN ** depth] = GEN
             else:
                 last_layer[GEN ** depth] = GEN ** 0
-    nextrow = gkr_pts * GEN ** MU_CAP
+    nextrow = gkr_pts
     if odd_g != 1:
         # The binary root layer: two children a tree, y one coordinate.
         evals = StackBuf(2 * N_GKR_TREES)
@@ -1964,7 +1966,7 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
         sp, c1 = squeeze(sp, no_rate, 0)
         nextrow[GEN ** 0] = c0
         nextrow[GEN ** 1] = c1
-        nxt = layers * GEN ** (2 * LAYER_SLOTS)
+        nxt = layers * GEN ** LAYER_SLOTS
         fs_store(nxt, LAYER_FS, 1, sp)
         nxt[GEN ** LAYER_CURSOR] = cursor
         for t in unroll(0, N_GKR_TREES):
@@ -1975,13 +1977,13 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
         nxt[GEN ** LAYER_POS] = GEN ** ROUND_SLOTS
         nxt[GEN ** LAYER_HALF] = GEN ** 0
         nxt[GEN ** LAYER_PARITY] = GEN
-    # Radix-four layer k (from 1 for an even depth) sits at binary layer 2k + odd, its
-    # record's index, and runs that many rounds.
+    # Radix-four layer k (from 1 for an even depth) sits at binary layer 2k + odd and
+    # runs that many rounds; its record follows the loop step's.
     start_g = GEN ** 2 / odd_g
     for x_pair in mul_range(1, loop_bounds[g_bus_mu]):
         sq = x_pair * x_pair
         x_layer = sq * start_g
-        layer = layers * x_layer ** LAYER_SLOTS
+        layer = layers * (x_pair * GEN) ** LAYER_SLOTS
         layer_cap = fs_load(layer, LAYER_FS, 1)
         layer_rate = StackBuf(8)
         layer_sp, layer_lam, layer_cur = fs_grind_squeeze(layer_cap, layer_rate, 0, layer[GEN ** LAYER_CURSOR], tabs, GKR_COMBINER_GRIND_BITS)
@@ -1990,7 +1992,7 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
             layer_vals[t] = layer[GEN ** (LAYER_VALS + t)]
         point_row = layer[GEN ** LAYER_ROW]
         round_pos = layer[GEN ** LAYER_POS]
-        nextrow = point_row * GEN ** MU_CAP
+        nextrow = point_row * x_layer
         # Record i keeps field k at rounds * g^(ROUND_SLOTS i + k), and the layer carries
         # its head's g^(ROUND_SLOTS i): then one record per loop step of eight rounds, one
         # per pair of the rounds left, one for the odd round.
@@ -2006,6 +2008,7 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
             step = x8 ** 8
             rd = head * x8 ** ROUND_SLOTS
             pt = point_row * step
+            npt = pt * x_layer
             round_sp = fs_load(rd, ROUND_FS, 1)
             cur = rd[GEN ** ROUND_CURSOR]
             claim = rd[GEN ** ROUND_CLAIM]
@@ -2018,7 +2021,7 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
                 c4, cur = fs_next(rate, 3, cur)
                 round_sp, rk, cur = fs_grind_squeeze(round_sp, rate, 4, cur, tabs, ROUND5_GRIND_BITS)
                 c0 = claim + pt[GEN ** q] * (c1 + c2 + c3 + c4)
-                pt[GEN ** (MU_CAP + 2 + q)] = rk  # nextrow[round * g^2]
+                npt[GEN ** (2 + q)] = rk  # nextrow[round * g^2]
                 claim = c0 + rk * (c1 + rk * (c2 + rk * (c3 + rk * c4)))
             rd_next = rd * GEN ** ROUND_SLOTS
             fs_store(rd_next, ROUND_FS, 1, round_sp)
@@ -2027,9 +2030,9 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
         octet = half ** 8
         rem_head = head * half ** ROUND_SLOTS
         rem_row = point_row * octet
-        done = match(log(parity), range(0, 4), lambda r: gkr_rounds(rem_head, rem_row, tabs, 2 * r))
+        done = match(log(parity), range(0, 4), lambda r: gkr_rounds(rem_head, rem_row, rem_row * x_layer, tabs, 2 * r))
         if odd_g != 1:
-            done = gkr_rounds(rem_head * parity ** ROUND_SLOTS, point_row * sq, tabs, 1)
+            done = gkr_rounds(rem_head * parity ** ROUND_SLOTS, point_row * sq, point_row * sq * x_layer, tabs, 1)
         tail = rem_head * (parity * odd_g) ** ROUND_SLOTS
         tail_sp = fs_load(tail, ROUND_FS, 1)
         tcur = tail[GEN ** ROUND_CURSOR]
@@ -2051,7 +2054,7 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
         tail_sp, c1 = squeeze(tail_sp, no_rate, 0)
         nextrow[GEN ** 0] = c0
         nextrow[GEN ** 1] = c1
-        nxt = layer * GEN ** (2 * LAYER_SLOTS)
+        nxt = layer * GEN ** LAYER_SLOTS
         fs_store(nxt, LAYER_FS, 1, tail_sp)
         nxt[GEN ** LAYER_CURSOR] = tcur
         for t in unroll(0, N_GKR_TREES):
@@ -2062,7 +2065,7 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
         nxt[GEN ** LAYER_POS] = round_pos * (half * parity * odd_g * GEN) ** ROUND_SLOTS
         nxt[GEN ** LAYER_HALF] = half * k_mod_next[GEN ** 4 * parity]
         nxt[GEN ** LAYER_PARITY] = k_mod_next[parity]
-    last = layers * g_bus_mu ** LAYER_SLOTS
+    last = layers * (loop_bounds[g_bus_mu] * GEN) ** LAYER_SLOTS
     cursor = last[GEN ** LAYER_CURSOR]
     final_point_row = last[GEN ** LAYER_ROW]
     for xt in mul_range(1, g_bus_mu):
@@ -2550,7 +2553,6 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
                 push_padding = padding_sum
         acc += 1 + selector_sums[s]
         bus_table_total[s] = acc + gkr_leaves[GEN ** s]
-    claim_idx = N_BUS_CLAIMS  # the table and public-input claims follow the deduped bus claims
 
     # ---- ONE table sumcheck for all six tables ----
     # Mirrors crates/verifier's table_sumcheck. zc_xi ONCE, each table folding its own
@@ -2619,8 +2621,8 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
     # at its own reduced point chi[..tau_t], weighted into the batch's final claim.
     air_acc = 0
     # The column evaluations stay where the stream holds them, N_COL_EVALS
-    # consecutive words that fs_next bound: the pool's slots from N_BUS_CLAIMS on are
-    # read there rather than copied.
+    # consecutive words that fs_next bound: the claims from N_BUS_CLAIMS on are read
+    # there, and the pool has no slots for them.
     col_eval_words = cursor
     for t in unroll(0, N_TABLES):
         tau_g = kb[2 + t]
@@ -2632,7 +2634,6 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
                     rate = StackBuf(8)
             e, cursor = fs_next(rate, pos % 4, cursor)
             col_evals[pos - TABLE_COL_BASE[t]] = e
-            claim_idx += 1
         # The table's AIR constraint at the final point (col_evals is indexed by
         # local column index; the formulas mirror tables.rs Table::constraint). Every
         # value relation now rides the bus as a degree-2 coordinate, so only JUMP's
@@ -2714,10 +2715,9 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
     sp, rm = squeeze(sp, rate, (N_COL_EVALS + 3) % 4 + 1)
     lo_0, hi_0 = split_limbs(pi_0)
     lo_1, hi_1 = split_limbs(pi_1)
-    claim_pool[GEN ** claim_idx] = lo_0 + rm * (lo_0 + lo_1)
-    claim_idx += 1
-    claim_pool[GEN ** claim_idx] = hi_0 + rm * (hi_0 + hi_1)
-    claim_idx += 1
+    # In the pool after the deduped bus claims, the column evaluations staying in the stream.
+    claim_pool[GEN ** N_BUS_CLAIMS] = lo_0 + rm * (lo_0 + lo_1)
+    claim_pool[GEN ** (N_BUS_CLAIMS + 1)] = hi_0 + rm * (hi_0 + hi_1)
     return sp[8], sp[9], sp[10], sp[11], sp[12], cursor, g_zc_n, bc_value, rm, col_eval_words
 
 
@@ -3533,7 +3533,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     # The pool holds every committed-coordinate claim's value in decompose order
     # (the points are the GKR zetas, resolvable from the baked block structure) and
     # its certified low dimension, which the terminal pins its lengths against.
-    claim_pool = HeapBuf(N_CLAIMS)
+    claim_pool = HeapBuf(N_CLAIMS - N_COL_EVALS)  # the column evaluations stay in the stream
     tabs = g_squares * GEN ** WIN_TAB_AT
 
     # ---- seed (statement pre-bound: hinted sub pi + baked program digest) ----
@@ -3700,7 +3700,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
                 if const((j - N_BUS_CLAIMS) // N_COL_EVALS == 0):
                     target += lam_pow * col_eval_words[GEN ** (j - N_BUS_CLAIMS)]
                 else:
-                    target += lam_pow * claim_pool[GEN ** j]
+                    target += lam_pow * claim_pool[GEN ** (j - N_COL_EVALS)]
             lam_pow *= lam_cl
     target += lam_pow * keccak_word
     # The OOD sample's claim closes the batch.

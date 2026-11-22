@@ -168,24 +168,284 @@ fn mark(cells: &mut [bool], x: Off, len: u32) {
     }
 }
 
-/// The cells a live `SET` writes 1 into, which make a `MUL` by them a copy.
-fn ones(code: &[LInstr], dead: &[bool]) -> HashSet<Off> {
-    (code.iter().zip(dead))
-        .filter_map(|(ins, &dead)| match &ins.op {
-            LOp::Set { o, k: KVal::Const(c) } if !dead && *c == F128::ONE => Some(*o),
-            _ => None,
-        })
-        .collect()
+/// The blocks and which dominate which, over a superset of the edges a run can take. A `JUMP` falls through to the
+/// next block unless its condition holds 1, and goes: where its own block sets its target; nowhere in the function for
+/// a call, which returns to the next block (its return address stored by a `Pc` `DEREF` just before), a tail call or
+/// halt (its target a function entry or the sentinel), or a return (through cell 0); to a match table's slots, or a
+/// join its block sets, for a dispatch (its target read by a `Slot`); nowhere when its condition holds 0; to the
+/// labels its target cell's `SET`s write, when only they write it; and anywhere else to any label the function sets
+/// or any match table slot. The control flow is fixed while copies are removed:
+/// the pass kills and rewrites `MUL`s only.
+struct Flow {
+    starts: Vec<usize>,
+    /// Each block's entry and exit times in a walk of the dominator tree (Cooper, Harvey and Kennedy's immediate
+    /// dominators over reverse postorder); `None` for a block no path from the entry reaches.
+    span: Vec<Option<(u32, u32)>>,
 }
 
-/// The source of a copy `MUL c = a·b`, one of its operands being 1.
-fn copy_source(a: Off, b: Off, ones: &HashSet<Off>) -> Option<Off> {
-    if ones.contains(&b) {
-        Some(a)
-    } else if ones.contains(&a) {
-        Some(b)
-    } else {
-        None
+impl Flow {
+    fn new(code: &[LInstr], dead: &[bool], at_targets: &[u32]) -> Self {
+        let starts = block_starts(code, dead, at_targets);
+        let (n, nb) = (code.len(), starts.len());
+        let block = |t: usize| block_of(&starts, t.min(n.saturating_sub(1)));
+        let ones = Holds::new(F128::ONE, code, dead, &starts, None);
+        let zeros = Holds::new(F128::ZERO, code, dead, &starts, None);
+        let tables: Vec<usize> = at_targets.iter().map(|&t| block(t as usize)).collect();
+        let mut set_labels: HashMap<Off, Vec<usize>> = HashMap::new();
+        let mut other_writers: HashSet<Off> = HashSet::new();
+        for (ins, _) in code.iter().zip(dead).filter(|(_, d)| !**d) {
+            for h in &ins.hints {
+                visit_hint(&mut h.clone(), &mut |x, len| other_writers.extend(*x..*x + len.max(1)));
+            }
+            if let LOp::Set { o, k: KVal::Local(t) } = &ins.op {
+                set_labels.entry(*o).or_default().push(block(*t as usize));
+                continue;
+            }
+            visit(&mut ins.op.clone(), &mut |x, role| match role {
+                Role::Dest | Role::DerefVal => {
+                    other_writers.insert(*x);
+                }
+                Role::OutRun(len) => other_writers.extend(*x..*x + len),
+                Role::Use | Role::Run(_) => {}
+            });
+        }
+        let labels: Vec<usize> = (code.iter().zip(dead))
+            .filter_map(|(ins, &dead)| match &ins.op {
+                LOp::Set { k: KVal::Local(t), .. } if !dead => Some(block(*t as usize)),
+                _ => None,
+            })
+            .chain(at_targets.iter().map(|&t| block(t as usize)))
+            .collect();
+        // Hubs past the blocks, one per set of targets a jump may take (any label, the tables, a cell's labels): a
+        // jump goes to its hub and the hub to each target, which keeps the edges linear and the dominators the same.
+        let (any, table) = (nb, nb + 1);
+        let mut succs: Vec<Vec<usize>> = vec![Vec::new(); nb];
+        succs.extend([labels, tables]);
+        let mut cell_hub: HashMap<Off, usize> = HashMap::new();
+        for b in 0..nb {
+            let end = starts.get(b + 1).copied().unwrap_or(n);
+            let mut live = (starts[b]..end).rev().filter(|&i| !dead[i]);
+            let fall = (b + 1 < nb).then_some(b + 1);
+            let mut succ: Vec<usize> = Vec::new();
+            match live.next().map(|j| (j, &code[j].op)) {
+                Some((j, LOp::Jump { oc, od, of })) => {
+                    // The instruction of this block that writes the target cell, if any.
+                    let writer = (starts[b]..j).rev().find(|&i| {
+                        !dead[i] && matches!(&code[i].op, LOp::Set { o, .. } | LOp::Slot { dst: o, .. } if o == od)
+                    });
+                    let call = live.next().is_some_and(|i| {
+                        matches!(
+                            code[i].op,
+                            LOp::Deref {
+                                mode: DerefMode::Pc,
+                                ..
+                            }
+                        )
+                    });
+                    if !ones.at(*oc, j) {
+                        succ.extend(fall);
+                    }
+                    match writer.map(|i| &code[i].op) {
+                        _ if zeros.at(*oc, j) => {}
+                        Some(LOp::Set { k: KVal::Local(t), .. }) => succ.push(block(*t as usize)),
+                        _ if call => succ.extend(fall),
+                        Some(LOp::Set {
+                            k: KVal::Entry(_) | KVal::EndSentinel,
+                            ..
+                        }) => {}
+                        _ if *od == 0 && *of == 1 => {}
+                        Some(LOp::Slot { .. }) => {
+                            let joins = (starts[b]..j).filter_map(|i| match &code[i].op {
+                                LOp::Set { k: KVal::Local(t), .. } if !dead[i] => Some(block(*t as usize)),
+                                _ => None,
+                            });
+                            succ.push(table);
+                            succ.extend(joins);
+                        }
+                        // Set elsewhere: one of the labels the cell's SETs write, when nothing else writes it (the
+                        // bytecode never jumps through a cell no instruction wrote).
+                        _ => match set_labels.get(od) {
+                            Some(at) if !other_writers.contains(od) => {
+                                succ.push(*cell_hub.entry(*od).or_insert_with(|| {
+                                    succs.push(at.clone());
+                                    succs.len() - 1
+                                }));
+                            }
+                            _ => succ.push(any),
+                        },
+                    }
+                }
+                _ => succ.extend(fall),
+            }
+            succ.sort_unstable();
+            succ.dedup();
+            succs[b] = succ;
+        }
+        let blocks = nb;
+        let nb = succs.len();
+        // Reverse postorder from the entry.
+        let mut order: Vec<usize> = Vec::with_capacity(nb);
+        let mut seen = vec![false; nb];
+        let mut stack: Vec<(usize, usize)> = vec![(0, 0)];
+        seen[0] = true;
+        while let Some(&mut (b, ref mut next)) = stack.last_mut() {
+            if let Some(&s) = succs[b].get(*next) {
+                *next += 1;
+                if !seen[s] {
+                    seen[s] = true;
+                    stack.push((s, 0));
+                }
+            } else {
+                order.push(b);
+                stack.pop();
+            }
+        }
+        order.reverse();
+        let mut rank = vec![usize::MAX; nb];
+        for (r, &b) in order.iter().enumerate() {
+            rank[b] = r;
+        }
+        let mut preds: Vec<Vec<usize>> = vec![Vec::new(); nb];
+        for (b, succ) in succs.iter().enumerate().filter(|&(b, _)| seen[b]) {
+            for &s in succ {
+                preds[s].push(b);
+            }
+        }
+        let mut idom = vec![usize::MAX; nb];
+        idom[0] = 0;
+        let mut changed = true;
+        while changed {
+            changed = false;
+            for &b in &order[1..] {
+                let mut new = usize::MAX;
+                for &p in preds[b].iter().filter(|&&p| idom[p] != usize::MAX) {
+                    new = if new == usize::MAX {
+                        p
+                    } else {
+                        let (mut x, mut y) = (p, new);
+                        while x != y {
+                            while rank[x] > rank[y] {
+                                x = idom[x];
+                            }
+                            while rank[y] > rank[x] {
+                                y = idom[y];
+                            }
+                        }
+                        x
+                    };
+                }
+                if idom[b] != new {
+                    idom[b] = new;
+                    changed = true;
+                }
+            }
+        }
+        // Entry and exit times in the dominator tree: `d` dominates `b` when `b`'s span lies within `d`'s.
+        let mut kids: Vec<Vec<usize>> = vec![Vec::new(); nb];
+        for &b in &order[1..] {
+            kids[idom[b]].push(b);
+        }
+        let mut span = vec![None; nb];
+        let mut clock = 0u32;
+        let mut walk: Vec<(usize, usize)> = vec![(0, 0)];
+        let mut enter = vec![0u32; nb];
+        while let Some(&mut (b, ref mut next)) = walk.last_mut() {
+            if *next == 0 {
+                enter[b] = clock;
+                clock += 1;
+            }
+            if let Some(&k) = kids[b].get(*next) {
+                *next += 1;
+                walk.push((k, 0));
+            } else {
+                span[b] = Some((enter[b], clock));
+                walk.pop();
+            }
+        }
+        span.truncate(blocks);
+        Self { starts, span }
+    }
+
+    /// Whether every path from the entry to block `b` passes block `d`.
+    fn dominates(&self, d: usize, b: usize) -> bool {
+        match (self.span[d], self.span[b]) {
+            (Some((din, dout)), Some((bin, bout))) => din <= bin && bout <= dout,
+            _ => false,
+        }
+    }
+}
+
+/// Where a cell holds a constant (1 makes a `MUL` by it a copy, 0 a `JUMP` on it never taken). On every path when
+/// each of its writers is a live `SET` of it and no hint names it; else after a live `SET` of it earlier in the same
+/// block or in a block that dominates, which write-once memory keeps. Match arms share their cells, and a join's cell
+/// has a writer per path, so a `SET` on some other path says nothing.
+struct Holds<'f> {
+    value: F128,
+    every: HashSet<Off>,
+    starts: &'f [usize],
+    flow: Option<&'f Flow>,
+    /// Per cell, the blocks with a `SET` of 1 to it, each with its first such instruction.
+    sets: HashMap<Off, Vec<(usize, usize)>>,
+}
+
+impl<'f> Holds<'f> {
+    fn new(value: F128, code: &[LInstr], dead: &[bool], starts: &'f [usize], flow: Option<&'f Flow>) -> Self {
+        let mut every: HashSet<Off> = HashSet::new();
+        let mut other: HashSet<Off> = HashSet::new();
+        let mut sets: HashMap<Off, Vec<(usize, usize)>> = HashMap::new();
+        for (i, ins) in code.iter().enumerate().filter(|&(i, _)| !dead[i]) {
+            for h in &ins.hints {
+                visit_hint(&mut h.clone(), &mut |x, len| other.extend(*x..*x + len.max(1)));
+            }
+            if let LOp::Set { o, k: KVal::Const(c) } = &ins.op
+                && *c == value
+            {
+                every.insert(*o);
+                let b = block_of(starts, i);
+                let at = sets.entry(*o).or_default();
+                if at.last().is_none_or(|&(last, _)| last != b) {
+                    at.push((b, i));
+                }
+                continue;
+            }
+            visit(&mut ins.op.clone(), &mut |x, role| match role {
+                Role::Dest | Role::DerefVal => {
+                    other.insert(*x);
+                }
+                Role::OutRun(len) => other.extend(*x..*x + len),
+                Role::Use | Role::Run(_) => {}
+            });
+        }
+        every.retain(|o| !other.contains(o));
+        Self {
+            value,
+            every,
+            starts,
+            flow,
+            sets,
+        }
+    }
+
+    /// Whether cell `x` holds the value at instruction `i`.
+    fn at(&self, x: Off, i: usize) -> bool {
+        if self.every.contains(&x) {
+            return true;
+        }
+        let b = block_of(self.starts, i);
+        (self.sets.get(&x).into_iter().flatten())
+            .any(|&(d, k)| (d == b && k < i) || (d != b && self.flow.is_some_and(|f| f.dominates(d, b))))
+    }
+
+    /// The source of a copy `MUL c = a·b` at instruction `i`, one of its operands holding 1 there.
+    fn copy_source(&self, a: Off, b: Off, i: usize) -> Option<Off> {
+        debug_assert!(self.value == F128::ONE);
+        if self.at(b, i) {
+            Some(a)
+        } else if self.at(a, i) {
+            Some(b)
+        } else {
+            None
+        }
     }
 }
 
@@ -241,6 +501,7 @@ fn optimize_fn(l: &mut Lowered, at_targets: &[u32]) -> Option<Vec<u32>> {
     }
     let n = l.code.len();
     let mut dead = vec![false; n];
+    let flow = Flow::new(&l.code, &dead, at_targets);
     loop {
         let mut changed = false;
         // Cells no rewrite may move or drop: in a hint or a run, or kept.
@@ -261,7 +522,8 @@ fn optimize_fn(l: &mut Lowered, at_targets: &[u32]) -> Option<Vec<u32>> {
                 }
             });
         }
-        let ones = ones(&l.code, &dead);
+        let blocks = &flow.starts;
+        let ones = Holds::new(F128::ONE, &l.code, &dead, blocks, Some(&flow));
         // The cells written more than once (a join's), in no rewrite either.
         let one_writer = |x: Off| {
             refs.get(&x).is_some_and(|r| {
@@ -271,8 +533,15 @@ fn optimize_fn(l: &mut Lowered, at_targets: &[u32]) -> Option<Vec<u32>> {
                     == 1
             })
         };
+        // Every writer, a `DEREF`'s frame side counted: arms reuse cells, so a cell written twice is two values.
+        let writers = |x: Off| {
+            refs.get(&x).map_or(0, |r| {
+                (r.iter())
+                    .filter(|(_, role)| matches!(role, Role::Dest | Role::OutRun(_) | Role::DerefVal))
+                    .count()
+            })
+        };
         let is_pinned = |x: Off| x < l.keep || pinned.get(x as usize).copied().unwrap_or(false);
-        let blocks = block_starts(&l.code, &dead, at_targets);
         // The cells this pass renamed: their references above are stale, so a copy naming one waits for the next.
         let mut touched: HashSet<Off> = HashSet::new();
         for i in 0..n {
@@ -285,7 +554,7 @@ fn optimize_fn(l: &mut Lowered, at_targets: &[u32]) -> Option<Vec<u32>> {
             if [a, b, d].iter().any(|x| touched.contains(x)) {
                 continue;
             }
-            let Some(s) = copy_source(a, b, &ones) else {
+            let Some(s) = ones.copy_source(a, b, i) else {
                 continue;
             };
             if s == d || !one_writer(d) {
@@ -308,8 +577,9 @@ fn optimize_fn(l: &mut Lowered, at_targets: &[u32]) -> Option<Vec<u32>> {
                     continue;
                 }
             }
-            // Retarget: d named by the copy alone, s a temporary out of every run and hint.
+            // Retarget: d named by the copy alone, s a temporary of one writer out of every run and hint.
             if d_refs.len() == 1
+                && writers(s) == 1
                 && !is_pinned(s)
                 && s < fs
                 && !refs[&s]
@@ -327,16 +597,16 @@ fn optimize_fn(l: &mut Lowered, at_targets: &[u32]) -> Option<Vec<u32>> {
             break;
         }
     }
-    while retarget_in_block(l, &mut dead, at_targets) {}
+    while retarget_in_block(l, &mut dead, at_targets, &flow) {}
     // A copy left into the next loop frame stores through the next frame's pointer, the operand of the `JUMP` into
     // it: one `DEREF` row in place of one `MUL` row.
-    let ones = ones(&l.code, &dead);
+    let ones = Holds::new(F128::ONE, &l.code, &dead, &flow.starts, Some(&flow));
     for i in 0..n {
         let LOp::Mul { a, b, c } = l.code[i].op else { continue };
         if dead[i] || c < fs {
             continue;
         }
-        let Some(s) = copy_source(a, b, &ones) else {
+        let Some(s) = ones.copy_source(a, b, i) else {
             continue;
         };
         // Only the tail call's own copies between it and its `JUMP`.
@@ -444,15 +714,7 @@ impl Cfg {
     fn new(code: &[LInstr], dead: &[bool], at_targets: &[u32]) -> Option<Self> {
         let starts = block_starts(code, dead, at_targets);
         let n = code.len();
-        let mut locals: HashMap<Off, usize> = HashMap::new();
-        for (i, ins) in code.iter().enumerate() {
-            if let LOp::Set { o, k: KVal::Local(t) } = &ins.op
-                && !dead[i]
-            {
-                locals.insert(*o, *t as usize);
-            }
-        }
-        let ones = ones(code, dead);
+        let ones = Holds::new(F128::ONE, code, dead, &starts, None);
         let nb = starts.len();
         let mut succ: Vec<Vec<usize>> = vec![Vec::new(); nb];
         // Every later block, a reach no successor's row can widen.
@@ -461,10 +723,16 @@ impl Cfg {
             let end = starts.get(b + 1).copied().unwrap_or(n);
             let last = (starts[b]..end).rev().find(|&i| !dead[i]);
             let fall = (b + 1 < nb).then_some(b + 1);
-            match last.map(|i| &code[i].op) {
-                Some(LOp::Jump { oc, od, .. }) => {
-                    let conditional = !ones.contains(oc);
-                    match locals.get(od) {
+            match last.map(|i| (i, &code[i].op)) {
+                Some((j, LOp::Jump { oc, od, .. })) => {
+                    let conditional = !ones.at(*oc, j);
+                    // The target its own block sets: match arms reuse the target cells, so a SET elsewhere may be
+                    // another path's. Without one the target is unknown, reaching every later block.
+                    let local = (starts[b]..j).rev().find_map(|i| match &code[i].op {
+                        LOp::Set { o, k: KVal::Local(t) } if !dead[i] && o == od => Some(*t as usize),
+                        _ => None,
+                    });
+                    match local.as_ref() {
                         Some(&t) if t > starts[b] => {
                             succ[b].push(block_of(&starts, t.min(n.saturating_sub(1))));
                             if conditional {
@@ -522,7 +790,7 @@ impl Cfg {
 /// One copy whose source dies in its block renamed to the copy's target there: the target is then written where
 /// the source was, and the copy goes. A source in a `KECCAK` output moves with its whole run, which needs a copy of
 /// each of its cells to consecutive targets. Whether one was done.
-fn retarget_in_block(l: &mut Lowered, dead: &mut [bool], at_targets: &[u32]) -> bool {
+fn retarget_in_block(l: &mut Lowered, dead: &mut [bool], at_targets: &[u32], flow: &Flow) -> bool {
     let fs = l.frame_size;
     let n = l.code.len();
     let Some(cfg) = Cfg::new(&l.code, dead, at_targets) else {
@@ -548,7 +816,7 @@ fn retarget_in_block(l: &mut Lowered, dead: &mut [bool], at_targets: &[u32]) -> 
             _ => refs.entry(*x).or_default().push((i, role)),
         });
     }
-    let ones = ones(&l.code, dead);
+    let ones = Holds::new(F128::ONE, &l.code, dead, &flow.starts, Some(flow));
     // `runs` is in instruction order: the runs of the instructions in `lo..hi`.
     let runs_in = |lo: usize, hi: usize| {
         let from = runs.partition_point(|r| r.0 < lo);
@@ -561,9 +829,9 @@ fn retarget_in_block(l: &mut Lowered, dead: &mut [bool], at_targets: &[u32]) -> 
         if dead[i] || !l.code[i].hints.is_empty() {
             return None;
         }
-        if ones.contains(&b) && a != c {
+        if ones.at(b, i) && a != c {
             Some((a, c))
-        } else if ones.contains(&a) && b != c {
+        } else if ones.at(a, i) && b != c {
             Some((b, c))
         } else {
             None
@@ -627,9 +895,12 @@ fn retarget_in_block(l: &mut Lowered, dead: &mut [bool], at_targets: &[u32]) -> 
                 .min_by_key(|&(k, _)| k);
             let born =
                 matches!(first, Some((k, Role::Dest | Role::OutRun(_))) if Some(k) == writer || writer.is_none());
-            let dies = src_refs
-                .iter()
-                .all(|&(k, _)| (k >= bs && k < be) || !cfg.reaches(blk, cfg.block_of(k)));
+            // Outside the block, only on paths that miss it: neither before it, where it would be written already,
+            // nor after it, where it would still be read.
+            let dies = src_refs.iter().all(|&(k, _)| {
+                let other = cfg.block_of(k);
+                (k >= bs && k < be) || (!cfg.reaches(blk, other) && !cfg.reaches(other, blk))
+            });
             // The target named in the block by its copy alone.
             let alone = refs
                 .get(&dst)

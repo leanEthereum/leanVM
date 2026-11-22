@@ -872,12 +872,6 @@ fn execute_once(
             std::fs::write(&path, out).expect("write DBG_PROF_DUMP");
             eprintln!("== DBG_PROF: per-pc counts written to {path}");
         }
-        let written: usize = (0..m.used as u32).filter(|&c| m.is_written(c)).count();
-        eprintln!(
-            "== DBG_PROF: memory {} cells, {} written ==",
-            pretty_integer(m.used as u64),
-            pretty_integer(written as u64)
-        );
         eprintln!("== DBG_PROF: cycles by function ({} total) ==", pretty_integer(steps));
         for (name, c) in rows.iter().filter(|(_, c)| *c > 0) {
             eprintln!(

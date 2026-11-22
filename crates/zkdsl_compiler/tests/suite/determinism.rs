@@ -47,7 +47,7 @@ const GOLDEN: &[(&str, &str)] = &[
     ("runtime_loop", "c08ab5953048e84eaaa7c19f8e4851c4f6ec710cd64d57e84831257ffec35aef"),
     ("scoping", "c401b4dac92f26296e315f08e1229eb18609cb81005d1da1859f3b65d80571a0"),
     ("unroll", "dcc038932d6f4bc49605e02d2369fb24ba1efefdc4d3333d7b1dbdd1eae693b0"),
-    ("wots_walk", "1eea84f92a301ad6cd298b1c46ea88f2af4d5dfb7af0d589f56b07876b23c718"),
+    ("wots_walk", "f92002ff174f7c57c51f40afdd88e6229a5b2490fd7f9687884ccdc7e6a53123"),
 ];
 
 fn digest(p: &Program) -> String {
