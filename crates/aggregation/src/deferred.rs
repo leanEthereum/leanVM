@@ -282,9 +282,7 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
     );
 
     drop(_span);
-    // The batch's words ride the stream the children's proof words do, after them.
-    let mut hints: Vec<_> = messages.iter().map(|&word| ("stream_word", vec![word])).collect();
-    hints.push(("bc_star_hint", vec![value]));
+    let hints = vec![("bc_sumcheck_msgs", messages), ("bc_star_hint", vec![value])];
     let reduced = DeferredBytecodeClaim {
         bytecode_point: challenges,
         bytecode_value: value,

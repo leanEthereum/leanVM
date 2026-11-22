@@ -118,8 +118,6 @@ def main():
 
 `NAME[i]` yields the element (as a field value in value position, or as an integer where an index / slice bound / `unroll` count / `**` exponent is expected), and `len(NAME)` its length. The index `i` must be compile-time (a literal, a constant, or an `unroll` variable). This is what lets one source file adapt to a per-level config vector (query counts, fold factors, sizes) without Rust-side code generation. Nested lists are not (yet) supported: flatten a 2-D table into one array plus an offsets array.
 
-`lookup(NAME, x)` reads entry `log x` of a constant array at a **runtime** index `x = g^j`, and `lookup(NAME, x, k)` entry `j + k`, `k` a compile-time integer. The array sits once among the jump tables in `main`'s frame, at a fixed address (§`match`), so a read is one `DEREF` with no pointer product, where a heap table costs a `MUL` and a `DEREF`; the program pays one `SET` per entry, once. `x` is unchecked, as any runtime index: the program owes its range check.
-
 ## Functions
 
 ```python
@@ -514,7 +512,6 @@ Five builtins have the prover compute the values at witness generation instead o
 | `a * b` | 1 `MUL` |
 | `a / b` | 1 `MUL` (write-once back-solve; division by zero is undefined) |
 | heap read / store `buf[i]` | 1 `DEREF`; +1 `MUL` for a *runtime* index (a compile-time g-power offset folds into the `DEREF`, for free) |
-| `lookup(NAME, x)` | 1 `DEREF` (+1 `SET` per entry of `NAME`, once per program) |
 | stack read `sa[k]` | 0 (direct cell addressing); a *store* is 1, like any other write |
 | `assert a == b` | 1 `MUL` (+ 1 `SET` amortized per frame for the one cell) |
 | `assert a != b` | 3 (`XOR`, `MUL`, `SET`), no branch, one hinted inverse |

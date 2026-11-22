@@ -132,9 +132,7 @@ pub fn file() -> File {
     let sums = bytecode_sums::<StableProver>(&points);
     let (hints, batched) = aggregate_deferred_claims::<StableProver>(&public_inputs, &claims, sums);
     let hint = |name: &str| &hints.iter().find(|(n, _)| *n == name).unwrap().1;
-    // The batch's words ride the proof stream, one `stream_word` hint each.
-    let msgs: Vec<F128> = hints.iter().filter(|(n, _)| *n == "stream_word").map(|(_, w)| w[0]).collect();
-    let msgs = &msgs;
+    let msgs = hint("bc_sumcheck_msgs");
     let star = hint("bc_star_hint");
     assert_eq!(star.len(), 1);
     // The batching challenge's grind nonce, then each round's `(g1, g_inf)`: a degree-two round grinds nothing.

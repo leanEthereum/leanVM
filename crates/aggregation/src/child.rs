@@ -31,13 +31,12 @@ pub(super) fn whir_levels(mu: usize, log_inv_rate: usize) -> Option<(verifier::W
 }
 
 /// The path bits a query's Merkle walk dispatches on at a time, the guest's `QW` (`walk_path`).
-pub(super) const QUERY_WINDOW_BITS: usize = 5;
+pub(super) const QUERY_WINDOW_BITS: usize = 6;
 /// The cells `decode_query_windows` holds a squeezed word's windows in, the guest's `QUERY_WINDOWS_CAP`.
-pub(super) const QUERY_WINDOWS_CAP: usize = 48;
+pub(super) const QUERY_WINDOWS_CAP: usize = 36;
 
 /// The depth of the cap a level's paths are walked into, which leaves the walked part whole windows of
-/// [`QUERY_WINDOW_BITS`] bits: at least two levels deep, and from `log2(queries) - (QUERY_WINDOW_BITS - 1)` to
-/// `QUERY_WINDOW_BITS - 1` levels below that.
+/// [`QUERY_WINDOW_BITS`] bits: at least two levels deep, and from `log2(queries) - 5` to five levels below that.
 pub(super) fn merkle_cap_depth(queries: usize, depth: usize) -> usize {
     let near = (queries.next_power_of_two().ilog2() as usize)
         .saturating_sub(QUERY_WINDOW_BITS - 1)
@@ -86,28 +85,26 @@ pub(super) fn gen_verify(
     let sides = [layout.push, layout.pull, layout.count];
     // The guest's buffers have fixed capacities, so its constants do not depend on a child's shape. A child that
     // verifies fits them.
-    let fits = sides.iter().all(|blocks| leaf::layout(blocks).mu <= MU_CAP);
+    let fits = sides.iter().all(|blocks| leaf::layout(blocks).mu <= MU_CAP) && proof.stream.len() <= STREAM_CAP;
     if !fits {
         return Err(AggregateError::InvalidChild);
     }
     let column_offsets: Vec<usize> = layout.placements.iter().map(|p| p.offset).collect();
     let mu = layout.shape.mu;
+    let mut stream: Vec<F128> = proof.stream.iter().copied().map(from_scalar).collect();
+    stream.resize(STREAM_CAP, F128::ZERO);
 
-    // The guest replays the proof off the same stream the native verifier reads, a word a hint where it absorbs it:
-    // every transmitted scalar in protocol order.
-    let mut hints: SubHints = proof
-        .stream
-        .iter()
-        .map(|&word| ("stream_word", vec![from_scalar(word)]))
-        .collect();
-    hints.extend([
+    // The guest replays the proof off the same stream the native verifier reads: every transmitted scalar is already
+    // there in protocol order.
+    let mut hints: SubHints = vec![
+        ("stream", stream),
         // The table sumcheck's round count, which the guest certifies is the largest of the taus.
         ("zc_tau_max", vec![count(*taus.iter().max().unwrap())]),
         // Every table's log height, which the guest certifies against its row count.
         ("table_logs", taus.iter().map(|&t| count(t)).collect()),
         ("col_group_order", col_group_order(kbc, &column_offsets)),
         ("block_group_order", block_group_order(kbc, &sides)),
-    ]);
+    ];
     let (config, _, depth) = whir_levels(mu, summary.log_inv_rate).ok_or(AggregateError::InvalidChild)?;
     hints.extend(merkle_hints(config.queries, &depth, proof));
     Ok(hints)
@@ -201,12 +198,7 @@ fn merkle_hints(queries: &[usize], depth: &[usize], proof: &verifier::Proof) -> 
             nodes[1] = node;
             hints.push(("merkle_children", path_children));
         }
-        // Each node's first halves, then its second halves (`verify_merkle_cap`).
-        let halves: Vec<[F128; 2]> = nodes.iter().map(hash_to_scalars).collect();
-        hints.push((
-            "merkle_caps",
-            halves.iter().map(|h| h[0]).chain(halves.iter().map(|h| h[1])).collect(),
-        ));
+        hints.push(("merkle_caps", nodes.iter().flat_map(hash_to_scalars).collect()));
         hints.push(("merkle_cap_active", active));
     }
     hints
@@ -216,3 +208,4 @@ fn merkle_hints(queries: &[usize], depth: &[usize], proof: &verifier::Proof) -> 
 /// `gen_verify` admits against: one definition, so a hinted shape can never
 /// outgrow the buffer the guest was compiled with.
 pub(super) const MU_CAP: usize = 40;
+pub(super) const STREAM_CAP: usize = 8192;

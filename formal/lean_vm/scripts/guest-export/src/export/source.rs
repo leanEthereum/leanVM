@@ -7,7 +7,7 @@
 
 use super::*;
 use crate::compiler_overlay::{
-    Ast, Expr, ForBound, Func, LtBound, ParamKind, Shape, Stmt, StmtKind, compile_parts, parse, parse_const,
+    Ast, Expr, ForBound, Func, LtBound, ParamKind, Shape, Stmt, StmtKind, compile, parse, parse_const,
     parse_with_constants,
 };
 use std::fmt::Write as _;
@@ -156,7 +156,7 @@ fn func_at(f: &Func, indent: usize) -> String {
     )
 }
 
-fn render(ast: &Ast, consts: &[(String, String)], lookups: &[(String, u32)], kbc: usize) -> String {
+fn render(ast: &Ast, consts: &[(String, String)], kbc: usize) -> String {
     let mut out = String::new();
     writeln!(
         out,
@@ -167,7 +167,7 @@ fn render(ast: &Ast, consts: &[(String, String)], lookups: &[(String, u32)], kbc
          `zkdsl_compiler::parse_with_replacements` returns it with\nthe deployed placeholders \
          (`placeholder_map`, at the bytecode's log size `bytecodeLog`): one definition\nper \
          function, then the constant arrays and the program. The global constants come first, `const_NAME`, the\nliterals the compiler substitutes for them.\n-/\n\nnamespace LeanVM.Guest.Data\n\n\
-         open LeanVM.Guest.Source\n\nset_option maxRecDepth 20000\n\n@[expose] public section\n\n/-- The log size of the bytecode \
+         open LeanVM.Guest.Source\n\n@[expose] public section\n\n/-- The log size of the bytecode \
          the placeholders are computed for. -/\ndef bytecodeLog : Nat := {kbc}\n"
     )
     .unwrap();
@@ -198,17 +198,12 @@ fn render(ast: &Ast, consts: &[(String, String)], lookups: &[(String, u32)], kbc
             .iter()
             .map(|(name, _)| format!("({}, arr_{name})", string(name))),
     );
-    let cells = lookup_cells(lookups);
     writeln!(
         out,
-        "/-- The guest. -/\ndef guest : Program :=\n  ⟨{funcs},\n   {arrays},\n   {cells}⟩\n\nend\nend LeanVM.Guest.Data"
+        "/-- The guest. -/\ndef guest : Program :=\n  ⟨{funcs},\n   {arrays}⟩\n\nend\nend LeanVM.Guest.Data"
     )
     .unwrap();
     out
-}
-
-fn lookup_cells(lookups: &[(String, u32)]) -> String {
-    list(lookups.iter().map(|(name, cell)| format!("({}, {cell})", string(name))))
 }
 
 fn word(x: E) -> String {
@@ -251,7 +246,6 @@ fn render_programs() -> String {
                 streams.entry(name.trim().to_string()).or_default().push(entry);
             }
         }
-        let cells = lookup_cells(&compile_parts(&ast).1);
         let funcs = list(ast.funcs.iter().map(|f| format!("\n    {}", func_at(f, 4))));
         let arrays = list(ast.const_arrays.iter().map(|(name, values)| {
             format!(
@@ -269,7 +263,7 @@ fn render_programs() -> String {
         }));
         writeln!(
             out,
-            "/-- `{file}.py`. -/\ndef prog_{file} : TestProgram where\n  name := {}\n  program := ⟨{funcs},\n    {arrays},\n    {cells}⟩\n  \
+            "/-- `{file}.py`. -/\ndef prog_{file} : TestProgram where\n  name := {}\n  program := ⟨{funcs},\n    {arrays}⟩\n  \
              publicInput := {}\n  streams := {streams}\n",
             string(&file),
             list(public.iter().map(|&x| word(x)))
@@ -293,7 +287,7 @@ pub fn files() -> Vec<File> {
     let (ast, consts) = parse_with_constants(GUEST_SOURCE, &placeholder_map(kbc))
         .expect("the repository aggregation guest must parse");
     // The AST is the one the deployed bytecode was compiled from.
-    let (recompiled, lookups) = compile_parts(&ast);
+    let recompiled = compile(&ast);
     assert!(
         recompiled.prog.iter().map(bytecode::lean_op).eq(guest().prog.iter().map(bytecode::lean_op)),
         "the exported AST does not compile to the deployed guest"
@@ -301,7 +295,7 @@ pub fn files() -> Vec<File> {
     vec![
         File {
             path: "LeanVM/Guest/Data/Source.lean".into(),
-            text: render(&ast, &consts, &lookups, kbc),
+            text: render(&ast, &consts, kbc),
         },
         File {
             path: "tests/LeanVMTests/Guest/Programs.lean".into(),

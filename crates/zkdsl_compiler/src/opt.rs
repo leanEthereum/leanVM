@@ -159,22 +159,65 @@ fn visit_hint(h: &mut Hint, f: &mut dyn FnMut(&mut Off, u32)) {
     }
 }
 
+/// Cells `x..x + len` marked, at least `x`, those past `cells` ignored.
+fn mark(cells: &mut [bool], x: Off, len: u32) {
+    for c in x..x + len.max(1) {
+        if let Some(cell) = cells.get_mut(c as usize) {
+            *cell = true;
+        }
+    }
+}
+
+/// The cells a live `SET` writes 1 into, which make a `MUL` by them a copy.
+fn ones(code: &[LInstr], dead: &[bool]) -> HashSet<Off> {
+    (code.iter().zip(dead))
+        .filter_map(|(ins, &dead)| match &ins.op {
+            LOp::Set { o, k: KVal::Const(c) } if !dead && *c == F128::ONE => Some(*o),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The source of a copy `MUL c = a·b`, one of its operands being 1.
+fn copy_source(a: Off, b: Off, ones: &HashSet<Off>) -> Option<Off> {
+    if ones.contains(&b) {
+        Some(a)
+    } else if ones.contains(&a) {
+        Some(b)
+    } else {
+        None
+    }
+}
+
+/// Every reference to `from` in the instructions `at` renamed to `to`.
+fn rename(code: &mut [LInstr], at: impl IntoIterator<Item = usize>, from: Off, to: Off) {
+    for j in at {
+        visit(&mut code[j].op, &mut |x, _| {
+            if *x == from {
+                *x = to;
+            }
+        });
+    }
+}
+
+/// The block holding instruction `i`, `starts` the blocks' first instructions.
+fn block_of(starts: &[usize], i: usize) -> usize {
+    starts.partition_point(|&s| s <= i) - 1
+}
+
 /// Every function but the ones whose frame layout an `addr()` fixes, then the jump tables' `KVal::At` targets
 /// moved with the instructions dropped.
 pub(crate) fn optimize(lowered: &mut [Lowered], tables: &mut JumpTables) {
-    let at_targets = |name: &str, slots: &[KVal]| -> Vec<u32> {
-        slots
-            .iter()
-            .filter_map(|k| match k {
-                KVal::At(n, i) if n == name => Some(*i),
-                _ => None,
-            })
-            .collect()
-    };
+    let mut at_targets: HashMap<String, Vec<u32>> = HashMap::new();
+    for k in &tables.slots {
+        if let KVal::At(n, i) = k {
+            at_targets.entry(n.clone()).or_default().push(*i);
+        }
+    }
     let mut remaps: HashMap<String, Vec<u32>> = HashMap::new();
     for l in lowered.iter_mut().filter(|l| !l.fixed) {
-        let targets = at_targets(&l.name, &tables.slots);
-        if let Some(remap) = optimize_fn(l, &targets) {
+        let targets = at_targets.get(&l.name).map_or(&[][..], Vec::as_slice);
+        if let Some(remap) = optimize_fn(l, targets) {
             remaps.insert(l.name.clone(), remap);
         }
     }
@@ -202,36 +245,23 @@ fn optimize_fn(l: &mut Lowered, at_targets: &[u32]) -> Option<Vec<u32>> {
         let mut changed = false;
         // Cells no rewrite may move or drop: in a hint or a run, or kept.
         let mut pinned = vec![false; fs as usize + 1];
-        let pin = |pinned: &mut Vec<bool>, x: Off, len: u32| {
-            for c in x..x + len.max(1) {
-                if (c as usize) < pinned.len() {
-                    pinned[c as usize] = true;
-                }
-            }
-        };
         // Per cell: every (instruction, role) naming it.
         let mut refs: HashMap<Off, Vec<(usize, Role)>> = HashMap::new();
-        let mut ones: Vec<bool> = vec![false; fs as usize + 1];
         for (i, ins) in l.code.iter_mut().enumerate() {
             if dead[i] {
                 continue;
             }
             for h in &mut ins.hints {
-                visit_hint(h, &mut |x, len| pin(&mut pinned, *x, len));
+                visit_hint(h, &mut |x, len| mark(&mut pinned, *x, len));
             }
             visit(&mut ins.op, &mut |x, role| {
                 refs.entry(*x).or_default().push((i, role));
                 if let Role::Run(len) | Role::OutRun(len) = role {
-                    pin(&mut pinned, *x, len);
+                    mark(&mut pinned, *x, len);
                 }
             });
-            if let LOp::Set { o, k: KVal::Const(c) } = &ins.op
-                && *c == F128::ONE
-                && (*o as usize) < ones.len()
-            {
-                ones[*o as usize] = true;
-            }
         }
+        let ones = ones(&l.code, &dead);
         // The cells written more than once (a join's), in no rewrite either.
         let one_writer = |x: Off| {
             refs.get(&x).is_some_and(|r| {
@@ -255,12 +285,7 @@ fn optimize_fn(l: &mut Lowered, at_targets: &[u32]) -> Option<Vec<u32>> {
             if [a, b, d].iter().any(|x| touched.contains(x)) {
                 continue;
             }
-            let one = |x: Off| ones.get(x as usize).copied().unwrap_or(false);
-            let s = if one(b) {
-                a
-            } else if one(a) {
-                b
-            } else {
+            let Some(s) = copy_source(a, b, &ones) else {
                 continue;
             };
             if s == d || !one_writer(d) {
@@ -276,13 +301,7 @@ fn optimize_fn(l: &mut Lowered, at_targets: &[u32]) -> Option<Vec<u32>> {
                     .all(|&(j, role)| j == i || (j > i && j < end && matches!(role, Role::Use | Role::DerefVal)));
                 if ok {
                     let uses: Vec<usize> = d_refs.iter().map(|&(j, _)| j).filter(|&j| j != i).collect();
-                    for j in uses {
-                        visit(&mut l.code[j].op, &mut |x, _| {
-                            if *x == d {
-                                *x = s;
-                            }
-                        });
-                    }
+                    rename(&mut l.code, uses, d, s);
                     dead[i] = true;
                     touched.extend([s, d]);
                     changed = true;
@@ -298,13 +317,7 @@ fn optimize_fn(l: &mut Lowered, at_targets: &[u32]) -> Option<Vec<u32>> {
                     .any(|&(_, r)| matches!(r, Role::Run(_) | Role::OutRun(_)))
             {
                 let uses: Vec<usize> = refs[&s].iter().map(|&(j, _)| j).filter(|&j| j != i).collect();
-                for j in uses {
-                    visit(&mut l.code[j].op, &mut |x, _| {
-                        if *x == s {
-                            *x = d;
-                        }
-                    });
-                }
+                rename(&mut l.code, uses, s, d);
                 dead[i] = true;
                 touched.extend([s, d]);
                 changed = true;
@@ -317,22 +330,13 @@ fn optimize_fn(l: &mut Lowered, at_targets: &[u32]) -> Option<Vec<u32>> {
     while retarget_in_block(l, &mut dead, at_targets) {}
     // A copy left into the next loop frame stores through the next frame's pointer, the operand of the `JUMP` into
     // it: one `DEREF` row in place of one `MUL` row.
-    let one_cells: Vec<Off> = (l.code.iter())
-        .filter_map(|ins| match &ins.op {
-            LOp::Set { o, k: KVal::Const(c) } if *c == F128::ONE => Some(*o),
-            _ => None,
-        })
-        .collect();
+    let ones = ones(&l.code, &dead);
     for i in 0..n {
         let LOp::Mul { a, b, c } = l.code[i].op else { continue };
         if dead[i] || c < fs {
             continue;
         }
-        let s = if one_cells.contains(&b) {
-            a
-        } else if one_cells.contains(&a) {
-            b
-        } else {
+        let Some(s) = copy_source(a, b, &ones) else {
             continue;
         };
         // Only the tail call's own copies between it and its `JUMP`.
@@ -398,20 +402,13 @@ fn block_starts(code: &[LInstr], dead: &[bool], at_targets: &[u32]) -> Vec<usize
 fn compact(l: &mut Lowered) {
     let fs = l.frame_size;
     let mut used = vec![false; fs as usize];
-    let mut mark = |x: Off, len: u32| {
-        for c in x..x + len.max(1) {
-            if c < fs {
-                used[c as usize] = true;
-            }
-        }
-    };
     for ins in &mut l.code {
         for h in &mut ins.hints {
-            visit_hint(h, &mut |x, len| mark(*x, len));
+            visit_hint(h, &mut |x, len| mark(&mut used, *x, len));
         }
         visit(&mut ins.op, &mut |x, role| match role {
-            Role::Run(len) | Role::OutRun(len) => mark(*x, len),
-            _ => mark(*x, 1),
+            Role::Run(len) | Role::OutRun(len) => mark(&mut used, *x, len),
+            _ => mark(&mut used, *x, 1),
         });
     }
     let mut map = vec![0u32; fs as usize];
@@ -447,18 +444,15 @@ impl Cfg {
     fn new(code: &[LInstr], dead: &[bool], at_targets: &[u32]) -> Option<Self> {
         let starts = block_starts(code, dead, at_targets);
         let n = code.len();
-        let block_of = |i: usize| starts.partition_point(|&s| s <= i) - 1;
         let mut locals: HashMap<Off, usize> = HashMap::new();
-        let mut ones: Vec<Off> = Vec::new();
         for (i, ins) in code.iter().enumerate() {
-            match &ins.op {
-                LOp::Set { o, k: KVal::Local(t) } if !dead[i] => {
-                    locals.insert(*o, *t as usize);
-                }
-                LOp::Set { o, k: KVal::Const(c) } if !dead[i] && *c == F128::ONE => ones.push(*o),
-                _ => {}
+            if let LOp::Set { o, k: KVal::Local(t) } = &ins.op
+                && !dead[i]
+            {
+                locals.insert(*o, *t as usize);
             }
         }
+        let ones = ones(code, dead);
         let nb = starts.len();
         let mut succ: Vec<Vec<usize>> = vec![Vec::new(); nb];
         // Every later block, a reach no successor's row can widen.
@@ -472,7 +466,7 @@ impl Cfg {
                     let conditional = !ones.contains(oc);
                     match locals.get(od) {
                         Some(&t) if t > starts[b] => {
-                            succ[b].push(block_of(t.min(n.saturating_sub(1))));
+                            succ[b].push(block_of(&starts, t.min(n.saturating_sub(1))));
                             if conditional {
                                 succ[b].extend(fall);
                             }
@@ -489,8 +483,15 @@ impl Cfg {
         let mut reach = vec![vec![0u64; words]; nb];
         for b in (0..nb).rev() {
             if all_later[b] {
-                for c in b + 1..nb {
-                    reach[b][c / 64] |= 1 << (c % 64);
+                let first = b + 1;
+                for (w, word) in reach[b].iter_mut().enumerate().skip(first / 64) {
+                    *word = if w == first / 64 { !0u64 << (first % 64) } else { !0 };
+                }
+                // Past the last block the row stays clear.
+                if let Some(last) = reach[b].last_mut()
+                    && !nb.is_multiple_of(64)
+                {
+                    *last &= (1u64 << (nb % 64)) - 1;
                 }
                 continue;
             }
@@ -510,7 +511,7 @@ impl Cfg {
     }
 
     fn block_of(&self, i: usize) -> usize {
-        self.starts.partition_point(|&s| s <= i) - 1
+        block_of(&self.starts, i)
     }
 
     fn reaches(&self, b: usize, c: usize) -> bool {
@@ -530,43 +531,29 @@ fn retarget_in_block(l: &mut Lowered, dead: &mut [bool], at_targets: &[u32]) -> 
     let mut hinted = vec![false; fs as usize + 1];
     let mut refs: HashMap<Off, Vec<(usize, Role)>> = HashMap::new();
     let mut runs: Vec<(usize, Off, u32, bool)> = Vec::new();
-    let mut ones: HashSet<Off> = HashSet::new();
     for (i, ins) in l.code.iter_mut().enumerate() {
         if dead[i] {
             continue;
         }
         for h in &mut ins.hints {
-            visit_hint(h, &mut |x, len| {
-                for c in *x..*x + len.max(1) {
-                    if (c as usize) < hinted.len() {
-                        hinted[c as usize] = true;
-                    }
-                }
-            });
+            visit_hint(h, &mut |x, len| mark(&mut hinted, *x, len));
         }
-        visit(&mut ins.op, &mut |x, role| {
-            match role {
-                Role::Run(len) => {
-                    runs.push((i, *x, len, false));
-                    for c in *x..*x + len {
-                        refs.entry(c).or_default().push((i, role));
-                    }
+        visit(&mut ins.op, &mut |x, role| match role {
+            Role::Run(len) | Role::OutRun(len) => {
+                runs.push((i, *x, len, matches!(role, Role::OutRun(_))));
+                for c in *x..*x + len {
+                    refs.entry(c).or_default().push((i, role));
                 }
-                Role::OutRun(len) => {
-                    runs.push((i, *x, len, true));
-                    for c in *x..*x + len {
-                        refs.entry(c).or_default().push((i, role));
-                    }
-                }
-                _ => refs.entry(*x).or_default().push((i, role)),
-            };
+            }
+            _ => refs.entry(*x).or_default().push((i, role)),
         });
-        if let LOp::Set { o, k: KVal::Const(c) } = &ins.op
-            && *c == F128::ONE
-        {
-            ones.insert(*o);
-        }
     }
+    let ones = ones(&l.code, dead);
+    // `runs` is in instruction order: the runs of the instructions in `lo..hi`.
+    let runs_in = |lo: usize, hi: usize| {
+        let from = runs.partition_point(|r| r.0 < lo);
+        &runs[from..from + runs[from..].partition_point(|r| r.0 < hi)]
+    };
     let copy_of = |i: usize| -> Option<(Off, Off)> {
         let LOp::Mul { a, b, c } = l.code[i].op else {
             return None;
@@ -595,9 +582,9 @@ fn retarget_in_block(l: &mut Lowered, dead: &mut [bool], at_targets: &[u32]) -> 
         let blk = cfg.block_of(i);
         let (bs, be) = (cfg.starts[blk], cfg.starts.get(blk + 1).copied().unwrap_or(n));
         // The source run: the output run in this block holding s, or s alone.
-        let (base, len, writer) = match runs
+        let (base, len, writer) = match runs_in(bs, i)
             .iter()
-            .find(|&&(k, x, len, out)| out && k >= bs && k < i && (x..x + len).contains(&s))
+            .find(|&&(_, x, len, out)| out && (x..x + len).contains(&s))
         {
             Some(&(k, x, len, _)) => (x, len, Some(k)),
             None => (s, 1, None),
@@ -636,7 +623,7 @@ fn retarget_in_block(l: &mut Lowered, dead: &mut [bool], at_targets: &[u32]) -> 
             let first = src_refs
                 .iter()
                 .filter(|&&(k, _)| k >= bs && k < be)
-                .map(|&(k, r)| (k, r))
+                .copied()
                 .min_by_key(|&(k, _)| k);
             let born =
                 matches!(first, Some((k, Role::Dest | Role::OutRun(_))) if Some(k) == writer || writer.is_none());
@@ -650,9 +637,8 @@ fn retarget_in_block(l: &mut Lowered, dead: &mut [bool], at_targets: &[u32]) -> 
             born && dies && alone
         });
         // Every run read in the block that meets the source run lies inside it.
-        let runs_ok = runs.iter().all(|&(k, x, rl, _)| {
-            k < bs || k >= be || x + rl <= base || x >= base + len || (x >= base && x + rl <= base + len)
-        });
+        let runs_ok = (runs_in(bs, be).iter())
+            .all(|&(_, x, rl, _)| x + rl <= base || x >= base + len || (x >= base && x + rl <= base + len));
         if !ok || !runs_ok {
             continue;
         }

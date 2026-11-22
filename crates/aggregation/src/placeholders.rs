@@ -3,7 +3,7 @@
 use super::MAX_RECURSIONS;
 use super::cells::pack_16_bytes;
 use super::child::{
-    MU_CAP, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, block_groups, col_groups, merkle_cap_depth, whir_levels,
+    MU_CAP, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, STREAM_CAP, block_groups, col_groups, merkle_cap_depth, whir_levels,
 };
 use super::claim_pool::{ClaimSite, claim_pool, coord_difference, coord_kind, coord_scale, push_coord_terms};
 use super::deferred::{BATCH_LAM_GRIND_BITS, RECURSION_AGG_LABEL};
@@ -222,12 +222,14 @@ fn constants(ph: &mut Placeholders) {
     use lean_xmss::internals as lx;
     use verifier::N_BUS_TREES;
     use verifier::keccak::{EMBED_BITS, PACK, PRODUCT_BITS};
+    let nonces = |bits: u32| usize::from(bits > 0);
     // The F128 tower F64[Y]/(Y^2 + xY + 1): Y_TOWER embeds Y for AIR lane reassembly; Y_INV = Y + x splits a word
     // into its two K limbs.
     let y_tower = F128::new(0, 1);
     let shape = KECCAK_MIN_SHAPE;
     let constants: &[(&str, &dyn Literal)] = &[
         // Buffer caps and memory bounds.
+        ("STREAM_CAP", &STREAM_CAP),
         ("QW", &QUERY_WINDOW_BITS),
         ("QUERY_WINDOWS_CAP", &QUERY_WINDOWS_CAP),
         ("MU_CAP", &MU_CAP),
@@ -271,6 +273,9 @@ fn constants(ph: &mut Placeholders) {
         ("OOD_GRIND_BITS", &OOD_GRINDING_BITS),
         ("QUERY_GRIND_BITS", &QUERY_GRINDING_BITS),
         ("BATCH_GRIND_BITS", &BATCH_GRINDING_BITS),
+        // The batching hints: the challenge's nonce, if it grinds, then per round (g1, g_inf) and its nonce, if any.
+        ("BC_LAM_WORDS", &nonces(BATCH_LAM_GRIND_BITS)),
+        ("BC_ROUND_WORDS", &(2 + nonces(grinding_bits(2)))),
         // The Keccak reduction (`keccak_gkr`).
         ("KECCAK_DEPTH", &shape.depth()),
         ("KECCAK_SEGMENTS", &shape.segments()),
@@ -342,13 +347,6 @@ fn bus_placeholders(ph: &mut Placeholders, sides: &[Vec<Block>; 3], kbc: usize, 
     }
     ph.set("SIDE_BLOCK_START", &sblk);
     ph.set("N_BLOCKS", sblk[3]);
-    // One past the last push block with an Index coordinate: the guest keeps those blocks' index MLEs for their pull
-    // twins.
-    let index_blocks = sides[0]
-        .iter()
-        .rposition(|blk| blk.coords.iter().any(|c| matches!(c, Coord::Index)))
-        .map_or(0, |b| b + 1);
-    ph.set("N_INDEX_BLOCKS", index_blocks);
     ph.set("N_COORDS", coordinates.len());
     // Push and pull emit bus blocks in matched pairs, so their baked kappa-source
     // segments are identical; the guest computes only push's side total and
@@ -565,29 +563,8 @@ fn keccak_placeholders(ph: &mut Placeholders) {
     ph.set("KECCAK_SHIFT_USED", used);
 }
 
-/// The guest's `SIZE_BITS`: the bits a structural size (sums of `2^kappa`, packing offsets) fits in.
-const SIZE_BITS: usize = 34;
-
-/// The widest query window `SHIFT_PATTERNS` holds a row of patterns for, the guest's `SHIFT_TAB_BITS`.
-const SHIFT_TAB_BITS: usize = 7;
-
 /// The F128 coordinate basis and the ring switch's points.
 fn field_placeholders(ph: &mut Placeholders) {
-    ph.set("SIZE_BITS", SIZE_BITS);
-    // A nibble's share of a g-power, g^(u 16^j) at 16 j + u, for every nibble of SIZE_BITS (`column_selector`).
-    let mut shares = Vec::new();
-    let mut base = F128::from(g_pow(1));
-    for _ in 0..SIZE_BITS.div_ceil(4) {
-        let mut share = F128::ONE;
-        for _ in 0..16 {
-            shares.push(share);
-            share *= base;
-        }
-        base = share;
-    }
-    ph.list("SEL_SHARES", shares);
-    // A bit window's pattern by its value, n for n below 2^11 (`query_window`, `grind_check`).
-    ph.list("WIN_PATTERNS", (0..1u64 << 11).map(|n| F128::new(n, 0)));
     // Coordinate basis e_i of F128 over F2 (spans the whole field): the 64 binary
     // basis vectors in each of the two tower limbs. The guest uses these vectors to
     // reconstruct a word from its 128 coordinate bits.
@@ -761,8 +738,9 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
             })
             .collect()
     };
-    let pos_off = |i: usize| -> Vec<usize> {
-        let mut row: Vec<usize> = level_positions(i)
+    let positions: Vec<Vec<usize>> = (0..cands.len()).map(level_positions).collect();
+    let pos_off = |row: &Vec<usize>| -> Vec<usize> {
+        let mut offs: Vec<usize> = row
             .iter()
             .scan(0, |at, &n| {
                 let off = *at;
@@ -770,15 +748,13 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
                 Some(off)
             })
             .collect();
-        row.resize(maxlev, 0);
-        row
+        offs.resize(maxlev, 0);
+        offs
     };
-    table("LIG_POS_OFF", (0..cands.len()).map(pos_off).collect());
+    table("LIG_POS_OFF", positions.iter().map(pos_off).collect());
     table(
         "LIG_POS_TOTAL",
-        (0..cands.len())
-            .map(|i| vec![level_positions(i).iter().sum()])
-            .collect(),
+        positions.iter().map(|row| vec![row.iter().sum()]).collect(),
     );
     for (name, f) in per_level {
         let padded = |c: &OpeningShape| {
@@ -795,12 +771,6 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
     let windows = most(|c, lv| {
         let (depth, cap) = (c.tree_depths[lv], c.cap_depth(lv));
         assert!((2..=8).contains(&cap), "a cap of {cap} levels");
-        // Every shifted window, a path window or the cap index's cap - 1 bits, fits a `SHIFT_PATTERNS` row: a wider one
-        // would read the next shift's row, two of its values then spelling one pattern.
-        assert!(
-            QUERY_WINDOW_BITS.max(cap - 1) <= SHIFT_TAB_BITS,
-            "a query window wider than SHIFT_TAB_BITS"
-        );
         c.positions(lv) * ((depth - cap).div_ceil(QUERY_WINDOW_BITS) + 2)
     });
     assert!(
@@ -812,17 +782,8 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
     ph.set("YR_LOG_CAP", most(|c, _| c.yr_log_len()));
     // A row is its hinted words, one a lane: K at level 0, packed two to a cell, E deeper.
     ph.set("LIG_ROW_CAP", most(OpeningShape::row_words));
-    ph.set("LIG_FOLDS_CAP", most(|c, lv| c.folds[lv]));
     ph.set("LIG_PACKED_ROW_CAP", most(|c, _| c.row_words(0) / 2));
-    let path_cap = most(|c, lv| 2 * (c.tree_depths[lv] - c.cap_depth(lv)));
-    ph.set("LIG_PATH_CAP", path_cap);
-    ph.set("SHIFT_TAB_BITS", SHIFT_TAB_BITS);
-    // A query position's window patterns shifted into place (`shifted_pattern`): for each shift s from 1 to the
-    // deepest path plus one, n x^s for n below 2^7, the widest such window.
-    ph.list(
-        "SHIFT_PATTERNS",
-        (1..=path_cap / 2 + 1).flat_map(|s| (0..1u64 << SHIFT_TAB_BITS).map(move |n| F128::new(n << s, 0))),
-    );
+    ph.set("LIG_PATH_CAP", most(|c, lv| 2 * (c.tree_depths[lv] - c.cap_depth(lv))));
     ph.set("LIG_MAX_LEVELS", maxlev);
     ph.set("LIG_MIN_LOG_SIZE", minm);
     ph.set("LIG_N_LOG_SIZES", n_log_sizes);

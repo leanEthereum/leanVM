@@ -50,8 +50,13 @@ def at(pred, what):
 
 dims_at = at(lambda s: s.startswith('  .call "verify_tables" '), "calls of verify_tables")
 kb_at = at(lambda s: s.startswith('  .call "check_opening_terminal" '), "calls of check_opening_terminal")
+tabs_at = at(lambda s: s.startswith("  .dispatch ") and '["open_stacked__L' in s, "dispatches to open_stacked")
 dims = args(st[dims_at])[runtime_param("verify_tables", "dims_g")]
 kb = args(st[kb_at])[runtime_param("check_opening_terminal", "kappa_base")]
+tabs = args(st[tabs_at])[runtime_param("open_stacked", "tabs")]
+m = re.fullmatch(r"  \.atom \(\.mul \(\.n %d\) \(\.n 4\) \(\.n (\d+)\)\) ::" % tabs, st[tabs_at - 1])
+if not m or not st[tabs_at - 2].startswith("  .atom (.const (.n %s) " % m.group(1)):
+    sys.exit("vs-at: verify_sub's two statements before its dispatch to open_stacked are not `tabs = g_squares·c`")
 text = f"""/-
   LeanVM.Guest.VsAt
 
@@ -70,6 +75,15 @@ abbrev vsDimsAt : Nat := {dims_at}
 
 /-- That call's argument `dims_g`. -/
 abbrev vsDims : Nat := {dims}
+
+/-- `verify_sub`'s dispatch to `open_stacked`, after the two statements `tabs = g_squares·c`. -/
+abbrev vsTabsAt : Nat := {tabs_at}
+
+/-- That dispatch's argument `tabs`. -/
+abbrev vsTabs : Nat := {tabs}
+
+/-- The constant `c` of `tabs = g_squares·c`. -/
+abbrev vsTabsC : Nat := {m.group(1)}
 
 /-- `verify_sub`'s call of `check_opening_terminal`. -/
 abbrev vsKbAt : Nat := {kb_at}

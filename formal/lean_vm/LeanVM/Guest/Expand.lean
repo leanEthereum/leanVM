@@ -122,7 +122,6 @@ inductive CellRun where
 structure Ctx where
   defs : List Func
   arrays : List (String × List (Nat × Nat))
-  lookupCells : List (String × Nat)
   fnName : String
   isMain : Bool
   returnShapes : List Shape
@@ -950,19 +949,6 @@ def expr : Nat → Expr → M V
     | .call "addr" args => do
         let ga ← stackAddr args
         materialize ga
-    | .call "lookup" args => do
-        let (name, xe, k) ← match args with
-          | [.var t, x] => pure (t, x, 0)
-          | [.var t, x, ke] => do pure (t, x, ← constIndex ke)
-          | _ => fail "lookup takes `(TABLE, x)` or `(TABLE, x, k)`"
-        let some vals := (← get).ctx.arrays.lookup name
-          | fail s!"lookup reads a top-level constant array, and `{name}` is not one"
-        if k ≥ vals.length then fail s!"lookup offset {k} is past `{name}`'s entries"
-        let some cell := (← get).ctx.lookupCells.lookup name | fail s!"internal: no cell for `{name}`"
-        let x ← expr n xe
-        let dst ← fresh
-        emitAtom (.load dst x (cell + k))
-        return dst
     | .call "hint_log2_ceil" args => do
         let [a0, a1, a2] := args | fail "hint_log2_ceil takes three arguments"
         let nbits ← constIndex a1
@@ -1883,7 +1869,7 @@ def paramBindings (f : Func) : List (String × Bound) × List V := Id.run do
 
 /-- The state lowering `f` starts in. -/
 def initState (p : Program) (f : Func) (queue : Array Func) (loopBase : Nat) : St :=
-  { ctx := { defs := p.funcs, arrays := p.constArrays, lookupCells := p.lookupCells, fnName := f.name, isMain := f.name == "main",
+  { ctx := { defs := p.funcs, arrays := p.constArrays, fnName := f.name, isMain := f.name == "main",
              returnShapes := f.returnShapes },
     names := (paramBindings f).1, heapSizes := [], path := [], tag := 0, out := #[],
     pending := false, inlineCalls := [],

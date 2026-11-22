@@ -275,9 +275,11 @@ fn guest_column_selectors_match_native_eq() {
     for k in unroll(0, 4 * SEL_NIBBLES):
         point1[GEN ** k] = 1 + point[GEN ** k]
     sel_eq = selector_tables(point, point1)
+    g_squares = exponent_tables()
+    sel_g = g_squares * GEN ** SIZE_BITS
     offset = hint_witness("offset")
     kappa_g = hint_witness("kappa")
-    weight = match(log(kappa_g), range(0, N_COLUMN_LOGS), lambda kappa: column_selector(offset, sel_eq, kappa))
+    weight = match(log(kappa_g), range(0, N_COLUMN_LOGS), lambda kappa: column_selector(offset, sel_eq, sel_g, kappa))
     public = GEN ** 0
     assert public[1] == weight
     return
@@ -481,7 +483,7 @@ fn list_split_rejects_a_negative_rest() {
 fn grind_check_reads_the_low_bits() {
     let guest = guest_snippet(
         r#"    word = hint_witness("w")
-    grind_check(word, 3)
+    grind_check(word, exponent_tables() * GEN ** WIN_TAB_AT, 3)
     return
 "#,
         20,

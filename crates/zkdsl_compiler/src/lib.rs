@@ -48,12 +48,6 @@ pub use parser::{f128_literal, parse, parse_const, parse_with_constants, parse_w
 /// Compile an [`Ast`] to a provable [`CompiledProgram`]. Panics on a malformed program
 /// (unbound variable, missing `main`, address overflow).
 pub fn compile(ast: &Ast) -> CompiledProgram {
-    compile_parts(ast).0
-}
-
-/// [`compile`], with the cell of `main`'s frame (`fp = g^0`) where each constant array a `lookup` reads starts, by
-/// name: what the formalization's front end lowers a `lookup` to a load at.
-pub fn compile_parts(ast: &Ast) -> (CompiledProgram, Vec<(String, u32)>) {
     // Lower main first (it follows the table writes at pc 0), then the rest, expanding loop helpers.
     let mut queue: Vec<Func> = Vec::new();
     let main = ast
@@ -200,16 +194,11 @@ pub fn compile_parts(ast: &Ast) -> (CompiledProgram, Vec<(String, u32)>) {
                             ptr,
                             size: frame_size[&callee],
                         },
-                        // Inside a loop body every arm reserves the largest arm's frame, so that each iteration
-                        // grows the heap alike, which the executor's parallel segments predict from.
-                        Hint::AllocFrameSwitch { ptr, x, callees } => {
-                            let mut sizes: Vec<u32> = callees.iter().map(|c| frame_size[c]).collect();
-                            if l.name.starts_with("__loop") {
-                                let most = sizes.iter().copied().max().unwrap_or(0);
-                                sizes.fill(most);
-                            }
-                            RHint::AllocSwitch { ptr, x, sizes }
-                        }
+                        Hint::AllocFrameSwitch { ptr, x, callees } => RHint::AllocSwitch {
+                            ptr,
+                            x,
+                            sizes: callees.iter().map(|c| frame_size[c]).collect(),
+                        },
                         Hint::AllocBuffer { ptr, size } => RHint::Alloc { ptr, size },
                         Hint::AllocBufferDyn { ptr, size } => RHint::AllocDyn { ptr, size },
                         Hint::Resolved(r) => r,
@@ -224,11 +213,7 @@ pub fn compile_parts(ast: &Ast) -> (CompiledProgram, Vec<(String, u32)>) {
 
     // Pad the bytecode to `B` (the sentinel slot g^{B-1} must exist for execution).
     prog.resize(bytecode_size, Op::Set { o: 0, k: F128::ZERO });
-    let mut lookups: Vec<(String, u32)> = (tables.statics.iter())
-        .map(|(name, &first)| (name.clone(), tables_base + first as u32))
-        .collect();
-    lookups.sort();
-    let program = CompiledProgram {
+    CompiledProgram {
         prog,
         hints,
         main_frame: frame_size["main"],
@@ -237,8 +222,7 @@ pub fn compile_parts(ast: &Ast) -> (CompiledProgram, Vec<(String, u32)>) {
             .map(|l| (l.name.clone(), entry[&l.name], l.code.len() as u32))
             .collect(),
         src_lines,
-    };
-    (program, lookups)
+    }
 }
 
 /// Render compiled bytecode as a human-readable disassembly. `fp[k]` is the cell

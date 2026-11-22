@@ -1033,45 +1033,6 @@ impl FnLower<'_> {
                 let ga = self.stack_addr(args);
                 self.materialize(ga)
             }
-            Expr::Call(f, args) if f == "lookup" => {
-                // `lookup(TABLE, x)` or `lookup(TABLE, x, k)`: entry log(x) + k of the top-level
-                // constant array TABLE, which sits once among the jump tables in main's frame,
-                // so the read is one DEREF with no pointer product. `x` is unchecked, as any
-                // runtime index: the program owes its range check.
-                if !(2..=3).contains(&args.len()) {
-                    self.fail(format!(
-                        "lookup takes `(TABLE, x)` or `(TABLE, x, k)`, got {} arguments",
-                        args.len()
-                    ))
-                }
-                let Expr::Var(name) = &args[0] else {
-                    self.fail("lookup's first argument names a top-level constant array".to_string())
-                };
-                let Some(values) = self.const_arrays.get(name.as_str()).copied() else {
-                    self.fail(format!("lookup reads a top-level constant array, and `{name}` is not one"))
-                };
-                let k = if args.len() == 3 { self.const_index(&args[2]) as usize } else { 0 };
-                if k >= values.len() {
-                    self.fail(format!("lookup offset {k} is past `{name}`'s {} entries", values.len()))
-                }
-                let first = match self.tables.statics.get(name.as_str()) {
-                    Some(&first) => first,
-                    None => {
-                        let first = self.tables.slots.len();
-                        self.tables.slots.extend(values.iter().map(|&v| KVal::Const(v)));
-                        self.tables.statics.insert(name.clone(), first);
-                        first
-                    }
-                };
-                let x = self.expr(&args[1]);
-                let dst = self.fresh();
-                self.emit(LOp::Slot {
-                    x,
-                    first: (first + k) as u32,
-                    dst,
-                });
-                dst
-            }
             Expr::Call(f, args) if f == "hint_log2_ceil" => {
                 // Computed advice: the prover fills g^log2_ceil (base-2 ceil-log) of the value in
                 // `bits` (a `nbits`-bit buffer), floored at `floor`. Returned

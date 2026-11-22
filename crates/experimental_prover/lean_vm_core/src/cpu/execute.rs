@@ -459,8 +459,6 @@ impl<'w> Run<'w> {
 /// What the interpreter reads and writes: memory and the g-power table. The run's own ([`Mem`])
 /// and a segment's (`segments::Segment`) differ in where a cell lives and what they record of it.
 pub(super) trait Machine {
-    /// `DBG_PROF`: a region reserved by the hints of `pc`.
-    fn note_alloc(&mut self, _base: u32, _size: u32, _pc: u32) {}
     /// Cover cell `idx`.
     fn ensure(&mut self, idx: usize);
     /// Whether `cell` is written, when a hint or an instruction decides on it.
@@ -530,8 +528,6 @@ pub(super) struct Mem<'a> {
     /// costs a lazy-init check each time.
     dbg_pc: u32,
     dbg_hint: Option<&'static str>,
-    /// `DBG_PROF`: every region reserved, as (base, size, pc).
-    pub(super) allocs: Option<Vec<(u32, u32, u32)>>,
     pub(super) g: GPow,
 }
 
@@ -628,11 +624,6 @@ impl Mem<'_> {
 }
 
 impl Machine for Mem<'_> {
-    fn note_alloc(&mut self, base: u32, size: u32, pc: u32) {
-        if let Some(a) = &mut self.allocs {
-            a.push((base, size, pc));
-        }
-    }
     // All accessed cells satisfy cell < next_free after their frame's allocation, so
     // this only ever extends.
     #[inline(always)]
@@ -819,7 +810,6 @@ fn execute_once(
         program,
         dbg_pc: 0,
         dbg_hint: None,
-        allocs: std::env::var("DBG_PROF").is_ok().then(Vec::new),
         g: GPow::new((program.prog.len() + 2).max(program.main_frame as usize)),
     };
     m.ensure(n0 - 1);
@@ -883,38 +873,6 @@ fn execute_once(
             eprintln!("== DBG_PROF: per-pc counts written to {path}");
         }
         let written: usize = (0..m.used as u32).filter(|&c| m.is_written(c)).count();
-        if let Some(allocs) = &m.allocs {
-            let mut holes: std::collections::HashMap<String, (u64, u64, String)> = Default::default();
-            for &(base, size, pc) in allocs {
-                let unwritten: Vec<u32> = (base..base + size)
-                    .filter(|&c| !m.is_written(c))
-                    .map(|c| c - base)
-                    .collect();
-                let e = holes.entry(program.site_at(pc)).or_default();
-                if e.2.is_empty() && !unwritten.is_empty() {
-                    let mut runs: Vec<(u32, u32)> = Vec::new();
-                    for &o in &unwritten {
-                        match runs.last_mut() {
-                            Some(r) if r.1 + 1 == o => r.1 = o,
-                            _ => runs.push((o, o)),
-                        }
-                    }
-                    e.2 = format!("size {size}: ")
-                        + &runs
-                            .iter()
-                            .take(12)
-                            .map(|(a, b)| format!("{a}..={b} "))
-                            .collect::<String>();
-                }
-                e.0 += unwritten.len() as u64;
-                e.1 += size as u64;
-            }
-            let mut rows: Vec<_> = holes.into_iter().collect();
-            rows.sort_by_key(|(_, (u, _, _))| std::cmp::Reverse(*u));
-            for (site, (u, s, runs)) in rows.iter().take(40) {
-                eprintln!("== DBG_PROF hole {u:>9} of {s:>9}  {site}  [{runs}]");
-            }
-        }
         eprintln!(
             "== DBG_PROF: memory {} cells, {} written ==",
             pretty_integer(m.used as u64),
@@ -1100,7 +1058,6 @@ pub(super) fn walk<M: Machine>(
                         if !m.written(cell) {
                             let base = next_free;
                             next_free = at(base, size)?;
-                            m.note_alloc(base, size, pc);
                             m.g_grow(next_free as usize);
                             // The base is about to become a pointer in memory.
                             m.g_note(base as usize);
