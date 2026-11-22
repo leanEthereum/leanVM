@@ -80,11 +80,12 @@ noncomputable def armRest (σ : Val) (c : OsCfg) : List Call :=
   ((osTlA c).filterMap Main.Stmt.callS).map (Main.mkCall σ) ++ (finFrames σ c).map (Main.mkCall σ)
 
 /-- The arm's callees' predicates: within each bound, every callee's tree satisfying `armXT`, level `l`'s
-`level_queries`' popping its honest entries (`osLvPops`). -/
+`level_queries`' popping its honest entries (`osLvPops`), but `is_zero`'s. -/
 noncomputable def armTs {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {cur tabs : E} {xs : List E}
     {tgt inn res : E} {pt pt1 : List E} (H : OsHonestA c args cur tabs xs tgt inn res pt pt1) (σ : Val)
     (rd : Reader) : List (Tree → Prop) :=
-  lvTs (bdT Bd armXT) (bdT Bd armXT) (lvTB Bd fun l rd t ↦ t.pops coreProgram rd = osLvPops H l ∧ armXT rd t) rd 0
+  lvTs (bdT Bd armXT) (bdT Bd armXT)
+    (lvTB Bd fun l rd t ↦ (t.name ≠ "is_zero" → t.pops coreProgram rd = osLvPops H l) ∧ armXT rd t) rd 0
     (osLvKOf σ c 0 c.levels (osHead c).2) ++ (armRest σ c).map fun _ ↦ bdT Bd armXT rd
 
 theorem lvTs_length (TA TS : Reader → Tree → Prop) (TB : ℕ → Reader → Tree → Prop) (rd : Reader) :
@@ -169,6 +170,11 @@ theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11
       e.2.2.2.2.2.2.2.2.2.2 (Bd.map (· e.1)))
     (hlr : ∀ e ∈ lrTable, e.1 ∈ osCalleeNames (osCfgR m ri) →
       LrAtO fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 (Bd.map (· e.1)))
+    (hls : ∀ j < (osCfgR m ri).yrLevel,
+      osSlowName (osCfgR m ri) (osLvA (osCfgR m ri) j) ∈ osCalleeNames (osCfgR m ri) →
+      LsAtO fs cert κ (osSlowName (osCfgR m ri) (osLvA (osCfgR m ri) j)) (osLvA (osCfgR m ri) j).queries
+        (osLvA (osCfgR m ri) j).prefixLen (osCfgR m ri).yrLog (osLvA (osCfgR m ri) j).vanish
+        (Bd.map (· (osSlowName (osCfgR m ri) (osLvA (osCfgR m ri) j)))))
     {args : List E} (hargs : args.length = 11) (hsel0 : args.getD 0 0 = ofK (addressOfIndex ri))
     {cur tabs : E} {xs : List E} {tgt inn res : E} {pt pt1 : List E}
     (H : OsHonestA (osCfgR m ri) args cur tabs xs tgt inn res pt pt1) {Lin : Layout}
@@ -185,6 +191,7 @@ theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11
   intro H
   obtain ⟨hB, haddrs, hyr⟩ := armBody_ok ri hm
   have hLv := armLv_ok hm hri
+  have hsf := armSlow_ok hm hri
   have hl : H.own.length = (osSizesL c).length := H.own_len.length_eq
   have hSL := osSizesL_length (c := c) hyr.le
   have hbA : fn.body = osBodyA c ++ [.ret (osBodyRet c)] := hb.trans (osBody_eq c)
@@ -295,7 +302,8 @@ theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11
   -- the levels
   obtain ⟨N1, L1, ps, hps, hW1, hD1, hB1, hK1⟩ := os_levels_kidsOT (fs := fs) (cert := cert)
     (κ := κ) σ Lk (winW fs cert c b0) (runsS fs cert c H.D) Bd armXT armXT
-    (fun l rd t ↦ t.pops coreProgram rd = osLvPops H l ∧ armXT rd t) ks 0 (fun i hi ↦ by
+    (fun l rd t ↦ (t.name ≠ "is_zero" → t.pops coreProgram rd = osLvPops H l) ∧ armXT rd t) ks 0
+    (fun i hi ↦ by
       have hi' : i < c.levels.length := hksl ▸ hi
       rw [hks_get i hi, Nat.zero_add]
       exact arm_lv_ok H hLin hall hdo hfl hB ⟨rd0, hl0, hm0⟩ hHV hsel hyr hnamed hnamedT hlp hlq hi'
@@ -308,9 +316,9 @@ theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11
   -- the closing rounds, `fold_final_msg`, the residuals
   obtain ⟨N2, L2, hW2, hD2, hB2, hK2⟩ := os_kids_blockOT (fs := fs) (cert := cert) (κ := κ) Lk σ
     rest Bd armXT (fun c' hc' ht ↦ arm_rest_ok H hall hdo hfl hB ⟨rd0, hl0, hm0⟩ hHV hsel hyr hLv hnamed
-      hlr hc' (by rw [hcalls]; exact List.mem_append_right _ hc') ht)
+      hlr hsf hls hc' (by rw [hcalls]; exact List.mem_append_right _ hc') ht)
     (fun Bk hBk c' hc' ht ↦ arm_rest_okT H hall hdo hfl hB ⟨rd0, hl0, hm0⟩ hHV hsel hyr hLv hnamed hnamedT
-      hlr hBk hc' (by rw [hcalls]; exact List.mem_append_right _ hc') ht)
+      hlr hsf hls hBk hc' (by rw [hcalls]; exact List.mem_append_right _ hc') ht)
     (b0 + (osSizesL c).sum + N1)
   have hfit' := hfit ps
   refine ⟨σ, own' ps, [tgt, osPtrA c b0 (osIxPtA c), osPtrA c b0 (osIxPt1A c), inn, res], N1 + N2,

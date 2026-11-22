@@ -2,14 +2,15 @@
   LeanVM.Guest.Child.Fresh
 
   A proof the leanVM verifier accepts is accepted by the deferring verifier with a true claim on
-  the bytecode, the one its run evaluates: for the deployed stacked opening and the one refusing a
-  zero challenge.
+  the bytecode, the one its run evaluates.
 -/
 
 module
 
 public import LeanVM.Protocol.Verifier.Claims
-public import LeanVM.Guest.LimitsNZ
+public import LeanVM.Guest.Limits
+public import LeanVM.Protocol.Compile.Refines
+public import LeanVM.Protocol.WithHashBridge
 public import LeanVM.Protocol.Verifier.Deferred
 public import LeanVM.Protocol.WithHash
 
@@ -18,7 +19,7 @@ public import LeanVM.Protocol.WithHash
 
 The verifier reads the fixed polynomial once, at the bus's bytecode point (`verifyBusBalance`).
 `execWith ev opening` is `verify_execution` with the evaluation `ev` and the stacked opening
-`opening` (`verifyStackedOpening`, or `Limits.verifyStackedOpeningNZ`). It is a prefix
+`opening` (`verifyStackedOpening`). It is a prefix
 (`prefixProg`: the sizes, the stack's root and its out-of-domain sample, the bus up to its slot
 sumcheck), the evaluation at the point and of the value the prefix returns (`busPoint`), and a
 suffix (`execSplit`). So an accepted run with the computed

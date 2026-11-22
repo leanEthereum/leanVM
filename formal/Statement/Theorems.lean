@@ -75,11 +75,11 @@ structure Theorems
   (`DeployedLimits`: at most `16` children holding `2^17` claims in all, `2048` leanXMSS and `512`
   leanSPHINCS signatures, a blob matrix of `LeanDa.maxRows` rows), under the deployed seed, whatever
   proofs of the guest program the children carry, as long as the deferring verifier accepts them
-  with their fresh claims (`NodeRelation`), barring a Keccak-256 collision in the guest program's Merkle caps or a zero
-  challenge (`ChildWithoutCollisionOrZero`): the executor (`Prover/Execute.lean`)
-  runs the guest program to a valid execution, within `2^30` committed words, on the advice the
-  guest's witness generation makes from the statement and the witness (`LeanVM.Guest.guestExecution`,
-  `LeanVmGuestProver.lean`) (`LeanVmGuestCompleteness.lean`). With
+  with their fresh claims (`NodeRelation`): the executor (`Prover/Execute.lean`) runs the guest
+  program to a valid execution, within `2^30` committed words, on the advice the guest's witness
+  generation makes from the statement and the witness (`LeanVM.Guest.guestExecution`,
+  `LeanVmGuestProver.lean`), or some child's proof exhibits a Keccak-256 collision between bytes
+  two of its Merkle openings' climbs hash (`OpeningsCollide`) (`LeanVmGuestCompleteness.lean`). With
   `leanVmCompleteness` and `honestProofRarelyRefused`, the guest's prover (`LeanVM.Guest.guestProve`)
   makes a proof the verifier accepts, `Statement.Corollaries`' `guestProverComplete`. -/
   guestExecutionComplete : LeanVM.Guest.Completeness.GuestExecutionComplete

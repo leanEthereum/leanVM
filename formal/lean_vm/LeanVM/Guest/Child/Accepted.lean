@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.Child.Accepted
 
-  A child the deferring verifier accepts, free of a collision in the caps and of a zero challenge,
-  is one the guest program accepts: its stack log and its stream follow from the acceptance.
+  A child the deferring verifier accepts, its openings agreeing in the caps, is one the guest
+  program accepts: its stack log and its stream follow from the acceptance.
 -/
 
 module
@@ -19,15 +19,13 @@ public import LeanVM.Guest.Limits
 
 `acceptableChild_of_accepted`: a child whose proof the deferring verifier accepts, with a deferred
 claim of the bytecode's shape (`NodeRelation`'s `ChildrenProven`), is a child the guest program
-accepts (`AcceptableChild`) wherever it is `ChildWithoutCollisionOrZero`:
+accepts (`AcceptableChild`) wherever its openings agree at every query step of its verifier's run
+(which fails only on a Keccak-256 collision, `Child/Collision.lean`):
 
 * its stack log is at least `20` (`stackLog_ge_of_buildLayout`): every layout the verifier reads
   for a bytecode of `2^23` words (`built_of_announced`) stacks the memory's three columns and the
   bytecode's `2^19`-word column, more than `2^19` words;
-* its stream is at most `STREAM_CAP` scalars (`stream_le_of_verifyDeferred`);
-* every query step of its verifier's run opens one phase of its proof, each opening at its leaf's
-  position, every path of the step's height (`queryStepsOf_phase`), so the phases agreeing gives
-  the steps agreeing.
+* its stream is at most `STREAM_CAP` scalars (`stream_le_of_verifyDeferred`).
 -/
 
 namespace LeanVM.Guest.Child
@@ -159,99 +157,26 @@ theorem stackLog_ge_of_buildLayout {bytecode : List K} (hbl : bytecode.length = 
     (by unfold Coverage.minChildStackLog at hlt; omega)
   omega
 
-/-! ## The query steps -/
+/-! ## Lists -/
 
 theorem zip_map_self {α β : Type} (f : α → β) :
     ∀ l : List α, (l.map f).zip l = l.map fun a ↦ (f a, a)
   | [] => rfl
   | a :: l => by rw [List.map_cons, List.map_cons, List.zip_cons_cons, zip_map_self f l]
 
-/-- An opened phase has its positions and every path the tree's height. -/
-theorem openPhase_some {root : Digest} {height width : ℕ} {positions : List ℕ}
-    {phase : List Opening} {rows : List (List K)}
-    (h : openPhase (m := Id) keccakF1600 root height width positions phase = some rows) :
-    (∀ opening ∈ phase, opening.path.length = height) ∧
-      positions.zip phase = phase.map fun opening ↦ (opening.leafIndex, opening) := by
-  unfold openPhase at h
-  split_ifs at h with hc
-  · refine ⟨fun o ho ↦ (hc.1 o ho).2, ?_⟩
-    rw [← hc.2]
-    exact zip_map_self _ phase
-
-/-- **Every query step opens a phase of the state's openings**, each opening at its leaf's
-position, every path the step's height. -/
-theorem queryStepsOf_phase {α : Type} : ∀ (p : VerifierProgram α) (state : VerifierProgramState),
-    ∀ step ∈ Limits.queryStepsOf p state,
-      ∃ phase ∈ state.openings, (∀ opening ∈ phase, opening.path.length = step.1) ∧
-        step.2 = phase.map fun opening ↦ (opening.leafIndex, opening)
-  | .ret _, _, _, h => by simp [Limits.queryStepsOf] at h
-  | .fail, _, _, h => by simp [Limits.queryStepsOf] at h
-  | .read k, ⟨⟨S0, P0, g⟩, stream, os, R⟩, step, h => by
-    match stream, g, h with
-    | [], _, h => simp [Limits.queryStepsOf] at h
-    | _ :: _, some _, h => simp [Limits.queryStepsOf] at h
-    | x :: xs, none, h =>
-      obtain ⟨phase, hp, h'⟩ := queryStepsOf_phase (k x) _ step h
-      exact ⟨phase, hp, h'⟩
-  | .sample k, state, step, h => by
-    have e : Limits.queryStepsOf (VerifierProgram.sample k) state =
-        Limits.queryStepsOf (k (Id.run (squeeze keccakF1600 state.sponge)).1)
-          { state with sponge := (Id.run (squeeze keccakF1600 state.sponge)).2 } := rfl
-    rw [e] at h
-    obtain ⟨phase, hp, h'⟩ := queryStepsOf_phase _ _ step h
-    exact ⟨phase, hp, h'⟩
-  | .grind bits k, ⟨⟨S0, P0, g⟩, stream, os, R⟩, step, h => by
-    match stream, g, h with
-    | [], _, h => simp [Limits.queryStepsOf] at h
-    | _ :: _, some _, h => simp [Limits.queryStepsOf] at h
-    | n :: xs, none, h =>
-      simp only [Limits.queryStepsOf] at h
-      generalize absorbNonce (m := Id) keccakF1600 ⟨S0, P0, none⟩ n = N at h
-      obtain ⟨pw, sp'⟩ := N
-      change step ∈ (if powOk bits pw = true then _ else _) at h
-      split at h
-      · obtain ⟨phase, hp, h'⟩ := queryStepsOf_phase k _ step h
-        exact ⟨phase, hp, h'⟩
-      · simp at h
-  | .commit height width k, ⟨⟨S0, P0, g⟩, stream, os, R⟩, step, h => by
-    match stream, g, h with
-    | [], _, h => simp [Limits.queryStepsOf] at h
-    | [_], _, h => simp [Limits.queryStepsOf] at h
-    | _ :: _ :: _, some _, h => simp [Limits.queryStepsOf] at h
-    | x0 :: x1 :: xs, none, h =>
-      obtain ⟨phase, hp, h'⟩ := queryStepsOf_phase k _ step h
-      exact ⟨phase, hp, h'⟩
-  | .query i ps k, ⟨sp, stream, os, R⟩, step, h => by
-    simp only [Limits.queryStepsOf] at h
-    cases hr : R[i]? with
-    | none => simp [hr] at h
-    | some t =>
-      obtain ⟨root, height, width⟩ := t
-      cases os with
-      | nil => simp [hr] at h
-      | cons phase rest =>
-        simp only [hr] at h
-        generalize ho : Id.run (openPhase (m := Id) keccakF1600 root height width ps phase) = o at h
-        cases o with
-        | none => simp at h
-        | some rows =>
-          simp only at h
-          have hop := openPhase_some ho
-          rcases List.mem_cons.mp h with rfl | h
-          · exact ⟨phase, List.mem_cons_self .., hop.1, hop.2⟩
-          · obtain ⟨phase', hp, h'⟩ := queryStepsOf_phase (k rows) _ step h
-            exact ⟨phase', List.mem_cons_of_mem _ hp, h'⟩
-
 /-! ## Acceptable children -/
 
-/-- **A child the deferring verifier accepts, free of a collision in the caps and of a zero
-challenge, is one the guest program accepts**, for a bytecode of `2^23` words. -/
+/-- **A child the deferring verifier accepts, its openings agreeing at every query step, is one the
+guest program accepts**, for a bytecode of `2^23` words. -/
 theorem acceptableChild_of_accepted {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
     {seed : Digest} {child : Child}
     (hshape : child.statement.deferredClaim.HasBytecodeShape bytecode)
     (hv : verifyDeferred bytecode seed (statementDigest seed child.statement) child.freshClaim
       child.proof = true)
-    (hc : ChildWithoutCollisionOrZero bytecode seed child) :
+    (hcaps : ∀ step ∈ Limits.queryStepsOf
+      (deferringVerifierProgram child.freshClaim bytecode (statementDigest seed child.statement))
+        (Coverage.childVerifierStart seed child),
+      Limits.OpeningsAgree step.1 step.2) :
     AcceptableChild bytecode seed child where
   deferredClaimShaped := hshape
   verifies := hv
@@ -259,23 +184,7 @@ theorem acceptableChild_of_accepted {bytecode : List K} (hbl : bytecode.length =
     let ⟨_, _, hb⟩ := built_of_announced h
     stackLog_ge_of_buildLayout hbl hb
   streamWithinCap := stream_le_of_verifyDeferred hv
-  capsAgree step hstep := by
-    obtain ⟨phase, hphase, hlen, heq⟩ := queryStepsOf_phase _ _ step hstep
-    rw [heq]
-    exact hc.openingsAgree phase hphase step.1 hlen
-  noZeroChallenge := hc.noZeroChallenge
-
-/-- **The children of a node `NodeRelation` admits, each free of a collision in the caps and of a
-zero challenge, are children the guest program accepts**, for a bytecode of `2^23` words. -/
-theorem acceptableChildren_of_accepted {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
-    {seed : Digest} {statement : NodeStatement} {witness : NodeWitness}
-    (hrel : NodeRelation bytecode seed statement witness)
-    (hc : ∀ child ∈ witness.children, ChildWithoutCollisionOrZero bytecode seed child) :
-    ChildrenOk bytecode seed witness := by
-  intro child hchild
-  unfold NodeRelation at hrel
-  obtain ⟨hshape, hv⟩ := hrel.2.2.1 child hchild
-  exact acceptableChild_of_accepted hbl hshape hv (hc child hchild)
+  capsAgree := hcaps
 
 end
 end LeanVM.Guest.Child

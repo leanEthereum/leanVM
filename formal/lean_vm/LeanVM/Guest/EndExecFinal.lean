@@ -103,7 +103,8 @@ theorem execGaps :
     (coreHonAll_X h.1 h.2.1 Bridge.progAl Bridge.alignA_main
       jumpCells_at alLayout_alignA (fun _ _ h ↦ by rw [Bridge.alignA_of h]; rfl) anyLink_ok)
 
-/-- **The executor runs the guest program to completion on the guest's advice.** -/
+/-- **The executor runs the guest program to completion on the guest's advice**, unless a child's
+proof exhibits a Keccak-256 collision. -/
 theorem honestAdvice_complete : AdviceComplete honestAdvice :=
   honestExecution_complete_on_accepted_children execGaps
 
@@ -124,12 +125,12 @@ theorem prover_guestExecution_eq (s : NodeStatement) (w : NodeWitness) :
   simp only [guestExecution, guestRun]
   rw [prover_guestAdvice_eq (bytecode := bytecodeWords guestProgram) End.bytecode_length]
 
-/-- **The executor runs the guest program to completion on the statement's advice**: `Statement/`'s
-`GuestExecutionComplete`, the field `guestExecutionComplete` of `Statement.Theorems`. -/
+/-- **The executor runs the guest program to completion on the statement's advice**, unless a
+child's proof exhibits a Keccak-256 collision: `Statement/`'s `GuestExecutionComplete`, the field
+`guestExecutionComplete` of `Statement.Theorems`. -/
 theorem guestExecution_complete_holds : Completeness.GuestExecutionComplete :=
-  fun s w hrel hlim hon ↦
-    let ⟨t, he, hv, hsz⟩ := honestAdvice_complete s w hrel hlim hon
-    ⟨t, (prover_guestExecution_eq s w).trans he, hv, hsz⟩
+  fun s w hrel hlim ↦ (honestAdvice_complete s w hrel hlim).imp_left
+    fun ⟨t, he, hv, hsz⟩ ↦ ⟨t, (prover_guestExecution_eq s w).trans he, hv, hsz⟩
 
 /-- **The executor runs the guest program to completion on the statement's advice on honest
 children**: the end statement's form before it covered every accepted child, a node within the

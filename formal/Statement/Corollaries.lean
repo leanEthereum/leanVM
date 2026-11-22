@@ -78,22 +78,20 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 open LeanVM.Protocol.Compile LeanVM.Node
 
 open OracleComp OracleSpec in
-/-- **The guest's prover makes a proof the verifier accepts.** On every node
-`GuestExecutionComplete` covers (`NodeRelation` under the deployed seed, `DeployedLimits`,
-every child `ChildWithoutCollisionOrZero`), in the random-permutation model, at an inverse rate `2^ρ`,
-`1 ≤ ρ ≤ 4`, with `2^35` nonces per proof of work: the guest's prover (`LeanVM.Guest.guestProve`,
-`LeanVmGuestProver.lean`: the advice from the statement and the witness, the executor, then the honest
-prover) makes no proof, or the verifier rejects it, with probability at most `2^-256`; and makes no
-proof, or the verifier refusing every zero challenge (`verifierRefusingZero`) rejects it, with
-probability at most `2^-100`. From `GuestExecutionComplete`, `Completeness` and
-`HonestProofRarelyRefused`. -/
+/-- **The guest's prover makes a proof the verifier accepts, or a child's proof exhibits a
+collision.** On every node `GuestExecutionComplete` covers (`NodeRelation` under the deployed seed,
+`DeployedLimits`), unless some child's proof exhibits a Keccak-256 collision (`OpeningsCollide`), in
+the random-permutation model, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with `2^35` nonces per proof
+of work: the guest's prover (`LeanVM.Guest.guestProve`, `LeanVmGuestProver.lean`: the advice from
+the statement and the witness, the executor, then the honest prover) makes no proof, or the verifier
+rejects it, with probability at most `2^-256`; and makes no proof, or the verifier refusing every
+zero challenge (`verifierRefusingZero`) rejects it, with probability at most `2^-100`. From
+`GuestExecutionComplete`, `Completeness` and `HonestProofRarelyRefused`. -/
 def GuestProverComplete : Prop :=
   ∀ (statement : NodeStatement) (witness : NodeWitness),
     NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
     DeployedLimits statement witness →
-    (∀ child ∈ witness.children,
-      ChildWithoutCollisionOrZero (bytecodeWords guestProgram) (deployedSeed guestProgram) child) →
-    ∀ ρ : ℕ, 1 ≤ ρ ∧ ρ ≤ 4 →
+    (∀ ρ : ℕ, 1 ≤ ρ ∧ ρ ≤ 4 →
       let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)
       Pr{let accepted ← Common.runWithRandomPermutation (do
           match ← guestProve Common.queryPermutation guestProgram statement witness ρ
@@ -106,7 +104,8 @@ def GuestProverComplete : Prop :=
               (2 ^ 35) with
           | none => pure false
           | some proof => verifierRefusingZero Common.queryPermutation guestProgram input proof)}[
-          accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 100
+          accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 100) ∨
+    ∃ child ∈ witness.children, OpeningsCollide child.proof
 
 end LeanVM.Guest.Completeness
 
@@ -125,9 +124,10 @@ structure Corollaries
   aggregateSound : LeanVM.Node.AggregateSound LeanVM.Guest.guestProgram guestWitnessDecoder
     (LeanVM.extractorComputedBy leanVmKnowledgeExtractor)
   /-- The guest's prover (`LeanVM.Guest.guestProve`), run on the statement and the witness of a
-  node `guestExecutionComplete` covers, makes a proof the verifier rejects, or none, with
-  probability at most `2^-256`, and that the verifier refusing every zero challenge rejects, or
-  none, with probability at most `2^-100`, in the random-permutation model: from
+  node `guestExecutionComplete` covers, unless a child's proof exhibits a Keccak-256 collision,
+  makes a proof the verifier rejects, or none, with probability at most `2^-256`, and that the
+  verifier refusing every zero challenge rejects, or none, with probability at most `2^-100`, in
+  the random-permutation model: from
   `guestExecutionComplete`, `leanVmCompleteness` and `honestProofRarelyRefused`
   (`GuestProverComplete`). -/
   guestProverComplete : LeanVM.Guest.Completeness.GuestProverComplete

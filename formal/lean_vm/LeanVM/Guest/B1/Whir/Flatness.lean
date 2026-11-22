@@ -144,21 +144,31 @@ theorem osPtBlks_flat (c : OsCfg) (pt pt1 tch : ℕ) : ∀ i n k, Flat (osPtBlks
     refine flat_append ?_ (osPtBlks_flat c pt pt1 tch (i + 1) n _)
     unfold osPtBlk; split <;> rfl
 
-theorem osBasisRow_flat (bd : ℕ) : ∀ cs sc after k, Flat (osBasisRow bd cs sc after k).1
-  | [], _, _, _ => rfl
-  | (slot, src, inv) :: rest, sc, after, k => by
-    refine flat_append ?_ (osBasisRow_flat bd rest _ _ _)
+theorem osAfterRow_flat : ∀ srcs prev k, Flat (osAfterRow srcs prev k).1
+  | [], _, _ => rfl
+  | _ :: rest, none, _ => flat_cons rfl (osAfterRow_flat rest _ _)
+  | _ :: rest, some _, _ => flat_cons rfl (flat_cons rfl (osAfterRow_flat rest _ _))
+
+theorem osBasisRow_flat (bd : ℕ) : ∀ cs sc z nz k, Flat (osBasisRow bd cs sc z nz k).1
+  | [], _, _, _, _ => rfl
+  | (slot, src, inv) :: rest, sc, z, nz, k => by
+    refine flat_append ?_ (osBasisRow_flat bd rest _ _ _ _)
     unfold osBasisBlk
     dsimp only
-    split_ifs <;> split <;> simp [Flat, Stmt.flat]
+    split_ifs <;> simp [Flat, Stmt.flat]
+
+theorem osBasisLv_flat (c : OsCfg) (tch bd ls la lvl : ℕ) (lv : OsLv) (k : ℕ) :
+    Flat (osBasisLv c tch bd ls la lvl lv k).1 :=
+  flat_cons rfl (flat_append (flat_append (flat_append (osAfterRow_flat _ _ _) rfl)
+    (osBasisRow_flat _ _ _ _ _ _)) rfl)
 
 theorem osBases_flat (c : OsCfg) (tch bd ls la : ℕ) : ∀ lvl lvs k, Flat (osBases c tch bd ls la lvl lvs k).1
   | _, [], _ => rfl
-  | lvl, _ :: rest, _ => flat_cons rfl (flat_append (flat_append (osBasisRow_flat _ _ _ _ _) rfl)
-      (osBases_flat c tch bd ls la (lvl + 1) rest _))
+  | lvl, _ :: rest, _ => flat_append (osBasisLv_flat _ _ _ _ _ _ _ _)
+      (osBases_flat c tch bd ls la (lvl + 1) rest _)
 
-theorem osResidual_flat (c : OsCfg) (ich bd ls la lvl : ℕ) (lv : OsLv) (mats : List OsMat) (k : ℕ) :
-    Flat (osResidual c ich bd ls la lvl lv mats k).1 := by
+theorem osResidual_flat (c : OsCfg) (tch ich bd ls la lvl : ℕ) (lv : OsLv) (mats : List OsMat) (k : ℕ) :
+    Flat (osResidual c tch ich bd ls la lvl lv mats k).1 := by
   unfold osResidual
   simp only [Flat, List.all_append]
   have hm : ∀ P ms b o k, (osMatP P ms b o k).1.all Stmt.flat = true := by
@@ -166,11 +176,11 @@ theorem osResidual_flat (c : OsCfg) (ich bd ls la lvl : ℕ) (lv : OsLv) (mats :
   simp only [hm, Bool.true_and]
   rfl
 
-theorem osResiduals_flat (c : OsCfg) (ich bd ls la : ℕ) :
-    ∀ lvl lvs mats k, Flat (osResiduals c ich bd ls la lvl lvs mats k).1
+theorem osResiduals_flat (c : OsCfg) (tch ich bd ls la : ℕ) :
+    ∀ lvl lvs mats k, Flat (osResiduals c tch ich bd ls la lvl lvs mats k).1
   | _, [], _, _ => rfl
-  | lvl, _ :: rest, _, _ => flat_append (osResidual_flat _ _ _ _ _ _ _ _ _)
-      (osResiduals_flat c ich bd ls la (lvl + 1) rest _ _)
+  | lvl, _ :: rest, _, _ => flat_append (osResidual_flat _ _ _ _ _ _ _ _ _ _)
+      (osResiduals_flat c tch ich bd ls la (lvl + 1) rest _ _)
 
 theorem osOodFacs_flat (sc : ℕ) : ∀ cs k, Flat (osOodFacs sc cs k).1
   | [], _ => rfl
@@ -194,7 +204,7 @@ theorem osFinishA_flat (c : OsCfg) (st : OsSt) (tch : ℕ) : Flat (osFinishA c s
   refine flat_append (flat_append (flat_append (flat_append (flat_append (flat_append
     (flat_append (flat_append (flat_append (flat_append rfl (osPtBlks_flat _ _ _ _ _ _ _))
     (osHeap_flat _ _)) (osHeap_flat _ _)) (osHeap_flat _ _)) (osBases_flat _ _ _ _ _ _ _ _))
-    (osHeap_flat _ _)) rfl) (osResiduals_flat _ _ _ _ _ _ _ _ _)) (osOodWeights_flat _ _ _ _ _ _ _))
+    (osHeap_flat _ _)) rfl) (osResiduals_flat _ _ _ _ _ _ _ _ _ _)) (osOodWeights_flat _ _ _ _ _ _ _))
     rfl
 
 /-- **The body before its `ret` is flat.** -/

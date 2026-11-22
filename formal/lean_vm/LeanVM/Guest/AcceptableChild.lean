@@ -20,14 +20,15 @@ import LeanVM.Guest.Data.Consts
 # A child the guest program accepts
 
 `Statement/LeanVmGuestCompleteness.lean` states the guest program's completeness for children the
-verifier accepts, free of a collision in the caps and of a zero challenge
-(`ChildWithoutCollisionOrZero`). The proofs go through what the guest program checks of a child,
-defined here: `ChildrenProven`'s two conditions, a stack log at least `20`, a proof stream of at
-most `STREAM_CAP = 8192` scalars, its openings agreeing in the guest program's Merkle caps at every
-query step of its verifier's run, and no zero challenge (`AcceptableChild`).
+verifier accepts, unless a child's proof exhibits a Keccak-256 collision (`OpeningsCollide`). The
+proofs go through what the guest program checks of a child, defined here: `ChildrenProven`'s two
+conditions, a stack log at least `20`, a proof stream of at most `STREAM_CAP = 8192` scalars, and
+its openings agreeing in the guest program's Merkle caps at every query step of its verifier's run
+(`Limits.OpeningsAgree`, `AcceptableChild`).
 `GuestCompleteOnAcceptableChildren` is the guest program's completeness on nodes within the
-deployed limits whose children are acceptable, for every seed; `Child/Accepted.lean` shows that
-`ChildWithoutCollisionOrZero` makes a child `NodeRelation` admits acceptable. A child carrying the
+deployed limits whose children are acceptable, for every seed; `Child/Collision.lean` shows that
+the children of a node `NodeRelation` admits are acceptable, or a child's proof exhibits a
+collision (`Child.acceptableChildren_or_collide`). A child carrying the
 honest prover's proof (`HonestChild`) is acceptable too (`GuestChildComplete`,
 `HonestChildren.lean`).
 -/
@@ -59,6 +60,32 @@ def childVerifierStart (seed : Digest) (child : Child) : VerifierProgramState :=
 end Coverage
 
 namespace Limits
+
+/-- The heap index of the node at `level` (the leaves at `0`) above the leaf `leafPosition` of a
+tree of height `depth`. -/
+def merkleHeapIndex (depth leafPosition level : ℕ) : ℕ :=
+  2 ^ (depth - level) + leafPosition / 2 ^ level
+
+/-- The heap index of the sibling of the node at `level < depth` above the leaf `leafPosition`. -/
+def siblingHeapIndex (depth leafPosition level : ℕ) : ℕ :=
+  2 * merkleHeapIndex depth leafPosition (level + 1) + (!leafPosition.testBit level).toNat
+
+/-- **The opening `queryOpening` gives the heap node `heapNode` the digest `digest`**: the node is
+on its climb, with the climb's digest there, or is the sibling it carries at a level. -/
+def OpeningGivesNode (depth : ℕ) (queryOpening : ℕ × Opening) (heapNode : ℕ) (digest : Digest) :
+    Prop :=
+  (∃ level ≤ depth, heapNode = merkleHeapIndex depth queryOpening.1 level ∧
+    digest = climbTo (merkleLeafDigest queryOpening.2.leaf) queryOpening.1
+      (queryOpening.2.path.take level)) ∨
+  ∃ level < depth, heapNode = siblingHeapIndex depth queryOpening.1 level ∧
+    digest = queryOpening.2.path.getD level default
+
+/-- The openings of one tree of height `depth`, each at its position, agree wherever they meet:
+the guest program writes each node of a level's Merkle cap once. -/
+def OpeningsAgree (depth : ℕ) (queryOpenings : List (ℕ × Opening)) : Prop :=
+  ∀ a ∈ queryOpenings, ∀ b ∈ queryOpenings, ∀ heapNode digest digest',
+    OpeningGivesNode depth a heapNode digest → OpeningGivesNode depth b heapNode digest' →
+      digest = digest'
 
 /-- **The query steps of a run** of the compiled verifier (Keccak-256, Keccak-f[1600]): each
 `query` step as its tree's height and its positions, each with its opening in the phase it
@@ -105,10 +132,7 @@ each child, `ChildrenProven`'s two conditions and the deployed ones:
 * its proof stream is at most `STREAM_CAP = 8192` scalars;
 * its openings agree in the guest program's Merkle caps: at every query step of its deferring
   verifier, run under the node's seed, the step's openings agree wherever they meet (one tree's
-  openings, the honest prover's, agree);
-* no zero challenge: the deferring verifier refusing a zero challenge anywhere accepts its proof
-  (`verifyDeferredRefusingZero`), as the guest program divides by some (the WHIR fold and tail
-  challenges and each level's batching challenge `λ`). -/
+  openings, the honest prover's, agree). -/
 structure AcceptableChild (bytecode : List K) (seed : Digest) (child : Child) : Prop where
   /-- Its deferred claim has the bytecode's shape. -/
   deferredClaimShaped : child.statement.deferredClaim.HasBytecodeShape bytecode
@@ -126,9 +150,6 @@ structure AcceptableChild (bytecode : List K) (seed : Digest) (child : Child) : 
       (deferringVerifierProgram child.freshClaim bytecode (statementDigest seed child.statement))
         (Coverage.childVerifierStart seed child),
     Limits.OpeningsAgree step.1 step.2
-  /-- The deferring verifier refusing a zero challenge accepts its proof. -/
-  noZeroChallenge : Limits.verifyDeferredRefusingZero bytecode seed
-    (statementDigest seed child.statement) child.freshClaim child.proof = true
 
 namespace Completeness
 
@@ -137,8 +158,7 @@ open Coverage
 /-- **Every node within the deployed limits has a valid execution of the leanISA guest program**:
 for every seed, statement and witness with `NodeRelation`, within the deployed limits
 (`DeployedLimits`), every child one the guest program accepts
-(`AcceptableChild`: at one of its opening arms, its openings agreeing in the caps, no zero
-challenge), there is a valid execution of the guest program on the statement's digest of committed
+(`AcceptableChild`: at one of its opening arms, its openings agreeing in the caps), there is a valid execution of the guest program on the statement's digest of committed
 size at most `2^30`. Proved by `LeanVM.Guest.Budget.guest_complete_on_acceptable_children`. -/
 abbrev GuestCompleteOnAcceptableChildren : Prop :=
   ∀ (seed : Digest) (statement : NodeStatement) (witness : NodeWitness),

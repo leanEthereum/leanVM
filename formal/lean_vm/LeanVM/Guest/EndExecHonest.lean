@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.EndExecHonest
 
-  The executor's completeness on the guest for children the verifier accepts, free of a collision
-  in the caps and of a zero challenge, and for children carrying honest proofs, and the composed
+  The executor's completeness on the guest for children the verifier accepts, unless a child's
+  proof exhibits a Keccak-256 collision, and for children carrying honest proofs, and the composed
   prover's proof accepted, given `ExecGaps`.
 -/
 
@@ -10,7 +10,7 @@ module
 
 public import LeanVM.Guest.EndExec
 public import LeanVM.Guest.HonestChildren
-public import LeanVM.Guest.Child.Accepted
+public import LeanVM.Guest.Child.Collision
 public import LeanVM.Prover.End
 
 @[expose] public section
@@ -22,8 +22,8 @@ public import LeanVM.Prover.End
 children the guest program accepts (`ChildrenOk`) is within the budget (`budget_of_limits`), so the
 executor runs the guest to completion on its advice (`execute_guest_complete`).
 `honestExecution_complete_on_accepted_children : AdviceComplete honestAdvice`: a node `NodeRelation`
-admits under the deployed seed, its children free of a collision in the caps and of a zero challenge,
-has acceptable children (`Child.acceptableChildren_of_accepted`). Its children carrying honest
+admits under the deployed seed has acceptable children, or a child's proof exhibits a Keccak-256
+collision (`Child.acceptableChildren_or_collide`). Its children carrying honest
 proofs are acceptable too (`acceptableChildren_of_honest`): `honestExecution_ok_on_honest_children`.
 `guest_prover_complete`: so the composed prover (the advice generator, the executor,
 `leanVmHonestProver`) makes a proof that the verifier rejects with probability at most `2^-256`, and
@@ -56,12 +56,12 @@ theorem honestExecution_complete_of_childrenOk (G : ExecGaps Ks Km E0 X Pro) (st
   execute_guest_complete G _ _ _ hrel (GuestLimits.of_limits hlim) hok (budget_of_limits hlim hok)
 
 /-- **The executor runs the guest program to completion on the guest's advice** on every node within
-the deployed limits whose children are free of a collision in the caps and of a zero challenge
+the deployed limits, unless a child's proof exhibits a Keccak-256 collision
 (`AdviceComplete honestAdvice`). -/
 theorem honestExecution_complete_on_accepted_children (G : ExecGaps Ks Km E0 X Pro) :
-    AdviceComplete honestAdvice := fun statement witness hrel hlim hc ↦
-  honestExecution_complete_of_childrenOk G statement witness hrel hlim
-    (Child.acceptableChildren_of_accepted End.bytecode_length hrel hc)
+    AdviceComplete honestAdvice := fun statement witness hrel hlim ↦
+  (Child.acceptableChildren_or_collide End.bytecode_length hrel).imp_left
+    (honestExecution_complete_of_childrenOk G statement witness hrel hlim)
 
 /-- **`honestExecution` on honest children**: `honestExecution_complete_of_childrenOk` with
 `honestExecution`, honest children being acceptable. -/

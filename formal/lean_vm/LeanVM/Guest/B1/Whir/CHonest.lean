@@ -94,7 +94,6 @@ noncomputable def osHonest {cur tabs : E} :
            D := (hdOf μ r Ls).D
            capL_len := ?_
            posW := ?_
-           lam_inv := ?_
            capW := capW Ls μ r
            flW := flW Ls μ r
            rounds := fun l ↦ (Ls.getD l default).rounds
@@ -117,14 +116,6 @@ noncomputable def osHonest {cur tabs : E} :
   · exact hR.fld_own_pt1
   · intro l _; simp [OsHD.D, OsHD.capL, capOf]
   · exact hR.fld_posW
-  · intro l hl
-    obtain ⟨e1, e2⟩ := ((hdOf μ r Ls).D_eq l).2.2.1
-      (by show l ≠ (osCfgR (μ - minOpenLog) (r - 1)).yrLevel; omega)
-    rw [e1, e2]
-    have h0 : (Ls.getD l default).lam μ ≠ 0 := (hR.recRun_run l hl).lam
-    show (Ls.getD l default).lam μ * ((Ls.getD l default).lam μ)⁻¹ = 1
-    have e := mul_inv_cancel₀ h0
-    exact e
   · exact hR.fld_rounds_len
   · exact hR.fld_hsv_len
   · exact hR.fld_static

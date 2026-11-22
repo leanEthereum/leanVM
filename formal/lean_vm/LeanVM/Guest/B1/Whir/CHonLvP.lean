@@ -134,7 +134,7 @@ theorem roundsMem_of {rd : Reader} {fch coefs : E} : ∀ (n i : ℕ) (s : WhirSt
     RoundsMem rd fch coefs n i fs cl xs
   | 0, _, _, _, _, _, _, _, _ => trivial
   | n + 1, i, s, fs, cl, xs, hok, hg, hc => by
-    obtain ⟨hgr, -, hok'⟩ := hok
+    obtain ⟨hgr, hok'⟩ := hok
     set w := xs.take 5 with hw
     set s1 := (roundSpec s fs w).1 with hs1
     obtain ⟨gs, hgs, -⟩ := roundsSpec_alphas n s1 (roundSponge fs w).cap (xs.drop 5)
@@ -214,9 +214,10 @@ theorem midClaim {logN index : ℕ} {L L' : LvAt} (hN : LvAt.NextStep logN index
     (hq : L.level.queries = lv.queries) (hsq : lv.squeezes = sqCount (128 / lv.depth) lv.queries)
     (hcols : 1 ≤ lv.logCols) {recs : List OsRec} (hrecF : ∀ r ∈ recs, r.F ≤ L.s.alphas.length)
     (r0 r1 batched pS : E)
-    (hbat : (L.lam logN) ^ L.level.queries * batched = ∑ k ∈ Finset.range (L.qs logN).length,
-      (L.lam logN) ^ k * foldRow (specLanes index ((L.phase.map (·.leaf)).getD k []))
-        (K.ofBits ((L.qs logN).getD k 0)) L.rounds) :
+    (hbat : L.lam logN * L.lam logN * ((L.lam logN) ^ L.level.queries * batched) =
+      L.lam logN * L.lam logN * ∑ k ∈ Finset.range (L.qs logN).length,
+        (L.lam logN) ^ k * foldRow (specLanes index ((L.phase.map (·.leaf)).getD k []))
+          (K.ofBits ((L.qs logN).getD k 0)) L.rounds) :
     (L.midW r0 r1 batched pS).claimOut lv L.cap (L.gcl recs) = L'.gcl (recs ++ [L.osRec logN]) ∧
       L'.s.alphas = L.s1.alphas ∧ L'.s.glued = L.s.glued ++ recGlued (L.osRec logN) ∧
       (L.osRec logN).F = L.s1.alphas.length := by
@@ -270,17 +271,21 @@ theorem midClaim {logN index : ℕ} {L L' : LvAt} (hN : LvAt.NextStep logN index
   rw [hdef, hs'']
   rw [MidW.claimOut, hcl1, hE.lam]
   simp only [LvAt.midW, hnw]
-  rw [hB, ← hph, ← hbat, ← hH, ← hq]
+  rw [hB, ← hph, ← hH, ← hq]
   have h2 : ∀ x : E, x + x = 0 := fun x ↦ CharTwo.add_self_eq_zero x
-  linear_combination -(L.lam logN ^ 2) * h2 (recH (L.osRec logN))
+  linear_combination -(L.lam logN ^ 2) * h2 (recH (L.osRec logN)) + hbat
 
-/-- **The guest's queries' chain** times `λ^Q` is the batched sum `hbat` asks for. -/
-theorem hbat_of {lam : E} (hlam : lam ≠ 0) {odd base N Q : ℕ} (hodd : odd ≤ 1) (hob : base = 1 ∨ odd = 0)
+/-- **The guest's queries' chain** times `λ^Q`, times `λ²`, is the batched sum `hbat` asks for,
+times `λ²`: at `λ = 0` both are zero, else `μ = 1/λ`. -/
+theorem hbat_of {lam : E} {odd base N Q : ℕ} (hodd : odd ≤ 1) (hob : base = 1 ∨ odd = 0)
     (hQ : oqCount odd base N = Q) {ds es : ℕ → E} (hds : ∀ k < Q, ds k = es k) :
-    lam ^ Q * oqChain odd base lam⁻¹ ds N = ∑ k ∈ Finset.range Q, lam ^ k * es k := by
+    lam * lam * (lam ^ Q * oqChain odd base (lamInvOf lam) ds N) =
+      lam * lam * ∑ k ∈ Finset.range Q, lam ^ k * es k := by
+  by_cases hl : lam = 0
+  · simp [hl]
   subst hQ
-  rw [oqChain_mul_pow (mul_inv_cancel₀ hlam) hodd hob ds N, powSum]
-  exact Finset.sum_congr rfl fun k hk ↦ by rw [hds k (Finset.mem_range.mp hk)]
+  rw [oqChain_mul_pow (lam_mul_lamInvOf hl) hodd hob ds N, powSum]
+  exact congrArg (lam * lam * ·) (Finset.sum_congr rfl fun k hk ↦ by rw [hds k (Finset.mem_range.mp hk)])
 
 /-! ## The final level -/
 

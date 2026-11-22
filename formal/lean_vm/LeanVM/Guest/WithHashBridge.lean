@@ -94,14 +94,6 @@ theorem Budget.verifierRefusingZero_deployed (prog : LeanIsaProgram) (input : Pu
   simp only [Completeness.verifierRefusingZero, Budget.verifierRefusingZeroWithHash, seedWith_eq_withHash,
     runProof_eq_withHash, keccak256With_keccakF1600]
 
-theorem Limits.verifyDeferredRefusingZero_eq_withHash (bytecode : List K) (iv publicInput : Digest)
-    (c : BytecodeClaim) (π : Proof) :
-    Limits.verifyDeferredRefusingZero bytecode iv publicInput c π =
-      Id.run (runProofWithHash (m := Id) keccak256 keccakF1600
-        (deferringVerifierProgram c bytecode publicInput).refusingZeroChallenge
-        (keccakF1600 (seedInput iv publicInput)) π) := by
-  rw [Limits.verifyDeferredRefusingZero, runProof_eq_withHash, keccak256With_keccakF1600]
-
 theorem Limits.climbTo_eq_withHash (node : Digest) (q : ℕ) (path : List Digest) :
     Limits.climbTo node q path = Id.run (climbWithHash (m := Id) keccak256 node q path) := by
   rw [Limits.climbTo, climb_eq_withHash, keccak256With_keccakF1600]

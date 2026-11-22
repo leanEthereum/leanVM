@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.CRunBack
-public import LeanVM.Guest.B1.VerifySub.NZRun
+public import LeanVM.Guest.B1.VerifySub.RunId
 
 /-!
 # The caps agree, level by level

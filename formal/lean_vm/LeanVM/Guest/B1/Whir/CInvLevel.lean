@@ -35,20 +35,20 @@ variable {α : Type}
 
 /-! ## More primitives -/
 
-theorem runTz_commitB {hh ww : ℕ} {f : Unit → VerifierProgram α} {st : TSt} {r : α × TSt}
-    (h : runTz ((VerifierProgram.readCommitment hh ww).bind f) st = some r) :
+theorem runTc_commitB {hh ww : ℕ} {f : Unit → VerifierProgram α} {st : TSt} {r : α × TSt}
+    (h : runTc ((VerifierProgram.readCommitment hh ww).bind f) st = some r) :
     ∃ x0 x1 xs, st.stream = x0 :: x1 :: xs ∧ st.ground = none ∧
-      runTz (f ()) ⟨(st.sponge.absorb x0 dsObserve).absorb x1 dsObserve, none, xs, st.openings,
+      runTc (f ()) ⟨(st.sponge.absorb x0 dsObserve).absorb x1 dsObserve, none, xs, st.openings,
         st.roots ++ [(digestFromHalves (x0, x1), hh, ww)]⟩ = some r :=
-  runTz_commit (k := f ()) h
+  runTc_commit (k := f ()) h
 
-theorem runTz_queryB {i : ℕ} {ps : List ℕ} {f : List (List K) → VerifierProgram α} {st : TSt}
-    {r : α × TSt} (h : runTz ((VerifierProgram.queryOpenings i ps).bind f) st = some r) :
+theorem runTc_queryB {i : ℕ} {ps : List ℕ} {f : List (List K) → VerifierProgram α} {st : TSt}
+    {r : α × TSt} (h : runTc ((VerifierProgram.queryOpenings i ps).bind f) st = some r) :
     ∃ root height width phase rest rows, st.roots[i]? = some (root, height, width) ∧
       st.openings = phase :: rest ∧
       Id.run (Compile.openPhaseWithHash (m := Id) keccak256 root height width ps phase) = some rows ∧
-      runTz (f rows) ⟨st.sponge, st.ground, st.stream, rest, st.roots⟩ = some r :=
-  runTz_query (k := f) h
+      runTc (f rows) ⟨st.sponge, st.ground, st.stream, rest, st.roots⟩ = some r :=
+  runTc_query (k := f) h
 
 /-- **A forward run from a grind's ground challenge is the carried run** on any rest. -/
 theorem runT_of_runsFromG {p : VerifierProgram α} {cap : List E} {c : E} {F' : Fs} {xs : List E}
@@ -82,11 +82,10 @@ theorem phase_of_some {root : Digest} {height width : ℕ} {ps : List ℕ} {phas
 /-! ## What a non-final level reads -/
 
 /-- `m + 1` challenges from a ground challenge `c`, backwards. -/
-theorem runTz_sampleChallengesG {f : List E → VerifierProgram α} (m : ℕ) {st : TSt} {r : α × TSt}
+theorem runTc_sampleChallengesG {f : List E → VerifierProgram α} (m : ℕ) {st : TSt} {r : α × TSt}
     {c : E} (hg : st.ground = some c)
-    (h : runTz ((VerifierProgram.sampleChallenges (m + 1)).bind f) st = some r) :
-    c ≠ 0 ∧ (∀ x ∈ (st.sponge.squeezeN m).1, x ≠ 0) ∧
-      runTz (f (c :: (st.sponge.squeezeN m).1))
+    (h : runTc ((VerifierProgram.sampleChallenges (m + 1)).bind f) st = some r) :
+      runTc (f (c :: (st.sponge.squeezeN m).1))
         ⟨(st.sponge.squeezeN m).2, none, st.stream, st.openings, st.roots⟩ = some r := by
   have e : (VerifierProgram.sampleChallenges (m + 1)).bind f =
       VerifierProgram.sampleChallenge.bind fun x ↦
@@ -94,9 +93,7 @@ theorem runTz_sampleChallengesG {f : List E → VerifierProgram α} (m : ℕ) {s
     simp only [VerifierProgram.sampleChallenges, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
       VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
   rw [e] at h
-  obtain ⟨hc, h⟩ := runTz_sampleE_some h hg
-  obtain ⟨hn, h⟩ := runTz_sampleChallenges m _ r rfl h
-  exact ⟨hc, hn, h⟩
+  exact runTc_sampleChallenges m _ r rfl (runTc_sampleE_some h hg)
 
 /-- **A non-final level's reads after its folds.** -/
 structure NextW where
@@ -136,8 +133,7 @@ def lam : E := (W.F3 F mu d Q).squeeze.1
 
 end NextW
 
-/-- **`levelNext_run`'s hypotheses at what a non-final level read**, and its `λ` and point
-nonzero. -/
+/-- **`levelNext_run`'s hypotheses at what a non-final level read.** -/
 structure NextOk (logN index : ℕ) (level : Whir.Level) (s : WhirState) (F : Fs)
     (R : List (Digest × ℕ × ℕ)) (W : NextW) : Prop where
   root : ∃ root height width, R[index]? = some (root, height, width) ∧
@@ -153,9 +149,6 @@ structure NextOk (logN index : ℕ) (level : Whir.Level) (s : WhirState) (F : Fs
     (logN - s.alphas.length + level.logInvRate) level.queries).length
   idx : W.phase.map Opening.leafIndex = W.qs F (logN - s.alphas.length)
     (logN - s.alphas.length + level.logInvRate) level.queries
-  lam : W.lam F (logN - s.alphas.length) (logN - s.alphas.length + level.logInvRate)
-    level.queries ≠ 0
-  ood : ∀ c ∈ W.ood F (logN - s.alphas.length), c ≠ 0
   mu1 : 1 ≤ logN - s.alphas.length
 
 /-- What `levelNext_run` returns. -/
@@ -180,7 +173,7 @@ theorem levelNext_inv {logN index : ℕ} {level next : Whir.Level} {s : WhirStat
     {R : List (Digest × ℕ × ℕ)} {a : WhirState} {st1 : TSt}
     (hc : ∃ sp, F.Carries sp) (hR : index < R.length) (hmu : 1 ≤ logN - s.alphas.length)
     (hP : 1 ≤ 128 / (logN - s.alphas.length + level.logInvRate)) (hQ : 0 < level.queries)
-    (h : runTz (levelNext logN index level next s rounds) ⟨F, none, xs, os, R⟩ = some (a, st1)) :
+    (h : runTc (levelNext logN index level next s rounds) ⟨F, none, xs, os, R⟩ = some (a, st1)) :
     ∃ (W : NextW) (xs' : List E) (orest : List (List Opening)),
       xs = W.words ++ xs' ∧ os = W.phase :: orest ∧ NextOk logN index level s F R W ∧
       a = W.glued logN index level s F rounds ∧
@@ -191,15 +184,15 @@ theorem levelNext_inv {logN index : ℕ} {level next : Whir.Level} {s : WhirStat
   set d := mu + level.logInvRate with hd
   obtain ⟨m, hm⟩ : ∃ m, mu = m + 1 := ⟨mu - 1, by omega⟩
   unfold levelNext at h
-  obtain ⟨x0, x1, xs1, hs1, -, h⟩ := runTz_commitB h
-  obtain ⟨high, xs2, hhl, hs2, h⟩ := runTz_readScalars level.fold _ _ rfl h
-  obtain ⟨n1, xs3, hs3, -, hp0, h⟩ := runTz_grindPoW (by decide) h
+  obtain ⟨x0, x1, xs1, hs1, -, h⟩ := runTc_commitB h
+  obtain ⟨high, xs2, hhl, hs2, h⟩ := runTc_readScalars level.fold _ _ rfl h
+  obtain ⟨n1, xs3, hs3, -, hp0, h⟩ := runTc_grindPoW (by decide) h
   rw [← hmud, hm] at h
-  obtain ⟨nz0, nzs, h⟩ := runTz_sampleChallengesG m rfl h
+  have h := runTc_sampleChallengesG m rfl h
   rw [← hm] at h
-  obtain ⟨y0, xs4, hs4, -, h⟩ := runTz_readE h
-  obtain ⟨nn, xs5, hs5, -, hp1, h⟩ := runTz_grindPoW (by decide) h
-  obtain ⟨qs', st2, hq1, h⟩ := runTz_bind_some h
+  obtain ⟨y0, xs4, hs4, -, h⟩ := runTc_readE h
+  obtain ⟨nn, xs5, hs5, -, hp1, h⟩ := runTc_grindPoW (by decide) h
+  obtain ⟨qs', st2, hq1, h⟩ := runTc_bind_some h
   simp only at hs1 hs2 hs3 hs4 hs5
   set W0 : NextW := ⟨x0, x1, high, n1, y0, nn, []⟩ with hW0
   have hF1 : ((F.absorb x0 dsObserve).absorb x1 dsObserve).absorbAll high dsObserve =
@@ -214,7 +207,7 @@ theorem levelNext_inv {logN index : ℕ} {level next : Whir.Level} {s : WhirStat
     rfl
   have hp1' : powOk Whir.queryGrindingBits (Keccak.lane (W0.qS F mu) 2) = true := by
     rw [← eS2]; exact hp1
-  have hq2 := runTz_runT _ _ _ hq1
+  have hq2 := runTc_runT _ _ _ hq1
   rw [show xs5 = [] ++ xs5 from rfl] at hq2
   have hfq := runT_of_runsFromG (sampleQueries_runG d level.queries hP hQ (capOf (W0.qS F mu))
     (challengeOf (W0.qS F mu))) ⟨⟨W0.qS F mu, [], some (challengeOf (W0.qS F mu))⟩, rfl, rfl, rfl⟩
@@ -224,9 +217,9 @@ theorem levelNext_inv {logN index : ℕ} {level next : Whir.Level} {s : WhirStat
   simp only [Option.some.injEq, Prod.mk.injEq] at hfq
   obtain ⟨eqs, est2⟩ := hfq
   subst eqs est2
-  obtain ⟨hlam, h⟩ := runTz_sampleE_none h rfl
-  obtain ⟨root, height, width, phase, orest, rows, hroot, hos, hop, -⟩ := runTz_queryB h
-  simp only at hos hroot hlam
+  have h := runTc_sampleE_none h rfl
+  obtain ⟨root, height, width, phase, orest, rows, hroot, hos, hop, -⟩ := runTc_queryB h
+  simp only at hos hroot
   set W : NextW := ⟨x0, x1, high, n1, y0, nn, phase⟩ with hW
   have hqs : sqPositions d (fun j ↦ if j = 0 then challengeOf (W0.qS F mu) else
       ((⟨capOf (W0.qS F mu), []⟩ : Fs).squeezeN (j - 1)).2.squeeze.1) level.queries =
@@ -245,15 +238,9 @@ theorem levelNext_inv {logN index : ℕ} {level next : Whir.Level} {s : WhirStat
     hmu hP hQ hok0 hp1' (W.qs F mu d level.queries) rfl (W.F3 F mu d level.queries) rfl
     phase hl hopen hidx
   rw [hxs, hos, show phase :: orest = [phase] ++ orest from rfl] at h0
-  obtain ⟨ea, est⟩ := runTz_det h0 hfw hc
-  refine ⟨W, xs5, orest, hxs, hos, ⟨⟨root, height, width, hroot', hopen⟩, hhl, hok0, hp1', hl, hidx,
-    hlam, ?_, hmu⟩, ea, est⟩
-  intro x hx
-  have e : W.ood F mu = (oodPt F (x0 :: x1 :: high) n1 mu).1 := rfl
-  rw [e, hm, hPt, List.mem_cons] at hx
-  rcases hx with rfl | hx
-  · simpa [hF1] using nz0
-  · exact nzs x (by simpa [hF1] using hx)
+  obtain ⟨ea, est⟩ := runTc_det h0 hfw hc
+  exact ⟨W, xs5, orest, hxs, hos, ⟨⟨root, height, width, hroot', hopen⟩, hhl, hok0, hp1', hl, hidx,
+    hmu⟩, ea, est⟩
 
 end
 end LeanVM.Guest.B1.Whir

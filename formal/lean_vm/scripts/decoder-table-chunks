@@ -85,19 +85,36 @@ def lane_groups(rows):
     return groups, slots
 
 
+PART = 512  # entries per part of a list literal
+
+
+def list_def(name, ty, doc, lines, per):
+    """`def name : ty` of the entries `lines` (`per` entries a line), in parts of `PART` entries
+    joined by `++` when longer: a literal of more than `PART` entries exceeds the elaborator's
+    recursion depth."""
+    lit = lambda ls: "[\n    " + ",\n    ".join(ls) + "]"
+    pl = PART // per
+    parts = [lines[i:i + pl] for i in range(0, len(lines), pl)]
+    if len(parts) <= 1:
+        return f"/-- {doc} -/\ndef {name} : {ty} := {lit(lines)}\n\n"
+    return ("".join(f"/-- Part {i} of `{name}`. -/\ndef {name}{i} : {ty} := {lit(p)}\n\n"
+                    for i, p in enumerate(parts))
+            + f"/-- {doc} -/\ndef {name} : {ty} :=\n    "
+            + " ++ ".join(f"{name}{i}" for i in range(len(parts))) + "\n\n")
+
+
 def lanes_file(groups, slots):
-    lines = [", ".join(map(str, slots[i:i + 20])) for i in range(0, len(slots), 20)]
+    lines = [", ".join(map(str, slots[i:i + 16])) for i in range(0, len(slots), 16)]
     return (f"/-\n  {HEADER}\n-/\n\nmodule\n\n"
             + wrap("The guest's frame cells' lanes (`Cost/Decoder/Lanes.lean`): the functions by "
                    "decreasing number of frame cells, four to a group, each function's cells a lane "
                    "of `16` bits of its group's numbers.")
             + "\n\nnamespace LeanVM.Cost.Decoder\n\n@[expose] public section\n\n"
-            "/-- Each function's slot, `4·(g + 1) + k`: lane `k` of group `g`. -/\n"
-            "def guestSlotsList : List Nat := [\n    " + ",\n    ".join(lines) + "]\n\n"
-            "/-- The groups' functions, lane by lane. -/\n"
-            "def guestLaneGroups : List (List Nat) := [\n    "
-            + ",\n    ".join("[" + ", ".join(map(str, g)) + "]" for g in groups)
-            + "]\n\nend\n\nend LeanVM.Cost.Decoder\n")
+            + list_def("guestSlotsList", "List Nat", "Each function's slot, `4·(g + 1) + k`: lane `k` of group `g`.",
+                       lines, 16)
+            + list_def("guestLaneGroups", "List (List Nat)", "The groups' functions, lane by lane.",
+                       ["[" + ", ".join(map(str, g)) + "]" for g in groups], 1)
+            + "end\n\nend LeanVM.Cost.Decoder\n")
 
 
 def size_files(rows, limit):

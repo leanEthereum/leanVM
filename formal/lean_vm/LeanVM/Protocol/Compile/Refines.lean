@@ -14,7 +14,7 @@ public import LeanVM.Protocol.RunWithHash
 `Refines P' P`: the program `P'` is `P` with failures inserted, step for step. Running a refining
 program is running the program, where it does not fail (`run_refines`, `runProof_refines`). The
 honest prover's simulation (`Protocol/Compile/Prover.lean`, `Rom/Sharp.lean`) and the guest's
-zero-challenge refusal (`Guest/LimitsNZ.lean`, `Guest/Child/`) read it.
+zero-challenge refusal (`Guest/Child/`) read it.
 -/
 
 namespace LeanVM.Protocol.Compile

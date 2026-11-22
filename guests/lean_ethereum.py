@@ -1518,39 +1518,43 @@ def level_residual(positions, row_d, hs, lam_inv, n_queries: Const, n_cols: Cons
     return h, h_high
 
 
-def level_residual_slow(positions, fold_cs, tail_cs, lam, zero, rate_sel, q0, q1, q2, q3, prefix_len: Const, yr_log: Const, vanish: Const):
+def residual_query_slow(x, fold_cs, tail_cs, prefix_len: Const, yr_log: Const, vanish: Const):
+    # prod_t (a_t + b_t chain_t) at the query position x, unfactored, the challenges read at
+    # runtime: residual_query's weight for a level with a zero challenge.
+    chain = x
+    prod = 1
+    for t in unroll(0, prefix_len):
+        c = fold_cs[GEN ** t]
+        prod *= 1 + c + c * VANISH_INVS_BY_COLS[vanish + t] * chain
+        chain *= chain + VANISH_BY_COLS[vanish + t]
+    for j in unroll(0, yr_log):
+        c = tail_cs[GEN ** j]
+        prod *= 1 + c + c * VANISH_INVS_BY_COLS[vanish + prefix_len + j] * chain
+        chain *= chain + VANISH_BY_COLS[vanish + prefix_len + j]
+    return prod
+
+
+def level_residual_slow(positions, fold_cs, tail_cs, lam, zero, n_queries: Const, prefix_len: Const, yr_log: Const, vanish: Const):
     # On a level with a zero challenge (zero = 1), where b_t = 0 leaves the factored chains
-    # nothing to divide by: lam^2 sum_q lam^q prod_t (a_t + b_t chain_t), unfactored, the
-    # challenges read at runtime, over the rate's g^n_queries (q0..q3); 0 otherwise, walking
-    # no query.
-    nq = StackBuf(1)
-    if rate_sel == GEN ** 0:
-        nq[0] = q0
-    elif rate_sel == GEN ** 1:
-        nq[0] = q1
-    elif rate_sel == GEN ** 2:
-        nq[0] = q2
+    # nothing to divide by: lam^2 sum_q lam^q (the query's unfactored weight); 0 otherwise.
+    out = StackBuf(1)
+    if zero == 0:
+        out[0] = zero
     else:
-        nq[0] = q3
-    n_queries_g = 1 + zero * (1 + nq[0])
-    acc = HeapBuf(n_queries_g * GEN)
+        out[0] = level_residual_sum(positions, fold_cs, tail_cs, lam, n_queries, prefix_len, yr_log, vanish)
+    return out[0]
+
+
+def level_residual_sum(positions, fold_cs, tail_cs, lam, n_queries: Const, prefix_len: Const, yr_log: Const, vanish: Const):
+    # lam^2 sum_q lam^q (the query's unfactored weight), over g^n_queries queries.
+    acc = HeapBuf(GEN ** (n_queries + 1))
+    pw = HeapBuf(GEN ** (n_queries + 1))
     acc[GEN ** 0] = 0
-    pw = HeapBuf(n_queries_g * GEN)
     pw[GEN ** 0] = lam * lam
-    for xq in mul_range(1, n_queries_g):
-        chain = positions[xq]
-        prod = 1
-        for t in unroll(0, prefix_len):
-            c = fold_cs[GEN ** t]
-            prod *= 1 + c + c * VANISH_INVS_BY_COLS[vanish + t] * chain
-            chain *= chain + VANISH_BY_COLS[vanish + t]
-        for j in unroll(0, yr_log):
-            c = tail_cs[GEN ** j]
-            prod *= 1 + c + c * VANISH_INVS_BY_COLS[vanish + prefix_len + j] * chain
-            chain *= chain + VANISH_BY_COLS[vanish + prefix_len + j]
-        acc[xq * GEN] = acc[xq] + pw[xq] * prod
+    for xq in mul_range(1, GEN ** n_queries):
+        acc[xq * GEN] = acc[xq] + pw[xq] * residual_query_slow(positions[xq], fold_cs, tail_cs, prefix_len, yr_log, vanish)
         pw[xq * GEN] = pw[xq] * lam
-    return acc[n_queries_g]
+    return acc[GEN ** n_queries]
 
 
 def level_positions(word0, fs0, fs1, fs2, fs3, fs4, positions, win_ptrs, tabs, squeezes: Const, depth: Const, cap_depth: Const):
@@ -1825,7 +1829,7 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
         # a zero challenge its slow sum, into the total, and lam^(n+2) * (the challenges after
         # the level) * (its high chain) into the claim
         zero = is_zero(level_after[GEN ** lvl])
-        slow = level_residual_slow(query_positions * GEN ** (lvl * LIG_LEVEL_POSITIONS_CAP), fold_challenges * GEN ** LIG_RESIDUAL_FOLD_OFF[ml], tail_challenges, ood_scalars[GEN ** (lvl + 1)], zero, rate_sel, GEN ** LIG_QUERIES[ml], GEN ** LIG_QUERIES[ml + LIG_RATE_STRIDE], GEN ** LIG_QUERIES[ml + 2 * LIG_RATE_STRIDE], GEN ** LIG_QUERIES[ml + 3 * LIG_RATE_STRIDE], LIG_RESIDUAL_PREFIX_LEN[ml], yr_log, LIG_LOG_MSG_COLS[ml] * (LIG_LOG_MSG_COLS[ml] + 1) // 2)
+        slow = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_residual_slow(query_positions * GEN ** (lvl * LIG_LEVEL_POSITIONS_CAP), fold_challenges * GEN ** LIG_RESIDUAL_FOLD_OFF[ml], tail_challenges, ood_scalars[GEN ** (lvl + 1)], zero, LIG_QUERIES[ml + r * LIG_RATE_STRIDE], LIG_RESIDUAL_PREFIX_LEN[ml], yr_log, LIG_LOG_MSG_COLS[ml] * (LIG_LOG_MSG_COLS[ml] + 1) // 2))
         acc = inner_chain * GEN ** (2 * lvl)
         acc[GEN ** 2] = acc[GEN ** 0] + level_scale[GEN ** lvl] * h + slow
         acc[GEN ** 3] = acc[GEN ** 1] + level_scales[GEN ** lvl] * level_after[GEN ** lvl] * h_high

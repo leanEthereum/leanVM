@@ -16,6 +16,7 @@ public import LeanVM.Guest.B1.Whir.FinishSplit
 public import LeanVM.Guest.B1.Whir.Witness
 public import LeanVM.Guest.B1.Whir.CVal
 public import LeanVM.Guest.B1.Whir.Squeezes
+public import LeanVM.Guest.B1.Whir.SlowSpec
 
 /-!
 # The body at honest values, as the lift takes it
@@ -47,8 +48,8 @@ configuration `c`:
   helpers), returning `[tgt, PT, PT1, inn, res]`, allocating the buffers at their bases, the
   helpers' dispatches at their honest values (`OsHelperVals`).
 
-`os_honest_Spec`: every accepting run of `whirOpen μ r target` from `⟨capOf S, []⟩` with no zero
-challenge and openings agreeing in the caps has `OsHonestA` at the arm of `μ` and the rate `r`.
+`os_honest_Spec`: every accepting run of `whirOpen μ r target` from `⟨capOf S, []⟩` with openings
+agreeing in the caps has `OsHonestA` at the arm of `μ` and the rate `r`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -123,7 +124,7 @@ def osLqCallOf (c : OsCfg) (l : ℕ) : List V × List V :=
   osQCallOf c l (osLvA c l) (osPreQ c l (osLvA c l) (osLvSt c l))
 
 /-- The non-final levels' dispatches into `level_residual` from level `lvl`, in order. -/
-def osResCallsL (c : OsCfg) (ich bd ls la : ℕ) : ℕ → List OsLv → List OsMat → ℕ →
+def osResCallsL (c : OsCfg) (tch ich bd ls la : ℕ) : ℕ → List OsLv → List OsMat → ℕ →
     List (List V × List V)
   | _, [], _, _ => []
   | lvl, lv :: rest, mats, k =>
@@ -133,8 +134,32 @@ def osResCallsL (c : OsCfg) (ich bd ls la : ℕ) : ℕ → List OsLv → List Os
     let m2 := osMatsAfter c.plan m1 bd (lvl * ligColsCap) qp.2.2
     let hp := osMatP c.plan m2 osHs (lvl * hsStride) bp.2.2
     ([.n qp.2.1, .n bp.2.1, .n hp.2.1, .n hp.2.2], osRun (hp.2.2 + 1) 2) ::
-      osResCallsL c ich bd ls la (lvl + 1) rest (osResidual c ich bd ls la lvl lv mats k).2.1
-        (osResidual c ich bd ls la lvl lv mats k).2.2
+      osResCallsL c tch ich bd ls la (lvl + 1) rest (osResidual c tch ich bd ls la lvl lv mats k).2.1
+        (osResidual c tch ich bd ls la lvl lv mats k).2.2
+
+/-- A non-final level's dispatch into `level_residual_slow`: its arguments and returns. -/
+def osSlowCall1 (c : OsCfg) (tch bd lvl : ℕ) (lv : OsLv) (mats : List OsMat) (k : ℕ) :
+    List V × List V :=
+  let qp := osMatP c.plan mats osQpos lv.posOff k
+  let m1 := osMatsAfter c.plan mats osQpos lv.posOff k
+  let bp := osMatP c.plan m1 bd (lvl * ligColsCap) qp.2.2
+  let m2 := osMatsAfter c.plan m1 bd (lvl * ligColsCap) qp.2.2
+  let hp := osMatP c.plan m2 osHs (lvl * hsStride) bp.2.2
+  let m3 := osMatsAfter c.plan m2 osHs (lvl * hsStride) bp.2.2
+  let j := hp.2.2
+  let sp := osMatP c.plan m3 osQpos lv.posOff (j + 5)
+  let m4 := osMatsAfter c.plan m3 osQpos lv.posOff (j + 5)
+  let fp := osMatP c.plan m4 osFch lv.resFoldOff sp.2.2
+  ([.n sp.2.1, .n fp.2.1, .n tch, .n fp.2.2, .n (j + 4)], osRun (fp.2.2 + 1) 1)
+
+/-- The non-final levels' dispatches into `level_residual_slow` from level `lvl`, in order. -/
+def osSlowCallsL (c : OsCfg) (tch ich bd ls la : ℕ) : ℕ → List OsLv → List OsMat → ℕ →
+    List (List V × List V)
+  | _, [], _, _ => []
+  | lvl, lv :: rest, mats, k =>
+    osSlowCall1 c tch bd lvl lv mats k ::
+      osSlowCallsL c tch ich bd ls la (lvl + 1) rest (osResidual c tch ich bd ls la lvl lv mats k).2.1
+        (osResidual c tch ich bd ls la lvl lv mats k).2.2
 
 /-- The non-final levels' dispatches into `level_residual` (`osFinishA`'s), in order. -/
 def osLrCalls (c : OsCfg) : List (List V × List V) :=
@@ -144,8 +169,19 @@ def osLrCalls (c : OsCfg) : List (List V × List V) :=
   let pts := osPtBlks c pt (pt + 1) tl.2.2 0 pointCap (pt + 2)
   let bs := osBases c tl.2.2 (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel)
     (pts.2 + 6)
-  osResCallsL c (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel) st.mats
-    (bs.2 + 3)
+  osResCallsL c tl.2.2 (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel)
+    st.mats (bs.2 + 3)
+
+/-- The non-final levels' dispatches into `level_residual_slow` (`osFinishA`'s), in order. -/
+def osSlowCalls (c : OsCfg) : List (List V × List V) :=
+  let tl := osTail c (osLevels c 0 c.levels (osHead c).2).2
+  let st := tl.2.1
+  let pt := st.k + 1
+  let pts := osPtBlks c pt (pt + 1) tl.2.2 0 pointCap (pt + 2)
+  let bs := osBases c tl.2.2 (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel)
+    (pts.2 + 6)
+  osSlowCallsL c tl.2.2 (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel)
+    st.mats (bs.2 + 3)
 
 /-! ## The honest data -/
 
@@ -171,6 +207,22 @@ def osLrRetA (c : OsCfg) (own : List (List E)) (l : ℕ) (mu : E) : E × E :=
     (lrH lv.logCols lv.folds lv.highBits
       ((List.range lv.folds).map fun i ↦ (osOwnA own osIxHsA).getD (l * hsStride + i) 0))
     mu (0, 0) ((List.range lv.queries).map fun k ↦ (osOwnA own osIxQposA).getD (lv.posOff + k) 0)
+
+/-- `level_after`'s index. -/
+def osIxLaA (c : OsCfg) : ℕ := 17 + c.yrLevel
+
+/-- A non-final level `l`'s zero flag, from its stored product of coordinates. -/
+def osZA (c : OsCfg) (own : List (List E)) (l : ℕ) : E := zeroOf ((osOwnA own (osIxLaA c)).getD l 0)
+
+/-- **`level_residual_slow`'s sum** at a non-final level `l`, `λ = lam`, the flag `z`, over the
+stored words: the positions from the level's offset of `query_positions`, its fold challenges
+from `fold_challenges` past its folds, then the tail challenges. -/
+def osSlowRetA (c : OsCfg) (own : List (List E)) (l : ℕ) (lam z : E) : E :=
+  let lv := osLvA c l
+  slowVal lv.queries (lv.prefixLen + c.yrLog) lv.vanish
+    (fun k ↦ (osOwnA own osIxQposA).getD (lv.posOff + k) 0)
+    (fun t ↦ if t < lv.prefixLen then (osOwnA own osIxFchA).getD (lv.resFoldOff + t) 0
+      else (osOwnA own (osIxTchA c)).getD (t - lv.prefixLen) 0) lam z
 
 /-- **The memory holds the buffers** at the base `b`, but `query_win_ptrs`. -/
 def OsMemA (rd : Reader) (c : OsCfg) (b : ℕ) (own : List (List E)) : Prop :=
@@ -220,7 +272,12 @@ def OsHelperVals (c : OsCfg) (b : ℕ) (tabs : E) (own : List (List E)) (D : ℕ
           osPtrA c b (osIxBdA c) * gen ^ (l * ligColsCap),
           osPtrA c b osIxHsA * gen ^ (l * hsStride), (D l).mu] ∧
       ((osLrCalls c).getD l ([], [])).2.map σ' =
-        [(osLrRetA c own l (D l).mu).1, (osLrRetA c own l (D l).mu).2])
+        [(osLrRetA c own l (D l).mu).1, (osLrRetA c own l (D l).mu).2] ∧
+      ((osSlowCalls c).getD l ([], [])).1.map σ' =
+        [osPtrA c b osIxQposA * gen ^ (osLvA c l).posOff,
+          osPtrA c b osIxFchA * gen ^ (osLvA c l).resFoldOff, osPtrA c b (osIxTchA c), (D l).lam,
+          osZA c own l] ∧
+      ((osSlowCalls c).getD l ([], [])).2.map σ' = [osSlowRetA c own l (D l).lam (osZA c own l)])
 
 /-- **What the body returns and allocates** under `σ'`, the buffers at `b`. -/
 def OsOutA (c : OsCfg) (b : ℕ) (tabs tgt inn res : E) (own : List (List E)) (D : ℕ → OsLvData)
@@ -245,7 +302,6 @@ structure OsHonestA (c : OsCfg) (args : List E) (cur tabs : E) (xs : List E) (tg
   posW : ∀ l < c.levels.length, ∀ j < (osLvA c l).squeezes, ∀ i < osPerA c l,
     (osOwnA own osIxQposA).getD ((osLvA c l).posOff + j * osPerA c l + i) 0 =
       eOfNat (qwPosOf (osLvA c l).depth (sqSample (D l).w0 (D l).capL j) i)
-  lam_inv : ∀ l < c.yrLevel, (D l).lam * (D l).lamInv = 1
   capW : ℕ → List E
   flW : ℕ → List E
   rounds : ℕ → List FoldRound
@@ -287,7 +343,6 @@ def os_honest_Spec : Prop :=
     ∀ (S : KeccakState) (root : Digest) (target cur tabs : E) (xs : List E)
       (os : List (List Opening)) (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
       RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots' →
-      NoZeroChallenge μ r target S xs os root →
       CapsAgree μ r target S xs os root →
       Nonempty (OsHonestA (osCfgR (μ - minOpenLog) (r - 1))
         (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs])

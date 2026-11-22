@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.Whir.FactsSound
 public import LeanVM.Guest.B1.Whir.InterfaceAt
 public import LeanVM.Guest.B1.Whir.RoundFind
+public import LeanVM.Guest.B1.Whir.IsZero
+public import LeanVM.Guest.B1.Whir.SlowSound
 public import LeanVM.Guest.B1.Whir.FactsAll
 public import LeanVM.Guest.B1.Whir.DataAll
 public import LeanVM.Guest.B1.Whir.Names
@@ -54,6 +56,11 @@ theorem osCfgR_levels_getD {m ri l : ℕ} (h : l < osNLevels m) :
     (osCfgR m ri).levels.getD l default = osLvR m ri l := by
   simp [osCfgR, osLevelsR, List.getD_eq_getElem?_getD, h]
 
+/-- `is_zero`'s meaning is what `open_stacked` takes of it. -/
+theorem isZeroRet_of {a r : List E} (h : MeaningIsZero a r) : IsZeroRet a r := by
+  match a, h with
+  | [w], h => exact h
+
 /-- The deployed callees' meanings under a call relation below `coreProgram.Rel`, on a memory
 image whose window tables are at `σ tabs`. -/
 theorem callees_of {κ : ℕ} (hκ : κ ≤ 32) (hw : winTabBits ≤ κ) (L : MemoryImage κ) {C : CallRel}
@@ -67,7 +74,9 @@ theorem callees_of {κ : ℕ} (hκ : κ ≤ 32) (hw : winTabBits ≤ κ) (L : Me
     fun p hp a r ha hc ↦ decode_query_windows_all_holds p hp hκ L a r ha hc,
     fun p hp a r hc ↦ (verify_merkle_cap_holds p hp L.read a r).mp (hle _ _ _ hc),
     fun a r hc ↦ (opening_tail_round_holds L.read a r).mp (hle _ _ _ hc),
-    fun p hp a r hc ↦ (fold_final_msg_holds p hp L.read a r).mp (hle _ _ _ hc)⟩
+    fun p hp a r hc ↦ (fold_final_msg_holds p hp L.read a r).mp (hle _ _ _ hc),
+    fun a r hc ↦ isZeroRet_of ((is_zero_iff L.read a r).mp (hle _ _ _ hc)),
+    fun e he a r hc pos cs hp hf hy ↦ lrsTable_sound L.read he (hle _ _ _ hc) pos cs hp hf hy⟩
   · have hn : "grind_check__L" ++ natStr queryGrind = grindCheckName 17 := by decide
     rw [hn] at hc
     exact ((grind_check_holds 17 (by decide) hκ hw L w _ hwt []).mp (hle _ _ _ hc)).2
@@ -87,6 +96,10 @@ theorem semOk_of {m ri μ r : ℕ} (hm : m < ligNSizes) {cfg : List Whir.Level}
       have := (osCfgR m ri).levels.length; omega
     rw [osCfgR_levels_getD hy] at hi ⊢
     exact hsScale_final hm hi
+
+set_option maxRecDepth 100000 in
+/-- Every arm's `level_residual_slow` specializations are entries of `lrsTable`, by the kernel. -/
+theorem slowIn_all : ∀ m < ligNSizes, ∀ ri < 4, slowInB (osCfgR m ri) = true := by decide +kernel
 
 /-- **`open_stacked` is sound with its witness named**, at every size and rate. -/
 theorem open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW := by
@@ -120,7 +133,7 @@ theorem open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW := by
     simpa [osParams, rateSel] using this
   have hcal := callees_of hκ hwb L hle (σ := σ) (by rw [h10]; exact hwt)
   have hsem := semOk_of hm hC
-  have hFS := finStatic_of hcal hsem hle hC
+  have hFS := finStatic_of hcal hsem hle hC (slowIn_all m hm ri hri)
   have hrate : ∀ i < (osCfgR m ri).levels.length,
       LvRate σ (osCfgR m ri) i ((osCfgR m ri).levels.getD i default) := fun i _ ↦
     ⟨ri, hri, h0, osCfgR_lvAt_length m ri i, osCfgR_lvAt_getD i hri⟩

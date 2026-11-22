@@ -71,7 +71,8 @@ theorem osHead_st (c : OsCfg) : (osHead c).2 =
 
 /-! ## A candidate -/
 
-/-- The finish's static facts and `fold_final_msg`'s meaning. -/
+/-- The finish's static facts and the meanings of `fold_final_msg`, `is_zero` and
+`level_residual_slow`. -/
 structure FinStaticS (rd : Reader) (C : CallRel) (c : OsCfg) : Prop where
   n2 : 2 ≤ c.levels.length
   yr : c.yrLevel = c.levels.length - 1
@@ -86,6 +87,10 @@ structure FinStaticS (rd : Reader) (C : CallRel) (c : OsCfg) : Prop where
   lane : (c.levels.headD default).folds ≤ c.nFolds
   mu40 : c.nFolds + c.yrLog ≤ pointCap
   ffm : ∀ a r, C ("fold_final_msg__L" ++ natStr c.yrLog) a r → MeaningFoldFinalMsg c.yrLog rd a r
+  iz : ∀ a r, C "is_zero" a r → IsZeroRet a r
+  slow : ∀ i < c.yrLevel, ∀ a r, C (osSlowName c (c.levels.getD i default)) a r →
+    SlowRet (c.levels.getD i default).queries (c.levels.getD i default).prefixLen c.yrLog
+      (c.levels.getD i default).vanish rd a r
 
 /-- **A candidate, soundly**: from its body, its levels' facts, callees and rows at the rate's
 selector, and its finish's facts, a call establishes `OpenOutW` at the witness's words and
@@ -148,7 +153,7 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
     refine ⟨hFS.n2, hFS.yr, hFS.ylog, hFS.ylen, by rw [hrl, hy], fun i hi ↦ ?_, hFS.lv,
       fun i hi ↦ hrate i (by have := hFS.yr; omega), hFS.res, hFS.nlen,
       by rw [hgl, ← hFS.nF, hlv], hfch, hTl, hTr, hfm, by rw [hfl]; omega, hFS.lane,
-      hFS.mu40, hFS.ffm⟩
+      hFS.mu40, hFS.ffm, hFS.iz, hFS.slow⟩
     have hi' : i < recs'.length := by rw [hrl, ← hy]; exact hi
     have := hrecs i hi'
     rw [Nat.zero_add, ← hlv] at this

@@ -114,6 +114,66 @@ theorem finRes_eq (hHS : HonStatic h.c) (hF : FinStatic h.c h.G h.T h.recs)
   rw [eP, eH, hP]
   rfl
 
+/-- **A non-final level's zero flag** is the one of the stored product of its coordinates. -/
+theorem finZ_eq (hHS : HonStatic h.c) (hF : FinStatic h.c h.G h.T h.recs) {l : ℕ}
+    (hl : l < h.c.yrLevel) : finZ h.c h.G h.T h.recs l = osZA h.c h.own l := by
+  have hy := hHS.yr
+  have hsz := hHS.fin (k := 5) (by omega)
+  obtain ⟨-, ea⟩ := finLaC_get (G := h.G) (T := h.T) (recs := h.recs) hl (by omega)
+  unfold osZA finZ
+  rw [show osIxLaA h.c = 12 + h.c.yrLevel + 5 by unfold osIxLaA; omega,
+    h.own_word (hHS.finLt (k := 5) (by omega)) (by rw [hsz]; show l < h.c.levels.length; omega),
+    h.ownW_fin (by omega)]
+  exact congrArg zeroOf ea.symm
+
+/-- **A non-final level's slow sum is `level_residual_slow`'s** over the honest buffers' words. -/
+theorem finSlow_eq (hHS : HonStatic h.c) (hF : FinStatic h.c h.G h.T h.recs)
+    (hL : h.Ls.length = h.c.levels.length) (hrun : ∀ i < h.c.yrLevel, RecRun h i) {l : ℕ}
+    (hl : l < h.c.yrLevel) :
+    finSlow h.c h.G h.T h.recs l =
+      osSlowRetA h.c h.own l (h.recs.getD l default).lam (osZA h.c h.own l) := by
+  have hy := hHS.yr
+  have lf := hF.lv l hl
+  have hR := hrun l hl
+  have hr : h.recs.getD l default = (h.L l).osRec h.logN := h.recs_getD hL hy hl
+  unfold finSlow resSlow osSlowRetA
+  rw [finZ_eq h hHS hF hl]
+  refine slowVal_congr _ _ (fun k hk ↦ ?_) (fun t ht ↦ ?_)
+  · have hQ : k < (h.c.levels.getD l default).squeezes * sqPer (h.c.levels.getD l default) :=
+      lt_of_lt_of_le hk hR.Q
+    obtain ⟨-, htop⟩ := chain_disj hHS.pos
+    have := htop l (by omega)
+    have h9 := hHS.head (j := 9) (by omega)
+    show eOfNat ((h.recs.getD l default).qs.getD k 0) = _
+    rw [h.own_word (hHS.headLt (j := 9) (by omega)) (by rw [h9]; show _ < h.c.levels.length * ligPosCap; omega),
+      ownW_qpos, h.qpos_seg hHS (by omega) hQ, hr, hR.qs k hk]
+  · have hG := hF.Gl
+    have hT := hF.Tl
+    have hrF := hF.recF l hl
+    have hp1 := lf.pre
+    have hp2 := lf.cols
+    have hp3 := lf.le
+    simp only [finX, ptFrom]
+    rw [hrF]
+    by_cases h1 : t < (finLv h.c l).prefixLen
+    · have h1' : t < (osLvA h.c l).prefixLen := h1
+      simp only [h1', ↓reduceIte, lf.rfo]
+      have h2 := hHS.head (j := 2) (by omega)
+      rw [List.getD_eq_getElem?_getD, List.getElem?_drop, List.getElem?_append_left (by omega),
+        h.own_word (hHS.headLt (j := 2) (by omega)) (by rw [h2]; show _ < h.c.nFolds; omega),
+        ownW_fch, OsHD.fchC, List.getD_eq_getElem?_getD]
+      rfl
+    · have h1' : ¬ t < (osLvA h.c l).prefixLen := h1
+      simp only [h1', ↓reduceIte]
+      have h0 := hHS.fin (k := 0) (by omega)
+      rw [List.getD_eq_getElem?_getD, List.getElem?_drop, List.getElem?_append_right (by omega),
+        show osIxTchA h.c = 12 + h.c.yrLevel + 0 by unfold osIxTchA; omega,
+        h.own_word (hHS.finLt (k := 0) (by omega)) (by rw [h0]; have := hHS.ylog; show _ < yrLogCap; omega),
+        h.ownW_fin (by omega), List.getD_eq_getElem?_getD]
+      simp only [List.getD_cons_zero]
+      congr 2
+      omega
+
 end OsHD
 
 namespace HonRun
@@ -128,6 +188,21 @@ theorem fld_resEq : ∀ l < (hdOf μ r Ls).c.yrLevel,
     finRes (hdOf μ r Ls).c (hdOf μ r Ls).G (hdOf μ r Ls).T (hdOf μ r Ls).recs (hdOf μ r Ls).li l =
       osLrRetA (hdOf μ r Ls).c (hdOf μ r Ls).own l ((hdOf μ r Ls).li l) := fun _ hl ↦
   (hdOf μ r Ls).finRes_eq (honStatic_all _ _ hR.m11 hR.r4) hR.finStatic_run hR.len hR.recRun_run hl
+
+/-- **The slow sums on a run.** -/
+theorem fld_slowEq : ∀ l < (hdOf μ r Ls).c.yrLevel,
+    (hdOf μ r Ls).lamAt l = ((hdOf μ r Ls).recs.getD l default).lam ∧
+    finZ (hdOf μ r Ls).c (hdOf μ r Ls).G (hdOf μ r Ls).T (hdOf μ r Ls).recs l =
+      osZA (hdOf μ r Ls).c (hdOf μ r Ls).own l ∧
+    finSlow (hdOf μ r Ls).c (hdOf μ r Ls).G (hdOf μ r Ls).T (hdOf μ r Ls).recs l =
+      osSlowRetA (hdOf μ r Ls).c (hdOf μ r Ls).own l ((hdOf μ r Ls).lamAt l)
+        (osZA (hdOf μ r Ls).c (hdOf μ r Ls).own l) := fun l hl ↦ by
+  have hHS := honStatic_all _ _ hR.m11 hR.r4
+  have hlam : (hdOf μ r Ls).lamAt l = ((hdOf μ r Ls).recs.getD l default).lam := by
+    rw [(hdOf μ r Ls).recs_getD hR.len hHS.yr hl, LvAt.osRec_lam]; rfl
+  refine ⟨hlam, (hdOf μ r Ls).finZ_eq hHS hR.finStatic_run hl, ?_⟩
+  rw [hlam]
+  exact (hdOf μ r Ls).finSlow_eq hHS hR.finStatic_run hR.len hR.recRun_run hl
 
 end HonRun
 

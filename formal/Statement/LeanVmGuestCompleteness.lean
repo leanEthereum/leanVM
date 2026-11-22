@@ -7,8 +7,8 @@ public import Statement.LeanVmGuestProver
 # The leanISA guest program: completeness, and the batching's soundness
 
 The guest program's completeness on the nodes within the deployed limits (`DeployedLimits`) whose
-children the verifier accepts, free of a collision in the guest program's Merkle caps and of a zero
-challenge (`ChildWithoutCollisionOrZero`), its execution made from the statement and the witness
+children the verifier accepts, unless a child's proof exhibits a Keccak-256 collision in its Merkle
+openings (`OpeningsCollide`), its execution made from the statement and the witness
 (`GuestExecutionComplete`), the honest proof rarely refused (`HonestProofRarelyRefused`), and the recursion step, the batching of the
 children's deferred claims, sound in the random-permutation model (`BatchingSound`). The
 soundness side, what a node proves, is `LeanVmGuest.lean`. `lean_ethereum.py` is
@@ -61,20 +61,10 @@ structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : P
 /-! ## The guest program's completeness
 
 The guest program runs every node within the deployed limits, in at most `2^30` committed words,
-whatever proofs its children carry, as long as `NodeRelation` has the verifier accept them, except
-where a child's proof shows a Keccak-256 collision in the guest program's Merkle caps or a zero
-challenge where the guest program divides (`ChildWithoutCollisionOrZero`). -/
+whatever proofs its children carry, as long as `NodeRelation` has the verifier accept them, unless
+a child's proof exhibits a Keccak-256 collision in its Merkle openings (`OpeningsCollide`). -/
 
 namespace Completeness
-
-/-! ### What a child must avoid
-
-The guest program writes each node of a level's Merkle cap once, so two openings of one phase
-meeting at a node must give it one digest (`Limits.OpeningsAgree`): two that disagree give a
-Keccak-256 collision. It divides by some of the verifier's challenges (the WHIR fold and tail
-challenges and each non-final level's batching challenge `λ`, `lean_ethereum.py`), so a zero there
-makes it reject a child the verifier accepts; the child's hypothesis refuses a zero challenge
-anywhere (`VerifierProgram.refusingZeroChallenge`, a slightly stronger one). -/
 
 /-- **`program` refusing a zero challenge**: every sampled challenge `0` fails. -/
 def _root_.LeanVM.Protocol.Compile.VerifierProgram.refusingZeroChallenge {α : Type} :
@@ -88,7 +78,7 @@ def _root_.LeanVM.Protocol.Compile.VerifierProgram.refusingZeroChallenge {α : T
   | .query i ps k => .query i ps fun rows ↦ (k rows).refusingZeroChallenge
 
 /-- **The leanVM verifier refusing every zero challenge** (`VerifierProgram.refusingZeroChallenge`),
-slightly stronger than refusing a zero only where the guest program divides. -/
+the check `HonestProofRarelyRefused` bounds. -/
 def verifierRefusingZero {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
     (program : LeanIsaProgram) (input : PublicInput) (proof : Proof) : m Bool := do
   let seed ← spongeSeedWith π (bytecodeWords program) (publicInputDigest input)
@@ -102,24 +92,6 @@ end Completeness
 
 namespace Limits
 
-/-- **The deployed deferring verifier refusing a zero challenge**
-(`VerifierProgram.refusingZeroChallenge`): `verifyDeferred` with every sampled challenge `0` a
-failure. -/
-def verifyDeferredRefusingZero (bytecode : List K) (iv publicInput : Digest)
-    (claim : BytecodeClaim) (proof : Proof) : Bool :=
-  Id.run (runProof (m := Id) keccakF1600
-    (deferringVerifierProgram claim bytecode publicInput).refusingZeroChallenge
-    (keccakF1600 (seedInput iv publicInput)) proof)
-
-/-- The heap index of the node at `level` (the leaves at `0`) above the leaf `leafPosition` of a
-tree of height `depth`. -/
-def merkleHeapIndex (depth leafPosition level : ℕ) : ℕ :=
-  2 ^ (depth - level) + leafPosition / 2 ^ level
-
-/-- The heap index of the sibling of the node at `level < depth` above the leaf `leafPosition`. -/
-def siblingHeapIndex (depth leafPosition level : ℕ) : ℕ :=
-  2 * merkleHeapIndex depth leafPosition (level + 1) + (!leafPosition.testBit level).toNat
-
 /-- The digest of a Merkle leaf: Keccak-256 of its words as bytes (`hash_leaf`,
 `crates/verifier/src/merkle.rs`), the leaf an opening's climb starts from. -/
 def _root_.LeanVM.Protocol.KeccakHash.merkleLeafDigest (words : List K) : Digest :=
@@ -129,47 +101,31 @@ def _root_.LeanVM.Protocol.KeccakHash.merkleLeafDigest (words : List K) : Digest
 def climbTo (node : Digest) (leafPosition : ℕ) (path : List Digest) : Digest :=
   Id.run (climb (m := Id) keccakF1600 node leafPosition path)
 
-/-- **The opening `queryOpening` gives the heap node `heapNode` the digest `digest`**: the node is
-on its climb, with the climb's digest there, or is the sibling it carries at a level. -/
-def OpeningGivesNode (depth : ℕ) (queryOpening : ℕ × Opening) (heapNode : ℕ) (digest : Digest) :
-    Prop :=
-  (∃ level ≤ depth, heapNode = merkleHeapIndex depth queryOpening.1 level ∧
-    digest = climbTo (merkleLeafDigest queryOpening.2.leaf) queryOpening.1
-      (queryOpening.2.path.take level)) ∨
-  ∃ level < depth, heapNode = siblingHeapIndex depth queryOpening.1 level ∧
-    digest = queryOpening.2.path.getD level default
-
-/-- The openings of one tree of height `depth`, each at its position, agree wherever they meet. -/
-def OpeningsAgree (depth : ℕ) (queryOpenings : List (ℕ × Opening)) : Prop :=
-  ∀ a ∈ queryOpenings, ∀ b ∈ queryOpenings, ∀ heapNode digest digest',
-    OpeningGivesNode depth a heapNode digest → OpeningGivesNode depth b heapNode digest' →
-      digest = digest'
-
 end Limits
 
 namespace Completeness
 
-/-- **A child without a collision in its caps or a zero challenge**, under the seed `seed`:
-* its openings agree: in each phase of its proof's openings whose paths have one length `depth`,
-  the openings, each at its leaf's position, agree wherever they meet (one tree's openings agree;
-  two that disagree at a node give a Keccak-256 collision);
-* no zero challenge: the deferring verifier refusing a zero challenge anywhere accepts its proof
-  (`Limits.verifyDeferredRefusingZero`).
+/-! ### A collision in a child's openings
 
-What else the guest program asks of a child follows from the deferring verifier accepting it
-(`NodeRelation`'s `ChildrenProven`): its stack log is at least `20`, the least the guest program
-has an opening arm for (`min_execution_stacked_log`, `crates/verifier`'s `layout.rs`: the
-bytecode's `2^19` words and the memory's columns stack more than `2^19` words), and its proof
-stream at most `STREAM_CAP = 8192` scalars (`aggregation/child.rs`). -/
-structure ChildWithoutCollisionOrZero (bytecode : List K) (seed : Digest) (child : Child) :
-    Prop where
-  /-- Its openings agree wherever they meet in their tree. -/
-  openingsAgree : ∀ phase ∈ child.proof.openings, ∀ depth,
-    (∀ opening ∈ phase, opening.path.length = depth) →
-      Limits.OpeningsAgree depth (phase.map fun opening ↦ (opening.leafIndex, opening))
-  /-- The deferring verifier refusing a zero challenge accepts its proof. -/
-  noZeroChallenge : Limits.verifyDeferredRefusingZero bytecode seed
-    (statementDigest seed child.statement) child.freshClaim child.proof = true
+The guest program writes each node of a level's Merkle cap once, so two openings of one phase
+meeting at a node must give it one digest. Two that give it different digests, both climbing to
+the phase's root (`openPhase`), hash different bytes to one digest at some level of their climbs. -/
+
+/-- **The bytes an opening's climb hashes at `level`** (`climb`): the node it has reached there and
+the sibling its path carries, the left one first. -/
+def climbInput (opening : Opening) (level : ℕ) : Bytes :=
+  let node := Limits.climbTo (merkleLeafDigest opening.leaf) opening.leafIndex
+    (opening.path.take level)
+  let sibling := opening.path.getD level default
+  if opening.leafIndex / 2 ^ level % 2 = 0 then digestBytes node ++ digestBytes sibling
+  else digestBytes sibling ++ digestBytes node
+
+/-- **A proof's openings exhibit a Keccak-256 collision**: two openings of one phase whose climbs
+hash, at one level of their paths, different bytes to one digest. -/
+def OpeningsCollide (proof : Proof) : Prop :=
+  ∃ phase ∈ proof.openings, ∃ a ∈ phase, ∃ b ∈ phase, ∃ level < a.path.length,
+    level < b.path.length ∧ climbInput a level ≠ climbInput b level ∧
+      keccak256 (climbInput a level) = keccak256 (climbInput b level)
 
 open OracleComp OracleSpec in
 /-- **The honest proof is rarely refused**: in the random-permutation model, at `2^35` nonces per
@@ -189,24 +145,23 @@ def HonestProofRarelyRefused : Prop :=
       (2 : ℝ≥0∞)⁻¹ ^ 100
 
 /-- **The guest's execution, made from the statement and the witness, on every node within the
-deployed limits whose children are free of a collision in their caps and of a zero challenge**: for
-every statement and witness with `NodeRelation` under the deployed seed (so the deferring verifier
-accepts every child's proof), within the deployed limits (`DeployedLimits`), every child
-`ChildWithoutCollisionOrZero`, the executor's run of the guest program on the advice made from the
-statement and the witness (`LeanVM.Guest.guestExecution`, `LeanVmGuestProver.lean`) returns a valid
-execution of the guest program on the statement's digest, of committed size at most `2^30`, the
-sizes the honest prover proves and `HonestProofRarelyRefused` covers. Proved by
+deployed limits, or a collision in a child's openings**: for every statement and witness with
+`NodeRelation` under the deployed seed (so the deferring verifier accepts every child's proof),
+within the deployed limits (`DeployedLimits`), the executor's run of the guest program on the
+advice made from the statement and the witness (`LeanVM.Guest.guestExecution`,
+`LeanVmGuestProver.lean`) returns a valid execution of the guest program on the statement's digest,
+of committed size at most `2^30`, the sizes the honest prover proves and `HonestProofRarelyRefused`
+covers, or some child's proof exhibits a Keccak-256 collision (`OpeningsCollide`). Proved by
 `LeanVM.Guest.EndExec.guestExecution_complete_holds`. -/
 def GuestExecutionComplete : Prop :=
   ∀ (statement : NodeStatement) (witness : NodeWitness),
     NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
     DeployedLimits statement witness →
-    (∀ child ∈ witness.children,
-      ChildWithoutCollisionOrZero (bytecodeWords guestProgram) (deployedSeed guestProgram) child) →
-    ∃ execution, guestExecution guestProgram statement witness = .ok execution ∧
+    (∃ execution, guestExecution guestProgram statement witness = .ok execution ∧
       ValidExecution guestProgram
         (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) execution ∧
-      execution.committedSize ≤ 2 ^ 30
+      execution.committedSize ≤ 2 ^ 30) ∨
+    ∃ child ∈ witness.children, OpeningsCollide child.proof
 
 end Completeness
 
