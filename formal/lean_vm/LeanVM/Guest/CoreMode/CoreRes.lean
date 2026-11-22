@@ -60,7 +60,7 @@ ghost words (`CRes.holds_congr`). One family names a ghost:
   its caller's table, the run `[ghost₀]·g^(4j+d)` below the exponent of its parameter `limit` (its ghost the caller's
   cell `2`, `glOk`), its shape and its soundness its function's own (`FnReg.mlLoops`, `EndExec.MlLoopOk`).
 * `st` (`stSub`): a loop's read `[cur]·g^c` past its cursor `cur` lies in its caller's proof stream, the run
-  `[ghost₀]·[0, 8192)` (its ghosts the caller's stream and frame, `stGl`), from the old route's cursor invariants
+  `[ghost₀]·[0, 8192)` (its ghosts the caller's stream and frame, `stGl`)
   (`EndExecCoreSt`).
 
 Each function's own families, read off its own data, are in its own modules (`CoreMode/Fn/<f>/Fam.lean`, registered in
@@ -442,7 +442,7 @@ noncomputable def dimLt (fn : Fn) (x : V) (t : ℕ) (p : V) (u : ℕ) : Bool :=
     | _, _ => false
 
 /-- **The residuals of the instance's exponent and dimension facts** (`expQ`, `dim`; `Res.expFacts`,
-`Res.dimFacts`, which the old route's F7 to F9 read): a value of an exponent fact (`expQB`), times `g^c`, below
+`Res.dimFacts`): a value of an exponent fact (`expQB`), times `g^c`, below
 a constant, or a constant `g^k`, `k < c`, below it times `g^c`; a word of a dimension fact times `g^t` below its
 bound parameter times `g^u` (`dimLt`); either under branch conditions. -/
 noncomputable def resQ (fn : Fn) : CRes → Bool

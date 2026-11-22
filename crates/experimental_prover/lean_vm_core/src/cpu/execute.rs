@@ -1,5 +1,6 @@
 //! The write-once execution interpreter: run the compiled program to produce
-//! the final memory image and the per-opcode [`Trace`].
+//! the final memory image and the per-opcode [`Trace`]. Its Lean transcription is
+//! `formal/Statement/Prover/Execute.lean`: a change here lands there too.
 
 use std::collections::HashMap;
 use std::mem::take;

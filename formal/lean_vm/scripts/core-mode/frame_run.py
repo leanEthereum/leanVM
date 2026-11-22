@@ -29,7 +29,7 @@ def inputs(D, n, nzr):
 
 def own_nz(D, n, O, S=frozenset()):
     """The residual divisors the walk needs (`FFun.nzr`), by offset: each `MUL` it back-solves through a divisor it
-    cannot show nonzero, its own inference (no mode walk)."""
+    cannot show nonzero, by its own inference."""
     f = D['fns'][n]
     F, entry, ln, sig, tgt, _ = inputs(D, n, {})
     nz = collections.defaultdict(set)

@@ -1,5 +1,5 @@
 //! The write-once interpreter: run the program, with its hints, to the final memory image and the per-opcode
-//! [`Trace`].
+//! [`Trace`]. Its Lean transcription is `formal/Statement/Prover/Execute.lean`: a change here lands there too.
 
 use super::hints::{BitsDest, GPow, MAX_CELLS, MAX_INDEX, QuickMap, RHint, bounded_dlog};
 use super::*;

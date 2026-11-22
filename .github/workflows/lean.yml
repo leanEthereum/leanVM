@@ -360,10 +360,11 @@ jobs:
       - name: The regeneration changed nothing committed
         run: |
           ! git status --porcelain --untracked-files=all | grep .
-      # After the regeneration, so that it reads the generated files too.
+      # After the regeneration, so that it reads the generated files too (it rewrites
+      # `Statement/Data` as well).
       - name: Forbid proof escapes
         run: |
-          python3 -I ../tools/escape-scan.py .
+          python3 -I ../tools/escape-scan.py ../Statement .
       # `lake build` fails on any warning (`warningAsError`) and on an axiom footprint beyond
       # Lean's three (`LeanVM.lean`'s `#guard_msgs`). Lake has no job limit, and its parallel build
       # of the generated kernel-checked families exceeds the runner's memory, so `lake-build.py`
@@ -417,8 +418,9 @@ jobs:
         run: |
           cargo run --release --manifest-path scripts/whir-fold-table/Cargo.toml -- \
             LeanVM/Protocol/ToArkLib/Whir/AffineCombinerDeployedTable.lean --check
-      # Four real Rust aggregations (a leaf, a leaf of both schemes with a blob, a long leanXMSS
-      # list, a node over them): the witness holds the statement, the honest hint generator gives
+      # Five real Rust aggregations (a leaf of one leanXMSS signature, a leaf of both schemes with a
+      # blob, a leaf with a long leanXMSS list, a node over those two with a blob and raw signatures,
+      # and a node over them the other way round passing a child's DA digest): the witness holds the statement, the honest hint generator gives
       # the Rust's installed streams entry for entry, and the interpreter runs `main` on them; the
       # statement's executor runs the guest on them to the Rust interpreter's memory and step count;
       # on the leaf, the statement's guest prover (`guestProve`) makes a proof the verifier accepts.

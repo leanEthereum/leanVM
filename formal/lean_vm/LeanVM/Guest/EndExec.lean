@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.EndExec
 
-  The executor runs the guest to completion on the guest's advice: the final chain, every piece not
-  yet proved a field of `ExecGaps`.
+  The executor runs the guest to completion on the guest's advice: the final chain, from the
+  fields of `ExecGaps` (each proved in `EndExecFinal.lean`).
 -/
 
 module
@@ -29,7 +29,8 @@ more cells than the reference, at most `2^30` (`execute_guest_complete`, `guestE
 What the chain rests on is `ExecGaps Ks Km E0 X Pro`, for the core route's
 certificates `Ks` (`main`'s `Km`, their program `E0`), the other tracks' invariant `X` (the witness
 streams' cursor, the bump pointer, the frame-to-instance map) and the prologue's states `Pro`, each a
-function of the node's reference run. Each field names the track that discharges it. Proved here:
+function of the node's reference run. Each field names the track that discharges it, and
+`EndExecFinal.lean`'s `execGaps` proves every one. Proved here:
 the reference run (but `MainExactHyp`), the memory's log-size at most `28` and the steps at most
 `maxSteps` from the committed size (`logMemorySize_le_28`, `stepCount_le_maxSteps`), every slot
 decoding (`guest_decodable`), `main`'s frame, the executor's tables, and `ProgOk` from the
@@ -164,7 +165,7 @@ theorem progOk_of {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} (h : Mo
   mainRet := h.mainRet
   mainTerm := h.mainTerm
 
-/-! ## What is not yet proved -/
+/-! ## What the executor's completeness rests on -/
 
 /-- An allocation hint: a frame's or a buffer's base, or a cell's address. -/
 def isAllocHint : Prover.Exec.Hint → Bool
@@ -214,8 +215,8 @@ def CoreHonAll (Ks : List Mode.Cert) (X : Ref → St → Prop) : Prop :=
   ∀ r, r.Ok → ∀ K ∈ Ks, ∀ Cf, CoreMode.CfOk Cf → Cf.frame.entry = K.F.entry →
     CoreMode.CoreHon r.img (OnRun X r) K Cf
 
-/-- **What the executor's completeness on the guest rests on and is not yet proved**, for the mode
-walk's certificates `Ks` (`main`'s `Km`, their program `E0`), the other tracks' invariant `X` and the
+/-- **What the executor's completeness on the guest rests on**, every field proved by `execGaps`
+(`EndExecFinal.lean`), for the certificates `Ks` (`main`'s `Km`, their program `E0`), the other tracks' invariant `X` and the
 prologue's states `Pro`, each read at a node's reference run `r` (`Ref.Ok`) and the executor's
 tables `C` for its advice. `X` is read at the states where an instruction starts, before its hints;
 a hint's obligation is at the state its predecessors at that pc reach. -/

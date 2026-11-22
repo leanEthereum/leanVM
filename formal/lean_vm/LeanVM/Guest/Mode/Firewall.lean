@@ -2,12 +2,14 @@ import LeanVM.Guest.Mode.Abs
 import LeanVM.Guest.Data.Pows
 
 /-! **The walk's domain reads the guest's code and its view alone.** `Mode.Abs` (the domain and the step
-rules, which the core route's frame walk `CoreMode/Frame.lean` and every generated frame walk import)
-imports the powers of `g` and the jump table (`Data.Pows`) and no proof. This module fails to build if
-it or `Data.Pows` reaches the step rules' soundness proofs (the rest of `Mode/`), the honest prover's proofs
-(`LeanVM.Prover`), B1's, the protocol's, the schemes' or the honest prover beyond its executor
-(`Statement.Prover.Execute`, whose `Op` and `Hint` the walk reads), as `B2C/CertFirewall.lean` does for the other certificates, or if what an importer of
-the walk sees reaches the guest's data, as `ViewFirewall.lean` does. -/
+rules, which the core route's frame walk `CoreMode/Frame.lean` imports, and through it the generated frame
+walks) imports `Guest.ExecCore`, `Mode.Bucket` and `Statement.Prover.Execute` (whose `Op` and `Hint` the walk
+reads), and no proof. This module imports `Mode.Abs` and, separately, `Data.Pows` (the powers of `g` and the
+jump table), and fails to build if either reaches the rest of `Mode/` (the step rules' soundness proofs),
+the honest prover's proofs (`LeanVM.Prover`), B1's, the protocol's, the schemes' or the honest prover beyond
+its executor, as `B2C/CertFirewall.lean` does for its certificates, or if what an importer of `Mode.Abs`
+sees reaches the guest's data, as `ViewFirewall.lean` does. It checks what these two modules import, not
+each generated frame walk, whose imports (its pack's data among them) are its own. -/
 
 open Lean Elab Command in
 #eval show CommandElabM Unit from do

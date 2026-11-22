@@ -1,9 +1,9 @@
 /-
   LeanVM.Guest.B1.Digest.ClaimListBig3
 
-  Windows 12–15 of `claim_list_digest`'s big frame loop `claim_list_chain_loop0`: blocks 48–63,
-  cells 408–543, each window a kernel check of its own (the kernel's memory is a
-  declaration's: about 2 GB a window).
+  Windows 12 to 15 of `claim_list_digest`'s big frame loop `claim_list_chain_loop0`: blocks 48 to 63,
+  cells 408 to 543, each window a kernel check of its own (the kernel's memory is a
+  declaration's).
 -/
 
 module

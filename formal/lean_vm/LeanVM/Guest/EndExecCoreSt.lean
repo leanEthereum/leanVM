@@ -2,7 +2,7 @@
   LeanVM.Guest.EndExecCoreSt
 
   The core route's stream-cursor family at the honest instances: a loop's reads past its cursor lie in its
-  caller's proof stream (the old route's cursor invariants on names).
+  caller's proof stream.
 -/
 
 module

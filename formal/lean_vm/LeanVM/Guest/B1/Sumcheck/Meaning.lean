@@ -19,9 +19,6 @@ open LeanVM.Guest.Core
 /-- `sumcheck_round4`'s core IR is its meaning. -/
 abbrev sumcheck_round4_Spec : Prop := sumcheck_round4_SpecP coreProgram
 
-/-- `gkr_rounds__L{n}`'s core IR is its meaning. -/
-abbrev gkr_rounds_Spec : Prop := gkr_rounds_SpecP coreProgram
-
 /-- `batch_sumcheck__L23`'s core IR is its meaning. -/
 abbrev batch_sumcheck_Spec : Prop := batch_sumcheck_SpecP coreProgram
 

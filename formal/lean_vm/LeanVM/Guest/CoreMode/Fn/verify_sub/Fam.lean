@@ -61,7 +61,7 @@ def vsLt (a b : CIdx) : Bool :=
       | _, _ => false)
   | _, _ => false
 
-/-- **`verify_sub`'s exponent family** (the old route's `Res.vsB` on core names): an order its bounds decide
+/-- **`verify_sub`'s exponent family** (`Res.vsB` on core names): an order its bounds decide
 (`vsLt`), a read `c < 207` words past a cursor inside its stream, either under branch conditions (`EndExec.vsExp_inst`). -/
 def vsExp (fn : Fn) : CRes → Bool
   | .lt a b => fn.name == name% «verify_sub» && vsLt a b
