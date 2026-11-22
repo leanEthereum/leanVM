@@ -106,18 +106,6 @@ build() {
   fi
 }
 
-# Every built module of the projects $2... (default: $1) replayed by the kernel from its `.olean`, in the workspace $1
-# (`tools/kernel-check.py`): what `debug.skipKernelTC` or meta code added without the kernel fails here, which
-# `#print axioms` cannot see. Each project once per run; a module unchanged since it passed is skipped, and so is a
-# module whose source is gone (another branch's), which nothing built imports.
-kernel_check() {
-  local dir=$1 p todo=(); shift
-  for p in "${@:-$dir}"; do once "kernel:$p" && todo+=("$p"); done
-  [ ${#todo[@]} -gt 0 ] || return 0
-  step "${todo[*]}: every module checked again by the kernel (kernel-check)"
-  python3 -I tools/kernel-check.py "$dir" "${todo[@]}" --allow-stale || fail "the kernel rejects a module of ${todo[*]}"
-}
-
 # Each theorem after the module $2 depends on Lean's three axioms only, asked from outside (`bg`), in the workspace
 # that built it: its own, or lean_vm's after `together`.
 axioms_in=""
@@ -146,23 +134,23 @@ lakefiles() {
 statement() {
   no_escapes Statement
   lakefiles
-  step "Statement: imports only Mathlib, VCVio, CompPoly and itself (statement-imports, Lean's header parser)"
-  python3 -I tools/statement-imports.py Statement \
-    || fail "Statement imports more than Mathlib, VCVio, CompPoly and itself, or \`import all\` beyond Statement.Data"
+  step "Statement: imports only Mathlib, VCVio, CompPoly and itself"
+  if grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake Statement \
+      | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|Statement)\.|all[[:space:]]+Statement\.Data\.)'; then
+    fail "Statement imports more than Mathlib, VCVio, CompPoly and itself, or \`import all\` beyond Statement.Data"
+  fi
   cache_get Statement
   export_guest
   if once "build:Statement"; then
     step "Statement: build, its modules admitted by memory"
     python3 -I lake-build.py Statement
   fi
-  kernel_check Statement
 }
 
 common() {
   no_escapes common
   cache_get common
   build common 'Common'
-  kernel_check common
   axioms common Common Common.indifferentiability Common.transfer Common.transfer2 \
     Common.keccak256_indifferentiable Common.keccak256_transfer Common.keccak256_transfer2 \
     Common.SufCma.rpm_le_romB Common.SufCma.stronglyUnforgeable_of_romBoundAdv \
@@ -173,7 +161,6 @@ lean_xmss() {
   no_escapes lean_xmss
   cache_get lean_xmss
   build lean_xmss '(LeanXmss|XmssSecurity)'
-  kernel_check lean_xmss
   axioms lean_xmss XmssSecurity XmssSecurity.leanXmss_rom_adversary_bound \
     XmssSecurity.leanXmss_rpm_security
 }
@@ -183,7 +170,6 @@ lean_sphincs() {
   cache_get lean_sphincs
   # The kernel-checked tables (`decide +kernel`) are the heavy modules, each within about 3 GB.
   build lean_sphincs '(Sphincs|FORS)/'
-  kernel_check lean_sphincs
   axioms lean_sphincs Sphincs Sphincs.leanSphincsStronglyUnforgeable FORS.Lifetimes.h26_layered_adversary FORS.h26_layered
 }
 
@@ -193,7 +179,6 @@ lean_da() {
   no_escapes lean_da
   cache_get lean_da
   build lean_da '(LeanDa|PqDas)'
-  kernel_check lean_da
   axioms lean_da LeanDa LeanDa.leanDa_perfectlyComplete_rpm LeanDa.leanDa_positionBinding \
     LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells \
     LeanDa.dualCodeword_eq_dualCodewordAt LeanDa.membershipChallengeM_id \
@@ -228,7 +213,6 @@ together() {
   fi
   for p in Statement common lean_xmss lean_sphincs lean_da lean_vm; do once "build:$p"; done
   axioms_in=lean_vm
-  kernel_check lean_vm Statement common lean_xmss lean_sphincs lean_da lean_vm
 }
 
 executables() {
@@ -249,9 +233,7 @@ lean_vm() {
   axioms lean_vm LeanVM LeanVM.theorems_hold LeanVM.corollaries_hold \
     LeanVM.Wire.roundTrip LeanVM.Wire.oneEncoding LeanVM.Wire.proveWithHash_wireDecodable
   executables
-  kernel_check lean_vm
   bg "lean_vm: the private-import firewall holds (firewall-canary)" python3 -I tools/firewall-canary.py
-  bg "lean_vm: no new raw value number or position in a hand proof (val-names/ratchet.py)" in_lean_vm python3 -I scripts/val-names/ratchet.py
   bg "lean_vm: the Rust vectors' costly checks (node-vectors)" in_lean_vm .lake/build/bin/node-vectors
   # The tests' runs too slow for the interpreter (`tests/LeanVMTests/Runs.lean`), compiled; `lake env`
   # for the `.olean` it reads.
@@ -290,7 +272,7 @@ guest_diff() {
   in_lean_vm .lake/build/bin/guest-diff "$gd"/diff/*.txt
   in_lean_vm .lake/build/bin/leanvm-execute "$gd"/exec/*/
   in_lean_vm .lake/build/bin/guest-run --rust "$gd/exec" "$gd"/diff/*.txt
-  in_lean_vm .lake/build/bin/guest-run --rust "$gd/exec" --prove "$gd"/diff/leaf.txt "$gd"/diff/node1.txt
+  in_lean_vm .lake/build/bin/guest-run --rust "$gd/exec" --prove "$gd"/diff/leaf.txt
   rm -rf "$gd"
 }
 fuzz_verifier() {

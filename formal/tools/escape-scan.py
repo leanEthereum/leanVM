@@ -14,9 +14,6 @@ Fails, listing each hit as `file:line: text`, on any of these outside comments:
   past `addDecl`: `addConstAsync`, `commitConst`, `Kernel.Environment.add`, `setEnv` (`ALLOWED` lists
   the benign uses).
 
-A scan of the sources cannot see an option or a call that meta code assembles: `kernel-check.py`, which replays every
-built module through the kernel, catches a declaration that skipped it however it was added.
-
 Comments (`--` to the end of the line, `/- ... -/` nested, docstrings included) are blanked
 before the search, keeping the lines, so a forbidden word in a comment passes and one in code
 after a comment on the same line does not. String, raw string (`r"..."`, `r#"..."#`) and character

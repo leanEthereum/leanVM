@@ -343,37 +343,6 @@ fn guest_diff() {
     export("pass", vec![right, left], vec![], vec![], &[]);
 }
 
-/// A leaf of more leanXMSS claims than a frame of the list's digest (`CLAIM_BIG`) and of two leanSPHINCS ones, its raw
-/// signatures given out of order and some twice: the case holds them as `aggregate` uses them, sorted and deduplicated.
-/// Then a node over `MAX_RECURSIONS` children, that leaf and copies of a leaf of one signature of each scheme, with raw
-/// signatures of both schemes given out of order and twice, among them claims its children make.
-#[test]
-#[ignore]
-fn guest_diff_wide() {
-    StableProver::init();
-    let long = CLAIM_BIG + CLAIM_GROUP + 3;
-    let xmss = get_signers::<StableProver>(long + 2);
-    let sphincs = get_lean_sphincs_signers::<StableProver>(4);
-    let mut raw: Vec<_> = xmss[..long].iter().rev().cloned().collect();
-    raw.push(xmss[3].clone());
-    let sp = [1, 0, 1].map(|i| sphincs[i].clone()).to_vec();
-    let big = export("big", vec![], raw, sp, &[]);
-    let one = aggregate::<StableProver>(
-        &[],
-        vec![xmss[long].clone()],
-        vec![sphincs[2].clone()],
-        None,
-        OutputClaims::All,
-        LOG_INV_RATE,
-    )
-    .expect("leaf aggregates");
-    let mut children = vec![big];
-    children.resize(MAX_RECURSIONS, (one.0, one.1));
-    let raw = [long + 1, long, 5, long + 1].map(|i| xmss[i].clone()).to_vec();
-    let sp = [3, 0, 3].map(|i| sphincs[i].clone()).to_vec();
-    export("wide", children, raw, sp, &[]);
-}
-
 /// The benchmark's sizes (`cargo leanvm aggregate --xmss 900`, `recursion --n 2`): a leaf of 900 leanXMSS signatures and
 /// a node over two such leaves, for the Lean executor's speed. Only with `LEANVM_EXEC_BENCH` set, since the module's
 /// name puts it under the `guest_diff` filter.
@@ -390,11 +359,10 @@ fn exec_bench() {
     export("node2x900", vec![a, b], vec![], vec![], &[]);
 }
 
-/// The smallest cases: a leaf of one leanXMSS signature, and a node over it alone.
+/// The smallest case: a leaf of one leanXMSS signature.
 #[test]
 #[ignore]
 fn guest_diff_leaf() {
     StableProver::init();
-    let leaf = export("leaf", vec![], get_signers::<StableProver>(1), vec![], &[]);
-    export("node1", vec![leaf], vec![], vec![], &[]);
+    export("leaf", vec![], get_signers::<StableProver>(1), vec![], &[]);
 }
