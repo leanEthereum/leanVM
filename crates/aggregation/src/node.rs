@@ -135,19 +135,18 @@ pub fn aggregate<P: Prover>(
         ],
     );
     hints.push("fs_seed", fs_seed().to_vec());
-    // Without children, each raw signature's slot rides its own hint (`coverage_raw`); with them, the coverage
-    // transcript's commitments carry the slots, then its nonce (`coverage_committed`).
-    if children.is_empty() {
-        // A stream of its own per loop: the executor runs a loop that pops one in parallel segments.
-        for (name, slots) in [
-            ("raw_index", &cover.lean_xmss.raw),
-            ("sp_raw_index", &cover.lean_sphincs.raw),
-        ] {
-            for &slot in slots {
-                hints.push(name, vec![count(slot)]);
-            }
+    // Each raw signature's slot rides its own hint (`raw_signatures`), a stream of its own per loop: the executor runs
+    // a loop that pops one in parallel segments. With children, the coverage transcript's commitments carry the slots
+    // too, then its nonce (`coverage_committed`).
+    for (name, slots) in [
+        ("raw_index", &cover.lean_xmss.raw),
+        ("sp_raw_index", &cover.lean_sphincs.raw),
+    ] {
+        for &slot in slots {
+            hints.push(name, vec![count(slot)]);
         }
-    } else {
+    }
+    if !children.is_empty() {
         let (commitments, raw_groups, nonce) = claim_commitments(&cover, children);
         for groups in raw_groups {
             hints.push("raw_groups", vec![count(groups)]);

@@ -31,12 +31,13 @@ pub(super) fn whir_levels(mu: usize, log_inv_rate: usize) -> Option<(verifier::W
 }
 
 /// The path bits a query's Merkle walk dispatches on at a time, the guest's `QW` (`walk_path`).
-pub(super) const QUERY_WINDOW_BITS: usize = 6;
+pub(super) const QUERY_WINDOW_BITS: usize = 5;
 /// The cells `decode_query_windows` holds a squeezed word's windows in, the guest's `QUERY_WINDOWS_CAP`.
-pub(super) const QUERY_WINDOWS_CAP: usize = 36;
+pub(super) const QUERY_WINDOWS_CAP: usize = 48;
 
 /// The depth of the cap a level's paths are walked into, which leaves the walked part whole windows of
-/// [`QUERY_WINDOW_BITS`] bits: at least two levels deep, and from `log2(queries) - 5` to five levels below that.
+/// [`QUERY_WINDOW_BITS`] bits: at least two levels deep, and from `log2(queries) - (QUERY_WINDOW_BITS - 1)` to
+/// `QUERY_WINDOW_BITS - 1` levels below that.
 pub(super) fn merkle_cap_depth(queries: usize, depth: usize) -> usize {
     let near = (queries.next_power_of_two().ilog2() as usize)
         .saturating_sub(QUERY_WINDOW_BITS - 1)

@@ -231,8 +231,13 @@ KC_LOCAL = 4
 KC_FLIPS = 5
 KC_MU = 6
 KC_SIZE = KC_MU + KECCAK_PACK
-# A layer's rounds over packs and segments: tau - 3 < 32 of them, an arm each count.
-KECCAK_Y_ARMS = 32
+# A layer's rounds over packs and segments, y = tau - 3 < 2^KR_Y_BITS of them: KR_STEP a loop
+# step, the y mod KR_STEP left an unrolled arm each. A step's record is the sponge's capacity,
+# then the claim.
+KR_Y_BITS = 5
+KR_STEP_LOG = 2
+KR_STEP = 2 ** KR_STEP_LOG
+KR_REC = FS_CELLS + 1
 
 # ------------------------------------------------- the stacked WHIR opening
 # The opening is dispatched by the certified committed log-size m through `match`,
@@ -295,6 +300,7 @@ SEL_NIBBLES = (MAX_STACK_LOG + 3) // 4  # four selector bits share one table loo
 SEL_EQ_STRIDE = 64                      # a nibble's eq tables over its top 1..4 coords, strided
 EQ_CHAIN_ARMS = SIZE_BITS + QKECCAK_SLOT_LOG + 1  # eq prefix chain lengths
 SEL_TAB_NIBBLES = (SIZE_BITS + 3) // 4  # nibbles of a bus selector run
+SEL_SHARES = SEL_SHARES_PLACEHOLDER  # g^(u 16^j) at 16 j + u, j < SEL_TAB_NIBBLES: a nibble's share of g^offset
 SEL_TAB_EQ_STRIDE = 32                  # a nibble's eq tables over its low 1..4 coords, padded
 RANK_KEYS_AT = SIZE_BITS + 16 * SEL_TAB_NIBBLES  # where exponent_tables keeps the rank keys
 RANK_STRIDE = N_BLOCKS + N_COMMITTED_COLS  # above any block or column index
@@ -859,7 +865,6 @@ def query_window_split(word, wins, parts, at: Const, start: Const, width: Const,
     return
 
 
-@inline
 def decode_query_windows(squeezed_word, positions_out, win_ptrs_out, depth: Const, cap_depth: Const):
     # The squeezed word's bits are advice HERE, in windows: a window of w bits is hinted as g^n, n the integer
     # they spell, range checked below 2^w and read back as n's bit pattern. Each depth-bit group is a query
@@ -1363,14 +1368,16 @@ def walk_path(n0, n1, wins, cap, flags, path_depth: Const, cap_depth: Const):
     # The path, a window of QW levels a dispatch (`decode_query_windows`): each arm knows its
     # levels' order bits, so it hashes the running node against the sibling its hinted pair holds.
     # Sized to the depth, a multiple of QW but where the depth caps the cap.
-    if const(path_depth == 6):
-        path = StackBuf(12)
-    elif const(path_depth == 12):
-        path = StackBuf(24)
-    elif const(path_depth == 18):
-        path = StackBuf(36)
-    elif const(path_depth == 24):
-        path = StackBuf(48)
+    if const(path_depth == 5):
+        path = StackBuf(10)
+    elif const(path_depth == 10):
+        path = StackBuf(20)
+    elif const(path_depth == 15):
+        path = StackBuf(30)
+    elif const(path_depth == 20):
+        path = StackBuf(40)
+    elif const(path_depth == 25):
+        path = StackBuf(50)
     else:
         path = StackBuf(LIG_PATH_CAP)
     hint_witness(path[0:2 * path_depth], "merkle_children")
@@ -1560,15 +1567,16 @@ def residual_query(basis_chain, row_d, hs, n_cols: Const, n_hs: Const, hs_bits: 
     return prefix_eq, basis_chain * novel_eval(hs, ws, n_hs, hs_bits)
 
 
-def level_residual(positions, row_d, hs, lam_inv, n_queries: Const, n_cols: Const, n_hs: Const, hs_bits: Const):
-    # A non-final level's residual chains at the terminal point, RES_BATCH queries an
-    # iteration sharing the row's reads and constants, then the rest one at a time. Query
-    # q is weighted lam^q: each chain runs h <- (h + term_q) * lam_inv, ending
-    # at lam^-n * sum_q lam^q term_q.
-    chain = HeapBuf(GEN ** (2 * (n_queries // RES_BATCH + 1)))
+def level_residual(positions, row_d, hs, lam_inv, batches_g, rest_g, n_cols: Const, n_hs: Const, hs_bits: Const):
+    # A non-final level's residual chains at the terminal point, over n = RES_BATCH b + r
+    # queries, batches_g = g^b and rest_g = g^r: RES_BATCH queries an iteration sharing the
+    # row's reads and constants, then the r left one at a time. The counts are runtime, so
+    # levels of one column shape share this code. Query q is weighted lam^q: each chain
+    # runs h <- (h + term_q) * lam_inv, ending at lam^-n * sum_q lam^q term_q.
+    chain = HeapBuf((batches_g * rest_g * GEN) ** 2)
     chain[GEN ** 0] = 0
     chain[GEN ** 1] = 0
-    for xr in mul_range(1, GEN ** (n_queries // RES_BATCH)):
+    for xr in mul_range(1, batches_g):
         batch = positions * xr ** RES_BATCH
         rec = chain * xr * xr
         h = rec[GEN ** 0]
@@ -1579,23 +1587,15 @@ def level_residual(positions, row_d, hs, lam_inv, n_queries: Const, n_cols: Cons
             h_high = (h_high + high_q) * lam_inv
         rec[GEN ** 2] = h
         rec[GEN ** 3] = h_high
-    rec = chain * GEN ** (2 * (n_queries // RES_BATCH))
-    h = rec[GEN ** 0]
-    h_high = rec[GEN ** 1]
-    if const(n_queries % RES_BATCH != 0):
-        rest = HeapBuf(GEN ** (2 * (n_queries % RES_BATCH + 1)))
-        rest[GEN ** 0] = h
-        rest[GEN ** 1] = h_high
-        tail = positions * (GEN ** (n_queries // RES_BATCH)) ** RES_BATCH
-        for xq in mul_range(1, GEN ** (n_queries % RES_BATCH)):
-            rq = rest * xq * xq
-            eq_q, high_q = residual_query(tail[xq], row_d, hs, n_cols, n_hs, hs_bits)
-            rq[GEN ** 2] = (rq[GEN ** 0] + eq_q) * lam_inv
-            rq[GEN ** 3] = (rq[GEN ** 1] + high_q) * lam_inv
-        end = rest * GEN ** (2 * (n_queries % RES_BATCH))
-        h = end[GEN ** 0]
-        h_high = end[GEN ** 1]
-    return h, h_high
+    rest = chain * batches_g ** 2
+    tail = positions * batches_g ** RES_BATCH
+    for xq in mul_range(1, rest_g):
+        rq = rest * xq * xq
+        eq_q, high_q = residual_query(tail[xq], row_d, hs, n_cols, n_hs, hs_bits)
+        rq[GEN ** 2] = (rq[GEN ** 0] + eq_q) * lam_inv
+        rq[GEN ** 3] = (rq[GEN ** 1] + high_q) * lam_inv
+    end = rest * rest_g ** 2
+    return end[GEN ** 0], end[GEN ** 1]
 
 
 def level_positions(word0, fs0, fs1, fs2, fs3, fs4, positions, win_ptrs, squeezes: Const, depth: Const, cap_depth: Const):
@@ -1632,9 +1632,12 @@ def level_queries(lam, lam_inv, coefs, hs, positions, win_ptrs, n_queries: Const
     flags = HeapBuf(GEN ** (2 ** cap_depth))
     hint_witness(flags[0:2 ** cap_depth], "merkle_cap_active")
     root_0, root_1 = verify_merkle_cap(cap, flags, cap_depth)
-    # Two queries an iteration: every further copy of a query costs its code and its path's
-    # jump tables.
-    batch = 2
+    # Two base-field queries an iteration, one extension-field one: every further copy of
+    # a query costs its code and its path's jump tables.
+    if const(base == 1):
+        batch = 2
+    else:
+        batch = 1
     batched = opening_queries(cap, flags, lam_inv, coefs, hs, positions, win_ptrs, GEN ** (n_queries // batch), n_queries % batch, batch, base, folds, leaf_cells, depth, cap_depth, mu, mu * (mu + 1) // 2, n_hs, hs_bits, final)
     return root_0, root_1, batched, lam ** n_queries
 
@@ -1857,7 +1860,7 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
     for lvl in unroll(0, last):
         ml = m_idx * LIG_MAX_LEVELS + lvl
         # level_scales carries the lam^(n + 2) that the chains' 1/lam steps leave out.
-        h, h_high = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_residual(query_positions * GEN ** LIG_POS_OFF[ml], basis_d * GEN ** (lvl * LIG_LOG_MSG_COLS_CAP), level_hs * GEN ** (lvl * 2 ** HIGH_BITS_CAP), level_lam_invs[GEN ** lvl], LIG_QUERIES[ml + r * LIG_RATE_STRIDE], LIG_LOG_MSG_COLS[ml], LIG_FOLDS[ml], LIG_HIGH_BITS[ml]))
+        h, h_high = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_residual(query_positions * GEN ** LIG_POS_OFF[ml], basis_d * GEN ** (lvl * LIG_LOG_MSG_COLS_CAP), level_hs * GEN ** (lvl * 2 ** HIGH_BITS_CAP), level_lam_invs[GEN ** lvl], GEN ** (LIG_QUERIES[ml + r * LIG_RATE_STRIDE] // RES_BATCH), GEN ** (LIG_QUERIES[ml + r * LIG_RATE_STRIDE] % RES_BATCH), LIG_LOG_MSG_COLS[ml], LIG_FOLDS[ml], LIG_HIGH_BITS[ml]))
         # accumulate lam^(n+2) * prod_t b_t * (the level's residual chain) into the total,
         # and lam^(n+2) * (the challenges after the level) * (its high chain) into the claim
         acc = inner_chain * GEN ** (2 * lvl)
@@ -2928,7 +2931,7 @@ def keccak_rounds(fs0, fs1, fs2, fs3, fs4, run, prev, pt, r: Const):
     return o0, o1, o2, o3, o4, o_run
 
 
-def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, y_g, claim, out, iota, first: Const):
+def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, y_g, step_g, rem_g, claim, out, iota, first: Const):
     # One layer (verifier::keccak::verify_layer): the claim on the states after
     # a round becomes one on the states before it. A claim's position weights are
     # never written out: they are the transpose of the linear layer applied to a
@@ -2987,11 +2990,27 @@ def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, y_g, claim, out, iota, first: 
     value = product[KECCAK_PROD_BITS - 1]
     for k in unroll(1, KECCAK_PROD_BITS):
         value = value * s + product[KECCAK_PROD_BITS - 1 - k]
-    # The pack and the segment, a runtime number y of rounds: an unrolled arm per y, the
-    # sponge in the frame.
+    # The pack and the segment, a runtime number y of rounds: KR_STEP a loop step, then the
+    # rest an unrolled arm each, the sponge in the frame within a step.
     prev_point = claim[GEN ** KC_POINT]
     point = HeapBuf(y_g)
-    sp0, sp1, sp2, sp3, sp4, value = match(log(y_g), range(0, KECCAK_Y_ARMS), lambda r: keccak_rounds(sp[8], sp[9], sp[10], sp[11], sp[12], value, prev_point, point, r))
+    rounds = HeapBuf((step_g * GEN) ** KR_REC)
+    fs_store(rounds, 0, 1, sp)
+    rounds[GEN ** FS_CELLS] = value
+    for xs in mul_range(1, step_g):
+        rd = rounds * xs ** KR_REC
+        at = xs ** KR_STEP
+        s0, s1, s2, s3, s4, run = keccak_rounds(rd[GEN ** 0], rd[GEN ** 1], rd[GEN ** 2], rd[GEN ** 3], rd[GEN ** 4], rd[GEN ** FS_CELLS], prev_point * at, point * at, KR_STEP)
+        nxt = rd * GEN ** KR_REC
+        nxt[GEN ** 0] = s0
+        nxt[GEN ** 1] = s1
+        nxt[GEN ** 2] = s2
+        nxt[GEN ** 3] = s3
+        nxt[GEN ** 4] = s4
+        nxt[GEN ** FS_CELLS] = run
+    last = rounds * step_g ** KR_REC
+    rest = step_g ** KR_STEP
+    sp0, sp1, sp2, sp3, sp4, value = match(log(rem_g), range(0, KR_STEP), lambda r: keccak_rounds(last[GEN ** 0], last[GEN ** 1], last[GEN ** 2], last[GEN ** 3], last[GEN ** 4], last[GEN ** FS_CELLS], prev_point * rest, point * rest, r))
     sp = fs_cap(sp0, sp1, sp2, sp3, sp4)
     # The bit position: degree three, the weights being one more multilinear factor.
     local = HeapBuf(KECCAK_LOCAL_BITS)
@@ -3149,8 +3168,21 @@ def verify_keccak(fs0, fs1, fs2, fs3, fs4, tau_g, chi, output_lanes, z_vals, sli
     no_rate = StackBuf(8)
     pack_g = tau_g * INV_GEN ** KECCAK_PACK_LOG
     y_g = pack_g * GEN ** KECCAK_SEG_LOG
-    # A layer runs y = log(y_g) rounds, an arm each (y = tau - 3 < 32 as tau < COUNT_BITS).
-    assert log(y_g) < KECCAK_Y_ARMS
+    # A layer runs y = log(y_g) rounds, KR_STEP a loop step and the rest unrolled: y_g =
+    # step_g^KR_STEP rem_g, from y's bits, pinned boolean and tied back (y = tau - 3 <
+    # 2^KR_Y_BITS as tau < COUNT_BITS).
+    y_bits = StackBuf(KR_Y_BITS)
+    hint_decompose_bits_exponent(y_bits, y_g, KR_Y_BITS)
+    for j in unroll(0, KR_Y_BITS):
+        bit = y_bits[j]
+        y_bits[j] = bit * bit
+    step_g = GEN ** 0
+    for j in unroll(KR_STEP_LOG, KR_Y_BITS):
+        step_g *= 1 + y_bits[j] * (1 + GEN ** (2 ** (j - KR_STEP_LOG)))
+    rem_g = GEN ** 0
+    for j in unroll(0, KR_STEP_LOG):
+        rem_g *= 1 + y_bits[j] * (1 + GEN ** (2 ** j))
+    assert step_g ** KR_STEP * rem_g == y_g
     out_point = z_vals
     in_point = z_vals * GEN ** QKECCAK_VARS_CAP
     for i in unroll(0, KECCAK_PACK_LOG):
@@ -3230,9 +3262,9 @@ def verify_keccak(fs0, fs1, fs2, fs3, fs4, tau_g, chi, output_lanes, z_vals, sli
                 flipped += flips[KECCAK_IOTA_IDX[t]]
             iota += segment_tree[2 ** KECCAK_SEG_LOG - 2 + m] * flipped
         if step == 0:
-            fs0, fs1, fs2, fs3, fs4 = keccak_layer(fs0, fs1, fs2, fs3, fs4, value_rate[0], value_rate[1], y_g, claim, claim * GEN ** KC_SIZE, iota, 1)
+            fs0, fs1, fs2, fs3, fs4 = keccak_layer(fs0, fs1, fs2, fs3, fs4, value_rate[0], value_rate[1], y_g, step_g, rem_g, claim, claim * GEN ** KC_SIZE, iota, 1)
         else:
-            fs0, fs1, fs2, fs3, fs4 = keccak_layer(fs0, fs1, fs2, fs3, fs4, 0, 0, y_g, claim, claim * GEN ** KC_SIZE, iota, 0)
+            fs0, fs1, fs2, fs3, fs4 = keccak_layer(fs0, fs1, fs2, fs3, fs4, 0, 0, y_g, step_g, rem_g, claim, claim * GEN ** KC_SIZE, iota, 0)
 
     # ---- the outputs, whose instance weights are an eq already ----
     # Their position weights are a word's, so the 64 slices are only needed as
@@ -3391,7 +3423,7 @@ def certify_placement(kappa_base, g_squares):
     return g_total, col_off_g
 
 
-def column_selector(offset, sel_eq, sel_g, kappa: Const):
+def column_selector(offset, sel_eq, kappa: Const):
     # The column's selector at the complete opening point, from hinted g-power digits
     # of its offset's nibbles at and above kappa // 4, each range-checked below 16.
     # Pinning their weighted product to the certified offset makes them its own
@@ -3413,10 +3445,10 @@ def column_selector(offset, sel_eq, sel_g, kappa: Const):
         assert log(d) < 16
         if const(j == kappa // 4):
             selector = sel_eq[GEN ** (SEL_EQ_STRIDE * j + 16 * (width - 1)) * d]
-            rebuilt = sel_g[GEN ** (16 * j) * d]
+            rebuilt = lookup(SEL_SHARES, d, 16 * j)
         else:
             selector *= sel_eq[GEN ** (SEL_EQ_STRIDE * j + 16 * (width - 1)) * d]
-            rebuilt *= sel_g[GEN ** (16 * j) * d]
+            rebuilt *= lookup(SEL_SHARES, d, 16 * j)
     assert rebuilt == offset
     return selector
 
@@ -3463,12 +3495,11 @@ def check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem
     for i in unroll(0, N_TABLES + 2):
         kb[i] = kappa_base[GEN ** i]
     sel_eq = selector_tables(point, point1)
-    sel_g = g_squares * GEN ** SIZE_BITS  # exponent_tables' constant nibble shares
     selectors = StackBuf(N_COMMITTED_COLS)
     for c in unroll(0, N_COMMITTED_COLS):
         offset = col_offsets[GEN ** c]
         kappa_g = kb[COL_KAPPA_SRC[c]] * GEN ** COL_KAPPA_ADJ[c]
-        selectors[c] = match(log(kappa_g), range(0, N_COLUMN_LOGS), lambda kappa: column_selector(offset, sel_eq, sel_g, kappa))
+        selectors[c] = match(log(kappa_g), range(0, N_COLUMN_LOGS), lambda kappa: column_selector(offset, sel_eq, kappa))
 
     inner_sum = inner_total
     lam_pow = lam_cl  # the pool's powers, as verify_sub batched it
@@ -4334,12 +4365,10 @@ def list_split(n_g):
     return bigs, groups, rest
 
 
-def coverage_raw(n_lx_g, n_xdup_g, n_raw_x_g, n_sp_g, n_sdup_g, n_raw_s_g, n_total_g, byte_bits, lx_tags: StackBuf(LX_N_TAGS)):
-    # A node without children: each raw signature is verified against the slot its hinted
-    # index names and marks it, write-once memory rejecting a second mark, and the count
-    # (`main`) rejecting a missed one, so the signatures take the slots one-to-one. An
-    # index is an offset into its scheme's region of the marks, bounded by that region's
-    # size, so no signature reaches the other scheme's claims. Returns the declared digests.
+def coverage_raw(n_lx_g, n_xdup_g, n_sp_g, n_sdup_g):
+    # A node without children: its tables, each scheme's declared claims and then its
+    # duplicate slots, which the raw signatures take one-to-one (`raw_signatures`).
+    # Returns the declared digests and the tables.
     lx_slots_g = n_lx_g * n_xdup_g
     sp_slots_g = n_sp_g * n_sdup_g
     tx = HeapBuf(lx_slots_g ** 4)
@@ -4348,24 +4377,10 @@ def coverage_raw(n_lx_g, n_xdup_g, n_raw_x_g, n_sp_g, n_sdup_g, n_raw_s_g, n_tot
     ts = HeapBuf(sp_slots_g ** 4)
     s_0, s_1, s_p = claim_list_hash(ts, n_sp_g, 0, 1, 0)
     ds_0, ds_1, ds_p = claim_list_hash(ts * n_sp_g ** 4, n_sdup_g, 0, 1, 0)
-    marks = HeapBuf(n_total_g)
-    sp_marks = marks * lx_slots_g
-    for xi in mul_range(1, n_raw_x_g):
-        idx = hint_witness("raw_index")
-        # The runtime bound is small by `assert_gpow(n_total_g)` (its log below the memory
-        # size): without it an index could reach past `marks`, which is the whole bijection.
-        assert log(idx) < log(lx_slots_g)
-        marks[idx] = xi
-        verify_lean_xmss(tx * (idx ** 4), lx_tags)
-    for xj in mul_range(1, n_raw_s_g):
-        off = hint_witness("sp_raw_index")
-        assert log(off) < log(sp_slots_g)
-        sp_marks[off] = n_raw_x_g * xj
-        verify_sig_lean_sphincs(ts * (off ** 4), byte_bits)
-    return x_0, x_1, s_0, s_1
+    return x_0, x_1, s_0, s_1, tx, ts
 
 
-def coverage_committed(n_lx_g, n_xdup_g, n_raw_x_g, n_sp_g, n_sdup_g, n_raw_s_g, n_children_g, n_total_g, ch, g_squares, byte_bits, lx_tags: StackBuf(LX_N_TAGS)):
+def coverage_committed(n_lx_g, n_xdup_g, n_raw_x_g, n_sp_g, n_sdup_g, n_raw_s_g, n_children_g, n_total_g, ch, g_squares):
     # A node with children: each scheme's slots are, with multiplicity, its sources (the
     # raw signatures' claims, then the children's lists). Both sides are committed before
     # the challenges are drawn: the slots and the children's lists by their digests, the
@@ -4374,8 +4389,8 @@ def coverage_committed(n_lx_g, n_xdup_g, n_raw_x_g, n_sp_g, n_sdup_g, n_raw_s_g,
     # side is then a product of alpha + c0 + beta1 c1 + beta2 c2 + beta3 c3 over its
     # claims c, which differs between two different multisets, both of degree at most
     # n_total in the challenges (`main`'s count), except with probability n_total / |E|
-    # per scheme. Returns the declared digests, each scheme's slot product, its raw
-    # source product, and the children's commitments.
+    # per scheme. Returns the declared digests, each scheme's slot product, the tables
+    # (`raw_signatures`), the children's commitments and the raw signatures' indices.
     #
     # The commitments, in groups of four cells: the two declared digests, the two
     # duplicate digests, each child's two list digests, then the raw indices of each
@@ -4444,27 +4459,53 @@ def coverage_committed(n_lx_g, n_xdup_g, n_raw_x_g, n_sp_g, n_sdup_g, n_raw_s_g,
     assert lx_list[1] == commits[GEN ** 1]
     assert sp_list[0] == commits[GEN ** 2]
     assert sp_list[1] == commits[GEN ** 3]
-    # A raw signature is verified against the slot its committed index names, a slot of
-    # its own scheme's table: the bound keeps it among the slots the digests commit.
-    lx_table = lx_list[3]
-    raw_x_prod = HeapBuf(n_raw_x_g * GEN)
-    raw_x_prod[GEN ** 0] = 1
+    return lx_list[0], lx_list[1], sp_list[0], sp_list[1], lx_list[2], sp_list[2], lx_list[3], sp_list[3], child_commits, raw_x_idx, raw_s_idx
+
+
+def raw_signatures(n_raw_x_g, n_raw_s_g, tx, ts, lx_slots_g, sp_slots_g, n_total_g, x_idx, s_idx, ch, n_children_g, byte_bits, lx_tags: StackBuf(LX_N_TAGS)):
+    # Each raw signature is verified against the slot its hinted index names, an offset into
+    # its scheme's table bounded by that table's size, so no signature reaches the other
+    # scheme's claims. The bound is small by `assert_gpow(n_total_g)` (its log below the
+    # memory size). Without children the signature marks its slot, write-once memory
+    # rejecting a second mark and `main`'s count a missed one, so the signatures take the
+    # slots one-to-one; with them its index is the one the coverage transcript committed,
+    # and the slot's claim is a factor of its scheme's source product. Returns the two
+    # source products, 1 without children.
+    mark_run = StackBuf(1)
+    if n_children_g == 1:
+        marks_buf = HeapBuf(n_total_g)
+        mark_run[0] = marks_buf
+    else:
+        mark_run[0] = 0
+    marks = mark_run[0]
+    sp_marks = marks * lx_slots_g
+    px = HeapBuf(n_raw_x_g * GEN)
+    px[GEN ** 0] = 1
     for xi in mul_range(1, n_raw_x_g):
-        idx = raw_x_idx[xi]
+        idx = hint_witness("raw_index")
         assert log(idx) < log(lx_slots_g)
-        signer = lx_table * (idx ** 4)
+        signer = tx * (idx ** 4)
         verify_lean_xmss(signer, lx_tags)
-        raw_x_prod[xi * GEN] = raw_x_prod[xi] * heap_claim_factor(signer, ch)
-    sp_table = sp_list[3]
-    raw_s_prod = HeapBuf(n_raw_s_g * GEN)
-    raw_s_prod[GEN ** 0] = 1
+        if n_children_g == 1:
+            marks[idx] = xi
+            px[xi * GEN] = 1
+        else:
+            assert idx == x_idx[xi]
+            px[xi * GEN] = px[xi] * heap_claim_factor(signer, ch)
+    ps = HeapBuf(n_raw_s_g * GEN)
+    ps[GEN ** 0] = 1
     for xj in mul_range(1, n_raw_s_g):
-        off = raw_s_idx[xj]
+        off = hint_witness("sp_raw_index")
         assert log(off) < log(sp_slots_g)
-        signer = sp_table * (off ** 4)
+        signer = ts * (off ** 4)
         verify_sig_lean_sphincs(signer, byte_bits)
-        raw_s_prod[xj * GEN] = raw_s_prod[xj] * heap_claim_factor(signer, ch)
-    return lx_list[0], lx_list[1], sp_list[0], sp_list[1], lx_list[2], sp_list[2], raw_x_prod[n_raw_x_g], raw_s_prod[n_raw_s_g], child_commits
+        if n_children_g == 1:
+            sp_marks[off] = n_raw_x_g * xj
+            ps[xj * GEN] = 1
+        else:
+            assert off == s_idx[xj]
+            ps[xj * GEN] = ps[xj] * heap_claim_factor(signer, ch)
+    return px[n_raw_x_g], ps[n_raw_s_g]
 
 
 def observe_groups(cells, n_groups_g):
@@ -4851,20 +4892,23 @@ def main():
     # (`coverage_committed`, the children's half in the loop below). The statement
     # carries the two declared digests side by side.
     ch = HeapBuf(4)  # the multiset challenges
-    cov = StackBuf(9)  # the declared digests, the slot and raw source products, then the children's commitments
+    # The declared digests, the slot products, the tables, the children's commitments, then the raw indices.
+    cov = StackBuf(11)
     if n_children_g == 1:
-        r0, r1, r2, r3 = coverage_raw(n_lx_g, n_xdup_g, n_raw_x_g, n_lean_sphincs_g, n_sdup_g, n_raw_s_g, n_total_g, byte_bits, lx_tags)
+        r0, r1, r2, r3, r4, r5 = coverage_raw(n_lx_g, n_xdup_g, n_lean_sphincs_g, n_sdup_g)
         cov[0] = r0
         cov[1] = r1
         cov[2] = r2
         cov[3] = r3
         cov[4] = 1
         cov[5] = 1
-        cov[6] = 1
-        cov[7] = 1
+        cov[6] = r4
+        cov[7] = r5
         cov[8] = 0
+        cov[9] = 0
+        cov[10] = 0
     else:
-        c0, c1, c2, c3, c4, c5, c6, c7, c8 = coverage_committed(n_lx_g, n_xdup_g, n_raw_x_g, n_lean_sphincs_g, n_sdup_g, n_raw_s_g, n_children_g, n_total_g, ch, g_squares, byte_bits, lx_tags)
+        c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10 = coverage_committed(n_lx_g, n_xdup_g, n_raw_x_g, n_lean_sphincs_g, n_sdup_g, n_raw_s_g, n_children_g, n_total_g, ch, g_squares)
         cov[0] = c0
         cov[1] = c1
         cov[2] = c2
@@ -4874,11 +4918,14 @@ def main():
         cov[6] = c6
         cov[7] = c7
         cov[8] = c8
+        cov[9] = c9
+        cov[10] = c10
     xd_0 = cov[0]
     xd_1 = cov[1]
     sd_0 = cov[2]
     sd_1 = cov[3]
     child_commits = cov[8]
+    raw_x_p, raw_s_p = raw_signatures(n_raw_x_g, n_raw_s_g, cov[6], cov[7], lx_slots_g, lean_sphincs_slots_g, n_total_g, cov[9], cov[10], ch, n_children_g, byte_bits, lx_tags)
 
     # ---- data availability ----
     # One DA digest per child, read off its statement below, then the node's own:
@@ -4901,8 +4948,8 @@ def main():
     child_fresh = HeapBuf(n_children_g ** DEFER_SIZE)
     child_carried = HeapBuf(n_children_g ** DEFER_STMT_CELLS)
     sources = HeapBuf((n_children_g * GEN) ** 3)
-    sources[GEN ** 0] = cov[6]
-    sources[GEN ** 1] = cov[7]
+    sources[GEN ** 0] = raw_x_p
+    sources[GEN ** 1] = raw_s_p
     sources[GEN ** 2] = n_raw_x_g * n_raw_s_g
     for xc in mul_range(1, n_children_g):
         rec = sources * xc ** 3

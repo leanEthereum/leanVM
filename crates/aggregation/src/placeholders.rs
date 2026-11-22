@@ -571,6 +571,18 @@ fn field_placeholders(ph: &mut Placeholders) {
     // Coordinate basis e_i of F128 over F2 (spans the whole field): the 64 binary
     // basis vectors in each of the two tower limbs. The guest uses these vectors to
     // reconstruct a word from its 128 coordinate bits.
+    // A nibble's share of a g-power, g^(u 16^j) at 16 j + u, for the guest's SIZE_BITS = 34 (`column_selector`).
+    let mut shares = Vec::new();
+    let mut base = F128::from(g_pow(1));
+    for _ in 0..34usize.div_ceil(4) {
+        let mut share = F128::ONE;
+        for _ in 0..16 {
+            shares.push(share);
+            share *= base;
+        }
+        base = share;
+    }
+    ph.list("SEL_SHARES", shares);
     // A bit window's pattern by its value, n for n below 2^11 (`query_window`, `grind_check`).
     ph.list("WIN_PATTERNS", (0..1u64 << 11).map(|n| F128::new(n, 0)));
     ph.list(
