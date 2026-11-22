@@ -196,24 +196,68 @@ fn xor(a: Word, b: Word) -> Word {
     std::array::from_fn(|i| a[i] ^ b[i])
 }
 
-/// Run one block of instances, padded with all-zero inputs, and write its input state and the
-/// state each round applies `chi` to, all sliced, into `slot` if there is one.
-///
-/// `commit(slot, w, lanes)` receives lane `slot % 25` of the state after `depth * (slot / 25)`
-/// rounds, for instances `64 * w ..` of the block: every state a segment starts from, the output
-/// not being committed. With no slot, the run ends at the last committed state.
+/// Run `chi` and `iota` for `round` (1-based) from `u` into `state`.
+#[inline(always)]
+fn chi_iota(round: usize, u: &[Word], state: &mut [Word]) {
+    for lane in 0..STATE_LANES {
+        let (a, b, c) = (64 * lane, along(64 * lane, 1), along(64 * lane, 2));
+        // A lane's 64 positions are 512 consecutive words in each table: `chi` word by word
+        // over them, which vectorizes with plain loads (by position, it took gathers).
+        let flat = |at: usize| -> &[u64] { u[at..at + 64].as_flattened() };
+        let (ua, ub, uc) = (flat(a), flat(b), flat(c));
+        for (k, s) in state[a..a + 64].as_flattened_mut().iter_mut().enumerate() {
+            *s = ua[k] ^ (!ub[k] & uc[k]);
+        }
+    }
+    for z in (0..64).filter(|z| RC[round - 1] >> z & 1 == 1) {
+        state[z] = state[z].map(|w| !w);
+    }
+}
+
+/// Run rounds `first..=last` (1-based) from `state`, writing each round's pre-`chi` state into `slot`
+/// if given, and invoking `on_state(round, state)` after `chi` and `iota` whenever `need_final_state`
+/// is set or another round follows.
 ///
 /// # Safety
-/// `slot`, if any, is a slot of a live [`Extent`] that no other call is writing.
-pub unsafe fn block(
+/// `slot`, if any, holds disjoint rounds `first..=last` of a live [`Extent`] that no other call writes.
+#[inline(always)]
+unsafe fn run_rounds(
+    state: &mut [Word],
+    u: &mut [Word],
+    first: usize,
+    last: usize,
+    slot: Option<Slot>,
+    stream: &Stream,
+    need_final_state: bool,
+    mut on_state: impl FnMut(usize, &[Word]),
+) {
+    for round in first..=last {
+        linear(state, u, xor);
+        if let Some(slot) = slot {
+            // SAFETY: the caller guarantees disjoint ownership of round `round` of `slot`.
+            unsafe { stream.copy_uninit(slot.base.add(round * slot.stride), u.as_flattened()) };
+        }
+        if round < last || need_final_state {
+            chi_iota(round, u, state);
+            on_state(round, state);
+        }
+    }
+}
+
+/// Run one block using caller-provided `state` and `u` scratch buffers.
+///
+/// # Safety
+/// As [`block`].
+unsafe fn block_with_scratch(
     depth: usize,
     inputs: &[[u64; STATE_LANES]],
     slot: Option<Slot>,
+    state: &mut [Word],
+    u: &mut [Word],
+    stream: &Stream,
     mut commit: impl FnMut(usize, usize, &[u64; 64]),
 ) {
     assert!(inputs.len() <= BLOCK);
-    let mut state = vec![[0u64; BLOCK_WORDS]; BITS];
-    let mut u = vec![[0u64; BLOCK_WORDS]; BITS];
     let mut rows = [0u64; 64];
     for lane in 0..STATE_LANES {
         for w in 0..BLOCK_WORDS {
@@ -238,37 +282,43 @@ pub unsafe fn block(
             }
         }
     };
+    let last = if slot.is_some() { ROUNDS } else { ROUNDS - depth };
+    if let Some(slot) = slot {
+        // SAFETY: the slot holds a block of every round.
+        unsafe { stream.copy_uninit(slot.base.0, state.as_flattened()) };
+    }
+    lanes(0, state);
+    // SAFETY: forwarded from caller.
+    unsafe {
+        run_rounds(state, u, 1, last, slot, stream, slot.is_none(), |round, state| {
+            if round.is_multiple_of(depth) && round < ROUNDS {
+                lanes(round / depth, state);
+            }
+        });
+    }
+}
+
+/// Run one block of instances, padded with all-zero inputs, and write its input state and the
+/// state each round applies `chi` to, all sliced, into `slot` if there is one.
+///
+/// `commit(slot, w, lanes)` receives lane `slot % 25` of the state after `depth * (slot / 25)`
+/// rounds, for instances `64 * w ..` of the block: every state a segment starts from, the output
+/// not being committed. With no slot, the run ends at the last committed state.
+///
+/// # Safety
+/// `slot`, if any, is a slot of a live [`Extent`] that no other call is writing.
+pub unsafe fn block(
+    depth: usize,
+    inputs: &[[u64; STATE_LANES]],
+    slot: Option<Slot>,
+    commit: impl FnMut(usize, usize, &[u64; 64]),
+) {
+    let mut state = vec![[0u64; BLOCK_WORDS]; BITS];
+    let mut u = vec![[0u64; BLOCK_WORDS]; BITS];
     // A round's state is next read by the layer that proves it, long after this pass.
     let stream = Stream::new();
-    let store = |round: usize, words: &[Word]| {
-        if let Some(slot) = slot {
-            // SAFETY: the slot holds a block of every round.
-            unsafe { stream.copy_uninit(slot.base.add(round * slot.stride), words.as_flattened()) };
-        }
-    };
-    let last = if slot.is_some() { ROUNDS } else { ROUNDS - depth };
-    store(0, &state);
-    lanes(0, &state);
-    for round in 1..=last {
-        linear(&state, &mut u, xor);
-        store(round, &u);
-        for lane in 0..STATE_LANES {
-            let (a, b, c) = (64 * lane, along(64 * lane, 1), along(64 * lane, 2));
-            // A lane's 64 positions are 512 consecutive words in each table: `chi` word by word
-            // over them, which vectorizes with plain loads (by position, it took gathers).
-            let flat = |at: usize| -> &[u64] { u[at..at + 64].as_flattened() };
-            let (ua, ub, uc) = (flat(a), flat(b), flat(c));
-            for (k, s) in state[a..a + 64].as_flattened_mut().iter_mut().enumerate() {
-                *s = ua[k] ^ (!ub[k] & uc[k]);
-            }
-        }
-        for z in (0..64).filter(|z| RC[round - 1] >> z & 1 == 1) {
-            state[z] = state[z].map(|w| !w);
-        }
-        if round.is_multiple_of(depth) && round < ROUNDS {
-            lanes(round / depth, &state);
-        }
-    }
+    // SAFETY: forwarded to the caller.
+    unsafe { block_with_scratch(depth, inputs, slot, &mut state, &mut u, &stream, commit) };
 }
 
 /// [`block`]'s committed lanes, written into `slot` if there is one: slot `s` at `s * BLOCK ..`,
@@ -367,17 +417,27 @@ impl Witness {
         let padding = padding(shape, written);
         let mut extent = Extent::new(0, written);
         let slots: Vec<Slot> = (0..written).map(|g| extent.slot(g)).collect();
-        parallel::for_each(shape.n_blocks(), |g| {
-            // SAFETY: block `g` owns its slot and its instances' words of every committed lane.
-            unsafe {
-                if g < written {
-                    let stream = Stream::new();
-                    let inputs = &inputs[g * BLOCK..((g + 1) * BLOCK).min(inputs.len())];
-                    block(shape.depth, inputs, Some(slots[g]), |slot, w, lanes| {
-                        column.write(&stream, slot, g, 64 * w, lanes)
-                    });
-                } else {
-                    column.write_block(g, &padding.as_ref().expect("a padding block").1);
+        parallel::for_each_chunk(shape.n_blocks(), |lo, hi| {
+            let mut state = vec![[0u64; BLOCK_WORDS]; BITS];
+            let mut u = vec![[0u64; BLOCK_WORDS]; BITS];
+            let stream = Stream::new();
+            for g in lo..hi {
+                // SAFETY: block `g` owns its slot and its instances' words of every committed lane.
+                unsafe {
+                    if g < written {
+                        let inputs = &inputs[g * BLOCK..((g + 1) * BLOCK).min(inputs.len())];
+                        block_with_scratch(
+                            shape.depth,
+                            inputs,
+                            Some(slots[g]),
+                            &mut state,
+                            &mut u,
+                            &stream,
+                            |s, w, l| column.write(&stream, s, g, 64 * w, l),
+                        );
+                    } else {
+                        column.write_block(g, &padding.as_ref().expect("a padding block").1);
+                    }
                 }
             }
         });
@@ -401,9 +461,11 @@ impl Witness {
         });
     }
 
-    /// The witness of the first `instances` instances, rebuilt from their committed inputs.
+    /// The witness of the first `instances` instances, rebuilt from their committed states.
     ///
     /// - `committed` is laid out as `generate` writes it.
+    /// - When `committed` holds every segment's starting state, each segment is rebuilt independently
+    ///   in parallel without transposing lanes back out.
     /// - The blocks past the last input are the padding block.
     pub fn from_committed(shape: Shape, instances: usize, committed: &[F64]) -> Self {
         let n = shape.n();
@@ -411,20 +473,66 @@ impl Witness {
         let written = instances.div_ceil(BLOCK);
         let mut extent = Extent::new(0, written);
         let slots: Vec<Slot> = (0..written).map(|g| extent.slot(g)).collect();
-        parallel::for_each(written, |g| {
-            // Slot `l` holds lane `l` of every input, a word per instance. A step past the last
-            // input reads the all-zero input the block pads with. Read a slot at a time: the slots are
-            // `n` words apart, so an instance at a time their 25 streams share cache sets.
-            let mut inputs = vec![[0u64; STATE_LANES]; BLOCK];
-            for (lane, column) in committed[..STATE_LANES * n].chunks_exact(n).enumerate() {
-                for (input, word) in inputs.iter_mut().zip(&column[g * BLOCK..][..BLOCK]) {
-                    input[lane] = word.0;
+        let segments = if committed.len() >= shape.slots() * n {
+            shape.segments()
+        } else {
+            1
+        };
+        let seg_rounds = ROUNDS / segments;
+        parallel::for_each_chunk(written * segments, |lo, hi| {
+            let mut state = vec![[0u64; BLOCK_WORDS]; BITS];
+            let mut u = vec![[0u64; BLOCK_WORDS]; BITS];
+            let mut rows = [0u64; 64];
+            let stream = Stream::new();
+            for task in lo..hi {
+                let (seg, g) = (task / written, task % written);
+                let base_slot = seg * STATE_LANES;
+                for lane in 0..STATE_LANES {
+                    let col = &committed[(base_slot + lane) * n + g * BLOCK..][..BLOCK];
+                    for w in 0..BLOCK_WORDS {
+                        for (row, &word) in rows.iter_mut().zip(&col[64 * w..][..64]) {
+                            *row = word.0;
+                        }
+                        transpose64(&mut rows);
+                        for z in 0..64 {
+                            state[64 * lane + z][w] = rows[z];
+                        }
+                    }
+                }
+                let first = seg * seg_rounds + 1;
+                let last = (seg + 1) * seg_rounds;
+                // SAFETY: segment `seg` of block `g` owns rounds `first..=last` (plus round 0 for `seg == 0`)
+                // of `slots[g]`, disjoint from every other `(seg, g)` task.
+                unsafe {
+                    if seg == 0 {
+                        stream.copy_uninit(slots[g].base.0, state.as_flattened());
+                    }
+                    run_rounds(
+                        &mut state,
+                        &mut u,
+                        first,
+                        last,
+                        Some(slots[g]),
+                        &stream,
+                        false,
+                        |_, _| {},
+                    );
                 }
             }
-            // SAFETY: block `g` owns its slot.
-            unsafe { block(shape.depth, &inputs, Some(slots[g]), |_, _, _| {}) };
         });
-        let padding = padding(shape, written).map(|(extent, _)| extent);
+        let padding = (written < shape.n_blocks()).then(|| {
+            let mut extent = Extent::new(written, 1);
+            let mut state = vec![[0u64; BLOCK_WORDS]; BITS];
+            let mut u = vec![[0u64; BLOCK_WORDS]; BITS];
+            let stream = Stream::new();
+            let slot = extent.slot(written);
+            // SAFETY: the extent's sole slot is written here alone.
+            unsafe {
+                stream.copy_uninit(slot.base.0, state.as_flattened());
+                run_rounds(&mut state, &mut u, 1, ROUNDS, Some(slot), &stream, false, |_, _| {});
+            }
+            extent
+        });
         // SAFETY: the blocks below `written` were run into `extent` just above, and the padding
         // block into its own.
         unsafe { Self::from_extents(shape, vec![extent], written, padding) }
@@ -705,6 +813,31 @@ mod tests {
             }
         }
         assert!(committed[shape.slots() * n..].iter().all(|w| w.0 == 0));
+    }
+
+    #[test]
+    fn from_committed_matches_generate() {
+        let mut rng = Rng::new(10);
+        let inputs: Vec<[u64; STATE_LANES]> = (0..1100).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+        for depth in [12usize, 8, 24] {
+            let shape = Shape::new(inputs.len(), depth);
+            let mut committed = vec![F64(0); 1 << shape.stack_log()];
+            let generated = Witness::generate(shape, &inputs, &mut committed);
+            let rebuilt = Witness::from_committed(shape, inputs.len(), &committed);
+            let rebuilt_inputs_only =
+                Witness::from_committed(shape, inputs.len(), &committed[..STATE_LANES * shape.n()]);
+            for round in 0..=ROUNDS {
+                for g in 0..shape.n_blocks() {
+                    let want = generated.layer(round, g);
+                    assert_eq!(rebuilt.layer(round, g), want, "depth={depth} round={round} block={g}");
+                    assert_eq!(
+                        rebuilt_inputs_only.layer(round, g),
+                        want,
+                        "inputs-only depth={depth} round={round} block={g}"
+                    );
+                }
+            }
+        }
     }
 
     /// A shape whose committed block would not fit a `usize` is refused, rather than wrapping

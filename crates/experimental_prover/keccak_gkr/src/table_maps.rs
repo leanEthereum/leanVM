@@ -1,5 +1,6 @@
-//! The table pass's rows by byte maps (x86-64 with AVX2): the same rows as embedding each
-//! position's packs, weighting them by the folded challenges with carry-less products and reducing.
+//! The table pass's rows by byte maps (x86-64 with AVX2, and aarch64 NEON): the same rows as
+//! embedding each position's packs, weighting them by the folded challenges with carry-less
+//! products and reducing.
 //!
 //! A position's value in a group, `reduce(sum over packs q of embed(pack q) * fold[q])`, is
 //! GF(2)-linear in the group's 256 instance bits, so it is a sum of one 8x8 bit matrix per (input
@@ -8,11 +9,10 @@
 //! A block is byte-transposed a register of positions at a time (register `b` = byte `b` of the
 //! register's positions), each group then costs `32 * 16` byte maps per register, and the 16
 //! output bytes are transposed back to the row's words. A byte map is one GFNI affine product, 512
-//! bits wide with AVX-512BW, or without GFNI two `vpshufb` nibble lookups.
+//! bits wide with AVX-512BW, or without GFNI two nibble lookups (`vpshufb` on AVX2, `vqtbl1q_u8` on
+//! NEON).
 //!
 //! The scheme is the table fill of hashmancer-keccak's GFNI kernels.
-
-use core::arch::x86_64::*;
 
 use primitives::field::gf2_64::mul_wide;
 use verifier::keccak::BITS;
@@ -98,11 +98,13 @@ macro_rules! interleave_planes {
         w
     }};
 }
-#[cfg(target_feature = "gfni")]
+#[cfg(all(target_arch = "x86_64", target_feature = "gfni"))]
 pub(crate) use interleave_planes;
 
 cfg_select! {
-    all(target_feature = "avx512f", target_feature = "avx512bw", target_feature = "gfni") => {
+    all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512bw", target_feature = "gfni") => {
+        use core::arch::x86_64::*;
+
         /// Positions per register.
         const REGISTER_POSITIONS: usize = 64;
 
@@ -221,7 +223,9 @@ cfg_select! {
             [lo[0], hi[0], lo[1], hi[1], lo[2], hi[2], lo[3], hi[3]]
         }
     }
-    _ => {
+    all(target_arch = "x86_64", target_feature = "avx2") => {
+        use core::arch::x86_64::*;
+
         /// Positions per register.
         const REGISTER_POSITIONS: usize = 32;
 
@@ -372,6 +376,143 @@ cfg_select! {
                     _mm256_permute2x128_si256::<0x31>(x, y)
                 }
             })
+        }
+    }
+    target_arch = "aarch64" => {
+        use core::arch::aarch64::*;
+
+        /// Positions per register.
+        const REGISTER_POSITIONS: usize = 16;
+
+        /// A matrix as two `vqtbl1q_u8` tables: its images of the low nibbles, then of the high ones.
+        type Matrix = [u8; 32];
+
+        fn matrix(m: u64) -> Matrix {
+            // Output bit `k` is the parity of the input against matrix byte `7 - k`.
+            let image = |x: u8| {
+                (0..8).fold(0u8, |r, k| {
+                    r | (((m >> (8 * (7 - k))) as u8 & x).count_ones() as u8 & 1) << k
+                })
+            };
+            std::array::from_fn(|i| image(((i % 16) as u8) << (4 * (i / 16))))
+        }
+
+        #[inline(always)]
+        unsafe fn xor3(a: uint8x16_t, b: uint8x16_t, c: uint8x16_t) -> uint8x16_t {
+            #[cfg(target_feature = "sha3")]
+            // SAFETY: SHA3 (EOR3) is enabled at compile time.
+            unsafe {
+                veor3q_u8(a, b, c)
+            }
+            #[cfg(not(target_feature = "sha3"))]
+            // SAFETY: aarch64 always has NEON.
+            unsafe {
+                veorq_u8(a, veorq_u8(b, c))
+            }
+        }
+
+        impl RowMaps {
+            /// The rows of a block's first `halves` groups: row `h`, word `k` of position `j` at
+            /// `rows[h * 2 BITS + k * BITS + j]`.
+            pub fn rows(&self, block: &[u64], rows: &mut [u64], halves: usize) {
+                assert!(block.len() >= BITS * BLOCK_WORDS && halves <= 2 && rows.len() >= halves * 2 * BITS);
+                // SAFETY: aarch64 always has NEON; every load reads positions inside `block` and
+                // every store writes words inside `rows` (asserted).
+                unsafe {
+                    let mut y = [vdupq_n_u8(0); GROUP_BYTES];
+                    for g in 0..BITS / REGISTER_POSITIONS {
+                        for h in 0..halves {
+                            let at = BLOCK_WORDS * REGISTER_POSITIONS * g + GROUP_BYTES / 8 * h;
+                            transpose_group_bytes(block.as_ptr().add(at), &mut y);
+                            let acc = self.accumulate(&y);
+                            for k in 0..2 {
+                                let words = byte_planes_to_words(acc[8 * k..][..8].try_into().unwrap());
+                                let dst = rows.as_mut_ptr().add(h * 2 * BITS + k * BITS + REGISTER_POSITIONS * g);
+                                for (r, &w) in words.iter().enumerate() {
+                                    vst1q_u64(dst.add(2 * r), vreinterpretq_u64_u8(w));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            /// Output bytes `0..16` of the 16 positions in a single pass, holding all 16
+            /// accumulators in NEON registers.
+            #[inline(always)]
+            unsafe fn accumulate(&self, y: &[uint8x16_t; GROUP_BYTES]) -> [uint8x16_t; VALUE_BYTES] {
+                // SAFETY: aarch64 always has NEON; every matrix load reads 16 of the 32 bytes.
+                unsafe {
+                    let mask = vdupq_n_u8(0x0f);
+                    let mut acc = [vdupq_n_u8(0); VALUE_BYTES];
+                    for (&x, m) in y.iter().zip(&self.matrices) {
+                        let lo = vandq_u8(x, mask);
+                        let hi = vshrq_n_u8::<4>(x);
+                        for (a, m) in acc.iter_mut().zip(m) {
+                            let t0 = vqtbl1q_u8(vld1q_u8(m.as_ptr()), lo);
+                            let t1 = vqtbl1q_u8(vld1q_u8(m.as_ptr().add(16)), hi);
+                            *a = xor3(*a, t0, t1);
+                        }
+                    }
+                    acc
+                }
+            }
+        }
+
+        /// The 32 bytes of a group of 16 consecutive positions (eight words apart, from `p`),
+        /// transposed: `y[t]` byte `n` is byte `t` of the group of position `n`.
+        ///
+        /// # Safety
+        /// `p` is valid for reading the 16 positions' groups.
+        #[inline(always)]
+        unsafe fn transpose_group_bytes(p: *const u64, y: &mut [uint8x16_t; GROUP_BYTES]) {
+            for (l, y) in y.as_chunks_mut::<16>().0.iter_mut().enumerate() {
+                // Register `n`: bytes `16 l ..` of position `n`.
+                *y = std::array::from_fn(|n| {
+                    // SAFETY: position `n` lies inside the caller's 16.
+                    unsafe { vld1q_u8(p.add(BLOCK_WORDS * n + 2 * l).cast()) }
+                });
+                primitives::bits::transpose_bytes16x16_neon(y);
+            }
+        }
+
+        #[inline(always)]
+        unsafe fn lo8(a: uint8x16_t, b: uint8x16_t) -> uint8x16_t {
+            // SAFETY: aarch64 always has NEON.
+            unsafe { vzip1q_u8(a, b) }
+        }
+        #[inline(always)]
+        unsafe fn hi8(a: uint8x16_t, b: uint8x16_t) -> uint8x16_t {
+            // SAFETY: aarch64 always has NEON.
+            unsafe { vzip2q_u8(a, b) }
+        }
+        #[inline(always)]
+        unsafe fn lo16(a: uint8x16_t, b: uint8x16_t) -> uint8x16_t {
+            // SAFETY: aarch64 always has NEON.
+            unsafe { vreinterpretq_u8_u16(vzip1q_u16(vreinterpretq_u16_u8(a), vreinterpretq_u16_u8(b))) }
+        }
+        #[inline(always)]
+        unsafe fn hi16(a: uint8x16_t, b: uint8x16_t) -> uint8x16_t {
+            // SAFETY: aarch64 always has NEON.
+            unsafe { vreinterpretq_u8_u16(vzip2q_u16(vreinterpretq_u16_u8(a), vreinterpretq_u16_u8(b))) }
+        }
+        #[inline(always)]
+        unsafe fn lo32(a: uint8x16_t, b: uint8x16_t) -> uint8x16_t {
+            // SAFETY: aarch64 always has NEON.
+            unsafe { vreinterpretq_u8_u32(vzip1q_u32(vreinterpretq_u32_u8(a), vreinterpretq_u32_u8(b))) }
+        }
+        #[inline(always)]
+        unsafe fn hi32(a: uint8x16_t, b: uint8x16_t) -> uint8x16_t {
+            // SAFETY: aarch64 always has NEON.
+            unsafe { vreinterpretq_u8_u32(vzip2q_u32(vreinterpretq_u32_u8(a), vreinterpretq_u32_u8(b))) }
+        }
+
+        /// Eight byte planes of 16 positions (plane `b` byte `n` = byte `b` of position `n`) as the
+        /// positions' words: register `r` holds positions `2 r` and `2 r + 1`.
+        #[inline(always)]
+        unsafe fn byte_planes_to_words(a: &[uint8x16_t; 8]) -> [uint8x16_t; 8] {
+            // SAFETY: aarch64 always has NEON.
+            unsafe { interleave_planes!(a, lo8, hi8, lo16, hi16, lo32, hi32) }
         }
     }
 }
