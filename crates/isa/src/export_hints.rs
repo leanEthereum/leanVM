@@ -1,6 +1,6 @@
 //! A program's hints and witness streams as text, for the Lean executor.
 
-use crate::{BitsDest, BufSize, CompiledProgram, RHint};
+use crate::{BitsDest, CompiledProgram, RHint};
 use std::fmt::Write;
 use verifier::E;
 
@@ -28,21 +28,15 @@ impl CompiledProgram {
                             size,
                             end,
                             start_inverse,
-                            tail,
                         } => {
-                            format!("af {ptr} {size} {end} {:x} {tail}", start_inverse.0)
+                            format!("af {ptr} {size} {end} {:x}", start_inverse.0)
                         }
                         RHint::Alloc { ptr, size } => format!("al {ptr} {size}"),
                         RHint::AllocDyn { ptr, size } => format!("ad {ptr} {size}"),
-                        RHint::AllocAdvice { ptr, stream } => format!("av {ptr} {stream}"),
                         RHint::AllocArm { ptr, sel, sizes } => {
                             let sizes: Vec<String> = sizes.iter().map(u32::to_string).collect();
                             format!("aa {ptr} {sel} {} {}", sizes.len(), sizes.join(" "))
                         }
-                        RHint::AllocLate { ptr, size } => match size {
-                            BufSize::Cells(n) => format!("lt {ptr} c {n}"),
-                            BufSize::Exp(c) => format!("lt {ptr} e {c}"),
-                        },
                         RHint::CellAddress { ptr, cell } => format!("ca {ptr} {cell}"),
                         RHint::WitnessStack { name, base, len } => format!("ws {name} {base} {len}"),
                         RHint::WitnessHeap { name, ptr, lo, len } => format!("wh {name} {ptr} {lo} {len}"),

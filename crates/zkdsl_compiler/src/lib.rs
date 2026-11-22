@@ -31,7 +31,7 @@ use std::sync::Arc;
 
 use field::{Base, Consts, F64, F128, as_base, g_pow};
 use isa::pretty_integer;
-use isa::{BitsDest, BufSize, CompiledProgram, DerefMode, Op, OutCells, RHint};
+use isa::{BitsDest, CompiledProgram, DerefMode, Op, OutCells, RHint};
 
 mod ast;
 mod field;
@@ -49,53 +49,6 @@ pub use parser::{f128_literal, parse, parse_const, parse_with_constants, parse_w
 pub fn compile(ast: &Ast) -> CompiledProgram {
     let (lowered, tables) = lower_all(ast);
     assemble(lowered, tables)
-}
-
-/// The witness stream of the `HeapBuf` sizes a function reserves before its first call although
-/// they are computed only after it, or a branch reaches them (`RHint::AllocAdvice`): one entry per
-/// such buffer of each call, the caller's before its callees', `[g^size]`, or `[]` where the run
-/// allocates none. The buffer's own hint (`RHint::AllocLate`) fails the run on any other.
-pub const HEAP_SIZE_STREAM: &str = "heap_sizes";
-
-/// Each function's `HeapBuf`s reserved from advice ([`RHint::AllocAdvice`] on [`HEAP_SIZE_STREAM`]), in the
-/// order a call pops their sizes, as the source line of each one's `HeapBuf`, for the functions that have any.
-pub fn advised_heap_bufs(ast: &Ast) -> Vec<(String, Vec<u32>)> {
-    let (lowered, _) = lower_all(ast);
-    (lowered.into_iter())
-        .filter(|l| !l.advised.is_empty())
-        .map(|l| (l.name, l.advised))
-        .collect()
-}
-
-/// Whether every late `HeapBuf` hint ([`RHint::AllocLate`]) has its function's advice for its pointer at an
-/// earlier pc, and every advice a late hint after it. The compiler puts the advice at the top level of the body,
-/// so every run reaching a late hint has popped its size: `Err` names a site that breaks this.
-pub fn check_heap_advice(program: &CompiledProgram) -> Result<(), String> {
-    for (name, entry, len) in &program.fn_ranges {
-        let mut pcs: Vec<u32> = (program.hints.keys().copied())
-            .filter(|pc| (*entry..entry + len).contains(pc))
-            .collect();
-        pcs.sort_unstable();
-        // Each advised pointer, and whether a late hint followed.
-        let mut advised: Vec<(u32, bool)> = Vec::new();
-        for pc in pcs {
-            for h in &program.hints[&pc] {
-                match *h {
-                    RHint::AllocAdvice { ptr, .. } => advised.push((ptr, false)),
-                    RHint::AllocLate { ptr, .. } => {
-                        let at = advised.iter_mut().find(|(p, _)| *p == ptr);
-                        at.ok_or_else(|| format!("a late HeapBuf without advice at {}", program.site_at(pc)))?
-                            .1 = true;
-                    }
-                    _ => {}
-                }
-            }
-        }
-        if advised.iter().any(|&(_, late)| !late) {
-            return Err(format!("a HeapBuf advice without its late hint in {name}"));
-        }
-    }
-    Ok(())
 }
 
 /// Lower every function, `main` first.
@@ -171,7 +124,6 @@ fn assemble(mut lowered: Vec<Lowered>, tables: JumpTables) -> CompiledProgram {
                 name: "__jump_tables".into(),
                 code,
                 frame_size,
-                advised: Vec::new(),
             },
         );
     }
@@ -233,7 +185,6 @@ fn assemble(mut lowered: Vec<Lowered>, tables: JumpTables) -> CompiledProgram {
                                     size,
                                     end: cell,
                                     start_inverse: F64::G.pow(u128::from(start)).inv(),
-                                    tail: size,
                                 },
                             }
                         }

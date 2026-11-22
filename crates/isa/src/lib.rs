@@ -177,47 +177,27 @@ pub enum BitsDest {
     Heap(Off),
 }
 
-/// A `HeapBuf`'s cell count: a constant, or the g-power exponent of a frame cell.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum BufSize {
-    /// `n` cells.
-    Cells(u32),
-    /// The exponent `k` of `m[fp+cell] = g^k`.
-    Exp(Off),
-}
-
 /// A hint resolved to concrete offsets/sizes, keyed by global program counter.
 #[derive(Clone, Debug)]
 pub enum RHint {
     /// Announce a pointer into a reserved run of frames.
     FrameAddress { offset: Off },
-    /// Reserve `log_g(m[end] * start_inverse)` consecutive frames of `size` cells,
-    /// then `tail` cells more, the final, untaken call's frame.
+    /// Reserve `log_g(m[end] * start_inverse) + 1` consecutive frames of `size` cells, the last
+    /// the final, untaken call's.
     AllocFrames {
         ptr: Off,
         size: u32,
         end: Off,
         start_inverse: K,
-        tail: u32,
     },
     /// Allocate a fresh region of `size` cells and write `g^{base}` to the cell.
     Alloc { ptr: Off, size: u32 },
     /// `Alloc` with the cell count read at runtime as the g-power exponent of
     /// `m[fp+size]`.
     AllocDyn { ptr: Off, size: Off },
-    /// `Alloc` with the cell count advice: the exponent of stream `stream`'s next entry, one word
-    /// `g^size`, or nothing for an empty entry, the pointer left unwritten. A `HeapBuf` the
-    /// compiler reserves before its size is computed or a branch reaches it; its
-    /// [`RHint::AllocLate`] checks the size.
-    AllocAdvice { ptr: Off, stream: String },
     /// `Alloc` of `sizes[k]` cells, where `m[fp+sel] = g^k`: a dispatched call's frame, sized
     /// by the arm it selects.
     AllocArm { ptr: Off, sel: Off, sizes: Vec<u32> },
-    /// A `HeapBuf`'s own hint after the compiler reserved it from advice ([`RHint::AllocAdvice`]):
-    /// it reserves nothing, and the run fails unless that advice reserved this pointer's buffer
-    /// with `size` cells (an empty entry reserves none). Every other reservation writes its
-    /// pointer once, a second value being a conflict.
-    AllocLate { ptr: Off, size: BufSize },
     /// Write the address of frame cell `cell`, `g^{fp+cell}`, to `fp+ptr`.
     CellAddress { ptr: Off, cell: Off },
     /// Pop stream `name`'s next entry (`len` values) into frame cells `fp+base+k`.

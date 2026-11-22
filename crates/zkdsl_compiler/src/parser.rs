@@ -673,7 +673,6 @@ impl Parser<'_> {
                 return Err("hint_witness(dest, \"name\") takes two arguments".into());
             };
             let name = string_lit(name).ok_or("hint_witness's second argument is a string literal: \"name\"")?;
-            stream_not_reserved(name)?;
             return Ok(StmtKind::HintWitness {
                 dest: parse_expr(dest)?,
                 name: name.to_string(),
@@ -746,7 +745,6 @@ impl Parser<'_> {
                     );
                 };
                 let stream = string_lit(stream).ok_or("hint_witness's argument is a string literal: \"stream\"")?;
-                stream_not_reserved(stream)?;
                 return Ok(StmtKind::LetHintWitness {
                     name: binding_name(lhs, "binding name")?,
                     stream: stream.to_string(),
@@ -940,14 +938,4 @@ fn parse_match(lhs: &str, rhs: &str) -> Result<StmtKind, String> {
         }
     }
     Ok(StmtKind::Match { targets, x, arms })
-}
-
-/// A `hint_witness` stream other than [`crate::HEAP_SIZE_STREAM`], which the compiler's advice pops.
-fn stream_not_reserved(name: &str) -> Result<(), String> {
-    if name == crate::HEAP_SIZE_STREAM {
-        return Err(format!(
-            "the witness stream `{name}` is reserved for the `HeapBuf` sizes the compiler takes as advice"
-        ));
-    }
-    Ok(())
 }
