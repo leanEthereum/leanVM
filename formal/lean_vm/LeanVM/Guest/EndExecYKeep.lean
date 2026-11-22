@@ -136,7 +136,7 @@ theorem keepY_cur {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A)
       (by rw [hm.pc]; exact hpcS) e (fun _ _ _ ↦ nofun) (fun _ _ _ _ _ ↦ nofun)
     obtain ⟨st, htr⟩ := refTrack_main hP hmain hr
     have h2 : s'.pc = mainEntry := by show s'.pc = proLen; rw [hpc', hm.pc]; omega
-    refine ⟨[], st, ?_, fun S _ ↦ ?_⟩
+    refine ⟨[], st, ?_, fun S ↦ ?_⟩
     · rw [h2, hfp', hm.fp, hfp]; exact htr
     · rw [hcur, hYs.1 hpro S, hints_pro hC rfl (by omega)]
       rfl
@@ -158,13 +158,13 @@ theorem keepY_cur {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A)
   unfold maxCells at hfpl hsfp
   have e_pc : s'.pc = pc' := gpow_inj (by omega) (by omega) (congrArg Registers.pc hr')
   have e_fp : s'.fp = fp' := gpow_inj (by omega) (by omega) (congrArg Registers.fp hr')
-  refine ⟨ts'.1, ts'.2, by rw [e_pc, e_fp]; exact hts', fun S hS ↦ ?_⟩
+  refine ⟨ts'.1, ts'.2, by rw [e_pc, e_fp]; exact hts', fun S ↦ ?_⟩
   have hpcE : s.pc = (A e0.I.t.name).X.entry + off := hpc
   have hh : (C.hints[s.pc]?).getD [] = Mode.hintsAt Data.adviceHints s.pc :=
     Mode.ctx_hints hC Mode.adviceHints_incr (by rw [← hsize]; exact hpcS)
   rw [hpcE, hAd _ _ hE.find off ins hins, ← hpcE, ← hh] at hpair
-  rw [hcur, hc S hS, hdone, List.filter_append, List.length_append, flatMap_flow, count_pairs _ _ S hpair,
-    filter_flow hS (hints_adv hC rfl s.pc)]
+  rw [hcur, hc S, hdone, List.filter_append, List.length_append, flatMap_flow, count_pairs _ _ S hpair,
+    filter_flow]
 
 end
 

@@ -47,7 +47,7 @@ theorem trace_deployed' {b : Budget} (hm : MainCompleteP B2C.fs B2C.cert B2C.cnt
         run guestProgram (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X) k0
           Registers.initial = some (regs mainEntry 0) ∧
         SameStreams (T.pops coreProgram rd0)
-          ((Hints.honestPushes bytecode seed s w).filter (·.1 != Hints.heapSizeStream)) ∧
+          (Hints.honestPushes bytecode seed s w) ∧
         (ChainArm rd0 (honestInsts coreProgram B2C.fs B2C.H (hdrOf (statementDigest seed s)) T) T
             (memOf (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X)) alignA →
         ∃ tr : ℕ → ℕ × ℕ × (List Pop × List Ent), tr 0 = (mainEntry, 0, ([], [Ent.enter coreProgram I fn])) ∧

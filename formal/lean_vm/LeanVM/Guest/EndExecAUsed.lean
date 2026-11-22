@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.EndExecAGaps
 public import LeanVM.Guest.EndExecYWit
 public import LeanVM.Guest.EndExecAExtra
+public import LeanVM.Guest.EndExecYShape
 
 /-!
 # The cells the hints use
@@ -58,7 +59,7 @@ theorem allocHintIn {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (ha : isAlloc
     obtain ⟨-, h2, h3⟩ := logOr_sm hs h1
     obtain ⟨v, hv, -⟩ := get_of_ptrAt (ptrAt_of hx h2 h3)
     exact Mode.written_of_get hv
-  | allocFrames p size stop si tail =>
+  | allocFrames p size stop si =>
     simp only [runHint, bind_ok] at e
     obtain ⟨c', hc', sp, hsp, e⟩ := e
     obtain ⟨rfl, -⟩ := cellAt_ok hc'
@@ -67,22 +68,25 @@ theorem allocHintIn {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (ha : isAlloc
     · refine written_of_peek fun hz ↦ h0 ?_
       obtain ⟨-, rfl⟩ := inK_ok hsp
       rw [hz, Parameters.limb_zero, zero_mul]
-  | allocLate p b =>
-    cases b with
-    | cells k => trivial
-    | exp c =>
-      simp only [runHint, bind_ok] at e
-      obtain ⟨⟨n, s1⟩, h1, -⟩ := e
-      obtain ⟨-, hb⟩ := bufSize_sm hs h1
-      obtain ⟨v, hv, -⟩ := get_of_ptrAt hb
-      exact Mode.written_of_get hv
-  | frameAddress | alloc | allocAdvice | cellAddress => trivial
+  | frameAddress | alloc | cellAddress => trivial
   | _ => simp [isAllocHint] at ha
+
+theorem foldlM_split {C : Ctx} {l : List Hint} {s s1 : St} {i : ℕ} {h : Hint} (hi : l[i]? = some h)
+    (e : l.foldlM (runHint C) s = .ok s1) :
+    ∃ sx s2, (l.take i).foldlM (runHint C) s = .ok sx ∧ runHint C sx h = .ok s2 ∧
+      (l.drop (i + 1)).foldlM (runHint C) s2 = .ok s1 := by
+  have hlt := (List.getElem?_eq_some_iff.mp hi).1
+  rw [← List.take_append_drop i l, List.foldlM_append, List.drop_eq_getElem_cons hlt,
+    (List.getElem?_eq_some_iff.mp hi).2, bind_ok] at e
+  obtain ⟨sx, hx, e⟩ := e
+  rw [List.foldlM_cons, bind_ok] at e
+  obtain ⟨s2, h2, e⟩ := e
+  exact ⟨sx, s2, hx, h2, e⟩
 
 theorem heapB_of_alloc {B : ℕ} {s : St} {h : Hint} (ha : isAllocHint h = true) : HeapB B s h := by
   cases h <;> simp_all [isAllocHint, HeapB]
 
-theorem allocB_of_not {B : ℕ} {C : Ctx} {s : St} {h : Hint} (ha : isAllocHint h = false) : AllocB B C s h := by
+theorem allocB_of_not {B : ℕ} {s : St} {h : Hint} (ha : isAllocHint h = false) : AllocB B s h := by
   cases h <;> simp_all [isAllocHint, AllocB]
 
 /-- **The hints keep the cells used within the reference's `2^κ`**, on the deployed alignment. -/
@@ -109,7 +113,7 @@ theorem hintsUsed_alignA (hS : SizesAt alignA) (hR : AllocReady alignA) (hW : Wi
     have hsz := (ctx_hints_size hC).trans (ctx_of_spec hC).1.symm
     rw [Array.getElem?_eq_none (by omega)]
     rfl
-  obtain ⟨done, e, st, htr, -, hch, -, -⟩ := (hY r s hon.1.2.2).2.2 (by omega) hon.2.2.1
+  obtain ⟨done, e, st, htr, -, hch, -⟩ := (hY r s hon.1.2.2).2.2 (by omega) hon.2.2.1
   have hE := htr.track.ents e List.mem_cons_self
   obtain ⟨rd, hHon, hHX⟩ := hr.honest
   obtain ⟨hI, j, bufs, kids, vs, hj, hIt, -⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self

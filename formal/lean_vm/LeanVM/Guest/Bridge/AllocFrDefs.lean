@@ -26,8 +26,8 @@ facts from are those on every path through it: each enclosing block's spine (`sp
   `g^K`, its `K - e + 1` frames;
 * `allocArm _ sel sizes` at a `dispatch x fs`: `sel` the cell of `x`, a parameter (`ps`) at a certificate cell, a value a
   spine atom names or a spine call returns, and arm `j`'s size `sizes[j]` the frame size of `fs[j]`, no loop helper;
-* `allocFrames _ size stop si tail` at a `callIf b f (a0 :: a1 :: _)`: `f` a loop helper ending at its
-  second parameter (`loopTail`), of frame size `size = tail`, `stop` the cell of `a1`; the spine sets
+* `allocFrames _ size stop si` at a `callIf b f (a0 :: a1 :: _)`: `f` a loop helper ending at its
+  second parameter (`loopTail`), of frame size `size`, `stop` the cell of `a1`; the spine sets
   `a0` to `g^e`, `si` its inverse (`e ≤ 1`), and `b` to `c + a1` with `c` set to `g^e` too (or a value
   loaded where `a1` is, through an equal product, `spEq`), or to the sum of two distinct constants.
 -/
@@ -206,8 +206,8 @@ noncomputable def frFits (X : AlignCtx) (n : ℕ) (ps : List V) (sp : List Atom)
         ((ps.contains x && (X.extra.lookup x.idx).isNone) || sp.any (fun a ↦ (atomUses a).contains x) ||
           nm.contains x) &&
         Nat.blt sizes.length (2 ^ 28) && armsFit tbl sizes fs 0
-  | .allocFrames _ size stop si tail, .callIf b f (a0 :: a1 :: _) => match calFind tbl f with
-    | some (k, lp, en) => lp && en == some none && k == size && tail == size && X.locAt a1.idx == stop && allocCellOk X n a1 &&
+  | .allocFrames _ size stop si, .callIf b f (a0 :: a1 :: _) => match calFind tbl f with
+    | some (k, lp, en) => lp && en == some none && k == size && X.locAt a1.idx == stop && allocCellOk X n a1 &&
         ((spConst sp a0 0 && si == 1 && guardOk sp b a1 0) || (spConst sp a0 1 && si == gInv && guardOk sp b a1 1))
     | none => false
   | _, _ => false

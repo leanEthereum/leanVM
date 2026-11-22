@@ -229,10 +229,7 @@ class Walk:
 
     def stepHint(self, i, A, h):
         t = h[0]
-        if t in ('fa', 'av'): return
-        if t == 'lt':
-            if h[2] == 'e': self.reqW(A, h[3], i)
-            self.addW(A, h[1]); return
+        if t == 'fa': return
         if t in ('al', 'ad', 'aa', 'af'):
             if t in ('ad', 'aa'): self.reqW(A, h[2], i)
             if t == 'af': self.reqW(A, h[3], i)

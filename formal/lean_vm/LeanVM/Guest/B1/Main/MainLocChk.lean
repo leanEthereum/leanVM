@@ -28,7 +28,7 @@ theorem mStores_eq : mStores = mStoresL := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mByte_ok : (List.range 256).all (fun v =>
-    (atomsIn mFlatE).any (atomEqb (.const (.n (48 + v)) (word v 0)))) = true := by decide +kernel
+    (atomsIn mFlatE).any (atomEqb (.const (.n ((val% «main» "s43.u0.s0#0") + v)) (word v 0)))) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mLeafC_ok : (List.range 23).all (fun k =>
@@ -61,13 +61,13 @@ set_option maxRecDepth 100000 in
 /-- Each block's stores. -/
 theorem mStoresIn :
     (atomsIn (mPre ++ mMid ++ mPost)).filter (fun a => decide (a ∈ mStoresL)) =
-      (List.range 256).map (fun v => .load (.n ((val% «main» "s36.u0.s0#0") + v)) (.n (val% «main» "byte_bits")) v) ++ [.load (.n (val% «main» "s48#0")) (.n (val% «main» "written")) 0] ∧
+      (List.range 256).map (fun v => .load (.n ((val% «main» "s43.u0.s0#0") + v)) (.n (val% «main» "byte_bits")) v) ++ [.load (.n (val% «main» "s55#0")) (.n (val% «main» "written")) 0] ∧
     (atomsIn mDa).filter (fun a => decide (a ∈ mStoresL)) =
-      [.load (.n (val% «main» "s43.t.s1#0")) (.n (val% «main» "own_da")) 0, .load (.n (val% «main» "s43.t.s1#0[1]")) (.n (val% «main» "own_da")) 1] ∧
+      [.load (.n (val% «main» "s50.t.s1#0")) (.n (val% «main» "own_da")) 0, .load (.n (val% «main» "s50.t.s1#0[1]")) (.n (val% «main» "own_da")) 1] ∧
     (atomsIn mDaZ).filter (fun a => decide (a ∈ mStoresL)) =
-      [.load (.n (val% «main» "s43.e.s0#0")) (.n (val% «main» "own_da")) 0, .load (.n (val% «main» "s43.e.s1#0")) (.n (val% «main» "own_da")) 1] ∧
+      [.load (.n (val% «main» "s50.e.s0#0")) (.n (val% «main» "own_da")) 0, .load (.n (val% «main» "s50.e.s1#0")) (.n (val% «main» "own_da")) 1] ∧
     (atomsIn mLeaf).filter (fun a => decide (a ∈ mStoresL)) =
-      (List.range 23).map (fun k => .load (.n ((val% «main» "s56.t.s1.u0.s0#0") + k)) (.n (val% «main» "defer_stmt")) k) ++
+      (List.range 23).map (fun k => .load (.n ((val% «main» "s63.t.s1.u0.s0#0") + k)) (.n (val% «main» "defer_stmt")) k) ++
         [.load (.n (val% «main» "leaf_value")) (.n (val% «main» "defer_stmt")) 23] ∧
     (atomsIn mAgg).filter (fun a => decide (a ∈ mStoresL)) = [] := by
   rw [mStoreB_eq]
@@ -81,15 +81,15 @@ theorem mem_storesIn {P : List Stmt} {L : List Atom}
   exact List.mem_filter.mpr ⟨ha, by simpa using hs⟩
 
 set_option maxRecDepth 100000 in
-theorem mDaZC_ok : (atomsIn mDaZ).any (atomEqb (.const (.n (val% «main» "s43.e.s0#0")) (word 0 0))) = true ∧
-    (atomsIn mDaZ).any (atomEqb (.const (.n (val% «main» "s43.e.s1#0")) (word 0 0))) = true := by decide +kernel
+theorem mDaZC_ok : (atomsIn mDaZ).any (atomEqb (.const (.n (val% «main» "s50.e.s0#0")) (word 0 0))) = true ∧
+    (atomsIn mDaZ).any (atomEqb (.const (.n (val% «main» "s50.e.s1#0")) (word 0 0))) = true := by decide +kernel
 
 /-- The own DA claim's digest, its chain on `mDa`'s atoms but the stores. -/
-noncomputable def daSpec : ChainSpec := pairSpec (.n (val% «main» "root_0")) (.n (val% «main» "root_1")) (.n (val% «main» "z")) (.n (val% «main» "s43.t.s1#1[1]")) (noStores mDa)
+noncomputable def daSpec : ChainSpec := pairSpec (.n (val% «main» "root_0")) (.n (val% «main» "root_1")) (.n (val% «main» "z")) (.n (val% «main» "s50.t.s1#1[1]")) (noStores mDa)
 
 set_option maxRecDepth 100000 in
 theorem daSpec_ok : daSpec.check (noStores mDa) = true ∧
-    daSpec.outV (daSpec.nb - 1) 0 = .n (val% «main» "s43.t.s1#0") ∧ daSpec.outV (daSpec.nb - 1) 1 = .n (val% «main» "s43.t.s1#0[1]") := by
+    daSpec.outV (daSpec.nb - 1) 0 = .n (val% «main» "s50.t.s1#0") ∧ daSpec.outV (daSpec.nb - 1) 1 = .n (val% «main» "s50.t.s1#0[1]") := by
   decide +kernel
 
 end

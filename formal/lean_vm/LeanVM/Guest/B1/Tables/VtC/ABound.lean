@@ -82,7 +82,7 @@ theorem vt_loopVals (H : VtHonest) (B B' : VtBases) (rd : Reader) :
   have hl : (H.args B).length = 21 := rfl
   have g1 := vt_goodL (rd := rd) (w := vtW H B') hl 2590
     [.atom (.hint (.witness "zc_tau_max" (.stack [.n (val% «verify_tables» "g_zc_n")])))] (by decide +kernel)
-  have g2 := vt_goodL (rd := rd) (w := vtW H B') hl 2663
+  have g2 := vt_goodL (rd := rd) (w := vtW H B') hl 2655
     [.atom (.const (.n (val% «verify_tables» "s72#0")) (word 1 0)), .atom (.add (.n (val% «verify_tables» "s72#1")) (.n (val% «verify_tables» "s72#0")) (.n (val% «verify_tables» "g_zc_n"))),
       .atom (.const (.n (val% «verify_tables» "s72#2")) (word 1 0))] (by decide +kernel)
   generalize vtσ rd (vtW H B') (H.args B) = σ' at g1 g2 ⊢

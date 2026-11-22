@@ -43,7 +43,7 @@ theorem ref_deployed {b : Budget} (hm : MainCompleteP B2C.fs B2C.cert B2C.cnt b)
         run guestProgram (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X) (n - k0)
           (regs mainEntry 0) = some (Registers.final guestProgram) ∧
         SameStreams (T.pops coreProgram rd0)
-          ((Hints.honestPushes bytecode seed s w).filter (·.1 != Hints.heapSizeStream)) ∧
+          (Hints.honestPushes bytecode seed s w) ∧
         ∀ (ent : String → ℕ) (al : String → ℕ → Option (List Stmt)), ent "main" = mainEntry →
           al "main" 0 = some fn.body →
           RefOk coreProgram rd0 (honestInsts coreProgram B2C.fs B2C.H (hdrOf (statementDigest seed s)) T) T
@@ -113,7 +113,7 @@ theorem trace_deployed {b : Budget} (hm : MainCompleteP B2C.fs B2C.cert B2C.cnt 
         run guestProgram (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X) k0
           Registers.initial = some (regs mainEntry 0) ∧
         SameStreams (T.pops coreProgram rd0)
-          ((Hints.honestPushes bytecode seed s w).filter (·.1 != Hints.heapSizeStream)) ∧
+          (Hints.honestPushes bytecode seed s w) ∧
         ((∀ pc fp done e st, RefOk coreProgram rd0 (honestInsts coreProgram B2C.fs B2C.H (hdrOf (statementDigest seed s)) T)
             T (memOf (honestX coreProgram B2C.fs B2C.H B2C.C (hdrOf (statementDigest seed s)) T X)) (entOf A) (alOf A)
             pc fp (done, e :: st) →

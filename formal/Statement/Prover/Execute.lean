@@ -135,32 +135,20 @@ inductive BitsDest where
   /-- Heap cells from the pointer at `fp + ptr`. -/
   | heap (ptr : ℕ)
 
-/-- A `HeapBuf`'s size (`BufSize`): `n` cells, or the exponent of `[fp + cell]`. -/
-inductive BufSize where
-  | cells (n : ℕ)
-  | exp (cell : ℕ)
-
 /-- A hint (`RHint`, `crates/isa/src/lib.rs`), its offsets relative to `fp`. -/
 inductive Hint where
   /-- Announce `fp + offset`'s address (no effect on the run). -/
   | frameAddress (offset : ℕ)
-  /-- Reserve `n` frames of `size` cells and `tail` more, `n` the exponent of
-  `[fp + stop] · startInverse`, its base written to `fp + ptr`. -/
-  | allocFrames (ptr size stop : ℕ) (startInverse : K) (tail : ℕ)
+  /-- Reserve `n + 1` frames of `size` cells, the last the final, untaken call's, `n` the exponent
+  of `[fp + stop] · startInverse`, its base written to `fp + ptr`. -/
+  | allocFrames (ptr size stop : ℕ) (startInverse : K)
   /-- Reserve `size` cells, its base written to `fp + ptr`. -/
   | alloc (ptr size : ℕ)
   /-- Reserve the exponent of `[fp + size]` cells, its base written to `fp + ptr`. -/
   | allocDyn (ptr size : ℕ)
-  /-- Reserve the exponent of `stream`'s next entry, one word, cells, its base written to
-  `fp + ptr`, and record them as advised; nothing for an empty entry. -/
-  | allocAdvice (ptr : ℕ) (stream : String)
   /-- Reserve `sizes[k]` cells, `k` the exponent of `[fp + sel]`, its base written to
   `fp + ptr`: a dispatched call's frame, sized by the arm it selects. -/
   | allocArm (ptr sel : ℕ) (sizes : List ℕ)
-  /-- A `HeapBuf`'s own hint after the compiler reserved it from advice: nothing, once the advice
-  reserved its pointer's buffer with its size, `n` cells or the exponent of `[fp + cell]`; else the
-  run fails (`checkLate`), its pointer unwritten or its buffer advised with another size. -/
-  | allocLate (ptr : ℕ) (size : BufSize)
   /-- Write the address of `fp + cell` to `fp + ptr`. -/
   | cellAddress (ptr cell : ℕ)
   /-- Pop `stream`'s next entry, of `len` words, into `fp + base + k`. -/
@@ -335,8 +323,7 @@ structure Ctx where
   hints : Array (List Hint)
   streams : Std.HashMap String (Array (List E))
 
-/-- The state of a run; `advised`, each `HeapBuf` reserved from advice, its pointer cell and its cell
-count. -/
+/-- The state of a run. -/
 structure St where
   mem : Mem
   dl : Dlog
@@ -345,7 +332,6 @@ structure St where
   nextFree : ℕ
   cursor : Std.HashMap String ℕ
   steps : ℕ
-  advised : List (ℕ × ℕ)
 
 /-- Cell `base + off`, if below `maxCells` (`cell_at`). -/
 def cellAt (base off : ℕ) : Except Fault ℕ :=
@@ -431,35 +417,6 @@ def allocate (s : St) (ptr size : ℕ) : Except Fault St := do
   let s := { s with dl := .empty }
   pure { s with nextFree := next, dl := (dl.grow next).note base }
 
-/-- `allocate`, the reservation recorded as advised. -/
-def allocateAdvised (s : St) (ptr size : ℕ) : Except Fault St := do
-  let s ← allocate s ptr size
-  pure { s with advised := (s.fp + ptr, size) :: s.advised }
-
-/-- A late hint's check: the advice reserved the buffer at `fp + ptr`, of `size` cells. -/
-def checkLate (s : St) (ptr size : ℕ) : Except Fault St := do
-  let c ← cellAt s.fp ptr
-  if s.mem.written c then
-    if s.advised.contains (c, size) then pure s
-    else throw (.witness s!"the HeapBuf at cell {c} has {size} cells, not its advised size")
-  else throw (.witness s!"the HeapBuf at cell {c} was not reserved from advice")
-
-/-- A `HeapBuf`'s cell count. -/
-def bufSize (s : St) : BufSize → Except Fault (ℕ × St)
-  | .cells n => pure (n, s)
-  | .exp c => do
-    let sz ← inK "HeapBuf size" (s.mem.peek (← cellAt s.fp c))
-    s.logOr sz maxCells (.notAGPower "HeapBuf size" sz)
-
-/-- Pop stream `name`'s next entry, whatever its length (`Stream::next`). -/
-def popEntry (C : Ctx) (s : St) (name : String) : Except Fault (List E × St) := do
-  let some entries := C.streams[name]? | throw (.witness s!"no witness stream `{name}`")
-  let i := s.cursor.getD name 0
-  let some e := entries[i]? | throw (.witness s!"witness stream `{name}` exhausted")
-  let cursor := s.cursor
-  let s := { s with cursor := ∅ }
-  pure (e, { s with cursor := cursor.insert name (i + 1) })
-
 /-- Pop stream `name`'s next entry, of `len` words (`Stream::pop`). -/
 def pop (C : Ctx) (s : St) (name : String) (len : ℕ) : Except Fault (List E × St) := do
   let some entries := C.streams[name]? | throw (.witness s!"no witness stream `{name}`")
@@ -483,31 +440,20 @@ def runHint (C : Ctx) (s : St) : Hint → Except Fault St
     let sz ← inK "HeapBuf size" (s.mem.peek (← cellAt s.fp size))
     let (n, s) ← s.logOr sz maxCells (.notAGPower "HeapBuf size" sz)
     allocate s ptr n
-  | .allocAdvice ptr stream => do
-    match ← popEntry C s stream with
-    | ([], s) => pure s
-    | ([w], s) =>
-      let sz ← inK "HeapBuf size advice" w
-      let (n, s) ← s.logOr sz maxCells (.notAGPower "HeapBuf size advice" sz)
-      allocateAdvised s ptr n
-    | (v, _) => throw (.witness s!"a HeapBuf size advice holds {v.length} values, not 0 or 1")
   | .allocArm ptr sel sizes => do
     let x ← inK "dispatch selector" (s.mem.peek (← cellAt s.fp sel))
     let (k, s) ← s.logOr x maxCells (.notAGPower "dispatch selector" x)
     let some n := sizes[k]? | throw (.notAGPower "dispatch selector" x)
     allocate s ptr n
-  | .allocLate ptr size => do
-    let (n, s) ← bufSize s size
-    checkLate s ptr n
   | .cellAddress ptr cell => do
     let c ← cellAt s.fp cell
     let p ← cellAt s.fp ptr
     s.withMem (·.put p (ofK (g ^ c)))
-  | .allocFrames ptr size stop startInverse tail => do
+  | .allocFrames ptr size stop startInverse => do
     let span := (← inK "loop bound" (s.mem.peek (← cellAt s.fp stop))) * startInverse
     if span = 0 then throw (.notAGPower "loop bound" span)
     let (n, s) ← s.logOr span maxCells (.notAGPower "loop bound" span)
-    allocate s ptr (size * n + tail)
+    allocate s ptr (size * (n + 1))
   | .witnessStack name base len => do
     let b ← runAt s.fp base len
     let (v, s) ← pop C s name len
@@ -658,7 +604,7 @@ def execute (prog : LeanIsaProgram) (input : PublicInput) (adv : Advice) :
   let mem : Mem := ⟨#[], #[], #[], #[], max adv.mainFrame 2⟩
   let mem ← ((mem.put 0 input.word0).bind (·.put 1 input.word1)).mapError (0, ·)
   let s ← loop C maxSteps ⟨mem, Dlog.empty.grow (max (C.ops.size + 2) adv.mainFrame), 0, 0,
-    adv.mainFrame, ∅, 0, []⟩
+    adv.mainFrame, ∅, 0⟩
   if maxCells < s.mem.used then throw (0, .outOfMemory)
   for (a, b) in s.mem.links do
     if s.mem.peek a ≠ s.mem.peek b then throw (0, .linkMismatch a b)

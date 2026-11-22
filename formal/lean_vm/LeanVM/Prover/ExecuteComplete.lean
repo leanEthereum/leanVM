@@ -196,7 +196,7 @@ def initMem (adv : Advice) (input : PublicInput) : Except Fault Mem :=
 
 /-- The executor's initial state on the memory `m`. -/
 def initSt (C : Ctx) (adv : Advice) (m : Mem) : St :=
-  ⟨m, Dlog.empty.grow (max (C.ops.size + 2) adv.mainFrame), 0, 0, adv.mainFrame, ∅, 0, []⟩
+  ⟨m, Dlog.empty.grow (max (C.ops.size + 2) adv.mainFrame), 0, 0, adv.mainFrame, ∅, 0⟩
 
 theorem refRd_img {κ : ℕ} (hκ : κ ≤ 28) (img : MemoryImage κ) : RefRd img.read (refMem img) := by
   intro c v hc h
@@ -290,7 +290,7 @@ theorem execute_complete_inv {prog : LeanIsaProgram} {input : PublicInput} {adv 
   refine ⟨⟨sf.mem.image.1, sf.mem.image.2, sf.steps⟩, ?_, hsf, fun i ↦ ?_, fun op ↦ ?_,
     sf, hinvf, rfl⟩
   · have ef' : loop C maxSteps ⟨m2, Dlog.empty.grow (max (C.ops.size + 2) adv.mainFrame), 0, 0,
-        adv.mainFrame, ∅, 0, []⟩ = .ok sf := ef
+        adv.mainFrame, ∅, 0⟩ = .ok sf := ef
     unfold execute
     rw [hC, ok_bind]
     dsimp only

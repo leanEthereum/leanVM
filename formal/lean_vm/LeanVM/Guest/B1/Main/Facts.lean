@@ -102,8 +102,8 @@ structure MainFacts (C : CallRel) (rd : Reader) (σ : Val) : Prop where
   pick : σ (.n (val% «main» "da_pick")) = gen ^ lg σ 405 ∧ lg σ 405 ≤ lg σ 6 ∧ (lg σ 7 = 1 → lg σ 405 = lg σ 6)
   picked : σ (.n (val% «main» "da")) = σ (.n (val% «main» "da_digests")) * gen ^ (2 * lg σ 405)
   leaf : lg σ 6 = 0 → ∀ k < 23, LoadHolds rd (σ (.n (val% «main» "defer_stmt"))) k 0
-  agg : lg σ 6 ≠ 0 → σ (.n (val% «main» "s56.e.s0#1")) = σ (.n (val% «main» "g_squares")) * word 133823759239872512 0 ∧ C "aggregate_claims"
-    [σ (.n (val% «main» "meta[6]")), σ (.n (val% «main» "child_pi")), σ (.n (val% «main» "child_fresh")), σ (.n (val% «main» "child_carried")), σ (.n (val% «main» "defer_stmt")), σ (.n (val% «main» "s56.e.s0#1"))] []
+  agg : lg σ 6 ≠ 0 → σ (.n (val% «main» "s63.e.s0#1")) = σ (.n (val% «main» "g_squares")) * word 133823759239872512 0 ∧ C "aggregate_claims"
+    [σ (.n (val% «main» "meta[6]")), σ (.n (val% «main» "child_pi")), σ (.n (val% «main» "child_fresh")), σ (.n (val% «main» "child_carried")), σ (.n (val% «main» "defer_stmt")), σ (.n (val% «main» "s63.e.s0#1"))] []
   dacells : LoadHolds rd (σ (.n (val% «main» "da"))) 0 (σ (.n (val% «main» "own_0~2"))) ∧ LoadHolds rd (σ (.n (val% «main» "da"))) 1 (σ (.n (val% «main» "own_0~3")))
   stmt : coreProgram.Rel rd "statement_digest"
     [σ (.n (val% «main» "fs_seed[0]")), σ (.n (val% «main» "fs_seed[1]")), σ (.n (val% «main» "xd_0")), σ (.n (val% «main» "xd_1")), σ (.n (val% «main» "sd_0")), σ (.n (val% «main» "sd_1")), σ (.n (val% «main» "own_0~2")), σ (.n (val% «main» "own_0~3")),
@@ -284,17 +284,17 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     exact ⟨h1 _ _ _ _ _ _ _ (by rw [h67]), h2⟩
   · -- the direct DA check
     intro h71
-    have h338 : σ (.n (val% «main» "s43#1")) = 0 := by
+    have h338 : σ (.n (val% «main» "s50#1")) = 0 := by
       rw [add_sound pa338 atP, const_sound pc337 atP, word_gen, l7, h71, pow_one, e_add_self]
     obtain ⟨hdall, -⟩ := holdsList_flat mDa dflat _ _ (hdz h338)
     have atD := atoms_of_flat hdall
     obtain ⟨h0, h1⟩ := pairHash_sound dph atD
-    have e0 : σ (.n (val% «main» "s43.t.s1#1[1]")) = 0 := (const_sound dz atD).trans word_zero
+    have e0 : σ (.n (val% «main» "s50.t.s1#1[1]")) = 0 := (const_sound dz atD).trans word_zero
     rw [e0] at h0 h1
     exact ⟨call_of_flat hdall dver, h0, h1⟩
   · -- no direct DA check: zeros
     intro h70
-    have h338 : σ (.n (val% «main» "s43#1")) ≠ 0 := by
+    have h338 : σ (.n (val% «main» "s50#1")) ≠ 0 := by
       rw [add_sound pa338 atP, const_sound pc337 atP, word_gen, l7, h70, pow_zero, add_comm]
       exact gen_add_one_ne
     obtain ⟨hzall, -⟩ := holdsList_flat mDaZ zflat _ _ (hdn h338)
@@ -322,7 +322,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     simpa using this
   · -- with a direct DA check, the node's own slot
     intro h71
-    have h398 : σ (.n (val% «main» "s53#3")) = 0 := by
+    have h398 : σ (.n (val% «main» "s60#3")) = 0 := by
       rw [assertEq_sound mae atM, const_sound mc399 atM, word_zero]
     rw [isMul_sound mm398 atM, add_sound ma395 atM, add_sound ma397 atM, const_sound mc396 atM,
       word_one, l7, h71, pow_one] at h398
@@ -333,7 +333,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     · exact absurd h0 gen_add_one_ne
   · rw [isMul_sound mm401 atM, isMul_sound mm400 atM, lp, ← pow_add, two_mul]
   · intro h60 k hk
-    have h404 : σ (.n (val% «main» "s56#1")) = 0 := by
+    have h404 : σ (.n (val% «main» "s63#1")) = 0 := by
       rw [add_sound ma404 atM, const_sound mc403 atM, word_one, l6, h60, pow_zero, e_add_self]
     obtain ⟨hlall, -⟩ := holdsList_flat mLeaf (List.all_eq_true.mpr lflat) _ _ (hlz h404)
     have atL := atoms_of_flat hlall
@@ -341,7 +341,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     have := load_sound hl atL
     rwa [const_sound hz atL, word_zero] at this
   · intro h60
-    have h404 : σ (.n (val% «main» "s56#1")) ≠ 0 := by
+    have h404 : σ (.n (val% «main» "s63#1")) ≠ 0 := by
       rw [add_sound ma404 atM, const_sound mc403 atM, word_one, l6]
       intro he
       have h2 : gen ^ 0 = gen ^ lg σ 6 := (pow_zero gen).trans (e_add_eq_zero_iff.mp he).symm

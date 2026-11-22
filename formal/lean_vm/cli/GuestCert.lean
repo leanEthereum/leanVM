@@ -1023,9 +1023,9 @@ def winObligations (body : List Core.Stmt) :
 memory bounds they take from named obligations. `verify_tables` dispatches on `g_bus_mu`
 (argument 9) and on `dims_g[g^0]` (argument 10, cell 12: `kb[1]`, an unadjusted `kappa_g`,
 `lean_ethereum.py`; the logs `t ≥ 1` it range checks itself),
-`log2_ceil_in_the_exponent`'s returned power (cell 4); `claim_list_tail` and
+`log2_ceil_in_the_exponent`'s returned power (cell 4); `claim_list_tail`, `claim_list_chain` and
 `child_claim_list_any`/`child_claim_list_mono` on `list_split`'s `rest` (its cell 5, below
-`CLAIM_GROUP = 17`; their arguments 2 and 6);
+`CLAIM_GROUP = 17`; their arguments 2, 4 and 6);
 `check_opening_terminal` on `kb[i] = kappa_base[g^i]` (argument 8, cell 10) and on `kb[0]·g^19`,
 `kb[7]·g^6`, which `verify_sub` knows from an obligation: `kb[0] = g^0`, `kb[1..6] < g^31`,
 `kb[7] < g^25` (`lean_ethereum.py`); `gkr_layers` on `rem_g` (argument 4, cell 6, below the four
@@ -1035,6 +1035,7 @@ def bounds (name : String) :
   if name == "list_split" then ([], [(5, 17)], [], [])
   else if name == "child_claim_list_any" || name == "child_claim_list_mono" then ([(8, 17)], [], [], [])
   else if name == "claim_list_tail" then ([(4, 17)], [], [], [])
+  else if name == "claim_list_chain" then ([(6, 17)], [], [], [])
   else if name == "verify_tables" then ([(11, 34)], [], [(12, 0, 34)], [])
   else if name == "log2_ceil_in_the_exponent__L0_L34" ||
     name == "log2_ceil_in_the_exponent__L15_L34" then

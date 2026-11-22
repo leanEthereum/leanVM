@@ -62,13 +62,13 @@ theorem vtZt_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.l
       [ofK ((vtσ rd w args (.n (val% «verify_tables» "pi_0"))).limb 1), ofK ((vtσ rd w args (.n (val% «verify_tables» "pi_1"))).limb 1)] [S2.squeeze.1])) :
     (∀ s ∈ (vtPre.drop (pos% «verify_tables» "nxt[0]@42")).take (span% «verify_tables» "nxt[0]@42" "ret"), VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) ∧
       ZtOut (vtσ rd w args) S2 := by
-  have g : GoodL rd w (vtσ rd w args) zTail := vt_goodL hl 5523 zTail zTail_at
+  have g : GoodL rd w (vtσ rd w args) zTail := vt_goodL hl 5513 zTail zTail_at
   have gz : GoodL rd w (vtσ rd w args) [.atom (.const (.n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]")) (word 0 0)),
       .atom (.const (.n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]")) (word 0 0)), .atom (.const (.n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]")) (word 0 0)),
       .atom (.const (.n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]")) (word 0 0))] := vt_goodL hl 2626 _ (by decide +kernel)
   have gk : Good rd vtSL w (vtσ rd w args) (.keccak [.n (val% «verify_tables» "rate[0]@42"), .n (val% «verify_tables» "rate[1]@42"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"),
       .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "nxt[8]@41"), .n (val% «verify_tables» "nxt[9]@41"), .n (val% «verify_tables» "nxt[10]@41"), .n (val% «verify_tables» "nxt[11]@41"), .n (val% «verify_tables» "nxt[12]@41")] (lyOuts (val% «verify_tables» "nxt[0]@42")) false
-      false) := (vt_goodL (rd := rd) (w := w) hl 5523 [.atom (.keccak [.n (val% «verify_tables» "rate[0]@42"), .n (val% «verify_tables» "rate[1]@42"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"),
+      false) := (vt_goodL (rd := rd) (w := w) hl 5513 [.atom (.keccak [.n (val% «verify_tables» "rate[0]@42"), .n (val% «verify_tables» "rate[1]@42"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"),
       .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s59.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "nxt[8]@41"), .n (val% «verify_tables» "nxt[9]@41"), .n (val% «verify_tables» "nxt[10]@41"), .n (val% «verify_tables» "nxt[11]@41"), .n (val% «verify_tables» "nxt[12]@41")]
       (lyOuts (val% «verify_tables» "nxt[0]@42")) false false)] (by decide +kernel)).1
   have e := tbStmtsEqb_sound zTail_at
@@ -77,7 +77,7 @@ theorem vtZt_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.l
       ZtOut (vtσ rd w args) S2 by
     refine ⟨fun s hs => ?_, H.2⟩
     rw [← hlen31, ← e] at hs
-    exact vt_block hl 5523 zTail zTail_at zTRest (by decide +kernel) H.1 s hs
+    exact vt_block hl 5513 zTail zTail_at zTRest (by decide +kernel) H.1 s hs
   generalize vtσ rd w args = σ at *
   simp only [zTail, GoodL, GoodS, Good, fixNe, Nat.reduceLT, and_true, ↓reduceIte] at g
   simp only [GoodL, GoodS, Good, fixNe, and_true] at gz
@@ -95,7 +95,7 @@ theorem vtZt_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.l
     z_keccak gk
   obtain ⟨hPk, -⟩ := ly_keccak k5523
   rw [hin] at hPk
-  have vrm : σ (.n (val% «verify_tables» "nxt[0]@42")) = S2.squeeze.1 := challengeT_value (s0 := .n (val% «verify_tables» "nxt[0]@42")) (b := 5947) rfl (hPk 0 (by norm_num))
+  have vrm : σ (.n (val% «verify_tables» "nxt[0]@42")) = S2.squeeze.1 := challengeT_value (s0 := .n (val% «verify_tables» "nxt[0]@42")) (b := 5937) rfl (hPk 0 (by norm_num))
   -- the public words' limbs
   have l6 : σ (.n (val% «verify_tables» "lo[0]@1")) = ofK ((σ (.n (val% «verify_tables» "pi_0"))).limb 0) := by
     have := g5524 0 (by simp); simpa [limbAt] using this

@@ -538,30 +538,33 @@ theorem vt_loop_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv loop
   have hc := h.2 hne
   have e2500 := vt_e2500 I
   have e2597 : σv (.n (val% «verify_tables» "s72#1")) = 1 + gen ^ H.n := by
-    rw [vt_add (d := 2635) (x := 2634) (y := 2544) (vt_mem_at 2664 _ (by decide +kernel)),
-      vt_const (vt_mem_at 2663 (.atom (.const (.n (val% «verify_tables» "s72#0")) (word 1 0))) (by decide +kernel)),
+    rw [vt_add (d := 2627) (x := 2626) (y := 2544) (vt_mem_at 2656 _ (by decide +kernel)),
+      vt_const (vt_mem_at 2655 (.atom (.const (.n (val% «verify_tables» "s72#0")) (word 1 0))) (by decide +kernel)),
       tb_word_one, e2500]
   have e2598 : σv (.n (val% «verify_tables» "s72#2")) = gen ^ 0 := by
-    rw [vt_const (vt_mem_at 2665 (.atom (.const (.n (val% «verify_tables» "s72#2")) (word 1 0))) (by decide +kernel)),
+    rw [vt_const (vt_mem_at 2657 (.atom (.const (.n (val% «verify_tables» "s72#2")) (word 1 0))) (by decide +kernel)),
       tb_word_one, pow_zero]
   have hK : 0 < H.n := by
     rcases Nat.eq_zero_or_pos H.n with h0 | h0
     · exact absurd (by rw [e2597, h0, pow_zero]; exact CharTwo.add_self_eq_zero 1) hne
     · exact h0
-  have a2589 : σv (.n (val% «verify_tables» "zc_rounds")) = w 2626 := vt_alloc' (by unfold vtAllocVars; simp)
-  have a2592 : σv (.n (val% «verify_tables» "zc_cprod")) = w 2629 := vt_alloc' (by unfold vtAllocVars; simp)
-  have a2635 : σv (.n (val% «verify_tables» "zc_rk")) = w 2633 := vt_alloc' (by unfold vtAllocVars; simp)
+  have a2589 : σv (.n (val% «verify_tables» "zc_rounds")) = w 2620 := vt_alloc' (by unfold vtAllocVars; simp)
+  have a2592 : σv (.n (val% «verify_tables» "zc_cprod")) = w 2621 := vt_alloc' (by unfold vtAllocVars; simp)
+  have a2635 : σv (.n (val% «verify_tables» "zc_rk")) = w 2625 := vt_alloc' (by unfold vtAllocVars; simp)
   simp only [List.map_cons, List.map_nil] at hc ⊢
   rw [e2598, e2500, a2589, a2592, a2635] at hc ⊢
   obtain ⟨d, hd⟩ := hc
   -- the rounds' cursor words
-  have hR : TbReadsAt rd (w 2626)
+  have hR : TbReadsAt rd (w 2620)
       (zcRoundsW H.cap0 H.target (ofK (addressOfIndex B.cur) * gen ^ 13 * gen) H.xsR H.n) := by
     have := vt_own_reads I.hm I.hw (j := 108 + 0) (by norm_num)
-    rw [ownW_getD_Z H B (k := 0) (by norm_num), show vtAllocVars.getD (108 + 0) 0 = 2626 by decide]
+    rw [ownW_getD_Z H B (k := 0) (by norm_num), show vtAllocVars.getD (108 + 0) 0 = 2620 by decide]
       at this
-    exact this
-  have hcur : ∀ k < H.n, ∀ c, LoadHolds rd (w 2626 * gen ^ (7 * k)) 5 c →
+    simp only [List.getD_cons_zero] at this
+    have hn := vt_nμ I
+    have hμ : H.μ < 33 := I.hs.hμ33
+    exact tbReads_unpad this (by rw [zcRoundsW_len (cap0_length H)]; omega)
+  have hcur : ∀ k < H.n, ∀ c, LoadHolds rd (w 2620 * gen ^ (7 * k)) 5 c →
       PtrIn (H.reg B) c 3 := by
     intro k hk c hcl
     have r := zcRoundsW_reads (cap0_length H) hR k hk.le
@@ -579,22 +582,22 @@ theorem vt_loop_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv loop
   have hn33 := vt_nμ I
   have hμ33 : H.μ < 33 := I.hs.hμ33
   refine loop10_relIn ?_ ?_ ?_ hcur d 0 hK hd
-  · exact ptr_own0 I.hw (j := 108) (by norm_num) (by decide) le_rfl
+  · exact ptr_own0 I.hw (j := 108) (by norm_num) (by decide) (by simp [VtHonest.sizes]; omega)
   · exact ptr_own0 I.hw (j := 110) (by norm_num) (by decide) (by simp [VtHonest.sizes]; omega)
-  · exact ptr_own0 I.hw (j := 109) (by norm_num) (by decide) le_rfl
+  · exact ptr_own0 I.hw (j := 109) (by norm_num) (by decide) (by simp [VtHonest.sizes]; omega)
 
 theorem vt_epc_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv epcCall) :
     VSH (coreProgram.RelIn rd (H.reg B)) rd σv epcCall := by
   have e2500 := vt_e2500 I
-  have a2613 : σv (.n (val% «verify_tables» "zc_peq")) = w 2651 := vt_alloc' (by unfold vtAllocVars; simp)
-  have a2635 : σv (.n (val% «verify_tables» "zc_rk")) = w 2633 := vt_alloc' (by unfold vtAllocVars; simp)
+  have a2613 : σv (.n (val% «verify_tables» "zc_peq")) = w 2641 := vt_alloc' (by unfold vtAllocVars; simp)
+  have a2635 : σv (.n (val% «verify_tables» "zc_rk")) = w 2625 := vt_alloc' (by unfold vtAllocVars; simp)
   have a703 : σv (.n (val% «verify_tables» "zeta1")) = w 700 := vt_alloc' (by unfold vtAllocVars; simp)
   have hnμ := vt_nμ I
   have hμ : H.μ < 33 := I.hs.hμ33
   simp only [epcCall, vsh_call, List.map_cons, List.map_nil] at h ⊢
   rw [e2500] at h ⊢
   refine eq_prefix_chain_rev_relIn (by omega) ?_ ?_ ?_ ?_ h
-  · rw [a2613]; exact ptr_own0 I.hw (j := 111) (by norm_num) (by decide) le_rfl
+  · rw [a2613]; exact ptr_own0 I.hw (j := 111) (by norm_num) (by decide) (by simp [VtHonest.sizes]; omega)
   · rw [vt_s16]
     exact ptr_lin0 (q := (B.chi, H.chiW)) (by simp [VtHonest.linL]) (by
       simp [VtHonest.chiW, zcChis, zcRkW])

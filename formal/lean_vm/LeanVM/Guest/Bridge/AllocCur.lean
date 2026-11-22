@@ -90,7 +90,7 @@ theorem countP_off {entry off : ℕ} (p : Prover.Exec.Hint → Bool) :
       rw [this, Nat.zero_add]
 
 theorem isBuf_ptr {X : AlignCtx} {h : Prover.Exec.Hint} (hb : isBuf X h = true) : (allocPtr h).isSome = true := by
-  unfold isBuf at hb; simp only [Bool.and_eq_true] at hb; exact hb.1.1
+  unfold isBuf at hb; simp only [Bool.and_eq_true] at hb; exact hb.1
 
 theorem isFrame_ptr {X : AlignCtx} {h : Prover.Exec.Hint} (hb : isFrame X h = true) : (allocPtr h).isSome = true := by
   unfold isFrame at hb

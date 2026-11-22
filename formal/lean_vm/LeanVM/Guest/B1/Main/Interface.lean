@@ -188,10 +188,10 @@ structure CalleesW (bytecode : List K) (rd : Reader) (wX : List E → LeanXmss.S
 `main`'s values: the counts `n_lx = .n 0`, `n_xdup = .n 1`, `n_raw_x = .n 2`,
 `n_ls = .n 3`, `n_sdup = .n 4`, `n_raw_s = .n 5`, `n_children = .n 6`, `n_direct_da = .n 7`
 (each `g^count`); the region sizes `lx_slots = .n 22`, `ls_slots = .n 23`, `n_total = .n 24`;
-`fs_seed = .n 26, .n 27`; the exponent table `.n 28`; the pointers
-`lx_table = .n 31`, `ls_table = .n 34`, `cover = .n 45`, `da_digests = .n 364`,
-`child_pi = .n 383`, `child_fresh = .n 389`, `child_carried = .n 395`, `written = .n 398`,
-`defer_stmt = .n 416`; the direct DA check's words `.n 369 … .n 371`; `da_pick = .n 405`; the
+`fs_seed = .n 26, .n 27`; the exponent table `.n 46`; the pointers
+`lx_table = .n 47`, `ls_table = .n 48`, `cover = .n 59`, `da_digests = .n 375`,
+`child_pi = .n 393`, `child_fresh = .n 394`, `child_carried = .n 395`, `written = .n 398`,
+`defer_stmt = .n 416`; the direct DA check's words `.n 380 … .n 382`; `da_pick = .n 405`; the
 window tables `.n 444`. -/
 
 /-- The four cells of slot `s` of a table at `p`. -/
@@ -289,7 +289,7 @@ noncomputable def dvClaim (σ : Val) : DaClaim :=
   ⟨digestOfCells (σ (.n (val% «main» "root_0"))) (σ (.n (val% «main» "root_1"))), σ (.n (val% «main» "z"))⟩
 
 /-- `main_loop2`'s arguments after its counter: `n_raw_x`, `lx_slots`, `cover`, `lx_table`, then
-the `51` carried tags `lx_tags` (`.n 304 ..< .n 355`; lean_ethereum.py). -/
+the `51` carried tags `lx_tags` (`.n 318 ..< .n 369`; lean_ethereum.py). -/
 def l2Args (σ : Val) : List E :=
   [σ (.n (val% «main» "meta[2]")), σ (.n (val% «main» "lx_slots_g")), σ (.n (val% «main» "cover")), σ (.n (val% «main» "lx_table"))] ++ (List.range 51).map fun j => σ (.n ((val% «main» "lx_tags[0]") + j))
 
@@ -317,7 +317,7 @@ noncomputable def decWit (σ : Val) (rd : Reader) (wX : List E → LeanXmss.Sign
     if nDirect σ = 1 then
       some (dvClaim σ, wD [σ (.n (val% «main» "byte_bits"))] [σ (.n (val% «main» "root_0")), σ (.n (val% «main» "root_1")), σ (.n (val% «main» "z"))])
     else none,
-    wA [σ (.n (val% «main» "meta[6]")), σ (.n (val% «main» "child_pi")), σ (.n (val% «main» "child_fresh")), σ (.n (val% «main» "child_carried")), σ (.n (val% «main» "defer_stmt")), σ (.n (val% «main» "s56.e.s0#1"))]⟩
+    wA [σ (.n (val% «main» "meta[6]")), σ (.n (val% «main» "child_pi")), σ (.n (val% «main» "child_fresh")), σ (.n (val% «main» "child_carried")), σ (.n (val% «main» "defer_stmt")), σ (.n (val% «main» "s63.e.s0#1"))]⟩
 
 /-! ## The statement -/
 

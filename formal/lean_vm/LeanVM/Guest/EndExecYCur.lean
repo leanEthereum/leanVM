@@ -13,10 +13,9 @@ public import LeanVM.Guest.Executor
 /-!
 # The stream cursor
 
-`popsOn S h`: hint `h` pops an entry of stream `S` (a witness hint on `S`, an `allocAdvice` on `S`).
+`popsOn S h`: hint `h` pops an entry of stream `S` (a witness hint on `S`).
 `hints_cursor`: the hints at a pc move each stream's cursor by the entries they pop of it;
-`runOp_cursor`: an instruction keeps the cursor. `hints_advised`, `runOp_advised`: the advised
-reservations only grow, by an `allocAdvice`'s. `streams_guest`: on the guest's advice, the
+`runOp_cursor`: an instruction keeps the cursor. `streams_guest`: on the guest's advice, the
 executor's stream `S` is the honest pushes on `S`, in order, wherever there is one.
 -/
 
@@ -28,7 +27,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Prover.Exec
 
 /-- **Hint `h` pops an entry of stream `S`.** -/
 def popsOn (S : String) : Hint → Bool
-  | .witnessStack n .. | .witnessHeap n .. | .allocAdvice _ n => n == S
+  | .witnessStack n .. | .witnessHeap n .. => n == S
   | _ => false
 
 /-! ## The primitives keep the cursor -/
@@ -66,27 +65,6 @@ theorem cur_allocate {s s' : St} {ptr size : ℕ} (h : allocate s ptr size = .ok
     have := cur_withMem h1
     exact this
 
-theorem cur_allocateAdvised {s s' : St} {ptr size : ℕ} (h : allocateAdvised s ptr size = .ok s') :
-    s'.cursor = s.cursor := by
-  obtain ⟨s1, h1, rfl⟩ := allocateAdvised_ok h
-  exact (cur_allocate h1 : s1.cursor = s.cursor)
-
-theorem cur_checkLate {s s' : St} {ptr size : ℕ} (h : checkLate s ptr size = .ok s') :
-    s'.cursor = s.cursor := by
-  rw [checkLate_eq h]
-
-theorem cur_bufSize {s s' : St} {b : BufSize} {n : ℕ} (h : bufSize s b = .ok (n, s')) :
-    s'.cursor = s.cursor := by
-  cases b with
-  | cells k =>
-    simp only [bufSize, pure_ok, Prod.mk.injEq] at h
-    obtain ⟨-, rfl⟩ := h
-    rfl
-  | exp c =>
-    simp only [bufSize, bind_ok] at h
-    obtain ⟨c', -, sz, -, h⟩ := h
-    exact cur_logOr h
-
 theorem cur_heapBase {s s' : St} {c b : ℕ} {what : String} (h : heapBase s c what = .ok (b, s')) :
     s'.cursor = s.cursor := by
   unfold heapBase at h
@@ -120,19 +98,6 @@ theorem cur_pop {C : Ctx} {s s' : St} {name : String} {len : ℕ} {v : List E}
     · simp at h
   · simp at h
 
-theorem cur_popEntry {C : Ctx} {s s' : St} {name : String} {v : List E}
-    (h : popEntry C s name = .ok (v, s')) :
-    s'.cursor = s.cursor.insert name (s.cursor.getD name 0 + 1) := by
-  unfold popEntry at h
-  split at h
-  · dsimp only at h
-    split at h
-    · simp only [pure_ok, Prod.mk.injEq] at h
-      obtain ⟨-, rfl⟩ := h
-      rfl
-    · simp at h
-  · simp at h
-
 theorem getD_insert_succ (c : Std.HashMap String ℕ) (name S : String) :
     (c.insert name (c.getD name 0 + 1)).getD S 0 = c.getD S 0 + if name == S then 1 else 0 := by
   rw [Std.HashMap.getD_insert]
@@ -156,36 +121,17 @@ theorem runHint_cursor {C : Ctx} {s s' : St} {hint : Hint} (h : runHint C s hint
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, sz, -, ⟨n, s1⟩, h1, h⟩ := h
     exact keep ((cur_allocate h).trans (cur_logOr h1))
-  | allocAdvice ptr stream =>
-    simp only [runHint, bind_ok] at h
-    obtain ⟨⟨v, s1⟩, h1, h⟩ := h
-    have e1 := cur_popEntry h1
-    have hs1 : s'.cursor = s1.cursor := by
-      rcases v with _ | ⟨w, _ | ⟨w', v⟩⟩ <;> dsimp only at h
-      · simp only [pure_ok] at h
-        subst h
-        rfl
-      · simp only [bind_ok] at h
-        obtain ⟨sz, -, ⟨n, s2⟩, h2, h⟩ := h
-        exact (cur_allocateAdvised h).trans (cur_logOr h2)
-      · simp at h
-    rw [hs1, e1, getD_insert_succ]
-    rfl
   | allocArm ptr sel sizes =>
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, x, -, ⟨k, s1⟩, h1, h⟩ := h
     split at h
     · exact keep ((cur_allocate h).trans (cur_logOr h1))
     · simp at h
-  | allocLate ptr size =>
-    simp only [runHint, bind_ok] at h
-    obtain ⟨⟨n, s1⟩, h1, h⟩ := h
-    exact keep ((cur_checkLate h).trans (cur_bufSize h1))
   | cellAddress ptr cell =>
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, p, -, h⟩ := h
     exact keep (cur_withMem h)
-  | allocFrames ptr size stop startInverse tail =>
+  | allocFrames ptr size stop startInverse =>
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, sp, -, h⟩ := h
     split_ifs at h
@@ -297,224 +243,6 @@ theorem runOp_cursor {C : Ctx} {s s' : St} {op : Op} (e : runOp C s op = .ok s')
     simp only [runOp, bind_ok, pure_ok] at e
     obtain ⟨_, -, _, -, _, -, s1, h1, rfl⟩ := e
     have := cur_withMem h1
-    exact this
-
-/-! ## The advised reservations -/
-
-theorem adv_withMem {s s' : St} {f : Mem → Except Fault Mem} (h : s.withMem f = .ok s') :
-    s'.advised = s.advised := by
-  obtain ⟨m, -, rfl⟩ := St.withMem_ok h
-  rfl
-
-theorem adv_allocate {s s' : St} {ptr size : ℕ} (h : allocate s ptr size = .ok s') :
-    s'.advised = s.advised := by
-  unfold allocate at h
-  rw [bind_ok] at h
-  obtain ⟨cell, -, h⟩ := h
-  dsimp only at h
-  split at h
-  · cases h
-  · rw [bind_ok] at h
-    obtain ⟨s1, h1, h⟩ := h
-    simp only [pure_ok] at h
-    subst h
-    have := adv_withMem h1
-    exact this
-
-theorem adv_pop {C : Ctx} {s s' : St} {name : String} {len : ℕ} {v : List E}
-    (h : pop C s name len = .ok (v, s')) : s'.advised = s.advised := by
-  unfold pop at h
-  split at h
-  · dsimp only at h
-    split at h
-    · split_ifs at h
-      · cases h
-      · simp only [pure_ok, Prod.mk.injEq] at h
-        obtain ⟨-, rfl⟩ := h
-        rfl
-    · simp at h
-  · simp at h
-
-theorem adv_popEntry {C : Ctx} {s s' : St} {name : String} {v : List E}
-    (h : popEntry C s name = .ok (v, s')) : s'.advised = s.advised := by
-  unfold popEntry at h
-  split at h
-  · dsimp only at h
-    split at h
-    · simp only [pure_ok, Prod.mk.injEq] at h
-      obtain ⟨-, rfl⟩ := h
-      rfl
-    · simp at h
-  · simp at h
-
-theorem adv_heapBase {s s' : St} {c b : ℕ} {what : String} (h : heapBase s c what = .ok (b, s')) :
-    s'.advised = s.advised := by
-  unfold heapBase at h
-  rw [bind_ok] at h
-  obtain ⟨p, -, h⟩ := h
-  exact St.logOr_advised h
-
-theorem adv_bitsBase {s s' : St} {d : BitsDest} {len : ℕ} {what : String} {b : ℕ}
-    (h : bitsBase s d len what = .ok (b, s')) : s'.advised = s.advised := by
-  unfold bitsBase at h
-  split at h
-  · simp only [bind_ok, pure_ok, Prod.mk.injEq] at h
-    obtain ⟨c, -, -, rfl⟩ := h
-    rfl
-  · simp only [bind_ok, pure_ok, Prod.mk.injEq] at h
-    obtain ⟨c, -, ⟨b', s1⟩, h1, c2, -, -, rfl⟩ := h
-    exact adv_heapBase h1
-
-/-- **A hint keeps the advised reservations**, an `allocAdvice` adding its own. -/
-theorem runHint_advised {C : Ctx} {s s' : St} {hint : Hint} (h : runHint C s hint = .ok s') :
-    ∀ x ∈ s.advised, x ∈ s'.advised := by
-  have keep : s'.advised = s.advised → ∀ x ∈ s.advised, x ∈ s'.advised := fun e x hx ↦ e ▸ hx
-  cases hint with
-  | frameAddress offset =>
-    simp only [runHint, bind_ok, pure_ok] at h
-    obtain ⟨c, -, rfl⟩ := h
-    exact keep rfl
-  | alloc ptr size => exact keep (adv_allocate h)
-  | allocDyn ptr size =>
-    simp only [runHint, bind_ok] at h
-    obtain ⟨c, -, sz, -, ⟨n, s1⟩, h1, h⟩ := h
-    exact keep ((adv_allocate h).trans (St.logOr_advised h1))
-  | allocAdvice ptr stream =>
-    simp only [runHint, bind_ok] at h
-    obtain ⟨⟨v, s1⟩, h1, h⟩ := h
-    have e1 := adv_popEntry h1
-    rcases v with _ | ⟨w, _ | ⟨w', v⟩⟩ <;> dsimp only at h
-    · simp only [pure_ok] at h
-      subst h
-      exact keep e1
-    · simp only [bind_ok] at h
-      obtain ⟨sz, -, ⟨n, s2⟩, h2, h⟩ := h
-      obtain ⟨s3, h3, rfl⟩ := allocateAdvised_ok h
-      intro x hx
-      rw [(adv_allocate h3).trans ((St.logOr_advised h2).trans e1)]
-      exact List.mem_cons_of_mem _ hx
-    · simp at h
-  | allocArm ptr sel sizes =>
-    simp only [runHint, bind_ok] at h
-    obtain ⟨c, -, x, -, ⟨k, s1⟩, h1, h⟩ := h
-    split at h
-    · exact keep ((adv_allocate h).trans (St.logOr_advised h1))
-    · simp at h
-  | allocLate ptr size =>
-    simp only [runHint, bind_ok] at h
-    obtain ⟨⟨n, s1⟩, h1, h⟩ := h
-    obtain rfl := checkLate_eq h
-    exact keep (bufSize_advised h1)
-  | cellAddress ptr cell =>
-    simp only [runHint, bind_ok] at h
-    obtain ⟨c, -, p, -, h⟩ := h
-    exact keep (adv_withMem h)
-  | allocFrames ptr size stop startInverse tail =>
-    simp only [runHint, bind_ok] at h
-    obtain ⟨c, -, sp, -, h⟩ := h
-    split_ifs at h
-    · simp [bind_ok] at h
-    · rw [bind_ok] at h
-      obtain ⟨⟨n, s1⟩, h1, h⟩ := h
-      exact keep ((adv_allocate h).trans (St.logOr_advised h1))
-  | witnessStack name base len =>
-    simp only [runHint, bind_ok] at h
-    obtain ⟨bs, -, ⟨v, s1⟩, h1, h⟩ := h
-    exact keep ((adv_withMem h).trans (adv_pop h1))
-  | witnessHeap name ptr lo len =>
-    simp only [runHint, bind_ok] at h
-    obtain ⟨c, -, ⟨b, s1⟩, h1, bl, -, ⟨v, s2⟩, h2, h⟩ := h
-    exact keep ((adv_withMem h).trans ((adv_pop h2).trans (adv_heapBase h1)))
-  | log2Ceil bits dst nbits floor =>
-    simp only [runHint, bind_ok] at h
-    obtain ⟨⟨b, s1⟩, h1, d, -, h⟩ := h
-    exact keep ((adv_withMem h).trans (adv_bitsBase h1))
-  | bitDecompose value bits nbits =>
-    simp only [runHint, bind_ok] at h
-    obtain ⟨c, -, ⟨b, s1⟩, h1, h⟩ := h
-    exact keep ((adv_withMem h).trans (adv_bitsBase h1))
-  | bitDecomposeExp value bits nbits =>
-    simp only [runHint, bind_ok] at h
-    obtain ⟨c, -, n, -, ⟨b, s1⟩, h1, h⟩ := h
-    exact keep ((adv_withMem h).trans (adv_bitsBase h1))
-  | windowsExp value dest pos start width count =>
-    simp only [runHint, bind_ok] at h
-    obtain ⟨c, -, ⟨b, s1⟩, h1, h⟩ := h
-    exact keep ((adv_withMem h).trans (adv_bitsBase h1))
-  | digitDecomposeExp value dst nbits ndigits digitBits start startCell =>
-    simp only [runHint, bind_ok] at h
-    obtain ⟨c, -, n, -, h⟩ := h
-    split at h
-    · simp only [bind_ok] at h
-      obtain ⟨st, -, ⟨b, s1⟩, h1, h⟩ := h
-      exact keep ((adv_withMem h).trans (adv_bitsBase h1))
-    · simp only [bind_ok] at h
-      obtain ⟨c', -, st, -, ⟨b, s1⟩, h1, h⟩ := h
-      exact keep ((adv_withMem h).trans (adv_bitsBase h1))
-  | fieldLimbs value base len =>
-    simp only [runHint, bind_ok] at h
-    obtain ⟨c, -, b, -, h⟩ := h
-    exact keep (adv_withMem h)
-  | inverse value dst =>
-    simp only [runHint, bind_ok] at h
-    obtain ⟨c, -, d, -, h⟩ := h
-    exact keep (adv_withMem h)
-
-/-- **The hints at a pc keep the advised reservations.** -/
-theorem hints_advised {C : Ctx} :
-    ∀ (l : List Hint) (s s' : St), l.foldlM (runHint C) s = .ok s' → ∀ x ∈ s.advised, x ∈ s'.advised
-  | [], s, s', h => by
-    simp only [List.foldlM_nil, pure_ok] at h; subst h; exact fun _ hx ↦ hx
-  | x :: l, s, s', h => by
-    rw [List.foldlM_cons, bind_ok] at h
-    obtain ⟨s1, h1, h⟩ := h
-    exact fun y hy ↦ hints_advised l s1 s' h y (runHint_advised h1 y hy)
-
-/-- **An instruction keeps the advised reservations.** -/
-theorem runOp_advised {C : Ctx} {s s' : St} {op : Op} (e : runOp C s op = .ok s') : s'.advised = s.advised := by
-  cases op with
-  | xor a b c =>
-    simp only [runOp, bind_ok, pure_ok] at e
-    obtain ⟨_, -, _, -, _, -, _, -, _, -, s1, h1, rfl⟩ := e
-    have := adv_withMem h1
-    exact this
-  | mul a b c =>
-    simp only [runOp, bind_ok, pure_ok] at e
-    obtain ⟨_, -, _, -, _, -, s1, h1, rfl⟩ := e
-    have := adv_withMem h1
-    exact this
-  | set o k =>
-    simp only [runOp, bind_ok, pure_ok] at e
-    obtain ⟨_, -, s1, h1, rfl⟩ := e
-    have := adv_withMem h1
-    exact this
-  | deref o1 o2 o3 mode =>
-    simp only [runOp, bind_ok] at e
-    obtain ⟨_, -, p, -, e⟩ := e
-    split_ifs at e
-    · exact absurd e (by intro h; cases h)
-    obtain ⟨⟨a2, s1⟩, h1, e⟩ := bind_ok.mp e
-    simp only [bind_ok, pure_ok] at e
-    obtain ⟨_, -, s2, h2, rfl⟩ := e
-    have := adv_withMem h2
-    obtain ⟨D, rfl⟩ := St.derefCell_dl h1
-    exact this
-  | jump c d f =>
-    simp only [runOp, bind_ok] at e
-    obtain ⟨_, -, _, -, _, -, _, -, vc, -, _, -, vd, -, _, -, vf, -, s1, h1, e⟩ := e
-    split_ifs at e
-    · simp only [pure_ok] at e; subst e; have := adv_withMem h1; exact this
-    · rw [bind_ok] at e
-      obtain ⟨⟨pc, s2⟩, h2, e⟩ := e
-      rw [bind_ok] at e
-      obtain ⟨⟨fp, s3⟩, h3, e⟩ := e
-      simp only [pure_ok] at e
-      subst e
-      exact (St.logOr_advised h3).trans ((St.logOr_advised h2).trans (adv_withMem h1))
-  | keccak ins out inOdd outOdd count =>
-    simp only [runOp, bind_ok, pure_ok] at e
-    obtain ⟨_, -, _, -, _, -, s1, h1, rfl⟩ := e
-    have := adv_withMem h1
     exact this
 
 /-! ## The guest's streams -/

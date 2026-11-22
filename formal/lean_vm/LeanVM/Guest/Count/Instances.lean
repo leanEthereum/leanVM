@@ -126,8 +126,8 @@ theorem mainStatics : B1.Main.MainStatics B2C.fs wSB wSK where
   main := mainStaticsMain
   dv := dvStatic
   ls := wSB_totalLe (j := wIdx "list_split") (by decide +kernel)
-  l15 := iterK_totalLeOn (j := idx% claim_list_digest_loop0) (by decide +kernel)
-  l16 := iterK_totalLeOn (j := idx% claim_list_digest_loop1) (by decide +kernel)
+  l15 := iterK_totalLeOn (j := idx% claim_list_chain_loop0) (by decide +kernel)
+  l16 := iterK_totalLeOn (j := idx% claim_list_chain_loop1) (by decide +kernel)
   cl := wSB_totalLe (j := wIdx "claim_list_tail") (by decide +kernel)
   l25 := iterK_totalLeOn (j := idx% aggregate_claims_loop0) (by decide +kernel)
   l26 := iterK_totalLeOn (j := idx% aggregate_claims_loop1) (by decide +kernel)

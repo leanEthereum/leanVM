@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.ChildPops
 
-  A child's in-guest verification pops what `Hints.childHints` pushes, stream by stream: `verify_sub`'s stream and heights, `certify_placement`'s column group order, `verify_tables`' block group order and round count, `open_stacked`'s Merkle entries; and the advised `HeapBuf` sizes are the honest buffers'.
+  A child's in-guest verification pops what `Hints.childHints` pushes, stream by stream: `verify_sub`'s stream and heights, `certify_placement`'s column group order, `verify_tables`' block group order and round count, `open_stacked`'s Merkle entries.
 -/
 
 module
@@ -9,8 +9,6 @@ module
 public import LeanVM.Guest.B1.VerifySub.NodePops
 public import LeanVM.Guest.B1.VerifySub.C.Own
 public import LeanVM.Guest.B1.VerifySub.GroupOrderCol
--- Private: `guest_const%` inserts literals.
-import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«certify_placement»
 import LeanVM.Guest.Data.ValNames.«verify_sub»
@@ -19,11 +17,10 @@ import LeanVM.Guest.Data.ValNames.«verify_tables»
 /-!
 # A child's pops against its hints
 
-* `childHints_some`: on an announced layout, `childHints` is its four advised sizes, the stream, `zc_tau_max`, the heights, the two group orders, then the Merkle entries;
-* `childHints_heap`: the advised sizes are `verify_sub`'s `zeta` buffer (`vsSizes d`'s sixth, `d` the bus depth) and `verify_tables`' three round buffers, from the largest height;
+* `childHints_some`: on an announced layout, `childHints` is the stream, `zc_tau_max`, the heights, the two group orders, then the Merkle entries;
 * `heap_words`: a heap hint's words, read where the memory holds a buffer;
 * `vsPops_honest`, `cpPop_honest`, `vtPops_honest`: the nodes' own entries on the honest buffers and values;
-* `childPops_sameStreams`: those entries, and `open_stacked`'s, are `childHints`' past the sizes, stream by stream;
+* `childPops_sameStreams`: those entries, and `open_stacked`'s, are `childHints`', stream by stream;
 * `vs_child_pops`: a valid `verify_sub` node on the honest stream and `dims_g` pops them, given its `certify_placement`, `verify_tables` and `open_stacked` callees pop theirs.
 -/
 
@@ -36,37 +33,19 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Node
 
 /-! ## The hints -/
 
-/-- The entries `childHints` pushes past its advised sizes and before its Merkle entries. -/
+/-- The entries `childHints` pushes before its Merkle entries. -/
 def childMid (stream : List E) (layout : Layout) : List (String × Hints.Entry) :=
   [("stream", vsStreamW stream), ("zc_tau_max", [Hints.count (layout.tableLogHeights.foldl max 0)]),
     ("table_logs", layout.tableLogHeights.map Hints.count), ("col_group_order", Hints.colGroupOrder layout),
     ("block_group_order", Hints.blockGroupOrder layout)]
 
-/-- The advised sizes `childHints` pushes. -/
-def childHeap (layout : Layout) : List ℕ :=
-  [(busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth,
-    (layout.tableLogHeights.foldl max 0 + 1) * guest_const% ROUND_SLOTS, layout.tableLogHeights.foldl max 0 + 1,
-    layout.tableLogHeights.foldl max 0 + 1]
-
 theorem childHints_some {bytecode : List K} {seed : Digest} {c : Child} {layout : Layout} {r : ℕ}
     (hann : announcedLayoutAndRate bytecode c.proof.stream = some (layout, r)) :
-    Hints.childHints bytecode seed c = (childHeap layout).map (Hints.heapSizeEntry ∘ some) ++ childMid c.proof.stream layout ++
+    Hints.childHints bytecode seed c = childMid c.proof.stream layout ++
       Hints.merkleHints true (Hints.childQueries bytecode seed c) c.proof.openings := by
-  simp only [Hints.childHints, hann, childHeap, childMid, vsStreamW, List.map_cons, List.map_nil, List.cons_append,
-    List.nil_append]
+  simp only [Hints.childHints, hann, childMid, vsStreamW, List.cons_append, List.nil_append]
 
-/-- **The advised sizes are the honest buffers'**: `verify_sub`'s `zeta`, of the bus depth `d`, and `verify_tables`'
-round coefficients, products and prefixes, from the largest height `n`. -/
-theorem childHints_heap {bytecode : List K} {seed : Digest} {c : Child} {layout : Layout} {r d n : ℕ}
-    (hann : announcedLayoutAndRate bytecode c.proof.stream = some (layout, r))
-    (hd : (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth = d)
-    (hn : layout.tableLogHeights.foldl max 0 = n) :
-    (Hints.childHints bytecode seed c).take 4 =
-      [(vsSizes d).getD 5 0, 7 * (n + 1), n + 1, n + 1].map (Hints.heapSizeEntry ∘ some) := by
-  rw [childHints_some hann, List.append_assoc ((childHeap layout).map _), List.take_left' (l₁ := (childHeap layout).map (Hints.heapSizeEntry ∘ some)) (by simp [childHeap]), childHeap, hd, hn]
-  simp [vsSizes, Nat.mul_comm]
-
-/-- **A child's pops are its hints past the sizes**, stream by stream: the stream and the heights, the column group
+/-- **A child's pops are its hints**, stream by stream: the stream and the heights, the column group
 order, the block group order and the round count, then `open_stacked`'s, given those are the Merkle entries. -/
 theorem childPops_sameStreams {bytecode : List K} {seed : Digest} {c : Child} {layout : Layout} {r : ℕ}
     (hann : announcedLayoutAndRate bytecode c.proof.stream = some (layout, r)) {os : List Pop}
@@ -75,9 +54,8 @@ theorem childPops_sameStreams {bytecode : List K} {seed : Digest} {c : Child} {l
       [("col_group_order", Hints.colGroupOrder layout)] ++
       [("block_group_order", Hints.blockGroupOrder layout),
         ("zc_tau_max", [Hints.count (layout.tableLogHeights.foldl max 0)])] ++ os)
-      ((Hints.childHints bytecode seed c).drop 4) := by
-  rw [childHints_some hann, List.append_assoc ((childHeap layout).map _),
-    List.drop_left' (l₁ := (childHeap layout).map (Hints.heapSizeEntry ∘ some)) (by simp [childHeap]), childMid]
+      (Hints.childHints bytecode seed c) := by
+  rw [childHints_some hann, childMid]
   refine SameStreams.append ?_ hos
   have e : ∀ (a b c d e : Pop), [a, b] ++ [c] ++ [d, e] = [a] ++ ([b, c, d] ++ [e]) := fun _ _ _ _ _ => rfl
   rw [e, show ∀ (a b c d e : Pop), [a, b, c, d, e] = [a] ++ ([b] ++ [c, d, e]) from fun _ _ _ _ _ => rfl]
@@ -153,7 +131,7 @@ theorem vs_child_pops {bytecode : List K} {seed : Digest} {c : Child} {layout : 
         SameStreams (tos.pops coreProgram rd)
           (Hints.merkleHints true (Hints.childQueries bytecode seed c) c.proof.openings) →
         SameStreams ((Memory.Tree.node "verify_sub" σ bufs kids).pops coreProgram rd)
-          ((Hints.childHints bytecode seed c).drop 4)) := by
+          (Hints.childHints bytecode seed c)) := by
   obtain ⟨tcp, tvt, tos, i, hi, hx, ncp, vcp, nvt, vvt, nos, vos, icp, ivt, ios, e⟩ := vs_pops hv
   refine ⟨tcp, tvt, tos, i, hi, hx, ncp, vcp, nvt, vvt, nos, vos, icp, ivt, ios, fun ecp evt eos => ?_⟩
   rw [e, vsPops_honest h1 h3 hm1 hm3 hst hl, ecp, evt, List.append_assoc]

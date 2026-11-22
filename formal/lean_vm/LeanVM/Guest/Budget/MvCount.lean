@@ -34,10 +34,10 @@ import LeanVM.Guest.Data.ValNames.«da_pad»
 `da_vector`'s, `da_weights`', the blob loop's `r` iterations, `da_pad` at the gap `2^L - r` and the
 tree over the blob roots (`dv_weight_le`, on a tree of `Da.dvNH r L`); `dvW_le`: within
 `kcDvA op + kcDvR op · r + kcDvP op · 2^L`.
-`clW op n`: `claim_list_digest`'s on `n` claims, its frame's, `list_split`'s, `n / 136` iterations
-of `claim_list_digest_loop0`, `n % 136 / 17` of `claim_list_digest_loop1` and the last group's `claim_list_tail`
-(`cl_weight_le`, on a tree of
-`Main.clHonest n`); `clW_le`: within `kcClA op + kcClS op · n`. `Count.mainCounts op`: `main`'s callees' weights at
+`chW op n`: `claim_list_chain`'s on `n ≠ 0` claims, its frame's, `n / 136` iterations of `claim_list_chain_loop0`,
+`n % 136 / 17` of `claim_list_chain_loop1` and the last group's `claim_list_tail` (`ch_weight_le`, on a tree of
+`Digest.chHonest n`). `clW op n`: `claim_list_digest`'s on `n` claims, its frame's and, when `n ≠ 0`, `list_split`'s
+and `chW op n` (`cl_weight_le`, on a tree of `Main.clHonest n`); `clW_le`: within `kcClA op + kcClS op · n`. `Count.mainCounts op`: `main`'s callees' weights at
 `op`'s instructions, the static ones' certificates and these two by their shapes.
 -/
 
@@ -67,7 +67,7 @@ theorem mvTab_parts (op : Opcode) :
     (kvOkB op clTJ "claim_list_tail" && kvSBJ op clTJ == kcClT op) = true ∧
     (∀ i < 2, (kvOkK op (clLpJ.getD i 0) (clLpNames.getD i "") &&
       kvSKJ op (clLpJ.getD i 0) == (kcClLpT op).getD i 0) = true) ∧
-    (∀ i < 3, decide ((coreProgram[mvOmJ.getD i 0]?).map Fn.name = some (mvOmNames.getD i "")) = true ∧
+    (∀ i < 4, decide ((coreProgram[mvOmJ.getD i 0]?).map Fn.name = some (mvOmNames.getD i "")) = true ∧
       (B2C.plumbOf (mvOmJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 = (mvOmT op).getD i 0) := by
   have h := mvTab_ok op
   simp only [mvTabOk, Bool.and_eq_true, List.all_eq_true, List.mem_range, beq_iff_eq] at h
@@ -103,23 +103,23 @@ theorem cl_weightLe :
     WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) "claim_list_tail" fun _ => kcClT op :=
   weightLe_tab (mvTab_parts op).2.2.2.1
 
-/-- The claim lists' loops' instructions per iteration: `claim_list_digest_loop0` per `136` claims, `claim_list_digest_loop1`
+/-- The claim lists' loops' instructions per iteration: `claim_list_chain_loop0` per `136` claims, `claim_list_chain_loop1`
 per `17`. -/
 def kcL15 : ℕ := (kcClLpT op).getD 0 0
 
 /-- See `kcL15`. -/
 def kcL16 : ℕ := (kcClLpT op).getD 1 0
 
-/-- **`claim_list_digest_loop0`, per iteration.** -/
-theorem l15_loop : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) (name% claim_list_digest_loop0) (kcL15 op) :=
+/-- **`claim_list_chain_loop0`, per iteration.** -/
+theorem l15_loop : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) (name% claim_list_chain_loop0) (kcL15 op) :=
   loopWeightLe_tab (by simpa [clLpNames, kcL15] using (mvTab_parts op).2.2.2.2.1 0 (by norm_num))
 
-/-- **`claim_list_digest_loop1`, per iteration.** -/
-theorem l16_loop : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) (name% claim_list_digest_loop1) (kcL16 op) :=
+/-- **`claim_list_chain_loop1`, per iteration.** -/
+theorem l16_loop : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) (name% claim_list_chain_loop1) (kcL16 op) :=
   loopWeightLe_tab (by simpa [clLpNames, kcL16] using (mvTab_parts op).2.2.2.2.1 1 (by norm_num))
 
 /-- **The frame weights** of `mvOmNames`. -/
-theorem mvOm_eq {i : ℕ} (hi : i < 3) :
+theorem mvOm_eq {i : ℕ} (hi : i < 4) :
     B2C.ωArm B2C.xmssArmC op (mvOmNames.getD i "") = (mvOmT op).getD i 0 := by
   obtain ⟨hn, hv⟩ := (mvTab_parts op).2.2.2.2.2 i hi
   rw [ωArm_idx (decide_eq_true_eq.mp hn) (by interval_cases i <;> decide), hv]
@@ -224,32 +224,26 @@ theorem dvW_le {r L : ℕ} (hlo : r ≤ 2 ^ L) (hL : L = guest_const% DA_LOG_MAX
 
 /-! ## The claim lists -/
 
-/-- **`claim_list_digest`'s instructions of `op` on `n = 136a + 17b + c` claims**: its frame's,
-`list_split`'s, `a` iterations of `claim_list_digest_loop0`, `b` of `claim_list_digest_loop1` and `claim_list_tail`. -/
-def clW (n : ℕ) : ℕ :=
-  (mvOmT op).getD 2 0 + (if n = 0 then 0 else
-    kcLs op + n / 136 * kcL15 op + n % 136 / 17 * kcL16 op + kcClT op)
+/-- **`claim_list_chain`'s instructions of `op` on `n = 136a + 17b + c` claims**: its frame's, `a` iterations of
+`claim_list_chain_loop0`, `b` of `claim_list_chain_loop1` and `claim_list_tail`. -/
+def chW (n : ℕ) : ℕ :=
+  (mvOmT op).getD 3 0 + n / 136 * kcL15 op + n % 136 / 17 * kcL16 op + kcClT op
 
-/-- **`claim_list_digest`'s instructions** on a tree of honest shape. -/
-theorem cl_weight_le {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : Reader} {t : Tree}
-    {args rets : List E} (h : B1.Main.clHonest n t) (hv : t.Valid coreProgram rd args rets)
-    (hb : t.BufsOk coreProgram) : t.weight (B2C.ωArm B2C.xmssArmC op) ≤ clW op n := by
+/-- **`claim_list_chain`'s instructions** on a tree of honest shape. -/
+theorem ch_weight_le {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : Reader} {t : Tree}
+    {args rets : List E} (h : B1.Digest.chHonest n t) (hv : t.Valid coreProgram rd args rets)
+    (hb : t.BufsOk coreProgram) : t.weight (B2C.ωArm B2C.xmssArmC op) ≤ chW op n := by
   let W : Call → ℕ := fun c =>
-    if c.f = "list_split" then kcLs op
-    else if c.f = (name% claim_list_digest_loop0) then n / 136 * kcL15 op
-    else if c.f = (name% claim_list_digest_loop1) then n % 136 / 17 * kcL16 op else kcClT op
+    if c.f = (name% claim_list_chain_loop0) then n / 136 * kcL15 op
+    else if c.f = (name% claim_list_chain_loop1) then n % 136 / 17 * kcL16 op else kcClT op
   obtain ⟨σ, -, hle⟩ := NodeHonest.weight_le (B2C.ωArm B2C.xmssArmC op) (fun _ => W) h hv hb
     (by
       intro σ hQ c T hmem ht t' rets' hn' hv' hb' _
-      by_cases h0 : n = 0
-      · simp [B1.Digest.clCalls, h0] at hmem
-      obtain ⟨-, h23, h24, -, -, h50, h70⟩ := And.intro hQ.1 (hQ.2 h0)
-      simp only [B1.Digest.clCalls, h0, ↓reduceIte, B1.Digest.clTs, List.zip_cons_cons,
+      obtain ⟨h23, h24, -, -, h50, h70⟩ := hQ
+      simp only [B1.Digest.chCalls, B1.Digest.chTs, List.zip_cons_cons,
         List.zip_nil_right, List.mem_cons, List.not_mem_nil, or_false, Prod.mk.injEq] at hmem
-      rcases hmem with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+      rcases hmem with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
       · simp only [W, ↓reduceIte]
-        exact ls_weightLe op rd t' _ rets' hn' hv' hb'
-      · simp only [W, String.reduceEq, ↓reduceIte]
         have hq : n / 136 ≠ 0 := by simpa using ht
         exact loop_at (l15_loop op) hn' hv' hb' (by simp [h50]) (by simp [h23]) (by omega)
           (by omega)
@@ -259,6 +253,42 @@ theorem cl_weight_le {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : Reader} {t : Tre
           (by omega)
       · simp only [W, String.reduceEq, ↓reduceIte]
         exact cl_weightLe op rd t' _ rets' hn' hv' hb')
+  have hom := mvOm_eq op (i := 3) (by norm_num)
+  simp only [mvOmNames, List.getD_cons_succ, List.getD_cons_zero] at hom
+  rw [hom] at hle
+  unfold chW
+  have hc : callsW W (B1.Digest.chCalls n σ) ≤
+      n / 136 * kcL15 op + n % 136 / 17 * kcL16 op + kcClT op := by
+    simp only [callsW, B1.Digest.chCalls, List.map_cons, List.map_nil,
+      List.sum_cons, List.sum_nil, W, String.reduceEq, ↓reduceIte]
+    clear hle
+    generalize n / 136 * kcL15 op = P
+    generalize n % 136 / 17 * kcL16 op = Q
+    split <;> split <;> omega
+  omega
+
+/-- **`claim_list_digest`'s instructions of `op` on `n` claims**: its frame's and, when `n ≠ 0`, `list_split`'s and
+`claim_list_chain`'s. -/
+def clW (n : ℕ) : ℕ :=
+  (mvOmT op).getD 2 0 + (if n = 0 then 0 else kcLs op + chW op n)
+
+/-- **`claim_list_digest`'s instructions** on a tree of honest shape. -/
+theorem cl_weight_le {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : Reader} {t : Tree}
+    {args rets : List E} (h : B1.Main.clHonest n t) (hv : t.Valid coreProgram rd args rets)
+    (hb : t.BufsOk coreProgram) : t.weight (B2C.ωArm B2C.xmssArmC op) ≤ clW op n := by
+  let W : Call → ℕ := fun c => if c.f = "list_split" then kcLs op else chW op n
+  obtain ⟨σ, -, hle⟩ := NodeHonest.weight_le (B2C.ωArm B2C.xmssArmC op) (fun _ => W) h hv hb
+    (by
+      intro σ hQ c T hmem _ t' rets' hn' hv' hb' hT
+      by_cases h0 : n = 0
+      · simp [B1.Digest.clCalls, h0] at hmem
+      simp only [B1.Digest.clCalls, h0, ↓reduceIte, B1.Digest.clTs, List.zip_cons_cons,
+        List.zip_nil_right, List.mem_cons, List.not_mem_nil, or_false, Prod.mk.injEq] at hmem
+      rcases hmem with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+      · simp only [W, ↓reduceIte]
+        exact ls_weightLe op rd t' _ rets' hn' hv' hb'
+      · simp only [W, String.reduceEq, ↓reduceIte]
+        exact ch_weight_le op hn hT hv' hb')
   have hom := mvOm_eq op (i := 2) (by norm_num)
   simp only [mvOmNames, List.getD_cons_succ, List.getD_cons_zero] at hom
   rw [hom] at hle
@@ -267,29 +297,23 @@ theorem cl_weight_le {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : Reader} {t : Tre
   · have hc : callsW W (B1.Digest.clCalls n σ) = 0 := by simp [callsW, B1.Digest.clCalls, h0]
     simp only [h0, ↓reduceIte]
     omega
-  · have hc : callsW W (B1.Digest.clCalls n σ) ≤
-        kcLs op + n / 136 * kcL15 op + n % 136 / 17 * kcL16 op + kcClT op := by
-      simp only [callsW, B1.Digest.clCalls, h0, ↓reduceIte, List.map_cons, List.map_nil,
-        List.sum_cons, List.sum_nil, W, String.reduceEq]
-      clear hle
-      generalize n / 136 * kcL15 op = P
-      generalize n % 136 / 17 * kcL16 op = Q
-      split <;> split <;> omega
+  · have hc : callsW W (B1.Digest.clCalls n σ) = kcLs op + chW op n := by
+      simp [callsW, B1.Digest.clCalls, h0, W]
     simp only [h0, ↓reduceIte]
     omega
 
 theorem kcClA_eq : kcClA op =
-    (mvOmT op).getD 2 0 + kcLs op + 7 * kcL16 op + kcClT op := by
+    (mvOmT op).getD 2 0 + kcLs op + (mvOmT op).getD 3 0 + 7 * kcL16 op + kcClT op := by
   cases op <;> decide
 
 theorem kcClS_eq : kcClS op = (kcL15 op + 135) / 136 := by
   cases op <;> decide
 
 /-- **`claim_list_digest`'s instructions** within `kcClA op + kcClS op · n`: at most `7`
-iterations of `claim_list_digest_loop1` (`n % 136 / 17 ≤ 7`) and `claim_list_tail` in the constant. -/
+iterations of `claim_list_chain_loop1` (`n % 136 / 17 ≤ 7`) and `claim_list_tail` in the constant. -/
 theorem clW_le (n : ℕ) : clW op n ≤ kcClA op + kcClS op * n := by
   rw [kcClA_eq, kcClS_eq]
-  unfold clW
+  unfold clW chW
   split
   · omega
   · have hq : n / 136 * kcL15 op ≤ (kcL15 op + 135) / 136 * n := by

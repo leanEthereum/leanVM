@@ -125,32 +125,32 @@ theorem div136_mul_le (n K : ℕ) : n / 136 * K ≤ n * ((K + 135) / 136) := by
 
 /-- A claim list's digest's constant words. -/
 def clC : ℕ :=
-  fs "claim_list_digest" + 13 + SB "list_split" + fs name% «claim_list_digest_loop0» + fs
-      name% «claim_list_digest_loop1» + SB "claim_list_tail"
+  fs "claim_list_digest" + 13 + SB "list_split" + fs "claim_list_chain" + fs name% «claim_list_chain_loop0» + fs
+      name% «claim_list_chain_loop1» + SB "claim_list_tail"
 
-/-- A claim list's digest's words per claim: `13` and a `claim_list_digest_loop0` iteration per
-`136` claims (`CLAIM_BIG`), `13` and a `claim_list_digest_loop1` iteration per `17` claims
+/-- A claim list's digest's words per claim: `13` and a `claim_list_chain_loop0` iteration per
+`136` claims (`CLAIM_BIG`), `13` and a `claim_list_chain_loop1` iteration per `17` claims
 (`CLAIM_GROUP`), the loops' runs'
 phantom frames in the constant (`clC`). -/
-def clS : ℕ := 1 + (iterK fs SK name% «claim_list_digest_loop0» + 135) / 136 + (iterK fs SK
-    name% «claim_list_digest_loop1» + 16) / 17
+def clS : ℕ := 1 + (iterK fs SK name% «claim_list_chain_loop0» + 135) / 136 + (iterK fs SK
+    name% «claim_list_chain_loop1» + 16) / 17
 
 theorem clB_le (n : ℕ) : B1.Digest.clB fs SB SK n ≤ clC fs SB + n * clS fs SK := by
-  unfold B1.Digest.clB clC clS
-  generalize iterK fs SK name% «claim_list_digest_loop0» = k15
-  generalize iterK fs SK name% «claim_list_digest_loop1» = k16
+  unfold B1.Digest.clB B1.Digest.chB clC clS
+  generalize iterK fs SK name% «claim_list_chain_loop0» = k15
+  generalize iterK fs SK name% «claim_list_chain_loop1» = k16
   split
   · omega
   · have h2 := div136_mul_le n k15
-    have h3 : (if n / 136 ≠ 0 then n / 136 * k15 + fs name% «claim_list_digest_loop0» else fs
-        name% «claim_list_digest_loop0») ≤
-        n * ((k15 + 135) / 136) + fs name% «claim_list_digest_loop0» := by
+    have h3 : (if n / 136 ≠ 0 then n / 136 * k15 + fs name% «claim_list_chain_loop0» else fs
+        name% «claim_list_chain_loop0») ≤
+        n * ((k15 + 135) / 136) + fs name% «claim_list_chain_loop0» := by
       split <;> omega
     have h5 : n % 136 / 17 * k16 ≤ n * ((k16 + 16) / 17) :=
       le_trans (Nat.mul_le_mul_right _ (show n % 136 / 17 ≤ n / 17 by omega)) (div17_mul_le n k16)
-    have h6 : (if n % 136 / 17 ≠ 0 then n % 136 / 17 * k16 + fs name% «claim_list_digest_loop1»
-        else fs name% «claim_list_digest_loop1») ≤
-        n * ((k16 + 16) / 17) + fs name% «claim_list_digest_loop1» := by
+    have h6 : (if n % 136 / 17 ≠ 0 then n % 136 / 17 * k16 + fs name% «claim_list_chain_loop1»
+        else fs name% «claim_list_chain_loop1») ≤
+        n * ((k16 + 16) / 17) + fs name% «claim_list_chain_loop1» := by
       split <;> omega
     have h4 : 13 * (n / 136 + n % 136 / 17) ≤ n := by omega
     have e : n * (1 + (k15 + 135) / 136 + (k16 + 16) / 17) =

@@ -37,7 +37,8 @@ function's own code whose soundness at its honest instances is proved once, in `
   `q = b·x` with `b` and `q` dereferenced on every returning path: `e` is the difference of two
   addresses, below `2^28` (the emitter's `e(x) < 2^62 - 1` for a run's root, `opening_queries__*`);
 * `addr`: the same, `x = g^e` with `e` at most a bound `expM` reads off the top-level atoms: products of
-  addresses dereferenced, bits' powers and constant powers of `g`;
+  addresses dereferenced, bits' powers and constant powers of `g`; and `e(Π xᵢ^aᵢ·g^off) < n` from such bounds `Mᵢ`,
+  `Σ aᵢ·Mᵢ + off < n` (`topProd`);
 * `rcv`: `e(x) < e(p·g)` (`.lt (.val x) (.mono ⟨[(p, 1)], 1⟩)`), the value `x` range checked against the value
   `p` among the top-level atoms;
 * `rcn`: `e(x) < e(p)` (`.lt (.val x) (.val p)`), the value `x` range checked against `k = p·w`, `w` the constant
@@ -150,6 +151,11 @@ noncomputable def expM (as : List Atom) : ℕ → V → Option ℕ
 /-- The fuel of `expM` the families use. -/
 def expFuel : ℕ := 6
 
+/-- **An exponent bound of a product `Π xᵢ^aᵢ`** from the top-level atoms: `Σ aᵢ·Mᵢ` (`expM`). -/
+noncomputable def topProd (fn : Fn) : List (ℕ × ℕ) → Option ℕ
+  | [] => some 0
+  | (x, a) :: bs => (expM (Res.topAtoms fn.body) expFuel (V.n x)).bind fun M ↦ (topProd fn bs).map (a * M + ·)
+
 /-- The top-level atoms of the arm taken when `c` is nonzero (an `ite`'s second) of each top-level branch on `c`
 that does not return, before the first statement that may return. -/
 noncomputable def nzAtoms (c : V) : List Stmt → List Atom
@@ -233,13 +239,13 @@ noncomputable def resFam (fn : Fn) (xc : List ℕ) : CRes → Bool
               | none => false)
           | _ => false
       | _ => false
-  | .lt (.mono c) (.num n) => match c.bases with
+  | .lt (.mono c) (.num n) => (match c.bases with
     | [(x, 1)] => decide (n < capE) &&
         ((Res.topSels fn.body).any (fun p ↦ decide (p.1 = V.n x) && decide (p.2 + c.off ≤ n)) ||
           match Res.rcBound (Res.topAtoms fn.body) (V.n x) with
           | some N => decide (N + c.off ≤ n)
           | none => false)
-    | _ => false
+    | _ => false) || (decide (n < capE) && (topProd fn c.bases).any (· + c.off < n))
   | .lt (.num j) (.mono c) => match c.bases with
     | [(x, 1)] => decide (j < c.off) &&
         (Res.topSels fn.body).any fun p ↦ decide (p.1 = V.n x) && decide (p.2 + c.off < capE)

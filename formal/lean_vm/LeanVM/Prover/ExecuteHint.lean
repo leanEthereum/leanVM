@@ -83,19 +83,6 @@ theorem St.log_eq (s : St) (x : K) (b : ℕ) :
   unfold St.log
   dsimp only
 
-theorem St.logOr_advised {s s' : St} {x : K} {b k : ℕ} {f : Fault}
-    (h : s.logOr x b f = .ok (k, s')) : s'.advised = s.advised := by
-  unfold St.logOr at h
-  rw [St.log_eq] at h
-  split at h
-  · rename_i k' s1 hp
-    simp only [pure_ok, Prod.mk.injEq] at h
-    obtain ⟨-, rfl⟩ := h
-    simp only [Prod.mk.injEq] at hp
-    obtain ⟨-, rfl⟩ := hp
-    rfl
-  · simp at h
-
 theorem St.logOr_ok {s s' : St} {x : K} {b k : ℕ} {f : Fault} (hs : s.Good)
     (h : s.logOr x b f = .ok (k, s')) : St.Follows s s' ∧ g ^ k = x ∧ k < b := by
   unfold St.logOr at h
@@ -175,18 +162,6 @@ theorem pop_follows {C : Ctx} {s s' : St} {name : String} {len : ℕ} {v : List 
     · simp at h
   · simp at h
 
-theorem popEntry_follows {C : Ctx} {s s' : St} {name : String} {v : List E} (hs : s.Good)
-    (h : popEntry C s name = .ok (v, s')) : St.Follows s s' := by
-  unfold popEntry at h
-  split at h
-  · dsimp only at h
-    split at h
-    · simp only [pure_ok, Prod.mk.injEq] at h
-      obtain ⟨-, rfl⟩ := h
-      exact ⟨⟨hs.wf, hs.dl⟩, Mem.le_refl _, rfl, rfl, rfl⟩
-    · simp at h
-  · simp at h
-
 theorem heapBase_follows {s s' : St} {c b : ℕ} {what : String} (hs : s.Good)
     (h : heapBase s c what = .ok (b, s')) : St.Follows s s' := by
   unfold heapBase at h
@@ -228,58 +203,6 @@ theorem allocate_follows {s s' : St} {ptr size : ℕ} (hs : s.Good)
     subst h
     exact f1.trans ⟨⟨f1.good.wf, (f1.good.dl.grow _).note _⟩, Mem.le_refl _, rfl, rfl, rfl⟩
 
-theorem allocateAdvised_ok {s s' : St} {ptr size : ℕ} (h : allocateAdvised s ptr size = .ok s') :
-    ∃ s1, allocate s ptr size = .ok s1 ∧ s' = { s1 with advised := (s1.fp + ptr, size) :: s1.advised } := by
-  unfold allocateAdvised at h
-  rw [bind_ok] at h
-  obtain ⟨s1, h1, h⟩ := h
-  exact ⟨s1, h1, (Except.ok.inj h).symm⟩
-
-theorem allocateAdvised_follows {s s' : St} {ptr size : ℕ} (hs : s.Good)
-    (h : allocateAdvised s ptr size = .ok s') : St.Follows s s' := by
-  obtain ⟨s1, h1, rfl⟩ := allocateAdvised_ok h
-  have f1 := allocate_follows hs h1
-  exact f1.trans ⟨⟨f1.good.wf, f1.good.dl⟩, Mem.le_refl _, rfl, rfl, rfl⟩
-
-theorem checkLate_written {s s' : St} {ptr size : ℕ} (h : checkLate s ptr size = .ok s') :
-    s.mem.written (s.fp + ptr) = true ∧ (s.fp + ptr, size) ∈ s.advised := by
-  unfold checkLate at h
-  rw [bind_ok] at h
-  obtain ⟨cell, hc, h⟩ := h
-  obtain ⟨rfl, -⟩ := cellAt_ok hc
-  split_ifs at h with h1 h2
-  exact ⟨h1, List.elem_iff.mp h2⟩
-
-theorem checkLate_eq {s s' : St} {ptr size : ℕ} (h : checkLate s ptr size = .ok s') : s' = s := by
-  unfold checkLate at h
-  rw [bind_ok] at h
-  obtain ⟨cell, -, h⟩ := h
-  split_ifs at h
-  exact (Except.ok.inj h).symm
-
-theorem bufSize_follows {s s' : St} {b : BufSize} {n : ℕ} (hs : s.Good)
-    (h : bufSize s b = .ok (n, s')) : St.Follows s s' := by
-  cases b with
-  | cells k =>
-    simp only [bufSize, pure_ok, Prod.mk.injEq] at h
-    obtain ⟨-, rfl⟩ := h
-    exact St.Follows.refl hs
-  | exp c =>
-    simp only [bufSize, bind_ok] at h
-    obtain ⟨c', -, sz, -, h⟩ := h
-    exact (St.logOr_ok hs h).1
-
-theorem bufSize_advised {s s' : St} {b : BufSize} {n : ℕ} (h : bufSize s b = .ok (n, s')) :
-    s'.advised = s.advised := by
-  cases b with
-  | cells k =>
-    simp only [bufSize, pure_ok, Prod.mk.injEq] at h
-    rw [← h.2]
-  | exp c =>
-    simp only [bufSize, bind_ok] at h
-    obtain ⟨c', -, sz, -, h⟩ := h
-    exact St.logOr_advised h
-
 theorem putRun_follows {s s' : St} {b : ℕ} {vs : List E} (hs : s.Good)
     (h : s.withMem (putRun b vs) = .ok s') : St.Follows s s' :=
   St.withMem_follows hs (fun _ hm ↦ putRun_ok hs.wf hm) h
@@ -302,19 +225,6 @@ theorem runHint_follows {C : Ctx} {s s' : St} {hint : Hint} (hs : s.Good)
     obtain ⟨c, -, sz, -, ⟨n, s1⟩, h1, h⟩ := h
     have f1 := (St.logOr_ok hs h1).1
     exact f1.trans (allocate_follows f1.good h)
-  | allocAdvice ptr stream =>
-    simp only [runHint, bind_ok] at h
-    obtain ⟨⟨v, s1⟩, h1, h⟩ := h
-    have f1 := popEntry_follows hs h1
-    rcases v with _ | ⟨w, _ | ⟨w', v⟩⟩ <;> dsimp only at h
-    · simp only [pure_ok] at h
-      subst h
-      exact f1
-    · simp only [bind_ok] at h
-      obtain ⟨sz, -, ⟨n, s2⟩, h2, h⟩ := h
-      have f2 := (St.logOr_ok f1.good h2).1
-      exact f1.trans (f2.trans (allocateAdvised_follows f2.good h))
-    · simp at h
   | allocArm ptr sel sizes =>
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, x, -, ⟨k, s1⟩, h1, h⟩ := h
@@ -322,17 +232,11 @@ theorem runHint_follows {C : Ctx} {s s' : St} {hint : Hint} (hs : s.Good)
     split at h
     · exact f1.trans (allocate_follows f1.good h)
     · simp at h
-  | allocLate ptr size =>
-    simp only [runHint, bind_ok] at h
-    obtain ⟨⟨n, s1⟩, h1, h⟩ := h
-    have f1 := bufSize_follows hs h1
-    rw [checkLate_eq h]
-    exact f1
   | cellAddress ptr cell =>
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, p, -, h⟩ := h
     exact put_follows hs h
-  | allocFrames ptr size stop startInverse tail =>
+  | allocFrames ptr size stop startInverse =>
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, sp, -, h⟩ := h
     split_ifs at h

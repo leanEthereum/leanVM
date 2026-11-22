@@ -23,7 +23,7 @@ import LeanVM.Guest.Data.ValNames.«main_loop4»
 * `l5PopsH`: the children loop's honest entries, each child's `l5Seg` at its claim lists' `px c`, `ps c` and
   `verify_sub`'s `pv c`;
 * `mainGoalsRR_l5`: `MainGoalsRR.l5`, `q` popping `l5PopsH`; `mainSegs_kids`: `MainSegs.kids` for it, the claim lists
-  popping the child's slots' pushes and `verify_sub` its hints past the advised sizes.
+  popping the child's slots' pushes and `verify_sub` its hints.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -230,18 +230,18 @@ theorem mainGoalsRR_l5 (hbl : bytecode.length = 2 ^ 23) (hn : NodeRelation bytec
     (fun c hc => ⟨(hk c hc).defer_len, ((hk c hc).mem rd hM).2.2.2.2.2.2, ((hk c hc).mem rd hM).2.2.1,
       ((hk c hc).mem rd hM).2.2.2.1⟩) _ 0 t rets (by omega) hv' hT
 
-/-- **`MainSegs.kids`**, `q` popping `l5PopsH` at the child's slots' pushes and its hints past the advised sizes. -/
+/-- **`MainSegs.kids`**, `q` popping `l5PopsH` at the child's slots' pushes and its hints. -/
 theorem mainSegs_kids (hl : GuestLimits s w) {q : MainPops}
     (hq : ∀ rd, q.p5 rd = l5PopsH (fun c => Hints.childSlotPushes ((xPlan s w).childSlots.getD c []))
       (fun c => Hints.childSlotPushes ((sPlan s w).childSlots.getD c []))
-      (fun c => (w.children[c]?.map fun ch => (Hints.childHints bytecode seed ch).drop 4).getD []) s w)
+      (fun c => (w.children[c]?.map fun ch => Hints.childHints bytecode seed ch).getD []) s w)
     (rd : Reader) :
-    SameStreamsBut Hints.heapSizeStream (if (hm fs 0 seed s w).nc = 0 then [] else q.p5 rd)
+    SameStreams (if (hm fs 0 seed s w).nc = 0 then [] else q.p5 rd)
       (childSeg bytecode seed s w) := by
   have h := l5Segs_honest (bytecode := bytecode) (seed := seed) (s := s) (w := w) (ex := hEx w) (es := hEs w)
     (px := fun c => Hints.childSlotPushes ((xPlan s w).childSlots.getD c []))
     (ps := fun c => Hints.childSlotPushes ((sPlan s w).childSlots.getD c []))
-    (pv := fun c => (w.children[c]?.map fun ch => (Hints.childHints bytecode seed ch).drop 4).getD [])
+    (pv := fun c => (w.children[c]?.map fun ch => Hints.childHints bytecode seed ch).getD [])
     (defer := fun c => (hKid s w c).defer) (da := fun c => (hKid s w c).da) fun c hc => by
       have hmem := List.getElem_mem hc
       have h1 := (hl.childClaimListsBelow2Pow23 _ hmem).1

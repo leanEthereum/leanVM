@@ -87,9 +87,9 @@ theorem main_sound_VX {bytecode : List K} {piOf : Reader → Val → FrameMap �
     exact ho hbb
   · intro rets h hcw
     obtain ⟨hp, hbd⟩ := body_ofV hV Da.find_da_verify h
-    have hp0 : V "da_verify" [σ (.n 47)] rets (.n 0) = σ (.n 47) := by
-      have e : (fn% «da_verify»).params.map (V "da_verify" [σ (.n 47)] rets) =
-          [V "da_verify" [σ (.n 47)] rets (.n 0)] := rfl
+    have hp0 : V "da_verify" [σ (.n (val% «main» "byte_bits"))] rets (.n 0) = σ (.n (val% «main» "byte_bits")) := by
+      have e : (fn% «da_verify»).params.map (V "da_verify" [σ (.n (val% «main» "byte_bits"))] rets) =
+          [V "da_verify" [σ (.n (val% «main» "byte_bits"))] rets (.n 0)] := rfl
       rw [e] at hp
       simpa using hp
     exact Da.da_verify_sound_w hV hle hm (by rw [hp0]; exact hcw) hbd

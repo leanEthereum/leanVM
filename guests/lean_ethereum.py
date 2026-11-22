@@ -4341,13 +4341,7 @@ def claim_list_digest(entries_ptr, n_g):
         keccak([0, 0], [0, 0], digest, len=0)
     else:
         bigs, groups, rest = list_split(n_g)
-        d0, d1 = claim_list_chain(entries_ptr, bigs, groups, rest)
-        # list_split's split checked again here, once the claims' cells are written: bigs, groups and
-        # rest g-powers below the memory size, and its identity, so those cells tile [0, n).
-        assert_gpow(bigs)
-        assert_gpow(groups)
-        assert_gpow(rest)
-        assert bigs ** CLAIM_BIG * groups ** CLAIM_GROUP * rest == n_g
+        d0, d1 = claim_list_chain(entries_ptr, n_g, bigs, groups, rest)
         digest[0] = d0
         digest[1] = d1
     # n_g a g-power below the memory size: the bound of the claims' cells written above.
@@ -4355,7 +4349,7 @@ def claim_list_digest(entries_ptr, n_g):
     return digest[0], digest[1]
 
 
-def claim_list_chain(entries_ptr, bigs, groups, rest):
+def claim_list_chain(entries_ptr, n_g, bigs, groups, rest):
     # A non-empty list's hash, in a function of its own so that its buffer precedes its first call.
     chain = HeapBuf((bigs * groups * GEN) ** KECCAK_STATE)
     zero_state(chain)
@@ -4377,6 +4371,14 @@ def claim_list_chain(entries_ptr, bigs, groups, rest):
         keccak_cells(blk[0:4 * CLAIM_GROUP], nxt[0:KECCAK_STATE], state=st[0:KECCAK_STATE], final=0)
     last = mid * groups ** KECCAK_STATE
     d0, d1 = claim_list_tail(last, mid_entries * groups ** (4 * CLAIM_GROUP), rest)
+    # list_split's split checked again here, where the claims' cells are written: bigs, groups and
+    # rest g-powers below the memory size, and its identity, so those cells tile [0, n).
+    assert_gpow(bigs)
+    assert_gpow(groups)
+    assert_gpow(rest)
+    assert bigs ** CLAIM_BIG * groups ** CLAIM_GROUP * rest == n_g
+    # n_g a g-power below the memory size: the bound of the claims' cells written above.
+    assert_gpow(n_g)
     return d0, d1
 
 

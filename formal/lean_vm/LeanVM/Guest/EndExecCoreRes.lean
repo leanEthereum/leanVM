@@ -326,6 +326,32 @@ theorem resLtV_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn
     | _ => simp at hbm
   | _ => simp at hm
 
+/-- **A product's bound from the top-level atoms holds** (`CoreMode.topProd`): `Π xᵢ^aᵢ = g^e`, `e ≤ Σ aᵢ·Mᵢ`. -/
+theorem topProd_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : Fn} {σ : Val}
+    (hall : ∀ a ∈ Res.topAtoms fn.body, a.Holds Lm.read σ) : ∀ {bs : List (ℕ × ℕ)} {M : ℕ},
+      CoreMode.topProd fn bs = some M → ∃ e ≤ M, CoreMode.prodW (vw σ) bs = ofK (addressOfIndex e)
+  | [], M, h => by
+    simp only [CoreMode.topProd, Option.some.injEq] at h
+    subst h
+    exact ⟨0, le_rfl, by simp [CoreMode.prodW, addressOfIndex]⟩
+  | (x, a) :: bs, M, h => by
+    simp only [CoreMode.topProd] at h
+    cases hx : CoreMode.expM (Res.topAtoms fn.body) CoreMode.expFuel (V.n x) with
+    | none => simp [hx] at h
+    | some Mx =>
+      cases hb : CoreMode.topProd fn bs with
+      | none => simp [hx, hb] at h
+      | some Mb =>
+        simp only [hx, hb, Option.bind_some, Option.map_some, Option.some.injEq] at h
+        subst h
+        obtain ⟨e1, he1, h1⟩ := expM_sound hμ Lm hall _ _ hx
+        obtain ⟨e2, he2, h2⟩ := topProd_sound hμ Lm hall hb
+        refine ⟨a * e1 + e2, Nat.add_le_add (Nat.mul_le_mul_left a he1) he2, ?_⟩
+        have hpw : ∀ (y : K) (n : ℕ), ofK y ^ n = ofK (y ^ n) := fun y n ↦ (map_pow (algebraMap K E) y n).symm
+        simp only [CoreMode.prodW, vw]
+        rw [h1, h2, hpw, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_mul, ← pow_add,
+          mul_comm e1 a]
+
 /-- **The `sel` and `rc` families of a value times a power of `g` hold** (`e(x·g^c) < n`, `x` a top-level selector
 of `m` arms, `m + c ≤ n`, or range checked against `g^(N - 1)`, `N + c ≤ n`) at a valuation along a returning path
 of the function whose events hold on a memory of at most `2^28` words. -/
@@ -335,8 +361,22 @@ theorem resSelM_sound {μ : ℕ} (hμ : μ ≤ 28) (Lm : MemoryImage μ) {fn : F
     (CRes.lt (.mono c) (.num n)).Holds σ := by
   obtain ⟨cb, k⟩ := c
   simp only [resFam] at h
+  rcases Bool.or_eq_true_iff.mp h with h | h
+  swap
+  · simp only [Bool.and_eq_true, decide_eq_true_eq] at h
+    obtain ⟨hn, hM⟩ := h
+    cases hP : CoreMode.topProd fn cb with
+    | none => simp [hP] at hM
+    | some M =>
+      simp only [hP, Option.any_some, decide_eq_true_eq] at hM
+      have hall : ∀ a ∈ Res.topAtoms fn.body, a.Holds Lm.read σ := fun a ha ↦ hh _ (topAtoms_on_path hw ha)
+      obtain ⟨e, he, hp⟩ := topProd_sound hμ Lm hall hP
+      refine ⟨e + k, n, ?_, CoreMode.rep_const hn, by omega⟩
+      simp only [idxC, CoreMode.CCell.valW]
+      rw [hp, ← ofK_mul, addressOfIndex, addressOfIndex, ← pow_add]
+      exact rep_of (by omega)
   split at h
-  · rename_i _ x
+  · rename_i x _
     have e1 : CoreMode.CCell.valW (vw σ) ⟨[(x, 1)], k⟩ = σ (V.n x) * ofK (addressOfIndex k) := by
       simp [CoreMode.CCell.valW, CoreMode.prodW, vw]
     have fin : ∀ e, e + k < n → σ (V.n x) = ofK (addressOfIndex e) → n < capE →

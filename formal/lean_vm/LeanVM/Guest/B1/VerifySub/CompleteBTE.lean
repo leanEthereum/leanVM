@@ -258,10 +258,10 @@ theorem _root_.LeanVM.Guest.B1.CompleteAtDTBR.monoVB {k : ℕ} {f : String} {Lin
     let ⟨t, ht, hT'⟩ := hr rd hl hm
     ⟨t, ht, hT rd t rets ht.2.1 ht.2.2.1 hT'⟩⟩
 
-/-- **`verify_sub`'s path allocates `vsSizes d`** at a valuation dispatching and sized as the obligations say. -/
-theorem vs_allocs_events {σ : Val} {d : ℕ} (hdo : ∀ s ∈ vsCPre, DispOk σ s)
-    (hsz : (vsCPre.filterMap Main.Stmt.allocSz).map (fun x ↦ x.2.elim id fun s ↦ logG (σ s)) = vsSizes d) :
-    allocs σ ((Memory.Tree.node "verify_sub" σ [] []).events coreProgram) = vsSizes d := by
+/-- **`verify_sub`'s path allocates `vsSizes`** at a valuation dispatching and sized as the obligations say. -/
+theorem vs_allocs_events {σ : Val} (hdo : ∀ s ∈ vsCPre, DispOk σ s)
+    (hsz : (vsCPre.filterMap Main.Stmt.allocSz).map (fun x ↦ x.2.elim id fun s ↦ logG (σ s)) = vsSizes) :
+    allocs σ ((Memory.Tree.node "verify_sub" σ [] []).events coreProgram) = vsSizes := by
   unfold Tree.events
   simp only [Memory.Tree.name, Memory.Tree.val, find_vs, vs_body.trans vsT_splitPre, walk_flat σ _ _ vs_cflat hdo]
   exact (flat_parts σ _ vs_cflat).2.1.trans hsz
@@ -292,19 +292,19 @@ theorem verify_sub_completeBTGE {bytecode : List K} (hbl : bytecode.length = 2 ^
           t.Every (ExactAt coreProgram rd))
         (termBound fs W.Beqc W.K15 W.Bcs W.Brs)) :
     CompleteAtDTBR fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
-      (fun rd t ↦ (vsTsAny fs W Bvk S.μs S.rate t ∧ ∃ σ ks, t = .node "verify_sub" σ (vsSizes S.d) ks ∧
+      (fun rd t ↦ (vsTsAny fs W Bvk S.μs S.rate t ∧ ∃ σ ks, t = .node "verify_sub" σ (vsSizes) ks ∧
         vsQn S sqE outE rd σ ∧ ∀ k ∈ ks, (∃ a r, k.Valid coreProgram rd a r) → VsKidQ Pcp Pvt Pos rd k) ∧
         t.Every (ExactAt coreProgram rd))
       (vsBoundAt W Bvk S.μs S.rate) := by
   have hd := S.d_bounds hbl
   obtain ⟨hkr, hkm, hσ⟩ := vs_obligations hbl S fs (κ := κ) (by omega) hexp hout (vs_callsMatch hbl S hexp)
   have h := completeAt_flatDepRBPR (fs := fs) (cert := cert) find_vs vs_not_loop κ Lin _ []
-    (vs_body.trans vsT_splitPre) vs_cflat vs_caddrs vs_notIte (vsSizes S.d) (fun _ ↦ S.ownW)
+    (vs_body.trans vsT_splitPre) vs_cflat vs_caddrs vs_notIte (vsSizes) (fun _ ↦ S.ownW)
     (fun _ ↦ S.ownW_fits hbl hst)
-    (fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes S.d)) sqE)
+    (fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes)) sqE)
     (vsNames S.μs S.rate (S.d - 20)) (vsBsAt W Bvk S.μs S.rate) (vsPsRE W Pcp Pvt Pos)
     (fun rd σ ↦ vsQn S sqE outE rd σ ∧ allocs σ ((Memory.Tree.node "verify_sub" σ [] []).events coreProgram) =
-      vsSizes S.d)
+      vsSizes)
     (fun _ ↦ vs_names S _ sqE)
     (fun fp ↦ vs_kidsDepBPRE hbl S hκ W hvk _ sqE (hcp _ _) hvt (hos _) (hterm _))
     hkr hkm fun fp outs hlen ho rd hlow hB hL hLo =>
@@ -317,7 +317,7 @@ theorem verify_sub_completeBTGE {bytecode : List K} (hbl : bytecode.length = 2 ^
   have hF := flatShape_mono hF0 (namedP_mono _ _ _ _ (vsPsRE_imp W Pcp Pvt Pos rd))
   refine ⟨⟨⟨S.d - 20, by omega, flatShape_mono hF (namedP_mono _ _ _ _ (vsPsR_imp W _ _ _ rd))⟩, ?_⟩, hE⟩
   obtain ⟨σ, bufs, ks, rfl, hQn, hal⟩ := hn
-  obtain rfl : bufs = vsSizes S.d := by
+  obtain rfl : bufs = vsSizes := by
     rw [hbo.1, ← hal]
     simp only [Tree.events, Memory.Tree.name, Memory.Tree.val]
   refine ⟨σ, ks, rfl, hQn, fun k hk hkv ↦ ?_⟩

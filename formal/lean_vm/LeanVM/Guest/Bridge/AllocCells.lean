@@ -7,7 +7,9 @@
 
 module
 
-public import LeanVM.Guest.Bridge.AllocAdv
+public import LeanVM.Guest.Bridge.ProgAlDefs
+public import LeanVM.Guest.Bridge.AllocDefs
+public import LeanVM.Guest.Bridge.ProgAlData
 import all Statement.Data.Bytecode
 import all Statement.Data.AdviceHints
 
@@ -32,8 +34,8 @@ def dstCellsOk (fs : ℕ) : Prover.Exec.BitsDest → ℕ → Bool
 
 /-- **The frame cells a hint writes are below the frame size.** -/
 def hintCellsOk (fs : ℕ) : Prover.Exec.Hint → Bool
-  | .alloc p _ | .allocDyn p _ | .allocAdvice p _ | .allocArm p _ _ | .allocLate p _ | .cellAddress p _
-  | .allocFrames p _ _ _ _ => decide (p < fs)
+  | .alloc p _ | .allocDyn p _ | .allocArm p _ _ | .cellAddress p _
+  | .allocFrames p _ _ _ => decide (p < fs)
   | .witnessStack _ base len => decide (base + len ≤ fs)
   | .log2Ceil _ dst _ _ => decide (dst < fs)
   | .bitDecompose _ d n | .bitDecomposeExp _ d n => dstCellsOk fs d n

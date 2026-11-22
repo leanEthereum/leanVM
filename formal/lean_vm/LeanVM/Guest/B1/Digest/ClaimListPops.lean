@@ -10,8 +10,9 @@ public import LeanVM.Guest.B1.Digest.ValidPops
 public import LeanVM.Guest.B1.Digest.ClaimListAt
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«claim_list_digest»
-import LeanVM.Guest.Data.ValNames.«claim_list_digest_loop0»
-import LeanVM.Guest.Data.ValNames.«claim_list_digest_loop1»
+import LeanVM.Guest.Data.ValNames.«claim_list_chain»
+import LeanVM.Guest.Data.ValNames.«claim_list_chain_loop0»
+import LeanVM.Guest.Data.ValNames.«claim_list_chain_loop1»
 import LeanVM.Guest.Data.ValNames.«claim_list_last__L»
 import LeanVM.Guest.Data.ValNames.«claim_list_tail»
 import LeanVM.Guest.Data.ValNames.«list_split»
@@ -23,6 +24,7 @@ import LeanVM.Guest.Data.ValNames.«list_split»
 * `list_split_pops`: a valid `list_split` pops its returns (`signers_split`);
 * `grp_pops`: a frame loop of `m` claims from the counter `g^i` to `g^M` pops claims `m i ..< m M` of its table;
 * `clLast_pops`: `claim_list_last__L{k}` pops its `k` claims;
+* `ch_valid_pops`: a valid tree of `claim_list_chain` on `n` claims of honest shape pops the `n` claims;
 * `cl_valid_pops`: a valid tree of `claim_list_digest` on `n` claims of honest shape pops the split, then the `n` claims.
 -/
 
@@ -147,12 +149,12 @@ theorem grp_pops {f : String} {j m c0 st0 ep : ℕ} (hidx : coreProgram.indexOf?
         show m * (M - i) = m + m * (M - (i + 1)) by
           rw [show M - i = M - (i + 1) + 1 by omega]; ring]
 
-theorem big_wits : (loopAtoms (coreProgram.getD idx% «claim_list_digest_loop0» default)).flatMap atomWit =
-    (List.range 136).map fun k => ("claims", Dest.heap (.n (val% «claim_list_digest_loop0» "blk")) (4 * k) 4) := by
+theorem big_wits : (loopAtoms (coreProgram.getD idx% «claim_list_chain_loop0» default)).flatMap atomWit =
+    (List.range 136).map fun k => ("claims", Dest.heap (.n (val% «claim_list_chain_loop0» "blk")) (4 * k) 4) := by
   decide +kernel
 
-theorem grp_wits : (loopAtoms (coreProgram.getD idx% «claim_list_digest_loop1» default)).flatMap atomWit =
-    (List.range 17).map fun k => ("claims", Dest.heap (.n (val% «claim_list_digest_loop1» "blk")) (4 * k) 4) := by
+theorem grp_wits : (loopAtoms (coreProgram.getD idx% «claim_list_chain_loop1» default)).flatMap atomWit =
+    (List.range 17).map fun k => ("claims", Dest.heap (.n (val% «claim_list_chain_loop1» "blk")) (4 * k) 4) := by
   decide +kernel
 
 /-- **A frame loop entered at `1`** (`callIf (1 + g^M) f [1, g^M, chain, g^e]`), or skipped when `M = 0`: claims
@@ -247,6 +249,80 @@ theorem tail_pops {r : ℕ} (hr : r < 17) {t : Tree} {sp : E} {e : ℕ} {rets : 
     rw [Tree.popsKids, Tree.popsKids, List.flatten_cons, List.flatten_nil, List.append_nil]
     exact clLast_pops hr (by rw [hnk]; exact clNames_get hr) hvk'
 
+/-! ## `claim_list_chain` -/
+
+theorem ch_noWit : Stmt.noWitList (Fn.body fn% «claim_list_chain») = true := by decide +kernel
+
+/-- **A valid tree of `claim_list_chain` on `n` claims at `g^eP`, of honest shape,** pops the `n` claims of the table
+at `g^eP`. -/
+theorem ch_valid_pops {n eP : ℕ} (hn : n < claimBig * bigFramesCap) {t : Tree} {ng : E} {rets : List E}
+    (hv : t.Valid coreProgram rd [gen ^ eP, ng, gen ^ (n / 136), gen ^ (n % 136 / 17), gen ^ (n % 17)] rets)
+    (hH : chHonest n t) :
+    t.pops coreProgram rd = (List.range n).map (claimPop rd eP) := by
+  simp only [claimBig, bigFramesCap] at hn
+  obtain ⟨σ, ks, rfl, hQ, hcs, -, -⟩ := hH
+  obtain ⟨fn0, hf0, hp0, hb⟩ := valid_holds hv
+  rw [find_claim_list_chain] at hf0
+  obtain rfl := Option.some.inj hf0
+  rw [valid_pops_noWit find_claim_list_chain ch_noWit hv]
+  obtain ⟨fn', hf', -, es, vs, hw, -, -, hk⟩ := hv
+  rw [hcs fn' es vs hf' hw] at hk
+  obtain ⟨h12, h13, h14, -, h39, h59⟩ := hQ
+  set a := n / 136 with ha
+  set b := n % 136 / 17 with hb'
+  set r := n % 17 with hr
+  have hr17 : r < 17 := Nat.mod_lt _ (by norm_num)
+  have h0 : σ (.n (val% «claim_list_chain» "entries_ptr")) = gen ^ eP := by
+    rw [ch_param] at hp0
+    exact (List.cons.inj hp0).1
+  rw [claim_list_chain_shape, holdsList_append] at hb
+  have hok := chainBody_ok
+  simp only [chainBodyOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hok
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hfl, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩,
+    -⟩, -⟩, hm67⟩, -⟩, hm84⟩, -⟩, -⟩ := hok
+  obtain ⟨hall, -⟩ := holdsList_flat _ (List.all_eq_true.mpr hfl) _ _ hb
+  have hat := atoms_of_flat hall
+  have h56 : σ (.n (val% «claim_list_chain» "mid_entries")) = gen ^ (eP + 4 * (136 * a)) := by
+    rw [monoIs_sound hm67 hat, h0, h12, ← pow_mul, ← pow_add]
+    exact congrArg (HPow.hPow gen) (by ring)
+  have h73 : σ (.n (val% «claim_list_chain» "d0~9")) = gen ^ (eP + 4 * (136 * a + 17 * b)) := by
+    rw [mono2Is_sound hm84 hat, h0, h12, h13, ← pow_mul, ← pow_mul, ← pow_add, ← pow_add]
+    exact congrArg (HPow.hPow gen) (by ring)
+  -- the callees
+  rw [chCalls] at hk
+  obtain ⟨k2, k3, k4, rfl⟩ : ∃ k2 k3 k4, ks = [k2, k3, k4] := by
+    have := kidsValid_len hk
+    simp only [List.length_cons, List.length_nil] at this
+    match ks, this with
+    | [k2, k3, k4], _ => exact ⟨k2, k3, k4, rfl⟩
+  obtain ⟨hn2', hv2, hn3', hv3, hn4', hv4, -⟩ := hk
+  have p2 : k2.pops coreProgram rd = (List.range' 0 (136 * a)).map (claimPop rd eP) := by
+    refine grp_pops_entry big_idx big_ok big_wits (M := a) (chain := σ (.n (val% «claim_list_chain» "chain"))) (by omega) hn2'
+      (fun ha0 => ?_) (fun ha0 => ?_)
+    · rw [ite_eq_left (decide_eq_true ha0)] at hv2
+      have hv2' : k2.Valid coreProgram rd [σ (.n (val% «claim_list_chain» "s2#2")), σ (.n (val% «claim_list_chain» "bigs")), σ (.n (val% «claim_list_chain» "chain")), σ (.n (val% «claim_list_chain» "entries_ptr"))] [] := hv2
+      rwa [h39, h12, h0] at hv2'
+    · rw [ite_eq_right (fun h => (of_decide_eq_true h) ha0)] at hv2
+      exact hv2.1
+  have p3 : k3.pops coreProgram rd = (List.range' (136 * a) (17 * b)).map (claimPop rd eP) := by
+    rw [← Nat.add_zero (136 * a), ← map_claimPop_shift]
+    refine grp_pops_entry grp_idx grp_ok grp_wits (M := b) (chain := σ (.n (val% «claim_list_chain» "mid"))) (by omega) hn3'
+      (fun hb0 => ?_) (fun hb0 => ?_)
+    · rw [ite_eq_left (decide_eq_true hb0)] at hv3
+      have hv3' : k3.Valid coreProgram rd [σ (.n (val% «claim_list_chain» "s5#2")), σ (.n (val% «claim_list_chain» "groups")), σ (.n (val% «claim_list_chain» "mid")), σ (.n (val% «claim_list_chain» "mid_entries"))] [] := hv3
+      rwa [h59, h13, h56] at hv3'
+    · rw [ite_eq_right (fun h => (of_decide_eq_true h) hb0)] at hv3
+      exact hv3.1
+  have p4 : k4.pops coreProgram rd = (List.range' (136 * a + 17 * b) r).map (claimPop rd eP) := by
+    rw [← Nat.add_zero (136 * a + 17 * b), ← map_claimPop_shift]
+    have hv4' : k4.Valid coreProgram rd [σ (.n (val% «claim_list_chain» "last")), σ (.n (val% «claim_list_chain» "d0~9")), σ (.n (val% «claim_list_chain» "rest"))] [σ (.n (val% «claim_list_chain» "d0")), σ (.n (val% «claim_list_chain» "d1"))] := hv4
+    rw [h73, h14] at hv4'
+    exact tail_pops hr17 hn4' hv4'
+  rw [Tree.popsKids, Tree.popsKids, Tree.popsKids, Tree.popsKids, p2, p3, p4]
+  simp only [List.flatten_cons, List.flatten_nil, List.append_nil]
+  rw [← List.map_append, ← List.map_append, List.range'_append_1, range'_zero_append, List.range_eq_range',
+    show 136 * a + (17 * b + r) = n by omega]
+
 /-! ## `claim_list_digest` -/
 
 theorem cl_noWit : Stmt.noWitList (Fn.body fn% «claim_list_digest») = true := by decide +kernel
@@ -255,12 +331,11 @@ theorem cl_noWit : Stmt.noWitList (Fn.body fn% «claim_list_digest») = true := 
 claims of the table at `g^eP`. -/
 theorem cl_valid_pops {n eP : ℕ} (hn : n < claimBig * bigFramesCap) {t : Tree} {rets : List E}
     (hv : t.Valid coreProgram rd [gen ^ eP, gen ^ n] rets)
-    (hH : NodeHonest coreProgram "claim_list_digest" (clQ n) (clCalls n) (clBufs n) clTs t) :
+    (hH : NodeHonest coreProgram "claim_list_digest" (clQ n) (clCalls n) (clBufs n) (clTs n) t) :
     t.pops coreProgram rd = (if n = 0 then [] else [("signers_split", [gen ^ (n / 136), gen ^ (n % 136 / 17),
       gen ^ (n % 17)])]) ++ (List.range n).map (claimPop rd eP) := by
-  simp only [claimBig, bigFramesCap] at hn
-  obtain ⟨σ, ks, rfl, hQ, hcs, -, -⟩ := hH
-  obtain ⟨fn0, hf0, hp0, hb⟩ := valid_holds hv
+  obtain ⟨σ, ks, rfl, hQ, hcs, -, hT⟩ := hH
+  obtain ⟨fn0, hf0, hp0, -⟩ := valid_holds hv
   rw [find_claim_list_digest] at hf0
   obtain rfl := Option.some.inj hf0
   rw [valid_pops_noWit find_claim_list_digest cl_noWit hv]
@@ -271,73 +346,29 @@ theorem cl_valid_pops {n eP : ℕ} (hn : n < claimBig * bigFramesCap) {t : Tree}
     cases ks with
     | nil => rfl
     | cons _ _ => exact hk.elim
-  · obtain ⟨h12, h13, h14, -, h39, h59⟩ := hQ.2 (by omega)
+  · obtain ⟨h12, h13, h14⟩ := hQ.2 (by omega)
     have hn1 := hQ.1
-    set a := n / 136 with ha
-    set b := n % 136 / 17 with hb'
-    set r := n % 17 with hr
-    have hr17 : r < 17 := Nat.mod_lt _ (by norm_num)
     have h0 : σ (.n (val% «claim_list_digest» "entries_ptr")) = gen ^ eP := by
       rw [cl_param] at hp0
       exact (List.cons.inj hp0).1
-    -- the nonempty branch's atoms
-    rw [claim_list_digest_shape] at hb
-    simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
-    obtain ⟨c2, a3, -, -, hnz⟩ := hb
-    have he1 := ce_ok
-    simp only [ceOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at he1
-    obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hef, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩,
-      -⟩, -⟩, hm67⟩, -⟩, hm84⟩, -⟩, -⟩ := he1
-    have h3 : σ (.n (val% «claim_list_digest» "s1#1")) ≠ 0 := by
-      rw [a3, c2, hn1, word_one, add_comm]
-      exact (one_add_gen_ne (by omega)).mpr (by omega)
-    obtain ⟨hall, -⟩ := holdsList_flat _ (List.all_eq_true.mpr hef) _ _ (hnz h3)
-    have hat := atoms_of_flat hall
-    have h56 : σ (.n (val% «claim_list_digest» "mid_entries")) = gen ^ (eP + 4 * (136 * a)) := by
-      rw [monoIs_sound hm67 hat, h0, h12, ← pow_mul, ← pow_add]
-      exact congrArg (HPow.hPow gen) (by ring)
-    have h73 : σ (.n (val% «claim_list_digest» "d0~9")) = gen ^ (eP + 4 * (136 * a + 17 * b)) := by
-      rw [mono2Is_sound hm84 hat, h0, h12, h13, ← pow_mul, ← pow_mul, ← pow_add, ← pow_add]
-      exact congrArg (HPow.hPow gen) (by ring)
-    -- the callees
     rw [clCalls, ite_eq_right (by omega)] at hk
-    obtain ⟨k1, k2, k3, k4, rfl⟩ : ∃ k1 k2 k3 k4, ks = [k1, k2, k3, k4] := by
+    rw [clCalls, ite_eq_right (by omega)] at hT
+    obtain ⟨k1, k2, rfl⟩ : ∃ k1 k2, ks = [k1, k2] := by
       have := kidsValid_len hk
       simp only [List.length_cons, List.length_nil] at this
       match ks, this with
-      | [k1, k2, k3, k4], _ => exact ⟨k1, k2, k3, k4, rfl⟩
-    obtain ⟨hn1', hv1, hn2', hv2, hn3', hv3, hn4', hv4, -⟩ := hk
-    have p1 : k1.pops coreProgram rd = [("signers_split", [gen ^ a, gen ^ b, gen ^ r])] := by
+      | [k1, k2], _ => exact ⟨k1, k2, rfl⟩
+    obtain ⟨hn1', hv1, hn2', hv2, -⟩ := hk
+    have p1 : k1.pops coreProgram rd = [("signers_split", [gen ^ (n / 136), gen ^ (n % 136 / 17), gen ^ (n % 17)])] := by
       have hv1' : k1.Valid coreProgram rd [σ (.n (val% «claim_list_digest» "n_g"))] [σ (.n (val% «claim_list_digest» "bigs")), σ (.n (val% «claim_list_digest» "groups")), σ (.n (val% «claim_list_digest» "rest"))] := hv1
       rw [list_split_pops hn1' hv1', h12, h13, h14]
-    have p2 : k2.pops coreProgram rd = (List.range' 0 (136 * a)).map (claimPop rd eP) := by
-      refine grp_pops_entry big_idx big_ok big_wits (M := a) (chain := σ (.n (val% «claim_list_digest» "chain"))) (by omega) hn2'
-        (fun ha0 => ?_) (fun ha0 => ?_)
-      · rw [ite_eq_left (decide_eq_true ha0)] at hv2
-        have hv2' : k2.Valid coreProgram rd [σ (.n (val% «claim_list_digest» "s1.e.s3#2")), σ (.n (val% «claim_list_digest» "bigs")), σ (.n (val% «claim_list_digest» "chain")), σ (.n (val% «claim_list_digest» "entries_ptr"))] [] := hv2
-        rwa [h39, h12, h0] at hv2'
-      · rw [ite_eq_right (fun h => (of_decide_eq_true h) ha0)] at hv2
-        exact hv2.1
-    have p3 : k3.pops coreProgram rd = (List.range' (136 * a) (17 * b)).map (claimPop rd eP) := by
-      rw [← Nat.add_zero (136 * a), ← map_claimPop_shift]
-      refine grp_pops_entry grp_idx grp_ok grp_wits (M := b) (chain := σ (.n (val% «claim_list_digest» "mid"))) (by omega) hn3'
-        (fun hb0 => ?_) (fun hb0 => ?_)
-      · rw [ite_eq_left (decide_eq_true hb0)] at hv3
-        have hv3' : k3.Valid coreProgram rd [σ (.n (val% «claim_list_digest» "s1.e.s6#2")), σ (.n (val% «claim_list_digest» "groups")), σ (.n (val% «claim_list_digest» "mid")), σ (.n (val% «claim_list_digest» "mid_entries"))] [] := hv3
-        rwa [h59, h13, h56] at hv3'
-      · rw [ite_eq_right (fun h => (of_decide_eq_true h) hb0)] at hv3
-        exact hv3.1
-    have p4 : k4.pops coreProgram rd = (List.range' (136 * a + 17 * b) r).map (claimPop rd eP) := by
-      rw [← Nat.add_zero (136 * a + 17 * b), ← map_claimPop_shift]
-      have hv4' : k4.Valid coreProgram rd [σ (.n (val% «claim_list_digest» "last")), σ (.n (val% «claim_list_digest» "d0~9")), σ (.n (val% «claim_list_digest» "rest"))] [σ (.n (val% «claim_list_digest» "d0")), σ (.n (val% «claim_list_digest» "d1"))] := hv4
-      rw [h73, h14] at hv4'
-      exact tail_pops hr17 hn4' hv4'
-    rw [Tree.popsKids, Tree.popsKids, Tree.popsKids, Tree.popsKids, Tree.popsKids, p1, p2, p3, p4,
-      ite_eq_right (by omega)]
+    have p2 : k2.pops coreProgram rd = (List.range n).map (claimPop rd eP) := by
+      have hv2' : k2.Valid coreProgram rd [σ (.n (val% «claim_list_digest» "entries_ptr")), σ (.n (val% «claim_list_digest» "n_g")), σ (.n (val% «claim_list_digest» "bigs")), σ (.n (val% «claim_list_digest» "groups")), σ (.n (val% «claim_list_digest» "rest"))]
+          [σ (.n (val% «claim_list_digest» "d0")), σ (.n (val% «claim_list_digest» "d1"))] := hv2
+      rw [h0, h12, h13, h14] at hv2'
+      exact ch_valid_pops hn hv2' (hT.2.1 rfl)
+    rw [Tree.popsKids, Tree.popsKids, Tree.popsKids, p1, p2, ite_eq_right (by omega)]
     simp only [List.flatten_cons, List.flatten_nil, List.append_nil]
-    refine congrArg (fun l => [("signers_split", [gen ^ a, gen ^ b, gen ^ r])] ++ l) ?_
-    rw [← List.map_append, ← List.map_append, List.range'_append_1, range'_zero_append, List.range_eq_range',
-      show 136 * a + (17 * b + r) = n by omega]
 
 end
 end LeanVM.Guest.B1.Digest

@@ -63,7 +63,7 @@ structure VtWeights (ω : Opcode → String → ℕ) : Type where
 /-- `verify_tables`' bound at the bus depth `m` and the largest height `n`, from its words' numbers: its frame, its
 own buffers, its callees and its skipped frames. -/
 noncomputable def vtBnd (fs : String → ℕ) (Kf : String → ℕ) (Ksh K10 m n : ℕ) : ℕ :=
-  fs "verify_tables" + (3875 + m + 9 * (n + 1)) +
+  fs "verify_tables" + (4190 + m) +
     ((vtBs Kf Ksh (vtRunB fs K10 n)).sum + ifFrames fs vtPre)
 
 /-- `verify_tables`' bound over the bus depths below `32` and the heights below `31`, from its words' numbers. -/
