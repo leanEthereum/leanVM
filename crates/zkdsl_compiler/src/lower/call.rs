@@ -233,9 +233,10 @@ impl FnLower<'_> {
         // The join below reads one return cell per bound name, so every callee has
         // to declare exactly that many. Unchecked, a name past a callee's arity
         // `DEREF`s a frame offset nothing on that path writes, a cell of the callee's
-        // frame or past it, so the surplus name binds a prover-chosen word. The non-fused path enforces this
-        // ([`Self::call_into`]), so leaving it out here means one source is rejected
-        // by one lowering of `match` and silently miscompiled by the other.
+        // frame or past it, so the surplus name binds a prover-chosen word. The
+        // non-fused path enforces this ([`Self::call_into`]), so leaving it out here
+        // means one source is rejected by one lowering of `match` and silently
+        // miscompiled by the other.
         for callee in callees {
             // Arguments for the same reason as returns below: a callee expecting
             // more than the arms supply reads a cell nothing writes.

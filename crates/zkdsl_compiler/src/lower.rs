@@ -360,6 +360,11 @@ impl FnLower<'_> {
     /// bound's `n·g^{-1}` may come from here: its first `MUL` pins it before any range
     /// check writes into it.
     fn pure(&mut self, op: PureOp, a: Off, b: Off) -> Off {
+        // `x·1` is `x`.
+        let one = self.scope.const_cells.get(&F128::ONE).copied();
+        if op == PureOp::Mul && one.is_some_and(|o| o == a || o == b) {
+            return if one == Some(a) { b } else { a };
+        }
         let key = (op, a.min(b), a.max(b));
         if let Some(&o) = self.scope.pure_cells.get(&key) {
             return o;
@@ -438,7 +443,7 @@ impl FnLower<'_> {
     /// `dst = src` (no MOV: multiply by `1`).
     fn copy(&mut self, src: Off, dst: Off) {
         let one = self.one();
-        self.emit(LOp::Mul { a: src, b: one, c: dst });
+        self.emit(LOp::Copy { src, one, dst });
     }
 
     /// A frame cell holding this function's own `fp` (the g-power element),
@@ -944,7 +949,7 @@ impl FnLower<'_> {
         let t1 = self.fresh(); // DEREF targets: unconstrained touch cells
         let t2 = self.fresh();
         self.deref(x, 0, t1, DerefMode::Cell);
-        self.emit(LOp::Mul { a: x, b: y, c: kcell });
+        self.emit(LOp::Solve { x: y, b: x, c: kcell });
         self.deref(y, 0, t2, DerefMode::Cell);
     }
 
@@ -1015,7 +1020,7 @@ impl FnLower<'_> {
                 // `a` must already be written, which `self.expr(a)` guarantees.
                 let (la, lb) = (self.expr(a), self.expr(b));
                 let q = self.fresh();
-                self.emit(LOp::Mul { a: q, b: lb, c: la });
+                self.emit(LOp::Solve { x: q, b: lb, c: la });
                 q
             }
             // Folded above when it is what it claims to be, so reaching here means
@@ -1291,7 +1296,7 @@ impl FnLower<'_> {
             StmtKind::AssertEq(a, b) => {
                 let (la, lb) = (self.expr(a), self.expr(b));
                 let one = self.one();
-                self.emit(LOp::Mul { a: la, b: one, c: lb });
+                self.emit(LOp::Copy { src: la, one, dst: lb });
             }
             StmtKind::AssertNe(a, b) => self.lower_assert_ne(a, b),
             StmtKind::AssertLt(e, bound) => self.lower_assert_lt(e, bound),
@@ -1734,6 +1739,7 @@ pub(crate) fn lower_func(
         code: lowerer.code,
         frame_size: lowerer.next,
         keep: abi_end + u32::from(loop_frame),
+        rets: Abi::ret(arg_cells, 0)..abi_end,
         fixed: lowerer.addr_taken,
     }
 }

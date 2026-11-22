@@ -61,6 +61,18 @@ pub(crate) enum LOp {
         b: Off,
         c: Off,
     },
+    /// `x·b = c`, `c` already written: the `MUL` back-solves the unwritten `x`.
+    Solve {
+        x: Off,
+        b: Off,
+        c: Off,
+    },
+    /// `dst = src·one`, a copy: `one` is a cell the lowering set to 1 on every path to here.
+    Copy {
+        src: Off,
+        one: Off,
+        dst: Off,
+    },
     Deref {
         o1: Off,
         o2: Off,
@@ -134,6 +146,8 @@ pub(crate) struct Lowered {
     /// The cells below this one keep their offsets: the return target, the caller's frame, the arguments, the
     /// return area and, in a loop frame, its own frame pointer. Callers address them.
     pub(crate) keep: u32,
+    /// The return area: the callee alone writes it, and every return writes all of it.
+    pub(crate) rets: std::ops::Range<u32>,
     /// The frame keeps its layout and its copies (an `addr()` names its cells by offset).
     pub(crate) fixed: bool,
 }

@@ -382,6 +382,19 @@ fn bus_placeholders(ph: &mut Placeholders, sides: &[Vec<Block>; 3], kbc: usize, 
             .enumerate()
             .flat_map(|(s, blocks)| std::iter::repeat_n(s, blocks.len())),
     );
+    // The guest's `block_index_mle` slots: one per push block up to the last framework block with an `Index`
+    // coordinate, which its pull twin reads back.
+    let index_mle_len = (sblk[0]..sblk[1])
+        .filter(|&b| {
+            bks[b].0 < 2
+                && block_coords[b]
+                    .clone()
+                    .any(|ci| coordinates[ci].0 == coord_kind(&Coord::Index))
+        })
+        .map(|b| b + 1)
+        .max()
+        .unwrap_or(1);
+    ph.set("INDEX_MLE_LEN", index_mle_len);
     ph.list("BLOCK_COORD_OFF", block_coords.iter().map(|r| r.start));
     ph.list("BLOCK_COORD_COUNT", block_coords.iter().map(|r| r.len()));
     ph.list("COORD_TYPE", coordinates.iter().map(|c| c.0));
@@ -702,9 +715,7 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
         ("LIG_FOLDS_OFF", OpeningShape::folds_before),
     ];
     // `open_stacked` has one arm per size and reads these at the size's first-rate row: a rate changes none of them.
-    const SIZE_ONLY: [&str; 10] = [
-        "LIG_POS_OFF",
-        "LIG_POS_TOTAL",
+    const SIZE_ONLY: [&str; 8] = [
         "LIG_N_LEVELS",
         "LIG_YR_LEVEL",
         "LIG_YR_LOG_LEN",
@@ -725,20 +736,11 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
     for (name, f) in per_candidate {
         table(name, cands.iter().map(|c| vec![f(c)]).collect());
     }
-    // A level's query positions take the most any rate of its size squeezes, the levels one after another.
-    let level_positions = |i: usize| -> Vec<usize> {
-        let size = &cands[i % n_log_sizes];
-        (0..size.levels())
-            .map(|lv| {
-                (i % n_log_sizes..cands.len())
-                    .step_by(n_log_sizes)
-                    .map(|j| cands[j].squeezes(lv) * cands[j].positions(lv))
-                    .max()
-                    .unwrap()
-            })
-            .collect()
-    };
-    let positions: Vec<Vec<usize>> = (0..cands.len()).map(level_positions).collect();
+    // A level's query positions, as many as its rate squeezes, the levels one after another.
+    let positions: Vec<Vec<usize>> = cands
+        .iter()
+        .map(|c| (0..c.levels()).map(|lv| c.squeezes(lv) * c.positions(lv)).collect())
+        .collect();
     let pos_off = |row: &Vec<usize>| -> Vec<usize> {
         let mut offs: Vec<usize> = row
             .iter()

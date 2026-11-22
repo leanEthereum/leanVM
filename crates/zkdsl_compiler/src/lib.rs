@@ -119,6 +119,7 @@ pub fn compile(ast: &Ast) -> CompiledProgram {
                 code,
                 frame_size,
                 keep: frame_size,
+                rets: 0..0,
                 fixed: true,
             },
         );
@@ -316,6 +317,12 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, fram
         },
         LOp::Xor { a, b, c } => Op::Xor { a: *a, b: *b, c: *c },
         LOp::Mul { a, b, c } => Op::Mul { a: *a, b: *b, c: *c },
+        LOp::Solve { x, b, c } => Op::Mul { a: *x, b: *b, c: *c },
+        LOp::Copy { src, one, dst } => Op::Mul {
+            a: *src,
+            b: *one,
+            c: *dst,
+        },
         LOp::Deref { o1, o2, o3, mode } => Op::Deref {
             o1: *o1,
             o2: *o2,
