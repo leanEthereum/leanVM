@@ -52,7 +52,7 @@ advice. Choices the witness does not fix are made as the Rust makes them:
 
 @[expose] public section
 
-namespace LeanVM.Prover.Guest
+namespace LeanVM.Guest.Prover
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
@@ -532,24 +532,24 @@ def honestPushes (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : No
   (w.daMatrix.map (fun c ↦ daHints c.1 c.2)).getD [] ++
   [("da_pick", [count (daPick s w)])]
 
-end LeanVM.Prover.Guest
+end LeanVM.Guest.Prover
 
-namespace LeanVM.Prover
+namespace LeanVM.Guest
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Node
+open LeanVM.Node LeanVM.Prover
 
 /-- **The witness streams** on the statement `s`, from the witness `w`, under the seed `seed`: the
 honest pushes, by stream. Of the bytecode `bytecode`, the deferring verifier reads only the length. -/
 def guestStreams (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWitness) :
-    Guest.Streams :=
-  Guest.group (Guest.honestPushes bytecode seed s w)
+    Prover.Streams :=
+  Prover.group (Prover.honestPushes bytecode seed s w)
 
 /-- **The guest's advice** on a node: `main`'s frame size and the compiler's hints, generated
 (`Statement/Data/AdviceHints*.lean`), and the witness streams. -/
 def guestAdvice (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWitness) :
     Exec.Advice :=
-  ⟨Guest.Data.adviceMainFrame, Guest.Data.adviceHints, guestStreams bytecode seed s w⟩
+  ⟨Data.adviceMainFrame, Data.adviceHints, guestStreams bytecode seed s w⟩
 
 /-- **The guest's execution on a node**: the executor's run of the guest program `guest` on the
 statement's digest under `guest`'s seed, with the guest's advice; the execution, or the `pc` and
@@ -571,6 +571,6 @@ def guestProve {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState
   | .ok t => prove π guest (PublicInput.ofDigest (statementDigest (deployedSeed guest) s)) t ρ fuel
   | .error _ => pure none
 
-end LeanVM.Prover
+end LeanVM.Guest
 
 end

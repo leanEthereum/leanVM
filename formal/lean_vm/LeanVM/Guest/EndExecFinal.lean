@@ -38,8 +38,8 @@ and its jumps (`Bridge.alignA`, `Bridge.progAl`, `Bridge.alignA_main`, `alLayout
 the cells the hints use (`hintsUsed_alignA`), the hint tracks' invariant `YFin` (the witness streams' cursor
 `YCur` and the bump pointer `YAlloc`, kept, `keepY_alignA`, `keepY_allocA_guest`, and started, `initY_cur`,
 `initY_alloc`, each given the other's premises by `KeepY.and`, `InitY.and`), and each frame an honest instance
-(`coreHonAll_X`). From it `guestAdvice_complete`, and `guestExecution_complete_holds` is `Statement/`'s
-`GuestExecutionComplete`, the statement's witness generation (`Prover.guestExecution`) being `guestRun guestAdvice`
+(`coreHonAll_X`). From it `honestAdvice_complete`, and `guestExecution_complete_holds` is `Statement/`'s
+`GuestExecutionComplete`, the statement's witness generation (`guestExecution`) being `guestRun honestAdvice`
 (`prover_guestExecution_eq`).
 -/
 
@@ -104,31 +104,31 @@ theorem execGaps :
       jumpCells_at alLayout_alignA (fun _ _ h ↦ by rw [Bridge.alignA_of h]; rfl) anyLink_ok)
 
 /-- **The executor runs the guest program to completion on the guest's advice.** -/
-theorem guestAdvice_complete : AdviceComplete guestAdvice :=
-  guestExecution_complete_on_honest_children execGaps
+theorem honestAdvice_complete : AdviceComplete honestAdvice :=
+  honestExecution_complete_on_honest_children execGaps
 
 /-! ## The statement's witness generation -/
 
-/-- **The statement's advice is `guestAdvice`**, on a bytecode of the guest's length. -/
+/-- **The statement's advice is `honestAdvice`**, on a bytecode of the guest's length. -/
 theorem prover_guestAdvice_eq {bytecode : List K} (h : bytecode.length = 2 ^ 23) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) :
-    Prover.guestAdvice bytecode seed s w = guestAdvice seed s w := by
-  rw [Prover.guestAdvice, guestAdvice, Prover.guestStreams, ProverGuest.honestPushes_eq,
+    guestAdvice bytecode seed s w = honestAdvice seed s w := by
+  rw [guestAdvice, honestAdvice, guestStreams, ProverGuest.honestPushes_eq,
     Hints.honestStreams,
     honestPushes_len (b' := bytecodeShape) (by rw [h, bytecodeShape, List.length_replicate])]
   rfl
 
-/-- **The statement's execution of the guest is `guestRun guestAdvice`.** -/
+/-- **The statement's execution of the guest is `guestRun honestAdvice`.** -/
 theorem prover_guestExecution_eq (s : NodeStatement) (w : NodeWitness) :
-    Prover.guestExecution guestProgram s w = guestRun guestAdvice s w := by
-  simp only [Prover.guestExecution, guestRun]
+    guestExecution guestProgram s w = guestRun honestAdvice s w := by
+  simp only [guestExecution, guestRun]
   rw [prover_guestAdvice_eq (bytecode := bytecodeWords guestProgram) End.bytecode_length]
 
 /-- **The executor runs the guest program to completion on the statement's advice**: `Statement/`'s
 `GuestExecutionComplete`, the field `guestExecutionComplete` of `Statement.Theorems`. -/
 theorem guestExecution_complete_holds : Completeness.GuestExecutionComplete :=
   fun s w hrel hlim hon ↦
-    let ⟨t, he, hv, hsz⟩ := guestAdvice_complete s w hrel hlim hon
+    let ⟨t, he, hv, hsz⟩ := honestAdvice_complete s w hrel hlim hon
     ⟨t, (prover_guestExecution_eq s w).trans he, hv, hsz⟩
 
 open OracleComp OracleSpec in
@@ -136,25 +136,25 @@ open OracleComp OracleSpec in
 returns `t`, `guestProve`'s proof is rejected, refused or not made exactly as the honest prover's
 proof of `t` (`Completeness`, `HonestProofRarelyRefused`), for any program `guest`. -/
 theorem guestProve_complete {guest : LeanIsaProgram} {s : NodeStatement} {w : NodeWitness}
-    {t : Execution guest} (he : Prover.guestExecution guest s w = .ok t)
+    {t : Execution guest} (he : guestExecution guest s w = .ok t)
     (hv : ValidExecution guest (PublicInput.ofDigest (statementDigest (deployedSeed guest) s)) t)
     (hsz : t.committedSize ≤ 2 ^ 30) {ρ : ℕ} (hρ : 1 ≤ ρ ∧ ρ ≤ 4) (hC : LeanVM.Completeness)
     (hR : HonestProofRarelyRefused) :
     let input := PublicInput.ofDigest (statementDigest (deployedSeed guest) s)
     Pr{let accepted ← Common.runWithRandomPermutation (do
-        match ← Prover.guestProve Common.queryPermutation guest s w ρ (2 ^ 35) with
+        match ← guestProve Common.queryPermutation guest s w ρ (2 ^ 35) with
         | none => pure false
         | some proof => leanVmVerifier Common.queryPermutation guest input proof)}[
         accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 256 ∧
     Pr{let accepted ← Common.runWithRandomPermutation (do
-        match ← Prover.guestProve Common.queryPermutation guest s w ρ (2 ^ 35) with
+        match ← guestProve Common.queryPermutation guest s w ρ (2 ^ 35) with
         | none => pure false
         | some proof => verifierRefusingZero Common.queryPermutation guest input proof)}[
         accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 100 := by
-  have hp : Prover.guestProve Common.queryPermutation guest s w ρ (2 ^ 35) =
+  have hp : guestProve Common.queryPermutation guest s w ρ (2 ^ 35) =
       leanVmHonestProver Common.queryPermutation guest
         (PublicInput.ofDigest (statementDigest (deployedSeed guest) s)) t ρ (2 ^ 35) := by
-    simp only [Prover.guestProve, he]
+    simp only [guestProve, he]
     rfl
   intro input
   rw [hp]

@@ -102,18 +102,18 @@ random-permutation model where an adversary is involved, except the memory-decod
   the random-permutation model (from `batch_rpm`);
 * `LeanVM.Guest.EndExec.guestExecution_complete_holds : GuestExecutionComplete`
   (`Statement/LeanVmGuestCompleteness.lean`): the executor runs the guest program to completion on
-  the advice `Statement/Prover/Guest.lean` makes from the statement and the witness, on every node
+  the advice `Statement/LeanVmGuestProver.lean` makes from the statement and the witness, on every node
   `GuestCompleteOnHonestChildren` admits; with `completeness_holds` and `honest_proof_rarely_refused`
   it gives `GuestProverComplete` (`Statement/Corollaries.lean`), the guest's prover's proof accepted.
 
-**The executor on the guest.** `LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children :
-ExecGaps Ks Km E0 X Pro → AdviceComplete guestAdvice` (`LeanVM/Guest/EndExecHonest.lean`): the
+**The executor on the guest.** `LeanVM.Guest.EndExec.honestExecution_complete_on_honest_children :
+ExecGaps Ks Km E0 X Pro → AdviceComplete honestAdvice` (`LeanVM/Guest/EndExecHonest.lean`): the
 executor `LeanVM.Prover.Exec.execute` runs the guest program to completion on the proofs' advice
-(`LeanVM.Guest.guestAdvice`, its streams `LeanVM.Guest.Hints.honestStreams`), within `2^30` committed
+(`LeanVM.Guest.honestAdvice`, its streams `LeanVM.Guest.Hints.honestStreams`), within `2^30` committed
 cells, on every node `GuestCompleteOnHonestChildren` admits, given `ExecGaps`
 (`LeanVM/Guest/EndExec.lean`), which `execGaps` proves (`LeanVM/Guest/EndExecFinal.lean`: the core
 route's certificates, kernel-checked, the reference run and its alignment, the hint tracks, the residuals
-and the termination facts). `Statement/Prover/Guest.lean`'s advice is that advice
+and the termination facts). `Statement/LeanVmGuestProver.lean`'s advice is that advice
 (`LeanVM.Guest.ProverGuest.honestPushes_eq`, `EndExec.prover_guestAdvice_eq`), which gives
 `guestExecution_complete_holds`.
 
@@ -254,12 +254,12 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 #print axioms LeanVM.Guest.EndExec.aggregate_complete_exec
 
 /--
-info: 'LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children' depends on axioms: [propext,
+info: 'LeanVM.Guest.EndExec.honestExecution_complete_on_honest_children' depends on axioms: [propext,
  Classical.choice,
  Quot.sound]
 -/
 #guard_msgs in
-#print axioms LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children
+#print axioms LeanVM.Guest.EndExec.honestExecution_complete_on_honest_children
 
 /-- info: 'LeanVM.Guest.EndExec.guest_prover_complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

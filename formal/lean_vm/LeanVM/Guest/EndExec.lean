@@ -21,10 +21,10 @@ import all Statement.Data.AdviceHints
 # The executor on the guest
 
 The chain: a node within the budget has a reference run (`ref_exists`, `EndExecRef.lean`); the
-executor run on the guest's advice (`guestAdvice`) follows it (`execute_complete_guest`, the
+executor run on the guest's advice (`honestAdvice`) follows it (`execute_complete_guest`, the
 invariant `guestInv` and its rule `inv_rule_of_specs`, each function's frame interface `FnSpec`, the
 core route's), so it returns a valid execution committing no
-more cells than the reference, at most `2^30` (`execute_guest_complete`, `guestExecution_complete`).
+more cells than the reference, at most `2^30` (`execute_guest_complete`, `honestExecution_complete`).
 
 What the chain rests on is `ExecGaps Ks Km E0 X Pro`, for the core route's
 certificates `Ks` (`main`'s `Km`, their program `E0`), the other tracks' invariant `X` (the witness
@@ -37,7 +37,7 @@ decoding (`guest_decodable`), `main`'s frame, the executor's tables, and `ProgOk
 certificates (`progOk_of`).
 
 `AdviceComplete advice` is the executor's completeness on the guest for any advice generator, which
-`EndExecFinal.lean` proves of `guestAdvice` and `ProverGuest.lean` carries to `Statement/`'s
+`EndExecFinal.lean` proves of `honestAdvice` and `ProverGuest.lean` carries to `Statement/`'s
 `GuestExecutionComplete`, and `aggregate_complete_exec` the guest's completeness in the
 random-permutation model with the executor's execution (`End.aggregate_complete_of`'s form). The
 honest-children forms are in `EndExecHonest.lean`.
@@ -324,21 +324,21 @@ returns a valid execution of the guest on the statement's digest, of committed s
 theorem execute_guest_complete (G : ExecGaps Ks Km E0 X Pro) :
     ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w →
       (Budget.deployedBudget (vsBoundAt Count.vsWordsOs vkBound)).size (work s w) ≤ 2 ^ 30 →
-      ∃ t, execute guestProgram (publicInputOf (statementDigest seed s)) (guestAdvice seed s w) = .ok t ∧
+      ∃ t, execute guestProgram (publicInputOf (statementDigest seed s)) (honestAdvice seed s w) = .ok t ∧
         ValidExecution guestProgram (publicInputOf (statementDigest seed s)) t ∧ t.committedSize ≤ 2 ^ 30 := by
   intro seed s w hrel hlim hok hbs
   obtain ⟨r, rfl, rfl, rfl, hr⟩ := ref_exists G.mainExact seed s w hrel hlim hok hbs
   exact execute_ref G hr
 
-/-- **`guestExecution` is complete**, under `execute_guest_complete`'s hypotheses. -/
-theorem guestExecution_complete (G : ExecGaps Ks Km E0 X Pro) :
+/-- **`honestExecution` is complete**, under `execute_guest_complete`'s hypotheses. -/
+theorem honestExecution_complete (G : ExecGaps Ks Km E0 X Pro) :
     ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w →
       (Budget.deployedBudget (vsBoundAt Count.vsWordsOs vkBound)).size (work s w) ≤ 2 ^ 30 →
-      ∃ t, guestExecution seed s w = .ok t ∧
+      ∃ t, honestExecution seed s w = .ok t ∧
         ValidExecution guestProgram (publicInputOf (statementDigest seed s)) t ∧ t.committedSize ≤ 2 ^ 30 :=
   fun seed s w hrel hlim hok hbs ↦
     let ⟨t, he, hv, hsz⟩ := execute_guest_complete G seed s w hrel hlim hok hbs
-    ⟨t, guestExecution_of_execute he, hv, hsz⟩
+    ⟨t, honestExecution_of_execute he, hv, hsz⟩
 
 /-- **A node within the deployed limits is within the budget**, its children acceptable. -/
 theorem budget_of_limits {seed : Digest} {s : NodeStatement} {w : NodeWitness}
@@ -359,7 +359,7 @@ theorem aggregate_complete_exec (G : ExecGaps Ks Km E0 X Pro) {seed : Digest} {s
     {w : NodeWitness} (hrel : NodeRelation bytecode seed s w) (hlim : GuestLimits s w)
     (hok : ChildrenOk bytecode seed w)
     (hbudget : (Budget.deployedBudget (vsBoundAt Count.vsWordsOs vkBound)).size (work s w) ≤ 2 ^ 30) :
-    ∃ t, execute guestProgram (publicInputOf (statementDigest seed s)) (guestAdvice seed s w) = .ok t ∧
+    ∃ t, execute guestProgram (publicInputOf (statementDigest seed s)) (honestAdvice seed s w) = .ok t ∧
       ValidExecution guestProgram (publicInputOf (statementDigest seed s)) t ∧
       ∀ ρ fuel, 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
         Pr{let v ← verifierCompletenessExperimentWithHash

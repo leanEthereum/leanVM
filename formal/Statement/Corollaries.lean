@@ -81,8 +81,8 @@ open OracleComp OracleSpec in
 /-- **The guest's prover makes a proof the verifier accepts.** On every node
 `GuestCompleteOnHonestChildren` covers (`NodeRelation` under the deployed seed, `DeployedLimits`,
 every child a `HonestChild`), in the random-permutation model, at an inverse rate `2^ρ`,
-`1 ≤ ρ ≤ 4`, with `2^35` nonces per proof of work: the guest's prover (`LeanVM.Prover.guestProve`,
-`Prover/Guest.lean`: the advice from the statement and the witness, the executor, then the honest
+`1 ≤ ρ ≤ 4`, with `2^35` nonces per proof of work: the guest's prover (`LeanVM.Guest.guestProve`,
+`LeanVmGuestProver.lean`: the advice from the statement and the witness, the executor, then the honest
 prover) makes no proof, or the verifier rejects it, with probability at most `2^-256`; and makes no
 proof, or the verifier refusing every zero challenge (`verifierRefusingZero`) rejects it, with
 probability at most `2^-100`. From `GuestExecutionComplete`, `Completeness` and
@@ -95,13 +95,13 @@ def GuestProverComplete : Prop :=
     ∀ ρ : ℕ, 1 ≤ ρ ∧ ρ ≤ 4 →
       let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)
       Pr{let accepted ← Common.runWithRandomPermutation (do
-          match ← Prover.guestProve Common.queryPermutation guestProgram statement witness ρ
+          match ← guestProve Common.queryPermutation guestProgram statement witness ρ
               (2 ^ 35) with
           | none => pure false
           | some proof => leanVmVerifier Common.queryPermutation guestProgram input proof)}[
           accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 256 ∧
       Pr{let accepted ← Common.runWithRandomPermutation (do
-          match ← Prover.guestProve Common.queryPermutation guestProgram statement witness ρ
+          match ← guestProve Common.queryPermutation guestProgram statement witness ρ
               (2 ^ 35) with
           | none => pure false
           | some proof => verifierRefusingZero Common.queryPermutation guestProgram input proof)}[
@@ -123,7 +123,7 @@ structure Corollaries
   through children carry no knowledge of their own (`AggregateSound`). -/
   aggregateSound : LeanVM.Node.AggregateSound LeanVM.Guest.guestProgram guestWitnessDecoder
     (LeanVM.extractorComputedBy leanVmKnowledgeExtractor)
-  /-- The guest's prover (`LeanVM.Prover.guestProve`), run on the statement and the witness of a
+  /-- The guest's prover (`LeanVM.Guest.guestProve`), run on the statement and the witness of a
   node `guestCompleteOnHonestChildren` covers, makes a proof the verifier rejects, or none, with
   probability at most `2^-256`, and that the verifier refusing every zero challenge rejects, or
   none, with probability at most `2^-100`, in the random-permutation model: from
