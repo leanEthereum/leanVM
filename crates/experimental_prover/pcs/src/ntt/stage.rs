@@ -163,59 +163,84 @@ fn fill_stage_tiles(
     octet: usize,
 ) {
     let rows = stage.len() / (BATCH * 8);
+    if rows == 0 {
+        return;
+    }
+    assert_eq!(stage.len(), rows * BATCH * 8);
+    assert!(8 * octet + 8 <= row_words && n_lanes <= row_words);
+    assert!(t0 + ((rows - 1) << log_step) + 8 <= msg_rows && n_lanes * msg_rows <= msg.len());
+
     let pad = row_words - n_lanes;
-    // Lane block of line `k` of the tile, which is lane `8 * octet + k`.
-    let block = |k: usize| row_words - 1 - (8 * octet + k);
     // The lines of a tile that are padding lanes.
     let pad_lines = (0..8).filter(|k| 8 * octet + k < pad).fold(0u8, |m, k| m | 1 << k);
-    for i in 0..rows {
-        // Line `k` of the tile: 8 residues of one lane block, or zeros for a padding lane.
-        let src: [usize; 8] = std::array::from_fn(|k| block(k) * msg_rows + t0 + (i << log_step));
-        fill_tile(stage, i * BATCH, msg, src, pad_lines);
+    // Base pointer of each lane block at residue `t0` (padding lanes are never dereferenced).
+    let bases: [*const F64; 8] = std::array::from_fn(|k| {
+        if pad_lines >> k & 1 == 1 {
+            core::ptr::null()
+        } else {
+            let block = row_words - 1 - (8 * octet + k);
+            // SAFETY: `block < n_lanes`, `t0 + ((rows - 1) << log_step) + 8 <= msg_rows`,
+            // and `n_lanes * msg_rows <= msg.len()`.
+            unsafe { msg.as_ptr().add(block * msg_rows + t0) }
+        }
+    });
+    let step = 1usize << log_step;
+    let dst = stage.as_mut_ptr();
+    if pad_lines == 0 {
+        for i in 0..rows {
+            // SAFETY: bounds checked above for every `i < rows` and `pad_lines == 0`.
+            unsafe { fill_tile::<false>(dst.add(i * BATCH * 8), &bases, i * step, 0) };
+        }
+    } else {
+        for i in 0..rows {
+            // SAFETY: bounds checked above for every `i < rows`, and zero lanes are masked by `pad_lines`.
+            unsafe { fill_tile::<true>(dst.add(i * BATCH * 8), &bases, i * step, pad_lines) };
+        }
     }
 }
 
-/// Write `stage[tile + s][k] = msg[src[k] + s]` for the 8 x 8 words of eight lines, a line in `zeros` being zeros.
+/// Write `stage[s * 8 + k] = bases[k][off + s]` for the 8 x 8 words of eight lines, a line in `zeros` being zeros.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
 #[inline]
 #[target_feature(enable = "avx512f")]
-fn fill_tile(stage: &mut [F64], tile: usize, msg: &[F64], src: [usize; 8], zeros: u8) {
+unsafe fn fill_tile<const HAS_ZEROS: bool>(stage: *mut F64, bases: &[*const F64; 8], off: usize, zeros: u8) {
     use core::arch::x86_64::*;
-    use primitives::simd::{load, store, transpose8};
+    use primitives::simd::transpose8;
     let r: [__m512i; 8] = std::array::from_fn(|k| {
-        if zeros >> k & 1 == 1 {
+        if HAS_ZEROS && (zeros >> k & 1 == 1) {
             _mm512_setzero_si512()
         } else {
-            load(&msg[src[k]..], 0)
+            // SAFETY: caller verified `bases[k].add(off)` has 8 readable F64s.
+            unsafe { _mm512_loadu_si512(bases[k].add(off).cast()) }
         }
     });
     let cols = transpose8(r);
     for (s, col) in cols.into_iter().enumerate() {
-        store(stage, tile + s, col);
+        // SAFETY: caller verified `stage` has `BATCH * 8` writable F64s.
+        unsafe { _mm512_storeu_si512(stage.add(s * 8).cast(), col) };
     }
 }
 
-/// [`fill_tile`] as two 4x4 transposes of YMM halves per half of the lines.
+/// [`fill_tile`] as four 4x4 YMM transposes, one quadrant of four lines at a time so nothing spills.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f")))]
 #[inline]
 #[target_feature(enable = "avx2")]
-fn fill_tile(stage: &mut [F64], tile: usize, msg: &[F64], src: [usize; 8], zeros: u8) {
+unsafe fn fill_tile<const HAS_ZEROS: bool>(stage: *mut F64, bases: &[*const F64; 8], off: usize, zeros: u8) {
     use core::arch::x86_64::*;
-    use primitives::{load_at, store_at};
-    // Line `k`, half `h`: words `4h..4h + 4` of the line's 8 residues.
-    let r: [[__m256i; 2]; 8] = std::array::from_fn(|k| {
-        if zeros >> k & 1 == 1 {
-            [_mm256_setzero_si256(); 2]
-        } else {
-            [load_at(msg, src[k]), load_at(msg, src[k] + 4)]
-        }
-    });
-    // Residue `s` is word `s` of every line: lines 0..4 in its first half, 4..8 in its second.
-    for h in 0..2 {
-        for q in 0..2 {
-            let t = |k: usize| r[4 * q + k][h];
-            let (a0, a1) = (_mm256_unpacklo_epi64(t(0), t(1)), _mm256_unpackhi_epi64(t(0), t(1)));
-            let (a2, a3) = (_mm256_unpacklo_epi64(t(2), t(3)), _mm256_unpackhi_epi64(t(2), t(3)));
+    // Residue `s` is word `s` of every line: lines 0..4 in its first half (`q = 0`), 4..8 in its second (`q = 1`).
+    for q in 0..2 {
+        for h in 0..2 {
+            let t: [__m256i; 4] = std::array::from_fn(|k| {
+                let line = 4 * q + k;
+                if HAS_ZEROS && (zeros >> line & 1 == 1) {
+                    _mm256_setzero_si256()
+                } else {
+                    // SAFETY: caller verified `bases[line].add(off + 4 * h)` has 4 readable F64s.
+                    unsafe { _mm256_loadu_si256(bases[line].add(off + 4 * h).cast()) }
+                }
+            });
+            let (a0, a1) = (_mm256_unpacklo_epi64(t[0], t[1]), _mm256_unpackhi_epi64(t[0], t[1]));
+            let (a2, a3) = (_mm256_unpacklo_epi64(t[2], t[3]), _mm256_unpackhi_epi64(t[2], t[3]));
             let cols = [
                 _mm256_permute2x128_si256::<0x20>(a0, a2),
                 _mm256_permute2x128_si256::<0x20>(a1, a3),
@@ -223,7 +248,8 @@ fn fill_tile(stage: &mut [F64], tile: usize, msg: &[F64], src: [usize; 8], zeros
                 _mm256_permute2x128_si256::<0x31>(a1, a3),
             ];
             for (i, col) in cols.into_iter().enumerate() {
-                store_at(stage, (tile + 4 * h + i) * 8 + 4 * q, col);
+                // SAFETY: caller verified `stage` has `BATCH * 8` writable F64s.
+                unsafe { _mm256_storeu_si256(stage.add((4 * h + i) * 8 + 4 * q).cast(), col) };
             }
         }
     }
@@ -235,14 +261,17 @@ fn fill_tile(stage: &mut [F64], tile: usize, msg: &[F64], src: [usize; 8], zeros
     all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f"))
 )))]
 #[inline(always)]
-fn fill_tile(stage: &mut [F64], tile: usize, msg: &[F64], src: [usize; 8], zeros: u8) {
+unsafe fn fill_tile<const HAS_ZEROS: bool>(stage: *mut F64, bases: &[*const F64; 8], off: usize, zeros: u8) {
     for s in 0..8 {
         for k in 0..8 {
-            stage[(tile + s) * 8 + k] = if zeros >> k & 1 == 1 {
+            let v = if HAS_ZEROS && (zeros >> k & 1 == 1) {
                 F64::ZERO
             } else {
-                msg[src[k] + s]
+                // SAFETY: caller verified `bases[k].add(off + s)` is readable.
+                unsafe { *bases[k].add(off + s) }
             };
+            // SAFETY: caller verified `stage` has `BATCH * 8` writable F64s.
+            unsafe { *stage.add(s * 8 + k) = v };
         }
     }
 }
