@@ -581,14 +581,12 @@ def split_limbs(word):
 
 
 def is_zero(word):
-    # 1 if the word is zero, else 0.
+    # 1 if the word is zero, else 0: its norm lo^2 + x lo hi + hi^2 is in K and zero only at zero
+    # (y^2 + x y + 1 is irreducible over K).
     lo, hi = split_limbs(word)
     z = StackBuf(1)
-    if lo == 0:
-        if hi == 0:
-            z[0] = 1
-        else:
-            z[0] = 0
+    if lo * lo + GEN * lo * hi + hi * hi == 0:
+        z[0] = 1
     else:
         z[0] = 0
     return z[0]
