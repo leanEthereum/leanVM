@@ -1,0 +1,6 @@
+n=16 sets of 7 points d=2: (exact, heuristic) over 6 graphs: [(5, 5), (6, 6), (6, 6), (5, 5), (5, 5), (5, 5)]; equal in 6/6
+n=16 sets of 7 points d=4: (exact, heuristic) over 6 graphs: [(2, 2), (3, 3), (3, 3), (3, 3), (2, 2), (2, 2)]; equal in 6/6
+n=16 sets of 7 points d=6: (exact, heuristic) over 6 graphs: [(1, 1), (1, 1), (1, 1), (1, 1), (1, 1), (1, 1)]; equal in 6/6
+n=32 sets of 7 points d=2: (exact, heuristic) over 6 graphs: [(4, 4), (4, 4), (5, 5), (5, 5), (5, 5), (4, 4)]; equal in 6/6
+n=32 sets of 7 points d=4: (exact, heuristic) over 6 graphs: [(2, 2), (2, 2), (2, 2), (2, 2), (2, 2), (2, 2)]; equal in 6/6
+n=32 sets of 7 points d=6: (exact, heuristic) over 6 graphs: [(1, 1), (1, 1), (1, 1), (1, 1), (1, 1), (1, 1)]; equal in 6/6

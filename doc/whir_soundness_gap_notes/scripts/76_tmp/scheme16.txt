@@ -1,0 +1,1 @@
+orbits 945, matching bound below the rank: 213, of which the best scheme equals the rank: 213

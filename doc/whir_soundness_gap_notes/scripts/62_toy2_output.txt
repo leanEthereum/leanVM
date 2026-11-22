@@ -1,0 +1,5 @@
+lattice: Lemma 5.4 on 300 random configurations (GF(16), n = 12, k = 3, 5, 7): OK; cases {'transversal': 331, 'non-transversal': 569}
+tr: GF(8), n = 8, k = 3, windows of 2 points; log_q E_T - (2k + 2|T| - |N[T]|), worst cases:
+   |N[T]| <= k  max excess -0.009 at T = [], |N[T]| = 0
+   |N[T]| > k   max excess +0.736 at T = [0, 3, 6], |N[T]| = 6
+   log_q sum over independent d of q^loss(d) = 7.775 against 2k = 6 (pattern U3 = D)

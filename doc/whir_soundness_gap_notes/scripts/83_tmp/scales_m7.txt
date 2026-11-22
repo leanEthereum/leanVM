@@ -1,0 +1,3 @@
+n 32 members 7 kernel 1
+flattening ranks of the whole list at levels 1..4: [1, 1, 2, 4]
+flattening ranks of the sub-list [1, 3, 5] : [1, 1, 1, 2]

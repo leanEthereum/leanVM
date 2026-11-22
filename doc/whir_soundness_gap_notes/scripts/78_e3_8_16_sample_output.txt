@@ -1,0 +1,253 @@
+## (8,16), 3 members, V1: 250000 patterns per generator and part, four parts (10^6 per generator), seed 61
+# T2:d1a partner map 1: 6 13 3 10 0 9 5 8 7 15 11 2 14 4 1 12
+# T2:d1x partner map 1: 10 13 12 11 9 14 15 8 1 5 3 6 0 2 4 7
+# T2:d2a partner map 1: 10 7 15 4 11 8 9 6 5 14 12 1 0 2 13 3
+# T2:d2x partner map 1: 8 10 13 11 14 9 12 15 4 3 6 5 0 1 7 2
+# T2:d3x partner map 1: 8 12 13 9 10 14 15 11 0 6 7 3 5 1 2 4
+# T2:Mud:d1x partner map 1: 11 14 10 15 12 9 13 8 4 3 1 0 7 5 6 2
+g0 random leaves, weight within 2 of Lk v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g1 unions of blocks at one level, up to 3 edits v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 434 (evaluated 434), largest deficiency 2, rank above U 0 | deficient and carrying a list 434 (largest weight 18) | lists with weight >= Lk: 400 | largest weight of a list 18, largest balanced agreement 11
+     max-weight list: . 012 012 012 12 12 12 12 02 02 02 02 01 01 01 01
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g2 blocks of mixed levels v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 148 (evaluated 148), largest deficiency 2, rank above U 0 | deficient and carrying a list 148 (largest weight 18) | lists with weight >= Lk: 121 | largest weight of a list 18, largest balanced agreement 11
+     max-weight list: . 012 012 012 01 01 01 01 02 02 02 02 12 12 12 12
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g3 tree 0 in blocks, the rest scattered v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 156 (evaluated 156), largest deficiency 2, rank above U 0 | deficient and carrying a list 156 (largest weight 17) | lists with weight >= Lk: 153 | largest weight of a list 17, largest balanced agreement 11
+     max-weight list: 02 02 02 02 12 12 12 12 012 01 01 01 . . 012 012
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g4 classes constant along runs of the first partner map v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g5 V1 image of a block pattern with zeros v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+# T2:d1a partner map 1: 6 13 3 10 0 9 5 8 7 15 11 2 14 4 1 12
+# T2:d1x partner map 1: 10 13 12 11 9 14 15 8 1 5 3 6 0 2 4 7
+# T2:d2a partner map 1: 10 7 15 4 11 8 9 6 5 14 12 1 0 2 13 3
+# T2:d2x partner map 1: 8 10 13 11 14 9 12 15 4 3 6 5 0 1 7 2
+# T2:d3x partner map 1: 8 12 13 9 10 14 15 11 0 6 7 3 5 1 2 4
+# T2:Mud:d1x partner map 1: 11 14 10 15 12 9 13 8 4 3 1 0 7 5 6 2
+g0 random leaves, weight within 2 of Lk v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g1 unions of blocks at one level, up to 3 edits v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 434 (evaluated 434), largest deficiency 2, rank above U 0 | deficient and carrying a list 434 (largest weight 18) | lists with weight >= Lk: 389 | largest weight of a list 18, largest balanced agreement 11
+     max-weight list: 012 012 012 . 01 01 01 01 12 12 12 12 02 02 02 02
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g2 blocks of mixed levels v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 153 (evaluated 153), largest deficiency 2, rank above U 0 | deficient and carrying a list 153 (largest weight 18) | lists with weight >= Lk: 138 | largest weight of a list 18, largest balanced agreement 11
+     max-weight list: 01 01 01 01 12 12 12 12 . 012 012 012 02 02 02 02
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g3 tree 0 in blocks, the rest scattered v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 140 (evaluated 140), largest deficiency 1, rank above U 0 | deficient and carrying a list 140 (largest weight 18) | lists with weight >= Lk: 140 | largest weight of a list 18, largest balanced agreement 11
+     max-weight list: 02 02 02 02 12 12 12 12 01 01 01 01 012 012 . 012
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g4 classes constant along runs of the first partner map v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g5 V1 image of a block pattern with zeros v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+# T2:d1a partner map 1: 6 13 3 10 0 9 5 8 7 15 11 2 14 4 1 12
+# T2:d1x partner map 1: 10 13 12 11 9 14 15 8 1 5 3 6 0 2 4 7
+# T2:d2a partner map 1: 10 7 15 4 11 8 9 6 5 14 12 1 0 2 13 3
+# T2:d2x partner map 1: 8 10 13 11 14 9 12 15 4 3 6 5 0 1 7 2
+# T2:d3x partner map 1: 8 12 13 9 10 14 15 11 0 6 7 3 5 1 2 4
+# T2:Mud:d1x partner map 1: 11 14 10 15 12 9 13 8 4 3 1 0 7 5 6 2
+g0 random leaves, weight within 2 of Lk v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g1 unions of blocks at one level, up to 3 edits v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 467 (evaluated 467), largest deficiency 2, rank above U 0 | deficient and carrying a list 467 (largest weight 18) | lists with weight >= Lk: 415 | largest weight of a list 18, largest balanced agreement 11
+     max-weight list: 01 01 01 01 12 12 12 12 012 . 012 012 02 02 02 02
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g2 blocks of mixed levels v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 204 (evaluated 204), largest deficiency 2, rank above U 0 | deficient and carrying a list 204 (largest weight 18) | lists with weight >= Lk: 171 | largest weight of a list 18, largest balanced agreement 11
+     max-weight list: . 012 012 012 12 12 12 12 02 02 02 02 01 01 01 01
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g3 tree 0 in blocks, the rest scattered v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 143 (evaluated 143), largest deficiency 2, rank above U 0 | deficient and carrying a list 143 (largest weight 17) | lists with weight >= Lk: 131 | largest weight of a list 17, largest balanced agreement 11
+     max-weight list: 01 01 01 01 02 02 02 02 012 012 . . 012 12 12 12
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g4 classes constant along runs of the first partner map v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g5 V1 image of a block pattern with zeros v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+# T2:d1a partner map 1: 6 13 3 10 0 9 5 8 7 15 11 2 14 4 1 12
+# T2:d1x partner map 1: 10 13 12 11 9 14 15 8 1 5 3 6 0 2 4 7
+# T2:d2a partner map 1: 10 7 15 4 11 8 9 6 5 14 12 1 0 2 13 3
+# T2:d2x partner map 1: 8 10 13 11 14 9 12 15 4 3 6 5 0 1 7 2
+# T2:d3x partner map 1: 8 12 13 9 10 14 15 11 0 6 7 3 5 1 2 4
+# T2:Mud:d1x partner map 1: 11 14 10 15 12 9 13 8 4 3 1 0 7 5 6 2
+g0 random leaves, weight within 2 of Lk v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g1 unions of blocks at one level, up to 3 edits v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 386 (evaluated 386), largest deficiency 2, rank above U 0 | deficient and carrying a list 386 (largest weight 18) | lists with weight >= Lk: 356 | largest weight of a list 18, largest balanced agreement 11
+     max-weight list: 012 012 012 . 02 02 02 02 12 12 12 12 01 01 01 01
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g2 blocks of mixed levels v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 172 (evaluated 172), largest deficiency 2, rank above U 0 | deficient and carrying a list 172 (largest weight 18) | lists with weight >= Lk: 148 | largest weight of a list 18, largest balanced agreement 11
+     max-weight list: 01 01 01 01 012 012 . 012 12 12 12 12 02 02 02 02
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g3 tree 0 in blocks, the rest scattered v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 172 (evaluated 172), largest deficiency 1, rank above U 0 | deficient and carrying a list 172 (largest weight 17) | lists with weight >= Lk: 168 | largest weight of a list 17, largest balanced agreement 11
+     max-weight list: 01 01 01 01 02 02 02 02 012 . . 012 12 12 012 12
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g4 classes constant along runs of the first partner map v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+g5 V1 image of a block pattern with zeros v=3 r=1 k=8 n=16 members=3 patterns=250000 (evaluated 250000) Lk-1=15
+  U                deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2               deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d1x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2a           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d2x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:d3x           deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10
+  T2:Mud:d1x       deficient patterns 0 (evaluated 0), largest deficiency 0, rank above U 0 | deficient and carrying a list 0 (largest weight 0) | lists with weight >= Lk: 0 | largest weight of a list 15, largest balanced agreement 10

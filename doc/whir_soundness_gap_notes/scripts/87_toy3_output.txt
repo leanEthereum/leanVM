@@ -1,0 +1,6 @@
+# 87_toy3: cc -O2 -o 87_bin/87_toy3 87_toy3.c; 87_bin/87_toy3 <seed> 200 for seeds 8701..8704
+seed 8701 codes 200: W histogram: 9:60 10:123 11:17 | max excess histogram: 2:60 3:123 4:17 | recount mismatches 0
+seed 8702 codes 200: W histogram: 9:66 10:119 11:15 | max excess histogram: 2:66 3:119 4:15 | recount mismatches 0
+seed 8703 codes 200: W histogram: 9:68 10:117 11:14 12:1 | max excess histogram: 2:68 3:117 4:14 5:1 | recount mismatches 0
+seed 8704 codes 200: W histogram: 9:53 10:126 11:20 12:1 | max excess histogram: 2:53 3:126 4:20 5:1 | recount mismatches 0
+total: W=9:247 W=10:485 W=11:66 W=12:2 | codes with max excess != W-7: 0

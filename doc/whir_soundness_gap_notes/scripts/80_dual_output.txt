@@ -1,0 +1,12 @@
+T2 (k,n)=(2,4): nonzero entries of G^T Delta G^sw: 0 of 4; rank G^sw = 2; control without Delta nonzero: 1
+T2 (k,n)=(4,8): nonzero entries of G^T Delta G^sw: 0 of 16; rank G^sw = 4; control without Delta nonzero: 1
+T2 (k,n)=(8,16): nonzero entries of G^T Delta G^sw: 0 of 64; rank G^sw = 8; control without Delta nonzero: 1
+T2 (k,n)=(16,32): nonzero entries of G^T Delta G^sw: 0 of 256; rank G^sw = 16; control without Delta nonzero: 1
+T2 (k,n)=(32,64): nonzero entries of G^T Delta G^sw: 0 of 1024; rank G^sw = 32; control without Delta nonzero: 1
+T2 (k,n)=(64,128): nonzero entries of G^T Delta G^sw: 0 of 4096; rank G^sw = 64; control without Delta nonzero: 1
+T1 (k,n)=(2,4): nonzero entries of G^T Delta G^sw: 0 of 4; rank G^sw = 2; control without Delta nonzero: 0
+T1 (k,n)=(4,8): nonzero entries of G^T Delta G^sw: 0 of 16; rank G^sw = 4; control without Delta nonzero: 0
+T1 (k,n)=(8,16): nonzero entries of G^T Delta G^sw: 0 of 64; rank G^sw = 8; control without Delta nonzero: 0
+T1 (k,n)=(16,32): nonzero entries of G^T Delta G^sw: 0 of 256; rank G^sw = 16; control without Delta nonzero: 0
+T1 (k,n)=(32,64): nonzero entries of G^T Delta G^sw: 0 of 1024; rank G^sw = 32; control without Delta nonzero: 0
+T1 (k,n)=(64,128): nonzero entries of G^T Delta G^sw: 0 of 4096; rank G^sw = 64; control without Delta nonzero: 0

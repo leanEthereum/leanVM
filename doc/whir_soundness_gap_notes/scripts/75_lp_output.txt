@@ -1,0 +1,89 @@
+== (1) limit thresholds tau* (all j with j rho < 1): grid primal <= tau* <= certified dual ==
+rate 2^-1: 0.7071068 <= tau* <= 0.7071071   Johnson 0.707107   capacity 0.500000   dual support (j, lambda_j): [(1, 0.70696)] (1 constraints active)
+rate 2^-2: 0.5000000 <= tau* <= 0.5000004   Johnson 0.500000   capacity 0.250000   dual support (j, lambda_j): [(1, 0.99975)] (1 constraints active)
+rate 2^-3: 0.3275817 <= tau* <= 0.3275822   Johnson 0.353553   capacity 0.125000   dual support (j, lambda_j): [(1, 0.48113), (3, 0.40228)] (2 constraints active)
+rate 2^-4: 0.2050547 <= tau* <= 0.2050553   Johnson 0.250000   capacity 0.062500   dual support (j, lambda_j): [(1, 0.52689), (2, 0.18481), (6, 0.23844)] (3 constraints active)
+rate 2^-5: 0.1236565 <= tau* <= 0.1236572   Johnson 0.176777   capacity 0.031250   dual support (j, lambda_j): [(1, 0.52082), (2, 0.05855), (3, 0.26043), (11, 0.01077), (12, 0.12064)] (5 constraints active)
+rate 2^-7: 0.0416499 <= tau* <= 0.0416508   Johnson 0.088388   capacity 0.007812   dual support (j, lambda_j): [(1, 0.49869), (2, 0.18577), (4, 0.17518), (11, 0.06564), (12, 0.03149), (46, 0.00333), (47, 0.03219)] (7 constraints active)
+rate 2^-10: 0.0072336 <= tau* <= 0.0072347   Johnson 0.031250   capacity 0.000977   dual support (j, lambda_j): [(1, 0.50084), (2, 0.16015), (3, 0.1047), (4, 0.02882), (6, 0.09844), (13, 0.05832), (14, 0.00139), (31, 0.00296)] ... (12 constraints active)
+
+== (2) finite program tau_M(rho), certified upper bound (exact rationals for M <= 1025), and Proposition R2 with the best J ==
+rate 2^-3:
+  M =     3: tau_M = 0.437500 (M (tau_M - tau*) = 0.330), certified <= 0.437500 (exact); R2 bound 0.569036 (J = 1); Johnson's bound for M members 0.603553
+  M =     4: tau_M = 0.385417 (M (tau_M - tau*) = 0.231), certified <= 0.385417 (exact); R2 bound 0.515165 (J = 1); Johnson's bound for M members 0.500000
+  M =     5: tau_M = 0.360417 (M (tau_M - tau*) = 0.164), certified <= 0.360417 (exact); R2 bound 0.482843 (J = 1); Johnson's bound for M members 0.455719
+  M =     6: tau_M = 0.347917 (M (tau_M - tau*) = 0.122), certified <= 0.347917 (exact); R2 bound 0.461295 (J = 1); Johnson's bound for M members 0.431662
+  M =     8: tau_M = 0.339732 (M (tau_M - tau*) = 0.097), certified <= 0.339732 (exact); R2 bound 0.434360 (J = 1); Johnson's bound for M members 0.406458
+  M =    12: tau_M = 0.337395 (M (tau_M - tau*) = 0.118), certified <= 0.337395 (exact); R2 bound 0.407424 (J = 1); Johnson's bound for M members 0.385605
+  M =    16: tau_M = 0.335058 (M (tau_M - tau*) = 0.120), certified <= 0.335058 (exact); R2 bound 0.393957 (J = 1); Johnson's bound for M members 0.376521
+  M =    24: tau_M = 0.333025 (M (tau_M - tau*) = 0.131), certified <= 0.333025 (exact); R2 bound 0.380489 (J = 1); Johnson's bound for M members 0.368204
+  M =    32: tau_M = 0.331640 (M (tau_M - tau*) = 0.130), certified <= 0.331640 (exact); R2 bound 0.371578 (J = 2); Johnson's bound for M members 0.364307
+  M =    48: tau_M = 0.330348 (M (tau_M - tau*) = 0.133), certified <= 0.330348 (exact); R2 bound 0.357613 (J = 2); Johnson's bound for M members 0.360572
+  M =    64: tau_M = 0.329657 (M (tau_M - tau*) = 0.133), certified <= 0.329657 (exact); R2 bound 0.350630 (J = 2); Johnson's bound for M members 0.358762
+  M =    96: tau_M = 0.328961 (M (tau_M - tau*) = 0.132), certified <= 0.328961 (exact); R2 bound 0.343648 (J = 2); Johnson's bound for M members 0.356990
+  M =   128: tau_M = 0.328607 (M (tau_M - tau*) = 0.131), certified <= 0.328607 (exact); R2 bound 0.340156 (J = 2); Johnson's bound for M members 0.356118
+  M =   192: tau_M = 0.328265 (M (tau_M - tau*) = 0.131), certified <= 0.328265 (exact); R2 bound 0.336665 (J = 2); Johnson's bound for M members 0.355254
+  M =   256: tau_M = 0.328094 (M (tau_M - tau*) = 0.131), certified <= 0.328094 (exact); R2 bound 0.334920 (J = 2); Johnson's bound for M members 0.354826
+  M =   400: tau_M = 0.327908 (M (tau_M - tau*) = 0.131), certified <= 0.327908 (exact); R2 bound 0.332625 (J = 3); Johnson's bound for M members 0.354365
+  M =  1025: tau_M = 0.327709 (M (tau_M - tau*) = 0.130), certified <= 0.327709 (exact); R2 bound 0.329550 (J = 3); Johnson's bound for M members 0.353869
+rate 2^-4:
+  M =     3: tau_M = 0.385417 (M (tau_M - tau*) = 0.541), certified <= 0.385417 (exact); R2 bound 0.500000 (J = 1); Johnson's bound for M members 0.556186
+  M =     4: tau_M = 0.317708 (M (tau_M - tau*) = 0.451), certified <= 0.317708 (exact); R2 bound 0.437500 (J = 1); Johnson's bound for M members 0.430190
+  M =     5: tau_M = 0.280208 (M (tau_M - tau*) = 0.376), certified <= 0.280208 (exact); R2 bound 0.400001 (J = 1); Johnson's bound for M members 0.375000
+  M =     6: tau_M = 0.257292 (M (tau_M - tau*) = 0.313), certified <= 0.257292 (exact); R2 bound 0.375001 (J = 1); Johnson's bound for M members 0.344949
+  M =     8: tau_M = 0.232366 (M (tau_M - tau*) = 0.218), certified <= 0.232366 (exact); R2 bound 0.343751 (J = 1); Johnson's bound for M members 0.313655
+  M =    12: tau_M = 0.214784 (M (tau_M - tau*) = 0.117), certified <= 0.214784 (exact); R2 bound 0.312501 (J = 1); Johnson's bound for M members 0.288115
+  M =    16: tau_M = 0.211296 (M (tau_M - tau*) = 0.100), certified <= 0.211296 (exact); R2 bound 0.296876 (J = 1); Johnson's bound for M members 0.277146
+  M =    24: tau_M = 0.209682 (M (tau_M - tau*) = 0.111), certified <= 0.209682 (exact); R2 bound 0.281251 (J = 1); Johnson's bound for M members 0.267208
+  M =    32: tau_M = 0.208817 (M (tau_M - tau*) = 0.120), certified <= 0.208817 (exact); R2 bound 0.269747 (J = 2); Johnson's bound for M members 0.262592
+  M =    48: tau_M = 0.207495 (M (tau_M - tau*) = 0.117), certified <= 0.207495 (exact); R2 bound 0.253519 (J = 2); Johnson's bound for M members 0.258193
+  M =    64: tau_M = 0.206916 (M (tau_M - tau*) = 0.119), certified <= 0.206916 (exact); R2 bound 0.245405 (J = 2); Johnson's bound for M members 0.256071
+  M =    96: tau_M = 0.206339 (M (tau_M - tau*) = 0.123), certified <= 0.206339 (exact); R2 bound 0.236244 (J = 3); Johnson's bound for M members 0.254000
+  M =   128: tau_M = 0.206010 (M (tau_M - tau*) = 0.122), certified <= 0.206010 (exact); R2 bound 0.230085 (J = 3); Johnson's bound for M members 0.252982
+  M =   192: tau_M = 0.205685 (M (tau_M - tau*) = 0.121), certified <= 0.205685 (exact); R2 bound 0.223468 (J = 4); Johnson's bound for M members 0.251976
+  M =   256: tau_M = 0.205524 (M (tau_M - tau*) = 0.120), certified <= 0.205524 (exact); R2 bound 0.219338 (J = 4); Johnson's bound for M members 0.251478
+  M =   400: tau_M = 0.205354 (M (tau_M - tau*) = 0.120), certified <= 0.205354 (exact); R2 bound 0.214877 (J = 4); Johnson's bound for M members 0.250943
+  M =  1025: tau_M = 0.205171 (M (tau_M - tau*) = 0.119), certified <= 0.205171 (exact); R2 bound 0.208987 (J = 5); Johnson's bound for M members 0.250367
+rate 2^-7:
+  M =     3: tau_M = 0.339844 (M (tau_M - tau*) = 0.895), certified <= 0.339844 (exact); R2 bound 0.392260 (J = 1); Johnson's bound for M members 0.507694
+  M =     4: tau_M = 0.258464 (M (tau_M - tau*) = 0.867), certified <= 0.258464 (exact); R2 bound 0.316292 (J = 1); Johnson's bound for M members 0.348287
+  M =     5: tau_M = 0.210026 (M (tau_M - tau*) = 0.842), certified <= 0.210026 (exact); R2 bound 0.270712 (J = 1); Johnson's bound for M members 0.271575
+  M =     6: tau_M = 0.177995 (M (tau_M - tau*) = 0.818), certified <= 0.177995 (exact); R2 bound 0.240325 (J = 1); Johnson's bound for M members 0.227475
+  M =     8: tau_M = 0.138421 (M (tau_M - tau*) = 0.774), certified <= 0.138421 (exact); R2 bound 0.202341 (J = 1); Johnson's bound for M members 0.180049
+  M =    12: tau_M = 0.099765 (M (tau_M - tau*) = 0.697), certified <= 0.099765 (exact); R2 bound 0.164357 (J = 1); Johnson's bound for M members 0.141206
+  M =    16: tau_M = 0.081099 (M (tau_M - tau*) = 0.631), certified <= 0.081099 (exact); R2 bound 0.145366 (J = 1); Johnson's bound for M members 0.125000
+  M =    24: tau_M = 0.063354 (M (tau_M - tau*) = 0.521), certified <= 0.063354 (exact); R2 bound 0.126374 (J = 1); Johnson's bound for M members 0.110876
+  M =    32: tau_M = 0.055144 (M (tau_M - tau*) = 0.432), certified <= 0.055145 (exact); R2 bound 0.116878 (J = 1); Johnson's bound for M members 0.104563
+  M =    48: tau_M = 0.047855 (M (tau_M - tau*) = 0.298), certified <= 0.047855 (exact); R2 bound 0.107382 (J = 1); Johnson's bound for M members 0.098726
+  M =    64: tau_M = 0.044874 (M (tau_M - tau*) = 0.206), certified <= 0.044874 (exact); R2 bound 0.102634 (J = 1); Johnson's bound for M members 0.095979
+  M =    96: tau_M = 0.042813 (M (tau_M - tau*) = 0.112), certified <= 0.042813 (exact); R2 bound 0.093310 (J = 2); Johnson's bound for M members 0.093342
+  M =   128: tau_M = 0.042446 (M (tau_M - tau*) = 0.102), certified <= 0.042446 (exact); R2 bound 0.087245 (J = 3); Johnson's bound for M members 0.092065
+  M =   192: tau_M = 0.042223 (M (tau_M - tau*) = 0.110), certified <= 0.042223 (exact); R2 bound 0.078971 (J = 4); Johnson's bound for M members 0.090813
+  M =   256: tau_M = 0.042075 (M (tau_M - tau*) = 0.109), certified <= 0.042075 (exact); R2 bound 0.074072 (J = 4); Johnson's bound for M members 0.090197
+  M =   400: tau_M = 0.041930 (M (tau_M - tau*) = 0.112), certified <= 0.041930 (exact); R2 bound 0.067700 (J = 6); Johnson's bound for M members 0.089540
+  M =  1025: tau_M = 0.041760 (M (tau_M - tau*) = 0.113), certified <= 0.041760 (exact); R2 bound 0.056784 (J = 10); Johnson's bound for M members 0.088835
+rate 2^-10:
+  M =     3: tau_M = 0.334147 (M (tau_M - tau*) = 0.981), certified <= 0.334147 (exact); R2 bound 0.354169 (J = 1); Johnson's bound for M members 0.500975
+  M =     4: tau_M = 0.251058 (M (tau_M - tau*) = 0.975), certified <= 0.251058 (exact); R2 bound 0.273441 (J = 1); Johnson's bound for M members 0.335275
+  M =     5: tau_M = 0.201253 (M (tau_M - tau*) = 0.970), certified <= 0.201253 (exact); R2 bound 0.225003 (J = 1); Johnson's bound for M members 0.252896
+  M =     6: tau_M = 0.168083 (M (tau_M - tau*) = 0.965), certified <= 0.168083 (exact); R2 bound 0.192712 (J = 1); Johnson's bound for M members 0.203833
+  M =     8: tau_M = 0.126678 (M (tau_M - tau*) = 0.956), certified <= 0.126678 (exact); R2 bound 0.152347 (J = 1); Johnson's bound for M members 0.148494
+  M =    12: tau_M = 0.085387 (M (tau_M - tau*) = 0.938), certified <= 0.085387 (exact); R2 bound 0.111983 (J = 1); Johnson's bound for M members 0.099804
+  M =    16: tau_M = 0.064825 (M (tau_M - tau*) = 0.921), certified <= 0.064825 (exact); R2 bound 0.091801 (J = 1); Johnson's bound for M members 0.078306
+  M =    24: tau_M = 0.044378 (M (tau_M - tau*) = 0.891), certified <= 0.044378 (exact); R2 bound 0.071619 (J = 1); Johnson's bound for M members 0.059245
+  M =    32: tau_M = 0.034237 (M (tau_M - tau*) = 0.864), certified <= 0.034237 (exact); R2 bound 0.061527 (J = 1); Johnson's bound for M members 0.050845
+  M =    48: tau_M = 0.024211 (M (tau_M - tau*) = 0.815), certified <= 0.024211 (exact); R2 bound 0.051436 (J = 1); Johnson's bound for M members 0.043333
+  M =    64: tau_M = 0.019281 (M (tau_M - tau*) = 0.771), certified <= 0.019281 (exact); R2 bound 0.046391 (J = 1); Johnson's bound for M members 0.039937
+  M =    96: tau_M = 0.014466 (M (tau_M - tau*) = 0.694), certified <= 0.014466 (exact); R2 bound 0.041345 (J = 1); Johnson's bound for M members 0.036791
+  M =   128: tau_M = 0.012142 (M (tau_M - tau*) = 0.628), certified <= 0.012142 (exact); R2 bound 0.038822 (J = 1); Johnson's bound for M members 0.035312
+  M =   192: tau_M = 0.009932 (M (tau_M - tau*) = 0.518), certified <= 0.009932 (exact); R2 bound 0.035888 (J = 2); Johnson's bound for M members 0.033896
+  M =   256: tau_M = 0.008910 (M (tau_M - tau*) = 0.429), certified <= 0.008911 (exact); R2 bound 0.033351 (J = 2); Johnson's bound for M members 0.033211
+  M =   400: tau_M = 0.007939 (M (tau_M - tau*) = 0.282), certified <= 0.007939 (exact); R2 bound 0.029766 (J = 3); Johnson's bound for M members 0.032489
+  M =  1025: tau_M = 0.007333 (M (tau_M - tau*) = 0.102), certified <= 0.007333 (exact); R2 bound 0.022859 (J = 7); Johnson's bound for M members 0.031727
+
+== (3) smallest agreement above which every list has at most Lambda members (conditional on Q_t of the generic tree code) ==
+Lambda = 2^10: finite program at M = 1025 (exact certificate); 2^20: finite program at M = 2^20 + 1 (float certificate on every c); 2^40: Proposition R2 at M = 2^40 + 1
+rate 2^-3: tau* in [0.3275817, 0.3275822]; list <= 2^10 above 0.3277090 (large-M routine at M = 1025, as a check: 0.3277090); <= 2^20 above 0.3275819 (R2 alone: 0.3275841); <= 2^40 above 0.3275819; Johnson: 0.353869, 0.353554, 0.353553; capacity 0.125000; closed form (1 - tau*)/(rho eta) = 2^10, 2^20, 2^40 at tau* + 0.005253, 5.13e-06, 4.89e-12
+rate 2^-4: tau* in [0.2050547, 0.2050553]; list <= 2^10 above 0.2051709 (large-M routine at M = 1025, as a check: 0.2051709); <= 2^20 above 0.2050549 (R2 alone: 0.2050599); <= 2^40 above 0.2050549; Johnson: 0.250367, 0.250000, 0.250000; capacity 0.062500; closed form (1 - tau*)/(rho eta) = 2^10, 2^20, 2^40 at tau* + 0.012421, 1.21e-05, 1.16e-11
+rate 2^-7: tau* in [0.0416499, 0.0416508]; list <= 2^10 above 0.0417600 (large-M routine at M = 1025, as a check: 0.0417600); <= 2^20 above 0.0416501 (R2 alone: 0.0416946); <= 2^40 above 0.0416501; Johnson: 0.088835, 0.088389, 0.088388; capacity 0.007812; closed form (1 - tau*)/(rho eta) = 2^10, 2^20, 2^40 at tau* + 0.119794, 1.17e-04, 1.12e-10
+rate 2^-10: tau* in [0.0072336, 0.0072347]; list <= 2^10 above 0.0073332 (large-M routine at M = 1025, as a check: 0.0073333); <= 2^20 above 0.0072338 (R2 alone: 0.0075124); <= 2^40 above 0.0072338; Johnson: 0.031727, 0.031250, 0.031250; capacity 0.000977; closed form (1 - tau*)/(rho eta) = 2^10, 2^20, 2^40 at tau* + 0.992765, 9.69e-04, 9.25e-10

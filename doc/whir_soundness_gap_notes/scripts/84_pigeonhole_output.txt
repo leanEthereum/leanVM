@@ -1,0 +1,16 @@
+rate 2^-3 n=2^20 J=0: eps_3 n / k = 1.5214 (main 0.3230, first level 1.1984); pigeonhole lower bound / k = 0.0159; first moment / k = 0.1586; main/pigeonhole = 20.4, main/first moment = 2.04
+rate 2^-3 n=2^20 J=2: eps_3 n / k = 0.6101 (main 0.3068, first level 0.3032); pigeonhole lower bound / k = 0.0159; first moment / k = 0.1586; main/pigeonhole = 19.3, main/first moment = 1.93
+rate 2^-3 n=2^24 J=0: eps_3 n / k = 1.5428 (main 0.3355, first level 1.2074); pigeonhole lower bound / k = 0.0159; first moment / k = 0.1586; main/pigeonhole = 21.1, main/first moment = 2.12
+rate 2^-3 n=2^24 J=2: eps_3 n / k = 0.6265 (main 0.3206, first level 0.3059); pigeonhole lower bound / k = 0.0159; first moment / k = 0.1586; main/pigeonhole = 20.2, main/first moment = 2.02
+rate 2^-4 n=2^20 J=0: eps_3 n / k = 1.5909 (main 0.3643, first level 1.2266); pigeonhole lower bound / k = 0.0159; first moment / k = 0.1988; main/pigeonhole = 23.0, main/first moment = 1.83
+rate 2^-4 n=2^20 J=2: eps_3 n / k = 0.6586 (main 0.3488, first level 0.3097); pigeonhole lower bound / k = 0.0159; first moment / k = 0.1988; main/pigeonhole = 22.0, main/first moment = 1.75
+rate 2^-4 n=2^24 J=0: eps_3 n / k = 1.6144 (main 0.3773, first level 1.2372); pigeonhole lower bound / k = 0.0159; first moment / k = 0.1988; main/pigeonhole = 23.8, main/first moment = 1.90
+rate 2^-4 n=2^24 J=2: eps_3 n / k = 0.6767 (main 0.3642, first level 0.3125); pigeonhole lower bound / k = 0.0159; first moment / k = 0.1988; main/pigeonhole = 22.9, main/first moment = 1.83
+rate 2^-7 n=2^20 J=0: eps_3 n / k = 1.7810 (main 0.4883, first level 1.2927); pigeonhole lower bound / k = 0.0159; first moment / k = 0.3191; main/pigeonhole = 30.8, main/first moment = 1.53
+rate 2^-7 n=2^20 J=2: eps_3 n / k = 0.7959 (main 0.4700, first level 0.3260); pigeonhole lower bound / k = 0.0159; first moment / k = 0.3191; main/pigeonhole = 29.6, main/first moment = 1.47
+rate 2^-7 n=2^24 J=0: eps_3 n / k = 1.8123 (main 0.5061, first level 1.3062); pigeonhole lower bound / k = 0.0159; first moment / k = 0.3189; main/pigeonhole = 31.9, main/first moment = 1.59
+rate 2^-7 n=2^24 J=2: eps_3 n / k = 0.8208 (main 0.4911, first level 0.3297); pigeonhole lower bound / k = 0.0159; first moment / k = 0.3189; main/pigeonhole = 30.9, main/first moment = 1.54
+rate 2^-10 n=2^20 J=0: eps_3 n / k = 1.9739 (main 0.6181, first level 1.3558); pigeonhole lower bound / k = 0.0156; first moment / k = 0.4502; main/pigeonhole = 39.6, main/first moment = 1.37
+rate 2^-10 n=2^20 J=2: eps_3 n / k = 0.9353 (main 0.5942, first level 0.3411); pigeonhole lower bound / k = 0.0156; first moment / k = 0.4502; main/pigeonhole = 38.0, main/first moment = 1.32
+rate 2^-10 n=2^24 J=0: eps_3 n / k = 2.0176 (main 0.6429, first level 1.3748); pigeonhole lower bound / k = 0.0159; first moment / k = 0.4491; main/pigeonhole = 40.5, main/first moment = 1.43
+rate 2^-10 n=2^24 J=2: eps_3 n / k = 0.9713 (main 0.6245, first level 0.3468); pigeonhole lower bound / k = 0.0159; first moment / k = 0.4491; main/pigeonhole = 39.4, main/first moment = 1.39

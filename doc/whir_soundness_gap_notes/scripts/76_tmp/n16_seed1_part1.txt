@@ -1,0 +1,8 @@
+LIST 5 (est 15): 003f 01d3 01ec 0d30 f030
+# seed 1 part 1/4 threshold 5: pair orbits 7575, allowed sets 5015358 (rank-1: 8928, most 44 for one pair, most distinct planes 10, case B skipped 0), Pluecker tests 6985485863, hits 111285144, groups 14562132, exact calls 11954719, new points 1788428
+exact 1: 3183
+exact 2: 57788
+exact 3: 1690037
+exact 4: 36010
+exact 5: 1410
+best exact: 5

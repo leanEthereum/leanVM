@@ -1,0 +1,16 @@
+v=2 r=1 k=4 n=8 members=3 mode=full part=0/1 patterns=390625  Lk=8
+code U: feasible=86805 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=5  deficiency_hist: 0:390625
+  max-weight example: 012 012 12 02 01 . . .
+  max-balanced example: 012 012 12 02 01 . . .
+code 2: feasible=86853 feasible_with_weight>=Lk=48 max_weight=8 max_balanced=5  deficiency_hist: 0:390577 1:48
+  max-weight example: 12 12 02 02 01 01 012 .
+  max-balanced example: 012 012 12 02 01 . . .
+code 1: feasible=86853 feasible_with_weight>=Lk=48 max_weight=8 max_balanced=5  deficiency_hist: 0:390577 1:48
+  max-weight example: 12 12 02 02 01 01 012 .
+  max-balanced example: 012 012 12 02 01 . . .
+code R: feasible=86805 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=5  deficiency_hist: 0:390625
+  max-weight example: 012 012 12 02 01 . . .
+  max-balanced example: 012 012 12 02 01 . . .
+code S: feasible=87141 feasible_with_weight>=Lk=336 max_weight=8 max_balanced=5  deficiency_hist: 0:390289 1:336
+  max-weight example: 02 12 12 02 012 01 01 .
+  max-balanced example: 012 012 12 02 01 . . .

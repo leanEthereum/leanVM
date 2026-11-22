@@ -1,0 +1,16 @@
+(1) formula against enumeration, N=12, 40 random (strides, excluded sets): True
+(2) N=10 strides [0, 3, 6]: best hyperplane a=1000000000 stays 0.8750; best coordinate hyperplane 0.8750 (excluded (9,))
+(2) N=10 strides [0, 2, 4, 6, 8]: best hyperplane a=0000000010 stays 0.5000; best coordinate hyperplane 0.5000 (excluded (1,))
+(2) N=10 strides [0, 5]: best hyperplane a=0000010000 stays 0.9375; best coordinate hyperplane 0.9375 (excluded (4,))
+(3) N=25: I*(c), c = 1..6, for d evenly spread strides; mean verifier cost sum (s_j + 2), cube window 325
+    d= 3 strides [0, 8, 16]: I* = 0.996 0.992 0.984 0.977 0.969 0.961; cost 30; (4) a half set with interior loss 0.0039
+    d= 5 strides [0, 5, 10, 15, 20]: I* = 0.938 0.879 0.824 0.772 0.724 0.676; cost 60; (4) a half set with interior loss 0.0625
+    d= 8 strides [0, 3, 6, 9, 12, 15, 18, 21]: I* = 0.875 0.750 0.562 0.422 0.316 0.237; cost 100; (4) a half set with interior loss 0.1250
+    d=12 strides [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]: I* = 0.750 0.500 0.250 0.125 0.062 0.031; cost 156; (4) a half set with interior loss 0.2500
+    d=25 strides all: I* = 0.000 0.000 0.000 0.000 0.000 0.000; cost 350; (4) a half set with interior loss 1.0000
+(3) N=28: I*(c), c = 1..6, for d evenly spread strides; mean verifier cost sum (s_j + 2), cube window 406
+    d= 3 strides [0, 9, 18]: I* = 0.998 0.996 0.992 0.988 0.984 0.981; cost 33; (4) a half set with interior loss 0.0020
+    d= 5 strides [0, 5, 11, 16, 22]: I* = 0.969 0.938 0.909 0.880 0.851 0.824; cost 64; (4) a half set with interior loss 0.0312
+    d= 8 strides [0, 3, 7, 10, 14, 17, 21, 24]: I* = 0.875 0.766 0.670 0.586 0.502 0.431; cost 112; (4) a half set with interior loss 0.1250
+    d=12 strides [0, 2, 4, 7, 9, 11, 14, 16, 18, 21, 23, 25]: I* = 0.750 0.562 0.422 0.316 0.211 0.141; cost 174; (4) a half set with interior loss 0.2500
+    d=28 strides all: I* = 0.000 0.000 0.000 0.000 0.000 0.000; cost 434; (4) a half set with interior loss 1.0000

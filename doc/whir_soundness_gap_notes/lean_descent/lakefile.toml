@@ -1,0 +1,17 @@
+name = "perioddescent"
+version = "0.1.0"
+defaultTargets = ["PeriodDescent"]
+
+[leanOptions]
+warningAsError = true
+autoImplicit = false
+relaxedAutoImplicit = false
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.36.0"
+
+[[lean_lib]]
+name = "PeriodDescent"

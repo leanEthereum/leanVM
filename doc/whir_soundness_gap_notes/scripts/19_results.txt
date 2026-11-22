@@ -1,0 +1,46 @@
+part A: 192 identities checked (Theorem 1, triangular form, moments, additivity of a)
+part B: n = 16, 23 domains (fields of degree 4, 5, 6, 8, 13, 64); the criterion held for every pair
+ s | pairs in a previous-level class | largest class depth 2, bound | largest class depth 3, bound | min distance depth 2, 3 | (|Omega|, distance, also depth 3): pairs
+ 3 | 218960 | 5, 5 | 1, 2 | 6, 99 | [((6, 6, False), 2832)]
+ 4 | 2368310 | 20, None | 4, 4 | 6, 8 | [((0, 8, True), 4830), ((6, 6, False), 28320), ((8, 8, False), 11712)]
+ 5 | 13663104 | 18, None | 3, 7 | 6, 8 | [((0, 8, True), 38640), ((6, 6, False), 127440), ((6, 10, False), 25488), ((8, 8, False), 93696), ((10, 10, False), 5088), ((10, 10, True), 960)]
+ 6 | 46033764 | 32, None | 7, 16 | 6, 8 | [((0, 8, True), 135240), ((6, 6, False), 339840), ((6, 10, False), 152928), ((8, 8, False), 327936), ((8, 12, False), 27328), ((10, 10, False), 30528), ((10, 10, True), 5760), ((12, 12, False), 2112)]
+ 7 | 93933840 | 45, None | 15, 64 | 6, 8 | [((0, 8, True), 270480), ((6, 6, False), 594720), ((6, 10, False), 382320), ((8, 8, False), 655872), ((8, 12, False), 109312), ((10, 10, False), 76320), ((10, 10, True), 14400), ((12, 12, False), 8448)]
+ 8 | 118956345 | 56, None | 30, None | 6, 8 | [((0, 8, True), 338100), ((0, 16, True), 10005), ((6, 6, False), 713664), ((6, 10, False), 509760), ((8, 8, False), 819840), ((8, 12, False), 163968), ((10, 10, False), 101760), ((10, 10, True), 19200), ((12, 12, False), 12672)]
+N=8 m=64: sum of 1/a over the six points = 0, sum of 1/a^3 = 939027d5f34f44d5, c1(V) = a0a7d9e3d99cefd3, c1(V') = a0a7d9e3d99cefd3  COINCIDENCE
+   brute force N=8: |A| = |B| = 48, Z_A - Z_B = 9ae50a8369b04a62 (a nonzero constant)
+N=9 m=64: sum of 1/a over the six points = 0, sum of 1/a^3 = 6fdbfa4aed50f638, c1(V) = fec00216194b2c40, c1(V') = fec00216194b2c40  COINCIDENCE
+   brute force N=9: |A| = |B| = 96, Z_A - Z_B = 6ad9a48638ea438b (a nonzero constant)
+N=25 m=64: sum of 1/a over the six points = 0, sum of 1/a^3 = 7c193e953916bd01, c1(V) = cba43a67a8eb80e2, c1(V') = cba43a67a8eb80e2  COINCIDENCE
+N=26 m=64: sum of 1/a over the six points = 0, sum of 1/a^3 = c06476be547be57d, c1(V) = 1ffceca7a13db23d, c1(V') = 1ffceca7a13db23d  COINCIDENCE
+N=27 m=64: sum of 1/a over the six points = 0, sum of 1/a^3 = e85e7561fb11f282, c1(V) = 77ed94d3be30112c, c1(V') = 77ed94d3be30112c  COINCIDENCE
+N=28 m=64: sum of 1/a over the six points = 0, sum of 1/a^3 = d1c10da0cba7fae6, c1(V) = cbca51b44a3f6baf, c1(V') = cbca51b44a3f6baf  COINCIDENCE
+all coincidences confirmed, none survives the cubes
+N=25 m=64: sum of 1/a over the six points = 0, sum of 1/a^3 = 7d6256a35159ac4f, c1(V) = a76e89216439b513, c1(V') = a76e89216439b513  COINCIDENCE
+N=28 m=64: sum of 1/a over the six points = 0, sum of 1/a^3 = ba11b1d61d7d92a1, c1(V) = a701e29cfe72d040, c1(V') = a701e29cfe72d040  COINCIDENCE
+all coincidences confirmed, none survives the cubes
+s=10 g=6 m=5 seed=1 sets=64512240 real classes>=2: 1270256 largest real class 3, most previous-level classes in one real class 1, largest cell 3 (bound 7.11), pairs in cells 1334736, min distance 16, violations 0, |Omega| histogram: 0:111600 8:1190400 10:32736
+s=10 g=6 m=6 seed=1 sets=64512240 real classes>=2: 324464 largest real class 3, most previous-level classes in one real class 1, largest cell 3 (bound 7.11), pairs in cells 363216, min distance 16, violations 0, |Omega| histogram: 0:111600 8:241920 10:9696
+s=10 g=6 m=6 seed=2 sets=64512240 real classes>=2: 324464 largest real class 3, most previous-level classes in one real class 1, largest cell 3 (bound 7.11), pairs in cells 363216, min distance 16, violations 0, |Omega| histogram: 0:111600 8:241920 10:9696
+s=10 g=6 m=7 seed=1 sets=64512240 real classes>=2: 132208 largest real class 3, most previous-level classes in one real class 1, largest cell 3 (bound 7.11), pairs in cells 167824, min distance 16, violations 0, |Omega| histogram: 0:111600 8:53760 10:2464
+s=10 g=6 m=8 seed=1 sets=64512240 real classes>=2: 88688 largest real class 3, most previous-level classes in one real class 1, largest cell 3 (bound 7.11), pairs in cells 123600, min distance 16, violations 0, |Omega| histogram: 0:111600 8:11520 10:480
+s=9 g=6 m=5 seed=1 sets=28048800 real classes>=2: 163680 largest real class 3, most previous-level classes in one real class 1, largest cell 3 (bound 5.22), pairs in cells 173600, min distance 16, violations 0, |Omega| histogram: 0:14880 8:158720
+s=9 g=6 m=6 seed=1 sets=28048800 real classes>=2: 37216 largest real class 3, most previous-level classes in one real class 1, largest cell 3 (bound 5.22), pairs in cells 47136, min distance 16, violations 0, |Omega| histogram: 0:14880 8:32256
+s=11 g=5 m=6 seed=1 sets=129024480 real classes>=2: 33347616 largest real class 17, most previous-level classes in one real class 1, largest cell 17 (bound none 0.00), pairs in cells 178968480, min distance 12, violations 0, |Omega| histogram: 0:520800 6:95216064 8:76097280 10:7134336
+s=11 g=5 m=8 seed=1 sets=129024480 real classes>=2: 26289504 largest real class 10, most previous-level classes in one real class 1, largest cell 10 (bound none 0.00), pairs in cells 43530976, min distance 12, violations 0, |Omega| histogram: 0:520800 6:21992064 8:19237120 10:1780992
+s=11 g=5 m=7 seed=0 sets=129024480 real classes>=2: 33964480 largest real class 13, most previous-level classes in one real class 1, largest cell 13 (bound none 0.00), pairs in cells 87601696, min distance 12, violations 0, |Omega| histogram: 0:520800 6:45734208 8:37730560 10:3616128
+s=11 g=7 m=6 seed=1 sets=129024480 real classes>=2: 459424 largest real class 3, most previous-level classes in one real class 1, largest cell 3 (bound 10.24), pairs in cells 528864, min distance 16, violations 0, |Omega| histogram: 0:520800 10:8064
+s=11 g=7 m=8 seed=1 sets=129024480 real classes>=2: 452512 largest real class 3, most previous-level classes in one real class 1, largest cell 3 (bound 10.24), pairs in cells 521952, min distance 16, violations 0, |Omega| histogram: 0:520800 10:1152
+s=11 g=6 m=6 seed=1 sets=129024480 real classes>=2: 1660128 largest real class 3, most previous-level classes in one real class 1, largest cell 3 (bound 10.24), pairs in cells 1766112, min distance 16, violations 0, |Omega| histogram: 0:520800 8:1128960 10:116352
+s=9 g=5 m=6 seed=1 sets=28048800 real classes>=2: 5595744 largest real class 15, most previous-level classes in one real class 1, largest cell 15 (bound none 0.00), pairs in cells 9138528, min distance 12, violations 0, |Omega| histogram: 0:14880 6:6949440 8:2174208
+s=9 g=5 m=8 seed=0 sets=28048800 real classes>=2: 1975872 largest real class 9, most previous-level classes in one real class 1, largest cell 9 (bound none 0.00), pairs in cells 2247840, min distance 12, violations 0, |Omega| histogram: 0:14880 6:1714560 8:518400
+s=6 g=4 m=5 seed=1 sets=906192 real classes>=2: 226672 largest real class 4, most previous-level classes in one real class 4, largest cell 2 (bound 5.33), pairs in cells 13392, min distance 12, violations 0, |Omega| histogram: 6:13392
+s=6 g=4 m=6 seed=1 sets=906192 real classes>=2: 31616 largest real class 5, most previous-level classes in one real class 3, largest cell 5 (bound 5.33), pairs in cells 6096, min distance 12, violations 0, |Omega| histogram: 6:6096
+s=6 g=5 m=6 seed=3 sets=906192 real classes>=2: 5952 largest real class 5, most previous-level classes in one real class 1, largest cell 5 (bound 5.33), pairs in cells 6096, min distance 12, violations 0, |Omega| histogram: 6:6096
+s=7 g=4 m=5 seed=1 sets=3365856 real classes>=2: 886848 largest real class 8, most previous-level classes in one real class 7, largest cell 5 (bound 11.29), pairs in cells 267840, min distance 12, violations 0, |Omega| histogram: 6:267840
+s=7 g=5 m=6 seed=1 sets=3365856 real classes>=2: 116448 largest real class 5, most previous-level classes in one real class 1, largest cell 5 (bound 11.29), pairs in cells 121920, min distance 12, violations 0, |Omega| histogram: 6:121920
+s=7 g=4 m=8 seed=1 sets=3365856 real classes>=2: 27904 largest real class 3, most previous-level classes in one real class 1, largest cell 3 (bound 11.29), pairs in cells 28160, min distance 12, violations 0, |Omega| histogram: 6:28160
+s=8 g=4 m=6 seed=1 sets=10518300 real classes>=2: 3061216 largest real class 20, most previous-level classes in one real class 6, largest cell 20 (bound none 0.00), pairs in cells 1295058, min distance 12, violations 0, |Omega| histogram: 0:930 6:1158240 8:135888
+s=8 g=6 m=6 seed=1 sets=10518300 real classes>=2: 2171 largest real class 4, most previous-level classes in one real class 1, largest cell 4 (bound 4.00), pairs in cells 2946, min distance 16, violations 0, |Omega| histogram: 0:930 8:2016
+s=12 g=6 m=6 seed=1 sets=225792840 real classes>=2: 5708472 largest real class 7, most previous-level classes in one real class 1, largest cell 7 (bound 16.00), pairs in cells 6007128, min distance 16, violations 0, |Omega| histogram: 0:1692600 8:3669120 10:639936 12:5472
+all checks passed

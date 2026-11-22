@@ -1,0 +1,150 @@
+  arbitrary matching, rank 15 < 16: (10,11) (7,0) (2,8) (3,5) (6,12) (1,13) (9,14) (4,15) classes: 6 6 6 6 5 5 5 5 7 7 7 0 3 3 3 3
+  arbitrary matching, rank 15 < 16: (3,14) (11,10) (7,15) (5,9) (13,4) (12,2) (6,1) (8,0) classes: 6 6 6 6 5 5 5 5 7 7 7 0 3 3 3 3
+(k,n)=(8,16) members=3 variant=T2: 2998 patterns (random 999, block 999, staircase 1000), dependent 1541 (425, 555, 561)
+  Cor 4.2: random bijections 59960, violations 0; best bijection: violations 0, rank = bound in 2766, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 381, least rank - bound 0); cut bounds tested 8994, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 59960 tested, bound above the rank in 99
+  arbitrary matching, rank 23 < 24: (4,3) (11,10) (5,1) (8,2) (0,14) (9,13) (15,6) (7,12) classes: 7 7 7 7 c c c c f f f 0 b b b b
+  arbitrary matching, rank 23 < 24: (2,12) (9,14) (15,4) (13,5) (1,8) (7,3) (6,0) (11,10) classes: 7 7 7 7 c c c c f f f 0 b b b b
+(k,n)=(8,16) members=4 variant=T2: 3000 patterns (random 1000, block 1000, staircase 1000), dependent 1810 (481, 675, 654)
+  Cor 4.2: random bijections 60000, violations 0; best bijection: violations 0, rank = bound in 2336, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 232, least rank - bound 0); cut bounds tested 9000, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 60000 tested, bound above the rank in 163
+  arbitrary matching, rank 31 < 32: (11,15) (12,5) (14,6) (2,9) (4,8) (7,10) (1,0) (13,3) classes: 1f 0 1f 1f 17 17 17 17 1e 1e 1e 1e 9 9 9 9
+  arbitrary matching, rank 31 < 32: (14,4) (12,1) (7,15) (9,13) (0,11) (6,8) (10,5) (2,3) classes: 1f 1f 0 1f 1e 1e 1e 1e 7 7 7 7 19 19 19 19
+(k,n)=(8,16) members=5 variant=T2: 3000 patterns (random 1000, block 1000, staircase 1000), dependent 2255 (530, 725, 1000)
+  Cor 4.2: random bijections 60000, violations 0; best bijection: violations 0, rank = bound in 2016, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 180, least rank - bound 0); cut bounds tested 9000, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 60000 tested, bound above the rank in 280
+  arbitrary matching, rank 39 < 40: (1,9) (14,0) (8,13) (5,4) (11,15) (6,7) (2,10) (12,3) classes: 19 19 19 19 3f 0 3f 3f 27 27 27 27 3e 3e 3e 3e
+  arbitrary matching, rank 39 < 40: (2,15) (12,7) (3,14) (6,0) (10,9) (1,8) (4,13) (5,11) classes: 3d 3d 3d 3d f f f f 3f 3f 0 3f 32 32 32 32
+(k,n)=(8,16) members=6 variant=T2: 3000 patterns (random 1000, block 1000, staircase 1000), dependent 2332 (547, 785, 1000)
+  Cor 4.2: random bijections 60000, violations 0; best bijection: violations 0, rank = bound in 1773, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 131, least rank - bound 0); cut bounds tested 9000, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 60000 tested, bound above the rank in 311
+  arbitrary matching, rank 31 < 32: (25,3) (18,5) (27,19) (29,23) (14,4) (22,10) (16,9) (21,8) (17,2) (12,26) (31,13) (6,15) (28,1) (30,24) (20,7) (0,11) classes: 6 6 6 6 6 6 6 6 3 3 3 3 3 3 3 3 5 5 5 5 5 5 5 5 7 7 7 7 7 7 0 7
+  arbitrary matching, rank 31 < 32: (22,12) (17,8) (19,7) (28,24) (18,6) (15,2) (30,27) (14,0) (16,31) (10,21) (1,13) (4,11) (5,25) (3,29) (26,23) (9,20) classes: 6 6 6 6 6 6 6 6 3 3 3 3 3 3 3 3 5 5 5 5 5 5 5 5 7 7 7 7 7 7 0 7
+(k,n)=(16,32) members=3 variant=T2: 2000 patterns (random 667, block 667, staircase 666), dependent 913 (286, 376, 251)
+  Cor 4.2: random bijections 40000, violations 0; best bijection: violations 0, rank = bound in 1861, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 121, least rank - bound 0); cut bounds tested 8000, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 40000 tested, bound above the rank in 5
+  arbitrary matching, rank 47 < 48: (2,16) (1,10) (4,30) (23,26) (11,27) (19,31) (12,5) (17,24) (8,18) (9,22) (6,3) (13,25) (21,0) (7,15) (28,20) (29,14) classes: f f f f f f 0 f d d d d d d d d 7 7 7 7 7 7 7 7 a a a a a a a a
+  arbitrary matching, rank 47 < 48: (15,31) (5,29) (1,17) (16,11) (9,18) (26,6) (3,22) (12,21) (2,7) (27,8) (24,13) (0,14) (4,25) (23,28) (30,20) (19,10) classes: f f f f f f f 0 b b b b b b b b 7 7 7 7 7 7 7 7 c c c c c c c c
+(k,n)=(16,32) members=4 variant=T2: 2000 patterns (random 667, block 667, staircase 666), dependent 1048 (331, 421, 296)
+  Cor 4.2: random bijections 40000, violations 0; best bijection: violations 0, rank = bound in 1583, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 71, least rank - bound 0); cut bounds tested 8000, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 40000 tested, bound above the rank in 23
+  arbitrary matching, rank 63 < 64: (12,8) (30,1) (21,14) (20,29) (17,7) (5,26) (24,18) (25,23) (28,0) (4,16) (15,27) (3,22) (13,19) (6,9) (11,10) (2,31) classes: 6 6 6 6 6 6 6 6 1f 1f 1f 1f 0 1f 1f 1f 1b 1b 1b 1b 1b 1b 1b 1b 1d 1d 1d 1d 1d 1d 1d 1d
+  arbitrary matching, rank 63 < 64: (30,14) (12,17) (3,22) (31,20) (13,18) (8,19) (15,5) (23,0) (1,28) (16,9) (11,2) (25,10) (21,4) (6,27) (29,26) (24,7) classes: 1b 1b 1b 1b 1b 1b 1b 1b 7 7 7 7 7 7 7 7 1c 1c 1c 1c 1c 1c 1c 1c 1f 1f 0 1f 1f 1f 1f 1f
+(k,n)=(16,32) members=5 variant=T2: 2000 patterns (random 667, block 667, staircase 666), dependent 1255 (334, 481, 440)
+  Cor 4.2: random bijections 40000, violations 0; best bijection: violations 0, rank = bound in 1301, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 52, least rank - bound 0); cut bounds tested 8000, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 40000 tested, bound above the rank in 11
+  arbitrary matching, rank 79 < 80: (19,29) (8,13) (4,23) (17,26) (10,9) (0,12) (18,7) (21,6) (2,30) (24,3) (11,31) (20,25) (5,28) (27,22) (14,15) (1,16) classes: 34 34 34 34 34 34 34 34 3f 3f 3f 3f 3f 0 3f 3f 1f 1f 1f 1f 1f 1f 1f 1f 2b 2b 2b 2b 2b 2b 2b 2b
+  arbitrary matching, rank 79 < 80: (0,20) (17,11) (6,30) (12,24) (22,26) (1,19) (23,25) (31,16) (4,29) (5,9) (10,28) (2,13) (15,18) (7,3) (14,27) (21,8) classes: 3f 3f 3f 3f 3f 3f 3f 0 1e 1e 1e 1e 1e 1e 1e 1e 39 39 39 39 39 39 39 39 27 27 27 27 27 27 27 27
+(k,n)=(16,32) members=6 variant=T2: 2000 patterns (random 667, block 667, staircase 666), dependent 1275 (347, 493, 435)
+  Cor 4.2: random bijections 40000, violations 0; best bijection: violations 0, rank = bound in 1075, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 17, least rank - bound 0); cut bounds tested 8000, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 40000 tested, bound above the rank in 25
+  arbitrary matching, rank 7 < 8: (2,3) (5,0) (6,4) (7,1) classes: 5 5 0 7 3 3 6 6
+  arbitrary matching, rank 7 < 8: (7,5) (6,2) (1,0) (3,4) classes: 0 7 5 5 6 6 3 3
+(k,n)=(4,8) members=3 variant=T2: 2989 patterns (random 990, block 999, staircase 1000), dependent 1898 (431, 467, 1000)
+  Cor 4.2: random bijections 59780, violations 0; best bijection: violations 0, rank = bound in 2905, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 762, least rank - bound 0); cut bounds tested 5978, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 59780 tested, bound above the rank in 308
+  arbitrary matching, rank 11 < 12: (0,2) (4,5) (7,1) (6,3) classes: e e 3 3 0 f d d
+  arbitrary matching, rank 11 < 12: (4,2) (6,7) (0,5) (3,1) classes: b b 5 5 e e f 0
+(k,n)=(4,8) members=4 variant=T2: 2996 patterns (random 998, block 998, staircase 1000), dependent 2119 (521, 598, 1000)
+  Cor 4.2: random bijections 59920, violations 0; best bijection: violations 0, rank = bound in 2679, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 575, least rank - bound 0); cut bounds tested 5992, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 59920 tested, bound above the rank in 698
+(k,n)=(2,4) members=4 variant=T2: 1979 patterns (random 649, block 664, staircase 666), dependent 1395 (345, 384, 666)
+  Cor 4.2: random bijections 39580, violations 0; best bijection: violations 0, rank = bound in 1922, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 1796, least rank - bound 0); cut bounds tested 1979, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 39580 tested, bound above the rank in 0
+  arbitrary matching, rank 15 < 16: (15,3) (10,2) (4,8) (12,9) (13,0) (11,1) (7,5) (6,14) classes: 6 6 6 6 7 7 7 0 3 3 3 3 5 5 5 5
+  arbitrary matching, rank 15 < 16: (12,2) (1,4) (5,8) (14,6) (10,9) (7,13) (11,3) (15,0) classes: 3 3 3 3 6 6 6 6 7 0 7 7 5 5 5 5
+(k,n)=(8,16) members=3 variant=T1: 2999 patterns (random 999, block 1000, staircase 1000), dependent 1545 (406, 584, 555)
+  Cor 4.2: random bijections 59980, violations 0; best bijection: violations 0, rank = bound in 2775, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 379, least rank - bound 0); cut bounds tested 8997, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 59980 tested, bound above the rank in 81
+  arbitrary matching, rank 23 < 24: (9,2) (13,1) (6,3) (15,8) (14,11) (10,12) (7,0) (5,4) classes: e e e e f 0 f f b b b b 5 5 5 5
+  arbitrary matching, rank 23 < 24: (13,7) (11,5) (2,10) (15,12) (14,4) (1,8) (0,9) (3,6) classes: e e e e 7 7 7 7 9 9 9 9 0 f f f
+(k,n)=(8,16) members=4 variant=T1: 3000 patterns (random 1000, block 1000, staircase 1000), dependent 1851 (491, 669, 691)
+  Cor 4.2: random bijections 60000, violations 0; best bijection: violations 0, rank = bound in 2391, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 245, least rank - bound 0); cut bounds tested 9000, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 60000 tested, bound above the rank in 196
+  arbitrary matching, rank 31 < 32: (13,10) (11,4) (0,15) (14,6) (8,12) (7,9) (3,5) (2,1) classes: 1f 0 1f 1f 14 14 14 14 f f f f 1b 1b 1b 1b
+  arbitrary matching, rank 31 < 32: (8,0) (3,12) (5,14) (13,1) (4,11) (2,6) (9,10) (7,15) classes: 7 7 7 7 1e 1e 1e 1e 1f 1f 0 1f 19 19 19 19
+(k,n)=(8,16) members=5 variant=T1: 3000 patterns (random 1000, block 1000, staircase 1000), dependent 2282 (540, 742, 1000)
+  Cor 4.2: random bijections 60000, violations 0; best bijection: violations 0, rank = bound in 2023, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 169, least rank - bound 0); cut bounds tested 9000, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 60000 tested, bound above the rank in 262
+  arbitrary matching, rank 39 < 40: (10,7) (14,15) (2,6) (13,11) (3,8) (12,9) (4,0) (5,1) classes: 1f 1f 1f 1f 21 21 21 21 3e 3e 3e 3e 3f 3f 0 3f
+  arbitrary matching, rank 39 < 40: (3,0) (10,7) (5,9) (4,14) (2,12) (6,11) (15,1) (8,13) classes: 0 3f 3f 3f 37 37 37 37 2b 2b 2b 2b 1c 1c 1c 1c
+(k,n)=(8,16) members=6 variant=T1: 3000 patterns (random 1000, block 1000, staircase 1000), dependent 2361 (584, 777, 1000)
+  Cor 4.2: random bijections 60000, violations 0; best bijection: violations 0, rank = bound in 1723, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 125, least rank - bound 0); cut bounds tested 9000, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 60000 tested, bound above the rank in 329
+  arbitrary matching, rank 31 < 32: (25,17) (12,7) (22,24) (18,14) (11,4) (9,30) (26,20) (3,27) (10,31) (28,23) (8,13) (16,2) (5,19) (29,6) (1,15) (0,21) classes: 6 6 6 6 6 6 6 6 0 7 7 7 7 7 7 7 3 3 3 3 3 3 3 3 5 5 5 5 5 5 5 5
+  arbitrary matching, rank 31 < 32: (11,7) (25,8) (24,22) (15,1) (4,16) (18,28) (26,19) (29,10) (3,21) (23,27) (14,9) (0,12) (30,20) (5,31) (6,13) (2,17) classes: 6 6 6 6 6 6 6 6 7 7 7 7 7 7 0 7 5 5 5 5 5 5 5 5 3 3 3 3 3 3 3 3
+(k,n)=(16,32) members=3 variant=T1: 2000 patterns (random 667, block 667, staircase 666), dependent 870 (257, 357, 256)
+  Cor 4.2: random bijections 40000, violations 0; best bijection: violations 0, rank = bound in 1855, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 127, least rank - bound 0); cut bounds tested 8000, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 40000 tested, bound above the rank in 8
+  arbitrary matching, rank 47 < 48: (18,27) (9,31) (2,14) (22,4) (26,16) (6,30) (20,28) (5,8) (13,1) (3,12) (19,25) (23,21) (11,17) (29,7) (0,15) (24,10) classes: b b b b b b b b d d d d d d d d f f f f f 0 f f 6 6 6 6 6 6 6 6
+  arbitrary matching, rank 47 < 48: (15,23) (5,20) (17,22) (19,6) (27,2) (30,3) (12,4) (24,14) (18,1) (31,13) (21,29) (9,7) (11,0) (26,8) (16,28) (25,10) classes: b b b b b b b b d d d d d d d d f f f f f f 0 f 6 6 6 6 6 6 6 6
+(k,n)=(16,32) members=4 variant=T1: 2000 patterns (random 667, block 667, staircase 666), dependent 1041 (317, 436, 288)
+  Cor 4.2: random bijections 40000, violations 0; best bijection: violations 0, rank = bound in 1621, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 83, least rank - bound 0); cut bounds tested 8000, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 40000 tested, bound above the rank in 14
+  arbitrary matching, rank 63 < 64: (16,10) (15,24) (3,21) (25,12) (0,22) (8,6) (20,5) (26,27) (4,11) (2,13) (28,7) (23,29) (14,19) (17,9) (1,31) (18,30) classes: 9 9 9 9 9 9 9 9 17 17 17 17 17 17 17 17 1e 1e 1e 1e 1e 1e 1e 1e 1f 1f 0 1f 1f 1f 1f 1f
+  arbitrary matching, rank 63 < 64: (24,27) (11,28) (14,7) (0,25) (21,29) (19,12) (2,22) (5,10) (20,3) (16,4) (15,1) (26,23) (13,17) (6,31) (18,8) (30,9) classes: d d d d d d d d 1e 1e 1e 1e 1e 1e 1e 1e 13 13 13 13 13 13 13 13 0 1f 1f 1f 1f 1f 1f 1f
+(k,n)=(16,32) members=5 variant=T1: 2000 patterns (random 667, block 667, staircase 666), dependent 1269 (356, 472, 441)
+  Cor 4.2: random bijections 40000, violations 0; best bijection: violations 0, rank = bound in 1293, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 43, least rank - bound 0); cut bounds tested 8000, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 40000 tested, bound above the rank in 29
+  arbitrary matching, rank 79 < 80: (21,2) (17,31) (19,12) (27,20) (28,15) (6,29) (25,14) (22,10) (30,16) (4,3) (23,1) (9,7) (18,8) (5,0) (11,26) (13,24) classes: 0 3f 3f 3f 3f 3f 3f 3f 6 6 6 6 6 6 6 6 3b 3b 3b 3b 3b 3b 3b 3b 3d 3d 3d 3d 3d 3d 3d 3d
+  arbitrary matching, rank 79 < 80: (3,19) (12,4) (9,22) (25,18) (14,27) (5,7) (10,31) (17,15) (28,2) (16,24) (26,21) (29,20) (0,6) (23,11) (8,1) (30,13) classes: 0 3f 3f 3f 3f 3f 3f 3f 6 6 6 6 6 6 6 6 3b 3b 3b 3b 3b 3b 3b 3b 3d 3d 3d 3d 3d 3d 3d 3d
+(k,n)=(16,32) members=6 variant=T1: 2000 patterns (random 667, block 667, staircase 666), dependent 1317 (373, 486, 458)
+  Cor 4.2: random bijections 40000, violations 0; best bijection: violations 0, rank = bound in 1072, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 24, least rank - bound 0); cut bounds tested 8000, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 40000 tested, bound above the rank in 36
+  arbitrary matching, rank 7 < 8: (5,6) (3,4) (0,1) (2,7) classes: 0 7 5 5 6 6 3 3
+  arbitrary matching, rank 7 < 8: (3,1) (5,2) (0,4) (6,7) classes: 6 6 5 5 3 3 7 0
+(k,n)=(4,8) members=3 variant=T1: 2989 patterns (random 989, block 1000, staircase 1000), dependent 1927 (421, 506, 1000)
+  Cor 4.2: random bijections 59780, violations 0; best bijection: violations 0, rank = bound in 2897, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 820, least rank - bound 0); cut bounds tested 5978, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 59780 tested, bound above the rank in 292
+  arbitrary matching, rank 11 < 12: (7,6) (0,2) (1,5) (3,4) classes: 5 5 b b e e 0 f
+  arbitrary matching, rank 11 < 12: (7,6) (4,3) (1,5) (2,0) classes: 5 5 b b e e 0 f
+(k,n)=(4,8) members=4 variant=T1: 2996 patterns (random 998, block 998, staircase 1000), dependent 2116 (518, 598, 1000)
+  Cor 4.2: random bijections 59920, violations 0; best bijection: violations 0, rank = bound in 2682, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 577, least rank - bound 0); cut bounds tested 5992, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 59920 tested, bound above the rank in 702
+(k,n)=(2,4) members=4 variant=T1: 1979 patterns (random 649, block 664, staircase 666), dependent 1392 (347, 379, 666)
+  Cor 4.2: random bijections 39580, violations 0; best bijection: violations 0, rank = bound in 1923, least rank - bound 0
+  Cor 4.3: sibling bound violations 0 (equal in 1796, least rank - bound 0); cut bounds tested 1979, violations 0
+  Thm 4.1: violations 0, least rank - (r0 + r1) = 0
+  control, arbitrary perfect matchings of the n leaves: 39580 tested, bound above the rank in 0

@@ -1,0 +1,20 @@
+FB=8 mode=2 k=8 n=16 draws=60000
+  level 2 (two quads, equal top twiddles): 957 of 360000 minors singular (x|F| = 0.68)
+  level 1 ([8,4] on pairs): 31583 of 4200000 minors singular (x|F| = 1.93); explained by level 2: 16269; primitive with nullity 1: 15314, nullity 2: 0, nullity 3: 0
+  leaf sets Z: 772200000; primitive singular (no top minor involved): nullity 1: 3094865 (x|F| = 1.026), nullity 2: 598, nullity >= 3: 0
+  Z with a forced nullity from a top minor: 4801711; nullity exactly as forced: 4790019; one more: 11692 (fraction x|F| = 0.623); two more: 0; three or more: 0; less than forced (must be 0): 0
+FB=8 mode=1 k=8 n=16 draws=60000
+  level 2 (two quads, equal top twiddles): 952 of 360000 minors singular (x|F| = 0.68)
+  level 1 ([8,4] on pairs): 31274 of 4200000 minors singular (x|F| = 1.91); explained by level 2: 16184; primitive with nullity 1: 15090, nullity 2: 0, nullity 3: 0
+  leaf sets Z: 772200000; primitive singular (no top minor involved): nullity 1: 3065052 (x|F| = 1.016), nullity 2: 484, nullity >= 3: 0
+  Z with a forced nullity from a top minor: 4766962; nullity exactly as forced: 4752698; one more: 14264 (fraction x|F| = 0.766); two more: 0; three or more: 0; less than forced (must be 0): 0
+FB=16 mode=2 k=8 n=16 draws=60000
+  level 2 (two quads, equal top twiddles): 6 of 360000 minors singular (x|F| = 1.09)
+  level 1 ([8,4] on pairs): 158 of 4200000 minors singular (x|F| = 2.47); explained by level 2: 102; primitive with nullity 1: 56, nullity 2: 0, nullity 3: 0
+  leaf sets Z: 772200000; primitive singular (no top minor involved): nullity 1: 11737 (x|F| = 0.996), nullity 2: 0, nullity >= 3: 0
+  Z with a forced nullity from a top minor: 27550; nullity exactly as forced: 27550; one more: 0 (fraction x|F| = 0.000); two more: 0; three or more: 0; less than forced (must be 0): 0
+FB=16 mode=1 k=8 n=16 draws=60000
+  level 2 (two quads, equal top twiddles): 6 of 360000 minors singular (x|F| = 1.09)
+  level 1 ([8,4] on pairs): 170 of 4200000 minors singular (x|F| = 2.65); explained by level 2: 102; primitive with nullity 1: 68, nullity 2: 0, nullity 3: 0
+  leaf sets Z: 772200000; primitive singular (no top minor involved): nullity 1: 12132 (x|F| = 1.030), nullity 2: 0, nullity >= 3: 0
+  Z with a forced nullity from a top minor: 28330; nullity exactly as forced: 28330; one more: 0 (fraction x|F| = 0.000); two more: 0; three or more: 0; less than forced (must be 0): 0

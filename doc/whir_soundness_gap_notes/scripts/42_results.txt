@@ -1,0 +1,246 @@
+#### 42_theoremB.py level0, then listsize
+Theorem B of note 36, independent implementation. M = 2^64, target 2^-100.
+columns: case | Johnson (queries) | threshold tau (queries), parameters | log2 bound at the threshold | the best bound two units of the last digit below | note 36
+
+== level 0, k = 2^24 + 6, points in K (q = m = 2^64) ==
+| rate 2^-1, n = 2^25 | 0.7071 (217) | 0.683910 (198) t=4 sD=0.0000 sC=0.0060 | float -40094.4, certified -40094.4 (scan slack 3.4e-10) | at 0.683890: best found 126691 (t=4) | 0.6844 (198) t=4 |
+| rate 2^-2, n = 2^26 | 0.5000 (109) | 0.462140 (97) t=5 sD=0.0167 sC=0.0326 | float -83819.4, certified -83819.4 (scan slack 1.6e-08) | at 0.462120: best found 240570 (t=5) | 0.4622 (98) t=5 |
+| rate 2^-3, n = 2^27 | 0.3536 (73) | 0.307570 (64) t=7 sD=0.0372 sC=0.0724 | float -7081.6, certified -7081.6 (scan slack 8.9e-08) | at 0.307550: best found 690228 (t=7) | 0.3079 (64) t=7 |
+| rate 2^-4, n = 2^28 | 0.2500 (55) | 0.200370 (47) t=10 sD=0.0572 sC=0.1116 | float -250108.9, certified -250108.9 (scan slack 1.1e-07) | at 0.200350: best found 1270581 (t=10) | 0.2007 (47) t=10 |
+
+== level 0, k = 2^24 + 6, points in E, code over E (q = m = 2^128) ==
+| rate 2^-1, n = 2^25 | 0.7071 (217) | 0.664820 (184) t=4 sD=0.0000 sC=0.0018 | float -14536.6, certified -14536.6 (scan slack 8.4e-08) | at 0.664800: best found 307848 (t=4) | 0.6654 (184) t=4 |
+| rate 2^-2, n = 2^26 | 0.5000 (109) | 0.436790 (91) t=5 sD=0.0104 sC=0.0160 | float -23993.6, certified -23993.6 (scan slack 2.8e-08) | at 0.436770: best found 617971 (t=5) | 0.4368 (91) t=5 |
+| rate 2^-3, n = 2^27 | 0.3536 (73) | 0.280140 (59) t=8 sD=0.0202 sC=0.0300 | float -580467.9, certified -580467.9 (scan slack 3.7e-08) | at 0.280120: best found 1013870 (t=8) | 0.2803 (59) t=8 |
+| rate 2^-4, n = 2^28 | 0.2500 (55) | 0.173900 (43) t=12 sD=0.0311 sC=0.0467 | float -532175.5, certified -532175.5 (scan slack 1.4e-14) | at 0.173880: best found 3205147 (t=12) | 0.1742 (43) t=12 |
+
+== level 0, Theorem B': polynomials over K, points of E minus K (one per conjugate pair) ==
+| rate 2^-1, n = 2^25 | 0.5000 (109) | 0.436790 (91) t=5 sD=0.0104 sC=0.0160 | float -12236.0, certified -12236.0 (scan slack 2.8e-08) | at 0.436770: best found 308746 (t=5) | 0.4368 (91) t=5 |
+| rate 2^-2, n = 2^26 | 0.3536 (73) | 0.280140 (59) t=8 sD=0.0202 sC=0.0300 | float -290530.9, certified -290530.9 (scan slack 3.7e-08) | at 0.280120: best found 506935 (t=8) | 0.2803 (59) t=8 |
+| rate 2^-3, n = 2^27 | 0.2500 (55) | 0.173900 (43) t=12 sD=0.0311 sC=0.0467 | float -266087.7, certified -266087.7 (scan slack 1.4e-14) | at 0.173880: best found 1602574 (t=12) | 0.1742 (43) t=12 |
+| rate 2^-4, n = 2^28 | 0.1768 (44) | 0.103950 (34) t=18 sD=0.0426 sC=0.0655 | float -1379784.5, certified -1379784.5 (scan slack 9.3e-10) | at 0.103930: best found 3188150 (t=18) | 0.1043 (34) t=16 |
+
+== all sizes: n = 2^25..2^28 times the four rates, k = rho n + 6, points in K ==
+| n = 2^25, rate 2^-1 | 0.7071 (217) | 0.683910 (198) t=4 sD=0.0000 sC=0.0060 | float -40094.4, certified -40094.4 (scan slack 3.4e-10) | at 0.683890: best found 126691 (t=4) |  |
+| n = 2^25, rate 2^-2 | 0.5000 (109) | 0.460740 (97) t=5 sD=0.0169 sC=0.0323 | float -32771.2, certified -32771.2 (scan slack 1.6e-08) | at 0.460720: best found 129239 (t=5) |  |
+| n = 2^25, rate 2^-3 | 0.3536 (73) | 0.304410 (63) t=7 sD=0.0379 sC=0.0703 | float -46668.1, certified -46668.1 (scan slack 2.1e-08) | at 0.304390: best found 127781 (t=7) |  |
+| n = 2^25, rate 2^-4 | 0.2500 (55) | 0.195660 (46) t=10 sD=0.0588 sC=0.1064 | float -93302.8, certified -93302.8 (scan slack 2.6e-08) | at 0.195640: best found 98485 (t=10) |  |
+| n = 2^26, rate 2^-1 | 0.7071 (217) | 0.684880 (198) t=4 sD=0.0000 sC=0.0062 | float -98770.8, certified -98770.8 (scan slack 5.1e-08) | at 0.684860: best found 235610 (t=4) |  |
+| n = 2^26, rate 2^-2 | 0.5000 (109) | 0.462140 (97) t=5 sD=0.0167 sC=0.0326 | float -83819.4, certified -83819.4 (scan slack 1.6e-08) | at 0.462120: best found 240570 (t=5) |  |
+| n = 2^26, rate 2^-3 | 0.3536 (73) | 0.305990 (64) t=7 sD=0.0375 sC=0.0713 | float -100772.6, certified -100772.6 (scan slack 2.2e-08) | at 0.305970: best found 247988 (t=7) |  |
+| n = 2^26, rate 2^-4 | 0.2500 (55) | 0.197210 (47) t=10 sD=0.0582 sC=0.1081 | float -54664.8, certified -54664.8 (scan slack 2.6e-08) | at 0.197190: best found 327961 (t=10) |  |
+| n = 2^27, rate 2^-1 | 0.7071 (217) | 0.685840 (199) t=4 sD=0.0000 sC=0.0064 | float -23978.4, certified -23978.4 (scan slack 1.3e-08) | at 0.685820: best found 646413 (t=4) |  |
+| n = 2^27, rate 2^-2 | 0.5000 (109) | 0.463540 (98) t=5 sD=0.0165 sC=0.0330 | float -210845.0, certified -210845.0 (scan slack 1.7e-08) | at 0.463520: best found 438704 (t=5) |  |
+| n = 2^27, rate 2^-3 | 0.3536 (73) | 0.307570 (64) t=7 sD=0.0372 sC=0.0724 | float -7081.6, certified -7081.6 (scan slack 8.9e-08) | at 0.307550: best found 690228 (t=7) |  |
+| n = 2^27, rate 2^-4 | 0.2500 (55) | 0.198780 (47) t=10 sD=0.0577 sC=0.1098 | float -23307.1, certified -23307.1 (scan slack 1.1e-07) | at 0.198760: best found 739061 (t=10) |  |
+| n = 2^28, rate 2^-1 | 0.7071 (217) | 0.686810 (200) t=4 sD=0.0000 sC=0.0067 | float -621709.6, certified -621709.6 (scan slack 1.3e-08) | at 0.686790: best found 722631 (t=4) |  |
+| n = 2^28, rate 2^-2 | 0.5000 (109) | 0.464940 (98) t=5 sD=0.0163 sC=0.0333 | float -531322.7, certified -531322.7 (scan slack 1.7e-08) | at 0.464920: best found 769381 (t=5) |  |
+| n = 2^28, rate 2^-3 | 0.3536 (73) | 0.309170 (64) t=7 sD=0.0369 sC=0.0735 | float -620131.6, certified -620131.6 (scan slack 9.0e-08) | at 0.309150: best found 774264 (t=7) |  |
+| n = 2^28, rate 2^-4 | 0.2500 (55) | 0.200370 (47) t=10 sD=0.0572 sC=0.1116 | float -250108.9, certified -250108.9 (scan slack 1.1e-07) | at 0.200350: best found 1270581 (t=10) |  |
+
+== level 0, points in K: the threshold as a function of the list bound M ==
+M = 2^64: 0.68391 (t=4), 0.46213 (t=5), 0.30757 (t=7), 0.20037 (t=10)
+M = 2^48: 0.68391 (t=4), 0.46213 (t=5), 0.30757 (t=7), 0.20037 (t=10)
+M = 2^40: 0.68391 (t=4), 0.46213 (t=5), 0.30757 (t=7), 0.20037 (t=10)
+M = 2^36: 0.68391 (t=4), 0.46213 (t=5), 0.30757 (t=7), 0.20037 (t=10)
+M = 2^32: 0.68391 (t=4), 0.46213 (t=5), 0.30757 (t=7), 0.20037 (t=10)
+
+#### 42_theoremB.py later (run as: later 1 2 3, later 4, later 5)
+Theorem B of note 36, independent implementation. M = 2^64, target 2^-100.
+
+== later levels of the mu = 30, R = 1 ladder: k = 2^(24-4i) + 4, n = 2^(25-i) ==
+| level 1, rate 2^-4, points in K | 0.2500 (55) | 0.194110 (46) t=10 sD=0.0593 sC=0.1049 | float -5563.2, certified -5563.2 (scan slack 2.5e-08) | at 0.194090: best found 90798 (t=10) | 0.1946 (46) t=10 |
+| level 1, rate 2^-4, points in E | 0.2500 (55) | 0.171110 (43) t=12 sD=0.0317 sC=0.0457 | float -26509.6, certified -26509.6 (scan slack 2.6e-08) | at 0.171090: best found 209792 (t=12) | 0.1714 (43) t=12 |
+| level 2, rate 2^-7, points in K | 0.0884 (31) | 0.041850 (24) t=31 sD=0.1227 sC=0.2082 | float -36363.4, certified -36363.4 (scan slack 1.3e-08) | at 0.041830: best found 45720 (t=31) | 0.0425 (24) t=32 |
+| level 2, rate 2^-7, points in E | 0.0884 (31) | 0.034880 (23) t=32 sD=0.0628 sC=0.0955 | float -56629.7, certified -56629.7 (scan slack 7.7e-08) | at 0.034860: best found 139615 (t=32) | 0.0350 (23) t=32 |
+| level 3, rate 2^-10, points in K | 0.0313 (22) | 0.008700 (16) t=80 sD=0.1725 sC=0.2862 | float -21099.7, certified -21099.7 (scan slack 2.3e-07) | at 0.008680: best found 43234 (t=80) | 0.0089 (16) t=80 |
+| level 3, rate 2^-10, points in E | 0.0313 (22) | 0.007160 (16) t=80 sD=0.0883 sC=0.1325 | float -59696.7, certified -59696.7 (scan slack 1.1e-06) | at 0.007140: best found 96139 (t=80) | 0.0073 (16) t=80 |
+| level 4, rate 2^-13, points in K | 0.0111 (17) | 0.001844 (12) t=192 sD=0.2215 sC=0.3428 | float -334.5, certified -334.5 (scan slack 7.3e-10) | at 0.001842: best found 5443 (t=192) | 0.0020 (13) t=160 |
+| level 4, rate 2^-13, points in E | 0.0111 (17) | 0.001501 (12) t=224 sD=0.1114 sC=0.1664 | float -2473.4, certified -2473.4 (scan slack 1.4e-07) | at 0.001499: best found 9936 (t=224) | 0.0016 (12) t=256 |
+| level 5, rate 2^-16, points in K | 0.0043 (14) | 0.000455 (10) t=448 sD=0.2639 sC=0.3868 | float -1271.4, certified -1271.4 (scan slack 1.0e-08) | at 0.000453: best found 2179 (t=448) | 0.0005 (10) t=384 |
+| level 5, rate 2^-16, points in E | 0.0043 (14) | 0.000367 (10) t=512 sD=0.1334 sC=0.1926 | float -4411.1, certified -4411.1 (scan slack 7.2e-08) | at 0.000365: best found 4929 (t=512) | 0.0004 (10) t=256 |
+
+#### 42_lateral (complete 5-laterals, honest lists)
+p=53 samples=20000  Pr[Bad(4,5)]=0.218150 (4363 hits)  observed E[N]=30.25800  Lemma B1 prediction 10! p^-2 corr=3192.95207  ratio observed/predicted=9.476e-03  1/(p-1)=1.923e-02
+p=101 samples=60000  Pr[Bad(4,5)]=0.031083 (1865 hits)  observed E[N]=3.81200  Lemma B1 prediction 10! p^-2 corr=563.61972  ratio observed/predicted=6.763e-03  1/(p-1)=1.000e-02
+p=211 samples=200000  Pr[Bad(4,5)]=0.003225 (645 hits)  observed E[N]=0.38820  Lemma B1 prediction 10! p^-2 corr=101.21440  ratio observed/predicted=3.835e-03  1/(p-1)=4.762e-03
+p=499 samples=300000  Pr[Bad(4,5)]=0.000277 (83 hits)  observed E[N]=0.03320  Lemma B1 prediction 10! p^-2 corr=15.95797  ratio observed/predicted=2.080e-03  1/(p-1)=2.008e-03
+p=499 samples=500000  Pr[Bad(4,5)]=0.000218 (109 hits)  observed E[N]=0.02616  Lemma B1 prediction 10! p^-2 corr=15.95797  ratio observed/predicted=1.639e-03  1/(p-1)=2.008e-03
+p=499 samples=500000  Pr[Bad(4,5)]=0.000278 (139 hits)  observed E[N]=0.03336  Lemma B1 prediction 10! p^-2 corr=15.95797  ratio observed/predicted=2.090e-03  1/(p-1)=2.008e-03
+
+#### 42_toy and 42_toy_check.py (all patterns of three members)
+p=13 n=6 k=2 point tuples (a1=0, a2=1)=7920 exchangeability violations=0
+  210 count vectors, 15625 patterns; the expected number of configurations exceeds Lemma B1 in 0 and Lemma M in 0
+  count vectors with a Lemma B1 prediction in [0.01, 100]: 20, of which 1 have a nonzero expectation
+  observed / predicted on those: min 0.236, median 0.236, max 0.236
+    (n1,n2,n3,n4)=(1, 1, 1, 0) x120: expected configurations 12.0000, Lemma B1 50.7871, Lemma M 50.7871, Pr[E_T] 1.0000
+  by weight W_D + g, summed over patterns: expected configurations | Lemma B1 | Lemma M | sum of Pr[E_T] | patterns
+    weight 0: 28056.0000 | 111579.3284 | 111579.3284 | 1.0000 | 1
+    weight 1: 36072.0000 | 154494.4547 | 154494.4547 | 18.0000 | 18
+    weight 2: 13752.0000 | 73285.8311 | 93092.8125 | 96.0000 | 141
+    weight 3: 1440.0000 | 14728.2682 | 31995.8930 | 120.0000 | 630
+    weight 4: 0.0000 | 1465.0134 | 6914.8633 | 0.0000 | 1770
+    weight 5: 0.0000 | 73.9268 | 979.0797 | 0.0000 | 3258
+    weight 6: 0.0000 | 1.6875 | 97.7600 | 0.0000 | 3989
+    weight 7: 0.0000 | 0.0107 | 9.6343 | 0.0000 | 3258
+    weight 8: 0.0000 | 0.0000 | 1.4732 | 0.0000 | 1770
+    weight 9: 0.0000 | 0.0000 | 0.2339 | 0.0000 | 630
+    weight 10: 0.0000 | 0.0000 | 0.0291 | 0.0000 | 141
+    weight 11: 0.0000 | 0.0000 | 0.0025 | 0.0000 | 18
+    weight 12: 0.0000 | 0.0000 | 0.0001 | 0.0000 | 1
+  tilted sum over all labelings equals ((1+x)^2 + y)^n: checked exactly for two tilts
+p=17 n=6 k=2 point tuples (a1=0, a2=1)=32760 exchangeability violations=0
+  210 count vectors, 15625 patterns; the expected number of configurations exceeds Lemma B1 in 0 and Lemma M in 0
+  count vectors with a Lemma B1 prediction in [0.01, 100]: 15, of which 1 have a nonzero expectation
+  observed / predicted on those: min 0.347, median 0.347, max 0.347
+    (n1,n2,n3,n4)=(1, 1, 1, 0) x120: expected configurations 16.0000, Lemma B1 46.0500, Lemma M 46.0500, Pr[E_T] 1.0000
+  by weight W_D + g, summed over patterns: expected configurations | Lemma B1 | Lemma M | sum of Pr[E_T] | patterns
+    weight 0: 82656.0000 | 226243.6594 | 226243.6594 | 1.0000 | 1
+    weight 1: 82656.0000 | 239552.1099 | 239552.1099 | 18.0000 | 18
+    weight 2: 24480.0000 | 86896.3536 | 110381.8546 | 96.0000 | 141
+    weight 3: 1920.0000 | 13354.5006 | 29011.5012 | 120.0000 | 630
+    weight 4: 0.0000 | 1015.8089 | 4794.6178 | 0.0000 | 1770
+    weight 5: 0.0000 | 39.1983 | 519.1381 | 0.0000 | 3258
+    weight 6: 0.0000 | 0.6842 | 40.3887 | 0.0000 | 3989
+    weight 7: 0.0000 | 0.0033 | 3.3842 | 0.0000 | 3258
+    weight 8: 0.0000 | 0.0000 | 0.4777 | 0.0000 | 1770
+    weight 9: 0.0000 | 0.0000 | 0.0671 | 0.0000 | 630
+    weight 10: 0.0000 | 0.0000 | 0.0077 | 0.0000 | 141
+    weight 11: 0.0000 | 0.0000 | 0.0006 | 0.0000 | 18
+    weight 12: 0.0000 | 0.0000 | 0.0000 | 0.0000 | 1
+  tilted sum over all labelings equals ((1+x)^2 + y)^n: checked exactly for two tilts
+p=11 n=7 k=2 point tuples (a1=0, a2=1)=15120 exchangeability violations=0
+  330 count vectors, 78125 patterns; the expected number of configurations exceeds Lemma B1 in 0 and Lemma M in 0
+  count vectors with a Lemma B1 prediction in [0.01, 100]: 15, of which 0 have a nonzero expectation
+  by weight W_D + g, summed over patterns: expected configurations | Lemma B1 | Lemma M | sum of Pr[E_T] | patterns
+    weight 0: 14280.0000 | 171543.8135 | 171543.8135 | 1.0000 | 1
+    weight 1: 24990.0000 | 327492.7349 | 327492.7349 | 21.0000 | 21
+    weight 2: 13230.0000 | 218328.4899 | 277872.6235 | 133.0000 | 196
+    weight 3: 2100.0000 | 64055.0528 | 138034.1279 | 210.0000 | 1071
+    weight 4: 0.0000 | 9842.0056 | 44535.0751 | 0.0000 | 3801
+    weight 5: 0.0000 | 842.5353 | 9797.2692 | 0.0000 | 9198
+    weight 6: 0.0000 | 39.3138 | 1537.9828 | 0.0000 | 15533
+    weight 7: 0.0000 | 0.8715 | 199.6764 | 0.0000 | 18483
+    weight 8: 0.0000 | 0.0056 | 30.9166 | 0.0000 | 15533
+    weight 9: 0.0000 | 0.0000 | 6.1692 | 0.0000 | 9198
+    weight 10: 0.0000 | 0.0000 | 1.1474 | 0.0000 | 3801
+    weight 11: 0.0000 | 0.0000 | 0.1696 | 0.0000 | 1071
+    weight 12: 0.0000 | 0.0000 | 0.0194 | 0.0000 | 196
+    weight 13: 0.0000 | 0.0000 | 0.0015 | 0.0000 | 21
+    weight 14: 0.0000 | 0.0000 | 0.0001 | 0.0000 | 1
+  tilted sum over all labelings equals ((1+x)^2 + y)^n: checked exactly for two tilts
+p=11 n=6 k=3 point tuples (a1=0, a2=1)=3024 exchangeability violations=0
+  210 count vectors, 15625 patterns; the expected number of configurations exceeds Lemma B1 in 0 and Lemma M in 0
+  count vectors with a Lemma B1 prediction in [0.01, 100]: 17, of which 1 have a nonzero expectation
+  observed / predicted on those: min 0.060, median 0.060, max 0.060
+    (n1,n2,n3,n4)=(2, 2, 2, 0) x90: expected configurations 1.2698, Lemma B1 21.3030, Lemma M 10.6515, Pr[E_T] 0.1270
+  by weight W_D + g, summed over patterns: expected configurations | Lemma B1 | Lemma M | sum of Pr[E_T] | patterns
+    weight 0: 1767570.0000 | 9434909.7424 | 9434909.7424 | 1.0000 | 1
+    weight 1: 2870640.0000 | 20585257.6198 | 15438943.2149 | 18.0000 | 18
+    weight 2: 1978830.0000 | 19181717.3276 | 10994398.9561 | 141.0000 | 141
+    weight 3: 695100.0000 | 9640478.7751 | 4465810.0208 | 570.0000 | 630
+    weight 4: 123750.0000 | 2774215.3160 | 1169616.9102 | 1185.0000 | 1770
+    weight 5: 9000.0000 | 447108.2524 | 222148.1254 | 900.0000 | 3258
+    weight 6: 114.2857 | 36896.8693 | 32955.8065 | 11.4286 | 3989
+    weight 7: 0.0000 | 1254.9429 | 3671.8698 | 0.0000 | 3258
+    weight 8: 0.0000 | 10.5635 | 331.4296 | 0.0000 | 1770
+    weight 9: 0.0000 | 0.0000 | 33.1310 | 0.0000 | 630
+    weight 10: 0.0000 | 0.0000 | 5.3778 | 0.0000 | 141
+    weight 11: 0.0000 | 0.0000 | 0.5762 | 0.0000 | 18
+    weight 12: 0.0000 | 0.0000 | 0.0320 | 0.0000 | 1
+  tilted sum over all labelings equals ((1+x)^2 + y)^n: checked exactly for two tilts
+p=11 n=6 k=2 point tuples (a1=0, a2=1)=3024 exchangeability violations=0
+  210 count vectors, 15625 patterns; the expected number of configurations exceeds Lemma B1 in 0 and Lemma M in 0
+  count vectors with a Lemma B1 prediction in [0.01, 100]: 20, of which 1 have a nonzero expectation
+  observed / predicted on those: min 0.171, median 0.171, max 0.171
+    (n1,n2,n3,n4)=(1, 1, 1, 0) x120: expected configurations 10.0000, Lemma B1 58.5834, Lemma M 58.5834, Pr[E_T] 1.0000
+  by weight W_D + g, summed over patterns: expected configurations | Lemma B1 | Lemma M | sum of Pr[E_T] | patterns
+    weight 0: 14280.0000 | 77974.4607 | 77974.4607 | 1.0000 | 1
+    weight 1: 21420.0000 | 127594.5720 | 127594.5720 | 18.0000 | 18
+    weight 2: 9540.0000 | 71530.2904 | 90862.8013 | 96.0000 | 141
+    weight 3: 1200.0000 | 16989.1763 | 36907.5208 | 120.0000 | 630
+    weight 4: 0.0000 | 1997.1602 | 9426.5962 | 0.0000 | 1770
+    weight 5: 0.0000 | 119.1034 | 1577.3935 | 0.0000 | 3258
+    weight 6: 0.0000 | 3.2131 | 184.3770 | 0.0000 | 3989
+    weight 7: 0.0000 | 0.0240 | 20.2387 | 0.0000 | 3258
+    weight 8: 0.0000 | 0.0000 | 3.2629 | 0.0000 | 1770
+    weight 9: 0.0000 | 0.0000 | 0.5565 | 0.0000 | 630
+    weight 10: 0.0000 | 0.0000 | 0.0731 | 0.0000 | 141
+    weight 11: 0.0000 | 0.0000 | 0.0065 | 0.0000 | 18
+    weight 12: 0.0000 | 0.0000 | 0.0004 | 0.0000 | 1
+  tilted sum over all labelings equals ((1+x)^2 + y)^n: checked exactly for two tilts
+  largest list over all words, by agreement A (exhaustive over words): A, largest list, number of point tuples
+    A=2 largest list 15: 3024
+    A=3 largest list 3: 864
+    A=3 largest list 4: 2160
+    A=4 largest list 1: 3024
+    A=5 largest list 1: 3024
+    A=6 largest list 1: 3024
+
+#### 42_coset_rank.py
+w  m0  t  n  dim=k'+1  weight  (t-1)dim  wpc  rank on coset unions (20 choices of representatives)  rank at random points (20 choices)  full
+2  1  3  6  3  6  6  3  [5]  [6]  6
+2  2  4  8  5  16  15  5  [14]  [15]  15
+2  3  5  10  7  30  28  7  [27]  [28]  28
+2  5  7  14  11  70  66  11  [65]  [66]  66
+4  1  3  12  5  12  10  6  [9]  [10]  10
+4  2  4  16  9  32  27  10  [26]  [27]  27
+4  3  5  20  13  60  52  15  [51]  [52]  52
+8  1  3  24  9  24  18  12  [17]  [18]  18
+8  2  4  32  17  64  51  21  [50]  [51]  51
+In every row: the hypergraph is (k'+1)-weakly-partition-connected (wpc >= dim), the matrix has full column rank at random points and is rank deficient on every coset union tried.
+
+#### 42_lemmas_check.py and 42_lemmaM_t4.py
+Lemma 1: 75 families (n <= 40, M <= 40, t = 3, 4, three weightings), exact maximum over all ordered tuples >= the bound in all; smallest slack 372.00
+Lemma R: 15 families, the member, the value and the class exist at both steps in all
+GF(7), k = 2, n = 5, t = 4: 60 point tuples, 6226560 configurations, 23 labels
+3000 random labelings (23 distinct labels used): violations of Lemma M: 0; 19 have a bound in [0.01, 100] and a nonzero expectation, largest expectation/bound among them 0.129
+alphabet of Theorem C (16 labels), all 15504 multisets of 5 labels: violations: 0; largest expectation/bound where the bound is at most 100: 0.129
+
+#### 42_multiparent.py
+== 1. Theorem C (two parents, caps made deterministic by two pigeonhole steps), list size 2^180, failure 2^-100 ==
+case | Johnson | Theorem B (42_theoremB.py) | Theorem C: tau (queries), t, tilts, log2 bound on the fine grid
+rate 2^-1, points in K | 0.7071 (217) | 0.6839 (198) | 0.6811 (195) t=4 sD=0.0000 sC=0.0326 bound -342421, fine grid -342389
+rate 2^-2, points in K | 0.5000 (109) | 0.4621 (97) | 0.4567 (96) t=5 sD=0.0242 sC=0.0677 bound -703375, fine grid -703375
+rate 2^-3, points in K | 0.3536 (73) | 0.3076 (64) | 0.3007 (63) t=6 sD=0.0484 sC=0.1099 bound -809975, fine grid -809975
+rate 2^-4, points in K | 0.2500 (55) | 0.2004 (47) | 0.1950 (46) t=7 sD=0.0698 sC=0.1483 bound -1559716, fine grid -1559716
+rate 2^-1, points in E | 0.7071 (217) | 0.6648 (184) | 0.6519 (175) t=5 sD=0.0000 sC=0.0149 bound -749377, fine grid -749178
+rate 2^-2, points in E | 0.5000 (109) | 0.4368 (91) | 0.4138 (85) t=6 sD=0.0125 sC=0.0317 bound -219910, fine grid -219347
+rate 2^-3, points in E | 0.3536 (73) | 0.2801 (59) | 0.2644 (57) t=6 sD=0.0257 sC=0.0470 bound -6926380, fine grid -6926380
+rate 2^-4, points in E | 0.2500 (55) | 0.1739 (43) | 0.1761 (44) t=7 sD=0.0366 sC=0.0596 bound -10982257, fine grid -10982257
+
+== 2. heuristics on regular lists (no theorem): smallest tau with a negative exponent ==
+case | note 36 count (table T5 there) | greedy reading of Lemma M
+level 0 rate 2^-1, points in K: 0.6650 (184) | 0.6416 (169)
+level 0 rate 2^-1, points in E: 0.6183 (156) | 0.6039 (149)
+level 0 rate 2^-2, points in K: 0.4046 (83) | 0.3827 (78)
+level 0 rate 2^-2, points in E: 0.3487 (72) | 0.3415 (70)
+level 0 rate 2^-3, points in K: 0.2341 (52) | 0.2210 (50)
+level 0 rate 2^-3, points in E: 0.1900 (46) | 0.1856 (45)
+level 0 rate 2^-4, points in K: 0.1333 (38) | 0.1250 (36)
+level 0 rate 2^-4, points in E: 0.1013 (33) | 0.0986 (33)
+
+== 3. product families with a two-point density profile against the regular one (points in K) ==
+tau = regular threshold + 0.002, where the regular exponent is negative. Exponent = count + label entropy, per coordinate.
+rate 2^-1, note 36 count: tau = 0.6670, regular exponent -0.303 at (t, r) = (6, 3), largest over two-point profiles -0.303
+    no two-point profile does worse than the regular one on the grid
+rate 2^-1, greedy count: tau = 0.6436, regular exponent -0.322 at (t, r) = (6, None), largest over two-point profiles -0.322
+    no two-point profile does worse than the regular one on the grid
+rate 2^-2, note 36 count: tau = 0.4066, regular exponent -0.313 at (t, r) = (9, 3), largest over two-point profiles -0.313
+    no two-point profile does worse than the regular one on the grid
+rate 2^-2, greedy count: tau = 0.3847, regular exponent -0.433 at (t, r) = (10, None), largest over two-point profiles -0.433
+    no two-point profile does worse than the regular one on the grid
+rate 2^-3, note 36 count: tau = 0.2361, regular exponent -0.428 at (t, r) = (15, 5), largest over two-point profiles -0.296
+    defeating profile: a fraction 0.134 of the coordinates at density 0.071, 0.866 at density 0.262 (second moment 0.0599 <= rho);
+    count alone at the regular optimum (t, r) = (15, 5): regular -11.868, this profile -11.486; label entropies 11.441, 11.240
+    smallest tau at which every two-point profile has a negative exponent: 0.2343 (52 queries); regular: 0.2341 (52)
+rate 2^-3, greedy count: tau = 0.2230, regular exponent -0.546 at (t, r) = (16, None), largest over two-point profiles -0.546
+    no two-point profile does worse than the regular one on the grid
+rate 2^-4, note 36 count: tau = 0.1353, regular exponent -0.672 at (t, r) = (24, 7), largest over two-point profiles -0.654
+    defeating profile: a fraction 0.122 of the coordinates at density 0.032, 0.878 at density 0.150 (second moment 0.0198 <= rho);
+    count alone at the regular optimum (t, r) = (24, 7): regular -13.758, this profile -13.541; label entropies 13.086, 12.936
+    smallest tau at which every two-point profile has a negative exponent: 0.1333 (38 queries); regular: 0.1333 (38)
+rate 2^-4, greedy count: tau = 0.1270, regular exponent -0.734 at (t, r) = (24, None), largest over two-point profiles -0.730
+    defeating profile: a fraction 0.346 of the coordinates at density 0.044, 0.654 at density 0.171 (second moment 0.0197 <= rho);
+    count alone at the regular optimum (t, r) = (24, None): regular -13.164, this profile -12.622; label entropies 12.430, 11.948
+    smallest tau at which every two-point profile has a negative exponent: 0.1250 (36 queries); regular: 0.1250 (36)

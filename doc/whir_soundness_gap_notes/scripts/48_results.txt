@@ -1,0 +1,457 @@
+# python3 48_certs.py
+A. closed forms against the defining sums
+   mismatches: 0
+   R(m, 1) = m^2 + 1: True
+   R(m, 2) = (3m^2 - 3m + 10)/2 for m >= 3: True
+   R(m, 3) = 2m^2 - 4m + 14 for m >= 5: True
+   R(18, 5) = 811
+B. B = 1: N(1, Z) Delta = Z^2 + r (Delta - r), r = Z mod Delta; so N(1, mA) <= m^2 A^2/Delta + Delta/4
+   identity checked on small cases: True
+   brute check that no certificate (m, 1) exists at or below the Johnson radius, small n, every Delta <= n, the four largest A with A^2 <= n Delta, m <= 60:
+   violations: 0
+   n = 2^25: floor(sqrt(n Delta)) = 23726569 (0.7071069 n); smallest A with a certificate (m, 1), m <= 2000: 23726573 = floor(sqrt(n Delta)) + 4 (m = 1848)
+   n = 2^26: floor(sqrt(n Delta)) = 47453136 (0.7071068 n); smallest A with a certificate (m, 1), m <= 2000: 47453142 = floor(sqrt(n Delta)) + 6 (m = 1918)
+   n = 2^27: floor(sqrt(n Delta)) = 94906269 (0.7071068 n); smallest A with a certificate (m, 1), m <= 2000: 94906280 = floor(sqrt(n Delta)) + 11 (m = 1959)
+   n = 2^28: floor(sqrt(n Delta)) = 189812534 (0.7071068 n); smallest A with a certificate (m, 1), m <= 2000: 189812556 = floor(sqrt(n Delta)) + 22 (m = 1981)
+C. smallest agreement with a certificate (m, B), m <= 400, Delta = n/2 + 5 (exact integers)
+   Johnson: sqrt(n Delta)/n = 0.7071068 (+ 5e-6 for the slack 5)
+   n = 2^25: B=1: 0.707109 (m=397); B=2: 0.704434 (m=21); B=3: 0.701755 (m=19); B=4: 0.699830 (m=21); B=5: 0.698413 (m=24); B=6: 0.697355 (m=27); B=8: 0.695856 (m=34); B=11: 0.694474 (m=43)
+   n = 2^26: B=1: 0.707109 (m=397); B=2: 0.704434 (m=21); B=3: 0.701754 (m=19); B=4: 0.699830 (m=21); B=5: 0.698413 (m=24); B=6: 0.697355 (m=27); B=8: 0.695856 (m=34); B=11: 0.694474 (m=43)
+   n = 2^27: B=1: 0.707109 (m=397); B=2: 0.704434 (m=21); B=3: 0.701754 (m=19); B=4: 0.699830 (m=21); B=5: 0.698413 (m=24); B=6: 0.697355 (m=27); B=8: 0.695856 (m=34); B=11: 0.694474 (m=43)
+   n = 2^28: B=1: 0.707109 (m=397); B=2: 0.704434 (m=21); B=3: 0.701754 (m=19); B=4: 0.699830 (m=21); B=5: 0.698413 (m=24); B=6: 0.697355 (m=27); B=8: 0.695856 (m=34); B=11: 0.694474 (m=43)
+   same, per B, the range of m that gives a certificate at selected agreements (n = 2^25):
+     B = 2, a = 0.704: none
+     B = 2, a = 0.7045: m in [18, 23] (5 values), B_jet at smallest m = 25
+     B = 2, a = 0.7046: m in [16, 26] (10 values), B_jet at smallest m = 22
+     B = 2, a = 0.7047: m in [16, 28] (13 values), B_jet at smallest m = 22
+     B = 2, a = 0.705: m in [14, 35] (22 values), B_jet at smallest m = 19
+     B = 2, a = 0.7055: m in [13, 52] (40 values), B_jet at smallest m = 18
+     B = 2, a = 0.706: m in [12, 82] (71 values), B_jet at smallest m = 16
+     B = 2, a = 0.7065: m in [11, 160] (150 values), B_jet at smallest m = 15
+     B = 2, a = 0.707: m in [11, 399] (389 values), B_jet at smallest m = 15
+     B = 2, a = 0.7015: none
+     B = 2, a = 0.7018: none
+     B = 2, a = 0.702: none
+     B = 2, a = 0.703: none
+     B = 3, a = 0.704: m in [13, 55] (43 values), B_jet at smallest m = 18
+     B = 3, a = 0.7045: m in [12, 68] (57 values), B_jet at smallest m = 16
+     B = 3, a = 0.7046: m in [12, 71] (60 values), B_jet at smallest m = 16
+     B = 3, a = 0.7047: m in [12, 75] (64 values), B_jet at smallest m = 16
+     B = 3, a = 0.705: m in [12, 87] (76 values), B_jet at smallest m = 16
+     B = 3, a = 0.7055: m in [11, 118] (108 values), B_jet at smallest m = 15
+     B = 3, a = 0.706: m in [11, 177] (167 values), B_jet at smallest m = 15
+     B = 3, a = 0.7065: m in [11, 331] (321 values), B_jet at smallest m = 15
+     B = 3, a = 0.707: m in [11, 399] (389 values), B_jet at smallest m = 15
+     B = 3, a = 0.7015: none
+     B = 3, a = 0.7018: m in [19, 21] (2 values), B_jet at smallest m = 26
+     B = 3, a = 0.702: m in [17, 24] (8 values), B_jet at smallest m = 23
+     B = 3, a = 0.703: m in [14, 37] (24 values), B_jet at smallest m = 19
+D. explicit certificates, Delta = n/2 + 5, A = ceil(a n)
+   B = 2, a = 0.705, n = 2^25: A = 23655875, (m, B) = (14, 2), N = 9331149501 > n R = 9328132096 (R = 278), margin 3017405 = 0.0899 n, B_jet = 19, queries 215
+   B = 2, a = 0.705, n = 2^25: A = 23655875, (m, B) = (23, 2), N = 25673831157 > n R = 25635586048 (R = 764), margin 38245109 = 1.1398 n, B_jet = 32, queries 215
+   B = 2, a = 0.705, n = 2^26: A = 47311750, (m, B) = (14, 2), N = 18662301847 > n R = 18656264192 (R = 278), margin 6037655 = 0.0900 n, B_jet = 19, queries 215
+   B = 2, a = 0.705, n = 2^26: A = 47311750, (m, B) = (23, 2), N = 51347670229 > n R = 51271172096 (R = 764), margin 76498133 = 1.1399 n, B_jet = 32, queries 215
+   B = 2, a = 0.705, n = 2^27: A = 94623499, (m, B) = (14, 2), N = 37324605741 > n R = 37312528384 (R = 278), margin 12077357 = 0.0900 n, B_jet = 19, queries 215
+   B = 2, a = 0.705, n = 2^27: A = 94623499, (m, B) = (23, 2), N = 102695346165 > n R = 102542344192 (R = 764), margin 153001973 = 1.1400 n, B_jet = 32, queries 215
+   B = 2, a = 0.705, n = 2^28: A = 189246997, (m, B) = (14, 2), N = 74649213529 > n R = 74625056768 (R = 278), margin 24156761 = 0.0900 n, B_jet = 19, queries 215
+   B = 2, a = 0.705, n = 2^28: A = 189246997, (m, B) = (23, 2), N = 205390698037 > n R = 205084688384 (R = 764), margin 306009653 = 1.1400 n, B_jet = 32, queries 215
+   B = 2, a = 0.7055, n = 2^25: A = 23672652, (m, B) = (13, 2), N = 8028264552 > n R = 8019509248 (R = 239), margin 8755304 = 0.2609 n, B_jet = 18, queries 215
+   B = 2, a = 0.7055, n = 2^25: A = 23672652, (m, B) = (33, 2), N = 53413506726 > n R = 53317992448 (R = 1589), margin 95514278 = 2.8465 n, B_jet = 46, queries 215
+   B = 2, a = 0.7055, n = 2^26: A = 47345304, (m, B) = (13, 2), N = 16056531664 > n R = 16039018496 (R = 239), margin 17513168 = 0.2610 n, B_jet = 18, queries 215
+   B = 2, a = 0.7055, n = 2^26: A = 47345304, (m, B) = (33, 2), N = 106827029662 > n R = 106635984896 (R = 1589), margin 191044766 = 2.8468 n, B_jet = 46, queries 215
+   B = 2, a = 0.7055, n = 2^27: A = 94690608, (m, B) = (13, 2), N = 32113065888 > n R = 32078036992 (R = 239), margin 35028896 = 0.2610 n, B_jet = 18, queries 215
+   B = 2, a = 0.7055, n = 2^27: A = 94690608, (m, B) = (33, 2), N = 213654075534 > n R = 213271969792 (R = 1589), margin 382105742 = 2.8469 n, B_jet = 46, queries 215
+   B = 2, a = 0.7055, n = 2^28: A = 189381215, (m, B) = (13, 2), N = 64226133634 > n R = 64156073984 (R = 239), margin 70059650 = 0.2610 n, B_jet = 18, queries 215
+   B = 2, a = 0.7055, n = 2^28: A = 189381215, (m, B) = (33, 2), N = 427308162724 > n R = 426543939584 (R = 1589), margin 764223140 = 2.8470 n, B_jet = 46, queries 215
+   B = 2, a = 0.706, n = 2^25: A = 23689429, (m, B) = (12, 2), N = 6816782157 > n R = 6811549696 (R = 203), margin 5232461 = 0.1559 n, B_jet = 16, queries 216
+   B = 2, a = 0.706, n = 2^25: A = 23689429, (m, B) = (47, 2), N = 109187296602 > n R = 108984795136 (R = 3248), margin 202501466 = 6.0350 n, B_jet = 66, queries 216
+   B = 2, a = 0.706, n = 2^26: A = 47378858, (m, B) = (12, 2), N = 13633566349 > n R = 13623099392 (R = 203), margin 10466957 = 0.1560 n, B_jet = 16, queries 216
+   B = 2, a = 0.706, n = 2^26: A = 47378858, (m, B) = (47, 2), N = 218374626364 > n R = 217969590272 (R = 3248), margin 405036092 = 6.0355 n, B_jet = 66, queries 216
+   B = 2, a = 0.706, n = 2^27: A = 94757716, (m, B) = (12, 2), N = 27267134733 > n R = 27246198784 (R = 203), margin 20935949 = 0.1560 n, B_jet = 16, queries 216
+   B = 2, a = 0.706, n = 2^27: A = 94757716, (m, B) = (47, 2), N = 436749285888 > n R = 435939180544 (R = 3248), margin 810105344 = 6.0358 n, B_jet = 66, queries 216
+   B = 2, a = 0.706, n = 2^28: A = 189515432, (m, B) = (12, 2), N = 54534271501 > n R = 54492397568 (R = 203), margin 41873933 = 0.1560 n, B_jet = 16, queries 216
+   B = 2, a = 0.706, n = 2^28: A = 189515432, (m, B) = (47, 2), N = 873498604936 > n R = 871878361088 (R = 3248), margin 1620243848 = 6.0359 n, B_jet = 66, queries 216
+   B = 2, a = 0.7065, n = 2^25: A = 23706207, (m, B) = (11, 2), N = 5711550126 > n R = 5704253440 (R = 170), margin 7296686 = 0.2175 n, B_jet = 15, queries 216
+   B = 2, a = 0.7065, n = 2^25: A = 23706207, (m, B) = (86, 2), N = 368579142744 > n R = 368092119040 (R = 10970), margin 487023704 = 14.5144 n, B_jet = 121, queries 216
+   B = 2, a = 0.7065, n = 2^26: A = 47412413, (m, B) = (11, 2), N = 11423101552 > n R = 11408506880 (R = 170), margin 14594672 = 0.2175 n, B_jet = 15, queries 216
+   B = 2, a = 0.7065, n = 2^26: A = 47412413, (m, B) = (86, 2), N = 737158364980 > n R = 736184238080 (R = 10970), margin 974126900 = 14.5156 n, B_jet = 121, queries 216
+   B = 2, a = 0.7065, n = 2^27: A = 94824825, (m, B) = (11, 2), N = 22846204404 > n R = 22817013760 (R = 170), margin 29190644 = 0.2175 n, B_jet = 15, queries 216
+   B = 2, a = 0.7065, n = 2^27: A = 94824825, (m, B) = (86, 2), N = 1474316809452 > n R = 1472368476160 (R = 10970), margin 1948333292 = 14.5162 n, B_jet = 121, queries 216
+   B = 2, a = 0.7065, n = 2^28: A = 189649650, (m, B) = (11, 2), N = 45692410603 > n R = 45634027520 (R = 170), margin 58383083 = 0.2175 n, B_jet = 15, queries 216
+   B = 2, a = 0.7065, n = 2^28: A = 189649650, (m, B) = (86, 2), N = 2948633729614 > n R = 2944736952320 (R = 10970), margin 3896777294 = 14.5166 n, B_jet = 121, queries 216
+   B = 3, a = 0.702, n = 2^25: A = 23555212, (m, B) = (17, 3), N = 17584531260 > n R = 17582522368 (R = 524), margin 2008892 = 0.0599 n, B_jet = 23, queries 212
+   B = 3, a = 0.702, n = 2^25: A = 23555212, (m, B) = (21, 3), N = 27265921872 > n R = 27246198784 (R = 812), margin 19723088 = 0.5878 n, B_jet = 29, queries 212
+   B = 3, a = 0.702, n = 2^26: A = 47110423, (m, B) = (17, 3), N = 35169066490 > n R = 35165044736 (R = 524), margin 4021754 = 0.0599 n, B_jet = 23, queries 212
+   B = 3, a = 0.702, n = 2^26: A = 47110423, (m, B) = (21, 3), N = 54531850030 > n R = 54492397568 (R = 812), margin 39452462 = 0.5879 n, B_jet = 29, queries 212
+   B = 3, a = 0.702, n = 2^27: A = 94220846, (m, B) = (17, 3), N = 70338138480 > n R = 70330089472 (R = 524), margin 8049008 = 0.0600 n, B_jet = 23, queries 212
+   B = 3, a = 0.702, n = 2^27: A = 94220846, (m, B) = (21, 3), N = 109063708740 > n R = 108984795136 (R = 812), margin 78913604 = 0.5880 n, B_jet = 29, queries 212
+   B = 3, a = 0.702, n = 2^28: A = 188441691, (m, B) = (17, 3), N = 140676280930 > n R = 140660178944 (R = 524), margin 16101986 = 0.0600 n, B_jet = 23, queries 212
+   B = 3, a = 0.702, n = 2^28: A = 188441691, (m, B) = (21, 3), N = 218127423766 > n R = 217969590272 (R = 812), margin 157833494 = 0.5880 n, B_jet = 29, queries 212
+   B = 3, a = 0.703, n = 2^25: A = 23588766, (m, B) = (14, 3), N = 11754382500 > n R = 11744051200 (R = 350), margin 10331300 = 0.3079 n, B_jet = 19, queries 213
+   B = 3, a = 0.703, n = 2^25: A = 23588766, (m, B) = (26, 3), N = 42462316212 > n R = 42345693184 (R = 1262), margin 116623028 = 3.4756 n, B_jet = 36, queries 213
+   B = 3, a = 0.703, n = 2^26: A = 47177532, (m, B) = (14, 3), N = 23508768780 > n R = 23488102400 (R = 350), margin 20666380 = 0.3080 n, B_jet = 19, queries 213
+   B = 3, a = 0.703, n = 2^26: A = 47177532, (m, B) = (26, 3), N = 84924645724 > n R = 84691386368 (R = 1262), margin 233259356 = 3.4758 n, B_jet = 36, queries 213
+   B = 3, a = 0.703, n = 2^27: A = 94355063, (m, B) = (14, 3), N = 47017540304 > n R = 46976204800 (R = 350), margin 41335504 = 0.3080 n, B_jet = 19, queries 213
+   B = 3, a = 0.703, n = 2^27: A = 94355063, (m, B) = (26, 3), N = 169849301056 > n R = 169382772736 (R = 1262), margin 466528320 = 3.4759 n, B_jet = 36, queries 213
+   B = 3, a = 0.703, n = 2^28: A = 188710126, (m, B) = (14, 3), N = 94035084388 > n R = 93952409600 (R = 350), margin 82674788 = 0.3080 n, B_jet = 19, queries 213
+   B = 3, a = 0.703, n = 2^28: A = 188710126, (m, B) = (26, 3), N = 339698615412 > n R = 338765545472 (R = 1262), margin 933069940 = 3.4760 n, B_jet = 36, queries 213
+   B = 3, a = 0.705, n = 2^25: A = 23655875, (m, B) = (12, 3), N = 8540271660 > n R = 8522825728 (R = 254), margin 17445932 = 0.5199 n, B_jet = 16, queries 215
+   B = 3, a = 0.705, n = 2^25: A = 23655875, (m, B) = (50, 3), N = 162118194644 > n R = 161531035648 (R = 4814), margin 587158996 = 17.4987 n, B_jet = 70, queries 215
+   B = 3, a = 0.705, n = 2^26: A = 47311750, (m, B) = (12, 3), N = 17080546020 > n R = 17045651456 (R = 254), margin 34894564 = 0.5200 n, B_jet = 16, queries 215
+   B = 3, a = 0.705, n = 2^26: A = 47311750, (m, B) = (50, 3), N = 324236438968 > n R = 323062071296 (R = 4814), margin 1174367672 = 17.4994 n, B_jet = 70, queries 215
+   B = 3, a = 0.705, n = 2^27: A = 94623499, (m, B) = (12, 3), N = 34161093996 > n R = 34091302912 (R = 254), margin 69791084 = 0.5200 n, B_jet = 16, queries 215
+   B = 3, a = 0.705, n = 2^27: A = 94623499, (m, B) = (50, 3), N = 648472913716 > n R = 646124142592 (R = 4814), margin 2348771124 = 17.4997 n, B_jet = 70, queries 215
+   B = 3, a = 0.705, n = 2^28: A = 189246997, (m, B) = (12, 3), N = 68322189948 > n R = 68182605824 (R = 254), margin 139584124 = 0.5200 n, B_jet = 16, queries 215
+   B = 3, a = 0.705, n = 2^28: A = 189246997, (m, B) = (50, 3), N = 1296945863212 > n R = 1292248285184 (R = 4814), margin 4697578028 = 17.4998 n, B_jet = 70, queries 215
+E. asymptotic thresholds (n -> infinity, Delta = n/2): certificate (m, B) iff nu(B, m, a) > R(m, B),
+   nu = lim N(B, m a n)/n, evaluated as N(B, m A, D)/n at n = 2^60, Delta = n/2; a^(B) = inf over m of the root
+   B = 1: a^(B) = 0.707145 at m = 91; real-m formula without the fractional term 0.707107; queries just above the threshold 217
+   B = 2: a^(B) = 0.704433 at m = 21; real-m formula without the fractional term 0.704530; queries just above the threshold 214
+   B = 3: a^(B) = 0.701754 at m = 19; real-m formula without the fractional term 0.701849; queries just above the threshold 212
+   B = 4: a^(B) = 0.699830 at m = 21; real-m formula without the fractional term 0.699906; queries just above the threshold 210
+   B = 5: a^(B) = 0.698413 at m = 24; real-m formula without the fractional term 0.698483; queries just above the threshold 209
+   B = 6: a^(B) = 0.697354 at m = 27; real-m formula without the fractional term 0.697406; queries just above the threshold 208
+   B = 8: a^(B) = 0.695856 at m = 34; real-m formula without the fractional term 0.695892; queries just above the threshold 207
+   B = 11: a^(B) = 0.694474 at m = 43; real-m formula without the fractional term 0.694495; queries just above the threshold 206
+   B = 20: a^(B) = 0.692593 at m = 72; real-m formula without the fractional term 0.692600; queries just above the threshold 204
+   B = 50: a^(B) = 0.691034 at m = 169; real-m formula without the fractional term 0.691035; queries just above the threshold 203
+   Johnson sqrt(1/2) = 0.707107 (217 queries), a_1 = 0.689898 (B -> infinity)
+
+# python3 48_fibre.py
+violations of Lemma F: 0 (p in 2, 3, 5; m = 1..9; b = 0..4)
+monomials of the predicted support of the LEADING coefficient that never occur: 0 (0 means the support is exact)
+
+# python3 48_window.py A
+A. Theorem 8'' ingredients (B = 2 certificates), Delta = n/2 + 5
+   a = 0.705, n = 2^25: A = 23655875, certificates (m, 2) for m in [14, 35], m0 = 14, B_jet = 19, W_max = m0 A - 1
+      b = 1: case II with total contact <= 2n cut by (51, 1), case I (every profile) cut by (51, 1)
+      b = 2: case II with total contact <= 2n cut by (54, 2), case I (every profile) cut by (54, 2)
+      per unit of degree floor((54 A - 1)/Delta) = 76; C = max_t (B_jet - t)^2 + 76 t = 1444; queries 215
+   a = 0.705, n = 2^26: A = 47311750, certificates (m, 2) for m in [14, 35], m0 = 14, B_jet = 19, W_max = m0 A - 1
+      b = 1: case II with total contact <= 2n cut by (51, 1), case I (every profile) cut by (51, 1)
+      b = 2: case II with total contact <= 2n cut by (54, 2), case I (every profile) cut by (54, 2)
+      per unit of degree floor((54 A - 1)/Delta) = 76; C = max_t (B_jet - t)^2 + 76 t = 1444; queries 215
+   a = 0.705, n = 2^27: A = 94623499, certificates (m, 2) for m in [14, 35], m0 = 14, B_jet = 19, W_max = m0 A - 1
+      b = 1: case II with total contact <= 2n cut by (51, 1), case I (every profile) cut by (51, 1)
+      b = 2: case II with total contact <= 2n cut by (54, 2), case I (every profile) cut by (54, 2)
+      per unit of degree floor((54 A - 1)/Delta) = 76; C = max_t (B_jet - t)^2 + 76 t = 1444; queries 215
+   a = 0.705, n = 2^28: A = 189246997, certificates (m, 2) for m in [14, 35], m0 = 14, B_jet = 19, W_max = m0 A - 1
+      b = 1: case II with total contact <= 2n cut by (51, 1), case I (every profile) cut by (51, 1)
+      b = 2: case II with total contact <= 2n cut by (54, 2), case I (every profile) cut by (54, 2)
+      per unit of degree floor((54 A - 1)/Delta) = 76; C = max_t (B_jet - t)^2 + 76 t = 1444; queries 215
+   a = 0.7065, n = 2^25: A = 23706207, certificates (m, 2) for m in [11, 160], m0 = 11, B_jet = 15, W_max = m0 A - 1
+      b = 1: case II with total contact <= 2n cut by (41, 1), case I (every profile) cut by (41, 1)
+      b = 2: case II with total contact <= 2n cut by (43, 2), case I (every profile) cut by (43, 2)
+      per unit of degree floor((43 A - 1)/Delta) = 60; C = max_t (B_jet - t)^2 + 60 t = 900; queries 216
+   a = 0.7065, n = 2^26: A = 47412413, certificates (m, 2) for m in [11, 160], m0 = 11, B_jet = 15, W_max = m0 A - 1
+      b = 1: case II with total contact <= 2n cut by (41, 1), case I (every profile) cut by (41, 1)
+      b = 2: case II with total contact <= 2n cut by (43, 2), case I (every profile) cut by (43, 2)
+      per unit of degree floor((43 A - 1)/Delta) = 60; C = max_t (B_jet - t)^2 + 60 t = 900; queries 216
+   a = 0.7065, n = 2^27: A = 94824825, certificates (m, 2) for m in [11, 160], m0 = 11, B_jet = 15, W_max = m0 A - 1
+      b = 1: case II with total contact <= 2n cut by (41, 1), case I (every profile) cut by (41, 1)
+      b = 2: case II with total contact <= 2n cut by (43, 2), case I (every profile) cut by (43, 2)
+      per unit of degree floor((43 A - 1)/Delta) = 60; C = max_t (B_jet - t)^2 + 60 t = 900; queries 216
+   a = 0.7065, n = 2^28: A = 189649650, certificates (m, 2) for m in [11, 160], m0 = 11, B_jet = 15, W_max = m0 A - 1
+      b = 1: case II with total contact <= 2n cut by (41, 1), case I (every profile) cut by (41, 1)
+      b = 2: case II with total contact <= 2n cut by (43, 2), case I (every profile) cut by (43, 2)
+      per unit of degree floor((43 A - 1)/Delta) = 60; C = max_t (B_jet - t)^2 + 60 t = 900; queries 216
+
+# python3 48_window.py B C D a=0.705
+B. b = 2, case II, uniform profiles: contact 2j on x n lines, none elsewhere; a = 0.705, n = 2^25, m0 = 14, W_max = 9.8700 n, B_jet = 19
+   columns: old lower end (Lemma L, Corollary N, Lemma M) | cut of Lemma C (exact, family of note 48) | per K: lower end with Lemma F | status
+   j = 2, x = 0.9: old tools: open [2.2100, 2.2345); first cut at 2.2345 n by (960, 82); with Lemma F: CLOSED for every K
+   j = 2, x = 0.95: old tools: open [2.3100, 2.3748); first cut at 2.3748 n by (960, 82); with Lemma F: CLOSED for every K
+   j = 2, x = 1.0: old tools: open [2.4100, 2.5151); first cut at 2.5151 n by (960, 90); with Lemma F: CLOSED for every K
+   j = 3, x = 0.9: old tools: open [3.4200, 3.4920); first cut at 3.4920 n by (240, 26); with Lemma F: CLOSED for every K
+   j = 3, x = 0.95: old tools: open [3.6200, 3.7020); first cut at 3.7020 n by (960, 106); with Lemma F: CLOSED for every K
+   j = 3, x = 1.0: old tools: open [3.8200, 3.9118); first cut at 3.9118 n by (960, 114); with Lemma F: CLOSED for every K
+   j = 4, x = 0.75: old tools: open [3.7300, 3.7848); first cut at 3.7848 n by (30, 4); with Lemma F: CLOSED for every K
+   j = 4, x = 0.9: old tools: open [4.6300, 4.7084); first cut at 4.7084 n by (40, 6); with Lemma F: CLOSED for every K
+   j = 4, x = 0.95: old tools: open [4.9300, 5.0146); first cut at 5.0146 n by (60, 11); with Lemma F: K=4: OPEN [5.0000, 5.0146)
+   j = 4, x = 1.0: old tools: open [5.2300, 5.2981); first cut at 5.2981 n by (960, 194); with Lemma F: K=4: OPEN [5.2300, 5.2981)
+   j = 5, x = 0.5: old tools: open [2.6400, 2.8000); first cut at 2.8000 n by (20, 2); with Lemma F: CLOSED for every K
+   j = 5, x = 0.75: old tools: open [4.6400, 4.7718); first cut at 4.7718 n by (40, 6); with Lemma F: CLOSED for every K
+   j = 5, x = 0.9: old tools: open [5.8400, 5.9269); first cut at 5.9269 n by (60, 12); with Lemma F: CLOSED for every K
+   j = 5, x = 0.95: old tools: open [6.2400, 6.2968); first cut at 6.2968 n by (80, 20); with Lemma F: K=5: OPEN [6.2400, 6.2968)
+   j = 6, x = 0.5: old tools: open [3.0500, 3.3091); first cut at 3.3091 n by (24, 3); with Lemma F: CLOSED for every K
+   j = 6, x = 0.75: old tools: open [5.5500, 5.7379); first cut at 5.7379 n by (40, 4); with Lemma F: CLOSED for every K
+   j = 6, x = 0.9: old tools: open [7.0500, 7.1385); first cut at 7.1385 n by (60, 10); with Lemma F: K=6: OPEN [7.0500, 7.1385)
+   j = 6, x = 0.95: old tools: open [7.5500, 7.5558); first cut at 7.5558 n by (960, 378); with Lemma F: K=6: OPEN [7.5500, 7.5558)
+   j = 7, x = 0.5: old tools: open [3.5000, 3.8059); first cut at 3.8059 n by (24, 2); with Lemma F: CLOSED for every K
+   j = 7, x = 0.75: old tools: open [6.4600, 6.7471); first cut at 6.7471 n by (60, 11); with Lemma F: CLOSED for every K
+   j = 7, x = 0.9: old tools: open [8.2600, 8.3471); first cut at 8.3471 n by (120, 32); with Lemma F: K=7: OPEN [8.2600, 8.3471)
+   j = 8, x = 0.5: old tools: open [4.0000, 4.3903); first cut at 4.3903 n by (30, 3); with Lemma F: CLOSED for every K
+   j = 8, x = 0.75: old tools: open [7.3700, 7.7051); first cut at 7.7051 n by (60, 9); with Lemma F: CLOSED for every K
+   j = 8, x = 0.9: old tools: open [9.4700, 9.5388); first cut at 9.5388 n by (960, 370); with Lemma F: CLOSED for every K
+   (rows not printed: closed already by the old tools)
+C. b = 2, case II, two contact orders 2j1 < 2j2 on x1 n and x2 n lines (step 0.05), none elsewhere; a = 0.705, n = 2^25
+   (j1, j2) = (1, 4): 1 open cells, K in [4], largest width 0.0910 n, min x1 + x2 = 1.00, cells with the smallest x2: [(0.05, 0.95)]
+   (j1, j2) = (1, 5): 3 open cells, K in [5], largest width 0.0886 n, min x1 + x2 = 0.95, cells with the smallest x2: [(0.05, 0.9), (0.1, 0.9), (0.05, 0.95)]
+   (j1, j2) = (1, 6): 3 open cells, K in [6], largest width 0.1403 n, min x1 + x2 = 0.95, cells with the smallest x2: [(0.05, 0.9), (0.1, 0.9), (0.05, 0.95)]
+   (j1, j2) = (1, 7): 3 open cells, K in [7], largest width 0.1237 n, min x1 + x2 = 0.95, cells with the smallest x2: [(0.15, 0.85), (0.05, 0.9), (0.1, 0.9)]
+   (j1, j2) = (2, 4): 2 open cells, K in [4], largest width 0.1303 n, min x1 + x2 = 1.00, cells with the smallest x2: [(0.1, 0.9), (0.05, 0.95)]
+   (j1, j2) = (2, 5): 5 open cells, K in [4, 5], largest width 0.1946 n, min x1 + x2 = 0.95, cells with the smallest x2: [(0.2, 0.8), (0.15, 0.85), (0.05, 0.9)]
+   (j1, j2) = (2, 6): 6 open cells, K in [5, 6], largest width 0.1740 n, min x1 + x2 = 0.95, cells with the smallest x2: [(0.2, 0.8), (0.1, 0.85), (0.15, 0.85)]
+   (j1, j2) = (2, 7): 6 open cells, K in [5, 6, 7], largest width 0.2850 n, min x1 + x2 = 0.95, cells with the smallest x2: [(0.25, 0.75), (0.2, 0.8), (0.1, 0.85)]
+   (j1, j2) = (3, 4): 12 open cells, K in [3, 4], largest width 0.1304 n, min x1 + x2 = 1.00, cells with the smallest x2: [(0.75, 0.25), (0.7, 0.3), (0.65, 0.35)]
+   (j1, j2) = (3, 5): 19 open cells, K in [3, 4, 5], largest width 0.1951 n, min x1 + x2 = 0.95, cells with the smallest x2: [(0.85, 0.15), (0.8, 0.2), (0.75, 0.25)]
+   (j1, j2) = (3, 6): 12 open cells, K in [4, 5, 6], largest width 0.2084 n, min x1 + x2 = 0.95, cells with the smallest x2: [(0.45, 0.55), (0.4, 0.6), (0.35, 0.65)]
+   (j1, j2) = (3, 7): 11 open cells, K in [5, 6, 7], largest width 0.2257 n, min x1 + x2 = 0.90, cells with the smallest x2: [(0.35, 0.65), (0.25, 0.7), (0.3, 0.7)]
+   (j1, j2) = (4, 5): 34 open cells, K in [4, 5], largest width 0.1957 n, min x1 + x2 = 0.95, cells with the smallest x2: [(0.9, 0.05), (0.95, 0.05), (0.85, 0.1)]
+   (j1, j2) = (4, 6): 37 open cells, K in [4, 5, 6], largest width 0.2609 n, min x1 + x2 = 0.90, cells with the smallest x2: [(0.9, 0.05), (0.95, 0.05), (0.85, 0.1)]
+   (j1, j2) = (4, 7): 26 open cells, K in [4, 5, 6, 7], largest width 0.2876 n, min x1 + x2 = 0.90, cells with the smallest x2: [(0.9, 0.05), (0.95, 0.05), (0.9, 0.1)]
+   (j1, j2) = (5, 6): 44 open cells, K in [5, 6], largest width 0.2438 n, min x1 + x2 = 0.90, cells with the smallest x2: [(0.9, 0.05), (0.95, 0.05), (0.85, 0.1)]
+   (j1, j2) = (5, 7): 47 open cells, K in [5, 6, 7], largest width 0.2952 n, min x1 + x2 = 0.90, cells with the smallest x2: [(0.9, 0.05), (0.95, 0.05), (0.85, 0.1)]
+   (j1, j2) = (6, 7): 46 open cells, K in [6, 7], largest width 0.2964 n, min x1 + x2 = 0.90, cells with the smallest x2: [(0.85, 0.05), (0.9, 0.05), (0.8, 0.1)]
+   total open (cell, K) pairs: 345
+   over all open pairs: min fraction of contained lines 0.90, min mean contact order 6.50, min K 3, largest width 0.2964 n
+   pairs with K = 3: 18, largest width 0.1762 n
+D. b = 1, case II; a = 0.705, n = 2^25, W_max = 9.8700 n; lower ends: F (Lemma F), N (Corollary N), M, B (Lemma B of note 40); T = Theorem 4 of note 45 (non-degenerate quintics)
+   uniform profiles, contact 2j on x n lines (rows with an open segment only):
+     j = 2, x = 1.0, K = 2: first cut at 2.6498 n (960, 193); open [2.6150, 2.6498); non-degenerate: closed
+   contact 4 on x4 n lines, contact 2 on x2 n lines, none elsewhere (step 0.025):
+     degenerate or not (tools F, N, M, B): 6 open (cell, K) pairs, K in [2]; min x4 = 0.900, min x4 + x2 = 0.975, largest total width 0.0348 n
+       (x4, x2) = (1.000, 0.000), K = 2: [2.6150, 2.6498)
+       (x4, x2) = (0.975, 0.025), K = 2: [2.5833, 2.6154)
+       (x4, x2) = (0.950, 0.050), K = 2: [2.5556, 2.5810)
+       (x4, x2) = (0.925, 0.075), K = 2: [2.5278, 2.5465)
+     non-degenerate (also T): no open cell
+   contact 6 on x6 n, contact 4 on x4 n, contact 2 on x2 n lines (step 0.05, x6 > 0):
+     open (cell, K) pairs: 1; also open for non-degenerate potentials: 0
+       (x6, x4, x2) = (0.05, 0.95, 0.0), K = 2: [2.7111, 2.7182)
+
+# python3 48_window.py B C D a=0.7065
+B. b = 2, case II, uniform profiles: contact 2j on x n lines, none elsewhere; a = 0.7065, n = 2^25, m0 = 11, W_max = 7.7715 n, B_jet = 15
+   columns: old lower end (Lemma L, Corollary N, Lemma M) | cut of Lemma C (exact, family of note 48) | per K: lower end with Lemma F | status
+   j = 2, x = 0.95: old tools: open [2.3130, 2.3262); first cut at 2.3262 n by (960, 50); with Lemma F: CLOSED for every K
+   j = 2, x = 1.0: old tools: open [2.4130, 2.4669); first cut at 2.4669 n by (960, 50); with Lemma F: CLOSED for every K
+   j = 3, x = 0.9: old tools: open [3.4260, 3.4472); first cut at 3.4472 n by (120, 8); with Lemma F: CLOSED for every K
+   j = 3, x = 0.95: old tools: open [3.6260, 3.6594); first cut at 3.6594 n by (960, 58); with Lemma F: CLOSED for every K
+   j = 3, x = 1.0: old tools: open [3.8260, 3.8704); first cut at 3.8704 n by (960, 58); with Lemma F: CLOSED for every K
+   j = 4, x = 0.9: old tools: open [4.6390, 4.6581); first cut at 4.6581 n by (30, 3); with Lemma F: CLOSED for every K
+   j = 4, x = 0.95: old tools: open [4.9390, 4.9742); first cut at 4.9742 n by (40, 5); with Lemma F: CLOSED for every K
+   j = 4, x = 1.0: old tools: open [5.2390, 5.2681); first cut at 5.2681 n by (960, 106); with Lemma F: K=4: OPEN [5.2390, 5.2681)
+   j = 5, x = 0.5: old tools: open [2.6520, 2.7204); first cut at 2.7204 n by (20, 2); with Lemma F: CLOSED for every K
+   j = 5, x = 0.75: old tools: open [4.6520, 4.6671), [4.6950, 4.7005); first cut at 4.6671 n by (30, 3); with Lemma F: CLOSED for every K
+   j = 5, x = 0.9: old tools: open [5.8520, 5.8774); first cut at 5.8774 n by (40, 4); with Lemma F: CLOSED for every K
+   j = 5, x = 0.95: old tools: open [6.2520, 6.2646); first cut at 6.2646 n by (60, 12); with Lemma F: K=5: OPEN [6.2520, 6.2646)
+   j = 6, x = 0.5: old tools: open [3.0650, 3.2600); first cut at 3.2600 n by (24, 3); with Lemma F: CLOSED for every K
+   j = 6, x = 0.75: old tools: open [5.5650, 5.6644); first cut at 5.6644 n by (40, 5); with Lemma F: CLOSED for every K
+   j = 6, x = 0.9: old tools: open [7.0650, 7.0971); first cut at 7.0971 n by (60, 10); with Lemma F: K=6: OPEN [7.0650, 7.0971)
+   j = 7, x = 0.5: old tools: open [3.5000, 3.7099); first cut at 3.7099 n by (24, 2); with Lemma F: CLOSED for every K
+   j = 7, x = 0.75: old tools: open [6.4780, 6.6081); first cut at 6.6081 n by (40, 3); with Lemma F: CLOSED for every K
+   j = 8, x = 0.5: old tools: open [4.0000, 4.3238); first cut at 4.3238 n by (30, 3); with Lemma F: CLOSED for every K
+   j = 8, x = 0.75: old tools: open [7.3910, 7.6589); first cut at 7.6589 n by (60, 9); with Lemma F: CLOSED for every K
+   (rows not printed: closed already by the old tools)
+C. b = 2, case II, two contact orders 2j1 < 2j2 on x1 n and x2 n lines (step 0.05), none elsewhere; a = 0.7065, n = 2^25
+   (j1, j2) = (1, 4): 1 open cells, K in [4], largest width 0.0574 n, min x1 + x2 = 1.00, cells with the smallest x2: [(0.05, 0.95)]
+   (j1, j2) = (1, 5): 2 open cells, K in [5], largest width 0.0524 n, min x1 + x2 = 1.00, cells with the smallest x2: [(0.1, 0.9), (0.05, 0.95)]
+   (j1, j2) = (1, 6): 2 open cells, K in [6], largest width 0.0981 n, min x1 + x2 = 0.95, cells with the smallest x2: [(0.05, 0.9), (0.1, 0.9)]
+   (j1, j2) = (2, 4): 1 open cells, K in [4], largest width 0.0896 n, min x1 + x2 = 1.00, cells with the smallest x2: [(0.05, 0.95)]
+   (j1, j2) = (2, 5): 3 open cells, K in [5], largest width 0.1568 n, min x1 + x2 = 0.95, cells with the smallest x2: [(0.05, 0.9), (0.1, 0.9), (0.05, 0.95)]
+   (j1, j2) = (2, 6): 4 open cells, K in [5, 6], largest width 0.1340 n, min x1 + x2 = 0.95, cells with the smallest x2: [(0.2, 0.8), (0.15, 0.85), (0.05, 0.9)]
+   (j1, j2) = (3, 4): 8 open cells, K in [3, 4], largest width 0.0898 n, min x1 + x2 = 1.00, cells with the smallest x2: [(0.65, 0.35), (0.6, 0.4), (0.55, 0.45)]
+   (j1, j2) = (3, 5): 13 open cells, K in [3, 4, 5], largest width 0.1610 n, min x1 + x2 = 0.95, cells with the smallest x2: [(0.8, 0.2), (0.75, 0.25), (0.7, 0.3)]
+   (j1, j2) = (3, 6): 8 open cells, K in [4, 5, 6], largest width 0.1686 n, min x1 + x2 = 0.95, cells with the smallest x2: [(0.4, 0.6), (0.3, 0.7), (0.25, 0.75)]
+   (j1, j2) = (3, 7): 1 open cells, K in [5], largest width 0.0675 n, min x1 + x2 = 1.00, cells with the smallest x2: [(0.35, 0.65)]
+   (j1, j2) = (4, 5): 29 open cells, K in [4, 5], largest width 0.1617 n, min x1 + x2 = 0.95, cells with the smallest x2: [(0.95, 0.05), (0.85, 0.1), (0.9, 0.1)]
+   (j1, j2) = (4, 6): 30 open cells, K in [4, 5, 6], largest width 0.2209 n, min x1 + x2 = 0.95, cells with the smallest x2: [(0.9, 0.05), (0.95, 0.05), (0.85, 0.1)]
+   (j1, j2) = (4, 7): 15 open cells, K in [4, 5, 6], largest width 0.1981 n, min x1 + x2 = 0.95, cells with the smallest x2: [(0.95, 0.05), (0.9, 0.1), (0.85, 0.15)]
+   (j1, j2) = (5, 6): 34 open cells, K in [5, 6], largest width 0.2041 n, min x1 + x2 = 0.90, cells with the smallest x2: [(0.9, 0.05), (0.85, 0.1), (0.8, 0.15)]
+   (j1, j2) = (5, 7): 24 open cells, K in [5, 6], largest width 0.2637 n, min x1 + x2 = 0.90, cells with the smallest x2: [(0.9, 0.05), (0.85, 0.1), (0.9, 0.1)]
+   (j1, j2) = (6, 7): 11 open cells, K in [6], largest width 0.1268 n, min x1 + x2 = 0.90, cells with the smallest x2: [(0.85, 0.05), (0.8, 0.1), (0.75, 0.15)]
+   total open (cell, K) pairs: 193
+   over all open pairs: min fraction of contained lines 0.90, min mean contact order 6.70, min K 3, largest width 0.2637 n
+   pairs with K = 3: 11, largest width 0.1291 n
+D. b = 1, case II; a = 0.7065, n = 2^25, W_max = 7.7715 n; lower ends: F (Lemma F), N (Corollary N), M, B (Lemma B of note 40); T = Theorem 4 of note 45 (non-degenerate quintics)
+   uniform profiles, contact 2j on x n lines (rows with an open segment only):
+     j = 2, x = 1.0, K = 2: first cut at 2.6352 n (960, 121); open [2.6195, 2.6352); non-degenerate: closed
+   contact 4 on x4 n lines, contact 2 on x2 n lines, none elsewhere (step 0.025):
+     degenerate or not (tools F, N, M, B): 4 open (cell, K) pairs, K in [2]; min x4 = 0.925, min x4 + x2 = 1.000, largest total width 0.0171 n
+       (x4, x2) = (0.975, 0.025), K = 2: [2.5833, 2.6005)
+       (x4, x2) = (1.000, 0.000), K = 2: [2.6195, 2.6352)
+       (x4, x2) = (0.950, 0.050), K = 2: [2.5556, 2.5657)
+       (x4, x2) = (0.925, 0.075), K = 2: [2.5278, 2.5308)
+     non-degenerate (also T): no open cell
+   contact 6 on x6 n, contact 4 on x4 n, contact 2 on x2 n lines (step 0.05, x6 > 0):
+     open (cell, K) pairs: 0; also open for non-degenerate potentials: 0
+
+# python3 48_window.py B D a=0.7065 lg=28
+B. b = 2, case II, uniform profiles: contact 2j on x n lines, none elsewhere; a = 0.7065, n = 2^28, m0 = 11, W_max = 7.7715 n, B_jet = 15
+   columns: old lower end (Lemma L, Corollary N, Lemma M) | cut of Lemma C (exact, family of note 48) | per K: lower end with Lemma F | status
+   j = 2, x = 0.95: old tools: open [2.3130, 2.3262); first cut at 2.3262 n by (960, 50); with Lemma F: CLOSED for every K
+   j = 2, x = 1.0: old tools: open [2.4130, 2.4669); first cut at 2.4669 n by (960, 50); with Lemma F: CLOSED for every K
+   j = 3, x = 0.9: old tools: open [3.4260, 3.4472); first cut at 3.4472 n by (120, 8); with Lemma F: CLOSED for every K
+   j = 3, x = 0.95: old tools: open [3.6260, 3.6594); first cut at 3.6594 n by (960, 58); with Lemma F: CLOSED for every K
+   j = 3, x = 1.0: old tools: open [3.8260, 3.8704); first cut at 3.8704 n by (960, 58); with Lemma F: CLOSED for every K
+   j = 4, x = 0.9: old tools: open [4.6390, 4.6581); first cut at 4.6581 n by (30, 3); with Lemma F: CLOSED for every K
+   j = 4, x = 0.95: old tools: open [4.9390, 4.9742); first cut at 4.9742 n by (40, 5); with Lemma F: CLOSED for every K
+   j = 4, x = 1.0: old tools: open [5.2390, 5.2681); first cut at 5.2681 n by (960, 106); with Lemma F: K=4: OPEN [5.2390, 5.2681)
+   j = 5, x = 0.5: old tools: open [2.6520, 2.7204); first cut at 2.7204 n by (20, 2); with Lemma F: CLOSED for every K
+   j = 5, x = 0.75: old tools: open [4.6520, 4.6671), [4.6950, 4.7005); first cut at 4.6671 n by (30, 3); with Lemma F: CLOSED for every K
+   j = 5, x = 0.9: old tools: open [5.8520, 5.8774); first cut at 5.8774 n by (40, 4); with Lemma F: CLOSED for every K
+   j = 5, x = 0.95: old tools: open [6.2520, 6.2646); first cut at 6.2646 n by (60, 12); with Lemma F: K=5: OPEN [6.2520, 6.2646)
+   j = 6, x = 0.5: old tools: open [3.0650, 3.2600); first cut at 3.2600 n by (24, 3); with Lemma F: CLOSED for every K
+   j = 6, x = 0.75: old tools: open [5.5650, 5.6644); first cut at 5.6644 n by (40, 5); with Lemma F: CLOSED for every K
+   j = 6, x = 0.9: old tools: open [7.0650, 7.0971); first cut at 7.0971 n by (60, 10); with Lemma F: K=6: OPEN [7.0650, 7.0971)
+   j = 7, x = 0.5: old tools: open [3.5000, 3.7099); first cut at 3.7099 n by (24, 2); with Lemma F: CLOSED for every K
+   j = 7, x = 0.75: old tools: open [6.4780, 6.6080); first cut at 6.6080 n by (40, 3); with Lemma F: CLOSED for every K
+   j = 8, x = 0.5: old tools: open [4.0000, 4.3238); first cut at 4.3238 n by (30, 3); with Lemma F: CLOSED for every K
+   j = 8, x = 0.75: old tools: open [7.3910, 7.6589); first cut at 7.6589 n by (60, 9); with Lemma F: CLOSED for every K
+   (rows not printed: closed already by the old tools)
+D. b = 1, case II; a = 0.7065, n = 2^28, W_max = 7.7715 n; lower ends: F (Lemma F), N (Corollary N), M, B (Lemma B of note 40); T = Theorem 4 of note 45 (non-degenerate quintics)
+   uniform profiles, contact 2j on x n lines (rows with an open segment only):
+     j = 2, x = 1.0, K = 2: first cut at 2.6352 n (960, 121); open [2.6195, 2.6352); non-degenerate: closed
+   contact 4 on x4 n lines, contact 2 on x2 n lines, none elsewhere (step 0.025):
+     degenerate or not (tools F, N, M, B): 4 open (cell, K) pairs, K in [2]; min x4 = 0.925, min x4 + x2 = 1.000, largest total width 0.0171 n
+       (x4, x2) = (0.975, 0.025), K = 2: [2.5833, 2.6005)
+       (x4, x2) = (1.000, 0.000), K = 2: [2.6195, 2.6352)
+       (x4, x2) = (0.950, 0.050), K = 2: [2.5556, 2.5657)
+       (x4, x2) = (0.925, 0.075), K = 2: [2.5278, 2.5308)
+     non-degenerate (also T): no open cell
+   contact 6 on x6 n, contact 4 on x4 n, contact 2 on x2 n lines (step 0.05, x6 > 0):
+     open (cell, K) pairs: 0; also open for non-degenerate potentials: 0
+
+# inline: the certificate (18, 5) at a = 0.70 (note 41), uniform profiles, b = 2..5, old tools against Lemma F (n = 2^25)
+   b = 2, j = 2, x = 0.9: old open [2.2000, 2.3320); with Lemma F: CLOSED
+   b = 2, j = 2, x = 0.95: old open [2.3000, 2.4719); with Lemma F: CLOSED
+   b = 2, j = 2, x = 1.0: old open [2.4000, 2.6116); with Lemma F: CLOSED
+   b = 2, j = 3, x = 0.75: old open [2.8000, 2.9300); with Lemma F: CLOSED
+   b = 2, j = 3, x = 0.9: old open [3.4000, 3.5844); with Lemma F: CLOSED
+   b = 2, j = 3, x = 0.95: old open [3.6000, 3.7932); with Lemma F: CLOSED
+   b = 2, j = 3, x = 1.0: old open [3.8000, 4.0016); with Lemma F: K=3: [4.0000, 4.0016)
+   b = 2, j = 4, x = 0.5: old open [2.2000, 2.4043); with Lemma F: CLOSED
+   b = 2, j = 4, x = 0.75: old open [3.7000, 3.9177); with Lemma F: CLOSED
+   b = 2, j = 4, x = 0.9: old open [4.6000, 4.8147); with Lemma F: CLOSED
+   b = 2, j = 4, x = 0.95: old open [4.9000, 5.1013); with Lemma F: K=4: [5.0000, 5.1013)
+   b = 2, j = 4, x = 1.0: old open [5.2000, 5.3743); with Lemma F: K=4: [5.2000, 5.3743)
+   b = 2, j = 5, x = 0.5: old open [2.6000, 3.0000); with Lemma F: CLOSED
+   b = 2, j = 5, x = 0.75: old open [4.6000, 4.9078); with Lemma F: CLOSED
+   b = 2, j = 5, x = 0.9: old open [5.8000, 6.0323); with Lemma F: K=5: [6.0000, 6.0323)
+   b = 2, j = 5, x = 0.95: old open [6.2000, 6.3761); with Lemma F: K=5: [6.2000, 6.3761)
+   b = 2, j = 5, x = 1.0: old open [6.6000, 6.7123); with Lemma F: K=5: [6.6000, 6.7123)
+   b = 2, j = 6, x = 0.5: old open [3.0000, 3.5833); with Lemma F: CLOSED
+   b = 2, j = 6, x = 0.75: old open [5.5000, 5.9064); with Lemma F: CLOSED
+   b = 2, j = 6, x = 0.9: old open [7.0000, 7.2438); with Lemma F: K=6: [7.0000, 7.2438)
+   b = 2, j = 6, x = 0.95: old open [7.5000, 7.6483); with Lemma F: K=6: [7.5000, 7.6483)
+   b = 2, j = 6, x = 1.0: old open [8.0000, 8.0528); with Lemma F: K=6: [8.0000, 8.0528); K=7: [8.0000, 8.0528)
+   b = 2, j = 7, x = 0.5: old open [3.5000, 4.1642); with Lemma F: CLOSED
+   b = 2, j = 7, x = 0.75: old open [6.4000, 6.8935); with Lemma F: CLOSED
+   b = 2, j = 7, x = 0.9: old open [8.2000, 8.4466); with Lemma F: K=7: [8.2000, 8.4466)
+   b = 2, j = 7, x = 0.95: old open [8.8000, 8.9186); with Lemma F: K=7: [8.8000, 8.9186)
+   b = 2, j = 8, x = 0.5: old open [4.0000, 4.7467); with Lemma F: CLOSED
+   b = 2, j = 8, x = 0.75: old open [7.3000, 7.8929); with Lemma F: CLOSED
+   b = 2, j = 8, x = 0.9: old open [9.4000, 9.6485); with Lemma F: K=8: [9.4000, 9.6485)
+   b = 2, j = 8, x = 0.95: old open [10.1000, 10.1884); with Lemma F: K=8: [10.1000, 10.1884); K=9: [10.1000, 10.1884)
+   b = 2, j = 9, x = 0.5: old open [4.5000, 5.2753); with Lemma F: CLOSED
+   b = 2, j = 9, x = 0.75: old open [8.2000, 8.8896); with Lemma F: CLOSED
+   b = 2, j = 9, x = 0.9: old open [10.6000, 10.8498); with Lemma F: K=9: [10.6000, 10.8498)
+   b = 2, j = 9, x = 0.95: old open [11.4000, 11.4680); with Lemma F: K=9: [11.4000, 11.4680); K=10: [11.4000, 11.4680)
+   b = 2, j = 10, x = 0.5: old open [5.0000, 5.8068); with Lemma F: CLOSED
+   b = 2, j = 10, x = 0.75: old open [9.1000, 9.8833); with Lemma F: CLOSED
+   b = 2, j = 10, x = 0.9: old open [11.8000, 12.0618); with Lemma F: K=10: [11.8000, 12.0618); K=11: [12.0000, 12.0618)
+   b = 2, j = 11, x = 0.5: old open [5.5000, 6.3793), [6.5000, 6.6061); with Lemma F: CLOSED
+   b = 2, j = 11, x = 0.75: old open [10.0000, 10.8860); with Lemma F: CLOSED
+   b = 2, j = 12, x = 0.5: old open [6.0000, 7.1372); with Lemma F: CLOSED
+   b = 2, j = 12, x = 0.75: old open [10.9000, 11.8960); with Lemma F: CLOSED
+   b = 3, j = 3, x = 0.75: old open [2.8500, 2.8500); with Lemma F: CLOSED
+   b = 3, j = 3, x = 0.9: old open [3.3000, 3.4964); with Lemma F: CLOSED
+   b = 3, j = 3, x = 0.95: old open [3.4500, 3.7064); with Lemma F: CLOSED
+   b = 3, j = 3, x = 1.0: old open [3.6000, 3.9163); with Lemma F: CLOSED
+   b = 3, j = 4, x = 0.75: old open [3.7500, 3.8383); with Lemma F: CLOSED
+   b = 3, j = 4, x = 0.9: old open [4.5000, 4.7394); with Lemma F: CLOSED
+   b = 3, j = 4, x = 0.95: old open [4.7500, 5.0289); with Lemma F: CLOSED
+   b = 3, j = 4, x = 1.0: old open [5.0000, 5.3080); with Lemma F: CLOSED
+   b = 3, j = 5, x = 0.5: old open [2.9000, 2.9366); with Lemma F: CLOSED
+   b = 3, j = 5, x = 0.75: old open [4.6500, 4.8214); with Lemma F: CLOSED
+   b = 3, j = 5, x = 0.9: old open [5.7000, 5.9606); with Lemma F: CLOSED
+   b = 3, j = 5, x = 0.95: old open [6.0500, 6.3382); with Lemma F: CLOSED
+   b = 3, j = 5, x = 1.0: old open [6.4000, 6.6921); with Lemma F: K=5: [6.5000, 6.6921)
+   b = 3, j = 6, x = 0.5: old open [3.3000, 3.4714), [3.5000, 3.5290); with Lemma F: CLOSED
+   b = 3, j = 6, x = 0.75: old open [5.5500, 5.8292); with Lemma F: CLOSED
+   b = 3, j = 6, x = 0.9: old open [6.9000, 7.1890); with Lemma F: CLOSED
+   b = 3, j = 6, x = 0.95: old open [7.3500, 7.6354); with Lemma F: K=6: [7.5000, 7.6354)
+   b = 3, j = 6, x = 1.0: old open [7.8000, 8.0601); with Lemma F: K=6: [7.8000, 8.0601)
+   b = 3, j = 7, x = 0.5: old open [3.7000, 4.1283); with Lemma F: CLOSED
+   b = 3, j = 7, x = 0.75: old open [6.4500, 6.8065); with Lemma F: CLOSED
+   b = 3, j = 7, x = 0.9: old open [8.1000, 8.4150); with Lemma F: K=6: [8.4000, 8.4150)
+   b = 3, j = 7, x = 0.95: old open [8.6500, 8.9242); with Lemma F: K=7: [8.6500, 8.9242)
+   b = 3, j = 7, x = 1.0: old open [9.2000, 9.4000); with Lemma F: K=7: [9.2000, 9.4000)
+   b = 3, j = 8, x = 0.5: old open [4.1000, 4.6676); with Lemma F: CLOSED
+   b = 3, j = 8, x = 0.75: old open [7.3500, 7.8045); with Lemma F: CLOSED
+   b = 3, j = 8, x = 0.9: old open [9.3000, 9.6371); with Lemma F: K=7: [9.6000, 9.6371); K=8: [9.5000, 9.6371)
+   b = 3, j = 8, x = 0.95: old open [9.9500, 10.1975); with Lemma F: K=8: [9.9500, 10.1975)
+   b = 3, j = 8, x = 1.0: old open [10.6000, 10.7420); with Lemma F: K=8: [10.6000, 10.7420); K=9: [10.6000, 10.7420)
+   b = 3, j = 9, x = 0.5: old open [4.5000, 5.2111); with Lemma F: CLOSED
+   b = 3, j = 9, x = 0.75: old open [8.2500, 8.8059); with Lemma F: CLOSED
+   b = 3, j = 9, x = 0.9: old open [10.5000, 10.8560); with Lemma F: K=8: [10.8000, 10.8560); K=9: [10.5000, 10.8560)
+   b = 3, j = 9, x = 0.95: old open [11.2500, 11.4722); with Lemma F: K=9: [11.2500, 11.4722)
+   b = 3, j = 9, x = 1.0: old open [12.0000, 12.0818); with Lemma F: K=9: [12.0000, 12.0818); K=10: [12.0000, 12.0818)
+   b = 3, j = 10, x = 0.5: old open [5.0000, 5.7978); with Lemma F: CLOSED
+   b = 3, j = 10, x = 0.75: old open [9.1500, 9.7944); with Lemma F: CLOSED
+   b = 3, j = 10, x = 0.9: old open [11.7000, 12.0638); with Lemma F: K=9: [12.0000, 12.0638); K=10: [11.7000, 12.0638)
+   b = 3, j = 10, x = 0.95: old open [12.5500, 12.6000); with Lemma F: K=10: [12.5500, 12.6000); K=11: [12.5500, 12.6000)
+   b = 3, j = 11, x = 0.5: old open [5.5000, 6.5250); with Lemma F: CLOSED
+   b = 3, j = 11, x = 0.75: old open [10.0500, 10.7979); with Lemma F: CLOSED
+   b = 3, j = 12, x = 0.5: old open [6.0000, 7.0554); with Lemma F: CLOSED
+   b = 3, j = 12, x = 0.75: old open [10.9500, 11.8226); with Lemma F: CLOSED
+   b = 4, j = 4, x = 0.9: old open [4.4000, 4.6347); with Lemma F: CLOSED
+   b = 4, j = 4, x = 0.95: old open [4.6000, 4.9319); with Lemma F: CLOSED
+   b = 4, j = 4, x = 1.0: old open [4.8000, 5.2202); with Lemma F: CLOSED
+   b = 4, j = 5, x = 0.75: old open [4.7000, 4.7083); with Lemma F: CLOSED
+   b = 4, j = 5, x = 0.9: old open [5.6000, 5.8633); with Lemma F: CLOSED
+   b = 4, j = 5, x = 0.95: old open [5.9000, 6.2409); with Lemma F: CLOSED
+   b = 4, j = 5, x = 1.0: old open [6.2000, 6.6126); with Lemma F: CLOSED
+   b = 4, j = 6, x = 0.75: old open [5.6000, 5.7338); with Lemma F: CLOSED
+   b = 4, j = 6, x = 0.9: old open [6.8000, 7.0978); with Lemma F: CLOSED
+   b = 4, j = 6, x = 0.95: old open [7.2000, 7.5509); with Lemma F: CLOSED
+   b = 4, j = 6, x = 1.0: old open [7.6000, 8.0001); with Lemma F: K=5: [8.0000, 8.0001); K=6: [8.0000, 8.0001)
+   b = 4, j = 7, x = 0.5: old open [4.0000, 4.0215); with Lemma F: CLOSED
+   b = 4, j = 7, x = 0.75: old open [6.5000, 6.7022); with Lemma F: CLOSED
+   b = 4, j = 7, x = 0.9: old open [8.0000, 8.3219); with Lemma F: CLOSED
+   b = 4, j = 7, x = 0.95: old open [8.5000, 8.8576); with Lemma F: CLOSED
+   b = 4, j = 7, x = 1.0: old open [9.0000, 9.3787); with Lemma F: K=6: [9.3000, 9.3787); K=7: [9.0000, 9.3787)
+   b = 4, j = 8, x = 0.5: old open [4.4000, 4.5616); with Lemma F: CLOSED
+   b = 4, j = 8, x = 0.75: old open [7.4000, 7.6985); with Lemma F: CLOSED
+   b = 4, j = 8, x = 0.9: old open [9.2000, 9.5675); with Lemma F: CLOSED
+   b = 4, j = 8, x = 0.95: old open [9.8000, 10.1590); with Lemma F: K=7: [10.1000, 10.1590); K=8: [10.0000, 10.1590)
+   b = 4, j = 8, x = 1.0: old open [10.4000, 10.7431); with Lemma F: K=7: [10.7000, 10.7431); K=8: [10.4000, 10.7431)
+   b = 4, j = 9, x = 0.5: old open [4.8000, 5.1319); with Lemma F: CLOSED
+   b = 4, j = 9, x = 0.75: old open [8.3000, 8.7099); with Lemma F: CLOSED
+   b = 4, j = 9, x = 0.9: old open [10.4000, 10.7861); with Lemma F: CLOSED
+   b = 4, j = 9, x = 0.95: old open [11.1000, 11.4597); with Lemma F: K=8: [11.4000, 11.4597); K=9: [11.1000, 11.4597)
+   b = 4, j = 9, x = 1.0: old open [11.8000, 12.0867); with Lemma F: K=9: [11.8000, 12.0867); K=10: [12.0000, 12.0867)
+   b = 4, j = 10, x = 0.5: old open [5.2000, 5.8889); with Lemma F: CLOSED
+   b = 4, j = 10, x = 0.75: old open [9.2000, 9.6923); with Lemma F: CLOSED
+   b = 4, j = 10, x = 0.9: old open [11.6000, 12.0164); with Lemma F: K=9: [11.9000, 12.0164); K=10: [12.0000, 12.0164)
+   b = 4, j = 10, x = 0.95: old open [12.4000, 12.6000); with Lemma F: K=10: [12.4000, 12.6000)
+   b = 4, j = 11, x = 0.5: old open [5.6000, 6.4161); with Lemma F: CLOSED
+   b = 4, j = 11, x = 0.75: old open [10.1000, 10.6968); with Lemma F: CLOSED
+   b = 4, j = 12, x = 0.5: old open [6.0000, 6.9338); with Lemma F: CLOSED
+   b = 4, j = 12, x = 0.75: old open [11.0000, 11.7418); with Lemma F: CLOSED
+   b = 5, j = 5, x = 0.9: old open [5.5000, 5.7364); with Lemma F: CLOSED
+   b = 5, j = 5, x = 0.95: old open [5.7500, 6.1139); with Lemma F: CLOSED
+   b = 5, j = 5, x = 1.0: old open [6.0000, 6.4952); with Lemma F: CLOSED
+   b = 5, j = 6, x = 0.9: old open [6.7000, 6.9565); with Lemma F: CLOSED
+   b = 5, j = 6, x = 0.95: old open [7.0500, 7.4265); with Lemma F: CLOSED
+   b = 5, j = 6, x = 1.0: old open [7.4000, 7.8946); with Lemma F: CLOSED
+   b = 5, j = 7, x = 0.75: old open [6.5500, 6.5754); with Lemma F: CLOSED
+   b = 5, j = 7, x = 0.9: old open [7.9000, 8.2148); with Lemma F: CLOSED
+   b = 5, j = 7, x = 0.95: old open [8.3500, 8.7453); with Lemma F: CLOSED
+   b = 5, j = 7, x = 1.0: old open [8.8000, 9.2870); with Lemma F: CLOSED
+   b = 5, j = 8, x = 0.75: old open [7.4500, 7.5667); with Lemma F: CLOSED
+   b = 5, j = 8, x = 0.9: old open [9.1000, 9.4359); with Lemma F: CLOSED
+   b = 5, j = 8, x = 0.95: old open [9.6500, 10.0765); with Lemma F: CLOSED
+   b = 5, j = 8, x = 1.0: old open [10.2000, 10.6724); with Lemma F: K=7: [10.5000, 10.6724); K=8: [10.5000, 10.6724)
+   b = 5, j = 9, x = 0.75: old open [8.3500, 8.5995); with Lemma F: CLOSED
+   b = 5, j = 9, x = 0.9: old open [10.3000, 10.7036); with Lemma F: CLOSED
+   b = 5, j = 9, x = 0.95: old open [10.9500, 11.3733); with Lemma F: CLOSED
+   b = 5, j = 9, x = 1.0: old open [11.6000, 12.0556); with Lemma F: K=8: [11.9000, 12.0556); K=9: [11.6000, 12.0556)
+   b = 5, j = 10, x = 0.5: old open [5.5000, 5.7786); with Lemma F: CLOSED
+   b = 5, j = 10, x = 0.75: old open [9.2500, 9.5740); with Lemma F: CLOSED
+   b = 5, j = 10, x = 0.9: old open [11.5000, 11.9188); with Lemma F: CLOSED
+   b = 5, j = 10, x = 0.95: old open [12.2500, 12.6000); with Lemma F: K=9: [12.5500, 12.6000); K=10: [12.5000, 12.6000)
+   b = 5, j = 11, x = 0.5: old open [5.9000, 6.3044); with Lemma F: CLOSED
+   b = 5, j = 11, x = 0.75: old open [10.1500, 10.5791); with Lemma F: CLOSED
+   b = 5, j = 12, x = 0.5: old open [6.3000, 6.8163); with Lemma F: CLOSED
+   b = 5, j = 12, x = 0.75: old open [11.0500, 11.6531); with Lemma F: CLOSED

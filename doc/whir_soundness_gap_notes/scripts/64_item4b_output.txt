@@ -1,0 +1,13 @@
+N=25 blocks=[12, 13] t=3 rate=2^-1: cells 182, partitions 5, (t-1)k/n = 1.0000
+   seed empty: seed score/(t-1)k = 0.0000; after annealing 0.7604 (score/n = 0.7604); max pair mass/k = 1.0000; labels used 4
+   seed common ball: seed score/(t-1)k = 0.6900; after annealing 0.6900 (score/n = 0.6900); max pair mass/k = 1.0000; labels used 2
+N=25 blocks=[12, 13] t=4 rate=2^-1: cells 182, partitions 15, (t-1)k/n = 1.5000
+   seed empty: seed score/(t-1)k = 0.0000; after annealing 0.7034 (score/n = 1.0551); max pair mass/k = 1.0000; labels used 11
+   seed common ball: seed score/(t-1)k = 0.6900; after annealing 0.6900 (score/n = 1.0351); max pair mass/k = 1.0000; labels used 2
+   seed quadrants: seed score/(t-1)k = 0.8131; after annealing 0.8946 (score/n = 1.3419); max pair mass/k = 1.0000; labels used 10
+N=25 blocks=[12, 13] t=5 rate=2^-1: cells 182, partitions 52, (t-1)k/n = 2.0000
+   seed empty: seed score/(t-1)k = 0.0000; after annealing 0.7096 (score/n = 1.4193); max pair mass/k = 1.0000; labels used 17
+   seed common ball: seed score/(t-1)k = 0.6900; after annealing 0.6900 (score/n = 1.3801); max pair mass/k = 1.0000; labels used 2
+   seed quadrants: seed score/(t-1)k = 0.6098; after annealing 0.8464 (score/n = 1.6928); max pair mass/k = 1.0000; labels used 16
+N=4 n=16 k=9: pointwise sum of (c_x - 1) = 32 against 3k = 27; largest pairwise agreement 8 (< k); free sum for the cube window = 0
+N=6 n=64 k=33: pointwise sum of (c_x - 1) = 128 against 3k = 99; largest pairwise agreement 32 (< k); free sum for the cube window = 0

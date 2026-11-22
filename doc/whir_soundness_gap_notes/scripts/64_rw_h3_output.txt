@@ -1,0 +1,24 @@
+q=2^8 N=6 k=32 d=2 2k=64: A random mean 0.730 max 4 (3n/q = 0.750); B common zeros |Z|=30 int=26: free 52, mean 52.42 max 54
+   C adaptive: best u_2+2u_3 = 66 after 300 iterations (2k-1 = 63, ceiling 2k-1+e* = 80)
+q=2^8 N=6 k=32 d=4 2k=64: A random mean 0.767 max 5 (3n/q = 0.750); B common zeros |Z|=30 int=17: free 34, mean 34.54 max 37
+   C adaptive: best u_2+2u_3 = 68 after 300 iterations (2k-1 = 63, ceiling 2k-1+e* = 80)
+q=2^8 N=6 k=32 d=6 2k=64: A random mean 0.737 max 3 (3n/q = 0.750); B common zeros |Z|=30 int=10: free 20, mean 20.58 max 23
+   C adaptive: best u_2+2u_3 = 67 after 300 iterations (2k-1 = 63, ceiling 2k-1+e* = 80)
+q=2^8 N=6 k=32 d=8 2k=64: A random mean 0.723 max 4 (3n/q = 0.750); B common zeros |Z|=30 int=7: free 14, mean 14.78 max 17
+   C adaptive: best u_2+2u_3 = 66 after 300 iterations (2k-1 = 63, ceiling 2k-1+e* = 80)
+q=2^16 N=6 k=32 d=2 2k=64: A random mean 0.003 max 1 (3n/q = 0.003); B common zeros |Z|=30 int=26: free 52, mean 52.00 max 52
+   C adaptive: best u_2+2u_3 = 65 after 300 iterations (2k-1 = 63, ceiling 2k-1+e* = 71)
+q=2^16 N=6 k=32 d=4 2k=64: A random mean 0.000 max 0 (3n/q = 0.003); B common zeros |Z|=30 int=17: free 34, mean 34.00 max 34
+   C adaptive: best u_2+2u_3 = 64 after 300 iterations (2k-1 = 63, ceiling 2k-1+e* = 71)
+q=2^16 N=6 k=32 d=6 2k=64: A random mean 0.003 max 1 (3n/q = 0.003); B common zeros |Z|=30 int=10: free 20, mean 20.02 max 21
+   C adaptive: best u_2+2u_3 = 64 after 300 iterations (2k-1 = 63, ceiling 2k-1+e* = 71)
+q=2^16 N=6 k=32 d=8 2k=64: A random mean 0.003 max 1 (3n/q = 0.003); B common zeros |Z|=30 int=7: free 14, mean 14.00 max 14
+   C adaptive: best u_2+2u_3 = 64 after 300 iterations (2k-1 = 63, ceiling 2k-1+e* = 71)
+d=2 seed=21: int=11: free 22; best u_2+2u_3 = 32 (2k-1 = 31)
+d=2 seed=22: int=11: free 22; best u_2+2u_3 = 32 (2k-1 = 31)
+d=2 seed=23: int=11: free 22; best u_2+2u_3 = 32 (2k-1 = 31)
+d=2 seed=24: int=12: free 24; best u_2+2u_3 = 32 (2k-1 = 31)
+d=6 seed=21: int=4: free 8; best u_2+2u_3 = 32 (2k-1 = 31)
+d=6 seed=22: int=5: free 10; best u_2+2u_3 = 32 (2k-1 = 31)
+d=6 seed=23: int=4: free 8; best u_2+2u_3 = 32 (2k-1 = 31)
+d=6 seed=24: int=3: free 6; best u_2+2u_3 = 32 (2k-1 = 31)

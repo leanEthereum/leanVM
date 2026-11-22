@@ -1,0 +1,63 @@
+== exhaustive, T2 ==
+T2 (k,n)=(2,8) members=4 EXHAUSTIVE square patterns (pair counts <= k-1): 20160 patterns, rank deficient 0, genuine for used pairs 0, THEOREM VIOLATIONS 0, lists of distinct codewords 0, COROLLARY VIOLATIONS 0
+T2 (k,n)=(2,8) members=5 EXHAUSTIVE square patterns (pair counts <= k-1): 1814400 patterns, rank deficient 0, genuine for used pairs 0, THEOREM VIOLATIONS 0, lists of distinct codewords 0, COROLLARY VIOLATIONS 0
+T2 (k,n)=(2,16) members=4 EXHAUSTIVE square patterns (pair counts <= k-1): 5765760 patterns, rank deficient 0, genuine for used pairs 0, THEOREM VIOLATIONS 0, lists of distinct codewords 0, COROLLARY VIOLATIONS 0
+T2 (k,n)=(4,16) members=3 EXHAUSTIVE square patterns (pair counts <= k-1): 21621600 patterns, rank deficient 0, genuine for used pairs 0, THEOREM VIOLATIONS 0, lists of distinct codewords 0, COROLLARY VIOLATIONS 0
+== exhaustive, T1 ==
+T1 (k,n)=(4,8) members=3 EXHAUSTIVE square patterns (pair counts <= k-1): 1680 patterns, rank deficient 0, genuine for used pairs 0, THEOREM VIOLATIONS 0, lists of distinct codewords 0, COROLLARY VIOLATIONS 0
+THEOREM VIOLATION: |X|=6 rank=5 pattern: 2:01 3:23 4:02 5:13 6:03 7:12
+COROLLARY VIOLATION: 6 coincidence leaves > Lk-1 = 5 (or a sub-list), |X|=6 rank=5 pattern: 2:01 3:23 4:02 5:13 6:03 7:12
+THEOREM VIOLATION: |X|=6 rank=5 pattern: 2:01 3:23 4:02 5:13 6:12 7:03
+COROLLARY VIOLATION: 6 coincidence leaves > Lk-1 = 5 (or a sub-list), |X|=6 rank=5 pattern: 2:01 3:23 4:02 5:13 6:12 7:03
+THEOREM VIOLATION: |X|=6 rank=5 pattern: 2:01 3:23 4:03 5:12 6:02 7:13
+T1 (k,n)=(2,8) members=4 EXHAUSTIVE square patterns (pair counts <= k-1): 20160 patterns, rank deficient 192, genuine for used pairs 192, THEOREM VIOLATIONS 192, lists of distinct codewords 192, COROLLARY VIOLATIONS 192
+T1 (k,n)=(4,16) members=3 EXHAUSTIVE square patterns (pair counts <= k-1): 21621600 patterns, rank deficient 0, genuine for used pairs 0, THEOREM VIOLATIONS 0, lists of distinct codewords 0, COROLLARY VIOLATIONS 0
+== sampled, T2, three members ==
+T2 (k,n)=(4,64) members=3 SAMPLED: 400000 patterns, rows dependent 116512, genuine for used pairs 175260, THEOREM VIOLATIONS 0, genuine for all pairs 175260, lists built 175260, largest number of coincidence leaves 7 (Lk-1 = 7, reached by 84694 lists), COROLLARY VIOLATIONS 0
+T2 (k,n)=(4,16) members=3 SAMPLED: 600000 patterns, rows dependent 177684, genuine for used pairs 261001, THEOREM VIOLATIONS 0, genuine for all pairs 261001, lists built 261001, largest number of coincidence leaves 7 (Lk-1 = 7, reached by 126247 lists), COROLLARY VIOLATIONS 0
+T2 (k,n)=(4,32) members=3 SAMPLED: 600000 patterns, rows dependent 175652, genuine for used pairs 262442, THEOREM VIOLATIONS 0, genuine for all pairs 262442, lists built 262442, largest number of coincidence leaves 7 (Lk-1 = 7, reached by 127283 lists), COROLLARY VIOLATIONS 0
+T2 (k,n)=(8,32) members=3 SAMPLED: 400000 patterns, rows dependent 119181, genuine for used pairs 180138, THEOREM VIOLATIONS 0, genuine for all pairs 180138, lists built 180138, largest number of coincidence leaves 15 (Lk-1 = 15, reached by 88970 lists), COROLLARY VIOLATIONS 0
+T2 (k,n)=(16,64) members=3 SAMPLED: 60000 patterns, rows dependent 17684, genuine for used pairs 27688, THEOREM VIOLATIONS 0, genuine for all pairs 27688, lists built 27688, largest number of coincidence leaves 31 (Lk-1 = 31, reached by 13697 lists), COROLLARY VIOLATIONS 0
+T2 (k,n)=(16,32) members=3 SAMPLED: 100000 patterns, rows dependent 7380, genuine for used pairs 45499, THEOREM VIOLATIONS 0, genuine for all pairs 45499, lists built 45499, largest number of coincidence leaves 31 (Lk-1 = 31, reached by 22354 lists), COROLLARY VIOLATIONS 0
+T2 (k,n)=(8,64) members=3 SAMPLED: 300000 patterns, rows dependent 88347, genuine for used pairs 135966, THEOREM VIOLATIONS 0, genuine for all pairs 135966, lists built 135966, largest number of coincidence leaves 15 (Lk-1 = 15, reached by 67192 lists), COROLLARY VIOLATIONS 0
+T2 (k,n)=(8,16) members=3 SAMPLED: 400000 patterns, rows dependent 31754, genuine for used pairs 176572, THEOREM VIOLATIONS 0, genuine for all pairs 176572, lists built 176572, largest number of coincidence leaves 15 (Lk-1 = 15, reached by 87035 lists), COROLLARY VIOLATIONS 0
+== sampled, T2, four members ==
+T2 (k,n)=(4,64) members=4 SAMPLED: 400000 patterns, rows dependent 131505, genuine for used pairs 150137, THEOREM VIOLATIONS 0, genuine for all pairs 150137, lists built 150137, largest number of coincidence leaves 11 (Lk-1 = 11, reached by 69566 lists), COROLLARY VIOLATIONS 0
+T2 (k,n)=(4,16) members=4 SAMPLED: 600000 patterns, rows dependent 204344, genuine for used pairs 220057, THEOREM VIOLATIONS 0, genuine for all pairs 220057, lists built 220057, largest number of coincidence leaves 11 (Lk-1 = 11, reached by 102308 lists), COROLLARY VIOLATIONS 0
+T2 (k,n)=(4,32) members=4 SAMPLED: 600000 patterns, rows dependent 199457, genuine for used pairs 223224, THEOREM VIOLATIONS 0, genuine for all pairs 223224, lists built 223224, largest number of coincidence leaves 11 (Lk-1 = 11, reached by 103405 lists), COROLLARY VIOLATIONS 0
+T2 (k,n)=(8,32) members=4 SAMPLED: 300000 patterns, rows dependent 111809, genuine for used pairs 108444, THEOREM VIOLATIONS 0, genuine for all pairs 108444, lists built 108444, largest number of coincidence leaves 23 (Lk-1 = 23, reached by 51464 lists), COROLLARY VIOLATIONS 0
+T2 (k,n)=(2,16) members=4 SAMPLED: 600000 patterns, rows dependent 189552, genuine for used pairs 235801, THEOREM VIOLATIONS 0, genuine for all pairs 235801, lists built 235801, largest number of coincidence leaves 5 (Lk-1 = 5, reached by 114848 lists), COROLLARY VIOLATIONS 0
+T2 (k,n)=(4,32) members=5 SAMPLED: 300000 patterns, rows dependent 115299, genuine for used pairs 94597, THEOREM VIOLATIONS 0, genuine for all pairs 94597, lists built 94597, largest number of coincidence leaves 15 (Lk-1 = 15, reached by 42300 lists), COROLLARY VIOLATIONS 0
+T2 (k,n)=(8,16) members=4 SAMPLED: 300000 patterns, rows dependent 10468, genuine for used pairs 275264, THEOREM VIOLATIONS 0, genuine for all pairs 275264, lists built 275264, largest number of coincidence leaves 16 (Lk-1 = 23, reached by 0 lists), COROLLARY VIOLATIONS 0
+T2 (k,n)=(8,64) members=4 SAMPLED: 200000 patterns, rows dependent 71208, genuine for used pairs 75404, THEOREM VIOLATIONS 0, genuine for all pairs 75404, lists built 75404, largest number of coincidence leaves 23 (Lk-1 = 23, reached by 35763 lists), COROLLARY VIOLATIONS 0
+== lifted lists, T2 ==
+T2 (k,n)=(4,16) members=3 LIFTED lists, all split levels: lists 200000, largest number of coincidence leaves 7 (Lk-1 = 7, reached by 81239), COROLLARY VIOLATIONS 0
+T2 (k,n)=(4,32) members=3 LIFTED lists, all split levels: lists 200000, largest number of coincidence leaves 7 (Lk-1 = 7, reached by 90572), COROLLARY VIOLATIONS 0
+T2 (k,n)=(8,64) members=3 LIFTED lists, all split levels: lists 150000, largest number of coincidence leaves 15 (Lk-1 = 15, reached by 80662), COROLLARY VIOLATIONS 0
+T2 (k,n)=(8,32) members=3 LIFTED lists, all split levels: lists 300000, largest number of coincidence leaves 15 (Lk-1 = 15, reached by 131604), COROLLARY VIOLATIONS 0
+T2 (k,n)=(4,16) members=4 LIFTED lists, all split levels: lists 200000, largest number of coincidence leaves 11 (Lk-1 = 11, reached by 68578), COROLLARY VIOLATIONS 0
+T2 (k,n)=(4,32) members=4 LIFTED lists, all split levels: lists 200000, largest number of coincidence leaves 11 (Lk-1 = 11, reached by 84430), COROLLARY VIOLATIONS 0
+T2 (k,n)=(8,64) members=4 LIFTED lists, all split levels: lists 137964, largest number of coincidence leaves 23 (Lk-1 = 23, reached by 62319), COROLLARY VIOLATIONS 0
+T2 (k,n)=(8,32) members=4 LIFTED lists, all split levels: lists 275615, largest number of coincidence leaves 23 (Lk-1 = 23, reached by 89723), COROLLARY VIOLATIONS 0
+T2 (k,n)=(16,32) members=4 LIFTED lists, all split levels: lists 20000, largest number of coincidence leaves 15 (Lk-1 = 47, reached by 0), COROLLARY VIOLATIONS 0
+T2 (k,n)=(4,64) members=4 LIFTED lists, all split levels: lists 100000, largest number of coincidence leaves 11 (Lk-1 = 11, reached by 46018), COROLLARY VIOLATIONS 0
+T2 (k,n)=(16,64) members=4 LIFTED lists, all split levels: lists 72147, largest number of coincidence leaves 47 (Lk-1 = 47, reached by 21138), COROLLARY VIOLATIONS 0
+T2 (k,n)=(8,32) members=5 LIFTED lists, all split levels: lists 122947, largest number of coincidence leaves 31 (Lk-1 = 31, reached by 24458), COROLLARY VIOLATIONS 0
+== T1: sampled and lifted ==
+T1 (k,n)=(4,8) members=4 SAMPLED: 300000 patterns, rows dependent 10381, genuine for used pairs 262451, THEOREM VIOLATIONS 0, genuine for all pairs 262451, lists built 262451, largest number of coincidence leaves 8 (Lk-1 = 11, reached by 0 lists), COROLLARY VIOLATIONS 0
+THEOREM VIOLATION: |X|=12 rank=11 pattern: 0:03 1:12 2:12 3:12 8:23 9:01 10:23 11:23 12:02 13:13 14:02 15:02
+COROLLARY VIOLATION: 12 coincidence leaves > Lk-1 = 11 (or a sub-list), |X|=12 rank=11 pattern: 0:03 1:12 2:12 3:12 8:23 9:01 10:23 11:23 12:02 13:13 14:02 15:02
+THEOREM VIOLATION: |X|=12 rank=11 pattern: 0:13 1:13 2:13 3:02 8:23 9:01 10:01 11:01 12:12 13:12 14:03 15:12
+COROLLARY VIOLATION: 12 coincidence leaves > Lk-1 = 11 (or a sub-list), |X|=12 rank=11 pattern: 0:13 1:13 2:13 3:02 8:23 9:01 10:01 11:01 12:12 13:12 14:03 15:12
+THEOREM VIOLATION: |X|=12 rank=11 pattern: 4:13 5:13 6:13 7:02 8:03 9:12 10:12 11:12 12:23 13:01 14:01 15:01
+T1 (k,n)=(4,16) members=4 SAMPLED: 300000 patterns, rows dependent 102321, genuine for used pairs 110098, THEOREM VIOLATIONS 59, genuine for all pairs 110098, lists built 110098, largest number of coincidence leaves 13 (Lk-1 = 11, reached by 50984 lists), COROLLARY VIOLATIONS 103
+T1 (k,n)=(8,16) members=3 SAMPLED: 300000 patterns, rows dependent 23879, genuine for used pairs 132811, THEOREM VIOLATIONS 0, genuine for all pairs 132811, lists built 132811, largest number of coincidence leaves 15 (Lk-1 = 15, reached by 65318 lists), COROLLARY VIOLATIONS 0
+T1 (k,n)=(8,16) members=4 SAMPLED: 300000 patterns, rows dependent 10295, genuine for used pairs 275284, THEOREM VIOLATIONS 0, genuine for all pairs 275284, lists built 275284, largest number of coincidence leaves 16 (Lk-1 = 23, reached by 0 lists), COROLLARY VIOLATIONS 0
+COROLLARY VIOLATION (lift at level 1): 13 coincidence leaves > 11
+COROLLARY VIOLATION (lift at level 1): 13 coincidence leaves > 11
+T1 (k,n)=(4,16) members=4 LIFTED lists, all split levels: lists 100000, largest number of coincidence leaves 13 (Lk-1 = 11, reached by 33423), COROLLARY VIOLATIONS 1365
+COROLLARY VIOLATION (lift at level 2): 25 coincidence leaves > 23
+COROLLARY VIOLATION (lift at level 2): 25 coincidence leaves > 23
+T1 (k,n)=(8,32) members=4 LIFTED lists, all split levels: lists 138032, largest number of coincidence leaves 27 (Lk-1 = 23, reached by 44240), COROLLARY VIOLATIONS 1442
+T1 (k,n)=(4,16) members=3 SAMPLED: 300000 patterns, rows dependent 88806, genuine for used pairs 130167, THEOREM VIOLATIONS 0, genuine for all pairs 130167, lists built 130167, largest number of coincidence leaves 7 (Lk-1 = 7, reached by 63115 lists), COROLLARY VIOLATIONS 0
+T1 (k,n)=(8,32) members=3 SAMPLED: 300000 patterns, rows dependent 89298, genuine for used pairs 134751, THEOREM VIOLATIONS 0, genuine for all pairs 134751, lists built 134751, largest number of coincidence leaves 15 (Lk-1 = 15, reached by 66713 lists), COROLLARY VIOLATIONS 0

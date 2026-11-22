@@ -1,0 +1,30 @@
+   relations among the rows: 1; leaves whose relation component is outside Y*: [2, 6, 10]
+seed 1: members 3 w=30 Lk=32 rank=29 kernel=3 | Q*: weight 12 rank 12 kernel 4 | B(P;Q*)=30 | scale 8: dim S'=5 dim K_i=[3, 3, 3] dim K_s∩K_t=[1, 1, 1] (sum 3) triple 0 | Y*+nu: dim 13 (Y* 12, 3 functionals nu), Phi=29
+   relations among the rows: 1; leaves whose relation component is outside Y*: [2, 6, 10]
+seed 2: members 3 w=30 Lk=32 rank=29 kernel=3 | Q*: weight 12 rank 12 kernel 4 | B(P;Q*)=30 | scale 8: dim S'=5 dim K_i=[3, 3, 3] dim K_s∩K_t=[1, 1, 1] (sum 3) triple 0 | Y*+nu: dim 13 (Y* 12, 3 functionals nu), Phi=29
+   relations among the rows: 1; leaves whose relation component is outside Y*: [2, 6, 10]
+seed 3: members 3 w=30 Lk=32 rank=29 kernel=3 | Q*: weight 12 rank 12 kernel 4 | B(P;Q*)=30 | scale 8: dim S'=5 dim K_i=[3, 3, 3] dim K_s∩K_t=[1, 1, 1] (sum 3) triple 0 | Y*+nu: dim 13 (Y* 12, 3 functionals nu), Phi=29
+   relations among the rows: 6; leaves whose relation component is outside Y*: [2, 6, 10]
+seed 1: members 10 w=141 Lk=144 rank=135 kernel=9 | Q*: weight 57 rank 57 kernel 15 | B(P;Q*)=141 | scale 8: dim S'=21 dim K_i=[12, 12, 12] dim K_s∩K_t=[3, 3, 3] (sum 9) triple 0 | Y*+nu: dim 63 (Y* 57, 18 functionals nu), Phi=135
+   relations among the rows: 6; leaves whose relation component is outside Y*: [2, 6, 10]
+seed 2: members 10 w=141 Lk=144 rank=135 kernel=9 | Q*: weight 57 rank 57 kernel 15 | B(P;Q*)=141 | scale 8: dim S'=21 dim K_i=[12, 12, 12] dim K_s∩K_t=[3, 3, 3] (sum 9) triple 0 | Y*+nu: dim 63 (Y* 57, 18 functionals nu), Phi=135
+   relations among the rows: 6; leaves whose relation component is outside Y*: [2, 6, 10]
+seed 3: members 10 w=141 Lk=144 rank=135 kernel=9 | Q*: weight 57 rank 57 kernel 15 | B(P;Q*)=141 | scale 8: dim S'=21 dim K_i=[12, 12, 12] dim K_s∩K_t=[3, 3, 3] (sum 9) triple 0 | Y*+nu: dim 63 (Y* 57, 18 functionals nu), Phi=135
+w 30, L*k 32, rank 29, B(P;Q*) 30, weight of Q* 12, rank of Q* 12; Q* = 01+02 . 01+02 . 01+02 . 01 01 02 02 12 12 . . . . 
+OPEN rank 29 w 30 best B found 30 (B at Q* 30): 01+02 01+02 01+02 . 01+02 01+02 01+02 . 01+02 01+02 01+02 . 01 01 01 01 02 02 02 02 12 12 12 12 . . . . . . . . 
+file 85_tmp/cex3_82.txt (k=16, n=32, members 3): patterns 1, rows dependent 1, B(P;Q*) = rank 0, B = rank after descent 0, not certified 1, below (bug) 0
+classes per leaf: 012 012 012 . 012 012 012 . 012 012 012 . 01 01 01 01 02 02 02 02 12 12 12 12 . . . . . . . .
+n=32 members=3 kernel d_0=3 distinct=3 agreements min 17 max 17 weight w=30 rank=29 deficiency=1 needed (L+1)a-n-Lk+1=-12
+  dim Theta = 0
+  s_j (kernel of the block-coincidence partition pattern of a generic solution): N=32:3 N=16:4 N=8:5 N=4:4 N=2:2   2^j s_j - s_0: 0 5 17 29 29
+  incoherent leaves at scale N=32: beta max 0 mean 0.00; e+2^j=2; sum_l (e+2^j-beta_l)=6 -> Theorem 4.1: members <= 5109183315 (F(32)=10218366630)
+  incoherent leaves at scale N=16: beta max 3 mean 3.00; e+2^j=3; sum_l (e+2^j-beta_l)=0 -> no bound at this scale
+  incoherent leaves at scale N=8: beta max 9 mean 9.00; e+2^j=5; sum_l (e+2^j-beta_l)=-12 -> no bound at this scale
+  incoherent leaves at scale N=4: beta max 17 mean 17.00; e+2^j=9; sum_l (e+2^j-beta_l)=-24 -> no bound at this scale
+  level 0: N=32 d_j=3 D_j=d_j/k_j=0.188 fine cost c_j=2^j d_j-d_0=0 (n/8=4, (a-k)=1) B_j=6 nodes with rho>0: 3 (C*) FAIL gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (2, 2, 2, 0):3
+  level 1: N=16 d_j=4 D_j=d_j/k_j=0.500 fine cost c_j=2^j d_j-d_0=5 (n/8=4, (a-k)=1) B_j=6 nodes with rho>0: 3 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (2, 2, 2, 0):3
+  level 2: N=8 d_j=5 D_j=d_j/k_j=1.250 fine cost c_j=2^j d_j-d_0=17 (n/8=4, (a-k)=1) B_j=3 nodes with rho>0: 3 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (1, 1, 2, 0):3
+  level 3: N=4 d_j=4 D_j=d_j/k_j=2.000 fine cost c_j=2^j d_j-d_0=29 (n/8=4, (a-k)=1) B_j=0 nodes with rho>0: 0 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count 
+  level 4: N=2 d_j=2 D_j=d_j/k_j=2.000 fine cost c_j=2^j d_j-d_0=29 (n/8=4, (a-k)=1)
+  sum_j 2^j G_j = 0 + k dim Theta = 0 -> 0 (deficiency 1)
+  critical scale: N = 32 (levels with 2^j d_j - d_0 < a - k: [0])

@@ -1,0 +1,131 @@
+== partition patterns, tables one level up (82_rank.c)
+table (v=0, r=1, members 3): 25 patterns written to 82_tmp/t_0_1_3.bin
+table (v=1, r=1, members 3): 625 patterns written to 82_tmp/t_1_1_3.bin
+table (v=2, r=1, members 3): 390625 patterns written to 82_tmp/t_2_1_3.bin
+table (v=1, r=2, members 3): 390625 patterns written to 82_tmp/t_1_2_3.bin
+table (v=0, r=1, members 4): 225 patterns written to 82_tmp/t_0_1_4.bin
+table (v=1, r=1, members 4): 50625 patterns written to 82_tmp/t_1_1_4.bin
+all patterns (k=2, n=4, members 3): patterns 625, rows dependent 290, min_Q B = rank with Q below the sibling join 625, only with other Q 0, min_Q B > rank (C fails) 0, below rank (bug) 0
+all patterns (k=4, n=8, members 3): patterns 390625, rows dependent 190818, min_Q B = rank with Q below the sibling join 390625, only with other Q 0, min_Q B > rank (C fails) 0, below rank (bug) 0
+file 69_t2_def_8_16_3.txt (k=8, n=16, members 3): patterns 945, rows dependent 945, min_Q B = rank with Q below the sibling join 945, only with other Q 0, min_Q B > rank (C fails) 0, below rank (bug) 0
+file 69_t2_def_4_8_3_full.txt (k=4, n=8, members 3): patterns 336, rows dependent 48, min_Q B = rank with Q below the sibling join 336, only with other Q 0, min_Q B > rank (C fails) 0, below rank (bug) 0
+random patterns (k=8, n=16, members 3, weight >= 10, partitions, seed 1): patterns 20000, rows dependent 9643, min_Q B = rank with Q below the sibling join 20000, only with other Q 0, min_Q B > rank (C fails) 0, below rank (bug) 0
+file 69_t2_def_4_16_3.txt (k=4, n=16, members 3): patterns 27, rows dependent 27, min_Q B = rank with Q below the sibling join 27, only with other Q 0, min_Q B > rank (C fails) 0, below rank (bug) 0
+random patterns (k=4, n=16, members 3, weight >= 0, partitions, seed 2): patterns 20000, rows dependent 19976, min_Q B = rank with Q below the sibling join 20000, only with other Q 0, min_Q B > rank (C fails) 0, below rank (bug) 0
+FAIL rank 5 min_Q B 6 w 6: . 03/12 02/13 01/23 
+FAIL rank 5 min_Q B 6 w 6: 03/12 . 02/13 01/23 
+FAIL rank 5 min_Q B 6 w 6: . 02/13 03/12 01/23 
+FAIL rank 5 min_Q B 6 w 6: 02/13 . 03/12 01/23 
+FAIL rank 5 min_Q B 6 w 6: 03/12 02/13 . 01/23 
+FAIL rank 5 min_Q B 6 w 6: 02/13 03/12 . 01/23 
+FAIL rank 5 min_Q B 6 w 6: . 03/12 01/23 02/13 
+FAIL rank 5 min_Q B 6 w 6: 03/12 . 01/23 02/13 
+FAIL rank 5 min_Q B 6 w 6: . 01/23 03/12 02/13 
+FAIL rank 5 min_Q B 6 w 6: 01/23 . 03/12 02/13 
+FAIL rank 5 min_Q B 6 w 6: 03/12 01/23 . 02/13 
+FAIL rank 5 min_Q B 6 w 6: 01/23 03/12 . 02/13 
+FAIL rank 5 min_Q B 6 w 6: . 02/13 01/23 03/12 
+FAIL rank 5 min_Q B 6 w 6: 02/13 . 01/23 03/12 
+FAIL rank 5 min_Q B 6 w 6: . 01/23 02/13 03/12 
+FAIL rank 5 min_Q B 6 w 6: 01/23 . 02/13 03/12 
+FAIL rank 5 min_Q B 6 w 6: 02/13 01/23 . 03/12 
+FAIL rank 5 min_Q B 6 w 6: 01/23 02/13 . 03/12 
+FAIL rank 5 min_Q B 6 w 6: 03/12 02/13 01/23 . 
+FAIL rank 5 min_Q B 6 w 6: 02/13 03/12 01/23 . 
+FAIL rank 5 min_Q B 6 w 6: 03/12 01/23 02/13 . 
+FAIL rank 5 min_Q B 6 w 6: 01/23 03/12 02/13 . 
+FAIL rank 5 min_Q B 6 w 6: 02/13 01/23 03/12 . 
+FAIL rank 5 min_Q B 6 w 6: 01/23 02/13 03/12 . 
+all patterns (k=2, n=4, members 4): patterns 50625, rows dependent 29382, min_Q B = rank with Q below the sibling join 50601, only with other Q 0, min_Q B > rank (C fails) 24, below rank (bug) 0
+file 74_def_4_8_4.txt (k=4, n=8, members 4): patterns 1740, rows dependent 1740, min_Q B = rank with Q below the sibling join 1740, only with other Q 0, min_Q B > rank (C fails) 0, below rank (bug) 0
+== binary patterns (82_binary.c)
+table of binary patterns (v=0, r=1, members 3): 25 patterns written to 82_tmp/b_0_1_3.bin
+table of binary patterns (v=1, r=1, members 3): 625 patterns written to 82_tmp/b_1_1_3.bin
+all patterns (k=2, n=4, members 3): patterns 625, rows dependent 290, min_Q B = rank with Q below the sibling join 625, only with other Q 0, min_Q B > rank (C fails) 0, below rank (bug) 0
+table of binary patterns (v=0, r=1, members 4): 256 patterns written to 82_tmp/b_0_1_4.bin
+table of binary patterns (v=1, r=1, members 4): 65536 patterns written to 82_tmp/b_1_1_4.bin
+all patterns (k=2, n=4, members 4): patterns 65536, rows dependent 35355, min_Q B = rank with Q below the sibling join 65536, only with other Q 0, min_Q B > rank (C fails) 0, below rank (bug) 0
+file 74_def_4_8_4.txt (k=4, n=8, members 4): patterns 1740, rows dependent 1740, min_Q B = rank with Q below the sibling join 1740, only with other Q 0, min_Q B > rank (C fails) 0, below rank (bug) 0
+file 82_tmp/p76.txt (k=4, n=8, members 4): patterns 1, rows dependent 0, min_Q B = rank with Q below the sibling join 1, only with other Q 0, min_Q B > rank (C fails) 0, below rank (bug) 0
+random patterns (k=4, n=8, members 4, weight >= 6, class, seed 5): patterns 30000, rows dependent 14176, min_Q B = rank with Q below the sibling join 30000, only with other Q 0, min_Q B > rank (C fails) 0, below rank (bug) 0
+random patterns (k=4, n=8, members 4, weight >= 6, graphic, seed 5): patterns 30000, rows dependent 17325, min_Q B = rank with Q below the sibling join 30000, only with other Q 0, min_Q B > rank (C fails) 0, below rank (bug) 0
+random patterns (k=4, n=8, members 4, weight >= 6, binary, seed 5): patterns 30000, rows dependent 15615, min_Q B = rank with Q below the sibling join 30000, only with other Q 0, min_Q B > rank (C fails) 0, below rank (bug) 0
+file 82_tmp/p80.txt (k=8, n=16, members 3): patterns 1, rows dependent 0, min_Q B = rank with Q below the sibling join 1, only with other Q 0, min_Q B > rank (C fails) 0, below rank (bug) 0
+== the binary full part Q* (82_big.c)
+random binary patterns (k=4, n=8, members 3, weight >= 4, seed 1): patterns 20000, rows dependent 9888, B(P;Q*) = rank 20000, B = rank after descent 0, not certified 0, below (bug) 0
+file 69_t2_def_8_16_3.txt (k=8, n=16, members 3): patterns 945, rows dependent 945, B(P;Q*) = rank 945, B = rank after descent 0, not certified 0, below (bug) 0
+file 82_tmp/p80.txt (k=8, n=16, members 3): patterns 1, rows dependent 0, B(P;Q*) = rank 1, B = rank after descent 0, not certified 0, below (bug) 0
+random class patterns (k=4, n=8, members 4, weight >= 6, seed 1): patterns 5000, rows dependent 2357, B(P;Q*) = rank 5000, B = rank after descent 0, not certified 0, below (bug) 0
+random binary patterns (k=16, n=32, members 3, weight >= 24, seed 1): patterns 3000, rows dependent 1453, B(P;Q*) = rank 3000, B = rank after descent 0, not certified 0, below (bug) 0
+file 69_t2_def_8_16_3.txt, every leaf doubled (k=16, n=32, members 3): patterns 945, rows dependent 945, B(P;Q*) = rank 945, B = rank after descent 0, not certified 0, below (bug) 0
+file 82_tmp/p80.txt, every leaf doubled (k=16, n=32, members 3): patterns 1, rows dependent 0, B(P;Q*) = rank 1, B = rank after descent 0, not certified 0, below (bug) 0
+doubled random class patterns with 2 leaves redrawn (k=8, n=16, members 3, weight >= 8, seed 2): patterns 100000, rows dependent 56459, B(P;Q*) = rank 100000, B = rank after descent 0, not certified 0, below (bug) 0
+doubled random class patterns with 4 leaves redrawn (k=8, n=16, members 3, weight >= 8, seed 4): patterns 100000, rows dependent 54423, B(P;Q*) = rank 100000, B = rank after descent 0, not certified 0, below (bug) 0
+doubled random class patterns with 8 leaves redrawn (k=8, n=16, members 3, weight >= 8, seed 8): patterns 100000, rows dependent 52448, B(P;Q*) = rank 100000, B = rank after descent 0, not certified 0, below (bug) 0
+doubled random class patterns with 2 leaves redrawn (k=16, n=32, members 3, weight >= 16, seed 2): patterns 30000, rows dependent 16054, B(P;Q*) = rank 30000, B = rank after descent 0, not certified 0, below (bug) 0
+doubled random class patterns with 4 leaves redrawn (k=16, n=32, members 3, weight >= 16, seed 4): patterns 30000, rows dependent 15775, B(P;Q*) = rank 30000, B = rank after descent 0, not certified 0, below (bug) 0
+doubled random class patterns with 8 leaves redrawn (k=16, n=32, members 3, weight >= 16, seed 8): patterns 30000, rows dependent 15559, B(P;Q*) = rank 30000, B = rank after descent 0, not certified 0, below (bug) 0
+random class patterns (k=8, n=16, members 4, weight >= 14, seed 1): patterns 20000, rows dependent 7719, B(P;Q*) = rank 20000, B = rank after descent 0, not certified 0, below (bug) 0
+doubled random class patterns with 3 leaves redrawn (k=8, n=16, members 4, weight >= 12, seed 2): patterns 20000, rows dependent 10417, B(P;Q*) = rank 20000, B = rank after descent 0, not certified 0, below (bug) 0
+random binary patterns (k=8, n=16, members 4, weight >= 14, seed 3): patterns 10000, rows dependent 4792, B(P;Q*) = rank 10000, B = rank after descent 0, not certified 0, below (bug) 0
+doubled random class patterns with 4 leaves redrawn (k=16, n=32, members 4, weight >= 24, seed 5): patterns 2000, rows dependent 828, B(P;Q*) = rank 2000, B = rank after descent 0, not certified 0, below (bug) 0
+random class patterns (k=8, n=16, members 5, weight >= 18, seed 1): patterns 3000, rows dependent 949, B(P;Q*) = rank 3000, B = rank after descent 0, not certified 0, below (bug) 0
+doubled random class patterns with 3 leaves redrawn (k=8, n=16, members 5, weight >= 16, seed 2): patterns 3000, rows dependent 1500, B(P;Q*) = rank 3000, B = rank after descent 0, not certified 0, below (bug) 0
+random class patterns (k=4, n=8, members 6, weight >= 10, seed 1): patterns 3000, rows dependent 1426, B(P;Q*) = rank 3000, B = rank after descent 0, not certified 0, below (bug) 0
+random class patterns (k=4, n=16, members 6, weight >= 12, seed 2): patterns 2000, rows dependent 2000, B(P;Q*) = rank 2000, B = rank after descent 0, not certified 0, below (bug) 0
+doubled random class patterns with 3 leaves redrawn (k=8, n=16, members 6, weight >= 20, seed 3): patterns 1000, rows dependent 541, B(P;Q*) = rank 1000, B = rank after descent 0, not certified 0, below (bug) 0
+random graphic patterns (k=4, n=8, members 6, weight >= 10, seed 4): patterns 2000, rows dependent 1496, B(P;Q*) = rank 2000, B = rank after descent 0, not certified 0, below (bug) 0
+random binary patterns (k=4, n=8, members 6, weight >= 8, seed 21): patterns 40000, rows dependent 19156, B(P;Q*) = rank 40000, B = rank after descent 0, not certified 0, below (bug) 0
+random graphic patterns (k=4, n=8, members 6, weight >= 8, seed 22): patterns 40000, rows dependent 29904, B(P;Q*) = rank 40000, B = rank after descent 0, not certified 0, below (bug) 0
+random class patterns (k=4, n=8, members 6, weight >= 10, seed 23): patterns 40000, rows dependent 19470, B(P;Q*) = rank 40000, B = rank after descent 0, not certified 0, below (bug) 0
+random graphic patterns (k=4, n=16, members 6, weight >= 8, seed 24): patterns 20000, rows dependent 20000, B(P;Q*) = rank 20000, B = rank after descent 0, not certified 0, below (bug) 0
+== Pappus (six members, rate 1/4) and its lifts
+w 43, L*k 40, rank 39, B(P;Q*) 39, weight of Q* 20, rank of Q* 18; Q* = 01+02 01+02 03+14 03+14 23+15 23+15 24+05 24+05 34+35 34+35 . . . . . . 
+file 82_tmp/pappus_lift.txt (k=8, n=32, members 6): patterns 1, rows dependent 1, B(P;Q*) = rank 1, B = rank after descent 0, not certified 0, below (bug) 0
+w 20, L*k 20, rank 18, B(P;Q*) 18, weight of Q* 10, rank of Q* 9; Q* = 01+02 03+14 23+15 24+05 34+35 . . . 
+file 82_tmp/pappus_mid.txt (k=4, n=16, members 6): patterns 1, rows dependent 1, B(P;Q*) = rank 1, B = rank after descent 0, not certified 0, below (bug) 0
+w 10, L*k 10, rank 9, B(P;Q*) 10, weight of Q* 0, rank of Q* 0; Q* = . . . . 
+OPEN rank 9 w 10 best B found 10 (B at Q* 10): 01+02 03+14 23+15 24+05 34+35 . . . 
+file 82_tmp/pappus.txt (k=2, n=8, members 6): patterns 1, rows dependent 1, B(P;Q*) = rank 0, B = rank after descent 0, not certified 1, below (bug) 0
+w 8, L*k 8, rank 7, B(P;Q*) 7, weight of Q* 3, rank of Q* 3; Q* = . 12 02 01 
+file 82_tmp/basic.txt (k=4, n=8, members 3): patterns 1, rows dependent 1, B(P;Q*) = rank 1, B = rank after descent 0, not certified 0, below (bug) 0
+== k = 2 (82_k2.c)
+FAIL rank 9 min 10: 01+02 03+14 23+15 24+05 34+35 
+FAIL rank 9 min 10: 01+02 03+24 13+25 14+05 34+35 
+FAIL rank 9 min 10: 01+02 03+15 23+14 04+25 34+35 
+FAIL rank 9 min 10: 01+02 03+25 13+24 04+15 34+35 
+FAIL rank 9 min 10: 01+02 13+04 23+05 24+15 34+35 
+FAIL rank 9 min 10: 01+02 13+05 23+04 14+25 34+35 
+FAIL rank 9 min 10: 01+03 02+14 23+15 24+25 34+05 
+FAIL rank 9 min 10: 01+03 02+34 12+35 14+05 24+25 
+FAIL rank 9 min 10: 01+03 02+15 23+14 04+35 24+25 
+FAIL rank 9 min 10: 01+03 02+35 12+34 04+15 24+25 
+FAIL rank 9 min 10: 01+03 12+04 23+05 24+25 34+15 
+FAIL rank 9 min 10: 01+03 12+05 23+04 14+35 24+25 
+k=2, members 6, all 5-subsets of the 65 graphic planes: 8259888, rank below 10: 5049672, min over Theta > rank: 132, below (bug) 0
+k=2, members 6, 8 leaves, random graphic patterns of weight >= 8 (203 kinds of leaf): patterns 200000, rows dependent 200000, min over Theta > rank 0, below (bug) 0
+k=2, members 6, 8 leaves, random class patterns of weight >= 8 (58 kinds of leaf): patterns 200000, rows dependent 199760, min over Theta > rank 0, below (bug) 0
+k=2, members 6, 6 leaves, random binary patterns of weight >= 8 (374 kinds of leaf): patterns 200000, rows dependent 198957, min over Theta > rank 0, below (bug) 0
+k=2, members 5, 5 leaves, random binary patterns of weight >= 6 (67 kinds of leaf): patterns 300000, rows dependent 267435, min over Theta > rank 0, below (bug) 0
+k=2, members 5, 6 leaves, random binary patterns of weight >= 6 (67 kinds of leaf): patterns 300000, rows dependent 295335, min over Theta > rank 0, below (bug) 0
+k=2, members 5, 8 leaves, random binary patterns of weight >= 6 (67 kinds of leaf): patterns 300000, rows dependent 299962, min over Theta > rank 0, below (bug) 0
+k=2, members 4, 8 leaves, random class patterns of weight >= 0 (12 kinds of leaf): patterns 200000, rows dependent 199034, min over Theta > rank 0, below (bug) 0
+k=2, members 5, 8 leaves, random class patterns of weight >= 0 (27 kinds of leaf): patterns 200000, rows dependent 199510, min over Theta > rank 0, below (bug) 0
+k=2, members 6, 8 leaves, random class patterns of weight >= 0 (58 kinds of leaf): patterns 200000, rows dependent 199775, min over Theta > rank 0, below (bug) 0
+k=2, members 6, 4 leaves, random class patterns of weight >= 0 (58 kinds of leaf): patterns 200000, rows dependent 114338, min over Theta > rank 0, below (bug) 0
+k=2, members 6, 5 leaves, random class patterns of weight >= 0 (58 kinds of leaf): patterns 200000, rows dependent 167326, min over Theta > rank 0, below (bug) 0
+k=2, members 6, 6 leaves, random class patterns of weight >= 0 (58 kinds of leaf): patterns 200000, rows dependent 191357, min over Theta > rank 0, below (bug) 0
+k=2, members 6, 4 leaves, random binary patterns of weight >= 0 (374 kinds of leaf): patterns 300000, rows dependent 175223, min over Theta > rank 0, below (bug) 0
+k=2, members 7, 4 leaves, random binary patterns of weight >= 0 (2825 kinds of leaf): patterns 100000, rows dependent 57814, min over Theta > rank 0, below (bug) 0
+FAIL rank 9 min 10 w 10: 23+05 01+2345 12+14 0124+0125 34+15 
+k=2, members 6, 5 leaves, random binary patterns of weight >= 0 (374 kinds of leaf): patterns 300000, rows dependent 277419, min over Theta > rank 1, below (bug) 0
+k=2, members 4, all multisets of 5 proper nonzero binary subspaces (14 kinds): 8568, rank below min(w, 2L): 2422, min over Theta > rank: 0, below (bug) 0
+k=2, members 4, all multisets of 6 proper nonzero binary subspaces (14 kinds): 27132, rank below min(w, 2L): 4312, min over Theta > rank: 0, below (bug) 0
+k=2, members 4, all multisets of 7 proper nonzero binary subspaces (14 kinds): 77520, rank below min(w, 2L): 6524, min over Theta > rank: 0, below (bug) 0
+k=2, members 4, all multisets of 8 proper nonzero binary subspaces (14 kinds): 203490, rank below min(w, 2L): 9359, min over Theta > rank: 0, below (bug) 0
+k=2, members 5, all multisets of 5 proper nonzero binary subspaces (65 kinds): 11238513, rank below min(w, 2L): 2113150, min over Theta > rank: 0, below (bug) 0
+== the full-part tuple is not exact (82_fullpart.py)
+rank, kernel dim, det of the block form, slope of nu, rank after adding nu (x) g (x) F^2:
+ t_j = 12345: (7, 1, 0, 2130038817370567465, 7)
+ t_j = 67890: (7, 1, 0, 1112879747846766590, 7)
+rank 7 = w: True | block form of rank one: True | nu (x) g (x) F^2 inside R: True | nu moves with t_j: True

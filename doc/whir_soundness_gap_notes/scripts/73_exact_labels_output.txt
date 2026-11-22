@@ -1,0 +1,46 @@
+GF(2^4) T1, T_j MDS:
+    Y = 1 node, D = 5: P[tight] = 7.402e-01; g>=1: 2896/1048576 = 2.762e-03 (bound 9.091e-02, ratio 0.030); g>=2: 16/1048576 = 1.526e-05 (bound 5.682e-03, ratio 0.003)
+    Y = 2 nodes, D = 4: P[tight] = 4.785e-02; g>=1: 3136/65536 = 4.785e-02 (bound 8.333e-02, ratio 0.574); g>=2: 16/65536 = 2.441e-04 (bound 5.208e-03, ratio 0.047)
+    Y = 2 nodes, D = 5: P[tight] = 2.762e-03; g>=1: 2896/1048576 = 2.762e-03 (bound 9.091e-02, ratio 0.030); g>=2: 2896/1048576 = 2.762e-03 (bound 5.682e-03, ratio 0.486); g>=3: 16/1048576 = 1.526e-05 (bound 3.551e-04, ratio 0.043)
+    Y = 3 nodes, D = 2: P[tight] = 6.250e-02; g>=1: 16/256 = 6.250e-02 (bound 7.143e-02, ratio 0.875)
+    Y = 3 nodes, D = 3: P[tight] = 3.906e-03; g>=1: 16/4096 = 3.906e-03 (bound 7.692e-02, ratio 0.051); g>=2: 16/4096 = 3.906e-03 (bound 4.808e-03, ratio 0.812)
+    Y empty, D = 5: P[tight] = 9.989e-01; g>=1: 16/1048576 = 1.526e-05 (bound 9.091e-02, ratio 0.000)
+GF(2^4) T1, T_j defective:
+    Y = 1 node, D = 5: P[tight] = 7.402e-01; g>=1: 2896/1048576 = 2.762e-03 (bound 9.091e-02, ratio 0.030); g>=2: 16/1048576 = 1.526e-05 (bound 5.682e-03, ratio 0.003)
+    Y = 2 nodes, D = 4: P[tight] = 5.151e-02; g>=1: 3376/65536 = 5.151e-02 (bound 8.333e-02, ratio 0.618); g>=2: 16/65536 = 2.441e-04 (bound 5.208e-03, ratio 0.047)
+    Y = 2 nodes, D = 5: P[tight] = 2.991e-03; g>=1: 3136/1048576 = 2.991e-03 (bound 9.091e-02, ratio 0.033); g>=2: 3136/1048576 = 2.991e-03 (bound 5.682e-03, ratio 0.526); g>=3: 16/1048576 = 1.526e-05 (bound 3.551e-04, ratio 0.043)
+    Y = 3 nodes, D = 2: P[tight] = 6.250e-02; g>=1: 16/256 = 6.250e-02 (bound 7.143e-02, ratio 0.875)
+    Y = 3 nodes, D = 3: P[tight] = 3.906e-03; g>=1: 16/4096 = 3.906e-03 (bound 7.692e-02, ratio 0.051); g>=2: 16/4096 = 3.906e-03 (bound 4.808e-03, ratio 0.812)
+    Y empty, D = 5: P[tight] = 9.989e-01; g>=1: 16/1048576 = 1.526e-05 (bound 9.091e-02, ratio 0.000)
+    Y = singular 4-subset, D = 2: P[tight] = 6.250e-02; g>=1: 16/256 = 6.250e-02 (bound 7.143e-02, ratio 0.875)
+    Y = singular 4-subset, D = 3: P[tight] = 3.906e-03; g>=1: 16/4096 = 3.906e-03 (bound 7.692e-02, ratio 0.051); g>=2: 16/4096 = 3.906e-03 (bound 4.808e-03, ratio 0.812)
+    Y = 3 of the singular 4, D = 3: P[tight] = 0.000e+00; no fresh excess for any t
+GF(2^4) T2, T_j MDS:
+    Y = 1 node, D = 5: P[tight] = 7.402e-01; g>=1: 2896/1048576 = 2.762e-03 (bound 9.091e-02, ratio 0.030); g>=2: 16/1048576 = 1.526e-05 (bound 5.682e-03, ratio 0.003)
+    Y = 2 nodes, D = 4: P[tight] = 4.785e-02; g>=1: 3136/65536 = 4.785e-02 (bound 8.333e-02, ratio 0.574); g>=2: 16/65536 = 2.441e-04 (bound 5.208e-03, ratio 0.047)
+    Y = 2 nodes, D = 5: P[tight] = 2.762e-03; g>=1: 2896/1048576 = 2.762e-03 (bound 9.091e-02, ratio 0.030); g>=2: 2896/1048576 = 2.762e-03 (bound 5.682e-03, ratio 0.486); g>=3: 16/1048576 = 1.526e-05 (bound 3.551e-04, ratio 0.043)
+    Y = 3 nodes, D = 2: P[tight] = 6.250e-02; g>=1: 16/256 = 6.250e-02 (bound 7.143e-02, ratio 0.875)
+    Y = 3 nodes, D = 3: P[tight] = 3.906e-03; g>=1: 16/4096 = 3.906e-03 (bound 7.692e-02, ratio 0.051); g>=2: 16/4096 = 3.906e-03 (bound 4.808e-03, ratio 0.812)
+    Y empty, D = 5: P[tight] = 9.989e-01; g>=1: 16/1048576 = 1.526e-05 (bound 9.091e-02, ratio 0.000)
+GF(2^4) T2, T_j defective:
+    Y = 1 node, D = 5: P[tight] = 7.402e-01; g>=1: 2896/1048576 = 2.762e-03 (bound 9.091e-02, ratio 0.030); g>=2: 16/1048576 = 1.526e-05 (bound 5.682e-03, ratio 0.003)
+    Y = 2 nodes, D = 4: P[tight] = 4.785e-02; g>=1: 3136/65536 = 4.785e-02 (bound 8.333e-02, ratio 0.574); g>=2: 16/65536 = 2.441e-04 (bound 5.208e-03, ratio 0.047)
+    Y = 2 nodes, D = 5: P[tight] = 2.762e-03; g>=1: 2896/1048576 = 2.762e-03 (bound 9.091e-02, ratio 0.030); g>=2: 2896/1048576 = 2.762e-03 (bound 5.682e-03, ratio 0.486); g>=3: 16/1048576 = 1.526e-05 (bound 3.551e-04, ratio 0.043)
+    Y = 3 nodes, D = 2: P[tight] = 6.250e-02; g>=1: 16/256 = 6.250e-02 (bound 7.143e-02, ratio 0.875)
+    Y = 3 nodes, D = 3: P[tight] = 3.906e-03; g>=1: 16/4096 = 3.906e-03 (bound 7.692e-02, ratio 0.051); g>=2: 16/4096 = 3.906e-03 (bound 4.808e-03, ratio 0.812)
+    Y empty, D = 5: P[tight] = 9.989e-01; g>=1: 16/1048576 = 1.526e-05 (bound 9.091e-02, ratio 0.000)
+    Y = singular 4-subset, D = 2: P[tight] = 6.250e-02; g>=1: 16/256 = 6.250e-02 (bound 7.143e-02, ratio 0.875)
+    Y = singular 4-subset, D = 3: P[tight] = 3.906e-03; g>=1: 16/4096 = 3.906e-03 (bound 7.692e-02, ratio 0.051); g>=2: 16/4096 = 3.906e-03 (bound 4.808e-03, ratio 0.812)
+    Y = 3 of the singular 4, D = 3: P[tight] = 0.000e+00; no fresh excess for any t
+GF(2^8) T1, T_j MDS:
+    Y = 3 nodes, D = 2: P[tight] = 3.906e-03; g>=1: 256/65536 = 3.906e-03 (bound 3.937e-03, ratio 0.992)
+GF(2^8) T1, T_j defective:
+    Y = 3 nodes, D = 2: P[tight] = 3.906e-03; g>=1: 256/65536 = 3.906e-03 (bound 3.937e-03, ratio 0.992)
+    Y = singular 4-subset, D = 2: P[tight] = 3.906e-03; g>=1: 256/65536 = 3.906e-03 (bound 3.937e-03, ratio 0.992)
+GF(2^8) T2, T_j MDS:
+    Y = 3 nodes, D = 2: P[tight] = 3.906e-03; g>=1: 256/65536 = 3.906e-03 (bound 3.937e-03, ratio 0.992)
+GF(2^8) T2, T_j defective:
+    Y = 3 nodes, D = 2: P[tight] = 0.000e+00; no fresh excess for any t
+    Y = singular 4-subset, D = 2: P[tight] = 3.906e-03; g>=1: 256/65536 = 3.906e-03 (bound 3.937e-03, ratio 0.992)
+largest exact ratio P[tight, G >= g] / (q^-g / (1 - d/q)) over all labels: 0.9922
+/usr/bin/python3 73_exact_labels.py  296.56s user 1.54s system 99% cpu 4:58.78 total

@@ -1,0 +1,428 @@
+=== python3 51_profiles.py a=0.7065 lg=25 depth=8
+selfcheck: R and N agree with 41_counts.py and with the defining sums (3000 random arguments)
+n = 2^25, Delta = 16777221, a = 1413/2000, A = 23706207
+  even certificate (q, m) = (2, 17): d = 24, delta <= 12, W <= 201502759 = 6.0053 n
+  even certificate (q, m) = (4, 23): d = 32, delta <= 8, W <= 136310690 = 4.0624 n
+  even certificate (q, m) = (8, 40): d = 56, delta <= 7, W <= 118531034 = 3.5325 n
+  even certificate (q, m) = (16, 74): d = 104, delta <= 6, W <= 109641207 = 3.2676 n
+  even certificate (q, m) = (32, 144): d = 203, delta <= 6, W <= 106677931 = 3.1793 n
+  even certificate (q, m) = (64, 284): d = 401, delta <= 6, W <= 105196293 = 3.1351 n
+  even certificate (q, m) = (128, 564): d = 796, delta <= 6, W <= 104455474 = 3.1130 n
+  even certificate (q, m) = (256, 1123): d = 1586, delta <= 6, W <= 103992462 = 3.0992 n
+  even certificate (q, m) = (512, 2242): d = 3167, delta <= 6, W <= 103807257 = 3.0937 n
+survivor with more than delta * 3167 members: W <= 103807257 = 3.0937 n, delta <= 6
+case K0 K=0 Dc=1 kind=gen: J = 1, 1 cells, 473 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x1
+case K0 K=0 Dc=2 kind=gen: J = 2, 9 cells, 4314 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x3, (960, 386, 'L1') x2
+case K0 K=0 Dc=3 kind=gen: J = 3, 23 cells, 11342 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x6, (960, 386, 'L1') x5, (480, 186, 'B') x1
+case K0 K=0 Dc=4 kind=gen: J = 4, 89 cells, 44802 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x30, (960, 386, 'L1') x7, (960, 386, 'floor') x6, (480, 170, 'B') x1, (240, 82, 'B') x1
+case K0 K=0 Dc=5 kind=gen: J = 5, 415 cells, 220224 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x135, (960, 386, 'floor') x35, (960, 386, 'L1') x30, (240, 90, 'B') x3, (480, 186, 'B') x2, (120, 42, 'B') x1
+case K0 K=0 Dc=6 kind=gen: J = 6, 1077 cells, 631816 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x385, (960, 386, 'L1') x75, (960, 386, 'floor') x70, (240, 90, 'B') x3, (240, 86, 'B') x3, (480, 186, 'B') x2
+case K1 K=1 Dc=3 kind=gen: J = 3, 3 cells, 2413 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x1, (960, 386, 'B') x1
+case K1 K=1 Dc=4 kind=gen: J = 4, 123 cells, 99991 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x38, (960, 386, 'floor') x14, (960, 370, 'floor') x3, (960, 386, 'L1') x2, (960, 226, 'floor') x1, (960, 370, 'B') x1
+case K1 K=1 Dc=5 kind=gen: J = 5, 257 cells, 213485 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x88, (960, 386, 'floor') x29, (960, 386, 'L2(2)') x8, (240, 90, 'B') x1, (480, 178, 'B') x1, (480, 186, 'B') x1
+case K1 K=1 Dc=6 kind=gen: J = 6, 423 cells, 362813 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x135, (960, 386, 'floor') x55, (960, 386, 'L2(2)') x19, (120, 42, 'floor') x1, (960, 370, 'B') x1, (480, 178, 'B') x1
+case K2nondeg K=2 Dc=5 kind=nondeg: J = 5, 87 cells, 98779 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x26, (960, 386, 'T') x12, (960, 386, 'L1') x3, (960, 290, 'floor') x1, (960, 370, 'L1') x1, (960, 370, 'B') x1
+case K2dep K=2 Dc=5 kind=dep: J = 5, 89 cells, 157237 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x31, (960, 386, 'D(2)') x12, (960, 386, 'L1') x1, (960, 370, 'B') x1
+case K2dep K=2 Dc=6 kind=dep: J = 6, 195 cells, 382415 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x58, (960, 386, 'floor') x40
+case K2sextic K=2 Dc=6 kind=gen: J = 6, 195 cells, 198725 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x58, (960, 386, 'floor') x40
+case K2deg K=2 Dc=5 kind=gen: J = 5, 6122 cells, 5976997 evaluations, largest m used 960, open minimal cells: 912
+    most used (m, B, bound): (960, 386, 'B') x270, (960, 274, 'B') x133, (960, 258, 'B') x133, (960, 210, 'B') x130, (960, 290, 'B') x129, (960, 242, 'B') x128
+    open region: x_1 in [0.0000, 0.0859]
+    open region: x_2 in [0.9102, 1.0000]
+    open region: x_3 in [0.0000, 0.0430]
+    open region: x_4 in [0.0000, 0.0117]
+    open region: x_5 in [0.0000, 0.0078]
+    open region: x_0 in [0.0000, 0.0234]
+    open region: W in [84235620, 92960839) = [2.5104, 2.7704) n   (rigorous outer bounds over the open cells)
+=== python3 51_profiles.py a=0.7065 lg=26 depth=8
+selfcheck: R and N agree with 41_counts.py and with the defining sums (3000 random arguments)
+n = 2^26, Delta = 33554437, a = 1413/2000, A = 47412413
+  even certificate (q, m) = (2, 17): d = 24, delta <= 12, W <= 403005510 = 6.0053 n
+  even certificate (q, m) = (4, 23): d = 32, delta <= 8, W <= 272621374 = 4.0624 n
+  even certificate (q, m) = (8, 40): d = 56, delta <= 7, W <= 237062064 = 3.5325 n
+  even certificate (q, m) = (16, 74): d = 104, delta <= 6, W <= 219282410 = 3.2676 n
+  even certificate (q, m) = (32, 144): d = 203, delta <= 6, W <= 213355858 = 3.1793 n
+  even certificate (q, m) = (64, 284): d = 401, delta <= 6, W <= 210392582 = 3.1351 n
+  even certificate (q, m) = (128, 564): d = 796, delta <= 6, W <= 208910944 = 3.1130 n
+  even certificate (q, m) = (256, 1123): d = 1586, delta <= 6, W <= 207984921 = 3.0992 n
+  even certificate (q, m) = (512, 2242): d = 3167, delta <= 6, W <= 207614511 = 3.0937 n
+survivor with more than delta * 3167 members: W <= 207614511 = 3.0937 n, delta <= 6
+case K0 K=0 Dc=1 kind=gen: J = 1, 1 cells, 473 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x1
+case K0 K=0 Dc=2 kind=gen: J = 2, 9 cells, 4314 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x3, (960, 386, 'L1') x2
+case K0 K=0 Dc=3 kind=gen: J = 3, 23 cells, 11342 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x6, (960, 386, 'L1') x5, (480, 186, 'B') x1
+case K0 K=0 Dc=4 kind=gen: J = 4, 89 cells, 44802 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x30, (960, 386, 'L1') x7, (960, 386, 'floor') x6, (480, 170, 'B') x1, (240, 82, 'B') x1
+case K0 K=0 Dc=5 kind=gen: J = 5, 415 cells, 220224 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x135, (960, 386, 'floor') x35, (960, 386, 'L1') x30, (240, 90, 'B') x3, (480, 186, 'B') x2, (120, 42, 'B') x1
+case K0 K=0 Dc=6 kind=gen: J = 6, 1077 cells, 631816 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x385, (960, 386, 'L1') x75, (960, 386, 'floor') x70, (240, 90, 'B') x3, (240, 86, 'B') x3, (480, 186, 'B') x2
+case K1 K=1 Dc=3 kind=gen: J = 3, 3 cells, 2413 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x1, (960, 386, 'B') x1
+case K1 K=1 Dc=4 kind=gen: J = 4, 123 cells, 99991 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x38, (960, 386, 'floor') x14, (960, 370, 'floor') x3, (960, 386, 'L1') x2, (960, 226, 'floor') x1, (960, 370, 'B') x1
+case K1 K=1 Dc=5 kind=gen: J = 5, 257 cells, 213485 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x88, (960, 386, 'floor') x29, (960, 386, 'L2(2)') x8, (240, 90, 'B') x1, (480, 178, 'B') x1, (480, 186, 'B') x1
+case K1 K=1 Dc=6 kind=gen: J = 6, 423 cells, 362813 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x135, (960, 386, 'floor') x55, (960, 386, 'L2(2)') x19, (120, 42, 'floor') x1, (960, 370, 'B') x1, (480, 178, 'B') x1
+case K2nondeg K=2 Dc=5 kind=nondeg: J = 5, 87 cells, 98779 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x26, (960, 386, 'T') x12, (960, 386, 'L1') x3, (960, 290, 'floor') x1, (960, 370, 'L1') x1, (960, 370, 'B') x1
+case K2dep K=2 Dc=5 kind=dep: J = 5, 89 cells, 157237 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x31, (960, 386, 'D(2)') x12, (960, 386, 'L1') x1, (960, 370, 'B') x1
+case K2dep K=2 Dc=6 kind=dep: J = 6, 195 cells, 382415 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x58, (960, 386, 'floor') x40
+case K2sextic K=2 Dc=6 kind=gen: J = 6, 195 cells, 198725 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x58, (960, 386, 'floor') x40
+case K2deg K=2 Dc=5 kind=gen: J = 5, 6122 cells, 5976998 evaluations, largest m used 960, open minimal cells: 912
+    most used (m, B, bound): (960, 386, 'B') x270, (960, 274, 'B') x133, (960, 258, 'B') x133, (960, 210, 'B') x130, (960, 290, 'B') x129, (960, 242, 'B') x128
+    open region: x_1 in [0.0000, 0.0859]
+    open region: x_2 in [0.9102, 1.0000]
+    open region: x_3 in [0.0000, 0.0430]
+    open region: x_4 in [0.0000, 0.0117]
+    open region: x_5 in [0.0000, 0.0078]
+    open region: x_0 in [0.0000, 0.0234]
+    open region: W in [168471225, 185921635) = [2.5104, 2.7704) n   (rigorous outer bounds over the open cells)
+=== python3 51_profiles.py a=0.7065 lg=27 depth=8
+selfcheck: R and N agree with 41_counts.py and with the defining sums (3000 random arguments)
+n = 2^27, Delta = 67108869, a = 1413/2000, A = 94824825
+  even certificate (q, m) = (2, 17): d = 24, delta <= 12, W <= 806011012 = 6.0053 n
+  even certificate (q, m) = (4, 23): d = 32, delta <= 8, W <= 545242743 = 4.0624 n
+  even certificate (q, m) = (8, 40): d = 56, delta <= 7, W <= 474124124 = 3.5325 n
+  even certificate (q, m) = (16, 74): d = 104, delta <= 6, W <= 438564815 = 3.2676 n
+  even certificate (q, m) = (32, 144): d = 203, delta <= 6, W <= 426711712 = 3.1793 n
+  even certificate (q, m) = (64, 284): d = 401, delta <= 6, W <= 420785160 = 3.1351 n
+  even certificate (q, m) = (128, 564): d = 796, delta <= 6, W <= 417821885 = 3.1130 n
+  even certificate (q, m) = (256, 1123): d = 1586, delta <= 6, W <= 415969837 = 3.0992 n
+  even certificate (q, m) = (512, 2242): d = 3167, delta <= 6, W <= 415229018 = 3.0937 n
+survivor with more than delta * 3167 members: W <= 415229018 = 3.0937 n, delta <= 6
+case K0 K=0 Dc=1 kind=gen: J = 1, 1 cells, 473 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x1
+case K0 K=0 Dc=2 kind=gen: J = 2, 9 cells, 4314 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x3, (960, 386, 'L1') x2
+case K0 K=0 Dc=3 kind=gen: J = 3, 23 cells, 11342 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x6, (960, 386, 'L1') x5, (480, 186, 'B') x1
+case K0 K=0 Dc=4 kind=gen: J = 4, 89 cells, 44802 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x30, (960, 386, 'L1') x7, (960, 386, 'floor') x6, (480, 170, 'B') x1, (240, 82, 'B') x1
+case K0 K=0 Dc=5 kind=gen: J = 5, 415 cells, 220224 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x135, (960, 386, 'floor') x35, (960, 386, 'L1') x30, (240, 90, 'B') x3, (480, 186, 'B') x2, (120, 42, 'B') x1
+case K0 K=0 Dc=6 kind=gen: J = 6, 1077 cells, 631816 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x385, (960, 386, 'L1') x75, (960, 386, 'floor') x70, (240, 90, 'B') x3, (240, 86, 'B') x3, (480, 186, 'B') x2
+case K1 K=1 Dc=3 kind=gen: J = 3, 3 cells, 2413 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x1, (960, 386, 'B') x1
+case K1 K=1 Dc=4 kind=gen: J = 4, 123 cells, 99991 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x38, (960, 386, 'floor') x14, (960, 370, 'floor') x3, (960, 386, 'L1') x2, (960, 226, 'floor') x1, (960, 370, 'B') x1
+case K1 K=1 Dc=5 kind=gen: J = 5, 257 cells, 213485 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x88, (960, 386, 'floor') x29, (960, 386, 'L2(2)') x8, (240, 90, 'B') x1, (480, 178, 'B') x1, (480, 186, 'B') x1
+case K1 K=1 Dc=6 kind=gen: J = 6, 423 cells, 362813 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x135, (960, 386, 'floor') x55, (960, 386, 'L2(2)') x19, (120, 42, 'floor') x1, (960, 370, 'B') x1, (480, 178, 'B') x1
+case K2nondeg K=2 Dc=5 kind=nondeg: J = 5, 87 cells, 98779 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x26, (960, 386, 'T') x12, (960, 386, 'L1') x3, (960, 290, 'floor') x1, (960, 370, 'L1') x1, (960, 370, 'B') x1
+case K2dep K=2 Dc=5 kind=dep: J = 5, 89 cells, 157237 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x31, (960, 386, 'D(2)') x12, (960, 386, 'L1') x1, (960, 370, 'B') x1
+case K2dep K=2 Dc=6 kind=dep: J = 6, 195 cells, 382415 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x58, (960, 386, 'floor') x40
+case K2sextic K=2 Dc=6 kind=gen: J = 6, 195 cells, 198725 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x58, (960, 386, 'floor') x40
+case K2deg K=2 Dc=5 kind=gen: J = 5, 6122 cells, 5976998 evaluations, largest m used 960, open minimal cells: 912
+    most used (m, B, bound): (960, 386, 'B') x270, (960, 274, 'B') x133, (960, 258, 'B') x133, (960, 210, 'B') x130, (960, 290, 'B') x129, (960, 242, 'B') x128
+    open region: x_1 in [0.0000, 0.0859]
+    open region: x_2 in [0.9102, 1.0000]
+    open region: x_3 in [0.0000, 0.0430]
+    open region: x_4 in [0.0000, 0.0117]
+    open region: x_5 in [0.0000, 0.0078]
+    open region: x_0 in [0.0000, 0.0234]
+    open region: W in [336942436, 371843225) = [2.5104, 2.7704) n   (rigorous outer bounds over the open cells)
+=== python3 51_profiles.py a=0.7065 lg=28 depth=8
+selfcheck: R and N agree with 41_counts.py and with the defining sums (3000 random arguments)
+n = 2^28, Delta = 134217733, a = 1413/2000, A = 189649650
+  even certificate (q, m) = (2, 17): d = 24, delta <= 12, W <= 1612022024 = 6.0053 n
+  even certificate (q, m) = (4, 23): d = 32, delta <= 8, W <= 1090485487 = 4.0624 n
+  even certificate (q, m) = (8, 40): d = 56, delta <= 7, W <= 948248249 = 3.5325 n
+  even certificate (q, m) = (16, 74): d = 104, delta <= 6, W <= 877129631 = 3.2676 n
+  even certificate (q, m) = (32, 144): d = 203, delta <= 6, W <= 853423424 = 3.1793 n
+  even certificate (q, m) = (64, 284): d = 401, delta <= 6, W <= 841570321 = 3.1351 n
+  even certificate (q, m) = (128, 564): d = 796, delta <= 6, W <= 835643770 = 3.1130 n
+  even certificate (q, m) = (256, 1123): d = 1586, delta <= 6, W <= 831939675 = 3.0992 n
+  even certificate (q, m) = (512, 2242): d = 3167, delta <= 6, W <= 830458037 = 3.0937 n
+survivor with more than delta * 3167 members: W <= 830458037 = 3.0937 n, delta <= 6
+case K0 K=0 Dc=1 kind=gen: J = 1, 1 cells, 473 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x1
+case K0 K=0 Dc=2 kind=gen: J = 2, 9 cells, 4314 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x3, (960, 386, 'L1') x2
+case K0 K=0 Dc=3 kind=gen: J = 3, 23 cells, 11342 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x6, (960, 386, 'L1') x5, (480, 186, 'B') x1
+case K0 K=0 Dc=4 kind=gen: J = 4, 89 cells, 44802 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x30, (960, 386, 'L1') x7, (960, 386, 'floor') x6, (480, 170, 'B') x1, (240, 82, 'B') x1
+case K0 K=0 Dc=5 kind=gen: J = 5, 415 cells, 220224 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x135, (960, 386, 'floor') x35, (960, 386, 'L1') x30, (240, 90, 'B') x3, (480, 186, 'B') x2, (120, 42, 'B') x1
+case K0 K=0 Dc=6 kind=gen: J = 6, 1077 cells, 631816 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x385, (960, 386, 'L1') x75, (960, 386, 'floor') x70, (240, 90, 'B') x3, (240, 86, 'B') x3, (480, 186, 'B') x2
+case K1 K=1 Dc=3 kind=gen: J = 3, 3 cells, 2413 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x1, (960, 386, 'B') x1
+case K1 K=1 Dc=4 kind=gen: J = 4, 123 cells, 99991 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x38, (960, 386, 'floor') x14, (960, 370, 'floor') x3, (960, 386, 'L1') x2, (960, 226, 'floor') x1, (960, 370, 'B') x1
+case K1 K=1 Dc=5 kind=gen: J = 5, 257 cells, 213485 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x88, (960, 386, 'floor') x29, (960, 386, 'L2(2)') x8, (240, 90, 'B') x1, (480, 178, 'B') x1, (480, 186, 'B') x1
+case K1 K=1 Dc=6 kind=gen: J = 6, 423 cells, 362813 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x135, (960, 386, 'floor') x55, (960, 386, 'L2(2)') x19, (120, 42, 'floor') x1, (960, 370, 'B') x1, (480, 178, 'B') x1
+case K2nondeg K=2 Dc=5 kind=nondeg: J = 5, 87 cells, 98779 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x26, (960, 386, 'T') x12, (960, 386, 'L1') x3, (960, 290, 'floor') x1, (960, 370, 'L1') x1, (960, 370, 'B') x1
+case K2dep K=2 Dc=5 kind=dep: J = 5, 89 cells, 157237 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x31, (960, 386, 'D(2)') x12, (960, 386, 'L1') x1, (960, 370, 'B') x1
+case K2dep K=2 Dc=6 kind=dep: J = 6, 195 cells, 382415 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x58, (960, 386, 'floor') x40
+case K2sextic K=2 Dc=6 kind=gen: J = 6, 195 cells, 198725 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x58, (960, 386, 'floor') x40
+case K2deg K=2 Dc=5 kind=gen: J = 5, 6122 cells, 5976998 evaluations, largest m used 960, open minimal cells: 912
+    most used (m, B, bound): (960, 386, 'B') x270, (960, 274, 'B') x133, (960, 258, 'B') x133, (960, 210, 'B') x130, (960, 290, 'B') x129, (960, 242, 'B') x128
+    open region: x_1 in [0.0000, 0.0859]
+    open region: x_2 in [0.9102, 1.0000]
+    open region: x_3 in [0.0000, 0.0430]
+    open region: x_4 in [0.0000, 0.0117]
+    open region: x_5 in [0.0000, 0.0078]
+    open region: x_0 in [0.0000, 0.0234]
+    open region: W in [673884857, 743686395) = [2.5104, 2.7704) n   (rigorous outer bounds over the open cells)
+=== python3 51_profiles.py a=0.705 lg=25 depth=8
+selfcheck: R and N agree with 41_counts.py and with the defining sums (3000 random arguments)
+n = 2^25, Delta = 16777221, a = 141/200, A = 23655875
+  even certificate (q, m) = (4, 26): d = 36, delta <= 9, W <= 153763187 = 4.5825 n
+  even certificate (q, m) = (8, 44): d = 62, delta <= 7, W <= 130107312 = 3.8775 n
+  even certificate (q, m) = (16, 81): d = 114, delta <= 7, W <= 119757867 = 3.5691 n
+  even certificate (q, m) = (32, 155): d = 218, delta <= 6, W <= 114583144 = 3.4148 n
+  even certificate (q, m) = (64, 305): d = 430, delta <= 6, W <= 112735029 = 3.3598 n
+  even certificate (q, m) = (128, 604): d = 851, delta <= 6, W <= 111626160 = 3.3267 n
+  even certificate (q, m) = (256, 1203): d = 1696, delta <= 6, W <= 111164131 = 3.3129 n
+  even certificate (q, m) = (512, 2401): d = 3385, delta <= 6, W <= 110933116 = 3.3061 n
+survivor with more than delta * 3385 members: W <= 110933116 = 3.3061 n, delta <= 6
+case K0 K=0 Dc=1 kind=gen: J = 1, 1 cells, 464 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x1
+case K0 K=0 Dc=2 kind=gen: J = 2, 9 cells, 4233 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x3, (960, 386, 'L1') x2
+case K0 K=0 Dc=3 kind=gen: J = 3, 23 cells, 11142 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x5, (960, 386, 'B') x5, (480, 186, 'B') x2
+case K0 K=0 Dc=4 kind=gen: J = 4, 111 cells, 55582 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x39, (960, 386, 'L1') x9, (960, 386, 'floor') x7, (960, 338, 'B') x1
+case K0 K=0 Dc=5 kind=gen: J = 5, 419 cells, 217610 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x136, (960, 386, 'floor') x37, (960, 386, 'L1') x31, (240, 86, 'B') x3, (240, 82, 'B') x1, (480, 186, 'B') x1
+case K0 K=0 Dc=6 kind=gen: J = 6, 1079 cells, 622093 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x382, (960, 386, 'L1') x76, (960, 386, 'floor') x70, (240, 90, 'B') x5, (120, 42, 'B') x4, (960, 354, 'B') x1
+case K1 K=1 Dc=3 kind=gen: J = 3, 3 cells, 2368 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x1, (960, 386, 'B') x1
+case K1 K=1 Dc=4 kind=gen: J = 4, 157 cells, 125790 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x44, (960, 386, 'floor') x14, (960, 370, 'floor') x4, (960, 386, 'L1') x3, (960, 354, 'B') x2, (960, 290, 'floor') x2
+case K1 K=1 Dc=5 kind=gen: J = 5, 319 cells, 260272 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x105, (960, 386, 'floor') x39, (960, 386, 'L2(2)') x12, (480, 178, 'B') x2, (960, 322, 'B') x1, (960, 338, 'B') x1
+case K1 K=1 Dc=6 kind=gen: J = 6, 511 cells, 435661 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x168, (960, 386, 'floor') x65, (960, 386, 'L2(2)') x19, (240, 90, 'B') x2, (240, 86, 'B') x1, (480, 162, 'B') x1
+case K2nondeg K=2 Dc=5 kind=nondeg: J = 5, 105 cells, 118691 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x29, (960, 386, 'T') x16, (960, 386, 'L1') x4, (960, 322, 'B') x2, (960, 274, 'floor') x1, (480, 162, 'B') x1
+case K2dep K=2 Dc=5 kind=dep: J = 5, 135 cells, 235021 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x43, (960, 386, 'D(2)') x23, (960, 386, 'L1') x1, (480, 162, 'B') x1
+case K2dep K=2 Dc=6 kind=dep: J = 6, 267 cells, 520269 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x82, (960, 386, 'floor') x51, (960, 354, 'B') x1
+case K2sextic K=2 Dc=6 kind=gen: J = 6, 267 cells, 273561 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x82, (960, 386, 'floor') x51, (960, 354, 'B') x1
+case K2deg K=2 Dc=5 kind=gen: J = 5, 17828 cells, 17035328 evaluations, largest m used 960, open minimal cells: 3806
+    most used (m, B, bound): (960, 386, 'B') x798, (960, 306, 'B') x374, (960, 322, 'B') x369, (960, 338, 'B') x359, (960, 290, 'B') x358, (960, 274, 'B') x324
+    open region: x_1 in [0.0000, 0.1172]
+    open region: x_2 in [0.8672, 1.0000]
+    open region: x_3 in [0.0000, 0.0625]
+    open region: x_4 in [0.0000, 0.0195]
+    open region: x_5 in [0.0000, 0.0117]
+    open region: x_0 in [0.0000, 0.0312]
+    open region: W in [83886105, 94276015) = [2.5000, 2.8096) n   (rigorous outer bounds over the open cells)
+=== python3 51_profiles.py a=0.705 lg=26 depth=8
+selfcheck: R and N agree with 41_counts.py and with the defining sums (3000 random arguments)
+n = 2^26, Delta = 33554437, a = 141/200, A = 47311750
+  even certificate (q, m) = (4, 26): d = 36, delta <= 9, W <= 307526374 = 4.5825 n
+  even certificate (q, m) = (8, 44): d = 62, delta <= 7, W <= 260214624 = 3.8775 n
+  even certificate (q, m) = (16, 81): d = 114, delta <= 7, W <= 239515734 = 3.5691 n
+  even certificate (q, m) = (32, 155): d = 218, delta <= 6, W <= 229166289 = 3.4148 n
+  even certificate (q, m) = (64, 305): d = 430, delta <= 6, W <= 225470058 = 3.3598 n
+  even certificate (q, m) = (128, 604): d = 851, delta <= 6, W <= 223252320 = 3.3267 n
+  even certificate (q, m) = (256, 1203): d = 1696, delta <= 6, W <= 222328262 = 3.3129 n
+  even certificate (q, m) = (512, 2401): d = 3385, delta <= 6, W <= 221866233 = 3.3061 n
+survivor with more than delta * 3385 members: W <= 221866233 = 3.3061 n, delta <= 6
+case K0 K=0 Dc=1 kind=gen: J = 1, 1 cells, 464 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x1
+case K0 K=0 Dc=2 kind=gen: J = 2, 9 cells, 4233 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x3, (960, 386, 'L1') x2
+case K0 K=0 Dc=3 kind=gen: J = 3, 23 cells, 11142 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x5, (960, 386, 'B') x5, (480, 186, 'B') x2
+case K0 K=0 Dc=4 kind=gen: J = 4, 111 cells, 55582 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x39, (960, 386, 'L1') x9, (960, 386, 'floor') x7, (960, 338, 'B') x1
+case K0 K=0 Dc=5 kind=gen: J = 5, 419 cells, 217610 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x136, (960, 386, 'floor') x37, (960, 386, 'L1') x31, (240, 86, 'B') x3, (240, 82, 'B') x1, (480, 186, 'B') x1
+case K0 K=0 Dc=6 kind=gen: J = 6, 1079 cells, 622093 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x382, (960, 386, 'L1') x76, (960, 386, 'floor') x70, (240, 90, 'B') x5, (120, 42, 'B') x4, (960, 354, 'B') x1
+case K1 K=1 Dc=3 kind=gen: J = 3, 3 cells, 2368 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x1, (960, 386, 'B') x1
+case K1 K=1 Dc=4 kind=gen: J = 4, 157 cells, 125790 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x44, (960, 386, 'floor') x14, (960, 370, 'floor') x4, (960, 386, 'L1') x3, (960, 354, 'B') x2, (960, 290, 'floor') x2
+case K1 K=1 Dc=5 kind=gen: J = 5, 319 cells, 260272 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x105, (960, 386, 'floor') x39, (960, 386, 'L2(2)') x12, (480, 178, 'B') x2, (960, 322, 'B') x1, (960, 338, 'B') x1
+case K1 K=1 Dc=6 kind=gen: J = 6, 511 cells, 435661 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x168, (960, 386, 'floor') x65, (960, 386, 'L2(2)') x19, (240, 90, 'B') x2, (240, 86, 'B') x1, (480, 162, 'B') x1
+case K2nondeg K=2 Dc=5 kind=nondeg: J = 5, 105 cells, 118691 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x29, (960, 386, 'T') x16, (960, 386, 'L1') x4, (960, 322, 'B') x2, (960, 274, 'floor') x1, (480, 162, 'B') x1
+case K2dep K=2 Dc=5 kind=dep: J = 5, 135 cells, 235021 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x43, (960, 386, 'D(2)') x23, (960, 386, 'L1') x1, (480, 162, 'B') x1
+case K2dep K=2 Dc=6 kind=dep: J = 6, 267 cells, 520269 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x82, (960, 386, 'floor') x51, (960, 354, 'B') x1
+case K2sextic K=2 Dc=6 kind=gen: J = 6, 267 cells, 273561 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x82, (960, 386, 'floor') x51, (960, 354, 'B') x1
+case K2deg K=2 Dc=5 kind=gen: J = 5, 17828 cells, 17035328 evaluations, largest m used 960, open minimal cells: 3806
+    most used (m, B, bound): (960, 386, 'B') x798, (960, 306, 'B') x374, (960, 322, 'B') x369, (960, 338, 'B') x359, (960, 290, 'B') x358, (960, 274, 'B') x324
+    open region: x_1 in [0.0000, 0.1172]
+    open region: x_2 in [0.8672, 1.0000]
+    open region: x_3 in [0.0000, 0.0625]
+    open region: x_4 in [0.0000, 0.0195]
+    open region: x_5 in [0.0000, 0.0117]
+    open region: x_0 in [0.0000, 0.0312]
+    open region: W in [167772185, 188551983) = [2.5000, 2.8096) n   (rigorous outer bounds over the open cells)
+=== python3 51_profiles.py a=0.705 lg=27 depth=8
+selfcheck: R and N agree with 41_counts.py and with the defining sums (3000 random arguments)
+n = 2^27, Delta = 67108869, a = 141/200, A = 94623499
+  even certificate (q, m) = (4, 26): d = 36, delta <= 9, W <= 615052743 = 4.5825 n
+  even certificate (q, m) = (8, 44): d = 62, delta <= 7, W <= 520429244 = 3.8775 n
+  even certificate (q, m) = (16, 81): d = 114, delta <= 7, W <= 479031463 = 3.5691 n
+  even certificate (q, m) = (32, 155): d = 218, delta <= 6, W <= 458332573 = 3.4148 n
+  even certificate (q, m) = (64, 305): d = 430, delta <= 6, W <= 450940112 = 3.3598 n
+  even certificate (q, m) = (128, 604): d = 851, delta <= 6, W <= 446504635 = 3.3267 n
+  even certificate (q, m) = (256, 1203): d = 1696, delta <= 6, W <= 444656520 = 3.3129 n
+  even certificate (q, m) = (512, 2401): d = 3385, delta <= 6, W <= 443732463 = 3.3061 n
+survivor with more than delta * 3385 members: W <= 443732463 = 3.3061 n, delta <= 6
+case K0 K=0 Dc=1 kind=gen: J = 1, 1 cells, 464 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x1
+case K0 K=0 Dc=2 kind=gen: J = 2, 9 cells, 4233 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x3, (960, 386, 'L1') x2
+case K0 K=0 Dc=3 kind=gen: J = 3, 23 cells, 11142 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x5, (960, 386, 'B') x5, (480, 186, 'B') x2
+case K0 K=0 Dc=4 kind=gen: J = 4, 111 cells, 55582 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x39, (960, 386, 'L1') x9, (960, 386, 'floor') x7, (960, 338, 'B') x1
+case K0 K=0 Dc=5 kind=gen: J = 5, 419 cells, 217610 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x136, (960, 386, 'floor') x37, (960, 386, 'L1') x31, (240, 86, 'B') x3, (240, 82, 'B') x1, (480, 186, 'B') x1
+case K0 K=0 Dc=6 kind=gen: J = 6, 1079 cells, 622093 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x382, (960, 386, 'L1') x76, (960, 386, 'floor') x70, (240, 90, 'B') x5, (120, 42, 'B') x4, (960, 354, 'B') x1
+case K1 K=1 Dc=3 kind=gen: J = 3, 3 cells, 2368 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x1, (960, 386, 'B') x1
+case K1 K=1 Dc=4 kind=gen: J = 4, 157 cells, 125790 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x44, (960, 386, 'floor') x14, (960, 370, 'floor') x4, (960, 386, 'L1') x3, (960, 354, 'B') x2, (960, 290, 'floor') x2
+case K1 K=1 Dc=5 kind=gen: J = 5, 319 cells, 260272 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x105, (960, 386, 'floor') x39, (960, 386, 'L2(2)') x12, (480, 178, 'B') x2, (960, 322, 'B') x1, (960, 338, 'B') x1
+case K1 K=1 Dc=6 kind=gen: J = 6, 511 cells, 435661 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x168, (960, 386, 'floor') x65, (960, 386, 'L2(2)') x19, (240, 90, 'B') x2, (240, 86, 'B') x1, (480, 162, 'B') x1
+case K2nondeg K=2 Dc=5 kind=nondeg: J = 5, 105 cells, 118691 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x29, (960, 386, 'T') x16, (960, 386, 'L1') x4, (960, 322, 'B') x2, (960, 274, 'floor') x1, (480, 162, 'B') x1
+case K2dep K=2 Dc=5 kind=dep: J = 5, 135 cells, 235021 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x43, (960, 386, 'D(2)') x23, (960, 386, 'L1') x1, (480, 162, 'B') x1
+case K2dep K=2 Dc=6 kind=dep: J = 6, 267 cells, 520269 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x82, (960, 386, 'floor') x51, (960, 354, 'B') x1
+case K2sextic K=2 Dc=6 kind=gen: J = 6, 267 cells, 273561 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x82, (960, 386, 'floor') x51, (960, 354, 'B') x1
+case K2deg K=2 Dc=5 kind=gen: J = 5, 17828 cells, 17035328 evaluations, largest m used 960, open minimal cells: 3806
+    most used (m, B, bound): (960, 386, 'B') x798, (960, 306, 'B') x374, (960, 322, 'B') x369, (960, 338, 'B') x359, (960, 290, 'B') x358, (960, 274, 'B') x324
+    open region: x_1 in [0.0000, 0.1172]
+    open region: x_2 in [0.8672, 1.0000]
+    open region: x_3 in [0.0000, 0.0625]
+    open region: x_4 in [0.0000, 0.0195]
+    open region: x_5 in [0.0000, 0.0117]
+    open region: x_0 in [0.0000, 0.0312]
+    open region: W in [335544345, 377103927) = [2.5000, 2.8096) n   (rigorous outer bounds over the open cells)
+=== python3 51_profiles.py a=0.705 lg=28 depth=8
+selfcheck: R and N agree with 41_counts.py and with the defining sums (3000 random arguments)
+n = 2^28, Delta = 134217733, a = 141/200, A = 189246997
+  even certificate (q, m) = (4, 26): d = 36, delta <= 9, W <= 1230105480 = 4.5825 n
+  even certificate (q, m) = (8, 44): d = 62, delta <= 7, W <= 1040858483 = 3.8775 n
+  even certificate (q, m) = (16, 81): d = 114, delta <= 7, W <= 958062922 = 3.5691 n
+  even certificate (q, m) = (32, 155): d = 218, delta <= 6, W <= 916665141 = 3.4148 n
+  even certificate (q, m) = (64, 305): d = 430, delta <= 6, W <= 901880220 = 3.3598 n
+  even certificate (q, m) = (128, 604): d = 851, delta <= 6, W <= 893009267 = 3.3267 n
+  even certificate (q, m) = (256, 1203): d = 1696, delta <= 6, W <= 889313036 = 3.3129 n
+  even certificate (q, m) = (512, 2401): d = 3385, delta <= 6, W <= 887464921 = 3.3061 n
+survivor with more than delta * 3385 members: W <= 887464921 = 3.3061 n, delta <= 6
+case K0 K=0 Dc=1 kind=gen: J = 1, 1 cells, 464 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x1
+case K0 K=0 Dc=2 kind=gen: J = 2, 9 cells, 4233 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x3, (960, 386, 'L1') x2
+case K0 K=0 Dc=3 kind=gen: J = 3, 23 cells, 11142 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x5, (960, 386, 'B') x5, (480, 186, 'B') x2
+case K0 K=0 Dc=4 kind=gen: J = 4, 111 cells, 55582 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x39, (960, 386, 'L1') x9, (960, 386, 'floor') x7, (960, 338, 'B') x1
+case K0 K=0 Dc=5 kind=gen: J = 5, 419 cells, 217610 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x136, (960, 386, 'floor') x37, (960, 386, 'L1') x31, (240, 86, 'B') x3, (240, 82, 'B') x1, (480, 186, 'B') x1
+case K0 K=0 Dc=6 kind=gen: J = 6, 1079 cells, 622093 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x382, (960, 386, 'L1') x76, (960, 386, 'floor') x70, (240, 90, 'B') x5, (120, 42, 'B') x4, (960, 354, 'B') x1
+case K1 K=1 Dc=3 kind=gen: J = 3, 3 cells, 2368 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'L1') x1, (960, 386, 'B') x1
+case K1 K=1 Dc=4 kind=gen: J = 4, 157 cells, 125790 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x44, (960, 386, 'floor') x14, (960, 370, 'floor') x4, (960, 386, 'L1') x3, (960, 354, 'B') x2, (960, 290, 'floor') x2
+case K1 K=1 Dc=5 kind=gen: J = 5, 319 cells, 260272 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x105, (960, 386, 'floor') x39, (960, 386, 'L2(2)') x12, (480, 178, 'B') x2, (960, 322, 'B') x1, (960, 338, 'B') x1
+case K1 K=1 Dc=6 kind=gen: J = 6, 511 cells, 435661 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x168, (960, 386, 'floor') x65, (960, 386, 'L2(2)') x19, (240, 90, 'B') x2, (240, 86, 'B') x1, (480, 162, 'B') x1
+case K2nondeg K=2 Dc=5 kind=nondeg: J = 5, 105 cells, 118691 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x29, (960, 386, 'T') x16, (960, 386, 'L1') x4, (960, 322, 'B') x2, (960, 274, 'floor') x1, (480, 162, 'B') x1
+case K2dep K=2 Dc=5 kind=dep: J = 5, 135 cells, 235021 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x43, (960, 386, 'D(2)') x23, (960, 386, 'L1') x1, (480, 162, 'B') x1
+case K2dep K=2 Dc=6 kind=dep: J = 6, 267 cells, 520269 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x82, (960, 386, 'floor') x51, (960, 354, 'B') x1
+case K2sextic K=2 Dc=6 kind=gen: J = 6, 267 cells, 273561 evaluations, largest m used 960, open minimal cells: 0
+    most used (m, B, bound): (960, 386, 'B') x82, (960, 386, 'floor') x51, (960, 354, 'B') x1
+case K2deg K=2 Dc=5 kind=gen: J = 5, 17828 cells, 17035354 evaluations, largest m used 960, open minimal cells: 3806
+    most used (m, B, bound): (960, 386, 'B') x798, (960, 306, 'B') x374, (960, 322, 'B') x369, (960, 338, 'B') x359, (960, 290, 'B') x358, (960, 274, 'B') x324
+    open region: x_1 in [0.0000, 0.1172]
+    open region: x_2 in [0.8672, 1.0000]
+    open region: x_3 in [0.0000, 0.0625]
+    open region: x_4 in [0.0000, 0.0195]
+    open region: x_5 in [0.0000, 0.0117]
+    open region: x_0 in [0.0000, 0.0312]
+    open region: W in [671088665, 754207815) = [2.5000, 2.8096) n   (rigorous outer bounds over the open cells)
+=== python3 51_planted.py 1
+n = 32, Delta = 15, A = 23, 4A = 92, scaled window W = 84; seed 1
+  random                                        W_1 = 89 (2.781 n), nullity 1, degenerate: False, planted agreements [], sections: []
+  one codeword, 23 agreements                   W_1 = 89 (2.781 n), nullity 2, degenerate: False, planted agreements [23], sections: [True]
+  two codewords, |I| = 15, random sets          W_1 = 89 (2.781 n), nullity 3, degenerate: False, planted agreements [23, 23], sections: [True, True]
+  two codewords, |I| = 14, random sets          W_1 = 89 (2.781 n), nullity 3, degenerate: False, planted agreements [23, 23], sections: [True, True]
+  two codewords, S1 xor S2 = a hyperplane       W_1 = 89 (2.781 n), nullity 3, degenerate: False, planted agreements [23, 23], sections: [True, True]
+  two codewords, T1, T2 cosets of a subspace    W_1 = 87 (2.719 n), nullity 2, degenerate: False, planted agreements [23, 23], sections: [True, True]
+=== python3 51_planted.py 2
+n = 32, Delta = 15, A = 23, 4A = 92, scaled window W = 84; seed 2
+  random                                        W_1 = 89 (2.781 n), nullity 1, degenerate: False, planted agreements [], sections: []
+  one codeword, 23 agreements                   W_1 = 89 (2.781 n), nullity 2, degenerate: False, planted agreements [23], sections: [True]
+  two codewords, |I| = 15, random sets          W_1 = 89 (2.781 n), nullity 3, degenerate: False, planted agreements [23, 23], sections: [True, True]
+  two codewords, |I| = 14, random sets          W_1 = 89 (2.781 n), nullity 3, degenerate: False, planted agreements [23, 23], sections: [True, True]
+  two codewords, S1 xor S2 = a hyperplane       W_1 = 89 (2.781 n), nullity 3, degenerate: False, planted agreements [23, 23], sections: [True, True]
+  two codewords, T1, T2 cosets of a subspace    W_1 = 87 (2.719 n), nullity 2, degenerate: False, planted agreements [23, 23], sections: [True, True]
+=== python3 51_planted.py 3
+n = 32, Delta = 15, A = 23, 4A = 92, scaled window W = 84; seed 3
+  random                                        W_1 = 89 (2.781 n), nullity 1, degenerate: False, planted agreements [], sections: []
+  one codeword, 23 agreements                   W_1 = 88 (2.750 n), nullity 1, degenerate: False, planted agreements [24], sections: [True]
+  two codewords, |I| = 15, random sets          W_1 = 89 (2.781 n), nullity 3, degenerate: False, planted agreements [23, 23], sections: [True, True]
+  two codewords, |I| = 14, random sets          W_1 = 89 (2.781 n), nullity 3, degenerate: False, planted agreements [23, 23], sections: [True, True]
+  two codewords, S1 xor S2 = a hyperplane       W_1 = 89 (2.781 n), nullity 3, degenerate: False, planted agreements [23, 23], sections: [True, True]
+  two codewords, T1, T2 cosets of a subspace    W_1 = 87 (2.719 n), nullity 2, degenerate: False, planted agreements [23, 23], sections: [True, True]
+=== python3 51_planted.py 4
+n = 32, Delta = 15, A = 23, 4A = 92, scaled window W = 84; seed 4
+  random                                        W_1 = 89 (2.781 n), nullity 1, degenerate: False, planted agreements [], sections: []
+  one codeword, 23 agreements                   W_1 = 89 (2.781 n), nullity 2, degenerate: False, planted agreements [23], sections: [True]
+  two codewords, |I| = 15, random sets          W_1 = 89 (2.781 n), nullity 3, degenerate: False, planted agreements [23, 23], sections: [True, True]
+  two codewords, |I| = 14, random sets          W_1 = 89 (2.781 n), nullity 3, degenerate: False, planted agreements [23, 23], sections: [True, True]
+  two codewords, S1 xor S2 = a hyperplane       W_1 = 89 (2.781 n), nullity 3, degenerate: False, planted agreements [23, 23], sections: [True, True]
+  two codewords, T1, T2 cosets of a subspace    W_1 = 87 (2.719 n), nullity 2, degenerate: False, planted agreements [23, 23], sections: [True, True]

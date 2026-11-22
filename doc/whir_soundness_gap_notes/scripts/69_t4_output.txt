@@ -1,0 +1,15 @@
+FB=64 modes=2222 k=16 n=32 lower layers=3 k_up=2 N=4: members=6 zeros of B 7 agreement min=19 mean=19.50 max=20 | gS bound: 18 | excess 1 leaves = 0.0312 n
+FB=64 modes=22222 k=32 n=64 lower layers=4 k_up=2 N=4: members=6 zeros of B 15 agreement min=39 mean=39.50 max=40 | gS bound: 37 | excess 2 leaves = 0.0312 n
+FB=64 modes=22222 k=32 n=64 lower layers=3 k_up=4 N=8: members=70 zeros of B 7 agreement min=35 mean=35.50 max=36 | gS bound: 32 | excess 3 leaves = 0.0469 n
+FB=64 modes=222222 k=64 n=128 lower layers=4 k_up=4 N=8: members=70 zeros of B 15 agreement min=71 mean=71.50 max=72 | gS bound: 64 | excess 7 leaves = 0.0547 n
+FB=64 modes=222222 k=64 n=128 lower layers=3 k_up=8 N=16: members=200 zeros of B 7 agreement min=66 mean=67.61 max=70 | gS bound: 64 | excess 2 leaves = 0.0156 n
+FB=64 modes=2222222 k=128 n=256 lower layers=5 k_up=4 N=8: members=70 zeros of B 31 agreement min=143 mean=143.50 max=144 | gS bound: 129 | excess 14 leaves = 0.0547 n
+FB=64 modes=2222222 k=128 n=256 lower layers=4 k_up=8 N=16: members=2000 zeros of B 15 agreement min=135 mean=135.51 max=136 | gS bound: 128 | excess 7 leaves = 0.0273 n
+FB=64 modes=2222 k=16 n=64 lower layers=3 k_up=2 N=8: members=28 zeros of B 7 agreement min=21 mean=21.25 max=22 | gS bound: 17 | excess 4 leaves = 0.0625 n
+FB=64 modes=22222 k=32 n=128 lower layers=4 k_up=2 N=8: members=28 zeros of B 15 agreement min=43 mean=43.25 max=44 | gS bound: 35 | excess 8 leaves = 0.0625 n
+FB=64 modes=22222 k=32 n=128 lower layers=3 k_up=4 N=16: members=1820 zeros of B 7 agreement min=35 mean=37.25 max=39 | gS bound: 32 | excess 3 leaves = 0.0234 n
+FB=64 modes=111111 k=64 n=128 lower layers=4 k_up=4 N=8: members=70 zeros of B 15 agreement min=71 mean=71.50 max=72 | gS bound: 64 | excess 7 leaves = 0.0547 n
+FB=64 modes=SSSSSS k=64 n=128 lower layers=4 k_up=4 N=8: members=70 zeros of B 15 agreement min=71 mean=71.50 max=72 | gS bound: 64 | excess 7 leaves = 0.0547 n
+FB=16 modes=222222 k=64 n=128 lower layers=4 k_up=4 N=8: members=70 zeros of B 15 agreement min=71 mean=71.50 max=72 | gS bound: 64 | excess 7 leaves = 0.0547 n
+FB=8 modes=222222 k=64 n=128 lower layers=4 k_up=4 N=8: members=70 zeros of B 16 agreement min=71 mean=72.00 max=73 | gS bound: 64 | excess 7 leaves = 0.0547 n
+FB=8 modes=22222 k=32 n=128 lower layers=4 k_up=2 N=8: members=28 zeros of B 16 agreement min=43 mean=44.00 max=45 | gS bound: 35 | excess 8 leaves = 0.0625 n

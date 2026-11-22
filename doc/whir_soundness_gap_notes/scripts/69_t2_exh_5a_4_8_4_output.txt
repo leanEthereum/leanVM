@@ -1,0 +1,77 @@
+v=2 r=1 k=4 n=8 members=4 mode=canon part=0/4 patterns=1188111  Lk=12
+code U: feasible=12 feasible_with_weight>=Lk=0 max_weight=11 max_balanced=4  deficiency_hist: 0:1188111
+  max-weight example: . . . 012 013 023 123 0123
+  max-balanced example: . . . . . 012 0123 0123
+code 2: feasible=103 feasible_with_weight>=Lk=91 max_weight=12 max_balanced=5  deficiency_hist: 0:1187647 1:464
+  max-weight example: . 012 01 013 02 023 123 123
+  max-balanced example: . 012 01 013 02 023 123 123
+code A: feasible=103 feasible_with_weight>=Lk=91 max_weight=12 max_balanced=5  deficiency_hist: 0:1187647 1:464
+  max-weight example: . 012 01 013 02 023 123 123
+  max-balanced example: . 012 01 013 02 023 123 123
+code B: feasible=263 feasible_with_weight>=Lk=251 max_weight=12 max_balanced=5  deficiency_hist: 0:1187087 1:1024
+  max-weight example: . 01 02 123 12 023 013 0123
+  max-balanced example: . 01 02 123 12 023 013 0123
+code 1: feasible=103 feasible_with_weight>=Lk=91 max_weight=12 max_balanced=5  deficiency_hist: 0:1187647 1:464
+  max-weight example: . 012 01 013 02 023 123 123
+  max-balanced example: . 012 01 013 02 023 123 123
+code S: feasible=263 feasible_with_weight>=Lk=251 max_weight=12 max_balanced=5  deficiency_hist: 0:1187087 1:1024
+  max-weight example: . 01 02 123 12 023 013 0123
+  max-balanced example: . 01 02 123 12 023 013 0123
+v=2 r=1 k=4 n=8 members=4 mode=canon part=1/4 patterns=1187340  Lk=12
+code U: feasible=10 feasible_with_weight>=Lk=0 max_weight=11 max_balanced=4  deficiency_hist: 0:1187340
+  max-weight example: . . . 023 012 013 123 0123
+  max-balanced example: . . . 01 . 02 0123 0123
+code 2: feasible=104 feasible_with_weight>=Lk=94 max_weight=12 max_balanced=5  deficiency_hist: 0:1186896 1:444
+  max-weight example: . 012 013 013 02 023 12 123
+  max-balanced example: . 012 013 013 02 023 12 123
+code A: feasible=104 feasible_with_weight>=Lk=94 max_weight=12 max_balanced=5  deficiency_hist: 0:1186896 1:444
+  max-weight example: . 012 013 013 02 023 12 123
+  max-balanced example: . 012 013 013 02 023 12 123
+code B: feasible=239 feasible_with_weight>=Lk=229 max_weight=12 max_balanced=5  deficiency_hist: 0:1186418 1:922
+  max-weight example: . 01 13 023 012 013 023 123
+  max-balanced example: . 01 13 023 012 013 023 123
+code 1: feasible=105 feasible_with_weight>=Lk=95 max_weight=12 max_balanced=5  deficiency_hist: 0:1186895 1:445
+  max-weight example: . 012 013 013 02 023 12 123
+  max-balanced example: . 012 013 013 02 023 12 123
+code S: feasible=239 feasible_with_weight>=Lk=229 max_weight=12 max_balanced=5  deficiency_hist: 0:1186418 1:922
+  max-weight example: . 01 13 023 012 013 023 123
+  max-balanced example: . 01 13 023 012 013 023 123
+v=2 r=1 k=4 n=8 members=4 mode=canon part=2/4 patterns=1186570  Lk=12
+code U: feasible=10 feasible_with_weight>=Lk=0 max_weight=11 max_balanced=4  deficiency_hist: 0:1186570
+  max-weight example: . . . 123 012 013 023 0123
+  max-balanced example: . . . 02 . 01 0123 0123
+code 2: feasible=86 feasible_with_weight>=Lk=76 max_weight=12 max_balanced=5  deficiency_hist: 0:1186141 1:429
+  max-weight example: . 012 12 123 01 013 023 023
+  max-balanced example: . 012 12 123 01 013 023 023
+code A: feasible=86 feasible_with_weight>=Lk=76 max_weight=12 max_balanced=5  deficiency_hist: 0:1186141 1:429
+  max-weight example: . 012 12 123 01 013 023 023
+  max-balanced example: . 012 12 123 01 013 023 023
+code B: feasible=230 feasible_with_weight>=Lk=220 max_weight=12 max_balanced=5  deficiency_hist: 0:1185613 1:957
+  max-weight example: . 01 012 013 02 123 023 123
+  max-balanced example: . 01 012 013 02 123 023 123
+code 1: feasible=86 feasible_with_weight>=Lk=76 max_weight=12 max_balanced=5  deficiency_hist: 0:1186141 1:429
+  max-weight example: . 012 12 123 01 013 023 023
+  max-balanced example: . 012 12 123 01 013 023 023
+code S: feasible=230 feasible_with_weight>=Lk=220 max_weight=12 max_balanced=5  deficiency_hist: 0:1185613 1:957
+  max-weight example: . 01 012 013 02 123 023 123
+  max-balanced example: . 01 012 013 02 123 023 123
+v=2 r=1 k=4 n=8 members=4 mode=canon part=3/4 patterns=1185800  Lk=12
+code U: feasible=10 feasible_with_weight>=Lk=0 max_weight=11 max_balanced=4  deficiency_hist: 0:1185800
+  max-weight example: . . . 013 012 023 123 0123
+  max-balanced example: . . . 12 . 01 0123 0123
+code 2: feasible=85 feasible_with_weight>=Lk=75 max_weight=12 max_balanced=5  deficiency_hist: 0:1185397 1:403
+  max-weight example: . 013 13 123 01 012 023 023
+  max-balanced example: . 013 13 123 01 012 023 023
+code A: feasible=85 feasible_with_weight>=Lk=75 max_weight=12 max_balanced=5  deficiency_hist: 0:1185397 1:403
+  max-weight example: . 013 13 123 01 012 023 023
+  max-balanced example: . 013 13 123 01 012 023 023
+code B: feasible=235 feasible_with_weight>=Lk=225 max_weight=12 max_balanced=5  deficiency_hist: 0:1184941 1:859
+  max-weight example: . 02 013 123 01 123 012 023
+  max-balanced example: . 02 013 123 01 123 012 023
+code 1: feasible=87 feasible_with_weight>=Lk=77 max_weight=12 max_balanced=5  deficiency_hist: 0:1185395 1:405
+  max-weight example: . 013 13 123 01 012 023 023
+  max-balanced example: . 013 13 123 01 012 023 023
+code S: feasible=235 feasible_with_weight>=Lk=225 max_weight=12 max_balanced=5  deficiency_hist: 0:1184941 1:859
+  max-weight example: . 02 013 123 01 123 012 023
+  max-balanced example: . 02 013 123 01 123 012 023
+    3762 69_tmp/def_5a_4_8_4.txt

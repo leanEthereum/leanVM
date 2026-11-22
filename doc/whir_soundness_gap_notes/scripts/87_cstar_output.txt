@@ -1,0 +1,55 @@
+selftest: 0 errors
+Pappus atom at k = 2, five leaves: weight 10, rank 9; min over all 374 binary subspaces Theta of 2 dim Theta + sum_x dim(Lambda_x/(Lambda_x cap Theta)) = 10
+five double pairs (characteristic 2 atom): weight 10, rank 9; min over binary Theta = 10
+three matchings of four members (Finding 3.1): weight 6, rank 5; min over all 16 binary Theta = 5
+top Pappus pattern on T_1 ([8,2]): weight 10, rank 9, kernel dimension 1
+lower factor: 3 conditions, kernel dimension 1
+six codewords distinct: yes; every class of the pattern agrees: yes
+word y read off the pattern: agreements per codeword = 11 11 11 11 11 11, weight w = sum_x (c_x - 1) = 43, Lk = 40; plurality weight 43
+rank of the class pattern at (8,32): 39 (kernel 1)
+level (k=8, n=32): w = 43, Lk = 40, rank = 39, Q*: weight 20, rank 18, B(P;Q*) = 39  (C*) holds
+   Q* = 01+02 01+02 03+14 03+14 23+15 23+15 24+05 24+05 34+35 34+35 . . . . . . 
+level (k=4, n=16): w = 20, Lk = 20, rank = 18, Q*: weight 10, rank 9, B(P;Q*) = 18  (C*) holds
+   Q* = 01+02 03+14 23+15 24+05 34+35 . . . 
+level (k=2, n=8): w = 10, Lk = 10, rank = 9, Q*: weight 0, rank 0, B(P;Q*) = 10  (C*) FAILS
+   Q* = . . . . 
+level (k=4, n=8): w = 8, Lk = 8, rank = 7, Q*: weight 3, rank 3, B(P;Q*) = 7  (C*) holds
+   Q* = . 12 02 01 
+level (k=2, n=4): w = 3, Lk = 4, rank = 3, Q*: weight 0, rank 0, B(P;Q*) = 3  (C*) holds
+   Q* = . . 
+level (k=8, n=16): w = 16, Lk = 16, rank = 16, Q*: weight 16, rank 8, B(P;Q*) = 16  (C*) holds
+   Q* = 01+02 01+02 01+02 01+02 01+02 01+02 01+02 01+02 
+level (k=4, n=8): w = 16, Lk = 8, rank = 8, Q*: weight 8, rank 4, B(P;Q*) = 8  (C*) holds
+   Q* = 01+02 01+02 01+02 01+02 
+level (k=2, n=4): w = 8, Lk = 4, rank = 4, Q*: weight 4, rank 2, B(P;Q*) = 4  (C*) holds
+   Q* = 01+02 01+02 
+search (k=8, n=16), 3 members, mode full: 2000000 patterns, 1172469 with dependent rows, 839702 with a solution (rank < Lk), 180544 with both, 2000000 with at least 3 full leaves, (C*) failures: 0
+search (k=8, n=16), 3 members, mode lift: 2000000 patterns, 504722 with dependent rows, 1962999 with a solution (rank < Lk), 483265 with both, 1749939 with at least 3 full leaves, (C*) failures: 0
+climb (k=8, n=16), 3 members: 210514 starts with a solution, 290228 patterns tested (all with a solution), mean final deficiency w - r = 4.77, max 8, (C*) failures: 0
+search (k=16, n=32), 3 members, mode full: 300000 patterns, 173900 with dependent rows, 122441 with a solution (rank < Lk), 25455 with both, 300000 with at least 3 full leaves, (C*) failures: 0
+FAIL: w=31 rank=31 B(P;Q*)=32 : 01 01+02 01+02 01+02 01+02 01+02 01+02 . 02 02 02 02 01 01 01 01 . . 01 . . . . . 01+02 . 01+02 . 12 12 12 01+02 
+FAIL: w=29 rank=29 B(P;Q*)=30 : . . . . . 01+02 01+02 01+02 . . . . 02 02 02 02 12 12 12 12 . 01+02 . 01+02 01 01 01 01 01+02 01+02 01+02 02 
+search (k=16, n=32), 3 members, mode lift: 300000 patterns, 74999 with dependent rows, 299089 with a solution (rank < Lk), 74394 with both, 299132 with at least 3 full leaves, (C*) failures: 2
+climb (k=16, n=32), 3 members: 17522 starts with a solution, 22009 patterns tested (all with a solution), mean final deficiency w - r = 7.40, max 16, (C*) failures: 0
+search (k=8, n=16), 4 members, mode full: 2000000 patterns, 1352111 with dependent rows, 926057 with a solution (rank < Lk), 409762 with both, 2000000 with at least 3 full leaves, (C*) failures: 0
+search (k=8, n=16), 4 members, mode lift: 2000000 patterns, 432649 with dependent rows, 1992257 with a solution (rank < Lk), 427103 with both, 1219047 with at least 3 full leaves, (C*) failures: 0
+climb (k=8, n=16), 4 members: 218888 starts with a solution, 456240 patterns tested (all with a solution), mean final deficiency w - r = 9.20, max 16, (C*) failures: 0
+search (k=16, n=32), 4 members, mode full: 300000 patterns, 180552 with dependent rows, 138204 with a solution (rank < Lk), 43635 with both, 300000 with at least 3 full leaves, (C*) failures: 0
+search (k=16, n=32), 4 members, mode lift: 300000 patterns, 54475 with dependent rows, 299888 with a solution (rank < Lk), 54389 with both, 261465 with at least 3 full leaves, (C*) failures: 0
+climb (k=16, n=32), 4 members: 18312 starts with a solution, 34293 patterns tested (all with a solution), mean final deficiency w - r = 14.12, max 32, (C*) failures: 0
+FAIL: w=31 rank=31 B(P;Q*)=32 : 01 01+02+03+04 34 34 03 03 23 01+02+03+04 14 14 01+02+03+04 01+02+03+04 04 01+02+03+04 24 24 
+FAIL: w=30 rank=30 B(P;Q*)=31 : 02 01+02+03+04 14 14 01+03+04 01+02+03+04 23 23 01 01 01+02+03+04 34 01+02+03+04 04 13 13 
+FAIL: w=31 rank=31 B(P;Q*)=32 : 12 01+02+03+04 13 13 24 24 34 01+02+03+04 01+02+03+04 01 14 14 01+02+03+04 01+02+03+04 02 02 
+search (k=8, n=16), 5 members, mode full: 2000000 patterns, 1265468 with dependent rows, 1257997 with a solution (rank < Lk), 605312 with both, 2000000 with at least 3 full leaves, (C*) failures: 3
+search (k=8, n=16), 5 members, mode lift: 2000000 patterns, 228087 with dependent rows, 1998547 with a solution (rank < Lk), 226928 with both, 1076622 with at least 3 full leaves, (C*) failures: 0
+climb (k=8, n=16), 5 members: 244232 starts with a solution, 696566 patterns tested (all with a solution), mean final deficiency w - r = 12.72, max 24, (C*) failures: 0
+search (k=16, n=32), 5 members, mode full: 300000 patterns, 124486 with dependent rows, 210530 with a solution (rank < Lk), 49196 with both, 300000 with at least 3 full leaves, (C*) failures: 0
+search (k=16, n=32), 5 members, mode lift: 300000 patterns, 26232 with dependent rows, 299991 with a solution (rank < Lk), 26223 with both, 227856 with at least 3 full leaves, (C*) failures: 0
+climb (k=16, n=32), 5 members: 21252 starts with a solution, 54938 patterns tested (all with a solution), mean final deficiency w - r = 19.74, max 44, (C*) failures: 0
+FAIL: w=37 rank=37 B(P;Q*)=38 : 15 15 01+02+03+04+05 01+02+03+04+05 12 12 01+02+03+04+05 25 02 02 01+02+03+04+05 13 23 23 01+02+03+04+05 01+04 
+search (k=8, n=16), 6 members, mode full: 2000000 patterns, 1093606 with dependent rows, 1535848 with a solution (rank < Lk), 673280 with both, 2000000 with at least 3 full leaves, (C*) failures: 1
+search (k=8, n=16), 6 members, mode lift: 2000000 patterns, 95604 with dependent rows, 1999731 with a solution (rank < Lk), 95377 with both, 1028237 with at least 3 full leaves, (C*) failures: 0
+climb (k=8, n=16), 6 members: 265226 starts with a solution, 955121 patterns tested (all with a solution), mean final deficiency w - r = 15.64, max 30, (C*) failures: 0
+search (k=16, n=32), 6 members, mode full: 300000 patterns, 80329 with dependent rows, 257766 with a solution (rank < Lk), 43686 with both, 300000 with at least 3 full leaves, (C*) failures: 0
+search (k=16, n=32), 6 members, mode lift: 300000 patterns, 8219 with dependent rows, 299997 with a solution (rank < Lk), 8216 with both, 210738 with at least 3 full leaves, (C*) failures: 0
+climb (k=16, n=32), 6 members: 23242 starts with a solution, 78112 patterns tested (all with a solution), mean final deficiency w - r = 25.17, max 52, (C*) failures: 0

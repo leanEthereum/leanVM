@@ -1,0 +1,12 @@
+q=2^8 N=4 k=8: random pairs mean agr 0.0775 (free 0.0000), predicted n/q = 0.0625; planted ball R=1 |B|=5 int=1: mean agr 1.0725 (free 1.0000), predicted 1.0586
+q=2^8 N=4 k=4: random pairs mean agr 0.0775 (free 0.0000), predicted n/q = 0.0625; planted ball R=0 |B|=1 int=0: mean agr 0.0525 (free 0.0000), predicted 0.0625
+q=2^8 N=5 k=16: random pairs mean agr 0.1175 (free 0.0000), predicted n/q = 0.1250; planted ball R=1 |B|=6 int=1: mean agr 1.1125 (free 1.0000), predicted 1.1211
+q=2^8 N=5 k=8: random pairs mean agr 0.1250 (free 0.0000), predicted n/q = 0.1250; planted ball R=1 |B|=6 int=1: mean agr 1.1075 (free 1.0000), predicted 1.1211
+q=2^8 N=6 k=32: random pairs mean agr 0.2325 (free 0.0000), predicted n/q = 0.2500; planted ball R=2 |B|=22 int=7: mean agr 7.2725 (free 7.0000), predicted 7.2227
+q=2^8 N=6 k=16: random pairs mean agr 0.2125 (free 0.0000), predicted n/q = 0.2500; planted ball R=1 |B|=7 int=1: mean agr 1.2175 (free 1.0000), predicted 1.2461
+q=2^16 N=4 k=8: random pairs mean agr 0.0025 (free 0.0000), predicted n/q = 0.0002; planted ball R=1 |B|=5 int=1: mean agr 1.0000 (free 1.0000), predicted 1.0002
+q=2^16 N=4 k=4: random pairs mean agr 0.0000 (free 0.0000), predicted n/q = 0.0002; planted ball R=0 |B|=1 int=0: mean agr 0.0000 (free 0.0000), predicted 0.0002
+q=2^16 N=5 k=16: random pairs mean agr 0.0050 (free 0.0000), predicted n/q = 0.0005; planted ball R=1 |B|=6 int=1: mean agr 1.0000 (free 1.0000), predicted 1.0005
+q=2^16 N=5 k=8: random pairs mean agr 0.0000 (free 0.0000), predicted n/q = 0.0005; planted ball R=1 |B|=6 int=1: mean agr 1.0000 (free 1.0000), predicted 1.0005
+q=2^16 N=6 k=32: random pairs mean agr 0.0000 (free 0.0000), predicted n/q = 0.0010; planted ball R=2 |B|=22 int=7: mean agr 7.0000 (free 7.0000), predicted 7.0009
+q=2^16 N=6 k=16: random pairs mean agr 0.0000 (free 0.0000), predicted n/q = 0.0010; planted ball R=1 |B|=7 int=1: mean agr 1.0000 (free 1.0000), predicted 1.0010

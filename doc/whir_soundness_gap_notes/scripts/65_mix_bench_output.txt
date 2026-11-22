@@ -1,0 +1,45 @@
+# 65_mix_bench.c, Apple M4 Max, other agents running; best of 3 (mix) or 2 (ntt)
+# load: 7.34 7.85 5.90
+$ ./65_mix_bench 20 40 1 8 8
+rows 2^20, lanes 40, 1 thread(s), d = 8, far blocks of 2^8 rows
+ntt (19 layers)                   316.5 ms
+mix, strided x ^ 2^j             145.9 ms   0.46 x ntt   0.058 x ntt a partner
+mix, uniformly random rows       230.0 ms   0.73 x ntt   0.091 x ntt a partner
+mix, far blocks + local rows     182.3 ms   0.58 x ntt   0.072 x ntt a partner
+checksum e890ed639c6b461e
+$ ./65_mix_bench 20 40 4 8 8
+rows 2^20, lanes 40, 4 thread(s), d = 8, far blocks of 2^8 rows
+ntt (18 layers)                    74.9 ms
+mix, strided x ^ 2^j              62.2 ms   0.83 x ntt   0.104 x ntt a partner
+mix, uniformly random rows        58.2 ms   0.78 x ntt   0.097 x ntt a partner
+mix, far blocks + local rows      46.9 ms   0.63 x ntt   0.078 x ntt a partner
+checksum 77a86decea3b3d8b
+$ ./65_mix_bench 21 40 4 8 8
+rows 2^21, lanes 40, 4 thread(s), d = 8, far blocks of 2^8 rows
+ntt (19 layers)                   177.2 ms
+mix, strided x ^ 2^j             188.6 ms   1.06 x ntt   0.133 x ntt a partner
+mix, uniformly random rows       162.4 ms   0.92 x ntt   0.115 x ntt a partner
+mix, far blocks + local rows     154.6 ms   0.87 x ntt   0.109 x ntt a partner
+checksum 417b35261a03c118
+$ ./65_mix_bench 21 40 4 8 12
+rows 2^21, lanes 40, 4 thread(s), d = 8, far blocks of 2^12 rows
+ntt (19 layers)                   242.0 ms
+mix, strided x ^ 2^j             185.2 ms   0.77 x ntt   0.096 x ntt a partner
+mix, uniformly random rows       191.1 ms   0.79 x ntt   0.099 x ntt a partner
+mix, far blocks + local rows     160.4 ms   0.66 x ntt   0.083 x ntt a partner
+checksum a7263f03fa496e29
+$ ./65_mix_bench 21 40 4 5 8
+rows 2^21, lanes 40, 4 thread(s), d = 5, far blocks of 2^8 rows
+ntt (19 layers)                   238.5 ms
+mix, strided x ^ 2^j             131.3 ms   0.55 x ntt   0.110 x ntt a partner
+mix, uniformly random rows       119.0 ms   0.50 x ntt   0.100 x ntt a partner
+mix, far blocks + local rows     109.5 ms   0.46 x ntt   0.092 x ntt a partner
+checksum d4c82412713c8654
+$ ./65_mix_bench 22 40 4 8 8
+rows 2^22, lanes 40, 4 thread(s), d = 8, far blocks of 2^8 rows
+ntt (20 layers)                   642.9 ms
+mix, strided x ^ 2^j             422.4 ms   0.66 x ntt   0.082 x ntt a partner
+mix, uniformly random rows       418.6 ms   0.65 x ntt   0.081 x ntt a partner
+mix, far blocks + local rows     364.5 ms   0.57 x ntt   0.071 x ntt a partner
+checksum 205709b2ce3aabcf
+# load: 9.66 8.31 6.11

@@ -1,0 +1,475 @@
+# Researcher 13: raw output behind the tables of 13-real-domain.md (see 13_run_all.sh for the commands).
+
+## 4.1 scaled real shape, 5n/8 class (13_class58 N power random:1000|low|high m r)
+N=8 m=20 random U:  total over 2000 subspaces U: 46808 coincident pairs, random model 4.608e+04 (ratio 1.0157); largest genuine list 9 (formal 7)
+N=8 m=20 random U:  merged fibres by number of sets: 4:46448 6:80 9:120
+N=8 m=20 U=low:  total over 1 subspaces U: 56 coincident pairs, random model 23.04 (ratio 2.4303); largest genuine list 7 (formal 7)
+N=8 m=20 U=high:  total over 1 subspaces U: 40 coincident pairs, random model 23.04 (ratio 1.7359); largest genuine list 7 (formal 7)
+N=9 m=23 random U:  total over 2000 subspaces U: 25264 coincident pairs, random model 2.377e+04 (ratio 1.0630); largest genuine list 9 (formal 7)
+N=9 m=23 random U:  merged fibres by number of sets: 4:25104 6:32 9:64
+N=9 m=23 U=low:  total over 1 subspaces U: 40 coincident pairs, random model 11.88 (ratio 3.3662); largest genuine list 7 (formal 7)
+N=9 m=23 U=high:  total over 1 subspaces U: 40 coincident pairs, random model 11.88 (ratio 3.3662); largest genuine list 7 (formal 7)
+N=10 m=26 random U:  total over 2000 subspaces U: 13376 coincident pairs, random model 1.207e+04 (ratio 1.1086); largest genuine list 7 (formal 7)
+N=10 m=26 random U:  merged fibres by number of sets: 4:13376
+N=10 m=26 U=low:  total over 1 subspaces U: 32 coincident pairs, random model 6.033 (ratio 5.3043); largest genuine list 7 (formal 7)
+N=10 m=26 U=high:  total over 1 subspaces U: 24 coincident pairs, random model 6.033 (ratio 3.9782); largest genuine list 7 (formal 7)
+N=11 m=28 random U:  total over 2000 subspaces U: 11960 coincident pairs, random model 1.216e+04 (ratio 0.9837); largest genuine list 7 (formal 7)
+N=11 m=28 random U:  merged fibres by number of sets: 4:11960
+N=11 m=28 U=low:  total over 1 subspaces U: 24 coincident pairs, random model 6.079 (ratio 3.9481); largest genuine list 7 (formal 7)
+N=11 m=28 U=high:  total over 1 subspaces U: 32 coincident pairs, random model 6.079 (ratio 5.2642); largest genuine list 7 (formal 7)
+N=12 m=31 random U:  total over 1000 subspaces U: 3128 coincident pairs, random model 3051 (ratio 1.0253); largest genuine list 7 (formal 7)
+N=12 m=31 random U:  merged fibres by number of sets: 4:3128
+N=12 m=31 U=low:  total over 1 subspaces U: 24 coincident pairs, random model 3.051 (ratio 7.8664); largest genuine list 7 (formal 7)
+N=12 m=31 U=high:  total over 1 subspaces U: 40 coincident pairs, random model 3.051 (ratio 13.1107); largest genuine list 7 (formal 7)
+N=13 m=33 random U:  total over 1000 subspaces U: 2792 coincident pairs, random model 3057 (ratio 0.9134); largest genuine list 7 (formal 7)
+N=13 m=33 random U:  merged fibres by number of sets: 4:2792
+N=13 m=33 U=low:  total over 1 subspaces U: 24 coincident pairs, random model 3.057 (ratio 7.8515); largest genuine list 7 (formal 7)
+N=13 m=33 U=high:  total over 1 subspaces U: 24 coincident pairs, random model 3.057 (ratio 7.8515); largest genuine list 7 (formal 7)
+N=14 m=36 random U:  total over 600 subspaces U: 1040 coincident pairs, random model 917.9 (ratio 1.1330); largest genuine list 7 (formal 7)
+N=14 m=36 random U:  merged fibres by number of sets: 4:1040
+N=14 m=36 U=low:  total over 1 subspaces U: 24 coincident pairs, random model 1.53 (ratio 15.6883); largest genuine list 7 (formal 7)
+N=14 m=36 U=high:  total over 1 subspaces U: 32 coincident pairs, random model 1.53 (ratio 20.9177); largest genuine list 7 (formal 7)
+N=15 m=38 random U:  total over 400 subspaces U: 504 coincident pairs, random model 612.2 (ratio 0.8232); largest genuine list 7 (formal 7)
+N=15 m=38 random U:  merged fibres by number of sets: 4:504
+N=15 m=38 U=low:  total over 1 subspaces U: 24 coincident pairs, random model 1.531 (ratio 15.6809); largest genuine list 7 (formal 7)
+N=15 m=38 U=high:  total over 1 subspaces U: 24 coincident pairs, random model 1.531 (ratio 15.6809); largest genuine list 7 (formal 7)
+N=16 m=41 random U:  total over 300 subspaces U: 144 coincident pairs, random model 229.6 (ratio 0.6271); largest genuine list 7 (formal 7)
+N=16 m=41 random U:  merged fibres by number of sets: 4:144
+N=16 m=41 U=low:  total over 1 subspaces U: 24 coincident pairs, random model 0.7654 (ratio 31.3543); largest genuine list 7 (formal 7)
+N=16 m=41 U=high:  total over 1 subspaces U: 24 coincident pairs, random model 0.7654 (ratio 31.3543); largest genuine list 7 (formal 7)
+N=17 m=44 random U:  total over 150 subspaces U: 136 coincident pairs, random model 57.42 (ratio 2.3687); largest genuine list 7 (formal 7)
+N=17 m=44 random U:  merged fibres by number of sets: 4:136
+N=17 m=44 U=low:  total over 1 subspaces U: 24 coincident pairs, random model 0.3828 (ratio 62.7013); largest genuine list 7 (formal 7)
+N=17 m=44 U=high:  total over 1 subspaces U: 24 coincident pairs, random model 0.3828 (ratio 62.7013); largest genuine list 7 (formal 7)
+N=18 m=46 random U:  total over 100 subspaces U: 40 coincident pairs, random model 38.28 (ratio 1.0450); largest genuine list 7 (formal 7)
+N=18 m=46 random U:  merged fibres by number of sets: 4:40
+N=18 m=46 U=low:  total over 1 subspaces U: 24 coincident pairs, random model 0.3828 (ratio 62.6976); largest genuine list 7 (formal 7)
+N=18 m=46 U=high:  total over 1 subspaces U: 24 coincident pairs, random model 0.3828 (ratio 62.6976); largest genuine list 7 (formal 7)
+N=19 m=49 random U:  total over 50 subspaces U: 0 coincident pairs, random model 9.57 (ratio 0.0000); largest genuine list 7 (formal 7)
+N=19 m=49 random U:  merged fibres by number of sets:
+N=19 m=49 U=low:  total over 1 subspaces U: 24 coincident pairs, random model 0.1914 (ratio 125.3915); largest genuine list 7 (formal 7)
+N=19 m=49 U=high:  total over 1 subspaces U: 24 coincident pairs, random model 0.1914 (ratio 125.3915); largest genuine list 7 (formal 7)
+N=20 m=51 random U:  total over 30 subspaces U: 8 coincident pairs, random model 5.742 (ratio 1.3932); largest genuine list 7 (formal 7)
+N=20 m=51 random U:  merged fibres by number of sets: 4:8
+N=20 m=51 U=low:  total over 1 subspaces U: 24 coincident pairs, random model 0.1914 (ratio 125.3896); largest genuine list 7 (formal 7)
+N=20 m=51 U=high:  total over 1 subspaces U: 24 coincident pairs, random model 0.1914 (ratio 125.3896); largest genuine list 7 (formal 7)
+
+## 4.1 real domain N = 25, K = GF(2^64)
+N=25 shape=power m=64 r=0x1b: 504 label sets (56 invariant under U), formal classes 224 + 8, sizes 2:224 7:8
+  total over 1 subspaces U: 24 coincident pairs, random model 0.02393 (ratio 1003.1025); largest genuine list 7 (formal 7)
+  merged fibres by number of sets: 4:24
+$W/class58 25 power low 64 0x1b -q  30.16s user 2.95s system 97% cpu 33.981 total
+N=25 shape=power m=64 r=0x1b: 504 label sets (56 invariant under U), formal classes 224 + 8, sizes 2:224 7:8
+  U=random:1#0: records 939523880 (2^29.81), coincidences between formal classes: 0 pairs, random model 0.02393; genuine list at 5n/8 from this class: 7
+  U=random:1#1: records 939523880 (2^29.81), coincidences between formal classes: 0 pairs, random model 0.02393; genuine list at 5n/8 from this class: 7
+  U=random:1#2: records 939523880 (2^29.81), coincidences between formal classes: 0 pairs, random model 0.02393; genuine list at 5n/8 from this class: 7
+  U=random:1#3: records 939523880 (2^29.81), coincidences between formal classes: 0 pairs, random model 0.02393; genuine list at 5n/8 from this class: 7
+  total over 4 subspaces U: 0 coincident pairs, random model 0.0957 (ratio 0.0000); largest genuine list 7 (formal 7)
+  merged fibres by number of sets:
+$W/class58 25 power random:1 64 0x1b -n 4  74.06s user 10.72s system 97% cpu 1:26.71 total
+N=25 shape=power m=64 r=0x1b: 504 label sets (56 invariant under U), formal classes 224 + 8, sizes 2:224 7:8
+  total over 1 subspaces U: 24 coincident pairs, random model 0.02393 (ratio 1003.1025); largest genuine list 7 (formal 7)
+  merged fibres by number of sets: 4:24
+N=25 shape=power m=64 r=0x1b: 504 label sets (56 invariant under U), formal classes 224 + 8, sizes 2:224 7:8
+  U=random:100#0: records 939523880 (2^29.81), coincidences between formal classes: 0 pairs, random model 0.02393; genuine list at 5n/8 from this class: 7
+  U=random:100#1: records 939523880 (2^29.81), coincidences between formal classes: 0 pairs, random model 0.02393; genuine list at 5n/8 from this class: 7
+  U=random:100#2: records 939523880 (2^29.81), coincidences between formal classes: 0 pairs, random model 0.02393; genuine list at 5n/8 from this class: 7
+  U=random:100#3: records 939523880 (2^29.81), coincidences between formal classes: 0 pairs, random model 0.02393; genuine list at 5n/8 from this class: 7
+  U=random:100#4: records 939523880 (2^29.81), coincidences between formal classes: 0 pairs, random model 0.02393; genuine list at 5n/8 from this class: 7
+  U=random:100#5: records 939523880 (2^29.81), coincidences between formal classes: 0 pairs, random model 0.02393; genuine list at 5n/8 from this class: 7
+  U=random:100#6: records 939523880 (2^29.81), coincidences between formal classes: 0 pairs, random model 0.02393; genuine list at 5n/8 from this class: 7
+  U=random:100#7: records 939523880 (2^29.81), coincidences between formal classes: 0 pairs, random model 0.02393; genuine list at 5n/8 from this class: 7
+  U=random:100#8: records 939523880 (2^29.81), coincidences between formal classes: 0 pairs, random model 0.02393; genuine list at 5n/8 from this class: 7
+  U=random:100#9: records 939523880 (2^29.81), coincidences between formal classes: 0 pairs, random model 0.02393; genuine list at 5n/8 from this class: 7
+  U=random:100#10: records 939523880 (2^29.81), coincidences between formal classes: 0 pairs, random model 0.02393; genuine list at 5n/8 from this class: 7
+  U=random:100#11: records 939523880 (2^29.81), coincidences between formal classes: 0 pairs, random model 0.02393; genuine list at 5n/8 from this class: 7
+  total over 12 subspaces U: 0 coincident pairs, random model 0.2871 (ratio 0.0000); largest genuine list 7 (formal 7)
+  merged fibres by number of sets:
+
+## 4.4 structural coincidences of the 5n/8 class, two moduli (low, then 200 random U)
+N=5 shape=power m=64 r=0x1b m2=64 r2=0x1d: 504 label sets (56 invariant under U), formal classes 224 + 8, sizes 2:224 7:8; W-independent masks: 8 of the invariant classes, 0 of the others
+  total over 1 subspaces U: 240 coincident pairs, random model 6.784e-34 ; largest genuine list 9 (formal 7)
+  total over 200 subspaces U: 20640 coincident pairs, random model 1.357e-31 ; largest genuine list 13 (formal 7)
+  merged fibres by number of sets: 4:15544 6:1192 8:200 9:224 13:16
+N=6 shape=power m=64 r=0x1b m2=64 r2=0x1d: 504 label sets (56 invariant under U), formal classes 224 + 8, sizes 2:224 7:8; W-independent masks: 8 of the invariant classes, 0 of the others
+  total over 1 subspaces U: 32 coincident pairs, random model 3.647e-33 ; largest genuine list 7 (formal 7)
+  total over 200 subspaces U: 1856 coincident pairs, random model 7.295e-31 ; largest genuine list 7 (formal 7)
+  merged fibres by number of sets: 4:1856
+N=7 shape=power m=64 r=0x1b m2=64 r2=0x1d: 504 label sets (56 invariant under U), formal classes 224 + 8, sizes 2:224 7:8; W-independent masks: 8 of the invariant classes, 0 of the others
+  total over 1 subspaces U: 24 coincident pairs, random model 1.666e-32 ; largest genuine list 7 (formal 7)
+  total over 200 subspaces U: 216 coincident pairs, random model 3.333e-30 ; largest genuine list 7 (formal 7)
+  merged fibres by number of sets: 4:216
+N=8 shape=power m=64 r=0x1b m2=64 r2=0x1d: 504 label sets (56 invariant under U), formal classes 224 + 8, sizes 2:224 7:8; W-independent masks: 8 of the invariant classes, 0 of the others
+  total over 1 subspaces U: 24 coincident pairs, random model 7.1e-32 ; largest genuine list 7 (formal 7)
+  total over 200 subspaces U: 8 coincident pairs, random model 1.42e-29 ; largest genuine list 7 (formal 7)
+  merged fibres by number of sets: 4:8
+N=9 shape=power m=64 r=0x1b m2=64 r2=0x1d: 504 label sets (56 invariant under U), formal classes 224 + 8, sizes 2:224 7:8; W-independent masks: 8 of the invariant classes, 0 of the others
+  total over 1 subspaces U: 24 coincident pairs, random model 2.929e-31 ; largest genuine list 7 (formal 7)
+  total over 200 subspaces U: 0 coincident pairs, random model 5.859e-29 ; largest genuine list 7 (formal 7)
+  merged fibres by number of sets:
+N=10 shape=power m=64 r=0x1b m2=64 r2=0x1d: 504 label sets (56 invariant under U), formal classes 224 + 8, sizes 2:224 7:8; W-independent masks: 8 of the invariant classes, 0 of the others
+  total over 1 subspaces U: 24 coincident pairs, random model 1.19e-30 ; largest genuine list 7 (formal 7)
+  total over 200 subspaces U: 0 coincident pairs, random model 2.38e-28 ; largest genuine list 7 (formal 7)
+  merged fibres by number of sets:
+
+## 4.2 planes of the dual space, scaled real shape
+N=8 stat=iota2 shape=power m=20 r=0x9
+  objects 10795 (2^13.40), colliding pairs 73, random model 53.62 (ratio 1.3615), largest fibre 2
+  fibre sizes (observed / Poisson with mean 0.01029): 1:10649/1.068e+04 2:73/55 3:0/0.1887
+N=9 stat=iota2 shape=power m=23 r=0x21
+  objects 43435 (2^15.41), colliding pairs 113, random model 110.5 (ratio 1.0229), largest fibre 2
+  fibre sizes (observed / Poisson with mean 0.005178): 1:43209/4.321e+04 2:113/111.9 3:0/0.1931
+N=10 stat=iota2 shape=power m=26 r=0x1b
+  objects 174251 (2^17.41), colliding pairs 246, random model 224.2 (ratio 1.0971), largest fibre 2
+  fibre sizes (observed / Poisson with mean 0.002597): 1:173759/1.738e+05 2:246/225.6 3:0/0.1953
+N=11 stat=iota2 shape=power m=28 r=0x3
+  objects 698027 (2^19.41), colliding pairs 912, random model 903.6 (ratio 1.0093), largest fibre 3
+  fibre sizes (observed / Poisson with mean 0.0026): 1:696206/6.962e+05 2:909/905.2 3:1/0.7846 4:0/0.0005101
+N=12 stat=iota2 shape=power m=31 r=0x9
+  objects 2794155 (2^21.41), colliding pairs 1783, random model 1814 (ratio 0.9830), largest fibre 2
+  fibre sizes (observed / Poisson with mean 0.001301): 1:2790589/2.791e+06 2:1783/1815 3:0/0.7874
+N=13 stat=iota2 shape=power m=33 r=0x4b
+  objects 11180715 (2^23.41), colliding pairs 7256, random model 7268 (ratio 0.9983), largest fibre 3
+  fibre sizes (observed / Poisson with mean 0.001302): 1:11166209/1.117e+07 2:7250/7267 3:2/3.153 4:0/0.001026
+N=14 stat=iota2 shape=power m=36 r=0x35
+  objects 44731051 (2^25.41), colliding pairs 14552, random model 1.455e+04 (ratio 1.0001), largest fibre 3
+  fibre sizes (observed / Poisson with mean 0.0006509): 1:44701956/4.47e+07 2:14543/1.455e+04 3:3/3.157 4:0/0.0005137
+N=15 stat=iota2 shape=power m=38 r=0x63
+  objects 178940587 (2^27.41), colliding pairs 58247, random model 5.823e+04 (ratio 1.0003), largest fibre 3
+  fibre sizes (observed / Poisson with mean 0.000651): 1:178824120/1.788e+08 2:58220/5.821e+04 3:9/12.63 4:0/0.002056
+N=8 stat=pi2 shape=power m=20 r=0x9
+  objects 10795 (2^13.40), colliding pairs 100, random model 53.62 (ratio 1.8651), largest fibre 2
+  fibre sizes (observed / Poisson with mean 0.01029): 1:10595/1.068e+04 2:100/55 3:0/0.1887
+N=9 stat=pi2 shape=power m=23 r=0x21
+  objects 43435 (2^15.41), colliding pairs 150, random model 110.5 (ratio 1.3578), largest fibre 2
+  fibre sizes (observed / Poisson with mean 0.005178): 1:43135/4.321e+04 2:150/111.9 3:0/0.1931
+N=10 stat=pi2 shape=power m=26 r=0x1b
+  objects 174251 (2^17.41), colliding pairs 150, random model 224.2 (ratio 0.6689), largest fibre 2
+  fibre sizes (observed / Poisson with mean 0.002597): 1:173951/1.738e+05 2:150/225.6 3:0/0.1953
+N=11 stat=pi2 shape=power m=28 r=0x3
+  objects 698027 (2^19.41), colliding pairs 970, random model 903.6 (ratio 1.0735), largest fibre 2
+  fibre sizes (observed / Poisson with mean 0.0026): 1:696087/6.962e+05 2:970/905.2 3:0/0.7846
+N=12 stat=pi2 shape=power m=31 r=0x9
+  objects 2794155 (2^21.41), colliding pairs 1860, random model 1814 (ratio 1.0255), largest fibre 3
+  fibre sizes (observed / Poisson with mean 0.001301): 1:2790438/2.791e+06 2:1857/1815 3:1/0.7874 4:0/0.0002561
+N=13 stat=pi2 shape=power m=33 r=0x4b
+  objects 11180715 (2^23.41), colliding pairs 7340, random model 7268 (ratio 1.0098), largest fibre 3
+  fibre sizes (observed / Poisson with mean 0.001302): 1:11166038/1.117e+07 2:7337/7267 3:1/3.153 4:0/0.001026
+N=14 stat=pi2 shape=power m=36 r=0x35
+  objects 44731051 (2^25.41), colliding pairs 14320, random model 1.455e+04 (ratio 0.9842), largest fibre 3
+  fibre sizes (observed / Poisson with mean 0.0006509): 1:44702414/4.47e+07 2:14317/1.455e+04 3:1/3.157 4:0/0.0005137
+N=15 stat=pi2 shape=power m=38 r=0x63
+  objects 178940587 (2^27.41), colliding pairs 57730, random model 5.823e+04 (ratio 0.9915), largest fibre 3
+  fibre sizes (observed / Poisson with mean 0.000651): 1:178825160/1.788e+08 2:57697/5.821e+04 3:11/12.63 4:0/0.002056
+N=16 stat=iota2 shape=power m=41 r=0x9
+  objects 715795115 (2^29.41), colliding pairs 116632, random model 1.165e+05 (ratio 1.0013), largest fibre 3
+  fibre sizes (observed / Poisson with mean 0.0003255): 1:715561878/7.156e+08 2:116605/1.165e+05 3:9/12.64 4:0/0.001028  [Poisson: largest fibre size expected at least once: 3]
+N=16 stat=pi2 shape=power m=41 r=0x9
+  objects 715795115 (2^29.41), colliding pairs 117160, random model 1.165e+05 (ratio 1.0058), largest fibre 3
+  fibre sizes (observed / Poisson with mean 0.0003255): 1:715560834/7.156e+08 2:117121/1.165e+05 3:13/12.64 4:0/0.001028  [Poisson: largest fibre size expected at least once: 3]
+
+## 4.2 / 4.3 3-spaces and affine planes; real field
+N=8 stat=iota3 shape=power m=20 r=0x9
+  objects 97155 (2^16.57), colliding pairs 4439, random model 4501 (ratio 0.9863), largest fibre 4
+  fibre sizes (observed / Poisson with mean 0.09265): 1:88723/8.856e+04 2:3995/4103 3:146/126.7 4:1/2.935 5:0/0.05439
+N=9 stat=iota3 shape=power m=23 r=0x21
+  objects 788035 (2^19.59), colliding pairs 36820, random model 3.701e+04 (ratio 0.9947), largest fibre 4
+  fibre sizes (observed / Poisson with mean 0.09394): 1:717705/7.174e+05 2:33574/3.37e+04 3:1018/1055 4:32/24.78 5:0/0.4656
+N=10 stat=iota3 shape=power m=26 r=0x1b
+  objects 6347715 (2^22.60), colliding pairs 300615, random model 3.002e+05 (ratio 1.0013), largest fibre 5
+  fibre sizes (observed / Poisson with mean 0.09459): 1:5774730/5.775e+06 2:272926/2.731e+05 3:8687/8611 4:258/203.6 5:8/3.852 6:0/0.06073
+N=11 stat=iota3 shape=power m=28 r=0x3
+  objects 50955971 (2^25.60), colliding pairs 4834625, random model 4.836e+06 (ratio 0.9996), largest fibre 6
+  fibre sizes (observed / Poisson with mean 0.1898): 1:42147723/4.215e+07 2:3999944/4e+06 3:252774/2.531e+05 4:11884/1.201e+04 5:480/456 6:17/14.43 7:0/0.3913
+N=12 stat=iota3 shape=power m=31 r=0x9
+  objects 408345795 (2^28.61), colliding pairs 38821817, random model 3.882e+07 (ratio 1.0000), largest fibre 7
+  fibre sizes (observed / Poisson with mean 0.1902): 1:337635013/3.376e+08 2:32101783/3.21e+07 3:2033758/2.035e+06 4:96742/9.672e+04 5:3655/3678 6:113/116.6 7:3/3.167 8:0/0.07527
+N=8 stat=iota3 shape=power m=64 r=0x1b
+  objects 97155 (2^16.57), colliding pairs 3, random model 2.558e-10 (ratio 11725871505.9048), largest fibre 2
+  fibre sizes (observed / Poisson with mean 5.267e-15): 1:97149/9.715e+04 2:3/2.558e-10 3:0/4.492e-25
+N=10 stat=iota3 shape=power m=64 r=0x1b
+  objects 6347715 (2^22.60), colliding pairs 3, random model 1.092e-06 (ratio 2746857.9572), largest fibre 2
+  fibre sizes (observed / Poisson with mean 3.441e-13): 1:6347709/6.348e+06 2:3/1.092e-06 3:0/1.253e-19
+N=12 stat=iota3 shape=power m=64 r=0x1b
+  objects 408345795 (2^28.61), colliding pairs 3, random model 0.00452 (ratio 663.7657), largest fibre 2
+  fibre sizes (observed / Poisson with mean 2.214e-11): 1:408345789/4.083e+08 2:3/0.00452 3:0/3.335e-14
+N=11 stat=iota3 shape=power m=16 r=0x2b
+  objects 50955971 (2^25.60), colliding pairs 19808500961, random model 1.981e+10 (ratio 0.9999), largest fibre 907
+  fibre sizes (observed / Poisson with mean 777.5): 1:0/0 2:0/0 3:0/0 4:0/0 5:0/0 6:0/0 7:0/0 8:0/0 9:0/0 10:0/0 11:0/0 12:0/0 13:0/0 14:0/0 15:0/0 16:0/0 17:0/0 18:0/0 19:0/0 20:0/0 21:0/0 22:0/0 23:0/0 24:0/0 25:0/0 26:0/0 27:0/0 28:0/0 29:0/0 30:0/0 31:0/0 32:0/0 33:0/0 34:0/0 35:0/0 36:0/0 37:0/0 38:0/0 39:0/0 40:0/0 41:0/0 
+N=11 stat=iota3 shape=random:1 m=16 r=0x2b
+  objects 50955971 (2^25.60), colliding pairs 19808460759, random model 1.981e+10 (ratio 0.9999), largest fibre 899
+  fibre sizes (observed / Poisson with mean 777.5): 1:0/0 2:0/0 3:0/0 4:0/0 5:0/0 6:0/0 7:0/0 8:0/0 9:0/0 10:0/0 11:0/0 12:0/0 13:0/0 14:0/0 15:0/0 16:0/0 17:0/0 18:0/0 19:0/0 20:0/0 21:0/0 22:0/0 23:0/0 24:0/0 25:0/0 26:0/0 27:0/0 28:0/0 29:0/0 30:0/0 31:0/0 32:0/0 33:0/0 34:0/0 35:0/0 36:0/0 37:0/0 38:0/0 39:0/0 40:0/0 41:0/0 
+N=12 stat=iota3 shape=power m=20 r=0x9
+  objects 408345795 (2^28.61), colliding pairs 79509644151, random model 7.951e+10 (ratio 1.0000), largest fibre 483
+  fibre sizes (observed / Poisson with mean 389.4): 1:0/3.049e-161 2:0/5.938e-159 3:0/7.707e-157 4:0/7.504e-155 5:0/5.844e-153 6:0/3.793e-151 7:0/2.11e-149 8:0/1.027e-147 9:0/4.445e-146 10:0/1.731e-144 11:0/6.128e-143 12:0/1.989e-141 13:0/5.958e-140 14:0/1.657e-138 15:0/4.302e-137 16:0/1.047e-135 17:0/2.399e-134 18:0/5.19e-133 1
+N=8 stat=aff2 shape=power m=20 r=0x9
+  objects 680085 (2^19.38), colliding pairs 220671, random model 2.205e+05 (ratio 1.0006), largest fibre 8
+  fibre sizes (observed / Poisson with mean 0.6486): 1:355588/3.555e+05 2:115107/1.153e+05 3:25060/2.493e+04 4:4011/4042 5:542/524.3 6:51/56.67 7:5/5.251 8:1/0.4257 9:0/0.03068
+N=9 stat=aff2 shape=power m=23 r=0x21
+  objects 5516245 (2^22.40), colliding pairs 1813160, random model 1.814e+06 (ratio 0.9997), largest fibre 9
+  fibre sizes (observed / Poisson with mean 0.6576): 1:2858914/2.858e+06 2:939492/9.397e+05 3:205821/2.06e+05 4:33769/3.386e+04 5:4473/4453 6:495/488.1 7:64/45.85 8:2/3.769 9:1/0.2754 10:0/0.01811
+N=10 stat=aff2 shape=power m=26 r=0x1b
+  objects 44434005 (2^25.41), colliding pairs 14708878, random model 1.471e+07 (ratio 0.9999), largest fibre 9
+  fibre sizes (observed / Poisson with mean 0.6621): 1:22912773/2.292e+07 2:7588502/7.587e+06 3:1676893/1.674e+06 4:276231/2.772e+05 5:36370/3.67e+04 6:3964/4050 7:379/383.1 8:40/31.71 9:2/2.333 10:0/0.1545
+N=11 stat=aff2 shape=power m=28 r=0x3
+  objects 356691797 (2^28.41), colliding pairs 236989096, random model 2.37e+08 (ratio 1.0000), largest fibre 12
+  fibre sizes (observed / Poisson with mean 1.329): 1:94449588/9.445e+07 2:62755424/6.275e+07 3:27793393/2.779e+07 4:9232772/9.233e+06 5:2453673/2.454e+06 6:544179/5.434e+05 7:103299/1.032e+05 8:17094/1.713e+04 9:2526/2530 10:361/336.1 11:38/40.61 12:4/4.496 13:0/0.4596
+N=8 stat=aff2 shape=power m=64 r=0x1b
+  objects 680085 (2^19.38), colliding pairs 246, random model 1.254e-08 (ratio 19622713888.1464), largest fibre 6
+  fibre sizes (observed / Poisson with mean 3.687e-14): 1:679644/6.801e+05 2:204/1.254e-08 3:9/1.541e-22 4:0/1.42e-36 5:0/1.047e-50 6:1/6.434e-65 7:0/3.388e-79
+N=10 stat=aff2 shape=power m=64 r=0x1b
+  objects 44434005 (2^25.41), colliding pairs 246, random model 5.352e-05 (ratio 4596782.0833), largest fibre 6
+  fibre sizes (observed / Poisson with mean 2.409e-12): 1:44433564/4.443e+07 2:204/5.352e-05 3:9/4.297e-17 4:0/2.588e-29 5:0/1.247e-41 6:1/5.005e-54 7:0/1.722e-66
+N=11 stat=aff2 shape=power m=64 r=0x1b
+  objects 356691797 (2^28.41), colliding pairs 246, random model 0.003449 (ratio 71334.3294), largest fibre 6
+  fibre sizes (observed / Poisson with mean 1.934e-11): 1:356691356/3.567e+08 2:204/0.003449 3:9/2.223e-14 4:0/1.074e-25 5:0/4.155e-37 6:1/1.339e-48 7:0/3.699e-60
+
+## 4.3 planes in the real field (with the colliding planes)
+N=6 stat=iota2 shape=power m=64 r=0x1b
+  objects 651 (2^9.35), colliding pairs 1, random model 9.881e-15 (ratio 101200044292898.5781), largest fibre 2
+  fibre sizes (observed / Poisson with mean 3.529e-17): 1:649/651 2:1/1.149e-14 3:0/1.351e-31
+  hit key=6d8084158411029b a=21 b=1f c=0
+  hit key=6d8084158411029b a=2d b=1b c=0
+N=8 stat=iota2 shape=power m=64 r=0x1b
+  objects 10795 (2^13.40), colliding pairs 1, random model 3.048e-12 (ratio 328115011602.7281), largest fibre 2
+  fibre sizes (observed / Poisson with mean 5.852e-16): 1:10793/1.079e+04 2:1/3.159e-12 3:0/6.161e-28
+  hit key=f26875206809f160 a=81 b=7f c=0
+  hit key=f26875206809f160 a=b6 b=6d c=0
+N=10 stat=iota2 shape=power m=64 r=0x1b
+  objects 174251 (2^17.41), colliding pairs 1, random model 8.158e-10 (ratio 1225834414.4560), largest fibre 2
+  fibre sizes (observed / Poisson with mean 9.446e-15): 1:174249/1.743e+05 2:1/8.23e-10 3:0/2.591e-24
+  hit key=d92f68dca48b051b a=201 b=1ff c=0
+  hit key=d92f68dca48b051b a=2db b=1b6 c=0
+N=12 stat=iota2 shape=power m=64 r=0x1b
+  objects 2794155 (2^21.41), colliding pairs 1, random model 2.112e-07 (ratio 4735915.6897), largest fibre 2
+  fibre sizes (observed / Poisson with mean 1.515e-13): 1:2794153/2.794e+06 2:1/2.116e-07 3:0/1.068e-20
+  hit key=dace23ea9279050b a=801 b=7ff c=0
+  hit key=dace23ea9279050b a=b6d b=6db c=0
+N=14 stat=iota2 shape=power m=64 r=0x1b
+  objects 44731051 (2^25.41), colliding pairs 1, random model 5.42e-05 (ratio 18448.8856), largest fibre 2
+  fibre sizes (observed / Poisson with mean 2.425e-12): 1:44731049/4.473e+07 2:1/5.423e-05 3:0/4.384e-17
+  hit key=c1cb8363312e0f1d a=2001 b=1fff c=0
+  hit key=c1cb8363312e0f1d a=2db6 b=1b6d c=0
+N=16 stat=iota2 shape=power m=64 r=0x1b
+  objects 715795115 (2^29.41), colliding pairs 1, random model 0.01389 (ratio 72.0165), largest fibre 2
+  fibre sizes (observed / Poisson with mean 3.88e-11): 1:715795113/7.158e+08 2:1/0.01389 3:0/1.796e-13
+  hit key=a97ea2d318719f18 a=8001 b=7fff c=0
+  hit key=a97ea2d318719f18 a=b6db b=6db6 c=0
+N=6 stat=pi2 shape=power m=64 r=0x1b
+  objects 651 (2^9.35), colliding pairs 0, random model 9.881e-15 (ratio 0.0000), largest fibre 1
+  fibre sizes (observed / Poisson with mean 3.529e-17): 1:651/651 2:0/1.149e-14
+N=8 stat=pi2 shape=power m=64 r=0x1b
+  objects 10795 (2^13.40), colliding pairs 0, random model 3.048e-12 (ratio 0.0000), largest fibre 1
+  fibre sizes (observed / Poisson with mean 5.852e-16): 1:10795/1.079e+04 2:0/3.159e-12
+N=10 stat=pi2 shape=power m=64 r=0x1b
+  objects 174251 (2^17.41), colliding pairs 0, random model 8.158e-10 (ratio 0.0000), largest fibre 1
+  fibre sizes (observed / Poisson with mean 9.446e-15): 1:174251/1.743e+05 2:0/8.23e-10
+N=12 stat=pi2 shape=power m=64 r=0x1b
+  objects 2794155 (2^21.41), colliding pairs 0, random model 2.112e-07 (ratio 0.0000), largest fibre 1
+  fibre sizes (observed / Poisson with mean 1.515e-13): 1:2794155/2.794e+06 2:0/2.116e-07
+N=14 stat=pi2 shape=power m=64 r=0x1b
+  objects 44731051 (2^25.41), colliding pairs 0, random model 5.42e-05 (ratio 0.0000), largest fibre 1
+  fibre sizes (observed / Poisson with mean 2.425e-12): 1:44731051/4.473e+07 2:0/5.423e-05
+N=16 stat=pi2 shape=power m=64 r=0x1b
+  objects 715795115 (2^29.41), colliding pairs 0, random model 0.01389 (ratio 0.0000), largest fibre 1
+  fibre sizes (observed / Poisson with mean 3.88e-11): 1:715795115/7.158e+08 2:0/0.01389
+
+## 4.4 exhaustive n = 32
+T=12 g=4 shape=random:1 m=64+64: classes>=2 1598360, largest 7, pairs 1692600, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:1562400 3:34720 7:1240
+T=12 g=4 shape=power m=64: classes>=2 17088808, largest 13, pairs 23217496, non-formal pairs (congruence mod 8 fails) 21524896
+  sizes: 2:14757200 3:1952224 4:317176 5:51392 6:7776 7:2408 8:456 9:168 13:8
+T=12 g=4 shape=power m=13: classes>=2 17324720, largest 13, pairs 23484056, non-formal pairs (congruence mod 8 fails) 21791456
+  sizes: 2:14979840 3:1964224 4:318416 5:51392 6:7808 7:2408 8:456 9:168 13:8
+T=12 g=4 shape=random:1 m=13: classes>=2 5003496, largest 9, pairs 5414184, non-formal pairs (congruence mod 8 fails) 3721584
+  sizes: 2:4829160 3:160704 4:12232 5:96 6:64 7:1136 9:104
+T=12 g=4 shape=power m=16: classes>=2 17088808, largest 13, pairs 23217496, non-formal pairs (congruence mod 8 fails) 21524896
+  sizes: 2:14757200 3:1952224 4:317176 5:51392 6:7776 7:2408 8:456 9:168 13:8
+T=12 g=4 shape=random:1 m=16: classes>=2 1693960, largest 7, pairs 1791224, non-formal pairs (congruence mod 8 fails) 98624
+  sizes: 2:1656800 3:35712 4:208 7:1240
+T=12 g=4 shape=power m=20: classes>=2 17088808, largest 13, pairs 23217496, non-formal pairs (congruence mod 8 fails) 21524896
+  sizes: 2:14757200 3:1952224 4:317176 5:51392 6:7776 7:2408 8:456 9:168 13:8
+T=12 g=4 shape=random:1 m=20: classes>=2 1656408, largest 7, pairs 1752952, non-formal pairs (congruence mod 8 fails) 60352
+  sizes: 2:1619392 3:35712 4:64 7:1240
+T=12 g=4 shape=power m=26: classes>=2 17088808, largest 13, pairs 23217496, non-formal pairs (congruence mod 8 fails) 21524896
+  sizes: 2:14757200 3:1952224 4:317176 5:51392 6:7776 7:2408 8:456 9:168 13:8
+T=12 g=4 shape=random:1 m=26: classes>=2 1598360, largest 7, pairs 1692600, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:1562400 3:34720 7:1240
+T=12 g=4 shape=random:2 m=13: classes>=2 4335328, largest 7, pairs 4602776, non-formal pairs (congruence mod 8 fails) 2910176
+  sizes: 2:4218800 3:111360 4:3896 6:32 7:1240
+T=12 g=4 shape=random:1 m=15: classes>=2 2666944, largest 9, pairs 2822120, non-formal pairs (congruence mod 8 fails) 1129520
+  sizes: 2:2602136 3:62528 4:1040 7:1232 9:8
+T=11 g=5 shape=random:1 m=64+64: classes>=2 451360, largest 3, pairs 520800, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:416640 3:34720
+T=11 g=5 shape=power m=64: classes>=2 6820480, largest 7, pairs 8486880, non-formal pairs (congruence mod 8 fails) 7966080
+  sizes: 2:6140000 3:595936 4:73056 5:10432 6:960 7:96
+T=11 g=5 shape=power m=13: classes>=2 6885760, largest 7, pairs 8557152, non-formal pairs (congruence mod 8 fails) 8036352
+  sizes: 2:6202880 3:598272 4:73120 5:10432 6:960 7:96
+T=11 g=5 shape=random:1 m=13: classes>=2 1594144, largest 5, pairs 1738720, non-formal pairs (congruence mod 8 fails) 1217920
+  sizes: 2:1530944 3:57696 4:5088 5:416
+T=11 g=5 shape=power m=16: classes>=2 6820480, largest 7, pairs 8486880, non-formal pairs (congruence mod 8 fails) 7966080
+  sizes: 2:6140000 3:595936 4:73056 5:10432 6:960 7:96
+T=11 g=5 shape=random:1 m=16: classes>=2 476064, largest 3, pairs 546016, non-formal pairs (congruence mod 8 fails) 25216
+  sizes: 2:441088 3:34976
+T=11 g=5 shape=power m=20: classes>=2 6820480, largest 7, pairs 8486880, non-formal pairs (congruence mod 8 fails) 7966080
+  sizes: 2:6140000 3:595936 4:73056 5:10432 6:960 7:96
+T=11 g=5 shape=random:1 m=20: classes>=2 469152, largest 3, pairs 539104, non-formal pairs (congruence mod 8 fails) 18304
+  sizes: 2:434176 3:34976
+T=11 g=5 shape=power m=26: classes>=2 6820480, largest 7, pairs 8486880, non-formal pairs (congruence mod 8 fails) 7966080
+  sizes: 2:6140000 3:595936 4:73056 5:10432 6:960 7:96
+T=11 g=5 shape=random:1 m=26: classes>=2 451360, largest 3, pairs 520800, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:416640 3:34720
+T=11 g=5 shape=random:2 m=13: classes>=2 1382272, largest 4, pairs 1485024, non-formal pairs (congruence mod 8 fails) 964224
+  sizes: 2:1331136 3:50976 4:160
+T=11 g=5 shape=random:1 m=15: classes>=2 835168, largest 4, pairs 916320, non-formal pairs (congruence mod 8 fails) 395520
+  sizes: 2:794784 3:40256 4:128
+T=10 g=6 shape=random:1 m=64+64: classes>=2 76880, largest 3, pairs 111600, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:59520 3:17360
+T=10 g=6 shape=power m=64: classes>=2 76880, largest 3, pairs 111600, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:59520 3:17360
+T=10 g=6 shape=power m=13: classes>=2 76880, largest 3, pairs 111600, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:59520 3:17360
+T=10 g=6 shape=random:1 m=13: classes>=2 76880, largest 3, pairs 111600, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:59520 3:17360
+T=10 g=6 shape=power m=16: classes>=2 76880, largest 3, pairs 111600, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:59520 3:17360
+T=10 g=6 shape=random:1 m=16: classes>=2 76880, largest 3, pairs 111600, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:59520 3:17360
+T=10 g=6 shape=power m=20: classes>=2 76880, largest 3, pairs 111600, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:59520 3:17360
+T=10 g=6 shape=random:1 m=20: classes>=2 76880, largest 3, pairs 111600, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:59520 3:17360
+T=10 g=6 shape=power m=26: classes>=2 76880, largest 3, pairs 111600, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:59520 3:17360
+T=10 g=6 shape=random:1 m=26: classes>=2 76880, largest 3, pairs 111600, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:59520 3:17360
+T=10 g=6 shape=random:2 m=13: classes>=2 76880, largest 3, pairs 111600, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:59520 3:17360
+T=10 g=6 shape=random:1 m=15: classes>=2 76880, largest 3, pairs 111600, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:59520 3:17360
+T=9 g=5 shape=random:1 m=64+64: classes>=2 4960, largest 3, pairs 14880, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 3:4960
+T=9 g=5 shape=power m=64: classes>=2 474688, largest 6, pairs 517728, non-formal pairs (congruence mod 8 fails) 502848
+  sizes: 2:454624 3:19520 4:384 5:32 6:128
+T=9 g=5 shape=power m=13: classes>=2 476224, largest 6, pairs 519264, non-formal pairs (congruence mod 8 fails) 504384
+  sizes: 2:456160 3:19520 4:384 5:32 6:128
+T=9 g=5 shape=random:1 m=13: classes>=2 59616, largest 6, pairs 70304, non-formal pairs (congruence mod 8 fails) 55424
+  sizes: 2:54656 3:4896 6:64
+T=9 g=5 shape=power m=16: classes>=2 474688, largest 6, pairs 517728, non-formal pairs (congruence mod 8 fails) 502848
+  sizes: 2:454624 3:19520 4:384 5:32 6:128
+T=9 g=5 shape=random:1 m=16: classes>=2 5472, largest 3, pairs 15392, non-formal pairs (congruence mod 8 fails) 512
+  sizes: 2:512 3:4960
+T=9 g=5 shape=power m=20: classes>=2 474688, largest 6, pairs 517728, non-formal pairs (congruence mod 8 fails) 502848
+  sizes: 2:454624 3:19520 4:384 5:32 6:128
+T=9 g=5 shape=random:1 m=20: classes>=2 5472, largest 3, pairs 15392, non-formal pairs (congruence mod 8 fails) 512
+  sizes: 2:512 3:4960
+T=9 g=5 shape=power m=26: classes>=2 474688, largest 6, pairs 517728, non-formal pairs (congruence mod 8 fails) 502848
+  sizes: 2:454624 3:19520 4:384 5:32 6:128
+T=9 g=5 shape=random:1 m=26: classes>=2 4960, largest 3, pairs 14880, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 3:4960
+T=9 g=5 shape=random:2 m=13: classes>=2 52832, largest 3, pairs 62880, non-formal pairs (congruence mod 8 fails) 48000
+  sizes: 2:47808 3:5024
+T=9 g=5 shape=random:1 m=15: classes>=2 27040, largest 3, pairs 36960, non-formal pairs (congruence mod 8 fails) 22080
+  sizes: 2:22080 3:4960
+T=11 g=7 shape=random:1 m=64+64: classes>=2 451360, largest 3, pairs 520800, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:416640 3:34720
+T=11 g=7 shape=power m=64: classes>=2 451360, largest 3, pairs 520800, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:416640 3:34720
+T=11 g=7 shape=power m=13: classes>=2 451360, largest 3, pairs 520800, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:416640 3:34720
+T=11 g=7 shape=random:1 m=13: classes>=2 451360, largest 3, pairs 520800, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:416640 3:34720
+T=11 g=7 shape=power m=16: classes>=2 451360, largest 3, pairs 520800, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:416640 3:34720
+T=11 g=7 shape=random:1 m=16: classes>=2 451360, largest 3, pairs 520800, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:416640 3:34720
+T=11 g=7 shape=power m=20: classes>=2 451360, largest 3, pairs 520800, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:416640 3:34720
+T=11 g=7 shape=random:1 m=20: classes>=2 451360, largest 3, pairs 520800, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:416640 3:34720
+T=11 g=7 shape=power m=26: classes>=2 451360, largest 3, pairs 520800, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:416640 3:34720
+T=11 g=7 shape=random:1 m=26: classes>=2 451360, largest 3, pairs 520800, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:416640 3:34720
+T=11 g=7 shape=random:2 m=13: classes>=2 451360, largest 3, pairs 520800, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:416640 3:34720
+T=11 g=7 shape=random:1 m=15: classes>=2 451360, largest 3, pairs 520800, non-formal pairs (congruence mod 8 fails) 0
+  sizes: 2:416640 3:34720
+T=5 g=3 shape=random:1 m=64+64: classes>=2 4960, largest 7, pairs 104160, non-formal pairs (congruence mod 4 fails) 0
+  sizes: 7:4960
+T=5 g=3 shape=power m=64: classes>=2 4960, largest 7, pairs 104160, non-formal pairs (congruence mod 4 fails) 0
+  sizes: 7:4960
+T=5 g=3 shape=power m=13: classes>=2 4960, largest 7, pairs 104160, non-formal pairs (congruence mod 4 fails) 0
+  sizes: 7:4960
+T=5 g=3 shape=random:1 m=13: classes>=2 4960, largest 7, pairs 104160, non-formal pairs (congruence mod 4 fails) 0
+  sizes: 7:4960
+T=5 g=3 shape=power m=16: classes>=2 4960, largest 7, pairs 104160, non-formal pairs (congruence mod 4 fails) 0
+  sizes: 7:4960
+T=5 g=3 shape=random:1 m=16: classes>=2 4960, largest 7, pairs 104160, non-formal pairs (congruence mod 4 fails) 0
+  sizes: 7:4960
+T=5 g=3 shape=power m=20: classes>=2 4960, largest 7, pairs 104160, non-formal pairs (congruence mod 4 fails) 0
+  sizes: 7:4960
+T=5 g=3 shape=random:1 m=20: classes>=2 4960, largest 7, pairs 104160, non-formal pairs (congruence mod 4 fails) 0
+  sizes: 7:4960
+T=5 g=3 shape=power m=26: classes>=2 4960, largest 7, pairs 104160, non-formal pairs (congruence mod 4 fails) 0
+  sizes: 7:4960
+T=5 g=3 shape=random:1 m=26: classes>=2 4960, largest 7, pairs 104160, non-formal pairs (congruence mod 4 fails) 0
+  sizes: 7:4960
+T=5 g=3 shape=random:2 m=13: classes>=2 4960, largest 7, pairs 104160, non-formal pairs (congruence mod 4 fails) 0
+  sizes: 7:4960
+T=5 g=3 shape=random:1 m=15: classes>=2 4960, largest 7, pairs 104160, non-formal pairs (congruence mod 4 fails) 0
+  sizes: 7:4960
+T=6 g=4 shape=random:1 m=64+64: classes>=2 0, largest 0, pairs 0, non-formal pairs (congruence mod 8 fails) 0
+  sizes:
+T=6 g=4 shape=power m=64: classes>=2 400, largest 2, pairs 400, non-formal pairs (congruence mod 8 fails) 400
+  sizes: 2:400
+T=6 g=4 shape=power m=13: classes>=2 400, largest 2, pairs 400, non-formal pairs (congruence mod 8 fails) 400
+  sizes: 2:400
+T=6 g=4 shape=random:1 m=13: classes>=2 32, largest 2, pairs 32, non-formal pairs (congruence mod 8 fails) 32
+  sizes: 2:32
+T=6 g=4 shape=power m=16: classes>=2 400, largest 2, pairs 400, non-formal pairs (congruence mod 8 fails) 400
+  sizes: 2:400
+T=6 g=4 shape=random:1 m=16: classes>=2 0, largest 0, pairs 0, non-formal pairs (congruence mod 8 fails) 0
+  sizes:
+T=6 g=4 shape=power m=20: classes>=2 400, largest 2, pairs 400, non-formal pairs (congruence mod 8 fails) 400
+  sizes: 2:400
+T=6 g=4 shape=random:1 m=20: classes>=2 0, largest 0, pairs 0, non-formal pairs (congruence mod 8 fails) 0
+  sizes:
+T=6 g=4 shape=power m=26: classes>=2 400, largest 2, pairs 400, non-formal pairs (congruence mod 8 fails) 400
+  sizes: 2:400
+T=6 g=4 shape=random:1 m=26: classes>=2 0, largest 0, pairs 0, non-formal pairs (congruence mod 8 fails) 0
+  sizes:
+T=6 g=4 shape=random:2 m=13: classes>=2 32, largest 2, pairs 32, non-formal pairs (congruence mod 8 fails) 32
+  sizes: 2:32
+T=6 g=4 shape=random:1 m=15: classes>=2 16, largest 2, pairs 16, non-formal pairs (congruence mod 8 fails) 16
+  sizes: 2:16
+T=7 g=5 shape=random:1 m=64+64: classes>=2 0, largest 0, pairs 0, non-formal pairs (congruence mod 8 fails) 0
+  sizes:
+T=7 g=5 shape=power m=64: classes>=2 8000, largest 2, pairs 8000, non-formal pairs (congruence mod 8 fails) 8000
+  sizes: 2:8000
+T=7 g=5 shape=power m=13: classes>=2 8000, largest 2, pairs 8000, non-formal pairs (congruence mod 8 fails) 8000
+  sizes: 2:8000
+T=7 g=5 shape=random:1 m=13: classes>=2 640, largest 2, pairs 640, non-formal pairs (congruence mod 8 fails) 640
+  sizes: 2:640
+T=7 g=5 shape=power m=16: classes>=2 8000, largest 2, pairs 8000, non-formal pairs (congruence mod 8 fails) 8000
+  sizes: 2:8000
+T=7 g=5 shape=random:1 m=16: classes>=2 0, largest 0, pairs 0, non-formal pairs (congruence mod 8 fails) 0
+  sizes:
+T=7 g=5 shape=power m=20: classes>=2 8000, largest 2, pairs 8000, non-formal pairs (congruence mod 8 fails) 8000
+  sizes: 2:8000
+T=7 g=5 shape=random:1 m=20: classes>=2 0, largest 0, pairs 0, non-formal pairs (congruence mod 8 fails) 0
+  sizes:
+T=7 g=5 shape=power m=26: classes>=2 8000, largest 2, pairs 8000, non-formal pairs (congruence mod 8 fails) 8000
+  sizes: 2:8000
+T=7 g=5 shape=random:1 m=26: classes>=2 0, largest 0, pairs 0, non-formal pairs (congruence mod 8 fails) 0
+  sizes:
+T=7 g=5 shape=random:2 m=13: classes>=2 640, largest 2, pairs 640, non-formal pairs (congruence mod 8 fails) 640
+  sizes: 2:640
+T=7 g=5 shape=random:1 m=15: classes>=2 320, largest 2, pairs 320, non-formal pairs (congruence mod 8 fails) 320
+  sizes: 2:320
+T=11 g=3 shape=random:1 m=64+64: classes>=2 1033664, largest 589, pairs 12533406144, non-formal pairs (congruence mod 4 fails) 0
+  sizes: 24:277760
+T=10 g=3 shape=random:1 m=64+64: classes>=2 978608, largest 513, pairs 3431881536, non-formal pairs (congruence mod 4 fails) 0
+  sizes: 12:222208 48:416640 56:14880 61:27776
+T=9 g=3 shape=random:1 m=64+64: classes>=2 875968, largest 465, pairs 736946880, non-formal pairs (congruence mod 4 fails) 0
+  sizes: 15:444416 16:138880 61:277760

@@ -1,0 +1,7 @@
+(k,n)=(8,16) T2, 3 members: 2957 dependent patterns of rank below Lk, 10267 nonzero block parts; (1,0)(x)rho_q or (0,1)(x)rho_q outside the row space: 0; the same for rho_q + rho_q' (two children of a root): 0
+(k,n)=(8,16) T2, 4 members: 4852 dependent patterns of rank below Lk, 17861 nonzero block parts; (1,0)(x)rho_q or (0,1)(x)rho_q outside the row space: 0; the same for rho_q + rho_q' (two children of a root): 0
+(k,n)=(16,32) T2, 4 members: 743 dependent patterns of rank below Lk, 2772 nonzero block parts; (1,0)(x)rho_q or (0,1)(x)rho_q outside the row space: 0; the same for rho_q + rho_q' (two children of a root): 0
+(k,n)=(8,16) T1, 3 members: 2963 dependent patterns of rank below Lk, 10288 nonzero block parts; (1,0)(x)rho_q or (0,1)(x)rho_q outside the row space: 0; the same for rho_q + rho_q' (two children of a root): 0
+(k,n)=(8,16) T1, 4 members: 4848 dependent patterns of rank below Lk, 17844 nonzero block parts; (1,0)(x)rho_q or (0,1)(x)rho_q outside the row space: 0; the same for rho_q + rho_q' (two children of a root): 0
+(k,n)=(16,32) T1, 4 members: 739 dependent patterns of rank below Lk, 2757 nonzero block parts; (1,0)(x)rho_q or (0,1)(x)rho_q outside the row space: 0; the same for rho_q + rho_q' (two children of a root): 0
+lifts to (16,32) of 162 five-member patterns of n = 16: 162 carry five distinct codewords; least agreement of a member 20 (5n/8 = 20)

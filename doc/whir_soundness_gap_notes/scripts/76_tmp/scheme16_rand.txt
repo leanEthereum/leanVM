@@ -1,0 +1,1 @@
+(8,16), three members: random patterns 300, rows dependent 146, best scheme different from the rank: 0

@@ -1,0 +1,20 @@
+C. Proposition 6.2(c): K4 system on six distinct points dependent iff opposite pairs in involution
+  19927 configurations, 9972 dependent, criterion agrees on all, rank never below 5
+A. reduction and chain identities (assertions; any failure aborts)
+  k=8 n=16 t=3: systems 500, systems needing reduction 0, reduction steps 0, with G > 0 1, with half-rounded nodes 1, with excess > 0 0, max excess 0; 0 violations
+  k=8 n=32 t=3: systems 400, systems needing reduction 1, reduction steps 3, with G > 0 7, with half-rounded nodes 7, with excess > 0 2, max excess 1; 0 violations
+  k=8 n=16 t=4: systems 400, systems needing reduction 2, reduction steps 3, with G > 0 1, with half-rounded nodes 1, with excess > 0 1, max excess 1; 0 violations
+  k=16 n=32 t=3: systems 150, systems needing reduction 0, reduction steps 0, with G > 0 0, with half-rounded nodes 0, with excess > 0 0, max excess 0; 0 violations
+  k=8 n=32 t=4: systems 250, systems needing reduction 0, reduction steps 0, with G > 0 3, with half-rounded nodes 3, with excess > 0 1, max excess 1; 0 violations
+A'. the same assertions on degenerate codes (twiddles from a pool of 2, 3 or 4 field elements: the lemmas are deterministic), maximal genuine systems built greedily
+  k=8 n=16 t=3 pool 2: systems 300, systems needing reduction 249, reduction steps 468, with G > 0 298, with half-rounded nodes 292, with excess > 0 298, max excess 6; 0 violations
+  k=8 n=16 t=3 pool 3: systems 300, systems needing reduction 228, reduction steps 462, with G > 0 299, with half-rounded nodes 284, with excess > 0 297, max excess 6; 0 violations
+  k=8 n=32 t=3 pool 2: systems 200, systems needing reduction 199, reduction steps 1264, with G > 0 200, with half-rounded nodes 180, with excess > 0 200, max excess 20; 0 violations
+  k=8 n=16 t=4 pool 2: systems 200, systems needing reduction 71, reduction steps 94, with G > 0 199, with half-rounded nodes 192, with excess > 0 155, max excess 5; 0 violations
+  k=8 n=16 t=4 pool 4: systems 200, systems needing reduction 34, reduction steps 48, with G > 0 142, with half-rounded nodes 127, with excess > 0 70, max excess 3; 0 violations
+  k=16 n=32 t=3 pool 2: systems 80, systems needing reduction 76, reduction steps 284, with G > 0 80, with half-rounded nodes 80, with excess > 0 80, max excess 11; 0 violations
+  k=4 n=16 t=4 pool 2: systems 300, systems needing reduction 237, reduction steps 404, with G > 0 300, with half-rounded nodes 267, with excess > 0 300, max excess 8; 0 violations
+  k=4 n=32 t=5 pool 3: systems 150, systems needing reduction 128, reduction steps 324, with G > 0 150, with half-rounded nodes 144, with excess > 0 150, max excess 17; 0 violations
+B. Lemma 2.1(c), sampled: label with Y empty at level 1 (k_1 = 2, L = 2, null = 4), D = 8 children of 4 nodes, two tight children with different directions under each node
+  directions (0,1) at every node: Pr[G >= 1] = 0.00820, Pr[tight and G >= 1] = 0.00000, bound 0.00417, 1/q = 0.00391 (30000 draws)
+  mixed direction pairs: Pr[G >= 1] = 0.00447, Pr[tight and G >= 1] = 0.00430, bound 0.00417, 1/q = 0.00391 (30000 draws)

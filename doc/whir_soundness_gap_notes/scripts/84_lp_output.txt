@@ -1,0 +1,132 @@
+rate 2^-3, n = 2^20: Johnson sqrt(rho) = 0.35355, capacity 0.125000
+  generic   : 0.32758 <= tau* <= 0.32758   eps_2 = 0.00000, Johnson of the code sqrt(rho+eps_2) = 0.35355   list at tau*+eta <= 3*(1-tau*)/eta = 2.0/eta
+              support (j, lambda_j, right side): (1, 0.4811, 0.12500), (3, 0.4023, 0.37500)
+  J0        : 0.49627 <= tau* <= 0.49627   eps_2 = 0.17858, Johnson of the code sqrt(rho+eps_2) = 0.55098   list at tau*+eta <= 2*(1-tau*)/eta = 1.0/eta
+              support (j, lambda_j, right side): (1, 0.2911, 0.30358), (2, 0.5482, 0.45101)
+  checked   : 0.38829 <= tau* <= 0.38829   eps_2 = 0.03793, Johnson of the code sqrt(rho+eps_2) = 0.40364   list at tau*+eta <= 2*(1-tau*)/eta = 1.2/eta
+              support (j, lambda_j, right side): (1, 0.2715, 0.16293), (2, 0.5729, 0.32899)
+  heavy     : 0.38829 <= tau* <= 0.38829   eps_2 = 0.03793, Johnson of the code sqrt(rho+eps_2) = 0.40364   list at tau*+eta <= 2*(1-tau*)/eta = 1.2/eta
+              support (j, lambda_j, right side): (1, 0.2715, 0.16293), (2, 0.5729, 0.32899)
+  main-only : 0.36077 <= tau* <= 0.36077   eps_2 = 0.02003, Johnson of the code sqrt(rho+eps_2) = 0.38082   list at tau*+eta <= 2*(1-tau*)/eta = 1.3/eta
+              support (j, lambda_j, right side): (1, 0.2216, 0.14503), (2, 0.6341, 0.29065)
+rate 2^-3, n = 2^22: Johnson sqrt(rho) = 0.35355, capacity 0.125000
+  generic   : 0.32758 <= tau* <= 0.32758   eps_2 = 0.00000, Johnson of the code sqrt(rho+eps_2) = 0.35355   list at tau*+eta <= 3*(1-tau*)/eta = 2.0/eta
+              support (j, lambda_j, right side): (1, 0.4811, 0.12500), (3, 0.4023, 0.37500)
+  J0        : 0.49735 <= tau* <= 0.49735   eps_2 = 0.17959, Johnson of the code sqrt(rho+eps_2) = 0.55189   list at tau*+eta <= 2*(1-tau*)/eta = 1.0/eta
+              support (j, lambda_j, right side): (1, 0.2921, 0.30459), (2, 0.5470, 0.45244)
+  checked   : 0.38908 <= tau* <= 0.38908   eps_2 = 0.03850, Johnson of the code sqrt(rho+eps_2) = 0.40435   list at tau*+eta <= 2*(1-tau*)/eta = 1.2/eta
+              support (j, lambda_j, right side): (1, 0.2728, 0.16350), (2, 0.5713, 0.33008)
+  heavy     : 0.38908 <= tau* <= 0.38908   eps_2 = 0.03850, Johnson of the code sqrt(rho+eps_2) = 0.40435   list at tau*+eta <= 2*(1-tau*)/eta = 1.2/eta
+              support (j, lambda_j, right side): (1, 0.2728, 0.16350), (2, 0.5713, 0.33008)
+  main-only : 0.36134 <= tau* <= 0.36134   eps_2 = 0.02059, Johnson of the code sqrt(rho+eps_2) = 0.38157   list at tau*+eta <= 2*(1-tau*)/eta = 1.3/eta
+              support (j, lambda_j, right side): (1, 0.2225, 0.14559), (2, 0.6330, 0.29135)
+rate 2^-3, n = 2^24: Johnson sqrt(rho) = 0.35355, capacity 0.125000
+  generic   : 0.32758 <= tau* <= 0.32758   eps_2 = 0.00000, Johnson of the code sqrt(rho+eps_2) = 0.35355   list at tau*+eta <= 3*(1-tau*)/eta = 2.0/eta
+              support (j, lambda_j, right side): (1, 0.4811, 0.12500), (3, 0.4023, 0.37500)
+  J0        : 0.49836 <= tau* <= 0.49836   eps_2 = 0.18053, Johnson of the code sqrt(rho+eps_2) = 0.55275   list at tau*+eta <= 2*(1-tau*)/eta = 1.0/eta
+              support (j, lambda_j, right side): (1, 0.2931, 0.30553), (2, 0.5457, 0.45378)
+  checked   : 0.38977 <= tau* <= 0.38978   eps_2 = 0.03901, Johnson of the code sqrt(rho+eps_2) = 0.40498   list at tau*+eta <= 2*(1-tau*)/eta = 1.2/eta
+              support (j, lambda_j, right side): (1, 0.2737, 0.16401), (2, 0.5702, 0.33106)
+  heavy     : 0.38977 <= tau* <= 0.38978   eps_2 = 0.03901, Johnson of the code sqrt(rho+eps_2) = 0.40498   list at tau*+eta <= 2*(1-tau*)/eta = 1.2/eta
+              support (j, lambda_j, right side): (1, 0.2737, 0.16401), (2, 0.5702, 0.33106)
+  main-only : 0.36199 <= tau* <= 0.36199   eps_2 = 0.02108, Johnson of the code sqrt(rho+eps_2) = 0.38221   list at tau*+eta <= 2*(1-tau*)/eta = 1.3/eta
+              support (j, lambda_j, right side): (1, 0.2234, 0.14608), (2, 0.6319, 0.29221)
+rate 2^-4, n = 2^20: Johnson sqrt(rho) = 0.25000, capacity 0.062500
+  generic   : 0.20505 <= tau* <= 0.20506   eps_2 = 0.00000, Johnson of the code sqrt(rho+eps_2) = 0.25000   list at tau*+eta <= 6*(1-tau*)/eta = 4.8/eta
+              support (j, lambda_j, right side): (1, 0.5269, 0.06250), (2, 0.1848, 0.12500), (6, 0.2384, 0.37500)
+  J0        : 0.30748 <= tau* <= 0.30748   eps_2 = 0.09203, Johnson of the code sqrt(rho+eps_2) = 0.39311   list at tau*+eta <= 4*(1-tau*)/eta = 2.8/eta
+              support (j, lambda_j, right side): (1, 0.5225, 0.15453), (2, 0.0435, 0.22999), (4, 0.3534, 0.38156)
+  checked   : 0.26399 <= tau* <= 0.26399   eps_2 = 0.03072, Johnson of the code sqrt(rho+eps_2) = 0.30532   list at tau*+eta <= 3*(1-tau*)/eta = 2.2/eta
+              support (j, lambda_j, right side): (1, 0.4118, 0.09322), (3, 0.4924, 0.26375)
+  heavy     : 0.25211 <= tau* <= 0.25211   eps_2 = 0.02034, Johnson of the code sqrt(rho+eps_2) = 0.28782   list at tau*+eta <= 4*(1-tau*)/eta = 3.0/eta
+              support (j, lambda_j, right side): (1, 0.5654, 0.08284), (4, 0.3591, 0.33930)
+  main-only : 0.23157 <= tau* <= 0.23157   eps_2 = 0.01127, Johnson of the code sqrt(rho+eps_2) = 0.27160   list at tau*+eta <= 5*(1-tau*)/eta = 3.8/eta
+              support (j, lambda_j, right side): (1, 0.6090, 0.07377), (4, 0.1697, 0.29821), (5, 0.1692, 0.37399)
+rate 2^-4, n = 2^22: Johnson sqrt(rho) = 0.25000, capacity 0.062500
+  generic   : 0.20505 <= tau* <= 0.20506   eps_2 = 0.00000, Johnson of the code sqrt(rho+eps_2) = 0.25000   list at tau*+eta <= 6*(1-tau*)/eta = 4.8/eta
+              support (j, lambda_j, right side): (1, 0.5269, 0.06250), (2, 0.1848, 0.12500), (6, 0.2384, 0.37500)
+  J0        : 0.30826 <= tau* <= 0.30826   eps_2 = 0.09258, Johnson of the code sqrt(rho+eps_2) = 0.39381   list at tau*+eta <= 4*(1-tau*)/eta = 2.8/eta
+              support (j, lambda_j, right side): (1, 0.5223, 0.15508), (2, 0.0446, 0.23079), (4, 0.3523, 0.38284)
+  checked   : 0.26458 <= tau* <= 0.26458   eps_2 = 0.03107, Johnson of the code sqrt(rho+eps_2) = 0.30589   list at tau*+eta <= 3*(1-tau*)/eta = 2.2/eta
+              support (j, lambda_j, right side): (1, 0.4125, 0.09357), (3, 0.4916, 0.26466)
+  heavy     : 0.25271 <= tau* <= 0.25271   eps_2 = 0.02066, Johnson of the code sqrt(rho+eps_2) = 0.28837   list at tau*+eta <= 4*(1-tau*)/eta = 3.0/eta
+              support (j, lambda_j, right side): (1, 0.5661, 0.08316), (4, 0.3584, 0.34047)
+  main-only : 0.23201 <= tau* <= 0.23201   eps_2 = 0.01145, Johnson of the code sqrt(rho+eps_2) = 0.27193   list at tau*+eta <= 5*(1-tau*)/eta = 3.8/eta
+              support (j, lambda_j, right side): (1, 0.6084, 0.07395), (4, 0.1725, 0.29907), (5, 0.1666, 0.37508)
+rate 2^-4, n = 2^24: Johnson sqrt(rho) = 0.25000, capacity 0.062500
+  generic   : 0.20505 <= tau* <= 0.20506   eps_2 = 0.00000, Johnson of the code sqrt(rho+eps_2) = 0.25000   list at tau*+eta <= 6*(1-tau*)/eta = 4.8/eta
+              support (j, lambda_j, right side): (1, 0.5269, 0.06250), (2, 0.1848, 0.12500), (6, 0.2384, 0.37500)
+  J0        : 0.30895 <= tau* <= 0.30895   eps_2 = 0.09308, Johnson of the code sqrt(rho+eps_2) = 0.39444   list at tau*+eta <= 4*(1-tau*)/eta = 2.8/eta
+              support (j, lambda_j, right side): (1, 0.5219, 0.15558), (2, 0.0458, 0.23150), (4, 0.3513, 0.38397)
+  checked   : 0.26510 <= tau* <= 0.26510   eps_2 = 0.03138, Johnson of the code sqrt(rho+eps_2) = 0.30640   list at tau*+eta <= 3*(1-tau*)/eta = 2.2/eta
+              support (j, lambda_j, right side): (1, 0.4129, 0.09388), (3, 0.4911, 0.26546)
+  heavy     : 0.25323 <= tau* <= 0.25324   eps_2 = 0.02094, Johnson of the code sqrt(rho+eps_2) = 0.28886   list at tau*+eta <= 4*(1-tau*)/eta = 3.0/eta
+              support (j, lambda_j, right side): (1, 0.5663, 0.08344), (4, 0.3581, 0.34150)
+  main-only : 0.23249 <= tau* <= 0.23249   eps_2 = 0.01172, Johnson of the code sqrt(rho+eps_2) = 0.27243   list at tau*+eta <= 5*(1-tau*)/eta = 3.8/eta
+              support (j, lambda_j, right side): (1, 0.6094, 0.07422), (4, 0.1704, 0.29997), (5, 0.1681, 0.37604)
+rate 2^-7, n = 2^20: Johnson sqrt(rho) = 0.08839, capacity 0.007812
+  generic   : 0.04165 <= tau* <= 0.04165   eps_2 = 0.00000, Johnson of the code sqrt(rho+eps_2) = 0.08839   list at tau*+eta <= 47*(1-tau*)/eta = 45.0/eta
+              support (j, lambda_j, right side): (1, 0.4988, 0.00781), (2, 0.1856, 0.01562), (4, 0.1754, 0.03125), (11, 0.0645, 0.08594), (12, 0.0325, 0.09375), (46, 0.0024, 0.35938), (47, 0.0330, 0.36719)
+  J0        : 0.06180 <= tau* <= 0.06180   eps_2 = 0.01248, Johnson of the code sqrt(rho+eps_2) = 0.14246   list at tau*+eta <= 34*(1-tau*)/eta = 31.9/eta
+              support (j, lambda_j, right side): (1, 0.5008, 0.02030), (2, 0.1410, 0.03027), (3, 0.1638, 0.04030), (8, 0.1329, 0.09116), (9, 0.0017, 0.10143), (34, 0.0494, 0.36289)
+  checked   : 0.05581 <= tau* <= 0.05581   eps_2 = 0.00442, Johnson of the code sqrt(rho+eps_2) = 0.11061   list at tau*+eta <= 37*(1-tau*)/eta = 34.9/eta
+              support (j, lambda_j, right side): (1, 0.5477, 0.01223), (3, 0.2990, 0.03475), (9, 0.0067, 0.10143), (10, 0.0999, 0.11173), (37, 0.0418, 0.39456)
+  heavy     : 0.05581 <= tau* <= 0.05581   eps_2 = 0.00442, Johnson of the code sqrt(rho+eps_2) = 0.11061   list at tau*+eta <= 37*(1-tau*)/eta = 34.9/eta
+              support (j, lambda_j, right side): (1, 0.5477, 0.01223), (3, 0.2990, 0.03475), (9, 0.0067, 0.10143), (10, 0.0999, 0.11173), (37, 0.0418, 0.39456)
+  main-only : 0.05105 <= tau* <= 0.05106   eps_2 = 0.00187, Johnson of the code sqrt(rho+eps_2) = 0.09838   list at tau*+eta <= 34*(1-tau*)/eta = 32.3/eta
+              support (j, lambda_j, right side): (1, 0.5035, 0.00968), (2, 0.1338, 0.01944), (3, 0.1690, 0.02934), (8, 0.1331, 0.07986), (9, 0.0006, 0.09010), (34, 0.0497, 0.35111)
+rate 2^-7, n = 2^22: Johnson sqrt(rho) = 0.08839, capacity 0.007812
+  generic   : 0.04165 <= tau* <= 0.04165   eps_2 = 0.00000, Johnson of the code sqrt(rho+eps_2) = 0.08839   list at tau*+eta <= 47*(1-tau*)/eta = 45.0/eta
+              support (j, lambda_j, right side): (1, 0.4988, 0.00781), (2, 0.1856, 0.01562), (4, 0.1754, 0.03125), (11, 0.0645, 0.08594), (12, 0.0325, 0.09375), (46, 0.0024, 0.35938), (47, 0.0330, 0.36719)
+  J0        : 0.06202 <= tau* <= 0.06202   eps_2 = 0.01258, Johnson of the code sqrt(rho+eps_2) = 0.14279   list at tau*+eta <= 34*(1-tau*)/eta = 31.9/eta
+              support (j, lambda_j, right side): (1, 0.5008, 0.02039), (2, 0.1409, 0.03041), (3, 0.1638, 0.04048), (8, 0.1343, 0.09154), (33, 0.0073, 0.35381), (34, 0.0422, 0.36440)
+  checked   : 0.05601 <= tau* <= 0.05601   eps_2 = 0.00448, Johnson of the code sqrt(rho+eps_2) = 0.11088   list at tau*+eta <= 37*(1-tau*)/eta = 34.9/eta
+              support (j, lambda_j, right side): (1, 0.5474, 0.01229), (3, 0.2994, 0.03490), (9, 0.0050, 0.10186), (10, 0.1015, 0.11220), (37, 0.0417, 0.39621)
+  heavy     : 0.05601 <= tau* <= 0.05601   eps_2 = 0.00448, Johnson of the code sqrt(rho+eps_2) = 0.11088   list at tau*+eta <= 37*(1-tau*)/eta = 34.9/eta
+              support (j, lambda_j, right side): (1, 0.5474, 0.01229), (3, 0.2994, 0.03490), (9, 0.0050, 0.10186), (10, 0.1015, 0.11220), (37, 0.0417, 0.39621)
+  main-only : 0.05122 <= tau* <= 0.05122   eps_2 = 0.00190, Johnson of the code sqrt(rho+eps_2) = 0.09857   list at tau*+eta <= 34*(1-tau*)/eta = 32.3/eta
+              support (j, lambda_j, right side): (1, 0.5038, 0.00972), (2, 0.1329, 0.01952), (3, 0.1699, 0.02945), (8, 0.1309, 0.08018), (9, 0.0026, 0.09047), (34, 0.0495, 0.35256)
+rate 2^-7, n = 2^24: Johnson sqrt(rho) = 0.08839, capacity 0.007812
+  generic   : 0.04165 <= tau* <= 0.04165   eps_2 = 0.00000, Johnson of the code sqrt(rho+eps_2) = 0.08839   list at tau*+eta <= 47*(1-tau*)/eta = 45.0/eta
+              support (j, lambda_j, right side): (1, 0.4988, 0.00781), (2, 0.1856, 0.01562), (4, 0.1754, 0.03125), (11, 0.0645, 0.08594), (12, 0.0325, 0.09375), (46, 0.0024, 0.35938), (47, 0.0330, 0.36719)
+  J0        : 0.06221 <= tau* <= 0.06221   eps_2 = 0.01266, Johnson of the code sqrt(rho+eps_2) = 0.14307   list at tau*+eta <= 34*(1-tau*)/eta = 31.9/eta
+              support (j, lambda_j, right side): (1, 0.5009, 0.02047), (2, 0.1405, 0.03052), (3, 0.1643, 0.04063), (8, 0.1341, 0.09188), (33, 0.0111, 0.35510), (34, 0.0385, 0.36574)
+  checked   : 0.05618 <= tau* <= 0.05618   eps_2 = 0.00453, Johnson of the code sqrt(rho+eps_2) = 0.11111   list at tau*+eta <= 37*(1-tau*)/eta = 34.9/eta
+              support (j, lambda_j, right side): (1, 0.5474, 0.01235), (3, 0.2995, 0.03504), (9, 0.0044, 0.10223), (10, 0.1022, 0.11261), (37, 0.0416, 0.39766)
+  heavy     : 0.05618 <= tau* <= 0.05618   eps_2 = 0.00453, Johnson of the code sqrt(rho+eps_2) = 0.11111   list at tau*+eta <= 37*(1-tau*)/eta = 34.9/eta
+              support (j, lambda_j, right side): (1, 0.5474, 0.01235), (3, 0.2995, 0.03504), (9, 0.0044, 0.10223), (10, 0.1022, 0.11261), (37, 0.0416, 0.39766)
+  main-only : 0.05136 <= tau* <= 0.05136   eps_2 = 0.00193, Johnson of the code sqrt(rho+eps_2) = 0.09872   list at tau*+eta <= 34*(1-tau*)/eta = 32.3/eta
+              support (j, lambda_j, right side): (1, 0.5029, 0.00975), (2, 0.1354, 0.01958), (3, 0.1679, 0.02957), (8, 0.1321, 0.08046), (9, 0.0019, 0.09078), (34, 0.0495, 0.35383)
+rate 2^-10, n = 2^20: Johnson sqrt(rho) = 0.03125, capacity 0.000977
+  generic   : 0.00723 <= tau* <= 0.00724   eps_2 = 0.00000, Johnson of the code sqrt(rho+eps_2) = 0.03125   list at tau*+eta <= 369*(1-tau*)/eta = 366.3/eta
+              support (j, lambda_j, right side): (1, 0.5007, 0.00098), (2, 0.1599, 0.00195), (3, 0.1113, 0.00293), (5, 0.0511, 0.00488), (6, 0.0651, 0.00586), (12, 0.0353, 0.01172), (13, 0.0271, 0.01270), (30, 0.0145, 0.02930), (31, 0.0161, 0.03027), (85, 0.0081, 0.08301), (95, 0.0053, 0.09277), (369, 0.0046, 0.36035)
+  J0        : 0.01109 <= tau* <= 0.01109   eps_2 = 0.00169, Johnson of the code sqrt(rho+eps_2) = 0.05160   list at tau*+eta <= 263*(1-tau*)/eta = 260.1/eta
+              support (j, lambda_j, right side): (1, 0.4998, 0.00266), (2, 0.1683, 0.00398), (3, 0.0780, 0.00530), (4, 0.0502, 0.00663), (5, 0.0584, 0.00797), (9, 0.0747, 0.01337), (20, 0.0055, 0.02852), (21, 0.0370, 0.02991), (54, 0.0023, 0.07657), (60, 0.0173, 0.08516), (235, 0.0048, 0.34168), (263, 0.0022, 0.38323)
+  checked   : 0.01048 <= tau* <= 0.01048   eps_2 = 0.00098, Johnson of the code sqrt(rho+eps_2) = 0.04426   list at tau*+eta <= 263*(1-tau*)/eta = 260.2/eta
+              support (j, lambda_j, right side): (1, 0.5135, 0.00196), (3, 0.3503, 0.00457), (13, 0.1015, 0.01884), (48, 0.0110, 0.06800), (54, 0.0152, 0.07657), (235, 0.0071, 0.34168), (263, 0.0004, 0.38323)
+  heavy     : 0.01030 <= tau* <= 0.01030   eps_2 = 0.00063, Johnson of the code sqrt(rho+eps_2) = 0.04005   list at tau*+eta <= 235*(1-tau*)/eta = 232.6/eta
+              support (j, lambda_j, right side): (1, 0.5330, 0.00160), (3, 0.3214, 0.00457), (11, 0.0553, 0.01610), (12, 0.0503, 0.01747), (30, 0.0078, 0.04251), (31, 0.0048, 0.04391), (54, 0.0209, 0.07657), (235, 0.0075, 0.34168)
+  main-only : 0.00966 <= tau* <= 0.00967   eps_2 = 0.00030, Johnson of the code sqrt(rho+eps_2) = 0.03566   list at tau*+eta <= 263*(1-tau*)/eta = 260.5/eta
+              support (j, lambda_j, right side): (1, 0.4998, 0.00127), (2, 0.1699, 0.00256), (3, 0.0626, 0.00386), (4, 0.1005, 0.00518), (8, 0.0907, 0.01053), (19, 0.0360, 0.02560), (22, 0.0117, 0.02976), (54, 0.0056, 0.07497), (60, 0.0146, 0.08356), (235, 0.0050, 0.34000), (263, 0.0021, 0.38155)
+rate 2^-10, n = 2^22: Johnson sqrt(rho) = 0.03125, capacity 0.000977
+  generic   : 0.00723 <= tau* <= 0.00724   eps_2 = 0.00000, Johnson of the code sqrt(rho+eps_2) = 0.03125   list at tau*+eta <= 369*(1-tau*)/eta = 366.3/eta
+              support (j, lambda_j, right side): (1, 0.5007, 0.00098), (2, 0.1599, 0.00195), (3, 0.1113, 0.00293), (5, 0.0511, 0.00488), (6, 0.0651, 0.00586), (12, 0.0353, 0.01172), (13, 0.0271, 0.01270), (30, 0.0145, 0.02930), (31, 0.0161, 0.03027), (85, 0.0081, 0.08301), (95, 0.0053, 0.09277), (369, 0.0046, 0.36035)
+  J0        : 0.01114 <= tau* <= 0.01115   eps_2 = 0.00170, Johnson of the code sqrt(rho+eps_2) = 0.05176   list at tau*+eta <= 263*(1-tau*)/eta = 260.1/eta
+              support (j, lambda_j, right side): (1, 0.4998, 0.00268), (2, 0.1698, 0.00400), (3, 0.0645, 0.00533), (4, 0.0963, 0.00667), (7, 0.0156, 0.01072), (8, 0.0755, 0.01208), (19, 0.0483, 0.02728), (54, 0.0141, 0.07701), (60, 0.0072, 0.08565), (235, 0.0066, 0.34369), (263, 0.0007, 0.38549)
+  checked   : 0.01054 <= tau* <= 0.01054   eps_2 = 0.00100, Johnson of the code sqrt(rho+eps_2) = 0.04441   list at tau*+eta <= 235*(1-tau*)/eta = 232.5/eta
+              support (j, lambda_j, right side): (1, 0.5134, 0.00197), (3, 0.3504, 0.00459), (12, 0.0012, 0.01757), (13, 0.1002, 0.01895), (48, 0.0118, 0.06839), (54, 0.0145, 0.07701), (235, 0.0075, 0.34369)
+  heavy     : 0.01035 <= tau* <= 0.01035   eps_2 = 0.00064, Johnson of the code sqrt(rho+eps_2) = 0.04019   list at tau*+eta <= 235*(1-tau*)/eta = 232.6/eta
+              support (j, lambda_j, right side): (1, 0.5326, 0.00161), (3, 0.3220, 0.00459), (11, 0.0492, 0.01619), (12, 0.0566, 0.01757), (31, 0.0122, 0.04416), (54, 0.0208, 0.07701), (235, 0.0075, 0.34369)
+  main-only : 0.00971 <= tau* <= 0.00971   eps_2 = 0.00030, Johnson of the code sqrt(rho+eps_2) = 0.03578   list at tau*+eta <= 263*(1-tau*)/eta = 260.4/eta
+              support (j, lambda_j, right side): (1, 0.5033, 0.00128), (2, 0.1457, 0.00257), (3, 0.1391, 0.00388), (6, 0.0952, 0.00788), (9, 0.0362, 0.01194), (17, 0.0237, 0.02296), (20, 0.0267, 0.02713), (54, 0.0148, 0.07540), (60, 0.0067, 0.08404), (235, 0.0066, 0.34200), (263, 0.0007, 0.38380)
+rate 2^-10, n = 2^24: Johnson sqrt(rho) = 0.03125, capacity 0.000977
+  generic   : 0.00723 <= tau* <= 0.00724   eps_2 = 0.00000, Johnson of the code sqrt(rho+eps_2) = 0.03125   list at tau*+eta <= 369*(1-tau*)/eta = 366.3/eta
+              support (j, lambda_j, right side): (1, 0.5007, 0.00098), (2, 0.1599, 0.00195), (3, 0.1113, 0.00293), (5, 0.0511, 0.00488), (6, 0.0651, 0.00586), (12, 0.0353, 0.01172), (13, 0.0271, 0.01270), (30, 0.0145, 0.02930), (31, 0.0161, 0.03027), (85, 0.0081, 0.08301), (95, 0.0053, 0.09277), (369, 0.0046, 0.36035)
+  J0        : 0.01119 <= tau* <= 0.01119   eps_2 = 0.00172, Johnson of the code sqrt(rho+eps_2) = 0.05189   list at tau*+eta <= 235*(1-tau*)/eta = 232.4/eta
+              support (j, lambda_j, right side): (1, 0.4998, 0.00269), (2, 0.1692, 0.00402), (3, 0.0693, 0.00536), (4, 0.0813, 0.00670), (5, 0.0182, 0.00805), (8, 0.0835, 0.01214), (17, 0.0036, 0.02461), (19, 0.0446, 0.02741), (54, 0.0169, 0.07738), (60, 0.0047, 0.08607), (235, 0.0074, 0.34541)
+  checked   : 0.01058 <= tau* <= 0.01058   eps_2 = 0.00101, Johnson of the code sqrt(rho+eps_2) = 0.04452   list at tau*+eta <= 235*(1-tau*)/eta = 232.5/eta
+              support (j, lambda_j, right side): (1, 0.5134, 0.00198), (3, 0.3504, 0.00462), (13, 0.1015, 0.01904), (48, 0.0112, 0.06872), (54, 0.0149, 0.07738), (235, 0.0074, 0.34541)
+  heavy     : 0.01039 <= tau* <= 0.01040   eps_2 = 0.00065, Johnson of the code sqrt(rho+eps_2) = 0.04030   list at tau*+eta <= 235*(1-tau*)/eta = 232.6/eta
+              support (j, lambda_j, right side): (1, 0.5332, 0.00162), (3, 0.3211, 0.00462), (11, 0.0592, 0.01627), (12, 0.0461, 0.01765), (29, 0.0096, 0.04153), (31, 0.0032, 0.04437), (54, 0.0212, 0.07738), (235, 0.0075, 0.34541)
+  main-only : 0.00975 <= tau* <= 0.00975   eps_2 = 0.00031, Johnson of the code sqrt(rho+eps_2) = 0.03586   list at tau*+eta <= 263*(1-tau*)/eta = 260.4/eta
+              support (j, lambda_j, right side): (1, 0.5004, 0.00129), (2, 0.1620, 0.00258), (3, 0.1045, 0.00390), (5, 0.0941, 0.00657), (9, 0.0644, 0.01200), (18, 0.0205, 0.02446), (21, 0.0244, 0.02866), (54, 0.0122, 0.07576), (60, 0.0086, 0.08444), (235, 0.0068, 0.34371), (263, 0.0005, 0.38572)

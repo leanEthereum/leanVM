@@ -1,0 +1,280 @@
+E1  GF(2^4) T1: level j with n_j = 8, k_j = 4 (rate 1/2), 200000 draws of the next twiddles per label
+  T_j MDS:
+    fine   (Y empty, D = 8 half pairs): null_j(Y) = 4, 2 null_j(Y) - d = 0, P[tight] = 0.0372
+        tight and g>=1: 3.72e-02 (bound 1.25e-01); g>=2: 2.45e-04 (bound 7.81e-03); g>=3: 0.00e+00 (bound 4.88e-04)
+        law of null_(j+1)(Z): 0: 9.37e-01  1: 6.23e-02  2: 2.75e-04  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 6.26e-02 against 2.03e-01  P[null>=2] = 2.75e-04 against 1.27e-02
+    fine   (Y = 1 node, D = 6 half pairs): null_j(Y) = 3, 2 null_j(Y) - d = 0, P[tight] = 0.0452
+        tight and g>=1: 4.52e-02 (bound 1.00e-01); g>=2: 0.00e+00 (bound 6.25e-03); g>=3: 0.00e+00 (bound 3.91e-04)
+        law of null_(j+1)(Z): 0: 9.35e-01  1: 6.50e-02  2: 1.10e-04  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 6.51e-02 against 1.43e-01  P[null>=2] = 1.10e-04 against 8.96e-03
+    mixed  (Y = 2 nodes, D = 4 half pairs): null_j(Y) = 2, 2 null_j(Y) - d = 0, P[tight] = 0.0481
+        tight and g>=1: 4.81e-02 (bound 8.33e-02); g>=2: 2.55e-04 (bound 5.21e-03); g>=3: 0.00e+00 (bound 3.26e-04)
+        law of null_(j+1)(Z): 0: 9.37e-01  1: 6.25e-02  2: 2.55e-04  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 6.27e-02 against 1.04e-01  P[null>=2] = 2.55e-04 against 6.51e-03
+    mixed  (Y = 2 nodes, D = 5 half pairs): null_j(Y) = 2, 2 null_j(Y) - d = -1, P[tight] = 0.0026
+        tight and g>=1: 2.56e-03 (bound 9.09e-02); g>=2: 2.56e-03 (bound 5.68e-03); g>=3: 2.00e-05 (bound 3.55e-04)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 3.65e-03  2: 2.00e-05  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 3.67e-03 against 7.46e-03  P[null>=2] = 2.00e-05 against 4.66e-04
+    coarse (Y = 3 nodes, D = 2 half pairs): null_j(Y) = 1, 2 null_j(Y) - d = 0, P[tight] = 0.0621
+        tight and g>=1: 6.21e-02 (bound 7.14e-02); g>=2: 0.00e+00 (bound 4.46e-03); g>=3: 0.00e+00 (bound 2.79e-04)
+        law of null_(j+1)(Z): 0: 9.38e-01  1: 6.21e-02  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 6.21e-02 against 7.14e-02  P[null>=2] = 0.00e+00 against 4.46e-03
+  T_j defective (4 singular 4-subsets of 70):
+    fine   (Y empty, D = 8 half pairs): null_j(Y) = 4, 2 null_j(Y) - d = 0, P[tight] = 0.0375
+        tight and g>=1: 3.75e-02 (bound 1.25e-01); g>=2: 2.40e-04 (bound 7.81e-03); g>=3: 0.00e+00 (bound 4.88e-04)
+        law of null_(j+1)(Z): 0: 9.37e-01  1: 6.30e-02  2: 2.55e-04  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 6.32e-02 against 2.05e-01  P[null>=2] = 2.55e-04 against 1.28e-02
+    fine   (Y = 1 node, D = 6 half pairs): null_j(Y) = 3, 2 null_j(Y) - d = 0, P[tight] = 0.0448
+        tight and g>=1: 4.48e-02 (bound 1.00e-01); g>=2: 0.00e+00 (bound 6.25e-03); g>=3: 0.00e+00 (bound 3.91e-04)
+        law of null_(j+1)(Z): 0: 9.32e-01  1: 6.83e-02  2: 1.05e-04  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 6.84e-02 against 1.50e-01  P[null>=2] = 1.05e-04 against 9.35e-03
+    mixed  (Y = 2 nodes, D = 4 half pairs): null_j(Y) = 2, 2 null_j(Y) - d = 0, P[tight] = 0.0516
+        tight and g>=1: 5.16e-02 (bound 8.33e-02); g>=2: 2.20e-04 (bound 5.21e-03); g>=3: 0.00e+00 (bound 3.26e-04)
+        law of null_(j+1)(Z): 0: 8.79e-01  1: 1.21e-01  2: 2.20e-04  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 1.21e-01 against 1.88e-01  P[null>=2] = 2.20e-04 against 1.17e-02
+    mixed  (Y = 2 nodes, D = 5 half pairs): null_j(Y) = 2, 2 null_j(Y) - d = -1, P[tight] = 0.0032
+        tight and g>=1: 3.17e-03 (bound 9.09e-02); g>=2: 3.17e-03 (bound 5.68e-03); g>=3: 3.50e-05 (bound 3.55e-04)
+        law of null_(j+1)(Z): 0: 9.92e-01  1: 7.70e-03  2: 3.50e-05  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 7.73e-03 against 1.31e-02  P[null>=2] = 3.50e-05 against 8.21e-04
+    coarse (Y = 3 nodes, D = 2 half pairs): null_j(Y) = 1, 2 null_j(Y) - d = 0, P[tight] = 0.0625
+        tight and g>=1: 6.25e-02 (bound 7.14e-02); g>=2: 0.00e+00 (bound 4.46e-03); g>=3: 0.00e+00 (bound 2.79e-04)
+        law of null_(j+1)(Z): 0: 9.37e-01  1: 6.25e-02  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 6.25e-02 against 7.14e-02  P[null>=2] = 0.00e+00 against 4.46e-03
+    inherited (Y = a singular 4-subset, D empty): null_j(Y) = 1, 2 null_j(Y) - d = 2, P[tight] = 1.0000
+        tight and g>=1: 0.00e+00 (bound 6.25e-02); g>=2: 0.00e+00 (bound 3.91e-03); g>=3: 0.00e+00 (bound 2.44e-04)
+        law of null_(j+1)(Z): 2: 1.00e+00  3: 0.00e+00  4: 0.00e+00  5: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=3] = 0.00e+00 against 6.25e-02  P[null>=4] = 0.00e+00 against 3.91e-03
+    inherited (Y = a singular 4-subset, D = 2 half pairs): null_j(Y) = 1, 2 null_j(Y) - d = 0, P[tight] = 0.0626
+        tight and g>=1: 6.26e-02 (bound 7.14e-02); g>=2: 0.00e+00 (bound 4.46e-03); g>=3: 0.00e+00 (bound 2.79e-04)
+        law of null_(j+1)(Z): 0: 9.37e-01  1: 6.26e-02  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 6.26e-02 against 7.14e-02  P[null>=2] = 0.00e+00 against 4.46e-03
+    inherited (Y = a singular 4-subset, D = 3 half pairs): null_j(Y) = 1, 2 null_j(Y) - d = -1, P[tight] = 0.0037
+        tight and g>=1: 3.70e-03 (bound 7.69e-02); g>=2: 3.70e-03 (bound 4.81e-03); g>=3: 0.00e+00 (bound 3.00e-04)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 3.70e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 3.70e-03 against 4.81e-03  P[null>=2] = 0.00e+00 against 3.00e-04
+    inherited (Y = 3 of the singular 4, D = the 4th and 2 more): null_j(Y) = 1, 2 null_j(Y) - d = -1, P[tight] = 0.0000
+        tight and g>=1: 0.00e+00 (bound 7.69e-02); g>=2: 0.00e+00 (bound 4.81e-03); g>=3: 0.00e+00 (bound 3.00e-04)
+        law of null_(j+1)(Z): 0: 9.39e-01  1: 6.13e-02  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 6.13e-02 against 8.17e-02  P[null>=2] = 0.00e+00 against 5.11e-03
+E2  GF(2^4) T1: n = 32, k = 16, 647 closures of leaf sets with nullity >= 1 (random, block, mixed): 0 violations of Lemmas 3.1/3.2; largest excess seen 14
+E3  GF(2^4) T1: prefix of two levels (d = 4 with 2 null - d = 0, then d' = 2), 1000000 draws
+    P[tight, G >= 1] = 4.79e-02 (bound 8.33e-02);  P[both tight, G' >= 1] = 2.67e-03
+    P[both tight, G >= 1 and G' >= 1] = 2.67e-03   product bound of Lemma 4.1's proof 5.95e-03
+    P[both tight, G + G' >= 1] = 2.88e-03   Lemma 4.1 bound 1.90e-01
+    P[both tight, G + G' >= 2] = 2.88e-03   Lemma 4.1 bound 1.79e-02
+    P[both tight, G + G' >= 3] = 0.00e+00   Lemma 4.1 bound 1.49e-03
+E4  GF(2^4) T1: n = 16, k = 8, all levels random (J = 0), 400 codes. Largest zero set of a nonzero codeword is k - 1 + e:
+    e : 2: 76  3: 213  4: 57  5: 44  6: 9  7: 1
+    Theorem 5.1 with q = 2^4, p = 0.5: e < eps_0 n = 13.90; measured fraction of codes violating it: 0.0000
+    Theorem 5.1 with q = 2^4, p = 0.1: e < eps_0 n = 16.46; measured fraction of codes violating it: 0.0000
+E1  GF(2^4) T2: level j with n_j = 8, k_j = 4 (rate 1/2), 200000 draws of the next twiddles per label
+  T_j MDS:
+    fine   (Y empty, D = 8 half pairs): null_j(Y) = 4, 2 null_j(Y) - d = 0, P[tight] = 0.0398
+        tight and g>=1: 3.98e-02 (bound 1.25e-01); g>=2: 1.50e-05 (bound 7.81e-03); g>=3: 0.00e+00 (bound 4.88e-04)
+        law of null_(j+1)(Z): 0: 9.34e-01  1: 6.61e-02  2: 3.50e-05  3: 1.00e-05
+        measured against Lemma 5.1 of note 68: P[null>=1] = 6.62e-02 against 2.03e-01  P[null>=2] = 4.50e-05 against 1.27e-02
+    fine   (Y = 1 node, D = 6 half pairs): null_j(Y) = 3, 2 null_j(Y) - d = 0, P[tight] = 0.0453
+        tight and g>=1: 4.53e-02 (bound 1.00e-01); g>=2: 1.00e-05 (bound 6.25e-03); g>=3: 1.00e-05 (bound 3.91e-04)
+        law of null_(j+1)(Z): 0: 9.35e-01  1: 6.50e-02  2: 9.00e-05  3: 1.00e-05
+        measured against Lemma 5.1 of note 68: P[null>=1] = 6.51e-02 against 1.43e-01  P[null>=2] = 1.00e-04 against 8.96e-03
+    mixed  (Y = 2 nodes, D = 4 half pairs): null_j(Y) = 2, 2 null_j(Y) - d = 0, P[tight] = 0.0483
+        tight and g>=1: 4.83e-02 (bound 8.33e-02); g>=2: 2.65e-04 (bound 5.21e-03); g>=3: 0.00e+00 (bound 3.26e-04)
+        law of null_(j+1)(Z): 0: 9.37e-01  1: 6.27e-02  2: 2.65e-04  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 6.30e-02 against 1.04e-01  P[null>=2] = 2.65e-04 against 6.51e-03
+    mixed  (Y = 2 nodes, D = 5 half pairs): null_j(Y) = 2, 2 null_j(Y) - d = -1, P[tight] = 0.0027
+        tight and g>=1: 2.71e-03 (bound 9.09e-02); g>=2: 2.71e-03 (bound 5.68e-03); g>=3: 0.00e+00 (bound 3.55e-04)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 3.88e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 3.88e-03 against 7.46e-03  P[null>=2] = 0.00e+00 against 4.66e-04
+    coarse (Y = 3 nodes, D = 2 half pairs): null_j(Y) = 1, 2 null_j(Y) - d = 0, P[tight] = 0.0615
+        tight and g>=1: 6.15e-02 (bound 7.14e-02); g>=2: 0.00e+00 (bound 4.46e-03); g>=3: 0.00e+00 (bound 2.79e-04)
+        law of null_(j+1)(Z): 0: 9.39e-01  1: 6.15e-02  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 6.15e-02 against 7.14e-02  P[null>=2] = 0.00e+00 against 4.46e-03
+  T_j defective (6 singular 4-subsets of 70):
+    fine   (Y empty, D = 8 half pairs): null_j(Y) = 4, 2 null_j(Y) - d = 0, P[tight] = 0.0395
+        tight and g>=1: 3.95e-02 (bound 1.25e-01); g>=2: 1.00e-05 (bound 7.81e-03); g>=3: 0.00e+00 (bound 4.88e-04)
+        law of null_(j+1)(Z): 0: 9.33e-01  1: 6.73e-02  2: 3.00e-05  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 6.74e-02 against 2.06e-01  P[null>=2] = 3.00e-05 against 1.29e-02
+    fine   (Y = 1 node, D = 6 half pairs): null_j(Y) = 3, 2 null_j(Y) - d = 0, P[tight] = 0.0449
+        tight and g>=1: 4.49e-02 (bound 1.00e-01); g>=2: 0.00e+00 (bound 6.25e-03); g>=3: 0.00e+00 (bound 3.91e-04)
+        law of null_(j+1)(Z): 0: 9.27e-01  1: 7.30e-02  2: 7.50e-05  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 7.30e-02 against 1.56e-01  P[null>=2] = 7.50e-05 against 9.74e-03
+    mixed  (Y = 2 nodes, D = 4 half pairs): null_j(Y) = 2, 2 null_j(Y) - d = 0, P[tight] = 0.0508
+        tight and g>=1: 5.08e-02 (bound 8.33e-02); g>=2: 2.85e-04 (bound 5.21e-03); g>=3: 0.00e+00 (bound 3.26e-04)
+        law of null_(j+1)(Z): 0: 8.80e-01  1: 1.20e-01  2: 2.85e-04  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 1.20e-01 against 1.88e-01  P[null>=2] = 2.85e-04 against 1.17e-02
+    mixed  (Y = 2 nodes, D = 5 half pairs): null_j(Y) = 2, 2 null_j(Y) - d = -1, P[tight] = 0.0031
+        tight and g>=1: 3.09e-03 (bound 9.09e-02); g>=2: 3.09e-03 (bound 5.68e-03); g>=3: 1.00e-05 (bound 3.55e-04)
+        law of null_(j+1)(Z): 0: 9.92e-01  1: 7.88e-03  2: 1.00e-05  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 7.89e-03 against 1.31e-02  P[null>=2] = 1.00e-05 against 8.21e-04
+    coarse (Y = 3 nodes, D = 2 half pairs): null_j(Y) = 1, 2 null_j(Y) - d = 0, P[tight] = 0.0622
+        tight and g>=1: 6.22e-02 (bound 7.14e-02); g>=2: 0.00e+00 (bound 4.46e-03); g>=3: 0.00e+00 (bound 2.79e-04)
+        law of null_(j+1)(Z): 0: 9.38e-01  1: 6.22e-02  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 6.22e-02 against 7.14e-02  P[null>=2] = 0.00e+00 against 4.46e-03
+    inherited (Y = a singular 4-subset, D empty): null_j(Y) = 1, 2 null_j(Y) - d = 2, P[tight] = 1.0000
+        tight and g>=1: 0.00e+00 (bound 6.25e-02); g>=2: 0.00e+00 (bound 3.91e-03); g>=3: 0.00e+00 (bound 2.44e-04)
+        law of null_(j+1)(Z): 2: 1.00e+00  3: 0.00e+00  4: 0.00e+00  5: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=3] = 0.00e+00 against 6.25e-02  P[null>=4] = 0.00e+00 against 3.91e-03
+    inherited (Y = a singular 4-subset, D = 2 half pairs): null_j(Y) = 1, 2 null_j(Y) - d = 0, P[tight] = 0.0623
+        tight and g>=1: 6.23e-02 (bound 7.14e-02); g>=2: 0.00e+00 (bound 4.46e-03); g>=3: 0.00e+00 (bound 2.79e-04)
+        law of null_(j+1)(Z): 0: 9.38e-01  1: 6.23e-02  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 6.23e-02 against 7.14e-02  P[null>=2] = 0.00e+00 against 4.46e-03
+    inherited (Y = a singular 4-subset, D = 3 half pairs): null_j(Y) = 1, 2 null_j(Y) - d = -1, P[tight] = 0.0036
+        tight and g>=1: 3.55e-03 (bound 7.69e-02); g>=2: 3.55e-03 (bound 4.81e-03); g>=3: 0.00e+00 (bound 3.00e-04)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 3.55e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 3.55e-03 against 4.81e-03  P[null>=2] = 0.00e+00 against 3.00e-04
+    inherited (Y = 3 of the singular 4, D = the 4th and 2 more): null_j(Y) = 1, 2 null_j(Y) - d = -1, P[tight] = 0.0000
+        tight and g>=1: 0.00e+00 (bound 7.69e-02); g>=2: 0.00e+00 (bound 4.81e-03); g>=3: 0.00e+00 (bound 3.00e-04)
+        law of null_(j+1)(Z): 0: 9.38e-01  1: 6.21e-02  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 6.21e-02 against 8.17e-02  P[null>=2] = 0.00e+00 against 5.11e-03
+E2  GF(2^4) T2: n = 32, k = 16, 666 closures of leaf sets with nullity >= 1 (random, block, mixed): 0 violations of Lemmas 3.1/3.2; largest excess seen 14
+E3  GF(2^4) T2: prefix of two levels (d = 4 with 2 null - d = 0, then d' = 2), 1000000 draws
+    P[tight, G >= 1] = 4.80e-02 (bound 8.33e-02);  P[both tight, G' >= 1] = 2.64e-03
+    P[both tight, G >= 1 and G' >= 1] = 2.64e-03   product bound of Lemma 4.1's proof 5.95e-03
+    P[both tight, G + G' >= 1] = 2.85e-03   Lemma 4.1 bound 1.90e-01
+    P[both tight, G + G' >= 2] = 2.85e-03   Lemma 4.1 bound 1.79e-02
+    P[both tight, G + G' >= 3] = 0.00e+00   Lemma 4.1 bound 1.49e-03
+E4  GF(2^4) T2: n = 16, k = 8, all levels random (J = 0), 400 codes. Largest zero set of a nonzero codeword is k - 1 + e:
+    e : 2: 6  3: 190  4: 90  5: 74  6: 30  7: 10
+    Theorem 5.1 with q = 2^4, p = 0.5: e < eps_0 n = 13.90; measured fraction of codes violating it: 0.0000
+    Theorem 5.1 with q = 2^4, p = 0.1: e < eps_0 n = 16.46; measured fraction of codes violating it: 0.0000
+E1  GF(2^8) T1: level j with n_j = 8, k_j = 4 (rate 1/2), 200000 draws of the next twiddles per label
+  T_j MDS:
+    fine   (Y empty, D = 8 half pairs): null_j(Y) = 4, 2 null_j(Y) - d = 0, P[tight] = 0.0038
+        tight and g>=1: 3.78e-03 (bound 4.03e-03); g>=2: 0.00e+00 (bound 1.58e-05); g>=3: 0.00e+00 (bound 6.15e-08)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 3.90e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 3.90e-03 against 4.16e-03  P[null>=2] = 0.00e+00 against 1.63e-05
+    fine   (Y = 1 node, D = 6 half pairs): null_j(Y) = 3, 2 null_j(Y) - d = 0, P[tight] = 0.0038
+        tight and g>=1: 3.79e-03 (bound 4.00e-03); g>=2: 0.00e+00 (bound 1.56e-05); g>=3: 0.00e+00 (bound 6.10e-08)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 3.88e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 3.88e-03 against 4.09e-03  P[null>=2] = 0.00e+00 against 1.60e-05
+    mixed  (Y = 2 nodes, D = 4 half pairs): null_j(Y) = 2, 2 null_j(Y) - d = 0, P[tight] = 0.0038
+        tight and g>=1: 3.84e-03 (bound 3.97e-03); g>=2: 0.00e+00 (bound 1.55e-05); g>=3: 0.00e+00 (bound 6.06e-08)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 3.92e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 3.92e-03 against 4.03e-03  P[null>=2] = 0.00e+00 against 1.57e-05
+    mixed  (Y = 2 nodes, D = 5 half pairs): null_j(Y) = 2, 2 null_j(Y) - d = -1, P[tight] = 0.0000
+        tight and g>=1: 1.50e-05 (bound 3.98e-03); g>=2: 1.50e-05 (bound 1.56e-05); g>=3: 0.00e+00 (bound 6.08e-08)
+        law of null_(j+1)(Z): 0: 1.00e+00  1: 1.50e-05  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 1.50e-05 against 1.59e-05  P[null>=2] = 0.00e+00 against 6.20e-08
+    coarse (Y = 3 nodes, D = 2 half pairs): null_j(Y) = 1, 2 null_j(Y) - d = 0, P[tight] = 0.0038
+        tight and g>=1: 3.81e-03 (bound 3.94e-03); g>=2: 0.00e+00 (bound 1.54e-05); g>=3: 0.00e+00 (bound 6.01e-08)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 3.81e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 3.81e-03 against 3.94e-03  P[null>=2] = 0.00e+00 against 1.54e-05
+  T_j defective (34 singular 4-subsets of 70):
+    fine   (Y empty, D = 8 half pairs): null_j(Y) = 4, 2 null_j(Y) - d = 0, P[tight] = 0.0000
+        tight and g>=1: 1.00e-05 (bound 4.03e-03); g>=2: 1.00e-05 (bound 1.58e-05); g>=3: 0.00e+00 (bound 6.15e-08)
+        law of null_(j+1)(Z): 0: 9.92e-01  1: 7.73e-03  2: 1.00e-05  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 7.73e-03 against 1.25e-02  P[null>=2] = 1.00e-05 against 4.87e-05
+    fine   (Y = 1 node, D = 6 half pairs): null_j(Y) = 3, 2 null_j(Y) - d = 0, P[tight] = 0.0000
+        tight and g>=1: 1.00e-05 (bound 4.00e-03); g>=2: 1.00e-05 (bound 1.56e-05); g>=3: 0.00e+00 (bound 6.10e-08)
+        law of null_(j+1)(Z): 0: 9.92e-01  1: 7.83e-03  2: 1.00e-05  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 7.84e-03 against 1.22e-02  P[null>=2] = 1.00e-05 against 4.77e-05
+    mixed  (Y = 2 nodes, D = 4 half pairs): null_j(Y) = 2, 2 null_j(Y) - d = 0, P[tight] = 0.0000
+        tight and g>=1: 2.50e-05 (bound 3.97e-03); g>=2: 2.50e-05 (bound 1.55e-05); g>=3: 0.00e+00 (bound 6.06e-08)
+        law of null_(j+1)(Z): 0: 0.00e+00  1: 1.00e+00  2: 2.50e-05  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 1.00e+00 against 1.00e+00  P[null>=2] = 2.50e-05 against 4.03e-03
+    mixed  (Y = 2 nodes, D = 5 half pairs): null_j(Y) = 2, 2 null_j(Y) - d = -1, P[tight] = 0.0000
+        tight and g>=1: 0.00e+00 (bound 3.98e-03); g>=2: 0.00e+00 (bound 1.56e-05); g>=3: 0.00e+00 (bound 6.08e-08)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 4.26e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 4.26e-03 against 4.06e-03  P[null>=2] = 0.00e+00 against 1.59e-05
+    coarse (Y = 3 nodes, D = 2 half pairs): null_j(Y) = 1, 2 null_j(Y) - d = 0, P[tight] = 0.0000
+        tight and g>=1: 0.00e+00 (bound 3.94e-03); g>=2: 0.00e+00 (bound 1.54e-05); g>=3: 0.00e+00 (bound 6.01e-08)
+        law of null_(j+1)(Z): 0: 0.00e+00  1: 1.00e+00  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 1.00e+00 against 1.00e+00  P[null>=2] = 0.00e+00 against 3.95e-03
+    inherited (Y = a singular 4-subset, D empty): null_j(Y) = 1, 2 null_j(Y) - d = 2, P[tight] = 1.0000
+        tight and g>=1: 0.00e+00 (bound 3.91e-03); g>=2: 0.00e+00 (bound 1.53e-05); g>=3: 0.00e+00 (bound 5.96e-08)
+        law of null_(j+1)(Z): 2: 1.00e+00  3: 0.00e+00  4: 0.00e+00  5: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=3] = 0.00e+00 against 3.91e-03  P[null>=4] = 0.00e+00 against 1.53e-05
+    inherited (Y = a singular 4-subset, D = 2 half pairs): null_j(Y) = 1, 2 null_j(Y) - d = 0, P[tight] = 0.0040
+        tight and g>=1: 4.00e-03 (bound 3.94e-03); g>=2: 0.00e+00 (bound 1.54e-05); g>=3: 0.00e+00 (bound 6.01e-08)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 4.00e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 4.00e-03 against 3.94e-03  P[null>=2] = 0.00e+00 against 1.54e-05
+    inherited (Y = a singular 4-subset, D = 3 half pairs): null_j(Y) = 1, 2 null_j(Y) - d = -1, P[tight] = 0.0000
+        tight and g>=1: 2.00e-05 (bound 3.95e-03); g>=2: 2.00e-05 (bound 1.54e-05); g>=3: 0.00e+00 (bound 6.03e-08)
+        law of null_(j+1)(Z): 0: 1.00e+00  1: 2.00e-05  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 2.00e-05 against 1.54e-05  P[null>=2] = 0.00e+00 against 6.03e-08
+    inherited (Y = 3 of the singular 4, D = the 4th and 2 more): null_j(Y) = 1, 2 null_j(Y) - d = -1, P[tight] = 0.0000
+        tight and g>=1: 0.00e+00 (bound 3.95e-03); g>=2: 0.00e+00 (bound 1.54e-05); g>=3: 0.00e+00 (bound 6.03e-08)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 3.69e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 3.69e-03 against 3.97e-03  P[null>=2] = 0.00e+00 against 1.55e-05
+E2  GF(2^8) T1: n = 32, k = 16, 640 closures of leaf sets with nullity >= 1 (random, block, mixed): 0 violations of Lemmas 3.1/3.2; largest excess seen 8
+E3  GF(2^8) T1: prefix of two levels (d = 4 with 2 null - d = 0, then d' = 2), 400000 draws
+    P[tight, G >= 1] = 3.81e-03 (bound 3.97e-03);  P[both tight, G' >= 1] = 1.50e-05
+    P[both tight, G >= 1 and G' >= 1] = 1.50e-05   product bound of Lemma 4.1's proof 1.56e-05
+    P[both tight, G + G' >= 1] = 1.50e-05   Lemma 4.1 bound 8.00e-03
+    P[both tight, G + G' >= 2] = 1.50e-05   Lemma 4.1 bound 4.69e-05
+    P[both tight, G + G' >= 3] = 0.00e+00   Lemma 4.1 bound 2.44e-07
+E4  GF(2^8) T1: n = 16, k = 8, all levels random (J = 0), 400 codes. Largest zero set of a nonzero codeword is k - 1 + e:
+    e : 1: 352  2: 43  3: 3  4: 2
+    Theorem 5.1 with q = 2^8, p = 0.5: e < eps_0 n = 5.73; measured fraction of codes violating it: 0.0000
+    Theorem 5.1 with q = 2^8, p = 0.1: e < eps_0 n = 7.04; measured fraction of codes violating it: 0.0000
+E1  GF(2^8) T2: level j with n_j = 8, k_j = 4 (rate 1/2), 200000 draws of the next twiddles per label
+  T_j MDS:
+    fine   (Y empty, D = 8 half pairs): null_j(Y) = 4, 2 null_j(Y) - d = 0, P[tight] = 0.0038
+        tight and g>=1: 3.76e-03 (bound 4.03e-03); g>=2: 0.00e+00 (bound 1.58e-05); g>=3: 0.00e+00 (bound 6.15e-08)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 3.90e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 3.90e-03 against 4.16e-03  P[null>=2] = 0.00e+00 against 1.63e-05
+    fine   (Y = 1 node, D = 6 half pairs): null_j(Y) = 3, 2 null_j(Y) - d = 0, P[tight] = 0.0036
+        tight and g>=1: 3.64e-03 (bound 4.00e-03); g>=2: 0.00e+00 (bound 1.56e-05); g>=3: 0.00e+00 (bound 6.10e-08)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 3.74e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 3.74e-03 against 4.09e-03  P[null>=2] = 0.00e+00 against 1.60e-05
+    mixed  (Y = 2 nodes, D = 4 half pairs): null_j(Y) = 2, 2 null_j(Y) - d = 0, P[tight] = 0.0039
+        tight and g>=1: 3.85e-03 (bound 3.97e-03); g>=2: 0.00e+00 (bound 1.55e-05); g>=3: 0.00e+00 (bound 6.06e-08)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 3.90e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 3.90e-03 against 4.03e-03  P[null>=2] = 0.00e+00 against 1.57e-05
+    mixed  (Y = 2 nodes, D = 5 half pairs): null_j(Y) = 2, 2 null_j(Y) - d = -1, P[tight] = 0.0000
+        tight and g>=1: 2.50e-05 (bound 3.98e-03); g>=2: 2.50e-05 (bound 1.56e-05); g>=3: 0.00e+00 (bound 6.08e-08)
+        law of null_(j+1)(Z): 0: 1.00e+00  1: 2.50e-05  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 2.50e-05 against 1.59e-05  P[null>=2] = 0.00e+00 against 6.20e-08
+    coarse (Y = 3 nodes, D = 2 half pairs): null_j(Y) = 1, 2 null_j(Y) - d = 0, P[tight] = 0.0040
+        tight and g>=1: 3.97e-03 (bound 3.94e-03); g>=2: 0.00e+00 (bound 1.54e-05); g>=3: 0.00e+00 (bound 6.01e-08)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 3.97e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 3.97e-03 against 3.94e-03  P[null>=2] = 0.00e+00 against 1.54e-05
+  T_j defective (1 singular 4-subsets of 70):
+    fine   (Y empty, D = 8 half pairs): null_j(Y) = 4, 2 null_j(Y) - d = 0, P[tight] = 0.0040
+        tight and g>=1: 4.00e-03 (bound 4.03e-03); g>=2: 0.00e+00 (bound 1.58e-05); g>=3: 0.00e+00 (bound 6.15e-08)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 4.12e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 4.12e-03 against 4.16e-03  P[null>=2] = 0.00e+00 against 1.63e-05
+    fine   (Y = 1 node, D = 6 half pairs): null_j(Y) = 3, 2 null_j(Y) - d = 0, P[tight] = 0.0038
+        tight and g>=1: 3.80e-03 (bound 4.00e-03); g>=2: 0.00e+00 (bound 1.56e-05); g>=3: 0.00e+00 (bound 6.10e-08)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 3.89e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 3.89e-03 against 4.11e-03  P[null>=2] = 0.00e+00 against 1.61e-05
+    mixed  (Y = 2 nodes, D = 4 half pairs): null_j(Y) = 2, 2 null_j(Y) - d = 0, P[tight] = 0.0042
+        tight and g>=1: 4.18e-03 (bound 3.97e-03); g>=2: 0.00e+00 (bound 1.55e-05); g>=3: 0.00e+00 (bound 6.06e-08)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 4.30e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 4.30e-03 against 4.03e-03  P[null>=2] = 0.00e+00 against 1.57e-05
+    mixed  (Y = 2 nodes, D = 5 half pairs): null_j(Y) = 2, 2 null_j(Y) - d = -1, P[tight] = 0.0000
+        tight and g>=1: 1.00e-05 (bound 3.98e-03); g>=2: 1.00e-05 (bound 1.56e-05); g>=3: 0.00e+00 (bound 6.08e-08)
+        law of null_(j+1)(Z): 0: 1.00e+00  1: 1.00e-05  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 1.00e-05 against 1.59e-05  P[null>=2] = 0.00e+00 against 6.20e-08
+    coarse (Y = 3 nodes, D = 2 half pairs): null_j(Y) = 1, 2 null_j(Y) - d = 0, P[tight] = 0.0038
+        tight and g>=1: 3.84e-03 (bound 3.94e-03); g>=2: 0.00e+00 (bound 1.54e-05); g>=3: 0.00e+00 (bound 6.01e-08)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 3.84e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 3.84e-03 against 3.94e-03  P[null>=2] = 0.00e+00 against 1.54e-05
+    inherited (Y = a singular 4-subset, D empty): null_j(Y) = 1, 2 null_j(Y) - d = 2, P[tight] = 1.0000
+        tight and g>=1: 0.00e+00 (bound 3.91e-03); g>=2: 0.00e+00 (bound 1.53e-05); g>=3: 0.00e+00 (bound 5.96e-08)
+        law of null_(j+1)(Z): 2: 1.00e+00  3: 0.00e+00  4: 0.00e+00  5: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=3] = 0.00e+00 against 3.91e-03  P[null>=4] = 0.00e+00 against 1.53e-05
+    inherited (Y = a singular 4-subset, D = 2 half pairs): null_j(Y) = 1, 2 null_j(Y) - d = 0, P[tight] = 0.0039
+        tight and g>=1: 3.94e-03 (bound 3.94e-03); g>=2: 0.00e+00 (bound 1.54e-05); g>=3: 0.00e+00 (bound 6.01e-08)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 3.94e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 3.94e-03 against 3.94e-03  P[null>=2] = 0.00e+00 against 1.54e-05
+    inherited (Y = a singular 4-subset, D = 3 half pairs): null_j(Y) = 1, 2 null_j(Y) - d = -1, P[tight] = 0.0000
+        tight and g>=1: 1.50e-05 (bound 3.95e-03); g>=2: 1.50e-05 (bound 1.54e-05); g>=3: 0.00e+00 (bound 6.03e-08)
+        law of null_(j+1)(Z): 0: 1.00e+00  1: 1.50e-05  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 1.50e-05 against 1.54e-05  P[null>=2] = 0.00e+00 against 6.03e-08
+    inherited (Y = 3 of the singular 4, D = the 4th and 2 more): null_j(Y) = 1, 2 null_j(Y) - d = -1, P[tight] = 0.0000
+        tight and g>=1: 0.00e+00 (bound 3.95e-03); g>=2: 0.00e+00 (bound 1.54e-05); g>=3: 0.00e+00 (bound 6.03e-08)
+        law of null_(j+1)(Z): 0: 9.96e-01  1: 3.82e-03  2: 0.00e+00  3: 0.00e+00
+        measured against Lemma 5.1 of note 68: P[null>=1] = 3.82e-03 against 3.97e-03  P[null>=2] = 0.00e+00 against 1.55e-05
+E2  GF(2^8) T2: n = 32, k = 16, 620 closures of leaf sets with nullity >= 1 (random, block, mixed): 0 violations of Lemmas 3.1/3.2; largest excess seen 8
+E3  GF(2^8) T2: prefix of two levels (d = 4 with 2 null - d = 0, then d' = 2), 400000 draws
+    P[tight, G >= 1] = 3.92e-03 (bound 3.97e-03);  P[both tight, G' >= 1] = 1.25e-05
+    P[both tight, G >= 1 and G' >= 1] = 1.25e-05   product bound of Lemma 4.1's proof 1.56e-05
+    P[both tight, G + G' >= 1] = 1.25e-05   Lemma 4.1 bound 8.00e-03
+    P[both tight, G + G' >= 2] = 1.25e-05   Lemma 4.1 bound 4.69e-05
+    P[both tight, G + G' >= 3] = 0.00e+00   Lemma 4.1 bound 2.44e-07
+E4  GF(2^8) T2: n = 16, k = 8, all levels random (J = 0), 400 codes. Largest zero set of a nonzero codeword is k - 1 + e:
+    e : 1: 295  2: 87  3: 10  4: 8
+    Theorem 5.1 with q = 2^8, p = 0.5: e < eps_0 n = 5.73; measured fraction of codes violating it: 0.0000
+    Theorem 5.1 with q = 2^8, p = 0.1: e < eps_0 n = 7.04; measured fraction of codes violating it: 0.0000

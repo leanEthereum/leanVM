@@ -1,0 +1,7 @@
+config rate 2^-1 k=8 n=16 t=3 done: {'systems': 147, 'needed': 84, 'steps': 167, 'levels': 441, 'half': 309, 'Gpos': 226, 'maxe': 5}
+config rate 2^-2 k=4 n=16 t=3 done: {'systems': 277, 'needed': 113, 'steps': 233, 'levels': 701, 'half': 529, 'Gpos': 427, 'maxe': 11}
+config rate 2^-1 k=8 n=16 t=4 done: {'systems': 425, 'needed': 142, 'steps': 273, 'levels': 1145, 'half': 714, 'Gpos': 564, 'maxe': 11}
+config rate 2^-2 k=8 n=32 t=3 done: {'systems': 575, 'needed': 235, 'steps': 667, 'levels': 1595, 'half': 1390, 'Gpos': 891, 'maxe': 21}
+config rate 2^-2 k=4 n=16 t=4 done: {'systems': 703, 'needed': 277, 'steps': 733, 'levels': 1851, 'half': 1672, 'Gpos': 1080, 'maxe': 21}
+config rate 2^-3 k=4 n=32 t=3 done: {'systems': 834, 'needed': 301, 'steps': 837, 'levels': 2113, 'half': 2042, 'Gpos': 1289, 'maxe': 24}
+ALL ASSERTIONS PASSED {'systems': 834, 'needed': 301, 'steps': 837, 'levels': 2113, 'half': 2042, 'Gpos': 1289, 'maxe': 24}

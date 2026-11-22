@@ -1,0 +1,29 @@
+# seed 3 part 3/4 threshold 5: pair orbits 7575, allowed sets 5040205 (rank-1: 9421, most 44 for one pair, most distinct planes 10, case B skipped 0), Pluecker tests 6991794346, hits 112985355, groups 14628918, exact calls 12005554, new points 1753757
+exact 1: 3279
+exact 2: 57603
+exact 3: 1691826
+exact 4: 904
+exact 5: 145
+best exact: 5
+# seed 3 part 1/4 threshold 5: pair orbits 7575, allowed sets 5015358 (rank-1: 8928, most 44 for one pair, most distinct planes 10, case B skipped 0), Pluecker tests 6985485863, hits 111285144, groups 14562132, exact calls 11954719, new points 1788428
+exact 1: 3183
+exact 2: 57788
+exact 3: 1690037
+exact 4: 36010
+exact 5: 1410
+best exact: 5
+# seed 3 part 0/4 threshold 5: pair orbits 7575, allowed sets 5021014 (rank-1: 8845, most 47 for one pair, most distinct planes 13, case B skipped 0), Pluecker tests 7041986513, hits 112249902, groups 14682891, exact calls 12016273, new points 1765139
+exact 1: 3220
+exact 2: 59275
+exact 3: 1698433
+exact 4: 3933
+exact 5: 278
+best exact: 5
+# seed 3 part 2/4 threshold 5: pair orbits 7575, allowed sets 5013405 (rank-1: 9003, most 44 for one pair, most distinct planes 10, case B skipped 0), Pluecker tests 6961078794, hits 111225733, groups 14522340, exact calls 11908318, new points 1749965
+exact 1: 3209
+exact 2: 56230
+exact 3: 1689530
+exact 4: 843
+exact 5: 153
+best exact: 5
+lists of size 5 read: 1986 orbits: 162

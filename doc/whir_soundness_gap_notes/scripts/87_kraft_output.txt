@@ -1,0 +1,6 @@
+n_J=2 levels=2 |Delta|=1 lam=1.3 eta=2.1 J=0: 729 labels, Kraft sum = 1.000000000000
+n_J=2 levels=2 |Delta|=2 lam=0.7 eta=1.9 J=0: 57121 labels, Kraft sum = 1.000000000000
+n_J=1 levels=3 |Delta|=2 lam=1.1 eta=0.4 J=0: 237791 labels, Kraft sum = 1.000000000000
+n_J=2 levels=2 |Delta|=3 lam=2.0 eta=3.0 J=0: 1018081 labels, Kraft sum = 1.000000000000
+n_J=2 levels=1 |Delta|=3 lam=0.9 eta=1.7 J=1: 1156 labels, Kraft sum = 1.000000000000
+n_J=2 levels=2 |Delta|=2 lam=1.5 eta=2.5 J=1: 279841 labels, Kraft sum = 1.000000000000

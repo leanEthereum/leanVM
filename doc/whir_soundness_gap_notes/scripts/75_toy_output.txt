@@ -1,0 +1,18 @@
+GF(2^8) T2 r=1 v=3 (k=8, n=16) J=1 trials=200000
+  histogram of E = max excess |Z| - rk(Z) over Z with rk < k: E=1:154098 E=2:41709 E=3:4102 E=4:88 E=5:3
+  histogram of the largest number of zeros of a nonzero codeword: 8:154098 9:41709 10:4102 11:88 12:3
+GF(2^8) T1 r=1 v=3 (k=8, n=16) J=2 trials=200000
+  histogram of E = max excess |Z| - rk(Z) over Z with rk < k: E=0:2 E=1:190272 E=2:9710 E=3:16
+  histogram of the largest number of zeros of a nonzero codeword: 7:2 8:190272 9:9710 10:16
+GF(2^8) T2 r=1 v=3 (k=8, n=16) J=2 trials=200000
+  histogram of E = max excess |Z| - rk(Z) over Z with rk < k: E=1:180618 E=2:19352 E=3:30
+  histogram of the largest number of zeros of a nonzero codeword: 8:180618 9:19352 10:30
+GF(2^8) T1 r=1 v=3 (k=8, n=16) J=1 trials=200000
+  histogram of E = max excess |Z| - rk(Z) over Z with rk < k: E=0:1 E=1:175956 E=2:22061 E=3:1932 E=4:50
+  histogram of the largest number of zeros of a nonzero codeword: 7:1 8:175956 9:22061 10:1932 11:50
+GF(2^8) T1 r=2 v=2 (k=4, n=16) J=1 trials=2000000
+  histogram of E = max excess |Z| - rk(Z) over Z with rk < k: E=0:157144 E=1:1810086 E=2:32607 E=3:163
+  histogram of the largest number of zeros of a nonzero codeword: 3:157144 4:1810086 5:32607 6:163
+GF(2^8) T2 r=2 v=2 (k=4, n=16) J=1 trials=2000000
+  histogram of E = max excess |Z| - rk(Z) over Z with rk < k: E=0:12643 E=1:1921966 E=2:65063 E=3:323 E=4:5
+  histogram of the largest number of zeros of a nonzero codeword: 3:12643 4:1921966 5:65063 6:323 7:5

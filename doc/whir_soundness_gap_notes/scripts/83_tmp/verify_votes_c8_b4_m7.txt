@@ -1,0 +1,8 @@
+n=32 members=7 target=20: kernel 1, distinct codewords 7, agreements [20, 20, 20, 20, 20, 20, 20] -> LIST CONFIRMED
+n=32 members=7 target=20: kernel 1, distinct codewords 7, agreements [20, 20, 20, 20, 20, 23, 20] -> LIST CONFIRMED
+n=32 members=7 target=20: kernel 1, distinct codewords 7, agreements [20, 20, 23, 20, 20, 20, 20] -> LIST CONFIRMED
+n=32 members=7 target=20: kernel 1, distinct codewords 7, agreements [20, 20, 23, 20, 20, 20, 20] -> LIST CONFIRMED
+n=32 members=7 target=20: kernel 1, distinct codewords 7, agreements [20, 20, 20, 20, 20, 20, 20] -> LIST CONFIRMED
+n=32 members=7 target=20: kernel 1, distinct codewords 7, agreements [20, 20, 20, 20, 20, 20, 20] -> LIST CONFIRMED
+n=32 members=7 target=20: kernel 1, distinct codewords 7, agreements [20, 20, 20, 20, 20, 20, 23] -> LIST CONFIRMED
+n=32 members=7 target=20: kernel 1, distinct codewords 7, agreements [20, 20, 20, 20, 20, 20, 20] -> LIST CONFIRMED

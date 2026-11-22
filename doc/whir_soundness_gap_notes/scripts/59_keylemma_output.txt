@@ -1,0 +1,17 @@
+grid 2x2, rate 1/4: N=7 n=128 k=32 L=4 max degree=24 Delta=128 (min,max Delta_x)=(1,1) L(k-L)=112 exponent Delta-L(k-L)=16
+grid 2x2x2, rate 1/2: N=9 n=512 k=256 L=8 max degree=224 Delta=2048 (min,max Delta_x)=(4,4) L(k-L)=1984 exponent Delta-L(k-L)=64
+grid 2x2x2 with parts (3,3,3), rate 1/2: N=9 n=512 k=256 L=8 max degree=192 Delta=2048 (min,max Delta_x)=(4,4) L(k-L)=1984 exponent Delta-L(k-L)=64
+grid 2x2, rate 1/8: N=9 n=512 k=64 L=4 max degree=48 Delta=512 (min,max Delta_x)=(1,1) L(k-L)=240 exponent Delta-L(k-L)=272
+MDS type c=6 u=9 b=23, rate 1/2: N=11 n=2048 k=1024 L=9 max degree=992 Delta=9248 (min,max Delta_x)=(2,7) L(k-L)=9135 exponent Delta-L(k-L)=113
+control: random V, rate 1/4: N=7 n=128 k=32 L=4 max degree=31 Delta=0 (min,max Delta_x)=(0,0) L(k-L)=112 exponent Delta-L(k-L)=-112
+N=13 n=8192 k=3072 rate=0.3750 L=4 maxdeg=2432 |T|=1/4 windows=8192 Delta_x histogram={1: 6144, 3: 2048} Delta=12288 L(k-L)=12272 exponent=16
+N=13 n=8192 k=4096 rate=0.5000 L=7 maxdeg=3584 |T|=1/4 windows=8192 Delta_x histogram={3: 6144, 6: 2048} Delta=30720 L(k-L)=28623 exponent=2097
+N=17 n=131072 k=65536 rate=0.5000 L=6 maxdeg=61440 |T|=3/8 windows=131072 Delta_x histogram={2: 81920, 5: 49152} Delta=409600 L(k-L)=393180 exponent=16420
+N=13 n=8192 k=4096 rate=0.5000 L=5 maxdeg=3584 |T|=1/4 windows=8192 Delta_x histogram={1: 6144, 4: 2048} Delta=14336 L(k-L)=20455 exponent=-6119
+N=13 n=8192 k=4096 rate=0.5000 L=4 maxdeg=3584 |T|=3/8 windows=8192 Delta_x histogram={1: 5120, 3: 3072} Delta=14336 L(k-L)=16368 exponent=-2032
+N=4 q=2^4 k=6: dependent 3-subsets through 0: 0; L=2: E-1=0.003654 (lead 0.003648);
+N=4 q=2^8 k=6: dependent 3-subsets through 0: 0; L=2: E-1=9.499e-07 (lead 9.499e-07);
+N=5 q=2^5 k=7: dependent 3-subsets through 0: 0; L=2: E-1=2.954e-05 (lead 2.954e-05); dependent 4-subsets through 0: 137; L=3: E-1=0.0009464 (lead 0.000946);
+N=5 q=2^8 k=7: dependent 3-subsets through 0: 0; L=2: E-1=7.421e-09 (lead 7.421e-09); dependent 4-subsets through 0: 72; L=3: E-1=1.9e-06 (lead 1.9e-06);
+N=6 q=2^6 k=8: dependent 3-subsets through 0: 0; L=2: E-1=5.866e-08 (lead 5.866e-08); dependent 4-subsets through 0: 0; L=3: E-1=3.755e-06 (lead 3.755e-06); dependent 5-subsets through 0: 0; L=4: E-1=0.0002404 (lead 0.0002403);
+N=6 q=2^8 k=8: dependent 3-subsets through 0: 0; L=2: E-1=5.798e-11 (lead 5.798e-11); dependent 4-subsets through 0: 0; L=3: E-1=1.484e-08 (lead 1.484e-08); dependent 5-subsets through 0: 0; L=4: E-1=3.8e-06 (lead 3.8e-06);

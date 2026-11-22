@@ -1,0 +1,104 @@
+(k,n)=(32,64) V1 d=1 a: best V1 weight of an adapted lift, as 'weight (excess over the gS bound Lk-1)'; reference = plain tree code with the same top pattern search
+  members 3, N=4 (blocks of 16, k_up=2): V1 best over 6 partner draws: 49 (-14), per draw [49, 39, 43, 43, 42, 41]; gS bound 63; pattern 02 . 01 12
+  members 3, N=8 (blocks of 8, k_up=4): V1 best over 6 partner draws: 50 (-13), per draw [45, 49, 48, 48, 45, 50]; gS bound 63; pattern 12 012 01 . 02 12 02 01
+  members 3, N=16 (blocks of 4, k_up=8): V1 best over 6 partner draws: 52 (-11), per draw [50, 50, 48, 51, 52, 49]; gS bound 63; pattern 02 12 12 12 12 02 02 01 012 12 012 01 01 02 01 01
+  members 4, N=4 (blocks of 16, k_up=2): V1 best over 6 partner draws: 72 (-23), per draw [66, 67, 67, 72, 64, 66]; gS bound 95; pattern 023 01 13 12
+  members 4, N=8 (blocks of 8, k_up=4): V1 best over 6 partner draws: 78 (-17), per draw [73, 78, 77, 77, 78, 78]; gS bound 95; pattern 123 01 12 012 13 023 013 023
+  members 4, N=16 (blocks of 4, k_up=8): V1 best over 6 partner draws: 80 (-15), per draw [78, 79, 78, 78, 77, 80]; gS bound 95; pattern 023 012 123 013 012 023 01 02 123 123 023 12 123 013 013 02
+  members 5, N=4 (blocks of 16, k_up=2): V1 best over 6 partner draws: 96 (-31), per draw [86, 96, 90, 96, 95, 86]; gS bound 127; pattern 1234 04 03 01
+  members 5, N=8 (blocks of 8, k_up=4): V1 best over 6 partner draws: 105 (-22), per draw [96, 104, 105, 102, 98, 94]; gS bound 127; pattern 13 0234 014 013 123 124 0124 023
+  members 5, N=16 (blocks of 4, k_up=8): V1 best over 6 partner draws: 111 (-16), per draw [111, 106, 104, 105, 106, 106]; gS bound 127; pattern 234 01234 124 1234 0123 013 0124 024 034 1234 13 014 014 023 0123 034
+(k,n)=(32,64) V1 d=1 x: best V1 weight of an adapted lift, as 'weight (excess over the gS bound Lk-1)'; reference = plain tree code with the same top pattern search
+  members 3, N=4 (blocks of 16, k_up=2): V1 best over 6 partner draws: 38 (-25), per draw [38, 34, 36, 34, 36, 36]; gS bound 63; pattern 012 . . .
+  members 3, N=8 (blocks of 8, k_up=4): V1 best over 6 partner draws: 46 (-17), per draw [45, 45, 45, 45, 46, 45]; gS bound 63; pattern 02 . 12 01 02 01 012 12
+  members 3, N=16 (blocks of 4, k_up=8): V1 best over 6 partner draws: 50 (-13), per draw [49, 49, 48, 50, 49, 48]; gS bound 63; pattern 02 12 012 01 01 02 12 012 12 01 01 02 12 02 01 12
+  members 4, N=4 (blocks of 16, k_up=2): V1 best over 6 partner draws: 63 (-32), per draw [60, 57, 60, 63, 54, 51]; gS bound 95; pattern 0123 . . .
+  members 4, N=8 (blocks of 8, k_up=4): V1 best over 6 partner draws: 75 (-20), per draw [72, 73, 73, 73, 75, 73]; gS bound 95; pattern 01 03 02 123 023 012 013 123
+  members 4, N=16 (blocks of 4, k_up=8): V1 best over 6 partner draws: 81 (-14), per draw [81, 77, 76, 79, 78, 77]; gS bound 95; pattern 123 13 12 013 012 0123 023 023 123 023 013 012 01 13 023 12
+  members 5, N=4 (blocks of 16, k_up=2): V1 best over 6 partner draws: 72 (-55), per draw [72, 60, 60, 60, 68, 60]; gS bound 127; pattern 0234 13 01 14
+  members 5, N=8 (blocks of 8, k_up=4): V1 best over 6 partner draws: 100 (-27), per draw [96, 94, 100, 96, 93, 93]; gS bound 127; pattern 234 0123 024 0134 123 24 034 012
+  members 5, N=16 (blocks of 4, k_up=8): V1 best over 6 partner draws: 107 (-20), per draw [104, 100, 101, 103, 107, 102]; gS bound 127; pattern 012 234 124 024 014 034 0123 134 0134 04 01234 0123 0234 134 124 0123
+(k,n)=(32,64) V1 d=2 x: best V1 weight of an adapted lift, as 'weight (excess over the gS bound Lk-1)'; reference = plain tree code with the same top pattern search
+  members 3, N=4 (blocks of 16, k_up=2): V1 best over 4 partner draws: 26 (-37), per draw [22, 22, 26, 23]; gS bound 63; pattern 012 . . .
+  members 3, N=8 (blocks of 8, k_up=4): V1 best over 4 partner draws: 33 (-30), per draw [26, 28, 33, 26]; gS bound 63; pattern 12 . 02 01 12 02 012 01
+  members 3, N=16 (blocks of 4, k_up=8): V1 best over 4 partner draws: 34 (-29), per draw [34, 34, 31, 30]; gS bound 63; pattern 012 01 02 12 01 02 12 . 12 012 012 02 02 12 01 01
+  members 4, N=4 (blocks of 16, k_up=2): V1 best over 4 partner draws: 39 (-56), per draw [37, 39, 36, 39]; gS bound 95; pattern 0123 . . .
+  members 4, N=8 (blocks of 8, k_up=4): V1 best over 4 partner draws: 46 (-49), per draw [42, 46, 38, 43]; gS bound 95; pattern 02 012 013 123 03 123 01 023
+  members 4, N=16 (blocks of 4, k_up=8): V1 best over 4 partner draws: 52 (-43), per draw [50, 48, 45, 52]; gS bound 95; pattern 023 013 123 13 012 23 012 013 12 123 012 01 023 123 013 023
+  members 5, N=4 (blocks of 16, k_up=2): V1 best over 4 partner draws: 44 (-83), per draw [43, 39, 44, 44]; gS bound 127; pattern 124 023 04 34
+  members 5, N=8 (blocks of 8, k_up=4): V1 best over 4 partner draws: 62 (-65), per draw [58, 52, 55, 62]; gS bound 127; pattern 134 012 123 24 0134 023 0124 234
+  members 5, N=16 (blocks of 4, k_up=8): V1 best over 4 partner draws: 65 (-62), per draw [60, 63, 65, 64]; gS bound 127; pattern 0123 234 0124 12 134 024 0134 01234 0134 024 012 0134 023 234 124 123
+(k,n)=(64,128) V1 d=1 a: best V1 weight of an adapted lift, as 'weight (excess over the gS bound Lk-1)'; reference = plain tree code with the same top pattern search
+  members 3, N=4 (blocks of 32, k_up=2): V1 best over 6 partner draws: 92 (-35), per draw [89, 92, 88, 89, 87, 79]; gS bound 127; pattern . . 012 .
+  members 3, N=8 (blocks of 16, k_up=4): V1 best over 6 partner draws: 96 (-31), per draw [89, 91, 90, 88, 89, 96]; gS bound 127; pattern 02 012 12 01 12 02 . 01
+  members 3, N=16 (blocks of 8, k_up=8): V1 best over 6 partner draws: 98 (-29), per draw [92, 94, 98, 92, 95, 96]; gS bound 127; pattern 01 012 12 12 02 01 01 012 12 012 12 01 02 . 02 02
+  members 4, N=4 (blocks of 32, k_up=2): V1 best over 6 partner draws: 144 (-47), per draw [134, 129, 141, 144, 131, 136]; gS bound 191; pattern 03 23 012 13
+  members 4, N=8 (blocks of 16, k_up=4): V1 best over 6 partner draws: 153 (-38), per draw [153, 146, 153, 144, 145, 145]; gS bound 191; pattern 123 01 13 023 012 023 013 12
+  members 4, N=16 (blocks of 8, k_up=8): V1 best over 6 partner draws: 158 (-33), per draw [153, 153, 154, 154, 158, 149]; gS bound 191; pattern 023 123 013 13 123 012 01 123 023 012 023 023 013 12 013 012
+  members 5, N=4 (blocks of 32, k_up=2): V1 best over 6 partner draws: 193 (-62), per draw [193, 183, 174, 172, 178, 180]; gS bound 255; pattern 0134 12 23 02
+  members 5, N=8 (blocks of 16, k_up=4): V1 best over 6 partner draws: 209 (-46), per draw [192, 200, 198, 209, 200, 197]; gS bound 255; pattern 012 0134 124 234 024 023 123 0134
+  members 5, N=16 (blocks of 8, k_up=8): V1 best over 6 partner draws: 210 (-45), per draw [210, 208, 207, 202, 205, 204]; gS bound 255; pattern 234 0134 0124 0123 034 024 123 012 134 124 0123 0234 1234 0134 023 014
+(k,n)=(64,128) V1 d=1 x: best V1 weight of an adapted lift, as 'weight (excess over the gS bound Lk-1)'; reference = plain tree code with the same top pattern search
+  members 3, N=4 (blocks of 32, k_up=2): V1 best over 6 partner draws: 78 (-49), per draw [78, 72, 78, 74, 74, 74]; gS bound 127; pattern 012 . . .
+  members 3, N=8 (blocks of 16, k_up=4): V1 best over 6 partner draws: 91 (-36), per draw [91, 86, 89, 83, 89, 84]; gS bound 127; pattern 12 012 02 01 01 12 . 02
+  members 3, N=16 (blocks of 8, k_up=8): V1 best over 6 partner draws: 97 (-30), per draw [96, 92, 93, 91, 97, 92]; gS bound 127; pattern 01 01 02 012 01 02 12 12 012 02 01 12 12 02 01 12
+  members 4, N=4 (blocks of 32, k_up=2): V1 best over 6 partner draws: 129 (-62), per draw [117, 129, 114, 114, 111, 105]; gS bound 191; pattern 0123 . . .
+  members 4, N=8 (blocks of 16, k_up=4): V1 best over 6 partner draws: 145 (-46), per draw [144, 145, 139, 140, 140, 140]; gS bound 191; pattern 012 013 023 123 123 01 02 03
+  members 4, N=16 (blocks of 8, k_up=8): V1 best over 6 partner draws: 154 (-37), per draw [150, 153, 149, 148, 147, 154]; gS bound 191; pattern 13 023 0123 023 01 013 012 12 023 12 013 123 0123 02 01 123
+  members 5, N=4 (blocks of 32, k_up=2): V1 best over 6 partner draws: 142 (-113), per draw [124, 124, 142, 134, 138, 124]; gS bound 255; pattern 14 24 34 0123
+  members 5, N=8 (blocks of 16, k_up=4): V1 best over 6 partner draws: 194 (-61), per draw [187, 192, 190, 194, 188, 194]; gS bound 255; pattern 134 123 014 0234 124 013 0234 012
+  members 5, N=16 (blocks of 8, k_up=8): V1 best over 6 partner draws: 212 (-43), per draw [207, 201, 201, 205, 198, 212]; gS bound 255; pattern 0123 034 012 1234 1234 0234 024 013 014 0123 1234 034 0124 24 02 0134
+(k,n)=(64,128) V1 d=2 x: best V1 weight of an adapted lift, as 'weight (excess over the gS bound Lk-1)'; reference = plain tree code with the same top pattern search
+  members 3, N=4 (blocks of 32, k_up=2): V1 best over 4 partner draws: 54 (-73), per draw [46, 54, 45, 50]; gS bound 127; pattern 012 . . .
+  members 3, N=8 (blocks of 16, k_up=4): V1 best over 4 partner draws: 56 (-71), per draw [53, 55, 55, 56]; gS bound 127; pattern 012 01 02 12 . 12 02 01
+  members 3, N=16 (blocks of 8, k_up=8): V1 best over 4 partner draws: 60 (-67), per draw [57, 57, 57, 60]; gS bound 127; pattern 12 02 12 02 . 01 01 012 012 01 12 02 012 01 12 02
+  members 4, N=4 (blocks of 32, k_up=2): V1 best over 4 partner draws: 81 (-110), per draw [70, 81, 71, 78]; gS bound 191; pattern 0123 . . .
+  members 4, N=8 (blocks of 16, k_up=4): V1 best over 4 partner draws: 88 (-103), per draw [82, 79, 83, 88]; gS bound 191; pattern 23 023 012 013 13 03 012 123
+  members 4, N=16 (blocks of 8, k_up=8): V1 best over 4 partner draws: 91 (-100), per draw [88, 91, 84, 91]; gS bound 191; pattern 013 02 123 0123 023 01 12 13 012 123 012 013 23 023 013 023
+  members 5, N=4 (blocks of 32, k_up=2): V1 best over 4 partner draws: 97 (-158), per draw [83, 89, 89, 97]; gS bound 255; pattern 34 0124 13 03
+  members 5, N=8 (blocks of 16, k_up=4): V1 best over 4 partner draws: 113 (-142), per draw [107, 109, 102, 113]; gS bound 255; pattern 123 0124 01 034 24 134 01234 023
+  members 5, N=16 (blocks of 8, k_up=8): V1 best over 4 partner draws: 128 (-127), per draw [128, 124, 112, 119]; gS bound 255; pattern 1234 1234 0123 034 014 0234 034 012 014 123 0123 0134 134 012 023 024
+(k,n)=(128,256) V1 d=1 a: best V1 weight of an adapted lift, as 'weight (excess over the gS bound Lk-1)'; reference = plain tree code with the same top pattern search
+  members 3, N=4 (blocks of 64, k_up=2): V1 best over 6 partner draws: 180 (-75), per draw [179, 167, 172, 173, 180, 169]; gS bound 255; pattern 01 . 02 12
+  members 3, N=8 (blocks of 32, k_up=4): V1 best over 6 partner draws: 180 (-75), per draw [180, 176, 175, 175, 173, 176]; gS bound 255; pattern 02 012 12 01 02 12 01 .
+  members 3, N=16 (blocks of 16, k_up=8): V1 best over 6 partner draws: 185 (-70), per draw [182, 179, 185, 185, 182, 184]; gS bound 255; pattern 12 02 02 012 01 01 01 12 012 012 02 01 02 . 12 12
+  members 4, N=4 (blocks of 64, k_up=2): V1 best over 6 partner draws: 278 (-105), per draw [265, 263, 278, 268, 267, 272]; gS bound 383; pattern 03 012 23 13
+  members 4, N=8 (blocks of 32, k_up=4): V1 best over 6 partner draws: 297 (-86), per draw [286, 282, 280, 285, 297, 287]; gS bound 383; pattern 123 02 013 12 23 023 012 013
+  members 4, N=16 (blocks of 16, k_up=8): V1 best over 6 partner draws: 310 (-73), per draw [298, 310, 304, 297, 295, 302]; gS bound 383; pattern 013 013 012 23 023 123 023 12 012 023 013 02 013 123 123 012
+  members 5, N=4 (blocks of 64, k_up=2): V1 best over 6 partner draws: 383 (-128), per draw [359, 383, 362, 353, 364, 360]; gS bound 511; pattern 24 14 04 0123
+  members 5, N=8 (blocks of 32, k_up=4): V1 best over 6 partner draws: 408 (-103), per draw [403, 397, 402, 408, 400, 367]; gS bound 511; pattern 012 0234 124 0234 123 134 013 014
+  members 5, N=16 (blocks of 16, k_up=8): V1 best over 6 partner draws: 412 (-99), per draw [412, 398, 406, 403, 408, 405]; gS bound 511; pattern 0124 0124 13 134 023 013 1234 0123 0123 0124 0234 034 234 034 014 1234
+(k,n)=(128,256) V1 d=1 x: best V1 weight of an adapted lift, as 'weight (excess over the gS bound Lk-1)'; reference = plain tree code with the same top pattern search
+  members 3, N=4 (blocks of 64, k_up=2): V1 best over 6 partner draws: 164 (-91), per draw [154, 164, 154, 152, 150, 160]; gS bound 255; pattern 012 . . .
+  members 3, N=8 (blocks of 32, k_up=4): V1 best over 6 partner draws: 177 (-78), per draw [173, 173, 168, 173, 170, 177]; gS bound 255; pattern 12 . 02 01 12 01 02 012
+  members 3, N=16 (blocks of 16, k_up=8): V1 best over 6 partner draws: 187 (-68), per draw [178, 176, 179, 187, 180, 183]; gS bound 255; pattern 02 12 01 01 012 . 02 12 012 012 12 02 01 02 12 01
+  members 4, N=4 (blocks of 64, k_up=2): V1 best over 6 partner draws: 240 (-143), per draw [219, 234, 234, 228, 240, 228]; gS bound 383; pattern 0123 . . .
+  members 4, N=8 (blocks of 32, k_up=4): V1 best over 6 partner draws: 281 (-102), per draw [277, 279, 276, 277, 278, 281]; gS bound 383; pattern 013 123 023 012 13 03 012 23
+  members 4, N=16 (blocks of 16, k_up=8): V1 best over 6 partner draws: 306 (-77), per draw [289, 297, 296, 293, 299, 306]; gS bound 383; pattern 01 013 023 123 03 012 123 012 023 012 02 013 023 123 123 013
+  members 5, N=4 (blocks of 64, k_up=2): V1 best over 6 partner draws: 292 (-219), per draw [284, 282, 252, 290, 252, 292]; gS bound 511; pattern 1234 01 04 03
+  members 5, N=8 (blocks of 32, k_up=4): V1 best over 6 partner draws: 386 (-125), per draw [370, 378, 382, 386, 377, 366]; gS bound 511; pattern 024 012 0134 123 0134 234 124 023
+  members 5, N=16 (blocks of 16, k_up=8): V1 best over 6 partner draws: 408 (-103), per draw [396, 403, 396, 394, 396, 408]; gS bound 511; pattern 1234 014 1234 0123 0123 0234 0124 034 123 013 0124 014 023 134 024 34
+(k,n)=(128,256) V1 d=2 x: best V1 weight of an adapted lift, as 'weight (excess over the gS bound Lk-1)'; reference = plain tree code with the same top pattern search
+  members 3, N=4 (blocks of 64, k_up=2): V1 best over 4 partner draws: 106 (-149), per draw [102, 106, 90, 90]; gS bound 255; pattern 012 . . .
+  members 3, N=8 (blocks of 32, k_up=4): V1 best over 4 partner draws: 104 (-151), per draw [99, 104, 103, 102]; gS bound 255; pattern 012 12 01 02 01 02 12 .
+  members 3, N=16 (blocks of 16, k_up=8): V1 best over 4 partner draws: 107 (-148), per draw [107, 106, 107, 106]; gS bound 255; pattern 12 01 12 12 02 02 01 02 012 12 02 02 012 01 01 01
+  members 4, N=4 (blocks of 64, k_up=2): V1 best over 4 partner draws: 159 (-224), per draw [159, 140, 156, 153]; gS bound 383; pattern 0123 . . .
+  members 4, N=8 (blocks of 32, k_up=4): V1 best over 4 partner draws: 172 (-211), per draw [164, 172, 156, 161]; gS bound 383; pattern 013 123 012 03 023 012 13 23
+  members 4, N=16 (blocks of 16, k_up=8): V1 best over 4 partner draws: 179 (-204), per draw [173, 179, 173, 166]; gS bound 383; pattern 23 013 0123 123 012 023 013 . 012 023 012 013 023 12 13 123
+  members 5, N=4 (blocks of 64, k_up=2): V1 best over 4 partner draws: 175 (-336), per draw [160, 168, 166, 175]; gS bound 511; pattern 124 01 13 034
+  members 5, N=8 (blocks of 32, k_up=4): V1 best over 4 partner draws: 238 (-273), per draw [238, 216, 216, 214]; gS bound 511; pattern 0134 234 012 124 024 0134 123 023
+  members 5, N=16 (blocks of 16, k_up=8): V1 best over 4 partner draws: 242 (-269), per draw [232, 242, 227, 233]; gS bound 511; pattern 0124 234 023 0123 123 034 024 014 1234 013 01234 012 124 134 0134 0234
+(k,n)=(64,256) V1 d=1 a: best V1 weight of an adapted lift, as 'weight (excess over the gS bound Lk-1)'; reference = plain tree code with the same top pattern search
+  members 3, N=8 (blocks of 32, k_up=2): V1 best over 6 partner draws: 84 (-43), per draw [84, 82, 81, 78, 78, 81]; gS bound 127; pattern . . . 12 . 01 02 .
+  members 3, N=16 (blocks of 16, k_up=4): V1 best over 6 partner draws: 68 (-59), per draw [64, 65, 64, 67, 66, 68]; gS bound 127; pattern 02 02 . . 12 . 01 01 12 . . . 12 . . 01
+  members 4, N=8 (blocks of 32, k_up=2): V1 best over 6 partner draws: 122 (-69), per draw [118, 118, 120, 116, 122, 120]; gS bound 191; pattern . 12 02 . 013 . 23 .
+  members 4, N=16 (blocks of 16, k_up=4): V1 best over 6 partner draws: 108 (-83), per draw [108, 97, 107, 101, 97, 108]; gS bound 191; pattern 03 . 13 02 . 02 . 012 . 23 . 23 013 . 013 23
+  members 5, N=8 (blocks of 32, k_up=2): V1 best over 6 partner draws: 176 (-79), per draw [167, 157, 164, 176, 166, 158]; gS bound 255; pattern 13 14 01 . 12 . 0234 .
+  members 5, N=16 (blocks of 16, k_up=4): V1 best over 6 partner draws: 147 (-108), per draw [138, 133, 138, 139, 147, 138]; gS bound 255; pattern . 012 024 04 34 1234 . 023 . 014 . . 1234 . 03 03
+(k,n)=(64,256) V1 d=1 x: best V1 weight of an adapted lift, as 'weight (excess over the gS bound Lk-1)'; reference = plain tree code with the same top pattern search
+  members 3, N=8 (blocks of 32, k_up=2): V1 best over 6 partner draws: 62 (-65), per draw [62, 62, 62, 62, 62, 62]; gS bound 127; pattern 12 02 01 . . . . .
+  members 3, N=16 (blocks of 16, k_up=4): V1 best over 6 partner draws: 86 (-41), per draw [84, 80, 81, 86, 79, 80]; gS bound 127; pattern 12 . . . 01 02 . . 02 . 012 01 . . 12 .
+  members 4, N=8 (blocks of 32, k_up=2): V1 best over 6 partner draws: 98 (-93), per draw [98, 94, 96, 96, 95, 98]; gS bound 191; pattern 123 03 . 02 . 01 . .
+  members 4, N=16 (blocks of 16, k_up=4): V1 best over 6 partner draws: 135 (-56), per draw [122, 131, 135, 129, 131, 122]; gS bound 191; pattern 01 02 12 . 012 . 12 01 23 13 23 13 . 13 . 23
+  members 5, N=8 (blocks of 32, k_up=2): V1 best over 6 partner draws: 124 (-131), per draw [124, 124, 124, 124, 124, 124]; gS bound 255; pattern 134 12 04 03 . 24 . .
+  members 5, N=16 (blocks of 16, k_up=4): V1 best over 6 partner draws: 176 (-79), per draw [167, 173, 167, 176, 172, 168]; gS bound 255; pattern 023 13 34 0123 04 . . 14 14 14 04 04 13 012 03 23

@@ -1,0 +1,258 @@
+== 45_lattice.py 4
+n = 16, D = 7, GF(2^8), subspace domain; lattice M_5 of rank 9, colength 7 n = 112
+  X^11      : minima [42, 43, 43, 44, 44, 44, 44, 45, 46]  sum = 395  (24 D + 3 + 14 n = 395)  OK   W_1/n = 2.6250, mean = 2.7431
+      W = 42: nullity 1; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 1
+      W = 48: nullity 26; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 26
+  random0   : minima [43, 43, 44, 44, 44, 44, 44, 44, 45]  sum = 395  (24 D + 3 + 14 n = 395)  OK   W_1/n = 2.6875, mean = 2.7431
+      W = 43: nullity 2; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 2
+      W = 49: nullity 29; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 29
+  random1   : minima [43, 43, 44, 44, 44, 44, 44, 44, 45]  sum = 395  (24 D + 3 + 14 n = 395)  OK   W_1/n = 2.6875, mean = 2.7431
+      W = 43: nullity 2; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 2
+      W = 49: nullity 29; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 29
+  zero      : minima [28, 35, 36, 37, 38, 46, 55, 56, 64]  sum = 395  (24 D + 3 + 14 n = 395)  OK   W_1/n = 1.7500, mean = 2.7431
+      W = 28: nullity 1; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 1
+      W = 34: nullity 4; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 4
+  rand-set  : minima [43, 43, 44, 44, 44, 44, 44, 44, 45]  sum = 395  (24 D + 3 + 14 n = 395)  OK   W_1/n = 2.6875, mean = 2.7431
+      W = 43: nullity 2; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 2
+      W = 49: nullity 29; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 29
+== 45_lattice.py 5
+n = 32, D = 15, GF(2^8), subspace domain; lattice M_5 of rank 9, colength 7 n = 224
+  X^23      : minima [86, 88, 89, 90, 90, 91, 91, 92, 94]  sum = 811  (24 D + 3 + 14 n = 811)  OK   W_1/n = 2.6875, mean = 2.8160
+      W = 86: nullity 1; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 1
+      W = 92: nullity 16; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 16
+  random0   : minima [89, 90, 90, 90, 90, 90, 90, 91, 91]  sum = 811  (24 D + 3 + 14 n = 811)  OK   W_1/n = 2.7812, mean = 2.8160
+      W = 89: nullity 1; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 1
+      W = 95: nullity 28; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 28
+  random1   : minima [89, 90, 90, 90, 90, 90, 90, 91, 91]  sum = 811  (24 D + 3 + 14 n = 811)  OK   W_1/n = 2.7812, mean = 2.8160
+      W = 89: nullity 1; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 1
+      W = 95: nullity 28; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 28
+  zero      : minima [60, 75, 76, 77, 78, 94, 111, 112, 128]  sum = 811  (24 D + 3 + 14 n = 811)  OK   W_1/n = 1.8750, mean = 2.8160
+      W = 60: nullity 1; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 1
+      W = 66: nullity 4; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 4
+  rand-set  : minima [89, 90, 90, 90, 90, 90, 90, 91, 91]  sum = 811  (24 D + 3 + 14 n = 811)  OK   W_1/n = 2.7812, mean = 2.8160
+      W = 89: nullity 1; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 1
+      W = 95: nullity 28; tangency criterion holds on all basis vectors: True; nullity of the tangency system: 28
+== 45_family.py 4 5 6
+  N = 4, seed 3: violated conditions 0 of 112; wdeg(dE) = 42 (11n/4 - 2 = 42); deg e_1 of a = 35 (2n + n/4 - 1 = 35); gcd degrees at 3 random X: [0, 0, 0]; nullity at that W: 1; equal to the closed form up to a scalar: True
+  N = 4, seed 4: violated conditions 0 of 112; wdeg(dE) = 42 (11n/4 - 2 = 42); deg e_1 of a = 35 (2n + n/4 - 1 = 35); gcd degrees at 3 random X: [0, 0, 0]; nullity at that W: 1; equal to the closed form up to a scalar: True
+  N = 4, seed 5: violated conditions 0 of 112; wdeg(dE) = 42 (11n/4 - 2 = 42); deg e_1 of a = 35 (2n + n/4 - 1 = 35); gcd degrees at 3 random X: [0, 0, 0]; nullity at that W: 1; equal to the closed form up to a scalar: True
+  N = 5, seed 3: violated conditions 0 of 224; wdeg(dE) = 86 (11n/4 - 2 = 86); deg e_1 of a = 71 (2n + n/4 - 1 = 71); gcd degrees at 3 random X: [0, 0, 0]; nullity at that W: 1; equal to the closed form up to a scalar: True
+  N = 5, seed 4: violated conditions 0 of 224; wdeg(dE) = 86 (11n/4 - 2 = 86); deg e_1 of a = 71 (2n + n/4 - 1 = 71); gcd degrees at 3 random X: [0, 1, 0]; nullity at that W: 1; equal to the closed form up to a scalar: True
+  N = 5, seed 5: violated conditions 0 of 224; wdeg(dE) = 86 (11n/4 - 2 = 86); deg e_1 of a = 71 (2n + n/4 - 1 = 71); gcd degrees at 3 random X: [0, 0, 0]; nullity at that W: 1; equal to the closed form up to a scalar: True
+  N = 6, seed 3: violated conditions 0 of 448; wdeg(dE) = 174 (11n/4 - 2 = 174); deg e_1 of a = 143 (2n + n/4 - 1 = 143); gcd degrees at 3 random X: [0, 0, 0]
+  N = 6, seed 4: violated conditions 0 of 448; wdeg(dE) = 174 (11n/4 - 2 = 174); deg e_1 of a = 135 (2n + n/4 - 1 = 143); gcd degrees at 3 random X: [0, 0, 0]
+  N = 6, seed 5: violated conditions 0 of 448; wdeg(dE) = 174 (11n/4 - 2 = 174); deg e_1 of a = 143 (2n + n/4 - 1 = 143); gcd degrees at 3 random X: [0, 0, 0]
+  family on D = F_16 (GF(16) inside GF(2^8)):
+    D = 7, j = 2, word X^10: violated conditions 0 of 112; wdeg(dE) = 43, formula 43; gcd degrees [0, 0, 0]; section identity on 5 random P: True
+    D = 7, j = 4, word X^8: violated conditions 0 of 112; wdeg(dE) = 51, formula 51; gcd degrees [0, 0, 0]; section identity on 5 random P: True
+    D = 9, j = 2, word X^10: violated conditions 0 of 112; wdeg(dE) = 53, formula 53; gcd degrees [0, 0, 0]; section identity on 5 random P: True
+    D = 9, j = 4, word X^8: violated conditions 0 of 112; wdeg(dE) = 61, formula 61; gcd degrees [0, 0, 0]; section identity on 5 random P: True
+== 45_det.py 4
+n = 16, D = 7
+  random0: W_1 = 43
+    basis[0] at W <= 43 (nullity 2): W = 43: deg det = 35 <= 36; min multiplicity over D = 2; 2n = 32; W >= (4n + 8D + 1)/3 = 40.3
+    random combination: W = 43: deg det = 35 <= 36; min multiplicity over D = 2; 2n = 32; W >= (4n + 8D + 1)/3 = 40.3
+    basis[0] at W <= 47 (nullity 20): W = 47: deg det = 35 <= 42; min multiplicity over D = 2; 2n = 32; W >= (4n + 8D + 1)/3 = 40.3
+    random combination: W = 47: deg det = 41 <= 42; min multiplicity over D = 2; 2n = 32; W >= (4n + 8D + 1)/3 = 40.3
+  random1: W_1 = 43
+    basis[0] at W <= 43 (nullity 2): W = 43: deg det = 35 <= 36; min multiplicity over D = 2; 2n = 32; W >= (4n + 8D + 1)/3 = 40.3
+    random combination: W = 43: deg det = 35 <= 36; min multiplicity over D = 2; 2n = 32; W >= (4n + 8D + 1)/3 = 40.3
+    basis[0] at W <= 47 (nullity 20): W = 47: deg det = 35 <= 42; min multiplicity over D = 2; 2n = 32; W >= (4n + 8D + 1)/3 = 40.3
+    random combination: W = 47: deg det = 41 <= 42; min multiplicity over D = 2; 2n = 32; W >= (4n + 8D + 1)/3 = 40.3
+  X^11: W_1 = 42
+    basis[0] at W <= 42 (nullity 1): W = 42: det = 0 (degenerate)
+    basis[0] at W <= 46 (nullity 17): W = 46: det = 0 (degenerate)
+    random combination: W = 46: deg det = 40 <= 40; min multiplicity over D = 2; 2n = 32; W >= (4n + 8D + 1)/3 = 40.3
+  X^11: W_1 = 42
+    basis[0] at W <= 42 (nullity 1): W = 42: det = 0 (degenerate)
+    basis[0] at W <= 46 (nullity 17): W = 46: det = 0 (degenerate)
+    random combination: W = 46: deg det = 40 <= 40; min multiplicity over D = 2; 2n = 32; W >= (4n + 8D + 1)/3 = 40.3
+  contact 6 on all lines, random word: random combination of the 15 solutions at W <= 74: deg det = 82 <= 82, min multiplicity over D = 5 (Theorem 4: >= 5), bound (10 n + 8 D + 1) / 3 = 72.3
+    closed form of the 11/16 family: W = 42: det = 0 (degenerate)
+== 45_det.py 5
+n = 32, D = 15
+  random0: W_1 = 89
+    basis[0] at W <= 89 (nullity 1): W = 89: deg det = 72 <= 73; min multiplicity over D = 2; 2n = 64; W >= (4n + 8D + 1)/3 = 83.0
+    basis[0] at W <= 93 (nullity 19): W = 93: det = 0 (degenerate)
+    random combination: W = 93: deg det = 78 <= 79; min multiplicity over D = 2; 2n = 64; W >= (4n + 8D + 1)/3 = 83.0
+  random1: W_1 = 89
+    basis[0] at W <= 89 (nullity 1): W = 89: deg det = 72 <= 73; min multiplicity over D = 2; 2n = 64; W >= (4n + 8D + 1)/3 = 83.0
+    basis[0] at W <= 93 (nullity 19): W = 93: det = 0 (degenerate)
+    random combination: W = 93: deg det = 78 <= 79; min multiplicity over D = 2; 2n = 64; W >= (4n + 8D + 1)/3 = 83.0
+  X^23: W_1 = 86
+    basis[0] at W <= 86 (nullity 1): W = 86: det = 0 (degenerate)
+    basis[0] at W <= 90 (nullity 8): W = 90: det = 0 (degenerate)
+    random combination: W = 90: deg det = 73 <= 74; min multiplicity over D = 2; 2n = 64; W >= (4n + 8D + 1)/3 = 83.0
+  X^19: W_1 = 76
+    basis[0] at W <= 76 (nullity 1): W = 76: det = 0 (degenerate)
+    basis[0] at W <= 80 (nullity 3): W = 76: det = 0 (degenerate)
+    random combination: W = 80: det = 0 (degenerate)
+    closed form of the 11/16 family: W = 86: det = 0 (degenerate)
+== 45_b2.py 4
+n = 16, D = 7, GF(2^8), subspace domain
+  fam:
+    b <= 1: minima [42, 43, 43, 44, 44, 44, 44, 45, 46], sum 395 (law 395) OK
+    b <= 2: minima [42, 43, 43, 44, 44, 44, 44, 44, 45, 45, 46, 46, 47], sum 577 (law 577) OK
+    quotient (genuine b = 2): minima [44, 45, 46, 47] = [2.75, 2.812, 2.875, 2.938] n; sum 182 (law 182); window of note 41 for b = 2 ends at 2.613 n = 41.8
+  rand:
+    b <= 1: minima [43, 43, 44, 44, 44, 44, 44, 44, 45], sum 395 (law 395) OK
+    b <= 2: minima [43, 43, 44, 44, 44, 44, 44, 44, 45, 45, 45, 46, 46], sum 577 (law 577) OK
+    quotient (genuine b = 2): minima [45, 45, 46, 46] = [2.812, 2.812, 2.875, 2.875] n; sum 182 (law 182); window of note 41 for b = 2 ends at 2.613 n = 41.8
+  zero:
+    b <= 1: minima [28, 35, 36, 37, 38, 46, 55, 56, 64], sum 395 (law 395) OK
+    b <= 2: minima [28, 35, 36, 37, 38, 44, 45, 46, 46, 47, 55, 56, 64], sum 577 (law 577) OK
+    quotient (genuine b = 2): minima [44, 45, 46, 47] = [2.75, 2.812, 2.875, 2.938] n; sum 182 (law 182); window of note 41 for b = 2 ends at 2.613 n = 41.8
+== 45_b2.py 5
+n = 32, D = 15, GF(2^8), subspace domain
+  fam:
+    b <= 1: minima [86, 88, 89, 90, 90, 91, 91, 92, 94], sum 811 (law 811) OK
+    b <= 2: minima [86, 88, 89, 90, 90, 91, 91, 92, 92, 93, 94, 94, 95], sum 1185 (law 1185) OK
+    quotient (genuine b = 2): minima [92, 93, 94, 95] = [2.875, 2.906, 2.938, 2.969] n; sum 374 (law 374); window of note 41 for b = 2 ends at 2.613 n = 83.6
+  rand:
+    b <= 1: minima [89, 90, 90, 90, 90, 90, 90, 91, 91], sum 811 (law 811) OK
+    b <= 2: minima [89, 90, 90, 90, 90, 90, 90, 91, 91, 93, 93, 94, 94], sum 1185 (law 1185) OK
+    quotient (genuine b = 2): minima [93, 93, 94, 94] = [2.906, 2.906, 2.938, 2.938] n; sum 374 (law 374); window of note 41 for b = 2 ends at 2.613 n = 83.6
+== 45_scale: X^178 at n = 256 on a random F2-subspace, on GF(256), on an F16-subspace
+n = 256, degree <= 127, subspace domain in GF(2^16)
+  X^178: W_min = 703 (2.7461 n), solutions 1, deg_Y E = 5, gcd degree 0
+  support of E by Y-degree (number of nonzero coefficients, largest X-degree): Y^0: 10, 691; Y^1: 57, 576; Y^2: 1, 207; Y^3: 9, 284; Y^4: 0, -1; Y^5: 1, 56;
+DOM: F_{2^8}-subspace
+n = 256, degree <= 127, subspace domain in GF(2^16)
+  X^178: W_min = 691 (2.6992 n), solutions 1, deg_Y E = 5, gcd degree 0
+  support of E by Y-degree (number of nonzero coefficients, largest X-degree): Y^0: 2, 691; Y^1: 3, 513; Y^2: 0, -1; Y^3: 0, -1; Y^4: 0, -1; Y^5: 1, 56;
+DOM: F_{2^4}-subspace
+n = 256, degree <= 127, subspace domain in GF(2^16)
+  X^178: W_min = 691 (2.6992 n), solutions 1, deg_Y E = 5, gcd degree 0
+  support of E by Y-degree (number of nonzero coefficients, largest X-degree): Y^0: 3, 691; Y^1: 8, 528; Y^2: 0, -1; Y^3: 0, -1; Y^4: 0, -1; Y^5: 1, 56;
+== 45_scale: X^191 at n = 256 on GF(256)
+DOM: F_{2^8}-subspace
+n = 256, degree <= 127, subspace domain in GF(2^16)
+  X^191: W_min = 701 (2.7383 n), solutions 1, deg_Y E = 5, gcd degree 0
+  support of E by Y-degree (number of nonzero coefficients, largest X-degree): Y^0: 1, 255; Y^1: 3, 574; Y^2: 0, -1; Y^3: 0, -1; Y^4: 1, 1; Y^5: 1, 65;
+== 45_scale: sweep at n = 256 on GF(256)
+DOM: F_{2^8}-subspace
+n = 256, degree <= 127, subspace domain in GF(2^16)
+  X^168: W_min = 672 (2.6250 n), solutions 1, deg_Y E = 4, gcd degree 4
+  X^169: W_min = 676 (2.6406 n), solutions 1, deg_Y E = 4, gcd degree 4
+  X^170: W_min = 680 (2.6562 n), solutions 1, deg_Y E = 4, gcd degree 4
+  X^171: W_min = 684 (2.6719 n), solutions 1, deg_Y E = 4, gcd degree 4
+  X^172: W_min = 688 (2.6875 n), solutions 1, deg_Y E = 4, gcd degree 4
+  X^173: W_min = 692 (2.7031 n), solutions 1, deg_Y E = 4, gcd degree 4
+  X^174: W_min = 696 (2.7188 n), solutions 1, deg_Y E = 4, gcd degree 4
+  X^175: W_min = 700 (2.7344 n), solutions 1, deg_Y E = 4, gcd degree 4
+  X^176: W_min = 699 (2.7305 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^177: W_min = 696 (2.7188 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^178: W_min = 691 (2.6992 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^179: W_min = 692 (2.7031 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^180: W_min = 692 (2.7031 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^181: W_min = 694 (2.7109 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^182: W_min = 694 (2.7109 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^183: W_min = 696 (2.7188 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^184: W_min = 696 (2.7188 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^185: W_min = 698 (2.7266 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^186: W_min = 698 (2.7266 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^187: W_min = 700 (2.7344 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^188: W_min = 700 (2.7344 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^189: W_min = 702 (2.7422 n), solutions 2, deg_Y E = 5, gcd degree 0
+  X^190: W_min = 701 (2.7383 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^191: W_min = 701 (2.7383 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^192: W_min = 700 (2.7344 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^193: W_min = 700 (2.7344 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^194: W_min = 702 (2.7422 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^195: W_min = 702 (2.7422 n), solutions 2, deg_Y E = 5, gcd degree 0
+  X^196: W_min = 701 (2.7383 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^197: W_min = 700 (2.7344 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^198: W_min = 699 (2.7305 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^199: W_min = 698 (2.7266 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^200: W_min = 697 (2.7227 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^201: W_min = 696 (2.7188 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^202: W_min = 695 (2.7148 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^203: W_min = 694 (2.7109 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^204: W_min = 693 (2.7070 n), solutions 1, deg_Y E = 5, gcd degree 0
+== 45_scale: sweep at n = 64 on an F4-subspace and on a random F2-subspace
+DOM: F_{2^2}-subspace
+n = 64, degree <= 31, subspace domain in GF(2^16)
+  X^42: W_min = 168 (2.6250 n), solutions 1, deg_Y E = 4, gcd degree 4
+  X^43: W_min = 172 (2.6875 n), solutions 1, deg_Y E = 4, gcd degree 4
+  X^44: W_min = 175 (2.7344 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^45: W_min = 176 (2.7500 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^46: W_min = 175 (2.7344 n), solutions 2, deg_Y E = 5, gcd degree 0
+  X^47: W_min = 174 (2.7188 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^48: W_min = 172 (2.6875 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^49: W_min = 172 (2.6875 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^50: W_min = 175 (2.7344 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^51: W_min = 176 (2.7500 n), solutions 1, deg_Y E = 4, gcd degree 4
+n = 64, degree <= 31, subspace domain in GF(2^16)
+  X^42: W_min = 168 (2.6250 n), solutions 1, deg_Y E = 4, gcd degree 4
+  X^43: W_min = 172 (2.6875 n), solutions 1, deg_Y E = 4, gcd degree 4
+  X^44: W_min = 175 (2.7344 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^45: W_min = 176 (2.7500 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^46: W_min = 175 (2.7344 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^47: W_min = 174 (2.7188 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^48: W_min = 175 (2.7344 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^49: W_min = 178 (2.7812 n), solutions 1, deg_Y E = 5, gcd degree 0
+  X^50: W_min = 180 (2.8125 n), solutions 1, deg_Y E = 4, gcd degree 4
+  X^51: W_min = 176 (2.7500 n), solutions 1, deg_Y E = 4, gcd degree 4
+== 45_fn_check: Theorem 7 at n = 64, exhaustive at low degree
+n = 64, D = GF(64), word X^46 (j = 2), degree <= 3: 73815 subsets; W = 174, Theorem 7: no agreement above 43; no polynomial with >= 30 agreements  consistent
+n = 64, D = GF(64), word X^46 (j = 2), degree <= 5: 1344904 subsets; W = 174, Theorem 7: no agreement above 43; no polynomial with >= 36 agreements  consistent
+n = 64, D = GF(64), word X^46 (j = 2), degree <= 7: 18156204 subsets; W = 174, Theorem 7: no agreement above 43; no polynomial with >= 38 agreements  consistent
+n = 64, D = GF(64), word X^44 (j = 4), degree <= 3: 73815 subsets; W = 172, Theorem 7: no agreement above 43; no polynomial with >= 30 agreements  consistent
+n = 64, D = GF(64), word X^44 (j = 4), degree <= 5: 1344904 subsets; W = 172, Theorem 7: no agreement above 43; no polynomial with >= 36 agreements  consistent
+n = 64, D = GF(64), word X^44 (j = 4), degree <= 7: 18156204 subsets; W = 172, Theorem 7: no agreement above 43; no polynomial with >= 38 agreements  consistent
+== 45_window.py
+1. b = 1, contact 4 on all lines: lower ends N, B, T and upper end C, in units of n
+   n = 2^25, a = 0.6919: N = 2.57570, B = 2.61111, T = 2.66667, C = 2.74433 at (m, B) = (480, 178);  non-degenerate window [2.66667, 2.74433) n, width 0.07767 n; degenerate window [2.61111, 2.74433) n
+   n = 2^25, a = 0.6949: N = 2.58470, B = 2.61111, T = 2.66667, C = 2.72365 at (m, B) = (480, 181);  non-degenerate window [2.66667, 2.72365) n, width 0.05699 n; degenerate window [2.61111, 2.72365) n
+   n = 2^25, a = 0.7: N = 2.60000, B = 2.61111, T = 2.66667, C = 2.68868 at (m, B) = (480, 159);  non-degenerate window [2.66667, 2.68868) n, width 0.02201 n; degenerate window [2.61111, 2.68868) n
+   n = 2^26, a = 0.6919: N = 2.57570, B = 2.61111, T = 2.66667, C = 2.74433 at (m, B) = (480, 178);  non-degenerate window [2.66667, 2.74433) n, width 0.07767 n; degenerate window [2.61111, 2.74433) n
+   n = 2^26, a = 0.6949: N = 2.58470, B = 2.61111, T = 2.66667, C = 2.72365 at (m, B) = (480, 181);  non-degenerate window [2.66667, 2.72365) n, width 0.05699 n; degenerate window [2.61111, 2.72365) n
+   n = 2^26, a = 0.7: N = 2.60000, B = 2.61111, T = 2.66667, C = 2.68868 at (m, B) = (480, 159);  non-degenerate window [2.66667, 2.68868) n, width 0.02201 n; degenerate window [2.61111, 2.68868) n
+   n = 2^27, a = 0.6919: N = 2.57570, B = 2.61111, T = 2.66667, C = 2.74433 at (m, B) = (480, 178);  non-degenerate window [2.66667, 2.74433) n, width 0.07767 n; degenerate window [2.61111, 2.74433) n
+   n = 2^27, a = 0.6949: N = 2.58470, B = 2.61111, T = 2.66667, C = 2.72365 at (m, B) = (480, 181);  non-degenerate window [2.66667, 2.72365) n, width 0.05699 n; degenerate window [2.61111, 2.72365) n
+   n = 2^27, a = 0.7: N = 2.60000, B = 2.61111, T = 2.66667, C = 2.68868 at (m, B) = (480, 159);  non-degenerate window [2.66667, 2.68868) n, width 0.02201 n; degenerate window [2.61111, 2.68868) n
+   n = 2^28, a = 0.6919: N = 2.57570, B = 2.61111, T = 2.66667, C = 2.74433 at (m, B) = (480, 178);  non-degenerate window [2.66667, 2.74433) n, width 0.07767 n; degenerate window [2.61111, 2.74433) n
+   n = 2^28, a = 0.6949: N = 2.58470, B = 2.61111, T = 2.66667, C = 2.72365 at (m, B) = (480, 181);  non-degenerate window [2.66667, 2.72365) n, width 0.05699 n; degenerate window [2.61111, 2.72365) n
+   n = 2^28, a = 0.7: N = 2.60000, B = 2.61111, T = 2.66667, C = 2.68868 at (m, B) = (480, 159);  non-degenerate window [2.66667, 2.68868) n, width 0.02201 n; degenerate window [2.61111, 2.68868) n
+2. smallest agreement at which the non-degenerate window is empty, n = 2^25 (grid of step 0.0005)
+   a = 0.6995: lower 2.66667 n (N 2.5985, T 2.6667), C = 2.69106 n at m = 960: width 0.02439 n; queries 210
+   a = 0.7000: lower 2.66667 n (N 2.6000, T 2.6667), C = 2.68758 n at m = 960: width 0.02091 n; queries 210
+   a = 0.7005: lower 2.66667 n (N 2.6015, T 2.6667), C = 2.68405 n at m = 960: width 0.01738 n; queries 211
+   a = 0.7010: lower 2.66667 n (N 2.6030, T 2.6667), C = 2.68049 n at m = 960: width 0.01382 n; queries 211
+   a = 0.7015: lower 2.66667 n (N 2.6045, T 2.6667), C = 2.67690 n at m = 960: width 0.01023 n; queries 212
+   a = 0.7020: lower 2.66667 n (N 2.6060, T 2.6667), C = 2.67326 n at m = 960: width 0.00659 n; queries 212
+   a = 0.7025: lower 2.66667 n (N 2.6075, T 2.6667), C = 2.66957 n at m = 960: width 0.00290 n; queries 213
+   a = 0.7030: lower 2.66667 n (N 2.6090, T 2.6667), C = 2.66582 n at m = 960: empty; queries 213
+   a = 0.7035: lower 2.66667 n (N 2.6105, T 2.6667), C = 2.66199 n at m = 960: empty; queries 213
+   a = 0.7040: lower 2.66667 n (N 2.6120, T 2.6667), C = 2.65807 n at m = 960: empty; queries 214
+   a = 0.7045: lower 2.66667 n (N 2.6135, T 2.6667), C = 2.65403 n at m = 960: empty; queries 214
+   a = 0.7050: lower 2.66667 n (N 2.6150, T 2.6667), C = 2.64983 n at m = 960: empty; queries 215
+   a = 0.7055: lower 2.66667 n (N 2.6165, T 2.6667), C = 2.64540 n at m = 960: empty; queries 215
+   a = 0.7060: lower 2.66667 n (N 2.6180, T 2.6667), C = 2.64063 n at m = 960: empty; queries 216
+   a = 0.7065: lower 2.66667 n (N 2.6195, T 2.6667), C = 2.63524 n at m = 960: empty; queries 216
+3. b = 1, contact 4 on x4 n lines, contact 2 on x2 n lines (leading order): open cells with the determinant bound
+   a = 0.6919: open cells before 32, with the determinant bound (non-degenerate) 23: [(0.1, 0.9, 0.001), (0.15, 0.85, 0.037), (0.2, 0.8, 0.04), (0.25, 0.75, 0.043), (0.3, 0.7, 0.046), (0.35, 0.65, 0.049), (0.4, 0.6, 0.051), (0.45, 0.55, 0.054), (0.5, 0.5, 0.056), (0.55, 0.45, 0.056), (0.6, 0.4, 0.057), (0.65, 0.35, 0.061), (0.7, 0.3, 0.066), (0.75, 0.25, 0.068), (0.8, 0.15, 0.001), (0.8, 0.2, 0.069), (0.85, 0.1, 0.003), (0.85, 0.15, 0.071), (0.9, 0.05, 0.004), (0.9, 0.1, 0.073), (0.95, 0.0, 0.006), (0.95, 0.05, 0.074), (1.0, 0.0, 0.075)]
+   a = 0.6949: open cells before 25, with the determinant bound (non-degenerate) 18: [(0.15, 0.85, 0.017), (0.2, 0.8, 0.02), (0.25, 0.75, 0.023), (0.3, 0.7, 0.026), (0.35, 0.65, 0.029), (0.4, 0.6, 0.031), (0.45, 0.55, 0.034), (0.5, 0.5, 0.037), (0.55, 0.45, 0.036), (0.6, 0.4, 0.037), (0.65, 0.35, 0.041), (0.7, 0.3, 0.046), (0.75, 0.25, 0.048), (0.8, 0.2, 0.049), (0.85, 0.15, 0.051), (0.9, 0.1, 0.053), (0.95, 0.05, 0.054), (1.0, 0.0, 0.055)]
+   a = 0.7: open cells before 19, with the determinant bound (non-degenerate) 10: [(0.5, 0.5, 0.0), (0.6, 0.4, 0.001), (0.65, 0.35, 0.005), (0.7, 0.3, 0.01), (0.75, 0.25, 0.012), (0.8, 0.2, 0.014), (0.85, 0.15, 0.016), (0.9, 0.1, 0.017), (0.95, 0.05, 0.019), (1.0, 0.0, 0.02)]
+4. the family on D = F_n: word X^(3n/4 - j), W(j) = max(4j + 5D, 2n + 1 + D, 11n/4 - j), n = 2^25
+   best j = 1677716 = 0.05000 n, W = 90596972 = 2.70000 n, efficiency 0.67500, exponent 0.70000 n; every codeword with agreement > W/4 = 0.67500 n is a section, and there is no polynomial section of degree <= D (Theorem 7): the list is empty above 0.67500 n
+   a = 0.6919: C = 2.74285 n; not cut by Lemma C (m <= 960) for j/n in [0.0072, 0.0605]
+   a = 0.6949: C = 2.72238 n; not cut by Lemma C (m <= 960) for j/n in [0.0277, 0.0555]
+   a = 0.7: C = 2.68758 n; cut for every j (smallest W(j) = 2.70000 n)
+5. Theorem 8' of note 41 re-evaluated (certificate (18, 5), pairs of note 41), and the non-degenerate window
+      Lemma C for contact 4 on all lines, b = 1: (m, B) = (960, 316), side condition at W_max: True, per unit of degree 1343, constant if such factors occur 33575
+   a = 0.7, n = 2^25: certificate True, B_jet = 25, case II cut True, case I cut True, per unit 110, constant 2750; non-degenerate window [2.66667, 2.68758) n; queries 210
+      Lemma C for contact 4 on all lines, b = 1: (m, B) = (960, 316), side condition at W_max: True, per unit of degree 1343, constant if such factors occur 33575
+   a = 0.7, n = 2^26: certificate True, B_jet = 25, case II cut True, case I cut True, per unit 110, constant 2750; non-degenerate window [2.66667, 2.68758) n; queries 210
+      Lemma C for contact 4 on all lines, b = 1: (m, B) = (960, 316), side condition at W_max: True, per unit of degree 1343, constant if such factors occur 33575
+   a = 0.7, n = 2^27: certificate True, B_jet = 25, case II cut True, case I cut True, per unit 110, constant 2750; non-degenerate window [2.66667, 2.68758) n; queries 210
+      Lemma C for contact 4 on all lines, b = 1: (m, B) = (960, 316), side condition at W_max: True, per unit of degree 1343, constant if such factors occur 33575
+   a = 0.7, n = 2^28: certificate True, B_jet = 25, case II cut True, case I cut True, per unit 110, constant 2750; non-degenerate window [2.66667, 2.68758) n; queries 210
+      Lemma C for contact 4 on all lines, b = 1: (m, B) = (960, 257), side condition at W_max: True, per unit of degree 1349, constant if such factors occur 33725
+   a = 0.703, n = 2^25: certificate True, B_jet = 25, case II cut True, case I cut True, per unit 111, constant 2775; non-degenerate window EMPTY (C = 2.66582 n <= T = 2.66667 n); queries 213
+      Lemma C for contact 4 on all lines, b = 1: (m, B) = (960, 257), side condition at W_max: True, per unit of degree 1349, constant if such factors occur 33725
+   a = 0.703, n = 2^26: certificate True, B_jet = 25, case II cut True, case I cut True, per unit 111, constant 2775; non-degenerate window EMPTY (C = 2.66582 n <= T = 2.66667 n); queries 213
+      Lemma C for contact 4 on all lines, b = 1: (m, B) = (960, 257), side condition at W_max: True, per unit of degree 1349, constant if such factors occur 33725
+   a = 0.703, n = 2^27: certificate True, B_jet = 25, case II cut True, case I cut True, per unit 111, constant 2775; non-degenerate window EMPTY (C = 2.66582 n <= T = 2.66667 n); queries 213
+      Lemma C for contact 4 on all lines, b = 1: (m, B) = (960, 257), side condition at W_max: True, per unit of degree 1349, constant if such factors occur 33725
+   a = 0.703, n = 2^28: certificate True, B_jet = 25, case II cut True, case I cut True, per unit 111, constant 2775; non-degenerate window EMPTY (C = 2.66582 n <= T = 2.66667 n); queries 213

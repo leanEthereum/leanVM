@@ -1,0 +1,53 @@
+f + g coefficients (low to high): ['0x0', '0x15', '0x7', '0x0']  expected c*y*(y+c) with c = 0x7
+zeros of f: [1, 4, 5]  of g: [2, 3, 6]  of f+g: [0, 7]
+coincidence points: 8 of 8; Q_3 allows 2k-1 = 7
+D = <1,x,x^2>: partitions (0 in A) with a list: 8
+    AABCABCC  (points in order 0,1,x,x+1,x^2,x^2+1,x^2+x,x^2+x+1)
+    AABCCABB  (points in order 0,1,x,x+1,x^2,x^2+1,x^2+x,x^2+x+1)
+    AACBACBB  (points in order 0,1,x,x+1,x^2,x^2+1,x^2+x,x^2+x+1)
+    AACBBACC  (points in order 0,1,x,x+1,x^2,x^2+1,x^2+x,x^2+x+1)
+    ABCCAABC  (points in order 0,1,x,x+1,x^2,x^2+1,x^2+x,x^2+x+1)
+    ABCCBBCA  (points in order 0,1,x,x+1,x^2,x^2+1,x^2+x,x^2+x+1)
+    ACBBAACB  (points in order 0,1,x,x+1,x^2,x^2+1,x^2+x,x^2+x+1)
+    ACBBCCBA  (points in order 0,1,x,x+1,x^2,x^2+1,x^2+x,x^2+x+1)
+20 random subspaces of GF(2^64) of dimension 3: partitions with a list in total: 0
+N=3 n=8 k=4 trial 0: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 8 = n, Q_3 allows 7
+N=3 n=8 k=4 trial 1: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 8 = n, Q_3 allows 7
+N=3 n=8 k=4 trial 2: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 8 = n, Q_3 allows 7
+N=4 n=16 k=8 trial 0: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 16 = n, Q_3 allows 15
+N=4 n=16 k=8 trial 1: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 16 = n, Q_3 allows 15
+N=4 n=16 k=8 trial 2: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 16 = n, Q_3 allows 15
+N=5 n=32 k=16 trial 0: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 32 = n, Q_3 allows 31
+N=5 n=32 k=16 trial 1: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 32 = n, Q_3 allows 31
+N=5 n=32 k=16 trial 2: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 32 = n, Q_3 allows 31
+N=6 n=64 k=32 trial 0: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 64 = n, Q_3 allows 63
+N=6 n=64 k=32 trial 1: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 64 = n, Q_3 allows 63
+N=6 n=64 k=32 trial 2: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 64 = n, Q_3 allows 63
+N=7 n=128 k=64 trial 0: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 128 = n, Q_3 allows 127
+N=7 n=128 k=64 trial 1: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 128 = n, Q_3 allows 127
+N=7 n=128 k=64 trial 2: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 128 = n, Q_3 allows 127
+N=8 n=256 k=128 trial 0: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 256 = n, Q_3 allows 255
+N=8 n=256 k=128 trial 1: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 256 = n, Q_3 allows 255
+N=8 n=256 k=128 trial 2: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 256 = n, Q_3 allows 255
+N=9 n=512 k=256 trial 0: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 512 = n, Q_3 allows 511
+N=9 n=512 k=256 trial 1: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 512 = n, Q_3 allows 511
+N=9 n=512 k=256 trial 2: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 512 = n, Q_3 allows 511
+N=10 n=1024 k=512 trial 0: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 1024 = n, Q_3 allows 1023
+N=10 n=1024 k=512 trial 1: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 1024 = n, Q_3 allows 1023
+N=10 n=1024 k=512 trial 2: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 1024 = n, Q_3 allows 1023
+N=11 n=2048 k=1024 trial 0: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 2048 = n, Q_3 allows 2047
+N=11 n=2048 k=1024 trial 1: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 2048 = n, Q_3 allows 2047
+N=11 n=2048 k=1024 trial 2: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 2048 = n, Q_3 allows 2047
+N=12 n=4096 k=2048 trial 0: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 4096 = n, Q_3 allows 4095
+N=12 n=4096 k=2048 trial 1: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 4096 = n, Q_3 allows 4095
+N=12 n=4096 k=2048 trial 2: product identity True, f+g zero at 0 and c True, f != g True, coincidence points 4096 = n, Q_3 allows 4095
+log2 of the number of sets A from this one quadruple, C(n/2-4, n/4-2):
+  N=19: 262131
+  N=22: 2097137
+  N=26: 33554415
+today's code D_8: k=128 n=256 slack s=0: F_2-dependencies found 65 (>= 65 predicted), |C|=35, |B|=94, word extends to a codeword g: True; coincidence points 256 against Q_3's 255
+random subspace, dim 8: k=128 n=256 slack s=0: F_2-dependencies found 65 (>= 65 predicted), |C|=42, |B|=87, word extends to a codeword g: True; coincidence points 256 against Q_3's 255
+256 random points: k=128 n=256 slack s=0: F_2-dependencies found 65 (>= 65 predicted), |C|=36, |B|=93, word extends to a codeword g: True; coincidence points 256 against Q_3's 255
+today's code D_9, rate 1/4, slack 1: k=128 n=512 slack s=1: F_2-dependencies found 3 (>= 2 predicted), |C|=67, |B|=63, word extends to a codeword g: True; coincidence points 257 against Q_3's 255
+512 random points, rate 1/4, slack 1: k=128 n=512 slack s=1: F_2-dependencies found 2 (>= 2 predicted), |C|=73, |B|=57, word extends to a codeword g: True; coincidence points 257 against Q_3's 255
+Theorem 5.2: 400 random aligned patterns (N = 4, 5; |V| = 2, 4; 3 and 4 members; kinds P and G; g = 0, 1, m-1): relation count differs from the prediction in 0; patterns with at least one relation: 153

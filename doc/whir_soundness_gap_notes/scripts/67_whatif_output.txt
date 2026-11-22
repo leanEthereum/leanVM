@@ -1,0 +1,90 @@
+
+mu = 24, rate 1/2; C: queries [215, 73, 37, 25, 20], 224.9 KiB, 157.6k cycle-eq
+  proven: Johnson only: queries [215, 73, 37, 25, 19], points [9, 8, 8, 7, 7], 174 point scalars, 227.0 KiB (+0.9% C), 165.0k cycle-eq (+4.7% C)
+  proven: Johnson and counting (the paper's two): queries [215, 73, 37, 13, 10], points [9, 8, 8, 37, 11], 340 point scalars, 218.2 KiB (-3.0% C), 163.6k cycle-eq (+3.8% C)
+  proven: all of section 1: queries [214, 72, 36, 13, 10], points [12, 9, 8, 37, 11], 359 point scalars, 216.9 KiB (-3.6% C), 163.6k cycle-eq (+3.8% C)
+  proven: all, levels chosen for cycle-eq: queries [215, 72, 36, 24, 10], points [9, 9, 8, 8, 11], 200 point scalars, 221.0 KiB (-1.7% C), 161.5k cycle-eq (+2.5% C)
+  HYPOTHETICAL floor: queries [214, 72, 36, 13, 10], points [4, 3, 3, 22, 5], 189 point scalars, 214.2 KiB (-4.7% C), 155.4k cycle-eq (-1.4% C)
+  HYPOTHETICAL count/2: queries [215, 73, 37, 13, 10], points [9, 8, 8, 22, 9], 255 point scalars, 216.9 KiB (-3.5% C), 160.7k cycle-eq (+2.0% C)
+  HYPOTHETICAL count/4: queries [215, 73, 19, 13, 10], points [9, 8, 94, 15, 8], 645 point scalars, 212.9 KiB (-5.3% C), 171.5k cycle-eq (+8.8% C)
+  HYPOTHETICAL count/8: queries [215, 73, 19, 13, 10], points [9, 8, 51, 11, 8], 410 point scalars, 209.2 KiB (-7.0% C), 161.7k cycle-eq (+2.6% C)
+  HYPOTHETICAL count/4 and floor: queries [215, 73, 19, 13, 10], points [3, 3, 60, 7, 3], 383 point scalars, 208.8 KiB (-7.2% C), 159.4k cycle-eq (+1.1% C)
+  HYPOTHETICAL count/4 and floor, for cycle-eq: queries [215, 73, 37, 13, 10], points [3, 3, 3, 7, 3], 98 point scalars, 214.5 KiB (-4.6% C), 153.3k cycle-eq (-2.7% C)
+  HYPOTHETICAL level 0 below Johnson: queries [179, 72, 36, 13, 10], points [10, 9, 8, 37, 11], 351 point scalars, 196.9 KiB (-12.5% C), 146.7k cycle-eq (-6.9% C)
+
+mu = 24, rate 1/4; C: queries [108, 55, 32, 23, 19], 156.1 KiB, 105.4k cycle-eq
+  proven: Johnson only: queries [108, 55, 31, 22, 18], points [9, 8, 8, 8, 7], 175 point scalars, 157.1 KiB (+0.6% C), 112.3k cycle-eq (+6.5% C)
+  proven: Johnson and counting (the paper's two): queries [108, 55, 31, 11, 9], points [9, 8, 8, 43, 11], 370 point scalars, 148.6 KiB (-4.8% C), 112.1k cycle-eq (+6.3% C)
+  proven: all of section 1: queries [107, 54, 31, 11, 9], points [11, 9, 8, 43, 11], 386 point scalars, 147.6 KiB (-5.5% C), 112.0k cycle-eq (+6.2% C)
+  proven: all, levels chosen for cycle-eq: queries [108, 54, 31, 22, 9], points [9, 9, 8, 8, 11], 200 point scalars, 151.8 KiB (-2.8% C), 109.3k cycle-eq (+3.7% C)
+  HYPOTHETICAL floor: queries [107, 54, 31, 11, 9], points [4, 3, 3, 26, 5], 209 point scalars, 144.8 KiB (-7.2% C), 103.8k cycle-eq (-1.6% C)
+  HYPOTHETICAL count/2: queries [108, 55, 31, 11, 9], points [9, 8, 8, 25, 9], 270 point scalars, 147.0 KiB (-5.8% C), 108.7k cycle-eq (+3.1% C)
+  HYPOTHETICAL count/4: queries [108, 55, 17, 11, 9], points [9, 8, 99, 16, 8], 675 point scalars, 144.9 KiB (-7.2% C), 121.5k cycle-eq (+15.2% C)
+  HYPOTHETICAL count/8: queries [108, 55, 16, 11, 9], points [9, 8, 58, 12, 8], 450 point scalars, 140.8 KiB (-9.8% C), 111.8k cycle-eq (+6.0% C)
+  HYPOTHETICAL count/4 and floor: queries [108, 55, 16, 11, 9], points [3, 3, 70, 8, 3], 438 point scalars, 140.6 KiB (-9.9% C), 110.1k cycle-eq (+4.4% C)
+  HYPOTHETICAL count/4 and floor, for cycle-eq: queries [108, 55, 31, 11, 9], points [3, 3, 3, 8, 3], 103 point scalars, 144.4 KiB (-7.5% C), 101.0k cycle-eq (-4.2% C)
+  HYPOTHETICAL level 0 below Johnson: queries [90, 54, 31, 11, 9], points [10, 9, 8, 43, 11], 381 point scalars, 136.8 KiB (-12.4% C), 102.6k cycle-eq (-2.6% C)
+
+mu = 28, rate 1/2; C: queries [207, 73, 37, 25, 19, 16], 276.1 KiB, 192.1k cycle-eq
+  proven: Johnson only: queries [207, 73, 37, 25, 19, 15], points [10, 8, 8, 8, 7, 7], 212 point scalars, 278.7 KiB (+0.9% C), 202.2k cycle-eq (+5.3% C)
+  proven: Johnson and counting (the paper's two): queries [207, 73, 37, 25, 10, 8], points [10, 8, 8, 8, 44, 11], 412 point scalars, 271.5 KiB (-1.7% C), 203.5k cycle-eq (+5.9% C)
+  proven: all of section 1: queries [206, 72, 36, 24, 10, 8], points [12, 9, 9, 8, 44, 11], 437 point scalars, 269.2 KiB (-2.5% C), 202.9k cycle-eq (+5.6% C)
+  proven: all, levels chosen for cycle-eq: queries [207, 72, 36, 24, 18, 8], points [10, 9, 9, 8, 8, 11], 242 point scalars, 272.1 KiB (-1.5% C), 199.1k cycle-eq (+3.6% C)
+  HYPOTHETICAL floor: queries [206, 72, 36, 24, 10, 8], points [4, 3, 3, 3, 27, 5], 229 point scalars, 265.9 KiB (-3.7% C), 192.3k cycle-eq (+0.1% C)
+  HYPOTHETICAL count/2: queries [207, 73, 37, 25, 10, 8], points [10, 8, 8, 8, 26, 9], 312 point scalars, 269.9 KiB (-2.2% C), 200.1k cycle-eq (+4.2% C)
+  HYPOTHETICAL count/4: queries [207, 73, 37, 25, 10, 8], points [10, 8, 8, 8, 17, 8], 262 point scalars, 269.1 KiB (-2.5% C), 198.4k cycle-eq (+3.3% C)
+  HYPOTHETICAL count/8: queries [207, 73, 37, 13, 10, 8], points [10, 8, 8, 66, 12, 8], 527 point scalars, 265.2 KiB (-3.9% C), 204.9k cycle-eq (+6.7% C)
+  HYPOTHETICAL count/4 and floor: queries [207, 73, 37, 13, 10, 8], points [3, 3, 3, 80, 9, 3], 508 point scalars, 264.9 KiB (-4.1% C), 201.9k cycle-eq (+5.1% C)
+  HYPOTHETICAL count/4 and floor, for cycle-eq: queries [207, 73, 37, 25, 10, 8], points [3, 3, 3, 3, 9, 3], 123 point scalars, 267.0 KiB (-3.3% C), 190.4k cycle-eq (-0.9% C)
+  HYPOTHETICAL level 0 below Johnson: queries [172, 72, 36, 24, 10, 8], points [11, 9, 9, 8, 44, 11], 427 point scalars, 245.4 KiB (-11.1% C), 183.3k cycle-eq (-4.6% C)
+
+mu = 28, rate 1/4; C: queries [104, 55, 32, 22, 18, 15], 192.3 KiB, 123.1k cycle-eq
+  proven: Johnson only: queries [104, 55, 31, 22, 17, 14], points [10, 8, 8, 8, 8, 7], 215 point scalars, 193.5 KiB (+0.6% C), 132.5k cycle-eq (+7.7% C)
+  proven: Johnson and counting (the paper's two): queries [104, 55, 31, 22, 9, 8], points [10, 8, 8, 8, 48, 11], 432 point scalars, 187.4 KiB (-2.6% C), 134.6k cycle-eq (+9.3% C)
+  proven: all of section 1: queries [103, 54, 31, 22, 9, 8], points [11, 9, 8, 8, 48, 11], 446 point scalars, 186.1 KiB (-3.2% C), 134.2k cycle-eq (+9.0% C)
+  proven: all, levels chosen for cycle-eq: queries [103, 54, 31, 22, 17, 8], points [11, 9, 8, 8, 8, 11], 246 point scalars, 188.5 KiB (-2.0% C), 130.3k cycle-eq (+5.9% C)
+  HYPOTHETICAL floor: queries [103, 54, 31, 22, 9, 8], points [4, 3, 3, 3, 30, 5], 244 point scalars, 183.0 KiB (-4.9% C), 124.0k cycle-eq (+0.8% C)
+  HYPOTHETICAL count/2: queries [104, 55, 31, 22, 9, 8], points [10, 8, 8, 8, 28, 9], 322 point scalars, 185.7 KiB (-3.5% C), 130.8k cycle-eq (+6.3% C)
+  HYPOTHETICAL count/4: queries [104, 55, 31, 22, 9, 8], points [10, 8, 8, 8, 18, 8], 267 point scalars, 184.8 KiB (-3.9% C), 129.0k cycle-eq (+4.8% C)
+  HYPOTHETICAL count/8: queries [104, 55, 31, 11, 9, 8], points [10, 8, 8, 79, 12, 8], 594 point scalars, 182.1 KiB (-5.3% C), 138.5k cycle-eq (+12.5% C)
+  HYPOTHETICAL count/4 and floor: queries [104, 55, 31, 12, 9, 8], points [3, 3, 3, 85, 9, 3], 533 point scalars, 181.9 KiB (-5.4% C), 134.1k cycle-eq (+9.0% C)
+  HYPOTHETICAL count/4 and floor, for cycle-eq: queries [104, 55, 31, 22, 9, 8], points [3, 3, 3, 3, 9, 3], 123 point scalars, 182.6 KiB (-5.1% C), 120.8k cycle-eq (-1.9% C)
+  HYPOTHETICAL level 0 below Johnson: queries [87, 54, 31, 22, 9, 8], points [11, 9, 8, 8, 48, 11], 442 point scalars, 174.0 KiB (-9.5% C), 125.1k cycle-eq (+1.6% C)
+
+mu = 30, rate 1/2; C: queries [203, 73, 37, 25, 19, 16], 297.1 KiB, 200.1k cycle-eq
+  proven: Johnson only: queries [203, 73, 37, 25, 19, 15], points [10, 8, 8, 8, 8, 7], 216 point scalars, 299.7 KiB (+0.9% C), 211.8k cycle-eq (+5.8% C)
+  proven: Johnson and counting (the paper's two): queries [203, 73, 37, 25, 19, 8], points [10, 8, 8, 8, 8, 20], 278 point scalars, 295.8 KiB (-0.4% C), 211.5k cycle-eq (+5.7% C)
+  proven: all of section 1: queries [202, 72, 36, 24, 18, 8], points [12, 11, 9, 9, 8, 20], 314 point scalars, 292.7 KiB (-1.5% C), 211.3k cycle-eq (+5.6% C)
+  proven: all, levels chosen for cycle-eq: queries [203, 73, 36, 24, 18, 8], points [10, 8, 9, 9, 8, 20], 288 point scalars, 293.7 KiB (-1.1% C), 210.7k cycle-eq (+5.3% C)
+  HYPOTHETICAL floor: queries [202, 72, 36, 24, 18, 8], points [4, 4, 3, 3, 3, 11], 144 point scalars, 290.0 KiB (-2.4% C), 200.3k cycle-eq (+0.1% C)
+  HYPOTHETICAL count/2: queries [203, 73, 37, 25, 10, 8], points [10, 8, 8, 8, 80, 13], 603 point scalars, 294.4 KiB (-0.9% C), 220.0k cycle-eq (+9.9% C)
+  HYPOTHETICAL count/4: queries [203, 73, 37, 25, 10, 8], points [10, 8, 8, 8, 44, 10], 408 point scalars, 291.3 KiB (-1.9% C), 212.4k cycle-eq (+6.1% C)
+  HYPOTHETICAL count/8: queries [203, 73, 37, 25, 10, 8], points [10, 8, 8, 8, 26, 9], 313 point scalars, 289.8 KiB (-2.4% C), 208.7k cycle-eq (+4.3% C)
+  HYPOTHETICAL count/4 and floor: queries [203, 73, 37, 25, 10, 8], points [3, 3, 3, 3, 27, 4], 218 point scalars, 288.4 KiB (-2.9% C), 201.3k cycle-eq (+0.6% C)
+  HYPOTHETICAL count/4 and floor, for cycle-eq: queries [203, 73, 37, 25, 19, 8], points [3, 3, 3, 3, 3, 4], 98 point scalars, 292.9 KiB (-1.4% C), 200.2k cycle-eq (+0.0% C)
+  HYPOTHETICAL level 0 below Johnson: queries [169, 72, 36, 24, 18, 8], points [11, 11, 9, 9, 8, 20], 306 point scalars, 267.5 KiB (-9.9% C), 191.7k cycle-eq (-4.2% C)
+
+mu = 30, rate 1/4; C: queries [102, 55, 32, 22, 18, 15], 206.5 KiB, 134.6k cycle-eq
+  proven: Johnson only: queries [102, 55, 31, 22, 17, 14], points [10, 8, 8, 8, 8, 7], 215 point scalars, 207.5 KiB (+0.5% C), 145.4k cycle-eq (+8.0% C)
+  proven: Johnson and counting (the paper's two): queries [102, 55, 31, 22, 17, 7], points [10, 8, 8, 8, 8, 22], 288 point scalars, 203.5 KiB (-1.4% C), 145.6k cycle-eq (+8.2% C)
+  proven: all of section 1: queries [101, 54, 31, 22, 17, 7], points [12, 11, 8, 8, 8, 22], 311 point scalars, 202.3 KiB (-2.0% C), 146.1k cycle-eq (+8.5% C)
+  proven: all, levels chosen for cycle-eq: queries [102, 55, 31, 22, 17, 8], points [10, 8, 8, 8, 8, 19], 273 point scalars, 204.1 KiB (-1.2% C), 145.4k cycle-eq (+8.0% C)
+  HYPOTHETICAL floor: queries [101, 54, 31, 22, 17, 7], points [4, 4, 3, 3, 3, 12], 149 point scalars, 199.8 KiB (-3.3% C), 135.4k cycle-eq (+0.6% C)
+  HYPOTHETICAL count/2: queries [102, 55, 31, 22, 17, 7], points [10, 8, 8, 8, 8, 14], 251 point scalars, 203.0 KiB (-1.7% C), 143.7k cycle-eq (+6.7% C)
+  HYPOTHETICAL count/4: queries [102, 55, 31, 22, 9, 7], points [10, 8, 8, 8, 48, 11], 433 point scalars, 199.8 KiB (-3.3% C), 147.4k cycle-eq (+9.5% C)
+  HYPOTHETICAL count/8: queries [102, 55, 31, 22, 9, 7], points [10, 8, 8, 8, 28, 9], 323 point scalars, 198.1 KiB (-4.1% C), 143.1k cycle-eq (+6.3% C)
+  HYPOTHETICAL count/4 and floor: queries [102, 55, 31, 22, 9, 7], points [3, 3, 3, 3, 29, 5], 233 point scalars, 196.7 KiB (-4.8% C), 135.9k cycle-eq (+1.0% C)
+  HYPOTHETICAL count/4 and floor, for cycle-eq: queries [102, 55, 31, 22, 17, 7], points [3, 3, 3, 3, 3, 5], 103 point scalars, 200.7 KiB (-2.8% C), 134.1k cycle-eq (-0.4% C)
+  HYPOTHETICAL level 0 below Johnson: queries [85, 54, 31, 22, 17, 7], points [11, 11, 8, 8, 8, 22], 307 point scalars, 189.1 KiB (-8.4% C), 135.4k cycle-eq (+0.6% C)
+
+DEEP-only knobs, mu = 30, rate 1/2, C's shape, proven lists (bytes; point scalars; grind log2 perms):
+  batch, point grind 15, fold grind 7: points [12, 11, 9, 9, 8, 20], 357 scalars, 293.33 KiB, grind 2^24.07
+  batch, point grind 15, fold grind 12: points [12, 10, 9, 8, 8, 19], 342 scalars, 293.09 KiB, grind 2^24.08
+  batch, point grind 15, fold grind 17: points [12, 10, 9, 8, 8, 19], 342 scalars, 293.09 KiB, grind 2^24.32
+  batch, point grind 20, fold grind 7: points [12, 11, 9, 9, 8, 19], 352 scalars, 293.25 KiB, grind 2^24.50
+  batch, point grind 20, fold grind 17: points [12, 10, 8, 8, 8, 19], 337 scalars, 293.02 KiB, grind 2^24.69
+  ladder, point grind 15, fold grind 7: points [12, 11, 9, 9, 8, 20], 314 scalars, 292.66 KiB, grind 2^24.07
+  ladder, point grind 15, fold grind 12: points [12, 10, 9, 8, 8, 19], 302 scalars, 292.47 KiB, grind 2^24.08
+  ladder, point grind 15, fold grind 17: points [12, 10, 9, 8, 8, 19], 299 scalars, 292.42 KiB, grind 2^24.32
+  ladder, point grind 20, fold grind 7: points [12, 11, 9, 9, 8, 19], 311 scalars, 292.61 KiB, grind 2^24.50
+  ladder, point grind 20, fold grind 17: points [12, 10, 8, 8, 8, 19], 296 scalars, 292.38 KiB, grind 2^24.69

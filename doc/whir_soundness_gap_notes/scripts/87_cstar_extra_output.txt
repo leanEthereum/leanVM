@@ -1,0 +1,107 @@
+== exhaustive checks
+exhaustive (k=2, n=4), 3 members, 5 subspaces a node: 625 patterns, 290 with dependent rows, B(P;Q*) = rank on 625, another binary Q inside Q* reaches the rank on 0, (C') fails on 0
+exhaustive (k=4, n=8), 3 members, 5 subspaces a node: 390625 patterns, 190818 with dependent rows, B(P;Q*) = rank on 390625, another binary Q inside Q* reaches the rank on 0, (C') fails on 0
+exhaustive (k=2, n=4), 4 members, 16 subspaces a node: 65536 patterns, 35355 with dependent rows, B(P;Q*) = rank on 65536, another binary Q inside Q* reaches the rank on 0, (C') fails on 0
+== counterexamples, three members at (16,32): min over all binary Q inside Q* (exhaustive), two draws each
+pattern   : w = 32, Lk = 32, rank = 31 (kernel 1), Q*: weight 12, rank 12, B(P;Q*) = 32
+   P  = 01+02 01+02 01+02 01+02 01+02 01+02 01+02 . 02 02 02 02 01 01 01 01 . . 01 . . . . . 01+02 . 01+02 . 12 12 12 01+02 
+   Q* = 01+02 01+02 01+02 . 02 02 01 01 . . . . . . 12 12 
+   min over binary Q inside Q* of B(P;Q) = 32 (exhaustive): (C') FAILS
+saturation: w = 32, rank = 31, B(S;Q*) = 32
+   S  = 01+02 01+02 01+02 01+02 01+02 01+02 01+02 . 02 02 02 02 01 01 01 01 . . 01 . . . . . 01+02 . 01+02 . 12 12 12 01+02 
+   min over binary Q inside Q* of B(S;Q) = 32 (exhaustive): (C') FAILS for the saturated pattern
+   best Q = . . . . . . . . . . . . . . . . 
+pattern   : w = 30, Lk = 32, rank = 29 (kernel 3), Q*: weight 12, rank 12, B(P;Q*) = 30
+   P  = . . . . . 01+02 01+02 01+02 . . . . 02 02 02 02 12 12 12 12 . 01+02 . 01+02 01 01 01 01 01+02 01+02 01+02 01+02 
+   Q* = . . . 01+02 . . 02 02 12 12 . . 01 01 01+02 01+02 
+   min over binary Q inside Q* of B(P;Q) = 30 (exhaustive): (C') FAILS
+saturation: w = 30, rank = 29, B(S;Q*) = 30
+   S  = . . . . . 01+02 01+02 01+02 . . . . 02 02 02 02 12 12 12 12 . 01+02 . 01+02 01 01 01 01 01+02 01+02 01+02 01+02 
+   min over binary Q inside Q* of B(S;Q) = 30 (exhaustive): (C') FAILS for the saturated pattern
+   best Q = . . . . . . . . . . . . . . . . 
+pattern   : w = 30, Lk = 32, rank = 29 (kernel 3), Q*: weight 12, rank 12, B(P;Q*) = 30
+   P  = 01+02 01+02 01+02 01+02 01+02 01+02 01+02 . 02 02 02 02 01 01 01 01 . . . . . . . . 01+02 . 01+02 . 12 12 12 12 
+   Q* = 01+02 01+02 01+02 . 02 02 01 01 . . . . . . 12 12 
+   min over binary Q inside Q* of B(P;Q) = 30 (exhaustive): (C') FAILS
+saturation: w = 30, rank = 29, B(S;Q*) = 30
+   S  = 01+02 01+02 01+02 01+02 01+02 01+02 01+02 . 02 02 02 02 01 01 01 01 . . . . . . . . 01+02 . 01+02 . 12 12 12 12 
+   min over binary Q inside Q* of B(S;Q) = 30 (exhaustive): (C') FAILS for the saturated pattern
+   best Q = . . . . . . . . . . . . . . . . 
+pattern   : w = 32, Lk = 32, rank = 31 (kernel 1), Q*: weight 12, rank 12, B(P;Q*) = 32
+   P  = 01+02 01+02 01+02 01+02 01+02 01+02 01+02 . 02 02 02 02 01 01 01 01 . . 01 . . . . . 01+02 . 01+02 . 12 12 12 01+02 
+   Q* = 01+02 01+02 01+02 . 02 02 01 01 . . . . . . 12 12 
+   min over binary Q inside Q* of B(P;Q) = 32 (exhaustive): (C') FAILS
+saturation: w = 32, rank = 31, B(S;Q*) = 32
+   S  = 01+02 01+02 01+02 01+02 01+02 01+02 01+02 . 02 02 02 02 01 01 01 01 . . 01 . . . . . 01+02 . 01+02 . 12 12 12 01+02 
+   min over binary Q inside Q* of B(S;Q) = 32 (exhaustive): (C') FAILS for the saturated pattern
+   best Q = . . . . . . . . . . . . . . . . 
+pattern   : w = 30, Lk = 32, rank = 29 (kernel 3), Q*: weight 12, rank 12, B(P;Q*) = 30
+   P  = . . . . . 01+02 01+02 01+02 . . . . 02 02 02 02 12 12 12 12 . 01+02 . 01+02 01 01 01 01 01+02 01+02 01+02 01+02 
+   Q* = . . . 01+02 . . 02 02 12 12 . . 01 01 01+02 01+02 
+   min over binary Q inside Q* of B(P;Q) = 30 (exhaustive): (C') FAILS
+saturation: w = 30, rank = 29, B(S;Q*) = 30
+   S  = . . . . . 01+02 01+02 01+02 . . . . 02 02 02 02 12 12 12 12 . 01+02 . 01+02 01 01 01 01 01+02 01+02 01+02 01+02 
+   min over binary Q inside Q* of B(S;Q) = 30 (exhaustive): (C') FAILS for the saturated pattern
+   best Q = . . . . . . . . . . . . . . . . 
+pattern   : w = 30, Lk = 32, rank = 29 (kernel 3), Q*: weight 12, rank 12, B(P;Q*) = 30
+   P  = 01+02 01+02 01+02 01+02 01+02 01+02 01+02 . 02 02 02 02 01 01 01 01 . . . . . . . . 01+02 . 01+02 . 12 12 12 12 
+   Q* = 01+02 01+02 01+02 . 02 02 01 01 . . . . . . 12 12 
+   min over binary Q inside Q* of B(P;Q) = 30 (exhaustive): (C') FAILS
+saturation: w = 30, rank = 29, B(S;Q*) = 30
+   S  = 01+02 01+02 01+02 01+02 01+02 01+02 01+02 . 02 02 02 02 01 01 01 01 . . . . . . . . 01+02 . 01+02 . 12 12 12 12 
+   min over binary Q inside Q* of B(S;Q) = 30 (exhaustive): (C') FAILS for the saturated pattern
+   best Q = . . . . . . . . . . . . . . . . 
+== chain of binary full parts of the reduced counterexample
+level (k=16, n=32): w = 30, Lk = 32, rank = 29, Q*: weight 12, rank 12, B(P;Q*) = 30  (C*) FAILS
+   Q* = 01+02 01+02 01+02 . 02 02 01 01 . . . . . . 12 12 
+level (k=8, n=16): w = 12, Lk = 16, rank = 12, Q*: weight 5, rank 5, B(P;Q*) = 12  (C*) holds
+   Q* = 01+02 . 02 01 . . . 12 
+level (k=4, n=8): w = 5, Lk = 8, rank = 5, Q*: weight 0, rank 0, B(P;Q*) = 5  (C*) holds
+   Q* = . . . . 
+level (k=2, n=4): w = 0, Lk = 4, rank = 0, Q*: weight 0, rank 0, B(P;Q*) = 0  (C*) holds
+   Q* = . . 
+== failures of (C*) with five and six members at (8,16), and their saturations
+pattern   : w = 31, Lk = 32, rank = 31 (kernel 1), Q*: weight 12, rank 12, B(P;Q*) = 32
+   P  = 01 01+02+03+04 34 34 03 03 23 01+02+03+04 14 14 01+02+03+04 01+02+03+04 04 01+02+03+04 24 24 
+   Q* = 01+0234 34 03 23 14 01+02+03+04 04 24 
+   min over binary Q inside Q* of B(P;Q) = 31 (exhaustive): (C') holds
+saturation: w = 32, rank = 31, B(S;Q*) = 32
+   S  = 01+0234 01+02+03+04 34 34 03 03 23 01+02+03+04 14 14 01+02+03+04 01+02+03+04 04 01+02+03+04 24 24 
+   min over binary Q inside Q* of B(S;Q) = 32 (exhaustive): (C') FAILS for the saturated pattern
+   best Q = . . . . . . . . 
+pattern   : w = 30, Lk = 32, rank = 30 (kernel 2), Q*: weight 11, rank 11, B(P;Q*) = 31
+   P  = 02 01+02+03+04 14 14 01+03+04 01+02+03+04 23 23 01 01 01+02+03+04 34 01+02+03+04 04 13 13 
+   Q* = 02+03 14 01+03+04 23 01 34 04 13 
+   min over binary Q inside Q* of B(P;Q) = 30 (exhaustive): (C') holds
+saturation: w = 31, rank = 30, B(S;Q*) = 31
+   S  = 02+03 01+02+03+04 14 14 01+03+04 01+02+03+04 23 23 01 01 01+02+03+04 34 01+02+03+04 04 13 13 
+   min over binary Q inside Q* of B(S;Q) = 31 (exhaustive): (C') FAILS for the saturated pattern
+   best Q = . . . . . . . . 
+pattern   : w = 31, Lk = 32, rank = 31 (kernel 1), Q*: weight 12, rank 12, B(P;Q*) = 32
+   P  = 12 01+02+03+04 13 13 24 24 34 01+02+03+04 01+02+03+04 01 14 14 01+02+03+04 01+02+03+04 02 02 
+   Q* = 12 13 24 34 01+0234 14 01+02+03+04 02 
+   min over binary Q inside Q* of B(P;Q) = 31 (exhaustive): (C') holds
+saturation: w = 32, rank = 31, B(S;Q*) = 32
+   S  = 12 01+02+03+04 13 13 24 24 34 01+02+03+04 01+02+03+04 01+0234 14 14 01+02+03+04 01+02+03+04 02 02 
+   min over binary Q inside Q* of B(S;Q) = 32 (exhaustive): (C') FAILS for the saturated pattern
+   best Q = . . . . . . . . 
+pattern   : w = 37, Lk = 40, rank = 37 (kernel 3), Q*: weight 14, rank 14, B(P;Q*) = 38
+   P  = 15 15 01+02+03+04+05 01+02+03+04+05 12 12 01+02+03+04+05 25 02 02 01+02+03+04+05 13 23 23 01+02+03+04+05 01+04 
+   Q* = 15 01+02+03+04+05 12 03+25 02 13 23 01+04 
+   min over binary Q inside Q* of B(P;Q) = 37 (exhaustive): (C') holds
+saturation: w = 38, rank = 37, B(S;Q*) = 38
+   S  = 15 15 01+02+03+04+05 01+02+03+04+05 12 12 01+02+03+04+05 03+25 02 02 01+02+03+04+05 13 23 23 01+02+03+04+05 01+04 
+   min over binary Q inside Q* of B(S;Q) = 38 (exhaustive): (C') FAILS for the saturated pattern
+   best Q = . . . . . . . . 
+== note 82's own program on the three-member counterexamples (if 82_bin/82_big is present)
+OPEN rank 31 w 32 best B found 32 (B at Q* 32): 01+02 01+02 01+02 01+02 01+02 01+02 01+02 . 02 02 02 02 01 01 01 01 . . 01 . . . . . 01+02 . 01+02 . 12 12 12 01+02 
+file 87_bin/tmp_pat.txt (k=16, n=32, members 3): patterns 1, rows dependent 1, B(P;Q*) = rank 0, B = rank after descent 0, not certified 1, below (bug) 0
+OPEN rank 29 w 30 best B found 30 (B at Q* 30): . . . . . 01+02 01+02 01+02 . . . . 02 02 02 02 12 12 12 12 . 01+02 . 01+02 01 01 01 01 01+02 01+02 01+02 01+02 
+file 87_bin/tmp_pat.txt (k=16, n=32, members 3): patterns 1, rows dependent 1, B(P;Q*) = rank 0, B = rank after descent 0, not certified 1, below (bug) 0
+OPEN rank 29 w 30 best B found 30 (B at Q* 30): 01+02 01+02 01+02 01+02 01+02 01+02 01+02 . 02 02 02 02 01 01 01 01 . . . . . . . . 01+02 . 01+02 . 12 12 12 12 
+file 87_bin/tmp_pat.txt (k=16, n=32, members 3): patterns 1, rows dependent 1, B(P;Q*) = rank 0, B = rank after descent 0, not certified 1, below (bug) 0
+== a larger search, three members at (16,32), mode lift
+FAIL: w=29 rank=29 B(P;Q*)=30 : . 01+02 01+02 . . . . . . . . . 01+02 01+02 . 01+02 12 12 12 12 01 01 01 01 01+02 01+02 01+02 01+02 02 02 . 02 
+FAIL: w=29 rank=29 B(P;Q*)=30 : . . . . 02 02 02 02 12 12 12 12 . 01+02 . 01+02 . . . . 01 01 01 01 01 01+02 01+02 01+02 01+02 01+02 . 01+02 
+FAIL: w=30 rank=30 B(P;Q*)=31 : . . . . . 01+02 . 01+02 01+02 01+02 . 01+02 01 01 01 01 01 01+02 01 01 . 02 02 02 02 02 02 02 12 12 12 12 
+search (k=16, n=32), 3 members, mode lift: 1500000 patterns, 376096 with dependent rows, 1495590 with a solution (rank < Lk), 373096 with both, 1495403 with at least 3 full leaves, (C*) failures: 3

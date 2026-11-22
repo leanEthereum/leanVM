@@ -1,0 +1,596 @@
+Researcher 18. Raw results behind note 18 (machine output, trimmed). Sets are hex masks over F_2^N, point x = bit x.
+
+== n = 16, all words, generic basis 1 (18_exhaust k T rand 1 4) ==
+RESULT k=2 T=5 dom=rand max=6 families_found=2 classes=2
+RESULT k=2 T=6 dom=rand max=3 families_found=2031 classes=1012
+RESULT k=2 T=7 dom=rand max=2 families_found=35 classes=35
+RESULT k=2 T=8 dom=rand max=2 families_found=12 classes=12
+RESULT k=3 T=7 dom=rand max=4 families_found=4 classes=1
+RESULT k=3 T=8 dom=rand max=2 families_found=55 classes=55
+RESULT k=3 T=9 dom=rand max=2 families_found=8 classes=8
+RESULT k=4 T=7 dom=rand max=15 families_found=7 classes=2
+RESULT k=4 T=8 dom=rand max=3 families_found=103 classes=71
+RESULT k=4 T=9 dom=rand max=2 families_found=35 classes=35
+RESULT k=5 T=9 dom=rand max=3 families_found=4 classes=3
+RESULT k=5 T=10 dom=rand max=2 families_found=17 classes=17
+RESULT k=6 T=9 dom=rand max=15 families_found=1 classes=1
+RESULT k=6 T=10 dom=rand max=3 families_found=1 classes=1
+RESULT k=7 T=10 dom=rand max=7 families_found=1 classes=1
+RESULT k=7 T=11 dom=rand max=2 families_found=17 classes=17
+RESULT k=8 T=10 dom=rand max=15 families_found=5 classes=1
+RESULT k=8 T=11 dom=rand max=3 families_found=4 classes=3
+RESULT k=9 T=11 dom=rand max=16 families_found=1 classes=1
+RESULT k=9 T=12 dom=rand max=4 families_found=1 classes=1
+RESULT k=10 T=12 dom=rand max=5 families_found=1 classes=1
+RESULT k=11 T=12 dom=rand max=140 families_found=1 classes=1
+RESULT k=11 T=13 dom=rand max=2 families_found=5 classes=5
+RESULT k=12 T=13 dom=rand max=35 families_found=1 classes=1
+RESULT k=13 T=14 dom=rand max=8 families_found=1 classes=1
+
+== n = 16, all words, generic basis 2 ==
+RESULT k=2 T=5 dom=rand max=6 families_found=2 classes=2
+RESULT k=2 T=6 dom=rand max=3 families_found=2031 classes=1012
+RESULT k=2 T=7 dom=rand max=2 families_found=35 classes=35
+RESULT k=2 T=8 dom=rand max=2 families_found=12 classes=12
+RESULT k=3 T=7 dom=rand max=4 families_found=4 classes=1
+RESULT k=3 T=8 dom=rand max=2 families_found=55 classes=55
+RESULT k=3 T=9 dom=rand max=2 families_found=8 classes=8
+RESULT k=4 T=8 dom=rand max=3 families_found=103 classes=71
+RESULT k=4 T=9 dom=rand max=2 families_found=35 classes=35
+RESULT k=5 T=9 dom=rand max=3 families_found=4 classes=3
+RESULT k=5 T=10 dom=rand max=2 families_found=17 classes=17
+RESULT k=6 T=9 dom=rand max=15 families_found=1 classes=1
+RESULT k=6 T=10 dom=rand max=3 families_found=1 classes=1
+RESULT k=7 T=10 dom=rand max=7 families_found=1 classes=1
+RESULT k=7 T=11 dom=rand max=2 families_found=17 classes=17
+RESULT k=8 T=10 dom=rand max=15 families_found=5 classes=1
+RESULT k=8 T=11 dom=rand max=3 families_found=4 classes=3
+RESULT k=9 T=11 dom=rand max=16 families_found=1 classes=1
+RESULT k=9 T=12 dom=rand max=4 families_found=1 classes=1
+RESULT k=10 T=12 dom=rand max=5 families_found=1 classes=1
+RESULT k=11 T=12 dom=rand max=140 families_found=1 classes=1
+RESULT k=11 T=13 dom=rand max=2 families_found=5 classes=5
+RESULT k=12 T=13 dom=rand max=35 families_found=1 classes=1
+RESULT k=13 T=14 dom=rand max=8 families_found=1 classes=1
+
+== n = 16, all words, real shape (translations only) ==
+RESULT k=2 T=7 dom=real10 max=2 classes=200000
+RESULT k=2 T=8 dom=real10 max=2 classes=26279
+RESULT k=7 T=11 dom=real10 max=2 classes=63903
+RESULT k=8 T=11 dom=real10 max=3 classes=1613
+RESULT k=9 T=12 dom=real10 max=4 classes=35
+RESULT k=2 T=8 dom=real11 max=2 classes=26279
+RESULT k=7 T=11 dom=real11 max=2 classes=63903
+RESULT k=8 T=11 dom=real11 max=3 classes=1949
+RESULT k=9 T=12 dom=real11 max=4 classes=35
+RESULT k=2 T=8 dom=real12 max=2 classes=26286
+RESULT k=7 T=11 dom=real12 max=2 classes=63903
+RESULT k=8 T=11 dom=real12 max=3 classes=1529
+RESULT k=9 T=12 dom=real12 max=4 classes=35
+RESULT k=10 T=12 dom=real64 max=8 classes=4
+RESULT k=11 T=13 dom=real64 max=2 classes=5215
+RESULT k=12 T=13 dom=real64 max=35 classes=1
+RESULT k=13 T=14 dom=real64 max=8 classes=15
+RESULT k=2 T=7 dom=real64 max=2 classes=200000
+RESULT k=2 T=8 dom=real64 max=2 classes=26295
+RESULT k=3 T=7 dom=real64 max=4 classes=1260
+RESULT k=3 T=8 dom=real64 max=2 classes=200000
+RESULT k=3 T=9 dom=real64 max=2 classes=13350
+RESULT k=4 T=8 dom=real64 max=3 classes=199991
+RESULT k=4 T=9 dom=real64 max=2 classes=200000
+RESULT k=5 T=10 dom=real64 max=2 classes=53655
+RESULT k=5 T=9 dom=real64 max=3 classes=1335
+RESULT k=6 T=10 dom=real64 max=3 classes=210
+RESULT k=7 T=10 dom=real64 max=7 classes=15
+RESULT k=7 T=11 dom=real64 max=2 classes=63903
+RESULT k=8 T=11 dom=real64 max=3 classes=1529
+RESULT k=9 T=11 dom=real64 max=16 classes=168
+RESULT k=9 T=12 dom=real64 max=4 classes=35
+
+== n = 16, words of phantom degree <= r (18_exhaust k T dom seed 4 1 r) ==
+r=0 RESULT k=2 T=3 dom=rand max=35 classes=1
+r=1 RESULT k=2 T=3 dom=rand max=35 classes=1
+r=2 RESULT k=2 T=3 dom=rand max=35 classes=1
+r=3 RESULT k=2 T=3 dom=rand max=35 classes=1
+r=4 RESULT k=2 T=3 dom=rand max=35 classes=2
+r=0 RESULT k=2 T=4 dom=rand max=4 classes=1
+r=1 RESULT k=2 T=4 dom=rand max=4 classes=2
+r=2 RESULT k=2 T=4 dom=rand max=4 classes=2
+r=3 RESULT k=2 T=4 dom=rand max=5 classes=1
+r=4 RESULT k=2 T=4 dom=rand max=8 classes=1
+r=5 RESULT k=2 T=4 dom=rand max=8 classes=1
+r=6 RESULT k=2 T=4 dom=rand max=8 classes=1
+r=7 RESULT k=2 T=4 dom=rand max=8 classes=1
+r=8 RESULT k=2 T=4 dom=rand max=8 classes=2
+r=0 RESULT k=3 T=4 dom=rand max=140 classes=1
+r=1 RESULT k=3 T=4 dom=rand max=140 classes=1
+r=2 RESULT k=3 T=4 dom=rand max=140 classes=1
+r=3 RESULT k=3 T=4 dom=rand max=140 classes=1
+r=0 RESULT k=3 T=5 dom=rand max=3 classes=1
+r=1 RESULT k=3 T=5 dom=rand max=7 classes=1
+r=2 RESULT k=3 T=5 dom=rand max=7 classes=1
+r=3 RESULT k=3 T=5 dom=rand max=16 classes=1
+r=4 RESULT k=3 T=5 dom=rand max=16 classes=1
+r=5 RESULT k=3 T=5 dom=rand max=16 classes=1
+r=6 RESULT k=3 T=5 dom=rand max=16 classes=1
+r=0 RESULT k=3 T=6 dom=rand max=7 classes=1
+r=1 RESULT k=3 T=6 dom=rand max=7 classes=1
+r=2 RESULT k=3 T=6 dom=rand max=7 classes=1
+r=3 RESULT k=3 T=6 dom=rand max=7 classes=1
+r=4 RESULT k=3 T=6 dom=rand max=7 classes=1
+r=5 RESULT k=3 T=6 dom=rand max=7 classes=1
+r=6 RESULT k=3 T=6 dom=rand max=7 classes=1
+r=7 RESULT k=3 T=6 dom=rand max=7 classes=1
+r=8 RESULT k=3 T=6 dom=rand max=7 classes=2
+r=0 RESULT k=4 T=6 dom=rand max=7 classes=1
+r=1 RESULT k=4 T=6 dom=rand max=15 classes=1
+r=2 RESULT k=4 T=6 dom=rand max=15 classes=1
+r=3 RESULT k=4 T=6 dom=rand max=15 classes=1
+r=4 RESULT k=4 T=6 dom=rand max=15 classes=1
+r=5 RESULT k=4 T=6 dom=rand max=15 classes=1
+r=0 RESULT k=4 T=7 dom=rand max=15 classes=1
+r=1 RESULT k=4 T=7 dom=rand max=15 classes=1
+r=2 RESULT k=4 T=7 dom=rand max=15 classes=1
+r=3 RESULT k=4 T=7 dom=rand max=15 classes=1
+r=0 RESULT k=5 T=7 dom=rand max=15 classes=1
+r=1 RESULT k=5 T=7 dom=rand max=30 classes=1
+r=2 RESULT k=5 T=7 dom=rand max=30 classes=1
+r=3 RESULT k=5 T=7 dom=rand max=30 classes=1
+r=4 RESULT k=5 T=7 dom=rand max=30 classes=1
+r=5 RESULT k=5 T=7 dom=rand max=30 classes=1
+r=0 RESULT k=5 T=8 dom=rand max=30 classes=1
+r=1 RESULT k=5 T=8 dom=rand max=30 classes=1
+r=2 RESULT k=5 T=8 dom=rand max=30 classes=1
+r=3 RESULT k=5 T=8 dom=rand max=30 classes=1
+r=4 RESULT k=5 T=8 dom=rand max=30 classes=1
+r=5 RESULT k=5 T=8 dom=rand max=30 classes=1
+r=6 RESULT k=5 T=8 dom=rand max=30 classes=1
+r=7 RESULT k=5 T=8 dom=rand max=30 classes=1
+r=0 RESULT k=6 T=8 dom=rand max=30 classes=1
+r=1 RESULT k=6 T=8 dom=rand max=30 classes=2
+r=2 RESULT k=6 T=8 dom=rand max=30 classes=2
+r=3 RESULT k=6 T=8 dom=rand max=30 classes=2
+r=4 RESULT k=6 T=8 dom=rand max=30 classes=2
+r=5 RESULT k=6 T=8 dom=rand max=30 classes=2
+r=0 RESULT k=7 T=9 dom=rand max=15 classes=1
+r=1 RESULT k=7 T=9 dom=rand max=23 classes=1
+r=2 RESULT k=7 T=9 dom=rand max=23 classes=1
+r=3 RESULT k=7 T=9 dom=rand max=23 classes=1
+r=4 RESULT k=7 T=9 dom=rand max=23 classes=1
+r=5 RESULT k=7 T=9 dom=rand max=23 classes=1
+r=0 RESULT k=8 T=10 dom=rand max=7 classes=1
+r=1 RESULT k=8 T=10 dom=rand max=15 classes=1
+r=2 RESULT k=8 T=10 dom=rand max=15 classes=1
+r=3 RESULT k=8 T=10 dom=rand max=15 classes=1
+r=4 RESULT k=8 T=10 dom=rand max=15 classes=1
+r=5 RESULT k=8 T=10 dom=rand max=15 classes=1
+r=0 RESULT k=8 T=11 dom=rand max=3 classes=1
+r=1 RESULT k=8 T=11 dom=rand max=3 classes=1
+r=2 RESULT k=8 T=11 dom=rand max=3 classes=1
+r=3 RESULT k=8 T=11 dom=rand max=3 classes=1
+r=0 RESULT k=9 T=11 dom=rand max=3 classes=1
+r=1 RESULT k=9 T=11 dom=rand max=16 classes=1
+r=2 RESULT k=9 T=11 dom=rand max=16 classes=1
+r=3 RESULT k=9 T=11 dom=rand max=16 classes=1
+r=4 RESULT k=9 T=11 dom=rand max=16 classes=1
+r=5 RESULT k=9 T=11 dom=rand max=16 classes=1
+r=0 RESULT k=2 T=4 dom=real64 max=8 classes=4
+r=1 RESULT k=2 T=4 dom=real64 max=8 classes=4
+r=2 RESULT k=2 T=4 dom=real64 max=8 classes=4
+r=0 RESULT k=4 T=6 dom=real64 max=15 classes=2
+r=1 RESULT k=4 T=6 dom=real64 max=15 classes=3
+r=2 RESULT k=4 T=6 dom=real64 max=15 classes=3
+r=0 RESULT k=4 T=7 dom=real64 max=15 classes=1
+r=1 RESULT k=4 T=7 dom=real64 max=15 classes=1
+r=2 RESULT k=4 T=7 dom=real64 max=15 classes=1
+r=0 RESULT k=8 T=10 dom=real64 max=15 classes=2
+r=1 RESULT k=8 T=10 dom=real64 max=15 classes=37
+r=2 RESULT k=8 T=10 dom=real64 max=15 classes=37
+r=0 RESULT k=9 T=11 dom=real64 max=9 classes=1
+r=1 RESULT k=9 T=11 dom=real64 max=16 classes=168
+r=2 RESULT k=9 T=11 dom=real64 max=16 classes=168
+
+== extremal classes of the main rows (generic basis 1) ==
+-- (k, T) = 8, 10
+RESULT k=8 T=10 dom=rand max=15 families_found=5 classes=1
+  class 0 (5 families found):
+    sets: 0fcf 3bf3 3cfc 5dd5 5dea 6ed9 6ee6 9ed6 9ee9 adda ade5 cbfc ccf3 f8cf ffc0
+    agreement sizes: 12x10 3x11; pairwise intersections: 18x6 87x7; point degrees: 8 8 8 8 8 8 15 15 8 8 12 15 8 8 8 8
+    words with this family: a space of projective dimension 0
+    recorded word: polynomial of degree 11 modulo codewords (phantom degree 1); d1 = 4: 4 roots at infinity, 0 in D, 0 elsewhere; (w - c)/Z_S splits over D for 15 of 15 members; type: MULTISET TOP
+    lowest-degree words of the family: degree 11 modulo codewords, a space of projective dimension 0; list of a generic one: 15 (the same family)
+    lowest-degree word: polynomial of degree 11 modulo codewords (phantom degree 1); d1 = 4: 4 roots at infinity, 0 in D, 0 elsewhere; (w - c)/Z_S splits over D for 15 of 15 members; type: MULTISET TOP
+-- (k, T) = 8, 11
+RESULT k=8 T=11 dom=rand max=3 families_found=4 classes=3
+  class 0 (2 families found):
+    sets: 0eff fe0f fff0
+    agreement sizes: 2x11 1x12; pairwise intersections: 3x7; point degrees: 2 2 2 2 2 2 2 2 1 3 3 3 2 2 2 2
+    words with this family: a space of projective dimension 0
+    recorded word: polynomial of degree 15 modulo codewords (phantom degree 4); d1 = 4: 0 roots at infinity, 4 in D, 0 elsewhere; (w - c)/Z_S splits over D for 3 of 3 members; type: MULTISET TOP
+  class 1 (1 families found):
+    sets: 0fdf f8cf ffe0
+    agreement sizes: 3x11; pairwise intersections: 1x6 2x7; point degrees: 2 2 2 2 1 1 3 3 2 2 2 3 2 2 2 2
+    words with this family: a space of projective dimension 0
+    recorded word: polynomial of degree 15 modulo codewords (phantom degree 4); d1 = 4: 0 roots at infinity, 0 in D, 4 elsewhere; (w - c)/Z_S splits over D for 0 of 3 members; type: NOT A TOP
+  class 2 (1 families found):
+    sets: 0fef f0ef ffe0
+    agreement sizes: 3x11; pairwise intersections: 3x7; point degrees: 2 2 2 2 0 3 3 3 2 2 2 2 2 2 2 2
+    words with this family: a space of projective dimension 1
+    recorded word: polynomial of degree 15 modulo codewords (phantom degree 4); d1 = 4: 0 roots at infinity, 0 in D, 4 elsewhere; (w - c)/Z_S splits over D for 0 of 3 members; type: NOT A TOP
+    lowest-degree words of the family: degree 11 modulo codewords, a space of projective dimension 0; list of a generic one: 3 (the same family)
+    lowest-degree word: polynomial of degree 11 modulo codewords (phantom degree 0); d1 = 4: 4 roots at infinity, 0 in D, 0 elsewhere; (w - c)/Z_S splits over D for 3 of 3 members; type: STRICT TOP
+-- (k, T) = 9, 11
+RESULT k=9 T=11 dom=rand max=16 families_found=1 classes=1
+  class 0 (1 families found):
+    sets: 177f 2bbf 4ddf 71f7 7f17 8eef b2fb bf2b d4fd df4d e8fe ef8e f771 fbb2 fdd4 fee8
+    agreement sizes: 16x11; pairwise intersections: 40x6 80x8; point degrees: 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11
+    words with this family: a space of projective dimension 0
+    recorded word: polynomial of degree 12 modulo codewords (phantom degree 1); d1 = 4: 4 roots at infinity, 0 in D, 0 elsewhere; (w - c)/Z_S splits over D for 16 of 16 members; type: MULTISET TOP
+    lowest-degree words of the family: degree 12 modulo codewords, a space of projective dimension 0; list of a generic one: 16 (the same family)
+    lowest-degree word: polynomial of degree 12 modulo codewords (phantom degree 1); d1 = 4: 4 roots at infinity, 0 in D, 0 elsewhere; (w - c)/Z_S splits over D for 16 of 16 members; type: MULTISET TOP
+-- (k, T) = 9, 12
+RESULT k=9 T=12 dom=rand max=4 families_found=1 classes=1
+  class 0 (1 families found):
+    sets: 0fff f0ff ff0f fff0
+    agreement sizes: 4x12; pairwise intersections: 6x8; point degrees: 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3
+    words with this family: a space of projective dimension 0
+    recorded word: polynomial of degree 12 modulo codewords (phantom degree 0); d1 = 4: 4 roots at infinity, 0 in D, 0 elsewhere; (w - c)/Z_S splits over D for 4 of 4 members; type: STRICT TOP
+    lowest-degree words of the family: degree 12 modulo codewords, a space of projective dimension 0; list of a generic one: 4 (the same family)
+    lowest-degree word: polynomial of degree 12 modulo codewords (phantom degree 0); d1 = 4: 4 roots at infinity, 0 in D, 0 elsewhere; (w - c)/Z_S splits over D for 4 of 4 members; type: STRICT TOP
+-- (k, T) = 2, 5
+RESULT k=2 T=5 dom=rand max=6 families_found=2 classes=2
+  class 0 (1 families found):
+    sets: 022b 02d4 0d24 3118 9442 e881
+    agreement sizes: 5x5 1x6; pairwise intersections: 15x1; point degrees: 2 2 2 2 2 2 2 2 2 2 2 2 2 2 1 2
+    words with this family: a space of projective dimension 0
+    recorded word: polynomial of degree 15 modulo codewords (phantom degree 10); d1 = 7: 0 roots at infinity, 0 in D, 7 elsewhere; (w - c)/Z_S splits over D for 0 of 6 members; type: NOT A TOP
+  class 1 (1 families found):
+    sets: 1780 1870 244c 422a 8116 e880
+    agreement sizes: 6x5; pairwise intersections: 15x1; point degrees: 0 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+    words with this family: a space of projective dimension 1
+    recorded word: polynomial of degree 15 modulo codewords (phantom degree 10); d1 = 7: 0 roots at infinity, 0 in D, 7 elsewhere; (w - c)/Z_S splits over D for 0 of 6 members; type: NOT A TOP
+    lowest-degree words of the family: degree 14 modulo codewords, a space of projective dimension 0; list of a generic one: 6 (the same family)
+    lowest-degree word: polynomial of degree 14 modulo codewords (phantom degree 9); d1 = 7: 0 roots at infinity, 0 in D, 7 elsewhere; (w - c)/Z_S splits over D for 0 of 6 members; type: NOT A TOP
+-- (k, T) = 3, 7
+RESULT k=3 T=7 dom=rand max=4 families_found=4 classes=1
+  class 0 (4 families found):
+    sets: 0c1f 30ec c1c3 fe00
+    agreement sizes: 4x7; pairwise intersections: 6x2; point degrees: 2 2 2 2 1 1 2 2 1 1 2 2 2 2 2 2
+    words with this family: a space of projective dimension 0
+    recorded word: polynomial of degree 15 modulo codewords (phantom degree 8); d1 = 7: 1 roots at infinity, 0 in D, 6 elsewhere; (w - c)/Z_S splits over D for 0 of 4 members; type: NOT A TOP
+-- (k, T) = 10, 12
+RESULT k=10 T=12 dom=rand max=5 families_found=1 classes=1
+  class 0 (1 families found):
+    sets: 3bfb 5dfd 9efe f8ef ffe8
+    agreement sizes: 5x12; pairwise intersections: 10x9; point degrees: 3 3 3 5 3 5 5 5 3 3 3 5 5 3 3 3
+    words with this family: a space of projective dimension 0
+    recorded word: polynomial of degree 13 modulo codewords (phantom degree 1); d1 = 3: 0 roots at infinity, 0 in D, 3 elsewhere; (w - c)/Z_S splits over D for 5 of 5 members; type: MULTISET TOP
+    lowest-degree words of the family: degree 13 modulo codewords, a space of projective dimension 0; list of a generic one: 5 (the same family)
+    lowest-degree word: polynomial of degree 13 modulo codewords (phantom degree 1); d1 = 3: 0 roots at infinity, 0 in D, 3 elsewhere; (w - c)/Z_S splits over D for 5 of 5 members; type: MULTISET TOP
+-- (k, T) = 6, 10
+RESULT k=6 T=10 dom=rand max=3 families_found=1 classes=1
+  class 0 (1 families found):
+    sets: 0f9f f0af ffc0
+    agreement sizes: 3x10; pairwise intersections: 3x5; point degrees: 2 2 2 2 1 1 1 3 2 2 2 2 2 2 2 2
+    words with this family: a space of projective dimension 0
+    recorded word: polynomial of degree 15 modulo codewords (phantom degree 5); d1 = 5: 0 roots at infinity, 0 in D, 5 elsewhere; (w - c)/Z_S splits over D for 0 of 3 members; type: NOT A TOP
+-- (k, T) = 4, 7
+RESULT k=4 T=7 dom=rand max=15 families_found=7 classes=2
+  class 0 (6 families found):
+    type: not a top
+    agreement sizes: 14x7 1x8; pairwise intersections: 105x3; point degrees: 7 7 7 7 7 7 7 7 7 7 7 7 1 7 7 7
+    sets: 2333 23cc 2c3c 2cc3 4555 45aa 4a5a 4aa5 8669 8696 8966 8999 e00f e0f0 ff00
+  class 1 (1 families found):
+    type: not a top
+    agreement sizes: 15x7; pairwise intersections: 105x3; point degrees: 7 7 7 7 7 7 7 7 0 7 7 7 7 7 7 7
+    sets: 0e0f 0ef0 3233 32cc 5455 54aa 6869 6896 9866 9899 a45a a4a5 c23c c2c3 fe00
+./ex 4 7 rand 1 4 15  3205.48s user 7.91s system 394% cpu 13:34.33 total
+
+[exited with code 0]
+-- (k, T) = 3, 5, phantom degree <= 3
+RESULT k=3 T=5 dom=rand max=16 families_found=1 classes=1
+  class 0 (1 families found):
+    sets: 0117 022b 044d 088e 1071 1701 20b2 2b02 40d4 4d04 7110 80e8 8e08 b220 d440 e880
+    agreement sizes: 16x5; pairwise intersections: 40x0 80x2; point degrees: 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5
+    words with this family: a space of projective dimension 0
+    recorded word: polynomial of degree 8 modulo codewords (phantom degree 3); d1 = 6: 6 roots at infinity, 0 in D, 0 elsewhere; (w - c)/Z_S splits over D for 0 of 16 members; type: NOT A TOP
+    lowest-degree words of the family: degree 8 modulo codewords, a space of projective dimension 0; list of a generic one: 16 (the same family)
+    lowest-degree word: polynomial of degree 8 modulo codewords (phantom degree 3); d1 = 6: 6 roots at infinity, 0 in D, 0 elsewhere; (w - c)/Z_S splits over D for 0 of 16 members; type: NOT A TOP
+-- (k, T) = 4, 8 (first 5 of 71 classes)
+RESULT k=4 T=8 dom=rand max=3 families_found=103 classes=71
+  class 0 (6 families found):
+    sets: 8997 e0f8 ff00
+    agreement sizes: 3x8; pairwise intersections: 3x3; point degrees: 1 1 1 1 2 1 1 2 2 1 1 2 1 2 2 3
+    words with this family: a space of projective dimension 0
+    recorded word: polynomial of degree 15 modulo codewords (phantom degree 7); d1 = 6: 0 roots at infinity, 0 in D, 6 elsewhere; (w - c)/Z_S splits over D for 0 of 3 members; type: NOT A TOP
+  class 1 (4 families found):
+    sets: 45b3 e0ec ff00
+    agreement sizes: 3x8; pairwise intersections: 3x3; point degrees: 1 1 1 1 1 2 1 2 2 1 2 1 1 2 3 2
+    words with this family: a space of projective dimension 0
+    recorded word: polynomial of degree 15 modulo codewords (phantom degree 7); d1 = 6: 0 roots at infinity, 0 in D, 6 elsewhere; (w - c)/Z_S splits over D for 0 of 3 members; type: NOT A TOP
+  class 2 (6 families found):
+    sets: 2cc7 e0f8 ff00
+    agreement sizes: 3x8; pairwise intersections: 3x3; point degrees: 1 1 1 1 1 1 2 2 1 1 2 2 1 3 2 2
+    words with this family: a space of projective dimension 0
+    recorded word: polynomial of degree 15 modulo codewords (phantom degree 7); d1 = 6: 0 roots at infinity, 0 in D, 6 elsewhere; (w - c)/Z_S splits over D for 0 of 3 members; type: NOT A TOP
+  class 3 (2 families found):
+    sets: 2c1f e0ec ff00
+    agreement sizes: 3x8; pairwise intersections: 3x3; point degrees: 1 1 2 2 1 1 1 1 1 1 2 2 1 3 2 2
+    words with this family: a space of projective dimension 0
+    recorded word: polynomial of degree 15 modulo codewords (phantom degree 7); d1 = 6: 0 roots at infinity, 0 in D, 6 elsewhere; (w - c)/Z_S splits over D for 0 of 3 members; type: NOT A TOP
+  class 4 (3 families found):
+    sets: 4a57 e178 fe80
+    agreement sizes: 3x8; pairwise intersections: 3x3; point degrees: 1 1 1 1 2 1 2 1 1 2 1 2 1 2 3 2
+    words with this family: a space of projective dimension 0
+    recorded word: polynomial of degree 15 modulo codewords (phantom degree 7); d1 = 6: 0 roots at infinity, 0 in D, 6 elsewhere; (w - c)/Z_S splits over D for 0 of 3 members; type: NOT A TOP
+
+== independent check with note 02's oracle (18_verify16.py) ==
+files agreeing: 150, disagreeing: 0
+
+== n = 32 (18_sub), generic basis 1 unless stated ==
+-- fix1_22: # n=32 k=16 T=22 m=6 domain rand seed 1 mode fix 1
+# first member: 80 orbit representatives
+# largest second-level dimension 4, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 2
+RESULT n=32 k=16 T=22 dom=rand mode=fix: max list 3, distinct extremal families seen 8
+    word of degree 30 modulo codewords (phantom degree 8); family invariant under 1 nonzero translations
+    agreement sizes: 2x22 1x24; pairwise intersections: 3x14
+    point degrees: 2 2 2 2 2 2 2 2 3 3 3 3 3 3 1 1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+    sets: 00ff3fff ff003fff ffffff00
+    word of degree 30 modulo codewords (phantom degree 8); family invariant under 1 nonzero translations
+-- fix1_22_seed2: # n=32 k=16 T=22 m=6 domain rand seed 2 mode fix 1
+# first member: 80 orbit representatives
+# largest second-level dimension 4, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 2
+RESULT n=32 k=16 T=22 dom=rand mode=fix: max list 3, distinct extremal families seen 8
+    word of degree 30 modulo codewords (phantom degree 8); family invariant under 1 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 8 and split over D for 3 of 3 members: MULTISET TOP
+    agreement sizes: 2x22 1x24; pairwise intersections: 3x14
+    point degrees: 2 2 2 2 2 2 2 2 3 3 3 3 1 1 3 3 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+    sets: 00ffcfff ff00cfff ffffff00
+-- osc1_22: # n=32 k=16 T=22 m=6 domain rand seed 1 mode osc 1
+# first member: 15 orbit representatives
+# largest second-level dimension 2, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 0
+RESULT n=32 k=16 T=22 dom=rand mode=osc: max list 3, distinct extremal families seen 8
+    word of degree 23 modulo codewords (phantom degree 1); family invariant under 1 nonzero translations
+    agreement sizes: 3x22; pairwise intersections: 3x14
+    point degrees: 2 2 2 2 2 2 2 2 0 0 3 3 3 3 3 3 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+    sets: 00fffcff ff00fcff fffffc00
+    word of degree 23 modulo codewords (phantom degree 1); family invariant under 0 nonzero translations
+-- osc1_22_seed2: # n=32 k=16 T=22 m=6 domain rand seed 2 mode osc 1
+# first member: 15 orbit representatives
+# largest second-level dimension 2, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 0
+RESULT n=32 k=16 T=22 dom=rand mode=osc: max list 3, distinct extremal families seen 8
+    word of degree 23 modulo codewords (phantom degree 1); family invariant under 1 nonzero translations
+    agreement sizes: 3x22; pairwise intersections: 3x14
+    point degrees: 2 2 2 2 2 2 2 2 0 0 3 3 3 3 3 3 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+    sets: 00fffcff ff00fcff fffffc00
+    word of degree 23 modulo codewords (phantom degree 1); family invariant under 0 nonzero translations
+-- osc2_22: # n=32 k=16 T=22 m=6 domain rand seed 1 mode osc 2
+# first member: 15 orbit representatives
+# largest second-level dimension 3, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 0
+RESULT n=32 k=16 T=22 dom=rand mode=osc: max list 3, distinct extremal families seen 8
+    word of degree 23 modulo codewords (phantom degree 1); family invariant under 0 nonzero translations
+    agreement sizes: 2x22 1x23; pairwise intersections: 1x14 2x15
+    point degrees: 2 2 2 2 2 2 2 2 0 0 3 3 3 3 3 3 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 3
+    sets: 80fffcff ff00fcff fffffc00
+    word of degree 23 modulo codewords (phantom degree 1); family invariant under 0 nonzero translations
+-- osc3_22: # n=32 k=16 T=22 m=6 domain rand seed 1 mode osc 3
+# first member: 15 orbit representatives
+# largest second-level dimension 4, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 0
+RESULT n=32 k=16 T=22 dom=rand mode=osc: max list 3, distinct extremal families seen 8
+    word of degree 23 modulo codewords (phantom degree 1); family invariant under 0 nonzero translations
+    agreement sizes: 3x23; pairwise intersections: 3x15
+    point degrees: 2 2 2 2 2 2 2 2 0 3 3 3 3 3 3 3 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+    sets: 00fffeff ff00feff fffffe00
+    word of degree 23 modulo codewords (phantom degree 1); family invariant under 0 nonzero translations
+-- osc4_22: # n=32 k=16 T=22 m=6 domain rand seed 1 mode osc 4
+# first member: 15 orbit representatives
+# largest second-level dimension 5, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 0
+RESULT n=32 k=16 T=22 dom=rand mode=osc: max list 3, distinct extremal families seen 8
+    word of degree 23 modulo codewords (phantom degree 1); family invariant under 0 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 1 and split over D for 3 of 3 members: MULTISET TOP
+    agreement sizes: 2x22 1x23; pairwise intersections: 1x14 2x15
+    point degrees: 2 2 2 2 2 2 2 2 0 0 3 3 3 3 3 3 2 2 2 2 2 2 2 2 2 2 2 2 3 2 2 2
+    sets: 10fffcff ff00fcff fffffc00
+-- osc5_22: # n=32 k=16 T=22 m=6 domain rand seed 1 mode osc 5
+# first member: 15 orbit representatives
+# largest second-level dimension 6, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 0
+RESULT n=32 k=16 T=22 dom=rand mode=osc: max list 3, distinct extremal families seen 8
+    word of degree 23 modulo codewords (phantom degree 1); family invariant under 0 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 0 and split over D for 3 of 3 members: STRICT TOP
+    agreement sizes: 3x23; pairwise intersections: 3x15
+    point degrees: 2 2 2 2 2 2 2 2 0 3 3 3 3 3 3 3 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+    sets: 00fffeff ff00feff fffffe00
+-- osc1_21: # n=32 k=16 T=21 m=5 domain rand seed 1 mode osc 1
+# first member: 16 orbit representatives
+# largest second-level dimension 2, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 0
+RESULT n=32 k=16 T=21 dom=rand mode=osc: max list 6, distinct extremal families seen 8
+    word of degree 22 modulo codewords (phantom degree 1); family invariant under 0 nonzero translations
+    agreement sizes: 6x21; pairwise intersections: 15x14
+    point degrees: 5 3 3 3 3 3 3 6 3 3 3 6 3 6 6 6 5 3 3 3 5 5 5 3 3 3 3 6 5 3 3 3
+    sets: 08ffe8ff 3b33fbb3 5d55fdd5 9e69fee9 f8f0ef8f ffffe880
+    word of degree 22 modulo codewords (phantom degree 1); family invariant under 0 nonzero translations
+-- osc2_21: # n=32 k=16 T=21 m=5 domain rand seed 1 mode osc 2
+# first member: 16 orbit representatives
+# largest second-level dimension 3, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 0
+RESULT n=32 k=16 T=21 dom=rand mode=osc: max list 16, distinct extremal families seen 8
+    word of degree 23 modulo codewords (phantom degree 2); family invariant under 0 nonzero translations
+    agreement sizes: 15x21 1x22; pairwise intersections: 60x14 60x15
+    point degrees: 9 9 9 9 9 9 9 16 9 9 9 16 9 16 16 16 9 9 9 9 9 9 9 9 16 9 9 9 9 9 9 16
+    sets: 81ffe8ff 8f0fef8f 9769fee9 abaafdd5 b333fbb3 bd3cfcbc bdc3ebbc cdccfbb3 d555fdd5 db5afada dba5edda e766eee6 e799f9e6 e996fee9 f1f0ef8f ffffe880
+    word of degree 23 modulo codewords (phantom degree 2); family invariant under 0 nonzero translations
+-- osc3_21: # n=32 k=16 T=21 m=5 domain rand seed 1 mode osc 3
+# first member: 16 orbit representatives
+# largest second-level dimension 4, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 0
+RESULT n=32 k=16 T=21 dom=rand mode=osc: max list 16, distinct extremal families seen 8
+    word of degree 23 modulo codewords (phantom degree 2); family invariant under 0 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 2 and split over D for 16 of 16 members: MULTISET TOP
+    agreement sizes: 15x21 1x22; pairwise intersections: 60x14 60x15
+    point degrees: 9 9 9 9 9 9 9 16 9 9 9 16 9 16 16 16 9 9 9 9 9 9 9 9 16 9 9 9 9 9 9 16
+    sets: 81ffe8ff 8f0fef8f 9769fee9 abaafdd5 b333fbb3 bd3cfcbc bdc3ebbc cdccfbb3 d555fdd5 db5afada dba5edda e766eee6 e799f9e6 e996fee9 f1f0ef8f ffffe880
+-- osc4_21: # n=32 k=16 T=21 m=5 domain rand seed 1 mode osc 4
+# first member: 16 orbit representatives
+# largest second-level dimension 5, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 0
+RESULT n=32 k=16 T=21 dom=rand mode=osc: max list 16, distinct extremal families seen 8
+    word of degree 23 modulo codewords (phantom degree 2); family invariant under 0 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 2 and split over D for 16 of 16 members: MULTISET TOP
+    agreement sizes: 15x21 1x22; pairwise intersections: 60x14 60x15
+    point degrees: 9 9 9 9 9 9 9 16 9 9 9 16 9 16 16 16 9 9 9 9 9 9 9 9 16 9 9 9 9 9 9 16
+    sets: 81ffe8ff 8f0fef8f 9769fee9 abaafdd5 b333fbb3 bd3cfcbc bdc3ebbc cdccfbb3 d555fdd5 db5afada dba5edda e766eee6 e799f9e6 e996fee9 f1f0ef8f ffffe880
+-- s17_21_fix5: # n=32 k=17 T=21 m=4 domain rand seed 1 mode fix 5
+RESULT n=32 k=17 T=21 dom=rand mode=fix: max list 16, distinct extremal families seen 8
+    word of degree 24 modulo codewords (phantom degree 3); family invariant under 31 nonzero translations
+    agreement sizes: 16x22; pairwise intersections: 40x12 80x16
+    point degrees: 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11
+    sets: 37d73beb 3beb37d7 737db3be 7d73beb3 7dcdbece b3be737d beb37d73 bece7dcd cd7dcebe cebecd7d d737eb3b d7dcebec dcd7eceb eb3bd737 ebecd7dc ecebdcd7
+    word of degree 24 modulo codewords (phantom degree 3); family invariant under 31 nonzero translations
+-- s17_22_fix5: # n=32 k=17 T=22 m=5 domain rand seed 1 mode fix 5
+RESULT n=32 k=17 T=22 dom=rand mode=fix: max list 16, distinct extremal families seen 8
+    word of degree 24 modulo codewords (phantom degree 2); family invariant under 31 nonzero translations
+    agreement sizes: 16x22; pairwise intersections: 40x12 80x16
+    point degrees: 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11
+    sets: 37d73beb 3beb37d7 737db3be 7d73beb3 7dcdbece b3be737d beb37d73 bece7dcd cd7dcebe cebecd7d d737eb3b d7dcebec dcd7eceb eb3bd737 ebecd7dc ecebdcd7
+    word of degree 24 modulo codewords (phantom degree 2); family invariant under 31 nonzero translations
+-- s17_23_fix5: # n=32 k=17 T=23 m=6 domain rand seed 1 mode fix 5
+RESULT n=32 k=17 T=23 dom=rand mode=fix: max list 4, distinct extremal families seen 8
+    word of degree 24 modulo codewords (phantom degree 1); family invariant under 31 nonzero translations
+    agreement sizes: 4x24; pairwise intersections: 6x16
+    point degrees: 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3
+    sets: 3cffff3c c3ffffc3 ff3c3cff ffc3c3ff
+    word of degree 24 modulo codewords (phantom degree 1); family invariant under 31 nonzero translations
+-- pair_22_int: # n=32 k=16 T=22 m=6 domain rand seed 1 mode fam 003fffff fffffc00
+RESULT n=32 k=16 T=22 dom=rand mode=fam: max list 3, distinct extremal families seen 8
+    word of degree 31 modulo codewords (phantom degree 9); family invariant under 0 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 9 and split over D for 3 of 3 members: MULTISET TOP
+    agreement sizes: 1x22 1x23 1x24; pairwise intersections: 1x14 2x15
+    point degrees: 2 2 2 2 2 2 2 2 1 1 3 3 3 3 3 3 2 2 2 2 3 2 2 2 2 2 2 2 2 2 2 2
+    sets: 00ffffff ff10fcff fffffc00
+-- pair_22_r1: # n=32 k=16 T=22 m=6 domain rand seed 1 mode fam fb7cf23b d7cbbdc7
+RESULT n=32 k=16 T=22 dom=rand mode=fam: max list 2, distinct extremal families seen 8
+    word of degree 31 modulo codewords (phantom degree 9); family invariant under 0 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 9 and split over D for 0 of 2 members: NOT A TOP
+    agreement sizes: 2x22; pairwise intersections: 1x12
+    point degrees: 2 2 1 1 1 1 1 1 1 1 1 1 2 2 1 2 1 1 1 2 1 1 2 1 2 2 1 1 2 1 2 2
+    sets: d7cbbdc7 fb7cf23b
+-- pair_22_r2: # n=32 k=16 T=22 m=6 domain rand seed 1 mode fam ede5f65e 3a7efbb5
+RESULT n=32 k=16 T=22 dom=rand mode=fam: max list 2, distinct extremal families seen 8
+    word of degree 31 modulo codewords (phantom degree 9); family invariant under 0 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 9 and split over D for 0 of 2 members: NOT A TOP
+    agreement sizes: 2x22; pairwise intersections: 1x12
+    point degrees: 1 1 2 1 2 1 1 1 1 2 1 1 2 2 2 2 1 1 2 1 1 2 2 1 1 1 1 2 1 2 1 1
+    sets: 3a7efbb5 ede5f65e
+-- pair_22_r3: # n=32 k=16 T=22 m=6 domain rand seed 1 mode fam 6f69dd6f d99ef3f5
+RESULT n=32 k=16 T=22 dom=rand mode=fam: max list 2, distinct extremal families seen 8
+    word of degree 31 modulo codewords (phantom degree 9); family invariant under 0 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 9 and split over D for 0 of 2 members: NOT A TOP
+    agreement sizes: 2x22; pairwise intersections: 1x12
+    point degrees: 2 1 2 1 1 2 2 1 2 1 1 1 2 1 2 2 1 1 1 2 1 1 1 1 2 1 1 2 1 1 2 1
+    sets: 6f69dd6f d99ef3f5
+-- pair_22_r4: # n=32 k=16 T=22 m=6 domain rand seed 1 mode fam bacfd67b 5f7c3be7
+RESULT n=32 k=16 T=22 dom=rand mode=fam: max list 2, distinct extremal families seen 8
+    word of degree 31 modulo codewords (phantom degree 9); family invariant under 0 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 9 and split over D for 0 of 2 members: NOT A TOP
+    agreement sizes: 2x22; pairwise intersections: 1x12
+    point degrees: 2 2 1 1 1 2 2 1 1 2 1 1 2 1 1 1 1 1 2 2 1 1 2 1 1 2 1 2 2 1 1 1
+    sets: 5f7c3be7 bacfd67b
+-- k4_fam_10: # n=32 k=4 T=10 m=6 domain rand seed 1 mode fam 033fc000 03c03f00 0c3030f0 300c0ccc
+RESULT n=32 k=4 T=10 dom=rand mode=fam: max list 6, distinct extremal families seen 8
+    word of degree 31 modulo codewords (phantom degree 21); family invariant under 0 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 21 and split over D for 0 of 6 members: NOT A TOP
+    agreement sizes: 2x10 3x11 1x13; pairwise intersections: 1x2 14x3
+    point degrees: 1 1 2 2 2 2 2 2 2 2 2 2 2 2 6 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+    sets: 033fc000 03c07f00 0c3070f0 300c4ccc c003433f fcc0c000
+-- k4_fam_10b: # n=32 k=4 T=10 m=6 domain rand seed 1 mode fam 033fc000 03c03f00 0c3030f0 300c0ccc
+RESULT n=32 k=4 T=10 dom=rand mode=fam: max list 6, distinct extremal families seen 8
+    word of degree 31 modulo codewords (phantom degree 21); family invariant under 1 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 21 and split over D for 0 of 6 members: NOT A TOP
+    agreement sizes: 6x10; pairwise intersections: 15x2
+    point degrees: 0 0 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+    sets: 033fc000 03c03f00 0c3030f0 300c0ccc c003033c fcc0c000
+-- osc_k4_T11_r0: # n=32 k=4 T=11 m=7 domain rand seed 1 mode osc 0
+RESULT n=32 k=4 T=11 dom=rand mode=osc: max list 3, distinct extremal families seen 8
+    word of degree 11 modulo codewords (phantom degree 0); family invariant under 0 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 0 and split over D for 3 of 3 members: STRICT TOP
+    agreement sizes: 3x11; pairwise intersections: 3x3
+    point degrees: 1 1 1 1 0 1 1 3 0 1 1 0 1 1 1 1 0 1 1 3 1 1 1 1 1 1 1 1 3 1 1 0
+    sets: 16686086 19989089 700e06e0
+-- osc_k4_T11_r1: # n=32 k=4 T=11 m=7 domain rand seed 1 mode osc 1
+# first member: 16 orbit representatives
+# largest second-level dimension 2, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 0
+RESULT n=32 k=4 T=11 dom=rand mode=osc: max list 3, distinct extremal families seen 1
+    word of degree 11 modulo codewords (phantom degree 0); family invariant under 0 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 0 and split over D for 3 of 3 members: STRICT TOP
+    agreement sizes: 3x11; pairwise intersections: 3x3
+    point degrees: 1 1 1 1 1 1 1 1 3 3 3 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+    sets: 000007ff 00ff0700 ff000700
+-- osc_k4_T11_r2: # n=32 k=4 T=11 m=7 domain rand seed 1 mode osc 2
+# first member: 16 orbit representatives
+# largest second-level dimension 3, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 0
+RESULT n=32 k=4 T=11 dom=rand mode=osc: max list 3, distinct extremal families seen 1
+    word of degree 11 modulo codewords (phantom degree 0); family invariant under 0 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 0 and split over D for 3 of 3 members: STRICT TOP
+    agreement sizes: 3x11; pairwise intersections: 3x3
+    point degrees: 1 1 1 1 1 1 1 1 3 3 3 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+    sets: 000007ff 00ff0700 ff000700
+-- osc_k4_T11_r3: # n=32 k=4 T=11 m=7 domain rand seed 1 mode osc 3
+# first member: 16 orbit representatives
+# largest second-level dimension 4, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 0
+RESULT n=32 k=4 T=11 dom=rand mode=osc: max list 3, distinct extremal families seen 1
+    word of degree 11 modulo codewords (phantom degree 0); family invariant under 0 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 0 and split over D for 3 of 3 members: STRICT TOP
+    agreement sizes: 3x11; pairwise intersections: 3x3
+    point degrees: 1 1 1 1 1 1 1 1 3 3 3 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+    sets: 000007ff 00ff0700 ff000700
+-- osc_k4_T11_r4: # n=32 k=4 T=11 m=7 domain rand seed 1 mode osc 4
+# first member: 16 orbit representatives
+# largest second-level dimension 5, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 0
+RESULT n=32 k=4 T=11 dom=rand mode=osc: max list 3, distinct extremal families seen 1
+    word of degree 11 modulo codewords (phantom degree 0); family invariant under 0 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 0 and split over D for 3 of 3 members: STRICT TOP
+    agreement sizes: 3x11; pairwise intersections: 3x3
+    point degrees: 1 1 1 1 1 1 1 1 3 3 3 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+    sets: 000007ff 00ff0700 ff000700
+-- osc_k4_T10_r1: # n=32 k=4 T=10 m=6 domain rand seed 1 mode osc 1
+# first member: 15 orbit representatives
+# largest second-level dimension 2, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 0
+RESULT n=32 k=4 T=10 dom=rand mode=osc: max list 4, distinct extremal families seen 8
+    word of degree 11 modulo codewords (phantom degree 1); family invariant under 0 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 1 and split over D for 4 of 4 members: MULTISET TOP
+    agreement sizes: 3x10 1x11; pairwise intersections: 6x3
+    point degrees: 1 1 1 1 1 1 1 4 4 1 1 1 1 1 1 1 4 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+    sets: 000101ff 0001ff80 00ff0180 ff010180
+-- osc_k4_T10_r2: # n=32 k=4 T=10 m=6 domain rand seed 1 mode osc 2
+# first member: 15 orbit representatives
+# largest second-level dimension 3, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 0
+RESULT n=32 k=4 T=10 dom=rand mode=osc: max list 4, distinct extremal families seen 8
+    word of degree 11 modulo codewords (phantom degree 1); family invariant under 0 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 1 and split over D for 4 of 4 members: MULTISET TOP
+    agreement sizes: 3x10 1x11; pairwise intersections: 6x3
+    point degrees: 1 1 1 1 4 1 1 1 4 1 1 1 1 1 1 1 4 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+    sets: 000101ff 0001ff10 00ff0110 ff010110
+-- osc_k4_T10_r3: # n=32 k=4 T=10 m=6 domain rand seed 1 mode osc 3
+# first member: 15 orbit representatives
+# largest second-level dimension 4, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 0
+RESULT n=32 k=4 T=10 dom=rand mode=osc: max list 4, distinct extremal families seen 8
+    word of degree 11 modulo codewords (phantom degree 1); family invariant under 0 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 1 and split over D for 4 of 4 members: MULTISET TOP
+    agreement sizes: 3x10 1x11; pairwise intersections: 6x3
+    point degrees: 1 1 1 1 1 4 1 1 4 1 1 1 1 1 1 1 4 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+    sets: 000101ff 0001ff20 00ff0120 ff010120
+-- osc_k4_T9_r1: # n=32 k=4 T=9 m=5 domain rand seed 1 mode osc 1
+# first member: 9 orbit representatives
+# largest second-level dimension 2, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 0
+RESULT n=32 k=4 T=9 dom=rand mode=osc: max list 4, distinct extremal families seen 8
+    word of degree 10 modulo codewords (phantom degree 1); family invariant under 1 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 1 and split over D for 4 of 4 members: MULTISET TOP
+    agreement sizes: 2x9 2x10; pairwise intersections: 6x2
+    point degrees: 1 1 1 1 1 1 1 1 4 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 4 1 1 1 1 1 1 1
+    sets: 010001ff 0100ff00 01ff0100 ff000100
+-- osc_k4_T9_r2: # n=32 k=4 T=9 m=5 domain rand seed 1 mode osc 2
+# first member: 9 orbit representatives
+# largest second-level dimension 3, representatives skipped as too large 0 (if nonzero: NOT exhaustive), invariant first members left to the lift 0
+RESULT n=32 k=4 T=9 dom=rand mode=osc: max list 4, distinct extremal families seen 8
+    word of degree 11 modulo codewords (phantom degree 2); family invariant under 0 nonzero translations
+    cofactors (w - c)/Z_S have degree at most 1 and split over D for 4 of 4 members: MULTISET TOP
+    agreement sizes: 3x10 1x11; pairwise intersections: 6x3
+    point degrees: 1 1 1 1 1 1 1 1 4 1 1 1 1 1 1 1 1 1 4 1 1 1 1 1 1 1 1 1 1 1 1 4
+    sets: 800401ff 8004ff00 80ff0100 ff040100

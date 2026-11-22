@@ -1,0 +1,1646 @@
+=== 50_parity.py A B C ===
+A. local rank of the contact conditions of order m on even supports, exact linear algebra against the formulas of Lemma 1.2
+   k = 1, q = 2, GF(2): (m, rank, formula) = [(4, 17, 17), (5, 25, 25), (6, 35, 35), (7, 47, 47), (8, 61, 61), (9, 77, 77), (10, 95, 95), (11, 115, 115), (12, 137, 137)]
+   k = 1, q = 4, GF(2): (m, rank, formula) = [(8, 62, 62), (9, 76, 76), (10, 92, 92), (11, 110, 110), (12, 130, 130), (13, 152, 152), (14, 176, 176)]
+   k = 1, q = 8, GF(2): (m, rank, formula) = [(16, 236, 236), (17, 262, 262), (19, 320, 320)]
+   k = 2, q = 2, GF(2): (m, rank, formula) = [(8, 83, 83), (9, 104, 104), (10, 128, 128), (11, 155, 155), (12, 185, 185)]
+   k = 2, q = 4, GF(2): (m, rank, formula) = [(16, 314, 314), (17, 353, 353)]
+   support {0, 2} over GF(3): (m, rank, m^2 + 2) = [(4, 18, 18), (5, 27, 27), (6, 38, 38), (7, 51, 51), (8, 66, 66), (9, 83, 83), (10, 102, 102)]
+   control, full support {0, 1, 2} over GF(2): (m, rank, R(m, 2)) = [(4, 23, 23), (5, 35, 35), (6, 50, 50), (7, 68, 68), (8, 89, 89)]
+   all formulas confirmed: True
+B. even certificates |S(q, k; m)| > n rho_k(q, m): smallest agreement (exact integers, Delta = n/2 + 5, m <= 4000)
+   the count is nondecreasing in A, so a certificate at A is a certificate at every larger A with the same m
+   n = 2^25: Johnson radius: A^2 > n Delta iff A > 23726569 = 0.7071069 n
+      k = 1, q = 2  : A >= 23667862 = 0.705357 n (m = 28, margin 317, d = 39); queries just above: 215
+      k = 1, q = 4  : A >= 23601850 = 0.703390 n (m = 43, margin 822, d = 60); queries just above: 213
+      k = 1, q = 8  : A >= 23560479 = 0.702157 n (m = 75, margin 10214, d = 105); queries just above: 212
+      k = 1, q = 16 : A >= 23537563 = 0.701474 n (m = 140, margin 16796, d = 196); queries just above: 212
+      k = 1, q = 32 : A >= 23525536 = 0.701116 n (m = 275, margin 140966, d = 385); queries just above: 211
+      k = 1, q = 64 : A >= 23519383 = 0.700932 n (m = 541, margin 781816, d = 758); queries just above: 211
+      k = 1, q = 128: A >= 23516269 = 0.700839 n (m = 1077, margin 709910, d = 1509); queries just above: 211
+      k = 2, q = 2  : A >= 23541509 = 0.701592 n (m = 29, margin 2396, d = 40); queries just above: 212
+      k = 2, q = 4  : A >= 23482301 = 0.699827 n (m = 51, margin 2042, d = 71); queries just above: 210
+      k = 2, q = 8  : A >= 23449731 = 0.698856 n (m = 97, margin 23936, d = 135); queries just above: 209
+      k = 2, q = 16 : A >= 23432653 = 0.698347 n (m = 190, margin 3641, d = 265); queries just above: 209
+      k = 2, q = 32 : A >= 23423908 = 0.698087 n (m = 375, margin 500258, d = 523); queries just above: 209
+      k = 2, q = 64 : A >= 23419484 = 0.697955 n (m = 746, margin 2135609, d = 1041); queries just above: 209
+   n = 2^26: Johnson radius: A^2 > n Delta iff A > 47453136 = 0.7071068 n
+      k = 1, q = 2  : A >= 47335721 = 0.705357 n (m = 28, margin 1877, d = 39); queries just above: 215
+      k = 1, q = 4  : A >= 47203697 = 0.703390 n (m = 43, margin 4692, d = 60); queries just above: 213
+      k = 1, q = 8  : A >= 47120954 = 0.702157 n (m = 75, margin 14738, d = 105); queries just above: 212
+      k = 1, q = 16 : A >= 47075122 = 0.701474 n (m = 140, margin 14372, d = 196); queries just above: 212
+      k = 1, q = 32 : A >= 47051067 = 0.701116 n (m = 275, margin 5002, d = 385); queries just above: 211
+      k = 1, q = 64 : A >= 47038761 = 0.700932 n (m = 541, margin 497092, d = 758); queries just above: 211
+      k = 1, q = 128: A >= 47032534 = 0.700839 n (m = 1077, margin 313394, d = 1509); queries just above: 211
+      k = 2, q = 2  : A >= 47083013 = 0.701592 n (m = 29, margin 92, d = 40); queries just above: 212
+      k = 2, q = 4  : A >= 46964598 = 0.699827 n (m = 51, margin 638, d = 71); queries just above: 210
+      k = 2, q = 8  : A >= 46899458 = 0.698856 n (m = 97, margin 35840, d = 135); queries just above: 209
+      k = 2, q = 16 : A >= 46865303 = 0.698347 n (m = 190, margin 105377, d = 265); queries just above: 209
+      k = 2, q = 32 : A >= 46847811 = 0.698087 n (m = 375, margin 275846, d = 523); queries just above: 209
+      k = 2, q = 64 : A >= 46838963 = 0.697955 n (m = 746, margin 1412093, d = 1041); queries just above: 209
+   n = 2^27: Johnson radius: A^2 > n Delta iff A > 94906269 = 0.7071068 n
+      k = 1, q = 2  : A >= 94671437 = 0.705357 n (m = 28, margin 629, d = 39); queries just above: 215
+      k = 1, q = 4  : A >= 94407389 = 0.703390 n (m = 43, margin 2284, d = 60); queries just above: 213
+      k = 1, q = 8  : A >= 94241903 = 0.702157 n (m = 75, margin 8486, d = 105); queries just above: 212
+      k = 1, q = 16 : A >= 94150240 = 0.701474 n (m = 140, margin 9524, d = 196); queries just above: 212
+      k = 1, q = 32 : A >= 94102131 = 0.701116 n (m = 275, margin 140074, d = 385); queries just above: 211
+      k = 1, q = 64 : A >= 94077518 = 0.700932 n (m = 541, margin 714258, d = 758); queries just above: 211
+      k = 1, q = 128: A >= 94065065 = 0.700839 n (m = 1077, margin 2635046, d = 1509); queries just above: 211
+      k = 2, q = 2  : A >= 94166023 = 0.701592 n (m = 29, margin 2270, d = 40); queries just above: 212
+      k = 2, q = 4  : A >= 93929193 = 0.699827 n (m = 51, margin 8234, d = 71); queries just above: 210
+      k = 2, q = 8  : A >= 93798911 = 0.698856 n (m = 97, margin 22400, d = 135); queries just above: 209
+      k = 2, q = 16 : A >= 93730601 = 0.698347 n (m = 190, margin 23849, d = 265); queries just above: 209
+      k = 2, q = 32 : A >= 93695618 = 0.698087 n (m = 375, margin 380522, d = 523); queries just above: 209
+      k = 2, q = 64 : A >= 93677922 = 0.697955 n (m = 746, margin 2153825, d = 1041); queries just above: 209
+   n = 2^28: Johnson radius: A^2 > n Delta iff A > 189812534 = 0.7071068 n
+      k = 1, q = 2  : A >= 189342870 = 0.705357 n (m = 28, margin 317, d = 39); queries just above: 215
+      k = 1, q = 4  : A >= 188814774 = 0.703390 n (m = 43, margin 2542, d = 60); queries just above: 213
+      k = 1, q = 8  : A >= 188483802 = 0.702157 n (m = 75, margin 11282, d = 105); queries just above: 212
+      k = 1, q = 16 : A >= 188300477 = 0.701474 n (m = 140, margin 52748, d = 196); queries just above: 212
+      k = 1, q = 32 : A >= 188204257 = 0.701115 n (m = 275, margin 3218, d = 385); queries just above: 211
+      k = 1, q = 64 : A >= 188155031 = 0.700932 n (m = 541, margin 361976, d = 758); queries just above: 211
+      k = 1, q = 128: A >= 188130125 = 0.700839 n (m = 1077, margin 1048982, d = 1509); queries just above: 211
+      k = 2, q = 2  : A >= 188332042 = 0.701592 n (m = 29, margin 3233, d = 40); queries just above: 212
+      k = 2, q = 4  : A >= 187858381 = 0.699827 n (m = 51, margin 2618, d = 71); queries just above: 210
+      k = 2, q = 8  : A >= 187597818 = 0.698856 n (m = 97, margin 32768, d = 135); queries just above: 209
+      k = 2, q = 16 : A >= 187461198 = 0.698347 n (m = 190, margin 3293, d = 265); queries just above: 209
+      k = 2, q = 32 : A >= 187391231 = 0.698087 n (m = 375, margin 36374, d = 523); queries just above: 209
+      k = 2, q = 64 : A >= 187355839 = 0.697955 n (m = 746, margin 1448525, d = 1041); queries just above: 209
+   per agreement (n = 2^25 and n = 2^28 give the same ranges): the certificate with the smallest d = floor((mA - 1)/Delta)
+      n = 2^25, a = 0.70 (queries 210): k = 1: none; k = 2: q = 4, m in [46, 59], d = 64, d^2 = 4096
+      n = 2^25, a = 0.7009 (queries 211): k = 1: q = 128, m in [983, 1190], d = 1377, d^2 = 1896129; k = 2: q = 4, m in [38, 82], d = 53, d^2 = 2809
+      n = 2^25, a = 0.7015 (queries 212): k = 1: q = 16, m in [133, 151], d = 186, d^2 = 34596; k = 2: q = 4, m in [36, 97], d = 50, d^2 = 2500
+      n = 2^25, a = 0.702 (queries 212): k = 1: q = 16, m in [109, 201], d = 153, d^2 = 23409; k = 2: q = 2, m in [23, 39], d = 32, d^2 = 1024
+      n = 2^25, a = 0.703 (queries 213): k = 1: q = 8, m in [54, 126], d = 75, d^2 = 5625; k = 2: q = 2, m in [20, 57], d = 28, d^2 = 784
+      n = 2^25, a = 0.7045 (queries 214): k = 1: q = 4, m in [28, 92], d = 39, d^2 = 1521; k = 2: q = 2, m in [18, 103], d = 25, d^2 = 625
+      n = 2^25, a = 0.705 (queries 215): k = 1: q = 4, m in [26, 122], d = 36, d^2 = 1296; k = 2: q = 2, m in [17, 132], d = 23, d^2 = 529
+      n = 2^25, a = 0.7055 (queries 215): k = 1: q = 2, m in [24, 41], d = 33, d^2 = 1089; k = 2: q = 2, m in [16, 178], d = 22, d^2 = 484
+      n = 2^25, a = 0.706 (queries 216): k = 1: q = 2, m in [19, 74], d = 26, d^2 = 676; k = 2: q = 2, m in [16, 266], d = 22, d^2 = 484
+      n = 2^25, a = 0.7065 (queries 216): k = 1: q = 2, m in [17, 154], d = 24, d^2 = 576; k = 2: q = 2, m in [16, 498], d = 22, d^2 = 484
+      n = 2^25, a = 0.707 (queries 216): k = 1: q = 2, m in [16, 953], d = 22, d^2 = 484; k = 2: q = 2, m in [15, 2400], d = 21, d^2 = 441
+      n = 2^28, a = 0.70 (queries 210): k = 1: none; k = 2: q = 4, m in [46, 59], d = 64, d^2 = 4096
+      n = 2^28, a = 0.7009 (queries 211): k = 1: q = 128, m in [983, 1191], d = 1377, d^2 = 1896129; k = 2: q = 4, m in [38, 82], d = 53, d^2 = 2809
+      n = 2^28, a = 0.7015 (queries 212): k = 1: q = 16, m in [133, 151], d = 186, d^2 = 34596; k = 2: q = 4, m in [36, 97], d = 50, d^2 = 2500
+      n = 2^28, a = 0.702 (queries 212): k = 1: q = 16, m in [109, 201], d = 153, d^2 = 23409; k = 2: q = 2, m in [23, 39], d = 32, d^2 = 1024
+      n = 2^28, a = 0.703 (queries 213): k = 1: q = 8, m in [54, 126], d = 75, d^2 = 5625; k = 2: q = 2, m in [20, 57], d = 28, d^2 = 784
+      n = 2^28, a = 0.7045 (queries 214): k = 1: q = 4, m in [28, 92], d = 39, d^2 = 1521; k = 2: q = 2, m in [18, 103], d = 25, d^2 = 625
+      n = 2^28, a = 0.705 (queries 215): k = 1: q = 4, m in [26, 122], d = 36, d^2 = 1296; k = 2: q = 2, m in [17, 132], d = 23, d^2 = 529
+      n = 2^28, a = 0.7055 (queries 215): k = 1: q = 2, m in [24, 41], d = 33, d^2 = 1089; k = 2: q = 2, m in [16, 178], d = 22, d^2 = 484
+      n = 2^28, a = 0.706 (queries 216): k = 1: q = 2, m in [19, 74], d = 26, d^2 = 676; k = 2: q = 2, m in [16, 266], d = 22, d^2 = 484
+      n = 2^28, a = 0.7065 (queries 216): k = 1: q = 2, m in [17, 154], d = 24, d^2 = 576; k = 2: q = 2, m in [16, 498], d = 22, d^2 = 484
+      n = 2^28, a = 0.707 (queries 216): k = 1: q = 2, m in [16, 954], d = 22, d^2 = 484; k = 2: q = 2, m in [15, 2400], d = 21, d^2 = 441
+   budget of a surviving component (Corollary 1.4): R = lambda * G^q forces q W(G) <= m A - 1 and q delta(G) <= d for every certificate;
+   per agreement the minimum over q in {2, .., 512} (smallest m for each q) of floor((mA - 1)/q)/n and of floor(d/q), n = 2^25
+      k = 1, a = 0.7009: certificates (q, smallest m, d): [(128, 983, 1377), (256, 1905, 2670), (512, 3760, 5270)]; W < 5.1472 n (q = 512, m = 3760), delta <= 10 (q = 128, m = 983); all with d <= 5270
+      k = 1, a = 0.7015: certificates (q, smallest m, d): [(16, 133, 186), (32, 221, 310), (64, 419, 587), (128, 819, 1149), (256, 1620, 2272), (512, 3224, 4523)]; W < 4.4173 n (q = 512, m = 3224), delta <= 8 (q = 128, m = 819); all with d <= 4523
+      k = 1, a = 0.702: certificates (q, smallest m, d): [(16, 109, 153), (32, 201, 282), (64, 387, 543), (128, 760, 1067), (256, 1508, 2117), (512, 3004, 4217)]; W < 4.1188 n (q = 512, m = 3004), delta <= 8 (q = 32, m = 201); all with d <= 4217
+      k = 1, a = 0.703: certificates (q, smallest m, d): [(8, 54, 75), (16, 94, 132), (32, 179, 251), (64, 348, 489), (128, 688, 967), (256, 1367, 1922), (512, 2725, 3831)]; W < 3.7416 n (q = 512, m = 2725), delta <= 7 (q = 32, m = 179); all with d <= 3831
+      k = 1, a = 0.7045: certificates (q, smallest m, d): [(4, 28, 39), (8, 45, 63), (16, 83, 116), (32, 160, 225), (64, 313, 441), (128, 621, 874), (256, 1236, 1741), (512, 2466, 3474)]; W < 3.3932 n (q = 512, m = 2466), delta <= 6 (q = 64, m = 313); all with d <= 3474
+      k = 1, a = 0.705: certificates (q, smallest m, d): [(4, 26, 36), (8, 44, 62), (16, 81, 114), (32, 155, 218), (64, 305, 430), (128, 604, 851), (256, 1203, 1696), (512, 2401, 3385)]; W < 3.3061 n (q = 512, m = 2401), delta <= 6 (q = 32, m = 155); all with d <= 3385
+      k = 1, a = 0.7055: certificates (q, smallest m, d): [(2, 24, 33), (4, 25, 35), (8, 42, 59), (16, 78, 110), (32, 151, 213), (64, 297, 419), (128, 589, 831), (256, 1174, 1656), (512, 2343, 3305)]; W < 3.2285 n (q = 512, m = 2343), delta <= 6 (q = 16, m = 78); all with d <= 3305
+      k = 1, a = 0.706: certificates (q, smallest m, d): [(2, 19, 26), (4, 24, 33), (8, 41, 57), (16, 76, 107), (32, 147, 207), (64, 290, 409), (128, 576, 813), (256, 1147, 1619), (512, 2290, 3233)]; W < 3.1577 n (q = 512, m = 2290), delta <= 6 (q = 16, m = 76); all with d <= 3233
+      k = 1, a = 0.7065: certificates (q, smallest m, d): [(2, 17, 24), (4, 23, 32), (8, 40, 56), (16, 74, 104), (32, 144, 203), (64, 284, 401), (128, 564, 796), (256, 1123, 1586), (512, 2242, 3167)]; W < 3.0937 n (q = 512, m = 2242), delta <= 6 (q = 16, m = 74); all with d <= 3167
+      k = 1, a = 0.707: certificates (q, smallest m, d): [(2, 16, 22), (4, 22, 31), (8, 39, 55), (16, 73, 103), (32, 141, 199), (64, 278, 393), (128, 552, 780), (256, 1101, 1556), (512, 2198, 3107)]; W < 3.0351 n (q = 512, m = 2198), delta <= 6 (q = 8, m = 39); all with d <= 3107
+      k = 2, a = 0.70: certificates (q, smallest m, d): [(4, 46, 64), (8, 72, 100), (16, 135, 188), (32, 261, 365), (64, 515, 720), (128, 1022, 1430), (256, 2037, 2851), (512, 4067, 5693)]; W < 5.5604 n (q = 512, m = 4067), delta <= 11 (q = 16, m = 135); all with d <= 5693
+      k = 2, a = 0.7009: certificates (q, smallest m, d): [(4, 38, 53), (8, 66, 92), (16, 126, 176), (32, 246, 344), (64, 485, 679), (128, 964, 1351), (256, 1923, 2695), (512, 3841, 5384)]; W < 5.2581 n (q = 512, m = 3841), delta <= 10 (q = 32, m = 246); all with d <= 5384
+      k = 2, a = 0.702: certificates (q, smallest m, d): [(2, 23, 32), (4, 34, 47), (8, 62, 87), (16, 118, 165), (32, 231, 324), (64, 458, 643), (128, 911, 1279), (256, 1818, 2552), (512, 3632, 5099)]; W < 4.9798 n (q = 512, m = 3632), delta <= 9 (q = 128, m = 911); all with d <= 5099
+      k = 2, a = 0.703: certificates (q, smallest m, d): [(2, 20, 28), (4, 32, 44), (8, 59, 82), (16, 113, 158), (32, 221, 310), (64, 439, 617), (128, 873, 1227), (256, 1743, 2450), (512, 3481, 4894)]; W < 4.7796 n (q = 512, m = 3481), delta <= 9 (q = 16, m = 113); all with d <= 4894
+C. slack supports (Remark 1.5): |S(m; s)| > n R(m, B)
+   n = 2^25, s = (0,1,0): A >= 23716326 = 0.706802 n (m = 57), below the Johnson radius; queries 216
+   n = 2^25, s = (0,1,0,1): A >= 23678970 = 0.705688 n (m = 38), below the Johnson radius; queries 215
+   n = 2^25, s = (0,1,2,1,0): A >= 23670373 = 0.705432 n (m = 43), below the Johnson radius; queries 215
+   n = 2^25, s = (1,1,1,1) (full slack): A >= 23726599 = 0.707108 n (m = 1485), ABOVE the Johnson radius; queries 217
+   n = 2^28, s = (0,1,0): A >= 189730579 = 0.706801 n (m = 57), below the Johnson radius; queries 216
+   n = 2^28, s = (0,1,0,1): A >= 189431729 = 0.705688 n (m = 38), below the Johnson radius; queries 215
+   n = 2^28, s = (0,1,2,1,0): A >= 189362959 = 0.705432 n (m = 43), below the Johnson radius; queries 215
+   n = 2^28, s = (1,1,1,1) (full slack): A >= 189812763 = 0.707108 n (m = 1499), ABOVE the Johnson radius; queries 217
+
+=== 50_local.py ===
+A. characteristic 2, first integrals of Y1-degree <= b in I^j, graded by the (T, S)-degree N
+   (A1) dim V(b, j, N) = formula for all b <= 5, j <= 6, N <= 2j + 1: OK
+   (A2) order at the received point of the coefficient of Y1^c of a first integral with contact 2j (smallest N with a
+        nonzero Y1^c-part), as an offset from 2j;  Lemma N of note 40 gives 2j - b for every c:
+        b = 1, j >= 2: ord(c) - 2j for c = 0..1: [-1, -1]
+        b = 2, j >= 2: ord(c) - 2j for c = 0..2: [-2, -1, -2]
+        b = 3, j >= 3: ord(c) - 2j for c = 0..3: [-3, -3, -3, -3]
+        b = 4, j >= 4: ord(c) - 2j for c = 0..4: [-4, -3, -3, -3, -4]
+        b = 5, j >= 5: ord(c) - 2j for c = 0..5: [-5, -5, -3, -3, -5, -5]
+   (A3) number of conditions 'contact >= 2j on one line' on first integrals of Y1-degree <= b
+        (sum over N < 2j of dim{all} - dim{in I^j}); b = 1: (3j^2 + j)/2, b = 2, j = 2: 10 (note 45):
+        b = 1: j = 1..6: [2, 7, 15, 26, 40, 57]
+        b = 2: j = 1..6: [3, 10, 22, 39, 61, 88]
+        b = 3: j = 1..6: [4, 13, 28, 50, 79, 115]
+        b = 4: j = 1..6: [5, 16, 34, 60, 95, 139]
+        b = 5: j = 1..6: [6, 19, 40, 70, 110, 161]
+B. every characteristic: supports of the polynomials of Y1-degree <= b in the contact ideal c_m (Lemma 2.1)
+   p = 2: 378 spaces (m <= 9, b <= 5, N <= m + 1), violations 0; each inequality attained in [29, 54, 54] of 54 pairs (m, b)
+   p = 3: 378 spaces (m <= 9, b <= 5, N <= m + 1), violations 0; each inequality attained in [29, 54, 54] of 54 pairs (m, b)
+   p = 10007: 378 spaces (m <= 9, b <= 5, N <= m + 1), violations 0; each inequality attained in [29, 54, 54] of 54 pairs (m, b)
+C. translation: Q in c_m, P a polynomial through the point  =>  Q(X, P, P' + Y1) in (T, Y1)^m (Lemma 2.5)
+   p = 2: 200 random (Q, P), terms of (T, Y1)-order < m that survive: 0
+   p = 10007: 200 random (Q, P), terms of (T, Y1)-order < m that survive: 0
+
+=== 50_window.py 1 3 4 5 6 ===
+1. certificates (m, B): N(B, mA) > n R(m, B); a fixed component of the explainer spaces has Y1-degree <= the smallest B
+   n = 2^25, a = 0.70: B=1: none; B=2: none; B=3: none; B=4: m=21..24 (B_jet(21)=29, W<21A=14.70n); B=5: m=18..42 (B_jet(18)=25, W<18A=12.60n); B=6: m=19..56 (B_jet(19)=26, W<19A=13.30n)
+   n = 2^25, a = 0.703: B=1: none; B=2: none; B=3: m=14..37 (B_jet(14)=19, W<14A=9.84n); B=4: m=14..63 (B_jet(14)=19, W<14A=9.84n); B=5: m=15..87 (B_jet(15)=21, W<15A=10.55n); B=6: m=17..112 (B_jet(17)=23, W<17A=11.95n)
+   n = 2^25, a = 0.705: B=1: none; B=2: m=14..35 (B_jet(14)=19, W<14A=9.87n); B=3: m=12..87 (B_jet(12)=16, W<12A=8.46n); B=4: m=13..136 (B_jet(13)=18, W<13A=9.17n); B=5: m=14..184 (B_jet(14)=19, W<14A=9.87n); B=6: m=16..232 (B_jet(16)=22, W<16A=11.28n)
+   n = 2^26, a = 0.70: B=1: none; B=2: none; B=3: none; B=4: m=21..24 (B_jet(21)=29, W<21A=14.70n); B=5: m=18..42 (B_jet(18)=25, W<18A=12.60n); B=6: m=19..56 (B_jet(19)=26, W<19A=13.30n)
+   n = 2^26, a = 0.703: B=1: none; B=2: none; B=3: m=14..37 (B_jet(14)=19, W<14A=9.84n); B=4: m=14..63 (B_jet(14)=19, W<14A=9.84n); B=5: m=15..87 (B_jet(15)=21, W<15A=10.55n); B=6: m=17..112 (B_jet(17)=23, W<17A=11.95n)
+   n = 2^26, a = 0.705: B=1: none; B=2: m=14..35 (B_jet(14)=19, W<14A=9.87n); B=3: m=12..87 (B_jet(12)=16, W<12A=8.46n); B=4: m=13..136 (B_jet(13)=18, W<13A=9.17n); B=5: m=14..184 (B_jet(14)=19, W<14A=9.87n); B=6: m=16..232 (B_jet(16)=22, W<16A=11.28n)
+   n = 2^27, a = 0.70: B=1: none; B=2: none; B=3: none; B=4: m=21..24 (B_jet(21)=29, W<21A=14.70n); B=5: m=18..42 (B_jet(18)=25, W<18A=12.60n); B=6: m=19..56 (B_jet(19)=26, W<19A=13.30n)
+   n = 2^27, a = 0.703: B=1: none; B=2: none; B=3: m=14..37 (B_jet(14)=19, W<14A=9.84n); B=4: m=14..63 (B_jet(14)=19, W<14A=9.84n); B=5: m=15..87 (B_jet(15)=21, W<15A=10.55n); B=6: m=17..112 (B_jet(17)=23, W<17A=11.95n)
+   n = 2^27, a = 0.705: B=1: none; B=2: m=14..35 (B_jet(14)=19, W<14A=9.87n); B=3: m=12..87 (B_jet(12)=16, W<12A=8.46n); B=4: m=13..136 (B_jet(13)=18, W<13A=9.17n); B=5: m=14..184 (B_jet(14)=19, W<14A=9.87n); B=6: m=16..232 (B_jet(16)=22, W<16A=11.28n)
+   n = 2^28, a = 0.70: B=1: none; B=2: none; B=3: none; B=4: m=21..24 (B_jet(21)=29, W<21A=14.70n); B=5: m=18..42 (B_jet(18)=25, W<18A=12.60n); B=6: m=19..56 (B_jet(19)=26, W<19A=13.30n)
+   n = 2^28, a = 0.703: B=1: none; B=2: none; B=3: m=14..37 (B_jet(14)=19, W<14A=9.84n); B=4: m=14..63 (B_jet(14)=19, W<14A=9.84n); B=5: m=15..87 (B_jet(15)=21, W<15A=10.55n); B=6: m=17..112 (B_jet(17)=23, W<17A=11.95n)
+   n = 2^28, a = 0.705: B=1: none; B=2: m=14..35 (B_jet(14)=19, W<14A=9.87n); B=3: m=12..87 (B_jet(12)=16, W<12A=8.46n); B=4: m=13..136 (B_jet(13)=18, W<13A=9.17n); B=5: m=14..184 (B_jet(14)=19, W<14A=9.87n); B=6: m=16..232 (B_jet(16)=22, W<16A=11.28n)
+   queries ceil(108 / log2(n/A)): a = 0.7: 210, a = 0.703: 213, a = 0.705: 215, a = 0.7071: 216
+3. Theorem 4.1: every first-integral component with b >= 2, leading coefficient involving Y0 and all contact orders <= 4
+   is cut by Lemma C: one (m, B) per b such that (2) holds at the vertices j = 1 (W = (b+2) Delta) and j = 2 (W = (b+2) Delta + n)
+   a = 0.70, n = 2^25, W_max = 18A - 1: b=1: NO (m <= 399); b=2: (74, 4) bound/deg 103; b=3: (74, 4) bound/deg 103; b=4: (74, 4) bound/deg 103; b=5: (76, 5) bound/deg 106
+   a = 0.70, n = 2^26, W_max = 18A - 1: b=1: NO (m <= 399); b=2: (74, 4) bound/deg 103; b=3: (74, 4) bound/deg 103; b=4: (74, 4) bound/deg 103; b=5: (76, 5) bound/deg 106
+   a = 0.70, n = 2^27, W_max = 18A - 1: b=1: NO (m <= 399); b=2: (74, 4) bound/deg 103; b=3: (74, 4) bound/deg 103; b=4: (74, 4) bound/deg 103; b=5: (76, 5) bound/deg 106
+   a = 0.70, n = 2^28, W_max = 18A - 1: b=1: NO (m <= 399); b=2: (74, 4) bound/deg 103; b=3: (74, 4) bound/deg 103; b=4: (74, 4) bound/deg 103; b=5: (76, 5) bound/deg 106
+   a = 0.703, n = 2^25, W_max = 18A - 1: b=1: NO (m <= 399); b=2: (70, 3) bound/deg 98; b=3: (70, 3) bound/deg 98; b=4: (73, 4) bound/deg 102; b=5: (75, 5) bound/deg 105
+   a = 0.703, n = 2^26, W_max = 18A - 1: b=1: NO (m <= 399); b=2: (70, 3) bound/deg 98; b=3: (70, 3) bound/deg 98; b=4: (73, 4) bound/deg 102; b=5: (75, 5) bound/deg 105
+   a = 0.703, n = 2^27, W_max = 18A - 1: b=1: NO (m <= 399); b=2: (70, 3) bound/deg 98; b=3: (70, 3) bound/deg 98; b=4: (73, 4) bound/deg 102; b=5: (75, 5) bound/deg 105
+   a = 0.703, n = 2^28, W_max = 18A - 1: b=1: NO (m <= 399); b=2: (70, 3) bound/deg 98; b=3: (70, 3) bound/deg 98; b=4: (73, 4) bound/deg 102; b=5: (75, 5) bound/deg 105
+   a = 0.703, n = 2^25, W_max = 14A - 1: b=1: NO (m <= 399); b=2: (54, 2) bound/deg 75; b=3: (56, 3) bound/deg 78
+   a = 0.703, n = 2^26, W_max = 14A - 1: b=1: NO (m <= 399); b=2: (54, 2) bound/deg 75; b=3: (56, 3) bound/deg 78
+   a = 0.703, n = 2^27, W_max = 14A - 1: b=1: NO (m <= 399); b=2: (54, 2) bound/deg 75; b=3: (56, 3) bound/deg 78
+   a = 0.703, n = 2^28, W_max = 14A - 1: b=1: NO (m <= 399); b=2: (54, 2) bound/deg 75; b=3: (56, 3) bound/deg 78
+4. with (L1) alone, the largest jmax such that every profile with all contact orders <= 2 jmax is cut (one (m, B), m <= 399)
+   a = 0.70, W_max = 18A - 1, b = 2: closed for all contact orders <= 4 with (m, B) = (74, 4)
+   a = 0.70, W_max = 18A - 1, b = 3: closed for all contact orders <= 8 with (m, B) = (81, 7)
+   a = 0.70, W_max = 18A - 1, b = 4: closed for all contact orders <= 10 with (m, B) = (79, 6)
+   a = 0.70, W_max = 18A - 1, b = 5: closed for all contact orders <= 14 with (m, B) = (84, 8)
+   a = 0.703, W_max = 14A - 1, b = 2: closed for all contact orders <= 6 with (m, B) = (66, 7)
+   a = 0.703, W_max = 14A - 1, b = 3: closed for all contact orders <= 8 with (m, B) = (59, 4)
+   a = 0.705, W_max = 14A - 1, b = 2: closed for all contact orders <= 6 with (m, B) = (56, 3)
+5. the tie (b, contact) = (2, 6) on all lines: lower bound (J) = Delta + 5A against the cut of Lemma C
+   leading order: (J) meets the cut iff 100 a^4 - 89 a^2 - 2a + 21 = (10a - 7)(10a^3 + 7a^2 - 4a - 3) = 0, i.e. a = 7/10 exactly
+   a = 0.70: (J) = 4.00000 n, (L1, d = 6) = 4.00000 n; cut from: m=60: 4.02955, m=120: 4.01375, m=240: 4.00664, m=480: 4.00326, m=960: 4.00162, m=1920: 4.00081
+   a = 0.7005: (J) = 4.00250 n, (L1, d = 6) = 4.00000 n; cut from: m=60: 4.02071, m=120: 4.00551, m=240: 3.99866, m=480: 3.99540, m=960: 3.99380, m=1920: 3.99302
+   a = 0.701: (J) = 4.00500 n, (L1, d = 6) = 4.00000 n; cut from: m=60: 4.01187, m=120: 3.99720, m=240: 3.99053, m=480: 3.98736, m=960: 3.98582, m=1920: 3.98506
+   a = 0.702: (J) = 4.01000 n, (L1, d = 6) = 4.00000 n; cut from: m=60: 3.99382, m=120: 3.97994, m=240: 3.97369, m=480: 3.97073, m=960: 3.96930, m=1920: 3.96859
+   a = 0.703: (J) = 4.01500 n, (L1, d = 6) = 4.00000 n; cut from: m=60: 3.97468, m=120: 3.96162, m=240: 3.95588, m=480: 3.95310, m=960: 3.95179, m=1920: 3.95114
+6. smallest agreement with a certificate of Y1-degree B (n = 2^25, any m <= 400), and b = 2 with contact orders <= 6
+   B = 1: no certificate with m <= 400 up to A = 23726566 = 0.70711 n (just below the Johnson radius)
+   B = 2: certificates exist from A = 23636870 = 0.70443 n on (there with m = 21); queries 214
+   B = 3: certificates exist from A = 23546974 = 0.70175 n on (there with m = 19); queries 212
+   B = 4: certificates exist from A = 23482400 = 0.69983 n on (there with m = 21); queries 210
+   B = 5: certificates exist from A = 23434846 = 0.69841 n on (there with m = 24); queries 209
+   B = 6: certificates exist from A = 23399338 = 0.69735 n on (there with m = 27); queries 208
+   b = 2, all contact orders <= 6, at most x6 n lines of contact 6 (a = 0.70, W_max = 18A - 1): Lemma U with phi = (j-1)_+,
+   vertices: uniform j = 1, 2 and x6 [j = 3] + (1 - x6) [j' = 0, 1, 2]
+     x6 = 0.9: closed with (m, B) = (100, 13), bound per unit of degree 139
+     x6 = 0.95: closed with (m, B) = (160, 24), bound per unit of degree 223
+     x6 = 0.98: closed with (m, B) = (240, 44), bound per unit of degree 335
+     x6 = 0.99: closed with (m, B) = (480, 89), bound per unit of degree 671
+     x6 = 0.995: closed with (m, B) = (960, 181), bound per unit of degree 1343
+     x6 = 0.999: closed with (m, B) = (7680, 1464), bound per unit of degree 10751
+     x6 = 1: no (m, B) with m <= 7680
+
+=== 50_parity.py D ===
+D. toy checks over GF(2^8)
+   (i) the flat word alpha^(n/2 - 1), n = 16, Delta = 3, A = 7 (A^2 = 49 > n Delta = 48): 15 list members on the flat cubic dE = c + a Y1 (b = 1)
+       even support q = 2, m = 9: |S| = 1263, n rho = 1232, space of dimension 60; two random elements R: (flats with R != 0 on the jet, R_0 != 0, R_q != 0, R_0 a^q = R_q c^q) = [(0, True, True, True), (0, True, True, True)]
+       even support q = 4, m = 12: |S| = 2118, n rho = 2080, space of dimension 120; two random elements R: (flats with R != 0 on the jet, R_0 != 0, R_q != 0, R_0 a^q = R_q c^q) = [(0, True, True, False), (0, True, True, False)]
+   (iii) slack support (0,1,0,1), m = 9: |S| = 2256, n R(9, 3) = 2240, space of dimension 92; random Q: flats with Q != 0: 0, with dQ/dY1 != 0: 0; dQ/dY1 = Q_1 + Q_3 Y1^2 with Q_1, Q_3 nonzero: True, True; Q_1 a^2 = Q_3 c^2: True
+   (ii) rate 1/2, n = 16, Delta = 7, planted polynomial with A agreements, and a random word
+       A = 12, even support q = 2, m = 6: |S| = 677, n rho = 560, planted word: space of dimension 117; R on the jet of a random polynomial: != 0; on the jet of the planted member: = 0
+       A = 12, even support q = 2, m = 6: |S| = 677, n rho = 560, random word: space of dimension 117; R on the jet of a random polynomial: != 0
+       A = 11, even support q = 2, m = 9: |S| = 1309, n rho = 1232, planted word: space of dimension 77; R on the jet of a random polynomial: != 0; on the jet of the planted member: = 0
+       A = 11, even support q = 2, m = 9: |S| = 1309, n rho = 1232, random word: space of dimension 77; R on the jet of a random polynomial: != 0
+
+=== 50_window.py 2 ===
+2. two-level profiles, a = 0.70, A = 23488103, certificates (18, 5), W < 18A; b = 5 is excluded by the certificate (21, 4), W_max = 12.600 n; all W in units of n
+   columns: b, contact 2j on x n lines, contact 2j' on the others; W_C = cut of Lemma C (every W in [W_C, W_max] is cut);
+   L = min over d of max(L1_d, L2_d, J) with the d that realise it; LB = the same with (B2) added (b = 2, non-degenerate)
+   2  4   0.5   0   W_C 1.2127 [960,130]    L 2.5000  LB 2.5000  closed
+   2  4   0.75  0   W_C 1.9124 [960,140]    L 2.7500  LB 2.7500  closed
+   2  4   0.85  0   W_C 2.1922 [960,144]    L 2.8500  LB 2.8500  closed
+   2  4   0.9   0   W_C 2.3320 [960,147]    L 2.9000  LB 2.9000  closed
+   2  4   0.95  0   W_C 2.4718 [960,149]    L 2.9500  LB 2.9500  closed
+   2  4   0.98  0   W_C 2.5557 [960,151]    L 2.9800  LB 2.9800  closed
+   2  4   1     0   W_C 2.6116 [960,152]    L 3.0000  LB 3.0000  closed
+   2  4   0.5   2   W_C 1.9132 [960,140]    L 2.5000  LB 2.5000  closed
+   2  4   0.75  2   W_C 2.2625 [960,146]    L 2.7500  LB 2.7500  closed
+   2  4   0.85  2   W_C 2.4022 [960,148]    L 2.8500  LB 2.8500  closed
+   2  4   0.9   2   W_C 2.4720 [960,149]    L 2.9000  LB 2.9000  closed
+   2  4   0.95  2   W_C 2.5418 [960,151]    L 2.9500  LB 2.9500  closed
+   2  4   0.98  2   W_C 2.5837 [960,152]    L 2.9800  LB 2.9800  closed
+   2  6   0.5   0   W_C 1.8333 [20,4]       L 3.0000  LB 3.0000  closed
+   2  6   0.75  0   W_C 2.9300 [30,6]       L 3.5000  LB 3.6875  closed
+   2  6   0.85  0   W_C 3.3738 [44,9]       L 3.8000  LB 3.8500  closed
+   2  6   0.9   0   W_C 3.5844 [960,177]    L 3.9000  LB 3.9000  closed
+   2  6   0.95  0   W_C 3.7932 [960,185]    L 3.9500  LB 3.9500  closed
+   2  6   0.98  0   W_C 3.9183 [960,189]    L 4.0000  LB 4.0000  closed
+   2  6   1     0   W_C 4.0016 [960,193]    L 4.0000  LB 4.0000  OPEN [4.0000, 4.0016) width 0.0016, d in [6]; degenerate from 4.0000
+   2  6   0.5   2   W_C 2.6100 [960,152]    L 3.0000  LB 3.0714  closed
+   2  6   0.75  2   W_C 3.3067 [960,169]    L 3.6500  LB 3.7188  closed
+   2  6   0.85  2   W_C 3.5849 [960,177]    L 3.8500  LB 3.8500  closed
+   2  6   0.9   2   W_C 3.7239 [960,182]    L 3.9000  LB 3.9000  closed
+   2  6   0.95  2   W_C 3.8628 [960,187]    L 3.9500  LB 3.9500  closed
+   2  6   0.98  2   W_C 3.9461 [960,191]    L 4.0000  LB 4.0000  closed
+   2  6   0.1   4   W_C 2.7509 [960,155]    L 3.1000  LB 3.1000  closed
+   2  6   0.3   4   W_C 3.0292 [960,162]    L 3.3000  LB 3.3000  closed
+   2  6   0.5   4   W_C 3.3075 [960,169]    L 3.5000  LB 3.5000  closed
+   2  6   0.7   4   W_C 3.5854 [960,177]    L 3.7000  LB 3.7000  closed
+   2  6   0.9   4   W_C 3.8630 [960,187]    L 3.9000  LB 3.9000  closed
+   2  8   0.5   0   W_C 2.4043 [20,3]       L 4.0000  LB 4.0000  closed
+   2  8   0.75  0   W_C 3.9185 [36,6]       L 4.5000  LB 4.7500  closed
+   2  8   0.85  0   W_C 4.5193 [52,11]      L 4.8500  LB 5.0000  closed
+   2  8   0.9   0   W_C 4.8144 [71,18]      L 4.9000  LB 5.1059  closed
+   2  8   0.95  0   W_C 5.1013 [960,272]    L 5.0500  LB 5.2294  closed if non-degenerate (B2); else OPEN [5.0500, 5.1013) for d in [8]
+   2  8   0.98  0   W_C 5.2653 [960,295]    L 5.2600  LB 5.3035  closed if non-degenerate (B2); else OPEN [5.2600, 5.2653) for d in [8]
+   2  8   1     0   W_C 5.3743 [960,315]    L 5.4000  LB 5.4000  closed
+   2  8   0.5   2   W_C 3.2522 [36,7]       L 4.0000  LB 4.0455  closed
+   2  8   0.75  2   W_C 4.3225 [52,12]      L 4.5500  LB 4.7679  closed
+   2  8   0.85  2   W_C 4.7528 [71,18]      L 4.8500  LB 5.0000  closed
+   2  8   0.9   2   W_C 4.9646 [960,257]    L 5.0000  LB 5.1118  closed
+   2  8   0.95  2   W_C 5.1700 [960,281]    L 5.1000  LB 5.2324  closed if non-degenerate (B2); else OPEN [5.1000, 5.1700) for d in [8]
+   2  8   0.98  2   W_C 5.2927 [960,300]    L 5.2800  LB 5.3047  closed if non-degenerate (B2); else OPEN [5.2800, 5.2927) for d in [8]
+   2  8   0.1   6   W_C 4.1399 [960,199]    L 4.1000  LB 4.1000  OPEN [4.1000, 4.1399) width 0.0399, d in [6]; degenerate from 4.1000
+   2  8   0.3   6   W_C 4.4159 [960,214]    L 4.3000  LB 4.4308  closed if non-degenerate (B2); else OPEN [4.3000, 4.4159) for d in [4, 6]
+   2  8   0.5   6   W_C 4.6912 [960,232]    L 4.5000  LB 4.7143  closed if non-degenerate (B2); else OPEN [4.5000, 4.6912) for d in [6]
+   2  8   0.7   6   W_C 4.9656 [960,256]    L 4.9000  LB 5.0000  closed if non-degenerate (B2); else OPEN [4.9000, 4.9656) for d in [6]
+   2  8   0.9   6   W_C 5.2386 [960,291]    L 5.2000  LB 5.2235  OPEN [5.2235, 5.2386) width 0.0150, d in [8]; degenerate from 5.2000
+   2  10  0.5   0   W_C 3.0000 [24,3]       L 5.0000  LB 5.0000  closed
+   2  10  0.75  0   W_C 4.9131 [44,7]       L 5.5000  LB 6.0000  closed
+   2  10  0.85  0   W_C 5.6633 [71,17]      L 5.8500  LB 6.2952  closed
+   2  10  0.9   0   W_C 6.0323 [120,35]     L 6.0000  LB 6.4667  closed if non-degenerate (B2); else OPEN [6.0000, 6.0323) for d in [10]
+   2  10  0.95  0   W_C 6.3759 [960,371]    L 6.3500  LB 6.6091  closed if non-degenerate (B2); else OPEN [6.3500, 6.3759) for d in [10]
+   2  10  0.98  0   W_C 6.5777 [960,370]    L 6.6200  LB 6.7073  closed
+   2  10  1     0   W_C 6.7123 [960,370]    L 6.8000  LB 6.8000  closed
+   2  10  0.5   2   W_C 3.8698 [36,6]       L 5.0000  LB 5.0333  closed
+   2  10  0.75  2   W_C 5.3205 [52,10]      L 5.5000  LB 6.0000  closed
+   2  10  0.85  2   W_C 5.8978 [100,28]     L 5.8500  LB 6.3024  closed if non-degenerate (B2); else OPEN [5.8500, 5.8978) for d in [8]
+   2  10  0.9   2   W_C 6.1750 [960,371]    L 6.0000  LB 6.4714  closed if non-degenerate (B2); else OPEN [6.0000, 6.1750) for d in [10]
+   2  10  0.95  2   W_C 6.4434 [960,371]    L 6.4000  LB 6.6114  closed if non-degenerate (B2); else OPEN [6.4000, 6.4434) for d in [10]
+   2  10  0.98  2   W_C 6.6048 [960,370]    L 6.6400  LB 6.7082  closed
+   2  10  0.1   8   W_C 5.5089 [960,346]    L 5.4000  LB 5.5000  OPEN [5.5000, 5.5089) width 0.0089, d in [8]; degenerate from 5.4000
+   2  10  0.3   8   W_C 5.7762 [960,372]    L 5.5000  LB 5.8333  closed if non-degenerate (B2); else OPEN [5.5000, 5.7762) for d in [8]
+   2  10  0.5   8   W_C 6.0434 [960,371]    L 5.9000  LB 6.0952  closed if non-degenerate (B2); else OPEN [5.9000, 6.0434) for d in [8, 10]
+   2  10  0.7   8   W_C 6.3108 [960,371]    L 6.2000  LB 6.3810  closed if non-degenerate (B2); else OPEN [6.2000, 6.3108) for d in [8, 10]
+   2  10  0.9   8   W_C 6.5784 [960,370]    L 6.6000  LB 6.6364  closed
+   2  12  0.5   0   W_C 3.5833 [30,4]       L 6.0000  LB 6.0000  closed
+   2  12  0.75  0   W_C 5.9064 [60,12]      L 6.5000  LB 7.1800  closed
+   2  12  0.85  0   W_C 6.8120 [80,18]      L 6.8500  LB 7.5962  closed
+   2  12  0.9   0   W_C 7.2415 [640,241]    L 7.1000  LB 7.8077  closed if non-degenerate (B2); else OPEN [7.1000, 7.2415) for d in [12]
+   2  12  0.95  0   W_C 7.6456 [960,368]    L 7.6500  LB 8.0000  closed
+   2  12  0.98  0   W_C 7.8879 [960,368]    L 7.9800  LB 8.0966  closed
+   2  12  1     0   W_C 8.0501 [960,367]    L 8.2000  LB 8.2000  closed
+   2  12  0.5   2   W_C 4.4765 [36,5]       L 6.0000  LB 6.0263  closed
+   2  12  0.75  2   W_C 6.3230 [60,11]      L 6.5000  LB 7.1900  closed
+   2  12  0.85  2   W_C 7.0404 [240,81]     L 6.9500  LB 7.6019  closed if non-degenerate (B2); else OPEN [6.9500, 7.0404) for d in [10, 12]
+   2  12  0.9   2   W_C 7.3769 [960,369]    L 7.2000  LB 7.8115  closed if non-degenerate (B2); else OPEN [7.2000, 7.3769) for d in [12]
+   2  12  0.95  2   W_C 7.7133 [960,368]    L 7.7000  LB 8.0000  closed if non-degenerate (B2); else OPEN [7.7000, 7.7133) for d in [12]
+   2  12  0.98  2   W_C 7.9150 [960,368]    L 8.0000  LB 8.0972  closed
+   2  12  0.1   10  W_C 6.8457 [960,370]    L 6.8000  LB 6.9455  closed if non-degenerate (B2); else OPEN [6.8000, 6.8457) for d in [10]
+   2  12  0.3   10  W_C 7.1131 [960,369]    L 6.9000  LB 7.2160  closed if non-degenerate (B2); else OPEN [6.9000, 7.1131) for d in [10, 12]
+   2  12  0.5   10  W_C 7.3804 [960,369]    L 7.2000  LB 7.5000  closed if non-degenerate (B2); else OPEN [7.2000, 7.3804) for d in [10, 12]
+   2  12  0.7   10  W_C 7.6482 [960,368]    L 7.6000  LB 7.7923  closed if non-degenerate (B2); else OPEN [7.6000, 7.6482) for d in [12]
+   2  12  0.9   10  W_C 7.9157 [960,368]    L 8.0000  LB 8.0414  closed
+   2  14  0.5   0   W_C 4.1502 [36,6]       L 7.0000  LB 7.0000  closed
+   2  14  0.75  0   W_C 6.8916 [52,7]       L 7.5000  LB 8.4138  closed
+   2  14  0.85  0   W_C 7.9560 [100,24]     L 7.9000  LB 8.9200  closed if non-degenerate (B2); else OPEN [7.9000, 7.9560) for d in [12]
+   2  14  0.9   0   W_C 8.4434 [960,367]    L 8.3000  LB 9.1333  closed if non-degenerate (B2); else OPEN [8.3000, 8.4434) for d in [14]
+   2  14  0.95  0   W_C 8.9157 [960,366]    L 8.9500  LB 9.3697  closed
+   2  14  0.98  0   W_C 9.1996 [960,365]    L 9.3400  LB 9.5000  closed
+   2  14  1     0   W_C 9.3885 [960,365]    L 9.6000  LB 9.6000  closed
+   2  14  0.5   2   W_C 5.0833 [36,4]       L 7.0000  LB 7.0217  closed
+   2  14  0.75  2   W_C 7.3211 [80,17]      L 7.5000  LB 8.4224  closed
+   2  14  0.85  2   W_C 8.1758 [960,367]    L 8.0000  LB 8.9250  closed if non-degenerate (B2); else OPEN [8.0000, 8.1758) for d in [12, 14]
+   2  14  0.9   2   W_C 8.5798 [960,366]    L 8.4000  LB 9.1364  closed if non-degenerate (B2); else OPEN [8.4000, 8.5798) for d in [14]
+   2  14  0.95  2   W_C 8.9836 [960,366]    L 9.0000  LB 9.3712  closed
+   2  14  0.98  2   W_C 9.2268 [960,365]    L 9.3600  LB 9.5000  closed
+   2  14  0.1   12  W_C 8.1836 [960,367]    L 8.2000  LB 8.3310  closed
+   2  14  0.3   12  W_C 8.4508 [960,367]    L 8.2000  LB 8.6267  closed if non-degenerate (B2); else OPEN [8.2000, 8.4508) for d in [12, 14]
+   2  14  0.5   12  W_C 8.7188 [960,366]    L 8.6000  LB 8.9333  closed if non-degenerate (B2); else OPEN [8.6000, 8.7188) for d in [12, 14]
+   2  14  0.7   12  W_C 8.9862 [960,366]    L 9.0000  LB 9.1879  closed
+   2  14  0.9   12  W_C 9.2546 [960,365]    L 9.4000  LB 9.4667  closed
+   2  16  0.5   0   W_C 4.7333 [36,4]       L 8.0000  LB 8.0000  closed
+   2  16  0.75  0   W_C 7.8929 [60,8]       L 8.5000  LB 9.6324  closed
+   2  16  0.85  0   W_C 9.1040 [240,77]     L 9.0000  LB 10.2027  closed if non-degenerate (B2); else OPEN [9.0000, 9.1040) for d in [14, 16]
+   2  16  0.9   0   W_C 9.6468 [960,364]    L 9.5000  LB 10.4865  closed if non-degenerate (B2); else OPEN [9.5000, 9.6468) for d in [16]
+   2  16  0.95  0   W_C 10.1874 [960,363]   L 10.2500  LB 10.7500  closed
+   2  16  0.98  0   W_C 10.5126 [960,362]   L 10.7000  LB 10.9158  closed
+   2  16  1     0   W_C 10.7288 [960,362]   L 11.0000  LB 11.0000  closed
+   2  16  0.5   2   W_C 5.6678 [44,6]       L 8.0000  LB 8.0185  closed
+   2  16  0.75  2   W_C 8.3208 [80,15]      L 8.5000  LB 9.6397  closed
+   2  16  0.85  2   W_C 9.3107 [960,365]    L 9.0000  LB 10.2068  closed if non-degenerate (B2); else OPEN [9.0000, 9.3107) for d in [14, 16]
+   2  16  0.9   2   W_C 9.7829 [960,364]    L 9.6000  LB 10.4892  closed if non-degenerate (B2); else OPEN [9.6000, 9.7829) for d in [16]
+   2  16  0.95  2   W_C 10.2556 [960,363]   L 10.3000  LB 10.7513  closed
+   2  16  0.98  2   W_C 10.5398 [960,362]   L 10.7200  LB 10.9163  closed
+   2  16  0.1   14  W_C 9.5229 [960,364]    L 9.6000  LB 9.7471  closed
+   2  16  0.3   14  W_C 9.7902 [960,364]    L 9.6000  LB 10.0324  closed if non-degenerate (B2); else OPEN [9.6000, 9.7902) for d in [14, 16]
+   2  16  0.5   14  W_C 10.0585 [960,363]   L 10.0000  LB 10.3243  closed if non-degenerate (B2); else OPEN [10.0000, 10.0585) for d in [16, 18]
+   2  16  0.7   14  W_C 10.3261 [960,363]   L 10.4000  LB 10.6000  closed
+   2  16  0.9   14  W_C 10.5949 [960,362]   L 10.8000  LB 10.8842  closed
+   2  18  0.5   0   W_C 5.3190 [36,3]       L 9.0000  LB 9.0000  closed
+   2  18  0.75  0   W_C 8.8896 [80,14]      L 9.5000  LB 10.8684  closed
+   2  18  0.85  0   W_C 10.2416 [960,363]   L 10.0000  LB 11.5048  closed if non-degenerate (B2); else OPEN [10.0000, 10.2416) for d in [16, 18]
+   2  18  0.9   0   W_C 10.8498 [960,362]   L 10.7000  LB 11.8286  closed if non-degenerate (B2); else OPEN [10.7000, 10.8498) for d in [18]
+   2  18  0.95  0   W_C 11.4590 [960,361]   L 11.5500  LB 12.1200  closed
+   2  18  0.98  0   W_C 11.8255 [960,360]   L 12.0600  LB 12.3013  closed
+   2  18  1     0   W_C 12.0705 [960,359]   L 12.4000  LB 12.4222  closed
+   2  18  0.5   2   W_C 6.2454 [44,5]       L 9.0000  LB 9.0161  closed
+   2  18  0.75  2   W_C 9.3204 [100,21]     L 9.5000  LB 10.8750  closed
+   2  18  0.85  2   W_C 10.4459 [960,363]   L 10.0000  LB 11.5083  closed if non-degenerate (B2); else OPEN [10.0000, 10.4459) for d in [16, 18]
+   2  18  0.9   2   W_C 10.9862 [960,362]   L 10.8000  LB 11.8310  closed if non-degenerate (B2); else OPEN [10.8000, 10.9862) for d in [18]
+   2  18  0.95  2   W_C 11.5286 [960,360]   L 11.6000  LB 12.1211  closed
+   2  18  0.98  2   W_C 11.8529 [960,360]   L 12.0800  LB 12.3018  closed
+   2  18  0.1   16  W_C 10.8624 [960,362]   L 11.0000  LB 11.1512  closed
+   2  18  0.3   16  W_C 11.1309 [960,361]   L 11.0000  LB 11.4537  closed if non-degenerate (B2); else OPEN [11.0000, 11.1309) for d in [16, 18, 20]
+   2  18  0.5   16  W_C 11.3984 [960,361]   L 11.4000  LB 11.7381  closed
+   2  18  0.7   16  W_C 11.6674 [960,360]   L 11.8000  LB 12.0089  closed
+   2  18  0.9   16  W_C 11.9352 [960,360]   L 12.2000  LB 12.2844  closed
+   2  20  0.5   0   W_C 5.8742 [44,5]       L 10.0000  LB 10.0000  closed
+   2  20  0.75  0   W_C 9.8833 [80,12]      L 10.5000  LB 12.0778  closed
+   2  20  0.85  0   W_C 11.3765 [960,361]   L 11.0000  LB 12.8196  closed if non-degenerate (B2); else OPEN [11.0000, 11.3765) for d in [18, 20]
+   2  20  0.9   0   W_C 12.0547 [960,359]   L 11.9000  LB 13.1660  closed if non-degenerate (B2); else OPEN [11.9000, 12.0547) for d in [20, 22]
+   2  20  0.5   2   W_C 6.8481 [52,7]       L 10.0000  LB 10.0143  closed
+   2  20  0.75  2   W_C 10.3199 [100,19]    L 10.5000  LB 12.0833  closed
+   2  20  0.85  2   W_C 11.5827 [960,360]   L 11.1000  LB 12.8228  closed if non-degenerate (B2); else OPEN [11.1000, 11.5827) for d in [18, 20]
+   2  20  0.9   2   W_C 12.1916 [960,359]   L 12.0000  LB 13.1681  closed if non-degenerate (B2); else OPEN [12.0000, 12.1916) for d in [20, 22]
+   2  20  0.1   18  W_C 12.2042 [960,359]   L 12.4000  LB 12.5652  closed
+   2  20  0.3   18  W_C 12.4716 [960,359]   L 12.4000  LB 12.8696  closed if non-degenerate (B2); else OPEN [12.4000, 12.4716) for d in [20, 22]
+   2  22  0.5   0   W_C 6.4146 [44,4]       L 11.0000  LB 11.0000  closed
+   2  22  0.75  0   W_C 10.8860 [80,10]     L 11.5000  LB 13.3192  closed
+   2  22  0.85  0   W_C 12.5133 [960,358]   L 12.0500  LB 14.1225  closed if non-degenerate (B2); else OPEN [12.0500, 12.5133) for d in [20, 22]
+   2  22  0.5   2   W_C 7.4680 [60,9]       L 11.0000  LB 11.0128  closed
+   2  22  0.75  2   W_C 11.3200 [120,25]    L 11.5000  LB 13.3245  closed
+   2  22  0.85  2   W_C none                L 12.2000  LB 14.1255  NOT CUT at W_max
+   2  24  0.5   0   W_C 7.0042 [44,3]       L 12.0000  LB 12.0000  closed
+   2  24  0.75  0   W_C 11.8809 [100,16]    L 12.5000  LB 14.5300  closed
+   2  24  0.5   2   W_C 8.0636 [60,7]       L 12.0000  LB 12.0116  closed
+   2  24  0.75  2   W_C 12.3194 [120,23]    L 12.5000  LB 14.5350  closed
+   3  4   0.5   0   W_C 1.1185 [960,125]    L 3.0000  LB 3.0000  closed
+   3  4   0.75  0   W_C 1.8191 [960,130]    L 3.2500  LB 3.2500  closed
+   3  4   0.85  0   W_C 2.0994 [960,132]    L 3.3500  LB 3.3500  closed
+   3  4   0.9   0   W_C 2.2395 [960,134]    L 3.4000  LB 3.4000  closed
+   3  4   0.95  0   W_C 2.3796 [960,135]    L 3.4500  LB 3.4500  closed
+   3  4   0.98  0   W_C 2.4637 [960,136]    L 3.4800  LB 3.4800  closed
+   3  4   1     0   W_C 2.5198 [960,136]    L 3.5000  LB 3.5000  closed
+   3  4   0.5   2   W_C 1.8199 [960,130]    L 3.0000  LB 3.0000  closed
+   3  4   0.75  2   W_C 2.1698 [960,133]    L 3.2500  LB 3.2500  closed
+   3  4   0.85  2   W_C 2.3098 [960,134]    L 3.3500  LB 3.3500  closed
+   3  4   0.9   2   W_C 2.3798 [960,135]    L 3.4000  LB 3.4000  closed
+   3  4   0.95  2   W_C 2.4498 [960,136]    L 3.4500  LB 3.4500  closed
+   3  4   0.98  2   W_C 2.4918 [960,136]    L 3.4800  LB 3.4800  closed
+   3  6   0.5   0   W_C 1.7700 [24,5]       L 3.5000  LB 3.5000  closed
+   3  6   0.75  0   W_C 2.8483 [36,6]       L 4.0000  LB 4.0000  closed
+   3  6   0.85  0   W_C 3.2849 [71,12]      L 4.2000  LB 4.2000  closed
+   3  6   0.9   0   W_C 3.4964 [960,147]    L 4.3000  LB 4.3000  closed
+   3  6   0.95  0   W_C 3.7064 [960,149]    L 4.4000  LB 4.4000  closed
+   3  6   0.98  0   W_C 3.8323 [960,151]    L 4.4600  LB 4.4600  closed
+   3  6   1     0   W_C 3.9162 [960,152]    L 4.5000  LB 4.5000  closed
+   3  6   0.5   2   W_C 2.5181 [320,46]     L 3.5000  LB 3.5000  closed
+   3  6   0.75  2   W_C 3.2173 [960,144]    L 4.0000  LB 4.0000  closed
+   3  6   0.85  2   W_C 3.4969 [960,147]    L 4.2000  LB 4.2000  closed
+   3  6   0.9   2   W_C 3.6367 [960,148]    L 4.3000  LB 4.3000  closed
+   3  6   0.95  2   W_C 3.7765 [960,150]    L 4.4000  LB 4.4000  closed
+   3  6   0.98  2   W_C 3.8603 [960,151]    L 4.4600  LB 4.4600  closed
+   3  6   0.1   4   W_C 2.6595 [960,138]    L 3.6000  LB 3.6000  closed
+   3  6   0.3   4   W_C 2.9388 [960,140]    L 3.8000  LB 3.8000  closed
+   3  6   0.5   4   W_C 3.2181 [960,144]    L 4.0000  LB 4.0000  closed
+   3  6   0.7   4   W_C 3.4973 [960,147]    L 4.2000  LB 4.2000  closed
+   3  6   0.9   4   W_C 3.7766 [960,150]    L 4.4000  LB 4.4000  closed
+   3  8   0.5   0   W_C 2.3526 [24,4]       L 4.0000  LB 4.0000  closed
+   3  8   0.75  0   W_C 3.8313 [36,6]       L 4.7500  LB 4.7500  closed
+   3  8   0.85  0   W_C 4.4347 [44,8]       L 5.1500  LB 5.1500  closed
+   3  8   0.9   0   W_C 4.7356 [44,8]       L 5.3000  LB 5.3000  closed
+   3  8   0.95  0   W_C 5.0289 [960,170]    L 5.4000  LB 5.4000  closed
+   3  8   0.98  0   W_C 5.1964 [960,173]    L 5.4800  LB 5.4800  closed
+   3  8   1     0   W_C 5.3080 [960,176]    L 5.5000  LB 5.5000  closed
+   3  8   0.5   2   W_C 3.1698 [36,7]       L 4.0000  LB 4.0000  closed
+   3  8   0.75  2   W_C 4.2398 [44,8]       L 4.9000  LB 4.9000  closed
+   3  8   0.85  2   W_C 4.6766 [71,13]      L 5.2000  LB 5.2000  closed
+   3  8   0.9   2   W_C 4.8898 [960,167]    L 5.3000  LB 5.3000  closed
+   3  8   0.95  2   W_C 5.0989 [960,171]    L 5.4000  LB 5.4000  closed
+   3  8   0.98  2   W_C 5.2244 [960,174]    L 5.4800  LB 5.4800  closed
+   3  8   0.1   6   W_C 4.0555 [960,154]    L 4.6000  LB 4.6000  closed
+   3  8   0.3   6   W_C 4.3340 [960,158]    L 4.8000  LB 4.8000  closed
+   3  8   0.5   6   W_C 4.6124 [960,163]    L 5.0000  LB 5.0000  closed
+   3  8   0.7   6   W_C 4.8907 [960,167]    L 5.2000  LB 5.2000  closed
+   3  8   0.9   6   W_C 5.1689 [960,173]    L 5.4000  LB 5.4000  closed
+   3  10  0.5   0   W_C 2.9366 [30,6]       L 5.0000  LB 5.0000  closed
+   3  10  0.75  0   W_C 4.8234 [44,7]       L 5.7500  LB 5.7500  closed
+   3  10  0.85  0   W_C 5.5834 [52,9]       L 6.2000  LB 6.2000  closed
+   3  10  0.9   0   W_C 5.9606 [60,12]      L 6.3000  LB 6.3000  closed
+   3  10  0.95  0   W_C 6.3365 [71,15]      L 6.4500  LB 6.4500  closed
+   3  10  0.98  0   W_C 6.5533 [960,210]    L 6.6200  LB 6.6200  closed
+   3  10  1     0   W_C 6.6921 [960,216]    L 6.8000  LB 6.8000  closed
+   3  10  0.5   2   W_C 3.7831 [36,6]       L 5.0000  LB 5.0000  closed
+   3  10  0.75  2   W_C 5.2384 [44,7]       L 5.8000  LB 5.8000  closed
+   3  10  0.85  2   W_C 5.8292 [60,12]      L 6.2000  LB 6.2000  closed
+   3  10  0.9   2   W_C 6.1233 [71,15]      L 6.4000  LB 6.4000  closed
+   3  10  0.95  2   W_C 6.4148 [320,69]     L 6.4500  LB 6.4500  closed
+   3  10  0.98  2   W_C 6.5812 [960,211]    L 6.6400  LB 6.6400  closed
+   3  10  0.1   8   W_C 5.4466 [960,179]    L 5.6000  LB 5.6000  closed
+   3  10  0.3   8   W_C 5.7239 [960,185]    L 5.8000  LB 5.8000  closed
+   3  10  0.5   8   W_C 6.0008 [960,192]    L 6.0000  LB 6.0000  OPEN [6.0000, 6.0008) width 0.0008, d in [6, 8]
+   3  10  0.7   8   W_C 6.2776 [960,201]    L 6.2000  LB 6.2000  OPEN [6.2000, 6.2776) width 0.0776, d in [8]
+   3  10  0.9   8   W_C 6.5540 [960,210]    L 6.6000  LB 6.6000  closed
+   3  12  0.5   0   W_C 3.5290 [30,4]       L 6.0000  LB 6.0000  closed
+   3  12  0.75  0   W_C 5.8080 [52,9]       L 6.7500  LB 6.7500  closed
+   3  12  0.85  0   W_C 6.7354 [60,10]      L 7.2000  LB 7.2000  closed
+   3  12  0.9   0   W_C 7.1845 [71,14]      L 7.4000  LB 7.4000  closed
+   3  12  0.95  0   W_C 7.6345 [100,24]     L 7.6500  LB 7.6500  closed
+   3  12  0.98  0   W_C 7.8944 [160,48]     L 7.9800  LB 7.9800  closed
+   3  12  1     0   W_C 8.0601 [960,314]    L 8.2000  LB 8.2000  closed
+   3  12  0.5   2   W_C 4.3976 [36,5]       L 6.0000  LB 6.0000  closed
+   3  12  0.75  2   W_C 6.2390 [60,11]      L 6.7500  LB 6.7500  closed
+   3  12  0.85  2   W_C 6.9795 [71,14]      L 7.2000  LB 7.2000  closed
+   3  12  0.9   2   W_C 7.3484 [80,17]      L 7.4000  LB 7.4000  closed
+   3  12  0.95  2   W_C 7.7112 [120,32]     L 7.7000  LB 7.7000  OPEN [7.7000, 7.7112) width 0.0112, d in [10, 12]
+   3  12  0.98  2   W_C 7.9237 [240,74]     L 8.0000  LB 8.0000  closed
+   3  12  0.1   10  W_C 6.8297 [960,222]    L 6.8000  LB 6.8000  OPEN [6.8000, 6.8297) width 0.0297, d in [8, 10]
+   3  12  0.3   10  W_C 7.1046 [960,235]    L 6.8000  LB 6.8000  OPEN [6.8000, 7.1046) width 0.3046, d in [8, 10]
+   3  12  0.5   10  W_C 7.3788 [960,251]    L 7.2000  LB 7.2000  OPEN [7.2000, 7.3788) width 0.1788, d in [10]
+   3  12  0.7   10  W_C 7.6522 [960,271]    L 7.6000  LB 7.6000  OPEN [7.6000, 7.6522) width 0.0522, d in [10, 12]
+   3  12  0.9   10  W_C 7.9245 [960,297]    L 8.0000  LB 8.0000  closed
+   3  14  0.5   0   W_C 4.0723 [36,6]       L 7.0000  LB 7.0000  closed
+   3  14  0.75  0   W_C 6.8047 [52,7]       L 7.7500  LB 7.7500  closed
+   3  14  0.85  0   W_C 7.8841 [80,16]      L 8.2000  LB 8.2000  closed
+   3  14  0.9   0   W_C 8.4119 [100,23]     L 8.4000  LB 8.4000  OPEN [8.4000, 8.4119) width 0.0119, d in [12]
+   3  14  0.95  0   W_C 8.9233 [160,46]     L 8.9500  LB 8.9500  closed
+   3  14  0.98  0   W_C 9.2106 [960,365]    L 9.3400  LB 9.3400  closed
+   3  14  1     0   W_C 9.3996 [960,365]    L 9.6000  LB 9.6000  closed
+   3  14  0.5   2   W_C 4.9984 [44,7]       L 7.0000  LB 7.0000  closed
+   3  14  0.75  2   W_C 7.2417 [71,13]      L 7.7500  LB 7.7500  closed
+   3  14  0.85  2   W_C 8.1347 [100,23]     L 8.3000  LB 8.3000  closed
+   3  14  0.9   2   W_C 8.5717 [120,30]     L 8.5000  LB 8.5000  OPEN [8.5000, 8.5717) width 0.0717, d in [12, 14]
+   3  14  0.95  2   W_C 8.9947 [320,110]    L 9.0000  LB 9.0000  closed
+   3  14  0.98  2   W_C 9.2378 [960,365]    L 9.3600  LB 9.3600  closed
+   3  14  0.1   12  W_C 8.1950 [960,334]    L 8.2000  LB 8.2000  closed
+   3  14  0.3   12  W_C 8.4628 [960,367]    L 8.2000  LB 8.2000  OPEN [8.2000, 8.4628) width 0.2628, d in [10, 12]
+   3  14  0.5   12  W_C 8.7303 [960,366]    L 8.6000  LB 8.6000  OPEN [8.6000, 8.7303) width 0.1303, d in [12, 14]
+   3  14  0.7   12  W_C 8.9978 [960,366]    L 9.0000  LB 9.0000  closed
+   3  14  0.9   12  W_C 9.2657 [960,365]    L 9.4000  LB 9.4000  closed
+   3  16  0.5   0   W_C 4.7000 [36,4]       L 8.0000  LB 8.0000  closed
+   3  16  0.75  0   W_C 7.8045 [60,8]       L 8.7500  LB 8.7500  closed
+   3  16  0.85  0   W_C 9.0421 [100,21]     L 9.2500  LB 9.2500  closed
+   3  16  0.9   0   W_C 9.6371 [120,28]     L 9.5000  LB 9.5000  OPEN [9.5000, 9.6371) width 0.1371, d in [14, 16]
+   3  16  0.95  0   W_C 10.1975 [960,363]   L 10.2500  LB 10.2500  closed
+   3  16  0.98  0   W_C 10.5221 [960,362]   L 10.7000  LB 10.7000  closed
+   3  16  1     0   W_C 10.7384 [960,362]   L 11.0000  LB 11.0000  closed
+   3  16  0.5   2   W_C 5.5859 [44,6]       L 8.0000  LB 8.0000  closed
+   3  16  0.75  2   W_C 8.2400 [80,15]      L 8.7500  LB 8.7500  closed
+   3  16  0.85  2   W_C 9.2824 [100,21]     L 9.3500  LB 9.3500  closed
+   3  16  0.9   2   W_C 9.7886 [240,76]     L 9.6000  LB 9.6000  OPEN [9.6000, 9.7886) width 0.1886, d in [14, 16]
+   3  16  0.95  2   W_C 10.2656 [960,363]   L 10.3000  LB 10.3000  closed
+   3  16  0.98  2   W_C 10.5494 [960,362]   L 10.7200  LB 10.7200  closed
+   3  16  0.1   14  W_C 9.5334 [960,364]    L 9.6000  LB 9.6000  closed
+   3  16  0.3   14  W_C 9.8007 [960,364]    L 9.6000  LB 9.6000  OPEN [9.6000, 9.8007) width 0.2007, d in [12, 14, 16]
+   3  16  0.5   14  W_C 10.0685 [960,363]   L 10.0000  LB 10.0000  OPEN [10.0000, 10.0685) width 0.0685, d in [14, 16]
+   3  16  0.7   14  W_C 10.3362 [960,363]   L 10.4000  LB 10.4000  closed
+   3  16  0.9   14  W_C 10.6044 [960,362]   L 10.8000  LB 10.8000  closed
+   3  18  0.5   0   W_C 5.2284 [44,7]       L 9.0000  LB 9.0000  closed
+   3  18  0.75  0   W_C 8.8051 [71,10]      L 9.7500  LB 9.7500  closed
+   3  18  0.85  0   W_C 10.1903 [100,19]    L 10.3500  LB 10.3500  closed
+   3  18  0.9   0   W_C 10.8534 [240,74]    L 10.7000  LB 10.7000  OPEN [10.7000, 10.8534) width 0.1534, d in [16, 18]
+   3  18  0.95  0   W_C 11.4681 [960,361]   L 11.5500  LB 11.5500  closed
+   3  18  0.98  0   W_C 11.8341 [960,360]   L 12.0600  LB 12.0600  closed
+   3  18  1     0   W_C 12.0786 [960,359]   L 12.4000  LB 12.4000  closed
+   3  18  0.5   2   W_C 6.1837 [44,5]       L 9.0000  LB 9.0000  closed
+   3  18  0.75  2   W_C 9.2370 [80,13]      L 9.7500  LB 9.7500  closed
+   3  18  0.85  2   W_C 10.4294 [120,27]    L 10.3500  LB 10.3500  OPEN [10.3500, 10.4294) width 0.0794, d in [16]
+   3  18  0.9   2   W_C 10.9959 [960,362]   L 10.8000  LB 10.8000  OPEN [10.8000, 10.9959) width 0.1959, d in [16, 18]
+   3  18  0.95  2   W_C 11.5371 [960,360]   L 11.6000  LB 11.6000  closed
+   3  18  0.98  2   W_C 11.8615 [960,360]   L 12.0800  LB 12.0800  closed
+   3  18  0.1   16  W_C 10.8720 [960,362]   L 11.0000  LB 11.0000  closed
+   3  18  0.3   16  W_C 11.1400 [960,361]   L 11.0000  LB 11.0000  OPEN [11.0000, 11.1400) width 0.1400, d in [16, 18]
+   3  18  0.5   16  W_C 11.4075 [960,361]   L 11.4000  LB 11.4000  OPEN [11.4000, 11.4075) width 0.0075, d in [16, 18]
+   3  18  0.7   16  W_C 11.6760 [960,360]   L 11.8000  LB 11.8000  closed
+   3  18  0.9   16  W_C 11.9438 [960,360]   L 12.2000  LB 12.2000  closed
+   3  20  0.5   0   W_C 5.8163 [44,5]       L 10.0000  LB 10.0000  closed
+   3  20  0.75  0   W_C 9.7944 [80,12]      L 10.7500  LB 10.7500  closed
+   3  20  0.85  0   W_C 11.3380 [120,25]    L 11.3500  LB 11.3500  closed
+   3  20  0.9   0   W_C 12.0628 [960,359]   L 11.9000  LB 11.9000  OPEN [11.9000, 12.0628) width 0.1628, d in [18, 20]
+   3  20  0.5   2   W_C 6.7659 [52,7]       L 10.0000  LB 10.0000  closed
+   3  20  0.75  2   W_C 10.2412 [100,19]    L 10.7500  LB 10.7500  closed
+   3  20  0.85  2   W_C 11.5807 [160,40]    L 11.3500  LB 11.3500  OPEN [11.3500, 11.5807) width 0.2307, d in [18, 20]
+   3  20  0.9   2   W_C 12.1997 [960,359]   L 12.0000  LB 12.0000  OPEN [12.0000, 12.1997) width 0.1997, d in [18, 20]
+   3  20  0.1   18  W_C 12.2123 [960,359]   L 12.4000  LB 12.4000  closed
+   3  20  0.3   18  W_C 12.4797 [960,359]   L 12.4000  LB 12.4000  OPEN [12.4000, 12.4797) width 0.0797, d in [18, 20]
+   3  22  0.5   0   W_C 6.4210 [52,7]       L 11.0000  LB 11.0000  closed
+   3  22  0.75  0   W_C 10.7979 [80,10]     L 11.7500  LB 11.7500  closed
+   3  22  0.85  0   W_C 12.4862 [160,39]    L 12.3500  LB 12.3500  OPEN [12.3500, 12.4862) width 0.1362, d in [20]
+   3  22  0.5   2   W_C 7.3370 [52,6]       L 11.0000  LB 11.0000  closed
+   3  22  0.75  2   W_C 11.2369 [100,17]    L 11.7500  LB 11.7500  closed
+   3  22  0.85  2   W_C none                L 12.4000  LB 12.4000  NOT CUT at W_max
+   3  24  0.5   0   W_C 6.9544 [52,6]       L 12.0000  LB 12.0000  closed
+   3  24  0.5   2   W_C 7.9399 [60,8]       L 12.0000  LB 12.0000  closed
+   4  4   0.5   0   W_C 1.0119 [52,8]       L 3.5000  LB 3.5000  closed
+   4  4   0.75  0   W_C 1.7184 [71,10]      L 3.7500  LB 3.7500  closed
+   4  4   0.85  0   W_C 2.0033 [120,17]     L 3.8500  LB 3.8500  closed
+   4  4   0.9   0   W_C 2.1449 [480,65]     L 3.9000  LB 3.9000  closed
+   4  4   0.95  0   W_C 2.2852 [960,129]    L 3.9500  LB 3.9500  closed
+   4  4   0.98  0   W_C 2.3693 [960,130]    L 3.9800  LB 3.9800  closed
+   4  4   1     0   W_C 2.4254 [960,130]    L 4.0000  LB 4.0000  closed
+   4  4   0.5   2   W_C 1.7250 [960,126]    L 3.5000  LB 3.5000  closed
+   4  4   0.75  2   W_C 2.0752 [960,128]    L 3.7500  LB 3.7500  closed
+   4  4   0.85  2   W_C 2.2153 [960,129]    L 3.8500  LB 3.8500  closed
+   4  4   0.9   2   W_C 2.2853 [960,129]    L 3.9000  LB 3.9000  closed
+   4  4   0.95  2   W_C 2.3554 [960,130]    L 3.9500  LB 3.9500  closed
+   4  4   0.98  2   W_C 2.3974 [960,130]    L 3.9800  LB 3.9800  closed
+   4  6   0.5   0   W_C 1.6596 [36,6]       L 4.0000  LB 4.0000  closed
+   4  6   0.75  0   W_C 2.7307 [36,6]       L 4.5000  LB 4.5000  closed
+   4  6   0.85  0   W_C 3.1739 [36,6]       L 4.7000  LB 4.7000  closed
+   4  6   0.9   0   W_C 3.3957 [52,8]       L 4.8000  LB 4.8000  closed
+   4  6   0.95  0   W_C 3.6132 [160,24]     L 4.9000  LB 4.9000  closed
+   4  6   0.98  0   W_C 3.7400 [960,139]    L 4.9600  LB 4.9600  closed
+   4  6   1     0   W_C 3.8241 [960,140]    L 5.0000  LB 5.0000  closed
+   4  6   0.5   2   W_C 2.4108 [44,7]       L 4.0000  LB 4.0000  closed
+   4  6   0.75  2   W_C 3.1174 [71,11]      L 4.5000  LB 4.5000  closed
+   4  6   0.85  2   W_C 3.4025 [71,11]      L 4.7000  LB 4.7000  closed
+   4  6   0.9   2   W_C 3.5438 [240,35]     L 4.8000  LB 4.8000  closed
+   4  6   0.95  2   W_C 3.6840 [960,139]    L 4.9000  LB 4.9000  closed
+   4  6   0.98  2   W_C 3.7681 [960,139]    L 4.9600  LB 4.9600  closed
+   4  6   0.1   4   W_C 2.5653 [960,131]    L 4.1000  LB 4.1000  closed
+   4  6   0.3   4   W_C 2.8450 [960,133]    L 4.3000  LB 4.3000  closed
+   4  6   0.5   4   W_C 3.1247 [960,135]    L 4.5000  LB 4.5000  closed
+   4  6   0.7   4   W_C 3.4044 [960,137]    L 4.7000  LB 4.7000  closed
+   4  6   0.9   4   W_C 3.6842 [960,139]    L 4.9000  LB 4.9000  closed
+   4  8   0.5   0   W_C 2.2373 [24,5]       L 4.5000  LB 4.5000  closed
+   4  8   0.75  0   W_C 3.7143 [36,6]       L 5.2500  LB 5.2500  closed
+   4  8   0.85  0   W_C 4.3251 [44,8]       L 5.5500  LB 5.5500  closed
+   4  8   0.9   0   W_C 4.6271 [44,8]       L 5.7000  LB 5.7000  closed
+   4  8   0.95  0   W_C 4.9306 [52,9]       L 5.8500  LB 5.8500  closed
+   4  8   0.98  0   W_C 5.1078 [240,38]     L 5.9400  LB 5.9400  closed
+   4  8   1     0   W_C 5.2201 [960,152]    L 6.0000  LB 6.0000  closed
+   4  8   0.5   2   W_C 3.0546 [36,6]       L 4.5000  LB 4.5000  closed
+   4  8   0.75  2   W_C 4.1250 [36,6]       L 5.2500  LB 5.2500  closed
+   4  8   0.85  2   W_C 4.5692 [44,8]       L 5.5500  LB 5.5500  closed
+   4  8   0.9   2   W_C 4.7898 [44,8]       L 5.7000  LB 5.7000  closed
+   4  8   0.95  2   W_C 5.0090 [100,16]     L 5.8500  LB 5.8500  closed
+   4  8   0.98  2   W_C 5.1361 [960,151]    L 5.9400  LB 5.9400  closed
+   4  8   0.1   6   W_C 3.9636 [960,141]    L 5.1000  LB 5.1000  closed
+   4  8   0.3   6   W_C 4.2429 [960,143]    L 5.3000  LB 5.3000  closed
+   4  8   0.5   6   W_C 4.5220 [960,145]    L 5.5000  LB 5.5000  closed
+   4  8   0.7   6   W_C 4.8012 [960,148]    L 5.7000  LB 5.7000  closed
+   4  8   0.9   6   W_C 5.0804 [960,151]    L 5.9000  LB 5.9000  closed
+   4  10  0.5   0   W_C 2.8333 [30,6]       L 5.0000  LB 5.0000  closed
+   4  10  0.75  0   W_C 4.7065 [44,8]       L 6.0000  LB 6.0000  closed
+   4  10  0.85  0   W_C 5.4756 [52,9]       L 6.5000  LB 6.5000  closed
+   4  10  0.9   0   W_C 5.8538 [52,9]       L 6.7000  LB 6.7000  closed
+   4  10  0.95  0   W_C 6.2409 [60,11]      L 6.8500  LB 6.8500  closed
+   4  10  0.98  0   W_C 6.4681 [71,13]      L 6.9600  LB 6.9600  closed
+   4  10  1     0   W_C 6.6125 [960,168]    L 7.0000  LB 7.0000  closed
+   4  10  0.5   2   W_C 3.6674 [36,6]       L 5.0000  LB 5.0000  closed
+   4  10  0.75  2   W_C 5.1248 [44,7]       L 6.1500  LB 6.1500  closed
+   4  10  0.85  2   W_C 5.7227 [52,9]       L 6.5500  LB 6.5500  closed
+   4  10  0.9   2   W_C 6.0248 [60,11]      L 6.7000  LB 6.7000  closed
+   4  10  0.95  2   W_C 6.3226 [60,11]      L 6.8500  LB 6.8500  closed
+   4  10  0.98  2   W_C 6.4997 [120,21]     L 6.9600  LB 6.9600  closed
+   4  10  0.1   8   W_C 5.3593 [960,153]    L 6.1000  LB 6.1000  closed
+   4  10  0.3   8   W_C 5.6379 [960,156]    L 6.3000  LB 6.3000  closed
+   4  10  0.5   8   W_C 5.9163 [320,54]     L 6.5000  LB 6.5000  closed
+   4  10  0.7   8   W_C 6.1949 [640,109]    L 6.7000  LB 6.7000  closed
+   4  10  0.9   8   W_C 6.4733 [960,166]    L 6.9000  LB 6.9000  closed
+   4  12  0.5   0   W_C 3.3662 [30,5]       L 6.0000  LB 6.0000  closed
+   4  12  0.75  0   W_C 5.7007 [44,6]       L 7.0000  LB 7.0000  closed
+   4  12  0.85  0   W_C 6.6294 [60,10]      L 7.5500  LB 7.5500  closed
+   4  12  0.9   0   W_C 7.0933 [71,14]      L 7.7000  LB 7.7000  closed
+   4  12  0.95  0   W_C 7.5468 [71,13]      L 7.9000  LB 7.9000  closed
+   4  12  0.98  0   W_C 7.8219 [80,16]      L 7.9800  LB 7.9800  closed
+   4  12  1     0   W_C 8.0000 [960,192]    L 8.2000  LB 8.2000  closed
+   4  12  0.5   2   W_C 4.2940 [36,5]       L 6.0000  LB 6.0000  closed
+   4  12  0.75  2   W_C 6.1283 [52,8]       L 7.0500  LB 7.0500  closed
+   4  12  0.85  2   W_C 6.8787 [60,10]      L 7.5500  LB 7.5500  closed
+   4  12  0.9   2   W_C 7.2562 [71,13]      L 7.8000  LB 7.8000  closed
+   4  12  0.95  2   W_C 7.6288 [71,13]      L 7.9000  LB 7.9000  closed
+   4  12  0.98  2   W_C 7.8542 [80,16]      L 8.0000  LB 8.0000  closed
+   4  12  0.1   10  W_C 6.7514 [960,170]    L 7.1000  LB 7.1000  closed
+   4  12  0.3   10  W_C 7.0287 [160,29]     L 7.3000  LB 7.3000  closed
+   4  12  0.5   10  W_C 7.3058 [71,13]      L 7.5000  LB 7.5000  closed
+   4  12  0.7   10  W_C 7.5833 [120,23]     L 7.7000  LB 7.7000  closed
+   4  12  0.9   10  W_C 7.8614 [320,63]     L 8.0000  LB 8.0000  closed
+   4  14  0.5   0   W_C 3.9643 [36,6]       L 7.0000  LB 7.0000  closed
+   4  14  0.75  0   W_C 6.6974 [52,7]       L 8.0000  LB 8.0000  closed
+   4  14  0.85  0   W_C 7.7849 [71,12]      L 8.5500  LB 8.5500  closed
+   4  14  0.9   0   W_C 8.3219 [80,15]      L 8.8000  LB 8.8000  closed
+   4  14  0.95  0   W_C 8.8572 [100,22]     L 8.9500  LB 8.9500  closed
+   4  14  0.98  0   W_C 9.1711 [100,21]     L 9.3400  LB 9.3400  closed
+   4  14  1     0   W_C 9.3787 [120,28]     L 9.6000  LB 9.6000  closed
+   4  14  0.5   2   W_C 4.8871 [44,7]       L 7.0000  LB 7.0000  closed
+   4  14  0.75  2   W_C 7.1333 [60,9]       L 8.0000  LB 8.0000  closed
+   4  14  0.85  2   W_C 8.0343 [71,12]      L 8.5500  LB 8.5500  closed
+   4  14  0.9   2   W_C 8.4855 [80,15]      L 8.8000  LB 8.8000  closed
+   4  14  0.95  2   W_C 8.9366 [100,22]     L 9.0000  LB 9.0000  closed
+   4  14  0.98  2   W_C 9.2032 [100,21]     L 9.3600  LB 9.3600  closed
+   4  14  0.1   12  W_C 8.1381 [240,49]     L 8.2000  LB 8.2000  closed
+   4  14  0.3   12  W_C 8.4123 [100,21]     L 8.3000  LB 8.3000  OPEN [8.3000, 8.4123) width 0.1123, d in [10, 12]
+   4  14  0.5   12  W_C 8.6874 [100,22]     L 8.6000  LB 8.6000  OPEN [8.6000, 8.6874) width 0.0874, d in [10, 12]
+   4  14  0.7   12  W_C 8.9629 [100,22]     L 9.0000  LB 9.0000  closed
+   4  14  0.9   12  W_C 9.2403 [120,28]     L 9.4000  LB 9.4000  closed
+   4  16  0.5   0   W_C 4.5109 [36,5]       L 8.0000  LB 8.0000  closed
+   4  16  0.75  0   W_C 7.6985 [60,8]       L 9.0000  LB 9.0000  closed
+   4  16  0.85  0   W_C 8.9349 [80,14]      L 9.5500  LB 9.5500  closed
+   4  16  0.9   0   W_C 9.5573 [100,20]     L 9.8000  LB 9.8000  closed
+   4  16  0.95  0   W_C 10.1590 [120,27]    L 10.2500  LB 10.2500  closed
+   4  16  0.98  0   W_C 10.5132 [160,42]    L 10.7000  LB 10.7000  closed
+   4  16  1     0   W_C 10.7431 [240,74]    L 11.0000  LB 11.0000  closed
+   4  16  0.5   2   W_C 5.4807 [44,6]       L 8.0000  LB 8.0000  closed
+   4  16  0.75  2   W_C 8.1262 [71,12]      L 9.0000  LB 9.0000  closed
+   4  16  0.85  2   W_C 9.1955 [80,13]      L 9.6500  LB 9.6500  closed
+   4  16  0.9   2   W_C 9.7193 [100,20]     L 9.9000  LB 9.9000  closed
+   4  16  0.95  2   W_C 10.2381 [120,27]    L 10.3000  LB 10.3000  closed
+   4  16  0.98  2   W_C 10.5437 [160,42]    L 10.7200  LB 10.7200  closed
+   4  16  0.1   14  W_C 9.5143 [120,28]     L 9.6000  LB 9.6000  closed
+   4  16  0.3   14  W_C 9.7873 [120,28]     L 9.6000  LB 9.6000  OPEN [9.6000, 9.7873) width 0.1873, d in [12, 14]
+   4  16  0.5   14  W_C 10.0602 [160,43]    L 10.0000  LB 10.0000  OPEN [10.0000, 10.0602) width 0.0602, d in [12, 14, 16]
+   4  16  0.7   14  W_C 10.3333 [160,43]    L 10.4000  LB 10.4000  closed
+   4  16  0.9   14  W_C 10.6070 [240,74]    L 10.8000  LB 10.8000  closed
+   4  18  0.5   0   W_C 5.1248 [44,7]       L 9.0000  LB 9.0000  closed
+   4  18  0.75  0   W_C 8.6783 [71,11]      L 10.0000  LB 10.0000  closed
+   4  18  0.85  0   W_C 10.1018 [100,19]    L 10.6000  LB 10.6000  closed
+   4  18  0.9   0   W_C 10.7845 [100,18]    L 10.9000  LB 10.9000  closed
+   4  18  0.95  0   W_C 11.4551 [160,41]    L 11.5500  LB 11.5500  closed
+   4  18  0.98  0   W_C 11.8417 [480,168]   L 12.0600  LB 12.0600  closed
+   4  18  1     0   W_C 12.0861 [960,359]   L 12.4000  LB 12.4000  closed
+   4  18  0.5   2   W_C 6.0902 [52,8]       L 9.0000  LB 9.0000  closed
+   4  18  0.75  2   W_C 9.1268 [71,10]      L 10.0000  LB 10.0000  closed
+   4  18  0.85  2   W_C 10.3471 [100,19]    L 10.7000  LB 10.7000  closed
+   4  18  0.9   2   W_C 10.9456 [120,26]    L 10.9000  LB 10.9000  OPEN [10.9000, 10.9456) width 0.0456, d in [16]
+   4  18  0.95  2   W_C 11.5345 [160,40]    L 11.6000  LB 11.6000  closed
+   4  18  0.98  2   W_C 11.8695 [640,232]   L 12.0800  LB 12.0800  closed
+   4  18  0.1   16  W_C 10.8777 [240,74]    L 11.0000  LB 11.0000  closed
+   4  18  0.3   16  W_C 11.1473 [320,105]   L 11.0000  LB 11.0000  OPEN [11.0000, 11.1473) width 0.1473, d in [14, 16, 18]
+   4  18  0.5   16  W_C 11.4160 [640,233]   L 11.4000  LB 11.4000  OPEN [11.4000, 11.4160) width 0.0160, d in [14, 16, 18]
+   4  18  0.7   16  W_C 11.6840 [960,360]   L 11.8000  LB 11.8000  closed
+   4  18  0.9   16  W_C 11.9519 [960,360]   L 12.2000  LB 12.2000  closed
+   4  20  0.5   0   W_C 5.6507 [44,6]       L 10.0000  LB 10.0000  closed
+   4  20  0.75  0   W_C 9.6798 [71,9]       L 11.0000  LB 11.0000  closed
+   4  20  0.85  0   W_C 11.2498 [100,17]    L 11.7000  LB 11.7000  closed
+   4  20  0.9   0   W_C 12.0164 [120,23]    L 11.9000  LB 11.9000  OPEN [11.9000, 12.0164) width 0.1164, d in [18, 20]
+   4  20  0.5   2   W_C 6.6633 [52,7]       L 10.0000  LB 10.0000  closed
+   4  20  0.75  2   W_C 10.1413 [80,11]     L 11.0000  LB 11.0000  closed
+   4  20  0.85  2   W_C 11.5074 [120,24]    L 11.7000  LB 11.7000  closed
+   4  20  0.9   2   W_C 12.1745 [160,39]    L 12.0000  LB 12.0000  OPEN [12.0000, 12.1745) width 0.1745, d in [18, 20]
+   4  20  0.1   18  W_C 12.2198 [960,359]   L 12.4000  LB 12.4000  closed
+   4  20  0.3   18  W_C 12.4873 [960,359]   L 12.4000  LB 12.4000  OPEN [12.4000, 12.4873) width 0.0873, d in [16, 18, 20]
+   4  22  0.5   0   W_C 6.2182 [44,5]       L 11.0000  LB 11.0000  closed
+   4  22  0.75  0   W_C 10.6968 [80,10]     L 12.0000  LB 12.0000  closed
+   4  22  0.5   2   W_C 7.2535 [52,6]       L 11.0000  LB 11.0000  closed
+   4  22  0.75  2   W_C 11.1422 [100,17]    L 12.0000  LB 12.0000  closed
+   4  24  0.5   0   W_C 6.8000 [52,7]       L 12.0000  LB 12.0000  closed
+   4  24  0.5   2   W_C 7.8403 [60,8]       L 12.0000  LB 12.0000  closed
+   5  4   0.5   0   W_C 0.8293 [30,5]       L 4.0000  LB 4.0000  closed
+   5  4   0.75  0   W_C 1.5385 [30,5]       L 4.2500  LB 4.2500  closed
+   5  4   0.85  0   W_C 1.8308 [30,5]       L 4.3500  LB 4.3500  closed
+   5  4   0.9   0   W_C 1.9769 [30,5]       L 4.4000  LB 4.4000  closed
+   5  4   0.95  0   W_C 2.1263 [30,5]       L 4.4500  LB 4.4500  closed
+   5  4   0.98  0   W_C 2.2163 [30,5]       L 4.4800  LB 4.4800  closed
+   5  4   1     0   W_C 2.2763 [30,5]       L 4.5000  LB 4.5000  closed
+   5  4   0.5   2   W_C 1.5641 [30,5]       L 4.0000  LB 4.0000  closed
+   5  4   0.75  2   W_C 1.9167 [30,5]       L 4.2500  LB 4.2500  closed
+   5  4   0.85  2   W_C 2.0592 [30,5]       L 4.3500  LB 4.3500  closed
+   5  4   0.9   2   W_C 2.1316 [30,5]       L 4.4000  LB 4.4000  closed
+   5  4   0.95  2   W_C 2.2040 [30,5]       L 4.4500  LB 4.4500  closed
+   5  4   0.98  2   W_C 2.2474 [30,5]       L 4.4800  LB 4.4800  closed
+   5  6   0.5   0   W_C 1.4625 [30,5]       L 4.5000  LB 4.5000  closed
+   5  6   0.75  0   W_C 2.5338 [30,5]       L 5.0000  LB 5.0000  closed
+   5  6   0.85  0   W_C 2.9797 [30,5]       L 5.2000  LB 5.2000  closed
+   5  6   0.9   0   W_C 3.2083 [30,5]       L 5.3000  LB 5.3000  closed
+   5  6   0.95  0   W_C 3.4375 [30,5]       L 5.4000  LB 5.4000  closed
+   5  6   0.98  0   W_C 3.5894 [36,6]       L 5.4600  LB 5.4600  closed
+   5  6   1     0   W_C 3.6805 [36,6]       L 5.5000  LB 5.5000  closed
+   5  6   0.5   2   W_C 2.2237 [30,5]       L 4.5000  LB 4.5000  closed
+   5  6   0.75  2   W_C 2.9324 [30,5]       L 5.0000  LB 5.0000  closed
+   5  6   0.85  2   W_C 3.2250 [30,5]       L 5.2000  LB 5.2000  closed
+   5  6   0.9   2   W_C 3.3722 [30,5]       L 5.3000  LB 5.3000  closed
+   5  6   0.95  2   W_C 3.5333 [36,6]       L 5.4000  LB 5.4000  closed
+   5  6   0.98  2   W_C 3.6216 [36,6]       L 5.4600  LB 5.4600  closed
+   5  6   0.1   4   W_C 2.4105 [30,5]       L 4.6000  LB 4.6000  closed
+   5  6   0.3   4   W_C 2.6838 [30,5]       L 4.8000  LB 4.8000  closed
+   5  6   0.5   4   W_C 2.9595 [30,5]       L 5.0000  LB 5.0000  closed
+   5  6   0.7   4   W_C 3.2417 [30,5]       L 5.2000  LB 5.2000  closed
+   5  6   0.9   4   W_C 3.5379 [36,6]       L 5.4000  LB 5.4000  closed
+   5  8   0.5   0   W_C 2.0433 [24,5]       L 5.0000  LB 5.0000  closed
+   5  8   0.75  0   W_C 3.5425 [36,6]       L 5.7500  LB 5.7500  closed
+   5  8   0.85  0   W_C 4.1412 [36,6]       L 6.0500  LB 6.0500  closed
+   5  8   0.9   0   W_C 4.4750 [44,7]       L 6.2000  LB 6.2000  closed
+   5  8   0.95  0   W_C 4.7789 [44,7]       L 6.3500  LB 6.3500  closed
+   5  8   0.98  0   W_C 4.9643 [44,7]       L 6.4400  LB 6.4400  closed
+   5  8   1     0   W_C 5.0882 [44,7]       L 6.5000  LB 6.5000  closed
+   5  8   0.5   2   W_C 2.8514 [30,5]       L 5.0000  LB 5.0000  closed
+   5  8   0.75  2   W_C 3.9506 [36,6]       L 5.7500  LB 5.7500  closed
+   5  8   0.85  2   W_C 4.4164 [44,7]       L 6.0500  LB 6.0500  closed
+   5  8   0.9   2   W_C 4.6385 [44,7]       L 6.2000  LB 6.2000  closed
+   5  8   0.95  2   W_C 4.8618 [44,7]       L 6.3500  LB 6.3500  closed
+   5  8   0.98  2   W_C 4.9977 [44,7]       L 6.4400  LB 6.4400  closed
+   5  8   0.1   6   W_C 3.8165 [36,6]       L 5.6000  LB 5.6000  closed
+   5  8   0.3   6   W_C 4.0894 [36,6]       L 5.8000  LB 5.8000  closed
+   5  8   0.5   6   W_C 4.3808 [44,7]       L 6.0000  LB 6.0000  closed
+   5  8   0.7   6   W_C 4.6615 [44,7]       L 6.2000  LB 6.2000  closed
+   5  8   0.9   6   W_C 4.9451 [44,7]       L 6.4000  LB 6.4000  closed
+   5  10  0.5   0   W_C 2.6352 [30,5]       L 5.5000  LB 5.5000  closed
+   5  10  0.75  0   W_C 4.5464 [36,5]       L 6.5000  LB 6.5000  closed
+   5  10  0.85  0   W_C 5.3406 [44,6]       L 6.9000  LB 6.9000  closed
+   5  10  0.9   0   W_C 5.7200 [52,9]       L 7.1000  LB 7.1000  closed
+   5  10  0.95  0   W_C 6.1042 [52,8]       L 7.3000  LB 7.3000  closed
+   5  10  0.98  0   W_C 6.3361 [52,8]       L 7.4200  LB 7.4200  closed
+   5  10  1     0   W_C 6.4952 [60,10]      L 7.5000  LB 7.5000  closed
+   5  10  0.5   2   W_C 3.4445 [30,5]       L 5.5000  LB 5.5000  closed
+   5  10  0.75  2   W_C 4.9706 [44,7]       L 6.5000  LB 6.5000  closed
+   5  10  0.85  2   W_C 5.5883 [52,9]       L 6.9000  LB 6.9000  closed
+   5  10  0.9   2   W_C 5.8850 [52,9]       L 7.1000  LB 7.1000  closed
+   5  10  0.95  2   W_C 6.1882 [52,8]       L 7.3000  LB 7.3000  closed
+   5  10  0.98  2   W_C 6.3698 [52,8]       L 7.4200  LB 7.4200  closed
+   5  10  0.1   8   W_C 5.2235 [44,7]       L 6.6000  LB 6.6000  closed
+   5  10  0.3   8   W_C 5.5091 [52,8]       L 6.8000  LB 6.8000  closed
+   5  10  0.5   8   W_C 5.7867 [52,9]       L 7.0000  LB 7.0000  closed
+   5  10  0.7   8   W_C 6.0672 [52,8]       L 7.2000  LB 7.2000  closed
+   5  10  0.9   8   W_C 6.3496 [52,8]       L 7.4000  LB 7.4000  closed
+   5  12  0.5   0   W_C 3.1667 [30,5]       L 6.0000  LB 6.0000  closed
+   5  12  0.75  0   W_C 5.5485 [44,6]       L 7.2500  LB 7.2500  closed
+   5  12  0.85  0   W_C 6.5010 [60,10]      L 7.8500  LB 7.8500  closed
+   5  12  0.9   0   W_C 6.9565 [60,10]      L 8.1000  LB 8.1000  closed
+   5  12  0.95  0   W_C 7.4265 [60,9]       L 8.3000  LB 8.3000  closed
+   5  12  0.98  0   W_C 7.7055 [71,12]      L 8.4400  LB 8.4400  closed
+   5  12  1     0   W_C 7.8904 [71,12]      L 8.5000  LB 8.5000  closed
+   5  12  0.5   2   W_C 4.0800 [36,6]       L 6.0000  LB 6.0000  closed
+   5  12  0.75  2   W_C 5.9866 [52,8]       L 7.4000  LB 7.4000  closed
+   5  12  0.85  2   W_C 6.7506 [60,10]      L 7.9000  LB 7.9000  closed
+   5  12  0.9   2   W_C 7.1324 [60,9]       L 8.1000  LB 8.1000  closed
+   5  12  0.95  2   W_C 7.5138 [71,12]      L 8.3000  LB 8.3000  closed
+   5  12  0.98  2   W_C 7.7388 [71,12]      L 8.4400  LB 8.4400  closed
+   5  12  0.1   10  W_C 6.6324 [60,10]      L 7.6000  LB 7.6000  closed
+   5  12  0.3   10  W_C 6.9068 [60,10]      L 7.8000  LB 7.8000  closed
+   5  12  0.5   10  W_C 7.1888 [71,12]      L 8.0000  LB 8.0000  closed
+   5  12  0.7   10  W_C 7.4684 [71,12]      L 8.2000  LB 8.2000  closed
+   5  12  0.9   10  W_C 7.7488 [71,12]      L 8.4000  LB 8.4000  closed
+   5  14  0.5   0   W_C 3.7977 [36,6]       L 7.0000  LB 7.0000  closed
+   5  14  0.75  0   W_C 6.5574 [52,7]       L 8.2500  LB 8.2500  closed
+   5  14  0.85  0   W_C 7.6660 [71,12]      L 8.9000  LB 8.9000  closed
+   5  14  0.9   0   W_C 8.2027 [71,11]      L 9.1000  LB 9.1000  closed
+   5  14  0.95  0   W_C 8.7453 [80,14]      L 9.3500  LB 9.3500  closed
+   5  14  0.98  0   W_C 9.0708 [80,13]      L 9.4600  LB 9.4600  closed
+   5  14  1     0   W_C 9.2870 [100,19]     L 9.6000  LB 9.6000  closed
+   5  14  0.5   2   W_C 4.7365 [44,7]       L 7.0000  LB 7.0000  closed
+   5  14  0.75  2   W_C 7.0000 [60,9]       L 8.3000  LB 8.3000  closed
+   5  14  0.85  2   W_C 7.9152 [71,12]      L 8.9000  LB 8.9000  closed
+   5  14  0.9   2   W_C 8.3714 [71,11]      L 9.2000  LB 9.2000  closed
+   5  14  0.95  2   W_C 8.8282 [80,14]      L 9.3500  LB 9.3500  closed
+   5  14  0.98  2   W_C 9.1044 [80,13]      L 9.4600  LB 9.4600  closed
+   5  14  0.1   12  W_C 8.0270 [71,12]      L 8.6000  LB 8.6000  closed
+   5  14  0.3   12  W_C 8.3066 [80,14]      L 8.8000  LB 8.8000  closed
+   5  14  0.5   12  W_C 8.5829 [80,14]      L 9.0000  LB 9.0000  closed
+   5  14  0.7   12  W_C 8.8613 [80,14]      L 9.2000  LB 9.2000  closed
+   5  14  0.9   12  W_C 9.1459 [80,13]      L 9.4000  LB 9.4000  closed
+   5  16  0.5   0   W_C 4.3500 [36,5]       L 8.0000  LB 8.0000  closed
+   5  16  0.75  0   W_C 7.5667 [60,8]       L 9.2500  LB 9.2500  closed
+   5  16  0.85  0   W_C 8.8208 [71,10]      L 9.9000  LB 9.9000  closed
+   5  16  0.9   0   W_C 9.4359 [80,13]      L 10.2000  LB 10.2000  closed
+   5  16  0.95  0   W_C 10.0628 [100,19]    L 10.4000  LB 10.4000  closed
+   5  16  0.98  0   W_C 10.4260 [100,19]    L 10.7000  LB 10.7000  closed
+   5  16  1     0   W_C 10.6724 [120,25]    L 11.0000  LB 11.0000  closed
+   5  16  0.5   2   W_C 5.3307 [44,6]       L 8.0000  LB 8.0000  closed
+   5  16  0.75  2   W_C 8.0084 [71,12]      L 9.2500  LB 9.2500  closed
+   5  16  0.85  2   W_C 9.0774 [71,10]      L 9.9000  LB 9.9000  closed
+   5  16  0.9   2   W_C 9.6165 [80,12]      L 10.2000  LB 10.2000  closed
+   5  16  0.95  2   W_C 10.1447 [100,19]    L 10.4000  LB 10.4000  closed
+   5  16  0.98  2   W_C 10.4588 [100,19]    L 10.7200  LB 10.7200  closed
+   5  16  0.1   14  W_C 9.4235 [100,19]     L 9.6000  LB 9.6000  closed
+   5  16  0.3   14  W_C 9.6983 [100,19]     L 9.8000  LB 9.8000  closed
+   5  16  0.5   14  W_C 9.9736 [100,20]     L 10.0000  LB 10.0000  closed
+   5  16  0.7   14  W_C 10.2513 [100,19]    L 10.4000  LB 10.4000  closed
+   5  16  0.9   14  W_C 10.5323 [100,18]    L 10.8000  LB 10.8000  closed
+   5  18  0.5   0   W_C 4.9804 [44,7]       L 9.0000  LB 9.0000  closed
+   5  18  0.75  0   W_C 8.5571 [71,11]      L 10.2500  LB 10.2500  closed
+   5  18  0.85  0   W_C 9.9696 [80,12]      L 10.9000  LB 10.9000  closed
+   5  18  0.9   0   W_C 10.6816 [100,18]    L 11.2000  LB 11.2000  closed
+   5  18  0.95  0   W_C 11.3717 [100,17]    L 11.5500  LB 11.5500  closed
+   5  18  0.98  0   W_C 11.7807 [120,24]    L 12.0600  LB 12.0600  closed
+   5  18  1     0   W_C 12.0519 [160,39]    L 12.4000  LB 12.4000  closed
+   5  18  0.5   2   W_C 5.9529 [52,8]       L 9.0000  LB 9.0000  closed
+   5  18  0.75  2   W_C 9.0019 [71,10]      L 10.2500  LB 10.2500  closed
+   5  18  0.85  2   W_C 10.2480 [80,11]     L 11.0000  LB 11.0000  closed
+   5  18  0.9   2   W_C 10.8469 [100,18]    L 11.3000  LB 11.3000  closed
+   5  18  0.95  2   W_C 11.4538 [120,25]    L 11.6000  LB 11.6000  closed
+   5  18  0.98  2   W_C 11.8131 [120,24]    L 12.0800  LB 12.0800  closed
+   5  18  0.1   16  W_C 10.8089 [120,25]    L 11.0000  LB 11.0000  closed
+   5  18  0.3   16  W_C 11.0825 [120,25]    L 11.0000  LB 11.0000  OPEN [11.0000, 11.0825) width 0.0825, d in [14, 16]
+   5  18  0.5   16  W_C 11.3575 [120,25]    L 11.4000  LB 11.4000  closed
+   5  18  0.7   16  W_C 11.6354 [120,24]    L 11.8000  LB 11.8000  closed
+   5  18  0.9   16  W_C 11.9129 [120,24]    L 12.2000  LB 12.2000  closed
+   5  20  0.5   0   W_C 5.5089 [44,6]       L 10.0000  LB 10.0000  closed
+   5  20  0.75  0   W_C 9.5582 [71,9]       L 11.2500  LB 11.2500  closed
+   5  20  0.85  0   W_C 11.1436 [100,17]    L 11.9500  LB 11.9500  closed
+   5  20  0.9   0   W_C 11.9126 [100,16]    L 12.3000  LB 12.3000  closed
+   5  20  0.5   2   W_C 6.5277 [52,7]       L 10.0000  LB 10.0000  closed
+   5  20  0.75  2   W_C 10.0205 [80,11]     L 11.2500  LB 11.2500  closed
+   5  20  0.85  2   W_C 11.3940 [100,17]    L 12.0500  LB 12.0500  closed
+   5  20  0.9   2   W_C 12.0859 [120,23]    L 12.3000  LB 12.3000  closed
+   5  20  0.1   18  W_C 12.1880 [160,39]    L 12.4000  LB 12.4000  closed
+   5  20  0.3   18  W_C 12.4601 [160,39]    L 12.4000  LB 12.4000  OPEN [12.4000, 12.4601) width 0.0601, d in [16, 18]
+   5  22  0.5   0   W_C 6.1546 [52,8]       L 11.0000  LB 11.0000  closed
+   5  22  0.75  0   W_C 10.5791 [80,10]     L 12.2500  LB 12.2500  closed
+   5  22  0.5   2   W_C 7.1479 [52,6]       L 11.0000  LB 11.0000  closed
+   5  22  0.75  2   W_C 11.0364 [100,17]    L 12.2500  LB 12.2500  closed
+   5  24  0.5   0   W_C 6.6718 [52,7]       L 12.0000  LB 12.0000  closed
+   5  24  0.5   2   W_C 7.7148 [60,8]       L 12.0000  LB 12.0000  closed
+   summary a = 0.70 (rows closed / closed if non-degenerate / open) per (b, top contact):
+     b = 2, contact 4: 13 / 0 / 0
+     b = 2, contact 6: 17 / 0 / 1
+     b = 2, contact 8: 9 / 7 / 2
+     b = 2, contact 10: 9 / 8 / 1
+     b = 2, contact 12: 10 / 8 / 0
+     b = 2, contact 14: 12 / 6 / 0
+     b = 2, contact 16: 12 / 6 / 0
+     b = 2, contact 18: 13 / 5 / 0
+     b = 2, contact 20: 5 / 5 / 0
+     b = 2, contact 22: 4 / 1 / 1
+     b = 2, contact 24: 4 / 0 / 0
+     b = 3, contact 4: 13 / 0 / 0
+     b = 3, contact 6: 18 / 0 / 0
+     b = 3, contact 8: 18 / 0 / 0
+     b = 3, contact 10: 16 / 0 / 2
+     b = 3, contact 12: 13 / 0 / 5
+     b = 3, contact 14: 14 / 0 / 4
+     b = 3, contact 16: 14 / 0 / 4
+     b = 3, contact 18: 13 / 0 / 5
+     b = 3, contact 20: 6 / 0 / 4
+     b = 3, contact 22: 4 / 0 / 2
+     b = 3, contact 24: 2 / 0 / 0
+     b = 4, contact 4: 13 / 0 / 0
+     b = 4, contact 6: 18 / 0 / 0
+     b = 4, contact 8: 18 / 0 / 0
+     b = 4, contact 10: 18 / 0 / 0
+     b = 4, contact 12: 18 / 0 / 0
+     b = 4, contact 14: 16 / 0 / 2
+     b = 4, contact 16: 16 / 0 / 2
+     b = 4, contact 18: 15 / 0 / 3
+     b = 4, contact 20: 7 / 0 / 3
+     b = 4, contact 22: 4 / 0 / 0
+     b = 4, contact 24: 2 / 0 / 0
+     b = 5, contact 4: 13 / 0 / 0
+     b = 5, contact 6: 18 / 0 / 0
+     b = 5, contact 8: 18 / 0 / 0
+     b = 5, contact 10: 18 / 0 / 0
+     b = 5, contact 12: 18 / 0 / 0
+     b = 5, contact 14: 18 / 0 / 0
+     b = 5, contact 16: 18 / 0 / 0
+     b = 5, contact 18: 17 / 0 / 1
+     b = 5, contact 20: 9 / 0 / 1
+     b = 5, contact 22: 4 / 0 / 0
+     b = 5, contact 24: 2 / 0 / 0
+2. two-level profiles, a = 0.703, A = 23588766, certificates (14, 3), W < 14A, W_max = 9.842 n; all W in units of n
+   columns: b, contact 2j on x n lines, contact 2j' on the others; W_C = cut of Lemma C (every W in [W_C, W_max] is cut);
+   L = min over d of max(L1_d, L2_d, J) with the d that realise it; LB = the same with (B2) added (b = 2, non-degenerate)
+   2  4   0.5   0   W_C 1.1592 [960,100]    L 2.5000  LB 2.5000  closed
+   2  4   0.75  0   W_C 1.8593 [960,108]    L 2.7500  LB 2.7500  closed
+   2  4   0.85  0   W_C 2.1393 [960,112]    L 2.8500  LB 2.8500  closed
+   2  4   0.9   0   W_C 2.2792 [960,114]    L 2.9000  LB 2.9000  closed
+   2  4   0.95  0   W_C 2.4192 [960,116]    L 2.9500  LB 2.9500  closed
+   2  4   0.98  0   W_C 2.5032 [960,117]    L 2.9800  LB 2.9800  closed
+   2  4   1     0   W_C 2.5591 [960,118]    L 3.0000  LB 3.0000  closed
+   2  4   0.5   2   W_C 1.8600 [960,108]    L 2.5000  LB 2.5000  closed
+   2  4   0.75  2   W_C 2.2097 [960,113]    L 2.7500  LB 2.7500  closed
+   2  4   0.85  2   W_C 2.3494 [960,115]    L 2.8500  LB 2.8500  closed
+   2  4   0.9   2   W_C 2.4193 [960,116]    L 2.9000  LB 2.9000  closed
+   2  4   0.95  2   W_C 2.4892 [960,117]    L 2.9500  LB 2.9500  closed
+   2  4   0.98  2   W_C 2.5312 [960,118]    L 2.9800  LB 2.9800  closed
+   2  6   0.5   0   W_C 1.7808 [20,4]       L 3.0000  LB 3.0000  closed
+   2  6   0.75  0   W_C 2.8726 [30,5]       L 3.5000  LB 3.6875  closed
+   2  6   0.85  0   W_C 3.3164 [36,6]       L 3.8060  LB 3.8500  closed
+   2  6   0.9   0   W_C 3.5336 [960,138]    L 3.9000  LB 3.9000  closed
+   2  6   0.95  0   W_C 3.7428 [960,144]    L 3.9500  LB 3.9500  closed
+   2  6   0.98  0   W_C 3.8682 [960,148]    L 4.0000  LB 4.0000  closed
+   2  6   1     0   W_C 3.9518 [960,151]    L 4.0150  LB 4.0150  closed
+   2  6   0.5   2   W_C 2.5576 [960,118]    L 3.0000  LB 3.0714  closed
+   2  6   0.75  2   W_C 3.2553 [960,131]    L 3.6560  LB 3.7188  closed
+   2  6   0.85  2   W_C 3.5341 [960,138]    L 3.8500  LB 3.8500  closed
+   2  6   0.9   2   W_C 3.6734 [960,142]    L 3.9000  LB 3.9000  closed
+   2  6   0.95  2   W_C 3.8126 [960,146]    L 3.9590  LB 3.9590  closed
+   2  6   0.98  2   W_C 3.8961 [960,149]    L 4.0000  LB 4.0000  closed
+   2  6   0.1   4   W_C 2.6986 [960,120]    L 3.1000  LB 3.1000  closed
+   2  6   0.3   4   W_C 2.9774 [960,126]    L 3.3000  LB 3.3000  closed
+   2  6   0.5   4   W_C 3.2560 [960,131]    L 3.5000  LB 3.5000  closed
+   2  6   0.7   4   W_C 3.5345 [960,138]    L 3.7000  LB 3.7000  closed
+   2  6   0.9   4   W_C 3.8128 [960,146]    L 3.9090  LB 3.9090  closed
+   2  8   0.5   0   W_C 2.3238 [20,3]       L 4.0000  LB 4.0000  closed
+   2  8   0.75  0   W_C 3.8454 [30,4]       L 4.5000  LB 4.7500  closed
+   2  8   0.85  0   W_C 4.4563 [44,8]       L 4.8500  LB 5.0000  closed
+   2  8   0.9   0   W_C 4.7563 [44,8]       L 4.9150  LB 5.1059  closed
+   2  8   0.95  0   W_C 5.0527 [60,14]      L 5.0710  LB 5.2294  closed
+   2  8   0.98  0   W_C 5.2208 [960,238]    L 5.2810  LB 5.3035  closed
+   2  8   1     0   W_C 5.3304 [960,255]    L 5.4210  LB 5.4210  closed
+   2  8   0.5   2   W_C 3.1851 [30,5]       L 4.0000  LB 4.0455  closed
+   2  8   0.75  2   W_C 4.2581 [36,6]       L 4.5620  LB 4.7679  closed
+   2  8   0.85  2   W_C 4.6988 [52,11]      L 4.8500  LB 5.0000  closed
+   2  8   0.9   2   W_C 4.9150 [60,14]      L 5.0000  LB 5.1118  closed
+   2  8   0.95  2   W_C 5.1249 [960,225]    L 5.1210  LB 5.2324  closed if non-degenerate (B2); else OPEN [5.1210, 5.1249) for d in [8]
+   2  8   0.98  2   W_C 5.2484 [960,242]    L 5.3010  LB 5.3047  closed
+   2  8   0.1   6   W_C 4.0904 [960,156]    L 4.1000  LB 4.1000  closed
+   2  8   0.3   6   W_C 4.3673 [960,168]    L 4.3000  LB 4.4308  closed if non-degenerate (B2); else OPEN [4.3000, 4.3673) for d in [6]
+   2  8   0.5   6   W_C 4.6437 [960,183]    L 4.5150  LB 4.7143  closed if non-degenerate (B2); else OPEN [4.5150, 4.6437) for d in [6]
+   2  8   0.7   6   W_C 4.9193 [960,204]    L 4.9150  LB 5.0000  closed if non-degenerate (B2); else OPEN [4.9150, 4.9193) for d in [6]
+   2  8   0.9   6   W_C 5.1939 [960,234]    L 5.2210  LB 5.2235  closed
+   2  10  0.5   0   W_C 2.9018 [24,3]       L 5.0000  LB 5.0000  closed
+   2  10  0.75  0   W_C 4.8313 [44,8]       L 5.5000  LB 6.0000  closed
+   2  10  0.85  0   W_C 5.5975 [60,13]      L 5.8500  LB 6.2952  closed
+   2  10  0.9   0   W_C 5.9716 [60,12]      L 6.0000  LB 6.4667  closed
+   2  10  0.95  0   W_C 6.3299 [960,377]    L 6.3770  LB 6.6091  closed
+   2  10  0.98  0   W_C 6.5305 [960,376]    L 6.6470  LB 6.7073  closed
+   2  10  1     0   W_C 6.6642 [960,376]    L 6.8270  LB 6.8270  closed
+   2  10  0.5   2   W_C 3.7866 [30,4]       L 5.0000  LB 5.0333  closed
+   2  10  0.75  2   W_C 5.2513 [44,7]       L 5.5000  LB 6.0000  closed
+   2  10  0.85  2   W_C 5.8391 [71,17]      L 5.8710  LB 6.3024  closed
+   2  10  0.9   2   W_C 6.1261 [100,28]     L 6.0270  LB 6.4714  closed if non-degenerate (B2); else OPEN [6.0270, 6.1261) for d in [10]
+   2  10  0.95  2   W_C 6.3972 [960,376]    L 6.4270  LB 6.6114  closed
+   2  10  0.98  2   W_C 6.5574 [960,376]    L 6.6670  LB 6.7082  closed
+   2  10  0.1   8   W_C 5.4661 [960,284]    L 5.4210  LB 5.5000  closed if non-degenerate (B2); else OPEN [5.4210, 5.4661) for d in [8]
+   2  10  0.3   8   W_C 5.7341 [960,378]    L 5.5210  LB 5.8333  closed if non-degenerate (B2); else OPEN [5.5210, 5.7341) for d in [8]
+   2  10  0.5   8   W_C 5.9996 [960,377]    L 5.9210  LB 6.0952  closed if non-degenerate (B2); else OPEN [5.9210, 5.9996) for d in [8]
+   2  10  0.7   8   W_C 6.2653 [960,377]    L 6.2270  LB 6.3810  closed if non-degenerate (B2); else OPEN [6.2270, 6.2653) for d in [10]
+   2  10  0.9   8   W_C 6.5312 [960,376]    L 6.6270  LB 6.6364  closed
+   2  12  0.5   0   W_C 3.4750 [30,5]       L 6.0000  LB 6.0000  closed
+   2  12  0.75  0   W_C 5.8017 [44,6]       L 6.5000  LB 7.1800  closed
+   2  12  0.85  0   W_C 6.7391 [71,15]      L 6.8500  LB 7.5962  closed
+   2  12  0.9   0   W_C 7.1832 [100,26]     L 7.1330  LB 7.8077  closed if non-degenerate (B2); else OPEN [7.1330, 7.1832) for d in [12]
+   2  12  0.95  0   W_C 7.5915 [960,374]    L 7.6830  LB 8.0000  closed
+   2  12  0.98  0   W_C 7.8322 [960,374]    L 8.0130  LB 8.0966  closed
+   2  12  1     0   W_C 7.9934 [960,373]    L 8.2330  LB 8.2330  closed
+   2  12  0.5   2   W_C 4.3894 [30,3]       L 6.0000  LB 6.0263  closed
+   2  12  0.75  2   W_C 6.2456 [52,8]       L 6.5000  LB 7.1900  closed
+   2  12  0.85  2   W_C 6.9810 [100,26]     L 6.9770  LB 7.6019  closed if non-degenerate (B2); else OPEN [6.9770, 6.9810) for d in [10]
+   2  12  0.9   2   W_C 7.3245 [960,375]    L 7.2330  LB 7.8115  closed if non-degenerate (B2); else OPEN [7.2330, 7.3245) for d in [12]
+   2  12  0.95  2   W_C 7.6588 [960,374]    L 7.7330  LB 8.0000  closed
+   2  12  0.98  2   W_C 7.8592 [960,374]    L 8.0330  LB 8.0972  closed
+   2  12  0.1   10  W_C 6.7968 [960,376]    L 6.8270  LB 6.9455  closed
+   2  12  0.3   10  W_C 7.0624 [960,375]    L 6.9270  LB 7.2160  closed if non-degenerate (B2); else OPEN [6.9270, 7.0624) for d in [10, 12]
+   2  12  0.5   10  W_C 7.3280 [960,375]    L 7.2330  LB 7.5000  closed if non-degenerate (B2); else OPEN [7.2330, 7.3280) for d in [10, 12]
+   2  12  0.7   10  W_C 7.5941 [960,374]    L 7.6330  LB 7.7923  closed
+   2  12  0.9   10  W_C 7.8599 [960,374]    L 8.0330  LB 8.0414  closed
+   2  14  0.5   0   W_C 3.9777 [30,4]       L 7.0000  LB 7.0000  closed
+   2  14  0.75  0   W_C 6.7949 [52,7]       L 7.5000  LB 8.4138  closed
+   2  14  0.85  0   W_C 7.8764 [71,13]      L 7.9330  LB 8.9200  closed
+   2  14  0.9   0   W_C 8.3845 [640,243]    L 8.3390  LB 9.1333  closed if non-degenerate (B2); else OPEN [8.3390, 8.3845) for d in [14]
+   2  14  0.95  0   W_C 8.8533 [960,372]    L 8.9890  LB 9.3697  closed
+   2  14  0.98  0   W_C 9.1355 [960,371]    L 9.3790  LB 9.5000  closed
+   2  14  1     0   W_C 9.3231 [960,371]    L 9.6390  LB 9.6390  closed
+   2  14  0.5   2   W_C 4.9708 [36,4]       L 7.0000  LB 7.0217  closed
+   2  14  0.75  2   W_C 7.2388 [71,14]      L 7.5000  LB 8.4224  closed
+   2  14  0.85  2   W_C 8.1164 [240,81]     L 8.0000  LB 8.9250  closed if non-degenerate (B2); else OPEN [8.0000, 8.1164) for d in [12, 14]
+   2  14  0.9   2   W_C 8.5197 [960,372]    L 8.4390  LB 9.1364  closed if non-degenerate (B2); else OPEN [8.4390, 8.5197) for d in [14]
+   2  14  0.95  2   W_C 8.9215 [960,371]    L 9.0390  LB 9.3712  closed
+   2  14  0.98  2   W_C 9.1625 [960,371]    L 9.3990  LB 9.5000  closed
+   2  14  0.1   12  W_C 8.1261 [960,373]    L 8.2330  LB 8.3310  closed
+   2  14  0.3   12  W_C 8.3921 [960,372]    L 8.2390  LB 8.6267  closed if non-degenerate (B2); else OPEN [8.2390, 8.3921) for d in [12, 14]
+   2  14  0.5   12  W_C 8.6577 [960,372]    L 8.6390  LB 8.9333  closed if non-degenerate (B2); else OPEN [8.6390, 8.6577) for d in [14]
+   2  14  0.7   12  W_C 8.9242 [960,371]    L 9.0390  LB 9.1879  closed
+   2  14  0.9   12  W_C 9.1901 [960,371]    L 9.4390  LB 9.4667  closed
+   2  16  0.5   0   W_C 4.4790 [30,3]       L 8.0000  LB 8.0000  closed
+   2  16  0.75  0   W_C 7.7888 [60,8]       L 8.5000  LB 9.6324  closed
+   2  16  0.85  0   W_C 9.0244 [100,22]     L 9.0000  LB 10.2143  closed if non-degenerate (B2); else OPEN [9.0000, 9.0244) for d in [16]
+   2  16  0.9   0   W_C 9.5797 [960,370]    L 9.5450  LB 10.5000  closed if non-degenerate (B2); else OPEN [9.5450, 9.5797) for d in [16]
+   2  16  0.5   2   W_C 5.5614 [36,3]       L 8.0000  LB 8.0185  closed
+   2  16  0.75  2   W_C 8.2261 [71,12]      L 8.5000  LB 9.6397  closed
+   2  16  0.85  2   W_C 9.2458 [960,371]    L 9.0000  LB 10.2186  closed if non-degenerate (B2); else OPEN [9.0000, 9.2458) for d in [14, 16]
+   2  16  0.9   2   W_C 9.7149 [960,370]    L 9.6450  LB 10.5000  closed if non-degenerate (B2); else OPEN [9.6450, 9.7149) for d in [16]
+   2  16  0.1   14  W_C 9.4566 [960,370]    L 9.6390  LB 9.7471  closed
+   2  16  0.3   14  W_C 9.7222 [960,370]    L 9.6450  LB 10.0343  closed if non-degenerate (B2); else OPEN [9.6450, 9.7222) for d in [16]
+   2  18  0.5   0   W_C 5.0646 [30,2]       L 9.0000  LB 9.0000  closed
+   2  18  0.75  0   W_C 8.7737 [71,11]      L 9.5000  LB 10.8889  closed
+   2  18  0.5   2   W_C 6.1345 [44,5]       L 9.0000  LB 9.0161  closed
+   2  18  0.75  2   W_C 9.2127 [80,14]      L 9.5000  LB 10.8958  closed
+   3  4   0.5   0   W_C 1.0265 [52,6]       L 3.0000  LB 3.0000  closed
+   3  4   0.75  0   W_C 1.7323 [60,7]       L 3.2500  LB 3.2500  closed
+   3  4   0.85  0   W_C 2.0175 [100,11]     L 3.3500  LB 3.3500  closed
+   3  4   0.9   0   W_C 2.1586 [240,26]     L 3.4000  LB 3.4000  closed
+   3  4   0.95  0   W_C 2.2988 [960,104]    L 3.4500  LB 3.4500  closed
+   3  4   0.98  0   W_C 2.3829 [960,105]    L 3.4800  LB 3.4800  closed
+   3  4   1     0   W_C 2.4390 [960,105]    L 3.5000  LB 3.5000  closed
+   3  4   0.5   2   W_C 1.7388 [960,100]    L 3.0000  LB 3.0000  closed
+   3  4   0.75  2   W_C 2.0889 [960,102]    L 3.2500  LB 3.2500  closed
+   3  4   0.85  2   W_C 2.2289 [960,103]    L 3.3500  LB 3.3500  closed
+   3  4   0.9   2   W_C 2.2990 [960,104]    L 3.4000  LB 3.4000  closed
+   3  4   0.95  2   W_C 2.3690 [960,104]    L 3.4500  LB 3.4500  closed
+   3  4   0.98  2   W_C 2.4110 [960,105]    L 3.4800  LB 3.4800  closed
+   3  6   0.5   0   W_C 1.6560 [20,3]       L 3.5000  LB 3.5000  closed
+   3  6   0.75  0   W_C 2.7313 [24,4]       L 4.0000  LB 4.0000  closed
+   3  6   0.85  0   W_C 3.1801 [36,5]       L 4.2000  LB 4.2000  closed
+   3  6   0.9   0   W_C 3.4039 [36,5]       L 4.3000  LB 4.3000  closed
+   3  6   0.95  0   W_C 3.6251 [80,10]      L 4.4000  LB 4.4000  closed
+   3  6   0.98  0   W_C 3.7527 [960,117]    L 4.4600  LB 4.4600  closed
+   3  6   1     0   W_C 3.8367 [960,118]    L 4.5000  LB 4.5000  closed
+   3  6   0.5   2   W_C 2.4219 [36,5]       L 3.5000  LB 3.5000  closed
+   3  6   0.75  2   W_C 3.1290 [36,5]       L 4.0000  LB 4.0000  closed
+   3  6   0.85  2   W_C 3.4141 [71,9]       L 4.2000  LB 4.2000  closed
+   3  6   0.9   2   W_C 3.5566 [240,29]     L 4.3000  LB 4.3000  closed
+   3  6   0.95  2   W_C 3.6968 [960,116]    L 4.4000  LB 4.4000  closed
+   3  6   0.98  2   W_C 3.7808 [960,117]    L 4.4600  LB 4.4600  closed
+   3  6   0.1   4   W_C 2.5788 [960,106]    L 3.6000  LB 3.6000  closed
+   3  6   0.3   4   W_C 2.8583 [960,108]    L 3.8000  LB 3.8000  closed
+   3  6   0.5   4   W_C 3.1379 [960,111]    L 4.0000  LB 4.0000  closed
+   3  6   0.7   4   W_C 3.4174 [960,113]    L 4.2000  LB 4.2000  closed
+   3  6   0.9   4   W_C 3.6970 [960,116]    L 4.4000  LB 4.4000  closed
+   3  8   0.5   0   W_C 2.2017 [20,3]       L 4.0000  LB 4.0000  closed
+   3  8   0.75  0   W_C 3.6994 [30,4]       L 4.7500  LB 4.7500  closed
+   3  8   0.85  0   W_C 4.3159 [36,5]       L 5.1560  LB 5.1560  closed
+   3  8   0.9   0   W_C 4.6232 [36,5]       L 5.3000  LB 5.3000  closed
+   3  8   0.95  0   W_C 4.9353 [44,7]       L 5.4000  LB 5.4000  closed
+   3  8   0.98  0   W_C 5.1169 [60,9]       L 5.4800  LB 5.4800  closed
+   3  8   1     0   W_C 5.2308 [960,136]    L 5.5000  LB 5.5000  closed
+   3  8   0.5   2   W_C 3.0496 [30,4]       L 4.0000  LB 4.0000  closed
+   3  8   0.75  2   W_C 4.1264 [36,5]       L 4.9060  LB 4.9060  closed
+   3  8   0.85  2   W_C 4.5683 [36,5]       L 5.2000  LB 5.2000  closed
+   3  8   0.9   2   W_C 4.7915 [36,5]       L 5.3000  LB 5.3000  closed
+   3  8   0.95  2   W_C 5.0170 [60,9]       L 5.4090  LB 5.4090  closed
+   3  8   0.98  2   W_C 5.1468 [240,34]     L 5.4800  LB 5.4800  closed
+   3  8   0.1   6   W_C 3.9762 [960,119]    L 4.6000  LB 4.6000  closed
+   3  8   0.3   6   W_C 4.2551 [240,31]     L 4.8000  LB 4.8000  closed
+   3  8   0.5   6   W_C 4.5338 [240,32]     L 5.0000  LB 5.0000  closed
+   3  8   0.7   6   W_C 4.8126 [100,14]     L 5.2000  LB 5.2000  closed
+   3  8   0.9   6   W_C 5.0915 [960,134]    L 5.4000  LB 5.4000  closed
+   3  10  0.5   0   W_C 2.7488 [24,4]       L 5.0000  LB 5.0000  closed
+   3  10  0.75  0   W_C 4.6708 [36,5]       L 5.7500  LB 5.7500  closed
+   3  10  0.85  0   W_C 5.4627 [44,6]       L 6.2000  LB 6.2000  closed
+   3  10  0.9   0   W_C 5.8466 [44,6]       L 6.3150  LB 6.3150  closed
+   3  10  0.95  0   W_C 6.2375 [52,8]       L 6.4500  LB 6.4500  closed
+   3  10  0.98  0   W_C 6.4681 [60,10]      L 6.6470  LB 6.6470  closed
+   3  10  1     0   W_C 6.6187 [240,42]     L 6.8270  LB 6.8270  closed
+   3  10  0.5   2   W_C 3.6415 [30,4]       L 5.0000  LB 5.0000  closed
+   3  10  0.75  2   W_C 5.1233 [44,7]       L 5.8120  LB 5.8120  closed
+   3  10  0.85  2   W_C 5.7173 [44,6]       L 6.2000  LB 6.2000  closed
+   3  10  0.9   2   W_C 6.0208 [52,9]       L 6.4000  LB 6.4000  closed
+   3  10  0.95  2   W_C 6.3213 [52,8]       L 6.4500  LB 6.4500  closed
+   3  10  0.98  2   W_C 6.5008 [60,10]      L 6.6670  LB 6.6670  closed
+   3  10  0.1   8   W_C 5.3698 [960,139]    L 5.6000  LB 5.6000  closed
+   3  10  0.3   8   W_C 5.6463 [80,12]      L 5.8000  LB 5.8000  closed
+   3  10  0.5   8   W_C 5.9225 [71,11]      L 6.0000  LB 6.0000  closed
+   3  10  0.7   8   W_C 6.1995 [60,10]      L 6.2270  LB 6.2270  closed
+   3  10  0.9   8   W_C 6.4793 [100,17]     L 6.6270  LB 6.6270  closed
+   3  12  0.5   0   W_C 3.2520 [24,3]       L 6.0000  LB 6.0000  closed
+   3  12  0.75  0   W_C 5.6648 [44,6]       L 6.7500  LB 6.7500  closed
+   3  12  0.85  0   W_C 6.6109 [52,7]       L 7.2000  LB 7.2000  closed
+   3  12  0.9   0   W_C 7.0754 [60,10]      L 7.4000  LB 7.4000  closed
+   3  12  0.95  0   W_C 7.5399 [60,9]       L 7.6830  LB 7.6830  closed
+   3  12  0.98  0   W_C 7.8123 [80,16]      L 8.0130  LB 8.0130  closed
+   3  12  1     0   W_C 7.9906 [100,24]     L 8.2330  LB 8.2330  closed
+   3  12  0.5   2   W_C 4.2508 [36,6]       L 6.0000  LB 6.0000  closed
+   3  12  0.75  2   W_C 6.1125 [44,5]       L 6.7500  LB 6.7500  closed
+   3  12  0.85  2   W_C 6.8669 [52,7]       L 7.2210  LB 7.2210  closed
+   3  12  0.9   2   W_C 7.2474 [60,9]       L 7.4000  LB 7.4000  closed
+   3  12  0.95  2   W_C 7.6222 [71,13]      L 7.7330  LB 7.7330  closed
+   3  12  0.98  2   W_C 7.8446 [80,16]      L 8.0330  LB 8.0330  closed
+   3  12  0.1   10  W_C 6.7547 [80,14]      L 6.8270  LB 6.8270  closed
+   3  12  0.3   10  W_C 7.0277 [71,13]      L 6.8330  LB 6.8330  OPEN [6.8330, 7.0277) width 0.1947, d in [8, 10]
+   3  12  0.5   10  W_C 7.3011 [71,14]      L 7.2330  LB 7.2330  OPEN [7.2330, 7.3011) width 0.0681, d in [10]
+   3  12  0.7   10  W_C 7.5763 [80,17]      L 7.6330  LB 7.6330  closed
+   3  12  0.9   10  W_C 7.8526 [100,24]     L 8.0330  LB 8.0330  closed
+   3  14  0.5   0   W_C 3.8444 [30,4]       L 7.0000  LB 7.0000  closed
+   3  14  0.75  0   W_C 6.6600 [52,7]       L 7.7500  LB 7.7500  closed
+   3  14  0.85  0   W_C 7.7594 [60,8]       L 8.2000  LB 8.2000  closed
+   3  14  0.9   0   W_C 8.3008 [71,12]      L 8.4300  LB 8.4300  closed
+   3  14  0.95  0   W_C 8.8381 [100,22]     L 8.9890  LB 8.9890  closed
+   3  14  0.98  0   W_C 9.1423 [240,79]     L 9.3790  LB 9.3790  closed
+   3  14  1     0   W_C 9.3311 [960,371]    L 9.6390  LB 9.6390  closed
+   3  14  0.5   2   W_C 4.8270 [36,4]       L 7.0000  LB 7.0000  closed
+   3  14  0.75  2   W_C 7.1067 [52,6]       L 7.7500  LB 7.7500  closed
+   3  14  0.85  2   W_C 8.0165 [60,8]       L 8.3270  LB 8.3270  closed
+   3  14  0.9   2   W_C 8.4720 [80,15]      L 8.5000  LB 8.5000  closed
+   3  14  0.95  2   W_C 8.9173 [120,30]     L 9.0390  LB 9.0390  closed
+   3  14  0.98  2   W_C 9.1704 [960,371]    L 9.3990  LB 9.3990  closed
+   3  14  0.1   12  W_C 8.1251 [100,24]     L 8.2330  LB 8.2330  closed
+   3  14  0.3   12  W_C 8.3949 [120,31]     L 8.2390  LB 8.2390  OPEN [8.2390, 8.3949) width 0.1559, d in [12]
+   3  14  0.5   12  W_C 8.6644 [240,80]     L 8.6390  LB 8.6390  OPEN [8.6390, 8.6644) width 0.0254, d in [12, 14]
+   3  14  0.7   12  W_C 8.9320 [960,371]    L 9.0390  LB 9.0390  closed
+   3  14  0.9   12  W_C 9.1980 [960,371]    L 9.4390  LB 9.4390  closed
+   3  16  0.5   0   W_C 4.3712 [30,3]       L 8.0000  LB 8.0000  closed
+   3  16  0.75  0   W_C 7.6429 [60,9]       L 8.7500  LB 8.7500  closed
+   3  16  0.85  0   W_C 8.9003 [71,11]      L 9.2830  LB 9.2830  closed
+   3  16  0.9   0   W_C 9.5272 [80,13]      L 9.5450  LB 9.5450  closed
+   3  16  0.5   2   W_C 5.4425 [44,6]       L 8.0000  LB 8.0000  closed
+   3  16  0.75  2   W_C 8.0842 [60,8]       L 8.7500  LB 8.7500  closed
+   3  16  0.85  2   W_C 9.1643 [80,14]      L 9.3500  LB 9.3500  closed
+   3  16  0.9   2   W_C 9.6923 [100,21]     L 9.6450  LB 9.6450  OPEN [9.6450, 9.6923) width 0.0473, d in [16]
+   3  16  0.1   14  W_C 9.4640 [960,370]    L 9.6390  LB 9.6390  closed
+   3  16  0.3   14  W_C 9.7296 [960,370]    L 9.6450  LB 9.6450  OPEN [9.6450, 9.7296) width 0.0846, d in [14, 16]
+   3  18  0.5   0   W_C 4.9505 [36,4]       L 9.0000  LB 9.0000  closed
+   3  18  0.75  0   W_C 8.6100 [60,7]       L 9.7500  LB 9.7500  closed
+   3  18  0.5   2   W_C 5.9951 [44,5]       L 9.0000  LB 9.0000  closed
+   3  18  0.75  2   W_C 9.0853 [60,6]       L 9.7500  LB 9.7500  closed
+   summary a = 0.703 (rows closed / closed if non-degenerate / open) per (b, top contact):
+     b = 2, contact 4: 13 / 0 / 0
+     b = 2, contact 6: 18 / 0 / 0
+     b = 2, contact 8: 14 / 4 / 0
+     b = 2, contact 10: 13 / 5 / 0
+     b = 2, contact 12: 13 / 5 / 0
+     b = 2, contact 14: 13 / 5 / 0
+     b = 2, contact 16: 5 / 5 / 0
+     b = 2, contact 18: 4 / 0 / 0
+     b = 3, contact 4: 13 / 0 / 0
+     b = 3, contact 6: 18 / 0 / 0
+     b = 3, contact 8: 18 / 0 / 0
+     b = 3, contact 10: 18 / 0 / 0
+     b = 3, contact 12: 16 / 0 / 2
+     b = 3, contact 14: 16 / 0 / 2
+     b = 3, contact 16: 8 / 0 / 2
+     b = 3, contact 18: 4 / 0 / 0
+2. two-level profiles, a = 0.705, A = 23655875, certificates (12, 3) for W < 12A and (14, 2) for b <= 2, W_max = 8.460 n; all W in units of n
+   columns: b, contact 2j on x n lines, contact 2j' on the others; W_C = cut of Lemma C (every W in [W_C, W_max] is cut);
+   L = min over d of max(L1_d, L2_d, J) with the d that realise it; LB = the same with (B2) added (b = 2, non-degenerate)
+   2  4   0.5   0   W_C 1.1126 [960,73]     L 2.5000  LB 2.5000  closed
+   2  4   0.75  0   W_C 1.8137 [960,79]     L 2.7500  LB 2.7500  closed
+   2  4   0.85  0   W_C 2.0943 [960,81]     L 2.8500  LB 2.8500  closed
+   2  4   0.9   0   W_C 2.2345 [960,83]     L 2.9000  LB 2.9000  closed
+   2  4   0.95  0   W_C 2.3748 [960,84]     L 2.9500  LB 2.9500  closed
+   2  4   0.98  0   W_C 2.4589 [960,85]     L 2.9800  LB 2.9800  closed
+   2  4   1     0   W_C 2.5150 [960,86]     L 3.0000  LB 3.0000  closed
+   2  4   0.5   2   W_C 1.8145 [960,79]     L 2.5000  LB 2.5000  closed
+   2  4   0.75  2   W_C 2.1648 [960,82]     L 2.7500  LB 2.7500  closed
+   2  4   0.85  2   W_C 2.3048 [960,84]     L 2.8500  LB 2.8500  closed
+   2  4   0.9   2   W_C 2.3749 [960,84]     L 2.9000  LB 2.9000  closed
+   2  4   0.95  2   W_C 2.4450 [960,85]     L 2.9500  LB 2.9500  closed
+   2  4   0.98  2   W_C 2.4870 [960,86]     L 2.9800  LB 2.9800  closed
+   2  6   0.5   0   W_C 1.7138 [16,3]       L 3.0000  LB 3.0000  closed
+   2  6   0.75  0   W_C 2.8194 [24,4]       L 3.5000  LB 3.6875  closed
+   2  6   0.85  0   W_C 3.2710 [30,4]       L 3.8100  LB 3.8500  closed
+   2  6   0.9   0   W_C 3.4920 [160,18]     L 3.9000  LB 3.9000  closed
+   2  6   0.95  0   W_C 3.7020 [960,106]    L 3.9500  LB 3.9500  closed
+   2  6   0.98  0   W_C 3.8279 [960,109]    L 4.0000  LB 4.0000  closed
+   2  6   1     0   W_C 3.9118 [960,111]    L 4.0250  LB 4.0250  closed
+   2  6   0.5   2   W_C 2.5130 [120,12]     L 3.0000  LB 3.0714  closed
+   2  6   0.75  2   W_C 3.2129 [960,96]     L 3.6600  LB 3.7188  closed
+   2  6   0.85  2   W_C 3.4926 [960,101]    L 3.8500  LB 3.8500  closed
+   2  6   0.9   2   W_C 3.6324 [960,104]    L 3.9000  LB 3.9000  closed
+   2  6   0.95  2   W_C 3.7721 [960,107]    L 3.9650  LB 3.9650  closed
+   2  6   0.98  2   W_C 3.8559 [960,109]    L 4.0000  LB 4.0000  closed
+   2  6   0.1   4   W_C 2.6548 [960,88]     L 3.1000  LB 3.1000  closed
+   2  6   0.3   4   W_C 2.9343 [960,92]     L 3.3000  LB 3.3000  closed
+   2  6   0.5   4   W_C 3.2137 [960,96]     L 3.5000  LB 3.5000  closed
+   2  6   0.7   4   W_C 3.4931 [960,101]    L 3.7000  LB 3.7000  closed
+   2  6   0.9   4   W_C 3.7722 [960,107]    L 3.9150  LB 3.9150  closed
+   2  8   0.5   0   W_C 2.2284 [16,2]       L 4.0000  LB 4.0000  closed
+   2  8   0.75  0   W_C 3.7848 [30,4]       L 4.5000  LB 4.7500  closed
+   2  8   0.85  0   W_C 4.4023 [36,5]       L 4.8500  LB 5.0000  closed
+   2  8   0.9   0   W_C 4.7085 [36,5]       L 4.9250  LB 5.1059  closed
+   2  8   0.95  0   W_C 5.0125 [44,8]       L 5.0850  LB 5.2294  closed
+   2  8   0.98  0   W_C 5.1876 [960,179]    L 5.2950  LB 5.3035  closed
+   2  8   1     0   W_C 5.2981 [960,193]    L 5.4350  LB 5.4350  closed
+   2  8   0.5   2   W_C 3.1273 [24,3]       L 4.0000  LB 4.0455  closed
+   2  8   0.75  2   W_C 4.2121 [36,6]       L 4.5700  LB 4.7679  closed
+   2  8   0.85  2   W_C 4.6542 [36,5]       L 4.8500  LB 5.0000  closed
+   2  8   0.9   2   W_C 4.8745 [44,8]       L 5.0000  LB 5.1118  closed
+   2  8   0.95  2   W_C 5.0909 [320,57]     L 5.1350  LB 5.2324  closed
+   2  8   0.98  2   W_C 5.2153 [960,182]    L 5.3150  LB 5.3150  closed
+   2  8   0.1   6   W_C 4.0510 [960,115]    L 4.1000  LB 4.1000  closed
+   2  8   0.3   6   W_C 4.3290 [960,124]    L 4.3000  LB 4.4308  closed if non-degenerate (B2); else OPEN [4.3000, 4.3290) for d in [6]
+   2  8   0.5   6   W_C 4.6068 [960,135]    L 4.5250  LB 4.7143  closed if non-degenerate (B2); else OPEN [4.5250, 4.6068) for d in [6]
+   2  8   0.7   6   W_C 4.8840 [960,152]    L 4.9250  LB 5.0000  closed
+   2  8   0.9   6   W_C 5.1604 [960,175]    L 5.2350  LB 5.2350  closed
+   2  10  0.5   0   W_C 2.8000 [20,2]       L 5.0000  LB 5.0000  closed
+   2  10  0.75  0   W_C 4.7530 [36,5]       L 5.5000  LB 6.0000  closed
+   2  10  0.85  0   W_C 5.5418 [44,6]       L 5.8500  LB 6.2952  closed
+   2  10  0.9   0   W_C 5.9235 [52,9]       L 6.0000  LB 6.4667  closed
+   2  10  0.95  0   W_C 6.2968 [80,20]      L 6.3950  LB 6.6091  closed
+   2  10  0.98  0   W_C 6.4995 [960,380]    L 6.6650  LB 6.7073  closed
+   2  10  1     0   W_C 6.6325 [960,380]    L 6.8450  LB 6.8450  closed
+   2  10  0.5   2   W_C 3.7260 [30,4]       L 5.0000  LB 5.0333  closed
+   2  10  0.75  2   W_C 5.1958 [36,4]       L 5.5000  LB 6.0000  closed
+   2  10  0.85  2   W_C 5.7936 [52,9]       L 5.8850  LB 6.3024  closed
+   2  10  0.9   2   W_C 6.0872 [60,12]      L 6.0450  LB 6.4714  closed if non-degenerate (B2); else OPEN [6.0450, 6.0872) for d in [10]
+   2  10  0.95  2   W_C 6.3667 [960,380]    L 6.4450  LB 6.6114  closed
+   2  10  0.98  2   W_C 6.5262 [960,380]    L 6.6850  LB 6.7082  closed
+   2  10  0.1   8   W_C 5.4350 [960,217]    L 5.4350  LB 5.5000  closed if non-degenerate (B2); else OPEN [5.4350, 5.4350) for d in [8]
+   2  10  0.3   8   W_C 5.7060 [640,215]    L 5.5350  LB 5.8333  closed if non-degenerate (B2); else OPEN [5.5350, 5.7060) for d in [8]
+   2  10  0.5   8   W_C 5.9709 [960,381]    L 5.9350  LB 6.0952  closed if non-degenerate (B2); else OPEN [5.9350, 5.9709) for d in [8]
+   2  10  0.7   8   W_C 6.2353 [960,381]    L 6.2450  LB 6.3810  closed
+   2  10  0.9   8   W_C 6.5002 [960,380]    L 6.6450  LB 6.6450  closed
+   2  12  0.5   0   W_C 3.3091 [24,3]       L 6.0000  LB 6.0000  closed
+   2  12  0.75  0   W_C 5.7314 [36,3]       L 6.5000  LB 7.1800  closed
+   2  12  0.85  0   W_C 6.6804 [60,11]      L 6.8500  LB 7.5962  closed
+   2  12  0.9   0   W_C 7.1385 [60,10]      L 7.1550  LB 7.8077  closed
+   2  12  0.95  0   W_C 7.5558 [960,378]    L 7.7050  LB 8.0000  closed
+   2  12  0.98  0   W_C 7.7956 [960,378]    L 8.0350  LB 8.0966  closed
+   2  12  1     0   W_C 7.9560 [960,377]    L 8.2550  LB 8.2550  closed
+   2  12  0.5   2   W_C 4.3008 [30,3]       L 6.0000  LB 6.0263  closed
+   2  12  0.75  2   W_C 6.1836 [44,5]       L 6.5000  LB 7.1900  closed
+   2  12  0.85  2   W_C 6.9323 [71,15]      L 6.9950  LB 7.6019  closed
+   2  12  0.9   2   W_C 7.2900 [960,379]    L 7.2550  LB 7.8115  closed if non-degenerate (B2); else OPEN [7.2550, 7.2900) for d in [12]
+   2  12  0.95  2   W_C 7.6229 [960,378]    L 7.7550  LB 8.0000  closed
+   2  12  0.98  2   W_C 7.8229 [960,377]    L 8.0550  LB 8.0972  closed
+   2  12  0.1   10  W_C 6.7646 [960,380]    L 6.8450  LB 6.9455  closed
+   2  12  0.3   10  W_C 7.0291 [960,379]    L 6.9450  LB 7.2160  closed if non-degenerate (B2); else OPEN [6.9450, 7.0291) for d in [10, 12]
+   2  12  0.5   10  W_C 7.2935 [960,379]    L 7.2550  LB 7.5000  closed if non-degenerate (B2); else OPEN [7.2550, 7.2935) for d in [12]
+   2  12  0.7   10  W_C 7.5584 [960,378]    L 7.6550  LB 7.7923  closed
+   2  12  0.9   10  W_C 7.8235 [960,377]    L 8.0550  LB 8.0550  closed
+   2  14  0.5   0   W_C 3.8059 [24,2]       L 7.0000  LB 7.0000  closed
+   2  14  0.75  0   W_C 6.7120 [44,4]       L 7.5000  LB 8.4138  closed
+   2  14  0.85  0   W_C 7.8228 [71,13]      L 7.9550  LB 8.9200  closed
+   2  14  0.9   0   W_C 8.3449 [480,180]    L 8.3650  LB 9.1419  closed
+   2  14  0.5   2   W_C 4.8958 [36,4]       L 7.0000  LB 7.0217  closed
+   2  14  0.75  2   W_C 7.1698 [60,10]      L 7.5000  LB 8.4224  closed
+   2  14  0.85  2   W_C 8.0701 [120,33]     L 8.0000  LB 8.9250  closed if non-degenerate (B2); else OPEN [8.0000, 8.0701) for d in [14]
+   2  14  0.1   12  W_C 8.0881 [960,377]    L 8.2550  LB 8.3310  closed
+   2  14  0.3   12  W_C 8.3530 [960,376]    L 8.2650  LB 8.6267  closed if non-degenerate (B2); else OPEN [8.2650, 8.3530) for d in [14]
+   2  16  0.5   0   W_C 4.3903 [30,3]       L 8.0000  LB 8.0000  closed
+   2  16  0.5   2   W_C 5.4529 [36,3]       L 8.0000  LB 8.0185  closed
+   summary a = 0.705 (rows closed / closed if non-degenerate / open) per (b, top contact):
+     b = 2, contact 4: 13 / 0 / 0
+     b = 2, contact 6: 18 / 0 / 0
+     b = 2, contact 8: 16 / 2 / 0
+     b = 2, contact 10: 14 / 4 / 0
+     b = 2, contact 12: 15 / 3 / 0
+     b = 2, contact 14: 7 / 2 / 0
+     b = 2, contact 16: 2 / 0 / 0
+
+=== 50_lattice.py, n = 16 ===
+n = 16, D = 7, dom = sub, word = rand, b <= 2, contact 4 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 50 = 3.125 n
+  basis 223, rank of the conditions 160; expected (Corollary 2.4) 160
+  rank of the lattice 18; conservation law sum = 803: sum found 803 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 63 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 43 = 2.688 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 44 = 2.750 n
+  W_II(b = 2) = 44 = 2.750 n;   bound (L1), minimum over d: 42 = 2.625 n ((b+2) D + sum (j-1)_+ = 44);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 43 = 2.688 n
+  W_irr = 44 = 2.750 n: a random combination of the 13 solutions of weighted degree <= 44 is absolutely irreducible, (u,v)-degree 6, deg_Y0 of the leading coefficient 4; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 16, D = 7, dom = sub, word = rand, b <= 2, contact 6 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 70 = 4.375 n
+  basis 436, rank of the conditions 352; expected (Corollary 2.4) 352
+  rank of the lattice 25; conservation law sum = 1623: sum found 1623 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 84 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 64 = 4.000 n
+  W_II(b = 2) = 64 = 4.000 n;   bound (L1), minimum over d: 56 = 3.500 n ((b+2) D + sum (j-1)_+ = 60);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 67 = 4.188 n
+  W_irr = 64 = 4.000 n: a random combination of the 13 solutions of weighted degree <= 64 is absolutely irreducible, (u,v)-degree 9, deg_Y0 of the leading coefficient 6; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 16, D = 7, dom = sub, word = rand, b <= 3, contact 4 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 51 = 3.188 n
+  basis 281, rank of the conditions 208; expected (Corollary 2.4) 208
+  rank of the lattice 24; conservation law sum = 1112: only 21 minima below 51, partial sum 956
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 73 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 43 = 2.688 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 44 = 2.750 n
+  smallest W with a solution of Y1-degree exactly 3 in the basis: 51 = 3.188 n
+  W_II(b = 3) = 51 = 3.188 n;   bound (L1), minimum over d: 49 = 3.062 n ((b+2) D + sum (j-1)_+ = 51);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 43 = 2.688 n
+  W_irr = 51 = 3.188 n: a random combination of the 73 solutions of weighted degree <= 51 is absolutely irreducible, (u,v)-degree 7, deg_Y0 of the leading coefficient 4; coefficients of Y1^2 and Y1^3 coprime: yes
+
+n = 16, D = 7, dom = sub, word = rand, b <= 3, contact 6 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 71 = 4.438 n
+  basis 566, rank of the conditions 448; expected (Corollary 2.4) 448
+  rank of the lattice 34; conservation law sum = 2226: sum found 2226 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 118 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 64 = 4.000 n
+  smallest W with a solution of Y1-degree exactly 3 in the basis: 66 = 4.125 n
+  W_II(b = 3) = 66 = 4.125 n;   bound (L1), minimum over d: 63 = 3.938 n ((b+2) D + sum (j-1)_+ = 67);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 67 = 4.188 n
+  W_irr = 66 = 4.125 n: a random combination of the 40 solutions of weighted degree <= 66 is absolutely irreducible, (u,v)-degree 9, deg_Y0 of the leading coefficient 6; coefficients of Y1^2 and Y1^3 coprime: yes
+
+n = 16, D = 7, dom = sub, word = rand, b <= 2, contact 8 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 92 = 5.750 n
+  basis 754, rank of the conditions 624; expected (Corollary 2.4) 624
+  rank of the lattice 33; conservation law sum = 2829: sum found 2829 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 130 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 84 = 5.250 n
+  W_II(b = 2) = 84 = 5.250 n;   bound (L1), minimum over d: 70 = 4.375 n ((b+2) D + sum (j-1)_+ = 76);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 91 = 5.688 n
+  W_irr = 84 = 5.250 n: a random combination of the 4 solutions of weighted degree <= 84 is absolutely irreducible, (u,v)-degree 12, deg_Y0 of the leading coefficient 10; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 16, D = 7, dom = sub, word = fam, b <= 2, contact 4 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 50 = 3.125 n
+  basis 223, rank of the conditions 160; expected (Corollary 2.4) 160
+  rank of the lattice 18; conservation law sum = 803: sum found 803 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 63 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 42 = 2.625 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 42 = 2.625 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 42 = 2.625 n
+  W_II(b = 2) = 42 = 2.625 n;   bound (L1), minimum over d: 42 = 2.625 n ((b+2) D + sum (j-1)_+ = 44);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 43 = 2.688 n
+  W_irr = 42 = 2.625 n: a random combination of the 3 solutions of weighted degree <= 42 is absolutely irreducible, (u,v)-degree 6, deg_Y0 of the leading coefficient 4; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 16, D = 7, dom = sub, word = fam, b <= 2, contact 6 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 70 = 4.375 n
+  basis 436, rank of the conditions 352; expected (Corollary 2.4) 352
+  rank of the lattice 25; conservation law sum = 1623: sum found 1623 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 84 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 64 = 4.000 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 63 = 3.938 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 62 = 3.875 n
+  W_II(b = 2) = 62 = 3.875 n;   bound (L1), minimum over d: 56 = 3.500 n ((b+2) D + sum (j-1)_+ = 60);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 67 = 4.188 n
+  W_irr = 63 = 3.938 n: a random combination of the 4 solutions of weighted degree <= 63 is absolutely irreducible, (u,v)-degree 9, deg_Y0 of the leading coefficient 6; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 16, D = 7, dom = sub, word = fam, b <= 3, contact 4 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 51 = 3.188 n
+  basis 281, rank of the conditions 207; expected (Corollary 2.4) 208  (not reached at this W, or dependent)
+  rank of the lattice 24; conservation law sum = 1112: only 21 minima below 51, partial sum 953
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 74 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 42 = 2.625 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 42 = 2.625 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 42 = 2.625 n
+  smallest W with a solution of Y1-degree exactly 3 in the basis: 49 = 3.062 n
+  W_II(b = 3) = 49 = 3.062 n;   bound (L1), minimum over d: 49 = 3.062 n ((b+2) D + sum (j-1)_+ = 51);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 43 = 2.688 n
+  W_irr = 49 = 3.062 n: a random combination of the 53 solutions of weighted degree <= 49 is absolutely irreducible, (u,v)-degree 7, deg_Y0 of the leading coefficient 4; coefficients of Y1^2 and Y1^3 coprime: yes
+
+n = 16, D = 7, dom = sub, word = fam, b <= 3, contact 6 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 71 = 4.438 n
+  basis 566, rank of the conditions 448; expected (Corollary 2.4) 448
+  rank of the lattice 34; conservation law sum = 2226: sum found 2226 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 118 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 64 = 4.000 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 63 = 3.938 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 62 = 3.875 n
+  smallest W with a solution of Y1-degree exactly 3 in the basis: 63 = 3.938 n
+  W_II(b = 3) = 63 = 3.938 n;   bound (L1), minimum over d: 63 = 3.938 n ((b+2) D + sum (j-1)_+ = 67);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 67 = 4.188 n
+  W_irr = 63 = 3.938 n: a random combination of the 5 solutions of weighted degree <= 63 is absolutely irreducible, (u,v)-degree 9, deg_Y0 of the leading coefficient 6; coefficients of Y1^2 and Y1^3 coprime: NO (degenerate)
+
+n = 16, D = 7, dom = sub, word = fam, b <= 2, contact 8 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 92 = 5.750 n
+  basis 754, rank of the conditions 624; expected (Corollary 2.4) 624
+  rank of the lattice 33; conservation law sum = 2829: sum found 2829 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 130 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 88 = 5.500 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 82 = 5.125 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 84 = 5.250 n
+  W_II(b = 2) = 84 = 5.250 n;   bound (L1), minimum over d: 70 = 4.375 n ((b+2) D + sum (j-1)_+ = 76);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 91 = 5.688 n
+  W_irr = 84 = 5.250 n: a random combination of the 9 solutions of weighted degree <= 84 is absolutely irreducible, (u,v)-degree 12, deg_Y0 of the leading coefficient 10; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 16, D = 7, dom = sub, word = plant:3, b <= 2, contact 4 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 50 = 3.125 n
+  basis 223, rank of the conditions 160; expected (Corollary 2.4) 160
+  rank of the lattice 18; conservation law sum = 803: only 17 minima below 50, partial sum 751
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 63 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 40 = 2.500 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 41 = 2.562 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 44 = 2.750 n
+  planted polynomial: 13 agreements; Lemma 0 threshold 52, bound (J) for a regular section 46; of 63 basis solutions 63 have it as a section (23 regular, 40 singular); violations of Lemma 0 / Theorem 3.4: 0
+  W_II(b = 2) = 44 = 2.750 n;   bound (L1), minimum over d: 42 = 2.625 n ((b+2) D + sum (j-1)_+ = 44);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 43 = 2.688 n
+  W_irr = 44 = 2.750 n: a random combination of the 17 solutions of weighted degree <= 44 is absolutely irreducible, (u,v)-degree 6, deg_Y0 of the leading coefficient 4; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 16, D = 7, dom = sub, word = plant:3, b <= 2, contact 6 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 70 = 4.375 n
+  basis 436, rank of the conditions 348; expected (Corollary 2.4) 352  (not reached at this W, or dependent)
+  rank of the lattice 25; conservation law sum = 1623: only 22 minima below 70, partial sum 1400
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 88 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 60 = 3.750 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 61 = 3.812 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 62 = 3.875 n
+  planted polynomial: 13 agreements; Lemma 0 threshold 78, bound (J) for a regular section 72; of 88 basis solutions 88 have it as a section (0 regular, 88 singular); violations of Lemma 0 / Theorem 3.4: 0
+  W_II(b = 2) = 62 = 3.875 n;   bound (L1), minimum over d: 56 = 3.500 n ((b+2) D + sum (j-1)_+ = 60);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 67 = 4.188 n
+  W_irr = 66 = 4.125 n: a random combination of the 46 solutions of weighted degree <= 66 is absolutely irreducible, (u,v)-degree 9, deg_Y0 of the leading coefficient 6; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 16, D = 7, dom = sub, word = plant:3, b <= 3, contact 4 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 51 = 3.188 n
+  basis 281, rank of the conditions 208; expected (Corollary 2.4) 208
+  rank of the lattice 24; conservation law sum = 1112: only 20 minima below 51, partial sum 904
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 73 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 40 = 2.500 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 41 = 2.562 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 44 = 2.750 n
+  smallest W with a solution of Y1-degree exactly 3 in the basis: 51 = 3.188 n
+  planted polynomial: 13 agreements; Lemma 0 threshold 52, bound (J) for a regular section 46; of 73 basis solutions 73 have it as a section (33 regular, 40 singular); violations of Lemma 0 / Theorem 3.4: 0
+  W_II(b = 3) = 51 = 3.188 n;   bound (L1), minimum over d: 49 = 3.062 n ((b+2) D + sum (j-1)_+ = 51);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 43 = 2.688 n
+  W_irr = 51 = 3.188 n: a random combination of the 73 solutions of weighted degree <= 51 is absolutely irreducible, (u,v)-degree 7, deg_Y0 of the leading coefficient 4; coefficients of Y1^2 and Y1^3 coprime: yes
+
+n = 16, D = 7, dom = sub, word = plant:3, b <= 3, contact 6 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 71 = 4.438 n
+  basis 566, rank of the conditions 445; expected (Corollary 2.4) 448  (not reached at this W, or dependent)
+  rank of the lattice 34; conservation law sum = 2226: only 31 minima below 71, partial sum 2003
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 121 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 60 = 3.750 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 61 = 3.812 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 62 = 3.875 n
+  smallest W with a solution of Y1-degree exactly 3 in the basis: 66 = 4.125 n
+  planted polynomial: 13 agreements; Lemma 0 threshold 78, bound (J) for a regular section 72; of 121 basis solutions 121 have it as a section (0 regular, 121 singular); violations of Lemma 0 / Theorem 3.4: 0
+  W_II(b = 3) = 66 = 4.125 n;   bound (L1), minimum over d: 63 = 3.938 n ((b+2) D + sum (j-1)_+ = 67);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 67 = 4.188 n
+  W_irr = 66 = 4.125 n: a random combination of the 50 solutions of weighted degree <= 66 is absolutely irreducible, (u,v)-degree 9, deg_Y0 of the leading coefficient 6; coefficients of Y1^2 and Y1^3 coprime: yes
+
+n = 16, D = 7, dom = sub, word = plant:3, b <= 2, contact 8 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 92 = 5.750 n
+  basis 754, rank of the conditions 614; expected (Corollary 2.4) 624  (not reached at this W, or dependent)
+  rank of the lattice 33; conservation law sum = 2829: only 29 minima below 92, partial sum 2435
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 140 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 80 = 5.000 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 81 = 5.062 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 81 = 5.062 n
+  planted polynomial: 13 agreements; Lemma 0 threshold 104, bound (J) for a regular section 98; of 140 basis solutions 140 have it as a section (0 regular, 140 singular); violations of Lemma 0 / Theorem 3.4: 0
+  W_II(b = 2) = 81 = 5.062 n;   bound (L1), minimum over d: 70 = 4.375 n ((b+2) D + sum (j-1)_+ = 76);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 91 = 5.688 n
+  W_irr = 92 = 5.750 n: a random combination of the 140 solutions of weighted degree <= 92 is absolutely irreducible, (u,v)-degree 13, deg_Y0 of the leading coefficient 10; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 16, D = 7, dom = sub, word = rand, b <= 4, contact 6 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 74 = 4.625 n
+  basis 724, rank of the conditions 544; expected (Corollary 2.4) 544
+  rank of the lattice 42; conservation law sum = 2814: sum found 2814 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 180 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 64 = 4.000 n
+  smallest W with a solution of Y1-degree exactly 3 in the basis: 66 = 4.125 n
+  smallest W with a solution of Y1-degree exactly 4 in the basis: 73 = 4.562 n
+  W_II(b = 4) = 73 = 4.562 n;   bound (L1), minimum over d: 70 = 4.375 n ((b+2) D + sum (j-1)_+ = 74);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 67 = 4.188 n
+  W_irr = 73 = 4.562 n: a random combination of the 156 solutions of weighted degree <= 73 is absolutely irreducible, (u,v)-degree 10, deg_Y0 of the leading coefficient 6; coefficients of Y1^3 and Y1^4 coprime: yes
+
+n = 16, D = 7, dom = pts, word = rand, b <= 2, contact 4 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 50 = 3.125 n
+  basis 223, rank of the conditions 160; expected (Corollary 2.4) 160
+  rank of the lattice 18; conservation law sum = 803: sum found 803 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 63 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 43 = 2.688 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 44 = 2.750 n
+  W_II(b = 2) = 44 = 2.750 n;   bound (L1), minimum over d: 42 = 2.625 n ((b+2) D + sum (j-1)_+ = 44);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 43 = 2.688 n
+  W_irr = 44 = 2.750 n: a random combination of the 13 solutions of weighted degree <= 44 is absolutely irreducible, (u,v)-degree 6, deg_Y0 of the leading coefficient 4; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 16, D = 7, dom = pts, word = rand, b <= 2, contact 6 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 70 = 4.375 n
+  basis 436, rank of the conditions 352; expected (Corollary 2.4) 352
+  rank of the lattice 25; conservation law sum = 1623: sum found 1623 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 84 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 64 = 4.000 n
+  W_II(b = 2) = 64 = 4.000 n;   bound (L1), minimum over d: 56 = 3.500 n ((b+2) D + sum (j-1)_+ = 60);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 67 = 4.188 n
+  W_irr = 64 = 4.000 n: a random combination of the 13 solutions of weighted degree <= 64 is absolutely irreducible, (u,v)-degree 9, deg_Y0 of the leading coefficient 6; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 16, D = 7, dom = sub, word = rand, b <= 2, contact 6 on 12 lines, 0 on 4, A = ceil(0.7 n) = 12, W explored up to 62 = 3.875 n
+  basis 342, rank of the conditions 264; expected (Corollary 2.4) 264
+  rank of the lattice 21; conservation law sum = 1180: sum found 1180 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 78 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 54 = 3.375 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 55 = 3.438 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 56 = 3.500 n
+  W_II(b = 2) = 56 = 3.500 n;   bound (L1), minimum over d: 52 = 3.250 n ((b+2) D + sum (j-1)_+ = 52);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 47 = 2.938 n
+  W_irr = 56 = 3.500 n: a random combination of the 15 solutions of weighted degree <= 56 is absolutely irreducible, (u,v)-degree 8, deg_Y0 of the leading coefficient 6; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 16, D = 7, dom = sub, word = rand, b <= 2, contact 6 on 12 lines, 2 on 4, A = ceil(0.7 n) = 12, W explored up to 63 = 3.938 n
+  basis 351, rank of the conditions 276; expected (Corollary 2.4) 276
+  rank of the lattice 22; conservation law sum = 1267: sum found 1267 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 75 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 56 = 3.500 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 57 = 3.562 n
+  W_II(b = 2) = 57 = 3.562 n;   bound (L1), minimum over d: 52 = 3.250 n ((b+2) D + sum (j-1)_+ = 52);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 51 = 3.188 n
+  W_irr = 57 = 3.562 n: a random combination of the 11 solutions of weighted degree <= 57 is absolutely irreducible, (u,v)-degree 8, deg_Y0 of the leading coefficient 6; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 16, D = 7, dom = sub, word = rand, b <= 2, contact 6 on 12 lines, 4 on 4, A = ceil(0.7 n) = 12, W explored up to 66 = 4.125 n
+  basis 388, rank of the conditions 304; expected (Corollary 2.4) 304
+  rank of the lattice 23; conservation law sum = 1387: sum found 1387 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 84 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 60 = 3.750 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 59 = 3.688 n
+  W_II(b = 2) = 59 = 3.688 n;   bound (L1), minimum over d: 54 = 3.375 n ((b+2) D + sum (j-1)_+ = 56);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 59 = 3.688 n
+  W_irr = 59 = 3.688 n: a random combination of the 4 solutions of weighted degree <= 59 is absolutely irreducible, (u,v)-degree 8, deg_Y0 of the leading coefficient 6; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 16, D = 7, dom = sub, word = rand, b <= 2, contact 8 on 8 lines, 6 on 8, A = ceil(0.7 n) = 12, W explored up to 82 = 5.125 n
+  basis 598, rank of the conditions 488; expected (Corollary 2.4) 488
+  rank of the lattice 28; conservation law sum = 2121: sum found 2121 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 110 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 75 = 4.688 n
+  W_II(b = 2) = 75 = 4.688 n;   bound (L1), minimum over d: 64 = 4.000 n ((b+2) D + sum (j-1)_+ = 68);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 75 = 4.688 n
+  W_irr = 75 = 4.688 n: a random combination of the 10 solutions of weighted degree <= 75 is absolutely irreducible, (u,v)-degree 10, deg_Y0 of the leading coefficient 8; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 16, D = 7, dom = sub, word = fam, b <= 2, contact 8 on 8 lines, 6 on 8, A = ceil(0.7 n) = 12, W explored up to 82 = 5.125 n
+  basis 598, rank of the conditions 488; expected (Corollary 2.4) 488
+  rank of the lattice 28; conservation law sum = 2121: sum found 2121 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 110 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 74 = 4.625 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 74 = 4.625 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 75 = 4.688 n
+  W_II(b = 2) = 75 = 4.688 n;   bound (L1), minimum over d: 64 = 4.000 n ((b+2) D + sum (j-1)_+ = 68);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 75 = 4.688 n
+  W_irr = 75 = 4.688 n: a random combination of the 10 solutions of weighted degree <= 75 is absolutely irreducible, (u,v)-degree 10, deg_Y0 of the leading coefficient 8; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 16, D = 7, dom = sub, word = two, b <= 2, contact 4 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 50 = 3.125 n
+  basis 223, rank of the conditions 160; expected (Corollary 2.4) 160
+  rank of the lattice 18; conservation law sum = 803: sum found 803 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 63 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 43 = 2.688 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 44 = 2.750 n
+  W_II(b = 2) = 44 = 2.750 n;   bound (L1), minimum over d: 42 = 2.625 n ((b+2) D + sum (j-1)_+ = 44);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 43 = 2.688 n
+  W_irr = 44 = 2.750 n: a random combination of the 13 solutions of weighted degree <= 44 is absolutely irreducible, (u,v)-degree 6, deg_Y0 of the leading coefficient 4; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 16, D = 7, dom = sub, word = two, b <= 2, contact 6 on 16 lines, 0 on 0, A = ceil(0.7 n) = 12, W explored up to 70 = 4.375 n
+  basis 436, rank of the conditions 352; expected (Corollary 2.4) 352
+  rank of the lattice 25; conservation law sum = 1623: sum found 1623 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 84 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 64 = 4.000 n
+  W_II(b = 2) = 64 = 4.000 n;   bound (L1), minimum over d: 56 = 3.500 n ((b+2) D + sum (j-1)_+ = 60);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 67 = 4.188 n
+  W_irr = 64 = 4.000 n: a random combination of the 13 solutions of weighted degree <= 64 is absolutely irreducible, (u,v)-degree 9, deg_Y0 of the leading coefficient 6; coefficients of Y1^1 and Y1^2 coprime: yes
+
+=== 50_lattice.py, n = 32, 64 ===
+n = 32, D = 15, dom = sub, word = rand, b <= 2, contact 4 on 32 lines, 0 on 0, A = ceil(0.7 n) = 23, W explored up to 97 = 3.031 n
+  basis 379, rank of the conditions 320; expected (Corollary 2.4) 320
+  rank of the lattice 16; conservation law sum = 1456: sum found 1456 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 59 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 89 = 2.781 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 92 = 2.875 n
+  W_II(b = 2) = 92 = 2.875 n;   bound (L1), minimum over d: 90 = 2.812 n ((b+2) D + sum (j-1)_+ = 92);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 84 = 2.625 n
+  W_irr = 92 = 2.875 n: a random combination of the 21 solutions of weighted degree <= 92 is absolutely irreducible, (u,v)-degree 6, deg_Y0 of the leading coefficient 4; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 32, D = 15, dom = sub, word = rand, b <= 2, contact 6 on 32 lines, 0 on 0, A = ceil(0.7 n) = 23, W explored up to 139 = 4.344 n
+  basis 785, rank of the conditions 704; expected (Corollary 2.4) 704
+  rank of the lattice 23; conservation law sum = 3067: sum found 3067 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 81 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 132 = 4.125 n
+  W_II(b = 2) = 132 = 4.125 n;   bound (L1), minimum over d: 120 = 3.750 n ((b+2) D + sum (j-1)_+ = 124);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 130 = 4.062 n
+  W_irr = 132 = 4.125 n: a random combination of the 5 solutions of weighted degree <= 132 is absolutely irreducible, (u,v)-degree 8, deg_Y0 of the leading coefficient 6; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 32, D = 15, dom = sub, word = rand, b <= 3, contact 4 on 32 lines, 0 on 0, A = ceil(0.7 n) = 23, W explored up to 107 = 3.344 n
+  basis 561, rank of the conditions 416; expected (Corollary 2.4) 416
+  rank of the lattice 24; conservation law sum = 2312: only 21 minima below 107, partial sum 1988
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 145 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 89 = 2.781 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 92 = 2.875 n
+  smallest W with a solution of Y1-degree exactly 3 in the basis: 107 = 3.344 n
+  W_II(b = 3) = 107 = 3.344 n;   bound (L1), minimum over d: 105 = 3.281 n ((b+2) D + sum (j-1)_+ = 107);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 84 = 2.625 n
+  W_irr = 107 = 3.344 n: a random combination of the 145 solutions of weighted degree <= 107 is absolutely irreducible, (u,v)-degree 7, deg_Y0 of the leading coefficient 4; coefficients of Y1^2 and Y1^3 coprime: yes
+
+n = 32, D = 15, dom = sub, word = fam, b <= 2, contact 4 on 32 lines, 0 on 0, A = ceil(0.7 n) = 23, W explored up to 97 = 3.031 n
+  basis 379, rank of the conditions 320; expected (Corollary 2.4) 320
+  rank of the lattice 16; conservation law sum = 1456: sum found 1456 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 59 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 92 = 2.875 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 86 = 2.688 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 90 = 2.812 n
+  W_II(b = 2) = 90 = 2.812 n;   bound (L1), minimum over d: 90 = 2.812 n ((b+2) D + sum (j-1)_+ = 92);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 84 = 2.625 n
+  W_irr = 90 = 2.812 n: a random combination of the 10 solutions of weighted degree <= 90 is absolutely irreducible, (u,v)-degree 6, deg_Y0 of the leading coefficient 4; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 32, D = 15, dom = sub, word = fam, b <= 2, contact 6 on 32 lines, 0 on 0, A = ceil(0.7 n) = 23, W explored up to 139 = 4.344 n
+  basis 785, rank of the conditions 704; expected (Corollary 2.4) 704
+  rank of the lattice 23; conservation law sum = 3067: sum found 3067 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 81 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 132 = 4.125 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 133 = 4.156 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 130 = 4.062 n
+  W_II(b = 2) = 130 = 4.062 n;   bound (L1), minimum over d: 120 = 3.750 n ((b+2) D + sum (j-1)_+ = 124);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 130 = 4.062 n
+  W_irr = 132 = 4.125 n: a random combination of the 6 solutions of weighted degree <= 132 is absolutely irreducible, (u,v)-degree 8, deg_Y0 of the leading coefficient 6; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 32, D = 15, dom = sub, word = fam, b <= 3, contact 4 on 32 lines, 0 on 0, A = ceil(0.7 n) = 23, W explored up to 107 = 3.344 n
+  basis 561, rank of the conditions 415; expected (Corollary 2.4) 416  (not reached at this W, or dependent)
+  rank of the lattice 24; conservation law sum = 2312: only 21 minima below 107, partial sum 1985
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 146 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 92 = 2.875 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 86 = 2.688 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 90 = 2.812 n
+  smallest W with a solution of Y1-degree exactly 3 in the basis: 105 = 3.281 n
+  W_II(b = 3) = 105 = 3.281 n;   bound (L1), minimum over d: 105 = 3.281 n ((b+2) D + sum (j-1)_+ = 107);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 84 = 2.625 n
+  W_irr = 105 = 3.281 n: a random combination of the 125 solutions of weighted degree <= 105 is absolutely irreducible, (u,v)-degree 7, deg_Y0 of the leading coefficient 4; coefficients of Y1^2 and Y1^3 coprime: yes
+
+n = 32, D = 15, dom = sub, word = plant:6, b <= 2, contact 4 on 32 lines, 0 on 0, A = ceil(0.7 n) = 23, W explored up to 97 = 3.031 n
+  basis 379, rank of the conditions 317; expected (Corollary 2.4) 320  (not reached at this W, or dependent)
+  rank of the lattice 16; conservation law sum = 1456: only 15 minima below 97, partial sum 1352
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 62 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 84 = 2.625 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 86 = 2.688 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 92 = 2.875 n
+  planted polynomial: 26 agreements; Lemma 0 threshold 104, bound (J) for a regular section 93; of 62 basis solutions 62 have it as a section (21 regular, 41 singular); violations of Lemma 0 / Theorem 3.4: 0
+  W_II(b = 2) = 92 = 2.875 n;   bound (L1), minimum over d: 90 = 2.812 n ((b+2) D + sum (j-1)_+ = 92);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 84 = 2.625 n
+  W_irr = 92 = 2.875 n: a random combination of the 26 solutions of weighted degree <= 92 is absolutely irreducible, (u,v)-degree 6, deg_Y0 of the leading coefficient 4; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 32, D = 15, dom = sub, word = plant:6, b <= 2, contact 6 on 32 lines, 0 on 0, A = ceil(0.7 n) = 23, W explored up to 139 = 4.344 n
+  basis 785, rank of the conditions 691; expected (Corollary 2.4) 704  (not reached at this W, or dependent)
+  rank of the lattice 23; conservation law sum = 3067: only 20 minima below 139, partial sum 2620
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 94 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 126 = 3.938 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 128 = 4.000 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 130 = 4.062 n
+  planted polynomial: 26 agreements; Lemma 0 threshold 156, bound (J) for a regular section 145; of 94 basis solutions 94 have it as a section (0 regular, 94 singular); violations of Lemma 0 / Theorem 3.4: 0
+  W_II(b = 2) = 130 = 4.062 n;   bound (L1), minimum over d: 120 = 3.750 n ((b+2) D + sum (j-1)_+ = 124);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 130 = 4.062 n
+  W_irr = 134 = 4.188 n: a random combination of the 46 solutions of weighted degree <= 134 is absolutely irreducible, (u,v)-degree 8, deg_Y0 of the leading coefficient 6; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 32, D = 15, dom = sub, word = plant:6, b <= 3, contact 4 on 32 lines, 0 on 0, A = ceil(0.7 n) = 23, W explored up to 107 = 3.344 n
+  basis 561, rank of the conditions 416; expected (Corollary 2.4) 416
+  rank of the lattice 24; conservation law sum = 2312: only 21 minima below 107, partial sum 1988
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 145 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 84 = 2.625 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 86 = 2.688 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 92 = 2.875 n
+  smallest W with a solution of Y1-degree exactly 3 in the basis: 107 = 3.344 n
+  planted polynomial: 26 agreements; Lemma 0 threshold 104, bound (J) for a regular section 93; of 145 basis solutions 116 have it as a section (54 regular, 62 singular); violations of Lemma 0 / Theorem 3.4: 0
+  W_II(b = 3) = 107 = 3.344 n;   bound (L1), minimum over d: 105 = 3.281 n ((b+2) D + sum (j-1)_+ = 107);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 84 = 2.625 n
+  W_irr = 107 = 3.344 n: a random combination of the 145 solutions of weighted degree <= 107 is absolutely irreducible, (u,v)-degree 7, deg_Y0 of the leading coefficient 4; coefficients of Y1^2 and Y1^3 coprime: yes
+
+n = 32, D = 15, dom = pts, word = rand, b <= 2, contact 4 on 32 lines, 0 on 0, A = ceil(0.7 n) = 23, W explored up to 97 = 3.031 n
+  basis 379, rank of the conditions 320; expected (Corollary 2.4) 320
+  rank of the lattice 16; conservation law sum = 1456: sum found 1456 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 59 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 89 = 2.781 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 92 = 2.875 n
+  W_II(b = 2) = 92 = 2.875 n;   bound (L1), minimum over d: 90 = 2.812 n ((b+2) D + sum (j-1)_+ = 92);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 84 = 2.625 n
+  W_irr = 92 = 2.875 n: a random combination of the 21 solutions of weighted degree <= 92 is absolutely irreducible, (u,v)-degree 6, deg_Y0 of the leading coefficient 4; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 32, D = 15, dom = sub, word = two, b <= 2, contact 4 on 32 lines, 0 on 0, A = ceil(0.7 n) = 23, W explored up to 97 = 3.031 n
+  basis 379, rank of the conditions 320; expected (Corollary 2.4) 320
+  rank of the lattice 16; conservation law sum = 1456: sum found 1456 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 59 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 89 = 2.781 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 92 = 2.875 n
+  W_II(b = 2) = 92 = 2.875 n;   bound (L1), minimum over d: 90 = 2.812 n ((b+2) D + sum (j-1)_+ = 92);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 84 = 2.625 n
+  W_irr = 92 = 2.875 n: a random combination of the 21 solutions of weighted degree <= 92 is absolutely irreducible, (u,v)-degree 6, deg_Y0 of the leading coefficient 4; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 32, D = 15, dom = sub, word = fam, b <= 3, contact 6 on 32 lines, 0 on 0, A = ceil(0.7 n) = 23, W explored up to 139 = 4.344 n
+  basis 985, rank of the conditions 895; expected (Corollary 2.4) 896  (not reached at this W, or dependent)
+  rank of the lattice 31; conservation law sum = 4175: only 28 minima below 139, partial sum 3752
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 90 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 132 = 4.125 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 133 = 4.156 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 130 = 4.062 n
+  smallest W with a solution of Y1-degree exactly 3 in the basis: 135 = 4.219 n
+  W_II(b = 3) = 135 = 4.219 n;   bound (L1), minimum over d: 135 = 4.219 n ((b+2) D + sum (j-1)_+ = 139);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 130 = 4.062 n
+  W_irr = 135 = 4.219 n: a random combination of the 36 solutions of weighted degree <= 135 is absolutely irreducible, (u,v)-degree 9, deg_Y0 of the leading coefficient 6; coefficients of Y1^2 and Y1^3 coprime: yes
+
+n = 32, D = 15, dom = sub, word = rand, b <= 3, contact 6 on 32 lines, 0 on 0, A = ceil(0.7 n) = 23, W explored up to 139 = 4.344 n
+  basis 985, rank of the conditions 896; expected (Corollary 2.4) 896
+  rank of the lattice 31; conservation law sum = 4175: sum found 4175 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 89 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 132 = 4.125 n
+  smallest W with a solution of Y1-degree exactly 3 in the basis: 138 = 4.312 n
+  W_II(b = 3) = 138 = 4.312 n;   bound (L1), minimum over d: 135 = 4.219 n ((b+2) D + sum (j-1)_+ = 139);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 130 = 4.062 n
+  W_irr = 138 = 4.312 n: a random combination of the 76 solutions of weighted degree <= 138 is absolutely irreducible, (u,v)-degree 9, deg_Y0 of the leading coefficient 6; coefficients of Y1^2 and Y1^3 coprime: yes
+
+n = 64, D = 31, dom = sub, word = rand, b <= 2, contact 4 on 64 lines, 0 on 0, A = ceil(0.7 n) = 45, W explored up to 191 = 2.984 n
+  basis 699, rank of the conditions 640; expected (Corollary 2.4) 640
+  rank of the lattice 16; conservation law sum = 2960: sum found 2960 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 59 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 182 = 2.844 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 188 = 2.938 n
+  W_II(b = 2) = 188 = 2.938 n;   bound (L1), minimum over d: 186 = 2.906 n ((b+2) D + sum (j-1)_+ = 188);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 166 = 2.594 n
+  W_irr = 188 = 2.938 n: a random combination of the 37 solutions of weighted degree <= 188 is absolutely irreducible, (u,v)-degree 6, deg_Y0 of the leading coefficient 4; coefficients of Y1^1 and Y1^2 coprime: yes
+
+n = 64, D = 31, dom = sub, word = fam, b <= 2, contact 4 on 64 lines, 0 on 0, A = ceil(0.7 n) = 45, W explored up to 191 = 2.984 n
+  basis 699, rank of the conditions 640; expected (Corollary 2.4) 640
+  rank of the lattice 16; conservation law sum = 2960: sum found 2960 OK
+  checks of Lemma 2.1, Corollary 2.3, the fibre statement, the content and (L1) on 59 basis solutions: all pass
+  smallest W with a solution of Y1-degree exactly 0 in the basis: 188 = 2.938 n
+  smallest W with a solution of Y1-degree exactly 1 in the basis: 174 = 2.719 n
+  smallest W with a solution of Y1-degree exactly 2 in the basis: 186 = 2.906 n
+  W_II(b = 2) = 186 = 2.906 n;   bound (L1), minimum over d: 186 = 2.906 n ((b+2) D + sum (j-1)_+ = 188);   bound (J) at A = ceil(0.7 n): D + sum of the A smallest (2j-1)_+ = 166 = 2.594 n
+  W_irr = 186 = 2.906 n: a random combination of the 26 solutions of weighted degree <= 186 is absolutely irreducible, (u,v)-degree 6, deg_Y0 of the leading coefficient 4; coefficients of Y1^1 and Y1^2 coprime: yes
+

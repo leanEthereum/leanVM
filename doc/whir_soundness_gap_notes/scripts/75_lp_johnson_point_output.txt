@@ -1,0 +1,5 @@
+rate 2^-3: Johnson radius 0.353553; tau_5 <= 0.360417, tau_6 <= 0.347917 < sqrt(rho): at agreement sqrt(rho) n or more, at most 5 codewords
+rate 2^-4: Johnson radius 0.250000; tau_6 <= 0.257292, tau_7 <= 0.242411 < sqrt(rho): at agreement sqrt(rho) n or more, at most 6 codewords
+rate 2^-5: Johnson radius 0.176777; tau_8 <= 0.178683, tau_9 <= 0.168266 < sqrt(rho): at agreement sqrt(rho) n or more, at most 8 codewords
+rate 2^-7: Johnson radius 0.088388; tau_14 <= 0.089019, tau_15 <= 0.084778 < sqrt(rho): at agreement sqrt(rho) n or more, at most 14 codewords
+rate 2^-10: Johnson radius 0.031250; tau_35 <= 0.031645, tau_36 <= 0.030878 < sqrt(rho): at agreement sqrt(rho) n or more, at most 35 codewords

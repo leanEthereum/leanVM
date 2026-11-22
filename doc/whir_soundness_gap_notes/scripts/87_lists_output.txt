@@ -1,0 +1,24 @@
+n=32, six members (Section 5) | seed 871
+   n = 32, k = 16, members 6: weight 88, Lk = 80, rank 79, kernel dimension 1
+   codewords distinct: yes; classes agree: yes; agreements with the word: 20 20 20 20 20 20 ; members at agreement >= 5n/8 = 20: 6
+n=32, six members (Section 5) | seed 872
+   n = 32, k = 16, members 6: weight 88, Lk = 80, rank 79, kernel dimension 1
+   codewords distinct: yes; classes agree: yes; agreements with the word: 20 20 20 20 20 20 ; members at agreement >= 5n/8 = 20: 6
+n=32, seven members (Section 5) | seed 871
+   n = 32, k = 16, members 7: weight 108, Lk = 96, rank 95, kernel dimension 1
+   codewords distinct: yes; classes agree: yes; agreements with the word: 20 20 20 20 20 20 20 ; members at agreement >= 5n/8 = 20: 7
+n=32, seven members (Section 5) | seed 872
+   n = 32, k = 16, members 7: weight 108, Lk = 96, rank 95, kernel dimension 1
+   codewords distinct: yes; classes agree: yes; agreements with the word: 20 20 20 20 20 20 20 ; members at agreement >= 5n/8 = 20: 7
+n=64, twelve members, eleven at 40 (votes_c8_b8.txt, seed 5112) | seed 871
+   n = 64, k = 32, members 12: weight 415, Lk = 352, rank 351, kernel dimension 1
+   codewords distinct: yes; classes agree: yes; agreements with the word: 40 40 40 39 40 40 40 40 40 40 40 40 ; members at agreement >= 5n/8 = 40: 11
+n=64, twelve members, eleven at 40 (votes_c8_b8.txt, seed 5112) | seed 872
+   n = 64, k = 32, members 12: weight 415, Lk = 352, rank 351, kernel dimension 1
+   codewords distinct: yes; classes agree: yes; agreements with the word: 40 40 40 39 40 40 40 40 40 40 40 40 ; members at agreement >= 5n/8 = 40: 11
+n=64, eleven members, ten at 40 (votes_c8_b8.txt, seed 5111) | seed 871
+   n = 64, k = 32, members 11: weight 375, Lk = 320, rank 319, kernel dimension 1
+   codewords distinct: yes; classes agree: yes; agreements with the word: 40 40 40 40 40 39 40 40 40 40 40 ; members at agreement >= 5n/8 = 40: 10
+n=64, eleven members, ten at 40 (votes_c8_b8.txt, seed 5111) | seed 872
+   n = 64, k = 32, members 11: weight 375, Lk = 320, rank 319, kernel dimension 1
+   codewords distinct: yes; classes agree: yes; agreements with the word: 40 40 40 40 40 39 40 40 40 40 40 ; members at agreement >= 5n/8 = 40: 10

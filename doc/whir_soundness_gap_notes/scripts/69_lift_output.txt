@@ -1,0 +1,24 @@
+FB=64 kind=2 top [16,4] members=3 lifted by 5 layers to n=512: best balanced agreement 276 = 0.5391 n (gS value 255 = 0.4980 n; tau_L for L = members - 1: 0.5000)	  best: . . 02 02 01 01 . . . . 012 . 12 12 . .
+FB=64 kind=2 top [16,4] members=4 lifted by 5 layers to n=512: best balanced agreement 247 = 0.4824 n (gS value 223 = 0.4355 n; tau_L for L = members - 1: 0.4375)	  best: 03 . 23 . 023 02 01 01 . . . . 13 012 12 12
+FB=64 kind=2 top [16,4] members=5 lifted by 5 layers to n=512: best balanced agreement 229 = 0.4473 n (gS value 204 = 0.3984 n; tau_L for L = members - 1: 0.4000)	  best: 124 023 . . 14 14 024 0234 . . 123 12 13 . 04 .
+FB=64 kind=2 top [16,4] members=6 lifted by 5 layers to n=512: best balanced agreement 217 = 0.4238 n (gS value 191 = 0.3730 n; tau_L for L = members - 1: 0.3750)	  best: 145 134 . . 0135 01 . 01245 . . 23 . . 25 0345 0234
+FB=64 kind=2 top [16,8] members=3 lifted by 5 layers to n=512: best balanced agreement 362 = 0.7070 n (gS value 341 = 0.6660 n; tau_L for L = members - 1: 0.6667)	  best: . . 01 01 . . 012 012 12 12 012 012 . 012 02 02
+FB=64 kind=2 top [16,8] members=4 lifted by 5 layers to n=512: best balanced agreement 351 = 0.6855 n (gS value 319 = 0.6230 n; tau_L for L = members - 1: 0.6250)	  best: 012 012 123 123 . . 023 023 0123 0123 013 013 . . . 0123
+FB=64 kind=2 top [16,8] members=5 lifted by 5 layers to n=512: best balanced agreement 327 = 0.6387 n (gS value 307 = 0.5996 n; tau_L for L = members - 1: 0.6000)	  best: 0134 01234 . . 0234 0234 23 . 013 0134 123 134 . 01234 0124 012
+FB=64 kind=2 top [16,8] members=6 lifted by 5 layers to n=512: best balanced agreement 319 = 0.6230 n (gS value 298 = 0.5820 n; tau_L for L = members - 1: 0.5833)	  best: 145 01345 01235 23 . . 0125 01234 01345 0123 0234 01245 234 1345 245 .
+FB=64 kind=2 top [4,2] members=3 lifted by 5 layers to n=128: best balanced agreement 95 = 0.7422 n (gS value 85 = 0.6641 n; tau_L for L = members - 1: 0.6667)	  best: 12 02 01 .
+FB=64 kind=2 top [4,2] members=4 lifted by 5 layers to n=128: best balanced agreement 84 = 0.6562 n (gS value 79 = 0.6172 n; tau_L for L = members - 1: 0.6250)	  best: 123 03 02 01
+FB=64 kind=2 top [4,2] members=5 lifted by 5 layers to n=128: best balanced agreement 79 = 0.6172 n (gS value 76 = 0.5938 n; tau_L for L = members - 1: 0.6000)	  best: 134 024 23 01
+FB=64 kind=2 top [4,2] members=6 lifted by 5 layers to n=128: best balanced agreement 79 = 0.6172 n (gS value 74 = 0.5781 n; tau_L for L = members - 1: 0.5833)	  best: 245 135 034 012
+FB=64 kind=2 top [8,2] members=3 lifted by 5 layers to n=256: best balanced agreement 138 = 0.5391 n (gS value 127 = 0.4961 n; tau_L for L = members - 1: 0.5000)	  best: 02 . . . . . 12 01
+FB=64 kind=2 top [8,2] members=4 lifted by 5 layers to n=256: best balanced agreement 127 = 0.4961 n (gS value 111 = 0.4336 n; tau_L for L = members - 1: 0.4375)	  best: . 23 01 02 . . 03 12
+FB=64 kind=2 top [8,2] members=5 lifted by 5 layers to n=256: best balanced agreement 119 = 0.4648 n (gS value 102 = 0.3984 n; tau_L for L = members - 1: 0.4000)	  best: . 23 12 . 134 03 024 .
+FB=64 kind=2 top [8,2] members=6 lifted by 5 layers to n=256: best balanced agreement 114 = 0.4453 n (gS value 95 = 0.3711 n; tau_L for L = members - 1: 0.3750)	  best: 145 123 . 035 . . 34 024
+FB=64 kind=2 top [8,2] members=7 lifted by 5 layers to n=256: best balanced agreement 108 = 0.4219 n (gS value 91 = 0.3555 n; tau_L for L = members - 1: 0.3571)	  best: 12 046 . . 16 245 236 0135
+FB=64 kind=2 top [8,2] members=8 lifted by 5 layers to n=256: best balanced agreement 105 = 0.4102 n (gS value 87 = 0.3398 n; tau_L for L = members - 1: 0.3438)	  best: 0346 147 . 237 0125 567 . 24
+FB=64 kind=2 top [8,4] members=3 lifted by 5 layers to n=256: best balanced agreement 191 = 0.7461 n (gS value 170 = 0.6641 n; tau_L for L = members - 1: 0.6667)	  best: 02 02 12 12 01 01 . 012
+FB=64 kind=2 top [8,4] members=4 lifted by 5 layers to n=256: best balanced agreement 178 = 0.6953 n (gS value 159 = 0.6211 n; tau_L for L = members - 1: 0.6250)	  best: . 0123 123 12 02 023 013 01
+FB=64 kind=2 top [8,4] members=5 lifted by 5 layers to n=256: best balanced agreement 172 = 0.6719 n (gS value 153 = 0.5977 n; tau_L for L = members - 1: 0.6000)	  best: . 0124 0123 . 0134 . 0234 1234
+FB=64 kind=2 top [8,4] members=6 lifted by 5 layers to n=256: best balanced agreement 167 = 0.6523 n (gS value 149 = 0.5820 n; tau_L for L = members - 1: 0.5833)	  best: 014 1234 15 01235 12345 . 0245 0345
+FB=64 kind=2 top [8,4] members=7 lifted by 5 layers to n=256: best balanced agreement 165 = 0.6445 n (gS value 146 = 0.5703 n; tau_L for L = members - 1: 0.5714)	  best: 1356 01345 . 125 0235 2456 012346 01246
+FB=64 kind=2 top [8,4] members=8 lifted by 5 layers to n=256: best balanced agreement 163 = 0.6367 n (gS value 143 = 0.5586 n; tau_L for L = members - 1: 0.5625)	  best: 35 123456 . 0134567 0157 12347 024567 0236

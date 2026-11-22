@@ -1,0 +1,564 @@
+===== 41_counts.py
+A. a_1(rho): closed form vs direct maximisation of the margin over beta in (0, 1]
+   rate 1/2: closed 0.689898  numeric 0.689898  Johnson 0.707107  diff 2.1e-09
+   rate 1/4: closed 0.468792  numeric 0.468792  Johnson 0.500000  diff 8.9e-10
+   rate 1/8: closed 0.319059  numeric 0.319059  Johnson 0.353553  diff 6.4e-11
+   rate 1/16: closed 0.218108  numeric 0.218108  Johnson 0.250000  diff 1.2e-10
+   queries t = ceil(108 / log2(n/A)):
+     a = 0.7: 209.883 -> 210
+     a = 0.6999: 209.799 -> 210
+     a = 0.692: 203.330 -> 204
+     a = 0.6899: 201.665 -> 202
+   at the Johnson radius itself 108/log2(1/sqrt(rho)) is the integer 216, 108, 72, 54;
+   strictly above it the counts are 217, 109, 73, 55 (note 35's table has 217, 108, 73, 54:
+   a floating point artefact, sqrt(1/2) and sqrt(1/8) round up, sqrt(1/4), sqrt(1/16) do not).
+     rate 1/2: at a_1: 202
+     rate 1/4: at a_1: 99
+     rate 1/8: at a_1: 66
+     rate 1/16: at a_1: 50
+B. the certificate at n = 2^25, rate 1/2, Delta = k + 5
+   R(18, 5) = 811
+   A = 23488103 (0.700000 n): N = 27232768884, n R = 27212644352, margin 20124532 (certificate), B_jet = 25
+   A = 23484747 (0.699900 n): N = 27224251356, n R = 27212644352, margin 11607004 (certificate), B_jet = 25
+   A = 23488102 (0.700000 n): N = 27232766346, n R = 27212644352, margin 20121994 (certificate), B_jet = 25
+   smallest A covered by (18, 5): 23480174 = 0.699764 n
+   certificates with m <= 18 at A = ceil(0.70 n): [(18, 5)]
+   certificates with m <= 37 at A = ceil(0.6949 n): [(37, 11)], B_jet = 51
+D. uniform Lemma C at n = 2^25, rate 1/2, Delta = k + 5, explainer (18, 5)
+   a = 0.7: A = 23488103, B_jet = 25, factors have b <= 5, W <= 422785853
+     b = 1: smallest multiplicity m = 71 (B = 3), bound per unit of degree floor((mA-1)/Delta) = 99
+     b = 2: smallest multiplicity m = 71 (B = 3), bound per unit of degree floor((mA-1)/Delta) = 99
+     b = 3: smallest multiplicity m = 71 (B = 3), bound per unit of degree floor((mA-1)/Delta) = 99
+     b = 4: smallest multiplicity m = 74 (B = 4), bound per unit of degree floor((mA-1)/Delta) = 103
+     b = 5: smallest multiplicity m = 76 (B = 5), bound per unit of degree floor((mA-1)/Delta) = 106
+     list bound B_jet^2 + B_jet * 106 = 3275 = 2^11.68
+     (note 35's looser accounting B_jet^2 + B_jet * 2*600*A/Delta = 42600 = 2^15.38)
+   a = 0.6999: A = 23484747, B_jet = 25, factors have b <= 5, W <= 422725445
+     b = 1: smallest multiplicity m = 71 (B = 3), bound per unit of degree floor((mA-1)/Delta) = 99
+     b = 2: smallest multiplicity m = 71 (B = 3), bound per unit of degree floor((mA-1)/Delta) = 99
+     b = 3: smallest multiplicity m = 71 (B = 3), bound per unit of degree floor((mA-1)/Delta) = 99
+     b = 4: smallest multiplicity m = 74 (B = 4), bound per unit of degree floor((mA-1)/Delta) = 103
+     b = 5: smallest multiplicity m = 76 (B = 5), bound per unit of degree floor((mA-1)/Delta) = 106
+     list bound B_jet^2 + B_jet * 106 = 3275 = 2^11.68
+     (note 35's looser accounting B_jet^2 + B_jet * 2*600*A/Delta = 42600 = 2^15.38)
+   for comparison, contact 4 on all lines, case II, W = (b+2) Delta, m <= 600:
+     b = 1: not cut (open, as note 35 says)
+     b = 2: not cut (open, as note 35 says)
+     b = 3: not cut (open, as note 35 says)
+C. closed forms of N and R agree with the defining sums (20000 random (B, Z, Delta); all m <= 120, B <= 130)
+   convexity of f(j) = R(m - 2j, B') in j >= 0 (second differences), all m <= 520, B' <= m
+   violations: 0
+   monotonicity of R in m and in B: 0 violations
+   convex for every (m, B - b) used in part D
+E. flat cubic (rate 1/4, delta = 3, b = 1, W = 3k - 2, contact 2 on n - 1 lines, n - 1 members)
+   a lemma whose hypothesis holds must give a bound >= n - 1; a violation would refute the lemma
+   n =    16: Lemma C tested 2065 (A, m, B); hypothesis holds 951 times (smallest m: A=7 m=14 B=2 bound=96); violations 0
+              Lemma A+ hypothesis holds 0 times, violations 0; Sudan step applies for 0 values of A
+   n =    32: Lemma C tested 22592 (A, m, B); hypothesis holds 1397 times (smallest m: A=15 m=51 B=5 bound=327); violations 0
+              Lemma A+ hypothesis holds 0 times, violations 0; Sudan step applies for 0 values of A
+   n =    64: Lemma C tested 73732 (A, m, B); hypothesis holds 0 times; violations 0
+              Lemma A+ hypothesis holds 0 times, violations 0; Sudan step applies for 0 values of A
+   n =   128: Lemma C tested 61360 (A, m, B); hypothesis holds 0 times; violations 0
+              Lemma A+ hypothesis holds 0 times, violations 0; Sudan step applies for 0 values of A
+   n =   256: Lemma C tested 59559 (A, m, B); hypothesis holds 0 times; violations 0
+              Lemma A+ hypothesis holds 0 times, violations 0; Sudan step applies for 0 values of A
+   n =   512: Lemma C tested 58677 (A, m, B); hypothesis holds 0 times; violations 0
+              Lemma A+ hypothesis holds 0 times, violations 0; Sudan step applies for 0 values of A
+   n =  1024: Lemma C tested 58245 (A, m, B); hypothesis holds 0 times; violations 0
+              Lemma A+ hypothesis holds 0 times, violations 0; Sudan step applies for 0 values of A
+F. toy certificates: smallest support with N(B, mA) > n R(m, B)
+   n = 16, Delta = 3, A = 7 (above Johnson): (m, B) = (5, 2), 564 unknowns, n R = 560, B_jet = 11
+   n = 16, Delta = 3, A = 8 (above Johnson): (m, B) = (2, 0), 51 unknowns, n R = 48, B_jet = 5
+   n = 16, Delta = 7, A = 10 (below Johnson): none with m <= 40
+   n = 16, Delta = 7, A = 11 (above Johnson): (m, B) = (4, 0), 161 unknowns, n R = 160, B_jet = 6
+   n = 16, Delta = 8, A = 10 (below Johnson): none with m <= 40
+   n = 16, Delta = 8, A = 11 (below Johnson): none with m <= 40
+   n = 16, Delta = 1, A = 5 (above Johnson): (m, B) = (2, 0), 55 unknowns, n R = 48, B_jet = 9
+   n = 16, Delta = 2, A = 7 (above Johnson): (m, B) = (2, 0), 56 unknowns, n R = 48, B_jet = 6
+   n = 32, Delta = 7, A = 15 (above Johnson): (m, B) = (6, 2), 1609 unknowns, n R = 1600, B_jet = 12
+   n = 32, Delta = 7, A = 16 (above Johnson): (m, B) = (4, 0), 325 unknowns, n R = 320, B_jet = 9
+   n = 32, Delta = 15, A = 22 (above Johnson): (m, B) = (8, 2), 2853 unknowns, n R = 2848, B_jet = 11
+   n = 32, Delta = 15, A = 20 (below Johnson): none with m <= 40
+   n = 32, Delta = 1, A = 5 (below Johnson): (m, B) = (18, 13), 49504 unknowns, n R = 49440, B_jet = 89
+   n = 32, Delta = 1, A = 6 (above Johnson): (m, B) = (3, 1), 324 unknowns, n R = 320, B_jet = 17
+   n = 32, Delta = 3, A = 9 (below Johnson): (m, B) = (20, 11), 54660 unknowns, n R = 54560, B_jet = 59
+   n = 32, Delta = 3, A = 10 (above Johnson): (m, B) = (4, 2), 744 unknowns, n R = 736, B_jet = 13
+   n = 64, Delta = 3, A = 12 (below Johnson): none with m <= 40
+   n = 64, Delta = 3, A = 13 (below Johnson): (m, B) = (8, 5), 9630 unknowns, n R = 9600, B_jet = 34
+   n = 64, Delta = 1, A = 7 (below Johnson): (m, B) = (14, 12), 55705 unknowns, n R = 55552, B_jet = 97
+   n = 64, Delta = 1, A = 8 (below Johnson): (m, B) = (4, 2), 1489 unknowns, n R = 1472, B_jet = 31
+   n = 64, Delta = 15, A = 31 (above Johnson): (m, B) = (6, 2), 3201 unknowns, n R = 3200, B_jet = 12
+G. e* (largest beta <= 1/2 with J >= 0)
+   rho = 0.5, a = 0.6920: beta = 0.3236, e* = 0.6858, (1 + rho)/2 = 0.7500, smooth economical components need b < 2 e*/rho - 2 = 0.74; (b+2) Delta / e* at b = 1: 2.187 n
+   rho = 0.5, a = 0.7000: beta = 0.3633, e* = 0.6717, (1 + rho)/2 = 0.7500, smooth economical components need b < 2 e*/rho - 2 = 0.69; (b+2) Delta / e* at b = 1: 2.233 n
+   rho = 0.25, a = 0.4800: beta = 0.5000, e* = 0.4491, (1 + rho)/2 = 0.6250, smooth economical components need b < 2 e*/rho - 2 = 1.59; (b+2) Delta / e* at b = 1: 1.670 n
+   rho = 0.5, a = 0.6899: beta = 0.3101, e* = 0.6899, (1 + rho)/2 = 0.7500, smooth economical components need b < 2 e*/rho - 2 = 0.76; (b+2) Delta / e* at b = 1: 2.174 n
+   rho = 0.25, a = 0.4688: beta = 0.4553, e* = 0.4688, (1 + rho)/2 = 0.6250, smooth economical components need b < 2 e*/rho - 2 = 1.75; (b+2) Delta / e* at b = 1: 1.600 n
+   rho = 0.125, a = 0.3191: beta = 0.5000, e* = 0.3257, (1 + rho)/2 = 0.5625, smooth economical components need b < 2 e*/rho - 2 = 3.21; (b+2) Delta / e* at b = 1: 1.151 n
+   rho = 0.0625, a = 0.2181: beta = 0.5000, e* = 0.2315, (1 + rho)/2 = 0.5312, smooth economical components need b < 2 e*/rho - 2 = 5.41; (b+2) Delta / e* at b = 1: 0.810 n
+   flat cubic window at n = 2^20, rate 1/4, a = 0.4999 (b = 1, contact 2 on n - 1 lines):
+     Lemma C applies only for W >= 0.7669 n (m = 320, B = 20); the cubic has W = 0.7500 n: not cut
+H. Proposition 6 uniformly at n = 2^25, rate 1/2 (case I: leading Y1-coefficient in F[X]), every contact profile
+   reduction: (2) holds for every profile iff it holds at the vertices of the convex hull of the points
+   (max(j, 2j - b), R(m,B) - R(m - 2j, B - b)), j = 0, 1, ..., cut at the largest possible weighted degree
+   b = 1: every profile is cut with (m, B) = (71, 3) (224 vertices tested), bound per unit of degree 99
+   b = 2: every profile is cut with (m, B) = (74, 4) (238 vertices tested), bound per unit of degree 103
+   b = 3: every profile is cut with (m, B) = (74, 4) (264 vertices tested), bound per unit of degree 103
+   b = 4: every profile is cut with (m, B) = (76, 5) (272 vertices tested), bound per unit of degree 106
+   b = 5: every profile is cut with (m, B) = (79, 6) (280 vertices tested), bound per unit of degree 110
+I. the same uniform checks at the other rate 1/2 certificates of note 35 (n = 2^25, Delta = k + 5)
+   per b: smallest m <= 1200 cutting (i) every case II factor with total contact <= 2n, (ii) every case I factor
+   a = 0.6949, certificate (37, 11), B_jet = 51: every b <= 11 is cut with m <= 173; list bound max(B_jet^2, B_jet * 240) = 12240 = 2^13.58; queries 206
+   a = 0.6919, certificate (100, 28), B_jet = 138: every b <= 28 is cut with m <= 491; list bound max(B_jet^2, B_jet * 679) = 93702 = 2^16.52; queries 204
+J. the open region at n = 2^25, rate 1/2, a = 0.70, certificate (18, 5): case II factors (W >= (b+2) Delta)
+   profile: contact 4 on x n lines and contact 2 on the others (for a given total contact this is the
+   profile hardest to cut, by concavity). Smallest x for which NO (m, B), m <= 600, satisfies (2):
+     b = 1: cut for x < 0.1388 (best (m, B) = (600, 101)); an uncut factor needs total contact >= 2.278 n and weighted degree >= 1.5 n, so efficiency W / contact can be as large as 0.659 only if W is at its minimum
+     b = 2: cut for x < 0.5615 (best (m, B) = (600, 89)); an uncut factor needs total contact >= 3.123 n and weighted degree >= 2.0 n, so efficiency W / contact can be as large as 0.640 only if W is at its minimum
+     b = 3: cut for x < 0.9852 (best (m, B) = (600, 85)); an uncut factor needs total contact >= 3.970 n and weighted degree >= 2.5 n, so efficiency W / contact can be as large as 0.630 only if W is at its minimum
+     b = 4: cut for x < 1.0000 (best (m, B) = (600, 84)); an uncut factor needs total contact >= 4.000 n and weighted degree >= 3.0 n, so efficiency W / contact can be as large as 0.750 only if W is at its minimum
+     b = 5: cut for x < 1.0000 (best (m, B) = (600, 83)); an uncut factor needs total contact >= 4.000 n and weighted degree >= 3.5 n, so efficiency W / contact can be as large as 0.875 only if W is at its minimum
+   the same with W as a free parameter: for contact 4 on all lines, the smallest W/n at which (2) holds (factor is cut):
+     b = 1: cut as soon as W >= 2.6882 n, i.e. efficiency >= 0.6721 (leading order e* = 0.6717); open window W in [2.600, 2.688) n
+     b = 2: cut as soon as W >= 2.6127 n, i.e. efficiency >= 0.6532 (leading order e* = 0.6717); open window W in [2.000, 2.613) n
+     b = 3: cut as soon as W >= 2.5207 n, i.e. efficiency >= 0.6302 (leading order e* = 0.6717); open window W in [2.500, 2.521) n
+     b = 4: cut as soon as W >= 2.4257 n, i.e. efficiency >= 0.6064 (leading order e* = 0.6717); no window (lower bound 3.000 n): always cut
+     b = 5: cut as soon as W >= 2.3175 n, i.e. efficiency >= 0.5794 (leading order e* = 0.6717); no window (lower bound 3.500 n): always cut
+K. the other sizes of the brief: rate 1/2, a = 0.70, Delta = k + 5, certificate (18, 5), with the pairs of parts D and H
+   n = 2^25: certificate True, B_jet = 25, case II (contact <= 2n) cut: True, case I (all profiles) cut: True, bound 2750
+   n = 2^26: certificate True, B_jet = 25, case II (contact <= 2n) cut: True, case I (all profiles) cut: True, bound 2750
+   n = 2^27: certificate True, B_jet = 25, case II (contact <= 2n) cut: True, case I (all profiles) cut: True, bound 2750
+   n = 2^28: certificate True, B_jet = 25, case II (contact <= 2n) cut: True, case I (all profiles) cut: True, bound 2750
+
+===== flat word alpha^(n/2-1), rate 1/4 (Proposition 5, Theorem 4, Lemma C local ranks)
+n = 16, domain span(1..x^(N-1)), word flat, Delta = 3, A = 7, (m, B) = (5, 2): 564 monomials, n R(m, B) = 560, B_jet = 11
+list (exhaustive, 715 interpolations): 15 members; [7: 15]
+flat cubic: contains 15 lines; lines whose order differs from 1 (from 0 at alpha = 0): 0
+flat cubic: 15 list members are sections, 0 are not; members with 2 * (agreements off 0) > 3k - 3: 15, of which NOT sections: 0
+local rank at point 0: 35 (R(m, B) = 35, full rectangle inside the support)
+explainer space: rank 530, dimension 34 (count predicts >= 4)
+Lemma C local ranks at alpha = 0: rank(G S') = 26, R(m - o, B - 1) = 26 (o = 0); products outside S: 0; side condition Delta (m + B) <= Z - W: holds
+Lemma C local ranks at alpha != 0: rank(G S') = 10, R(m - o, B - 1) = 10 (o = 2); products outside S: 0; side condition Delta (m + B) <= Z - W: holds
+explainer 0: 478 nonzero coefficients, residual 0; kills 15 of 15 list members; kills a random polynomial: no
+   Proposition 2: 0 of 16 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 11, 11
+   common component at a random tau: total degree 3, deg_u 3, deg_v 2
+   the flat cubic divides the common component exactly 1 times (component degree 3)
+   members P whose square (Y0 - P)^2, a first integral with b = 0, divides the common component: 0 (total degree 0 of 3)
+   gcd degree at three random tau: 3 3 3; members on the common component: 15, off it: 0 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 64: ok
+
+n = 16, domain random subspace, word flat, Delta = 3, A = 7, (m, B) = (5, 2): 564 monomials, n R(m, B) = 560, B_jet = 11
+list (exhaustive, 715 interpolations): 15 members; [7: 15]
+flat cubic: contains 15 lines; lines whose order differs from 1 (from 0 at alpha = 0): 0
+flat cubic: 15 list members are sections, 0 are not; members with 2 * (agreements off 0) > 3k - 3: 15, of which NOT sections: 0
+local rank at point 0: 35 (R(m, B) = 35, full rectangle inside the support)
+explainer space: rank 530, dimension 34 (count predicts >= 4)
+Lemma C local ranks at alpha = 0: rank(G S') = 26, R(m - o, B - 1) = 26 (o = 0); products outside S: 0; side condition Delta (m + B) <= Z - W: holds
+Lemma C local ranks at alpha != 0: rank(G S') = 10, R(m - o, B - 1) = 10 (o = 2); products outside S: 0; side condition Delta (m + B) <= Z - W: holds
+explainer 0: 478 nonzero coefficients, residual 0; kills 15 of 15 list members; kills a random polynomial: no
+   Proposition 2: 0 of 16 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 11, 11
+   common component at a random tau: total degree 3, deg_u 3, deg_v 2
+   the flat cubic divides the common component exactly 1 times (component degree 3)
+   members P whose square (Y0 - P)^2, a first integral with b = 0, divides the common component: 0 (total degree 0 of 3)
+   gcd degree at three random tau: 3 3 3; members on the common component: 15, off it: 0 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 64: ok
+
+n = 32, domain span(1..x^(N-1)), word flat, Delta = 7, A = 15, (m, B) = (6, 2): 1609 monomials, n R(m, B) = 1600, B_jet = 12
+list (exhaustive, 1081575 interpolations): 31 members; [15: 31]
+flat cubic: contains 31 lines; lines whose order differs from 1 (from 0 at alpha = 0): 0
+flat cubic: 31 list members are sections, 0 are not; members with 2 * (agreements off 0) > 3k - 3: 31, of which NOT sections: 0
+local rank at point 0: 50 (R(m, B) = 50, full rectangle inside the support)
+explainer space: rank 1506, dimension 103 (count predicts >= 9)
+Lemma C local ranks at alpha = 0: rank(G S') = 37, R(m - o, B - 1) = 37 (o = 0); products outside S: 0; side condition Delta (m + B) <= Z - W: holds
+Lemma C local ranks at alpha != 0: rank(G S') = 17, R(m - o, B - 1) = 17 (o = 2); products outside S: 0; side condition Delta (m + B) <= Z - W: holds
+explainer 0: 1424 nonzero coefficients, residual 0; kills 31 of 31 list members; kills a random polynomial: no
+   Proposition 2: 0 of 32 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 12, 12
+   common component at a random tau: total degree 3, deg_u 3, deg_v 2
+   the flat cubic divides the common component exactly 1 times (component degree 3)
+   members P whose square (Y0 - P)^2, a first integral with b = 0, divides the common component: 0 (total degree 0 of 3)
+   gcd degree at three random tau: 3 3 3; members on the common component: 31, off it: 0 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 81: ok
+
+n = 32, domain random subspace, word flat, Delta = 7, A = 15, (m, B) = (6, 2): 1609 monomials, n R(m, B) = 1600, B_jet = 12
+list (exhaustive, 1081575 interpolations): 31 members; [15: 31]
+flat cubic: contains 31 lines; lines whose order differs from 1 (from 0 at alpha = 0): 0
+flat cubic: 31 list members are sections, 0 are not; members with 2 * (agreements off 0) > 3k - 3: 31, of which NOT sections: 0
+local rank at point 0: 50 (R(m, B) = 50, full rectangle inside the support)
+explainer space: rank 1506, dimension 103 (count predicts >= 9)
+Lemma C local ranks at alpha = 0: rank(G S') = 37, R(m - o, B - 1) = 37 (o = 0); products outside S: 0; side condition Delta (m + B) <= Z - W: holds
+Lemma C local ranks at alpha != 0: rank(G S') = 17, R(m - o, B - 1) = 17 (o = 2); products outside S: 0; side condition Delta (m + B) <= Z - W: holds
+explainer 0: 1424 nonzero coefficients, residual 0; kills 31 of 31 list members; kills a random polynomial: no
+   Proposition 2: 0 of 32 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 12, 12
+   common component at a random tau: total degree 3, deg_u 3, deg_v 2
+   the flat cubic divides the common component exactly 1 times (component degree 3)
+   members P whose square (Y0 - P)^2, a first integral with b = 0, divides the common component: 0 (total degree 0 of 3)
+   gcd degree at three random tau: 3 3 3; members on the common component: 31, off it: 0 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 81: ok
+
+n = 64, domain span(1..x^(N-1)), word flat, Delta = 15, A = 31, (m, B) = (6, 2): 3201 monomials, n R(m, B) = 3200, B_jet = 12
+list (hyperplane flats only, exhaustive search out of reach: 3.35e+12 interpolations): 63 members
+flat cubic: contains 63 lines; lines whose order differs from 1 (from 0 at alpha = 0): 0
+flat cubic: 63 list members are sections, 0 are not; members with 2 * (agreements off 0) > 3k - 3: 63, of which NOT sections: 0
+local rank at point 0: 50 (R(m, B) = 50, full rectangle inside the support)
+explainer space: rank 2986, dimension 215 (count predicts >= 1)
+Lemma C local ranks at alpha = 0: rank(G S') = 37, R(m - o, B - 1) = 37 (o = 0); products outside S: 0; side condition Delta (m + B) <= Z - W: holds
+Lemma C local ranks at alpha != 0: rank(G S') = 17, R(m - o, B - 1) = 17 (o = 2); products outside S: 0; side condition Delta (m + B) <= Z - W: holds
+explainer 0: 2846 nonzero coefficients, residual 0; kills 63 of 63 list members; kills a random polynomial: no
+   Proposition 2: 0 of 64 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 12, 12
+   common component at a random tau: total degree 3, deg_u 3, deg_v 2
+   the flat cubic divides the common component exactly 1 times (component degree 3)
+   members P whose square (Y0 - P)^2, a first integral with b = 0, divides the common component: 0 (total degree 0 of 3)
+   gcd degree at three random tau: 3 3 3; members on the common component: 63, off it: 0 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 81: ok
+
+n = 64, domain random subspace, word flat, Delta = 15, A = 31, (m, B) = (6, 2): 3201 monomials, n R(m, B) = 3200, B_jet = 12
+list (hyperplane flats only, exhaustive search out of reach: 3.35e+12 interpolations): 63 members
+flat cubic: contains 63 lines; lines whose order differs from 1 (from 0 at alpha = 0): 0
+flat cubic: 63 list members are sections, 0 are not; members with 2 * (agreements off 0) > 3k - 3: 63, of which NOT sections: 0
+local rank at point 0: 50 (R(m, B) = 50, full rectangle inside the support)
+explainer space: rank 2986, dimension 215 (count predicts >= 1)
+Lemma C local ranks at alpha = 0: rank(G S') = 37, R(m - o, B - 1) = 37 (o = 0); products outside S: 0; side condition Delta (m + B) <= Z - W: holds
+Lemma C local ranks at alpha != 0: rank(G S') = 17, R(m - o, B - 1) = 17 (o = 2); products outside S: 0; side condition Delta (m + B) <= Z - W: holds
+explainer 0: 2846 nonzero coefficients, residual 0; kills 63 of 63 list members; kills a random polynomial: no
+   Proposition 2: 0 of 64 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 12, 12
+   common component at a random tau: total degree 3, deg_u 3, deg_v 2
+   the flat cubic divides the common component exactly 1 times (component degree 3)
+   members P whose square (Y0 - P)^2, a first integral with b = 0, divides the common component: 0 (total degree 0 of 3)
+   gcd degree at three random tau: 3 3 3; members on the common component: 63, off it: 0 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 81: ok
+
+===== flat word: the whole list down to agreement 3n/8 - 1 (and 10 at n = 32), three domains
+n = 16, domain span(1..x^(N-1)), word flat, Delta = 3, A = 5, (m, B) = (1, 0): 7 monomials, n R(m, B) = 16, B_jet = 1
+list (exhaustive, 1365 interpolations): 18 members; [5: 3] [7: 15]
+flat cubic: contains 15 lines; lines whose order differs from 1 (from 0 at alpha = 0): 0
+flat cubic: 15 list members are sections, 3 are not; members with 2 * (agreements off 0) > 3k - 3: 15, of which NOT sections: 0
+n = 32, domain span(1..x^(N-1)), word flat, Delta = 7, A = 11, (m, B) = (1, 0): 15 monomials, n R(m, B) = 32, B_jet = 1
+list (exhaustive, 4292145 interpolations): 31 members; [15: 31]
+flat cubic: contains 31 lines; lines whose order differs from 1 (from 0 at alpha = 0): 0
+flat cubic: 31 list members are sections, 0 are not; members with 2 * (agreements off 0) > 3k - 3: 31, of which NOT sections: 0
+n = 16, domain random subspace, word flat, Delta = 3, A = 5, (m, B) = (1, 0): 7 monomials, n R(m, B) = 16, B_jet = 1
+list (exhaustive, 1365 interpolations): 15 members; [7: 15]
+flat cubic: contains 15 lines; lines whose order differs from 1 (from 0 at alpha = 0): 0
+flat cubic: 15 list members are sections, 0 are not; members with 2 * (agreements off 0) > 3k - 3: 15, of which NOT sections: 0
+n = 32, domain random subspace, word flat, Delta = 7, A = 11, (m, B) = (1, 0): 15 monomials, n R(m, B) = 32, B_jet = 1
+list (exhaustive, 4292145 interpolations): 31 members; [15: 31]
+flat cubic: contains 31 lines; lines whose order differs from 1 (from 0 at alpha = 0): 0
+flat cubic: 31 list members are sections, 0 are not; members with 2 * (agreements off 0) > 3k - 3: 31, of which NOT sections: 0
+n = 16, domain span(1..z^(N-1)) in GF(2^8), word flat, Delta = 3, A = 5, (m, B) = (1, 0): 7 monomials, n R(m, B) = 16, B_jet = 1
+list (exhaustive, 1365 interpolations): 18 members; [5: 3] [7: 15]
+flat cubic: contains 15 lines; lines whose order differs from 1 (from 0 at alpha = 0): 0
+flat cubic: 15 list members are sections, 3 are not; members with 2 * (agreements off 0) > 3k - 3: 15, of which NOT sections: 0
+n = 32, domain span(1..z^(N-1)) in GF(2^8), word flat, Delta = 7, A = 11, (m, B) = (1, 0): 15 monomials, n R(m, B) = 32, B_jet = 1
+list (exhaustive, 4292145 interpolations): 51 members; [11: 20] [15: 31]
+flat cubic: contains 31 lines; lines whose order differs from 1 (from 0 at alpha = 0): 0
+flat cubic: 49 list members are sections, 2 are not; members with 2 * (agreements off 0) > 3k - 3: 49, of which NOT sections: 0
+n = 32, domain span(1..z^(N-1)) in GF(2^8), word flat, Delta = 7, A = 10, (m, B) = (1, 0): 13 monomials, n R(m, B) = 32, B_jet = 1
+list (exhaustive, 5852925 interpolations): 678 members; [10: 627] [11: 20] [15: 31]
+flat cubic: contains 31 lines; lines whose order differs from 1 (from 0 at alpha = 0): 0
+flat cubic: 49 list members are sections, 629 are not; members with 2 * (agreements off 0) > 3k - 3: 49, of which NOT sections: 0
+
+===== slack 1: word alpha^(n/2), degree <= n/4, agreement n/2 (exactly the Johnson boundary)
+n = 16, domain random subspace, word flat1, Delta = 4, A = 8, (m, B) = (7, 2): 1096 monomials, n R(m, B) = 1088, B_jet = 13
+list (exhaustive, 1287 interpolations): 30 members; [8: 30]
+flat cubic (slack 1 version): contains 16 lines; lines whose order differs from 1 (from 1 at alpha = 0): 0
+flat cubic (slack 1 version): 30 list members are sections, 0 are not; members with 2 * agreements > 3 Delta - 1: 30, of which NOT sections: 0
+local rank at point 0: 68 (R(m, B) = 68, full rectangle inside the support)
+explainer space: rank 1024, dimension 72 (count predicts >= 8)
+explainer 0: 860 nonzero coefficients, residual 0; kills 30 of 30 list members; kills a random polynomial: no
+   Proposition 2: 0 of 16 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 13, 13
+   common component at a random tau: total degree 3, deg_u 2, deg_v 3
+   the flat cubic divides the common component exactly 1 times (component degree 3)
+   members P whose square (Y0 - P)^2, a first integral with b = 0, divides the common component: 0 (total degree 0 of 3)
+   gcd degree at three random tau: 3 3 3; members on the common component: 30, off it: 0 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 100: ok
+
+n = 32, domain random subspace, word flat1, Delta = 8, A = 16, (m, B) = (7, 2): 2192 monomials, n R(m, B) = 2176, B_jet = 13
+list (exhaustive, 2042975 interpolations): 62 members; [16: 62]
+flat cubic (slack 1 version): contains 32 lines; lines whose order differs from 1 (from 1 at alpha = 0): 0
+flat cubic (slack 1 version): 62 list members are sections, 0 are not; members with 2 * agreements > 3 Delta - 1: 62, of which NOT sections: 0
+local rank at point 0: 68 (R(m, B) = 68, full rectangle inside the support)
+explainer space: rank 2048, dimension 144 (count predicts >= 16)
+explainer 0: 1776 nonzero coefficients, residual 0; kills 62 of 62 list members; kills a random polynomial: no
+   Proposition 2: 0 of 32 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 13, 13
+   common component at a random tau: total degree 3, deg_u 2, deg_v 3
+   the flat cubic divides the common component exactly 1 times (component degree 3)
+   members P whose square (Y0 - P)^2, a first integral with b = 0, divides the common component: 0 (total degree 0 of 3)
+   gcd degree at three random tau: 3 3 3; members on the common component: 62, off it: 0 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 100: ok
+
+n = 64, domain random subspace, word flat1, Delta = 16, A = 32, (m, B) = (7, 2): 4384 monomials, n R(m, B) = 4352, B_jet = 13
+list (hyperplane flats only, exhaustive search out of reach: 6.50e+12 interpolations): 126 members
+flat cubic (slack 1 version): contains 64 lines; lines whose order differs from 1 (from 1 at alpha = 0): 0
+flat cubic (slack 1 version): 126 list members are sections, 0 are not; members with 2 * agreements > 3 Delta - 1: 126, of which NOT sections: 0
+local rank at point 0: 68 (R(m, B) = 68, full rectangle inside the support)
+explainer space: rank 4096, dimension 288 (count predicts >= 32)
+explainer 0: 3608 nonzero coefficients, residual 0; kills 126 of 126 list members; kills a random polynomial: no
+   Proposition 2: 0 of 64 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 13, 13
+   common component at a random tau: total degree 3, deg_u 2, deg_v 3
+   the flat cubic divides the common component exactly 1 times (component degree 3)
+   members P whose square (Y0 - P)^2, a first integral with b = 0, divides the common component: 0 (total degree 0 of 3)
+   gcd degree at three random tau: 3 3 3; members on the common component: 126, off it: 0 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 100: ok
+
+n = 16, domain span(1..x^(N-1)), word flat1, Delta = 4, A = 6, (m, B) = (1, 0): 8 monomials, n R(m, B) = 16, B_jet = 1
+list (exhaustive, 3003 interpolations): 30 members; [8: 30]
+flat cubic (slack 1 version): contains 16 lines; lines whose order differs from 1 (from 1 at alpha = 0): 0
+flat cubic (slack 1 version): 30 list members are sections, 0 are not; members with 2 * agreements > 3 Delta - 1: 30, of which NOT sections: 0
+n = 32, domain span(1..x^(N-1)), word flat1, Delta = 8, A = 12, (m, B) = (1, 0): 16 monomials, n R(m, B) = 32, B_jet = 1
+list (exhaustive, 10015005 interpolations): 62 members; [16: 62]
+flat cubic (slack 1 version): contains 32 lines; lines whose order differs from 1 (from 1 at alpha = 0): 0
+flat cubic (slack 1 version): 62 list members are sections, 0 are not; members with 2 * agreements > 3 Delta - 1: 62, of which NOT sections: 0
+
+===== Sidon tangent lines (Delta = 1); n = 64, A = 8 is at the Johnson boundary A^2 = n Delta
+sidon: |S| = 6, 15 of 15 pairwise sums in D
+n = 16, domain span(1..x^(N-1)), word sidon, Delta = 1, A = 5, (m, B) = (2, 1): 100 monomials, n R(m, B) = 80, B_jet = 9
+list (exhaustive, 78 interpolations): 6 members; [5: 6]
+local rank at point 0: 5 (R(m, B) = 5, full rectangle inside the support)
+explainer space: rank 79, dimension 21 (count predicts >= 20)
+explainer 0: 100 nonzero coefficients, residual 0; kills 6 of 6 list members; kills a random polynomial: no
+   Proposition 2: 0 of 16 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 9, 9
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   gcd degree at three random tau: 0 0 0; members on the common component: 0, off it: 6 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 81: ok
+
+sidon: |S| = 7, 21 of 21 pairwise sums in D
+n = 32, domain span(1..x^(N-1)), word sidon, Delta = 1, A = 6, (m, B) = (3, 1): 324 monomials, n R(m, B) = 320, B_jet = 17
+list (exhaustive, 378 interpolations): 7 members; [6: 7]
+local rank at point 0: 10 (R(m, B) = 10, full rectangle inside the support)
+explainer space: rank 320, dimension 4 (count predicts >= 4)
+explainer 0: 306 nonzero coefficients, residual 0; kills 7 of 7 list members; kills a random polynomial: no
+   Proposition 2: 0 of 32 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 17, 17
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   gcd degree at three random tau: 0 0 0; members on the common component: 0, off it: 7 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 289: ok
+
+sidon: |S| = 9, 36 of 36 pairwise sums in D
+n = 64, domain span(1..x^(N-1)), word sidon, Delta = 1, A = 8, (m, B) = (4, 2): 1489 monomials, n R(m, B) = 1472, B_jet = 31
+list (exhaustive, 1653 interpolations): 9 members; [8: 9]
+local rank at point 0: 23 (R(m, B) = 23, full rectangle inside the support)
+explainer space: rank 1472, dimension 17 (count predicts >= 17)
+explainer 0: 1489 nonzero coefficients, residual 0; kills 9 of 9 list members; kills a random polynomial: no
+   Proposition 2: 0 of 64 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 31, 31
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   gcd degree at three random tau: 0 0 0; members on the common component: 0, off it: 9 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 961: ok
+
+===== random and planted words, arbitrary evaluation sets
+n = 16, domain span(1..x^(N-1)), word rand, Delta = 3, A = 7, (m, B) = (5, 2): 564 monomials, n R(m, B) = 560, B_jet = 11
+list (exhaustive, 715 interpolations): 0 members;
+local rank at point 0: 35 (R(m, B) = 35, full rectangle inside the support)
+explainer space: rank 560, dimension 4 (count predicts >= 4)
+explainer 0: 564 nonzero coefficients, residual 0; kills 0 of 0 list members; kills a random polynomial: no
+   Proposition 2: 0 of 16 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 11, 11
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   gcd degree at three random tau: 0 0 0; members on the common component: 0, off it: 0 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 121: ok
+
+n = 16, domain random points, word plant2, Delta = 3, A = 7, (m, B) = (5, 2): 564 monomials, n R(m, B) = 560, B_jet = 11
+list (exhaustive, 715 interpolations): 2 members; [8: 2]
+local rank at point 0: 35 (R(m, B) = 35, full rectangle inside the support)
+explainer space: rank 541, dimension 23 (count predicts >= 4)
+explainer 0: 562 nonzero coefficients, residual 0; kills 2 of 2 list members; kills a random polynomial: no
+   Proposition 2: 0 of 16 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 11, 11
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   gcd degree at three random tau: 0 0 0; members on the common component: 0, off it: 2 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 121: ok
+
+n = 32, domain span(1..x^(N-1)), word rand, Delta = 7, A = 15, (m, B) = (6, 2): 1609 monomials, n R(m, B) = 1600, B_jet = 12
+list (exhaustive, 1081575 interpolations): 0 members;
+local rank at point 0: 50 (R(m, B) = 50, full rectangle inside the support)
+explainer space: rank 1600, dimension 9 (count predicts >= 9)
+explainer 0: 1609 nonzero coefficients, residual 0; kills 0 of 0 list members; kills a random polynomial: no
+   Proposition 2: 0 of 32 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 12, 12
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   gcd degree at three random tau: 0 0 0; members on the common component: 0, off it: 0 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 144: ok
+
+n = 32, domain random points, word plant2, Delta = 7, A = 15, (m, B) = (6, 2): 1609 monomials, n R(m, B) = 1600, B_jet = 12
+list (exhaustive, 1081575 interpolations): 2 members; [16: 2]
+local rank at point 0: 50 (R(m, B) = 50, full rectangle inside the support)
+explainer space: rank 1587, dimension 22 (count predicts >= 9)
+explainer 0: 1404 nonzero coefficients, residual 0; kills 2 of 2 list members; kills a random polynomial: no
+   Proposition 2: 0 of 32 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 12, 12
+   common component at a random tau: total degree 4, deg_u 4, deg_v 4
+   members P whose square (Y0 - P)^2, a first integral with b = 0, divides the common component: 2 (total degree 4 of 4)
+   gcd degree at three random tau: 4 4 4; members on the common component: 2, off it: 0 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 64: ok
+
+n = 32, domain span(1..x^(N-1)), word plant2, Delta = 7, A = 15, (m, B) = (6, 2): 1609 monomials, n R(m, B) = 1600, B_jet = 12
+list (exhaustive, 1081575 interpolations): 2 members; [16: 2]
+local rank at point 0: 50 (R(m, B) = 50, full rectangle inside the support)
+explainer space: rank 1587, dimension 22 (count predicts >= 9)
+explainer 0: 1404 nonzero coefficients, residual 0; kills 2 of 2 list members; kills a random polynomial: no
+   Proposition 2: 0 of 32 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 12, 12
+   common component at a random tau: total degree 4, deg_u 4, deg_v 4
+   members P whose square (Y0 - P)^2, a first integral with b = 0, divides the common component: 2 (total degree 4 of 4)
+   gcd degree at three random tau: 4 4 4; members on the common component: 2, off it: 0 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 64: ok
+
+n = 32, domain random subspace, word plant3, Delta = 3, A = 10, (m, B) = (4, 2): 744 monomials, n R(m, B) = 736, B_jet = 13
+list (exhaustive, 14950 interpolations): 3 members; [10: 1] [11: 2]
+local rank at point 0: 23 (R(m, B) = 23, full rectangle inside the support)
+explainer space: rank 728, dimension 16 (count predicts >= 8)
+explainer 0: 648 nonzero coefficients, residual 0; kills 3 of 3 list members; kills a random polynomial: no
+   Proposition 2: 0 of 32 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 13, 13
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   gcd degree at three random tau: 0 0 0; members on the common component: 0, off it: 3 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 169: ok
+
+n = 64, domain random points, word plant4, Delta = 3, A = 14, (m, B) = (4, 2): 1488 monomials, n R(m, B) = 1472, B_jet = 18
+list (exhaustive, 316251 interpolations): 4 members; [16: 4]
+local rank at point 0: 23 (R(m, B) = 23, full rectangle inside the support)
+explainer space: rank 1440, dimension 48 (count predicts >= 16)
+explainer 0: 1488 nonzero coefficients, residual 0; kills 4 of 4 list members; kills a random polynomial: no
+   Proposition 2: 0 of 64 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 18, 18
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   gcd degree at three random tau: 0 0 0; members on the common component: 0, off it: 4 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 324: ok
+
+===== rate 1/2
+n = 16, domain random points, word code:5, Delta = 7, A = 11, (m, B) = (4, 1): 278 monomials, n R(m, B) = 272, B_jet = 6
+list (exhaustive, 1287 interpolations): 1 members; [12: 1]
+local rank at point 0: 17 (R(m, B) = 17, full rectangle inside the support)
+explainer space: rank 268, dimension 10 (count predicts >= 6)
+explainer 0: 230 nonzero coefficients, residual 0; kills 1 of 1 list members; kills a random polynomial: no
+   Proposition 2: 0 of 16 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 6, 6
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   gcd degree at three random tau: 0 0 0; members on the common component: 0, off it: 1 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 36: ok
+
+n = 16, domain span(1..x^(N-1)), word pad:8:3, Delta = 7, A = 11, (m, B) = (4, 1): 278 monomials, n R(m, B) = 272, B_jet = 6
+list (exhaustive, 1287 interpolations): 3 members; [11: 3]
+local rank at point 0: 17 (R(m, B) = 17, full rectangle inside the support)
+explainer space: rank 270, dimension 8 (count predicts >= 6)
+explainer 0: 233 nonzero coefficients, residual 0; kills 3 of 3 list members; kills a random polynomial: no
+   Proposition 2: 0 of 16 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 6, 6
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   gcd degree at three random tau: 0 0 0; members on the common component: 0, off it: 3 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 36: ok
+
+n = 32, domain random points, word code:10, Delta = 15, A = 22, (m, B) = (8, 2): 2853 monomials, n R(m, B) = 2848, B_jet = 11
+list (exhaustive, 5311735 interpolations): 1 members; [23: 1]
+local rank at point 0: 89 (R(m, B) = 89, full rectangle inside the support)
+explainer space: rank 2840, dimension 13 (count predicts >= 5)
+explainer 0: 2852 nonzero coefficients, residual 0; kills 1 of 1 list members; kills a random polynomial: no
+   Proposition 2: 0 of 32 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 11, 11
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   gcd degree at three random tau: 0 0 0; members on the common component: 0, off it: 1 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 121: ok
+
+n = 32, domain span(1..x^(N-1)), word pad:16:6, Delta = 15, A = 22, (m, B) = (8, 2): 2853 monomials, n R(m, B) = 2848, B_jet = 11
+list (exhaustive, 5311735 interpolations): 3 members; [22: 3]
+local rank at point 0: 89 (R(m, B) = 89, full rectangle inside the support)
+explainer space: rank 2838, dimension 15 (count predicts >= 5)
+explainer 0: 2681 nonzero coefficients, residual 0; kills 3 of 3 list members; kills a random polynomial: no
+   Proposition 2: 0 of 32 lines violate the two order conditions
+   Proposition 3: Q0 and Q1 vanish separately on the sections of the members: yes; (u, v)-degrees 11, 11
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   gcd degree at three random tau: 0 0 0; members on the common component: 0, off it: 3 (ambiguous 0); Bezout bound for the rest (d0 - t)(d1 - t) = 121: ok
+
+===== Wronskians of two random explainers: first integrals with contact 2m on every line
+n = 16, domain span(1..x^(N-1)), word rand, Delta = 3, A = 7, (m, B) = (5, 2): 564 monomials, n R(m, B) = 560, B_jet = 11
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+Wronskian of explainers 0 and 1: nonzero, (u, v)-degree 22; order along the lines between 5 and 5 (claim: >= m = 5); vanishes on the sections of all members: yes
+   in jet coordinates: weighted degree W = 68 (2mA = 70), b = 5, leading Y1-coefficient involves Y0; total contact 160 = 10.00 n, efficiency W / total contact = 0.4250 (A/n = 0.4375)
+   at a random tau (degree 22): irreducible restriction to a line found: yes (8 lines tried); nonsingular GF(2^16)-point found: yes => the Wronskian is absolutely irreducible over F(tau)
+
+n = 16, domain random points, word rand, Delta = 3, A = 7, (m, B) = (5, 2): 564 monomials, n R(m, B) = 560, B_jet = 11
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+Wronskian of explainers 0 and 1: nonzero, (u, v)-degree 22; order along the lines between 5 and 5 (claim: >= m = 5); vanishes on the sections of all members: yes
+   in jet coordinates: weighted degree W = 68 (2mA = 70), b = 5, leading Y1-coefficient involves Y0; total contact 160 = 10.00 n, efficiency W / total contact = 0.4250 (A/n = 0.4375)
+   at a random tau (degree 22): irreducible restriction to a line found: yes (18 lines tried); nonsingular GF(2^16)-point found: yes => the Wronskian is absolutely irreducible over F(tau)
+
+n = 16, domain random subspace, word rand, Delta = 3, A = 8, (m, B) = (2, 1): 86 monomials, n R(m, B) = 80, B_jet = 5
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+Wronskian of explainers 0 and 1: nonzero, (u, v)-degree 10; order along the lines between 2 and 2 (claim: >= m = 2); vanishes on the sections of all members: yes
+   in jet coordinates: weighted degree W = 30 (2mA = 32), b = 2, leading Y1-coefficient involves Y0; total contact 64 = 4.00 n, efficiency W / total contact = 0.4688 (A/n = 0.5000)
+   at a random tau (degree 10): irreducible restriction to a line found: yes (6 lines tried); nonsingular GF(2^16)-point found: yes => the Wronskian is absolutely irreducible over F(tau)
+
+n = 32, domain span(1..x^(N-1)), word rand, Delta = 7, A = 15, (m, B) = (6, 2): 1609 monomials, n R(m, B) = 1600, B_jet = 12
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+Wronskian of explainers 0 and 1: nonzero, (u, v)-degree 24; order along the lines between 6 and 6 (claim: >= m = 6); vanishes on the sections of all members: yes
+   in jet coordinates: weighted degree W = 178 (2mA = 180), b = 5, leading Y1-coefficient involves Y0; total contact 384 = 12.00 n, efficiency W / total contact = 0.4635 (A/n = 0.4688)
+   at a random tau (degree 24): irreducible restriction to a line found: yes (4 lines tried); nonsingular GF(2^16)-point found: yes => the Wronskian is absolutely irreducible over F(tau)
+
+n = 32, domain random points, word rand, Delta = 7, A = 16, (m, B) = (3, 1): 330 monomials, n R(m, B) = 320, B_jet = 6
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+Wronskian of explainers 0 and 1: nonzero, (u, v)-degree 12; order along the lines between 3 and 3 (claim: >= m = 3); vanishes on the sections of all members: yes
+   in jet coordinates: weighted degree W = 94 (2mA = 96), b = 3, leading Y1-coefficient involves Y0; total contact 192 = 6.00 n, efficiency W / total contact = 0.4896 (A/n = 0.5000)
+   at a random tau (degree 12): irreducible restriction to a line found: yes (1 lines tried); nonsingular GF(2^16)-point found: yes => the Wronskian is absolutely irreducible over F(tau)
+
+n = 16, domain random points, word rand, Delta = 7, A = 11, (m, B) = (4, 1): 278 monomials, n R(m, B) = 272, B_jet = 6
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+Wronskian of explainers 0 and 1: nonzero, (u, v)-degree 12; order along the lines between 4 and 4 (claim: >= m = 4); vanishes on the sections of all members: yes
+   in jet coordinates: weighted degree W = 86 (2mA = 88), b = 2, leading Y1-coefficient involves Y0; total contact 128 = 8.00 n, efficiency W / total contact = 0.6719 (A/n = 0.6875)
+   at a random tau (degree 12): irreducible restriction to a line found: yes (1 lines tried); nonsingular GF(2^16)-point found: yes => the Wronskian is absolutely irreducible over F(tau)
+
+n = 32, domain random points, word code:10, Delta = 15, A = 22, (m, B) = (8, 2): 2853 monomials, n R(m, B) = 2848, B_jet = 11
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+Wronskian of explainers 0 and 1: nonzero, (u, v)-degree 22; order along the lines between 8 and 8 (claim: >= m = 8); vanishes on the sections of all members: yes
+   in jet coordinates: weighted degree W = 350 (2mA = 352), b = 5, leading Y1-coefficient involves Y0; total contact 512 = 16.00 n, efficiency W / total contact = 0.6836 (A/n = 0.6875)
+   at a random tau (degree 22): irreducible restriction to a line found: yes (53 lines tried); nonsingular GF(2^16)-point found: yes => the Wronskian is absolutely irreducible over F(tau)
+
+n = 32, domain span(1..x^(N-1)), word rand, Delta = 15, A = 22, (m, B) = (8, 2): 2853 monomials, n R(m, B) = 2848, B_jet = 11
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+Wronskian of explainers 0 and 1: nonzero, (u, v)-degree 22; order along the lines between 8 and 8 (claim: >= m = 8); vanishes on the sections of all members: yes
+   in jet coordinates: weighted degree W = 350 (2mA = 352), b = 5, leading Y1-coefficient involves Y0; total contact 512 = 16.00 n, efficiency W / total contact = 0.6836 (A/n = 0.6875)
+   at a random tau (degree 22): irreducible restriction to a line found: yes (14 lines tried); nonsingular GF(2^16)-point found: yes => the Wronskian is absolutely irreducible over F(tau)
+
+n = 32, domain random points, word plant2, Delta = 7, A = 15, (m, B) = (6, 2): 1609 monomials, n R(m, B) = 1600, B_jet = 12
+   common component at a random tau: total degree 4, deg_u 4, deg_v 4
+   common component at a random tau: total degree 4, deg_u 4, deg_v 4
+Wronskian of explainers 0 and 1: nonzero, (u, v)-degree 24; order along the lines between 6 and 6 (claim: >= m = 6); vanishes on the sections of all members: yes
+   in jet coordinates: weighted degree W = 178 (2mA = 180), b = 4, leading Y1-coefficient involves Y0; total contact 384 = 12.00 n, efficiency W / total contact = 0.4635 (A/n = 0.4688)
+   at a random tau (degree 24): irreducible restriction to a line found: no (1440 lines tried); nonsingular GF(2^16)-point found: yes => no conclusion
+
+n = 16, domain span(1..x^(N-1)), word flat, Delta = 3, A = 7, (m, B) = (5, 2): 564 monomials, n R(m, B) = 560, B_jet = 11
+   common component at a random tau: total degree 3, deg_u 3, deg_v 2
+   common component at a random tau: total degree 3, deg_u 3, deg_v 2
+Wronskian of explainers 0 and 1: nonzero, (u, v)-degree 22; order along the lines between 5 and 5 (claim: >= m = 5); vanishes on the sections of all members: yes
+   in jet coordinates: weighted degree W = 68 (2mA = 70), b = 5, leading Y1-coefficient involves Y0; total contact 160 = 10.00 n, efficiency W / total contact = 0.4250 (A/n = 0.4375)
+   at a random tau (degree 22): irreducible restriction to a line found: no (1320 lines tried); nonsingular GF(2^16)-point found: yes => no conclusion
+
+n = 32, domain span(1..x^(N-1)), word sidon, Delta = 1, A = 6, (m, B) = (3, 1): 324 monomials, n R(m, B) = 320, B_jet = 17
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+   common component at a random tau: total degree 0, deg_u 0, deg_v 0
+Wronskian of explainers 0 and 1: nonzero, (u, v)-degree 34; order along the lines between 3 and 3 (claim: >= m = 3); vanishes on the sections of all members: yes
+   in jet coordinates: weighted degree W = 34 (2mA = 36), b = 3, leading Y1-coefficient involves Y0; total contact 192 = 6.00 n, efficiency W / total contact = 0.1771 (A/n = 0.1875)
+   at a random tau (degree 34): irreducible restriction to a line found: yes (5 lines tried); nonsingular GF(2^16)-point found: yes => the Wronskian is absolutely irreducible over F(tau)
+
+===== below a_1: no explainer in the supports tried (the theory is silent), lists recounted
+n = 16, domain span(1..x^(N-1)), word five8, Delta = 8, A = 10, (m, B) = (4, 2): 248 monomials, n R(m, B) = 368, B_jet = 4
+list (exhaustive, 5005 interpolations): 504 members; [10: 504]
+explainer space: rank 248, dimension 0 (count predicts >= -120)
+n = 16, domain span(1..x^(N-1)), word five8, Delta = 8, A = 10, (m, B) = (6, 3): 696 monomials, n R(m, B) = 992, B_jet = 7
+list (exhaustive, 5005 interpolations): 504 members; [10: 504]
+explainer space: rank 696, dimension 0 (count predicts >= -296)
+n = 16, domain span(1..x^(N-1)), word five8, Delta = 8, A = 10, (m, B) = (8, 4): 1480 monomials, n R(m, B) = 2080, B_jet = 9
+list (exhaustive, 5005 interpolations): 504 members; [10: 504]
+explainer space: rank 1480, dimension 0 (count predicts >= -600)
+n = 16, domain span(1..x^(N-1)), word five8, Delta = 8, A = 10, (m, B) = (10, 4): 2460 monomials, n R(m, B) = 3280, B_jet = 12
+list (exhaustive, 5005 interpolations): 504 members; [10: 504]
+explainer space: rank 2460, dimension 0 (count predicts >= -820)
+n = 16, domain span(1..x^(N-1)), word pad:8:3, Delta = 7, A = 10, (m, B) = (4, 1): 230 monomials, n R(m, B) = 272, B_jet = 5
+list (exhaustive, 3003 interpolations): 15 members; [10: 12] [11: 3]
+explainer space: rank 230, dimension 0 (count predicts >= -42)
+n = 16, domain span(1..x^(N-1)), word pad:8:3, Delta = 7, A = 10, (m, B) = (6, 2): 691 monomials, n R(m, B) = 800, B_jet = 8
+list (exhaustive, 3003 interpolations): 15 members; [10: 12] [11: 3]
+explainer space: rank 691, dimension 0 (count predicts >= -109)
+n = 16, domain span(1..x^(N-1)), word pad:8:3, Delta = 7, A = 10, (m, B) = (8, 3): 1540 monomials, n R(m, B) = 1760, B_jet = 11
+list (exhaustive, 3003 interpolations): 15 members; [10: 12] [11: 3]
+explainer space: rank 1540, dimension 0 (count predicts >= -220)
+n = 16, domain span(1..x^(N-1)), word pad:8:3, Delta = 7, A = 10, (m, B) = (10, 4): 2895 monomials, n R(m, B) = 3280, B_jet = 14
+list (exhaustive, 3003 interpolations): 15 members; [10: 12] [11: 3]
+explainer space: rank 2895, dimension 0 (count predicts >= -385)
+n = 32, domain span(1..x^(N-1)), word five8, Delta = 16, A = 20, (m, B) = (1, 0): 24 monomials, n R(m, B) = 32, B_jet = 1
+list (exhaustive, 51895935 interpolations): 1400 members; [20: 1400]

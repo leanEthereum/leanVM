@@ -1,0 +1,276 @@
+Researcher 27: results of the runs quoted in note 27 (seed 1 unless stated). Produced by 27_run.sh, 27_summary.py, 27_conics, 27_lift, 27_grid, 27_generalize.
+
+==== 27_lists 12 13 : all classes
+n=16 k=12 T=13 t=3 M=4 m=1 d=2 ; generic points allow 3 members ; e4 = 4T-n-3k+1 = 1 ; e3 = 3T-n-2k+1 = 0
+orbits of E0: 1, rooted pairs (E0,E1): 10, hits 3720 (degenerate 100)
+four-member lists (unordered quadruples of error sets): 4164160.0 ; violations of the flag bound (weighted): 592480.0
+classes: 18, lists: 4164160
+       1680  delta=1 gam=10 J=6 excJ=1 | pair=6 trip=0 dbl=0 | PiXi=1 maxPi=2 R=1.50 | xi (1,3,1) (1,3,1) (1,3,1) (1,3,1) | Phi (2,6,2) | opp (1,1) (1,1) (1,1) | wdef=0  [E = 0007 0034 0052 0061]
+      67200  delta=2 gam=9 J=9 excJ=1 | pair=3 trip=3 dbl=0 | PiXi=1 maxPi=2 R=1.50 | xi (1,3,1) (1,3,1) (1,3,1) (2,6,2) | Phi (1,3,1) | opp (2,1) (2,1) (2,1) | wdef=0  [E = 0007 0019 002a 004c]
+     907200  delta=3 gam=8 J=12 excJ=1 | pair=2 trip=5 dbl=0 | PiXi=1 maxPi=2 R=1.50 | xi (1,3,1) (2,5,1) (2,5,1) (2,6,2) | Phi (1,2,1) | opp (3,1) (3,1) (3,1) | wdef=0  [E = 0007 0034 00c4 0111]
+      80640  delta=3 gam=8 J=12 excJ=1 | pair=4 trip=4 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (1,3,1) (2,5,1) (2,5,1) (3,7,1) | Phi (2,4,1) | opp (3,1) (3,1) (3,1) | wdef=0  [E = 0007 0034 0061 0502]
+      40320  delta=3 gam=8 J=12 excJ=1 | pair=4 trip=4 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,5,1) (2,5,1) (2,5,1) (2,5,1) | Phi (2,4,1) | opp (3,1) (3,1) (3,1) | wdef=0  [E = 0007 0034 0502 1420]
+      40320  delta=3 gam=8 J=12 excJ=1 | pair=4 trip=4 dbl=0 | PiXi=1 maxPi=2 R=1.50 | xi (2,6,2) (2,6,2) (2,6,2) (2,6,2) | Phi (2,6,2) | opp (3,1) (3,1) (3,1) | wdef=2  [E = 0007 0070 0122 0211]
+    1612800  delta=4 gam=7 J=15 excJ=1 | pair=1 trip=7 dbl=0 | PiXi=1 maxPi=2 R=1.50 | xi (2,5,1) (2,5,1) (2,6,2) (3,7,1) | Phi (1,1,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 0007 0034 00c4 0109]
+      26880  delta=4 gam=7 J=15 excJ=1 | pair=3 trip=6 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (1,3,1) (3,7,1) (3,7,1) (3,7,1) | Phi (2,3,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 0007 0034 0052 1180]
+      26880  delta=4 gam=7 J=15 excJ=1 | pair=3 trip=6 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,5,1) (2,5,1) (2,5,1) (4,9,1) | Phi (2,3,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 0007 0034 0502 6001]
+     161280  delta=4 gam=7 J=15 excJ=1 | pair=3 trip=6 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,5,1) (2,5,1) (3,7,1) (3,7,1) | Phi (2,3,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 0007 0034 0502 1180]
+      26880  delta=4 gam=7 J=15 excJ=1 | pair=3 trip=6 dbl=0 | PiXi=2 maxPi=4 R=0.75 | xi (2,6,2) (2,6,2) (2,6,2) (4,12,4) | Phi (2,6,2) | opp (4,2) (4,2) (4,2) | wdef=2  [E = 0007 0070 0122 0b00]
+     356160  delta=4 gam=7 J=16 excJ=2 | pair=0 trip=8 dbl=0 | PiXi=2 maxPi=16 R=0.25 | xi (2,6,2) (2,6,2) (2,6,2) (2,6,2) | Phi (0,0,16) | opp (4,2) (4,2) (4,2) | wdef=2  [E = 0007 0034 00c4 0304]
+      89040  delta=4 gam=7 J=16 excJ=2 | pair=0 trip=8 dbl=0 | PiXi=2 maxPi=16 R=0.25 | xi (2,6,2) (2,6,2) (2,6,2) (2,6,2) | Phi (0,0,16) | opp (4,4) (4,4) (4,4) | wdef=2  [E = 0007 0034 0304 3004]
+     470400  delta=5 gam=6 J=18 excJ=1 | pair=0 trip=9 dbl=0 | PiXi=1 maxPi=2 R=1.50 | xi (2,6,2) (3,7,1) (3,7,1) (3,7,1) | Phi (1,0,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 0007 0034 00c4 0508]
+     161280  delta=5 gam=6 J=18 excJ=1 | pair=2 trip=8 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,5,1) (3,7,1) (3,7,1) (4,9,1) | Phi (2,2,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 0007 0034 0502 1240]
+      50400  delta=5 gam=6 J=18 excJ=1 | pair=2 trip=8 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,7,1) (3,7,1) (3,7,1) (3,7,1) | Phi (2,2,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 0007 0034 1180 1240]
+      40320  delta=6 gam=5 J=21 excJ=1 | pair=1 trip=10 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,7,1) (3,7,1) (4,9,1) (4,9,1) | Phi (2,1,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 0007 0034 1180 4840]
+       4480  delta=7 gam=4 J=24 excJ=1 | pair=0 trip=12 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (4,9,1) (4,9,1) (4,9,1) (4,9,1) | Phi (2,0,1) | opp (7,1) (7,1) (7,1) | wdef=0  [E = 0007 1180 2410 4840]
+lists by excJ: {1: 3718960.0, 2: 445200.0}
+lists with no period of any of the eight functions, by excJ: {1: 592480.0}
+lists whose curve has no period, by excJ: {1: 3692080.0}
+largest R = (excJ + 2) / max period: 3.00 ; with the triple functions and opposite ratios only: 3.00
+violations of Conjecture Q (excJ <= max period + 3 |Pi(Xi)| - 2), weighted: 0
+
+==== 27_lists 9 11 : all classes
+n=16 k=9 T=11 t=5 M=7 m=2 d=3 ; generic points allow 3 members ; e4 = 4T-n-3k+1 = 2 ; e3 = 3T-n-2k+1 = 0
+orbits of E0: 2, rooted pairs (E0,E1): 133, hits 1468472 (degenerate 1460821)
+four-member lists (unordered quadruples of error sets): 16289280.0 ; violations of the flag bound (weighted): 8930880.0
+classes: 25, lists: 16289280
+      10080  delta=2 gam=6 J=10 excJ=2 | pair=10 trip=0 dbl=0 | PiXi=2 maxPi=4 R=1.00 | xi (2,6,2) (2,6,2) (2,6,2) (2,6,2) | Phi (4,12,4) | opp (2,2) (2,2) (2,2) | wdef=2  [E = 001f 0f10 150a 1a05]
+    2419200  delta=3 gam=5 J=13 excJ=2 | pair=5 trip=4 dbl=0 | PiXi=1 maxPi=2 R=2.00 | xi (2,6,2) (2,6,2) (2,6,2) (2,6,2) | Phi (2,6,2) | opp (3,1) (3,1) (3,1) | wdef=2  [E = 001f 00f1 0323 0554]
+    3628800  delta=3 gam=5 J=14 excJ=3 | pair=6 trip=4 dbl=0 | PiXi=1 maxPi=2 R=2.50 | xi (2,6,2) (2,6,2) (2,6,2) (2,6,2) | Phi (2,6,2) | opp (3,1) (3,1) (3,1) | wdef=2  [E = 001f 0711 3403 5205]
+    1411200  delta=4 gam=4 J=16 excJ=2 | pair=0 trip=8 dbl=0 | PiXi=2 maxPi=16 R=0.25 | xi (2,6,2) (2,6,2) (2,6,2) (2,6,2) | Phi (0,0,16) | opp (4,2) (4,2) (4,2) | wdef=2  [E = 001f 00e3 0332 0c31]
+     352800  delta=4 gam=4 J=16 excJ=2 | pair=0 trip=8 dbl=0 | PiXi=2 maxPi=16 R=0.25 | xi (2,6,2) (2,6,2) (2,6,2) (2,6,2) | Phi (0,0,16) | opp (4,4) (4,4) (4,4) | wdef=2  [E = 001f 00e3 0332 3031]
+    2419200  delta=4 gam=4 J=16 excJ=2 | pair=4 trip=6 dbl=0 | PiXi=1 maxPi=2 R=2.00 | xi (2,6,2) (2,6,2) (3,7,1) (3,7,1) | Phi (2,4,2) | opp (4,1) (4,1) (4,1) | wdef=2  [E = 001f 00f1 0689 3032]
+     483840  delta=4 gam=4 J=16 excJ=2 | pair=4 trip=6 dbl=0 | PiXi=2 maxPi=4 R=1.00 | xi (2,6,2) (2,6,2) (2,6,2) (4,12,4) | Phi (2,6,2) | opp (4,2) (4,2) (4,2) | wdef=2  [E = 001f 0711 3403 c302]
+      10080  delta=4 gam=4 J=16 excJ=2 | pair=8 trip=4 dbl=0 | PiXi=1 maxPi=4 R=1.00 | xi (3,7,1) (3,7,1) (3,7,1) (3,7,1) | Phi (4,8,4) | opp (4,2) (4,4) (4,4) | wdef=2  [E = 0117 022b 4d04 8e08]
+    1290240  delta=4 gam=4 J=17 excJ=3 | pair=5 trip=6 dbl=0 | PiXi=2 maxPi=4 R=1.25 | xi (2,6,2) (2,6,2) (2,6,2) (4,12,4) | Phi (2,6,2) | opp (4,2) (4,2) (4,2) | wdef=2  [E = 001f 0351 3043 c04c]
+     241920  delta=4 gam=4 J=18 excJ=4 | pair=6 trip=6 dbl=0 | PiXi=2 maxPi=4 R=1.50 | xi (2,6,2) (2,6,2) (2,6,2) (4,12,4) | Phi (2,6,2) | opp (4,2) (4,2) (4,2) | wdef=2  [E = 001f 00f1 0323 0f10]
+     161280  delta=5 gam=3 J=19 excJ=2 | pair=5 trip=7 dbl=0 | PiXi=1 maxPi=4 R=1.00 | xi (2,5,1) (3,7,1) (3,7,1) (4,12,4) | Phi (2,5,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 001f 0f10 1306 f010]
+     322560  delta=5 gam=3 J=19 excJ=2 | pair=5 trip=7 dbl=0 | PiXi=1 maxPi=2 R=2.00 | xi (2,6,2) (3,7,1) (3,7,1) (5,11,1) | Phi (3,5,1) | opp (5,1) (5,1) (5,1) | wdef=2  [E = 001f 0711 3403 4b20]
+       6720  delta=6 gam=2 J=22 excJ=2 | pair=0 trip=8 dbl=6 | PiXi=2 maxPi=4 R=1.00 | xi (4,12,4) (4,12,4) (4,12,4) (4,12,4) | Phi (4,6,2) | opp (4,4) (4,4) (4,4) | wdef=6  [E = 0117 01e8 0e18 3224]
+      80640  delta=6 gam=2 J=22 excJ=2 | pair=2 trip=10 dbl=0 | PiXi=2 maxPi=4 R=1.00 | xi (2,6,2) (4,10,2) (4,10,2) (4,12,4) | Phi (2,4,2) | opp (6,2) (6,2) (6,2) | wdef=2  [E = 001f 0171 6109 9608]
+     120960  delta=6 gam=2 J=22 excJ=2 | pair=4 trip=9 dbl=0 | PiXi=1 maxPi=4 R=1.00 | xi (2,5,1) (4,9,1) (4,9,1) (4,12,4) | Phi (2,4,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 001f 0325 0f10 f010]
+     483840  delta=6 gam=2 J=22 excJ=2 | pair=4 trip=9 dbl=0 | PiXi=1 maxPi=4 R=1.00 | xi (3,7,1) (3,7,1) (4,9,1) (4,12,4) | Phi (2,4,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 001f 0f10 1126 f010]
+      40320  delta=6 gam=2 J=22 excJ=2 | pair=4 trip=9 dbl=0 | PiXi=2 maxPi=4 R=1.00 | xi (2,6,2) (4,10,2) (4,10,2) (4,12,4) | Phi (2,4,2) | opp (6,2) (6,2) (6,2) | wdef=2  [E = 001f 0343 0f10 f010]
+      80640  delta=6 gam=2 J=22 excJ=2 | pair=6 trip=8 dbl=0 | PiXi=1 maxPi=1 R=4.00 | xi (3,7,1) (3,7,1) (5,11,1) (5,11,1) | Phi (4,6,1) | opp (6,1) (6,1) (6,1) | wdef=2  [E = 0117 022b 4d04 80e8]
+    1128960  delta=6 gam=2 J=23 excJ=3 | pair=3 trip=10 dbl=0 | PiXi=2 maxPi=4 R=1.25 | xi (2,6,2) (4,10,2) (4,10,2) (4,12,4) | Phi (2,4,2) | opp (6,2) (6,2) (6,2) | wdef=2  [E = 001f 0166 0714 f010]
+     504000  delta=6 gam=2 J=24 excJ=4 | pair=4 trip=10 dbl=0 | PiXi=2 maxPi=4 R=1.50 | xi (2,6,2) (4,10,2) (4,10,2) (4,12,4) | Phi (2,4,2) | opp (6,2) (6,2) (6,2) | wdef=2  [E = 001f 00f1 0332 f001]
+      53760  delta=7 gam=1 J=25 excJ=2 | pair=3 trip=11 dbl=0 | PiXi=1 maxPi=2 R=2.00 | xi (2,6,2) (5,11,1) (5,11,1) (5,11,1) | Phi (3,3,1) | opp (7,1) (7,1) (7,1) | wdef=2  [E = 0117 022b 044d e880]
+     161280  delta=7 gam=1 J=25 excJ=2 | pair=3 trip=11 dbl=0 | PiXi=1 maxPi=4 R=1.00 | xi (3,7,1) (4,9,1) (4,12,4) (5,11,1) | Phi (2,3,1) | opp (7,1) (7,1) (7,1) | wdef=0  [E = 001f 0163 0f10 f010]
+     107520  delta=7 gam=1 J=25 excJ=2 | pair=3 trip=11 dbl=0 | PiXi=1 maxPi=4 R=1.00 | xi (4,9,1) (4,9,1) (4,9,1) (4,12,4) | Phi (2,3,1) | opp (7,1) (7,1) (7,1) | wdef=0  [E = 001f 0f10 1164 f010]
+       6720  delta=8 gam=0 J=28 excJ=2 | pair=4 trip=12 dbl=0 | PiXi=1 maxPi=4 R=1.00 | xi (5,11,1) (5,11,1) (5,11,1) (5,11,1) | Phi (4,4,4) | opp (8,2) (8,2) (8,2) | wdef=2  [E = 0117 022b d440 e880]
+     762720  delta=8 gam=0 J=32 excJ=6 | pair=0 trip=16 dbl=0 | PiXi=4 maxPi=16 R=0.50 | xi (4,12,4) (4,12,4) (4,12,4) (4,12,4) | Phi (0,0,16) | opp (8,8) (8,8) (8,8) | wdef=6  [E = 001f 00f1 0f01 f001]
+lists by excJ: {2: 8732640.0, 3: 6048000.0, 4: 745920.0, 6: 762720.0}
+lists with no period of any of the eight functions, by excJ: {2: 80640.0}
+lists whose curve has no period, by excJ: {2: 6347040.0, 3: 3628800.0}
+largest R = (excJ + 2) / max period: 4.00 ; with the triple functions and opposite ratios only: 4.00
+violations of Conjecture Q (excJ <= max period + 3 |Pi(Xi)| - 2), weighted: 0
+
+==== 27_lists 6 9 : all classes
+n=16 k=6 T=9 t=7 M=10 m=3 d=4 ; generic points allow 3 members ; e4 = 4T-n-3k+1 = 3 ; e3 = 3T-n-2k+1 = 0
+orbits of E0: 3, rooted pairs (E0,E1): 470 (processed [0, 470)), hits 4293 (degenerate 0, and 86108372 rejected before analysis)
+four-member lists (unordered quadruples of error sets): 7758240.0 ; violations of the flag bound (weighted): 4838400.0
+classes: 10, lists: 7758240
+     120960  delta=2 gam=3 J=11 excJ=3 | pair=11 trip=0 dbl=0 | PiXi=2 maxPi=4 R=1.25 | xi (2,6,2) (2,6,2) (2,6,2) (2,6,2) | Phi (4,12,4) | opp (2,2) (2,2) (2,2) | wdef=2  [E = 007f 07f0 52a5 558a]
+     124320  delta=2 gam=3 J=12 excJ=4 | pair=12 trip=0 dbl=0 | PiXi=2 maxPi=4 R=1.50 | xi (2,6,2) (2,6,2) (2,6,2) (2,6,2) | Phi (4,12,4) | opp (2,2) (2,2) (2,2) | wdef=2  [E = 007f 0f70 334c 3c43]
+    4838400  delta=3 gam=2 J=14 excJ=3 | pair=6 trip=4 dbl=0 | PiXi=1 maxPi=2 R=2.50 | xi (2,6,2) (2,6,2) (2,6,2) (2,6,2) | Phi (2,6,2) | opp (3,1) (3,1) (3,1) | wdef=2  [E = 007f 0787 34ca 9199]
+     241920  delta=4 gam=1 J=17 excJ=3 | pair=5 trip=6 dbl=0 | PiXi=2 maxPi=4 R=1.25 | xi (2,6,2) (2,6,2) (2,6,2) (4,12,4) | Phi (2,6,2) | opp (4,2) (4,2) (4,2) | wdef=2  [E = 007f 07b1 34c3 c3c2]
+     107520  delta=4 gam=1 J=17 excJ=3 | pair=7 trip=5 dbl=0 | PiXi=1 maxPi=4 R=1.25 | xi (1,3,1) (3,7,1) (3,7,1) (4,12,4) | Phi (3,7,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 007f 0f70 1707 f070]
+     161280  delta=4 gam=1 J=17 excJ=3 | pair=7 trip=5 dbl=0 | PiXi=1 maxPi=4 R=1.25 | xi (2,5,1) (2,5,1) (3,7,1) (4,12,4) | Phi (3,7,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 007f 0f70 350b f070]
+    1706880  delta=4 gam=1 J=18 excJ=4 | pair=6 trip=6 dbl=0 | PiXi=2 maxPi=4 R=1.50 | xi (2,6,2) (2,6,2) (2,6,2) (4,12,4) | Phi (2,6,2) | opp (4,2) (4,2) (4,2) | wdef=2  [E = 013f 3c43 c343 cc4c]
+      26880  delta=5 gam=0 J=20 excJ=3 | pair=6 trip=7 dbl=0 | PiXi=1 maxPi=4 R=1.25 | xi (1,3,1) (4,9,1) (4,9,1) (4,12,4) | Phi (3,6,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 007f 0787 0f70 f070]
+     322560  delta=5 gam=0 J=20 excJ=3 | pair=6 trip=7 dbl=0 | PiXi=1 maxPi=4 R=1.25 | xi (2,5,1) (3,7,1) (4,9,1) (4,12,4) | Phi (3,6,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 007f 0793 334c cc4c]
+     107520  delta=5 gam=0 J=20 excJ=3 | pair=6 trip=7 dbl=0 | PiXi=1 maxPi=4 R=1.25 | xi (3,7,1) (3,7,1) (3,7,1) (4,12,4) | Phi (3,6,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 007f 0f70 338a f070]
+lists by excJ: {3: 5927040.0, 4: 1831200.0}
+lists with no period of any of the eight functions, by excJ: {}
+lists whose curve has no period, by excJ: {3: 5564160.0}
+largest R = (excJ + 2) / max period: 2.50 ; with the triple functions and opposite ratios only: 3.00
+violations of Conjecture Q (excJ <= max period + 3 |Pi(Xi)| - 2), weighted: 0
+
+==== 27_lists 3 7 : all classes
+n=16 k=3 T=7 t=9 M=13 m=4 d=5 ; generic points allow 3 members ; e4 = 4T-n-3k+1 = 4 ; e3 = 3T-n-2k+1 = 0
+orbits of E0: 3, rooted pairs (E0,E1): 222 (processed [0, 222)), hits 10 (degenerate 0, and 0 rejected before analysis)
+four-member lists (unordered quadruples of error sets): 20160.0 ; violations of the flag bound (weighted): 0.0
+classes: 1, lists: 20160
+      20160  delta=2 gam=0 J=12 excJ=4 | pair=12 trip=0 dbl=0 | PiXi=2 maxPi=4 R=1.50 | xi (2,6,2) (2,6,2) (2,6,2) (2,6,2) | Phi (4,12,4) | opp (2,2) (2,2) (2,2) | wdef=2  [E = 01ff 3e3c cf23 f3d0]
+lists by excJ: {4: 20160.0}
+lists with no period of any of the eight functions, by excJ: {}
+lists whose curve has no period, by excJ: {}
+largest R = (excJ + 2) / max period: 1.50 ; with the triple functions and opposite ratios only: 3.00
+violations of Conjecture Q (excJ <= max period + 3 |Pi(Xi)| - 2), weighted: 0
+
+==== 27_lists 8 10 : totals, and the classes without any period
+n=16 k=8 T=10 t=6 M=8 m=2 d=4 ; generic points allow 3 members ; e4 = 4T-n-3k+1 = 1 ; e3 = 3T-n-2k+1 = -1
+orbits of E0: 3, rooted pairs (E0,E1): 358 (processed [180, 270)), hits 813408 (degenerate 0, and 298384299 rejected before analysis)
+four-member lists (unordered quadruples of error sets): 11799372480.0 ; violations of the flag bound (weighted): 665380800.0
+orbits of E0: 3, rooted pairs (E0,E1): 358 (processed [90, 180)), hits 749677 (degenerate 0, and 357197797 rejected before analysis)
+four-member lists (unordered quadruples of error sets): 11873649200.0 ; violations of the flag bound (weighted): 694803200.0
+orbits of E0: 3, rooted pairs (E0,E1): 358 (processed [0, 90)), hits 1516344 (degenerate 0, and 320600336 rejected before analysis)
+four-member lists (unordered quadruples of error sets): 9522345000.0 ; violations of the flag bound (weighted): 594969760.0
+orbits of E0: 3, rooted pairs (E0,E1): 358 (processed [270, 360)), hits 808576 (degenerate 0, and 225854405 rejected before analysis)
+four-member lists (unordered quadruples of error sets): 7229173840.0 ; violations of the flag bound (weighted): 394695840.0
+classes: 567, lists: 40424540520
+lists by excJ: {1: 37346736000.0, 2: 2168597760.0, 3: 784855680.0, 4: 124351080.0}
+lists with no period of any of the eight functions, by excJ: {1: 1084218240.0, 2: 6612480.0}
+lists whose curve has no period, by excJ: {1: 37277224320.0, 2: 1853832960.0, 3: 608119680.0}
+largest R = (excJ + 2) / max period: 4.00 ; with the triple functions and opposite ratios only: 4.00
+violations of Conjecture Q (excJ <= max period + 3 |Pi(Xi)| - 2), weighted: 0
+   27095040  delta=2 gam=5 J=9 excJ=1 | pair=7 trip=1 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (1,3,1) (2,4,1) (2,5,1) (2,5,1) | Phi (3,7,1) | opp (2,1) (2,1) (2,1) | wdef=0  [E = 011f 700b 9311 e10c]
+   13547520  delta=2 gam=5 J=9 excJ=1 | pair=9 trip=0 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,4,1) (2,4,1) (2,5,1) (2,5,1) | Phi (4,9,1) | opp (2,1) (2,1) (2,1) | wdef=0  [E = 011f 7007 9152 e04c]
+  135475200  delta=3 gam=4 J=12 excJ=1 | pair=4 trip=4 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (1,3,1) (2,5,1) (2,5,1) (3,7,1) | Phi (2,4,1) | opp (3,1) (3,1) (3,1) | wdef=0  [E = 011f 3550 10ba 1166]
+   67737600  delta=3 gam=4 J=12 excJ=1 | pair=4 trip=4 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,5,1) (2,5,1) (2,5,1) (2,5,1) | Phi (2,4,1) | opp (3,1) (3,1) (3,1) | wdef=0  [E = 011f 3550 1076 1d03]
+    2419200  delta=3 gam=4 J=12 excJ=1 | pair=8 trip=2 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,4,1) (2,4,1) (3,7,1) (3,7,1) | Phi (4,8,1) | opp (3,1) (3,1) (3,1) | wdef=0  [E = 011f 7025 01f1 7052]
+      13440  delta=3 gam=4 J=12 excJ=1 | pair=12 trip=0 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (3,6,1) (3,6,1) (3,6,1) | Phi (6,12,1) | opp (3,1) (3,1) (3,1) | wdef=2  [E = 0356 0563 0a9c 0ca9]
+   22579200  delta=4 gam=3 J=15 excJ=1 | pair=3 trip=6 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (1,3,1) (3,7,1) (3,7,1) (3,7,1) | Phi (2,3,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 011f 3550 3231 a341]
+   22579200  delta=4 gam=3 J=15 excJ=1 | pair=3 trip=6 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,5,1) (2,5,1) (2,5,1) (4,9,1) | Phi (2,3,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 011f 3550 1076 9922]
+  135475200  delta=4 gam=3 J=15 excJ=1 | pair=3 trip=6 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,5,1) (2,5,1) (3,7,1) (3,7,1) | Phi (2,3,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 011f 3550 10ba 1706]
+   29030400  delta=4 gam=3 J=15 excJ=1 | pair=5 trip=5 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (1,3,1) (3,7,1) (3,7,1) (4,8,1) | Phi (3,5,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 011f 34a1 00e7 80dc]
+   29030400  delta=4 gam=3 J=15 excJ=1 | pair=5 trip=5 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,4,1) (3,7,1) (3,7,1) (3,7,1) | Phi (3,5,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 011f 3550 3898 41cc]
+   58060800  delta=4 gam=3 J=15 excJ=1 | pair=5 trip=5 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,5,1) (2,5,1) (3,6,1) (4,9,1) | Phi (3,5,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 011f 34a1 10e6 80cd]
+   77414400  delta=4 gam=3 J=15 excJ=1 | pair=5 trip=5 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,5,1) (3,6,1) (3,7,1) (3,7,1) | Phi (3,5,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 011f 34c1 068b 1986]
+    3225600  delta=4 gam=3 J=15 excJ=1 | pair=7 trip=4 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,4,1) (2,4,1) (4,9,1) (4,9,1) | Phi (4,7,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 011f 7025 2172 a44c]
+   35481600  delta=4 gam=3 J=15 excJ=1 | pair=7 trip=4 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,4,1) (3,6,1) (3,7,1) (4,9,1) | Phi (4,7,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 011f 34a1 10e6 80d9]
+   41932800  delta=4 gam=3 J=15 excJ=1 | pair=7 trip=4 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,5,1) (3,6,1) (3,7,1) (4,8,1) | Phi (4,7,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 011f 34a1 10e6 80dc]
+   38707200  delta=4 gam=3 J=15 excJ=1 | pair=7 trip=4 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (3,6,1) (3,7,1) (3,7,1) | Phi (4,7,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 011f 34c1 0d92 7007]
+     107520  delta=4 gam=3 J=15 excJ=1 | pair=9 trip=3 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (1,3,1) (4,8,1) (4,8,1) (4,8,1) | Phi (5,9,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 011f f030 1d03 4d0c]
+    5483520  delta=4 gam=3 J=15 excJ=1 | pair=9 trip=3 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,4,1) (3,6,1) (4,8,1) (4,9,1) | Phi (5,9,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 011f 34c1 01f4 22aa]
+     322560  delta=4 gam=3 J=15 excJ=1 | pair=9 trip=3 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,4,1) (3,7,1) (4,8,1) (4,8,1) | Phi (5,9,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 011f 7130 1d03 cc0c]
+     645120  delta=4 gam=3 J=15 excJ=1 | pair=9 trip=3 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,5,1) (3,6,1) (4,8,1) (4,8,1) | Phi (5,9,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 011f 7130 3503 cc0c]
+     215040  delta=4 gam=3 J=15 excJ=1 | pair=9 trip=3 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (3,6,1) (3,6,1) (4,9,1) | Phi (5,9,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 011f 7130 3c03 cd04]
+    2096640  delta=4 gam=3 J=15 excJ=1 | pair=9 trip=3 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (3,6,1) (3,7,1) (4,8,1) | Phi (5,9,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 011f 7070 0966 6219]
+      20160  delta=4 gam=3 J=15 excJ=1 | pair=10 trip=2 dbl=1 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (3,6,1) (4,9,1) (4,9,1) | Phi (6,11,1) | opp (3,1) (4,1) (4,1) | wdef=0  [E = 011f f120 3c03 cc0c]
+     161280  delta=4 gam=3 J=15 excJ=1 | pair=10 trip=2 dbl=1 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (3,7,1) (4,8,1) (4,9,1) | Phi (6,11,1) | opp (3,1) (4,1) (4,1) | wdef=0  [E = 011f 7130 3c03 cc0c]
+      80640  delta=4 gam=3 J=15 excJ=1 | pair=11 trip=2 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,4,1) (4,8,1) (4,8,1) (4,8,1) | Phi (6,11,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 003f 0770 134c 3c03]
+     262080  delta=4 gam=3 J=15 excJ=1 | pair=11 trip=2 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (3,6,1) (4,8,1) (4,8,1) | Phi (6,11,1) | opp (4,1) (4,1) (4,1) | wdef=0  [E = 003f 0770 1c43 330c]
+   58060800  delta=5 gam=2 J=18 excJ=1 | pair=2 trip=8 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,5,1) (3,7,1) (3,7,1) (4,9,1) | Phi (2,2,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 3550 10ba 9382]
+   18144000  delta=5 gam=2 J=18 excJ=1 | pair=2 trip=8 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,7,1) (3,7,1) (3,7,1) (3,7,1) | Phi (2,2,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 3550 10ba 5342]
+   48384000  delta=5 gam=2 J=18 excJ=1 | pair=4 trip=7 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,5,1) (3,7,1) (4,8,1) (4,9,1) | Phi (3,4,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 34a1 1887 a4c4]
+   48384000  delta=5 gam=2 J=18 excJ=1 | pair=4 trip=7 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (3,7,1) (3,7,1) (4,9,1) | Phi (3,4,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 34a1 1986 84c5]
+    4838400  delta=5 gam=2 J=18 excJ=1 | pair=4 trip=7 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,7,1) (3,7,1) (3,7,1) (4,8,1) | Phi (3,4,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 7130 14b2 2961]
+    1935360  delta=5 gam=2 J=18 excJ=1 | pair=6 trip=6 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,4,1) (3,6,1) (4,9,1) (5,11,1) | Phi (4,6,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 34c1 01f8 42a5]
+    1935360  delta=5 gam=2 J=18 excJ=1 | pair=6 trip=6 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,4,1) (4,8,1) (4,9,1) (4,9,1) | Phi (4,6,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 34c1 4d0c 5431]
+    5806080  delta=5 gam=2 J=18 excJ=1 | pair=6 trip=6 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,5,1) (3,6,1) (4,9,1) (5,10,1) | Phi (4,6,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 34c1 00f6 82aa]
+   13063680  delta=5 gam=2 J=18 excJ=1 | pair=6 trip=6 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (3,6,1) (4,9,1) (4,9,1) | Phi (4,6,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 34a1 1986 a445]
+    3870720  delta=5 gam=2 J=18 excJ=1 | pair=6 trip=6 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (3,7,1) (3,7,1) (5,10,1) | Phi (4,6,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 34c1 01e6 a2a2]
+   29998080  delta=5 gam=2 J=18 excJ=1 | pair=6 trip=6 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (3,7,1) (4,8,1) (4,9,1) | Phi (4,6,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 34a1 1986 a4c4]
+   14999040  delta=5 gam=2 J=18 excJ=1 | pair=6 trip=6 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,7,1) (3,7,1) (4,8,1) (4,8,1) | Phi (4,6,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 34a1 1551 a30a]
+     967680  delta=5 gam=2 J=18 excJ=1 | pair=8 trip=5 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (1,2,1) (4,9,1) (5,10,1) (5,10,1) | Phi (5,8,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 7013 03f0 f00c]
+    1935360  delta=5 gam=2 J=18 excJ=1 | pair=8 trip=5 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,4,1) (3,6,1) (5,10,1) (5,11,1) | Phi (5,8,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 34c1 01f4 82aa]
+     967680  delta=5 gam=2 J=18 excJ=1 | pair=8 trip=5 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,4,1) (3,7,1) (5,10,1) (5,10,1) | Phi (5,8,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 7070 0f06 6219]
+     483840  delta=5 gam=2 J=18 excJ=1 | pair=8 trip=5 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,4,1) (4,8,1) (4,8,1) (5,11,1) | Phi (5,8,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 7070 0e16 6609]
+     967680  delta=5 gam=2 J=18 excJ=1 | pair=8 trip=5 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,4,1) (4,8,1) (4,9,1) (5,10,1) | Phi (5,8,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 7070 0f06 6611]
+    1935360  delta=5 gam=2 J=18 excJ=1 | pair=8 trip=5 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (3,6,1) (4,8,1) (5,11,1) | Phi (5,8,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 34c1 01f8 5225]
+    6048000  delta=5 gam=2 J=18 excJ=1 | pair=8 trip=5 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (3,6,1) (4,9,1) (5,10,1) | Phi (5,8,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 34c1 00f6 a2a8]
+    6773760  delta=5 gam=2 J=18 excJ=1 | pair=8 trip=5 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (3,7,1) (4,8,1) (5,10,1) | Phi (5,8,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 34c1 00f6 a22a]
+     967680  delta=5 gam=2 J=18 excJ=1 | pair=8 trip=5 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (4,8,1) (4,8,1) (4,9,1) | Phi (5,8,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 7070 0966 6611]
+    1451520  delta=5 gam=2 J=18 excJ=1 | pair=8 trip=5 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,7,1) (4,8,1) (4,8,1) (4,8,1) | Phi (5,8,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 7070 0876 6609]
+     322560  delta=5 gam=2 J=18 excJ=1 | pair=10 trip=4 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,4,1) (4,8,1) (5,10,1) (5,10,1) | Phi (6,10,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 7070 0f06 6609]
+     967680  delta=5 gam=2 J=18 excJ=1 | pair=10 trip=4 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (3,6,1) (5,10,1) (5,10,1) | Phi (6,10,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 34c1 01f4 a22a]
+     645120  delta=5 gam=2 J=18 excJ=1 | pair=10 trip=4 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (4,8,1) (4,8,1) (5,10,1) | Phi (6,10,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 7070 0966 6609]
+      40320  delta=5 gam=2 J=18 excJ=1 | pair=10 trip=4 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (4,8,1) (4,8,1) (4,8,1) (4,8,1) | Phi (6,10,1) | opp (5,1) (5,1) (5,1) | wdef=0  [E = 011f 7224 01f8 7442]
+    4838400  delta=6 gam=1 J=21 excJ=1 | pair=1 trip=10 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,7,1) (3,7,1) (4,9,1) (4,9,1) | Phi (2,1,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 3550 5432 9382]
+     645120  delta=6 gam=1 J=21 excJ=1 | pair=3 trip=9 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,7,1) (3,7,1) (3,7,1) (6,12,1) | Phi (3,3,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 34c1 01e3 c2a2]
+   19353600  delta=6 gam=1 J=21 excJ=1 | pair=3 trip=9 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,7,1) (4,8,1) (4,9,1) (4,9,1) | Phi (3,3,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 34a1 42a5 80dc]
+     967680  delta=6 gam=1 J=21 excJ=1 | pair=5 trip=8 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (4,8,1) (4,9,1) (5,11,1) | Phi (4,5,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 34c1 4d0c 9431]
+    2903040  delta=6 gam=1 J=21 excJ=1 | pair=5 trip=8 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (4,9,1) (4,9,1) (5,10,1) | Phi (4,5,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 34c1 4d05 d430]
+     967680  delta=6 gam=1 J=21 excJ=1 | pair=5 trip=8 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,7,1) (3,7,1) (5,11,1) (5,11,1) | Phi (4,6,1) | opp (6,1) (6,1) (6,1) | wdef=2  [E = 011f 34c1 00f9 4b84]
+    1935360  delta=6 gam=1 J=21 excJ=1 | pair=5 trip=8 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,7,1) (4,8,1) (4,9,1) (5,10,1) | Phi (4,5,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 702c 5886 e441]
+   11128320  delta=6 gam=1 J=21 excJ=1 | pair=5 trip=8 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (4,8,1) (4,8,1) (4,9,1) (4,9,1) | Phi (4,5,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 34a1 4383 a4c4]
+     161280  delta=6 gam=1 J=21 excJ=1 | pair=7 trip=7 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (1,2,1) (5,10,1) (5,11,1) (6,12,1) | Phi (5,7,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 7070 0f09 8616]
+     241920  delta=6 gam=1 J=21 excJ=1 | pair=7 trip=7 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (1,3,1) (5,10,1) (5,10,1) (6,12,1) | Phi (5,7,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f f060 0e16 2619]
+     322560  delta=6 gam=1 J=21 excJ=1 | pair=7 trip=7 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,4,1) (4,9,1) (5,10,1) (6,12,1) | Phi (5,7,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 7070 0f09 9216]
+     564480  delta=6 gam=1 J=21 excJ=1 | pair=7 trip=7 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,4,1) (5,10,1) (5,10,1) (5,11,1) | Phi (5,7,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 7070 0e19 9606]
+     483840  delta=6 gam=1 J=21 excJ=1 | pair=7 trip=7 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,5,1) (4,8,1) (5,10,1) (6,12,1) | Phi (5,7,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f f060 0e16 6219]
+     322560  delta=6 gam=1 J=21 excJ=1 | pair=7 trip=7 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (3,6,1) (5,11,1) (6,12,1) | Phi (5,7,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 7070 0969 8616]
+     645120  delta=6 gam=1 J=21 excJ=1 | pair=7 trip=7 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (3,7,1) (5,10,1) (6,12,1) | Phi (5,7,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 3cc0 10dc c033]
+     645120  delta=6 gam=1 J=21 excJ=1 | pair=7 trip=7 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (4,8,1) (4,9,1) (6,12,1) | Phi (5,7,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 7070 2619 9906]
+    2257920  delta=6 gam=1 J=21 excJ=1 | pair=7 trip=7 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (4,8,1) (5,10,1) (5,11,1) | Phi (5,7,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 34c1 4d0c d031]
+    2580480  delta=6 gam=1 J=21 excJ=1 | pair=7 trip=7 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (4,9,1) (5,10,1) (5,10,1) | Phi (5,7,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 7111 262a 8e88]
+     967680  delta=6 gam=1 J=21 excJ=1 | pair=7 trip=7 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,7,1) (4,8,1) (5,10,1) (5,10,1) | Phi (5,7,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 7070 0879 9606]
+    2257920  delta=6 gam=1 J=21 excJ=1 | pair=7 trip=7 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (4,8,1) (4,8,1) (4,9,1) (5,10,1) | Phi (5,7,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 702c a445 d882]
+     161280  delta=6 gam=1 J=21 excJ=1 | pair=9 trip=6 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (1,2,1) (5,10,1) (6,12,1) (6,12,1) | Phi (6,9,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f f060 0f06 2619]
+     161280  delta=6 gam=1 J=21 excJ=1 | pair=9 trip=6 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,4,1) (4,8,1) (6,12,1) (6,12,1) | Phi (6,9,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f f060 0f06 6219]
+     443520  delta=6 gam=1 J=21 excJ=1 | pair=9 trip=6 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (2,4,1) (5,10,1) (5,10,1) (6,12,1) | Phi (6,9,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 7070 0f09 9606]
+     645120  delta=6 gam=1 J=21 excJ=1 | pair=9 trip=6 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (4,8,1) (5,10,1) (6,12,1) | Phi (6,9,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 7070 0969 9606]
+     322560  delta=6 gam=1 J=21 excJ=1 | pair=9 trip=6 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (4,8,1) (4,8,1) (4,8,1) (6,12,1) | Phi (6,9,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f 7070 6609 9906]
+     564480  delta=6 gam=1 J=21 excJ=1 | pair=9 trip=6 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (4,8,1) (4,8,1) (5,10,1) (5,10,1) | Phi (6,9,1) | opp (6,1) (6,1) (6,1) | wdef=0  [E = 011f f060 0879 9606]
+    6612480  delta=6 gam=1 J=22 excJ=2 | pair=6 trip=8 dbl=0 | PiXi=1 maxPi=1 R=4.00 | xi (3,7,1) (3,7,1) (5,11,1) (5,11,1) | Phi (4,6,1) | opp (6,1) (6,1) (6,1) | wdef=2  [E = 011f 7224 10b5 8d0c]
+     107520  delta=7 gam=0 J=24 excJ=1 | pair=0 trip=12 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (4,9,1) (4,9,1) (4,9,1) (4,9,1) | Phi (2,0,1) | opp (7,1) (7,1) (7,1) | wdef=0  [E = 011f 3590 5831 9341]
+     322560  delta=7 gam=0 J=24 excJ=1 | pair=4 trip=10 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (4,8,1) (4,9,1) (5,10,1) (5,11,1) | Phi (4,4,1) | opp (7,1) (7,1) (7,1) | wdef=0  [E = 011f 702c 82d4 8d28]
+     161280  delta=7 gam=0 J=24 excJ=1 | pair=4 trip=10 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (4,9,1) (4,9,1) (5,10,1) (5,10,1) | Phi (4,4,1) | opp (7,1) (7,1) (7,1) | wdef=0  [E = 011f 7224 02dc 8d28]
+     483840  delta=7 gam=0 J=24 excJ=1 | pair=6 trip=9 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (4,9,1) (5,10,1) (7,14,1) | Phi (5,6,1) | opp (7,1) (7,1) (7,1) | wdef=0  [E = 011f 7013 03f0 fc00]
+     483840  delta=7 gam=0 J=24 excJ=1 | pair=6 trip=9 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (5,10,1) (5,10,1) (6,13,1) | Phi (5,6,1) | opp (7,1) (7,1) (7,1) | wdef=0  [E = 011f 34d0 03cc cc30]
+     322560  delta=7 gam=0 J=24 excJ=1 | pair=6 trip=9 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (5,10,1) (5,11,1) (6,12,1) | Phi (5,6,1) | opp (7,1) (7,1) (7,1) | wdef=0  [E = 011f 7062 8b09 9492]
+     241920  delta=7 gam=0 J=24 excJ=1 | pair=6 trip=9 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,7,1) (4,8,1) (6,12,1) (6,12,1) | Phi (5,6,1) | opp (7,1) (7,1) (7,1) | wdef=0  [E = 011f 3cc0 c21c cc30]
+     483840  delta=7 gam=0 J=24 excJ=1 | pair=6 trip=9 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,7,1) (5,10,1) (5,10,1) (6,12,1) | Phi (5,6,1) | opp (7,1) (7,1) (7,1) | wdef=0  [E = 011f 7260 0f50 b8c0]
+     483840  delta=7 gam=0 J=24 excJ=1 | pair=6 trip=9 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (4,8,1) (4,8,1) (5,11,1) (6,12,1) | Phi (5,6,1) | opp (7,1) (7,1) (7,1) | wdef=0  [E = 011f 3cc0 02dc cc30]
+     322560  delta=7 gam=0 J=24 excJ=1 | pair=6 trip=9 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (4,8,1) (4,9,1) (5,10,1) (6,12,1) | Phi (5,6,1) | opp (7,1) (7,1) (7,1) | wdef=0  [E = 011f 3cc0 13d0 c033]
+     645120  delta=7 gam=0 J=24 excJ=1 | pair=6 trip=9 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (4,8,1) (5,10,1) (5,10,1) (5,11,1) | Phi (5,6,1) | opp (7,1) (7,1) (7,1) | wdef=0  [E = 011f 35c0 0c3c c3c0]
+     161280  delta=7 gam=0 J=24 excJ=1 | pair=6 trip=9 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (4,9,1) (5,10,1) (5,10,1) (5,10,1) | Phi (5,6,1) | opp (7,1) (7,1) (7,1) | wdef=0  [E = 011f 7224 82d8 8d28]
+      53760  delta=7 gam=0 J=24 excJ=1 | pair=7 trip=8 dbl=1 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (4,9,1) (6,12,1) (7,15,1) | Phi (6,8,1) | opp (6,1) (7,1) (7,1) | wdef=2  [E = 011f 70e0 00e7 8f08]
+     322560  delta=7 gam=0 J=24 excJ=1 | pair=8 trip=8 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (3,6,1) (5,10,1) (6,12,1) (6,12,1) | Phi (6,8,1) | opp (7,1) (7,1) (7,1) | wdef=0  [E = 011f 7260 0f50 f880]
+      40320  delta=7 gam=0 J=24 excJ=1 | pair=8 trip=8 dbl=0 | PiXi=1 maxPi=1 R=3.00 | xi (5,10,1) (5,10,1) (5,10,1) (5,10,1) | Phi (6,8,1) | opp (7,1) (7,1) (7,1) | wdef=0  [E = 011f 7228 a445 d882]
+
+==== second basis (seed 2)
+four-member lists (unordered quadruples of error sets): 4164160.0 ; violations of the flag bound (weighted): 592480.0
+classes: 18, lists: 4164160
+four-member lists (unordered quadruples of error sets): 16289280.0 ; violations of the flag bound (weighted): 8930880.0
+classes: 25, lists: 16289280
+
+==== real shape, 27_lists 12 13 1 2 1
+orbits of E0: 35, rooted pairs (E0,E1): 18200 (processed [0, 18200)), hits 5275818 (degenerate 0, and 75709 rejected before analysis)
+four-member lists (unordered quadruples of error sets): 7034424.0 ; violations of the flag bound (weighted): 3132720.0
+classes: 184, lists: 7034424
+lists by excJ: {1: 6313928.0, 2: 720496.0}
+lists with no period of any of the eight functions, by excJ: {1: 2844704.0, 2: 43456.0}
+lists whose curve has no period, by excJ: {1: 6287048.0, 2: 275296.0}
+largest R = (excJ + 2) / max period: 4.00 ; with the triple functions and opposite ratios only: 4.00
+violations of Conjecture Q (excJ <= max period + 3 |Pi(Xi)| - 2), weighted: 0
+
+==== 27_conics (n = 32), seed 1, J >= 9, four parts merged
+n=32 conics: configurations 5850000, unique conic 5849292, larger solution space 708, with J >= 9: 169428, violations of Conjecture Q: 0
+8640   J=10 excJ=2 maxPi=2 Q:ok | delta=2 gam=0 I=10 exc=2 flag=2 | pts pair=10 trip=0 dbl=0 | PiXi=2 | triples (2,4,2) (2,4,2) (2,6,2) (2,6,2) | Phi (4,10,2) | opp (2,2) (2,2) (2,2) | wdef=2 summ=0
+9000   J=9 excJ=1 maxPi=1 Q:ok | delta=2 gam=0 I=9 exc=1 flag=0 | pts pair=9 trip=0 dbl=0 | PiXi=1 | triples (2,3,1) (2,5,1) (2,5,1) (2,5,1) | Phi (4,9,1) | opp (2,1) (2,1) (2,1) | wdef=0 summ=0
+38880   J=9 excJ=1 maxPi=1 Q:ok | delta=2 gam=0 I=9 exc=1 flag=0 | pts pair=9 trip=0 dbl=0 | PiXi=1 | triples (2,4,1) (2,4,1) (2,5,1) (2,5,1) | Phi (4,9,1) | opp (2,1) (2,1) (2,1) | wdef=0 summ=0
+4320   J=9 excJ=1 maxPi=2 Q:ok | delta=2 gam=0 I=9 exc=1 flag=1 | pts pair=7 trip=1 dbl=0 | PiXi=1 | triples (1,1,1) (2,5,1) (2,5,1) (2,6,2) | Phi (3,7,1) | opp (2,1) (2,1) (2,1) | wdef=0 summ=1
+17280   J=9 excJ=1 maxPi=2 Q:ok | delta=2 gam=0 I=9 exc=1 flag=1 | pts pair=7 trip=1 dbl=0 | PiXi=1 | triples (1,2,1) (2,4,1) (2,5,1) (2,6,2) | Phi (3,7,1) | opp (2,1) (2,1) (2,1) | wdef=0 summ=1
+8640   J=9 excJ=1 maxPi=2 Q:ok | delta=2 gam=0 I=9 exc=1 flag=1 | pts pair=7 trip=1 dbl=0 | PiXi=1 | triples (1,3,1) (2,4,1) (2,4,1) (2,6,2) | Phi (3,7,1) | opp (2,1) (2,1) (2,1) | wdef=0 summ=1
+522720   J=9 excJ=1 maxPi=2 Q:ok | delta=2 gam=0 I=9 exc=1 flag=1 | pts pair=9 trip=0 dbl=0 | PiXi=1 | triples (2,3,1) (2,4,1) (2,5,1) (2,6,2) | Phi (4,9,1) | opp (2,1) (2,1) (2,1) | wdef=0 summ=0
+178560   J=9 excJ=1 maxPi=2 Q:ok | delta=2 gam=0 I=9 exc=1 flag=1 | pts pair=9 trip=0 dbl=0 | PiXi=1 | triples (2,4,1) (2,4,1) (2,4,1) (2,6,2) | Phi (4,9,1) | opp (2,1) (2,1) (2,1) | wdef=0 summ=0
+
+==== 27_lift
+on 16 points: delta=7 gam=1 I=25 exc=2 flag=1 | pts pair=3 trip=11 dbl=0 | PiXi=1 | triples (2,6,2) (5,11,1) (5,11,1) (5,11,1) | Phi (3,3,1) | opp (7,1) (7,1) (7,1) | wdef=2 summ=11
+n=32 |U|=2: delta=14 J=50 (16-point J=25, excess 2), special points 28, free 4, common factor of degree 1 with 1 roots in D
+degree < k = 16, agreements 22 21 21 21 (sum 85 = n + J + 3 gamma_D = 85), min 21, T/n = 0.6562, generic four-member bound T <= 19
+on 16 points: delta=7 gam=1 I=25 exc=2 flag=1 | pts pair=3 trip=11 dbl=0 | PiXi=1 | triples (2,6,2) (5,11,1) (5,11,1) (5,11,1) | Phi (3,3,1) | opp (7,1) (7,1) (7,1) | wdef=2 summ=11
+n=64 |U|=4: delta=28 J=100 (16-point J=25, excess 2), special points 56, free 8, common factor of degree 3 with 3 roots in D
+degree < k = 32, agreements 44 43 43 43 (sum 173 = n + J + 3 gamma_D = 173), min 43, T/n = 0.6719, generic four-member bound T <= 39
+on 16 points: delta=7 gam=1 I=25 exc=2 flag=1 | pts pair=3 trip=11 dbl=0 | PiXi=1 | triples (2,6,2) (5,11,1) (5,11,1) (5,11,1) | Phi (3,3,1) | opp (7,1) (7,1) (7,1) | wdef=2 summ=11
+n=128 |U|=8: delta=56 J=200 (16-point J=25, excess 2), special points 112, free 16, common factor of degree 7 with 7 roots in D
+degree < k = 64, agreements 88 87 87 87 (sum 349 = n + J + 3 gamma_D = 349), min 87, T/n = 0.6797, generic four-member bound T <= 79
+
+==== 27_grid
+degrees of the differences: 20 20 20 (k - 1 = 20)
+J = 16, excJ = 2, gamD = 16
+delta=4 gam=16 I=16 exc=2 flag=3 | pts pair=16 trip=0 dbl=0 | PiXi=1 | triples (4,8,1) (4,8,1) (4,8,1) (4,8,1) | Phi (8,16,4) | opp (4,2) (4,4) (4,4) | wdef=2 summ=0
+
+==== 27_generalize
+delta=1 gam=10 I=6 exc=1 flag=1 | pts pair=6 trip=0 dbl=0 | PiXi=1 | triples (1,3,1) (1,3,1) (1,3,1) (1,3,1) | Phi (2,6,2) | opp (1,1) (1,1) (1,1) | wdef=0 summ=0
+special points (label: classes of members 0123): 0:0112 1:0121 2:0122 4:0120 5:0102 6:0012
+points 6, relations 2 (dimension of the relation space)
+try 0: minimal relation space of dimension 2: {0145} {0246}
+try 1: minimal relation space of dimension 2: {0145} {0246}
+delta=3 gam=8 I=12 exc=1 flag=0 | pts pair=4 trip=4 dbl=0 | PiXi=1 | triples (2,5,1) (2,5,1) (2,5,1) (2,5,1) | Phi (2,4,1) | opp (3,1) (3,1) (3,1) | wdef=0 summ=4
+special points (label: classes of members 0123): 0:0111 1:0121 2:0122 4:0100 5:0102 8:0010 a:0012 c:0001
+points 8, relations 3 (dimension of the relation space)
+try 0: minimal relation space of dimension 3: {0145} {028a} {048c}
+try 1: minimal relation space of dimension 3: {0145} {028a} {048c}
+delta=2 gam=5 I=9 exc=1 flag=0 | pts pair=9 trip=0 dbl=0 | PiXi=1 | triples (2,4,1) (2,4,1) (2,5,1) (2,5,1) | Phi (4,9,1) | opp (2,1) (2,1) (2,1) | wdef=0 summ=0
+special points (label: classes of members 0123): 0:0122 2:0122 4:0121 5:0112 6:0120 7:0102 8:0102 a:0012 b:0012
+points 9, relations 4 (dimension of the relation space)
+try 0: minimal relation space of dimension 3: {0246} {0257} {45ab}
+try 1: minimal relation space of dimension 3: {0246} {0257} {45ab}
+delta=6 gam=2 I=22 exc=2 flag=0 | pts pair=6 trip=8 dbl=0 | PiXi=1 | triples (3,7,1) (3,7,1) (5,11,1) (5,11,1) | Phi (4,6,1) | opp (6,1) (6,1) (6,1) | wdef=2 summ=8
+special points (label: classes of members 0123): 0:0122 1:0122 2:0121 3:0102 4:0111 5:0102 6:0001 7:0001 8:0121 9:0100 a:0010 b:0010 e:0010 f:0001
+points 14, relations 9 (dimension of the relation space)
+try 0: minimal relation space of dimension 8: {2345} {1346} {0347} {2389} {138a} {038b} {01348e} {01248f}
+try 1: minimal relation space of dimension 8: {2345} {1346} {0347} {2389} {138a} {038b} {01348e} {01248f}

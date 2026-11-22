@@ -1,0 +1,64 @@
+N=16
+  simplex cells p=2: m/n=0.5000  I/n=0.5078  (I-m)/n=+0.0078   (m+|B'|)/n=0.9922
+  simplex cells p=3: m/n=0.3984  I/n=0.3818  (I-m)/n=-0.0166   (m+|B'|)/n=1.0166
+  simplex cells p=4: m/n=0.2820  I/n=0.3223  (I-m)/n=+0.0402   (m+|B'|)/n=0.9598
+  simplex cells p=5: m/n=0.2474  I/n=0.2780  (I-m)/n=+0.0306   (m+|B'|)/n=0.9694
+  simplex cells p=6: m/n=0.2038  I/n=0.2502  (I-m)/n=+0.0464   (m+|B'|)/n=0.9536
+  simplex cells p=7: m/n=0.1892  I/n=0.2339  (I-m)/n=+0.0447   (m+|B'|)/n=0.9553
+  simplex cells p=8: m/n=0.1610  I/n=0.2200  (I-m)/n=+0.0590   (m+|B'|)/n=0.9410
+  3-block cells p=3: m/n=0.3891  I/n=0.4119  (I-m)/n=+0.0228
+  3-block cells p=4: m/n=0.2863  I/n=0.3517  (I-m)/n=+0.0654
+  8 simplex cells truncated at radius 8 (largest with m < n/4): m/n=0.1610  I/n=0.2200  (I-m)/n=+0.0590  against k/n=0.2500: margin +0.1910
+  8 simplex cells truncated at radius 5 (largest with m < n/8): m/n=0.0965  I/n=0.1931  (I-m)/n=+0.0965  against k/n=0.1250: margin +0.0285
+  8 simplex cells truncated at radius 4 (largest with m < n/16): m/n=0.0384  I/n=0.0817  (I-m)/n=+0.0433  against k/n=0.0625: margin +0.0192
+  two antipodal balls, best radius 7: m/n=0.4018 I/n=0.4545 (I-m)/n=+0.0527
+  radius-1 balls around a shortened Hamming code: m=17, I/n=0.03125 (= 2^-5); exceeds k+m at rates below 0.03125
+  keyhole (rate 1/2, common zero set B = ball of radius 5): |B|/n=0.1051 |int B|/n=0.0384 max|Z_i|/n=0.4490  (sum|int Z_i| - |int B|)/n=0.4736  against 2k/n = 1
+N=20
+  simplex cells p=2: m/n=0.5000  I/n=0.5488  (I-m)/n=+0.0488   (m+|B'|)/n=0.9512
+  simplex cells p=3: m/n=0.3926  I/n=0.4236  (I-m)/n=+0.0311   (m+|B'|)/n=0.9689
+  simplex cells p=4: m/n=0.2850  I/n=0.3613  (I-m)/n=+0.0763   (m+|B'|)/n=0.9237
+  simplex cells p=5: m/n=0.2514  I/n=0.3215  (I-m)/n=+0.0701   (m+|B'|)/n=0.9299
+  simplex cells p=6: m/n=0.2014  I/n=0.2945  (I-m)/n=+0.0932   (m+|B'|)/n=0.9068
+  simplex cells p=7: m/n=0.1859  I/n=0.2773  (I-m)/n=+0.0914   (m+|B'|)/n=0.9086
+  simplex cells p=8: m/n=0.1566  I/n=0.2646  (I-m)/n=+0.1080   (m+|B'|)/n=0.8920
+  3-block cells p=3: m/n=0.3881  I/n=0.4578  (I-m)/n=+0.0697
+  3-block cells p=4: m/n=0.2787  I/n=0.3955  (I-m)/n=+0.1168
+  8 simplex cells truncated at radius 10 (largest with m < n/4): m/n=0.1566  I/n=0.2646  (I-m)/n=+0.1080  against k/n=0.2500: margin +0.1420
+  8 simplex cells truncated at radius 7 (largest with m < n/8): m/n=0.1107  I/n=0.2423  (I-m)/n=+0.1316  against k/n=0.1250: margin -0.0066
+  8 simplex cells truncated at radius 6 (largest with m < n/16): m/n=0.0559  I/n=0.1428  (I-m)/n=+0.0869  against k/n=0.0625: margin -0.0244
+  two antipodal balls, best radius 9: m/n=0.4119 I/n=0.5034 (I-m)/n=+0.0915
+  radius-1 balls around a shortened Hamming code: m=21, I/n=0.03125 (= 2^-5); exceeds k+m at rates below 0.03125
+  keyhole (rate 1/2, common zero set B = ball of radius 7): |B|/n=0.1316 |int B|/n=0.0577 max|Z_i|/n=0.4716  (sum|int Z_i| - |int B|)/n=0.5474  against 2k/n = 1
+N=25
+  simplex cells p=2: m/n=0.6047  I/n=0.6072  (I-m)/n=+0.0025   (m+|B'|)/n=0.9975
+  simplex cells p=3: m/n=0.4464  I/n=0.4779  (I-m)/n=+0.0315   (m+|B'|)/n=0.9685
+  simplex cells p=4: m/n=0.3560  I/n=0.4159  (I-m)/n=+0.0599   (m+|B'|)/n=0.9401
+  simplex cells p=5: m/n=0.2589  I/n=0.3662  (I-m)/n=+0.1073   (m+|B'|)/n=0.8927
+  simplex cells p=6: m/n=0.2115  I/n=0.3385  (I-m)/n=+0.1270   (m+|B'|)/n=0.8730
+  simplex cells p=7: m/n=0.1795  I/n=0.3190  (I-m)/n=+0.1396   (m+|B'|)/n=0.8604
+  simplex cells p=8: m/n=0.1560  I/n=0.3035  (I-m)/n=+0.1475   (m+|B'|)/n=0.8525
+  3-block cells p=3: m/n=0.3788  I/n=0.5034  (I-m)/n=+0.1246
+  3-block cells p=4: m/n=0.2819  I/n=0.4408  (I-m)/n=+0.1589
+  8 simplex cells truncated at radius 12 (largest with m < n/4): m/n=0.1560  I/n=0.3035  (I-m)/n=+0.1475  against k/n=0.2500: margin +0.1025
+  8 simplex cells truncated at radius 9 (largest with m < n/8): m/n=0.1002  I/n=0.2584  (I-m)/n=+0.1581  against k/n=0.1250: margin -0.0331
+  8 simplex cells truncated at radius 8 (largest with m < n/16): m/n=0.0523  I/n=0.1481  (I-m)/n=+0.0957  against k/n=0.0625: margin -0.0332
+  two antipodal balls, best radius 11: m/n=0.3450 I/n=0.4244 (I-m)/n=+0.0793
+  radius-1 balls around a shortened Hamming code: m=26, I/n=0.03125 (= 2^-5); exceeds k+m at rates below 0.03125
+  keyhole (rate 1/2, common zero set B = ball of radius 9): |B|/n=0.1148 |int B|/n=0.0539 max|Z_i|/n=0.4466  (sum|int Z_i| - |int B|)/n=0.5847  against 2k/n = 1
+N=28
+  simplex cells p=2: m/n=0.5982  I/n=0.6291  (I-m)/n=+0.0309   (m+|B'|)/n=0.9691
+  simplex cells p=3: m/n=0.4389  I/n=0.5034  (I-m)/n=+0.0645   (m+|B'|)/n=0.9355
+  simplex cells p=4: m/n=0.3517  I/n=0.4408  (I-m)/n=+0.0891   (m+|B'|)/n=0.9109
+  simplex cells p=5: m/n=0.2949  I/n=0.3988  (I-m)/n=+0.1039   (m+|B'|)/n=0.8961
+  simplex cells p=6: m/n=0.2551  I/n=0.3709  (I-m)/n=+0.1158   (m+|B'|)/n=0.8842
+  simplex cells p=7: m/n=0.2256  I/n=0.3499  (I-m)/n=+0.1243   (m+|B'|)/n=0.8757
+  simplex cells p=8: m/n=0.2028  I/n=0.3336  (I-m)/n=+0.1308   (m+|B'|)/n=0.8692
+  3-block cells p=3: m/n=0.3764  I/n=0.5254  (I-m)/n=+0.1489
+  3-block cells p=4: m/n=0.2777  I/n=0.4637  (I-m)/n=+0.1860
+  8 simplex cells truncated at radius 14 (largest with m < n/4): m/n=0.2028  I/n=0.3336  (I-m)/n=+0.1308  against k/n=0.2500: margin +0.1192
+  8 simplex cells truncated at radius 10 (largest with m < n/8): m/n=0.0884  I/n=0.2322  (I-m)/n=+0.1438  against k/n=0.1250: margin -0.0188
+  8 simplex cells truncated at radius 9 (largest with m < n/16): m/n=0.0433  I/n=0.1250  (I-m)/n=+0.0817  against k/n=0.0625: margin -0.0192
+  two antipodal balls, best radius 13: m/n=0.4253 I/n=0.5716 (I-m)/n=+0.1463
+  radius-1 balls around a shortened Hamming code: m=29, I/n=0.03125 (= 2^-5); exceeds k+m at rates below 0.03125
+  keyhole (rate 1/2, common zero set B = ball of radius 11): |B|/n=0.1725 |int B|/n=0.0925 max|Z_i|/n=0.4811  (sum|int Z_i| - |int B|)/n=0.6621  against 2k/n = 1

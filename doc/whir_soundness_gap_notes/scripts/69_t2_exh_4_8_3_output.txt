@@ -1,0 +1,65 @@
+v=2 r=1 k=4 n=8 members=3 mode=canon part=0/4 patterns=1860  Lk=8
+code U: feasible=8 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=5  deficiency_hist: 0:1860
+  max-weight example: . . . 012 01 02 12 012
+  max-balanced example: . . . 012 01 02 12 012
+code 2: feasible=8 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=5  deficiency_hist: 0:1860
+  max-weight example: . . . 012 01 02 12 012
+  max-balanced example: . . . 012 01 02 12 012
+code 1: feasible=8 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=5  deficiency_hist: 0:1860
+  max-weight example: . . . 012 01 02 12 012
+  max-balanced example: . . . 012 01 02 12 012
+code R: feasible=8 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=5  deficiency_hist: 0:1860
+  max-weight example: . . . 012 01 02 12 012
+  max-balanced example: . . . 012 01 02 12 012
+code S: feasible=8 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=5  deficiency_hist: 0:1860
+  max-weight example: . . . 012 01 02 12 012
+  max-balanced example: . . . 012 01 02 12 012
+v=2 r=1 k=4 n=8 members=3 mode=canon part=1/4 patterns=1830  Lk=8
+code U: feasible=6 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=5  deficiency_hist: 0:1830
+  max-weight example: . . . 01 02 12 012 012
+  max-balanced example: . . . 01 02 12 012 012
+code 2: feasible=6 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=5  deficiency_hist: 0:1830
+  max-weight example: . . . 01 02 12 012 012
+  max-balanced example: . . . 01 02 12 012 012
+code 1: feasible=6 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=5  deficiency_hist: 0:1830
+  max-weight example: . . . 01 02 12 012 012
+  max-balanced example: . . . 01 02 12 012 012
+code R: feasible=6 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=5  deficiency_hist: 0:1830
+  max-weight example: . . . 01 02 12 012 012
+  max-balanced example: . . . 01 02 12 012 012
+code S: feasible=6 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=5  deficiency_hist: 0:1830
+  max-weight example: . . . 01 02 12 012 012
+  max-balanced example: . . . 01 02 12 012 012
+v=2 r=1 k=4 n=8 members=3 mode=canon part=2/4 patterns=1800  Lk=8
+code U: feasible=6 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=5  deficiency_hist: 0:1800
+  max-weight example: . . . 02 01 12 012 012
+  max-balanced example: . . . 02 01 12 012 012
+code 2: feasible=7 feasible_with_weight>=Lk=1 max_weight=8 max_balanced=5  deficiency_hist: 0:1799 1:1
+  max-weight example: . 012 12 12 01 01 02 02
+  max-balanced example: . . . 02 01 12 012 012
+code 1: feasible=7 feasible_with_weight>=Lk=1 max_weight=8 max_balanced=5  deficiency_hist: 0:1799 1:1
+  max-weight example: . 012 12 12 01 01 02 02
+  max-balanced example: . . . 02 01 12 012 012
+code R: feasible=6 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=5  deficiency_hist: 0:1800
+  max-weight example: . . . 02 01 12 012 012
+  max-balanced example: . . . 02 01 12 012 012
+code S: feasible=7 feasible_with_weight>=Lk=1 max_weight=8 max_balanced=5  deficiency_hist: 0:1799 1:1
+  max-weight example: . 012 12 12 01 01 02 02
+  max-balanced example: . . . 02 01 12 012 012
+v=2 r=1 k=4 n=8 members=3 mode=canon part=3/4 patterns=1770  Lk=8
+code U: feasible=6 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=5  deficiency_hist: 0:1770
+  max-weight example: . . . 12 01 02 012 012
+  max-balanced example: . . . 12 01 02 012 012
+code 2: feasible=8 feasible_with_weight>=Lk=2 max_weight=8 max_balanced=5  deficiency_hist: 0:1768 1:2
+  max-weight example: . 012 01 01 02 02 12 12
+  max-balanced example: . . . 12 01 02 012 012
+code 1: feasible=8 feasible_with_weight>=Lk=2 max_weight=8 max_balanced=5  deficiency_hist: 0:1768 1:2
+  max-weight example: . 012 01 01 02 02 12 12
+  max-balanced example: . . . 12 01 02 012 012
+code R: feasible=6 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=5  deficiency_hist: 0:1770
+  max-weight example: . . . 12 01 02 012 012
+  max-balanced example: . . . 12 01 02 012 012
+code S: feasible=8 feasible_with_weight>=Lk=2 max_weight=8 max_balanced=5  deficiency_hist: 0:1768 1:2
+  max-weight example: . 012 01 01 02 02 12 12
+  max-balanced example: . . . 12 01 02 012 012
+       3 69_tmp/def_4_8_3.txt

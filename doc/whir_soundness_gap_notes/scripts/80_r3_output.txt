@@ -1,0 +1,12 @@
+k=2: 13 profiles with the MDS constraints, 13 with S_max <= 2k-1; (A) fails 0; (B) fails 0
+k=3: 110 profiles with the MDS constraints, 106 with S_max <= 2k-1; (A) fails 0; (B) fails 0
+k=4: 530 profiles with the MDS constraints, 508 with S_max <= 2k-1; (A) fails 0; (B) fails 0
+k=5: 1963 profiles with the MDS constraints, 1868 with S_max <= 2k-1; (A) fails 0; (B) fails 0
+k=6: 5944 profiles with the MDS constraints, 5644 with S_max <= 2k-1; (A) fails 0; (B) fails 0
+k=2 (all profiles): 120 profiles, min-loss formula wrong in 0, cover bounds on ov_max violated in 0 
+k=3 (all profiles): 630 profiles, min-loss formula wrong in 0, cover bounds on ov_max violated in 0 
+k=4 (all profiles): 2485 profiles, min-loss formula wrong in 0, cover bounds on ov_max violated in 0 
+k=5 (all profiles): 8001 profiles, min-loss formula wrong in 0, cover bounds on ov_max violated in 0 
+k=6 (all profiles): 22155 profiles, min-loss formula wrong in 0, cover bounds on ov_max violated in 0 
+types 0abcF: 7 dual vertices: ['0', 'l + n_a - k', 'l + n_b - k', 'l + n_c - k', 'l - f', 'l0 - f1', 'l1 - f0'] ; not in the list: []
+types 0abcdF: 8 dual vertices: ['0', 'l + n_a - k', 'l + n_b - k', 'l + n_c - k', 'l + n_d - k', 'l - f', 'l0 - f1', 'l1 - f0'] ; not in the list: []

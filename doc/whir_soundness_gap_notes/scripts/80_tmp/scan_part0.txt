@@ -1,0 +1,1 @@
+part 0/4: 144 cross-tree permutations scanned, 0 violations of GS(2) in all, largest weight of a list 7 (2k - 1 = 7)

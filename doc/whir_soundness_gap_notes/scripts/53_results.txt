@@ -1,0 +1,312 @@
+===== 53_flat.py
+# subspace domains (only the flats are enumerated)
+span  GF(2^8) N=4 n=16: 15 polynomial sections of degree <= 3 (15 flats), by agreement {7: 15}
+   (a) pencil with centre X^(n/2-1): True; (b) eps_P = c Lambda_S: True; (c) psi from 40 pairs: True, 40 triples concurrent: True
+   (d) g = 4: pairs with S_i xor S_j in Gamma_inf(g): 105/105; in Gamma_inf(g+2): 105/105; weights of S_i xor S_j: [8]
+   (e) dim Gamma_inf(4) = 5 (RM(1,N): 5, RM(2,N): 11), dim Gamma_inf(6) = 5; sections 15 <= 2^5: True
+span  GF(2^8) N=5 n=32: 31 polynomial sections of degree <= 7 (31 flats), by agreement {15: 31}
+   (a) pencil with centre X^(n/2-1): True; (b) eps_P = c Lambda_S: True; (c) psi from 40 pairs: True, 40 triples concurrent: True
+   (d) g = 8: pairs with S_i xor S_j in Gamma_inf(g): 465/465; in Gamma_inf(g+2): 465/465; weights of S_i xor S_j: [16]
+   (e) dim Gamma_inf(8) = 8 (RM(1,N): 6, RM(2,N): 16), dim Gamma_inf(10) = 8; sections 31 <= 2^8: True
+rand  GF(2^8) N=5 n=32: 31 polynomial sections of degree <= 7 (31 flats), by agreement {15: 31}
+   (a) pencil with centre X^(n/2-1): True; (b) eps_P = c Lambda_S: True; (c) psi from 40 pairs: True, 40 triples concurrent: True
+   (d) g = 8: pairs with S_i xor S_j in Gamma_inf(g): 465/465; in Gamma_inf(g+2): 465/465; weights of S_i xor S_j: [16]
+   (e) dim Gamma_inf(8) = 8 (RM(1,N): 6, RM(2,N): 16), dim Gamma_inf(10) = 8; sections 31 <= 2^8: True
+span  GF(2^12) N=6 n=64: 63 polynomial sections of degree <= 15 (63 flats), by agreement {31: 63}
+   (a) pencil with centre X^(n/2-1): True; (b) eps_P = c Lambda_S: True; (c) psi from 40 pairs: True, 40 triples concurrent: True
+   (d) g = 16: pairs with S_i xor S_j in Gamma_inf(g): 1953/1953; in Gamma_inf(g+2): 1953/1953; weights of S_i xor S_j: [32]
+   (e) dim Gamma_inf(16) = 10 (RM(1,N): 7, RM(2,N): 22), dim Gamma_inf(18) = 10; sections 63 <= 2^10: True
+rand  GF(2^12) N=6 n=64: 63 polynomial sections of degree <= 15 (63 flats), by agreement {31: 63}
+   (a) pencil with centre X^(n/2-1): True; (b) eps_P = c Lambda_S: True; (c) psi from 40 pairs: True, 40 triples concurrent: True
+   (d) g = 16: pairs with S_i xor S_j in Gamma_inf(g): 1953/1953; in Gamma_inf(g+2): 1953/1953; weights of S_i xor S_j: [32]
+   (e) dim Gamma_inf(16) = 10 (RM(1,N): 7, RM(2,N): 22), dim Gamma_inf(18) = 10; sections 63 <= 2^10: True
+span  GF(2^16) N=7 n=128: 127 polynomial sections of degree <= 31 (127 flats), by agreement {63: 127}
+   (a) pencil with centre X^(n/2-1): True; (b) eps_P = c Lambda_S: True; (c) psi from 40 pairs: True, 40 triples concurrent: True
+   (d) g = 32: pairs with S_i xor S_j in Gamma_inf(g): 8001/8001; in Gamma_inf(g+2): 8001/8001; weights of S_i xor S_j: [64]
+   (e) dim Gamma_inf(32) = 13 (RM(1,N): 8, RM(2,N): 29), dim Gamma_inf(34) = 13; sections 127 <= 2^13: True
+span  GF(2^16) N=8 n=256: 255 polynomial sections of degree <= 63 (255 flats), by agreement {127: 255}
+   (a) pencil with centre X^(n/2-1): True; (b) eps_P = c Lambda_S: True; (c) psi from 40 pairs: True, 40 triples concurrent: True
+   (d) g = 64: pairs with S_i xor S_j in Gamma_inf(g): 30000/30000; in Gamma_inf(g+2): 30000/30000; weights of S_i xor S_j: [128]
+   (e) dim Gamma_inf(64) = 21 (RM(1,N): 9, RM(2,N): 37), dim Gamma_inf(66) = 21; sections 255 <= 2^21: True
+# field domains: flats and Gold codewords (all sections with lambda of tau-degree <= j)
+field GF(2^5) N=5 n=32: 217 polynomial sections of degree <= 7 (31 flats), by agreement {15: 31, 11: 186}
+   (a) pencil with centre X^(n/2-1): True; (b) eps_P = c Lambda_S: True; (c) psi from 40 pairs: True, 40 triples concurrent: True
+   (d) g = 8: pairs with S_i xor S_j in Gamma_inf(g): 23436/23436; in Gamma_inf(g+2): 23436/23436; weights of S_i xor S_j: [12, 16, 20]
+   (e) dim Gamma_inf(8) = 11 (RM(1,N): 6, RM(2,N): 16), dim Gamma_inf(10) = 11; sections 217 <= 2^11: True
+field GF(2^6) N=6 n=64: 259 polynomial sections of degree <= 15 (63 flats), by agreement {31: 63, 27: 196}
+   (a) pencil with centre X^(n/2-1): True; (b) eps_P = c Lambda_S: True; (c) psi from 40 pairs: True, 40 triples concurrent: True
+   (d) g = 16: pairs with S_i xor S_j in Gamma_inf(g): 30000/30000; in Gamma_inf(g+2): 30000/30000; weights of S_i xor S_j: [28, 32, 36]
+   (e) dim Gamma_inf(16) = 18 (RM(1,N): 7, RM(2,N): 22), dim Gamma_inf(18) = 18; sections 259 <= 2^18: True
+field GF(2^7) N=7 n=128: 3683 polynomial sections of degree <= 31 (127 flats), by agreement {63: 127, 55: 3556}
+   (a) pencil with centre X^(n/2-1): True; (b) eps_P = c Lambda_S: True; (c) psi from 40 pairs: True, 40 triples concurrent: True
+   (d) g = 32: pairs with S_i xor S_j in Gamma_inf(g): 30000/30000; in Gamma_inf(g+2): 30000/30000; weights of S_i xor S_j: [56, 64, 72]
+   (e) dim Gamma_inf(32) = 29 (RM(1,N): 8, RM(2,N): 29), dim Gamma_inf(34) = 29; sections 3683 <= 2^29: True
+===== 53_planted.py
+  polynomial centre, p_inf > Delta: deg M = 0 (b0 0, m 0), p_inf = 9, Delta = 4, deg(e1, e3, e5) = (81, 73, 65)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 0/0); C2 infinity: True (equality 10/10); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 0 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 0, deg m = 0)
+  polynomial centre, p_inf > Delta: deg M = 0 (b0 0, m 0), p_inf = 9, Delta = 4, deg(e1, e3, e5) = (81, 73, 65)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 0/0); C2 infinity: True (equality 10/10); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 0 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 1, deg m = 0)
+  polynomial centre, p_inf = Delta + 1: deg M = 0 (b0 0, m 0), p_inf = 5, Delta = 4, deg(e1, e3, e5) = (69, 61, 53)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 0/0); C2 infinity: True (equality 10/10); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 0 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 0, deg m = 0)
+  polynomial centre, p_inf = Delta + 1: deg M = 0 (b0 0, m 0), p_inf = 5, Delta = 4, deg(e1, e3, e5) = (69, 61, 53)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 0/0); C2 infinity: True (equality 10/10); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 0 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 0, deg m = 0)
+  double pole: deg M = 2 (b0 0, m 1), p_inf = 1, Delta = 4, deg(e1, e3, e5) = (68, 60, 52)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 10/10); C2 infinity: True (equality 0/0); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 0 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 1, deg m = 1)
+  double pole: deg M = 2 (b0 0, m 1), p_inf = 1, Delta = 4, deg(e1, e3, e5) = (70, 62, 54)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 10/10); C2 infinity: True (equality 0/0); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 0 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 1, deg m = 1)
+  double pole and pole at infinity: deg M = 2 (b0 0, m 1), p_inf = 7, Delta = 4, deg(e1, e3, e5) = (81, 73, 65)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 10/10); C2 infinity: True (equality 10/10); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 0 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 1, deg m = 1)
+  double pole and pole at infinity: deg M = 2 (b0 0, m 1), p_inf = 7, Delta = 4, deg(e1, e3, e5) = (81, 73, 65)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 10/10); C2 infinity: True (equality 10/10); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 0 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 1, deg m = 1)
+  fourfold pole and a double pole: deg M = 6 (b0 0, m 3), p_inf = -1, Delta = 4, deg(e1, e3, e5) = (82, 74, 66)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 20/20); C2 infinity: True (equality 0/0); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 0 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 4, deg m = 3)
+  fourfold pole and a double pole: deg M = 6 (b0 0, m 3), p_inf = -1, Delta = 4, deg(e1, e3, e5) = (82, 74, 66)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 20/20); C2 infinity: True (equality 0/0); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 0 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 3, deg m = 3)
+  simple pole (b0) only: deg M = 1 (b0 1, m 0), p_inf = 3, Delta = 4, deg(e1, e3, e5) = (70, 62, 54)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 10/10); C2 infinity: True (equality 0/0); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 0 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 1, deg m = 0)
+  simple pole (b0) only: deg M = 1 (b0 1, m 0), p_inf = 3, Delta = 4, deg(e1, e3, e5) = (70, 62, 54)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 10/10); C2 infinity: True (equality 0/0); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 0 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 2, deg m = 0)
+  simple pole with P_1 = P_2 there: deg M = 1 (b0 1, m 0), p_inf = 3, Delta = 4, deg(e1, e3, e5) = (68, 60, 52)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 10/10); C2 infinity: True (equality 0/0); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 0 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 1, deg m = 0)
+  simple pole with P_1 = P_2 there: deg M = 1 (b0 1, m 0), p_inf = 3, Delta = 4, deg(e1, e3, e5) = (68, 60, 52)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 10/10); C2 infinity: True (equality 0/0); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 0 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 1, deg m = 0)
+  triple pole (root of b0 and m) and a double pole: deg M = 5 (b0 1, m 2), p_inf = 1, Delta = 4, deg(e1, e3, e5) = (82, 74, 66)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 20/20); C2 infinity: True (equality 0/0); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 5 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 3, deg m = 2)
+  triple pole (root of b0 and m) and a double pole: deg M = 5 (b0 1, m 2), p_inf = 1, Delta = 4, deg(e1, e3, e5) = (80, 72, 64)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 20/20); C2 infinity: True (equality 0/0); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 5 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 3, deg m = 2)
+  triple pole with P_1 = P_2 there, pole at infinity: deg M = 5 (b0 1, m 2), p_inf = 7, Delta = 4, deg(e1, e3, e5) = (89, 81, 73)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 20/20); C2 infinity: True (equality 10/10); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 5 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 3, deg m = 2)
+  triple pole with P_1 = P_2 there, pole at infinity: deg M = 5 (b0 1, m 2), p_inf = 7, Delta = 4, deg(e1, e3, e5) = (91, 83, 75)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 20/20); C2 infinity: True (equality 10/10); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 5 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 3, deg m = 2)
+  two simple poles, two double poles, infinity: deg M = 6 (b0 2, m 2), p_inf = 8, Delta = 5, deg(e1, e3, e5) = (114, 104, 94)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 40/40); C2 infinity: True (equality 10/10); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 10 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 4, deg m = 2)
+  two simple poles, two double poles, infinity: deg M = 6 (b0 2, m 2), p_inf = 8, Delta = 5, deg(e1, e3, e5) = (114, 104, 94)
+     sections: True; C1 psi from 10 pairs: True, 10 triples concurrent: True; C2 finite: True (equality 40/40); C2 infinity: True (equality 10/10); C2' residue N'/N + b0'/b0: True (N'/N alone fails at 10 of the (section, root) pairs); intrinsic identity on 5 random (P, Q): True; m divides gcd(mu01, mu02, mu12): True (deg gcd = 4, deg m = 2)
+ALL PLANTED CHECKS PASS
+===== 53_families.py
+# A. rate 1/2 families
+  11/16 family, rand subspace in GF(2^8): n = 16, Delta = 7, W = 42, deg(e1, e3, e5) = (35, 21, 7), bounds (35, 21, 7)
+     deg(mu01, mu02, mu12) = (26, 19, 10), deg gcd = 2 (1 of its roots in D); degree drops of (e_i e_j)' at infinity: [4, 4, 8]; p_inf - Delta = 4
+     word = mu02/mu12 = mu01/mu02 on D: True; Lambda_D | e3: True; e1 = e5 y^4 on D: True; identity (eps_P eps_Q)' = ((P+Q) B)^2: True
+     eps_psi: degree 51, multiplicities on D [3], odd part of degree 19 with 16 roots in D: |D+ \ D| = 3
+  11/16 family, rand subspace in GF(2^8): n = 32, Delta = 15, W = 86, deg(e1, e3, e5) = (71, 41, 11), bounds (71, 41, 11)
+     deg(mu01, mu02, mu12) = (52, 37, 18), deg gcd = 2 (1 of its roots in D); degree drops of (e_i e_j)' at infinity: [8, 8, 16]; p_inf - Delta = 8
+     word = mu02/mu12 = mu01/mu02 on D: True; Lambda_D | e3: True; e1 = e5 y^4 on D: True; identity (eps_P eps_Q)' = ((P+Q) B)^2: True
+     eps_psi: degree 103, multiplicities on D [3], odd part of degree 39 with 32 roots in D: |D+ \ D| = 7
+  11/16 family, rand subspace in GF(2^12): n = 64, Delta = 31, W = 174, deg(e1, e3, e5) = (143, 81, 19), bounds (143, 81, 19)
+     deg(mu01, mu02, mu12) = (104, 73, 34), deg gcd = 2 (1 of its roots in D); degree drops of (e_i e_j)' at infinity: [16, 16, 32]; p_inf - Delta = 16
+     word = mu02/mu12 = mu01/mu02 on D: True; Lambda_D | e3: True; e1 = e5 y^4 on D: True; identity (eps_P eps_Q)' = ((P+Q) B)^2: True
+     eps_psi: degree 207, multiplicities on D [3], odd part of degree 79 with 64 roots in D: |D+ \ D| = 15
+  11/16 family, span subspace in GF(2^12): n = 64, Delta = 31, W = 174, deg(e1, e3, e5) = (143, 81, 19), bounds (143, 81, 19)
+     deg(mu01, mu02, mu12) = (104, 73, 34), deg gcd = 2 (1 of its roots in D); degree drops of (e_i e_j)' at infinity: [16, 16, 32]; p_inf - Delta = 16
+     word = mu02/mu12 = mu01/mu02 on D: True; Lambda_D | e3: True; e1 = e5 y^4 on D: True; identity (eps_P eps_Q)' = ((P+Q) B)^2: True
+     eps_psi: degree 207, multiplicities on D [3], odd part of degree 79 with 64 roots in D: |D+ \ D| = 15
+  27/40 family, D = F_16 in GF(2^8), j = 2: n = 16, Delta = 7, W = 43, deg(e1, e3, e5) = (33, -1, 8), bounds (36, 22, 8)
+     deg(mu01, mu02, mu12) = (-1, 20, -1), deg gcd = 20 (16 of its roots in D); degree drops of (e_i e_j)' at infinity: [None, 4, None]; p_inf - Delta = 3
+     word = mu02/mu12 = mu01/mu02 on D: True; Lambda_D | e3: True; e1 = e5 y^4 on D: True; identity (eps_P eps_Q)' = ((P+Q) B)^2: True
+     eps_psi: degree 48, multiplicities on D [3], odd part of degree 16 with 16 roots in D: |D+ \ D| = 0
+  27/40 family, D = F_64 in GF(2^12), j = 4: n = 64, Delta = 31, W = 172, deg(e1, e3, e5) = (129, -1, 16), bounds (141, 79, 17)
+     deg(mu01, mu02, mu12) = (-1, 72, -1), deg gcd = 72 (64 of its roots in D); degree drops of (e_i e_j)' at infinity: [None, 14, None]; p_inf - Delta = 13
+     word = mu02/mu12 = mu01/mu02 on D: True; Lambda_D | e3: True; e1 = e5 y^4 on D: True; identity (eps_P eps_Q)' = ((P+Q) B)^2: True
+     eps_psi: degree 192, multiplicities on D [3], odd part of degree 64 with 64 roots in D: |D+ \ D| = 0
+# B. the 5n/8 family as a pencil at infinity; C. the converse
+  N = 5: 1400 members (56 n - 392 = 1400); P_i = psi + Lambda_S of degree <= n/2 on 1400 checked: True; g = 4: dim Gamma_inf(g) = 17 (RM(2,N): 16); all S_i xor S_1 in the code: True; distances seen {8: 195, 12: 1173, 16: 2046, 20: 539, 24: 47}
+     words of weight 20 in the coset S_1 + Gamma_inf(4): 13688, of which list members (same top as psi): 1400
+  N = 6: 3192 members (56 n - 392 = 3192); P_i = psi + Lambda_S of degree <= n/2 on 400 checked: True; g = 8: dim Gamma_inf(g) = 26 (RM(2,N): 22); all S_i xor S_1 in the code: True; distances seen {16: 136, 24: 1309, 32: 2074, 40: 461, 48: 20}
+  C: N = 6, S_1 = V + R, S_2 = (c + V) + R, |V| = 4, |R| = 20, p = 24: S_1 xor S_2 in Gamma_inf(6): True; deg(Lambda_S1 + Lambda_S2) = 20; the claimed bound p - g - 1 = 17
+===== 53_tight.py
+# n = 32 (Johnson radius 22.6): centre X^p, sections of agreement >= 20
+  field GF(2^5) n=32 Delta=16 psi=X^20, g=3: dim of the code 22; words of the coset with weight in [20, 20]: 228160; sections among them: 5952 {20: 5952}
+  field GF(2^5) n=32 Delta=16 psi=X^21, g=4: dim of the code 22; words of the coset with weight in [20, 21]: 127162; sections among them: 186 {21: 186}
+  field GF(2^5) n=32 Delta=16 psi=X^22, g=5: dim of the code 17; words of the coset with weight in [20, 22]: 13888; sections among them: 372 {20: 372}
+  field GF(2^5) n=32 Delta=16 psi=X^23, g=6: dim of the code 17; words of the coset with weight in [20, 23]: 5673; sections among them: 31 {21: 31}
+  field GF(2^5) n=32 Delta=16 psi=X^24, g=7: dim of the code 12; words of the coset with weight in [20, 24]: 496; sections among them: 0 {}
+  span  GF(2^10) n=32 Delta=16 psi=X^20, g=3: dim of the code 18; words of the coset with weight in [20, 20]: 20800; sections among them: 0 {}
+  span  GF(2^10) n=32 Delta=16 psi=X^21, g=4: dim of the code 18; words of the coset with weight in [20, 21]: 9142; sections among them: 0 {}
+  span  GF(2^10) n=32 Delta=16 psi=X^22, g=5: dim of the code 17; words of the coset with weight in [20, 22]: 13888; sections among them: 15 {20: 15}
+  span  GF(2^10) n=32 Delta=16 psi=X^23, g=6: dim of the code 17; words of the coset with weight in [20, 23]: 5673; sections among them: 0 {}
+  span  GF(2^10) n=32 Delta=16 psi=X^24, g=7: dim of the code 8; words of the coset with weight in [20, 24]: 16; sections among them: 0 {}
+  rand  GF(2^10) n=32 Delta=16 psi=X^20, g=3: dim of the code 18; words of the coset with weight in [20, 20]: 20800; sections among them: 0 {}
+  rand  GF(2^10) n=32 Delta=16 psi=X^21, g=4: dim of the code 18; words of the coset with weight in [20, 21]: 9142; sections among them: 0 {}
+  rand  GF(2^10) n=32 Delta=16 psi=X^22, g=5: dim of the code 17; words of the coset with weight in [20, 22]: 13888; sections among them: 12 {20: 12}
+  rand  GF(2^10) n=32 Delta=16 psi=X^23, g=6: dim of the code 17; words of the coset with weight in [20, 23]: 5673; sections among them: 0 {}
+  rand  GF(2^10) n=32 Delta=16 psi=X^24, g=7: dim of the code 9; words of the coset with weight in [20, 24]: 48; sections among them: 0 {}
+# n = 64 (Johnson radius 45.3): centre X^p, sections of agreement >= 42
+  rand  GF(2^12) n=64 Delta=32 psi=X^44, g=11: dim of the code 23; words of the coset with weight in [42, 44]: 0; sections among them: 0 {}
+  rand  GF(2^12) n=64 Delta=32 psi=X^45, g=12: dim of the code 23; words of the coset with weight in [42, 45]: 0; sections among them: 0 {}
+  rand  GF(2^12) n=64 Delta=32 psi=X^46, g=13: dim of the code 23; words of the coset with weight in [42, 46]: 0; sections among them: 0 {}
+  rand  GF(2^12) n=64 Delta=32 psi=X^48, g=15: dim of the code 11; words of the coset with weight in [42, 48]: 0; sections among them: 0 {}
+  span  GF(2^12) n=64 Delta=32 psi=X^44, g=11: dim of the code 23; words of the coset with weight in [42, 44]: 0; sections among them: 0 {}
+  span  GF(2^12) n=64 Delta=32 psi=X^45, g=12: dim of the code 23; words of the coset with weight in [42, 45]: 0; sections among them: 0 {}
+  span  GF(2^12) n=64 Delta=32 psi=X^46, g=13: dim of the code 23; words of the coset with weight in [42, 46]: 0; sections among them: 0 {}
+  span  GF(2^12) n=64 Delta=32 psi=X^48, g=15: dim of the code 11; words of the coset with weight in [42, 48]: 0; sections among them: 0 {}
+===== 53_window.py
+# rate 1/2, contact 4 on all lines; window [Delta + 3A, W_cut), W_cut from notes 45 and 48 (in units of n)
+  n = 2^25, a = 7065/10000: A = 23706207, W in [2.6195, 2.6352) n, s = deg r_P <= 526797 (0.0157 n)
+     deg of the divisor: clean >= A - Delta + [p_inf > Delta] ~ 6928987 (0.2065 n); pair divisor >= A - Delta - 5 s = 4295001 (0.1280 n); within one class of r: >= 5348595 (0.1594 n); Pade uniqueness needs 2 s = 1053594 below it: True
+     |S_i xor S_j| in [13857972, 19696450] = [0.4130, 0.5870] n; the second-moment argument needs no codeword of weight in [0.41300, 0.41472] n (width 0.00172 n)
+     with r_P (odd roots in D): |O_P| >= A - s = 23179410 (0.6908 n), distances >= 0.3816 n (> 3n/8: True); second moment with w_1 = 7n/16: M <= 42; with w_1 = n/2: M <= 6
+        RM(2,N), w_1 = 7n/16: M <= 19
+        RM(1,N), w_1 = n/2: M <= 5
+        w_1 = 27n/64: M <= 58
+        w_1 = 55n/128: M <= 28
+  n = 2^25, a = 705/1000: A = 23655875, W in [2.6150, 2.6498) n, s = deg r_P <= 1167687 (0.0348 n)
+     deg of the divisor: clean >= A - Delta + [p_inf > Delta] ~ 6878655 (0.2050 n); pair divisor >= A - Delta - 5 s = 1040219 (0.0310 n); within one class of r: >= 3375593 (0.1006 n); Pade uniqueness needs 2 s = 2335374 below it: True
+     |S_i xor S_j| in [13757308, 19797114] = [0.4100, 0.5900] n; the second-moment argument needs no codeword of weight in [0.41000, 0.41595] n (width 0.00595 n)
+     with r_P (odd roots in D): |O_P| >= A - s = 22488188 (0.6702 n), distances >= 0.3404 n (> 3n/8: False); second moment with w_1 = 7n/16: M <= None; with w_1 = n/2: M <= 8
+        RM(2,N), w_1 = 7n/16: M <= 20
+        RM(1,N), w_1 = n/2: M <= 5
+        w_1 = 27n/64: M <= 71
+        w_1 = 55n/128: M <= 31
+  n = 2^28, a = 7065/10000: A = 189649650, W in [2.6195, 2.6352) n, s = deg r_P <= 4214430 (0.0157 n)
+     deg of the divisor: clean >= A - Delta + [p_inf > Delta] ~ 55431918 (0.2065 n); pair divisor >= A - Delta - 5 s = 34359767 (0.1280 n); within one class of r: >= 42788627 (0.1594 n); Pade uniqueness needs 2 s = 8428860 below it: True
+     |S_i xor S_j| in [110863834, 157571612] = [0.4130, 0.5870] n; the second-moment argument needs no codeword of weight in [0.41300, 0.41472] n (width 0.00172 n)
+     with r_P (odd roots in D): |O_P| >= A - s = 185435220 (0.6908 n), distances >= 0.3816 n (> 3n/8: True); second moment with w_1 = 7n/16: M <= 42; with w_1 = n/2: M <= 6
+        RM(2,N), w_1 = 7n/16: M <= 19
+        RM(1,N), w_1 = n/2: M <= 5
+        w_1 = 27n/64: M <= 58
+        w_1 = 55n/128: M <= 28
+  n = 2^28, a = 705/1000: A = 189246997, W in [2.6150, 2.6498) n, s = deg r_P <= 9341547 (0.0348 n)
+     deg of the divisor: clean >= A - Delta + [p_inf > Delta] ~ 55029265 (0.2050 n); pair divisor >= A - Delta - 5 s = 8321529 (0.0310 n); within one class of r: >= 27004623 (0.1006 n); Pade uniqueness needs 2 s = 18683094 below it: True
+     |S_i xor S_j| in [110058528, 158376918] = [0.4100, 0.5900] n; the second-moment argument needs no codeword of weight in [0.41000, 0.41595] n (width 0.00595 n)
+     with r_P (odd roots in D): |O_P| >= A - s = 179905450 (0.6702 n), distances >= 0.3404 n (> 3n/8: False); second moment with w_1 = 7n/16: M <= None; with w_1 = n/2: M <= 8
+        RM(2,N), w_1 = 7n/16: M <= 20
+        RM(1,N), w_1 = n/2: M <= 5
+        w_1 = 27n/64: M <= 71
+        w_1 = 55n/128: M <= 31
+# thresholds of Theorem S (note 52), second-moment bound with RM(2, N) at rate 1/2
+  a = 0.700840: 2(A - Delta) = 0.4017 n > 3n/8: True; M <= 24
+  a = 0.701000: 2(A - Delta) = 0.4020 n > 3n/8: True; M <= 23
+  a = 0.703000: 2(A - Delta) = 0.4060 n > 3n/8: True; M <= 21
+  a = 0.705000: 2(A - Delta) = 0.4100 n > 3n/8: True; M <= 20
+  a = 0.706500: 2(A - Delta) = 0.4130 n > 3n/8: True; M <= 19
+  a = 0.707000: 2(A - Delta) = 0.4140 n > 3n/8: True; M <= 18
+# other rates (equal sizes w = A, pairwise distance >= d): Johnson M <= (d/2) / (d/2 - w (n - w) / n)
+  rate 1/4, a = 0.488109: g = A - Delta - 1 = 0.2381 n (RM(2,N) needs >= 1/8, RM(1,N) >= 1/4); 2(A - Delta) = 0.4762 n; next RM(2,N) weight 0.48438 n; Johnson bound: None
+  rate 1/8, a = 0.340086: g = A - Delta - 1 = 0.2151 n (RM(2,N) needs >= 1/8, RM(1,N) >= 1/4); 2(A - Delta) = 0.4302 n; next RM(2,N) weight 0.43750 n; Johnson bound: None
+  rate 1/16, a = 0.237478: g = A - Delta - 1 = 0.1750 n (RM(2,N) needs >= 1/8, RM(1,N) >= 1/4); 2(A - Delta) = 0.3500 n; next RM(2,N) weight 0.37500 n; Johnson bound: 29
+===== 53_strata.py
+# A. stratum lower bound on dim_F2 Gamma_inf(g), g = A - Delta - 1, Delta = rho n + 5, every subspace of GF(2^m)
+#    rate  A/n       N   g/n      formal (RM)   m=64: bound (degree)   m=128: bound (degree)   m=256
+     1/2   0.700840  25  0.2008      326           56706 (6)             11446 (5)              4268 (4)
+     1/2   0.700840  28  0.2008      407          216554 (6)             48198 (5)             11614 (4)
+     1/2   0.706500  25  0.2065      326           47938 (6)              9644 (4)              4012 (4)
+     1/2   0.706500  28  0.2065      407          204330 (6)             45638 (5)             11358 (4)
+     1/4   0.488109  25  0.2381      326           16566 (5)              4780 (4)              1602 (3)
+     1/4   0.488109  28  0.2381      407           54086 (5)             12126 (4)              2659 (3)
+     1/4   0.496622  25  0.2466      326            7788 (4)              1858 (3)              1090 (3)
+     1/4   0.496622  28  0.2466      407           28550 (5)              6878 (4)              2147 (3)
+     1/8   0.340086  25  0.2151      326           36598 (5)              9388 (4)              3500 (4)
+     1/8   0.340086  28  0.2151      407          178730 (6)             40390 (5)             10846 (4)
+     1/8   0.349696  25  0.2247      326           27702 (5)              7212 (4)              1858 (3)
+     1/8   0.349696  28  0.2247      407          101994 (6)             15686 (5)              5726 (4)
+     1/16  0.237478  25  0.1750      326          122178 (6)             33718 (5)              9132 (4)
+     1/16  0.237478  28  0.1750      407          637202 (7)            139114 (6)             33862 (5)
+     1/16  0.246371  25  0.1839      326          103682 (6)             29238 (5)              8620 (4)
+     1/16  0.246371  28  0.1839      407          478802 (7)             87914 (6)             23366 (5)
+#    smallest m for which the stratum bound does not exceed the formal value (rate 1/2, a = 0.7065):
+     N = 25: m >= 1150
+     N = 26: m >= 1300
+     N = 27: m >= 1463
+     N = 28: m >= 1638
+# B. exact dim Gamma_inf(g) at toy sizes: value / stratum bound; formal value in the header
+   N = 8, n = 256; g = [44, 48, 52, 60, 64] (g/n = [0.175, 0.19, 0.2065, 0.238, 0.25]); formal: [37, 37, 37, 37, 9]
+      span m = 10: 93/93  73/73  73/73  53/53  33/33
+      span m = 16: 77/77  61/61  61/61  37/37  21/21
+      span m = 20: 73/73  53/53  53/53  37/37  17/17
+      span m = 24: 69/69  45/45  45/45  37/37  13/13
+      span m = 32: 61/61  37/37  37/37  37/37  9/9
+      span m = 40: 53/53  37/37  37/37  37/37  9/9
+      span m = 48: 45/45  37/37  37/37  37/37  9/9
+      span m = 64: 41/37  37/37  37/37  37/37  9/9
+      rand m = 10: 93/93  73/73  73/73  53/53  33/33
+      rand m = 16: 77/77  61/61  61/61  37/37  21/21
+      rand m = 20: 73/73  53/53  53/53  37/37  17/17
+      rand m = 24: 69/69  45/45  45/45  37/37  13/13
+      rand m = 32: 61/61  37/37  37/37  37/37  9/9
+      rand m = 40: 53/53  37/37  37/37  37/37  9/9
+      rand m = 48: 45/45  37/37  37/37  37/37  9/9
+      rand m = 64: 37/37  37/37  37/37  37/37  9/9
+   N = 10, n = 1024; g = [179, 194, 211, 243, 256] (g/n = [0.175, 0.19, 0.2065, 0.238, 0.25]); formal: [56, 56, 56, 56, 11]
+      span m = 12: 278/278  230/230  218/218  131/128  83/80
+      span m = 16: 242/242  178/178  162/162  112/112  48/48
+      span m = 20: 206/206  136/136  136/136  96/96  36/36
+      span m = 24: 170/170  128/128  128/128  80/80  32/32
+      span m = 32: 144/144  112/112  112/112  56/56  24/24
+      span m = 40: 136/136  96/96  96/96  56/56  16/16
+      span m = 48: 128/128  80/80  80/80  56/56  11/11
+      span m = 64: 112/112  56/56  56/56  56/56  11/11
+      rand m = 12: 278/278  230/230  218/218  130/128  82/80
+      rand m = 16: 242/242  178/178  162/162  112/112  48/48
+      rand m = 20: 206/206  136/136  136/136  96/96  36/36
+      rand m = 24: 170/170  128/128  128/128  80/80  32/32
+      rand m = 32: 144/144  112/112  112/112  56/56  24/24
+      rand m = 40: 136/136  96/96  96/96  56/56  16/16
+      rand m = 48: 128/128  80/80  80/80  56/56  11/11
+      rand m = 64: 112/112  56/56  56/56  56/56  11/11
+   N = 12, n = 4096; g = [716, 778, 845, 974, 1024] (g/n = [0.175, 0.19, 0.2065, 0.238, 0.25]); formal: [79, 79, 79, 79, 13]
+      span m = 14: 900/886  690/662  634/578  376/374  215/159
+      span m = 16: 802/786  562/530  506/506  314/314  146/139
+      span m = 20: 606/586  454/454  434/434  219/219  99/99
+      span m = 24: 530/530  386/386  362/362  203/203  59/59
+      span m = 32: 442/442  250/250  235/235  171/171  47/47
+      span m = 40: 354/354  219/219  219/219  139/139  39/39
+      span m = 48: 266/266  203/203  203/203  107/107  31/31
+      span m = 64: 235/235  171/171  171/171  79/79  16/15
+      rand m = 14: 900/886  690/662  634/578  376/374  215/159
+      rand m = 16: 802/786  562/530  506/506  314/314  146/139
+      rand m = 20: 606/586  454/454  434/434  219/219  99/99
+      rand m = 24: 530/530  386/386  362/362  203/203  59/59
+      rand m = 32: 442/442  250/250  235/235  171/171  47/47
+      rand m = 40: 354/354  219/219  219/219  139/139  39/39
+      rand m = 48: 266/266  203/203  203/203  107/107  31/31
+      rand m = 64: 235/235  171/171  171/171  79/79  15/15
+# C. field domains D = GF(2^N): dim of the same code (BCH), log_n of it
+   N = 10: g/n=0.175: 328 (n^0.836); g/n=0.2008: 268 (n^0.807); g/n=0.2065: 258 (n^0.801); g/n=0.238: 173 (n^0.743); g/n=0.25: 123 (n^0.694)
+   N = 12: g/n=0.175: 1070 (n^0.839); g/n=0.2008: 838 (n^0.809); g/n=0.2065: 784 (n^0.801); g/n=0.238: 484 (n^0.743); g/n=0.25: 322 (n^0.694)
+   N = 14: g/n=0.175: 3391 (n^0.838); g/n=0.2008: 2572 (n^0.809); g/n=0.2065: 2376 (n^0.801); g/n=0.238: 1354 (n^0.743); g/n=0.25: 843 (n^0.694)
+   N = 16: g/n=0.175: 10875 (n^0.838); g/n=0.2008: 7879 (n^0.809); g/n=0.2065: 7239 (n^0.801); g/n=0.238: 3791 (n^0.743); g/n=0.25: 2207 (n^0.694)
+   N = 18: g/n=0.175: 34698 (n^0.838); g/n=0.2008: 24213 (n^0.809); g/n=0.2065: 22020 (n^0.801); g/n=0.238: 10617 (n^0.743); g/n=0.25: 5778 (n^0.694)
+   N = 20: g/n=0.175: 110936 (n^0.838); g/n=0.2008: 74332 (n^0.809); g/n=0.2065: 66862 (n^0.801); g/n=0.238: 29737 (n^0.743); g/n=0.25: 15127 (n^0.694)
+   N = 22: g/n=0.175: 354379 (n^0.838); g/n=0.2008: 228154 (n^0.809); g/n=0.2065: 203074 (n^0.801); g/n=0.238: 83295 (n^0.743); g/n=0.25: 39603 (n^0.694)
+   N = 24: g/n=0.175: 1132430 (n^0.838); g/n=0.2008: 700398 (n^0.809); g/n=0.2065: 616872 (n^0.801); g/n=0.238: 233316 (n^0.743); g/n=0.25: 103682 (n^0.694)
+   N = 25: g/n=0.175: 2024166 (n^0.838); g/n=0.2008: 1227166 (n^0.809); g/n=0.2065: 1075116 (n^0.801); g/n=0.238: 390486 (n^0.743); g/n=0.25: 167761 (n^0.694)
+   N = 28: g/n=0.175: 11561155 (n^0.838); g/n=0.2008: 6600440 (n^0.809); g/n=0.2065: 5691532 (n^0.801); g/n=0.238: 1830626 (n^0.743); g/n=0.25: 710647 (n^0.694)
+===== 53_gap: weight gap of RM(2, N) on small-field domains, D = span(1, x, .., x^(N-1)), g = 0.2065 n
+== N=10 m=12 g=211, window [424, 448)
+N=10 n=1024: dim Gamma = 218; dim (Gamma cap RM(2,N)) = 56 (RM(2,N): 56); extra dimensions 162, of Boolean degree up to 4
+   extra words with high part x_0 * (quadratic form): dimension 12 (count bound C(N-1,2) - 2m)
+   x_0 Q + q_0 (q_0 of rank 4), halves corrected independently: 3998 trials, 3328 with weight in [424, 448), smallest 384; weights: 384:3 416:667 432:3328
+   100 descents: smallest weight of a word with nonzero extra part: 400 (0.3906 n); 3n/8 = 384, 7n/16 = 448; distinct words (up to the affine part) met with weight in [424, 448): 1909
+   local minima by weight: 400:1 412:1 420:4 424:3 428:13 432:21 436:35 440:17 444:5
+== N=10 m=16 g=211, window [424, 448)
+N=10 n=1024: dim Gamma = 162; dim (Gamma cap RM(2,N)) = 56 (RM(2,N): 56); extra dimensions 106, of Boolean degree up to 4
+   extra words with high part x_0 * (quadratic form): dimension 4 (count bound C(N-1,2) - 2m)
+   x_0 Q + q_0 (q_0 of rank 4), halves corrected independently: 3748 trials, 3124 with weight in [424, 448), smallest 384; weights: 384:9 416:615 432:3124
+   100 descents: smallest weight of a word with nonzero extra part: 392 (0.3828 n); 3n/8 = 384, 7n/16 = 448; distinct words (up to the affine part) met with weight in [424, 448): 1559
+   local minima by weight: 392:1 400:1 416:3 420:1 424:5 428:6 432:26 436:17 440:30 444:9 448:1
+== N=10 m=64 g=211, window [424, 448)
+N=10 n=1024: dim Gamma = 56; dim (Gamma cap RM(2,N)) = 56 (RM(2,N): 56); extra dimensions 0, of Boolean degree up to 0
+no search (RM(2,N) not contained, or no extra word)
+== N=12 m=20 g=845, window [1692, 1792)
+N=12 n=4096: dim Gamma = 434; dim (Gamma cap RM(2,N)) = 79 (RM(2,N): 79); extra dimensions 355, of Boolean degree up to 4
+   extra words with high part x_0 * (quadratic form): dimension 15 (count bound C(N-1,2) - 2m)
+   x_0 Q + q_0 (q_0 of rank 4), halves corrected independently: 4000 trials, 3998 with weight in [1692, 1792), smallest 1664; weights: 1664:2 1728:640 1760:3358
+   100 descents: smallest weight of a word with nonzero extra part: 1824 (0.4453 n); 3n/8 = 1536, 7n/16 = 1792; distinct words (up to the affine part) met with weight in [1692, 1792): 0
+   local minima by weight: 1824:1 1844:1 1856:3 1860:2 1864:4 1868:5 1872:10 1876:13 1880:14 1884:22 1888:15 1892:9 1896:1
+== N=12 m=24 g=845, window [1692, 1792)
+N=12 n=4096: dim Gamma = 362; dim (Gamma cap RM(2,N)) = 79 (RM(2,N): 79); extra dimensions 283, of Boolean degree up to 4
+   extra words with high part x_0 * (quadratic form): dimension 7 (count bound C(N-1,2) - 2m)
+   x_0 Q + q_0 (q_0 of rank 4), halves corrected independently: 3968 trials, 3966 with weight in [1692, 1792), smallest 1664; weights: 1664:2 1728:607 1760:3359
+   100 descents: smallest weight of a word with nonzero extra part: 1824 (0.4453 n); 3n/8 = 1536, 7n/16 = 1792; distinct words (up to the affine part) met with weight in [1692, 1792): 0
+   local minima by weight: 1824:1 1828:1 1840:1 1844:1 1856:3 1860:4 1864:3 1868:6 1872:11 1876:17 1880:8 1884:15 1888:13 1892:10 1896:5 1900:1
+== N=12 m=32 g=845, window [1692, 1792)
+N=12 n=4096: dim Gamma = 235; dim (Gamma cap RM(2,N)) = 79 (RM(2,N): 79); extra dimensions 156, of Boolean degree up to 3
+   extra words with high part x_0 * (quadratic form): dimension 0 (count bound C(N-1,2) - 2m)
+   100 descents: smallest weight of a word with nonzero extra part: 1824 (0.4453 n); 3n/8 = 1536, 7n/16 = 1792; distinct words (up to the affine part) met with weight in [1692, 1792): 0
+   local minima by weight: 1824:1 1840:4 1856:11 1864:4 1872:19 1880:9 1888:37 1896:3 1904:12
+== N=12 m=64 g=845, window [1692, 1792)
+N=12 n=4096: dim Gamma = 171; dim (Gamma cap RM(2,N)) = 79 (RM(2,N): 79); extra dimensions 92, of Boolean degree up to 3
+   extra words with high part x_0 * (quadratic form): dimension 0 (count bound C(N-1,2) - 2m)
+   100 descents: smallest weight of a word with nonzero extra part: 1816 (0.4434 n); 3n/8 = 1536, 7n/16 = 1792; distinct words (up to the affine part) met with weight in [1692, 1792): 0
+   local minima by weight: 1816:1 1848:2 1856:2 1864:4 1872:7 1880:18 1888:27 1896:25 1904:14

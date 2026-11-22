@@ -1,0 +1,134 @@
+== 1. list lower bounds at level 0 (log2 of the number of polynomials of degree <= k within the agreement)
+rate 2^-1, N = 25, Johnson 0.7071:
+   tau =       3/4 = 0.75000   log2 L >=      1.6   3 hyperplanes
+   tau =     41/64 = 0.64062   log2 L >=      5.9   biased padding m'=4
+   tau =    81/128 = 0.63281   log2 L >=      8.0   biased padding m'=5
+   tau =   161/256 = 0.62891   log2 L >=     10.0   biased padding m'=6
+   tau =   321/512 = 0.62695   log2 L >=     12.0   biased padding m'=7
+   tau =  641/1024 = 0.62598   log2 L >=     14.0   biased padding m'=8
+   tau = 1281/2048 = 0.62549   log2 L >=     16.0   biased padding m'=9
+   tau = 2561/4096 = 0.62524   log2 L >=     18.0   biased padding m'=10
+   tau = 5121/8192 = 0.62512   log2 L >=     20.0   biased padding m'=11
+   tau = 10241/16384 = 0.62506   log2 L >=     22.0   biased padding m'=12
+   tau =       5/8 = 0.62500   log2 L >=     30.8   5n/8 class
+   tau =      9/16 = 0.56250   log2 L >=     96.0   nested c=3
+   tau =      9/16 = 0.56250   log2 L >=    102.7   DKTZ h=3 (quoted)
+   tau =     17/32 = 0.53125   log2 L >=    226.8   nested c=4
+   tau =     17/32 = 0.53125   log2 L >=    262.5   DKTZ h=4 (quoted)
+   tau =     33/64 = 0.51562   log2 L >=    474.5   nested c=5
+   tau =    65/128 = 0.50781   log2 L >=    943.8   nested c=6
+   tau =   129/256 = 0.50391   log2 L >=   1832.5   nested c=7
+   tau =   257/512 = 0.50195   log2 L >=   3511.7   nested c=8
+   pigeonhole: log2 L >=     0 up to tau = 0.515614
+   pigeonhole: log2 L >=   128 up to tau = 0.515614
+   pigeonhole: log2 L >=  1024 up to tau = 0.515614
+   pigeonhole: log2 L >=  5000 up to tau = 0.515612
+rate 2^-2, N = 26, Johnson 0.5000:
+   tau =       1/2 = 0.50000   log2 L >=     27.0   flats
+   tau =       3/8 = 0.37500   log2 L >=     31.8   complement of the 5n/8 class
+   tau =       3/8 = 0.37500   log2 L >=     28.8   nested c=1
+   tau =      5/16 = 0.31250   log2 L >=     77.3   nested c=2
+   tau =      9/32 = 0.28125   log2 L >=    145.8   nested c=3
+   tau =     17/64 = 0.26562   log2 L >=    275.6   nested c=4
+   tau =    33/128 = 0.25781   log2 L >=    522.3   nested c=5
+   tau =    65/256 = 0.25391   log2 L >=    990.6   nested c=6
+   tau =   129/512 = 0.25195   log2 L >=   1878.3   nested c=7
+   pigeonhole: log2 L >=     0 up to tau = 0.262988
+   pigeonhole: log2 L >=   128 up to tau = 0.262988
+   pigeonhole: log2 L >=  1024 up to tau = 0.262988
+   pigeonhole: log2 L >=  5000 up to tau = 0.262987
+rate 2^-3, N = 27, Johnson 0.3536:
+   tau =       1/4 = 0.25000   log2 L >=     53.4   flats
+   tau =      3/16 = 0.18750   log2 L >=     55.3   nested c=1
+   tau =      5/32 = 0.15625   log2 L >=    105.4   nested c=2
+   tau =      9/64 = 0.14062   log2 L >=    173.8   nested c=3
+   tau =    17/128 = 0.13281   log2 L >=    303.6   nested c=4
+   tau =    33/256 = 0.12891   log2 L >=    550.3   nested c=5
+   tau =    65/512 = 0.12695   log2 L >=   1018.6   nested c=6
+   tau =  129/1024 = 0.12598   log2 L >=   1906.3   nested c=7
+   pigeonhole: log2 L >=     0 up to tau = 0.133875
+   pigeonhole: log2 L >=   128 up to tau = 0.133875
+   pigeonhole: log2 L >=  1024 up to tau = 0.133874
+   pigeonhole: log2 L >=  5000 up to tau = 0.133874
+rate 2^-4, N = 28, Johnson 0.2500:
+   tau =    39/256 = 0.15234   log2 L >=     15.6   padded subspace pigeonhole
+   tau =       1/8 = 0.12500   log2 L >=     79.6   flats
+   tau =      3/32 = 0.09375   log2 L >=     81.6   nested c=1
+   tau =      5/64 = 0.07812   log2 L >=    132.8   nested c=2
+   tau =     9/128 = 0.07031   log2 L >=    201.2   nested c=3
+   tau =    17/256 = 0.06641   log2 L >=    331.1   nested c=4
+   tau =    33/512 = 0.06445   log2 L >=    577.7   nested c=5
+   tau =   65/1024 = 0.06348   log2 L >=   1046.1   nested c=6
+   tau =  129/2048 = 0.06299   log2 L >=   1933.7   nested c=7
+   pigeonhole: log2 L >=     0 up to tau = 0.068107
+   pigeonhole: log2 L >=   128 up to tau = 0.068107
+   pigeonhole: log2 L >=  1024 up to tau = 0.068106
+   pigeonhole: log2 L >=  5000 up to tau = 0.068106
+
+== 2. attack requirements on the list (log2 of members through one column), and what the proof tolerates
+   log2(1/eps_0) = 104.000
+    s   proof 5.2 (L <=)   pinning union bound (L <=)   attack generic weights (L*tau >=)   attack worst-case weights (L*tau >=)
+    1         -319.3                   -2.5                         11.0                              1.6
+    2         -284.7                   49.5                        139.0                             11.0
+    3         -250.0                  101.5                        267.0                            139.0
+    4         -215.3                  153.5                        395.0                            267.0
+    6         -146.0                  257.5                        651.0                            523.0
+    8          -76.7                  361.5                        907.0                            779.0
+   11           27.3                  517.5                       1291.0                           1163.0
+   12           62.0                  569.5                       1419.0                           1291.0
+   14          131.3                  673.5                       1675.0                           1547.0
+   20          339.3                  985.5                       2443.0                           2315.0
+   30          686.0                 1505.5                       3723.0                           3595.0
+   40         1032.7                 2025.5                       5003.0                           4875.0
+
+== 3. attack frontier at level 0: largest agreement fraction with an attack below 2^125, and query floor
+rate 2^-1 (N = 25): Johnson 0.7071, 216 queries; capacity 0.5, 108 queries
+   s >=  2: generic weights tau = 0.53125 (nested c=4), floor 119 queries, gap to Johnson 97 = 45% | worst-case weights tau = 0.62695 (biased padding m'=7), floor 161, gap 55 = 25%
+   s >=  3: generic weights tau = 0.51562 (nested c=5), floor 114 queries, gap to Johnson 102 = 47% | worst-case weights tau = 0.53125 (nested c=4), floor 119, gap 97 = 45%
+   s >=  4: generic weights tau = 0.51562 (nested c=5), floor 114 queries, gap to Johnson 102 = 47% | worst-case weights tau = 0.51562 (nested c=5), floor 114, gap 102 = 47%
+   s >=  5: generic weights tau = 0.51561 (pigeonhole), floor 114 queries, gap to Johnson 102 = 47% | worst-case weights tau = 0.51562 (nested c=5), floor 114, gap 102 = 47%
+   s >=  6: generic weights tau = 0.51561 (pigeonhole), floor 114 queries, gap to Johnson 102 = 47% | worst-case weights tau = 0.51561 (pigeonhole), floor 114, gap 102 = 47%
+rate 2^-2 (N = 26): Johnson 0.5000, 108 queries; capacity 0.25, 54 queries
+   s >=  2: generic weights tau = 0.28125 (nested c=3), floor 60 queries, gap to Johnson 48 = 44% | worst-case weights tau = 0.50000 (flats), floor 108, gap 0 = 0%
+   s >=  3: generic weights tau = 0.26562 (nested c=4), floor 57 queries, gap to Johnson 51 = 47% | worst-case weights tau = 0.28125 (nested c=3), floor 60, gap 48 = 44%
+   s >=  4: generic weights tau = 0.26299 (pigeonhole), floor 57 queries, gap to Johnson 51 = 47% | worst-case weights tau = 0.26562 (nested c=4), floor 57, gap 51 = 47%
+   s >=  5: generic weights tau = 0.26299 (pigeonhole), floor 57 queries, gap to Johnson 51 = 47% | worst-case weights tau = 0.26299 (pigeonhole), floor 57, gap 51 = 47%
+rate 2^-3 (N = 27): Johnson 0.3536, 72 queries; capacity 0.125, 36 queries
+   s >=  2: generic weights tau = 0.14062 (nested c=3), floor 39 queries, gap to Johnson 33 = 46% | worst-case weights tau = 0.25000 (flats), floor 54, gap 18 = 25%
+   s >=  3: generic weights tau = 0.13387 (pigeonhole), floor 38 queries, gap to Johnson 34 = 47% | worst-case weights tau = 0.14062 (nested c=3), floor 39, gap 33 = 46%
+   s >=  4: generic weights tau = 0.13387 (pigeonhole), floor 38 queries, gap to Johnson 34 = 47% | worst-case weights tau = 0.13387 (pigeonhole), floor 38, gap 34 = 47%
+rate 2^-4 (N = 28): Johnson 0.2500, 54 queries; capacity 0.0625, 27 queries
+   s >=  2: generic weights tau = 0.07031 (nested c=3), floor 29 queries, gap to Johnson 25 = 46% | worst-case weights tau = 0.15234 (padded subspace pigeonhole), floor 40, gap 14 = 26%
+   s >=  3: generic weights tau = 0.06811 (pigeonhole), floor 28 queries, gap to Johnson 26 = 48% | worst-case weights tau = 0.07031 (nested c=3), floor 29, gap 25 = 46%
+   s >=  4: generic weights tau = 0.06811 (pigeonhole), floor 28 queries, gap to Johnson 26 = 48% | worst-case weights tau = 0.06811 (pigeonhole), floor 28, gap 26 = 48%
+
+== 4. if the lists were no larger than the lower bounds: points Theorem 5.2 needs just above each step (level 0, one batch)
+rate 2^-1:  above 10241/16384: b=22 -> s=11;  above 5/8: b=31 -> s=12;  above 9/16: b=96 -> s=13;  above 17/32: b=227 -> s=17;  above 33/64: b=474 -> s=24;  above 65/128: b=944 -> s=38;  above 129/256: b=1832 -> s=64;  above 257/512: b=3512 -> s=112;
+rate 2^-2:  above 3/8: b=32 -> s=12;  above 3/8: b=29 -> s=12;  above 5/16: b=77 -> s=13;  above 9/32: b=146 -> s=15;  above 17/64: b=276 -> s=19;  above 33/128: b=522 -> s=26;  above 65/256: b=991 -> s=39;  above 129/512: b=1878 -> s=65;
+rate 2^-3:  above 1/4: b=53 -> s=12;  above 3/16: b=55 -> s=12;  above 5/32: b=105 -> s=14;  above 9/64: b=174 -> s=16;  above 17/128: b=304 -> s=19;  above 33/256: b=550 -> s=27;  above 65/512: b=1019 -> s=40;  above 129/1024: b=1906 -> s=66;
+rate 2^-4:  above 1/8: b=80 -> s=13;  above 3/32: b=82 -> s=13;  above 5/64: b=133 -> s=15;  above 9/128: b=201 -> s=17;  above 17/256: b=331 -> s=20;  above 33/512: b=578 -> s=27;  above 65/1024: b=1046 -> s=41;  above 129/2048: b=1934 -> s=66;
+
+== 5. the counting bound C(n,d+1)/C(A,d+1): bits per query log2(n/A) it supports with s points (level-0 rate 1/2)
+   level kappa ell  N   Johnson bits  capacity bits | theorem 5.2: s=20, s=40 | fold lemma at the pinning requirement: s=20, s=40
+   0     24    6  25     0.50         1.00        |   0.0000   0.0000     |   0.0000   0.0001   | points to beat Johnson: None / None
+   1     20    4  24     2.00         4.00        |   0.0004   0.0011     |   0.0009   0.0019   | points to beat Johnson: None / None
+   2     16    4  23     3.50         7.00        |   0.0072   0.0185     |   0.0162   0.0332   | points to beat Johnson: None / None
+   3     12    4  22     5.00        10.00        |   0.1216   0.3101     |   0.2695   0.5522   | points to beat Johnson: 540 / 356
+   4      8    4  21     6.50        13.00        |   2.0177   5.0895     |   4.4002   8.9680   | points to beat Johnson: 50 / 30
+   5      4    4  20     8.00        16.00        |  15.6077  15.6077     |  15.6077  15.6077   | points to beat Johnson: 11 / 4
+
+== 6. later levels (level-0 rate 1/2): frontier in bits per query log2(1/tau)
+   level  rate    N   Johnson  capacity | worst-case s=2 | generic s=2 | generic s=3 | generic s=8
+   0      2^-1   25    0.50     1.00   |  0.67 (biased padding m'=7) |  0.91 (nested c=4) |  0.96 (nested c=5) |  0.96 (pigeonhole)
+   1      2^-4   24    2.00     4.00   |  3.00 (flats) |  3.83 (nested c=3) |  3.88 (pigeonhole) |  3.88 (pigeonhole)
+   2      2^-7   23    3.50     7.00   |  5.00 (subspace pigeonhole u=1) |  6.68 (nested c=2) |  6.80 (pigeonhole) |  6.80 (pigeonhole)
+   3      2^-10  22    5.00    10.00   |  8.00 (subspace pigeonhole u=1) |  9.68 (nested c=2) |  9.72 (pigeonhole) |  9.73 (pigeonhole)
+   4      2^-13  21    6.50    13.00   | 11.00 (subspace pigeonhole u=1) | 12.63 (pigeonhole) | 12.65 (pigeonhole) | 12.70 (pigeonhole)
+   5      2^-16  20    8.00    16.00   | 14.00 (subspace pigeonhole u=1) | 15.48 (pigeonhole) | 15.61 (pigeonhole) | none
+
+== 7. pair collisions at s uniform points, log2 of the probability (model of section 2; flats exact)
+   flats, rate 1/4, 2n-2 affine hyperplanes   s=1:  -102.0 (union bound   -51.0)  s=2:  -204.0 (union bound  -155.0)  s=3:  -306.0 (union bound  -259.0)
+   5n/8 class, rate 1/2                       s=1:   -67.4 (union bound   -43.4)  s=2:  -170.7 (union bound  -147.4)  s=3:  -274.5 (union bound  -251.4)
+   nested c=3 at 9n/16, rate 1/2              s=1:     0.0 (union bound     0.0)  s=2:   -65.0 (union bound   -17.0)  s=3:  -168.1 (union bound  -121.0)
+   nested c=4 at 17n/32, rate 1/2             s=1:     0.0 (union bound     0.0)  s=2:     0.0 (union bound     0.0)  s=3:     0.0 (union bound     0.0)
+   biased padding m'=12, rate 1/2             s=1:   -85.0 (union bound   -61.0)  s=2:  -188.4 (union bound  -165.0)  s=3:  -292.1 (union bound  -269.0)

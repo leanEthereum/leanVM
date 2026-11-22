@@ -1,0 +1,50 @@
+v=3 r=1 k=8 n=16 members=4 samples per generator=100000, weights near Lk=24
+generator random leaves 0:  2: deficient 0 (max 0), new lists 0;  R: deficient 0 (max 0), new lists 0;  1: deficient 0 (max 0), new lists 0;  S: deficient 6 (max 1), new lists 6;
+generator blocks at level 1:  2: deficient 270 (max 1), new lists 205;  R: deficient 0 (max 0), new lists 0;  1: deficient 272 (max 1), new lists 206;  S: deficient 296 (max 2), new lists 219;
+generator blocks at level 2:  2: deficient 391 (max 2), new lists 192;  R: deficient 0 (max 0), new lists 0;  1: deficient 391 (max 2), new lists 192;  S: deficient 396 (max 2), new lists 195;
+generator P:  2: deficient 0 (max 0), new lists 0;  R: deficient 0 (max 0), new lists 0;  1: deficient 0 (max 0), new lists 0;  S: deficient 5 (max 1), new lists 4;
+generator A:  2: deficient 16 (max 1), new lists 13;  R: deficient 0 (max 0), new lists 0;  1: deficient 16 (max 1), new lists 13;  S: deficient 26 (max 1), new lists 20;
+generator M:  2: deficient 84 (max 2), new lists 34;  R: deficient 0 (max 0), new lists 0;  1: deficient 84 (max 2), new lists 34;  S: deficient 85 (max 2), new lists 35;
+# kind U: patterns 814, rank below kind U: 0, feasible: 82, feasible with a common lower factor: 0, feasible with a common upper factor only: 0, feasible with three or more members sharing a lower factor: 0
+# kind 2: patterns 814, rank below kind U: 761, feasible: 526, feasible with a common lower factor: 100, feasible with a common upper factor only: 0, feasible with three or more members sharing a lower factor: 526
+# kind 1: patterns 814, rank below kind U: 763, feasible: 527, feasible with a common lower factor: 100, feasible with a common upper factor only: 0, feasible with three or more members sharing a lower factor: 526
+# kind R: patterns 814, rank below kind U: 0, feasible: 82, feasible with a common lower factor: 0, feasible with a common upper factor only: 0, feasible with three or more members sharing a lower factor: 0
+# kind S: patterns 814, rank below kind U: 814, feasible: 561, feasible with a common lower factor: 100, feasible with a common upper factor only: 0, feasible with three or more members sharing a lower factor: 536
+v=4 r=1 k=16 n=32 members=3 samples per generator=30000, weights near Lk=32
+generator random leaves 0:  2: deficient 0 (max 0), new lists 0;  R: deficient 0 (max 0), new lists 0;  1: deficient 0 (max 0), new lists 0;  S: deficient 0 (max 0), new lists 0;
+generator blocks at level 1:  2: deficient 60 (max 1), new lists 60;  R: deficient 0 (max 0), new lists 0;  1: deficient 60 (max 1), new lists 60;  S: deficient 61 (max 2), new lists 61;
+generator blocks at level 2:  2: deficient 197 (max 4), new lists 138;  R: deficient 0 (max 0), new lists 0;  1: deficient 198 (max 4), new lists 138;  S: deficient 232 (max 4), new lists 156;
+generator blocks at level 3:  2: deficient 231 (max 2), new lists 134;  R: deficient 0 (max 0), new lists 0;  1: deficient 231 (max 2), new lists 134;  S: deficient 231 (max 2), new lists 134;
+generator P:  2: deficient 0 (max 0), new lists 0;  R: deficient 0 (max 0), new lists 0;  1: deficient 0 (max 0), new lists 0;  S: deficient 0 (max 0), new lists 0;
+generator A:  2: deficient 1 (max 1), new lists 1;  R: deficient 0 (max 0), new lists 0;  1: deficient 1 (max 1), new lists 1;  S: deficient 1 (max 1), new lists 1;
+generator M:  2: deficient 29 (max 4), new lists 16;  R: deficient 0 (max 0), new lists 0;  1: deficient 29 (max 4), new lists 16;  S: deficient 29 (max 4), new lists 16;
+# kind U: patterns 554, rank below kind U: 0, feasible: 186, feasible with a common lower factor: 0, feasible with a common upper factor only: 0, feasible with three or more members sharing a lower factor: 0
+# kind 2: patterns 554, rank below kind U: 518, feasible: 535, feasible with a common lower factor: 517, feasible with a common upper factor only: 0, feasible with three or more members sharing a lower factor: 517
+# kind 1: patterns 554, rank below kind U: 519, feasible: 535, feasible with a common lower factor: 516, feasible with a common upper factor only: 0, feasible with three or more members sharing a lower factor: 516
+# kind R: patterns 554, rank below kind U: 0, feasible: 186, feasible with a common lower factor: 0, feasible with a common upper factor only: 0, feasible with three or more members sharing a lower factor: 0
+# kind S: patterns 554, rank below kind U: 554, feasible: 554, feasible with a common lower factor: 533, feasible with a common upper factor only: 0, feasible with three or more members sharing a lower factor: 533
+v=4 r=1 k=16 n=32 members=4 samples per generator=20000, weights near Lk=48
+generator random leaves 0:  2: deficient 0 (max 0), new lists 0;  R: deficient 0 (max 0), new lists 0;  1: deficient 0 (max 0), new lists 0;  S: deficient 0 (max 0), new lists 0;
+generator blocks at level 1:  2: deficient 21 (max 1), new lists 16;  R: deficient 0 (max 0), new lists 0;  1: deficient 21 (max 1), new lists 16;  S: deficient 22 (max 1), new lists 16;
+generator blocks at level 2:  2: deficient 111 (max 2), new lists 62;  R: deficient 0 (max 0), new lists 0;  1: deficient 111 (max 2), new lists 62;  S: deficient 115 (max 2), new lists 63;
+generator blocks at level 3:  2: deficient 123 (max 3), new lists 54;  R: deficient 0 (max 0), new lists 0;  1: deficient 123 (max 3), new lists 54;  S: deficient 123 (max 3), new lists 54;
+generator P:  2: deficient 0 (max 0), new lists 0;  R: deficient 0 (max 0), new lists 0;  1: deficient 0 (max 0), new lists 0;  S: deficient 0 (max 0), new lists 0;
+generator A:  2: deficient 0 (max 0), new lists 0;  R: deficient 0 (max 0), new lists 0;  1: deficient 0 (max 0), new lists 0;  S: deficient 2 (max 1), new lists 2;
+generator M:  2: deficient 28 (max 4), new lists 8;  R: deficient 0 (max 0), new lists 0;  1: deficient 28 (max 4), new lists 8;  S: deficient 28 (max 4), new lists 8;
+# kind U: patterns 290, rank below kind U: 0, feasible: 56, feasible with a common lower factor: 0, feasible with a common upper factor only: 0, feasible with three or more members sharing a lower factor: 0
+# kind 2: patterns 290, rank below kind U: 283, feasible: 196, feasible with a common lower factor: 37, feasible with a common upper factor only: 2, feasible with three or more members sharing a lower factor: 183
+# kind 1: patterns 290, rank below kind U: 283, feasible: 196, feasible with a common lower factor: 37, feasible with a common upper factor only: 2, feasible with three or more members sharing a lower factor: 183
+# kind R: patterns 290, rank below kind U: 0, feasible: 56, feasible with a common lower factor: 0, feasible with a common upper factor only: 0, feasible with three or more members sharing a lower factor: 0
+# kind S: patterns 290, rank below kind U: 290, feasible: 199, feasible with a common lower factor: 38, feasible with a common upper factor only: 2, feasible with three or more members sharing a lower factor: 185
+v=3 r=2 k=8 n=32 members=3 samples per generator=30000, weights near Lk=16
+generator random leaves 0:  2: deficient 0 (max 0), new lists 0;  R: deficient 0 (max 0), new lists 0;  1: deficient 0 (max 0), new lists 0;  S: deficient 0 (max 0), new lists 0;
+generator blocks at level 1:  2: deficient 17 (max 1), new lists 17;  R: deficient 0 (max 0), new lists 0;  1: deficient 17 (max 1), new lists 17;  S: deficient 18 (max 1), new lists 18;
+generator blocks at level 2:  2: deficient 59 (max 1), new lists 43;  R: deficient 0 (max 0), new lists 0;  1: deficient 59 (max 1), new lists 43;  S: deficient 59 (max 1), new lists 43;
+generator P:  2: deficient 0 (max 0), new lists 0;  R: deficient 0 (max 0), new lists 0;  1: deficient 0 (max 0), new lists 0;  S: deficient 0 (max 0), new lists 0;
+generator A:  2: deficient 2 (max 1), new lists 2;  R: deficient 0 (max 0), new lists 0;  1: deficient 2 (max 1), new lists 2;  S: deficient 4 (max 1), new lists 4;
+generator M:  2: deficient 9 (max 1), new lists 6;  R: deficient 0 (max 0), new lists 0;  1: deficient 9 (max 1), new lists 6;  S: deficient 9 (max 1), new lists 6;
+# kind U: patterns 90, rank below kind U: 0, feasible: 19, feasible with a common lower factor: 0, feasible with a common upper factor only: 0, feasible with three or more members sharing a lower factor: 0
+# kind 2: patterns 90, rank below kind U: 87, feasible: 87, feasible with a common lower factor: 87, feasible with a common upper factor only: 0, feasible with three or more members sharing a lower factor: 87
+# kind 1: patterns 90, rank below kind U: 87, feasible: 87, feasible with a common lower factor: 87, feasible with a common upper factor only: 0, feasible with three or more members sharing a lower factor: 87
+# kind R: patterns 90, rank below kind U: 0, feasible: 19, feasible with a common lower factor: 0, feasible with a common upper factor only: 0, feasible with three or more members sharing a lower factor: 0
+# kind S: patterns 90, rank below kind U: 90, feasible: 90, feasible with a common lower factor: 88, feasible with a common upper factor only: 0, feasible with three or more members sharing a lower factor: 88

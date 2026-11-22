@@ -1,0 +1,6 @@
+four trees, (k,n)=(4,16), T2, 3 members, 99835 patterns: bipartite group system: 0 violations (least rank - bound 0); system with three pairings: 0 violations (least rank - bound 0)
+four trees, (k,n)=(4,16), T2, 4 members, 99991 patterns: bipartite group system: 0 violations (least rank - bound 0); system with three pairings: 0 violations (least rank - bound 0)
+four trees, (k,n)=(4,16), T2, 5 members, 100000 patterns: bipartite group system: 0 violations (least rank - bound 0); system with three pairings: 0 violations (least rank - bound 0)
+four trees, (k,n)=(4,16), T2, 6 members, 100000 patterns: bipartite group system: 0 violations (least rank - bound 0); system with three pairings: 0 violations (least rank - bound 0)
+four trees, (k,n)=(4,16), T1, 4 members, 99992 patterns: bipartite group system: 0 violations (least rank - bound 0); system with three pairings: 0 violations (least rank - bound 0)
+four trees, (k,n)=(4,16), T1, 5 members, 100000 patterns: bipartite group system: 0 violations (least rank - bound 0); system with three pairings: 0 violations (least rank - bound 0)

@@ -1,0 +1,272 @@
+### 52_ranks.py (exact local ranks over prime fields)
+== A. Lemma 1.2 of note 50: local rank on {1, Y1^q} (k = 1) and {1, Y1^q, Y1^2q} (k = 2), GF(2)
+  k=1 q= 2: rank == m^2-(q-1)m+q(3q-1)/2 for all m in [3, 64]: True (first m where it holds: 3; mismatches [])
+     below the range (m, rank, formula, 2*binom(m+1,2)): [(1, 2, 5, 2), (2, 6, 7, 6)]
+  k=1 q= 4: rank == m^2-(q-1)m+q(3q-1)/2 for all m in [7, 64]: True (first m where it holds: 7; mismatches [])
+     below the range (m, rank, formula, 2*binom(m+1,2)): [(1, 2, 20, 2), (2, 6, 20, 6), (3, 12, 22, 12), (4, 20, 26, 20), (5, 29, 32, 30), (6, 39, 40, 42)]
+  k=1 q= 8: rank == m^2-(q-1)m+q(3q-1)/2 for all m in [15, 64]: True (first m where it holds: 15; mismatches [])
+     below the range (m, rank, formula, 2*binom(m+1,2)): [(1, 2, 86, 2), (2, 6, 82, 6), (3, 12, 80, 12), (4, 20, 80, 20), (5, 30, 82, 30), (6, 42, 86, 42)]
+  k=1 q=16: rank == m^2-(q-1)m+q(3q-1)/2 for all m in [31, 64]: True (first m where it holds: 31; mismatches [])
+     below the range (m, rank, formula, 2*binom(m+1,2)): [(1, 2, 362, 2), (2, 6, 350, 6), (3, 12, 340, 12), (4, 20, 332, 20), (5, 30, 326, 30), (6, 42, 322, 42)]
+  k=1 q=32: rank == m^2-(q-1)m+q(3q-1)/2 for all m in [63, 72]: True (first m where it holds: 63; mismatches [])
+     below the range (m, rank, formula, 2*binom(m+1,2)): [(1, 2, 1490, 2), (2, 6, 1462, 6), (3, 12, 1436, 12), (4, 20, 1412, 20), (5, 30, 1390, 30), (6, 42, 1370, 42)]
+  k=2 q= 2: rank == rho_2 for all m in [7, 30]: True; mismatching m below: [1, 2, 3, 4, 5, 6]
+  k=2 q= 4: rank == rho_2 for all m in [15, 30]: True; mismatching m below: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+  k=2 q= 8: rank == rho_2 for all m in [31, 40]: True; mismatching m below: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+  other characteristics, support {1, Y1^2}: rank - m^2 for m = 4..14
+    p=3: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+    p=5: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+  p=3, support {1, Y1^3}: rank - (m^2 - 2m) for m = 6..14 (the analogue of the saving, w^3 = S^3 - T^3 Y1^3): [12, 12, 12, 12, 12, 12, 12, 12, 12]
+  p=2, support {1, Y1^3} (not a power of 2): rank - m^2 for m = 6..14: [3, 3, 3, 3, 3, 3, 3, 3, 3]
+  p=2, full support Y1-degree <= 2 against {1, Y1^2}: (m, R(m,2), rho_1(2,m)): [(4, 23, 17), (8, 89, 61), (12, 203, 137)]
+== B. R(m, B): exact local rank (support Y1-degree <= B) against the sum of note 35 and the closed form of note 48
+  p=2, B=1..5, m=1..30: mismatches with the sum: []; with the closed form (m >= 2B-1): []
+  p=3, B=1..5, m=1..20: mismatches with the sum: []; with the closed form (m >= 2B-1): []
+  p=5, B=1..5, m=1..20: mismatches with the sum: []; with the closed form (m >= 2B-1): []
+  closed form outside m >= 2B-1 (expected to fail): [(1, 3, 4, 12), (2, 3, 9, 14), (3, 3, 18, 20), (4, 3, 29, 30), (1, 4, 5, 25), (2, 4, 11, 25)]
+  R(18,5) = 811  R(11,2) = 170  R(14,2) = 278  R(m,1)-m^2 for m<=10: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+== C. Supports of the Y1-coefficients of Q in c_m with Y1-degree <= b (Lemma F of note 48, Lemma 2.1 of note 50)
+  p=2, m<=12, b<=5: 468 graded pieces; violations of (i) r+q>=m-b, (ii) 2r+q>=m-(b-c), (iii) r+2q>=m-c: 0; support of Q_b attained everywhere: True []
+  p=3, m<=10, b<=5: 330 graded pieces; violations of (i) r+q>=m-b, (ii) 2r+q>=m-(b-c), (iii) r+2q>=m-c: 0; support of Q_b attained everywhere: True []
+  p=5, m<=10, b<=5: 330 graded pieces; violations of (i) r+q>=m-b, (ii) 2r+q>=m-(b-c), (iii) r+2q>=m-c: 0; support of Q_b attained everywhere: True []
+== D. Lemma 1.1 of note 50: random tests over GF(2)[Y0, Y1]
+  31 irreducible G (Y1-degree 1..3, with an odd power of Y1), q in {2, 4}: the R' with G*R' in F[Y0][Y1^q] are exactly G^(q-1)*F[Y0][Y1^q] in the box: failures 0
+
+### 52_thresholds.py (exact integers)
+== A. Smallest A/n with an even certificate (q, k; m), m <= 4000, Delta = rho*n + 5; entries: A/n (m, d)
+  rate 1/2: Johnson sqrt(Delta/n) = 0.707107 at n=2^25, a_1 = 0.689898, leading-order even thresholds q=2: 0.705400, q=inf: 0.700746
+    k=1 q=  2: 0.705357 (m=28, d=39) | 0.705357 (m=28, d=39) | 0.705357 (m=28, d=39) | 0.705357 (m=28, d=39) | queries just above: 215
+    k=1 q=  4: 0.703390 (m=43, d=60) | 0.703390 (m=43, d=60) | 0.703390 (m=43, d=60) | 0.703390 (m=43, d=60) | queries just above: 213
+    k=1 q=  8: 0.702157 (m=75, d=105) | 0.702157 (m=75, d=105) | 0.702157 (m=75, d=105) | 0.702157 (m=75, d=105) | queries just above: 212
+    k=1 q= 16: 0.701474 (m=140, d=196) | 0.701474 (m=140, d=196) | 0.701474 (m=140, d=196) | 0.701474 (m=140, d=196) | queries just above: 212
+    k=1 q= 32: 0.701116 (m=275, d=385) | 0.701116 (m=275, d=385) | 0.701116 (m=275, d=385) | 0.701115 (m=275, d=385) | queries just above: 211
+    k=1 q= 64: 0.700932 (m=541, d=758) | 0.700932 (m=541, d=758) | 0.700932 (m=541, d=758) | 0.700932 (m=541, d=758) | queries just above: 211
+    k=1 q=128: 0.700839 (m=1077, d=1509) | 0.700839 (m=1077, d=1509) | 0.700839 (m=1077, d=1509) | 0.700839 (m=1077, d=1509) | queries just above: 211
+    k=2 q=  2: 0.701592 (m=29, d=40) | 0.701592 (m=29, d=40) | 0.701592 (m=29, d=40) | 0.701592 (m=29, d=40) | queries just above: 212
+    k=2 q=  4: 0.699827 (m=51, d=71) | 0.699827 (m=51, d=71) | 0.699827 (m=51, d=71) | 0.699827 (m=51, d=71) | queries just above: 210
+    k=2 q=  8: 0.698856 (m=97, d=135) | 0.698856 (m=97, d=135) | 0.698856 (m=97, d=135) | 0.698856 (m=97, d=135) | queries just above: 209
+    k=2 q= 16: 0.698347 (m=190, d=265) | 0.698347 (m=190, d=265) | 0.698347 (m=190, d=265) | 0.698347 (m=190, d=265) | queries just above: 209
+    k=2 q= 32: 0.698087 (m=375, d=523) | 0.698087 (m=375, d=523) | 0.698087 (m=375, d=523) | 0.698087 (m=375, d=523) | queries just above: 209
+    k=2 q= 64: 0.697955 (m=746, d=1041) | 0.697955 (m=746, d=1041) | 0.697955 (m=746, d=1041) | 0.697955 (m=746, d=1041) | queries just above: 209
+  rate 1/4: Johnson sqrt(Delta/n) = 0.500000 at n=2^25, a_1 = 0.468792, leading-order even thresholds q=2: 0.496655, q=inf: 0.487936
+    k=1 q=  2: 0.496622 (m=19, d=37) | 0.496622 (m=19, d=37) | 0.496622 (m=19, d=37) | 0.496622 (m=19, d=37) | queries just above: 107
+    k=1 q=  4: 0.492878 (m=27, d=53) | 0.492878 (m=27, d=53) | 0.492878 (m=27, d=53) | 0.492878 (m=27, d=53) | queries just above: 106
+    k=1 q=  8: 0.490556 (m=48, d=94) | 0.490556 (m=48, d=94) | 0.490556 (m=48, d=94) | 0.490556 (m=48, d=94) | queries just above: 106
+    k=1 q= 16: 0.489284 (m=90, d=176) | 0.489283 (m=90, d=176) | 0.489283 (m=90, d=176) | 0.489283 (m=90, d=176) | queries just above: 105
+    k=1 q= 32: 0.488619 (m=176, d=343) | 0.488619 (m=176, d=343) | 0.488619 (m=176, d=343) | 0.488619 (m=176, d=343) | queries just above: 105
+    k=1 q= 64: 0.488280 (m=348, d=679) | 0.488280 (m=348, d=679) | 0.488280 (m=348, d=679) | 0.488280 (m=348, d=679) | queries just above: 105
+    k=1 q=128: 0.488108 (m=691, d=1349) | 0.488108 (m=691, d=1349) | 0.488108 (m=691, d=1349) | 0.488108 (m=691, d=1349) | queries just above: 105
+    k=2 q=  2: 0.489515 (m=18, d=35) | 0.489515 (m=18, d=35) | 0.489515 (m=18, d=35) | 0.489515 (m=18, d=35) | queries just above: 105
+    k=2 q=  4: 0.486256 (m=33, d=64) | 0.486256 (m=33, d=64) | 0.486256 (m=33, d=64) | 0.486256 (m=33, d=64) | queries just above: 104
+    k=2 q=  8: 0.484484 (m=63, d=122) | 0.484484 (m=63, d=122) | 0.484484 (m=63, d=122) | 0.484484 (m=63, d=122) | queries just above: 104
+    k=2 q= 16: 0.483559 (m=124, d=239) | 0.483559 (m=124, d=239) | 0.483559 (m=124, d=239) | 0.483559 (m=124, d=239) | queries just above: 104
+    k=2 q= 32: 0.483088 (m=245, d=473) | 0.483088 (m=245, d=473) | 0.483088 (m=245, d=473) | 0.483088 (m=245, d=473) | queries just above: 103
+    k=2 q= 64: 0.482850 (m=487, d=940) | 0.482850 (m=487, d=940) | 0.482850 (m=487, d=940) | 0.482850 (m=487, d=940) | queries just above: 103
+  rate 1/8: Johnson sqrt(Delta/n) = 0.353554 at n=2^25, a_1 = 0.319059, leading-order even thresholds q=2: 0.349699, q=inf: 0.339893
+    k=1 q=  2: 0.349695 (m=15, d=41) | 0.349695 (m=15, d=41) | 0.349695 (m=15, d=41) | 0.349695 (m=15, d=41) | queries just above: 72
+    k=1 q=  4: 0.345436 (m=22, d=60) | 0.345435 (m=22, d=60) | 0.345435 (m=22, d=60) | 0.345435 (m=22, d=60) | queries just above: 71
+    k=1 q=  8: 0.342822 (m=38, d=104) | 0.342822 (m=38, d=104) | 0.342822 (m=38, d=104) | 0.342822 (m=38, d=104) | queries just above: 70
+    k=1 q= 16: 0.341396 (m=73, d=199) | 0.341396 (m=73, d=199) | 0.341396 (m=73, d=199) | 0.341396 (m=73, d=199) | queries just above: 70
+    k=1 q= 32: 0.340655 (m=143, d=389) | 0.340654 (m=143, d=389) | 0.340654 (m=143, d=389) | 0.340654 (m=143, d=389) | queries just above: 70
+    k=1 q= 64: 0.340276 (m=282, d=767) | 0.340276 (m=282, d=767) | 0.340276 (m=282, d=767) | 0.340276 (m=282, d=767) | queries just above: 70
+    k=1 q=128: 0.340086 (m=561, d=1526) | 0.340085 (m=561, d=1526) | 0.340085 (m=561, d=1526) | 0.340085 (m=561, d=1526) | queries just above: 70
+    k=2 q=  2: 0.341667 (m=15, d=40) | 0.341667 (m=15, d=40) | 0.341667 (m=15, d=40) | 0.341667 (m=15, d=40) | queries just above: 70
+    k=2 q=  4: 0.338029 (m=27, d=73) | 0.338029 (m=27, d=73) | 0.338029 (m=27, d=73) | 0.338029 (m=27, d=73) | queries just above: 70
+    k=2 q=  8: 0.336065 (m=52, d=139) | 0.336065 (m=52, d=139) | 0.336065 (m=52, d=139) | 0.336065 (m=52, d=139) | queries just above: 69
+    k=2 q= 16: 0.335047 (m=101, d=270) | 0.335047 (m=101, d=270) | 0.335047 (m=101, d=270) | 0.335047 (m=101, d=270) | queries just above: 69
+    k=2 q= 32: 0.334529 (m=200, d=535) | 0.334529 (m=200, d=535) | 0.334529 (m=200, d=535) | 0.334529 (m=200, d=535) | queries just above: 69
+    k=2 q= 64: 0.334268 (m=398, d=1064) | 0.334268 (m=398, d=1064) | 0.334268 (m=398, d=1064) | 0.334268 (m=398, d=1064) | queries just above: 69
+  rate 1/16: Johnson sqrt(Delta/n) = 0.250000 at n=2^25, a_1 = 0.218108, leading-order even thresholds q=2: 0.246379, q=inf: 0.237301
+    k=1 q=  2: 0.246371 (m=13, d=51) | 0.246371 (m=13, d=51) | 0.246371 (m=13, d=51) | 0.246371 (m=13, d=51) | queries just above: 54
+    k=1 q=  4: 0.242416 (m=19, d=73) | 0.242416 (m=19, d=73) | 0.242416 (m=19, d=73) | 0.242416 (m=19, d=73) | queries just above: 53
+    k=1 q=  8: 0.239999 (m=34, d=130) | 0.239998 (m=34, d=130) | 0.239998 (m=34, d=130) | 0.239998 (m=34, d=130) | queries just above: 53
+    k=1 q= 16: 0.238685 (m=65, d=248) | 0.238685 (m=65, d=248) | 0.238685 (m=65, d=248) | 0.238685 (m=65, d=248) | queries just above: 53
+    k=1 q= 32: 0.238001 (m=126, d=479) | 0.238001 (m=126, d=479) | 0.238001 (m=126, d=479) | 0.238001 (m=126, d=479) | queries just above: 53
+    k=1 q= 64: 0.237653 (m=249, d=946) | 0.237653 (m=249, d=946) | 0.237653 (m=249, d=946) | 0.237653 (m=249, d=946) | queries just above: 53
+    k=1 q=128: 0.237478 (m=496, d=1884) | 0.237478 (m=496, d=1884) | 0.237477 (m=496, d=1884) | 0.237477 (m=496, d=1884) | queries just above: 53
+    k=2 q=  2: 0.238916 (m=13, d=49) | 0.238916 (m=13, d=49) | 0.238916 (m=13, d=49) | 0.238916 (m=13, d=49) | queries just above: 53
+    k=2 q=  4: 0.235583 (m=24, d=90) | 0.235582 (m=24, d=90) | 0.235582 (m=24, d=90) | 0.235582 (m=24, d=90) | queries just above: 52
+    k=2 q=  8: 0.233789 (m=46, d=172) | 0.233789 (m=46, d=172) | 0.233789 (m=46, d=172) | 0.233789 (m=46, d=172) | queries just above: 52
+    k=2 q= 16: 0.232859 (m=90, d=335) | 0.232859 (m=90, d=335) | 0.232859 (m=90, d=335) | 0.232859 (m=90, d=335) | queries just above: 52
+    k=2 q= 32: 0.232386 (m=178, d=661) | 0.232386 (m=178, d=661) | 0.232386 (m=178, d=661) | 0.232386 (m=178, d=661) | queries just above: 52
+    k=2 q= 64: 0.232148 (m=354, d=1314) | 0.232148 (m=354, d=1314) | 0.232148 (m=354, d=1314) | 0.232148 (m=354, d=1314) | queries just above: 52
+== B. Even certificates at the agreements quoted in note 50, rate 1/2, Delta = n/2 + 5, A = ceil(a n)
+  a=0.7065 (q, m) = (2, 17): certificate at the four sizes: [True, True, True, True], d = [24] (note: 24), margin/n = ['0.0039', '0.0040', '0.0040', '0.0040']
+  a=0.7055 (q, m) = (2, 24): certificate at the four sizes: [True, True, True, True], d = [33] (note: 33), margin/n = ['0.0118', '0.0119', '0.0120', '0.0120']
+  a=0.7050 (q, m) = (4, 26): certificate at the four sizes: [True, True, True, True], d = [36] (note: 36), margin/n = ['0.0998', '0.0999', '0.1000', '0.1000']
+  a=0.7045 (q, m) = (4, 28): certificate at the four sizes: [True, True, True, True], d = [39] (note: 39), margin/n = ['0.1758', '0.1759', '0.1760', '0.1760']
+  a=0.7030 (q, m) = (8, 54): certificate at the four sizes: [True, True, True, True], d = [75] (note: 75), margin/n = ['0.5272', '0.5276', '0.5278', '0.5279']
+  a=0.7009 (q, m) = (128, 983): certificate at the four sizes: [True, True, True, True], d = [1377] (note: 1377), margin/n = ['2.5571', '2.6594', '2.7298', '2.7650']
+  the certificate of smallest d at each agreement (n = 2^25; all q <= 512, smallest m per q), and Corollary 1.4:
+   a=0.7065: smallest d = 24 at (q, m) = (2, 17), d^2 = 576; survivor: W <= 3.0937 n, delta <= 6, d_max = 3167; [q: m, d] = ['2: 17, 24', '4: 23, 32', '8: 40, 56', '16: 74, 104', '32: 144, 203', '64: 284, 401', '128: 564, 796', '256: 1123, 1586', '512: 2242, 3167']
+   a=0.7060: smallest d = 26 at (q, m) = (2, 19), d^2 = 676; survivor: W <= 3.1577 n, delta <= 6, d_max = 3233; [q: m, d] = ['2: 19, 26', '4: 24, 33', '8: 41, 57', '16: 76, 107', '32: 147, 207', '64: 290, 409', '128: 576, 813', '256: 1147, 1619', '512: 2290, 3233']
+   a=0.7055: smallest d = 33 at (q, m) = (2, 24), d^2 = 1089; survivor: W <= 3.2285 n, delta <= 6, d_max = 3305; [q: m, d] = ['2: 24, 33', '4: 25, 35', '8: 42, 59', '16: 78, 110', '32: 151, 213', '64: 297, 419', '128: 589, 831', '256: 1174, 1656', '512: 2343, 3305']
+   a=0.7050: smallest d = 36 at (q, m) = (4, 26), d^2 = 1296; survivor: W <= 3.3061 n, delta <= 6, d_max = 3385; [q: m, d] = ['4: 26, 36', '8: 44, 62', '16: 81, 114', '32: 155, 218', '64: 305, 430', '128: 604, 851', '256: 1203, 1696', '512: 2401, 3385']
+   a=0.7045: smallest d = 39 at (q, m) = (4, 28), d^2 = 1521; survivor: W <= 3.3932 n, delta <= 6, d_max = 3474; [q: m, d] = ['4: 28, 39', '8: 45, 63', '16: 83, 116', '32: 160, 225', '64: 313, 441', '128: 621, 874', '256: 1236, 1741', '512: 2466, 3474']
+   a=0.7040: smallest d = 43 at (q, m) = (4, 31), d^2 = 1849; survivor: W <= 3.4925 n, delta <= 6, d_max = 3576; [q: m, d] = ['4: 31, 43', '8: 47, 66', '16: 86, 121', '32: 165, 232', '64: 323, 454', '128: 640, 901', '256: 1273, 1792', '512: 2540, 3576']
+   a=0.7030: smallest d = 75 at (q, m) = (8, 54), d^2 = 5625; survivor: W <= 3.7416 n, delta <= 7, d_max = 3831; [q: m, d] = ['8: 54, 75', '16: 94, 132', '32: 179, 251', '64: 348, 489', '128: 688, 967', '256: 1367, 1922', '512: 2725, 3831']
+   a=0.7020: smallest d = 153 at (q, m) = (16, 109), d^2 = 23409; survivor: W <= 4.1188 n, delta <= 8, d_max = 4217; [q: m, d] = ['16: 109, 153', '32: 201, 282', '64: 387, 543', '128: 760, 1067', '256: 1508, 2117', '512: 3004, 4217']
+   a=0.7010: smallest d = 689 at (q, m) = (64, 492), d^2 = 474721; survivor: W <= 4.9481 n, delta <= 9, d_max = 5066; [q: m, d] = ['64: 492, 689', '128: 932, 1306', '256: 1825, 2558', '512: 3614, 5066']
+   a=0.7009: smallest d = 1377 at (q, m) = (128, 983), d^2 = 1896129; survivor: W <= 5.1472 n, delta <= 10, d_max = 5270; [q: m, d] = ['128: 983, 1377', '256: 1905, 2670', '512: 3760, 5270']
+  k = 2 at a = 0.70: range of m with a certificate for q = 4, and Corollary 1.4 for a b = 2 survivor
+   q=4: m in [46, 59], d at m=46: 64
+   survivor b=2: W <= 5.5604 n, delta <= 11, d_max = 5693
+== C. Note 48: closed forms, B = 1, thresholds, explicit certificates
+  N(B, Z) closed form of note 48 (Z >= (B-1)Delta): mismatches 0
+  R(m, B) closed form for m >= 2B - 1, B <= 7, m < 60: mismatches 0
+  B = 1: certificates (m, 1), m < 80, with A^2 <= n*Delta, n in {16, 32, 64, 128}, every Delta < n: 0
+   n=2^25: floor(sqrt(n Delta)) = 23726569; smallest A with a certificate (m, 1), m <= 3000: sqrt + 3 (m = 2249)
+   n=2^26: floor(sqrt(n Delta)) = 47453136; smallest A with a certificate (m, 1), m <= 3000: sqrt + 3 (m = 2804)
+   n=2^27: floor(sqrt(n Delta)) = 94906269; smallest A with a certificate (m, 1), m <= 3000: sqrt + 5 (m = 2932)
+   n=2^28: floor(sqrt(n Delta)) = 189812534; smallest A with a certificate (m, 1), m <= 3000: sqrt + 11 (m = 2862)
+  thresholds a^(B): smallest A/n with a certificate (m, B), m <= 400
+   B=2: 0.704434 (m=21) | 0.704434 (m=21) | 0.704434 (m=21) | 0.704434 (m=21); queries just above: 214
+   B=3: 0.701755 (m=19) | 0.701754 (m=19) | 0.701754 (m=19) | 0.701754 (m=19); queries just above: 212
+   B=4: 0.699830 (m=21) | 0.699830 (m=21) | 0.699830 (m=21) | 0.699830 (m=21); queries just above: 210
+   B=5: 0.698413 (m=24) | 0.698413 (m=24) | 0.698413 (m=24) | 0.698413 (m=24); queries just above: 209
+   B=6: 0.697355 (m=27) | 0.697355 (m=27) | 0.697355 (m=27) | 0.697355 (m=27); queries just above: 208
+  explicit certificates of note 48 (n = 2^25): a, A, (m, B), N, nR, B_jet, range of m
+   a=0.7050 A=23655875 (14, 2): N=9331149501 nR=9328132096 ok=True B_jet=19, m in [14, 35] (contiguous: True)
+   a=0.7055 A=23672652 (13, 2): N=8028264552 nR=8019509248 ok=True B_jet=18, m in [13, 52] (contiguous: True)
+   a=0.7060 A=23689429 (12, 2): N=6816782157 nR=6811549696 ok=True B_jet=16, m in [12, 82] (contiguous: True)
+   a=0.7065 A=23706207 (11, 2): N=5711550126 nR=5704253440 ok=True B_jet=15, m in [11, 160] (contiguous: True)
+   a=0.7020 A=23555212 (17, 3): N=17584531260 nR=17582522368 ok=True B_jet=23, m in [17, 24] (contiguous: True)
+   a=0.7030 A=23588766 (14, 3): N=11754382500 nR=11744051200 ok=True B_jet=19, m in [14, 37] (contiguous: True)
+   n=2^26: (14,2) at 0.705: True; (11,2) at 0.7065: True; B=2 at 0.704: False; B=2 at 0.7045: m in (18, 23)
+   n=2^27: (14,2) at 0.705: True; (11,2) at 0.7065: True; B=2 at 0.704: False; B=2 at 0.7045: m in (18, 23)
+   n=2^28: (14,2) at 0.705: True; (11,2) at 0.7065: True; B=2 at 0.704: False; B=2 at 0.7045: m in (18, 23)
+== D. Theorem 8'' of note 48: the constants, with an independent implementation of the uniform Lemma C checks
+  a=0.7065 n=2^25: B_jet=15, floor((960A-1)/Delta)=1356, C=20340; b=1 (m,B)=(41,1): side True, convex True, case I all profiles True, case II total contact<=2n True (concave True); b=2 (m,B)=(43,2): side True, convex True, case I all profiles True, case II total contact<=2n True (concave True);
+  a=0.7065 n=2^26: B_jet=15, floor((960A-1)/Delta)=1356, C=20340; b=1 (m,B)=(41,1): side True, convex True, case I all profiles True, case II total contact<=2n True (concave True); b=2 (m,B)=(43,2): side True, convex True, case I all profiles True, case II total contact<=2n True (concave True);
+  a=0.7065 n=2^27: B_jet=15, floor((960A-1)/Delta)=1356, C=20340; b=1 (m,B)=(41,1): side True, convex True, case I all profiles True, case II total contact<=2n True (concave True); b=2 (m,B)=(43,2): side True, convex True, case I all profiles True, case II total contact<=2n True (concave True);
+  a=0.7065 n=2^28: B_jet=15, floor((960A-1)/Delta)=1356, C=20340; b=1 (m,B)=(41,1): side True, convex True, case I all profiles True, case II total contact<=2n True (concave True); b=2 (m,B)=(43,2): side True, convex True, case I all profiles True, case II total contact<=2n True (concave True);
+  a=0.7050 n=2^25: B_jet=19, floor((960A-1)/Delta)=1353, C=25707; b=1 (m,B)=(51,1): side True, convex True, case I all profiles True, case II total contact<=2n True (concave True); b=2 (m,B)=(54,2): side True, convex True, case I all profiles True, case II total contact<=2n True (concave True);
+  a=0.7050 n=2^26: B_jet=19, floor((960A-1)/Delta)=1353, C=25707; b=1 (m,B)=(51,1): side True, convex True, case I all profiles True, case II total contact<=2n True (concave True); b=2 (m,B)=(54,2): side True, convex True, case I all profiles True, case II total contact<=2n True (concave True);
+  a=0.7050 n=2^27: B_jet=19, floor((960A-1)/Delta)=1353, C=25707; b=1 (m,B)=(51,1): side True, convex True, case I all profiles True, case II total contact<=2n True (concave True); b=2 (m,B)=(54,2): side True, convex True, case I all profiles True, case II total contact<=2n True (concave True);
+  a=0.7050 n=2^28: B_jet=19, floor((960A-1)/Delta)=1353, C=25707; b=1 (m,B)=(51,1): side True, convex True, case I all profiles True, case II total contact<=2n True (concave True); b=2 (m,B)=(54,2): side True, convex True, case I all profiles True, case II total contact<=2n True (concave True);
+== E. Thresholds of Theorem 1.3 against the known large lists (n = 2^28 unless said)
+  rate 1/2: thresholds q=2: 0.705357, q=8: 0.702157, q=128: 0.700839; a_1 = 0.689898; Johnson 0.707107
+  rate 1/4: thresholds q=2: 0.496622, q=8: 0.490556, q=128: 0.488108; a_1 = 0.468792; Johnson 0.500000
+  rate 1/8: thresholds q=2: 0.349695, q=8: 0.342822, q=128: 0.340085; a_1 = 0.319059; Johnson 0.353553
+  rate 1/16: thresholds q=2: 0.246371, q=8: 0.239998, q=128: 0.237477; a_1 = 0.218108; Johnson 0.250000
+  rate 1/2: known families at 0.6250 (5n/8), 0.5625 (9n/16), padding below 0.6875: all below 0.7008
+  rate 1/4: flats at 1/2 - 1/n (n - 1 members), slack-1 flats at 1/2 (2(n-1)), Gold level t at 1/2 - 2^-(t+1) - 1/n: ['t=4: 0.468750', 't=5: 0.484375', 't=6: 0.492188', 't=7: 0.496094', 't=8: 0.498047', 't=9: 0.499023']
+  rate 1/16: F_4-hyperplanes at 1/4 - 1/n ((n-1)/3 members); Proposition 6.4 of note 43 at 1/4 - 3/(4 sqrt n): n=2^12: 0.238281, n=2^16: 0.247070, n=2^20: 0.249268, n=2^28: 0.249954
+   rate 1/4, D = F_(2^14), Gold level t=5, A/n = 0.484314: first even certificate (q, m, d) = None; Gold count (formula quoted in note 43): about 2^43; d^2 = None
+   rate 1/4, D = F_(2^14), Gold level t=6, A/n = 0.492126: first even certificate (q, m, d) = (8, 34, 66); Gold count (formula quoted in note 43): about 2^37; d^2 = 4356
+   rate 1/4, D = F_(2^14), Gold level t=7, A/n = 0.496033: first even certificate (q, m, d) = (4, 17, 33); Gold count (formula quoted in note 43): about 2^26; d^2 = 1089
+   rate 1/4, D = F_(2^14), Gold level t=8, A/n = 0.497986: first even certificate (q, m, d) = (2, 12, 23); Gold count (formula quoted in note 43): none (t > N/2); d^2 = 529
+   rate 1/4, D = F_(2^20), Gold level t=5, A/n = 0.484374: first even certificate (q, m, d) = None; Gold count (formula quoted in note 43): about 2^79; d^2 = None
+   rate 1/4, D = F_(2^20), Gold level t=6, A/n = 0.492187: first even certificate (q, m, d) = (8, 34, 66); Gold count (formula quoted in note 43): about 2^79; d^2 = 4356
+   rate 1/4, D = F_(2^20), Gold level t=7, A/n = 0.496093: first even certificate (q, m, d) = (4, 17, 33); Gold count (formula quoted in note 43): about 2^75; d^2 = 1089
+   rate 1/4, D = F_(2^20), Gold level t=8, A/n = 0.498046: first even certificate (q, m, d) = (2, 12, 23); Gold count (formula quoted in note 43): about 2^67; d^2 = 529
+   rate 1/4, D = F_(2^28), Gold level t=5, A/n = 0.484375: first even certificate (q, m, d) = None; Gold count (formula quoted in note 43): about 2^127; d^2 = None
+   rate 1/4, D = F_(2^28), Gold level t=6, A/n = 0.492187: first even certificate (q, m, d) = (8, 34, 66); Gold count (formula quoted in note 43): about 2^135; d^2 = 4356
+   rate 1/4, D = F_(2^28), Gold level t=7, A/n = 0.496094: first even certificate (q, m, d) = (4, 17, 33); Gold count (formula quoted in note 43): about 2^139; d^2 = 1089
+   rate 1/4, D = F_(2^28), Gold level t=8, A/n = 0.498047: first even certificate (q, m, d) = (2, 12, 23); Gold count (formula quoted in note 43): about 2^139; d^2 = 529
+   n=2^12, Delta=n/16-1, A=n/4-3sqrt(n)/4=976: first even certificate (q, m, d) = (16, 60, 229); family size 86016, d^2 = 52441
+   n=2^16, Delta=n/16-1, A=n/4-3sqrt(n)/4=16192: first even certificate (q, m, d) = (2, 10, 39); family size 5570560, d^2 = 1521
+   n=2^20, Delta=n/16-1, A=n/4-3sqrt(n)/4=261376: first even certificate (q, m, d) = (2, 7, 27); family size 357564416, d^2 = 729
+   n=2^24, Delta=n/16-1, A=n/4-3sqrt(n)/4=4191232: first even certificate (q, m, d) = (2, 7, 27); family size 22900899840, d^2 = 729
+   n=2^28, Delta=n/16-1, A=n/4-3sqrt(n)/4=67096576: first even certificate (q, m, d) = (2, 7, 27); family size 1465926025216, d^2 = 729
+
+### 52_toy.py (GF(2^8), GF(2^10), GF(2^12); linear algebra by 52_even.c, lists by 52_list.c)
+== rank: local rank at three arbitrary points of GF(2^8) x GF(2^8), support {1, Y1^q} with total degree < m + q
+  q=2: (m, local ranks, formula) [(3, [11, 11, 11], 11), (4, [17, 17, 17], 17), (5, [25, 25, 25], 25), (8, [61, 61, 61], 61), (13, [161, 161, 161], 161), (20, [385, 385, 385], 385)]
+  q=4: (m, local ranks, formula) [(7, [50, 50, 50], 50), (8, [62, 62, 62], 62), (9, [76, 76, 76], 76), (14, [176, 176, 176], 176), (20, [362, 362, 362], 362)]
+  q=8: (m, local ranks, formula) [(15, [212, 212, 212], 212), (16, [236, 236, 236], 236), (17, [262, 262, 262], 262), (20, [352, 352, 352], 352)]
+  q=16: (m, local ranks, formula) [(31, [872, 872], 872)]
+  full support: (m, B, local ranks, R(m, B)) [(5, 2, [35, 35, 35], 35), (8, 2, [89, 89, 89], 89), (11, 2, [170, 170, 170], 170), (14, 2, [278, 278, 278], 278), (9, 3, [140, 140, 140], 140), (12, 4, [300, 300, 300], 300), (18, 5, [811, 811, 811], 811)]
+== flat: rate 1/4, word x^(n/2-1) on a subspace, degree < n/4; all n-1 flats lie on the flat cubic (b = 1)
+  n=16 (span(1..x^3) in GF(2^8)), Delta=3: exhaustive list at agreement >= 7: 15 members, 15 of them sections of the flat cubic
+  n=16: unknowns 237, rank 231, nullity 6, local ranks [17, 17, 17] | (q, m, A) = (2, 4, 7), d = 9, delta*d = 27, members known 15 of which 15 on dE (divisibility forced: False; non-existence forced: False) | Lemma 0: random R kills 15 of 15 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 6 of 6 | monomials available to lambda: 15
+  n=16: unknowns 377, rank 362, nullity 15, local ranks [25, 25, 25] | (q, m, A) = (2, 5, 7), d = 11, delta*d = 33, members known 15 of which 15 on dE (divisibility forced: False; non-existence forced: False) | Lemma 0: random R kills 15 of 15 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 15 of 15 | monomials available to lambda: 45
+  n=16: unknowns 549, rank 523, nullity 26, local ranks [35, 35, 35] | (q, m, A) = (2, 6, 7), d = 13, delta*d = 39, members known 15 of which 15 on dE (divisibility forced: False; non-existence forced: False) | Lemma 0: random R kills 15 of 15 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 26 of 26 | monomials available to lambda: 92
+  n=16: unknowns 896, rank 876, nullity 20, local ranks [62, 62, 62] | (q, m, A) = (4, 8, 7), d = 18, delta*d = 54, members known 15 of which 15 on dE (divisibility forced: False; non-existence forced: False) | Lemma 0: random R kills 15 of 15 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 20 of 20 | monomials available to lambda: 51
+  n=32 (span(1..x^4) in GF(2^8)), Delta=7: exhaustive list at agreement >= 15: 31 members, 31 of them sections of the flat cubic
+  n=32: unknowns 463, rank 445, nullity 18, local ranks [17, 17, 17] | (q, m, A) = (2, 4, 15), d = 8, delta*d = 24, members known 31 of which 31 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 31 of 31 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 18 of 18 | monomials available to lambda: 27
+  n=32: unknowns 737, rank 698, nullity 39, local ranks [25, 25, 25] | (q, m, A) = (2, 5, 15), d = 10, delta*d = 30, members known 31 of which 31 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 31 of 31 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 39 of 39 | monomials available to lambda: 85
+  n=32: unknowns 1075, rank 1014, nullity 61, local ranks [35, 35, 35] | (q, m, A) = (2, 6, 15), d = 12, delta*d = 36, members known 31 of which 31 on dE (divisibility forced: False; non-existence forced: False) | Lemma 0: random R kills 31 of 31 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 61 of 61 | monomials available to lambda: 175
+  n=32: unknowns 1740, rank 1680, nullity 60, local ranks [62, 62, 62] | (q, m, A) = (4, 8, 15), d = 17, delta*d = 51, members known 31 of which 31 on dE (divisibility forced: False; non-existence forced: False) | Lemma 0: random R kills 31 of 31 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 60 of 60 | monomials available to lambda: 90
+  n=32 (span(1..x^4) in GF(2^8)), Delta=7: exhaustive list at agreement >= 13: 31 members, 31 of them sections of the flat cubic
+  n=32: unknowns 343, rank 339, nullity 4, local ranks [17, 17, 17] | (q, m, A) = (2, 4, 13), d = 7, delta*d = 21, members known 31 of which 31 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 31 of 31 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 4 of 4 | monomials available to lambda: 9
+  n=32: unknowns 547, rank 544, nullity 3, local ranks [25, 25, 25] | (q, m, A) = (2, 5, 13), d = 9, delta*d = 27, members known 31 of which 31 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 31 of 31 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 3 of 3 | monomials available to lambda: 42
+  n=32: unknowns 799, rank 799, nullity 0, local ranks [35, 35, 35] | (q, m, A) = (2, 6, 13), d = 11, delta*d = 33, members known 31 of which 31 on dE (divisibility forced: False; non-existence forced: False) | no even explainer
+  n=32: unknowns 1276, rank 1266, nullity 10, local ranks [62, 62, 62] | (q, m, A) = (4, 8, 13), d = 14, delta*d = 42, members known 31 of which 31 on dE (divisibility forced: False; non-existence forced: False) | Lemma 0: random R kills 31 of 31 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 10 of 10 | monomials available to lambda: 27
+  oracle validation, n=32 (span(1..x^4) in GF(2^8)): list by agreement [(10, 627), (11, 20), (15, 31)], sections of the cubic by agreement [(11, 18), (15, 31)]
+  n=64 (random subspace of GF(2^8)): 63 flats verified (degree <= 15, agreement >= 31), all sections of the cubic: True
+  n=64: unknowns 585, rank 581, nullity 4, local ranks [17, 17, 17] | (q, m, A) = (2, 4, 25), d = 6, delta*d = 18, members known 63 of which 63 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 63 of 63 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 4 of 4 | monomials available to lambda: 8
+  n=64: unknowns 919, rank 877, nullity 42, local ranks [17, 17, 17] | (q, m, A) = (2, 4, 31), d = 8, delta*d = 24, members known 63 of which 63 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 63 of 63 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 42 of 42 | monomials available to lambda: 51
+  n=64: unknowns 935, rank 935, nullity 0, local ranks [25, 25, 25] | (q, m, A) = (2, 5, 25), d = 8, delta*d = 24, members known 63 of which 63 on dE (divisibility forced: True; non-existence forced: False) | no even explainer
+  n=64: unknowns 1605, rank 1596, nullity 9, local ranks [35, 35, 35] | (q, m, A) = (2, 6, 27), d = 10, delta*d = 30, members known 63 of which 63 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 63 of 63 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 9 of 9 | monomials available to lambda: 200
+== gold: rate 1/4, word x^(n/2-1) on D = F_(2^N) (note 43, Section 4.2)
+  N=5: exhaustive list at agreement >= 11: 682 members, by agreement [(11, 651), (15, 31)]; sections of the flat cubic: 217; not sections: 465, of which 465 agree with the word at 0 (so have 10 agreements off 0)
+  N=5 A=11: unknowns 241, rank 241, nullity 0, local ranks [17, 17, 17] | (q, m, A) = (2, 4, 11), d = 6, delta*d = 18, members known 682 of which 217 on dE (divisibility forced: True; non-existence forced: True) | no even explainer
+  N=5 A=11: unknowns 385, rank 385, nullity 0, local ranks [25, 25, 25] | (q, m, A) = (2, 5, 11), d = 7, delta*d = 21, members known 682 of which 217 on dE (divisibility forced: True; non-existence forced: True) | no even explainer
+  N=5 A=11: unknowns 565, rank 565, nullity 0, local ranks [35, 35, 35] | (q, m, A) = (2, 6, 11), d = 9, delta*d = 27, members known 682 of which 217 on dE (divisibility forced: True; non-existence forced: True) | no even explainer
+  N=5 A=11: unknowns 777, rank 777, nullity 0, local ranks [47, 47, 47] | (q, m, A) = (2, 7, 11), d = 10, delta*d = 30, members known 682 of which 217 on dE (divisibility forced: True; non-existence forced: True) | no even explainer
+  N=5 A=11: unknowns 1027, rank 1027, nullity 0, local ranks [61, 61, 61] | (q, m, A) = (2, 8, 11), d = 12, delta*d = 36, members known 682 of which 217 on dE (divisibility forced: True; non-existence forced: True) | no even explainer
+  N=5 A=11: unknowns 886, rank 886, nullity 0, local ranks [62, 62, 62] | (q, m, A) = (4, 8, 11), d = 12, delta*d = 36, members known 682 of which 217 on dE (divisibility forced: True; non-existence forced: True) | no even explainer
+  N=5 A=13: unknowns 343, rank 339, nullity 4, local ranks [17, 17, 17] | (q, m, A) = (2, 4, 13), d = 7, delta*d = 21, members known 31 of which 31 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 31 of 31 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 4 of 4 | monomials available to lambda: 9
+  N=5 A=13: unknowns 799, rank 799, nullity 0, local ranks [35, 35, 35] | (q, m, A) = (2, 6, 13), d = 11, delta*d = 33, members known 31 of which 31 on dE (divisibility forced: False; non-existence forced: False) | no even explainer
+  N=6: 63 flats (agreement 31) and 196 further members constructed and verified (degree <= 15, agreements [27, 28]); sections of the flat cubic: 259 of 259
+  N=6: unknowns 585, rank 581, nullity 4, local ranks [17, 17, 17] | (q, m, A) = (2, 4, 25), d = 6, delta*d = 18, members known 259 of which 259 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 259 of 259 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 4 of 4 | monomials available to lambda: 8
+  N=6: unknowns 2160, rank 2152, nullity 8, local ranks [62, 62, 62] | (q, m, A) = (4, 8, 25), d = 13, delta*d = 39, members known 259 of which 259 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 259 of 259 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 8 of 8 | monomials available to lambda: 17
+  N=6: unknowns 1605, rank 1596, nullity 9, local ranks [35, 35, 35] | (q, m, A) = (2, 6, 27), d = 10, delta*d = 30, members known 259 of which 259 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 259 of 259 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 9 of 9 | monomials available to lambda: 200
+  N=6: unknowns 2556, rank 2522, nullity 34, local ranks [62, 62, 62] | (q, m, A) = (4, 8, 27), d = 14, delta*d = 42, members known 259 of which 259 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 259 of 259 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 34 of 34 | monomials available to lambda: 51
+  N=7: 127 flats (agreement 63) and 3556 further members constructed and verified (degree <= 31, agreements [55]); sections of the flat cubic: 3683 of 3683
+  N=7: unknowns 1375, rank 1347, nullity 28, local ranks [17, 17, 17] | (q, m, A) = (2, 4, 55), d = 7, delta*d = 21, members known 3683 of which 3683 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 3683 of 3683 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 28 of 28 | monomials available to lambda: 33
+  N=7: unknowns 3221, rank 3188, nullity 33, local ranks [35, 35, 35] | (q, m, A) = (2, 6, 55), d = 10, delta*d = 30, members known 3683 of which 3683 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 3683 of 3683 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 33 of 33 | monomials available to lambda: 400
+== slack: rate 1/4 with the analysis degree, word x^(n/2), degree <= n/4, agreement n/2 = sqrt(n Delta) (note 41, Section 4.4)
+  n=32: exhaustive list at agreement >= 16: 62 members; the 62 affine flats are among them: True
+  n=32: 62 affine flats verified: True; sections of the cubic E': 62
+  n=32: unknowns 456, rank 432, nullity 24, local ranks [17, 17, 17] | (q, m, A) = (2, 4, 16), d = 7, delta*d = 21, members known 62 of which 62 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 62 of 62 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 24 of 24 | monomials available to lambda: 24
+  n=32: unknowns 728, rank 680, nullity 48, local ranks [25, 25, 25] | (q, m, A) = (2, 5, 16), d = 9, delta*d = 27, members known 62 of which 62 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 62 of 62 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 48 of 48 | monomials available to lambda: 80
+  n=32: unknowns 1064, rank 992, nullity 72, local ranks [35, 35, 35] | (q, m, A) = (2, 6, 16), d = 11, delta*d = 33, members known 62 of which 62 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 62 of 62 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 72 of 72 | monomials available to lambda: 168
+  n=32: unknowns 1712, rank 1632, nullity 80, local ranks [62, 62, 62] | (q, m, A) = (4, 8, 16), d = 15, delta*d = 45, members known 62 of which 62 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 62 of 62 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 80 of 80 | monomials available to lambda: 80
+  n=64: 126 affine flats verified: True; sections of the cubic E': 126
+  n=64: unknowns 912, rank 864, nullity 48, local ranks [17, 17, 17] | (q, m, A) = (2, 4, 32), d = 7, delta*d = 21, members known 126 of which 126 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 126 of 126 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 48 of 48 | monomials available to lambda: 48
+  n=64: unknowns 1456, rank 1360, nullity 96, local ranks [25, 25, 25] | (q, m, A) = (2, 5, 32), d = 9, delta*d = 27, members known 126 of which 126 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 126 of 126 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 96 of 96 | monomials available to lambda: 160
+  n=64: unknowns 2128, rank 1984, nullity 144, local ranks [35, 35, 35] | (q, m, A) = (2, 6, 32), d = 11, delta*d = 33, members known 126 of which 126 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 126 of 126 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 144 of 144 | monomials available to lambda: 336
+== r16: rate 1/16, D = F_256, word x^(n/4) = x^64, degree < 16, agreement 52 (note 43, Proposition 6.4)
+  1280 distinct polynomials of degree <= 15 with agreement >= 52 constructed and verified; sections of dE, E = Y^5 + XY + X^65: 1280
+  n=256: unknowns 2693, rank 2551, nullity 142, local ranks [17, 17, 17] | (q, m, A) = (2, 4, 52), d = 13, delta*d = 65, members known 1280 of which 1280 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 1280 of 1280 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 142 of 142 | monomials available to lambda: 142
+== f4: rate 1/16, D = F_n as an F_4-space, word x^(n/4-1), degree < n/16: the (n-1)/3 F_4-hyperplanes lie on the quintic E_4 = X^3 Y^5 + Y + X^(n/4-1) (note 43, Proposition 6.3)
+  n=64: 21 F_4-hyperplanes verified (degree <= 3, agreement >= 15); sections of dE_4: 21
+  n=64: exhaustive list at agreement >= 15: [(15, 21)]; sections of dE_4: 21 of 21
+  n=64: exhaustive list at agreement >= 11: [(15, 21)]; sections of dE_4: 21 of 21
+  n=64: unknowns 1143, rank 1045, nullity 98, local ranks [17, 17, 17] | (q, m, A) = (2, 4, 15), d = 19, delta*d = 95, members known 21 of which 21 on dE (divisibility forced: False; non-existence forced: False) | Lemma 0: random R kills 21 of 21 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 98 of 98 | monomials available to lambda: 108
+  n=64: unknowns 605, rank 599, nullity 6, local ranks [17, 17, 17] | (q, m, A) = (2, 4, 11), d = 14, delta*d = 70, members known 21 of which 21 on dE (divisibility forced: False; non-existence forced: False) | Lemma 0: random R kills 21 of 21 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 6 of 6 | monomials available to lambda: 15
+  n=256: 85 F_4-hyperplanes verified (degree <= 15, agreement >= 63); sections of dE_4: 85
+  n=256: unknowns 3999, rank 3652, nullity 347, local ranks [17, 17, 17] | (q, m, A) = (2, 4, 63), d = 16, delta*d = 80, members known 85 of which 85 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 85 of 85 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 347 of 347 | monomials available to lambda: 357
+  n=256: unknowns 1645, rank 1641, nullity 4, local ranks [17, 17, 17] | (q, m, A) = (2, 4, 41), d = 10, delta*d = 50, members known 85 of which 85 on dE (divisibility forced: True; non-existence forced: False) | Lemma 0: random R kills 85 of 85 members (control polynomial killed: 0) | basis vectors divisible by (dE)^q: 4 of 4 | monomials available to lambda: 8
+== pencil: rate 1/8, word x^(n/4-1) on a subspace, degree < n/8: the codimension 2 subspaces lie on the pencil dE_theta of note 43 (Q8), not on one component
+  n=64: 651 members (codimension 2 subspaces) verified; number of distinct theta_2 (the member of the pencil that carries the flat): 239, largest class 6
+  (q, m) = (2, 4), d = 8, d^2 = 64: unknowns 463, rank 463, nullity 0, local ranks [17, 17, 17] | consistent with Theorem 1.3: True
+  (q, m) = (2, 5), d = 10, d^2 = 100: unknowns 737, rank 737, nullity 0, local ranks [25, 25, 25] | consistent with Theorem 1.3: True
+  (q, m) = (2, 6), d = 12, d^2 = 144: unknowns 1075, rank 1075, nullity 0, local ranks [35, 35, 35] | consistent with Theorem 1.3: True
+  (q, m) = (2, 8), d = 17, d^2 = 289: unknowns 1945, rank 1945, nullity 0, local ranks [61, 61, 61] | consistent with Theorem 1.3: True
+  (q, m) = (4, 8), d = 17, d^2 = 289: unknowns 1740, rank 1740, nullity 0, local ranks [62, 62, 62] | consistent with Theorem 1.3: True
+== half: rate 1/2 above the Johnson radius (the only place where toy certificates exist); list by exhaustive enumeration
+  n=16 Delta=7 A=12 random (q, m) = (2, 4): unknowns 289, rank 252, nullity 37, local ranks [17, 17, 17] | count 289 - n*rho 272 = 17 | list 0, d^2 = 36 | Lemma 0: 0 of 0 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 0; multiplicities of the factors Y0 - P, P in the list: [] (squares account for degree 0)
+  n=16 Delta=7 A=12 random (q, m) = (2, 6): unknowns 677, rank 560, nullity 117, local ranks [35, 35, 35] | count 677 - n*rho 560 = 117 | list 0, d^2 = 100 | Lemma 0: 0 of 0 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 0; multiplicities of the factors Y0 - P, P in the list: [] (squares account for degree 0)
+  n=16 Delta=7 A=12 random (q, m) = (4, 8): unknowns 1072, rank 923, nullity 149, local ranks [62, 62, 62] | count 1072 - n*rho 992 = 80 | list 0, d^2 = 169 | Lemma 0: 0 of 0 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 0; multiplicities of the factors Y0 - P, P in the list: [] (squares account for degree 0)
+  n=16 Delta=7 A=12 planted (q, m) = (2, 4): unknowns 289, rank 252, nullity 37, local ranks [17, 17, 17] | count 289 - n*rho 272 = 17 | list 1, d^2 = 36 | Lemma 0: 1 of 1 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 0; multiplicities of the factors Y0 - P, P in the list: [0] (squares account for degree 0)
+  n=16 Delta=7 A=12 planted (q, m) = (2, 6): unknowns 677, rank 560, nullity 117, local ranks [35, 35, 35] | count 677 - n*rho 560 = 117 | list 1, d^2 = 100 | Lemma 0: 1 of 1 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 0; multiplicities of the factors Y0 - P, P in the list: [0] (squares account for degree 0)
+  n=16 Delta=7 A=12 planted (q, m) = (4, 8): unknowns 1072, rank 923, nullity 149, local ranks [62, 62, 62] | count 1072 - n*rho 992 = 80 | list 1, d^2 = 169 | Lemma 0: 1 of 1 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 0; multiplicities of the factors Y0 - P, P in the list: [0] (squares account for degree 0)
+  n=16 Delta=7 A=12 two (q, m) = (2, 4): unknowns 289, rank 252, nullity 37, local ranks [17, 17, 17] | count 289 - n*rho 272 = 17 | list 1, d^2 = 36 | Lemma 0: 1 of 1 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 0; multiplicities of the factors Y0 - P, P in the list: [0] (squares account for degree 0)
+  n=16 Delta=7 A=12 two (q, m) = (2, 6): unknowns 677, rank 560, nullity 117, local ranks [35, 35, 35] | count 677 - n*rho 560 = 117 | list 1, d^2 = 100 | Lemma 0: 1 of 1 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 0; multiplicities of the factors Y0 - P, P in the list: [0] (squares account for degree 0)
+  n=16 Delta=7 A=12 two (q, m) = (4, 8): unknowns 1072, rank 923, nullity 149, local ranks [62, 62, 62] | count 1072 - n*rho 992 = 80 | list 1, d^2 = 169 | Lemma 0: 1 of 1 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 0; multiplicities of the factors Y0 - P, P in the list: [0] (squares account for degree 0)
+  n=16 Delta=7 A=11 random (q, m) = (2, 6): unknowns 565, rank 556, nullity 9, local ranks [35, 35, 35] | count 565 - n*rho 560 = 5 | list 0, d^2 = 81 | Lemma 0: 0 of 0 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 0; multiplicities of the factors Y0 - P, P in the list: [] (squares account for degree 0)
+  n=16 Delta=7 A=11 random (q, m) = (2, 9): unknowns 1309, rank 1232, nullity 77, local ranks [77, 77, 77] | count 1309 - n*rho 1232 = 77 | list 0, d^2 = 196 | Lemma 0: 0 of 0 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 0; multiplicities of the factors Y0 - P, P in the list: [] (squares account for degree 0)
+  n=16 Delta=7 A=11 planted (q, m) = (2, 6): unknowns 565, rank 556, nullity 9, local ranks [35, 35, 35] | count 565 - n*rho 560 = 5 | list 1, d^2 = 81 | Lemma 0: 1 of 1 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 0; multiplicities of the factors Y0 - P, P in the list: [1] (squares account for degree 0)
+  n=16 Delta=7 A=11 planted (q, m) = (2, 9): unknowns 1309, rank 1232, nullity 77, local ranks [77, 77, 77] | count 1309 - n*rho 1232 = 77 | list 1, d^2 = 196 | Lemma 0: 1 of 1 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 0; multiplicities of the factors Y0 - P, P in the list: [0] (squares account for degree 0)
+  n=16 Delta=7 A=11 two (q, m) = (2, 6): unknowns 565, rank 549, nullity 16, local ranks [35, 35, 35] | count 565 - n*rho 560 = 5 | list 2, d^2 = 81 | Lemma 0: 2 of 2 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 2; multiplicities of the factors Y0 - P, P in the list: [2, 1] (squares account for degree 2)
+  n=16 Delta=7 A=11 two (q, m) = (2, 9): unknowns 1309, rank 1219, nullity 90, local ranks [77, 77, 77] | count 1309 - n*rho 1232 = 77 | list 2, d^2 = 196 | Lemma 0: 2 of 2 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 0; multiplicities of the factors Y0 - P, P in the list: [0, 0] (squares account for degree 0)
+  n=32 Delta=15 A=23 random (q, m) = (2, 6): unknowns 1149, rank 1116, nullity 33, local ranks [35, 35, 35] | count 1149 - n*rho 1120 = 29 | list 0, d^2 = 81 | Lemma 0: 0 of 0 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 0; multiplicities of the factors Y0 - P, P in the list: [] (squares account for degree 0)
+  n=32 Delta=15 A=23 planted (q, m) = (2, 6): unknowns 1149, rank 1116, nullity 33, local ranks [35, 35, 35] | count 1149 - n*rho 1120 = 29 | list 1, d^2 = 81 | Lemma 0: 1 of 1 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 0; multiplicities of the factors Y0 - P, P in the list: [1] (squares account for degree 0)
+  n=32 Delta=15 A=23 two (q, m) = (2, 6): unknowns 1149, rank 1110, nullity 39, local ranks [35, 35, 35] | count 1149 - n*rho 1120 = 29 | list 2, d^2 = 81 | Lemma 0: 2 of 2 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 0; multiplicities of the factors Y0 - P, P in the list: [1, 1] (squares account for degree 0)
+== half: rate 1/2 above the Johnson radius (the only place where toy certificates exist); list by exhaustive enumeration
+  n=32 Delta=15 A=22 random (q, m) = (2, 12): unknowns 4401, rank 4384, nullity 17, local ranks [137, 137, 137] | count 4401 - n*rho 4384 = 17 | list 0, d^2 = 289 | Lemma 0: 0 of 0 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 0; multiplicities of the factors Y0 - P, P in the list: [] (squares account for degree 0)
+  n=32 Delta=15 A=22 planted (q, m) = (2, 12): unknowns 4401, rank 4384, nullity 17, local ranks [137, 137, 137] | count 4401 - n*rho 4384 = 17 | list 1, d^2 = 289 | Lemma 0: 1 of 1 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 0; multiplicities of the factors Y0 - P, P in the list: [0] (squares account for degree 0)
+  n=32 Delta=15 A=22 two (q, m) = (2, 12): unknowns 4401, rank 4278, nullity 123, local ranks [137, 137, 137] | count 4401 - n*rho 4384 = 17 | list 2, d^2 = 289 | Lemma 0: 2 of 2 killed, control 0 | degree of gcd(R_(0), R_(1)) on random lines: 2; multiplicities of the factors Y0 - P, P in the list: [2, 0] (squares account for degree 2)

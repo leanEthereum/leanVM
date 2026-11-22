@@ -1,0 +1,9 @@
+r=1 J=0 v=2 truncation j=0: Kraft sum with the note's multipliers 1.000000000000, with arbitrary multipliers 1.000000000000
+r=1 J=0 v=2 truncation j=1: Kraft sum with the note's multipliers 1.000000000000, with arbitrary multipliers 1.000000000000
+r=1 J=1 v=3 truncation j=1: Kraft sum with the note's multipliers 1.000000000000, with arbitrary multipliers 1.000000000000
+r=1 J=1 v=3 truncation j=2: Kraft sum with the note's multipliers 0.999999999999, with arbitrary multipliers 1.000000000000
+r=2 J=0 v=2 truncation j=0: Kraft sum with the note's multipliers 1.000000000000, with arbitrary multipliers 1.000000000000
+r=2 J=0 v=2 truncation j=1: Kraft sum with the note's multipliers 0.999999999999, with arbitrary multipliers 1.000000000000
+r=1 J=0 v=3 truncation j=0: Kraft sum with the note's multipliers 1.000000000000, with arbitrary multipliers 1.000000000000
+r=1 J=0 v=3 truncation j=1: Kraft sum with the note's multipliers 1.000000000000, with arbitrary multipliers 1.000000000000
+r=1 J=0 v=3 truncation j=2: Kraft sum with the note's multipliers 1.000000000000, with arbitrary multipliers 1.000000000000

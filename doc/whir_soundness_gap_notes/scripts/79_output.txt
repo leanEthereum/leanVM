@@ -1,0 +1,70 @@
+== 79_scan (exhaustive, (k,n)=(4,8), three members)
+(k,n)=(4,8) d=0 ptype=n seed=1
+  violation w=8 dim=1 classes: 3 3 2 2 1 1 4 0
+  violation w=8 dim=1 classes: 2 2 3 3 1 1 4 0
+  violation w=8 dim=1 classes: 3 3 1 1 2 2 4 0
+  violation w=8 dim=1 classes: 1 1 3 3 2 2 4 0
+  violation w=8 dim=1 classes: 2 2 1 1 3 3 4 0
+  patterns of weight >= 2k tested: 238570, carrying a list (violations of GS(2)): 48, by weight: 8:48
+(k,n)=(4,8) d=1 ptype=c seed=1 pi0=[7,2,3,4,5,0,1,6]
+  patterns of weight >= 2k tested: 238570, carrying a list (violations of GS(2)): 0
+(k,n)=(4,8) d=1 ptype=x seed=1 pi0=[4,5,6,7,0,1,2,3]
+  patterns of weight >= 2k tested: 238570, carrying a list (violations of GS(2)): 0
+(k,n)=(4,8) d=1 ptype=s seed=1 pi0=[1,0,3,2,5,4,7,6]
+  violation w=8 dim=1 classes: 3 3 2 2 1 1 4 0
+  violation w=8 dim=1 classes: 2 2 3 3 1 1 4 0
+  violation w=8 dim=1 classes: 3 3 1 1 2 2 4 0
+  violation w=8 dim=1 classes: 1 1 3 3 2 2 4 0
+  violation w=8 dim=1 classes: 2 2 1 1 3 3 4 0
+  patterns of weight >= 2k tested: 238570, carrying a list (violations of GS(2)): 48, by weight: 8:48
+(k,n)=(4,8) d=1 ptype=r seed=1 pi0=[0,4,2,6,1,5,3,7]
+  patterns of weight >= 2k tested: 238570, carrying a list (violations of GS(2)): 0
+(k,n)=(4,8) d=1 ptype=a seed=1 pi0=[4,5,0,7,6,1,2,3]
+  patterns of weight >= 2k tested: 238570, carrying a list (violations of GS(2)): 0
+(k,n)=(4,8) d=1 ptype=a seed=2 pi0=[2,5,0,1,3,4,6,7]
+  patterns of weight >= 2k tested: 238570, carrying a list (violations of GS(2)): 0
+(k,n)=(4,8) d=1 ptype=a seed=3 pi0=[1,2,3,7,4,0,5,6]
+  patterns of weight >= 2k tested: 238570, carrying a list (violations of GS(2)): 0
+(k,n)=(4,8) d=1 ptype=a seed=4 pi0=[4,5,7,1,6,3,2,0]
+  patterns of weight >= 2k tested: 238570, carrying a list (violations of GS(2)): 0
+(k,n)=(4,8) d=1 ptype=a seed=5 pi0=[0,6,2,3,7,1,5,4]
+  patterns of weight >= 2k tested: 238570, carrying a list (violations of GS(2)): 0
+(k,n)=(4,8) d=1 ptype=a seed=6 pi0=[2,4,5,1,7,3,6,0]
+  patterns of weight >= 2k tested: 238570, carrying a list (violations of GS(2)): 0
+(k,n)=(4,8) d=1 ptype=a seed=7 pi0=[3,5,0,7,4,2,6,1]
+  patterns of weight >= 2k tested: 238570, carrying a list (violations of GS(2)): 0
+(k,n)=(4,8) d=1 ptype=a seed=8 pi0=[4,2,5,6,3,1,0,7]
+  patterns of weight >= 2k tested: 238570, carrying a list (violations of GS(2)): 0
+(k,n)=(4,8) d=1 ptype=a seed=9 pi0=[7,3,4,1,2,0,5,6]
+  patterns of weight >= 2k tested: 238570, carrying a list (violations of GS(2)): 0
+== 79_xor
+(k,n)=(32,64) blocks N=16 of 4 leaves, k_up=8, m=33 (block shift 8), zeros of B: 3 of which 2 in pairs closed under the mask, dim ker=1
+  members: 35; plain agreement (each): 35.00; V1 with xor partner: min 34, sum 1190 against n + L k = 1152 (GS(L) allows at most n + L k - 1); V1 with a random permutation: max 22, sum 620
+(k,n)=(64,128) blocks N=16 of 8 leaves, k_up=8, m=67 (block shift 8), zeros of B: 7 of which 6 in pairs closed under the mask, dim ker=1
+  members: 35; plain agreement (each): 71.00; V1 with xor partner: min 70, sum 2450 against n + L k = 2304 (GS(L) allows at most n + L k - 1); V1 with a random permutation: max 48, sum 1420
+(k,n)=(64,128) blocks N=32 of 4 leaves, k_up=16, m=67 (block shift 16), zeros of B: 3 of which 2 in pairs closed under the mask, dim ker=1
+  members: 6435; plain agreement (each): 67.00; V1 with xor partner: min 66, sum 424710 against n + L k = 411904 (GS(L) allows at most n + L k - 1); V1 with a random permutation: max 46, sum 229944
+(k,n)=(128,256) blocks N=32 of 8 leaves, k_up=16, m=131 (block shift 16), zeros of B: 7 of which 6 in pairs closed under the mask, dim ker=1
+  members: 6435; plain agreement (each): 135.00; V1 with xor partner: min 134, sum 862290 against n + L k = 823808 (GS(L) allows at most n + L k - 1); V1 with a random permutation: max 82, sum 447876
+== 79_adv
+(k,n)=(8,16): plain lift pattern weight 18 (2k-1 = 15), kernel dim 1, list 1
+  V1, d = 1, cycle through the blocks: interior pattern weight 15 = 2k - 1 + 0, kernel dim 1, list 1
+  V1, d = 1, random n-cycle: interior pattern weight 6, kernel dim 10 (2k - weight = 10), list 1
+(k,n)=(16,32): plain lift pattern weight 38 (2k-1 = 31), kernel dim 1, list 1
+  V1, d = 1, cycle through the blocks: interior pattern weight 35 = 2k - 1 + 4, kernel dim 1, list 1
+  V1, d = 1, random n-cycle: interior pattern weight 20, kernel dim 12 (2k - weight = 12), list 1
+(k,n)=(32,64): plain lift pattern weight 78 (2k-1 = 63), kernel dim 1, list 1
+  V1, d = 1, cycle through the blocks: interior pattern weight 75 = 2k - 1 + 12, kernel dim 1, list 1
+  V1, d = 1, random n-cycle: interior pattern weight 43, kernel dim 21 (2k - weight = 21), list 1
+(k,n)=(32,64): plain lift pattern weight 78 (2k-1 = 63), kernel dim 1, list 1
+  V1, d = 1, cycle through the blocks: interior pattern weight 75 = 2k - 1 + 12, kernel dim 1, list 1
+  V1, d = 1, random n-cycle: interior pattern weight 46, kernel dim 18 (2k - weight = 18), list 1
+== 79_tau
+rho 0.5 C 1 L=1: 0.7624 (276 q) L=2: 0.6808 (195 q) L=3: 0.6397 (168 q) L=4: 0.6150 (155 q) L=8: 0.5710 (134 q) L=16: 0.5449 (124 q)
+rho 0.5 C 2.62 L=1: 0.7729 (291 q) L=2: 0.6879 (201 q) L=3: 0.6451 (171 q) L=4: 0.6193 (157 q) L=8: 0.5733 (135 q) L=16: 0.5462 (124 q)
+rho 0.5 C 4 L=1: 0.7776 (298 q) L=2: 0.6910 (203 q) L=3: 0.6474 (173 q) L=4: 0.6212 (158 q) L=8: 0.5744 (136 q) L=16: 0.5468 (124 q)
+  Johnson 0.7071067811865476 217
+rho 0.25 C 1 L=1: 0.6397 (168 q) L=2: 0.5156 (114 q) L=3: 0.4530 (95 q) L=4: 0.4153 (86 q) L=8: 0.3479 (71 q) L=16: 0.3080 (64 q)
+rho 0.25 C 2.62 L=1: 0.6504 (175 q) L=2: 0.5228 (116 q) L=3: 0.4585 (96 q) L=4: 0.4197 (87 q) L=8: 0.3503 (72 q) L=16: 0.3093 (64 q)
+rho 0.25 C 4 L=1: 0.6551 (178 q) L=2: 0.5260 (117 q) L=3: 0.4609 (97 q) L=4: 0.4216 (87 q) L=8: 0.3514 (72 q) L=16: 0.3099 (64 q)
+  Johnson 0.5 108

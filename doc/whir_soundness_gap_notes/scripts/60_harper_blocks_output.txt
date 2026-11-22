@@ -1,0 +1,19 @@
+t'=1: h(a) for a=1..2: [1, 0]
+t'=2: h(a) for a=1..4: [2, 2, 1, 0]
+      max a/|N[I_a]| over closures smaller than the block: 0.3333 at a=1 (closure 3)
+t'=3: h(a) for a=1..8: [3, 4, 4, 3, 3, 2, 1, 0]
+      max a/|N[I_a]| over closures smaller than the block: 0.5714 at a=4 (closure 7)
+t'=4: h(a) for a=1..16: [4, 6, 7, 7, 6, 7, 7, 6, 6, 5, 4, 4, 3, 2, 1, 0]
+      max a/|N[I_a]| over closures smaller than the block: 0.7333 at a=11 (closure 15)
+t'=5: h(a) for a=1..32: [5, 8, 10, 11, 11, 10, 12, 13, 13, 12, 13, 13, 12, 12, 11, 10, 11, 11, 10, 10, 9, 8, 8, 7, 6, 5, 5, 4, 3, 2, 1, 0]
+      max a/|N[I_a]| over closures smaller than the block: 0.8387 at a=26 (closure 31)
+t'=6: h(1)=6, h(2)=10, max h=23 at a=14, min over 1<=a<=n-t-1: 6; last values h(n-5..n) = [5, 4, 3, 2, 1, 0]
+      max a/|N[I_a]| over closures smaller than the block: 0.9048 at a=57 (closure 63)
+t'=7: h(1)=7, h(2)=12, max h=43 at a=36, min over 1<=a<=n-t-1: 7; last values h(n-5..n) = [5, 4, 3, 2, 1, 0]
+      max a/|N[I_a]| over closures smaller than the block: 0.9449 at a=120 (closure 127)
+t'=8: h(1)=8, h(2)=14, max h=78 at a=65, min over 1<=a<=n-t-1: 8; last values h(n-5..n) = [5, 4, 3, 2, 1, 0]
+      max a/|N[I_a]| over closures smaller than the block: 0.9686 at a=247 (closure 255)
+t'=9: h(1)=9, h(2)=16, max h=148 at a=158, min over 1<=a<=n-t-1: 9; last values h(n-5..n) = [5, 4, 3, 2, 1, 0]
+      max a/|N[I_a]| over closures smaller than the block: 0.9824 at a=502 (closure 511)
+t'=10: h(1)=10, h(2)=18, max h=274 at a=288, min over 1<=a<=n-t-1: 10; last values h(n-5..n) = [5, 4, 3, 2, 1, 0]
+      max a/|N[I_a]| over closures smaller than the block: 0.9902 at a=1013 (closure 1023)

@@ -1,0 +1,8 @@
+# compiled helpers and large generated data, rewritten by the scripts
+scripts/*_bin/
+scripts/78_tmp/
+scripts/82_tmp/
+*.err
+*.log
+*.bin
+*.dylib

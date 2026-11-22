@@ -1,0 +1,58 @@
+v=3 r=1 modes=SSS FB=64: encoder vs generator mismatches 0 of 16
+  rank [G | Vandermonde] = 8 (k = 8: equal codes iff rank = k)
+  subspace twiddles satisfy t(p,1) = t(p,0) + 1 at every node: yes
+  minors tested 257400 (all subsets per draw), singular 0, fraction 0.000e+00, fraction x |F| = 0.000
+v=4 r=2 modes=SSSS FB=64: encoder vs generator mismatches 0 of 64
+  rank [G | Vandermonde] = 16 (k = 16: equal codes iff rank = k)
+  subspace twiddles satisfy t(p,1) = t(p,0) + 1 at every node: yes
+  minors tested 1000 (200 random subsets per draw), singular 0, fraction 0.000e+00, fraction x |F| = 0.000
+v=4 r=1 modes=SSSS FB=16: encoder vs generator mismatches 0 of 32
+  rank [G | Vandermonde] = 16 (k = 16: equal codes iff rank = k)
+  subspace twiddles satisfy t(p,1) = t(p,0) + 1 at every node: yes
+  minors tested 40000 (200 random subsets per draw), singular 0, fraction 0.000e+00, fraction x |F| = 0.000
+v=3 r=2 modes=SSS FB=8: encoder vs generator mismatches 0 of 32
+  rank [G | Vandermonde] = 8 (k = 8: equal codes iff rank = k)
+  subspace twiddles satisfy t(p,1) = t(p,0) + 1 at every node: yes
+  minors tested 400000 (200 random subsets per draw), singular 0, fraction 0.000e+00, fraction x |F| = 0.000
+v=2 r=1 modes=22 FB=8: encoder vs generator mismatches 0 of 8
+  minors tested 280000 (all subsets per draw), singular 2272, fraction 8.114e-03, fraction x |F| = 2.077
+v=2 r=1 modes=11 FB=8: encoder vs generator mismatches 0 of 8
+  minors tested 280000 (all subsets per draw), singular 2110, fraction 7.536e-03, fraction x |F| = 1.929
+v=2 r=2 modes=22 FB=8: encoder vs generator mismatches 0 of 16
+  minors tested 7280000 (all subsets per draw), singular 46883, fraction 6.440e-03, fraction x |F| = 1.649
+v=3 r=1 modes=222 FB=8: encoder vs generator mismatches 0 of 16
+  minors tested 2574000 (all subsets per draw), singular 33649, fraction 1.307e-02, fraction x |F| = 3.347
+v=3 r=1 modes=111 FB=8: encoder vs generator mismatches 0 of 16
+  minors tested 2574000 (all subsets per draw), singular 21260, fraction 8.260e-03, fraction x |F| = 2.114
+v=4 r=1 modes=2222 FB=8: encoder vs generator mismatches 0 of 32
+  minors tested 400000 (200 random subsets per draw), singular 3185, fraction 7.963e-03, fraction x |F| = 2.038
+v=4 r=1 modes=1111 FB=8: encoder vs generator mismatches 0 of 32
+  minors tested 400000 (200 random subsets per draw), singular 3507, fraction 8.767e-03, fraction x |F| = 2.244
+v=5 r=1 modes=22222 FB=8: encoder vs generator mismatches 0 of 64
+  minors tested 400000 (200 random subsets per draw), singular 3840, fraction 9.600e-03, fraction x |F| = 2.458
+v=3 r=2 modes=222 FB=8: encoder vs generator mismatches 0 of 32
+  minors tested 400000 (200 random subsets per draw), singular 2170, fraction 5.425e-03, fraction x |F| = 1.389
+v=2 r=1 modes=22 FB=16: encoder vs generator mismatches 0 of 8
+  minors tested 2800000 (all subsets per draw), singular 138, fraction 4.929e-05, fraction x |F| = 3.230
+v=2 r=1 modes=11 FB=16: encoder vs generator mismatches 0 of 8
+  minors tested 2800000 (all subsets per draw), singular 124, fraction 4.429e-05, fraction x |F| = 2.902
+v=2 r=2 modes=22 FB=16: encoder vs generator mismatches 0 of 16
+  minors tested 72800000 (all subsets per draw), singular 1659, fraction 2.279e-05, fraction x |F| = 1.493
+v=3 r=1 modes=222 FB=16: encoder vs generator mismatches 0 of 16
+  minors tested 25740000 (all subsets per draw), singular 389, fraction 1.511e-05, fraction x |F| = 0.990
+v=3 r=1 modes=111 FB=16: encoder vs generator mismatches 0 of 16
+  minors tested 25740000 (all subsets per draw), singular 456, fraction 1.772e-05, fraction x |F| = 1.161
+v=4 r=1 modes=2222 FB=16: encoder vs generator mismatches 0 of 32
+  minors tested 400000 (200 random subsets per draw), singular 7, fraction 1.750e-05, fraction x |F| = 1.147
+v=4 r=1 modes=1111 FB=16: encoder vs generator mismatches 0 of 32
+  minors tested 400000 (200 random subsets per draw), singular 9, fraction 2.250e-05, fraction x |F| = 1.475
+v=5 r=1 modes=22222 FB=16: encoder vs generator mismatches 0 of 64
+  minors tested 400000 (200 random subsets per draw), singular 3, fraction 7.500e-06, fraction x |F| = 0.492
+v=3 r=2 modes=222 FB=16: encoder vs generator mismatches 0 of 32
+  minors tested 400000 (200 random subsets per draw), singular 13, fraction 3.250e-05, fraction x |F| = 2.130
+v=3 r=1 modes=222 FB=64: encoder vs generator mismatches 0 of 16
+  minors tested 257400 (all subsets per draw), singular 0, fraction 0.000e+00, fraction x |F| = 0.000
+v=4 r=1 modes=1111 FB=64: encoder vs generator mismatches 0 of 32
+  minors tested 400000 (200 random subsets per draw), singular 0, fraction 0.000e+00, fraction x |F| = 0.000
+v=5 r=1 modes=22222 FB=64: encoder vs generator mismatches 0 of 64
+  minors tested 100000 (200 random subsets per draw), singular 0, fraction 0.000e+00, fraction x |F| = 0.000

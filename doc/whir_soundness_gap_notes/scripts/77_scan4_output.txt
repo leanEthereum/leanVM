@@ -1,0 +1,194 @@
+kind P members 3 part 0/1: canonical patterns 8928, deficient 8
+kind P members 4 part 0/4: canonical patterns 470058, deficient 335
+kind P members 4 part 1/4: canonical patterns 591623, deficient 613
+kind P members 4 part 2/4: canonical patterns 574205, deficient 868
+kind P members 4 part 3/4: canonical patterns 665035, deficient 692
+kind G members 3 part 0/1: canonical patterns 8928, deficient 7
+kind G members 4 part 0/4: canonical patterns 470058, deficient 329
+kind G members 4 part 1/4: canonical patterns 591623, deficient 589
+kind G members 4 part 2/4: canonical patterns 574205, deficient 823
+kind G members 4 part 3/4: canonical patterns 665035, deficient 660
+kind H members 3 part 0/1: canonical patterns 8928, deficient 8
+kind H members 4 part 0/4: canonical patterns 470058, deficient 335
+kind H members 4 part 1/4: canonical patterns 591623, deficient 613
+kind H members 4 part 2/4: canonical patterns 574205, deficient 868
+kind H members 4 part 3/4: canonical patterns 665035, deficient 692
+kind G members 3 part 0/1: canonical patterns 8928, deficient 7
+kind G members 4 part 0/4: canonical patterns 470058, deficient 329
+kind G members 4 part 1/4: canonical patterns 591623, deficient 589
+kind G members 4 part 2/4: canonical patterns 574205, deficient 823
+kind G members 4 part 3/4: canonical patterns 665035, deficient 660
+m3_P.txt deficient orbits 8 patterns 360 deficiencies {1: 8}
+   I lift, flag subspace              genuine   orbits     1 patterns      48  max weight  8  max balanced agreement 5
+   I lift, other subspace             genuine   orbits     6 patterns     288  max weight  8  max balanced agreement 5
+   IV.b no deficient sublist          genuine   orbits     1 patterns      24  max weight  8  max balanced agreement 5
+m3_G.txt deficient orbits 7 patterns 336 deficiencies {1: 7}
+   I lift, flag subspace              genuine   orbits     1 patterns      48  max weight  8  max balanced agreement 5
+   I lift, other subspace             genuine   orbits     6 patterns     288  max weight  8  max balanced agreement 5
+m3_H.txt deficient orbits 8 patterns 360 deficiencies {1: 8}
+   I lift, flag subspace              genuine   orbits     1 patterns      48  max weight  8  max balanced agreement 5
+   I lift, other subspace             genuine   orbits     6 patterns     288  max weight  8  max balanced agreement 5
+   IV.b no deficient sublist          genuine   orbits     1 patterns      24  max weight  8  max balanced agreement 5
+m3_G2.txt deficient orbits 7 patterns 336 deficiencies {1: 7}
+   I lift, flag subspace              genuine   orbits     1 patterns      48  max weight  8  max balanced agreement 5
+   I lift, other subspace             genuine   orbits     6 patterns     288  max weight  8  max balanced agreement 5
+m4_P.txt deficient orbits 2508 patterns 475632 deficiencies {1: 2508}
+   I lift, flag subspace              collapsed orbits    96 patterns   17856  max weight 14  max balanced agreement 5
+   I lift, flag subspace              genuine   orbits   122 patterns   23424  max weight 12  max balanced agreement 4
+   I lift, other subspace             collapsed orbits   576 patterns  107136  max weight 14  max balanced agreement 5
+   I lift, other subspace             genuine   orbits   732 patterns  140544  max weight 12  max balanced agreement 4
+   II common upper factor             genuine   orbits     7 patterns    1344  max weight 12  max balanced agreement 5
+   III lifted 3-sublist + member      genuine   orbits   868 patterns  166656  max weight 12  max balanced agreement 5
+   IV.a non-lift 3-sublist + member   collapsed orbits    19 patterns    3120  max weight 14  max balanced agreement 5
+   IV.a non-lift 3-sublist + member   genuine   orbits    73 patterns   13248  max weight 12  max balanced agreement 4
+   IV.b no deficient sublist          collapsed orbits     9 patterns    1440  max weight 12  max balanced agreement 5
+   IV.b no deficient sublist          genuine   orbits     6 patterns     864  max weight 12  max balanced agreement 5
+m4_G.txt deficient orbits 2401 patterns 456960 deficiencies {1: 2401}
+   I lift, flag subspace              collapsed orbits    96 patterns   17856  max weight 14  max balanced agreement 5
+   I lift, flag subspace              genuine   orbits   122 patterns   23424  max weight 12  max balanced agreement 4
+   I lift, other subspace             collapsed orbits   576 patterns  107136  max weight 14  max balanced agreement 5
+   I lift, other subspace             genuine   orbits   732 patterns  140544  max weight 12  max balanced agreement 4
+   II common upper factor             genuine   orbits     7 patterns    1344  max weight 12  max balanced agreement 5
+   III lifted 3-sublist + member      genuine   orbits   868 patterns  166656  max weight 12  max balanced agreement 5
+m4_H.txt deficient orbits 2508 patterns 475632 deficiencies {1: 2508}
+   I lift, flag subspace              collapsed orbits    96 patterns   17856  max weight 14  max balanced agreement 5
+   I lift, flag subspace              genuine   orbits   122 patterns   23424  max weight 12  max balanced agreement 4
+   I lift, other subspace             collapsed orbits   576 patterns  107136  max weight 14  max balanced agreement 5
+   I lift, other subspace             genuine   orbits   732 patterns  140544  max weight 12  max balanced agreement 4
+   II common upper factor             genuine   orbits     7 patterns    1344  max weight 12  max balanced agreement 5
+   III lifted 3-sublist + member      genuine   orbits   868 patterns  166656  max weight 12  max balanced agreement 5
+   IV.a non-lift 3-sublist + member   collapsed orbits    19 patterns    3120  max weight 14  max balanced agreement 5
+   IV.a non-lift 3-sublist + member   genuine   orbits    73 patterns   13248  max weight 12  max balanced agreement 4
+   IV.b no deficient sublist          collapsed orbits     9 patterns    1440  max weight 12  max balanced agreement 5
+   IV.b no deficient sublist          genuine   orbits     6 patterns     864  max weight 12  max balanced agreement 5
+m4_G2.txt deficient orbits 2401 patterns 456960 deficiencies {1: 2401}
+   I lift, flag subspace              collapsed orbits    96 patterns   17856  max weight 14  max balanced agreement 5
+   I lift, flag subspace              genuine   orbits   122 patterns   23424  max weight 12  max balanced agreement 4
+   I lift, other subspace             collapsed orbits   576 patterns  107136  max weight 14  max balanced agreement 5
+   I lift, other subspace             genuine   orbits   732 patterns  140544  max weight 12  max balanced agreement 4
+   II common upper factor             genuine   orbits     7 patterns    1344  max weight 12  max balanced agreement 5
+   III lifted 3-sublist + member      genuine   orbits   868 patterns  166656  max weight 12  max balanced agreement 5
+--- kind P, family II and family IV orbits (pattern | orbit size, weight, ranks, flags)
+01 02 12 0123 0123 03 13 23 | orbit 192 w 12 rU 12 rC 11 F 001 G 1 S 0 0 NL 0 bal 5
+01 02 13 123 012 013 023 23 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 0 0 NL 0 bal 5
+01 02 123 123 013 013 02 23 | orbit 96 w 12 rU 12 rC 11 F 000 G 0 S 0 0 NL 0 bal 5
+01 012 03 123 12 013 023 23 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 0 0 NL 0 bal 5
+01 012 03 123 012 03 123 23 | orbit 96 w 12 rU 12 rC 11 F 000 G 0 S 0 0 NL 0 bal 5
+01 012 023 13 13 012 023 23 | orbit 96 w 12 rU 12 rC 11 F 000 G 0 S 0 0 NL 0 bal 5
+01 23 02 13 013 023 123 012 | orbit 96 w 12 rU 12 rC 11 F 000 G 1 S 0 0 NL 0 bal 5
+01 01 02 12 12 013 02 023 | orbit 192 w 10 rU 10 rC 9 F 000 G 1 S 1 1 NL 1 bal 2
+01 01 02 12 12 013 023 023 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 01 02 123 12 01 02 023 | orbit 192 w 10 rU 10 rC 9 F 000 G 1 S 1 1 NL 1 bal 2
+01 01 02 123 12 01 023 023 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 01 02 123 12 013 02 023 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 01 02 123 12 013 023 023 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 01 02 123 123 01 02 023 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 01 02 123 123 01 023 023 | orbit 192 w 12 rU 12 rC 11 F 000 G 0 S 1 1 NL 1 bal 4
+01 01 02 123 123 013 02 023 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 01 023 123 12 013 02 023 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 02 12 123 02 023 123 01 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 02 12 123 023 02 12 01 | orbit 96 w 10 rU 10 rC 9 F 000 G 1 S 1 1 NL 1 bal 2
+01 02 12 123 023 02 123 01 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 02 12 123 023 023 12 01 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 02 12 123 023 023 123 01 | orbit 192 w 12 rU 12 rC 11 F 000 G 0 S 1 1 NL 1 bal 4
+01 02 12 0123 13 23 0123 03 | orbit 192 w 12 rU 12 rC 11 F 001 G 1 S 0 0 NL 0 bal 5
+01 02 13 23 12 0123 0123 03 | orbit 192 w 12 rU 12 rC 11 F 001 G 1 S 0 0 NL 0 bal 5
+01 02 13 123 023 023 123 01 | orbit 192 w 12 rU 12 rC 11 F 000 G 0 S 0 0 NL 0 bal 5
+01 02 123 123 02 023 123 01 | orbit 192 w 12 rU 12 rC 11 F 000 G 0 S 1 1 NL 1 bal 4
+01 02 123 123 03 023 123 01 | orbit 192 w 12 rU 12 rC 11 F 000 G 0 S 0 0 NL 0 bal 5
+01 012 03 123 13 012 023 03 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 012 03 123 123 01 03 023 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 012 03 123 123 01 023 03 | orbit 96 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 012 023 13 13 012 023 03 | orbit 96 w 12 rU 12 rC 11 F 000 G 0 S 1 1 NL 1 bal 4
+01 012 023 13 13 012 023 023 | orbit 192 w 13 rU 12 rC 11 F 000 G 0 S 1 1 NL 1 bal 5
+01 023 123 123 023 023 123 01 | orbit 48 w 14 rU 12 rC 11 F 000 G 0 S 2 1 NL 2 bal 5
+01 01 02 12 01 02 12 123 | orbit 192 w 9 rU 9 rC 8 F 000 G 1 S 1 1 NL 1 bal 1
+01 01 02 12 01 02 123 123 | orbit 192 w 10 rU 10 rC 9 F 000 G 1 S 1 1 NL 1 bal 2
+01 01 02 12 01 023 12 123 | orbit 192 w 10 rU 10 rC 9 F 000 G 1 S 1 1 NL 1 bal 2
+01 01 02 12 01 023 123 123 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 01 02 12 12 013 02 02 | orbit 192 w 9 rU 9 rC 8 F 000 G 1 S 1 1 NL 1 bal 1
+01 01 02 12 12 013 023 02 | orbit 192 w 10 rU 10 rC 9 F 000 G 1 S 1 1 NL 1 bal 2
+01 01 02 12 013 023 12 123 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 01 02 12 013 023 123 123 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 01 02 123 01 02 12 123 | orbit 192 w 10 rU 10 rC 9 F 000 G 1 S 1 1 NL 1 bal 2
+01 01 02 123 01 02 123 123 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 01 02 123 01 023 12 123 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 01 02 123 01 023 123 123 | orbit 192 w 12 rU 12 rC 11 F 000 G 0 S 1 1 NL 1 bal 4
+01 01 02 123 12 01 023 02 | orbit 192 w 10 rU 10 rC 9 F 000 G 1 S 1 1 NL 1 bal 2
+01 01 02 123 12 013 023 02 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 01 02 123 013 02 12 123 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 01 02 123 013 02 123 123 | orbit 192 w 12 rU 12 rC 11 F 000 G 0 S 1 1 NL 1 bal 4
+01 01 02 123 013 023 12 123 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 01 02 123 123 01 02 02 | orbit 96 w 10 rU 10 rC 9 F 000 G 1 S 1 1 NL 1 bal 2
+01 01 02 123 123 01 023 02 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 01 02 123 123 013 02 02 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 01 02 123 123 013 023 02 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 01 023 123 01 02 12 123 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 01 023 123 01 02 123 123 | orbit 192 w 12 rU 12 rC 11 F 000 G 0 S 1 1 NL 1 bal 4
+01 01 023 123 01 023 12 123 | orbit 192 w 12 rU 12 rC 11 F 000 G 0 S 1 1 NL 1 bal 4
+01 01 023 123 01 023 123 123 | orbit 96 w 13 rU 12 rC 11 F 000 G 0 S 2 1 NL 2 bal 5
+01 01 023 123 12 013 023 02 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 01 023 123 012 023 13 13 | orbit 96 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 02 12 123 01 013 02 123 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 02 12 123 01 013 023 123 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 02 12 123 013 01 02 123 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 02 12 123 013 01 023 123 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 02 12 123 013 013 02 123 | orbit 192 w 12 rU 12 rC 11 F 000 G 0 S 1 1 NL 1 bal 4
+01 02 12 0123 03 0123 23 13 | orbit 192 w 12 rU 12 rC 11 F 001 G 1 S 0 0 NL 0 bal 5
+01 02 03 123 012 03 123 123 | orbit 192 w 12 rU 12 rC 11 F 000 G 0 S 0 0 NL 0 bal 5
+01 02 23 123 013 013 02 123 | orbit 192 w 12 rU 12 rC 11 F 000 G 0 S 0 0 NL 0 bal 5
+01 02 123 123 01 013 02 123 | orbit 192 w 12 rU 12 rC 11 F 000 G 0 S 1 1 NL 1 bal 4
+01 02 123 123 03 013 02 123 | orbit 192 w 12 rU 12 rC 11 F 000 G 0 S 0 0 NL 0 bal 5
+01 02 123 123 013 013 02 123 | orbit 192 w 13 rU 12 rC 11 F 000 G 0 S 1 1 NL 1 bal 5
+01 012 03 123 01 023 13 123 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 012 03 123 01 023 123 13 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 012 03 123 012 03 13 123 | orbit 192 w 12 rU 12 rC 11 F 000 G 0 S 1 1 NL 1 bal 4
+01 012 03 123 012 03 23 123 | orbit 192 w 12 rU 12 rC 11 F 000 G 0 S 0 0 NL 0 bal 5
+01 012 03 123 012 03 123 13 | orbit 96 w 12 rU 12 rC 11 F 000 G 0 S 1 1 NL 1 bal 4
+01 012 03 123 012 03 123 123 | orbit 192 w 13 rU 12 rC 11 F 000 G 0 S 1 1 NL 1 bal 5
+01 012 023 13 01 023 123 13 | orbit 96 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 012 023 13 012 03 13 123 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 01 02 12 01 02 12 12 | orbit 96 w 8 rU 8 rC 7 F 000 G 1 S 1 1 NL 1 bal 0
+01 01 02 12 01 02 123 12 | orbit 192 w 9 rU 9 rC 8 F 000 G 1 S 1 1 NL 1 bal 1
+01 01 02 12 01 023 12 12 | orbit 192 w 9 rU 9 rC 8 F 000 G 1 S 1 1 NL 1 bal 1
+01 01 02 12 01 023 123 12 | orbit 192 w 10 rU 10 rC 9 F 000 G 1 S 1 1 NL 1 bal 2
+01 01 02 12 013 023 12 12 | orbit 192 w 10 rU 10 rC 9 F 000 G 1 S 1 1 NL 1 bal 2
+01 01 02 12 013 023 123 12 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 01 02 123 01 02 123 12 | orbit 192 w 10 rU 10 rC 9 F 000 G 1 S 1 1 NL 1 bal 2
+01 01 02 123 01 023 12 12 | orbit 192 w 10 rU 10 rC 9 F 000 G 1 S 1 1 NL 1 bal 2
+01 01 02 123 01 023 123 12 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 01 02 123 013 02 12 12 | orbit 96 w 10 rU 10 rC 9 F 000 G 1 S 1 1 NL 1 bal 2
+01 01 02 123 013 02 123 12 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 01 02 123 013 023 12 12 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 01 02 123 013 023 123 12 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 01 023 123 01 02 123 12 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 01 023 123 01 023 123 12 | orbit 192 w 12 rU 12 rC 11 F 000 G 0 S 1 1 NL 1 bal 4
+01 02 12 123 01 013 02 12 | orbit 192 w 10 rU 10 rC 9 F 000 G 1 S 1 1 NL 1 bal 2
+01 02 12 123 01 013 023 12 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 02 12 123 02 023 12 013 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 02 12 123 02 023 123 013 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 02 12 123 013 01 02 12 | orbit 96 w 10 rU 10 rC 9 F 000 G 1 S 1 1 NL 1 bal 2
+01 02 12 123 013 01 023 12 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 02 12 123 013 013 02 12 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 02 12 123 013 013 023 12 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 02 12 123 023 02 12 013 | orbit 192 w 11 rU 11 rC 10 F 000 G 1 S 1 1 NL 1 bal 3
+01 02 12 123 023 02 123 013 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 02 12 123 023 023 12 013 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 02 12 0123 23 13 03 0123 | orbit 192 w 12 rU 12 rC 11 F 001 G 1 S 0 0 NL 0 bal 5
+01 02 23 13 12 0123 03 0123 | orbit 192 w 12 rU 12 rC 11 F 001 G 1 S 0 0 NL 0 bal 5
+01 02 23 123 012 023 13 013 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 0 0 NL 0 bal 5
+01 02 123 123 01 013 023 12 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 02 123 123 02 023 12 013 | orbit 192 w 12 rU 12 rC 11 F 000 G 1 S 1 1 NL 1 bal 4
+01 02 123 123 013 013 02 12 | orbit 96 w 12 rU 12 rC 11 F 000 G 0 S 1 1 NL 1 bal 4
+01 012 03 123 23 023 12 013 | orbit 96 w 12 rU 12 rC 11 F 000 G 1 S 0 0 NL 0 bal 5
+01 012 023 13 123 23 02 013 | orbit 96 w 12 rU 12 rC 11 F 000 G 1 S 0 0 NL 0 bal 5
+01 23 02 13 12 03 0123 0123 | orbit 192 w 12 rU 12 rC 11 F 001 G 1 S 0 0 NL 0 bal 5
+--- kind P, three members
+. 01 01 012 02 12 12 02 | orbit 48 w 8 rU 8 rC 7 F 011 G 1 S 0 0 NL 0 bal 5
+. 01 02 12 01 012 12 02 | orbit 48 w 8 rU 8 rC 7 F 011 G 1 S 0 0 NL 0 bal 5
+. 01 02 12 02 12 012 01 | orbit 48 w 8 rU 8 rC 7 F 011 G 1 S 0 0 NL 0 bal 5
+. 01 02 12 12 02 01 012 | orbit 48 w 8 rU 8 rC 7 F 011 G 1 S 0 0 NL 0 bal 5
+. 01 02 12 012 01 02 12 | orbit 48 w 8 rU 8 rC 7 F 011 G 1 S 0 0 NL 0 bal 5
+. 01 012 01 02 12 02 12 | orbit 48 w 8 rU 8 rC 7 F 011 G 1 S 0 0 NL 0 bal 5
+. 012 01 01 02 02 12 12 | orbit 48 w 8 rU 8 rC 7 F 111 G 1 S 0 0 NL 0 bal 5
+01 01 02 12 01 02 12 12 | orbit 24 w 8 rU 8 rC 7 F 000 G 1 S 0 0 NL 0 bal 5

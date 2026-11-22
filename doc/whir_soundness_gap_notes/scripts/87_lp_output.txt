@@ -1,0 +1,28 @@
+rate 2^-3 no slack (generic): primal 0.32758 dual 0.32758 (claimed 0.32760) support j = [1, 3]
+rate 2^-3 n=2^20 J=0 slack: primal 0.49627 <= tau* <= dual 0.49627 (margin 8.5e-07) claimed 0.49630 ; J0 = 2, list <= 1.0/eta
+    support (j, lambda_j, right side): [(1, 0.2911, 0.30357), (2, 0.5482, 0.451)]
+rate 2^-3 n=2^22 J=0 slack: primal 0.49735 <= tau* <= dual 0.49735 (margin 8.8e-07) claimed 0.49740 ; J0 = 2, list <= 1.0/eta
+    support (j, lambda_j, right side): [(1, 0.2919, 0.30459), (2, 0.5473, 0.45244)]
+rate 2^-3 n=2^24 J=0 slack: primal 0.49836 <= tau* <= dual 0.49836 (margin 8.5e-07) claimed 0.49840 ; J0 = 2, list <= 1.0/eta
+    support (j, lambda_j, right side): [(1, 0.2931, 0.30552), (2, 0.5458, 0.45378)]
+rate 2^-4 no slack (generic): primal 0.20505 dual 0.20506 (claimed 0.20510) support j = [1, 2, 6]
+rate 2^-4 n=2^20 J=0 slack: primal 0.30748 <= tau* <= dual 0.30748 (margin 1.0e-06) claimed 0.30750 ; J0 = 4, list <= 2.8/eta
+    support (j, lambda_j, right side): [(1, 0.5224, 0.15453), (2, 0.0437, 0.22999), (4, 0.3532, 0.38156)]
+rate 2^-4 n=2^22 J=0 slack: primal 0.30826 <= tau* <= dual 0.30826 (margin 1.0e-06) claimed 0.30830 ; J0 = 4, list <= 2.8/eta
+    support (j, lambda_j, right side): [(1, 0.5222, 0.15508), (2, 0.0447, 0.23079), (4, 0.3522, 0.38284)]
+rate 2^-4 n=2^24 J=0 slack: primal 0.30895 <= tau* <= dual 0.30895 (margin 1.0e-06) claimed 0.30900 ; J0 = 4, list <= 2.8/eta
+    support (j, lambda_j, right side): [(1, 0.5218, 0.15558), (2, 0.0457, 0.2315), (4, 0.3515, 0.38397)]
+rate 2^-7 no slack (generic): primal 0.04165 dual 0.04165 (claimed 0.04165) support j = [1, 2, 4, 11, 12, 46, 47]
+rate 2^-7 n=2^20 J=0 slack: primal 0.06180 <= tau* <= dual 0.06180 (margin 1.6e-06) claimed 0.06180 ; J0 = 34, list <= 31.9/eta
+    support (j, lambda_j, right side): [(1, 0.5007, 0.0203), (2, 0.1414, 0.03027), (3, 0.1632, 0.0403), (8, 0.1347, 0.09116), (34, 0.0495, 0.36289)]
+rate 2^-7 n=2^22 J=0 slack: primal 0.06202 <= tau* <= dual 0.06202 (margin 1.6e-06) claimed 0.06200 ; J0 = 34, list <= 31.9/eta
+    support (j, lambda_j, right side): [(1, 0.5008, 0.02039), (2, 0.1409, 0.03041), (3, 0.1639, 0.04048), (8, 0.1343, 0.09154), (33, 0.0074, 0.35381), (34, 0.0422, 0.3644)]
+rate 2^-7 n=2^24 J=0 slack: primal 0.06221 <= tau* <= dual 0.06221 (margin 1.6e-06) claimed 0.06220 ; J0 = 34, list <= 31.9/eta
+    support (j, lambda_j, right side): [(1, 0.5009, 0.02047), (2, 0.1405, 0.03052), (3, 0.1642, 0.04063), (8, 0.1342, 0.09188), (33, 0.01, 0.3551), (34, 0.0395, 0.36574)]
+rate 2^-10 no slack (generic): primal 0.00723 dual 0.00724 (claimed 0.00724) support j = [1, 2, 3, 4, 6, 13, 14, 31, 32, 91, 95, 376]
+rate 2^-10 n=2^20 J=0 slack: primal 0.01109 <= tau* <= dual 0.01109 (margin 2.1e-06) claimed 0.01109 ; J0 = 244, list <= 241.3/eta
+    support (j, lambda_j, right side): [(1, 0.4996, 0.00266), (2, 0.1725, 0.00398), (3, 0.0544, 0.0053), (4, 0.1094, 0.00663), (8, 0.0685, 0.01202), (9, 0.0219, 0.01337), (20, 0.0329, 0.02852), (21, 0.0125, 0.02991), (57, 0.0, 0.08086), (59, 0.0198, 0.08373), (244, 0.007, 0.35502)]
+rate 2^-10 n=2^22 J=0 slack: primal 0.01114 <= tau* <= dual 0.01115 (margin 2.1e-06) claimed 0.01115 ; J0 = 244, list <= 241.3/eta
+    support (j, lambda_j, right side): [(1, 0.4997, 0.00268), (2, 0.1715, 0.004), (3, 0.0577, 0.00533), (4, 0.1057, 0.00667), (8, 0.0829, 0.01208), (10, 0.0086, 0.01482), (20, 0.0368, 0.02868), (21, 0.0089, 0.03008), (59, 0.0199, 0.08421), (244, 0.007, 0.35712)]
+rate 2^-10 n=2^24 J=0 slack: primal 0.01119 <= tau* <= dual 0.01119 (margin 2.0e-06) claimed 0.01119 ; J0 = 244, list <= 241.3/eta
+    support (j, lambda_j, right side): [(1, 0.4995, 0.00269), (2, 0.1732, 0.00402), (3, 0.0523, 0.00536), (4, 0.1114, 0.0067), (8, 0.065, 0.01214), (9, 0.0252, 0.01351), (20, 0.0284, 0.02882), (21, 0.0169, 0.03022), (59, 0.0177, 0.08462), (62, 0.002, 0.08897), (244, 0.007, 0.35891)]

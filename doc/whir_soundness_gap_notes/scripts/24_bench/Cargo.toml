@@ -1,0 +1,16 @@
+[package]
+name = "bench24"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+primitives = { package = "experimental_primitives", path = "/Users/e/Documents/leanVM/crates/experimental_prover/primitives" }
+parallel = { package = "experimental_parallel", path = "/Users/e/Documents/leanVM/crates/experimental_prover/parallel" }
+allocator = { path = "/Users/e/Documents/leanVM/crates/allocator" }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

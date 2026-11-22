@@ -1,0 +1,10 @@
+k=16 (k'=4, 2k'=8): quotient triple with u_2+2u_3 = 9; plain RS on D: 36; 2k = 32
+   local window {0,b0,b1}: free pair agreements [12, 12, 12]; u_2+2u_3 over 20 mu: min 36 mean 36.35 max 38; random-agreement prediction 3n/q = 0.75
+   cube window: free pair agreements [0, 0, 0]; u_2+2u_3 over 20 mu: min 0 mean 0.85 max 3; random-agreement prediction 3n/q = 0.75
+k=32 (k'=8, 2k'=16): quotient triple with u_2+2u_3 = 17; plain RS on D: 68; 2k = 64
+   local window {0,b0,b1}: free pair agreements [28, 28, 24]; u_2+2u_3 over 20 mu: min 68 mean 68.15 max 70; random-agreement prediction 3n/q = 0.75
+   cube window: free pair agreements [0, 0, 0]; u_2+2u_3 over 20 mu: min 0 mean 0.65 max 2; random-agreement prediction 3n/q = 0.75
+k=32 (k'=8, 2k'=16): quotient triple with u_2+2u_3 = 18; plain RS on D: 72; 2k = 64
+   local window {0,b0,b1}: free pair agreements [28, 28, 28]; u_2+2u_3 over 20 mu: min 72 mean 72.05 max 73; random-agreement prediction 3n/q = 0.75
+   cube window: free pair agreements [0, 0, 0]; u_2+2u_3 over 20 mu: min 0 mean 1.15 max 3; random-agreement prediction 3n/q = 0.75
+trials 200000: three full fibres 12, of which all three fibres are flats 12; generic prediction 0.060

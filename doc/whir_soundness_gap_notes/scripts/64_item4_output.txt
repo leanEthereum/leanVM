@@ -1,0 +1,48 @@
+restart 25: score 9, cost 31 (dim left 1), geometric cost 31; per pair zeros/interior: 01:11/2 02:15/4 12:15/4
+q=2^8 N=5 k=16 t=3: best score 9 against (t-1)k = 32; best score - cost (score >= 3(t-1)) = -19; max deficiency (geometric - rank cost) = 0
+restart 366: score 14, cost 47 (dim left 1), geometric cost 47; per pair zeros/interior: 01:15/4 02:11/2 03:15/4 12:15/4 13:11/2 23:6/1
+q=2^8 N=5 k=16 t=4: best score 14 against (t-1)k = 48; best score - cost (score >= 3(t-1)) = -22; max deficiency (geometric - rank cost) = 0
+restart 82: score 18, cost 62 (dim left 2), geometric cost 62; per pair zeros/interior: 01:15/4 02:15/4 03:11/2 04:7/0 12:9/0 13:7/1 14:6/0 23:15/4 24:15/4 34:11/2
+q=2^8 N=5 k=16 t=5: best score 18 against (t-1)k = 64; best score - cost (score >= 3(t-1)) = -32; max deficiency (geometric - rank cost) = 2
+restart 0: score 2, cost 12 (dim left 4), geometric cost 12; per pair zeros/interior: 01:6/1 02:6/1 12:6/1
+q=2^8 N=5 k=8 t=3: best score 2 against (t-1)k = 16; best score - cost (score >= 3(t-1)) = -1000000; max deficiency (geometric - rank cost) = 0
+restart 5: score 4, cost 22 (dim left 2), geometric cost 24; per pair zeros/interior: 01:2/0 02:6/1 03:6/1 12:6/1 13:6/1 23:2/0
+q=2^8 N=5 k=8 t=4: best score 4 against (t-1)k = 24; best score - cost (score >= 3(t-1)) = -1000000; max deficiency (geometric - rank cost) = 2
+restart 1: score 5, cost 28 (dim left 4), geometric cost 29; per pair zeros/interior: 01:6/1 02:6/1 03:6/1 04:3/0 12:0/0 13:3/0 14:6/1 23:2/0 24:1/0 34:6/1
+q=2^8 N=5 k=8 t=5: best score 5 against (t-1)k = 32; best score - cost (score >= 3(t-1)) = -1000000; max deficiency (geometric - rank cost) = 2
+restart 74: score 22, cost 63 (dim left 1), geometric cost 63; per pair zeros/interior: 01:31/10 02:31/10 12:26/8
+q=2^8 N=6 k=32 t=3: best score 22 against (t-1)k = 64; best score - cost (score >= 3(t-1)) = -15; max deficiency (geometric - rank cost) = 1
+restart 347: score 33, cost 95 (dim left 1), geometric cost 95; per pair zeros/interior: 01:31/10 02:22/4 03:18/3 12:31/10 13:31/9 23:23/7
+q=2^8 N=6 k=32 t=4: best score 33 against (t-1)k = 96; best score - cost (score >= 3(t-1)) = -20; max deficiency (geometric - rank cost) = 0
+restart 106: score 43, cost 126 (dim left 2), geometric cost 126; per pair zeros/interior: 01:17/2 02:13/0 03:16/3 04:31/10 12:31/10 13:31/10 14:31/10 23:18/3 24:27/8 34:23/7
+q=2^8 N=6 k=32 t=5: best score 43 against (t-1)k = 128; best score - cost (score >= 3(t-1)) = -31; max deficiency (geometric - rank cost) = 0
+restart 1: score 5, cost 29 (dim left 3), geometric cost 29; per pair zeros/interior: 01:12/2 02:13/2 12:12/2
+q=2^8 N=6 k=16 t=3: best score 5 against (t-1)k = 32; best score - cost (score >= 3(t-1)) = -1000000; max deficiency (geometric - rank cost) = 1
+restart 634: score 9, cost 47 (dim left 1), geometric cost 51; per pair zeros/interior: 01:15/2 02:15/2 03:15/2 12:15/2 13:15/2 23:15/2
+q=2^8 N=6 k=16 t=4: best score 9 against (t-1)k = 48; best score - cost (score >= 3(t-1)) = -38; max deficiency (geometric - rank cost) = 4
+restart 2: score 11, cost 62 (dim left 2), geometric cost 62; per pair zeros/interior: 01:0/0 02:12/2 03:12/2 04:0/0 12:13/2 13:8/1 14:9/1 23:14/2 24:13/2 34:8/1
+q=2^8 N=6 k=16 t=5: best score 11 against (t-1)k = 64; best score - cost (score >= 3(t-1)) = -1000000; max deficiency (geometric - rank cost) = 1
+restart 25: score 9, cost 31 (dim left 1), geometric cost 31; per pair zeros/interior: 01:11/2 02:15/4 12:15/4
+q=2^16 N=5 k=16 t=3: best score 9 against (t-1)k = 32; best score - cost (score >= 3(t-1)) = -19; max deficiency (geometric - rank cost) = 0
+restart 366: score 14, cost 47 (dim left 1), geometric cost 47; per pair zeros/interior: 01:15/4 02:11/2 03:15/4 12:15/4 13:11/2 23:6/1
+q=2^16 N=5 k=16 t=4: best score 14 against (t-1)k = 48; best score - cost (score >= 3(t-1)) = -22; max deficiency (geometric - rank cost) = 0
+restart 82: score 18, cost 62 (dim left 2), geometric cost 62; per pair zeros/interior: 01:15/4 02:15/4 03:11/2 04:7/0 12:9/0 13:7/1 14:6/0 23:15/4 24:15/4 34:11/2
+q=2^16 N=5 k=16 t=5: best score 18 against (t-1)k = 64; best score - cost (score >= 3(t-1)) = -32; max deficiency (geometric - rank cost) = 2
+restart 0: score 2, cost 12 (dim left 4), geometric cost 12; per pair zeros/interior: 01:6/1 02:6/1 12:6/1
+q=2^16 N=5 k=8 t=3: best score 2 against (t-1)k = 16; best score - cost (score >= 3(t-1)) = -1000000; max deficiency (geometric - rank cost) = 0
+restart 6: score 4, cost 22 (dim left 2), geometric cost 23; per pair zeros/interior: 01:6/1 02:6/1 03:3/0 12:3/0 13:6/1 23:6/1
+q=2^16 N=5 k=8 t=4: best score 4 against (t-1)k = 24; best score - cost (score >= 3(t-1)) = -1000000; max deficiency (geometric - rank cost) = 1
+restart 1: score 5, cost 28 (dim left 4), geometric cost 29; per pair zeros/interior: 01:6/1 02:6/1 03:6/1 04:3/0 12:0/0 13:3/0 14:6/1 23:2/0 24:1/0 34:6/1
+q=2^16 N=5 k=8 t=5: best score 5 against (t-1)k = 32; best score - cost (score >= 3(t-1)) = -1000000; max deficiency (geometric - rank cost) = 1
+restart 74: score 22, cost 63 (dim left 1), geometric cost 63; per pair zeros/interior: 01:31/10 02:31/10 12:26/8
+q=2^16 N=6 k=32 t=3: best score 22 against (t-1)k = 64; best score - cost (score >= 3(t-1)) = -15; max deficiency (geometric - rank cost) = 0
+restart 347: score 33, cost 95 (dim left 1), geometric cost 95; per pair zeros/interior: 01:31/10 02:22/4 03:18/3 12:31/10 13:31/9 23:23/7
+q=2^16 N=6 k=32 t=4: best score 33 against (t-1)k = 96; best score - cost (score >= 3(t-1)) = -20; max deficiency (geometric - rank cost) = 0
+restart 106: score 43, cost 126 (dim left 2), geometric cost 126; per pair zeros/interior: 01:17/2 02:13/0 03:16/3 04:31/10 12:31/10 13:31/10 14:31/10 23:18/3 24:27/8 34:23/7
+q=2^16 N=6 k=32 t=5: best score 43 against (t-1)k = 128; best score - cost (score >= 3(t-1)) = -31; max deficiency (geometric - rank cost) = 0
+restart 1: score 5, cost 29 (dim left 3), geometric cost 29; per pair zeros/interior: 01:12/2 02:13/2 12:12/2
+q=2^16 N=6 k=16 t=3: best score 5 against (t-1)k = 32; best score - cost (score >= 3(t-1)) = -1000000; max deficiency (geometric - rank cost) = 0
+restart 634: score 9, cost 47 (dim left 1), geometric cost 51; per pair zeros/interior: 01:15/2 02:15/2 03:15/2 12:15/2 13:15/2 23:15/2
+q=2^16 N=6 k=16 t=4: best score 9 against (t-1)k = 48; best score - cost (score >= 3(t-1)) = -38; max deficiency (geometric - rank cost) = 4
+restart 1: score 11, cost 63 (dim left 1), geometric cost 63; per pair zeros/interior: 01:12/2 02:0/0 03:3/0 04:12/2 12:13/2 13:9/1 14:12/2 23:13/2 24:3/0 34:8/1
+q=2^16 N=6 k=16 t=5: best score 11 against (t-1)k = 64; best score - cost (score >= 3(t-1)) = -1000000; max deficiency (geometric - rank cost) = 4

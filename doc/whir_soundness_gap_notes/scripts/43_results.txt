@@ -1,0 +1,94 @@
+== 43_structure.py
+A: 12 random cubics with planted sections over GF(2^8): all identities hold (7 sections each; last one had 4 simple roots of Disc in the field)
+B: span  domain, GF(2^16), n = 32: all 31 flats are sections with constant lambda, agreement n/2-1; Disc = e0^2 L_D/X; chord of two flats is not a polynomial; slack-1 cubic: 62 affine flats = X*{P_V, P_V (+) Q} at agreement n/2
+B: span  domain, GF(2^16), n = 64: all 63 flats are sections with constant lambda, agreement n/2-1; Disc = e0^2 L_D/X; chord of two flats is not a polynomial; slack-1 cubic: 126 affine flats = X*{P_V, P_V (+) Q} at agreement n/2
+B: field domain, GF(2^5), n = 32: all 31 flats are sections with constant lambda, agreement n/2-1; Disc = e0^2 L_D/X; chord of two flats is not a polynomial; slack-1 cubic: 62 affine flats = X*{P_V, P_V (+) Q} at agreement n/2
+B: field domain, GF(2^6), n = 64: all 63 flats are sections with constant lambda, agreement n/2-1; Disc = e0^2 L_D/X; chord of two flats is not a polynomial; slack-1 cubic: 126 affine flats = X*{P_V, P_V (+) Q} at agreement n/2
+B: rand  domain, GF(2^12), n = 64: all 63 flats are sections with constant lambda, agreement n/2-1; Disc = e0^2 L_D/X; chord of two flats is not a polynomial; slack-1 cubic: 126 affine flats = X*{P_V, P_V (+) Q} at agreement n/2
+C: Lemma D on F_64: 44850 pairs of polynomial sections (agreements {23: 254, 27: 28, 31: 18}): squarefree part of P1 - P2 divides X*gcd(M1, M2) in all; 34715 pairs have a nontrivial square part
+D: Q8 on a random subspace (n = 64): all lines critical, 60 flats of codimension 2 are sections of E_theta2; F_4-subspace domain: 21 = (n-1)/3 F_4-hyperplane flats of degree <= 3, agreement 15, on E_4
+== 43_flat_sections.py
+# D = F_{2^N}: the dimension is a necklace count, the sections include the BCH (Gold) words
+field GF(2^4) N=4 n=16 j<=1: dim_F2 Lam_j = 6; polynomial sections of degree < n/4 by agreement: {7: 15, 5: 18}
+field GF(2^5) N=5 n=32 j<=2: dim_F2 Lam_j = 10; polynomial sections of degree < n/4 by agreement: {15: 31, 11: 186}
+field GF(2^6) N=6 n=64 j<=4: dim_F2 Lam_j = 15; polynomial sections of degree < n/4 by agreement: {31: 63, 27: 196, 23: 1890}
+field GF(2^7) N=7 n=128 j<=8: dim_F2 Lam_j = 21
+# leanVM shape span(1..x^(N-1)) and random subspaces in a larger field
+span  GF(2^8) N=4 n=16 j<=1: dim_F2 Lam_j = 4; polynomial sections of degree < n/4 by agreement: {7: 15}
+span  GF(2^8) N=5 n=32 j<=2: dim_F2 Lam_j = 7; polynomial sections of degree < n/4 by agreement: {15: 31, 11: 18}
+span  GF(2^16) N=5 n=32 j<=2: dim_F2 Lam_j = 5; polynomial sections of degree < n/4 by agreement: {15: 31}
+span  GF(2^16) N=6 n=64 j<=4: dim_F2 Lam_j = 6; polynomial sections of degree < n/4 by agreement: {31: 63}
+span  GF(2^16) N=7 n=128 j<=8: dim_F2 Lam_j = 12; polynomial sections of degree < n/4 by agreement: {63: 127, 47: 30}
+span  GF(2^16) N=8 n=256 j<=16: dim_F2 Lam_j = 20
+rand  GF(2^12) N=6 n=64 j<=4: dim_F2 Lam_j = 9; polynomial sections of degree < n/4 by agreement: {31: 63, 23: 30}
+rand  GF(2^16) N=7 n=128 j<=8: dim_F2 Lam_j = 12; polynomial sections of degree < n/4 by agreement: {63: 127, 47: 24}
+rand  GF(2^16) N=8 n=256 j<=16: dim_F2 Lam_j = 20
+== 43_flat_sections.py 7 7 field 4 14
+field GF(2^7) N=7 n=128 j<=4: dim_F2 Lam_j = 14; polynomial sections of degree < n/4 by agreement: {63: 127, 55: 3556}
+== 43_flat_K.py
+K = GF(2^64), D = span(1..x^4), n = 32: dim_F2 Lam_j  j<=0: 5, j<=1: 5, j<=2: 5   (all e_s nonzero: True; e_(N-1) = 0x0117177d7dd1d11a)
+K = GF(2^64), D = span(1..x^5), n = 64: dim_F2 Lam_j  j<=0: 6, j<=1: 6, j<=4: 6   (all e_s nonzero: True; e_(N-1) = 0x672125fa25fee261)
+K = GF(2^64), D = span(1..x^6), n = 128: dim_F2 Lam_j  j<=0: 7, j<=2: 7, j<=8: 7   (all e_s nonzero: True; e_(N-1) = 0xa0bce67befec7774)
+K = GF(2^64), D = span(1..x^7), n = 256: dim_F2 Lam_j  j<=0: 8, j<=4: 8, j<=16: 8   (all e_s nonzero: True; e_(N-1) = 0xf74384a1632e2e61)
+K = GF(2^64), D = span(1..x^8), n = 512: dim_F2 Lam_j  j<=0: 9, j<=8: 9, j<=32: 9   (all e_s nonzero: True; e_(N-1) = 0x78c545956288735e)
+K = GF(2^64), D = span(1..x^9), n = 1024: dim_F2 Lam_j  j<=0: 10, j<=16: 10, j<=64: 10   (all e_s nonzero: True; e_(N-1) = 0x07127fadbed94d3d)
+K = GF(2^64), D = span(1..x^10), n = 2048: dim_F2 Lam_j  j<=0: 11, j<=32: 11, j<=128: 11   (all e_s nonzero: True; e_(N-1) = 0x29c6e1b86b0f383f)
+K = GF(2^64), D = span(1..x^11), n = 4096: dim_F2 Lam_j  j<=0: 12, j<=64: 12, j<=256: 15   (all e_s nonzero: True; e_(N-1) = 0xae1524fedf1f8ebf)
+K = GF(2^64), D = span(1..x^12), n = 8192: dim_F2 Lam_j  j<=0: 13, j<=128: 13   (all e_s nonzero: True; e_(N-1) = 0xfae9d1d7a6760222)
+K = GF(2^64), D = span(1..x^13), n = 16384: dim_F2 Lam_j  j<=0: 14, j<=256: 14   (all e_s nonzero: True; e_(N-1) = 0x79b15be1c744ba91)
+== 43_gold_window.py 1000
+D = F_2^11, n = 2048: 257 polynomial sections of degree 495 < n/4 with agreement 991 = 0.4839 n from 1000 random lambda with deg 16; observed rate per section 0.129 (predicted 0.121); a_1 n = 960.1
+so the list of x^1023 at agreement 991 has about 2047*496 = 1015312 members against 2047 flats at 1023
+== 43_rate16_family.py 12
+n = 256: all 3840 pairs (mu0, mu1) give a polynomial section; 1280 distinct P (= (sqrt(n)-1) n/3 = 1280), degree 13 < 16, agreement 52 = 0.2031 n
+n = 4096: 12 random pairs, 12 distinct P, degree 244 < 256, agreement 976 = 0.2383 n > a_1(1/16) n = 893.3; predicted number of codewords (sqrt(n)-1) n/3 = 86016
+== 43_rates.py
+A. e*(rho, a) and the largest b of a smooth economical component (leading order)
+   rate 1/4: a = 0.4698  beta = 0.461  e* = 0.4668  2e*/rho - 2 = 1.734  b <= 1   queries ceil(108/log2(1/a)) = 100
+   rate 1/4: a = 0.4844  beta = 0.500  e* = 0.4444  2e*/rho - 2 = 1.555  b <= 1   queries ceil(108/log2(1/a)) = 104
+   rate 1/4: a = 0.4990  beta = 0.500  e* = 0.4296  2e*/rho - 2 = 1.436  b <= 1   queries ceil(108/log2(1/a)) = 108
+   rate 1/8: a = 0.3201  beta = 0.500  e* = 0.3246  2e*/rho - 2 = 3.194  b <= 3   queries ceil(108/log2(1/a)) = 66
+   rate 1/8: a = 0.3363  beta = 0.500  e* = 0.3073  2e*/rho - 2 = 2.917  b <= 2   queries ceil(108/log2(1/a)) = 69
+   rate 1/8: a = 0.3526  beta = 0.500  e* = 0.2918  2e*/rho - 2 = 2.668  b <= 2   queries ceil(108/log2(1/a)) = 72
+   rate 1/16: a = 0.2191  beta = 0.500  e* = 0.2304  2e*/rho - 2 = 5.372  b <= 5   queries ceil(108/log2(1/a)) = 50
+   rate 1/16: a = 0.2341  beta = 0.500  e* = 0.2146  2e*/rho - 2 = 4.867  b <= 4   queries ceil(108/log2(1/a)) = 52
+   rate 1/16: a = 0.2490  beta = 0.500  e* = 0.2009  2e*/rho - 2 = 4.427  b <= 4   queries ceil(108/log2(1/a)) = 54
+B. exact Lemma C on explicit first integrals (n = 2^20, Delta = k - 1, m in 60..600)
+   rate 1/8 C4  W/n = 0.6250  e = W/sum(o) = 0.3125 : a=0.3201: NOT CUT; a=0.3241: cut (240, 110); a=0.3291: cut (60, 21); a=0.3341: cut (60, 14); a=0.3391: cut (60, 10); a=0.3526: cut (60, 2)
+   rate 1/16 C4  W/n = 0.5625  e = W/sum(o) = 0.2812 : a=0.2191: cut (60, 11); a=0.2231: cut (60, 10); a=0.2281: cut (60, 8); a=0.2331: cut (60, 6); a=0.2381: cut (60, 4); a=0.2490: cut (60, 1)
+   rate 1/8 Q8  W/n = 0.6250  e = W/sum(o) = 0.3125 : a=0.3201: NOT CUT; a=0.3241: cut (240, 110); a=0.3291: cut (60, 21); a=0.3341: cut (60, 14); a=0.3391: cut (60, 10); a=0.3526: cut (60, 2)
+   rate 1/16 Q8  W/n = 0.5625  e = W/sum(o) = 0.2812 : a=0.2191: cut (60, 11); a=0.2231: cut (60, 10); a=0.2281: cut (60, 8); a=0.2331: cut (60, 6); a=0.2381: cut (60, 4); a=0.2490: cut (60, 1)
+   rate 1/8 R   W/n = 0.6250  e = W/sum(o) = 0.3125 : a=0.3201: NOT CUT; a=0.3241: cut (240, 110); a=0.3291: cut (60, 21); a=0.3341: cut (60, 14); a=0.3391: cut (60, 10); a=0.3526: cut (60, 2)
+   rate 1/16 R   W/n = 0.3125  e = W/sum(o) = 0.1562 : a=0.2191: NOT CUT; a=0.2231: NOT CUT; a=0.2281: NOT CUT; a=0.2331: NOT CUT; a=0.2381: NOT CUT; a=0.2490: NOT CUT
+C. n = 2^25, Delta = k + 5, a = a_1 + eps: factors with total contact <= 2n and W >= (b+2) Delta
+   rate 1/4, a = 0.4738, certificate (43,19), B_jet = 81: b=1: OPEN for W in [3, 3.675) Delta = [0.750, 0.919) n, cut from there by (258, 102); b=2: cut (110, 16); b=3: cut (106, 12); b=4: cut (104, 11); b=5: cut (104, 11); b=6: cut (106, 12); b=7: cut (106, 12); b=8: cut (106, 13); b=9: cut (106, 13); b=10: cut (108, 14); b=11: cut (108, 15); b=12: cut (110, 16); b=13: cut (112, 17); b=14: cut (112, 17); b=15: cut (112, 18); b=16: cut (114, 19); b=17: cut (114, 20); b=18: cut (116, 21); b=19: cut (116, 22)
+      leading coefficient in F[X], total contact <= 2n: cut for every b <= 19
+      largest multiplicity used 258: at most 488 members per unit of degree on a cut factor; constant term max((B_jet - t)^2 + max(488, B_jet/4) t) = 39528
+   rate 1/4, a = 0.4788, certificate (22,9), B_jet = 42: b=1: OPEN for W in [3, 3.598) Delta = [0.750, 0.900) n, cut from there by (132, 48); b=2: cut (55, 7); b=3: cut (53, 6); b=4: cut (53, 6); b=5: cut (55, 7); b=6: cut (55, 8); b=7: cut (55, 8); b=8: cut (57, 9); b=9: cut (57, 10)
+      leading coefficient in F[X], total contact <= 2n: cut for every b <= 9
+      largest multiplicity used 132: at most 252 members per unit of degree on a cut factor; constant term max((B_jet - t)^2 + max(252, B_jet/4) t) = 10584
+   rate 1/8, a = 0.3241, certificate (39,20), B_jet = 101: b=1: OPEN for W in [3, 4.986) Delta = [0.375, 0.623) n, cut from there by (234, 117); b=2: OPEN for W in [4, 4.705) Delta = [0.500, 0.588) n, cut from there by (234, 88); b=3: cut (76, 18); b=4: cut (74, 14); b=5: cut (72, 13); b=6: cut (72, 13); b=7: cut (72, 13); b=8: cut (74, 14); b=9: cut (74, 14); b=10: cut (74, 15); b=11: cut (74, 15); b=12: cut (74, 16); b=13: cut (76, 17); b=14: cut (76, 18); b=15: cut (76, 18); b=16: cut (76, 19); b=17: cut (78, 20); b=18: cut (78, 21); b=19: cut (78, 21); b=20: cut (78, 22)
+      leading coefficient in F[X], total contact <= 2n: cut for every b <= 20
+      largest multiplicity used 234: at most 606 members per unit of degree on a cut factor; constant term max((B_jet - t)^2 + max(606, B_jet/4) t) = 61206
+   rate 1/8, a = 0.3291, certificate (19,10), B_jet = 50: b=1: OPEN for W in [3, 4.854) Delta = [0.375, 0.607) n, cut from there by (114, 57); b=2: OPEN for W in [4, 4.460) Delta = [0.500, 0.558) n, cut from there by (114, 40); b=3: cut (36, 8); b=4: cut (36, 7); b=5: cut (36, 7); b=6: cut (36, 8); b=7: cut (36, 8); b=8: cut (38, 9); b=9: cut (38, 10); b=10: cut (38, 10)
+      leading coefficient in F[X], total contact <= 2n: cut for every b <= 10
+      largest multiplicity used 114: at most 300 members per unit of degree on a cut factor; constant term max((B_jet - t)^2 + max(300, B_jet/4) t) = 15000
+   rate 1/16, a = 0.2231, certificate (31,19), B_jet = 110: b=1: OPEN for W in [3, 6.849) Delta = [0.188, 0.428) n, cut from there by (186, 93); b=2: OPEN for W in [4, 6.382) Delta = [0.250, 0.399) n, cut from there by (186, 80); b=3: OPEN for W in [5, 5.759) Delta = [0.313, 0.360) n, cut from there by (186, 72); b=4: cut (50, 15); b=5: cut (50, 13); b=6: cut (48, 12); b=7: cut (48, 12); b=8: cut (50, 13); b=9: cut (50, 13); b=10: cut (50, 14); b=11: cut (50, 14); b=12: cut (50, 15); b=13: cut (50, 16); b=14: cut (50, 16); b=15: cut (50, 17); b=16: cut (52, 18); b=17: cut (52, 18); b=18: cut (52, 19); b=19: cut (52, 20)
+      leading coefficient in F[X], total contact <= 2n: cut for every b <= 19
+      largest multiplicity used 186: at most 663 members per unit of degree on a cut factor; constant term max((B_jet - t)^2 + max(663, B_jet/4) t) = 72930
+   rate 1/16, a = 0.2281, certificate (16,9), B_jet = 58: b=1: OPEN for W in [3, 6.580) Delta = [0.188, 0.411) n, cut from there by (96, 48); b=2: OPEN for W in [4, 5.928) Delta = [0.250, 0.370) n, cut from there by (96, 38); b=3: OPEN for W in [5, 5.076) Delta = [0.313, 0.317) n, cut from there by (96, 35); b=4: cut (25, 7); b=5: cut (25, 7); b=6: cut (25, 7); b=7: cut (27, 8); b=8: cut (27, 9); b=9: cut (27, 9)
+      leading coefficient in F[X], total contact <= 2n: cut for every b <= 9
+      largest multiplicity used 96: at most 350 members per unit of degree on a cut factor; constant term max((B_jet - t)^2 + max(350, B_jet/4) t) = 20300
+D. n = 2^25, Delta = k + 5: open window [lower, W0) in units of n, simple contact on x*n lines
+   rate 1/4, a = 0.4738, b = 1: x=0.6: closed; x=0.7: closed; x=0.8: closed; x=0.85: [0.750, 0.775); x=0.9: [0.750, 0.823); x=0.95: [0.750, 0.871); x=1.0: [0.750, 0.919)
+   rate 1/4, a = 0.4788, b = 1: x=0.6: closed; x=0.7: closed; x=0.8: closed; x=0.85: [0.750, 0.756); x=0.9: [0.750, 0.804); x=0.95: [0.750, 0.852); x=1.0: [0.750, 0.900)
+   rate 1/8, a = 0.3241, b = 1: x=0.6: closed; x=0.7: [0.375, 0.428); x=0.8: [0.375, 0.494); x=0.85: [0.375, 0.526); x=0.9: [0.375, 0.559); x=0.95: [0.399, 0.591); x=1.0: [0.449, 0.623)
+   rate 1/8, a = 0.3241, b = 2: x=0.6: closed; x=0.7: closed; x=0.8: closed; x=0.85: closed; x=0.9: [0.500, 0.520); x=0.95: [0.524, 0.554); x=1.0: [0.574, 0.588)
+   rate 1/8, a = 0.3291, b = 1: x=0.6: closed; x=0.7: [0.375, 0.412); x=0.8: [0.375, 0.478); x=0.85: [0.375, 0.510); x=0.9: [0.375, 0.543); x=0.95: [0.404, 0.575); x=1.0: [0.454, 0.607)
+   rate 1/8, a = 0.3291, b = 2: x=0.6: closed; x=0.7: closed; x=0.8: closed; x=0.85: closed; x=0.9: closed; x=0.95: closed; x=1.0: closed
+   rate 1/16, a = 0.2231, b = 1: x=0.6: [0.188, 0.246); x=0.7: [0.188, 0.291); x=0.8: [0.188, 0.337); x=0.85: [0.188, 0.360); x=0.9: [0.188, 0.382); x=0.95: [0.236, 0.405); x=1.0: [0.286, 0.428)
+   rate 1/16, a = 0.2231, b = 2: x=0.6: closed; x=0.7: [0.250, 0.256); x=0.8: [0.250, 0.304); x=0.85: [0.250, 0.328); x=0.9: [0.250, 0.351); x=0.95: [0.298, 0.375); x=1.0: [0.348, 0.399)
+   rate 1/16, a = 0.2231, b = 3: x=0.6: closed; x=0.7: closed; x=0.8: closed; x=0.85: closed; x=0.9: closed; x=0.95: closed; x=1.0: closed
+   rate 1/16, a = 0.2281, b = 1: x=0.6: [0.188, 0.231); x=0.7: [0.188, 0.277); x=0.8: [0.188, 0.322); x=0.85: [0.188, 0.344); x=0.9: [0.191, 0.366); x=0.95: [0.241, 0.389); x=1.0: [0.291, 0.411)
+   rate 1/16, a = 0.2281, b = 2: x=0.6: closed; x=0.7: closed; x=0.8: [0.250, 0.275); x=0.85: [0.250, 0.299); x=0.9: [0.253, 0.323); x=0.95: [0.303, 0.347); x=1.0: [0.353, 0.370)
+   rate 1/16, a = 0.2281, b = 3: x=0.6: closed; x=0.7: closed; x=0.8: closed; x=0.85: closed; x=0.9: closed; x=0.95: closed; x=1.0: closed

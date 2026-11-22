@@ -1,0 +1,149 @@
+list size M = 2^64, failure probability 2^-100, analysis degree < k + ell
+columns: Johnson agreement (queries) | Theorem A: tau (members t, queries) | Theorem B: tau (t, queries)
+queries = ceil(108 / log2(1/tau))
+
+== T1. level 0, mu = 30: k = 2^24, K-valued lanes, ell = 6 ==
+| rate 2^-1, points in K, sampled from 2^64 | 0.7071 (217) | 0.7150 (t=3, q=224) | 0.6844 (t=4, q=198) |
+| rate 2^-1, points in E, code over E | 0.7071 (217) | 0.6388 (t=6, q=168) | 0.6654 (t=4, q=184) |
+| rate 2^-1, points in E minus K, polynomials over K | 0.5000 (109) | none | 0.4368 (t=5, q=91) |
+| rate 2^-2, points in K, sampled from 2^64 | 0.5000 (109) | 0.5118 (t=3, q=112) | 0.4622 (t=5, q=98) |
+| rate 2^-2, points in E, code over E | 0.5000 (109) | 0.4224 (t=7, q=87) | 0.4368 (t=5, q=91) |
+| rate 2^-2, points in E minus K, polynomials over K | 0.3536 (73) | none | 0.2803 (t=8, q=59) |
+| rate 2^-3, points in K, sampled from 2^64 | 0.3536 (73) | 0.3700 (t=3, q=76) | 0.3079 (t=7, q=64) |
+| rate 2^-3, points in E, code over E | 0.3536 (73) | 0.2920 (t=6, q=61) | 0.2803 (t=8, q=59) |
+| rate 2^-3, points in E minus K, polynomials over K | 0.2500 (55) | none | 0.1742 (t=12, q=43) |
+| rate 2^-4, points in K, sampled from 2^64 | 0.2500 (55) | 0.2697 (t=3, q=58) | 0.2007 (t=10, q=47) |
+| rate 2^-4, points in E, code over E | 0.2500 (55) | 0.2055 (t=6, q=48) | 0.1742 (t=12, q=43) |
+| rate 2^-4, points in E minus K, polynomials over K | 0.1768 (44) | none | 0.1043 (t=16, q=34) |
+
+== T2. later levels of the mu = 30, R = 1 ladder: k = 2^(24-4i), n = 2^(25-i), E-valued lanes, ell = 4 ==
+| level 1, rate 2^-4, points in K | 0.2500 (55) | 0.2617 (t=3, q=56) | 0.1946 (t=10, q=46) |
+| level 1, rate 2^-4, points in E | 0.2500 (55) | 0.2031 (t=6, q=47) | 0.1714 (t=12, q=43) |
+| level 2, rate 2^-7, points in K | 0.0884 (31) | 0.0989 (t=3, q=33) | 0.0425 (t=32, q=24) |
+| level 2, rate 2^-7, points in E | 0.0884 (31) | 0.0737 (t=5, q=29) | 0.0350 (t=32, q=23) |
+| level 3, rate 2^-10, points in K | 0.0313 (22) | 0.0379 (t=3, q=23) | 0.0089 (t=80, q=16) |
+| level 3, rate 2^-10, points in E | 0.0313 (22) | 0.0276 (t=5, q=21) | 0.0073 (t=80, q=16) |
+| level 4, rate 2^-13, points in K | 0.0111 (17) | 0.0146 (t=3, q=18) | 0.0020 (t=160, q=13) |
+| level 4, rate 2^-13, points in E | 0.0111 (17) | 0.0103 (t=4, q=17) | 0.0016 (t=256, q=12) |
+| level 5, rate 2^-16, points in K | 0.0043 (14) | 0.0061 (t=3, q=15) | 0.0005 (t=384, q=10) |
+| level 5, rate 2^-16, points in E | 0.0043 (14) | 0.0042 (t=4, q=14) | 0.0004 (t=256, q=10) |
+
+== T3. level 0, sampling set of size 2^b inside a field of 2^b elements ==
+| rate 2^-1, b = 48 | 0.7071 (217) | 0.7733 (t=3, q=292) | 0.6966 (t=4, q=208) |
+| rate 2^-1, b = 80 | 0.7071 (217) | 0.6865 (t=4, q=200) | 0.6769 (t=4, q=192) |
+| rate 2^-1, b = 96 | 0.7071 (217) | 0.6659 (t=5, q=185) | 0.6718 (t=4, q=189) |
+| rate 2^-1, b = 192 | 0.7071 (217) | 0.6092 (t=8, q=152) | 0.6590 (t=4, q=180) |
+| rate 2^-1, b = 256 | 0.7071 (217) | 0.5927 (t=10, q=144) | 0.6558 (t=4, q=178) |
+| rate 2^-2, b = 48 | 0.5000 (109) | 0.5898 (t=3, q=142) | 0.4792 (t=5, q=102) |
+| rate 2^-2, b = 80 | 0.5000 (109) | 0.4803 (t=4, q=103) | 0.4520 (t=5, q=95) |
+| rate 2^-2, b = 96 | 0.5000 (109) | 0.4562 (t=5, q=96) | 0.4452 (t=5, q=93) |
+| rate 2^-2, b = 192 | 0.5000 (109) | 0.3842 (t=10, q=79) | 0.4286 (t=5, q=89) |
+| rate 2^-2, b = 256 | 0.5000 (109) | 0.3628 (t=12, q=74) | 0.4245 (t=5, q=88) |
+| rate 2^-3, b = 48 | 0.3536 (73) | 0.4551 (t=3, q=96) | 0.3269 (t=7, q=67) |
+| rate 2^-3, b = 80 | 0.3536 (73) | 0.3425 (t=4, q=70) | 0.2967 (t=7, q=62) |
+| rate 2^-3, b = 96 | 0.3536 (73) | 0.3220 (t=5, q=67) | 0.2893 (t=7, q=61) |
+| rate 2^-3, b = 192 | 0.3536 (73) | 0.2564 (t=10, q=55) | 0.2713 (t=8, q=58) |
+| rate 2^-3, b = 256 | 0.3536 (73) | 0.2353 (t=13, q=52) | 0.2669 (t=8, q=57) |
+| rate 2^-4, b = 48 | 0.2500 (55) | 0.3566 (t=3, q=73) | 0.2205 (t=10, q=50) |
+| rate 2^-4, b = 80 | 0.2500 (55) | 0.2469 (t=3, q=54) | 0.1897 (t=10, q=46) |
+| rate 2^-4, b = 96 | 0.2500 (55) | 0.2289 (t=4, q=51) | 0.1827 (t=12, q=45) |
+| rate 2^-4, b = 192 | 0.2500 (55) | 0.1779 (t=9, q=44) | 0.1659 (t=12, q=42) |
+| rate 2^-4, b = 256 | 0.2500 (55) | 0.1610 (t=12, q=41) | 0.1622 (t=12, q=42) |
+
+== T4. Theorem A at level 0 with points in K: log2 of the bound at the Johnson agreement ==
+rate 2^-1: +0.3171 n bits (best t = 3); a negative value is needed
+rate 2^-2: +0.3476 n bits (best t = 3); a negative value is needed
+rate 2^-3: +0.3427 n bits (best t = 3); a negative value is needed
+rate 2^-4: +0.2862 n bits (best t = 3); a negative value is needed
+
+== T6. Theorem B_w: union of n/w cosets of a fixed subspace of size w, random representatives in K ==
+smallest tau (queries) for w = 2, 4, 16, 64
+| level 0 rate 2^-1 | 0.7071 (217) | none | none | none | none |
+| level 0 rate 2^-2 | 0.5000 (109) | none | none | none | none |
+| level 0 rate 2^-3 | 0.3536 (73) | none | none | none | none |
+| level 0 rate 2^-4 | 0.2500 (55) | none | none | none | none |
+| level 1 rate 2^-4 | 0.2500 (55) | none | none | none | none |
+| level 2 rate 2^-7 | 0.0884 (31) | 0.0666 (28) | 0.0854 (31) | none | none |
+| level 3 rate 2^-10 | 0.0313 (22) | 0.0133 (18) | 0.0199 (20) | none | none |
+| level 4 rate 2^-13 | 0.0111 (17) | 0.0028 (13) | 0.0042 (14) | 0.0090 (16) | none |
+| level 5 rate 2^-16 | 0.0043 (14) | 0.0007 (11) | 0.0010 (11) | 0.0023 (13) | - |
+
+== T7. Theorem B, level 0: n random points of a subspace of size 2^c n of K (a longer NTT, then puncture) ==
+rate 2^-1 (Johnson 0.7071, 217): c=1: none, c=2: none, c=4: none, c=8: none, c=12: none, c=16: 0.7059 (215), c=24: 0.6986 (209)
+rate 2^-2 (Johnson 0.5000, 109): c=1: none, c=2: none, c=4: none, c=8: none, c=12: 0.4981 (108), c=16: 0.4927 (106), c=24: 0.4817 (103)
+rate 2^-3 (Johnson 0.3536, 73): c=1: none, c=2: none, c=4: none, c=8: none, c=12: 0.3485 (72), c=16: 0.3419 (70), c=24: 0.3288 (68)
+rate 2^-4 (Johnson 0.2500, 55): c=1: none, c=2: none, c=4: none, c=8: 0.2494 (54), c=12: 0.2420 (53), c=16: 0.2348 (52), c=24: 0.2207 (50)
+
+== T5. HEURISTIC, NOT A THEOREM: regular lists, sequential multi-parent count (note 36 section 6) ==
+level 0 rate 2^-1, points in K: tau = 0.6651 (184 queries)
+level 0 rate 2^-1, points in E: tau = 0.6183 (156 queries)
+level 0 rate 2^-2, points in K: tau = 0.4046 (83 queries)
+level 0 rate 2^-2, points in E: tau = 0.3488 (72 queries)
+level 0 rate 2^-3, points in K: tau = 0.2341 (52 queries)
+level 0 rate 2^-3, points in E: tau = 0.19 (46 queries)
+level 0 rate 2^-4, points in K: tau = 0.1332 (38 queries)
+level 0 rate 2^-4, points in E: tau = 0.1013 (33 queries)
+level 1 rate 2^-4, points in K: tau = 0.12604 (37 queries)
+level 1 rate 2^-4, points in E: tau = 0.09965 (33 queries)
+level 2 rate 2^-7, points in K: tau = 0.01965 (20 queries)
+level 2 rate 2^-7, points in E: tau = 0.01382 (18 queries)
+level 3 rate 2^-10, points in K: tau = 0.00346 (14 queries)
+level 3 rate 2^-10, points in E: tau = 0.00292 (13 queries)
+level 4 rate 2^-13, points in K: tau = 0.0011 (11 queries)
+level 4 rate 2^-13, points in E: tau = 0.00094 (11 queries)
+level 5 rate 2^-16, points in K: tau = 0.00037 (10 queries)
+level 5 rate 2^-16, points in E: tau = 0.00032 (10 queries)
+
+#### 36_literature.py
+smallest agreement tau given by the printed statements (None: no admissible parameter)
+
+rate 2^-1, Johnson 0.7071
+  field 2^64: AGGLZ Thm 1.1 None | AGGLZ ineq. (3.7) 0.8351 (L or c = 2) | GZ Thm 4.7 0.8500 (L or c = 1) | LMS Cor 3.12 None | FKS Thm 3 None
+  field 2^128: AGGLZ Thm 1.1 0.7949 (L or c = 2) | AGGLZ ineq. (3.7) 0.7047 (L or c = 4) | GZ Thm 4.7 0.7350 (L or c = 2) | LMS Cor 3.12 0.8021 (L or c = 1) | FKS Thm 3 None
+
+rate 2^-2, Johnson 0.5000
+  field 2^64: AGGLZ Thm 1.1 0.8333 (L or c = 2) | AGGLZ ineq. (3.7) 0.6684 (L or c = 2) | GZ Thm 4.7 0.7321 (L or c = 1) | LMS Cor 3.12 0.8902 (L or c = 1) | FKS Thm 3 None
+  field 2^128: AGGLZ Thm 1.1 0.6282 (L or c = 2) | AGGLZ ineq. (3.7) 0.5038 (L or c = 5) | GZ Thm 4.7 0.5693 (L or c = 2) | LMS Cor 3.12 0.6771 (L or c = 1) | FKS Thm 3 None
+
+rate 2^-3, Johnson 0.3536
+  field 2^64: AGGLZ Thm 1.1 0.7500 (L or c = 2) | AGGLZ ineq. (3.7) 0.5851 (L or c = 2) | GZ Thm 4.7 0.6779 (L or c = 1) | LMS Cor 3.12 0.8277 (L or c = 1) | FKS Thm 3 None
+  field 2^128: AGGLZ Thm 1.1 0.5449 (L or c = 2) | AGGLZ ineq. (3.7) 0.3996 (L or c = 5) | GZ Thm 4.7 0.4868 (L or c = 2) | LMS Cor 3.12 0.6146 (L or c = 1) | FKS Thm 3 None
+
+rate 2^-4, Johnson 0.2500
+  field 2^64: AGGLZ Thm 1.1 0.7083 (L or c = 2) | AGGLZ ineq. (3.7) 0.5429 (L or c = 3) | GZ Thm 4.7 0.6562 (L or c = 1) | LMS Cor 3.12 0.7964 (L or c = 1) | FKS Thm 3 None
+  field 2^128: AGGLZ Thm 1.1 0.5032 (L or c = 2) | AGGLZ ineq. (3.7) 0.3475 (L or c = 5) | GZ Thm 4.7 0.4461 (L or c = 2) | LMS Cor 3.12 0.5775 (L or c = 2) | FKS Thm 3 None
+
+Rudra-Wootters Corollary 2 (absolute constant C0 unspecified in the paper; C0 = 1 is the most favourable reading):
+  field 2^64: 5 eps < sqrt(rate) needs eps <= 2^-37.9, rate <= 2^-71.1
+  field 2^128: 5 eps < sqrt(rate) needs eps <= 2^-39.2, rate <= 2^-73.6
+
+Ferber-Kwan-Sauermann Theorem 3 below Johnson: needs 3 c rho < sqrt(rho) and 1/rho <= sqrt(log2(q) c / 8), c >= 5,
+  i.e. log2 q >= 8 / (c rho^2) with rho < 1 / (9 c^2): log2 q >= 648 c^3 >= 81000
+
+#### 36_cost.py
+| level | kappa | share of level-0 words | random points, x own NTT (low to high) | in level-0 NTTs | cosets of 4 | cosets of 16 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 0 | 24 | 1.0000 | 53 to 106 | 53.17 to 105.67 | 45 | 38 |
+| 1 | 20 | 0.2500 | 45 to 89 | 11.25 to 22.30 | 37 | 30 |
+| 2 | 16 | 0.1250 | 37 to 72 | 4.59 to 9.06 | 29 | 22 |
+| 3 | 12 | 0.0625 | 28 to 55 | 1.77 to 3.46 | 20 | 13 |
+| 4 | 8 | 0.0312 | 20 to 37 | 0.61 to 1.16 | 11 | 4 |
+| 5 | 4 | 0.0156 | 8 to 8 | 0.12 to 0.12 | 2 | nan |
+
+precomputed tree, kappa field elements per point (read once per lane):
+  level 0: 6.00 GiB for points in K
+  level 1: 2.50 GiB for points in K
+  level 2: 1.00 GiB for points in K
+  level 3: 0.38 GiB for points in K
+  level 4: 0.12 GiB for points in K
+  level 5: 0.03 GiB for points in K
+
+#### 36_star_check.py
+p=5 k=2 n=4 t=3: 40 random set systems, count <= bound in all
+p=5 k=2 n=5 t=3: 25 random set systems, count <= bound in all
+p=7 k=2 n=4 t=3: 25 random set systems, count <= bound in all
+p=5 k=2 n=4 t=4: 12 random set systems, count <= bound in all
+p=5 k=3 n=5 t=3: 10 random set systems, count <= bound in all
+p=7 k=3 n=5 t=3: 3 random set systems, count <= bound in all
+115 cases, 71 with a bound below the number of tuples, largest count/bound = 0.0384
+averaging lemma: 400 random column-count profiles, exact expectation >= bound in all (smallest slack 2.544)

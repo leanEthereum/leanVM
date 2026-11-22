@@ -1,0 +1,42 @@
+160 patterns of 83_tmp/n8_lists4.txt; (members, min agreement, ((d_j for N = n..2), max beta_l(8), max nu_l(i)/2^i below scale 8), (C*) ok at every level, coarsest scale with c_j < e): count
+   (4, 5, ((1, 2, 3), 0, 0.0), True, 8) : 96
+   (4, 5, ((1, 3, 3), 0, 0.0), True, 8) : 64
+162 patterns of 76_tmp/n16_orbits5.txt; (members, min agreement, ((d_j for N = n..2), max beta_l(8), max nu_l(i)/2^i below scale 8), (C*) ok at every level, coarsest scale with c_j < e): count
+   (5, 10, ((1, 1, 3, 4), 1, 1.0), True, 8) : 31
+   (5, 10, ((1, 1, 4, 4), 1, 1.0), True, 8) : 54
+   (5, 10, ((1, 1, 5, 4), 1, 1.0), True, 8) : 15
+   (5, 10, ((1, 1, 6, 4), 1, 1.0), True, 8) : 28
+   (5, 10, ((1, 2, 3, 4), 3, 3.0), True, 16) : 22
+   (5, 10, ((1, 2, 4, 4), 3, 3.0), True, 16) : 12
+6 patterns of 83_tmp/votes_c8_b2.txt; (members, min agreement, ((d_j for N = n..2), max beta_l(8), max nu_l(i)/2^i below scale 8), (C*) ok at every level, coarsest scale with c_j < e): count
+   (5, 10, ((1, 1, 4, 4), 1, 1.0), True, 8) : 1
+   (5, 10, ((1, 1, 5, 4), 1, 1.0), True, 8) : 2
+   (6, 9, ((1, 1, 5, 5), 1, 1.0), True, 16) : 2
+   (6, 9, ((1, 1, 6, 5), 1, 1.0), True, 16) : 1
+12 patterns of 83_tmp/votes_c8_b4.txt; (members, min agreement, ((d_j for N = n..2), max beta_l(8), max nu_l(i)/2^i below scale 8), (C*) ok at every level, coarsest scale with c_j < e): count
+   (5, 20, ((1, 1, 1, 5, 4), 3, 1.0), True, 8) : 2
+   (5, 20, ((1, 1, 1, 6, 4), 3, 1.0), True, 8) : 2
+   (6, 20, ((1, 1, 1, 4, 5), 3, 1.0), True, 8) : 1
+   (6, 20, ((1, 1, 1, 5, 5), 3, 1.0), True, 8) : 2
+   (6, 20, ((1, 1, 1, 6, 5), 3, 1.0), True, 8) : 2
+   (6, 20, ((1, 1, 1, 7, 5), 3, 1.0), True, 8) : 3
+8 patterns of 83_tmp/votes_c8_b4_m7.txt; (members, min agreement, ((d_j for N = n..2), max beta_l(8), max nu_l(i)/2^i below scale 8), (C*) ok at every level, coarsest scale with c_j < e): count
+   (7, 20, ((1, 1, 1, 5, 6), 3, 1.0), True, 8) : 4
+   (7, 20, ((1, 1, 1, 6, 6), 3, 1.0), True, 8) : 1
+   (7, 20, ((1, 1, 1, 7, 6), 3, 1.0), True, 8) : 2
+   (7, 20, ((1, 1, 1, 8, 6), 3, 1.0), True, 8) : 1
+2 patterns of 83_tmp/votes_c8_b8.txt; (members, min agreement, ((d_j for N = n..2), max beta_l(8), max nu_l(i)/2^i below scale 8), (C*) ok at every level, coarsest scale with c_j < e): count
+   (11, 39, ((1, 1, 1, 1, 13, 10), 7, 1.0), True, 16) : 1
+   (12, 39, ((1, 1, 1, 1, 10, 11), 7, 1.0), True, 16) : 1
+12 patterns of 83_tmp/votes_c16_b2.txt; (members, min agreement, ((d_j for N = n..2), max beta_l(8), max nu_l(i)/2^i below scale 8), (C*) ok at every level, coarsest scale with c_j < e): count
+   (6, 19, ((1, 1, 8, 9, 5), 17, 8.0), True, 16) : 1
+   (6, 19, ((1, 1, 10, 9, 5), 17, 8.0), True, 16) : 1
+   (6, 19, ((1, 1, 12, 10, 5), 19, 9.0), True, 16) : 1
+   (6, 20, ((1, 1, 3, 8, 5), 11, 5.0), True, 16) : 1
+   (7, 17, ((1, 1, 11, 11, 6), 19, 9.0), True, 32) : 1
+   (7, 18, ((1, 1, 11, 10, 6), 21, 10.0), True, 16) : 1
+   (7, 18, ((1, 1, 16, 12, 6), 19, 9.0), True, 16) : 1
+   (7, 19, ((1, 1, 10, 10, 6), 17, 8.0), True, 16) : 1
+   (8, 18, ((1, 1, 15, 13, 7), 19, 9.0), True, 16) : 1
+   (8, 18, ((1, 1, 18, 14, 7), 19, 9.0), True, 16) : 1
+   (8, 19, ((1, 1, 7, 12, 7), 17, 8.0), True, 16) : 2

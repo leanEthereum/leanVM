@@ -1,0 +1,1625 @@
+=== python3 54_lemmaB_thm4.py
+hand example E = X^3 Y at the point (0, 0), Delta = 5: contact order 4, W = 8, Res_Y(E_Y, E_X) = X^3, D_a = 0, D_c = 1:
+    o^2 - o - 1 = 11 > D_c (W - Delta) + D_a W - Delta D_a D_c = 3: the inequality of Lemma B fails without primitivity
+
+H1: n = 16, Delta = 8, random points, word rand, imposed j = 2222222222222222, shape K<=2, D_c<=5: 112 conditions, W_min = 46 (nullity 5)  [0.1 s]
+    W_min+0: W = 46, D_a = 4, D_c = 5, profile 16x(j=2); deg Res = 214 <= 214; sum(o^2-o-1) = 176; local orders equal to the bound at 16 of 16 contained lines; deg det E = 36 <= 36.5; sum(3j-4) = 32; orders equal to 3j-4 at 16 of 16 lines
+    W_min+2a: W = 48, D_a = 4, D_c = 5, profile 16x(j=2); deg Res = 232 <= 232; sum(o^2-o-1) = 176; local orders equal to the bound at 16 of 16 contained lines; deg det E = 39 <= 39.5; sum(3j-4) = 32; orders equal to 3j-4 at 16 of 16 lines
+    W_min+2b: W = 48, D_a = 4, D_c = 5, profile 16x(j=2); deg Res = 232 <= 232; sum(o^2-o-1) = 176; local orders equal to the bound at 16 of 16 contained lines; deg det E = 39 <= 39.5; sum(3j-4) = 32; orders equal to 3j-4 at 16 of 16 lines
+H2: n = 16, Delta = 7, subspace points, word rand, imposed j = 2222222222222222, shape K<=2, D_c<=5: 112 conditions, W_min = 43 (nullity 2)  [0.1 s]
+    W_min+0: W = 43, D_a = 4, D_c = 5, profile 16x(j=2); deg Res = 208 <= 212; sum(o^2-o-1) = 176; local orders equal to the bound at 16 of 16 contained lines; deg det E = 35 <= 36.0; sum(3j-4) = 32; orders equal to 3j-4 at 16 of 16 lines
+    W_min+2a: W = 45, D_a = 4, D_c = 5, profile 16x(j=2); deg Res = 226 <= 230; sum(o^2-o-1) = 176; local orders equal to the bound at 16 of 16 contained lines; deg det E = 38 <= 39.0; sum(3j-4) = 32; orders equal to 3j-4 at 16 of 16 lines
+    W_min+2b: W = 45, D_a = 4, D_c = 5, profile 16x(j=2); deg Res = 226 <= 230; sum(o^2-o-1) = 176; local orders equal to the bound at 16 of 16 contained lines; deg det E = 38 <= 39.0; sum(3j-4) = 32; orders equal to 3j-4 at 16 of 16 lines
+H3: n = 16, Delta = 7, subspace points, word mono11, imposed j = 2222222222222222, shape K<=2, D_c<=5: 112 conditions, W_min = 42 (nullity 1)  [0.1 s]
+    W_min+0: dE has content of degree 2 in X (W = 42); BEFORE division the inequality of Lemma B holds (sum = 176, bound 203); analysing the primitive part
+    W_min+0: W = 40, D_a = 4, D_c = 5, profile 1x(j=1) 15x(j=2); deg Res = 185 <= 185; sum(o^2-o-1) = 166; local orders equal to the bound at 15 of 16 contained lines; det E = 0 (degenerate)
+    W_min+2a: W = 44, D_a = 4, D_c = 5, profile 16x(j=2); deg Res = 221 <= 221; sum(o^2-o-1) = 176; local orders equal to the bound at 16 of 16 contained lines; deg det E = 37 <= 37.5; sum(3j-4) = 32; orders equal to 3j-4 at 16 of 16 lines
+    W_min+2b: W = 44, D_a = 4, D_c = 5, profile 16x(j=2); deg Res = 221 <= 221; sum(o^2-o-1) = 176; local orders equal to the bound at 16 of 16 contained lines; deg det E = 37 <= 37.5; sum(3j-4) = 32; orders equal to 3j-4 at 16 of 16 lines
+Q1: n = 8, Delta = 4, random points, word rand, imposed j = 33222110, shape K<=2, D_c<=5: 55 conditions, W_min = 22 (nullity 2)  [0.0 s]
+    W_min+0: W = 22, D_a = 4, D_c = 5, profile 1x(j=0) 2x(j=1) 3x(j=2) 2x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2a: W = 24, D_a = 4, D_c = 5, profile 1x(j=0) 2x(j=1) 3x(j=2) 2x(j=3); deg Res = 116 <= 116; sum(o^2-o-1) = 93; local orders equal to the bound at 7 of 7 contained lines; deg det E = 19 <= 19.5; sum(3j-4) = 16; orders equal to 3j-4 at 5 of 5 lines
+    W_min+2b: W = 24, D_a = 4, D_c = 5, profile 1x(j=0) 2x(j=1) 3x(j=2) 2x(j=3); deg Res = 116 <= 116; sum(o^2-o-1) = 93; local orders equal to the bound at 7 of 7 contained lines; deg det E = 19 <= 19.5; sum(3j-4) = 16; orders equal to 3j-4 at 5 of 5 lines
+Q2: n = 8, Delta = 3, random points, word rand, imposed j = 43221100, shape K<=2, D_c<=5: 59 conditions, W_min = 20 (nullity 3)  [0.0 s]
+    W_min+0: dE has content of degree 2 in X (W = 20); analysing the primitive part
+    W_min+0: W = 18, D_a = 4, D_c = 5, profile 2x(j=0) 2x(j=1) 2x(j=2) 2x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2a: dE has content of degree 2 in X (W = 22); BEFORE division the inequality of Lemma B holds (sum = 108, bound 123); analysing the primitive part
+    W_min+2a: W = 20, D_a = 4, D_c = 5, profile 2x(j=0) 2x(j=1) 2x(j=2) 2x(j=3); deg Res = 105 <= 105; sum(o^2-o-1) = 82; local orders equal to the bound at 6 of 6 contained lines; deg det E = 17 <= 17.5; sum(3j-4) = 14; orders equal to 3j-4 at 4 of 4 lines
+    W_min+2b: dE has content of degree 2 in X (W = 22); BEFORE division the inequality of Lemma B holds (sum = 108, bound 123); analysing the primitive part
+    W_min+2b: W = 20, D_a = 4, D_c = 5, profile 2x(j=0) 2x(j=1) 2x(j=2) 2x(j=3); deg Res = 105 <= 105; sum(o^2-o-1) = 82; local orders equal to the bound at 6 of 6 contained lines; deg det E = 17 <= 17.5; sum(3j-4) = 14; orders equal to 3j-4 at 4 of 4 lines
+Q3: n = 6, Delta = 3, random points, word rand, imposed j = 543221, shape K<=2, D_c<=5: 97 conditions, W_min = 27 (nullity 2)  [0.0 s]
+    W_min+0: dE has content of degree 6 in X (W = 27); analysing the primitive part
+    W_min+0: W = 21, D_a = 4, D_c = 5, profile 1x(j=1) 2x(j=2) 3x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2a: dE has content of degree 6 in X (W = 29); BEFORE division the inequality of Lemma B FAILS (sum = 196, bound 186); analysing the primitive part
+    W_min+2a: W = 23, D_a = 4, D_c = 5, profile 1x(j=1) 2x(j=2) 3x(j=3); deg Res = 128 <= 132; sum(o^2-o-1) = 110; local orders equal to the bound at 6 of 6 contained lines; deg det E = 21 <= 22.0; sum(3j-4) = 19; orders equal to 3j-4 at 5 of 5 lines
+    W_min+2b: dE has content of degree 6 in X (W = 29); BEFORE division the inequality of Lemma B FAILS (sum = 196, bound 186); analysing the primitive part
+    W_min+2b: W = 23, D_a = 4, D_c = 5, profile 1x(j=1) 2x(j=2) 3x(j=3); deg Res = 128 <= 132; sum(o^2-o-1) = 110; local orders equal to the bound at 6 of 6 contained lines; deg det E = 21 <= 22.0; sum(3j-4) = 19; orders equal to 3j-4 at 5 of 5 lines
+Q4: n = 4, Delta = 3, random points, word rand, imposed j = 4444, shape K<=2, D_c<=5: 104 conditions, W_min = 27 (nullity 1)  [0.0 s]
+    W_min+0: dE has content of degree 8 in X (W = 27); analysing the primitive part
+    W_min+0: W = 19, D_a = 4, D_c = 5, profile 4x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2a: dE has content of degree 8 in X (W = 29); analysing the primitive part
+    W_min+2a: W = 21, D_a = 4, D_c = 5, profile 4x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2b: dE has content of degree 8 in X (W = 29); analysing the primitive part
+    W_min+2b: W = 21, D_a = 4, D_c = 5, profile 4x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+Q5: n = 4, Delta = 2, random points, word rand, imposed j = 5543, shape K<=2, D_c<=5: 121 conditions, W_min = 28 (nullity 3)  [0.1 s]
+    W_min+0: dE has content of degree 10 in X (W = 28); analysing the primitive part
+    W_min+0: W = 18, D_a = 4, D_c = 5, profile 4x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2a: dE has content of degree 10 in X (W = 30); BEFORE division the inequality of Lemma B FAILS (sum = 262, bound 220); analysing the primitive part
+    W_min+2a: W = 20, D_a = 4, D_c = 5, profile 4x(j=3); deg Res = 130 <= 130; sum(o^2-o-1) = 116; local orders equal to the bound at 4 of 4 contained lines; deg det E = 21 <= 21.5; sum(3j-4) = 20; orders equal to 3j-4 at 4 of 4 lines
+    W_min+2b: dE has content of degree 10 in X (W = 30); BEFORE division the inequality of Lemma B FAILS (sum = 262, bound 220); analysing the primitive part
+    W_min+2b: W = 20, D_a = 4, D_c = 5, profile 4x(j=3); deg Res = 130 <= 130; sum(o^2-o-1) = 116; local orders equal to the bound at 4 of 4 contained lines; deg det E = 21 <= 21.5; sum(3j-4) = 20; orders equal to 3j-4 at 4 of 4 lines
+Q6: n = 8, Delta = 4, subspace points, word rand, imposed j = 33333333, shape K<=2, D_c<=5: 120 conditions, W_min = 37 (nullity 3)  [0.1 s]
+    W_min+0: W = 37, D_a = 4, D_c = 5, profile 8x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2a: W = 39, D_a = 4, D_c = 5, profile 8x(j=3); deg Res = 247 <= 251; sum(o^2-o-1) = 232; local orders equal to the bound at 8 of 8 contained lines; deg det E = 41 <= 42.0; sum(3j-4) = 40; orders equal to 3j-4 at 8 of 8 lines
+    W_min+2b: W = 39, D_a = 4, D_c = 5, profile 8x(j=3); deg Res = 247 <= 251; sum(o^2-o-1) = 232; local orders equal to the bound at 8 of 8 contained lines; deg det E = 41 <= 42.0; sum(3j-4) = 40; orders equal to 3j-4 at 8 of 8 lines
+Q7: n = 8, Delta = 4, random points, word plant2, imposed j = 22322231, shape K<=2, D_c<=5: 67 conditions, W_min = 25 (nullity 2)  [0.0 s]
+    W_min+0: W = 25, D_a = 4, D_c = 5, profile 1x(j=1) 5x(j=2) 2x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2a: W = 27, D_a = 4, D_c = 5, profile 1x(j=1) 5x(j=2) 2x(j=3); deg Res = 139 <= 143; sum(o^2-o-1) = 114; local orders equal to the bound at 8 of 8 contained lines; deg det E = 23 <= 24.0; sum(3j-4) = 20; orders equal to 3j-4 at 7 of 7 lines
+    W_min+2b: W = 27, D_a = 4, D_c = 5, profile 1x(j=1) 5x(j=2) 2x(j=3); deg Res = 139 <= 143; sum(o^2-o-1) = 114; local orders equal to the bound at 8 of 8 contained lines; deg det E = 23 <= 24.0; sum(3j-4) = 20; orders equal to 3j-4 at 7 of 7 lines
+Q8: n = 8, Delta = 4, random points, word zero, imposed j = 22222222, shape K<=2, D_c<=5: 56 conditions, W_min = 16 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: E_Y = 0 (b = 0), skipped
+    W_min+2b: E_Y = 0 (b = 0), skipped
+Q9: n = 6, Delta = 5, random points, word rand, imposed j = 553322, shape K<=2, D_c<=5: 124 conditions, W_min = 36 (nullity 1)  [0.1 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: dE has content of degree 8 in X (W = 38); analysing the primitive part
+    W_min+2a: W = 30, D_a = 4, D_c = 5, profile 2x(j=2) 4x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2b: dE has content of degree 8 in X (W = 38); analysing the primitive part
+    W_min+2b: W = 30, D_a = 4, D_c = 5, profile 2x(j=2) 4x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+C1: n = 12, Delta = 6, random points, word rand, imposed j = 111111111111, shape K<=1, D_c<=3: 24 conditions, W_min = 18 (nullity 4)  [0.0 s]
+    W_min+0: W = 18, D_a = 2, D_c = 2, profile 12x(j=1); deg Res = 36 <= 36; sum(o^2-o-1) = 12; local orders equal to the bound at 12 of 12 contained lines; det E = 0 (degenerate)
+    W_min+2a: W = 20, D_a = 2, D_c = 3, profile 12x(j=1); deg Res = 46 <= 46; sum(o^2-o-1) = 12; local orders equal to the bound at 12 of 12 contained lines; det E = 0 (degenerate)
+    W_min+2b: W = 20, D_a = 2, D_c = 3, profile 12x(j=1); deg Res = 46 <= 46; sum(o^2-o-1) = 12; local orders equal to the bound at 12 of 12 contained lines; det E = 0 (degenerate)
+C2: n = 12, Delta = 6, random points, word rand, imposed j = 222222111111, shape K<=1, D_c<=3: 54 conditions, W_min = 28 (nullity 4)  [0.0 s]
+    W_min+0: W = 28, D_a = 2, D_c = 3, profile 6x(j=1) 6x(j=2); deg Res = 86 <= 86; sum(o^2-o-1) = 72; local orders equal to the bound at 12 of 12 contained lines; det E = 0 (degenerate)
+    W_min+2a: W = 30, D_a = 2, D_c = 3, profile 6x(j=1) 6x(j=2); deg Res = 96 <= 96; sum(o^2-o-1) = 72; local orders equal to the bound at 12 of 12 contained lines; det E = 0 (degenerate)
+    W_min+2b: W = 30, D_a = 2, D_c = 3, profile 6x(j=1) 6x(j=2); deg Res = 96 <= 96; sum(o^2-o-1) = 72; local orders equal to the bound at 12 of 12 contained lines; det E = 0 (degenerate)
+C3: n = 8, Delta = 4, random points, word rand, imposed j = 33221110, shape K<=1, D_c<=3: 50 conditions, W_min = 22 (nullity 4)  [0.0 s]
+    W_min+0: dE has content of degree 4 in X (W = 22); BEFORE division the inequality of Lemma B FAILS (sum = 83, bound 74); analysing the primitive part
+    W_min+0: W = 18, D_a = 2, D_c = 3, profile 1x(j=0) 3x(j=1) 4x(j=2); deg Res = 54 <= 54; sum(o^2-o-1) = 47; local orders equal to the bound at 7 of 7 contained lines; det E = 0 (degenerate)
+    W_min+2a: dE has content of degree 4 in X (W = 24); BEFORE division the inequality of Lemma B holds (sum = 83, bound 84); analysing the primitive part
+    W_min+2a: W = 20, D_a = 2, D_c = 3, profile 1x(j=0) 3x(j=1) 4x(j=2); deg Res = 64 <= 64; sum(o^2-o-1) = 47; local orders equal to the bound at 7 of 7 contained lines; det E = 0 (degenerate)
+    W_min+2b: dE has content of degree 4 in X (W = 24); BEFORE division the inequality of Lemma B holds (sum = 83, bound 84); analysing the primitive part
+    W_min+2b: W = 20, D_a = 2, D_c = 3, profile 1x(j=0) 3x(j=1) 4x(j=2); deg Res = 64 <= 64; sum(o^2-o-1) = 47; local orders equal to the bound at 7 of 7 contained lines; det E = 0 (degenerate)
+C4: n = 16, Delta = 3, subspace points, word mono7, imposed j = 1111111111111111, shape K<=1, D_c<=3: 32 conditions, W_min = 12 (nullity 1)  [0.0 s]
+    W_min+0: dE has content of degree 2 in X (W = 12); BEFORE division the inequality of Lemma B holds (sum = 16, bound 33); analysing the primitive part
+    W_min+0: W = 10, D_a = 2, D_c = 3, profile 1x(j=0) 15x(j=1); deg Res = 15 <= 23; sum(o^2-o-1) = 15; local orders equal to the bound at 15 of 15 contained lines; det E = 0 (degenerate)
+    W_min+2a: W = 14, D_a = 2, D_c = 3, profile 16x(j=1); deg Res = 43 <= 43; sum(o^2-o-1) = 16; local orders equal to the bound at 15 of 16 contained lines; det E = 0 (degenerate)
+    W_min+2b: W = 14, D_a = 2, D_c = 3, profile 16x(j=1); deg Res = 43 <= 43; sum(o^2-o-1) = 16; local orders equal to the bound at 15 of 16 contained lines; det E = 0 (degenerate)
+C5: n = 32, Delta = 7, subspace points, word mono15, imposed j = 11111111111111111111111111111111, shape K<=1, D_c<=3: 64 conditions, W_min = 24 (nullity 1)  [0.0 s]
+    W_min+0: dE has content of degree 2 in X (W = 24); BEFORE division the inequality of Lemma B holds (sum = 32, bound 57); analysing the primitive part
+    W_min+0: W = 22, D_a = 2, D_c = 3, profile 1x(j=0) 31x(j=1); deg Res = 31 <= 47; sum(o^2-o-1) = 31; local orders equal to the bound at 31 of 31 contained lines; NOTE: sum(o^2-o-1) = 31 > 9W - 25 Delta = 23 although W < 6 Delta; det E = 0 (degenerate)
+    W_min+2a: dE has content of degree 4 in X (W = 26); BEFORE division the inequality of Lemma B holds (sum = 32, bound 67); analysing the primitive part
+    W_min+2a: W = 22, D_a = 2, D_c = 3, profile 1x(j=0) 31x(j=1); deg Res = 31 <= 47; sum(o^2-o-1) = 31; local orders equal to the bound at 31 of 31 contained lines; NOTE: sum(o^2-o-1) = 31 > 9W - 25 Delta = 23 although W < 6 Delta; det E = 0 (degenerate)
+    W_min+2b: dE has content of degree 4 in X (W = 26); BEFORE division the inequality of Lemma B holds (sum = 32, bound 67); analysing the primitive part
+    W_min+2b: W = 22, D_a = 2, D_c = 3, profile 1x(j=0) 31x(j=1); deg Res = 31 <= 47; sum(o^2-o-1) = 31; local orders equal to the bound at 31 of 31 contained lines; NOTE: sum(o^2-o-1) = 31 > 9W - 25 Delta = 23 although W < 6 Delta; det E = 0 (degenerate)
+K0a: n = 8, Delta = 4, random points, word rand, imposed j = 22211110, shape K<=0, D_c<=4: 29 conditions, W_min = 16 (nullity 2)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: W = 18, D_a = 0, D_c = 4, profile 1x(j=0) 4x(j=1) 3x(j=2); deg Res = 56 <= 56; sum(o^2-o-1) = 37; local orders equal to the bound at 0 of 7 contained lines; det E = 0 (degenerate)
+    W_min+2b: W = 18, D_a = 0, D_c = 4, profile 1x(j=0) 4x(j=1) 3x(j=2); deg Res = 56 <= 56; sum(o^2-o-1) = 37; local orders equal to the bound at 0 of 7 contained lines; det E = 0 (degenerate)
+K0b: n = 8, Delta = 4, random points, word rand, imposed j = 32221100, shape K<=0, D_c<=6: 40 conditions, W_min = 18 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: dE has content of degree 2 in X (W = 20); BEFORE division the inequality of Lemma B holds (sum = 64, bound 64); analysing the primitive part
+    W_min+2a: W = 18, D_a = 0, D_c = 4, profile 2x(j=0) 2x(j=1) 4x(j=2); deg Res = 56 <= 56; sum(o^2-o-1) = 46; local orders equal to the bound at 0 of 6 contained lines; det E = 0 (degenerate)
+    W_min+2b: dE has content of degree 2 in X (W = 20); BEFORE division the inequality of Lemma B holds (sum = 64, bound 64); analysing the primitive part
+    W_min+2b: W = 18, D_a = 0, D_c = 4, profile 2x(j=0) 2x(j=1) 4x(j=2); deg Res = 56 <= 56; sum(o^2-o-1) = 46; local orders equal to the bound at 0 of 6 contained lines; det E = 0 (degenerate)
+K1a: n = 8, Delta = 4, random points, word rand, imposed j = 33222211, shape K<=1, D_c<=5: 62 conditions, W_min = 24 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: dE has content of degree 4 in X (W = 26); BEFORE division the inequality of Lemma B holds (sum = 104, bound 108); analysing the primitive part
+    W_min+2a: W = 22, D_a = 2, D_c = 4, profile 2x(j=1) 6x(j=2); deg Res = 84 <= 84; sum(o^2-o-1) = 68; local orders equal to the bound at 2 of 8 contained lines; deg det E = 16 <= 16.5; sum(3j-4) = 12; orders equal to 3j-4 at 6 of 6 lines
+    W_min+2b: dE has content of degree 4 in X (W = 26); BEFORE division the inequality of Lemma B holds (sum = 104, bound 108); analysing the primitive part
+    W_min+2b: W = 22, D_a = 2, D_c = 4, profile 2x(j=1) 6x(j=2); deg Res = 84 <= 84; sum(o^2-o-1) = 68; local orders equal to the bound at 2 of 8 contained lines; deg det E = 16 <= 16.5; sum(3j-4) = 12; orders equal to 3j-4 at 6 of 6 lines
+K1b: n = 8, Delta = 4, random points, word rand, imposed j = 43322110, shape K<=1, D_c<=6: 74 conditions, W_min = 26 (nullity 2)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: dE has content of degree 2 in X (W = 28); BEFORE division the inequality of Lemma B holds (sum = 137, bound 152); analysing the primitive part
+    W_min+2a: W = 26, D_a = 2, D_c = 6, profile 1x(j=0) 2x(j=1) 2x(j=2) 3x(j=3); deg Res = 136 <= 136; sum(o^2-o-1) = 111; local orders equal to the bound at 2 of 7 contained lines
+    W_min+2b: dE has content of degree 2 in X (W = 28); BEFORE division the inequality of Lemma B holds (sum = 137, bound 152); analysing the primitive part
+    W_min+2b: W = 26, D_a = 2, D_c = 6, profile 1x(j=0) 2x(j=1) 2x(j=2) 3x(j=3); deg Res = 136 <= 136; sum(o^2-o-1) = 111; local orders equal to the bound at 2 of 7 contained lines
+S1: n = 8, Delta = 4, random points, word rand, imposed j = 33322221, shape K<=2, D_c<=6: 75 conditions, W_min = 26 (nullity 2)  [0.0 s]
+    W_min+0: W = 26, D_a = 4, D_c = 6, profile 1x(j=1) 4x(j=2) 3x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply)
+    W_min+2a: W = 28, D_a = 4, D_c = 6, profile 1x(j=1) 4x(j=2) 3x(j=3); deg Res = 160 <= 160; sum(o^2-o-1) = 132; local orders equal to the bound at 5 of 8 contained lines
+    W_min+2b: W = 28, D_a = 4, D_c = 6, profile 1x(j=1) 4x(j=2) 3x(j=3); deg Res = 160 <= 160; sum(o^2-o-1) = 132; local orders equal to the bound at 5 of 8 contained lines
+S2: n = 6, Delta = 3, random points, word rand, imposed j = 643221, shape K<=2, D_c<=6: 114 conditions, W_min = 28 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: dE has content of degree 8 in X (W = 30); BEFORE division the inequality of Lemma B FAILS (sum = 238, bound 210); analysing the primitive part
+    W_min+2a: W = 22, D_a = 4, D_c = 6, profile 1x(j=1) 2x(j=2) 3x(j=3); deg Res = 130 <= 130; sum(o^2-o-1) = 110; local orders equal to the bound at 3 of 6 contained lines
+    W_min+2b: dE has content of degree 8 in X (W = 30); BEFORE division the inequality of Lemma B FAILS (sum = 238, bound 210); analysing the primitive part
+    W_min+2b: W = 22, D_a = 4, D_c = 6, profile 1x(j=1) 2x(j=2) 3x(j=3); deg Res = 130 <= 130; sum(o^2-o-1) = 110; local orders equal to the bound at 3 of 6 contained lines
+F1: n = 8, Delta = 3, random points, word rand, imposed j = 22222222, shape free: 56 conditions, W_min = 20 (nullity 6)  [0.0 s]
+    W_min+0: W = 20, D_a = 4, D_c = 6, profile 8x(j=2); deg Res = 110 <= 110; sum(o^2-o-1) = 88; local orders equal to the bound at 8 of 8 contained lines
+    W_min+2a: W = 22, D_a = 6, D_c = 7, profile 8x(j=2); deg Res = 139 <= 139; sum(o^2-o-1) = 88; local orders equal to the bound at 8 of 8 contained lines
+    W_min+2b: W = 22, D_a = 6, D_c = 7, profile 8x(j=2); deg Res = 139 <= 139; sum(o^2-o-1) = 88; local orders equal to the bound at 8 of 8 contained lines
+F2: n = 6, Delta = 2, random points, word rand, imposed j = 433211, shape free: 67 conditions, W_min = 18 (nullity 8)  [0.0 s]
+    W_min+0: W = 18, D_a = 8, D_c = 8, profile 2x(j=1) 1x(j=2) 2x(j=3) 1x(j=4); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply)
+    W_min+2a: W = 20, D_a = 8, D_c = 10, profile 2x(j=1) 1x(j=2) 2x(j=3) 1x(j=4); deg Res = 180 <= 180; sum(o^2-o-1) = 126; local orders equal to the bound at 6 of 6 contained lines
+    W_min+2b: W = 20, D_a = 8, D_c = 10, profile 2x(j=1) 1x(j=2) 2x(j=3) 1x(j=4); deg Res = 180 <= 180; sum(o^2-o-1) = 126; local orders equal to the bound at 6 of 6 contained lines
+F3: n = 8, Delta = 2, subspace points, word rand, imposed j = 33333333, shape free: 120 conditions, W_min = 24 (nullity 7)  [0.1 s]
+    W_min+0: W = 24, D_a = 10, D_c = 12, profile 8x(j=3); deg Res = 264 <= 264; sum(o^2-o-1) = 232; local orders equal to the bound at 8 of 8 contained lines
+    W_min+2a: W = 26, D_a = 12, D_c = 12, profile 8x(j=3); deg Res = 312 <= 312; sum(o^2-o-1) = 232; local orders equal to the bound at 8 of 8 contained lines
+    W_min+2b: W = 26, D_a = 12, D_c = 12, profile 8x(j=3); deg Res = 312 <= 312; sum(o^2-o-1) = 232; local orders equal to the bound at 8 of 8 contained lines
+F4: n = 8, Delta = 3, random points, word plant1e, imposed j = 32222211, shape free: 54 conditions, W_min = 19 (nullity 2)  [0.0 s]
+    W_min+0: W = 19, D_a = 4, D_c = 6, profile 2x(j=1) 5x(j=2) 1x(j=3); deg Res = 96 <= 100; sum(o^2-o-1) = 86; local orders equal to the bound at 7 of 8 contained lines
+    W_min+2a: W = 21, D_a = 6, D_c = 6, profile 2x(j=1) 5x(j=2) 1x(j=3); deg Res = 120 <= 126; sum(o^2-o-1) = 86; local orders equal to the bound at 8 of 8 contained lines
+    W_min+2b: W = 21, D_a = 6, D_c = 6, profile 2x(j=1) 5x(j=2) 1x(j=3); deg Res = 120 <= 126; sum(o^2-o-1) = 86; local orders equal to the bound at 8 of 8 contained lines
+H4: n = 32, Delta = 15, subspace points, word rand, imposed j = 22222222222222222222222222222222, shape K<=2, D_c<=5: 224 conditions, W_min = 89 (nullity 1)  [1.1 s]
+    W_min+0: W = 89, D_a = 4, D_c = 5, profile 32x(j=2); deg Res = 422 <= 426; sum(o^2-o-1) = 352; local orders equal to the bound at 32 of 32 contained lines; deg det E = 72 <= 73.0; sum(3j-4) = 64; orders equal to 3j-4 at 32 of 32 lines
+    W_min+2a: W = 91, D_a = 4, D_c = 5, profile 32x(j=2); deg Res = 440 <= 444; sum(o^2-o-1) = 352; local orders equal to the bound at 32 of 32 contained lines; deg det E = 75 <= 76.0; sum(3j-4) = 64; orders equal to 3j-4 at 32 of 32 lines
+    W_min+2b: W = 91, D_a = 4, D_c = 5, profile 32x(j=2); deg Res = 440 <= 444; sum(o^2-o-1) = 352; local orders equal to the bound at 32 of 32 contained lines; deg det E = 75 <= 76.0; sum(3j-4) = 64; orders equal to 3j-4 at 32 of 32 lines
+H5: n = 32, Delta = 16, random points, word rand, imposed j = 33332222222222222222222222111100, shape K<=2, D_c<=5: 222 conditions, W_min = 92 (nullity 6)  [1.1 s]
+    W_min+0: W = 92, D_a = 4, D_c = 5, profile 2x(j=0) 4x(j=1) 22x(j=2) 4x(j=3); deg Res = 428 <= 428; sum(o^2-o-1) = 362; local orders equal to the bound at 30 of 30 contained lines; deg det E = 73 <= 73.5; sum(3j-4) = 64; orders equal to 3j-4 at 26 of 26 lines
+    W_min+2a: W = 94, D_a = 4, D_c = 5, profile 2x(j=0) 4x(j=1) 22x(j=2) 4x(j=3); deg Res = 446 <= 446; sum(o^2-o-1) = 362; local orders equal to the bound at 30 of 30 contained lines; deg det E = 76 <= 76.5; sum(3j-4) = 64; orders equal to 3j-4 at 26 of 26 lines
+    W_min+2b: W = 94, D_a = 4, D_c = 5, profile 2x(j=0) 4x(j=1) 22x(j=2) 4x(j=3); deg Res = 446 <= 446; sum(o^2-o-1) = 362; local orders equal to the bound at 30 of 30 contained lines; deg det E = 76 <= 76.5; sum(3j-4) = 64; orders equal to 3j-4 at 26 of 26 lines
+H6: n = 32, Delta = 15, subspace points, word mono23, imposed j = 22222222222222222222222222222222, shape K<=2, D_c<=5: 224 conditions, W_min = 86 (nullity 1)  [1.0 s]
+    W_min+0: dE has content of degree 2 in X (W = 86); BEFORE division the inequality of Lemma B holds (sum = 352, bound 399); analysing the primitive part
+    W_min+0: W = 84, D_a = 4, D_c = 5, profile 1x(j=1) 31x(j=2); deg Res = 381 <= 381; sum(o^2-o-1) = 342; local orders equal to the bound at 31 of 32 contained lines; det E = 0 (degenerate)
+    W_min+2a: dE has content of degree 2 in X (W = 88); BEFORE division the inequality of Lemma B holds (sum = 352, bound 417); analysing the primitive part
+    W_min+2a: W = 86, D_a = 4, D_c = 5, profile 1x(j=1) 31x(j=2); deg Res = 399 <= 399; sum(o^2-o-1) = 342; local orders equal to the bound at 31 of 32 contained lines; det E = 0 (degenerate)
+    W_min+2b: dE has content of degree 2 in X (W = 88); BEFORE division the inequality of Lemma B holds (sum = 352, bound 417); analysing the primitive part
+    W_min+2b: W = 86, D_a = 4, D_c = 5, profile 1x(j=1) 31x(j=2); deg Res = 399 <= 399; sum(o^2-o-1) = 342; local orders equal to the bound at 31 of 32 contained lines; det E = 0 (degenerate)
+rq0: n = 8, Delta = 6, random points, word plant1e, imposed j = 22333132, shape K<=2, D_c<=5: 83 conditions, W_min = 34 (nullity 4)  [0.0 s]
+    W_min+0: W = 34, D_a = 4, D_c = 5, profile 1x(j=1) 3x(j=2) 4x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2a: W = 36, D_a = 4, D_c = 5, profile 1x(j=1) 3x(j=2) 4x(j=3); deg Res = 174 <= 174; sum(o^2-o-1) = 150; local orders equal to the bound at 8 of 8 contained lines; deg det E = 29 <= 29.5; sum(3j-4) = 26; orders equal to 3j-4 at 7 of 7 lines
+    W_min+2b: W = 36, D_a = 4, D_c = 5, profile 1x(j=1) 3x(j=2) 4x(j=3); deg Res = 174 <= 174; sum(o^2-o-1) = 150; local orders equal to the bound at 8 of 8 contained lines; deg det E = 29 <= 29.5; sum(3j-4) = 26; orders equal to 3j-4 at 7 of 7 lines
+rc0: n = 8, Delta = 4, subspace points, word plant1e, imposed j = 02222022, shape K<=1, D_c<=3: 42 conditions, W_min = 20 (nullity 2)  [0.0 s]
+    W_min+0: W = 20, D_a = 2, D_c = 3, profile 2x(j=0) 6x(j=2); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2a: W = 22, D_a = 2, D_c = 3, profile 2x(j=0) 6x(j=2); deg Res = 74 <= 74; sum(o^2-o-1) = 66; local orders equal to the bound at 6 of 6 contained lines; det E = 0 (degenerate)
+    W_min+2b: W = 22, D_a = 2, D_c = 3, profile 2x(j=0) 6x(j=2); deg Res = 74 <= 74; sum(o^2-o-1) = 66; local orders equal to the bound at 6 of 6 contained lines; det E = 0 (degenerate)
+rs0: n = 12, Delta = 5, random points, word rand, imposed j = 210222320320, shape K<=2, D_c<=6: 74 conditions, W_min = 29 (nullity 1)  [0.0 s]
+    W_min+0: W = 29, D_a = 4, D_c = 5, profile 3x(j=0) 1x(j=1) 6x(j=2) 2x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2a: W = 31, D_a = 4, D_c = 6, profile 3x(j=0) 1x(j=1) 6x(j=2) 2x(j=3); deg Res = 156 <= 160; sum(o^2-o-1) = 125; local orders equal to the bound at 7 of 9 contained lines
+    W_min+2b: W = 31, D_a = 4, D_c = 6, profile 3x(j=0) 1x(j=1) 6x(j=2) 2x(j=3); deg Res = 156 <= 160; sum(o^2-o-1) = 125; local orders equal to the bound at 7 of 9 contained lines
+rk00: n = 8, Delta = 3, random points, word rand, imposed j = 12012131, shape K<=0, D_c<=5: 37 conditions, W_min = 16 (nullity 2)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: dE has content of degree 2 in X (W = 18); BEFORE division the inequality of Lemma B holds (sum = 55, bound 60); analysing the primitive part
+    W_min+2a: W = 16, D_a = 0, D_c = 4, profile 1x(j=0) 4x(j=1) 3x(j=2); deg Res = 52 <= 52; sum(o^2-o-1) = 37; local orders equal to the bound at 0 of 7 contained lines; det E = 0 (degenerate)
+    W_min+2b: dE has content of degree 2 in X (W = 18); BEFORE division the inequality of Lemma B holds (sum = 55, bound 60); analysing the primitive part
+    W_min+2b: W = 16, D_a = 0, D_c = 4, profile 1x(j=0) 4x(j=1) 3x(j=2); deg Res = 52 <= 52; sum(o^2-o-1) = 37; local orders equal to the bound at 0 of 7 contained lines; det E = 0 (degenerate)
+rk10: n = 12, Delta = 6, random points, word rand, imposed j = 213112202321, shape K<=1, D_c<=6: 73 conditions, W_min = 32 (nullity 4)  [0.0 s]
+    W_min+0: dE has content of degree 4 in X (W = 32); BEFORE division the inequality of Lemma B holds (sum = 117, bound 120); analysing the primitive part
+    W_min+0: W = 28, D_a = 2, D_c = 4, profile 1x(j=0) 4x(j=1) 7x(j=2); deg Res = 96 <= 96; sum(o^2-o-1) = 81; local orders equal to the bound at 4 of 11 contained lines; deg det E = 17 <= 17.5; sum(3j-4) = 14; orders equal to 3j-4 at 7 of 7 lines
+    W_min+2a: dE has content of degree 4 in X (W = 34); BEFORE division the inequality of Lemma B holds (sum = 117, bound 132); analysing the primitive part
+    W_min+2a: W = 30, D_a = 2, D_c = 4, profile 1x(j=0) 4x(j=1) 7x(j=2); deg Res = 108 <= 108; sum(o^2-o-1) = 81; local orders equal to the bound at 4 of 11 contained lines; deg det E = 20 <= 20.5; sum(3j-4) = 14; orders equal to 3j-4 at 7 of 7 lines
+    W_min+2b: dE has content of degree 4 in X (W = 34); BEFORE division the inequality of Lemma B holds (sum = 117, bound 132); analysing the primitive part
+    W_min+2b: W = 30, D_a = 2, D_c = 4, profile 1x(j=0) 4x(j=1) 7x(j=2); deg Res = 108 <= 108; sum(o^2-o-1) = 81; local orders equal to the bound at 4 of 11 contained lines; deg det E = 20 <= 20.5; sum(3j-4) = 14; orders equal to 3j-4 at 7 of 7 lines
+rf0: n = 12, Delta = 5, random points, word rand, imposed j = 223022333231, shape free: 112 conditions, W_min = 36 (nullity 2)  [0.1 s]
+    W_min+0: W = 36, D_a = 6, D_c = 7, profile 1x(j=0) 1x(j=1) 5x(j=2) 5x(j=3); deg Res = 223 <= 223; sum(o^2-o-1) = 201; local orders equal to the bound at 11 of 11 contained lines
+    W_min+2a: W = 38, D_a = 6, D_c = 7, profile 1x(j=0) 1x(j=1) 5x(j=2) 5x(j=3); deg Res = 249 <= 249; sum(o^2-o-1) = 201; local orders equal to the bound at 11 of 11 contained lines
+    W_min+2b: W = 38, D_a = 6, D_c = 7, profile 1x(j=0) 1x(j=1) 5x(j=2) 5x(j=3); deg Res = 249 <= 249; sum(o^2-o-1) = 201; local orders equal to the bound at 11 of 11 contained lines
+rq+0: n = 12, Delta = 4, random points, word plant2, imposed j = 222545401522, shape K<=2, D_c<=5: 209 conditions, W_min = 51 (nullity 2)  [0.5 s]
+    W_min+0: dE has content of degree 16 in X (W = 51); BEFORE division the inequality of Lemma B FAILS (sum = 433, bound 359); analysing the primitive part
+    W_min+0: W = 35, D_a = 4, D_c = 5, profile 1x(j=0) 1x(j=1) 5x(j=2) 5x(j=3); deg Res = 211 <= 215; sum(o^2-o-1) = 201; local orders equal to the bound at 11 of 11 contained lines; deg det E = 35 <= 36.0; sum(3j-4) = 35; orders equal to 3j-4 at 10 of 10 lines
+    W_min+2a: dE has content of degree 16 in X (W = 53); BEFORE division the inequality of Lemma B FAILS (sum = 433, bound 377); analysing the primitive part
+    W_min+2a: W = 37, D_a = 4, D_c = 5, profile 1x(j=0) 1x(j=1) 5x(j=2) 5x(j=3); deg Res = 229 <= 233; sum(o^2-o-1) = 201; local orders equal to the bound at 11 of 11 contained lines; deg det E = 38 <= 39.0; sum(3j-4) = 35; orders equal to 3j-4 at 10 of 10 lines
+    W_min+2b: dE has content of degree 16 in X (W = 53); BEFORE division the inequality of Lemma B FAILS (sum = 433, bound 377); analysing the primitive part
+    W_min+2b: W = 37, D_a = 4, D_c = 5, profile 1x(j=0) 1x(j=1) 5x(j=2) 5x(j=3); deg Res = 229 <= 233; sum(o^2-o-1) = 201; local orders equal to the bound at 11 of 11 contained lines; deg det E = 38 <= 39.0; sum(3j-4) = 35; orders equal to 3j-4 at 10 of 10 lines
+rq1: n = 12, Delta = 4, random points, word plant2, imposed j = 322332201222, shape K<=2, D_c<=5: 96 conditions, W_min = 32 (nullity 6)  [0.1 s]
+    W_min+0: W = 32, D_a = 4, D_c = 5, profile 1x(j=0) 1x(j=1) 7x(j=2) 3x(j=3); deg Res = 188 <= 188; sum(o^2-o-1) = 165; local orders equal to the bound at 11 of 11 contained lines; deg det E = 31 <= 31.5; sum(3j-4) = 29; orders equal to 3j-4 at 10 of 10 lines
+    W_min+2a: W = 34, D_a = 4, D_c = 5, profile 1x(j=0) 1x(j=1) 7x(j=2) 3x(j=3); deg Res = 206 <= 206; sum(o^2-o-1) = 165; local orders equal to the bound at 11 of 11 contained lines; deg det E = 34 <= 34.5; sum(3j-4) = 29; orders equal to 3j-4 at 10 of 10 lines
+    W_min+2b: W = 34, D_a = 4, D_c = 5, profile 1x(j=0) 1x(j=1) 7x(j=2) 3x(j=3); deg Res = 206 <= 206; sum(o^2-o-1) = 165; local orders equal to the bound at 11 of 11 contained lines; deg det E = 34 <= 34.5; sum(3j-4) = 29; orders equal to 3j-4 at 10 of 10 lines
+rc1: n = 8, Delta = 4, random points, word rand, imposed j = 22212222, shape K<=1, D_c<=3: 51 conditions, W_min = 23 (nullity 1)  [0.0 s]
+    W_min+0: W = 23, D_a = 2, D_c = 3, profile 1x(j=1) 7x(j=2); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2a: W = 25, D_a = 2, D_c = 3, profile 1x(j=1) 7x(j=2); deg Res = 87 <= 89; sum(o^2-o-1) = 78; local orders equal to the bound at 8 of 8 contained lines; det E = 0 (degenerate)
+    W_min+2b: W = 25, D_a = 2, D_c = 3, profile 1x(j=1) 7x(j=2); deg Res = 87 <= 89; sum(o^2-o-1) = 78; local orders equal to the bound at 8 of 8 contained lines; det E = 0 (degenerate)
+rs1: n = 6, Delta = 4, random points, word plant1e, imposed j = 201121, shape K<=2, D_c<=6: 20 conditions, W_min = 12 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: W = 14, D_a = 2, D_c = 3, profile 1x(j=0) 3x(j=1) 2x(j=2); deg Res = 34 <= 34; sum(o^2-o-1) = 25; local orders equal to the bound at 5 of 5 contained lines; det E = 0 (degenerate)
+    W_min+2b: W = 14, D_a = 2, D_c = 3, profile 1x(j=0) 3x(j=1) 2x(j=2); deg Res = 34 <= 34; sum(o^2-o-1) = 25; local orders equal to the bound at 5 of 5 contained lines; det E = 0 (degenerate)
+rk01: n = 8, Delta = 4, random points, word rand, imposed j = 11222221, shape K<=0, D_c<=5: 41 conditions, W_min = 20 (nullity 3)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: W = 22, D_a = 0, D_c = 4, profile 3x(j=1) 5x(j=2); deg Res = 72 <= 72; sum(o^2-o-1) = 58; local orders equal to the bound at 0 of 8 contained lines; det E = 0 (degenerate)
+    W_min+2b: W = 22, D_a = 0, D_c = 4, profile 3x(j=1) 5x(j=2); deg Res = 72 <= 72; sum(o^2-o-1) = 58; local orders equal to the bound at 0 of 8 contained lines; det E = 0 (degenerate)
+rk11: n = 8, Delta = 3, random points, word plant2, imposed j = 22000212, shape K<=1, D_c<=6: 30 conditions, W_min = 14 (nullity 3)  [0.0 s]
+    W_min+0: W = 14, D_a = 2, D_c = 4, profile 3x(j=0) 1x(j=1) 4x(j=2); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2a: W = 16, D_a = 2, D_c = 4, profile 3x(j=0) 1x(j=1) 4x(j=2); deg Res = 60 <= 60; sum(o^2-o-1) = 45; local orders equal to the bound at 1 of 5 contained lines; deg det E = 11 <= 11.5; sum(3j-4) = 8; orders equal to 3j-4 at 4 of 4 lines
+    W_min+2b: W = 16, D_a = 2, D_c = 4, profile 3x(j=0) 1x(j=1) 4x(j=2); deg Res = 60 <= 60; sum(o^2-o-1) = 45; local orders equal to the bound at 1 of 5 contained lines; deg det E = 11 <= 11.5; sum(3j-4) = 8; orders equal to 3j-4 at 4 of 4 lines
+rf1: n = 8, Delta = 5, random points, word rand, imposed j = 51302223, shape free: 93 conditions, W_min = 32 (nullity 4)  [0.0 s]
+    W_min+0: dE has content of degree 4 in X (W = 32); analysing the primitive part
+    W_min+0: W = 28, D_a = 4, D_c = 5, profile 1x(j=0) 1x(j=1) 3x(j=2) 3x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2a: dE has content of degree 4 in X (W = 34); BEFORE division the inequality of Lemma B holds (sum = 181, bound 190); analysing the primitive part
+    W_min+2a: W = 30, D_a = 4, D_c = 6, profile 1x(j=0) 1x(j=1) 3x(j=2) 3x(j=3); deg Res = 150 <= 150; sum(o^2-o-1) = 121; local orders equal to the bound at 4 of 7 contained lines
+    W_min+2b: dE has content of degree 4 in X (W = 34); BEFORE division the inequality of Lemma B holds (sum = 181, bound 190); analysing the primitive part
+    W_min+2b: W = 30, D_a = 4, D_c = 6, profile 1x(j=0) 1x(j=1) 3x(j=2) 3x(j=3); deg Res = 150 <= 150; sum(o^2-o-1) = 121; local orders equal to the bound at 4 of 7 contained lines
+rq+1: n = 6, Delta = 6, random points, word rand, imposed j = 345032, shape K<=2, D_c<=5: 103 conditions, W_min = 34 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: dE has content of degree 24 in X (W = 36); BEFORE division the inequality of Lemma B FAILS (sum = 213, bound 60); analysing the primitive part
+    W_min+2a: W = 12, D_a = 0, D_c = 2, profile 1x(j=0) 5x(j=1); deg Res = 12 <= 12; sum(o^2-o-1) = 5; local orders equal to the bound at 0 of 5 contained lines; NOTE: sum(o^2-o-1) = 5 > 9W - 25 Delta = -42 although W < 6 Delta; det E = 0 (degenerate)
+    W_min+2b: dE has content of degree 24 in X (W = 36); BEFORE division the inequality of Lemma B FAILS (sum = 213, bound 60); analysing the primitive part
+    W_min+2b: W = 12, D_a = 0, D_c = 2, profile 1x(j=0) 5x(j=1); deg Res = 12 <= 12; sum(o^2-o-1) = 5; local orders equal to the bound at 0 of 5 contained lines; NOTE: sum(o^2-o-1) = 5 > 9W - 25 Delta = -42 although W < 6 Delta; det E = 0 (degenerate)
+rq2: n = 12, Delta = 4, random points, word rand, imposed j = 323001213222, shape K<=2, D_c<=5: 84 conditions, W_min = 29 (nullity 3)  [0.0 s]
+    W_min+0: W = 29, D_a = 4, D_c = 5, profile 2x(j=0) 2x(j=1) 5x(j=2) 3x(j=3); deg Res = 157 <= 161; sum(o^2-o-1) = 144; local orders equal to the bound at 10 of 10 contained lines; deg det E = 26 <= 27.0; sum(3j-4) = 25; orders equal to 3j-4 at 8 of 8 lines
+    W_min+2a: W = 31, D_a = 4, D_c = 5, profile 2x(j=0) 2x(j=1) 5x(j=2) 3x(j=3); deg Res = 175 <= 179; sum(o^2-o-1) = 144; local orders equal to the bound at 10 of 10 contained lines; deg det E = 29 <= 30.0; sum(3j-4) = 25; orders equal to 3j-4 at 8 of 8 lines
+    W_min+2b: W = 31, D_a = 4, D_c = 5, profile 2x(j=0) 2x(j=1) 5x(j=2) 3x(j=3); deg Res = 175 <= 179; sum(o^2-o-1) = 144; local orders equal to the bound at 10 of 10 contained lines; deg det E = 29 <= 30.0; sum(3j-4) = 25; orders equal to 3j-4 at 8 of 8 lines
+rc2: n = 6, Delta = 4, random points, word rand, imposed j = 202220, shape K<=1, D_c<=3: 28 conditions, W_min = 16 (nullity 4)  [0.0 s]
+    W_min+0: W = 16, D_a = 2, D_c = 3, profile 2x(j=0) 4x(j=2); deg Res = 44 <= 44; sum(o^2-o-1) = 44; local orders equal to the bound at 4 of 4 contained lines; det E = 0 (degenerate)
+    W_min+2a: W = 18, D_a = 2, D_c = 3, profile 2x(j=0) 4x(j=2); deg Res = 54 <= 54; sum(o^2-o-1) = 44; local orders equal to the bound at 4 of 4 contained lines; det E = 0 (degenerate)
+    W_min+2b: W = 18, D_a = 2, D_c = 3, profile 2x(j=0) 4x(j=2); deg Res = 54 <= 54; sum(o^2-o-1) = 44; local orders equal to the bound at 4 of 4 contained lines; det E = 0 (degenerate)
+rs2: n = 8, Delta = 3, random points, word plant2, imposed j = 22130222, shape K<=2, D_c<=6: 52 conditions, W_min = 19 (nullity 3)  [0.0 s]
+    W_min+0: W = 19, D_a = 4, D_c = 6, profile 1x(j=0) 1x(j=1) 5x(j=2) 1x(j=3); deg Res = 96 <= 100; sum(o^2-o-1) = 85; local orders equal to the bound at 6 of 7 contained lines
+    W_min+2a: W = 21, D_a = 4, D_c = 6, profile 1x(j=0) 1x(j=1) 5x(j=2) 1x(j=3); deg Res = 116 <= 120; sum(o^2-o-1) = 85; local orders equal to the bound at 6 of 7 contained lines
+    W_min+2b: W = 21, D_a = 4, D_c = 6, profile 1x(j=0) 1x(j=1) 5x(j=2) 1x(j=3); deg Res = 116 <= 120; sum(o^2-o-1) = 85; local orders equal to the bound at 6 of 7 contained lines
+rk02: n = 12, Delta = 4, random points, word rand, imposed j = 232122233122, shape K<=0, D_c<=5: 98 conditions, W_min = 34 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: E_Y = 0 (b = 0), skipped
+    W_min+2b: E_Y = 0 (b = 0), skipped
+rk12: n = 12, Delta = 3, random points, word rand, imposed j = 332112230322, shape K<=1, D_c<=6: 99 conditions, W_min = 28 (nullity 1)  [0.1 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: E_Y = 0 (b = 0), skipped
+    W_min+2b: E_Y = 0 (b = 0), skipped
+rf2: n = 6, Delta = 4, random points, word rand, imposed j = 333323, shape free: 82 conditions, W_min = 28 (nullity 6)  [0.0 s]
+    W_min+0: W = 28, D_a = 6, D_c = 6, profile 1x(j=2) 5x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply)
+    W_min+2a: W = 30, D_a = 6, D_c = 7, profile 1x(j=2) 5x(j=3); deg Res = 194 <= 194; sum(o^2-o-1) = 156; local orders equal to the bound at 6 of 6 contained lines
+    W_min+2b: W = 30, D_a = 6, D_c = 7, profile 1x(j=2) 5x(j=3); deg Res = 194 <= 194; sum(o^2-o-1) = 156; local orders equal to the bound at 6 of 6 contained lines
+rq+2: n = 8, Delta = 5, subspace points, word rand, imposed j = 22245212, shape K<=2, D_c<=5: 103 conditions, W_min = 34 (nullity 5)  [0.0 s]
+    W_min+0: dE has content of degree 6 in X (W = 34); BEFORE division the inequality of Lemma B FAILS (sum = 200, bound 181); analysing the primitive part
+    W_min+0: W = 28, D_a = 4, D_c = 5, profile 1x(j=1) 5x(j=2) 2x(j=3); deg Res = 127 <= 127; sum(o^2-o-1) = 114; local orders equal to the bound at 8 of 8 contained lines; deg det E = 21 <= 21.5; sum(3j-4) = 20; orders equal to 3j-4 at 7 of 7 lines
+    W_min+2a: dE has content of degree 6 in X (W = 36); BEFORE division the inequality of Lemma B FAILS (sum = 200, bound 199); analysing the primitive part
+    W_min+2a: W = 30, D_a = 4, D_c = 5, profile 1x(j=1) 5x(j=2) 2x(j=3); deg Res = 145 <= 145; sum(o^2-o-1) = 114; local orders equal to the bound at 8 of 8 contained lines; deg det E = 24 <= 24.5; sum(3j-4) = 20; orders equal to 3j-4 at 7 of 7 lines
+    W_min+2b: dE has content of degree 6 in X (W = 36); BEFORE division the inequality of Lemma B FAILS (sum = 200, bound 199); analysing the primitive part
+    W_min+2b: W = 30, D_a = 4, D_c = 5, profile 1x(j=1) 5x(j=2) 2x(j=3); deg Res = 145 <= 145; sum(o^2-o-1) = 114; local orders equal to the bound at 8 of 8 contained lines; deg det E = 24 <= 24.5; sum(3j-4) = 20; orders equal to 3j-4 at 7 of 7 lines
+rq3: n = 6, Delta = 6, random points, word rand, imposed j = 202210, shape K<=2, D_c<=5: 23 conditions, W_min = 14 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: dE has content of degree 6 in X (W = 16); BEFORE division the inequality of Lemma B FAILS (sum = 34, bound 10); analysing the primitive part
+    W_min+2a: W = 10, D_a = 0, D_c = 1, profile 2x(j=0) 4x(j=1); deg Res = 4 <= 4; sum(o^2-o-1) = 4; local orders equal to the bound at 4 of 4 contained lines; NOTE: sum(o^2-o-1) = 4 > 9W - 25 Delta = -60 although W < 6 Delta; det E = 0 (degenerate)
+    W_min+2b: dE has content of degree 6 in X (W = 16); BEFORE division the inequality of Lemma B FAILS (sum = 34, bound 10); analysing the primitive part
+    W_min+2b: W = 10, D_a = 0, D_c = 1, profile 2x(j=0) 4x(j=1); deg Res = 4 <= 4; sum(o^2-o-1) = 4; local orders equal to the bound at 4 of 4 contained lines; NOTE: sum(o^2-o-1) = 4 > 9W - 25 Delta = -60 although W < 6 Delta; det E = 0 (degenerate)
+rc3: n = 6, Delta = 5, random points, word plant2, imposed j = 200121, shape K<=1, D_c<=3: 18 conditions, W_min = 12 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: dE has content of degree 4 in X (W = 14); BEFORE division the inequality of Lemma B FAILS (sum = 24, bound 18); analysing the primitive part
+    W_min+2a: W = 10, D_a = 0, D_c = 2, profile 2x(j=0) 4x(j=1); deg Res = 10 <= 10; sum(o^2-o-1) = 4; local orders equal to the bound at 0 of 4 contained lines; NOTE: sum(o^2-o-1) = 4 > 9W - 25 Delta = -35 although W < 6 Delta; det E = 0 (degenerate)
+    W_min+2b: dE has content of degree 4 in X (W = 14); BEFORE division the inequality of Lemma B FAILS (sum = 24, bound 18); analysing the primitive part
+    W_min+2b: W = 10, D_a = 0, D_c = 2, profile 2x(j=0) 4x(j=1); deg Res = 10 <= 10; sum(o^2-o-1) = 4; local orders equal to the bound at 0 of 4 contained lines; NOTE: sum(o^2-o-1) = 4 > 9W - 25 Delta = -35 although W < 6 Delta; det E = 0 (degenerate)
+rs3: n = 8, Delta = 3, random points, word zero, imposed j = 22112030, shape K<=2, D_c<=6: 40 conditions, W_min = 14 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: W = 16, D_a = 4, D_c = 5, profile 4x(j=1) 3x(j=2) 1x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2b: W = 16, D_a = 4, D_c = 5, profile 4x(j=1) 3x(j=2) 1x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+rk03: n = 6, Delta = 4, random points, word zero, imposed j = 132033, shape K<=0, D_c<=5: 54 conditions, W_min = 22 (nullity 2)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: dE has content of degree 6 in X (W = 24); BEFORE division the inequality of Lemma B FAILS (sum = 99, bound 80); analysing the primitive part
+    W_min+2a: W = 18, D_a = 0, D_c = 4, profile 1x(j=0) 1x(j=1) 4x(j=2); deg Res = 56 <= 56; sum(o^2-o-1) = 45; local orders equal to the bound at 0 of 5 contained lines; det E = 0 (degenerate)
+    W_min+2b: dE has content of degree 6 in X (W = 24); BEFORE division the inequality of Lemma B FAILS (sum = 99, bound 80); analysing the primitive part
+    W_min+2b: W = 18, D_a = 0, D_c = 4, profile 1x(j=0) 1x(j=1) 4x(j=2); deg Res = 56 <= 56; sum(o^2-o-1) = 45; local orders equal to the bound at 0 of 5 contained lines; det E = 0 (degenerate)
+rk13: n = 8, Delta = 6, random points, word rand, imposed j = 32021132, shape K<=1, D_c<=6: 55 conditions, W_min = 26 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: dE has content of degree 4 in X (W = 28); BEFORE division the inequality of Lemma B holds (sum = 93, bound 96); analysing the primitive part
+    W_min+2a: W = 24, D_a = 2, D_c = 4, profile 1x(j=0) 2x(j=1) 5x(j=2); deg Res = 72 <= 72; sum(o^2-o-1) = 57; local orders equal to the bound at 2 of 7 contained lines; deg det E = 11 <= 11.5; sum(3j-4) = 10; orders equal to 3j-4 at 5 of 5 lines
+    W_min+2b: dE has content of degree 4 in X (W = 28); BEFORE division the inequality of Lemma B holds (sum = 93, bound 96); analysing the primitive part
+    W_min+2b: W = 24, D_a = 2, D_c = 4, profile 1x(j=0) 2x(j=1) 5x(j=2); deg Res = 72 <= 72; sum(o^2-o-1) = 57; local orders equal to the bound at 2 of 7 contained lines; deg det E = 11 <= 11.5; sum(3j-4) = 10; orders equal to 3j-4 at 5 of 5 lines
+rf3: n = 6, Delta = 3, random points, word rand, imposed j = 332132, shape free: 61 conditions, W_min = 20 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: W = 22, D_a = 6, D_c = 7, profile 1x(j=1) 2x(j=2) 3x(j=3); deg Res = 139 <= 139; sum(o^2-o-1) = 110; local orders equal to the bound at 6 of 6 contained lines
+    W_min+2b: W = 22, D_a = 6, D_c = 7, profile 1x(j=1) 2x(j=2) 3x(j=3); deg Res = 139 <= 139; sum(o^2-o-1) = 110; local orders equal to the bound at 6 of 6 contained lines
+rq+3: n = 8, Delta = 6, random points, word plant1e, imposed j = 52232222, shape K<=2, D_c<=5: 97 conditions, W_min = 36 (nullity 6)  [0.0 s]
+    W_min+0: dE has content of degree 4 in X (W = 36); BEFORE division the inequality of Lemma B FAILS (sum = 184, bound 174); analysing the primitive part
+    W_min+0: W = 32, D_a = 4, D_c = 5, profile 6x(j=2) 2x(j=3); deg Res = 138 <= 138; sum(o^2-o-1) = 124; local orders equal to the bound at 8 of 8 contained lines; deg det E = 23 <= 23.5; sum(3j-4) = 22; orders equal to 3j-4 at 8 of 8 lines
+    W_min+2a: dE has content of degree 4 in X (W = 38); BEFORE division the inequality of Lemma B holds (sum = 184, bound 192); analysing the primitive part
+    W_min+2a: W = 34, D_a = 4, D_c = 5, profile 6x(j=2) 2x(j=3); deg Res = 156 <= 156; sum(o^2-o-1) = 124; local orders equal to the bound at 8 of 8 contained lines; deg det E = 26 <= 26.5; sum(3j-4) = 22; orders equal to 3j-4 at 8 of 8 lines
+    W_min+2b: dE has content of degree 4 in X (W = 38); BEFORE division the inequality of Lemma B holds (sum = 184, bound 192); analysing the primitive part
+    W_min+2b: W = 34, D_a = 4, D_c = 5, profile 6x(j=2) 2x(j=3); deg Res = 156 <= 156; sum(o^2-o-1) = 124; local orders equal to the bound at 8 of 8 contained lines; deg det E = 26 <= 26.5; sum(3j-4) = 22; orders equal to 3j-4 at 8 of 8 lines
+rq4: n = 8, Delta = 5, random points, word zero, imposed j = 12202012, shape K<=2, D_c<=5: 32 conditions, W_min = 18 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: W = 20, D_a = 2, D_c = 4, profile 2x(j=0) 2x(j=1) 4x(j=2); deg Res = 60 <= 60; sum(o^2-o-1) = 46; local orders equal to the bound at 2 of 6 contained lines; deg det E = 9 <= 9.5; sum(3j-4) = 8; orders equal to 3j-4 at 4 of 4 lines
+    W_min+2b: W = 20, D_a = 2, D_c = 4, profile 2x(j=0) 2x(j=1) 4x(j=2); deg Res = 60 <= 60; sum(o^2-o-1) = 46; local orders equal to the bound at 2 of 6 contained lines; deg det E = 9 <= 9.5; sum(3j-4) = 8; orders equal to 3j-4 at 4 of 4 lines
+rc4: n = 8, Delta = 6, random points, word zero, imposed j = 22212120, shape K<=1, D_c<=3: 39 conditions, W_min = 22 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: W = 24, D_a = 2, D_c = 3, profile 1x(j=0) 2x(j=1) 5x(j=2); deg Res = 66 <= 66; sum(o^2-o-1) = 57; local orders equal to the bound at 7 of 7 contained lines; det E = 0 (degenerate)
+    W_min+2b: W = 24, D_a = 2, D_c = 3, profile 1x(j=0) 2x(j=1) 5x(j=2); deg Res = 66 <= 66; sum(o^2-o-1) = 57; local orders equal to the bound at 7 of 7 contained lines; det E = 0 (degenerate)
+rs4: n = 12, Delta = 6, random points, word plant1e, imposed j = 010123311202, shape K<=2, D_c<=6: 59 conditions, W_min = 28 (nullity 4)  [0.0 s]
+    W_min+0: dE has content of degree 4 in X (W = 28); BEFORE division the inequality of Lemma B holds (sum = 95, bound 96); analysing the primitive part
+    W_min+0: W = 24, D_a = 2, D_c = 4, profile 3x(j=0) 4x(j=1) 5x(j=2); deg Res = 72 <= 72; sum(o^2-o-1) = 59; local orders equal to the bound at 4 of 9 contained lines; deg det E = 11 <= 11.5; sum(3j-4) = 10; orders equal to 3j-4 at 5 of 5 lines
+    W_min+2a: dE has content of degree 4 in X (W = 30); BEFORE division the inequality of Lemma B holds (sum = 95, bound 108); analysing the primitive part
+    W_min+2a: W = 26, D_a = 2, D_c = 4, profile 3x(j=0) 4x(j=1) 5x(j=2); deg Res = 84 <= 84; sum(o^2-o-1) = 59; local orders equal to the bound at 4 of 9 contained lines; deg det E = 14 <= 14.5; sum(3j-4) = 10; orders equal to 3j-4 at 5 of 5 lines
+    W_min+2b: dE has content of degree 4 in X (W = 30); BEFORE division the inequality of Lemma B holds (sum = 95, bound 108); analysing the primitive part
+    W_min+2b: W = 26, D_a = 2, D_c = 4, profile 3x(j=0) 4x(j=1) 5x(j=2); deg Res = 84 <= 84; sum(o^2-o-1) = 59; local orders equal to the bound at 4 of 9 contained lines; deg det E = 14 <= 14.5; sum(3j-4) = 10; orders equal to 3j-4 at 5 of 5 lines
+rk04: n = 12, Delta = 5, random points, word rand, imposed j = 001030202122, shape K<=0, D_c<=5: 47 conditions, W_min = 22 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: dE has content of degree 2 in X (W = 24); BEFORE division the inequality of Lemma B holds (sum = 75, bound 76); analysing the primitive part
+    W_min+2a: W = 22, D_a = 0, D_c = 4, profile 5x(j=0) 2x(j=1) 5x(j=2); deg Res = 68 <= 68; sum(o^2-o-1) = 57; local orders equal to the bound at 0 of 7 contained lines; det E = 0 (degenerate)
+    W_min+2b: dE has content of degree 2 in X (W = 24); BEFORE division the inequality of Lemma B holds (sum = 75, bound 76); analysing the primitive part
+    W_min+2b: W = 22, D_a = 0, D_c = 4, profile 5x(j=0) 2x(j=1) 5x(j=2); deg Res = 68 <= 68; sum(o^2-o-1) = 57; local orders equal to the bound at 0 of 7 contained lines; det E = 0 (degenerate)
+rk14: n = 6, Delta = 3, random points, word rand, imposed j = 222121, shape K<=1, D_c<=6: 32 conditions, W_min = 14 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: W = 16, D_a = 2, D_c = 4, profile 2x(j=1) 4x(j=2); deg Res = 60 <= 60; sum(o^2-o-1) = 46; local orders equal to the bound at 2 of 6 contained lines; deg det E = 11 <= 11.5; sum(3j-4) = 8; orders equal to 3j-4 at 4 of 4 lines
+    W_min+2b: W = 16, D_a = 2, D_c = 4, profile 2x(j=1) 4x(j=2); deg Res = 60 <= 60; sum(o^2-o-1) = 46; local orders equal to the bound at 2 of 6 contained lines; deg det E = 11 <= 11.5; sum(3j-4) = 8; orders equal to 3j-4 at 4 of 4 lines
+rf4: n = 8, Delta = 5, random points, word rand, imposed j = 30313322, shape free: 76 conditions, W_min = 29 (nullity 1)  [0.0 s]
+    W_min+0: W = 29, D_a = 4, D_c = 5, profile 1x(j=0) 1x(j=1) 2x(j=2) 4x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2a: W = 31, D_a = 4, D_c = 6, profile 1x(j=0) 1x(j=1) 2x(j=2) 4x(j=3); deg Res = 156 <= 160; sum(o^2-o-1) = 139; local orders equal to the bound at 3 of 7 contained lines
+    W_min+2b: W = 31, D_a = 4, D_c = 6, profile 1x(j=0) 1x(j=1) 2x(j=2) 4x(j=3); deg Res = 156 <= 160; sum(o^2-o-1) = 139; local orders equal to the bound at 3 of 7 contained lines
+rq+4: n = 8, Delta = 4, random points, word plant2, imposed j = 22444020, shape K<=2, D_c<=5: 99 conditions, W_min = 31 (nullity 3)  [0.0 s]
+    W_min+0: dE has content of degree 6 in X (W = 31); BEFORE division the inequality of Lemma B FAILS (sum = 198, bound 179); analysing the primitive part
+    W_min+0: W = 25, D_a = 4, D_c = 5, profile 2x(j=0) 3x(j=2) 3x(j=3); deg Res = 121 <= 125; sum(o^2-o-1) = 120; local orders equal to the bound at 6 of 6 contained lines; det E = 0 (degenerate)
+    W_min+2a: dE has content of degree 6 in X (W = 33); BEFORE division the inequality of Lemma B FAILS (sum = 198, bound 197); analysing the primitive part
+    W_min+2a: W = 27, D_a = 4, D_c = 5, profile 2x(j=0) 3x(j=2) 3x(j=3); deg Res = 139 <= 143; sum(o^2-o-1) = 120; local orders equal to the bound at 6 of 6 contained lines; deg det E = 23 <= 24.0; sum(3j-4) = 21; orders equal to 3j-4 at 6 of 6 lines
+    W_min+2b: dE has content of degree 6 in X (W = 33); BEFORE division the inequality of Lemma B FAILS (sum = 198, bound 197); analysing the primitive part
+    W_min+2b: W = 27, D_a = 4, D_c = 5, profile 2x(j=0) 3x(j=2) 3x(j=3); deg Res = 139 <= 143; sum(o^2-o-1) = 120; local orders equal to the bound at 6 of 6 contained lines; deg det E = 23 <= 24.0; sum(3j-4) = 21; orders equal to 3j-4 at 6 of 6 lines
+rq5: n = 8, Delta = 5, random points, word rand, imposed j = 11302022, shape K<=2, D_c<=5: 40 conditions, W_min = 20 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: dE has content of degree 2 in X (W = 22); BEFORE division the inequality of Lemma B holds (sum = 64, bound 72); analysing the primitive part
+    W_min+2a: W = 20, D_a = 2, D_c = 4, profile 2x(j=0) 2x(j=1) 4x(j=2); deg Res = 60 <= 60; sum(o^2-o-1) = 46; local orders equal to the bound at 2 of 6 contained lines; deg det E = 9 <= 9.5; sum(3j-4) = 8; orders equal to 3j-4 at 4 of 4 lines
+    W_min+2b: dE has content of degree 2 in X (W = 22); BEFORE division the inequality of Lemma B holds (sum = 64, bound 72); analysing the primitive part
+    W_min+2b: W = 20, D_a = 2, D_c = 4, profile 2x(j=0) 2x(j=1) 4x(j=2); deg Res = 60 <= 60; sum(o^2-o-1) = 46; local orders equal to the bound at 2 of 6 contained lines; deg det E = 9 <= 9.5; sum(3j-4) = 8; orders equal to 3j-4 at 4 of 4 lines
+rc5: n = 8, Delta = 3, random points, word rand, imposed j = 22222222, shape K<=1, D_c<=3: 56 conditions, W_min = 22 (nullity 1)  [0.0 s]
+    W_min+0: W = 22, D_a = 2, D_c = 3, profile 8x(j=2); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2a: W = 24, D_a = 2, D_c = 3, profile 8x(j=2); deg Res = 93 <= 93; sum(o^2-o-1) = 88; local orders equal to the bound at 8 of 8 contained lines; det E = 0 (degenerate)
+    W_min+2b: W = 24, D_a = 2, D_c = 3, profile 8x(j=2); deg Res = 93 <= 93; sum(o^2-o-1) = 88; local orders equal to the bound at 8 of 8 contained lines; det E = 0 (degenerate)
+rs5: n = 6, Delta = 5, random points, word rand, imposed j = 222222, shape K<=2, D_c<=6: 42 conditions, W_min = 20 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: W = 22, D_a = 2, D_c = 4, profile 6x(j=2); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2b: W = 22, D_a = 2, D_c = 4, profile 6x(j=2); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+rk05: n = 12, Delta = 3, random points, word rand, imposed j = 020133220022, shape K<=0, D_c<=5: 67 conditions, W_min = 24 (nullity 2)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: E_Y = 0 (b = 0), skipped
+    W_min+2b: E_Y = 0 (b = 0), skipped
+rk15: n = 8, Delta = 5, random points, word plant1e, imposed j = 31222231, shape K<=1, D_c<=6: 62 conditions, W_min = 26 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: dE has content of degree 4 in X (W = 28); BEFORE division the inequality of Lemma B holds (sum = 104, bound 108); analysing the primitive part
+    W_min+2a: W = 24, D_a = 2, D_c = 4, profile 2x(j=1) 6x(j=2); deg Res = 84 <= 84; sum(o^2-o-1) = 68; local orders equal to the bound at 2 of 8 contained lines; deg det E = 15 <= 15.5; sum(3j-4) = 12; orders equal to 3j-4 at 6 of 6 lines
+    W_min+2b: dE has content of degree 4 in X (W = 28); BEFORE division the inequality of Lemma B holds (sum = 104, bound 108); analysing the primitive part
+    W_min+2b: W = 24, D_a = 2, D_c = 4, profile 2x(j=1) 6x(j=2); deg Res = 84 <= 84; sum(o^2-o-1) = 68; local orders equal to the bound at 2 of 8 contained lines; deg det E = 15 <= 15.5; sum(3j-4) = 12; orders equal to 3j-4 at 6 of 6 lines
+rf5: n = 12, Delta = 3, random points, word rand, imposed j = 331223232323, shape free: 127 conditions, W_min = 30 (nullity 4)  [0.2 s]
+    W_min+0: W = 30, D_a = 8, D_c = 10, profile 1x(j=1) 5x(j=2) 6x(j=3); deg Res = 270 <= 270; sum(o^2-o-1) = 230; local orders equal to the bound at 12 of 12 contained lines
+    W_min+2a: W = 32, D_a = 8, D_c = 10, profile 1x(j=1) 5x(j=2) 6x(j=3); deg Res = 306 <= 306; sum(o^2-o-1) = 230; local orders equal to the bound at 12 of 12 contained lines
+    W_min+2b: W = 32, D_a = 8, D_c = 10, profile 1x(j=1) 5x(j=2) 6x(j=3); deg Res = 306 <= 306; sum(o^2-o-1) = 230; local orders equal to the bound at 12 of 12 contained lines
+rq+5: n = 12, Delta = 5, random points, word rand, imposed j = 021014344542, shape K<=2, D_c<=5: 177 conditions, W_min = 48 (nullity 1)  [0.3 s]
+    W_min+0: dE has content of degree 12 in X (W = 48); analysing the primitive part
+    W_min+0: W = 36, D_a = 4, D_c = 5, profile 2x(j=0) 2x(j=1) 2x(j=2) 6x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2a: dE has content of degree 12 in X (W = 50); BEFORE division the inequality of Lemma B FAILS (sum = 362, bound 325); analysing the primitive part
+    W_min+2a: W = 38, D_a = 4, D_c = 5, profile 2x(j=0) 2x(j=1) 2x(j=2) 6x(j=3); deg Res = 217 <= 217; sum(o^2-o-1) = 198; local orders equal to the bound at 10 of 10 contained lines; deg det E = 36 <= 36.5; sum(3j-4) = 34; orders equal to 3j-4 at 8 of 8 lines
+    W_min+2b: dE has content of degree 12 in X (W = 50); BEFORE division the inequality of Lemma B FAILS (sum = 362, bound 325); analysing the primitive part
+    W_min+2b: W = 38, D_a = 4, D_c = 5, profile 2x(j=0) 2x(j=1) 2x(j=2) 6x(j=3); deg Res = 217 <= 217; sum(o^2-o-1) = 198; local orders equal to the bound at 10 of 10 contained lines; deg det E = 36 <= 36.5; sum(3j-4) = 34; orders equal to 3j-4 at 8 of 8 lines
+rq6: n = 8, Delta = 5, random points, word rand, imposed j = 32131123, shape K<=2, D_c<=5: 65 conditions, W_min = 27 (nullity 1)  [0.0 s]
+    W_min+0: dE has content of degree 6 in X (W = 27); BEFORE division the inequality of Lemma B FAILS (sum = 112, bound 102); analysing the primitive part
+    W_min+0: W = 21, D_a = 2, D_c = 4, profile 3x(j=1) 5x(j=2); deg Res = 64 <= 66; sum(o^2-o-1) = 58; local orders equal to the bound at 3 of 8 contained lines; deg det E = 10 <= 11.0; sum(3j-4) = 10; orders equal to 3j-4 at 5 of 5 lines
+    W_min+2a: W = 29, D_a = 4, D_c = 5, profile 3x(j=1) 2x(j=2) 3x(j=3); deg Res = 132 <= 136; sum(o^2-o-1) = 112; local orders equal to the bound at 8 of 8 contained lines; deg det E = 22 <= 23.0; sum(3j-4) = 19; orders equal to 3j-4 at 5 of 5 lines
+    W_min+2b: W = 29, D_a = 4, D_c = 5, profile 3x(j=1) 2x(j=2) 3x(j=3); deg Res = 132 <= 136; sum(o^2-o-1) = 112; local orders equal to the bound at 8 of 8 contained lines; deg det E = 22 <= 23.0; sum(3j-4) = 19; orders equal to 3j-4 at 5 of 5 lines
+rc6: n = 8, Delta = 3, random points, word rand, imposed j = 12222221, shape K<=1, D_c<=3: 46 conditions, W_min = 20 (nullity 3)  [0.0 s]
+    W_min+0: W = 20, D_a = 2, D_c = 3, profile 2x(j=1) 6x(j=2); deg Res = 73 <= 73; sum(o^2-o-1) = 68; local orders equal to the bound at 8 of 8 contained lines; det E = 0 (degenerate)
+    W_min+2a: W = 22, D_a = 2, D_c = 3, profile 2x(j=1) 6x(j=2); deg Res = 83 <= 83; sum(o^2-o-1) = 68; local orders equal to the bound at 8 of 8 contained lines; det E = 0 (degenerate)
+    W_min+2b: W = 22, D_a = 2, D_c = 3, profile 2x(j=1) 6x(j=2); deg Res = 83 <= 83; sum(o^2-o-1) = 68; local orders equal to the bound at 8 of 8 contained lines; det E = 0 (degenerate)
+rs6: n = 8, Delta = 6, random points, word plant2, imposed j = 20222212, shape K<=2, D_c<=6: 44 conditions, W_min = 24 (nullity 3)  [0.0 s]
+    W_min+0: W = 24, D_a = 2, D_c = 4, profile 1x(j=0) 1x(j=1) 6x(j=2); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2a: W = 26, D_a = 2, D_c = 4, profile 1x(j=0) 1x(j=1) 6x(j=2); deg Res = 84 <= 84; sum(o^2-o-1) = 67; local orders equal to the bound at 1 of 7 contained lines; deg det E = 14 <= 14.5; sum(3j-4) = 12; orders equal to 3j-4 at 6 of 6 lines
+    W_min+2b: W = 26, D_a = 2, D_c = 4, profile 1x(j=0) 1x(j=1) 6x(j=2); deg Res = 84 <= 84; sum(o^2-o-1) = 67; local orders equal to the bound at 1 of 7 contained lines; deg det E = 14 <= 14.5; sum(3j-4) = 12; orders equal to 3j-4 at 6 of 6 lines
+rk06: n = 8, Delta = 5, random points, word zero, imposed j = 02120222, shape K<=0, D_c<=5: 37 conditions, W_min = 20 (nullity 2)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: W = 22, D_a = 0, D_c = 4, profile 2x(j=0) 1x(j=1) 5x(j=2); deg Res = 68 <= 68; sum(o^2-o-1) = 56; local orders equal to the bound at 0 of 6 contained lines; det E = 0 (degenerate)
+    W_min+2b: W = 22, D_a = 0, D_c = 4, profile 2x(j=0) 1x(j=1) 5x(j=2); deg Res = 68 <= 68; sum(o^2-o-1) = 56; local orders equal to the bound at 0 of 6 contained lines; det E = 0 (degenerate)
+rk16: n = 6, Delta = 3, random points, word rand, imposed j = 312231, shape K<=1, D_c<=6: 48 conditions, W_min = 18 (nullity 2)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: W = 20, D_a = 2, D_c = 6, profile 2x(j=1) 2x(j=2) 2x(j=3); deg Res = 106 <= 106; sum(o^2-o-1) = 82; local orders equal to the bound at 2 of 6 contained lines
+    W_min+2b: W = 20, D_a = 2, D_c = 6, profile 2x(j=1) 2x(j=2) 2x(j=3); deg Res = 106 <= 106; sum(o^2-o-1) = 82; local orders equal to the bound at 2 of 6 contained lines
+rf6: n = 12, Delta = 2, random points, word rand, imposed j = 322302103333, shape free: 113 conditions, W_min = 23 (nullity 1)  [0.1 s]
+    W_min+0: W = 23, D_a = 10, D_c = 11, profile 2x(j=0) 1x(j=1) 3x(j=2) 6x(j=3); deg Res = 231 <= 241; sum(o^2-o-1) = 208; local orders equal to the bound at 10 of 10 contained lines
+    W_min+2a: W = 25, D_a = 10, D_c = 12, profile 2x(j=0) 1x(j=1) 3x(j=2) 6x(j=3); deg Res = 276 <= 286; sum(o^2-o-1) = 208; local orders equal to the bound at 10 of 10 contained lines
+    W_min+2b: W = 25, D_a = 10, D_c = 12, profile 2x(j=0) 1x(j=1) 3x(j=2) 6x(j=3); deg Res = 276 <= 286; sum(o^2-o-1) = 208; local orders equal to the bound at 10 of 10 contained lines
+rq+6: n = 6, Delta = 4, random points, word plant1e, imposed j = 242322, shape K<=2, D_c<=5: 69 conditions, W_min = 25 (nullity 2)  [0.0 s]
+    W_min+0: dE has content of degree 2 in X (W = 25); BEFORE division the inequality of Lemma B FAILS (sum = 128, bound 125); analysing the primitive part
+    W_min+0: W = 23, D_a = 4, D_c = 5, profile 4x(j=2) 2x(j=3); deg Res = 103 <= 107; sum(o^2-o-1) = 102; local orders equal to the bound at 6 of 6 contained lines; det E = 0 (degenerate)
+    W_min+2a: dE has content of degree 2 in X (W = 27); BEFORE division the inequality of Lemma B holds (sum = 128, bound 143); analysing the primitive part
+    W_min+2a: W = 25, D_a = 4, D_c = 5, profile 4x(j=2) 2x(j=3); deg Res = 121 <= 125; sum(o^2-o-1) = 102; local orders equal to the bound at 6 of 6 contained lines; deg det E = 20 <= 21.0; sum(3j-4) = 18; orders equal to 3j-4 at 6 of 6 lines
+    W_min+2b: dE has content of degree 2 in X (W = 27); BEFORE division the inequality of Lemma B holds (sum = 128, bound 143); analysing the primitive part
+    W_min+2b: W = 25, D_a = 4, D_c = 5, profile 4x(j=2) 2x(j=3); deg Res = 121 <= 125; sum(o^2-o-1) = 102; local orders equal to the bound at 6 of 6 contained lines; deg det E = 20 <= 21.0; sum(3j-4) = 18; orders equal to 3j-4 at 6 of 6 lines
+rq7: n = 12, Delta = 4, random points, word plant2, imposed j = 232001313222, shape K<=2, D_c<=5: 84 conditions, W_min = 29 (nullity 3)  [0.0 s]
+    W_min+0: W = 29, D_a = 4, D_c = 5, profile 2x(j=0) 2x(j=1) 5x(j=2) 3x(j=3); deg Res = 157 <= 161; sum(o^2-o-1) = 144; local orders equal to the bound at 10 of 10 contained lines; deg det E = 26 <= 27.0; sum(3j-4) = 25; orders equal to 3j-4 at 8 of 8 lines
+    W_min+2a: W = 31, D_a = 4, D_c = 5, profile 2x(j=0) 2x(j=1) 5x(j=2) 3x(j=3); deg Res = 175 <= 179; sum(o^2-o-1) = 144; local orders equal to the bound at 10 of 10 contained lines; deg det E = 29 <= 30.0; sum(3j-4) = 25; orders equal to 3j-4 at 8 of 8 lines
+    W_min+2b: W = 31, D_a = 4, D_c = 5, profile 2x(j=0) 2x(j=1) 5x(j=2) 3x(j=3); deg Res = 175 <= 179; sum(o^2-o-1) = 144; local orders equal to the bound at 10 of 10 contained lines; deg det E = 29 <= 30.0; sum(3j-4) = 25; orders equal to 3j-4 at 8 of 8 lines
+rc7: n = 12, Delta = 5, random points, word rand, imposed j = 222222002002, shape K<=1, D_c<=3: 56 conditions, W_min = 26 (nullity 2)  [0.0 s]
+    W_min+0: W = 26, D_a = 2, D_c = 3, profile 4x(j=0) 8x(j=2); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2a: W = 28, D_a = 2, D_c = 3, profile 4x(j=0) 8x(j=2); deg Res = 95 <= 95; sum(o^2-o-1) = 88; local orders equal to the bound at 8 of 8 contained lines; det E = 0 (degenerate)
+    W_min+2b: W = 28, D_a = 2, D_c = 3, profile 4x(j=0) 8x(j=2); deg Res = 95 <= 95; sum(o^2-o-1) = 88; local orders equal to the bound at 8 of 8 contained lines; det E = 0 (degenerate)
+rs7: n = 8, Delta = 4, random points, word rand, imposed j = 22021221, shape K<=2, D_c<=6: 39 conditions, W_min = 18 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: W = 20, D_a = 4, D_c = 4, profile 1x(j=0) 2x(j=1) 5x(j=2); deg Res = 80 <= 80; sum(o^2-o-1) = 57; local orders equal to the bound at 7 of 7 contained lines; deg det E = 13 <= 13.5; sum(3j-4) = 10; orders equal to 3j-4 at 5 of 5 lines
+    W_min+2b: W = 20, D_a = 4, D_c = 4, profile 1x(j=0) 2x(j=1) 5x(j=2); deg Res = 80 <= 80; sum(o^2-o-1) = 57; local orders equal to the bound at 7 of 7 contained lines; deg det E = 13 <= 13.5; sum(3j-4) = 10; orders equal to 3j-4 at 5 of 5 lines
+rk07: n = 6, Delta = 4, random points, word plant1e, imposed j = 222302, shape K<=0, D_c<=5: 43 conditions, W_min = 18 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: E_Y = 0 (b = 0), skipped
+    W_min+2b: E_Y = 0 (b = 0), skipped
+rk17: n = 8, Delta = 5, subspace points, word rand, imposed j = 12202212, shape K<=1, D_c<=6: 39 conditions, W_min = 20 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: W = 22, D_a = 2, D_c = 4, profile 1x(j=0) 2x(j=1) 5x(j=2); deg Res = 72 <= 72; sum(o^2-o-1) = 57; local orders equal to the bound at 2 of 7 contained lines; deg det E = 12 <= 12.5; sum(3j-4) = 10; orders equal to 3j-4 at 5 of 5 lines
+    W_min+2b: W = 22, D_a = 2, D_c = 4, profile 1x(j=0) 2x(j=1) 5x(j=2); deg Res = 72 <= 72; sum(o^2-o-1) = 57; local orders equal to the bound at 2 of 7 contained lines; deg det E = 12 <= 12.5; sum(3j-4) = 10; orders equal to 3j-4 at 5 of 5 lines
+rf7: n = 8, Delta = 2, random points, word rand, imposed j = 02235321, shape free: 93 conditions, W_min = 21 (nullity 3)  [0.0 s]
+    W_min+0: W = 21, D_a = 8, D_c = 10, profile 1x(j=0) 1x(j=1) 3x(j=2) 2x(j=3) 1x(j=5); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply)
+    W_min+2a: W = 23, D_a = 10, D_c = 11, profile 1x(j=0) 1x(j=1) 3x(j=2) 2x(j=3) 1x(j=5); deg Res = 231 <= 241; sum(o^2-o-1) = 181; local orders equal to the bound at 7 of 7 contained lines
+    W_min+2b: W = 23, D_a = 10, D_c = 11, profile 1x(j=0) 1x(j=1) 3x(j=2) 2x(j=3) 1x(j=5); deg Res = 231 <= 241; sum(o^2-o-1) = 181; local orders equal to the bound at 7 of 7 contained lines
+rq+7: n = 6, Delta = 3, random points, word rand, imposed j = 322020, shape K<=2, D_c<=5: 36 conditions, W_min = 14 (nullity 1)  [0.0 s]
+    W_min+0: E_Y = 0 (b = 0), skipped
+    W_min+2a: W = 16, D_a = 4, D_c = 5, profile 2x(j=0) 3x(j=2) 1x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+    W_min+2b: W = 16, D_a = 4, D_c = 5, profile 2x(j=0) 3x(j=2) 1x(j=3); Res = 0 (E_Y, E_X not coprime: not absolutely irreducible, Lemma B does not apply); det E = 0 (degenerate)
+
+215 potentials analysed; 79 with content (Lemma B's inequality fails before division for 29 of them); 183 primitive with coprime E_Y, E_X
+Corollary F part 2 on planted polynomials: 82 (potential, polynomial) pairs with E_Y(X, P) != 0
+potentials with W < 6 Delta and sum(o^2-o-1) > 9W - 25 Delta (the last sentence of Lemma B in note 40 fails): 9
+Theorem 4 extension on non-primitive quintics with det E != 0: 36 potentials, 54 lines of contact >= 8, order of det E equal to 3j - 4 at 54 of them
+0 violations in all  [17 s]
+=== python3 54_sections.py
+A. Propositions 4.4 and 4.2 (i), (iii) on synthetic pairs (GF(2^16))
+   common word (P1 = P2 on S1 and S2), r = 1: 32 pairs; slack of the distance bound: min 0, max 1; mu in [6, 9], mu* in [6, 9], max(p) - Delta in [0, 0]; pairs with mu* < mu: 0
+   common word, with factors r_P (extra roots): 24 pairs; slack of the distance bound: min 0, max 0; mu in [6, 10], mu* in [6, 10], max(p) - Delta in [0, 0]; pairs with mu* < mu: 0
+   no common word (algebra only): 24 pairs; slack of the distance bound: min 0, max 1; mu in [9, 22], mu* in [8, 9], max(p) - Delta in [0, 0]; pairs with mu* < mu: 16
+   common word, S1 xor S2 an F2-subspace of 16 points (structured): 16 pairs; slack: min 0, max 3; mu in [0, 0], mu* in [0, 0], max(p) - Delta in [12, 15]
+   common word, S1 xor S2 = a subspace of 8 points and 8 or 9 random points: 16 pairs; slack: min 0, max 0; mu in [7, 8], mu* in [7, 8], max(p) - Delta in [0, 1]
+   common word, S1 xor S2 = a subspace of 16 points and 2 or 3 random points, one factor r: 16 pairs; slack: min 0, max 0; mu in [9, 9], mu* in [9, 9], max(p) - Delta in [0, 0]
+B. three members: the cyclic relation
+   20 triples: the relation holds on consistent data and fails on the perturbed ones (0 perturbed triples stayed consistent)
+C. the working form (D2) on random degenerate quintics
+   30 potentials, 3 random P each
+D. Lemma 3.1 on Q = (Y - P1)(Y - P2)
+   |Z| = 0: 6 words; smallest slack W - 3 Delta - sum_{S_P} j_alpha over the third polynomials: [0]; W = [40], deg rho = [0]; profile of the first word {1: 16, 2: 8}
+   |Z| = 2: 6 words; smallest slack W - 3 Delta - sum_{S_P} j_alpha over the third polynomials: [0]; W = [42], deg rho = [2]; profile of the first word {1: 16, 2: 6, 3: 2}
+   |Z| = 3: 6 words; smallest slack W - 3 Delta - sum_{S_P} j_alpha over the third polynomials: [1]; W = [44], deg rho = [4]; profile of the first word {1: 16, 2: 5, 3: 3}
+
+0 failures
+=== 54_cover.py a=0.7065 lg=25 depth=8 mode=M cases=all
+self-tests: N closed form = defining sum (4000 arguments); R = closed form of note 48 for m >= 2B - 1, m < 70;
+            cell vertices: the maximum of 12000 random linear forms over the vertex set = the exact knapsack optimum
+n = 2^25, Delta = 16777221, A = 23706207
+=== 54_cover.py a=0.7065 lg=25 depth=8 mode=M cases=all
+n = 2^25, Delta = 16777221, A = 23706207
+   certificate (q, m) = (2, 17): margin of (*) 131869 = 0.00393 n, d = 24, d // q = 12, (mA - 1) // q = 201502759 = 6.0053 n
+   certificate (q, m) = (4, 23): margin of (*) 15732908 = 0.46888 n, d = 32, d // q = 8, (mA - 1) // q = 136310690 = 4.0624 n
+   certificate (q, m) = (8, 40): margin of (*) 52332452 = 1.55963 n, d = 56, d // q = 7, (mA - 1) // q = 118531034 = 3.5325 n
+   certificate (q, m) = (16, 74): margin of (*) 17204348 = 0.51273 n, d = 104, d // q = 6, (mA - 1) // q = 109641207 = 3.2676 n
+   certificate (q, m) = (32, 144): margin of (*) 91643228 = 2.73118 n, d = 203, d // q = 6, (mA - 1) // q = 106677931 = 3.1793 n
+   certificate (q, m) = (64, 284): margin of (*) 302702582 = 9.02124 n, d = 401, d // q = 6, (mA - 1) // q = 105196293 = 3.1351 n
+   certificate (q, m) = (128, 564): margin of (*) 975836444 = 29.08219 n, d = 796, d // q = 6, (mA - 1) // q = 104455474 = 3.1130 n
+   certificate (q, m) = (256, 1123): margin of (*) 954561536 = 28.44815 n, d = 1586, d // q = 6, (mA - 1) // q = 103992462 = 3.0992 n
+   certificate (q, m) = (512, 2242): margin of (*) 2536200032 = 75.58465 n, d = 3167, d // q = 6, (mA - 1) // q = 103807257 = 3.0937 n
+   bootstrap: delta <= [12, 8, 7, 6, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 19002; list bound 24^2 + 19002 = 19578
+   W_max = 103807257 = 3.09370 n; 6 Delta = 100663326; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1356 = 8136  (below the threshold)
+case K0 Dc<=1: j <= 1, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 632 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=2: j <= 2, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 669 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 331 impossible (lower bound above W_max), 669 cut, 0 not cut
+case K0 Dc=3: j <= 3, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 698 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 571 impossible (lower bound above W_max), 429 cut, 0 not cut
+case K0 Dc=4: j <= 4, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 720 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 647 impossible (lower bound above W_max), 353 cut, 0 not cut
+case K0 Dc=5: j <= 5, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 744 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 786 impossible (lower bound above W_max), 214 cut, 0 not cut
+case K0 Dc=6: j <= 6, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 745 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 797 impossible (lower bound above W_max), 203 cut, 0 not cut
+case cubic (K1 Dc<=3): j <= 3, 210 candidates (m, B), 5 bounds, 5 cells, 0 open cells of side 1/256, 4545 evaluations  [0 s]
+      most used: (30, 6, B) x2, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 398 impossible (lower bound above W_max), 602 cut, 0 not cut
+      contact 4 on all lines: largest lower bound 104018749 = 3.10000 n; first cut at W = 88424204 = 2.63525 n by (960, 121)
+case K1 Dc=4: j <= 4, 210 candidates (m, B), 5 bounds, 7 cells, 0 open cells of side 1/256, 6084 evaluations  [0 s]
+      most used: (30, 6, B) x3, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 506 impossible (lower bound above W_max), 494 cut, 0 not cut
+case K1 Dc=5: j <= 5, 210 candidates (m, B), 5 bounds, 39 cells, 0 open cells of side 1/256, 31144 evaluations  [0 s]
+      most used: (30, 6, L2(2)) x8, (30, 6, B) x6, (30, 6, floor) x2, (30, 6, L1) x2
+      pointwise check on 1000 random profiles (no convexity, defining sums): 691 impossible (lower bound above W_max), 309 cut, 0 not cut
+case K1 Dc=6: j <= 6, 210 candidates (m, B), 5 bounds, 37 cells, 0 open cells of side 1/256, 31898 evaluations  [0 s]
+      most used: (30, 6, B) x8, (30, 6, L2(2)) x6, (30, 6, floor) x2, (30, 5, L2(2)) x2
+      pointwise check on 1000 random profiles (no convexity, defining sums): 729 impossible (lower bound above W_max), 271 cut, 0 not cut
+case sextic (K2 Dc=6): j <= 6, 210 candidates (m, B), 6 bounds, 89 cells, 0 open cells of side 1/256, 77839 evaluations  [0 s]
+      most used: (30, 6, floor) x16, (30, 6, B) x13, (60, 18, B) x13, (120, 31, B) x3
+      pointwise check on 1000 random profiles (no convexity, defining sums): 749 impossible (lower bound above W_max), 251 cut, 0 not cut
+case nondegenerate quintic (K2 Dc<=5, det != 0): j <= 5, 210 candidates (m, B), 7 bounds, 1 cells, 0 open cells of side 1/256, 1550 evaluations  [0 s]
+      most used: (60, 18, T) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 671 impossible (lower bound above W_max), 329 cut, 0 not cut
+case dependent quintic (K2 Dc<=5): j <= 5, 210 candidates (m, B), 11 bounds, 75 cells, 0 open cells of side 1/256, 108700 evaluations  [0 s]
+      most used: (120, 43, B) x17, (30, 6, B) x13, (30, 6, D(2)) x7, (60, 18, D(2)) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 644 impossible (lower bound above W_max), 356 cut, 0 not cut
+case dependent (K2 Dc=6): j <= 6, 210 candidates (m, B), 12 bounds, 89 cells, 0 open cells of side 1/256, 138248 evaluations  [0 s]
+      most used: (30, 6, floor) x16, (30, 6, B) x13, (60, 18, B) x13, (120, 31, B) x3
+      pointwise check on 1000 random profiles (no convexity, defining sums): 782 impossible (lower bound above W_max), 218 cut, 0 not cut
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 5, 210 candidates (m, B), 6 bounds, 3013 cells, 846 open cells of side 1/256, 3713103 evaluations  [6 s]
+      most used: (960, 113, B) x304, (960, 97, B) x81, (960, 137, B) x58, (30, 6, B) x13
+      open cells: 0/256 <= x_1 <= 22/256
+      open cells: 234/256 <= x_2 <= 256/256
+      open cells: 0/256 <= x_3 <= 11/256
+      open cells: 0/256 <= x_4 <= 3/256
+      open cells: 0/256 <= x_5 <= 2/256
+      open cells: x_0 <= 6/256
+      window over the open cells: 84381255 <= W < 90964065, that is [2.51476, 2.71094) n
+      all open cells inside the box of note 51 (0/256 <= x_1 <= 22/256, 233/256 <= x_2 <= 256/256, 0/256 <= x_3 <= 11/256, 0/256 <= x_4 <= 3/256, 0/256 <= x_5 <= 2/256; x_0 <= 6/256): True; window inside the window of note 51 [84235620, 92960839): True
+      pointwise check on 1000 random profiles (no convexity, defining sums): 549 impossible (lower bound above W_max), 328 cut, 123 not cut, all inside the open cells
+      contact 4 on all lines: largest lower bound 87895842 = 2.61950 n; first cut at W = 88424204 = 2.63525 n by (960, 121)
+total 13 s
+=== 54_cover.py a=0.7065 lg=26 depth=8 mode=M cases=all
+n = 2^26, Delta = 33554437, A = 47412413
+   certificate (q, m) = (2, 17): margin of (*) 265917 = 0.00396 n, d = 24, d // q = 12, (mA - 1) // q = 403005510 = 6.0053 n
+   certificate (q, m) = (4, 23): margin of (*) 31469640 = 0.46893 n, d = 32, d // q = 8, (mA - 1) // q = 272621374 = 4.0624 n
+   certificate (q, m) = (8, 40): margin of (*) 104676484 = 1.55980 n, d = 56, d // q = 7, (mA - 1) // q = 237062064 = 3.5325 n
+   certificate (q, m) = (16, 74): margin of (*) 34448340 = 0.51332 n, d = 104, d // q = 6, (mA - 1) // q = 219282410 = 3.2676 n
+   certificate (q, m) = (32, 144): margin of (*) 183436892 = 2.73342 n, d = 203, d // q = 6, (mA - 1) // q = 213355858 = 3.1793 n
+   certificate (q, m) = (64, 284): margin of (*) 605990934 = 9.02997 n, d = 401, d // q = 6, (mA - 1) // q = 210392582 = 3.1351 n
+   certificate (q, m) = (128, 564): margin of (*) 1953977484 = 29.11653 n, d = 796, d // q = 6, (mA - 1) // q = 208910944 = 3.1130 n
+   certificate (q, m) = (256, 1123): margin of (*) 1918267868 = 28.58442 n, d = 1586, d // q = 6, (mA - 1) // q = 207984921 = 3.0992 n
+   certificate (q, m) = (512, 2242): margin of (*) 5108853856 = 76.12785 n, d = 3167, d // q = 6, (mA - 1) // q = 207614511 = 3.0937 n
+   bootstrap: delta <= [12, 8, 7, 6, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 19002; list bound 24^2 + 19002 = 19578
+   W_max = 207614511 = 3.09370 n; 6 Delta = 201326622; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1356 = 8136  (below the threshold)
+case K0 Dc<=1: j <= 1, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 632 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=2: j <= 2, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 669 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 331 impossible (lower bound above W_max), 669 cut, 0 not cut
+case K0 Dc=3: j <= 3, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 698 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 571 impossible (lower bound above W_max), 429 cut, 0 not cut
+case K0 Dc=4: j <= 4, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 720 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 647 impossible (lower bound above W_max), 353 cut, 0 not cut
+case K0 Dc=5: j <= 5, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 744 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 786 impossible (lower bound above W_max), 214 cut, 0 not cut
+case K0 Dc=6: j <= 6, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 745 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 797 impossible (lower bound above W_max), 203 cut, 0 not cut
+case cubic (K1 Dc<=3): j <= 3, 210 candidates (m, B), 5 bounds, 5 cells, 0 open cells of side 1/256, 4545 evaluations  [0 s]
+      most used: (30, 6, B) x2, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 398 impossible (lower bound above W_max), 602 cut, 0 not cut
+      contact 4 on all lines: largest lower bound 208037488 = 3.10000 n; first cut at W = 176848364 = 2.63525 n by (960, 121)
+case K1 Dc=4: j <= 4, 210 candidates (m, B), 5 bounds, 7 cells, 0 open cells of side 1/256, 6084 evaluations  [0 s]
+      most used: (30, 6, B) x3, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 506 impossible (lower bound above W_max), 494 cut, 0 not cut
+case K1 Dc=5: j <= 5, 210 candidates (m, B), 5 bounds, 39 cells, 0 open cells of side 1/256, 31144 evaluations  [0 s]
+      most used: (30, 6, L2(2)) x8, (30, 6, B) x6, (30, 6, floor) x2, (30, 6, L1) x2
+      pointwise check on 1000 random profiles (no convexity, defining sums): 691 impossible (lower bound above W_max), 309 cut, 0 not cut
+case K1 Dc=6: j <= 6, 210 candidates (m, B), 5 bounds, 37 cells, 0 open cells of side 1/256, 31898 evaluations  [0 s]
+      most used: (30, 6, B) x8, (30, 6, L2(2)) x6, (30, 6, floor) x2, (30, 5, L2(2)) x2
+      pointwise check on 1000 random profiles (no convexity, defining sums): 729 impossible (lower bound above W_max), 271 cut, 0 not cut
+case sextic (K2 Dc=6): j <= 6, 210 candidates (m, B), 6 bounds, 89 cells, 0 open cells of side 1/256, 77839 evaluations  [0 s]
+      most used: (30, 6, floor) x16, (30, 6, B) x13, (60, 18, B) x13, (120, 31, B) x3
+      pointwise check on 1000 random profiles (no convexity, defining sums): 749 impossible (lower bound above W_max), 251 cut, 0 not cut
+case nondegenerate quintic (K2 Dc<=5, det != 0): j <= 5, 210 candidates (m, B), 7 bounds, 1 cells, 0 open cells of side 1/256, 1550 evaluations  [0 s]
+      most used: (60, 18, T) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 671 impossible (lower bound above W_max), 329 cut, 0 not cut
+case dependent quintic (K2 Dc<=5): j <= 5, 210 candidates (m, B), 11 bounds, 75 cells, 0 open cells of side 1/256, 108700 evaluations  [0 s]
+      most used: (120, 43, B) x17, (30, 6, B) x13, (30, 6, D(2)) x7, (60, 18, D(2)) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 644 impossible (lower bound above W_max), 356 cut, 0 not cut
+case dependent (K2 Dc=6): j <= 6, 210 candidates (m, B), 12 bounds, 89 cells, 0 open cells of side 1/256, 138248 evaluations  [0 s]
+      most used: (30, 6, floor) x16, (30, 6, B) x13, (60, 18, B) x13, (120, 31, B) x3
+      pointwise check on 1000 random profiles (no convexity, defining sums): 782 impossible (lower bound above W_max), 218 cut, 0 not cut
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 5, 210 candidates (m, B), 6 bounds, 3013 cells, 846 open cells of side 1/256, 3713103 evaluations  [6 s]
+      most used: (960, 113, B) x304, (960, 97, B) x81, (960, 137, B) x58, (30, 6, B) x13
+      open cells: 0/256 <= x_1 <= 22/256
+      open cells: 234/256 <= x_2 <= 256/256
+      open cells: 0/256 <= x_3 <= 11/256
+      open cells: 0/256 <= x_4 <= 3/256
+      open cells: 0/256 <= x_5 <= 2/256
+      open cells: x_0 <= 6/256
+      window over the open cells: 168762496 <= W < 181928088, that is [2.51476, 2.71094) n
+      all open cells inside the box of note 51 (0/256 <= x_1 <= 22/256, 233/256 <= x_2 <= 256/256, 0/256 <= x_3 <= 11/256, 0/256 <= x_4 <= 3/256, 0/256 <= x_5 <= 2/256; x_0 <= 6/256): True; window inside the window of note 51 [168471225, 185921635): True
+      pointwise check on 1000 random profiles (no convexity, defining sums): 549 impossible (lower bound above W_max), 328 cut, 123 not cut, all inside the open cells
+      contact 4 on all lines: largest lower bound 175791676 = 2.61950 n; first cut at W = 176848364 = 2.63525 n by (960, 121)
+total 13 s
+=== 54_cover.py a=0.7065 lg=27 depth=8 mode=M cases=all
+n = 2^27, Delta = 67108869, A = 94824825
+   certificate (q, m) = (2, 17): margin of (*) 534013 = 0.00398 n, d = 24, d // q = 12, (mA - 1) // q = 806011012 = 6.0053 n
+   certificate (q, m) = (4, 23): margin of (*) 62943104 = 0.46896 n, d = 32, d // q = 8, (mA - 1) // q = 545242743 = 4.0624 n
+   certificate (q, m) = (8, 40): margin of (*) 209364548 = 1.55989 n, d = 56, d // q = 7, (mA - 1) // q = 474124124 = 3.5325 n
+   certificate (q, m) = (16, 74): margin of (*) 68936324 = 0.51362 n, d = 104, d // q = 6, (mA - 1) // q = 438564815 = 3.2676 n
+   certificate (q, m) = (32, 144): margin of (*) 367024220 = 2.73454 n, d = 203, d // q = 6, (mA - 1) // q = 426711712 = 3.1793 n
+   certificate (q, m) = (64, 284): margin of (*) 1212567638 = 9.03433 n, d = 401, d // q = 6, (mA - 1) // q = 420785160 = 3.1351 n
+   certificate (q, m) = (128, 564): margin of (*) 3910259564 = 29.13370 n, d = 796, d // q = 6, (mA - 1) // q = 417821885 = 3.1130 n
+   certificate (q, m) = (256, 1123): margin of (*) 3845680532 = 28.65255 n, d = 1586, d // q = 6, (mA - 1) // q = 415969837 = 3.0992 n
+   certificate (q, m) = (512, 2242): margin of (*) 10254161504 = 76.39946 n, d = 3167, d // q = 6, (mA - 1) // q = 415229018 = 3.0937 n
+   bootstrap: delta <= [12, 8, 7, 6, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 19002; list bound 24^2 + 19002 = 19578
+   W_max = 415229018 = 3.09370 n; 6 Delta = 402653214; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1356 = 8136  (below the threshold)
+case K0 Dc<=1: j <= 1, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 632 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=2: j <= 2, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 669 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 331 impossible (lower bound above W_max), 669 cut, 0 not cut
+case K0 Dc=3: j <= 3, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 698 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 571 impossible (lower bound above W_max), 429 cut, 0 not cut
+case K0 Dc=4: j <= 4, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 720 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 647 impossible (lower bound above W_max), 353 cut, 0 not cut
+case K0 Dc=5: j <= 5, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 744 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 786 impossible (lower bound above W_max), 214 cut, 0 not cut
+case K0 Dc=6: j <= 6, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 745 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 797 impossible (lower bound above W_max), 203 cut, 0 not cut
+case cubic (K1 Dc<=3): j <= 3, 210 candidates (m, B), 5 bounds, 5 cells, 0 open cells of side 1/256, 4545 evaluations  [0 s]
+      most used: (30, 6, B) x2, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 398 impossible (lower bound above W_max), 602 cut, 0 not cut
+      contact 4 on all lines: largest lower bound 416074966 = 3.10000 n; first cut at W = 353696684 = 2.63525 n by (960, 121)
+case K1 Dc=4: j <= 4, 210 candidates (m, B), 5 bounds, 7 cells, 0 open cells of side 1/256, 6084 evaluations  [0 s]
+      most used: (30, 6, B) x3, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 506 impossible (lower bound above W_max), 494 cut, 0 not cut
+case K1 Dc=5: j <= 5, 210 candidates (m, B), 5 bounds, 39 cells, 0 open cells of side 1/256, 31144 evaluations  [0 s]
+      most used: (30, 6, L2(2)) x8, (30, 6, B) x6, (30, 6, floor) x2, (30, 6, L1) x2
+      pointwise check on 1000 random profiles (no convexity, defining sums): 691 impossible (lower bound above W_max), 309 cut, 0 not cut
+case K1 Dc=6: j <= 6, 210 candidates (m, B), 5 bounds, 37 cells, 0 open cells of side 1/256, 31898 evaluations  [0 s]
+      most used: (30, 6, B) x8, (30, 6, L2(2)) x6, (30, 6, floor) x2, (30, 5, L2(2)) x2
+      pointwise check on 1000 random profiles (no convexity, defining sums): 729 impossible (lower bound above W_max), 271 cut, 0 not cut
+case sextic (K2 Dc=6): j <= 6, 210 candidates (m, B), 6 bounds, 89 cells, 0 open cells of side 1/256, 77839 evaluations  [0 s]
+      most used: (30, 6, floor) x16, (30, 6, B) x13, (60, 18, B) x13, (120, 31, B) x3
+      pointwise check on 1000 random profiles (no convexity, defining sums): 749 impossible (lower bound above W_max), 251 cut, 0 not cut
+case nondegenerate quintic (K2 Dc<=5, det != 0): j <= 5, 210 candidates (m, B), 7 bounds, 1 cells, 0 open cells of side 1/256, 1550 evaluations  [0 s]
+      most used: (60, 18, T) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 671 impossible (lower bound above W_max), 329 cut, 0 not cut
+case dependent quintic (K2 Dc<=5): j <= 5, 210 candidates (m, B), 11 bounds, 75 cells, 0 open cells of side 1/256, 108700 evaluations  [0 s]
+      most used: (120, 43, B) x17, (30, 6, B) x13, (30, 6, D(2)) x7, (60, 18, D(2)) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 644 impossible (lower bound above W_max), 356 cut, 0 not cut
+case dependent (K2 Dc=6): j <= 6, 210 candidates (m, B), 12 bounds, 89 cells, 0 open cells of side 1/256, 138248 evaluations  [0 s]
+      most used: (30, 6, floor) x16, (30, 6, B) x13, (60, 18, B) x13, (120, 31, B) x3
+      pointwise check on 1000 random profiles (no convexity, defining sums): 782 impossible (lower bound above W_max), 218 cut, 0 not cut
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 5, 210 candidates (m, B), 6 bounds, 3013 cells, 846 open cells of side 1/256, 3713102 evaluations  [6 s]
+      most used: (960, 113, B) x304, (960, 97, B) x81, (960, 137, B) x58, (30, 6, B) x13
+      open cells: 0/256 <= x_1 <= 22/256
+      open cells: 234/256 <= x_2 <= 256/256
+      open cells: 0/256 <= x_3 <= 11/256
+      open cells: 0/256 <= x_4 <= 3/256
+      open cells: 0/256 <= x_5 <= 2/256
+      open cells: x_0 <= 6/256
+      window over the open cells: 337524978 <= W < 363856134, that is [2.51476, 2.71094) n
+      all open cells inside the box of note 51 (0/256 <= x_1 <= 22/256, 233/256 <= x_2 <= 256/256, 0/256 <= x_3 <= 11/256, 0/256 <= x_4 <= 3/256, 0/256 <= x_5 <= 2/256; x_0 <= 6/256): True; window inside the window of note 51 [336942436, 371843225): True
+      pointwise check on 1000 random profiles (no convexity, defining sums): 549 impossible (lower bound above W_max), 328 cut, 123 not cut, all inside the open cells
+      contact 4 on all lines: largest lower bound 351583344 = 2.61950 n; first cut at W = 353696684 = 2.63525 n by (960, 121)
+total 13 s
+=== 54_cover.py a=0.7065 lg=28 depth=8 mode=M cases=all
+n = 2^28, Delta = 134217733, A = 189649650
+   certificate (q, m) = (2, 17): margin of (*) 1071021 = 0.00399 n, d = 24, d // q = 12, (mA - 1) // q = 1612022024 = 6.0053 n
+   certificate (q, m) = (4, 23): margin of (*) 125891458 = 0.46898 n, d = 32, d // q = 8, (mA - 1) // q = 1090485487 = 4.0624 n
+   certificate (q, m) = (8, 40): margin of (*) 418744916 = 1.55995 n, d = 56, d // q = 7, (mA - 1) // q = 948248249 = 3.5325 n
+   certificate (q, m) = (16, 74): margin of (*) 137926648 = 0.51382 n, d = 104, d // q = 6, (mA - 1) // q = 877129631 = 3.2676 n
+   certificate (q, m) = (32, 144): margin of (*) 734253020 = 2.73531 n, d = 203, d // q = 6, (mA - 1) // q = 853423424 = 3.1793 n
+   certificate (q, m) = (64, 284): margin of (*) 2425931206 = 9.03730 n, d = 401, d // q = 6, (mA - 1) // q = 841570321 = 3.1351 n
+   certificate (q, m) = (128, 564): margin of (*) 7823650548 = 29.14537 n, d = 796, d // q = 6, (mA - 1) // q = 835643770 = 3.1130 n
+   certificate (q, m) = (256, 1123): margin of (*) 7703782774 = 28.69883 n, d = 1586, d // q = 6, (mA - 1) // q = 831939675 = 3.0992 n
+   certificate (q, m) = (512, 2242): margin of (*) 20557834208 = 76.58390 n, d = 3167, d // q = 6, (mA - 1) // q = 830458037 = 3.0937 n
+   bootstrap: delta <= [12, 8, 7, 6, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 19002; list bound 24^2 + 19002 = 19578
+   W_max = 830458037 = 3.09370 n; 6 Delta = 805306398; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1356 = 8136  (below the threshold)
+case K0 Dc<=1: j <= 1, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 632 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=2: j <= 2, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 669 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 331 impossible (lower bound above W_max), 669 cut, 0 not cut
+case K0 Dc=3: j <= 3, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 698 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 571 impossible (lower bound above W_max), 429 cut, 0 not cut
+case K0 Dc=4: j <= 4, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 720 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 647 impossible (lower bound above W_max), 353 cut, 0 not cut
+case K0 Dc=5: j <= 5, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 744 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 786 impossible (lower bound above W_max), 214 cut, 0 not cut
+case K0 Dc=6: j <= 6, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 745 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 797 impossible (lower bound above W_max), 203 cut, 0 not cut
+case cubic (K1 Dc<=3): j <= 3, 210 candidates (m, B), 5 bounds, 5 cells, 0 open cells of side 1/256, 4545 evaluations  [0 s]
+      most used: (30, 6, B) x2, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 398 impossible (lower bound above W_max), 602 cut, 0 not cut
+      contact 4 on all lines: largest lower bound 832149923 = 3.10000 n; first cut at W = 707393312 = 2.63525 n by (960, 121)
+case K1 Dc=4: j <= 4, 210 candidates (m, B), 5 bounds, 7 cells, 0 open cells of side 1/256, 6084 evaluations  [0 s]
+      most used: (30, 6, B) x3, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 506 impossible (lower bound above W_max), 494 cut, 0 not cut
+case K1 Dc=5: j <= 5, 210 candidates (m, B), 5 bounds, 39 cells, 0 open cells of side 1/256, 31144 evaluations  [0 s]
+      most used: (30, 6, L2(2)) x8, (30, 6, B) x6, (30, 6, floor) x2, (30, 6, L1) x2
+      pointwise check on 1000 random profiles (no convexity, defining sums): 691 impossible (lower bound above W_max), 309 cut, 0 not cut
+case K1 Dc=6: j <= 6, 210 candidates (m, B), 5 bounds, 37 cells, 0 open cells of side 1/256, 31898 evaluations  [0 s]
+      most used: (30, 6, B) x8, (30, 6, L2(2)) x6, (30, 6, floor) x2, (30, 5, L2(2)) x2
+      pointwise check on 1000 random profiles (no convexity, defining sums): 729 impossible (lower bound above W_max), 271 cut, 0 not cut
+case sextic (K2 Dc=6): j <= 6, 210 candidates (m, B), 6 bounds, 89 cells, 0 open cells of side 1/256, 77839 evaluations  [0 s]
+      most used: (30, 6, floor) x16, (30, 6, B) x13, (60, 18, B) x13, (120, 31, B) x3
+      pointwise check on 1000 random profiles (no convexity, defining sums): 749 impossible (lower bound above W_max), 251 cut, 0 not cut
+case nondegenerate quintic (K2 Dc<=5, det != 0): j <= 5, 210 candidates (m, B), 7 bounds, 1 cells, 0 open cells of side 1/256, 1550 evaluations  [0 s]
+      most used: (60, 18, T) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 671 impossible (lower bound above W_max), 329 cut, 0 not cut
+case dependent quintic (K2 Dc<=5): j <= 5, 210 candidates (m, B), 11 bounds, 75 cells, 0 open cells of side 1/256, 108700 evaluations  [0 s]
+      most used: (120, 43, B) x17, (30, 6, B) x13, (30, 6, D(2)) x7, (60, 18, D(2)) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 644 impossible (lower bound above W_max), 356 cut, 0 not cut
+case dependent (K2 Dc=6): j <= 6, 210 candidates (m, B), 12 bounds, 89 cells, 0 open cells of side 1/256, 138248 evaluations  [0 s]
+      most used: (30, 6, floor) x16, (30, 6, B) x13, (60, 18, B) x13, (120, 31, B) x3
+      pointwise check on 1000 random profiles (no convexity, defining sums): 782 impossible (lower bound above W_max), 218 cut, 0 not cut
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 5, 210 candidates (m, B), 6 bounds, 3013 cells, 846 open cells of side 1/256, 3713098 evaluations  [6 s]
+      most used: (960, 113, B) x304, (960, 97, B) x81, (960, 137, B) x58, (30, 6, B) x13
+      open cells: 0/256 <= x_1 <= 22/256
+      open cells: 234/256 <= x_2 <= 256/256
+      open cells: 0/256 <= x_3 <= 11/256
+      open cells: 0/256 <= x_4 <= 3/256
+      open cells: 0/256 <= x_5 <= 2/256
+      open cells: x_0 <= 6/256
+      window over the open cells: 675049941 <= W < 727712215, that is [2.51476, 2.71094) n
+      all open cells inside the box of note 51 (0/256 <= x_1 <= 22/256, 233/256 <= x_2 <= 256/256, 0/256 <= x_3 <= 11/256, 0/256 <= x_4 <= 3/256, 0/256 <= x_5 <= 2/256; x_0 <= 6/256): True; window inside the window of note 51 [673884857, 743686395): True
+      pointwise check on 1000 random profiles (no convexity, defining sums): 549 impossible (lower bound above W_max), 328 cut, 123 not cut, all inside the open cells
+      contact 4 on all lines: largest lower bound 703166683 = 2.61950 n; first cut at W = 707393312 = 2.63525 n by (960, 121)
+total 13 s
+=== 54_cover.py a=0.7065 lg=25 depth=8 mode=Mp cases=all
+n = 2^25, Delta = 16777221, A = 23706207
+   certificate (q, m) = (2, 17): margin of (*) 131869 = 0.00393 n, d = 24, d // q = 12, (mA - 1) // q = 201502759 = 6.0053 n
+   certificate (q, m) = (4, 23): margin of (*) 15732908 = 0.46888 n, d = 32, d // q = 8, (mA - 1) // q = 136310690 = 4.0624 n
+   certificate (q, m) = (8, 40): margin of (*) 52332452 = 1.55963 n, d = 56, d // q = 7, (mA - 1) // q = 118531034 = 3.5325 n
+   certificate (q, m) = (16, 74): margin of (*) 17204348 = 0.51273 n, d = 104, d // q = 6, (mA - 1) // q = 109641207 = 3.2676 n
+   certificate (q, m) = (32, 144): margin of (*) 91643228 = 2.73118 n, d = 203, d // q = 6, (mA - 1) // q = 106677931 = 3.1793 n
+   certificate (q, m) = (64, 284): margin of (*) 302702582 = 9.02124 n, d = 401, d // q = 6, (mA - 1) // q = 105196293 = 3.1351 n
+   certificate (q, m) = (128, 564): margin of (*) 975836444 = 29.08219 n, d = 796, d // q = 6, (mA - 1) // q = 104455474 = 3.1130 n
+   certificate (q, m) = (256, 1123): margin of (*) 954561536 = 28.44815 n, d = 1586, d // q = 6, (mA - 1) // q = 103992462 = 3.0992 n
+   certificate (q, m) = (512, 2242): margin of (*) 2536200032 = 75.58465 n, d = 3167, d // q = 6, (mA - 1) // q = 103807257 = 3.0937 n
+   bootstrap: delta <= [12, 8, 7, 6, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 19002; list bound 24^2 + 19002 = 19578
+   W_max = 103807257 = 3.09370 n; 6 Delta = 100663326; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1356 = 8136  (below the threshold)
+case K0 Dc<=1: j <= 1, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 632 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=2: j <= 1, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 634 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=3: j <= 2, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 633 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 262 impossible (lower bound above W_max), 738 cut, 0 not cut
+case K0 Dc=4: j <= 2, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 637 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 223 impossible (lower bound above W_max), 777 cut, 0 not cut
+case K0 Dc=5: j <= 3, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 634 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 481 impossible (lower bound above W_max), 519 cut, 0 not cut
+case K0 Dc=6: j <= 3, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 638 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 478 impossible (lower bound above W_max), 522 cut, 0 not cut
+case cubic (K1 Dc<=3): j <= 2, 210 candidates (m, B), 5 bounds, 3 cells, 0 open cells of side 1/256, 3232 evaluations  [0 s]
+      most used: (30, 6, B) x1, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 88 impossible (lower bound above W_max), 912 cut, 0 not cut
+      contact 4 on all lines: largest lower bound 104018749 = 3.10000 n; first cut at W = 88424204 = 2.63525 n by (960, 121)
+case K1 Dc=4: j <= 2, 210 candidates (m, B), 5 bounds, 3 cells, 0 open cells of side 1/256, 3223 evaluations  [0 s]
+      most used: (30, 6, B) x1, (30, 6, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K1 Dc=5: j <= 3, 210 candidates (m, B), 5 bounds, 15 cells, 0 open cells of side 1/256, 12385 evaluations  [0 s]
+      most used: (30, 6, L2(2)) x3, (30, 6, B) x2, (30, 6, floor) x2, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 269 impossible (lower bound above W_max), 731 cut, 0 not cut
+case K1 Dc=6: j <= 3, 210 candidates (m, B), 5 bounds, 9 cells, 0 open cells of side 1/256, 8796 evaluations  [0 s]
+      most used: (30, 6, B) x2, (30, 6, floor) x1, (60, 18, floor) x1, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 259 impossible (lower bound above W_max), 741 cut, 0 not cut
+case sextic (K2 Dc=6): j <= 3, 210 candidates (m, B), 6 bounds, 9 cells, 0 open cells of side 1/256, 7884 evaluations  [0 s]
+      most used: (30, 6, B) x4, (60, 18, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 220 impossible (lower bound above W_max), 780 cut, 0 not cut
+case nondegenerate quintic (K2 Dc<=5, det != 0): j <= 3, 210 candidates (m, B), 7 bounds, 1 cells, 0 open cells of side 1/256, 1523 evaluations  [0 s]
+      most used: (60, 18, T) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 242 impossible (lower bound above W_max), 758 cut, 0 not cut
+case dependent quintic (K2 Dc<=5): j <= 3, 210 candidates (m, B), 9 bounds, 15 cells, 0 open cells of side 1/256, 17603 evaluations  [0 s]
+      most used: (30, 6, B) x7, (30, 6, D(2)) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 234 impossible (lower bound above W_max), 766 cut, 0 not cut
+case dependent (K2 Dc=6): j <= 3, 210 candidates (m, B), 9 bounds, 9 cells, 0 open cells of side 1/256, 11664 evaluations  [0 s]
+      most used: (30, 6, B) x4, (60, 18, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 218 impossible (lower bound above W_max), 782 cut, 0 not cut
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 3, 210 candidates (m, B), 6 bounds, 1589 cells, 539 open cells of side 1/256, 1899865 evaluations  [3 s]
+      most used: (960, 113, B) x81, (960, 97, B) x45, (960, 137, B) x23, (30, 6, B) x5
+      open cells: 0/256 <= x_1 <= 22/256
+      open cells: 234/256 <= x_2 <= 256/256
+      open cells: 0/256 <= x_3 <= 11/256
+      open cells: x_0 <= 6/256
+      window over the open cells: 84381255 <= W < 90421758, that is [2.51476, 2.69478) n
+      pointwise check on 1000 random profiles (no convexity, defining sums): 169 impossible (lower bound above W_max), 592 cut, 239 not cut, all inside the open cells
+      contact 4 on all lines: largest lower bound 87895842 = 2.61950 n; first cut at W = 88424204 = 2.63525 n by (960, 121)
+total 10 s
+=== 54_cover.py a=0.7065 lg=26 depth=8 mode=Mp cases=all
+n = 2^26, Delta = 33554437, A = 47412413
+   certificate (q, m) = (2, 17): margin of (*) 265917 = 0.00396 n, d = 24, d // q = 12, (mA - 1) // q = 403005510 = 6.0053 n
+   certificate (q, m) = (4, 23): margin of (*) 31469640 = 0.46893 n, d = 32, d // q = 8, (mA - 1) // q = 272621374 = 4.0624 n
+   certificate (q, m) = (8, 40): margin of (*) 104676484 = 1.55980 n, d = 56, d // q = 7, (mA - 1) // q = 237062064 = 3.5325 n
+   certificate (q, m) = (16, 74): margin of (*) 34448340 = 0.51332 n, d = 104, d // q = 6, (mA - 1) // q = 219282410 = 3.2676 n
+   certificate (q, m) = (32, 144): margin of (*) 183436892 = 2.73342 n, d = 203, d // q = 6, (mA - 1) // q = 213355858 = 3.1793 n
+   certificate (q, m) = (64, 284): margin of (*) 605990934 = 9.02997 n, d = 401, d // q = 6, (mA - 1) // q = 210392582 = 3.1351 n
+   certificate (q, m) = (128, 564): margin of (*) 1953977484 = 29.11653 n, d = 796, d // q = 6, (mA - 1) // q = 208910944 = 3.1130 n
+   certificate (q, m) = (256, 1123): margin of (*) 1918267868 = 28.58442 n, d = 1586, d // q = 6, (mA - 1) // q = 207984921 = 3.0992 n
+   certificate (q, m) = (512, 2242): margin of (*) 5108853856 = 76.12785 n, d = 3167, d // q = 6, (mA - 1) // q = 207614511 = 3.0937 n
+   bootstrap: delta <= [12, 8, 7, 6, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 19002; list bound 24^2 + 19002 = 19578
+   W_max = 207614511 = 3.09370 n; 6 Delta = 201326622; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1356 = 8136  (below the threshold)
+case K0 Dc<=1: j <= 1, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 632 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=2: j <= 1, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 634 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=3: j <= 2, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 633 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 262 impossible (lower bound above W_max), 738 cut, 0 not cut
+case K0 Dc=4: j <= 2, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 637 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 223 impossible (lower bound above W_max), 777 cut, 0 not cut
+case K0 Dc=5: j <= 3, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 634 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 481 impossible (lower bound above W_max), 519 cut, 0 not cut
+case K0 Dc=6: j <= 3, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 638 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 478 impossible (lower bound above W_max), 522 cut, 0 not cut
+case cubic (K1 Dc<=3): j <= 2, 210 candidates (m, B), 5 bounds, 3 cells, 0 open cells of side 1/256, 3232 evaluations  [0 s]
+      most used: (30, 6, B) x1, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 88 impossible (lower bound above W_max), 912 cut, 0 not cut
+      contact 4 on all lines: largest lower bound 208037488 = 3.10000 n; first cut at W = 176848364 = 2.63525 n by (960, 121)
+case K1 Dc=4: j <= 2, 210 candidates (m, B), 5 bounds, 3 cells, 0 open cells of side 1/256, 3223 evaluations  [0 s]
+      most used: (30, 6, B) x1, (30, 6, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K1 Dc=5: j <= 3, 210 candidates (m, B), 5 bounds, 15 cells, 0 open cells of side 1/256, 12385 evaluations  [0 s]
+      most used: (30, 6, L2(2)) x3, (30, 6, B) x2, (30, 6, floor) x2, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 269 impossible (lower bound above W_max), 731 cut, 0 not cut
+case K1 Dc=6: j <= 3, 210 candidates (m, B), 5 bounds, 9 cells, 0 open cells of side 1/256, 8796 evaluations  [0 s]
+      most used: (30, 6, B) x2, (30, 6, floor) x1, (60, 18, floor) x1, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 259 impossible (lower bound above W_max), 741 cut, 0 not cut
+case sextic (K2 Dc=6): j <= 3, 210 candidates (m, B), 6 bounds, 9 cells, 0 open cells of side 1/256, 7884 evaluations  [0 s]
+      most used: (30, 6, B) x4, (60, 18, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 220 impossible (lower bound above W_max), 780 cut, 0 not cut
+case nondegenerate quintic (K2 Dc<=5, det != 0): j <= 3, 210 candidates (m, B), 7 bounds, 1 cells, 0 open cells of side 1/256, 1523 evaluations  [0 s]
+      most used: (60, 18, T) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 242 impossible (lower bound above W_max), 758 cut, 0 not cut
+case dependent quintic (K2 Dc<=5): j <= 3, 210 candidates (m, B), 9 bounds, 15 cells, 0 open cells of side 1/256, 17603 evaluations  [0 s]
+      most used: (30, 6, B) x7, (30, 6, D(2)) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 234 impossible (lower bound above W_max), 766 cut, 0 not cut
+case dependent (K2 Dc=6): j <= 3, 210 candidates (m, B), 9 bounds, 9 cells, 0 open cells of side 1/256, 11664 evaluations  [0 s]
+      most used: (30, 6, B) x4, (60, 18, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 218 impossible (lower bound above W_max), 782 cut, 0 not cut
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 3, 210 candidates (m, B), 6 bounds, 1589 cells, 539 open cells of side 1/256, 1899863 evaluations  [3 s]
+      most used: (960, 113, B) x81, (960, 97, B) x45, (960, 137, B) x23, (30, 6, B) x5
+      open cells: 0/256 <= x_1 <= 22/256
+      open cells: 234/256 <= x_2 <= 256/256
+      open cells: 0/256 <= x_3 <= 11/256
+      open cells: x_0 <= 6/256
+      window over the open cells: 168762496 <= W < 180843473, that is [2.51476, 2.69478) n
+      pointwise check on 1000 random profiles (no convexity, defining sums): 169 impossible (lower bound above W_max), 592 cut, 239 not cut, all inside the open cells
+      contact 4 on all lines: largest lower bound 175791676 = 2.61950 n; first cut at W = 176848364 = 2.63525 n by (960, 121)
+total 11 s
+=== 54_cover.py a=0.7065 lg=27 depth=8 mode=Mp cases=all
+n = 2^27, Delta = 67108869, A = 94824825
+   certificate (q, m) = (2, 17): margin of (*) 534013 = 0.00398 n, d = 24, d // q = 12, (mA - 1) // q = 806011012 = 6.0053 n
+   certificate (q, m) = (4, 23): margin of (*) 62943104 = 0.46896 n, d = 32, d // q = 8, (mA - 1) // q = 545242743 = 4.0624 n
+   certificate (q, m) = (8, 40): margin of (*) 209364548 = 1.55989 n, d = 56, d // q = 7, (mA - 1) // q = 474124124 = 3.5325 n
+   certificate (q, m) = (16, 74): margin of (*) 68936324 = 0.51362 n, d = 104, d // q = 6, (mA - 1) // q = 438564815 = 3.2676 n
+   certificate (q, m) = (32, 144): margin of (*) 367024220 = 2.73454 n, d = 203, d // q = 6, (mA - 1) // q = 426711712 = 3.1793 n
+   certificate (q, m) = (64, 284): margin of (*) 1212567638 = 9.03433 n, d = 401, d // q = 6, (mA - 1) // q = 420785160 = 3.1351 n
+   certificate (q, m) = (128, 564): margin of (*) 3910259564 = 29.13370 n, d = 796, d // q = 6, (mA - 1) // q = 417821885 = 3.1130 n
+   certificate (q, m) = (256, 1123): margin of (*) 3845680532 = 28.65255 n, d = 1586, d // q = 6, (mA - 1) // q = 415969837 = 3.0992 n
+   certificate (q, m) = (512, 2242): margin of (*) 10254161504 = 76.39946 n, d = 3167, d // q = 6, (mA - 1) // q = 415229018 = 3.0937 n
+   bootstrap: delta <= [12, 8, 7, 6, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 19002; list bound 24^2 + 19002 = 19578
+   W_max = 415229018 = 3.09370 n; 6 Delta = 402653214; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1356 = 8136  (below the threshold)
+case K0 Dc<=1: j <= 1, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 632 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=2: j <= 1, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 634 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=3: j <= 2, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 633 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 262 impossible (lower bound above W_max), 738 cut, 0 not cut
+case K0 Dc=4: j <= 2, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 637 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 223 impossible (lower bound above W_max), 777 cut, 0 not cut
+case K0 Dc=5: j <= 3, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 634 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 481 impossible (lower bound above W_max), 519 cut, 0 not cut
+case K0 Dc=6: j <= 3, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 638 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 478 impossible (lower bound above W_max), 522 cut, 0 not cut
+case cubic (K1 Dc<=3): j <= 2, 210 candidates (m, B), 5 bounds, 3 cells, 0 open cells of side 1/256, 3232 evaluations  [0 s]
+      most used: (30, 6, B) x1, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 88 impossible (lower bound above W_max), 912 cut, 0 not cut
+      contact 4 on all lines: largest lower bound 416074966 = 3.10000 n; first cut at W = 353696684 = 2.63525 n by (960, 121)
+case K1 Dc=4: j <= 2, 210 candidates (m, B), 5 bounds, 3 cells, 0 open cells of side 1/256, 3223 evaluations  [0 s]
+      most used: (30, 6, B) x1, (30, 6, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K1 Dc=5: j <= 3, 210 candidates (m, B), 5 bounds, 15 cells, 0 open cells of side 1/256, 12385 evaluations  [0 s]
+      most used: (30, 6, L2(2)) x3, (30, 6, B) x2, (30, 6, floor) x2, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 269 impossible (lower bound above W_max), 731 cut, 0 not cut
+case K1 Dc=6: j <= 3, 210 candidates (m, B), 5 bounds, 9 cells, 0 open cells of side 1/256, 8796 evaluations  [0 s]
+      most used: (30, 6, B) x2, (30, 6, floor) x1, (60, 18, floor) x1, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 259 impossible (lower bound above W_max), 741 cut, 0 not cut
+case sextic (K2 Dc=6): j <= 3, 210 candidates (m, B), 6 bounds, 9 cells, 0 open cells of side 1/256, 7884 evaluations  [0 s]
+      most used: (30, 6, B) x4, (60, 18, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 220 impossible (lower bound above W_max), 780 cut, 0 not cut
+case nondegenerate quintic (K2 Dc<=5, det != 0): j <= 3, 210 candidates (m, B), 7 bounds, 1 cells, 0 open cells of side 1/256, 1523 evaluations  [0 s]
+      most used: (60, 18, T) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 242 impossible (lower bound above W_max), 758 cut, 0 not cut
+case dependent quintic (K2 Dc<=5): j <= 3, 210 candidates (m, B), 9 bounds, 15 cells, 0 open cells of side 1/256, 17603 evaluations  [0 s]
+      most used: (30, 6, B) x7, (30, 6, D(2)) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 234 impossible (lower bound above W_max), 766 cut, 0 not cut
+case dependent (K2 Dc=6): j <= 3, 210 candidates (m, B), 9 bounds, 9 cells, 0 open cells of side 1/256, 11664 evaluations  [0 s]
+      most used: (30, 6, B) x4, (60, 18, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 218 impossible (lower bound above W_max), 782 cut, 0 not cut
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 3, 210 candidates (m, B), 6 bounds, 1589 cells, 539 open cells of side 1/256, 1899863 evaluations  [3 s]
+      most used: (960, 113, B) x81, (960, 97, B) x45, (960, 137, B) x23, (30, 6, B) x5
+      open cells: 0/256 <= x_1 <= 22/256
+      open cells: 234/256 <= x_2 <= 256/256
+      open cells: 0/256 <= x_3 <= 11/256
+      open cells: x_0 <= 6/256
+      window over the open cells: 337524978 <= W < 361686903, that is [2.51476, 2.69478) n
+      pointwise check on 1000 random profiles (no convexity, defining sums): 169 impossible (lower bound above W_max), 592 cut, 239 not cut, all inside the open cells
+      contact 4 on all lines: largest lower bound 351583344 = 2.61950 n; first cut at W = 353696684 = 2.63525 n by (960, 121)
+total 11 s
+=== 54_cover.py a=0.7065 lg=28 depth=8 mode=Mp cases=all
+n = 2^28, Delta = 134217733, A = 189649650
+   certificate (q, m) = (2, 17): margin of (*) 1071021 = 0.00399 n, d = 24, d // q = 12, (mA - 1) // q = 1612022024 = 6.0053 n
+   certificate (q, m) = (4, 23): margin of (*) 125891458 = 0.46898 n, d = 32, d // q = 8, (mA - 1) // q = 1090485487 = 4.0624 n
+   certificate (q, m) = (8, 40): margin of (*) 418744916 = 1.55995 n, d = 56, d // q = 7, (mA - 1) // q = 948248249 = 3.5325 n
+   certificate (q, m) = (16, 74): margin of (*) 137926648 = 0.51382 n, d = 104, d // q = 6, (mA - 1) // q = 877129631 = 3.2676 n
+   certificate (q, m) = (32, 144): margin of (*) 734253020 = 2.73531 n, d = 203, d // q = 6, (mA - 1) // q = 853423424 = 3.1793 n
+   certificate (q, m) = (64, 284): margin of (*) 2425931206 = 9.03730 n, d = 401, d // q = 6, (mA - 1) // q = 841570321 = 3.1351 n
+   certificate (q, m) = (128, 564): margin of (*) 7823650548 = 29.14537 n, d = 796, d // q = 6, (mA - 1) // q = 835643770 = 3.1130 n
+   certificate (q, m) = (256, 1123): margin of (*) 7703782774 = 28.69883 n, d = 1586, d // q = 6, (mA - 1) // q = 831939675 = 3.0992 n
+   certificate (q, m) = (512, 2242): margin of (*) 20557834208 = 76.58390 n, d = 3167, d // q = 6, (mA - 1) // q = 830458037 = 3.0937 n
+   bootstrap: delta <= [12, 8, 7, 6, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 19002; list bound 24^2 + 19002 = 19578
+   W_max = 830458037 = 3.09370 n; 6 Delta = 805306398; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1356 = 8136  (below the threshold)
+case K0 Dc<=1: j <= 1, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 632 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=2: j <= 1, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 634 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=3: j <= 2, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 633 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 262 impossible (lower bound above W_max), 738 cut, 0 not cut
+case K0 Dc=4: j <= 2, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 637 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 223 impossible (lower bound above W_max), 777 cut, 0 not cut
+case K0 Dc=5: j <= 3, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 634 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 481 impossible (lower bound above W_max), 519 cut, 0 not cut
+case K0 Dc=6: j <= 3, 210 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 638 evaluations  [0 s]
+      most used: (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 478 impossible (lower bound above W_max), 522 cut, 0 not cut
+case cubic (K1 Dc<=3): j <= 2, 210 candidates (m, B), 5 bounds, 3 cells, 0 open cells of side 1/256, 3232 evaluations  [0 s]
+      most used: (30, 6, B) x1, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 88 impossible (lower bound above W_max), 912 cut, 0 not cut
+      contact 4 on all lines: largest lower bound 832149923 = 3.10000 n; first cut at W = 707393312 = 2.63525 n by (960, 121)
+case K1 Dc=4: j <= 2, 210 candidates (m, B), 5 bounds, 3 cells, 0 open cells of side 1/256, 3223 evaluations  [0 s]
+      most used: (30, 6, B) x1, (30, 6, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K1 Dc=5: j <= 3, 210 candidates (m, B), 5 bounds, 15 cells, 0 open cells of side 1/256, 12385 evaluations  [0 s]
+      most used: (30, 6, L2(2)) x3, (30, 6, B) x2, (30, 6, floor) x2, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 269 impossible (lower bound above W_max), 731 cut, 0 not cut
+case K1 Dc=6: j <= 3, 210 candidates (m, B), 5 bounds, 9 cells, 0 open cells of side 1/256, 8796 evaluations  [0 s]
+      most used: (30, 6, B) x2, (30, 6, floor) x1, (60, 18, floor) x1, (30, 6, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 259 impossible (lower bound above W_max), 741 cut, 0 not cut
+case sextic (K2 Dc=6): j <= 3, 210 candidates (m, B), 6 bounds, 9 cells, 0 open cells of side 1/256, 7884 evaluations  [0 s]
+      most used: (30, 6, B) x4, (60, 18, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 220 impossible (lower bound above W_max), 780 cut, 0 not cut
+case nondegenerate quintic (K2 Dc<=5, det != 0): j <= 3, 210 candidates (m, B), 7 bounds, 1 cells, 0 open cells of side 1/256, 1523 evaluations  [0 s]
+      most used: (60, 18, T) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 242 impossible (lower bound above W_max), 758 cut, 0 not cut
+case dependent quintic (K2 Dc<=5): j <= 3, 210 candidates (m, B), 9 bounds, 15 cells, 0 open cells of side 1/256, 17603 evaluations  [0 s]
+      most used: (30, 6, B) x7, (30, 6, D(2)) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 234 impossible (lower bound above W_max), 766 cut, 0 not cut
+case dependent (K2 Dc=6): j <= 3, 210 candidates (m, B), 9 bounds, 9 cells, 0 open cells of side 1/256, 11664 evaluations  [0 s]
+      most used: (30, 6, B) x4, (60, 18, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 218 impossible (lower bound above W_max), 782 cut, 0 not cut
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 3, 210 candidates (m, B), 6 bounds, 1589 cells, 539 open cells of side 1/256, 1899867 evaluations  [3 s]
+      most used: (960, 113, B) x81, (960, 97, B) x45, (960, 137, B) x23, (30, 6, B) x5
+      open cells: 0/256 <= x_1 <= 22/256
+      open cells: 234/256 <= x_2 <= 256/256
+      open cells: 0/256 <= x_3 <= 11/256
+      open cells: x_0 <= 6/256
+      window over the open cells: 675049941 <= W < 723373752, that is [2.51476, 2.69478) n
+      pointwise check on 1000 random profiles (no convexity, defining sums): 169 impossible (lower bound above W_max), 592 cut, 239 not cut, all inside the open cells
+      contact 4 on all lines: largest lower bound 703166683 = 2.61950 n; first cut at W = 707393312 = 2.63525 n by (960, 121)
+total 11 s
+=== 54_cover.py a=0.705 lg=25 depth=8 mode=M cases=all
+n = 2^25, Delta = 16777221, A = 23655875
+   certificate (q, m) = (4, 26): margin of (*) 3349614 = 0.09983 n, d = 36, d // q = 9, (mA - 1) // q = 153763187 = 4.5825 n
+   certificate (q, m) = (8, 44): margin of (*) 45616922 = 1.35949 n, d = 62, d // q = 7, (mA - 1) // q = 130107312 = 3.8775 n
+   certificate (q, m) = (16, 81): margin of (*) 116376556 = 3.46829 n, d = 114, d // q = 7, (mA - 1) // q = 119757867 = 3.5691 n
+   certificate (q, m) = (32, 155): margin of (*) 88710704 = 2.64378 n, d = 218, d // q = 6, (mA - 1) // q = 114583144 = 3.4148 n
+   certificate (q, m) = (64, 305): margin of (*) 366611552 = 10.92588 n, d = 430, d // q = 6, (mA - 1) // q = 112735029 = 3.3598 n
+   certificate (q, m) = (128, 604): margin of (*) 343115956 = 10.22565 n, d = 851, d // q = 6, (mA - 1) // q = 111626160 = 3.3267 n
+   certificate (q, m) = (256, 1203): margin of (*) 956150098 = 28.49549 n, d = 1696, d // q = 6, (mA - 1) // q = 111164131 = 3.3129 n
+   certificate (q, m) = (512, 2401): margin of (*) 2845706826 = 84.80867 n, d = 3385, d // q = 6, (mA - 1) // q = 110933116 = 3.3061 n
+   bootstrap: delta <= [9, 7, 7, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 20310; list bound 36^2 + 20310 = 21606
+   W_max = 110933116 = 3.30606 n; 6 Delta = 100663326; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1353 = 8118  (below the threshold)
+case K0 Dc<=1: j <= 1, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 623 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=2: j <= 2, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 672 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 320 impossible (lower bound above W_max), 680 cut, 0 not cut
+case K0 Dc=3: j <= 3, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 717 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 560 impossible (lower bound above W_max), 440 cut, 0 not cut
+case K0 Dc=4: j <= 4, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 746 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 625 impossible (lower bound above W_max), 375 cut, 0 not cut
+case K0 Dc=5: j <= 5, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 770 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 777 impossible (lower bound above W_max), 223 cut, 0 not cut
+case K0 Dc=6: j <= 6, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 766 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 786 impossible (lower bound above W_max), 214 cut, 0 not cut
+case cubic (K1 Dc<=3): j <= 3, 207 candidates (m, B), 5 bounds, 5 cells, 0 open cells of side 1/256, 4495 evaluations  [0 s]
+      most used: (30, 5, B) x2, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 296 impossible (lower bound above W_max), 704 cut, 0 not cut
+      contact 4 on all lines: largest lower bound 104018749 = 3.10000 n; first cut at W = 88913647 = 2.64983 n by (960, 193)
+case K1 Dc=4: j <= 4, 207 candidates (m, B), 5 bounds, 7 cells, 0 open cells of side 1/256, 6064 evaluations  [0 s]
+      most used: (30, 5, B) x3, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 482 impossible (lower bound above W_max), 518 cut, 0 not cut
+case K1 Dc=5: j <= 5, 207 candidates (m, B), 5 bounds, 59 cells, 0 open cells of side 1/256, 46115 evaluations  [0 s]
+      most used: (30, 5, L2(2)) x17, (60, 17, B) x7, (30, 5, floor) x5, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 671 impossible (lower bound above W_max), 329 cut, 0 not cut
+case K1 Dc=6: j <= 6, 207 candidates (m, B), 5 bounds, 49 cells, 0 open cells of side 1/256, 41390 evaluations  [0 s]
+      most used: (30, 5, L2(2)) x12, (60, 17, B) x8, (30, 5, floor) x3, (30, 5, L1) x2
+      pointwise check on 1000 random profiles (no convexity, defining sums): 695 impossible (lower bound above W_max), 305 cut, 0 not cut
+case sextic (K2 Dc=6): j <= 6, 207 candidates (m, B), 6 bounds, 193 cells, 0 open cells of side 1/256, 170370 evaluations  [0 s]
+      most used: (60, 17, B) x67, (60, 17, floor) x30
+      pointwise check on 1000 random profiles (no convexity, defining sums): 728 impossible (lower bound above W_max), 272 cut, 0 not cut
+case nondegenerate quintic (K2 Dc<=5, det != 0): j <= 5, 207 candidates (m, B), 7 bounds, 1 cells, 0 open cells of side 1/256, 1510 evaluations  [0 s]
+      most used: (60, 17, T) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 645 impossible (lower bound above W_max), 355 cut, 0 not cut
+case dependent quintic (K2 Dc<=5): j <= 5, 207 candidates (m, B), 11 bounds, 97 cells, 0 open cells of side 1/256, 135653 evaluations  [0 s]
+      most used: (120, 42, B) x19, (30, 5, B) x14, (60, 17, D(2)) x12, (30, 5, D(2)) x4
+      pointwise check on 1000 random profiles (no convexity, defining sums): 610 impossible (lower bound above W_max), 390 cut, 0 not cut
+case dependent (K2 Dc=6): j <= 6, 207 candidates (m, B), 12 bounds, 193 cells, 0 open cells of side 1/256, 292086 evaluations  [1 s]
+      most used: (60, 17, B) x67, (60, 17, floor) x30
+      pointwise check on 1000 random profiles (no convexity, defining sums): 764 impossible (lower bound above W_max), 236 cut, 0 not cut
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 5, 207 candidates (m, B), 6 bounds, 11418 cells, 3720 open cells of side 1/256, 14372927 evaluations  [24 s]
+      most used: (960, 177, B) x722, (960, 201, B) x507, (960, 233, B) x109, (960, 177, L1) x33
+      open cells: 0/256 <= x_1 <= 29/256
+      open cells: 223/256 <= x_2 <= 256/256
+      open cells: 0/256 <= x_3 <= 16/256
+      open cells: 0/256 <= x_4 <= 5/256
+      open cells: 0/256 <= x_5 <= 3/256
+      open cells: x_0 <= 8/256
+      window over the open cells: 83886105 <= W < 92493098, that is [2.50000, 2.75651) n
+      all open cells inside the box of note 51 (0/256 <= x_1 <= 30/256, 222/256 <= x_2 <= 256/256, 0/256 <= x_3 <= 16/256, 0/256 <= x_4 <= 5/256, 0/256 <= x_5 <= 3/256; x_0 <= 8/256): True; window inside the window of note 51 [83886105, 94276015): True
+      pointwise check on 1000 random profiles (no convexity, defining sums): 511 impossible (lower bound above W_max), 332 cut, 157 not cut, all inside the open cells
+      contact 4 on all lines: largest lower bound 87744846 = 2.61500 n; first cut at W = 88913647 = 2.64983 n by (960, 193)
+total 38 s
+=== 54_cover.py a=0.705 lg=26 depth=8 mode=M cases=all
+n = 2^26, Delta = 33554437, A = 47311750
+   certificate (q, m) = (4, 26): margin of (*) 6705858 = 0.09993 n, d = 36, d // q = 9, (mA - 1) // q = 307526374 = 4.5825 n
+   certificate (q, m) = (8, 44): margin of (*) 91253234 = 1.35978 n, d = 62, d // q = 7, (mA - 1) // q = 260214624 = 3.8775 n
+   certificate (q, m) = (16, 81): margin of (*) 232818062 = 3.46926 n, d = 114, d // q = 7, (mA - 1) // q = 239515734 = 3.5691 n
+   certificate (q, m) = (32, 155): margin of (*) 177657638 = 2.64731 n, d = 218, d // q = 6, (mA - 1) // q = 229166289 = 3.4148 n
+   certificate (q, m) = (64, 305): margin of (*) 734139674 = 10.93953 n, d = 430, d // q = 6, (mA - 1) // q = 225470058 = 3.3598 n
+   certificate (q, m) = (128, 604): margin of (*) 689816532 = 10.27907 n, d = 851, d // q = 6, (mA - 1) // q = 223252320 = 3.3267 n
+   certificate (q, m) = (256, 1203): margin of (*) 1926527556 = 28.70750 n, d = 1696, d // q = 6, (mA - 1) // q = 222328262 = 3.3129 n
+   certificate (q, m) = (512, 2401): margin of (*) 5748067622 = 85.65288 n, d = 3385, d // q = 6, (mA - 1) // q = 221866233 = 3.3061 n
+   bootstrap: delta <= [9, 7, 7, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 20310; list bound 36^2 + 20310 = 21606
+   W_max = 221866233 = 3.30606 n; 6 Delta = 201326622; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1353 = 8118  (below the threshold)
+case K0 Dc<=1: j <= 1, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 623 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=2: j <= 2, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 672 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 320 impossible (lower bound above W_max), 680 cut, 0 not cut
+case K0 Dc=3: j <= 3, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 717 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 560 impossible (lower bound above W_max), 440 cut, 0 not cut
+case K0 Dc=4: j <= 4, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 746 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 625 impossible (lower bound above W_max), 375 cut, 0 not cut
+case K0 Dc=5: j <= 5, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 770 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 777 impossible (lower bound above W_max), 223 cut, 0 not cut
+case K0 Dc=6: j <= 6, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 766 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 786 impossible (lower bound above W_max), 214 cut, 0 not cut
+case cubic (K1 Dc<=3): j <= 3, 207 candidates (m, B), 5 bounds, 5 cells, 0 open cells of side 1/256, 4495 evaluations  [0 s]
+      most used: (30, 5, B) x2, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 296 impossible (lower bound above W_max), 704 cut, 0 not cut
+      contact 4 on all lines: largest lower bound 208037488 = 3.10000 n; first cut at W = 177827248 = 2.64983 n by (960, 193)
+case K1 Dc=4: j <= 4, 207 candidates (m, B), 5 bounds, 7 cells, 0 open cells of side 1/256, 6064 evaluations  [0 s]
+      most used: (30, 5, B) x3, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 482 impossible (lower bound above W_max), 518 cut, 0 not cut
+case K1 Dc=5: j <= 5, 207 candidates (m, B), 5 bounds, 59 cells, 0 open cells of side 1/256, 46115 evaluations  [0 s]
+      most used: (30, 5, L2(2)) x17, (60, 17, B) x7, (30, 5, floor) x5, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 671 impossible (lower bound above W_max), 329 cut, 0 not cut
+case K1 Dc=6: j <= 6, 207 candidates (m, B), 5 bounds, 49 cells, 0 open cells of side 1/256, 41390 evaluations  [0 s]
+      most used: (30, 5, L2(2)) x12, (60, 17, B) x8, (30, 5, floor) x3, (30, 5, L1) x2
+      pointwise check on 1000 random profiles (no convexity, defining sums): 695 impossible (lower bound above W_max), 305 cut, 0 not cut
+case sextic (K2 Dc=6): j <= 6, 207 candidates (m, B), 6 bounds, 193 cells, 0 open cells of side 1/256, 170370 evaluations  [0 s]
+      most used: (60, 17, B) x67, (60, 17, floor) x30
+      pointwise check on 1000 random profiles (no convexity, defining sums): 728 impossible (lower bound above W_max), 272 cut, 0 not cut
+case nondegenerate quintic (K2 Dc<=5, det != 0): j <= 5, 207 candidates (m, B), 7 bounds, 1 cells, 0 open cells of side 1/256, 1510 evaluations  [0 s]
+      most used: (60, 17, T) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 645 impossible (lower bound above W_max), 355 cut, 0 not cut
+case dependent quintic (K2 Dc<=5): j <= 5, 207 candidates (m, B), 11 bounds, 97 cells, 0 open cells of side 1/256, 135653 evaluations  [0 s]
+      most used: (120, 42, B) x19, (30, 5, B) x14, (60, 17, D(2)) x12, (30, 5, D(2)) x4
+      pointwise check on 1000 random profiles (no convexity, defining sums): 610 impossible (lower bound above W_max), 390 cut, 0 not cut
+case dependent (K2 Dc=6): j <= 6, 207 candidates (m, B), 12 bounds, 193 cells, 0 open cells of side 1/256, 292086 evaluations  [1 s]
+      most used: (60, 17, B) x67, (60, 17, floor) x30
+      pointwise check on 1000 random profiles (no convexity, defining sums): 764 impossible (lower bound above W_max), 236 cut, 0 not cut
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 5, 207 candidates (m, B), 6 bounds, 11418 cells, 3720 open cells of side 1/256, 14372914 evaluations  [24 s]
+      most used: (960, 177, B) x722, (960, 201, B) x507, (960, 233, B) x109, (960, 177, L1) x33
+      open cells: 0/256 <= x_1 <= 29/256
+      open cells: 223/256 <= x_2 <= 256/256
+      open cells: 0/256 <= x_3 <= 16/256
+      open cells: 0/256 <= x_4 <= 5/256
+      open cells: 0/256 <= x_5 <= 3/256
+      open cells: x_0 <= 8/256
+      window over the open cells: 167772185 <= W < 184986154, that is [2.50000, 2.75651) n
+      all open cells inside the box of note 51 (0/256 <= x_1 <= 30/256, 222/256 <= x_2 <= 256/256, 0/256 <= x_3 <= 16/256, 0/256 <= x_4 <= 5/256, 0/256 <= x_5 <= 3/256; x_0 <= 8/256): True; window inside the window of note 51 [167772185, 188551983): True
+      pointwise check on 1000 random profiles (no convexity, defining sums): 511 impossible (lower bound above W_max), 332 cut, 157 not cut, all inside the open cells
+      contact 4 on all lines: largest lower bound 175489687 = 2.61500 n; first cut at W = 177827248 = 2.64983 n by (960, 193)
+total 38 s
+=== 54_cover.py a=0.705 lg=27 depth=8 mode=M cases=all
+n = 2^27, Delta = 67108869, A = 94623499
+   certificate (q, m) = (4, 26): margin of (*) 13416526 = 0.09996 n, d = 36, d // q = 9, (mA - 1) // q = 615052743 = 4.5825 n
+   certificate (q, m) = (8, 44): margin of (*) 182520666 = 1.35988 n, d = 62, d // q = 7, (mA - 1) // q = 520429244 = 3.8775 n
+   certificate (q, m) = (16, 81): margin of (*) 465683740 = 3.46961 n, d = 114, d // q = 7, (mA - 1) // q = 479031463 = 3.5691 n
+   certificate (q, m) = (32, 155): margin of (*) 355488576 = 2.64860 n, d = 218, d // q = 6, (mA - 1) // q = 458332573 = 3.4148 n
+   certificate (q, m) = (64, 305): margin of (*) 1468952528 = 10.94455 n, d = 430, d // q = 6, (mA - 1) // q = 450940112 = 3.3598 n
+   certificate (q, m) = (128, 604): margin of (*) 1382265780 = 10.29868 n, d = 851, d // q = 6, (mA - 1) // q = 446504635 = 3.3267 n
+   certificate (q, m) = (256, 1203): margin of (*) 3863507458 = 28.78537 n, d = 1696, d // q = 6, (mA - 1) // q = 444656520 = 3.3129 n
+   certificate (q, m) = (512, 2401): margin of (*) 11537758954 = 85.96300 n, d = 3385, d // q = 6, (mA - 1) // q = 443732463 = 3.3061 n
+   bootstrap: delta <= [9, 7, 7, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 20310; list bound 36^2 + 20310 = 21606
+   W_max = 443732463 = 3.30606 n; 6 Delta = 402653214; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1353 = 8118  (below the threshold)
+case K0 Dc<=1: j <= 1, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 623 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=2: j <= 2, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 672 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 320 impossible (lower bound above W_max), 680 cut, 0 not cut
+case K0 Dc=3: j <= 3, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 717 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 560 impossible (lower bound above W_max), 440 cut, 0 not cut
+case K0 Dc=4: j <= 4, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 746 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 625 impossible (lower bound above W_max), 375 cut, 0 not cut
+case K0 Dc=5: j <= 5, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 770 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 777 impossible (lower bound above W_max), 223 cut, 0 not cut
+case K0 Dc=6: j <= 6, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 766 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 786 impossible (lower bound above W_max), 214 cut, 0 not cut
+case cubic (K1 Dc<=3): j <= 3, 207 candidates (m, B), 5 bounds, 5 cells, 0 open cells of side 1/256, 4495 evaluations  [0 s]
+      most used: (30, 5, B) x2, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 296 impossible (lower bound above W_max), 704 cut, 0 not cut
+      contact 4 on all lines: largest lower bound 416074966 = 3.10000 n; first cut at W = 355654458 = 2.64983 n by (960, 193)
+case K1 Dc=4: j <= 4, 207 candidates (m, B), 5 bounds, 7 cells, 0 open cells of side 1/256, 6064 evaluations  [0 s]
+      most used: (30, 5, B) x3, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 482 impossible (lower bound above W_max), 518 cut, 0 not cut
+case K1 Dc=5: j <= 5, 207 candidates (m, B), 5 bounds, 59 cells, 0 open cells of side 1/256, 46115 evaluations  [0 s]
+      most used: (30, 5, L2(2)) x17, (60, 17, B) x7, (30, 5, floor) x5, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 671 impossible (lower bound above W_max), 329 cut, 0 not cut
+case K1 Dc=6: j <= 6, 207 candidates (m, B), 5 bounds, 49 cells, 0 open cells of side 1/256, 41390 evaluations  [0 s]
+      most used: (30, 5, L2(2)) x12, (60, 17, B) x8, (30, 5, floor) x3, (30, 5, L1) x2
+      pointwise check on 1000 random profiles (no convexity, defining sums): 695 impossible (lower bound above W_max), 305 cut, 0 not cut
+case sextic (K2 Dc=6): j <= 6, 207 candidates (m, B), 6 bounds, 193 cells, 0 open cells of side 1/256, 170370 evaluations  [0 s]
+      most used: (60, 17, B) x67, (60, 17, floor) x30
+      pointwise check on 1000 random profiles (no convexity, defining sums): 728 impossible (lower bound above W_max), 272 cut, 0 not cut
+case nondegenerate quintic (K2 Dc<=5, det != 0): j <= 5, 207 candidates (m, B), 7 bounds, 1 cells, 0 open cells of side 1/256, 1510 evaluations  [0 s]
+      most used: (60, 17, T) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 645 impossible (lower bound above W_max), 355 cut, 0 not cut
+case dependent quintic (K2 Dc<=5): j <= 5, 207 candidates (m, B), 11 bounds, 97 cells, 0 open cells of side 1/256, 135653 evaluations  [0 s]
+      most used: (120, 42, B) x19, (30, 5, B) x14, (60, 17, D(2)) x12, (30, 5, D(2)) x4
+      pointwise check on 1000 random profiles (no convexity, defining sums): 610 impossible (lower bound above W_max), 390 cut, 0 not cut
+case dependent (K2 Dc=6): j <= 6, 207 candidates (m, B), 12 bounds, 193 cells, 0 open cells of side 1/256, 292086 evaluations  [1 s]
+      most used: (60, 17, B) x67, (60, 17, floor) x30
+      pointwise check on 1000 random profiles (no convexity, defining sums): 764 impossible (lower bound above W_max), 236 cut, 0 not cut
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 5, 207 candidates (m, B), 6 bounds, 11418 cells, 3720 open cells of side 1/256, 14372929 evaluations  [25 s]
+      most used: (960, 177, B) x722, (960, 201, B) x507, (960, 233, B) x109, (960, 177, L1) x33
+      open cells: 0/256 <= x_1 <= 29/256
+      open cells: 223/256 <= x_2 <= 256/256
+      open cells: 0/256 <= x_3 <= 16/256
+      open cells: 0/256 <= x_4 <= 5/256
+      open cells: 0/256 <= x_5 <= 3/256
+      open cells: x_0 <= 8/256
+      window over the open cells: 335544345 <= W < 369972272, that is [2.50000, 2.75651) n
+      all open cells inside the box of note 51 (0/256 <= x_1 <= 30/256, 222/256 <= x_2 <= 256/256, 0/256 <= x_3 <= 16/256, 0/256 <= x_4 <= 5/256, 0/256 <= x_5 <= 3/256; x_0 <= 8/256): True; window inside the window of note 51 [335544345, 377103927): True
+      pointwise check on 1000 random profiles (no convexity, defining sums): 511 impossible (lower bound above W_max), 332 cut, 157 not cut, all inside the open cells
+      contact 4 on all lines: largest lower bound 350979366 = 2.61500 n; first cut at W = 355654458 = 2.64983 n by (960, 193)
+total 38 s
+=== 54_cover.py a=0.705 lg=28 depth=8 mode=M cases=all
+n = 2^28, Delta = 134217733, A = 189246997
+   certificate (q, m) = (4, 26): margin of (*) 26837862 = 0.09998 n, d = 36, d // q = 9, (mA - 1) // q = 1230105480 = 4.5825 n
+   certificate (q, m) = (8, 44): margin of (*) 365055530 = 1.35994 n, d = 62, d // q = 7, (mA - 1) // q = 1040858483 = 3.8775 n
+   certificate (q, m) = (16, 81): margin of (*) 931415096 = 3.46979 n, d = 114, d // q = 7, (mA - 1) // q = 958062922 = 3.5691 n
+   certificate (q, m) = (32, 155): margin of (*) 711150452 = 2.64924 n, d = 218, d // q = 6, (mA - 1) // q = 916665141 = 3.4148 n
+   certificate (q, m) = (64, 305): margin of (*) 2938578236 = 10.94706 n, d = 430, d // q = 6, (mA - 1) // q = 901880220 = 3.3598 n
+   certificate (q, m) = (128, 604): margin of (*) 2767164276 = 10.30849 n, d = 851, d // q = 6, (mA - 1) // q = 893009267 = 3.3267 n
+   certificate (q, m) = (256, 1203): margin of (*) 7737467262 = 28.82431 n, d = 1696, d // q = 6, (mA - 1) // q = 889313036 = 3.3129 n
+   certificate (q, m) = (512, 2401): margin of (*) 23117141618 = 86.11806 n, d = 3385, d // q = 6, (mA - 1) // q = 887464921 = 3.3061 n
+   bootstrap: delta <= [9, 7, 7, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 20310; list bound 36^2 + 20310 = 21606
+   W_max = 887464921 = 3.30606 n; 6 Delta = 805306398; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1353 = 8118  (below the threshold)
+case K0 Dc<=1: j <= 1, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 623 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=2: j <= 2, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 672 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 320 impossible (lower bound above W_max), 680 cut, 0 not cut
+case K0 Dc=3: j <= 3, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 717 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 560 impossible (lower bound above W_max), 440 cut, 0 not cut
+case K0 Dc=4: j <= 4, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 746 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 625 impossible (lower bound above W_max), 375 cut, 0 not cut
+case K0 Dc=5: j <= 5, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 770 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 777 impossible (lower bound above W_max), 223 cut, 0 not cut
+case K0 Dc=6: j <= 6, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 766 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 786 impossible (lower bound above W_max), 214 cut, 0 not cut
+case cubic (K1 Dc<=3): j <= 3, 207 candidates (m, B), 5 bounds, 5 cells, 0 open cells of side 1/256, 4495 evaluations  [0 s]
+      most used: (30, 5, B) x2, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 296 impossible (lower bound above W_max), 704 cut, 0 not cut
+      contact 4 on all lines: largest lower bound 832149923 = 3.10000 n; first cut at W = 711308878 = 2.64983 n by (960, 193)
+case K1 Dc=4: j <= 4, 207 candidates (m, B), 5 bounds, 7 cells, 0 open cells of side 1/256, 6064 evaluations  [0 s]
+      most used: (30, 5, B) x3, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 482 impossible (lower bound above W_max), 518 cut, 0 not cut
+case K1 Dc=5: j <= 5, 207 candidates (m, B), 5 bounds, 59 cells, 0 open cells of side 1/256, 46115 evaluations  [0 s]
+      most used: (30, 5, L2(2)) x17, (60, 17, B) x7, (30, 5, floor) x5, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 671 impossible (lower bound above W_max), 329 cut, 0 not cut
+case K1 Dc=6: j <= 6, 207 candidates (m, B), 5 bounds, 49 cells, 0 open cells of side 1/256, 41390 evaluations  [0 s]
+      most used: (30, 5, L2(2)) x12, (60, 17, B) x8, (30, 5, floor) x3, (30, 5, L1) x2
+      pointwise check on 1000 random profiles (no convexity, defining sums): 695 impossible (lower bound above W_max), 305 cut, 0 not cut
+case sextic (K2 Dc=6): j <= 6, 207 candidates (m, B), 6 bounds, 193 cells, 0 open cells of side 1/256, 170370 evaluations  [0 s]
+      most used: (60, 17, B) x67, (60, 17, floor) x30
+      pointwise check on 1000 random profiles (no convexity, defining sums): 728 impossible (lower bound above W_max), 272 cut, 0 not cut
+case nondegenerate quintic (K2 Dc<=5, det != 0): j <= 5, 207 candidates (m, B), 7 bounds, 1 cells, 0 open cells of side 1/256, 1510 evaluations  [0 s]
+      most used: (60, 17, T) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 645 impossible (lower bound above W_max), 355 cut, 0 not cut
+case dependent quintic (K2 Dc<=5): j <= 5, 207 candidates (m, B), 11 bounds, 97 cells, 0 open cells of side 1/256, 135653 evaluations  [0 s]
+      most used: (120, 42, B) x19, (30, 5, B) x14, (60, 17, D(2)) x12, (30, 5, D(2)) x4
+      pointwise check on 1000 random profiles (no convexity, defining sums): 610 impossible (lower bound above W_max), 390 cut, 0 not cut
+case dependent (K2 Dc=6): j <= 6, 207 candidates (m, B), 12 bounds, 193 cells, 0 open cells of side 1/256, 292086 evaluations  [1 s]
+      most used: (60, 17, B) x67, (60, 17, floor) x30
+      pointwise check on 1000 random profiles (no convexity, defining sums): 764 impossible (lower bound above W_max), 236 cut, 0 not cut
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 5, 207 candidates (m, B), 6 bounds, 11418 cells, 3720 open cells of side 1/256, 14372934 evaluations  [25 s]
+      most used: (960, 177, B) x722, (960, 201, B) x507, (960, 233, B) x109, (960, 177, L1) x33
+      open cells: 0/256 <= x_1 <= 29/256
+      open cells: 223/256 <= x_2 <= 256/256
+      open cells: 0/256 <= x_3 <= 16/256
+      open cells: 0/256 <= x_4 <= 5/256
+      open cells: 0/256 <= x_5 <= 3/256
+      open cells: x_0 <= 8/256
+      window over the open cells: 671088665 <= W < 739944509, that is [2.50000, 2.75651) n
+      all open cells inside the box of note 51 (0/256 <= x_1 <= 30/256, 222/256 <= x_2 <= 256/256, 0/256 <= x_3 <= 16/256, 0/256 <= x_4 <= 5/256, 0/256 <= x_5 <= 3/256; x_0 <= 8/256): True; window inside the window of note 51 [671088665, 754207815): True
+      pointwise check on 1000 random profiles (no convexity, defining sums): 511 impossible (lower bound above W_max), 332 cut, 157 not cut, all inside the open cells
+      contact 4 on all lines: largest lower bound 701958724 = 2.61500 n; first cut at W = 711308878 = 2.64983 n by (960, 193)
+total 39 s
+=== 54_cover.py a=0.705 lg=25 depth=8 mode=Mp cases=all
+n = 2^25, Delta = 16777221, A = 23655875
+   certificate (q, m) = (4, 26): margin of (*) 3349614 = 0.09983 n, d = 36, d // q = 9, (mA - 1) // q = 153763187 = 4.5825 n
+   certificate (q, m) = (8, 44): margin of (*) 45616922 = 1.35949 n, d = 62, d // q = 7, (mA - 1) // q = 130107312 = 3.8775 n
+   certificate (q, m) = (16, 81): margin of (*) 116376556 = 3.46829 n, d = 114, d // q = 7, (mA - 1) // q = 119757867 = 3.5691 n
+   certificate (q, m) = (32, 155): margin of (*) 88710704 = 2.64378 n, d = 218, d // q = 6, (mA - 1) // q = 114583144 = 3.4148 n
+   certificate (q, m) = (64, 305): margin of (*) 366611552 = 10.92588 n, d = 430, d // q = 6, (mA - 1) // q = 112735029 = 3.3598 n
+   certificate (q, m) = (128, 604): margin of (*) 343115956 = 10.22565 n, d = 851, d // q = 6, (mA - 1) // q = 111626160 = 3.3267 n
+   certificate (q, m) = (256, 1203): margin of (*) 956150098 = 28.49549 n, d = 1696, d // q = 6, (mA - 1) // q = 111164131 = 3.3129 n
+   certificate (q, m) = (512, 2401): margin of (*) 2845706826 = 84.80867 n, d = 3385, d // q = 6, (mA - 1) // q = 110933116 = 3.3061 n
+   bootstrap: delta <= [9, 7, 7, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 20310; list bound 36^2 + 20310 = 21606
+   W_max = 110933116 = 3.30606 n; 6 Delta = 100663326; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1353 = 8118  (below the threshold)
+case K0 Dc<=1: j <= 1, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 623 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=2: j <= 1, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 625 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=3: j <= 2, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 624 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 247 impossible (lower bound above W_max), 753 cut, 0 not cut
+case K0 Dc=4: j <= 2, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 630 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 189 impossible (lower bound above W_max), 811 cut, 0 not cut
+case K0 Dc=5: j <= 3, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 625 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 445 impossible (lower bound above W_max), 555 cut, 0 not cut
+case K0 Dc=6: j <= 3, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 633 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 438 impossible (lower bound above W_max), 562 cut, 0 not cut
+case cubic (K1 Dc<=3): j <= 2, 207 candidates (m, B), 5 bounds, 3 cells, 0 open cells of side 1/256, 3186 evaluations  [0 s]
+      most used: (30, 5, B) x1, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+      contact 4 on all lines: largest lower bound 104018749 = 3.10000 n; first cut at W = 88913647 = 2.64983 n by (960, 193)
+case K1 Dc=4: j <= 2, 207 candidates (m, B), 5 bounds, 3 cells, 0 open cells of side 1/256, 3178 evaluations  [0 s]
+      most used: (30, 5, B) x1, (30, 5, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K1 Dc=5: j <= 3, 207 candidates (m, B), 5 bounds, 15 cells, 0 open cells of side 1/256, 12216 evaluations  [0 s]
+      most used: (30, 5, L2(2)) x3, (30, 5, B) x2, (30, 5, floor) x2, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 250 impossible (lower bound above W_max), 750 cut, 0 not cut
+case K1 Dc=6: j <= 3, 207 candidates (m, B), 5 bounds, 9 cells, 0 open cells of side 1/256, 8669 evaluations  [0 s]
+      most used: (30, 5, B) x2, (30, 5, floor) x1, (60, 17, floor) x1, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 235 impossible (lower bound above W_max), 765 cut, 0 not cut
+case sextic (K2 Dc=6): j <= 3, 207 candidates (m, B), 6 bounds, 9 cells, 0 open cells of side 1/256, 7771 evaluations  [0 s]
+      most used: (30, 5, B) x4, (60, 17, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 194 impossible (lower bound above W_max), 806 cut, 0 not cut
+case nondegenerate quintic (K2 Dc<=5, det != 0): j <= 3, 207 candidates (m, B), 7 bounds, 1 cells, 0 open cells of side 1/256, 1487 evaluations  [0 s]
+      most used: (60, 17, T) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 219 impossible (lower bound above W_max), 781 cut, 0 not cut
+case dependent quintic (K2 Dc<=5): j <= 3, 207 candidates (m, B), 9 bounds, 15 cells, 0 open cells of side 1/256, 19271 evaluations  [0 s]
+      most used: (30, 5, B) x4, (30, 5, D(2)) x2, (60, 17, B) x2
+      pointwise check on 1000 random profiles (no convexity, defining sums): 209 impossible (lower bound above W_max), 791 cut, 0 not cut
+case dependent (K2 Dc=6): j <= 3, 207 candidates (m, B), 9 bounds, 9 cells, 0 open cells of side 1/256, 11497 evaluations  [0 s]
+      most used: (30, 5, B) x4, (60, 17, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 191 impossible (lower bound above W_max), 809 cut, 0 not cut
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 3, 207 candidates (m, B), 6 bounds, 4270 cells, 1573 open cells of side 1/256, 5095688 evaluations  [7 s]
+      most used: (960, 201, B) x170, (960, 185, B) x81, (960, 233, B) x65, (960, 177, L1) x27
+      open cells: 0/256 <= x_1 <= 29/256
+      open cells: 223/256 <= x_2 <= 256/256
+      open cells: 0/256 <= x_3 <= 16/256
+      open cells: x_0 <= 9/256
+      window over the open cells: 83886105 <= W < 91781100, that is [2.50000, 2.73529) n
+      pointwise check on 1000 random profiles (no convexity, defining sums): 147 impossible (lower bound above W_max), 575 cut, 278 not cut, all inside the open cells
+      contact 4 on all lines: largest lower bound 87744846 = 2.61500 n; first cut at W = 88913647 = 2.64983 n by (960, 193)
+total 19 s
+=== 54_cover.py a=0.705 lg=26 depth=8 mode=Mp cases=all
+n = 2^26, Delta = 33554437, A = 47311750
+   certificate (q, m) = (4, 26): margin of (*) 6705858 = 0.09993 n, d = 36, d // q = 9, (mA - 1) // q = 307526374 = 4.5825 n
+   certificate (q, m) = (8, 44): margin of (*) 91253234 = 1.35978 n, d = 62, d // q = 7, (mA - 1) // q = 260214624 = 3.8775 n
+   certificate (q, m) = (16, 81): margin of (*) 232818062 = 3.46926 n, d = 114, d // q = 7, (mA - 1) // q = 239515734 = 3.5691 n
+   certificate (q, m) = (32, 155): margin of (*) 177657638 = 2.64731 n, d = 218, d // q = 6, (mA - 1) // q = 229166289 = 3.4148 n
+   certificate (q, m) = (64, 305): margin of (*) 734139674 = 10.93953 n, d = 430, d // q = 6, (mA - 1) // q = 225470058 = 3.3598 n
+   certificate (q, m) = (128, 604): margin of (*) 689816532 = 10.27907 n, d = 851, d // q = 6, (mA - 1) // q = 223252320 = 3.3267 n
+   certificate (q, m) = (256, 1203): margin of (*) 1926527556 = 28.70750 n, d = 1696, d // q = 6, (mA - 1) // q = 222328262 = 3.3129 n
+   certificate (q, m) = (512, 2401): margin of (*) 5748067622 = 85.65288 n, d = 3385, d // q = 6, (mA - 1) // q = 221866233 = 3.3061 n
+   bootstrap: delta <= [9, 7, 7, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 20310; list bound 36^2 + 20310 = 21606
+   W_max = 221866233 = 3.30606 n; 6 Delta = 201326622; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1353 = 8118  (below the threshold)
+case K0 Dc<=1: j <= 1, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 623 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=2: j <= 1, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 625 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=3: j <= 2, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 624 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 247 impossible (lower bound above W_max), 753 cut, 0 not cut
+case K0 Dc=4: j <= 2, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 630 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 189 impossible (lower bound above W_max), 811 cut, 0 not cut
+case K0 Dc=5: j <= 3, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 625 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 445 impossible (lower bound above W_max), 555 cut, 0 not cut
+case K0 Dc=6: j <= 3, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 633 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 438 impossible (lower bound above W_max), 562 cut, 0 not cut
+case cubic (K1 Dc<=3): j <= 2, 207 candidates (m, B), 5 bounds, 3 cells, 0 open cells of side 1/256, 3186 evaluations  [0 s]
+      most used: (30, 5, B) x1, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+      contact 4 on all lines: largest lower bound 208037488 = 3.10000 n; first cut at W = 177827248 = 2.64983 n by (960, 193)
+case K1 Dc=4: j <= 2, 207 candidates (m, B), 5 bounds, 3 cells, 0 open cells of side 1/256, 3178 evaluations  [0 s]
+      most used: (30, 5, B) x1, (30, 5, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K1 Dc=5: j <= 3, 207 candidates (m, B), 5 bounds, 15 cells, 0 open cells of side 1/256, 12216 evaluations  [0 s]
+      most used: (30, 5, L2(2)) x3, (30, 5, B) x2, (30, 5, floor) x2, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 250 impossible (lower bound above W_max), 750 cut, 0 not cut
+case K1 Dc=6: j <= 3, 207 candidates (m, B), 5 bounds, 9 cells, 0 open cells of side 1/256, 8669 evaluations  [0 s]
+      most used: (30, 5, B) x2, (30, 5, floor) x1, (60, 17, floor) x1, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 235 impossible (lower bound above W_max), 765 cut, 0 not cut
+case sextic (K2 Dc=6): j <= 3, 207 candidates (m, B), 6 bounds, 9 cells, 0 open cells of side 1/256, 7771 evaluations  [0 s]
+      most used: (30, 5, B) x4, (60, 17, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 194 impossible (lower bound above W_max), 806 cut, 0 not cut
+case nondegenerate quintic (K2 Dc<=5, det != 0): j <= 3, 207 candidates (m, B), 7 bounds, 1 cells, 0 open cells of side 1/256, 1487 evaluations  [0 s]
+      most used: (60, 17, T) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 219 impossible (lower bound above W_max), 781 cut, 0 not cut
+case dependent quintic (K2 Dc<=5): j <= 3, 207 candidates (m, B), 9 bounds, 15 cells, 0 open cells of side 1/256, 19271 evaluations  [0 s]
+      most used: (30, 5, B) x4, (30, 5, D(2)) x2, (60, 17, B) x2
+      pointwise check on 1000 random profiles (no convexity, defining sums): 209 impossible (lower bound above W_max), 791 cut, 0 not cut
+case dependent (K2 Dc=6): j <= 3, 207 candidates (m, B), 9 bounds, 9 cells, 0 open cells of side 1/256, 11497 evaluations  [0 s]
+      most used: (30, 5, B) x4, (60, 17, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 191 impossible (lower bound above W_max), 809 cut, 0 not cut
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 3, 207 candidates (m, B), 6 bounds, 4270 cells, 1573 open cells of side 1/256, 5095688 evaluations  [8 s]
+      most used: (960, 201, B) x170, (960, 185, B) x81, (960, 233, B) x65, (960, 177, L1) x27
+      open cells: 0/256 <= x_1 <= 29/256
+      open cells: 223/256 <= x_2 <= 256/256
+      open cells: 0/256 <= x_3 <= 16/256
+      open cells: x_0 <= 9/256
+      window over the open cells: 167772185 <= W < 183562157, that is [2.50000, 2.73529) n
+      pointwise check on 1000 random profiles (no convexity, defining sums): 147 impossible (lower bound above W_max), 575 cut, 278 not cut, all inside the open cells
+      contact 4 on all lines: largest lower bound 175489687 = 2.61500 n; first cut at W = 177827248 = 2.64983 n by (960, 193)
+total 19 s
+=== 54_cover.py a=0.705 lg=27 depth=8 mode=Mp cases=all
+n = 2^27, Delta = 67108869, A = 94623499
+   certificate (q, m) = (4, 26): margin of (*) 13416526 = 0.09996 n, d = 36, d // q = 9, (mA - 1) // q = 615052743 = 4.5825 n
+   certificate (q, m) = (8, 44): margin of (*) 182520666 = 1.35988 n, d = 62, d // q = 7, (mA - 1) // q = 520429244 = 3.8775 n
+   certificate (q, m) = (16, 81): margin of (*) 465683740 = 3.46961 n, d = 114, d // q = 7, (mA - 1) // q = 479031463 = 3.5691 n
+   certificate (q, m) = (32, 155): margin of (*) 355488576 = 2.64860 n, d = 218, d // q = 6, (mA - 1) // q = 458332573 = 3.4148 n
+   certificate (q, m) = (64, 305): margin of (*) 1468952528 = 10.94455 n, d = 430, d // q = 6, (mA - 1) // q = 450940112 = 3.3598 n
+   certificate (q, m) = (128, 604): margin of (*) 1382265780 = 10.29868 n, d = 851, d // q = 6, (mA - 1) // q = 446504635 = 3.3267 n
+   certificate (q, m) = (256, 1203): margin of (*) 3863507458 = 28.78537 n, d = 1696, d // q = 6, (mA - 1) // q = 444656520 = 3.3129 n
+   certificate (q, m) = (512, 2401): margin of (*) 11537758954 = 85.96300 n, d = 3385, d // q = 6, (mA - 1) // q = 443732463 = 3.3061 n
+   bootstrap: delta <= [9, 7, 7, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 20310; list bound 36^2 + 20310 = 21606
+   W_max = 443732463 = 3.30606 n; 6 Delta = 402653214; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1353 = 8118  (below the threshold)
+case K0 Dc<=1: j <= 1, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 623 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=2: j <= 1, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 625 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=3: j <= 2, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 624 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 247 impossible (lower bound above W_max), 753 cut, 0 not cut
+case K0 Dc=4: j <= 2, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 630 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 189 impossible (lower bound above W_max), 811 cut, 0 not cut
+case K0 Dc=5: j <= 3, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 625 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 445 impossible (lower bound above W_max), 555 cut, 0 not cut
+case K0 Dc=6: j <= 3, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 633 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 438 impossible (lower bound above W_max), 562 cut, 0 not cut
+case cubic (K1 Dc<=3): j <= 2, 207 candidates (m, B), 5 bounds, 3 cells, 0 open cells of side 1/256, 3186 evaluations  [0 s]
+      most used: (30, 5, B) x1, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+      contact 4 on all lines: largest lower bound 416074966 = 3.10000 n; first cut at W = 355654458 = 2.64983 n by (960, 193)
+case K1 Dc=4: j <= 2, 207 candidates (m, B), 5 bounds, 3 cells, 0 open cells of side 1/256, 3178 evaluations  [0 s]
+      most used: (30, 5, B) x1, (30, 5, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K1 Dc=5: j <= 3, 207 candidates (m, B), 5 bounds, 15 cells, 0 open cells of side 1/256, 12216 evaluations  [0 s]
+      most used: (30, 5, L2(2)) x3, (30, 5, B) x2, (30, 5, floor) x2, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 250 impossible (lower bound above W_max), 750 cut, 0 not cut
+case K1 Dc=6: j <= 3, 207 candidates (m, B), 5 bounds, 9 cells, 0 open cells of side 1/256, 8669 evaluations  [0 s]
+      most used: (30, 5, B) x2, (30, 5, floor) x1, (60, 17, floor) x1, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 235 impossible (lower bound above W_max), 765 cut, 0 not cut
+case sextic (K2 Dc=6): j <= 3, 207 candidates (m, B), 6 bounds, 9 cells, 0 open cells of side 1/256, 7771 evaluations  [0 s]
+      most used: (30, 5, B) x4, (60, 17, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 194 impossible (lower bound above W_max), 806 cut, 0 not cut
+case nondegenerate quintic (K2 Dc<=5, det != 0): j <= 3, 207 candidates (m, B), 7 bounds, 1 cells, 0 open cells of side 1/256, 1487 evaluations  [0 s]
+      most used: (60, 17, T) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 219 impossible (lower bound above W_max), 781 cut, 0 not cut
+case dependent quintic (K2 Dc<=5): j <= 3, 207 candidates (m, B), 9 bounds, 15 cells, 0 open cells of side 1/256, 19271 evaluations  [0 s]
+      most used: (30, 5, B) x4, (30, 5, D(2)) x2, (60, 17, B) x2
+      pointwise check on 1000 random profiles (no convexity, defining sums): 209 impossible (lower bound above W_max), 791 cut, 0 not cut
+case dependent (K2 Dc=6): j <= 3, 207 candidates (m, B), 9 bounds, 9 cells, 0 open cells of side 1/256, 11497 evaluations  [0 s]
+      most used: (30, 5, B) x4, (60, 17, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 191 impossible (lower bound above W_max), 809 cut, 0 not cut
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 3, 207 candidates (m, B), 6 bounds, 4270 cells, 1573 open cells of side 1/256, 5095688 evaluations  [7 s]
+      most used: (960, 201, B) x170, (960, 185, B) x81, (960, 233, B) x65, (960, 177, L1) x27
+      open cells: 0/256 <= x_1 <= 29/256
+      open cells: 223/256 <= x_2 <= 256/256
+      open cells: 0/256 <= x_3 <= 16/256
+      open cells: x_0 <= 9/256
+      window over the open cells: 335544345 <= W < 367124277, that is [2.50000, 2.73529) n
+      pointwise check on 1000 random profiles (no convexity, defining sums): 147 impossible (lower bound above W_max), 575 cut, 278 not cut, all inside the open cells
+      contact 4 on all lines: largest lower bound 350979366 = 2.61500 n; first cut at W = 355654458 = 2.64983 n by (960, 193)
+total 19 s
+=== 54_cover.py a=0.705 lg=28 depth=8 mode=Mp cases=all
+n = 2^28, Delta = 134217733, A = 189246997
+   certificate (q, m) = (4, 26): margin of (*) 26837862 = 0.09998 n, d = 36, d // q = 9, (mA - 1) // q = 1230105480 = 4.5825 n
+   certificate (q, m) = (8, 44): margin of (*) 365055530 = 1.35994 n, d = 62, d // q = 7, (mA - 1) // q = 1040858483 = 3.8775 n
+   certificate (q, m) = (16, 81): margin of (*) 931415096 = 3.46979 n, d = 114, d // q = 7, (mA - 1) // q = 958062922 = 3.5691 n
+   certificate (q, m) = (32, 155): margin of (*) 711150452 = 2.64924 n, d = 218, d // q = 6, (mA - 1) // q = 916665141 = 3.4148 n
+   certificate (q, m) = (64, 305): margin of (*) 2938578236 = 10.94706 n, d = 430, d // q = 6, (mA - 1) // q = 901880220 = 3.3598 n
+   certificate (q, m) = (128, 604): margin of (*) 2767164276 = 10.30849 n, d = 851, d // q = 6, (mA - 1) // q = 893009267 = 3.3267 n
+   certificate (q, m) = (256, 1203): margin of (*) 7737467262 = 28.82431 n, d = 1696, d // q = 6, (mA - 1) // q = 889313036 = 3.3129 n
+   certificate (q, m) = (512, 2401): margin of (*) 23117141618 = 86.11806 n, d = 3385, d // q = 6, (mA - 1) // q = 887464921 = 3.3061 n
+   bootstrap: delta <= [9, 7, 7, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 20310; list bound 36^2 + 20310 = 21606
+   W_max = 887464921 = 3.30606 n; 6 Delta = 805306398; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1353 = 8118  (below the threshold)
+case K0 Dc<=1: j <= 1, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 623 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=2: j <= 1, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 625 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K0 Dc=3: j <= 2, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 624 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 247 impossible (lower bound above W_max), 753 cut, 0 not cut
+case K0 Dc=4: j <= 2, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 630 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 189 impossible (lower bound above W_max), 811 cut, 0 not cut
+case K0 Dc=5: j <= 3, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 625 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 445 impossible (lower bound above W_max), 555 cut, 0 not cut
+case K0 Dc=6: j <= 3, 207 candidates (m, B), 3 bounds, 1 cells, 0 open cells of side 1/256, 633 evaluations  [0 s]
+      most used: (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 438 impossible (lower bound above W_max), 562 cut, 0 not cut
+case cubic (K1 Dc<=3): j <= 2, 207 candidates (m, B), 5 bounds, 3 cells, 0 open cells of side 1/256, 3186 evaluations  [0 s]
+      most used: (30, 5, B) x1, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+      contact 4 on all lines: largest lower bound 832149923 = 3.10000 n; first cut at W = 711308878 = 2.64983 n by (960, 193)
+case K1 Dc=4: j <= 2, 207 candidates (m, B), 5 bounds, 3 cells, 0 open cells of side 1/256, 3178 evaluations  [0 s]
+      most used: (30, 5, B) x1, (30, 5, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 0 impossible (lower bound above W_max), 1000 cut, 0 not cut
+case K1 Dc=5: j <= 3, 207 candidates (m, B), 5 bounds, 15 cells, 0 open cells of side 1/256, 12216 evaluations  [0 s]
+      most used: (30, 5, L2(2)) x3, (30, 5, B) x2, (30, 5, floor) x2, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 250 impossible (lower bound above W_max), 750 cut, 0 not cut
+case K1 Dc=6: j <= 3, 207 candidates (m, B), 5 bounds, 9 cells, 0 open cells of side 1/256, 8669 evaluations  [0 s]
+      most used: (30, 5, B) x2, (30, 5, floor) x1, (60, 17, floor) x1, (30, 5, L1) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 235 impossible (lower bound above W_max), 765 cut, 0 not cut
+case sextic (K2 Dc=6): j <= 3, 207 candidates (m, B), 6 bounds, 9 cells, 0 open cells of side 1/256, 7771 evaluations  [0 s]
+      most used: (30, 5, B) x4, (60, 17, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 194 impossible (lower bound above W_max), 806 cut, 0 not cut
+case nondegenerate quintic (K2 Dc<=5, det != 0): j <= 3, 207 candidates (m, B), 7 bounds, 1 cells, 0 open cells of side 1/256, 1487 evaluations  [0 s]
+      most used: (60, 17, T) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 219 impossible (lower bound above W_max), 781 cut, 0 not cut
+case dependent quintic (K2 Dc<=5): j <= 3, 207 candidates (m, B), 9 bounds, 15 cells, 0 open cells of side 1/256, 19271 evaluations  [0 s]
+      most used: (30, 5, B) x4, (30, 5, D(2)) x2, (60, 17, B) x2
+      pointwise check on 1000 random profiles (no convexity, defining sums): 209 impossible (lower bound above W_max), 791 cut, 0 not cut
+case dependent (K2 Dc=6): j <= 3, 207 candidates (m, B), 9 bounds, 9 cells, 0 open cells of side 1/256, 11497 evaluations  [0 s]
+      most used: (30, 5, B) x4, (60, 17, floor) x1
+      pointwise check on 1000 random profiles (no convexity, defining sums): 191 impossible (lower bound above W_max), 809 cut, 0 not cut
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 3, 207 candidates (m, B), 6 bounds, 4270 cells, 1573 open cells of side 1/256, 5095692 evaluations  [8 s]
+      most used: (960, 201, B) x170, (960, 185, B) x81, (960, 233, B) x65, (960, 177, L1) x27
+      open cells: 0/256 <= x_1 <= 29/256
+      open cells: 223/256 <= x_2 <= 256/256
+      open cells: 0/256 <= x_3 <= 16/256
+      open cells: x_0 <= 9/256
+      window over the open cells: 671088665 <= W < 734248519, that is [2.50000, 2.73529) n
+      pointwise check on 1000 random profiles (no convexity, defining sums): 147 impossible (lower bound above W_max), 575 cut, 278 not cut, all inside the open cells
+      contact 4 on all lines: largest lower bound 701958724 = 2.61500 n; first cut at W = 711308878 = 2.64983 n by (960, 193)
+total 19 s
+=== 54_cover.py a=0.7065 lg=25 depth=9 mode=M cases=open
+n = 2^25, Delta = 16777221, A = 23706207
+   certificate (q, m) = (2, 17): margin of (*) 131869 = 0.00393 n, d = 24, d // q = 12, (mA - 1) // q = 201502759 = 6.0053 n
+   certificate (q, m) = (4, 23): margin of (*) 15732908 = 0.46888 n, d = 32, d // q = 8, (mA - 1) // q = 136310690 = 4.0624 n
+   certificate (q, m) = (8, 40): margin of (*) 52332452 = 1.55963 n, d = 56, d // q = 7, (mA - 1) // q = 118531034 = 3.5325 n
+   certificate (q, m) = (16, 74): margin of (*) 17204348 = 0.51273 n, d = 104, d // q = 6, (mA - 1) // q = 109641207 = 3.2676 n
+   certificate (q, m) = (32, 144): margin of (*) 91643228 = 2.73118 n, d = 203, d // q = 6, (mA - 1) // q = 106677931 = 3.1793 n
+   certificate (q, m) = (64, 284): margin of (*) 302702582 = 9.02124 n, d = 401, d // q = 6, (mA - 1) // q = 105196293 = 3.1351 n
+   certificate (q, m) = (128, 564): margin of (*) 975836444 = 29.08219 n, d = 796, d // q = 6, (mA - 1) // q = 104455474 = 3.1130 n
+   certificate (q, m) = (256, 1123): margin of (*) 954561536 = 28.44815 n, d = 1586, d // q = 6, (mA - 1) // q = 103992462 = 3.0992 n
+   certificate (q, m) = (512, 2242): margin of (*) 2536200032 = 75.58465 n, d = 3167, d // q = 6, (mA - 1) // q = 103807257 = 3.0937 n
+   bootstrap: delta <= [12, 8, 7, 6, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 19002; list bound 24^2 + 19002 = 19578
+   W_max = 103807257 = 3.09370 n; 6 Delta = 100663326; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1356 = 8136  (below the threshold)
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 5, 210 candidates (m, B), 6 bounds, 22965 cells, 7881 open cells of side 1/512, 29621996 evaluations  [48 s]
+      most used: (960, 105, B) x1472, (960, 121, B) x914, (960, 137, B) x30, (30, 6, B) x13
+      open cells: 0/512 <= x_1 <= 44/512
+      open cells: 468/512 <= x_2 <= 512/512
+      open cells: 0/512 <= x_3 <= 21/512
+      open cells: 0/512 <= x_4 <= 6/512
+      open cells: 0/512 <= x_5 <= 3/512
+      open cells: x_0 <= 10/512
+      window over the open cells: 84395819 <= W < 90602389, that is [2.51519, 2.70016) n
+      contact 4 on all lines: largest lower bound 87895842 = 2.61950 n; first cut at W = 88424204 = 2.63525 n by (960, 121)
+total 63 s
+=== 54_cover.py a=0.7065 lg=25 depth=9 mode=Mp cases=open
+n = 2^25, Delta = 16777221, A = 23706207
+   certificate (q, m) = (2, 17): margin of (*) 131869 = 0.00393 n, d = 24, d // q = 12, (mA - 1) // q = 201502759 = 6.0053 n
+   certificate (q, m) = (4, 23): margin of (*) 15732908 = 0.46888 n, d = 32, d // q = 8, (mA - 1) // q = 136310690 = 4.0624 n
+   certificate (q, m) = (8, 40): margin of (*) 52332452 = 1.55963 n, d = 56, d // q = 7, (mA - 1) // q = 118531034 = 3.5325 n
+   certificate (q, m) = (16, 74): margin of (*) 17204348 = 0.51273 n, d = 104, d // q = 6, (mA - 1) // q = 109641207 = 3.2676 n
+   certificate (q, m) = (32, 144): margin of (*) 91643228 = 2.73118 n, d = 203, d // q = 6, (mA - 1) // q = 106677931 = 3.1793 n
+   certificate (q, m) = (64, 284): margin of (*) 302702582 = 9.02124 n, d = 401, d // q = 6, (mA - 1) // q = 105196293 = 3.1351 n
+   certificate (q, m) = (128, 564): margin of (*) 975836444 = 29.08219 n, d = 796, d // q = 6, (mA - 1) // q = 104455474 = 3.1130 n
+   certificate (q, m) = (256, 1123): margin of (*) 954561536 = 28.44815 n, d = 1586, d // q = 6, (mA - 1) // q = 103992462 = 3.0992 n
+   certificate (q, m) = (512, 2242): margin of (*) 2536200032 = 75.58465 n, d = 3167, d // q = 6, (mA - 1) // q = 103807257 = 3.0937 n
+   bootstrap: delta <= [12, 8, 7, 6, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 19002; list bound 24^2 + 19002 = 19578
+   W_max = 103807257 = 3.09370 n; 6 Delta = 100663326; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1356 = 8136  (below the threshold)
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 3, 210 candidates (m, B), 6 bounds, 7073 cells, 2671 open cells of side 1/512, 8580103 evaluations  [12 s]
+      most used: (960, 105, B) x356, (960, 121, B) x147, (960, 137, B) x9, (30, 6, B) x5
+      open cells: 0/512 <= x_1 <= 44/512
+      open cells: 468/512 <= x_2 <= 512/512
+      open cells: 0/512 <= x_3 <= 21/512
+      open cells: x_0 <= 10/512
+      window over the open cells: 84395819 <= W < 90331036, that is [2.51519, 2.69207) n
+      contact 4 on all lines: largest lower bound 87895842 = 2.61950 n; first cut at W = 88424204 = 2.63525 n by (960, 121)
+total 16 s
+=== 54_cover.py a=0.7065 lg=25 depth=10 mode=Mp cases=open
+n = 2^25, Delta = 16777221, A = 23706207
+   certificate (q, m) = (2, 17): margin of (*) 131869 = 0.00393 n, d = 24, d // q = 12, (mA - 1) // q = 201502759 = 6.0053 n
+   certificate (q, m) = (4, 23): margin of (*) 15732908 = 0.46888 n, d = 32, d // q = 8, (mA - 1) // q = 136310690 = 4.0624 n
+   certificate (q, m) = (8, 40): margin of (*) 52332452 = 1.55963 n, d = 56, d // q = 7, (mA - 1) // q = 118531034 = 3.5325 n
+   certificate (q, m) = (16, 74): margin of (*) 17204348 = 0.51273 n, d = 104, d // q = 6, (mA - 1) // q = 109641207 = 3.2676 n
+   certificate (q, m) = (32, 144): margin of (*) 91643228 = 2.73118 n, d = 203, d // q = 6, (mA - 1) // q = 106677931 = 3.1793 n
+   certificate (q, m) = (64, 284): margin of (*) 302702582 = 9.02124 n, d = 401, d // q = 6, (mA - 1) // q = 105196293 = 3.1351 n
+   certificate (q, m) = (128, 564): margin of (*) 975836444 = 29.08219 n, d = 796, d // q = 6, (mA - 1) // q = 104455474 = 3.1130 n
+   certificate (q, m) = (256, 1123): margin of (*) 954561536 = 28.44815 n, d = 1586, d // q = 6, (mA - 1) // q = 103992462 = 3.0992 n
+   certificate (q, m) = (512, 2242): margin of (*) 2536200032 = 75.58465 n, d = 3167, d // q = 6, (mA - 1) // q = 103807257 = 3.0937 n
+   bootstrap: delta <= [12, 8, 7, 6, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 19002; list bound 24^2 + 19002 = 19578
+   W_max = 103807257 = 3.09370 n; 6 Delta = 100663326; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1356 = 8136  (below the threshold)
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 3, 210 candidates (m, B), 6 bounds, 36841 cells, 15237 open cells of side 1/1024, 45129158 evaluations  [63 s]
+      most used: (960, 105, B) x1225, (960, 113, B) x529, (960, 121, B) x114, (960, 137, B) x22
+      open cells: 0/1024 <= x_1 <= 88/1024
+      open cells: 936/1024 <= x_2 <= 1024/1024
+      open cells: 0/1024 <= x_3 <= 41/1024
+      open cells: x_0 <= 18/1024
+      window over the open cells: 84403101 <= W < 90285674, that is [2.51541, 2.69072) n
+      contact 4 on all lines: largest lower bound 87895842 = 2.61950 n; first cut at W = 88424204 = 2.63525 n by (960, 121)
+total 88 s
+=== 54_cover.py a=0.705 lg=25 depth=9 mode=Mp cases=open
+n = 2^25, Delta = 16777221, A = 23655875
+   certificate (q, m) = (4, 26): margin of (*) 3349614 = 0.09983 n, d = 36, d // q = 9, (mA - 1) // q = 153763187 = 4.5825 n
+   certificate (q, m) = (8, 44): margin of (*) 45616922 = 1.35949 n, d = 62, d // q = 7, (mA - 1) // q = 130107312 = 3.8775 n
+   certificate (q, m) = (16, 81): margin of (*) 116376556 = 3.46829 n, d = 114, d // q = 7, (mA - 1) // q = 119757867 = 3.5691 n
+   certificate (q, m) = (32, 155): margin of (*) 88710704 = 2.64378 n, d = 218, d // q = 6, (mA - 1) // q = 114583144 = 3.4148 n
+   certificate (q, m) = (64, 305): margin of (*) 366611552 = 10.92588 n, d = 430, d // q = 6, (mA - 1) // q = 112735029 = 3.3598 n
+   certificate (q, m) = (128, 604): margin of (*) 343115956 = 10.22565 n, d = 851, d // q = 6, (mA - 1) // q = 111626160 = 3.3267 n
+   certificate (q, m) = (256, 1203): margin of (*) 956150098 = 28.49549 n, d = 1696, d // q = 6, (mA - 1) // q = 111164131 = 3.3129 n
+   certificate (q, m) = (512, 2401): margin of (*) 2845706826 = 84.80867 n, d = 3385, d // q = 6, (mA - 1) // q = 110933116 = 3.3061 n
+   bootstrap: delta <= [9, 7, 7, 6, 6, 6, 6, 6]; the survivor satisfies all certificates as soon as |L| > 20310; list bound 36^2 + 20310 = 21606
+   W_max = 110933116 = 3.30606 n; 6 Delta = 100663326; cut bound delta * floor((960 A - 1)/Delta) = 6 * 1353 = 8118  (below the threshold)
+case OPEN: K2 Dc<=5, det = 0, A and B independent: j <= 3, 207 candidates (m, B), 6 bounds, 21334 cells, 8626 open cells of side 1/512, 25946070 evaluations  [37 s]
+      most used: (960, 169, B) x544, (960, 177, B) x349, (960, 185, B) x183, (960, 217, B) x54
+      open cells: 0/512 <= x_1 <= 58/512
+      open cells: 447/512 <= x_2 <= 512/512
+      open cells: 0/512 <= x_3 <= 32/512
+      open cells: x_0 <= 15/512
+      window over the open cells: 83886105 <= W < 91781100, that is [2.50000, 2.73529) n
+      contact 4 on all lines: largest lower bound 87744846 = 2.61500 n; first cut at W = 88913647 = 2.64983 n by (960, 193)
+total 50 s
+=== python3 54_single_cell.py
+a = 0.7065, n = 2^25, (m, B) = (60, 18), bound (T): side condition holds at W_max = 103807257; margins (Phi - n psi(j)) / n for j = 0..5: 1868.7, 32.7, 14.7, 822.8, 1558.9, 2223.0
+a = 0.7065, n = 2^26, (m, B) = (60, 18), bound (T): side condition holds at W_max = 207614511; margins (Phi - n psi(j)) / n for j = 0..5: 1868.7, 32.7, 14.7, 822.8, 1558.9, 2223.0
+a = 0.7065, n = 2^27, (m, B) = (60, 18), bound (T): side condition holds at W_max = 415229018; margins (Phi - n psi(j)) / n for j = 0..5: 1868.7, 32.7, 14.7, 822.8, 1558.9, 2223.0
+a = 0.7065, n = 2^28, (m, B) = (60, 18), bound (T): side condition holds at W_max = 830458037; margins (Phi - n psi(j)) / n for j = 0..5: 1868.7, 32.7, 14.7, 822.8, 1558.9, 2223.0
+a = 0.705, n = 2^25, (m, B) = (60, 17), bound (T): side condition holds at W_max = 110933116; margins (Phi - n psi(j)) / n for j = 0..5: 1778.5, 27.5, 0.9, 758.0, 1447.0, 2068.1
+a = 0.705, n = 2^26, (m, B) = (60, 17), bound (T): side condition holds at W_max = 221866233; margins (Phi - n psi(j)) / n for j = 0..5: 1778.5, 27.5, 0.9, 758.0, 1447.0, 2068.1
+a = 0.705, n = 2^27, (m, B) = (60, 17), bound (T): side condition holds at W_max = 443732463; margins (Phi - n psi(j)) / n for j = 0..5: 1778.5, 27.5, 0.9, 758.0, 1447.0, 2068.1
+a = 0.705, n = 2^28, (m, B) = (60, 17), bound (T): side condition holds at W_max = 887464921; margins (Phi - n psi(j)) / n for j = 0..5: 1778.5, 27.5, 0.9, 758.0, 1447.0, 2068.1

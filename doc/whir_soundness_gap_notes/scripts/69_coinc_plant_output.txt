@@ -1,0 +1,32 @@
+FB=64 mode=2 k=16 n=32 depth=1: top code [4,2], blocks of 8 leaves; union of the 2 planted blocks has 16 leaves, rank 8, nullity 8 (one block = 8)
+  leaf sets Z (unions of blocks plus leaves): 40000 tested; rank differs from the prediction for the planted minor alone in 0; largest waste min(|Z|,k) - rank = 8; sets wasting more than one block: 0
+FB=64 mode=2 k=16 n=32 depth=2: top code [8,4], blocks of 4 leaves; union of the 4 planted blocks has 16 leaves, rank 12, nullity 4 (one block = 4)
+  leaf sets Z (unions of blocks plus leaves): 40000 tested; rank differs from the prediction for the planted minor alone in 75; largest waste min(|Z|,k) - rank = 4; sets wasting more than one block: 0
+FB=64 mode=2 k=16 n=32 depth=3: top code [16,8], blocks of 2 leaves; union of the 8 planted blocks has 16 leaves, rank 14, nullity 2 (one block = 2)
+  leaf sets Z (unions of blocks plus leaves): 40000 tested; rank differs from the prediction for the planted minor alone in 50; largest waste min(|Z|,k) - rank = 2; sets wasting more than one block: 0
+FB=64 mode=2 k=32 n=64 depth=2: top code [8,4], blocks of 8 leaves; union of the 4 planted blocks has 32 leaves, rank 24, nullity 8 (one block = 8)
+  leaf sets Z (unions of blocks plus leaves): 40000 tested; rank differs from the prediction for the planted minor alone in 75; largest waste min(|Z|,k) - rank = 8; sets wasting more than one block: 0
+FB=64 mode=2 k=32 n=64 depth=3: top code [16,8], blocks of 4 leaves; union of the 8 planted blocks has 32 leaves, rank 28, nullity 4 (one block = 4)
+  leaf sets Z (unions of blocks plus leaves): 40000 tested; rank differs from the prediction for the planted minor alone in 0; largest waste min(|Z|,k) - rank = 0; sets wasting more than one block: 0
+FB=64 mode=2 k=32 n=64 depth=4: top code [32,16], blocks of 2 leaves; union of the 16 planted blocks has 32 leaves, rank 30, nullity 2 (one block = 2)
+  leaf sets Z (unions of blocks plus leaves): 40000 tested; rank differs from the prediction for the planted minor alone in 0; largest waste min(|Z|,k) - rank = 0; sets wasting more than one block: 0
+FB=64 mode=2 k=32 n=64 depth=3: top code [16,8], blocks of 4 leaves; union of the 8 planted blocks has 32 leaves, rank 28, nullity 4 (one block = 4)
+  leaf sets Z (unions of blocks plus leaves): 40000 tested; rank differs from the prediction for the planted minor alone in 0; largest waste min(|Z|,k) - rank = 1; sets wasting more than one block: 0
+FB=64 mode=2 k=32 n=64 depth=4: top code [32,16], blocks of 2 leaves; union of the 16 planted blocks has 32 leaves, rank 30, nullity 2 (one block = 2)
+  leaf sets Z (unions of blocks plus leaves): 40000 tested; rank differs from the prediction for the planted minor alone in 0; largest waste min(|Z|,k) - rank = 0; sets wasting more than one block: 0
+FB=64 mode=2 k=16 n=64 depth=2: top code [16,4], blocks of 4 leaves; union of the 4 planted blocks has 16 leaves, rank 12, nullity 4 (one block = 4)
+  leaf sets Z (unions of blocks plus leaves): 40000 tested; rank differs from the prediction for the planted minor alone in 0; largest waste min(|Z|,k) - rank = 2; sets wasting more than one block: 0
+FB=64 mode=2 k=16 n=64 depth=3: top code [32,8], blocks of 2 leaves; union of the 8 planted blocks has 16 leaves, rank 14, nullity 2 (one block = 2)
+  leaf sets Z (unions of blocks plus leaves): 40000 tested; rank differs from the prediction for the planted minor alone in 0; largest waste min(|Z|,k) - rank = 0; sets wasting more than one block: 0
+FB=64 mode=2 k=64 n=128 depth=3: top code [16,8], blocks of 8 leaves; union of the 8 planted blocks has 64 leaves, rank 56, nullity 8 (one block = 8)
+  leaf sets Z (unions of blocks plus leaves): 40000 tested; rank differs from the prediction for the planted minor alone in 0; largest waste min(|Z|,k) - rank = 0; sets wasting more than one block: 0
+FB=64 mode=2 k=64 n=128 depth=4: top code [32,16], blocks of 4 leaves; union of the 16 planted blocks has 64 leaves, rank 60, nullity 4 (one block = 4)
+  leaf sets Z (unions of blocks plus leaves): 40000 tested; rank differs from the prediction for the planted minor alone in 0; largest waste min(|Z|,k) - rank = 0; sets wasting more than one block: 0
+FB=64 mode=1 k=16 n=32 depth=1: top code [4,2], blocks of 8 leaves; union of the 2 planted blocks has 16 leaves, rank 8, nullity 8 (one block = 8)
+  leaf sets Z (unions of blocks plus leaves): 40000 tested; rank differs from the prediction for the planted minor alone in 2898; largest waste min(|Z|,k) - rank = 8; sets wasting more than one block: 0
+FB=64 mode=1 k=16 n=32 depth=2: top code [8,4], blocks of 4 leaves; union of the 4 planted blocks has 16 leaves, rank 12, nullity 4 (one block = 4)
+  leaf sets Z (unions of blocks plus leaves): 40000 tested; rank differs from the prediction for the planted minor alone in 3; largest waste min(|Z|,k) - rank = 2; sets wasting more than one block: 0
+FB=64 mode=1 k=32 n=64 depth=3: top code [16,8], blocks of 4 leaves; union of the 8 planted blocks has 32 leaves, rank 28, nullity 4 (one block = 4)
+  leaf sets Z (unions of blocks plus leaves): 40000 tested; rank differs from the prediction for the planted minor alone in 19; largest waste min(|Z|,k) - rank = 3; sets wasting more than one block: 0
+FB=64 mode=1 k=32 n=64 depth=4: top code [32,16], blocks of 2 leaves; union of the 16 planted blocks has 32 leaves, rank 30, nullity 2 (one block = 2)
+  leaf sets Z (unions of blocks plus leaves): 40000 tested; rank differs from the prediction for the planted minor alone in 0; largest waste min(|Z|,k) - rank = 0; sets wasting more than one block: 0

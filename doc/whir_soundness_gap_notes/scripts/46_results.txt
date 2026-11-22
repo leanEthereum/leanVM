@@ -1,0 +1,191 @@
+Referee 46: outputs of the runs quoted in 46-referee-notes-37-39.md (46_run_all.sh reproduces them; Apple silicon, four threads).
+
+== n = 32: every 19-subset of D, w = X^16 L_W, degree <= 16 ==
+$ 46_tops 5 1 17 19 xlw 16 2   (identical output and identical dump for seed 7 and for the real shape, seed 0)
+N=5 seed=1 k=17 T=19 M=20 m'=4 r=1 conditions=2
+T-subsets examined 347373600, passing 42336, members 15736 (duplicates 0)
+  agreement 19, multiple points 1 (largest multiplicity 2), roots outside D 0 : 14336
+  agreement 20, multiple points 0 (largest multiplicity 1), roots outside D 0 : 1400
+cmp: dumps of seeds 1, 7 and of the real shape are identical
+02_lists.c (the interpolation oracle of note 02, members mode, same points and word): 15736 agreement sets, identical to mine (188 s)
+
+== the claimed family (note 39 Proposition 4.1), generated from its description, every member evaluated in GF(2^64) ==
+$ 46_family 5 1
+N=5 seed=1: (a1) 56, (a2) 1344, (b) 14336 [subspaces V per hyperplane: 16], total 15736
+members failing the evaluation in GF(2^64): 0, duplicates: 0
+  (support 19, largest multiplicity 2, period group of mu 1, stabilizer of the support 1) : 14336
+  (support 20, largest multiplicity 1, period group of mu 2, stabilizer of the support 2) : 1344
+  (support 20, largest multiplicity 1, period group of mu 4, stabilizer of the support 4) : 56
+cmp: family == exhaustive list at n = 32
+$ 46_family 6 1
+N=6 seed=1: (a1) 56, (a2) 3136, (b) 100352 [subspaces V per hyperplane: 112], total 103544
+members failing the evaluation in GF(2^64): 0, duplicates: 0
+  (support 38, largest multiplicity 2, period group of mu 2, stabilizer of the support 2) : 100352
+  (support 40, largest multiplicity 1, period group of mu 4, stabilizer of the support 4) : 3136
+  (support 40, largest multiplicity 1, period group of mu 8, stabilizer of the support 8) : 56
+$ 46_family 7 1
+N=7 seed=1: (a1) 56, (a2) 6720, (b) 501760 [subspaces V per hyperplane: 560], total 508536
+members failing the evaluation in GF(2^64): 0, duplicates: 0
+  (support 76, largest multiplicity 2, period group of mu 4, stabilizer of the support 4) : 501760
+  (support 80, largest multiplicity 1, period group of mu 8, stabilizer of the support 8) : 6720
+  (support 80, largest multiplicity 1, period group of mu 16, stabilizer of the support 16) : 56
+
+== n = 64: exhaustive by linearization of the power sums ==
+$ 46_rm 5 1 17 19 xlw 16 2      -> 15736 members, dump identical to the subset enumeration
+$ 46_rm 6 1 33 38 xlw 32 3      (seed 2: the same numbers, the same list)
+N=6 seed=1 k=33 T=38 M=40 m'=8
+case A: linear system of 4 x 64 equations in 64 unknowns, solution space of dimension 23
+case A: 1230712 parity vectors of admissible weight examined (unresolved 0), members 103544
+        simple 3192, one double point 0, two double points 100352, other multiset tops 0, with a multiple root OUTSIDE D 0
+case B: 63 directions d, 0 without solution, free dimensions of h2 at most 5, solution spaces of dimension at most 23
+case B: 562303392 sets of weight 38 verified, 2590112 solutions; pair in D: outside the set 2489760, one inside 0, both inside 100352; predicted from case A 2590112
+case B: members with two distinct roots OUTSIDE D: 0
+TOTAL members at agreement >= 38: 103544 (duplicates 0)
+cmp: exhaustive list == claimed family at n = 64 (seeds 1 and 2)
+$ 46_rm 6 0 33 38 xlw 32 3 maxe 2     (real shape span(1, x, .., x^5))
+case A: solution space of dimension 25, 4964280 parity vectors examined, members 103544 (3192 simple, 100352 with two double points), with a multiple root OUTSIDE D 0
+case B: INCOMPLETE, 63 directions skipped (h2 has 6 free dimensions; the full run exceeds the budget)
+cmp: the multiset-top members on the real shape are the same 103544
+
+== Theorem S (note 39 Corollary 2.4) and its sharpness, n = 32 ==
+$ 46_tops 5 1 12 13 pow 15   m'=4 r=2 (covered)
+  agreement 13, multiple points 2, roots outside D 0 : 52080
+  agreement 14, multiple points 1, roots outside D 0 : 8680
+  agreement 15, multiple points 0, roots outside D 0 : 4371          (65131 members)
+$ 46_tops 5 0 12 13 pow 15   real shape
+  agreement 13, multiple points 0, roots outside D 2 : 280710
+  agreement 13, multiple points 2, roots outside D 0 : 52080
+  agreement 14, multiple points 1, roots outside D 0 : 8680
+  agreement 15, multiple points 0, roots outside D 0 : 4371          (345841 members)
+$ 46_tops 5 1 10 11 pow 15   m'=6 r=4 (not covered: 2r = m' + 2)
+  agreement 11, multiple points 0, roots outside D 4 : 93248
+  agreement 15, multiple points 0, roots outside D 0 : 31
+$ 46_tops 5 1 10 12 pow 15   m'=6 r=3 (covered)
+  agreement 15, multiple points 0, roots outside D 0 : 31
+$ 46_tops 5 0 10 12 pow 15   real shape
+  agreement 12, multiple points 0, roots outside D 3 : 100
+  agreement 13, multiple points 2, roots outside D 0 : 24
+  agreement 14, multiple points 1, roots outside D 0 : 4
+  agreement 15, multiple points 0, roots outside D 0 : 31
+$ 46_tops 5 1 8 9 pow 15     m'=8 r=6 (not covered)
+  agreement 9, multiple points 0, roots outside D 6 : 26040
+  agreement 15, multiple points 0, roots outside D 0 : 31
+$ 46_tops 5 1 15 17 xlw 16 2  m'=6 r=3 (covered)
+  agreement 18, multiple points 2, roots outside D 0 : 48
+  agreement 20, multiple points 0, roots outside D 0 : 7
+$ 46_tops 5 1 13 16 xlw 16 2  m'=8 r=4 (covered)
+  agreement 16, multiple points 4, roots outside D 0 : 35
+  agreement 18, multiple points 2, roots outside D 0 : 48
+  agreement 20, multiple points 0, roots outside D 0 : 7
+$ 46_tops 5 1 14 16 xlw 16 2  m'=7 r=4 (not covered, still split): the same 90 members
+
+== Theorem 2.3 at n = 16: all 3^15 functions f : D \ 0 -> {-1, 0, 1} ==
+$ 46_pade16 1   (random basis)
+alpha+beta  m'  (alpha,beta)  covered  approximants  with support > alpha+beta  NOT split over D
+    2       3     (2,0)      no      14348907     14348456           14177358
+    2       3     (1,1)      no      13452579     13452128           13184010
+    2       4     (2,0)      yes       171549       171428                  0
+    2       4     (1,1)      yes       268569       268328                  0
+    3       4     (3,0)      no      14348907     14344816           13445523
+    3       4     (2,1)      no      14348907     14344816           12420513
+    3       5     (3,0)      no          5428         4852                  0
+    3       5     (2,1)      no         12123        10412                  0
+    3       6     (3,0)      yes         5428         4852                  0
+    3       6     (2,1)      yes        12123        10412                  0
+    4       6     (4,0)      no         85509        83428              69476
+    4       6     (3,1)      no         42538        34912                  0
+    4       6     (2,2)      no        188163       176792             127920
+    4       7     (4,0)      no         16033        14092                  0
+    4       7     (3,1)      no         42538        34912                  0
+    4       7     (2,2)      no         60243        48872                  0
+    4       8     (4,0)      yes        16033        14092                  0
+    4       8     (3,1)      yes        42538        34912                  0
+    4       8     (2,2)      yes        60243        48872                  0
+$ 46_pade16 0   (real shape span(1, x, x^2, x^3)): the theorem FAILS in covered cases
+    2       4     (2,0)      yes       198537       198416              26988
+    2       4     (1,1)      yes       268569       268328                  0
+    3       6     (3,0)      yes         7940         7364                  0
+    3       6     (2,1)      yes        17047        15336                  0
+    4       8     (4,0)      yes        16081        14140                 48
+    4       8     (3,1)      yes        42538        34912                  0
+    4       8     (2,2)      yes        60243        48872                  0
+
+== periods of the triple functions ==
+$ 46_triples 5 1 tops32_s1.txt pairs 300
+first W-invariant pair: period-free thirds B = 14336 of 15734; |Pi(xi_l)| : 1 : 14336, 2 : 1344, 4 : 52, collinear : 2
+300 random W-invariant pairs: B between 13568 and 14336
+300 random pairs: least B 15443, mean fraction of thirds with a period 0.0007
+$ 46_triples 5 1 tops32_s1.txt bmin
+first member of type 0 (index 0): least B(i, j) over all 15735 partners j is 13568 (partner of type 0)
+first member of type 1 (index 6): least B(i, j) over all 15735 partners j is 13968 (partner of type 1)
+first member of type 2 (index 189): least B(i, j) over all 15735 partners j is 14977 (partner of type 2)
+$ 46_triples 6 1 fam64.txt pairs 12
+first W-invariant pair: period-free thirds B = 0 of 103542; |Pi(xi_l)| : 2 : 100352, 4 : 3136, 8 : 52, collinear : 2
+12 random W-invariant pairs: B between 0 and 0
+12 random pairs: least B 87808, mean fraction of thirds with a period 0.0150
+
+== primitive sublists (greedy, lower bounds, every triple re-verified) ==
+$ 46_triples 5 1 tops32_s1.txt prim 600    -> largest 134 members (132 with a double point, 2 sets), 0 bad triples of 392084
+$ 46_triples 6 1 fam64.txt prim 8          -> largest 14 members, 0 bad triples of 364
+$ 46_triples 5 1 tops32_s1.txt classes     -> 4264 classes by the coefficient of X^16 (sizes 2 : 672, 4 : 3584, 7 : 8); largest primitive sublist of the largest class: 2
+$ 46_triples 6 1 fam64.txt classes         -> 26664 classes (sizes 2 : 1568, 4 : 25088, 7 : 8); largest primitive sublist of the largest class: 2
+$ 46_tops 5 1 16 18 xlw 16 1               -> 2395 members at (n, k, T) = (32, 16, 18); greedy primitive sublist: 20
+
+== the difference descent (note 37 Proposition 3.3), numerically ==
+$ 46_triples 6 1 fam64.txt descent
+step 0: |U| 1 -> 2, degree bound 32 -> 16, deg rho 0, z0 0; members 103544, with period a': 15736; least slack before 6, after 6; non-members tested 3000, wrongly of the form: 0; errors 0
+step 1: |U| 2 -> 4, degree bound 16 -> 8, deg rho 0, z0 0; members 15736, with period a': 504; least slack 8, 8; errors 0
+step 2: |U| 4 -> 8, degree bound 8 -> 4; members 504, with period a': 56; errors 0
+step 3: |U| 8 -> 16, degree bound 4 -> 2; members 56, with period a': 4; errors 0
+$ 46_triples 6 1 fam64.txt descent b
+step 0: pair (413, 414): members 103544, with period a': 15736; errors 0
+step 1: |U| 2 -> 4, degree bound 16 -> 6, deg rho 4 (roots of rho in D: 8), z0 8 <= |U| deg rho = 8: ok; members 15736, with period a': 2; least slack before 6, after 6; errors 0
+$ 46_triples 5 1 flats32.txt descent pow 15 8      (the 31 flats)
+step 0: |U| 1 -> 2, degree bound 7 -> 3, deg rho 1 (roots of rho in D: 1), z0 1 <= 1: ok; members 31, with period a': 15; least slack before 8, after 8; errors 0
+step 1: |U| 2 -> 4, degree bound 3 -> 1, deg rho 1 (roots in D: 2), z0 2 <= 2: ok; members 15, with period a': 7; errors 0
+step 2: |U| 4 -> 8, degree bound 1 -> 0, deg rho 1 (roots in D: 4), z0 4 <= 4: ok; members 7, with period a': 3; errors 0
+$ 46_triples 5 1 pow15k12.txt descent pow 15 12    (65131 members)
+step 0: degree bound 11 -> 5, deg rho 1, z0 1; members 65131, with period a': 2395; least slack 2, 2; errors 0
+step 1: degree bound 5 -> 2, deg rho 1 (roots in D: 2), z0 2; members 2395, with period a': 35; errors 0
+step 2: degree bound 2 -> 0, deg rho 2 (roots in D: 8), z0 8 <= 8; members 35, with period a': 5; errors 0
+
+== note 37 section 4 on triples of the lists ==
+$ 46_triples 5 1 tops32_s1.txt transfer 3000
+Lemma 4.1: triples with a direction of no admissible type: 0; directions with a forced transfer type: 1753; directions tested with nu - 2 delta >= 2: 620
+   control (random disjoint sets of the same sizes): 20 of 3000 violate
+Lemma 4.2: directions with sum |R_i & (R_i + a)| >= 2 delta: 110, not periods: 0
+Theorem 4.3: flats 6; functions with s < delta^2/4n: 6, of which not flats: 0; least s * 4n / delta^2 over non-flats: 10.000
+largest nu - 2 delta - |Pi|: 0
+$ 46_triples 6 1 fam64.txt transfer 3000
+Lemma 4.1: triples with a direction of no admissible type: 0; directions with a forced transfer type: 3143; directions tested with nu - 2 delta >= 2: 3213
+   control (random disjoint sets of the same sizes): 49 of 3000 violate
+Lemma 4.2: directions with sum |R_i & (R_i + a)| >= 2 delta: 246, not periods: 0
+Theorem 4.3: flats 1; functions with s < delta^2/4n: 1, of which not flats: 0; least s * 4n / delta^2 over non-flats: 11.755
+largest nu - 2 delta - |Pi|: 0
+
+== perturbation (note 37 Proposition 2.1) ==
+$ 46_triples 6 1 fam64.txt perturb 0.125
+perturbed set P: 6 points of 64; members whose agreement set has a nonzero period: before 103544 of 103544, after 360
+mean of max_a |S & (S+a)| / |S|: before 1.0000, after 0.9008; mean |S'|/|S| 0.9062
+$ 46_triples 6 1 fam64.txt perturb 0.03
+perturbed set P: 3 points of 64; members with a nonzero period: before 103544, after 5517
+$ 46_perturb 12 0.1 400 1
+N=12 n=4096 lambda=0.100 |P|=402, 400 members, t = 247.9
+before: members with an exact nonzero period of S: 400 of 400; after: 0; mean |S'|/|S| = 0.9020; mean of max_a |S'&(S'+a)|/|S'| = 0.9091, worst 0.9181
+largest max_a |S'&(S'+a)| - (1-lambda)^2 |S| = 58.1 (allowed t = 247.9); violations: 0 and 0
+$ 46_perturb 14 0.1 400 1
+N=14 n=16384, t = 518.2: before 400 of 400 with an exact period, after 0; mean |S'|/|S| = 0.9009; mean max ratio 0.9053, worst 0.9109; largest excess 148.3; violations 0 and 0
+$ 46_perturb 16 0.02 200 1
+N=16 n=65536, t = 1058.1: before 200 of 200, after 0; mean |S'|/|S| = 0.9795; mean max ratio 0.9801, worst 0.9814; largest excess 84.9; violations 0 and 0
+
+== arithmetic (46_numbers.py) ==
+N=25 k=2^24 T=ceil(0.64 n)=21474837 Delta=4697622 J=24 NJ-J(J-1)/2=324 n/Delta+1=8.1429
+note 39 Thm 1.3: f=7: 2^466.40, f=16: 2^552.85, f=133: 2^772.96, f=134: 2^773.74
+note 39 Cor 1.5: f=133 (f'=1899, j0=21, base 2^22.69): 2^969.54; f=134 (f'=1914): 2^970.26
+stopped at the best level with the base case of note 37 Lemma 3.2: f=7: 2^444.5 (j0=20), f=16: 2^516.5 (j0=20), f=134: 2^692.8 (j0=19); ordinary words, f0=134: 2^908.1 (j0=18)
+note 37 Thm 3.5: 2^324 (24(B+2) + n/Delta): B=0: 2^329.8, B=13568: 2^342.3
+note 39 Cor 2.6 at tau=0.64: 1/(16 eps^2) = 277.78, so at most 277 codewords (the note says 278)
+note 37 Thm 5.1, rate 1/2, N=25, 175 points below the Johnson threshold 23726566: theta=7.36e-6; with the note's beta=0.0875: Gaussian binomial times product 2^72.69, g(theta_1 -> 0)=0.082, bound 2^76.3 (the note takes g=0.052: 2^77.0); my optimum 2^76.2 at beta=0.0777
+  rate 1/4: 2^73.5 (note: 2^74.1); N=28: 2^85.3 and 2^82.5 (note: 2^86.0, 2^83.1); rates 1/8, 1/16: no power of two in the interval, constant bound 2^18.0 and 2^18.6 at best (note: 2^19.6, 2^20.2)
+  g > 0 is possible up to 437, 942, 867, 566 points below the Johnson threshold at rates 1/2, 1/4, 1/8, 1/16 (N=25, theta_1 -> 0)
+note 37 Thm 4.3, counting step with the exact bounds of Steps 1 and 3: 59530 parameter sets with n <= 1024, 0 failures

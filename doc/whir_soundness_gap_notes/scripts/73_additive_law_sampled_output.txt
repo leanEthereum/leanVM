@@ -1,0 +1,9 @@
+[8,4] codes over GF(16), 2000000 uniform t each; q^-3 = 2.44e-04, q^-4 = 1.53e-05
+  Reed-Solomon: P[dim >= 2, full support] = 1.56e-04; P[dim >= 3, full support] = 2.00e-06; P[dim >= 2, any support] = 2.48e-04
+  random MDS 1: P[dim >= 2, full support] = 8.50e-06; P[dim >= 3, full support] = 0.00e+00; P[dim >= 2, any support] = 4.30e-05
+  random MDS 2: P[dim >= 2, full support] = 1.70e-05; P[dim >= 3, full support] = 0.00e+00; P[dim >= 2, any support] = 4.35e-05
+  two-level tree code T1 #1: P[dim >= 2, full support] = 2.14e-04; P[dim >= 3, full support] = 0.00e+00; P[dim >= 2, any support] = 2.40e-04
+  two-level tree code T1 #2: P[dim >= 2, full support] = 1.35e-04; P[dim >= 3, full support] = 0.00e+00; P[dim >= 2, any support] = 2.28e-04
+  two-level tree code T2 #1: P[dim >= 2, full support] = 1.40e-05; P[dim >= 3, full support] = 0.00e+00; P[dim >= 2, any support] = 3.75e-05
+  two-level tree code T2 #2: P[dim >= 2, full support] = 1.25e-05; P[dim >= 3, full support] = 0.00e+00; P[dim >= 2, any support] = 3.90e-05
+/usr/bin/python3 73_additive_law_sampled.py  25.16s user 0.15s system 99% cpu 25.402 total

@@ -1,0 +1,19 @@
+N=1: brute force min |N[A]| by size equals Harper/KK formula: True
+   NI: [2, 2]
+N=2: brute force min |N[A]| by size equals Harper/KK formula: True
+   NI: [3, 4, 4, 4]
+N=3: brute force min |N[A]| by size equals Harper/KK formula: True
+   NI: [4, 6, 7, 7, 8, 8, 8, 8]
+N=4: brute force min |N[A]| by size equals Harper/KK formula: True
+N=8 rho=1/2: exact 0.098712 at a=9 f=37; adaptive [0.098712, 0.098712] evals 27
+N=8 rho=1/4: exact 0.098712 at a=9 f=37; adaptive [0.098712, 0.098712] evals 17
+N=8 rho=1/8: exact 0.075955 at a=1 f=9; adaptive [0.075955, 0.075955] evals 9
+N=10 rho=1/2: exact 0.146307 at a=56 f=176; adaptive [0.146307, 0.146307] evals 65
+N=10 rho=1/4: exact 0.146307 at a=56 f=176; adaptive [0.146307, 0.146307] evals 49
+N=10 rho=1/8: exact 0.141741 at a=11 f=56; adaptive [0.141741, 0.141741] evals 29
+N=12 rho=1/2: exact 0.191216 at a=79 f=299; adaptive [0.191216, 0.191216] evals 97
+N=12 rho=1/4: exact 0.191216 at a=79 f=299; adaptive [0.191216, 0.191216] evals 77
+N=12 rho=1/8: exact 0.191216 at a=79 f=299; adaptive [0.191216, 0.191216] evals 45
+N=14 rho=1/2: exact 0.229728 at a=470 f=1471; adaptive [0.229728, 0.229728] evals 121
+N=14 rho=1/4: exact 0.229728 at a=470 f=1471; adaptive [0.229728, 0.229728] evals 103
+N=14 rho=1/8: exact 0.229728 at a=470 f=1471; adaptive [0.229728, 0.229728] evals 71

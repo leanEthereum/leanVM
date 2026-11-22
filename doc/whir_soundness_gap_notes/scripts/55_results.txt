@@ -1,0 +1,366 @@
+===== 55_identity.py
+A. GF(2^8): general identity (K = 1, 2, 3) 60/60; quintic closed form 20/20; quintic, rational P and Q 20/20
+A. GF(2^12): general identity (K = 1, 2, 3) 60/60; quintic closed form 20/20; quintic, rational P and Q 20/20
+B. section equation (S) 30/30; case (I) E = (Y + psi) E_Y mod F[X^2][Y^2] and psi a section 30/30; case (II) eps_P / rho a square 30/30
+C. Proposition 2.5 (contact 4): mu02 = mu12 y, mu01 = mu12 y^2, e1 = e5 y^4 at 80/80 received points
+D. N = 5: |S_i| = 24, power sums p_0..p_7 of S_1 xor S_2: [0, 0, 0, 0, 0, 0, 0, 3024]; deg(Lambda_S1 + Lambda_S2) = 20 (= p - 4: True); equals L_V(c) Lambda_R: True
+D. N = 6: |S_i| = 24, power sums p_0..p_7 of S_1 xor S_2: [0, 0, 0, 0, 0, 0, 0, 667]; deg(Lambda_S1 + Lambda_S2) = 20 (= p - 4: True); equals L_V(c) Lambda_R: True
+E. 11/16 family, n = 16 (GF(2^8)): W = 42 (11n/4 - 2 = 42); contact >= 4 at 16/16 points; p_inf - Delta = 4; drops of deg (e_i e_j)' below the generic value: [4, 4, 8] (Proposition 2.4 (2): each >= 4); mu02 = mu12 y and mu01 = mu12 y^2 at 16/16 points (mu12 != 0 at 15); eps_psi = (M/X) L_D^3: True; roots of M/X outside D: 3 (squarefree: True; n/4 - 1 = 3)
+E. 11/16 family, n = 32 (GF(2^8)): W = 86 (11n/4 - 2 = 86); contact >= 4 at 32/32 points; p_inf - Delta = 8; drops of deg (e_i e_j)' below the generic value: [8, 8, 16] (Proposition 2.4 (2): each >= 8); mu02 = mu12 y and mu01 = mu12 y^2 at 32/32 points (mu12 != 0 at 31); eps_psi = (M/X) L_D^3: True; roots of M/X outside D: 7 (squarefree: True; n/4 - 1 = 7)
+E. 11/16 family, n = 64 (GF(2^12)): W = 174 (11n/4 - 2 = 174); contact >= 4 at 64/64 points; p_inf - Delta = 16; drops of deg (e_i e_j)' below the generic value: [16, 16, 32] (Proposition 2.4 (2): each >= 16); mu02 = mu12 y and mu01 = mu12 y^2 at 64/64 points (mu12 != 0 at 63); eps_psi = (M/X) L_D^3: True; roots of M/X outside D: 15 (squarefree: True; n/4 - 1 = 15)
+ALL OK
+===== 55_planted.py
+  polynomial centre, p_inf - Delta = 5: deg b0 = 0, deg m = 0, p_inf = 9, Delta = 4, deg(e1, e3, e5) = (77, 71, 63), W = 83
+     all checks: True
+     2.3(1) at poles: 0/0 (equality 0); 2.3(2): 10/10 (equality 10); 2.3(3): 0/0, N'/N alone fails at 0/0; degree drop slack [3, 3, 1]
+     |O_P| = [9, 9, 9, 9, 9], deg P = [4, 4, 2, 1, 4]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 6; max |O_P| - Delta + [p_inf > Delta] = 6
+  polynomial centre, p_inf - Delta = 4: deg b0 = 0, deg m = 0, p_inf = 8, Delta = 4, deg(e1, e3, e5) = (70, 64, 56), W = 76
+     all checks: True
+     2.3(1) at poles: 0/0 (equality 0); 2.3(2): 10/10 (equality 10); 2.3(3): 0/0, N'/N alone fails at 0/0; degree drop slack [4, 4, 2]
+     |O_P| = [8, 8, 8, 8, 8], deg P = [4, 4, 2, 2, 3]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 6; max |O_P| - Delta + [p_inf > Delta] = 5
+  polynomial centre, p_inf = Delta + 1: deg b0 = 0, deg m = 0, p_inf = 5, Delta = 4, deg(e1, e3, e5) = (59, 55, 47), W = 67
+     all checks: True
+     2.3(1) at poles: 0/0 (equality 0); 2.3(2): 10/10 (equality 10); 2.3(3): 0/0, N'/N alone fails at 0/0; degree drop slack [7, 5, 1]
+     |O_P| = [5, 5, 5, 5, 5], deg P = [4, 4, 3, 1, 1]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 2; max |O_P| - Delta + [p_inf > Delta] = 2
+  polynomial centre, p_inf = Delta (no divisor): deg b0 = 0, deg m = 0, p_inf = 4, Delta = 4, deg(e1, e3, e5) = (64, 56, 48), W = 68
+     all checks: True
+     2.3(1) at poles: 0/0 (equality 0); 2.3(2): 0/0 (equality 0); 2.3(3): 0/0, N'/N alone fails at 0/0; degree drop slack [2, 2, 2]
+     |O_P| = [4, 4, 4, 4, 4], deg P = [4, 4, 4, 2, 4]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 0; max |O_P| - Delta + [p_inf > Delta] = 0
+  two simple poles, no pole at infinity: deg b0 = 2, deg m = 0, p_inf = 0, Delta = 4, deg(e1, e3, e5) = (72, 66, 58), W = 78
+     all checks: True
+     2.3(1) at poles: 20/20 (equality 20); 2.3(2): 0/0 (equality 0); 2.3(3): 0/0, N'/N alone fails at 0/0; degree drop slack [8, 8, 6]
+     |O_P| = [8, 8, 8, 6, 7], deg P = [4, 4, 4, 2, 3]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 4; max |O_P| - Delta + [p_inf > Delta] = 4
+  two simple poles, p_inf - Delta = 3: deg b0 = 2, deg m = 0, p_inf = 7, Delta = 4, deg(e1, e3, e5) = (75, 71, 63), W = 83
+     all checks: True
+     2.3(1) at poles: 20/20 (equality 20); 2.3(2): 10/10 (equality 10); 2.3(3): 0/0, N'/N alone fails at 0/0; degree drop slack [7, 5, 1]
+     |O_P| = [11, 11, 11, 11, 11], deg P = [4, 4, 1, 1, 2]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 8; max |O_P| - Delta + [p_inf > Delta] = 8
+  three simple poles, p_inf - Delta = 2: deg b0 = 3, deg m = 0, p_inf = 6, Delta = 4, deg(e1, e3, e5) = (82, 76, 68), W = 88
+     all checks: True
+     2.3(1) at poles: 30/30 (equality 30); 2.3(2): 10/10 (equality 10); 2.3(3): 0/0, N'/N alone fails at 0/0; degree drop slack [4, 4, 2]
+     |O_P| = [12, 12, 12, 12, 12], deg P = [4, 4, 1, 2, 3]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 10; max |O_P| - Delta + [p_inf > Delta] = 9
+  double pole, no pole at infinity: deg b0 = 0, deg m = 1, p_inf = 1, Delta = 4, deg(e1, e3, e5) = (55, 53, 46), W = 66
+     all checks: True
+     2.3(1) at poles: 10/10 (equality 10); 2.3(2): 0/0 (equality 0); 2.3(3): 5/5, N'/N alone fails at 0/5; degree drop slack [13, 11, 5]
+     |O_P| = [6, 6, 3, 5, 3], deg P = [4, 4, 1, 3, 1]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 2; max |O_P| - Delta + [p_inf > Delta] = 2
+  double pole, p_inf - Delta = 3: deg b0 = 0, deg m = 1, p_inf = 7, Delta = 4, deg(e1, e3, e5) = (79, 71, 63), W = 83
+     all checks: True
+     2.3(1) at poles: 10/10 (equality 10); 2.3(2): 10/10 (equality 10); 2.3(3): 5/5, N'/N alone fails at 0/5; degree drop slack [1, 1, 1]
+     |O_P| = [9, 9, 9, 9, 9], deg P = [4, 4, 2, 3, 4]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 6; max |O_P| - Delta + [p_inf > Delta] = 6
+  triple pole (b0 and m share the root): deg b0 = 1, deg m = 1, p_inf = 1, Delta = 4, deg(e1, e3, e5) = (59, 57, 50), W = 70
+     all checks: True
+     2.3(1) at poles: 10/10 (equality 10); 2.3(2): 0/0 (equality 0); 2.3(3): 0/0, N'/N alone fails at 0/0; degree drop slack [13, 11, 5]
+     |O_P| = [8, 8, 5, 5, 7], deg P = [4, 4, 1, 1, 3]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 4; max |O_P| - Delta + [p_inf > Delta] = 4
+  fourfold pole: deg b0 = 0, deg m = 2, p_inf = 1, Delta = 4, deg(e1, e3, e5) = (66, 61, 54), W = 74
+     all checks: True
+     2.3(1) at poles: 10/10 (equality 10); 2.3(2): 0/0 (equality 0); 2.3(3): 5/5, N'/N alone fails at 0/5; degree drop slack [9, 9, 5]
+     |O_P| = [8, 8, 6, 7, 6], deg P = [4, 4, 2, 3, 2]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 4; max |O_P| - Delta + [p_inf > Delta] = 4
+  simple + double + pole at infinity (p_inf - Delta = 2): deg b0 = 1, deg m = 1, p_inf = 6, Delta = 4, deg(e1, e3, e5) = (80, 74, 66), W = 86
+     all checks: True
+     2.3(1) at poles: 20/20 (equality 20); 2.3(2): 10/10 (equality 10); 2.3(3): 5/5, N'/N alone fails at 5/5; degree drop slack [4, 4, 2]
+     |O_P| = [10, 10, 10, 10, 10], deg P = [4, 4, 3, 4, 3]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 8; max |O_P| - Delta + [p_inf > Delta] = 7
+  two simple + double, p_inf < 0: deg b0 = 2, deg m = 1, p_inf = -2, Delta = 4, deg(e1, e3, e5) = (79, 72, 64), W = 84
+     all checks: True
+     2.3(1) at poles: 30/30 (equality 30); 2.3(2): 0/0 (equality 0); 2.3(3): 5/5, N'/N alone fails at 5/5; degree drop slack [8, 8, 8]
+     |O_P| = [10, 10, 10, 7, 10], deg P = [4, 4, 4, 1, 4]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 6; max |O_P| - Delta + [p_inf > Delta] = 6
+  simple + fivefold pole: deg b0 = 2, deg m = 2, p_inf = 0, Delta = 4, deg(e1, e3, e5) = (84, 78, 70), W = 90
+     all checks: True
+     2.3(1) at poles: 20/20 (equality 20); 2.3(2): 0/0 (equality 0); 2.3(3): 0/0, N'/N alone fails at 0/0; degree drop slack [8, 8, 6]
+     |O_P| = [12, 12, 11, 10, 12], deg P = [4, 4, 3, 2, 4]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 8; max |O_P| - Delta + [p_inf > Delta] = 8
+  polynomial centre, p_inf - Delta = 5: deg b0 = 0, deg m = 0, p_inf = 9, Delta = 4, deg(e1, e3, e5) = (77, 71, 63), W = 83
+     all checks: True
+     2.3(1) at poles: 0/0 (equality 0); 2.3(2): 10/10 (equality 10); 2.3(3): 0/0, N'/N alone fails at 0/0; degree drop slack [3, 3, 1]
+     |O_P| = [9, 9, 9, 9, 9], deg P = [4, 4, 4, 1, 2]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 6; max |O_P| - Delta + [p_inf > Delta] = 6
+  polynomial centre, p_inf - Delta = 4: deg b0 = 0, deg m = 0, p_inf = 8, Delta = 4, deg(e1, e3, e5) = (72, 66, 58), W = 78
+     all checks: True
+     2.3(1) at poles: 0/0 (equality 0); 2.3(2): 10/10 (equality 10); 2.3(3): 0/0, N'/N alone fails at 0/0; degree drop slack [4, 4, 2]
+     |O_P| = [8, 8, 8, 8, 8], deg P = [4, 4, 1, 3, 3]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 6; max |O_P| - Delta + [p_inf > Delta] = 5
+  polynomial centre, p_inf = Delta + 1: deg b0 = 0, deg m = 0, p_inf = 5, Delta = 4, deg(e1, e3, e5) = (65, 59, 51), W = 71
+     all checks: True
+     2.3(1) at poles: 0/0 (equality 0); 2.3(2): 10/10 (equality 10); 2.3(3): 0/0, N'/N alone fails at 0/0; degree drop slack [3, 3, 1]
+     |O_P| = [5, 5, 5, 5, 5], deg P = [4, 4, 2, 4, 2]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 2; max |O_P| - Delta + [p_inf > Delta] = 2
+  polynomial centre, p_inf = Delta (no divisor): deg b0 = 0, deg m = 0, p_inf = 4, Delta = 4, deg(e1, e3, e5) = (58, 52, 44), W = 64
+     all checks: True
+     2.3(1) at poles: 0/0 (equality 0); 2.3(2): 1/1 (equality 1); 2.3(3): 0/0, N'/N alone fails at 0/0; degree drop slack [4, 4, 2]
+     |O_P| = [4, 4, 4, 4, 4], deg P = [4, 4, 2, 2, 4]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 0; max |O_P| - Delta + [p_inf > Delta] = 0
+  two simple poles, no pole at infinity: deg b0 = 2, deg m = 0, p_inf = 0, Delta = 4, deg(e1, e3, e5) = (73, 66, 58), W = 78
+     all checks: True
+     2.3(1) at poles: 20/20 (equality 20); 2.3(2): 0/0 (equality 0); 2.3(3): 0/0, N'/N alone fails at 0/0; degree drop slack [6, 6, 6]
+     |O_P| = [8, 8, 7, 7, 8], deg P = [4, 4, 3, 3, 4]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 4; max |O_P| - Delta + [p_inf > Delta] = 4
+  two simple poles, p_inf - Delta = 3: deg b0 = 2, deg m = 0, p_inf = 7, Delta = 4, deg(e1, e3, e5) = (87, 79, 71), W = 91
+     all checks: True
+     2.3(1) at poles: 20/20 (equality 20); 2.3(2): 10/10 (equality 10); 2.3(3): 0/0, N'/N alone fails at 0/0; degree drop slack [1, 1, 1]
+     |O_P| = [11, 11, 11, 11, 11], deg P = [4, 4, 4, 4, 3]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 8; max |O_P| - Delta + [p_inf > Delta] = 8
+  three simple poles, p_inf - Delta = 2: deg b0 = 3, deg m = 0, p_inf = 6, Delta = 4, deg(e1, e3, e5) = (86, 80, 72), W = 92
+     all checks: True
+     2.3(1) at poles: 30/30 (equality 30); 2.3(2): 10/10 (equality 10); 2.3(3): 0/0, N'/N alone fails at 0/0; degree drop slack [4, 4, 2]
+     |O_P| = [12, 12, 12, 12, 12], deg P = [4, 4, 3, 3, 4]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 10; max |O_P| - Delta + [p_inf > Delta] = 9
+  double pole, no pole at infinity: deg b0 = 0, deg m = 1, p_inf = 1, Delta = 4, deg(e1, e3, e5) = (55, 53, 46), W = 66
+     all checks: True
+     2.3(1) at poles: 10/10 (equality 10); 2.3(2): 0/0 (equality 0); 2.3(3): 5/5, N'/N alone fails at 0/5; degree drop slack [13, 11, 5]
+     |O_P| = [6, 6, 3, 5, 3], deg P = [4, 4, 1, 3, 1]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 2; max |O_P| - Delta + [p_inf > Delta] = 2
+  double pole, p_inf - Delta = 3: deg b0 = 0, deg m = 1, p_inf = 7, Delta = 4, deg(e1, e3, e5) = (79, 71, 63), W = 83
+     all checks: True
+     2.3(1) at poles: 10/10 (equality 10); 2.3(2): 10/10 (equality 10); 2.3(3): 5/5, N'/N alone fails at 0/5; degree drop slack [1, 1, 1]
+     |O_P| = [9, 9, 9, 9, 9], deg P = [4, 4, 3, 4, 3]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 6; max |O_P| - Delta + [p_inf > Delta] = 6
+  triple pole (b0 and m share the root): deg b0 = 1, deg m = 1, p_inf = 1, Delta = 4, deg(e1, e3, e5) = (71, 64, 56), W = 76
+     all checks: True
+     2.3(1) at poles: 10/10 (equality 10); 2.3(2): 0/0 (equality 0); 2.3(3): 0/0, N'/N alone fails at 0/0; degree drop slack [5, 5, 5]
+     |O_P| = [8, 8, 5, 7, 8], deg P = [4, 4, 1, 3, 4]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 4; max |O_P| - Delta + [p_inf > Delta] = 4
+  fourfold pole: deg b0 = 0, deg m = 2, p_inf = 1, Delta = 4, deg(e1, e3, e5) = (61, 58, 50), W = 70
+     all checks: True
+     2.3(1) at poles: 10/10 (equality 10); 2.3(2): 0/0 (equality 0); 2.3(3): 5/5, N'/N alone fails at 0/5; degree drop slack [9, 9, 5]
+     |O_P| = [8, 8, 6, 5, 6], deg P = [4, 4, 2, 1, 2]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 4; max |O_P| - Delta + [p_inf > Delta] = 4
+  simple + double + pole at infinity (p_inf - Delta = 2): deg b0 = 1, deg m = 1, p_inf = 6, Delta = 4, deg(e1, e3, e5) = (70, 68, 60), W = 80
+     all checks: True
+     2.3(1) at poles: 20/20 (equality 20); 2.3(2): 10/10 (equality 10); 2.3(3): 5/5, N'/N alone fails at 5/5; degree drop slack [10, 8, 2]
+     |O_P| = [10, 10, 10, 10, 10], deg P = [4, 4, 1, 1, 2]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 8; max |O_P| - Delta + [p_inf > Delta] = 7
+  two simple + double, p_inf < 0: deg b0 = 2, deg m = 1, p_inf = -2, Delta = 4, deg(e1, e3, e5) = (78, 72, 64), W = 84
+     all checks: True
+     2.3(1) at poles: 30/30 (equality 30); 2.3(2): 0/0 (equality 0); 2.3(3): 5/5, N'/N alone fails at 5/5; degree drop slack [10, 10, 8]
+     |O_P| = [10, 10, 8, 9, 10], deg P = [4, 4, 2, 3, 4]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 6; max |O_P| - Delta + [p_inf > Delta] = 6
+  simple + fivefold pole: deg b0 = 2, deg m = 2, p_inf = 0, Delta = 4, deg(e1, e3, e5) = (80, 75, 68), W = 88
+     all checks: True
+     2.3(1) at poles: 20/20 (equality 20); 2.3(2): 0/0 (equality 0); 2.3(3): 0/0, N'/N alone fails at 0/0; degree drop slack [10, 10, 6]
+     |O_P| = [12, 12, 10, 11, 11], deg P = [4, 4, 2, 3, 3]; (2.1) holds 5/5, equality 5/5; deg of the divisor 2 deg(b0 m) + e_inf = 8; max |O_P| - Delta + [p_inf > Delta] = 8
+  2 planted sections, simple + double pole, p_inf - Delta = 3: deg b0 = 1, deg m = 1, p_inf = 7, Delta = 4, deg(e1, e3, e5) = (67, 67, 61), W = 81
+     all checks: True
+     2.3(1) at poles: 2/2 (equality 2); 2.3(2): 1/1 (equality 1); 2.3(3): 2/2, N'/N alone fails at 2/2; degree drop slack [11, 9, 1]
+     |O_P| = [11, 11], deg P = [4, 4]; (2.1) holds 2/2, equality 2/2; deg of the divisor 2 deg(b0 m) + e_inf = 8; max |O_P| - Delta + [p_inf > Delta] = 8
+  3 planted sections, simple + double pole, p_inf - Delta = 3: deg b0 = 1, deg m = 1, p_inf = 7, Delta = 4, deg(e1, e3, e5) = (75, 75, 67), W = 87
+     all checks: True
+     2.3(1) at poles: 6/6 (equality 6); 2.3(2): 3/3 (equality 3); 2.3(3): 3/3, N'/N alone fails at 3/3; degree drop slack [7, 7, 1]
+     |O_P| = [11, 11, 11], deg P = [4, 4, 3]; (2.1) holds 3/3, equality 3/3; deg of the divisor 2 deg(b0 m) + e_inf = 8; max |O_P| - Delta + [p_inf > Delta] = 8
+  4 planted sections, simple + double pole, p_inf - Delta = 3: deg b0 = 1, deg m = 1, p_inf = 7, Delta = 4, deg(e1, e3, e5) = (83, 79, 71), W = 91
+     all checks: True
+     2.3(1) at poles: 12/12 (equality 12); 2.3(2): 6/6 (equality 6); 2.3(3): 4/4, N'/N alone fails at 4/4; degree drop slack [3, 3, 1]
+     |O_P| = [11, 11, 11, 11], deg P = [4, 4, 4, 3]; (2.1) holds 4/4, equality 4/4; deg of the divisor 2 deg(b0 m) + e_inf = 8; max |O_P| - Delta + [p_inf > Delta] = 8
+  N. non-pole beta: ord_beta(P + P') = 2, printed bound 2 floor(k/2) = 2, ord_beta dlog(eps_P eps_P') = 0; ord_beta(P' + psi) = 1
+  N. non-pole beta: ord_beta(P + P') = 2, printed bound 2 floor(k/2) = 2, ord_beta dlog(eps_P eps_P') = 0; ord_beta(P' + psi) = 1
+  N. non-pole beta: ord_beta(P + P') = 2, printed bound 2 floor(k/2) = 2, ord_beta dlog(eps_P eps_P') = 0; ord_beta(P' + psi) = 1
+  N. non-pole beta: ord_beta(P + P') = 2, printed bound 2 floor(k/2) = 2, ord_beta dlog(eps_P eps_P') = 0; ord_beta(P' + psi) = 1
+  N. non-pole beta: ord_beta(P + P') = 2, printed bound 2 floor(k/2) = 2, ord_beta dlog(eps_P eps_P') = 0; ord_beta(P' + psi) = 1
+  N. non-pole beta: ord_beta(P + P') = 2, printed bound 2 floor(k/2) = 2, ord_beta dlog(eps_P eps_P') = 0; ord_beta(P' + psi) = 1
+  N. the printed bound of Proposition 2.3 (1) fails at a non-pole in 6/6 instances (it is correct at poles: there P' + psi has a pole of order exactly p_beta)
+ALL CHECKS OK
+literal reading of Proposition 2.3 (1) refuted at non-poles: True
+===== 55_goppa.py
+A. random subspace of GF(2^8), n = 16: 15 sections (15 flats), by agreement {7: 15}; degree <= 3: 15/15; sections of dE: 15/15; (P + psi) eps_P square: 15/15; eps_P = c Lambda_S: 15/15
+     pairs with p_0..p_4(S_i xor S_j) = 0: 105/105 (and up to p_6: 105); weights [8]; divisor degree e_inf = 6 >= max|S| - Delta + 1 = 5
+A. random subspace of GF(2^8), n = 32: 31 sections (31 flats), by agreement {15: 31}; degree <= 7: 31/31; sections of dE: 31/31; (P + psi) eps_P square: 31/31; eps_P = c Lambda_S: 31/31
+     pairs with p_0..p_8(S_i xor S_j) = 0: 465/465 (and up to p_10: 465); weights [16]; divisor degree e_inf = 10 >= max|S| - Delta + 1 = 9
+A. random subspace of GF(2^12), n = 64: 63 sections (63 flats), by agreement {31: 63}; degree <= 15: 63/63; sections of dE: 63/63; (P + psi) eps_P square: 63/63; eps_P = c Lambda_S: 63/63
+     pairs with p_0..p_16(S_i xor S_j) = 0: 1953/1953 (and up to p_18: 1953); weights [32]; divisor degree e_inf = 18 >= max|S| - Delta + 1 = 17
+A. span(1, x, .., x^6) in GF(2^16), n = 128: 127 sections (127 flats), by agreement {63: 127}; degree <= 31: 127/127; sections of dE: 127/127; (P + psi) eps_P square: 127/127; eps_P = c Lambda_S: 127/127
+     pairs with p_0..p_32(S_i xor S_j) = 0: 1500/1500 (and up to p_34: 1500); weights [64]; divisor degree e_inf = 34 >= max|S| - Delta + 1 = 33
+   GF(32): 186 codewords of degree <= 7 with exactly 11 agreements found by sampling (note 43 quotes 186; completeness of the sampling is not proved here)
+A. field domain GF(32), flats and Gold codewords, n = 32: 217 sections (31 flats), by agreement {11: 186, 15: 31}; degree <= 7: 217/217; sections of dE: 217/217; (P + psi) eps_P square: 217/217; eps_P = c Lambda_S: 217/217
+     pairs with p_0..p_8(S_i xor S_j) = 0: 23436/23436 (and up to p_10: 23436); weights [12, 16, 20]; divisor degree e_inf = 10 >= max|S| - Delta + 1 = 9
+B. random basis in GF(2^64), N = 5: 300 sampled members (by shape {0: 56, 1: 30, 2: 158, 3: 56}); deg(X^(n/2) L_W + Lambda_S) <= n/2: 300/300
+     pairs with p_0..p_4(S xor S') = 0: 3000/3000 (p_5 != 0 in 0); Boolean degree <= 2: 3000/3000; weights {0: 14, 8: 394, 12: 664, 16: 1339, 20: 424, 24: 165}
+B. random basis in GF(2^64), N = 6: 200 sampled members (by shape {0: 53, 1: 4, 2: 87, 3: 56}); deg(X^(n/2) L_W + Lambda_S) <= n/2: 200/200
+     pairs with p_0..p_8(S xor S') = 0: 1500/1500 (p_9 != 0 in 0); Boolean degree <= 2: 1500/1500; weights {0: 7, 16: 235, 24: 289, 32: 714, 40: 143, 48: 112}
+C. GF(2^8), N = 5, double pole: beta outside D, 3 members, |S| = 13, Delta = 11; P_i polynomial: True; a word with agreement sets S_i exists: True; Odd(P_i + psi) = S_i: True; S_i xor S_j in Gamma(D; X - beta, 0): 3/3; divisor degree 2, |S| - Delta = 2
+C. GF(2^8), N = 5, double pole: beta in D, 3 members, |S| = 13, Delta = 11; P_i polynomial: True; a word with agreement sets S_i exists: True; Odd(P_i + psi) = S_i: True; S_i xor S_j in Gamma(D; X - beta, 0): 3/3; divisor degree 2, |S| - Delta = 2
+C. GF(2^8), N = 5, simple pole (b0): beta in D, 3 members, |S| = 14, Delta = 12; P_i polynomial: True; a word with agreement sets S_i exists: True; Odd(P_i + psi) = S_i: True; S_i xor S_j in Gamma(D; X - beta, 0): 3/3; divisor degree 2, |S| - Delta = 2
+C. GF(2^10), N = 6, double pole: beta outside D, 4 members, |S| = 13, Delta = 11; P_i polynomial: True; a word with agreement sets S_i exists: True; Odd(P_i + psi) = S_i: True; S_i xor S_j in Gamma(D; X - beta, 0): 6/6; divisor degree 2, |S| - Delta = 2
+C. GF(2^10), N = 6, double pole: beta in D, 3 members, |S| = 13, Delta = 11; P_i polynomial: True; a word with agreement sets S_i exists: True; Odd(P_i + psi) = S_i: True; S_i xor S_j in Gamma(D; X - beta, 0): 3/3; divisor degree 2, |S| - Delta = 2
+C. GF(2^10), N = 6, simple pole (b0): beta in D, 3 members, |S| = 14, Delta = 12; P_i polynomial: True; a word with agreement sets S_i exists: True; Odd(P_i + psi) = S_i: True; S_i xor S_j in Gamma(D; X - beta, 0): 3/3; divisor degree 2, |S| - Delta = 2
+ALL OK
+===== 55_strata.py
+C. stratum bound at real sizes, g = A - Delta - 1, Delta = rho n + 5 (value, degree d, c_g(d))
+   rate 1/2, a = 0.70084: g/n = 0.2008; m=64, N=25: 56706 (d=6, c=2950); m=64, N=28: 216554 (d=6, c=4416); m=128, N=25: 11446 (d=5, c=445); m=128, N=28: 48198 (d=5, c=580); as in note 53: True
+   rate 1/2, a = 0.7065: g/n = 0.2065; m=64, N=25: 47938 (d=6, c=3087); m=64, N=28: 204330 (d=6, c=4607); m=128, N=25: 9644 (d=4, c=44); m=128, N=28: 45638 (d=5, c=600); as in note 53: True
+   rate 1/4, a = 0.488109: g/n = 0.2381; m=64, N=25: 16566 (d=5, c=810); m=64, N=28: 54086 (d=5, c=1068); m=128, N=25: 4780 (d=4, c=82); m=128, N=28: 12126 (d=4, c=94); as in note 53: True
+   rate 1/8, a = 0.340086: g/n = 0.2151; m=64, N=25: 36598 (d=5, c=497); m=64, N=28: 178730 (d=6, c=5007); m=128, N=25: 9388 (d=4, c=46); m=128, N=28: 40390 (d=5, c=641); as in note 53: True
+   rate 1/16, a = 0.237478: g/n = 0.1750; m=64, N=25: 122178 (d=6, c=1927); m=64, N=28: 637202 (d=7, c=16344); m=128, N=25: 33718 (d=5, c=271); m=128, N=28: 139114 (d=6, c=2813); as in note 53: True
+   N = 25, g = 0.2065 n: formal dimension 326; the stratum bound equals it only for m >= 1150
+   N = 28, g = 0.2065 n: formal dimension 407; the stratum bound equals it only for m >= 1638
+   all real-size numbers as in note 53: True
+A. formal model emulated in GF(2^607), random bases; profile on 0 <= g <= n/2
+   N = 6: dim Gamma_inf(g) = dim RM(N-1-w(g), N) for all g in [0, 32]: True   [0.1 s]
+      endpoints: g=0: 63, g=1: 57, g=2: 57, g=3: 42, g=6: 42, g=7: 22, g=14: 22, g=15: 7, g=30: 7, g=31: 1
+      RM(2,N) range: g = n/8 - 2 = 6: 42 (RM(3,N): 42); g = n/8 - 1 = 7: 22 (RM(2,N): 22); g = n/4 - 2 = 14: 22; g = n/4 - 1: 7 (RM(1,N): 7); g = n/2 - 2: 7; g = n/2 - 1: 1
+   N = 7: dim Gamma_inf(g) = dim RM(N-1-w(g), N) for all g in [0, 64]: True   [0.2 s]
+      endpoints: g=0: 127, g=1: 120, g=2: 120, g=3: 99, g=6: 99, g=7: 64, g=14: 64, g=15: 29, g=30: 29, g=31: 8, g=62: 8, g=63: 1
+      RM(2,N) range: g = n/8 - 2 = 14: 64 (RM(3,N): 64); g = n/8 - 1 = 15: 29 (RM(2,N): 29); g = n/4 - 2 = 30: 29; g = n/4 - 1: 8 (RM(1,N): 8); g = n/2 - 2: 8; g = n/2 - 1: 1
+   N = 8: dim Gamma_inf(g) = dim RM(N-1-w(g), N) for all g in [0, 128]: True   [0.4 s]
+      endpoints: g=0: 255, g=1: 247, g=2: 247, g=3: 219, g=6: 219, g=7: 163, g=14: 163, g=15: 93, g=30: 93, g=31: 37, g=62: 37, g=63: 9, g=126: 9, g=127: 1
+      RM(2,N) range: g = n/8 - 2 = 30: 93 (RM(3,N): 93); g = n/8 - 1 = 31: 37 (RM(2,N): 37); g = n/4 - 2 = 62: 37; g = n/4 - 1: 9 (RM(1,N): 9); g = n/2 - 2: 9; g = n/2 - 1: 1
+   N = 9: dim Gamma_inf(g) = dim RM(N-1-w(g), N) for all g in [0, 256]: True   [1.2 s]
+      endpoints: g=0: 511, g=1: 502, g=2: 502, g=3: 466, g=6: 466, g=7: 382, g=14: 382, g=15: 256, g=30: 256, g=31: 130, g=62: 130, g=63: 46, g=126: 46, g=127: 10, g=254: 10, g=255: 1
+      RM(2,N) range: g = n/8 - 2 = 62: 130 (RM(3,N): 130); g = n/8 - 1 = 63: 46 (RM(2,N): 46); g = n/4 - 2 = 126: 46; g = n/4 - 1: 10 (RM(1,N): 10); g = n/2 - 2: 10; g = n/2 - 1: 1
+   N = 10: dim Gamma_inf(g) = dim RM(N-1-w(g), N) for all g in [0, 512]: True   [3.9 s]
+      endpoints: g=0: 1023, g=1: 1013, g=2: 1013, g=3: 968, g=6: 968, g=7: 848, g=14: 848, g=15: 638, g=30: 638, g=31: 386, g=62: 386, g=63: 176, g=126: 176, g=127: 56, g=254: 56, g=255: 11, g=510: 11, g=511: 1
+      RM(2,N) range: g = n/8 - 2 = 126: 176 (RM(3,N): 176); g = n/8 - 1 = 127: 56 (RM(2,N): 56); g = n/4 - 2 = 254: 56; g = n/4 - 1: 11 (RM(1,N): 11); g = n/2 - 2: 11; g = n/2 - 1: 1
+   the same on a random basis in GF(2^64) (not generic enough from N = 9 on):
+   N = 6: entries above the formal value: 0; stratum bound is a lower bound everywhere: True; equal to max(stratum, formal) at 33/33 g
+   N = 7: entries above the formal value: 0; stratum bound is a lower bound everywhere: True; equal to max(stratum, formal) at 65/65 g
+   N = 8: entries above the formal value: 8, first (g, dim, formal): [(15, 99, 93), (16, 99, 93), (17, 99, 93), (18, 99, 93)]; stratum bound is a lower bound everywhere: True; equal to max(stratum, formal) at 129/129 g
+   N = 9: entries above the formal value: 64, first (g, dim, formal): [(7, 402, 382), (8, 402, 382), (9, 402, 382), (10, 402, 382)]; stratum bound is a lower bound everywhere: True; equal to max(stratum, formal) at 253/257 g
+B. GF(2^64) = F_2[x]/(x^64 + x^4 + x^3 + x + 1): exact dim Gamma_inf(g) / stratum bound (formal value)
+   N = 8, span: g=44: 41/37 (37); g=48: 37/37 (37); g=52: 37/37 (37); g=60: 37/37 (37); g=64: 9/9 (9)  matches the table of note 53: True
+      max(stratum, formal) <= dim for all g <= n/4: True; strict at 34 of 65 values of g   [0.0 s]
+   N = 8, rand: g=44: 37/37 (37); g=48: 37/37 (37); g=52: 37/37 (37); g=60: 37/37 (37); g=64: 9/9 (9)
+      max(stratum, formal) <= dim for all g <= n/4: True; strict at 0 of 65 values of g   [0.0 s]
+   N = 10, span: g=179: 112/112 (56); g=194: 56/56 (56); g=211: 56/56 (56); g=243: 56/56 (56); g=256: 11/11 (11)  matches the table of note 53: True
+      max(stratum, formal) <= dim for all g <= n/4: True; strict at 32 of 257 values of g   [0.2 s]
+   N = 10, rand: g=179: 112/112 (56); g=194: 56/56 (56); g=211: 56/56 (56); g=243: 56/56 (56); g=256: 11/11 (11)
+      max(stratum, formal) <= dim for all g <= n/4: True; strict at 0 of 257 values of g   [0.2 s]
+   N = 12, span: g=716: 235/235 (79); g=778: 171/171 (79); g=845: 171/171 (79); g=974: 79/79 (79); g=1024: 16/15 (13)  matches the table of note 53: True
+      max(stratum, formal) <= dim for all g <= n/4: True; strict at 20 of 1025 values of g   [3.5 s]
+   N = 12, rand: g=716: 235/235 (79); g=778: 171/171 (79); g=845: 171/171 (79); g=974: 79/79 (79); g=1024: 16/15 (13)
+      max(stratum, formal) <= dim for all g <= n/4: True; strict at 4 of 1025 values of g   [3.6 s]
+   N = 12, random subspace, seed 1: [235, 171, 171, 79, 15]; above max(stratum, formal) at 0 values of g <= n/4
+   N = 12, random subspace, seed 2: [235, 171, 171, 79, 15]; above max(stratum, formal) at 0 values of g <= n/4
+   N = 12, random subspace, seed 3: [235, 171, 171, 79, 16]; above max(stratum, formal) at 2 values of g <= n/4
+   N = 12, random subspace, seed 4: [235, 171, 171, 79, 15]; above max(stratum, formal) at 0 values of g <= n/4
+   N = 12, random subspace, seed 5: [235, 171, 171, 79, 15]; above max(stratum, formal) at 0 values of g <= n/4
+D. formal model emulated (GF(2^607), N = 7): first nonzero power sum of a function of degree exactly r is p_(2^(N-r) - 1): 24/24
+   Proposition 5.3 (a), emulated: N=5, beta in D: rank 31 of 31; N=5, beta = 1 (algebraic): rank 32 of 32; N=5, beta random: rank 32 of 32; N=6, beta in D: rank 63 of 63; N=6, beta = 1 (algebraic): rank 64 of 64; N=6, beta random: rank 64 of 64; N=7, beta in D: rank 127 of 127; N=7, beta = 1 (algebraic): rank 128 of 128; N=7, beta random: rank 128 of 128; N=5 in GF(2^64), beta in GF(16) \ F_2: rank 32 of 32
+E. dim Gamma_inf(n/4), Section 4 of note 53: GF(2^8) N=4 rand: 5 (note: 5, stratum max(N+1, dim RM(2,N) - m) = 5); GF(2^8) N=5 rand: 8 (note: 8, stratum max(N+1, dim RM(2,N) - m) = 8); GF(2^12) N=6 rand: 10 (note: 10, stratum max(N+1, dim RM(2,N) - m) = 10); GF(2^16) N=7 span: 13 (note: 13, stratum max(N+1, dim RM(2,N) - m) = 13); GF(2^16) N=8 span: 21 (note: 21, stratum max(N+1, dim RM(2,N) - m) = 21); GF(2^5) N=5 field: 11 (note: 11, stratum max(N+1, dim RM(2,N) - m) = 11); GF(2^6) N=6 field: 18 (note: 18, stratum max(N+1, dim RM(2,N) - m) = 16); GF(2^7) N=7 field: 29 (note: 29, stratum max(N+1, dim RM(2,N) - m) = 22)
+   Section 5.3, GF(2^64): N=5, g=3: span 17, random 16 (note: 17, 16); N=6, g=3: span 45, random 42 (note: 45, 42); N=6, g=5: span 42, random 42 (note: 42, 42); N=6, g=7: span 24, random 22 (note: 24, 22); N=7, g=3: span 105, random 99 (note: 105, 99); N=7, g=7: span 74, random 64 (note: 74, 64)
+   Section 7 (iii): stratum bound for Gamma_inf(n/4), N = 25, m = 64: 1154 (d = 3); note: 1154
+===== 55_gap.py
+A. odd k <= g with binary weight >= N - 3
+   N = 10: exactly [127, 191] for g in [191, 222] = [3n/16 - 1, 7n/32 - 2] (True); the third one is 223 = 7n/32 - 1
+   N = 25: the note's range g/n in [0.1875, 0.2187) is g in [6291456, 7338354]; 3n/16 - 1 = 6291455 <= 6291456: True; 7338354 <= 7n/32 - 2 = 7340030: True
+   N = 28: the note's range g/n in [0.1875, 0.2187) is g in [50331648, 58706834]; 3n/16 - 1 = 50331647 <= 50331648: True; 58706834 <= 7n/32 - 2 = 58720254: True
+B. GF(2^12), random 10-dimensional subspace: dim X = 12; C(N-1,2) - 2m = 12
+C. GF(2^12), random 10-dimensional subspace: ranks of random elements of X: {6: 1, 8: 2}
+   rank Q = 6, rank q_A = 4, rank(q_A + Q) = 6: weight 416 = 52n/128, Boolean degree 3, p_k = 0 for all k < 223 (g = 211; needs > 211): True; in (3n/8, 7n/16) = (384, 448): True
+   rank Q = 8, rank q_A = 4, rank(q_A + Q) = 8: weight 432 = 54n/128, Boolean degree 3, p_k = 0 for all k < 223 (g = 211; needs > 211): True; in (3n/8, 7n/16) = (384, 448): True
+D. GF(2^12), random 10-dimensional subspace: quarter ranks (4, 4, 6, 8) found after 138 tries: weight 424 (53n/128 = 424), Boolean degree 3, p_k = 0 for all k < 223 (needs > 211): True; the interval [2(A - n/2), 2A(n - A)/n) at n = 1024 is [424, 424.2): inside: True
+B. GF(2^16), span(1, x, .., x^9): dim X = 4; C(N-1,2) - 2m = 4
+C. GF(2^16), span(1, x, .., x^9): ranks of random elements of X: {8: 2}
+   rank Q = 8, rank q_A = 4, rank(q_A + Q) = 6: weight 416 = 52n/128, Boolean degree 3, p_k = 0 for all k < 223 (g = 211; needs > 211): True; in (3n/8, 7n/16) = (384, 448): True
+   rank Q = 8, rank q_A = 4, rank(q_A + Q) = 8: weight 432 = 54n/128, Boolean degree 3, p_k = 0 for all k < 223 (g = 211; needs > 211): True; in (3n/8, 7n/16) = (384, 448): True
+D. GF(2^16), span(1, x, .., x^9): quarter ranks (4, 4, 6, 8) found after 6 tries: weight 424 (53n/128 = 424), Boolean degree 3, p_k = 0 for all k < 223 (needs > 211): True; the interval [2(A - n/2), 2A(n - A)/n) at n = 1024 is [424, 424.2): inside: True
+E. counts at real sizes (m = 64) and the rank lemma
+   v = 4: 35 forms of rank 2; largest linear space of forms of rank <= 2 has dimension 3 (max(v - 1, 3) = 3)
+   v = 5: 155 forms of rank 2; largest linear space of forms of rank <= 2 has dimension 4 (max(v - 1, 3) = 4)
+   N = 25: C(N-1,2) = 276; dim X >= 148; note's count 62 > N - 6 = 19: True (holds for m <= 85); X != 0 as soon as m <= 137; forms vanishing on a subspace of codimension c have dimension > 128 from c = 7 on, so X contains a nonzero form of rank <= 14
+   N = 26: C(N-1,2) = 300; dim X >= 172; note's count 82 > N - 6 = 20: True (holds for m <= 94); X != 0 as soon as m <= 149; forms vanishing on a subspace of codimension c have dimension > 128 from c = 6 on, so X contains a nonzero form of rank <= 12
+   N = 27: C(N-1,2) = 325; dim X >= 197; note's count 103 > N - 6 = 21: True (holds for m <= 104); X != 0 as soon as m <= 162; forms vanishing on a subspace of codimension c have dimension > 128 from c = 6 on, so X contains a nonzero form of rank <= 12
+   N = 28: C(N-1,2) = 351; dim X >= 223; note's count 125 > N - 6 = 22: True (holds for m <= 115); X != 0 as soon as m <= 175; forms vanishing on a subspace of codimension c have dimension > 128 from c = 6 on, so X contains a nonzero form of rank <= 12
+ALL OK
+===== 55_window.py
+n = 2^25: A = 23706207, Delta = 16777221, Delta + 3A = 87895842 (2.61950 n), 4A = 94824828
+   note 53: W < 2.6352 n: W <= 88422639 (2.63520 n), W < 4A: True; s <= 526797 (0.01570 n); A' = A - s = 23179410 (0.69080 n) > n/2: True; A' > Delta: True
+      distances >= 2(A - Delta) - 2s = 12804378 (0.38160 n) > 3n/8: True; 2A'(n - A')/n = 0.42719 n; Johnson with w_1 = 7n/16: 42, n/2: 6, 55n/128: 172, 27n/64: None, 13n/32: None
+   note 54: W < first cut: W <= 88424203 (2.63525 n), W < 4A: True; s <= 528361 (0.01575 n); A' = A - s = 23177846 (0.69075 n) > n/2: True; A' > Delta: True
+      distances >= 2(A - Delta) - 2s = 12801250 (0.38151 n) > 3n/8: True; 2A'(n - A')/n = 0.42723 n; Johnson with w_1 = 7n/16: 42, n/2: 6, 55n/128: 174, 27n/64: None, 13n/32: None
+   r_P constant (s = 0): distances >= 2(A - Delta) = 0.41300 n; 2A(n - A)/n = 0.41472 n; Johnson with w_1 = 7n/16: 19, n/2: 5, 55n/128: 28, 27n/64: 58, 13n/32: None
+      width of the interval [2(A - Delta), 2A(n - A)/n): 0.00172 n
+n = 2^26: A = 47412413, Delta = 33554437, Delta + 3A = 175791676 (2.61950 n), 4A = 189649652
+   note 53: W < 2.6352 n: W <= 176845278 (2.63520 n), W < 4A: True; s <= 1053602 (0.01570 n); A' = A - s = 46358811 (0.69080 n) > n/2: True; A' > Delta: True
+      distances >= 2(A - Delta) - 2s = 25608748 (0.38160 n) > 3n/8: True; 2A'(n - A')/n = 0.42719 n; Johnson with w_1 = 7n/16: 42, n/2: 6, 55n/128: 172, 27n/64: None, 13n/32: None
+   note 54: W < first cut: W <= 176848363 (2.63525 n), W < 4A: True; s <= 1056687 (0.01575 n); A' = A - s = 46355726 (0.69075 n) > n/2: True; A' > Delta: True
+      distances >= 2(A - Delta) - 2s = 25602578 (0.38151 n) > 3n/8: True; 2A'(n - A')/n = 0.42723 n; Johnson with w_1 = 7n/16: 42, n/2: 6, 55n/128: 174, 27n/64: None, 13n/32: None
+   r_P constant (s = 0): distances >= 2(A - Delta) = 0.41300 n; 2A(n - A)/n = 0.41472 n; Johnson with w_1 = 7n/16: 19, n/2: 5, 55n/128: 28, 27n/64: 58, 13n/32: None
+      width of the interval [2(A - Delta), 2A(n - A)/n): 0.00172 n
+n = 2^27: A = 94824825, Delta = 67108869, Delta + 3A = 351583344 (2.61950 n), 4A = 379299300
+   note 53: W < 2.6352 n: W <= 353690556 (2.63520 n), W < 4A: True; s <= 2107212 (0.01570 n); A' = A - s = 92717613 (0.69080 n) > n/2: True; A' > Delta: True
+      distances >= 2(A - Delta) - 2s = 51217488 (0.38160 n) > 3n/8: True; 2A'(n - A')/n = 0.42719 n; Johnson with w_1 = 7n/16: 42, n/2: 6, 55n/128: 172, 27n/64: None, 13n/32: None
+   note 54: W < first cut: W <= 353696683 (2.63525 n), W < 4A: True; s <= 2113339 (0.01575 n); A' = A - s = 92711486 (0.69075 n) > n/2: True; A' > Delta: True
+      distances >= 2(A - Delta) - 2s = 51205234 (0.38151 n) > 3n/8: True; 2A'(n - A')/n = 0.42723 n; Johnson with w_1 = 7n/16: 42, n/2: 6, 55n/128: 174, 27n/64: None, 13n/32: None
+   r_P constant (s = 0): distances >= 2(A - Delta) = 0.41300 n; 2A(n - A)/n = 0.41472 n; Johnson with w_1 = 7n/16: 19, n/2: 5, 55n/128: 28, 27n/64: 58, 13n/32: None
+      width of the interval [2(A - Delta), 2A(n - A)/n): 0.00172 n
+n = 2^28: A = 189649650, Delta = 134217733, Delta + 3A = 703166683 (2.61950 n), 4A = 758598600
+   note 53: W < 2.6352 n: W <= 707381113 (2.63520 n), W < 4A: True; s <= 4214430 (0.01570 n); A' = A - s = 185435220 (0.69080 n) > n/2: True; A' > Delta: True
+      distances >= 2(A - Delta) - 2s = 102434974 (0.38160 n) > 3n/8: True; 2A'(n - A')/n = 0.42719 n; Johnson with w_1 = 7n/16: 42, n/2: 6, 55n/128: 172, 27n/64: None, 13n/32: None
+   note 54: W < first cut: W <= 707393311 (2.63525 n), W < 4A: True; s <= 4226628 (0.01575 n); A' = A - s = 185423022 (0.69075 n) > n/2: True; A' > Delta: True
+      distances >= 2(A - Delta) - 2s = 102410578 (0.38151 n) > 3n/8: True; 2A'(n - A')/n = 0.42723 n; Johnson with w_1 = 7n/16: 42, n/2: 6, 55n/128: 174, 27n/64: None, 13n/32: None
+   r_P constant (s = 0): distances >= 2(A - Delta) = 0.41300 n; 2A(n - A)/n = 0.41472 n; Johnson with w_1 = 7n/16: 19, n/2: 5, 55n/128: 28, 27n/64: 58, 13n/32: None
+      width of the interval [2(A - Delta), 2A(n - A)/n): 0.00172 n
+thresholds of Theorem S, clean bound with w_1 = 7n/16 (remark (ii) of note 53: 24, 21, 20, 19):
+   a = 0.70084: 2(A - Delta) > 3n/8: True; M <= 24
+   a = 0.703: 2(A - Delta) > 3n/8: True; M <= 21
+   a = 0.705: 2(A - Delta) > 3n/8: True; M <= 20
+   a = 0.7065: 2(A - Delta) > 3n/8: True; M <= 19
+toy analogue at n = 32, Delta = 16 (sets of size p, distances >= 2(p - 16), next weight of RM(2, 5)):
+   p = 20: distances >= 8, w_1 = 8, Johnson: None
+   p = 21: distances >= 10, w_1 = 12, Johnson: None
+   p = 22: distances >= 12, w_1 = 12, Johnson: None
+   p = 23: distances >= 14, w_1 = 16, Johnson: 5
+   p = 24: distances >= 16, w_1 = 16, Johnson: 4
+rate 1/16 remark of note 53 (Section 7): sets of size exactly A, w_1 = 3n/8
+   2A(n - A)/n = 0.36216 n < 3n/8: True; bound 29; for sets of size a'n the step needs 2a'(1 - a') < 3/8, that is a' < 1/4: void from agreement n/4 on
+===== 55_pencils (field self test, then the exhaustive search at N = 5)
+selftest 910a2dec89025cc1 beeb8da1658eec67 58887e4430a3b0a3 1
+selftest f893a2eefb32555e 71c18690ee42c90b 153f1ec4a011db6f 1
+selftest 71bb54d8d101b5b9 c34d0bff90150280 e1d13d0f5d5db60f 1
+selftest e099ec6cd7363ca5 85e7bb0f12278575 574f9fa8da563e74 1
+c = 4: F_2-rank of the monomials of degree 2 and 3 in the basis: 15 of 15, 35 of 35 (so equality of e_1, e_2, e_3 in GF(2^64) is the formal identity)
+c = 4 (p = 28): 35960 subsets, 1240 candidates after the filter
+  J = 3 (Delta = 24): classes 155, largest 8, pairs examined 4340, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 155 0 0 0 0; weights 8:4340
+     a largest class (complements C_i as masks): 04080201 02010408 01020804 08040102 10208040 80401020 40802010 20104080
+  J = 4 (Delta = 23): classes 0, largest 0, pairs examined 0, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 0 0 0 0; weights
+  J = 5 (Delta = 22): classes 0, largest 0, pairs examined 0, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 0 0 0 0; weights
+  J = 6 (Delta = 21): classes 0, largest 0, pairs examined 0, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 0 0 0 0; weights
+  J = 7 (Delta = 20): classes 0, largest 0, pairs examined 0, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 0 0 0 0; weights
+c = 5: F_2-rank of the monomials of degree 2 and 3 in the basis: 15 of 15, 35 of 35 (so equality of e_1, e_2, e_3 in GF(2^64) is the formal identity)
+c = 5 (p = 27): 201376 subsets, 34726 candidates after the filter
+  J = 3 (Delta = 23): classes 4960, largest 7, pairs examined 104160, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 4960 0 0 0 0; weights 8:104160
+     a largest class (complements C_i as masks): 86090000 e0900000 80000609 80006090 89060000 80000906 80009060
+  J = 4 (Delta = 22): classes 0, largest 0, pairs examined 0, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 0 0 0 0; weights
+  J = 5 (Delta = 21): classes 0, largest 0, pairs examined 0, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 0 0 0 0; weights
+  J = 6 (Delta = 20): classes 0, largest 0, pairs examined 0, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 0 0 0 0; weights
+  J = 7 (Delta = 19): classes 0, largest 0, pairs examined 0, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 0 0 0 0; weights
+c = 6: F_2-rank of the monomials of degree 2 and 3 in the basis: 15 of 15, 35 of 35 (so equality of e_1, e_2, e_3 in GF(2^64) is the formal identity)
+c = 6 (p = 26): 906192 subsets, 878416 candidates after the filter
+  J = 3 (Delta = 22): classes 292144, largest 35, pairs examined 1558928, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 222208 0 0 69440 0 496 0 0; weights 8:1197840 12:361088
+  J = 4 (Delta = 21): classes 0, largest 0, pairs examined 0, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 0 0 0 0; weights
+  J = 5 (Delta = 20): classes 0, largest 0, pairs examined 0, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 0 0 0 0; weights
+  J = 6 (Delta = 19): classes 0, largest 0, pairs examined 0, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 0 0 0 0; weights
+  J = 7 (Delta = 18): classes 0, largest 0, pairs examined 0, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 0 0 0 0; weights
+c = 7: F_2-rank of the monomials of degree 2 and 3 in the basis: 15 of 15, 35 of 35 (so equality of e_1, e_2, e_3 in GF(2^64) is the formal identity)
+c = 7 (p = 25): 3365856 subsets, 2921508 candidates after the filter
+  J = 3 (Delta = 21): classes 292672, largest 155, pairs examined 15824448, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 277760 14880 32 0; weights 8:8734919 12:7089529
+  J = 4 (Delta = 20): classes 0, largest 0, pairs examined 0, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 0 0 0 0; weights
+  J = 5 (Delta = 19): classes 0, largest 0, pairs examined 0, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 0 0 0 0; weights
+  J = 6 (Delta = 18): classes 0, largest 0, pairs examined 0, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 0 0 0 0; weights
+  J = 7 (Delta = 17): classes 0, largest 0, pairs examined 0, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 0 0 0 0; weights
+c = 8: F_2-rank of the monomials of degree 2 and 3 in the basis: 15 of 15, 35 of 35 (so equality of e_1, e_2, e_3 in GF(2^64) is the formal identity)
+c = 8 (p = 24): 10518300 subsets, 10518300 candidates after the filter
+  J = 3 (Delta = 20): classes 808698, largest 620, pairs examined 119889712, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 416640 0 277760 112840 1457 1; weights 8:45108886 12:66279699 16:8501127
+  J = 4 (Delta = 19): classes 155, largest 4, pairs examined 930, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 155 0 0 0 0 0; weights 16:930
+     a largest class (complements C_i as masks): 05500aa0 0aa00550 5005a00a a00a5005
+  J = 5 (Delta = 18): classes 155, largest 4, pairs examined 930, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 155 0 0 0 0 0; weights 16:930
+     a largest class (complements C_i as masks): 05500aa0 0aa00550 5005a00a a00a5005
+  J = 6 (Delta = 17): classes 155, largest 4, pairs examined 930, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 155 0 0 0 0 0; weights 16:930
+     a largest class (complements C_i as masks): 05500aa0 0aa00550 5005a00a a00a5005
+  J = 7 (Delta = 16): classes 155, largest 4, pairs examined 930, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 155 0 0 0 0 0; weights 16:930
+     a largest class (complements C_i as masks): 05500aa0 0aa00550 5005a00a a00a5005
+c = 9: F_2-rank of the monomials of degree 2 and 3 in the basis: 15 of 15, 35 of 35 (so equality of e_1, e_2, e_3 in GF(2^64) is the formal identity)
+c = 9 (p = 23): 28048800 subsets, 28048800 candidates after the filter
+  J = 3 (Delta = 19): classes 875968, largest 465, pairs examined 638850048, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 583296 277760 14912 0; weights 8:164305254 12:356703963 16:117840831
+  J = 4 (Delta = 18): classes 4960, largest 3, pairs examined 14880, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 4960 0 0 0 0 0 0; weights 16:14880
+     a largest class (complements C_i as masks): 05500ab0 5005a01a a00a5015
+  J = 5 (Delta = 17): classes 4960, largest 3, pairs examined 14880, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 4960 0 0 0 0 0 0; weights 16:14880
+     a largest class (complements C_i as masks): 05500ab0 5005a01a a00a5015
+  J = 6 (Delta = 16): classes 4960, largest 3, pairs examined 14880, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 4960 0 0 0 0 0 0; weights 16:14880
+     a largest class (complements C_i as masks): 05500ab0 5005a01a a00a5015
+  J = 7 (Delta = 15): classes 4960, largest 3, pairs examined 14880, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 4960 0 0 0 0 0 0; weights 16:14880
+     a largest class (complements C_i as masks): 05500ab0 5005a01a a00a5015
+c = 10: F_2-rank of the monomials of degree 2 and 3 in the basis: 15 of 15, 35 of 35 (so equality of e_1, e_2, e_3 in GF(2^64) is the formal identity)
+c = 10 (p = 22): 64512240 subsets, 64512240 candidates after the filter
+  J = 3 (Delta = 18): classes 978608, largest 513, pairs examined 2093735040, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 222208 464256 291648 496; weights 8:388762623 12:1074670987 16:606607316 20:23694114
+  J = 4 (Delta = 17): classes 76880, largest 3, pairs examined 111600, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 59520 17360 0 0 0 0 0 0; weights 16:111600
+     a largest class (complements C_i as masks): 0d500ab0 5805a01a a80a5015
+  J = 5 (Delta = 16): classes 76880, largest 3, pairs examined 111600, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 59520 17360 0 0 0 0 0 0; weights 16:111600
+     a largest class (complements C_i as masks): 0d500ab0 5805a01a a80a5015
+  J = 6 (Delta = 15): classes 76880, largest 3, pairs examined 111600, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 59520 17360 0 0 0 0 0 0; weights 16:111600
+     a largest class (complements C_i as masks): 0d500ab0 5805a01a a80a5015
+  J = 7 (Delta = 14): classes 76880, largest 3, pairs examined 111600, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 59520 17360 0 0 0 0 0 0; weights 16:111600
+     a largest class (complements C_i as masks): 0d500ab0 5805a01a a80a5015
+c = 11: F_2-rank of the monomials of degree 2 and 3 in the basis: 15 of 15, 35 of 35 (so equality of e_1, e_2, e_3 in GF(2^64) is the formal identity)
+c = 11 (p = 21): 129024480 subsets, 129024480 candidates after the filter
+  J = 3 (Delta = 17): classes 1033664, largest 589, pairs examined 5060914176, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 0 0 0 0 0 277760 750944 4960; weights 8:678574672 12:2306697232 16:1892000336 20:183641936
+  J = 4 (Delta = 16): classes 451360, largest 3, pairs examined 520800, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 416640 34720 0 0 0 0 0 0; weights 16:520800
+     a largest class (complements C_i as masks): 16949086 19646089 700d09e0
+  J = 5 (Delta = 15): classes 451360, largest 3, pairs examined 520800, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 416640 34720 0 0 0 0 0 0; weights 16:520800
+     a largest class (complements C_i as masks): 16949086 19646089 700d09e0
+  J = 6 (Delta = 14): classes 451360, largest 3, pairs examined 520800, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 416640 34720 0 0 0 0 0 0; weights 16:520800
+     a largest class (complements C_i as masks): 16949086 19646089 700d09e0
+  J = 7 (Delta = 13): classes 451360, largest 3, pairs examined 520800, degree violations 0, not confirmed on the second basis 0; sizes [2,3,4,5-8,9-16,17-64,65-512,>512] = 416640 34720 0 0 0 0 0 0; weights 16:520800
+     a largest class (complements C_i as masks): 16949086 19646089 700d09e0

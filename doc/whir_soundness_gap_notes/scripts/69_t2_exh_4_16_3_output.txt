@@ -1,0 +1,53 @@
+v=2 r=2 k=4 n=16 members=3 mode=canon part=0/4 patterns=6592080  Lk=8
+code U: feasible=8 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=7  deficiency_hist: 0:6592080
+  max-weight example: . . . . . . . . . . . 01 02 12 012 012
+  max-balanced example: . . . . . . . . . . . . . 01 012 012
+code 2: feasible=18 feasible_with_weight>=Lk=10 max_weight=8 max_balanced=8  deficiency_hist: 0:6592070 1:10
+  max-weight example: . . . . . . . . . 012 01 01 02 02 12 12
+  max-balanced example: . . . . . . . . . 012 01 01 02 02 12 12
+code 1: feasible=18 feasible_with_weight>=Lk=10 max_weight=8 max_balanced=8  deficiency_hist: 0:6592070 1:10
+  max-weight example: . . . . . . . . . 012 01 01 02 02 12 12
+  max-balanced example: . . . . . . . . . 012 01 01 02 02 12 12
+code R: feasible=8 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=7  deficiency_hist: 0:6592080
+  max-weight example: . . . . . . . . . . . 01 02 12 012 012
+  max-balanced example: . . . . . . . . . . . . . 01 012 012
+v=2 r=2 k=4 n=16 members=3 mode=canon part=1/4 patterns=6590265  Lk=8
+code U: feasible=6 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=7  deficiency_hist: 0:6590265
+  max-weight example: . . . . . . . 01 . . . . 02 12 012 012
+  max-balanced example: . . . . . . . 01 . . . . . . 012 012
+code 2: feasible=13 feasible_with_weight>=Lk=7 max_weight=8 max_balanced=8  deficiency_hist: 0:6590258 1:7
+  max-weight example: . . . . . . 01 01 . . . 012 02 02 12 12
+  max-balanced example: . . . . . . 01 01 . . . 012 02 02 12 12
+code 1: feasible=13 feasible_with_weight>=Lk=7 max_weight=8 max_balanced=8  deficiency_hist: 0:6590258 1:7
+  max-weight example: . . . . . . 01 01 . . . 012 02 02 12 12
+  max-balanced example: . . . . . . 01 01 . . . 012 02 02 12 12
+code R: feasible=6 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=7  deficiency_hist: 0:6590265
+  max-weight example: . . . . . . . 01 . . . . 02 12 012 012
+  max-balanced example: . . . . . . . 01 . . . . . . 012 012
+v=2 r=2 k=4 n=16 members=3 mode=canon part=2/4 patterns=6588450  Lk=8
+code U: feasible=6 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=7  deficiency_hist: 0:6588450
+  max-weight example: . . . . . . . 02 . . . . 01 12 012 012
+  max-balanced example: . . . . . . . 02 . . . . . . 012 012
+code 2: feasible=10 feasible_with_weight>=Lk=4 max_weight=8 max_balanced=8  deficiency_hist: 0:6588446 1:4
+  max-weight example: . . . . . 012 12 12 . . . . 01 01 02 02
+  max-balanced example: . . . . . 012 12 12 . . . . 01 01 02 02
+code 1: feasible=10 feasible_with_weight>=Lk=4 max_weight=8 max_balanced=8  deficiency_hist: 0:6588446 1:4
+  max-weight example: . . . . . 012 12 12 . . . . 01 01 02 02
+  max-balanced example: . . . . . 012 12 12 . . . . 01 01 02 02
+code R: feasible=6 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=7  deficiency_hist: 0:6588450
+  max-weight example: . . . . . . . 02 . . . . 01 12 012 012
+  max-balanced example: . . . . . . . 02 . . . . . . 012 012
+v=2 r=2 k=4 n=16 members=3 mode=canon part=3/4 patterns=6586635  Lk=8
+code U: feasible=6 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=7  deficiency_hist: 0:6586635
+  max-weight example: . . . . . . . 12 . . . . 01 02 012 012
+  max-balanced example: . . . . . . . 12 . . . . . . 012 012
+code 2: feasible=12 feasible_with_weight>=Lk=6 max_weight=8 max_balanced=8  deficiency_hist: 0:6586629 1:6
+  max-weight example: . . . . . 012 01 01 . . . . 02 02 12 12
+  max-balanced example: . . . . . 012 01 01 . . . . 02 02 12 12
+code 1: feasible=12 feasible_with_weight>=Lk=6 max_weight=8 max_balanced=8  deficiency_hist: 0:6586629 1:6
+  max-weight example: . . . . . 012 01 01 . . . . 02 02 12 12
+  max-balanced example: . . . . . 012 01 01 . . . . 02 02 12 12
+code R: feasible=6 feasible_with_weight>=Lk=0 max_weight=7 max_balanced=7  deficiency_hist: 0:6586635
+  max-weight example: . . . . . . . 12 . . . . 01 02 012 012
+  max-balanced example: . . . . . . . 12 . . . . . . 012 012
+      27 69_tmp/def_4_16_3.txt

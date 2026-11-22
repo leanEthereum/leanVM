@@ -1,0 +1,4 @@
+pattern 3 3 1 1 2 2 0 4 3 3 4 0 1 1 4 0:  T2: weight 16, rank 16, solution space of dimension 0, three distinct codewords: no;  T1: weight 16, rank 15, solution space of dimension 1, three distinct codewords: yes;
+pattern 0 4 1 1 3 3 0 4 4 0 1 1 2 2 2 2:  T2: weight 16, rank 16, solution space of dimension 0, three distinct codewords: no;  T1: weight 16, rank 15, solution space of dimension 1, three distinct codewords: yes;
+pattern 2 2 4 4 0 0 0 4 0 4 4 0 3 3 1 1:  T2: weight 16, rank 16, solution space of dimension 0, three distinct codewords: no;  T1: weight 16, rank 16, solution space of dimension 0, three distinct codewords: no;
+pattern 2 2 2 2 0 0 0 0 4 0 4 0 4 0 0 0 3 3 3 3 1 1 1 1 0 4 4 4 4 4 4 4:  T2: weight 32, rank 31, solution space of dimension 1, three distinct codewords: yes;  T1: weight 32, rank 31, solution space of dimension 1, three distinct codewords: yes;

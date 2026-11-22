@@ -1,0 +1,4 @@
+rate 2^-3: threshold with Q_t exact 0.3276; with (t-1)k + k/2 for t >= 4: 0.3297; with (t-1)k + k for t >= 4: 0.3297; Johnson 0.3536
+rate 2^-4: threshold with Q_t exact 0.2051; with (t-1)k + k/2 for t >= 4: 0.2115; with (t-1)k + k for t >= 4: 0.2169; Johnson 0.2500
+rate 2^-5: threshold with Q_t exact 0.1237; with (t-1)k + k/2 for t >= 4: 0.1263; with (t-1)k + k for t >= 4: 0.1286; Johnson 0.1768
+rate 2^-7: threshold with Q_t exact 0.0416; with (t-1)k + k/2 for t >= 4: 0.0425; with (t-1)k + k for t >= 4: 0.0431; Johnson 0.0884

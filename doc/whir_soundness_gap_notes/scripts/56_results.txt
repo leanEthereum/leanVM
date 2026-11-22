@@ -1,0 +1,888 @@
+#### 56_witt.py
+== D. Explicit pair from 56_acc32: n = 32, GF(2^6) = F_2[x]/(x^6 + x + 1), D = span(1, x, .., x^4) ==
+   S  = [1, 5, 6, 15, 18, 20, 23, 24, 26, 31]
+   S' = [0, 4, 7, 14, 19, 21, 22, 25, 27, 30]   (points as bit masks of the coordinates)
+   |S| = |S'| = 10, |S meet S'| = 0, deg(Z_S - Z_S') = 0, Witt order = 10, hyperplane counts congruent modulo 4 and not modulo 8
+   Witt data: v2(p~_1) = 4, v2(p~_3) = 2, v2(p~_5) = 1, v2(p~_7) = 1, v2(p~_9) = 2
+== A. Theorem 1: ord_X(Lambda_c - 1) = min_k k 2^v2(p~_k(c)) ==
+   n=16 in GF(2^4), 5-sets sharing e_1..e_4: 32 pairs checked, deg(Z_S - Z_S') = T - (Witt order) in all
+   n=16 in GF(2^4), 6-sets sharing e_1..e_4: 272 pairs checked, deg(Z_S - Z_S') = T - (Witt order) in all
+   n=16 in GF(2^4), 7-sets sharing e_1..e_4: 720 pairs checked, deg(Z_S - Z_S') = T - (Witt order) in all
+   n=16 in GF(2^5), 5-sets sharing e_1..e_4: 0 pairs checked, deg(Z_S - Z_S') = T - (Witt order) in all
+   n=16 in GF(2^5), 6-sets sharing e_1..e_4: 0 pairs checked, deg(Z_S - Z_S') = T - (Witt order) in all
+   n=16 in GF(2^5), 7-sets sharing e_1..e_4: 0 pairs checked, deg(Z_S - Z_S') = T - (Witt order) in all
+   n=16 in GF(2^6), 5-sets sharing e_1..e_4: 0 pairs checked, deg(Z_S - Z_S') = T - (Witt order) in all
+   n=16 in GF(2^6), 6-sets sharing e_1..e_4: 0 pairs checked, deg(Z_S - Z_S') = T - (Witt order) in all
+   n=16 in GF(2^6), 7-sets sharing e_1..e_4: 0 pairs checked, deg(Z_S - Z_S') = T - (Witt order) in all
+   6324 vectors, no failure; orders seen: 1:2060, 2:841, 3:19, 4:724, 6:14, 8:708, 12:12, 14:1, 16:315, 24:6
+== B. Lemma 2: digit degrees of x -> [s(x)]^k and the leading carry coefficients ==
+   GF(2^7), N=6, power basis, odd k < 40: 1260 coefficients, valuation >= (|A| - wt k)^+ in all, equal in 1241; leading coefficient formula checked 801 times
+   GF(2^12), N=6, random basis, odd k < 40: 1260 coefficients, valuation >= (|A| - wt k)^+ in all, equal in 1260; leading coefficient formula checked 801 times
+   GF(2^16), N=7, power basis, odd k < 40: 2540 coefficients, valuation >= (|A| - wt k)^+ in all, equal in 2540; leading coefficient formula checked 1868 times
+   GF(2^16), N=7, random basis, odd k < 40: 2540 coefficients, valuation >= (|A| - wt k)^+ in all, equal in 2536; leading coefficient formula checked 1868 times
+== C. Theorem 3: Walsh level r, valuations, first block, order of the image ==
+   GF(2^8), N=5, power: v2(p~_k(c)) >= r - wt(k) in 3200 cases; coefficients of X^j, j < 2^r, equal to the first-block formula in 650 cases
+   GF(2^11), N=6, random: v2(p~_k(c)) >= r - wt(k) in 4000 cases; coefficients of X^j, j < 2^r, equal to the first-block formula in 1425 cases
+   GF(2^13), N=6, power: v2(p~_k(c)) >= r - wt(k) in 4000 cases; coefficients of X^j, j < 2^r, equal to the first-block formula in 1425 cases
+   log2 of the order of the image of L^(r) in (1 + X K[[X]]) / (1 + X^(g+1)):
+   field, domain          r   g   image   m*C_g(r)   formal index   m*g
+   GF(2^5), N=5 power    2   3      10         10             15     15   = min
+   GF(2^5), N=5 power    2   5      20         20             40     25   = min
+   GF(2^5), N=5 power    2   6      25         25             40     30   = min
+   GF(2^5), N=5 power    3   5       5          5             25     25   = min
+   GF(2^5), N=5 power    3   6      10         10             25     30   = min
+   GF(2^5), N=5 power    3   9      20         20             55     45   = min
+   GF(2^5), N=5 power    3  10      25         25             55     50   = min
+   GF(2^5), N=5 power    3  12      35         35             55     60   = min
+   GF(2^5), N=5 power    4   9       5          5             30     45   = min
+   GF(2^5), N=5 power    4  12      10         10             30     60   = min
+   GF(2^5), N=5 power    4  16      25         25             61     80   = min
+   GF(2^5), N=5 power    4  17      25         25             61     85   = min
+   GF(2^5), N=5 power    4  20      30         30             61    100   = min
+   GF(2^5), N=5 power    5  16       5          5             31     80   = min
+   GF(2^5), N=5 power    5  17       5          5             31     85   = min
+   GF(2^5), N=5 power    5  24      10         10             31    120   = min
+   GF(2^6), N=5 power    2   3      12         12             15     18   = min
+   GF(2^6), N=5 power    2   5      21         24             40     30
+   GF(2^6), N=5 power    2   6      27         30             40     36
+   GF(2^6), N=5 power    3   5       6          6             25     30   = min
+   GF(2^6), N=5 power    3   6      12         12             25     36   = min
+   GF(2^6), N=5 power    3   9      24         24             55     54   = min
+   GF(2^6), N=5 power    3  10      27         30             55     60
+   GF(2^6), N=5 power    3  12      37         42             55     72
+   GF(2^6), N=5 power    4   9       6          6             30     54   = min
+   GF(2^6), N=5 power    4  12      12         12             30     72   = min
+   GF(2^6), N=5 power    4  16      29         30             61     96
+   GF(2^6), N=5 power    4  17      29         30             61    102
+   GF(2^6), N=5 power    4  20      32         36             61    120
+   GF(2^6), N=5 power    5  16       6          6             31     96   = min
+   GF(2^6), N=5 power    5  17       6          6             31    102   = min
+   GF(2^6), N=5 power    5  24      12         12             31    144   = min
+   GF(2^7), N=5 random   2   3      14         14             15     21   = min
+   GF(2^7), N=5 random   2   5      22         28             40     35
+   GF(2^7), N=5 random   2   6      29         35             40     42
+   GF(2^7), N=5 random   3   5       7          7             25     35   = min
+   GF(2^7), N=5 random   3   6      14         14             25     42   = min
+   GF(2^7), N=5 random   3   9      28         28             55     63   = min
+   GF(2^7), N=5 random   3  10      32         35             55     70
+   GF(2^7), N=5 random   3  12      39         49             55     84
+   GF(2^7), N=5 random   4   9       7          7             30     63   = min
+   GF(2^7), N=5 random   4  12      14         14             30     84   = min
+   GF(2^7), N=5 random   4  16      33         35             61    112
+   GF(2^7), N=5 random   4  17      33         35             61    119
+   GF(2^7), N=5 random   4  20      37         42             61    140
+   GF(2^7), N=5 random   5  16       7          7             31    112   = min
+   GF(2^7), N=5 random   5  17       7          7             31    119   = min
+   GF(2^7), N=5 random   5  24      14         14             31    168   = min
+   GF(2^6), N=6 power    2   3      12         12             21     18   = min
+   GF(2^6), N=6 power    2   5      24         24             62     30   = min
+   GF(2^6), N=6 power    2   6      30         30             62     36   = min
+   GF(2^6), N=6 power    3   5       6          6             41     30   = min
+   GF(2^6), N=6 power    3   6      12         12             41     36   = min
+   GF(2^6), N=6 power    3   9      24         24             97     54   = min
+   GF(2^6), N=6 power    3  10      30         30             97     60   = min
+   GF(2^6), N=6 power    3  12      42         42             97     72   = min
+   GF(2^6), N=6 power    4   9       6          6             56     54   = min
+   GF(2^6), N=6 power    4  12      12         12             56     72   = min
+   GF(2^6), N=6 power    4  17      30         30            118    102   = min
+   GF(2^6), N=6 power    4  20      36         36            118    120   = min
+   GF(2^6), N=6 power    4  24      54         54            118    144   = min
+   GF(2^6), N=6 power    5  17       6          6             62    102   = min
+   GF(2^6), N=6 power    5  24      12         12             62    144   = min
+   GF(2^6), N=6 power    5  32      36         36            125    192   = min
+   GF(2^6), N=6 power    5  33      36         36            125    198   = min
+   GF(2^6), N=6 power    5  40      42         42            125    240   = min
+   GF(2^6), N=6 power    6  32       6          6             63    192   = min
+   GF(2^6), N=6 power    6  33       6          6             63    198   = min
+   GF(2^7), N=6 power    2   3      14         14             21     21   = min
+   GF(2^7), N=6 power    2   5      28         28             62     35   = min
+   GF(2^7), N=6 power    2   6      35         35             62     42   = min
+   GF(2^7), N=6 power    3   5       7          7             41     35   = min
+   GF(2^7), N=6 power    3   6      14         14             41     42   = min
+   GF(2^7), N=6 power    3   9      28         28             97     63   = min
+   GF(2^7), N=6 power    3  10      35         35             97     70   = min
+   GF(2^7), N=6 power    3  12      49         49             97     84   = min
+   GF(2^7), N=6 power    4   9       7          7             56     63   = min
+   GF(2^7), N=6 power    4  12      14         14             56     84   = min
+   GF(2^7), N=6 power    4  17      35         35            118    119   = min
+   GF(2^7), N=6 power    4  20      42         42            118    140   = min
+   GF(2^7), N=6 power    4  24      63         63            118    168   = min
+   GF(2^7), N=6 power    5  17       7          7             62    119   = min
+   GF(2^7), N=6 power    5  24      14         14             62    168   = min
+   GF(2^7), N=6 power    5  32      41         42            125    224
+   GF(2^7), N=6 power    5  33      41         42            125    231
+   GF(2^7), N=6 power    5  40      48         49            125    280
+   GF(2^7), N=6 power    6  32       7          7             63    224   = min
+   GF(2^7), N=6 power    6  33       7          7             63    231   = min
+   GF(2^8), N=6 random   2   3      16         16             21     24   = min
+   GF(2^8), N=6 random   2   5      29         32             62     40
+   GF(2^8), N=6 random   2   6      37         40             62     48
+   GF(2^8), N=6 random   3   5       8          8             41     40   = min
+   GF(2^8), N=6 random   3   6      16         16             41     48   = min
+   GF(2^8), N=6 random   3   9      32         32             97     72   = min
+   GF(2^8), N=6 random   3  10      40         40             97     80   = min
+   GF(2^8), N=6 random   3  12      56         56             97     96   = min
+   GF(2^8), N=6 random   4   9       8          8             56     72   = min
+   GF(2^8), N=6 random   4  12      16         16             56     96   = min
+   GF(2^8), N=6 random   4  17      40         40            118    136   = min
+   GF(2^8), N=6 random   4  20      48         48            118    160   = min
+   GF(2^8), N=6 random   4  24      71         72            118    192
+   GF(2^8), N=6 random   5  17       8          8             62    136   = min
+   GF(2^8), N=6 random   5  24      16         16             62    192   = min
+   GF(2^8), N=6 random   5  32      46         48            125    256
+   GF(2^8), N=6 random   5  33      46         48            125    264
+   GF(2^8), N=6 random   5  40      54         56            125    320
+   GF(2^8), N=6 random   6  32       8          8             63    256   = min
+   GF(2^8), N=6 random   6  33       8          8             63    264   = min
+   GF(2^7), N=7 power    2   3      14         14             28     21   = min
+   GF(2^7), N=7 power    2   5      28         28             91     35   = min
+   GF(2^7), N=7 power    2   6      35         35             91     42   = min
+   GF(2^7), N=7 power    3   5       7          7             63     35   = min
+   GF(2^7), N=7 power    3   6      14         14             63     42   = min
+   GF(2^7), N=7 power    3   9      28         28            161     63   = min
+   GF(2^7), N=7 power    3  10      35         35            161     70   = min
+   GF(2^7), N=7 power    3  12      49         49            161     84   = min
+   GF(2^7), N=7 power    4   9       7          7             98     63   = min
+   GF(2^7), N=7 power    4  12      14         14             98     84   = min
+   GF(2^7), N=7 power    4  17      35         35            217    119   = min
+   GF(2^7), N=7 power    4  20      42         42            217    140   = min
+   GF(2^7), N=7 power    4  24      63         63            217    168   = min
+   GF(2^7), N=7 power    5  17       7          7            119    119   = min
+   GF(2^7), N=7 power    5  24      14         14            119    168   = min
+   GF(2^7), N=7 power    5  33      42         42            245    231   = min
+   GF(2^7), N=7 power    5  40      49         49            245    280   = min
+   GF(2^7), N=7 power    6  33       7          7            126    231   = min
+   GF(2^9), N=7 random   2   3      18         18             28     27   = min
+   GF(2^9), N=7 random   2   5      36         36             91     45   = min
+   GF(2^9), N=7 random   2   6      45         45             91     54   = min
+   GF(2^9), N=7 random   3   5       9          9             63     45   = min
+   GF(2^9), N=7 random   3   6      18         18             63     54   = min
+   GF(2^9), N=7 random   3   9      36         36            161     81   = min
+   GF(2^9), N=7 random   3  10      45         45            161     90   = min
+   GF(2^9), N=7 random   3  12      63         63            161    108   = min
+   GF(2^9), N=7 random   4   9       9          9             98     81   = min
+   GF(2^9), N=7 random   4  12      18         18             98    108   = min
+   GF(2^9), N=7 random   4  17      45         45            217    153   = min
+   GF(2^9), N=7 random   4  20      54         54            217    180   = min
+   GF(2^9), N=7 random   4  24      81         81            217    216   = min
+   GF(2^9), N=7 random   5  17       9          9            119    153   = min
+   GF(2^9), N=7 random   5  24      18         18            119    216   = min
+   GF(2^9), N=7 random   5  33      54         54            245    297   = min
+   GF(2^9), N=7 random   5  40      63         63            245    360   = min
+   GF(2^9), N=7 random   6  33       9          9            126    297   = min
+#### 56_strata.py
+== 1. Walsh levels: C_g(r) = #{j <= g : wt(j-1) >= r-1}, field elements needed for a non-formal pair
+      whose difference has all hyperplane counts divisible by 2^(r-1) and not all by 2^r ==
+
+ rate 1/2, N = 25:  g = (a - rho) n
+   c = N - r | a = 0.6600 (g/n = 0.1600) | a = 0.7008 (g/n = 0.2008) | a = 0.7071 (g/n = 0.2071) | log2 #candidates <=
+           1 |            0 =           0 bits |            0 =           0 bits |            0 =           0 bits |             74   margin at the lower end:            -74 bits
+           2 |            1 =          64 bits |            2 =         128 bits |            2 =         128 bits |            295   margin at the lower end:           -231 bits
+           3 |           24 =        1536 bits |           45 =        2880 bits |           46 =        2944 bits |           1176   margin at the lower end:            360 bits
+           4 |          275 =       17600 bits |          488 =       31232 bits |          507 =       32448 bits |           4701   margin at the lower end:          12899 bits
+           5 |         2005 =      128320 bits |         3395 =      217280 bits |         3565 =      228160 bits |          18802   margin at the lower end:         109518 bits
+           6 |        10464 =      669696 bits |        17014 =     1088896 bits |        17970 =     1150080 bits |          75204   margin at the lower end:         594492 bits
+           7 |        41702 =     2668928 bits |        65402 =     4185728 bits |        69209 =     4429376 bits |         300811   margin at the lower end:        2368117 bits
+           8 |       132227 =     8462528 bits |       200614 =    12839296 bits |       212094 =    13574016 bits |        1203242   margin at the lower end:        7259286 bits
+           9 |       343275 =    21969600 bits |       504826 =    32308864 bits |       532239 =    34063296 bits |        4812965   margin at the lower end:       17156635 bits
+          10 |       745716 =    47725824 bits |      1064653 =    68137792 bits |      1118274 =    71569536 bits |       19251856   margin at the lower end:       28473968 bits
+          11 |      1380271 =    88337344 bits |      1916306 =   122643584 bits |      2004713 =   128301632 bits |       53182516   margin at the lower end:       35154828 bits
+          12 |      2213303 =   141651392 bits |      2994814 =   191668096 bits |      3120954 =   199741056 bits |       53182516   margin at the lower end:       88468876 bits
+          16 |      5018248 =   321167872 bits |      6359786 =   407026304 bits |      6566434 =   420251776 bits |       53182516   margin at the lower end:      267985356 bits
+          20 |      5366686 =   343467904 bits |      6737026 =   431169664 bits |      6947303 =   444627392 bits |       53182516   margin at the lower end:      290285388 bits
+          23 |      5368708 =   343597312 bits |      6739071 =   431300544 bits |      6949349 =   444758336 bits |       53182516   margin at the lower end:      290414796 bits
+          24 |      5368709 =   343597376 bits |      6739072 =   431300608 bits |      6949350 =   444758400 bits |       53182516   margin at the lower end:      290414860 bits
+   smallest relative margin over c >= 3: c = 3, 64 C exceeds the candidate bound by 23.4% (360 bits)
+   all sets of size 0.66 n: log2 #sets = 31031766; min over r of [64 C_g(r) + formal bits of level r] = 138328814 = 4.12 n
+
+ rate 1/4, N = 26:  g = (a - rho) n
+   c = N - r | a = 0.4400 (g/n = 0.1900) | a = 0.4881 (g/n = 0.2381) | a = 0.5000 (g/n = 0.2500) | log2 #candidates <=
+           1 |            0 =           0 bits |            0 =           0 bits |            1 =          64 bits |            113   margin at the lower end:           -113 bits
+           2 |            2 =         128 bits |            4 =         256 bits |           25 =        1600 bits |            449   margin at the lower end:           -321 bits
+           3 |           47 =        3008 bits |           90 =        5760 bits |          301 =       19264 bits |           1793   margin at the lower end:           1215 bits
+           4 |          531 =       33984 bits |          978 =       62592 bits |         2325 =      148800 bits |           7169   margin at the lower end:          26815 bits
+           5 |         3842 =      245888 bits |         6822 =      436608 bits |        12951 =      828864 bits |          28673   margin at the lower end:         217215 bits
+           6 |        20013 =     1280832 bits |        34286 =     2194304 bits |        55455 =     3549120 bits |         114689   margin at the lower end:        1166143 bits
+           7 |        80014 =     5120896 bits |       132248 =     8463872 bits |       190051 =    12163264 bits |         458753   margin at the lower end:        4662143 bits
+           8 |       255725 =    16366400 bits |       407629 =    26088256 bits |       536155 =    34313920 bits |        1835009   margin at the lower end:       14531391 bits
+           9 |       672211 =    43021504 bits |      1033237 =    66127168 bits |      1271626 =    81384064 bits |        7340033   margin at the lower end:       35681471 bits
+          10 |      1485134 =    95048576 bits |      2202092 =   140933888 bits |      2579130 =   165064320 bits |       29360129   margin at the lower end:       65688447 bits
+          11 |      2807336 =   179669504 bits |      4020461 =   257309504 bits |      4540386 =   290584704 bits |      106365033   margin at the lower end:       73304471 bits
+          12 |      4613600 =   295270400 bits |      6396236 =   409359104 bits |      7036530 =   450337920 bits |      106365033   margin at the lower end:      188905367 bits
+          16 |     11561598 =   739942272 bits |     14709746 =   941423744 bits |     15505590 =   992357760 bits |      106365033   margin at the lower end:      633577239 bits
+          20 |     12737816 =   815220224 bits |     15966273 =  1021841472 bits |     16764265 =  1072912960 bits |      106365033   margin at the lower end:      708855191 bits
+          24 |     12750683 =   816043712 bits |     15979223 =  1022670272 bits |     16777215 =  1073741760 bits |      106365033   margin at the lower end:      709678679 bits
+          25 |     12750684 =   816043776 bits |     15979224 =  1022670336 bits |     16777216 =  1073741824 bits |      106365033   margin at the lower end:      709678743 bits
+   smallest relative margin over c >= 3: c = 3, 64 C exceeds the candidate bound by 40.4% (1215 bits)
+   all sets of size 0.44 n: log2 #sets = 66410094; min over r of [64 C_g(r) + formal bits of level r] = 305958232 = 4.56 n
+
+ rate 1/8, N = 27:  g = (a - rho) n
+   c = N - r | a = 0.3100 (g/n = 0.1850) | a = 0.3401 (g/n = 0.2151) | a = 0.3536 (g/n = 0.2286) | log2 #candidates <=
+           1 |            0 =           0 bits |            0 =           0 bits |            0 =           0 bits |             83   margin at the lower end:            -83 bits
+           2 |            1 =          64 bits |            2 =         128 bits |            3 =         192 bits |            329   margin at the lower end:           -265 bits
+           3 |           29 =        1856 bits |           52 =        3328 bits |           73 =        4672 bits |           1313   margin at the lower end:            543 bits
+           4 |          388 =       24832 bits |          641 =       41024 bits |          854 =       54656 bits |           5251   margin at the lower end:          19581 bits
+           5 |         3234 =      206976 bits |         5007 =      320448 bits |         6397 =      409408 bits |          20999   margin at the lower end:         185977 bits
+           6 |        19017 =     1217088 bits |        27927 =     1787328 bits |        34486 =     2207104 bits |          83994   margin at the lower end:        1133094 bits
+           7 |        84496 =     5407744 bits |       118793 =     7602752 bits |       142634 =     9128576 bits |         335973   margin at the lower end:        5071771 bits
+           8 |       296392 =    18969088 bits |       401894 =    25721216 bits |       471354 =    30166656 bits |        1343889   margin at the lower end:       17625199 bits
+           9 |       846535 =    54178240 bits |      1113710 =    71277440 bits |      1280488 =    81951232 bits |        5375551   margin at the lower end:       48802689 bits
+          10 |      2015415 =   128986560 bits |      2584978 =   165438592 bits |      2922139 =   187016896 bits |       21502202   margin at the lower end:      107484358 bits
+          11 |      4076937 =   260923968 bits |      5117661 =   327530304 bits |      5702117 =   364935488 bits |       86008804   margin at the lower end:      174915164 bits
+          12 |      7125845 =   456054080 bits |      8782228 =   562062592 bits |      9666053 =   618627392 bits |      212730066   margin at the lower end:      243324014 bits
+          16 |     21371304 =  1367763456 bits |     25130749 =  1608367936 bits |     26861170 =  1719114880 bits |      212730066   margin at the lower end:     1155033390 bits
+          20 |     24763921 =  1584890944 bits |     28800202 =  1843212928 bits |     30607533 =  1958882112 bits |      212730066   margin at the lower end:     1372160878 bits
+          24 |     24830253 =  1589136192 bits |     28868328 =  1847572992 bits |     30675890 =  1963256960 bits |      212730066   margin at the lower end:     1376406126 bits
+          25 |     24830278 =  1589137792 bits |     28868353 =  1847574592 bits |     30675915 =  1963258560 bits |      212730066   margin at the lower end:     1376407726 bits
+          26 |     24830279 =  1589137856 bits |     28868354 =  1847574656 bits |     30675916 =  1963258624 bits |      212730066   margin at the lower end:     1376407790 bits
+   smallest relative margin over c >= 3: c = 3, 64 C exceeds the candidate bound by 29.2% (543 bits)
+   all sets of size 0.31 n: log2 #sets = 119879712; min over r of [64 C_g(r) + formal bits of level r] = 612256199 = 4.56 n
+
+ rate 1/16, N = 28:  g = (a - rho) n
+   c = N - r | a = 0.2200 (g/n = 0.1575) | a = 0.2375 (g/n = 0.1750) | a = 0.2500 (g/n = 0.1875) | log2 #candidates <=
+           1 |            0 =           0 bits |            0 =           0 bits |            0 =           0 bits |             61   margin at the lower end:            -61 bits
+           2 |            1 =          64 bits |            1 =          64 bits |            2 =         128 bits |            241   margin at the lower end:           -177 bits
+           3 |           27 =        1728 bits |           28 =        1792 bits |           51 =        3264 bits |            961   margin at the lower end:            767 bits
+           4 |          350 =       22400 bits |          373 =       23872 bits |          627 =       40128 bits |           3841   margin at the lower end:          18559 bits
+           5 |         2903 =      185792 bits |         3159 =      202176 bits |         4951 =      316864 bits |          15361   margin at the lower end:         170431 bits
+           6 |        17324 =     1108736 bits |        19157 =     1226048 bits |        28227 =     1806528 bits |          61441   margin at the lower end:        1047295 bits
+           7 |        79310 =     5075840 bits |        88782 =     5682048 bits |       123861 =     7927104 bits |         245761   margin at the lower end:        4830079 bits
+           8 |       290078 =    18564992 bits |       327667 =    20970688 bits |       435557 =    27875648 bits |         983041   margin at the lower end:       17581951 bits
+           9 |       871894 =    55801216 bits |       990994 =    63423616 bits |      1262361 =    80791104 bits |        3932161   margin at the lower end:       51869055 bits
+          10 |      2199562 =   140771968 bits |      2509077 =   160580928 bits |      3079407 =   197082048 bits |       15728641   margin at the lower end:      125043327 bits
+          11 |      4736475 =   303134400 bits |      5409766 =   346225024 bits |      6429886 =   411512704 bits |       62914561   margin at the lower end:      240219839 bits
+          12 |      8832856 =   565302784 bits |     10079744 =   645103616 bits |     11659902 =   746233728 bits |      251658241   margin at the lower end:      313644543 bits
+          16 |     33323727 =  2132718528 bits |     37420487 =  2394911168 bits |     40633002 =  2600512128 bits |      425460132   margin at the lower end:     1707258396 bits
+          20 |     41983689 =  2686956096 bits |     46669783 =  2986866112 bits |     50030687 =  3201963968 bits |      425460132   margin at the lower end:     2261495964 bits
+          24 |     42278233 =  2705806912 bits |     46969948 =  3006076672 bits |     50331297 =  3221203008 bits |      425460132   margin at the lower end:     2280346780 bits
+          26 |     42278583 =  2705829312 bits |     46970298 =  3006099072 bits |     50331647 =  3221225408 bits |      425460132   margin at the lower end:     2280369180 bits
+          27 |     42278584 =  2705829376 bits |     46970299 =  3006099136 bits |     50331648 =  3221225472 bits |      425460132   margin at the lower end:     2280369244 bits
+   smallest relative margin over c >= 3: c = 3, 64 C exceeds the candidate bound by 44.4% (767 bits)
+   all sets of size 0.22 n: log2 #sets = 204055910; min over r of [64 C_g(r) + formal bits of level r] = 1152084759 = 4.29 n
+
+== 2. Boolean degree d: R_d(g) by 2-adic digit (number of field elements), against dim RM(d, N) ==
+
+ rate 1/2, N = 25, a = 0.70084 (Theorem S threshold), g = 6739072 = 0.2008 n
+   d | dim RM(d,N) | digit 0 | digit 1 | digit 2 | digit 3 | digit 4 | all digits | 64 * all / dim | digit 0 alone leaves dim >=
+   1 |          26 |       0 |       0 |       0 |       0 |       0 |          0 |            0.0 | 26
+   2 |         326 |       0 |       2 |      39 |     328 |    1560 |      49372 |         9692.7 | 326
+   3 |        2626 |       2 |     404 |    9337 |   55974 |  112493 |     379466 |         9248.2 | 2498
+   4 |       15276 |      43 |   11518 |  167121 |  331546 |  209610 |     930434 |         3898.1 | 12524
+   5 |       68406 |     445 |  109456 |  595111 |  420034 |  210596 |    1546238 |         1446.6 | 39926
+   6 |      245506 |    2950 |  463009 |  820976 |  421192 |  210596 |    2129319 |          555.1 | 56706
+   d = 2: 64 * (digits 0..2) = 2624 > 2 dim RM = 652: pairs are overdetermined from digit 2 on
+   d = 3: 64 * (digits 0..1) = 25984 > 2 dim RM = 5252: pairs are overdetermined from digit 1 on
+   d = 4: 64 * (digits 0..1) = 739904 > 2 dim RM = 30552: pairs are overdetermined from digit 1 on
+   d = 5: 64 * (digits 0..1) = 7033664 > 2 dim RM = 136812: pairs are overdetermined from digit 1 on
+   d = 6: 64 * (digits 0..1) = 29821376 > 2 dim RM = 491012: pairs are overdetermined from digit 1 on
+
+ rate 1/4, N = 26, a = 0.488109 (Theorem S threshold), g = 15979224 = 0.2381 n
+   d | dim RM(d,N) | digit 0 | digit 1 | digit 2 | digit 3 | digit 4 | all digits | 64 * all / dim | digit 0 alone leaves dim >=
+   1 |          27 |       0 |       0 |       0 |       0 |       0 |          0 |            0.0 | 27
+   2 |         352 |       0 |       4 |      78 |     658 |    3142 |     105951 |        19263.8 | 352
+   3 |        2952 |       4 |     810 |   18848 |  114584 |  239772 |     841380 |        18241.3 | 2696
+   4 |       17902 |      86 |   23236 |  345146 |  735798 |  494315 |    2097930 |         7500.1 | 12398
+   5 |       83682 |     892 |  223081 | 1306002 |  992506 |  499351 |    3521182 |         2693.0 | 26594
+   6 |      313912 |    5930 |  966173 | 1915276 |  998701 |  499351 |    4884781 |          995.9 | 0
+   d = 2: 64 * (digits 0..2) = 5248 > 2 dim RM = 704: pairs are overdetermined from digit 2 on
+   d = 3: 64 * (digits 0..1) = 52096 > 2 dim RM = 5904: pairs are overdetermined from digit 1 on
+   d = 4: 64 * (digits 0..1) = 1492608 > 2 dim RM = 35804: pairs are overdetermined from digit 1 on
+   d = 5: 64 * (digits 0..1) = 14334272 > 2 dim RM = 167364: pairs are overdetermined from digit 1 on
+   d = 6: 64 * (digits 0..1) = 62214592 > 2 dim RM = 627824: pairs are overdetermined from digit 1 on
+
+ rate 1/8, N = 27, a = 0.340086 (Theorem S threshold), g = 28868354 = 0.2151 n
+   d | dim RM(d,N) | digit 0 | digit 1 | digit 2 | digit 3 | digit 4 | all digits | 64 * all / dim | digit 0 alone leaves dim >=
+   1 |          28 |       0 |       0 |       0 |       0 |       0 |          0 |            0.0 | 28
+   2 |         379 |       0 |       2 |      46 |     453 |    2512 |     143424 |        24219.4 | 379
+   3 |        3304 |       2 |     543 |   16262 |  125543 |  329531 |    1278346 |        24762.2 | 3176
+   4 |       20854 |      50 |   19638 |  404544 | 1140971 |  880590 |    3347909 |        10274.6 | 17654
+   5 |      101584 |     591 |  230968 | 1963591 | 1776548 |  902135 |    5775969 |         3639.0 | 63760
+   6 |      397594 |    4416 | 1201750 | 3333038 | 1804250 |  902136 |    8147726 |         1311.5 | 114970
+   d = 2: 64 * (digits 0..2) = 3072 > 2 dim RM = 758: pairs are overdetermined from digit 2 on
+   d = 3: 64 * (digits 0..1) = 34880 > 2 dim RM = 6608: pairs are overdetermined from digit 1 on
+   d = 4: 64 * (digits 0..1) = 1260032 > 2 dim RM = 41708: pairs are overdetermined from digit 1 on
+   d = 5: 64 * (digits 0..1) = 14819776 > 2 dim RM = 203168: pairs are overdetermined from digit 1 on
+   d = 6: 64 * (digits 0..1) = 77194624 > 2 dim RM = 795188: pairs are overdetermined from digit 1 on
+
+ rate 1/16, N = 28, a = 0.237478 (Theorem S threshold), g = 46970299 = 0.1750 n
+   d | dim RM(d,N) | digit 0 | digit 1 | digit 2 | digit 3 | digit 4 | all digits | 64 * all / dim | digit 0 alone leaves dim >=
+   1 |          29 |       0 |       0 |       0 |       0 |       0 |          0 |            0.0 | 29
+   2 |         407 |       0 |       1 |      25 |     271 |    1679 |     170472 |        26806.4 | 407
+   3 |        3683 |       1 |     320 |   11653 |  112500 |  374284 |    1721381 |        29912.7 | 3619
+   4 |       24158 |      27 |   13851 |  389415 | 1493901 | 1390958 |    4755763 |        12599.1 | 22430
+   5 |      122438 |     346 |  196642 | 2483532 | 2832077 | 1467800 |    8448218 |         4416.0 | 100294
+   6 |      499178 |    2813 | 1234189 | 5079949 | 2935391 | 1467822 |   12187985 |         1562.6 | 319146
+   d = 2: 64 * (digits 0..2) = 1664 > 2 dim RM = 814: pairs are overdetermined from digit 2 on
+   d = 3: 64 * (digits 0..1) = 20544 > 2 dim RM = 7366: pairs are overdetermined from digit 1 on
+   d = 4: 64 * (digits 0..1) = 888192 > 2 dim RM = 48316: pairs are overdetermined from digit 1 on
+   d = 5: 64 * (digits 0..1) = 12607232 > 2 dim RM = 244876: pairs are overdetermined from digit 1 on
+   d = 6: 64 * (digits 0..1) = 79168128 > 2 dim RM = 998356: pairs are overdetermined from digit 1 on
+
+== 3. Sanity: toy values quoted in the note ==
+   N = 25, g = 0.2 n: C_g(N-2), C_g(N-3) = 2 45
+   N = 25, g = 0.16 n: C_g(N-2), C_g(N-3) = 1 24
+   digit DP agrees with brute force
+#### 56_lowlevel.py
+== D. Theorem 4 end to end: the leading-digit map of level r at the depth where the theorem applies ==
+   N = 5, level 2: Theorem 4 applies from g = 5 (15 unknowns); GF(2^5) p: injective from g = 5; GF(2^5) r: injective from g = 5; GF(2^6) p: injective from g = 5; GF(2^6) r: injective from g = 5; GF(2^7) p: injective from g = 5; GF(2^7) r: injective from g = 5
+   N = 6, level 2: Theorem 4 applies from g = 9 (21 unknowns); GF(2^6) p: injective from g = 9; GF(2^6) r: injective from g = 9; GF(2^7) p: injective from g = 5; GF(2^7) r: injective from g = 5; GF(2^8) p: injective from g = 5; GF(2^8) r: injective from g = 5
+   N = 7, level 2: Theorem 4 applies from g = 9 (28 unknowns); GF(2^7) p: injective from g = 9; GF(2^7) r: injective from g = 9; GF(2^8) p: injective from g = 9; GF(2^8) r: injective from g = 9; GF(2^9) p: injective from g = 9; GF(2^9) r: injective from g = 9
+   N = 8, level 2: Theorem 4 applies from g = 17 (36 unknowns); GF(2^8) p: injective from g = 17; GF(2^8) r: injective from g = 17; GF(2^9) p: injective from g = 9; GF(2^9) r: injective from g = 9; GF(2^10) p: injective from g = 9; GF(2^10) r: injective from g = 9
+   N = 9, level 2: Theorem 4 applies from g = 17 (45 unknowns); GF(2^9) p: injective from g = 17; GF(2^9) r: injective from g = 17; GF(2^10) p: injective from g = 17; GF(2^10) r: injective from g = 17; GF(2^11) p: injective from g = 17; GF(2^11) r: injective from g = 17
+   N = 7, level 3: Theorem 4 applies from g = 49 (63 unknowns); GF(2^7) p: injective from g = 21; GF(2^7) r: injective from g = 21; GF(2^8) p: injective from g = 21; GF(2^8) r: injective from g = 21; GF(2^9) p: injective from g = 19; GF(2^9) r: injective from g = 19
+   N = 8, level 3: Theorem 4 applies from g = 97 (92 unknowns); GF(2^8) p: injective from g = 37; GF(2^8) r: injective from g = 37; GF(2^9) p: injective from g = 37; GF(2^9) r: injective from g = 37; GF(2^10) p: injective from g = 25; GF(2^10) r: injective from g = 25
+   N = 9, level 3: Theorem 4 applies from g = 97 (129 unknowns); GF(2^9) p: injective from g = 73; GF(2^9) r: injective from g = 73; GF(2^10) p: injective from g = 41; GF(2^10) r: injective from g = 41; GF(2^11) p: injective from g = 35; GF(2^11) r: injective from g = 35
+== A. Widening lemma: injectivity of the top-form map when 2^(q-1) (N - 1 - L) <= N - 1 ==
+   N  q  L (threshold)  field: rank / unknowns, per domain
+   5  2  1 (one below    )  GF(2^5) p: 5/10; GF(2^5) r: 5/10; GF(2^6) p: 6/10; GF(2^6) r: 6/10; GF(2^8) p: 8/10; GF(2^8) r: 7/10; GF(2^16) p: 9/10; GF(2^16) r: 10/10
+   5  2  2 (at the threshold)  GF(2^5) p: 10/10; GF(2^5) r: 10/10; GF(2^6) p: 10/10; GF(2^6) r: 10/10; GF(2^8) p: 10/10; GF(2^8) r: 10/10; GF(2^16) p: 10/10; GF(2^16) r: 10/10
+   5  3  2 (one below    )  GF(2^5) p: 5/10; GF(2^5) r: 5/10; GF(2^6) p: 6/10; GF(2^6) r: 6/10; GF(2^8) p: 8/10; GF(2^8) r: 8/10; GF(2^16) p: 10/10; GF(2^16) r: 10/10
+   5  3  3 (at the threshold)  GF(2^5) p: 10/10; GF(2^5) r: 10/10; GF(2^6) p: 10/10; GF(2^6) r: 10/10; GF(2^8) p: 10/10; GF(2^8) r: 10/10; GF(2^16) p: 10/10; GF(2^16) r: 10/10
+   5  4  3 (one below    )  GF(2^5) p: 5/5; GF(2^5) r: 5/5; GF(2^6) p: 5/5; GF(2^6) r: 5/5; GF(2^8) p: 5/5; GF(2^8) r: 5/5; GF(2^16) p: 5/5; GF(2^16) r: 5/5
+   5  4  4 (at the threshold)  GF(2^5) p: 5/5; GF(2^5) r: 5/5; GF(2^6) p: 5/5; GF(2^6) r: 5/5; GF(2^8) p: 5/5; GF(2^8) r: 5/5; GF(2^16) p: 5/5; GF(2^16) r: 5/5
+   6  2  2 (one below    )  GF(2^6) p: 12/15; GF(2^6) r: 12/15; GF(2^7) p: 14/15; GF(2^7) r: 14/15; GF(2^9) p: 15/15; GF(2^9) r: 15/15; GF(2^16) p: 15/15; GF(2^16) r: 15/15
+   6  2  3 (at the threshold)  GF(2^6) p: 15/15; GF(2^6) r: 15/15; GF(2^7) p: 15/15; GF(2^7) r: 15/15; GF(2^9) p: 15/15; GF(2^9) r: 15/15; GF(2^16) p: 15/15; GF(2^16) r: 15/15
+   6  3  3 (one below    )  GF(2^6) p: 18/20; GF(2^6) r: 18/20; GF(2^7) p: 20/20; GF(2^7) r: 20/20; GF(2^9) p: 20/20; GF(2^9) r: 20/20; GF(2^16) p: 20/20; GF(2^16) r: 20/20
+   6  3  4 (at the threshold)  GF(2^6) p: 20/20; GF(2^6) r: 20/20; GF(2^7) p: 20/20; GF(2^7) r: 20/20; GF(2^9) p: 20/20; GF(2^9) r: 20/20; GF(2^16) p: 20/20; GF(2^16) r: 20/20
+   6  4  4 (one below    )  GF(2^6) p: 15/15; GF(2^6) r: 15/15; GF(2^7) p: 15/15; GF(2^7) r: 15/15; GF(2^9) p: 15/15; GF(2^9) r: 15/15; GF(2^16) p: 15/15; GF(2^16) r: 15/15
+   6  4  5 (at the threshold)  GF(2^6) p: 15/15; GF(2^6) r: 15/15; GF(2^7) p: 15/15; GF(2^7) r: 15/15; GF(2^9) p: 15/15; GF(2^9) r: 15/15; GF(2^16) p: 15/15; GF(2^16) r: 15/15
+   7  2  2 (one below    )  GF(2^7) p: 14/21; GF(2^7) r: 14/21; GF(2^8) p: 16/21; GF(2^8) r: 16/21; GF(2^10) p: 19/21; GF(2^10) r: 18/21; GF(2^16) p: 21/21; GF(2^16) r: 21/21
+   7  2  3 (at the threshold)  GF(2^7) p: 21/21; GF(2^7) r: 21/21; GF(2^8) p: 21/21; GF(2^8) r: 21/21; GF(2^10) p: 21/21; GF(2^10) r: 21/21; GF(2^16) p: 21/21; GF(2^16) r: 21/21
+   7  3  4 (one below    )  GF(2^7) p: 35/35; GF(2^7) r: 35/35; GF(2^8) p: 35/35; GF(2^8) r: 35/35; GF(2^10) p: 35/35; GF(2^10) r: 35/35; GF(2^16) p: 35/35; GF(2^16) r: 35/35
+   7  3  5 (at the threshold)  GF(2^7) p: 35/35; GF(2^7) r: 35/35; GF(2^8) p: 35/35; GF(2^8) r: 35/35; GF(2^10) p: 35/35; GF(2^10) r: 35/35; GF(2^16) p: 35/35; GF(2^16) r: 35/35
+   7  4  5 (one below    )  GF(2^7) p: 35/35; GF(2^7) r: 35/35; GF(2^8) p: 35/35; GF(2^8) r: 35/35; GF(2^10) p: 35/35; GF(2^10) r: 35/35; GF(2^16) p: 35/35; GF(2^16) r: 35/35
+   7  4  6 (at the threshold)  GF(2^7) p: 35/35; GF(2^7) r: 35/35; GF(2^8) p: 35/35; GF(2^8) r: 35/35; GF(2^10) p: 35/35; GF(2^10) r: 35/35; GF(2^16) p: 35/35; GF(2^16) r: 35/35
+   8  2  3 (one below    )  GF(2^8) p: 24/28; GF(2^8) r: 24/28; GF(2^9) p: 27/28; GF(2^9) r: 27/28; GF(2^11) p: 28/28; GF(2^11) r: 28/28; GF(2^16) p: 28/28; GF(2^16) r: 28/28
+   8  2  4 (at the threshold)  GF(2^8) p: 28/28; GF(2^8) r: 28/28; GF(2^9) p: 28/28; GF(2^9) r: 28/28; GF(2^11) p: 28/28; GF(2^11) r: 28/28; GF(2^16) p: 28/28; GF(2^16) r: 28/28
+   8  3  5 (one below    )  GF(2^8) p: 56/56; GF(2^8) r: 56/56; GF(2^9) p: 56/56; GF(2^9) r: 56/56; GF(2^11) p: 56/56; GF(2^11) r: 56/56; GF(2^16) p: 56/56; GF(2^16) r: 56/56
+   8  3  6 (at the threshold)  GF(2^8) p: 56/56; GF(2^8) r: 56/56; GF(2^9) p: 56/56; GF(2^9) r: 56/56; GF(2^11) p: 56/56; GF(2^11) r: 56/56; GF(2^16) p: 56/56; GF(2^16) r: 56/56
+   8  4  6 (one below    )  GF(2^8) p: 70/70; GF(2^8) r: 70/70; GF(2^9) p: 70/70; GF(2^9) r: 70/70; GF(2^11) p: 70/70; GF(2^11) r: 70/70; GF(2^16) p: 70/70; GF(2^16) r: 70/70
+   8  4  7 (at the threshold)  GF(2^8) p: 70/70; GF(2^8) r: 70/70; GF(2^9) p: 70/70; GF(2^9) r: 70/70; GF(2^11) p: 70/70; GF(2^11) r: 70/70; GF(2^16) p: 70/70; GF(2^16) r: 70/70
+   9  2  3 (one below    )  GF(2^9) p: 27/36; GF(2^9) r: 27/36; GF(2^10) p: 30/36; GF(2^10) r: 30/36; GF(2^12) p: 35/36; GF(2^12) r: 34/36; GF(2^16) p: 36/36; GF(2^16) r: 36/36
+   9  2  4 (at the threshold)  GF(2^9) p: 36/36; GF(2^9) r: 36/36; GF(2^10) p: 36/36; GF(2^10) r: 36/36; GF(2^12) p: 36/36; GF(2^12) r: 36/36; GF(2^16) p: 36/36; GF(2^16) r: 36/36
+   9  3  5 (one below    )  GF(2^9) p: 81/84; GF(2^9) r: 81/84; GF(2^10) p: 84/84; GF(2^10) r: 84/84; GF(2^12) p: 84/84; GF(2^12) r: 84/84; GF(2^16) p: 84/84; GF(2^16) r: 84/84
+   9  3  6 (at the threshold)  GF(2^9) p: 84/84; GF(2^9) r: 84/84; GF(2^10) p: 84/84; GF(2^10) r: 84/84; GF(2^12) p: 84/84; GF(2^12) r: 84/84; GF(2^16) p: 84/84; GF(2^16) r: 84/84
+   9  4  6 (one below    )  GF(2^9) p: 126/126; GF(2^9) r: 126/126; GF(2^10) p: 126/126; GF(2^10) r: 126/126; GF(2^12) p: 126/126; GF(2^12) r: 126/126; GF(2^16) p: 126/126; GF(2^16) r: 126/126
+   9  4  7 (at the threshold)  GF(2^9) p: 126/126; GF(2^9) r: 126/126; GF(2^10) p: 126/126; GF(2^10) r: 126/126; GF(2^12) p: 126/126; GF(2^12) r: 126/126; GF(2^16) p: 126/126; GF(2^16) r: 126/126
+   violations of the lemma: 0
+== B. n = 16: pairs of T-sets sharing e_1..e_g, g >= 5, have Walsh level >= 3 ==
+   fields GF(2^4)..GF(2^8), 13 domains, T = 6, 7, 8: 195 pairs share e_1..e_5, none of level 1 or 2
+   (the decisive test is 56_acc32: about 6.5e13 pairs of level 2 at n = 32, none shares e_1..e_5)
+== C. Theorem 4 at the real sizes: Walsh levels excluded on every subspace domain ==
+   N = 25, g = 0.16 n: levels 1..4 excluded: a common top to depth g forces all hyperplane counts congruent modulo 2^4 (the formal model: modulo 2^23)
+   N = 25, g = 0.2 n: levels 1..4 excluded: a common top to depth g forces all hyperplane counts congruent modulo 2^4 (the formal model: modulo 2^23)
+   N = 26, g = 0.19 n: levels 1..4 excluded: a common top to depth g forces all hyperplane counts congruent modulo 2^4 (the formal model: modulo 2^24)
+   N = 27, g = 0.185 n: levels 1..4 excluded: a common top to depth g forces all hyperplane counts congruent modulo 2^4 (the formal model: modulo 2^25)
+   N = 28, g = 0.1575 n: levels 1..4 excluded: a common top to depth g forces all hyperplane counts congruent modulo 2^4 (the formal model: modulo 2^26)
+   N = 33, g = 0.2 n: levels 1..4 excluded: a common top to depth g forces all hyperplane counts congruent modulo 2^4 (the formal model: modulo 2^31)
+   N = 49, g = 0.2 n: levels 1..5 excluded: a common top to depth g forces all hyperplane counts congruent modulo 2^5 (the formal model: modulo 2^47)
+   N = 64, g = 0.2 n: levels 1..5 excluded: a common top to depth g forces all hyperplane counts congruent modulo 2^5 (the formal model: modulo 2^62)
+#### 56_acc32 10 9 m r seed  (n = 32, all 10-subsets)
+n=32 p=10 G=9 GF(2^5) modulus x^5+0x5 power basis: 1 2 4 8 10
+  64512240 sets
+  pairs with equal sum: 65028556826376; level 2: 65025124944840, level 3: 3431769936, level 4: 111600; largest class modulo 4: 513
+  depth g | level | pairs sharing e_1..e_g | C_g(r) | predicted pairs 2^(-m C) | ratio | naive exponent g-2^(r-1)+1 | naive prediction
+        2 |     2 |          2028679325856 |      1 |                2.032e+12 | 0.998 |                          1 | 2.032e+12
+        3 |     2 |            60043226432 |      2 |                 6.35e+10 | 0.946 |                          2 | 6.35e+10
+        4 |     2 |             1871447680 |      3 |                1.984e+09 | 0.943 |                          3 | 1.984e+09
+        4 |     3 |               98047792 |      1 |                1.072e+08 | 0.914 |                          1 | 1.072e+08
+        5 |     2 |                      0 |      4 |                6.201e+07 | 0.000 |                          4 | 6.201e+07
+        5 |     3 |               98047792 |      1 |                1.072e+08 | 0.914 |                          2 | 3.351e+06
+        6 |     2 |                      0 |      5 |                1.938e+06 | 0.000 |                          5 | 1.938e+06
+        6 |     3 |                1223136 |      2 |                3.351e+06 | 0.365 |                          3 | 1.047e+05
+        7 |     2 |                      0 |      6 |                6.056e+04 | 0.000 |                          6 | 6.056e+04
+        7 |     3 |                   2976 |      3 |                1.047e+05 | 0.028 |                          4 | 3273
+        8 |     2 |                      0 |      7 |                     1892 | 0.000 |                          7 | 1892
+        8 |     3 |                      0 |      4 |                     3273 | 0.000 |                          5 | 102.3
+        8 |     4 |                      0 |      1 |                     3488 | 0.000 |                          1 | 3488
+        9 |     2 |                      0 |      8 |                    59.14 | 0.000 |                          8 | 59.14
+        9 |     3 |                      0 |      4 |                     3273 | 0.000 |                          6 | 3.196
+        9 |     4 |                      0 |      1 |                     3488 | 0.000 |                          2 | 109
+  example: level-3 pair sharing e_1..e_7: masks 81208879 22d62480
+n=32 p=10 G=9 GF(2^6) modulus x^6+0x3 power basis: 1 2 4 8 10
+  64512240 sets
+  pairs with equal sum: 65028556826376; level 2: 65025124944840, level 3: 3431769936, level 4: 111600; largest class modulo 4: 513
+  depth g | level | pairs sharing e_1..e_g | C_g(r) | predicted pairs 2^(-m C) | ratio | naive exponent g-2^(r-1)+1 | naive prediction
+        2 |     2 |          1012607852992 |      1 |                1.016e+12 | 0.997 |                          1 | 1.016e+12
+        3 |     2 |            12596668544 |      2 |                1.588e+10 | 0.793 |                          2 | 1.588e+10
+        4 |     2 |              196863200 |      3 |                2.481e+08 | 0.794 |                          3 | 2.481e+08
+        4 |     3 |               46494848 |      1 |                5.362e+07 | 0.867 |                          1 | 5.362e+07
+        5 |     2 |                      0 |      4 |                3.876e+06 | 0.000 |                          4 | 3.876e+06
+        5 |     3 |               46494848 |      1 |                5.362e+07 | 0.867 |                          2 | 8.378e+05
+        6 |     2 |                      0 |      5 |                6.056e+04 | 0.000 |                          5 | 6.056e+04
+        6 |     3 |                 251616 |      2 |                8.378e+05 | 0.300 |                          3 | 1.309e+04
+        7 |     2 |                      0 |      6 |                    946.2 | 0.000 |                          6 | 946.2
+        7 |     3 |                    672 |      3 |                1.309e+04 | 0.051 |                          4 | 204.5
+        8 |     2 |                      0 |      7 |                    14.79 | 0.000 |                          7 | 14.79
+        8 |     3 |                     16 |      4 |                    204.5 | 0.078 |                          5 | 3.196
+        8 |     4 |                      0 |      1 |                     1744 | 0.000 |                          1 | 1744
+        9 |     2 |                      0 |      8 |                    0.231 | 0.000 |                          8 | 0.231
+        9 |     3 |                     16 |      4 |                    204.5 | 0.078 |                          6 | 0.04994
+        9 |     4 |                      0 |      1 |                     1744 | 0.000 |                          2 | 27.25
+  example: level-3 pair sharing e_1..e_9: masks 85948062 4a684091
+n=32 p=10 G=9 GF(2^7) modulus x^7+0x3 power basis: 1 2 4 8 10
+  64512240 sets
+  pairs with equal sum: 65028556826376; level 2: 65025124944840, level 3: 3431769936, level 4: 111600; largest class modulo 4: 513
+  depth g | level | pairs sharing e_1..e_g | C_g(r) | predicted pairs 2^(-m C) | ratio | naive exponent g-2^(r-1)+1 | naive prediction
+        2 |     2 |           504573958560 |      1 |                 5.08e+11 | 0.993 |                          1 | 5.08e+11
+        3 |     2 |             1936878272 |      2 |                3.969e+09 | 0.488 |                          2 | 3.969e+09
+        4 |     2 |               15245920 |      3 |                3.101e+07 | 0.492 |                          3 | 3.101e+07
+        4 |     3 |               22600832 |      1 |                2.681e+07 | 0.843 |                          1 | 2.681e+07
+        5 |     2 |                      0 |      4 |                2.422e+05 | 0.000 |                          4 | 2.422e+05
+        5 |     3 |               22600832 |      1 |                2.681e+07 | 0.843 |                          2 | 2.095e+05
+        6 |     2 |                      0 |      5 |                     1892 | 0.000 |                          5 | 1892
+        6 |     3 |                  52288 |      2 |                2.095e+05 | 0.250 |                          3 | 1636
+        7 |     2 |                      0 |      6 |                    14.79 | 0.000 |                          6 | 14.79
+        7 |     3 |                     96 |      3 |                     1636 | 0.059 |                          4 | 12.78
+        8 |     2 |                      0 |      7 |                   0.1155 | 0.000 |                          7 | 0.1155
+        8 |     3 |                      0 |      4 |                    12.78 | 0.000 |                          5 | 0.09988
+        8 |     4 |                      0 |      1 |                    871.9 | 0.000 |                          1 | 871.9
+        9 |     2 |                      0 |      8 |                0.0009024 | 0.000 |                          8 | 0.0009024
+        9 |     3 |                      0 |      4 |                    12.78 | 0.000 |                          6 | 0.0007803
+        9 |     4 |                      0 |      1 |                    871.9 | 0.000 |                          2 | 6.812
+  example: level-3 pair sharing e_1..e_7: masks 83628c01 2c982304
+n=32 p=10 G=9 GF(2^7) modulus x^7+0x3 random basis: 7 19 16 37 2b
+  64512240 sets
+  pairs with equal sum: 65028556826376; level 2: 65025124944840, level 3: 3431769936, level 4: 111600; largest class modulo 4: 513
+  depth g | level | pairs sharing e_1..e_g | C_g(r) | predicted pairs 2^(-m C) | ratio | naive exponent g-2^(r-1)+1 | naive prediction
+        2 |     2 |           504573958560 |      1 |                 5.08e+11 | 0.993 |                          1 | 5.08e+11
+        3 |     2 |             1936878272 |      2 |                3.969e+09 | 0.488 |                          2 | 3.969e+09
+        4 |     2 |               14115488 |      3 |                3.101e+07 | 0.455 |                          3 | 3.101e+07
+        4 |     3 |               22673664 |      1 |                2.681e+07 | 0.846 |                          1 | 2.681e+07
+        5 |     2 |                      0 |      4 |                2.422e+05 | 0.000 |                          4 | 2.422e+05
+        5 |     3 |               22673664 |      1 |                2.681e+07 | 0.846 |                          2 | 2.095e+05
+        6 |     2 |                      0 |      5 |                     1892 | 0.000 |                          5 | 1892
+        6 |     3 |                  56096 |      2 |                2.095e+05 | 0.268 |                          3 | 1636
+        7 |     2 |                      0 |      6 |                    14.79 | 0.000 |                          6 | 14.79
+        7 |     3 |                     96 |      3 |                     1636 | 0.059 |                          4 | 12.78
+        8 |     2 |                      0 |      7 |                   0.1155 | 0.000 |                          7 | 0.1155
+        8 |     3 |                      0 |      4 |                    12.78 | 0.000 |                          5 | 0.09988
+        8 |     4 |                      0 |      1 |                    871.9 | 0.000 |                          1 | 871.9
+        9 |     2 |                      0 |      8 |                0.0009024 | 0.000 |                          8 | 0.0009024
+        9 |     3 |                      0 |      4 |                    12.78 | 0.000 |                          6 | 0.0007803
+        9 |     4 |                      0 |      1 |                    871.9 | 0.000 |                          2 | 6.812
+  example: level-3 pair sharing e_1..e_7: masks 0188b681 9e424022
+n=32 p=10 G=9 GF(2^8) modulus x^8+0x1b power basis: 1 2 4 8 10
+  64512240 sets
+  pairs with equal sum: 65028556826376; level 2: 65025124944840, level 3: 3431769936, level 4: 111600; largest class modulo 4: 513
+  depth g | level | pairs sharing e_1..e_g | C_g(r) | predicted pairs 2^(-m C) | ratio | naive exponent g-2^(r-1)+1 | naive prediction
+        2 |     2 |           250798656576 |      1 |                 2.54e+11 | 0.987 |                          1 | 2.54e+11
+        3 |     2 |                      0 |      2 |                9.922e+08 | 0.000 |                          2 | 9.922e+08
+        4 |     2 |                      0 |      3 |                3.876e+06 | 0.000 |                          3 | 3.876e+06
+        4 |     3 |               11341264 |      1 |                1.341e+07 | 0.846 |                          1 | 1.341e+07
+        5 |     2 |                      0 |      4 |                1.514e+04 | 0.000 |                          4 | 1.514e+04
+        5 |     3 |               11341264 |      1 |                1.341e+07 | 0.846 |                          2 | 5.236e+04
+        6 |     2 |                      0 |      5 |                    59.14 | 0.000 |                          5 | 59.14
+        6 |     3 |                   8384 |      2 |                5.236e+04 | 0.160 |                          3 | 204.5
+        7 |     2 |                      0 |      6 |                    0.231 | 0.000 |                          6 | 0.231
+        7 |     3 |                      0 |      3 |                    204.5 | 0.000 |                          4 | 0.799
+        8 |     2 |                      0 |      7 |                0.0009024 | 0.000 |                          7 | 0.0009024
+        8 |     3 |                      0 |      4 |                    0.799 | 0.000 |                          5 | 0.003121
+        8 |     4 |                      0 |      1 |                    435.9 | 0.000 |                          1 | 435.9
+        9 |     2 |                      0 |      8 |                3.525e-06 | 0.000 |                          8 | 3.525e-06
+        9 |     3 |                      0 |      4 |                    0.799 | 0.000 |                          6 | 1.219e-05
+        9 |     4 |                      0 |      1 |                    435.9 | 0.000 |                          2 | 1.703
+  example: level-3 pair sharing e_1..e_6: masks 190c3064 4a0a0a0b
+n=32 p=10 G=9 GF(2^9) modulus x^9+0x11 power basis: 1 2 4 8 10
+  64512240 sets
+  pairs with equal sum: 65028556826376; level 2: 65025124944840, level 3: 3431769936, level 4: 111600; largest class modulo 4: 513
+  depth g | level | pairs sharing e_1..e_g | C_g(r) | predicted pairs 2^(-m C) | ratio | naive exponent g-2^(r-1)+1 | naive prediction
+        2 |     2 |           131820619680 |      1 |                 1.27e+11 | 1.038 |                          1 | 1.27e+11
+        3 |     2 |                      0 |      2 |                2.481e+08 | 0.000 |                          2 | 2.481e+08
+        4 |     2 |                      0 |      3 |                4.845e+05 | 0.000 |                          3 | 4.845e+05
+        4 |     3 |                5898736 |      1 |                6.703e+06 | 0.880 |                          1 | 6.703e+06
+        5 |     2 |                      0 |      4 |                    946.2 | 0.000 |                          4 | 946.2
+        5 |     3 |                5898736 |      1 |                6.703e+06 | 0.880 |                          2 | 1.309e+04
+        6 |     2 |                      0 |      5 |                    1.848 | 0.000 |                          5 | 1.848
+        6 |     3 |                   3904 |      2 |                1.309e+04 | 0.298 |                          3 | 25.57
+        7 |     2 |                      0 |      6 |                  0.00361 | 0.000 |                          6 | 0.00361
+        7 |     3 |                      0 |      3 |                    25.57 | 0.000 |                          4 | 0.04994
+        8 |     2 |                      0 |      7 |                 7.05e-06 | 0.000 |                          7 | 7.05e-06
+        8 |     3 |                      0 |      4 |                  0.04994 | 0.000 |                          5 | 9.754e-05
+        8 |     4 |                      0 |      1 |                      218 | 0.000 |                          1 | 218
+        9 |     2 |                      0 |      8 |                1.377e-08 | 0.000 |                          8 | 1.377e-08
+        9 |     3 |                      0 |      4 |                  0.04994 | 0.000 |                          6 | 1.905e-07
+        9 |     4 |                      0 |      1 |                      218 | 0.000 |                          2 | 0.4257
+  example: level-3 pair sharing e_1..e_6: masks 1188524a 33338001
+#### 56_dual N m r 0  (power shape; six-point and eight-point words against the field degree)
+N=8 n=256 GF(2^9) modulus x^9+0x3 power basis
+  six-point words (sum phi = 0, sum delta = 0): 2772105; zero-sum 6-sets: 1.406e+09; random model 2.745e+06; ratio 1.010
+  example (depth 3n/16 - 1): functionals 4c 8b c7 18 61 79, signs 1 (32 valid sign patterns)
+     |A| = 48, |B| = 48, disjoint, deg(Z_A - Z_B) = 0: common top to depth 47 = 0.1836 n; same previous-level class: yes; formal at this depth: no
+     A = {0,4,6,24,26,30,35,37,39,57,59,61,...}  B = {1,12,15,17,18,31,34,44,47,49,50,60,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 816114; zero-sum 4-sets: 680085; random model 8.822e+05; ratio 0.925
+  example (depth 7n/32 - 1): functionals 12 19 e5 ee 28 69 90 d1, signs 11 (64 valid sign patterns)
+     |A| = 64, |B| = 64, disjoint, deg(Z_A - Z_B) = 8: common top to depth 55 = 0.2148 n; same previous-level class: yes; formal at this depth: no
+     A = {0,2,6,10,11,13,15,29,34,35,36,38,...}  B = {1,3,5,18,19,20,22,30,45,48,50,54,...}  (points as bit masks of coordinates)
+N=8 n=256 GF(2^10) modulus x^10+0x9 power basis
+  six-point words (sum phi = 0, sum delta = 0): 1378933; zero-sum 6-sets: 1.406e+09; random model 1.373e+06; ratio 1.005
+  example (depth 3n/16 - 1): functionals 27 58 7f 45 85 c0, signs 1 (32 valid sign patterns)
+     |A| = 48, |B| = 48, disjoint, deg(Z_A - Z_B) = 0: common top to depth 47 = 0.1836 n; same previous-level class: yes; formal at this depth: no
+     A = {0,2,5,7,10,15,18,23,24,26,29,31,...}  B = {11,14,19,22,41,44,49,52,64,67,69,70,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 201479; zero-sum 4-sets: 680085; random model 2.205e+05; ratio 0.914
+  example (depth 7n/32 - 1): functionals 5 27 cb e9 8 1e 21 37, signs 11 (64 valid sign patterns)
+     |A| = 64, |B| = 64, disjoint, deg(Z_A - Z_B) = 8: common top to depth 55 = 0.2148 n; same previous-level class: yes; formal at this depth: no
+     A = {0,6,11,13,14,20,25,30,33,39,41,42,...}  B = {1,2,5,7,15,17,21,23,32,34,37,38,...}  (points as bit masks of coordinates)
+N=8 n=256 GF(2^11) modulus x^11+0x5 power basis
+  six-point words (sum phi = 0, sum delta = 0): 688505; zero-sum 6-sets: 1.406e+09; random model 6.863e+05; ratio 1.003
+  example (depth 3n/16 - 1): functionals 5d b9 e4 22 8c ae, signs 1 (32 valid sign patterns)
+     |A| = 48, |B| = 48, disjoint, deg(Z_A - Z_B) = 0: common top to depth 47 = 0.1836 n; same previous-level class: yes; formal at this depth: no
+     A = {0,1,13,16,17,28,35,46,47,50,62,63,...}  B = {5,7,14,20,22,31,32,41,43,49,56,58,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 50376; zero-sum 4-sets: 680085; random model 5.514e+04; ratio 0.914
+  example (depth 7n/32 - 1): functionals 17 65 a5 d7 c3 d8 e5 fe, signs 11 (64 valid sign patterns)
+     |A| = 64, |B| = 64, disjoint, deg(Z_A - Z_B) = 8: common top to depth 55 = 0.2148 n; same previous-level class: yes; formal at this depth: no
+     A = {0,2,5,7,10,13,18,21,24,26,29,31,...}  B = {3,4,9,11,12,14,17,19,20,22,27,28,...}  (points as bit masks of coordinates)
+N=8 n=256 GF(2^12) modulus x^12+0x9 power basis
+  six-point words (sum phi = 0, sum delta = 0): 343854; zero-sum 6-sets: 1.406e+09; random model 3.431e+05; ratio 1.002
+  example (depth 3n/16 - 1): functionals 1a ee f4 1 76 77, signs 1 (32 valid sign patterns)
+     |A| = 48, |B| = 48, disjoint, deg(Z_A - Z_B) = 0: common top to depth 47 = 0.1836 n; same previous-level class: yes; formal at this depth: no
+     A = {0,6,8,20,26,28,34,36,44,48,56,62,...}  B = {4,5,15,19,24,25,32,33,43,55,60,61,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 12377; zero-sum 4-sets: 680085; random model 1.378e+04; ratio 0.898
+  example (depth 7n/32 - 1): functionals 6 19 c8 d7 1 56 ba ed, signs 11 (64 valid sign patterns)
+     |A| = 64, |B| = 64, disjoint, deg(Z_A - Z_B) = 8: common top to depth 55 = 0.2148 n; same previous-level class: yes; formal at this depth: no
+     A = {0,5,11,18,19,21,23,28,35,38,45,49,...}  B = {8,10,12,16,22,24,30,31,42,44,46,48,...}  (points as bit masks of coordinates)
+N=8 n=256 GF(2^14) modulus x^14+0x21 power basis
+  six-point words (sum phi = 0, sum delta = 0): 85653; zero-sum 6-sets: 1.406e+09; random model 8.579e+04; ratio 0.998
+  example (depth 3n/16 - 1): functionals 39 c9 f0 23 d9 fa, signs 1 (32 valid sign patterns)
+     |A| = 48, |B| = 48, disjoint, deg(Z_A - Z_B) = 0: common top to depth 47 = 0.1836 n; same previous-level class: yes; formal at this depth: no
+     A = {0,4,11,15,34,38,41,45,49,53,58,62,...}  B = {17,21,26,30,33,35,37,39,40,42,44,46,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 779; zero-sum 4-sets: 680085; random model 861.5; ratio 0.904
+  example (depth 7n/32 - 1): functionals 15 23 c1 f7 a5 ae f3 f8, signs 11 (64 valid sign patterns)
+     |A| = 64, |B| = 64, disjoint, deg(Z_A - Z_B) = 8: common top to depth 55 = 0.2148 n; same previous-level class: yes; formal at this depth: no
+     A = {0,3,4,6,11,12,26,28,34,41,42,46,...}  B = {2,5,9,10,13,15,19,21,32,35,39,43,...}  (points as bit masks of coordinates)
+N=8 n=256 GF(2^16) modulus x^16+0x2b power basis
+  six-point words (sum phi = 0, sum delta = 0): 21466; zero-sum 6-sets: 1.406e+09; random model 2.145e+04; ratio 1.001
+  example (depth 3n/16 - 1): functionals 32 87 b5 58 9a c2, signs 1 (32 valid sign patterns)
+     |A| = 48, |B| = 48, disjoint, deg(Z_A - Z_B) = 0: common top to depth 47 = 0.1836 n; same previous-level class: yes; formal at this depth: no
+     A = {0,5,24,25,28,29,32,33,36,37,56,61,...}  B = {9,12,18,23,26,31,34,39,42,47,49,52,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 54; zero-sum 4-sets: 680085; random model 53.84; ratio 1.003
+  example (depth 7n/32 - 1): functionals 2 7 db de 31 73 8b c9, signs 11 (64 valid sign patterns)
+     |A| = 64, |B| = 64, disjoint, deg(Z_A - Z_B) = 8: common top to depth 55 = 0.2148 n; same previous-level class: yes; formal at this depth: no
+     A = {0,3,7,11,13,18,22,30,32,38,42,45,...}  B = {1,2,5,8,12,17,23,28,33,37,40,44,...}  (points as bit masks of coordinates)
+N=8 n=256 GF(2^18) modulus x^18+0x9 power basis
+  six-point words (sum phi = 0, sum delta = 0): 5377; zero-sum 6-sets: 1.406e+09; random model 5362; ratio 1.003
+  example (depth 3n/16 - 1): functionals 76 aa dc 14 44 50, signs 1 (32 valid sign patterns)
+     |A| = 48, |B| = 48, disjoint, deg(Z_A - Z_B) = 0: common top to depth 47 = 0.1836 n; same previous-level class: yes; formal at this depth: no
+     A = {0,1,2,3,10,11,32,33,34,35,40,41,...}  B = {6,7,18,19,28,29,36,37,48,49,62,63,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 3; zero-sum 4-sets: 680085; random model 3.365; ratio 0.891
+  example (depth 7n/32 - 1): functionals 1 3e 95 aa 1d 7c 87 e6, signs 11 (64 valid sign patterns)
+     |A| = 64, |B| = 64, disjoint, deg(Z_A - Z_B) = 8: common top to depth 55 = 0.2148 n; same previous-level class: yes; formal at this depth: no
+     A = {0,1,13,15,21,25,27,30,35,37,40,45,...}  B = {2,4,9,12,18,26,28,29,32,33,44,46,...}  (points as bit masks of coordinates)
+N=8 n=256 GF(2^20) modulus x^20+0x9 power basis
+  six-point words (sum phi = 0, sum delta = 0): 1417; zero-sum 6-sets: 1.406e+09; random model 1340; ratio 1.057
+  example (depth 3n/16 - 1): functionals 75 a4 d1 3c d3 ef, signs 1 (32 valid sign patterns)
+     |A| = 48, |B| = 48, disjoint, deg(Z_A - Z_B) = 0: common top to depth 47 = 0.1836 n; same previous-level class: yes; formal at this depth: no
+     A = {0,3,12,21,25,26,36,39,40,49,61,62,...}  B = {5,7,13,20,28,30,33,35,41,48,56,58,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 0; zero-sum 4-sets: 680085; random model 0.2103; ratio 0.000
+N=8 n=256 GF(2^22) modulus x^22+0x3 power basis
+  six-point words (sum phi = 0, sum delta = 0): 328; zero-sum 6-sets: 1.406e+09; random model 335.1; ratio 0.979
+  example (depth 3n/16 - 1): functionals 3c 90 ac 49 9c d5, signs 1 (32 valid sign patterns)
+     |A| = 48, |B| = 48, disjoint, deg(Z_A - Z_B) = 0: common top to depth 47 = 0.1836 n; same previous-level class: yes; formal at this depth: no
+     A = {0,2,13,15,32,34,45,47,52,54,57,59,...}  B = {21,23,24,26,48,49,50,51,60,61,62,63,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 0; zero-sum 4-sets: 680085; random model 0.01315; ratio 0.000
+N=8 n=256 GF(2^24) modulus x^24+0x1b power basis
+  six-point words (sum phi = 0, sum delta = 0): 103; zero-sum 6-sets: 1.406e+09; random model 83.77; ratio 1.229
+  example (depth 3n/16 - 1): functionals 6d b6 db 7f 81 fe, signs 1 (32 valid sign patterns)
+     |A| = 48, |B| = 48, disjoint, deg(Z_A - Z_B) = 0: common top to depth 47 = 0.1836 n; same previous-level class: yes; formal at this depth: no
+     A = {0,6,10,18,20,24,34,36,46,48,54,60,...}  B = {2,5,11,16,23,25,33,38,47,51,52,61,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 0; zero-sum 4-sets: 680085; random model 0.0008216; ratio 0.000
+N=8 n=256 GF(2^26) modulus x^26+0x1b power basis
+  six-point words (sum phi = 0, sum delta = 0): 38; zero-sum 6-sets: 1.406e+09; random model 20.94; ratio 1.814
+  example (depth 3n/16 - 1): functionals 7f 81 fe 6d b6 db, signs 1 (32 valid sign patterns)
+     |A| = 48, |B| = 48, disjoint, deg(Z_A - Z_B) = 0: common top to depth 47 = 0.1836 n; same previous-level class: yes; formal at this depth: no
+     A = {0,7,14,18,21,28,35,36,42,49,54,56,...}  B = {3,5,15,17,23,29,33,39,43,51,53,57,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 0; zero-sum 4-sets: 680085; random model 5.135e-05; ratio 0.000
+N=8 n=256 GF(2^28) modulus x^28+0x3 power basis
+  six-point words (sum phi = 0, sum delta = 0): 28; zero-sum 6-sets: 1.406e+09; random model 5.236; ratio 5.348
+  example (depth 3n/16 - 1): functionals 6d b6 db 7f 81 fe, signs 1 (32 valid sign patterns)
+     |A| = 48, |B| = 48, disjoint, deg(Z_A - Z_B) = 0: common top to depth 47 = 0.1836 n; same previous-level class: yes; formal at this depth: no
+     A = {0,6,10,18,20,24,34,36,46,48,54,60,...}  B = {2,5,11,16,23,25,33,38,47,51,52,61,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 0; zero-sum 4-sets: 680085; random model 3.209e-06; ratio 0.000
+N=8 n=256 GF(2^30) modulus x^30+0x3 power basis
+  six-point words (sum phi = 0, sum delta = 0): 22; zero-sum 6-sets: 1.406e+09; random model 1.309; ratio 16.807
+  example (depth 3n/16 - 1): functionals 7f 81 fe 6d b6 db, signs 1 (32 valid sign patterns)
+     |A| = 48, |B| = 48, disjoint, deg(Z_A - Z_B) = 0: common top to depth 47 = 0.1836 n; same previous-level class: yes; formal at this depth: no
+     A = {0,7,14,18,21,28,35,36,42,49,54,56,...}  B = {3,5,15,17,23,29,33,39,43,51,53,57,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 0; zero-sum 4-sets: 680085; random model 2.006e-07; ratio 0.000
+N=8 n=256 GF(2^32) modulus x^32+0x8d power basis
+  six-point words (sum phi = 0, sum delta = 0): 22; zero-sum 6-sets: 1.406e+09; random model 0.3272; ratio 67.228
+  example (depth 3n/16 - 1): functionals 7f 81 fe 6d b6 db, signs 1 (32 valid sign patterns)
+     |A| = 48, |B| = 48, disjoint, deg(Z_A - Z_B) = 0: common top to depth 47 = 0.1836 n; same previous-level class: yes; formal at this depth: no
+     A = {0,7,14,18,21,28,35,36,42,49,54,56,...}  B = {3,5,15,17,23,29,33,39,43,51,53,57,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 0; zero-sum 4-sets: 680085; random model 1.254e-08; ratio 0.000
+N=8 n=256 GF(2^36) modulus x^36+0x35 power basis
+  six-point words (sum phi = 0, sum delta = 0): 23; zero-sum 6-sets: 1.406e+09; random model 0.02045; ratio 1124.538
+  example (depth 3n/16 - 1): functionals 6d b6 db 7f 81 fe, signs 1 (32 valid sign patterns)
+     |A| = 48, |B| = 48, disjoint, deg(Z_A - Z_B) = 0: common top to depth 47 = 0.1836 n; same previous-level class: yes; formal at this depth: no
+     A = {0,6,10,18,20,24,34,36,46,48,54,60,...}  B = {2,5,11,16,23,25,33,38,47,51,52,61,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 0; zero-sum 4-sets: 680085; random model 4.897e-11; ratio 0.000
+N=8 n=256 GF(2^64) modulus x^64+0x1b power basis
+  six-point words (sum phi = 0, sum delta = 0): 22; zero-sum 6-sets: 1.406e+09; random model 7.619e-11; ratio 288741210210.401
+  example (depth 3n/16 - 1): functionals 6d b6 db 7f 81 fe, signs 1 (32 valid sign patterns)
+     |A| = 48, |B| = 48, disjoint, deg(Z_A - Z_B) = 0: common top to depth 47 = 0.1836 n; same previous-level class: yes; formal at this depth: no
+     A = {0,6,10,18,20,24,34,36,46,48,54,60,...}  B = {2,5,11,16,23,25,33,38,47,51,52,61,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 0; zero-sum 4-sets: 680085; random model 6.796e-28; ratio 0.000
+N=9 n=512 GF(2^10) modulus x^10+0x9 power basis
+  six-point words (sum phi = 0, sum delta = 0): 46017657; zero-sum 6-sets: 4.689e+10; random model 4.579e+07; ratio 1.005
+  example (depth 3n/16 - 1): functionals fa 169 193 81 12a 1ab, signs 1 (32 valid sign patterns)
+     |A| = 96, |B| = 96, disjoint, deg(Z_A - Z_B) = 0: common top to depth 95 = 0.1855 n; same previous-level class: yes; formal at this depth: no
+     A = {0,4,16,20,26,30,40,44,50,54,56,60,...}  B = {1,5,19,23,24,28,41,45,48,52,59,63,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 13973675; zero-sum 4-sets: 5516245; random model 1.451e+07; ratio 0.963
+  example (depth 7n/32 - 1): functionals 7d d1 103 1af 8 da 11a 1c8, signs 11 (64 valid sign patterns)
+     |A| = 128, |B| = 128, disjoint, deg(Z_A - Z_B) = 16: common top to depth 111 = 0.2168 n; same previous-level class: yes; formal at this depth: no
+     A = {0,4,10,15,19,23,25,28,32,36,43,46,...}  B = {2,7,9,13,17,20,26,30,35,38,41,45,...}  (points as bit masks of coordinates)
+N=9 n=512 GF(2^12) modulus x^12+0x9 power basis
+  six-point words (sum phi = 0, sum delta = 0): 11459761; zero-sum 6-sets: 4.689e+10; random model 1.145e+07; ratio 1.001
+  example (depth 3n/16 - 1): functionals f 47 48 ba 164 1de, signs 1 (32 valid sign patterns)
+     |A| = 96, |B| = 96, disjoint, deg(Z_A - Z_B) = 0: common top to depth 95 = 0.1855 n; same previous-level class: yes; formal at this depth: no
+     A = {0,1,11,18,19,24,38,39,45,52,53,62,...}  B = {9,12,15,26,28,31,41,42,47,57,58,60,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 864406; zero-sum 4-sets: 5516245; random model 9.069e+05; ratio 0.953
+  example (depth 7n/32 - 1): functionals 132 16d 199 1c6 130 146 1a9 1df, signs 11 (64 valid sign patterns)
+     |A| = 128, |B| = 128, disjoint, deg(Z_A - Z_B) = 16: common top to depth 111 = 0.2168 n; same previous-level class: yes; formal at this depth: no
+     A = {0,6,9,15,16,17,23,24,25,30,32,33,...}  B = {1,3,4,5,8,10,12,13,19,26,34,43,...}  (points as bit masks of coordinates)
+N=9 n=512 GF(2^16) modulus x^16+0x2b power basis
+  six-point words (sum phi = 0, sum delta = 0): 716114; zero-sum 6-sets: 4.689e+10; random model 7.155e+05; ratio 1.001
+  example (depth 3n/16 - 1): functionals fb 173 188 d6 163 1b5, signs 1 (32 valid sign patterns)
+     |A| = 96, |B| = 96, disjoint, deg(Z_A - Z_B) = 0: common top to depth 95 = 0.1855 n; same previous-level class: yes; formal at this depth: no
+     A = {0,7,8,15,19,20,33,38,41,46,50,53,...}  B = {9,10,13,14,24,31,40,43,44,47,57,62,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 3377; zero-sum 4-sets: 5516245; random model 3542; ratio 0.953
+  example (depth 7n/32 - 1): functionals 4 fa 179 187 8e 9b cb de, signs 11 (64 valid sign patterns)
+     |A| = 128, |B| = 128, disjoint, deg(Z_A - Z_B) = 16: common top to depth 111 = 0.2168 n; same previous-level class: yes; formal at this depth: no
+     A = {0,4,13,14,19,21,24,30,35,39,45,46,...}  B = {1,2,8,12,16,17,26,27,33,34,43,47,...}  (points as bit masks of coordinates)
+N=9 n=512 GF(2^20) modulus x^20+0x9 power basis
+  six-point words (sum phi = 0, sum delta = 0): 44975; zero-sum 6-sets: 4.689e+10; random model 4.472e+04; ratio 1.006
+  example (depth 3n/16 - 1): functionals c0 15d 19d d8 107 1df, signs 1 (32 valid sign patterns)
+     |A| = 96, |B| = 96, disjoint, deg(Z_A - Z_B) = 0: common top to depth 95 = 0.1855 n; same previous-level class: yes; formal at this depth: no
+     A = {0,5,24,29,32,37,56,61,72,75,77,78,...}  B = {1,4,8,10,13,15,16,18,21,23,25,28,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 11; zero-sum 4-sets: 5516245; random model 13.84; ratio 0.795
+  example (depth 7n/32 - 1): functionals 43 90 14c 19f 3b 7a 11a 15b, signs 11 (64 valid sign patterns)
+     |A| = 128, |B| = 128, disjoint, deg(Z_A - Z_B) = 16: common top to depth 111 = 0.2168 n; same previous-level class: yes; formal at this depth: no
+     A = {0,1,5,10,14,15,18,29,32,35,41,42,...}  B = {7,8,16,20,21,26,27,31,40,43,48,51,...}  (points as bit masks of coordinates)
+N=9 n=512 GF(2^24) modulus x^24+0x1b power basis
+  six-point words (sum phi = 0, sum delta = 0): 2753; zero-sum 6-sets: 4.689e+10; random model 2795; ratio 0.985
+  example (depth 3n/16 - 1): functionals b6 139 18f 41 1b4 1f5, signs 1 (32 valid sign patterns)
+     |A| = 96, |B| = 96, disjoint, deg(Z_A - Z_B) = 0: common top to depth 95 = 0.1855 n; same previous-level class: yes; formal at this depth: no
+     A = {0,2,10,22,28,30,38,44,46,48,50,58,...}  B = {1,7,14,18,27,29,34,43,45,49,55,62,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 0; zero-sum 4-sets: 5516245; random model 0.05405; ratio 0.000
+N=9 n=512 GF(2^28) modulus x^28+0x3 power basis
+  six-point words (sum phi = 0, sum delta = 0): 175; zero-sum 6-sets: 4.689e+10; random model 174.7; ratio 1.002
+  example (depth 3n/16 - 1): functionals 36 1db 1ed bf 16a 1d5, signs 1 (32 valid sign patterns)
+     |A| = 96, |B| = 96, disjoint, deg(Z_A - Z_B) = 0: common top to depth 95 = 0.1855 n; same previous-level class: yes; formal at this depth: no
+     A = {0,5,10,17,27,30,39,40,45,51,54,60,...}  B = {1,6,8,19,26,29,37,43,44,48,55,62,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 0; zero-sum 4-sets: 5516245; random model 0.0002111; ratio 0.000
+N=9 n=512 GF(2^40) modulus x^40+0x39 power basis
+  six-point words (sum phi = 0, sum delta = 0): 22; zero-sum 6-sets: 4.689e+10; random model 0.04265; ratio 515.845
+  example (depth 3n/16 - 1): functionals db 16d 1b6 ff 101 1fe, signs 1 (32 valid sign patterns)
+     |A| = 96, |B| = 96, disjoint, deg(Z_A - Z_B) = 0: common top to depth 95 = 0.1855 n; same previous-level class: yes; formal at this depth: no
+     A = {0,6,12,18,20,30,34,36,40,48,54,58,...}  B = {3,4,13,17,22,31,32,39,41,50,53,59,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 0; zero-sum 4-sets: 5516245; random model 1.259e-11; ratio 0.000
+N=9 n=512 GF(2^64) modulus x^64+0x1b power basis
+  six-point words (sum phi = 0, sum delta = 0): 22; zero-sum 6-sets: 4.689e+10; random model 2.542e-09; ratio 8654441725.249
+  example (depth 3n/16 - 1): functionals db 16d 1b6 ff 101 1fe, signs 1 (32 valid sign patterns)
+     |A| = 96, |B| = 96, disjoint, deg(Z_A - Z_B) = 0: common top to depth 95 = 0.1855 n; same previous-level class: yes; formal at this depth: no
+     A = {0,6,12,18,20,30,34,36,40,48,54,58,...}  B = {3,4,13,17,22,31,32,39,41,50,53,59,...}  (points as bit masks of coordinates)
+  eight-point words (two zero-sum 4-sets, sum delta = sum delta^3 = 0): 0; zero-sum 4-sets: 5516245; random model 4.471e-26; ratio 0.000
+#### 56_dual N 64 0x1b 0 six  (N = 10, 11: exhaustive count of the six-point words in GF(2^64))
+N=10 n=1024 GF(2^64) modulus x^64+0x1b power basis
+  six-point words (sum phi = 0, sum delta = 0): 22; zero-sum 6-sets: 1.532e+12; random model 8.305e-08; ratio 264915099.391
+  example (depth 3n/16 - 1): functionals 1b6 2db 36d 1ff 201 3fe, signs 1 (32 valid sign patterns)
+     |A| = 192, |B| = 192, disjoint, deg(Z_A - Z_B) = 0: common top to depth 191 = 0.1865 n; same previous-level class: yes; formal at this depth: no
+     A = {0,10,12,18,24,30,36,40,46,54,58,60,...}  B = {1,8,15,19,26,29,37,43,44,55,57,62,...}  (points as bit masks of coordinates)
+N=11 n=2048 GF(2^64) modulus x^64+0x1b power basis
+  six-point words (sum phi = 0, sum delta = 0): 22; zero-sum 6-sets: 4.953e+13; random model 2.685e-06; ratio 8193786.263
+  example (depth 3n/16 - 1): functionals 3ff 401 7fe 36d 5b6 6db, signs 1 (32 valid sign patterns)
+     |A| = 384, |B| = 384, disjoint, deg(Z_A - Z_B) = 0: common top to depth 383 = 0.1870 n; same previous-level class: yes; formal at this depth: no
+     A = {0,7,14,18,21,28,35,36,42,49,54,56,...}  B = {3,5,15,17,23,29,33,39,43,51,53,57,...}  (points as bit masks of coordinates)
+#### 56_dual 8 64 0x1b seed six  (random bases: no structural word)
+N=8 n=256 GF(2^64) modulus x^64+0x1b random basis
+  six-point words (sum phi = 0, sum delta = 0): 0; zero-sum 6-sets: 1.406e+09; random model 7.619e-11; ratio 0.000
+N=8 n=256 GF(2^64) modulus x^64+0x1b random basis
+  six-point words (sum phi = 0, sum delta = 0): 0; zero-sum 6-sets: 1.406e+09; random model 7.619e-11; ratio 0.000
+N=8 n=256 GF(2^64) modulus x^64+0x1b random basis
+  six-point words (sum phi = 0, sum delta = 0): 0; zero-sum 6-sets: 1.406e+09; random model 7.619e-11; ratio 0.000
+#### 56_struct N 64 0x1b  (structural six-point words of the power shape)
+N=9 GF(2^64) modulus x^64+0x1b power basis; Phi has dimension 9 (511 functionals)
+  22 six-point words with sum phi = 0 and sum delta = 0 in Phi
+  word  1: db ff 101 16d 1b6 1fe  [two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word  2: 80 aa 101 155 180 1fe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word  3: c0 ff 101 17f 181 1c0  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word  4: 49 6d b6 da 124 16c  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word  5: cc ff 133 154 1aa 1fe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word  6: 40 7f 81 ff 101 140  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word  7: 92 b6 124 16c 1b7 1db  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word  8: 49 6d 92 da 1b7 1db  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word  9: 55 66 ab ff 199 1fe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word 10: 6 7 101 103 1fd 1fe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word 11: 4 5 101 102 1fc 1fe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word 12: 2 3 aa ff 101 155  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word 13: 2 3 80 ff 180 1fe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word 14: 92 aa 101 155 1b7 1db  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word 15: aa b6 101 124 155 16c  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word 16: 49 6d aa da 101 155  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word 17: 49 6d 80 da 180 1fe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word 18: 80 b6 124 16c 180 1fe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word 19: 80 92 180 1b7 1db 1fe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word 20: 2 3 49 6d da ff  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word 21: 2 3 b6 ff 124 16c  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+  word 22: 2 3 92 ff 1b7 1db  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 96
+N=12 GF(2^64) modulus x^64+0x1b power basis; Phi has dimension 11 (2047 functionals)
+  22 six-point words with sum phi = 0 and sum delta = 0 in Phi
+  word  1: 6db 7ff 801 b6d db6 ffe  [two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word  2: 492 5b6 924 b6c db7 edb  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word  3: 200 3ff 401 7ff 801 a00  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word  4: 249 36d 492 6da db7 edb  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word  5: 666 7ff 999 aab d55 ffe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word  6: 600 7ff 801 bff c01 e00  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word  7: 400 555 801 aaa c00 ffe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word  8: 249 36d 5b6 6da 924 b6c  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word  9: 2aa 333 554 7ff ccc ffe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word 10: 6 7 801 803 ffd ffe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word 11: 4 5 801 802 ffc ffe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word 12: 2 3 555 7ff 801 aaa  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word 13: 2 3 400 7ff c00 ffe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word 14: 2 3 249 36d 6da 7ff  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word 15: 249 36d 400 6da c00 ffe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word 16: 249 36d 555 6da 801 aaa  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word 17: 2 3 5b6 7ff 924 b6c  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word 18: 400 5b6 924 b6c c00 ffe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word 19: 555 5b6 801 924 aaa b6c  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word 20: 2 3 492 7ff db7 edb  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word 21: 400 492 c00 db7 edb ffe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+  word 22: 492 555 801 aaa db7 edb  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 768
+N=13 GF(2^64) modulus x^64+0x1b power basis; Phi has dimension 11 (2047 functionals)
+  22 six-point words with sum phi = 0 and sum delta = 0 in Phi
+  word  1: db6 fff 1001 16db 1b6d 1ffe  [two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word  2: ccc fff 1333 1554 1aaa 1ffe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word  3: 800 aaa 1001 1555 1800 1ffe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word  4: c00 fff 1001 17ff 1801 1c00  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word  5: 492 6db b6d db7 1249 16da  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word  6: 555 666 aab fff 1999 1ffe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word  7: 492 6db 924 db7 1b6c 1db6  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word  8: 924 b6d 1249 16da 1b6c 1db6  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word  9: 400 7ff 801 fff 1001 1400  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word 10: 6 7 1001 1003 1ffd 1ffe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word 11: 4 5 1001 1002 1ffc 1ffe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word 12: 2 3 aaa fff 1001 1555  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word 13: 2 3 800 fff 1800 1ffe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word 14: 800 924 1800 1b6c 1db6 1ffe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word 15: 2 3 924 fff 1b6c 1db6  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word 16: 924 aaa 1001 1555 1b6c 1db6  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word 17: 800 b6d 1249 16da 1800 1ffe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word 18: 2 3 b6d fff 1249 16da  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word 19: aaa b6d 1001 1249 1555 16da  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word 20: 492 6db 800 db7 1800 1ffe  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word 21: 2 3 492 6db db7 fff  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+  word 22: 492 6db aaa db7 1001 1555  [not two planes]  deg(Z_A - Z_B) = 0 with |A| = |B| = 1536
+N=25 GF(2^64) modulus x^64+0x1b power basis; Phi has dimension 11 (2047 functionals)
+  22 six-point words with sum phi = 0 and sum delta = 0 in Phi
+  word  1: db6db6 ffffff 1000001 16db6db 1b6db6d 1fffffe  [two planes]
+  word  2: 800000 aaaaaa 1000001 1555555 1800000 1fffffe  [not two planes]
+  word  3: c00000 ffffff 1000001 17fffff 1800001 1c00000  [not two planes]
+  word  4: 924924 b6db6d 1249249 16db6da 1b6db6c 1db6db6  [not two planes]
+  word  5: 492492 6db6db 924924 db6db7 1b6db6c 1db6db6  [not two planes]
+  word  6: cccccc ffffff 1333333 1555554 1aaaaaa 1fffffe  [not two planes]
+  word  7: 492492 6db6db b6db6d db6db7 1249249 16db6da  [not two planes]
+  word  8: 400000 7fffff 800001 ffffff 1000001 1400000  [not two planes]
+  word  9: 555555 666666 aaaaab ffffff 1999999 1fffffe  [not two planes]
+  word 10: 6 7 1000001 1000003 1fffffd 1fffffe  [not two planes]
+  word 11: 4 5 1000001 1000002 1fffffc 1fffffe  [not two planes]
+  word 12: 2 3 aaaaaa ffffff 1000001 1555555  [not two planes]
+  word 13: 2 3 800000 ffffff 1800000 1fffffe  [not two planes]
+  word 14: 492492 6db6db aaaaaa db6db7 1000001 1555555  [not two planes]
+  word 15: 924924 aaaaaa 1000001 1555555 1b6db6c 1db6db6  [not two planes]
+  word 16: aaaaaa b6db6d 1000001 1249249 1555555 16db6da  [not two planes]
+  word 17: 492492 6db6db 800000 db6db7 1800000 1fffffe  [not two planes]
+  word 18: 800000 924924 1800000 1b6db6c 1db6db6 1fffffe  [not two planes]
+  word 19: 800000 b6db6d 1249249 16db6da 1800000 1fffffe  [not two planes]
+  word 20: 2 3 492492 6db6db db6db7 ffffff  [not two planes]
+  word 21: 2 3 924924 ffffff 1b6db6c 1db6db6  [not two planes]
+  word 22: 2 3 b6db6d ffffff 1249249 16db6da  [not two planes]
+N=26 GF(2^64) modulus x^64+0x1b power basis; Phi has dimension 11 (2047 functionals)
+  22 six-point words with sum phi = 0 and sum delta = 0 in Phi
+  word  1: 1b6db6d 1ffffff 2000001 2db6db6 36db6db 3fffffe  [two planes]
+  word  2: 924924 db6db6 1249249 1b6db6c 36db6da 3b6db6d  [not two planes]
+  word  3: 1000000 1555555 2000001 2aaaaaa 3000000 3fffffe  [not two planes]
+  word  4: 924924 db6db6 16db6db 1b6db6c 2492492 2db6db7  [not two planes]
+  word  5: aaaaaa cccccc 1555554 1ffffff 3333333 3fffffe  [not two planes]
+  word  6: 1249249 16db6db 2492492 2db6db7 36db6da 3b6db6d  [not two planes]
+  word  7: 1800000 1ffffff 2000001 2ffffff 3000001 3800000  [not two planes]
+  word  8: 1999999 1ffffff 2666666 2aaaaab 3555555 3fffffe  [not two planes]
+  word  9: 800000 ffffff 1000001 1ffffff 2000001 2800000  [not two planes]
+  word 10: 6 7 2000001 2000003 3fffffd 3fffffe  [not two planes]
+  word 11: 4 5 2000001 2000002 3fffffc 3fffffe  [not two planes]
+  word 12: 2 3 1555555 1ffffff 2000001 2aaaaaa  [not two planes]
+  word 13: 2 3 1000000 1ffffff 3000000 3fffffe  [not two planes]
+  word 14: 2 3 1249249 1ffffff 36db6da 3b6db6d  [not two planes]
+  word 15: 1249249 1555555 2000001 2aaaaaa 36db6da 3b6db6d  [not two planes]
+  word 16: 1000000 1249249 3000000 36db6da 3b6db6d 3fffffe  [not two planes]
+  word 17: 2 3 16db6db 1ffffff 2492492 2db6db7  [not two planes]
+  word 18: 2 3 924924 db6db6 1b6db6c 1ffffff  [not two planes]
+  word 19: 1555555 16db6db 2000001 2492492 2aaaaaa 2db6db7  [not two planes]
+  word 20: 1000000 16db6db 2492492 2db6db7 3000000 3fffffe  [not two planes]
+  word 21: 924924 db6db6 1555555 1b6db6c 2000001 2aaaaaa  [not two planes]
+  word 22: 924924 db6db6 1000000 1b6db6c 3000000 3fffffe  [not two planes]
+N=27 GF(2^64) modulus x^64+0x1b power basis; Phi has dimension 11 (2047 functionals)
+  22 six-point words with sum phi = 0 and sum delta = 0 in Phi
+  word  1: 36db6db 3ffffff 4000001 5b6db6d 6db6db6 7fffffe  [two planes]
+  word  2: 1555555 1999999 2aaaaab 3ffffff 6666666 7fffffe  [not two planes]
+  word  3: 2492492 2db6db6 4924924 5b6db6c 6db6db7 76db6db  [not two planes]
+  word  4: 3333333 3ffffff 4cccccc 5555554 6aaaaaa 7fffffe  [not two planes]
+  word  5: 2000000 2aaaaaa 4000001 5555555 6000000 7fffffe  [not two planes]
+  word  6: 1249249 1b6db6d 2492492 36db6da 6db6db7 76db6db  [not two planes]
+  word  7: 3000000 3ffffff 4000001 5ffffff 6000001 7000000  [not two planes]
+  word  8: 1249249 1b6db6d 2db6db6 36db6da 4924924 5b6db6c  [not two planes]
+  word  9: 1000000 1ffffff 2000001 3ffffff 4000001 5000000  [not two planes]
+  word 10: 6 7 4000001 4000003 7fffffd 7fffffe  [not two planes]
+  word 11: 4 5 4000001 4000002 7fffffc 7fffffe  [not two planes]
+  word 12: 2 3 2aaaaaa 3ffffff 4000001 5555555  [not two planes]
+  word 13: 2 3 2000000 3ffffff 6000000 7fffffe  [not two planes]
+  word 14: 1249249 1b6db6d 2aaaaaa 36db6da 4000001 5555555  [not two planes]
+  word 15: 2aaaaaa 2db6db6 4000001 4924924 5555555 5b6db6c  [not two planes]
+  word 16: 2492492 2aaaaaa 4000001 5555555 6db6db7 76db6db  [not two planes]
+  word 17: 2 3 1249249 1b6db6d 36db6da 3ffffff  [not two planes]
+  word 18: 1249249 1b6db6d 2000000 36db6da 6000000 7fffffe  [not two planes]
+  word 19: 2 3 2db6db6 3ffffff 4924924 5b6db6c  [not two planes]
+  word 20: 2000000 2db6db6 4924924 5b6db6c 6000000 7fffffe  [not two planes]
+  word 21: 2 3 2492492 3ffffff 6db6db7 76db6db  [not two planes]
+  word 22: 2000000 2492492 6000000 6db6db7 76db6db 7fffffe  [not two planes]
+N=28 GF(2^64) modulus x^64+0x1b power basis; Phi has dimension 11 (2047 functionals)
+  22 six-point words with sum phi = 0 and sum delta = 0 in Phi
+  word  1: 6db6db6 7ffffff 8000001 b6db6db db6db6d ffffffe  [two planes]
+  word  2: 2492492 36db6db 5b6db6d 6db6db7 9249249 b6db6da  [not two planes]
+  word  3: 4924924 5b6db6d 9249249 b6db6da db6db6c edb6db6  [not two planes]
+  word  4: 2aaaaaa 3333333 5555554 7ffffff ccccccc ffffffe  [not two planes]
+  word  5: 2492492 36db6db 4924924 6db6db7 db6db6c edb6db6  [not two planes]
+  word  6: 6666666 7ffffff 9999999 aaaaaab d555555 ffffffe  [not two planes]
+  word  7: 4000000 5555555 8000001 aaaaaaa c000000 ffffffe  [not two planes]
+  word  8: 6000000 7ffffff 8000001 bffffff c000001 e000000  [not two planes]
+  word  9: 2000000 3ffffff 4000001 7ffffff 8000001 a000000  [not two planes]
+  word 10: 6 7 8000001 8000003 ffffffd ffffffe  [not two planes]
+  word 11: 4 5 8000001 8000002 ffffffc ffffffe  [not two planes]
+  word 12: 2 3 5555555 7ffffff 8000001 aaaaaaa  [not two planes]
+  word 13: 2 3 4000000 7ffffff c000000 ffffffe  [not two planes]
+  word 14: 2492492 36db6db 5555555 6db6db7 8000001 aaaaaaa  [not two planes]
+  word 15: 4924924 5555555 8000001 aaaaaaa db6db6c edb6db6  [not two planes]
+  word 16: 5555555 5b6db6d 8000001 9249249 aaaaaaa b6db6da  [not two planes]
+  word 17: 2492492 36db6db 4000000 6db6db7 c000000 ffffffe  [not two planes]
+  word 18: 2 3 2492492 36db6db 6db6db7 7ffffff  [not two planes]
+  word 19: 4000000 4924924 c000000 db6db6c edb6db6 ffffffe  [not two planes]
+  word 20: 4000000 5b6db6d 9249249 b6db6da c000000 ffffffe  [not two planes]
+  word 21: 2 3 4924924 7ffffff db6db6c edb6db6  [not two planes]
+  word 22: 2 3 5b6db6d 7ffffff 9249249 b6db6da  [not two planes]
+#### 56_family.py 25 words verify
+N = 25: 22 words, 704 signed differences 1_A - 1_B on the quotient F_2^11
+  compatible pairs: 14496
+  no size constraint: 21 sets (clique of 20), |union B| = 0.5000 n <= p <= 0.5000 n, words [2, 13, 17, 18, 19]
+  rate 1/2, p in [5n/8, 11n/16]: 5 sets (clique of 4), |union B| = 0.5625 n <= p <= 0.6250 n, words [1]
+  rate 1/2, p in [0.66 n, 11n/16]: 4 sets (clique of 3), |union B| = 0.5625 n <= p <= 0.7500 n, words [1]
+  rate 1/4, p = 7n/16: 11 sets (clique of 10), |union B| = 0.4375 n <= p <= 0.5000 n, words [2, 13, 17, 18, 19]
+  rate 1/8, p in (n/4, 5n/16]: 4 sets (clique of 3), |union B| = 0.2500 n <= p <= 0.4375 n, words [1]
+  rate 1/16, p in [3n/16, n/4]: 5 sets (clique of 4), |union B| = 0.2500 n <= p <= 0.2500 n, words [1]
+  direct verification in GF(2^64), N = 25: labels L_W'(t) of the 2048 cosets of W' (dimension 14)
+    rate 1/2, p in [0.66 n, 11n/16]: 4 sets of 1408 cosets (0.6875 n points); the coefficients e_1..e_383 of P_S agree for all of them and e_384 does not (first difference from the base set between 384 and 384): deg(Z_S - Z_S') <= p - 3n/16 for every pair
+    rate 1/4, p = 7n/16: 11 sets of 896 cosets (0.4375 n points); the coefficients e_1..e_383 of P_S agree for all of them and e_384 does not (first difference from the base set between 384 and 384): deg(Z_S - Z_S') <= p - 3n/16 for every pair
+#### 56_verify.py  (deg(Z_A - Z_B) = 0 for the pairs of the structural words, at the real sizes)
+N = 25 (n = 2^25, sets of 3n/16 = 6291456 points): 22 words, 352 pairs (A, B) verified: Z_A - Z_B is a nonzero constant in GF(2^64)
+N = 26 (n = 2^26, sets of 3n/16 = 12582912 points): 22 words, 352 pairs (A, B) verified: Z_A - Z_B is a nonzero constant in GF(2^64)
+N = 27 (n = 2^27, sets of 3n/16 = 25165824 points): 22 words, 352 pairs (A, B) verified: Z_A - Z_B is a nonzero constant in GF(2^64)
+N = 28 (n = 2^28, sets of 3n/16 = 50331648 points): 22 words, 352 pairs (A, B) verified: Z_A - Z_B is a nonzero constant in GF(2^64)

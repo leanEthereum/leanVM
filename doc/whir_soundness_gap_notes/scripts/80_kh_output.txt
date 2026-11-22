@@ -1,0 +1,25 @@
+== (1) Proposition 6.1 by literal enumeration of all mu and all M (GF(4))
+  n=5 k=2 L=2 d=1, classes 012 01 02 12 012, pi a 5-cycle: w=7, M with a wrong count of mu: 0 of 256; E|S cap L| = 0.210938 <= bound 0.416016: True
+  n=5 k=2 L=2 d=1, classes 012 012 012 01 12, pi with a fixed point: w=8, M with a wrong count of mu: 0 of 256; E|S cap L| = 0.131836 <= bound 0.310547: True
+  n=4 k=2 L=3 d=1, classes 0123 012 13 23, pi a 4-cycle: w=7, M with a wrong count of mu: 0 of 4096; E|S cap L| = 0.023438 <= bound 1.040039: True
+  n=3 k=2 L=2 d=2, classes 012 012 01, two maps: w=5, M with a wrong count of mu: 0 of 256; E|S cap L| = 0.644531 <= bound 0.644531: True
+== (2) K(Lambda) exactly (no enumeration of mu); KH asks K <= C^n
+  q=8 n=6 k=2 L=2, all members agree on |T|=3: K = 48.11, K over rank-L M only = 0.861, q^((L-1)(|T|-k+1)) = 64, ratio K/that = 0.752
+  q=8 n=6 k=2 L=2, all members agree on |T|=4: K = 378.86, K over rank-L M only = 0.861, q^((L-1)(|T|-k+1)) = 512, ratio K/that = 0.740
+  q=8 n=6 k=2 L=2, all members agree on |T|=5: K = 3024.86, K over rank-L M only = 0.861, q^((L-1)(|T|-k+1)) = 4096, ratio K/that = 0.738
+  q=8 n=7 k=3 L=2, all members agree on |T|=4: K = 74.61, K over rank-L M only = 8.331, q^((L-1)(|T|-k+1)) = 64, ratio K/that = 1.166
+  q=8 n=7 k=3 L=2, all members agree on |T|=5: K = 578.82, K over rank-L M only = 11.816, q^((L-1)(|T|-k+1)) = 512, ratio K/that = 1.131
+  q=16 n=7 k=2 L=2, all members agree on |T|=4: K = 3570.93, K over rank-L M only = 0.934, q^((L-1)(|T|-k+1)) = 4096, ratio K/that = 0.872
+  q=16 n=7 k=2 L=2, all members agree on |T|=5: K = 57120.93, K over rank-L M only = 0.934, q^((L-1)(|T|-k+1)) = 65536, ratio K/that = 0.872
+  q=4 n=4 k=2 L=3, all members agree on |T|=3: K = 72.19, K over rank-L M only = 0.000, q^((L-1)(|T|-k+1)) = 256, ratio K/that = 0.282
+  q=8 n=6 k=2 L=3, all members agree on |T|=4: K = 124653.38, K over rank-L M only = 0.000, q^((L-1)(|T|-k+1)) = 262144, ratio K/that = 0.476
+  a pattern with no full class, L=3: members 0,1,2 agree on T, member 3 elsewhere
+    q=4 n=4 k=2 |T|=3: K = 6.67, over rank-3 M only = 0.000
+    q=4 n=4 k=2 |T|=4: K = 24.95, over rank-3 M only = 0.000
+== (3) thresholds of Theorem 6.2 (n -> infinity), and the zeros a collinear list needs
+  rate 0.5, C=4: L=2: tau=0.6910 (collinear lists need distance slack 2.34/64); L=3: tau=0.6474 (collinear lists need distance slack 1.92/64); L=4: tau=0.6212 (collinear lists need distance slack 1.70/64); L=8: tau=0.5744 (collinear lists need distance slack 1.36/64); L=16: tau=0.5468 (collinear lists need distance slack 1.18/64)
+  rate 0.5, C=1: L=2: tau=0.6808 (collinear lists need distance slack 1.36/64); L=3: tau=0.6397 (collinear lists need distance slack 1.26/64); L=4: tau=0.6150 (collinear lists need distance slack 1.20/64); L=8: tau=0.5710 (collinear lists need distance slack 1.11/64); L=16: tau=0.5449 (collinear lists need distance slack 1.06/64)
+  rate 0.25, C=4: L=3: tau=0.4609 (collinear lists need distance slack 1.99/64); L=4: tau=0.4216 (collinear lists need distance slack 1.73/64); L=8: tau=0.3514 (collinear lists need distance slack 1.30/64); L=16: tau=0.3099 (collinear lists need distance slack 1.07/64)
+  rate 0.25, C=1: L=3: tau=0.4530 (collinear lists need distance slack 1.32/64); L=4: tau=0.4153 (collinear lists need distance slack 1.22/64); L=8: tau=0.3479 (collinear lists need distance slack 1.05/64); L=16: tau=0.3080 (collinear lists need distance slack 0.95/64)
+  first-moment distance slack s solves s = H(rho + s/64) + log2(C1): C1=1: 0.999, C1=2: 1.997, C1=4: 2.994 (rate 1/2, in units of n/64)
+/usr/bin/python3 80_kh.py  44.41s user 0.05s system 99% cpu 44.479 total

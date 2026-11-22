@@ -1,0 +1,39 @@
+# 61_mix_bench.c on the swarm's machine (Apple M4 Max), other agents running. Best of 2 or 3 repetitions.
+# load averages: 4.13 4.95 4.59
+$ ./61_mix_bench 20 40 1 1
+rows 2^20, lanes 40, 320 MiB, 1 thread(s)
+copy (one read pass)                 5.6 ms
+ntt (19 layers, depth first)       319.6 ms   0.40 ns a word and layer
+mix r = 21 (20 partners)           350.1 ms   1.10 x ntt   0.42 ns a word and partner
+mix r = 17 (16 partners)           280.4 ms   0.88 x ntt   0.42 ns a word and partner
+mix r = 10 ( 9 partners)           145.1 ms   0.45 x ntt   0.38 ns a word and partner
+mix r =  5 ( 4 partners)            75.6 ms   0.24 x ntt   0.45 ns a word and partner
+mix r = 21, groups of  5            277.8 ms   0.87 x ntt
+mix r = 21, groups of 10            314.0 ms   0.98 x ntt
+mix, 9 partners, all in a block    135.2 ms   0.42 x ntt
+checksum 1d44a20c0ec5f957
+$ ./61_mix_bench 20 40 2 4
+rows 2^20, lanes 40, 320 MiB, 4 thread(s)
+copy (one read pass)                 3.7 ms
+ntt (18 layers, depth first)        75.0 ms   0.10 ns a word and layer
+mix r = 21 (20 partners)           179.2 ms   2.39 x ntt   0.21 ns a word and partner
+mix r = 17 (16 partners)            86.1 ms   1.15 x ntt   0.13 ns a word and partner
+mix r = 10 ( 9 partners)            51.8 ms   0.69 x ntt   0.14 ns a word and partner
+mix r =  5 ( 4 partners)            28.1 ms   0.37 x ntt   0.17 ns a word and partner
+mix r = 21, groups of  5             99.4 ms   1.33 x ntt
+mix r = 21, groups of 10            110.9 ms   1.48 x ntt
+mix, 9 partners, all in a block     46.8 ms   0.62 x ntt
+checksum 6e046b8079cd5fa0
+$ ./61_mix_bench 21 40 2 4
+rows 2^21, lanes 40, 640 MiB, 4 thread(s)
+copy (one read pass)                 4.4 ms
+ntt (19 layers, depth first)       190.9 ms   0.12 ns a word and layer
+mix r = 22 (21 partners)           504.9 ms   2.65 x ntt   0.29 ns a word and partner
+mix r = 17 (16 partners)           228.7 ms   1.20 x ntt   0.17 ns a word and partner
+mix r = 10 ( 9 partners)           129.1 ms   0.68 x ntt   0.17 ns a word and partner
+mix r =  5 ( 4 partners)            66.5 ms   0.35 x ntt   0.20 ns a word and partner
+mix r = 22, groups of  5            253.3 ms   1.33 x ntt
+mix r = 22, groups of 10            279.2 ms   1.46 x ntt
+mix, 9 partners, all in a block    134.7 ms   0.71 x ntt
+checksum e387c611d91d89c8
+# load averages: 4.29 4.95 4.59

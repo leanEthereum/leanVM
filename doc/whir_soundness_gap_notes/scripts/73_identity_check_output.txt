@@ -1,0 +1,5 @@
+Kraft sum, lambda = 1.0, r = 1, J = 0, v = 2: 1.000000000000
+Kraft sum, lambda = 2.5, r = 1, J = 0, v = 2: 1.000000000000
+Kraft sum, lambda = 0.7, r = 0, J = 1, v = 3: 1.000000000000
+Kraft sum, lambda = 3.0, r = 0, J = 0, v = 3: 1.000000000000
+identity of Steps 1 to 4 and Abel summation, largest relative error over 2000 random profiles: 5.09e-16

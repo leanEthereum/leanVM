@@ -1,0 +1,42 @@
+Section 2 table, inequality (1), level 0 (N = 24 + R):
+  rate 0.5: Johnson 0.7071 (216 at the radius, 217 just above), pigeonhole rho + H(a)/64 = 0.5156 (114)
+    L= 1: a=0.76236 (Singleton part 0.75000, entropy part 0.01236) queries=276 list bound q^0 = 2^0
+    L= 2: a=0.68078 (Singleton part 0.66667, entropy part 0.01412) queries=195 list bound q^1 = 2^64
+    L= 3: a=0.63973 (Singleton part 0.62500, entropy part 0.01473) queries=168 list bound q^2 = 2^128
+    L= 4: a=0.61502 (Singleton part 0.60000, entropy part 0.01502) queries=155 list bound q^3 = 2^192
+    L= 5: a=0.59852 (Singleton part 0.58333, entropy part 0.01518) queries=146 list bound q^4 = 2^256
+    L= 7: a=0.57785 (Singleton part 0.56250, entropy part 0.01535) queries=137 list bound q^6 = 2^384
+    L=10: a=0.56091 (Singleton part 0.54545, entropy part 0.01546) queries=130 list bound q^9 = 2^576
+    L=15: a=0.54678 (Singleton part 0.53125, entropy part 0.01553) queries=124 list bound q^14 = 2^896
+    L=23: a=0.53640 (Singleton part 0.52083, entropy part 0.01557) queries=121 list bound q^22 = 2^1408
+  rate 0.25: Johnson 0.5000 (108 at the radius, 109 just above), pigeonhole rho + H(a)/64 = 0.2630 (57)
+    L= 2: a=0.51561 (Singleton part 0.50000, entropy part 0.01561) queries=114 list bound q^1 = 2^64
+    L= 3: a=0.45303 (Singleton part 0.43750, entropy part 0.01553) queries=95 list bound q^2 = 2^128
+    L= 7: a=0.35846 (Singleton part 0.34375, entropy part 0.01471) queries=73 list bound q^6 = 2^384
+    L=15: a=0.31085 (Singleton part 0.29688, entropy part 0.01397) queries=65 list bound q^14 = 2^896
+    L=24: a=0.29365 (Singleton part 0.28000, entropy part 0.01365) queries=62 list bound q^23 = 2^1472
+  rate 0.125: Johnson 0.3536 (72 at the radius, 73 just above), pigeonhole rho + H(a)/64 = 0.1339 (38)
+    L= 3: a=0.35846 (Singleton part 0.34375, entropy part 0.01471) queries=73 list bound q^2 = 2^128
+    L=15: a=0.19067 (Singleton part 0.17969, entropy part 0.01098) queries=46 list bound q^14 = 2^896
+  rate 0.0625: Johnson 0.2500 (54 at the radius, 55 just above), pigeonhole rho + H(a)/64 = 0.0681 (28)
+    L= 3: a=0.31085 (Singleton part 0.29688, entropy part 0.01397) queries=65 list bound q^2 = 2^128
+    L=15: a=0.12979 (Singleton part 0.12109, entropy part 0.00870) queries=37 list bound q^14 = 2^896
+Section 8 thresholds g_t(alpha) = (t-1) rho [+ t H(alpha)/64], g_t(p) = t p - 1 + (1-p)^t:
+  rate 0.5: t=3: 0.6527 / 0.6689 (187); t=4: 0.6198 / 0.6354 (166); t=5: 0.5979 / 0.6133 (154); t=8: 0.5623 / 0.5777 (137); t=16: 0.5312 / 0.5468 (124); Johnson 0.7071
+  rate 0.25: t=3: 0.4421 / 0.4643 (98); t=4: 0.4065 / 0.4257 (88); t=5: 0.3820 / 0.3996 (82); t=8: 0.3392 / 0.3546 (73); t=16: 0.2967 / 0.3107 (65); Johnson 0.5000
+  rate 0.125: t=3: 0.3045 / 0.3313 (68); t=4: 0.2745 / 0.2961 (62); t=5: 0.2537 / 0.2724 (58); t=8: 0.2167 / 0.2313 (52); t=16: 0.1769 / 0.1884 (45); Johnson 0.3536
+  rate 0.0625: t=3: 0.2117 / 0.2428 (53); t=4: 0.1884 / 0.2123 (49); t=5: 0.1723 / 0.1923 (46); t=8: 0.1435 / 0.1579 (41); t=16: 0.1117 / 0.1216 (36); Johnson 0.2500
+Pair counting on free configurations: iota = largest interior of a set of fewer than k points (Harper);
+the free t-wise inequality is implied for every t when iota/n <= rho^2; otherwise first t where the bound exceeds (t-1)k:
+  rate 0.5 (rho^2 = 0.25): N=4: iota/n=0.0625 first bad t=None; N=5: iota/n=0.1250 first bad t=None; N=6: iota/n=0.1562 first bad t=None; N=7: iota/n=0.2031 first bad t=None; N=8: iota/n=0.2148 first bad t=None; N=9: iota/n=0.2461 first bad t=None; N=10: iota/n=0.2500 first bad t=None; N=11: iota/n=0.2720 first bad t=13; N=12: iota/n=0.2732 first bad t=11; N=16: iota/n=0.3035 first bad t=5; N=20: iota/n=0.3238 first bad t=5; N=25: iota/n=0.3450 first bad t=3; N=26: iota/n=0.3450 first bad t=3; N=28: iota/n=0.3506 first bad t=3
+  rate 0.25 (rho^2 = 0.0625): N=4: iota/n=0.0000 first bad t=None; N=5: iota/n=0.0312 first bad t=None; N=6: iota/n=0.0312 first bad t=None; N=7: iota/n=0.0625 first bad t=None; N=8: iota/n=0.0664 first bad t=49; N=9: iota/n=0.0781 first bad t=13; N=10: iota/n=0.0820 first bad t=11; N=11: iota/n=0.0894 first bad t=8; N=12: iota/n=0.0945 first bad t=8; N=16: iota/n=0.1145 first bad t=5; N=20: iota/n=0.1293 first bad t=4; N=25: iota/n=0.1376 first bad t=4; N=26: iota/n=0.1397 first bad t=4; N=28: iota/n=0.1438 first bad t=4
+Check of Harper's function by exhaustion, N = 4 (all subsets):
+  ok: min |T + C| = [5, 8, 10, 11, 11, 13, 14, 14, 15, 15, 15, 16, 16, 16, 16, 16]
+Rank-one term of the Key Lemma, exact (L = 1): E_V[q^Delta] - 1 = sum over nonempty T with |T + C| < k of
+(q-1)^|T| (q^(k-|T+C|) - 1)/(q^k - 1), against the leading term n (q-1)(q^(k-N-1) - 1)/(q^k - 1); N = 4:
+  q=2^4 k=6: E-1 = 0.000214577, leading term 0.000214577, ratio 1.000000
+  q=2^4 k=7: E-1 = 0.000227988, leading term 0.000227988, ratio 1.000000
+  q=2^4 k=8: E-1 = 0.000228826, leading term 0.000228826, ratio 1.000000
+  q=2^64 k=6: E-1 = 1.38179e-76, leading term 1.38179e-76, ratio 1.000000
+  q=2^64 k=7: E-1 = 1.38179e-76, leading term 1.38179e-76, ratio 1.000000
+  q=2^64 k=8: E-1 = 1.38179e-76, leading term 1.38179e-76, ratio 1.000000

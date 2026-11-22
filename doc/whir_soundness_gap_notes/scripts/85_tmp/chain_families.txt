@@ -1,0 +1,219 @@
+== stair 8 16 1
+n=128 members=15 kernel d_0=2 distinct=15 agreements min 80 max 80 weight w=1074 rank=894 deficiency=180 needed (L+1)a-n-Lk+1=177
+  dim Theta = 0
+  s_j (kernel of the block-coincidence partition pattern of a generic solution): N=128:2 N=64:2 N=32:2 N=16:2 N=8:2 N=4:13 N=2:14   2^j s_j - s_0: 0 2 6 14 30 414 894
+  incoherent leaves at scale N=64: beta max 1 mean 1.00; e+2^j=18; sum_l (e+2^j-beta_l)=255 -> Theorem 4.1: members <= 7114893723659468800 (F(64)=60476596651105487622)
+  incoherent leaves at scale N=32: beta max 3 mean 3.00; e+2^j=20; sum_l (e+2^j-beta_l)=255 -> Theorem 4.1: members <= 2404321560 (F(32)=10218366630)
+  incoherent leaves at scale N=16: beta max 7 mean 7.00; e+2^j=24; sum_l (e+2^j-beta_l)=255 -> Theorem 4.1: members <= 54508 (F(16)=115830)
+  incoherent leaves at scale N=8: beta max 15 mean 15.00; e+2^j=32; sum_l (e+2^j-beta_l)=255 -> Theorem 4.1: members <= 329 (F(8)=350)
+  incoherent leaves at scale N=4: beta max 79 mean 79.00; e+2^j=48; sum_l (e+2^j-beta_l)=-465 -> no bound at this scale
+  level 0: N=128 d_j=2 D_j=d_j/k_j=0.031 fine cost c_j=2^j d_j-d_0=0 (n/8=16, (a-k)=16) B_j=2 nodes with rho>0: 1 (C*) ok gain G_j=12 | (dimQ_u,rho_u,delta_p,dimQ_p):count (14, 2, 2, 0):1
+  level 1: N=64 d_j=2 D_j=d_j/k_j=0.062 fine cost c_j=2^j d_j-d_0=2 (n/8=16, (a-k)=16) B_j=2 nodes with rho>0: 1 (C*) ok gain G_j=12 | (dimQ_u,rho_u,delta_p,dimQ_p):count (14, 2, 2, 0):1
+  level 2: N=32 d_j=2 D_j=d_j/k_j=0.125 fine cost c_j=2^j d_j-d_0=6 (n/8=16, (a-k)=16) B_j=2 nodes with rho>0: 1 (C*) ok gain G_j=12 | (dimQ_u,rho_u,delta_p,dimQ_p):count (14, 2, 2, 0):1
+  level 3: N=16 d_j=2 D_j=d_j/k_j=0.250 fine cost c_j=2^j d_j-d_0=14 (n/8=16, (a-k)=16) B_j=2 nodes with rho>0: 1 (C*) ok gain G_j=12 | (dimQ_u,rho_u,delta_p,dimQ_p):count (14, 2, 2, 0):1
+  level 4: N=8 d_j=2 D_j=d_j/k_j=0.500 fine cost c_j=2^j d_j-d_0=30 (n/8=16, (a-k)=16) B_j=24 nodes with rho>0: 6 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (9, 4, 9, 5):6
+  level 5: N=4 d_j=13 D_j=d_j/k_j=6.500 fine cost c_j=2^j d_j-d_0=414 (n/8=16, (a-k)=16) B_j=15 nodes with rho>0: 3 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (5, 5, 14, 0):3
+  level 6: N=2 d_j=14 D_j=d_j/k_j=14.000 fine cost c_j=2^j d_j-d_0=894 (n/8=16, (a-k)=16)
+  sum_j 2^j G_j = 180 + k dim Theta = 0 -> 180 (deficiency 180)
+  critical scale: N = 16 (levels with 2^j d_j - d_0 < a - k: [0, 1, 2, 3])
+  n=128 members=15 distinct=15 min agreement 80 deficiency 180 d_j (N=n..2): 2 2 2 2 2 13 14 | (C*) at every level: ok | E_i <= 2 d_(i+1) - d_i: ok | critical scale 16 | beta(8) max 15 (e+b = 32) | max nu_l(i)/2^i below scale 8: 1
+== stair 8 2 0
+n=16 members=35 kernel d_0=3 distinct=35 agreements min 9 max 10 weight w=300 rank=269 deficiency=31 needed (L+1)a-n-Lk+1=28
+  dim Theta = 0
+  s_j (kernel of the block-coincidence partition pattern of a generic solution): N=16:3 N=8:3 N=4:41 N=2:34   2^j s_j - s_0: 0 3 161 269
+  incoherent leaves at scale N=16: beta max 0 mean 0.00; e+2^j=2; sum_l (e+2^j-beta_l)=70 -> Theorem 4.1: members <= 57915 (F(16)=115830)
+  incoherent leaves at scale N=8: beta max 1 mean 1.00; e+2^j=3; sum_l (e+2^j-beta_l)=70 -> Theorem 4.1: members <= 350 (F(8)=350)
+  incoherent leaves at scale N=4: beta max 9 mean 9.00; e+2^j=5; sum_l (e+2^j-beta_l)=-140 -> no bound at this scale
+  level 0: N=16 d_j=3 D_j=d_j/k_j=0.375 fine cost c_j=2^j d_j-d_0=0 (n/8=2, (a-k)=1) B_j=3 nodes with rho>0: 1 (C*) ok gain G_j=31 | (dimQ_u,rho_u,delta_p,dimQ_p):count (34, 3, 3, 0):1
+  level 1: N=8 d_j=3 D_j=d_j/k_j=0.750 fine cost c_j=2^j d_j-d_0=3 (n/8=2, (a-k)=1) B_j=79 nodes with rho>0: 7 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (19, 10, 25, 9):6 (19, 19, 33, 0):1
+  level 2: N=4 d_j=41 D_j=d_j/k_j=20.500 fine cost c_j=2^j d_j-d_0=161 (n/8=2, (a-k)=1) B_j=27 nodes with rho>0: 3 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (9, 9, 34, 0):3
+  level 3: N=2 d_j=34 D_j=d_j/k_j=34.000 fine cost c_j=2^j d_j-d_0=269 (n/8=2, (a-k)=1)
+  sum_j 2^j G_j = 31 + k dim Theta = 0 -> 31 (deficiency 31)
+  critical scale: N = 16 (levels with 2^j d_j - d_0 < a - k: [0])
+  n=16 members=35 distinct=35 min agreement 9 deficiency 31 d_j (N=n..2): 3 3 41 34 | (C*) at every level: ok | E_i <= 2 d_(i+1) - d_i: ok | critical scale 16 | beta(8) max 1 (e+b = 3) | max nu_l(i)/2^i below scale 8: 1
+== stair 8 4 0
+n=32 members=35 kernel d_0=3 distinct=35 agreements min 19 max 20 weight w=634 rank=541 deficiency=93 needed (L+1)a-n-Lk+1=90
+  dim Theta = 0
+  s_j (kernel of the block-coincidence partition pattern of a generic solution): N=32:3 N=16:3 N=8:3 N=4:41 N=2:34   2^j s_j - s_0: 0 3 9 325 541
+  incoherent leaves at scale N=32: beta max 0 mean 0.00; e+2^j=4; sum_l (e+2^j-beta_l)=140 -> Theorem 4.1: members <= 2554591658 (F(32)=10218366630)
+  incoherent leaves at scale N=16: beta max 1 mean 1.00; e+2^j=5; sum_l (e+2^j-beta_l)=140 -> Theorem 4.1: members <= 57915 (F(16)=115830)
+  incoherent leaves at scale N=8: beta max 3 mean 3.00; e+2^j=7; sum_l (e+2^j-beta_l)=140 -> Theorem 4.1: members <= 350 (F(8)=350)
+  incoherent leaves at scale N=4: beta max 19 mean 19.00; e+2^j=11; sum_l (e+2^j-beta_l)=-280 -> no bound at this scale
+  level 0: N=32 d_j=3 D_j=d_j/k_j=0.188 fine cost c_j=2^j d_j-d_0=0 (n/8=4, (a-k)=3) B_j=3 nodes with rho>0: 1 (C*) ok gain G_j=31 | (dimQ_u,rho_u,delta_p,dimQ_p):count (34, 3, 3, 0):1
+  level 1: N=16 d_j=3 D_j=d_j/k_j=0.375 fine cost c_j=2^j d_j-d_0=3 (n/8=4, (a-k)=3) B_j=3 nodes with rho>0: 1 (C*) ok gain G_j=31 | (dimQ_u,rho_u,delta_p,dimQ_p):count (34, 3, 3, 0):1
+  level 2: N=8 d_j=3 D_j=d_j/k_j=0.750 fine cost c_j=2^j d_j-d_0=9 (n/8=4, (a-k)=3) B_j=79 nodes with rho>0: 7 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (19, 10, 25, 9):6 (19, 19, 33, 0):1
+  level 3: N=4 d_j=41 D_j=d_j/k_j=20.500 fine cost c_j=2^j d_j-d_0=325 (n/8=4, (a-k)=3) B_j=27 nodes with rho>0: 3 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (9, 9, 34, 0):3
+  level 4: N=2 d_j=34 D_j=d_j/k_j=34.000 fine cost c_j=2^j d_j-d_0=541 (n/8=4, (a-k)=3)
+  sum_j 2^j G_j = 93 + k dim Theta = 0 -> 93 (deficiency 93)
+  critical scale: N = 32 (levels with 2^j d_j - d_0 < a - k: [0])
+  n=32 members=35 distinct=35 min agreement 19 deficiency 93 d_j (N=n..2): 3 3 3 41 34 | (C*) at every level: ok | E_i <= 2 d_(i+1) - d_i: ok | critical scale 32 | beta(8) max 3 (e+b = 7) | max nu_l(i)/2^i below scale 8: 1
+== stair 8 8 0
+n=64 members=35 kernel d_0=3 distinct=35 agreements min 39 max 40 weight w=1302 rank=1085 deficiency=217 needed (L+1)a-n-Lk+1=214
+  dim Theta = 0
+  s_j (kernel of the block-coincidence partition pattern of a generic solution): N=64:3 N=32:3 N=16:3 N=8:3 N=4:41 N=2:34   2^j s_j - s_0: 0 3 9 21 653 1085
+  incoherent leaves at scale N=64: beta max 0 mean 0.00; e+2^j=8; sum_l (e+2^j-beta_l)=280 -> Theorem 4.1: members <= 7559574581388185600 (F(64)=60476596651105487622)
+  incoherent leaves at scale N=32: beta max 1 mean 1.00; e+2^j=9; sum_l (e+2^j-beta_l)=280 -> Theorem 4.1: members <= 2554591658 (F(32)=10218366630)
+  incoherent leaves at scale N=16: beta max 3 mean 3.00; e+2^j=11; sum_l (e+2^j-beta_l)=280 -> Theorem 4.1: members <= 57915 (F(16)=115830)
+  incoherent leaves at scale N=8: beta max 7 mean 7.00; e+2^j=15; sum_l (e+2^j-beta_l)=280 -> Theorem 4.1: members <= 350 (F(8)=350)
+  incoherent leaves at scale N=4: beta max 39 mean 39.00; e+2^j=23; sum_l (e+2^j-beta_l)=-560 -> no bound at this scale
+  level 0: N=64 d_j=3 D_j=d_j/k_j=0.094 fine cost c_j=2^j d_j-d_0=0 (n/8=8, (a-k)=7) B_j=3 nodes with rho>0: 1 (C*) ok gain G_j=31 | (dimQ_u,rho_u,delta_p,dimQ_p):count (34, 3, 3, 0):1
+  level 1: N=32 d_j=3 D_j=d_j/k_j=0.188 fine cost c_j=2^j d_j-d_0=3 (n/8=8, (a-k)=7) B_j=3 nodes with rho>0: 1 (C*) ok gain G_j=31 | (dimQ_u,rho_u,delta_p,dimQ_p):count (34, 3, 3, 0):1
+  level 2: N=16 d_j=3 D_j=d_j/k_j=0.375 fine cost c_j=2^j d_j-d_0=9 (n/8=8, (a-k)=7) B_j=3 nodes with rho>0: 1 (C*) ok gain G_j=31 | (dimQ_u,rho_u,delta_p,dimQ_p):count (34, 3, 3, 0):1
+  level 3: N=8 d_j=3 D_j=d_j/k_j=0.750 fine cost c_j=2^j d_j-d_0=21 (n/8=8, (a-k)=7) B_j=79 nodes with rho>0: 7 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (19, 10, 25, 9):6 (19, 19, 33, 0):1
+  level 4: N=4 d_j=41 D_j=d_j/k_j=20.500 fine cost c_j=2^j d_j-d_0=653 (n/8=8, (a-k)=7) B_j=27 nodes with rho>0: 3 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (9, 9, 34, 0):3
+  level 5: N=2 d_j=34 D_j=d_j/k_j=34.000 fine cost c_j=2^j d_j-d_0=1085 (n/8=8, (a-k)=7)
+  sum_j 2^j G_j = 217 + k dim Theta = 0 -> 217 (deficiency 217)
+  critical scale: N = 32 (levels with 2^j d_j - d_0 < a - k: [0, 1])
+  n=64 members=35 distinct=35 min agreement 39 deficiency 217 d_j (N=n..2): 3 3 3 3 41 34 | (C*) at every level: ok | E_i <= 2 d_(i+1) - d_i: ok | critical scale 32 | beta(8) max 7 (e+b = 15) | max nu_l(i)/2^i below scale 8: 1
+== stairm 8 4 2 0
+n=32 members=20 kernel d_0=6 distinct=20 agreements min 18 max 19 weight w=330 rank=298 deficiency=32 needed (L+1)a-n-Lk+1=25
+  dim Theta = 0
+  s_j (kernel of the block-coincidence partition pattern of a generic solution): N=32:6 N=16:6 N=8:22 N=4:29 N=2:19   2^j s_j - s_0: 0 6 82 226 298
+  incoherent leaves at scale N=32: beta max 0 mean 0.00; e+2^j=3; sum_l (e+2^j-beta_l)=60 -> Theorem 4.1: members <= 3406122210 (F(32)=10218366630)
+  incoherent leaves at scale N=16: beta max 2 mean 2.00; e+2^j=4; sum_l (e+2^j-beta_l)=40 -> Theorem 4.1: members <= 115830 (F(16)=115830)
+  incoherent leaves at scale N=8: beta max 6 mean 6.00; e+2^j=6; sum_l (e+2^j-beta_l)=0 -> no bound at this scale
+  incoherent leaves at scale N=4: beta max 18 mean 18.00; e+2^j=10; sum_l (e+2^j-beta_l)=-160 -> no bound at this scale
+  level 0: N=32 d_j=6 D_j=d_j/k_j=0.375 fine cost c_j=2^j d_j-d_0=0 (n/8=4, (a-k)=2) B_j=6 nodes with rho>0: 2 (C*) ok gain G_j=32 | (dimQ_u,rho_u,delta_p,dimQ_p):count (19, 3, 3, 0):2
+  level 1: N=16 d_j=6 D_j=d_j/k_j=0.750 fine cost c_j=2^j d_j-d_0=6 (n/8=4, (a-k)=2) B_j=38 nodes with rho>0: 2 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (19, 19, 19, 0):2
+  level 2: N=8 d_j=22 D_j=d_j/k_j=5.500 fine cost c_j=2^j d_j-d_0=82 (n/8=4, (a-k)=2) B_j=36 nodes with rho>0: 6 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (9, 6, 16, 3):6
+  level 3: N=4 d_j=29 D_j=d_j/k_j=14.500 fine cost c_j=2^j d_j-d_0=226 (n/8=4, (a-k)=2) B_j=9 nodes with rho>0: 3 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (3, 3, 19, 0):3
+  level 4: N=2 d_j=19 D_j=d_j/k_j=19.000 fine cost c_j=2^j d_j-d_0=298 (n/8=4, (a-k)=2)
+  sum_j 2^j G_j = 32 + k dim Theta = 0 -> 32 (deficiency 32)
+  critical scale: N = 32 (levels with 2^j d_j - d_0 < a - k: [0])
+  n=32 members=20 distinct=20 min agreement 18 deficiency 32 d_j (N=n..2): 6 6 22 29 19 | (C*) at every level: ok | E_i <= 2 d_(i+1) - d_i: ok | critical scale 32 | beta(8) max 6 (e+b = 6) | max nu_l(i)/2^i below scale 8: 2
+== stairm 8 8 2 0
+n=64 members=20 kernel d_0=6 distinct=20 agreements min 38 max 39 weight w=698 rank=602 deficiency=96 needed (L+1)a-n-Lk+1=89
+  dim Theta = 0
+  s_j (kernel of the block-coincidence partition pattern of a generic solution): N=64:6 N=32:6 N=16:6 N=8:22 N=4:29 N=2:19   2^j s_j - s_0: 0 6 18 170 458 602
+  incoherent leaves at scale N=64: beta max 0 mean 0.00; e+2^j=7; sum_l (e+2^j-beta_l)=140 -> Theorem 4.1: members <= 8639513807300784128 (F(64)=60476596651105487622)
+  incoherent leaves at scale N=32: beta max 2 mean 2.00; e+2^j=8; sum_l (e+2^j-beta_l)=120 -> Theorem 4.1: members <= 3406122210 (F(32)=10218366630)
+  incoherent leaves at scale N=16: beta max 6 mean 6.00; e+2^j=10; sum_l (e+2^j-beta_l)=80 -> Theorem 4.1: members <= 115830 (F(16)=115830)
+  incoherent leaves at scale N=8: beta max 14 mean 14.00; e+2^j=14; sum_l (e+2^j-beta_l)=0 -> no bound at this scale
+  incoherent leaves at scale N=4: beta max 38 mean 38.00; e+2^j=22; sum_l (e+2^j-beta_l)=-320 -> no bound at this scale
+  level 0: N=64 d_j=6 D_j=d_j/k_j=0.188 fine cost c_j=2^j d_j-d_0=0 (n/8=8, (a-k)=6) B_j=6 nodes with rho>0: 2 (C*) ok gain G_j=32 | (dimQ_u,rho_u,delta_p,dimQ_p):count (19, 3, 3, 0):2
+  level 1: N=32 d_j=6 D_j=d_j/k_j=0.375 fine cost c_j=2^j d_j-d_0=6 (n/8=8, (a-k)=6) B_j=6 nodes with rho>0: 2 (C*) ok gain G_j=32 | (dimQ_u,rho_u,delta_p,dimQ_p):count (19, 3, 3, 0):2
+  level 2: N=16 d_j=6 D_j=d_j/k_j=0.750 fine cost c_j=2^j d_j-d_0=18 (n/8=8, (a-k)=6) B_j=38 nodes with rho>0: 2 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (19, 19, 19, 0):2
+  level 3: N=8 d_j=22 D_j=d_j/k_j=5.500 fine cost c_j=2^j d_j-d_0=170 (n/8=8, (a-k)=6) B_j=36 nodes with rho>0: 6 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (9, 6, 16, 3):6
+  level 4: N=4 d_j=29 D_j=d_j/k_j=14.500 fine cost c_j=2^j d_j-d_0=458 (n/8=8, (a-k)=6) B_j=9 nodes with rho>0: 3 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (3, 3, 19, 0):3
+  level 5: N=2 d_j=19 D_j=d_j/k_j=19.000 fine cost c_j=2^j d_j-d_0=602 (n/8=8, (a-k)=6)
+  sum_j 2^j G_j = 96 + k dim Theta = 0 -> 96 (deficiency 96)
+  critical scale: N = 64 (levels with 2^j d_j - d_0 < a - k: [0])
+  n=64 members=20 distinct=20 min agreement 38 deficiency 96 d_j (N=n..2): 6 6 6 22 29 19 | (C*) at every level: ok | E_i <= 2 d_(i+1) - d_i: ok | critical scale 64 | beta(8) max 14 (e+b = 14) | max nu_l(i)/2^i below scale 8: 2
+== stairm 8 8 2 1
+n=64 members=10 kernel d_0=4 distinct=10 agreements min 39 max 39 weight w=326 rank=284 deficiency=42 needed (L+1)a-n-Lk+1=39
+  dim Theta = 0
+  s_j (kernel of the block-coincidence partition pattern of a generic solution): N=64:4 N=32:4 N=16:4 N=8:11 N=4:14 N=2:9   2^j s_j - s_0: 0 4 12 84 220 284
+  incoherent leaves at scale N=64: beta max 0 mean 0.00; e+2^j=8; sum_l (e+2^j-beta_l)=80 -> Theorem 4.1: members <= 7559574581388185600 (F(64)=60476596651105487622)
+  incoherent leaves at scale N=32: beta max 2 mean 2.00; e+2^j=9; sum_l (e+2^j-beta_l)=70 -> Theorem 4.1: members <= 2919533323 (F(32)=10218366630)
+  incoherent leaves at scale N=16: beta max 6 mean 6.00; e+2^j=11; sum_l (e+2^j-beta_l)=50 -> Theorem 4.1: members <= 92664 (F(16)=115830)
+  incoherent leaves at scale N=8: beta max 14 mean 14.00; e+2^j=15; sum_l (e+2^j-beta_l)=10 -> Theorem 4.1: members <= 2800 (F(8)=350)
+  incoherent leaves at scale N=4: beta max 38 mean 38.00; e+2^j=23; sum_l (e+2^j-beta_l)=-150 -> no bound at this scale
+  level 0: N=64 d_j=4 D_j=d_j/k_j=0.125 fine cost c_j=2^j d_j-d_0=0 (n/8=8, (a-k)=7) B_j=4 nodes with rho>0: 2 (C*) ok gain G_j=14 | (dimQ_u,rho_u,delta_p,dimQ_p):count (9, 2, 2, 0):2
+  level 1: N=32 d_j=4 D_j=d_j/k_j=0.250 fine cost c_j=2^j d_j-d_0=4 (n/8=8, (a-k)=7) B_j=4 nodes with rho>0: 2 (C*) ok gain G_j=14 | (dimQ_u,rho_u,delta_p,dimQ_p):count (9, 2, 2, 0):2
+  level 2: N=16 d_j=4 D_j=d_j/k_j=0.500 fine cost c_j=2^j d_j-d_0=12 (n/8=8, (a-k)=7) B_j=18 nodes with rho>0: 2 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (9, 9, 9, 0):2
+  level 3: N=8 d_j=11 D_j=d_j/k_j=2.750 fine cost c_j=2^j d_j-d_0=84 (n/8=8, (a-k)=7) B_j=17 nodes with rho>0: 5 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (5, 3, 7, 2):4 (5, 5, 9, 0):1
+  level 4: N=4 d_j=14 D_j=d_j/k_j=7.000 fine cost c_j=2^j d_j-d_0=220 (n/8=8, (a-k)=7) B_j=4 nodes with rho>0: 2 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (2, 2, 9, 0):2
+  level 5: N=2 d_j=9 D_j=d_j/k_j=9.000 fine cost c_j=2^j d_j-d_0=284 (n/8=8, (a-k)=7)
+  sum_j 2^j G_j = 42 + k dim Theta = 0 -> 42 (deficiency 42)
+  critical scale: N = 32 (levels with 2^j d_j - d_0 < a - k: [0, 1])
+  n=64 members=10 distinct=10 min agreement 39 deficiency 42 d_j (N=n..2): 4 4 4 11 14 9 | (C*) at every level: ok | E_i <= 2 d_(i+1) - d_i: ok | critical scale 32 | beta(8) max 14 (e+b = 15) | max nu_l(i)/2^i below scale 8: 2
+== stairm 8 4 3 0
+n=32 members=10 kernel d_0=9 distinct=10 agreements min 17 max 18 weight w=141 rank=135 deficiency=6 needed (L+1)a-n-Lk+1=-5
+  dim Theta = 0
+  s_j (kernel of the block-coincidence partition pattern of a generic solution): N=32:9 N=16:15 N=8:21 N=4:18 N=2:9   2^j s_j - s_0: 0 21 75 135 135
+  incoherent leaves at scale N=32: beta max 0 mean 0.00; e+2^j=2; sum_l (e+2^j-beta_l)=20 -> Theorem 4.1: members <= 5109183315 (F(32)=10218366630)
+  incoherent leaves at scale N=16: beta max 3 mean 3.00; e+2^j=3; sum_l (e+2^j-beta_l)=0 -> no bound at this scale
+  incoherent leaves at scale N=8: beta max 9 mean 9.00; e+2^j=5; sum_l (e+2^j-beta_l)=-40 -> no bound at this scale
+  incoherent leaves at scale N=4: beta max 17 mean 17.00; e+2^j=9; sum_l (e+2^j-beta_l)=-80 -> no bound at this scale
+  level 0: N=32 d_j=9 D_j=d_j/k_j=0.562 fine cost c_j=2^j d_j-d_0=0 (n/8=4, (a-k)=1) B_j=27 nodes with rho>0: 3 (C*) FAIL gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (9, 9, 9, 0):3
+  level 1: N=16 d_j=15 D_j=d_j/k_j=1.875 fine cost c_j=2^j d_j-d_0=21 (n/8=4, (a-k)=1) B_j=27 nodes with rho>0: 3 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (9, 9, 9, 0):3
+  level 2: N=8 d_j=21 D_j=d_j/k_j=5.250 fine cost c_j=2^j d_j-d_0=75 (n/8=4, (a-k)=1) B_j=15 nodes with rho>0: 5 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (3, 3, 9, 0):5
+  level 3: N=4 d_j=18 D_j=d_j/k_j=9.000 fine cost c_j=2^j d_j-d_0=135 (n/8=4, (a-k)=1) B_j=0 nodes with rho>0: 0 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count 
+  level 4: N=2 d_j=9 D_j=d_j/k_j=9.000 fine cost c_j=2^j d_j-d_0=135 (n/8=4, (a-k)=1)
+  sum_j 2^j G_j = 0 + k dim Theta = 0 -> 0 (deficiency 6)
+  critical scale: N = 32 (levels with 2^j d_j - d_0 < a - k: [0])
+  n=32 members=10 distinct=10 min agreement 17 deficiency 6 d_j (N=n..2): 9 15 21 18 9 | (C*) at every level: FAIL | E_i <= 2 d_(i+1) - d_i: ok | critical scale 32 | beta(8) max 9 (e+b = 5) | max nu_l(i)/2^i below scale 8: 3
+== stairm 8 8 3 0
+n=64 members=10 kernel d_0=9 distinct=10 agreements min 37 max 38 weight w=309 rank=279 deficiency=30 needed (L+1)a-n-Lk+1=19
+  dim Theta = 0
+  s_j (kernel of the block-coincidence partition pattern of a generic solution): N=64:9 N=32:9 N=16:15 N=8:21 N=4:18 N=2:9   2^j s_j - s_0: 0 9 51 159 279 279
+  incoherent leaves at scale N=64: beta max 0 mean 0.00; e+2^j=6; sum_l (e+2^j-beta_l)=60 -> Theorem 4.1: members <= 10079432775184248832 (F(64)=60476596651105487622)
+  incoherent leaves at scale N=32: beta max 3 mean 3.00; e+2^j=7; sum_l (e+2^j-beta_l)=40 -> Theorem 4.1: members <= 5109183315 (F(32)=10218366630)
+  incoherent leaves at scale N=16: beta max 9 mean 9.00; e+2^j=9; sum_l (e+2^j-beta_l)=0 -> no bound at this scale
+  incoherent leaves at scale N=8: beta max 21 mean 21.00; e+2^j=13; sum_l (e+2^j-beta_l)=-80 -> no bound at this scale
+  incoherent leaves at scale N=4: beta max 37 mean 37.00; e+2^j=21; sum_l (e+2^j-beta_l)=-160 -> no bound at this scale
+  level 0: N=64 d_j=9 D_j=d_j/k_j=0.281 fine cost c_j=2^j d_j-d_0=0 (n/8=8, (a-k)=5) B_j=9 nodes with rho>0: 3 (C*) ok gain G_j=18 | (dimQ_u,rho_u,delta_p,dimQ_p):count (9, 3, 3, 0):3
+  level 1: N=32 d_j=9 D_j=d_j/k_j=0.562 fine cost c_j=2^j d_j-d_0=9 (n/8=8, (a-k)=5) B_j=27 nodes with rho>0: 3 (C*) FAIL gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (9, 9, 9, 0):3
+  level 2: N=16 d_j=15 D_j=d_j/k_j=1.875 fine cost c_j=2^j d_j-d_0=51 (n/8=8, (a-k)=5) B_j=27 nodes with rho>0: 3 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (9, 9, 9, 0):3
+  level 3: N=8 d_j=21 D_j=d_j/k_j=5.250 fine cost c_j=2^j d_j-d_0=159 (n/8=8, (a-k)=5) B_j=15 nodes with rho>0: 5 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (3, 3, 9, 0):5
+  level 4: N=4 d_j=18 D_j=d_j/k_j=9.000 fine cost c_j=2^j d_j-d_0=279 (n/8=8, (a-k)=5) B_j=0 nodes with rho>0: 0 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count 
+  level 5: N=2 d_j=9 D_j=d_j/k_j=9.000 fine cost c_j=2^j d_j-d_0=279 (n/8=8, (a-k)=5)
+  sum_j 2^j G_j = 18 + k dim Theta = 0 -> 18 (deficiency 30)
+  critical scale: N = 64 (levels with 2^j d_j - d_0 < a - k: [0])
+  n=64 members=10 distinct=10 min agreement 37 deficiency 30 d_j (N=n..2): 9 9 15 21 18 9 | (C*) at every level: FAIL | E_i <= 2 d_(i+1) - d_i: ok | critical scale 64 | beta(8) max 21 (e+b = 13) | max nu_l(i)/2^i below scale 8: 3
+== stairm 8 8 3 1
+n=64 members=6 kernel d_0=6 distinct=6 agreements min 38 max 38 weight w=169 rank=154 deficiency=15 needed (L+1)a-n-Lk+1=5
+  dim Theta = 0
+  s_j (kernel of the block-coincidence partition pattern of a generic solution): N=64:6 N=32:6 N=16:9 N=8:12 N=4:10 N=2:5   2^j s_j - s_0: 0 6 30 90 154 154
+  incoherent leaves at scale N=64: beta max 0 mean 0.00; e+2^j=7; sum_l (e+2^j-beta_l)=42 -> Theorem 4.1: members <= 8639513807300784128 (F(64)=60476596651105487622)
+  incoherent leaves at scale N=32: beta max 3 mean 3.00; e+2^j=8; sum_l (e+2^j-beta_l)=30 -> Theorem 4.1: members <= 4087346652 (F(32)=10218366630)
+  incoherent leaves at scale N=16: beta max 9 mean 9.00; e+2^j=10; sum_l (e+2^j-beta_l)=6 -> Theorem 4.1: members <= 463320 (F(16)=115830)
+  incoherent leaves at scale N=8: beta max 21 mean 21.00; e+2^j=14; sum_l (e+2^j-beta_l)=-42 -> no bound at this scale
+  incoherent leaves at scale N=4: beta max 37 mean 37.00; e+2^j=22; sum_l (e+2^j-beta_l)=-90 -> no bound at this scale
+  level 0: N=64 d_j=6 D_j=d_j/k_j=0.188 fine cost c_j=2^j d_j-d_0=0 (n/8=8, (a-k)=6) B_j=6 nodes with rho>0: 3 (C*) ok gain G_j=9 | (dimQ_u,rho_u,delta_p,dimQ_p):count (5, 2, 2, 0):3
+  level 1: N=32 d_j=6 D_j=d_j/k_j=0.375 fine cost c_j=2^j d_j-d_0=6 (n/8=8, (a-k)=6) B_j=15 nodes with rho>0: 3 (C*) FAIL gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (5, 5, 5, 0):3
+  level 2: N=16 d_j=9 D_j=d_j/k_j=1.125 fine cost c_j=2^j d_j-d_0=30 (n/8=8, (a-k)=6) B_j=15 nodes with rho>0: 3 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (5, 5, 5, 0):3
+  level 3: N=8 d_j=12 D_j=d_j/k_j=3.000 fine cost c_j=2^j d_j-d_0=90 (n/8=8, (a-k)=6) B_j=8 nodes with rho>0: 4 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (2, 2, 5, 0):4
+  level 4: N=4 d_j=10 D_j=d_j/k_j=5.000 fine cost c_j=2^j d_j-d_0=154 (n/8=8, (a-k)=6) B_j=0 nodes with rho>0: 0 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count 
+  level 5: N=2 d_j=5 D_j=d_j/k_j=5.000 fine cost c_j=2^j d_j-d_0=154 (n/8=8, (a-k)=6)
+  sum_j 2^j G_j = 9 + k dim Theta = 0 -> 9 (deficiency 15)
+  critical scale: N = 64 (levels with 2^j d_j - d_0 < a - k: [0])
+  n=64 members=6 distinct=6 min agreement 38 deficiency 15 d_j (N=n..2): 6 6 9 12 10 5 | (C*) at every level: FAIL | E_i <= 2 d_(i+1) - d_i: ok | critical scale 64 | beta(8) max 21 (e+b = 14) | max nu_l(i)/2^i below scale 8: 3
+== stairm 8 4 4 0
+n=32 members=4 kernel d_0=12 distinct=4 agreements min 17 max 17 weight w=36 rank=36 deficiency=0 needed (L+1)a-n-Lk+1=-11
+  dim Theta = 0
+  s_j (kernel of the block-coincidence partition pattern of a generic solution): N=32:12 N=16:12 N=8:12 N=4:6 N=2:3   2^j s_j - s_0: 0 12 36 36 36
+  incoherent leaves at scale N=32: beta max 0 mean 0.00; e+2^j=2; sum_l (e+2^j-beta_l)=8 -> Theorem 4.1: members <= 5109183315 (F(32)=10218366630)
+  incoherent leaves at scale N=16: beta max 4 mean 4.00; e+2^j=3; sum_l (e+2^j-beta_l)=-4 -> no bound at this scale
+  incoherent leaves at scale N=8: beta max 12 mean 12.00; e+2^j=5; sum_l (e+2^j-beta_l)=-28 -> no bound at this scale
+  incoherent leaves at scale N=4: beta max 12 mean 12.00; e+2^j=9; sum_l (e+2^j-beta_l)=-12 -> no bound at this scale
+  level 0: N=32 d_j=12 D_j=d_j/k_j=0.750 fine cost c_j=2^j d_j-d_0=0 (n/8=4, (a-k)=1) B_j=12 nodes with rho>0: 4 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (3, 3, 3, 0):4
+  level 1: N=16 d_j=12 D_j=d_j/k_j=1.500 fine cost c_j=2^j d_j-d_0=12 (n/8=4, (a-k)=1) B_j=12 nodes with rho>0: 4 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (3, 3, 3, 0):4
+  level 2: N=8 d_j=12 D_j=d_j/k_j=3.000 fine cost c_j=2^j d_j-d_0=36 (n/8=4, (a-k)=1) B_j=0 nodes with rho>0: 0 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count 
+  level 3: N=4 d_j=6 D_j=d_j/k_j=3.000 fine cost c_j=2^j d_j-d_0=36 (n/8=4, (a-k)=1) B_j=0 nodes with rho>0: 0 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count 
+  level 4: N=2 d_j=3 D_j=d_j/k_j=3.000 fine cost c_j=2^j d_j-d_0=36 (n/8=4, (a-k)=1)
+  sum_j 2^j G_j = 0 + k dim Theta = 0 -> 0 (deficiency 0)
+  critical scale: N = 32 (levels with 2^j d_j - d_0 < a - k: [0])
+  n=32 members=4 distinct=4 min agreement 17 deficiency 0 d_j (N=n..2): 12 12 12 6 3 | (C*) at every level: ok | E_i <= 2 d_(i+1) - d_i: ok | critical scale 32 | beta(8) max 12 (e+b = 5) | max nu_l(i)/2^i below scale 8: 4
+top [8,4] b=4 (n=32) M=7 target=20 zeros=1 seed=12: best objective 140 of 140, min credit 20, kernel dim 1, 50537 accepted, 145996 tests | credits: 20 20 20 20 
+n=32 members=7 kernel d_0=1 distinct=7 agreements min 20 max 20 weight w=108 rank=95 deficiency=13 needed (L+1)a-n-Lk+1=13
+  dim Theta = 0
+  s_j (kernel of the block-coincidence partition pattern of a generic solution): N=32:1 N=16:1 N=8:1 N=4:5 N=2:6   2^j s_j - s_0: 0 1 3 39 95
+  incoherent leaves at scale N=32: beta max 0 mean 0.00; e+2^j=5; sum_l (e+2^j-beta_l)=35 -> Theorem 4.1: members <= 2043673326 (F(32)=10218366630)
+  incoherent leaves at scale N=16: beta max 1 mean 1.00; e+2^j=6; sum_l (e+2^j-beta_l)=35 -> Theorem 4.1: members <= 46332 (F(16)=115830)
+  incoherent leaves at scale N=8: beta max 3 mean 3.00; e+2^j=8; sum_l (e+2^j-beta_l)=35 -> Theorem 4.1: members <= 280 (F(8)=350)
+  incoherent leaves at scale N=4: beta max 20 mean 16.57; e+2^j=12; sum_l (e+2^j-beta_l)=-32 -> no bound at this scale
+  level 0: N=32 d_j=1 D_j=d_j/k_j=0.062 fine cost c_j=2^j d_j-d_0=0 (n/8=4, (a-k)=4) B_j=1 nodes with rho>0: 1 (C*) ok gain G_j=3 | (dimQ_u,rho_u,delta_p,dimQ_p):count (6, 1, 1, 2):1
+  level 1: N=16 d_j=1 D_j=d_j/k_j=0.125 fine cost c_j=2^j d_j-d_0=1 (n/8=4, (a-k)=4) B_j=1 nodes with rho>0: 1 (C*) ok gain G_j=3 | (dimQ_u,rho_u,delta_p,dimQ_p):count (6, 1, 1, 2):1
+  level 2: N=8 d_j=1 D_j=d_j/k_j=0.250 fine cost c_j=2^j d_j-d_0=3 (n/8=4, (a-k)=4) B_j=9 nodes with rho>0: 6 (C*) ok gain G_j=1 | (dimQ_u,rho_u,delta_p,dimQ_p):count (2, 1, 5, 0):1 (2, 1, 5, 1):1 (3, 1, 4, 2):1 (4, 2, 4, 2):1 (4, 3, 5, 1):1 (5, 1, 2, 4):1
+  level 3: N=4 d_j=5 D_j=d_j/k_j=2.500 fine cost c_j=2^j d_j-d_0=39 (n/8=4, (a-k)=4) B_j=7 nodes with rho>0: 3 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (1, 1, 6, 0):1 (2, 2, 6, 0):1 (4, 4, 6, 0):1
+  level 4: N=2 d_j=6 D_j=d_j/k_j=6.000 fine cost c_j=2^j d_j-d_0=95 (n/8=4, (a-k)=4)
+  sum_j 2^j G_j = 13 + k dim Theta = 0 -> 13 (deficiency 13)
+  critical scale: N = 8 (levels with 2^j d_j - d_0 < a - k: [0, 1, 2])
+top [8,4] b=8 (n=64) M=11 target=40 zeros=1 dead=0x0 seed=5111: best objective 439 of 440, min credit 39, kernel dim 1, 500985 accepted, 1878728 tests | credits
+n=64 members=11 kernel d_0=1 distinct=11 agreements min 39 max 40 weight w=375 rank=319 deficiency=56 needed (L+1)a-n-Lk+1=46
+  dim Theta = 0
+  s_j (kernel of the block-coincidence partition pattern of a generic solution): N=64:1 N=32:1 N=16:1 N=8:1 N=4:13 N=2:10   2^j s_j - s_0: 0 1 3 7 207 319
+  incoherent leaves at scale N=64: beta max 0 mean 0.00; e+2^j=8; sum_l (e+2^j-beta_l)=88 -> Theorem 4.1: members <= 7559574581388185600 (F(64)=60476596651105487622)
+  incoherent leaves at scale N=32: beta max 1 mean 1.00; e+2^j=9; sum_l (e+2^j-beta_l)=88 -> Theorem 4.1: members <= 2554591658 (F(32)=10218366630)
+  incoherent leaves at scale N=16: beta max 3 mean 3.00; e+2^j=11; sum_l (e+2^j-beta_l)=88 -> Theorem 4.1: members <= 57915 (F(16)=115830)
+  incoherent leaves at scale N=8: beta max 7 mean 7.00; e+2^j=15; sum_l (e+2^j-beta_l)=88 -> Theorem 4.1: members <= 350 (F(8)=350)
+  incoherent leaves at scale N=4: beta max 40 mean 39.18; e+2^j=23; sum_l (e+2^j-beta_l)=-178 -> no bound at this scale
+  level 0: N=64 d_j=1 D_j=d_j/k_j=0.031 fine cost c_j=2^j d_j-d_0=0 (n/8=8, (a-k)=7) B_j=1 nodes with rho>0: 1 (C*) ok gain G_j=2 | (dimQ_u,rho_u,delta_p,dimQ_p):count (10, 1, 1, 0):1
+  level 1: N=32 d_j=1 D_j=d_j/k_j=0.062 fine cost c_j=2^j d_j-d_0=1 (n/8=8, (a-k)=7) B_j=1 nodes with rho>0: 1 (C*) ok gain G_j=9 | (dimQ_u,rho_u,delta_p,dimQ_p):count (10, 1, 1, 0):1
+  level 2: N=16 d_j=1 D_j=d_j/k_j=0.125 fine cost c_j=2^j d_j-d_0=3 (n/8=8, (a-k)=7) B_j=1 nodes with rho>0: 1 (C*) ok gain G_j=9 | (dimQ_u,rho_u,delta_p,dimQ_p):count (10, 1, 1, 0):1
+  level 3: N=8 d_j=1 D_j=d_j/k_j=0.250 fine cost c_j=2^j d_j-d_0=7 (n/8=8, (a-k)=7) B_j=25 nodes with rho>0: 7 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (1, 1, 10, 0):1 (5, 2, 7, 3):1 (6, 2, 6, 4):1 (6, 6, 10, 0):1 (7, 3, 6, 4):1 (7, 4, 7, 3):1 (7, 7, 10, 0):1
+  level 4: N=4 d_j=13 D_j=d_j/k_j=6.500 fine cost c_j=2^j d_j-d_0=207 (n/8=8, (a-k)=7) B_j=7 nodes with rho>0: 2 (C*) ok gain G_j=0 | (dimQ_u,rho_u,delta_p,dimQ_p):count (3, 3, 10, 0):1 (4, 4, 10, 0):1
+  level 5: N=2 d_j=10 D_j=d_j/k_j=10.000 fine cost c_j=2^j d_j-d_0=319 (n/8=8, (a-k)=7)
+  sum_j 2^j G_j = 56 + k dim Theta = 0 -> 56 (deficiency 56)
+  critical scale: N = 16 (levels with 2^j d_j - d_0 < a - k: [0, 1, 2])

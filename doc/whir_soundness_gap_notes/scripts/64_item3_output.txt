@@ -1,0 +1,24 @@
+q=2^8 N=5 k=16 2k=32: A random: mean 0.350 max 3 (prediction 3n/q = 0.375)
+   B common ball (|B|=6, free 2*int = 2): mean 2.36 max 4
+   B two antipodal balls (free 2*int = 2): mean 2.48 max 5
+   B ratio constant on a ball (free 0, cheap doubles): mean 0.43 max 3
+   B periodic A(L_U), B(L_U), U = span(b0, b1): mean 0.26 max 2
+   C adaptive: best u_2+2u_3 = 35 after 1200 iterations (2k-1 = 31); trajectory [31, 35, 35, 35, 35, 35, 35, 35]; first-moment ceiling 2k-1+e* = 39 (e* = 8)
+q=2^8 N=6 k=32 2k=64: A random: mean 0.707 max 4 (prediction 3n/q = 0.750)
+   B common ball (|B|=22, free 2*int = 14): mean 14.62 max 18
+   B two antipodal balls (free 2*int = 14): mean 14.59 max 17
+   B ratio constant on a ball (free 0, cheap doubles): mean 0.77 max 4
+   B periodic A(L_U), B(L_U), U = span(b0, b1): mean 0.61 max 3
+   C adaptive: best u_2+2u_3 = 67 after 400 iterations (2k-1 = 63); trajectory [63, 66, 66, 66, 67, 67, 67, 67]; first-moment ceiling 2k-1+e* = 80 (e* = 17)
+q=2^16 N=6 k=32 2k=64: A random: mean 0.003 max 1 (prediction 3n/q = 0.003)
+   B common ball (|B|=22, free 2*int = 14): mean 14.00 max 14
+   B two antipodal balls (free 2*int = 14): mean 14.01 max 15
+   B ratio constant on a ball (free 0, cheap doubles): mean 0.00 max 0
+   B periodic A(L_U), B(L_U), U = span(b0, b1): mean 0.00 max 0
+   C adaptive: best u_2+2u_3 = 64 after 400 iterations (2k-1 = 63); trajectory [60, 64, 64, 64, 64, 64, 64, 64]; first-moment ceiling 2k-1+e* = 71 (e* = 8)
+q=2^8 N=6 k=16 2k=32: A random: mean 0.720 max 4 (prediction 3n/q = 0.750)
+   B common ball (|B|=7, free 2*int = 2): mean 2.68 max 5
+   B two antipodal balls (free 2*int = 2): mean 2.74 max 6
+   B ratio constant on a ball (free 0, cheap doubles): mean 0.71 max 3
+   B periodic A(L_U), B(L_U), U = span(b0, b1): mean 0.79 max 3
+   C adaptive: best u_2+2u_3 = 36 after 600 iterations (2k-1 = 31); trajectory [33, 35, 35, 35, 35, 35, 35, 36]; first-moment ceiling 2k-1+e* = 48 (e* = 17)

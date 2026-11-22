@@ -1,0 +1,49 @@
+residual constraint: none
+
+## mu = 24, rate 1/2: 3316 ladders within the encoding budget; today 260.4 KiB, 181.4k cycle-equivalents
+query grinds std:
+  today's protocol, least bytes: folds (5, 4, 4, 5) reductions (3, 1, 1): 222.2 KiB (-14.7%), 159.2k cycle-eq (-12.2%), Keccak 5545, queries [218, 73, 37, 26]
+  today's protocol, least bytes: folds (5, 4, 5, 4) reductions (3, 1, 1): 223.0 KiB (-14.4%), 158.4k cycle-eq (-12.7%), Keccak 5515, queries [218, 73, 37, 23]
+  today's protocol, least cycle-eq: folds (5, 4, 5, 4) reductions (3, 1, 1): 223.0 KiB (-14.4%), 158.4k cycle-eq (-12.7%), Keccak 5515, queries [218, 73, 37, 23]
+  today's protocol, least cycle-eq: folds (5, 4, 4, 4, 3) reductions (3, 1, 1, 1): 224.7 KiB (-13.7%), 158.4k cycle-eq (-12.7%), Keccak 5764, queries [218, 73, 37, 25, 20]
+  DEEP, proven lists, least bytes: folds (5, 4, 4, 5) reductions (3, 1, 1): 214.0 KiB (-17.8%), 166.1k cycle-eq (-8.5%), Keccak 5372, queries [216, 72, 36, 13], points [12, 9, 8, 24], lists ['short(135)', 'short(15)', 'short(6)', 'counting'], points 2.4% of Prove
+  DEEP, proven lists, least bytes: folds (5, 4, 4, 5) reductions (3, 2, 0): 216.8 KiB (-16.8%), 168.9k cycle-eq (-6.9%), Keccak 5466, queries [216, 72, 43, 13], points [12, 9, 11, 24], lists ['short(135)', 'short(15)', 'short(55)', 'counting'], points 2.4% of Prove
+  DEEP, proven lists, least bytes: folds (5, 4, 4, 4, 3) reductions (3, 1, 1, 1): 217.0 KiB (-16.7%), 164.5k cycle-eq (-9.3%), Keccak 5558, queries [216, 72, 36, 13, 10], points [12, 9, 8, 37, 11], lists ['short(135)', 'short(15)', 'short(6)', 'counting', 'counting'], points 2.4% of Prove
+  DEEP, proven lists, least cycle-eq: folds (5, 4, 4, 5, 3) reductions (3, 1, 1, 1): 218.9 KiB (-15.9%), 161.9k cycle-eq (-10.7%), Keccak 5532, queries [217, 72, 36, 13, 9], points [9, 9, 8, 24, 10], lists ['Johnson', 'short(15)', 'short(6)', 'counting', 'counting'], points 1.8% of Prove
+  DEEP, proven lists, least cycle-eq: folds (5, 4, 5, 5) reductions (3, 1, 1): 220.5 KiB (-15.3%), 162.4k cycle-eq (-10.5%), Keccak 5393, queries [217, 72, 36, 12], points [9, 9, 9, 17], lists ['Johnson', 'short(15)', 'short(7)', 'counting'], points 1.8% of Prove
+  DEEP, proven lists, least cycle-eq: folds (5, 4, 4, 5, 4) reductions (3, 1, 1, 1): 220.3 KiB (-15.4%), 162.4k cycle-eq (-10.5%), Keccak 5548, queries [217, 72, 36, 13, 10], points [9, 9, 8, 24, 9], lists ['Johnson', 'short(15)', 'short(6)', 'counting', 'counting'], points 1.8% of Prove
+query grinds A:
+  today's protocol, least bytes: folds (5, 4, 4, 5) reductions (3, 1, 1): 220.5 KiB (-15.3%), 157.9k cycle-eq (-13.0%), Keccak 5501, queries [215, 73, 37, 26]
+  today's protocol, least bytes: folds (5, 4, 5, 4) reductions (3, 1, 1): 221.3 KiB (-15.0%), 157.0k cycle-eq (-13.5%), Keccak 5471, queries [215, 73, 37, 23]
+  today's protocol, least cycle-eq: folds (5, 4, 5, 4) reductions (3, 1, 1): 221.3 KiB (-15.0%), 157.0k cycle-eq (-13.5%), Keccak 5471, queries [215, 73, 37, 23]
+  today's protocol, least cycle-eq: folds (5, 4, 4, 4, 3) reductions (3, 1, 1, 1): 223.1 KiB (-14.3%), 157.0k cycle-eq (-13.5%), Keccak 5720, queries [215, 73, 37, 25, 20]
+  DEEP, proven lists, least bytes: folds (5, 4, 4, 5) reductions (3, 1, 1): 212.9 KiB (-18.2%), 165.1k cycle-eq (-9.0%), Keccak 5344, queries [214, 72, 36, 13], points [12, 9, 8, 24], lists ['short(135)', 'short(15)', 'short(6)', 'counting'], points 2.4% of Prove
+  DEEP, proven lists, least bytes: folds (5, 4, 4, 5) reductions (3, 2, 0): 215.6 KiB (-17.2%), 168.0k cycle-eq (-7.4%), Keccak 5437, queries [214, 72, 43, 13], points [12, 9, 11, 24], lists ['short(135)', 'short(15)', 'short(55)', 'counting'], points 2.4% of Prove
+  DEEP, proven lists, least bytes: folds (5, 4, 4, 4, 3) reductions (3, 1, 1, 1): 215.9 KiB (-17.1%), 163.6k cycle-eq (-9.8%), Keccak 5530, queries [214, 72, 36, 13, 10], points [12, 9, 8, 37, 11], lists ['short(135)', 'short(15)', 'short(6)', 'counting', 'counting'], points 2.4% of Prove
+  DEEP, proven lists, least cycle-eq: folds (5, 4, 4, 5, 3) reductions (3, 1, 1, 1): 217.8 KiB (-16.4%), 161.0k cycle-eq (-11.3%), Keccak 5502, queries [215, 72, 36, 13, 9], points [9, 9, 8, 24, 10], lists ['Johnson', 'short(15)', 'short(6)', 'counting', 'counting'], points 1.8% of Prove
+  DEEP, proven lists, least cycle-eq: folds (5, 4, 5, 5) reductions (3, 1, 1): 219.4 KiB (-15.7%), 161.4k cycle-eq (-11.0%), Keccak 5363, queries [215, 72, 36, 12], points [9, 9, 9, 17], lists ['Johnson', 'short(15)', 'short(7)', 'counting'], points 1.8% of Prove
+  DEEP, proven lists, least cycle-eq: folds (5, 4, 4, 5, 4) reductions (3, 1, 1, 1): 219.2 KiB (-15.8%), 161.5k cycle-eq (-11.0%), Keccak 5519, queries [215, 72, 36, 13, 10], points [9, 9, 8, 24, 9], lists ['Johnson', 'short(15)', 'short(6)', 'counting', 'counting'], points 1.8% of Prove
+
+## mu = 24, rate 1/4: 3316 ladders within the encoding budget; today 169.9 KiB, 115.2k cycle-equivalents
+query grinds std:
+  today's protocol, least bytes: folds (5, 4, 4, 5) reductions (3, 1, 1): 151.1 KiB (-11.1%), 105.3k cycle-eq (-8.6%), Keccak 4121, queries [109, 55, 32, 23]
+  today's protocol, least bytes: folds (5, 4, 5, 4) reductions (3, 1, 1): 151.9 KiB (-10.6%), 104.8k cycle-eq (-9.0%), Keccak 4101, queries [109, 55, 32, 21]
+  today's protocol, least cycle-eq: folds (5, 5, 4, 5) reductions (3, 1, 0): 157.7 KiB (-7.2%), 104.6k cycle-eq (-9.2%), Keccak 4072, queries [109, 55, 28, 19]
+  today's protocol, least cycle-eq: folds (5, 5, 5, 4) reductions (3, 1, 0): 159.1 KiB (-6.4%), 104.7k cycle-eq (-9.1%), Keccak 4069, queries [109, 55, 28, 18]
+  DEEP, proven lists, least bytes: folds (5, 4, 4, 5) reductions (3, 1, 1): 144.6 KiB (-14.9%), 113.8k cycle-eq (-1.2%), Keccak 3987, queries [108, 54, 31, 12], points [11, 9, 8, 25], lists ['short(45)', 'short(10)', 'Johnson', 'counting'], points 1.7% of Prove
+  DEEP, proven lists, least bytes: folds (5, 4, 4, 5) reductions (3, 2, 0): 146.4 KiB (-13.9%), 115.3k cycle-eq (+0.1%), Keccak 4039, queries [108, 54, 36, 12], points [11, 9, 8, 25], lists ['short(45)', 'short(10)', 'short(6)', 'counting'], points 1.7% of Prove
+  DEEP, proven lists, least bytes: folds (5, 4, 4, 5) reductions (3, 2, 2): 147.0 KiB (-13.5%), 115.7k cycle-eq (+0.4%), Keccak 4055, queries [108, 54, 36, 14], points [11, 9, 8, 23], lists ['short(45)', 'short(10)', 'short(6)', 'counting'], points 1.7% of Prove
+  DEEP, proven lists, least cycle-eq: folds (5, 5, 5, 5) reductions (3, 1, 0): 156.9 KiB (-7.7%), 109.4k cycle-eq (-5.0%), Keccak 3971, queries [109, 54, 27, 9], points [9, 10, 9, 15], lists ['Johnson', 'short(12)', 'short(6)', 'counting'], points 1.5% of Prove
+  DEEP, proven lists, least cycle-eq: folds (5, 5, 5, 5) reductions (3, 1, 1): 157.4 KiB (-7.4%), 109.7k cycle-eq (-4.8%), Keccak 3977, queries [109, 54, 27, 10], points [9, 10, 9, 14], lists ['Johnson', 'short(12)', 'short(6)', 'counting'], points 1.5% of Prove
+  DEEP, proven lists, least cycle-eq: folds (5, 4, 4, 4, 4) reductions (3, 1, 1, 1): 152.4 KiB (-10.3%), 109.9k cycle-eq (-4.6%), Keccak 4241, queries [109, 54, 31, 22, 9], points [9, 9, 8, 8, 11], lists ['Johnson', 'short(10)', 'Johnson', 'Johnson', 'counting'], points 1.4% of Prove
+query grinds A:
+  today's protocol, least bytes: folds (5, 4, 4, 5) reductions (3, 1, 1): 150.4 KiB (-11.5%), 104.8k cycle-eq (-9.1%), Keccak 4100, queries [108, 55, 32, 23]
+  today's protocol, least bytes: folds (5, 4, 5, 4) reductions (3, 1, 1): 151.3 KiB (-11.0%), 104.3k cycle-eq (-9.5%), Keccak 4080, queries [108, 55, 32, 21]
+  today's protocol, least cycle-eq: folds (5, 5, 4, 5) reductions (3, 1, 0): 157.1 KiB (-7.6%), 104.0k cycle-eq (-9.7%), Keccak 4051, queries [108, 55, 28, 19]
+  today's protocol, least cycle-eq: folds (5, 5, 5, 4) reductions (3, 1, 0): 158.4 KiB (-6.8%), 104.2k cycle-eq (-9.6%), Keccak 4048, queries [108, 55, 28, 18]
+  DEEP, proven lists, least bytes: folds (5, 4, 4, 5) reductions (3, 1, 1): 143.9 KiB (-15.3%), 113.3k cycle-eq (-1.7%), Keccak 3967, queries [107, 54, 31, 12], points [11, 9, 8, 25], lists ['short(41)', 'short(10)', 'Johnson', 'counting'], points 1.7% of Prove
+  DEEP, proven lists, least bytes: folds (5, 4, 4, 5) reductions (3, 2, 0): 145.7 KiB (-14.2%), 114.8k cycle-eq (-0.4%), Keccak 4019, queries [107, 54, 36, 12], points [11, 9, 8, 25], lists ['short(41)', 'short(10)', 'short(6)', 'counting'], points 1.7% of Prove
+  DEEP, proven lists, least bytes: folds (5, 4, 4, 5) reductions (3, 2, 2): 146.4 KiB (-13.9%), 115.1k cycle-eq (-0.0%), Keccak 4035, queries [107, 54, 36, 14], points [11, 9, 8, 23], lists ['short(41)', 'short(10)', 'short(6)', 'counting'], points 1.7% of Prove
+  DEEP, proven lists, least cycle-eq: folds (5, 5, 5, 5) reductions (3, 1, 0): 156.3 KiB (-8.0%), 108.9k cycle-eq (-5.5%), Keccak 3950, queries [108, 54, 27, 9], points [9, 10, 9, 15], lists ['Johnson', 'short(12)', 'short(6)', 'counting'], points 1.5% of Prove
+  DEEP, proven lists, least cycle-eq: folds (5, 5, 5, 5) reductions (3, 1, 1): 156.8 KiB (-7.8%), 109.2k cycle-eq (-5.3%), Keccak 3956, queries [108, 54, 27, 10], points [9, 10, 9, 14], lists ['Johnson', 'short(12)', 'short(6)', 'counting'], points 1.5% of Prove
+  DEEP, proven lists, least cycle-eq: folds (5, 4, 4, 4, 4) reductions (3, 1, 1, 1): 151.8 KiB (-10.7%), 109.3k cycle-eq (-5.1%), Keccak 4220, queries [108, 54, 31, 22, 9], points [9, 9, 8, 8, 11], lists ['Johnson', 'short(10)', 'Johnson', 'Johnson', 'counting'], points 1.4% of Prove

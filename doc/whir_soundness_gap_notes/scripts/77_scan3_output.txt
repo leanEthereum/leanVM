@@ -1,0 +1,120 @@
+N=3 k=4 labelled=8 kind=G: labelings tested 280 (smallest labelled point in A, first of B before first of C), singular 0
+N=3 k=4 labelled=8 kind=P: labelings tested 280 (smallest labelled point in A, first of B before first of C), singular 4
+N=4 k=3 labelled=6 kind=G: labelings tested 120120 (smallest labelled point in A, first of B before first of C), singular 840
+N=4 k=3 labelled=6 kind=P: labelings tested 120120 (smallest labelled point in A, first of B before first of C), singular 1144
+N=4 k=4 labelled=8 kind=G: labelings tested 3603600 (smallest labelled point in A, first of B before first of C), singular 0
+N=4 k=4 labelled=8 kind=H: labelings tested 3603600 (smallest labelled point in A, first of B before first of C), singular 4584
+N=4 k=4 labelled=8 kind=P: labelings tested 3603600 (smallest labelled point in A, first of B before first of C), singular 4584
+N=4 k=5 labelled=10 kind=G: labelings tested 29429400 (smallest labelled point in A, first of B before first of C), singular 19320
+N=4 k=5 labelled=10 kind=P: labelings tested 29429400 (smallest labelled point in A, first of B before first of C), singular 37320
+N=4 k=6 labelled=12 kind=G: labelings tested 76096020 (smallest labelled point in A, first of B before first of C), singular 23660
+N=4 k=6 labelled=12 kind=P: labelings tested 76096020 (smallest labelled point in A, first of B before first of C), singular 45380
+N=4 k=7 labelled=14 kind=G: labelings tested 52972920 (smallest labelled point in A, first of B before first of C), singular 26040
+N=4 k=7 labelled=14 kind=P: labelings tested 52972920 (smallest labelled point in A, first of B before first of C), singular 34008
+N=4 k=8 labelled=16 kind=G: labelings tested 4458168 (smallest labelled point in A, first of B before first of C), singular 0
+N=4 k=8 labelled=16 kind=H: labelings tested 4458168 (smallest labelled point in A, first of B before first of C), singular 5568
+N=4 k=8 labelled=16 kind=P: labelings tested 4458168 (smallest labelled point in A, first of B before first of C), singular 5568
+N=4 k=4 labelled=9 kind=G: labelings tested 3203200 (smallest labelled point in A, first of B before first of C), singular 0
+N=4 k=4 labelled=9 kind=P: labelings tested 3203200 (smallest labelled point in A, first of B before first of C), singular 0
+N=4 k=5 labelled=11 kind=G: labelings tested 25225200 (smallest labelled point in A, first of B before first of C), singular 1680
+N=4 k=5 labelled=11 kind=P: labelings tested 25225200 (smallest labelled point in A, first of B before first of C), singular 1776
+N=4 k=6 labelled=13 kind=G: labelings tested 45405360 (smallest labelled point in A, first of B before first of C), singular 1680
+N=4 k=6 labelled=13 kind=P: labelings tested 45405360 (smallest labelled point in A, first of B before first of C), singular 1776
+N=4 k=7 labelled=15 kind=G: labelings tested 15471456 (smallest labelled point in A, first of B before first of C), singular 0
+N=4 k=7 labelled=15 kind=P: labelings tested 15471456 (smallest labelled point in A, first of B before first of C), singular 0
+s3_even_3_4_G.txt: singular labelings 0, distinct kernels (true patterns up to renaming) 0: lifts 0, not lifts 0
+   lifts by (sizes, common zeros): {}
+   not lifts by (sizes, common zeros): {}
+   not lifts: 0 orbits under translations and renaming; first: []
+s3_even_3_4_P.txt: singular labelings 4, distinct kernels (true patterns up to renaming) 4: lifts 0, not lifts 4
+   lifts by (sizes, common zeros): {}
+   not lifts by (sizes, common zeros): {((3, 3, 2), 0): 4}
+   not lifts: 1 orbits under translations and renaming; first: ['AABCABCC']
+s3_even_4_3_G.txt: singular labelings 840, distinct kernels (true patterns up to renaming) 840: lifts 840, not lifts 0
+   lifts by (sizes, common zeros): {((2, 2, 2), 0): 840}
+   not lifts by (sizes, common zeros): {}
+   not lifts: 0 orbits under translations and renaming; first: []
+s3_even_4_3_P.txt: singular labelings 1144, distinct kernels (true patterns up to renaming) 1144: lifts 840, not lifts 304
+   lifts by (sizes, common zeros): {((2, 2, 2), 0): 840}
+   not lifts by (sizes, common zeros): {((2, 2, 2), 0): 304}
+   not lifts: 19 orbits under translations and renaming; first: ['-------A-B--ABCC', '-------A-B-C-ACB', '-------AB--CA-CB']
+s3_even_4_4_G.txt: singular labelings 0, distinct kernels (true patterns up to renaming) 0: lifts 0, not lifts 0
+   lifts by (sizes, common zeros): {}
+   not lifts by (sizes, common zeros): {}
+   not lifts: 0 orbits under translations and renaming; first: []
+s3_even_4_4_H.txt: singular labelings 4584, distinct kernels (true patterns up to renaming) 4584: lifts 0, not lifts 4584
+   lifts by (sizes, common zeros): {}
+   not lifts by (sizes, common zeros): {((3, 3, 2), 0): 4584}
+   not lifts: 300 orbits under translations and renaming; first: ['--------AABCABCC', '-------A-BABBACC', '-------AA-BBABCC']
+s3_even_4_4_P.txt: singular labelings 4584, distinct kernels (true patterns up to renaming) 4584: lifts 0, not lifts 4584
+   lifts by (sizes, common zeros): {}
+   not lifts by (sizes, common zeros): {((3, 3, 2), 0): 4584}
+   not lifts: 300 orbits under translations and renaming; first: ['--------AABCABCC', '-------A-BABBACC', '-------AA-BBABCC']
+s3_even_4_5_G.txt: singular labelings 19320, distinct kernels (true patterns up to renaming) 10220: lifts 10220, not lifts 0
+   lifts by (sizes, common zeros): {((4, 4, 2), 0): 10080, ((4, 4, 4), 0): 140}
+   not lifts by (sizes, common zeros): {}
+   not lifts: 0 orbits under translations and renaming; first: []
+s3_even_4_5_P.txt: singular labelings 37320, distinct kernels (true patterns up to renaming) 27260: lifts 10220, not lifts 17040
+   lifts by (sizes, common zeros): {((4, 4, 2), 0): 10080, ((4, 4, 4), 0): 140}
+   not lifts by (sizes, common zeros): {((4, 3, 3), 0): 6960, ((4, 4, 2), 0): 9984, ((4, 4, 3), 0): 96}
+   not lifts: 1071 orbits under translations and renaming; first: ['------AAABBCCBCA', '------AABCABBABC', '-----AAAABCCB-BB']
+s3_even_4_6_G.txt: singular labelings 23660, distinct kernels (true patterns up to renaming) 2380: lifts 2380, not lifts 0
+   lifts by (sizes, common zeros): {((4, 4, 3), 1): 1680, ((4, 4, 4), 0): 140, ((4, 4, 4), 1): 560}
+   not lifts by (sizes, common zeros): {}
+   not lifts: 0 orbits under translations and renaming; first: []
+s3_even_4_6_P.txt: singular labelings 45380, distinct kernels (true patterns up to renaming) 21988: lifts 2380, not lifts 19608
+   lifts by (sizes, common zeros): {((4, 4, 3), 1): 1680, ((4, 4, 4), 0): 140, ((4, 4, 4), 1): 560}
+   not lifts by (sizes, common zeros): {((4, 4, 3), 1): 480, ((4, 4, 4), 0): 96, ((5, 4, 3), 0): 7632, ((5, 4, 4), 0): 48, ((5, 5, 2), 0): 11304, ((5, 5, 3), 0): 48}
+   not lifts: 1227 orbits under translations and renaming; first: ['----AAABAABBBCCB', '----AAABBABABBCC', '----AAABBCBCBBAA']
+s3_even_4_7_G.txt: singular labelings 26040, distinct kernels (true patterns up to renaming) 19320: lifts 19320, not lifts 0
+   lifts by (sizes, common zeros): {((4, 4, 4), 2): 840, ((6, 4, 4), 0): 10080, ((6, 6, 2), 0): 8400}
+   not lifts by (sizes, common zeros): {}
+   not lifts: 0 orbits under translations and renaming; first: []
+s3_even_4_7_P.txt: singular labelings 34008, distinct kernels (true patterns up to renaming) 26712: lifts 19320, not lifts 7392
+   lifts by (sizes, common zeros): {((4, 4, 4), 2): 840, ((6, 4, 4), 0): 10080, ((6, 6, 2), 0): 8400}
+   not lifts by (sizes, common zeros): {((5, 4, 4), 1): 144, ((5, 5, 3), 1): 144, ((5, 5, 4), 0): 336, ((6, 4, 4), 0): 1392, ((6, 5, 3), 0): 2064, ((6, 6, 2), 0): 3312}
+   not lifts: 462 orbits under translations and renaming; first: ['--AAAABBBCBAABBC', '--AAAABCABCBCBAC', '--AAAABCCBABABBC']
+s3_even_4_8_G.txt: singular labelings 0, distinct kernels (true patterns up to renaming) 0: lifts 0, not lifts 0
+   lifts by (sizes, common zeros): {}
+   not lifts by (sizes, common zeros): {}
+   not lifts: 0 orbits under translations and renaming; first: []
+s3_even_4_8_H.txt: singular labelings 5568, distinct kernels (true patterns up to renaming) 5568: lifts 0, not lifts 5568
+   lifts by (sizes, common zeros): {}
+   not lifts by (sizes, common zeros): {((6, 5, 5), 0): 480, ((6, 6, 4), 0): 48, ((7, 5, 4), 0): 1392, ((7, 6, 3), 0): 2304, ((7, 7, 2), 0): 1344}
+   not lifts: 348 orbits under translations and renaming; first: ['AAAAABBBAABBBCCB', 'AAAAABBBBABACCBB', 'AAAAABBBBBCCABBA']
+s3_even_4_8_P.txt: singular labelings 5568, distinct kernels (true patterns up to renaming) 5568: lifts 0, not lifts 5568
+   lifts by (sizes, common zeros): {}
+   not lifts by (sizes, common zeros): {((6, 5, 5), 0): 480, ((6, 6, 4), 0): 48, ((7, 5, 4), 0): 1392, ((7, 6, 3), 0): 2304, ((7, 7, 2), 0): 1344}
+   not lifts: 348 orbits under translations and renaming; first: ['AAAAABBBAABBBCCB', 'AAAAABBBBABACCBB', 'AAAAABBBBBCCABBA']
+s3_odd_4_4_G.txt: singular labelings 0, distinct kernels (true patterns up to renaming) 0: lifts 0, not lifts 0
+   lifts by (sizes, common zeros): {}
+   not lifts by (sizes, common zeros): {}
+   not lifts: 0 orbits under translations and renaming; first: []
+s3_odd_4_4_P.txt: singular labelings 0, distinct kernels (true patterns up to renaming) 0: lifts 0, not lifts 0
+   lifts by (sizes, common zeros): {}
+   not lifts by (sizes, common zeros): {}
+   not lifts: 0 orbits under translations and renaming; first: []
+s3_odd_4_5_G.txt: singular labelings 1680, distinct kernels (true patterns up to renaming) 140: lifts 140, not lifts 0
+   lifts by (sizes, common zeros): {((4, 4, 4), 0): 140}
+   not lifts by (sizes, common zeros): {}
+   not lifts: 0 orbits under translations and renaming; first: []
+s3_odd_4_5_P.txt: singular labelings 1776, distinct kernels (true patterns up to renaming) 236: lifts 140, not lifts 96
+   lifts by (sizes, common zeros): {((4, 4, 4), 0): 140}
+   not lifts by (sizes, common zeros): {((4, 4, 3), 0): 96}
+   not lifts: 6 orbits under translations and renaming; first: ['-----ABCABCCBBAC', '---ABACC-BCAAC-B', '--AB-C-CCABBCB-A']
+s3_odd_4_6_G.txt: singular labelings 1680, distinct kernels (true patterns up to renaming) 560: lifts 560, not lifts 0
+   lifts by (sizes, common zeros): {((4, 4, 4), 1): 560}
+   not lifts by (sizes, common zeros): {}
+   not lifts: 0 orbits under translations and renaming; first: []
+s3_odd_4_6_P.txt: singular labelings 1776, distinct kernels (true patterns up to renaming) 656: lifts 560, not lifts 96
+   lifts by (sizes, common zeros): {((4, 4, 4), 1): 560}
+   not lifts by (sizes, common zeros): {((5, 4, 4), 0): 48, ((5, 5, 3), 0): 48}
+   not lifts: 6 orbits under translations and renaming; first: ['--AAABBC-CBBABCC', '--AAABCBCCBABB-C', '--ABBA-CCBAABBAC']
+s3_odd_4_7_G.txt: singular labelings 0, distinct kernels (true patterns up to renaming) 0: lifts 0, not lifts 0
+   lifts by (sizes, common zeros): {}
+   not lifts by (sizes, common zeros): {}
+   not lifts: 0 orbits under translations and renaming; first: []
+s3_odd_4_7_P.txt: singular labelings 0, distinct kernels (true patterns up to renaming) 0: lifts 0, not lifts 0
+   lifts by (sizes, common zeros): {}
+   not lifts by (sizes, common zeros): {}
+   not lifts: 0 orbits under translations and renaming; first: []

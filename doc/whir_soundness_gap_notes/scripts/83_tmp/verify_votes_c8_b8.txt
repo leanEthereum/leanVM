@@ -1,0 +1,2 @@
+n=64 members=11 target=40: kernel 1, distinct codewords 11, agreements [40, 40, 40, 40, 40, 39, 40, 40, 40, 40, 40] -> not a list at the target
+n=64 members=12 target=40: kernel 1, distinct codewords 12, agreements [40, 40, 40, 39, 40, 40, 40, 40, 40, 40, 40, 40] -> not a list at the target

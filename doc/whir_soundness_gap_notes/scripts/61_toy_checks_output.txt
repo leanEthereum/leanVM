@@ -1,0 +1,5 @@
+C1 passed: plain fold commutes with the mixing; the affine fold's honest fold leaves the code (50 trials); the twisted code has dimension 2k
+C2 passed: one level of Protocol D' on a window-mixed code is complete (20 honest runs, every column queried)
+C3 passed: a class off the list wins at most floor((n - |agreement|) / (columns to repair)) challenges, attained
+C4 passed: Proposition I' and the paper's tree bound on 328 exhaustive cases, 122 with a single-lane list above one (binary codes, two and three lanes)
+C5 passed: the partner x + beta_j changes the factors k <= j only; sum_j min(j + 1, kappa) products a query

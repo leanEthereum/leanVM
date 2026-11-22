@@ -1,0 +1,339 @@
+== 21_gf.py
+21_gf self-test ok
+== 21_attack_checks.py flats
+flats N=7 rate 1/4: 127 subspaces of size 2k (Gaussian binomial ok), 127 checked: Q_V of degree k-1 agrees with x^(2k-1) exactly on V\0 (63 points); on D\V never; all Q_V distinct
+flats N=7 rate 1/8: 2667 subspaces of size 2k (Gaussian binomial ok), 60 checked: Q_V of degree k-1 agrees with x^(2k-1) exactly on V\0 (31 points); on D\V never; all Q_V distinct
+flats N=8 rate 1/4: 255 subspaces of size 2k (Gaussian binomial ok), 255 checked: Q_V of degree k-1 agrees with x^(2k-1) exactly on V\0 (127 points); on D\V never; all Q_V distinct
+flats N=8 rate 1/16: 97155 subspaces of size 2k (Gaussian binomial ok), 60 checked: Q_V of degree k-1 agrees with x^(2k-1) exactly on V\0 (31 points); on D\V never; all Q_V distinct
+== 21_attack_checks.py thmw
+Theorem W and converse, sets: N=4, random basis in GF(2^64), all T, t<=7: 119 cells, partitions equal
+  forward direction (Walsh congruent => common top) on power shape, K: no violation
+  forward direction (Walsh congruent => common top) on GF(16): no violation
+Theorem W and converse, multisets: N=3, multiplicities <=4, all masses, t<=7: 203 cells, partitions equal
+Theorem W and converse, multisets: N=4, multiplicities <=2, mass <=7 (114084 multisets), t in 1,2,3,4,7: 40 cells, partitions equal
+== 21_attack_checks.py five8 7
+5n/8 class N=5: the two descriptions (note 02: ten cosets of a hyperplane of U; note 05: flat + three cosets) give the same 1400 sets = 56n-392; 875 = 35n-245 contain a given point; 189 = 7n-35 avoid a given coset of U
+   members containing one fixed coset of U: 539 = 21n-133 (539); of these 7 are coset + affine hyperplane; the rest 532 = 21n-140 (532) = M_2(N) = 532
+   power shape: 1400 members checked, all share e_1..e_(n/8-1) with the word L_U^5 (degree of L_U^5 - Z_S <= n/2); e_(n/8) takes 600 values (so they are not all one genuine list at 5n/8)
+   power shape: full-degree check on 3 members: deg(L_U^5 - Z_S) <= n/2, agreement exactly 5n/8, punctured degree < n/2
+   random basis: 1400 members checked, all share e_1..e_(n/8-1) with the word L_U^5 (degree of L_U^5 - Z_S <= n/2); e_(n/8) takes 680 values (so they are not all one genuine list at 5n/8)
+   random basis: full-degree check on 3 members: deg(L_U^5 - Z_S) <= n/2, agreement exactly 5n/8, punctured degree < n/2
+5n/8 class N=6: the two descriptions (note 02: ten cosets of a hyperplane of U; note 05: flat + three cosets) give the same 3192 sets = 56n-392; 1995 = 35n-245 contain a given point; 413 = 7n-35 avoid a given coset of U
+   members containing one fixed coset of U: 1211 = 21n-133 (1211); of these 7 are coset + affine hyperplane; the rest 1204 = 21n-140 (1204) = M_2(N) = 1204
+   power shape: 3192 members checked, all share e_1..e_(n/8-1) with the word L_U^5 (degree of L_U^5 - Z_S <= n/2); e_(n/8) takes 1560 values (so they are not all one genuine list at 5n/8)
+   power shape: full-degree check on 3 members: deg(L_U^5 - Z_S) <= n/2, agreement exactly 5n/8, punctured degree < n/2
+   random basis: 3192 members checked, all share e_1..e_(n/8-1) with the word L_U^5 (degree of L_U^5 - Z_S <= n/2); e_(n/8) takes 1576 values (so they are not all one genuine list at 5n/8)
+   random basis: full-degree check on 3 members: deg(L_U^5 - Z_S) <= n/2, agreement exactly 5n/8, punctured degree < n/2
+5n/8 class N=7: the two descriptions (note 02: ten cosets of a hyperplane of U; note 05: flat + three cosets) give the same 6776 sets = 56n-392; 4235 = 35n-245 contain a given point; 861 = 7n-35 avoid a given coset of U
+   members containing one fixed coset of U: 2555 = 21n-133 (2555); of these 7 are coset + affine hyperplane; the rest 2548 = 21n-140 (2548) = M_2(N) = 2548
+   power shape: 400 members checked, all share e_1..e_(n/8-1) with the word L_U^5 (degree of L_U^5 - Z_S <= n/2); e_(n/8) takes 392 values (so they are not all one genuine list at 5n/8)
+   power shape: full-degree check on 3 members: deg(L_U^5 - Z_S) <= n/2, agreement exactly 5n/8, punctured degree < n/2
+   random basis: 400 members checked, all share e_1..e_(n/8-1) with the word L_U^5 (degree of L_U^5 - Z_S <= n/2); e_(n/8) takes 389 values (so they are not all one genuine list at 5n/8)
+   random basis: full-degree check on 3 members: deg(L_U^5 - Z_S) <= n/2, agreement exactly 5n/8, punctured degree < n/2
+== 21_attack_checks.py mitm
+n=32, leanVM shape span(1..x^4) in K: class of the word L_U^5 at T=20: 1400 sets in degree <= 16, 9 in degree < 16; punctured word at T=19, degree < 16: 1323; class of 18-sets (complement of seven cosets): 38375 at depth 2, 2395 at depth 3
+n=32, random basis in K: class of the word L_U^5 at T=20: 1400 sets in degree <= 16, 7 in degree < 16; punctured word at T=19, degree < 16: 1323; class of 18-sets (complement of seven cosets): 2395 at depth 2, 2395 at depth 3
+n=32, second random basis in K: class of the word L_U^5 at T=20: 1400 sets in degree <= 16, 7 in degree < 16; punctured word at T=19, degree < 16: 1323; class of 18-sets (complement of seven cosets): 2395 at depth 2, 2395 at depth 3
+== 21_attack_checks.py extra
+stack at 9n/16, N=6: 40 random members share e_1..e_(n/16-1) (degree of differences <= n/2); count per padding = (2^(N-1) - 2)^3 = 27000
+stack at 9n/16, N=7: 40 random members share e_1..e_(n/16-1) (degree of differences <= n/2); count per padding = (2^(N-1) - 2)^3 = 238328
+   at N=25: (2^24 - 2)^3 = 2^72 members in degree <= n/2 at agreement 9n/16
+glued unions at 9n/16: nu = 14732720; members at N=25: 30872747084720 = 2^44.81
+   N=7: 30 random glued members (varying hyperplane of U) share e_1..e_(n/16-1): differences of degree <= n/2 at agreement 9n/16
+random padding B (|B| = n/4, 14-dimensional quotient): the 1024-th largest |hat B| is 102: 2^10 polynomials of degree <= n/2 at agreement >= 0.6281 n; top value 236 (0.6322 n)
+rate 1/4 at 3n/8, N=6: 300 complements of members of the 5n/8 class share e_1..e_(n/8-1): differences of degree <= n/4
+== 21_real_checks.py padding padfield pair sparse curve consts
+biased padding: |B| = 1008 of 4096 labels (not n/4 = 1024), nonzero Walsh values by absolute value: [(16, 3087), (48, 1008)]
+   1008 directions with |hat B| = 48: agreement fraction 0.62891 = 161/256, degree of the codewords <= 0.49609 n (genuine: below n/2)
+   Parseval cap of note 01 for L = 1008 with |B| = n/4: 5/8 + sqrt(3/(64 L)) = 0.63182
+   m'=4: |B| = 60 of 256, L = 60 directions, tau = 41/64 = 5/8 + 1/64, L eps^2 = 0.01465 (1/64 = 0.01562; Parseval cap 3/64 = 0.04688; Theorem A of note 12: 1/16)
+   m'=5: |B| = 248 of 1024, L = 248 directions, tau = 81/128 = 5/8 + 1/128, L eps^2 = 0.01514 (1/64 = 0.01562; Parseval cap 3/64 = 0.04688; Theorem A of note 12: 1/16)
+   m'=7: |B| = 4064 of 16384, L = 4064 directions, tau = 321/512 = 5/8 + 1/512, L eps^2 = 0.01550 (1/64 = 0.01562; Parseval cap 3/64 = 0.04688; Theorem A of note 12: 1/16)
+   m'=8: |B| = 16320 of 65536, L = 16320 directions, tau = 641/1024 = 5/8 + 1/1024, L eps^2 = 0.01556 (1/64 = 0.01562; Parseval cap 3/64 = 0.04688; Theorem A of note 12: 1/16)
+   identity checked at N=8, |B| = 64: codeword degree <= |B| + n/4 = 128, agreement exactly |H u B|
+   identity checked at N=8, |B| = 61: codeword degree <= |B| + n/4 = 125, agreement exactly |H u B|
+closed-form padding family, N=8, m'=4, leanVM shape in K: |B| = 60; 60 distinct codewords of degree <= n/2 - n/64 = 124, each agreeing with the one word X^(n/2) L_B on exactly 41n/64 = 164 points
+N=25: |V| = |V'| = n/4, dim(V n V') = 21 (n/16 points: True); c1(V) = cba43a67a8eb80e2, c1(V') = cba43a67a8eb80e2, equal: True; c2 equal: False
+N=26: |V| = |V'| = n/4, dim(V n V') = 22 (n/16 points: True); c1(V) = 1ffceca7a13db23d, c1(V') = 1ffceca7a13db23d, equal: True; c2 equal: False
+N=27: |V| = |V'| = n/4, dim(V n V') = 23 (n/16 points: True); c1(V) = 77ed94d3be30112c, c1(V') = 77ed94d3be30112c, equal: True; c2 equal: False
+N=28: |V| = |V'| = n/4, dim(V n V') = 24 (n/16 points: True); c1(V) = cbca51b44a3f6baf, c1(V') = cbca51b44a3f6baf, equal: True; c2 equal: False
+N=6: Z_A - Z_B is a nonzero constant (|A| = |B| = 3n/16 = 12); the six dual points have sum of 1/a = 0 and sum of 1/a^3 != 0
+N=7: Z_A - Z_B is a nonzero constant (|A| = |B| = 3n/16 = 24); the six dual points have sum of 1/a = 0 and sum of 1/a^3 != 0
+N=8: Z_A - Z_B is a nonzero constant (|A| = |B| = 3n/16 = 48); the six dual points have sum of 1/a = 0 and sum of 1/a^3 != 0
+N=9: Z_A - Z_B is a nonzero constant (|A| = |B| = 3n/16 = 96); the six dual points have sum of 1/a = 0 and sum of 1/a^3 != 0
+sparse keys N=5, leanVM shape in K: levels e=1..3: support and additivity as stated
+sparse keys N=5, random basis in K: levels e=1..3: support and additivity as stated
+sparse keys N=5, GF(2^8): levels e=1..3: support and additivity as stated
+sparse keys N=6, leanVM shape in K: levels e=1..4: support and additivity as stated
+sparse keys N=6, random basis in K: levels e=1..4: support and additivity as stated
+sparse keys N=6, GF(2^8): levels e=1..4: support and additivity as stated
+   60 pairs of lattice elements checked
+5n/8 class, label sets per hyperplane: 504 sets in 232 masks; class sizes [2, 7] (8 of 7, 224 of 2); masks on which Q_c - v*alpha can vanish identically: 8, all their sets invariant under eta: True; invariant sets in all: 56
+   so the bound is 7 + 224 * 8 hyperplanes * 2 sets = 3591
+   N=6, K, leanVM shape: all 7 hyperplanes lie on the curve t_i^2 + t_i = lambda_i alpha; Lemma 2.1 and the Q_c formula on 7 random (W, Y)
+   N=7, K, leanVM shape: all 15 hyperplanes lie on the curve t_i^2 + t_i = lambda_i alpha; Lemma 2.1 and the Q_c formula on 12 random (W, Y)
+   N=7, GF(2^10), leanVM shape: all 15 hyperplanes lie on the curve t_i^2 + t_i = lambda_i alpha; Lemma 2.1 and the Q_c formula on 12 random (W, Y)
+   D = GF(2^9): 63 hyperplanes; most hyperplanes on one (mask, value): 1 (Bezout bound 8); largest fibre of e_(n/8) on the class: 80 sets (bound 3591)
+   D = GF(2^10): 127 hyperplanes; most hyperplanes on one (mask, value): 1 (Bezout bound 8); largest fibre of e_(n/8) on the class: 78 sets (bound 3591)
+   D = GF(2^12): 511 hyperplanes; most hyperplanes on one (mask, value): 1 (Bezout bound 8); largest fibre of e_(n/8) on the class: 74 sets (bound 3591)
+Theorem 3b constants, rate 1/2, T in (5n/8, 11n/16): s in (5u, 6u): J <= 15, factors <= 14, 41, 59, pointwise fourth factor <= 494 (separate sup of rho^2 and inf of kappa: < 539.9)
+   bound with the pointwise fourth factor: 3764205915 = 2^31.81; note 19 claims 4107099165 = 2^31.94
+Theorem 3b constants, rate 1/4, T in [3n/8, 7n/16): s in [6u, 7u): J <= 63, factors <= 15, 62, 62, pointwise fourth factor <= 566 (separate sup of rho^2 and inf of kappa: < 566.9)
+   bound with the pointwise fourth factor: 65793289023 = 2^35.94; note 19 claims 65793289023 = 2^35.94
+   at s = 6u exactly (T = 5n/8, degree < n/2): J = 16, Q = 4981500, bound 1275264016
+   Theorem 3a: 1/(1-2s/n)^2 at s = 5n/16: 7.111; at tau = 0.3536 (rate 1/8): 11.656
+   Theorem 3c: 3/(16(3/4-tau)(1/4-tau)) at tau = 3/16: 5.333; at 7/32: 11.294
+   note 14 Theorem I: recursion values 1, L, 2L-1, L^2+L-1 on [g,2g), [2g,3g), [3g,4g), [4g,5g) confirmed
+== 21_real_checks.py phantom
+phantom congruence n=16 (T,k)=(12,10): 90930 pairs joined by at most one phantom root each (210 strict), max |d mod 4| = 1, violations 0
+phantom congruence n=16 (T,k)=(12,9): 43680 pairs joined by at most one phantom root each (0 strict), max |d mod 4| = 1, violations 0
+phantom congruence n=16 (T,k)=(5,3): 399000 pairs joined by at most one phantom root each (1680 strict), max |d mod 4| = 1, violations 0
+phantom congruence n=16 (T,k)=(4,2): 90930 pairs joined by at most one phantom root each (210 strict), max |d mod 4| = 1, violations 0
+== 21_walsh classes32 (all s-subsets of F_2^5; s <-> 32 - s by complement)
+classes32 s=3 (T=29 by complement) mod=4 sum=0: sets=155 classes=155 with>=2=0 largest=1 (x155) next=0
+classes32 s=4 (T=28 by complement) mod=4 sum=0: sets=1240 classes=155 with>=2=155 largest=8 (x155) next=0
+classes32 s=4 (T=28 by complement) mod=4 sum=1: sets=1120 classes=1120 with>=2=0 largest=1 (x1120) next=0
+classes32 s=5 (T=27 by complement) mod=4 sum=0: sets=6293 classes=5363 with>=2=155 largest=7 (x155) next=1
+classes32 s=6 (T=26 by complement) mod=4 sum=0: sets=27776 classes=27776 with>=2=0 largest=1 (x27776) next=0
+classes32 s=6 (T=26 by complement) mod=4 sum=1: sets=28336 classes=9424 with>=2=9424 largest=35 (x16) next=6
+classes32 s=7 (T=25 by complement) mod=4 sum=0: sets=105183 classes=23034 with>=2=9146 largest=155 (x1) next=28
+classes32 s=8 (T=24 by complement) mod=4 sum=0: sets=330460 classes=9146 with>=2=9146 largest=620 (x1) next=112
+classes32 s=8 (T=24 by complement) mod=4 sum=1: sets=328640 classes=25792 with>=2=25792 largest=120 (x32) next=38
+classes32 s=9 (T=23 by complement) mod=4 sum=0: sets=876525 classes=27374 with>=2=27374 largest=465 (x1) next=148
+classes32 s=10 (T=22 by complement) mod=4 sum=0: sets=2011776 classes=32736 with>=2=32736 largest=64 (x4960) next=61
+classes32 s=10 (T=22 by complement) mod=4 sum=1: sets=2016144 classes=30512 with>=2=30512 largest=513 (x16) next=206
+classes32 s=11 (T=21 by complement) mod=4 sum=0: sets=4032015 classes=32302 with>=2=32302 largest=589 (x155) next=301
+classes32 s=12 (T=20 by complement) mod=4 sum=0: sets=7063784 classes=23622 with>=2=23622 largest=1400 (x155) next=640
+classes32 s=12 (T=20 by complement) mod=4 sum=1: sets=7055776 classes=32736 with>=2=32736 largest=679 (x1120) next=416
+classes32 s=13 (T=19 by complement) mod=4 sum=0: sets=10855425 classes=32302 with>=2=32302 largest=1323 (x155) next=730
+classes32 s=14 (T=18 by complement) mod=4 sum=0: sets=14721280 classes=32736 with>=2=32736 largest=450 (x27776) next=448
+classes32 s=14 (T=18 by complement) mod=4 sum=1: sets=14732720 classes=32752 with>=2=32752 largest=2395 (x16) next=1148
+classes32 s=15 (T=17 by complement) mod=4 sum=0: sets=17678835 classes=32613 with>=2=32613 largest=4371 (x1) next=1744
+classes32 s=16 (T=16 by complement) mod=4 sum=0: sets=18796230 classes=27405 with>=2=27405 largest=8742 (x1) next=2592
+classes32 s=16 (T=16 by complement) mod=4 sum=1: sets=18783360 classes=32768 with>=2=32768 largest=2704 (x32) next=1284
+classes32 s=3 (T=29 by complement) mod=8 sum=0: sets=155 classes=155 with>=2=0 largest=1 (x155) next=0
+classes32 s=4 (T=28 by complement) mod=8 sum=0: sets=1240 classes=1240 with>=2=0 largest=1 (x1240) next=0
+classes32 s=4 (T=28 by complement) mod=8 sum=1: sets=1120 classes=1120 with>=2=0 largest=1 (x1120) next=0
+classes32 s=5 (T=27 by complement) mod=8 sum=0: sets=6293 classes=6293 with>=2=0 largest=1 (x6293) next=0
+classes32 s=6 (T=26 by complement) mod=8 sum=0: sets=27776 classes=27776 with>=2=0 largest=1 (x27776) next=0
+classes32 s=6 (T=26 by complement) mod=8 sum=1: sets=28336 classes=28336 with>=2=0 largest=1 (x28336) next=0
+classes32 s=7 (T=25 by complement) mod=8 sum=0: sets=105183 classes=105183 with>=2=0 largest=1 (x105183) next=0
+classes32 s=8 (T=24 by complement) mod=8 sum=0: sets=330460 classes=329995 with>=2=155 largest=4 (x155) next=1
+classes32 s=8 (T=24 by complement) mod=8 sum=1: sets=328640 classes=328640 with>=2=0 largest=1 (x328640) next=0
+classes32 s=9 (T=23 by complement) mod=8 sum=0: sets=876525 classes=876215 with>=2=155 largest=3 (x155) next=1
+classes32 s=10 (T=22 by complement) mod=8 sum=0: sets=2011776 classes=2011776 with>=2=0 largest=1 (x2011776) next=0
+classes32 s=10 (T=22 by complement) mod=8 sum=1: sets=2016144 classes=2013104 with>=2=2480 largest=3 (x560) next=2
+classes32 s=11 (T=21 by complement) mod=8 sum=0: sets=4032015 classes=4016825 with>=2=14105 largest=3 (x1085) next=2
+classes32 s=12 (T=20 by complement) mod=8 sum=0: sets=7063784 classes=6952184 with>=2=105400 largest=7 (x1240) next=2
+classes32 s=12 (T=20 by complement) mod=8 sum=1: sets=7055776 classes=7006496 with>=2=48160 largest=3 (x1120) next=2
+classes32 s=13 (T=19 by complement) mod=8 sum=0: sets=10855425 classes=10734060 with>=2=118420 largest=7 (x155) next=4
+classes32 s=14 (T=18 by complement) mod=8 sum=0: sets=14721280 classes=14304640 with>=2=416640 largest=2 (x416640) next=1
+classes32 s=14 (T=18 by complement) mod=8 sum=1: sets=14732720 classes=14525856 with>=2=194336 largest=15 (x16) next=4
+classes32 s=15 (T=17 by complement) mod=8 sum=0: sets=17678835 classes=17379345 with>=2=281481 largest=31 (x1) next=8
+classes32 s=16 (T=16 by complement) mod=8 sum=0: sets=18796230 classes=18163614 with>=2=581406 largest=62 (x1) next=8
+classes32 s=16 (T=16 by complement) mod=8 sum=1: sets=18783360 classes=18460320 with>=2=300192 largest=16 (x32) next=4
+classes32 s=4 (T=28 by complement) mod=16 sum=0: sets=1240 classes=1240 with>=2=0 largest=1 (x1240) next=0
+classes32 s=4 (T=28 by complement) mod=16 sum=1: sets=1120 classes=1120 with>=2=0 largest=1 (x1120) next=0
+classes32 s=8 (T=24 by complement) mod=16 sum=0: sets=330460 classes=330460 with>=2=0 largest=1 (x330460) next=0
+classes32 s=8 (T=24 by complement) mod=16 sum=1: sets=328640 classes=328640 with>=2=0 largest=1 (x328640) next=0
+classes32 s=12 (T=20 by complement) mod=16 sum=0: sets=7063784 classes=7063784 with>=2=0 largest=1 (x7063784) next=0
+classes32 s=12 (T=20 by complement) mod=16 sum=1: sets=7055776 classes=7055776 with>=2=0 largest=1 (x7055776) next=0
+classes32 s=16 (T=16 by complement) mod=16 sum=0: sets=18796230 classes=18796199 with>=2=31 largest=2 (x31) next=1
+classes32 s=16 (T=16 by complement) mod=16 sum=1: sets=18783360 classes=18783360 with>=2=0 largest=1 (x18783360) next=0
+== 21_walsh rm2 (classes of seeds at n = 32, 64, 128)
+rm2 N=5 mod=4 seed=cosets:2:0,1,2 size=12: class members in seed+RM(2,N): 1400, invariant under the bottom 2 bits: 56
+rm2 N=6 mod=8 seed=cosets:3:0,1,2 size=24: class members in seed+RM(2,N): 3192, invariant under the bottom 3 bits: 56
+rm2 N=7 mod=16 seed=cosets:4:0,1,2 size=48: class members in seed+RM(2,N): 6776, invariant under the bottom 4 bits: 56
+rm2 N=5 mod=4 seed=cosets:2:0,1,2+31 size=13: class members in seed+RM(2,N): 1323, invariant under the bottom 2 bits: 0
+rm2 N=6 mod=8 seed=cosets:3:0,1,2+63 size=25: class members in seed+RM(2,N): 1995, invariant under the bottom 3 bits: 0
+rm2 N=7 mod=16 seed=cosets:4:0,1,2+127 size=49: class members in seed+RM(2,N): 4235, invariant under the bottom 4 bits: 0
+rm2 N=5 mod=4 seed=cosets:1:0,1,2,3,4,5,6 size=14: class members in seed+RM(2,N): 2395, invariant under the bottom 1 bits: 715
+rm2 N=6 mod=8 seed=cosets:2:0,1,2,3,4,5,6 size=28: class members in seed+RM(2,N): 5755, invariant under the bottom 2 bits: 715
+rm2 N=7 mod=16 seed=cosets:3:0,1,2,3,4,5,6 size=56: class members in seed+RM(2,N): 12475, invariant under the bottom 3 bits: 715
+== 21_nine16_checks.py
+n=32: 2395 = 105n-965 members; 715 invariant under Y, 1680 = 1680(n/16-1) invariant under exactly a hyperplane of Y
+   leanVM shape: 2395 complements (9n/16 = 18 points) share e_1..e_3: pairwise locator differences of degree <= 7n/16 = 14 < n/2; e_(n/8) takes 896 values
+   random basis: 2395 complements (9n/16 = 18 points) share e_1..e_3: pairwise locator differences of degree <= 7n/16 = 14 < n/2; e_(n/8) takes 1226 values
+n=64: 5755 = 105n-965 members; 715 invariant under Y, 5040 = 1680(n/16-1) invariant under exactly a hyperplane of Y
+   leanVM shape: 5755 complements (9n/16 = 36 points) share e_1..e_7: pairwise locator differences of degree <= 7n/16 = 28 < n/2; e_(n/8) takes 2850 values
+   random basis: 5755 complements (9n/16 = 36 points) share e_1..e_7: pairwise locator differences of degree <= 7n/16 = 28 < n/2; e_(n/8) takes 2906 values
+n=128: 12475 = 105n-965 members; 715 invariant under Y, 11760 = 1680(n/16-1) invariant under exactly a hyperplane of Y
+   leanVM shape: 1500 complements (9n/16 = 72 points) share e_1..e_15: pairwise locator differences of degree <= 7n/16 = 56 < n/2; e_(n/8) takes 1394 values
+   random basis: 1500 complements (9n/16 = 72 points) share e_1..e_15: pairwise locator differences of degree <= 7n/16 = 56 < n/2; e_(n/8) takes 1425 values
+== 21_multiset16
+k=8 T=10 mass M=10 (g=2, modulus 4): 8008 multisets with support >= T, largest class 7 (x120)
+k=8 T=10 mass M=11 (g=3, modulus 4): 84448 multisets with support >= T, largest class 15 (x560)
+k=8 T=10 mass M=12 (g=4, modulus 8): 490308 multisets with support >= T, largest class 2 (x11760)
+k=8 T=10 mass M=13 (g=5, modulus 8): 2072448 multisets with support >= T, largest class 2 (x94080)
+k=8 T=11 mass M=11 (g=3, modulus 4): 4368 multisets with support >= T, largest class 3 (x560)
+k=8 T=11 mass M=12 (g=4, modulus 8): 49868 multisets with support >= T, largest class 1 (x49868)
+k=8 T=11 mass M=13 (g=5, modulus 8): 310688 multisets with support >= T, largest class 1 (x310688)
+k=8 T=11 mass M=14 (g=6, modulus 8): 1398608 multisets with support >= T, largest class 2 (x47040)
+k=8 T=11 mass M=15 (g=7, modulus 8): 5087504 multisets with support >= T, largest class 3 (x1680)
+k=8 T=11 mass M=16 (g=8, modulus 16): 15869045 multisets with support >= T, largest class 1 (x15869045)
+k=8 T=11 mass M=17 (g=9, modulus 16): 44017040 multisets with support >= T, largest class 1 (x44017040)
+k=8 T=12 mass M=12 (g=4, modulus 8): 1820 multisets with support >= T, largest class 1 (x1820)
+k=8 T=12 mass M=13 (g=5, modulus 8): 22400 multisets with support >= T, largest class 1 (x22400)
+k=8 T=12 mass M=14 (g=6, modulus 8): 149360 multisets with support >= T, largest class 1 (x149360)
+k=8 T=12 mass M=15 (g=7, modulus 8): 715136 multisets with support >= T, largest class 1 (x715136)
+k=8 T=12 mass M=16 (g=8, modulus 16): 2751941 multisets with support >= T, largest class 1 (x2751941)
+k=2 T=4 mass M=4 (g=2, modulus 4): 1820 multisets with support >= T, largest class 4 (x35)
+k=2 T=4 mass M=5 (g=3, modulus 4): 11648 multisets with support >= T, largest class 4 (x560)
+k=2 T=4 mass M=6 (g=4, modulus 8): 48048 multisets with support >= T, largest class 1 (x48048)
+k=2 T=4 mass M=7 (g=5, modulus 8): 161408 multisets with support >= T, largest class 1 (x161408)
+k=2 T=4 mass M=8 (g=6, modulus 8): 477698 multisets with support >= T, largest class 4 (x35)
+k=2 T=4 mass M=9 (g=7, modulus 8): 1290848 multisets with support >= T, largest class 4 (x560)
+k=2 T=5 mass M=5 (g=3, modulus 4): 4368 multisets with support >= T, largest class 3 (x560)
+k=2 T=5 mass M=6 (g=4, modulus 8): 29848 multisets with support >= T, largest class 1 (x29848)
+k=2 T=5 mass M=7 (g=5, modulus 8): 125008 multisets with support >= T, largest class 1 (x125008)
+k=2 T=5 mass M=8 (g=6, modulus 8): 413998 multisets with support >= T, largest class 2 (x15)
+k=2 T=5 mass M=9 (g=7, modulus 8): 1188928 multisets with support >= T, largest class 3 (x560)
+k=2 T=5 mass M=10 (g=8, modulus 16): 3094624 multisets with support >= T, largest class 1 (x3094624)
+k=2 T=5 mass M=11 (g=9, modulus 16): 7481344 multisets with support >= T, largest class 1 (x7481344)
+k=9 T=11 mass M=11 (g=2, modulus 4): 4368 multisets with support >= T, largest class 3 (x560)
+k=9 T=11 mass M=12 (g=3, modulus 4): 49868 multisets with support >= T, largest class 16 (x168)
+k=9 T=11 mass M=13 (g=4, modulus 8): 310688 multisets with support >= T, largest class 1 (x310688)
+k=9 T=11 mass M=14 (g=5, modulus 8): 1398608 multisets with support >= T, largest class 2 (x47040)
+k=9 T=12 mass M=12 (g=3, modulus 4): 1820 multisets with support >= T, largest class 4 (x35)
+k=9 T=12 mass M=13 (g=4, modulus 8): 22400 multisets with support >= T, largest class 1 (x22400)
+k=9 T=12 mass M=14 (g=5, modulus 8): 149360 multisets with support >= T, largest class 1 (x149360)
+k=9 T=12 mass M=15 (g=6, modulus 8): 715136 multisets with support >= T, largest class 1 (x715136)
+== 21_dual32 m r seed s g ntargets
+GF(2^5) seed=0 s=6 g=4 sums=3: sets=84448 largest previous-level class=35 largest real class=4 (meets up to 4 previous-level classes) largest cell=2 bound=5 criterion failures=0 violations=0 pairs in cells=864 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^5) seed=0 s=6 g=5 sums=3: sets=84448 largest previous-level class=35 largest real class=2 (meets up to 1 previous-level classes) largest cell=2 bound=5 criterion failures=0 violations=0 pairs in cells=864 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^5) seed=0 s=7 g=4 sums=1: sets=105183 largest previous-level class=155 largest real class=8 (meets up to 7 previous-level classes) largest cell=5 bound=11 criterion failures=0 violations=0 pairs in cells=8370 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^5) seed=0 s=7 g=5 sums=1: sets=105183 largest previous-level class=155 largest real class=5 (meets up to 1 previous-level classes) largest cell=5 bound=11 criterion failures=0 violations=0 pairs in cells=8370 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^5) seed=0 s=7 g=6 sums=1: sets=105183 largest previous-level class=155 largest real class=1 (meets up to 1 previous-level classes) largest cell=1 bound=1 criterion failures=0 violations=0 pairs in cells=0 min distance (Omega empty)=99 (Omega nonempty)=99 |Omega| seen:
+GF(2^5) seed=0 s=8 g=4 sums=3: sets=987740 largest previous-level class=620 largest real class=20 (meets up to 15 previous-level classes) largest cell=20 bound=-1 criterion failures=0 violations=0 pairs in cells=370130 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8
+GF(2^5) seed=0 s=8 g=6 sums=3: sets=987740 largest previous-level class=620 largest real class=4 (meets up to 1 previous-level classes) largest cell=4 bound=4 criterion failures=0 violations=0 pairs in cells=1570 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8
+GF(2^5) seed=0 s=9 g=5 sums=1: sets=876525 largest previous-level class=465 largest real class=15 (meets up to 1 previous-level classes) largest cell=15 bound=-1 criterion failures=0 violations=0 pairs in cells=610235 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8
+GF(2^5) seed=0 s=9 g=6 sums=1: sets=876525 largest previous-level class=465 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=5 criterion failures=0 violations=0 pairs in cells=5425 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8
+GF(2^5) seed=0 s=10 g=4 sums=3: sets=6044064 largest previous-level class=513 largest real class=81 (meets up to 32 previous-level classes) largest cell=18 bound=-1 criterion failures=0 violations=0 pairs in cells=7836224 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^5) seed=0 s=10 g=6 sums=3: sets=6044064 largest previous-level class=513 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=7 criterion failures=0 violations=0 pairs in cells=86112 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8 10
+GF(2^5) seed=0 s=11 g=4 sums=1: sets=4032015 largest previous-level class=589 largest real class=186 (meets up to 32 previous-level classes) largest cell=23 bound=-1 criterion failures=0 violations=0 pairs in cells=11643631 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^5) seed=0 s=11 g=5 sums=1: sets=4032015 largest previous-level class=589 largest real class=23 (meets up to 1 previous-level classes) largest cell=23 bound=-1 criterion failures=0 violations=0 pairs in cells=11643631 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^5) seed=0 s=11 g=6 sums=1: sets=4032015 largest previous-level class=589 largest real class=5 (meets up to 1 previous-level classes) largest cell=5 bound=10 criterion failures=0 violations=0 pairs in cells=202151 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8 10
+GF(2^5) seed=0 s=11 g=7 sums=1: sets=4032015 largest previous-level class=589 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=10 criterion failures=0 violations=0 pairs in cells=17391 min distance (Omega empty)=16 (Omega nonempty)=20 |Omega| seen: 0 10
+GF(2^5) seed=3 s=6 g=4 sums=3: sets=84448 largest previous-level class=35 largest real class=4 (meets up to 4 previous-level classes) largest cell=2 bound=5 criterion failures=0 violations=0 pairs in cells=864 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^5) seed=3 s=6 g=5 sums=3: sets=84448 largest previous-level class=35 largest real class=2 (meets up to 1 previous-level classes) largest cell=2 bound=5 criterion failures=0 violations=0 pairs in cells=864 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^5) seed=3 s=7 g=4 sums=1: sets=105183 largest previous-level class=155 largest real class=8 (meets up to 7 previous-level classes) largest cell=5 bound=11 criterion failures=0 violations=0 pairs in cells=8370 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^5) seed=3 s=7 g=5 sums=1: sets=105183 largest previous-level class=155 largest real class=5 (meets up to 1 previous-level classes) largest cell=5 bound=11 criterion failures=0 violations=0 pairs in cells=8370 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^5) seed=3 s=7 g=6 sums=1: sets=105183 largest previous-level class=155 largest real class=1 (meets up to 1 previous-level classes) largest cell=1 bound=1 criterion failures=0 violations=0 pairs in cells=0 min distance (Omega empty)=99 (Omega nonempty)=99 |Omega| seen:
+GF(2^5) seed=3 s=8 g=4 sums=3: sets=987740 largest previous-level class=620 largest real class=20 (meets up to 15 previous-level classes) largest cell=20 bound=-1 criterion failures=0 violations=0 pairs in cells=370130 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8
+GF(2^5) seed=3 s=8 g=6 sums=3: sets=987740 largest previous-level class=620 largest real class=4 (meets up to 1 previous-level classes) largest cell=4 bound=4 criterion failures=0 violations=0 pairs in cells=1570 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8
+GF(2^5) seed=3 s=9 g=5 sums=1: sets=876525 largest previous-level class=465 largest real class=15 (meets up to 1 previous-level classes) largest cell=15 bound=-1 criterion failures=0 violations=0 pairs in cells=610235 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8
+GF(2^5) seed=3 s=9 g=6 sums=1: sets=876525 largest previous-level class=465 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=5 criterion failures=0 violations=0 pairs in cells=5425 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8
+GF(2^5) seed=3 s=10 g=4 sums=3: sets=6044064 largest previous-level class=513 largest real class=81 (meets up to 32 previous-level classes) largest cell=18 bound=-1 criterion failures=0 violations=0 pairs in cells=7836224 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^5) seed=3 s=10 g=6 sums=3: sets=6044064 largest previous-level class=513 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=7 criterion failures=0 violations=0 pairs in cells=86112 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8 10
+GF(2^5) seed=3 s=11 g=4 sums=1: sets=4032015 largest previous-level class=589 largest real class=186 (meets up to 32 previous-level classes) largest cell=23 bound=-1 criterion failures=0 violations=0 pairs in cells=11643631 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^5) seed=3 s=11 g=5 sums=1: sets=4032015 largest previous-level class=589 largest real class=23 (meets up to 1 previous-level classes) largest cell=23 bound=-1 criterion failures=0 violations=0 pairs in cells=11643631 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^5) seed=3 s=11 g=6 sums=1: sets=4032015 largest previous-level class=589 largest real class=5 (meets up to 1 previous-level classes) largest cell=5 bound=10 criterion failures=0 violations=0 pairs in cells=202151 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8 10
+GF(2^5) seed=3 s=11 g=7 sums=1: sets=4032015 largest previous-level class=589 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=10 criterion failures=0 violations=0 pairs in cells=17391 min distance (Omega empty)=16 (Omega nonempty)=20 |Omega| seen: 0 10
+GF(2^6) seed=1 s=6 g=4 sums=3: sets=84448 largest previous-level class=35 largest real class=2 (meets up to 2 previous-level classes) largest cell=2 bound=5 criterion failures=0 violations=0 pairs in cells=352 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^6) seed=1 s=6 g=5 sums=3: sets=84448 largest previous-level class=35 largest real class=2 (meets up to 1 previous-level classes) largest cell=2 bound=5 criterion failures=0 violations=0 pairs in cells=352 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^6) seed=1 s=7 g=4 sums=1: sets=105183 largest previous-level class=155 largest real class=5 (meets up to 4 previous-level classes) largest cell=5 bound=11 criterion failures=0 violations=0 pairs in cells=3810 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^6) seed=1 s=7 g=5 sums=1: sets=105183 largest previous-level class=155 largest real class=5 (meets up to 1 previous-level classes) largest cell=5 bound=11 criterion failures=0 violations=0 pairs in cells=3810 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^6) seed=1 s=7 g=6 sums=1: sets=105183 largest previous-level class=155 largest real class=1 (meets up to 1 previous-level classes) largest cell=1 bound=1 criterion failures=0 violations=0 pairs in cells=0 min distance (Omega empty)=99 (Omega nonempty)=99 |Omega| seen:
+GF(2^6) seed=1 s=8 g=4 sums=3: sets=987740 largest previous-level class=620 largest real class=20 (meets up to 5 previous-level classes) largest cell=20 bound=-1 criterion failures=0 violations=0 pairs in cells=171122 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8
+GF(2^6) seed=1 s=8 g=6 sums=3: sets=987740 largest previous-level class=620 largest real class=4 (meets up to 1 previous-level classes) largest cell=4 bound=4 criterion failures=0 violations=0 pairs in cells=1058 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8
+GF(2^6) seed=1 s=9 g=5 sums=1: sets=876525 largest previous-level class=465 largest real class=15 (meets up to 1 previous-level classes) largest cell=15 bound=-1 criterion failures=0 violations=0 pairs in cells=285579 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8
+GF(2^6) seed=1 s=9 g=6 sums=1: sets=876525 largest previous-level class=465 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=5 criterion failures=0 violations=0 pairs in cells=1473 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8
+GF(2^6) seed=1 s=10 g=4 sums=3: sets=6044064 largest previous-level class=513 largest real class=20 (meets up to 8 previous-level classes) largest cell=14 bound=-1 criterion failures=0 violations=0 pairs in cells=3689536 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^6) seed=1 s=10 g=6 sums=3: sets=6044064 largest previous-level class=513 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=7 criterion failures=0 violations=0 pairs in cells=23072 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8 10
+GF(2^6) seed=1 s=11 g=4 sums=1: sets=4032015 largest previous-level class=589 largest real class=35 (meets up to 8 previous-level classes) largest cell=17 bound=-1 criterion failures=0 violations=0 pairs in cells=5592765 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^6) seed=1 s=11 g=5 sums=1: sets=4032015 largest previous-level class=589 largest real class=17 (meets up to 1 previous-level classes) largest cell=17 bound=-1 criterion failures=0 violations=0 pairs in cells=5592765 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^6) seed=1 s=11 g=6 sums=1: sets=4032015 largest previous-level class=589 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=10 criterion failures=0 violations=0 pairs in cells=55191 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8 10
+GF(2^6) seed=1 s=11 g=7 sums=1: sets=4032015 largest previous-level class=589 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=10 criterion failures=0 violations=0 pairs in cells=16527 min distance (Omega empty)=16 (Omega nonempty)=20 |Omega| seen: 0 10
+GF(2^6) seed=5 s=6 g=4 sums=3: sets=84448 largest previous-level class=35 largest real class=4 (meets up to 3 previous-level classes) largest cell=2 bound=5 criterion failures=0 violations=0 pairs in cells=416 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^6) seed=5 s=6 g=5 sums=3: sets=84448 largest previous-level class=35 largest real class=2 (meets up to 1 previous-level classes) largest cell=2 bound=5 criterion failures=0 violations=0 pairs in cells=416 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^6) seed=5 s=7 g=4 sums=1: sets=105183 largest previous-level class=155 largest real class=5 (meets up to 4 previous-level classes) largest cell=5 bound=11 criterion failures=0 violations=0 pairs in cells=3810 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^6) seed=5 s=7 g=5 sums=1: sets=105183 largest previous-level class=155 largest real class=5 (meets up to 1 previous-level classes) largest cell=5 bound=11 criterion failures=0 violations=0 pairs in cells=3810 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^6) seed=5 s=7 g=6 sums=1: sets=105183 largest previous-level class=155 largest real class=1 (meets up to 1 previous-level classes) largest cell=1 bound=1 criterion failures=0 violations=0 pairs in cells=0 min distance (Omega empty)=99 (Omega nonempty)=99 |Omega| seen:
+GF(2^6) seed=5 s=8 g=4 sums=3: sets=987740 largest previous-level class=620 largest real class=20 (meets up to 6 previous-level classes) largest cell=20 bound=-1 criterion failures=0 violations=0 pairs in cells=170162 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8
+GF(2^6) seed=5 s=8 g=6 sums=3: sets=987740 largest previous-level class=620 largest real class=4 (meets up to 1 previous-level classes) largest cell=4 bound=4 criterion failures=0 violations=0 pairs in cells=1122 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8
+GF(2^6) seed=5 s=9 g=5 sums=1: sets=876525 largest previous-level class=465 largest real class=15 (meets up to 1 previous-level classes) largest cell=15 bound=-1 criterion failures=0 violations=0 pairs in cells=285579 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8
+GF(2^6) seed=5 s=9 g=6 sums=1: sets=876525 largest previous-level class=465 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=5 criterion failures=0 violations=0 pairs in cells=1473 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8
+GF(2^6) seed=5 s=10 g=4 sums=3: sets=6044064 largest previous-level class=513 largest real class=24 (meets up to 8 previous-level classes) largest cell=15 bound=-1 criterion failures=0 violations=0 pairs in cells=3692816 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^6) seed=5 s=10 g=6 sums=3: sets=6044064 largest previous-level class=513 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=7 criterion failures=0 violations=0 pairs in cells=23424 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8 10
+GF(2^6) seed=5 s=11 g=4 sums=1: sets=4032015 largest previous-level class=589 largest real class=35 (meets up to 8 previous-level classes) largest cell=17 bound=-1 criterion failures=0 violations=0 pairs in cells=5592765 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^6) seed=5 s=11 g=5 sums=1: sets=4032015 largest previous-level class=589 largest real class=17 (meets up to 1 previous-level classes) largest cell=17 bound=-1 criterion failures=0 violations=0 pairs in cells=5592765 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^6) seed=5 s=11 g=6 sums=1: sets=4032015 largest previous-level class=589 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=10 criterion failures=0 violations=0 pairs in cells=55191 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8 10
+GF(2^6) seed=5 s=11 g=7 sums=1: sets=4032015 largest previous-level class=589 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=10 criterion failures=0 violations=0 pairs in cells=16527 min distance (Omega empty)=16 (Omega nonempty)=20 |Omega| seen: 0 10
+GF(2^7) seed=2 s=6 g=4 sums=3: sets=84448 largest previous-level class=35 largest real class=2 (meets up to 2 previous-level classes) largest cell=2 bound=5 criterion failures=0 violations=0 pairs in cells=160 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^7) seed=2 s=6 g=5 sums=3: sets=84448 largest previous-level class=35 largest real class=2 (meets up to 1 previous-level classes) largest cell=2 bound=5 criterion failures=0 violations=0 pairs in cells=160 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^7) seed=2 s=7 g=4 sums=1: sets=105183 largest previous-level class=155 largest real class=4 (meets up to 2 previous-level classes) largest cell=4 bound=11 criterion failures=0 violations=0 pairs in cells=1830 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^7) seed=2 s=7 g=5 sums=1: sets=105183 largest previous-level class=155 largest real class=4 (meets up to 1 previous-level classes) largest cell=4 bound=11 criterion failures=0 violations=0 pairs in cells=1830 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^7) seed=2 s=7 g=6 sums=1: sets=105183 largest previous-level class=155 largest real class=1 (meets up to 1 previous-level classes) largest cell=1 bound=1 criterion failures=0 violations=0 pairs in cells=0 min distance (Omega empty)=99 (Omega nonempty)=99 |Omega| seen:
+GF(2^7) seed=2 s=8 g=4 sums=3: sets=987740 largest previous-level class=620 largest real class=16 (meets up to 2 previous-level classes) largest cell=16 bound=-1 criterion failures=0 violations=0 pairs in cells=82706 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8
+GF(2^7) seed=2 s=8 g=6 sums=3: sets=987740 largest previous-level class=620 largest real class=4 (meets up to 1 previous-level classes) largest cell=4 bound=4 criterion failures=0 violations=0 pairs in cells=994 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8
+GF(2^7) seed=2 s=9 g=5 sums=1: sets=876525 largest previous-level class=465 largest real class=12 (meets up to 1 previous-level classes) largest cell=12 bound=-1 criterion failures=0 violations=0 pairs in cells=138463 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8
+GF(2^7) seed=2 s=9 g=6 sums=1: sets=876525 largest previous-level class=465 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=5 criterion failures=0 violations=0 pairs in cells=673 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8
+GF(2^7) seed=2 s=10 g=4 sums=3: sets=6044064 largest previous-level class=513 largest real class=12 (meets up to 2 previous-level classes) largest cell=10 bound=-1 criterion failures=0 violations=0 pairs in cells=1794640 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^7) seed=2 s=10 g=6 sums=3: sets=6044064 largest previous-level class=513 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=7 criterion failures=0 violations=0 pairs in cells=10400 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8 10
+GF(2^7) seed=2 s=11 g=4 sums=1: sets=4032015 largest previous-level class=589 largest real class=15 (meets up to 2 previous-level classes) largest cell=13 bound=-1 criterion failures=0 violations=0 pairs in cells=2737553 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^7) seed=2 s=11 g=5 sums=1: sets=4032015 largest previous-level class=589 largest real class=13 (meets up to 1 previous-level classes) largest cell=13 bound=-1 criterion failures=0 violations=0 pairs in cells=2737553 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^7) seed=2 s=11 g=6 sums=1: sets=4032015 largest previous-level class=589 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=10 criterion failures=0 violations=0 pairs in cells=24443 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8 10
+GF(2^7) seed=2 s=11 g=7 sums=1: sets=4032015 largest previous-level class=589 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=10 criterion failures=0 violations=0 pairs in cells=16311 min distance (Omega empty)=16 (Omega nonempty)=20 |Omega| seen: 0 10
+GF(2^8) seed=2 s=6 g=4 sums=3: sets=84448 largest previous-level class=35 largest real class=2 (meets up to 1 previous-level classes) largest cell=2 bound=5 criterion failures=0 violations=0 pairs in cells=112 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^8) seed=2 s=6 g=5 sums=3: sets=84448 largest previous-level class=35 largest real class=2 (meets up to 1 previous-level classes) largest cell=2 bound=5 criterion failures=0 violations=0 pairs in cells=112 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^8) seed=2 s=7 g=4 sums=1: sets=105183 largest previous-level class=155 largest real class=4 (meets up to 1 previous-level classes) largest cell=4 bound=11 criterion failures=0 violations=0 pairs in cells=880 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^8) seed=2 s=7 g=5 sums=1: sets=105183 largest previous-level class=155 largest real class=4 (meets up to 1 previous-level classes) largest cell=4 bound=11 criterion failures=0 violations=0 pairs in cells=880 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^8) seed=2 s=7 g=6 sums=1: sets=105183 largest previous-level class=155 largest real class=1 (meets up to 1 previous-level classes) largest cell=1 bound=1 criterion failures=0 violations=0 pairs in cells=0 min distance (Omega empty)=99 (Omega nonempty)=99 |Omega| seen:
+GF(2^8) seed=2 s=8 g=4 sums=3: sets=987740 largest previous-level class=620 largest real class=16 (meets up to 1 previous-level classes) largest cell=16 bound=-1 criterion failures=0 violations=0 pairs in cells=40274 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8
+GF(2^8) seed=2 s=8 g=6 sums=3: sets=987740 largest previous-level class=620 largest real class=4 (meets up to 1 previous-level classes) largest cell=4 bound=4 criterion failures=0 violations=0 pairs in cells=930 min distance (Omega empty)=16 (Omega nonempty)=99 |Omega| seen: 0
+GF(2^8) seed=2 s=9 g=5 sums=1: sets=876525 largest previous-level class=465 largest real class=12 (meets up to 1 previous-level classes) largest cell=12 bound=-1 criterion failures=0 violations=0 pairs in cells=67369 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8
+GF(2^8) seed=2 s=9 g=6 sums=1: sets=876525 largest previous-level class=465 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=5 criterion failures=0 violations=0 pairs in cells=561 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8
+GF(2^8) seed=2 s=10 g=4 sums=3: sets=6044064 largest previous-level class=513 largest real class=11 (meets up to 1 previous-level classes) largest cell=11 bound=-1 criterion failures=0 violations=0 pairs in cells=875792 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^8) seed=2 s=10 g=6 sums=3: sets=6044064 largest previous-level class=513 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=7 criterion failures=0 violations=0 pairs in cells=8736 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8
+GF(2^8) seed=2 s=11 g=4 sums=1: sets=4032015 largest previous-level class=589 largest real class=10 (meets up to 1 previous-level classes) largest cell=10 bound=-1 criterion failures=0 violations=0 pairs in cells=1345937 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^8) seed=2 s=11 g=5 sums=1: sets=4032015 largest previous-level class=589 largest real class=10 (meets up to 1 previous-level classes) largest cell=10 bound=-1 criterion failures=0 violations=0 pairs in cells=1345937 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^8) seed=2 s=11 g=6 sums=1: sets=4032015 largest previous-level class=589 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=10 criterion failures=0 violations=0 pairs in cells=19899 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8 10
+GF(2^8) seed=2 s=11 g=7 sums=1: sets=4032015 largest previous-level class=589 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=10 criterion failures=0 violations=0 pairs in cells=16275 min distance (Omega empty)=16 (Omega nonempty)=99 |Omega| seen: 0
+GF(2^8) seed=0 s=6 g=4 sums=3: sets=84448 largest previous-level class=35 largest real class=2 (meets up to 1 previous-level classes) largest cell=2 bound=5 criterion failures=0 violations=0 pairs in cells=80 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^8) seed=0 s=6 g=5 sums=3: sets=84448 largest previous-level class=35 largest real class=2 (meets up to 1 previous-level classes) largest cell=2 bound=5 criterion failures=0 violations=0 pairs in cells=80 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^8) seed=0 s=7 g=4 sums=1: sets=105183 largest previous-level class=155 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=11 criterion failures=0 violations=0 pairs in cells=940 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^8) seed=0 s=7 g=5 sums=1: sets=105183 largest previous-level class=155 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=11 criterion failures=0 violations=0 pairs in cells=940 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^8) seed=0 s=7 g=6 sums=1: sets=105183 largest previous-level class=155 largest real class=1 (meets up to 1 previous-level classes) largest cell=1 bound=1 criterion failures=0 violations=0 pairs in cells=0 min distance (Omega empty)=99 (Omega nonempty)=99 |Omega| seen:
+GF(2^8) seed=0 s=8 g=4 sums=3: sets=987740 largest previous-level class=620 largest real class=12 (meets up to 1 previous-level classes) largest cell=12 bound=-1 criterion failures=0 violations=0 pairs in cells=42066 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8
+GF(2^8) seed=0 s=8 g=6 sums=3: sets=987740 largest previous-level class=620 largest real class=4 (meets up to 1 previous-level classes) largest cell=4 bound=4 criterion failures=0 violations=0 pairs in cells=962 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8
+GF(2^8) seed=0 s=9 g=5 sums=1: sets=876525 largest previous-level class=465 largest real class=9 (meets up to 1 previous-level classes) largest cell=9 bound=-1 criterion failures=0 violations=0 pairs in cells=70245 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8
+GF(2^8) seed=0 s=9 g=6 sums=1: sets=876525 largest previous-level class=465 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=5 criterion failures=0 violations=0 pairs in cells=497 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8
+GF(2^8) seed=0 s=10 g=4 sums=3: sets=6044064 largest previous-level class=513 largest real class=8 (meets up to 1 previous-level classes) largest cell=8 bound=-1 criterion failures=0 violations=0 pairs in cells=905728 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^8) seed=0 s=10 g=6 sums=3: sets=6044064 largest previous-level class=513 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=7 criterion failures=0 violations=0 pairs in cells=7648 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8 10
+GF(2^8) seed=0 s=11 g=4 sums=1: sets=4032015 largest previous-level class=589 largest real class=10 (meets up to 1 previous-level classes) largest cell=10 bound=-1 criterion failures=0 violations=0 pairs in cells=1374357 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^8) seed=0 s=11 g=5 sums=1: sets=4032015 largest previous-level class=589 largest real class=10 (meets up to 1 previous-level classes) largest cell=10 bound=-1 criterion failures=0 violations=0 pairs in cells=1374357 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^8) seed=0 s=11 g=6 sums=1: sets=4032015 largest previous-level class=589 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=10 criterion failures=0 violations=0 pairs in cells=17659 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8 10
+GF(2^8) seed=0 s=11 g=7 sums=1: sets=4032015 largest previous-level class=589 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=10 criterion failures=0 violations=0 pairs in cells=16275 min distance (Omega empty)=16 (Omega nonempty)=99 |Omega| seen: 0
+GF(2^12) seed=4 s=6 g=4 sums=3: sets=84448 largest previous-level class=35 largest real class=1 (meets up to 1 previous-level classes) largest cell=1 bound=5 criterion failures=0 violations=0 pairs in cells=0 min distance (Omega empty)=99 (Omega nonempty)=99 |Omega| seen:
+GF(2^12) seed=4 s=6 g=5 sums=3: sets=84448 largest previous-level class=35 largest real class=1 (meets up to 1 previous-level classes) largest cell=1 bound=5 criterion failures=0 violations=0 pairs in cells=0 min distance (Omega empty)=99 (Omega nonempty)=99 |Omega| seen:
+GF(2^12) seed=4 s=7 g=4 sums=1: sets=105183 largest previous-level class=155 largest real class=2 (meets up to 1 previous-level classes) largest cell=2 bound=11 criterion failures=0 violations=0 pairs in cells=40 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^12) seed=4 s=7 g=5 sums=1: sets=105183 largest previous-level class=155 largest real class=2 (meets up to 1 previous-level classes) largest cell=2 bound=11 criterion failures=0 violations=0 pairs in cells=40 min distance (Omega empty)=99 (Omega nonempty)=12 |Omega| seen: 6
+GF(2^12) seed=4 s=7 g=6 sums=1: sets=105183 largest previous-level class=155 largest real class=1 (meets up to 1 previous-level classes) largest cell=1 bound=1 criterion failures=0 violations=0 pairs in cells=0 min distance (Omega empty)=99 (Omega nonempty)=99 |Omega| seen:
+GF(2^12) seed=4 s=8 g=4 sums=3: sets=987740 largest previous-level class=620 largest real class=8 (meets up to 1 previous-level classes) largest cell=8 bound=-1 criterion failures=0 violations=0 pairs in cells=3170 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8
+GF(2^12) seed=4 s=8 g=6 sums=3: sets=987740 largest previous-level class=620 largest real class=4 (meets up to 1 previous-level classes) largest cell=4 bound=4 criterion failures=0 violations=0 pairs in cells=930 min distance (Omega empty)=16 (Omega nonempty)=99 |Omega| seen: 0
+GF(2^12) seed=4 s=9 g=5 sums=1: sets=876525 largest previous-level class=465 largest real class=6 (meets up to 1 previous-level classes) largest cell=6 bound=-1 criterion failures=0 violations=0 pairs in cells=3929 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8
+GF(2^12) seed=4 s=9 g=6 sums=1: sets=876525 largest previous-level class=465 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=5 criterion failures=0 violations=0 pairs in cells=465 min distance (Omega empty)=16 (Omega nonempty)=99 |Omega| seen: 0
+GF(2^12) seed=4 s=10 g=4 sums=3: sets=6044064 largest previous-level class=513 largest real class=5 (meets up to 1 previous-level classes) largest cell=5 bound=-1 criterion failures=0 violations=0 pairs in cells=52896 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^12) seed=4 s=10 g=6 sums=3: sets=6044064 largest previous-level class=513 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=7 criterion failures=0 violations=0 pairs in cells=7200 min distance (Omega empty)=16 (Omega nonempty)=99 |Omega| seen: 0
+GF(2^12) seed=4 s=11 g=4 sums=1: sets=4032015 largest previous-level class=589 largest real class=5 (meets up to 1 previous-level classes) largest cell=5 bound=-1 criterion failures=0 violations=0 pairs in cells=92341 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^12) seed=4 s=11 g=5 sums=1: sets=4032015 largest previous-level class=589 largest real class=5 (meets up to 1 previous-level classes) largest cell=5 bound=-1 criterion failures=0 violations=0 pairs in cells=92341 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^12) seed=4 s=11 g=6 sums=1: sets=4032015 largest previous-level class=589 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=10 criterion failures=0 violations=0 pairs in cells=16275 min distance (Omega empty)=16 (Omega nonempty)=99 |Omega| seen: 0
+GF(2^12) seed=4 s=11 g=7 sums=1: sets=4032015 largest previous-level class=589 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=10 criterion failures=0 violations=0 pairs in cells=16275 min distance (Omega empty)=16 (Omega nonempty)=99 |Omega| seen: 0
+GF(2^6) seed=7 s=12 g=4 sums=2: sets=14119560 largest previous-level class=1400 largest real class=66 (meets up to 8 previous-level classes) largest cell=32 bound=-1 criterion failures=0 violations=0 pairs in cells=39565912 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10 12
+GF(2^6) seed=7 s=12 g=6 sums=2: sets=14119560 largest previous-level class=1400 largest real class=7 (meets up to 1 previous-level classes) largest cell=7 bound=16 criterion failures=0 violations=0 pairs in cells=537816 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8 10 12
+GF(2^6) seed=7 s=13 g=5 sums=1: sets=10855425 largest previous-level class=1323 largest real class=31 (meets up to 1 previous-level classes) largest cell=31 bound=-1 criterion failures=0 violations=0 pairs in cells=38037291 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10 12
+GF(2^6) seed=7 s=13 g=6 sums=1: sets=10855425 largest previous-level class=1323 largest real class=7 (meets up to 1 previous-level classes) largest cell=7 bound=28 criterion failures=0 violations=0 pairs in cells=470157 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8 10 12
+GF(2^6) seed=7 s=10 g=5 sums=2: sets=4027920 largest previous-level class=513 largest real class=14 (meets up to 1 previous-level classes) largest cell=14 bound=-1 criterion failures=0 violations=0 pairs in cells=2210528 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^6) seed=7 s=10 g=7 sums=2: sets=4027920 largest previous-level class=513 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=7 criterion failures=0 violations=0 pairs in cells=3600 min distance (Omega empty)=16 (Omega nonempty)=99 |Omega| seen: 0
+GF(2^8) seed=9 s=12 g=4 sums=2: sets=14119560 largest previous-level class=1400 largest real class=22 (meets up to 2 previous-level classes) largest cell=21 bound=-1 criterion failures=0 violations=0 pairs in cells=10034584 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10 12
+GF(2^8) seed=9 s=12 g=6 sums=2: sets=14119560 largest previous-level class=1400 largest real class=7 (meets up to 1 previous-level classes) largest cell=7 bound=16 criterion failures=0 violations=0 pairs in cells=198648 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8 10 12
+GF(2^8) seed=9 s=13 g=5 sums=1: sets=10855425 largest previous-level class=1323 largest real class=18 (meets up to 1 previous-level classes) largest cell=18 bound=-1 criterion failures=0 violations=0 pairs in cells=9603001 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10 12
+GF(2^8) seed=9 s=13 g=6 sums=1: sets=10855425 largest previous-level class=1323 largest real class=7 (meets up to 1 previous-level classes) largest cell=7 bound=28 criterion failures=0 violations=0 pairs in cells=144105 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8 10 12
+GF(2^8) seed=9 s=10 g=5 sums=2: sets=4027920 largest previous-level class=513 largest real class=7 (meets up to 1 previous-level classes) largest cell=7 bound=-1 criterion failures=0 violations=0 pairs in cells=562416 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^8) seed=9 s=10 g=7 sums=2: sets=4027920 largest previous-level class=513 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=7 criterion failures=0 violations=0 pairs in cells=3600 min distance (Omega empty)=16 (Omega nonempty)=99 |Omega| seen: 0
+GF(2^7) seed=11 s=12 g=4 sums=2: sets=14119560 largest previous-level class=1400 largest real class=32 (meets up to 2 previous-level classes) largest cell=24 bound=-1 criterion failures=0 violations=0 pairs in cells=19513864 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10 12
+GF(2^7) seed=11 s=12 g=6 sums=2: sets=14119560 largest previous-level class=1400 largest real class=7 (meets up to 1 previous-level classes) largest cell=7 bound=16 criterion failures=0 violations=0 pairs in cells=257048 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8 10 12
+GF(2^7) seed=11 s=13 g=5 sums=1: sets=10855425 largest previous-level class=1323 largest real class=22 (meets up to 1 previous-level classes) largest cell=22 bound=-1 criterion failures=0 violations=0 pairs in cells=18733491 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10 12
+GF(2^7) seed=11 s=13 g=6 sums=1: sets=10855425 largest previous-level class=1323 largest real class=7 (meets up to 1 previous-level classes) largest cell=7 bound=28 criterion failures=0 violations=0 pairs in cells=200289 min distance (Omega empty)=16 (Omega nonempty)=16 |Omega| seen: 0 8 10 12
+GF(2^7) seed=11 s=10 g=5 sums=2: sets=4027920 largest previous-level class=513 largest real class=9 (meets up to 1 previous-level classes) largest cell=9 bound=-1 criterion failures=0 violations=0 pairs in cells=1073728 min distance (Omega empty)=16 (Omega nonempty)=12 |Omega| seen: 0 6 8 10
+GF(2^7) seed=11 s=10 g=7 sums=2: sets=4027920 largest previous-level class=513 largest real class=3 (meets up to 1 previous-level classes) largest cell=3 bound=7 criterion failures=0 violations=0 pairs in cells=3600 min distance (Omega empty)=16 (Omega nonempty)=99 |Omega| seen: 0

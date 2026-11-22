@@ -1,0 +1,5 @@
+  first four-member list: agreement sets 1f 67 d3 dc
+n = 8, agreement 5, seed 1: triples of 5-sets tested 10080 (with a list 9248); quadruples extending them 37952 (with a list 160); quintuples extending those 248 (with a list 0)
+  first four-member list: agreement sets 1f 67 d3 dc
+n = 8, agreement 5, seed 2: triples of 5-sets tested 10080 (with a list 9248); quadruples extending them 37952 (with a list 160); quintuples extending those 248 (with a list 0)
+n = 16, seed 1: 162 five-member patterns read; list of five distinct codewords and exactly five codewords at agreement >= 10 with the rebuilt word: 162; others: 0; kernel dimensions: 162 x dim 1,

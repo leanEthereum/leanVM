@@ -1,0 +1,22 @@
+GF(16), length 6, dimension 3: number of t in K^6 with dim V(t) >= delta and full support
+  Reed-Solomon, [d, nu] = [6, 3]: delta=1: 732496 = q^4.87 (Lemma 2.1 q^5, additive q^5, general position q^5); delta=2: 2656 = q^2.84 (Lemma 2.1 q^4, additive q^3, general position q^2); delta=3: 16 = q^1.00 (Lemma 2.1 q^3, additive q^1, general position q^-3)
+  random MDS 1, [d, nu] = [6, 3]: delta=1: 758896 = q^4.88 (Lemma 2.1 q^5, additive q^5, general position q^5); delta=2: 16 = q^1.00 (Lemma 2.1 q^4, additive q^3, general position q^2); delta=3: 16 = q^1.00 (Lemma 2.1 q^3, additive q^1, general position q^-3)
+  random MDS 2, [d, nu] = [6, 3]: delta=1: 758896 = q^4.88 (Lemma 2.1 q^5, additive q^5, general position q^5); delta=2: 16 = q^1.00 (Lemma 2.1 q^4, additive q^3, general position q^2); delta=3: 16 = q^1.00 (Lemma 2.1 q^3, additive q^1, general position q^-3)
+  random MDS 3, [d, nu] = [6, 3]: delta=1: 758896 = q^4.88 (Lemma 2.1 q^5, additive q^5, general position q^5); delta=2: 16 = q^1.00 (Lemma 2.1 q^4, additive q^3, general position q^2); delta=3: 16 = q^1.00 (Lemma 2.1 q^3, additive q^1, general position q^-3)
+  tree code T1, N(Y) on D, [d, nu] = [6, 3]: delta=1: 758896 = q^4.88 (Lemma 2.1 q^5, additive q^5, general position q^5); delta=2: 16 = q^1.00 (Lemma 2.1 q^4, additive q^3, general position q^2); delta=3: 16 = q^1.00 (Lemma 2.1 q^3, additive q^1, general position q^-3)
+  tree code T2, N(Y) on D, [d, nu] = [6, 3]: delta=1: 758896 = q^4.88 (Lemma 2.1 q^5, additive q^5, general position q^5); delta=2: 16 = q^1.00 (Lemma 2.1 q^4, additive q^3, general position q^2); delta=3: 16 = q^1.00 (Lemma 2.1 q^3, additive q^1, general position q^-3)
+GF(16), length 5, dimension 2: number of t in K^5 with dim V(t) >= delta and full support
+  Reed-Solomon, [d, nu] = [5, 2]: delta=1: 2896 = q^2.87 (Lemma 2.1 q^3, additive q^3, general position q^3); delta=2: 16 = q^1.00 (Lemma 2.1 q^2, additive q^1, general position q^-1)
+  random MDS 1, [d, nu] = [5, 2]: delta=1: 2896 = q^2.87 (Lemma 2.1 q^3, additive q^3, general position q^3); delta=2: 16 = q^1.00 (Lemma 2.1 q^2, additive q^1, general position q^-1)
+  random MDS 2, [d, nu] = [5, 2]: delta=1: 2896 = q^2.87 (Lemma 2.1 q^3, additive q^3, general position q^3); delta=2: 16 = q^1.00 (Lemma 2.1 q^2, additive q^1, general position q^-1)
+  random MDS 3, [d, nu] = [5, 2]: delta=1: 2896 = q^2.87 (Lemma 2.1 q^3, additive q^3, general position q^3); delta=2: 16 = q^1.00 (Lemma 2.1 q^2, additive q^1, general position q^-1)
+  tree code T1, N(Y) on D, [d, nu] = [5, 2]: delta=1: 2896 = q^2.87 (Lemma 2.1 q^3, additive q^3, general position q^3); delta=2: 16 = q^1.00 (Lemma 2.1 q^2, additive q^1, general position q^-1)
+  tree code T2, N(Y) on D, [d, nu] = [5, 2]: delta=1: 2896 = q^2.87 (Lemma 2.1 q^3, additive q^3, general position q^3); delta=2: 16 = q^1.00 (Lemma 2.1 q^2, additive q^1, general position q^-1)
+GF(16), length 6, dimension 2: number of t in K^6 with dim V(t) >= delta and full support
+  Reed-Solomon, [d, nu] = [6, 2]: delta=1: 2656 = q^2.84 (Lemma 2.1 q^3, additive q^3, general position q^3); delta=2: 16 = q^1.00 (Lemma 2.1 q^2, additive q^1, general position q^-2)
+  random MDS 1, [d, nu] = [6, 2]: delta=1: 2656 = q^2.84 (Lemma 2.1 q^3, additive q^3, general position q^3); delta=2: 16 = q^1.00 (Lemma 2.1 q^2, additive q^1, general position q^-2)
+  random MDS 2, [d, nu] = [6, 2]: delta=1: 2656 = q^2.84 (Lemma 2.1 q^3, additive q^3, general position q^3); delta=2: 16 = q^1.00 (Lemma 2.1 q^2, additive q^1, general position q^-2)
+  random MDS 3, [d, nu] = [6, 2]: delta=1: 2656 = q^2.84 (Lemma 2.1 q^3, additive q^3, general position q^3); delta=2: 16 = q^1.00 (Lemma 2.1 q^2, additive q^1, general position q^-2)
+  tree code T1, N(Y) on D, [d, nu] = [6, 2]: delta=1: 2656 = q^2.84 (Lemma 2.1 q^3, additive q^3, general position q^3); delta=2: 16 = q^1.00 (Lemma 2.1 q^2, additive q^1, general position q^-2)
+  tree code T2, N(Y) on D, [d, nu] = [6, 2]: delta=1: 2656 = q^2.84 (Lemma 2.1 q^3, additive q^3, general position q^3); delta=2: 16 = q^1.00 (Lemma 2.1 q^2, additive q^1, general position q^-2)
+/usr/bin/python3 73_additive_law.py  982.98s user 4.44s system 99% cpu 16:28.74 total
