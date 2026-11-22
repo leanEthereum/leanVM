@@ -119,7 +119,7 @@ theorem words_le (hlim : DeployedLimits s w) :
   obtain ⟨e1, e2, e3, e4, e5, e6, e7, e8, e9, e10⟩ := work_fields hlim
   obtain ⟨d1, d2, d3⟩ := da_le hlim
   have := declared_le hlim; have := coverageSlots_le hlim
-  have := hlim.atMostSixteenChildren; have := hlim.atMost2Pow17ChildClaims
+  have := hlim.children_le_sixteen; have := hlim.atMost2Pow17ChildClaims
   have := hlim.atMost2048Xmss; have := hlim.atMost512Sphincs
   have hb := shapes_sum_le (ps := (work s w).childShapes) deployedBvAt deployedBvAt_le
   simp only [End.Linear.eval, Count.deployedWords, deployedBvMax] at hb ⊢
@@ -132,7 +132,7 @@ theorem instrs_le (hlim : DeployedLimits s w) (op : Opcode) :
   obtain ⟨e1, e2, e3, e4, e5, e6, e7, e8, e9, e10⟩ := work_fields hlim
   obtain ⟨d1, d2, d3⟩ := da_le hlim
   have := declared_le hlim; have := coverageSlots_le hlim
-  have := hlim.atMostSixteenChildren; have := hlim.atMost2Pow17ChildClaims
+  have := hlim.children_le_sixteen; have := hlim.atMost2Pow17ChildClaims
   have := hlim.atMost2048Xmss; have := hlim.atMost512Sphincs
   have hb := shapes_sum_le (ps := (work s w).childShapes) (Count.deployedInstrs op).childShape
     (childShape_le_childMax op)

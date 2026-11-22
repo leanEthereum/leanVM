@@ -165,8 +165,11 @@ def caseR : R Case := do
   let pairs := fun (xs : List E) => (List.range (xs.length / 2)).map fun i => (xs[2 * i]!, xs[2 * i + 1]!)
   let bc ← many eR
   let stars ← many eR
-  -- The lambda grind's nonce leads `bc_sumcheck_msgs`; a leaf batches nothing.
-  let hints : BatchingHints := match bc with
+  -- The lambda grind's nonce, if it grinds, leads `bc_sumcheck_msgs`, then the rounds' pairs (a
+  -- round grinds no nonce, `Batch.sumcheckRoundCells`); a leaf batches nothing.
+  let hints : BatchingHints :=
+    if Batch.batchLambdaGrindBits = 0 then ⟨0, pairs bc, stars.getD 0 0⟩ else
+    match bc with
     | nonce :: rounds => ⟨nonce, pairs rounds, stars.getD 0 0⟩
     | [] => ⟨0, [], stars.getD 0 0⟩
   expect "streams"

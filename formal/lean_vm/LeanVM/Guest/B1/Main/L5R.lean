@@ -374,7 +374,7 @@ theorem mainGoalL5TBR (SB : String → ℕ)
       (fun rd => L5From (hEx w) (hEs w) (Pxs rd) (Pss rd) (Pvs rd) w.children.length 0)
       (l5B fs SB Bxs Bss Bv w) := by
   intro hnc
-  have hnc16 := hl.atMostSixteenChildren
+  have hnc16 := hl.children_le_sixteen
   have h := l5_completeAtTBR fs cert SB hSD (Bv := Bv) (Bxs := Bxs) (Bss := Bss)
     (Lin := hLmain fs fp seed s w) (W := hP fs fp seed s w 8) (D := hP fs fp seed s w 4)
     (Pi := hP fs fp seed s w 5) (Cr := hP fs fp seed s w 7) (nk := w.children.length)

@@ -207,7 +207,7 @@ theorem mainGoalsRR_l5 (hbl : bytecode.length = 2 ^ 23) (hn : NodeRelation bytec
         (hm fs fp seed s w).a394, (hm fs fp seed s w).et, (hm fs fp seed s w).a400] (Returns [])
       (mainPredsHP fs SB SK Bv Pvs s w q).P5 (mainBsH fs SB SK Bv s w).B5 := by
   intro h0
-  have hnc16 := hl.atMostSixteenChildren
+  have hnc16 := hl.children_le_sixteen
   have hk := fun c (hc : c < w.children.length) => kidOk cert hbl hn hl hV.goals
     (((hX c hc).1.toDTB (T' := fun _ => True) fun _ _ _ => trivial).toDT.toD)
     (((hX c hc).2.toDTB (T' := fun _ => True) fun _ _ _ => trivial).toDT.toD) hc
