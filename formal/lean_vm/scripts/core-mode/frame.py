@@ -228,59 +228,61 @@ class Walk:
         for h in hs: self.stepHint(i, A, h)
 
     def stepHint(self, i, A, h):
+        """A hint as the bridge reads it (`data.isa_hint`: its constructor's name and arguments, a run's start
+        `('stack', base)` or `('heap', ptr)`)."""
         t = h[0]
-        if t in ('fa', 'av'): return
-        if t == 'lt':
-            if h[2] == 'e': self.reqW(A, h[3], i)
+        if t in ('frameAddress', 'allocAdvice'): return
+        if t == 'allocLate':
+            if h[2][0] == 'exp': self.reqW(A, h[2][1], i)
             self.addW(A, h[1]); return
-        if t in ('al', 'ad', 'aa', 'af'):
-            if t in ('ad', 'aa'): self.reqW(A, h[2], i)
-            if t == 'af': self.reqW(A, h[3], i)
+        if t in ('alloc', 'allocDyn', 'allocArm', 'allocFrames'):
+            if t in ('allocDyn', 'allocArm'): self.reqW(A, h[2], i)
+            if t == 'allocFrames': self.reqW(A, h[3], i)
             self.addW(A, h[1]); return
-        if t == 'ca':
+        if t == 'cellAddress':
             self.addW(A, h[1]); return
-        if t == 'ws':
+        if t == 'witnessStack':
             for j in range(h[3]): self.addW(A, h[2] + j)
             return
-        if t == 'wh':
+        if t == 'witnessHeap':
             self.reqW(A, h[2], i); return
-        if t == 'lc':
+        if t == 'log2Ceil':
             d = h[1]
-            if d[0] == 's':
+            if d[0] == 'stack':
                 for j in range(h[3]): self.reqW(A, d[1] + j, i)
             else:
                 self.reqW(A, d[1], i)
                 self.req(all((d[1], j) in self.runs for j in range(h[3])), 'lcH', i, d[1])
             self.addW(A, h[2]); return
-        if t in ('bd', 'be'):
+        if t in ('bitDecompose', 'bitDecomposeExp'):
             self.reqW(A, h[1], i)
             d = h[2]
-            if d[0] == 's':
+            if d[0] == 'stack':
                 for j in range(h[3]): self.addW(A, d[1] + j)
             else:
                 self.reqW(A, d[1], i)
                 for j in range(h[3]): self.runs.add((d[1], j))
             return
-        if t == 'we':
+        if t == 'windowsExp':
             self.reqW(A, h[1], i)
             d = h[2]
-            if d[0] == 's':
+            if d[0] == 'stack':
                 for j in range(h[6]): self.addW(A, d[1] + h[3] + j)
             else: self.reqW(A, d[1], i)
             return
-        if t == 'dd':
+        if t == 'digitDecomposeExp':
             self.reqW(A, h[1], i)
-            if h[7] != '-': self.reqW(A, int(h[7]), i)
+            if h[7] is not None: self.reqW(A, h[7], i)
             d = h[2]
-            if d[0] == 's':
+            if d[0] == 'stack':
                 for j in range(h[4]): self.addW(A, d[1] + j)
             else: self.reqW(A, d[1], i)
             return
-        if t == 'fl':
+        if t == 'fieldLimbs':
             self.reqW(A, h[1], i)
             for j in range(h[3]): self.addW(A, h[2] + j)
             return
-        if t == 'iv':
+        if t == 'inverse':
             self.reqW(A, h[1], i)
             self.addW(A, h[2])
             return
