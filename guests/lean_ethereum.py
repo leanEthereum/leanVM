@@ -4344,6 +4344,9 @@ def claim_list_digest(entries_ptr, n_g):
         d0, d1 = claim_list_chain(entries_ptr, n_g, bigs, groups, rest)
         digest[0] = d0
         digest[1] = d1
+    # n_g a g-power below the memory size: the bound of the claims' cells written above. claim_list_chain checks it
+    # too, for its own contract; this one bounds this function's, which the core route checks on its body alone.
+    assert_gpow(n_g)
     return digest[0], digest[1]
 
 
