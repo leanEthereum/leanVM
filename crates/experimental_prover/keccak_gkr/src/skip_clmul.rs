@@ -1,6 +1,6 @@
 //! The four bit-level rounds' sums over a block, by carry-less products on registers of
-//! [`Vector`] lanes (AVX2 and PCLMULQDQ at any width, where GFNI is not): per [`slot`], the
-//! polynomial [`skip_row`](crate::kernels::skip_row) sums over the block.
+//! [`Vector`] lanes (AVX2 with PCLMULQDQ without GFNI, and ARM64 NEON with PMULL): per [`slot`],
+//! the polynomial [`skip_row`](crate::kernels::skip_row) sums over the block.
 //!
 //! A register holds one value of [`L`] slices, a word each, so the extension is a sum of
 //! registers and a slot's products are a register's lanes, at `L` positions' weights at once.
@@ -50,7 +50,7 @@ fn extend_group<const F: usize>(v: [&[V; GROUP]; F], mut output: impl FnMut(usiz
                     5 => q(2).xor(q(3)),
                     6 => q(0).xor(q(2)),
                     7 => q(1).xor(q(3)),
-                    _ => q(0).xor(q(1)).xor(q(2).xor(q(3))),
+                    _ => q(0).xor3(q(1), q(2).xor(q(3))),
                 }
             })
         });
@@ -59,11 +59,13 @@ fn extend_group<const F: usize>(v: [&[V; GROUP]; F], mut output: impl FnMut(usiz
                 output(4 * (k - 4) + l, w.map(|w| w[l]));
             }
         }
-        let low = w.map(|w| [w[0].xor(w[1]), w[2].xor(w[3]), w[0].xor(w[2]), w[1].xor(w[3])]);
-        for l in 0..4 {
-            output(20 + 4 * k + l, low.map(|low| low[l]));
-        }
-        output(56 + k, low.map(|low| low[0].xor(low[1])));
+        let l0 = w.map(|w| w[0].xor(w[1]));
+        output(20 + 4 * k, l0);
+        let l1 = w.map(|w| w[2].xor(w[3]));
+        output(20 + 4 * k + 1, l1);
+        output(20 + 4 * k + 2, w.map(|w| w[0].xor(w[2])));
+        output(20 + 4 * k + 3, w.map(|w| w[1].xor(w[3])));
+        output(56 + k, std::array::from_fn(|f| l0[f].xor(l1[f])));
     }
 }
 
@@ -78,7 +80,7 @@ fn cofactor(a: V, wa: &[V; 2], b: V, wb: &[V; 2]) -> [V; WORDS] {
         ]
     });
     let low = |k: usize| parts[k][0].unpacklo(parts[k][1]);
-    let high = |k: usize| parts[k][0].high().unpacklo(parts[k][1].high());
+    let high = |k: usize| parts[k][0].unpackhi(parts[k][1]);
     [low(0), high(0).xor(low(1)), high(1)]
 }
 
@@ -87,8 +89,8 @@ fn cofactor(a: V, wa: &[V; 2], b: V, wb: &[V; 2]) -> [V; WORDS] {
 pub struct SkipBlock {
     /// Per slot and word offset, the sum of the products there.
     acc: [[V; WORDS]; 2 * MIXED],
-    /// Per position of a row, its packs on `L` slices.
-    packs: [[[u64; L]; PACKS]; 5],
+    /// Per position of a row and group half, its `GROUP` packs across `L` slices as vectors.
+    packs: [[[V; GROUP]; 2]; 5],
     /// Per cofactor and word, its values on the group's packs.
     cofactors: [[[V; GROUP]; WORDS]; 2],
     /// Per output of the extension, the cofactors' factors `e[2]` and `e[4]`.
@@ -102,7 +104,7 @@ impl SkipBlock {
     pub fn new(weights: &[[u64; 2]]) -> Box<Self> {
         Box::new(Self {
             acc: [[V::zero(); WORDS]; 2 * MIXED],
-            packs: [[[0; L]; PACKS]; 5],
+            packs: [[[V::zero(); GROUP]; 2]; 5],
             cofactors: [[[V::zero(); GROUP]; WORDS]; 2],
             factors: [[V::zero(); 2]; MIXED],
             weights: [0, 1].map(|k| weights[..BITS].iter().map(|w| w[k]).collect()),
@@ -115,11 +117,36 @@ impl SkipBlock {
         for r in 0..5 {
             for z in (0..64).step_by(L) {
                 let js = row_positions(r, z);
-                // `L` positions from each `j`, transposed: a pack's slices side by side.
+                // `L` positions from each `j`, transposed directly into `V` vectors per half.
                 for (packs, j) in self.packs.iter_mut().zip(js) {
-                    for s in 0..L {
-                        for (pack, e) in packs.iter_mut().zip(embed(words(block, j + s))) {
-                            pack[s] = e.into();
+                    if const { L == 2 } {
+                        let e0 = embed(words(block, j));
+                        let e1 = embed(words(block, j + 1));
+                        for half in 0..2 {
+                            let off = GROUP * half;
+                            for k in (0..GROUP).step_by(2) {
+                                // SAFETY: `off + k + 2 <= PACKS`, and `V::N == 1` (`2 * N == 2`).
+                                let (v0, v1) = unsafe {
+                                    (
+                                        V::load_packs(e0.as_ptr().add(off + k)),
+                                        V::load_packs(e1.as_ptr().add(off + k)),
+                                    )
+                                };
+                                packs[half][k] = v0.unpacklo(v1);
+                                packs[half][k + 1] = v0.unpackhi(v1);
+                            }
+                        }
+                    } else {
+                        let mut tmp = [[0u64; L]; PACKS];
+                        for s in 0..L {
+                            for (pack, e) in tmp.iter_mut().zip(embed(words(block, j + s))) {
+                                pack[s] = e.into();
+                            }
+                        }
+                        for half in 0..2 {
+                            for q in 0..GROUP {
+                                packs[half][q] = load(&tmp[GROUP * half + q]);
+                            }
                         }
                     }
                 }
@@ -141,7 +168,7 @@ impl SkipBlock {
             factors,
             ..
         } = self;
-        let e: [[V; GROUP]; 5] = std::array::from_fn(|x| std::array::from_fn(|q| load(&packs[x][GROUP * half + q])));
+        let e: [&[V; GROUP]; 5] = std::array::from_fn(|x| &packs[x][half]);
         for q in 0..GROUP {
             let values = [
                 cofactor(e[1][q], &w[0], e[3][q], &w[1]),
@@ -153,12 +180,14 @@ impl SkipBlock {
                 }
             }
         }
-        // The values' walk keeps the cofactors' factors and sums the last term, of two words.
-        extend_group([&e[0], &e[1], &e[2], &e[4]], |i, [e0, e1, e2, e4]| {
+        // Two groups at a time keeps `extend_group` within eight vector registers.
+        extend_group([e[2], e[4]], |i, [e2, e4]| {
             factors[i] = [e2, e4];
+        });
+        extend_group([e[0], e[1]], |i, [e0, e1]| {
             let products = e0.clmul::<0x00>(e1).unpacklo(e0.clmul::<0x11>(e1));
             for (acc, &w) in acc[slot(half, i)].iter_mut().zip(&w[4]) {
-                *acc = acc.xor(products.clmul::<0x00>(w)).xor(products.clmul::<0x11>(w));
+                *acc = acc.xor3(products.clmul::<0x00>(w), products.clmul::<0x11>(w));
             }
         });
         for k in 0..WORDS {
@@ -166,8 +195,8 @@ impl SkipBlock {
                 let [e2, e4] = factors[i];
                 let acc = &mut acc[slot(half, i)][k];
                 *acc = acc
-                    .xor(e2.clmul::<0x00>(a).xor(e2.clmul::<0x11>(a)))
-                    .xor(e4.clmul::<0x00>(b).xor(e4.clmul::<0x11>(b)));
+                    .xor3(e2.clmul::<0x00>(a), e2.clmul::<0x11>(a))
+                    .xor3(e4.clmul::<0x00>(b), e4.clmul::<0x11>(b));
             });
         }
     }

@@ -109,7 +109,10 @@ use verifier::keccak::LANE_BITS;
 mod basis;
 #[cfg(feature = "bench")]
 pub mod batch_bench;
-#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq"))]
+#[cfg(any(
+    all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq"),
+    all(target_arch = "aarch64", target_feature = "aes")
+))]
 mod clmul;
 pub mod kernels;
 mod open;
@@ -119,16 +122,19 @@ mod products_gfni;
 mod protocol;
 mod prover;
 pub mod rmfe;
-#[cfg(all(
-    target_arch = "x86_64",
-    target_feature = "avx2",
-    target_feature = "pclmulqdq",
-    not(target_feature = "gfni")
+#[cfg(any(
+    all(
+        target_arch = "x86_64",
+        target_feature = "avx2",
+        target_feature = "pclmulqdq",
+        not(target_feature = "gfni")
+    ),
+    all(target_arch = "aarch64", target_feature = "aes")
 ))]
 mod skip_clmul;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"))]
 mod skip_gfni;
-#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+#[cfg(any(all(target_arch = "x86_64", target_feature = "avx2"), target_arch = "aarch64"))]
 mod table_maps;
 pub mod witness;
 

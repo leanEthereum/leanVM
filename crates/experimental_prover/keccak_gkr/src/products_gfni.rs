@@ -232,6 +232,7 @@ const SLOT: [[u16; 8 * POINTS]; PACKS] = {
 };
 
 /// Per-lane byte shuffle of a pack's two bytes apart: the lane's low bytes, then its high ones.
+#[cfg(not(all(target_feature = "avx512f", target_feature = "avx512bw")))]
 const SPLIT: [u8; 32] = {
     let mut t = [0u8; 32];
     let mut i = 0;
@@ -245,6 +246,7 @@ const SPLIT: [u8; 32] = {
 
 /// The values of a block position's 32 packs' embeddings at each point: register `i` holds point
 /// `i`, pack `16 s + 8 l + u` at byte `16 l + 8 s + u`.
+#[cfg(not(all(target_feature = "avx512f", target_feature = "avx512bw")))]
 #[inline(always)]
 fn evaluate(words: &[u64; BLOCK_WORDS]) -> [V; POINTS] {
     // SAFETY: AVX2 and GFNI are enabled at compile time (module cfg); the loads are of the eight
@@ -258,6 +260,72 @@ fn evaluate(words: &[u64; BLOCK_WORDS]) -> [V; POINTS] {
             _mm256_xor_si256(
                 _mm256_gf2p8affine_epi64_epi8(low, _mm256_set1_epi64x(EVAL[0][i] as i64), 0),
                 _mm256_gf2p8affine_epi64_epi8(high, _mm256_set1_epi64x(EVAL[1][i] as i64), 0),
+            )
+        })
+    }
+}
+
+/// 512-bit tables and evaluation for AVX-512BW: each ZMM pairs two consecutive points (`2 p` in the
+/// low 256 bits, `2 p + 1` in the high 256 bits), each half keeping the AVX2 pack byte layout.
+#[cfg(all(target_feature = "avx512f", target_feature = "avx512bw"))]
+const SPLIT512: [u8; 64] = {
+    let mut t = [0u8; 64];
+    let mut i = 0;
+    while i < 64 {
+        let j = i % 16;
+        t[i] = if j < 8 { 2 * j as u8 } else { 2 * (j - 8) as u8 + 1 };
+        i += 1;
+    }
+    t
+};
+
+#[cfg(all(target_feature = "avx512f", target_feature = "avx512bw"))]
+const EVAL512: [[[i64; 8]; POINTS / 2]; 2] = {
+    let mut m = [[[0i64; 8]; POINTS / 2]; 2];
+    let mut h = 0;
+    while h < 2 {
+        let mut p = 0;
+        while p < POINTS / 2 {
+            let (lo, hi) = (EVAL[h][2 * p] as i64, EVAL[h][2 * p + 1] as i64);
+            m[h][p] = [lo, lo, lo, lo, hi, hi, hi, hi];
+            p += 1;
+        }
+        h += 1;
+    }
+    m
+};
+
+#[cfg(all(target_feature = "avx512f", target_feature = "avx512bw"))]
+const ONES512: [[u8; 64]; POINTS / 2] = {
+    let mut o = [[0u8; 64]; POINTS / 2];
+    let mut p = 0;
+    while p < POINTS / 2 {
+        let mut b = 0;
+        while b < 32 {
+            o[p][b] = ONES[2 * p];
+            o[p][32 + b] = ONES[2 * p + 1];
+            b += 1;
+        }
+        p += 1;
+    }
+    o
+};
+
+/// The values of a block position's 32 packs' embeddings at paired points `(2 p, 2 p + 1)`.
+#[cfg(all(target_feature = "avx512f", target_feature = "avx512bw"))]
+#[inline(always)]
+fn evaluate(words: &[u64; BLOCK_WORDS]) -> [__m512i; POINTS / 2] {
+    // SAFETY: AVX-512F/BW and GFNI are enabled at compile time; loads read `words`, `SPLIT512`,
+    // and `EVAL512`.
+    unsafe {
+        let split = _mm512_loadu_si512(SPLIT512.as_ptr().cast());
+        let s = _mm512_shuffle_epi8(_mm512_loadu_si512(words.as_ptr().cast()), split);
+        let low = _mm512_permutexvar_epi64(_mm512_setr_epi64(0, 4, 2, 6, 0, 4, 2, 6), s);
+        let high = _mm512_permutexvar_epi64(_mm512_setr_epi64(1, 5, 3, 7, 1, 5, 3, 7), s);
+        std::array::from_fn(|p| {
+            _mm512_xor_si512(
+                _mm512_gf2p8affine_epi64_epi8::<0>(low, _mm512_loadu_si512(EVAL512[0][p].as_ptr().cast())),
+                _mm512_gf2p8affine_epi64_epi8::<0>(high, _mm512_loadu_si512(EVAL512[1][p].as_ptr().cast())),
             )
         })
     }
@@ -283,17 +351,18 @@ pub fn coefficients(sums: &[F128]) -> Vec<[F128; PRODUCT_BITS]> {
         .collect()
 }
 
-/// Where staged register `r` of active lane byte `a` lies in the buffer (`n_active` active lane
-/// bytes). With AVX-512 the register pairs `2 R`, `2 R + 1` are adjacent, lane byte after lane byte,
-/// so phase 2 reads a pair with one load; otherwise each register's lane bytes are contiguous.
-#[inline(always)]
-const fn staged_index(r: usize, a: usize, n_active: usize) -> usize {
-    if cfg!(all(target_feature = "avx512f", target_feature = "avx512bw")) {
-        2 * ((r / 2) * n_active + a) + r % 2
-    } else {
-        r * n_active + a
-    }
-}
+/// Staged vector type and count per active lane byte: with AVX-512BW each 512-bit register holds
+/// paired points `(2 p, 2 p + 1)` for one output index `j` (`8 p + j` in `0..STAGED / 2`); on AVX2
+/// each 256-bit register holds one point and output index (`8 i + j` in `0..STAGED`).
+#[cfg(all(target_feature = "avx512f", target_feature = "avx512bw"))]
+type Staged = __m512i;
+#[cfg(all(target_feature = "avx512f", target_feature = "avx512bw"))]
+const STAGED_PER_ACTIVE: usize = STAGED / 2;
+
+#[cfg(not(all(target_feature = "avx512f", target_feature = "avx512bw")))]
+type Staged = V;
+#[cfg(not(all(target_feature = "avx512f", target_feature = "avx512bw")))]
+const STAGED_PER_ACTIVE: usize = STAGED;
 
 /// Bit `n` of a weight.
 #[inline(always)]
@@ -325,8 +394,8 @@ pub struct ProductSums {
 
 /// A thread's buffers.
 pub struct Scratch {
-    /// The staged registers of a block, laid out by [`staged_index`].
-    staged: Vec<V>,
+    /// The staged registers of a block, contiguous per active lane byte for each staged slot.
+    staged: Vec<Staged>,
     acc: Box<[[V; WEIGHT_BYTES]; STAGED]>,
     /// Per payload bit, its weighted sum's two words.
     pub out: Box<[[u64; 2]; PAYLOAD_BITS]>,
@@ -357,10 +426,14 @@ impl ProductSums {
     }
 
     pub fn scratch(&self) -> Scratch {
-        // SAFETY: AVX2 is enabled at compile time.
+        // SAFETY: AVX2 (and AVX-512F when `Staged = __m512i`) is enabled at compile time.
         let zero = unsafe { _mm256_setzero_si256() };
+        #[cfg(all(target_feature = "avx512f", target_feature = "avx512bw"))]
+        let staged_zero = unsafe { _mm512_setzero_si512() };
+        #[cfg(not(all(target_feature = "avx512f", target_feature = "avx512bw")))]
+        let staged_zero = zero;
         Scratch {
-            staged: vec![zero; STAGED * self.matrices.len()],
+            staged: vec![staged_zero; STAGED_PER_ACTIVE * self.matrices.len()],
             acc: Box::new([[zero; WEIGHT_BYTES]; STAGED]),
             out: Box::new([[0; 2]; PAYLOAD_BITS]),
         }
@@ -375,9 +448,10 @@ impl ProductSums {
         Self::to_field_elements(&s.acc, &mut s.out);
     }
 
-    /// Phase 1: every active lane byte's column bytes into `staged[staged_index(r, a, n_active)]`.
-    fn stage(&self, block: &[u64], staged: &mut [V], n_active: usize) {
-        assert!(staged.len() >= STAGED * n_active);
+    /// Phase 1 (AVX2): every active lane byte's column bytes into `staged[r * n_active + a]`.
+    #[cfg(not(all(target_feature = "avx512f", target_feature = "avx512bw")))]
+    fn stage(&self, block: &[u64], staged: &mut [Staged], n_active: usize) {
+        assert!(staged.len() >= STAGED_PER_ACTIVE * n_active);
         // SAFETY: AVX2 is enabled at compile time.
         let mut values = [[[unsafe { _mm256_setzero_si256() }; POINTS]; 8]; 5];
         let mut a = 0;
@@ -391,8 +465,7 @@ impl ProductSums {
             for x in (0..5).filter(|x| mask >> x & 1 == 1) {
                 assert!(a < n_active, "one staged column per active lane byte");
                 // SAFETY: AVX2 and GFNI are enabled at compile time; `a < n_active` (asserted) and
-                // `stage_lane_byte` writes registers `r < STAGED` only (`8 * 5 + 7`), so every store
-                // is inside `staged` (asserted size).
+                // `stage_lane_byte` writes `r < STAGED` only, inside `staged` (asserted size).
                 unsafe {
                     Self::stage_lane_byte(
                         [&values[x], &values[(x + 1) % 5], &values[(x + 2) % 5]],
@@ -414,7 +487,8 @@ impl ProductSums {
     /// pack at byte `16 l + 2 j + d` of a value register ([`SLOT`]).
     ///
     /// # Safety
-    /// AVX2 and GFNI; `staged + staged_index(r, a, n_active)` writable for `r < STAGED`.
+    /// AVX2 and GFNI; `staged + r * n_active + a` writable for `r < STAGED`.
+    #[cfg(not(all(target_feature = "avx512f", target_feature = "avx512bw")))]
     #[inline(always)]
     unsafe fn stage_lane_byte(e: [&[[V; POINTS]; 8]; 3], staged: *mut V, a: usize, n_active: usize) {
         unsafe {
@@ -440,8 +514,75 @@ impl ProductSums {
                     _mm256_unpackhi_epi32
                 );
                 for (j, w) in w.into_iter().enumerate() {
-                    *staged.add(staged_index(8 * i + j, a, n_active)) =
-                        _mm256_gf2p8affine_epi64_epi8(bit_transpose, w, 0);
+                    *staged.add((8 * i + j) * n_active + a) = _mm256_gf2p8affine_epi64_epi8(bit_transpose, w, 0);
+                }
+            }
+        }
+    }
+
+    /// Phase 1 (AVX-512BW): evaluates and transposes two points per 512-bit ZMM, writing paired
+    /// staged registers `(8 * (2 p) + j, 8 * (2 p + 1) + j)` into `staged[(8 p + j) * n_active + a]`.
+    #[cfg(all(target_feature = "avx512f", target_feature = "avx512bw"))]
+    fn stage(&self, block: &[u64], staged: &mut [Staged], n_active: usize) {
+        assert!(staged.len() >= STAGED_PER_ACTIVE * n_active);
+        // SAFETY: AVX-512F is enabled at compile time.
+        let mut values = [[[unsafe { _mm512_setzero_si512() }; POINTS / 2]; 8]; 5];
+        let mut a = 0;
+        for &(y, zb, mask) in &self.row_bytes {
+            let (y, zb) = (y as usize, zb as usize);
+            for (x, lane) in values.iter_mut().enumerate() {
+                for (k, v) in lane.iter_mut().enumerate() {
+                    *v = evaluate(words(block, 64 * (x + 5 * y) + 8 * zb + k));
+                }
+            }
+            for x in (0..5).filter(|x| mask >> x & 1 == 1) {
+                assert!(a < n_active, "one staged column per active lane byte");
+                // SAFETY: AVX-512F/BW and GFNI are enabled at compile time; `a < n_active` (asserted)
+                // and `stage_lane_byte` writes slots `0..STAGED_PER_ACTIVE` inside `staged`.
+                unsafe {
+                    Self::stage_lane_byte(
+                        [&values[x], &values[(x + 1) % 5], &values[(x + 2) % 5]],
+                        staged.as_mut_ptr(),
+                        a,
+                        n_active,
+                    )
+                };
+                a += 1;
+            }
+        }
+        // Phase 2 reads every active lane byte's registers: none may be left from another block.
+        assert_eq!(a, n_active, "every active lane byte staged");
+    }
+
+    /// 512-bit column bytes for one lane byte, processing point pairs `(2 p, 2 p + 1)`.
+    ///
+    /// # Safety
+    /// AVX-512F/BW and GFNI; `staged + pair * n_active + a` writable for `pair < STAGED_PER_ACTIVE`.
+    #[cfg(all(target_feature = "avx512f", target_feature = "avx512bw"))]
+    #[inline(always)]
+    unsafe fn stage_lane_byte(e: [&[[__m512i; POINTS / 2]; 8]; 3], staged: *mut __m512i, a: usize, n_active: usize) {
+        unsafe {
+            let bit_transpose = _mm512_set1_epi64(BIT_TRANSPOSE);
+            for p in 0..POINTS / 2 {
+                let ones = _mm512_loadu_si512(ONES512[p].as_ptr().cast());
+                let prod: [__m512i; 8] = std::array::from_fn(|k| {
+                    let (a, b, c) = (e[0][k][p], e[1][k][p], e[2][k][p]);
+                    _mm512_xor_si512(
+                        _mm512_gf2p8mul_epi8(_mm512_xor_si512(a, c), ones),
+                        _mm512_gf2p8mul_epi8(b, c),
+                    )
+                });
+                let w = interleave_planes!(
+                    prod,
+                    _mm512_unpacklo_epi8,
+                    _mm512_unpackhi_epi8,
+                    _mm512_unpacklo_epi16,
+                    _mm512_unpackhi_epi16,
+                    _mm512_unpacklo_epi32,
+                    _mm512_unpackhi_epi32
+                );
+                for (j, w) in w.into_iter().enumerate() {
+                    *staged.add((8 * p + j) * n_active + a) = _mm512_gf2p8affine_epi64_epi8::<0>(bit_transpose, w);
                 }
             }
         }
@@ -450,16 +591,16 @@ impl ProductSums {
     /// Phase 2: per staged register, every active lane byte through its 16 matrices, eight
     /// accumulators at a time in registers.
     #[cfg(not(all(target_feature = "avx512f", target_feature = "avx512bw")))]
-    fn accumulate(&self, staged: &[V], n_active: usize, acc: &mut [[V; WEIGHT_BYTES]; STAGED]) {
-        assert!(staged.len() >= STAGED * n_active);
+    fn accumulate(&self, staged: &[Staged], n_active: usize, acc: &mut [[V; WEIGHT_BYTES]; STAGED]) {
+        assert!(staged.len() >= STAGED_PER_ACTIVE * n_active);
         for (r, acc) in acc.iter_mut().enumerate() {
             for b0 in (0..WEIGHT_BYTES).step_by(8) {
                 // SAFETY: AVX2 and GFNI are enabled at compile time (module cfg), and
-                // `staged_index(r, a, n_active) < STAGED * n_active <= staged.len()` (asserted).
+                // `r * n_active + a < STAGED * n_active <= staged.len()` (asserted).
                 unsafe {
                     let mut a8 = [_mm256_setzero_si256(); 8];
                     for (a, m) in self.matrices.iter().enumerate() {
-                        let column = staged.get_unchecked(staged_index(r, a, n_active));
+                        let column = staged.get_unchecked(r * n_active + a);
                         for (o, ao) in a8.iter_mut().enumerate() {
                             let g = _mm256_gf2p8affine_epi64_epi8(*column, _mm256_set1_epi64x(m[b0 + o] as i64), 0);
                             *ao = _mm256_xor_si256(*ao, g);
@@ -471,40 +612,41 @@ impl ProductSums {
         }
     }
 
-    /// Phase 2 with AVX-512: per pair of staged registers (one 512-bit load), every active lane byte
-    /// through its 16 matrices, all 16 accumulators in registers, two lane bytes per three-way XOR.
+    /// Phase 2 with AVX-512: per staged point-pair `(16 p + j, 16 p + 8 + j)` (one aligned 512-bit
+    /// load), every active lane byte through its 16 matrices, all 16 accumulators in registers, two
+    /// lane bytes per three-way XOR.
     #[cfg(all(target_feature = "avx512f", target_feature = "avx512bw"))]
-    fn accumulate(&self, staged: &[V], n_active: usize, acc: &mut [[V; WEIGHT_BYTES]; STAGED]) {
-        assert!(staged.len() >= STAGED * n_active);
+    fn accumulate(&self, staged: &[Staged], n_active: usize, acc: &mut [[V; WEIGHT_BYTES]; STAGED]) {
+        assert!(staged.len() >= STAGED_PER_ACTIVE * n_active);
         let matrices = &self.matrices;
-        for pair in 0..STAGED / 2 {
-            // SAFETY: AVX-512F/BW and GFNI are enabled at compile time; lane byte `a`'s registers
-            // `2 pair`, `2 pair + 1` are the 64 bytes at `staged_index(2 pair, a, n_active)`
-            // (asserted size).
+        for pair in 0..STAGED_PER_ACTIVE {
+            let (p, j) = (pair / 8, pair % 8);
+            // SAFETY: AVX-512F/BW and GFNI are enabled at compile time; `pair * n_active + a` is
+            // within `staged` (asserted size).
             unsafe {
-                let ld = |a: usize| _mm512_loadu_si512(staged.as_ptr().add(staged_index(2 * pair, a, n_active)).cast());
+                let ld = |a: usize| *staged.get_unchecked(pair * n_active + a);
                 let bc = |m: u64| _mm512_set1_epi64(m as i64);
                 let mut sums = [_mm512_setzero_si512(); WEIGHT_BYTES];
                 let mut a = 0;
                 while a + 1 < n_active {
                     let (c0, c1, m0, m1) = (ld(a), ld(a + 1), &matrices[a], &matrices[a + 1]);
                     for (b, ab) in sums.iter_mut().enumerate() {
-                        let g0 = _mm512_gf2p8affine_epi64_epi8(c0, bc(m0[b]), 0);
-                        let g1 = _mm512_gf2p8affine_epi64_epi8(c1, bc(m1[b]), 0);
-                        *ab = _mm512_ternarylogic_epi64(*ab, g0, g1, 0x96);
+                        let g0 = _mm512_gf2p8affine_epi64_epi8::<0>(c0, bc(m0[b]));
+                        let g1 = _mm512_gf2p8affine_epi64_epi8::<0>(c1, bc(m1[b]));
+                        *ab = _mm512_ternarylogic_epi64::<0x96>(*ab, g0, g1);
                     }
                     a += 2;
                 }
                 if a < n_active {
                     let (c0, m0) = (ld(a), &matrices[a]);
                     for (b, ab) in sums.iter_mut().enumerate() {
-                        *ab = _mm512_xor_si512(*ab, _mm512_gf2p8affine_epi64_epi8(c0, bc(m0[b]), 0));
+                        *ab = _mm512_xor_si512(*ab, _mm512_gf2p8affine_epi64_epi8::<0>(c0, bc(m0[b])));
                     }
                 }
-                // The low half is staged register `2 pair`, the high one `2 pair + 1`.
+                // Low half is point `2 p` (`16 p + j`), high half is point `2 p + 1` (`16 p + 8 + j`).
                 for (b, ab) in sums.iter().enumerate() {
-                    acc[2 * pair][b] = _mm512_castsi512_si256(*ab);
-                    acc[2 * pair + 1][b] = _mm512_extracti64x4_epi64::<1>(*ab);
+                    acc[16 * p + j][b] = _mm512_castsi512_si256(*ab);
+                    acc[16 * p + 8 + j][b] = _mm512_extracti64x4_epi64::<1>(*ab);
                 }
             }
         }
