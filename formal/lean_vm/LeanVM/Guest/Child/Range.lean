@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
-public import LeanVM.Guest.B1.VerifySub.NZBridge
+public import LeanVM.Guest.B1.VerifySub.AcceptRun
 public import LeanVM.Guest.Child.Fresh
 public import LeanVM.Guest.Child.Reads
 public import LeanVM.Protocol.WithHashBridge

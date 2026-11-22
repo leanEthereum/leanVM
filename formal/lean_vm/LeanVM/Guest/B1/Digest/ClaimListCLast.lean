@@ -9,6 +9,9 @@ module
 public import LeanVM.Guest.B1.Digest.ClaimListCChk
 public import LeanVM.Guest.B1.Digest.ChainFilter
 public import LeanVM.Guest.B1.Digest.PairComplete
+public import LeanVM.Guest.B1.Fwd.PureIn
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«claim_list_last__L»
 
 /-!
 # The last claims and a group of claims, completely
@@ -36,7 +39,8 @@ theorem clc_all {k : ℕ} (hk : k < 17) : clcOk k (coreProgram.getD (idx% «clai
   rcases Nat.lt_or_ge k 9 with h | h
   · exact clc_lo k h
   · have := clc_hi (k - 9) (by omega)
-    rwa [show 9 + (k - 9) = k by omega, show 357 + (k - 9) = 348 + k by omega] at this
+    rwa [show 9 + (k - 9) = k by omega, show idx% «claim_list_last__L9» + (k - 9) =
+      idx% «claim_list_last__L0» + k by omega] at this
 
 /-- A load found in the atoms, not a store, reads memory. -/
 theorem load_val {S : List Atom} {w : ℕ → E} {σ : Val} {atoms : List Atom} {x p : V} {o : ℕ}
@@ -99,8 +103,8 @@ theorem claimLast_complete {k : ℕ} (hk : k < 17) {sp blk : E} {n : ℕ} {pre :
     have hbody := splitBody_eq hsb
     have hg : ∀ a ∈ atoms, Good rd [] (fun _ => 0) σ a := fun a ha =>
       hgs (.atom a) (by rw [hbody]; exact List.mem_append_left _ (List.mem_map_of_mem ha))
-    have e0 : σ (.n 0) = sp := by rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args])
-    have e1 : σ (.n 1) = blk := by rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args])
+    have e0 : σ (.n (valf% «claim_list_last» "state")) = sp := by rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args])
+    have e1 : σ (.n (valf% «claim_list_last» "blk")) = blk := by rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args])
     have vst : ∀ c : Fin 13, σ ((clSt k).getD c default) =
         cellsOfState (absorbChunks n zeroState pre) false c := by
       intro c
@@ -291,6 +295,18 @@ theorem grp_block {j : ℕ} {f : String} {m c0 st0 ep nb : ℕ}
     cases s <;> simp only [isAtomS, Bool.false_eq_true] at this
     rename_i a
     exact ⟨hat a (by have := cl_mem_atoms hs; rwa [heqA'] at this), trivial⟩
+
+/-! ## `claim_list_tail` -/
+
+/-- **`claim_list_tail` on `rest = g^k`** returns what `claim_list_last__L{k}` does. -/
+theorem tail_rel_of {k : ℕ} (hk : k < 17) {sp blk d0 d1 : E}
+    (h : coreProgram.Rel rd (clNames.getD k "") [sp, blk] [d0, d1]) :
+    coreProgram.Rel rd "claim_list_tail" [sp, blk, gen ^ k] [d0, d1] :=
+  (tail_iff rd _ _).mpr ⟨sp, blk, k, d0, d1, by rw [gen_pow_eq_ofK], hk, rfl, h⟩
+
+/-- `claim_list_tail` and the last groups place nothing and call among themselves. -/
+theorem tail_pure : coreProgram.PureIn ("claim_list_tail" :: clNames) :=
+  Tables.pureIn_of_pureInB (by decide +kernel)
 
 end
 end LeanVM.Guest.B1.Digest

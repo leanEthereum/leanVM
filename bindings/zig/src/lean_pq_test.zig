@@ -71,6 +71,49 @@ test "secret keys round trip through bytes" {
     try std.testing.expectEqual(sphincs_bytes, try sphincs_restored.toBytes());
 }
 
+test "VRF key opens its slots" {
+    const seed: lpq.Seed = [_]u8{9} ** 32;
+    var key = try lpq.VrfKey.init(seed, 100, 200);
+    defer key.deinit();
+    var expected_root: lpq.VrfRoot = undefined;
+    _ = try std.fmt.hexToBytes(&expected_root, "c7e3eaa5a1af5e528e56beb589b4d1c579f5fb8939ddd7f6b1ce2141bc096b45");
+
+    const root = try key.root();
+    try std.testing.expectEqual(expected_root, root);
+
+    const proof = try key.proof(150);
+    try lpq.vrfVerify(root, 150, &proof);
+    try std.testing.expectError(error.InvalidSignature, lpq.vrfVerify(root, 151, &proof));
+    try lpq.vrfVerify(root, 100, &try key.proof(100));
+    try lpq.vrfVerify(root, 199, &try key.proof(199));
+
+    try std.testing.expectError(error.NativeFailure, key.proof(99));
+    try std.testing.expectError(error.NativeFailure, key.proof(200));
+    try std.testing.expectError(error.NativeFailure, lpq.VrfKey.init(seed, 5, 5));
+    try std.testing.expectError(error.NativeFailure, lpq.VrfKey.init(seed, 0, (1 << 31) + 1));
+}
+
+test "VRF key loads from its cache" {
+    const allocator = std.testing.allocator;
+    const seed: lpq.Seed = [_]u8{9} ** 32;
+    var key = try lpq.VrfKey.init(seed, 100, 200);
+    defer key.deinit();
+    const cache = try key.cacheToBytes(allocator);
+    defer allocator.free(cache);
+
+    var root: lpq.VrfRoot = undefined;
+    _ = try std.fmt.hexToBytes(&root, "c7e3eaa5a1af5e528e56beb589b4d1c579f5fb8939ddd7f6b1ce2141bc096b45");
+    var loaded = try lpq.VrfKey.fromCacheBytes(seed, root, cache);
+    defer loaded.deinit();
+    const reencoded = try loaded.cacheToBytes(allocator);
+    defer allocator.free(reencoded);
+    try std.testing.expectEqualSlices(u8, cache, reencoded);
+    try lpq.vrfVerify(root, 150, &try loaded.proof(150));
+
+    try std.testing.expectError(error.NativeFailure, lpq.VrfKey.fromCacheBytes(seed, root, cache[0 .. cache.len - 1]));
+    try std.testing.expectError(error.NativeFailure, lpq.VrfKey.fromCacheBytes(seed, [_]u8{0} ** 32, cache));
+}
+
 fn requiredEnv(name: []const u8, meaning: []const u8) ![]const u8 {
     return std.testing.environ.getPosix(name) orelse {
         std.debug.print("set {s} to {s}\n", .{ name, meaning });

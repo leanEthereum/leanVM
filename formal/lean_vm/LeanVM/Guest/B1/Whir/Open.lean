@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Whir.Levels
 public import LeanVM.Guest.B1.Whir.FinishSound
 public import LeanVM.Guest.B1.Whir.Flatness
 public import LeanVM.Guest.B1.Whir.Witness
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«open_stacked__L»
 
 /-!
 # A candidate, soundly
@@ -59,7 +61,7 @@ theorem osReadN_of_readsAt {p : E} {xs : List E} (h : ReadsAt rd p xs) :
 /-! ## The head -/
 
 theorem osHead_roots {c : OsCfg} (h : AllOk C rd σ (osHead c).1) :
-    LoadHolds rd (σ (.n osRoots)) 0 (σ (.n 7)) ∧ LoadHolds rd (σ (.n osRoots)) 1 (σ (.n 8)) := by
+    LoadHolds rd (σ (.n osRoots)) 0 (σ (.n (valf% «open_stacked» "commit_root_0"))) ∧ LoadHolds rd (σ (.n osRoots)) 1 (σ (.n (valf% «open_stacked» "commit_root_1"))) := by
   have m1 : osLd 7 osRoots 0 ∈ (osHead c).1 := by simp [osHead]
   have m2 : osLd 8 osRoots 1 ∈ (osHead c).1 := by simp [osHead]
   exact ⟨(holds_load _ _ _).mp (h _ m1), (holds_load _ _ _).mp (h _ m2)⟩
@@ -69,7 +71,8 @@ theorem osHead_st (c : OsCfg) : (osHead c).2 =
 
 /-! ## A candidate -/
 
-/-- The finish's static facts and `fold_final_msg`'s meaning. -/
+/-- The finish's static facts and the meanings of `fold_final_msg`, `is_zero` and
+`level_residual_slow`. -/
 structure FinStaticS (rd : Reader) (C : CallRel) (c : OsCfg) : Prop where
   n2 : 2 ≤ c.levels.length
   yr : c.yrLevel = c.levels.length - 1
@@ -84,6 +87,10 @@ structure FinStaticS (rd : Reader) (C : CallRel) (c : OsCfg) : Prop where
   lane : (c.levels.headD default).folds ≤ c.nFolds
   mu40 : c.nFolds + c.yrLog ≤ pointCap
   ffm : ∀ a r, C ("fold_final_msg__L" ++ natStr c.yrLog) a r → MeaningFoldFinalMsg c.yrLog rd a r
+  iz : ∀ a r, C "is_zero" a r → IsZeroRet a r
+  slow : ∀ i < c.yrLevel, ∀ a r, C (osSlowName c (c.levels.getD i default)) a r →
+    SlowRet (c.levels.getD i default).queries (c.levels.getD i default).prefixLen c.yrLog
+      (c.levels.getD i default).vanish rd a r
 
 /-- **A candidate, soundly**: from its body, its levels' facts, callees and rows at the rate's
 selector, and its finish's facts, a call establishes `OpenOutW` at the witness's words and
@@ -101,7 +108,7 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
     (hfs : fs.length = 5) (hroot : (root0, root1) = digestHalves root) (hwt : WinTabs rd tabs)
     (hp : fn.params.map σ = sel :: fs ++ [target, root0, root1, cur, tabs])
     (hh : Stmt.HoldsList C rd σ fn.body False (fun rs ↦ rs = rets)) :
-    OpenOutW rd μ r root fs target cur rets (osReadN rd (σ (.n 9)) (osWordsLen c))
+    OpenOutW rd μ r root fs target cur rets (osReadN rd (σ (.n (valf% «open_stacked» "cursor@1"))) (osWordsLen c))
       (osLevelsW rd V σ c 0 c.levels (osHead c).2) := by
   -- the parameters
   obtain ⟨f0, f1, f2, f3, f4, rfl⟩ : ∃ f0 f1 f2 f3 f4, fs = [f0, f1, f2, f3, f4] := by
@@ -146,7 +153,7 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
     refine ⟨hFS.n2, hFS.yr, hFS.ylog, hFS.ylen, by rw [hrl, hy], fun i hi ↦ ?_, hFS.lv,
       fun i hi ↦ hrate i (by have := hFS.yr; omega), hFS.res, hFS.nlen,
       by rw [hgl, ← hFS.nF, hlv], hfch, hTl, hTr, hfm, by rw [hfl]; omega, hFS.lane,
-      hFS.mu40, hFS.ffm⟩
+      hFS.mu40, hFS.ffm, hFS.iz, hFS.slow⟩
     have hi' : i < recs'.length := by rw [hrl, ← hy]; exact hi
     have := hrecs i hi'
     rw [Nat.zero_add, ← hlv] at this
@@ -159,7 +166,7 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
   have hcur : (osHead c).2.cur σ = cur := by
     rw [osHead_st]; simp [OsSt.cur, p8]
   rw [hcur] at hrd
-  have hwords : osReadN rd (σ (.n 9)) (osWordsLen c) = xs := by
+  have hwords : osReadN rd (σ (.n (valf% «open_stacked» "cursor@1"))) (osWordsLen c) = xs := by
     rw [p8, osWordsLen_eq, hlv, ← hxl]
     exact osReadN_of_readsAt hrd
   rw [hwords, hlv]

@@ -149,6 +149,8 @@ Suppose that $(\agr^{(i,0)})^2>\blen_i\dgr^{(i)}$ for every level $i$, so that t
 the second query term being absent at the last level, $i=\nlev-1$. 
 \end{theorem}
 
+% \paragraph{Deployed parameters and grinds.} In leanVM, the committed stack has $\nv_0\in\{16,\dots,30\}$ variables and rate exponent $\rexp_0\in\{1,\dots,4\}$. Level $0$ folds $\ell_0=6$ variables and every later level $\ell_i=4$, a level being added while more than $5$ variables remain, so $2\le\nv_\nlev\le5$. The rate exponent grows by $\ell_i$ less $3$ at level $0$ and less $1$ at every later level, so $\rexp_{i+1}=\rexp_i+3$ throughout and each domain is half the one before, $\blen_{i+1}=\blen_i/2$. The PCS fixes its own grinds (\S\ref{sec:grinding}): $15$ bits before every OOD point $z_i$, $13$ bits before level $0$'s batching challenge $\lambda_0$, $7$ bits before each fold round's $(\afa_{i,j},\afb_{i,j})$, and $17$ bits before each level's query message, $\lambda_{i+1}$ included for $i<\nlev-1$; a tail round, of error $2/|\E|$, takes none. The message of $\lambda_0$ also carries the ring-switching challenges (\S\ref{sec:e2e-unrolled}), whose error $2/|\E|$ (\S\ref{rs:map}) each of the $L_0$ candidates can meet, so the parameters hold that message to $(J_0+1)\,L_0/|\E|$. The query counts $\nq_i$ are chosen for each $(\nv_0,\rexp_0)$ to hold every such error to at most $2^{-125}$ after its grind.
+
 \subsubsection{Proximity tools}\label{sec:tools}
 
 The main tool is the \emph{mutual correlated agreement} (MCA)~\cite{ACFY25} of the affine combiner, with the finite error bound of~\cite[Thm.~4.10]{CWYZ26}.

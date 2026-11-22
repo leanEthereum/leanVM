@@ -11,7 +11,6 @@ module
 
 public import LeanVM.Guest.B1.Main.MainGoalsHL5TB
 public import LeanVM.Guest.B1.Main.MainGoalsDvTB
-public import LeanVM.Guest.Child.RefuseZero
 public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Facts.Guest
 public import LeanVM.Guest.B1.VerifySub.CompleteSpec
@@ -26,7 +25,7 @@ every acceptable child's announced shape an opening arm of the guest (`μ ∈ [2
 `r ∈ [1, 4]`). B1-d's `VerifySub.verify_sub_completeBT` and `child_segments` give it on the
 guest's IR.
 
-`verifySubGoalsTB_of`: for `NodeRelation` within `Limits`, the caps agreeing and no zero challenge,
+`verifySubGoalsTB_of`: for `NodeRelation` within `Limits`, the caps agreeing,
 child `c`'s `verify_sub` call is complete within `B` at its announced stack log and rate
 (`childShape`), by a tree of `T` (`VerifySubGoalsTB`). `childShape_bounds`: every child's
 announced stack log is in `[20, 30]` and its rate in `[1, 4]`.
@@ -46,14 +45,13 @@ variable {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : 
   {w : NodeWitness} {bytecode : List K}
 
 /-- What `verify_sub`'s completeness asks of a child `c` under the seed `seed`: its announced stack
-log at least `22`, its stream within the cap, its deferring verifier accepting without a zero
-challenge, and its openings agreeing in the caps. -/
+log at least `22`, its stream within the cap, its deferring verifier accepting, and its openings
+agreeing in the caps. -/
 def VsChildOk (bytecode : List K) (seed : Digest) (c : Child) : Prop :=
   (∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
       Coverage.minChildStackLog ≤ layout.stackLog) ∧
     c.proof.stream.length ≤ Coverage.childStreamCap ∧
-    Limits.verifyDeferredRefusingZero bytecode seed (statementDigest seed c.statement) c.freshClaim
-      c.proof = true ∧
+    verifyDeferred bytecode seed (statementDigest seed c.statement) c.freshClaim c.proof = true ∧
     ∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode
       (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c),
       Limits.OpeningsAgree b.1 b.2
@@ -88,7 +86,7 @@ theorem childShape_bounds {T : ℕ → ℕ → Tree → Prop} {B : ℕ → ℕ �
     20 ≤ (childShape bytecode ch).1 ∧ (childShape bytecode ch).1 ≤ 30 ∧
       1 ≤ (childShape bytecode ch).2 ∧ (childShape bytecode ch).2 ≤ 4 :=
   hvs.shape seed ch ⟨(hok _ hch).stackLogAtLeastMinimum, (hok _ hch).streamWithinCap,
-    (hok _ hch).noZeroChallenge, (hok _ hch).capsAgree⟩
+    (hok _ hch).verifies, (hok _ hch).capsAgree⟩
 
 /-- **Each child's `verify_sub` call on the honest run, within its own bound**: `B` at its
 announced stack log and rate, by a tree of `T`, the child's stack log among `open_stacked`'s
@@ -109,7 +107,7 @@ theorem verifySubGoalsTB_of {T : ℕ → ℕ → Tree → Prop} {B : ℕ → ℕ
   have h := hvs.complete seed w.children[c] e outE
     (vsExpLin e ++ [(outE, DeferredBytecodeClaim.cells w.children[c].freshClaim)])
     ⟨(hok _ hmem).stackLogAtLeastMinimum, (hok _ hmem).streamWithinCap,
-      (hok _ hmem).noZeroChallenge, (hok _ hmem).capsAgree⟩
+      (hok _ hmem).verifies, (hok _ hmem).capsAgree⟩
     (fun q hq => List.mem_append_left _ hq) (List.mem_append_right _ (List.mem_singleton_self _))
   have hB : B (childShape bytecode w.children[c]).1
       (childShape bytecode w.children[c]).2 = (w.children.map fun ch =>

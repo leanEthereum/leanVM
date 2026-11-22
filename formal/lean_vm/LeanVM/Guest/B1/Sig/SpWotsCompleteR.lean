@@ -14,6 +14,8 @@ public import LeanVM.Guest.B1.Sig.SpWotsRen0
 public import LeanVM.Guest.B1.Sig.SpWotsRen1
 public import LeanVM.Guest.B1.Sig.SpWotsRen2
 public import LeanVM.Guest.B1.Sig.SpWotsRen3
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«sp_wots»
 
 /-!
 # `sp_wots`, complete, in the guest's numbering
@@ -75,7 +77,7 @@ values, on a memory of at least `64` words, its body holds of some valuation who
 (`spLeafCell`). -/
 theorem sp_wots_complete_cells {pp a0 a1 : E} {d : Nat → Nat} (hd : ∀ i, d i < 4)
     (hsum : ∑ i ∈ Finset.range 64, d i = 128) {vals : Nat → E} (hm : MemOK rd 64) :
-    ∃ σ : Val, σ (.n 0) = pp ∧ σ (.n 1) = a0 ∧ σ (.n 2) = a1 ∧ σ (.n 3) = eOfNat128 (spX d 64) ∧
+    ∃ σ : Val, σ (.n (val% «sp_wots» "pp")) = pp ∧ σ (.n (val% «sp_wots» "a0")) = a0 ∧ σ (.n (val% «sp_wots» "a1")) = a1 ∧ σ (.n (val% «sp_wots» "encoding")) = eOfNat128 (spX d 64) ∧
       Stmt.HoldsList C rd σ (Fn.«sp_wots».core).body False (fun rs => rs = [spLeafCell pp a0 a1 d
           vals]) := by
   obtain ⟨σ', h0, h1, h2, h3, hh⟩ := sp_wots_completeT (C := C) (pp := pp) (a0 := a0) (a1 := a1) (vals := vals) hd hsum hm

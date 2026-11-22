@@ -57,7 +57,7 @@ fn cache_round_trip() {
     assert!(LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &pk, &bytes[1..]).is_none());
 
     // Tampered bytes are refused: a top node, a bottom tree's index, a bottom node, its signature.
-    let top_len = 1 << 14;
+    let top_len = 1 << 12;
     let bottom_len = (bytes.len() - top_len) / 2;
     for at in [0, top_len, top_len + bottom_len - 1, top_len + 4] {
         let mut tampered = bytes.clone();

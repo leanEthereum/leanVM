@@ -2,6 +2,8 @@ module
 
 public import LeanVM.Cost.Bounds.Guest.Readers
 public import LeanVM.Cost.Decoder.Signatures
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 
 /-!
 # Bounds on the guest decoder's prices: the signatures
@@ -326,7 +328,7 @@ theorem layerA_cost (hP : Includes P Decoder.layerAC.costDeps) (T : SpTabs) (hT 
     machineCost P Decoder.layerAC.costIdx [encodeValue T, σV, wV, encodeValue l,
       encodeValue layer] ≤ 169 * S + 104600 := by
   rw [Decoder.layerAC.costEq P hP T σ σV hσ w wV hw, ofFnFrom_length, ofFnFrom_length,
-    Auto.Sphincs.layerHeight.c395.costEq P (by includes)]
+    Auto.Sphincs.layerHeight.c388.costEq P (by includes)]
   have := spCtr_cost P (by includes) l hl
   have := hS (.n (spCtr l))
   have := cellNat_cost P (by includes) (σ (.n (spCtr l)))
@@ -386,8 +388,8 @@ theorem sphincsSigOfA_cost (hP : Includes P Decoder.sphincsSigOfNC.costDeps) (T 
       1492 * S + 350800 := by
   rw [Decoder.sphincsSigOfNC.costEq P hP T σ σV hσ w0 w0V hw0 w1 w1V hw1 w2 w2V hw2,
     ofFnFrom_length]
-  have := hS (.n 6)
-  have := cellNat_cost P (by includes) (σ (.n 6))
+  have := hS (.n (val% «verify_sig_lean_sphincs» "rho"))
+  have := cellNat_cost P (by includes) (σ (.n (val% «verify_sig_lean_sphincs» "rho")))
   have m0 := ofFnFrom_cost P (by includes) (n := Sphincs.forsTreeCount) (by decide) _
     (.closure Decoder.sphincsSigOfNC.lam0.costIdx [encodeValue T, σV])
     (fun c ↦ RunsApp.of_spec (Decoder.sphincsSigOfNC.lam0.costSpec P (by includes) T σ σV hσ c))
@@ -401,8 +403,8 @@ theorem sphincsSigOfA_cost (hP : Includes P Decoder.sphincsSigOfNC.costDeps) (T 
   have l0 := layerA_cost P hσ hS (by includes) T hT hw0 hW0 0 (by norm_num) 0
   have l1 := layerA_cost P hσ hS (by includes) T hT hw1 hW1 1 (by norm_num) 1
   have l2 := layerA_cost P hσ hS (by includes) T hT hw2 hW2 2 (by norm_num) 2
-  rw [Auto.Fin.ofNat.c398.costEq P (by includes), Auto.Fin.ofNat.c398.costEq P (by includes),
-    Auto.Fin.ofNat.c398.costEq P (by includes)]
+  rw [Auto.Fin.ofNat.c391.costEq P (by includes), Auto.Fin.ofNat.c391.costEq P (by includes),
+    Auto.Fin.ofNat.c391.costEq P (by includes)]
   simp only [Sphincs.forsTreeCount, Sphincs.layerCount, Nat.sub_zero] at m0 ⊢
   limbs_one
   omega
@@ -415,7 +417,7 @@ theorem spWotsArgs_cost (hP : Includes P Decoder.spWotsArgsC.costDeps) (l : ℕ)
     Decoder.spA1C.costEq P (by includes), Decoder.spEncC.costEq P (by includes)]
   have := spLayerBase_cost P (by includes) l hl
   have := spLayerBase_lt l
-  have := hS (.n 2); have := hS (.n (spA0 l)); have := hS (.n (spA1 l)); have := hS (.n (spEnc l))
+  have := hS (.n (val% «verify_sig_lean_sphincs» "pp")); have := hS (.n (spA0 l)); have := hS (.n (spA1 l)); have := hS (.n (spEnc l))
   limbs_one
   split_ifs <;> omega
 

@@ -8,7 +8,10 @@
 
 module
 
-public import LeanVM.Guest.LimitsNZ
+public import LeanVM.Guest.Limits
+public import LeanVM.Protocol.Compile.Refines
+public import LeanVM.Protocol.WithHashBridge
+public import LeanVM.Protocol.WithHash
 public import Statement.LeanVmGuestCompleteness
 public import LeanVM.Protocol.Compile.Rom.IdealCalc
 public import LeanVM.Protocol.Verifier.Deferred

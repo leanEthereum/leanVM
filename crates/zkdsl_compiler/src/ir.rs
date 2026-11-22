@@ -107,21 +107,13 @@ pub(crate) enum LOp {
 pub(crate) enum Hint {
     /// Index the next frame address without allocating it again.
     NextFrameAddress,
-    /// Reserve the loop run, including the final untaken call's argument frame, of
-    /// which only the first `tail` cells (return target, arguments, frame pointer)
-    /// are ever written.
-    AllocLoopFrames {
-        ptr: Off,
-        callee: String,
-        count: LoopCount,
-        tail: u32,
-    },
+    /// Reserve the loop run, the final untaken call's frame included.
+    AllocLoopFrames { ptr: Off, callee: String, count: LoopCount },
     /// `m[fp·g^ptr] = g^{fresh base}`: a fresh, disjoint frame for `callee`.
     AllocFrame { ptr: Off, callee: String },
-    /// The frame of the callee a dispatched call takes, `callees[j]` for `m[fp·g^x] = g^j`
-    /// (all `callees` share the arg/return layout; only their local count, hence frame
-    /// size, differs). See `FnLower::lower_dispatched_call`.
-    AllocFrameSwitch { ptr: Off, x: Off, callees: Vec<String> },
+    /// `AllocFrame` for a dispatched call: the frame of `callees[k]`, where
+    /// `m[fp·g^sel] = g^k` selects the arm (`FnLower::lower_dispatched_call`).
+    AllocArm { ptr: Off, sel: Off, callees: Vec<String> },
     /// `m[fp·g^ptr] = g^{fresh base}`: a fresh, disjoint heap region of `size`
     /// cells (a `HeapBuf(size)`), addressed by g-power offsets from the pointer.
     AllocBuffer { ptr: Off, size: u32 },

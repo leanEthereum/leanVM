@@ -75,8 +75,18 @@ def chunks(xs, n):
 
 
 def nat_array(name, doc, xs):
-    rows = ",\n    ".join(", ".join(str(x) for x in c) for c in chunks(xs, 10))
-    return (f"/-- {doc} -/\ndef {name}List : List ℕ := [\n    {rows}]\n\n"
+    def lit(ys):
+        return "[\n    " + ",\n    ".join(", ".join(str(x) for x in c) for c in chunks(ys, 10)) + "]"
+    parts = chunks(xs, PART)
+    if len(parts) <= 1:
+        head = f"/-- {doc} -/\ndef {name}List : List ℕ := {lit(xs)}\n\n"
+    else:
+        # a literal of more than `PART` numbers exceeds the elaborator's recursion depth
+        head = "".join(f"/-- Functions {i * PART} to {i * PART + len(p) - 1}'s part of `{name}List`. -/\n"
+                       f"def {name}List{i} : List ℕ := {lit(p)}\n\n" for i, p in enumerate(parts))
+        head += (f"/-- {doc} -/\ndef {name}List : List ℕ :=\n    " +
+                 " ++ ".join(f"{name}List{i}" for i in range(len(parts))) + "\n\n")
+    return (head +
             f"/-- {doc} An array (reducible: the compiler's literal rule reads its list). -/\n"
             f"abbrev {name} : Array ℕ := {name}List.toArray\n")
 
@@ -132,9 +142,10 @@ public import LeanVM.Guest.Data.Cert
 # The guest decoder's tables
 
 For each of the guest's {N} compiled functions `j`: its entry pc, its number of arguments and of
-return words, and its certificate's frame cells. Literals of the decoder program
-(`Rule.literalNats`, `Rule.literalNatArrays`); `GuestTablesCheck.lean` proves them equal to `(glob.sig j).entry`,
-`(glob.sig j).nargs`, `(glob.sig j).nret` and `(certOf j).locs`.
+return words, and its certificate's frame cells. The first three are literals of the decoder program
+(`Rule.literalNats`), the cells packed four to a number (`Lanes.lean`); `GuestTablesCheck.lean`
+proves them equal to `(glob.sig j).entry`, `(glob.sig j).nargs`, `(glob.sig j).nret` and
+`(certOf j).locs`.
 -/
 
 namespace LeanVM.Cost.Decoder
@@ -154,13 +165,9 @@ def guestLocsSplit : List (List ℕ) := guestLocsRow{split[0]}
 def guestLocsList : List (List ℕ) :=
     {" ++ ".join(f"guestLocsList{i}" for i in range(len(parts)))}
 
-/-- Each function's frame cells, as arrays: the decoder's literal (reducible: the compiler's
-literal rule reads its list). -/
-abbrev guestLocsLit : Array (Array ℕ) := (guestLocsList.map List.toArray).toArray
-
-/-- Each function's frame cells, as arrays (`Cost/Decoder/Witness.lean` compiles its uses as calls
-of one function holding the literal). -/
-def guestLocs : Array (Array ℕ) := guestLocsLit
+/-- Each function's frame cells, as arrays: the specification of the decoder's packed table
+(`Cost/Decoder/Lanes.lean`, `locAt`). -/
+def guestLocs : Array (Array ℕ) := (guestLocsList.map List.toArray).toArray
 
 end
 

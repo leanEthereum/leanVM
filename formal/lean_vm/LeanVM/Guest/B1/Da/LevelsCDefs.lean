@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Da.LevelsTab
 public import LeanVM.Guest.B1.Fwd.Canon
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_levels__L»
 
 /-!
 # `da_levels`, completely: definitions
@@ -74,7 +76,7 @@ noncomputable def loopCOk (f : String) (j0 offA offB : ℕ) : Bool :=
 
 /-- The guarded call of level `lvl`'s loop `f`. -/
 def lvlCall (lvl : ℕ) (f : String) : Stmt :=
-  .callIf (.n (5 * lvl + 3)) f [.n (5 * lvl + 4), .n (5 * lvl + 5), .n 0]
+  .callIf (.n (5 * lvl + 3)) f [.n (5 * lvl + 4), .n (5 * lvl + 5), .n (valf% «da_levels» "tree")]
 
 /-- **Entry `k` of `dlTab`, evaluated.** -/
 noncomputable def dlCEntryOk (k : ℕ) : Bool :=
@@ -84,8 +86,8 @@ noncomputable def dlCEntryOk (k : ℕ) : Bool :=
   (match splitRet fn.body with
    | some (P, _) =>
      (atomsIn P).all (fun a => !needsSide a ||
-       isLoadAt (.n (5 * k + 1)) (.n 0) (4 * 2 ^ k - 4) a ||
-       isLoadAt (.n (5 * k + 2)) (.n 0) (4 * 2 ^ k - 3) a) &&
+       isLoadAt (.n (5 * k + 1)) (.n (valf% «da_levels» "tree")) (4 * 2 ^ k - 4) a ||
+       isLoadAt (.n (5 * k + 2)) (.n (valf% «da_levels» "tree")) (4 * 2 ^ k - 3) a) &&
      P.all (fun s => match s with
        | .atom _ => true
        | .callIf .. => (List.range k).any fun lvl => stmtEqb s (lvlCall lvl (e.2.2.2.getD lvl ""))

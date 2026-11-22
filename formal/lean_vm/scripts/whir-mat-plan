@@ -77,7 +77,7 @@ def plan(m):
 
 def main():
     arms = int(re.search(r"def const_LIG_N_LOG_SIZES : Nat := (\d+)",
-                         open("LeanVM/Guest/Data/Source.lean").read()).group(1))
+                         open("LeanVM/Guest/Data/Consts.lean").read()).group(1))
     rows = [plan(m) for m in range(arms)]
     body = "\n".join(
         f"  | {m} => [{', '.join(f'({b}, {e}, {s})' for b, e, s in r)}]" for m, r in enumerate(rows))

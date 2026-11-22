@@ -24,6 +24,9 @@ and the run fails (with `--keep-going`, every module that does not import a fail
 lists every failure, as when adapting the proofs to a spec change); otherwise `lake build --no-build` must find the targets up to date, and a plain `lake build` of
 them, which replays the warnings, ends the run.
 
+macOS has neither a systemd scope nor an address-space limit: the budget is the only guard there, and a module's
+anonymous memory is its physical footprint.
+
 `--dev` is for development only, never for a gate or CI: it builds from `DIR/.lake/lakefile.dev.toml`, written from
 `DIR/lakefile.toml` with `buildDir = ".lake/build-dev"` and `debug.skipKernelTC` set on the package's libraries other
 than its test driver. Elaboration still runs (tactics, `simp`, `omega`, the elaborator's `decide`, warnings as
@@ -125,7 +128,8 @@ def wrap(tool: str, args: list[str]) -> None:
                 # once more, alone; or again, after the watchdog or a crash
                 again_alone = not alone and (code == -signal.SIGKILL or out_of_memory(code, err))
                 again = not again_alone and code in (-signal.SIGTERM, -signal.SIGSEGV) and attempt < RETRIES
-                say(f"done {code} {time.monotonic() - start:.3f} {usage.ru_utime + usage.ru_stime:.3f} {usage.ru_maxrss} "
+                maxrss = usage.ru_maxrss // 1024 if MAC else usage.ru_maxrss  # KB; macOS counts bytes
+                say(f"done {code} {time.monotonic() - start:.3f} {usage.ru_utime + usage.ru_stime:.3f} {maxrss} "
                     f"{int(again_alone or again)}")
                 if again_alone:
                     alone = True
@@ -241,8 +245,39 @@ def priorities(pkg: Path, table: dict[str, list[float]]) -> dict[str, float]:
 
 # The scheduler.
 
+# macOS has no `/proc`: the machine's and a process's memory and CPU time come from Mach and libproc.
+MAC = sys.platform == "darwin"
+if MAC:
+    import ctypes
+
+    LIBC = ctypes.CDLL(None)
+    HOST = LIBC.mach_host_self()
+    PAGE = os.sysconf("SC_PAGE_SIZE")
+    _timebase = (ctypes.c_uint32 * 2)()
+    LIBC.mach_timebase_info(_timebase)
+    MACH_TICK = _timebase[0] / _timebase[1] / 1e9  # seconds
+
+
+def mac_host(flavor: int) -> list[int]:
+    """The host's statistics as 32-bit words: `HOST_VM_INFO64` (4) or `HOST_CPU_LOAD_INFO` (3)."""
+    buf, count = (ctypes.c_uint32 * 64)(), ctypes.c_uint32(64)
+    LIBC.host_statistics64(HOST, flavor, buf, ctypes.byref(count))
+    return list(buf)
+
+
+def mac_rusage(pid: int) -> list[int]:
+    """A process's `rusage_info_v0` after its UUID: its CPU times in Mach ticks at 0 and 1, its resident size at 6 and
+    its physical footprint at 7."""
+    buf = (ctypes.c_uint64 * 12)()
+    return list(buf[2:]) if LIBC.proc_pid_rusage(pid, 0, buf) == 0 else [0] * 10
+
 
 def meminfo(key: str) -> int:
+    if MAC:  # available, as Linux counts it: the free, file-backed and purgeable pages (`vm_statistics64`)
+        if key == "MemTotal":
+            return os.sysconf("SC_PHYS_PAGES") * PAGE
+        vm = mac_host(4)
+        return (vm[0] + vm[34] + vm[22]) * PAGE
     with open("/proc/meminfo", encoding="ascii") as file:
         for line in file:
             if line.startswith(key + ":"):
@@ -251,7 +286,11 @@ def meminfo(key: str) -> int:
 
 
 def proc_status(pid: int) -> tuple[int, int]:
-    """A process's resident anonymous and file-backed memory, in bytes."""
+    """A process's resident anonymous and file-backed memory, in bytes. On macOS its footprint, which counts its
+    compressed memory too, and the rest of its resident size."""
+    if MAC:
+        usage = mac_rusage(pid)
+        return usage[7], max(usage[6] - usage[7], 0)
     anon = file_backed = 0
     try:
         with open(f"/proc/{pid}/status", encoding="ascii") as file:
@@ -267,6 +306,9 @@ def proc_status(pid: int) -> tuple[int, int]:
 
 def cpu_seconds(pid: int) -> float:
     """A process's user and system CPU time."""
+    if MAC:
+        usage = mac_rusage(pid)
+        return (usage[0] + usage[1]) * MACH_TICK
     try:
         with open(f"/proc/{pid}/stat", encoding="ascii") as file:
             fields = file.read().rsplit(")", 1)[1].split()
@@ -285,6 +327,10 @@ def cgroup_file(name: str) -> Path | None:
 
 
 def cpu_ticks() -> tuple[int, int]:
+    """The machine's busy and total CPU ticks."""
+    if MAC:
+        user, system, idle, nice = mac_host(3)[:4]
+        return user + system + nice, user + system + idle + nice
     with open("/proc/stat", encoding="ascii") as file:
         fields = [int(x) for x in file.readline().split()[1:]]
     return sum(fields) - fields[3] - fields[4], sum(fields)
@@ -542,7 +588,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("dir", type=Path, help="the Lake package")
     parser.add_argument("targets", nargs="*", help="what to build (default: the default targets)")
-    parser.add_argument("--jobs", type=int, default=len(os.sched_getaffinity(0)), help="modules at once (default: the cores)")
+    cores = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else os.cpu_count()
+    parser.add_argument("--jobs", type=int, default=cores, help="modules at once (default: the cores)")
     parser.add_argument("--mem", type=float, help="memory budget in GB (default: the machine's less 4)")
     parser.add_argument("--cap", type=float, help="the scope's memory cap in GB (default: the machine's less 1)")
     parser.add_argument("--no-scope", action="store_true", help="no systemd scope")

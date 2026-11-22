@@ -385,7 +385,7 @@ def glueVals (cl lam y0 lp b : E) : List E :=
   [lam * y0, cl + lam * y0, lam * lam, lam * lam * lp, lam * lam * lp * b, cl + lam * y0 + lam * lam * lp * b]
 
 /-- **A non-final level's claims glued, honestly**: `λ` into `ood_scalars`, `λ²·λ^n` (`λ^n` from
-`level_queries`) into `level_scales`, `1/λ` into `level_lam_invs`; the new claim the old plus
+`level_queries`) into `level_scales`, `1/(λ + is_zero(λ))` into `level_lam_invs`; the new claim the old plus
 `λ·y0 + λ²·λ^n·batched`. -/
 theorem osGlue_complete {lvl : ℕ} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (hlam : st.lam < st.k) (hy0 : st.ys.getD 0 0 < st.k)

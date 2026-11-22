@@ -813,6 +813,37 @@ def main():
     verify(&program, &want, &proof).expect("three spellings of cell 2 agree");
 }
 
+/// An integer index is rejected however it is spelled. `hb[4]` was, while `hb[2 * 2]`, `hb[2 ** 2]`,
+/// `hb[const(4)]` and `hb[len(A)]` named cell 2, where the slice `hb[2 * 2:2 * 2 + 1]` names cell 4. A constant
+/// array's element, as the whole index, is the field value it holds, so an array of g-powers still indexes their
+/// cells.
+#[test]
+fn an_integer_heap_index_is_rejected_however_it_is_spelled() {
+    for idx in ["4", "2 * 2", "2 ** 2", "const(4)", "len(A)", "2 * A[1]"] {
+        let src = format!("A = [1, 2, 3, 5]\n\ndef main():\n    hb = HeapBuf(8)\n    hb[{idx}] = 7\n    return\n");
+        let ast = parse(&src).expect("parses");
+        let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
+            panic!("accepted: hb[{idx}]");
+        };
+        let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
+        assert!(msg.contains("is a plain integer naming cell 2"), "got `{msg}`");
+    }
+
+    let src = "\
+OFFS = [GEN ** 2, GEN ** 5]
+
+def main():
+    hb = HeapBuf(8)
+    for k in unroll(0, len(OFFS)):
+        hb[OFFS[k]] = 7 + k
+    assert hb[GEN ** 2] == 7
+    assert hb[GEN ** 5] == 6
+    return
+";
+    let program = compile(&parse(src).expect("parses"));
+    execute(&program, &[], [F128::ZERO; 2]).expect("a g-power from a constant array indexes its cell");
+}
+
 /// A `HeapBuf` sized at run time is bounded by the address space alone, not by
 /// how far the g-power table happens to reach.
 #[test]

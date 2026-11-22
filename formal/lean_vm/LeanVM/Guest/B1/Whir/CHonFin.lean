@@ -62,12 +62,12 @@ theorem osFinishA_k {c : OsCfg} {st : OsSt} {tch : ℕ} (htch : tch < st.k) (hk 
   have w2 : P2 + 6 ≤ (osBases c tch (P2 + 1) (P2 + 3) (P2 + 5) 0 mid (P2 + 6)).2 :=
     osBases_next c tch _ _ _ mid 0 _
   set B := (osBases c tch (P2 + 1) (P2 + 3) (P2 + 5) 0 mid (P2 + 6)).2
-  have w3 : B + 3 ≤ (osResiduals c (B + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 mid st.mats (B + 3)).2 :=
-    osResiduals_next c _ _ _ _ mid 0 st.mats (B + 3)
+  have w3 : B + 3 ≤ (osResiduals c tch (B + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 mid st.mats (B + 3)).2 :=
+    osResiduals_next c tch _ _ _ _ mid 0 st.mats (B + 3)
   have w4 := (osOodWeights_ssa c tch (c.levels.headD default).logCols 1 c.levels.tail none
-    (osResiduals c (B + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 mid st.mats (B + 3)).2 (by omega) (by omega) (by simp)).1.le
+    (osResiduals c tch (B + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 mid st.mats (B + 3)).2 (by omega) (by omega) (by simp)).1.le
   show st.k ≤ (osOodWeights c tch (c.levels.headD default).logCols 1 c.levels.tail none
-    (osResiduals c (B + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 mid st.mats (B + 3)).2).2.2 + 6
+    (osResiduals c tch (B + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 mid st.mats (B + 3)).2).2.2 + 6
   omega
 
 /-- What each non-final level's record holds on the run. -/
@@ -77,7 +77,6 @@ structure RecRun (h : OsHD) (i : ℕ) : Prop where
   ql : ((h.L i).osRec h.logN).qs.length = ((h.c.levels.getD i default)).queries
   hl : ((h.L i).osRec h.logN).high.length = ((h.c.levels.getD i default)).folds
   z0 : ((h.L i).osRec h.logN).z0.length = ((h.c.levels.getD i default)).logCols
-  lam : (h.L i).lam h.logN ≠ 0
   Q : ((h.c.levels.getD i default)).queries ≤ ((h.c.levels.getD i default)).squeezes * sqPer ((h.c.levels.getD i default))
   qs : ∀ k < ((h.c.levels.getD i default)).queries, ((h.L i).osRec h.logN).qs.getD k 0 =
     qwPosOf ((h.c.levels.getD i default)).depth ((h.L i).word h.logN (k / sqPer ((h.c.levels.getD i default)))) (k % sqPer ((h.c.levels.getD i default)))
@@ -118,7 +117,10 @@ theorem fin_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {D : ℕ → Os
     (hfold : h.c.yrLen ≤ h.Lf.fw.fold.length)
     (hffm : osKindOf ("fold_final_msg__L" ++ natStr h.c.yrLog) = some (.ffm h.c.yrLog))
     (hD : ∀ l < h.c.yrLevel, (D l).mu = h.li l ∧
-      finRes h.c h.G h.T h.recs h.li l = osLrRetA h.c h.own l (D l).mu) :
+      finRes h.c h.G h.T h.recs h.li l = osLrRetA h.c h.own l (D l).mu)
+    (hDs : ∀ l < h.c.yrLevel, (D l).lam = (h.recs.getD l default).lam ∧
+      finZ h.c h.G h.T h.recs l = osZA h.c h.own l ∧
+      finSlow h.c h.G h.T h.recs l = osSlowRetA h.c h.own l (D l).lam (osZA h.c h.own l)) :
     ∀ σ, (osLvsEnd h.c).Sf → (osFinSt h.c).Ok σ →
       (∀ l < h.c.levels.length, LvRate σ h.c l (h.c.levels.getD l default)) →
       (∀ i < 11, σ (.n (12 + 2 * i)) = osPtrA h.c b i) → σ (.n osTabs) = tabs →
@@ -140,7 +142,13 @@ theorem fin_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {D : ℕ → Os
                 osPtrA h.c b (osIxBdA h.c) * gen ^ (l * ligColsCap),
                 osPtrA h.c b osIxHsA * gen ^ (l * hsStride), (D l).mu] ∧
             ((osLrCalls h.c).getD l ([], [])).2.map σ' =
-              [(osLrRetA h.c h.own l (D l).mu).1, (osLrRetA h.c h.own l (D l).mu).2]) := by
+              [(osLrRetA h.c h.own l (D l).mu).1, (osLrRetA h.c h.own l (D l).mu).2] ∧
+            ((osSlowCalls h.c).getD l ([], [])).1.map σ' =
+              [osPtrA h.c b osIxQposA * gen ^ (osLvA h.c l).posOff,
+                osPtrA h.c b osIxFchA * gen ^ (osLvA h.c l).resFoldOff, osPtrA h.c b (osIxTchA h.c),
+                (D l).lam, osZA h.c h.own l] ∧
+            ((osSlowCalls h.c).getD l ([], [])).2.map σ' =
+              [osSlowRetA h.c h.own l (D l).lam (osZA h.c h.own l)]) := by
   intro σ hsf hok hrt hp ht htch hcl
   set c := h.c with hc
   set n := c.levels.length with hn
@@ -164,7 +172,7 @@ theorem fin_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {D : ℕ → Os
     (T := h.T) (recs := h.recs) (li := h.li) (Y := multilinearEval (h.Lf.fw.fold.take c.yrLen) h.T)
     (PT := osPtrA c b (13 + c.yrLevel)) (PT1 := osPtrA c b (14 + c.yrLevel)) (BD := osPtrA c b (15 + c.yrLevel))
     (LS := osPtrA c b (16 + c.yrLevel)) (LA := osPtrA c b (17 + c.yrLevel)) (ICH := osPtrA c b (18 + c.yrLevel))
-    hF k1 k2 k3 hok.sf.below.mats (fun _ _ _ ↦ hok.mats) fun C rd hH ↦ by
+    hF k1 k2 k3 hok.sf.below.mats (fun _ _ _ ↦ hok.mats) osHA_iz fun C rd hH ↦ by
       have hm : OsMemA rd c b h.own := hH.2.2.1
       have i1 : 12 + c.yrLevel + 1 = 13 + c.yrLevel := by omega
       have i2 : 12 + c.yrLevel + 2 = 14 + c.yrLevel := by omega
@@ -173,10 +181,11 @@ theorem fin_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {D : ℕ → Os
       have i5 : 12 + c.yrLevel + 5 = 17 + c.yrLevel := by omega
       have i6 : 12 + c.yrLevel + 6 = 18 + c.yrLevel := by omega
       refine ⟨fun i hi ↦ ?_, fun i hi ↦ ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, fun i hi ↦ ?_,
-        fun i hi ↦ osH_special hH (hNm.2.2.2.2.2.2.1 i hi).2.2 _ _⟩
+        fun i hi ↦ osH_special hH (hNm.2.2.2.2.2.2.1 i hi).2.2.1 _ _,
+        fun i hi ↦ osH_special hH (hNm.2.2.2.2.2.2.1 i hi).2.2.2 _ _⟩
       · have r := hrun i hi
         rw [h.recs_getD hL hyr hi]
-        exact h.recStored_of hHS hm p9 p10 p6 p7 p8 p11 hi r.F r.mu r.ql r.hl r.z0 r.lam r.Q r.qs
+        exact h.recStored_of hHS hm p9 p10 p6 p7 p8 p11 hi r.F r.mu r.ql r.hl r.z0 r.Q r.qs
       · rw [p7]; exact (h.mid_glue hHS hm hi).2.2
       · rw [p4]; exact h.fch_all hHS hm hF.Gl
       · rw [htch]; exact h.tail_reads hHS hm hTl
@@ -217,11 +226,13 @@ theorem fin_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {D : ℕ → Os
   refine hB.mono fun σ' ⟨⟨ha, hr⟩, eBD, hv⟩ ↦ ⟨osFinishA_k k1 k3, ?_, ?_, fun l hl ↦ ?_⟩
   · rw [ha, bufsAt_fin hHS]
   · rw [hr, hcl']; rfl
-  · obtain ⟨e1, e2⟩ := hv l hl
+  · obtain ⟨e1, e2, e3, e4⟩ := hv l hl
     obtain ⟨dmu, dres⟩ := hD l hl
+    obtain ⟨dlam, dz, dsl⟩ := hDs l hl
     have eL : osLrCalls c = finResCalls c (osFinSt c) (osFinTch c) := rfl
-    rw [eL, e1, e2, p11, p8, ← dres, dmu]
-    exact ⟨rfl, rfl⟩
+    have eS : osSlowCalls c = finSlowCalls c (osFinSt c) (osFinTch c) := rfl
+    rw [eL, eS, e1, e2, e3, e4, p11, p8, p4, htch, ← dres, dmu, ← dsl, dlam, dz]
+    exact ⟨rfl, rfl, rfl, rfl⟩
 
 end
 end LeanVM.Guest.B1.Whir

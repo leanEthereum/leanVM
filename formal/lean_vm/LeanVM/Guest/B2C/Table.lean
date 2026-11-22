@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B2C.Cells
 public import LeanVM.Guest.JumpTable
+public import LeanVM.Guest.Memory.HonestX
 
 /-!
 # The jump table in `main`'s cells
@@ -245,10 +246,10 @@ theorem tableC_node {I : Inst} {σ : Val} {bufs : List ℕ} {kids : List Memory.
       omega
     · exact Prod.ext he (tableCells_agree hx hq he)
 
-/-- **The honest memory holds the jump table**, at `B2C.C`. -/
-theorem jumpTables_honestC {hdr : E × E} {T : Memory.Tree} {rd : Reader}
-    (hH : Honest coreProgram fs H C hdr T rd [] []) (hname : T.name = "main") :
-    End.JumpTables (honest coreProgram fs H C hdr T) := by
+/-- **A memory covering the honest writes holds the jump table**, at `B2C.C`. -/
+theorem jumpTables_cover {hdr : E × E} {T : Memory.Tree} {rd : Reader}
+    (hH : Honest coreProgram fs H C hdr T rd [] []) {κ : ℕ} {L : MemoryImage κ}
+    (hL : Covers coreProgram fs H C hdr T L) (hname : T.name = "main") : End.JumpTables L := by
   intro q hq
   obtain ⟨I, hI, hIt, hfp, -⟩ := root_inst (P := coreProgram) (fs := fs) (H := H) (hdr := hdr) (T := T)
   have hnode : ∃ σ bufs kids, T = .node "main" σ bufs kids := by
@@ -261,8 +262,14 @@ theorem jumpTables_honestC {hdr : E × E} {T : Memory.Tree} {rd : Reader}
       exact ⟨σ, bufs, kids, rfl⟩
   obtain ⟨σ, bufs, kids, hT⟩ := hnode
   have hC := tableC_node (I := I) (by rw [hIt, hT]) hq
-  have := hH.read_C hI hC
+  have := hL.read_C hH hI hC
   rwa [hfp, addressOfIndex, pow_zero, one_mul] at this
+
+/-- **The honest memory holds the jump table**, at `B2C.C`. -/
+theorem jumpTables_honestC {hdr : E × E} {T : Memory.Tree} {rd : Reader}
+    (hH : Honest coreProgram fs H C hdr T rd [] []) (hname : T.name = "main") :
+    End.JumpTables (honest coreProgram fs H C hdr T) :=
+  jumpTables_cover hH hH.covers hname
 
 end
 end LeanVM.Guest.B2C

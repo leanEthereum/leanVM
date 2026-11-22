@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkT
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_keccak»
 
 namespace LeanVM.Guest.B1.VerifySub
 
@@ -63,7 +65,7 @@ theorem range_map_take (f : ℕ → E) (g : ℕ) :
 theorem slicesT_holds {cur : V} {capb b : ℕ} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (slicesT cur capb b) next kret) :
     ReadsAt rd (σ cur) ((List.range 64).map fun z ↦ σ (.n (slB b z))) ∧
-      (∀ z < 64, LoadHolds rd (σ (.n 10)) z (σ (.n (slB b z)))) ∧
+      (∀ z < 64, LoadHolds rd (σ (.n (val% «verify_keccak» "slices"))) z (σ (.n (slB b z)))) ∧
       ((⟨(cap5 capb).map σ, []⟩ : Fs).absorbAll ((List.range 64).map fun z ↦ σ (.n (slB b z)))
         dsObserve).pend.length = rateScalars ∧
       capOf ((⟨(cap5 capb).map σ, []⟩ : Fs).absorbAll ((List.range 64).map fun z ↦ σ (.n (slB b z)))
@@ -78,7 +80,7 @@ theorem slicesT_holds {cur : V} {capb b : ℕ} {next : Prop} {kret : List E → 
         ((List.range 13).map fun k ↦ .n (slP b g + k)) false false).Holds rd σ) ∧
       ∀ j < 4, (LoadHolds rd (σ cur) (4 * g + j) (σ (.n (slB b (4 * g + j)))) ∧
         FsPackOk σ (.n (slB b (4 * g + j))) (slB b (4 * g + j) + 1) dsObserve) ∧
-        LoadHolds rd (σ (.n 10)) (4 * g + j) (σ (.n (slB b (4 * g + j)))) := by
+        LoadHolds rd (σ (.n (val% «verify_keccak» "slices"))) (4 * g + j) (σ (.n (slB b (4 * g + j)))) := by
     intro g hg16
     have hgg := hg g hg16
     rw [holdsList_append, holdsList_range_flatten _ _ (fun j ↦ rfl)] at hgg
@@ -86,7 +88,7 @@ theorem slicesT_holds {cur : V} {capb b : ℕ} {next : Prop} {kret : List E → 
     · simp only [hg0, ↓reduceIte, keccakA, Stmt.HoldsList, Stmt.Holds] at hgg
       exact hgg.1
     · have hr : Stmt.HoldsList C rd σ (fsNextT cur (4 * g + j) (slB b (4 * g + j)) ++
-          [.atom (.load (.n (slB b (4 * g + j))) (.n 10) (4 * g + j))]) True kret := by
+          [.atom (.load (.n (slB b (4 * g + j))) (.n (val% «verify_keccak» "slices")) (4 * g + j))]) True kret := by
         split at hgg
         · exact hgg.1 j hj
         · simp only [Stmt.HoldsList] at hgg
@@ -122,7 +124,7 @@ theorem slicesT_holds {cur : V} {capb b : ℕ} {next : Prop} {kret : List E → 
       rw [hcap]
       exact group_absorb rfl (fun j hj ↦ ((G (g + 1) hg1).2 j hj).1.2)
   have hz : ∀ z < 64, (LoadHolds rd (σ cur) z (f z) ∧ FsPackOk σ (.n (slB b z)) (slB b z + 1)
-      dsObserve) ∧ LoadHolds rd (σ (.n 10)) z (f z) := by
+      dsObserve) ∧ LoadHolds rd (σ (.n (val% «verify_keccak» "slices"))) z (f z) := by
     intro z hz
     have := (G (z / 4) (by omega)).2 (z % 4) (Nat.mod_lt _ (by norm_num))
     rwa [Nat.div_add_mod] at this

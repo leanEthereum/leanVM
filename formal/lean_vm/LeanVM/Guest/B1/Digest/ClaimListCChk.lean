@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Digest.ClaimListCChk
 
-  `claim_list_digest`'s branches and its group loop `claim_list_digest_loop1`, evaluated (by kernel
-  evaluation), for its completeness.
+  `claim_list_digest`'s branches, `claim_list_chain` and its group loop `claim_list_chain_loop1`, evaluated (by
+  kernel evaluation), for their completeness.
 -/
 
 module
@@ -11,15 +11,21 @@ public import LeanVM.Guest.B1.Digest.ClaimList
 public import LeanVM.Guest.B1.Digest.LoopComplete
 public import LeanVM.Guest.B1.Fwd.Canon
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«claim_list_digest»
+import LeanVM.Guest.Data.ValNames.«claim_list_chain»
 
 /-!
 # `claim_list_digest`, evaluated
 
-`grpcOk`: a frame loop's block (`claim_list_digest_loop1` here, the big `claim_list_digest_loop0` in
+`grpcOk`: a frame loop's block (`claim_list_chain_loop1` here, the big `claim_list_chain_loop0` in
 `ClaimListCBig`) evaluates in order (`Fwd.chk`), its atoms are `loopAtoms`, its stores write the
 chain's last state at `.n 9` from offset `13`, its side conditions are its loads. `clBrOk`: each
-branch of `claim_list_digest`, its values padded by hints up to the final copies (`fillH`),
-evaluates in order; the nonempty branch's stores are the zero state's, its other atoms need nothing.
+the empty branch of `claim_list_digest`, its values padded by hints up to the final check (`fillH`),
+evaluates in order, storing nothing, its atoms needing nothing but the check of `n_g`; the nonempty
+one calls `list_split` and `claim_list_chain`. `chainOk`:
+`claim_list_chain` evaluates in order; its stores are the zero state's, its other atoms need nothing
+but its checks of `bigs`, `groups`, `rest`, `n_g` (`DEREF`s) and of `list_split`'s identity.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -78,59 +84,64 @@ def grpcOk (fn : Fn) (f : String) (m c0 st0 ep : ℕ) : Bool :=
   stLoadsOk F (.n 9) (grpSt st0) 0 &&
   monoIs (A.filter pureB) (.n 9) (.n 2) (.n 0) 13 && monoIs (A.filter pureB) (.n ep) (.n 3) (.n 0) (4 * m)
 
-/-- The nonempty branch but its two final copies. -/
-noncomputable def clElsePre : List Stmt := cl23Else.dropLast.dropLast
-
 /-- The head of `claim_list_digest`'s body. -/
-def clHead : List Stmt := [.atom (.const (.n 2) (word 1 0)), .atom (.add (.n 3) (.n 1) (.n 2))]
+def clHead : List Stmt := [.atom (.const (.n (val% «claim_list_digest» "s1#0")) (word 1 0)), .atom (.add (.n (val% «claim_list_digest» "s1#1")) (.n (val% «claim_list_digest» "n_g")) (.n (val% «claim_list_digest» "s1#0")))]
 
-/-- The final copies of `claim_list_digest`. -/
-def clTail : List Stmt := [.atom (.copy (.n 76) (.n 10)), .atom (.copy (.n 77) (.n 11))]
+/-- The end of `claim_list_digest`: the check of `n_g`, the final copies. -/
+def clTail : List Stmt := [.atom (.touch (.n (val% «claim_list_digest» "s2#0")) (.n (val% «claim_list_digest» "n_g"))), .atom (.copy (.n (val% «claim_list_digest» "s3#0")) (.n (val% «claim_list_digest» "digest[0]"))), .atom (.copy (.n (val% «claim_list_digest» "s3#0[1]")) (.n (val% «claim_list_digest» "digest[1]")))]
 
 /-- The empty list's run, evaluated. -/
 noncomputable def clZEval : List Stmt :=
-  clHead ++ cl23Zero ++ fillH ((chk 2 (clHead ++ cl23Zero)).getD 0) 76 ++ clTail
-
-/-- The nonempty list's run, evaluated: the empty branch's values hinted (the digest at `.n 10`,
-`.n 11`). -/
-noncomputable def clEEval : List Stmt := clHead ++ fillH 4 12 ++ clElsePre ++ clTail
+  clHead ++ cl23Zero ++ fillH ((chk 2 (clHead ++ cl23Zero)).getD 0) (val% «claim_list_digest» "s2#0") ++ clTail
 
 /-- `list_split`'s call in `claim_list_digest`. -/
-def clSplitS : Stmt := .call "list_split" [.n 1] [.n 12, .n 13, .n 14]
+def clSplitS : Stmt := .call "list_split" [.n (val% «claim_list_digest» "n_g")] [.n (val% «claim_list_digest» "bigs"), .n (val% «claim_list_digest» "groups"), .n (val% «claim_list_digest» "rest")]
+
+/-- `claim_list_chain`'s call in `claim_list_digest`. -/
+def clChainS : Stmt := .call "claim_list_chain" [.n (val% «claim_list_digest» "entries_ptr"), .n (val% «claim_list_digest» "n_g"), .n (val% «claim_list_digest» "bigs"), .n (val% «claim_list_digest» "groups"), .n (val% «claim_list_digest» "rest")]
+  [.n (val% «claim_list_digest» "d0"), .n (val% «claim_list_digest» "d1")]
+
+/-- **`claim_list_digest`'s branches**: the nonempty one `list_split` then `claim_list_chain`, its digest copied; the
+empty one, evaluated, storing nothing, its only side condition the check of `n_g`. -/
+noncomputable def clBrOk : Bool :=
+  stmtsEqb cl23Else [clSplitS, clChainS, .atom (.copy (.n (val% «claim_list_digest» "digest[0]")) (.n (val% «claim_list_digest» "d0"))), .atom (.copy (.n (val% «claim_list_digest» "digest[1]")) (.n (val% «claim_list_digest» "d1")))] &&
+  (chk 2 clZEval).isSome && (storesOf 2 clZEval).isEmpty &&
+  (atomsIn clZEval).all (fun a => !needsSide a || atomEqb a (.touch (.n (val% «claim_list_digest» "s2#0")) (.n (val% «claim_list_digest» "n_g")))) && cl23Zero.all isAtomS
 
 /-- The big frames' loop call. -/
-def clBigS : Stmt := .callIf (.n 38) name% «claim_list_digest_loop0» [.n 39, .n 12, .n 23, .n 0]
+def clBigS : Stmt := .callIf (.n (val% «claim_list_chain» "s2#1")) name% «claim_list_chain_loop0» [.n (val% «claim_list_chain» "s2#2"), .n (val% «claim_list_chain» "bigs"), .n (val% «claim_list_chain» "chain"), .n (val% «claim_list_chain» "entries_ptr")]
 
 /-- The groups' loop call. -/
-def clGrpS : Stmt := .callIf (.n 58) name% «claim_list_digest_loop1» [.n 59, .n 13, .n 45, .n 56]
+def clGrpS : Stmt := .callIf (.n (val% «claim_list_chain» "s5#1")) name% «claim_list_chain_loop1» [.n (val% «claim_list_chain» "s5#2"), .n (val% «claim_list_chain» "groups"), .n (val% «claim_list_chain» "mid"), .n (val% «claim_list_chain» "mid_entries")]
 
-/-- The dispatch on the rest. -/
-def clDispS : Stmt := .dispatch (.n 14) clNames [.n 65, .n 73] [.n 74, .n 75]
+/-- `claim_list_tail` on the rest. -/
+def clDispS : Stmt := .call "claim_list_tail" [.n (val% «claim_list_chain» "last"), .n (val% «claim_list_chain» "d0~9"), .n (val% «claim_list_chain» "rest")] [.n (val% «claim_list_chain» "d0"), .n (val% «claim_list_chain» "d1")]
 
-/-- **`claim_list_digest`'s branches, evaluated.** -/
-noncomputable def clBrOk : Bool :=
-  let SE := storesOf 2 clEEval
-  stmtsEqb cl23Else (clElsePre ++ [.atom (.copy (.n 10) (.n 74)), .atom (.copy (.n 11) (.n 75))]) &&
-  (chk 2 clEEval).isSome &&
-  SE.all (fun a => (List.range 13).any fun c => atomEqb a (.load (.n (24 + c)) (.n 23) c)) &&
-  (atomsIn clEEval).all (fun a => !needsSide a || decide (a ∈ SE)) &&
-  clElsePre.all (fun s => isAtomS s || stmtEqb s clSplitS || stmtEqb s clBigS || stmtEqb s clGrpS ||
-    stmtEqb s clDispS) &&
-  clElsePre.any (stmtEqb · clSplitS) && clElsePre.any (stmtEqb · clBigS) &&
-  clElsePre.any (stmtEqb · clGrpS) && clElsePre.any (stmtEqb · clDispS) &&
-  (List.range 13).all (fun c => (atomsIn clElsePre).any (isConstAt (.n (24 + c)) 0 0)) &&
-  (atomsIn clElsePre).any (fun a => match a with
-    | .hint (.allocDyn d _) => decide (d = .n 23)
-    | _ => false) &&
-  (chk 2 clZEval).isSome && (storesOf 2 clZEval).isEmpty &&
-  (atomsIn clZEval).all (fun a => !needsSide a) && cl23Zero.all isAtomS
+/-- **`claim_list_chain`, evaluated**: in order, its stores the zero state's, its other side conditions its checks of
+`bigs`, `groups`, `rest`, `n_g` (`DEREF`s) and of `list_split`'s identity. -/
+noncomputable def chainOk : Bool :=
+  let SE := storesOf 5 chainFlat
+  (chk 5 chainFlat).isSome &&
+  SE.all (fun a => (List.range 13).any fun c => atomEqb a (.load (.n ((val% «claim_list_chain» "s1.i0:zero_state.s0.u0.s0#0") + c)) (.n (val% «claim_list_chain» "chain")) c)) &&
+  (atomsIn chainFlat).all (fun a => !needsSide a || decide (a ∈ SE) || atomEqb a (.touch (.n (val% «claim_list_chain» "s8#0")) (.n (val% «claim_list_chain» "bigs"))) ||
+    atomEqb a (.touch (.n (val% «claim_list_chain» "s9#0")) (.n (val% «claim_list_chain» "groups"))) || atomEqb a (.touch (.n (val% «claim_list_chain» "s10#0")) (.n (val% «claim_list_chain» "rest"))) ||
+    atomEqb a (.assertEq (.n (val% «claim_list_chain» "s11#14")) (.n (val% «claim_list_chain» "n_g"))) || atomEqb a (.touch (.n (val% «claim_list_chain» "s12#0")) (.n (val% «claim_list_chain» "n_g")))) &&
+  chainFlat.all (fun s => isAtomS s || stmtEqb s clBigS || stmtEqb s clGrpS || stmtEqb s clDispS) &&
+  chainFlat.any (stmtEqb · clBigS) && chainFlat.any (stmtEqb · clGrpS) && chainFlat.any (stmtEqb · clDispS) &&
+  (List.range 13).all (fun c => (atomsIn chainFlat).any (isConstAt (.n ((val% «claim_list_chain» "s1.i0:zero_state.s0.u0.s0#0") + c)) 0 0)) &&
+  (atomsIn chainFlat).any (fun a => match a with
+    | .hint (.allocDyn d _) => decide (d = .n (val% «claim_list_chain» "chain"))
+    | _ => false)
 
 set_option maxRecDepth 100000 in
 theorem clbr_ok : clBrOk = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem grpc_ok : grpcOk (coreProgram.getD idx% «claim_list_digest_loop1» default)
-    name% «claim_list_digest_loop1» 17 18 86 17 = true := by
+theorem chain_ok : chainOk = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem grpc_ok : grpcOk (coreProgram.getD idx% «claim_list_chain_loop1» default)
+    name% «claim_list_chain_loop1» 17 18 86 17 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in

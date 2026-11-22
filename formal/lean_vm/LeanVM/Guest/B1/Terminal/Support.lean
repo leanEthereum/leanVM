@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Selectors.Interface
 public import LeanVM.Guest.B1.Terminal.Claims
 public import LeanVM.Guest.B1.Terminal.PiChain
 public import LeanVM.Guest.B1.Terminal.Body
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«check_opening_terminal»
 
 /-!
 # The head's values
@@ -152,13 +154,13 @@ theorem sel_value (hcs : Tables.column_selector_Spec) (hst : Tables.selector_tab
     {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
     {σ : Val} {c κ o L : ℕ} {x : List E} {kret : List E → Prop}
     (h : Stmt.HoldsList (coreProgram.Rel Lm.read) Lm.read σ (selBlockT c) True kret)
-    (hstc : coreProgram.Rel Lm.read "selector_tables" [σ (.n 13), σ (.n 14)] [σ (.n 43)])
-    (hgt : Tables.GTabsAt Lm.read (σ (.n 0) * gen ^ 34))
+    (hstc : coreProgram.Rel Lm.read "selector_tables" [σ (.n (val% «check_opening_terminal» "point")), σ (.n (val% «check_opening_terminal» "point1"))] [σ (.n (val% «check_opening_terminal» "sel_eq"))])
+    (hgt : Tables.GTabsAt Lm.read (σ (.n (val% «check_opening_terminal» "g_squares")) * gen ^ 34))
     (hkap : σ (.n (kbV (Tables.colKappaSrc c))) * gen ^ Tables.colKappaAdj c = gen ^ κ)
-    (hoff : LoadHolds Lm.read (σ (.n 10)) c (gen ^ o)) (hdvd : 2 ^ κ ∣ o)
+    (hoff : LoadHolds Lm.read (σ (.n (val% «check_opening_terminal» "col_offsets"))) c (gen ^ o)) (hdvd : 2 ^ κ ∣ o)
     (hκ : κ ≤ L) (hL : L ≤ 32) (ho : o < 2 ^ L) (hx : x.length = L)
-    (hpt : ReadsAt Lm.read (σ (.n 13)) (padPoint x))
-    (hpt1 : ReadsAt Lm.read (σ (.n 14)) ((padPoint x).map (1 + ·))) :
+    (hpt : ReadsAt Lm.read (σ (.n (val% «check_opening_terminal» "point"))) (padPoint x))
+    (hpt1 : ReadsAt Lm.read (σ (.n (val% «check_opening_terminal» "point1"))) ((padPoint x).map (1 + ·))) :
     σ (.n (selV c)) = selProd o κ (L - κ) x := by
   have hadj : Tables.colKappaAdj c < 64 := by unfold Tables.colKappaAdj; split_ifs <;> omega
   simp only [selBlockT, holdsList_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
@@ -173,7 +175,7 @@ theorem sel_value (hcs : Tables.column_selector_Spec) (hst : Tables.selector_tab
   have hjκ : κ = j := gen_pow_inj_le (by omega) (by omega) hkj
   subst hjκ
   simp only [colSelNames, List.getElem_map, List.getElem_range] at hcall
-  have hsg : σ (.n ((selKap c).2.2 + 1)) = σ (.n 0) * gen ^ 34 := by
+  have hsg : σ (.n ((selKap c).2.2 + 1)) = σ (.n (val% «check_opening_terminal» "g_squares")) * gen ^ 34 := by
     rw [m35, c34, show (17179869184 : ℕ) = 2 ^ 34 from rfl, word_two_pow (by decide)]
   rw [hsg] at hcall
   have hout := hcs κ hjl μ hμ Lm _ _ hcall

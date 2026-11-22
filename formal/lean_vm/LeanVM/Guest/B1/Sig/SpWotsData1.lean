@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SpWotsData1
 
-  `sp_wots` in the guest's core IR agrees with the template `spBody` on digit groups 11 to 21, the checks and the leaf (statements 72 on).
+  `sp_wots` in the guest's core IR agrees with the template `spBody` on digit groups 11 to 21, the checks and the leaf (the statements from `group@12`'s on).
 -/
 
 module
@@ -12,6 +12,8 @@ import LeanVM.Guest.B1.Sig.Decide
 public import LeanVM.Guest.B1.Common.Basic
 import LeanVM.Guest.Value.Tower
 import LeanVM.Guest.Value.FieldBits
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«sp_wots»
 
 namespace LeanVM.Guest.B1.Sig
 
@@ -19,42 +21,42 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
 
 @[expose] public section
 
-/-! Digit groups 11 to 21, the checks and the leaf's head (statements 72 to 126),
+/-! Digit groups 11 to 21, the checks and the leaf's head,
 compared by `stmtsEqb` in runs, each its own kernel evaluation to bound its memory. -/
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_72 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop 72).take 8) ((spBody.drop 72).take 8) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u11.s0#0")).take (span% «sp_wots» "group@12" "digit_product@13~1")) ((spBody.drop (pos% «sp_wots» "group@12")).take (span% «sp_wots» "group@12" "digit_product@13~1")) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_80 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop 80).take 8) ((spBody.drop 80).take 8) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u12.s2#1")).take (span% «sp_wots» "digit_product@13~1" "s6.u14.s1#0")) ((spBody.drop (pos% «sp_wots» "digit_product@13~1")).take (span% «sp_wots» "digit_product@13~1" "s6.u14.s1#0")) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_88 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop 88).take 8) ((spBody.drop 88).take 8) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u14.s1#0")).take (span% «sp_wots» "s6.u14.s1#0" "value@2161")) ((spBody.drop (pos% «sp_wots» "s6.u14.s1#0")).take (span% «sp_wots» "s6.u14.s1#0" "value@2161")) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_96 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop 96).take 8) ((spBody.drop 96).take 8) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u15.s2.a0.i0:walk_group.s0.u0.s0.i0:walk.s1.e.s0#0")).take (span% «sp_wots» "value@2161" "s6.u17.s1#1")) ((spBody.drop (pos% «sp_wots» "value@2161")).take (span% «sp_wots» "value@2161" "s6.u17.s1#1")) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_104 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop 104).take 8) ((spBody.drop 104).take 8) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u17.s1#1")).take (span% «sp_wots» "s6.u17.s1#1" "group@20")) ((spBody.drop (pos% «sp_wots» "s6.u17.s1#1")).take (span% «sp_wots» "s6.u17.s1#1" "group@20")) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_112 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop 112).take 8) ((spBody.drop 112).take 8) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u19.s0#0")).take (span% «sp_wots» "group@20" "digit_product@21~1")) ((spBody.drop (pos% «sp_wots» "group@20")).take (span% «sp_wots» "group@20" "digit_product@21~1")) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem spBody_run_120 :
-    stmtsEqb (((Fn.«sp_wots».core).body.drop 120).take 7) ((spBody.drop 120).take 7) = true := by
+    stmtsEqb (((Fn.«sp_wots».core).body.drop (pos% «sp_wots» "s6.u20.s2#1")).take (span% «sp_wots» "digit_product@21~1" "value@3025+1")) ((spBody.drop (pos% «sp_wots» "digit_product@21~1")).take (span% «sp_wots» "digit_product@21~1" "value@3025+1")) = true := by
   decide +kernel
 
 /-! ## The tail
@@ -84,16 +86,16 @@ theorem spPadCell : byteWord 1072 1 + byteWord 1087 0x80 = word 1 (2 ^ 63) := by
 
 theorem spHeadT_length : spHeadT.length = 127 := by decide +kernel
 
-theorem spBody_drop_eq : spBody.drop 127 = Stmt.renameList spRen (spTailOf (spLeafKOf (word 1 (2 ^ 63)))) := by
+theorem spBody_drop_eq : spBody.drop (pos% «sp_wots» "value@3025+1") = Stmt.renameList spRen (spTailOf (spLeafKOf (word 1 (2 ^ 63)))) := by
   rw [spBody, spBodyT_split, renameList_append, List.drop_left' (by rw [renameList_length, spHeadT_length]),
     spLeafK_of, spPadCell]
 
 set_option maxRecDepth 100000 in
-theorem spBody_tail : (Fn.«sp_wots».core).body.drop 127 =
+theorem spBody_tail : (Fn.«sp_wots».core).body.drop (pos% «sp_wots» "value@3025+1") =
     Stmt.renameList spRen (spTailOf (spLeafKOf (word 1 (2 ^ 63)))) :=
   stmtsEqb_sound (by decide +kernel)
 
-theorem spBody_drop_127 : (Fn.«sp_wots».core).body.drop 127 = spBody.drop 127 := by
+theorem spBody_drop_127 : (Fn.«sp_wots».core).body.drop (pos% «sp_wots» "value@3025+1") = spBody.drop (pos% «sp_wots» "value@3025+1") := by
   rw [spBody_tail, spBody_drop_eq]
 
 end

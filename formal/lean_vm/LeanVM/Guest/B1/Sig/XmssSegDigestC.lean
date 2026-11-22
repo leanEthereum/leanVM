@@ -10,6 +10,8 @@ public import LeanVM.Guest.B1.Sig.XmssSegT
 public import LeanVM.Guest.B1.Sig.XmssCore
 public import LeanVM.Guest.B1.Sig.MerkleComplete
 public import LeanVM.Guest.B1.Sig.CwComplete
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main_loop2»
 
 /-!
 # The prologue and the digests, complete
@@ -43,7 +45,7 @@ theorem sPrologue_nb : NumBelow 88 (Stmt.valsList sPrologue) := numBelow_of_all 
 /-- **The prologue completes**: `P` loaded, the shifts `his` and the windows' selectors `win`
 hinted, the powers set. -/
 theorem sPrologue_complete (σ : Val) {P : E} (hld : LoadHolds rd (σ sSigner) 1 P) (his win : Nat → E) :
-    Completes C rd 66 88 sPrologue σ
+    Completes C rd (val% «main_loop2» "pp") (val% «main_loop2» "rho@1") sPrologue σ
       (fun σ' => σ' sLxPP = P ∧ (∀ w < 4, σ' (sHis w) = his w) ∧ (∀ w < 4, σ' (sWin w) = win w) ∧
         ∀ s < 13, σ' (sPower s) = gen ^ s) := by
   rw [sPrologue_split]
@@ -56,9 +58,9 @@ theorem sPrologue_complete (σ : Val) {P : E} (hld : LoadHolds rd (σ sSigner) 1
     rw [show sHis w = V.n (67 + w) from rfl, hr2.apply (Or.inl (by omega))]
     exact updRun_at σ1 67 4 his hw
   have hwin : ∀ w < 4, σr (sWin w) = win w := fun w hw => updRun_at _ 71 4 win hw
-  have hPr : σr (.n 66) = P := by rw [hext.apply (Or.inl (by norm_num))]; exact e1
+  have hPr : σr (.n (val% «main_loop2» "pp")) = P := by rw [hext.apply (Or.inl (by norm_num))]; exact e1
   refine Completes.reload (hext.mono le_rfl (by norm_num)) ?_
-  refine Completes.append (m := 75) (by norm_num) (by norm_num)
+  refine Completes.append (m := (val% «main_loop2» "powers[0]")) (by norm_num) (by norm_num)
     (numBelow_of_all (by decide +kernel))
     (completes_atoms (Post := fun σ' => σ' = σr) rfl (Ext.refl _ _ _) rfl (fun a ha => by
       simp only [hintW, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
@@ -67,7 +69,7 @@ theorem sPrologue_complete (σ : Val) {P : E} (hld : LoadHolds rd (σ sSigner) 1
   obtain ⟨σ3, he3, -, hh3⟩ := seq_completes (C := C) (rd := rd) sPrologue_seq σr
   have hh := atomsHold_of_holdsList sPrologue_seq.atoms (hh3 True (fun _ => True) trivial)
   refine ⟨σ3, he3, ⟨?_, fun w hw => ?_, fun w hw => ?_, fun s hs => ?_⟩, hh3⟩
-  · rw [show sLxPP = V.n 66 from rfl, he3.apply (Or.inl (by norm_num))]; exact hPr
+  · rw [show sLxPP = V.n (val% «main_loop2» "pp") from rfl, he3.apply (Or.inl (by norm_num))]; exact hPr
   · rw [show sHis w = V.n (67 + w) from rfl, he3.apply (Or.inl (by omega))]; exact hhis w hw
   · rw [show sWin w = V.n (71 + w) from rfl, he3.apply (Or.inl (by omega))]; exact hwin w hw
   · have e := hh.atom (a := .const (.n (75 + s)) (word (2 ^ s) 0)) (by
@@ -78,14 +80,14 @@ theorem sPrologue_complete (σ : Val) {P : E} (hld : LoadHolds rd (σ sSigner) 1
 
 /-! ## The bottom layer's digest -/
 
-theorem sDigest0_split : sDigest0 88 = [hintW "randomizer" [.n 88]] ++
-    ([cst 89 (word (tw 12) 0), addS (.n 90) (sHis 0) (.n 89)] ++
-      (loadS (.n 91) sSigner 2 :: loadS (.n 92) sSigner 3 ::
-        ((copyS (.n 93) (.n 88) :: cst 94 (word 1 0) :: cst 95 (word 0 0) :: cst 96 (word 0 0) ::
+theorem sDigest0_split : sDigest0 88 = [hintW "randomizer" [.n (val% «main_loop2» "rho@1")]] ++
+    ([cst 89 (word (tw 12) 0), addS (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#1")) (sHis 0) (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#0"))] ++
+      (loadS (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2")) sSigner 2 :: loadS (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3")) sSigner 3 ::
+        ((copyS (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#4")) (.n (val% «main_loop2» "rho@1")) :: cst 94 (word 1 0) :: cst 95 (word 0 0) :: cst 96 (word 0 0) ::
           cst 97 (word (2 ^ 63) 0) ::
           (List.range 5).map (fun k => cst (98 + k) (word (if k = 0 then 1 else 0) 0))) ++
-        [kecS [sLxPP, .n 90, .n 91, .n 92, .n 93, .n 94, .n 95, .n 96, .n 97, .n 99, .n 100,
-          .n 101, .n 102] (runV 103 1) false false]))) := rfl
+        [kecS [sLxPP, .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#1"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#4"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#4[1]"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#4[2]"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#4[3]"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#5"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#6[1]"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#6[2]"),
+          .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#6[3]"), .n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#6[4]")] (runV 103 1) false false]))) := rfl
 
 theorem sDigest0_nb : NumBelow 104 (Stmt.valsList (sDigest0 88)) := numBelow_of_all (by decide +kernel)
 
@@ -93,42 +95,42 @@ theorem sDigest0_nb : NumBelow 104 (Stmt.valsList (sDigest0 88)) := numBelow_of_
 `d` loaded. -/
 theorem sDigest0_complete (σ : Val) {rho c d : E} (hld2 : LoadHolds rd (σ sSigner) 2 c)
     (hld3 : LoadHolds rd (σ sSigner) 3 d) :
-    Completes C rd 88 104 (sDigest0 88) σ
-      (fun σ' => σ' (.n 88) = rho ∧ σ' (.n 91) = c ∧ σ' (.n 92) = d) := by
-  have hext : Ext 88 89 σ (Function.update σ (.n 88) rho) := fun v hv =>
+    Completes C rd (val% «main_loop2» "rho@1") (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s5.u0.s0#0") (sDigest0 88) σ
+      (fun σ' => σ' (.n (val% «main_loop2» "rho@1")) = rho ∧ σ' (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2")) = c ∧ σ' (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3")) = d) := by
+  have hext : Ext 88 89 σ (Function.update σ (.n (val% «main_loop2» "rho@1")) rho) := fun v hv =>
     Function.update_of_ne (hv 88 le_rfl (by norm_num)) _ _
   refine Completes.reload (hext.mono le_rfl (by norm_num)) ?_
   rw [sDigest0_split]
-  refine Completes.append (m := 89) (by norm_num) (by norm_num)
+  refine Completes.append (m := (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#0")) (by norm_num) (by norm_num)
     (by rw [valsList_hint]; exact .cons ⟨88, by norm_num, rfl⟩ (.nil _)) (hintKeep_complete _ _ _ _ _)
     (fun σ1 _ e1 => ?_)
   subst e1
-  have h88 : Function.update σ (.n 88) rho (.n 88) = rho := Function.update_self ..
-  have hlow : ∀ k < 88, Function.update σ (.n 88) rho (.n k) = σ (.n k) := fun k hk =>
+  have h88 : Function.update σ (.n (val% «main_loop2» "rho@1")) rho (.n (val% «main_loop2» "rho@1")) = rho := Function.update_self ..
+  have hlow : ∀ k < 88, Function.update σ (.n (val% «main_loop2» "rho@1")) rho (.n k) = σ (.n k) := fun k hk =>
     Function.update_of_ne (by simp; omega) _ _
   refine Completes.seq (m := 91) (seqB_ok (by decide +kernel)) (by norm_num) (fun σ2 he2 _ => ?_)
   have hag2 := he2.agree
   refine Completes.load ⟨65, by norm_num, rfl⟩ (w := c)
-    (by rw [show sSigner = V.n 65 from rfl, hag2.apply ⟨65, by norm_num, rfl⟩, hlow 65 (by norm_num)]; exact hld2) (by norm_num)
+    (by rw [show sSigner = V.n (val% «main_loop2» "s3#2") from rfl, hag2.apply ⟨65, by norm_num, rfl⟩, hlow 65 (by norm_num)]; exact hld2) (by norm_num)
     (fun σ3 he3 e3 => ?_)
   have hag3 := he3.agree
   refine Completes.load ⟨65, by norm_num, rfl⟩ (w := d)
-    (by rw [show sSigner = V.n 65 from rfl, hag3.apply ⟨65, by norm_num, rfl⟩, hag2.apply ⟨65, by norm_num, rfl⟩, hlow 65 (by norm_num)]
+    (by rw [show sSigner = V.n (val% «main_loop2» "s3#2") from rfl, hag3.apply ⟨65, by norm_num, rfl⟩, hag2.apply ⟨65, by norm_num, rfl⟩, hlow 65 (by norm_num)]
         exact hld3) (by norm_num) (fun σ4 he4 e4 => ?_)
   have hag4 := he4.agree
   refine Completes.seq (m := 103) (seqB_ok (by decide +kernel)) (by norm_num) (fun σ5 he5 _ => ?_)
   have hag5 := he5.agree
-  have v91 : σ5 (.n 91) = c := by
+  have v91 : σ5 (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2")) = c := by
     rw [hag5.apply ⟨91, by norm_num, rfl⟩, hag4.apply ⟨91, by norm_num, rfl⟩, e3]
-  have v92 : σ5 (.n 92) = d := by rw [hag5.apply ⟨92, by norm_num, rfl⟩, e4]
-  have v88 : σ5 (.n 88) = rho := by
+  have v92 : σ5 (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3")) = d := by rw [hag5.apply ⟨92, by norm_num, rfl⟩, e4]
+  have v88 : σ5 (.n (val% «main_loop2» "rho@1")) = rho := by
     rw [hag5.apply ⟨88, by norm_num, rfl⟩, hag4.apply ⟨88, by norm_num, rfl⟩,
       hag3.apply ⟨88, by norm_num, rfl⟩, hag2.apply ⟨88, by norm_num, rfl⟩, h88]
   refine ((kecS_complete (C := C) (rd := rd) σ5 103 (.inl rfl) rfl (fun v hv => by
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
       rcases hv with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
         exact ⟨_, by norm_num, rfl⟩) false false).keep
-    (Q := fun σ' => σ' (.n 88) = rho ∧ σ' (.n 91) = c ∧ σ' (.n 92) = d) ⟨v88, v91, v92⟩
+    (Q := fun σ' => σ' (.n (val% «main_loop2» "rho@1")) = rho ∧ σ' (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2")) = c ∧ σ' (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3")) = d) ⟨v88, v91, v92⟩
     (fun σ' he h => ⟨by rw [he.apply (Or.inl (by norm_num))]; exact h.1,
       by rw [he.apply (Or.inl (by norm_num))]; exact h.2.1,
       by rw [he.apply (Or.inl (by norm_num))]; exact h.2.2⟩)).mono le_rfl le_rfl

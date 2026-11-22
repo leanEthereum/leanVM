@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.Terminal.Blocks
 public import LeanVM.Guest.B1.Terminal.Weights
 public import LeanVM.Guest.B1.Terminal.Layout
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«check_opening_terminal»
 
 /-!
 # The claims' terms
@@ -118,12 +120,12 @@ structure ClaimsCtx (rd : Reader) (σ : Val) (layout : Layout) (kappas : List �
       ((Tables.committedKappas kappas).getD c 0)
       (layout.stackLog - (Tables.committedKappas kappas).getD c 0) x
   hzc : ∀ n ≤ zs.length, n ≤ layout.stackLog →
-    valOf rd (σ (.n 20)) n = eqEval (zs.take n) (x.take n)
+    valOf rd (σ (.n (val% «check_opening_terminal» "zeta_eq_chain"))) n = eqEval (zs.take n) (x.take n)
   hrc : ∀ n ≤ chis.length, n ≤ layout.stackLog →
-    valOf rd (σ (.n 22)) n = eqEval (chis.take n) (x.take n)
-  hs1 : ∀ k < 6, valOf rd (σ (.n 24)) k = x.getD (layout.tableLogHeights.getD opKeccak 0 + k) 0
-  hs0 : ∀ k < 6, valOf rd (σ (.n 25)) k = 1 + x.getD (layout.tableLogHeights.getD opKeccak 0 + k) 0
-  hpi : σ (.n 34) = eqEval (rm :: List.replicate (layout.logMemory - 1) 0) (x.take layout.logMemory)
+    valOf rd (σ (.n (val% «check_opening_terminal» "chi_eq_chain"))) n = eqEval (chis.take n) (x.take n)
+  hs1 : ∀ k < 6, valOf rd (σ (.n (val% «check_opening_terminal» "slot_point"))) k = x.getD (layout.tableLogHeights.getD opKeccak 0 + k) 0
+  hs0 : ∀ k < 6, valOf rd (σ (.n (val% «check_opening_terminal» "slot_point1"))) k = 1 + x.getD (layout.tableLogHeights.getD opKeccak 0 + k) 0
+  hpi : σ (.n (val% «check_opening_terminal» "pi_eq")) = eqEval (rm :: List.replicate (layout.logMemory - 1) 0) (x.take layout.logMemory)
 
 theorem ClaimsCtx.kappa_eq {rd : Reader} {σ : Val} {layout : Layout} {kappas : List ℕ}
     {claims : List ColumnClaim} {zs chis x : List E} {rm : E}

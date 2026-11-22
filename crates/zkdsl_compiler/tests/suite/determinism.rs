@@ -41,6 +41,7 @@ const GOLDEN: &[(&str, &str)] = &[
     ("hint", "6b27c03837b8c85f6422ebc1632fafb9bae171499dc1e199ca3037f069f5af3e"),
     ("identities", "745e533161ccd8b952945b289ab47cb42416e61a2c4a3654a5c459516b3bc5cf"),
     ("inline", "79ff322bd9b4366b01e3e14432e5a2382106a405fdca39de1bd48447f7a979de"),
+    ("loop_scopes", "e7da177ddc1f47893a90deba1e02bca0f3007a9f2c9c18cff673c49a2ee6df58"),
     ("match", "cea7b8ac3bc4118004c6f554ac82c84c1df05e851ced181969736998cfa4b2b0"),
     ("match_arms", "f2a91b915f7e6fafe11706a05eadf2ef8beb13be7ff394719a25461641e8c192"),
     ("nested", "f4ee869b2cc79d260ed70855c1bd6ea9f1de3c7a0d274c49f68134d3630a83d1"),

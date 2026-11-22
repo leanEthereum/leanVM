@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Da.Factors
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_expand__L»
 
 /-!
 # `da_expand`
@@ -42,13 +44,13 @@ def nodeAt : ℕ → ℕ → ℕ
 /-- Node `2^d + y`'s atoms. -/
 def expNodeA (d y : ℕ) : List Atom :=
   let s := expB d + 2 + 5 * y
-  [.load (.n s) (.n 1) (2 ^ d + y), .add (.n (s + 1)) (.n s) (.n (expB d + 1)),
+  [.load (.n s) (.n (valf% «da_expand» "factors")) (2 ^ d + y), .add (.n (s + 1)) (.n s) (.n (expB d + 1)),
     .mul (.n (s + 2)) (.n (nodeAt d y)) (.n (s + 1)), .mul (.n (s + 3)) (.n (nodeAt d y)) (.n (expB d)),
     .add (.n (s + 4)) (.n (s + 2)) (.n (s + 3))]
 
 /-- Depth `d`'s atoms. -/
 def expDepthA (top d : ℕ) : List Atom :=
-  .load (.n (expB d)) (.n 2) (top - d) :: .load (.n (expB d + 1)) (.n 3) (top - d) ::
+  .load (.n (expB d)) (.n (valf% «da_expand» "zs")) (top - d) :: .load (.n (expB d + 1)) (.n (valf% «da_expand» "shifts")) (top - d) ::
     (List.range (2 ^ d)).flatMap (expNodeA d)
 
 /-- The nodes of depths below `D`, in heap order. -/
@@ -62,7 +64,7 @@ def expRun (D : ℕ) : List V :=
 def expC (D : ℕ) : ℕ := expB D + 2 + (256 - 2 ^ (D + 1))
 
 /-- `da_expand`'s computing atoms: the root's copy, then the depths. -/
-def expBodyA (top D : ℕ) : List Atom := .copy (.n 4) (.n 0) :: (List.range D).flatMap (expDepthA top)
+def expBodyA (top D : ℕ) : List Atom := .copy (.n (valf% «da_expand» "nodes[1]")) (.n (valf% «da_expand» "root")) :: (List.range D).flatMap (expDepthA top)
 
 /-- **`da_expand`'s atoms**, `W` the word of `g^(2^D)`. -/
 def expT (top D W : ℕ) : List Atom :=
@@ -72,7 +74,7 @@ def expT (top D W : ℕ) : List Atom :=
 
 /-- **`da_expand`'s body, checked.** -/
 def expOk (fn : Fn) (top D W : ℕ) : Bool :=
-  decide (fn.params = [.n 0, .n 1, .n 2, .n 3]) && decide (K.ofBits W = addressOfIndex (2 ^ D)) &&
+  decide (fn.params = [.n (valf% «da_expand» "root"), .n (valf% «da_expand» "factors"), .n (valf% «da_expand» "zs"), .n (valf% «da_expand» "shifts")]) && decide (K.ofBits W = addressOfIndex (2 ^ D)) &&
   match splitBody fn.body with
   | some (A, vs) => decide (vs = [.n (expC D + 1)]) && atomsEqb A (expT top D W)
   | none => false
@@ -107,11 +109,11 @@ theorem expRun_leaf {D k : ℕ} (hk : k < 2 ^ D) (h : 2 ^ D + k < (expRun D).len
 /-- **A depth's facts**: the power and the shift it loads, and the children of each node. -/
 theorem exp_depth {top D d y : ℕ} (hd : d < D) (hy : y < 2 ^ d)
     (hat : ∀ a ∈ expBodyA top D, a.Holds rd σ) :
-    LoadHolds rd (σ (.n 2)) (top - d) (σ (.n (expB d))) ∧
-      LoadHolds rd (σ (.n 3)) (top - d) (σ (.n (expB d + 1))) ∧
-      LoadHolds rd (σ (.n 1)) (2 ^ d + y) (memAt rd (σ (.n 1)) (2 ^ d + y)) ∧
+    LoadHolds rd (σ (.n (valf% «da_expand» "zs"))) (top - d) (σ (.n (expB d))) ∧
+      LoadHolds rd (σ (.n (valf% «da_expand» "shifts"))) (top - d) (σ (.n (expB d + 1))) ∧
+      LoadHolds rd (σ (.n (valf% «da_expand» "factors"))) (2 ^ d + y) (memAt rd (σ (.n (valf% «da_expand» "factors"))) (2 ^ d + y)) ∧
       ∀ b < 2, σ (.n (nodeAt (d + 1) (2 * y + b))) = σ (.n (nodeAt d y)) *
-        (memAt rd (σ (.n 1)) (2 ^ d + y) + σ (.n (expB d + 1)) + if b = 1 then σ (.n (expB d)) else 0) := by
+        (memAt rd (σ (.n (valf% «da_expand» "factors"))) (2 ^ d + y) + σ (.n (expB d + 1)) + if b = 1 then σ (.n (expB d)) else 0) := by
   have hdep : ∀ a ∈ expDepthA top d, a.Holds rd σ := fun a ha ↦
     hat a (List.mem_cons_of_mem _ (List.mem_flatMap.mpr ⟨d, List.mem_range.mpr hd, ha⟩))
   have hn : ∀ a ∈ expNodeA d y, a.Holds rd σ := fun a ha ↦
@@ -139,10 +141,10 @@ theorem exp_depth {top D d y : ℕ} (hd : d < D) (hy : y < 2 ^ d)
 at `zs` and `shifts`. -/
 theorem exp_node {top D : ℕ} (hat : ∀ a ∈ expBodyA top D, a.Holds rd σ) (hD : D ≤ top + 1) :
     ∀ d ≤ D, ∀ y < 2 ^ d, σ (.n (nodeAt d y)) =
-      expandLeaf (σ (.n 0)) (memAt rd (σ (.n 1))) (fun j ↦ σ (.n (expB (top - j))))
+      expandLeaf (σ (.n (valf% «da_expand» "root"))) (memAt rd (σ (.n (valf% «da_expand» "factors")))) (fun j ↦ σ (.n (expB (top - j))))
         (fun j ↦ σ (.n (expB (top - j) + 1))) top d y
   | 0, _, y, _ => by
-    have h4 : σ (.n 4) = σ (.n 0) := hat _ (List.mem_cons_self ..)
+    have h4 : σ (.n (valf% «da_expand» "nodes[1]")) = σ (.n (valf% «da_expand» "root")) := hat _ (List.mem_cons_self ..)
     rw [show nodeAt 0 y = 4 from rfl, h4, expandLeaf, List.range_zero, List.map_nil, List.prod_nil,
       mul_one]
   | d + 1, hd, y, hy => by
@@ -191,7 +193,7 @@ theorem da_expand_val {fn : Fn} {top D W : ℕ} (hok : expOk fn top D W = true) 
       Atom.Holds] at hend
     obtain ⟨⟨hfk, hfr⟩, hcst, hmul⟩ := hend
     simp only [List.map_cons, List.map_nil, MeaningDaExpand]
-    refine ⟨memAt rd (σ (.n 1)), fun j ↦ σ (.n (expB (top - j))),
+    refine ⟨memAt rd (σ (.n (valf% «da_expand» "factors"))), fun j ↦ σ (.n (expB (top - j))),
       fun j ↦ σ (.n (expB (top - j) + 1)), fun n hn1 hn2 ↦ ?_, fun d hd ↦ ?_, fun d hd ↦ ?_, ?_⟩
     · have hl : Nat.log 2 n < D := Nat.log_lt_of_lt_pow (by omega) hn2
       have hy : n - 2 ^ Nat.log 2 n < 2 ^ Nat.log 2 n := by

@@ -97,11 +97,11 @@ end ChildSegs
 theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) (b sqE outE : ℕ) {Lin : Main.Layout}
     (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin)
-    {outs : List (List E × Main.Layout)} (O : VsOuts S (bases b (vsSizes S.d)) sqE outs)
+    {outs : List (List E × Main.Layout)} (O : VsOuts S (bases b (vsSizes)) sqE outs)
     {rd : Reader} {κ : ℕ} (hκ : 14 ≤ κ) (hlow : LowDef κ rd)
-    (hB : Main.MemL rd (bufL b (vsSizes S.d) S.ownW)) (hL : Main.MemL rd Lin) :
-    Nonempty (VsSecData rd (vsW (bases b (vsSizes S.d)) outs) (vsArgs seed c sqE outE)) := by
-  set bs := bases b (vsSizes S.d) with hbs
+    (hB : Main.MemL rd (bufL b (vsSizes) S.ownW)) (hL : Main.MemL rd Lin) :
+    Nonempty (VsSecData rd (vsW (bases b (vsSizes)) outs) (vsArgs seed c sqE outE)) := by
+  set bs := bases b (vsSizes) with hbs
   set w := vsW bs outs with hw
   have own : ∀ i < 15, ReadsAt rd (ptr (bs.getD i 0)) (S.ownW.getD i []) :=
     fun i hi ↦ hB _ (vs_own_mem S b hi)
@@ -282,15 +282,11 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
 
 /-! ## The allocations -/
 
-/-- **The allocations' sizes**: the fifteen buffers, `zeta` of `g^d` words. -/
-theorem vs_alloc_sizes {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 6) {d : ℕ}
-    (hd : d < 2 ^ 64 - 1) (h253 : w 253 = gen ^ d) :
+/-- **The allocations' sizes**: the fifteen buffers. -/
+theorem vs_alloc_sizes {rd : Reader} {w : ℕ → E} {args : List E} :
     (vsCPre.filterMap Main.Stmt.allocSz).map
-        (fun x ↦ x.2.elim id fun s ↦ logG (vsσ rd w args s)) = vsSizes d := by
+        (fun x ↦ x.2.elim id fun s ↦ logG (vsσ rd w args s)) = vsSizes := by
   rw [vs_allocs]
-  simp only [vsAllocVars, List.zip_cons_cons, List.zip_nil_right, List.map_cons, List.map_nil,
-    Sum.elim_inl, Sum.elim_inr, id]
-  rw [vs_w hl (by decide), h253, logG_gen_pow hd]
   rfl
 
 theorem vs_allocVars_w : ∀ a ∈ vsAllocVars, a ∈ vsWVars := by decide

@@ -102,6 +102,21 @@ name = "leanvm-prove"
 root = "LeanvmProve"
 srcDir = "cli"
 
+# The statement's executor (`LeanVM.Prover.Exec.execute`), compiled, against the Rust interpreter's
+# executions (cli/LeanvmExecute.lean); not a default target.
+[[lean_exe]]
+name = "leanvm-execute"
+root = "LeanvmExecute"
+srcDir = "cli"
+
+# The guest's prover in Lean from a node's statement and witness (cli/GuestRun.lean): the honest
+# streams, the executor, against the Rust's execution, the honest prover and the verifier; not a
+# default target.
+[[lean_exe]]
+name = "guest-run"
+root = "GuestRun"
+srcDir = "cli"
+
 # The Rust vectors' costly checks, compiled (cli/NodeVectors.lean): the guest's seed against the
 # statement's `deployedSeed guest`, and the DA vector digests; CI runs it after `lake test`.
 [[lean_exe]]

@@ -96,6 +96,7 @@ impl FnLower<'_> {
             let base = Abi::arg(shapes.iter().copied(), i);
             match shapes.get(i).copied().unwrap_or(Shape::Scalar) {
                 Shape::StackBuf(n) => {
+                    self.check_bound(a);
                     let (src, len) = self.stack_of(a).unwrap_or_else(|| {
                         self.fail(format!(
                             "`{callee}` parameter {i} is a StackBuf({n}); pass one, got `{a:?}`"
@@ -151,17 +152,15 @@ impl FnLower<'_> {
                     start,
                 },
             };
-            self.pending.push(Hint::AllocLoopFrames {
+            let callee = callee.to_string();
+            self.reserve(Hint::AllocLoopFrames {
                 ptr: nfp,
-                callee: callee.to_string(),
+                callee,
                 count,
-                tail: Abi::end(callee_arg_cells, 0) + 1,
             });
         } else {
-            self.pending.push(Hint::AllocFrame {
-                ptr: nfp,
-                callee: callee.to_string(),
-            });
+            let callee = callee.to_string();
+            self.reserve(Hint::AllocFrame { ptr: nfp, callee });
         }
         for &(off, ao) in &arg_offs {
             self.deref(nfp, off, ao, DerefMode::Cell);
@@ -220,11 +219,10 @@ impl FnLower<'_> {
         let n_args = rt_args.len() as u32;
         // The join below reads one return cell per bound name, so every callee has
         // to declare exactly that many. Unchecked, a name past a callee's arity
-        // `DEREF`s a frame offset nothing on that path writes, a cell of the callee's
-        // frame or past it, so the surplus name binds a prover-chosen word. The
-        // non-fused path enforces this ([`Self::call_into`]), so leaving it out here
-        // means one source is rejected by one lowering of `match` and silently
-        // miscompiled by the other.
+        // `DEREF`s a frame offset nothing on that path writes: the surplus name
+        // binds a prover-chosen word. The non-fused path enforces this
+        // ([`Self::call_into`]), so leaving it out here means one source is rejected
+        // by one lowering of `match` and silently miscompiled by the other.
         for callee in callees {
             // Arguments for the same reason as returns below: a callee expecting
             // more than the arms supply reads a cell nothing writes.
@@ -262,11 +260,12 @@ impl FnLower<'_> {
         let one = self.one();
 
         let nfp = self.fresh();
-        self.pending.push(Hint::AllocFrameSwitch {
+        let arm = Hint::AllocArm {
             ptr: nfp,
-            x: xo,
+            sel: xo,
             callees: callees.to_vec(),
-        });
+        };
+        self.reserve(arm);
         for (i, &ao) in arg_offs.iter().enumerate() {
             self.deref(
                 nfp,
@@ -336,6 +335,7 @@ impl FnLower<'_> {
             }
             // A declared run is checked as a real call checks it ([`Self::lower_call`]).
             if let Shape::StackBuf(n) = p.shape() {
+                self.check_bound(a);
                 match self.stack_of(a) {
                     Some((_, len)) if len == n => {}
                     Some((_, len)) => self.fail(format!(
@@ -440,6 +440,7 @@ impl FnLower<'_> {
             ret += shape.cells();
         }
         let one = self.one();
+        self.returns.push(self.code.len());
         self.emit(LOp::Jump { oc: one, od: 0, of: 1 });
     }
 

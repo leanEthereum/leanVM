@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.VerifySub.Interface
 public import LeanVM.Guest.B1.Whir.Witness
 public import LeanVM.Guest.B1.Main.FramesP
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«verify_sub»
 
 /-!
 # The child proof, decoded
@@ -50,18 +52,18 @@ def rateOf (x : E) : ℕ := gIdx 4 x + 1
 
 /-- `open_stacked`'s argument words in `verify_sub`. -/
 def vsOsArgs (σ : Val) : List E :=
-  [σ (.n 66), σ (.n 1337), σ (.n 1338), σ (.n 1339), σ (.n 1340), σ (.n 1341), σ (.n 1883),
-    σ (.n 268), σ (.n 271), σ (.n 1885), σ (.n 1887)]
+  [σ (.n (val% «verify_sub» "rate_sel")), σ (.n (val% «verify_sub» "nxt[8]@36")), σ (.n (val% «verify_sub» "nxt[9]@36")), σ (.n (val% «verify_sub» "nxt[10]@36")), σ (.n (val% «verify_sub» "nxt[11]@36")), σ (.n (val% «verify_sub» "nxt[12]@36")), σ (.n (val% «verify_sub» "target@136")),
+    σ (.n (val% «verify_sub» "x@9")), σ (.n (val% «verify_sub» "x@10")), σ (.n (val% «verify_sub» "sumcheck_target~2")), σ (.n (val% «verify_sub» "sumcheck_target~4"))]
 
 /-- `open_stacked`'s return words in `verify_sub`. -/
-def vsOsRets (σ : Val) : List E := [σ (.n 1888), σ (.n 1889), σ (.n 1890), σ (.n 1891), σ (.n 1892)]
+def vsOsRets (σ : Val) : List E := [σ (.n (val% «verify_sub» "sumcheck_target")), σ (.n (val% «verify_sub» "point")), σ (.n (val% «verify_sub» "point1")), σ (.n (val% «verify_sub» "inner_total")), σ (.n (val% «verify_sub» "yr_at_tail"))]
 
 /-- The child proof, given `open_stacked`'s witness function `osW` (size's index, rate,
 arguments, returns ↦ stream words, openings). -/
 def piOfW (osW : ℕ → ℕ → List E → List E → List E × List (List Opening)) (rd : Reader) (σ : Val) :
     Proof :=
-  let w := osW (dispatchIdx (σ (.n 278))) (rateOf (σ (.n 66))) (vsOsArgs σ) (vsOsRets σ)
-  ⟨wordsAt rd (σ (.n 25)) (cursorLen (σ (.n 25)) (σ (.n 1885))) ++ w.1, w.2⟩
+  let w := osW (dispatchIdx (σ (.n (val% «verify_sub» "size_sel")))) (rateOf (σ (.n (val% «verify_sub» "rate_sel")))) (vsOsArgs σ) (vsOsRets σ)
+  ⟨wordsAt rd (σ (.n (val% «verify_sub» "stream"))) (cursorLen (σ (.n (val% «verify_sub» "stream"))) (σ (.n (val% «verify_sub» "sumcheck_target~2")))) ++ w.1, w.2⟩
 
 /-- `open_stacked`'s witness function at the frame map `V`. -/
 def vsOsW (rd : Reader) (V : FrameMap) : ℕ → ℕ → List E → List E → List E × List (List Opening) :=

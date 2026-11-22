@@ -114,7 +114,7 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   have hSq := osPositions_sound hcal.lp hcal.rate hwt hF.posOff hC.mats hC.fs hC.F rfl hoS
   -- λ
   have hpadS : PadOk σ sq.2.pad := by rw [hSq.pad]; exact hC.pad
-  have hL := osLam_sound hSq.fs hpadS hoL
+  have hL := osLam_sound hSq.fs hcal.iz hpadS hoL
   -- the high part
   obtain ⟨hhs, hhse⟩ := osHsMid_sound hoH
   -- the queries
@@ -229,30 +229,35 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
     (levelBatched lv.logCols lvl rounds' high qs (os.map (·.leaf)) lam) with hws'
   set root' := digestFromHalves (x0, x1) with hroot'
   -- the batch
-  have hlinv : lam * args.getD 2 0 = 1 := by
+  have hlinv : lam ≠ 0 → lam * args.getD 2 0 = 1 := by
     have := hL.inv
     simp only [args, osOqArgs, A, osQArgs, hnf, ↓reduceIte, List.getD_cons_succ, List.getD_cons_zero]
     have ehli : h.2.lamInv = la.2.lamInv := by rw [hhse]
     rw [ehli, ← hlam]; exact this
-  have hchain := oqChain_mul_pow hlinv (odd := sh.odd) (base := sh.base)
-    (by rw [hodd]; split_ifs <;> omega) (by rw [hbase, hodd]; split_ifs <;> simp)
-    (fun k ↦ qwFold sh.base rounds' (wsq.getD k default)) N
-  rw [hQN] at hchain
   have hwords : ∀ k < qs.length, (os.map (·.leaf)).getD k [] = (wsq.getD k default).2.1 := by
     intro k hk
     have hk' : k < wsq.length := by
       rw [← List.length_map (f := toOpening rd (args.getD 0 0) sh.cd sh.depth)]; rw [hosl]; omega
     rw [List.getD_eq_getElem _ _ (by simpa [os] using hk'), List.getD_eq_getElem _ _ hk']
     simp [os, toOpening]
-  have hfoldsum : ∑ k ∈ Finset.range qs.length, lam ^ k *
+  have hfoldsum : lam * lam * ∑ k ∈ Finset.range qs.length, lam ^ k *
       foldRow (specLanes lvl ((os.map (·.leaf)).getD k [])) (K.ofBits (qs.getD k 0)) rounds' =
-        lam ^ lv.queries * σ (.n q.2.batched) := by
+        lam * lam * (lam ^ lv.queries * σ (.n q.2.batched)) := by
+    by_cases hl0 : lam = 0
+    · simp [hl0]
+    have hchain := oqChain_mul_pow (hlinv hl0) (odd := sh.odd) (base := sh.base)
+      (by rw [hodd]; split_ifs <;> omega) (by rw [hbase, hodd]; split_ifs <;> simp)
+      (fun k ↦ qwFold sh.base rounds' (wsq.getD k default)) N
+    rw [hQN] at hchain
     rw [hbat, hchain, powSum, hqsl]
-    refine Finset.sum_congr rfl fun k hk ↦ ?_
+    refine congrArg (lam * lam * ·) (Finset.sum_congr rfl fun k hk ↦ ?_)
     have hk' := Finset.mem_range.mp hk
     rw [hwords k (by omega), ← hwq k hk', qwFold, hbase, lanesOf_base]
-  have hB := levelBatched_eq lv.logCols lvl rounds' high qs (os.map (·.leaf)) hwlen lam
-  rw [hfoldsum] at hB
+  have hB : lam * lam * levelBatched lv.logCols lvl rounds' high qs (os.map (·.leaf)) lam =
+      lam * lam * (lam ^ lv.queries * σ (.n q.2.batched) +
+        ∑ k ∈ Finset.range qs.length, lam ^ k * highTerm lv.logCols high (qs.getD k 0)) := by
+    rw [levelBatched_eq lv.logCols lvl rounds' high qs (os.map (·.leaf)) hwlen lam, mul_add,
+      hfoldsum, mul_add]
   -- `λ^n`
   have epow' : σ (.n q.2.lamPow) = σ (.n q.2.lam) ^ lv.queries := by
     rw [epow, eql, hA]

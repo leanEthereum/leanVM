@@ -97,7 +97,7 @@ fn visit_hint(h: &mut Hint, f: &mut dyn FnMut(&mut Off, u32)) {
             }
         }
         Hint::AllocFrame { ptr, .. } | Hint::AllocBuffer { ptr, .. } => f(ptr, 1),
-        Hint::AllocFrameSwitch { ptr, x, .. } => {
+        Hint::AllocArm { ptr, sel: x, .. } => {
             f(ptr, 1);
             f(x, 1);
         }
@@ -112,11 +112,15 @@ fn visit_hint(h: &mut Hint, f: &mut dyn FnMut(&mut Off, u32)) {
                 f(end, 1);
             }
             RHint::Alloc { ptr, .. } => f(ptr, 1),
+            RHint::CellAddress { ptr, cell } => {
+                f(ptr, 1);
+                f(cell, 1);
+            }
             RHint::AllocDyn { ptr, size } => {
                 f(ptr, 1);
                 f(size, 1);
             }
-            RHint::AllocSwitch { ptr, x, .. } => {
+            RHint::AllocArm { ptr, sel: x, .. } => {
                 f(ptr, 1);
                 f(x, 1);
             }

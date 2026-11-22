@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Da.Padding
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_levels__L»
 
 /-!
 # `da_levels`
@@ -184,14 +186,14 @@ theorem guardPow_sound {P : List Stmt} {gc : V} {f : String} {one N : V} {rest :
 
 /-- **`da_levels__L{2^k}_L{k}`'s body, checked**, its level loops `loops`. -/
 def dlOk (fn : Fn) (k : ℕ) (loops : List String) : Bool :=
-  decide (fn.params = [.n 0]) && decide (loops.length = k) &&
+  decide (fn.params = [.n (valf% «da_levels» "tree")]) && decide (loops.length = k) &&
   match splitRet fn.body with
   | some (P, vs) =>
     decide (vs = [.n (5 * k + 1), .n (5 * k + 2)]) && P.all Stmt.flat &&
     (List.range k).all (fun lvl => guardPowOk P (.n (5 * lvl + 3)) (loops.getD lvl "")
-      (.n (5 * lvl + 4)) (.n (5 * lvl + 5)) [.n 0] (2 ^ (k - lvl - 1))) &&
-    (atomsIn P).any (isLoadAt (.n (5 * k + 1)) (.n 0) (4 * 2 ^ k - 4)) &&
-    (atomsIn P).any (isLoadAt (.n (5 * k + 2)) (.n 0) (4 * 2 ^ k - 3))
+      (.n (5 * lvl + 4)) (.n (5 * lvl + 5)) [.n (valf% «da_levels» "tree")] (2 ^ (k - lvl - 1))) &&
+    (atomsIn P).any (isLoadAt (.n (5 * k + 1)) (.n (valf% «da_levels» "tree")) (4 * 2 ^ k - 4)) &&
+    (atomsIn P).any (isLoadAt (.n (5 * k + 2)) (.n (valf% «da_levels» "tree")) (4 * 2 ^ k - 3))
   | none => false
 
 /-! ## The root of the levels -/

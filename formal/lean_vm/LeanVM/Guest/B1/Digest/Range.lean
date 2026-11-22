@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Digest.Lists
+import LeanVM.Guest.B1.Common.Vc
 
 /-!
 # Range checks; `list_split`
@@ -88,48 +89,35 @@ theorem word_g16 : word 65536 0 = gen ^ 16 := word_two_pow (a := 16) (by decide)
 
 theorem word_g7 : word 128 0 = gen ^ 7 := word_two_pow (a := 7) (by decide)
 
-theorem list_split_body : Fn.body fn% «list_split» =
-    [.atom (.hint (.witness "signers_split" (.stack [.n 1, .n 2, .n 3]))),
-     .atom (.const (.n 4) (word 65536 0)),
-     .atom (.rangeCheck (.n 3) (.n 5) (.n 6) (.n 7) (.n 4)),
-     .atom (.const (.n 8) (word 128 0)),
-     .atom (.rangeCheck (.n 2) (.n 9) (.n 10) (.n 11) (.n 8)),
-     .atom (.touch (.n 12) (.n 1)),
-     .atom (.mul (.n 13) (.n 1) (.n 1)), .atom (.mul (.n 14) (.n 13) (.n 13)),
-     .atom (.mul (.n 15) (.n 14) (.n 14)), .atom (.mul (.n 16) (.n 15) (.n 15)),
-     .atom (.mul (.n 17) (.n 16) (.n 1)), .atom (.mul (.n 18) (.n 17) (.n 17)),
-     .atom (.mul (.n 19) (.n 18) (.n 18)), .atom (.mul (.n 20) (.n 19) (.n 19)),
-     .atom (.mul (.n 21) (.n 2) (.n 2)), .atom (.mul (.n 22) (.n 21) (.n 21)),
-     .atom (.mul (.n 23) (.n 22) (.n 22)), .atom (.mul (.n 24) (.n 23) (.n 23)),
-     .atom (.mul (.n 25) (.n 24) (.n 2)), .atom (.mul (.n 26) (.n 20) (.n 25)),
-     .atom (.mul (.n 27) (.n 26) (.n 3)),
-     .atom (.assertEq (.n 27) (.n 0)), .atom (.copy (.n 28) (.n 1)), .atom (.copy (.n 29) (.n 2)),
-     .atom (.copy (.n 30) (.n 3)),
-     .ret [.n 28, .n 29, .n 30]] :=
-  stmtsEqb_sound (by decide +kernel)
+/-- **`list_split`'s condition**: the hinted rest `c` and groups `b` range-checked against `g^16`
+and `g^7`, the hinted big frames `a` a word of the memory, `a^136 · b^17 · c = n_g`, and
+`[a, b, c]` returned. -/
+def LsCond (rd : Reader) (ng : E) (rets : List E) : Prop :=
+  ∃ c y t1, LoadHolds rd c 0 t1 ∧ gen ^ 16 = c * y ∧ ∃ t2, LoadHolds rd y 0 t2 ∧
+    ∃ b y' t3, LoadHolds rd b 0 t3 ∧ gen ^ 7 = b * y' ∧ ∃ t4, LoadHolds rd y' 0 t4 ∧
+      ∃ a t5, LoadHolds rd a 0 t5 ∧ a ^ 136 * b ^ 17 * c + ng = 0 ∧ [a, b, c] = rets
+
+/-- **`list_split` is its condition** (`vc`). -/
+theorem list_split_iff (rd : Reader) (args rets : List E) :
+    coreProgram.Rel rd "list_split" args rets ↔ ∃ ng, [ng] = args ∧ LsCond rd ng rets := by
+  rw [rel_iff_fnSem find_list_split]
+  vc [word_g16, word_g7, ← pow_two]
+  simp only [← pow_mul, ← pow_succ, Nat.reduceMul, Nat.reduceAdd]
+  exact Iff.rfl
 
 /-- **`list_split` splits a count into big frames, whole claim groups and a rest.** -/
 theorem list_split_sound : list_split_sound_Spec := by
   intro rd hm args rets h
-  obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_list_split args rets).mp h
-  rw [list_split_body] at hb
-  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
-  obtain ⟨-, c4, rc1, c8, rc2, l12, m13, m14, m15, m16, m17, m18, m19, m20, m21, m22, m23,
-    m24, m25, m26, m27, aeq, e28, e29, e30, hr⟩ := hb
-  obtain ⟨c, hc, hx3⟩ := rc_const hm (c := 16) (by norm_num) (by rw [c4, word_g16]) rc1
-  obtain ⟨b, hb, hx2⟩ := rc_const hm (c := 7) (by norm_num) (by rw [c8, word_g7]) rc2
-  obtain ⟨a, ha, hx1⟩ := load_gpow hm l12
-  have hp' : args = [σ (.n 0)] := by rw [← hp]; rfl
-  subst hp'
-  refine ⟨a, ha, b, by simp only [bigGroups]; omega, c,
-    by simp only [claimGroup]; omega, ?_, ?_⟩
-  · rw [← e_add_eq_zero_iff.mp aeq, m27, m26, m25, m24, m23, m22, m21, m20, m19, m18, m17, m16,
-      m15, m14, m13, hx1, hx2, hx3]
-    simp only [← pow_add]
-    congr 1
-    simp only [claimGroup, claimBig]
-    ring
-  · rw [← hr, e28, e29, e30, hx1, hx2, hx3]
+  obtain ⟨ng, rfl, c, y, t1, h1, e1, t2, h2, b, y', t3, h3, e2, t4, h4, a, t5, h5, hid, rfl⟩ :=
+    (list_split_iff rd args rets).mp h
+  obtain ⟨c', hc, rfl⟩ := rc_const hm (c := 16) (by norm_num) rfl ⟨h1, e1, h2⟩
+  obtain ⟨b', hb, rfl⟩ := rc_const hm (c := 7) (by norm_num) rfl ⟨h3, e2, h4⟩
+  obtain ⟨a', ha, rfl⟩ := load_gpow hm h5
+  refine ⟨a', ha, b', by simp only [bigGroups]; omega, c', by simp only [claimGroup]; omega, ?_, rfl⟩
+  rw [← e_add_eq_zero_iff.mp hid, ← pow_mul, ← pow_mul, ← pow_add, ← pow_add]
+  congr 1
+  simp only [claimGroup, claimBig]
+  ring
 
 end
 end LeanVM.Guest.B1.Digest

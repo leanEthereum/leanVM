@@ -1,9 +1,9 @@
 /-
   LeanVM.Guest.Limits
 
-  Where `NodeRelation` admits witnesses the deployed guest cannot run: the deployed limits, the
-  children's openings agreeing in the guest's Merkle caps, and no zero Fiat-Shamir challenge where
-  the guest divides. The hypotheses of the guest's completeness.
+  Where `NodeRelation` admits witnesses the deployed guest cannot run: the deployed limits and the
+  children's openings agreeing in the guest's Merkle caps. The hypotheses of the guest's
+  completeness.
 -/
 
 module
@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.Hints
 public import LeanVM.Protocol.Verifier.DeferredShape
 public import Statement.LeanVmGuest
-public import LeanVM.Guest.NZProgram
+public import Statement.LeanVmGuestCompleteness
 public import LeanVM.Guest.AcceptableChild
 
 /-!
@@ -31,12 +31,11 @@ predicate on the witness:
   coverage table below `2^23` (`GuestLimits`), which their caps give.
 * **`ChildrenOk bytecode seed w`, every child one the guest accepts** (`AcceptableChild`, `LeanVM/Guest/AcceptableChild.lean`): besides
   `NodeRelation`'s conditions, a child's stack log at least `20` and its proof stream at most `8192`
-  scalars; its openings agree in the guest's Merkle caps (the guest writes each level's Merkle
-  cap once, so two openings of one query step meeting at a node of the tree must give it one
-  digest; one tree's openings agree; two that disagree at a node give a Keccak-256 collision, an
-  argument in prose, not proved here); and no zero challenge where the guest divides (the guest
-  computes `μ = 1/λ` for each WHIR level's batching challenge `λ`, and the basis
-  coefficients `(1 + c)/(c·inv)` for the fold and tail challenges `c`).
+  scalars, both of which `NodeRelation`'s acceptance gives (`Child/Accepted.lean`); its openings
+  agree in the guest's Merkle caps (the guest writes each level's Merkle cap once, so two openings of one query step meeting at a node of the tree must give it one
+  digest; one tree's openings agree). Two that disagree at a node exhibit a Keccak-256 collision
+  (`OpeningsCollide`), the statement's alternative: with `NodeRelation`, `ChildrenOk` holds or a
+  child's proof exhibits one (`Child.acceptableChildren_or_collide`).
 
 The coverage table's size (`coverageSlots`) is the number of claims made; an honest run lays it out by `Coverage.coveragePlan` (`planSlots`, equal to it under `DeployedLimits`: `B1/Main/Plan.lean`'s `planSlots_eq`). The guest's proofs take it below `2^23` (`GuestLimits`, every count of `meta` and of a child's lists at most it), so below the guest's memory, which is at least `2^23` words (`Memory.logMem`); the deployed limits' caps give it (`Budget/Fits.lean`'s `GuestLimits.of_limits`).
 -/

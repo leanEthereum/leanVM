@@ -31,10 +31,9 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : 
 
 /-- **`claim_list_digest` on the leanXMSS table's declared claims.** -/
 theorem mainGoalClX (hL : GuestLimits s w) : MainGoalClX fs cert fp seed s w := by
-  have hn : s.claims.xmss.length < claimBig * bigFramesCap := by
+  have hn : s.claims.xmss.length < 2 ^ 23 := by
     have := hL.planSlotsBelow2Pow23
     simp only [Coverage.planSlots] at this
-    simp only [claimBig, bigFramesCap]
     omega
   have e : (hOwn seed s w).getD 0 [] =
       s.claims.xmss.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) ++
@@ -48,7 +47,6 @@ theorem mainGoalClX (hL : GuestLimits s w) : MainGoalClX fs cert fp seed s w := 
       have h1 := mf_reads fs fp seed s w h (i := 0) (by omega)
       rw [e] at h1
       exact (readsAt_append'.mp h1).1)
-    (fun k hk => mf_region fs fp seed s w (i := 0) (by omega) (by rw [e, List.length_append]; omega))
   have ha : (hm fs fp seed s w).a77 = gen ^ mfB fs fp seed s w 0 := rfl
   have hn' : (hm fs fp seed s w).nlx = s.claims.xmss.length := rfl
   have hd : (hm fs fp seed s w).xd = claimListDigest xmssPublicKeyBytes s.claims.xmss := rfl
@@ -58,10 +56,9 @@ theorem mainGoalClX (hL : GuestLimits s w) : MainGoalClX fs cert fp seed s w := 
 
 /-- **`claim_list_digest` on the leanSPHINCS table's declared claims.** -/
 theorem mainGoalClS (hL : GuestLimits s w) : MainGoalClS fs cert fp seed s w := by
-  have hn : s.claims.sphincs.length < claimBig * bigFramesCap := by
+  have hn : s.claims.sphincs.length < 2 ^ 23 := by
     have := hL.planSlotsBelow2Pow23
     simp only [Coverage.planSlots] at this
-    simp only [claimBig, bigFramesCap]
     omega
   have e : (hOwn seed s w).getD 1 [] =
       s.claims.sphincs.flatMap (fun c => claimCells c.1.publicSeed c.1.root c.2) ++
@@ -75,7 +72,6 @@ theorem mainGoalClS (hL : GuestLimits s w) : MainGoalClS fs cert fp seed s w := 
       have h1 := mf_reads fs fp seed s w h (i := 1) (by omega)
       rw [e] at h1
       exact (readsAt_append'.mp h1).1)
-    (fun k hk => mf_region fs fp seed s w (i := 1) (by omega) (by rw [e, List.length_append]; omega))
   have ha : (hm fs fp seed s w).a80 = gen ^ mfB fs fp seed s w 1 := rfl
   have hn' : (hm fs fp seed s w).nls = s.claims.sphincs.length := rfl
   have hd : (hm fs fp seed s w).sd = claimListDigest Sphincs.PublicKey.toBytes s.claims.sphincs := rfl

@@ -217,7 +217,7 @@ theorem hData_bounds (hl : GuestLimits s w) (fs : String → ℕ) (fp : ℕ) :
       (s.claims.sphincs ++ (sPlan s w).duplicates).length :=
     raw_le_table s.claims.sphincs w.sphincsSignatures _ (sPlan_held hl.toDeployedLimits)
   simp only [List.length_append] at hc hx hs
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, hl.atMostSixteenChildren, ?_, ?_, daPick_le, fun h => ?_, fun h => ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, hl.children_le_sixteen, ?_, ?_, daPick_le, fun h => ?_, fun h => ?_⟩
   · show s.claims.xmss.length < 2 ^ 23; omega
   · show (xPlan s w).duplicates.length < 2 ^ 23; omega
   · show w.xmssSignatures.length < 2 ^ 23; omega

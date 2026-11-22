@@ -8,6 +8,9 @@
 module
 
 public import LeanVM.Guest.B1.Main.AggL26CChk
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«aggregate_claims_loop1»
+import LeanVM.Guest.Data.ValNames.«aggregate_claims_loop2»
 
 /-!
 # A child's record and weight, completely
@@ -55,24 +58,24 @@ theorem l26_block {x N chainT lfT lcT lamSq lam pf pc fv cv pw acc : E}
   rw [show args.length = 7 from rfl, ← hσ, l26_stores] at hgs
   have hg : ∀ a ∈ A, Good rd l26Stores (fun _ => 0) σ a := fun a ha =>
     hgs (.atom a) (loopPre_mem (atom_mem_of_atomsIn ha))
-  have hpar : fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] := by
+  have hpar : fn.params = [.n (val% «aggregate_claims_loop1» "xc"), .n (val% «aggregate_claims_loop1» "bound"), .n (val% «aggregate_claims_loop1» "bc_chain"), .n (val% «aggregate_claims_loop1» "fresh_row"), .n (val% «aggregate_claims_loop1» "carried_row"), .n (val% «aggregate_claims_loop1» "lam_sq"), .n (val% «aggregate_claims_loop1» "lam")] := by
     rw [params_of_shape hshape hlen]; rfl
   have par : ∀ i (hi : i < 7), σ (.n i) = args.getD i 0 := fun i hi => by
     rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args]; omega)
-  have e0 : σ (.n 0) = x := par 0 (by omega)
+  have e0 : σ (.n (val% «aggregate_claims_loop1» "xc")) = x := par 0 (by omega)
   have hP : ∀ a ∈ A.filter pureB, a.Holds rd σ := pure_holds hg
-  have p8 : σ (.n 8) = chainT * x ^ 2 := by
+  have p8 : σ (.n (val% «aggregate_claims_loop1» "row")) = chainT * x ^ 2 := by
     rw [isMul_sound hm8 hP, isMul_sound hm7 hP, par 2 (by omega), e0, sq]; rfl
-  have p10 : σ (.n 10) = lfT * x := by rw [isMul_sound hm10 hP, par 3 (by omega), e0]; rfl
-  have p12 : σ (.n 12) = lcT * x := by rw [isMul_sound hm12 hP, par 4 (by omega), e0]; rfl
+  have p10 : σ (.n (val% «aggregate_claims_loop1» "fresh~0")) = lfT * x := by rw [isMul_sound hm10 hP, par 3 (by omega), e0]; rfl
+  have p12 : σ (.n (val% «aggregate_claims_loop1» "carried~0")) = lcT * x := by rw [isMul_sound hm12 hP, par 4 (by omega), e0]; rfl
   have hr0 : LoadHolds rd (chainT * x ^ 2) 0 pw := hrow 0 (by simp)
   have hr1 : LoadHolds rd (chainT * x ^ 2) 1 acc := hrow 1 (by simp)
   -- the atoms but the stores
   have hg' : ∀ a ∈ l26A, Good rd l26Stores (fun _ => 0) σ a := fun a ha =>
     hg a (mem_l26A.mp ha).1
   have hnS : ∀ a ∈ l26A, a ∉ l26Stores := fun a ha => (mem_l26A.mp ha).2
-  have v11 : σ (.n 11) = pf := by rw [(load_any_val hnS hg' hl11).1, p10, rdAt_of_load hlf]
-  have v13 : σ (.n 13) = pc := by rw [(load_any_val hnS hg' hl13).1, p12, rdAt_of_load hlc]
+  have v11 : σ (.n (val% «aggregate_claims_loop1» "fresh")) = pf := by rw [(load_any_val hnS hg' hl11).1, p10, rdAt_of_load hlf]
+  have v13 : σ (.n (val% «aggregate_claims_loop1» "carried")) = pc := by rw [(load_any_val hnS hg' hl13).1, p12, rdAt_of_load hlc]
   have hat' : ∀ a ∈ l26A, a.Holds rd σ := by
     refine atoms_holds hg' fun a ha hns => ?_
     rcases hneeds a ha with h | h
@@ -106,10 +109,10 @@ theorem l26_block {x N chainT lfT lcT lamSq lam pf pc fv cv pw acc : E}
     by_cases haS : a ∈ l26Stores
     · simp only [l26Stores, List.mem_cons, List.not_mem_nil, or_false] at haS
       rcases haS with rfl | rfl
-      · show LoadHolds rd (σ (.n 8)) 2 (σ (.n 14))
+      · show LoadHolds rd (σ (.n (val% «aggregate_claims_loop1» "row"))) 2 (σ (.n (val% «aggregate_claims_loop1» "s5#0")))
         rw [p8, isMul_sound hm14 hP, e9, par 5 (by omega)]
         exact hn0
-      · show LoadHolds rd (σ (.n 8)) 3 (σ (.n 21))
+      · show LoadHolds rd (σ (.n (val% «aggregate_claims_loop1» "row"))) 3 (σ (.n (val% «aggregate_claims_loop1» "s6#6")))
         rw [p8, add_sound ha21 hP, isMul_sound hm20 hP, add_sound ha19 hP, isMul_sound hm18 hP,
           e9, e15, e16, e17, par 6 (by omega)]
         exact hn1
@@ -150,25 +153,25 @@ theorem l27_block {x N lfT lcT pt1 chainT wT lam pf pc pw wc : E} {pp pq r1 : Li
   rw [show args.length = 8 from rfl, ← hσ, l27_stores] at hgs
   have hg : ∀ a ∈ A, Good rd l27Stores (fun _ => 0) σ a := fun a ha =>
     hgs (.atom a) (loopPre_mem (atom_mem_of_atomsIn ha))
-  have hpar : fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7] := by
+  have hpar : fn.params = [.n (val% «aggregate_claims_loop2» "xc"), .n (val% «aggregate_claims_loop2» "bound"), .n (val% «aggregate_claims_loop2» "fresh_row"), .n (val% «aggregate_claims_loop2» "carried_row"), .n (val% «aggregate_claims_loop2» "bc_point1"), .n (val% «aggregate_claims_loop2» "bc_chain"), .n (val% «aggregate_claims_loop2» "bc_wsum"), .n (val% «aggregate_claims_loop2» "lam")] := by
     rw [params_of_shape hshape hlen]; rfl
   have par : ∀ i (hi : i < 8), σ (.n i) = args.getD i 0 := fun i hi => by
     rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args]; omega)
-  have e0 : σ (.n 0) = x := par 0 (by omega)
-  have e4 : σ (.n 4) = pt1 := par 4 (by omega)
+  have e0 : σ (.n (val% «aggregate_claims_loop2» "xc")) = x := par 0 (by omega)
+  have e4 : σ (.n (val% «aggregate_claims_loop2» "bc_point1")) = pt1 := par 4 (by omega)
   have hP : ∀ a ∈ A.filter pureB, a.Holds rd σ := pure_holds hg
-  have p8 : σ (.n 8) = lfT * x := by rw [isMul_sound hm8 hP, par 2 (by omega), e0]; rfl
-  have p10 : σ (.n 10) = lcT * x := by rw [isMul_sound hm10 hP, par 3 (by omega), e0]; rfl
-  have p172 : σ (.n 172) = chainT * x ^ 2 := by
+  have p8 : σ (.n (val% «aggregate_claims_loop2» "fresh~0")) = lfT * x := by rw [isMul_sound hm8 hP, par 2 (by omega), e0]; rfl
+  have p10 : σ (.n (val% «aggregate_claims_loop2» "carried~0")) = lcT * x := by rw [isMul_sound hm10 hP, par 3 (by omega), e0]; rfl
+  have p172 : σ (.n (val% «aggregate_claims_loop2» "row")) = chainT * x ^ 2 := by
     rw [isMul_sound hm172 hP, isMul_sound hm171 hP, par 5 (by omega), e0, sq]; rfl
-  have p173 : σ (.n 173) = wT * x := by rw [isMul_sound hm173 hP, par 6 (by omega), e0]; rfl
-  have p180 : σ (.n 180) = wT * x := by rw [isMul_sound hm180 hP, par 6 (by omega), e0]; rfl
+  have p173 : σ (.n (val% «aggregate_claims_loop2» "s4#0")) = wT * x := by rw [isMul_sound hm173 hP, par 6 (by omega), e0]; rfl
+  have p180 : σ (.n (val% «aggregate_claims_loop2» "s4#7")) = wT * x := by rw [isMul_sound hm180 hP, par 6 (by omega), e0]; rfl
   -- the atoms but the store
   have hg' : ∀ a ∈ l27A, Good rd l27Stores (fun _ => 0) σ a := fun a ha =>
     hg a (mem_l27A.mp ha).1
   have hnS : ∀ a ∈ l27A, a ∉ l27Stores := fun a ha => (mem_l27A.mp ha).2
-  have v9 : σ (.n 9) = pf := by rw [(load_any_val hnS hg' hl9).1, p8, rdAt_of_load hlf]
-  have v11 : σ (.n 11) = pc := by rw [(load_any_val hnS hg' hl11).1, p10, rdAt_of_load hlc]
+  have v9 : σ (.n (val% «aggregate_claims_loop2» "fresh")) = pf := by rw [(load_any_val hnS hg' hl9).1, p8, rdAt_of_load hlf]
+  have v11 : σ (.n (val% «aggregate_claims_loop2» "carried")) = pc := by rw [(load_any_val hnS hg' hl11).1, p10, rdAt_of_load hlc]
   have hat' : ∀ a ∈ l27A, a.Holds rd σ := by
     refine atoms_holds hg' fun a ha hns => ?_
     rcases hneeds a ha with h | h
@@ -202,7 +205,7 @@ theorem l27_block {x N lfT lcT pt1 chainT wT lam pf pc pw wc : E} {pp pq r1 : Li
     by_cases haS : a ∈ l27Stores
     · simp only [l27Stores, List.mem_cons, List.not_mem_nil, or_false] at haS
       subst haS
-      show LoadHolds rd (σ (.n 180)) 1 (σ (.n 179))
+      show LoadHolds rd (σ (.n (val% «aggregate_claims_loop2» "s4#7"))) 1 (σ (.n (val% «aggregate_claims_loop2» "s4#6")))
       rw [p180, add_sound ha179 hP, isMul_sound hm178 hP, add_sound ha177 hP,
         isMul_sound hm176 hP, e174, e175, ef, ec, par 7 (by omega)]
       exact hw1

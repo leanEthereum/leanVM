@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Selectors.ColumnSelector
 public import LeanVM.Guest.CoreData
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«selector_tables»
 
 /-!
 # `selector_tables` (TRIAGE G #69)
@@ -43,8 +45,8 @@ def stV (j w i : ℕ) : ℕ := stM j w + i
 
 /-- Level `w ≥ 1` of nibble `j`: the coordinate and its complement, then the products. -/
 def stLevel (j w : ℕ) : List Stmt :=
-  [.atom (.load (.n (stM j w - 2)) (.n 0) (4 * j + 3 - w)),
-    .atom (.load (.n (stM j w - 1)) (.n 1) (4 * j + 3 - w))] ++
+  [.atom (.load (.n (stM j w - 2)) (.n (val% «selector_tables» "point")) (4 * j + 3 - w)),
+    .atom (.load (.n (stM j w - 1)) (.n (val% «selector_tables» "point1")) (4 * j + 3 - w))] ++
   ((List.range (2 ^ w)).map fun i ↦
     [.atom (.mul (.n (stM j w + 2 * i)) (.n (stV j (w - 1) i)) (.n (stM j w - 1))),
       .atom (.mul (.n (stM j w + 2 * i + 1)) (.n (stV j (w - 1) i)) (.n (stM j w - 2)))]).flatten
@@ -52,28 +54,28 @@ def stLevel (j w : ℕ) : List Stmt :=
 /-- The stores of level `w`: entry `i` at `64j + 16w + i·2^(3 - w)`. -/
 def stStores (j w : ℕ) : List Stmt :=
   (List.range (2 ^ (w + 1))).map fun i ↦
-    .atom (.load (.n (stV j w i)) (.n 2) (64 * j + 16 * w + i * 2 ^ (3 - w)))
+    .atom (.load (.n (stV j w i)) (.n (val% «selector_tables» "sel_eq")) (64 * j + 16 * w + i * 2 ^ (3 - w)))
 
 /-- Nibble `j`. -/
 def stNib (j : ℕ) : List Stmt :=
-  [.atom (.load (.n (stB j)) (.n 1) (4 * j + 3)), .atom (.load (.n (stB j + 1)) (.n 0) (4 * j + 3))] ++
+  [.atom (.load (.n (stB j)) (.n (val% «selector_tables» "point1")) (4 * j + 3)), .atom (.load (.n (stB j + 1)) (.n (val% «selector_tables» "point")) (4 * j + 3))] ++
     stLevel j 1 ++ stLevel j 2 ++ stLevel j 3 ++ ((List.range 4).map (stStores j)).flatten
 
 /-- `selector_tables`'s statements before its `ret`. -/
 def stPre : List Stmt :=
-  [.atom (.hint (.alloc (.n 2) 512))] ++ ((List.range 8).map stNib).flatten ++
-    [.atom (.copy (.n 291) (.n 2))]
+  [.atom (.hint (.alloc (.n (val% «selector_tables» "sel_eq")) 512))] ++ ((List.range 8).map stNib).flatten ++
+    [.atom (.copy (.n (val% «selector_tables» "s2#0")) (.n (val% «selector_tables» "sel_eq")))]
 
 /-- The function found by name is the template. -/
 noncomputable def stCheck : Bool :=
   match coreProgram.find? "selector_tables" with
-  | some fn => decide (fn.params = [.n 0, .n 1]) && tbStmtsEqb fn.body (stPre ++ [.ret [.n 291]])
+  | some fn => decide (fn.params = [.n (val% «selector_tables» "point"), .n (val% «selector_tables» "point1")]) && tbStmtsEqb fn.body (stPre ++ [.ret [.n (val% «selector_tables» "s2#0")]])
   | none => false
 
 theorem stCheck_eq : stCheck = true := by decide +kernel
 
 theorem stFound : ∃ fn : Fn, coreProgram.find? "selector_tables" = some fn ∧
-    fn.params = [.n 0, .n 1] ∧ fn.body = stPre ++ [.ret [.n 291]] := by
+    fn.params = [.n (val% «selector_tables» "point"), .n (val% «selector_tables» "point1")] ∧ fn.body = stPre ++ [.ret [.n (val% «selector_tables» "s2#0")]] := by
   have h := stCheck_eq
   unfold stCheck at h
   split at h
@@ -124,8 +126,8 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
 
 /-- What level `w ≥ 1` of nibble `j` gives: the coordinate, its complement, the products. -/
 theorem holds_stLevel {j w : ℕ} (h : Stmt.HoldsList C rd σ (stLevel j w) True kret) :
-    LoadHolds rd (σ (.n 0)) (4 * j + 3 - w) (σ (.n (stM j w - 2))) ∧
-    LoadHolds rd (σ (.n 1)) (4 * j + 3 - w) (σ (.n (stM j w - 1))) ∧
+    LoadHolds rd (σ (.n (val% «selector_tables» "point"))) (4 * j + 3 - w) (σ (.n (stM j w - 2))) ∧
+    LoadHolds rd (σ (.n (val% «selector_tables» "point1"))) (4 * j + 3 - w) (σ (.n (stM j w - 1))) ∧
     ∀ i < 2 ^ w, σ (.n (stV j w (2 * i))) = σ (.n (stV j (w - 1) i)) * σ (.n (stM j w - 1)) ∧
       σ (.n (stV j w (2 * i + 1))) = σ (.n (stV j (w - 1) i)) * σ (.n (stM j w - 2)) := by
   rw [stLevel, tb_holdsList_append_noRet rfl, tb_holdsList_flatten_range _ _ (fun _ => rfl)] at h
@@ -139,14 +141,14 @@ theorem holds_stLevel {j w : ℕ} (h : Stmt.HoldsList C rd σ (stLevel j w) True
 
 /-- The parts of nibble `j`. -/
 theorem holds_stNib {j : ℕ} (h : Stmt.HoldsList C rd σ (stNib j) True kret) :
-    (LoadHolds rd (σ (.n 1)) (4 * j + 3) (σ (.n (stB j))) ∧
-      LoadHolds rd (σ (.n 0)) (4 * j + 3) (σ (.n (stB j + 1)))) ∧
+    (LoadHolds rd (σ (.n (val% «selector_tables» "point1"))) (4 * j + 3) (σ (.n (stB j))) ∧
+      LoadHolds rd (σ (.n (val% «selector_tables» "point"))) (4 * j + 3) (σ (.n (stB j + 1)))) ∧
     Stmt.HoldsList C rd σ (stLevel j 1) True kret ∧ Stmt.HoldsList C rd σ (stLevel j 2) True kret ∧
     Stmt.HoldsList C rd σ (stLevel j 3) True kret ∧
     (∀ w < 4, ∀ i < 2 ^ (w + 1),
-      LoadHolds rd (σ (.n 2)) (64 * j + 16 * w + i * 2 ^ (3 - w)) (σ (.n (stV j w i)))) := by
-  have n0 : Stmt.noRetList [Stmt.atom (.load (.n (stB j)) (.n 1) (4 * j + 3)),
-      Stmt.atom (.load (.n (stB j + 1)) (.n 0) (4 * j + 3))] = true := rfl
+      LoadHolds rd (σ (.n (val% «selector_tables» "sel_eq"))) (64 * j + 16 * w + i * 2 ^ (3 - w)) (σ (.n (stV j w i)))) := by
+  have n0 : Stmt.noRetList [Stmt.atom (.load (.n (stB j)) (.n (val% «selector_tables» "point1")) (4 * j + 3)),
+      Stmt.atom (.load (.n (stB j + 1)) (.n (val% «selector_tables» "point")) (4 * j + 3))] = true := rfl
   rw [stNib, tb_holdsList_append_noRet (by simp only [tb_noRetList_append, stLevel_noRet, n0,
       Bool.and_self]),
     tb_holdsList_append_noRet (by simp only [tb_noRetList_append, stLevel_noRet, n0,
@@ -163,7 +165,7 @@ theorem holds_stNib {j : ℕ} (h : Stmt.HoldsList C rd σ (stNib j) True kret) :
 
 /-- **The eq levels of nibble `j`**: level `w`'s entry `i` is the table's entry `i·2^(3 - w)`. -/
 theorem stLevels {j : ℕ} (hj : j < 8) {p p1 : List E} (hp : p.length = 32) (hp1 : p1.length = 32)
-    (hpt : TbReadsAt rd (σ (.n 0)) p) (hpt1 : TbReadsAt rd (σ (.n 1)) p1)
+    (hpt : TbReadsAt rd (σ (.n (val% «selector_tables» "point"))) p) (hpt1 : TbReadsAt rd (σ (.n (val% «selector_tables» "point1"))) p1)
     (h : Stmt.HoldsList C rd σ (stNib j) True kret) :
     ∀ w < 4, ∀ i < 2 ^ (w + 1), σ (.n (stV j w i)) = selEqEntry p p1 j w (i * 2 ^ (3 - w)) := by
   obtain ⟨⟨l0, l1⟩, hL1, hL2, hL3, -⟩ := holds_stNib h

@@ -15,7 +15,7 @@ use crate::aggregation::signers_cache::{get_lean_sphincs_signers, get_signers};
 use lean_da::BLOB_SYMBOLS;
 use isa::Prover;
 use lean_vm_core::StableProver;
-use lean_vm_core::cpu::{from_scalar, public_input_bytes};
+use lean_vm_core::cpu::{from_scalar, public_input_bytes, to_scalar};
 use primitives::field::F128;
 use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
@@ -280,7 +280,35 @@ fn export(
     let dir = std::path::Path::new(&dir);
     std::fs::create_dir_all(dir).unwrap();
     std::fs::write(dir.join(format!("{name}.txt")), out.0).unwrap();
+    if let Some(exec_dir) = std::env::var_os("LEANVM_GUEST_EXEC") {
+        let public_input = statement_digest(&claims, &defer);
+        export_execution(&std::path::Path::new(&exec_dir).join(name), &streams, public_input);
+    }
     (claims, node)
+}
+
+/// The node's run as `scripts/export-prover-traces-rust.sh` writes a case, for `lake exe leanvm-execute`:
+/// the guest's bytecode, the public input, the advice (the installed streams) and the Rust interpreter's
+/// execution.
+fn export_execution(dir: &std::path::Path, streams: &[(String, Vec<Vec<F128>>)], public_input: [F128; 2]) {
+    let program = unified_guest();
+    let exec = lean_vm_core::cpu::execute(program, streams, public_input).expect("the node executes");
+    std::fs::create_dir_all(dir).unwrap();
+    let table: Vec<u8> = program.stacked_bytecode().iter().flat_map(|w| w.to_le_bytes()).collect();
+    std::fs::write(dir.join("bytecode.bin"), table).unwrap();
+    std::fs::write(dir.join("public_input.bin"), public_input_bytes(&public_input)).unwrap();
+    let scalar_streams: Vec<(String, Vec<Vec<E>>)> = (streams.iter())
+        .map(|(name, entries)| (name.clone(), entries.iter().map(|e| e.iter().map(to_scalar).collect()).collect()))
+        .collect();
+    std::fs::write(dir.join("advice.txt"), program.export_hints(&scalar_streams)).unwrap();
+    let memory: Vec<u8> = (0..exec.mem.len())
+        .map(|i| exec.mem.word(i))
+        .flat_map(|w| [w.c0, w.c1])
+        .flat_map(u64::to_le_bytes)
+        .collect();
+    std::fs::write(dir.join("memory.bin"), memory).unwrap();
+    let log_mem = exec.mem.len().trailing_zeros();
+    std::fs::write(dir.join("trace.txt"), format!("{log_mem} {} {LOG_INV_RATE}\n", exec.cycles)).unwrap();
 }
 
 const LOG_INV_RATE: usize = lean_vm_core::pcs::TEST_LOG_INV_RATE;
@@ -296,7 +324,7 @@ fn blob(seed: u64) -> Vec<lean_da::Blob> {
     symbols.as_chunks().0.to_vec()
 }
 
-/// Two leaves, one of both schemes with a blob, one whose leanXMSS list is longer than a group of its digest
+/// Two leaves, one of both schemes with two blobs (the DA hints blob by blob), one whose leanXMSS list is longer than a group of its digest
 /// (`CLAIM_GROUP` claims), and a node over them with a blob and raw signatures, one of a claim both leaves make: the
 /// leaves overlap in a claim of each scheme, so every coverage region of the node has duplicate slots, and its claims
 /// are held directly and through each child. Then a node over the same leaves the other way round, with no blob and no
@@ -308,7 +336,8 @@ fn guest_diff() {
     let wide = CLAIM_GROUP + 3;
     let xmss = get_signers::<StableProver>(wide + 2);
     let sphincs = get_lean_sphincs_signers::<StableProver>(3);
-    let left = export("left", vec![], xmss[..2].to_vec(), sphincs[..2].to_vec(), &blob(1));
+    let blobs = [blob(1), blob(3)].concat();
+    let left = export("left", vec![], xmss[..2].to_vec(), sphincs[..2].to_vec(), &blobs);
     let right = export("right", vec![], xmss[1..wide + 1].to_vec(), sphincs[1..].to_vec(), &[]);
     let raw = vec![xmss[1].clone(), xmss[wide + 1].clone()];
     export("node", vec![left.clone(), right.clone()], raw, vec![], &blob(2));

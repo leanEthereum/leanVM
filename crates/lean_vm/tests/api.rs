@@ -119,3 +119,9 @@ fn public_api_end_to_end() {
     assert!(dropped.1.verify(&dropped.0));
     assert_eq!(dropped.0, without_blobs);
 }
+
+#[test]
+fn vrf_reveal() {
+    let key = lean_vrf::VrfKey::new([7; 32], 100..200).unwrap();
+    assert!(lean_vrf::verify_vrf_proof(&key.root(), 150, &key.proof(150).unwrap()));
+}

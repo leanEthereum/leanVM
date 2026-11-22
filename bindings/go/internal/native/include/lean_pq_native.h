@@ -8,6 +8,9 @@
  *
  * Public keys and messages are 32 bytes. Secret keys in both schemes are their 32-byte seed.
  * leanXMSS signatures are 2404 bytes and leanSPHINCS signatures are 7740 bytes.
+ *
+ * A VRF key is a 32-byte seed and slots [start, end), end <= 2^31. VRF roots are 32 bytes and
+ * proofs 1024: the slot's secret, then its leaf's 31 siblings.
  */
 #ifndef LEAN_PQ_NATIVE_H
 #define LEAN_PQ_NATIVE_H
@@ -19,6 +22,7 @@ typedef struct { uint8_t *data; size_t len; } lpq_buffer;
 typedef struct lpq_xmss_secret_key lpq_xmss_secret_key;
 typedef struct lpq_sphincs_secret_key lpq_sphincs_secret_key;
 typedef struct lpq_aggregate lpq_aggregate;
+typedef struct lpq_vrf_key lpq_vrf_key;
 typedef struct lpq_sidecar lpq_sidecar;
 
 /* Returns 0 on success, 1 for a checked error, and 2 when Rust caught a panic. */
@@ -92,5 +96,18 @@ int32_t lpq_aggregate_to_bytes(lpq_aggregate *aggregate, lpq_buffer *out);
 int32_t lpq_aggregate_xmss_claims(lpq_aggregate *aggregate, lpq_buffer *out);
 int32_t lpq_aggregate_sphincs_claims(lpq_aggregate *aggregate, lpq_buffer *out);
 void lpq_aggregate_destroy(lpq_aggregate *aggregate);
+
+/* Hashes every slot of the range. */
+int32_t lpq_vrf_key_new(const uint8_t *seed, size_t seed_len, uint32_t start, uint32_t end, lpq_vrf_key **out);
+/* Rebuilds a key from its seed and a cache from lpq_vrf_key_cache_to_bytes. Fails if the cache does not lead to root. */
+int32_t lpq_vrf_key_from_cache_bytes(const uint8_t *seed, size_t seed_len, const uint8_t *root, size_t root_len, const uint8_t *cache, size_t cache_len, lpq_vrf_key **out);
+/* Encodes the key's cache: its range and cached layer, no secret. */
+int32_t lpq_vrf_key_cache_to_bytes(lpq_vrf_key *key, lpq_buffer *out);
+int32_t lpq_vrf_key_root(lpq_vrf_key *key, lpq_buffer *out);
+/* Fails for a slot outside the range. */
+int32_t lpq_vrf_key_proof(lpq_vrf_key *key, uint32_t slot, lpq_buffer *out);
+void lpq_vrf_key_destroy(lpq_vrf_key *key);
+/* Returns 0 when the proof opens and 1, with lpq_last_error set, when not. */
+int32_t lpq_vrf_verify(const uint8_t *root, size_t root_len, uint64_t slot, const uint8_t *proof, size_t proof_len);
 
 #endif

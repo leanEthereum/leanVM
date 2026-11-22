@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.Facts
 public import LeanVM.Guest.B1.Whir.Open
+public import LeanVM.Guest.B1.Place.LsTable
 
 /-!
 # The checked facts, used
@@ -41,6 +42,8 @@ structure Callees (rd : Reader) (C : CallRel) (σ : Val) : Prop where
   cap : ∀ p ∈ merkleCapNames, ∀ a r, C p.1 a r → MeaningVerifyMerkleCap p.2 rd a r
   tail : ∀ a r, C "opening_tail_round" a r → MeaningOpeningTailRound rd a r
   ffm : ∀ p ∈ foldFinalMsgNames, ∀ a r, C p.1 a r → MeaningFoldFinalMsg p.2 rd a r
+  iz : ∀ a r, C "is_zero" a r → IsZeroRet a r
+  slow : ∀ e ∈ lrsTable, ∀ a r, C e.1 a r → SlowRet e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 rd a r
 
 /-- A candidate's semantic facts. -/
 structure SemOk (c : OsCfg) : Prop where
@@ -121,7 +124,7 @@ theorem levelsOk_of {rd : Reader} {C : CallRel} {σ : Val} {c : OsCfg} {logN : �
       hcal.g17, hcal.g15, hr,
       fun a r hw hc ↦ lp_sound (lpOk_fn hlp).1 (lpOk_fn hlp).2 h11 h14 h15 h16
         (fun a r ha hc ↦ hcal.dec _ hlp.2 a r ha hc) hw (hle _ _ _ hc),
-      lqOk_fn hlq, fun a r hc ↦ hcal.cap _ hcap a r hc⟩
+      lqOk_fn hlq, fun a r hc ↦ hcal.cap _ hcap a r hc, hcal.iz⟩
     · rw [← homn] at hc; exact hcal.msg _ hom a r hc
     · rw [← hspfn] at hc; exact hcal.spf _ hspf a r hc
   | _, [], _, _, hb => by simp [levelsB] at hb
@@ -153,10 +156,10 @@ theorem midOk_of {c : OsCfg} {logN : ℕ} :
 /-- **The finish's static facts** from the checked facts. -/
 theorem finStatic_of {rd : Reader} {C : CallRel} {σ : Val} {m ri μ r : ℕ} {cfg : List Whir.Level}
     (hcal : Callees rd C σ) (hsem : SemOk (osCfgR m ri)) (hle : CallRel.Le C (coreProgram.Rel rd))
-    (h : CandOk m ri μ r cfg) : FinStaticS rd C (osCfgR m ri) := by
+    (h : CandOk m ri μ r cfg) (hsl : lsInB (osCfgR m ri) = true) : FinStaticS rd C (osCfgR m ri) := by
   obtain ⟨-, -, -, -, hn2, hyr, hyl, hyn, hnF, hla, h40, hffm, hlen, hlv⟩ := h
   refine ⟨hn2, hyr, hyl, hyn, fun i hi ↦ ?_, fun i hi a r hc ↦ ?_, hlen, hnF, hla, h40,
-    fun a r hc ↦ hcal.ffm _ hffm a r hc⟩
+    fun a r hc ↦ hcal.ffm _ hffm a r hc, hcal.iz, fun i hi a r hc ↦ ?_⟩
   · obtain ⟨level, next, hm⟩ := midOk_of 0 _ cfg hlv i (by omega)
     rw [Nat.zero_add] at hm
     exact lvFin_of hm (hsem.van i (by omega)) (hsem.hsm i hi)
@@ -166,6 +169,10 @@ theorem finStatic_of {rd : Reader} {C : CallRel} {σ : Val} {m ri μ r : ℕ} {c
       -, hlr, -, -, -, -, -, h2, h3, h4, -, -⟩ := hm
     exact lr_sound (lrOk_fn hlr).1 (lrOk_fn hlr).2.1 (lrOk_fn hlr).2.2 hlr.2.1 hlr.2.2 h1 h2 h3 h4
       (hle _ _ _ hc)
+  · obtain ⟨e, he, h1, h2, h3, h4, h5⟩ := lsIn_of hsl hi
+    rw [← h1] at hc
+    have := hcal.slow e he a r hc
+    rwa [h2, h3, h4, h5] at this
 
 end
 end LeanVM.Guest.B1.Whir

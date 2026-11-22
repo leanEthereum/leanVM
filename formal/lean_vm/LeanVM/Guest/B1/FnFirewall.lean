@@ -331,7 +331,7 @@ import LeanVM.Guest.B1.Fwd.Canon
 import LeanVM.Guest.B1.Fwd.Eval
 import LeanVM.Guest.B1.Fwd.FlatIte
 import LeanVM.Guest.B1.Fwd.NotStored
-import LeanVM.Guest.B1.VerifySub.NZRun
+import LeanVM.Guest.B1.VerifySub.RunId
 import LeanVM.Guest.B1.VerifySub.Sizes
 import LeanVM.Guest.B1.Common.Atoms
 import LeanVM.Guest.B1.Common.HashPair
@@ -535,7 +535,7 @@ open Lean Elab Command in
     (`LeanVM.Guest.B1.Fwd.Eval, []),
     (`LeanVM.Guest.B1.Fwd.FlatIte, []),
     (`LeanVM.Guest.B1.Fwd.NotStored, []),
-    (`LeanVM.Guest.B1.VerifySub.NZRun, []),
+    (`LeanVM.Guest.B1.VerifySub.RunId, []),
     (`LeanVM.Guest.B1.VerifySub.Sizes, []),
     (`LeanVM.Guest.B1.Common.Atoms, []),
     (`LeanVM.Guest.B1.Common.HashPair, []),

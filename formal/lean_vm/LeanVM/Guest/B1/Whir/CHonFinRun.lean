@@ -20,8 +20,7 @@ public import LeanVM.Guest.B1.Whir.CHonFields0
 On `hR : HonRun μ r … cfg Ls`, at `h := hdOf μ r Ls`: the finish's static facts
 (`HonRun.finStatic_run`), each non-final level's record facts (`HonRun.recRun_run`), the final
 lane's length (`HonRun.hylen`, `HonRun.hfold`) and `fold_final_msg`'s kind (`HonRun.hffm`).
-Every fold challenge is nonzero along the levels (`alphas_nz`, `HonRun.s_gnz`), and the tail
-challenges do not depend on the claim (`tailRun_add`).
+The tail challenges do not depend on the claim (`tailRun_add`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -46,20 +45,6 @@ theorem osLvR_rateFree (m ri l : ℕ) : (osLvR m ri l).folds = (osLv m l).folds 
     (osLvR m ri l).logCols = (osLv m l).logCols := by
   unfold osLvR; exact ⟨rfl, rfl, rfl, rfl⟩
 
-/-- The rounds' fold challenges are nonzero when their grinds' are. -/
-theorem alphas_nz : ∀ (n : ℕ) (s : WhirState) (fs xs : List E), RoundsOk n fs xs →
-    (∀ x ∈ s.alphas, x ≠ 0) → ∀ x ∈ (roundsSpec n s fs xs).1.alphas, x ≠ 0
-  | 0, _, _, _, _, h => h
-  | n + 1, s, fs, xs, ⟨_, hnz, hok⟩, h => by
-    show ∀ x ∈ (roundsSpec n (roundSpec s fs (xs.take 5)).1 (roundSponge fs (xs.take 5)).cap
-      (xs.drop 5)).1.alphas, x ≠ 0
-    refine alphas_nz n _ _ _ hok fun x hx ↦ ?_
-    rw [show (roundSpec s fs (xs.take 5)).1.alphas = s.alphas ++ [(roundChs fs (xs.take 5)).1] from rfl]
-      at hx
-    rcases List.mem_append.mp hx with h1 | h1
-    · exact h x h1
-    · rw [List.mem_singleton.mp h1]; exact hnz.1
-
 theorem sqCount_mul {P q : ℕ} (hP : 1 ≤ P) : q ≤ sqCount P q * P := by
   unfold sqCount
   have h1 := Nat.div_add_mod (q + P - 1) P
@@ -75,16 +60,6 @@ variable {μ r : ℕ} {target : E} {S : KeccakState} {root : Digest} {xs : List 
   {os : List (List Opening)} {w : WhirEnd} {cfg : List Whir.Level} {Ls : List LvAt}
   (hR : HonRun μ r target S root xs os w cfg Ls)
 include hR
-
-/-- Every level starts after nonzero fold challenges. -/
-theorem s_gnz : ∀ l ≤ (osCfgR (μ - minOpenLog) (r - 1)).yrLevel, ∀ x ∈ (Ls.getD l default).s.alphas, x ≠ 0
-  | 0, _ => by rw [hR.start.1]; simp
-  | l + 1, hl => by
-    have hst := (hR.stepS (l := l) (by omega)).1
-    obtain ⟨rw, W, hd, -, hrok, -⟩ := hR.step (l := l) (by omega)
-    have hrw : (Ls.getD l default).rw = rw := by unfold LvAt.rw; rw [hd]
-    rw [hst, LvAt.s1, hrw]
-    exact alphas_nz _ _ _ _ hrok (s_gnz l (by omega))
 
 /-- The final level's folds end at `nFolds`. -/
 theorem fin_s1 : (Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).s1.alphas.length =
@@ -163,30 +138,15 @@ theorem finStatic_run :
   have hs1 := hR.fin_s1
   have hm11 : μ - minOpenLog < 11 := hR.m11
   have hHS := honStatic_all _ _ hm11 hR.r4
-  -- the tail challenges, at the Spec's claim
-  set Lf := Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default with hLf
-  have hT : (hdOf μ r Ls).T = (W.tail Lf.F (Lf.dp μ) Lf.level.queries Lf.s1.claim).1 := by
-    have e := (tailRun_add W.pairs (Lf.F3 μ).cap Lf.s1.claim ((hdOf μ r Ls).cl1F + Lf.s1.claim)).2.1
-    rw [show Lf.s1.claim + ((hdOf μ r Ls).cl1F + Lf.s1.claim) = (hdOf μ r Ls).cl1F by
-      rw [add_comm (hdOf μ r Ls).cl1F, ← add_assoc, CharTwo.add_self_eq_zero, zero_add]] at e
-    show (tailRun Lf.fw.pairs (Lf.F3 μ).cap (hdOf μ r Ls).cl1F).1 = _
-    rw [hfw, e]
-    show _ = (tailRun W.pairs (W.F3 Lf.F (Lf.dp μ) Lf.level.queries).cap Lf.s1.claim).1
-    congr 3
-    unfold LvAt.F3; rw [hd]
+  set Lf := Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default
   refine ⟨cn2, by rw [osCfgR_len]; exact osNLevels_le _ hm11, cyr, cyl, ?_, fun i hi ↦ hR.lvFin hi,
-    hs1, ?_, clane, cmu, ?_, ?_, fun i hi ↦ ?_, fun i hi ↦ (hHS.mid hi).1⟩
+    hs1, ?_, clane, cmu, fun i hi ↦ ?_, fun i hi ↦ (hHS.mid hi).1⟩
   · show (lvsRecs μ Ls (osCfgR (μ - minOpenLog) (r - 1)).yrLevel).length = _
     simp only [lvsRecs, List.length_map, List.length_take]; omega
   · show (tailRun Lf.fw.pairs (Lf.F3 μ).cap (hdOf μ r Ls).cl1F).1.length = _
     rw [tailRun_length, hfw, hok.plen2]
     show μ - Lf.s1.alphas.length = _
     rw [hs1]; omega
-  · intro x hx
-    exact alphas_nz _ _ _ _ hrok (hR.s_gnz _ le_rfl) x hx
-  · intro x hx
-    rw [hT] at hx
-    exact hok.tnz x hx
   · rw [(hdOf μ r Ls).recs_getD hL hy hi]
     exact hR.rec_F hi
 
@@ -198,7 +158,7 @@ theorem recRun_run : ∀ i < (osCfgR (μ - minOpenLog) (r - 1)).yrLevel, RecRun 
   have hmu := hR.rec_mu hi
   have hdep' : (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD i default)).depth = (Ls.getD i default).dp μ := by
     rw [hdep]; show _ = μ - (Ls.getD i default).s1.alphas.length + _; rw [hmu]
-  refine ⟨hR.rec_F hi, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨hR.rec_F hi, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · show ((Ls.getD i default).osRec μ).mu = _
     rw [he]; exact hmu
   · show ((Ls.getD i default).osRec μ).qs.length = _
@@ -212,8 +172,6 @@ theorem recRun_run : ∀ i < (osCfgR (μ - minOpenLog) (r - 1)).yrLevel, RecRun 
     rw [NextW.ood, oodPt_eq, List.length_cons, squeezeN_length, hmu]
     have := hok.mu1
     omega
-  · show (Ls.getD i default).lam μ ≠ 0
-    unfold LvAt.lam; rw [hd]; exact hok.lam
   · show (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD i default)).queries ≤
       (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD i default)).squeezes * sqPer (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD i default))
     rw [hsq]; exact sqCount_mul hP

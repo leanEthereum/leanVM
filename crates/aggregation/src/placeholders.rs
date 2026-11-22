@@ -233,6 +233,8 @@ fn constants(ph: &mut Placeholders) {
         ("QW", &QUERY_WINDOW_BITS),
         ("QUERY_WINDOWS_CAP", &QUERY_WINDOWS_CAP),
         ("MU_CAP", &MU_CAP),
+        ("GKR_ROUNDS_CAP", &(MU_CAP * (MU_CAP + 1) / 2 + MU_CAP + 2)),
+        ("GKR_POINTS_CAP", &((MU_CAP + 1) * MU_CAP)),
         ("MIN_LOG_MEM", &verifier::MIN_LOG_MEMORY),
         ("MAX_LOG_MEM", &verifier::MAX_LOG_MEMORY),
         ("INV_GEN", &F128::from(F64::G.inv())),
@@ -254,7 +256,6 @@ fn constants(ph: &mut Placeholders) {
         // The grinds: the bus's by the push depth, a sumcheck round of degree `d`, eq factor included, then each
         // other challenge the guest grinds for.
         ("BUS_GRIND_BITS", &(0..64).map(bus_grinding_bits).collect::<Vec<_>>()),
-        ("GKR_RECORDS", &(0..64).map(gkr_records).collect::<Vec<_>>()),
         ("ROUND2_GRIND_BITS", &grinding_bits(2)),
         ("ROUND3_GRIND_BITS", &grinding_bits(3)),
         ("ROUND5_GRIND_BITS", &ROUND_GRIND),
@@ -929,19 +930,4 @@ fn signature_placeholders(ph: &mut Placeholders) {
     ] {
         ph.set(name, cell(at.with_type(t), 1));
     }
-}
-
-/// The bus GKR's round records at push depth `depth` (`verify_bus_gkr`): the root layer's, then per radix-four layer
-/// of `2k + odd` rounds its head, one a loop step of eight rounds, one per pair of the `2 (k % 4)` left, the odd
-/// round's, and one past the last.
-fn gkr_records(depth: usize) -> usize {
-    let odd = depth % 2;
-    // Layer p (from 0) runs 2k + odd rounds, k = p + 1 - odd; the records start at index 1.
-    let layers = depth.saturating_sub(1) / 2;
-    2 + (0..layers)
-        .map(|p| {
-            let k = p + 1 - odd;
-            k / 4 + k % 4 + odd + 1
-        })
-        .sum::<usize>()
 }

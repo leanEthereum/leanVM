@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.Flips
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
 /-!
 # The tail
@@ -69,13 +71,13 @@ theorem tailT_holds {o W wv : ℕ} {locPt : List E} (hlocL : locPt.length = 11)
       ((⟨(cap5 (o + 1085)).map σ, []⟩ : Fs).absorbAll
         [σ (.n (o + 1098)), σ (.n (o + 1101)), σ (.n (o + 1104))] dsObserve).squeeze =
         (σ (.n (W + 8)), ⟨(cap5 (W + 16)).map σ, []⟩) ∧
-      LoadHolds rd (σ (.n 12)) 0 (σ (.n (o + 1098)) + σ (.n (W + 8)) *
+      LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 0 (σ (.n (o + 1098)) + σ (.n (W + 8)) *
         (σ (.n (o + 1101)) + σ (.n (W + 8)) * σ (.n (o + 1104)))) ∧
-      LoadHolds rd (σ (.n 12)) 2 (σ (.n (o + 718))) ∧
-      LoadHolds rd (σ (.n 12)) 4 (σ (.n (o + 745))) ∧
-      LoadHolds rd (σ (.n 12)) 3 (σ (.n (W + 25))) ∧
+      LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 2 (σ (.n (o + 718))) ∧
+      LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 4 (σ (.n (o + 745))) ∧
+      LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 3 (σ (.n (W + 25))) ∧
       ReadsAt rd (σ (.n (W + 25))) (lanesOut locPt (σ (.n (W + 8)))) ∧
-      LoadHolds rd (σ (.n 12)) 5 (σ (.n (topV W + 3))) ∧
+      LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 5 (σ (.n (topV W + 3))) ∧
       ReadsAt rd (σ (.n (topV W + 3)))
         (flipsOf (laterWeights (lanesOut locPt (σ (.n (W + 8)))) (eqKernel (locPt.take 6)))) ∧
       kret ((cap5 (W + 16)).map σ ++ [σ (.n (o + 743)) * gen ^ 36]) := by

@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.B1.Main.Loops
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«main»
 
 /-!
 # `main`'s body
@@ -33,25 +35,25 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 /-! ## The shape -/
 
-noncomputable def mPre : List Stmt := (Fn.body fn% «main»).take 615
-noncomputable def mDa : List Stmt := match (Fn.body fn% «main»).getD 615 default with
+noncomputable def mPre : List Stmt := (Fn.body fn% «main»).take (pos% «main» "root_0")
+noncomputable def mDa : List Stmt := match (Fn.body fn% «main»).getD (pos% «main» "root_0") default with
   | .ite _ z _ => z
   | _ => []
-noncomputable def mDaZ : List Stmt := match (Fn.body fn% «main»).getD 615 default with
+noncomputable def mDaZ : List Stmt := match (Fn.body fn% «main»).getD (pos% «main» "root_0") default with
   | .ite _ _ n => n
   | _ => []
-noncomputable def mMid : List Stmt := ((Fn.body fn% «main»).drop 616).take 39
-noncomputable def mLeaf : List Stmt := match (Fn.body fn% «main»).getD 655 default with
+noncomputable def mMid : List Stmt := ((Fn.body fn% «main»).drop (pos% «main» "child_pi")).take (span% «main» "child_pi" "leaf_value")
+noncomputable def mLeaf : List Stmt := match (Fn.body fn% «main»).getD (pos% «main» "leaf_value") default with
   | .ite _ z _ => z
   | _ => []
-noncomputable def mAgg : List Stmt := match (Fn.body fn% «main»).getD 655 default with
+noncomputable def mAgg : List Stmt := match (Fn.body fn% «main»).getD (pos% «main» "leaf_value") default with
   | .ite _ _ n => n
   | _ => []
-noncomputable def mPost : List Stmt := ((Fn.body fn% «main»).drop 656).take 11
+noncomputable def mPost : List Stmt := ((Fn.body fn% «main»).drop (pos% «main» "own_0~2")).dropLast
 
 set_option maxRecDepth 100000 in
 theorem main_shape : Fn.body fn% «main» =
-    mPre ++ [.ite (.n 368) mDa mDaZ] ++ mMid ++ [.ite (.n 418) mLeaf mAgg] ++ mPost ++ [.ret []] :=
+    mPre ++ [.ite (.n (val% «main» "s50#1")) mDa mDaZ] ++ mMid ++ [.ite (.n (val% «main» "s63#1")) mLeaf mAgg] ++ mPost ++ [.ret []] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-! ## The facts, by evaluation -/
@@ -78,9 +80,9 @@ theorem rcDir_sound {rd : Reader} (hm : MemOk rd) {σ : Val} {atoms : List Atom}
   obtain ⟨e, e', he, he', hx, hk⟩ := rc_sound hm ⟨h1, h2, h3⟩
   exact ⟨e, hx, he, e', he', by rw [hk, ← pow_succ]⟩
 
-/-- `lx_tags` (lean_ethereum.py): the `LX_N_TAGS = 51` constants `.n 304 ..< .n 355`,
+/-- `lx_tags` (lean_ethereum.py): the `LX_N_TAGS = 51` constants `.n 318 ..< .n 369`,
 the carried chain indices, passed whole to `main_loop2` after its four parameters. -/
-def lxTagsV : List V := (List.range 51).map fun j => .n (304 + j)
+def lxTagsV : List V := (List.range 51).map fun j => .n ((val% «main» "lx_tags[0]") + j)
 
 /-- The chain indices `lx_tags` holds, by slot: the carried indices below `LX_V = 58` (neither `0`
 nor a power of two), in increasing order (`LX_TAG_SLOT`). -/
@@ -93,74 +95,74 @@ noncomputable def preOk : Bool :=
   let P := mPre
   let A := atomsIn mPre
   P.all Stmt.flat &&
-  ((List.range 6).all fun v => isTouch A (.n (8 + v)) (.n v)) &&
-  rcConstOk A (.n 6) 65536 && rcConstOk A (.n 7) 2 &&
-  isTouch A (.n 25) (.n 24) &&
-  isMul A (.n 22) (.n 0) (.n 1) && isMul A (.n 23) (.n 3) (.n 4) &&
-  isMul A (.n 24) (.n 22) (.n 23) &&
-  hasCall P "exponent_tables" [] [.n 28] &&
-  hasCall P "claim_list_digest" [.n 31, .n 0] [.n 35, .n 36] &&
-  hasCall P "claim_list_digest" [.n 34, .n 3] [.n 37, .n 38] &&
-  ((List.range 256).all fun v => A.any (isConstAt (.n (48 + v)) v 0) &&
-    A.any (isLoadAt (.n (48 + v)) (.n 47) v)) &&
-  isMul A (.n 46) (.n 45) (.n 22) &&
-  guardOk P (.n 356) name% «main_loop2» (.n 357) (.n 2) ([.n 22, .n 45, .n 31] ++ lxTagsV) &&
+  ((List.range 6).all fun v => isTouch A (.n ((val% «main» "s10#0") + v)) (.n v)) &&
+  rcConstOk A (.n (val% «main» "meta[6]")) 65536 && rcConstOk A (.n (val% «main» "meta[7]")) 2 &&
+  isTouch A (.n (val% «main» "s21#0")) (.n (val% «main» "n_total_g")) &&
+  isMul A (.n (val% «main» "lx_slots_g")) (.n (val% «main» "meta[0]")) (.n (val% «main» "meta[1]")) && isMul A (.n (val% «main» "lean_sphincs_slots_g")) (.n (val% «main» "meta[3]")) (.n (val% «main» "meta[4]")) &&
+  isMul A (.n (val% «main» "n_total_g")) (.n (val% «main» "lx_slots_g")) (.n (val% «main» "lean_sphincs_slots_g")) &&
+  hasCall P "exponent_tables" [] [.n (val% «main» "g_squares")] &&
+  hasCall P "claim_list_digest" [.n (val% «main» "lx_table"), .n (val% «main» "meta[0]")] [.n (val% «main» "xd_0"), .n (val% «main» "xd_1")] &&
+  hasCall P "claim_list_digest" [.n (val% «main» "lean_sphincs_table"), .n (val% «main» "meta[3]")] [.n (val% «main» "sd_0"), .n (val% «main» "sd_1")] &&
+  ((List.range 256).all fun v => A.any (isConstAt (.n ((val% «main» "s43.u0.s0#0") + v)) v 0) &&
+    A.any (isLoadAt (.n ((val% «main» "s43.u0.s0#0") + v)) (.n (val% «main» "byte_bits")) v)) &&
+  isMul A (.n (val% «main» "sp_cover")) (.n (val% «main» "cover")) (.n (val% «main» "lx_slots_g")) &&
+  guardOk P (.n (val% «main» "s46#1")) name% «main_loop2» (.n (val% «main» "s46#2")) (.n (val% «main» "meta[2]")) ([.n (val% «main» "lx_slots_g"), .n (val% «main» "cover"), .n (val% «main» "lx_table")] ++ lxTagsV) &&
   ((List.range 58).all fun i => !Sig.lxTagCarried i ||
-    A.any (isConstAt (.n (304 + (Sig.lxTagSlot i - 1))) i 0)) &&
-  guardOk P (.n 359) name% «main_loop3» (.n 360) (.n 5) [.n 23, .n 46, .n 2, .n 34, .n 47] &&
-  isMul A (.n 365) (.n 6) (.n 6) && isMul A (.n 366) (.n 364) (.n 365) &&
-  A.any (isAddAt (.n 368) (.n 7) (.n 367)) && A.any (isConstAt (.n 367) 2 0)
+    A.any (isConstAt (.n ((val% «main» "lx_tags[0]") + (Sig.lxTagSlot i - 1))) i 0)) &&
+  guardOk P (.n (val% «main» "s47#1")) name% «main_loop3» (.n (val% «main» "s47#2")) (.n (val% «main» "meta[5]")) [.n (val% «main» "lean_sphincs_slots_g"), .n (val% «main» "sp_cover"), .n (val% «main» "meta[2]"), .n (val% «main» "lean_sphincs_table"), .n (val% «main» "byte_bits")] &&
+  isMul A (.n (val% «main» "own_da~0")) (.n (val% «main» "meta[6]")) (.n (val% «main» "meta[6]")) && isMul A (.n (val% «main» "own_da")) (.n (val% «main» "da_digests")) (.n (val% «main» "own_da~0")) &&
+  A.any (isAddAt (.n (val% «main» "s50#1")) (.n (val% «main» "meta[7]")) (.n (val% «main» "s50#0"))) && A.any (isConstAt (.n (val% «main» "s50#0")) 2 0)
 
 noncomputable def daOk : Bool :=
   let D := mDa
   D.all Stmt.flat &&
-  hasCall D "da_verify" [.n 47] [.n 369, .n 370, .n 371] &&
-  (atomsIn D).any (isConstAt (.n 373) 0 0) &&
-  pairHashOk (atomsIn D) (.n 369) (.n 370) (.n 371) (.n 373) (.n 366)
+  hasCall D "da_verify" [.n (val% «main» "byte_bits")] [.n (val% «main» "root_0"), .n (val% «main» "root_1"), .n (val% «main» "z")] &&
+  (atomsIn D).any (isConstAt (.n (val% «main» "s50.t.s1#1[1]")) 0 0) &&
+  pairHashOk (atomsIn D) (.n (val% «main» "root_0")) (.n (val% «main» "root_1")) (.n (val% «main» "z")) (.n (val% «main» "s50.t.s1#1[1]")) (.n (val% «main» "own_da"))
 
 noncomputable def daZOk : Bool :=
   let A := atomsIn mDaZ
   mDaZ.all Stmt.flat &&
-  A.any (isConstAt (.n 380) 0 0) && isLoad A (.n 380) (.n 366) 0 &&
-  A.any (isConstAt (.n 381) 0 0) && isLoad A (.n 381) (.n 366) 1
+  A.any (isConstAt (.n (val% «main» "s50.e.s0#0")) 0 0) && isLoad A (.n (val% «main» "s50.e.s0#0")) (.n (val% «main» "own_da")) 0 &&
+  A.any (isConstAt (.n (val% «main» "s50.e.s1#0")) 0 0) && isLoad A (.n (val% «main» "s50.e.s1#0")) (.n (val% «main» "own_da")) 1
 
 noncomputable def midOk : Bool :=
   let M := mMid
   let A := atomsIn mMid
   M.all Stmt.flat &&
-  isMul A (.n 399) (.n 2) (.n 5) && isLoad A (.n 399) (.n 398) 0 &&
-  guardOk M (.n 401) name% «main_loop4» (.n 402) (.n 6) [.n 398, .n 31, .n 45, .n 22, .n 34, .n 46,
-    .n 23, .n 395, .n 364, .n 26, .n 27, .n 383, .n 28, .n 389] &&
-  isMul A (.n 403) (.n 398) (.n 6) && isLoad A (.n 404) (.n 403) 0 &&
-  A.any (isAssertEqAt (.n 404) (.n 24)) &&
-  decide (rcOf A (.n 405) = some (.n 6)) &&
-  A.any (isAddAt (.n 409) (.n 405) (.n 6)) && A.any (isAddAt (.n 411) (.n 7) (.n 410)) &&
-  A.any (isConstAt (.n 410) 1 0) && isMul A (.n 412) (.n 409) (.n 411) &&
-  A.any (isConstAt (.n 413) 0 0) && A.any (isAssertEqAt (.n 412) (.n 413)) &&
-  isMul A (.n 414) (.n 405) (.n 405) && isMul A (.n 415) (.n 364) (.n 414) &&
-  A.any (isAddAt (.n 418) (.n 6) (.n 417)) && A.any (isConstAt (.n 417) 1 0)
+  isMul A (.n (val% «main» "s55#0")) (.n (val% «main» "meta[2]")) (.n (val% «main» "meta[5]")) && isLoad A (.n (val% «main» "s55#0")) (.n (val% «main» "written")) 0 &&
+  guardOk M (.n (val% «main» "s56#1")) name% «main_loop4» (.n (val% «main» "s56#2")) (.n (val% «main» "meta[6]")) [.n (val% «main» "written"), .n (val% «main» "lx_table"), .n (val% «main» "cover"), .n (val% «main» "lx_slots_g"), .n (val% «main» "lean_sphincs_table"), .n (val% «main» "sp_cover"),
+    .n (val% «main» "lean_sphincs_slots_g"), .n (val% «main» "child_carried"), .n (val% «main» "da_digests"), .n (val% «main» "fs_seed[0]"), .n (val% «main» "fs_seed[1]"), .n (val% «main» "child_pi"), .n (val% «main» "g_squares"), .n (val% «main» "child_fresh")] &&
+  isMul A (.n (val% «main» "s57#0")) (.n (val% «main» "written")) (.n (val% «main» "meta[6]")) && isLoad A (.n (val% «main» "s57#1")) (.n (val% «main» "s57#0")) 0 &&
+  A.any (isAssertEqAt (.n (val% «main» "s57#1")) (.n (val% «main» "n_total_g"))) &&
+  decide (rcOf A (.n (val% «main» "da_pick")) = some (.n (val% «main» "meta[6]"))) &&
+  A.any (isAddAt (.n (val% «main» "s60#0")) (.n (val% «main» "da_pick")) (.n (val% «main» "meta[6]"))) && A.any (isAddAt (.n (val% «main» "s60#2")) (.n (val% «main» "meta[7]")) (.n (val% «main» "s60#1"))) &&
+  A.any (isConstAt (.n (val% «main» "s60#1")) 1 0) && isMul A (.n (val% «main» "s60#3")) (.n (val% «main» "s60#0")) (.n (val% «main» "s60#2")) &&
+  A.any (isConstAt (.n (val% «main» "s60#4")) 0 0) && A.any (isAssertEqAt (.n (val% «main» "s60#3")) (.n (val% «main» "s60#4"))) &&
+  isMul A (.n (val% «main» "da~0")) (.n (val% «main» "da_pick")) (.n (val% «main» "da_pick")) && isMul A (.n (val% «main» "da")) (.n (val% «main» "da_digests")) (.n (val% «main» "da~0")) &&
+  A.any (isAddAt (.n (val% «main» "s63#1")) (.n (val% «main» "meta[6]")) (.n (val% «main» "s63#0"))) && A.any (isConstAt (.n (val% «main» "s63#0")) 1 0)
 
 noncomputable def leafOk : Bool :=
   mLeaf.all Stmt.flat &&
-  ((List.range 23).all fun k => (atomsIn mLeaf).any (isConstAt (.n (420 + k)) 0 0) &&
-    isLoad (atomsIn mLeaf) (.n (420 + k)) (.n 416) k) &&
-  isLoad (atomsIn mLeaf) (.n 419) (.n 416) 23 &&
+  ((List.range 23).all fun k => (atomsIn mLeaf).any (isConstAt (.n ((val% «main» "s63.t.s1.u0.s0#0") + k)) 0 0) &&
+    isLoad (atomsIn mLeaf) (.n ((val% «main» "s63.t.s1.u0.s0#0") + k)) (.n (val% «main» "defer_stmt")) k) &&
+  isLoad (atomsIn mLeaf) (.n (val% «main» "leaf_value")) (.n (val% «main» "defer_stmt")) 23 &&
   mAgg.all Stmt.flat &&
-  (atomsIn mAgg).any (isConstAt (.n 443) 133823759239872512 0) &&
-  isMul (atomsIn mAgg) (.n 444) (.n 28) (.n 443) &&
-  hasCall mAgg "aggregate_claims" [.n 6, .n 383, .n 389, .n 395, .n 416, .n 444] []
+  (atomsIn mAgg).any (isConstAt (.n (val% «main» "s63.e.s0#0")) 133823759239872512 0) &&
+  isMul (atomsIn mAgg) (.n (val% «main» "s63.e.s0#1")) (.n (val% «main» "g_squares")) (.n (val% «main» "s63.e.s0#0")) &&
+  hasCall mAgg "aggregate_claims" [.n (val% «main» "meta[6]"), .n (val% «main» "child_pi"), .n (val% «main» "child_fresh"), .n (val% «main» "child_carried"), .n (val% «main» "defer_stmt"), .n (val% «main» "s63.e.s0#1")] []
 
 noncomputable def postOk : Bool :=
   let A := atomsIn mPost
   mPost.all Stmt.flat &&
-  isLoad A (.n 445) (.n 415) 0 && isLoad A (.n 446) (.n 415) 1 &&
-  hasCall mPost "statement_digest" [.n 26, .n 27, .n 35, .n 36, .n 37, .n 38, .n 445, .n 446, .n 416]
-    [.n 447, .n 448] &&
-  A.any (isConstAt (.n 449) 1 0) && isLoad A (.n 450) (.n 449) 0 &&
-  A.any (isAssertEqAt (.n 450) (.n 447)) &&
-  A.any (isConstAt (.n 451) 1 0) && A.any (isConstAt (.n 452) 2 0) &&
-  isMul A (.n 453) (.n 451) (.n 452) && isLoad A (.n 454) (.n 453) 0 &&
-  A.any (isAssertEqAt (.n 454) (.n 448))
+  isLoad A (.n (val% «main» "own_0~2")) (.n (val% «main» "da")) 0 && isLoad A (.n (val% «main» "own_0~3")) (.n (val% «main» "da")) 1 &&
+  hasCall mPost "statement_digest" [.n (val% «main» "fs_seed[0]"), .n (val% «main» "fs_seed[1]"), .n (val% «main» "xd_0"), .n (val% «main» "xd_1"), .n (val% «main» "sd_0"), .n (val% «main» "sd_1"), .n (val% «main» "own_0~2"), .n (val% «main» "own_0~3"), .n (val% «main» "defer_stmt")]
+    [.n (val% «main» "own_0"), .n (val% «main» "own_1")] &&
+  A.any (isConstAt (.n (val% «main» "s66#0")) 1 0) && isLoad A (.n (val% «main» "s66#1")) (.n (val% «main» "s66#0")) 0 &&
+  A.any (isAssertEqAt (.n (val% «main» "s66#1")) (.n (val% «main» "own_0"))) &&
+  A.any (isConstAt (.n (val% «main» "s67#0")) 1 0) && A.any (isConstAt (.n (val% «main» "s67#1")) 2 0) &&
+  isMul A (.n (val% «main» "s67#2")) (.n (val% «main» "s67#0")) (.n (val% «main» "s67#1")) && isLoad A (.n (val% «main» "s67#3")) (.n (val% «main» "s67#2")) 0 &&
+  A.any (isAssertEqAt (.n (val% «main» "s67#3")) (.n (val% «main» "own_1")))
 
 set_option maxRecDepth 100000 in
 theorem pre_ok : preOk = true := by decide +kernel

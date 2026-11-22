@@ -2,12 +2,12 @@
 """Write `LeanVM/Guest/B1/Whir/Data{m}.lean` and `DataAll.lean` (every size's `open_stacked__L{m}`
 is its template, `OsData m`, `Whir/DataSpec.lean`), and `HelperData{k}.lean`, `HelperFind{c}.lean`,
 `HelperTables.lean` and `HelperAll.lean` (every specialization of `level_positions`,
-`level_queries`, `level_residual` and of their loops is its template, `Whir/HelperT.lean`, and the
-helpers' tables), by kernel evaluation. `Data{m}` reads only its function's core pack, and
+`level_queries`, `level_residual`, `level_residual_slow`, `level_residual_sum`, `residual_query_slow` and of their loops is its template,
+`Whir/HelperT.lean`, `Whir/SlowT.lean`, and the helpers' tables), by kernel evaluation. `Data{m}` reads only its function's core pack, and
 `HelperData{k}` the helpers in core pack `k` (`Guest/Pack/P{k}/Core.lean`) and that pack only;
 they hold for any program that finds the functions (`FnIsP`, `OsDataP`, `Whir/DataSpecP.lean`), and
 `DataAll` and `HelperFind{c}` (eight chunks of packs) find them in `coreProgram`. The sizes are `ligNSizes`
-(`LIG_N_LOG_SIZES`, `Data/Source.lean`); the functions' keys, indices and packs are read from the core IR
+(`LIG_N_LOG_SIZES`, `Data/Consts.lean`); the functions' keys, indices and packs are read from the core IR
 (`Guest/Data/Core.lean`, `Guest/Pack`, `scripts/coredata.py`), the loops a helper calls and the body lengths from
 `guest-core --show`; the kernel checks them. Run from `lean_vm` after `lake build guest-core`:
 
@@ -25,13 +25,13 @@ WHIR = Path("LeanVM/Guest/B1/Whir")
 
 def res_batch():
     """`RES_BATCH`, as the templates read it: `resBatch` in `Whir/Template.lean`, a literal or the
-    guest's constant (`guest_const%`) exported to `Guest/Data/Source.lean`."""
+    guest's constant (`guest_const%`) exported to `Guest/Data/Consts.lean`."""
     t = (WHIR / "Template.lean").read_text()
     m = re.search(r"^abbrev resBatch : ℕ := (\d+)$", t, re.M)
     if m:
         return int(m.group(1))
     c = re.search(r"^abbrev resBatch : ℕ := guest_const% (\w+)$", t, re.M).group(1)
-    src = Path("LeanVM/Guest/Data/Source.lean").read_text()
+    src = Path("LeanVM/Guest/Data/Consts.lean").read_text()
     return int(re.search(rf"^def const_{c} : Nat := (\d+)$", src, re.M).group(1))
 
 
@@ -67,7 +67,7 @@ def loops(name):
             for m in re.finditer(r'noncomputable def core(\d+) : Core\.Fn where\n(.*?)(?=\n\n)', t, re.S):
                 BODIES[int(m.group(1))] = BODIES.get(int(m.group(1)), "") + m.group(2)
     seen = []
-    for l in re.findall(r'"(__loop\d+)"', BODIES[IDX[name]]):
+    for l in re.findall(r'"(__loop[^"]*)"', BODIES[IDX[name]]):
         if l not in seen:
             seen.append(l)
     return seen
@@ -190,9 +190,22 @@ def nest(items):
 
 
 def helpers(idx):
-    thms, lp, lq, lr = [], [], [], []
+    thms, lp, lq, lr, lrs, rs = [], [], [], [], [], []
     for name in sorted(idx, key=lambda n: idx[n]):
-        if name.startswith("level_positions__L"):
+        if name.startswith("level_residual_slow__L"):
+            q, pre, yr, vo = nums(name, "level_residual_slow__L")
+            sm = f"level_residual_sum__L{q}_L{pre}_L{yr}_L{vo}"
+            (loop,) = loops(sm)
+            rq = f"residual_query_slow__L{pre}_L{yr}_L{vo}"
+            thms.append((name, thm(name, 5, f'lrsBody "{sm}"')))
+            thms.append((sm, thm(sm, 4, f'lsumBody {q} "{loop}"')))
+            thms.append((loop, thm(loop, 8, f'lrsLoopBody "{rq}" "{loop}"')))
+            lrs.append((name, q, pre, yr, vo, sm, loop, rq, inst(name), inst(sm), inst(loop)))
+        elif name.startswith("residual_query_slow__L"):
+            pre, yr, vo = nums(name, "residual_query_slow__L")
+            thms.append((name, thm(name, 3, f"rqsBody {pre} {yr} {vo}")))
+            rs.append((name, pre, yr, vo, inst(name)))
+        elif name.startswith("level_positions__L"):
             sq, d, cd = nums(name, "level_positions__L")
             (loop,) = loops(name)
             thms.append((name, thm(name, 9, f'lpBody {sq} {d} {cd} "{loop}"')))
@@ -223,7 +236,8 @@ def helpers(idx):
         chunk = byPack[k]
         out[f"HelperData{k}"] = (HDR.format(
             mod=f"HelperData{k}", doc="Specializations of `open_stacked`'s helpers are their templates, by kernel evaluation.",
-            imports="public import LeanVM.Guest.B1.Whir.HelperT\npublic import LeanVM.Guest.B1.Whir.DataSpecP\n"
+            imports="public import LeanVM.Guest.B1.Whir.HelperT\npublic import LeanVM.Guest.B1.Whir.SlowT\n"
+            "public import LeanVM.Guest.B1.Whir.DataSpecP\n"
             + "".join(dict.fromkeys(fn_import(KEY[f]) for f, _ in chunk)))
             + "".join(x for _, (x, _) in chunk) + FTR)
     # the finds are glue, cheap: FIND_CHUNKS modules, pack `k` in chunk `k % FIND_CHUNKS`
@@ -240,6 +254,10 @@ def helpers(idx):
     lpT = ",\n".join(f"  ({s(n)}, {sq}, {s(l)}, {d}, {cd})" for n, sq, l, d, cd, *_ in lp)
     lqT = ",\n".join(f"  ({s(n)}, {', '.join(map(str, ps))})" for n, ps, _ in lq)
     lrT = ",\n".join(f"  ({s(n)}, {q}, {c}, {h}, {b}, {s(l1)}, {s(l2)})" for n, q, c, h, b, l1, l2, *_ in lr)
+    lsT = ",\n".join(f"  ({s(n)}, {q}, {p}, {y}, {v}, {s(m)}, {s(l)}, {s(r)})" for n, q, p, y, v, m, l, r, *_ in lrs)
+    rsT = ",\n".join(f"  ({s(n)}, {p}, {y}, {v})" for n, p, y, v, _ in rs)
+    lsOk = nest(f"⟨{a}, {b}, {c}⟩" for *_, a, b, c in lrs)
+    rsOk = nest(t for *_, t in rs)
     lpOk = nest(f"⟨{a}, {b}⟩" for *_, a, b in lp)
     lqOk = nest(t for *_, t in lq)
     lrOk = nest(f"⟨{a}, {b}, {'(fun _ ↦ ' + c + ')' if c else '(fun h ↦ (h (by decide)).elim)'}⟩"
@@ -253,8 +271,10 @@ def helpers(idx):
 `lpTable` (`level_positions`: name, squeezes, loop, depth, cap depth), `lqTable`
 (`level_queries`: name, queries, base, folds, leaf cells, depth, cap depth, the final level's
 message log, lane length and index bits, and whether final), `lrTable` (`level_residual`: name,
-queries, columns, high part's length and index bits, its two loops). `Whir/HelperAll.lean` proves
-every entry its template's instance.
+queries, columns, high part's length and index bits, its two loops), `lrsTable`
+(`level_residual_slow`: name, queries, prefix, tail rounds, vanishing offset, its
+`level_residual_sum`, that one's loop, their `residual_query_slow`), `rqsTable` (`residual_query_slow`: name, prefix, tail rounds, vanishing
+offset). `Whir/HelperAll.lean` proves every entry its template's instance.
 -/
 
 /-- The `lpTable` table. -/
@@ -268,6 +288,14 @@ def lqTable : List (String × ℕ × ℕ × ℕ × ℕ × ℕ × ℕ × ℕ × �
 /-- The `lrTable` table. -/
 def lrTable : List (String × ℕ × ℕ × ℕ × ℕ × String × String) := [
 {lrT}]
+
+/-- The `lrsTable` table. -/
+def lrsTable : List (String × ℕ × ℕ × ℕ × ℕ × String × String × String) := [
+{lsT}]
+
+/-- The `rqsTable` table. -/
+def rqsTable : List (String × ℕ × ℕ × ℕ) := [
+{rsT}]
 
 /-- `level_positions`' loop, by the specialization's name. -/
 def lpLoopOf (name : String) : String := ((lpTable.find? (·.1 = name)).map (·.2.2.1)).getD ""
@@ -303,13 +331,21 @@ theorem lrTable_ok : ∀ e ∈ lrTable, FnIs e.1 (osParams 4) (lrBody e.2.1 e.2.
     FnIs e.2.2.2.2.2.1 (osParams 7) (lrLoop1Body e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.1) ∧
     (e.2.1 % resBatch ≠ 0 →
       FnIs e.2.2.2.2.2.2 (osParams 7) (lrLoop2Body e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.2)) :={lrOk}
+
+set_option maxRecDepth 100000 in
+theorem lrsTable_ok : ∀ e ∈ lrsTable, FnIs e.1 (osParams 5) (lrsBody e.2.2.2.2.2.1) ∧
+    FnIs e.2.2.2.2.2.1 (osParams 4) (lsumBody e.2.1 e.2.2.2.2.2.2.1) ∧
+    FnIs e.2.2.2.2.2.2.1 (osParams 8) (lrsLoopBody e.2.2.2.2.2.2.2 e.2.2.2.2.2.2.1) :={lsOk}
+
+set_option maxRecDepth 100000 in
+theorem rqsTable_ok : ∀ e ∈ rqsTable, FnIs e.1 (osParams 3) (rqsBody e.2.1 e.2.2.1 e.2.2.2) :={rsOk}
 """ + FTR
-    return out, len(thms), (len(lp), len(lq), len(lr))
+    return out, len(thms), (len(lp), len(lq), len(lr), len(lrs), len(rs))
 
 
 def main():
     arms = int(re.search(r"def const_LIG_N_LOG_SIZES : Nat := (\d+)",
-                         Path("LeanVM/Guest/Data/Source.lean").read_text()).group(1))
+                         Path("LeanVM/Guest/Data/Consts.lean").read_text()).group(1))
     global IDX, KEY
     idx = core_indices()
     IDX = idx
@@ -340,7 +376,7 @@ def main():
         else:
             path.write_text(text)
     if not check:
-        print(arms, "sizes;", n, "helper theorems; lp, lq, lr:", counts)
+        print(arms, "sizes;", n, "helper theorems; lp, lq, lr, lrs, rqs:", counts)
     return stale
 
 

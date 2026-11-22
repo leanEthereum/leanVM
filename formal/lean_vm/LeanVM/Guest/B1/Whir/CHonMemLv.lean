@@ -114,7 +114,7 @@ theorem mid_glue (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) {l : ℕ} (hl
     LoadHolds rd (osPtrA h.c b 8) (l + 1) ((h.L l).lam h.logN) ∧
       LoadHolds rd (osPtrA h.c b 4) l ((h.L l).lam h.logN * (h.L l).lam h.logN *
         (h.L l).lam h.logN ^ ((h.c.levels.getD l default)).queries) ∧
-      LoadHolds rd (osPtrA h.c b 5) l ((h.L l).lam h.logN)⁻¹ := by
+      LoadHolds rd (osPtrA h.c b 5) l (lamInvOf ((h.L l).lam h.logN)) := by
   have hyr := hS.yr
   have h10 := hS.head (j := 8) (by omega)
   have h6 := hS.head (j := 4) (by omega)

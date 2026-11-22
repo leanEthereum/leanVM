@@ -7,13 +7,14 @@
 module
 
 public import LeanVM.Guest.B1.Whir.Squeezes
+public import LeanVM.Guest.B1.Whir.SlowSpec
 
 /-!
 # The batching challenge
 
 `squeeze`: the query message's last squeeze, a permutation of the carried capacity (the zero
-run's cells for the rate), `λ` its cell `0` and `1/λ` constrained by `λ·μ = 1`. `osLam_sound`:
-that is `Fs.squeeze`, and `λ ≠ 0`.
+run's cells for the rate), `λ` its cell `0` and `μ` constrained by `(λ + is_zero(λ))·μ = 1`.
+`osLam_sound`: that is `Fs.squeeze`, and `λ·μ = 1` where `λ ≠ 0`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -26,11 +27,11 @@ open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.
 variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-- What a non-final level's batching challenge leaves: `λ` and the sponge `Fs.squeeze` of the
-carried one, `λ·μ = 1`. -/
+carried one, `λ·μ = 1` where `λ ≠ 0`. -/
 structure LamOut (σ : Val) (st st' : OsSt) : Prop where
   lam : σ (.n st'.lam) = (st.F σ).squeeze.1
   F : st'.F σ = (st.F σ).squeeze.2
-  inv : σ (.n st'.lam) * σ (.n st'.lamInv) = 1
+  inv : σ (.n st'.lam) ≠ 0 → σ (.n st'.lam) * σ (.n st'.lamInv) = 1
   cur : st'.cur σ = st.cur σ
   fs : st'.fs.length = 5
   mats : st'.mats = st.mats
@@ -40,6 +41,7 @@ structure LamOut (σ : Val) (st st' : OsSt) : Prop where
 
 /-- **A non-final level's batching challenge, soundly**. -/
 theorem osLam_sound {st : OsSt} (hfs : st.fs.length = 5)
+    (hiz : ∀ a r, C "is_zero" a r → IsZeroRet a r)
     (hpad : PadOk σ st.pad) (hok : AllOk C rd σ (osLam st).1) : LamOut σ st (osLam st).2 := by
   obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fs_five st hfs
   unfold osLam at hok ⊢
@@ -53,9 +55,9 @@ theorem osLam_sound {st : OsSt} (hfs : st.fs.length = 5)
   set p := (osPad st.pad (st.k + 5)).2.1 with hp
   set j := (osPad st.pad (st.k + 5)).2.2 with hj
   obtain ⟨z1, z2, z3, z4⟩ := hP p rfl
-  simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_const, holds_mul,
-    osCst, osMul, osKeccak] at hrest
-  obtain ⟨hK, one, hinv⟩ := hrest
+  simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, stmtOk_call, holds_const, holds_mul,
+    holds_add, osCst, osMul, osAdd, osKeccak] at hrest
+  obtain ⟨hK, one, hz, hadd, hinv⟩ := hrest
   have hF : st.F σ = ⟨[σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)], []⟩ := by
     simp [OsSt.F, hf]
   have hout := keccakA_fs (s := (⟨[σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)], []⟩ : Fs))
@@ -75,8 +77,13 @@ theorem osLam_sound {st : OsSt} (hfs : st.fs.length = 5)
     have e12 : σ (.n (j + 12)) = _ := o 12
     rw [e8, e9, e10, e11, e12]
     rfl
-  · show σ (.n j) * σ (.n (j + 14)) = 1
-    rw [mul_comm, ← hinv, one]
+  · show σ (.n j) ≠ 0 → σ (.n j) * σ (.n (j + 16)) = 1
+    intro h0
+    have hz' := hiz _ _ hz
+    simp only [List.map_cons, List.map_nil, IsZeroRet, List.getD_cons_zero, zeroOf, h0, ↓reduceIte,
+      List.cons.injEq, and_true] at hz'
+    rw [hz', add_zero] at hadd
+    rw [mul_comm, ← hadd, ← hinv, one]
     exact word_one
   · intro q hq
     simp only [Option.some.injEq] at hq

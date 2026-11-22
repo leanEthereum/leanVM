@@ -11,6 +11,8 @@ public import LeanVM.Guest.B1.Whir.RoundComplete
 public import LeanVM.Guest.B1.Whir.RoundFind
 public import LeanVM.Guest.Lift.OsCallees
 public import LeanVM.Guest.B1.Tables.FlatAt
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«opening_round»
 
 /-!
 # `opening_round`, placed
@@ -56,7 +58,7 @@ theorem roundPre_disp (σ : Val) : ∀ s ∈ roundPre, DispOk σ s := by
   cases s <;> simp_all [DispOk]
 
 theorem roundPre_calls (σ : Val) : roundPre.filterMap (Stmt.callSF σ) =
-    [(none, "grind_check__L7", [.n 49, .n 7], [])] :=
+    [(none, "grind_check__L7", [.n (val% «opening_round» "nxt[1]@2"), .n (val% «opening_round» "tabs")], [])] :=
   rfl
 
 /-- A statement other than a branch. -/
@@ -77,17 +79,17 @@ theorem flatMap_loadsEv_noIte (σ : Val) : ∀ l : List Stmt, l.all Stmt.noIte =
 theorem roundPre_noIte : roundPre.all Stmt.noIte = true := by decide +kernel
 
 theorem roundPre_loadsS : roundPre.filterMap Stmt.loadS =
-    [(.n 5, 0), (.n 5, 1), (.n 5, 2), (.n 5, 3), (.n 5, 4), (.n 8, 0), (.n 9, 0),
-      (.n 9, 1)] := by
+    [(.n (val% «opening_round» "cursor"), 0), (.n (val% «opening_round» "cursor"), 1), (.n (val% «opening_round» "cursor"), 2), (.n (val% «opening_round» "cursor"), 3), (.n (val% «opening_round» "cursor"), 4), (.n (val% «opening_round» "alphas"), 0), (.n (val% «opening_round» "coefs"), 0),
+      (.n (val% «opening_round» "coefs"), 1)] := by
   decide +kernel
 
 theorem roundPre_loads (σ : Val) : roundPre.flatMap (loadsEv σ) =
-    [(.n 5, 0), (.n 5, 1), (.n 5, 2), (.n 5, 3), (.n 5, 4), (.n 8, 0), (.n 9, 0),
-      (.n 9, 1)] := by
+    [(.n (val% «opening_round» "cursor"), 0), (.n (val% «opening_round» "cursor"), 1), (.n (val% «opening_round» "cursor"), 2), (.n (val% «opening_round» "cursor"), 3), (.n (val% «opening_round» "cursor"), 4), (.n (val% «opening_round» "alphas"), 0), (.n (val% «opening_round» "coefs"), 0),
+      (.n (val% «opening_round» "coefs"), 1)] := by
   rw [flatMap_loadsEv_noIte σ _ roundPre_noIte, roundPre_loadsS]
 
-theorem roundBody_eq : Whir.roundBody = roundPre ++ [.ret [.n 84, .n 85, .n 86, .n 87, .n 88,
-    .n 91, .n 92]] := Whir.roundBody_split
+theorem roundBody_eq : Whir.roundBody = roundPre ++ [.ret [.n (val% «opening_round» "s13#0"), .n (val% «opening_round» "s13#0[1]"), .n (val% «opening_round» "s13#0[2]"), .n (val% «opening_round» "s13#0[3]"), .n (val% «opening_round» "s13#0[4]"),
+    .n (val% «opening_round» "s13#0[5]"), .n (val% «opening_round» "s13#0[6]")]] := Whir.roundBody_split
 
 /-- The cursor's five words, read through the caller's words. -/
 theorem round_words {args : List E} {Lin : Layout} (hreg : RegPtrs roundSpec args (RegionL Lin))

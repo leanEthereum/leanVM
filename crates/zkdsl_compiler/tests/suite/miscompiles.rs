@@ -76,6 +76,16 @@ fn ill_formed_calls_are_rejected_when_lowered() {
             "def main():\n    b = StackBuf(41)\n    hint_decompose_bits_exponent(b, GEN, 41)\n    return\n",
             "at most 40 bits",
         ),
+        // `at + count` wrapped to 1, and the windows were written below the buffer.
+        (
+            "def main():\n    b = StackBuf(1)\n    hint_windows_exponent(b, GEN, 0, 1, 2, 4294967295)\n    return\n",
+            "its StackBuf destination has 1",
+        ),
+        // `cap=` absorbs with no padding, and ignored `pad_tail=1`.
+        (
+            "def main():\n    s = StackBuf(13)\n    keccak([0, 0], [0, 0], s)\n    t = StackBuf(4)\n    o = StackBuf(13)\n    keccak([0, 0], [0, 0], o, tail=t, cap=s, pad_tail=1)\n    return\n",
+            "takes no len= or pad_tail=",
+        ),
     ] {
         let ast = parse(src).unwrap();
         let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
@@ -152,4 +162,19 @@ fn copy_removal_keeps_every_path() {
     // `v` is written before the branch and only asserted after it: the assert must survive.
     let failing = "def f(a, b):\n    v = a * b\n    if a == GEN:\n        return 0\n    assert a + b == v\n    return v\n\ndef main():\n    r = f(GEN ** 2, GEN ** 3)\n    return\n";
     assert!(run(failing).is_err(), "an assert that fails was compiled away");
+}
+
+/// `x ** 0` never evaluated `x`, dropping the assertion in `one()`.
+#[test]
+fn zero_power_evaluates_its_base() {
+    let src = "def one():\n    x = hint_witness(\"x\")\n    assert x == 1\n    return x\n\ndef main():\n    y = one() ** 0\n    return\n";
+    let run = |x: u64| {
+        execute(
+            &compile(&parse(src).unwrap()),
+            &[("x".into(), vec![vec![F128::from(F64(x))]])],
+            [F128::ZERO; 2],
+        )
+    };
+    run(1).unwrap();
+    assert!(run(2).is_err());
 }

@@ -1,0 +1,24 @@
+name: PR title
+
+# Every pull request title must be a Conventional Commit (`feat:`, `fix:`, `chore:`, `docs:`, ...):
+# a squash merge's commit message is the PR title, and release-please reads the commits under
+# bindings/ to version the bindings and write bindings/CHANGELOG.md.
+#
+# `pull_request`, not `pull_request_target`: the check only reads the title, which the read-only
+# token of a fork's pull request allows, and GitHub blocks `pull_request_target` by default in
+# public repositories.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  conventional:
+    name: Validate conventional-commit format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@2252a14e810aa9b85c2d560bd7070c802206ecf6 # v6.1.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

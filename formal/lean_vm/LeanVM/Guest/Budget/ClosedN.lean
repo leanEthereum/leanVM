@@ -2,8 +2,8 @@
   LeanVM.Guest.Budget.ClosedN
 
   The guest's completeness within the deployed budget with every number explicit: `verify_sub`'s
-  words per child at its announced stack log, a table of the guest's 11 opening arms
-  (`deployedBvAt`, `Count.vsBoundAt_eq`).
+  words per child at its announced stack log, at the guest's 11 opening arms (`deployedBvAt`: the
+  kernel's `Count.vsFixed` and the generated table `Count.osCs`, `Count.vsBoundAt_eq`).
 -/
 
 module
@@ -11,6 +11,8 @@ module
 public import LeanVM.Guest.Budget.Closed
 public import LeanVM.Guest.Count.VsBound
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Guest.KernelLit
+public import LeanVM.Guest.Count.Deployed
 
 namespace LeanVM.Guest.Budget
 
@@ -41,36 +43,17 @@ theorem deployedBudget_size_mono {Bvf Bvf' : ℕ → ℕ → ℕ} (u : End.Work)
 
 /-- **`verify_sub`'s words for a child of announced stack log `μ`** at the deployed instance:
 entry `μ - 20` for the guest's opening arms (`20 ≤ μ ≤ 30`, whatever the rate `1 ≤ r ≤ 4`); `0`
-elsewhere, where no child of a node within `Limits`, its caps agreeing and no zero challenge, is
+elsewhere, where no child of a node within `Limits`, its caps agreeing, is
 (`B1.Main.childShape_bounds`). -/
-def deployedBvAt (μ r : ℕ) : ℕ :=
-  if 20 ≤ μ ∧ μ ≤ 30 ∧ 1 ≤ r ∧ r ≤ 4 then
-    [378419, 378010, 380918, 384907, 395327, 400596, 409139, 415070, 422460, 425700, 428628].getD (μ - 20) 0
-  else 0
-
-/-- `open_stacked`'s words at the 11 arms (`Count/VsOsAll`). -/
-theorem osC_getD {m : ℕ} (hm : m < 11) : Count.osC m =
-    [206827, 206418, 209326, 213315, 223735, 229004, 237547, 243478, 250868, 254108, 257036].getD m 0 := by
-  interval_cases m
-  · exact Count.osC_0
-  · exact Count.osC_1
-  · exact Count.osC_2
-  · exact Count.osC_3
-  · exact Count.osC_4
-  · exact Count.osC_5
-  · exact Count.osC_6
-  · exact Count.osC_7
-  · exact Count.osC_8
-  · exact Count.osC_9
-  · exact Count.osC_10
+noncomputable def deployedBvAt (μ r : ℕ) : ℕ :=
+  if 20 ≤ μ ∧ μ ≤ 30 ∧ 1 ≤ r ∧ r ≤ 4 then Count.vsFixed + Count.osCs.getD (μ - 20) 0 else 0
 
 /-- `verify_sub`'s bound at an opening arm is the table's. -/
 theorem vsBoundAt_eq_deployedBvAt {μ r : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 30) (h3 : 1 ≤ r) (h4 : r ≤ 4) :
     B1.VerifySub.vsBoundAt Count.vsWordsOs B1.VerifySub.vkBound μ r = deployedBvAt μ r := by
-  rw [Count.vsBoundAt_eq h1 h2, osC_getD (by omega)]
+  rw [Count.vsBoundAt_eq h1 h2, Count.osC_getD (by omega)]
   unfold deployedBvAt
   rw [ite_eq_left ⟨h1, h2, h3, h4⟩]
-  interval_cases μ <;> decide
 
 /-- **The aggregation guest is complete within the deployed budget**, `verify_sub`'s words for a
 child of announced stack log `μ` and rate `r` `deployedBvAt μ r`: the budget's words
@@ -83,13 +66,30 @@ theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget deployedBvA
       obtain ⟨h1, h2, h3, h4⟩ := B1.Main.childShape_bounds vsCompleteHyp_deployed hok hch
       exact (vsBoundAt_eq_deployedBvAt h1 h2 h3 h4).le
 
-/-- The largest child's words: `μ = 30`. -/
-theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ 439001 := by
+/-- The largest child's words. -/
+kernel_lit deployedBvMax : ℕ := Count.vsFixed + B1.lmax Count.osCs
+
+theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ deployedBvMax := by
+  rw [← deployedBvMax_eq]
   unfold deployedBvAt
-  split_ifs with h
-  · obtain ⟨h1, h2, -, -⟩ := h
-    interval_cases μ <;> decide
+  split_ifs
+  · refine Nat.add_le_add_left ?_ _
+    rw [List.getD_eq_getElem?_getD]
+    cases hi : Count.osCs[μ - 20]? with
+    | none => exact Nat.zero_le _
+    | some x => exact B1.le_lmax (List.mem_of_getElem? hi)
   · exact Nat.zero_le _
+
+/-- `verify_sub`'s instructions of opcode `op` at its opening arms. -/
+def childList (op : LeanVM.Parameters.Opcode) : List ℕ := (List.range 11).map fun m ↦ (Count.deployedInstrs op).childShape (m + 20) 1
+
+/-- The largest of `verify_sub`'s instructions of each opcode over its opening arms (`Fits.childMax`). -/
+kernel_lit cmXor : ℕ := B1.lmax (childList .xor)
+kernel_lit cmMul : ℕ := B1.lmax (childList .mulNative)
+kernel_lit cmSet : ℕ := B1.lmax (childList .setConstant)
+kernel_lit cmDeref : ℕ := B1.lmax (childList .deref)
+kernel_lit cmJump : ℕ := B1.lmax (childList .jump)
+kernel_lit cmKeccak : ℕ := B1.lmax (childList .keccak)
 
 end
 end LeanVM.Guest.Budget

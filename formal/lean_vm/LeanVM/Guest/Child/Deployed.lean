@@ -21,13 +21,13 @@ public import LeanVM.Protocol.EndToEnd.Sound.Moves
 # Honest children at Keccak
 
 `childOk_of_verifierRZ`: from the acceptance of the verifier refusing a zero challenge
-(`Budget.verifierRefusingZero`, which accepts only what `Budget.verifierNZ` does) at Keccak, of
+(`Budget.verifierRefusingZero`) at Keccak, of
 the child prover's proof (`childProver`), when it makes one, of a guest execution on a statement's
 digest under the deployed seed:
 
 * the deferring verifier refusing a zero challenge accepts it with the claim its run evaluates,
-  a true claim (`run_claimed_of_computed`): `noZeroChallenge`, and so `verifies`
-  (`Limits.verifyDeferred_of_nz`) and `stream` (`stream_le_of_verifyDeferred`);
+  a true claim (`run_claimed_of_computed_rz`), and so the deferring verifier does: `verifies`
+  (`Limits.verifyDeferred_of_rz`) and `stream` (`stream_le_of_verifyDeferred`);
 * the proof is the pure prover's (`prove_of_some`), whose stream starts with the honest
   sizes, whose stack log is at least `20` (`muMin_le_announced`): `stackLog`;
 * its query steps under the deferring program are the verifier program's (`queriesOf_le`, the
@@ -74,16 +74,13 @@ theorem childOk_of_verifierRZ_of {A : HonestProverWithHash} {s : NodeStatement}
   obtain ⟨c, hc, hrz⟩ := runProof_claimed_of_computed_rz keccak256 keccakF1600
     verifyStackedOpening (bytecodeWords guestProgram) (publicInputDigest (publicInputOf d)) hacc'
   rw [hpd] at hrz
-  have hRZ : Limits.verifyDeferredRefusingZero bytecode (deployedSeed guestProgram) d c proof =
-      true := by
-    rw [Limits.verifyDeferredRefusingZero_eq_withHash]
-    exact hrz
-  have hV := Limits.verifyDeferred_of_nz (verifyDeferredNZ_of_rz hRZ)
+  have hV : verifyDeferred bytecode (deployedSeed guestProgram) d c proof = true :=
+    Limits.verifyDeferred_of_rz (by exact hrz)
   -- the pure prover's proof
   obtain ⟨w, sz, hchild, hprove⟩ := prove_of_some hA hsome
   obtain ⟨⟨hρ, hw, hs, hadm, -⟩, -⟩ := id hchild
   obtain ⟨rest, hrest⟩ := stream_prefix keccak256 keccakF1600 hprove
-  refine ⟨c, hc, ⟨hsh, hV, ?_, stream_le_of_verifyDeferred hV, ?_, hRZ⟩⟩
+  refine ⟨c, hc, ⟨hsh, hV, ?_, stream_le_of_verifyDeferred hV, ?_⟩⟩
   · -- the stack log
     show ∀ layout r, announcedLayoutAndRate bytecode proof.stream = some (layout, r) → _
     rw [hrest]

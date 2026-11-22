@@ -26,8 +26,7 @@ its trees within `Bnd` of its name (each is statically bounded: the leaves, `lev
 **The statements**: `open_stacked_completeAtD_Spec`, at every stack log `μ ∈ [20, 30]` and rate
 `r ∈ [1, 4]`, for certificates whose frame runs fit (`Lift.RunsFit`, `RunsConsec`), on memories
 defined below `2^κ`, `11 ≤ κ` (the grinds' range checks): on an accepting run of
-`whirOpen μ r target` from `⟨capOf S, []⟩` with no zero challenge and openings agreeing in the
-caps, where every memory holding the caller's words reads `xs` at the cursor and the window tables
+`whirOpen μ r target` from `⟨capOf S, []⟩` with openings agreeing in the caps, where every memory holding the caller's words reads `xs` at the cursor and the window tables
 at `tabs`, the arm of `μ` called on the rate's selector is complete placed returning `OsOut μ w`.
 `open_stacked_completeAtB_Spec`: within `osBosAt` words, every frame below `2^32`.
 -/
@@ -74,7 +73,6 @@ def open_stacked_completeAtD_Spec : Prop :=
       ∀ (S : KeccakState) (root : Digest) (target cur tabs : E) (xs : List E)
         (os : List (List Opening)) (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
         RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots' →
-        NoZeroChallenge μ r target S xs os root →
         CapsAgree μ r target S xs os root →
         ∀ Lin : Layout, (∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd cur xs ∧ WinTabs rd tabs) →
           CompleteAtD fs cert κ (openName μ) Lin
@@ -92,7 +90,6 @@ def open_stacked_completeAtB_Spec : Prop :=
       ∀ (S : KeccakState) (root : Digest) (target cur tabs : E) (xs : List E)
         (os : List (List Opening)) (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
         RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots' →
-        NoZeroChallenge μ r target S xs os root →
         CapsAgree μ r target S xs os root →
         ∀ Lin : Layout, (∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd cur xs ∧ WinTabs rd tabs) →
           CompleteAtB fs cert κ (openName μ) Lin
