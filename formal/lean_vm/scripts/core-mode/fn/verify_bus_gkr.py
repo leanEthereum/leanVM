@@ -28,5 +28,4 @@ OWN = [
     'LeanVM/Guest/Count/Fn/verify_bus_gkr.lean',
     'LeanVM/Guest/B1/Gkr/**',
     'LeanVM/Guest/B1/Sumcheck/Gkr.lean',
-    'LeanVM/Guest/CoreMode/Fam/ResGkr*.lean',
 ]

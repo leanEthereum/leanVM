@@ -7,8 +7,8 @@
 module
 
 public import LeanVM.Guest.EndExecCoreRes
-public import LeanVM.Guest.CoreMode.Fam.ResCs
-public import LeanVM.Guest.CoreMode.Fam.CsQ
+public import LeanVM.Guest.CoreMode.Fn.column_selector.ResCs
+public import LeanVM.Guest.CoreMode.Fn.column_selector.CsQ
 public import LeanVM.Guest.CoreMode.Fn.column_selector.Fam
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«column_selector__L»

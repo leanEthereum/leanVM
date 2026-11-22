@@ -30,7 +30,4 @@ def fam(k, r):
 
 # its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
 # it alone may change, by hand
-OWN = [
-    'LeanVM/Guest/CoreMode/Fam/ResCs.lean',
-    'LeanVM/Guest/CoreMode/Fam/CsQ.lean',
-]
+OWN = []

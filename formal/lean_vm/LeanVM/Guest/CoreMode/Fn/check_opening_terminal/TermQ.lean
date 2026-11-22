@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.TermQ
+  LeanVM.Guest.CoreMode.Fn.check_opening_terminal.TermQ
 
   What `verify_sub` hands `check_opening_terminal` (`Res.TermFront`), carried to every honest
   instance of it (`TermQ`).
@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResCs
+public import LeanVM.Guest.CoreMode.Fn.column_selector.ResCs
 public import LeanVM.Guest.CoreMode.Gen.TermCallers
 public import LeanVM.Guest.B1.VerifySub.SoundOf
 import LeanVM.Guest.ValRef

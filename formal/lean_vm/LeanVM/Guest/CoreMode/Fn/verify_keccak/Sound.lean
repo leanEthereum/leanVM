@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.EndExecCoreRes
-public import LeanVM.Guest.EndExecCoreVk
+public import LeanVM.Guest.CoreMode.Fn.verify_keccak.EndExecCoreVk
 public import LeanVM.Guest.CoreMode.Fn.verify_keccak.Fam
 
 namespace LeanVM.Guest.CoreMode.Own.verify_keccak

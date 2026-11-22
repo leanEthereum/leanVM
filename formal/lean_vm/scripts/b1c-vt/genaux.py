@@ -3,7 +3,7 @@
 import re, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import vtflat
-top, flat, ctr, cend = vtflat.load()
+top, flat, ctr, cend, nparams = vtflat.load()
 aux = []
 for k, s in flat:
     m = re.match(r'\.atom \(\.rangeCheck \(\.n (\d+)\) \(\.n (\d+)\) \(\.n (\d+)\) \(\.n (\d+)\) \(\.n (\d+)\)\)$', s)

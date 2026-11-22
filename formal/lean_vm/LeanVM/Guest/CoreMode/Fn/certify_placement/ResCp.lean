@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.ResCp
+  LeanVM.Guest.CoreMode.Fn.certify_placement.ResCp
 
   `certify_placement`'s residuals at its honest frames: a rank's key nonzero, and the hinted group
   order onto the nine groups, so its ranks write every cell of `group_base`.
@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.EndExecW
 public import LeanVM.Guest.CoreMode.Fam.ResA
-public import LeanVM.Guest.CoreMode.Fam.MonoReplay
+public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.MonoReplay
 public import LeanVM.Guest.B1.Placement.Certify
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«certify_placement»

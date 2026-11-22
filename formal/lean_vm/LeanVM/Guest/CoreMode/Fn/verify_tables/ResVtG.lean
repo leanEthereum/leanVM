@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.ResVtG
+  LeanVM.Guest.CoreMode.Fn.verify_tables.ResVtG
 
   `verify_tables`' block groups at its honest instances: each side's ranks name every group of the
   side, the groups' keys are nonzero; the groups' bases read in group order (`Res.vtGrpB`) at the
@@ -8,13 +8,13 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ExpQv
-public import LeanVM.Guest.CoreMode.Fam.ResVtSt
+public import LeanVM.Guest.CoreMode.Fn.verify_tables.ExpQv
+public import LeanVM.Guest.CoreMode.Fn.verify_tables.ResVtSt
 public import LeanVM.Guest.CoreMode.Fam.ResExp
 public import LeanVM.Guest.B1.Tables.Vt.Sort
 public import LeanVM.Guest.B1.Tables.Vt.Pads
-public import LeanVM.Guest.CoreMode.Fam.SubVt
-public import LeanVM.Guest.CoreMode.Fam.ResVtL
+public import LeanVM.Guest.CoreMode.Fn.verify_tables.SubVt
+public import LeanVM.Guest.CoreMode.Fn.verify_tables.ResVtL
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_tables»
 

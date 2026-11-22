@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.ExpQv
+  LeanVM.Guest.CoreMode.Fn.verify_tables.ExpQv
 
   `verify_tables`' precondition (`B1.Tables.TablesPre`) at its honest instances (`VtPQ`), carried down
   from `verify_sub`'s front.
@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResVt
+public import LeanVM.Guest.CoreMode.Fn.verify_tables.ResVt
 
 /-!
 # `verify_tables`' precondition

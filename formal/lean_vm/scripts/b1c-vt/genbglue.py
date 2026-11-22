@@ -6,7 +6,7 @@
 import re, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import vtflat
-top, flat, ctr, cend = vtflat.load()
+top, flat, ctr, cend, nparams = vtflat.load()
 tctr = {}
 for (k, s), c in zip(flat, ctr): tctr.setdefault(k, c)
 SLICES = [(765, 766), (778, 781), (794, 811), (824, 842), (1332, 1479), (1912, 1926), (1926, 2020),

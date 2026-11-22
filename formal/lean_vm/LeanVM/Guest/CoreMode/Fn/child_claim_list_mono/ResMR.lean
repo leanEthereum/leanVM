@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.ResMR
+  LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.ResMR
 
   The gap walk's table reads at the honest frames: each claim's entry below the caller's bound,
   from its frame's gaps and the walk's records.
@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResM
+public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.ResM
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_last__L»
 

@@ -11,6 +11,8 @@ def _ir():
     ir = {}
     for line in open(IRF).read().splitlines():
         k, _, s = line.partition(': ')
+        if k == 'params':
+            continue
         ir[int(k)] = s.strip().removesuffix(' ::')
     return ir
 

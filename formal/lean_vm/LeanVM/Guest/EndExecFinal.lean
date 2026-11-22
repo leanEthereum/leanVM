@@ -12,7 +12,6 @@ public import LeanVM.Guest.CoreMode.Fam.Res
 public import LeanVM.Guest.EndExecCore
 public import LeanVM.Guest.CoreMode.Gen.Certs
 public import LeanVM.Guest.CoreMode.Gen.AnyLinkOk
-public import LeanVM.Guest.CoreMode.Gen.MonoWalkOk
 public import LeanVM.Guest.EndExecYDeployed
 public import LeanVM.Guest.EndExecYWitCells
 public import LeanVM.Guest.EndExecYShape
@@ -102,7 +101,7 @@ theorem execGaps :
     (KeepY.and (keepY_alignA (derefPow_all _) fun _ _ h ↦ h) keepY_allocA_guest)
     (InitY.and (initY_cur alignA) (initY_alloc alignA))
     (coreHonAll_X h.1 h.2.1 Bridge.progAl Bridge.alignA_main
-      jumpCells_at alLayout_alignA (fun _ _ h ↦ by rw [Bridge.alignA_of h]; rfl) anyLink_ok mono_ok)
+      jumpCells_at alLayout_alignA (fun _ _ h ↦ by rw [Bridge.alignA_of h]; rfl) anyLink_ok)
 
 /-- **The executor runs the guest program to completion on the guest's advice.** -/
 theorem guestAdvice_complete : AdviceComplete guestAdvice :=

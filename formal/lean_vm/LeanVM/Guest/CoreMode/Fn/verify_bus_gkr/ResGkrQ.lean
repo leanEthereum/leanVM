@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.ResGkrQ
+  LeanVM.Guest.CoreMode.Fn.verify_bus_gkr.ResGkrQ
 
   `verify_bus_gkr`'s cursor in the proof stream (`VbgQ`), carried down from `verify_sub`'s front, and
   its radix-four layers' slots' cursors, carried down `gkr_layers__L{o}`, its loop and
@@ -8,8 +8,8 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResStP
-public import LeanVM.Guest.CoreMode.Fam.ResGkrS
+public import LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStP
+public import LeanVM.Guest.CoreMode.Fn.verify_bus_gkr.ResGkrS
 public import LeanVM.Guest.CoreMode.Fam.RefAll
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sub»

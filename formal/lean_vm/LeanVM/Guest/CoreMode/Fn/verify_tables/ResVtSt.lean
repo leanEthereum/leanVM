@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.ResVtSt
+  LeanVM.Guest.CoreMode.Fn.verify_tables.ResVtSt
 
   `verify_tables`' reads past its table sumcheck's last record's cursor (`Res.vtStB`), sound at the
   honest frames: they lie inside its stream.
@@ -7,9 +7,9 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResVt
-public import LeanVM.Guest.CoreMode.Fam.ResStB
-public import LeanVM.Guest.CoreMode.Fam.SubVt
+public import LeanVM.Guest.CoreMode.Fn.verify_tables.ResVt
+public import LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStB
+public import LeanVM.Guest.CoreMode.Fn.verify_tables.SubVt
 
 /-!
 # `verify_tables`' index

@@ -1,12 +1,12 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.ResStP
+  LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStP
 
   `keccak_layer`'s two loops' cursors in the proof stream (`LoopQ`), carried down from the layer.
 -/
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResStL
+public import LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStL
 public import LeanVM.Guest.CoreMode.Fam.ResA
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L»

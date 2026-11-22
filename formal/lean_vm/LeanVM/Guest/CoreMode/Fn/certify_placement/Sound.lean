@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.EndExecCoreRes
-public import LeanVM.Guest.CoreMode.Fam.ResCp
+public import LeanVM.Guest.CoreMode.Fn.certify_placement.ResCp
 public import LeanVM.Guest.CoreMode.Fn.certify_placement.Data
 public import LeanVM.Guest.CoreMode.Fn.certify_placement.Fam
 import LeanVM.Guest.ValRef

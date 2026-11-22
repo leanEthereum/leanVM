@@ -46,8 +46,6 @@ def count_parts(g, OPS):
 # its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
 # it alone may change, by hand
 OWN = [
-    'LeanVM/Guest/CoreMode/Fam/ResE.lean',
-    'LeanVM/Guest/CoreMode/Fam/TermQ.lean',
     'LeanVM/Guest/CoreMode/Fam/TermDefs.lean',
     'LeanVM/Guest/Count/Fn/check_opening_terminal.lean',
 ]

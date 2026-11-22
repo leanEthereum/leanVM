@@ -57,8 +57,7 @@ These name no ghost value (`CRes.vals`, below `GB`), so they hold at an honest v
 ghost words (`CRes.holds_congr`). One family names a ghost:
 * `ml` (`mlSub`): a ghost family specialization's read of claim `jj`'s entry `[ent]·Π[gap_i]^4·g^(4jj+d)` lies in
   its caller's table, the run `[ghost₀]·g^(4j+d)` below the exponent of its parameter `limit` (its ghost the caller's
-  cell `2`, `glOk`), its shape its function's own (`FnReg.mlLoops`), from the old route's gap walk
-  (`EndExecCoreMono`).
+  cell `2`, `glOk`), its shape and its soundness its function's own (`FnReg.mlLoops`, `EndExec.MlLoopOk`).
 * `st` (`stSub`): a loop's read `[cur]·g^c` past its cursor `cur` lies in its caller's proof stream, the run
   `[ghost₀]·[0, 8192)` (its ghosts the caller's stream and frame, `stGl`), from the old route's cursor invariants
   (`EndExecCoreSt`).

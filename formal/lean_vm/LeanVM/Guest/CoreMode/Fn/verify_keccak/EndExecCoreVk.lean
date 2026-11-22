@@ -1,15 +1,16 @@
 /-
-  LeanVM.Guest.EndExecCoreVk
+  LeanVM.Guest.CoreMode.Fn.verify_keccak.EndExecCoreVk
 
   `verify_keccak`'s family (`CoreMode.vkQC`) sound at its honest instances.
 -/
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResVk
+public import LeanVM.Guest.CoreMode.Fn.verify_keccak.ResVk
 public import LeanVM.Guest.CoreMode.CoreRes
 public import LeanVM.Guest.CoreMode.Fn.verify_keccak.Fam
-public import LeanVM.Guest.EndExecCoreVt
+public import LeanVM.Guest.EndExecCoreFn
+public import LeanVM.Guest.CoreMode.HeapCSound
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_keccak»
 

@@ -2,6 +2,8 @@
 `Res.anyLink`)."""
 
 ANY_ORIGIN = {'child_claim_list_any'}
+# its entries parameter and its bound parameter, `limit = w·g` (`Res.Link`'s `uE`, `uL`)
+ANY_PARAMS = {'child_claim_list_any': ('entries_ptr', 'limit_g')}
 
 
 # ---- its counts (`scripts/count`)

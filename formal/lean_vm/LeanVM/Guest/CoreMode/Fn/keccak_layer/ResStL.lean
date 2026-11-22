@@ -1,12 +1,12 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.ResStL
+  LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStL
 
   `keccak_layer`'s cursor in the proof stream (`LayQ`), carried down from `verify_keccak`.
 -/
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResSt
+public import LeanVM.Guest.CoreMode.Fn.verify_keccak.ResSt
 public import LeanVM.Guest.B1.KeccakGkr.LayerHolds
 public import LeanVM.Guest.B1.KeccakGkr.VkChain
 import LeanVM.Guest.ValRef

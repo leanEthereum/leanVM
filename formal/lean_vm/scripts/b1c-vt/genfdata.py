@@ -11,6 +11,7 @@ FPW = 13
 ir = {}
 for line in open(os.path.join(here, 'vt_ir.txt')):
     k, _, s = line.partition(': ')
+    if k == 'params': continue
     ir[int(k)] = s.strip().removesuffix(' ::')
 def nums(s): return [int(x) for x in re.findall(r'\.n (\d+)', s)]
 def auto(s):

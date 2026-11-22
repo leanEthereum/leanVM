@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.EndExecCoreDa
+  LeanVM.Guest.CoreMode.Fn.da_pad.EndExecCoreDa
 
   `da_pad`'s gap at its honest instances (`DaPadQ`): the `g^(DA_MAX_ROWS - n)` `da_verify` hands it, `n ≥ 1` by
   `da_padding`'s meaning, carried down the honest tree from its one caller.
@@ -7,18 +7,21 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResF
-public import LeanVM.Guest.CoreMode.Fam.ResCs
-public import LeanVM.Guest.CoreMode.Fam.CsQ
-public import LeanVM.Guest.CoreMode.CoreRes
-public import LeanVM.Guest.CoreMode.HeapCSound
-public import LeanVM.Guest.CoreMode.Fam.ExpQv
-public import LeanVM.Guest.EndExecCoreSplit
-public import LeanVM.Guest.EndExecCoreVt
-public import LeanVM.Guest.CoreMode.Fam.ResVs
-public import LeanVM.Guest.CoreMode.Fam.ResCp
+public import LeanVM.Guest.EndExecW
+public import LeanVM.Guest.CoreMode.Fam.MonoChain
+public import LeanVM.Guest.CoreMode.Fam.ResA
+public import LeanVM.Guest.CoreMode.Fam.RefAll
 public import LeanVM.Guest.CoreMode.Gen.TermCallers
+public import LeanVM.Guest.B1.Da.Interface
+public import LeanVM.Guest.B1.Da.Padding
+public import LeanVM.Guest.B1.Da.PadAt
+public import LeanVM.Guest.B1.Da.AtBase
+public import LeanVM.Guest.B1.Da.VerifyChk
+public import LeanVM.Guest.B1.Da.VerifyDefs
+public import LeanVM.Guest.B1.Digest.Steps
+public import LeanVM.Guest.B1.Main.Loops
 import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«da_pad»
 import LeanVM.Guest.Data.ValNames.«da_verify»
 
 namespace LeanVM.Guest.EndExec
@@ -33,15 +36,17 @@ open LeanVM.Guest.CoreMode (CFun CRes CIdx ResF LtF rep_of capE resFam resOk idx
 /-- **`da_pad`'s gap at an instance**: `g^k`, `k < DA_MAX_ROWS`. -/
 def DaPadQ (J : Inst) : Prop :=
   ∀ σ bufs kids, J.t = .node name% «da_pad» σ bufs kids → ∃ k, k < guest_const% DA_MAX_ROWS ∧
-    σ (.n 2) = Protocol.Verifier.gen ^ k
+    σ (.n (val% «da_pad» "gap_g")) = Protocol.Verifier.gen ^ k
 
 /-- `da_verify` calls `da_pad` at its rows' roots, its blob count and its gap. -/
 theorem dv_pad_sites : Res.sitesB (fun f args rets ↦ f != name% «da_pad» ||
     (args == [.n (val% «da_verify» "roots"), .n (val% «da_verify» "n_blob_g"), .n (val% «da_verify» "gap_g")] && rets == [])) (fn% «da_verify»).body = true := by
   decide +kernel
 
-theorem dv_shape : B1.stmtsEqb (fn% «da_verify»).body (B1.Da.dvP ++ [.ret [.n 26, .n 27, .n 28]]) = true ∧
-    B1.Da.dvP.all Stmt.flat = true ∧ B1.Main.hasCall B1.Da.dvP "da_padding" [.n 1] [.n 2] = true ∧
+theorem dv_shape : B1.stmtsEqb (fn% «da_verify»).body (B1.Da.dvP ++ [.ret [.n (val% «da_verify» "s11#0"),
+      .n (val% «da_verify» "s11#0[1]"), .n (val% «da_verify» "s11#0[2]")]]) = true ∧
+    B1.Da.dvP.all Stmt.flat = true ∧ B1.Main.hasCall B1.Da.dvP "da_padding" [.n (val% «da_verify» "n_blob_g")]
+      [.n (val% «da_verify» "gap_g")] = true ∧
     (fn% «da_pad»).loop = false := by
   decide +kernel
 
@@ -49,8 +54,9 @@ theorem dv_shape : B1.stmtsEqb (fn% «da_verify»).body (B1.Da.dvP ++ [.ret [.n 
 `da_padding`'s meaning. -/
 theorem daV_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node name% «da_verify» σ bufs kids) :
-    ∃ n, 1 ≤ n ∧ n ≤ guest_const% DA_MAX_ROWS ∧ σ (.n 1) = Protocol.Verifier.gen ^ n ∧
-      σ (.n 2) = Protocol.Verifier.gen ^ (guest_const% DA_MAX_ROWS - n) := by
+    ∃ n, 1 ≤ n ∧ n ≤ guest_const% DA_MAX_ROWS ∧
+      σ (.n (val% «da_verify» "n_blob_g")) = Protocol.Verifier.gen ^ n ∧
+      σ (.n (val% «da_verify» "gap_g")) = Protocol.Verifier.gen ^ (guest_const% DA_MAX_ROWS - n) := by
   obtain ⟨hbody, hflat, hpd, -⟩ := dv_shape
   obtain ⟨args, rets, hv⟩ := inst_valid' hr hI ht
   have hfs : ∀ f', 1 ≤ B2C.fs f' := Res.fs_pos

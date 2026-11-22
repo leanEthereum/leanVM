@@ -9,8 +9,6 @@
 module
 
 public import LeanVM.Guest.CoreMode.Fam.ResF
-public import LeanVM.Guest.CoreMode.Fam.ResCs
-public import LeanVM.Guest.CoreMode.Fam.CsQ
 public import LeanVM.Guest.CoreMode.CoreRes
 public import LeanVM.Guest.EndExecCoreFn
 public import LeanVM.Guest.EndExecCoreSplit

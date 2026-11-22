@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.EndExecCoreRes
-public import LeanVM.Guest.CoreMode.Fam.TermQ
+public import LeanVM.Guest.CoreMode.Fn.check_opening_terminal.TermQ
 public import LeanVM.Guest.CoreMode.Fn.check_opening_terminal.Data
 
 namespace LeanVM.Guest.CoreMode.Own.check_opening_terminal

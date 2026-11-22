@@ -47,10 +47,5 @@ COUNT_OM = {'child_claim_list_mono': ('VsCountData', 4)}
 # its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
 # it alone may change, by hand
 OWN = [
-    'LeanVM/Guest/CoreMode/Fam/ResM.lean',
-    'LeanVM/Guest/CoreMode/Fam/ResMR.lean',
-    'LeanVM/Guest/CoreMode/Fam/MonoReplay.lean',
     'LeanVM/Guest/CoreMode/Fam/MonoChain.lean',
-    'LeanVM/Guest/CoreMode/Fam/MonoDefs.lean',
-    'LeanVM/Guest/EndExecCoreMono.lean',
 ]

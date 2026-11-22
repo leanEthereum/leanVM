@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.ResCs
+  LeanVM.Guest.CoreMode.Fn.column_selector.ResCs
 
   `column_selector`'s lowest digit, sound at the honest frames given its offset's alignment
   and the nibble shares at `sel_g` (`CsQ`).
@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResE
+public import LeanVM.Guest.CoreMode.Fn.check_opening_terminal.ResE
 public import LeanVM.Guest.CoreMode.Fam.MonoChain
 public import LeanVM.Guest.CoreMode.Fam.RefAll
 import LeanVM.Guest.ValRef

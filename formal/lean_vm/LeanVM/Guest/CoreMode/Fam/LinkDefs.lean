@@ -25,7 +25,8 @@ callees get `uE` and `w`. A loop callee passes them on along its tail calls.
 The checks: `originB` (the caller: its cells, the bound's atoms on every path, its call sites of the
 callees passing `uE` and `w`, each a site of its plumbing); `calleeB` (each callee: `pE` and `pL` no
 loop counter, a loop not calling itself before its tail); `callersB` (a function calling a callee
-is the caller, or the callee itself, a loop).
+is the caller, or the callee itself, a loop); `callersG`, `callersM` the same against `(callee, caller)` and
+`(callee, callers)` pairs.
 -/
 
 namespace LeanVM.Guest.Res
@@ -77,6 +78,16 @@ noncomputable def calleeB (F : String × ℕ × ℕ) : Bool :=
 loop. -/
 noncomputable def callersB (L : Link) (fn : Fn) : Bool :=
   sitesB (fun f _ _ => !(L.fams.any (·.1 == f)) || fn.name == L.oName || (fn.name == f && fn.loop)) fn.body
+
+/-- **The callers' check of one function** against `(callee, caller)` pairs: a call of a listed
+callee is its caller's, or its own, a loop. -/
+noncomputable def callersG (R : List (String × String)) (fn : Fn) : Bool :=
+  sitesB (fun f _ _ => R.all fun p => p.1 != f || fn.name == p.2 || (fn.name == f && fn.loop)) fn.body
+
+/-- **The callers' check of one function** against `(callee, callers)` pairs: a call of a listed callee is one of
+its callers', or its own, a loop. -/
+noncomputable def callersM (R : List (String × List String)) (fn : Fn) : Bool :=
+  sitesB (fun f _ _ => R.all fun p => p.1 != f || p.2.contains fn.name || (fn.name == f && fn.loop)) fn.body
 
 theorem walkOk_const {α : Type} (c : α → Bool) : ∀ (j : ℕ) (l : List α), walkOk (fun _ x => c x) j l = l.all c
   | _, [] => rfl

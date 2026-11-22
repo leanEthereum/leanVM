@@ -1,5 +1,5 @@
 /-
-  LeanVM.Guest.EndExecCoreVt
+  LeanVM.Guest.CoreMode.Fn.verify_tables.EndExecCoreVt
 
   `verify_tables`' exponent facts at its honest instances, on core names: the bus point's length `μ`, the memory's
   log-size, the tables' log-heights `τ`, the table sumcheck's rounds `n`, their order, and the ranks' groups.
@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResVtG
+public import LeanVM.Guest.CoreMode.Fn.verify_tables.ResVtG
 public import LeanVM.Guest.B1.Tables.Vt.ZcCert
 public import LeanVM.Guest.B1.Tables.Vt.SelsAll
 public import LeanVM.Guest.CoreMode.CoreRes
