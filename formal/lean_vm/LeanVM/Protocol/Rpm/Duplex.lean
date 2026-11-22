@@ -395,20 +395,22 @@ theorem hOnly_buildTreeM (height : ℕ) (word : Word) : HOnly (buildTreeWithHash
     (hOnly_levelsM _ _).bind fun _ ↦ trivial
 
 /-- The nonce search keeps the discipline, and the sponge it searches at. -/
-theorem duplexP_searchM (bits : ℕ) {h : List KeccakState} {sp : Sponge} (hs : sp.state ∈ h) :
-    ∀ (count n : ℕ), DuplexP (searchM callKeccakF1600 bits sp n count) h fun _ h' ↦ sp.state ∈ h'
+theorem duplexP_searchM (bits : ℕ) (o : Bool) {h : List KeccakState} {sp : Sponge}
+    (hs : sp.state ∈ h) :
+    ∀ (count n : ℕ), DuplexP (searchM callKeccakF1600 bits o sp n count) h fun _ h' ↦ sp.state ∈ h'
   | 0, _ => hs
   | count + 1, n => by
     simp only [searchM]
     refine (duplexP_absorbNonce hs _).grow.bind fun r h' hr ↦ ?_
     split
     · exact hr.2 hs
-    · exact duplexP_searchM bits (hr.2 hs) count (n + 1)
+    · exact duplexP_searchM bits o (hr.2 hs) count (n + 1)
 
-theorem duplexP_findNonceM (bits : ℕ) {h : List KeccakState} {sp : Sponge} (hs : sp.state ∈ h)
-    (fuel : ℕ) : DuplexP (findNonceM callKeccakF1600 bits sp fuel) h fun _ h' ↦ sp.state ∈ h' := by
+theorem duplexP_findNonceM (bits : ℕ) (o : Bool) {h : List KeccakState} {sp : Sponge}
+    (hs : sp.state ∈ h) (fuel : ℕ) :
+    DuplexP (findNonceM callKeccakF1600 bits o sp fuel) h fun _ h' ↦ sp.state ∈ h' := by
   simp only [findNonceM]
-  exact duplexP_searchM bits hs _ _
+  exact duplexP_searchM bits o hs _ _
 
 /-- **The honest prover keeps the discipline**, from a sponge whose state is an earlier answer. -/
 theorem duplexP_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} (P : VerifierProgram α) :
@@ -429,7 +431,7 @@ theorem duplexP_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} (P : Verifier
   | grind bits k ih =>
     intro sp ev cs h hs
     simp only [proveFromM]
-    refine (duplexP_findNonceM bits hs fuel).bind fun r h' hr ↦ ?_
+    refine (duplexP_findNonceM bits _ hs fuel).bind fun r h' hr ↦ ?_
     split
     · trivial
     · exact (duplexP_absorbNonce hr _).bind fun r' h'' hr' ↦

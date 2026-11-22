@@ -95,10 +95,10 @@ example : ∀ (H : Bytes → Digest) (F : LeanVM.Semantics.KeccakState → LeanV
     {κ : ℕ} {w : EnsembleWitness (leanIsaEnsemble prog κ)} {s : Sizes} {ρ : ℕ},
     SatisfiedBy prog input w → Sizes.ofWitness w = some s → s.Admissible prog → validRate ρ →
     ∀ (fuel : ℕ),
-    (∀ hist bits k sp,
+    (∀ hist bits k sp o,
       (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)).after hist = some
           (.grind bits k) →
-        findNonce F bits sp fuel ≠ none) →
+        findNonce F bits o sp fuel ≠ none) →
     ∃ S π, prove H F (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) S
         (Id.run (seedWithHash (m := Id) H F (bytecodeWords prog) (publicInputDigest input))) fuel =
           some π ∧
@@ -110,10 +110,10 @@ example : ∀ {prog : LeanIsaProgram} {input : PublicInput} {κ : ℕ} {w : Ense
     (leanIsaEnsemble prog κ)}
     {s : Sizes} {ρ : ℕ}, SatisfiedBy prog input w → Sizes.ofWitness w = some s →
     s.Admissible prog → validRate ρ → ∀ (fuel : ℕ),
-    (∀ hist bits k sp,
+    (∀ hist bits k sp o,
       (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)).after hist = some
           (.grind bits k) →
-        findNonce keccakF1600 bits sp fuel ≠ none) →
+        findNonce keccakF1600 bits o sp fuel ≠ none) →
     ∃ S π, prove keccak256 keccakF1600 (leanVmVerifierProgram (bytecodeWords prog)
         (publicInputDigest input)) S
         (seed (bytecodeWords prog) (publicInputDigest input)) fuel = some π ∧
