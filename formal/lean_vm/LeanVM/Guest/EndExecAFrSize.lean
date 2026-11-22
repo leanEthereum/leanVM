@@ -691,7 +691,7 @@ theorem frameSize_alignA : FrameSize alignA := by
         · rw [hk] at hkv'; exact hkv'.elim
       · cases hq
     · cases hq
-  case allocFrames.callIf q size stop si b f args =>
+  case allocFrames.callIf q size stop si tail b f args =>
     obtain ⟨hcf, hca, hcr, htk⟩ := hco
     rcases args with _ | ⟨a0, _ | ⟨a1, rest⟩⟩
     · simp at hq

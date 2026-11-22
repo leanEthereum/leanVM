@@ -200,7 +200,7 @@ theorem runHint_sound {C : Ctx} {s s' : St} {hint : Hint} (h : s.mem.Sound)
     simp only [runHint, bind_ok] at e
     obtain ⟨c, -, p, hp, e⟩ := e
     exact withPut_sound h (cellAt_ok hp).2 e
-  | allocFrames ptr size stop startInverse =>
+  | allocFrames ptr size stop startInverse tail =>
     simp only [runHint, bind_ok] at e
     obtain ⟨c, -, sp, -, e⟩ := e
     split_ifs at e

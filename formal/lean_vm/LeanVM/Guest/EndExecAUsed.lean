@@ -59,7 +59,7 @@ theorem allocHintIn {C : Ctx} {s s' : St} {h : Hint} (hs : s.Good) (ha : isAlloc
     obtain ⟨-, h2, h3⟩ := logOr_sm hs h1
     obtain ⟨v, hv, -⟩ := get_of_ptrAt (ptrAt_of hx h2 h3)
     exact Mode.written_of_get hv
-  | allocFrames p size stop si =>
+  | allocFrames p size stop si tail =>
     simp only [runHint, bind_ok] at e
     obtain ⟨c', hc', sp, hsp, e⟩ := e
     obtain ⟨rfl, -⟩ := cellAt_ok hc'

@@ -236,7 +236,7 @@ theorem runHint_follows {C : Ctx} {s s' : St} {hint : Hint} (hs : s.Good)
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, p, -, h⟩ := h
     exact put_follows hs h
-  | allocFrames ptr size stop startInverse =>
+  | allocFrames ptr size stop startInverse tail =>
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, sp, -, h⟩ := h
     split_ifs at h

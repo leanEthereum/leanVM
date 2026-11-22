@@ -92,8 +92,8 @@ dispatch arm's by its selector, or a loop chain's by its bound. -/
 def SizeOk (M : ℕ → E) (fp : ℕ) : Hint → ℕ → Prop
   | .alloc _ n, B => n = B
   | .allocArm _ sel sizes, B => ∃ k, M (fp + sel) = ofK (Parameters.g ^ k) ∧ k < maxCells ∧ sizes[k]? = some B
-  | .allocFrames _ size stop si, B => ∃ v n, M (fp + stop) = ofK v ∧ v * si = Parameters.g ^ n ∧ n < maxCells ∧
-      size * (n + 1) = B
+  | .allocFrames _ size stop si tail, B => ∃ v n, M (fp + stop) = ofK v ∧ v * si = Parameters.g ^ n ∧ n < maxCells ∧
+      size * n + tail = B
   | _, _ => False
 
 /-- **A callee frame's hint reserves the next callee's block**, its sizes read off the reference. -/

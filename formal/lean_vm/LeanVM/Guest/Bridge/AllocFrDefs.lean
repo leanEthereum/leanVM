@@ -178,7 +178,7 @@ noncomputable def frFits (X : AlignCtx) (n : ℕ) (ps : List V) (sp : List Atom)
         ((ps.contains x && (X.extra.lookup x.idx).isNone) || sp.any (fun a ↦ (atomUses a).contains x) ||
           nm.contains x) &&
         Nat.blt sizes.length (2 ^ 28) && armsFit tbl sizes fs 0
-  | .allocFrames _ size stop si, .callIf b f (a0 :: a1 :: _) => match calFind tbl f with
+  | .allocFrames _ size stop si tail, .callIf b f (a0 :: a1 :: _) => match calFind tbl f with
     | some (k, lp, en) => lp && en == some none && k == size && X.locAt a1.idx == stop && allocCellOk X n a1 &&
         ((spConst sp a0 0 && si == 1 && guardOk sp b a1 0) || (spConst sp a0 1 && si == gInv && guardOk sp b a1 1))
     | none => false

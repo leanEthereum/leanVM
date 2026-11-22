@@ -218,8 +218,8 @@ def HintOk (C : Ctx) (M : ℕ → E) (s : St) : Hint → Prop
   | .allocArm ptr sel sizes => ∃ k n, PtrAt s (s.fp + sel) k ∧ sizes[k]? = some n ∧ AllocOk M s ptr n
   | .cellAddress ptr cell => s.fp + cell < maxCells ∧ s.fp + ptr < maxCells ∧
     M (s.fp + ptr) = ofK (g ^ (s.fp + cell))
-  | .allocFrames ptr size stop startInverse => ∃ v n, s.mem.peek (s.fp + stop) = ofK v ∧
-    v * startInverse = g ^ n ∧ n < maxCells ∧ AllocOk M s ptr (size * (n + 1))
+  | .allocFrames ptr size stop startInverse tail => ∃ v n, s.mem.peek (s.fp + stop) = ofK v ∧
+    v * startInverse = g ^ n ∧ n < maxCells ∧ AllocOk M s ptr (size * n + tail)
   | .witnessStack name base len => ∃ e, StreamNext C s name e ∧ e.length = len ∧ 0 < len ∧
     RunOk M (s.fp + base) e
   | .witnessHeap name ptr lo len => ∃ b e, PtrAt s (s.fp + ptr) b ∧ StreamNext C s name e ∧
@@ -299,7 +299,7 @@ theorem runHint_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {h :
     simp only [runHint]
     rw [cellAt_eq hc, ok_bind, cellAt_eq hp, ok_bind]
     exact e
-  | allocFrames ptr size stop startInverse =>
+  | allocFrames ptr size stop startInverse tail =>
     obtain ⟨v, n, hv, hvn, hn, ha⟩ := hh
     obtain ⟨D', e, h1, h2⟩ := St.logOr_complete hs.dl hs.small
       (f := .notAGPower "loop bound" (g ^ n))

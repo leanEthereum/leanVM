@@ -510,7 +510,7 @@ def isa_hint(e):
     if h == 'allocArm':
         return (h, a[0], a[1], as_list(a[2], None))
     if h == 'allocFrames':
-        return (h, a[0], a[1], a[2], None)
+        return (h, a[0], a[1], a[2], None, a[4])
     return (h,) + tuple(a)
 
 
