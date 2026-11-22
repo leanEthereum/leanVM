@@ -440,6 +440,30 @@ theorem alignOk_of_chain {X : AlignCtx} {body : List Stmt} {code : List OffsetIn
   have := chain_go ks _ _ [] hc hst h0
   simpa [alignRun] using this
 
+theorem stepI_i (X : AlignCtx) (ins : OffsetInstruction) {st : St} {p : St × Option (ℕ × Zip)}
+    (h : stepI X ins st = some p) : p.1.i = st.i + 1 := by
+  unfold stepI at h
+  rw [natSeq_eq] at h
+  generalize spanP st.i st.pend = S at h
+  generalize hintsAt (Nat.add X.entry st.i) st.hs = H at h
+  obtain ⟨here, rest⟩ := S
+  obtain ⟨h1, hs'⟩ := H
+  simp only [Bool.cond_eq_ite] at h
+  have hv : ∀ c, visit X ins st.i st.i.succ h1 hs' rest st.tabs c = some p → p.1.i = st.i + 1 := by
+    intro c hc
+    simp only [visit] at hc
+    obtain ⟨z, -, hc⟩ := Option.bind_eq_some_iff.mp hc
+    obtain ⟨q, -, rfl⟩ := Option.map_eq_some_iff.mp hc
+    rfl
+  split at h
+  · split at h
+    · exact hv _ h
+    · cases h
+  · cases h; rfl
+  · split at h
+    · exact hv _ h
+    · cases h
+
 end
 
 end LeanVM.Guest.Bridge

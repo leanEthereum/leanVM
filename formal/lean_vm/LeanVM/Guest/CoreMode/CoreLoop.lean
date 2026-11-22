@@ -114,12 +114,6 @@ theorem entry_facts {E0 : Mode.Env} {G : Mode.Sig} (hent : ∀ o ∈ G.entry, o 
 
 /-! ## The next frame's header -/
 
-theorem retNil_eq {l : List Stmt} (h : Bridge.retNil l = true) : l = [.ret []] := by
-  unfold Bridge.retNil at h
-  split at h
-  · rfl
-  · cases h
-
 /-- **Two cells the reference reads alike**, both written in a memory agreeing with it, hold one
 word. -/
 theorem hdr_copy {img : MemoryImage κ} (hκ : κ ≤ 28) {m : Mem} (ha : Agree m (refMem img)) {a b o : ℕ}

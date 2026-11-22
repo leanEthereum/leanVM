@@ -86,24 +86,6 @@ theorem mem_dropWhile_of {p : ℕ × List Hint → Bool} {x : ℕ × List Hint} 
       · exact mem_dropWhile_of hx h
     · exact h
 
-theorem mem_of_dropWhile {p : ℕ × List Hint → Bool} {x : ℕ × List Hint} :
-    ∀ {l : List (ℕ × List Hint)}, x ∈ l.dropWhile p → x ∈ l
-  | [], h => h
-  | a :: l, h => by
-    rw [List.dropWhile_cons] at h
-    split_ifs at h
-    · exact List.mem_cons_of_mem _ (mem_of_dropWhile h)
-    · exact h
-
-theorem dropWhile_head {p : ℕ × List Hint → Bool} {a : ℕ × List Hint} {r : List (ℕ × List Hint)} :
-    ∀ {l : List (ℕ × List Hint)}, l.dropWhile p = a :: r → p a = false
-  | [], h => by cases h
-  | b :: l, h => by
-    rw [List.dropWhile_cons] at h
-    split_ifs at h with hb
-    · exact dropWhile_head h
-    · cases h; simpa using hb
-
 theorem hintsAt_of_mem {d : List (ℕ × List Hint)} (hd : Mode.pcsIncr d = true) {P : ℕ}
     {h : List Hint} (hm : (P, h) ∈ d) : Mode.hintsAt d P = h := by
   induction d with
@@ -135,13 +117,13 @@ theorem hintsC_advC {d c : List (ℕ × List Hint)} (hd : Mode.pcsIncr d = true)
   · rw [e, hintsAt_of_not fun x hx hx1 ↦ by
       have := hkeep x hx (by omega); rw [e] at this; cases this]
     rfl
-  · have hhd := dropWhile_head e
-    simp only [decide_eq_false_iff_not, not_lt] at hhd
+  · have hhd : P ≤ p := by simpa [e] using List.head?_dropWhile_not (fun p ↦ decide (p.1 < P)) c
     rw [e]
     simp only [hintsC]
     split_ifs with hp
     · subst hp
-      exact (hintsAt_of_mem hd (hsub _ (mem_of_dropWhile (by rw [e]; exact List.mem_cons_self ..)))).symm
+      exact (hintsAt_of_mem hd
+        (hsub _ ((List.dropWhile_sublist _).subset (by rw [e]; exact List.mem_cons_self ..)))).symm
     · rw [hintsAt_of_not fun x hx hx1 ↦ by
         have hm := hkeep x hx (by omega)
         rw [e] at hm hinc
@@ -152,7 +134,7 @@ theorem hintsC_advC {d c : List (ℕ × List Hint)} (hd : Mode.pcsIncr d = true)
 theorem curOk_adv {d c : List (ℕ × List Hint)} {P : ℕ} (h : CurOk d P c) :
     CurOk d (P + 1) (advC c P) := by
   obtain ⟨hc, hsub, hall⟩ := h
-  exact ⟨pcsIncr_dropWhile hc, fun x hx ↦ hsub x (mem_of_dropWhile hx),
+  exact ⟨pcsIncr_dropWhile hc, fun x hx ↦ hsub x ((List.dropWhile_sublist _).subset hx),
     fun x hx hP ↦ mem_dropWhile_of (by simp; omega) (hall x hx (by omega))⟩
 
 theorem optFSeq_eq {β : Type} (o : Option FSt) (k : Option FSt → β) : optFSeq o k = k o := by
@@ -437,19 +419,6 @@ theorem addGrpF_ok {ar : Exec.Trie (List ℕ)} {k : ℕ} {ts : List ℕ} {A : FS
       · exact hP (k', us, B) List.mem_cons_self
       · exact addGrpF_ok hinc hge hk hP.cons G hG
 
-theorem trieAll_get {α : Type} {p : α → Bool} : ∀ {t : Exec.Trie α}, trieAll p t = true →
-    ∀ {n : ℕ} {a : α}, t.get n = some a → p a = true
-  | .nil, _, _, _, h => by simp at h
-  | .node v l r, h, n, a, hn => by
-    have h' : (optAll p v && trieAll p l && trieAll p r) = true := h
-    simp only [Bool.and_eq_true] at h'
-    obtain ⟨⟨hv, hl⟩, hr⟩ := h'
-    rw [Exec.Trie.get_node] at hn
-    split_ifs at hn
-    · subst hn; exact hv
-    · exact trieAll_get hl hn
-    · exact trieAll_get hr hn
-
 theorem tagF_arms {Fn : FFun} {i : ℕ} {A : FSt} {x : Exec.Exit} {ts : List ℕ} {B : FSt}
     (e : exitF Fn i A x = some (ts, B)) (hk : tagF Fn i x ≠ 0) : Fn.arms.get (tagF Fn i x - 1) = some ts := by
   unfold tagF at hk ⊢
@@ -498,7 +467,7 @@ theorem jumpF_spec {Fn : FFun} (har : armsOk Fn = true) {i : ℕ} {A : FSt} {x :
       · have hkk : (tagF Fn i x == 0) = false := by simpa using hk
         rw [hkk] at hc
         simp only [Bool.cond_false, decide_eq_true_eq] at hc
-        have hinc := (Bool.and_eq_true _ _ ▸ trieAll_get har (hst hk)).1
+        have hinc := (Bool.and_eq_true _ _ ▸ Exec.trieAll_get har (hst hk)).1
         exact ⟨hinc, fun u hu ↦ by
           rcases List.mem_cons.mp hu with rfl | hu
           · omega

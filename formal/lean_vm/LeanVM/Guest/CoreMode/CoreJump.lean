@@ -510,7 +510,7 @@ theorem core_jfall {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {code : 
     subst hr0
     refine ⟨z.pos, h1 z rfl, as.map Ev.atom, bs.map Ev.atom ++ es1, by simp, ?_, evM_atoms _,
       fun y hy ↦ hev y (by rw [List.map_append, ← List.append_assoc]; exact writtenC_prefix hy)⟩
-    rw [hzpos, walk_atoms, hes1]
+    rw [hzpos, Bridge.walk_atoms, hes1]
     rfl
   cases hf : fwdJ Cf.X i oc od of
   swap
@@ -610,7 +610,7 @@ theorem core_jtaken {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {code :
     refine Or.inr ⟨hself, t - Cf.X.entry, z.pos, by rw [hpcw t ht (by have := hlen _ ho'; omega), hto], by omega,
       hat', as.map Ev.atom, bs.map Ev.atom ++ es1, by simp, ?_, evM_atoms _,
       fun y hy ↦ hev y (by rw [List.map_append, ← List.append_assoc]; exact writtenC_prefix hy)⟩
-    rw [hzpos, walk_atoms, hes1]
+    rw [hzpos, Bridge.walk_atoms, hes1]
     rfl
   have hh := headH_of hr hz hf
   rcases head_cases hzsok hctrl hh with ⟨x, fs, args, rets, ss, hcur⟩ | ⟨c', f', args', ss, hcur⟩ | hh4

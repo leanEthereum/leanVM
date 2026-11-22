@@ -587,13 +587,6 @@ theorem hintsStep_pos (X : AlignCtx) : ∀ (hs : List Prover.Exec.Hint) {z z' : 
 
 /-! ## The record -/
 
-theorem stepI_i {X : AlignCtx} {ins : OffsetInstruction} {st : St} {p : St × Option (ℕ × Zip)}
-    (h : stepI X ins st = some p) : p.1.i = st.i + 1 := by
-  rcases stepI_eq h with ⟨-, -, rfl⟩ | ⟨c, -, -, hv⟩
-  · rfl
-  · obtain ⟨z0, z, r, -, -, -, rfl⟩ := visit_eq hv
-    rfl
-
 /-- The pass records each offset once, the later first. -/
 theorem alignGo_desc (X : AlignCtx) : ∀ (code : List OffsetInstruction) {st st' : St} {acc acc' : List (ℕ × Zip)},
     alignGo X code st acc = some (st', acc') → acc.Pairwise (fun a b ↦ b.1 < a.1) → (∀ e ∈ acc, e.1 < st.i) →
@@ -604,7 +597,7 @@ theorem alignGo_desc (X : AlignCtx) : ∀ (code : List OffsetInstruction) {st st
   | ins :: code, st, st', acc, acc', h, hp, hlt => by
     rw [alignGo_cons] at h
     obtain ⟨p, hp1, h⟩ := Option.bind_eq_some_iff.mp h
-    have hi := stepI_i hp1
+    have hi := stepI_i X ins hp1
     have hr := stepI_rec X ins hp1
     refine alignGo_desc X code h ?_ fun e he ↦ ?_
     · rw [List.pairwise_append]

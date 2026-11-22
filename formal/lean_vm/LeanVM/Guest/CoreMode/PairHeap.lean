@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.CoreMode.PairSound
 public import LeanVM.Guest.Bridge.Track
+public import LeanVM.Guest.Bridge.Prefix
 
 /-!
 # The pairing by positions
@@ -313,17 +314,10 @@ theorem no_writes_of_stopL {σ : Val} {a : Atom} (h : stopL a = false) {x : K} :
   | hint h' => simp [Reads] at hr; split at hr <;> simp_all [stopL, flowAtom, coreFlow]
   | _ => simp [Reads] at hr
 
-theorem walk_atoms (σ : Val) : ∀ (as : List Atom) (ss : List Stmt),
-    walk σ (as.map Stmt.atom ++ ss) = (walk σ ss).pre (as.map Ev.atom)
-  | [], ss => by simp [out_pre_nil]
-  | a :: as, ss => by
-    rw [List.map_cons, List.cons_append, walk_atom_cons, walk_atoms σ as ss, out_pre_pre]
-    rfl
-
 /-- Atoms, then statements: the path is the atoms', then the statements'. -/
 theorem walk_atoms_ret {σ : Val} {as : List Atom} {ss : List Stmt} {es : List Ev} {vs : List V}
     (h : walk σ (as.map Stmt.atom ++ ss) = .ret es vs) : ∃ es', walk σ ss = .ret es' vs ∧ es = as.map Ev.atom ++ es' := by
-  rw [walk_atoms] at h
+  rw [Bridge.walk_atoms] at h
   exact pre_eq_ret h
 
 end

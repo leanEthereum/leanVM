@@ -1563,7 +1563,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
         simp only [hσc, ↓reduceIte] at hpe
         subst hvs
         have hes' : es' = [] := by
-          rw [retNil_eq hrn, walk_ret_cons, Out.ret.injEq] at hwp'
+          rw [Bridge.retNil_eq hrn, walk_ret_cons, Out.ret.injEq] at hwp'
           exact hwp'.1.symm
         subst hes'
         -- the next frame, of the honest tree
