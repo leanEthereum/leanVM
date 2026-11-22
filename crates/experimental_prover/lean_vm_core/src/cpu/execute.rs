@@ -1127,10 +1127,7 @@ pub(super) fn walk<M: Machine>(
                             }
                         } else {
                             let base = next_free;
-                            next_free = base
-                                .checked_add(size)
-                                .filter(|&next| next <= MAX_CELLS)
-                                .ok_or_else(|| fail(Fault::OutOfMemory))?;
+                            next_free = run_at(base, size, 0).map_err(fail)?;
                             m.g_grow(next_free as usize);
                             // The base is about to become a pointer in memory.
                             m.g_note(base as usize);
