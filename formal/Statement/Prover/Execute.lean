@@ -19,8 +19,11 @@ program, its hints and its streams (`lean_vm`, `LeanVM/Prover/ExecuteSound.lean`
 it is: `GuestExecutionComplete` says this executor runs the guest to completion, which is about the
 Rust only as far as this executor is read as a faithful copy of the Rust's. Every cell a hint reads
 or writes is checked below `maxCells` (`cellAt`, `runAt`, a run's last cell too), as an
-instruction's are. A `DEREF` link is a class of cells sharing one value; the run ends by checking
-that every link's two cells agree.
+instruction's are, so the memory a run uses stays within `maxCells` without a check at its end, as
+in the Rust. A `DEREF` link puts its two cells in one class, which holds one value, so every link's
+two cells agree by construction and nothing checks them, as in the Rust; the links are recorded
+(`Mem.links`) for the proofs alone. Two checks are kept only because the Rust makes them too, and
+cannot fail: the instruction fetch in `step` and the public input's writes in `execute`.
 
 Where it agrees with the Rust: on a program of fewer than `2^30` instructions (`logSize < 30`) whose
 instructions all decode, with hints of the shapes the compiler emits (bit and digit counts at most
@@ -205,7 +208,6 @@ inductive Fault where
   | haltOutsideMain (fp : ℕ)
   | stepLimit
   | badInstruction
-  | linkMismatch (a b : ℕ)
 
 /-! ## The memory -/
 
@@ -216,8 +218,9 @@ inductive Cell where
   | cls (k : ℕ)
   deriving Inhabited
 
-/-- The write-once memory: its cells, the link classes' values and members, every link made,
-and one past the highest cell accessed or reserved (`used`). -/
+/-- The write-once memory: its cells, the link classes' values and members, every link made (read
+by no part of the run: a record for the proofs), and one past the highest cell accessed or reserved
+(`used`). -/
 structure Mem where
   cells : Array Cell
   vals : Array (Option E)
@@ -572,7 +575,8 @@ def runOp (C : Ctx) (s : St) : Op → Except Fault St
       return (cells ++ outs).foldl Mem.ensure m
     pure { s with pc := s.pc + 1 }
 
-/-- One step: the hints at `pc`, then its instruction. -/
+/-- One step: the hints at `pc`, then its instruction. The fetch cannot fail, since `loop` steps only
+at a `pc` within the program; it stands for the Rust's bounds-checked `program.prog[pc]`. -/
 def step (C : Ctx) (s : St) : Except (ℕ × Fault) St := do
   let pc := s.pc
   let s ← ((C.hints[pc]?.getD []).foldlM (runHint C) s).mapError (pc, ·)
@@ -604,7 +608,8 @@ def Mem.image (m : Mem) : (κ : ℕ) × MemoryImage κ :=
   ⟨Nat.log2 m.used.nextPowerOfTwo, fun i ↦ m.peek i.val⟩
 
 /-- **The executor**: run `prog` on `input` with `adv`; the execution, or the `pc` and fault it
-failed at. -/
+failed at. The public input's writes to the empty memory cannot fail; they are checked as the
+Rust's `m.put` is. -/
 def execute (prog : LeanIsaProgram) (input : PublicInput) (adv : Advice) :
     Except (ℕ × Fault) (Execution prog) := do
   let C ← Ctx.of prog adv
@@ -613,9 +618,6 @@ def execute (prog : LeanIsaProgram) (input : PublicInput) (adv : Advice) :
   let mem ← ((mem.put 0 input.word0).bind (·.put 1 input.word1)).mapError (0, ·)
   let s ← loop C maxSteps ⟨mem, Dlog.empty.grow (max (C.ops.size + 2) adv.mainFrame), 0, 0,
     adv.mainFrame, ∅, 0⟩
-  if maxCells < s.mem.used then throw (0, .outOfMemory)
-  for (a, b) in s.mem.links do
-    if s.mem.peek a ≠ s.mem.peek b then throw (0, .linkMismatch a b)
   let ⟨κ, img⟩ := s.mem.image
   pure ⟨κ, img, s.steps⟩
 

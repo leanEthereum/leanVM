@@ -867,11 +867,6 @@ impl Parser<'_> {
 
 type Aug<'a> = Option<(&'a str, &'static str, &'a str)>;
 
-/// Strip a leading `log` token (`log x`, `log(x)`), if present. The token must
-/// end at a boundary, so a variable named `logx` is not a log of `x`. A bare
-/// `log x` takes the rest of the side, and a parenthesised one only its group,
-/// which must end the side: `log(x) * 2` is `2·log x` in Python and was read
-/// here as `log(2x)`, so it is rejected rather than read either way.
 /// A `hint_witness` stream name: a string literal, not empty and with no whitespace, since the
 /// hints' text form ([`isa::CompiledProgram::export_hints`]) separates its fields with spaces.
 fn stream_name(s: &str) -> Result<String, String> {
@@ -884,6 +879,11 @@ fn stream_name(s: &str) -> Result<String, String> {
     Ok(name.to_string())
 }
 
+/// Strip a leading `log` token (`log x`, `log(x)`), if present. The token must
+/// end at a boundary, so a variable named `logx` is not a log of `x`. A bare
+/// `log x` takes the rest of the side, and a parenthesised one only its group,
+/// which must end the side: `log(x) * 2` is `2·log x` in Python and was read
+/// here as `log(2x)`, so it is rejected rather than read either way.
 fn strip_log(s: &str) -> Result<Option<&str>, String> {
     let Some(r) = s.trim().strip_prefix("log").filter(|r| r.starts_with([' ', '('])) else {
         return Ok(None);

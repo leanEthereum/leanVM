@@ -80,7 +80,11 @@ impl CompiledProgram {
                     })
                 })
                 .collect();
-            writeln!(out, "{pc} {} {}", hs.len(), hs.join(" ")).unwrap();
+            write!(out, "{pc} {}", hs.len()).unwrap();
+            for h in hs {
+                write!(out, " {h}").unwrap();
+            }
+            out.push('\n');
         }
         let mut streams: Vec<_> = witness.iter().collect();
         streams.sort_by_key(|(name, _)| name.as_str());
