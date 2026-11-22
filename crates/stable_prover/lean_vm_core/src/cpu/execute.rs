@@ -403,9 +403,7 @@ impl<'a> Advice<'a> {
 /// base `g^{next_free}` there, once, a second value being a conflict.
 fn alloc(m: &mut Mem, g: &mut GPow, next_free: &mut u32, cell: u32, size: u32) -> Result<(), Fault> {
     let base = *next_free;
-    *next_free = (base.checked_add(size))
-        .filter(|&next| next <= MAX_CELLS)
-        .ok_or(Fault::OutOfMemory)?;
+    *next_free = run_at(base, size, 0)?;
     g.grow_to(*next_free as usize);
     // The base is about to become a pointer in memory.
     g.note(base as usize);
