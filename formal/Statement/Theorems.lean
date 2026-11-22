@@ -74,8 +74,8 @@ structure Theorems
   /-- The leanISA guest program is complete on every node within the deployed limits
   (`DeployedLimits`: at most `16` children holding `2^17` claims in all, `2048` leanXMSS and `512`
   leanSPHINCS signatures, a blob matrix of `LeanDa.maxRows` rows), under the deployed seed, whatever
-  proofs of the guest program the children carry, as long as the verifier accepts them
-  (`NodeRelation`), barring a Keccak-256 collision in the guest program's Merkle caps or a zero
+  proofs of the guest program the children carry, as long as the deferring verifier accepts them
+  with their fresh claims (`NodeRelation`), barring a Keccak-256 collision in the guest program's Merkle caps or a zero
   challenge (`ChildWithoutCollisionOrZero`): the executor (`Prover/Execute.lean`)
   runs the guest program to a valid execution, within `2^30` committed words, on the advice the
   guest's witness generation makes from the statement and the witness (`LeanVM.Guest.guestExecution`,
@@ -86,8 +86,8 @@ structure Theorems
   /-- The same honest prover's proof of an execution of the guest program is rarely refused: it
   makes none, or the verifier refusing every zero challenge rejects it, with
   probability at most `2^-100` in the random-permutation model (`LeanVmGuestCompleteness.lean`). Read for the deployed
-  Keccak, it says the honest proof is refused by no zero challenge, one of the two conditions of
-  `ChildWithoutCollisionOrZero`. -/
+  Keccak, it is the hypothesis `lean_vm`'s form for honest children asks of their proofs
+  (`LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children`). -/
   honestProofRarelyRefused : LeanVM.Guest.Completeness.HonestProofRarelyRefused
   /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · max(2M - 3, 8) ·
   2^-130 + 5 (QA + QV)² · 2^-256` for fewer than `M` children, `QA ≤ 2^128`, `QV ≤ 2^96`, so

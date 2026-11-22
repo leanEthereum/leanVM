@@ -122,7 +122,9 @@ random-permutation model `batch_rpm`, `batch_rpm_bits`), `decode_binds`, `guest_
 `LeanVM/Guest/AcceptableChild.lean`; a child `NodeRelation` admits, free of a collision in the caps
 and of a zero challenge, is such a child by `LeanVM.Guest.Child.acceptableChildren_of_accepted`, and
 an honest proof by `guest_child_complete` and `LeanVM.Guest.Child.freshClaim_unique`), the executor
-on honest children (`LeanVM.Guest.EndExec.honestExecution_ok_on_honest_children`), and the guest's completeness within its deployed budget
+on honest children (`LeanVM.Guest.EndExec.honestExecution_ok_on_honest_children`, and with the
+statement's witness generation `LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children`,
+the end statement's earlier form), and the guest's completeness within its deployed budget
 (`LeanVM.Guest.Budget.guest_complete`, `guest_complete_numeric`).
 The two-oracle random-oracle model the proofs pass through (`LeanVM/Protocol/Rom/Statement.lean`:
 `LeanVM.knowledgeSoundnessRomAS`, `LeanVM.completenessRom_holds`; the batching's
@@ -262,6 +264,10 @@ info: 'LeanVM.Guest.EndExec.honestExecution_complete_on_accepted_children' depen
 /-- info: 'LeanVM.Guest.EndExec.honestExecution_ok_on_honest_children' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.EndExec.honestExecution_ok_on_honest_children
+
+/-- info: 'LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children
 
 /-- info: 'LeanVM.Guest.EndExec.guest_prover_complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

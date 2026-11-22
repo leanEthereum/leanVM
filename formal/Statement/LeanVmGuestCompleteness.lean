@@ -159,11 +159,11 @@ namespace Completeness
 What else the guest program asks of a child follows from the deferring verifier accepting it
 (`NodeRelation`'s `ChildrenProven`): its stack log is at least `20`, the least the guest program
 has an opening arm for (`min_execution_stacked_log`, `crates/verifier`'s `layout.rs`: the
-bytecode's `2^19` instructions alone fill `2^19` words), and its proof stream at most
-`STREAM_CAP = 8192` scalars (`aggregation/child.rs`). -/
+bytecode's `2^19` words and the memory's columns stack more than `2^19` words), and its proof
+stream at most `STREAM_CAP = 8192` scalars (`aggregation/child.rs`). -/
 structure ChildWithoutCollisionOrZero (bytecode : List K) (seed : Digest) (child : Child) :
     Prop where
-  /-- Its openings agree in the guest program's Merkle caps. -/
+  /-- Its openings agree wherever they meet in their tree. -/
   openingsAgree : ∀ phase ∈ child.proof.openings, ∀ depth,
     (∀ opening ∈ phase, opening.path.length = depth) →
       Limits.OpeningsAgree depth (phase.map fun opening ↦ (opening.leafIndex, opening))

@@ -131,6 +131,21 @@ theorem guestExecution_complete_holds : Completeness.GuestExecutionComplete :=
     let ⟨t, he, hv, hsz⟩ := honestAdvice_complete s w hrel hlim hon
     ⟨t, (prover_guestExecution_eq s w).trans he, hv, hsz⟩
 
+/-- **The executor runs the guest program to completion on the statement's advice on honest
+children**: the end statement's form before it covered every accepted child, a node within the
+deployed limits whose children carry honest proofs (`HonestChild`) having acceptable children
+(`acceptableChildren_of_honest`). -/
+theorem guestExecution_complete_on_honest_children (s : NodeStatement) (w : NodeWitness)
+    (hrel : NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) s w)
+    (hlim : DeployedLimits s w) (hon : ∀ child ∈ w.children, HonestChild child) :
+    ∃ execution, guestExecution guestProgram s w = .ok execution ∧
+      ValidExecution guestProgram
+        (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) s)) execution ∧
+      execution.committedSize ≤ 2 ^ 30 :=
+  let ⟨t, he, hv, hsz⟩ := honestExecution_complete_of_childrenOk execGaps s w hrel hlim
+    (acceptableChildren_of_honest hrel hon)
+  ⟨t, (prover_guestExecution_eq s w).trans he, hv, hsz⟩
+
 open OracleComp OracleSpec in
 /-- **The guest's prover makes the honest prover's proof of its execution**: where `guestExecution`
 returns `t`, `guestProve`'s proof is rejected, refused or not made exactly as the honest prover's
