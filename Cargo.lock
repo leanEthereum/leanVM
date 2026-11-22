@@ -249,7 +249,6 @@ dependencies = [
  "isa",
  "tracing",
  "verifier",
- "zkdsl_compiler",
 ]
 
 [[package]]
