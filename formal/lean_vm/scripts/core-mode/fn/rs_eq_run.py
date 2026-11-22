@@ -11,7 +11,6 @@ def _tup(x):
 # as its Lean data says (`CoreMode.spRs`)
 SPLITS = {'rs_eq_run': _tup(lean_def('rs_eq_run', 'Fam', 'spRs'))}
 
-# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
-OWN = [
-    'LeanVM/Guest/CoreMode/Fn/rs_eq_run/*.lean',
-]
+# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
+# it alone may change, by hand
+OWN = []

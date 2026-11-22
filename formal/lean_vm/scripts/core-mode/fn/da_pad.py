@@ -28,8 +28,8 @@ def fam(k, r):
 COUNT_SHAPE = {'da_pad': 'V'}
 COUNT_OM = {'da_pad': ('MvCountData', 1)}
 
-# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
+# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
+# it alone may change, by hand
 OWN = [
     'LeanVM/Guest/EndExecCoreDa.lean',
-    'LeanVM/Guest/CoreMode/Fn/da_pad/*.lean',
 ]

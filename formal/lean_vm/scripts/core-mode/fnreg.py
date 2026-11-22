@@ -4,13 +4,16 @@ own routing facts and families, from its own modules `CoreMode/Fn/<f>/Data.lean`
 concatenation, and its soundness (`<kind>_ok` in the function's `Sound.lean`, of each entry the kind's predicate) theirs.
 The shared checks and theorems read the registries only, so no shared file names a function, and a guest edit to one
 function changes that function's own modules at most (`formal/notes/core-mode.md`).
+It also checks each rule file's `OWN` (`own_files`): the hand files a change to that function alone may change.
 `--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/core-mode/fnreg.py [--check]"""
-import os, re, sys, glob
+import ast, os, re, sys, glob
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import genfiles  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+LV = os.path.normpath(os.path.join(HERE, '..', '..'))
+RULES = os.path.join(HERE, 'fn')
 GUEST = os.path.normpath(os.path.join(HERE, '..', '..', 'LeanVM', 'Guest'))
 FN = os.path.join(GUEST, 'CoreMode', 'Fn')
 OUT = os.path.join(GUEST, 'CoreMode', 'Gen')
@@ -29,10 +32,12 @@ KINDS = {
             'the parameters whose nonzero values the core route\'s residuals are (`CoreMode.coreNzs`)'),
     'stCallers': ('Data', 'List (String × String)', None,
                   'the callees whose facts are carried, and their callers (`Res.termCallers`, `Res.callersG`)'),
-    'mlLoops': ('Data', 'List (String × ℕ)', None,
-                'the specializations of a ghost family over a caller\'s table, and their indices (`CoreMode.mlK`)'),
-    'cmLoops': ('Data', 'List (String × ℕ)', None,
-                'the frame loops over a caller\'s table, and their claims a frame (`CoreMode.cmK`)'),
+    'mlLoops': ('Data', 'List (String × ℕ × ℕ × ℕ × ℕ × ℕ × List (ℕ × ℕ × ℕ))', None,
+                'the specializations of a ghost family over a caller\'s table: name, index, entry, first gap, the gaps\' '
+                'stride, the parameter bounding the reads, the caller\'s cells linked (`CoreMode.mlK`)'),
+    'cmLoops': ('Data', 'List (String × ℕ × ℕ × ℕ × ℕ × List ℕ)', None,
+                'the frame loops over a caller\'s table: name, claims a frame, entry, first gap, the gaps\' stride, the '
+                'caller\'s cells linked (`CoreMode.cmK`)'),
     'glCallers': ('Data', 'List (String × List String)', None,
                   'the callees whose facts are carried, and their callers (`Res.glCallers`, `Res.callersM`)'),
     'fams': ('Fam', 'List (String × (Core.Fn → CRes → Bool))', 'EndExec.OwnOk',
@@ -40,6 +45,39 @@ KINDS = {
     'gwFams': ('Fam', 'List (String × (Core.Fn → List (CCell × ℕ) → CRes → Bool))', 'EndExec.GwFamOk',
                'the functions\' own residual families over their own parameter words as ghosts (`CoreMode.resFamG`)'),
 }
+
+
+def own_files():
+    """Each rule file's `OWN` (`fn/<f>.py`, read as a literal, the file not run): its function's own hand files, as globs
+    under `lean_vm/`, its `CoreMode/Fn/<f>/` modules implied. Every rule file has one, every entry matches a file, no
+    file is on two lists, and every `CoreMode/Fn/<f>/` has its rule file. The file of each, by function."""
+    errs, owner = [], {}
+    rules = sorted(os.path.basename(p)[:-3] for p in glob.glob(os.path.join(RULES, '*.py')))
+    for d in sorted(glob.glob(os.path.join(FN, '*'))):
+        if os.path.basename(d) not in rules:
+            errs.append('CoreMode/Fn/%s has no rule file fn/%s.py' % ((os.path.basename(d),) * 2))
+    for f in rules:
+        own = None
+        for n in ast.parse(open(os.path.join(RULES, f + '.py'), encoding='utf-8').read()).body:
+            if isinstance(n, ast.Assign) and any(isinstance(x, ast.Name) and x.id == 'OWN' for x in n.targets):
+                own = ast.literal_eval(n.value)
+        if own is None:
+            errs.append('fn/%s.py has no OWN' % f)
+            continue
+        implied = 'LeanVM/Guest/CoreMode/Fn/%s/*.lean' % f
+        if implied in own:
+            errs.append('fn/%s.py: OWN lists %s, which is implied' % (f, implied))
+        for e in [x for x in own if x != implied] + ([implied] if os.path.isdir(os.path.join(FN, f)) else []):
+            hits = sorted(x for x in glob.glob(os.path.join(LV, e), recursive=True) if os.path.isfile(x))
+            if not hits:
+                errs.append('fn/%s.py: OWN entry %s matches no file' % (f, e))
+            for x in hits:
+                x = os.path.relpath(x, LV)
+                if owner.setdefault(x, f) != f:
+                    errs.append('%s is on the OWN lists of %s and %s' % (x, owner[x], f))
+    if errs:
+        raise SystemExit('fnreg: OWN:\n  ' + '\n  '.join(errs))
+    return owner
 
 
 def header(mod, what):
@@ -134,6 +172,7 @@ def render():
 
 
 def main(argv):
+    own_files()
     files = render()
     check = '--check' in argv
     bad = genfiles.sync(files, [p for p in files if os.path.exists(p)], check)

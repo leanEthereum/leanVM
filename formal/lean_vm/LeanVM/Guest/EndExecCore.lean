@@ -479,7 +479,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     | some m =>
       -- a frame loop of the gap walk: its ghost words its caller's entries, bound and frame
       have hgl1 := hgl0
-      simp only [CoreMode.glOk, hck, Option.isSome_some, Bool.cond_true, CoreMode.cmGl, Bool.true_and,
+      simp only [CoreMode.glOk, hck, Option.isSome_some, Bool.cond_true, CoreMode.cmGl, Option.any_some,
         Bool.and_eq_true, decide_eq_true_eq, Nat.beq_eq] at hgl1
       obtain ⟨⟨⟨hglv, hgh⟩, hng⟩, hgw0⟩ := hgl1
       obtain ⟨a, ha, ha5, hsub⟩ := cm_inst hr hMo hI hIt hfind hck
@@ -491,7 +491,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
           (fun x hx ↦ by cases x <;> simp [CoreMode.stSub, cmK_stK hck] at hx) hsub
           (fun x hx ↦ by rw [List.isEmpty_iff.mp hgw0, CoreMode.gwFam_nil] at hx; cases hx)
       · rw [← hfpL]
-        exact cmGlF hglv hgh (rd_hdr hF.hdr1 ha) ha5
+        exact cmGlF hck hglv hgh (rd_hdr hF.hdr1 ha) ha5
     | none =>
     cases hsk : CoreMode.stK Cf.fn with
     | some p =>
@@ -565,8 +565,8 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
       -- the ghost family: its ghost word the caller's entries table
       have hgl1 := hgl0
       simp only [CoreMode.glOk, hck, hsk, hmk, Option.isSome_none, Option.isSome_some, Bool.cond_false,
-        Bool.cond_true, CoreMode.mlGl, Bool.and_eq_true, decide_eq_true_eq, Nat.beq_eq] at hgl1
-      obtain ⟨⟨⟨⟨-, hglv⟩, hgh⟩, hng⟩, hgw0⟩ := hgl1
+        Bool.cond_true, CoreMode.mlGl, Option.any_some, Bool.and_eq_true, decide_eq_true_eq, Nat.beq_eq] at hgl1
+      obtain ⟨⟨⟨hglv, hgh⟩, hng⟩, hgw0⟩ := hgl1
       obtain ⟨hpar4, a, ha, h5, hm5, hsub⟩ := ml_inst hr hMo hI hIt hfind hmk
       refine ⟨CoreMode.setG e.σ [refMem r.img (a + 2)], CoreMode.honB_setG hB hng, fun hxw ↦ ?_, ?_,
         fun c j hc ↦ by rw [List.isEmpty_iff.mp hgw0] at hc; cases hc⟩
@@ -576,7 +576,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
           (fun x hx ↦ by rw [CoreMode.cmSub_none hck] at hx; cases hx)
           (fun x hx ↦ by rw [List.isEmpty_iff.mp hgw0, CoreMode.gwFam_nil] at hx; cases hx)
       · rw [← hfpL]
-        exact mlGlF hglv hgh hpar4 (rd_hdr hF.hdr1 ha) h5 hm5
+        exact mlGlF hmk hglv hgh hpar4 (rd_hdr hF.hdr1 ha) h5 hm5
   refine ⟨⟨e.pre ++ e.es, vs, rd, by rw [hfn]; exact hw, ?_⟩, fun es0 vs0 hw0 a p hl hpa ↦ ?_,
     fun hneed es0 vs0 hw0 p r0 rs hl ↦ ?_, hparF,
     fun es0 vs0 hw0 v hv ↦ ?_, fun es0 vs0 hw0 k hk ↦ ?_, fun es0 vs0 hw0 i0 c q s0 hc htk hs0 ↦ ?_,

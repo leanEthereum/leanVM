@@ -10,7 +10,8 @@ ANY_ORIGIN = {'child_claim_list_any'}
 COUNT_SHAPE = {'child_claim_list_any': 'V'}
 COUNT_OM = {'child_claim_list_any': ('VsCountData', 3)}
 
-# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
+# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
+# it alone may change, by hand
 OWN = [
     'LeanVM/Guest/CoreMode/Fam/ResA.lean',
     'LeanVM/Guest/CoreMode/Fam/LinkDefs.lean',

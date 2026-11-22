@@ -27,7 +27,6 @@ def _last(r, o):
 
 CONTRACTS = {'gkr_last_layers__L%d_L%d' % (_p, _o): _last(_p, _o) for _o in range(2) for _p in range(4)}
 
-# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
-OWN = [
-    'LeanVM/Guest/CoreMode/Fn/gkr_last_layers/*.lean',
-]
+# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
+# it alone may change, by hand
+OWN = []

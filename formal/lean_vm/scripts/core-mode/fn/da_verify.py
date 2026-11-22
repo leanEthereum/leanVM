@@ -150,8 +150,6 @@ def deployed_parts(W):
                     + W.thm('dvP_eq', 'dvP B2C.fs wSB wSK', W.v('dvP'), 'dvP B1.Main.iterK', ['dlK_eq'], fs=[pad],
                             sk=[pad])])]
 
-# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
-OWN = [
-    'LeanVM/Guest/EndExecCoreDa.lean',
-    'LeanVM/Guest/CoreMode/Fn/da_verify/*.lean',
-]
+# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
+# it alone may change, by hand
+OWN = []

@@ -22,12 +22,11 @@ CONTRACTS = {'verify_bus_gkr_loop0': sig(
 RATIO_WORDS = {'verify_bus_gkr': 39767}
 RATIOV = {'verify_bus_gkr': (0, 'Vbg')}
 
-# its own Lean files (beside its B1 proofs' `B1/` modules): what a change to it alone may change, by hand
+# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
+# it alone may change, by hand
 OWN = [
     'LeanVM/Guest/Count/Fn/verify_bus_gkr.lean',
     'LeanVM/Guest/B1/Gkr/**',
     'LeanVM/Guest/B1/Sumcheck/Gkr.lean',
     'LeanVM/Guest/CoreMode/Fam/ResGkr*.lean',
-    'LeanVM/Guest/CoreMode/Fam/GkrDefs.lean',
-    'LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/*.lean',
 ]

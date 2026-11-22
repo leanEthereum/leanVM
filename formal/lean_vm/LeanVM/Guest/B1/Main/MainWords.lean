@@ -15,6 +15,7 @@ public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Consts
+import LeanVM.Guest.LitRef
 
 /-!
 # `main`'s words, linear in the work
@@ -402,7 +403,7 @@ theorem sum_childBv (Bvf : ℕ → ℕ → ℕ) (s : NodeStatement) (w : NodeWit
 and each callee's frame and bound, child `c`'s `verify_sub` within `Bvf` at its announced stack log
 and rate. -/
 def mainWords (Bvf : ℕ → ℕ → ℕ) : End.Linear where
-  base := fs "main" + 283 + fs "exponent_tables" + 2284 + 2 * (clC fs SB + fs "claim_list_digest") +
+  base := fs "main" + 283 + fs "exponent_tables" + lit% B1.expTabN + 2 * (clC fs SB + fs "claim_list_digest") +
     fs name% «main_loop0» + fs name% «main_loop1» +
     fs name% «main_loop2» + fs name% «main_loop3» + 2 * l5A0 fs + (agA0 fs SB + fs
         "aggregate_claims") + SB "statement_digest" +
@@ -465,7 +466,7 @@ theorem Bmain_le (Bvf : ℕ → ℕ → ℕ) {bytecode : List K} {seed : Digest}
   have hK := kidsBoundL_mKids fs SB SK (hm fs 0 seed s w) (hLmain fs 0 seed s w)
     (mainBsH fs SB SK (childBv Bvf w) s w)
   have hB : Bmain fs SB SK (childBv Bvf w) 0 seed s w = fs "main" + (mSizes (hData seed s w)).sum +
-      (fs "exponent_tables" + 2284 + kidsBoundL fs (mKids (hm fs 0 seed s w) (hLmain fs 0 seed s w))
+      (fs "exponent_tables" + lit% B1.expTabN + kidsBoundL fs (mKids (hm fs 0 seed s w) (hLmain fs 0 seed s w))
         (mBs fs SB SK (hm fs 0 seed s w) (mainBsH fs SB SK (childBv Bvf w) s w))) := rfl
   generalize kidsBoundL fs (mKids (hm fs 0 seed s w) (hLmain fs 0 seed s w))
     (mBs fs SB SK (hm fs 0 seed s w) (mainBsH fs SB SK (childBv Bvf w) s w)) = KB at hK hB
