@@ -122,7 +122,7 @@ fn the_wire_layout_is_pinned() {
 /// the size being the fixed point.
 #[test]
 fn guest_compiles_reproducibly() {
-    let (one, two) = (compile_guest(20), compile_guest(20));
+    let (one, two) = (compile_guest(20).0, compile_guest(20).0);
     assert_eq!(
         format!("{:?}", one.prog),
         format!("{:?}", two.prog),
