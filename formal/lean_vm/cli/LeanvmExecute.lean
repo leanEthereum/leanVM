@@ -33,7 +33,6 @@ def describe : Fault → String
   | .haltOutsideMain fp => s!"halt outside main (fp {fp})"
   | .stepLimit => "step limit"
   | .badInstruction => "instruction does not decode"
-  | .linkMismatch a b => s!"linked cells {a}, {b} differ"
 
 /-- One case: `true` when the executions agree. -/
 def runCase (dir : String) : IO Bool := do
