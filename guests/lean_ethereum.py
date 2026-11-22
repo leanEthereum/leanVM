@@ -82,16 +82,13 @@ LAYER_SLOTS = 10
 # ---------------------------------------------------- the bus: sides and blocks
 # Bus sides, whose blocks the layout gives, and the GKR's trees, one a side: push and
 # pull under the fingerprint (fp_w, beta), then count, whose tuples weigh the count
-# alone, at beta = 0. GKR_ROUNDS_CAP caps the round positions (triangle rounds plus one
-# slot per layer) and GKR_POINTS_CAP the point triangle (rows x MU_CAP).
+# alone, at beta = 0.
 PUSH_SIDE = 0
 PULL_SIDE = 1
 COUNT_SIDE = 2
 N_GKR_SIDES = 3
 N_GKR_TREES = N_GKR_SIDES
-GKR_ROUNDS_CAP = GKR_ROUNDS_CAP_PLACEHOLDER
 MU_CAP = MU_CAP_PLACEHOLDER
-GKR_POINTS_CAP = GKR_POINTS_CAP_PLACEHOLDER
 # Bus blocks, flattened across the 3 sides (side s covers blocks
 # [SIDE_BLOCK_START[s], SIDE_BLOCK_START[s+1])). The block STRUCTURE is
 # protocol-fixed and baked: each block's coord range [BLOCK_COORD_OFF,
@@ -2015,45 +2012,45 @@ def gkr_layer(layers, rounds, gkr_pts, x_m, x_j, start_g, g_bus_mu, tabs, stream
     round_pos = layer[GEN ** LAYER_POS]
     point_row = gkr_pts * (x_j * GEN) ** MU_CAP
     nextrow = point_row * GEN ** MU_CAP
-    # The steps' records: step i's keeps field k at rounds * g^(k GKR_ROUNDS_CAP + i), so a
-    # step's record is one product away from the counter.
+    # The steps' records: step i's keeps field k at rounds * g^(ROUND_SLOTS i + k), one product
+    # away from the layer's head.
     head = rounds * round_pos
     hsp = layer_sp
     hcur = layer_cur
     hclaim = gkr_combine(layer_vals, layer_lam)
     for q in unroll(0, 2 * par):
         hsp, hcur, hclaim = gkr_round(hsp, hcur, hclaim, point_row, nextrow * GEN ** 2, q, tabs)
-    fs_store(head, ROUND_FS, GKR_ROUNDS_CAP, hsp)
-    head[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)] = hcur
-    head[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] = hclaim
+    fs_store(head, ROUND_FS, 1, hsp)
+    head[GEN ** ROUND_CURSOR] = hcur
+    head[GEN ** ROUND_CLAIM] = hclaim
     qrow = point_row * GEN ** (2 * par)
     nqrow = nextrow * GEN ** (2 * par + 2)
     for y in mul_range(1, x_m):
-        rd = head * y
+        rd = head * y ** ROUND_SLOTS
         y2 = y * y
         y4 = y2 * y2
         y8 = y4 * y4
         pt = qrow * y8
         npt = nqrow * y8
-        sp = fs_load(rd, ROUND_FS, GKR_ROUNDS_CAP)
-        cur = rd[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)]
-        claim = rd[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)]
+        sp = fs_load(rd, ROUND_FS, 1)
+        cur = rd[GEN ** ROUND_CURSOR]
+        claim = rd[GEN ** ROUND_CLAIM]
         for q in unroll(0, 8):
             sp, cur, claim = gkr_round(sp, cur, claim, pt, npt, q, tabs)
-        rd_next = rd * GEN
-        fs_store(rd_next, ROUND_FS, GKR_ROUNDS_CAP, sp)
-        rd_next[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)] = cur
-        rd_next[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] = claim
+        rd_next = rd * GEN ** ROUND_SLOTS
+        fs_store(rd_next, ROUND_FS, 1, sp)
+        rd_next[GEN ** ROUND_CURSOR] = cur
+        rd_next[GEN ** ROUND_CLAIM] = claim
     # The last one or two rounds, their state kept in the frame.
-    rd_last = head * x_m
+    rd_last = head * x_m ** ROUND_SLOTS
     m2 = x_m * x_m
     m4 = m2 * m2
     m8 = m4 * m4
     tpt = qrow * m8
     ntpt = nqrow * m8
-    tail_sp = fs_load(rd_last, ROUND_FS, GKR_ROUNDS_CAP)
-    tcur = rd_last[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)]
-    tclaim = rd_last[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)]
+    tail_sp = fs_load(rd_last, ROUND_FS, 1)
+    tcur = rd_last[GEN ** ROUND_CURSOR]
+    tclaim = rd_last[GEN ** ROUND_CLAIM]
     for q in unroll(0, 2 - odd):
         tail_sp, tcur, tclaim = gkr_round(tail_sp, tcur, tclaim, tpt, ntpt, q, tabs)
     if const(odd == 1):
@@ -2090,7 +2087,7 @@ def gkr_layer(layers, rounds, gkr_pts, x_m, x_j, start_g, g_bus_mu, tabs, stream
         lo = evals[4 * t] + c0 * (evals[4 * t] + evals[4 * t + 1])
         hi = evals[4 * t + 2] + c0 * (evals[4 * t + 2] + evals[4 * t + 3])
         nxt[GEN ** (LAYER_VALS + t)] = lo + c1 * (lo + hi)
-    nxt[GEN ** LAYER_POS] = round_pos * x_m * GEN
+    nxt[GEN ** LAYER_POS] = round_pos * (x_m * GEN) ** ROUND_SLOTS
     return
 
 
@@ -2105,9 +2102,15 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs, stream
     # the sponge, runs on its own: a binary layer for an odd depth, else a radix-four
     # one. It is never the last, the depth being at least BUS_MIN_MU (`verify_sub`).
     layers = HeapBuf((g_bus_mu * GEN ** 2) ** LAYER_SLOTS)
-    rounds = HeapBuf(GKR_ROUNDS_CAP * ROUND_SLOTS)
-    gkr_pts = HeapBuf(GKR_POINTS_CAP)
+    # The round records and point rows a depth reaches, past L <= depth // 2 radix-four layers: layer
+    # j's j // 4 + 1 records after one unused, and rows 0 to L + 1 of MU_CAP cells.
+    gkr_sizes = HeapBuf(2 * COUNT_BITS)
+    for depth in unroll(0, COUNT_BITS):
+        gkr_sizes[GEN ** depth] = GEN ** (ROUND_SLOTS * (1 + depth // 2 + 2 * (depth // 8) * (depth // 8) + (depth // 2 % 4) * (depth // 8) - 2 * (depth // 8)))
+        gkr_sizes[GEN ** (COUNT_BITS + depth)] = GEN ** ((depth // 2 + 2) * MU_CAP)
     assert log(g_bus_mu) < COUNT_BITS
+    rounds = HeapBuf(gkr_sizes[g_bus_mu])
+    gkr_pts = HeapBuf(gkr_sizes[g_bus_mu * GEN ** COUNT_BITS])
     sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
     rate = StackBuf(8)
     # Push and pull's one root, then the count's.
@@ -2149,7 +2152,7 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs, stream
         nxt[GEN ** LAYER_CURSOR] = cursor
         for t in unroll(0, N_GKR_TREES):
             nxt[GEN ** (LAYER_VALS + t)] = evals[2 * t] + c0 * (evals[2 * t] + evals[2 * t + 1])
-        nxt[GEN ** LAYER_POS] = GEN
+        nxt[GEN ** LAYER_POS] = GEN ** ROUND_SLOTS
     else:
         # The radix-four root layer: four children a tree, y two coordinates.
         evals = StackBuf(4 * N_GKR_TREES)
@@ -2166,7 +2169,7 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs, stream
             lo = evals[4 * t] + c0 * (evals[4 * t] + evals[4 * t + 1])
             hi = evals[4 * t + 2] + c0 * (evals[4 * t + 2] + evals[4 * t + 3])
             nxt[GEN ** (LAYER_VALS + t)] = lo + c1 * (lo + hi)
-        nxt[GEN ** LAYER_POS] = GEN
+        nxt[GEN ** LAYER_POS] = GEN ** ROUND_SLOTS
     # The radix-four layers past the root-most, four a step (gkr_layers).
     n_four = four_bounds[g_bus_mu]
     rem_g = four_rem[g_bus_mu]

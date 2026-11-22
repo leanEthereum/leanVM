@@ -233,8 +233,6 @@ fn constants(ph: &mut Placeholders) {
         ("QW", &QUERY_WINDOW_BITS),
         ("QUERY_WINDOWS_CAP", &QUERY_WINDOWS_CAP),
         ("MU_CAP", &MU_CAP),
-        ("GKR_ROUNDS_CAP", &(MU_CAP * (MU_CAP + 1) / 2 + MU_CAP + 2)),
-        ("GKR_POINTS_CAP", &((MU_CAP + 1) * MU_CAP)),
         ("MIN_LOG_MEM", &verifier::MIN_LOG_MEMORY),
         ("MAX_LOG_MEM", &verifier::MAX_LOG_MEMORY),
         ("INV_GEN", &F128::from(F64::G.inv())),

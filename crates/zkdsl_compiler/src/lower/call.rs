@@ -157,6 +157,7 @@ impl FnLower<'_> {
                 ptr: nfp,
                 callee,
                 count,
+                tail: Abi::end(callee_arg_cells, 0) + 1,
             });
         } else {
             let callee = callee.to_string();

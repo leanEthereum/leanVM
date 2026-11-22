@@ -175,14 +175,20 @@ fn assemble(mut lowered: Vec<Lowered>, tables: JumpTables) -> CompiledProgram {
                     .drain(..)
                     .map(|h| match h {
                         Hint::NextFrameAddress => RHint::FrameAddress { offset: l.frame_size },
-                        Hint::AllocLoopFrames { ptr, callee, count } => {
+                        Hint::AllocLoopFrames {
+                            ptr,
+                            callee,
+                            count,
+                            tail,
+                        } => {
                             let size = frame_size[&callee];
                             match count {
                                 LoopCount::Constant(n) => RHint::Alloc {
                                     ptr,
-                                    size: u32::try_from(n)
+                                    size: u32::try_from(n - 1)
                                         .ok()
                                         .and_then(|n| size.checked_mul(n))
+                                        .and_then(|frames| frames.checked_add(tail))
                                         .expect("loop frames overflow"),
                                 },
                                 LoopCount::Bound { cell, start } => RHint::AllocFrames {
@@ -190,6 +196,7 @@ fn assemble(mut lowered: Vec<Lowered>, tables: JumpTables) -> CompiledProgram {
                                     size,
                                     end: cell,
                                     start_inverse: F64::G.pow(u128::from(start)).inv(),
+                                    tail,
                                 },
                             }
                         }
