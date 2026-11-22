@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Place.Fresh
 # `level_residual_slow`, placed and bounded
 
 `lsKey` places the helper at every flag `z ∈ {0, 1}`. Within a words bound `B` of its trees:
-on an instance some memory holds, the placed tree's words are at most `B` (`relAtIn_le`); on any
+on an instance some memory holds, the placed tree's words are at most `B` (`ls_relAtIn_le`); on any
 other the relation is vacuous and the words are the frames and buffers, at most `B` by a fresh
 instance at the flag `1` (`ls_size_le`). `lsIn_of` finds each level's specialization in
 `lrsTable`.
@@ -58,7 +58,8 @@ buffers**, frames below `2^32`. -/
 theorem ls_size_le {e : String × ℕ × ℕ × ℕ × ℕ × String × String × String} (he : e ∈ lrsTable)
     (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (hfs : ∀ f, fs f < 2 ^ 32) {B : ℕ}
     (hT : TotalLe coreProgram fs e.1 (fun _ ↦ B)) : lsN fs e.1 e.2.2.2.2.2.1 e.2.1 1 ≤ B := by
-  obtain ⟨-, hQ, hQb, hsm⟩ := lrsTable_sizes e he
+  obtain ⟨hQ, hQb, -⟩ := lrsTable_shapes e he
+  have hsm := lrsTable_small e he
   set Q := e.2.1 with hQd
   set pre := e.2.2.1 with hpre
   set yr := e.2.2.2.1 with hyr
@@ -113,7 +114,7 @@ theorem ls_size_le {e : String × ℕ × ℕ × ℕ × ℕ × String × String �
     · have := h2 c (by rw [hlT]; exact hc); simpa [htW] using this
   obtain ⟨m, hm⟩ := lsKey (p := fun _ ↦ 0) (cs := fun _ ↦ 0) he fs cert κ (Or.inr rfl) hreg hmem fp0
   have hN : lsN fs e.1 e.2.2.2.2.2.1 Q 1 = fs e.1 + (fs e.2.2.2.2.2.1 + 2 * (Q + 1)) := by
-    rw [lsN, if_neg one_ne_zero]
+    rw [lsN, ite_eq_right one_ne_zero]
   have hlt : fp0 + lsN fs e.1 e.2.2.2.2.2.1 Q 1 < 2 ^ 64 - 1 := by
     have := hfs e.1
     have := hfs e.2.2.2.2.2.1
@@ -121,12 +122,11 @@ theorem ls_size_le {e : String × ℕ × ℕ × ℕ × ℕ × String × String �
   obtain ⟨rd, hlow, hmm⟩ := ls_fresh_pair κ
     (lsLb_disj fs e.1 e.2.2.2.2.2.1 Q (pre + yr) e.2.2.2.2.1 (fun _ ↦ 0) (fun _ ↦ 0) 0 1 fp0)
     (lsLb_within fs e.1 e.2.2.2.2.2.1 Q (pre + yr) e.2.2.2.2.1 (fun _ ↦ 0) (fun _ ↦ 0) 0 1 fp0) hLD hLW hlt
-  have := ls_relAtIn_le (hm rd hlow hmm) hT
-  omega
+  exact (Nat.le_add_right _ m).trans (ls_relAtIn_le (hm rd hlow hmm) hT)
 
 theorem lsN_le (fs : String → ℕ) (name sum : String) (Q : ℕ) (z : E) :
     lsN fs name sum Q z ≤ lsN fs name sum Q 1 := by
-  rw [lsN, lsN, if_neg one_ne_zero]
+  rw [lsN, lsN, ite_eq_right one_ne_zero]
   split <;> omega
 
 /-- **`level_residual_slow` at an entry of `lrsTable` is `LsAtO`**, at every optional bound of its
@@ -140,8 +140,10 @@ theorem lsAtO_of {e : String × ℕ × ℕ × ℕ × ℕ × String × String × 
   obtain ⟨m, hm⟩ := lsKey he fs cert κ hz hreg hmem fp
   set Lb := lsLb fs e.1 e.2.2.2.2.2.1 e.2.1 (e.2.2.1 + e.2.2.2.1) e.2.2.2.2.1 p cs lam z fp with hLb
   set N := lsN fs e.1 e.2.2.2.2.2.1 e.2.1 z with hN
-  have hW : Within Lb fp N := lsLb_within ..
-  have hD : DisjL Lb := lsLb_disj ..
+  have hW : Within Lb fp N :=
+    lsLb_within fs e.1 e.2.2.2.2.2.1 e.2.1 (e.2.2.1 + e.2.2.2.1) e.2.2.2.2.1 p cs lam z fp
+  have hD : DisjL Lb :=
+    lsLb_disj fs e.1 e.2.2.2.2.2.1 e.2.1 (e.2.2.1 + e.2.2.2.1) e.2.2.2.2.1 p cs lam z fp
   by_cases hex : ∃ rd, LowDef κ rd ∧ MemL rd (Lb ++ Lin)
   · obtain ⟨rd0, hl0, hm0⟩ := hex
     refine ⟨N + m, Lb, _, [], ⟨rfl, rfl⟩, by simpa using hW.mono le_rfl (by omega), by simpa using hD,

@@ -82,8 +82,7 @@ theorem lsum_relAtIn {sum loop : String} {Q : ℕ} (hs : FnIs sum (osParams 4) (
     show word 1 0 + gw Q = _; rw [Whir.gw_eq hQu, word_one]
   have hne : σ (.n 12) ≠ 0 := by rw [e12]; exact one_add_gen_pow_ne hQ hQb
   have hok : Whir.AllOk (fun _ _ _ ↦ True) rd σ pre := by
-    simp only [hpre, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds,
-      List.map_cons, List.map_nil, lrVal_n, hσ]
+    simp only [hpre, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds, lrVal_n, hσ]
     simp only [hvals, List.getD_eq_getElem?_getD, List.getElem?_cons_zero, List.getElem?_cons_succ,
       Option.getD_some, true_and, and_true, implies_true]
     rw [Whir.gw_eq hQu, word_one]
@@ -117,7 +116,7 @@ theorem lsum_relAtIn {sum loop : String} {Q : ℕ} (hs : FnIs sum (osParams 4) (
     rw [hallocs]
     by_cases hi : i < b + (Q + 1)
     · exact Or.inl ⟨(Q + 1, b), by simp [bases, b], h1, hi⟩
-    · exact Or.inl ⟨(Q + 1, b'), by simp [bases, b', b], by omega, by omega⟩
+    · exact Or.inl ⟨(Q + 1, b'), by simp [bases, b'], by omega, by omega⟩
   have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
     coreProgram_wf (R := R) (D := fun _ ↦ False) (Dk := fun _ ↦ False) (fp := fp) (N := m + 0)
     (args := [P, F, T, lam]) (rets := [AC.getD Q 0])
@@ -139,7 +138,7 @@ theorem lsum_relAtIn {sum loop : String} {Q : ℕ} (hs : FnIs sum (osParams 4) (
     · rcases hRk i hi with h | h
       · exact Or.inl h
       · exact Or.inr (hown i h.1 h.2)
-    · rw [if_pos hne, hargs]; exact hL
+    · rw [ite_eq_left hne, hargs]; exact hL
   · rw [B1.loadAddrs_straight σ pre hstr] at hA
     have hl : pre.filterMap B1.Stmt.loadS = [(.n 5, 0), (.n 7, 0), (.n 5, Q)] := rfl
     rw [hl] at hA
@@ -269,13 +268,8 @@ theorem lsLb_disj (fs : String → ℕ) (name sum : String) (Q n vo : ℕ) (p cs
     subst hq
     left; simp [lsAccW]
 
-/-- An entry's decided sizes. -/
-def LsSizes (Q pre yr : ℕ) : Prop := 1 ≤ pre ∧ 1 ≤ Q ∧ Q < 2 ^ 30 ∧ pre + yr ≤ 2 ^ 20
-
-instance (Q pre yr : ℕ) : Decidable (LsSizes Q pre yr) := by unfold LsSizes; infer_instance
-
-/-- Every entry of `lrsTable` has its sizes, by the kernel. -/
-theorem lrsTable_sizes : ∀ e ∈ lrsTable, LsSizes e.2.1 e.2.2.1 e.2.2.2.1 := by decide +kernel
+/-- Every entry of `lrsTable` reads few challenges, by the kernel. -/
+theorem lrsTable_small : ∀ e ∈ lrsTable, e.2.2.1 + e.2.2.2.1 ≤ 2 ^ 20 := by decide +kernel
 
 theorem ls_pureIn {loop rq : String} {pre yr vo : ℕ}
     (hl : FnIs loop (osParams 8) (lrsLoopBody rq loop)) (hr : FnIs rq (osParams 3) (rqsBody pre yr vo)) :
@@ -304,14 +298,13 @@ theorem lsKey {e : String × ℕ × ℕ × ℕ × ℕ × String × String × Str
         (lsN fs e.1 e.2.2.2.2.2.1 e.2.1 z + m) e.1 [P, F, T, lam, z]
         [slowVal e.2.1 (e.2.2.1 + e.2.2.2.1) e.2.2.2.2.1 p cs lam z] := by
   obtain ⟨⟨fo, hfo, hpo, hbo⟩, hsum, hloop⟩ := lrsTable_ok e he
-  obtain ⟨-, -, hrqT⟩ := lrsTable_shapes e he
-  obtain ⟨hpre, hQ, hQb, -⟩ := lrsTable_sizes e he
+  obtain ⟨hQ, hQb, hrqT⟩ := lrsTable_shapes e he
   obtain ⟨name, Q, pre, yr, vo, sum, loop, rq⟩ := e
-  simp only at hfo hpo hbo hsum hloop hrqT hpre hQ hQb hreg hmem ⊢
+  simp only at hfo hpo hbo hsum hloop hrqT hQ hQb hreg hmem ⊢
   have hlrs : FnIs name (osParams 5) (lrsBody sum) := ⟨fo, hfo, hpo, hbo⟩
   rcases hz with rfl | rfl
   · refine ⟨0, fun rd _ _ ↦ ?_⟩
-    simp only [lsN, slowVal, eq_self_iff_true, if_true, Nat.add_zero]
+    simp only [lsN, slowVal, ↓reduceIte, Nat.add_zero]
     exact lrs_relAtIn0 hlrs fs cert
   have h10 : (1 : E) ≠ 0 := one_ne_zero
   obtain ⟨fr, hfr, hpr, hbr⟩ := rqsTable_ok _ hrqT
@@ -358,9 +351,9 @@ theorem lsKey {e : String × ℕ × ℕ × ℕ × ℕ × String × String × Str
     have hACm : ReadsAt rd' (ofK (addressOfIndex b)) AC := hB (b, AC) (by simp [hLb])
     have hPWm : ReadsAt rd' (ofK (addressOfIndex (b + (Q + 1)))) PW := hB (b + (Q + 1), PW) (by simp [hLb])
     refine lsLoop_rel he (pos := p) (cs := cs) (fun k hk ↦ ?_) (fun k hk ↦ ?_) hP' hF' hT'
-    · have := Whir.readsAt_getDr hACm (j := k) (by omega)
+    · have := Whir.readsAt_getDr hACm (j := k) (by rw [hACl]; exact Nat.lt_succ_of_le hk)
       rwa [hAC, lsAccW_get hk] at this
-    · have := Whir.readsAt_getDr hPWm (j := k) (by omega)
+    · have := Whir.readsAt_getDr hPWm (j := k) (by rw [hPWl]; exact Nat.lt_succ_of_le hk)
       rwa [hPW, lsPwW_get hk] at this
   obtain ⟨m, hm⟩ := lr_relAtIn_pure_uniform (ls_pureIn hloop hrqF) (List.mem_cons_self) fs cert hres
   refine ⟨m, fun rd hl hL ↦ ?_⟩
@@ -374,11 +367,11 @@ theorem lsKey {e : String × ℕ × ℕ × ℕ × ℕ × String × String × Str
     hPWm hPWl (by rw [hPW, lsPwW_get (Nat.zero_le _)]; ring)
     (hm _ rd hl (by rw [hLk]; exact hL)) hregK
   have hret : AC.getD Q 0 = slowVal Q n vo p cs lam 1 := by
-    rw [hAC, lsAccW_get le_rfl, slowVal, if_neg h10]
+    rw [hAC, lsAccW_get le_rfl, slowVal, ite_eq_right h10]
     rfl
   rw [hret] at hS
   have h := lrs_relAtIn1 hlrs fs cert hS (fun i hi ↦ hi)
-  rw [lsN, if_neg h10, show fs name + (fs sum + 2 * (Q + 1)) + m = fs name + (fs sum + 2 * (Q + 1) + m)
+  rw [lsN, ite_eq_right h10, show fs name + (fs sum + 2 * (Q + 1)) + m = fs name + (fs sum + 2 * (Q + 1) + m)
     by omega]
   exact h
 
