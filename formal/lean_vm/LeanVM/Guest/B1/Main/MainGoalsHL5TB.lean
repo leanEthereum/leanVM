@@ -391,7 +391,7 @@ theorem mainGoalL5TB (SB : String → ℕ)
     (hX : ChildListGoalsTB fs cert fp seed s w Pxs Pss Bxs Bss) :
     MainGoalL5TB fs cert fp seed s w (L5Hinted w Pxs Pss Pvs) (l5B fs SB Bxs Bss Bv w) := by
   intro hnc
-  have hnc16 := hl.atMostSixteenChildren
+  have hnc16 := hl.children_le_sixteen
   have h := l5_completeAtTB fs cert SB hSD (Bv := Bv) (Bxs := Bxs) (Bss := Bss)
     (Lin := hLmain fs fp seed s w) (W := hP fs fp seed s w 8) (D := hP fs fp seed s w 4)
     (Pi := hP fs fp seed s w 5) (Cr := hP fs fp seed s w 7) (nk := w.children.length)

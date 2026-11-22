@@ -418,7 +418,7 @@ theorem mainGoalL5T {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitn
     (hV : VerifySubGoalsT fs cert fp seed s w Pvs) (hX : ChildListGoalsT fs cert fp seed s w Pxs Pss) :
     MainGoalL5T fs cert fp seed s w (L5Hinted w Pxs Pss Pvs) := by
   intro hnc
-  have hnc16 := hl.atMostSixteenChildren
+  have hnc16 := hl.children_le_sixteen
   have h := l5_completeAtT fs cert (Lin := hLmain fs fp seed s w) (W := hP fs fp seed s w 8)
     (D := hP fs fp seed s w 4) (Pi := hP fs fp seed s w 5) (Cr := hP fs fp seed s w 7)
     (nk := w.children.length)

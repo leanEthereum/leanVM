@@ -12,6 +12,7 @@ public import Statement.LeanVmGuestCompleteness
 public import LeanVM.Protocol.Compile.RunPure
 public import LeanVM.Guest.Coverage
 public import LeanVM.Guest.GuestConst
+public import LeanVM.Guest.BatchConsts
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Consts
 

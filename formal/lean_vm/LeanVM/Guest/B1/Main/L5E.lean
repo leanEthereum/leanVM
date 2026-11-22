@@ -107,7 +107,7 @@ theorem mainGoalsRR_l5E (hbl : bytecode.length = 2 ^ 23) (hn : NodeRelation byte
         (hm fs fp seed s w).a394, (hm fs fp seed s w).et, (hm fs fp seed s w).a400] (Returns [])
       (mainPredsHP fs SB SK Bv Pvs s w q).withExact.P5 (mainBsH fs SB SK Bv s w).B5 := by
   intro h0
-  have hnc16 := hl.atMostSixteenChildren
+  have hnc16 := hl.children_le_sixteen
   have hV0 : VerifySubGoalsTBR fs cert fp seed s w
       (fun rd c t => Pvs c t ∧ SameStreams (t.pops coreProgram rd) (pv c)) Bv :=
     fun c hc => (hV c hc).mono le_rfl fun _ _ h => h.1

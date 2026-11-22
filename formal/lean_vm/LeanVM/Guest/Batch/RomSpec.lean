@@ -81,7 +81,7 @@ theorem grind_lam_le_batchε (M : ℕ) :
     (2 : ℝ≥0∞)⁻¹ ^ batchLambdaGrindBits * (invE * (2 * M - 3 : ℕ)) ≤ batchε M := by
   calc (2 : ℝ≥0∞)⁻¹ ^ batchLambdaGrindBits * (invE * (2 * M - 3 : ℕ))
       = ((2 * M - 3 : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 130 := by
-        rw [invE_eq, show batchLambdaGrindBits = 2 from rfl]
+        rw [invE_eq, show batchLambdaGrindBits = 2 by decide]
         ring
     _ ≤ batchε M := by
         unfold batchε
@@ -222,8 +222,9 @@ noncomputable def roundsSpec (M : ℕ) {n : ℕ} {f : List E → E} (hf : Quadra
   | 0, claim, pre, hk => (Spec.ret (Post := fun r _ ↦ r.2 ≠ f (pre ++ r.1)) ([], claim)).mono
       (fun _ h ↦ by simpa [cubeSum_full (f := f) (by simpa using hk)] using h) (fun _ _ h ↦ h)
       le_rfl le_rfl le_rfl
-  | k + 1, claim, pre, hk =>
-    (Spec.readE (Pre := fun _ ↦ claim ≠ cubeSum n f pre)
+  | k + 1, claim, pre, hk => by
+    rw [sumcheckRoundsProgram_succ]
+    exact (Spec.readE (Pre := fun _ ↦ claim ≠ cubeSum n f pre)
         (Post := fun _ _ ↦ claim ≠ cubeSum n f pre) (T := 0) (fun _ _ h ↦ h)
         (zero_le)).bind' fun g1 ↦
       (Spec.readE (Pre := fun _ ↦ claim ≠ cubeSum n f pre)
